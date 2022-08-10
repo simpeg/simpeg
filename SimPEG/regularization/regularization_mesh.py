@@ -481,50 +481,14 @@ class RegularizationMesh(props.BaseSimPEG):
         if getattr(self, "_cell_distances_y", None) is None:
             Ave = self.aveCC2Fy
             self._cell_distances_y = Ave * (self.Pac.T * self.mesh.h_gridded[:, 1])
-        return self._cell_distances_x
+        return self._cell_distances_y
 
     @property
     def cell_distances_z(self):
         if getattr(self, "_cell_distances_z", None) is None:
             Ave = self.aveCC2Fz
             self._cell_distances_z = Ave * (self.Pac.T * self.mesh.h_gridded[:, 2])
-        return self._cell_distances_x
-
-    @property
-    def faceDiffx(self):
-        """
-        x-face differences
-
-        :rtype: scipy.sparse.csr_matrix
-        :return: differencing matrix for active faces in the x-direction
-        """
-        if getattr(self, "_faceDiffx", None) is None:
-            self._faceDiffx = self.Pac.T * self.mesh.face_x_divergence * self.Pafx
-        return self._faceDiffx
-
-    @property
-    def faceDiffy(self):
-        """
-        y-face differences
-
-        :rtype: scipy.sparse.csr_matrix
-        :return: differencing matrix for active faces in the y-direction
-        """
-        if getattr(self, "_faceDiffy", None) is None:
-            self._faceDiffy = self.Pac.T * self.mesh.faceDivy * self.Pafy
-        return self._faceDiffy
-
-    @property
-    def faceDiffz(self):
-        """
-        z-face differences
-
-        :rtype: scipy.sparse.csr_matrix
-        :return: differencing matrix for active faces in the z-direction
-        """
-        if getattr(self, "_faceDiffz", None) is None:
-            self._faceDiffz = self.Pac.T * self.mesh.faceDivz * self.Pafz
-        return self._faceDiffz
+        return self._cell_distances_z
 
 
 # Make it look like it's in the regularization module
