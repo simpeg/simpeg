@@ -1,6 +1,7 @@
-from __future__ import print_function
+import shutil
 import unittest
 import numpy as np
+
 import discretize
 from SimPEG import (
     utils,
@@ -12,9 +13,7 @@ from SimPEG import (
     directives,
     inversion,
 )
-from SimPEG.potential_fields import gravity, get_dist_wgt
-
-import shutil
+from SimPEG.potential_fields import gravity
 
 np.random.seed(43)
 
@@ -22,7 +21,6 @@ np.random.seed(43)
 class GravInvLinProblemTest(unittest.TestCase):
     def setUp(self):
 
-        ndv = -100
         # Create a self.mesh
         dx = 5.0
 
@@ -69,9 +67,6 @@ class GravInvLinProblemTest(unittest.TestCase):
         model[(midx - 2) : (midx + 2), (midy - 2) : (midy + 2), -6:-2] = 0.5
         model = utils.mkvc(model)
         self.model = model[actv]
-
-        # Create active map to go from reduce set to full
-        actvMap = maps.InjectActiveCells(self.mesh, actv, ndv)
 
         # Create reduced identity map
         idenMap = maps.IdentityMap(nP=nC)

@@ -1,3 +1,4 @@
+import discretize
 import numpy as np
 import scipy.sparse as sp
 import properties
@@ -32,11 +33,11 @@ class BaseVRMSimulation(BaseSimulation):
         refinement_distance = kwargs.pop("refinement_distance", None)
         indActive = kwargs.pop("indActive", None)
 
+        if not isinstance(mesh, (discretize.TensorMesh, discretize.TreeMesh)):
+            raise ValueError("Mesh must be 3D tensor or 3D tree.")
         if len(mesh.h) != 3:
             raise ValueError(
-                "Mesh must be 3D tensor or 3D tree. Current mesh is {}".format(
-                    len(mesh.h)
-                )
+                f"Mesh must be 3D tensor or 3D tree. Current mesh is {len(mesh.h)}"
             )
 
         super(BaseVRMSimulation, self).__init__(mesh, **kwargs)
@@ -438,7 +439,6 @@ class BaseVRMSimulation(BaseSimulation):
 
                 if dComp.lower() == "x":
                     for rr in range(0, nLoc):
-
                         u1 = np.kron(np.ones((nw ** 2, 1)), locs[rr, 0] - ax)
                         u1[np.abs(u1) < tol] = np.min(xyzh[:, 0]) / tol2
                         u2 = np.kron(np.ones((nw ** 2, 1)), locs[rr, 0] - bx)
@@ -515,7 +515,6 @@ class BaseVRMSimulation(BaseSimulation):
 
                 elif dComp.lower() == "y":
                     for rr in range(0, nLoc):
-
                         u1 = np.kron(np.ones((nw ** 2, 1)), locs[rr, 0] - ax) + np.kron(
                             s1, np.ones((1, nC))
                         )
@@ -592,7 +591,6 @@ class BaseVRMSimulation(BaseSimulation):
 
                 elif dComp.lower() == "z":
                     for rr in range(0, nLoc):
-
                         u1 = np.kron(np.ones((nw ** 2, 1)), locs[rr, 0] - ax) + np.kron(
                             s1, np.ones((1, nC))
                         )
@@ -789,7 +787,6 @@ class BaseVRMSimulation(BaseSimulation):
 
 
 class Simulation3DLinear(BaseVRMSimulation):
-
     """"""
 
     _A = None
@@ -872,7 +869,6 @@ class Simulation3DLinear(BaseVRMSimulation):
                 waveObj = source_list[pp].waveform
 
                 for qq in range(0, nRx):
-
                     times = receiver_list[qq].times
                     nLoc = np.shape(receiver_list[qq].locations)[0]
 
@@ -953,7 +949,6 @@ class Simulation3DLinear(BaseVRMSimulation):
 
 
 class Simulation3DLogUniform(BaseVRMSimulation):
-
     """"""
 
     _A = None
@@ -1019,7 +1014,6 @@ class Simulation3DLogUniform(BaseVRMSimulation):
             waveObj = source_list[pp].waveform
 
             for qq in range(0, nRx):
-
                 times = receiver_list[qq].times
                 eta = waveObj.getLogUniformDecay(
                     receiver_list[qq].fieldType,

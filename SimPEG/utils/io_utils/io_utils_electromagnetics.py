@@ -707,7 +707,7 @@ def write_dcip2d_ubc(
                 nD = src.nD
 
                 if isinstance(src, PoleSrc):
-                    tx = np.r_[src.location]
+                    tx = src.location[0]
                     tx = np.repeat(np.r_[[tx]], 2, axis=0)
                 elif isinstance(src, DipoleSrc):
                     tx = np.c_[src.location]
@@ -861,7 +861,7 @@ def write_dcip3d_ubc(
             nD = src.nD
 
             if isinstance(src, PoleSrc):
-                tx = np.r_[src.location]
+                tx = src.location[0]
                 tx = np.repeat(np.r_[[tx]], 2, axis=0)
             elif isinstance(src, DipoleSrc):
                 tx = np.c_[src.location]

@@ -3,6 +3,7 @@ from scipy.optimize import minimize
 import warnings
 import properties
 
+
 from ....utils import mkvc, sdiag, Zero
 from ....base import BaseElectricalPDESimulation
 from ....data import Data
@@ -60,8 +61,10 @@ class BaseDCSimulation2D(BaseElectricalPDESimulation):
                 return phi, g
 
             # find the minimum cell spacing, and the maximum side of the mesh
-            min_r = min(*[np.min(h) for h in self.mesh.h])
-            max_r = max(*[np.sum(h) for h in self.mesh.h])
+            min_r = min(self.mesh.edge_lengths)
+            max_r = max(
+                np.max(self.mesh.nodes, axis=0) - np.min(self.mesh.nodes, axis=0)
+            )
             # generate test points log spaced between these two end members
             rs = np.logspace(np.log10(min_r / 4), np.log10(max_r * 4), 100)
 
@@ -112,7 +115,7 @@ class BaseDCSimulation2D(BaseElectricalPDESimulation):
         if miniaturize:
             self._dipoles, self._invs, self._mini_survey = _mini_pole_pole(self.survey)
 
-    def fields(self, m):
+    def fields(self, m=None):
         if self.verbose:
             print(">> Compute fields")
         if m is not None:

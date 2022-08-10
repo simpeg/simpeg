@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import matplotlib as mpl
 from matplotlib import ticker
 import warnings
-
+from ..resistivity import sources, receivers
 from ....data import Data
 from .. import resistivity as dc
 from ....utils import (
@@ -117,16 +117,20 @@ def electrode_separations(survey_object, electrode_pair="all", **kwargs):
 
     for src in survey_object.source_list:
         # pole or dipole source
-        if isinstance(src.location, list):
+        if isinstance(src, sources.Dipole):
             a_loc = src.location[0]
             b_loc = src.location[1]
+        elif isinstance(src, sources.Pole):
+            a_loc = src.location[0]
+            b_loc = np.inf * np.ones_like(src.location[0])
         else:
-            a_loc = src.location
-            b_loc = np.inf * np.ones_like(src.location)
+            raise NotImplementedError(
+                "A_B locations for undefined for multipole sources."
+            )
 
         for rx in src.receiver_list:
             # pole or dipole receiver
-            if isinstance(rx.locations, list):
+            if isinstance(rx, receivers.Dipole):
                 M = rx.locations[0]
                 N = rx.locations[1]
             else:
@@ -139,12 +143,12 @@ def electrode_separations(survey_object, electrode_pair="all", **kwargs):
             B = np.tile(b_loc, (n_rx, 1))
 
             # Compute distances
-            AB.append(np.sqrt(np.sum((A - B) ** 2.0, axis=1)))
-            MN.append(np.sqrt(np.sum((M - N) ** 2.0, axis=1)))
-            AM.append(np.sqrt(np.sum((A - M) ** 2.0, axis=1)))
-            AN.append(np.sqrt(np.sum((A - N) ** 2.0, axis=1)))
-            BM.append(np.sqrt(np.sum((B - M) ** 2.0, axis=1)))
-            BN.append(np.sqrt(np.sum((B - N) ** 2.0, axis=1)))
+            AB.append(np.linalg.norm(A - B, axis=1))
+            MN.append(np.linalg.norm(M - N, axis=1))
+            AM.append(np.linalg.norm(A - M, axis=1))
+            AN.append(np.linalg.norm(A - N, axis=1))
+            BM.append(np.linalg.norm(B - M, axis=1))
+            BN.append(np.linalg.norm(B - N, axis=1))
 
     # Stack to vector and define in dictionary
     if "AB" in electrode_pair:
@@ -211,11 +215,7 @@ def pseudo_locations(survey, wenner_tolerance=0.1, **kwargs):
 
     for ii, source in enumerate(survey.source_list):
         src_loc = source.location
-        if isinstance(src_loc, list):
-            src_midpoint = (src_loc[0] + src_loc[1]) / 2
-        else:
-            src_midpoint = src_loc
-        src_midpoint = src_midpoint.reshape((1, len(src_midpoint)))
+        src_midpoint = np.mean(src_loc, axis=0)[None, :]
 
         for receiver in source.receiver_list:
             rx_locs = receiver.locations
@@ -1423,7 +1423,6 @@ def xy_2_lineID(dc_survey):
 
             # Deal with replicate pole location
             if np.all(xy0 == xym):
-
                 xym[0] = xym[0] + 1e-3
 
             continue
@@ -1453,7 +1452,6 @@ def xy_2_lineID(dc_survey):
 
             # Deal with replicate pole location
             if np.all(xy0 == xym):
-
                 xym[0] = xym[0] + 1e-3
 
             linenum += 1
@@ -1497,7 +1495,6 @@ def gettopoCC(mesh, actind, option="top"):
     """
     Get topography from active indices of mesh.
     """
-
     if mesh._meshType == "TENSOR":
 
         if mesh.dim == 3:
@@ -1546,12 +1543,16 @@ def gettopoCC(mesh, actind, option="top"):
         elif option == "center":
             dz = 0.0
         return mesh.cell_centers[inds, :-1], mesh.cell_centers[inds, -1] + dz
+    else:
+        raise NotImplementedError(f"{type(mesh)} mesh is not supported.")
 
 
 def drapeTopotoLoc(mesh, pts, actind=None, option="top", topo=None):
     """
     Drape location right below (cell center) the topography
     """
+    if isinstance(mesh, discretize.CurvilinearMesh):
+        raise ValueError("Curvilinear mesh is not supported.")
     if mesh.dim == 2:
         # if shape is (*, 1) or (*, 2) just grab first column
         if pts.ndim == 2 and pts.shape[1] in [1, 2]:
@@ -1564,7 +1565,7 @@ def drapeTopotoLoc(mesh, pts, actind=None, option="top", topo=None):
         # just grab the xy locations in the first two columns
         pts = pts[:, :2]
     else:
-        raise NotImplementedError()
+        raise ValueError("Unsupported mesh dimension")
     if actind is None:
         actind = surface2ind_topo(mesh, topo)
     if mesh._meshType == "TENSOR":
@@ -1583,12 +1584,14 @@ def drapeTopotoLoc(mesh, pts, actind=None, option="top", topo=None):
             inds = closestPointsGrid(uniqXlocs, pts, dim=1)
             out = np.c_[uniqXlocs[inds], topoCC[inds]]
     else:
-        raise NotImplementedError()
+        raise NotImplementedError(f"{type(mesh)} mesh is not supported.")
 
     return out
 
 
 def genTopography(mesh, zmin, zmax, seed=None, its=100, anisotropy=None):
+    if isinstance(mesh, discretize.CurvilinearMesh):
+        raise ValueError("Curvilinear mesh is not supported.")
     if mesh.dim == 3:
         mesh2D = discretize.TensorMesh([mesh.hx, mesh.hy], x0=[mesh.x0[0], mesh.x0[1]])
         out = model_builder.randomModel(
@@ -1946,7 +1949,6 @@ gen_DCIPsurvey = deprecate_method(
 def generate_dcip_survey_line(
     survey_type, data_type, endl, topo, ds, dh, n, dim_flag="2.5D", sources_only=False
 ):
-
     warnings.warn(
         "The gen_dcip_survey_line method has been deprecated. Please use "
         "generate_dcip_sources_line instead. This will be removed in version"

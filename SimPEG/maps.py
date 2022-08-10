@@ -2,7 +2,7 @@ from six import integer_types
 from six import string_types
 from collections import namedtuple
 import warnings
-
+import discretize
 import numpy as np
 from numpy.polynomial import polynomial
 import scipy.sparse as sp
@@ -1884,6 +1884,8 @@ class ParametricSplineMap(IdentityMap):
     slope = 1e4
 
     def __init__(self, mesh, pts, ptsv=None, order=3, logSigma=True, normal="X"):
+        if not isinstance(mesh, discretize.base.BaseTensorMesh):
+            raise NotImplementedError(f"{type(mesh)} is not supported.")
         IdentityMap.__init__(self, mesh)
         self.logSigma = logSigma
         self.order = order
@@ -3436,7 +3438,7 @@ class PolynomialPetroClusterMap(IdentityMap):
         coeffyy=np.r_[0.0, 1],
         mesh=None,
         nP=None,
-        **kwargs
+        **kwargs,
     ):
 
         self.coeffxx = coeffxx
