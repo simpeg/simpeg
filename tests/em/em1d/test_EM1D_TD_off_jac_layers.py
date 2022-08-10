@@ -46,43 +46,61 @@ class EM1D_TD_Jac_layers_ProblemTests(unittest.TestCase):
 
         survey = tdem.Survey(source_list)
 
-        sigma = 1e-2
-        chi = 0.0
-        tau = 1e-3
-        eta = 2e-1
-        c = 1.0
-
         self.topo = topo
         self.survey = survey
         self.showIt = False
-        self.sigma = sigma
-        self.tau = tau
-        self.eta = eta
-        self.c = c
-        self.chi = chi
         self.times = times
         self.thicknesses = thicknesses
         self.nlayers = len(thicknesses) + 1
         self.a = radius
 
-    def test_EM1DTDJvec_Layers(self):
-
-        sigma_map = maps.ExpMap(nP=self.nlayers)
+        wire_map = maps.Wires(
+            ("sigma", self.nlayers),
+            ("eta", self.nlayers),
+            ("tau", self.nlayers),
+            ("c", self.nlayers),
+        )
+        self.sigma_map = maps.ExpMap(nP=self.nlayers) * wire_map.sigma
+        self.eta_map = maps.ExpMap(nP=self.nlayers) * wire_map.eta
+        self.tau_map = maps.ExpMap(nP=self.nlayers) * wire_map.tau
+        self.c_map = maps.ExpMap(nP=self.nlayers) * wire_map.c
         sim = tdem.Simulation1DLayered(
             survey=self.survey,
-            thicknesses=self.thicknesses,
-            sigmaMap=sigma_map,
+            sigmaMap=self.sigma_map,
+            etaMap=self.eta_map,
+            tauMap=self.tau_map,
+            cMap=self.c_map,
+            thicknesses=thicknesses,
             topo=self.topo,
         )
+        self.sim = sim
 
-        m_1D = np.log(np.ones(self.nlayers) * self.sigma)
+    def test_EM1DTDJvec_Layers(self):
+
+        # Conductivity
+        sigma_half = 0.01
+        sigma_blk = 0.1
+        sig = np.ones(self.nlayers) * sigma_half
+        sig[3] = sigma_blk
+
+        eta = np.ones_like(sig) * 0.5
+        tau = np.ones_like(sig) * 1e-3
+        c = np.ones_like(sig) * 0.5
+
+        # General model
+        m_1D = np.r_[
+            np.log(sig),
+            np.log(eta),
+            np.log(tau),
+            np.log(c)
+        ]
 
         def fwdfun(m):
-            resp = sim.dpred(m)
+            resp = self.sim.dpred(m)
             return resp
 
         def jacfun(m, dm):
-            Jvec = sim.Jvec(m, dm)
+            Jvec = self.sim.Jvec(m, dm)
             return Jvec
 
         dm = m_1D * 0.5
@@ -94,29 +112,40 @@ class EM1D_TD_Jac_layers_ProblemTests(unittest.TestCase):
 
     def test_EM1DTDJtvec_Layers(self):
 
-        sigma_map = maps.ExpMap(nP=self.nlayers)
-        sim = tdem.Simulation1DLayered(
-            survey=self.survey,
-            thicknesses=self.thicknesses,
-            sigmaMap=sigma_map,
-            topo=self.topo,
-        )
+        # Conductivity
+        sigma_half = 0.01
+        sigma_blk = 0.1
+        sig = np.ones(self.nlayers) * sigma_half
+        sig[3] = sigma_blk
 
-        sigma_layer = 0.1
-        sigma = np.ones(self.nlayers) * self.sigma
-        sigma[3] = sigma_layer
-        m_true = np.log(sigma)
+        eta = np.ones_like(sig) * 0.5
+        tau = np.ones_like(sig) * 1e-3
+        c = np.ones_like(sig) * 0.5
 
-        dobs = sim.dpred(m_true)
+        # General model
+        m_true = np.r_[
+            np.log(sig),
+            np.log(eta),
+            np.log(tau),
+            np.log(c),
+        ]
 
-        m_ini = np.log(np.ones(self.nlayers) * self.sigma)
-        resp_ini = sim.dpred(m_ini)
+        dobs = self.sim.dpred(m_true)
+
+        m_ini = np.r_[
+            np.log(np.ones(self.nlayers) * sigma_half),
+            np.log(1.1*eta),
+            np.log(1.1*tau),
+            np.log(1.1*c),
+        ]
+        resp_ini = self.sim.dpred(m_ini)
         dr = resp_ini - dobs
 
+
         def misfit(m, dobs):
-            dpred = sim.dpred(m)
+            dpred = self.sim.dpred(m)
             misfit = 0.5 * np.linalg.norm(dpred - dobs) ** 2
-            dmisfit = sim.Jtvec(m, dr)
+            dmisfit = self.sim.Jtvec(m, dr)
             return misfit, dmisfit
 
         derChk = lambda m: misfit(m, dobs)
