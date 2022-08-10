@@ -310,8 +310,8 @@ class Simulation1DLayered(BaseEM1DSimulation):
                     rTE_dmu = rTE_dmu[..., inv_lambs]
                     v_dmu = (
                         (
-                            (C0s * rTE_ds) @ self.fhtfilt.j0
-                            + (C1s * rTE_ds) @ self.fhtfilt.j1
+                            (C0s * rTE_dmu) @ self.fhtfilt.j0
+                            + (C1s * rTE_dmu) @ self.fhtfilt.j1
                         )
                         @ W.T
                     ).T

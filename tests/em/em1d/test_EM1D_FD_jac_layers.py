@@ -88,15 +88,15 @@ class EM1D_FD_Jac_layers_ProblemTests(unittest.TestCase):
         self.frequencies = frequencies
         self.thicknesses = thicknesses
         self.nlayers = len(thicknesses) + 1
-        
+
         wire_map = maps.Wires(
             ("sigma", self.nlayers),
-            # ("mu", self.nlayers),
+            ("mu", self.nlayers),
             ("thicknesses", self.nlayers-1),
             # ("h", 1)
         )
         self.sigma_map = maps.ExpMap(nP=self.nlayers) * wire_map.sigma
-        # self.mu_map = maps.IdentityMap(nP=self.nlayers) * wire_map.mu
+        self.mu_map = maps.ExpMap(nP=self.nlayers) * wire_map.mu
         self.thicknesses_map = maps.ExpMap(nP=self.nlayers-1) * wire_map.thicknesses
         # surject_mesh = TensorMesh([np.ones(len(self.frequencies))])
         # self.h_map = maps.SurjectFull(surject_mesh) * maps.ExpMap(nP=1) * wire_map.h
@@ -104,7 +104,7 @@ class EM1D_FD_Jac_layers_ProblemTests(unittest.TestCase):
         sim = fdem.Simulation1DLayered(
             survey=self.survey,
             sigmaMap=self.sigma_map,
-            # muMap=self.mu_map,
+            muMap=self.mu_map,
             thicknessesMap=self.thicknesses_map,
             # hMap=self.h_map,
             topo=self.topo,
@@ -119,19 +119,19 @@ class EM1D_FD_Jac_layers_ProblemTests(unittest.TestCase):
         sigma_blk = 0.1
         sig = np.ones(self.nlayers) * sigma_half
         sig[3] = sigma_blk
-        
+
         # Permeability
         mu_half = mu_0
         mu_blk = 2 * mu_0
         mu = np.ones(self.nlayers) * mu_half
         mu[3] = mu_blk
-        
+
         # General model
         m_1D = np.r_[
             np.log(sig),
-            # mu,
+            np.log(mu),
             np.log(self.thicknesses),
-            # np.log(self.height)            
+            # np.log(self.height)
         ]
 
         def fwdfun(m):
@@ -159,17 +159,17 @@ class EM1D_FD_Jac_layers_ProblemTests(unittest.TestCase):
         sigma_blk = 0.1
         sig = np.ones(self.nlayers) * sigma_half
         sig[3] = sigma_blk
-        
+
         # Permeability
         mu_half = mu_0
         mu_blk = 2 * mu_0
         mu = np.ones(self.nlayers) * mu_half
         mu[3] = mu_blk
-        
+
         # General model
         m_true = np.r_[
             np.log(sig),
-            # mu,
+            np.log(mu),
             np.log(self.thicknesses),
             # np.log(self.height)
         ]
@@ -178,7 +178,7 @@ class EM1D_FD_Jac_layers_ProblemTests(unittest.TestCase):
 
         m_ini = np.r_[
             np.log(np.ones(self.nlayers) * sigma_half),
-            # np.ones(self.nlayers) * 1.5*mu_half,
+            np.log(np.ones(self.nlayers) * 1.5*mu_half),
             np.log(self.thicknesses) * 0.9,
             # np.log(0.5 * self.height)
         ]
@@ -199,133 +199,133 @@ class EM1D_FD_Jac_layers_ProblemTests(unittest.TestCase):
 
 
 
-class EM1D_FD_Jac_layers_PiecewiseWireLoop(unittest.TestCase):
-    def setUp(self):
+# class EM1D_FD_Jac_layers_PiecewiseWireLoop(unittest.TestCase):
+#     def setUp(self):
 
-        x_path = np.array([-2, -2, 2, 2, -2])
-        y_path = np.array([-1, 1, 1, -1, -1])
-        frequencies = np.logspace(0, 4)
+#         x_path = np.array([-2, -2, 2, 2, -2])
+#         y_path = np.array([-1, 1, 1, -1, -1])
+#         frequencies = np.logspace(0, 4)
 
-        wire_paths = np.c_[x_path, y_path, np.ones(5) * 0.5]
-        source_list = []
-        receiver_list = []
-        receiver_location = np.array([9.28, 0.0, 0.45])
-        receiver_orientation = "z"
-        receiver_list.append(
-            fdem.receivers.PointMagneticFieldSecondary(
-                receiver_location,
-                orientation=receiver_orientation,
-                data_type="field",
-                component="both",
-            )
-        )
+#         wire_paths = np.c_[x_path, y_path, np.ones(5) * 0.5]
+#         source_list = []
+#         receiver_list = []
+#         receiver_location = np.array([9.28, 0.0, 0.45])
+#         receiver_orientation = "z"
+#         receiver_list.append(
+#             fdem.receivers.PointMagneticFieldSecondary(
+#                 receiver_location,
+#                 orientation=receiver_orientation,
+#                 data_type="field",
+#                 component="both",
+#             )
+#         )
 
-        for freq in frequencies:
-            source = fdem.sources.PiecewiseWireLoop(
-                receiver_list, wire_paths=wire_paths, frequency=freq
-            )
-            source_list.append(source)
+#         for freq in frequencies:
+#             source = fdem.sources.PiecewiseWireLoop(
+#                 receiver_list, wire_paths=wire_paths, frequency=freq
+#             )
+#             source_list.append(source)
 
-        # Survey
-        survey = fdem.Survey(source_list)
-        self.thicknesses = np.array([20.0, 40.0])
+#         # Survey
+#         survey = fdem.Survey(source_list)
+#         self.thicknesses = np.array([20.0, 40.0])
 
-        self.nlayers = len(self.thicknesses) + 1
-        wire_map = maps.Wires(
-            ("sigma", self.nlayers),
-            # ("mu", self.nlayers),
-            ("thicknesses", self.nlayers-1)
-        )
-        self.sigma_map = maps.ExpMap(nP=self.nlayers) * wire_map.sigma
-        # self.mu_map = maps.IdentityMap(nP=self.nlayers) * wire_map.mu
-        self.thicknesses_map = maps.ExpMap(nP=self.nlayers-1) * wire_map.thicknesses
+#         self.nlayers = len(self.thicknesses) + 1
+#         wire_map = maps.Wires(
+#             ("sigma", self.nlayers),
+#             # ("mu", self.nlayers),
+#             ("thicknesses", self.nlayers-1)
+#         )
+#         self.sigma_map = maps.ExpMap(nP=self.nlayers) * wire_map.sigma
+#         # self.mu_map = maps.IdentityMap(nP=self.nlayers) * wire_map.mu
+#         self.thicknesses_map = maps.ExpMap(nP=self.nlayers-1) * wire_map.thicknesses
 
-        sim = fdem.Simulation1DLayered(
-            survey=survey,
-            sigmaMap=self.sigma_map,
-            # muMap=self.mu_map,
-            thicknessesMap=self.thicknesses_map
-        )
+#         sim = fdem.Simulation1DLayered(
+#             survey=survey,
+#             sigmaMap=self.sigma_map,
+#             # muMap=self.mu_map,
+#             thicknessesMap=self.thicknesses_map
+#         )
 
-        self.sim = sim
+#         self.sim = sim
 
-    def test_EM1DFDJvec_Layers(self):
+#     def test_EM1DFDJvec_Layers(self):
 
-        # Conductivity
-        sigma_half = 0.01
-        sigma_blk = 0.1
-        sig = np.ones(self.nlayers) * sigma_half
-        sig[1] = sigma_blk
-        
-        # Permeability
-        mu_half = mu_0
-        mu_blk = 1.1 * mu_0
-        mu = np.ones(self.nlayers) * mu_half
-        mu[1] = mu_blk
-        
-        # General model
-        m_1D = np.r_[
-            np.log(sig),
-            # mu,
-            np.log(self.thicknesses)
-        ]
+#         # Conductivity
+#         sigma_half = 0.01
+#         sigma_blk = 0.1
+#         sig = np.ones(self.nlayers) * sigma_half
+#         sig[1] = sigma_blk
 
-        def fwdfun(m):
-            resp = self.sim.dpred(m)
-            return resp
-            # return Hz
+#         # Permeability
+#         mu_half = mu_0
+#         mu_blk = 1.1 * mu_0
+#         mu = np.ones(self.nlayers) * mu_half
+#         mu[1] = mu_blk
 
-        def jacfun(m, dm):
-            Jvec = self.sim.Jvec(m, dm)
-            return Jvec
+#         # General model
+#         m_1D = np.r_[
+#             np.log(sig),
+#             # mu,
+#             np.log(self.thicknesses)
+#         ]
 
-        dm = m_1D * 0.5
-        derChk = lambda m: [fwdfun(m), lambda mx: jacfun(m, mx)]
-        passed = tests.checkDerivative(
-            derChk, m_1D, num=4, dx=dm, plotIt=False, eps=1e-15
-        )
-        self.assertTrue(passed)
+#         def fwdfun(m):
+#             resp = self.sim.dpred(m)
+#             return resp
+#             # return Hz
 
-    def test_EM1DFDJtvec_Layers(self):
+#         def jacfun(m, dm):
+#             Jvec = self.sim.Jvec(m, dm)
+#             return Jvec
 
-        # Conductivity
-        sigma_half = 0.01
-        sigma_blk = 0.1
-        sig = np.ones(self.nlayers) * sigma_half
-        sig[1] = sigma_blk
-        
-        # Permeability
-        mu_half = mu_0
-        mu_blk = 1.1 * mu_0
-        mu = np.ones(self.nlayers) * mu_half
-        mu[1] = mu_blk
-        
-        # General model
-        m_true = np.r_[
-            np.log(sig),
-            # mu,
-            np.log(self.thicknesses)
-        ]
+#         dm = m_1D * 0.5
+#         derChk = lambda m: [fwdfun(m), lambda mx: jacfun(m, mx)]
+#         passed = tests.checkDerivative(
+#             derChk, m_1D, num=4, dx=dm, plotIt=False, eps=1e-15
+#         )
+#         self.assertTrue(passed)
 
-        dobs = self.sim.dpred(m_true)
+#     def test_EM1DFDJtvec_Layers(self):
 
-        m_ini = np.r_[
-            np.log(np.ones(self.nlayers) * sigma_half),
-            # np.ones(self.nlayers) * mu_half,
-            np.log(self.thicknesses) * 0.9
-        ]
-        resp_ini = self.sim.dpred(m_ini)
-        dr = resp_ini - dobs
+#         # Conductivity
+#         sigma_half = 0.01
+#         sigma_blk = 0.1
+#         sig = np.ones(self.nlayers) * sigma_half
+#         sig[1] = sigma_blk
 
-        def misfit(m, dobs):
-            dpred = self.sim.dpred(m)
-            misfit = 0.5 * np.linalg.norm(dpred - dobs) ** 2
-            dmisfit = self.sim.Jtvec(m, dr)
-            return misfit, dmisfit
+#         # Permeability
+#         mu_half = mu_0
+#         mu_blk = 1.1 * mu_0
+#         mu = np.ones(self.nlayers) * mu_half
+#         mu[1] = mu_blk
 
-        derChk = lambda m: misfit(m, dobs)
-        passed = tests.checkDerivative(derChk, m_ini, num=4, plotIt=False, eps=1e-27)
-        self.assertTrue(passed)
+#         # General model
+#         m_true = np.r_[
+#             np.log(sig),
+#             # mu,
+#             np.log(self.thicknesses)
+#         ]
+
+#         dobs = self.sim.dpred(m_true)
+
+#         m_ini = np.r_[
+#             np.log(np.ones(self.nlayers) * sigma_half),
+#             # np.ones(self.nlayers) * mu_half,
+#             np.log(self.thicknesses) * 0.9
+#         ]
+#         resp_ini = self.sim.dpred(m_ini)
+#         dr = resp_ini - dobs
+
+#         def misfit(m, dobs):
+#             dpred = self.sim.dpred(m)
+#             misfit = 0.5 * np.linalg.norm(dpred - dobs) ** 2
+#             dmisfit = self.sim.Jtvec(m, dr)
+#             return misfit, dmisfit
+
+#         derChk = lambda m: misfit(m, dobs)
+#         passed = tests.checkDerivative(derChk, m_ini, num=4, plotIt=False, eps=1e-27)
+#         self.assertTrue(passed)
 
 
 
