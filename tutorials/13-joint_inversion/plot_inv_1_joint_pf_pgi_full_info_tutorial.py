@@ -334,7 +334,10 @@ reg = regularization.PGI(
     alpha_xx=0.0,
     alpha_yy=0.0,
     alpha_zz=0.0,
-    weights_list=[wr_grav, wr_mag],  # weights each phys. prop. by correct sensW
+    # use the classification of the initial model (here, all background unit)
+    # as initial reference model
+    reference_model=utils.mkvc(gmmref.means_[gmmref.predict(m0.reshape(actvMap.nP,-1))]),
+    weights_list=[wr_grav, wr_mag], # weights each phys. prop. by correct sensW
 )
 
 #########################################################################
@@ -347,8 +350,8 @@ reg = regularization.PGI(
 # ratio to use for each phys prop. smoothness in each direction;
 # roughly the ratio of the order of magnitude of each phys. prop.
 alpha0_ratio = np.r_[
-    1e-2 * np.ones(len(reg.objfcts[1].objfcts[1:])),
-    1e-2 * 100.0 * np.ones(len(reg.objfcts[2].objfcts[1:])),
+    1e-4 * np.ones(len(reg.objfcts[1].objfcts[1:])),
+    1e-4 * 100.0 * np.ones(len(reg.objfcts[2].objfcts[1:])),
 ]
 Alphas = directives.AlphasSmoothEstimate_ByEig(alpha0_ratio=alpha0_ratio, verbose=True)
 # initialize beta and beta/alpha_s schedule

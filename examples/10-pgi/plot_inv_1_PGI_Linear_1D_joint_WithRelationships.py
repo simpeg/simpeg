@@ -333,13 +333,6 @@ axes[3].legend(["True Petrophysical Distribution", "Recovered model crossplot"])
 axes[3].set_xlabel("Property 1")
 axes[3].set_ylabel("Property 2")
 
-# fig.suptitle(
-#    'Doodling with Mapping: one mapping per identified rock unit\n' +
-#    'Joint inversion of 1D Linear Problems ' +
-#    'with nonlinear petrophysical relationships',
-#    fontsize=24
-# )
-
 axes[4].set_axis_off()
 axes[4].text(
     0.5 * (left + right),
@@ -353,8 +346,6 @@ axes[4].text(
 )
 
 axes[5].plot(mesh.cell_centers_x, wires.m1 * mcluster_no_map, "b.-", ms=5, marker="v")
-# axes[5].plot(mesh.cell_centers_x, wires.m1 * reg_simple_no_map.objfcts[0].mref, 'g--')
-
 axes[5].plot(mesh.cell_centers_x, wires.m1 * m, "k--")
 axes[5].set_title("Problem 1")
 axes[5].legend(["Recovered Model", "True Model"], loc=1)
@@ -362,8 +353,6 @@ axes[5].set_xlabel("X")
 axes[5].set_ylabel("Property 1")
 
 axes[6].plot(mesh.cell_centers_x, wires.m2 * mcluster_no_map, "r.-", ms=5, marker="v")
-# axes[6].plot(mesh.cell_centers_x, wires.m2 * reg_simple_no_map.objfcts[0].mref, 'g--')
-
 axes[6].plot(mesh.cell_centers_x, wires.m2 * m, "k--")
 axes[6].set_title("Problem 2")
 axes[6].legend(["Recovered Model", "True Model"], loc=1)
