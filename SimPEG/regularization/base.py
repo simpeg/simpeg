@@ -1075,7 +1075,7 @@ class WeightedLeastSquares(ComboObjectiveFunction):
                 f"Value of type {type(units)} provided."
             )
         for fct in self.objfcts:
-            fct.model = units
+            fct.units = units
         self._units = units
 
     @property

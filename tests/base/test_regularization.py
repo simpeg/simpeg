@@ -183,6 +183,13 @@ class RegularizationTests(unittest.TestCase):
                 for fct in reg.objfcts
             ]
 
+            # test removing cell weights
+            reg.remove_weights("user_weights")
+            [
+                self.assertTrue("user_weights" not in reg.objfcts[0]._weights)
+                for fct in reg.objfcts
+            ]
+
             # test updated mappings
             mapping = maps.ExpMap(nP=int(active_cells.sum()))
             reg.mapping = mapping
@@ -205,6 +212,17 @@ class RegularizationTests(unittest.TestCase):
             ]
             b = reg(m)
             self.assertTrue(0.5 * a == b)
+
+            # Change units
+            with pytest.raises(TypeError) as error:
+                reg.units = -1
+
+            assert "'units' must be None or type str." in str(error)
+
+            reg.units = "radian"
+
+            [self.assertTrue(fct.units == "radian") for fct in reg.objfcts]
+
 
     def test_addition(self):
         mesh = discretize.TensorMesh([8, 7, 6])
