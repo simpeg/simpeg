@@ -52,7 +52,7 @@ class BaseSparse(BaseRegularization):
     def irls_threshold(self, value):
         value = float(value)
         if value <= 0:
-            raise ValueError("Value of 'irls_threshold' should be larger than 0.")
+            raise ValueError("Value of 'irls_threshold' should be greater than 0.")
         self._irls_threshold = value
 
     @property
@@ -65,7 +65,7 @@ class BaseSparse(BaseRegularization):
     @norm.setter
     def norm(self, value: float | np.ndarray | None):
         if value is None:
-            value = 2.0
+            value = np.ones(self._weights_shapes[0]) * 2.0
         else:
             if isinstance(value, (float, int)):
                 value = np.ones(self._weights_shapes[0]) * value
@@ -303,9 +303,11 @@ class Sparse(WeightedLeastSquares):
                     "The number of values provided for 'norms' does not "
                     "match the number of regularization functions."
                 )
+        else:
+            values = [None] * len(self.objfcts)
 
-            for val, fct in zip(values, self.objfcts):
-                fct.norm = val
+        for val, fct in zip(values, self.objfcts):
+            fct.norm = val
 
         self._norms = values
 

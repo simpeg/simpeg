@@ -315,6 +315,12 @@ class RegularizationTests(unittest.TestCase):
         cell_weights = np.random.rand(mesh.nC)
 
         reg = regularization.Sparse(mesh, weights=cell_weights)
+
+        with pytest.raises(ValueError) as error:
+            reg.norms = [1, 1]
+
+        assert "The number of values provided for 'norms'" in str(error)
+
         reg.norms = [2.0, 2.0, 2.0, 2.0]
         self.assertTrue(
             np.all(
@@ -345,6 +351,11 @@ class RegularizationTests(unittest.TestCase):
         self.assertTrue(np.all(reg.objfcts[1].norm == 1.0 * np.ones(mesh.nFx)))
         self.assertTrue(np.all(reg.objfcts[2].norm == 1.0 * np.ones(mesh.nFy)))
         self.assertTrue(np.all(reg.objfcts[3].norm == 1.0 * np.ones(mesh.nFz)))
+
+        reg.norms = None
+        for obj in reg.objfcts:
+            self.assertTrue(np.all(obj.norm == 2.0 * np.ones(obj._weights_shapes[0])))
+
 
     def test_linked_properties(self):
         mesh = discretize.TensorMesh([8, 7, 6])
@@ -522,6 +533,27 @@ class RegularizationTests(unittest.TestCase):
 
         deriv_angle = smooth_deriv.f_m(np.r_[-np.pi, np.pi])
         np.testing.assert_almost_equal(deriv_angle, 0., err_msg="Error computing coterminal angle")
+
+    def test_sparse_properties(self):
+        mesh = discretize.TensorMesh([8, 7])
+        for reg_fun in [regularization.Sparse, regularization.SparseDeriv]:
+            reg = reg_fun(mesh)
+            assert reg.irls_threshold == 1e-8  # Default
+
+            with pytest.raises(ValueError) as error:
+                reg.irls_threshold = -1
+
+            assert "Value of 'irls_threshold' should be greater than 0." in str(error)
+
+            assert reg.irls_scaled  # Default
+
+            with pytest.raises(TypeError) as error:
+                reg.irls_scaled = -1
+
+            assert "'irls_scaled must be of type 'bool'" in str(error)
+
+            assert reg.gradient_type == "total"  # Check default
+
 
 if __name__ == "__main__":
     unittest.main()
