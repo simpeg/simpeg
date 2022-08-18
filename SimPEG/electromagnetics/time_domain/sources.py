@@ -1136,6 +1136,8 @@ class LineCurrent(BaseTDEMSrc):
         if simulation._formulation == "EB":
             return self.Mejs(simulation) * self.waveform.eval(time)
         elif simulation._formulation == "HJ":
+            if self.waveform.has_initial_fields:
+                return Zero()
             return self.Mfjs(simulation) * self.waveform.eval(time)
 
 
