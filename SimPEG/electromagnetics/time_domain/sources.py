@@ -1070,8 +1070,7 @@ class LineCurrent(BaseTDEMSrc):
     def _aInitial(self, simulation):
         A = self._getAmmr(simulation)
         Ainv = simulation.solver(A)  # todo: store this
-        s_e = self.s_e(simulation, 0)
-        rhs = s_e + self.jInitial(simulation)
+        rhs = self.Mfjs + self.jInitial(simulation)
         return Ainv * rhs
 
     def _aInitialDeriv(self, simulation, v, adjoint=False):
