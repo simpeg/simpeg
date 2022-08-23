@@ -11,12 +11,12 @@ class BaseRx(BaseTimeRx):
 
     :param numpy.ndarray locations: receiver locations (ie. :code:`np.r_[x,y,z]`)
     :param numpy.ndarray times: times
-    :param string orientation: receiver orientation 'x', 'y' or 'z'
+    :param string orientation: receiver orientation 'x', 'y' or 'z' or numpy array
     """
 
-    orientation = properties.StringChoice(
-        "orientation of the receiver. Must currently be 'x', 'y', 'z'", ["x", "y", "z"]
-    )
+    #orientation = properties.StringChoice(
+    #    "orientation of the receiver. Must currently be 'x', 'y', 'z'", ["x", "y", "z"]
+    #)
 
     def __init__(self, locations, times, orientation=None, **kwargs):
         proj = kwargs.pop("projComp", None)
@@ -28,7 +28,10 @@ class BaseRx(BaseTimeRx):
 
     def projGLoc(self, f):
         """Grid Location projection (e.g. Ex Fy ...)"""
-        return f._GLoc(self.projField) + self.orientation
+        if type(self.orientation) is str:
+            return f._GLoc(self.projField) + self.orientation
+        else:
+            return "total"
 
     def projTLoc(self, f):
         """Time Location projection (e.g. CC N)"""
@@ -42,7 +45,13 @@ class BaseRx(BaseTimeRx):
 
             This is not stored in memory, but is created on demand.
         """
-        return mesh.getInterpolationMat(self.locations, self.projGLoc(f))
+        if type(self.orientation) is str:
+            return mesh.getInterpolationMat(self.locations, self.projGLoc(f))
+        else:
+            P = self.orientation[0] * (mesh.getInterpolationMat(self.locations, f._GLoc(self.projField) + 'x'))
+            P += self.orientation[1] * (mesh.getInterpolationMat(self.locations, f._GLoc(self.projField) + 'y'))
+            P += self.orientation[2] * (mesh.getInterpolationMat(self.locations, f._GLoc(self.projField) + 'z'))
+            return P
 
     def getTimeP(self, time_mesh, f):
         """
