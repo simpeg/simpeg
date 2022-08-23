@@ -38,33 +38,56 @@ class BasePFSimulation(LinearSimulation):
                 indices = np.where(self.actInd)[0]
             else:
                 indices = self.actInd
-
         else:
-
             indices = np.asarray(range(self.mesh.nC))
 
         self.nC = len(indices)
 
-        # Create active cell projector
-        projection = csr(
-            (np.ones(self.nC), (indices, range(self.nC))), shape=(self.mesh.nC, self.nC)
-        )
-        if not isinstance(mesh, (discretize.TensorMesh, discretize.TreeMesh)):
+        if isinstance(mesh, discretize.TensorMesh):
+            nodes = mesh.nodes
+            inds = np.arange(mesh.n_nodes).reshape(mesh.shape_nodes, order="F")
+            if mesh.dim == 2:
+                cell_nodes = [
+                    inds[:-1, :-1].reshape(-1, order="F"),
+                    inds[1:, :-1].reshape(-1, order="F"),
+                    inds[:-1, 1:].reshape(-1, order="F"),
+                    inds[1:, 1:].reshape(-1, order="F"),
+                ]
+            if mesh.dim == 3:
+                cell_nodes = [
+                    inds[:-1, :-1, :-1].reshape(-1, order="F"),
+                    inds[1:, :-1, :-1].reshape(-1, order="F"),
+                    inds[:-1, 1:, :-1].reshape(-1, order="F"),
+                    inds[1:, 1:, :-1].reshape(-1, order="F"),
+                    inds[:-1, :-1, 1:].reshape(-1, order="F"),
+                    inds[1:, :-1, 1:].reshape(-1, order="F"),
+                    inds[:-1, 1:, 1:].reshape(-1, order="F"),
+                    inds[1:, 1:, 1:].reshape(-1, order="F"),
+                ]
+            cell_nodes = np.stack(cell_nodes, axis=-1)[indices]
+        elif isinstance(mesh, discretize.TreeMesh):
+            nodes = np.r_[mesh.nodes, mesh.hanging_nodes]
+            cell_nodes = mesh.cell_nodes[indices]
+        else:
             raise ValueError("Mesh must be 3D tensor or Octree.")
-        # Create vectors of nodal location for the lower and upper corners
-        bsw = self.mesh.gridCC - self.mesh.h_gridded / 2.0
-        tne = self.mesh.gridCC + self.mesh.h_gridded / 2.0
+        unique, unique_inv = np.unique(cell_nodes, return_inverse=True)
+        self._nodes = nodes[unique]  # unique active nodes
+        self._unique_inv = unique_inv.reshape(cell_nodes.shape)
 
-        xn1, xn2 = bsw[:, 0], tne[:, 0]
-        yn1, yn2 = bsw[:, 1], tne[:, 1]
-
-        self.Yn = projection.T * np.c_[mkvc(yn1), mkvc(yn2)]
-        self.Xn = projection.T * np.c_[mkvc(xn1), mkvc(xn2)]
-
+        # # Create vectors of nodal location for the lower and upper corners
+        # bsw = self.mesh.gridCC - self.mesh.h_gridded / 2.0
+        # tne = self.mesh.gridCC + self.mesh.h_gridded / 2.0
+        #
+        # xn1, xn2 = bsw[:, 0], tne[:, 0]
+        # yn1, yn2 = bsw[:, 1], tne[:, 1]
+        #
+        # self.Yn = projection.T * np.c_[mkvc(yn1), mkvc(yn2)]
+        # self.Xn = projection.T * np.c_[mkvc(xn1), mkvc(xn2)]
+        #
         # Allows for 2D mesh where Zn is defined by user
-        if self.mesh.dim > 2:
-            zn1, zn2 = bsw[:, 2], tne[:, 2]
-            self.Zn = projection.T * np.c_[mkvc(zn1), mkvc(zn2)]
+        # if self.mesh.dim > 2:
+        #     zn1, zn2 = bsw[:, 2], tne[:, 2]
+        #     self.Zn = projection.T * np.c_[mkvc(zn1), mkvc(zn2)]
 
     def linear_operator(self):
 
@@ -209,7 +232,18 @@ class BaseEquivalentSourceLayerSimulation(BasePFSimulation):
                 "'cell_z_top' and 'cell_z_bottom' must have length equal to number of cells."
             )
 
-        self.Zn = np.c_[cell_z_bottom, cell_z_top]
+        all_nodes = self._nodes[self._unique_inv]
+        all_nodes = [
+            np.c_[all_nodes[:, 0], cell_z_bottom],
+            np.c_[all_nodes[:, 1], cell_z_bottom],
+            np.c_[all_nodes[:, 2], cell_z_bottom],
+            np.c_[all_nodes[:, 3], cell_z_bottom],
+            np.c_[all_nodes[:, 0], cell_z_top],
+            np.c_[all_nodes[:, 1], cell_z_top],
+            np.c_[all_nodes[:, 2], cell_z_top],
+            np.c_[all_nodes[:, 3], cell_z_top],
+        ]
+        self._nodes = np.stack(all_nodes, axis=1)
 
 
 def progress(iter, prog, final):
