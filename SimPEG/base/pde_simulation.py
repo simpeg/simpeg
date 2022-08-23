@@ -10,7 +10,8 @@ import properties
 def __inner_mat_mul_op(M, u, v=None, adjoint=False):
     u = np.squeeze(u)
     if v is not None:
-        v = np.squeeze(v)
+        if v.ndim > 1:
+            v = np.squeeze(v)
         if u.ndim > 1:
             # u has multiple fields
             if v.ndim == 1:
