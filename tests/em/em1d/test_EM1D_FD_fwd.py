@@ -22,65 +22,96 @@ class EM1D_FD_test_failures(unittest.TestCase):
         self.thicknesses = thicknesses
         self.nlayers = len(thicknesses) + 1
     
-    def test_src_height_failure(self):
+    def test_height_failures(self):
         
-        offset = 10.0
-        src_location = np.array([[0.0, 0.0, self.topo[2]-10.]])
-        rx_location = np.array([[offset, 0.0, self.topo[2]+1e-5]])
-        frequencies = np.logspace(-1, 5, 11)
-        
-        receiver_list = [
-            fdem.receivers.PointMagneticFieldSecondary(
-                rx_location, orientation="z", component="both"
-            )
+        frequencies = np.logspace(-1, 5, 6)
+        x_offset = 10.
+        z_tx = [-10., 1., 1.]
+        z_rx = [1., -10., -10.]
+        use_source_receiver_offset = [False, False, True]
+        error_type = [ValueError, ValueError, ValueError]
+        test_type_string = [
+            'NO SOURCE BELOW SURFACE',
+            'NO RX BELOW SURFACE (STANDARD)',
+            'NO RX BELOW SURFACE (OFFSET)'
         ]
-        
-        source_list = []
-        for ii, frequency in enumerate(frequencies):
-            src = fdem.sources.MagDipole(
-                receiver_list, frequency, src_location, orientation="z"
-            )
-            source_list.append(src)
 
-        survey = fdem.Survey(source_list)
+        for ii in range(0, len(error_type)):
+            if use_source_receiver_offset[ii]:
+                rx_location = np.array([[x_offset, 0.0, z_rx[ii]]])
+            else:
+                rx_location = np.array([[x_offset, 0.0, z_rx[ii]+self.topo[2]]])
         
-        self.assertRaises(
-            ValueError,
-            fdem.Simulation1DLayered,
-            survey=survey,
-            thicknesses=self.thicknesses,
-            topo=self.topo
-        )
+            receiver_list = [
+                fdem.receivers.PointMagneticFieldSecondary(
+                    rx_location, orientation="z", component="both",
+                    use_source_receiver_offset=use_source_receiver_offset[ii]
+                )
+            ]
+            
+            src_location = np.array([[0.0, 0.0, z_tx[ii]+self.topo[2]]])
+        
+            source_list = [
+                fdem.sources.MagDipole(
+                    receiver_list, f, src_location, orientation="z"
+                ) for f in frequencies
+            ]
+
+            survey = fdem.Survey(source_list)
+            
+            self.assertRaises(
+                error_type[ii],
+                fdem.Simulation1DLayered,
+                survey=survey,
+                thicknesses=self.thicknesses,
+                topo=self.topo
+            )
+        
+            print(test_type_string[ii] + " TEST PASSED")
     
-    def test_rx_height_failure(self):
+    def test_loop_orientation_failures(self):
         
-        offset = 10.0
-        src_location = np.array([[0.0, 0.0, self.topo[2]+1e-5]])
-        rx_location = np.array([[offset, 0.0, self.topo[2]-10.]])
-        frequencies = np.logspace(-1, 5, 11)
+        src_location = np.array([0.0, 0.0, 1e-5])
+        frequencies = np.logspace(-1, 5, 6)
+        sigma_map = maps.ExpMap(nP=self.nlayers)
+        m_1D = np.log(np.ones(self.nlayers) * 0.01)
         
-        receiver_list = [
-            fdem.receivers.PointMagneticFieldSecondary(
-                rx_location, orientation="z", component="both"
-            )
-        ]
+        offsets = [10., 0.]
+        rx_orientation = ['z', 'z']
+        src_orientation = ['z', 'x']
+        test_type_string = ['NO TX-RX OFFSET', 'ONLY HORIZONTAL LOOP']
+        error_type = [ValueError, ValueError]
         
-        source_list = []
-        for ii, frequency in enumerate(frequencies):
-            src = fdem.sources.MagDipole(
-                receiver_list, frequency, src_location, orientation="z"
-            )
-            source_list.append(src)
+        for ii in range(0, len(offsets)):
+        
+            rx_location = np.array([[offsets[ii], 0.0, 1e-5]])
+            receiver_list = [
+                fdem.receivers.PointMagneticFieldSecondary(
+                    rx_location, orientation=rx_orientation[ii], component="both"
+                )
+            ]
 
-        survey = fdem.Survey(source_list)
+            source_list = [
+                fdem.sources.CircularLoop(
+                    receiver_list, f, src_location, radius=5.0, orientation=src_orientation[ii]
+                ) for f in frequencies
+            ]
+
+            survey = fdem.Survey(source_list)
+    
+            sim = fdem.Simulation1DLayered(
+                survey=survey, thicknesses=self.thicknesses, sigmaMap=sigma_map
+            )
         
-        self.assertRaises(
-            ValueError,
-            fdem.Simulation1DLayered,
-            survey=survey,
-            thicknesses=self.thicknesses,
-            topo=self.topo
-        )
+            self.assertRaises(
+                error_type[ii],
+                sim.dpred,
+                m_1D
+            )
+            
+            print(test_type_string[ii] + " TEST PASSED")
+            
+            
         
 class EM1D_FD_FwdProblemTests(unittest.TestCase):
     def setUp(self):
@@ -90,31 +121,31 @@ class EM1D_FD_FwdProblemTests(unittest.TestCase):
         thicknesses = np.r_[nearthick, deepthick]
         topo = np.r_[0.0, 0.0, 100.0]
 
-        offset = 10.0
+        offset = 10.
         src_location = np.array([[0.0, 0.0, 100.0 + 1e-5]])
-        rx_location = np.array([[offset, 0.0, 100.0 + 1e-5]])
+        rx_location = np.array([[offset, 0.0, 0.0]])
         frequencies = np.logspace(-1, 5, 61)
 
         # Receiver list
         receiver_list = []
         receiver_list.append(
             fdem.receivers.PointMagneticFieldSecondary(
-                rx_location, orientation="z", component="real"
+                rx_location, orientation="z", component="real", use_source_receiver_offset=True
             )
         )
         receiver_list.append(
             fdem.receivers.PointMagneticFieldSecondary(
-                rx_location, orientation="z", component="imag"
+                rx_location, orientation="z", component="imag", use_source_receiver_offset=True
             )
         )
         receiver_list.append(
             fdem.receivers.PointMagneticFieldSecondary(
-                rx_location, orientation="x", component="real"
+                rx_location, orientation="x", component="real", use_source_receiver_offset=True
             )
         )
         receiver_list.append(
             fdem.receivers.PointMagneticFieldSecondary(
-                rx_location, orientation="x", component="imag"
+                rx_location, orientation="x", component="imag", use_source_receiver_offset=True
             )
         )
 
@@ -252,7 +283,7 @@ class EM1D_FD_FwdProblemTests(unittest.TestCase):
             H_analytic.append([hz.real, hz.imag, hx.real, hx.imag])
         H_analytic = np.hstack(H_analytic)
         err = np.linalg.norm(H - H_analytic) / np.linalg.norm(H_analytic)
-        self.assertTrue(err < 1e-5)
+        self.assertTrue(err < 1e-2)
 
     def test_EM1DFDfwd_HMD_RealCond(self):
 

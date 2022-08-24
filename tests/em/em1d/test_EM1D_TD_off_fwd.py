@@ -12,6 +12,67 @@ from geoana.em.tdem import (
 )
 
 
+class EM1D_FD_test_failures(unittest.TestCase):
+    def setUp(self):
+        
+        nearthick = np.logspace(-1, 1, 5)
+        deepthick = np.logspace(1, 2, 10)
+        thicknesses = np.r_[nearthick, deepthick]
+        topo = np.r_[0.0, 0.0, 100.0]
+        
+        self.topo = topo
+        self.thicknesses = thicknesses
+        self.nlayers = len(thicknesses) + 1
+    
+    def test_height_failures(self):
+        
+        times = np.logspace(-5, -2, 31)
+        waveform = tdem.sources.StepOffWaveform(offTime=0.0)
+        x_offset = 10.
+        z_tx = [-10., 1., 1.]
+        z_rx = [1., -10., -10.]
+        use_source_receiver_offset = [False, False, True]
+        error_type = [ValueError, ValueError, ValueError]
+        test_type_string = [
+            'NO SOURCE BELOW SURFACE',
+            'NO RX BELOW SURFACE (STANDARD)',
+            'NO RX BELOW SURFACE (OFFSET)'
+        ]
+
+        for ii in range(0, len(error_type)):
+            if use_source_receiver_offset[ii]:
+                rx_location = np.array([[x_offset, 0.0, z_rx[ii]]])
+            else:
+                rx_location = np.array([[x_offset, 0.0, z_rx[ii]+self.topo[2]]])
+        
+            receiver_list = [
+                tdem.receivers.PointMagneticFluxDensity(
+                    rx_location, times, orientation="z",
+                    use_source_receiver_offset=use_source_receiver_offset[ii]
+                )
+            ]
+            
+            src_location = np.array([[0.0, 0.0, z_tx[ii]+self.topo[2]]])
+        
+            source_list = [
+                tdem.sources.MagDipole(
+                    receiver_list, location=src_location, orientation="z"
+                )
+            ]
+
+            survey = tdem.Survey(source_list)
+            
+            self.assertRaises(
+                error_type[ii],
+                tdem.Simulation1DLayered,
+                survey=survey,
+                thicknesses=self.thicknesses,
+                topo=self.topo
+            )
+        
+            print(test_type_string[ii] + " TEST PASSED")
+
+
 class EM1D_TD_MagDipole_Tests(unittest.TestCase):
     # Test magnetic dipole source and receiver on Earth's surface against
     # analytic solutions from Ward and Hohmann.
@@ -206,7 +267,7 @@ class EM1D_TD_Loop_Center_Tests(unittest.TestCase):
     def test_viscous_remanent_magnetization_dbdt(self):
         # Test b-field computation for magnetic dipole sources to step-off. Tests:
         # - x,y,z oriented source and receivers
-        # - static conductivity only
+        # - purely viscous Earth. No conductivity
             
         rx_list = [tdem.receivers.PointMagneticFluxTimeDerivative(self.rx_location, self.times, 'z')]
         src_list = [tdem.sources.CircularLoop(rx_list, location=self.src_location, radius=self.radius)]
