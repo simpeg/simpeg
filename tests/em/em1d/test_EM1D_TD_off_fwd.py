@@ -24,19 +24,26 @@ class EM1D_FD_test_failures(unittest.TestCase):
         self.thicknesses = thicknesses
         self.nlayers = len(thicknesses) + 1
     
-    def test_height_failures(self):
+    def test_instantiation_failures(self):
         
         times = np.logspace(-5, -2, 31)
         waveform = tdem.sources.StepOffWaveform(offTime=0.0)
         x_offset = 10.
-        z_tx = [-10., 1., 1.]
-        z_rx = [1., -10., -10.]
-        use_source_receiver_offset = [False, False, True]
-        error_type = [ValueError, ValueError, ValueError]
+        z_tx = [-10., 1., 1., 1.]
+        z_rx = [1., -10., -10., 1.]
+        use_source_receiver_offset = [False, False, True, False]
+        error_type = [ValueError, ValueError, ValueError, Exception]
+        fftfilt_type = [
+            "key_81_CosSin_2009",
+            "key_201_CosSin_2012",
+            "key_601_CosSin_2009",
+            "non_existent_filter"
+        ]
         test_type_string = [
             'NO SOURCE BELOW SURFACE',
             'NO RX BELOW SURFACE (STANDARD)',
-            'NO RX BELOW SURFACE (OFFSET)'
+            'NO RX BELOW SURFACE (OFFSET)',
+            'FFTFILT NOT RECOGNIZED'
         ]
 
         for ii in range(0, len(error_type)):
@@ -67,7 +74,8 @@ class EM1D_FD_test_failures(unittest.TestCase):
                 tdem.Simulation1DLayered,
                 survey=survey,
                 thicknesses=self.thicknesses,
-                topo=self.topo
+                topo=self.topo,
+                time_filter=fftfilt_type[ii]
             )
         
             print(test_type_string[ii] + " TEST PASSED")

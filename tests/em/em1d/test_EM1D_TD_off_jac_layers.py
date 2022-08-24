@@ -61,17 +61,22 @@ class EM1D_TD_Jacobian_Test_MagDipole(unittest.TestCase):
         wire_map = maps.Wires(
             ("sigma", self.nlayers),
             ("mu", self.nlayers),
-            ("thicknesses", self.nlayers-1)
+            ("thicknesses", self.nlayers-1),
+            ("h", 1)
         )
         self.sigma_map = maps.ExpMap(nP=self.nlayers) * wire_map.sigma
         self.mu_map = maps.ExpMap(nP=self.nlayers) * wire_map.mu
         self.thicknesses_map = maps.ExpMap(nP=self.nlayers-1) * wire_map.thicknesses
+        nP = len(source_list)
+        surject_mesh = TensorMesh([np.ones(nP)])
+        self.h_map = maps.SurjectFull(surject_mesh) * maps.ExpMap(nP=1) * wire_map.h
 
         sim = tdem.Simulation1DLayered(
             survey=self.survey,
             sigmaMap=self.sigma_map,
             muMap=self.mu_map,
             thicknessesMap=self.thicknesses_map,
+            hMap=self.h_map,
             topo=self.topo,
         )
 
@@ -95,7 +100,8 @@ class EM1D_TD_Jacobian_Test_MagDipole(unittest.TestCase):
         m_1D = np.r_[
             np.log(sig),
             np.log(mu),
-            np.log(self.thicknesses)
+            np.log(self.thicknesses),
+            np.log(self.height)
         ]
 
         def fwdfun(m):
@@ -134,7 +140,8 @@ class EM1D_TD_Jacobian_Test_MagDipole(unittest.TestCase):
         m_true = np.r_[
             np.log(sig),
             np.log(mu),
-            np.log(self.thicknesses)
+            np.log(self.thicknesses),
+            np.log(self.height)
         ]
 
         dobs = self.sim.dpred(m_true)
@@ -142,7 +149,8 @@ class EM1D_TD_Jacobian_Test_MagDipole(unittest.TestCase):
         m_ini = np.r_[
             np.log(np.ones(self.nlayers) * sigma_half),
             np.log(np.ones(self.nlayers) * 1.5*mu_half),
-            np.log(self.thicknesses) * 0.9
+            np.log(self.thicknesses) * 0.9,
+            np.log(self.height) * 0.5
         ]
         resp_ini = self.sim.dpred(m_ini)
         dr = resp_ini - dobs
@@ -171,6 +179,7 @@ class EM1D_TD_Jacobian_Test_CircularLoop(unittest.TestCase):
         deepthick = np.logspace(1, 2, 10)
         thicknesses = np.r_[nearthick, deepthick]
         topo = np.r_[0.0, 0.0, 100.0]
+        height = 1e-5
 
         source_location = np.array([0.0, 0.0, 100.0 + 1e-5])
         rx_location = np.array([[0.0, 0.0, 100.0 + 1e-5]])
@@ -197,6 +206,7 @@ class EM1D_TD_Jacobian_Test_CircularLoop(unittest.TestCase):
                 location=source_location,
                 waveform=waveform,
                 radius=radius,
+                current=1.
             )
         ]
 
@@ -205,24 +215,31 @@ class EM1D_TD_Jacobian_Test_CircularLoop(unittest.TestCase):
         self.topo = topo
         self.survey = survey
         self.showIt = False
+        self.height = height
         self.times = times
         self.thicknesses = thicknesses
         self.nlayers = len(thicknesses) + 1
+
+        nP = len(source_list)
         
         wire_map = maps.Wires(
             ("sigma", self.nlayers),
             ("mu", self.nlayers),
-            ("thicknesses", self.nlayers-1)
+            ("thicknesses", self.nlayers-1),
+            ("h", 1)
         )
         self.sigma_map = maps.ExpMap(nP=self.nlayers) * wire_map.sigma
         self.mu_map = maps.ExpMap(nP=self.nlayers) * wire_map.mu
         self.thicknesses_map = maps.ExpMap(nP=self.nlayers-1) * wire_map.thicknesses
+        surject_mesh = TensorMesh([np.ones(nP)])
+        self.h_map = maps.SurjectFull(surject_mesh) * maps.ExpMap(nP=1) * wire_map.h
 
         sim = tdem.Simulation1DLayered(
             survey=self.survey,
             sigmaMap=self.sigma_map,
             muMap=self.mu_map,
             thicknessesMap=self.thicknesses_map,
+            hMap=self.h_map,
             topo=self.topo,
         )
 
@@ -246,7 +263,8 @@ class EM1D_TD_Jacobian_Test_CircularLoop(unittest.TestCase):
         m_1D = np.r_[
             np.log(sig),
             np.log(mu),
-            np.log(self.thicknesses)
+            np.log(self.thicknesses),
+            np.log(self.height)
         ]
 
         def fwdfun(m):
@@ -285,7 +303,8 @@ class EM1D_TD_Jacobian_Test_CircularLoop(unittest.TestCase):
         m_true = np.r_[
             np.log(sig),
             np.log(mu),
-            np.log(self.thicknesses)
+            np.log(self.thicknesses),
+            np.log(self.height)
         ]
 
         dobs = self.sim.dpred(m_true)
@@ -293,7 +312,8 @@ class EM1D_TD_Jacobian_Test_CircularLoop(unittest.TestCase):
         m_ini = np.r_[
             np.log(np.ones(self.nlayers) * sigma_half),
             np.log(np.ones(self.nlayers) * 1.5*mu_half),
-            np.log(self.thicknesses) * 0.9
+            np.log(self.thicknesses) * 0.9,
+            np.log(0.5 * self.height)
         ]
         resp_ini = self.sim.dpred(m_ini)
         dr = resp_ini - dobs

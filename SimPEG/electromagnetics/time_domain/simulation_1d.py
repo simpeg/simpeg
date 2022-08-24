@@ -47,7 +47,7 @@ class Simulation1DLayered(BaseEM1DSimulation):
             self.fftfilt = filters.key_81_CosSin_2009()
         elif self.time_filter == "key_201_CosSin_2012":
             self.fftfilt = filters.key_201_CosSin_2012()
-        elif self.time_filter == "key_601_CosSin_2012":
+        elif self.time_filter == "key_601_CosSin_2009":
             self.fftfilt = filters.key_601_CosSin_2009()
         else:
             raise Exception()
@@ -263,7 +263,7 @@ class Simulation1DLayered(BaseEM1DSimulation):
                 C1s_dh = C1s.copy()
                 h_vec = self.h
                 i = 0
-                for i_src, src in self.survey.source_list:
+                for i_src, src in enumerate(self.survey.source_list):
                     h = h_vec[i_src]
                     nD = sum(rx.locations.shape[0] for rx in src.receiver_list)
                     ip1 = i + nD
