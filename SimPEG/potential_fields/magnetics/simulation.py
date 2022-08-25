@@ -12,6 +12,15 @@ from SimPEG import Solver
 from SimPEG import props
 import properties
 from SimPEG.utils import mkvc, mat_utils, sdiag, setKwargs
+from geoana.kernels import (
+    prism_fzz,
+    prism_fzx,
+    prism_fzy,
+    prism_fzzz,
+    prism_fxxy,
+    prism_fxxz,
+    prism_fxyz,
+)
 
 
 class Simulation3DIntegral(BasePFSimulation):
@@ -47,7 +56,7 @@ class Simulation3DIntegral(BasePFSimulation):
         if getattr(self, "_M", None) is None:
 
             if self.model_type == "vector":
-                self._M = sp.identity(self.nC) * self.survey.source_field.parameters[0]
+                self._M = sp.identity(self.nC) * self.survey.source_field.amplitude
 
             else:
                 mag = mat_utils.dip_azimuth2cartesian(
@@ -57,9 +66,9 @@ class Simulation3DIntegral(BasePFSimulation):
 
                 self._M = sp.vstack(
                     (
-                        sdiag(mag[:, 0] * self.survey.source_field.parameters[0]),
-                        sdiag(mag[:, 1] * self.survey.source_field.parameters[0]),
-                        sdiag(mag[:, 2] * self.survey.source_field.parameters[0]),
+                        sdiag(mag[:, 0] * self.survey.source_field.amplitude),
+                        sdiag(mag[:, 1] * self.survey.source_field.amplitude),
+                        sdiag(mag[:, 2] * self.survey.source_field.amplitude),
                     )
                 )
 
@@ -256,400 +265,465 @@ class Simulation3DIntegral(BasePFSimulation):
         Ty = [Tyx Tyy Tyz]
         Tz = [Tzx Tzy Tzz]
         """
-        # TODO: This should probably be converted to C
-        rows = {component: np.zeros(3 * self.Xn.shape[0]) for component in components}
+        dr = self._nodes - receiver_location
+        dx = dr[..., 0]
+        dy = dr[..., 1]
+        dz = dr[..., 2]
 
-        # number of cells in mesh
-        nC = self.Xn.shape[0]
+        node_evals = {}
+        if "bx" in components or "tmi" in components:
+            node_evals["gxx"] = prism_fzz(dy, dz, dx)
+            node_evals["gxy"] = prism_fzx(dy, dz, dx)
+            node_evals["gxz"] = prism_fzy(dy, dz, dx)
+        if "by" in components or "tmi" in components:
+            if "gxy" not in node_evals:
+                node_evals["gxy"] = prism_fzx(dy, dz, dx)
+            node_evals["gyy"] = prism_fzz(dz, dx, dy)
+            node_evals["gyz"] = prism_fzy(dx, dy, dz)
+        if "bz" in components or "tmi" in components:
+            if "gxz" not in node_evals:
+                node_evals["gxz"] = prism_fzy(dy, dz, dx)
+            if "gyz" not in node_evals:
+                node_evals["gyz"] = prism_fzy(dx, dy, dz)
+            if "gxx" not in node_evals or "gyy" not in node_evals:
+                node_evals["gzz"] = prism_fzz(dx, dy, dz)
+            else:
+                node_evals["gzz"] = -node_evals["gxx"] - node_evals["gyy"]
 
-        # base cell dimensions
-        min_hx, min_hy = self.mesh.h[0].min(), self.mesh.h[1].min()
-        if len(self.mesh.h) < 3:
-            # Allow for 2D quadtree representations by using a dummy cell height.
-            # Actually cell heights will come from externally defined ``self.Zn``
-            min_hz = np.minimum(min_hx, min_hy) / 10.0
-        else:
-            min_hz = self.mesh.h[2].min()
-
-        # comp. pos. differences for tne, bsw nodes. Adjust if location within
-        # tolerance of a node or edge
-        dx1 = self.Xn[:, 0] - receiver_location[0]
-        dx1[np.abs(dx1) / min_hx < tolerance] = tolerance * min_hx
-        dx2 = self.Xn[:, 1] - receiver_location[0]
-        dx2[np.abs(dx2) / min_hx < tolerance] = tolerance * min_hx
-
-        dy1 = self.Yn[:, 0] - receiver_location[1]
-        dy1[np.abs(dy1) / min_hy < tolerance] = tolerance * min_hy
-        dy2 = self.Yn[:, 1] - receiver_location[1]
-        dy2[np.abs(dy2) / min_hy < tolerance] = tolerance * min_hy
-
-        dz1 = self.Zn[:, 0] - receiver_location[2]
-        dz1[np.abs(dz1) / min_hz < tolerance] = tolerance * min_hz
-        dz2 = self.Zn[:, 1] - receiver_location[2]
-        dz2[np.abs(dz2) / min_hz < tolerance] = tolerance * min_hz
-
-        # comp. squared diff
-        dx2dx2 = dx2 ** 2.0
-        dx1dx1 = dx1 ** 2.0
-
-        dy2dy2 = dy2 ** 2.0
-        dy1dy1 = dy1 ** 2.0
-
-        dz2dz2 = dz2 ** 2.0
-        dz1dz1 = dz1 ** 2.0
-
-        # 2D radius component squared of corner nodes
-        R1 = dy2dy2 + dx2dx2
-        R2 = dy2dy2 + dx1dx1
-        R3 = dy1dy1 + dx2dx2
-        R4 = dy1dy1 + dx1dx1
-
-        # radius to each cell node
-        r1 = np.sqrt(dz2dz2 + R2)
-        r2 = np.sqrt(dz2dz2 + R1)
-        r3 = np.sqrt(dz1dz1 + R1)
-        r4 = np.sqrt(dz1dz1 + R2)
-        r5 = np.sqrt(dz2dz2 + R3)
-        r6 = np.sqrt(dz2dz2 + R4)
-        r7 = np.sqrt(dz1dz1 + R4)
-        r8 = np.sqrt(dz1dz1 + R3)
-
-        # compactify argument calculations
-        arg1_ = dx1 + dy2 + r1
-        arg1 = dy2 + dz2 + r1
-        arg2 = dx1 + dz2 + r1
-        arg3 = dx1 + r1
-        arg4 = dy2 + r1
-        arg5 = dz2 + r1
-
-        arg6_ = dx2 + dy2 + r2
-        arg6 = dy2 + dz2 + r2
-        arg7 = dx2 + dz2 + r2
-        arg8 = dx2 + r2
-        arg9 = dy2 + r2
-        arg10 = dz2 + r2
-
-        arg11_ = dx2 + dy2 + r3
-        arg11 = dy2 + dz1 + r3
-        arg12 = dx2 + dz1 + r3
-        arg13 = dx2 + r3
-        arg14 = dy2 + r3
-        arg15 = dz1 + r3
-
-        arg16_ = dx1 + dy2 + r4
-        arg16 = dy2 + dz1 + r4
-        arg17 = dx1 + dz1 + r4
-        arg18 = dx1 + r4
-        arg19 = dy2 + r4
-        arg20 = dz1 + r4
-
-        arg21_ = dx2 + dy1 + r5
-        arg21 = dy1 + dz2 + r5
-        arg22 = dx2 + dz2 + r5
-        arg23 = dx2 + r5
-        arg24 = dy1 + r5
-        arg25 = dz2 + r5
-
-        arg26_ = dx1 + dy1 + r6
-        arg26 = dy1 + dz2 + r6
-        arg27 = dx1 + dz2 + r6
-        arg28 = dx1 + r6
-        arg29 = dy1 + r6
-        arg30 = dz2 + r6
-
-        arg31_ = dx1 + dy1 + r7
-        arg31 = dy1 + dz1 + r7
-        arg32 = dx1 + dz1 + r7
-        arg33 = dx1 + r7
-        arg34 = dy1 + r7
-        arg35 = dz1 + r7
-
-        arg36_ = dx2 + dy1 + r8
-        arg36 = dy1 + dz1 + r8
-        arg37 = dx2 + dz1 + r8
-        arg38 = dx2 + r8
-        arg39 = dy1 + r8
-        arg40 = dz1 + r8
-
-        if ("bxx" in components) or ("bzz" in components):
-            rows["bxx"] = np.zeros((1, 3 * nC))
-
-            rows["bxx"][0, 0:nC] = 2 * (
-                ((dx1 ** 2 - r1 * arg1) / (r1 * arg1 ** 2 + dx1 ** 2 * r1))
-                - ((dx2 ** 2 - r2 * arg6) / (r2 * arg6 ** 2 + dx2 ** 2 * r2))
-                + ((dx2 ** 2 - r3 * arg11) / (r3 * arg11 ** 2 + dx2 ** 2 * r3))
-                - ((dx1 ** 2 - r4 * arg16) / (r4 * arg16 ** 2 + dx1 ** 2 * r4))
-                + ((dx2 ** 2 - r5 * arg21) / (r5 * arg21 ** 2 + dx2 ** 2 * r5))
-                - ((dx1 ** 2 - r6 * arg26) / (r6 * arg26 ** 2 + dx1 ** 2 * r6))
-                + ((dx1 ** 2 - r7 * arg31) / (r7 * arg31 ** 2 + dx1 ** 2 * r7))
-                - ((dx2 ** 2 - r8 * arg36) / (r8 * arg36 ** 2 + dx2 ** 2 * r8))
-            )
-
-            rows["bxx"][0, nC : 2 * nC] = (
-                dx2 / (r5 * arg25)
-                - dx2 / (r2 * arg10)
-                + dx2 / (r3 * arg15)
-                - dx2 / (r8 * arg40)
-                + dx1 / (r1 * arg5)
-                - dx1 / (r6 * arg30)
-                + dx1 / (r7 * arg35)
-                - dx1 / (r4 * arg20)
-            )
-
-            rows["bxx"][0, 2 * nC :] = (
-                dx1 / (r1 * arg4)
-                - dx2 / (r2 * arg9)
-                + dx2 / (r3 * arg14)
-                - dx1 / (r4 * arg19)
-                + dx2 / (r5 * arg24)
-                - dx1 / (r6 * arg29)
-                + dx1 / (r7 * arg34)
-                - dx2 / (r8 * arg39)
-            )
-
-            rows["bxx"] /= 4 * np.pi
-            rows["bxx"] *= self.M
-
-        if ("byy" in components) or ("bzz" in components):
-
-            rows["byy"] = np.zeros((1, 3 * nC))
-
-            rows["byy"][0, 0:nC] = (
-                dy2 / (r3 * arg15)
-                - dy2 / (r2 * arg10)
-                + dy1 / (r5 * arg25)
-                - dy1 / (r8 * arg40)
-                + dy2 / (r1 * arg5)
-                - dy2 / (r4 * arg20)
-                + dy1 / (r7 * arg35)
-                - dy1 / (r6 * arg30)
-            )
-            rows["byy"][0, nC : 2 * nC] = 2 * (
-                ((dy2 ** 2 - r1 * arg2) / (r1 * arg2 ** 2 + dy2 ** 2 * r1))
-                - ((dy2 ** 2 - r2 * arg7) / (r2 * arg7 ** 2 + dy2 ** 2 * r2))
-                + ((dy2 ** 2 - r3 * arg12) / (r3 * arg12 ** 2 + dy2 ** 2 * r3))
-                - ((dy2 ** 2 - r4 * arg17) / (r4 * arg17 ** 2 + dy2 ** 2 * r4))
-                + ((dy1 ** 2 - r5 * arg22) / (r5 * arg22 ** 2 + dy1 ** 2 * r5))
-                - ((dy1 ** 2 - r6 * arg27) / (r6 * arg27 ** 2 + dy1 ** 2 * r6))
-                + ((dy1 ** 2 - r7 * arg32) / (r7 * arg32 ** 2 + dy1 ** 2 * r7))
-                - ((dy1 ** 2 - r8 * arg37) / (r8 * arg37 ** 2 + dy1 ** 2 * r8))
-            )
-            rows["byy"][0, 2 * nC :] = (
-                dy2 / (r1 * arg3)
-                - dy2 / (r2 * arg8)
-                + dy2 / (r3 * arg13)
-                - dy2 / (r4 * arg18)
-                + dy1 / (r5 * arg23)
-                - dy1 / (r6 * arg28)
-                + dy1 / (r7 * arg33)
-                - dy1 / (r8 * arg38)
-            )
-
-            rows["byy"] /= 4 * np.pi
-            rows["byy"] *= self.M
-
-        if "bzz" in components:
-
-            rows["bzz"] = -rows["bxx"] - rows["byy"]
-
+        if "bxx" in components:
+            node_evals["gxxx"] = prism_fzzz(dy, dz, dx)
+            node_evals["gxxy"] = prism_fxxy(dx, dy, dz)
+            node_evals["gxxz"] = prism_fxxz(dx, dy, dz)
         if "bxy" in components:
-            rows["bxy"] = np.zeros((1, 3 * nC))
-
-            rows["bxy"][0, 0:nC] = 2 * (
-                ((dx1 * arg4) / (r1 * arg1 ** 2 + (dx1 ** 2) * r1))
-                - ((dx2 * arg9) / (r2 * arg6 ** 2 + (dx2 ** 2) * r2))
-                + ((dx2 * arg14) / (r3 * arg11 ** 2 + (dx2 ** 2) * r3))
-                - ((dx1 * arg19) / (r4 * arg16 ** 2 + (dx1 ** 2) * r4))
-                + ((dx2 * arg24) / (r5 * arg21 ** 2 + (dx2 ** 2) * r5))
-                - ((dx1 * arg29) / (r6 * arg26 ** 2 + (dx1 ** 2) * r6))
-                + ((dx1 * arg34) / (r7 * arg31 ** 2 + (dx1 ** 2) * r7))
-                - ((dx2 * arg39) / (r8 * arg36 ** 2 + (dx2 ** 2) * r8))
-            )
-            rows["bxy"][0, nC : 2 * nC] = (
-                dy2 / (r1 * arg5)
-                - dy2 / (r2 * arg10)
-                + dy2 / (r3 * arg15)
-                - dy2 / (r4 * arg20)
-                + dy1 / (r5 * arg25)
-                - dy1 / (r6 * arg30)
-                + dy1 / (r7 * arg35)
-                - dy1 / (r8 * arg40)
-            )
-            rows["bxy"][0, 2 * nC :] = (
-                1 / r1 - 1 / r2 + 1 / r3 - 1 / r4 + 1 / r5 - 1 / r6 + 1 / r7 - 1 / r8
-            )
-
-            rows["bxy"] /= 4 * np.pi
-
-            rows["bxy"] *= self.M
-
+            if "gxxy" not in node_evals:
+                node_evals["gxxy"] = prism_fxxy(dx, dy, dz)
+            node_evals["gyyx"] = prism_fxxz(dy, dz, dx)
+            node_evals["gxyz"] = prism_fxyz(dx, dy, dz)
         if "bxz" in components:
-            rows["bxz"] = np.zeros((1, 3 * nC))
-
-            rows["bxz"][0, 0:nC] = 2 * (
-                ((dx1 * arg5) / (r1 * (arg1 ** 2) + (dx1 ** 2) * r1))
-                - ((dx2 * arg10) / (r2 * (arg6 ** 2) + (dx2 ** 2) * r2))
-                + ((dx2 * arg15) / (r3 * (arg11 ** 2) + (dx2 ** 2) * r3))
-                - ((dx1 * arg20) / (r4 * (arg16 ** 2) + (dx1 ** 2) * r4))
-                + ((dx2 * arg25) / (r5 * (arg21 ** 2) + (dx2 ** 2) * r5))
-                - ((dx1 * arg30) / (r6 * (arg26 ** 2) + (dx1 ** 2) * r6))
-                + ((dx1 * arg35) / (r7 * (arg31 ** 2) + (dx1 ** 2) * r7))
-                - ((dx2 * arg40) / (r8 * (arg36 ** 2) + (dx2 ** 2) * r8))
-            )
-            rows["bxz"][0, nC : 2 * nC] = (
-                1 / r1 - 1 / r2 + 1 / r3 - 1 / r4 + 1 / r5 - 1 / r6 + 1 / r7 - 1 / r8
-            )
-            rows["bxz"][0, 2 * nC :] = (
-                dz2 / (r1 * arg4)
-                - dz2 / (r2 * arg9)
-                + dz1 / (r3 * arg14)
-                - dz1 / (r4 * arg19)
-                + dz2 / (r5 * arg24)
-                - dz2 / (r6 * arg29)
-                + dz1 / (r7 * arg34)
-                - dz1 / (r8 * arg39)
-            )
-
-            rows["bxz"] /= 4 * np.pi
-
-            rows["bxz"] *= self.M
-
+            if "gxxz" not in node_evals:
+                node_evals["gxxz"] = prism_fxxz(dx, dy, dz)
+            if "gxyz" not in node_evals:
+                node_evals["gxyz"] = prism_fxyz(dx, dy, dz)
+            node_evals["gzzx"] = prism_fxxy(dz, dx, dy)
+        if "byy" in components:
+            if "gyyx" not in node_evals:
+                node_evals["gyyx"] = prism_fxxz(dy, dz, dx)
+            node_evals["gyyy"] = prism_fzzz(dz, dx, dy)
+            node_evals["gyyz"] = prism_fxxy(dy, dz, dx)
         if "byz" in components:
-            rows["byz"] = np.zeros((1, 3 * nC))
+            if "gxyz" not in node_evals:
+                node_evals["gxyz"] = prism_fxyz(dx, dy, dz)
+            if "gyyz" not in node_evals:
+                node_evals["gyyz"] = prism_fxxy(dy, dz, dx)
+            node_evals["gzzy"] = prism_fxxz(dz, dx, dy)
+        if "bzz" in components:
+            if "gzzx" not in node_evals:
+                node_evals["gzzx"] = prism_fxxy(dz, dx, dy)
+            if "gzzy" not in node_evals:
+                node_evals["gzzy"] = prism_fxxz(dz, dx, dy)
+            node_evals["gzzz"] = prism_fzzz(dx, dy, dz)
 
-            rows["byz"][0, 0:nC] = (
-                1 / r3 - 1 / r2 + 1 / r5 - 1 / r8 + 1 / r1 - 1 / r4 + 1 / r7 - 1 / r6
-            )
-            rows["byz"][0, nC : 2 * nC] = 2 * (
-                (((dy2 * arg5) / (r1 * (arg2 ** 2) + (dy2 ** 2) * r1)))
-                - (((dy2 * arg10) / (r2 * (arg7 ** 2) + (dy2 ** 2) * r2)))
-                + (((dy2 * arg15) / (r3 * (arg12 ** 2) + (dy2 ** 2) * r3)))
-                - (((dy2 * arg20) / (r4 * (arg17 ** 2) + (dy2 ** 2) * r4)))
-                + (((dy1 * arg25) / (r5 * (arg22 ** 2) + (dy1 ** 2) * r5)))
-                - (((dy1 * arg30) / (r6 * (arg27 ** 2) + (dy1 ** 2) * r6)))
-                + (((dy1 * arg35) / (r7 * (arg32 ** 2) + (dy1 ** 2) * r7)))
-                - (((dy1 * arg40) / (r8 * (arg37 ** 2) + (dy1 ** 2) * r8)))
-            )
-            rows["byz"][0, 2 * nC :] = (
-                dz2 / (r1 * arg3)
-                - dz2 / (r2 * arg8)
-                + dz1 / (r3 * arg13)
-                - dz1 / (r4 * arg18)
-                + dz2 / (r5 * arg23)
-                - dz2 / (r6 * arg28)
-                + dz1 / (r7 * arg33)
-                - dz1 / (r8 * arg38)
-            )
+        ## Hxx = gxxx * m_x + gxxy * m_y + gxxz * m_z
+        ## Hxy = gxxy * m_x + gyyx * m_y + gxyz * m_z
+        ## Hxz = gxxz * m_x + gxyz * m_y + gzzx * m_z
+        ## Hyy = gyyx * m_x + gyyy * m_y + gyyz * m_z
+        ## Hyz = gxyz * m_x + gyyz * m_y + gzzy * m_z
+        ## Hzz = gzzx * m_x + gzzy * m_y + gzzz * m_z
 
-            rows["byz"] /= 4 * np.pi
-
-            rows["byz"] *= self.M
-
-        if ("bx" in components) or ("tmi" in components):
-            rows["bx"] = np.zeros((1, 3 * nC))
-
-            rows["bx"][0, 0:nC] = (
-                (-2 * np.arctan2(dx1, arg1 + tolerance))
-                - (-2 * np.arctan2(dx2, arg6 + tolerance))
-                + (-2 * np.arctan2(dx2, arg11 + tolerance))
-                - (-2 * np.arctan2(dx1, arg16 + tolerance))
-                + (-2 * np.arctan2(dx2, arg21 + tolerance))
-                - (-2 * np.arctan2(dx1, arg26 + tolerance))
-                + (-2 * np.arctan2(dx1, arg31 + tolerance))
-                - (-2 * np.arctan2(dx2, arg36 + tolerance))
-            )
-            rows["bx"][0, nC : 2 * nC] = (
-                np.log(arg5)
-                - np.log(arg10)
-                + np.log(arg15)
-                - np.log(arg20)
-                + np.log(arg25)
-                - np.log(arg30)
-                + np.log(arg35)
-                - np.log(arg40)
-            )
-            rows["bx"][0, 2 * nC :] = (
-                (np.log(arg4) - np.log(arg9))
-                + (np.log(arg14) - np.log(arg19))
-                + (np.log(arg24) - np.log(arg29))
-                + (np.log(arg34) - np.log(arg39))
-            )
-            rows["bx"] /= -4 * np.pi
-
-            rows["bx"] *= self.M
-
-        if ("by" in components) or ("tmi" in components):
-            rows["by"] = np.zeros((1, 3 * nC))
-
-            rows["by"][0, 0:nC] = (
-                np.log(arg5)
-                - np.log(arg10)
-                + np.log(arg15)
-                - np.log(arg20)
-                + np.log(arg25)
-                - np.log(arg30)
-                + np.log(arg35)
-                - np.log(arg40)
-            )
-            rows["by"][0, nC : 2 * nC] = (
-                (-2 * np.arctan2(dy2, arg2 + tolerance))
-                - (-2 * np.arctan2(dy2, arg7 + tolerance))
-                + (-2 * np.arctan2(dy2, arg12 + tolerance))
-                - (-2 * np.arctan2(dy2, arg17 + tolerance))
-                + (-2 * np.arctan2(dy1, arg22 + tolerance))
-                - (-2 * np.arctan2(dy1, arg27 + tolerance))
-                + (-2 * np.arctan2(dy1, arg32 + tolerance))
-                - (-2 * np.arctan2(dy1, arg37 + tolerance))
-            )
-            rows["by"][0, 2 * nC :] = (
-                (np.log(arg3) - np.log(arg8))
-                + (np.log(arg13) - np.log(arg18))
-                + (np.log(arg23) - np.log(arg28))
-                + (np.log(arg33) - np.log(arg38))
-            )
-
-            rows["by"] /= -4 * np.pi
-
-            rows["by"] *= self.M
-
-        if ("bz" in components) or ("tmi" in components):
-            rows["bz"] = np.zeros((1, 3 * nC))
-
-            rows["bz"][0, 0:nC] = (
-                np.log(arg4)
-                - np.log(arg9)
-                + np.log(arg14)
-                - np.log(arg19)
-                + np.log(arg24)
-                - np.log(arg29)
-                + np.log(arg34)
-                - np.log(arg39)
-            )
-            rows["bz"][0, nC : 2 * nC] = (
-                (np.log(arg3) - np.log(arg8))
-                + (np.log(arg13) - np.log(arg18))
-                + (np.log(arg23) - np.log(arg28))
-                + (np.log(arg33) - np.log(arg38))
-            )
-            rows["bz"][0, 2 * nC :] = (
-                (-2 * np.arctan2(dz2, arg1_ + tolerance))
-                - (-2 * np.arctan2(dz2, arg6_ + tolerance))
-                + (-2 * np.arctan2(dz1, arg11_ + tolerance))
-                - (-2 * np.arctan2(dz1, arg16_ + tolerance))
-                + (-2 * np.arctan2(dz2, arg21_ + tolerance))
-                - (-2 * np.arctan2(dz2, arg26_ + tolerance))
-                + (-2 * np.arctan2(dz1, arg31_ + tolerance))
-                - (-2 * np.arctan2(dz1, arg36_ + tolerance))
-            )
-            rows["bz"] /= -4 * np.pi
-
-            rows["bz"] *= self.M
-
-        if "tmi" in components:
-
-            rows["tmi"] = np.dot(
-                self.tmi_projection, np.r_[rows["bx"], rows["by"], rows["bz"]]
-            )
+        # # TODO: This should probably be converted to C
+        # rows = {component: np.zeros(3 * self.Xn.shape[0]) for component in components}
+        #
+        # # number of cells in mesh
+        # nC = self.Xn.shape[0]
+        #
+        # # base cell dimensions
+        # min_hx, min_hy = self.mesh.h[0].min(), self.mesh.h[1].min()
+        # if len(self.mesh.h) < 3:
+        #     # Allow for 2D quadtree representations by using a dummy cell height.
+        #     # Actually cell heights will come from externally defined ``self.Zn``
+        #     min_hz = np.minimum(min_hx, min_hy) / 10.0
+        # else:
+        #     min_hz = self.mesh.h[2].min()
+        #
+        # # comp. pos. differences for tne, bsw nodes. Adjust if location within
+        # # tolerance of a node or edge
+        # dx1 = self.Xn[:, 0] - receiver_location[0]
+        # dx1[np.abs(dx1) / min_hx < tolerance] = tolerance * min_hx
+        # dx2 = self.Xn[:, 1] - receiver_location[0]
+        # dx2[np.abs(dx2) / min_hx < tolerance] = tolerance * min_hx
+        #
+        # dy1 = self.Yn[:, 0] - receiver_location[1]
+        # dy1[np.abs(dy1) / min_hy < tolerance] = tolerance * min_hy
+        # dy2 = self.Yn[:, 1] - receiver_location[1]
+        # dy2[np.abs(dy2) / min_hy < tolerance] = tolerance * min_hy
+        #
+        # dz1 = self.Zn[:, 0] - receiver_location[2]
+        # dz1[np.abs(dz1) / min_hz < tolerance] = tolerance * min_hz
+        # dz2 = self.Zn[:, 1] - receiver_location[2]
+        # dz2[np.abs(dz2) / min_hz < tolerance] = tolerance * min_hz
+        #
+        # # comp. squared diff
+        # dx2dx2 = dx2 ** 2.0
+        # dx1dx1 = dx1 ** 2.0
+        #
+        # dy2dy2 = dy2 ** 2.0
+        # dy1dy1 = dy1 ** 2.0
+        #
+        # dz2dz2 = dz2 ** 2.0
+        # dz1dz1 = dz1 ** 2.0
+        #
+        # # 2D radius component squared of corner nodes
+        # R1 = dy2dy2 + dx2dx2
+        # R2 = dy2dy2 + dx1dx1
+        # R3 = dy1dy1 + dx2dx2
+        # R4 = dy1dy1 + dx1dx1
+        #
+        # # radius to each cell node
+        # r1 = np.sqrt(dz2dz2 + R2)
+        # r2 = np.sqrt(dz2dz2 + R1)
+        # r3 = np.sqrt(dz1dz1 + R1)
+        # r4 = np.sqrt(dz1dz1 + R2)
+        # r5 = np.sqrt(dz2dz2 + R3)
+        # r6 = np.sqrt(dz2dz2 + R4)
+        # r7 = np.sqrt(dz1dz1 + R4)
+        # r8 = np.sqrt(dz1dz1 + R3)
+        #
+        # # compactify argument calculations
+        # arg1_ = dx1 + dy2 + r1
+        # arg1 = dy2 + dz2 + r1
+        # arg2 = dx1 + dz2 + r1
+        # arg3 = dx1 + r1
+        # arg4 = dy2 + r1
+        # arg5 = dz2 + r1
+        #
+        # arg6_ = dx2 + dy2 + r2
+        # arg6 = dy2 + dz2 + r2
+        # arg7 = dx2 + dz2 + r2
+        # arg8 = dx2 + r2
+        # arg9 = dy2 + r2
+        # arg10 = dz2 + r2
+        #
+        # arg11_ = dx2 + dy2 + r3
+        # arg11 = dy2 + dz1 + r3
+        # arg12 = dx2 + dz1 + r3
+        # arg13 = dx2 + r3
+        # arg14 = dy2 + r3
+        # arg15 = dz1 + r3
+        #
+        # arg16_ = dx1 + dy2 + r4
+        # arg16 = dy2 + dz1 + r4
+        # arg17 = dx1 + dz1 + r4
+        # arg18 = dx1 + r4
+        # arg19 = dy2 + r4
+        # arg20 = dz1 + r4
+        #
+        # arg21_ = dx2 + dy1 + r5
+        # arg21 = dy1 + dz2 + r5
+        # arg22 = dx2 + dz2 + r5
+        # arg23 = dx2 + r5
+        # arg24 = dy1 + r5
+        # arg25 = dz2 + r5
+        #
+        # arg26_ = dx1 + dy1 + r6
+        # arg26 = dy1 + dz2 + r6
+        # arg27 = dx1 + dz2 + r6
+        # arg28 = dx1 + r6
+        # arg29 = dy1 + r6
+        # arg30 = dz2 + r6
+        #
+        # arg31_ = dx1 + dy1 + r7
+        # arg31 = dy1 + dz1 + r7
+        # arg32 = dx1 + dz1 + r7
+        # arg33 = dx1 + r7
+        # arg34 = dy1 + r7
+        # arg35 = dz1 + r7
+        #
+        # arg36_ = dx2 + dy1 + r8
+        # arg36 = dy1 + dz1 + r8
+        # arg37 = dx2 + dz1 + r8
+        # arg38 = dx2 + r8
+        # arg39 = dy1 + r8
+        # arg40 = dz1 + r8
+        #
+        # if ("bxx" in components) or ("bzz" in components):
+        #     rows["bxx"] = np.zeros((1, 3 * nC))
+        #
+        #     rows["bxx"][0, 0:nC] = 2 * (
+        #         ((dx1 ** 2 - r1 * arg1) / (r1 * arg1 ** 2 + dx1 ** 2 * r1))
+        #         - ((dx2 ** 2 - r2 * arg6) / (r2 * arg6 ** 2 + dx2 ** 2 * r2))
+        #         + ((dx2 ** 2 - r3 * arg11) / (r3 * arg11 ** 2 + dx2 ** 2 * r3))
+        #         - ((dx1 ** 2 - r4 * arg16) / (r4 * arg16 ** 2 + dx1 ** 2 * r4))
+        #         + ((dx2 ** 2 - r5 * arg21) / (r5 * arg21 ** 2 + dx2 ** 2 * r5))
+        #         - ((dx1 ** 2 - r6 * arg26) / (r6 * arg26 ** 2 + dx1 ** 2 * r6))
+        #         + ((dx1 ** 2 - r7 * arg31) / (r7 * arg31 ** 2 + dx1 ** 2 * r7))
+        #         - ((dx2 ** 2 - r8 * arg36) / (r8 * arg36 ** 2 + dx2 ** 2 * r8))
+        #     )
+        #
+        #     rows["bxx"][0, nC : 2 * nC] = (
+        #         dx2 / (r5 * arg25)
+        #         - dx2 / (r2 * arg10)
+        #         + dx2 / (r3 * arg15)
+        #         - dx2 / (r8 * arg40)
+        #         + dx1 / (r1 * arg5)
+        #         - dx1 / (r6 * arg30)
+        #         + dx1 / (r7 * arg35)
+        #         - dx1 / (r4 * arg20)
+        #     )
+        #
+        #     rows["bxx"][0, 2 * nC :] = (
+        #         dx1 / (r1 * arg4)
+        #         - dx2 / (r2 * arg9)
+        #         + dx2 / (r3 * arg14)
+        #         - dx1 / (r4 * arg19)
+        #         + dx2 / (r5 * arg24)
+        #         - dx1 / (r6 * arg29)
+        #         + dx1 / (r7 * arg34)
+        #         - dx2 / (r8 * arg39)
+        #     )
+        #
+        #     rows["bxx"] /= 4 * np.pi
+        #     rows["bxx"] *= self.M
+        #
+        # if ("byy" in components) or ("bzz" in components):
+        #
+        #     rows["byy"] = np.zeros((1, 3 * nC))
+        #
+        #     rows["byy"][0, 0:nC] = (
+        #         dy2 / (r3 * arg15)
+        #         - dy2 / (r2 * arg10)
+        #         + dy1 / (r5 * arg25)
+        #         - dy1 / (r8 * arg40)
+        #         + dy2 / (r1 * arg5)
+        #         - dy2 / (r4 * arg20)
+        #         + dy1 / (r7 * arg35)
+        #         - dy1 / (r6 * arg30)
+        #     )
+        #     rows["byy"][0, nC : 2 * nC] = 2 * (
+        #         ((dy2 ** 2 - r1 * arg2) / (r1 * arg2 ** 2 + dy2 ** 2 * r1))
+        #         - ((dy2 ** 2 - r2 * arg7) / (r2 * arg7 ** 2 + dy2 ** 2 * r2))
+        #         + ((dy2 ** 2 - r3 * arg12) / (r3 * arg12 ** 2 + dy2 ** 2 * r3))
+        #         - ((dy2 ** 2 - r4 * arg17) / (r4 * arg17 ** 2 + dy2 ** 2 * r4))
+        #         + ((dy1 ** 2 - r5 * arg22) / (r5 * arg22 ** 2 + dy1 ** 2 * r5))
+        #         - ((dy1 ** 2 - r6 * arg27) / (r6 * arg27 ** 2 + dy1 ** 2 * r6))
+        #         + ((dy1 ** 2 - r7 * arg32) / (r7 * arg32 ** 2 + dy1 ** 2 * r7))
+        #         - ((dy1 ** 2 - r8 * arg37) / (r8 * arg37 ** 2 + dy1 ** 2 * r8))
+        #     )
+        #     rows["byy"][0, 2 * nC :] = (
+        #         dy2 / (r1 * arg3)
+        #         - dy2 / (r2 * arg8)
+        #         + dy2 / (r3 * arg13)
+        #         - dy2 / (r4 * arg18)
+        #         + dy1 / (r5 * arg23)
+        #         - dy1 / (r6 * arg28)
+        #         + dy1 / (r7 * arg33)
+        #         - dy1 / (r8 * arg38)
+        #     )
+        #
+        #     rows["byy"] /= 4 * np.pi
+        #     rows["byy"] *= self.M
+        #
+        # if "bzz" in components:
+        #
+        #     rows["bzz"] = -rows["bxx"] - rows["byy"]
+        #
+        # if "bxy" in components:
+        #     rows["bxy"] = np.zeros((1, 3 * nC))
+        #
+        #     rows["bxy"][0, 0:nC] = 2 * (
+        #         ((dx1 * arg4) / (r1 * arg1 ** 2 + (dx1 ** 2) * r1))
+        #         - ((dx2 * arg9) / (r2 * arg6 ** 2 + (dx2 ** 2) * r2))
+        #         + ((dx2 * arg14) / (r3 * arg11 ** 2 + (dx2 ** 2) * r3))
+        #         - ((dx1 * arg19) / (r4 * arg16 ** 2 + (dx1 ** 2) * r4))
+        #         + ((dx2 * arg24) / (r5 * arg21 ** 2 + (dx2 ** 2) * r5))
+        #         - ((dx1 * arg29) / (r6 * arg26 ** 2 + (dx1 ** 2) * r6))
+        #         + ((dx1 * arg34) / (r7 * arg31 ** 2 + (dx1 ** 2) * r7))
+        #         - ((dx2 * arg39) / (r8 * arg36 ** 2 + (dx2 ** 2) * r8))
+        #     )
+        #     rows["bxy"][0, nC : 2 * nC] = (
+        #         dy2 / (r1 * arg5)
+        #         - dy2 / (r2 * arg10)
+        #         + dy2 / (r3 * arg15)
+        #         - dy2 / (r4 * arg20)
+        #         + dy1 / (r5 * arg25)
+        #         - dy1 / (r6 * arg30)
+        #         + dy1 / (r7 * arg35)
+        #         - dy1 / (r8 * arg40)
+        #     )
+        #     rows["bxy"][0, 2 * nC :] = (
+        #         1 / r1 - 1 / r2 + 1 / r3 - 1 / r4 + 1 / r5 - 1 / r6 + 1 / r7 - 1 / r8
+        #     )
+        #
+        #     rows["bxy"] /= 4 * np.pi
+        #
+        #     rows["bxy"] *= self.M
+        #
+        # if "bxz" in components:
+        #     rows["bxz"] = np.zeros((1, 3 * nC))
+        #
+        #     rows["bxz"][0, 0:nC] = 2 * (
+        #         ((dx1 * arg5) / (r1 * (arg1 ** 2) + (dx1 ** 2) * r1))
+        #         - ((dx2 * arg10) / (r2 * (arg6 ** 2) + (dx2 ** 2) * r2))
+        #         + ((dx2 * arg15) / (r3 * (arg11 ** 2) + (dx2 ** 2) * r3))
+        #         - ((dx1 * arg20) / (r4 * (arg16 ** 2) + (dx1 ** 2) * r4))
+        #         + ((dx2 * arg25) / (r5 * (arg21 ** 2) + (dx2 ** 2) * r5))
+        #         - ((dx1 * arg30) / (r6 * (arg26 ** 2) + (dx1 ** 2) * r6))
+        #         + ((dx1 * arg35) / (r7 * (arg31 ** 2) + (dx1 ** 2) * r7))
+        #         - ((dx2 * arg40) / (r8 * (arg36 ** 2) + (dx2 ** 2) * r8))
+        #     )
+        #     rows["bxz"][0, nC : 2 * nC] = (
+        #         1 / r1 - 1 / r2 + 1 / r3 - 1 / r4 + 1 / r5 - 1 / r6 + 1 / r7 - 1 / r8
+        #     )
+        #     rows["bxz"][0, 2 * nC :] = (
+        #         dz2 / (r1 * arg4)
+        #         - dz2 / (r2 * arg9)
+        #         + dz1 / (r3 * arg14)
+        #         - dz1 / (r4 * arg19)
+        #         + dz2 / (r5 * arg24)
+        #         - dz2 / (r6 * arg29)
+        #         + dz1 / (r7 * arg34)
+        #         - dz1 / (r8 * arg39)
+        #     )
+        #
+        #     rows["bxz"] /= 4 * np.pi
+        #
+        #     rows["bxz"] *= self.M
+        #
+        # if "byz" in components:
+        #     rows["byz"] = np.zeros((1, 3 * nC))
+        #
+        #     rows["byz"][0, 0:nC] = (
+        #         1 / r3 - 1 / r2 + 1 / r5 - 1 / r8 + 1 / r1 - 1 / r4 + 1 / r7 - 1 / r6
+        #     )
+        #     rows["byz"][0, nC : 2 * nC] = 2 * (
+        #         (((dy2 * arg5) / (r1 * (arg2 ** 2) + (dy2 ** 2) * r1)))
+        #         - (((dy2 * arg10) / (r2 * (arg7 ** 2) + (dy2 ** 2) * r2)))
+        #         + (((dy2 * arg15) / (r3 * (arg12 ** 2) + (dy2 ** 2) * r3)))
+        #         - (((dy2 * arg20) / (r4 * (arg17 ** 2) + (dy2 ** 2) * r4)))
+        #         + (((dy1 * arg25) / (r5 * (arg22 ** 2) + (dy1 ** 2) * r5)))
+        #         - (((dy1 * arg30) / (r6 * (arg27 ** 2) + (dy1 ** 2) * r6)))
+        #         + (((dy1 * arg35) / (r7 * (arg32 ** 2) + (dy1 ** 2) * r7)))
+        #         - (((dy1 * arg40) / (r8 * (arg37 ** 2) + (dy1 ** 2) * r8)))
+        #     )
+        #     rows["byz"][0, 2 * nC :] = (
+        #         dz2 / (r1 * arg3)
+        #         - dz2 / (r2 * arg8)
+        #         + dz1 / (r3 * arg13)
+        #         - dz1 / (r4 * arg18)
+        #         + dz2 / (r5 * arg23)
+        #         - dz2 / (r6 * arg28)
+        #         + dz1 / (r7 * arg33)
+        #         - dz1 / (r8 * arg38)
+        #     )
+        #
+        #     rows["byz"] /= 4 * np.pi
+        #
+        #     rows["byz"] *= self.M
+        #
+        # if ("bx" in components) or ("tmi" in components):
+        #     rows["bx"] = np.zeros((1, 3 * nC))
+        #
+        #     rows["bx"][0, 0:nC] = (
+        #         (-2 * np.arctan2(dx1, arg1 + tolerance))
+        #         - (-2 * np.arctan2(dx2, arg6 + tolerance))
+        #         + (-2 * np.arctan2(dx2, arg11 + tolerance))
+        #         - (-2 * np.arctan2(dx1, arg16 + tolerance))
+        #         + (-2 * np.arctan2(dx2, arg21 + tolerance))
+        #         - (-2 * np.arctan2(dx1, arg26 + tolerance))
+        #         + (-2 * np.arctan2(dx1, arg31 + tolerance))
+        #         - (-2 * np.arctan2(dx2, arg36 + tolerance))
+        #     )
+        #     rows["bx"][0, nC : 2 * nC] = (
+        #         np.log(arg5)
+        #         - np.log(arg10)
+        #         + np.log(arg15)
+        #         - np.log(arg20)
+        #         + np.log(arg25)
+        #         - np.log(arg30)
+        #         + np.log(arg35)
+        #         - np.log(arg40)
+        #     )
+        #     rows["bx"][0, 2 * nC :] = (
+        #         (np.log(arg4) - np.log(arg9))
+        #         + (np.log(arg14) - np.log(arg19))
+        #         + (np.log(arg24) - np.log(arg29))
+        #         + (np.log(arg34) - np.log(arg39))
+        #     )
+        #     rows["bx"] /= -4 * np.pi
+        #
+        #     rows["bx"] *= self.M
+        #
+        # if ("by" in components) or ("tmi" in components):
+        #     rows["by"] = np.zeros((1, 3 * nC))
+        #
+        #     rows["by"][0, 0:nC] = (
+        #         np.log(arg5)
+        #         - np.log(arg10)
+        #         + np.log(arg15)
+        #         - np.log(arg20)
+        #         + np.log(arg25)
+        #         - np.log(arg30)
+        #         + np.log(arg35)
+        #         - np.log(arg40)
+        #     )
+        #     rows["by"][0, nC : 2 * nC] = (
+        #         (-2 * np.arctan2(dy2, arg2 + tolerance))
+        #         - (-2 * np.arctan2(dy2, arg7 + tolerance))
+        #         + (-2 * np.arctan2(dy2, arg12 + tolerance))
+        #         - (-2 * np.arctan2(dy2, arg17 + tolerance))
+        #         + (-2 * np.arctan2(dy1, arg22 + tolerance))
+        #         - (-2 * np.arctan2(dy1, arg27 + tolerance))
+        #         + (-2 * np.arctan2(dy1, arg32 + tolerance))
+        #         - (-2 * np.arctan2(dy1, arg37 + tolerance))
+        #     )
+        #     rows["by"][0, 2 * nC :] = (
+        #         (np.log(arg3) - np.log(arg8))
+        #         + (np.log(arg13) - np.log(arg18))
+        #         + (np.log(arg23) - np.log(arg28))
+        #         + (np.log(arg33) - np.log(arg38))
+        #     )
+        #
+        #     rows["by"] /= -4 * np.pi
+        #
+        #     rows["by"] *= self.M
+        #
+        # if ("bz" in components) or ("tmi" in components):
+        #     rows["bz"] = np.zeros((1, 3 * nC))
+        #
+        #     rows["bz"][0, 0:nC] = (
+        #         np.log(arg4)
+        #         - np.log(arg9)
+        #         + np.log(arg14)
+        #         - np.log(arg19)
+        #         + np.log(arg24)
+        #         - np.log(arg29)
+        #         + np.log(arg34)
+        #         - np.log(arg39)
+        #     )
+        #     rows["bz"][0, nC : 2 * nC] = (
+        #         (np.log(arg3) - np.log(arg8))
+        #         + (np.log(arg13) - np.log(arg18))
+        #         + (np.log(arg23) - np.log(arg28))
+        #         + (np.log(arg33) - np.log(arg38))
+        #     )
+        #     rows["bz"][0, 2 * nC :] = (
+        #         (-2 * np.arctan2(dz2, arg1_ + tolerance))
+        #         - (-2 * np.arctan2(dz2, arg6_ + tolerance))
+        #         + (-2 * np.arctan2(dz1, arg11_ + tolerance))
+        #         - (-2 * np.arctan2(dz1, arg16_ + tolerance))
+        #         + (-2 * np.arctan2(dz2, arg21_ + tolerance))
+        #         - (-2 * np.arctan2(dz2, arg26_ + tolerance))
+        #         + (-2 * np.arctan2(dz1, arg31_ + tolerance))
+        #         - (-2 * np.arctan2(dz1, arg36_ + tolerance))
+        #     )
+        #     rows["bz"] /= -4 * np.pi
+        #
+        #     rows["bz"] *= self.M
+        #
+        # if "tmi" in components:
+        #
+        #     rows["tmi"] = np.dot(
+        #         self.tmi_projection, np.r_[rows["bx"], rows["by"], rows["bz"]]
+        #     )
 
         return np.vstack([rows[component] for component in components])
 

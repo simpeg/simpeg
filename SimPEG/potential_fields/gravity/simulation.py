@@ -1,4 +1,4 @@
-from SimPEG.utils import mkvc, sdiag, setKwargs
+from SimPEG.utils import mkvc, sdiag
 from SimPEG import props
 from ...simulation import BaseSimulation
 from ...base import BasePDESimulation
@@ -101,7 +101,7 @@ class Simulation3DIntegral(BasePFSimulation):
 
         return self._gtg_diagonal
 
-    def evaluate_integral(self, receiver_location, components, tolerance=1e-4):
+    def evaluate_integral(self, receiver_location, components):
         """
         Compute the forward linear relationship between the model and the physics at a point
         and for all components of the survey.
@@ -127,10 +127,7 @@ class Simulation3DIntegral(BasePFSimulation):
         dy = dr[..., 1]
         dz = dr[..., 2]
 
-        node_evals = {component: np.zeros(len(dx)) for component in components}
-
-        gxx = np.zeros(len(dx))
-        gyy = np.zeros(len(dx))
+        node_evals = {}
         if "gx" in components:
             node_evals["gx"] = prism_fz(dy, dz, dx)
         if "gy" in components:
@@ -143,28 +140,23 @@ class Simulation3DIntegral(BasePFSimulation):
             node_evals["gxz"] = prism_fzx(dx, dy, dz)
         if "gyz" in components:
             node_evals["gyz"] = prism_fzy(dx, dy, dz)
-        gxx = None
         if "gxx" in components or "guv" in components:
-            gxx = prism_fzz(dy, dz, dx)
-            if "gxx" in components:
-                node_evals["gxx"] = gxx
-        gyy = None
+            node_evals["gxx"] = prism_fzz(dy, dz, dx)
         if "gyy" in components or "guv" in components:
-            gyy = prism_fzz(dz, dx, dy)
-            if "gyy" in components:
-                node_evals["gyy"] = gyy
+            node_evals["gyy"] = prism_fzz(dz, dx, dy)
             if "guv" in components:
-                node_evals["guv"] = (gyy - gxx) * 0.5  # (NN - EE) / 2
+                node_evals["guv"] = (node_evals["gyy"] - node_evals["gxx"]) * 0.5
+                # (NN - EE) / 2
         inside_adjust = False
         if "gzz" in components:
-            if gxx is None or gyy is None:
+            if "gxx" not in node_evals or "gyy" not in node_evals:
                 node_evals["gzz"] = prism_fzz(dx, dy, dz)
             else:
                 inside_adjust = True
                 # The below need to be adjusted for observation points within a cell.
                 # because `gxx + gyy + gzz = -4 * pi * G * rho`
                 # gzz = - gxx - gyy - 4 * np.pi * G * rho[in_cell]
-                node_evals["gzz"] = -gxx - gyy
+                node_evals["gzz"] = -node_evals["gxx"] - node_evals["gyy"]
 
         rows = {}
         for component in components:
@@ -172,14 +164,14 @@ class Simulation3DIntegral(BasePFSimulation):
             if self.mesh.dim > 2:
                 vals = vals[self._unique_inv]
             cell_vals = (
-                vals[:, 7]
-                - vals[:, 6]
-                - vals[:, 5]
-                + vals[:, 4]
-                - vals[:, 3]
-                + vals[:, 2]
-                + vals[:, 1]
-                - vals[:, 0]
+                vals[:, 0]
+                - vals[:, 1]
+                - vals[:, 2]
+                + vals[:, 3]
+                - vals[:, 4]
+                + vals[:, 5]
+                + vals[:, 6]
+                - vals[:, 7]
             )
             if inside_adjust and component == "gzz":
                 # should subtract 4 * pi to the cell containing the observation point
@@ -188,9 +180,9 @@ class Simulation3DIntegral(BasePFSimulation):
                 pass
             rows[component] = cell_vals
             if len(component) == 3:
-                rows[component] *= -constants.G * 1e12  # conversion for Eotvos
+                rows[component] *= constants.G * 1e12  # conversion for Eotvos
             else:
-                rows[component] *= -constants.G * 1e8  # conversion for mGal
+                rows[component] *= constants.G * 1e8  # conversion for mGal
 
         return np.vstack([rows[component] for component in components])
 
