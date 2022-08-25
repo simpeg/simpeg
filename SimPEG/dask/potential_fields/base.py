@@ -25,7 +25,10 @@ Sim.chunk_format = chunk_format
 
 
 def dask_linear_operator(self):
-    self.nC = self.modelMap.shape[0]
+    if self.modelMap.shape[0] == "*":
+        self.nC = self.mesh.n_cells
+    else:
+        self.nC = self.modelMap.shape[0]
 
     n_data_comp = len(self.survey.components)
     components = np.array(list(self.survey.components.keys()))

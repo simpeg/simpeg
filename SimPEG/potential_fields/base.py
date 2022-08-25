@@ -90,8 +90,10 @@ class BasePFSimulation(LinearSimulation):
         #     self.Zn = projection.T * np.c_[mkvc(zn1), mkvc(zn2)]
 
     def linear_operator(self):
-
-        self.nC = self.modelMap.shape[0]
+        if self.modelMap.shape[0] == "*":
+            self.nC = self.mesh.n_cells
+        else:
+            self.nC = self.modelMap.shape[0]
 
         components = np.array(list(self.survey.components.keys()))
         active_components = np.hstack(
