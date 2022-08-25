@@ -33,7 +33,7 @@ class SimpleSmoothDeriv(SmoothDeriv):
 
 @deprecate_class(removal_version="0.x.0", future_warn=True)
 class Simple(WeightedLeastSquares):
-    """Deprecated class, replaced by SmoothDeriv."""
+    """Deprecated class, replaced by WeightedLeastSquares."""
 
     def __init__(self, mesh=None, alpha_x=1.0, alpha_y=1.0, alpha_z=1.0, **kwargs):
         # These alphas are now refered to as length_scalse in the
