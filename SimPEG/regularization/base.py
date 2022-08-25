@@ -100,7 +100,7 @@ class BaseRegularization(BaseObjectiveFunction):
 
     @property
     def model(self) -> np.ndarray:
-        """Reference physical property model"""
+        """Physical property model"""
         return self._model
 
     @model.setter
