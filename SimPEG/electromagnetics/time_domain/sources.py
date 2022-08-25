@@ -936,7 +936,7 @@ class CircularLoop(MagDipole):
 
 class LineCurrent(BaseTDEMSrc):
     """
-    RawVec electric source. It is defined by the user provided vector s_e
+    Line current source.
 
     :param list receiver_list: receiver list
     :param bool integrate: Integrate the source term (multiply by Me) [False]
@@ -1059,31 +1059,31 @@ class LineCurrent(BaseTDEMSrc):
             raise NotImplementedError
 
         vol = simulation.mesh.vol
-
+        Div = sdiag(vol) * simulation.mesh.faceDiv
         return (
             simulation.mesh.edgeCurl * simulation.MeMuI * simulation.mesh.edgeCurl.T
-            - simulation.mesh.faceDiv.T
+            - Div.T
             * sdiag(1.0 / vol * simulation.mui)
-            * simulation.mesh.faceDiv  # stabalizing term. See (Chen, Haber & Oldenburg 2002)
+            * Div  # stabalizing term. See (Chen, Haber & Oldenburg 2002)
         )
 
     def _aInitial(self, simulation):
         A = self._getAmmr(simulation)
         Ainv = simulation.solver(A)  # todo: store this
         s_e = self.s_e(simulation, 0)
-        rhs = s_e - self.jInitial(simulation)
+        rhs = s_e + self.jInitial(simulation)
         return Ainv * rhs
 
     def _aInitialDeriv(self, simulation, v, adjoint=False):
         A = self._getAmmr(simulation)
-        Ainv = simulation.solver(A)  # todo: store this - move it to the simulationlem
+        Ainv = simulation.solver(A)  # todo: store this - move it to the simulation
 
         if adjoint is True:
-            return -1 * (
-                self.jInitialDeriv(simulation, Ainv * v, adjoint=True)
+            return self.jInitialDeriv(
+                simulation, Ainv * v, adjoint=True
             )  # A is symmetric
 
-        return -1 * (Ainv * self.jInitialDeriv(simulation, v))
+        return Ainv * self.jInitialDeriv(simulation, v)
 
     def hInitial(self, simulation):
         if simulation._formulation != "HJ":
