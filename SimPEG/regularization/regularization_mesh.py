@@ -32,15 +32,9 @@ class RegularizationMesh(props.BaseSimPEG):
         self.active_cells = active_cells
         utils.setKwargs(self, **kwargs)
 
-    # active_cells = properties.Array("active indices in mesh", dtype=[bool, int])
-
     @property
-    def active_cells(self):
+    def active_cells(self) -> scipy.sparse.csr_matrix:
         """A boolean array indicating whether a cell is active
-
-        Returns
-        -------
-        (n_cells,) numpy.ndarray of bool
 
         Notes
         -----
@@ -111,12 +105,9 @@ class RegularizationMesh(props.BaseSimPEG):
         self._active_cells = values
 
     @property
-    def vol(self):
+    def vol(self) -> np.ndarray:
         """
-        reduced volume vector
-
-        :rtype: numpy.ndarray
-        :return: reduced cell volume
+        Reduced volume vector.
         """
         if self.active_cells is None:
             return self.mesh.cell_volumes
@@ -125,35 +116,26 @@ class RegularizationMesh(props.BaseSimPEG):
         return self._vol
 
     @property
-    def nC(self):
+    def nC(self) -> int:
         """
-        reduced number of cells
-
-        :rtype: int
-        :return: number of cells being regularized
+        Number of cells being regularized.
         """
         if self.active_cells is not None:
             return int(self.active_cells.sum())
         return self.mesh.nC
 
     @property
-    def dim(self):
+    def dim(self) -> int:
         """
-        dimension of regularization mesh (1D, 2D, 3D)
-
-        :rtype: int
-        :return: dimension
+        Dimension of regularization mesh (1D, 2D, 3D)
         """
         return self.mesh.dim
 
     @property
-    def Pac(self):
+    def Pac(self) -> scipy.sparse.csr_matrix:
         """
-        projection matrix that takes from the reduced space of active cells to
-        full modelling space (ie. nC x nactive_cells)
-
-        :rtype: scipy.sparse.csr_matrix
-        :return: active cell projection matrix
+        Projection matrix that takes from the reduced space of active cells to
+        full modelling space (ie. nC x nactive_cells).
         """
         if getattr(self, "_Pac", None) is None:
             if self.active_cells is None:
@@ -163,13 +145,10 @@ class RegularizationMesh(props.BaseSimPEG):
         return self._Pac
 
     @property
-    def Pafx(self):
+    def Pafx(self) -> scipy.sparse.csr_matrix:
         """
-        projection matrix that takes from the reduced space of active x-faces
+        Projection matrix that takes from the reduced space of active x-faces
         to full modelling space (ie. nFx x nactive_cells_Fx )
-
-        :rtype: scipy.sparse.csr_matrix
-        :return: active face-x projection matrix
         """
         if getattr(self, "_Pafx", None) is None:
             if self.mesh._meshType == "TREE":
@@ -189,13 +168,10 @@ class RegularizationMesh(props.BaseSimPEG):
         return self._Pafx
 
     @property
-    def Pafy(self):
+    def Pafy(self) -> scipy.sparse.csr_matrix:
         """
-        projection matrix that takes from the reduced space of active y-faces
-        to full modelling space (ie. nFy x nactive_cells_Fy )
-
-        :rtype: scipy.sparse.csr_matrix
-        :return: active face-y projection matrix
+        Projection matrix that takes from the reduced space of active y-faces
+        to full modelling space (ie. nFy x nactive_cells_Fy ).
         """
         if getattr(self, "_Pafy", None) is None:
             if self.mesh._meshType == "TREE":
@@ -217,13 +193,10 @@ class RegularizationMesh(props.BaseSimPEG):
         return self._Pafy
 
     @property
-    def Pafz(self):
+    def Pafz(self) -> scipy.sparse.csr_matrix:
         """
-        projection matrix that takes from the reduced space of active z-faces
-        to full modelling space (ie. nFz x nactive_cells_Fz )
-
-        :rtype: scipy.sparse.csr_matrix
-        :return: active face-z projection matrix
+        Projection matrix that takes from the reduced space of active z-faces
+        to full modelling space (ie. nFz x nactive_cells_Fz ).
         """
         if getattr(self, "_Pafz", None) is None:
             if self.mesh._meshType == "TREE":
@@ -243,7 +216,11 @@ class RegularizationMesh(props.BaseSimPEG):
         return self._Pafz
 
     @property
-    def average_face_to_cell(self):
+    def average_face_to_cell(self) -> scipy.sparse.csr_matrix:
+        """
+        Vertically stacked matrix of cell averaging operators from active
+        cell centers to active faces along each dimension of the mesh.
+        """
         if self.dim == 1:
             return self.aveFx2CC
         elif self.dim == 2:
@@ -252,12 +229,9 @@ class RegularizationMesh(props.BaseSimPEG):
             return sp.hstack([self.aveFx2CC, self.aveFy2CC, self.aveFz2CC])
 
     @property
-    def aveFx2CC(self):
+    def aveFx2CC(self) -> scipy.sparse.csr_matrix:
         """
-        averaging from active cell centers to active x-faces
-
-        :rtype: scipy.sparse.csr_matrix
-        :return: averaging from active cell centers to active x-faces
+        Averaging from active cell centers to active x-faces.
         """
         if getattr(self, "_aveFx2CC", None) is None:
             if self.mesh._meshType == "TREE":
@@ -270,12 +244,9 @@ class RegularizationMesh(props.BaseSimPEG):
         return self._aveFx2CC
 
     @property
-    def aveCC2Fx(self):
+    def aveCC2Fx(self) -> scipy.sparse.csr_matrix:
         """
-        averaging from active x-faces to active cell centers
-
-        :rtype: scipy.sparse.csr_matrix
-        :return: averaging matrix from active x-faces to active cell centers
+        Averaging from active x-faces to active cell centers.
         """
         if getattr(self, "_aveCC2Fx", None) is None:
             if self.mesh._meshType == "TREE":
@@ -289,12 +260,9 @@ class RegularizationMesh(props.BaseSimPEG):
         return self._aveCC2Fx
 
     @property
-    def aveFy2CC(self):
+    def aveFy2CC(self) -> scipy.sparse.csr_matrix:
         """
-        averaging from active cell centers to active y-faces
-
-        :rtype: scipy.sparse.csr_matrix
-        :return: averaging from active cell centers to active y-faces
+        Averaging from active cell centers to active y-faces.
         """
         if getattr(self, "_aveFy2CC", None) is None:
             if self.mesh._meshType == "TREE":
@@ -309,12 +277,9 @@ class RegularizationMesh(props.BaseSimPEG):
         return self._aveFy2CC
 
     @property
-    def aveCC2Fy(self):
+    def aveCC2Fy(self) -> scipy.sparse.csr_matrix:
         """
-        averaging from active y-faces to active cell centers
-
-        :rtype: scipy.sparse.csr_matrix
-        :return: averaging matrix from active y-faces to active cell centers
+        Averaging matrix from active y-faces to active cell centers.
         """
         if getattr(self, "_aveCC2Fy", None) is None:
             if self.mesh._meshType == "TREE":
@@ -330,12 +295,9 @@ class RegularizationMesh(props.BaseSimPEG):
         return self._aveCC2Fy
 
     @property
-    def aveFz2CC(self):
+    def aveFz2CC(self) -> scipy.sparse.csr_matrix:
         """
-        averaging from active cell centers to active z-faces
-
-        :rtype: scipy.sparse.csr_matrix
-        :return: averaging from active cell centers to active z-faces
+        Averaging from active cell centers to active z-faces.
         """
         if getattr(self, "_aveFz2CC", None) is None:
             if self.mesh._meshType == "TREE":
@@ -348,12 +310,9 @@ class RegularizationMesh(props.BaseSimPEG):
         return self._aveFz2CC
 
     @property
-    def aveCC2Fz(self):
+    def aveCC2Fz(self) -> scipy.sparse.csr_matrix:
         """
-        averaging from active z-faces to active cell centers
-
-        :rtype: scipy.sparse.csr_matrix
-        :return: averaging matrix from active z-faces to active cell centers
+        Averaging matrix from active z-faces to active cell centers.
         """
         if getattr(self, "_aveCC2Fz", None) is None:
             if self.mesh._meshType == "TREE":
@@ -367,14 +326,18 @@ class RegularizationMesh(props.BaseSimPEG):
         return self._aveCC2Fz
 
     @property
-    def base_length(self):
-        """The smallest core cell size"""
+    def base_length(self) -> float:
+        """The smallest core cell size."""
         if getattr(self, "_base_length", None) is None:
             self._base_length = self.mesh.edge_lengths.min()
         return self._base_length
 
     @property
-    def cell_gradient(self):
+    def cell_gradient(self) -> scipy.sparse.csr_matrix:
+        """
+        Vertically stacked matrix of cell gradients along each dimension of
+        the mesh.
+        """
         if self.dim == 1:
             return self.cell_gradient_x
         elif self.dim == 2:
@@ -385,12 +348,9 @@ class RegularizationMesh(props.BaseSimPEG):
             )
 
     @property
-    def cell_gradient_x(self):
+    def cell_gradient_x(self) -> sp.csr_matrix:
         """
-        cell centered gradient in the x-direction
-
-        :rtype: scipy.sparse.csr_matrix
-        :return: differencing matrix for active cells in the x-direction
+        Cell centered gradient matrix for active cells in the x-direction.
         """
         if getattr(self, "_cell_gradient_x", None) is None:
             if self.mesh._meshType == "TREE":
@@ -410,12 +370,9 @@ class RegularizationMesh(props.BaseSimPEG):
         return self._cell_gradient_x
 
     @property
-    def cell_gradient_y(self):
+    def cell_gradient_y(self) -> sp.csr_matrix:
         """
-        cell centered gradient in the y-direction
-
-        :rtype: scipy.sparse.csr_matrix
-        :return: differencing matrix for active cells in the y-direction
+        Cell centered gradient matrix for active cells in the y-direction.
         """
         if getattr(self, "_cell_gradient_y", None) is None:
             if self.mesh._meshType == "TREE":
@@ -435,12 +392,9 @@ class RegularizationMesh(props.BaseSimPEG):
         return self._cell_gradient_y
 
     @property
-    def cell_gradient_z(self):
+    def cell_gradient_z(self) -> sp.csr_matrix:
         """
-        cell centered difference in the z-direction
-
-        :rtype: scipy.sparse.csr_matrix
-        :return: differencing matrix for active cells in the z-direction
+        Cell centered gradient matrix for active cells in the z-direction.
         """
         if getattr(self, "_cell_gradient_z", None) is None:
             if self.mesh._meshType == "TREE":
@@ -470,21 +424,30 @@ class RegularizationMesh(props.BaseSimPEG):
     )
 
     @property
-    def cell_distances_x(self):
+    def cell_distances_x(self) -> np.ndarray:
+        """
+        Cell center distance array along the x-direction.
+        """
         if getattr(self, "_cell_distances_x", None) is None:
             Ave = self.aveCC2Fx
             self._cell_distances_x = Ave * (self.Pac.T * self.mesh.h_gridded[:, 0])
         return self._cell_distances_x
 
     @property
-    def cell_distances_y(self):
+    def cell_distances_y(self) -> np.ndarray:
+        """
+        Cell center distance array along the y-direction.
+        """
         if getattr(self, "_cell_distances_y", None) is None:
             Ave = self.aveCC2Fy
             self._cell_distances_y = Ave * (self.Pac.T * self.mesh.h_gridded[:, 1])
         return self._cell_distances_y
 
     @property
-    def cell_distances_z(self):
+    def cell_distances_z(self) -> np.ndarray:
+        """
+        Cell center distance array along the z-direction.
+        """
         if getattr(self, "_cell_distances_z", None) is None:
             Ave = self.aveCC2Fz
             self._cell_distances_z = Ave * (self.Pac.T * self.mesh.h_gridded[:, 2])
