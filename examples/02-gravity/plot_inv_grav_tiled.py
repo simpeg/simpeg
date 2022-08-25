@@ -38,8 +38,8 @@ except:
 import shutil
 
 from time import time
-cluster = LocalCluster(processes=False)
-client = Client(cluster)
+# cluster = LocalCluster(processes=False)
+# client = Client(cluster)
 
 # config.set(scheduler="threads", pool=ThreadPool(12))
 

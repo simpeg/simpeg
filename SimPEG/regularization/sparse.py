@@ -443,15 +443,15 @@ class Sparse(BaseComboRegularization):
             norms = [2., 2., 2., 2.]
 
         objfcts = [
-            SparseSmall(mesh=mesh, **kwargs),
-            SparseDeriv(mesh=mesh, orientation="x", **kwargs),
+            SparseSmall(mesh=mesh),
+            SparseDeriv(mesh=mesh, orientation="x"),
         ]
 
         if mesh.dim > 1:
-            objfcts.append(SparseDeriv(mesh=mesh, orientation="y", **kwargs))
+            objfcts.append(SparseDeriv(mesh=mesh, orientation="y"))
 
         if mesh.dim > 2:
-            objfcts.append(SparseDeriv(mesh=mesh, orientation="z", **kwargs))
+            objfcts.append(SparseDeriv(mesh=mesh, orientation="z"))
 
         super(Sparse, self).__init__(
             mesh=mesh,

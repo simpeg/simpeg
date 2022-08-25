@@ -318,7 +318,7 @@ class SimpleComboRegularization(ComboObjectiveFunction):
     def _mirror_mref_to_objfctlist(self, change):
         for fct in self.objfcts:
             if getattr(fct, "mrefInSmooth", None) is not None:
-                if self.mrefInSmooth is False:
+                if getattr(fct, "mrefInSmooth", None) is False:
                     fct.mref = utils.Zero()
                 else:
                     fct.mref = change["value"]

@@ -140,7 +140,7 @@ def compute_J(self, f=None, Ainv=None):
 
             for rx in src.receiver_list:
                 v = np.eye(rx.nD, dtype=float)
-                n_blocs = np.ceil(rx.nD / row_chunks)
+                n_blocs = np.ceil(2 * rx.nD / row_chunks)
 
                 for block in np.array_split(v, n_blocs, axis=1):
 
@@ -150,7 +150,7 @@ def compute_J(self, f=None, Ainv=None):
                     df_duT += [dfduT]
                     df_dmT += [dfdmT]
 
-                    block_count += block.shape[1]
+                    block_count += dfduT.shape[1]
 
                     if block_count >= row_chunks:
                         count = eval_store_block(A_i, freq, df_duT, df_dmT, u_src, src, count)
@@ -161,41 +161,6 @@ def compute_J(self, f=None, Ainv=None):
             if df_duT:
                 count = eval_store_block(A_i, freq, df_duT, df_dmT, u_src, src, count)
                 block_count = 0
-
-            # df_duT = np.hstack(df_duT)
-            #
-            # if df_dmT:
-            #     df_dmT = np.hstack(df_dmT)
-            # else:
-            #     df_dmT = dfdmT
-            #
-            #
-            # ATinvdf_duT = (A_i * df_duT).reshape((dfduT.shape[0], -1))
-            # block = []
-            #
-            # dA_dmT = self.getADeriv(freq, u_src, ATinvdf_duT, adjoint=True)
-            # dRHS_dmT = self.getRHSDeriv(freq, src, ATinvdf_duT, adjoint=True)
-            # du_dmT = -dA_dmT
-            # if not isinstance(dRHS_dmT, Zero):
-            #     du_dmT += dRHS_dmT
-            # if not isinstance(df_dmT, Zero):
-            #     du_dmT += df_dmT
-            #
-            # block += [np.array(du_dmT, dtype=complex).real.T]
-            #
-            # block = np.vstack(block)
-            # if len(blocks) == 0:
-            #     blocks = block.reshape((-1, m_size))
-            # else:
-            #     blocks = np.vstack([blocks, block])
-            # del df_duT, ATinvdf_duT, dA_dmT, dRHS_dmT, du_dmT
-                # while blocks.shape[0] >= row_chunks:
-                #     Jmatrix.set_orthogonal_selection(
-                #         (np.arange(count, count + row_chunks), slice(None)),
-                #         blocks[:row_chunks, :]
-                #     )
-                #     blocks = blocks[row_chunks:, :]
-                #     count += row_chunks
 
     if len(blocks) != 0:
         Jmatrix.set_orthogonal_selection(

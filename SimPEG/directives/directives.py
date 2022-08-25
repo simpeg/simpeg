@@ -1,11 +1,14 @@
-from __future__ import print_function
+from __future__ import print_function, annotations
 import json
+import uuid
+
 import properties
 import numpy as np
 import matplotlib.pyplot as plt
 import warnings
 import os
 import scipy.sparse as sp
+from datetime import datetime
 from ..data_misfit import BaseDataMisfit
 from ..objective_function import ComboObjectiveFunction
 from ..regularization import (
@@ -36,6 +39,7 @@ import SimPEG.maps as maps
 from ..utils.code_utils import deprecate_property
 
 from discretize import TensorMesh, TreeMesh
+from geoh5py.workspace import Workspace
 from geoh5py.objects import ObjectBase
 
 
@@ -1329,111 +1333,186 @@ class SaveIterationsGeoH5(InversionDirective):
     Saves inversion results to a geoh5 file
     """
 
-    _association = None
-    attribute_type = "model"
-    channels = [""]
-    components = [""]
-    data_type = {}
-    _h5_object = None
-    _transforms: list = []
-    save_objective_function = False
-    sorting = None
-    reshape = None
-
     def __init__(self, h5_object, **kwargs):
 
+        self.data_type = {}
+        self._association = None
+        self.attribute_type = "model"
+        self._label = None
+        self.channels = [""]
+        self.components = [""]
+        self._h5_object = None
+        self._workspace = None
+        self._transforms: list = []
+        self.save_objective_function = False
+        self.sorting = None
+        self._reshape = None
         self.h5_object = h5_object
         setKwargs(self, **kwargs)
 
     def initialize(self):
-
         self.save_components(0)
 
         if self.save_objective_function:
             self.save_log(0)
 
-        self.h5_object.workspace.finalize()
-
     def endIter(self):
-
         self.save_components(self.opt.iter)
 
         if self.save_objective_function:
             self.save_log(self.opt.iter)
 
-        self.h5_object.workspace.finalize()
+    def stack_channels(self, dpred: list):
+        """
+        Regroup channel values along rows.
+        """
+        if isinstance(dpred, np.ndarray):
+            return dpred.reshape((1, -1))
 
-    def save_components(self, iteration: int, values: np.ndarray = None):
+        tile_stack = []
+        channels = []
+        for pred in dpred:
+            channels += [pred]
+            if len(channels) == len(self.channels):
+                tile_stack += [self.reshape(np.vstack(channels))]
+                channels = []
 
+        return np.dstack(tile_stack)
+
+    def save_components(self, iteration: int, values: list[np.ndarray] = None):
+        """
+        Sort, transform and store data per components and channels.
+        """
         if values is not None:
-            prop = values
+            prop = self.stack_channels(values)
         elif self.attribute_type == "predicted":
             dpred = self.invProb.dpred
             if dpred is None:
                 dpred = self.invProb.get_dpred(self.invProb.model)
-            prop = np.hstack(dpred)
+                self.invProb.dpred = dpred
+            prop = self.stack_channels(dpred)
+        elif self.attribute_type == "sensitivities":
+            for directive in self.inversion.directiveList.dList:
+                if isinstance(directive, UpdateSensitivityWeights):
+                    prop = self.reshape(np.sum(directive.JtJdiag, axis=0)**0.5)
         else:
-            prop = self.invProb.model
+            prop = self.reshape(self.invProb.model)
 
-
+        # Apply transformations
+        prop = prop.flatten()
         for fun in self.transforms:
             if isinstance(fun, (maps.IdentityMap, np.ndarray, float)):
                 prop = fun * prop
             else:
                 prop = fun(prop)
 
-        prop = prop.flatten()
-        if self.reshape is None:
-            prop = prop.reshape((len(self.channels), len(self.components), -1), order='F')
-        else:
-            prop = self.reshape(prop)
+        if prop.ndim == 2:
+            prop = prop.T.flatten()
 
-        for cc, component in enumerate(self.components):
+        prop = prop.reshape((len(self.channels), len(self.components), -1))
 
-            if component not in self.data_type.keys():
-                self.data_type[component] = {}
+        with Workspace(self._h5_file) as w_s:
+            h5_object = w_s.get_entity(self.h5_object)[0]
+            for cc, component in enumerate(self.components):
 
-            for ii, channel in enumerate(self.channels):
-                values = prop[ii, cc, :]
+                if component not in self.data_type.keys():
+                    self.data_type[component] = {}
 
-                if self.sorting is not None:
-                    values = values[self.sorting]
-                if not isinstance(channel, str):
-                    channel = f"{channel: .2e}"
-                data = self.h5_object.add_data(
-                    {
-                        f"Iteration_{iteration}_{component}_{channel}":
-                        {"association": self.association, "values": values}
-                    }
-                )
-                if channel not in self.data_type[component].keys():
-                    self.data_type[component][channel] = data.entity_type
-                    data.entity_type.name = f"{self.attribute_type}_" + channel
-                else:
-                    data.entity_type = self.data_type[component][channel]
+                for ii, channel in enumerate(self.channels):
+                    values = prop[ii, cc, :]
 
-                if len(self.channels) > 1 and self.attribute_type == "predicted":
-                    self.h5_object.add_data_to_group(
-                        data, f"Iteration_{iteration}_{component}"
+                    if self.sorting is not None:
+                        values = values[self.sorting]
+                    if not isinstance(channel, str):
+                        channel = f"{channel:.2e}"
+
+                    base_name = f"Iteration_{iteration}"
+                    if len(component) > 0:
+                        base_name += f"_{component}"
+
+                    channel_name = base_name
+                    if len(channel) > 0:
+                        channel_name += f"_{channel}"
+
+                    if self.label is not None:
+                        channel_name += f"_{self.label}"
+                        base_name += f"_{self.label}"
+
+                    data = h5_object.add_data(
+                        {
+                            channel_name: {"association": self.association, "values": values}
+                        }
                     )
+                    if channel not in self.data_type[component].keys():
+                        self.data_type[component][channel] = data.entity_type
+                        data.entity_type.name = f"{self.attribute_type}_" + channel
+                    else:
+                        data.entity_type = w_s.find_type(
+                            self.data_type[component][channel].uid,
+                            type(self.data_type[component][channel])
+                        )
+
+                    if len(self.channels) > 1 and self.attribute_type == "predicted":
+                        h5_object.add_data_to_group(
+                            data, base_name
+                        )
 
     def save_log(self, iteration: int):
         """
         Save iteration metrics to comments.
         """
-        reg_components = ["phi_ms", "phi_msx", "phi_msy", "phi_msz"]
-        iter_block = {
-            "beta": f"{self.invProb.beta:.3e}",
-            "phi_d": f"{self.invProb.phi_d:.3e}",
-            "phi_m": f"{self.invProb.phi_m:.3e}"
-        }
 
-        for label, comp in zip(reg_components, self.reg.objfcts[0].objfcts):
-            iter_block[label] = f"{comp(self.invProb.model):.3e}"
+        dirpath = os.path.dirname(self._h5_file)
+        filepath = os.path.join(dirpath, "SimPEG.out")
+        
+        if iteration == 0:
+            with open(filepath, 'w') as f:
+                f.write("iteration beta phi_d phi_m time\n")
 
-        self.h5_object.parent.add_comment(
-            json.dumps(iter_block), author=f"Iteration_{iteration}"
-        )
+        with open(filepath, 'a') as f:
+            date_time = datetime.now().strftime("%b-%d-%Y:%H:%M:%S")
+            f.write(
+                f"{iteration} {self.invProb.beta:.3e} {self.invProb.phi_d:.3e} "
+                f"{self.invProb.phi_m:.3e} {date_time}\n"
+            )
+
+        with open(filepath, "rb") as f:
+            raw_file = f.read()
+
+        with Workspace(self._h5_file) as w_s:
+            h5_object = w_s.get_entity(self.h5_object)[0]
+            child_names = [k.name for k in h5_object.parent.children]
+            if "SimPEG.out" in child_names:
+                file_entity = h5_object.parent.children[child_names.index("SimPEG.out")]
+            else:
+                file_entity = h5_object.parent.add_file(filepath)
+
+            file_entity.values = raw_file
+
+
+    @property
+    def label(self):
+        return self._label
+
+    @label.setter
+    def label(self, value: str):
+        assert isinstance(value, str), "'label' must be a string"
+
+        self._label = value
+
+    @property
+    def reshape(self):
+        """
+        Reshape function
+        """
+        if getattr(self, "_reshape", None) is None:
+            self._reshape = lambda x: x.reshape((len(self.channels), len(self.components), -1), order="F")
+
+        return self._reshape
+
+    @reshape.setter
+    def reshape(self, fun):
+        self._reshape = fun
 
     @property
     def transforms(self):
@@ -1465,7 +1544,8 @@ class SaveIterationsGeoH5(InversionDirective):
         if not isinstance(entity, ObjectBase):
             raise TypeError(f"Input entity should be of type {ObjectBase}. {type(entity)} provided")
 
-        self._h5_object = entity
+        self._h5_object = entity.uid
+        self._h5_file = entity.workspace.h5file
 
         if getattr(entity, "n_cells", None) is not None:
             self.association = "CELL"
@@ -1627,7 +1707,8 @@ class VectorInversion(InversionDirective):
             self.inversion.directiveList = directiveList
 
             for directive in directiveList:
-                directive.endIter()
+                if not isinstance(directive, SaveIterationsGeoH5):
+                    directive.endIter()
 
         # elif (self.invProb.phi_d < self.target) and self.mode == "spherical":
         #

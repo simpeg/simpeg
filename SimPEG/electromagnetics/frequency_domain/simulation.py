@@ -7,7 +7,7 @@ from discretize.utils import Zero
 
 from ... import props
 from ...data import Data
-from ...utils import mkvc, Zero
+from ...utils import mkvc
 from ..base import BaseEMSimulation
 from ..utils import omega
 from .survey import Survey
@@ -321,10 +321,13 @@ class Simulation3DElectricField(BaseFDEMSimulation):
         return C.T * (self.MfMuiDeriv(C * u) * v)
 
     def getADeriv(self, freq, u, v, adjoint=False):
+        ADeriv_sigma = self.getADeriv_sigma(freq, u, v, adjoint)
+        if self.muiMap is not None:
+            return  ADeriv_sigma + self.getADeriv_mui(
+                freq, u, v, adjoint
+            )
 
-        return self.getADeriv_sigma(freq, u, v, adjoint) + self.getADeriv_mui(
-            freq, u, v, adjoint
-        )
+        return ADeriv_sigma
 
     def getRHS(self, freq):
         """
@@ -360,11 +363,18 @@ class Simulation3DElectricField(BaseFDEMSimulation):
         MfMuiDeriv = self.MfMuiDeriv(s_m)
 
         if adjoint:
-            return (
-                s_mDeriv(MfMui * (C * v))
-                + MfMuiDeriv.T * (C * v)
-                - 1j * omega(freq) * s_eDeriv(v)
-            )
+            out = 0.
+            if not isinstance(src.s_m(self), Zero):
+                out += s_mDeriv(MfMui * (C * v))
+
+            if not isinstance(MfMuiDeriv, Zero):
+                out += MfMuiDeriv.T * (C * v)
+
+            if not isinstance(src.s_e(self), Zero):
+                out += - 1j * omega(freq) * s_eDeriv(v)
+
+            return out
+
         return C.T * (MfMui * s_mDeriv(v) + MfMuiDeriv * v) - 1j * omega(
             freq
         ) * s_eDeriv(v)
