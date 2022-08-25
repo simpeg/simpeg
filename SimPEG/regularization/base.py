@@ -532,7 +532,7 @@ class SmoothDeriv(BaseRegularization):
         """
         dfm_dl = self.cell_gradient @ (self.mapping * self._delta_m(m))
 
-        if self.units == "radian":
+        if self.units.lower() == "radian":
             return (
                 utils.mat_utils.coterminal(dfm_dl * self._cell_distances)
                 / self._cell_distances
@@ -602,7 +602,7 @@ class SmoothDeriv2(SmoothDeriv):
         """
         dfm_dl = self.cell_gradient @ (self.mapping * self._delta_m(m))
 
-        if self.units == "radian":
+        if self.units.lower() == "radian":
             dfm_dl = (
                 utils.mat_utils.coterminal(dfm_dl * self.length_scales)
                 / self.length_scales
