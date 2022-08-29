@@ -225,6 +225,7 @@ class Sparse(WeightedLeastSquares):
         gradient_type="total",
         irls_scaled=True,
         irls_threshold=1e-8,
+        objfcts=None,
         **kwargs,
     ):
         if not isinstance(mesh, RegularizationMesh):
@@ -239,16 +240,17 @@ class Sparse(WeightedLeastSquares):
         if active_cells is not None:
             self._regularization_mesh.active_cells = active_cells
 
-        objfcts = [
-            SparseSmall(mesh=self.regularization_mesh),
-            SparseDeriv(mesh=self.regularization_mesh, orientation="x"),
-        ]
+        if objfcts is None:
+            objfcts = [
+                SparseSmall(mesh=self.regularization_mesh),
+                SparseDeriv(mesh=self.regularization_mesh, orientation="x"),
+            ]
 
-        if mesh.dim > 1:
-            objfcts.append(SparseDeriv(mesh=self.regularization_mesh, orientation="y"))
+            if mesh.dim > 1:
+                objfcts.append(SparseDeriv(mesh=self.regularization_mesh, orientation="y"))
 
-        if mesh.dim > 2:
-            objfcts.append(SparseDeriv(mesh=self.regularization_mesh, orientation="z"))
+            if mesh.dim > 2:
+                objfcts.append(SparseDeriv(mesh=self.regularization_mesh, orientation="z"))
 
         gradientType = kwargs.pop("gradientType", None)
         super().__init__(

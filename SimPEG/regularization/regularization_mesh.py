@@ -33,7 +33,7 @@ class RegularizationMesh(props.BaseSimPEG):
         utils.setKwargs(self, **kwargs)
 
     @property
-    def active_cells(self) -> scipy.sparse.csr_matrix:
+    def active_cells(self) -> sp.csr_matrix:
         """A boolean array indicating whether a cell is active
 
         Notes
@@ -132,7 +132,7 @@ class RegularizationMesh(props.BaseSimPEG):
         return self.mesh.dim
 
     @property
-    def Pac(self) -> scipy.sparse.csr_matrix:
+    def Pac(self) -> sp.csr_matrix:
         """
         Projection matrix that takes from the reduced space of active cells to
         full modelling space (ie. nC x nactive_cells).
@@ -145,7 +145,7 @@ class RegularizationMesh(props.BaseSimPEG):
         return self._Pac
 
     @property
-    def Pafx(self) -> scipy.sparse.csr_matrix:
+    def Pafx(self) -> sp.csr_matrix:
         """
         Projection matrix that takes from the reduced space of active x-faces
         to full modelling space (ie. nFx x nactive_cells_Fx )
@@ -168,7 +168,7 @@ class RegularizationMesh(props.BaseSimPEG):
         return self._Pafx
 
     @property
-    def Pafy(self) -> scipy.sparse.csr_matrix:
+    def Pafy(self) -> sp.csr_matrix:
         """
         Projection matrix that takes from the reduced space of active y-faces
         to full modelling space (ie. nFy x nactive_cells_Fy ).
@@ -193,7 +193,7 @@ class RegularizationMesh(props.BaseSimPEG):
         return self._Pafy
 
     @property
-    def Pafz(self) -> scipy.sparse.csr_matrix:
+    def Pafz(self) -> sp.csr_matrix:
         """
         Projection matrix that takes from the reduced space of active z-faces
         to full modelling space (ie. nFz x nactive_cells_Fz ).
@@ -216,7 +216,7 @@ class RegularizationMesh(props.BaseSimPEG):
         return self._Pafz
 
     @property
-    def average_face_to_cell(self) -> scipy.sparse.csr_matrix:
+    def average_face_to_cell(self) -> sp.csr_matrix:
         """
         Vertically stacked matrix of cell averaging operators from active
         cell centers to active faces along each dimension of the mesh.
@@ -229,7 +229,7 @@ class RegularizationMesh(props.BaseSimPEG):
             return sp.hstack([self.aveFx2CC, self.aveFy2CC, self.aveFz2CC])
 
     @property
-    def aveFx2CC(self) -> scipy.sparse.csr_matrix:
+    def aveFx2CC(self) -> sp.csr_matrix:
         """
         Averaging from active cell centers to active x-faces.
         """
@@ -244,7 +244,7 @@ class RegularizationMesh(props.BaseSimPEG):
         return self._aveFx2CC
 
     @property
-    def aveCC2Fx(self) -> scipy.sparse.csr_matrix:
+    def aveCC2Fx(self) -> sp.csr_matrix:
         """
         Averaging from active x-faces to active cell centers.
         """
@@ -260,7 +260,7 @@ class RegularizationMesh(props.BaseSimPEG):
         return self._aveCC2Fx
 
     @property
-    def aveFy2CC(self) -> scipy.sparse.csr_matrix:
+    def aveFy2CC(self) -> sp.csr_matrix:
         """
         Averaging from active cell centers to active y-faces.
         """
@@ -277,7 +277,7 @@ class RegularizationMesh(props.BaseSimPEG):
         return self._aveFy2CC
 
     @property
-    def aveCC2Fy(self) -> scipy.sparse.csr_matrix:
+    def aveCC2Fy(self) -> sp.csr_matrix:
         """
         Averaging matrix from active y-faces to active cell centers.
         """
@@ -295,7 +295,7 @@ class RegularizationMesh(props.BaseSimPEG):
         return self._aveCC2Fy
 
     @property
-    def aveFz2CC(self) -> scipy.sparse.csr_matrix:
+    def aveFz2CC(self) -> sp.csr_matrix:
         """
         Averaging from active cell centers to active z-faces.
         """
@@ -310,7 +310,7 @@ class RegularizationMesh(props.BaseSimPEG):
         return self._aveFz2CC
 
     @property
-    def aveCC2Fz(self) -> scipy.sparse.csr_matrix:
+    def aveCC2Fz(self) -> sp.csr_matrix:
         """
         Averaging matrix from active z-faces to active cell centers.
         """
@@ -333,7 +333,7 @@ class RegularizationMesh(props.BaseSimPEG):
         return self._base_length
 
     @property
-    def cell_gradient(self) -> scipy.sparse.csr_matrix:
+    def cell_gradient(self) -> sp.csr_matrix:
         """
         Vertically stacked matrix of cell gradients along each dimension of
         the mesh.
