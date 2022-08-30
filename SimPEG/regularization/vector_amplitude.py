@@ -27,9 +27,32 @@ class BaseVectorAmplitude(BaseRegularization):
     """
     _projection = None
 
+    def __init__(self, mesh, **kwargs):
+        super().__init__(mesh, **kwargs)
+
+    @property
+    def mapping(self):
+        return self._mapping
+
+    @mapping.setter
+    def mapping(self, wires):
+        if not isinstance(wires, maps.Wires):
+            raise ValueError(f"A 'mapping' of type {maps.Wires} must be provided.")
+
+        for wire in wires.maps:
+            if wire[1].shape[0] != self.regularization_mesh.nC:
+                raise ValueError(
+                    f"All models must be the same size! Got {wire} with shape{wire[1].shape[0]}"
+                )
+        self._mapping = wires
+
     def amplitude_map(self, m):
         """Create sparse vector model."""
-        return np.linalg.norm(m.reshape((self.regularization_mesh.nC, -1)), axis=1)
+        amplitude = 0
+        for wire_model in (self.mapping * m):
+            amplitude += wire_model**2.
+
+        return amplitude**0.5
 
 
 class VectorAmplitudeSmall(SparseSmall, BaseVectorAmplitude):
@@ -72,32 +95,13 @@ class VectorAmplitudeDeriv(SparseDeriv, BaseVectorAmplitude):
 class VectorAmplitude(Sparse):
     """
     The regularization is:
-
-    .. math::
-
-        R(m) = \\frac{1}{2}\\mathbf{(m-m_\\text{ref})^\\top W^\\top R^\\top R
-        W(m-m_\\text{ref})}
-
-    where the IRLS weight
-
-    .. math::
-
-        R = \\eta TO FINISH LATER!!!
-
-    So the derivative is straight forward:
-
-    .. math::
-
-        R(m) = \\mathbf{W^\\top R^\\top R W (m-m_\\text{ref})}
-
-    The IRLS weights are recomputed after each beta solves.
-    It is strongly recommended to do a few Gauss-Newton iterations
-    before updating.
+    ...
     """
 
     def __init__(
         self,
         mesh,
+        wire_map,
         active_cells=None,
         **kwargs,
     ):
@@ -115,19 +119,39 @@ class VectorAmplitude(Sparse):
             self._regularization_mesh.active_cells = active_cells
 
         objfcts = [
-            VectorAmplitudeSmall(mesh=self.regularization_mesh),
-            VectorAmplitudeDeriv(mesh=self.regularization_mesh, orientation="x"),
+            VectorAmplitudeSmall(mesh=self.regularization_mesh, mapping=wire_map),
+            VectorAmplitudeDeriv(mesh=self.regularization_mesh, mapping=wire_map, orientation="x"),
         ]
 
         if mesh.dim > 1:
-            objfcts.append(VectorAmplitudeDeriv(mesh=self.regularization_mesh, orientation="y"))
+            objfcts.append(VectorAmplitudeDeriv(mesh=self.regularization_mesh, mapping=wire_map, orientation="y"))
 
         if mesh.dim > 2:
-            objfcts.append(VectorAmplitudeDeriv(mesh=self.regularization_mesh, orientation="z"))
+            objfcts.append(VectorAmplitudeDeriv(mesh=self.regularization_mesh, mapping=wire_map, orientation="z"))
 
         super().__init__(
             self.regularization_mesh,
             objfcts=objfcts,
+            mapping=wire_map,
             **kwargs,
         )
+
+    @property
+    def mapping(self):
+        return self._mapping
+
+    @mapping.setter
+    def mapping(self, wires):
+        if not isinstance(wires, maps.Wires):
+            raise ValueError(f"A 'mapping' of type {maps.Wires} must be provided.")
+
+        for wire in wires.maps:
+            if wire[1].shape[0] != self.regularization_mesh.nC:
+                raise ValueError(
+                    f"All models must be the same size! Got {wire} with shape{wire[1].shape[0]}"
+                )
+        self._mapping = wires
+
+        for fct in self.objfcts:
+            fct.mapping = wires
 
