@@ -27,37 +27,9 @@ class BaseVectorAmplitude(BaseRegularization):
     """
     _projection = None
 
-    @property
-    def projection(self):
-        """Projection matrix from vector components to amplitude."""
-        if getattr(self, "_projection", None) is None:
-            self._projection = sp.hstack([
-                sp.identity(self.nP),
-                sp.identity(self.nP),
-                sp.identity(self.nP)
-            ])
-
-        return self._projection
-
     def amplitude_map(self, m):
         """Create sparse vector model."""
-        return self.projection @ utils.sdiag(m)
-
-    @property
-    def mapping(self) -> maps.IdentityMap:
-        """Mapping applied to the model values"""
-        return self._mapping
-
-    @mapping.setter
-    def mapping(self, mapping: maps.IdentityMap):
-        if mapping is None:
-            mapping = maps.IdentityMap()
-        if not isinstance(mapping, maps.IdentityMap):
-            raise TypeError(
-                f"'mapping' must be of type {maps.IdentityMap}. "
-                f"Value of type {type(mapping)} provided."
-            )
-        self._mapping = mapping
+        return np.linalg.norm(m.reshape((self.regularization_mesh.nC, -1)), axis=1)
 
 
 class VectorAmplitudeSmall(SparseSmall, BaseVectorAmplitude):
@@ -73,13 +45,12 @@ class VectorAmplitudeSmall(SparseSmall, BaseVectorAmplitude):
         """
         Compute the amplitude of a vector model.
         """
-        m = self.amplitude_map(m) * m
-        return self.mapping * self._delta_m(m)
+
+        return self.amplitude_map(self.mapping * self._delta_m(m))
 
     def f_m_deriv(self, m) -> csr_matrix:
-        m = self.amplitude_map(m) * m
 
-        return self.mapping.deriv(self._delta_m(m)) @ self.projection
+        return self.mapping.deriv(self._delta_m(m))
 
 
 class VectorAmplitudeDeriv(SparseDeriv, BaseVectorAmplitude):
@@ -88,14 +59,14 @@ class VectorAmplitudeDeriv(SparseDeriv, BaseVectorAmplitude):
     """
 
     def f_m(self, m):
-        m = self.amplitude_map(m) * m
-        dfm_dl = self.cell_gradient @ (self._delta_m(m))
+        m = self.amplitude_map(self.mapping * self._delta_m(m))
+        dfm_dl = self.cell_gradient @ m
 
         return dfm_dl
 
     def f_m_deriv(self, m) -> csr_matrix:
-        m = self.amplitude_map(m) * m
-        return (self.cell_gradient @ self.mapping.deriv(self._delta_m(m))) @ self.projection
+        m = self.amplitude_map(self.mapping * self._delta_m(m))
+        return self.cell_gradient @ self.mapping.deriv(m)
 
 
 class VectorAmplitude(Sparse):

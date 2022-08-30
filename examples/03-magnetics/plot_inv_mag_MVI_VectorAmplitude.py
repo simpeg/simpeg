@@ -308,10 +308,11 @@ wires = maps.Wires(("p", nC), ("s", nC), ("t", nC))
 
 m0 = np.ones(3 * nC) * 1e-4  # Starting model
 
+idenMap = maps.IdentityMap(nP=3*nC)
 # Create three regularizations for the different components
 # of magnetization
-reg = regularization.VectorAmplitude(mesh, active_cells=actv)
-reg.reference_model = np.zeros(nC)
+reg = regularization.VectorAmplitude(mesh, active_cells=actv, mapping=idenMap)
+reg.reference_model = np.zeros(3*nC)
 
 # Data misfit function
 dmis = data_misfit.L2DataMisfit(simulation=simulation, data=data_object)
