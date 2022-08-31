@@ -1,4 +1,5 @@
 import scipy.sparse as sp
+from discretize.utils import sdiag
 # import properties
 from ...utils import mkvc, validate_string_property
 from ...survey import BaseTimeRx
@@ -208,6 +209,50 @@ class PointElectricField(BaseRx):
         super(PointElectricField, self).__init__(
             locations, times, orientation, **kwargs
         )
+
+
+class PointElectricFieldTimeDerivative(BaseRx):
+    """Measure time-derivative of electric field at a point.
+
+    Parameters
+    ----------
+    locations : (n_loc, n_dim) np.ndarray
+        Receiver locations.
+    times : (n_times) np.ndarray
+        Time channels
+    orientation : str, default = 'z'
+        Receiver orientation. Must be one of: 'x', 'y' or 'z'
+    """
+
+    def __init__(self, locations=None, times=None, orientation="z", **kwargs):
+        self.projField = "e"
+        super(PointElectricFieldTimeDerivative, self).__init__(
+            locations, times, orientation, **kwargs
+        )
+
+    def getTimeP(self, time_mesh, f):
+        """Get time projection matrix from mesh to receivers.
+
+        Only constructed when called.
+
+        Parameters
+        ----------
+        time_mesh : discretize.TensorMesh
+            A 1D ``TensorMesh`` defining the time discretization
+        f : SimPEG.electromagnetics.time_domain.fields.FieldsTDEM
+
+        Returns
+        -------
+        scipy.sparse.csr_matrix
+            P, the interpolation matrix
+        """
+        delta_t = 0.01 * self.times
+        projected_time_grid = f._TLoc(self.projField)
+        return sdiag(1/delta_t) * (
+            time_mesh.getInterpolationMat(self.times+0.5*delta_t, projected_time_grid) -
+            time_mesh.getInterpolationMat(self.times-0.5*delta_t, projected_time_grid)
+        )
+
 
 
 class PointMagneticFluxDensity(BaseRx):
