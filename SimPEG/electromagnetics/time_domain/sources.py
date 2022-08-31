@@ -1,15 +1,15 @@
-import numpy as np
-from scipy.constants import mu_0
-import properties
 import warnings
-from ...utils.code_utils import deprecate_property
 
-from geoana.em.static import MagneticDipoleWholeSpace, CircularLoopWholeSpace
+import numpy as np
+import properties
+from geoana.em.static import CircularLoopWholeSpace, MagneticDipoleWholeSpace
+from scipy.constants import mu_0
 
-from ..base import BaseEMSrc
-from ..utils import segmented_line_current_source_term, line_through_faces
 from ...props import LocationVector
-from ...utils import setKwargs, sdiag, Zero
+from ...utils import Zero, sdiag, setKwargs
+from ...utils.code_utils import deprecate_property
+from ..base import BaseEMSrc
+from ..utils import line_through_faces, segmented_line_current_source_term
 
 ###############################################################################
 #                                                                             #
@@ -912,11 +912,18 @@ class CircularLoop(MagDipole):
     n_turns = properties.Integer("number of turns in the loop", default=1)
 
     def __init__(self, receiver_list=None, **kwargs):
+        N = kwargs.pop("N", None)
+        if N is not None:
+            warnings.warn(
+                "'N' is a deprecated property. Please use 'n_turns' instead."
+                "'N' be removed in SimPEG 0.18.0."
+            )
+            self.n_turns = N
         super(CircularLoop, self).__init__(receiver_list, **kwargs)
 
     @property
     def moment(self):
-        return np.pi * self.radius ** 2 * self.current * self.N
+        return np.pi * self.radius**2 * self.current * self.n_turns
 
     def _srcFct(self, obsLoc, coordinates="cartesian"):
         # return MagneticLoopVectorPotential(
@@ -929,9 +936,9 @@ class CircularLoop(MagDipole):
                 location=self.location,
                 orientation=self.orientation,
                 radius=self.radius,
-                current=self.n_turns * self.current,
+                current=self.current,
             )
-        return self._loop.vector_potential(obsLoc, coordinates)
+        return self.n_turns * self._loop.vector_potential(obsLoc, coordinates)
 
 
 class LineCurrent(BaseTDEMSrc):
