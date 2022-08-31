@@ -277,7 +277,7 @@ class Simulation1DLayered(BaseEM1DSimulation):
                 rTE = rTE[:, inv_lambs]
                 v_dh_temp = W @ (
                     (C0s_dh * rTE) @ self.fhtfilt.j0 + (C1s_dh * rTE) @ self.fhtfilt.j1
-                )
+                ).T
                 # need to re-arange v_dh as it's currently (n_data x n_freqs)
                 # however it already contains all the relevant information...
                 # just need to map it from the rx index to the source index associated..
