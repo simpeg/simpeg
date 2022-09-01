@@ -11,19 +11,11 @@ class BaseRx(BaseTimeRx):
 
     :param numpy.ndarray locations: receiver locations (ie. :code:`np.r_[x,y,z]`)
     :param numpy.ndarray times: times
-    :param string orientation: receiver orientation 'x', 'y' or 'z' or numpy array
+    :param string orientation: receiver orientation 'x', 'y' or 'z' or numpy array of shape (3,)
     """
 
-    # orientation = properties.StringChoice(
-    #    "orientation of the receiver. Must currently be 'x', 'y', 'z'", ["x", "y", "z"]
-    # )
-
     def __init__(self, locations, times, orientation=None, **kwargs):
-        proj = kwargs.pop("projComp", None)
-        if proj is not None:
-            self.projComp = proj
-        else:
-            self.orientation = orientation
+        self.orientation = orientation
         super().__init__(locations=locations, times=times, **kwargs)
 
     def projGLoc(self, f):
