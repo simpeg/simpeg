@@ -154,7 +154,7 @@ class SparseDeriv(BaseSparse, SmoothDeriv):
                         * delta_m
                     )
 
-                    if self.units.lower() == "radian":
+                    if self.units is not None and self.units.lower() == "radian":
                         dm = utils.mat_utils.coterminal(dm)
 
                     dm_dl = dm / length_scales
