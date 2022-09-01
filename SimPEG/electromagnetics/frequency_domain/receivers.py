@@ -1,5 +1,4 @@
 import properties
-
 from ... import survey
 
 
@@ -25,8 +24,15 @@ class BaseRx(survey.BaseRx):
     )
 
     def __init__(self, locations, orientation=None, component=None, **kwargs):
+        proj = kwargs.pop("projComp", None)
+        if proj is not None:
+            self.projComp = proj
+        else:
+            self.orientation = orientation
+
+        self.component = component
+
         super(BaseRx, self).__init__(locations, **kwargs)
-        self.orientation = orientation
 
     def projGLoc(self, f):
         """Grid Location projection (e.g. Ex Fy ...)"""
