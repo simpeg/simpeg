@@ -649,6 +649,37 @@ class Wires(object):
         return self._nP
 
 
+class Amplitude(Wires, IdentityMap):
+    def __mul__(self, val):
+        assert isinstance(val, np.ndarray)
+        amplitude = np.linalg.norm(np.c_[[w * val for _, w in self.maps]], axis=0)
+        return amplitude
+
+    def deriv(self, m, v=None):
+        """
+        :param numpy.ndarray m: model
+        :rtype: scipy.sparse.csr_matrix
+        :return: derivative of transformed model
+        """
+        deriv = 0
+        for _, map in self.maps:
+            deriv += map.deriv(m, v)
+
+        return deriv
+
+    def deriv(self, m, v=None):
+        """
+        :param numpy.ndarray m: model
+        :rtype: scipy.sparse.csr_matrix
+        :return: derivative of transformed model
+        """
+        deriv = 0
+        for _, map in self.maps:
+            deriv += map.deriv(m, v)
+
+        return deriv
+
+
 class SelfConsistentEffectiveMedium(IdentityMap, properties.HasProperties):
     """
         Two phase self-consistent effective medium theory mapping for
