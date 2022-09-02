@@ -1,15 +1,15 @@
-import numpy as np
-from scipy.constants import mu_0
-import properties
 import warnings
-from ...utils.code_utils import deprecate_property
 
-from geoana.em.static import MagneticDipoleWholeSpace, CircularLoopWholeSpace
+import numpy as np
+import properties
+from geoana.em.static import CircularLoopWholeSpace, MagneticDipoleWholeSpace
+from scipy.constants import mu_0
 
-from ..base import BaseEMSrc
-from ..utils import segmented_line_current_source_term, line_through_faces
 from ...props import LocationVector
-from ...utils import setKwargs, sdiag, Zero
+from ...utils import Zero, sdiag, setKwargs
+from ...utils.code_utils import deprecate_property
+from ..base import BaseEMSrc
+from ..utils import line_through_faces, segmented_line_current_source_term
 
 ###############################################################################
 #                                                                             #
@@ -916,7 +916,7 @@ class CircularLoop(MagDipole):
 
     @property
     def moment(self):
-        return np.pi * self.radius ** 2 * self.current * self.N
+        return np.pi * self.radius**2 * self.current * self.N
 
     def _srcFct(self, obsLoc, coordinates="cartesian"):
         # return MagneticLoopVectorPotential(
@@ -1107,11 +1107,10 @@ class LineCurrent(BaseTDEMSrc):
         return simulation.MeMuI * self.bInitialDeriv(simulation, v)
 
     def bInitial(self, simulation):
-        if simulation._formulation != "HJ":
-            raise NotImplementedError
-
         if self.waveform.has_initial_fields is False:
             return Zero()
+        elif simulation._formulation != "HJ":
+            raise NotImplementedError
 
         a = self._aInitial(simulation)
         return simulation.mesh.edgeCurl.T * a
