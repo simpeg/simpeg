@@ -95,7 +95,7 @@ def halfSpaceProblemAnaDiff(
     elif srctype == "CircularLoop":
         bz_ana = mu_0 * analytics.hzAnalyticCentLoopT(13, rx.times - t0, sig_half)
     elif srctype == "LineCurrent":
-        bz_ana = mu_0 * analytics.hzAnalyticCentLoopT(100., rx.times - t0, sig_half)
+        bz_ana = mu_0 * analytics.hzAnalyticCentLoopT(100.0, rx.times - t0, sig_half)
 
     bz_calc = prb.dpred(sigma)
     ind = np.logical_and(rx.times - t0 > bounds[0], rx.times - t0 < bounds[1])
@@ -182,7 +182,10 @@ class TDEM_bTests(unittest.TestCase):
     def test_analytic_m0_CYL_0m_CircularLoop(self):
         self.assertTrue(
             halfSpaceProblemAnaDiff(
-                "CYL", srctype="CircularLoop", rxOffset=0.0, sig_half=1e0,
+                "CYL",
+                srctype="CircularLoop",
+                rxOffset=0.0,
+                sig_half=1e0,
             )
             < 0.01
         )
@@ -190,7 +193,10 @@ class TDEM_bTests(unittest.TestCase):
     def test_analytic_m1_TENSOR_0m_LineCurrent(self):
         self.assertTrue(
             halfSpaceProblemAnaDiff(
-                "TENSOR", srctype="LineCurrent", rxOffset=0.0, sig_half=1e-1,
+                "TENSOR",
+                srctype="LineCurrent",
+                rxOffset=0.0,
+                sig_half=1e-1,
             )
             < 0.01
         )
@@ -198,7 +204,10 @@ class TDEM_bTests(unittest.TestCase):
     def test_analytic_m2_TENSOR_0m_LineCurrent(self):
         self.assertTrue(
             halfSpaceProblemAnaDiff(
-                "TENSOR", srctype="LineCurrent", rxOffset=0.0, sig_half=1e-2,
+                "TENSOR",
+                srctype="LineCurrent",
+                rxOffset=0.0,
+                sig_half=1e-2,
             )
             < 0.01
         )
@@ -206,7 +215,10 @@ class TDEM_bTests(unittest.TestCase):
     def test_analytic_m3_TENSOR_0m_LineCurrent(self):
         self.assertTrue(
             halfSpaceProblemAnaDiff(
-                "TENSOR", srctype="LineCurrent", rxOffset=0.0, sig_half=1e-3, plotIt=True,
+                "TENSOR",
+                srctype="LineCurrent",
+                rxOffset=0.0,
+                sig_half=1e-3,
             )
             < 0.01
         )
