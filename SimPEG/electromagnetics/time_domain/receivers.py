@@ -1,8 +1,8 @@
-import properties
+import numpy as np
 import scipy.sparse as sp
 
 from ...survey import BaseTimeRx
-from ...utils import mkvc
+from ...utils import Zero, mkvc
 
 
 class BaseRx(BaseTimeRx):
@@ -23,7 +23,22 @@ class BaseRx(BaseTimeRx):
         if proj is not None:
             self.projComp = proj
         else:
-            self.orientation = orientation
+            if type(orientation) is str:
+                assert orientation.lower() in [
+                    "x",
+                    "y",
+                    "z",
+                ], "'orientation' must be 'x', 'y', 'z', or a unit numpy array vector of shape (3,)."
+                self.orientation = orientation
+            elif type(orientation) is np.ndarray:
+                assert orientation.shape == (
+                    3,
+                ), "'orientation' must be 'x', 'y', 'z', or a unit numpy array vector of shape (3,)."
+                self.orientation = orientation / np.linalg.norm(orientation)
+            else:
+                raise Exception(
+                    "'orientation' must be 'x', 'y', 'z', or a unit numpy array vector of shape (3,)."
+                )
         super().__init__(locations=locations, times=times, **kwargs)
 
     def projGLoc(self, f):
@@ -48,15 +63,14 @@ class BaseRx(BaseTimeRx):
         if type(self.orientation) is str:
             return mesh.getInterpolationMat(self.locations, self.projGLoc(f))
         else:
-            P = self.orientation[0] * (
-                mesh.getInterpolationMat(self.locations, f._GLoc(self.projField) + "x")
-            )
-            P += self.orientation[1] * (
-                mesh.getInterpolationMat(self.locations, f._GLoc(self.projField) + "y")
-            )
-            P += self.orientation[2] * (
-                mesh.getInterpolationMat(self.locations, f._GLoc(self.projField) + "z")
-            )
+            P = Zero()
+            for strength, component in zip(self.orientation, ["x", "y", "z"]):
+                if strength != 0.0:
+                    P += strength * (
+                        mesh.getInterpolationMat(
+                            self.locations, f._GLoc(self.projField) + component
+                        )
+                    )
             return P
 
     def getTimeP(self, time_mesh, f):
