@@ -234,10 +234,12 @@ class PointNaturalSource(BaseRx):
             gbot_v = -imp * v / bot
 
             if mesh.dim == 3:
-                ghx_v = np.c_[hy[:, 1], -hy[:, 0]] * gbot_v[:, None]
-                ghy_v = np.c_[-hx[:, 1], hx[:, 0]] * gbot_v[:, None]
-                ge_v = np.c_[h[:, 1], -h[:, 0]] * gtop_v[:, None]
-                gh_v = np.c_[-e[:, 1], e[:, 0]] * gtop_v[:, None]
+                gtop_v = np.c_[v] / bot[:, None]
+                gbot_v = -imp[:, None] * np.c_[v] / bot[:, None]
+                ghx_v = np.einsum('ij,ik->ijk', gbot_v, np.c_[hy[:, 1], -hy[:, 0]]).reshape((hy.shape[0], -1))
+                ghy_v = np.einsum('ij,ik->ijk', gbot_v, np.c_[-hx[:, 1], hx[:, 0]]).reshape((hx.shape[0], -1))
+                ge_v = np.einsum('ij,ik->ijk', gtop_v, np.c_[h[:, 1], -h[:, 0]]).reshape((h.shape[0], -1))
+                gh_v = np.einsum('ij,ik->ijk', gtop_v, np.c_[-e[:, 1], e[:, 0]]).reshape((e.shape[0], -1))
 
                 if self.orientation[1] == "x":
                     ghy_v += gh_v
@@ -348,7 +350,6 @@ class PointNaturalSource(BaseRx):
 class Point3DTipper(PointNaturalSource):
     """
     Natural source 3D tipper receiver base class
-
     :param numpy.ndarray locs: receiver locations (ie. :code:`np.r_[x,y,z]`)
     :param string orientation: receiver orientation 'x', 'y' or 'z'
     :param string component: real or imaginary component 'real' or 'imag'
@@ -358,22 +359,9 @@ class Point3DTipper(PointNaturalSource):
         "orientation of the receiver. Must currently be 'zx', 'zy'", ["zx", "zy"]
     )
 
-    def __init__(
-        self,
-        locations=None,
-        orientation="zx",
-        component="real",
-        locations_e=None,
-        locations_h=None,
-    ):
+    def __init__(self, locs, orientation="zx", component="real"):
 
-        super().__init__(
-            locations=locations,
-            orientation=orientation,
-            component=component,
-            locations_e=locations_e,
-            locations_h=locations_h,
-        )
+        super().__init__(locs, orientation=orientation, component=component)
 
     def _eval_tipper(self, src, mesh, f):
         # will grab both primary and secondary and sum them!
@@ -414,13 +402,14 @@ class Point3DTipper(PointNaturalSource):
 
         if adjoint:
             # Work backwards!
-            gtop_v = (v / bot)[:, None]
-            gbot_v = (-imp * v / bot)[:, None]
+            gtop_v = np.c_[v] / bot[:, None]
+            gbot_v = -imp[:, None] * np.c_[v] / bot[:, None]
 
-            ghx_v = np.c_[hy[:, 1], -hy[:, 0]] * gbot_v
-            ghy_v = np.c_[-hx[:, 1], hx[:, 0]] * gbot_v
-            ghz_v = np.c_[-h[:, 1], h[:, 0]] * gtop_v
-            gh_v = np.c_[hz[:, 1], -hz[:, 0]] * gtop_v
+            ghx_v = np.einsum('ij,ik->ijk', gbot_v, np.c_[hy[:, 1], -hy[:, 0]]).reshape((hy.shape[0], -1))
+            ghy_v = np.einsum('ij,ik->ijk', gbot_v, np.c_[-hx[:, 1], hx[:, 0]]).reshape((hx.shape[0], -1))
+            ghz_v = np.einsum('ij,ik->ijk', gtop_v, np.c_[-h[:, 1], h[:, 0]]).reshape((h.shape[0], -1))
+            gh_v = np.einsum('ij,ik->ijk', gtop_v, np.c_[hz[:, 1], -hz[:, 0]]).reshape((hz.shape[0], -1))
+
 
             if self.orientation[1] == "x":
                 ghy_v -= gh_v

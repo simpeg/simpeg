@@ -205,6 +205,7 @@ class BetaEstimate_ByEig(InversionDirective):
     beta0_ratio = 1.0  #: the estimated ratio is multiplied by this to obtain beta
     n_pw_iter = 4  #: number of power iterations for estimation.
     seed = None  #: Random seed for the directive
+    method = "power_iteration"
 
     def initialize(self):
         """
@@ -239,18 +240,31 @@ class BetaEstimate_ByEig(InversionDirective):
 
         m = self.invProb.model
 
-        dm_eigenvalue = eigenvalue_by_power_iteration(
-            self.dmisfit,
-            m,
-            n_pw_iter=self.n_pw_iter,
-        )
-        reg_eigenvalue = eigenvalue_by_power_iteration(
-            self.reg,
-            m,
-            n_pw_iter=self.n_pw_iter,
-        )
+        if self.method == "power_iteration":
 
-        self.ratio = dm_eigenvalue / reg_eigenvalue
+            dm_eigenvalue = eigenvalue_by_power_iteration(
+                self.dmisfit,
+                m,
+                n_pw_iter=self.n_pw_iter,
+            )
+            reg_eigenvalue = eigenvalue_by_power_iteration(
+                self.reg,
+                m,
+                n_pw_iter=self.n_pw_iter,
+            )
+
+            self.ratio = dm_eigenvalue / reg_eigenvalue
+
+        else:
+
+            x0 = np.random.rand(*m.shape)
+            phi_d_deriv = self.dmisfit.deriv2(m, x0)
+            t = np.dot(x0, phi_d_deriv)
+            reg = self.reg.deriv2(m, v=x0)
+            b = np.dot(x0, reg)
+
+            self.ratio = np.asarray(t / b)
+        
         self.beta0 = self.beta0_ratio * self.ratio
 
         self.invProb.beta = self.beta0
