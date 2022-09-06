@@ -160,7 +160,7 @@ class TDEM_bTests(unittest.TestCase):
             halfSpaceProblemAnaDiff(
                 "CYL", srctype="CircularLoop", rxOffset=0.0, sig_half=1e0
             )
-            < 0.02
+            < 0.01
         )
 
     def test_analytic_m1_CYL_0m_CircularLoop(self):
@@ -179,13 +179,13 @@ class TDEM_bTests(unittest.TestCase):
             < 0.01
         )
 
-    def test_analytic_m0_CYL_0m_CircularLoop(self):
+    def test_analytic_m3_CYL_0m_CircularLoop(self):
         self.assertTrue(
             halfSpaceProblemAnaDiff(
                 "CYL",
                 srctype="CircularLoop",
                 rxOffset=0.0,
-                sig_half=1e0,
+                sig_half=1e-3,
             )
             < 0.01
         )
