@@ -75,12 +75,6 @@ class PGI_UpdateParameters(InversionDirective):
             modellist = self.pgi_reg.wiresmap * m
             model = np.c_[[a * b for a, b in zip(self.pgi_reg.maplist, modellist)]].T
 
-            # if self.pgi_reg.reference_model_in_smooth and self.keep_ref_fixed_in_Smooth:
-            #     self.fixed_membership = np.c_[
-            #         np.arange(len(self.pgi_reg.gmmref.cell_volumes)),
-            #         self.pgi_reg.compute_quasi_geology_model(),
-            #     ]
-
             if self.update_gmm and isinstance(
                 self.pgi_reg.gmmref, GaussianMixtureWithNonlinearRelationships
             ):
