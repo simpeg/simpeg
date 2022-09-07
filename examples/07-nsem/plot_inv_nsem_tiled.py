@@ -253,7 +253,7 @@ def run():
     reg.mref = background_conductivity * np.ones(active_cells.sum())
 
     opt = optimization.ProjectedGNCG(
-        maxIter=1, upper=np.inf, lower=-np.inf, tolCG=1e-5,
+        maxIter=10, upper=np.inf, lower=-np.inf, tolCG=1e-5,
         maxIterCG=20,
     )
     invProb = inverse_problem.BaseInvProblem(global_misfit, reg, opt)
