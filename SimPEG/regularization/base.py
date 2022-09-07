@@ -232,9 +232,9 @@ class BaseRegularization(BaseObjectiveFunction):
         Examples
         --------
         >>> import discretize
-        >>> from SimPEG.regularization import Small
+        >>> from SimPEG.regularization import Smallness
         >>> mesh = discretize.TensorMesh([2, 3, 2])
-        >>> reg = Small(mesh)
+        >>> reg = Smallness(mesh)
         >>> reg.set_weights(my_weight=np.ones(mesh.n_cells))
         >>> reg.get_weights('my_weight')
         array([1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1.])
@@ -384,7 +384,7 @@ class BaseRegularization(BaseObjectiveFunction):
             )
 
 
-class Small(BaseRegularization):
+class Smallness(BaseRegularization):
     """
     Small regularization - L2 regularization on the difference between a
     model and a reference model.
@@ -435,7 +435,7 @@ class Small(BaseRegularization):
         return self.mapping.deriv(self._delta_m(m))
 
 
-class SmoothDeriv(BaseRegularization):
+class SmoothnessFirstOrder(BaseRegularization):
     """
     Smooth Regularization. This base class regularizes on the first
     spatial derivative, optionally normalized by the base cell size.
@@ -575,7 +575,7 @@ class SmoothDeriv(BaseRegularization):
         return self._orientation
 
 
-class SmoothDeriv2(SmoothDeriv):
+class SmoothnessSecondOrder(SmoothnessFirstOrder):
     """
     This base class regularizes on the second
     spatial derivative, optionally normalized by the base cell size.
@@ -715,24 +715,24 @@ class WeightedLeastSquares(ComboObjectiveFunction):
         # do this to allow child classes to also pass a list of objfcts to this constructor
         if "objfcts" not in kwargs:
             objfcts = [
-                Small(mesh=self.regularization_mesh),
-                SmoothDeriv(mesh=self.regularization_mesh, orientation="x"),
-                SmoothDeriv2(mesh=self.regularization_mesh, orientation="x"),
+                Smallness(mesh=self.regularization_mesh),
+                SmoothnessFirstOrder(mesh=self.regularization_mesh, orientation="x"),
+                SmoothnessSecondOrder(mesh=self.regularization_mesh, orientation="x"),
             ]
 
             if mesh.dim > 1:
                 objfcts.extend(
                     [
-                        SmoothDeriv(mesh=self.regularization_mesh, orientation="y"),
-                        SmoothDeriv2(mesh=self.regularization_mesh, orientation="y"),
+                        SmoothnessFirstOrder(mesh=self.regularization_mesh, orientation="y"),
+                        SmoothnessSecondOrder(mesh=self.regularization_mesh, orientation="y"),
                     ]
                 )
 
             if mesh.dim > 2:
                 objfcts.extend(
                     [
-                        SmoothDeriv(mesh=self.regularization_mesh, orientation="z"),
-                        SmoothDeriv2(mesh=self.regularization_mesh, orientation="z"),
+                        SmoothnessFirstOrder(mesh=self.regularization_mesh, orientation="z"),
+                        SmoothnessSecondOrder(mesh=self.regularization_mesh, orientation="z"),
                     ]
                 )
         else:

@@ -8,8 +8,8 @@ from .base import (
     BaseRegularization,
     WeightedLeastSquares,
     RegularizationMesh,
-    Small,
-    SmoothDeriv,
+    Smallness,
+    SmoothnessFirstOrder,
 )
 from .. import utils
 
@@ -100,7 +100,7 @@ class BaseSparse(BaseRegularization):
         )
 
 
-class SparseSmall(BaseSparse, Small):
+class SparseSmallness(BaseSparse, Smallness):
     """
     Sparse smallness regularization
 
@@ -119,7 +119,7 @@ class SparseSmall(BaseSparse, Small):
         self.set_weights(irls=self.get_lp_weights(f_m))
 
 
-class SparseDeriv(BaseSparse, SmoothDeriv):
+class SparseDeriv(BaseSparse, SmoothnessFirstOrder):
     """
     Base Class for sparse regularization on first spatial derivatives
     """
@@ -240,7 +240,7 @@ class Sparse(WeightedLeastSquares):
             self._regularization_mesh.active_cells = active_cells
 
         objfcts = [
-            SparseSmall(mesh=self.regularization_mesh),
+            SparseSmallness(mesh=self.regularization_mesh),
             SparseDeriv(mesh=self.regularization_mesh, orientation="x"),
         ]
 

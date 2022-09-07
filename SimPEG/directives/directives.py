@@ -11,12 +11,12 @@ from ..regularization import (
     WeightedLeastSquares,
     BaseRegularization,
     BaseSparse,
-    Small,
+    Smallness,
     Sparse,
-    SparseSmall,
+    SparseSmallness,
     PGIsmallness,
     PGIwithNonlinearRelationshipsSmallness,
-    SmoothDeriv,
+    SmoothnessFirstOrder,
     SparseDeriv,
     BaseSimilarityMeasure,
 )
@@ -313,15 +313,15 @@ class AlphasSmoothEstimate_ByEig(InversionDirective):
                 if isinstance(
                     obj,
                     (
-                        Small,
-                        SparseSmall,
-                        PGIsmallness,
-                        PGIwithNonlinearRelationshipsSmallness,
+                            Smallness,
+                            SparseSmallness,
+                            PGIsmallness,
+                            PGIwithNonlinearRelationshipsSmallness,
                     ),
                 ):
                     smallness += [obj]
 
-                elif isinstance(obj, (SmoothDeriv, SparseDeriv)):
+                elif isinstance(obj, (SmoothnessFirstOrder, SparseDeriv)):
                     parents[obj] = regobjcts
                     smoothness += [obj]
 
@@ -1332,7 +1332,7 @@ class Update_IRLS(InversionDirective):
                     np.abs(obj.mapping * obj._delta_m(self.invProb.model)), self.prctile
                 )
 
-                if isinstance(obj, SmoothDeriv):
+                if isinstance(obj, SmoothnessFirstOrder):
                     threshold /= reg.regularization_mesh.base_length
 
                 obj.irls_threshold = threshold

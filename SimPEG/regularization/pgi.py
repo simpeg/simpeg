@@ -17,7 +17,7 @@ from .base import (
     BaseRegularization,
     WeightedLeastSquares,
     RegularizationMesh,
-    Small,
+    Smallness,
 )
 
 from SimPEG.utils.code_utils import deprecate_property
@@ -33,7 +33,7 @@ from SimPEG.utils.code_utils import deprecate_property
 #####################################
 
 
-class PGIsmallness(Small):
+class PGIsmallness(Smallness):
     """
     Smallness term for the petrophysically constrained regularization (PGI)
     with cell_weights similar to the regularization.tikhonov.SimpleSmall class.

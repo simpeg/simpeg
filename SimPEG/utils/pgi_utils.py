@@ -26,7 +26,7 @@ import warnings
 from .mat_utils import mkvc
 from ..maps import IdentityMap, Wires, Identity
 from ..regularization import (
-    Small,
+    Smallness,
     PGI,
     PGIsmallness,
     WeightedLeastSquares,

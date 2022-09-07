@@ -11,13 +11,13 @@ import matplotlib.pyplot as plt
 import copy
 from ..objective_function import ComboObjectiveFunction
 from ..regularization import (
-    Small,
-    SparseSmall,
+    Smallness,
+    SparseSmallness,
     Sparse,
     PGIsmallness,
     PGIwithNonlinearRelationshipsSmallness,
     PGI,
-    SmoothDeriv,
+    SmoothnessFirstOrder,
     SparseDeriv,
     PGIwithRelationships,
 )
@@ -364,7 +364,7 @@ class PGI_AddMrefInSmooth(InversionDirective):
                         [
                             i,
                             j,
-                            isinstance(regpart, (SmoothDeriv, SparseDeriv)),
+                            isinstance(regpart, (SmoothnessFirstOrder, SparseDeriv)),
                         ]
                     ]
             self.Smooth = np.r_[Smooth]
@@ -381,7 +381,7 @@ class PGI_AddMrefInSmooth(InversionDirective):
             self.nbr = len(self.reg.objfcts)
             self.Smooth = np.r_[
                 [
-                    isinstance(regpart, (SmoothDeriv, SparseDeriv))
+                    isinstance(regpart, (SmoothnessFirstOrder, SparseDeriv))
                     for regpart in self.reg.objfcts
                 ]
             ]
