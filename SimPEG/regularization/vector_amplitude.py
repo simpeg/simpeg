@@ -101,17 +101,23 @@ class BaseVectorAmplitude(BaseRegularization):
         """
         """
         r = self.W * self.f_m(m)
-        return self.f_m_deriv(m).T * (self.W.T * r)
+        f_m_derivs = 0.
+        for f_m_deriv in self.f_m_deriv(m):
+            f_m_derivs += f_m_deriv.T * (self.W.T * r)
+        return f_m_derivs
 
     @utils.timeIt
     def deriv2(self, m, v=None) -> csr_matrix:
         """
         """
-        f_m_deriv = self.f_m_deriv(m)
-        if v is None:
-            return f_m_deriv.T * ((self.W.T * self.W) * f_m_deriv)
+        f_m_derivs = 0.
+        for f_m_deriv in self.f_m_deriv(m):
+            if v is None:
+                f_m_derivs += f_m_deriv.T * ((self.W.T * self.W) * f_m_deriv)
+            else:
+                f_m_derivs += f_m_deriv.T * (self.W.T * (self.W * (f_m_deriv * v)))
 
-        return f_m_deriv.T * (self.W.T * (self.W * (f_m_deriv * v)))
+        return f_m_derivs
 
 
 class VectorAmplitudeSmall(SparseSmall, BaseVectorAmplitude):
@@ -132,7 +138,11 @@ class VectorAmplitudeSmall(SparseSmall, BaseVectorAmplitude):
 
     def f_m_deriv(self, m) -> csr_matrix:
 
-        return self.mapping.deriv(self._delta_m(m))
+        deriv = []
+        for _, wire in self.mapping.maps:
+            deriv.append(wire.deriv(m) * self.mapping.deriv(self._delta_m(m)))
+
+        return deriv
 
     @property
     def W(self):
@@ -149,7 +159,7 @@ class VectorAmplitudeSmall(SparseSmall, BaseVectorAmplitude):
 
                 self._W[-1] = utils.sdiag(self._W[-1] ** 0.5)
 
-            self._W = sp.block_diag(self._W)
+            self._W = sp.vstack(self._W)
         return self._W
 
 
@@ -165,12 +175,12 @@ class VectorAmplitudeDeriv(SparseDeriv, BaseVectorAmplitude):
         return dfm_dl
 
     def f_m_deriv(self, m) -> csr_matrix:
-        m = self.amplitude_map(self.mapping * self._delta_m(m))
 
         deriv = []
         for _, wire in self.mapping.maps:
-            deriv += [self.cell_gradient @ wire.deriv(m)]
-        return sp.vstack(deriv)
+            deriv.append(self.cell_gradient * wire.deriv(m) * self.mapping.deriv(self._delta_m(m)))
+
+        return deriv
 
     @property
     def W(self):
@@ -186,7 +196,7 @@ class VectorAmplitudeDeriv(SparseDeriv, BaseVectorAmplitude):
 
             for name, _ in self.mapping.maps:
 
-                self._W.append(-1)
+                self._W.append(1.0)
 
                 for weight in self._weights.values():
                     values = weight[name]
@@ -197,7 +207,7 @@ class VectorAmplitudeDeriv(SparseDeriv, BaseVectorAmplitude):
 
                 self._W[-1] = utils.sdiag(self._W[-1] ** 0.5)
 
-            self._W = sp.block_diag(self._W)
+            self._W = sp.vstack(self._W)
 
         return self._W
 

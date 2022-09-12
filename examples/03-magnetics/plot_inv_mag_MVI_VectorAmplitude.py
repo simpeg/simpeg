@@ -96,7 +96,7 @@ plt.show()
 #
 
 # Create a mesh
-h = [10, 10, 10]
+h = [5, 5, 5]
 padDist = np.ones((3, 2)) * 100
 
 mesh = mesh_builder_xyz(
@@ -271,7 +271,7 @@ plotVectorSectionsOctree(
     model,
     axs=ax,
     normal="Y",
-    # ind=66,
+    ind=66,
     actvMap=actv_plot,
     scale=0.5,
     vmin=0.0,
