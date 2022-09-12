@@ -100,10 +100,10 @@ class BaseVectorAmplitude(BaseRegularization):
     def deriv(self, m) -> np.ndarray:
         """
         """
-        r = self.W * self.f_m(m)
+        # r = self.W * self.f_m(m)
         f_m_derivs = 0.
         for f_m_deriv in self.f_m_deriv(m):
-            f_m_derivs += f_m_deriv.T * (self.W.T * r)
+            f_m_derivs += f_m_deriv.T * ((self.W.T * self.W) * f_m_deriv * m)
         return f_m_derivs
 
     @utils.timeIt
