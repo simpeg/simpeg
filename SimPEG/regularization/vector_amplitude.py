@@ -26,12 +26,13 @@ class BaseVectorAmplitude(BaseRegularization):
     Base vector amplitude function.
     """
     _projection = None
+    _W = None
 
     def __init__(self, mesh, **kwargs):
         super().__init__(mesh, **kwargs)
 
     @property
-    def mapping(self):
+    def mapping(self) -> maps.Wires:
         return self._mapping
 
     @mapping.setter
@@ -48,12 +49,69 @@ class BaseVectorAmplitude(BaseRegularization):
 
     def amplitude_map(self, m):
         """Create sparse vector model."""
-        amplitude = 0
-        for wire_model in (self.mapping * m):
-            amplitude += wire_model**2.
+        # amplitude = 0
+        # for _, wire in self.mapping.maps:
+        #     amplitude += (wire * m)**2.
 
-        return amplitude**0.5
+        return np.linalg.norm(m, axis=0)
 
+    def set_weights(self, **weights):
+        """Adds (or updates) the specified weights to the regularization
+
+        Parameters:
+        -----------
+        **kwargs : key, numpy.ndarray
+            Each keyword argument is added to the weights used by the regularization.
+            They can be accessed with their keyword argument.
+
+        Examples
+        --------
+        >>> import discretize
+        >>> from SimPEG.regularization import Small
+        >>> mesh = discretize.TensorMesh([2, 3, 2])
+        >>> reg = Small(mesh)
+        >>> reg.set_weights(my_weight=np.ones(mesh.n_cells))
+        >>> reg.get_weights('my_weight')
+        array([1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1.])
+        """
+        for key, values in weights.items():
+            if not isinstance(values, tuple):
+                values = (values,) * len(self.mapping.maps)
+
+            if len(values) != len(self.mapping.maps):
+                raise ValueError(f"Values provided for weight {key} must be of tuple of len({len(self.mapping.maps)})")
+
+            self._weights[key] = {}
+            for (name, _), value in zip(self.mapping.maps, values):
+                self.validate_array_type("weights", value, float)
+                self.validate_shape("weights", value, self._weights_shapes)
+                self._weights[key][name] = value
+
+        self._W = None
+
+    @utils.timeIt
+    def __call__(self, m):
+        """
+        """
+        r = self.W * self.f_m(m)
+        return 0.5 * r.dot(r)
+
+    @utils.timeIt
+    def deriv(self, m) -> np.ndarray:
+        """
+        """
+        r = self.W * self.f_m(m)
+        return self.f_m_deriv(m).T * (self.W.T * r)
+
+    @utils.timeIt
+    def deriv2(self, m, v=None) -> csr_matrix:
+        """
+        """
+        f_m_deriv = self.f_m_deriv(m)
+        if v is None:
+            return f_m_deriv.T * ((self.W.T * self.W) * f_m_deriv)
+
+        return f_m_deriv.T * (self.W.T * (self.W * (f_m_deriv * v)))
 
 class VectorAmplitudeSmall(SparseSmall, BaseVectorAmplitude):
     """
@@ -75,6 +133,23 @@ class VectorAmplitudeSmall(SparseSmall, BaseVectorAmplitude):
 
         return self.mapping.deriv(self._delta_m(m))
 
+    @property
+    def W(self):
+        """
+        Weighting matrix
+        """
+        if getattr(self, "_W", None) is None:
+            self._W = {name: 1.0 for name, _ in self.mapping.maps}
+
+            for name, wire in self.mapping.maps:
+
+                for weight in self._weights.values():
+                    self._W[name] *= weight[name]
+
+                self._W[name] = utils.sdiag(self._W[name] ** 0.5)
+
+        return self._W
+
 
 class VectorAmplitudeDeriv(SparseDeriv, BaseVectorAmplitude):
     """
@@ -89,7 +164,35 @@ class VectorAmplitudeDeriv(SparseDeriv, BaseVectorAmplitude):
 
     def f_m_deriv(self, m) -> csr_matrix:
         m = self.amplitude_map(self.mapping * self._delta_m(m))
-        return self.cell_gradient @ self.mapping.deriv(m)
+
+        deriv = []
+        for _, wire in self.mapping.maps:
+            deriv += [self.cell_gradient @ wire.deriv(m)]
+        return sp.vstack(deriv)
+
+    @property
+    def W(self):
+        """
+        Weighting matrix that takes the volumes, free weights, fixed weights and
+        length scales of the difference operator (normalized optional).
+        """
+        if getattr(self, "_W", None) is None:
+            average_cell_2_face = getattr(
+                self.regularization_mesh, "aveCC2F{}".format(self.orientation)
+            )
+            self._W = {name: 1.0 for name, _ in self.mapping.maps}
+
+            for name, wire in self.mapping.maps:
+
+                for weight in self._weights.values():
+                    if weight[name].shape[0] == self.regularization_mesh.nC:
+                        weight[name] = average_cell_2_face * weight[name]
+
+                    self._W[name] *= weight[name]
+
+                self._W[name] = utils.sdiag(self._W[name] ** 0.5)
+
+        return self._W
 
 
 class VectorAmplitude(Sparse):

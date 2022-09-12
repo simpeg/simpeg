@@ -649,11 +649,18 @@ class Wires(object):
         return self._nP
 
 
-class Amplitude(Wires, IdentityMap):
+class Group(Wires, IdentityMap):
+    def __init__(self, *args):
+        super(Group, self).__init__(*args)
+        self._maps = ((name, wire) for (name, wire) in self.maps if name != "_")
+        self._nP = int(np.sum([wire.shape[0] for (_, wire) in self.maps]))
+
     def __mul__(self, val):
         assert isinstance(val, np.ndarray)
-        amplitude = np.linalg.norm(np.c_[[w * val for _, w in self.maps]], axis=0)
-        return amplitude
+        split = []
+        for n, w in self.maps:
+            split += [w * val]
+        return tuple(split)
 
     def deriv(self, m, v=None):
         """
@@ -661,23 +668,11 @@ class Amplitude(Wires, IdentityMap):
         :rtype: scipy.sparse.csr_matrix
         :return: derivative of transformed model
         """
-        deriv = 0
-        for _, map in self.maps:
-            deriv += map.deriv(m, v)
+        deriv = []
+        for name, wire in self.maps:
+            deriv += [wire.deriv(m, v)]
 
-        return deriv
-
-    def deriv(self, m, v=None):
-        """
-        :param numpy.ndarray m: model
-        :rtype: scipy.sparse.csr_matrix
-        :return: derivative of transformed model
-        """
-        deriv = 0
-        for _, map in self.maps:
-            deriv += map.deriv(m, v)
-
-        return deriv
+        return sp.vstack(deriv)
 
 
 class SelfConsistentEffectiveMedium(IdentityMap, properties.HasProperties):

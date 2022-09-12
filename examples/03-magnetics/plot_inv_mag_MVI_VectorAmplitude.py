@@ -96,7 +96,7 @@ plt.show()
 #
 
 # Create a mesh
-h = [5, 5, 5]
+h = [10, 10, 10]
 padDist = np.ones((3, 2)) * 100
 
 mesh = mesh_builder_xyz(
@@ -271,7 +271,7 @@ plotVectorSectionsOctree(
     model,
     axs=ax,
     normal="Y",
-    ind=66,
+    # ind=66,
     actvMap=actv_plot,
     scale=0.5,
     vmin=0.0,
@@ -303,14 +303,14 @@ rxLoc = survey.source_field.receiver_list[0].locations
 
 # This Mapping connects the regularizations for the three-component
 # vector model
-wires = maps.Amplitude(("p", nC), ("s", nC), ("t", nC))
+wires = maps.Group(("p", nC), ("s", nC), ("t", nC))
 
 
 m0 = np.ones(3 * nC) * 1e-4  # Starting model
 
 # Create three regularizations for the different components
 # of magnetization
-reg = regularization.Sparse(mesh, active_cells=actv, mapping=wires)
+reg = regularization.VectorAmplitude(mesh, wires, active_cells=actv)
 reg.reference_model = np.zeros(3*nC)
 
 # Data misfit function

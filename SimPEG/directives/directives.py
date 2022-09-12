@@ -1561,6 +1561,8 @@ class UpdateSensitivityWeights(InversionDirective):
         Compute explicitly the main diagonal of JtJ
 
         """
+
+
         jtj_diag = np.zeros_like(self.invProb.model)
         m = self.invProb.model
 
@@ -1578,17 +1580,27 @@ class UpdateSensitivityWeights(InversionDirective):
         # Normalize and threshold weights
         wr = np.zeros_like(self.invProb.model)
         for reg in self.reg.objfcts:
-            if not isinstance(reg, BaseSimilarityMeasure):
+            if isinstance(reg, BaseSimilarityMeasure):
+                continue
+
+            if hasattr(reg.mapping, "maps"):
+                for _, wire in reg.mapping.maps:
+                    wr += wire.deriv(self.invProb.model).T * (
+                            (wire * jtj_diag) / reg.regularization_mesh.vol ** 2.0
+                    )
+            else:
                 wr += reg.mapping.deriv(self.invProb.model).T * (
-                    (reg.mapping * jtj_diag) / reg.regularization_mesh.vol ** 2.0
+                        (reg.mapping * jtj_diag) / reg.regularization_mesh.vol ** 2.0
                 )
+
         wr /= wr.max()
         wr += self.threshold
         wr **= 0.5
         for reg in self.reg.objfcts:
-            if not isinstance(reg, BaseSimilarityMeasure):
-                for sub_reg in reg.objfcts:
-                    sub_reg.set_weights(sensitivity=sub_reg.mapping * wr)
+            if isinstance(reg, BaseSimilarityMeasure):
+                continue
+            for sub_reg in reg.objfcts:
+                sub_reg.set_weights(sensitivity=sub_reg.mapping * wr)
 
     def validate(self, directiveList):
         # check if a beta estimator is in the list after setting the weights
