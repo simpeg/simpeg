@@ -134,15 +134,11 @@ class VectorAmplitudeSmall(SparseSmall, BaseVectorAmplitude):
         Compute the amplitude of a vector model.
         """
 
-        return self.amplitude_map(self.mapping * self._delta_m(m))
+        return self.mapping * self._delta_m(m)
 
     def f_m_deriv(self, m) -> csr_matrix:
 
-        deriv = []
-        for _, wire in self.mapping.maps:
-            deriv.append(wire.deriv(m) * self.mapping.deriv(self._delta_m(m)))
-
-        return deriv
+        return self.mapping.deriv(self._delta_m(m))
 
     @property
     def W(self):
@@ -169,7 +165,7 @@ class VectorAmplitudeDeriv(SparseDeriv, BaseVectorAmplitude):
     """
 
     def f_m(self, m):
-        m = self.amplitude_map(self.mapping * self._delta_m(m))
+        m = self.mapping * self._delta_m(m)
         dfm_dl = self.cell_gradient @ m
 
         return dfm_dl
@@ -177,8 +173,8 @@ class VectorAmplitudeDeriv(SparseDeriv, BaseVectorAmplitude):
     def f_m_deriv(self, m) -> csr_matrix:
 
         deriv = []
-        for _, wire in self.mapping.maps:
-            deriv.append(self.cell_gradient * wire.deriv(m) * self.mapping.deriv(self._delta_m(m)))
+        for map_deriv in self.mapping.deriv(self._delta_m(m)):
+            deriv.append(self.cell_gradient * map_deriv)
 
         return deriv
 

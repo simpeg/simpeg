@@ -660,7 +660,7 @@ class Group(Wires, IdentityMap):
         split = []
         for n, w in self.maps:
             split += [w * val]
-        return tuple(split)
+        return np.linalg.norm(split, axis=0)
 
     def deriv(self, m, v=None):
         """
@@ -672,7 +672,7 @@ class Group(Wires, IdentityMap):
         for name, wire in self.maps:
             deriv += [wire.deriv(m, v)]
 
-        return sp.vstack(deriv)
+        return deriv
 
 
 class SelfConsistentEffectiveMedium(IdentityMap, properties.HasProperties):

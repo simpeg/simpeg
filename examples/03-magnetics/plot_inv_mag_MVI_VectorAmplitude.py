@@ -312,6 +312,8 @@ m0 = np.ones(3 * nC) * 1e-4  # Starting model
 # of magnetization
 reg = regularization.VectorAmplitude(mesh, wires, active_cells=actv)
 reg.reference_model = np.zeros(3*nC)
+reg.norms = [0, 0, 0, 0]
+reg.gradient_type = "components"
 
 # Data misfit function
 dmis = data_misfit.L2DataMisfit(simulation=simulation, data=data_object)
@@ -319,7 +321,7 @@ dmis.W = 1.0 / data_object.standard_deviation
 
 # Add directives to the inversion
 opt = optimization.ProjectedGNCG(
-    maxIter=10, lower=-10, upper=10.0, maxIterLS=20, maxIterCG=20, tolCG=1e-4
+    maxIter=20, lower=-10, upper=10.0, maxIterLS=20, maxIterCG=20, tolCG=1e-4
 )
 
 invProb = inverse_problem.BaseInvProblem(dmis, reg, opt)
@@ -333,7 +335,7 @@ sensitivity_weights = directives.UpdateSensitivityWeights()
 # Here is where the norms are applied
 # Use a threshold parameter empirically based on the distribution of
 #  model parameters
-IRLS = directives.Update_IRLS(f_min_change=1e-3, max_irls_iterations=0, beta_tol=5e-1)
+IRLS = directives.Update_IRLS(f_min_change=1e-3, max_irls_iterations=10, beta_tol=5e-1)
 
 # Pre-conditioner
 update_Jacobi = directives.UpdatePreconditioner()
@@ -356,10 +358,10 @@ mrec_MVIC = inv.run(m0)
 #
 
 plt.figure(figsize=(8, 8))
-ax = plt.subplot(2, 1, 1)
+ax = plt.subplot(2, 1, 2)
 plotVectorSectionsOctree(
     mesh,
-    mrec_MVIC.reshape((nC, 3), order="F"),
+    invProb.l2model.reshape((nC, 3), order="F"),
     axs=ax,
     normal="Y",
     ind=65,
@@ -379,7 +381,7 @@ ax = plt.subplot(2, 1, 2)
 
 plotVectorSectionsOctree(
     mesh,
-    invProb.l2model.reshape((nC, 3), order="F"),
+    mrec_MVIC.reshape((nC, 3), order="F"),
     axs=ax,
     normal="Y",
     ind=65,
@@ -390,7 +392,7 @@ plotVectorSectionsOctree(
 )
 ax.set_xlim([-200, 200])
 ax.set_ylim([-100, 75])
-ax.set_title("Sparse model (Spherical)")
+ax.set_title("Sparse model (L0L2)")
 ax.set_xlabel("x")
 ax.set_ylabel("y")
 plt.gca().set_aspect("equal", adjustable="box")

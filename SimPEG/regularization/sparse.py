@@ -136,12 +136,10 @@ class SparseDeriv(BaseSparse, SmoothDeriv):
         Compute and store the irls weights.
         """
         if self.gradient_type == "total":
-            # if self.reference_model_in_smooth:
-            #     delta_m = self.mapping * self._delta_m(m)
-            # else:
-            #     delta_m = self.mapping * m
-
-            delta_m = self.f_m(m)
+            if self.reference_model_in_smooth:
+                delta_m = self.mapping * self._delta_m(m)
+            else:
+                delta_m = self.mapping * m
 
             f_m = np.zeros_like(delta_m)
             for ii, comp in enumerate("xyz"):
