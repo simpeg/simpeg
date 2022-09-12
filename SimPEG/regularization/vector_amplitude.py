@@ -113,6 +113,7 @@ class BaseVectorAmplitude(BaseRegularization):
 
         return f_m_deriv.T * (self.W.T * (self.W * (f_m_deriv * v)))
 
+
 class VectorAmplitudeSmall(SparseSmall, BaseVectorAmplitude):
     """
     Sparse smallness regularization on vector amplitude.
@@ -139,15 +140,16 @@ class VectorAmplitudeSmall(SparseSmall, BaseVectorAmplitude):
         Weighting matrix
         """
         if getattr(self, "_W", None) is None:
-            self._W = {name: 1.0 for name, _ in self.mapping.maps}
+            self._W = []
 
-            for name, wire in self.mapping.maps:
-
+            for name, _ in self.mapping.maps:
+                self._W.append(1.0)
                 for weight in self._weights.values():
-                    self._W[name] *= weight[name]
+                    self._W[-1] *= weight[name]
 
-                self._W[name] = utils.sdiag(self._W[name] ** 0.5)
+                self._W[-1] = utils.sdiag(self._W[-1] ** 0.5)
 
+            self._W = sp.block_diag(self._W)
         return self._W
 
 
@@ -180,17 +182,22 @@ class VectorAmplitudeDeriv(SparseDeriv, BaseVectorAmplitude):
             average_cell_2_face = getattr(
                 self.regularization_mesh, "aveCC2F{}".format(self.orientation)
             )
-            self._W = {name: 1.0 for name, _ in self.mapping.maps}
+            self._W = []
 
-            for name, wire in self.mapping.maps:
+            for name, _ in self.mapping.maps:
+
+                self._W.append(-1)
 
                 for weight in self._weights.values():
-                    if weight[name].shape[0] == self.regularization_mesh.nC:
-                        weight[name] = average_cell_2_face * weight[name]
+                    values = weight[name]
+                    if values.shape[0] == self.regularization_mesh.nC:
+                        values = average_cell_2_face * values
 
-                    self._W[name] *= weight[name]
+                    self._W[-1] *= values
 
-                self._W[name] = utils.sdiag(self._W[name] ** 0.5)
+                self._W[-1] = utils.sdiag(self._W[-1] ** 0.5)
+
+            self._W = sp.block_diag(self._W)
 
         return self._W
 
