@@ -1,4 +1,4 @@
-from __future__ import print_function, division
+from __future__ import print_function, division, annotations
 import types
 from typing import TYPE_CHECKING
 import numpy as np
@@ -474,3 +474,28 @@ def deprecate_method(
     doc = f"`{old_name}` has been deprecated. See `{new_name}` for documentation"
     new_method.__doc__ = doc
     return new_method
+
+
+def validate_array_type(attribute, array, dtype):
+    """Generic array and type validator"""
+    if array is not None and (
+        not isinstance(array, np.ndarray) or not array.dtype == dtype
+    ):
+        raise TypeError(
+            f"Values provided for '{attribute}' must by a"
+            f" {np.ndarray} of type {dtype}. "
+            f"Values of type {type(array)} provided."
+        )
+
+
+def validate_shape(attribute, values, shape: tuple | tuple[tuple]):
+    """Generic array shape validator"""
+    if (
+        values is not None
+        and shape != "*"
+        and not (values.shape == shape or values.shape in shape)
+    ):
+        raise ValueError(
+            f"Values provided for attribute '{attribute}' must be"
+            f" of shape {shape} not {values.shape}"
+        )

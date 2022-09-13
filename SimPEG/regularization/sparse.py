@@ -204,17 +204,17 @@ class Sparse(WeightedLeastSquares):
 
     .. math::
 
-        R = \\eta TO FINISH LATER!!!
+        R = \\eta \\text{diag} \\left[\\mathbf{r}_s \\right]^{1/2} \\
+        r_{s_i} = {\\Big( {({m_i}^{(k-1)})}^{2} + \\epsilon^2 \\Big)}^{p_s/2 - 1}
 
-    So the derivative is straight forward:
+    where k denotes the iteration number. So the derivative is straight forward:
 
     .. math::
 
         R(m) = \\mathbf{W^\\top R^\\top R W (m-m_\\text{ref})}
 
-    The IRLS weights are recomputed after each beta solves.
-    It is strongly recommended to do a few Gauss-Newton iterations
-    before updating.
+    The IRLS weights are re-computed after each beta solves using
+    :obj:`~SimPEG.directives.Update_IRLS` within the inversion directives.
     """
 
     def __init__(

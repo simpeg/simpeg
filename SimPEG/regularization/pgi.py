@@ -20,7 +20,7 @@ from .base import (
     Smallness,
 )
 
-from SimPEG.utils.code_utils import deprecate_property
+from SimPEG.utils.code_utils import deprecate_property, validate_array_type, validate_shape
 
 ###############################################################################
 #                                                                             #
@@ -97,12 +97,12 @@ class PGIsmallness(Smallness):
     def set_weights(self, **weights):
 
         for key, values in weights.items():
-            self.validate_array_type("weights", values, float)
+            validate_array_type("weights", values, float)
 
             if values.shape[0] == self.regularization_mesh.nC:
                 values = np.tile(values, len(self.wiresmap.maps))
 
-            self.validate_shape("weights", values, (self._nC_residual,))
+            validate_shape("weights", values, (self._nC_residual,))
 
             self._weights[key] = values
 

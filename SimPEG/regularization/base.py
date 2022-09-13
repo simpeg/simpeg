@@ -8,7 +8,7 @@ from .. import maps
 from ..objective_function import BaseObjectiveFunction, ComboObjectiveFunction
 from .. import utils
 from .regularization_mesh import RegularizationMesh
-from SimPEG.utils.code_utils import deprecate_property
+from SimPEG.utils.code_utils import deprecate_property, validate_array_type, validate_shape
 
 if TYPE_CHECKING:
     from scipy.sparse import csr_matrix
@@ -109,8 +109,8 @@ class BaseRegularization(BaseObjectiveFunction):
         if isinstance(values, float):
             values = np.ones(self._nC_residual) * values
 
-        self.validate_array_type("model", values, float)
-        self.validate_shape("model", values, (self._nC_residual,))
+        validate_array_type("model", values, float)
+        validate_shape("model", values, (self._nC_residual,))
         self._model = values
 
     @property
@@ -174,8 +174,8 @@ class BaseRegularization(BaseObjectiveFunction):
             if isinstance(values, float):
                 values = np.ones(self._nC_residual) * values
 
-            self.validate_array_type("reference_model", values, float)
-            self.validate_shape("reference_model", values, (self._nC_residual,))
+            validate_array_type("reference_model", values, float)
+            validate_shape("reference_model", values, (self._nC_residual,))
         self._reference_model = values
 
     mref = deprecate_property(
@@ -240,8 +240,8 @@ class BaseRegularization(BaseObjectiveFunction):
         array([1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1.])
         """
         for key, values in weights.items():
-            self.validate_array_type("weights", values, float)
-            self.validate_shape("weights", values, self._weights_shapes)
+            validate_array_type("weights", values, float)
+            validate_shape("weights", values, self._weights_shapes)
             self._weights[key] = values
         self._W = None
 
@@ -294,7 +294,7 @@ class BaseRegularization(BaseObjectiveFunction):
 
         .. math::
 
-            r(m) = \\frac{1}{2}
+            r(m) = \\frac{1}{2} \\| \\mathbf{W} \\mathbf{f(m)} \\|_2^2
         """
         r = self.W * self.f_m(m)
         return 0.5 * r.dot(r)
@@ -357,31 +357,6 @@ class BaseRegularization(BaseObjectiveFunction):
             return f_m_deriv.T * ((self.W.T * self.W) * f_m_deriv)
 
         return f_m_deriv.T * (self.W.T * (self.W * (f_m_deriv * v)))
-
-    # TODO move these to general validation functions in code_utils
-    def validate_array_type(self, attribute, array, dtype):
-        """Generic array and type validator"""
-        if array is not None and (
-            not isinstance(array, np.ndarray) or not array.dtype == dtype
-        ):
-            raise TypeError(
-                f"Values provided for '{attribute}' for {self} must by a"
-                f" {np.ndarray} of type {dtype}. "
-                f"Values of type {type(array)} provided."
-            )
-
-    # TODO move these to general validation functions in code_utils
-    def validate_shape(self, attribute, values, shape: tuple | tuple[tuple]):
-        """Generic array shape validator"""
-        if (
-            values is not None
-            and shape != "*"
-            and not (values.shape == shape or values.shape in shape)
-        ):
-            raise ValueError(
-                f"Values provided for attribute '{attribute}' for {self} must be"
-                f" of shape {shape} not {values.shape}"
-            )
 
 
 class Smallness(BaseRegularization):
