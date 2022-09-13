@@ -23,7 +23,11 @@ class BaseRegularization(BaseObjectiveFunction):
     over-written
 
     :param discretize.base.BaseMesh mesh: SimPEG mesh
-
+    :param active_cells: Array of bool defining the set of active cells.
+    :param mapping: Model map
+    :param reference_model: Array of model values used to constrain the inversion
+    :param units: Model units identifier. Special case for 'radian'
+    :param weights: Weight multipliers to customize the least-squares function.
     """
 
     _model = None
@@ -130,7 +134,7 @@ class BaseRegularization(BaseObjectiveFunction):
         self._mapping = mapping
 
     @property
-    def units(self) -> str:
+    def units(self) -> str | None:
         """Specify the model units. Special care given to 'radian' values"""
         return self._units
 
