@@ -47,14 +47,6 @@ class BaseVectorAmplitude(BaseRegularization):
                 )
         self._mapping = wires
 
-    def amplitude_map(self, m):
-        """Create sparse vector model."""
-        # amplitude = 0
-        # for _, wire in self.mapping.maps:
-        #     amplitude += (wire * m)**2.
-
-        return np.linalg.norm(m, axis=0)
-
     def set_weights(self, **weights):
         """Adds (or updates) the specified weights to the regularization
 
@@ -134,7 +126,7 @@ class VectorAmplitudeSmall(SparseSmall, BaseVectorAmplitude):
         Compute the amplitude of a vector model.
         """
 
-        return self.mapping * self._delta_m(m)
+        return np.linalg.norm(self.mapping * self._delta_m(m), axis=0)
 
     def f_m_deriv(self, m) -> csr_matrix:
 
@@ -165,10 +157,9 @@ class VectorAmplitudeDeriv(SparseDeriv, BaseVectorAmplitude):
     """
 
     def f_m(self, m):
-        m = self.mapping * self._delta_m(m)
-        dfm_dl = self.cell_gradient @ m
+        a = np.linalg.norm(self.mapping * self._delta_m(m), axis=0)
 
-        return dfm_dl
+        return self.cell_gradient @ a
 
     def f_m_deriv(self, m) -> csr_matrix:
 

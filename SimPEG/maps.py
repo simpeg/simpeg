@@ -652,15 +652,10 @@ class Wires(object):
 class Group(Wires, IdentityMap):
     def __init__(self, *args):
         super(Group, self).__init__(*args)
+
+        # Remove wires that are not part of the group
         self._maps = ((name, wire) for (name, wire) in self.maps if name != "_")
         self._nP = int(np.sum([wire.shape[0] for (_, wire) in self.maps]))
-
-    def __mul__(self, val):
-        assert isinstance(val, np.ndarray)
-        split = []
-        for n, w in self.maps:
-            split += [w * val]
-        return np.linalg.norm(split, axis=0)
 
     def deriv(self, m, v=None):
         """
