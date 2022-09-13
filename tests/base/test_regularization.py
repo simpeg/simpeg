@@ -290,7 +290,7 @@ class RegularizationTests(unittest.TestCase):
 
         wires = maps.Wires(("sigma", mesh.nC), ("mu", mesh.nC))
 
-        reg = regularization.Small(mesh, mapping=wires.sigma, weights=cell_weights)
+        reg = regularization.Smallness(mesh, mapping=wires.sigma, weights=cell_weights)
 
         objfct = objective_function.L2ObjectiveFunction(
             W=utils.sdiag(np.sqrt(cell_weights * mesh.cell_volumes)),
@@ -526,23 +526,23 @@ class RegularizationTests(unittest.TestCase):
         mesh = discretize.TensorMesh([8, 7])
 
         with pytest.raises(ValueError) as error:
-            reg = regularization.SmoothDeriv(mesh, orientation="w")
+            reg = regularization.SmoothnessFirstOrder(mesh, orientation="w")
 
         assert "Orientation must be 'x', 'y' or 'z'" in str(error)
 
         with pytest.raises(ValueError) as error:
-            reg = regularization.SmoothDeriv(mesh, orientation="z")
+            reg = regularization.SmoothnessFirstOrder(mesh, orientation="z")
 
         assert "Mesh must have at least 3 dimensions" in str(error)
 
         mesh = discretize.TensorMesh([2])
 
         with pytest.raises(ValueError) as error:
-            reg = regularization.SmoothDeriv(mesh, orientation="y")
+            reg = regularization.SmoothnessFirstOrder(mesh, orientation="y")
 
         assert "Mesh must have at least 2 dimensions" in str(error)
 
-        smooth_deriv = regularization.SmoothDeriv(mesh, units="radian")
+        smooth_deriv = regularization.SmoothnessFirstOrder(mesh, units="radian")
 
         with pytest.raises(TypeError) as error:
             smooth_deriv.reference_model_in_smooth = "abc"

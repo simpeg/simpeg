@@ -3,12 +3,12 @@ from .base import (
     BaseRegularization,
     WeightedLeastSquares,
     BaseSimilarityMeasure,
-    Small,
-    SmoothDeriv,
-    SmoothDeriv2,
+    Smallness,
+    SmoothnessFirstOrder,
+    SmoothnessSecondOrder,
 )
 from .regularization_mesh import RegularizationMesh
-from .sparse import BaseSparse, SparseSmall, SparseDeriv, Sparse
+from .sparse import BaseSparse, SparseSmallness, SparseDeriv, Sparse
 from .pgi import PGIsmallness, PGI
 from .cross_gradient import CrossGradient
 from .correspondence import LinearCorrespondence
@@ -17,7 +17,7 @@ from .vector_amplitude import VectorAmplitude
 
 
 @deprecate_class(removal_version="0.x.0", future_warn=True)
-class SimpleSmall(Small):
+class SimpleSmallness(Smallness):
     """Deprecated class, replaced by Small."""
 
     def __init__(self, mesh=None, **kwargs):
@@ -25,7 +25,7 @@ class SimpleSmall(Small):
 
 
 @deprecate_class(removal_version="0.x.0", future_warn=True)
-class SimpleSmoothDeriv(SmoothDeriv):
+class SimpleSmoothnessFirstOrder(SmoothnessFirstOrder):
     """Deprecated class, replaced by SmoothDeriv."""
 
     def __init__(self, mesh=None, **kwargs):

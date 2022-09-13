@@ -8,7 +8,7 @@ from .. import maps
 from ..objective_function import BaseObjectiveFunction, ComboObjectiveFunction
 from .. import utils
 from .regularization_mesh import RegularizationMesh
-from SimPEG.utils.code_utils import deprecate_property
+from SimPEG.utils.code_utils import deprecate_property, validate_array_type, validate_shape
 
 if TYPE_CHECKING:
     from scipy.sparse import csr_matrix
@@ -23,7 +23,11 @@ class BaseRegularization(BaseObjectiveFunction):
     over-written
 
     :param discretize.base.BaseMesh mesh: SimPEG mesh
-
+    :param active_cells: Array of bool defining the set of active cells.
+    :param mapping: Model map
+    :param reference_model: Array of model values used to constrain the inversion
+    :param units: Model units identifier. Special case for 'radian'
+    :param weights: Weight multipliers to customize the least-squares function.
     """
 
     _model = None
@@ -109,8 +113,8 @@ class BaseRegularization(BaseObjectiveFunction):
         if isinstance(values, float):
             values = np.ones(self._nC_residual) * values
 
-        self.validate_array_type("model", values, float)
-        self.validate_shape("model", values, (self._nC_residual,))
+        validate_array_type("model", values, float)
+        validate_shape("model", values, (self._nC_residual,))
         self._model = values
 
     @property
@@ -130,7 +134,7 @@ class BaseRegularization(BaseObjectiveFunction):
         self._mapping = mapping
 
     @property
-    def units(self) -> str:
+    def units(self) -> str | None:
         """Specify the model units. Special care given to 'radian' values"""
         return self._units
 
@@ -174,8 +178,8 @@ class BaseRegularization(BaseObjectiveFunction):
             if isinstance(values, float):
                 values = np.ones(self._nC_residual) * values
 
-            self.validate_array_type("reference_model", values, float)
-            self.validate_shape("reference_model", values, (self._nC_residual,))
+            validate_array_type("reference_model", values, float)
+            validate_shape("reference_model", values, (self._nC_residual,))
         self._reference_model = values
 
     mref = deprecate_property(
@@ -232,16 +236,16 @@ class BaseRegularization(BaseObjectiveFunction):
         Examples
         --------
         >>> import discretize
-        >>> from SimPEG.regularization import Small
+        >>> from SimPEG.regularization import Smallness
         >>> mesh = discretize.TensorMesh([2, 3, 2])
-        >>> reg = Small(mesh)
+        >>> reg = Smallness(mesh)
         >>> reg.set_weights(my_weight=np.ones(mesh.n_cells))
         >>> reg.get_weights('my_weight')
         array([1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1.])
         """
         for key, values in weights.items():
-            self.validate_array_type("weights", values, float)
-            self.validate_shape("weights", values, self._weights_shapes)
+            validate_array_type("weights", values, float)
+            validate_shape("weights", values, self._weights_shapes)
             self._weights[key] = values
         self._W = None
 
@@ -294,7 +298,7 @@ class BaseRegularization(BaseObjectiveFunction):
 
         .. math::
 
-            r(m) = \\frac{1}{2}
+            r(m) = \\frac{1}{2} \\| \\mathbf{W} \\mathbf{f(m)} \\|_2^2
         """
         r = self.W * self.f_m(m)
         return 0.5 * r.dot(r)
@@ -358,33 +362,8 @@ class BaseRegularization(BaseObjectiveFunction):
 
         return f_m_deriv.T * (self.W.T * (self.W * (f_m_deriv * v)))
 
-    # TODO move these to general validation functions in code_utils
-    def validate_array_type(self, attribute, array, dtype):
-        """Generic array and type validator"""
-        if array is not None and (
-            not isinstance(array, np.ndarray) or not array.dtype == dtype
-        ):
-            raise TypeError(
-                f"Values provided for '{attribute}' for {self} must by a"
-                f" {np.ndarray} of type {dtype}. "
-                f"Values of type {type(array)} provided."
-            )
 
-    # TODO move these to general validation functions in code_utils
-    def validate_shape(self, attribute, values, shape: tuple | tuple[tuple]):
-        """Generic array shape validator"""
-        if (
-            values is not None
-            and shape != "*"
-            and not (values.shape == shape or values.shape in shape)
-        ):
-            raise ValueError(
-                f"Values provided for attribute '{attribute}' for {self} must be"
-                f" of shape {shape} not {values.shape}"
-            )
-
-
-class Small(BaseRegularization):
+class Smallness(BaseRegularization):
     """
     Small regularization - L2 regularization on the difference between a
     model and a reference model.
@@ -435,7 +414,7 @@ class Small(BaseRegularization):
         return self.mapping.deriv(self._delta_m(m))
 
 
-class SmoothDeriv(BaseRegularization):
+class SmoothnessFirstOrder(BaseRegularization):
     """
     Smooth Regularization. This base class regularizes on the first
     spatial derivative, optionally normalized by the base cell size.
@@ -575,7 +554,7 @@ class SmoothDeriv(BaseRegularization):
         return self._orientation
 
 
-class SmoothDeriv2(SmoothDeriv):
+class SmoothnessSecondOrder(SmoothnessFirstOrder):
     """
     This base class regularizes on the second
     spatial derivative, optionally normalized by the base cell size.
@@ -715,24 +694,24 @@ class WeightedLeastSquares(ComboObjectiveFunction):
         # do this to allow child classes to also pass a list of objfcts to this constructor
         if "objfcts" not in kwargs:
             objfcts = [
-                Small(mesh=self.regularization_mesh),
-                SmoothDeriv(mesh=self.regularization_mesh, orientation="x"),
-                SmoothDeriv2(mesh=self.regularization_mesh, orientation="x"),
+                Smallness(mesh=self.regularization_mesh),
+                SmoothnessFirstOrder(mesh=self.regularization_mesh, orientation="x"),
+                SmoothnessSecondOrder(mesh=self.regularization_mesh, orientation="x"),
             ]
 
             if mesh.dim > 1:
                 objfcts.extend(
                     [
-                        SmoothDeriv(mesh=self.regularization_mesh, orientation="y"),
-                        SmoothDeriv2(mesh=self.regularization_mesh, orientation="y"),
+                        SmoothnessFirstOrder(mesh=self.regularization_mesh, orientation="y"),
+                        SmoothnessSecondOrder(mesh=self.regularization_mesh, orientation="y"),
                     ]
                 )
 
             if mesh.dim > 2:
                 objfcts.extend(
                     [
-                        SmoothDeriv(mesh=self.regularization_mesh, orientation="z"),
-                        SmoothDeriv2(mesh=self.regularization_mesh, orientation="z"),
+                        SmoothnessFirstOrder(mesh=self.regularization_mesh, orientation="z"),
+                        SmoothnessSecondOrder(mesh=self.regularization_mesh, orientation="z"),
                     ]
                 )
         else:

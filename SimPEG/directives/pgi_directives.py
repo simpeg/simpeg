@@ -11,13 +11,13 @@ import matplotlib.pyplot as plt
 import copy
 from ..objective_function import ComboObjectiveFunction
 from ..regularization import (
-    Small,
-    SparseSmall,
+    Smallness,
+    SparseSmallness,
     Sparse,
     PGIsmallness,
     PGIwithNonlinearRelationshipsSmallness,
     PGI,
-    SmoothDeriv,
+    SmoothnessFirstOrder,
     SparseDeriv,
     PGIwithRelationships,
 )
@@ -74,12 +74,6 @@ class PGI_UpdateParameters(InversionDirective):
             m = self.invProb.model
             modellist = self.pgi_reg.wiresmap * m
             model = np.c_[[a * b for a, b in zip(self.pgi_reg.maplist, modellist)]].T
-
-            # if self.pgi_reg.reference_model_in_smooth and self.keep_ref_fixed_in_Smooth:
-            #     self.fixed_membership = np.c_[
-            #         np.arange(len(self.pgi_reg.gmmref.cell_volumes)),
-            #         self.pgi_reg.compute_quasi_geology_model(),
-            #     ]
 
             if self.update_gmm and isinstance(
                 self.pgi_reg.gmmref, GaussianMixtureWithNonlinearRelationships
@@ -370,7 +364,7 @@ class PGI_AddMrefInSmooth(InversionDirective):
                         [
                             i,
                             j,
-                            isinstance(regpart, (SmoothDeriv, SparseDeriv)),
+                            isinstance(regpart, (SmoothnessFirstOrder, SparseDeriv)),
                         ]
                     ]
             self.Smooth = np.r_[Smooth]
@@ -387,7 +381,7 @@ class PGI_AddMrefInSmooth(InversionDirective):
             self.nbr = len(self.reg.objfcts)
             self.Smooth = np.r_[
                 [
-                    isinstance(regpart, (SmoothDeriv, SparseDeriv))
+                    isinstance(regpart, (SmoothnessFirstOrder, SparseDeriv))
                     for regpart in self.reg.objfcts
                 ]
             ]

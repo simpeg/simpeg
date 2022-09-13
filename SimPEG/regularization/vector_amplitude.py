@@ -12,7 +12,7 @@ from .base import (
 )
 from .sparse import (
     Sparse,
-    SparseSmall,
+    SparseSmallness,
     SparseDeriv
 )
 from .. import utils
@@ -59,9 +59,9 @@ class BaseVectorAmplitude(BaseRegularization):
         Examples
         --------
         >>> import discretize
-        >>> from SimPEG.regularization import Small
+        >>> from SimPEG.regularization import Smallness
         >>> mesh = discretize.TensorMesh([2, 3, 2])
-        >>> reg = Small(mesh)
+        >>> reg = Smallness(mesh)
         >>> reg.set_weights(my_weight=np.ones(mesh.n_cells))
         >>> reg.get_weights('my_weight')
         array([1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1.])
@@ -112,7 +112,7 @@ class BaseVectorAmplitude(BaseRegularization):
         return f_m_derivs
 
 
-class VectorAmplitudeSmall(SparseSmall, BaseVectorAmplitude):
+class VectorAmplitudeSmall(SparseSmallness, BaseVectorAmplitude):
     """
     Sparse smallness regularization on vector amplitude.
 
