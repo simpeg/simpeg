@@ -103,7 +103,7 @@ mesh = mesh_builder_xyz(
     xyzLoc, h, padding_distance=padDist, depth_core=100, mesh_type="tree"
 )
 mesh = refine_tree_xyz(
-    mesh, topo, method="surface", octree_levels=[4, 4], finalize=True
+    mesh, topo, method="surface", octree_levels=[2, 6], finalize=True
 )
 
 
@@ -188,7 +188,7 @@ def plotVectorSectionsOctree(
         axs = plt.subplot(111)
 
     if fill:
-        temp_mesh.plotImage(amp, ax=axs, clim=[vmin, vmax], grid=True)
+        temp_mesh.plotImage(amp, ax=axs, clim=[vmin, vmax], grid=False)
 
     axs.quiver(
         temp_mesh.gridCC[:, 0],
@@ -246,7 +246,7 @@ simulation = magnetics.simulation.Simulation3DIntegral(
 
 # Compute some data and add some random noise
 d = simulation.dpred(mkvc(model))
-std = 5  # nT
+std = 10  # nT
 synthetic_data = d + np.random.randn(len(d)) * std
 wd = np.ones(len(d)) * std
 
@@ -315,6 +315,21 @@ reg.reference_model = np.zeros(3*nC)
 reg.norms = [0, 0, 0, 0]
 reg.gradient_type = "components"
 
+
+# Create three regularizations for the different components
+# of magnetization
+# reg_p = regularization.Sparse(mesh, active_cells=actv, mapping=wires.p)
+# reg_p.reference_model = np.zeros(3 * nC)
+#
+# reg_s = regularization.Sparse(mesh, active_cells=actv, mapping=wires.s)
+# reg_s.reference_model = np.zeros(3 * nC)
+#
+# reg_t = regularization.Sparse(mesh, active_cells=actv, mapping=wires.t)
+# reg_t.reference_model = np.zeros(3 * nC)
+#
+# reg = reg_p + reg_s + reg_t
+# reg.reference_model = np.zeros(3 * nC)
+
 # Data misfit function
 dmis = data_misfit.L2DataMisfit(simulation=simulation, data=data_object)
 dmis.W = 1.0 / data_object.standard_deviation
@@ -335,7 +350,7 @@ sensitivity_weights = directives.UpdateSensitivityWeights()
 # Here is where the norms are applied
 # Use a threshold parameter empirically based on the distribution of
 #  model parameters
-IRLS = directives.Update_IRLS(f_min_change=1e-3, max_irls_iterations=10, beta_tol=5e-1)
+IRLS = directives.Update_IRLS(f_min_change=1e-3, max_irls_iterations=2, beta_tol=5e-1)
 
 # Pre-conditioner
 update_Jacobi = directives.UpdatePreconditioner()
@@ -358,7 +373,7 @@ mrec_MVIC = inv.run(m0)
 #
 
 plt.figure(figsize=(8, 8))
-ax = plt.subplot(2, 1, 2)
+ax = plt.subplot(2, 1, 1)
 plotVectorSectionsOctree(
     mesh,
     invProb.l2model.reshape((nC, 3), order="F"),
@@ -386,7 +401,7 @@ plotVectorSectionsOctree(
     normal="Y",
     ind=65,
     actvMap=actv_plot,
-    scale=0.4,
+    scale=2.0,
     vmin=0.0,
     vmax=0.025,
 )

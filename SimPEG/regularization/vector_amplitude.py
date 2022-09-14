@@ -13,19 +13,19 @@ from .base import (
 from .sparse import (
     Sparse,
     SparseSmallness,
-    SparseDeriv
+    SparseSmoothnessFirstOrder
 )
 from .. import utils
+from SimPEG.utils.code_utils import validate_array_type, validate_shape
 
 if TYPE_CHECKING:
     from scipy.sparse import csr_matrix
 
 
-class BaseVectorAmplitude(BaseRegularization):
+class BaseAmplitude(BaseRegularization):
     """
     Base vector amplitude function.
     """
-    _projection = None
     _W = None
 
     def __init__(self, mesh, **kwargs):
@@ -75,8 +75,8 @@ class BaseVectorAmplitude(BaseRegularization):
 
             self._weights[key] = {}
             for (name, _), value in zip(self.mapping.maps, values):
-                self.validate_array_type("weights", value, float)
-                self.validate_shape("weights", value, self._weights_shapes)
+                validate_array_type("weights", value, float)
+                validate_shape("weights", value, self._weights_shapes)
                 self._weights[key][name] = value
 
         self._W = None
@@ -92,7 +92,6 @@ class BaseVectorAmplitude(BaseRegularization):
     def deriv(self, m) -> np.ndarray:
         """
         """
-        # r = self.W * self.f_m(m)
         f_m_derivs = 0.
         for f_m_deriv in self.f_m_deriv(m):
             f_m_derivs += f_m_deriv.T * ((self.W.T * self.W) * f_m_deriv * m)
@@ -112,7 +111,7 @@ class BaseVectorAmplitude(BaseRegularization):
         return f_m_derivs
 
 
-class VectorAmplitudeSmall(SparseSmallness, BaseVectorAmplitude):
+class AmplitudeSmallness(SparseSmallness, BaseAmplitude):
     """
     Sparse smallness regularization on vector amplitude.
 
@@ -138,20 +137,20 @@ class VectorAmplitudeSmall(SparseSmallness, BaseVectorAmplitude):
         Weighting matrix
         """
         if getattr(self, "_W", None) is None:
-            self._W = []
+            weights = []
 
             for name, _ in self.mapping.maps:
-                self._W.append(1.0)
+                weights.append(1.0)
                 for weight in self._weights.values():
-                    self._W[-1] *= weight[name]
+                    weights[-1] *= weight[name]
 
-                self._W[-1] = utils.sdiag(self._W[-1] ** 0.5)
+                weights[-1] = utils.sdiag(weights[-1] ** 0.5)
 
-            self._W = sp.vstack(self._W)
+            self._W = sp.vstack(weights)
         return self._W
 
 
-class VectorAmplitudeDeriv(SparseDeriv, BaseVectorAmplitude):
+class AmplitudeSmoothnessFirstOrder(SparseSmoothnessFirstOrder, BaseAmplitude):
     """
     Base Class for sparse regularization on first spatial derivatives
     """
@@ -179,22 +178,22 @@ class VectorAmplitudeDeriv(SparseDeriv, BaseVectorAmplitude):
             average_cell_2_face = getattr(
                 self.regularization_mesh, "aveCC2F{}".format(self.orientation)
             )
-            self._W = []
+            weights = []
 
             for name, _ in self.mapping.maps:
 
-                self._W.append(1.0)
+                weights.append(1.0)
 
                 for weight in self._weights.values():
                     values = weight[name]
                     if values.shape[0] == self.regularization_mesh.nC:
                         values = average_cell_2_face * values
 
-                    self._W[-1] *= values
+                    weights[-1] *= values
 
-                self._W[-1] = utils.sdiag(self._W[-1] ** 0.5)
+                weights[-1] = utils.sdiag(weights[-1] ** 0.5)
 
-            self._W = sp.vstack(self._W)
+            self._W = sp.vstack(weights)
 
         return self._W
 
@@ -226,15 +225,15 @@ class VectorAmplitude(Sparse):
             self._regularization_mesh.active_cells = active_cells
 
         objfcts = [
-            VectorAmplitudeSmall(mesh=self.regularization_mesh, mapping=wire_map),
-            VectorAmplitudeDeriv(mesh=self.regularization_mesh, mapping=wire_map, orientation="x"),
+            AmplitudeSmallness(mesh=self.regularization_mesh, mapping=wire_map),
+            AmplitudeSmoothnessFirstOrder(mesh=self.regularization_mesh, mapping=wire_map, orientation="x"),
         ]
 
         if mesh.dim > 1:
-            objfcts.append(VectorAmplitudeDeriv(mesh=self.regularization_mesh, mapping=wire_map, orientation="y"))
+            objfcts.append(AmplitudeSmoothnessFirstOrder(mesh=self.regularization_mesh, mapping=wire_map, orientation="y"))
 
         if mesh.dim > 2:
-            objfcts.append(VectorAmplitudeDeriv(mesh=self.regularization_mesh, mapping=wire_map, orientation="z"))
+            objfcts.append(AmplitudeSmoothnessFirstOrder(mesh=self.regularization_mesh, mapping=wire_map, orientation="z"))
 
         super().__init__(
             self.regularization_mesh,

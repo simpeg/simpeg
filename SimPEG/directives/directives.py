@@ -17,7 +17,7 @@ from ..regularization import (
     PGIsmallness,
     PGIwithNonlinearRelationshipsSmallness,
     SmoothnessFirstOrder,
-    SparseDeriv,
+    SparseSmoothnessFirstOrder,
     BaseSimilarityMeasure,
 )
 from ..utils import (
@@ -321,7 +321,7 @@ class AlphasSmoothEstimate_ByEig(InversionDirective):
                 ):
                     smallness += [obj]
 
-                elif isinstance(obj, (SmoothnessFirstOrder, SparseDeriv)):
+                elif isinstance(obj, (SmoothnessFirstOrder, SparseSmoothnessFirstOrder)):
                     parents[obj] = regobjcts
                     smoothness += [obj]
 

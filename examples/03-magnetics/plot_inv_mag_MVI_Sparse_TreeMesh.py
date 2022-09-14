@@ -50,7 +50,7 @@ import matplotlib.pyplot as plt
 # As a simple case, we pick a vertical inducing field of magnitude 50,000 nT.
 #
 #
-sp.random.seed(1)
+np.random.seed(1)
 # We will assume a vertical inducing field
 H0 = (50000.0, 90.0, 0.0)
 

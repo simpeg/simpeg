@@ -18,7 +18,7 @@ from ..regularization import (
     PGIwithNonlinearRelationshipsSmallness,
     PGI,
     SmoothnessFirstOrder,
-    SparseDeriv,
+    SparseSmoothnessFirstOrder,
     PGIwithRelationships,
 )
 from ..utils import (
@@ -364,7 +364,7 @@ class PGI_AddMrefInSmooth(InversionDirective):
                         [
                             i,
                             j,
-                            isinstance(regpart, (SmoothnessFirstOrder, SparseDeriv)),
+                            isinstance(regpart, (SmoothnessFirstOrder, SparseSmoothnessFirstOrder)),
                         ]
                     ]
             self.Smooth = np.r_[Smooth]
@@ -381,7 +381,7 @@ class PGI_AddMrefInSmooth(InversionDirective):
             self.nbr = len(self.reg.objfcts)
             self.Smooth = np.r_[
                 [
-                    isinstance(regpart, (SmoothnessFirstOrder, SparseDeriv))
+                    isinstance(regpart, (SmoothnessFirstOrder, SparseSmoothnessFirstOrder))
                     for regpart in self.reg.objfcts
                 ]
             ]
