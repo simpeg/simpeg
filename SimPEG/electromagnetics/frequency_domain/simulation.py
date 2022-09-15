@@ -165,16 +165,16 @@ class BaseFDEMSimulation(BaseEMSimulation):
                     )
                     if not isinstance(df_duT, Zero):
                         df_duT_sum += df_duT
-                    if not isinstance(df_dmT, Zero):
-                        df_dmT_sum += df_dmT
+                    if not isinstance(df_dmT[0], Zero):
+                        df_dmT_sum += np.hstack(df_dmT)
 
                 ATinvdf_duT = self.Ainv[nf] * df_duT_sum
 
                 dA_dmT = self.getADeriv(freq, u_src, ATinvdf_duT, adjoint=True)
                 dRHS_dmT = self.getRHSDeriv(freq, src, ATinvdf_duT, adjoint=True)
                 du_dmT = -dA_dmT + dRHS_dmT
-
-                df_dmT_sum += du_dmT
+                
+                df_dmT_sum += mkvc(du_dmT)
                 Jtv += np.real(df_dmT_sum)
 
         return mkvc(Jtv)
