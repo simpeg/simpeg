@@ -31,6 +31,7 @@ from ..utils import (
     eigenvalue_by_power_iteration,
 )
 from ..utils.code_utils import deprecate_property
+from ..utils.mat_utils import dip_azimuth2cartesian
 from .. import optimization
 
 
@@ -1229,12 +1230,17 @@ class Update_IRLS(InversionDirective):
 
             self.norms = []
             for reg in self.reg.objfcts:
+                if not isinstance(reg, Sparse):
+                    continue
                 self.norms.append(reg.norms)
                 reg.norms = [2.0 for obj in reg.objfcts]
                 reg.model = self.invProb.model
 
         # Update the model used by the regularization
         for reg in self.reg.objfcts:
+            if not isinstance(reg, Sparse):
+                continue
+
             reg.model = self.invProb.model
 
         if self.sphericalDomain:
@@ -1288,6 +1294,9 @@ class Update_IRLS(InversionDirective):
 
             # Print to screen
             for reg in self.reg.objfcts:
+                if not isinstance(reg, Sparse):
+                    continue
+
                 for obj in reg.objfcts:
                     if isinstance(reg, (Sparse, BaseSparse)):
                         obj.irls_threshold = obj.irls_threshold / self.coolEpsFact
@@ -1297,6 +1306,8 @@ class Update_IRLS(InversionDirective):
             # Reset the regularization matrices so that it is
             # recalculated for current model. Do it to all levels of comboObj
             for reg in self.reg.objfcts:
+                if not isinstance(reg, Sparse):
+                    continue
                 if isinstance(reg, (Sparse, BaseSparse)):
                     reg.update_weights(reg.model)
 
@@ -1339,6 +1350,8 @@ class Update_IRLS(InversionDirective):
 
         # Re-assign the norms supplied by user l2 -> lp
         for reg, norms in zip(self.reg.objfcts, self.norms):
+            if not isinstance(reg, Sparse):
+                continue
             reg.norms = norms
 
         # Save l2-model
@@ -1346,6 +1359,8 @@ class Update_IRLS(InversionDirective):
 
         # Print to screen
         for reg in self.reg.objfcts:
+            if not isinstance(reg, Sparse):
+                continue
             if not self.silent:
                 print("irls_threshold " + str(reg.objfcts[0].irls_threshold))
 
@@ -1599,8 +1614,8 @@ class UpdateSensitivityWeights(InversionDirective):
         for reg in self.reg.objfcts:
             if isinstance(reg, BaseSimilarityMeasure):
                 continue
-            for sub_reg in reg.objfcts:
-                sub_reg.set_weights(sensitivity=sub_reg.mapping * wr)
+
+            reg.set_weights(sensitivity=reg.mapping * wr)
 
     def validate(self, directiveList):
         # check if a beta estimator is in the list after setting the weights
@@ -1625,6 +1640,32 @@ class UpdateSensitivityWeights(InversionDirective):
 
         return True
 
+
+class UpdateReferenceVector(InversionDirective):
+    def __init__(self, regularization, azimuth, dip):
+        self._regularization = regularization
+        self._reference = mkvc(dip_azimuth2cartesian(azimuth, dip))
+
+    def initialize(self):
+        reference_vector = self.get_normalized_reference()
+        for objfct in self._regularization.objfcts:
+            objfct.reference_model = reference_vector
+
+    def endIter(self):
+        reference_vector = self.get_normalized_reference()
+        for objfct in self._regularization.objfcts:
+            objfct.reference_model = reference_vector
+
+    def get_normalized_reference(self):
+        n_comp = len(self._regularization.objfcts)
+        model = []
+        for objfct in self._regularization.objfcts:
+            model.append(objfct.mapping * self.invProb.model)
+
+        amplitude = np.linalg.norm(np.vstack(model).T, axis=1)
+        return sdiag(
+            np.kron(np.ones(n_comp), amplitude)
+        ) * self._reference
 
 class ProjectSphericalBounds(InversionDirective):
     """

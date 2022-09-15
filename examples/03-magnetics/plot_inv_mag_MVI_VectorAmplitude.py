@@ -23,7 +23,7 @@ from SimPEG import (
 )
 
 from SimPEG import utils
-from SimPEG.utils import mkvc
+from SimPEG.utils import mkvc, sdiag
 
 from discretize.utils import mesh_builder_xyz, refine_tree_xyz
 from SimPEG.potential_fields import magnetics
@@ -49,7 +49,10 @@ np.random.seed(1)
 H0 = (50000.0, 90.0, 0.0)
 
 # The magnetization is set along a different direction (induced + remanence)
-M = np.array([45.0, 90.0])
+M = [
+    np.c_[45.0, 270.0],
+    np.c_[45.0, 90.0],
+]
 
 # Create grid of points for topography
 # Lets create a simple Gaussian topo and set the active cells
@@ -74,13 +77,13 @@ survey = magnetics.survey.Survey(srcField)
 
 # Here how the topography looks with a quick interpolation, just a Gaussian...
 tri = sp.spatial.Delaunay(topo)
-fig = plt.figure()
-ax = fig.add_subplot(1, 1, 1, projection="3d")
-ax.plot_trisurf(
-    topo[:, 0], topo[:, 1], topo[:, 2], triangles=tri.simplices, cmap=plt.cm.Spectral
-)
-ax.scatter3D(xyzLoc[:, 0], xyzLoc[:, 1], xyzLoc[:, 2], c="k")
-plt.show()
+# fig = plt.figure()
+# ax = fig.add_subplot(1, 1, 1, projection="3d")
+# ax.plot_trisurf(
+#     topo[:, 0], topo[:, 1], topo[:, 2], triangles=tri.simplices, cmap=plt.cm.Spectral
+# )
+# ax.scatter3D(xyzLoc[:, 0], xyzLoc[:, 1], xyzLoc[:, 2], c="k")
+# plt.show()
 
 ###############################################################################
 # Inversion Mesh
@@ -183,7 +186,7 @@ def plotVectorSectionsOctree(
     ind_3d_to_2d = mesh._get_containing_cell_indexes(tm_gridboost)
     v2d = m[ind_3d_to_2d, :]
     amp = np.sum(v2d ** 2.0, axis=1) ** 0.5
-
+    v2d = sdiag(1./amp) * v2d
     if axs is None:
         axs = plt.subplot(111)
 
@@ -215,23 +218,33 @@ def plotVectorSectionsOctree(
 #
 
 
-model = np.zeros((mesh.nC, 3))
+model_azm_dip = np.zeros((mesh.nC, 2))
+model_amp = np.zeros(mesh.nC)
+for ii, anomaly in enumerate(M):
+    x_shift = 120.0**ii
+    # Get the indicies of the magnetized block
+    ind = utils.model_builder.getIndicesBlock(
+        np.r_[-80 + x_shift, -20, -10],
+        np.r_[-40 + x_shift, 20, 25],
+        mesh.gridCC,
+    )[0]
 
-# Convert the inclination declination to vector in Cartesian
-M_xyz = utils.mat_utils.dip_azimuth2cartesian(M[0], M[1])
+    # Assign magnetization values
+    # model_azm_dip[ind, :] = np.kron(np.ones((ind.shape[0], 1)), anomaly)
+    model_amp[ind] = 0.05
 
-# Get the indicies of the magnetized block
-ind = utils.model_builder.getIndicesBlock(
-    np.r_[-20, -20, -10],
-    np.r_[20, 20, 25],
-    mesh.gridCC,
-)[0]
-
-# Assign magnetization values
-model[ind, :] = np.kron(np.ones((ind.shape[0], 1)), M_xyz * 0.05)
+model_azm_dip[mesh.cell_centers[:, 0] < 0, 0] = M[0][0, 0]
+model_azm_dip[mesh.cell_centers[:, 0] < 0, 1] = M[0][0, 1]
+model_azm_dip[mesh.cell_centers[:, 0] >= 0, 0] = M[1][0, 0]
+model_azm_dip[mesh.cell_centers[:, 0] >= 0, 1] = M[1][0, 1]
 
 # Remove air cells
-model = model[actv, :]
+model_azm_dip = model_azm_dip[actv, :]
+model_amp = model_amp[actv]
+
+model = sdiag(model_amp) * utils.mat_utils.dip_azimuth2cartesian(
+    model_azm_dip[:, 0], model_azm_dip[:, 1]
+)
 
 # Create active map to go from reduce set to full
 actvMap = maps.InjectActiveCells(mesh, actv, np.nan)
@@ -257,33 +270,33 @@ data_object = data.Data(survey, dobs=synthetic_data, standard_deviation=wd)
 actv_plot = maps.InjectActiveCells(mesh, actv, np.nan)
 
 # Plot the model and data
-plt.figure()
-ax = plt.subplot(2, 1, 1)
-im = utils.plot_utils.plot2Ddata(xyzLoc, synthetic_data, ax=ax)
-plt.colorbar(im[0])
-ax.set_title("Predicted data.")
-plt.gca().set_aspect("equal", adjustable="box")
-
-# Plot the vector model
-ax = plt.subplot(2, 1, 2)
-plotVectorSectionsOctree(
-    mesh,
-    model,
-    axs=ax,
-    normal="Y",
-    ind=66,
-    actvMap=actv_plot,
-    scale=0.5,
-    vmin=0.0,
-    vmax=0.025,
-)
-ax.set_xlim([-200, 200])
-ax.set_ylim([-100, 75])
-ax.set_xlabel("x")
-ax.set_ylabel("y")
-plt.gca().set_aspect("equal", adjustable="box")
-
-plt.show()
+# plt.figure()
+# ax = plt.subplot(2, 1, 1)
+# im = utils.plot_utils.plot2Ddata(xyzLoc, synthetic_data, ax=ax)
+# plt.colorbar(im[0])
+# ax.set_title("Predicted data.")
+# plt.gca().set_aspect("equal", adjustable="box")
+#
+# # Plot the vector model
+# ax = plt.subplot(2, 1, 2)
+# plotVectorSectionsOctree(
+#     mesh,
+#     model,
+#     axs=ax,
+#     normal="Y",
+#     ind=66,
+#     actvMap=actv_plot,
+#     scale=10,
+#     vmin=0.0,
+#     vmax=0.025,
+# )
+# ax.set_xlim([-200, 200])
+# ax.set_ylim([-100, 75])
+# ax.set_xlabel("x")
+# ax.set_ylabel("y")
+# plt.gca().set_aspect("equal", adjustable="box")
+#
+# plt.show()
 
 
 ######################################################################
@@ -310,25 +323,49 @@ m0 = np.ones(3 * nC) * 1e-4  # Starting model
 
 # Create three regularizations for the different components
 # of magnetization
-reg = regularization.VectorAmplitude(mesh, wires, active_cells=actv)
-reg.reference_model = np.zeros(3*nC)
-reg.norms = [0, 0, 0, 0]
-reg.gradient_type = "components"
-
+reg_amp = regularization.VectorAmplitude(mesh, wires, active_cells=actv)
+reg_amp.reference_model = np.zeros(3*nC)
+reg_amp.norms = [2, 2, 2, 2]
+reg_amp.gradient_type = "components"
 
 # Create three regularizations for the different components
 # of magnetization
-# reg_p = regularization.Sparse(mesh, active_cells=actv, mapping=wires.p)
-# reg_p.reference_model = np.zeros(3 * nC)
-#
-# reg_s = regularization.Sparse(mesh, active_cells=actv, mapping=wires.s)
-# reg_s.reference_model = np.zeros(3 * nC)
-#
-# reg_t = regularization.Sparse(mesh, active_cells=actv, mapping=wires.t)
-# reg_t.reference_model = np.zeros(3 * nC)
-#
-# reg = reg_p + reg_s + reg_t
-# reg.reference_model = np.zeros(3 * nC)
+reg_p = regularization.Sparse(
+    mesh,
+    active_cells=actv,
+    mapping=wires.p,
+    reference_model_in_smooth=True,
+    # alpha_s=0,
+    # alpha_x=0,
+    # alpha_y=0,
+    # alpha_z=0,
+    norms=[0, 0, 0, 0]
+)
+reg_s = regularization.Sparse(
+    mesh,
+    active_cells=actv,
+    mapping=wires.s,
+    reference_model_in_smooth=True,
+    # alpha_s=0,
+    # alpha_x=0,
+    # alpha_y=0,
+    # alpha_z=0,
+    norms=[0, 0, 0, 0]
+)
+reg_t = regularization.Sparse(
+    mesh,
+    active_cells=actv,
+    mapping=wires.t,
+    reference_model_in_smooth=True,
+    # alpha_s=0,
+    # alpha_x=0,
+    # alpha_y=0,
+    # alpha_z=0,
+    norms=[0, 0, 0, 0]
+)
+reg_components = reg_p + reg_s + reg_t
+
+reg = reg_amp + reg_components
 
 # Data misfit function
 dmis = data_misfit.L2DataMisfit(simulation=simulation, data=data_object)
@@ -350,13 +387,24 @@ sensitivity_weights = directives.UpdateSensitivityWeights()
 # Here is where the norms are applied
 # Use a threshold parameter empirically based on the distribution of
 #  model parameters
-IRLS = directives.Update_IRLS(f_min_change=1e-3, max_irls_iterations=2, beta_tol=5e-1)
+IRLS = directives.Update_IRLS(f_min_change=1e-3, max_irls_iterations=10, beta_tol=5e-1)
 
 # Pre-conditioner
 update_Jacobi = directives.UpdatePreconditioner()
 
+# Update reference model
+update_ref = directives.UpdateReferenceVector(
+    reg_components, model_azm_dip[:, 0], model_azm_dip[:, 1]
+)
+
 inv = inversion.BaseInversion(
-    invProb, directiveList=[sensitivity_weights, IRLS, update_Jacobi, betaest]
+    invProb, directiveList=[
+        sensitivity_weights,
+        update_ref,
+        IRLS,
+        update_Jacobi,
+        betaest
+    ]
 )
 
 # Run the inversion
@@ -381,9 +429,9 @@ plotVectorSectionsOctree(
     normal="Y",
     ind=65,
     actvMap=actv_plot,
-    scale=0.05,
+    scale=10,
     vmin=0.0,
-    vmax=0.005,
+    vmax=0.01,
 )
 ax.set_xlim([-200, 200])
 ax.set_ylim([-100, 75])
@@ -401,7 +449,7 @@ plotVectorSectionsOctree(
     normal="Y",
     ind=65,
     actvMap=actv_plot,
-    scale=2.0,
+    scale=10.0,
     vmin=0.0,
     vmax=0.025,
 )
@@ -415,13 +463,13 @@ plt.gca().set_aspect("equal", adjustable="box")
 plt.show()
 
 # Plot the final predicted data and the residual
-plt.figure()
-ax = plt.subplot(1, 2, 1)
-utils.plot_utils.plot2Ddata(xyzLoc, invProb.dpred, ax=ax)
-ax.set_title("Predicted data.")
-plt.gca().set_aspect("equal", adjustable="box")
-
-ax = plt.subplot(1, 2, 2)
-utils.plot_utils.plot2Ddata(xyzLoc, synthetic_data - invProb.dpred, ax=ax)
-ax.set_title("Data residual.")
-plt.gca().set_aspect("equal", adjustable="box")
+# plt.figure()
+# ax = plt.subplot(1, 2, 1)
+# utils.plot_utils.plot2Ddata(xyzLoc, invProb.dpred, ax=ax)
+# ax.set_title("Predicted data.")
+# plt.gca().set_aspect("equal", adjustable="box")
+#
+# ax = plt.subplot(1, 2, 2)
+# utils.plot_utils.plot2Ddata(xyzLoc, synthetic_data - invProb.dpred, ax=ax)
+# ax.set_title("Data residual.")
+# plt.gca().set_aspect("equal", adjustable="box")
