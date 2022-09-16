@@ -21,6 +21,55 @@ except ImportError:
             )
 
 
+def requires(var):
+    """
+    Use this to wrap a funciton::
+
+        @requires('prob')
+        def dpred(self):
+            pass
+
+    This wrapper will ensure that a problem has been bound to the data.
+    If a problem is not bound an Exception will be raised, and an nice error message printed.
+    """
+
+    def requiresVar(f):
+        if var == "prob":
+            extra = """
+
+        .. note::
+
+            To use survey.{0!s}(), SimPEG requires that a problem be bound to the survey.
+            If a problem has not been bound, an Exception will be raised.
+            To bind a problem to the Data object::
+
+                survey.pair(myProblem)
+
+            """.format(
+                f.__name__
+            )
+        else:
+            extra = """
+                To use *{0!s}* method, SimPEG requires that the {1!s} be specified.
+            """.format(
+                f.__name__, var
+            )
+
+        @wraps(f)
+        def requiresVarWrapper(self, *args, **kwargs):
+            if getattr(self, var, None) is None:
+                raise Exception(extra)
+            return f(self, *args, **kwargs)
+
+        doc = requiresVarWrapper.__doc__
+        requiresVarWrapper.__doc__ = ("" if doc is None else doc) + extra
+
+        return requiresVarWrapper
+
+    return requiresVar
+
+
+@requires('memory_profiler')
 def memProfileWrapper(towrap, *funNames):
     """
     Create a wrapper for the functions you want to use, wrapping up the
@@ -223,54 +272,6 @@ def dependentProperty(name, value, children, doc):
     return property(fget=fget, fset=fset, doc=doc)
 
 
-def requires(var):
-    """
-    Use this to wrap a funciton::
-
-        @requires('prob')
-        def dpred(self):
-            pass
-
-    This wrapper will ensure that a problem has been bound to the data.
-    If a problem is not bound an Exception will be raised, and an nice error message printed.
-    """
-
-    def requiresVar(f):
-        if var == "prob":
-            extra = """
-
-        .. note::
-
-            To use survey.{0!s}(), SimPEG requires that a problem be bound to the survey.
-            If a problem has not been bound, an Exception will be raised.
-            To bind a problem to the Data object::
-
-                survey.pair(myProblem)
-
-            """.format(
-                f.__name__
-            )
-        else:
-            extra = """
-                To use *{0!s}* method, SimPEG requires that the {1!s} be specified.
-            """.format(
-                f.__name__, var
-            )
-
-        @wraps(f)
-        def requiresVarWrapper(self, *args, **kwargs):
-            if getattr(self, var, None) is None:
-                raise Exception(extra)
-            return f(self, *args, **kwargs)
-
-        doc = requiresVarWrapper.__doc__
-        requiresVarWrapper.__doc__ = ("" if doc is None else doc) + extra
-
-        return requiresVarWrapper
-
-    return requiresVar
-
-
 class Report(ScoobyReport):
     """Print date, time, and version information.
 
@@ -325,16 +326,32 @@ class Report(ScoobyReport):
         core = [
             "SimPEG",
             "discretize",
-            "pymatsolver",
+            "pymatsolver",  # TODO: Will be replaced by pydiso
             "vectormath",
-            "properties",
+            "properties",   # TODO: Will be removed eventually
             "numpy",
             "scipy",
             "cython",
         ]
 
         # Optional packages.
-        optional = ["IPython", "matplotlib", "ipywidgets"]
+        optional = [
+            "geoana",
+            "pydiso",
+            "empymod",
+            "numba",
+            "dask",
+            "sklearn",
+            "sympy",
+            "pandas",
+            "IPython",
+            "matplotlib",
+            "ipywidgets",
+            "plotly",
+            "vtk",
+            "utm",
+            "memory_profiler",
+        ]
 
         super().__init__(
             additional=add_pckg,
