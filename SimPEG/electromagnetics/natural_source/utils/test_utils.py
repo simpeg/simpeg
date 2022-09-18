@@ -223,11 +223,9 @@ def setupSimpegNSEM_tests_location_assign_list(
 
     srcList = []
     if singleFreq:
-        # srcList.append(PlanewaveXYPrimary(rxList, singleFreq, sigma_primary=sigBG))
         srcList.append(PlanewaveXYPrimary(rxList, singleFreq))
     else:
         for freq in freqs:
-            # srcList.append(PlanewaveXYPrimary(rxList, freq, sigma_primary=sigBG))
             srcList.append(PlanewaveXYPrimary(rxList, freq))
 
     # Survey MT
@@ -270,16 +268,7 @@ def setupSimpegNSEM_tests_location_assign_list(
     m[block_inds] = np.log(block_sigma)
     m = m[active]
 
-    # f = sim.fields(m)
 
-    # TOLr = 5e-2
-    # TOL = 1e-4
-    # FLR = 1e-20
-
-    # w = np.random.rand(len(m),)
-    # v = np.random.rand(sim.survey.nD,)
-    # vJw = v.ravel().dot(sim.Jvec(m, w, f))
-    # wJtv = w.ravel().dot(sim.Jtvec(m, v, f))
 
     return (m, sim)
 

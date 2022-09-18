@@ -57,7 +57,7 @@ def JvecAdjointTest(
     w = np.random.rand(
         len(m),
     )
-    # print(problem.Jvec(m, w, u))
+
     vJw = v.ravel().dot(simulation.Jvec(m, w, u))
     wJtv = w.ravel().dot(simulation.Jtvec(m, v, u))
     tol = np.max([TOL * (10 ** int(np.log10(np.abs(vJw)))), FLR])

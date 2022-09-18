@@ -359,9 +359,17 @@ class Point3DTipper(PointNaturalSource):
         "orientation of the receiver. Must currently be 'zx', 'zy'", ["zx", "zy"]
     )
 
-    def __init__(self, locs, orientation="zx", component="real"):
+    def __init__(
+        self, 
+        locations=None,
+        orientation="zx", 
+        component="real"):
 
-        super().__init__(locs, orientation=orientation, component=component)
+        super().__init__(
+            locations=locations,
+            orientation=orientation, 
+            component=component
+        )
 
     def _eval_tipper(self, src, mesh, f):
         # will grab both primary and secondary and sum them!
