@@ -325,7 +325,7 @@ m0 = np.ones(3 * nC) * 1e-4  # Starting model
 # of magnetization
 reg_amp = regularization.VectorAmplitude(mesh, wires, active_cells=actv)
 reg_amp.reference_model = np.zeros(3*nC)
-reg_amp.norms = [2, 2, 2, 2]
+reg_amp.norms = [0, 0, 0, 0]
 reg_amp.gradient_type = "components"
 
 # Create three regularizations for the different components
@@ -335,10 +335,6 @@ reg_p = regularization.Sparse(
     active_cells=actv,
     mapping=wires.p,
     reference_model_in_smooth=True,
-    # alpha_s=0,
-    # alpha_x=0,
-    # alpha_y=0,
-    # alpha_z=0,
     norms=[0, 0, 0, 0]
 )
 reg_s = regularization.Sparse(
@@ -346,10 +342,6 @@ reg_s = regularization.Sparse(
     active_cells=actv,
     mapping=wires.s,
     reference_model_in_smooth=True,
-    # alpha_s=0,
-    # alpha_x=0,
-    # alpha_y=0,
-    # alpha_z=0,
     norms=[0, 0, 0, 0]
 )
 reg_t = regularization.Sparse(
@@ -357,15 +349,11 @@ reg_t = regularization.Sparse(
     active_cells=actv,
     mapping=wires.t,
     reference_model_in_smooth=True,
-    # alpha_s=0,
-    # alpha_x=0,
-    # alpha_y=0,
-    # alpha_z=0,
     norms=[0, 0, 0, 0]
 )
 reg_components = reg_p + reg_s + reg_t
 
-reg = reg_amp + reg_components
+reg = reg_components # + reg_amp# + reg_components
 
 # Data misfit function
 dmis = data_misfit.L2DataMisfit(simulation=simulation, data=data_object)
@@ -431,7 +419,7 @@ plotVectorSectionsOctree(
     actvMap=actv_plot,
     scale=10,
     vmin=0.0,
-    vmax=0.01,
+    # vmax=0.01,
 )
 ax.set_xlim([-200, 200])
 ax.set_ylim([-100, 75])
@@ -451,7 +439,7 @@ plotVectorSectionsOctree(
     actvMap=actv_plot,
     scale=10.0,
     vmin=0.0,
-    vmax=0.025,
+    # vmax=0.025,
 )
 ax.set_xlim([-200, 200])
 ax.set_ylim([-100, 75])
