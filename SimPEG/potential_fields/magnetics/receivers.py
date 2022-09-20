@@ -1,4 +1,3 @@
-import numpy as np
 from ... import survey
 
 
@@ -16,44 +15,28 @@ class Point(survey.BaseRx):
 
         super(survey.BaseRx, self).__init__(locations=locations, **kwargs)
 
-        n_locations = locations.shape[0]
-
         if isinstance(components, str):
             components = [components]
-
-        component_dict = {}
         for component in components:
-            component_dict[component] = np.ones(n_locations, dtype="bool")
+            if component not in [
+                "bxx",
+                "bxy",
+                "bxz",
+                "byy",
+                "byz",
+                "bzz",
+                "bx",
+                "by",
+                "bz",
+                "tmi",
+            ]:
+                raise ValueError(
+                    f"{component} not recognized. Must be "
+                    "'bxx', 'bxy', 'bxz', 'byy',"
+                    "'byz', 'bzz', 'bx', 'by', 'bz', or 'tmi'. "
+                )
+        self.components = components
 
-        assert np.all(
-            [
-                component
-                in ["bxx", "bxy", "bxz", "byy", "byz", "bzz", "bx", "by", "bz", "tmi"]
-                for component in list(component_dict.keys())
-            ]
-        ), (
-            "Components {0!s} not known. Components must be in "
-            "'bxx', 'bxy', 'bxz', 'byy',"
-            "'byz', 'bzz', 'bx', 'by', 'bz', 'tmi'. "
-            "Arbitrary orientations have not yet been "
-            "implemented.".format(component)
-        )
-        self.components = component_dict
-
+    @property
     def nD(self):
-
-        if self.receiver_index is not None:
-
-            return self.location_index.shape[0]
-
-        elif self.locations is not None:
-
-            return self.locations.shape[0]
-
-        else:
-
-            return None
-
-    def receiver_index(self):
-
-        return self.receiver_index
+        return self.locations.shape[0] * len(self.components)

@@ -20,20 +20,27 @@ class Survey(BaseSurvey):
 
     @property
     def nRx(self):
-
-        return self.source_field.receiver_list[0].locations.shape[0]
+        return sum(rx.locations.shape[0] for rx in self.source_field.receiver_list)
 
     @property
     def receiver_locations(self):
-        return self.source_field.receiver_list[0].locations
+        return np.concatenate([rx.locations for rx in self.source_field.receiver_list])
 
     @property
     def nD(self):
-        return len(self.receiver_locations) * len(self.components)
+        return sum(rx.nD for rx in self.source_field.receiver_list)
 
     @property
     def components(self):
-        return self.source_field.receiver_list[0].components
+        comps = []
+        for rx in self.source_field.receiver_list:
+            comps += rx.components
+        return comps
+
+    def _location_component_iterator(self):
+        for rx in self.source_field.receiver_list:
+            for loc in rx.locations:
+                yield loc, rx.components
 
     @property
     def vnD(self):
@@ -42,11 +49,10 @@ class Survey(BaseSurvey):
         if getattr(self, "_vnD", None) is None:
             self._vnD = []
             for receiver in self.source_field.receiver_list:
-
-                for component in list(receiver.components.keys()):
+                for component in receiver.components:
 
                     # If non-empty than logcial for empty entries
-                    self._vnD.append(int(receiver.components[component].sum()))
+                    self._vnD.append(len(receiver.components))
 
             print(self._vnD)
             self._vnD = np.asarray(self._vnD)

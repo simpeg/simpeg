@@ -32,11 +32,10 @@ class Simulation3DIntegral(BasePFSimulation):
         self.model = m
 
         if self.store_sensitivities == "forward_only":
-            self.model = m
             # Compute the linear operation without forming the full dense G
             fields = mkvc(self.linear_operator())
         else:
-            fields = self.G @ (self.rhoMap @ m).astype(np.float32)
+            fields = self.G @ (self.rho).astype(np.float32)
 
         return np.asarray(fields)
 
@@ -101,7 +100,7 @@ class Simulation3DIntegral(BasePFSimulation):
 
         return self._gtg_diagonal
 
-    def evaluate_integral(self, receiver_location, components):
+    def evaluate_integral(self, receiver_location, components, model=None):
         """
         Compute the forward linear relationship between the model and the physics at a point
         and for all components of the survey.
@@ -161,30 +160,33 @@ class Simulation3DIntegral(BasePFSimulation):
         rows = {}
         for component in components:
             vals = node_evals[component]
-            if self.mesh.dim > 2:
+            if self._unique_inv is not None:
                 vals = vals[self._unique_inv]
             cell_vals = (
-                vals[:, 0]
-                - vals[:, 1]
-                - vals[:, 2]
-                + vals[:, 3]
-                - vals[:, 4]
-                + vals[:, 5]
-                + vals[:, 6]
-                - vals[:, 7]
+                vals[0]
+                - vals[1]
+                - vals[2]
+                + vals[3]
+                - vals[4]
+                + vals[5]
+                + vals[6]
+                - vals[7]
             )
             if inside_adjust and component == "gzz":
                 # should subtract 4 * pi to the cell containing the observation point
                 # just need a little logic to find the containing cell
                 # cell_vals[inside_cell] += 4 * np.pi
                 pass
-            rows[component] = cell_vals
+            if self.store_sensitivities == "forward_only":
+                rows[component] = cell_vals @ self.rho
+            else:
+                rows[component] = cell_vals
             if len(component) == 3:
                 rows[component] *= constants.G * 1e12  # conversion for Eotvos
             else:
                 rows[component] *= constants.G * 1e8  # conversion for mGal
 
-        return np.vstack([rows[component] for component in components])
+        return np.stack([rows[component] for component in components])
 
 
 class SimulationEquivalentSourceLayer(

@@ -25,46 +25,37 @@ Sim.chunk_format = chunk_format
 
 
 def dask_linear_operator(self):
-    if self.modelMap.shape[0] == "*":
-        self.nC = self.mesh.n_cells
-    else:
-        self.nC = self.modelMap.shape[0]
-
-    n_data_comp = len(self.survey.components)
-    components = np.array(list(self.survey.components.keys()))
-    active_components = np.hstack(
-        [np.c_[values] for values in self.survey.components.values()]
-    ).tolist()
-
+    forward_only = self.store_sensitivities == "forward_only"
     row = delayed(self.evaluate_integral, pure=True)
     rows = [
         array.from_delayed(
-            row(receiver_location, components[component]),
+            row(receiver_location, components),
             dtype=np.float32,
-            shape=(n_data_comp, self.nC),
+            shape=(len(components),) if forward_only else (len(components), self.nC),
         )
-        for receiver_location, component in zip(
-            self.survey.receiver_locations.tolist(), active_components
-        )
+        for receiver_location, components in self.survey._location_component_iterator()
     ]
-    stack = array.vstack(rows)
-
-    # Chunking options
-    if self.chunk_format == "row" or self.store_sensitivities == "forward_only":
-        config.set({"array.chunk-size": f"{self.max_chunk_size}MiB"})
-        # Autochunking by rows is faster and more memory efficient for
-        # very large problems sensitivty and forward calculations
-        stack = stack.rechunk({0: "auto", 1: -1})
-
-    elif self.chunk_format == "equal":
-        # Manual chunks for equal number of blocks along rows and columns.
-        # Optimal for Jvec and Jtvec operations
-        row_chunk, col_chunk = compute_chunk_sizes(*stack.shape, self.max_chunk_size)
-        stack = stack.rechunk((row_chunk, col_chunk))
+    if forward_only:
+        stack = array.concatenate(rows)
     else:
-        # Auto chunking by columns is faster for Inversions
-        config.set({"array.chunk-size": f"{self.max_chunk_size}MiB"})
-        stack = stack.rechunk({0: -1, 1: "auto"})
+        stack = array.vstack(rows)
+        # Chunking options
+        if self.chunk_format == "row" or self.store_sensitivities == "forward_only":
+            config.set({"array.chunk-size": f"{self.max_chunk_size}MiB"})
+            # Autochunking by rows is faster and more memory efficient for
+            # very large problems sensitivty and forward calculations
+            stack = stack.rechunk({0: "auto", 1: -1})
+        elif self.chunk_format == "equal":
+            # Manual chunks for equal number of blocks along rows and columns.
+            # Optimal for Jvec and Jtvec operations
+            row_chunk, col_chunk = compute_chunk_sizes(
+                *stack.shape, self.max_chunk_size
+            )
+            stack = stack.rechunk((row_chunk, col_chunk))
+        else:
+            # Auto chunking by columns is faster for Inversions
+            config.set({"array.chunk-size": f"{self.max_chunk_size}MiB"})
+            stack = stack.rechunk({0: -1, 1: "auto"})
 
     if self.store_sensitivities == "disk":
         sens_name = self.sensitivity_path + "sensitivity.zarr"
@@ -87,16 +78,14 @@ def dask_linear_operator(self):
                 kernel = array.to_zarr(
                     stack, sens_name, compute=True, return_stored=True, overwrite=True
                 )
-    elif self.store_sensitivities == "forward_only":
+    elif forward_only:
         with ProgressBar():
             print("Forward calculation: ")
-            pred = (stack @ self.model).compute()
-        return pred
+            kernel = stack.compute()
     else:
-        print(stack.chunks)
         with ProgressBar():
             print("Computing sensitivities to local ram")
-            kernel = array.asarray(stack.compute())
+            kernel = stack.compute()
     return kernel
 
 

@@ -29,8 +29,7 @@ class BasePFSimulation(LinearSimulation):
     )
 
     def __init__(self, mesh, **kwargs):
-
-        LinearSimulation.__init__(self, mesh, **kwargs)
+        super().__init__(mesh, **kwargs)
 
         # Find non-zero cells
         if getattr(self, "actInd", None) is not None:
@@ -70,9 +69,9 @@ class BasePFSimulation(LinearSimulation):
             cell_nodes = mesh.cell_nodes[indices]
         else:
             raise ValueError("Mesh must be 3D tensor or Octree.")
-        unique, unique_inv = np.unique(cell_nodes, return_inverse=True)
+        unique, unique_inv = np.unique(cell_nodes.T, return_inverse=True)
         self._nodes = nodes[unique]  # unique active nodes
-        self._unique_inv = unique_inv.reshape(cell_nodes.shape)
+        self._unique_inv = unique_inv.reshape(cell_nodes.T.shape)
 
         # # Create vectors of nodal location for the lower and upper corners
         # bsw = self.mesh.gridCC - self.mesh.h_gridded / 2.0
@@ -90,47 +89,24 @@ class BasePFSimulation(LinearSimulation):
         #     self.Zn = projection.T * np.c_[mkvc(zn1), mkvc(zn2)]
 
     def linear_operator(self):
-        if self.modelMap.shape[0] == "*":
-            self.nC = self.mesh.n_cells
-        else:
-            self.nC = self.modelMap.shape[0]
-
-        components = np.array(list(self.survey.components.keys()))
-        active_components = np.hstack(
-            [np.c_[values] for values in self.survey.components.values()]
-        ).tolist()
-        nD = self.survey.nD
-
         if self.store_sensitivities == "disk":
             sens_name = self.sensitivity_path + "sensitivity.npy"
             if os.path.exists(sens_name):
                 # do not pull array completely into ram, just need to check the size
                 kernel = np.load(sens_name, mmap_mode="r")
-                if kernel.shape == (nD, self.nC):
+                if kernel.shape == (self.survey.nD, self.nC):
                     print(f"Found sensitivity file at {sens_name} with expected shape")
                     kernel = np.asarray(kernel)
                     return kernel
-        # Single threaded
+        # multiprocessed
+        with multiprocessing.pool.Pool() as pool:
+            kernel = pool.starmap(
+                self.evaluate_integral, self.survey._location_component_iterator()
+            )
         if self.store_sensitivities != "forward_only":
-            kernel = np.vstack(
-                [
-                    self.evaluate_integral(receiver, components[component])
-                    for receiver, component in zip(
-                        self.survey.receiver_locations.tolist(), active_components
-                    )
-                ]
-            )
+            kernel = np.vstack(kernel)
         else:
-            kernel = np.hstack(
-                [
-                    self.evaluate_integral(receiver, components[component]).dot(
-                        self.model
-                    )
-                    for receiver, component in zip(
-                        self.survey.receiver_locations.tolist(), active_components
-                    )
-                ]
-            )
+            kernel = np.concatenate(kernel)
         if self.store_sensitivities == "disk":
             print(f"writing sensitivity to {sens_name}")
             os.makedirs(self.sensitivity_path, exist_ok=True)
@@ -236,16 +212,17 @@ class BaseEquivalentSourceLayerSimulation(BasePFSimulation):
 
         all_nodes = self._nodes[self._unique_inv]
         all_nodes = [
-            np.c_[all_nodes[:, 0], cell_z_bottom],
-            np.c_[all_nodes[:, 1], cell_z_bottom],
-            np.c_[all_nodes[:, 2], cell_z_bottom],
-            np.c_[all_nodes[:, 3], cell_z_bottom],
-            np.c_[all_nodes[:, 0], cell_z_top],
-            np.c_[all_nodes[:, 1], cell_z_top],
-            np.c_[all_nodes[:, 2], cell_z_top],
-            np.c_[all_nodes[:, 3], cell_z_top],
+            np.c_[all_nodes[0], cell_z_bottom],
+            np.c_[all_nodes[1], cell_z_bottom],
+            np.c_[all_nodes[2], cell_z_bottom],
+            np.c_[all_nodes[3], cell_z_bottom],
+            np.c_[all_nodes[0], cell_z_top],
+            np.c_[all_nodes[1], cell_z_top],
+            np.c_[all_nodes[2], cell_z_top],
+            np.c_[all_nodes[3], cell_z_top],
         ]
-        self._nodes = np.stack(all_nodes, axis=1)
+        self._nodes = np.stack(all_nodes, axis=0)
+        self._unique_inv = None
 
 
 def progress(iter, prog, final):

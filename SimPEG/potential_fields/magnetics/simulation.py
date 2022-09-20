@@ -74,19 +74,22 @@ class Simulation3DIntegral(BasePFSimulation):
             self._M = M.reshape((self.nC, 3))
 
     def fields(self, model):
-
-        model = self.chiMap * model
-
+        self.model = model
+        # model = self.chiMap * model
         if self.store_sensitivities == "forward_only":
-            self.model = model
             fields = mkvc(self.linear_operator())
         else:
-            fields = np.asarray(self.G @ model.astype(np.float32))
+            fields = np.asarray(self.G @ self.chi.astype(np.float32))
 
         if self.is_amplitude_data:
             fields = self.compute_amplitude(fields)
 
         return fields
+
+    def fieldsDeriv(self, model):
+        self.model = model
+        if getattr(self, "_fieldsDeriv", None) is None:
+            fields = np.asarray(self.G @ self.chi.astype(np.float32))
 
     @property
     def G(self):
@@ -189,6 +192,16 @@ class Simulation3DIntegral(BasePFSimulation):
         Jtvec = self.G.T @ v.astype(np.float32)
         return np.asarray(self.chiDeriv.T @ Jtvec)
 
+    # Amplitude part
+    """
+    f(m) = sqrt(G_x @ m)**2 + (G_y @ m)**2 + (G_z @ m)**2)
+    f(m) = sqrt(g(m))
+    f'(m) = 0.5 / sqrt(g(m)) * g'(m)
+    g(m) = x(m)**2 + y(m)**2 + z(m)**2
+    g'(m) = 2*x'(m)*x(m) + 2*y'(m)*y(m) + 2*z'(m) * z(m)
+    x'(m) = G_x
+    """
+
     @property
     def fieldDeriv(self):
 
@@ -224,7 +237,7 @@ class Simulation3DIntegral(BasePFSimulation):
 
         return amplitude
 
-    def evaluate_integral(self, receiver_location, components, tolerance=1e-4):
+    def evaluate_integral(self, receiver_location, components, model=None):
         """
         Load in the active nodes of a tensor mesh and computes the magnetic
         forward relation between a cuboid and a given observation
@@ -236,9 +249,6 @@ class Simulation3DIntegral(BasePFSimulation):
         components: list[str]
             List of magnetic components chosen from:
             'bx', 'by', 'bz', 'bxx', 'bxy', 'bxz', 'byy', 'byz', 'bzz'
-
-        tolerance: float
-            Small constant to avoid singularity near nodes and edges.
 
         OUTPUT:
         Tx = [Txx Txy Txz]
@@ -327,14 +337,20 @@ class Simulation3DIntegral(BasePFSimulation):
                 vals_z = node_evals["gzz"]
             elif component == "tmi":
                 tmi = self.tmi_projection
-                vals_x = tmi[0] * (
-                    node_evals["gxx"] + node_evals["gxy"] + node_evals["gxz"]
+                vals_x = (
+                    tmi[0] * node_evals["gxx"]
+                    + tmi[1] * node_evals["gxy"]
+                    + tmi[2] * node_evals["gxz"]
                 )
-                vals_y = tmi[1] * (
-                    node_evals["gxy"] + node_evals["gyy"] + node_evals["gyz"]
+                vals_y = (
+                    tmi[0] * node_evals["gxy"]
+                    + tmi[1] * node_evals["gyy"]
+                    + tmi[2] * node_evals["gyz"]
                 )
-                vals_z = tmi[2] * (
-                    node_evals["gxz"] + node_evals["gyz"] + node_evals["gzz"]
+                vals_z = (
+                    tmi[0] * node_evals["gxz"]
+                    + tmi[1] * node_evals["gyz"]
+                    + tmi[2] * node_evals["gzz"]
                 )
             elif component == "bxx":
                 vals_x = node_evals["gxxx"]
@@ -360,55 +376,60 @@ class Simulation3DIntegral(BasePFSimulation):
                 vals_x = node_evals["gzzx"]
                 vals_y = node_evals["gzzy"]
                 vals_z = node_evals["gzzz"]
-            if self.mesh.dim > 2:
+            if self._unique_inv is not None:
                 vals_x = vals_x[self._unique_inv]
                 vals_y = vals_y[self._unique_inv]
                 vals_z = vals_z[self._unique_inv]
 
             cell_eval_x = (
-                vals_x[:, 0]
-                - vals_x[:, 1]
-                - vals_x[:, 2]
-                + vals_x[:, 3]
-                - vals_x[:, 4]
-                + vals_x[:, 5]
-                + vals_x[:, 6]
-                - vals_x[:, 7]
+                vals_x[0]
+                - vals_x[1]
+                - vals_x[2]
+                + vals_x[3]
+                - vals_x[4]
+                + vals_x[5]
+                + vals_x[6]
+                - vals_x[7]
             )
             cell_eval_y = (
-                vals_y[:, 0]
-                - vals_y[:, 1]
-                - vals_y[:, 2]
-                + vals_y[:, 3]
-                - vals_y[:, 4]
-                + vals_y[:, 5]
-                + vals_y[:, 6]
-                - vals_y[:, 7]
+                vals_y[0]
+                - vals_y[1]
+                - vals_y[2]
+                + vals_y[3]
+                - vals_y[4]
+                + vals_y[5]
+                + vals_y[6]
+                - vals_y[7]
             )
             cell_eval_z = (
-                vals_z[:, 0]
-                - vals_z[:, 1]
-                - vals_z[:, 2]
-                + vals_z[:, 3]
-                - vals_z[:, 4]
-                + vals_z[:, 5]
-                + vals_z[:, 6]
-                - vals_z[:, 7]
+                vals_z[0]
+                - vals_z[1]
+                - vals_z[2]
+                + vals_z[3]
+                - vals_z[4]
+                + vals_z[5]
+                + vals_z[6]
+                - vals_z[7]
             )
             if self.model_type == "vector":
-                rows[component] = (
+                cell_vals = (
                     np.r_[cell_eval_x, cell_eval_y, cell_eval_z]
                 ) * self.survey.source_field.amplitude
             else:
-                rows[component] = (
+                cell_vals = (
                     cell_eval_x * M[:, 0]
                     + cell_eval_y * M[:, 1]
                     + cell_eval_z * M[:, 2]
                 )
 
+            if self.store_sensitivities == "forward_only":
+                rows[component] = cell_vals @ self.chi
+            else:
+                rows[component] = cell_vals
+
             rows[component] /= 4 * np.pi
 
-        return np.vstack([rows[component] for component in components])
+        return np.stack([rows[component] for component in components])
 
     @property
     def deleteTheseOnModelUpdate(self):
@@ -495,7 +516,7 @@ class Simulation3DDifferential(BaseMagneticPDESimulation):
 
         .. math ::
 
-            \mathbf{rhs} = \Div(\MfMui)^{-1}\mathbf{M}^f_{\mu_0^{-1}}\mathbf{B}_0 - \Div\mathbf{B}_0+\diag(v)\mathbf{D} \mathbf{P}_{out}^T \mathbf{B}_{sBC}
+            \\mathbf{rhs} = \\Div(\\MfMui)^{-1}\\mathbf{M}^f_{\\mu_0^{-1}}\\mathbf{B}_0 - \\Div\\mathbf{B}_0+\\diag(v)\\mathbf{D} \\mathbf{P}_{out}^T \\mathbf{B}_{sBC}
 
         """
         B0 = self.getB0()
@@ -519,7 +540,7 @@ class Simulation3DDifferential(BaseMagneticPDESimulation):
 
         .. math ::
 
-            \mathbf{A} =  \Div(\MfMui)^{-1}\Div^{T}
+            \\mathbf{A} =  \\Div(\\MfMui)^{-1}\\Div^{T}
 
         """
         return self._Div * self.MfMuI * self._Div.T
@@ -534,7 +555,7 @@ class Simulation3DDifferential(BaseMagneticPDESimulation):
 
         .. math ::
 
-            \mathbf{B}_s = (\MfMui)^{-1}\mathbf{M}^f_{\mu_0^{-1}}\mathbf{B}_0-\mathbf{B}_0 -(\MfMui)^{-1}\Div^T \mathbf{u}
+            \\mathbf{B}_s = (\\MfMui)^{-1}\\mathbf{M}^f_{\\mu_0^{-1}}\\mathbf{B}_0-\\mathbf{B}_0 -(\\MfMui)^{-1}\\Div^T \\mathbf{u}
 
         """
         self.makeMassMatrices(m)
