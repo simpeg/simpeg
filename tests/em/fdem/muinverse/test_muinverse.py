@@ -7,8 +7,8 @@ from scipy.constants import mu_0
 import unittest
 
 MuMax = 50.0
-TOL = 1e-8
-EPS = 1e-10
+TOL = 1e-7
+EPS = 1e-9
 
 np.random.seed(105)
 
