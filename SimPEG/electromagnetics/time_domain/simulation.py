@@ -9,6 +9,8 @@ from ...simulation import BaseTimeSimulation
 from ...utils import mkvc, sdiag, speye, Zero
 from ..base import BaseEMSimulation
 from .survey import Survey
+from .receivers import *
+from .sources import *
 from .fields import (
     Fields3DMagneticFluxDensity,
     Fields3DElectricField,
@@ -933,8 +935,7 @@ class Simulation3DElectricField(BaseTDEMSimulation):
             f = self.fields(m)
 
         mesh = self.mesh
-
-        cell_areas = mkvc(np.outer(self.mesh.hx, self.mesh.hz))
+        a_sig = (self.sigmaMap * m) * mkvc(np.outer(self.mesh.hx, self.mesh.hz))
 
         diagJtJ = np.zeros(len(m))
         dsigdm_T = self.sigmaDeriv.T
@@ -942,46 +943,63 @@ class Simulation3DElectricField(BaseTDEMSimulation):
         COUNT = 0
         
         for src in self.survey.source_list:
-
-            # Return RHS geometry * dIdt
-            dIdt = 4./1.  # (T/4)
-            q = src.s_e(self, -np.inf) * dIdt
-
             for rx in src.receiver_list:
 
+                # Define e-field receiver to project to cell-centers at correct times
+                if isinstance(rx, PointMagneticFluxDensity):
+                    rx_e = PointElectricField(self.mesh.cell_centers, rx.times, 'y')
+                elif isinstance(rx, PointMagneticFluxTimeDerivative):
+                    rx_e = PointElectricFieldTimeDerivative(self.mesh.cell_centers, rx.times, 'y')
+                else:
+                    raise NotImplementedError('Not implemented')
+                
+                # e or de/dt at cell centers at all receiver times
+                e_array = mesh.average_edge_to_cell * (f[src,'e'] * rx_e.getTimeP(self.time_mesh, f).T)
+
+                # Compute term 1 contribution
                 n_times = len(rx.times)
                 n_loc = np.shape(rx.locations)[0]
-                v = np.ones(n_times)
-                
-                Pt = rx.getTimeP(self.time_mesh, f)  # project from fields to time_channels
-                
-                # diag(areas) x transpose of dedt all time channels
-                dedt = mesh.average_edge_to_cell * self.MeSigmaI * (
-                    np.outer(q, v) - mesh.edge_curl.T * self.Mf * f[src,'dhdt'] * Pt.T
-                )
 
                 xyz_rx = [rx.locations[ii, :] for ii in range(0, np.shape(rx.locations)[0])]
+                sum_g_a_sig = np.zeros_like(n_times * mesh.nC, dtype=float)
+
                 for ii, loc in enumerate(xyz_rx):
                     
-                    temp = sdiag(cell_areas * self._cylmesh_geometric_factor(loc, rx.orientation, dh=None)).dot(dedt)
-                    # temp = sdiag(self._cylmesh_geometric_factor(loc, rx.orientation, dh=None)).dot(dedt)
+                    g_a_sig = a_sig * self._cylmesh_geometric_factor(loc, rx.orientation, dh=None)
                     
-                    Wi = sdiag(W[COUNT+ii:COUNT+rx.nD:n_loc])
-                    temp = Wi.dot((dsigdm_T.dot(temp)).T)
-                    
+                    Wi = W[COUNT+ii:COUNT+rx.nD:n_loc]
+
+                    temp = sdiag(g_a_sig).dot(e_array)
+                    temp = sdiag(Wi).dot((dsigdm_T.dot(temp)).T)
                     diagJtJ += np.sum(temp**2, axis=0)
-                    # diagJtJ += np.sum(temp, axis=0)
+
+                    sum_g_a_sig = sum_g_a_sig + np.kron(Wi, g_a_sig)
 
                 COUNT = COUNT + rx.nD
 
-        return diagJtJ / self.survey.nD
+                # Compute term 2 contribution
+                src_e = CircularLoop(
+                    [rx_e],
+                    location=src.location,
+                    waveform=src.waveform,
+                    current=src.current,
+                    radius=src.radius
+                )
+                
+                survey_e = Survey([src_e])
+                sim_e = Simulation3DElectricField(
+                    self.mesh, survey=survey_e, sigmaMap=self.sigmaMap, time_steps=self.time_steps, t0=self.t0
+                )
+                diagJtJ += np.abs(sim_e.Jtvec(m, sum_g_a_sig))
+
+        return diagJtJ
 
 
     def _cylmesh_geometric_factor(self, xyz_rx, comp, dh=None):
 
         # Stabilization constant for rx next to cell centers
         if dh is None:
-            dh = np.sqrt(np.min(self.mesh.hx) * np.min(self.mesh.hz))
+            dh = 0.1*np.sqrt(np.min(self.mesh.hx) * np.min(self.mesh.hz))
 
         # "loop radii"
         a = self.mesh.cell_centers[:, 0]
@@ -993,7 +1011,7 @@ class Simulation3DElectricField(BaseTDEMSimulation):
         beta = dz / a
         gamma = dz / (s + dh)  # For stability
         
-        Q = (1 + alpha)**2 + beta**2 + 1e-6*dh  # For stability
+        Q = (1 + alpha)**2 + beta**2 + 1e-7*dh  # For stability
         k = np.sqrt(4*alpha / Q)
 
         if comp == 'x':
