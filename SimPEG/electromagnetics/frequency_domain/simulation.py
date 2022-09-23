@@ -69,7 +69,6 @@ class BaseFDEMSimulation(BaseEMSimulation):
 
     survey = properties.Instance("a survey object", Survey, required=True)
 
-    # @profile
     def fields(self, m=None):
         """
         Solve the forward problem for the fields.
@@ -101,7 +100,6 @@ class BaseFDEMSimulation(BaseEMSimulation):
             f[Srcs, self._solutionType] = u
         return f
 
-    # @profile
     def Jvec(self, m, v, f=None):
         """
         Sensitivity times a vector.
@@ -179,7 +177,6 @@ class BaseFDEMSimulation(BaseEMSimulation):
 
         return mkvc(Jtv)
 
-    # @profile
     def getSourceTerm(self, freq):
         """
         Evaluates the sources for a given frequency and puts them in matrix
