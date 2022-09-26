@@ -132,6 +132,14 @@ class Data(properties.HasProperties):
         # Observed data
         if dobs is None:
             dobs = np.nan * np.ones(survey.nD)  # initialize data as nans
+        if isinstance(dobs, dict):
+            # Check if dobs has invalid or missing components
+            _check_invalid_and_missing_components(dobs.keys(), survey.components.keys())
+            # Check if all elements in dobs have the same size
+            _check_data_sizes(dobs)
+            # Build the dobs array (data values for each component should be
+            # interleaved)
+            dobs = _observed_data_dict_to_array(dobs, survey.components.keys())
         self.dobs = dobs
 
         if relative_error is not None:
@@ -338,6 +346,82 @@ class _Data(Data):
             "The survey.Data class has been moved. To import the data class, "
             "please use SimPEG.data.Data."
         )
+
+
+def _check_invalid_and_missing_components(data_components, survey_components):
+    """
+    Check for invalid and missing components in dobs dictionary
+
+    Parameters
+    ----------
+    data_components : dict_keys
+        Dictionary keys containing the components in the data.
+    survey_components : dict_keys
+        Dictionary keys containing the components present in the survey.
+    """
+    invalid_components = [c for c in data_components if c not in survey_components]
+    if invalid_components:
+        invalid_string = "', '".join(invalid_components)
+        survey_string = "', '".join(survey_components)
+        raise ValueError(
+            f"Found invalid components '{invalid_string}' "
+            + "in the dobs dictionary. "
+            + "For the current survey, dobs needs to have the following "
+            + f"components: '{survey_string}'."
+        )
+    missing_components = [c for c in survey_components if c not in data_components]
+    if missing_components:
+        missing_string = "', '".join(missing_components)
+        raise ValueError(f"Missing '{missing_string}' components in dobs dictionary.")
+
+
+def _check_data_sizes(observed_data):
+    """
+    Check that all elements inside observed data dictionary have the same shape
+    """
+    # Check if every array in observed_data has the same size
+    sizes = [d.size for d in observed_data.values()]
+    if not (sizes[0] == sizes).all():
+        raise ValueError(
+            "All elements in the data dictionary should have the same size"
+        )
+
+
+def _observed_data_dict_to_array(observed_data, survey_components):
+    """
+    Convert a dictionary with observed data (or uncertainties) into a 1d array
+
+    The generated array interleaves the values of each component: we list
+    all the values of the observed components (or their uncertainties) on
+    a single receiver before moving to the next one (e.g. we loop faster on
+    components than on receivers).
+
+    Parameters
+    ----------
+    observed_data : dict
+        Dictionary containing the data values for each one of the observed
+        components.
+    survey_components : dict_keys
+        Dictionary keys containing the components present in the survey.
+
+    Parameters
+    ----------
+    array : 1d-array
+        1D array with all the components of the observed data (or their
+        uncertainties).
+    """
+    # Determine the size of the full array
+    n_components = len(survey_components)
+    size_of_single_component = observed_data.values()[0]
+    size = n_components * size_of_single_component
+    # Allocate the full array
+    dobs = np.empty(size, dtype=np.float64)
+    # Fill the dobs arrays interleaving the components.
+    # It's important to iterate in the same order in which the survey
+    # components are defined!
+    for i, component in enumerate(survey_components):
+        dobs[i::n_components] = observed_data[component]
+    return dobs
 
 
 survey.Data = _Data
