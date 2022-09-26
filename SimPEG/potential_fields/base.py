@@ -77,7 +77,7 @@ class BasePFSimulation(LinearSimulation):
         nD = self.survey.nD
 
         if self.store_sensitivities == "disk":
-            sens_name = self.sensitivity_path + "sensitivity.npy"
+            sens_name = os.path.join(self.sensitivity_path, "sensitivity.npy")
             if os.path.exists(sens_name):
                 # do not pull array completely into ram, just need to check the size
                 kernel = np.load(sens_name, mmap_mode="r")

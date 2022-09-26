@@ -1,5 +1,6 @@
 from __future__ import print_function
 
+import os
 import inspect
 import numpy as np
 import sys
@@ -128,7 +129,7 @@ class BaseSimulation(props.HasModel):
     counter = properties.Instance("A SimPEG.utils.Counter object", Counter)
 
     sensitivity_path = properties.String(
-        "path to store the sensitivty", default="./sensitivity/"
+        "path to store the sensitivity", default=os.path.join(".", "sensitivity")
     )
 
     # TODO: need to implement a serializer for this & setter
