@@ -133,6 +133,14 @@ class Data(properties.HasProperties):
         if dobs is None:
             dobs = np.nan * np.ones(survey.nD)  # initialize data as nans
         if isinstance(dobs, dict):
+            # Check if survey has a components attribute
+            if not hasattr(survey, "components"):
+                raise ValueError(
+                    """
+                    Impossible to take 'dobs' as a dictionary since the passed
+                    survey has not a 'components' attribute.
+                    """
+                )
             # Check if dobs has invalid or missing components
             _check_invalid_and_missing_components(dobs.keys(), survey.components.keys())
             # Check if all elements in dobs have the same size
