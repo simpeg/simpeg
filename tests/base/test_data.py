@@ -31,6 +31,7 @@ class TestObservedDataDictToArray(unittest.TestCase):
             "gxy": np.array([3, 6, 9]),
             "gz": np.array([1, 4, 7]),
         }
+        # Define a survey that has components
         receiver_locations = np.array(
             [
                 [0, 0, 100],
@@ -43,6 +44,10 @@ class TestObservedDataDictToArray(unittest.TestCase):
         receivers = Point(receiver_locations, components=components)
         source_field = SourceField(receiver_list=[receivers])
         self.survey = Survey(source_field)
+        # Define a survey that doesn't have components
+        receivers = survey.BaseRx(20 * [[0.0]])
+        source = survey.BaseSrc([receivers])
+        self.survey_without_components = survey.BaseSurvey([source])
 
     def test_observed_data_dict_to_array(self):
         """
@@ -61,6 +66,13 @@ class TestObservedDataDictToArray(unittest.TestCase):
         data = Data(self.survey, dobs=self.dobs)
         expected_array = np.linspace(1, 9, 9, dtype=int)
         npt.assert_allclose(data.dobs, expected_array)
+
+    def test_data_class_with_survey_without_components(self):
+        """
+        Test if SimPEG.Data raises error if survey doesn't have components
+        """
+        with self.assertRaises(ValueError):
+            Data(self.survey_without_components, dobs=self.dobs)
 
 
 class TestChecksForDobsAsDicts(unittest.TestCase):
@@ -168,7 +180,7 @@ class DataTest(unittest.TestCase):
                 data.standard_deviation,
                 np.sqrt(
                     (relative * np.abs(self.dobs)) ** 2
-                    + floor ** 2 * np.ones(len(self.dobs)),
+                    + floor**2 * np.ones(len(self.dobs)),
                 ),
             )
         )
