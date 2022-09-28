@@ -380,7 +380,7 @@ def _check_data_sizes(observed_data):
     Check that all elements inside observed data dictionary have the same shape
     """
     # Check if every array in observed_data has the same size
-    sizes = [d.size for d in observed_data.values()]
+    sizes = np.array([d.size for d in observed_data.values()])
     if not (sizes[0] == sizes).all():
         raise ValueError(
             "All elements in the data dictionary should have the same size"
@@ -412,7 +412,7 @@ def _observed_data_dict_to_array(observed_data, survey_components):
     """
     # Determine the size of the full array
     n_components = len(survey_components)
-    size_of_single_component = observed_data.values()[0]
+    size_of_single_component = list(observed_data.values())[0].size
     size = n_components * size_of_single_component
     # Allocate the full array
     dobs = np.empty(size, dtype=np.float64)
