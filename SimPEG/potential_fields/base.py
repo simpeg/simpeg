@@ -73,21 +73,6 @@ class BasePFSimulation(LinearSimulation):
         self._nodes = nodes[unique]  # unique active nodes
         self._unique_inv = unique_inv.reshape(cell_nodes.T.shape)
 
-        # # Create vectors of nodal location for the lower and upper corners
-        # bsw = self.mesh.gridCC - self.mesh.h_gridded / 2.0
-        # tne = self.mesh.gridCC + self.mesh.h_gridded / 2.0
-        #
-        # xn1, xn2 = bsw[:, 0], tne[:, 0]
-        # yn1, yn2 = bsw[:, 1], tne[:, 1]
-        #
-        # self.Yn = projection.T * np.c_[mkvc(yn1), mkvc(yn2)]
-        # self.Xn = projection.T * np.c_[mkvc(xn1), mkvc(xn2)]
-        #
-        # Allows for 2D mesh where Zn is defined by user
-        # if self.mesh.dim > 2:
-        #     zn1, zn2 = bsw[:, 2], tne[:, 2]
-        #     self.Zn = projection.T * np.c_[mkvc(zn1), mkvc(zn2)]
-
     def linear_operator(self):
         if self.store_sensitivities == "disk":
             sens_name = self.sensitivity_path + "sensitivity.npy"
