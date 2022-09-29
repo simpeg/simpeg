@@ -8,6 +8,7 @@ from .. import maps
 from ..objective_function import BaseObjectiveFunction, ComboObjectiveFunction
 from .. import utils
 from .regularization_mesh import RegularizationMesh
+from discretize import SimplexMesh, TensorMesh
 
 ###############################################################################
 #                                                                             #
@@ -45,6 +46,9 @@ class BaseRegularization(BaseObjectiveFunction):
     )
     cell_weights = properties.Array(
         "regularization weights applied at cell centers", dtype=float
+    )
+    indActiveEdges = properties.Array(
+        "indices of active edges in the mesh", dtype=(bool, int)
     )
     regmesh = properties.Instance(
         "regularization mesh", RegularizationMesh, required=True
@@ -205,6 +209,10 @@ class SimpleComboRegularization(ComboObjectiveFunction):
         if "indActive" in kwargs.keys():
             indActive = kwargs.pop("indActive")
             self.regmesh.indActive = indActive
+        if "indActiveEdges" in kwargs.keys():
+            indActiveEdges = kwargs.pop("indActiveEdges")
+            self.regmesh.indActiveEdges = indActiveEdges
+
         utils.setKwargs(self, **kwargs)
 
         # link these attributes
@@ -238,6 +246,9 @@ class SimpleComboRegularization(ComboObjectiveFunction):
     )
     cell_weights = properties.Array(
         "regularization weights applied at cell centers", dtype=float
+    )
+    indActiveEdges = properties.Array(
+        "indices of active edges in the mesh", dtype=(bool, int)
     )
     scale = properties.Float("function scaling applied inside the norm", default=1.0)
     regmesh = properties.Instance(
