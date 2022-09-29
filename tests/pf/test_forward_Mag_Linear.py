@@ -278,5 +278,88 @@ def test_ana_mag_vec_forward():
     np.testing.assert_allclose(data[:, 3], d @ tmi)
 
 
+def test_ana_mag_amp_forward():
+    nx = 5
+    ny = 5
+
+    H0 = (50000.0, 60.0, 250.0)
+    b0 = mag.analytics.IDTtoxyz(-H0[1], H0[2], H0[0])
+
+    M1 = utils.mat_utils.dip_azimuth2cartesian(45, -40) * 0.05
+    M2 = utils.mat_utils.dip_azimuth2cartesian(120, 32) * 0.1
+
+    # Define a mesh
+    cs = 0.2
+    hxind = [(cs, 41)]
+    hyind = [(cs, 41)]
+    hzind = [(cs, 41)]
+    mesh = discretize.TensorMesh([hxind, hyind, hzind], "CCC")
+
+    # create a model of two blocks, 1 inside the other
+    block1 = np.array([[-1.5, 1.5], [-1.5, 1.5], [-1.5, 1.5]])
+    block2 = np.array([[-0.7, 0.7], [-0.7, 0.7], [-0.7, 0.7]])
+
+    def get_block_inds(grid, block):
+        return np.where(
+            (grid[:, 0] > block[0, 0])
+            & (grid[:, 0] < block[0, 1])
+            & (grid[:, 1] > block[1, 0])
+            & (grid[:, 1] < block[1, 1])
+            & (grid[:, 2] > block[2, 0])
+            & (grid[:, 2] < block[2, 1])
+        )
+
+    block1_inds = get_block_inds(mesh.cell_centers, block1)
+    block2_inds = get_block_inds(mesh.cell_centers, block2)
+
+    model = np.zeros((mesh.n_cells, 3))
+    model[block1_inds] = M1
+    model[block2_inds] = M2
+
+    active_cells = np.any(model != 0.0, axis=1)
+    model_reduced = model[active_cells].reshape(-1, order="F")
+
+    # Create plane of observations
+    xr = np.linspace(-20, 20, nx)
+    yr = np.linspace(-20, 20, ny)
+    X, Y = np.meshgrid(xr, yr)
+    Z = np.ones_like(X) * 3.0
+    locXyz = np.c_[X.reshape(-1), Y.reshape(-1), Z.reshape(-1)]
+    components = ["bx", "by", "bz"]
+
+    rxLoc = mag.Point(locXyz, components=components)
+    srcField = mag.SourceField([rxLoc], parameters=H0)
+    survey = mag.Survey(srcField)
+
+    # Create reduced identity map for Linear Pproblem
+    idenMap = maps.IdentityMap(nP=int(sum(active_cells)) * 3)
+
+    sim = mag.Simulation3DIntegral(
+        mesh,
+        survey=survey,
+        chiMap=idenMap,
+        actInd=active_cells,
+        store_sensitivities="forward_only",
+        model_type="vector",
+        is_amplitude_data=True,
+    )
+
+    data = sim.dpred(model_reduced)
+
+    # Compute analytical response from magnetic prism
+    prism_1 = MagneticPrism(block1[:, 0], block1[:, 1], M1 * np.linalg.norm(b0) / mu_0)
+    prism_2 = MagneticPrism(block2[:, 0], block2[:, 1], -M1 * np.linalg.norm(b0) / mu_0)
+    prism_3 = MagneticPrism(block2[:, 0], block2[:, 1], M2 * np.linalg.norm(b0) / mu_0)
+
+    d = (
+        prism_1.magnetic_flux_density(locXyz)
+        + prism_2.magnetic_flux_density(locXyz)
+        + prism_3.magnetic_flux_density(locXyz)
+    )
+    d_amp = np.linalg.norm(d, axis=1)
+
+    np.testing.assert_allclose(data, d_amp)
+
+
 if __name__ == "__main__":
     unittest.main()
