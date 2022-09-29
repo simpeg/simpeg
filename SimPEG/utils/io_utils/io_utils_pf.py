@@ -95,7 +95,8 @@ def write_mag3d_ubc(filename, data_object):
     """
     survey = data_object.survey
 
-    B = survey.source_field.parameters
+    src = survey.source_field
+    B = (src.amplitude, src.inclination, src.declination)
 
     data = survey.source_field.receiver_list[0].locations
 

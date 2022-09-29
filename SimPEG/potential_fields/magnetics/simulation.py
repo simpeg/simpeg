@@ -68,7 +68,7 @@ class Simulation3DIntegral(BasePFSimulation):
         M: array (3*nC,) or (nC, 3)
         """
         if self.model_type == "vector":
-            self._M = sdiag(mkvc(M) * self.survey.source_field.parameters[0])
+            self._M = sdiag(mkvc(M) * self.survey.source_field.amplitude)
         else:
             M = np.asarray(M)
             self._M = M.reshape((self.nC, 3))

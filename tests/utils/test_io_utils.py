@@ -260,8 +260,8 @@ class TestIO_MAG3D(unittest.TestCase):
 
         passed = np.all(
             np.isclose(
-                self.survey.source_field.parameters,
-                data_loaded.survey.source_field.parameters,
+                self.survey.source_field.b0,
+                data_loaded.survey.source_field.b0,
             )
         )
         self.assertTrue(passed, True)
@@ -287,8 +287,8 @@ class TestIO_MAG3D(unittest.TestCase):
 
         passed = np.all(
             np.isclose(
-                self.survey.source_field.parameters,
-                data_loaded.survey.source_field.parameters,
+                self.survey.source_field.b0,
+                data_loaded.survey.source_field.b0,
             )
         )
         self.assertTrue(passed, True)
@@ -320,8 +320,8 @@ class TestIO_MAG3D(unittest.TestCase):
 
         passed = np.all(
             np.isclose(
-                self.survey.source_field.parameters,
-                data_loaded.survey.source_field.parameters,
+                self.survey.source_field.b0,
+                data_loaded.survey.source_field.b0,
             )
         )
         self.assertTrue(passed, True)
