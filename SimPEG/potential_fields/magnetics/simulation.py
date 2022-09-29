@@ -86,11 +86,6 @@ class Simulation3DIntegral(BasePFSimulation):
 
         return fields
 
-    def fieldsDeriv(self, model):
-        self.model = model
-        if getattr(self, "_fieldsDeriv", None) is None:
-            fields = np.asarray(self.G @ self.chi.astype(np.float32))
-
     @property
     def G(self):
 
@@ -155,15 +150,15 @@ class Simulation3DIntegral(BasePFSimulation):
                 for i in range(len(W)):
                     diag += W[i] * (self.G[i] * self.G[i])
             else:
-                fieldDeriv = self.fieldDeriv
+                ampDeriv = self.ampDeriv
                 Gx = self.G[::3]
                 Gy = self.G[1::3]
                 Gz = self.G[2::3]
                 for i in range(len(W)):
                     row = (
-                        fieldDeriv[0, i] * Gx[i]
-                        + fieldDeriv[1, i] * Gy[i]
-                        + fieldDeriv[2, i] * Gz[i]
+                        ampDeriv[0, i] * Gx[i]
+                        + ampDeriv[1, i] * Gy[i]
+                        + ampDeriv[2, i] * Gz[i]
                     )
                     diag += W[i] * (row * row)
             self._gtg_diagonal = diag
@@ -178,9 +173,9 @@ class Simulation3DIntegral(BasePFSimulation):
         Jvec = self.G @ dmu_dm_v.astype(np.float32)
 
         if self.is_amplitude_data:
-            Jvec = Jvec.reshape((-1, 3)).T
-            fieldDeriv_Jvec = self.fieldDeriv * Jvec
-            return fieldDeriv_Jvec[0] + fieldDeriv_Jvec[1] + fieldDeriv_Jvec[2]
+            Jvec = Jvec.reshape((3, -1), order="F")
+            ampDeriv_Jvec = self.ampDeriv * Jvec
+            return ampDeriv_Jvec[0] + ampDeriv_Jvec[1] + ampDeriv_Jvec[2]
         else:
             return Jvec
 
@@ -188,33 +183,18 @@ class Simulation3DIntegral(BasePFSimulation):
         self.model = m
 
         if self.is_amplitude_data:
-            v = (self.fieldDeriv * v).T.reshape(-1)
+            v = (self.ampDeriv * v).reshape(-1, order="F")
         Jtvec = self.G.T @ v.astype(np.float32)
         return np.asarray(self.chiDeriv.T @ Jtvec)
 
-    # Amplitude part
-    """
-    f(m) = sqrt(G_x @ m)**2 + (G_y @ m)**2 + (G_z @ m)**2)
-    f(m) = sqrt(g(m))
-    f'(m) = 0.5 / sqrt(g(m)) * g'(m)
-    g(m) = x(m)**2 + y(m)**2 + z(m)**2
-    g'(m) = 2*x'(m)*x(m) + 2*y'(m)*y(m) + 2*z'(m) * z(m)
-    x'(m) = G_x
-    """
-
     @property
-    def fieldDeriv(self):
+    def ampDeriv(self):
 
-        if getattr(self, "chi", None) is None:
-            self.model = np.zeros(self.chiMap.nP)
+        if getattr(self, "_ampDeriv", None) is None:
+            fields = np.asarray(self.G.dot(self.chi).astype(np.float32))
+            self._ampDeriv = self.normalized_fields(fields)
 
-        if getattr(self, "_fieldDeriv", None) is None:
-            fields = np.asarray(self.G.dot((self.chiMap @ self.chi).astype(np.float32)))
-            b_xyz = self.normalized_fields(fields)
-
-            self._fieldDeriv = b_xyz
-
-        return self._fieldDeriv
+        return self._ampDeriv
 
     @classmethod
     def normalized_fields(cls, fields):
@@ -436,6 +416,8 @@ class Simulation3DIntegral(BasePFSimulation):
         deletes = super().deleteTheseOnModelUpdate
         if self.is_amplitude_data:
             deletes = deletes + ["_gtg_diagonal"]
+            if self.is_amplitude_data:
+                deletes += ["_ampDeriv"]
         return deletes
 
     @property
