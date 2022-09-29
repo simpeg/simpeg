@@ -7,8 +7,8 @@ from scipy.constants import mu_0
 import unittest
 
 MuMax = 50.0
-TOL = 1e-4
-EPS = 1e-6
+TOL = 1e-8
+EPS = 1e-10
 
 
 def setupMeshModel():
