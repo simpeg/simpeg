@@ -1,6 +1,7 @@
 # import properties
 from ...survey import BaseSurvey
 from .sources import BaseTDEMSrc
+import numpy as np
 
 
 ####################################################
@@ -43,11 +44,13 @@ class Survey(BaseSurvey):
     def source_list(self, new_list):
         if not isinstance(new_list, list):
             new_list = [new_list]
-        
-        if any([isinstance(x, BaseTDEMSrc)==False for x in new_list]):
+
+        if any([isinstance(x, BaseTDEMSrc) == False for x in new_list]):
             raise TypeError("Source list must be a list of SimPEG.survey.BaseTDEMSrc")
 
-        assert len(set(new_list)) == len(new_list), "The source_list must be unique. Cannot re-use sources"
+        assert len(set(new_list)) == len(
+            new_list
+        ), "The source_list must be unique. Cannot re-use sources"
 
         self._sourceOrder = dict()
         # [self._sourceOrder.setdefault(src._uid, ii) for ii, src in enumerate(new_list)]

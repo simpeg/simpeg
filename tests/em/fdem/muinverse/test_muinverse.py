@@ -10,8 +10,6 @@ MuMax = 50.0
 TOL = 1e-8
 EPS = 1e-10
 
-np.random.seed(105)
-
 
 def setupMeshModel():
     cs = 10.0
@@ -172,13 +170,18 @@ class MuTests(unittest.TestCase):
         self.setUpProb(prbtype, sigmaInInversion, invertMui)
         print("Testing Jvec {}".format(prbtype))
 
+        np.random.seed(3321)
+        mod = self.m0
+
         def fun(x):
             return (
                 self.simulation.dpred(x),
-                lambda x: self.simulation.Jvec(self.m0, x),
+                lambda x: self.simulation.Jvec(mod, x),
             )
 
-        return tests.check_derivative(fun, self.m0, num=3, plotIt=False)
+        dx = np.random.rand(*mod.shape) * (mod.max() - mod.min()) * 0.01
+
+        return tests.check_derivative(fun, mod, dx=dx, num=3, plotIt=False)
 
     def JtvecTest(
         self, prbtype="ElectricField", sigmaInInversion=False, invertMui=False
@@ -186,13 +189,14 @@ class MuTests(unittest.TestCase):
         self.setUpProb(prbtype, sigmaInInversion, invertMui)
         print("Testing Jvec {}".format(prbtype))
 
-        m = np.random.rand(self.simulation.muMap.nP)
+        np.random.seed(31345)
+        u = np.random.rand(self.simulation.muMap.nP)
         v = np.random.rand(self.survey.nD)
 
         self.simulation.model = self.m0
 
-        V1 = v.dot(self.simulation.Jvec(self.m0, m))
-        V2 = m.dot(self.simulation.Jtvec(self.m0, v))
+        V1 = v.dot(self.simulation.Jvec(self.m0, u))
+        V2 = u.dot(self.simulation.Jtvec(self.m0, v))
         diff = np.abs(V1 - V2)
         tol = TOL * (np.abs(V1) + np.abs(V2)) / 2.0
         passed = (diff < tol) | (diff < EPS)

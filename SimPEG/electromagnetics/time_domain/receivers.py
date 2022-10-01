@@ -1,4 +1,5 @@
 import scipy.sparse as sp
+
 # import properties
 from ...utils import mkvc, validate_string_property
 from ...survey import BaseTimeRx
@@ -11,13 +12,21 @@ class BaseRx(BaseTimeRx):
     Parameters
     ----------
     locations : (n_loc, n_dim) np.ndarray
-        Receiver locations. 
+        Receiver locations.
     orientation : str, default = 'z'
         Receiver orientation. Must be one of: 'x', 'y' or 'z'
     times : (n_times) np.ndarray
         Time channels
     """
-    def __init__(self, locations, times, orientation='z', **kwargs):
+
+    def __init__(
+        self,
+        locations,
+        times,
+        orientation="z",
+        use_source_receiver_offset=True,
+        **kwargs
+    ):
         proj = kwargs.pop("projComp", None)
         if proj is not None:
             warnings.warn(
@@ -34,6 +43,7 @@ class BaseRx(BaseTimeRx):
             raise AttributeError("'times' are required. Cannot be 'None'")
 
         self.orientation = orientation
+        self.use_source_receiver_offset = use_source_receiver_offset
         super().__init__(locations=locations, times=times, **kwargs)
 
     # orientation = properties.StringChoice(
@@ -53,12 +63,34 @@ class BaseRx(BaseTimeRx):
 
     @orientation.setter
     def orientation(self, var):
-        var = validate_string_property('orientation', var, string_list=('x', 'y', 'z'))
+        var = validate_string_property("orientation", var, string_list=("x", "y", "z"))
         self._orientation = var.lower()
 
     # def projected_grid(self, f):
     #     """Grid Location projection (e.g. Ex Fy ...)"""
     #     return f._GLoc(self.projField) + self.orientation
+
+    @property
+    def use_source_receiver_offset(self):
+        """Use source-receiver offset.
+
+        Whether to interpret the location as a source-receiver offset.
+
+        Returns
+        -------
+        bool
+
+        Notes
+        -----
+        This is currently only implemented for the 1D layered code.
+        """
+        return self._use_source_receiver_offset
+
+    @use_source_receiver_offset.setter
+    def use_source_receiver_offset(self, val):
+        if not isinstance(val, bool):
+            raise TypeError("use_source_receiver_offset must be a bool")
+        self._use_source_receiver_offset = val
 
     # def projected_time_grid(self, f):
     #     """Time Location projection (e.g. CC N)"""
@@ -147,7 +179,7 @@ class BaseRx(BaseTimeRx):
             A 1D ``TensorMesh`` defining the time discretization
         f : SimPEG.electromagnetic.time_domain.fields.FieldsTDEM
             The solution for the fields defined on the mesh
-        
+
         Returns
         -------
         np.ndarray
@@ -174,14 +206,14 @@ class BaseRx(BaseTimeRx):
             A vector
         adjoint : bool, default = ``False``
             If ``True``, return the adjoint
-        
+
         Returns
         -------
         np.ndarray
             derivative of fields times a vector projected to the receiver(s)
         """
         P = self.getP(mesh, time_mesh, f)
-        
+
         if not adjoint:
             return P * v
         elif adjoint:
@@ -262,7 +294,7 @@ class PointMagneticFluxTimeDerivative(BaseRx):
             A 1D ``TensorMesh`` defining the time discretization
         f : SimPEG.electromagnetic.time_domain.fields.FieldsTDEM
             The solution for the fields defined on the mesh
-        
+
         Returns
         -------
         np.ndarray
@@ -358,6 +390,7 @@ class PointMagneticFieldTimeDerivative(BaseRx):
     orientation : str, default = 'z'
         Receiver orientation. Must be one of: 'x', 'y' or 'z'
     """
+
     def __init__(self, locations=None, times=None, orientation="x", **kwargs):
         self.projField = "dhdt"
         super(PointMagneticFieldTimeDerivative, self).__init__(

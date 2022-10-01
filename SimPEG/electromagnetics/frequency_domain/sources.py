@@ -1,7 +1,8 @@
-# import properties
+import properties
 import numpy as np
 from scipy.constants import mu_0
 import warnings
+from scipy.special import roots_legendre
 
 from geoana.em.static import MagneticDipoleWholeSpace, CircularLoopWholeSpace
 
@@ -38,10 +39,12 @@ class BaseFDEMSrc(BaseEMSrc):
         super(BaseFDEMSrc, self).__init__(
             receiver_list=receiver_list, location=location, **kwargs
         )
-        if 'freq' in kwargs:
-            frequency = kwargs.pop('freq')
+        if "freq" in kwargs:
+            frequency = kwargs.pop("freq")
         if frequency is None:
-            raise AttributeError("Source cannot be instantiated without assigning 'frequency'.")
+            raise AttributeError(
+                "Source cannot be instantiated without assigning 'frequency'."
+            )
         else:
             self.frequency = frequency
 
@@ -58,7 +61,7 @@ class BaseFDEMSrc(BaseEMSrc):
 
     @frequency.setter
     def frequency(self, freq):
-        freq = validate_float_property('frequency', freq, min_val=0.0)
+        freq = validate_float_property("frequency", freq, min_val=0.0)
         self._frequency = freq
 
     def bPrimary(self, simulation):
@@ -407,19 +410,23 @@ class MagDipole(BaseFDEMSrc):
     mu : float
         Background magnetic permeability
     """
+
     def __init__(
         self,
         receiver_list=None,
         frequency=None,
         location=np.r_[0.0, 0.0, 0.0],
-        moment=1.,
-        orientation='z',
+        moment=1.0,
+        orientation="z",
         mu=mu_0,
-        **kwargs
+        **kwargs,
     ):
 
         super(MagDipole, self).__init__(
-            receiver_list=receiver_list, frequency=frequency, location=location, **kwargs
+            receiver_list=receiver_list,
+            frequency=frequency,
+            location=location,
+            **kwargs,
         )
 
         self.moment = moment
@@ -439,7 +446,6 @@ class MagDipole(BaseFDEMSrc):
     #     super(MagDipole, self).__init__(receiver_list, frequency=frequency, **kwargs)
     #     if location is not None:
     #         self.location = location
-
 
     @property
     def location(self):
@@ -466,7 +472,6 @@ class MagDipole(BaseFDEMSrc):
             )
 
         self._location = vec
-    
 
     @property
     def moment(self):
@@ -481,7 +486,7 @@ class MagDipole(BaseFDEMSrc):
 
     @moment.setter
     def moment(self, value):
-        value = validate_float_property('moment', value, min_val=0.0)
+        value = validate_float_property("moment", value, min_val=0.0)
         self._moment = value
 
     @property
@@ -499,18 +504,22 @@ class MagDipole(BaseFDEMSrc):
     def orientation(self, var):
 
         if isinstance(var, str):
-            var = validate_string_property('orientation', var.lower(), string_list=('x', 'y', 'z'))
-            if var == 'x':
-                var = np.r_[1., 0., 0.]
-            elif var == 'y':
-                var = np.r_[0., 1., 0.]
-            elif var == 'z':
-                var = np.r_[0., 0., 1.]
+            var = validate_string_property(
+                "orientation", var.lower(), string_list=("x", "y", "z")
+            )
+            if var == "x":
+                var = np.r_[1.0, 0.0, 0.0]
+            elif var == "y":
+                var = np.r_[0.0, 1.0, 0.0]
+            elif var == "z":
+                var = np.r_[0.0, 0.0, 1.0]
         else:
             try:
                 var = np.atleast_1d(var).astype(float)
             except:
-                raise TypeError(f"orientation must be str or array_like, got {type(var)}")
+                raise TypeError(
+                    f"orientation must be str or array_like, got {type(var)}"
+                )
 
             if len(var) != 3:
                 raise ValueError(
@@ -518,7 +527,7 @@ class MagDipole(BaseFDEMSrc):
                 )
 
         # Normalize the orientation
-        var /= np.sqrt(np.sum(var**2))
+        var /= np.sqrt(np.sum(var ** 2))
 
         self._orientation = var
 
@@ -535,17 +544,21 @@ class MagDipole(BaseFDEMSrc):
 
     @mu.setter
     def mu(self, value):
-        value = validate_float_property('mu', value, min_val=mu_0)
+        value = validate_float_property("mu", value, min_val=mu_0)
         self._mu = value
 
-    def _srcFct(self, obsLoc, coordinates="cartesian"):
-        if getattr(self, "_dipole", None) is None:
-            self._dipole = MagneticDipoleWholeSpace(
+    @property
+    def _dipole(self):
+        if getattr(self, "__dipole", None) is None:
+            self.__dipole = MagneticDipoleWholeSpace(
                 mu=self.mu,
                 orientation=self.orientation,
                 location=self.location,
                 moment=self.moment,
             )
+        return self.__dipole
+
+    def _srcFct(self, obsLoc, coordinates="cartesian"):
         return self._dipole.vector_potential(obsLoc, coordinates=coordinates)
 
     def bPrimary(self, simulation):
@@ -615,6 +628,19 @@ class MagDipole(BaseFDEMSrc):
         numpy.ndarray
             Primary magnetic field
         """
+        if simulation._formulation == "1D":
+            if getattr(self, "_1d_h", None) is None:
+                dipole = self._dipole
+                out = []
+                for rx in self.receiver_list:
+                    if rx.use_source_receiver_offset:
+                        locs = rx.locations + self.location
+                    else:
+                        locs = rx.locations
+                    h_rx = dipole.magnetic_field(locs)
+                    out.append(h_rx[:, {"x": 0, "y": 1, "z": 2}[rx.orientation]])
+                self._1d_h = out
+            return self._1d_h
         b = self.bPrimary(simulation)
         return 1.0 / self.mu * b
 
@@ -727,7 +753,7 @@ class MagDipole_Bfield(MagDipole):
             receiver_list=receiver_list,
             frequency=frequency,
             location=location,
-            **kwargs
+            **kwargs,
         )
 
     def _srcFct(self, obsLoc, coordinates="cartesian"):
@@ -810,22 +836,22 @@ class CircularLoop(MagDipole):
         receiver_list=None,
         frequency=None,
         location=np.r_[0.0, 0.0, 0.0],
-        orientation='z',
-        radius=1.,
-        current=1.,
+        orientation="z",
+        radius=1.0,
+        current=1.0,
         mu=mu_0,
-        **kwargs
+        **kwargs,
     ):
 
-        if 'moment' in kwargs:
-            kwargs.pop('moment')
+        if "moment" in kwargs:
+            kwargs.pop("moment")
 
         BaseFDEMSrc.__init__(
             self,
             receiver_list=receiver_list,
             frequency=frequency,
             location=location,
-            **kwargs
+            **kwargs,
         )
 
         self.orientation = orientation
@@ -848,7 +874,7 @@ class CircularLoop(MagDipole):
 
     @radius.setter
     def radius(self, rad):
-        rad = validate_float_property('radius', rad, min_val=1e-10)
+        rad = validate_float_property("radius", rad, min_val=1e-10)
         self._radius = rad
 
     # current = properties.Float("current in the loop", default=1.0)
@@ -866,8 +892,8 @@ class CircularLoop(MagDipole):
 
     @current.setter
     def current(self, I):
-        I = validate_float_property('current', I)
-        if np.abs(I) == 0.:
+        I = validate_float_property("current", I)
+        if np.abs(I) == 0.0:
             raise ValueError("current must be non-zero.")
         self._current = I
 
@@ -907,8 +933,88 @@ class CircularLoop(MagDipole):
         return self._loop.vector_potential(obsLoc, coordinates)
 
 
-class PrimSecSigma(BaseFDEMSrc):
+class PiecewiseWireLoop(BaseFDEMSrc):
+    """
+    Piecewise wire loop source (limited to 1D code at this point)
 
+    :param list receiver_list: receiver list
+    :param float freq: frequency
+    :param numpy.ndarray loc: wire path locations
+        (ie: :code:`np.array([[xloc1,yloc1,zloc1],[xloc2,yloc2,zloc2], ...])`)
+    """
+
+    wire_paths = properties.Array("wire path locations", shape=("*", 3))
+    current = properties.Float("current in the line", default=1.0)
+    n_points_per_path = properties.Integer(
+        "number of quadrature points per linear wire path", default=3
+    )
+
+    def __init__(self, receiver_list=None, frequency=None, wire_paths=None, **kwargs):
+        super(PiecewiseWireLoop, self).__init__(
+            receiver_list, frequency=frequency, wire_paths=wire_paths, **kwargs
+        )
+        self._get_electric_dipole_locations()
+
+    @property
+    def location(self):
+        self._location = self.wire_paths.mean(axis=0)
+        return self._location
+
+    @property
+    def n_quad_points(self):
+        self._n_quad_points = len(self._weights)
+        return self._n_quad_points
+
+    def rotate_points_xy(self, xy, theta, x0=np.array([0.0, 0.0])):
+        r = np.array(((np.cos(theta), -np.sin(theta)), (np.sin(theta), np.cos(theta))))
+        xy_rot = xy.dot(r.T)
+        xy_rot += x0
+        return xy_rot
+
+    def rotate_points_xy_var_theta(self, xy, thetas):
+        xy_rot = np.zeros_like(xy)
+        for i_theta, theta in enumerate(thetas):
+            xy_rot[i_theta, :] = self.rotate_points_xy(xy[i_theta, :], theta)
+        return xy_rot
+
+    def _get_electric_dipole_locations(self):
+        # calculate lateral dipole locations
+        x, w = roots_legendre(self.n_points_per_path)
+        xy_src_path = self.wire_paths[:, :2]
+        n_path = len(xy_src_path) - 1
+        xyks = []
+        thetas = []
+        weights = []
+        for i_path in range(n_path):
+            dx = xy_src_path[i_path + 1, 0] - xy_src_path[i_path, 0]
+            dy = xy_src_path[i_path + 1, 1] - xy_src_path[i_path, 1]
+            l = np.sqrt(dx ** 2 + dy ** 2)
+            theta = np.arctan2(dy, dx)
+            lk = np.c_[(x + 1) * l / 2, np.zeros(self.n_points_per_path)]
+            xyk = self.rotate_points_xy(lk, theta, x0=xy_src_path[i_path, :])
+            xyks.append(xyk)
+            thetas.append(theta * np.ones(xyk.shape[0]))
+            weights.append(w * l / 2)
+        # store these for future evalution of integrals
+        self._xyks = np.vstack(xyks)
+        self._weights = np.hstack(weights)
+        self._thetas = np.hstack(thetas)
+
+    def hPrimary(self, simulation):
+        """
+        The primary magnetic field from a magnetic vector potential
+
+        :param BaseFDEMSimulation simulation: FDEM simulation
+        :rtype: numpy.ndarray
+        :return: primary magnetic field
+        """
+        # Need to implement integration of the primary field
+        raise NotImplementedError(
+            "Primary field calculation for PiecewiseWireLoop has not been implemented"
+        )
+
+
+class PrimSecSigma(BaseFDEMSrc):
     def __init__(
         self, receiver_list=None, frequency=None, sigBack=None, ePrimary=None, **kwargs
     ):
@@ -919,7 +1025,7 @@ class PrimSecSigma(BaseFDEMSrc):
             receiver_list=receiver_list,
             frequency=frequency,
             _ePrimary=ePrimary,
-            **kwargs
+            **kwargs,
         )
 
     def s_e(self, simulation):
@@ -960,7 +1066,7 @@ class PrimSecMappedSigma(BaseFDEMSrc):
         primarySimulation=None,
         primarySurvey=None,
         map2meshSecondary=None,
-        **kwargs
+        **kwargs,
     ):
 
         self.primarySimulation = primarySimulation
@@ -1251,9 +1357,9 @@ class LineCurrent(BaseFDEMSrc):
         receiver_list=None,
         frequency=None,
         location=None,
-        current=1.,
+        current=1.0,
         mu=mu_0,
-        **kwargs
+        **kwargs,
     ):
 
         BaseFDEMSrc.__init__(
@@ -1261,12 +1367,11 @@ class LineCurrent(BaseFDEMSrc):
             receiver_list=receiver_list,
             frequency=frequency,
             location=location,
-            **kwargs
+            **kwargs,
         )
 
         self.current = current
         self.mu = mu
-
 
     # location = properties.Array("location of the source", shape=("*", 3))
 
@@ -1308,8 +1413,8 @@ class LineCurrent(BaseFDEMSrc):
 
     @current.setter
     def current(self, I):
-        I = validate_float_property('current', I)
-        if np.abs(I) == 0.:
+        I = validate_float_property("current", I)
+        if np.abs(I) == 0.0:
             raise ValueError("current must be non-zero.")
         self._current = I
 
@@ -1405,4 +1510,3 @@ class LineCurrent(BaseFDEMSrc):
             return self.Mejs(simulation)
         elif simulation._formulation == "HJ":
             return self.Mfjs(simulation)
-
