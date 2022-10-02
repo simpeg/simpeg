@@ -3,6 +3,7 @@ import properties
 from .utils import Counter, sdiag, timeIt, Identity
 from .data import Data
 from .simulation import BaseSimulation
+from .maps import IdentityMap
 from .objective_function import L2ObjectiveFunction
 
 __all__ = ["L2DataMisfit"]
@@ -23,6 +24,10 @@ class BaseDataMisfit(L2ObjectiveFunction):
 
     simulation = properties.Instance(
         "A SimPEG simulation", BaseSimulation, required=True
+    )
+
+    model_map = properties.Instance(
+        "A SimPEG mapping", IdentityMap, required=False, default=None
     )
 
     debug = properties.Bool(

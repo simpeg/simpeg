@@ -185,7 +185,7 @@ orientation = "z"  # z-oriented dipole for horizontal co-planar loops
 rx_offsets = np.vstack([np.r_[sep, 0.0, 0.0] for sep in coil_separations])
 
 # create our source list - one source per location
-source_list = []
+srcList = []
 for x in src_locations:
     src_loc = np.r_[x, 0.0, src_z]
     rx_locs = src_loc - rx_offsets
@@ -199,17 +199,17 @@ for x in src_locations:
 
     src = FDEM.Src.MagDipole(
         receiver_list=[rx_real, rx_imag],
-        location=src_loc,
+        loc=src_loc,
         orientation=orientation,
-        frequency=freq,
+        freq=freq,
     )
 
-    source_list.append(src)
+    srcList.append(src)
 
 # create the survey and problem objects for running the forward simulation
-survey = FDEM.Survey(source_list)
+survey = FDEM.Survey(srcList)
 prob = FDEM.Simulation3DMagneticFluxDensity(
-    mesh, survey=survey, sigmaMap=mapping, solver=Solver
+    mesh, survey=survey, sigmaMap=mapping, Solver=Solver
 )
 
 ###############################################################################
@@ -328,18 +328,12 @@ fig, ax = plt.subplots(1, 2, figsize=(12, 5))
 clim = np.r_[np.log(sigma_surface), np.log(sigma_deep)]
 
 # recovered model
-cb = plt.colorbar(
-    inversion_mesh.plotImage(mrec, ax=ax[0], clim=clim)[0],
-    ax=ax[0],
-)
+cb = plt.colorbar(inversion_mesh.plotImage(mrec, ax=ax[0], clim=clim)[0], ax=ax[0],)
 ax[0].set_title("recovered model")
 cb.set_label("$\log(\sigma)$")
 
 # true model
-cb = plt.colorbar(
-    inversion_mesh.plotImage(m_true, ax=ax[1], clim=clim)[0],
-    ax=ax[1],
-)
+cb = plt.colorbar(inversion_mesh.plotImage(m_true, ax=ax[1], clim=clim)[0], ax=ax[1],)
 ax[1].set_title("true model")
 cb.set_label("$\log(\sigma)$")
 

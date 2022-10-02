@@ -119,7 +119,7 @@ class BaseFDEMSimulation(BaseEMSimulation):
 
         self.model = m
 
-        Jv = Data(self.survey)
+        Jv = []
 
         for nf, freq in enumerate(self.survey.frequencies):
             for src in self.survey.get_sources_by_frequency(freq):
@@ -127,10 +127,10 @@ class BaseFDEMSimulation(BaseEMSimulation):
                 dA_dm_v = self.getADeriv(freq, u_src, v, adjoint=False)
                 dRHS_dm_v = self.getRHSDeriv(freq, src, v)
                 du_dm_v = self.Ainv[nf] * (-dA_dm_v + dRHS_dm_v)
-                for rx in src.receiver_list:
-                    Jv[src, rx] = rx.evalDeriv(src, self.mesh, f, du_dm_v=du_dm_v, v=v)
 
-        return Jv.dobs
+                for rx in src.receiver_list:
+                    Jv.append(rx.evalDeriv(src, self.mesh, f, du_dm_v=du_dm_v, v=v))
+        return np.hstack(Jv)
 
     def Jtvec(self, m, v, f=None):
         """
@@ -165,16 +165,16 @@ class BaseFDEMSimulation(BaseEMSimulation):
                     )
                     if not isinstance(df_duT, Zero):
                         df_duT_sum += df_duT
-                    if not isinstance(df_dmT, Zero):
-                        df_dmT_sum += df_dmT
+                    if not isinstance(df_dmT[0], Zero):
+                        df_dmT_sum += np.hstack(df_dmT)
 
                 ATinvdf_duT = self.Ainv[nf] * df_duT_sum
 
                 dA_dmT = self.getADeriv(freq, u_src, ATinvdf_duT, adjoint=True)
                 dRHS_dmT = self.getRHSDeriv(freq, src, ATinvdf_duT, adjoint=True)
                 du_dmT = -dA_dmT + dRHS_dmT
-
-                df_dmT_sum += du_dmT
+                
+                df_dmT_sum += mkvc(du_dmT)
                 Jtv += np.real(df_dmT_sum)
 
         return mkvc(Jtv)
