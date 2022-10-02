@@ -1,5 +1,3 @@
-from __future__ import print_function
-
 from discretize.utils.interpolation_utils import interpmat
 
 from .mat_utils import (
