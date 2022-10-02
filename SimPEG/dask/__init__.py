@@ -4,6 +4,7 @@ try:
     import SimPEG.dask.electromagnetics.static.resistivity.receivers
     import SimPEG.dask.electromagnetics.static.induced_polarization.simulation
     import SimPEG.dask.electromagnetics.frequency_domain.simulation
+    import SimPEG.dask.electromagnetics.natural_source.simulation
     import SimPEG.dask.potential_fields.base
     import SimPEG.dask.potential_fields.gravity.simulation
     import SimPEG.dask.potential_fields.magnetics.simulation

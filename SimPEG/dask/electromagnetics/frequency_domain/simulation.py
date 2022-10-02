@@ -96,6 +96,7 @@ def compute_J(self, f=None, Ainv=None):
     if f is None:
         f, Ainv = self.fields(self.model, return_Ainv=True)
 
+    self.Ainv = Ainv
     m_size = self.model.size
     row_chunks = int(np.ceil(
         float(self.survey.nD) / np.ceil(float(m_size) * self.survey.nD * 8. * 1e-6 / self.max_chunk_size)
