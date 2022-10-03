@@ -325,7 +325,8 @@ m0 = np.ones(3 * nC) * 1e-4  # Starting model
 # of magnetization
 reg_amp = regularization.VectorAmplitude(mesh, wires, active_cells=actv)
 reg_amp.reference_model = np.zeros(3*nC)
-reg_amp.norms = [0, 0, 0, 0]
+reg_amp.norms = [2, 0, 0, 0]
+# reg_amp.alpha_s = 0.0
 reg_amp.gradient_type = "components"
 
 # Create three regularizations for the different components
@@ -353,7 +354,7 @@ reg_t = regularization.Sparse(
 )
 reg_components = reg_p + reg_s + reg_t
 
-reg = reg_components # + reg_amp# + reg_components
+reg = reg_amp# + reg_components
 
 # Data misfit function
 dmis = data_misfit.L2DataMisfit(simulation=simulation, data=data_object)

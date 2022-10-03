@@ -136,31 +136,25 @@ class SparseSmoothnessFirstOrder(BaseSparse, SmoothnessFirstOrder):
         Compute and store the irls weights.
         """
         if self.gradient_type == "total":
-            if self.reference_model_in_smooth:
-                delta_m = self.mapping * self._delta_m(m)
-            else:
-                delta_m = self.mapping * m
-
+            delta_m = self.mapping * self._delta_m(m)
             f_m = np.zeros_like(delta_m)
             for ii, comp in enumerate("xyz"):
                 if self.regularization_mesh.dim > ii:
-                    Ave = getattr(self.regularization_mesh, f"aveCC2F{comp}")
-                    length_scales = Ave * (
-                        self.regularization_mesh.Pac.T
-                        * self.regularization_mesh.mesh.h_gridded[:, ii]
-                    )
                     dm = (
                         getattr(self.regularization_mesh, f"cell_gradient_{comp}")
                         * delta_m
                     )
 
                     if self.units is not None and self.units.lower() == "radian":
-                        dm = utils.mat_utils.coterminal(dm)
-
-                    dm_dl = dm / length_scales
+                        Ave = getattr(self.regularization_mesh, f"aveCC2F{comp}")
+                        length_scales = Ave * (
+                                self.regularization_mesh.Pac.T
+                                * self.regularization_mesh.mesh.h_gridded[:, ii]
+                        )
+                        dm = utils.mat_utils.coterminal(dm * length_scales) / length_scales
 
                     f_m += np.abs(
-                        getattr(self.regularization_mesh, f"aveF{comp}2CC") * dm_dl
+                        getattr(self.regularization_mesh, f"aveF{comp}2CC") * dm
                     )
 
             f_m = getattr(self.regularization_mesh, f"aveCC2F{self.orientation}") * f_m
