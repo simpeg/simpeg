@@ -53,18 +53,18 @@ def halfSpaceProblemAnaDiff(
     out = utils.VTEMFun(times, 0.00595, 0.006, 100)
     wavefun = interp1d(times, out)
     t0 = 0.006
-    waveform = tdem.sources.RawWaveform(offTime=t0, waveFct=wavefun)
+    waveform = tdem.Src.RawWaveform(offTime=t0, waveFct=wavefun)
 
     rx = getattr(tdem.Rx, "Point{}".format(rxType[:-1]))(
         np.array([[rxOffset, 0.0, 0.0]]), np.logspace(-4, -3, 31) + t0, rxType[-1]
     )
 
     if srctype == "MagDipole":
-        src = tdem.sources.MagDipole(
+        src = tdem.Src.MagDipole(
             [rx], waveform=waveform, location=np.array([0, 0.0, 0.0])
         )
     elif srctype == "CircularLoop":
-        src = tdem.sources.CircularLoop(
+        src = tdem.Src.CircularLoop(
             [rx], waveform=waveform, location=np.array([0.0, 0.0, 0.0]), radius=13.0
         )
     elif srctype == "LineCurrent":
