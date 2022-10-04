@@ -66,30 +66,36 @@ class BaseRx(survey.BaseRx):
         Returns
         -------
         str : ['real', 'imag', 'both', 'complex']
-            Orientation of the receiver; i.e. 'real' or 'imag'
+            Orientation of the receiver; i.e. 'real' or 'imag'. The options 'both' and
+            'complex' are only available for the 1D layered simulations.
         """
         return self._component
 
     @component.setter
-    def component(self, var):
+    def component(self, val):
 
-        if isinstance(var, str):
-            var = var.lower()
-            if var in ("real", "re", "in-phase", "in phase"):
-                var = "real"
-            elif varin(
-                "imag", "imaginary", "im", "out-of-phase", "out of phase", "quadrature"
+        if isinstance(val, str):
+            val = val.lower()
+            if val in ("real", "re", "in-phase", "in phase"):
+                val = "real"
+            elif val in (
+                "imag",
+                "imaginary",
+                "im",
+                "out-of-phase",
+                "out of phase",
+                "quadrature",
             ):
-                var = "imag"
+                val = "imag"
 
-            if var.lower() in ["real", "imag", "both", "complex"]:
-                self._component = var
+            if val.lower() in ["real", "imag", "both", "complex"]:
+                self._component = val
             else:
                 raise ValueError(
-                    f"orientation must be either 'real', 'imag', 'both', or 'complex'. Got {var}"
+                    f"orientation must be either 'real', 'imag', 'both', or 'complex'. Got {val}"
                 )
         else:
-            raise TypeError(f"orientation must be a str. Got {type(var)}")
+            raise TypeError(f"orientation must be a str. Got {type(val)}")
 
     @property
     def data_type(self):
@@ -104,22 +110,22 @@ class BaseRx(survey.BaseRx):
 
         Notes
         -----
-        This is currently only implemented for the 1D layered code.
+        This is currently only implemented for the 1D layered simulations.
         """
         return self._data_type
 
     @data_type.setter
     def data_type(self, val):
-        if isinstance(var, str):
-            var = var.lower()
-            if var in ["field", "ppm"]:
-                self._data_type = var
+        if isinstance(val, str):
+            val = val.lower()
+            if val in ["field", "ppm"]:
+                self._data_type = val
             else:
                 raise ValueError(
-                    f"data_type must be either 'field' or 'ppm'. Got {var}"
+                    f"data_type must be either 'field' or 'ppm'. Got {val}"
                 )
         else:
-            raise TypeError(f"data_type must be a str. Got {type(var)}")
+            raise TypeError(f"data_type must be a str. Got {type(val)}")
 
     @property
     def use_source_receiver_offset(self):
