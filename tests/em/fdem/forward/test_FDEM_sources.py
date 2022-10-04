@@ -1,16 +1,14 @@
 from __future__ import print_function
+
 import unittest
+import warnings
 
 import discretize
-from scipy.constants import mu_0
-
-from SimPEG.electromagnetics import frequency_domain as fdem
-from geoana.em.static import MagneticDipoleWholeSpace
-
-# from SimPEG.electromagnetics.analytics.FDEM import MagneticDipoleWholeSpace
 import numpy as np
+from geoana.em.static import MagneticDipoleWholeSpace
+from scipy.constants import mu_0
 from SimPEG import maps, utils
-import warnings
+from SimPEG.electromagnetics import frequency_domain as fdem
 
 TOL = 0.5  # relative tolerance (to norm of soln)
 plotIt = False
@@ -97,15 +95,10 @@ class TestSimpleSourcePropertiesTensor(unittest.TestCase):
         def ana_sol(XYZ):
             return MagneticDipoleWholeSpace(
                 location=src.location,
-                moment=1.0,
+                moment=src.n_turns * src.current,
                 orientation=src.orientation,
                 mu=src.mu,
             ).magnetic_flux_density(XYZ)
-
-            # return np.hstack(MagneticDipoleWholeSpace(XYZ, src.location,
-            #     0.,0., moment=1., orientation=src.orientation,
-            #     mu=src.mu
-            # ))
 
         if probType in ["e", "b"]:
             # TODO: clean up how we call analytics
@@ -437,6 +430,32 @@ class TestSimpleSourcePropertiesTensor(unittest.TestCase):
             mu=50.0 * mu_0,
         )
         assert self.bPrimaryTest(src, "j")
+
+    def test_CircularLoop_test_n_turns(self):
+        src = fdem.sources.CircularLoop(
+            [],
+            frequency=self.frequency,
+            radius=np.sqrt(1 / np.pi),
+            location=self.location,
+            orientation="Z",
+            mu=mu_0,
+            current=0.5,
+            n_turns=2,
+        )
+        assert self.bPrimaryTest(src, "j")
+
+    def test_CircularLoop_test_N_depreciation(self):
+        with self.assertWarns(Warning):
+            src = fdem.sources.CircularLoop(
+                [],
+                frequency=self.frequency,
+                radius=np.sqrt(1 / np.pi),
+                location=self.location,
+                orientation="Z",
+                mu=mu_0,
+                current=0.5,
+                N=2,
+            )
 
 
 if __name__ == "__main__":
