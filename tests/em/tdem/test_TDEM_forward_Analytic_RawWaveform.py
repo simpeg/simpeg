@@ -130,7 +130,7 @@ def halfSpaceProblemAnaDiff(
 
 class TDEM_SimpleSrcTests(unittest.TestCase):
     def test_source(self):
-        waveform = tdem.sources.StepOffWaveform()
+        waveform = tdem.Src.StepOffWaveform()
         assert waveform.eval(0.0) == 1.0
 
 
