@@ -21,7 +21,9 @@ vtem = TDEM.Src.VTEMWaveform()
 trapezoid = TDEM.Src.TrapezoidWaveform(
     ramp_on=np.r_[0.0, 1.5e-3], ramp_off=max_t - np.r_[1.5e-3, 0]
 )
-triangular = TDEM.Src.TriangularWaveform(peakTime=max_t / 2, offTime=max_t)
+triangular = TDEM.Src.TriangularWaveform(
+    start_time=0.0, peak_time=max_t / 2, off_time=max_t
+)
 quarter_sine = TDEM.Src.QuarterSineRampOnWaveform(
     ramp_on=np.r_[0.0, 1.5e-3], ramp_off=max_t - np.r_[1.5e-3, 0]
 )

@@ -1,6 +1,7 @@
 import properties
 from ...survey import BaseSurvey
 from .sources import BaseTDEMSrc
+import numpy as np
 
 
 ####################################################
