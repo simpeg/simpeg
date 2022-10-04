@@ -18,6 +18,10 @@ class BaseRx(BaseTimeRx):
     #    "orientation of the receiver. Must currently be 'x', 'y', 'z'", ["x", "y", "z"]
     # )
 
+    use_source_receiver_offset = properties.Bool(
+        "Use source-receiver offset", default=False
+    )
+
     def __init__(self, locations, times, orientation=None, **kwargs):
         proj = kwargs.pop("projComp", None)
         if proj is not None:
