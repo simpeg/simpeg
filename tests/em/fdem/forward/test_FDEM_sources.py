@@ -164,8 +164,8 @@ class TestSimpleSourcePropertiesTensor(unittest.TestCase):
             print(self.mesh.vnF)
 
             fig, ax = plt.subplots(1, 2)
+            ax[0].semilogy(np.absolute(bPrimary_ana), linewidth=2.0)
             ax[0].semilogy(np.absolute(bPrimary))
-            ax[0].semilogy(np.absolute(bPrimary_ana))
             ax[0].legend(["|num|", "|ana|"])
             ax[0].set_ylim([tol, bPrimary.max() * 2])
 
@@ -428,19 +428,6 @@ class TestSimpleSourcePropertiesTensor(unittest.TestCase):
             location=self.location,
             orientation="Z",
             mu=50.0 * mu_0,
-        )
-        assert self.bPrimaryTest(src, "j")
-
-    def test_CircularLoop_test_n_turns(self):
-        src = fdem.sources.CircularLoop(
-            [],
-            frequency=self.frequency,
-            radius=np.sqrt(1 / np.pi),
-            location=self.location,
-            orientation="Z",
-            mu=mu_0,
-            current=0.5,
-            n_turns=2,
         )
         assert self.bPrimaryTest(src, "j")
 
