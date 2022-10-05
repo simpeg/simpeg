@@ -95,7 +95,7 @@ class TestSimpleSourcePropertiesTensor(unittest.TestCase):
         def ana_sol(XYZ):
             return MagneticDipoleWholeSpace(
                 location=src.location,
-                moment=src.n_turns * src.current,
+                moment=1.0,
                 orientation=src.orientation,
                 mu=src.mu,
             ).magnetic_flux_density(XYZ)
@@ -432,6 +432,9 @@ class TestSimpleSourcePropertiesTensor(unittest.TestCase):
         assert self.bPrimaryTest(src, "j")
 
     def test_CircularLoop_test_N_depreciation(self):
+        """
+        Test depreciation of the N property
+        """
         with self.assertWarns(Warning):
             src = fdem.sources.CircularLoop(
                 [],
