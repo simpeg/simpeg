@@ -1317,11 +1317,10 @@ class LineCurrent(BaseTDEMSrc):
             return Zero()
 
     def jInitialDeriv(self, simulation, v=None, adjoint=False, f=None):
-        if simulation._formulation != "HJ":
-            raise NotImplementedError
-
         if self.waveform.has_initial_fields is False:
             return Zero()
+        elif simulation._formulation != "HJ":
+            raise NotImplementedError
 
         phi = self.phiInitial(simulation)
         Div = sdiag(simulation.mesh.vol) * simulation.mesh.faceDiv
@@ -1371,7 +1370,9 @@ class LineCurrent(BaseTDEMSrc):
         return Ainv * self.jInitialDeriv(simulation, v)
 
     def hInitial(self, simulation):
-        if simulation._formulation != "HJ":
+        if self.waveform.has_initial_fields is False:
+            return Zero()
+        elif simulation._formulation != "HJ":
             raise NotImplementedError
 
         if self.waveform.has_initial_fields is False:
@@ -1381,7 +1382,9 @@ class LineCurrent(BaseTDEMSrc):
         return simulation.MeMuI * b
 
     def hInitialDeriv(self, simulation, v, adjoint=False, f=None):
-        if simulation._formulation != "HJ":
+        if self.waveform.has_initial_fields is False:
+            return Zero()
+        elif simulation._formulation != "HJ":
             raise NotImplementedError
 
         if self.waveform.has_initial_fields is False:
@@ -1392,21 +1395,19 @@ class LineCurrent(BaseTDEMSrc):
         return simulation.MeMuI * self.bInitialDeriv(simulation, v)
 
     def bInitial(self, simulation):
-        if simulation._formulation != "HJ":
-            raise NotImplementedError
-
         if self.waveform.has_initial_fields is False:
             return Zero()
+        elif simulation._formulation != "HJ":
+            raise NotImplementedError
 
         a = self._aInitial(simulation)
         return simulation.mesh.edgeCurl.T * a
 
     def bInitialDeriv(self, simulation, v, adjoint=False, f=None):
-        if simulation._formulation != "HJ":
-            raise NotImplementedError
-
         if self.waveform.has_initial_fields is False:
             return Zero()
+        elif simulation._formulation != "HJ":
+            raise NotImplementedError
 
         if adjoint is True:
             return self._aInitialDeriv(
