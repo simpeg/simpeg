@@ -383,6 +383,30 @@ class WholespaceTests(unittest.TestCase):
             < 0.01
         )
 
+    # WORKING
+    def test_tensor_Bform_MagDipole_Bfield_TotalField_vector_orientation(self):
+        # arbitrary orientation
+        inclination = np.radians(78.0)
+        declination = np.radians(10.0)
+        tmi_orientation = np.r_[
+            np.cos(inclination) * np.sin(declination),
+            np.cos(inclination) * np.cos(declination),
+            -np.sin(inclination),
+        ]
+        assert np.isclose(np.linalg.norm(tmi_orientation), 1.0)
+        self.assertTrue(
+            analytic_wholespace_dipole_comparison(
+                "TENSOR",
+                "MagneticFluxDensity",
+                "MagDipole",
+                "MagneticFluxDensity",
+                tmi_orientation,
+                1e-2,
+                [0, 0, 48],
+            )
+            < 0.01
+        )
+
     # NOT IMPLEMENTED (NO PHI_0 BECAUSE NO GRAD?)
     # def test_cyl_Eform_EletricDipole_Efield_Z(self):
     #     self.assertTrue(
@@ -453,6 +477,29 @@ class WholespaceTests(unittest.TestCase):
                 "ElectricDipole",
                 "MagneticFluxTimeDerivative",
                 np.r_[1.0, 0.0, 0.0],
+                1e-2,
+                [0, 48, 0],
+            )
+            < 0.01
+        )
+
+    def test_tensor_Eform_ElectricDipole_dBdtfield_TotalField_vector_orientation(self):
+        # arbitrary orientation
+        inclination = np.radians(78.0)
+        declination = np.radians(10.0)
+        tmi_orientation = np.r_[
+            np.cos(inclination) * np.sin(declination),
+            np.cos(inclination) * np.cos(declination),
+            -np.sin(inclination),
+        ]
+        assert np.isclose(np.linalg.norm(tmi_orientation), 1.0)
+        self.assertTrue(
+            analytic_wholespace_dipole_comparison(
+                "TENSOR",
+                "ElectricField",
+                "ElectricDipole",
+                "MagneticFluxTimeDerivative",
+                tmi_orientation,
                 1e-2,
                 [0, 48, 0],
             )
