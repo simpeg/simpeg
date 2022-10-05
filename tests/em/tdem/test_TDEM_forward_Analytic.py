@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from pymatsolver import Pardiso as Solver
 from scipy.constants import mu_0
-from SimPEG import SolverLU, maps
+from SimPEG import maps
 from SimPEG.electromagnetics import analytics
 from SimPEG.electromagnetics import time_domain as tdem
 
@@ -386,8 +386,8 @@ class WholespaceTests(unittest.TestCase):
     # WORKING
     def test_tensor_Bform_MagDipole_Bfield_TotalField_vector_orientation(self):
         # arbitrary orientation
-        inclination = np.radians(78.0)
-        declination = np.radians(10.0)
+        inclination = np.radians(45.0)
+        declination = np.radians(-45.0)
         tmi_orientation = np.r_[
             np.cos(inclination) * np.sin(declination),
             np.cos(inclination) * np.cos(declination),
@@ -484,9 +484,9 @@ class WholespaceTests(unittest.TestCase):
         )
 
     def test_tensor_Eform_ElectricDipole_dBdtfield_TotalField_vector_orientation(self):
-        # arbitrary orientation
-        inclination = np.radians(78.0)
-        declination = np.radians(10.0)
+        # TMI orientation with significant value for all 3 components [-0.5, 0.5, -0.707]
+        inclination = np.radians(45.0)
+        declination = np.radians(-45.0)
         tmi_orientation = np.r_[
             np.cos(inclination) * np.sin(declination),
             np.cos(inclination) * np.cos(declination),
