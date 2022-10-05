@@ -247,14 +247,6 @@ class BaseEM1DSimulation(BaseSimulation):
 
     def _compute_hankel_coefficients(self):
         survey = self.survey
-        if self.hMap is not None:
-            h_vector = np.zeros(len(survey.source_list))  # , self.h
-            # if it has an hMap, do not include the height in the
-            # pre-computed coefficients
-        else:
-            h_vector = np.array(
-                [src.location[2] - self.topo[-1] for src in self.survey.source_list]
-            )
         C0s = []
         C1s = []
         lambs = []
@@ -272,7 +264,11 @@ class BaseEM1DSimulation(BaseSimulation):
             if is_circular_loop:
                 if np.any(src.orientation[:-1] != 0.0):
                     raise ValueError("Can only simulate horizontal circular loops")
-            h = h_vector[i_src]  # source height above topo
+            if self.hMap is not None:
+                h = 0  # source height above topo
+            else:
+                h = src.location[2] - self.topo[-1]
+
             if is_circular_loop or is_mag_dipole:
                 src_x, src_y, src_z = src.orientation * src.moment / (4 * np.pi)
                 # src.moment is pi * radius**2 * I for circular loop
@@ -291,6 +287,8 @@ class BaseEM1DSimulation(BaseSimulation):
 
                 if is_wire_loop:
                     dxy = rx.locations[:, :2] - src._xyks
+                    h = src.location.mean(axis=0)[2] - self.topo[-1]
+                    z = h + rx.locations[:, 2] - src.location.mean(axis=0)[2]
                     offsets = np.linalg.norm(dxy, axis=-1)
                 else:
                     offsets = np.linalg.norm(dxyz[:, :-1], axis=-1)
