@@ -385,7 +385,7 @@ class WholespaceTests(unittest.TestCase):
 
     # WORKING
     def test_tensor_Bform_MagDipole_Bfield_TotalField_vector_orientation(self):
-        # arbitrary orientation
+        # TMI orientation with significant values for all 3 components [-0.5, 0.5, -0.707] for testing
         inclination = np.radians(45.0)
         declination = np.radians(-45.0)
         tmi_orientation = np.r_[
@@ -484,7 +484,7 @@ class WholespaceTests(unittest.TestCase):
         )
 
     def test_tensor_Eform_ElectricDipole_dBdtfield_TotalField_vector_orientation(self):
-        # TMI orientation with significant value for all 3 components [-0.5, 0.5, -0.707]
+        # TMI orientation with significant values for all 3 components [-0.5, 0.5, -0.707] for testing
         inclination = np.radians(45.0)
         declination = np.radians(-45.0)
         tmi_orientation = np.r_[
