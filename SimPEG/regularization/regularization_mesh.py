@@ -26,6 +26,7 @@ class RegularizationMesh(props.BaseSimPEG):
     """
 
     regularization_type = None  # or 'Base'
+    _active_cells = None
 
     def __init__(self, mesh, active_cells=None, **kwargs):
         self.mesh = mesh
@@ -33,7 +34,7 @@ class RegularizationMesh(props.BaseSimPEG):
         utils.setKwargs(self, **kwargs)
 
     @property
-    def active_cells(self) -> sp.csr_matrix:
+    def active_cells(self) -> np.ndarray:
         """A boolean array indicating whether a cell is active
 
         Notes

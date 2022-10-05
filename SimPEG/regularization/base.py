@@ -8,6 +8,7 @@ from .. import maps
 from ..objective_function import BaseObjectiveFunction, ComboObjectiveFunction
 from .. import utils
 from .regularization_mesh import RegularizationMesh
+
 from SimPEG.utils.code_utils import deprecate_property, validate_array_type, validate_shape
 
 if TYPE_CHECKING:

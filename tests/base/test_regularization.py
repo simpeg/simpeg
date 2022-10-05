@@ -9,6 +9,7 @@ import unittest
 import pytest
 from scipy.stats import multivariate_normal
 from scipy.sparse.linalg import spsolve, LinearOperator, bicgstab
+from scipy.spatial import Delaunay
 import inspect
 
 import discretize
@@ -554,7 +555,7 @@ class RegularizationTests(unittest.TestCase):
 
     def test_sparse_properties(self):
         mesh = discretize.TensorMesh([8, 7])
-        for reg_fun in [regularization.Sparse, regularization.SparseDeriv]:
+        for reg_fun in [regularization.Sparse, regularization.SparseSmoothness]:
             reg = reg_fun(mesh)
             assert reg.irls_threshold == 1e-8  # Default
 
