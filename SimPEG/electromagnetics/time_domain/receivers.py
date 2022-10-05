@@ -24,7 +24,7 @@ class BaseRx(BaseTimeRx):
         locations,
         times,
         orientation="z",
-        use_source_receiver_offset=True,
+        use_source_receiver_offset=False,
         **kwargs
     ):
         proj = kwargs.pop("projComp", None)

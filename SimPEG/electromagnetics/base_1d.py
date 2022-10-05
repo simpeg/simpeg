@@ -267,7 +267,7 @@ class BaseEM1DSimulation(BaseSimulation):
             class_name = type(src).__name__
             is_circular_loop = class_name == "CircularLoop"
             is_mag_dipole = class_name == "MagDipole"
-            is_wire_loop = class_name == "PiecewiseWireLoop"
+            is_wire_loop = class_name == "LineCurrent1D"
 
             if is_circular_loop:
                 if np.any(src.orientation[:-1] != 0.0):
@@ -383,7 +383,14 @@ class BaseEM1DSimulation(BaseSimulation):
                             C0 += src_z * lambd ** 2
                 elif is_wire_loop:
                     weights = src._weights
-                    dxy_rot = src.rotate_points_xy_var_theta(dxy, -src._thetas)
+                    thetas = -src._thetas
+                    R = np.stack(
+                        [
+                            [np.cos(thetas), -np.sin(thetas)],
+                            [np.sin(thetas), np.cos(thetas)],
+                        ]
+                    )
+                    dxy_rot = np.einsum("...i,ji...", dxy, R)
                     C1 = (1 / (4 * np.pi) * (dxy_rot[:, 1] / offsets * weights))[
                         :, None
                     ] * lambd

@@ -193,7 +193,7 @@ def convolve_with_waveform(func, waveform, times, fargs=[], fkwargs={}):
     for it, t in enumerate(times):
 
         def integral(quad_time):
-            wave_eval = waveform.evalDeriv(t - quad_time)
+            wave_eval = waveform.eval_deriv(t - quad_time)
             return wave_eval * func(quad_time, *fargs, **fkwargs)
 
         for i in range(n_int):
