@@ -201,7 +201,7 @@ def analytic_wholespace_dipole_comparison(
             "r--",
         )
         plt.loglog(rx.times, abs(analytic_solution), "b*")
-        plt.title(src_type + ", " + rx_type + ", " + rx_orientation + "-component")
+        plt.title(src_type + ", " + rx_type + ", " + f"{rx_orientation}" + "-component")
         plt.show()
 
     return log10diff
