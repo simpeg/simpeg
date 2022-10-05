@@ -304,7 +304,7 @@ class TDEM_SimpleSrcTests(unittest.TestCase):
     def test_CircularLoop_test_N_depreciation(self):
         with self.assertWarns(Warning):
             src = tdem.sources.CircularLoop(
-                np.c_[0.0, 0.0, 0.0],
+                [np.c_[0.0, 0.0, 0.0]],
                 waveform=tdem.sources.StepOffWaveform(),
                 location=np.array([0.0, 0.0, 0.0]),
                 radius=1.0,
