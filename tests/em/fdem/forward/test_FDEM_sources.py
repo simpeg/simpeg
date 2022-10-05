@@ -433,7 +433,7 @@ class TestSimpleSourcePropertiesTensor(unittest.TestCase):
 
     def test_CircularLoop_test_N_depreciation(self):
         """
-        Test depreciation of the N property
+        Test depreciation of the N argument (now n_turns)
         """
         with self.assertWarns(Warning):
             src = fdem.sources.CircularLoop(

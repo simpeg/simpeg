@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from pymatsolver import Pardiso as Solver
 from scipy.constants import mu_0
-from SimPEG import SolverLU, maps
+from SimPEG import maps
 from SimPEG.electromagnetics import analytics
 from SimPEG.electromagnetics import time_domain as tdem
 
@@ -302,8 +302,11 @@ class TDEM_SimpleSrcTests(unittest.TestCase):
         assert waveform.eval(0.0) == 1.0
 
     def test_CircularLoop_test_N_depreciation(self):
+        """
+        Test depreciation of the N property
+        """
         with self.assertWarns(Warning):
-            src = tdem.sources.CircularLoop(
+            _ = tdem.sources.CircularLoop(
                 [np.c_[0.0, 0.0, 0.0]],
                 waveform=tdem.sources.StepOffWaveform(),
                 location=np.array([0.0, 0.0, 0.0]),
