@@ -9,6 +9,7 @@ import unittest
 import pytest
 from scipy.stats import multivariate_normal
 from scipy.sparse.linalg import spsolve, LinearOperator, bicgstab
+from scipy.spatial import Delaunay
 import inspect
 
 import discretize
