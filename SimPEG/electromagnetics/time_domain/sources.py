@@ -1,16 +1,16 @@
+import warnings
+
 import numpy as np
+import properties
+from geoana.em.static import CircularLoopWholeSpace, MagneticDipoleWholeSpace
 from scipy.constants import mu_0
 from scipy.special import roots_legendre
-import properties
-import warnings
-from ...utils.code_utils import deprecate_property
 
-from geoana.em.static import MagneticDipoleWholeSpace, CircularLoopWholeSpace
-
-from ..base import BaseEMSrc
-from ..utils import segmented_line_current_source_term, line_through_faces
 from ...props import LocationVector
-from ...utils import setKwargs, sdiag, Zero
+from ...utils import Zero, sdiag, setKwargs
+from ...utils.code_utils import deprecate_property
+from ..base import BaseEMSrc
+from ..utils import line_through_faces, segmented_line_current_source_term
 
 ###############################################################################
 #                                                                             #
@@ -1126,7 +1126,7 @@ class CircularLoop(MagDipole):
 
     @property
     def moment(self):
-        return np.pi * self.radius ** 2 * self.current * self.N
+        return np.pi * self.radius**2 * self.current * self.N
 
     def _srcFct(self, obsLoc, coordinates="cartesian"):
         # return MagneticLoopVectorPotential(
@@ -1199,7 +1199,7 @@ class PiecewiseWireLoop(BaseTDEMSrc):
         for i_path in range(n_path):
             dx = xy_src_path[i_path + 1, 0] - xy_src_path[i_path, 0]
             dy = xy_src_path[i_path + 1, 1] - xy_src_path[i_path, 1]
-            l = np.sqrt(dx ** 2 + dy ** 2)
+            l = np.sqrt(dx**2 + dy**2)
             theta = np.arctan2(dy, dx)
             lk = np.c_[(x + 1) * l / 2, np.zeros(self.n_points_per_path)]
             xyk = self.rotate_points_xy(lk, theta, x0=xy_src_path[i_path, :])
@@ -1310,11 +1310,10 @@ class LineCurrent(BaseTDEMSrc):
             return Zero()
 
     def jInitialDeriv(self, simulation, v=None, adjoint=False, f=None):
-        if simulation._formulation != "HJ":
-            raise NotImplementedError
-
         if self.waveform.has_initial_fields is False:
             return Zero()
+        elif simulation._formulation != "HJ":
+            raise NotImplementedError
 
         phi = self.phiInitial(simulation)
         Div = sdiag(simulation.mesh.vol) * simulation.mesh.faceDiv
@@ -1364,7 +1363,9 @@ class LineCurrent(BaseTDEMSrc):
         return Ainv * self.jInitialDeriv(simulation, v)
 
     def hInitial(self, simulation):
-        if simulation._formulation != "HJ":
+        if self.waveform.has_initial_fields is False:
+            return Zero()
+        elif simulation._formulation != "HJ":
             raise NotImplementedError
 
         if self.waveform.has_initial_fields is False:
@@ -1374,7 +1375,9 @@ class LineCurrent(BaseTDEMSrc):
         return simulation.MeMuI * b
 
     def hInitialDeriv(self, simulation, v, adjoint=False, f=None):
-        if simulation._formulation != "HJ":
+        if self.waveform.has_initial_fields is False:
+            return Zero()
+        elif simulation._formulation != "HJ":
             raise NotImplementedError
 
         if self.waveform.has_initial_fields is False:
@@ -1385,21 +1388,19 @@ class LineCurrent(BaseTDEMSrc):
         return simulation.MeMuI * self.bInitialDeriv(simulation, v)
 
     def bInitial(self, simulation):
-        if simulation._formulation != "HJ":
-            raise NotImplementedError
-
         if self.waveform.has_initial_fields is False:
             return Zero()
+        elif simulation._formulation != "HJ":
+            raise NotImplementedError
 
         a = self._aInitial(simulation)
         return simulation.mesh.edgeCurl.T * a
 
     def bInitialDeriv(self, simulation, v, adjoint=False, f=None):
-        if simulation._formulation != "HJ":
-            raise NotImplementedError
-
         if self.waveform.has_initial_fields is False:
             return Zero()
+        elif simulation._formulation != "HJ":
+            raise NotImplementedError
 
         if adjoint is True:
             return self._aInitialDeriv(
