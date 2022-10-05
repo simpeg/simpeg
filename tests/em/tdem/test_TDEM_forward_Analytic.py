@@ -445,19 +445,19 @@ class WholespaceTests(unittest.TestCase):
             < 0.01
         )
 
-        def test_tensor_Eform_ElectricDipole_dBdtfield_X_vector_orientation(self):
-            self.assertTrue(
-                analytic_wholespace_dipole_comparison(
-                    "TENSOR",
-                    "ElectricField",
-                    "ElectricDipole",
-                    "MagneticFluxTimeDerivative",
-                    np.r_[1.0, 0.0, 0.0],
-                    1e-2,
-                    [0, 48, 0],
-                )
-                < 0.01
+    def test_tensor_Eform_ElectricDipole_dBdtfield_X_vector_orientation(self):
+        self.assertTrue(
+            analytic_wholespace_dipole_comparison(
+                "TENSOR",
+                "ElectricField",
+                "ElectricDipole",
+                "MagneticFluxTimeDerivative",
+                np.r_[1.0, 0.0, 0.0],
+                1e-2,
+                [0, 48, 0],
             )
+            < 0.01
+        )
 
 
 ###########################################################
