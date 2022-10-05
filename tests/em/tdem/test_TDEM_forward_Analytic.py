@@ -455,7 +455,7 @@ class WholespaceTests(unittest.TestCase):
     #     )
 
     # NOT IMPLEMENTED NOT ACCURATE
-    def test_tensor_Eform_ElectricDipole_dBdtfield_X(self):
+    def test_tensor_Eform_ElectricDipole_dBdtfield_Z(self):
         self.assertTrue(
             analytic_wholespace_dipole_comparison(
                 "TENSOR",
