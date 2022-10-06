@@ -1,6 +1,7 @@
 import re
 import os
 from discretize import TensorMesh
+from discretize.utils.meshutils import active_from_xyz
 
 try:
     from SimPEG import utils
@@ -198,7 +199,7 @@ class MagneticsDriver_Inv(object):
                 topo = np.genfromtxt(self.basePath + self.topofile, skip_header=1)
 
                 # Find the active cells
-                active = utils.surface2ind_topo(self.mesh, topo, "N")
+                active = active_from_xyz(self.mesh, topo, "N")
 
             elif isinstance(self._staticInput, float):
                 active = self.m0 != self._staticInput
@@ -207,9 +208,7 @@ class MagneticsDriver_Inv(object):
                 # Read from file active cells with 0:air, 1:dynamic, -1 static
                 active = self.activeModel != 0
 
-            inds = np.where(active)[0]
-
-            self._activeCells = inds
+            self._activeCells = active
 
             # Reduce m0 to active space
             if len(self.m0) > len(self._activeCells):

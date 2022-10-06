@@ -76,7 +76,7 @@ def run(plotIt=True, cleanAfterRun=True):
 
     # Get the active cells
     active = driver.activeCells
-    nC = len(active)  # Number of active cells
+    nC = int(active.sum())  # Number of active cells
 
     # Create active map to go from reduce set to full
     activeMap = maps.InjectActiveCells(mesh, active, -100)
@@ -99,11 +99,11 @@ def run(plotIt=True, cleanAfterRun=True):
 
     # %% Create inversion objects
     reg = regularization.Sparse(
-        mesh, indActive=active, mapping=staticCells, gradientType="total"
+        mesh, active_cells=active, mapping=staticCells, gradientType="total"
     )
     reg.mref = driver.mref[dynamic]
 
-    reg.norms = np.c_[0.0, 1.0, 1.0, 1.0]
+    reg.norms = [0.0, 1.0, 1.0, 1.0]
     # reg.norms = driver.lpnorms
 
     # Specify how the optimization will proceed
@@ -223,7 +223,7 @@ def run(plotIt=True, cleanAfterRun=True):
         plt.ylabel("Northing (m)")
         plt.gca().set_aspect("equal", adjustable="box")
         cb = plt.colorbar(
-            dat1[0], orientation="vertical", ticks=np.linspace(vmin, vmax, 4)
+            dat1[0], ax=ax, orientation="vertical", ticks=np.linspace(vmin, vmax, 4)
         )
         cb.set_label("Density (g/cc$^3$)")
 
@@ -242,6 +242,7 @@ def run(plotIt=True, cleanAfterRun=True):
         plt.gca().set_aspect("equal", adjustable="box")
         cb = plt.colorbar(
             dat1[0],
+            ax=ax,
             orientation="vertical",
             ticks=np.linspace(vmin, vmax, 4),
             cmap="bwr",
@@ -258,9 +259,9 @@ def run(plotIt=True, cleanAfterRun=True):
             "Compact Inversion: Depth weight = "
             + str(wgtexp)
             + ": $\epsilon_p$ = "
-            + str(round(reg.eps_p, 1))
+            + str(round(reg.objfcts[0].irls_threshold, 1))
             + ": $\epsilon_q$ = "
-            + str(round(reg.eps_q, 2))
+            + str(round(reg.objfcts[1].irls_threshold, 2))
         )
         ax = plt.subplot(221)
         dat = mesh.plotSlice(
@@ -283,7 +284,7 @@ def run(plotIt=True, cleanAfterRun=True):
         plt.ylabel("Northing (m)")
         plt.gca().set_aspect("equal", adjustable="box")
         cb = plt.colorbar(
-            dat[0], orientation="vertical", ticks=np.linspace(vmin, vmax, 4)
+            dat[0], ax=ax, orientation="vertical", ticks=np.linspace(vmin, vmax, 4)
         )
         cb.set_label("Density (g/cc$^3$)")
 
@@ -308,7 +309,7 @@ def run(plotIt=True, cleanAfterRun=True):
         plt.ylabel("Northing (m)")
         plt.gca().set_aspect("equal", adjustable="box")
         cb = plt.colorbar(
-            dat[0], orientation="vertical", ticks=np.linspace(vmin, vmax, 4)
+            dat[0], ax=ax, orientation="vertical", ticks=np.linspace(vmin, vmax, 4)
         )
         cb.set_label("Density (g/cc$^3$)")
 
@@ -326,7 +327,7 @@ def run(plotIt=True, cleanAfterRun=True):
         plt.ylabel("Elevation (m)")
         plt.gca().set_aspect("equal", adjustable="box")
         cb = plt.colorbar(
-            dat[0], orientation="vertical", ticks=np.linspace(vmin, vmax, 4)
+            dat[0], ax=ax, orientation="vertical", ticks=np.linspace(vmin, vmax, 4)
         )
         cb.set_label("Density (g/cc$^3$)")
 

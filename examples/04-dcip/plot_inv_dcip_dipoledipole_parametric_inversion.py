@@ -165,7 +165,7 @@ def run(
     # Map for a regularization
     mesh_1d = discretize.TensorMesh([parametric_block.nP])
     # Related to inversion
-    reg = regularization.Simple(mesh_1d, alpha_x=0.0)
+    reg = regularization.WeightedLeastSquares(mesh_1d, alpha_x=0.0)
     opt = optimization.InexactGaussNewton(maxIter=10)
     invProb = inverse_problem.BaseInvProblem(dmisfit, reg, opt)
     target = directives.TargetMisfit()

@@ -245,9 +245,7 @@ reg = regularization.Sparse(mesh, mapping=reg_map, alpha_s=0.025, alpha_x=1.0)
 reg.mref = starting_model
 
 # Define sparse and blocky norms p, q
-p = 0
-q = 0
-reg.norms = np.c_[p, q]
+reg.norms = [0, 0]
 
 # Define how the optimization problem is solved. Here we will use an inexact
 # Gauss-Newton approach that employs the conjugate gradient solver.
