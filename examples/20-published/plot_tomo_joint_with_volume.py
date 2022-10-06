@@ -140,7 +140,7 @@ def run(plotIt=True):
     dpred = problem.dpred(np.zeros(M.nC))
 
     # objective function pieces
-    reg = regularization.Tikhonov(M)
+    reg = regularization.WeightedLeastSquares(M)
     dmis = data_misfit.L2DataMisfit(simulation=problem, data=data)
     dmisVol = Volume(mesh=M, knownVolume=knownVolume)
     beta = 0.25

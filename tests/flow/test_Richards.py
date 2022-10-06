@@ -2,7 +2,7 @@ from __future__ import print_function
 import unittest
 import numpy as np
 
-from discretize.tests import checkDerivative
+from discretize.tests import check_derivative
 import discretize
 
 from SimPEG import maps
@@ -65,7 +65,7 @@ class BaseRichardsTest(unittest.TestCase):
             )
         )
         self.prob.do_newton = newton
-        passed = checkDerivative(
+        passed = check_derivative(
             lambda hn1: self.prob.getResidual(
                 self.mtrue,
                 self.h0,
@@ -97,7 +97,7 @@ class BaseRichardsTest(unittest.TestCase):
 
     def _dotest_sensitivity(self):
         print("Testing Richards Derivative dim={}".format(self.mesh.dim))
-        passed = checkDerivative(
+        passed = check_derivative(
             lambda m: [self.prob.dpred(m), lambda v: self.prob.Jvec(m, v)],
             self.mtrue,
             num=3,
@@ -108,7 +108,7 @@ class BaseRichardsTest(unittest.TestCase):
     def _dotest_sensitivity_full(self):
         print("Testing Richards Derivative FULL dim={}".format(self.mesh.dim))
         J = self.prob.Jfull(self.mtrue)
-        passed = checkDerivative(
+        passed = check_derivative(
             lambda m: [self.prob.dpred(m), J], self.mtrue, num=4, plotIt=False
         )
         self.assertTrue(passed, True)

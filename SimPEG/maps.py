@@ -12,7 +12,7 @@ from scipy.constants import mu_0
 from scipy.sparse import csr_matrix as csr
 
 import properties
-from discretize.tests import checkDerivative
+from discretize.tests import check_derivative
 
 from .utils import (
     setKwargs,
@@ -126,7 +126,7 @@ class IdentityMap(properties.HasProperties):
 
         :param numpy.ndarray m: model
         :param kwargs: key word arguments of
-                       :meth:`discretize.tests.checkDerivative`
+                       :meth:`discretize.tests.check_derivative`
         :rtype: bool
         :return: passed the test?
 
@@ -140,7 +140,7 @@ class IdentityMap(properties.HasProperties):
         assert isinstance(
             self.nP, integer_types
         ), "nP must be an integer for {}".format(self.__class__.__name__)
-        return checkDerivative(
+        return check_derivative(
             lambda m: [self * m, self.deriv(m)], m, num=num, **kwargs
         )
 
@@ -149,7 +149,7 @@ class IdentityMap(properties.HasProperties):
 
         :param numpy.ndarray m: model
         :param kwargs: key word arguments of
-                       :meth:`discretize.tests.checkDerivative`
+                       :meth:`discretize.tests.check_derivative`
         :rtype: bool
         :return: passed the test?
 
@@ -159,7 +159,7 @@ class IdentityMap(properties.HasProperties):
             m = abs(np.random.rand(self.nP))
         if "plotIt" not in kwargs:
             kwargs["plotIt"] = False
-        return checkDerivative(
+        return check_derivative(
             lambda m: [self * m, lambda x: self.deriv(m, x)], m, num=4, **kwargs
         )
 

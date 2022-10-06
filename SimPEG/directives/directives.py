@@ -8,21 +8,16 @@ from ..data_misfit import BaseDataMisfit
 from ..objective_function import ComboObjectiveFunction
 from ..maps import IdentityMap, Wires
 from ..regularization import (
-    BaseComboRegularization,
+    WeightedLeastSquares,
     BaseRegularization,
-    SimpleSmall,
-    Small,
-    SparseSmall,
-    Simple,
-    Tikhonov,
+    BaseSparse,
+    Smallness,
     Sparse,
+    SparseSmallness,
     PGIsmallness,
     PGIwithNonlinearRelationshipsSmallness,
-    PGI,
-    SmoothDeriv,
-    SimpleSmoothDeriv,
-    SparseDeriv,
-    PGIwithRelationships,
+    SmoothnessFirstOrder,
+    SparseSmoothness,
     BaseSimilarityMeasure,
 )
 from ..utils import (
@@ -35,6 +30,7 @@ from ..utils import (
     Zero,
     eigenvalue_by_power_iteration,
 )
+from ..utils.code_utils import deprecate_property
 from .. import optimization
 
 
@@ -44,7 +40,7 @@ class InversionDirective(properties.HasProperties):
     _REGISTRY = {}
 
     debug = False  #: Print debugging information
-    _regPair = [BaseComboRegularization, BaseRegularization, ComboObjectiveFunction]
+    _regPair = [WeightedLeastSquares, BaseRegularization, ComboObjectiveFunction]
     _dmisfitPair = [BaseDataMisfit, ComboObjectiveFunction]
 
     def __init__(self, **kwargs):
@@ -85,7 +81,7 @@ class InversionDirective(properties.HasProperties):
             [isinstance(value, regtype) for regtype in self._regPair]
         ), "Regularization must be in {}, not {}".format(self._regPair, type(value))
 
-        if isinstance(value, BaseComboRegularization):
+        if isinstance(value, WeightedLeastSquares):
             value = 1 * value  # turn it into a combo objective function
         self._reg = value
 
@@ -121,6 +117,14 @@ class InversionDirective(properties.HasProperties):
         return a list of problems for each dmisfit [prob1, prob2, ...]
         """
         return [objfcts.simulation for objfcts in self.dmisfit.objfcts]
+
+    prob = deprecate_property(
+        simulation,
+        "prob",
+        new_name="simulation",
+        removal_version="0.16.0",
+        error=True,
+    )
 
     def initialize(self):
         pass
@@ -294,122 +298,69 @@ class AlphasSmoothEstimate_ByEig(InversionDirective):
         if self.seed is not None:
             np.random.seed(self.seed)
 
-        if getattr(self.reg.objfcts[0], "objfcts", None) is not None:
-            nbr = np.sum(
-                [len(self.reg.objfcts[i].objfcts) for i in range(len(self.reg.objfcts))]
+        smoothness = []
+        smallness = []
+        parents = {}
+        for regobjcts in self.reg.objfcts:
+
+            if isinstance(regobjcts, ComboObjectiveFunction):
+                objfcts = regobjcts.objfcts
+            else:
+                objfcts = [regobjcts]
+
+            for obj in objfcts:
+
+                if isinstance(
+                    obj,
+                    (
+                            Smallness,
+                            SparseSmallness,
+                            PGIsmallness,
+                            PGIwithNonlinearRelationshipsSmallness,
+                    ),
+                ):
+                    smallness += [obj]
+
+                elif isinstance(obj, (SmoothnessFirstOrder, SparseSmoothness)):
+                    parents[obj] = regobjcts
+                    smoothness += [obj]
+
+        if len(smallness) == 0:
+            raise UserWarning(
+                "Directive 'AlphasSmoothEstimate_ByEig' requires a regularization with at least one Small instance."
             )
-            # Find the smallness terms in a two-levels combo-regularization.
-            smallness = []
-            alpha0 = []
-            for i, regobjcts in enumerate(self.reg.objfcts):
-                for j, regpart in enumerate(regobjcts.objfcts):
-                    alpha0 += [self.reg.multipliers[i] * regobjcts.multipliers[j]]
-                    smallness += [
-                        [
-                            i,
-                            j,
-                            isinstance(
-                                regpart,
-                                (
-                                    SimpleSmall,
-                                    Small,
-                                    SparseSmall,
-                                    PGIsmallness,
-                                    PGIwithNonlinearRelationshipsSmallness,
-                                ),
-                            ),
-                        ]
-                    ]
-            smallness = np.r_[smallness]
-            # Select the first, only considered, smallness term.
-            smallness = smallness[smallness[:, 2] == 1][:, :2][0]
 
-            # Find the smoothness terms in a two-levels combo-regularization.
-            smoothness = []
-            for i, regobjcts in enumerate(self.reg.objfcts):
-                for j, regpart in enumerate(regobjcts.objfcts):
-                    smoothness += [
-                        [
-                            i,
-                            j,
-                            isinstance(
-                                regpart, (SmoothDeriv, SimpleSmoothDeriv, SparseDeriv)
-                            ),
-                        ]
-                    ]
-            smoothness = np.r_[smoothness]
-            mode = 1
+        smallness_eigenvalue = eigenvalue_by_power_iteration(
+            smallness[0],
+            self.invProb.model,
+            n_pw_iter=self.n_pw_iter,
+        )
 
-        else:
-            nbr = len(self.reg.objfcts)
-            alpha0 = self.reg.multipliers
-            smoothness = np.r_[
-                [
-                    isinstance(regpart, (SmoothDeriv, SimpleSmoothDeriv, SparseDeriv))
-                    for regpart in self.reg.objfcts
-                ]
-            ]
-            mode = 2
+        if not isinstance(self.alpha0_ratio, (np.ndarray, list)):
+            self.alpha0_ratio = self.alpha0_ratio * np.ones(len(smoothness))
 
-        if not isinstance(self.alpha0_ratio, np.ndarray):
-            self.alpha0_ratio = self.alpha0_ratio * np.ones(nbr)
+        if len(self.alpha0_ratio) != len(smoothness):
+            raise ValueError(
+                f"Input values for 'alpha0_ratio' should be of len({len(smoothness)}). Provided {self.alpha0_ratio}"
+            )
 
-        if self.debug:
-            print("Calculating the Alpha0 parameter.")
-
-        m = self.invProb.model
-
-        if mode == 2:
-            smallness_eigenvalue = eigenvalue_by_power_iteration(
-                self.reg.objfcts[0],
-                m,
+        alphas = []
+        for user_alpha, obj in zip(self.alpha0_ratio, smoothness):
+            smooth_i_eigenvalue = eigenvalue_by_power_iteration(
+                obj,
+                self.invProb.model,
                 n_pw_iter=self.n_pw_iter,
             )
-            for i in range(nbr):
-                if smoothness[i]:
-                    smooth_i_eigenvalue = eigenvalue_by_power_iteration(
-                        self.reg.objfcts[i],
-                        m,
-                        n_pw_iter=self.n_pw_iter,
-                    )
-                    ratio = smallness_eigenvalue / smooth_i_eigenvalue
+            ratio = smallness_eigenvalue / smooth_i_eigenvalue
 
-                    alpha0[i] *= self.alpha0_ratio[i] * ratio
-                    mtype = self.reg.objfcts[i]._multiplier_pair
-                    setattr(self.reg, mtype, alpha0[i])
+            mtype = obj._multiplier_pair
 
-        elif mode == 1:
-            smallness_eigenvalue = eigenvalue_by_power_iteration(
-                self.reg.objfcts[smallness[0]].objfcts[smallness[1]],
-                m,
-                n_pw_iter=self.n_pw_iter,
-            )
-            for i in range(nbr):
-                ratio = []
-                if smoothness[i, 2]:
-                    idx = smoothness[i, :2]
-                    smooth_i_eigenvalue = eigenvalue_by_power_iteration(
-                        self.reg.objfcts[idx[0]].objfcts[idx[1]],
-                        m,
-                        n_pw_iter=self.n_pw_iter,
-                    )
-
-                    ratio = np.divide(
-                        smallness_eigenvalue,
-                        smooth_i_eigenvalue,
-                        out=np.zeros_like(smallness_eigenvalue),
-                        where=smooth_i_eigenvalue != 0,
-                    )
-
-                    alpha0[i] *= self.alpha0_ratio[i] * ratio
-                    mtype = self.reg.objfcts[idx[0]].objfcts[idx[1]]._multiplier_pair
-                    setattr(self.reg.objfcts[idx[0]], mtype, alpha0[i])
+            new_alpha = getattr(parents[obj], mtype) * user_alpha * ratio
+            setattr(parents[obj], mtype, new_alpha)
+            alphas += [new_alpha]
 
         if self.verbose:
-            print("Alpha scales: ", self.reg.multipliers)
-            if mode == 1:
-                for objf in self.reg.objfcts:
-                    print("Alpha scales: ", objf.multipliers)
+            print(f"Alpha scales: {alphas}")
 
 
 class ScalingMultipleDataMisfits_ByEig(InversionDirective):
@@ -576,7 +527,7 @@ class TargetMisfit(InversionDirective):
 
 class MultiTargetMisfits(InversionDirective):
 
-    WeightsInTarget = 0
+    WeightsInTarget = False
     verbose = False
     # Chi factor for Geophsyical Data Misfit
     chifact = 1.0
@@ -743,8 +694,7 @@ class MultiTargetMisfits(InversionDirective):
         else:
             return (
                 self.pgi_smallness(
-                    self.invProb.model,
-                    externalW=self.WeightsInTarget,
+                    self.invProb.model, external_weights=self.WeightsInTarget
                 )
                 / self.CLnormalizedConstant
             )
@@ -951,18 +901,18 @@ class SaveOutputEveryIteration(SaveEveryIteration):
                 phi_s += reg.objfcts[0](self.invProb.model) * reg.alpha_s
                 phi_x += reg.objfcts[1](self.invProb.model) * reg.alpha_x
 
-                if reg.regmesh.dim == 2:
+                if reg.regularization_mesh.dim == 2:
                     phi_y += reg.objfcts[2](self.invProb.model) * reg.alpha_y
-                elif reg.regmesh.dim == 3:
+                elif reg.regularization_mesh.dim == 3:
                     phi_y += reg.objfcts[2](self.invProb.model) * reg.alpha_y
                     phi_z += reg.objfcts[3](self.invProb.model) * reg.alpha_z
         elif getattr(self.reg.objfcts[0], "objfcts", None) is None:
             phi_s += self.reg.objfcts[0](self.invProb.model) * self.reg.alpha_s
             phi_x += self.reg.objfcts[1](self.invProb.model) * self.reg.alpha_x
 
-            if self.reg.regmesh.dim == 2:
+            if self.reg.regularization_mesh.dim == 2:
                 phi_y += self.reg.objfcts[2](self.invProb.model) * self.reg.alpha_y
-            elif self.reg.regmesh.dim == 3:
+            elif self.reg.regularization_mesh.dim == 3:
                 phi_y += self.reg.objfcts[2](self.invProb.model) * self.reg.alpha_y
                 phi_z += self.reg.objfcts[3](self.invProb.model) * self.reg.alpha_z
 
@@ -1219,6 +1169,28 @@ class Update_IRLS(InversionDirective):
     silent = False
     fix_Jmatrix = False
 
+    maxIRLSiters = deprecate_property(
+        max_irls_iterations,
+        "maxIRLSiters",
+        new_name="max_irls_iterations",
+        removal_version="0.16.0",
+        error=True,
+    )
+    updateBeta = deprecate_property(
+        update_beta,
+        "updateBeta",
+        new_name="update_beta",
+        removal_version="0.16.0",
+        error=True,
+    )
+    betaSearch = deprecate_property(
+        beta_search,
+        "betaSearch",
+        new_name="beta_search",
+        removal_version="0.16.0",
+        error=True,
+    )
+
     @property
     def target(self):
         if getattr(self, "_target", None) is None:
@@ -1258,7 +1230,7 @@ class Update_IRLS(InversionDirective):
             self.norms = []
             for reg in self.reg.objfcts:
                 self.norms.append(reg.norms)
-                reg.norms = np.c_[2.0, 2.0, 2.0, 2.0]
+                reg.norms = [2.0 for obj in reg.objfcts]
                 reg.model = self.invProb.model
 
         # Update the model used by the regularization
@@ -1281,12 +1253,10 @@ class Update_IRLS(InversionDirective):
                 self.mode != 1,
             ]
         ):
-
             ratio = self.target / self.invProb.phi_d
 
             if ratio > 1:
                 ratio = np.mean([2.0, ratio])
-
             else:
                 ratio = np.mean([0.75, ratio])
 
@@ -1302,97 +1272,38 @@ class Update_IRLS(InversionDirective):
                 return
 
         elif np.all([self.mode == 1, self.opt.iter % self.coolingRate == 0]):
-
             self.invProb.beta = self.invProb.beta / self.coolingFactor
-
-        phim_new = 0
-        for reg in self.reg.objfcts:
-            for comp, multipier in zip(reg.objfcts, reg.multipliers):
-                if multipier > 0:
-                    phim_new += np.sum(
-                        comp.f_m ** 2.0
-                        / (comp.f_m ** 2.0 + comp.epsilon ** 2.0)
-                        ** (1 - comp.norm / 2.0)
-                    )
-
-        # Update the model used by the regularization
-        phi_m_last = []
-        for reg in self.reg.objfcts:
-            reg.model = self.invProb.model
-            phi_m_last += [reg(self.invProb.model)]
 
         # After reaching target misfit with l2-norm, switch to IRLS (mode:2)
         if np.all([self.invProb.phi_d < self.start, self.mode == 1]):
-            self.startIRLS()
+            self.start_irls()
 
         # Only update after GN iterations
         if np.all(
             [(self.opt.iter - self.iterStart) % self.minGNiter == 0, self.mode != 1]
         ):
-
-            if self.fix_Jmatrix:
-                print(">> Fix Jmatrix")
-                self.invProb.dmisfit.simulation.fix_Jmatrix = True
-            # Check for maximum number of IRLS cycles
-            if self.irls_iteration == self.max_irls_iterations:
-                if not self.silent:
-                    print(
-                        "Reach maximum number of IRLS cycles:"
-                        + " {0:d}".format(self.max_irls_iterations)
-                    )
-
+            if self.stopping_criteria():
                 self.opt.stopNextIteration = True
                 return
 
             # Print to screen
             for reg in self.reg.objfcts:
-
-                if reg.eps_p > self.floorEps_p and self.coolEps_p:
-                    reg.eps_p /= self.coolEpsFact
-                    # print('Eps_p: ' + str(reg.eps_p))
-                if reg.eps_q > self.floorEps_q and self.coolEps_q:
-                    reg.eps_q /= self.coolEpsFact
-                    # print('Eps_q: ' + str(reg.eps_q))
-
-            # Remember the value of the norm from previous R matrices
-            # self.f_old = self.reg(self.invProb.model)
+                for obj in reg.objfcts:
+                    if isinstance(reg, (Sparse, BaseSparse)):
+                        obj.irls_threshold = obj.irls_threshold / self.coolEpsFact
 
             self.irls_iteration += 1
 
             # Reset the regularization matrices so that it is
             # recalculated for current model. Do it to all levels of comboObj
             for reg in self.reg.objfcts:
-
-                # If comboObj, go down one more level
-                for comp in reg.objfcts:
-                    comp.stashedR = None
-
-            for dmis in self.dmisfit.objfcts:
-                if getattr(dmis, "stashedR", None) is not None:
-                    dmis.stashedR = None
-
-            # Compute new model objective function value
-            f_change = np.abs(self.f_old - phim_new) / (self.f_old + 1e-12)
-
-            # Check if the function has changed enough
-            if np.all(
-                [
-                    f_change < self.f_min_change,
-                    self.irls_iteration > 1,
-                    np.abs(1.0 - self.invProb.phi_d / self.target) < self.beta_tol,
-                ]
-            ):
-
-                print("Minimum decrease in regularization." + "End of IRLS")
-                self.opt.stopNextIteration = True
-                return
-
-            self.f_old = phim_new
+                if isinstance(reg, (Sparse, BaseSparse)):
+                    reg.update_weights(reg.model)
 
             self.update_beta = True
             self.invProb.phi_m_last = self.reg(self.invProb.model)
 
-    def startIRLS(self):
+    def start_irls(self):
         if not self.silent:
             print(
                 "Reached starting chifact with l2-norm regularization:"
@@ -1408,21 +1319,23 @@ class Update_IRLS(InversionDirective):
 
         self.invProb.phi_m_last = self.reg(self.invProb.model)
 
-        # Either use the supplied epsilon, or fix base on distribution of
+        # Either use the supplied irls_threshold, or fix base on distribution of
         # model values
         for reg in self.reg.objfcts:
 
-            if getattr(reg, "eps_p", None) is None:
+            if not isinstance(reg, Sparse):
+                continue
 
-                reg.eps_p = np.percentile(
-                    np.abs(reg.mapping * reg._delta_m(self.invProb.model)), self.prctile
+            for obj in reg.objfcts:
+
+                threshold = np.percentile(
+                    np.abs(obj.mapping * obj._delta_m(self.invProb.model)), self.prctile
                 )
 
-            if getattr(reg, "eps_q", None) is None:
+                if isinstance(obj, SmoothnessFirstOrder):
+                    threshold /= reg.regularization_mesh.base_length
 
-                reg.eps_q = np.percentile(
-                    np.abs(reg.mapping * reg._delta_m(self.invProb.model)), self.prctile
-                )
+                obj.irls_threshold = threshold
 
         # Re-assign the norms supplied by user l2 -> lp
         for reg, norms in zip(self.reg.objfcts, self.norms):
@@ -1434,7 +1347,7 @@ class Update_IRLS(InversionDirective):
         # Print to screen
         for reg in self.reg.objfcts:
             if not self.silent:
-                print("eps_p: " + str(reg.eps_p) + " eps_q: " + str(reg.eps_q))
+                print("irls_threshold " + str(reg.objfcts[0].irls_threshold))
 
     def angleScale(self):
         """
@@ -1444,16 +1357,19 @@ class Update_IRLS(InversionDirective):
         # Currently implemented for MVI-S only
         max_p = []
         for reg in self.reg.objfcts[0].objfcts:
-            eps_p = reg.epsilon
-            f_m = abs(reg.f_m)
+            f_m = abs(reg.f_m(reg.model))
             max_p += [np.max(f_m)]
 
         max_p = np.asarray(max_p).max()
 
         max_s = [np.pi, np.pi]
 
-        for obj, var in zip(self.reg.objfcts[1:3], max_s):
-            obj.scales = np.ones(obj.scales.shape) * max_p / var
+        for reg, var in zip(self.reg.objfcts[1:], max_s):
+            for obj in reg.objfcts:
+                # TODO Need to make weights_shapes a public method
+                obj.set_weights(
+                    angle_scale=np.ones(obj._weights_shapes[0]) * max_p / var
+                )
 
     def validate(self, directiveList):
         # check if a linear preconditioner is in the list, if not warn else
@@ -1474,6 +1390,41 @@ class Update_IRLS(InversionDirective):
                 "directives list"
             )
         return True
+
+    def stopping_criteria(self):
+        """
+        Check for stopping criteria of max_irls_iteration or minimum change.
+        """
+        phim_new = 0
+        for reg in self.reg.objfcts:
+            if isinstance(reg, (Sparse, BaseSparse)):
+                reg.model = self.invProb.model
+                phim_new += reg(reg.model)
+
+        # Check for maximum number of IRLS cycles1
+        if self.irls_iteration == self.max_irls_iterations:
+            if not self.silent:
+                print(
+                    "Reach maximum number of IRLS cycles:"
+                    + " {0:d}".format(self.max_irls_iterations)
+                )
+            return True
+
+        # Check if the function has changed enough
+        f_change = np.abs(self.f_old - phim_new) / (self.f_old + 1e-12)
+        if np.all(
+            [
+                f_change < self.f_min_change,
+                self.irls_iteration > 1,
+                np.abs(1.0 - self.invProb.phi_d / self.target) < self.beta_tol,
+            ]
+        ):
+            print("Minimum decrease in regularization." + "End of IRLS")
+            return True
+
+        self.f_old = phim_new
+
+        return False
 
 
 class UpdatePreconditioner(InversionDirective):
@@ -1629,14 +1580,15 @@ class UpdateSensitivityWeights(InversionDirective):
         for reg in self.reg.objfcts:
             if not isinstance(reg, BaseSimilarityMeasure):
                 wr += reg.mapping.deriv(self.invProb.model).T * (
-                    (reg.mapping * jtj_diag) / reg.objfcts[0].regmesh.vol ** 2.0
+                    (reg.mapping * jtj_diag) / reg.regularization_mesh.vol ** 2.0
                 )
         wr /= wr.max()
         wr += self.threshold
         wr **= 0.5
         for reg in self.reg.objfcts:
             if not isinstance(reg, BaseSimilarityMeasure):
-                reg.cell_weights = reg.mapping * wr
+                for sub_reg in reg.objfcts:
+                    sub_reg.set_weights(sensitivity=sub_reg.mapping * wr)
 
     def validate(self, directiveList):
         # check if a beta estimator is in the list after setting the weights

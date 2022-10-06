@@ -87,7 +87,7 @@ class MagInvLinProblemTest(unittest.TestCase):
             np.zeros(self.mesh.nC),
             np.r_[-20, -20, -15],
             np.r_[20, 20, 20],
-            0.05,
+            0.1,
         )[actv]
 
         # Create active map to go from reduce set to full
@@ -110,9 +110,8 @@ class MagInvLinProblemTest(unittest.TestCase):
         )
 
         # Create a regularization
-        reg = regularization.Sparse(self.mesh, indActive=actv, mapping=idenMap)
-        reg.norms = np.c_[0, 0, 0, 0]
-
+        reg = regularization.Sparse(self.mesh, active_cells=actv, mapping=idenMap)
+        reg.norms = [0, 0, 0, 0]
         reg.mref = np.zeros(nC)
 
         # Data misfit function
@@ -120,23 +119,17 @@ class MagInvLinProblemTest(unittest.TestCase):
 
         # Add directives to the inversion
         opt = optimization.ProjectedGNCG(
-            maxIter=10,
+            maxIter=30,
             lower=0.0,
             upper=10.0,
             maxIterLS=5,
-            maxIterCG=5,
+            maxIterCG=20,
             tolCG=1e-4,
             stepOffBoundsFact=1e-4,
         )
 
         invProb = inverse_problem.BaseInvProblem(dmis, reg, opt, beta=1e6)
-
-        # Here is where the norms are applied
-        # Use pick a treshold parameter empirically based on the distribution of
-        #  model parameters
-        IRLS = directives.Update_IRLS(
-            f_min_change=1e-3, max_irls_iterations=20, beta_tol=1e-1, beta_search=False
-        )
+        IRLS = directives.Update_IRLS()
         update_Jacobi = directives.UpdatePreconditioner()
         sensitivity_weights = directives.UpdateSensitivityWeights()
         self.inv = inversion.BaseInversion(
@@ -144,30 +137,19 @@ class MagInvLinProblemTest(unittest.TestCase):
         )
 
     def test_mag_inverse(self):
-
         # Run the inversion
         mrec = self.inv.run(self.model * 1e-4)
-
         residual = np.linalg.norm(mrec - self.model) / np.linalg.norm(self.model)
-        # print(residual)
+
         # import matplotlib.pyplot as plt
         # plt.figure()
         # ax = plt.subplot(1, 2, 1)
-        # midx = 65
-        # self.mesh.plotSlice(self.actvMap*mrec, ax=ax, normal='Y', ind=midx,
-        #                grid=True, clim=(0, 0.02))
-        # ax.set_xlim(self.mesh.gridCC[:, 0].min(), self.mesh.gridCC[:, 0].max())
-        # ax.set_ylim(self.mesh.gridCC[:, 2].min(), self.mesh.gridCC[:, 2].max())
-
+        # self.mesh.plot_slice(self.actvMap*mrec, ax=ax, normal="Y", grid=True)
         # ax = plt.subplot(1, 2, 2)
-        # self.mesh.plotSlice(self.actvMap*self.model, ax=ax, normal='Y', ind=midx,
-        #                grid=True, clim=(0, 0.02))
-        # ax.set_xlim(self.mesh.gridCC[:, 0].min(), self.mesh.gridCC[:, 0].max())
-        # ax.set_ylim(self.mesh.gridCC[:, 2].min(), self.mesh.gridCC[:, 2].max())
+        # self.mesh.plot_slice(self.actvMap*self.model, ax=ax, normal="Y", grid=True)
         # plt.show()
 
-        self.assertLess(residual, 1)
-        # self.assertTrue(residual < 0.05)
+        self.assertLess(residual, .5)
 
     def tearDown(self):
         # Clean up the working directory

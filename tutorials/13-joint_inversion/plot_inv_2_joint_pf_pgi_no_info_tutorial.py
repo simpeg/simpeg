@@ -341,12 +341,12 @@ wr_mag = np.sum(simulation_mag.G ** 2.0, axis=0) ** 0.5 / (mesh.cell_volumes[act
 wr_mag = wr_mag / np.max(wr_mag)
 
 # create joint PGI regularization with smoothness
-reg = utils.make_PGI_regularization(
+reg = regularization.PGI(
     gmmref=gmmref,
     mesh=mesh,
     wiresmap=wires,
     maplist=[idenMap, idenMap],
-    indActive=actv,
+    active_cells=actv,
     alpha_s=1.0,
     alpha_x=1.0,
     alpha_y=1.0,
@@ -354,7 +354,10 @@ reg = utils.make_PGI_regularization(
     alpha_xx=0.0,
     alpha_yy=0.0,
     alpha_zz=0.0,
-    cell_weights_list=[wr_grav, wr_mag],  # weights each phys. prop. by each sensW
+    # use the classification of the initial model (here, all background unit)
+    # as initial reference model
+    reference_model=utils.mkvc(gmmref.means_[gmmref.predict(m0.reshape(actvMap.nP,-1))]),
+    weights_list=[wr_grav, wr_mag], # weights each phys. prop. by correct sensW
 )
 
 # Directives
@@ -362,9 +365,8 @@ reg = utils.make_PGI_regularization(
 # ratio to use for each phys prop. smoothness in each direction:
 # roughly the ratio of range of each phys. prop.
 alpha0_ratio = np.r_[
-    np.zeros(len(reg.objfcts[0].objfcts)),
-    1e-2 * np.ones(len(reg.objfcts[1].objfcts)),
-    1e-2 * 100.0 * np.ones(len(reg.objfcts[2].objfcts)),
+    1e-2 * np.ones(len(reg.objfcts[1].objfcts[1:])),
+    1e-2 * 100.0 * np.ones(len(reg.objfcts[2].objfcts[1:])),
 ]
 Alphas = directives.AlphasSmoothEstimate_ByEig(alpha0_ratio=alpha0_ratio, verbose=True)
 # initialize beta and beta/alpha_s schedule

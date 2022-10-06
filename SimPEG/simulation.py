@@ -334,8 +334,8 @@ class BaseSimulation(props.HasModel):
         """
         Make synthetic data given a model, and a standard deviation.
         :param numpy.ndarray m: geophysical model
-        :param numpy.ndarray relative_error: standard deviation
-        :param numpy.ndarray noise_floor: noise floor
+        :param numpy.ndarray | float relative_error: standard deviation
+        :param numpy.ndarray | float noise_floor: noise floor
         :param numpy.ndarray f: fields for the given model (if pre-calculated)
         """
 
@@ -491,6 +491,8 @@ class LinearSimulation(BaseSimulation):
     mesh = properties.Instance("a discretize mesh instance", BaseMesh, required=True)
 
     survey = properties.Instance("a survey object", BaseSurvey)
+
+    solver = None
 
     def __init__(self, mesh=None, **kwargs):
         super(LinearSimulation, self).__init__(mesh=mesh, **kwargs)

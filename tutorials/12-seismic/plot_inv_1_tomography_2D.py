@@ -221,7 +221,7 @@ reg = regularization.Sparse(mesh, mapping=maps.IdentityMap(nP=mesh.nC))
 p = 0
 qx = 0.5
 qy = 0.5
-reg.norms = np.c_[p, qx, qy]
+reg.norms = [p, qx, qy]
 
 # Define how the optimization problem is solved.
 opt = optimization.ProjectedGNCG(
