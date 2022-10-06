@@ -210,10 +210,10 @@ mesh = TensorMesh([hx, hy, hz], "CCN")
 background_susceptibility = 1e-4
 
 # Find the indecies of the active cells in forward model (ones below surface)
-ind_active = surface2ind_topo(mesh, topo_xyz)
+active_cells = surface2ind_topo(mesh, topo_xyz)
 
 # Define mapping from model to active cells
-nC = int(ind_active.sum())
+nC = int(active_cells.sum())
 model_map = maps.IdentityMap(nP=nC)  # model consists of a value for each cell
 
 # Define starting model
@@ -233,7 +233,7 @@ simulation = magnetics.simulation.Simulation3DIntegral(
     mesh=mesh,
     model_type="scalar",
     chiMap=model_map,
-    actInd=ind_active,
+    actInd=active_cells,
 )
 
 
@@ -257,23 +257,19 @@ dmis = data_misfit.L2DataMisfit(data=data_object, simulation=simulation)
 # Define the regularization (model objective function)
 reg = regularization.Sparse(
     mesh,
-    indActive=ind_active,
+    active_cells=active_cells,
     mapping=model_map,
-    mref=starting_model,
-    gradientType="total",
-    alpha_s=1,
-    alpha_x=1,
-    alpha_y=1,
-    alpha_z=1,
+    reference_model=starting_model,
+    gradient_type="total",
 )
 
 # Define sparse and blocky norms p, qx, qy, qz
-reg.norms = np.c_[0, 2, 2, 2]
+reg.norms = [0, 0, 0, 0]
 
 # Define how the optimization problem is solved. Here we will use a projected
 # Gauss-Newton approach that employs the conjugate gradient solver.
 opt = optimization.ProjectedGNCG(
-    maxIter=10, lower=0.0, upper=1.0, maxIterLS=20, maxIterCG=10, tolCG=1e-3
+    maxIter=20, lower=0.0, upper=1.0, maxIterLS=20, maxIterCG=10, tolCG=1e-3
 )
 
 # Here we define the inverse problem that is to be solved
@@ -352,7 +348,7 @@ true_model = background_susceptibility * np.ones(nC)
 ind_sphere = model_builder.getIndicesSphere(
     np.r_[0.0, 0.0, -45.0], 15.0, mesh.cell_centers
 )
-ind_sphere = ind_sphere[ind_active]
+ind_sphere = ind_sphere[active_cells]
 true_model[ind_sphere] = sphere_susceptibility
 
 
@@ -363,7 +359,7 @@ true_model[ind_sphere] = sphere_susceptibility
 
 # Plot True Model
 fig = plt.figure(figsize=(9, 4))
-plotting_map = maps.InjectActiveCells(mesh, ind_active, np.nan)
+plotting_map = maps.InjectActiveCells(mesh, active_cells, np.nan)
 
 ax1 = fig.add_axes([0.08, 0.1, 0.75, 0.8])
 mesh.plotSlice(
@@ -388,7 +384,7 @@ plt.show()
 
 # Plot Recovered Model
 fig = plt.figure(figsize=(9, 4))
-plotting_map = maps.InjectActiveCells(mesh, ind_active, np.nan)
+plotting_map = maps.InjectActiveCells(mesh, active_cells, np.nan)
 
 ax1 = fig.add_axes([0.08, 0.1, 0.75, 0.8])
 mesh.plotSlice(

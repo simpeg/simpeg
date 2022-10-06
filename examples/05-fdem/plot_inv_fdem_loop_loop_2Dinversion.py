@@ -271,7 +271,7 @@ ax = plot_data(dclean)
 # --------------------
 #
 # We create the data misfit, simple regularization
-# (a Tikhonov-style regularization, :class:`SimPEG.regularization.Simple`)
+# (a least-squares-style regularization, :class:`SimPEG.regularization.LeastSquareRegularization`)
 # The smoothness and smallness contributions can be set by including
 # `alpha_s, alpha_x, alpha_y` as input arguments when the regularization is
 # created. The default reference model in the regularization is the starting
@@ -284,7 +284,7 @@ ax = plot_data(dclean)
 # employ a beta-cooling schedule using :class:`SimPEG.directives.BetaSchedule`
 
 dmisfit = data_misfit.L2DataMisfit(simulation=prob, data=data)
-reg = regularization.Simple(inversion_mesh)
+reg = regularization.WeightedLeastSquares(inversion_mesh)
 opt = optimization.InexactGaussNewton(maxIterCG=10, remember="xc")
 invProb = inverse_problem.BaseInvProblem(dmisfit, reg, opt)
 

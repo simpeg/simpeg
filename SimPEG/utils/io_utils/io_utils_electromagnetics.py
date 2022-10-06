@@ -206,7 +206,7 @@ def read_dcip2d_ubc(file_name, data_type, format_type):
     from ...data import Data
 
     # Load file
-    obsfile = np.genfromtxt(file_name, delimiter="\n", dtype=np.str, comments="!")
+    obsfile = np.genfromtxt(file_name, delimiter="\n", dtype=str, comments="!")
 
     # Find starting data
     start_index = 0
@@ -423,7 +423,7 @@ def read_dcip3d_ubc(file_name, data_type):
     from ...data import Data
 
     # Load file
-    obsfile = np.genfromtxt(file_name, delimiter="\n", dtype=np.str, comments="!")
+    obsfile = np.genfromtxt(file_name, delimiter="\n", dtype=str, comments="!")
 
     # Pre-allocate
     source_list = []

@@ -29,8 +29,8 @@ The API
     :members:
     :undoc-members:
 
-Tikhonov Regularization
-=======================
+WeightedLeastSquares Regularization
+===================================
 
 Here we will define regularization of a model, m, in general however, this
 should be thought of as (m-m_ref) but otherwise it is exactly the same:
@@ -119,7 +119,7 @@ Then we can write
 The API
 -------
 
-.. autoclass:: SimPEG.regularization.Tikhonov
+.. autoclass:: SimPEG.regularization.WeightedLeastSquares
     :members:
     :undoc-members:
 

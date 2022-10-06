@@ -15,6 +15,9 @@ from SimPEG.utils import mkvc
 
 
 class BasePFSimulation(LinearSimulation):
+
+    solver = None
+
     actInd = properties.Array(
         "Array of active cells (ground)", dtype=(bool, int), default=None
     )
@@ -30,7 +33,7 @@ class BasePFSimulation(LinearSimulation):
 
     def __init__(self, mesh, **kwargs):
 
-        LinearSimulation.__init__(self, mesh, **kwargs)
+        super().__init__(mesh=mesh, **kwargs)
 
         # Find non-zero cells
         if getattr(self, "actInd", None) is not None:
