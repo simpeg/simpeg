@@ -4,8 +4,9 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import numpy as np
+
 # import properties
-from ....utils.code_utils import deprecate_property, validate_string_property
+from ....utils.code_utils import deprecate_property, validate_string
 
 from ....survey import BaseSurvey
 from ..utils import drapeTopotoLoc
@@ -47,7 +48,13 @@ class Survey(BaseSurvey):
     #     choices=["dipole-dipole", "pole-dipole", "dipole-pole", "pole-pole"],
     # )
 
-    def __init__(self, source_list=None, survey_geometry="surface", survey_type="dipole-dipole", **kwargs):
+    def __init__(
+        self,
+        source_list=None,
+        survey_geometry="surface",
+        survey_type="dipole-dipole",
+        **kwargs,
+    ):
         if source_list is None:
             raise AttributeError("Survey cannot be instantiated without sources")
         super(Survey, self).__init__(source_list, **kwargs)
@@ -67,8 +74,10 @@ class Survey(BaseSurvey):
 
     @survey_geometry.setter
     def survey_geometry(self, var):
-        var = validate_string_property('survey_geometry', var, ("surface", "borehole", "general")).lower()
-        self._survey_geometry = var 
+        var = validate_string(
+            "survey_geometry", var, ("surface", "borehole", "general")
+        ).lower()
+        self._survey_geometry = var
 
     @property
     def survey_type(self):
@@ -83,8 +92,12 @@ class Survey(BaseSurvey):
 
     @survey_type.setter
     def survey_type(self, var):
-        var = validate_string_property('survey_type', var, ("dipole-dipole", "pole-dipole", "dipole-pole", "pole-pole")).lower()
-        self._survey_type = var 
+        var = validate_string(
+            "survey_type",
+            var,
+            ("dipole-dipole", "pole-dipole", "dipole-pole", "pole-pole"),
+        ).lower()
+        self._survey_type = var
 
     def __repr__(self):
         return (

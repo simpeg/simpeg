@@ -1,6 +1,6 @@
 # import properties
 from ... import survey
-from ...utils import validate_string_property, validate_type
+from ...utils import validate_string, validate_type
 import warnings
 
 
@@ -56,7 +56,7 @@ class BaseRx(survey.BaseRx):
 
     @orientation.setter
     def orientation(self, var):
-        var = validate_string_property("orientation", var, string_list=("x", "y", "z"))
+        var = validate_string("orientation", var, string_list=("x", "y", "z"))
         self._orientation = var.lower()
 
     @property
@@ -73,7 +73,7 @@ class BaseRx(survey.BaseRx):
 
     @component.setter
     def component(self, val):
-        self._component = validate_string_property(
+        self._component = validate_string(
             "component",
             val,
             (
@@ -110,7 +110,7 @@ class BaseRx(survey.BaseRx):
 
     @data_type.setter
     def data_type(self, val):
-        self._data_type = validate_string_property(
+        self._data_type = validate_string(
             "data_type", val, string_list=("field", "ppm")
         )
 

@@ -1,7 +1,8 @@
 from ...survey import BaseRx
-from ...utils import validate_float_property, validate_string_property, validate_integer_property
+from ...utils import validate_float, validate_string, validate_integer
 import numpy as np
 import warnings
+
 # import properties
 
 #########################################
@@ -34,7 +35,9 @@ class Point(BaseRx):
     #     "Component of response", choices=["x", "y", "z"]
     # )
 
-    def __init__(self, locations=None, times=None, field_type=None, orientation='z', **kwargs):
+    def __init__(
+        self, locations=None, times=None, field_type=None, orientation="z", **kwargs
+    ):
 
         super(Point, self).__init__(locations=locations, **kwargs)
 
@@ -46,12 +49,16 @@ class Point(BaseRx):
             )
             field_type = fieldType
         if field_type is None:
-            raise AttributeError("VRM receiver class cannot be instantiated witout 'field_type")
+            raise AttributeError(
+                "VRM receiver class cannot be instantiated witout 'field_type"
+            )
         else:
             self.field_type = field_type
-        
+
         if times is None:
-            raise AttributeError("VRM receiver class cannot be instantiated without 'times'")
+            raise AttributeError(
+                "VRM receiver class cannot be instantiated without 'times'"
+            )
         else:
             self.times = times
 
@@ -75,7 +82,7 @@ class Point(BaseRx):
             value = np.atleast_1d(value).astype(float)
         except:
             raise TypeError(f"times is not a valid type. Got {type(value)}")
-        
+
         if value.ndim > 1:
             raise TypeError(f"times must be ('*') array")
 
@@ -94,7 +101,7 @@ class Point(BaseRx):
 
     @orientation.setter
     def orientation(self, var):
-        var = validate_string_property('orientation', var, string_list=('x', 'y', 'z'))
+        var = validate_string("orientation", var, string_list=("x", "y", "z"))
         self._orientation = var.lower()
 
     @property
@@ -110,7 +117,9 @@ class Point(BaseRx):
 
     @field_type.setter
     def field_type(self, var):
-        var = validate_string_property('field_type', var, string_list=('h', 'b', 'dhdt', 'dbdt')).lower()
+        var = validate_string(
+            "field_type", var, string_list=("h", "b", "dhdt", "dbdt")
+        ).lower()
         self._field_type = var
 
     @property
@@ -156,7 +165,7 @@ class SquareLoop(Point):
     area of the loop, then multiplied by the number of coils, then normalized
     by the dipole moment. As a result, the units for fields predicted with this
     type of receiver are the same as 'h', 'b', 'dhdt' and 'dbdt', respectively.
-    
+
     Parameters
     ----------
     locations : (n, 3) numpy.ndarray
@@ -174,7 +183,7 @@ class SquareLoop(Point):
     quadrature_order : int, default = 3
         Order of numerical quadrature for approximating the magnetic flux through
         the receiver coil.
-    
+
     """
 
     # width = properties.Float("Square loop width", min=1e-6)
@@ -188,28 +197,33 @@ class SquareLoop(Point):
         locations=None,
         times=None,
         field_type=None,
-        orientation='z',
+        orientation="z",
         width=1.0,
         n_turns=1,
         quadrature_order=3,
-        **kwargs):
+        **kwargs,
+    ):
 
-        if 'nTurns' in kwargs:
+        if "nTurns" in kwargs:
             warnings.warn(
                 "'nTurns' is a deprecated property. Please use 'n_turns' instead."
                 "'nTurns' be removed in SimPEG 0.17.0."
             )
-            n_turns = kwargs.pop('nTurns')
+            n_turns = kwargs.pop("nTurns")
 
-        if 'quadOrder' in kwargs:
+        if "quadOrder" in kwargs:
             warnings.warn(
                 "'quadOrder' is a deprecated property. Please use 'quadrature_order' instead."
                 "'quadOrder' be removed in SimPEG 0.17.0."
             )
-            quadrature_order = kwargs.pop('quadOrder')
+            quadrature_order = kwargs.pop("quadOrder")
 
         super(SquareLoop, self).__init__(
-            locations=locations, times=times, field_type=field_type, orientation=orientation, **kwargs
+            locations=locations,
+            times=times,
+            field_type=field_type,
+            orientation=orientation,
+            **kwargs,
         )
 
         self.width = width
@@ -229,8 +243,8 @@ class SquareLoop(Point):
 
     @width.setter
     def width(self, value):
-        value = validate_float_property('width', value)
-        if value <= 0.:
+        value = validate_float("width", value)
+        if value <= 0.0:
             raise ValueError("Width must be positive")
         self._width = value
 
@@ -247,7 +261,7 @@ class SquareLoop(Point):
 
     @n_turns.setter
     def n_turns(self, value):
-        value = validate_integer_property('n_turns', value, min_val=1)
+        value = validate_integer("n_turns", value, min_val=1)
         self._n_turns = value
 
     @property
@@ -263,5 +277,5 @@ class SquareLoop(Point):
 
     @quadrature_order.setter
     def quadrature_order(self, value):
-        value = validate_integer_property('quadrature_order', value, min_val=1, max_val=7)
-        self._quadrature_order = value       
+        value = validate_integer("quadrature_order", value, min_val=1, max_val=7)
+        self._quadrature_order = value

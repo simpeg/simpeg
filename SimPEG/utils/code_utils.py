@@ -737,9 +737,7 @@ def deprecate_function(new_function, old_name, removal_version=None):
 ###############################################################
 
 
-def validate_string_property(
-    property_name, var, string_list=None, case_sensitive=False
-):
+def validate_string(property_name, var, string_list=None, case_sensitive=False):
     """Validate a string property
 
     Parameters
@@ -787,7 +785,7 @@ def validate_string_property(
         raise TypeError(f"'{property_name}' must be a str. Got '{type(var)}'")
 
 
-def validate_integer_property(property_name, var, min_val=-np.inf, max_val=np.inf):
+def validate_integer(property_name, var, min_val=-np.inf, max_val=np.inf):
     """Validate integer property
 
     Parameters
@@ -803,8 +801,8 @@ def validate_integer_property(property_name, var, min_val=-np.inf, max_val=np.in
 
     Returns
     -------
-    float
-        Returns the input variable as a float once validated
+    int
+        Returns the input variable as a int once validated
     """
     try:
         var = int(var)
@@ -819,7 +817,7 @@ def validate_integer_property(property_name, var, min_val=-np.inf, max_val=np.in
         return var
 
 
-def validate_float_property(property_name, var, min_val=-np.inf, max_val=np.inf):
+def validate_float(property_name, var, min_val=-np.inf, max_val=np.inf):
     """Validate float property
 
     Parameters
@@ -851,7 +849,7 @@ def validate_float_property(property_name, var, min_val=-np.inf, max_val=np.inf)
         return var
 
 
-def validate_list_property(property_name, var, class_type):
+def validate_list_of_types(property_name, var, class_type):
     """Validate list of instances of a certain class
 
     Parameters
@@ -920,20 +918,20 @@ def validate_location_property(property_name, var, dim=None):
             )
 
 
-def validate_ndarray_property(property_name, var, shape=None, dtype=float):
+def validate_ndarray_with_shape(property_name, var, shape=None, dtype=float):
     """Validate numerical array property
 
     Parameters
     ----------
     property_name : str
         The name of the property being set
-    var : numpy.ndarray
+    var : array_like
         The input array
-    shape : tuple of int, default: None
-        The shape of the array; e.g. (3), (3, 3), ('*', 2).
+    shape : tuple of int, or list of tuple of int, default: None
+        The shape of the array; e.g. (3, ), (3, 3), ('*', 2).
         The '*' indicates that an arbitrary number of elements is allowed
-        along a particular dimension. By default, shape is a tuple of length
-        ndim of '*'.
+        along a particular dimension. If list then multiple shapes are accepted.
+        By default, shape is a tuple of length ndim of '*'.
     dtype : float (default), int, complex, bool
         The data type for the array
 
@@ -943,38 +941,52 @@ def validate_ndarray_property(property_name, var, shape=None, dtype=float):
         Returns the array in the specified data type once validated
     """
 
-    if shape is None:
-        try:
-            shape = tuple(["*" for ii in range(0, var.ndim)])
-        except:
-            raise TypeError(
-                f"'{property_name}' must be {shape} array_like, got {type(var)}"
-            )
-
-    if len(shape) > 3:
-        raise NotImplementedError("Only implemented for 1D, 2D and 3D arrays!!!")
-    if var.ndim > len(shape):
-        raise TypeError(
-            f"The dimensions of the input argument 'var' are greater than is specified by 'shape'"
-        )
-
     try:
-        if len(shape) == 1:
-            var = np.atleast_1d(var).astype(dtype)
-        elif len(shape) == 2:
-            var = np.atleast_2d(var).astype(dtype)
-        elif len(shape) == 3:
-            var = np.atleast_3d(var).astype(dtype)
+        var = np.asarray(var, dtype=dtype)
     except:
         raise TypeError(
-            f"'{property_name}' must be {shape} array_like, got {type(var)}"
+            f"'{property_name}' must be array_like with data type of {dtype}, got {type(var)}"
         )
 
-    for ii, value in enumerate(np.shape(var)):
-        if (shape[ii] != "*") & (shape[ii] != value):
-            raise ValueError(f"'{property_name}' must be {shape}, got {np.shape(var)}")
+    if shape is None:
+        return var
 
-    return var
+    if isinstance(shape, tuple):
+        shapes = [
+            shape,
+        ]
+    else:
+        shapes = shape
+    for shp in shapes:
+        if len(shp) > 3:
+            raise NotImplementedError("Only implemented for 1D, 2D and 3D arrays!!!")
+
+        shape_error = False
+        dim_error = var.ndim > len(shp)
+        if not dim_error:
+            if len(shp) == 1:
+                var_array = np.atleast_1d(var)
+            elif len(shp) == 2:
+                var_array = np.atleast_2d(var)
+            elif len(shp) == 3:
+                var_array = np.atleast_3d(var)
+
+            for ii, value in enumerate(np.shape(var_array)):
+                if (shp[ii] != "*") & (shp[ii] != value):
+                    shape_error = True
+            if not shape_error:
+                return var_array
+    if dim_error:
+        raise ValueError(
+            "The dimensions of the input argument 'var' are greater than is specified by 'shape'"
+        )
+    if shape_error:
+        if isinstance(shape, list):
+            raise ValueError(
+                f"'{property_name}' must be one of {shape}, got {np.shape(var)}"
+            )
+        else:
+            raise ValueError(f"'{property_name}' must be {shape}, got {np.shape(var)}")
 
 
 def validate_type(property_name, obj, obj_type, cast=True, strict=False):
@@ -1037,28 +1049,3 @@ callHooks = deprecate_function(call_hooks, "callHooks", removal_version="0.16.0"
 dependentProperty = deprecate_function(
     dependent_property, "dependentProperty", removal_version="0.16.0"
 )
-
-
-def validate_array_type(attribute, array, dtype):
-    """Generic array and type validator"""
-    if array is not None and (
-        not isinstance(array, np.ndarray) or not array.dtype == dtype
-    ):
-        raise TypeError(
-            f"Values provided for '{attribute}' must by a"
-            f" {np.ndarray} of type {dtype}. "
-            f"Values of type {type(array)} provided."
-        )
-
-
-def validate_shape(attribute, values, shape: tuple | tuple[tuple]):
-    """Generic array shape validator"""
-    if (
-        values is not None
-        and shape != "*"
-        and not (values.shape == shape or values.shape in shape)
-    ):
-        raise ValueError(
-            f"Values provided for attribute '{attribute}' must be"
-            f" of shape {shape} not {values.shape}"
-        )

@@ -1,4 +1,4 @@
-from ...utils.code_utils import deprecate_class, validate_string_property
+from ...utils.code_utils import deprecate_class, validate_string
 
 import numpy as np
 from scipy.constants import mu_0
@@ -103,7 +103,7 @@ class PointNaturalSource(BaseRx):
 
     @component.setter
     def component(self, var):
-        self._component = validate_string_property(
+        self._component = validate_string(
             "component",
             var,
             [
@@ -138,9 +138,7 @@ class PointNaturalSource(BaseRx):
 
     @orientation.setter
     def orientation(self, var):
-        var = validate_string_property(
-            "orientation", var, string_list=("xx", "xy", "yx", "yy")
-        )
+        var = validate_string("orientation", var, string_list=("xx", "xy", "yx", "yy"))
         self._orientation = var
 
     @property
@@ -500,7 +498,7 @@ class Point3DTipper(PointNaturalSource):
 
     @orientation.setter
     def orientation(self, var):
-        var = validate_string_property("orientation", var, string_list=("zx", "zy"))
+        var = validate_string("orientation", var, string_list=("zx", "zy"))
         self._orientation = var
 
     def _eval_tipper(self, src, mesh, f):

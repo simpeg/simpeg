@@ -1,7 +1,7 @@
 import scipy.sparse as sp
 
 # import properties
-from ...utils import mkvc, validate_string_property
+from ...utils import mkvc, validate_string
 from ...survey import BaseTimeRx
 import warnings
 
@@ -63,7 +63,7 @@ class BaseRx(BaseTimeRx):
 
     @orientation.setter
     def orientation(self, var):
-        var = validate_string_property("orientation", var, string_list=("x", "y", "z"))
+        var = validate_string("orientation", var, string_list=("x", "y", "z"))
         self._orientation = var.lower()
 
     # def projected_grid(self, f):

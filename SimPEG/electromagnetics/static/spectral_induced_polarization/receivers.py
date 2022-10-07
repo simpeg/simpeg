@@ -1,6 +1,7 @@
 import numpy as np
+
 # import properties
-from ....utils import sdiag, validate_string_property, validate_float_property
+from ....utils import sdiag, validate_string, validate_float
 
 from ....survey import BaseTimeRx
 
@@ -23,7 +24,15 @@ class BaseRx(BaseTimeRx):
         Fields solved on the mesh. Choose one of: "phi", "e", "j"
     """
 
-    def __init__(self, locations=None, times=None, data_type='volt', orientation=None, projField="phi", **kwargs):
+    def __init__(
+        self,
+        locations=None,
+        times=None,
+        data_type="volt",
+        orientation=None,
+        projField="phi",
+        **kwargs,
+    ):
         super(BaseRx, self).__init__(locations=locations, times=times, **kwargs)
 
         self.orientation = orientation
@@ -48,7 +57,7 @@ class BaseRx(BaseTimeRx):
     @orientation.setter
     def orientation(self, var):
         if var is not None:
-            var = validate_string_property('orientation', var, ('x', 'y', 'z')).lower()
+            var = validate_string("orientation", var, ("x", "y", "z")).lower()
         self._orientation = var
 
     # projField = properties.StringChoice(
@@ -70,7 +79,7 @@ class BaseRx(BaseTimeRx):
 
     @projField.setter
     def projField(self, var):
-        var = validate_string_property('projField', var, ('phi', 'e', 'j')).lower()
+        var = validate_string("projField", var, ("phi", "e", "j")).lower()
         self._projField = var
 
     # data_type = properties.StringChoice(
@@ -93,16 +102,30 @@ class BaseRx(BaseTimeRx):
 
     @data_type.setter
     def data_type(self, var):
-        var = validate_string_property('data_type', var).lower()
+        var = validate_string("data_type", var).lower()
         if var in ("potential", "potentials", "volt", "v", "voltages", "voltage"):
-            self._data_type = 'volt'
-        elif var in ("apparent resistivity","appresistivity","apparentresistivity","apparent-resistivity","apparent_resistivity","appres"):
-            self._data_type = 'apparent_resistivity'
-        elif var in ("apparent chargeability","appchargeability","apparentchargeability","apparent-chargeability","apparent_chargeability"):
-            self._data_type = 'apparent_chargeability'
+            self._data_type = "volt"
+        elif var in (
+            "apparent resistivity",
+            "appresistivity",
+            "apparentresistivity",
+            "apparent-resistivity",
+            "apparent_resistivity",
+            "appres",
+        ):
+            self._data_type = "apparent_resistivity"
+        elif var in (
+            "apparent chargeability",
+            "appchargeability",
+            "apparentchargeability",
+            "apparent-chargeability",
+            "apparent_chargeability",
+        ):
+            self._data_type = "apparent_chargeability"
         else:
-            raise ValueError(f"data_type must be either 'volt', 'apparent_resistivity' or 'apparent_chargeability'. Got {var}")
-
+            raise ValueError(
+                f"data_type must be either 'volt', 'apparent_resistivity' or 'apparent_chargeability'. Got {var}"
+            )
 
     # @property
     # def projField(self):
@@ -155,7 +178,7 @@ class BaseRx(BaseTimeRx):
             The mesh on which the discrete set of equations is solved
         f : SimPEG.electromagnetic.static.spectral_induced_polarization.Fields
             The solution for the fields defined on the mesh
-        
+
         Returns
         -------
         np.ndarray
@@ -187,7 +210,7 @@ class BaseRx(BaseTimeRx):
             A vector
         adjoint : bool, default = ``False``
             If ``True``, return the adjoint
-        
+
         Returns
         -------
         np.ndarray
@@ -300,11 +323,11 @@ class Dipole(BaseRx):
     def locations(self, locs):
         if len(locs) != 2:
             raise ValueError(
-                    "locations must be a list or tuple of length 2: "
-                    "[locations_m, locations_n]. The input locations has "
-                    f"length {len(locs)}"
-                )
-        
+                "locations must be a list or tuple of length 2: "
+                "[locations_m, locations_n]. The input locations has "
+                f"length {len(locs)}"
+            )
+
         locs = [np.atleast_2d(locs[0]), np.atleast_2d(locs[1])]
 
         # check the size of locations_m, locations_n
@@ -314,7 +337,7 @@ class Dipole(BaseRx):
                 f"locations_n (shape: {locs[1].shape}) need to be "
                 f"the same size"
             )
-            
+
         self._locations = locs
 
     @property
@@ -405,7 +428,7 @@ class Pole(BaseRx):
     Parameters
     ----------
     locations : (n_loc, dim) np.ndarray
-        Receiver locations. 
+        Receiver locations.
     orientation : str, default = ``None``
         Receiver orientation. Must be one of: ``None``, 'x', 'y' or 'z'
     data_type : str, default = 'volt'

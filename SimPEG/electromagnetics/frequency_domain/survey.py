@@ -1,7 +1,7 @@
 from scipy.constants import mu_0
 from ...survey import BaseSurvey
 from .sources import BaseFDEMSrc
-from ...utils import validate_list_property
+from ...utils import validate_list_of_types
 
 
 class Survey(BaseSurvey):
@@ -39,7 +39,7 @@ class Survey(BaseSurvey):
 
     @source_list.setter
     def source_list(self, new_list):
-        new_list = validate_list_property("source_list", new_list, BaseFDEMSrc)
+        new_list = validate_list_of_types("source_list", new_list, BaseFDEMSrc)
 
         if len(set(new_list)) != len(new_list):
             raise ValueError("The source_list must be unique. Cannot re-use sources")

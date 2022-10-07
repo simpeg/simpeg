@@ -8,8 +8,8 @@ from scipy.special import roots_legendre
 # import properties
 from ...utils.code_utils import (
     deprecate_property,
-    validate_float_property,
-    validate_string_property,
+    validate_float,
+    validate_string,
 )
 
 from ...utils import set_kwargs, sdiag, Zero
@@ -86,7 +86,7 @@ class BaseWaveform:
     @off_time.setter
     def off_time(self, value):
         """ "off-time of the source"""
-        value = validate_float_property("off_time", value)
+        value = validate_float("off_time", value)
         self._off_time = value
 
     @property
@@ -102,7 +102,7 @@ class BaseWaveform:
 
     @epsilon.setter
     def epsilon(self, value):
-        value = validate_float_property("epsilon", value, min_val=1e-20)
+        value = validate_float("epsilon", value, min_val=1e-20)
         self._epsilon = value
 
     def eval(self, time):
@@ -395,7 +395,7 @@ class VTEMWaveform(BaseWaveform):
 
     @peak_time.setter
     def peak_time(self, value):
-        value = validate_float_property("peak_time", value, max_val=self.off_time)
+        value = validate_float("peak_time", value, max_val=self.off_time)
         self._peak_time = value
 
     @property
@@ -413,7 +413,7 @@ class VTEMWaveform(BaseWaveform):
 
     @ramp_on_rate.setter
     def ramp_on_rate(self, value):
-        value = validate_float_property("ramp_on_rate", value)
+        value = validate_float("ramp_on_rate", value)
         self._ramp_on_rate = value
 
     def eval(self, time):
@@ -709,7 +709,7 @@ class TriangularWaveform(TrapezoidWaveform):
 
     @peak_time.setter
     def peak_time(self, value):
-        value = validate_float_property("peak_time", value, max_val=self.off_time)
+        value = validate_float("peak_time", value, max_val=self.off_time)
         self._peak_time = value
         self._ramp_on = np.r_[self._ramp_on[0], value]
         self._ramp_off = np.r_[value, self._ramp_off[1]]
@@ -1269,7 +1269,7 @@ class MagDipole(BaseTDEMSrc):
 
     @moment.setter
     def moment(self, value):
-        value = validate_float_property("moment", value, min_val=1e-20)
+        value = validate_float("moment", value, min_val=1e-20)
         self._moment = value
 
     @property
@@ -1287,7 +1287,7 @@ class MagDipole(BaseTDEMSrc):
     def orientation(self, var):
 
         if isinstance(var, str):
-            var = validate_string_property(
+            var = validate_string(
                 "orientation", var.lower(), string_list=("x", "y", "z")
             )
             if var == "x":
@@ -1327,7 +1327,7 @@ class MagDipole(BaseTDEMSrc):
 
     @mu.setter
     def mu(self, value):
-        value = validate_float_property("mu", value, min_val=mu_0)
+        value = validate_float("mu", value, min_val=mu_0)
         self._mu = value
 
     def _srcFct(self, obsLoc, coordinates="cartesian"):
@@ -1620,7 +1620,7 @@ class CircularLoop(MagDipole):
 
     @radius.setter
     def radius(self, rad):
-        rad = validate_float_property("radius", rad, min_val=1e-10)
+        rad = validate_float("radius", rad, min_val=1e-10)
         self._radius = rad
 
     # current = properties.Float("current in the loop", default=1.0)
@@ -1638,7 +1638,7 @@ class CircularLoop(MagDipole):
 
     @current.setter
     def current(self, I):
-        I = validate_float_property("current", I)
+        I = validate_float("current", I)
         if np.abs(I) == 0.0:
             raise ValueError("current must be non-zero.")
         self._current = I
@@ -1768,7 +1768,7 @@ class LineCurrent(BaseTDEMSrc):
 
     @current.setter
     def current(self, I):
-        I = validate_float_property("current", I)
+        I = validate_float("current", I)
         if np.abs(I) == 0.0:
             raise ValueError("current must be non-zero.")
         self._current = I

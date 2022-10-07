@@ -8,10 +8,10 @@ from geoana.em.static import MagneticDipoleWholeSpace, CircularLoopWholeSpace
 from ...utils import (
     mkvc,
     Zero,
-    validate_float_property,
-    validate_string_property,
+    validate_float,
+    validate_string,
     validate_location_property,
-    validate_ndarray_property,
+    validate_ndarray_with_shape,
     validate_type,
 )
 
@@ -67,7 +67,7 @@ class BaseFDEMSrc(BaseEMSrc):
 
     @frequency.setter
     def frequency(self, freq):
-        freq = validate_float_property("frequency", freq, min_val=0.0)
+        freq = validate_float("frequency", freq, min_val=0.0)
         self._frequency = freq
 
     def bPrimary(self, simulation):
@@ -446,7 +446,7 @@ class MagDipole(BaseFDEMSrc):
 
     @moment.setter
     def moment(self, value):
-        value = validate_float_property("moment", value, min_val=0.0)
+        value = validate_float("moment", value, min_val=0.0)
         self._moment = value
 
     @property
@@ -464,7 +464,7 @@ class MagDipole(BaseFDEMSrc):
     def orientation(self, var):
 
         if isinstance(var, str):
-            var = validate_string_property(
+            var = validate_string(
                 "orientation", var.lower(), string_list=("x", "y", "z")
             )
             if var == "x":
@@ -473,7 +473,7 @@ class MagDipole(BaseFDEMSrc):
                 var = np.r_[0.0, 1.0, 0.0]
             elif var == "z":
                 var = np.r_[0.0, 0.0, 1.0]
-        var = validate_ndarray_property("orientation", var, (3,))
+        var = validate_ndarray_with_shape("orientation", var, (3,))
 
         # Normalize the orientation
         var /= np.sqrt(np.sum(var ** 2))
@@ -493,7 +493,7 @@ class MagDipole(BaseFDEMSrc):
 
     @mu.setter
     def mu(self, value):
-        value = validate_float_property("mu", value, min_val=mu_0)
+        value = validate_float("mu", value, min_val=mu_0)
         self._mu = value
 
     @property
@@ -823,7 +823,7 @@ class CircularLoop(MagDipole):
 
     @radius.setter
     def radius(self, rad):
-        rad = validate_float_property("radius", rad, min_val=1e-10)
+        rad = validate_float("radius", rad, min_val=1e-10)
         self._radius = rad
 
     # current = properties.Float("current in the loop", default=1.0)
@@ -841,7 +841,7 @@ class CircularLoop(MagDipole):
 
     @current.setter
     def current(self, I):
-        I = validate_float_property("current", I)
+        I = validate_float("current", I)
         if np.abs(I) == 0.0:
             raise ValueError("current must be non-zero.")
         self._current = I
@@ -1256,7 +1256,7 @@ class LineCurrent(BaseFDEMSrc):
 
     @location.setter
     def location(self, loc):
-        loc = validate_ndarray_property("location", loc, shape=("*", 3))
+        loc = validate_ndarray_with_shape("location", loc, shape=("*", 3))
         self._location = loc
 
     # current = properties.Float("current in the line", default=1.0)
@@ -1274,7 +1274,7 @@ class LineCurrent(BaseFDEMSrc):
 
     @current.setter
     def current(self, I):
-        I = validate_float_property("current", I)
+        I = validate_float("current", I)
         if np.abs(I) == 0.0:
             raise ValueError("current must be non-zero.")
         self._current = I

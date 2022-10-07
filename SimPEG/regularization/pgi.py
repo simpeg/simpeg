@@ -5,7 +5,6 @@ import warnings
 
 import copy
 from ..utils import (
-    speye,
     sdiag,
     mkvc,
     timeIt,
@@ -14,13 +13,12 @@ from ..utils import (
 from ..maps import IdentityMap, Wires
 from ..objective_function import ComboObjectiveFunction
 from .base import (
-    BaseRegularization,
     WeightedLeastSquares,
     RegularizationMesh,
     Smallness,
 )
 
-from SimPEG.utils.code_utils import deprecate_property, validate_array_type, validate_shape
+from SimPEG.utils.code_utils import deprecate_property, validate_ndarray_with_shape
 
 ###############################################################################
 #                                                                             #
@@ -97,12 +95,14 @@ class PGIsmallness(Smallness):
     def set_weights(self, **weights):
 
         for key, values in weights.items():
-            validate_array_type("weights", values, float)
+            values = validate_ndarray_with_shape("weights", values, dtype=float)
 
             if values.shape[0] == self.regularization_mesh.nC:
                 values = np.tile(values, len(self.wiresmap.maps))
 
-            validate_shape("weights", values, (self._nC_residual,))
+            values = validate_ndarray_with_shape(
+                "weights", values, shape=(self._nC_residual,), dtype=float
+            )
 
             self._weights[key] = values
 
