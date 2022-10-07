@@ -24,8 +24,8 @@ class Simulation3DIntegral(BasePFSimulation):
         "Magnetic Susceptibility (SI)", default=1.0
     )
 
-    def __init__(self, mesh, model_type='scalar', is_amplitude_data=False, **kwargs):
-        
+    def __init__(self, mesh, model_type="scalar", is_amplitude_data=False, **kwargs):
+
         # If deprecated property set with kwargs
         if "modelType" in kwargs:
             model_type = kwargs.pop("modelType")
@@ -39,7 +39,6 @@ class Simulation3DIntegral(BasePFSimulation):
         self.is_amplitude_data = is_amplitude_data
         self.modelMap = self.chiMap
 
-    
     @property
     def model_type(self):
         """Type of magnetization model
@@ -58,7 +57,9 @@ class Simulation3DIntegral(BasePFSimulation):
         value = value.lower()
         if value not in choices:
             raise ValueError(
-                "Model type ({}) unrecognized. Choose one of ['scalar', 'vector']".format(value)
+                "Model type ({}) unrecognized. Choose one of ['scalar', 'vector']".format(
+                    value
+                )
             )
         self._model_type = value
 
@@ -79,7 +80,6 @@ class Simulation3DIntegral(BasePFSimulation):
             FutureWarning,
         )
         self.model_type = value
-
 
     @property
     def is_amplitude_data(self):
@@ -1189,21 +1189,27 @@ def MagneticsDiffSecondaryInv(mesh, model, data, **kwargs):
     Inversion module for MagneticsDiffSecondary
 
     """
-    from SimPEG import Optimization, Regularization, Parameters, ObjFunction, Inversion
+    from SimPEG import (
+        optimization,
+        regularization,
+        directives,
+        objective_function,
+        inversion,
+    )
 
     prob = Simulation3DDifferential(mesh, survey=data, mu=model)
 
     miter = kwargs.get("maxIter", 10)
 
     # Create an optimization program
-    opt = Optimization.InexactGaussNewton(maxIter=miter)
+    opt = optimization.InexactGaussNewton(maxIter=miter)
     opt.bfgsH0 = Solver(sp.identity(model.nP), flag="D")
     # Create a regularization program
-    reg = Regularization.Tikhonov(model)
+    reg = regularization.WeightedLeastSquares(model)
     # Create an objective function
-    beta = Parameters.BetaSchedule(beta0=1e0)
-    obj = ObjFunction.BaseObjFunction(prob, reg, beta=beta)
+    beta = directives.BetaSchedule(beta0=1e0)
+    obj = objective_function.BaseObjFunction(prob, reg, beta=beta)
     # Create an inversion object
-    inv = Inversion.BaseInversion(obj, opt)
+    inv = inversion.BaseInversion(obj, opt)
 
     return inv, reg

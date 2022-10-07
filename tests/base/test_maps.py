@@ -572,7 +572,7 @@ class TestSCEMT(unittest.TestCase):
         mesh = discretize.TensorMesh([4, 5, 3])
         mapping = maps.SelfConsistentEffectiveMedium(mesh, sigma0=1e-1, sigma1=1.0)
         m = np.abs(np.random.rand(mesh.nC))
-        mapping.test(m=m, dx=0.05, num=3)
+        mapping.test(m=m, dx=0.05 * np.ones(mesh.n_cells), num=3)
 
     def test_spheroidalInclusions(self):
         mesh = discretize.TensorMesh([4, 3, 2])
@@ -580,7 +580,7 @@ class TestSCEMT(unittest.TestCase):
             mesh, sigma0=1e-1, sigma1=1.0, alpha0=0.8, alpha1=0.9, rel_tol=1e-8
         )
         m = np.abs(np.random.rand(mesh.nC))
-        mapping.test(m=m, dx=0.05, num=3)
+        mapping.test(m=m, dx=0.05 * np.ones(mesh.n_cells), num=3)
 
 
 if __name__ == "__main__":

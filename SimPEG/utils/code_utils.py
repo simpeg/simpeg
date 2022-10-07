@@ -1,5 +1,6 @@
-from __future__ import print_function, division
+from __future__ import print_function, division, annotations
 import types
+from typing import TYPE_CHECKING
 import numpy as np
 from functools import wraps
 import warnings
@@ -1036,3 +1037,28 @@ callHooks = deprecate_function(call_hooks, "callHooks", removal_version="0.16.0"
 dependentProperty = deprecate_function(
     dependent_property, "dependentProperty", removal_version="0.16.0"
 )
+
+
+def validate_array_type(attribute, array, dtype):
+    """Generic array and type validator"""
+    if array is not None and (
+        not isinstance(array, np.ndarray) or not array.dtype == dtype
+    ):
+        raise TypeError(
+            f"Values provided for '{attribute}' must by a"
+            f" {np.ndarray} of type {dtype}. "
+            f"Values of type {type(array)} provided."
+        )
+
+
+def validate_shape(attribute, values, shape: tuple | tuple[tuple]):
+    """Generic array shape validator"""
+    if (
+        values is not None
+        and shape != "*"
+        and not (values.shape == shape or values.shape in shape)
+    ):
+        raise ValueError(
+            f"Values provided for attribute '{attribute}' must be"
+            f" of shape {shape} not {values.shape}"
+        )

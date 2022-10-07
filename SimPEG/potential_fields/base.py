@@ -1,4 +1,5 @@
 import os
+
 # import properties
 import discretize
 import numpy as np
@@ -45,8 +46,9 @@ class BasePFSimulation(LinearSimulation):
     # actInd = properties.Array(
     #     "Array of active cells (ground)", dtype=(bool, int), default=None
     # )
+    solver = None
 
-    def __init__(self, mesh, ind_active=None, store_sensitivities='ram', **kwargs):
+    def __init__(self, mesh, ind_active=None, store_sensitivities="ram", **kwargs):
 
         # If deprecated property set with kwargs
         if "actInd" in kwargs:
@@ -57,7 +59,7 @@ class BasePFSimulation(LinearSimulation):
         if "forwardOnly" in kwargs:
             store_sensitivities = kwargs.pop("forwardOnly")
             if store_sensitivities:
-                self.store_sensitivities = 'forward_only'
+                self.store_sensitivities = "forward_only"
         else:
             self.store_sensitivities = store_sensitivities
 
@@ -71,7 +73,7 @@ class BasePFSimulation(LinearSimulation):
             )
 
         LinearSimulation.__init__(self, mesh, **kwargs)
-        
+
         # Find non-zero cells indices
         if getattr(self, "ind_active", None) is not None:
             if self.ind_active.dtype == "bool":
@@ -121,7 +123,7 @@ class BasePFSimulation(LinearSimulation):
             One of {'disk', 'ram', 'forward_only'}.
         """
         if self._store_sensitivities is None:
-            self._store_sensitivities = 'ram'
+            self._store_sensitivities = "ram"
         return self._store_sensitivities
 
     @store_sensitivities.setter
@@ -131,7 +133,7 @@ class BasePFSimulation(LinearSimulation):
         if value not in choices:
             raise ValueError(
                 "Store sensitivities option ({}) unrecognized. ",
-                "Choose one of ['disk', 'ram', 'forward_only']".format(value)
+                "Choose one of ['disk', 'ram', 'forward_only']".format(value),
             )
         self._store_sensitivities = value
 
@@ -179,8 +181,6 @@ class BasePFSimulation(LinearSimulation):
             FutureWarning,
         )
         self.ind_active(value)
-
-    
 
     def linear_operator(self):
         """Return linear operator
@@ -339,7 +339,7 @@ def progress(iter, prog, final):
         Progress
     final : int
         Number of rows (= number of receivers)
-    
+
     Returns
     -------
     float

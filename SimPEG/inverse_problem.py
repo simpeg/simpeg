@@ -6,7 +6,7 @@ import scipy.sparse as sp
 import gc
 from .data_misfit import BaseDataMisfit
 from .props import BaseSimPEG, Model
-from .regularization import BaseRegularization, BaseComboRegularization, Sparse
+from .regularization import BaseRegularization, WeightedLeastSquares, Sparse
 from .objective_function import BaseObjectiveFunction, ComboObjectiveFunction
 from .utils import callHooks, timeIt
 
@@ -54,7 +54,15 @@ class BaseInvProblem(BaseSimPEG):
         assert isinstance(reg, BaseRegularization) or isinstance(
             reg, BaseObjectiveFunction
         ), "reg must be a Regularization or Objective Function class."
+
+        if not isinstance(dmisfit, ComboObjectiveFunction):
+            dmisfit = ComboObjectiveFunction(objfcts=[dmisfit])
+
         self.dmisfit = dmisfit
+
+        if not isinstance(reg, ComboObjectiveFunction):
+            reg = ComboObjectiveFunction(objfcts=[reg])
+
         self.reg = reg
         self.opt = opt
         # TODO: Remove: (and make iteration printers better!)
@@ -71,48 +79,39 @@ class BaseInvProblem(BaseSimPEG):
         if self.debug:
             print("Calling InvProblem.startup")
 
-        if hasattr(self.reg, "mref") and getattr(self.reg, "mref", None) is None:
-            print("SimPEG.InvProblem will set Regularization.mref to m0.")
-            self.reg.mref = m0
-
-        if isinstance(self.reg, ComboObjectiveFunction) and not isinstance(
-            self.reg, BaseComboRegularization
-        ):
-            for fct in self.reg.objfcts:
-                if hasattr(fct, "mref") and getattr(fct, "mref", None) is None:
-                    print("SimPEG.InvProblem will set Regularization.mref to m0.")
-                    fct.mref = m0
+        for fct in self.reg.objfcts:
+            if (
+                hasattr(fct, "reference_model")
+                and getattr(fct, "reference_model", None) is None
+            ):
+                print(
+                    "SimPEG.InvProblem will set Regularization.reference_model to m0."
+                )
+                fct.reference_model = m0
 
         self.phi_d = np.nan
         self.phi_m = np.nan
 
         self.model = m0
+        for objfct in self.dmisfit.objfcts:
 
-        if isinstance(self.dmisfit, BaseDataMisfit):
-            if getattr(self.dmisfit.simulation, "solver", None) is not None:
+            if (
+                isinstance(objfct, BaseDataMisfit)
+                and getattr(objfct.simulation, "solver", None) is not None
+            ):
                 print(
                     """
-        SimPEG.InvProblem is setting bfgsH0 to the inverse of the eval2Deriv.
-        ***Done using same Solver and solverOpts as the problem***"""
+                        SimPEG.InvProblem is setting bfgsH0 to the inverse of the eval2Deriv.
+                        ***Done using same Solver and solver_opts as the {} problem***
+                        """.format(
+                        objfct.simulation.__class__.__name__
+                    )
                 )
-                self.opt.bfgsH0 = self.dmisfit.simulation.solver(
-                    self.reg.deriv2(self.model), **self.dmisfit.simulation.solver_opts
+                self.opt.bfgsH0 = objfct.simulation.solver(
+                    sp.csr_matrix(self.reg.deriv2(self.model)),
+                    **objfct.simulation.solver_opts
                 )
-        elif isinstance(self.dmisfit, BaseObjectiveFunction):
-            for objfct in self.dmisfit.objfcts:
-                if isinstance(objfct, BaseDataMisfit):
-                    if getattr(objfct.simulation, "solver", None) is not None:
-                        print(
-                            """
-        SimPEG.InvProblem is setting bfgsH0 to the inverse of the eval2Deriv.
-        ***Done using same Solver and solver_opts as the {} problem***""".format(
-                                objfct.simulation.__class__.__name__
-                            )
-                        )
-                        self.opt.bfgsH0 = objfct.simulation.solver(
-                            self.reg.deriv2(self.model), **objfct.simulation.solver_opts
-                        )
-                        break
+                break
 
     @property
     def warmstart(self):
@@ -161,16 +160,13 @@ class BaseInvProblem(BaseSimPEG):
         return f
 
     def get_dpred(self, m, f):
-        if isinstance(self.dmisfit, BaseDataMisfit):
-            return self.dmisfit.simulation.dpred(m, f=f)
-        elif isinstance(self.dmisfit, BaseObjectiveFunction):
-            dpred = []
-            for i, objfct in enumerate(self.dmisfit.objfcts):
-                if hasattr(objfct, "survey"):
-                    dpred += [objfct.survey.dpred(m, f=f[i])]
-                else:
-                    dpred += []
-            return dpred
+        dpred = []
+        for i, objfct in enumerate(self.dmisfit.objfcts):
+            if hasattr(objfct, "simulation"):
+                dpred += [objfct.simulation.dpred(m, f=f[i])]
+            else:
+                dpred += []
+        return np.hstack(dpred)
 
     @timeIt
     def evalFunction(self, m, return_g=True, return_H=True):
@@ -191,7 +187,7 @@ class BaseInvProblem(BaseSimPEG):
         self.phi_d, self.phi_d_last = phi_d, self.phi_d
         self.phi_m, self.phi_m_last = phi_m, self.phi_m
 
-        # Only works for Tikhonov
+        # Only works for WeightedLeastSquares regularization
         if self.opt.print_type == "ubc":
 
             self.phi_s = 0.0
@@ -199,7 +195,7 @@ class BaseInvProblem(BaseSimPEG):
             self.phi_y = 0.0
             self.phi_z = 0.0
 
-            if not isinstance(self.reg, BaseComboRegularization):
+            if not isinstance(self.reg, WeightedLeastSquares):
                 regs = self.reg.objfcts
                 mults = self.reg.multipliers
             else:
@@ -210,7 +206,7 @@ class BaseInvProblem(BaseSimPEG):
                     i_s, i_x, i_y, i_z = 0, 1, 2, 3
                 else:
                     i_s, i_x, i_y, i_z = 0, 1, 3, 5
-                dim = reg.regmesh.dim
+                dim = reg.regularization_mesh.dim
                 self.phi_s += mult * reg.objfcts[i_s](m) * reg.alpha_s
                 self.phi_x += mult * reg.objfcts[i_x](m) * reg.alpha_x
                 if dim > 1:

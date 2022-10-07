@@ -292,16 +292,13 @@ simulation = dc.simulation_2d.Simulation2DNodal(
 dmis = data_misfit.L2DataMisfit(data=dc_data, simulation=simulation)
 
 # Define the regularization (model objective function)
-reg = regularization.Simple(
+reg = regularization.WeightedLeastSquares(
     mesh,
-    indActive=ind_active,
-    mref=starting_conductivity_model,
-    alpha_s=0.01,
-    alpha_x=1,
-    alpha_y=1,
+    active_cells=ind_active,
+    reference_model=starting_conductivity_model,
 )
 
-reg.mrefInSmooth = True  # Reference model in smoothness term
+reg.reference_model_in_smooth = True  # Reference model in smoothness term
 
 # Define how the optimization problem is solved. Here we will use an
 # Inexact Gauss Newton approach.

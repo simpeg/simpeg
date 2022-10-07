@@ -36,7 +36,7 @@ class TomoTest(unittest.TestCase):
         def fun(x):
             return self.problem.dpred(x), lambda x: self.problem.Jvec(s, x)
 
-        return tests.checkDerivative(fun, s, num=4, plotIt=False, eps=FLR)
+        return tests.check_derivative(fun, s, num=4, plotIt=False, eps=FLR)
 
 
 if __name__ == "__main__":

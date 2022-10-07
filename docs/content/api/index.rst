@@ -15,8 +15,6 @@ Geophysical Simulation Modules
   SimPEG.flow.richards
   SimPEG.seismic.straight_ray_tomography
 
-
-
 Base SimPEG Classes
 ===================
 
@@ -25,6 +23,12 @@ Base SimPEG Classes
 
   SimPEG.base
 
+Regularizations
+===============
+.. toctree::
+  :maxdepth: 2
+
+  SimPEG.regularization
 
 Utilities
 =========
@@ -35,7 +39,3 @@ Classes and functions for performing useful operations.
   :maxdepth: 2
 
   SimPEG.utils
-
-
-
-

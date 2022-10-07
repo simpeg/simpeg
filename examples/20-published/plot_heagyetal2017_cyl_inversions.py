@@ -103,7 +103,7 @@ def run(plotIt=True, saveFig=False):
     np.random.seed(1)
     dmisfit = data_misfit.L2DataMisfit(simulation=prbFD, data=dataFD)
     regMesh = discretize.TensorMesh([mesh.hz[mapping.maps[-1].indActive]])
-    reg = regularization.Simple(regMesh)
+    reg = regularization.WeightedLeastSquares(regMesh)
     opt = optimization.InexactGaussNewton(maxIterCG=10)
     invProb = inverse_problem.BaseInvProblem(dmisfit, reg, opt)
 
@@ -149,7 +149,7 @@ def run(plotIt=True, saveFig=False):
     # TDEM inversion
     dmisfit = data_misfit.L2DataMisfit(simulation=prbTD, data=dataTD)
     regMesh = discretize.TensorMesh([mesh.hz[mapping.maps[-1].indActive]])
-    reg = regularization.Simple(regMesh)
+    reg = regularization.WeightedLeastSquares(regMesh)
     opt = optimization.InexactGaussNewton(maxIterCG=10)
     invProb = inverse_problem.BaseInvProblem(dmisfit, reg, opt)
 

@@ -12,7 +12,7 @@ from scipy.constants import mu_0
 from scipy.sparse import csr_matrix as csr
 
 import properties
-from discretize.tests import checkDerivative
+from discretize.tests import check_derivative
 from discretize import TensorMesh, CylMesh
 
 from .utils import (
@@ -45,7 +45,7 @@ class IdentityMap(properties.HasProperties):
     mapping operator can be permanently set; i.e. (*mesh.nC*, *mesh.nC*) or (*nP*, *nP*).
     However if both input arguments *mesh* and *nP* are ``None``, the shape of
     mapping operator is arbitrary and can act on any vector; i.e. has shape (``*``, ``*``).
-    
+
     Parameters
     ----------
     mesh : discretize.BaseMesh
@@ -183,7 +183,7 @@ class IdentityMap(properties.HasProperties):
         """Derivative test for the mapping.
 
         This test validates the mapping by performing a convergence test.
-        
+
         Parameters
         ----------
         m : (nP) numpy.ndarray
@@ -192,8 +192,8 @@ class IdentityMap(properties.HasProperties):
             Number of iterations for the derivative test
         kwargs: dict
             Keyword arguments and associated values in the dictionary must
-            match those used in :meth:`discretize.tests.checkDerivative`
-        
+            match those used in :meth:`discretize.tests.check_derivative`
+
         Returns
         -------
         bool
@@ -208,7 +208,7 @@ class IdentityMap(properties.HasProperties):
         assert isinstance(
             self.nP, integer_types
         ), "nP must be an integer for {}".format(self.__class__.__name__)
-        return checkDerivative(
+        return check_derivative(
             lambda m: [self * m, self.deriv(m)], m, num=num, **kwargs
         )
 
@@ -217,7 +217,7 @@ class IdentityMap(properties.HasProperties):
 
         This test validates the mapping by performing a convergence test
         on the mapping time a model.
-        
+
         Parameters
         ----------
         m : (nP) numpy.ndarray
@@ -226,8 +226,8 @@ class IdentityMap(properties.HasProperties):
             Number of iterations for the derivative test
         kwargs : dict
             Keyword arguments and associated values in the dictionary must
-            match those used in :meth:`discretize.tests.checkDerivative`
-        
+            match those used in :meth:`discretize.tests.check_derivative`
+
         Returns
         -------
         bool
@@ -238,7 +238,7 @@ class IdentityMap(properties.HasProperties):
             m = abs(np.random.rand(self.nP))
         if "plotIt" not in kwargs:
             kwargs["plotIt"] = False
-        return checkDerivative(
+        return check_derivative(
             lambda m: [self * m, lambda x: self.deriv(m, x)], m, num=4, **kwargs
         )
 
@@ -286,15 +286,15 @@ class IdentityMap(properties.HasProperties):
 
         .. math::
             \mathbf{u}(\mathbf{m}) = (\mathbf{f_2 \circ f_1})(\mathbf{m})
-        
+
         Where :math:`\mathbf{f_1} : M \rightarrow K_1` and acts on the
         model first, and :math:`\mathbf{f_2} : K_1 \rightarrow K_2`, the combination
-        mapping :math:`\mathbf{u} : M \rightarrow K_2`. 
+        mapping :math:`\mathbf{u} : M \rightarrow K_2`.
 
         When using the **dot** method, the input argument *map1* represents the first
         mapping that is be applied and *self* represents the second mapping
         that is be applied. Therefore, the correct syntax for using this method is::
-            
+
             self.dot(map1)
 
 
@@ -405,7 +405,7 @@ class ComboMap(IdentityMap):
     >>> exp_map = ExpMap(nP=5)
     >>> exp_map.shape
     (5, 5)
-    
+
     Recall that the order of the mapping objects is from last applied
     to first applied.
 
@@ -564,7 +564,7 @@ class Projection(IdentityMap):
     defined by *nP*. Projection and/or rearrangement of the parameters
     is defined by *index*. Thus the dimensions of the mapping is
     (*nInd*, *nP*).
-    
+
     Parameters
     ----------
     nP : int
@@ -801,7 +801,7 @@ class SurjectUnits(IdentityMap):
 
 
     The mapping therefore has dimensions (*mesh.nC*, *nP*).
-    
+
     Parameters
     ----------
     indices : (nP) list of (mesh.nC) numpy.ndarray
@@ -815,19 +815,19 @@ class SurjectUnits(IdentityMap):
     for two units. Using ``SurjectUnit``, we construct the mapping from
     the model to a 1D mesh where the 1st unit's value is assigned to
     all cells whose centers are located at *x < 0* and the 2nd unit's value
-    is assigned to all cells whose centers are located at *x > 0*. 
+    is assigned to all cells whose centers are located at *x > 0*.
 
     >>> from SimPEG.maps import SurjectUnits
     >>> from discretize import TensorMesh
     >>> import numpy as np
-    
+
     >>> nP = 8
     >>> mesh = TensorMesh([np.ones(nP)], 'C')
     >>> unit_1_ind = mesh.cell_centers < 0
-    
+
     >>> indices_list = [unit_1_ind, ~unit_1_ind]
     >>> mapping = SurjectUnits(indices_list, nP=nP)
-    
+
     >>> m = np.r_[0.01, 0.05]
     >>> mapping * m
     array([0.01, 0.01, 0.01, 0.01, 0.05, 0.05, 0.05, 0.05])
@@ -953,7 +953,7 @@ class SphericalSystem(IdentityMap):
     ``SphericalSystem`` constructs a mapping :math:`\mathbf{u}(\mathbf{m})
     that converts the set of vectors in spherical coordinates to
     their representation in Cartesian coordinates, i.e.:
-    
+
     .. math::
         \mathbf{u}(\mathbf{m}) = \begin{bmatrix} \mathbf{v_x} \\ \mathbf{v_y} \\ \mathbf{v_z} \end{bmatrix}
 
@@ -980,7 +980,7 @@ class SphericalSystem(IdentityMap):
         \mathbf{v^\prime} = (a, t, p)
 
     where
-    
+
         - :math:`a` is the amplitude of the vector
         - :math:`t` is the azimuthal angle defined positive from vertical
         - :math:`p` is the radial angle defined positive CCW from Easting
@@ -998,7 +998,7 @@ class SphericalSystem(IdentityMap):
 
     def __init__(self, mesh=None, nP=None, **kwargs):
         if nP is not None:
-            assert nP % 3 == 0, 'Number of parameters must be a multiple of 3'
+            assert nP % 3 == 0, "Number of parameters must be a multiple of 3"
         super().__init__(mesh, nP, **kwargs)
         self.model = None
 
@@ -1206,6 +1206,7 @@ class Wires(object):
     array([10.,  2.,  5.])
 
     """
+
     def __init__(self, *args):
         for arg in args:
             assert (
@@ -1652,7 +1653,7 @@ class ExpMap(IdentityMap):
     of every element in :math:`\mathbf{m}`; i.e.:
 
     .. math::
-        \mathbf{u}(\mathbf{m}) = exp(\mathbf{m}) 
+        \mathbf{u}(\mathbf{m}) = exp(\mathbf{m})
 
     ``ExpMap`` is commonly used when working with physical properties whose values
     span many orders of magnitude (e.g. the electrical conductivity :math:`\sigma`).
@@ -1690,7 +1691,7 @@ class ExpMap(IdentityMap):
         ----------
         D : numpy.ndarray
             A set of input values
-        
+
         Returns
         -------
         numpy.ndarray
@@ -1779,7 +1780,7 @@ class ReciprocalMap(IdentityMap):
         ----------
         D : numpy.ndarray
             A set of input values
-        
+
         Returns
         -------
         numpy.ndarray
@@ -1907,7 +1908,7 @@ class LogMap(IdentityMap):
         ----------
         D : numpy.ndarray
             A set of input values
-        
+
         Returns
         -------
         numpy.ndarray
@@ -1999,7 +2000,7 @@ class ChiMap(IdentityMap):
         ----------
         D : numpy.ndarray
             A set of input values
-        
+
         Returns
         -------
         numpy.ndarray
@@ -2091,7 +2092,7 @@ class MuRelative(IdentityMap):
         ----------
         D : numpy.ndarray
             A set of input values
-        
+
         Returns
         -------
         numpy.ndarray
@@ -2202,7 +2203,7 @@ class Weighting(IdentityMap):
         ----------
         D : numpy.ndarray
             A set of input values
-        
+
         Returns
         -------
         numpy.ndarray
@@ -2260,7 +2261,7 @@ class ComplexMap(IdentityMap):
 
     .. math::
         \mathbf{z}(\mathbf{m}) = \mathbf{z}^\prime + j \mathbf{z}^{\prime\prime}
-    
+
     Note that the mapping is :math:`\mathbb{R}^{2n} \rightarrow \mathbb{C}^n`.
 
     Parameters
@@ -2306,7 +2307,9 @@ class ComplexMap(IdentityMap):
     def __init__(self, mesh=None, nP=None, **kwargs):
         super(ComplexMap, self).__init__(mesh=mesh, nP=nP, **kwargs)
         if nP is not None and mesh is not None:
-            assert 2*mesh.nC == nP, "Number parameters must be 2 X number of mesh cells."
+            assert (
+                2 * mesh.nC == nP
+            ), "Number parameters must be 2 X number of mesh cells."
         if nP is not None:
             assert nP % 2 == 0, "nP must be even."
         self._nP = nP or int(self.mesh.nC * 2)
@@ -2442,7 +2445,7 @@ class SurjectFull(IdentityMap):
 
     .. math::
         \mathbf{u}(\mathbf{m}) = \mathbf{Pm}
-    
+
     Parameters
     ----------
     mesh : discretize.BaseMesh
@@ -2518,7 +2521,7 @@ class SurjectVertical1D(IdentityMap):
 
     .. math::
         \mathbf{u}(\mathbf{m}) = \mathbf{Pm}
-    
+
     Parameters
     ----------
     mesh : discretize.TensorMesh
@@ -2569,7 +2572,9 @@ class SurjectVertical1D(IdentityMap):
     """
 
     def __init__(self, mesh, **kwargs):
-        assert isinstance(mesh, (TensorMesh, CylMesh)), 'Only implemented for tensor meshes'
+        assert isinstance(
+            mesh, (TensorMesh, CylMesh)
+        ), "Only implemented for tensor meshes"
         IdentityMap.__init__(self, mesh, **kwargs)
 
     @property
@@ -2607,7 +2612,7 @@ class SurjectVertical1D(IdentityMap):
             \frac{\partial \mathbf{u}}{\partial \mathbf{m}} = \mathbf{P}
 
         Note that in this case, **deriv** simply returns the projection matrix.
-        
+
         Parameters
         ----------
         m : (nP) numpy.ndarray
@@ -2644,7 +2649,7 @@ class Surject2Dto3D(IdentityMap):
 
     .. math::
         \mathbf{u}(\mathbf{m}) = \mathbf{Pm}
-    
+
     Parameters
     ----------
     mesh : discretize.TensorMesh
@@ -2710,7 +2715,7 @@ class Surject2Dto3D(IdentityMap):
     normal = "Y"  #: The normal
 
     def __init__(self, mesh, **kwargs):
-        assert isinstance(mesh, TensorMesh), 'Only implemented for tensor meshes'
+        assert isinstance(mesh, TensorMesh), "Only implemented for tensor meshes"
         assert mesh.dim == 3, "Surject2Dto3D Only works for a 3D Mesh"
         IdentityMap.__init__(self, mesh, **kwargs)
         assert self.normal in ["X", "Y", "Z"], 'For now, only "Y" normal is supported'
@@ -2768,7 +2773,7 @@ class Surject2Dto3D(IdentityMap):
             \frac{\partial \mathbf{u}}{\partial \mathbf{m}} = \mathbf{P}
 
         Note that in this case, **deriv** simply returns the projection matrix.
-        
+
         Parameters
         ----------
         m : (nP) numpy.ndarray
@@ -2865,7 +2870,7 @@ class InjectActiveCells(IdentityMap):
     mesh : discretize.BaseMesh
         A discretize mesh
     indActive : numpy.ndarray
-        Active cells array. Can be a boolean ``numpy.ndarray`` of length *mesh.nC* 
+        Active cells array. Can be a boolean ``numpy.ndarray`` of length *mesh.nC*
         or a ``numpy.ndarray`` of ``int`` containing the indices of the active cells.
     valInactive : float
         The physical property value assigned to all inactive cells in the mesh
@@ -3075,7 +3080,7 @@ class ParametricCircleMap(IdentityMap):
         IdentityMap.__init__(self, mesh)
         # TODO: this should be done through a composition with and ExpMap
         self.logSigma = logSigma
-        self.slope=slope
+        self.slope = slope
 
     @property
     def nP(self):
@@ -3282,7 +3287,7 @@ class ParametricPolyMap(IdentityMap):
     normal : str
         Must be one of {'X','Y','Z'}
     actInd : numpy.ndarray
-        Active cells array. Can be a boolean ``numpy.ndarray`` of length *mesh.nC* 
+        Active cells array. Can be a boolean ``numpy.ndarray`` of length *mesh.nC*
         or a ``numpy.ndarray`` of ``int`` containing the indices of the active cells.
 
     Examples
@@ -3302,7 +3307,7 @@ class ParametricPolyMap(IdentityMap):
     >>> h = 0.5*np.ones(20)
     >>> mesh = TensorMesh([h, h])
     >>> ind_active = mesh.cell_centers[:, 1] < 8
-    >>> 
+    >>>
     >>> sig1, sig2, c0, c1 = 10., 5., 2., 0.5
     >>> model = np.r_[sig1, sig2, c0, c1]
 
@@ -3323,22 +3328,21 @@ class ParametricPolyMap(IdentityMap):
 
     >>> mesh = TensorMesh([h, h, h])
     >>> ind_active = mesh.cell_centers[:, 2] < 8
-    >>> 
+    >>>
     >>> sig1, sig2, c0, cx, cy, cxy = 10., 5., 2., 0.5, 0., 0.
     >>> model = np.r_[sig1, sig2, c0, cx, cy, cxy]
-    >>> 
+    >>>
     >>> poly_map = ParametricPolyMap(
     >>>     mesh, order=[1, 1], logSigma=False, normal='Z', actInd=ind_active, slope=2
     >>> )
     >>> act_map = InjectActiveCells(mesh, ind_active, 0.)
-    >>> 
+    >>>
     >>> fig = plt.figure(figsize=(5, 5))
     >>> ax = fig.add_subplot(111)
     >>> mesh.plot_slice(act_map * poly_map * model, ax=ax, normal='Y', ind=10)
     >>> ax.set_title('Mapping on a 3D mesh')
 
     """
-
 
     def __init__(self, mesh, order, logSigma=True, normal="X", actInd=None, slope=1e4):
         IdentityMap.__init__(self, mesh)
@@ -3353,7 +3357,7 @@ class ParametricPolyMap(IdentityMap):
             self.nC = self.mesh.nC
 
         else:
-            if self.actInd.dtype == 'bool':
+            if self.actInd.dtype == "bool":
                 self.nC = int(np.sum(self.actInd))
             else:
                 self.nC = len(self.actInd)
@@ -3416,21 +3420,27 @@ class ParametricPolyMap(IdentityMap):
             if self.normal == "X":
                 f = (
                     polynomial.polyval2d(
-                        Y, Z, c.reshape((self.order[0] + 1, self.order[1] + 1), order='F')
+                        Y,
+                        Z,
+                        c.reshape((self.order[0] + 1, self.order[1] + 1), order="F"),
                     )
                     - X
                 )
             elif self.normal == "Y":
                 f = (
                     polynomial.polyval2d(
-                        X, Z, c.reshape((self.order[0] + 1, self.order[1] + 1), order='F')
+                        X,
+                        Z,
+                        c.reshape((self.order[0] + 1, self.order[1] + 1), order="F"),
                     )
                     - Y
                 )
             elif self.normal == "Z":
                 f = (
                     polynomial.polyval2d(
-                        X, Y, c.reshape((self.order[0] + 1, self.order[1] + 1), order='F')
+                        X,
+                        Y,
+                        c.reshape((self.order[0] + 1, self.order[1] + 1), order="F"),
                     )
                     - Z
                 )
@@ -3559,7 +3569,7 @@ class ParametricSplineMap(IdentityMap):
     mesh : discretize.BaseMesh
         A discretize mesh
     pts : (n, dim) numpy.ndarray
-        
+
     ptsv :
     order : int
         Order of the spline mapping; e.g. 3 is cubic spline
@@ -3600,7 +3610,10 @@ class ParametricSplineMap(IdentityMap):
     >>> mesh.plot_image(mapping * model, ax=ax)
 
     """
-    def __init__(self, mesh, pts, ptsv=None, order=3, logSigma=True, normal="X", slope=1e4):
+
+    def __init__(
+        self, mesh, pts, ptsv=None, order=3, logSigma=True, normal="X", slope=1e4
+    ):
         if not isinstance(mesh, discretize.base.BaseTensorMesh):
             raise NotImplementedError(f"{type(mesh)} is not supported.")
         IdentityMap.__init__(self, mesh)
@@ -3820,7 +3833,7 @@ class BaseParametric(IdentityMap):
     mesh : discretize.BaseMesh
         A discretize mesh
     indActive : numpy.ndarray
-        Active cells array. Can be a boolean ``numpy.ndarray`` of length *mesh.nC* 
+        Active cells array. Can be a boolean ``numpy.ndarray`` of length *mesh.nC*
         or a ``numpy.ndarray`` of ``int`` containing the indices of the active cells.
     slope : float
         Directly set the scaling parameter *a* which sets the sharpness of boundaries
@@ -3949,7 +3962,7 @@ class ParametricLayer(BaseParametric):
     mesh : discretize.BaseMesh
         A discretize mesh
     actInd : numpy.ndarray
-        Active cells array. Can be a boolean ``numpy.ndarray`` of length *mesh.nC* 
+        Active cells array. Can be a boolean ``numpy.ndarray`` of length *mesh.nC*
         or a ``numpy.ndarray`` of ``int`` containing the indices of the active cells.
     slope : float
         Directly define the constant *a* in the mapping function which defines the
@@ -3957,7 +3970,7 @@ class ParametricLayer(BaseParametric):
     slopeFact : float
         Scaling factor for the sharpness of the boundaries based on cell size.
         Using this option, we set *a = slopeFact / dh*.
-    
+
     Examples
     --------
     In this example, we define a layer in a wholespace whose interface is sharp.
@@ -4110,7 +4123,7 @@ class ParametricLayer(BaseParametric):
 
         Let :math:`\mathbf{m} = [\sigma_0, \;\sigma_1,\; z_L , \; h]` be the set of
         model parameters the defines a layer within a wholespace. The mapping
-        :math:`\mathbf{u}(\mathbf{m})`from the parameterized model to all 
+        :math:`\mathbf{u}(\mathbf{m})`from the parameterized model to all
         active cells is given by:
 
         .. math::
@@ -4207,7 +4220,7 @@ class ParametricBlock(BaseParametric):
     mesh : discretize.BaseMesh
         A discretize mesh
     actInd : numpy.ndarray
-        Active cells array. Can be a boolean ``numpy.ndarray`` of length *mesh.nC* 
+        Active cells array. Can be a boolean ``numpy.ndarray`` of length *mesh.nC*
         or a ``numpy.ndarray`` of ``int`` containing the indices of the active cells.
     slope : float
         Directly define the constant *a* in the mapping function which defines the
@@ -4219,7 +4232,7 @@ class ParametricBlock(BaseParametric):
         Epsilon value used in the ekblom representation of the block
     p : float
         p-value used in the ekblom representation of the block.
-    
+
     Examples
     --------
     In this example, we define a rectangular block in a wholespace whose
@@ -4236,7 +4249,7 @@ class ParametricBlock(BaseParametric):
     >>> mesh = TensorMesh([dh, dh])
     >>> ind_active = mesh.cell_centers[:, 1] < 8
 
-    >>> sig0, sigb, xb, Lx, yb, Ly = 5., 10., 5., 4., 4., 2. 
+    >>> sig0, sigb, xb, Lx, yb, Ly = 5., 10., 5., 4., 4., 2.
     >>> model = np.r_[sig0, sigb, xb, Lx, yb, Ly]
 
     >>> block_map = ParametricBlock(mesh, indActive=ind_active)
@@ -4268,7 +4281,7 @@ class ParametricBlock(BaseParametric):
         int
             The number of the parameters defining the model depends on the dimension
             of the mesh. *nP*
-            
+
             - =4 for a 1D mesh
             - =6 for a 2D mesh
             - =8 for a 3D mesh
@@ -4452,7 +4465,7 @@ class ParametricBlock(BaseParametric):
 
         Let :math:`\mathbf{m} = [\sigma_0, \;\sigma_1,\; x_b, \; dx, (\; y_b, \; dy, \; z_b , dz)]`
         be the set of model parameters the defines a block/ellipsoid within a wholespace.
-        The mapping :math:`\mathbf{u}(\mathbf{m})` from the parameterized model to all 
+        The mapping :math:`\mathbf{u}(\mathbf{m})` from the parameterized model to all
         active cells is given by:
 
         The derivative of the mapping :math:`\mathbf{u}(\mathbf{m})` with respect to
@@ -4536,7 +4549,7 @@ class ParametricEllipsoid(ParametricBlock):
     mesh : discretize.BaseMesh
         A discretize mesh
     actInd : numpy.ndarray
-        Active cells array. Can be a boolean ``numpy.ndarray`` of length *mesh.nC* 
+        Active cells array. Can be a boolean ``numpy.ndarray`` of length *mesh.nC*
         or a ``numpy.ndarray`` of ``int`` containing the indices of the active cells.
     slope : float
         Directly define the constant *a* in the mapping function which defines the
@@ -4546,7 +4559,7 @@ class ParametricEllipsoid(ParametricBlock):
         Using this option, we set *a = slopeFact / dh*.
     epsilon : float
         Epsilon value used in the ekblom representation of the block
-    
+
     Examples
     --------
     In this example, we define an ellipse in a wholespace whose
@@ -4563,7 +4576,7 @@ class ParametricEllipsoid(ParametricBlock):
     >>> mesh = TensorMesh([dh, dh])
     >>> ind_active = mesh.cell_centers[:, 1] < 8
 
-    >>> sig0, sigb, xb, Lx, yb, Ly = 5., 10., 5., 4., 4., 3. 
+    >>> sig0, sigb, xb, Lx, yb, Ly = 5., 10., 5., 4., 4., 3.
     >>> model = np.r_[sig0, sigb, xb, Lx, yb, Ly]
 
     >>> ellipsoid_map = ParametricEllipsoid(mesh, indActive=ind_active)
@@ -4574,6 +4587,7 @@ class ParametricEllipsoid(ParametricBlock):
     >>> mesh.plot_image(act_map * ellipsoid_map * model, ax=ax)
 
     """
+
     def __init__(self, mesh, **kwargs):
         super(ParametricEllipsoid, self).__init__(mesh, p=2, **kwargs)
 

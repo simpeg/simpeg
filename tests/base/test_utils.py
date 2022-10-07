@@ -31,32 +31,33 @@ from SimPEG.utils import (
     validate_ndarray_property,
 )
 import discretize
-from discretize.tests import checkDerivative
+from discretize.tests import check_derivative
 
 
 TOL = 1e-8
 np.random.seed(25)
+
 
 class TestCheckDerivative(unittest.TestCase):
     def test_simplePass(self):
         def simplePass(x):
             return np.sin(x), sdiag(np.cos(x))
 
-        passed = checkDerivative(simplePass, np.random.randn(5), plotIt=False)
+        passed = check_derivative(simplePass, np.random.randn(5), plotIt=False)
         self.assertTrue(passed, True)
 
     def test_simpleFunction(self):
         def simpleFunction(x):
             return np.sin(x), lambda xi: sdiag(np.cos(x)) * xi
 
-        passed = checkDerivative(simpleFunction, np.random.randn(5), plotIt=False)
+        passed = check_derivative(simpleFunction, np.random.randn(5), plotIt=False)
         self.assertTrue(passed, True)
 
     def test_simpleFail(self):
         def simpleFail(x):
             return np.sin(x), -sdiag(np.cos(x))
 
-        passed = checkDerivative(simpleFail, np.random.randn(5), plotIt=False)
+        passed = check_derivative(simpleFail, np.random.randn(5), plotIt=False)
         self.assertTrue(not passed, True)
 
 
@@ -371,106 +372,182 @@ class TestDiagEst(unittest.TestCase):
 
 
 class TestValidatorFunctions(unittest.TestCase):
-
     def testStringValidation(self):
-        
+
         # These should pass
-        out1 = validate_string_property('StringProperty', 'Hello')  # string
-        out2 = validate_string_property('StringProperty', 'Hello', ['hello', 'HELLO', 'Hello'])  # in list
-        out3 = validate_string_property('StringProperty', 'Hello', ['hello', 'HELLO'], False)  # in list (case insensitive)
+        out1 = validate_string_property("StringProperty", "Hello")  # string
+        out2 = validate_string_property(
+            "StringProperty", "Hello", ["hello", "HELLO", "Hello"]
+        )  # in list
+        out3 = validate_string_property(
+            "StringProperty", "Hello", ["hello", "HELLO"], False
+        )  # in list (case insensitive)
 
         # These should fail
-        self.assertRaises(TypeError, validate_string_property, 'StringProperty', 4.0)
-        self.assertRaises(ValueError, validate_string_property, 'StringProperty', 'ARGGHHHHH', ['hello', 'HELLO'])
-        self.assertRaises(ValueError, validate_string_property, 'StringProperty', 'Hello', ['hello', 'HELLO'], True)
-        
-        print('VALIDATE STRING PROPERTY PASSED!')
-    
+        self.assertRaises(TypeError, validate_string_property, "StringProperty", 4.0)
+        self.assertRaises(
+            ValueError,
+            validate_string_property,
+            "StringProperty",
+            "ARGGHHHHH",
+            ["hello", "HELLO"],
+        )
+        self.assertRaises(
+            ValueError,
+            validate_string_property,
+            "StringProperty",
+            "Hello",
+            ["hello", "HELLO"],
+            True,
+        )
+
+        print("VALIDATE STRING PROPERTY PASSED!")
+
     def testIntegerValidation(self):
-        
+
         # These should pass
-        out1 = validate_integer_property('IntegerProperty', -4)  # integer
-        out2 = validate_integer_property('IntegerProperty', -4.0)  # float is converted to integer
-        out3 = validate_integer_property('IntegerProperty', -4, -10, 6)  # integer with min and max
+        out1 = validate_integer_property("IntegerProperty", -4)  # integer
+        out2 = validate_integer_property(
+            "IntegerProperty", -4.0
+        )  # float is converted to integer
+        out3 = validate_integer_property(
+            "IntegerProperty", -4, -10, 6
+        )  # integer with min and max
 
         # These should fail
-        self.assertRaises(TypeError, validate_integer_property, 'IntegerProperty', 'Hello')
-        self.assertRaises(ValueError, validate_integer_property, 'IntegerProperty', -4, 0, 100)
-        
-        print('VALIDATE INTEGER PROPERTY PASSED!')
-    
+        self.assertRaises(
+            TypeError, validate_integer_property, "IntegerProperty", "Hello"
+        )
+        self.assertRaises(
+            ValueError, validate_integer_property, "IntegerProperty", -4, 0, 100
+        )
+
+        print("VALIDATE INTEGER PROPERTY PASSED!")
+
     def testFloatValidation(self):
-        
+
         # These should pass
-        out1 = validate_float_property('FloatProperty', -4.0)  # float
-        out2 = validate_float_property('FloatProperty', -4)  # int converted to float
-        out3 = validate_float_property('FloatProperty', 1e-3)  # int converted to float
-        out4 = validate_float_property('FloatProperty', -4, -10, 6)  # integer with min and max
+        out1 = validate_float_property("FloatProperty", -4.0)  # float
+        out2 = validate_float_property("FloatProperty", -4)  # int converted to float
+        out3 = validate_float_property("FloatProperty", 1e-3)  # int converted to float
+        out4 = validate_float_property(
+            "FloatProperty", -4, -10, 6
+        )  # integer with min and max
 
         # These should fail
-        self.assertRaises(TypeError, validate_float_property, 'FloatProperty', 'Hello')
-        self.assertRaises(TypeError, validate_float_property, 'FloatProperty', -4+6j)
-        self.assertRaises(ValueError, validate_float_property, 'FloatProperty', -4, 0, 100)
-        
-        print('VALIDATE FLOAT PROPERTY PASSED!')
-    
+        self.assertRaises(TypeError, validate_float_property, "FloatProperty", "Hello")
+        self.assertRaises(TypeError, validate_float_property, "FloatProperty", -4 + 6j)
+        self.assertRaises(
+            ValueError, validate_float_property, "FloatProperty", -4, 0, 100
+        )
+
+        print("VALIDATE FLOAT PROPERTY PASSED!")
+
     def testListValidation(self):
-        
+
         # These should pass
-        out1 = validate_list_property('ListProperty', [], object)  # empty list
-        out2 = validate_list_property('ListProperty', ['Hello', 6, 45.], object)  # unspecified list
-        out3 = validate_list_property('ListProperty', [6, 45., 6+2j], (int, float, complex))  # multiple accepted types
-        out4 = validate_list_property('ListProperty', -4.0, float)  # list of 1
+        out1 = validate_list_property("ListProperty", [], object)  # empty list
+        out2 = validate_list_property(
+            "ListProperty", ["Hello", 6, 45.0], object
+        )  # unspecified list
+        out3 = validate_list_property(
+            "ListProperty", [6, 45.0, 6 + 2j], (int, float, complex)
+        )  # multiple accepted types
+        out4 = validate_list_property("ListProperty", -4.0, float)  # list of 1
 
         # These should fail
-        self.assertRaises(TypeError, validate_list_property, 'ListProperty', 4, float)
-        self.assertRaises(TypeError, validate_list_property, 'ListProperty', [6, 45., 6+2j], str)
-        
-        print('VALIDATE LIST OF CLASSTYPE PROPERTY PASSED!')
-    
+        self.assertRaises(TypeError, validate_list_property, "ListProperty", 4, float)
+        self.assertRaises(
+            TypeError, validate_list_property, "ListProperty", [6, 45.0, 6 + 2j], str
+        )
+
+        print("VALIDATE LIST OF CLASSTYPE PROPERTY PASSED!")
+
     def testLocationValidation(self):
-        
+
         # These should pass
-        out1 = validate_location_property('LocationProperty', np.r_[1, 2, 3])  # rows
-        out2 = validate_location_property('LocationProperty', np.c_[1, 2, 3])  # columns
-        out3 = validate_location_property('LocationProperty', [1, 2, 3])  # array_like
-        out4 = validate_location_property('LocationProperty', np.r_[1, 2, 3], 3)  # location with dimension
+        out1 = validate_location_property("LocationProperty", np.r_[1, 2, 3])  # rows
+        out2 = validate_location_property("LocationProperty", np.c_[1, 2, 3])  # columns
+        out3 = validate_location_property("LocationProperty", [1, 2, 3])  # array_like
+        out4 = validate_location_property(
+            "LocationProperty", np.r_[1, 2, 3], 3
+        )  # location with dimension
 
         # These should fail
-        self.assertRaises(ValueError, validate_location_property, 'LocationProperty', np.r_[1, 2, 3], 2)
-        self.assertRaises(TypeError, validate_location_property, 'LocationProperty', np.random.rand(3, 2))
-        
-        print('VALIDATE SINGLE LOCATION PROPERTY PASSED!')
-    
+        self.assertRaises(
+            ValueError,
+            validate_location_property,
+            "LocationProperty",
+            np.r_[1, 2, 3],
+            2,
+        )
+        self.assertRaises(
+            TypeError,
+            validate_location_property,
+            "LocationProperty",
+            np.random.rand(3, 2),
+        )
+
+        print("VALIDATE SINGLE LOCATION PROPERTY PASSED!")
+
     def testLocationValidation(self):
-        
+
         # These should pass
-        out1 = validate_location_property('LocationProperty', 6)  # value
-        out2 = validate_location_property('LocationProperty', np.r_[1, 2, 3])  # rows
-        out3 = validate_location_property('LocationProperty', np.c_[1, 2, 3])  # columns
-        out4 = validate_location_property('LocationProperty', [1, 2, 3])  # array_like
-        out5 = validate_location_property('LocationProperty', np.r_[1, 2, 3], 3)  # location with dimension
+        out1 = validate_location_property("LocationProperty", 6)  # value
+        out2 = validate_location_property("LocationProperty", np.r_[1, 2, 3])  # rows
+        out3 = validate_location_property("LocationProperty", np.c_[1, 2, 3])  # columns
+        out4 = validate_location_property("LocationProperty", [1, 2, 3])  # array_like
+        out5 = validate_location_property(
+            "LocationProperty", np.r_[1, 2, 3], 3
+        )  # location with dimension
 
         # These should fail
-        self.assertRaises(ValueError, validate_location_property, 'LocationProperty', np.r_[1, 2, 3], 2)
-        self.assertRaises(TypeError, validate_location_property, 'LocationProperty', np.random.rand(3, 2))
-        
-        print('VALIDATE SINGLE LOCATION PROPERTY PASSED!')
-    
+        self.assertRaises(
+            ValueError,
+            validate_location_property,
+            "LocationProperty",
+            np.r_[1, 2, 3],
+            2,
+        )
+        self.assertRaises(
+            TypeError,
+            validate_location_property,
+            "LocationProperty",
+            np.random.rand(3, 2),
+        )
+
+        print("VALIDATE SINGLE LOCATION PROPERTY PASSED!")
+
     def testNDarrayValidation(self):
-        
+
         # These should pass
-        out1 = validate_ndarray_property('NDarrayProperty', np.random.rand(3, 3, 3), ('*', '*', '*'), float)  # higher dimension is fine
-        out2 = validate_ndarray_property('NDarrayProperty', np.random.rand(3, 2), (3, 2))  # dimensions match
-        out3 = validate_ndarray_property('NDarrayProperty', np.c_[1, 2, 3], (1, 3), float)  # you set the data type
+        out1 = validate_ndarray_property(
+            "NDarrayProperty", np.random.rand(3, 3, 3), ("*", "*", "*"), float
+        )  # higher dimension is fine
+        out2 = validate_ndarray_property(
+            "NDarrayProperty", np.random.rand(3, 2), (3, 2)
+        )  # dimensions match
+        out3 = validate_ndarray_property(
+            "NDarrayProperty", np.c_[1, 2, 3], (1, 3), float
+        )  # you set the data type
 
         # These should fail
-        self.assertRaises(NotImplementedError, validate_ndarray_property, 'NDarrayProperty', np.random.rand(2, 2, 2, 2))
-        self.assertRaises(ValueError, validate_ndarray_property, 'NDarrayProperty', np.random.rand(3, 2), (3, 3, '*'))
-        self.assertRaises(TypeError, validate_ndarray_property, 'NDarrayProperty', 6)
-        
-        print('VALIDATE NDARRAY PROPERTY PASSED!')
+        self.assertRaises(
+            NotImplementedError,
+            validate_ndarray_property,
+            "NDarrayProperty",
+            np.random.rand(2, 2, 2, 2),
+        )
+        self.assertRaises(
+            ValueError,
+            validate_ndarray_property,
+            "NDarrayProperty",
+            np.random.rand(3, 2),
+            (3, 3, "*"),
+        )
+        self.assertRaises(TypeError, validate_ndarray_property, "NDarrayProperty", 6)
 
+        print("VALIDATE NDARRAY PROPERTY PASSED!")
 
 
 if __name__ == "__main__":
