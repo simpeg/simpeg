@@ -1,21 +1,20 @@
+import warnings
+
 import numpy as np
+from geoana.em.static import CircularLoopWholeSpace, MagneticDipoleWholeSpace
 from scipy.constants import mu_0
 from scipy.special import roots_legendre
 
 # import properties
-import warnings
 from ...utils.code_utils import (
     deprecate_property,
     validate_float_property,
     validate_string_property,
 )
 
-from geoana.em.static import MagneticDipoleWholeSpace, CircularLoopWholeSpace
-
-from ..base import BaseEMSrc
-from ..utils import segmented_line_current_source_term, line_through_faces
-from ...props import LocationVector
 from ...utils import set_kwargs, sdiag, Zero
+from ..base import BaseEMSrc
+from ..utils import line_through_faces, segmented_line_current_source_term
 
 ###############################################################################
 #                                                                             #
@@ -1966,11 +1965,10 @@ class LineCurrent(BaseTDEMSrc):
         numpy.ndarray
             Derivative of initial current density times a vector
         """
-        if simulation._formulation != "HJ":
-            raise NotImplementedError
-
         if self.waveform.has_initial_fields is False:
             return Zero()
+        elif simulation._formulation != "HJ":
+            raise NotImplementedError
 
         phi = self.phiInitial(simulation)
         Div = sdiag(simulation.mesh.vol) * simulation.mesh.faceDiv
@@ -2035,8 +2033,6 @@ class LineCurrent(BaseTDEMSrc):
         numpy.ndarray
             Initial magnetic field
         """
-        if simulation._formulation != "HJ":
-            raise NotImplementedError
 
         if self.waveform.has_initial_fields is False:
             return Zero()
@@ -2061,9 +2057,6 @@ class LineCurrent(BaseTDEMSrc):
         numpy.ndarray
             Derivative of initial magnetic field times a vector
         """
-        if simulation._formulation != "HJ":
-            raise NotImplementedError
-
         if self.waveform.has_initial_fields is False:
             return Zero()
 
@@ -2087,11 +2080,11 @@ class LineCurrent(BaseTDEMSrc):
         numpy.ndarray
             Initial magnetic flux density
         """
-        if simulation._formulation != "HJ":
-            raise NotImplementedError
 
         if self.waveform.has_initial_fields is False:
             return Zero()
+        elif simulation._formulation != "HJ":
+            raise NotImplementedError
 
         a = self._aInitial(simulation)
         return simulation.mesh.edgeCurl.T * a
@@ -2113,11 +2106,10 @@ class LineCurrent(BaseTDEMSrc):
         numpy.ndarray
             Derivative of initial magnetic flux density times a vector
         """
-        if simulation._formulation != "HJ":
-            raise NotImplementedError
-
         if self.waveform.has_initial_fields is False:
             return Zero()
+        elif simulation._formulation != "HJ":
+            raise NotImplementedError
 
         if adjoint is True:
             return self._aInitialDeriv(
