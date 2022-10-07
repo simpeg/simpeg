@@ -1,4 +1,3 @@
-import properties
 import numpy as np
 from scipy.constants import mu_0
 import warnings
@@ -6,8 +5,15 @@ from scipy.special import roots_legendre
 
 from geoana.em.static import MagneticDipoleWholeSpace, CircularLoopWholeSpace
 
-from ...props import LocationVector
-from ...utils import mkvc, Zero, validate_float_property, validate_string_property
+from ...utils import (
+    mkvc,
+    Zero,
+    validate_float_property,
+    validate_string_property,
+    validate_location_property,
+    validate_ndarray_property,
+    validate_type,
+)
 
 from ..utils import omega
 from ..utils import segmented_line_current_source_term, line_through_faces
@@ -225,9 +231,9 @@ class RawVec_e(BaseFDEMSrc):
     """
 
     def __init__(self, receiver_list=None, frequency=None, s_e=None, **kwargs):
-        self._s_e = np.array(s_e, dtype=complex)
+        self._s_e = np.asarray(s_e, dtype=complex)
 
-        super(RawVec_e, self).__init__(receiver_list, frequency=frequency, **kwargs)
+        super().__init__(receiver_list, frequency=frequency, **kwargs)
 
     def s_e(self, simulation):
         """Electric source term (s_e)
@@ -263,7 +269,7 @@ class RawVec_m(BaseFDEMSrc):
     """
 
     def __init__(self, receiver_list=None, frequency=None, s_m=None, **kwargs):
-        self._s_m = np.array(s_m, dtype=complex)
+        self._s_m = np.asarray(s_m, dtype=complex)
         super(RawVec_m, self).__init__(
             receiver_list=receiver_list, frequency=frequency, **kwargs
         )
@@ -286,7 +292,7 @@ class RawVec_m(BaseFDEMSrc):
         return self._s_m
 
 
-class RawVec(BaseFDEMSrc):
+class RawVec(RawVec_e, RawVec_m):
     """User-provided electric (s_e) and magnetic (s_m) source terms.
 
     Parameters
@@ -303,48 +309,13 @@ class RawVec(BaseFDEMSrc):
         If ``True``, integrate the source terms; i.e. multiply by Me matrix
     """
 
-    def __init__(
-        self, receiver_list=None, frequency=None, s_m=None, s_e=None, **kwargs
-    ):
-        self._s_m = np.array(s_m, dtype=complex)
-        self._s_e = np.array(s_e, dtype=complex)
-        super(RawVec, self).__init__(
-            receiver_list=receiver_list, frequency=frequency, **kwargs
-        )
-
-    def s_m(self, simulation):
-        """Magnetic source term (s_m)
-
-        Parameters
-        ----------
-        simulation : BaseFDEMSimulation
-            SimPEG FDEM simulation
-
-        Returns
-        -------
-        numpy.ndarray
-            Magnetic source term on mesh.
-        """
-        if simulation._formulation == "HJ" and self.integrate is True:
-            return simulation.Me * self._s_m
-        return self._s_m
-
-    def s_e(self, simulation):
-        """Electric source term (s_e)
-
-        Parameters
-        ----------
-        simulation : BaseFDEMSimulation
-            SimPEG FDEM simulation
-
-        Returns
-        -------
-        numpy.ndarray
-            Electric source term on mesh.
-        """
-        if simulation._formulation == "EB" and self.integrate is True:
-            return simulation.Me * self._s_e
-        return self._s_e
+    pass
+    # def __init__(
+    #     self, receiver_list=None, frequency=None, s_m=None, s_e=None, **kwargs
+    # ):
+    #     super().__init__(
+    #         receiver_list=receiver_list, frequency=frequency, s_m=None, s_e=None, **kwargs
+    #     )
 
 
 class MagDipole(BaseFDEMSrc):
@@ -460,18 +431,7 @@ class MagDipole(BaseFDEMSrc):
 
     @location.setter
     def location(self, vec):
-
-        try:
-            vec = np.atleast_1d(vec).astype(float).squeeze()
-        except:
-            raise TypeError(f"location must be array_like, got {type(vec)}")
-
-        if len(vec) > 3:
-            raise ValueError(
-                f"location must be array_like with shape (3), got {len(vec)}"
-            )
-
-        self._location = vec
+        self._location = validate_location_property("location", vec, 3)
 
     @property
     def moment(self):
@@ -513,18 +473,7 @@ class MagDipole(BaseFDEMSrc):
                 var = np.r_[0.0, 1.0, 0.0]
             elif var == "z":
                 var = np.r_[0.0, 0.0, 1.0]
-        else:
-            try:
-                var = np.atleast_1d(var).astype(float)
-            except:
-                raise TypeError(
-                    f"orientation must be str or array_like, got {type(var)}"
-                )
-
-            if len(var) != 3:
-                raise ValueError(
-                    f"orientation must be array_like with shape (3,), got {len(var)}"
-                )
+        var = validate_ndarray_property("orientation", var, (3,))
 
         # Normalize the orientation
         var /= np.sqrt(np.sum(var ** 2))
@@ -1307,14 +1256,7 @@ class LineCurrent(BaseFDEMSrc):
 
     @location.setter
     def location(self, loc):
-        try:
-            loc = np.atleast_2d(loc).astype(float)
-        except:
-            raise TypeError(f"location must be (n, 3) array_like, got {type(loc)}")
-
-        if loc.ndim != 2:
-            raise TypeError(f"location must be (n, 3) array_like, got {type(loc)}")
-
+        loc = validate_ndarray_property("location", loc, shape=("*", 3))
         self._location = loc
 
     # current = properties.Float("current in the line", default=1.0)
@@ -1486,13 +1428,7 @@ class LineCurrent1D(LineCurrent):
 
     @n_points_per_path.setter
     def n_points_per_path(self, val):
-        try:
-            val = int(val)
-        except Exception:
-            raise TypeError("n_points_per_path must be an integer")
-        if val <= 0:
-            raise ValueError("n_points_per_path must be positive")
-        self._n_points_per_path = val
+        self._n_points_per_path = validate_type("n_points_per_path", val, int)
 
     def hPrimary(self, simulation):
         raise NotImplementedError(

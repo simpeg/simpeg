@@ -1,7 +1,6 @@
 import numpy as np
 
 from ... import maps
-from ...utils.code_utils import deprecate_class
 from ..frequency_domain.sources import BaseFDEMSrc
 from ..utils import omega
 from .utils.source_utils import homo1DModelSource

@@ -17,7 +17,7 @@ Utility Classes
   # Report
   TensorType
   # Zero
-  
+
 
 Code Utility Functions
 ======================
@@ -93,7 +93,7 @@ Curvilinear Utility Functions
   indexCube
   volume_tetrahedron
   volTetra
-  
+
 
 IO Utility Functions
 ====================
@@ -116,7 +116,7 @@ IO Utility Functions
   io_utils.write_grav3d_ubc
   io_utils.write_gg3d_ubc
   io_utils.write_mag3d_ubc
-  
+
 
 Matrix Utility Functions
 ========================
@@ -154,7 +154,7 @@ Matrix Utility Functions
   spzeros
   sub2ind
   uniqueRows
-  
+
 
 Mesh Utility Functions
 ======================
@@ -168,7 +168,7 @@ Mesh Utility Functions
   ExtractCoreMesh
   meshTensor
   unpack_widths
-  
+
 
 Model Utility Functions
 =======================
@@ -196,7 +196,7 @@ Model Utility Functions
   model_builder.polygonInd
   model_builder.randomModel
   model_builder.scalarConductivity
-  
+
 
 Plotting Utility Functions
 ==========================
@@ -296,6 +296,7 @@ from .code_utils import (
     validate_location_property,
     validate_ndarray_property,
     validate_string_property,
+    validate_type,
 )
 from .mesh_utils import (
     meshTensor,
@@ -303,7 +304,7 @@ from .mesh_utils import (
     ExtractCoreMesh,
     unpack_widths,
     closest_points_index,
-    extract_core_mesh
+    extract_core_mesh,
 )
 from .curv_utils import (
     volTetra,
@@ -313,7 +314,7 @@ from .curv_utils import (
     volume_tetrahedron,
     index_cube,
     face_info,
-    example_curvilinear_grid
+    example_curvilinear_grid,
 )
 from .counter_utils import Counter, count, timeIt
 from . import model_builder
@@ -323,7 +324,7 @@ from .coord_utils import (
     rotatePointsFromNormals,
     rotationMatrixFromNormals,
     rotation_matrix_from_normals,
-    rotate_points_from_normals
+    rotate_points_from_normals,
 )
 from .model_utils import surface2ind_topo, depth_weighting
 from .plot_utils import plot2Ddata, plotLayer, plot_1d_layer_model

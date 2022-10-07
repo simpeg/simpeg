@@ -26,15 +26,15 @@ def create_wrapper_from_class(input_class, *fun_names):
 
     Using :meth:`memory_profiler.profile`, this function creates a wrapper class
     from the input class and function names specified.
-    
+
     Parameters
     ----------
     input_class : class
         Input class being used to create the wrapper
     fun_names : list of str
         Names of the functions that will be wrapped to the wrapper class. These names must
-        correspond to methods of the input class.  
-    
+        correspond to methods of the input class.
+
     Returns
     -------
     class :
@@ -75,7 +75,7 @@ def hook(obj, method, name=None, overwrite=False, silent=False):
         The method that will be binded to *obj*. The syntax is *ClassName.method*
     name : str, optional
         Provide a different name for the method being binded to *obj*. If ``None``,
-        the original method name is used. 
+        the original method name is used.
     overwrite : bool, default: ``False``
         If ``True``, the hook will overwrite a preexisting method of *obj* if it has
         the same name as the *name* input argument. If ``False``, preexisting methods
@@ -98,7 +98,7 @@ def hook(obj, method, name=None, overwrite=False, silent=False):
 def set_kwargs(obj, ignore=None, **kwargs):
     """
     Set key word arguments for an object or throw an error if any do not exist.
-    
+
     Parameters
     ----------
     obj : class
@@ -190,7 +190,7 @@ def print_line(obj, printers, pad=""):
 
 def check_stoppers(obj, stoppers):
     """Check stopping rules (**DOCSTRING INCOMPLETE**)
-    
+
     Parameters
     ----------
     obj : object
@@ -328,6 +328,7 @@ def dependent_property(name, value, children, doc):
     doc : str
         Property documentation
     """
+
     def fget(self):
         return getattr(self, name, value)
 
@@ -478,6 +479,7 @@ class Report(ScoobyReport):
 #               DEPRECATION FUNCTIONS
 ##############################################################
 
+
 def deprecate_class(
     removal_version=None, new_location=None, future_warn=False, error=False
 ):
@@ -497,8 +499,9 @@ def deprecate_class(
     Returns
     -------
     class
-        The new class 
+        The new class
     """
+
     def decorator(cls):
         my_name = cls.__name__
         parent_name = cls.__bases__[0].__name__
@@ -732,7 +735,10 @@ def deprecate_function(new_function, old_name, removal_version=None):
 #                    PROPERTY VALIDATORS
 ###############################################################
 
-def validate_string_property(property_name, var, string_list=None, case_sensitive=False):
+
+def validate_string_property(
+    property_name, var, string_list=None, case_sensitive=False
+):
     """Validate a string property
 
     Parameters
@@ -742,7 +748,8 @@ def validate_string_property(property_name, var, string_list=None, case_sensitiv
     var : str
         The input variable
     string_list : list or tuple of str, optional
-        Provide a list of acceptable strings
+        Provide a list of acceptable strings, if an individual item is also a list,
+        the extra parameters are interpreted as aliases for the first item, which is then returned.
     case_sensitive : bool, default: ``False``
         If ``True`` and *string_list* is not ``None``, the string
         comparison is case-sensitive
@@ -750,25 +757,34 @@ def validate_string_property(property_name, var, string_list=None, case_sensitiv
     Returns
     -------
     str
-        Returns the input argument *var* once validated 
+        Returns the input argument *var* once validated
     """
     if isinstance(var, str):
         if string_list is None:
             return var
+        if not case_sensitive:
+            test_var = var.casefold()
+            # also fold the string_list for comparison
+            def fold_input(input):
+                if isinstance(input, (list, tuple)):
+                    return [fold_input(x) for x in input]
+                return input.casefold()
+
+            test_string_list = fold_input(string_list)
         else:
-            if case_sensitive:
-                if var in string_list:
-                    return var
-                else:
-                    raise ValueError(f"'{property_name}' must be in '{string_list}'. Got '{var}'")
-            else:
-                if var.lower() in [x.lower() for x in string_list]:
-                    return var
-                else:
-                    raise ValueError(f"'{property_name}' must be in '{string_list}'. Got '{var}'")
+            test_var = var
+            test_string_list = string_list
+
+        for test, item in zip(test_string_list, string_list):
+            if isinstance(test, (list, tuple)):
+                if test_var in test:
+                    return item[0]
+            if test_var == test:
+                return item
+        raise ValueError(f"'{property_name}' must be in '{string_list}'. Got '{var}'")
     else:
         raise TypeError(f"'{property_name}' must be a str. Got '{type(var)}'")
-    
+
 
 def validate_integer_property(property_name, var, min_val=-np.inf, max_val=np.inf):
     """Validate integer property
@@ -792,12 +808,15 @@ def validate_integer_property(property_name, var, min_val=-np.inf, max_val=np.in
     try:
         var = int(var)
     except:
-        raise TypeError(f"'{property_name}' must be int or float, got '{type(var)}'")
+        raise TypeError(f"'{property_name}' must be a number, got '{type(var)}'")
 
     if (var < min_val) | (var > max_val):
-        raise ValueError(f"'{property_name}' must be a value between {min_val} and {max_val}")
+        raise ValueError(
+            f"'{property_name}' must be a value between {min_val} and {max_val}"
+        )
     else:
         return var
+
 
 def validate_float_property(property_name, var, min_val=-np.inf, max_val=np.inf):
     """Validate float property
@@ -824,7 +843,9 @@ def validate_float_property(property_name, var, min_val=-np.inf, max_val=np.inf)
         raise TypeError(f"'{property_name}' must be int or float, got '{type(var)}'")
 
     if (var < min_val) | (var > max_val):
-        raise ValueError(f"'{property_name}' must be a value between {min_val} and {max_val}")
+        raise ValueError(
+            f"'{property_name}' must be a value between {min_val} and {max_val}"
+        )
     else:
         return var
 
@@ -882,8 +903,10 @@ def validate_location_property(property_name, var, dim=None):
     except:
         raise TypeError(f"'{property_name}' must be 1D array_like, got {type(var)}")
 
-    if len(var.shape )> 1:
-        raise TypeError(f"'{property_name}' must be 1D array_like, got {len(var.shape)}D")
+    if len(var.shape) > 1:
+        raise TypeError(
+            f"'{property_name}' must be 1D array_like, got {len(var.shape)}D"
+        )
 
     if dim is None:
         return var
@@ -921,15 +944,19 @@ def validate_ndarray_property(property_name, var, shape=None, dtype=float):
 
     if shape is None:
         try:
-            shape = tuple(['*' for ii in range(0, var.ndim)])
+            shape = tuple(["*" for ii in range(0, var.ndim)])
         except:
-            raise TypeError(f"'{property_name}' must be {shape} array_like, got {type(var)}")
-            
+            raise TypeError(
+                f"'{property_name}' must be {shape} array_like, got {type(var)}"
+            )
+
     if len(shape) > 3:
         raise NotImplementedError("Only implemented for 1D, 2D and 3D arrays!!!")
     if var.ndim > len(shape):
-        raise TypeError(f"The dimensions of the input argument 'var' are greater than is specified by 'shape'")
-            
+        raise TypeError(
+            f"The dimensions of the input argument 'var' are greater than is specified by 'shape'"
+        )
+
     try:
         if len(shape) == 1:
             var = np.atleast_1d(var).astype(dtype)
@@ -938,24 +965,74 @@ def validate_ndarray_property(property_name, var, shape=None, dtype=float):
         elif len(shape) == 3:
             var = np.atleast_3d(var).astype(dtype)
     except:
-        raise TypeError(f"'{property_name}' must be {shape} array_like, got {type(var)}")
+        raise TypeError(
+            f"'{property_name}' must be {shape} array_like, got {type(var)}"
+        )
 
     for ii, value in enumerate(np.shape(var)):
-        if (shape[ii] != '*') & (shape[ii] != value):
+        if (shape[ii] != "*") & (shape[ii] != value):
             raise ValueError(f"'{property_name}' must be {shape}, got {np.shape(var)}")
 
     return var
 
 
+def validate_type(property_name, obj, obj_type, cast=True, strict=False):
+    """Validate the type or an item
+
+    Parameters
+    ----------
+    property_name : str
+        The name of the property being set
+    obj : object
+        The object to test
+    obj_type : class
+        The intended type of the object
+    cast : bool, optional
+        Whether to attempt to cast the item to the class
+    strict : bool, optional
+        Whether to test if the object is exactly the type, (or a subclass if false)
+
+    Returns
+    -------
+    obj_type
+        Returns the object in the specified type when validated
+    """
+    if cast:
+        try:
+            obj = obj_type(obj)
+        except:
+            raise TypeError(
+                f"{type(obj).__name__} cannot be converted to type {obj_type.__name__} "
+                f"required for {property_name}."
+            )
+    if strict and not type(obj) == obj_type:
+        raise TypeError(
+            f"Object must be exactly a {obj_type.__name__} for {property_name}"
+        )
+    if not isinstance(obj, obj_type):
+        raise TypeError(
+            f"Object must be an instance of {obj_type.__name__} for {property_name}"
+        )
+    return obj
+
+
 ###############################################################
 #                      DEPRECATIONS
 ###############################################################
-memProfileWrapper = deprecate_function(create_wrapper_from_class, "memProfileWrapper", removal_version="0.16.0")
+memProfileWrapper = deprecate_function(
+    create_wrapper_from_class, "memProfileWrapper", removal_version="0.16.0"
+)
 setKwargs = deprecate_function(set_kwargs, "setKwargs", removal_version="0.16.0")
 printTitles = deprecate_function(print_titles, "printTitles", removal_version="0.16.0")
 printLine = deprecate_function(print_line, "printLine", removal_version="0.16.0")
-printStoppers = deprecate_function(print_stoppers, "printStoppers", removal_version="0.16.0")
-checkStoppers = deprecate_function(check_stoppers, "checkStoppers", removal_version="0.16.0")
+printStoppers = deprecate_function(
+    print_stoppers, "printStoppers", removal_version="0.16.0"
+)
+checkStoppers = deprecate_function(
+    check_stoppers, "checkStoppers", removal_version="0.16.0"
+)
 printDone = deprecate_function(print_done, "printDone", removal_version="0.16.0")
 callHooks = deprecate_function(call_hooks, "callHooks", removal_version="0.16.0")
-dependentProperty = deprecate_function(dependent_property, "dependentProperty", removal_version="0.16.0")
+dependentProperty = deprecate_function(
+    dependent_property, "dependentProperty", removal_version="0.16.0"
+)

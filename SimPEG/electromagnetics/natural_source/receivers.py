@@ -2,6 +2,7 @@ from ...utils.code_utils import deprecate_class, validate_string_property
 
 import numpy as np
 from scipy.constants import mu_0
+
 # import properties
 
 from ...survey import BaseRx
@@ -19,12 +20,12 @@ class PointNaturalSource(BaseRx):
 
     Parameters
     ----------
-    locations : (n_loc, n_dim) np.ndarray
-        Receiver locations. 
-    orientation : str, default = 'xy'
-        MT receiver orientation. Must be one of {'xx', 'xy', 'yx', 'yy'}
-    component : str, default = 'real'
-        MT data type. Choose one of {'real', 'imag', 'apparent_resistivity', 'phase'}
+    locations : (n_loc, n_dim) numpy.ndarray
+        Receiver locations.
+    orientation : {'xx', 'xy', 'yx', 'yy'}
+        MT receiver orientation.
+    component : {'real', 'imag', 'apparent_resistivity', 'phase'}
+        MT data type.
     """
 
     # component = properties.StringChoice(
@@ -102,20 +103,27 @@ class PointNaturalSource(BaseRx):
 
     @component.setter
     def component(self, var):
-        if isinstance(var, str):
-            var = validate_string_property('component', var).lower()
-            if var in ("real", "re", "in-phase", "in phase"):
-                self._component = 'real'
-            elif var in ("imag", "imaginary", "im", "out-of-phase", "out of phase"):
-                self._component = 'imag'
-            elif var in ("apparent_resistivity", "apparent resistivity","appresistivity","apparentresistivity","apparent-resistivity","apparent_resistivity","appres","app_res","rho","rhoa"):
-                self._component = 'apparent_resistivity'
-            elif var in ("phase", "phi"):
-                self._component = 'phase'
-            else:
-                raise ValueError(f"component must be either 'real', 'imag', 'apparent_resistivity' or 'phase'. Got {var}")
-        else:
-            raise TypeError(f"component must be a str. Got {type(var)}")
+        self._component = validate_string_property(
+            "component",
+            var,
+            [
+                ("real", "re", "in-phase", "in phase"),
+                ("imag", "imaginary", "im", "out-of-phase", "out of phase"),
+                (
+                    "apparent_resistivity",
+                    "apparent resistivity",
+                    "appresistivity",
+                    "apparentresistivity",
+                    "apparent-resistivity",
+                    "apparent_resistivity",
+                    "appres",
+                    "app_res",
+                    "rho",
+                    "rhoa",
+                ),
+                ("phase", "phi"),
+            ],
+        )
 
     @property
     def orientation(self):
@@ -130,7 +138,9 @@ class PointNaturalSource(BaseRx):
 
     @orientation.setter
     def orientation(self, var):
-        var = validate_string_property('orientation', var, string_list=('xx','xy','yx','yy')).lower()
+        var = validate_string_property(
+            "orientation", var, string_list=("xx", "xy", "yx", "yy")
+        )
         self._orientation = var
 
     @property
@@ -414,7 +424,7 @@ class PointNaturalSource(BaseRx):
 
     def evalDeriv(self, src, mesh, f, du_dm_v=None, v=None, adjoint=False):
         """Derivative of projection with respect to the fields
-        
+
         Parameters
         ----------
         str : SimPEG.electromagnetics.frequency_domain.sources.BaseFDEMSrc
@@ -448,8 +458,8 @@ class Point3DTipper(PointNaturalSource):
 
     Parameters
     ----------
-    locations : (n_loc, n_dim) np.ndarray
-        Receiver locations. 
+    locations : (n_loc, n_dim) numpy.ndarray
+        Receiver locations.
     orientation : str, default = 'zx'
         NSEM receiver orientation. Must be one of {'zx', 'zy'}
     component : str, default = 'real'
@@ -490,7 +500,7 @@ class Point3DTipper(PointNaturalSource):
 
     @orientation.setter
     def orientation(self, var):
-        var = validate_string_property('orientation', var, string_list=('zx','zy')).lower()
+        var = validate_string_property("orientation", var, string_list=("zx", "zy"))
         self._orientation = var
 
     def _eval_tipper(self, src, mesh, f):
@@ -599,7 +609,7 @@ class Point3DTipper(PointNaturalSource):
 
     def evalDeriv(self, src, mesh, f, du_dm_v=None, v=None, adjoint=False):
         """Derivative of projection with respect to the fields
-        
+
         Parameters
         ----------
         str : SimPEG.electromagnetics.frequency_domain.sources.BaseFDEMSrc

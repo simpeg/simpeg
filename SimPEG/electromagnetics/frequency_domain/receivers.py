@@ -1,6 +1,6 @@
 # import properties
 from ... import survey
-from ...utils import validate_string_property
+from ...utils import validate_string_property, validate_type
 import warnings
 
 
@@ -11,10 +11,11 @@ class BaseRx(survey.BaseRx):
     ----------
     locations : (n_loc, n_dim) np.ndarray
         Receiver locations.
-    orientation : str, default = 'z'
-        Receiver orientation. Must be one of: 'x', 'y' or 'z'
-    component : str, default = 'real'
-        Real or imaginary component. Choose one of: 'real' or 'imag'
+    orientation : {'x', 'y', 'z'}
+        Receiver orientation.
+    component : {'real', 'imag', 'both', 'complex'}
+        Component of the receiver; i.e. 'real' or 'imag'. The options 'both' and
+        'complex' are only available for the 1D layered simulations.
     """
 
     def __init__(
@@ -49,8 +50,7 @@ class BaseRx(survey.BaseRx):
 
         Returns
         -------
-        str
-            Orientation of the receiver. One of {'x', 'y', 'z'}
+        str : {'x', 'y', 'z'}
         """
         return self._orientation
 
@@ -65,37 +65,31 @@ class BaseRx(survey.BaseRx):
 
         Returns
         -------
-        str : ['real', 'imag', 'both', 'complex']
-            Orientation of the receiver; i.e. 'real' or 'imag'. The options 'both' and
+        str : {'real', 'imag', 'both', 'complex'}
+            Component of the receiver; i.e. 'real' or 'imag'. The options 'both' and
             'complex' are only available for the 1D layered simulations.
         """
         return self._component
 
     @component.setter
     def component(self, val):
-
-        if isinstance(val, str):
-            val = val.lower()
-            if val in ("real", "re", "in-phase", "in phase"):
-                val = "real"
-            elif val in (
-                "imag",
-                "imaginary",
-                "im",
-                "out-of-phase",
-                "out of phase",
-                "quadrature",
-            ):
-                val = "imag"
-
-            if val.lower() in ["real", "imag", "both", "complex"]:
-                self._component = val
-            else:
-                raise ValueError(
-                    f"orientation must be either 'real', 'imag', 'both', or 'complex'. Got {val}"
-                )
-        else:
-            raise TypeError(f"orientation must be a str. Got {type(val)}")
+        self._component = validate_string_property(
+            "component",
+            val,
+            (
+                ("real", "re", "in-phase", "in phase"),
+                (
+                    "imag",
+                    "imaginary",
+                    "im",
+                    "out-of-phase",
+                    "out of phase",
+                    "quadrature",
+                ),
+                "both",
+                "complex",
+            ),
+        )
 
     @property
     def data_type(self):
@@ -116,16 +110,9 @@ class BaseRx(survey.BaseRx):
 
     @data_type.setter
     def data_type(self, val):
-        if isinstance(val, str):
-            val = val.lower()
-            if val in ["field", "ppm"]:
-                self._data_type = val
-            else:
-                raise ValueError(
-                    f"data_type must be either 'field' or 'ppm'. Got {val}"
-                )
-        else:
-            raise TypeError(f"data_type must be a str. Got {type(val)}")
+        self._data_type = validate_string_property(
+            "data_type", val, string_list=("field", "ppm")
+        )
 
     @property
     def use_source_receiver_offset(self):
@@ -145,8 +132,7 @@ class BaseRx(survey.BaseRx):
 
     @use_source_receiver_offset.setter
     def use_source_receiver_offset(self, val):
-        if not isinstance(val, bool):
-            raise TypeError("use_source_receiver_offset must be a bool")
+        val = validate_type("use_source_receiver_offset", val, bool)
         self._use_source_receiver_offset = val
 
     def eval(self, src, mesh, f):
