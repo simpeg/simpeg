@@ -16,6 +16,7 @@ from .directives import (
     ScalingMultipleDataMisfits_ByEig,
     JointScalingSchedule,
     UpdateSensitivityWeights,
+    UpdateReferenceVector,
     ProjectSphericalBounds,
 )
 

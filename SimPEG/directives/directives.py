@@ -1327,14 +1327,9 @@ class Update_IRLS(InversionDirective):
                 continue
 
             for obj in reg.objfcts:
-
                 threshold = np.percentile(
-                    np.abs(obj.mapping * obj._delta_m(self.invProb.model)), self.prctile
+                    np.abs(obj.f_m(self.invProb.model)), self.prctile
                 )
-
-                if isinstance(obj, SmoothnessFirstOrder):
-                    threshold /= reg.regularization_mesh.base_length
-
                 obj.irls_threshold = threshold
 
         # Re-assign the norms supplied by user l2 -> lp
@@ -1660,3 +1655,49 @@ class ProjectSphericalBounds(InversionDirective):
             sim.model = m
 
         self.opt.xc = m
+
+
+class UpdateReferenceVector(InversionDirective):
+    def __init__(self, regularization, reference_vector, component="direction"):
+        self._regularization = regularization
+        self._component = component
+
+        if component == "direction":
+            self._reference = self.unit_vector(reference_vector)
+        else:
+            self._reference = self.get_amplitude(reference_vector)
+
+    def initialize(self):
+        self.update_reference()
+
+    def endIter(self):
+        self.update_reference()
+
+    def update_reference(self):
+        n_comp = len(self._regularization.objfcts)
+
+        if self._component == "direction":
+            amplitude = self.get_amplitude(self.invProb.model)
+            reference_vector = sdiag(
+                np.kron(np.ones(n_comp), amplitude)
+            ) * self._reference
+        else:
+            reference_vector = sdiag(
+                np.kron(np.ones(n_comp), self._reference)
+            ) * self.unit_vector(self.invProb.model)
+
+        for objfct in self._regularization.objfcts:
+            objfct.reference_model = reference_vector
+
+    def get_amplitude(self, vector):
+        model = []
+        for objfct in self._regularization.objfcts:
+            model.append(objfct.mapping * vector)
+
+        return np.linalg.norm(np.vstack(model).T, axis=1)
+
+    def unit_vector(self, vector):
+        inv_amp = (self.get_amplitude(vector) + 1e-12)**-1
+        return sdiag(
+            np.kron(np.ones(len(self._regularization.objfcts)), inv_amp)
+        ) * vector
