@@ -219,7 +219,7 @@ def plotVectorSectionsOctree(
 
 
 model_azm_dip = np.zeros((mesh.nC, 2))
-model_amp = np.zeros(mesh.nC)
+model_amp = np.ones(mesh.nC) * 1e-8
 for ii, anomaly in enumerate(M):
     x_shift = 120.0**ii
     # Get the indicies of the magnetized block
@@ -319,13 +319,13 @@ rxLoc = survey.source_field.receiver_list[0].locations
 wires = maps.Group(("p", nC), ("s", nC), ("t", nC))
 
 
-m0 = np.ones(3 * nC) * 1e-4  # Starting model
+m0 = np.zeros(3 * nC) * 1e-4  # Starting model
 
 # Create three regularizations for the different components
 # of magnetization
 reg_amp = regularization.VectorAmplitude(mesh, wires, active_cells=actv)
-reg_amp.reference_model = np.zeros(3*nC)
-reg_amp.norms = [2, 0, 0, 0]
+reg_amp.reference_model = np.zeros(3*nC)#mkvc(model)#
+reg_amp.norms = [1, 0, 0, 0]
 # reg_amp.alpha_s = 0.0
 reg_amp.gradient_type = "components"
 
@@ -354,7 +354,30 @@ reg_t = regularization.Sparse(
 )
 reg_components = reg_p + reg_s + reg_t
 
-reg = reg_amp# + reg_components
+reg_x = regularization.Sparse(
+    mesh,
+    active_cells=actv,
+    mapping=wires.p,
+    reference_model_in_smooth=True,
+    norms=[0, 0, 0, 0]
+)
+reg_y = regularization.Sparse(
+    mesh,
+    active_cells=actv,
+    mapping=wires.s,
+    reference_model_in_smooth=True,
+    norms=[0, 0, 0, 0]
+)
+reg_z = regularization.Sparse(
+    mesh,
+    active_cells=actv,
+    mapping=wires.t,
+    reference_model_in_smooth=True,
+    norms=[0, 0, 0, 0]
+)
+reg_amp = reg_x + reg_y + reg_z
+
+reg = reg_components + reg_amp# +
 
 # Data misfit function
 dmis = data_misfit.L2DataMisfit(simulation=simulation, data=data_object)
@@ -383,13 +406,18 @@ update_Jacobi = directives.UpdatePreconditioner()
 
 # Update reference model
 update_ref = directives.UpdateReferenceVector(
-    reg_components, model_azm_dip[:, 0], model_azm_dip[:, 1]
+    reg_components, mkvc(model), component="amplitude"
+    # reg_components, mkvc(utils.mat_utils.dip_azimuth2cartesian(model_azm_dip[:, 0], model_azm_dip[:, 1]))
 )
 
+update_dir = directives.UpdateReferenceVector(
+    reg_amp, mkvc(model), component="direction"
+)
 inv = inversion.BaseInversion(
     invProb, directiveList=[
         sensitivity_weights,
         update_ref,
+        update_dir,
         IRLS,
         update_Jacobi,
         betaest
