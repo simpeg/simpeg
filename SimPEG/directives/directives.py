@@ -31,7 +31,7 @@ from ..utils import (
     eigenvalue_by_power_iteration,
 )
 from ..utils.code_utils import deprecate_property
-from ..utils.mat_utils import dip_azimuth2cartesian
+
 from .. import optimization
 
 
@@ -1338,13 +1338,14 @@ class Update_IRLS(InversionDirective):
                 continue
 
             for obj in reg.objfcts:
-
                 threshold = np.percentile(
-                    np.abs(obj.mapping * obj._delta_m(self.invProb.model)), self.prctile
+                    np.abs(obj.f_m(self.invProb.model)), self.prctile
                 )
-
-                if isinstance(obj, SmoothnessFirstOrder):
-                    threshold /= reg.regularization_mesh.base_length
+                # threshold = np.percentile(
+                #     np.abs(obj.mapping * obj._delta_m(self.invProb.model)), self.prctile
+                # )
+                # if isinstance(obj, SmoothnessFirstOrder):
+                #     threshold /= reg.regularization_mesh.base_length
 
                 obj.irls_threshold = threshold
 
@@ -1642,30 +1643,50 @@ class UpdateSensitivityWeights(InversionDirective):
 
 
 class UpdateReferenceVector(InversionDirective):
-    def __init__(self, regularization, azimuth, dip):
+    def __init__(self, regularization, reference_vector, component="direction"):
         self._regularization = regularization
-        self._reference = mkvc(dip_azimuth2cartesian(azimuth, dip))
+        self._component = component
+
+        if component == "direction":
+            self._reference = self.unit_vector(reference_vector)
+        else:
+            self._reference = self.get_amplitude(reference_vector)
 
     def initialize(self):
-        reference_vector = self.get_normalized_reference()
-        for objfct in self._regularization.objfcts:
-            objfct.reference_model = reference_vector
+        self.update_reference()
 
     def endIter(self):
-        reference_vector = self.get_normalized_reference()
+        self.update_reference()
+
+    def update_reference(self):
+        n_comp = len(self._regularization.objfcts)
+
+        if self._component == "direction":
+            amplitude = self.get_amplitude(self.invProb.model)
+            reference_vector = sdiag(
+                np.kron(np.ones(n_comp), amplitude)
+            ) * self._reference
+        else:
+            reference_vector = sdiag(
+                np.kron(np.ones(n_comp), self._reference)
+            ) * self.unit_vector(self.invProb.model)
+
         for objfct in self._regularization.objfcts:
             objfct.reference_model = reference_vector
 
-    def get_normalized_reference(self):
-        n_comp = len(self._regularization.objfcts)
+    def get_amplitude(self, vector):
         model = []
         for objfct in self._regularization.objfcts:
-            model.append(objfct.mapping * self.invProb.model)
+            model.append(objfct.mapping * vector)
 
-        amplitude = np.linalg.norm(np.vstack(model).T, axis=1)
+        return np.linalg.norm(np.vstack(model).T, axis=1)
+
+    def unit_vector(self, vector):
+        inv_amp = (self.get_amplitude(vector) + 1e-12)**-1
         return sdiag(
-            np.kron(np.ones(n_comp), amplitude)
-        ) * self._reference
+            np.kron(np.ones(len(self._regularization.objfcts)), inv_amp)
+        ) * vector
+
 
 class ProjectSphericalBounds(InversionDirective):
     """
