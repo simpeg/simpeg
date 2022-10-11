@@ -220,23 +220,32 @@ def plotVectorSectionsOctree(
 
 model_azm_dip = np.zeros((mesh.nC, 2))
 model_amp = np.ones(mesh.nC) * 1e-8
-for ii, anomaly in enumerate(M):
-    x_shift = 120.0**ii
-    # Get the indicies of the magnetized block
-    ind = utils.model_builder.getIndicesBlock(
-        np.r_[-80 + x_shift, -20, -10],
-        np.r_[-40 + x_shift, 20, 25],
-        mesh.gridCC,
-    )[0]
+# for ii, anomaly in enumerate(M):
+#     x_shift = 120.0**ii
+#     # Get the indicies of the magnetized block
+#     ind = utils.model_builder.getIndicesBlock(
+#         np.r_[-80 + x_shift, -20, -10],
+#         np.r_[-40 + x_shift, 20, 25],
+#         mesh.gridCC,
+#     )[0]
+#
+#     # Assign magnetization values
+#     # model_azm_dip[ind, :] = np.kron(np.ones((ind.shape[0], 1)), anomaly)
+#     model_amp[ind] = 0.05
+#
+# model_azm_dip[mesh.cell_centers[:, 0] < 0, 0] = M[0][0, 0]
+# model_azm_dip[mesh.cell_centers[:, 0] < 0, 1] = M[0][0, 1]
+# model_azm_dip[mesh.cell_centers[:, 0] >= 0, 0] = M[1][0, 0]
+# model_azm_dip[mesh.cell_centers[:, 0] >= 0, 1] = M[1][0, 1]
 
-    # Assign magnetization values
-    # model_azm_dip[ind, :] = np.kron(np.ones((ind.shape[0], 1)), anomaly)
-    model_amp[ind] = 0.05
-
-model_azm_dip[mesh.cell_centers[:, 0] < 0, 0] = M[0][0, 0]
-model_azm_dip[mesh.cell_centers[:, 0] < 0, 1] = M[0][0, 1]
-model_azm_dip[mesh.cell_centers[:, 0] >= 0, 0] = M[1][0, 0]
-model_azm_dip[mesh.cell_centers[:, 0] >= 0, 1] = M[1][0, 1]
+ind = utils.model_builder.getIndicesBlock(
+    np.r_[-30, -20, -10],
+    np.r_[30, 20, 25],
+    mesh.gridCC,
+)[0]
+model_amp[ind] = 0.05
+model_azm_dip[ind, 0] = 0.
+model_azm_dip[ind, 1] = 90.
 
 # Remove air cells
 model_azm_dip = model_azm_dip[actv, :]
@@ -319,15 +328,18 @@ rxLoc = survey.source_field.receiver_list[0].locations
 wires = maps.Group(("p", nC), ("s", nC), ("t", nC))
 
 
-m0 = np.zeros(3 * nC) * 1e-4  # Starting model
+m0 = np.ones(3 * nC) * 1e-4 # Starting model
 
 # Create three regularizations for the different components
 # of magnetization
-reg_amp = regularization.VectorAmplitude(mesh, wires, active_cells=actv)
-reg_amp.reference_model = np.zeros(3*nC)#mkvc(model)#
-reg_amp.norms = [1, 0, 0, 0]
+reg_amp = regularization.VectorAmplitude(
+    mesh, wires, active_cells=actv,
+    reference_model_in_smooth=True,
+)
+reg_amp.norms = [1.0, 0, 0, 0]
 # reg_amp.alpha_s = 0.0
 reg_amp.gradient_type = "components"
+reg_amp.reference_model = mkvc(model)
 
 # Create three regularizations for the different components
 # of magnetization
@@ -335,49 +347,52 @@ reg_p = regularization.Sparse(
     mesh,
     active_cells=actv,
     mapping=wires.p,
-    reference_model_in_smooth=True,
-    norms=[0, 0, 0, 0]
+    reference_model_in_smooth=False,
+    norms=[0, 0, 0, 0],
+    alpha_s=0
 )
 reg_s = regularization.Sparse(
     mesh,
     active_cells=actv,
     mapping=wires.s,
-    reference_model_in_smooth=True,
-    norms=[0, 0, 0, 0]
+    reference_model_in_smooth=False,
+    norms=[0, 0, 0, 0],
+    alpha_s=0
 )
 reg_t = regularization.Sparse(
     mesh,
     active_cells=actv,
     mapping=wires.t,
-    reference_model_in_smooth=True,
-    norms=[0, 0, 0, 0]
+    reference_model_in_smooth=False,
+    norms=[0, 0, 0, 0],
+    alpha_s=0
 )
 reg_components = reg_p + reg_s + reg_t
 
-reg_x = regularization.Sparse(
-    mesh,
-    active_cells=actv,
-    mapping=wires.p,
-    reference_model_in_smooth=True,
-    norms=[0, 0, 0, 0]
-)
-reg_y = regularization.Sparse(
-    mesh,
-    active_cells=actv,
-    mapping=wires.s,
-    reference_model_in_smooth=True,
-    norms=[0, 0, 0, 0]
-)
-reg_z = regularization.Sparse(
-    mesh,
-    active_cells=actv,
-    mapping=wires.t,
-    reference_model_in_smooth=True,
-    norms=[0, 0, 0, 0]
-)
-reg_amp = reg_x + reg_y + reg_z
+# reg_x = regularization.Sparse(
+#     mesh,
+#     active_cells=actv,
+#     mapping=wires.p,
+#     reference_model_in_smooth=True,
+#     norms=[0, 0, 0, 0]
+# )
+# reg_y = regularization.Sparse(
+#     mesh,
+#     active_cells=actv,
+#     mapping=wires.s,
+#     reference_model_in_smooth=True,
+#     norms=[0, 0, 0, 0]
+# )
+# reg_z = regularization.Sparse(
+#     mesh,
+#     active_cells=actv,
+#     mapping=wires.t,
+#     reference_model_in_smooth=True,
+#     norms=[0, 0, 0, 0]
+# )
+# reg_amp = reg_x + reg_y + reg_z
 
-reg = reg_components + reg_amp# +
+reg = reg_amp# + reg_components #+
 
 # Data misfit function
 dmis = data_misfit.L2DataMisfit(simulation=simulation, data=data_object)
@@ -405,18 +420,18 @@ IRLS = directives.Update_IRLS(f_min_change=1e-3, max_irls_iterations=10, beta_to
 update_Jacobi = directives.UpdatePreconditioner()
 
 # Update reference model
-update_ref = directives.UpdateReferenceVector(
-    reg_components, mkvc(model), component="amplitude"
-    # reg_components, mkvc(utils.mat_utils.dip_azimuth2cartesian(model_azm_dip[:, 0], model_azm_dip[:, 1]))
-)
+# update_ref = directives.UpdateReferenceVector(
+#     reg_components, wires, component="amplitude"
+#     # reg_components, mkvc(utils.mat_utils.dip_azimuth2cartesian(model_azm_dip[:, 0], model_azm_dip[:, 1]))
+# )
 
 update_dir = directives.UpdateReferenceVector(
-    reg_amp, mkvc(model), component="direction"
+    reg_amp, wires, component="amplitude"
 )
 inv = inversion.BaseInversion(
     invProb, directiveList=[
         sensitivity_weights,
-        update_ref,
+        # update_ref,
         update_dir,
         IRLS,
         update_Jacobi,

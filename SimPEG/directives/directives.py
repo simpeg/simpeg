@@ -1643,14 +1643,15 @@ class UpdateSensitivityWeights(InversionDirective):
 
 
 class UpdateReferenceVector(InversionDirective):
-    def __init__(self, regularization, reference_vector, component="direction"):
+    def __init__(self, regularization, mapping, component="direction"):
         self._regularization = regularization
+        self._mapping = mapping
         self._component = component
 
-        if component == "direction":
-            self._reference = self.unit_vector(reference_vector)
+        if component == "amplitude":
+            self._fixed_reference = self.unit_vector(regularization.objfcts[0].reference_model)
         else:
-            self._reference = self.get_amplitude(reference_vector)
+            self._fixed_reference = self.get_amplitude(regularization.objfcts[0].reference_model)
 
     def initialize(self):
         self.update_reference()
@@ -1659,16 +1660,16 @@ class UpdateReferenceVector(InversionDirective):
         self.update_reference()
 
     def update_reference(self):
-        n_comp = len(self._regularization.objfcts)
+        n_comp = len(self._mapping.maps)
 
-        if self._component == "direction":
+        if self._component == "amplitude":
             amplitude = self.get_amplitude(self.invProb.model)
             reference_vector = sdiag(
                 np.kron(np.ones(n_comp), amplitude)
-            ) * self._reference
+            ) * self._fixed_reference
         else:
             reference_vector = sdiag(
-                np.kron(np.ones(n_comp), self._reference)
+                np.kron(np.ones(n_comp), self._fixed_reference)
             ) * self.unit_vector(self.invProb.model)
 
         for objfct in self._regularization.objfcts:
@@ -1676,15 +1677,15 @@ class UpdateReferenceVector(InversionDirective):
 
     def get_amplitude(self, vector):
         model = []
-        for objfct in self._regularization.objfcts:
-            model.append(objfct.mapping * vector)
+        for _, mapping in self._mapping.maps:
+            model.append(mapping * vector)
 
         return np.linalg.norm(np.vstack(model).T, axis=1)
 
     def unit_vector(self, vector):
         inv_amp = (self.get_amplitude(vector) + 1e-12)**-1
         return sdiag(
-            np.kron(np.ones(len(self._regularization.objfcts)), inv_amp)
+            np.kron(np.ones(len(self._mapping.maps)), inv_amp)
         ) * vector
 
 
