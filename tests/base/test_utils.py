@@ -23,12 +23,6 @@ from SimPEG.utils import (
     Counter,
     download,
     surface2ind_topo,
-    validate_string,
-    validate_integer,
-    validate_float,
-    validate_list_of_types,
-    validate_location_property,
-    validate_ndarray_with_shape,
 )
 import discretize
 from discretize.tests import check_derivative
@@ -345,201 +339,30 @@ class TestDiagEst(unittest.TestCase):
         self.assertTrue(err < TOL)
 
 
-# class TestDownload(unittest.TestCase):
-#     def test_downloads(self):
-#         url = "https://storage.googleapis.com/simpeg/Chile_GRAV_4_Miller/"
-#         cloudfiles = [
-#             "LdM_grav_obs.grv",
-#             "LdM_mesh.mesh",
-#             "LdM_topo.topo",
-#             "LdM_input_file.inp",
-#         ]
+class TestDownload(unittest.TestCase):
+    def test_downloads(self):
+        url = "https://storage.googleapis.com/simpeg/Chile_GRAV_4_Miller/"
+        cloudfiles = [
+            "LdM_grav_obs.grv",
+            "LdM_mesh.mesh",
+            "LdM_topo.topo",
+            "LdM_input_file.inp",
+        ]
 
-#         url1 = url + cloudfiles[0]
-#         url2 = url + cloudfiles[1]
+        url1 = url + cloudfiles[0]
+        url2 = url + cloudfiles[1]
 
-#         file_names = download([url1, url2], folder="./test_urls", overwrite=True)
-#         # or
-#         file_name = download(url1, folder="./test_url", overwrite=True)
-#         # where
-#         assert isinstance(file_names, list)
-#         assert len(file_names) == 2
-#         assert isinstance(file_name, str)
+        file_names = download([url1, url2], folder="./test_urls", overwrite=True)
+        # or
+        file_name = download(url1, folder="./test_url", overwrite=True)
+        # where
+        assert isinstance(file_names, list)
+        assert len(file_names) == 2
+        assert isinstance(file_name, str)
 
-#         # clean up
-#         shutil.rmtree(os.path.expanduser("./test_urls"))
-#         shutil.rmtree(os.path.expanduser("./test_url"))
-
-
-class TestValidatorFunctions(unittest.TestCase):
-    def testStringValidation(self):
-
-        # These should pass
-        out1 = validate_string("StringProperty", "Hello")  # string
-        out2 = validate_string(
-            "StringProperty", "Hello", ["hello", "HELLO", "Hello"]
-        )  # in list
-        out3 = validate_string(
-            "StringProperty", "Hello", ["hello", "HELLO"], False
-        )  # in list (case insensitive)
-
-        # These should fail
-        self.assertRaises(TypeError, validate_string, "StringProperty", 4.0)
-        self.assertRaises(
-            ValueError,
-            validate_string,
-            "StringProperty",
-            "ARGGHHHHH",
-            ["hello", "HELLO"],
-        )
-        self.assertRaises(
-            ValueError,
-            validate_string,
-            "StringProperty",
-            "Hello",
-            ["hello", "HELLO"],
-            True,
-        )
-
-        print("VALIDATE STRING PROPERTY PASSED!")
-
-    def testIntegerValidation(self):
-
-        # These should pass
-        out1 = validate_integer("IntegerProperty", -4)  # integer
-        out2 = validate_integer(
-            "IntegerProperty", -4.0
-        )  # float is converted to integer
-        out3 = validate_integer(
-            "IntegerProperty", -4, -10, 6
-        )  # integer with min and max
-
-        # These should fail
-        self.assertRaises(TypeError, validate_integer, "IntegerProperty", "Hello")
-        self.assertRaises(ValueError, validate_integer, "IntegerProperty", -4, 0, 100)
-
-        print("VALIDATE INTEGER PROPERTY PASSED!")
-
-    def testFloatValidation(self):
-
-        # These should pass
-        out1 = validate_float("FloatProperty", -4.0)  # float
-        out2 = validate_float("FloatProperty", -4)  # int converted to float
-        out3 = validate_float("FloatProperty", 1e-3)  # int converted to float
-        out4 = validate_float("FloatProperty", -4, -10, 6)  # integer with min and max
-
-        # These should fail
-        self.assertRaises(TypeError, validate_float, "FloatProperty", "Hello")
-        self.assertRaises(TypeError, validate_float, "FloatProperty", -4 + 6j)
-        self.assertRaises(ValueError, validate_float, "FloatProperty", -4, 0, 100)
-
-        print("VALIDATE FLOAT PROPERTY PASSED!")
-
-    def testListValidation(self):
-
-        # These should pass
-        out1 = validate_list_of_types("ListProperty", [], object)  # empty list
-        out2 = validate_list_of_types(
-            "ListProperty", ["Hello", 6, 45.0], object
-        )  # unspecified list
-        out3 = validate_list_of_types(
-            "ListProperty", [6, 45.0, 6 + 2j], (int, float, complex)
-        )  # multiple accepted types
-        out4 = validate_list_of_types("ListProperty", -4.0, float)  # list of 1
-
-        # These should fail
-        self.assertRaises(TypeError, validate_list_of_types, "ListProperty", 4, float)
-        self.assertRaises(
-            TypeError, validate_list_of_types, "ListProperty", [6, 45.0, 6 + 2j], str
-        )
-
-        print("VALIDATE LIST OF CLASSTYPE PROPERTY PASSED!")
-
-    def testLocationValidation(self):
-
-        # These should pass
-        out1 = validate_location_property("LocationProperty", np.r_[1, 2, 3])  # rows
-        out2 = validate_location_property("LocationProperty", np.c_[1, 2, 3])  # columns
-        out3 = validate_location_property("LocationProperty", [1, 2, 3])  # array_like
-        out4 = validate_location_property(
-            "LocationProperty", np.r_[1, 2, 3], 3
-        )  # location with dimension
-
-        # These should fail
-        self.assertRaises(
-            ValueError,
-            validate_location_property,
-            "LocationProperty",
-            np.r_[1, 2, 3],
-            2,
-        )
-        self.assertRaises(
-            TypeError,
-            validate_location_property,
-            "LocationProperty",
-            np.random.rand(3, 2),
-        )
-
-        print("VALIDATE SINGLE LOCATION PROPERTY PASSED!")
-
-    def testLocationValidation(self):
-
-        # These should pass
-        out1 = validate_location_property("LocationProperty", 6)  # value
-        out2 = validate_location_property("LocationProperty", np.r_[1, 2, 3])  # rows
-        out3 = validate_location_property("LocationProperty", np.c_[1, 2, 3])  # columns
-        out4 = validate_location_property("LocationProperty", [1, 2, 3])  # array_like
-        out5 = validate_location_property(
-            "LocationProperty", np.r_[1, 2, 3], 3
-        )  # location with dimension
-
-        # These should fail
-        self.assertRaises(
-            ValueError,
-            validate_location_property,
-            "LocationProperty",
-            np.r_[1, 2, 3],
-            2,
-        )
-        self.assertRaises(
-            TypeError,
-            validate_location_property,
-            "LocationProperty",
-            np.random.rand(3, 2),
-        )
-
-        print("VALIDATE SINGLE LOCATION PROPERTY PASSED!")
-
-    def testNDarrayValidation(self):
-
-        # These should pass
-        out1 = validate_ndarray_with_shape(
-            "NDarrayProperty", np.random.rand(3, 3, 3), ("*", "*", "*"), float
-        )  # higher dimension is fine
-        out2 = validate_ndarray_with_shape(
-            "NDarrayProperty", np.random.rand(3, 2), (3, 2)
-        )  # dimensions match
-        out3 = validate_ndarray_with_shape(
-            "NDarrayProperty", np.c_[1, 2, 3], (1, 3), float
-        )  # you set the data type
-
-        # These should fail
-        self.assertRaises(
-            NotImplementedError,
-            validate_ndarray_with_shape,
-            "NDarrayProperty",
-            np.random.rand(2, 2, 2, 2),
-        )
-        self.assertRaises(
-            ValueError,
-            validate_ndarray_with_shape,
-            "NDarrayProperty",
-            np.random.rand(3, 2),
-            (3, 3, "*"),
-        )
-        self.assertRaises(TypeError, validate_ndarray_with_shape, "NDarrayProperty", 6)
-
-        print("VALIDATE NDARRAY PROPERTY PASSED!")
+        # clean up
+        shutil.rmtree(os.path.expanduser("./test_urls"))
+        shutil.rmtree(os.path.expanduser("./test_url"))
 
 
 if __name__ == "__main__":
