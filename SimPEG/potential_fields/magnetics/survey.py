@@ -1,5 +1,7 @@
 import numpy as np
 from ...survey import BaseSurvey
+from ...utils.code_utils import validate_type
+from .sources import SourceField
 
 
 class Survey(BaseSurvey):
@@ -18,12 +20,14 @@ class Survey(BaseSurvey):
     # )
 
     def __init__(self, source_field, **kwargs):
-        self.source_field = source_field
+        self.source_field = validate_type(
+            "source_field", source_field, SourceField, cast=True
+        )
         BaseSurvey.__init__(self, **kwargs)
 
     def eval(self, fields):
         """Compute the fields
-        
+
         Parameters
         ----------
         fields : numpy.ndarray

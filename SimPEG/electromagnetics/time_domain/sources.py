@@ -10,6 +10,10 @@ from ...utils.code_utils import (
     deprecate_property,
     validate_float,
     validate_string,
+    validate_type,
+    validate_ndarray_with_shape,
+    validate_location_property,
+    validate_callable,
 )
 
 from ...utils import set_kwargs, sdiag, Zero
@@ -62,13 +66,7 @@ class BaseWaveform:
 
     @has_initial_fields.setter
     def has_initial_fields(self, value):
-        if not isinstance(value, bool):
-            raise ValueError(
-                "The value of has_initial_fields must be a bool (True / False)."
-                f" The provided value, {value} is not."
-            )
-        else:
-            self._has_initial_fields = value
+        self._has_initial_fields = validate_type("has_initial_fields", value, bool)
 
     @property
     def off_time(self):
@@ -86,8 +84,7 @@ class BaseWaveform:
     @off_time.setter
     def off_time(self, value):
         """ "off-time of the source"""
-        value = validate_float("off_time", value)
-        self._off_time = value
+        self._off_time = validate_float("off_time", value)
 
     @property
     def epsilon(self):
@@ -102,15 +99,36 @@ class BaseWaveform:
 
     @epsilon.setter
     def epsilon(self, value):
-        value = validate_float("epsilon", value, min_val=1e-20)
-        self._epsilon = value
+        self._epsilon = validate_float("epsilon", value, min_val=0)
 
     def eval(self, time):
-        """Not implemented for base TDEM source"""
+        """Evaluate current waveform at a given time
+
+        Parameters
+        ----------
+        time : float
+            A time
+
+        Returns
+        -------
+        float
+            Source current at the time provided
+        """
         raise NotImplementedError
 
     def eval_deriv(self, time):
-        """Not implemented for base TDEM source"""
+        """Evaluate the time derivative of the linear ramp-off waveform at given times
+
+        Parameters
+        ----------
+        time : float or numpy.ndarray
+            Time(s) to evaluate the waveform derivative at.
+
+        Returns
+        -------
+        float or numpy.ndarray
+            Source current at the time provided
+        """
         raise NotImplementedError  # needed for E-formulation
 
     ##########################
@@ -167,23 +185,9 @@ class StepOffWaveform(BaseWaveform):
     """
 
     def __init__(self, off_time=0.0, **kwargs):
-        super(StepOffWaveform, self).__init__(
-            off_time=off_time, has_initial_fields=True
-        )
+        super().__init__(off_time=off_time, has_initial_fields=True)
 
     def eval(self, time):
-        """Evaluate step-off waveform at a given time
-
-        Parameters
-        ----------
-        time : float
-            A time
-
-        Returns
-        -------
-        float
-            Source current at the time provided
-        """
         if (abs(time - 0.0) < self.epsilon) or ((time - self.off_time) < self.epsilon):
             return 1.0
         else:
@@ -219,18 +223,6 @@ class RampOffWaveform(BaseWaveform):
         )
 
     def eval(self, time):
-        """Evaluate linear ramp-off waveform at a given time
-
-        Parameters
-        ----------
-        time : float
-            A time
-
-        Returns
-        -------
-        float
-            Source current at the time provided
-        """
         if abs(time - 0.0) < self.epsilon:
             return 1.0
         elif time < self.off_time:
@@ -316,26 +308,9 @@ class RawWaveform(BaseWaveform):
 
     @waveform_function.setter
     def waveform_function(self, value):
-        if not callable(value):
-            raise ValueError(
-                "waveform_function must be a function. The input value is type: "
-                f"{type(value)}"
-            )
-        self._waveform_function = value
+        self._waveform_function = validate_callable("waveform_function", value)
 
     def eval(self, time):
-        """Evaluate custom waveform function at a given time
-
-        Parameters
-        ----------
-        time : float
-            A time
-
-        Returns
-        -------
-        float
-            Source current at the time provided
-        """
         return self.waveform_function(time)
 
     waveFct = deprecate_property(
@@ -413,22 +388,10 @@ class VTEMWaveform(BaseWaveform):
 
     @ramp_on_rate.setter
     def ramp_on_rate(self, value):
-        value = validate_float("ramp_on_rate", value)
+        value = validate_float("ramp_on_rate", value, min_val=0.0, inclusive_min=False)
         self._ramp_on_rate = value
 
     def eval(self, time):
-        """Evaluate VTEM waveform at a given time
-
-        Parameters
-        ----------
-        time : float
-            A time
-
-        Returns
-        -------
-        float
-            Source current at the time provided
-        """
         if time <= self.peak_time:
             return (1.0 - np.exp(-self.ramp_on_rate * time / self.peak_time)) / (
                 1.0 - np.exp(-self.ramp_on_rate)
@@ -532,21 +495,9 @@ class TrapezoidWaveform(BaseWaveform):
 
     @ramp_on.setter
     def ramp_on(self, value):
-        if isinstance(value, (tuple, list)):
-            value = np.asarray(value, dtype=float)
-        if not isinstance(value, np.ndarray):
-            raise ValueError(
-                f"ramp_on must be a numpy array, list or tuple, the value provided, {value} is "
-                f"{type(value)}"
-            )
-        if len(value) != 2:
-            raise ValueError(
-                f"ramp_on must be length 2 [start, end]. The value provided has "
-                f"length {len(value)}"
-            )
-
-        value = value.astype(float)
-        self._ramp_on = value
+        self._ramp_on = validate_ndarray_with_shape(
+            "ramp_on", value, shape=(2,), dtype=float
+        )
 
     @property
     def ramp_off(self):
@@ -564,35 +515,11 @@ class TrapezoidWaveform(BaseWaveform):
 
     @ramp_off.setter
     def ramp_off(self, value):
-        if isinstance(value, (tuple, list)):
-            value = np.asarray(value, dtype=float)
-        if not isinstance(value, np.ndarray):
-            raise ValueError(
-                f"ramp_off must be a numpy array, list or tuple, the value provided, {value} is "
-                f"{type(value)}"
-            )
-        if len(value) != 2:
-            raise ValueError(
-                f"ramp_off must be length 2 [start, end]. The value provided has "
-                f"length {len(value)}"
-            )
-
-        value = value.astype(float)
-        self._ramp_off = value
+        self._ramp_off = validate_ndarray_with_shape(
+            "ramp_off", value, shape=(2,), dtype=float
+        )
 
     def eval(self, time):
-        """Evaluate the waveform at a given time
-
-        Parameters
-        ----------
-        time : float
-            A time
-
-        Returns
-        -------
-        float
-            Source current at the time provided
-        """
         if time < self.ramp_on[0]:
             return 0
         elif time >= self.ramp_on[0] and time <= self.ramp_on[1]:
@@ -758,18 +685,6 @@ class QuarterSineRampOnWaveform(TrapezoidWaveform):
         )
 
     def eval(self, time):
-        """Evaluate the waveform at a given time
-
-        Parameters
-        ----------
-        time : float
-            A time
-
-        Returns
-        -------
-        float
-            Source current at the time provided
-        """
         if time < self.ramp_on[0]:
             return 0
         elif time >= self.ramp_on[0] and time <= self.ramp_on[1]:
@@ -816,8 +731,17 @@ class QuarterSineRampOnWaveform(TrapezoidWaveform):
 class HalfSineWaveform(TrapezoidWaveform):
     """
     A waveform that has a quarter-sine ramp-on and a quarter-cosine ramp-off.
+
     When the end of ramp-on and start of ramp off are on the same spot, it looks
     like a half sine wave.
+
+    Parameters
+    ----------
+    ramp_on: tuple
+        times during which there is a quarter-sine ramp-on
+
+    ramp_off: tuple
+        times between which there is a quarter-cosine ramp-off.
     """
 
     def __init__(self, ramp_on, ramp_off, **kwargs):
@@ -826,18 +750,6 @@ class HalfSineWaveform(TrapezoidWaveform):
         )
 
     def eval(self, time):
-        """Evaluate the waveform at a given time
-
-        Parameters
-        ----------
-        time : float
-            A time
-
-        Returns
-        -------
-        float
-            Source current at the time provided
-        """
         if time < self.ramp_on[0]:
             return 0
         elif time >= self.ramp_on[0] and time <= self.ramp_on[1]:
@@ -891,16 +803,31 @@ class HalfSineWaveform(TrapezoidWaveform):
 
 
 class PiecewiseLinearWaveform(BaseWaveform):
+    """
+    A waveform defined by a piecewise linear description of current.
+
+    Parameters
+    ----------
+    times : array_like
+        The time where current is defined.
+    currents : array_like
+        The values of the current.
+    """
+
     def __init__(self, times, currents, **kwargs):
-        super().__init__(**kwargs)
-        times = np.asarray(times)
-        currents = np.asarray(currents)
+        times = validate_ndarray_with_shape("times", times, shape=("*",), dtype=float)
+        currents = validate_ndarray_with_shape(
+            "currents", currents, shape=("*",), dtype=float
+        )
         if len(times) != len(currents):
             raise ValueError("time array and current array must be the same length")
+
         # ensure it is a sorted list...
         ind_sort = np.argsort(times)
         self.times = times[ind_sort]
         self.currents = currents[ind_sort]
+
+        super().__init__(has_initial_fields=(self.currents[0] != 0.0), **kwargs)
 
     @property
     def times(self):
@@ -915,10 +842,9 @@ class PiecewiseLinearWaveform(BaseWaveform):
 
     @times.setter
     def times(self, val):
-        val = np.asarray(val, dtype=float)
-        if len(val.shape) != 1:
-            raise ValueError("times should be a 1D numpy array")
-        self._times = val
+        self._times = validate_ndarray_with_shape(
+            "times", val, shape=("*",), dtype=float
+        )
 
     @property
     def currents(self):
@@ -932,10 +858,9 @@ class PiecewiseLinearWaveform(BaseWaveform):
 
     @currents.setter
     def currents(self, val):
-        val = np.asarray(val, dtype=float)
-        if len(val.shape) != 1:
-            raise ValueError("times should be a 1D numpy array")
-        self._currents = val
+        self._currents = validate_ndarray_with_shape(
+            "currents", val, shape=("*",), dtype=float
+        )
 
     def eval(self, time):
         times = self.times
@@ -985,11 +910,11 @@ class BaseTDEMSrc(BaseEMSrc):
     ----------
     receiver_list : list of SimPEG.electromagnetics.frequency_domain.receivers.BaseRx
         A list of FDEM receivers
-    location : (dim) np.ndarray
+    location : (dim) numpy.ndarray
         Source locations
     waveform : BaseWaveform, default=StepOffWaveform
         A SimPEG waveform object
-    source_type : str in {'inductive','galvanic'}
+    source_type : {'inductive','galvanic'}
         Implement as an inductive or galvanic source
     """
 
@@ -1051,13 +976,7 @@ class BaseTDEMSrc(BaseEMSrc):
 
     @srcType.setter
     def srcType(self, var):
-        if isinstance(var, str):
-            if var in ["inductive", "galvanic"]:
-                self._srcType = var
-            else:
-                raise ValueError("srcType must be either 'inductive' or 'galvanic'.")
-        else:
-            raise TypeError(f"srcType must be str, got {type(var)}")
+        self._srcType = validate_string("srcType", var, ["inductive", "galvanic"])
 
     def bInitial(self, simulation):
         """Return initial B-field (``Zero`` for ``BaseTDEMSrc`` class)
@@ -1131,7 +1050,7 @@ class BaseTDEMSrc(BaseEMSrc):
             An instance of a time-domain electromagnetic simulation
         time :
             The time at which you want to compute the derivative
-        v : np.ndarray
+        v : numpy.ndarray
             A vector
         adjoint : bool
             If ``True``, return the adjoint operation
@@ -1182,13 +1101,15 @@ class MagDipole(BaseTDEMSrc):
     ----------
     receiver_list : list of SimPEG.electromagnetics.time_domain.receivers.BaseRx
         A list of TDEM receivers
-    location : (dim) np.ndarray, default = np.r_[0., 0., 0.]
+    location : (dim) numpy.ndarray, default = np.r_[0., 0., 0.]
         Source location.
     moment : float
         Magnetic dipole moment amplitude
+    orientation : {"z", "x", "y"} or (3) numpy.ndarray
+        Orientation of the magnetic dipole.
     mu : float
         Background magnetic permeability
-    source_type : str in {'inductive','galvanic'}
+    source_type : {'inductive', 'galvanic'}
         Implement as an inductive or galvanic source
     """
 
@@ -1213,13 +1134,15 @@ class MagDipole(BaseTDEMSrc):
     def __init__(
         self,
         receiver_list=None,
-        location=np.r_[0.0, 0.0, 0.0],
+        location=None,
         moment=1.0,
         orientation="z",
         mu=mu_0,
         srcType="inductive",
         **kwargs,
     ):
+        if location is None:
+            location = np.r_[0.0, 0.0, 0.0]
 
         super(MagDipole, self).__init__(
             receiver_list=receiver_list, location=location, **kwargs
@@ -1243,18 +1166,7 @@ class MagDipole(BaseTDEMSrc):
 
     @location.setter
     def location(self, vec):
-
-        try:
-            vec = np.atleast_1d(vec).astype(float).squeeze()
-        except:
-            raise TypeError(f"location must be array_like, got {type(vec)}")
-
-        if len(vec) > 3:
-            raise ValueError(
-                f"location must be array_like with shape (3), got {len(vec)}"
-            )
-
-        self._location = vec
+        self._location = validate_location_property("location", vec, dim=3)
 
     @property
     def moment(self):
@@ -1269,7 +1181,7 @@ class MagDipole(BaseTDEMSrc):
 
     @moment.setter
     def moment(self, value):
-        value = validate_float("moment", value, min_val=1e-20)
+        value = validate_float("moment", value, min_val=0, inclusive_min=False)
         self._moment = value
 
     @property
@@ -1296,18 +1208,7 @@ class MagDipole(BaseTDEMSrc):
                 var = np.r_[0.0, 1.0, 0.0]
             elif var == "z":
                 var = np.r_[0.0, 0.0, 1.0]
-        else:
-            try:
-                var = np.atleast_1d(var).astype(float)
-            except:
-                raise TypeError(
-                    f"orientation must be str or array_like, got {type(var)}"
-                )
-
-            if len(var) != 3:
-                raise ValueError(
-                    f"orientation must be array_like with shape (3,), got {len(var)}"
-                )
+        var = validate_ndarray_with_shape("orientation", var, shape=(3,), dtype=float)
 
         # Normalize the orientation
         var /= np.sqrt(np.sum(var ** 2))
@@ -1560,15 +1461,15 @@ class CircularLoop(MagDipole):
         A list of TDEM receivers
     location : (dim) np.ndarray, default = np.r_[0., 0., 0.]
         Source location.
-    orientation : str, default = 'z'
-        Loop orientation. One of ('x', 'y', 'z')
+    orientation : {'z', 'x', 'y'} or (3) numpy.ndarray
+        Loop orientation.
     radius : float, default = 1.
         Loop radius
     current : float, default = 1.
         Source current
     mu : float
         Background magnetic permeability
-    srcType : str, default = 'inductive'
+    srcType : {'inductive', "galvanic"}
         'inductive' to implement as inductive source and 'galvanic' to implement
         as galvanic source
     N : int, default = 1
@@ -1581,7 +1482,7 @@ class CircularLoop(MagDipole):
     def __init__(
         self,
         receiver_list=None,
-        location=np.r_[0.0, 0.0, 0.0],
+        location=None,
         orientation="z",
         radius=1.0,
         current=1.0,
@@ -1590,6 +1491,8 @@ class CircularLoop(MagDipole):
         srcType="inductive",
         **kwargs,
     ):
+        if location is None:
+            location = np.r_[0.0, 0.0, 0.0]
 
         if "moment" in kwargs:
             kwargs.pop("moment")
@@ -1620,7 +1523,7 @@ class CircularLoop(MagDipole):
 
     @radius.setter
     def radius(self, rad):
-        rad = validate_float("radius", rad, min_val=1e-10)
+        rad = validate_float("radius", rad, min_val=0, inclusive_min=False)
         self._radius = rad
 
     # current = properties.Float("current in the loop", default=1.0)
@@ -1693,7 +1596,7 @@ class LineCurrent(BaseTDEMSrc):
     ----------
     receiver_list : list of SimPEG.electromagnetics.time_domain.receivers.BaseRx
         List of TDEM receivers
-    locations : (n,3) numpy.ndarray
+    locations : (n, 3) numpy.ndarray
         Array defining the node locations for the wire path. For inductive sources,
         you must close the loop.
     """
@@ -1733,26 +1636,18 @@ class LineCurrent(BaseTDEMSrc):
 
         Returns
         -------
-        (n, 3) np.ndarray
+        (n, 3) numpy.ndarray
             Line current node locations.
         """
         return self._location
 
     @location.setter
     def location(self, loc):
-        try:
-            loc = np.atleast_2d(loc).astype(float)
-        except:
-            raise TypeError(f"location must be (n, 3) array_like, got {type(loc)}")
-
-        if loc.ndim != 2:
-            raise TypeError(f"location must be (n, 3) array_like, got {type(loc)}")
-
+        loc = validate_ndarray_with_shape("location", loc, shape=("*", 3), dtype=float)
         if np.all(np.isclose(loc[0, :], loc[-1, :])):
-            self.srcType = "inductive"
+            self._srcType = "inductive"
         else:
-            self.srcType = "galvanic"
-
+            self._srcType = "galvanic"
         self._location = loc
 
     @property
@@ -2047,7 +1942,7 @@ class LineCurrent(BaseTDEMSrc):
         ----------
         simulation : BaseTDEMSimulation
             A SimPEG TDEM simulation
-        v : np.ndarray
+        v : numpy.ndarray
             A vector
         adjoint : bool
             If ``True``, return the adjoint
@@ -2096,7 +1991,7 @@ class LineCurrent(BaseTDEMSrc):
         ----------
         simulation : BaseTDEMSimulation
             A SimPEG tDEM simulation
-        v : np.ndarray
+        v : numpy.ndarray
             A vector
         adjoint : bool
             If ``True``, return the adjoint

@@ -27,6 +27,7 @@ Waveform Functions and Classes
   waveforms.ArbitraryDiscrete
   waveforms.ArbitraryPiecewise
   waveforms.Custom
+  waveforms.BaseVRMWaveform
 
 
 Source Classes

@@ -4,15 +4,8 @@ import scipy.ndimage as ndi
 import scipy.sparse as sp
 from .mat_utils import mkvc
 from scipy.spatial import Delaunay
-from .code_utils import deprecate_method, deprecate_function
+from .code_utils import deprecate_function
 from discretize.base import BaseMesh
-
-import sys
-
-if sys.version_info < (3,):
-    num_types = (int, long, float)
-else:
-    num_types = (int, float)
 
 
 def add_block(cell_centers, model, p0, p1, prop_value):
@@ -30,7 +23,7 @@ def add_block(cell_centers, model, p0, p1, prop_value):
         Top northeast corner of the block
     prop_value : float
         Physical property value assigned to the block
-    
+
     Returns
     -------
     (n_cells) numpy.ndarray
@@ -118,7 +111,9 @@ def get_indices_block(p0, p1, cell_centers):
     return ind
 
 
-def create_block_in_wholespace(cell_centers, p0, p1, background_value=None, block_value=None):
+def create_block_in_wholespace(
+    cell_centers, p0, p1, background_value=0.0, block_value=1.0
+):
     """Construct cell-centered model comprised of a block in a wholespace.
 
     Parameters
@@ -129,9 +124,9 @@ def create_block_in_wholespace(cell_centers, p0, p1, background_value=None, bloc
         Bottom southwest corner of the block
     p1 : (dim) numpy.ndarray
         Top northeast corner of the block
-    background_value : float
-        Background physical property value
-    block_value : float
+    background_value : float, optional
+        Background physical property value.
+    block_value : float, optional
         Block physical property value
 
     Returns
@@ -142,15 +137,12 @@ def create_block_in_wholespace(cell_centers, p0, p1, background_value=None, bloc
 
     if isinstance(cell_centers, BaseMesh):
         cell_centers = cell_centers.cell_centers
-    
+
     # Used to use a single input 'vals' for background and block
-    if isinstance(background_value, float) is False:
-        if background_value is None:
-            background_value = 0.
-            block_value = 1.
-        else:
-            block_value = background_value[1]
-            background_value = background_value[0]
+    try:
+        background_value, block_value = background_value
+    except TypeError:
+        pass
 
     sigma = np.zeros(cell_centers.shape[0]) + background_value
     ind = getIndicesBlock(p0, p1, cell_centers)
@@ -160,20 +152,22 @@ def create_block_in_wholespace(cell_centers, p0, p1, background_value=None, bloc
     return mkvc(sigma)
 
 
-def create_ellipse_in_wholespace(cell_centers, center=None, anisotropy=None, slope=10.0, theta=0.0):
+def create_ellipse_in_wholespace(
+    cell_centers, center=None, anisotropy=None, slope=10.0, theta=0.0
+):
     """Construct cell-centered model comprised of an ellipsoid in a wholespace.
 
     Parameters
     ----------
     cell_centers : (n_cells, dim) numpy.ndarray or discretize.base.BaseMesh
         A mesh or its gridded cell center locations
-    center : (dim) numpy.ndarray
-        Center of the ellipsoid
-    anisotropy : (dim) numpy.ndarray
-        Anisotropy
-    slope : float
+    center : (dim) numpy.ndarray, optional
+        Center of the ellipsoid, default is [0, 0, 0]
+    anisotropy : (dim) numpy.ndarray, optional
+        Anisotropy, default is an isotropic elipse ([1, 1, 1]).
+    slope : float, optional
         Slope
-    theta : float
+    theta : float, optional
         Angle
 
     Returns
@@ -214,7 +208,7 @@ def create_ellipse_in_wholespace(cell_centers, center=None, anisotropy=None, slo
 
 def get_indices_sphere(center, radius, cell_centers):
     """Get indices for cells whose centers lie inside a sphere
-    
+
     Parameters
     ----------
     center : (dim) numpy.ndarray
@@ -247,7 +241,10 @@ def get_indices_sphere(center, radius, cell_centers):
         # Define the reference points
 
         ind = (
-            np.sqrt((center[0] - cell_centers[:, 0]) ** 2 + (center[1] - cell_centers[:, 1]) ** 2)
+            np.sqrt(
+                (center[0] - cell_centers[:, 0]) ** 2
+                + (center[1] - cell_centers[:, 1]) ** 2
+            )
             < radius
         )
 
@@ -266,7 +263,7 @@ def get_indices_sphere(center, radius, cell_centers):
     return ind
 
 
-def create_2_layer_model(cell_centers, depth, top_value=None, bottom_value=None):
+def create_2_layer_model(cell_centers, depth, top_value=1.0, bottom_value=0.0):
     """Create a basic two layered model
 
     This function creates a physical property model consisting of 2 layers.
@@ -277,9 +274,9 @@ def create_2_layer_model(cell_centers, depth, top_value=None, bottom_value=None)
         A mesh or its gridded cell center locations
     depth : float
         Depth defining the interface between layer 1 and layer 2
-    top_value : float
+    top_value : float, optional
         Physical property value for the top layer
-    bottom_vale : float
+    bottom_value : float, optional
         Physical property value for the bottom layer
 
     Returns
@@ -292,15 +289,11 @@ def create_2_layer_model(cell_centers, depth, top_value=None, bottom_value=None)
     if isinstance(cell_centers, BaseMesh):
         cell_centers = cell_centers.cell_centers
 
-    # Used to use a single input 'vals' for background and block
-    if isinstance(background_value, float) is False:
-        if background_value is None:
-            bottom_value = 0.
-            top_value = 1.
-        else:
-            bottom_value = top_value[1]
-            top_value = top_value[0]
-            
+    try:
+        top_value, bottom_value = top_value
+    except TypeError:
+        pass
+
     sigma = np.zeros(cell_centers.shape[0]) + bottom_value
 
     dim = np.size(cell_centers[0, :])
@@ -371,7 +364,7 @@ def create_from_function(cell_centers, fun_handle):
 
 def create_layers_model(cell_centers, layer_tops, layer_values):
     """Create physical property model consisting of a set of infinite horizontal layers.
-    
+
     Parameters
     ----------
     cell_centers : (n_cells, dim) numpy.ndarray or discretize.base.BaseMesh
@@ -381,7 +374,7 @@ def create_layers_model(cell_centers, layer_tops, layer_values):
         The first value can be very large if the top layer (e.g. air) extends to infinity.
     layer_values : (n_layer) numpy.ndarray
         Physical property value for each layer from top to bottom.
-    
+
     Returns
     -------
     (n_cells) numpy.ndarray
@@ -423,23 +416,22 @@ def create_layers_model(cell_centers, layer_tops, layer_values):
     return model
 
 
-def create_random_model(shape, seed=None, anisotropy=None, its=100, bounds=None):
+def create_random_model(shape, seed=1000, anisotropy=None, its=100, bounds=None):
     """Create random model by convolving a kernel with a uniformly distributed random model.
-    
+
     Parameters
     ----------
     shape : int or tuple of int
         Shape of the model. Can define a vector of size (n_cells) or define the dimensions of a tensor
-    seed : int
-        Sets the seed for the random uniform model that is convolved with the kernel.
-        If ``None``, an arbitrary seed is used.
+    seed : int, optional
+        If not None, sets the seed for the random uniform model that is convolved with the kernel.
     anisotropy : numpy.ndarray
         this is the (*3*, *n*) blurring kernel that is used.
     its : int
         Number of smoothing iterations after convolutions
     bounds : list of float
         Lower and upper bound for the model values
-    
+
     Returns
     -------
     numpy.ndarray
@@ -460,14 +452,13 @@ def create_random_model(shape, seed=None, anisotropy=None, its=100, bounds=None)
     if bounds is None:
         bounds = [0, 1]
 
-    if seed is None:
-        seed = np.random.randint(1e3)
+    if seed is not None:
+        np.random.seed(seed)
         print("Using a seed of: ", seed)
 
-    if isinstance(shape, num_types):
+    if isinstance(shape, (int, float)):
         shape = (shape,)  # make it a tuple for consistency
 
-    np.random.seed(seed)
     mr = np.random.rand(*shape)
     if anisotropy is None:
         if len(shape) == 1:
@@ -522,15 +513,12 @@ def get_indices_polygon(mesh, pts):
     return inds
 
 
-
-
 ################################################
 #             DEPRECATED FUNCTIONS
 ################################################
 
-addBlock = deprecate_function(
-    add_block, "addBlock", removal_version="0.16.0"
-)
+
+addBlock = deprecate_function(add_block, "addBlock", removal_version="0.16.0")
 
 getIndicesBlock = deprecate_function(
     get_indices_block, "getIndicesBlock", removal_version="0.16.0"

@@ -16,26 +16,28 @@ class Counter(object):
     --------
     If you want to use this, import *count* or *timeIt* and use them as
     decorators on class methods.
-    
 
-    >>> from SimPEG.utils import Counter
-    >>> 
+
+    >>> from SimPEG.utils import Counter, count, timeIt
+
     >>> class MyClass(object):
-    >>>     def __init__(self, url):
-    >>>         self.counter = Counter()
-    >>> 
-    >>>     @count
-    >>>     def MyMethod(self):
-    >>>         pass
-    >>> 
-    >>>     @timeIt
-    >>>     def MySecondMethod(self):
-    >>>         pass
-    >>> 
+    ...     def __init__(self, url):
+    ...         self.counter = Counter()
+    ...     @count
+    ...     def MyMethod(self):
+    ...         pass
+    ...     @timeIt
+    ...     def MySecondMethod(self):
+    ...         pass
+
     >>> c = MyClass('blah')
     >>> for i in range(100): c.MyMethod()
     >>> for i in range(300): c.MySecondMethod()
     >>> c.counter.summary()
+    Counters:
+      MyClass.MyMethod                        :      100
+    Times:                                        mean      sum
+      MyClass.MySecondMethod                  : 9.08e-07, 2.72e-04,  300x
 
     """
 
@@ -58,7 +60,7 @@ class Counter(object):
 
     def countTic(self, prop):
         """Times a property call, this is the init call.
-        
+
         Parameters
         ----------
         prop : str
@@ -71,7 +73,7 @@ class Counter(object):
 
     def countToc(self, prop):
         """Times a property call, this is the end call.
-        
+
         Parameters
         ----------
         prop : str
@@ -101,12 +103,13 @@ class Counter(object):
 
 def count(f):
     """Count function (**DOCSTRING INCOMPLETE**)
-    
+
     Returns
     -------
     wrapper
         Returns the wrapper
     """
+
     @wraps(f)
     def wrapper(self, *args, **kwargs):
         counter = getattr(self, "counter", None)
@@ -120,12 +123,13 @@ def count(f):
 
 def timeIt(f):
     """Timing function (**DOCSTRING INCOMPLETE**)
-    
+
     Returns
     -------
     wrapper
         Returns the wrapper
     """
+
     @wraps(f)
     def wrapper(self, *args, **kwargs):
         counter = getattr(self, "counter", None)

@@ -106,6 +106,8 @@ def set_kwargs(obj, ignore=None, **kwargs):
         Instance of a class
     ignore : list, optional
         ``list`` of ``str`` denoting kwargs that are ignored (not being set)
+    **kwargs
+        Keyword arguments to set on the object.
     """
     if ignore is None:
         ignore = []
@@ -122,7 +124,9 @@ def set_kwargs(obj, ignore=None, **kwargs):
 
 
 def print_done(obj, printers, name="Done", pad=""):
-    """Print completion of an operation (**DOCSTRING INCOMPLETE**)
+    """Print completion of an operation.
+
+    (**DOCSTRING INCOMPLETE**)
 
     Parameters
     ----------
@@ -146,7 +150,9 @@ def print_done(obj, printers, name="Done", pad=""):
 
 
 def print_titles(obj, printers, name="Print Titles", pad=""):
-    """Print titles (**DOCSTRING INCOMPLETE**)
+    """Print titles.
+
+    (**DOCSTRING INCOMPLETE**)
 
     Parameters
     ----------
@@ -170,14 +176,16 @@ def print_titles(obj, printers, name="Print Titles", pad=""):
 
 
 def print_line(obj, printers, pad=""):
-    """Print line (**DOCSTRING INCOMPLETE**)
+    """Print line.
+
+    (**DOCSTRING INCOMPLETE**)
 
     Parameters
     ----------
     obj : object
         An object
     printers : list of dict
-        Has keys "width" and "title"
+        Dictonaries each have keys "width" and "title"
     pad : str, default: ""
         Trailing string
     """
@@ -190,7 +198,9 @@ def print_line(obj, printers, pad=""):
 
 
 def check_stoppers(obj, stoppers):
-    """Check stopping rules (**DOCSTRING INCOMPLETE**)
+    """Check stopping rules.
+
+    (**DOCSTRING INCOMPLETE**)
 
     Parameters
     ----------
@@ -201,7 +211,7 @@ def check_stoppers(obj, stoppers):
 
     Returns
     -------
-    bool :
+    bool
         Whether stopping criteria was encountered
     """
     optimal = []
@@ -223,7 +233,9 @@ def check_stoppers(obj, stoppers):
 
 
 def print_stoppers(obj, stoppers, pad="", stop="STOP!", done="DONE!"):
-    """Print stoppers (**DOCSTRING INCOMPLETE**)
+    """Print stoppers.
+
+    (**DOCSTRING INCOMPLETE**)
 
     Parameters
     ----------
@@ -247,7 +259,7 @@ def print_stoppers(obj, stoppers, pad="", stop="STOP!", done="DONE!"):
 
 
 def call_hooks(match, mainFirst=False):
-    """Wrap a function to an instance of a class (**DOCSTRING INCOMPLETE**)
+    """Wrap a function to an instance of a class.
 
     Use the following syntax::
 
@@ -316,7 +328,9 @@ def call_hooks(match, mainFirst=False):
 
 
 def dependent_property(name, value, children, doc):
-    """Dependent property (**DOCSTRING INCOMPLETE**)
+    """Dependent property.
+
+    Creates a property that mirrors a second property name.
 
     Parameters
     ----------
@@ -347,7 +361,8 @@ def dependent_property(name, value, children, doc):
 
 
 def requires(var):
-    """Wrap a function (**DOCSTRING INCOMPLETE**)
+    """Wrap a function to require a specfic attribute.
+
 
     Use the following syntax to wrap a funciton::
 
@@ -817,7 +832,14 @@ def validate_integer(property_name, var, min_val=-np.inf, max_val=np.inf):
         return var
 
 
-def validate_float(property_name, var, min_val=-np.inf, max_val=np.inf):
+def validate_float(
+    property_name,
+    var,
+    min_val=-np.inf,
+    max_val=np.inf,
+    inclusive_min=True,
+    inclusive_max=True,
+):
     """Validate float property
 
     Parameters
@@ -826,10 +848,10 @@ def validate_float(property_name, var, min_val=-np.inf, max_val=np.inf):
         The name of the property being set
     var : int or float
         The input variable
-    min_val : int or float, optional
-        Minimum value
-    max_val : int or float, optional
-        Maximum value
+    min_val, max_val : int or float, optional
+        Minimum/Maximum value
+    inclusive_min, inclusive_max : bool, optionals
+        Whether the minimum and maximum values are inclusive.
 
     Returns
     -------
@@ -841,15 +863,30 @@ def validate_float(property_name, var, min_val=-np.inf, max_val=np.inf):
     except:
         raise TypeError(f"'{property_name}' must be int or float, got '{type(var)}'")
 
-    if (var < min_val) | (var > max_val):
+    value_range_string = f"{min_val}, {max_val}"
+    if inclusive_min:
+        value_range_string = "[" + value_range_string
+    else:
+        value_range_string = "(" + value_range_string
+    if inclusive_max:
+        value_range_string = value_range_string + "]"
+    else:
+        value_range_string = value_range_string + ")"
+
+    if (
+        (inclusive_min and var < min_val)
+        or (not inclusive_min and var <= min_val)
+        or (inclusive_max and var > max_val)
+        or (not inclusive_max and var >= max_val)
+    ):
         raise ValueError(
-            f"'{property_name}' must be a value between {min_val} and {max_val}"
+            f"'{property_name}' must be a value in the range " + value_range_string
         )
     else:
         return var
 
 
-def validate_list_of_types(property_name, var, class_type):
+def validate_list_of_types(property_name, var, class_type, ensure_unique=False):
     """Validate list of instances of a certain class
 
     Parameters
@@ -875,6 +912,10 @@ def validate_list_of_types(property_name, var, class_type):
 
     is_true = [isinstance(x, class_type) for x in var]
     if np.all(is_true):
+        if ensure_unique and len(set(var)) != len(var):
+            raise ValueError(
+                f"The '{property_name}' list must be unique. Cannot re-use items"
+            )
         return var
     else:
         raise TypeError(f"'{property_name}' must be a list of '{class_type}'")
@@ -1029,23 +1070,39 @@ def validate_type(property_name, obj, obj_type, cast=True, strict=False):
     return obj
 
 
+def validate_callable(property_name, obj):
+    """
+    Validate if an object is callable
+
+    Parameters
+    ----------
+    property_name : str
+        The name of the property being set
+    obj : object
+        The object to test
+    """
+    if not callable(obj):
+        raise TypeError(f"{property_name} must be callable and {type(obj)} is not.")
+    return obj
+
+
 ###############################################################
 #                      DEPRECATIONS
 ###############################################################
 memProfileWrapper = deprecate_function(
-    create_wrapper_from_class, "memProfileWrapper", removal_version="0.16.0"
+    create_wrapper_from_class, "memProfileWrapper", removal_version="0.18.0"
 )
-setKwargs = deprecate_function(set_kwargs, "setKwargs", removal_version="0.16.0")
-printTitles = deprecate_function(print_titles, "printTitles", removal_version="0.16.0")
-printLine = deprecate_function(print_line, "printLine", removal_version="0.16.0")
+setKwargs = deprecate_function(set_kwargs, "setKwargs", removal_version="0.18.0")
+printTitles = deprecate_function(print_titles, "printTitles", removal_version="0.18.0")
+printLine = deprecate_function(print_line, "printLine", removal_version="0.18.0")
 printStoppers = deprecate_function(
-    print_stoppers, "printStoppers", removal_version="0.16.0"
+    print_stoppers, "printStoppers", removal_version="0.18.0"
 )
 checkStoppers = deprecate_function(
-    check_stoppers, "checkStoppers", removal_version="0.16.0"
+    check_stoppers, "checkStoppers", removal_version="0.18.0"
 )
-printDone = deprecate_function(print_done, "printDone", removal_version="0.16.0")
-callHooks = deprecate_function(call_hooks, "callHooks", removal_version="0.16.0")
+printDone = deprecate_function(print_done, "printDone", removal_version="0.18.0")
+callHooks = deprecate_function(call_hooks, "callHooks", removal_version="0.18.0")
 dependentProperty = deprecate_function(
-    dependent_property, "dependentProperty", removal_version="0.16.0"
+    dependent_property, "dependentProperty", removal_version="0.18.0"
 )

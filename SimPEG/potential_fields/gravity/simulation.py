@@ -333,7 +333,6 @@ class SimulationEquivalentSourceLayer(
 class Simulation3DDifferential(BasePDESimulation):
     r"""Finite volume simulation class for gravity.
 
-
     Notes
     -----
     From Blakely (1996), the scalar potential :math:`\phi` outside the source region
@@ -350,8 +349,6 @@ class Simulation3DDifferential(BasePDESimulation):
 
     .. math::
         \big [ \mathbf{D M_f D^T} \big ] \mathbf{u} = - \mathbf{M_c \, \rho}
-
-
     """
 
     _deprecate_main_map = "rhoMap"
@@ -366,9 +363,7 @@ class Simulation3DDifferential(BasePDESimulation):
         self._Div = self.mesh.face_divergence
 
     def getRHS(self):
-        """Return right-hand side for the linear system
-
-        """
+        """Return right-hand side for the linear system"""
         Mc = self.Mcc
         rho = self.rho
         return -Mc * rho

@@ -10,7 +10,9 @@ class Pressure(BaseTimeRx):
     def __call__(self, U, simulation):
         projected_grid = "CC"
         projected_time_grid = "N"
-        P = self.getP(simulation.mesh, simulation.time_mesh, projected_grid, projected_time_grid)
+        P = self.getP(
+            simulation.mesh, simulation.time_mesh, projected_grid, projected_time_grid
+        )
         u = np.concatenate(U)
         return P * u
 
@@ -19,8 +21,8 @@ class Pressure(BaseTimeRx):
 
         Parameters
         ----------
-        U :
-            Fields computed on the mesh
+        U : (n_time) list of (n_cells) numpy.ndarray
+            Fields computed on the mesh. This is unused for this receiver.
         simulation : SimPEG.flow.richards.simulation.SimulationNDCellCentered
             A Richards flor simulation
         du_dm_v : numpy.ndarray
@@ -37,7 +39,9 @@ class Pressure(BaseTimeRx):
         """
         projected_grid = "CC"
         projected_time_grid = "N"
-        P = self.getP(simulation.mesh, simulation.time_mesh, projected_grid, projected_time_grid)
+        P = self.getP(
+            simulation.mesh, simulation.time_mesh, projected_grid, projected_time_grid
+        )
         if not adjoint:
             return P * du_dm_v  # + 0 for dRx_dm contribution
         if v is None:
@@ -59,8 +63,8 @@ class Saturation(BaseTimeRx):
 
         Parameters
         ----------
-        U :
-            Fields computed on the mesh
+        U : (n_time) list of (n_cells) numpy.ndarray
+            Fields computed on the mesh. This is unused for this receiver.
         simulation : SimPEG.flow.richards.simulation.SimulationNDCellCentered
             A Richards flor simulation
         du_dm_v : numpy.ndarray

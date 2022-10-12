@@ -9,8 +9,8 @@ def from_dc_to_ip_survey(dc_survey, dim="2.5D"):
     ----------
     dc_survey : SimPEG.electromagnetics.static.resistivity.survey.Survey
         DC survey object
-    dim : str, default = "2.5D"
-        Dimension of the surface. Choose from {'1D', '2.5D', '3D'}
+    dim : {'2.5D', '1D', '3D'}
+        Dimension of the surface.
 
     Returns
     -------

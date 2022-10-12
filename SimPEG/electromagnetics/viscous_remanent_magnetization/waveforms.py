@@ -1,13 +1,30 @@
 import numpy as np
 import scipy.special as spec
+from ...utils import (
+    validate_string,
+    validate_float,
+    validate_ndarray_with_shape,
+    validate_callable,
+)
+
 # import properties
+
+
+class BaseVRMWaveform:
+    """
+    The Base VRM Waveform object
+    """
+
+    pass
+    # included to have an identifiable base class for the VRM waveforms
+
 
 ###################################################
 #           STEP OFF WAVEFORM
 ###################################################
 
 
-class StepOff:
+class StepOff(BaseVRMWaveform):
     """Characteristic decay class for step-off waveform
 
     Parameters
@@ -35,15 +52,7 @@ class StepOff:
 
     @t0.setter
     def t0(self, value):
-        if isinstance(value, int):
-            value = float(value)
-        if not isinstance(value, float):
-            raise TypeError(
-                f"t0 must be a float, the value provided, {value} is "
-                f"{type(value)}"
-            )
-        self._t0 = value
-    
+        self._t0 = validate_float("t0", value)
 
     def getCharDecay(self, fieldType, times):
         """Return characteristic decay for step-off waveform.
@@ -54,8 +63,8 @@ class StepOff:
 
         Parameters
         ----------
-        fieldType : str
-            Field type. Must be one of 'dhdt' or 'dbdt'. Characteristic decay for 'h'
+        fieldType : {'dhdt', 'dbdt'}
+            Field type. Characteristic decay for 'h'
             or 'b' CANNOT be computed for step-off
         times : numpy.ndarray
             Observation times. These times MUST be during the off-time.
@@ -65,9 +74,7 @@ class StepOff:
         eta : (n_times) numpy.ndarray
             Characteristic decay evaluated at all specified times.
         """
-
-        if fieldType not in ["dhdt", "dbdt"]:
-            raise NameError('For step-off, fieldType must be one of "dhdt" or "dbdt"')
+        fieldType = validate_string("fieldType", fieldType, ["dhdt", "dbdt"])
 
         if self.t0 >= np.min(times):
             raise ValueError(
@@ -93,8 +100,8 @@ class StepOff:
 
         Parameters
         ----------
-        fieldType : str
-            Field type. Must be one of {'h', 'b', 'dhdt', 'dbdt'}.
+        fieldType : {'dhdt', 'dbdt'}
+            Field type.
         times : numpy.ndarray
             Observation times. These times MUST be during the off-time.
         chi0 : float
@@ -113,11 +120,7 @@ class StepOff:
         eta : (n_times) numpy.ndarray
             Characteristic decay evaluated at all specified times.
         """
-
-        if fieldType not in ["dhdt", "dbdt"]:
-            raise NameError(
-                'For step-off, fieldType must be one of "dhdt" or "dbdt". Cannot be "h" or "dbdt".'
-            )
+        fieldType = validate_string("fieldType", fieldType, ["dhdt", "dbdt"])
 
         nT = len(times)
         nC = len(dchi)
@@ -171,19 +174,16 @@ class SquarePulse(StepOff):
 
     Parameters
     ----------
-    t0 : float
-        Beginning of the off-time
     delt : float
         Pulse width
+    t0 : float
+        Beginning of the off-time
     """
 
     # t0 = properties.Float("Start of off-time", default=0.0)
     # delt = properties.Float("Pulse width")
 
-    def __init__(self, delt=None, t0=0.0):
-        if delt is None:
-            raise AttributeError("Pulse width must be defined using 'delt'. Cannot be 'None'")
-
+    def __init__(self, delt, t0=0.0):
         super(SquarePulse, self).__init__(t0=t0)
 
         self.delt = delt
@@ -201,16 +201,7 @@ class SquarePulse(StepOff):
 
     @delt.setter
     def delt(self, value):
-        if isinstance(value, int):
-            value = float(value)
-        if not isinstance(value, float):
-            raise TypeError(
-                f"delt must be a float, the value provided, {value} is "
-                f"{type(value)}"
-            )
-        if value <= 0.:
-            raise ValueError("'delt' must be positive")
-        self._delt = value
+        self._delt = validate_float("delt", value, min_val=0.0, inclusive_min=False)
 
     def getCharDecay(self, fieldType, times):
         """Compute characteristic decay for a square-pulse waveform.
@@ -222,8 +213,8 @@ class SquarePulse(StepOff):
 
         Parameters
         ----------
-        fieldType : str
-            Field type. Must be one of {'h', 'b', 'dhdt', 'dbdt'}.
+        fieldType : {'h', 'b', 'dhdt', 'dbdt'}
+            Field type.
         times : numpy.ndarray
             Observation times. These times MUST be during the off-time.
 
@@ -232,14 +223,7 @@ class SquarePulse(StepOff):
         eta : (n_times) numpy.ndarray
             Characteristic decay evaluated at all specified times.
         """
-
-        if self.delt is None:
-            raise AssertionError("Pulse width property delt must be set.")
-
-        if fieldType not in ["h", "b", "dhdt", "dbdt"]:
-            raise NameError(
-                'For square pulse, fieldType must be one of "h", "b", "dhdt" or "dbdt".'
-            )
+        fieldType = validate_string("fieldType", fieldType, ["h", "b", "dhdt", "dbdt"])
 
         if self.t0 >= np.min(times):
             raise ValueError(
@@ -272,8 +256,8 @@ class SquarePulse(StepOff):
 
         Parameters
         ----------
-        fieldType : str
-            Field type. Must be one of {'h', 'b', 'dhdt', 'dbdt'}.
+        fieldType : {'h', 'b', 'dhdt', 'dbdt'}
+            Field type.
         times : numpy.ndarray
             Observation times. These times MUST be during the off-time.
         chi0 : float
@@ -292,14 +276,7 @@ class SquarePulse(StepOff):
         eta : (n_times) numpy.ndarray
             Characteristic decay evaluated at all specified times.
         """
-
-        if self.delt is None:
-            raise AssertionError("Pulse width property delt must be set.")
-
-        if fieldType not in ["h", "b", "dhdt", "dbdt"]:
-            raise NameError(
-                'For square pulse, fieldType must be one of "h", "b", "dhdt" or "dbdt".'
-            )
+        fieldType = validate_string("fieldType", fieldType, ["h", "b", "dhdt", "dbdt"])
 
         nT = len(times)
         nC = len(dchi)
@@ -377,7 +354,7 @@ class SquarePulse(StepOff):
 ###################################################
 
 
-class ArbitraryDiscrete:
+class ArbitraryDiscrete(BaseVRMWaveform):
     """Characteristic decay for arbitrary discrete waveform
 
     This class is used to approximate an arbitrary waveform as a set of square-pulse waveforms;
@@ -391,52 +368,9 @@ class ArbitraryDiscrete:
         Waveform on-time currents
     """
 
-    def __init__(self, t_wave=None, I_wave=None):
-        if (t_wave is None) | (I_wave is None):
-            raise AttributeError("Must instantiate with 't_wave' and 'I_wave'. Cannot be 'None'")
-
-        try:
-            if len(t_wave) != len(I_wave):
-                raise ValueError("'t_wave' and 'I_wave' must have the same length.")
-        except:
-            raise TypeError("'t_wave' and 'I_wave' must be 1D array-like")
-
+    def __init__(self, t_wave, I_wave):
         self.t_wave = t_wave
         self.I_wave = I_wave
-
-    # t_wave = properties.Array("Waveform times", dtype=float)
-    # I_wave = properties.Array("Waveform current", dtype=float)
-
-    # @properties.validator("t_wave")
-    # def _t_wave_validator(self, change):
-
-    #     if len(change["value"]) < 3:
-    #         ValueError("Waveform must be defined by at least 3 points.")
-
-    #     if self.I_wave is not None:
-    #         if len(change["value"]) != len(self.I_wave):
-    #             print(
-    #                 "Length of time vector no longer matches length of current vector"
-    #             )
-
-    # @properties.validator("I_wave")
-    # def _I_wave_validator(self, change):
-
-    #     if len(change["value"]) < 3:
-    #         ValueError("Waveform must be defined by at least 3 points.")
-
-    #     if (np.abs(change["value"][0]) > 1e-10) | (np.abs(change["value"][-1]) > 1e-10):
-    #         raise ValueError(
-    #             "Current waveform should begin and end with amplitude of 0. Right now I_1 = {0:.2e} and I_end = {1:.2e}".format(
-    #                 change["value"][0], change["value"][-1]
-    #             )
-    #         )
-
-    #     if self.t_wave is not None:
-    #         if len(change["value"]) != len(self.t_wave):
-    #             print(
-    #                 "Length of time vector no longer matches length of current vector"
-    #             )
 
     @property
     def t_wave(self):
@@ -451,21 +385,12 @@ class ArbitraryDiscrete:
 
     @t_wave.setter
     def t_wave(self, value):
-        try:
-            value = np.atleast_1d(value).astype(float)
-        except:
-            raise TypeError(f"t_wave is not a valid type. Got {type(value)}")
-        
-        if value.ndim > 1:
-            raise TypeError("t_wave must be ('*') array")
-
-        if getattr(self, 'I_wave', None) is not None:
-            if len(value) == len(self._I_wave):
-                self._t_wave = value
-            else:
-                raise ValueError("'t_wave' and 'I_wave' must be the same length")
-        else:
-            self._t_wave = value
+        value = validate_ndarray_with_shape("t_wave", value, shape=("*",))
+        if getattr(self, "_I_wave", None) is not None and len(value) != len(
+            self._I_wave
+        ):
+            raise ValueError("'t_wave' and 'I_wave' must be the same length")
+        self._t_wave = value
 
     @property
     def I_wave(self):
@@ -480,21 +405,12 @@ class ArbitraryDiscrete:
 
     @I_wave.setter
     def I_wave(self, value):
-        try:
-            value = np.atleast_1d(value).astype(float)
-        except:
-            raise TypeError("I_wave is not a valid type. Got {type(value)}")
-        
-        if value.ndim > 1:
-            raise TypeError("I_wave must be ('*') array")
-
-        if getattr(self, 't_wave', None) is not None:
-            if len(value) == len(self._t_wave):
-                self._I_wave = value
-            else:
-                raise ValueError("'t_wave' and 'I_wave' must be the same length")
-        else:
-            self._I_wave = value
+        value = validate_ndarray_with_shape("I_wave", value, shape=("*",))
+        if getattr(self, "_t_wave", None) is not None and len(value) != len(
+            self._t_wave
+        ):
+            raise ValueError("'t_wave' and 'I_wave' must be the same length")
+        self._I_wave = value
 
     def getCharDecay(self, fieldType, times):
         """Compute characteristic decay for arbitrary waveform.
@@ -505,8 +421,8 @@ class ArbitraryDiscrete:
 
         Parameters
         ----------
-        fieldType : str
-            Field type. Must be one of {'h', 'b', 'dhdt', 'dbdt'}.
+        fieldType : {'h', 'b', 'dhdt', 'dbdt'}
+            Field type.
         times : numpy.ndarray
             Observation times. These times MUST be during the off-time.
 
@@ -515,24 +431,7 @@ class ArbitraryDiscrete:
         eta : (n_times) numpy.ndarray
             Characteristic decay evaluated at all specified times.
         """
-
-        if self.t_wave is None:
-            raise AssertionError("Waveform times (Property: t_wave) are not set.")
-
-        if self.I_wave is None:
-            raise AssertionError("Waveform current (Property: I_wave) is not set.")
-
-        if fieldType not in ["h", "b", "dhdt", "dbdt"]:
-            raise NameError(
-                'For square pulse, fieldType must be one of "h", "b", "dhdt" or "dbdt".'
-            )
-
-        if len(self.t_wave) != len(self.I_wave):
-            raise ValueError(
-                "Length of t_wave and I_wave properties must be the same. Currently len(t_wave) = {0: i} and len(I_wave) = {1: i}".format(
-                    self.t_wave, self.I_wave
-                )
-            )
+        fieldType = validate_string("fieldType", fieldType, ["h", "b", "dhdt", "dbdt"])
 
         k = np.where(self.I_wave > 1e-10)
         j = k[0][0] - 1
@@ -596,44 +495,8 @@ class ArbitraryPiecewise(ArbitraryDiscrete):
         Waveform on-time currents
     """
 
-    def __init__(self, t_wave=None, I_wave=None):
+    def __init__(self, t_wave, I_wave):
         super(ArbitraryPiecewise, self).__init__(t_wave=t_wave, I_wave=I_wave)
-
-    # t_wave = properties.Array("Waveform times", dtype=float)
-    # I_wave = properties.Array("Waveform current", dtype=float)
-
-    # @properties.validator("t_wave")
-    # def _t_wave_validator(self, change):
-    #     if len(change["value"]) < 3:
-    #         ValueError("Waveform must be defined by at least 3 points.")
-
-    # @properties.observer("t_wave")
-    # def _t_wave_observer(self, change):
-    #     if self.I_wave is not None:
-    #         if len(change["value"]) != len(self.I_wave):
-    #             print(
-    #                 "Length of time vector no longer matches length of current vector"
-    #             )
-
-    # @properties.validator("I_wave")
-    # def _I_wave_validator(self, change):
-    #     if len(change["value"]) < 3:
-    #         ValueError("Waveform must be defined by at least 3 points.")
-
-    #     if (np.abs(change["value"][0]) > 1e-10) | (np.abs(change["value"][-1]) > 1e-10):
-    #         raise ValueError(
-    #             "Current waveform should begin and end with amplitude of 0. Right now I_1 = {0:.2e} and I_end = {1:.2e}".format(
-    #                 change["value"][0], change["value"][-1]
-    #             )
-    #         )
-
-    # @properties.observer("I_wave")
-    # def _I_wave_observer(self, change):
-    #     if self.t_wave is not None:
-    #         if len(change["value"]) != len(self.t_wave):
-    #             print(
-    #                 "Length of time vector no longer matches length of current vector"
-    #             )
 
     def getCharDecay(self, fieldType, times):
         """Compute characteristic decay function for arbitrary waveform.
@@ -644,8 +507,8 @@ class ArbitraryPiecewise(ArbitraryDiscrete):
 
         Parameters
         ----------
-        fieldType : str
-            Field type. Must be one of {'h', 'b', 'dhdt', 'dbdt'}.
+        fieldType : {'h', 'b', 'dhdt', 'dbdt'}
+            Field type.
         times : numpy.ndarray
             Observation times. These times MUST be during the off-time.
 
@@ -654,17 +517,7 @@ class ArbitraryPiecewise(ArbitraryDiscrete):
         eta : (n_times) numpy.ndarray
             Characteristic decay evaluated at all specified times.
         """
-
-        if self.t_wave is None:
-            raise AssertionError("Waveform times (Property: t_wave) are not set.")
-
-        if self.I_wave is None:
-            raise AssertionError("Waveform current (Property: I_wave) is not set.")
-
-        if fieldType not in ["h", "b", "dhdt", "dbdt"]:
-            raise NameError(
-                'For square pulse, fieldType must be one of "h", "b", "dhdt" or "dbdt".'
-            )
+        fieldType = validate_string("fieldType", fieldType, ["h", "b", "dhdt", "dbdt"])
 
         if np.max(self.t_wave) >= np.min(times):
             raise ValueError(
@@ -711,7 +564,7 @@ class ArbitraryPiecewise(ArbitraryDiscrete):
 ###################################################
 
 
-class Custom:
+class Custom(BaseVRMWaveform):
     """Define characteristic decay with function handle
 
     Parameters
@@ -737,13 +590,7 @@ class Custom:
 
     @waveform_function.setter
     def waveform_function(self, value):
-        if not callable(value):
-            raise ValueError(
-                "waveform_function must be a function. The input value is type: "
-                f"{type(value)}"
-            )
-        self._waveform_function = value
-
+        self._waveform_function = validate_callable("waveform_function", value)
 
     def getCharDecay(self, times):
         """Returns characteristic decay function at specified times

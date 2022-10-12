@@ -1,7 +1,10 @@
 from ...survey import BaseSurvey
+from ...utils.code_utils import validate_type
+from .sources import SourceField
+
 
 class Survey(BaseSurvey):
-    """Base Magnetics Survey
+    """Base Gravity Survey
 
     Parameters
     ----------
@@ -11,31 +14,22 @@ class Survey(BaseSurvey):
 
     def __init__(self, source_field, **kwargs):
 
-        if 'receiver_locations' in kwargs:
-            raise AttributeError(
-                "Receiver locations are set through the receiver class"
-                " and cannot be assigned directly to the survey."
-                )
-        if 'rxType' in kwargs:
-            raise AttributeError(
-                "Receiver type is set through the receiver class"
-                " and cannot be assigned directly to the survey."
-                )
-        if 'components' in kwargs:
-            raise AttributeError(
-                "Receiver component is set through the receiver class"
-                " and cannot be assigned directly to the survey."
-                )
-
-        self.source_field = source_field
+        self.source_field = validate_type(
+            "source_field", source_field, SourceField, cast=False
+        )
         BaseSurvey.__init__(self, **kwargs)
 
     def eval(self, fields):
         """Evaluate the field
 
+        Parameters
+        ----------
+        fields : numpy.ndarray
+            The potential fields field object
+
         Returns
         -------
-        np.ndarray
+        numpy.ndarray
             the fields at the receiver locations.
         """
         return fields
@@ -55,12 +49,12 @@ class Survey(BaseSurvey):
     def receiver_locations(self):
         """Receiver locations.
 
-        Returns the receiver locations for the survey as a (n_loc, 3) ``np.ndarray``;
+        Returns the receiver locations for the survey as a (n_loc, 3) ``numpy.ndarray``;
         even if multiple components (e.g. 'gx', 'gxy', 'gzz') are measured at each location.
 
         Returns
         -------
-        (n_loc, 3) np.ndarray
+        (n_loc, 3) numpy.ndarray
             Receiver locations.
         """
         return self.source_field.receiver_list[0].locations
@@ -83,6 +77,8 @@ class Survey(BaseSurvey):
     def components(self):
         """Number of components measured at each receiver.
 
+        Returns
+        -------
         int
             Number of components measured at each receiver.
         """
@@ -136,16 +132,16 @@ class Survey(BaseSurvey):
     def projectFields(self, u):
         r"""Project the fields from the mesh to the receiver locations.
 
-        **INCOMPLETE**
 
         Parameters
         ----------
-        u: (n_faces?) np.ndarray
+        u : dict of numpy.ndarray
+            Field object created from a `gravity.Simulation3DDifferential`.
 
         Returns
         -------
         dict
-            Projected fields
+            gx, gy, and gz Projected fields
 
         """
         # TODO: There can be some different tyes of data like |B| or B

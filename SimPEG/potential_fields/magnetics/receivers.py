@@ -7,7 +7,7 @@ class Point(survey.BaseRx):
 
     Parameters
     ----------
-    locations : (n, 3) np.ndarray
+    locations : (n, 3) numpy.ndarray
         Receiver locations.
     components : str or list of str, default: 'tmi'
         Use a ``str`` for a single component or a ``list`` of ``str`` if multiple
@@ -24,13 +24,18 @@ class Point(survey.BaseRx):
         - "byz"  --> z-derivative of the y-component (and visa versa)
         - "bzz"  --> z-derivative of the z-component
 
+    Notes
+    -----
+    If predicting amplitude data, you must set include 'bx', 'by', and 'bz' here, and
+    set `is_amplitude_data` in the `magnetics.Simulation3DIntegral` to `True`.
+
     """
 
-    def __init__(self, locations=None, components="tmi", **kwargs):
+    def __init__(self, locations, components="tmi", **kwargs):
 
-        super(Point, self).__init__(locations, **kwargs)
+        super().__init__(locations, **kwargs)
 
-        n_locations = locations.shape[0]
+        n_locations = self.locations.shape[0]
 
         if isinstance(components, str):
             components = [components]

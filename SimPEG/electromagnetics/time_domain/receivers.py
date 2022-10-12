@@ -1,7 +1,7 @@
 import scipy.sparse as sp
 
 # import properties
-from ...utils import mkvc, validate_string
+from ...utils import mkvc, validate_string, validate_type
 from ...survey import BaseTimeRx
 import warnings
 
@@ -11,11 +11,11 @@ class BaseRx(BaseTimeRx):
 
     Parameters
     ----------
-    locations : (n_loc, n_dim) np.ndarray
+    locations : (n_loc, n_dim) numpy.ndarray
         Receiver locations.
-    orientation : str, default = 'z'
-        Receiver orientation. Must be one of: 'x', 'y' or 'z'
-    times : (n_times) np.ndarray
+    orientation : {'z', 'x', 'y'}
+        Receiver orientation.
+    times : (n_times) numpy.ndarray
         Time channels
     """
 
@@ -63,8 +63,9 @@ class BaseRx(BaseTimeRx):
 
     @orientation.setter
     def orientation(self, var):
-        var = validate_string("orientation", var, string_list=("x", "y", "z"))
-        self._orientation = var.lower()
+        self._orientation = validate_string(
+            "orientation", var, string_list=("x", "y", "z")
+        )
 
     # def projected_grid(self, f):
     #     """Grid Location projection (e.g. Ex Fy ...)"""
@@ -88,9 +89,9 @@ class BaseRx(BaseTimeRx):
 
     @use_source_receiver_offset.setter
     def use_source_receiver_offset(self, val):
-        if not isinstance(val, bool):
-            raise TypeError("use_source_receiver_offset must be a bool")
-        self._use_source_receiver_offset = val
+        self._use_source_receiver_offset = validate_type(
+            "use_source_receiver_offset", val, bool
+        )
 
     # def projected_time_grid(self, f):
     #     """Time Location projection (e.g. CC N)"""
@@ -182,7 +183,7 @@ class BaseRx(BaseTimeRx):
 
         Returns
         -------
-        np.ndarray
+        numpy.ndarray
             Fields projected to the receiver(s)
         """
         P = self.getP(mesh, time_mesh, f)
@@ -202,14 +203,14 @@ class BaseRx(BaseTimeRx):
             A 1D ``TensorMesh`` defining the time discretization
         f : SimPEG.electromagnetic.time_domain.fields.FieldsTDEM
             The solution for the fields defined on the mesh
-        v : np.ndarray
+        v : numpy.ndarray
             A vector
         adjoint : bool, default = ``False``
             If ``True``, return the adjoint
 
         Returns
         -------
-        np.ndarray
+        numpy.ndarray
             derivative of fields times a vector projected to the receiver(s)
         """
         P = self.getP(mesh, time_mesh, f)
@@ -227,12 +228,12 @@ class PointElectricField(BaseRx):
 
     Parameters
     ----------
-    locations : (n_loc, n_dim) np.ndarray
+    locations : (n_loc, n_dim) numpy.ndarray
         Receiver locations.
-    times : (n_times) np.ndarray
+    times : (n_times) numpy.ndarray
         Time channels
-    orientation : str, default = 'z'
-        Receiver orientation. Must be one of: 'x', 'y' or 'z'
+    orientation : {'z', 'x', 'y'}
+        Receiver orientation.
     """
 
     def __init__(self, locations=None, times=None, orientation="z", **kwargs):
@@ -247,12 +248,12 @@ class PointMagneticFluxDensity(BaseRx):
 
     Parameters
     ----------
-    locations : (n_loc, n_dim) np.ndarray
+    locations : (n_loc, n_dim) numpy.ndarray
         Receiver locations.
-    times : (n_times) np.ndarray
+    times : (n_times) numpy.ndarray
         Time channels
-    orientation : str, default = 'z'
-        Receiver orientation. Must be one of: 'x', 'y' or 'z'
+    orientation : {'z', 'x', 'y'}
+        Receiver orientation.
     """
 
     def __init__(self, locations=None, times=None, orientation="z", **kwargs):
@@ -267,12 +268,12 @@ class PointMagneticFluxTimeDerivative(BaseRx):
 
     Parameters
     ----------
-    locations : (n_loc, n_dim) np.ndarray
+    locations : (n_loc, n_dim) numpy.ndarray
         Receiver locations.
-    times : (n_times) np.ndarray
+    times : (n_times) numpy.ndarray
         Time channels
-    orientation : str, default = 'z'
-        Receiver orientation. Must be one of: 'x', 'y' or 'z'
+    orientation : {'z', 'x', 'y'}
+        Receiver orientation.
     """
 
     def __init__(self, locations=None, times=None, orientation="z", **kwargs):
@@ -297,7 +298,7 @@ class PointMagneticFluxTimeDerivative(BaseRx):
 
         Returns
         -------
-        np.ndarray
+        numpy.ndarray
             Fields projected to the receiver(s)
         """
 
@@ -343,12 +344,12 @@ class PointMagneticField(BaseRx):
 
     Parameters
     ----------
-    locations : (n_loc, n_dim) np.ndarray
+    locations : (n_loc, n_dim) numpy.ndarray
         Receiver locations.
-    times : (n_times) np.ndarray
+    times : (n_times) numpy.ndarray
         Time channels
-    orientation : str, default = 'z'
-        Receiver orientation. Must be one of: 'x', 'y' or 'z'
+    orientation : {'z', 'x', 'y'}
+        Receiver orientation.
     """
 
     def __init__(self, locations=None, times=None, orientation="x", **kwargs):
@@ -363,12 +364,12 @@ class PointCurrentDensity(BaseRx):
 
     Parameters
     ----------
-    locations : (n_loc, n_dim) np.ndarray
+    locations : (n_loc, n_dim) numpy.ndarray
         Receiver locations.
-    times : (n_times) np.ndarray
+    times : (n_times) numpy.ndarray
         Time channels
-    orientation : str, default = 'z'
-        Receiver orientation. Must be one of: 'x', 'y' or 'z'
+    orientation : {'z', 'x', 'y'}
+        Receiver orientation.
     """
 
     def __init__(self, locations=None, times=None, orientation="x", **kwargs):
@@ -383,12 +384,12 @@ class PointMagneticFieldTimeDerivative(BaseRx):
 
     Parameters
     ----------
-    locations : (n_loc, n_dim) np.ndarray
+    locations : (n_loc, n_dim) numpy.ndarray
         Receiver locations.
-    times : (n_times) np.ndarray
+    times : (n_times) numpy.ndarray
         Time channels
-    orientation : str, default = 'z'
-        Receiver orientation. Must be one of: 'x', 'y' or 'z'
+    orientation : {'z', 'x', 'y'}
+        Receiver orientation.
     """
 
     def __init__(self, locations=None, times=None, orientation="x", **kwargs):

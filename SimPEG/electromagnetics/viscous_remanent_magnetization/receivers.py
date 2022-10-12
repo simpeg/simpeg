@@ -1,6 +1,10 @@
 from ...survey import BaseRx
-from ...utils import validate_float, validate_string, validate_integer
-import numpy as np
+from ...utils import (
+    validate_float,
+    validate_string,
+    validate_integer,
+    validate_ndarray_with_shape,
+)
 import warnings
 
 # import properties
@@ -19,10 +23,10 @@ class Point(BaseRx):
         Receiver locations
     times : numpy.ndarray
         Time channels
-    field_type : str
-        Fields being measured. Choose from {'h', 'b', 'dhdt', 'dbdt'
-    orientation : str, default = 'z'
-        Receiver orientation. Choose from {'x', 'y', 'z'}
+    field_type : {'h', 'b', 'dhdt', 'dbdt'}
+        Fields being measured.
+    orientation : {'z', 'y', 'z'}
+        Receiver orientation.
     """
 
     # times = properties.Array("Observation times", dtype=float)
@@ -77,16 +81,9 @@ class Point(BaseRx):
 
     @times.setter
     def times(self, value):
-        # Ensure float or numpy array of float
-        try:
-            value = np.atleast_1d(value).astype(float)
-        except:
-            raise TypeError(f"times is not a valid type. Got {type(value)}")
-
-        if value.ndim > 1:
-            raise TypeError(f"times must be ('*') array")
-
-        self._times = value
+        self._times = validate_ndarray_with_shape(
+            "times", value, shape=("*",), dtype=float
+        )
 
     @property
     def orientation(self):
@@ -94,8 +91,8 @@ class Point(BaseRx):
 
         Returns
         -------
-        str
-            Orientation of the receiver. One of {'x', 'y', 'z'}
+        {'x', 'y', 'z'}
+            Orientation of the receiver.
         """
         return self._orientation
 
@@ -172,10 +169,10 @@ class SquareLoop(Point):
         Center location of the square loop
     times : numpy.ndarray
         Time channels
-    field_type : str
-        Fields being measured. Choose from {'h', 'b', 'dhdt', 'dbdt'
-    orientation : str, default = 'z'
-        Receiver orientation. Choose from {'x', 'y', 'z'}
+    field_type : {'h', 'b', 'dhdt', 'dbdt'}
+        Fields being measured.
+    orientation : {'z', 'x', 'y'}
+        Receiver orientation.
     width : float, default = 1.0
         Loop width (m)
     n_turns : int, default = 1
@@ -183,7 +180,6 @@ class SquareLoop(Point):
     quadrature_order : int, default = 3
         Order of numerical quadrature for approximating the magnetic flux through
         the receiver coil.
-
     """
 
     # width = properties.Float("Square loop width", min=1e-6)
@@ -243,10 +239,7 @@ class SquareLoop(Point):
 
     @width.setter
     def width(self, value):
-        value = validate_float("width", value)
-        if value <= 0.0:
-            raise ValueError("Width must be positive")
-        self._width = value
+        self._width = validate_float("width", value, min_val=0.0, inclusive_min=False)
 
     @property
     def n_turns(self):
@@ -261,8 +254,7 @@ class SquareLoop(Point):
 
     @n_turns.setter
     def n_turns(self, value):
-        value = validate_integer("n_turns", value, min_val=1)
-        self._n_turns = value
+        self._n_turns = validate_integer("n_turns", value, min_val=1)
 
     @property
     def quadrature_order(self):

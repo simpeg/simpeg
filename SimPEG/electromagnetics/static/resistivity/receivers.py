@@ -1,7 +1,12 @@
 import numpy as np
 
 # import properties
-from ....utils import sdiag, validate_string, validate_float
+from ....utils import (
+    sdiag,
+    validate_string,
+    validate_float,
+    validate_ndarray_with_shape,
+)
 from ....survey import BaseRx as BaseSimPEGRx
 
 
@@ -12,19 +17,18 @@ class BaseRx(BaseSimPEGRx):
 
     Parameters
     ----------
-    locations : (n_loc, n_dim) np.ndarray
+    locations : (n_loc, n_dim) numpy.ndarray
         Receiver locations.
-    orientation : str, default = ``None``
-        Receiver orientation. Must be one of: ``None``, 'x', 'y' or 'z'
-    data_type : str, default = 'volt'
-        Data type. Choose one of: "volt", "apparent_resistivity", "apparent_chargeability"
-    projField : str, default = 'phi'
-        Fields solved on the mesh. Choose one of: "phi", "e", "j"
+    data_type : {"volt", "apparent_resistivity", "apparent_chargeability"}
+        Type of data observered
+    orientation : {None, "x", "y", "z"}
+    projField : {"phi", "e", "j"}
+        Fields solved on the mesh.
     """
 
     def __init__(
         self,
-        locations=None,
+        locations,
         data_type="volt",
         orientation=None,
         projField="phi",
@@ -113,30 +117,28 @@ class BaseRx(BaseSimPEGRx):
 
     @data_type.setter
     def data_type(self, var):
-        var = validate_string("data_type", var).lower()
-        if var in ("potential", "potentials", "volt", "v", "voltages", "voltage"):
-            self._data_type = "volt"
-        elif var in (
-            "apparent resistivity",
-            "appresistivity",
-            "apparentresistivity",
-            "apparent-resistivity",
-            "apparent_resistivity",
-            "appres",
-        ):
-            self._data_type = "apparent_resistivity"
-        elif var in (
-            "apparent chargeability",
-            "appchargeability",
-            "apparentchargeability",
-            "apparent-chargeability",
-            "apparent_chargeability",
-        ):
-            self._data_type = "apparent_chargeability"
-        else:
-            raise ValueError(
-                f"data_type must be either 'volt', 'apparent_resistivity' or 'apparent_chargeability'. Got {var}"
-            )
+        self._data_type = validate_string(
+            "data_type",
+            var,
+            (
+                ("volt", "potential", "potentials", "v", "voltage", "voltages"),
+                (
+                    "apparent_resistivity",
+                    "apparent resistivity",
+                    "appresistivity",
+                    "apparentresistivity",
+                    "apparent-resistivity",
+                    "appres",
+                ),
+                (
+                    "apparent_chargeability",
+                    "apparent chargeability",
+                    "appchargeability",
+                    "apparentchargeability",
+                    "apparent-chargeability",
+                ),
+            ),
+        )
 
     # data_type = 'volt'
 
@@ -195,7 +197,7 @@ class BaseRx(BaseSimPEGRx):
 
         Returns
         -------
-        np.ndarray
+        numpy.ndarray
             Fields projected to the receiver(s)
         """
         if self.orientation is not None:
@@ -232,17 +234,17 @@ class BaseRx(BaseSimPEGRx):
             The mesh on which the discrete set of equations is solved
         f : SimPEG.electromagnetic.static.resistivity.fields.FieldsDC
             The solution for the fields defined on the mesh
-        du_dm_v : np.ndarray, default = ``None``
+        du_dm_v : numpy.ndarray, default = ``None``
             The derivative of the fields on the mesh with respect to the model,
             times a vector.
-        v : np.ndarray
+        v : numpy.ndarray
             The vector which being multiplied
         adjoint : bool, default = ``False``
             If ``True``, return the ajoint
 
         Returns
         -------
-        np.ndarray
+        numpy.ndarray
             The derivative times a vector at the receiver(s)
         """
         if self.orientation is not None:
@@ -284,15 +286,16 @@ class Dipole(BaseRx):
         M electrode locations; remember to set 'locations_n' keyword argument to define N electrode locations.
     locations_n : (n_loc, dim) numpy.ndarray
         N electrode locations; remember to set 'locations_m' keyword argument to define M electrode locations.
-    locations : list or tuple of length 2 of np.ndarray
+    locations : list or tuple of length 2 of numpy.ndarray
         M and N electrode locations. In this case, do not set the 'locations_m' and 'locations_n'
         keyword arguments. And we supply a list or tuple of the form [locations_m, locations_n].
-    orientation : str, default = ``None``
-        Receiver orientation. Must be one of: ``None``, 'x', 'y' or 'z'
-    data_type : str, default = 'volt'
-        Data type. Choose one of: "volt", "apparent_resistivity", "apparent_chargeability"
-    threshold : float, default: 1e-5
-        Minimum electrode separation distance required. Otherwise we assume a pole source.
+    data_type : {'volt', 'apparent_resistivity', 'apparent_chargeability'}
+        Data type.
+
+    Notes
+    -----
+    Either pass both `locations_m` and `locations_n` arguments, or pass only `locations`
+    argument.
     """
 
     # locations = properties.List(
@@ -307,7 +310,6 @@ class Dipole(BaseRx):
         locations_m=None,
         locations_n=None,
         locations=None,
-        threshold=1e-5,
         **kwargs,
     ):
         # if locations_m set, then use locations_m, locations_n
@@ -325,7 +327,7 @@ class Dipole(BaseRx):
                     "or both locations_m=locations_m, locations_n=locations_n"
                 )
 
-            locations = [np.atleast_2d(locations_m), np.atleast_2d(locations_n)]
+            locations = [locations_m, locations_n]
 
         if locations is None:
             raise AttributeError(
@@ -335,9 +337,8 @@ class Dipole(BaseRx):
             )
 
         # instantiate
+        kwargs.pop("threshold", None)  # old kwarg that is ignored here
         super(Dipole, self).__init__(locations=locations, **kwargs)
-
-        self.threshold = threshold
 
     def __repr__(self):
         return ",\n".join(
@@ -346,22 +347,6 @@ class Dipole(BaseRx):
                 for (m, n) in zip(self.locations_m, self.locations_n)
             ]
         )
-
-    @property
-    def threshold(self):
-        """Minimum separation distance before source is considered a pole
-
-        Parameters
-        ----------
-        float
-            Threshold value
-        """
-        return self._threshold
-
-    @threshold.setter
-    def threshold(self, var):
-        var = validate_float("threshold", var, min_val=1e-10)
-        self._threshold = var
 
     @property
     def locations(self):
@@ -382,8 +367,10 @@ class Dipole(BaseRx):
                 "[locations_m, locations_n]. The input locations has "
                 f"length {len(locs)}"
             )
+        locs_m = validate_ndarray_with_shape("locations", locs[0], ("*", "*"))
+        locs_n = validate_ndarray_with_shape("locations", locs[1], ("*", "*"))
 
-        locs = [np.atleast_2d(locs[0]), np.atleast_2d(locs[1])]
+        locs = [locs_m, locs_n]
 
         # check the size of locations_m, locations_n
         if locs[0].shape != locs[1].shape:
@@ -482,12 +469,10 @@ class Pole(BaseRx):
 
     Parameters
     ----------
-    locations : (n_loc, dim) np.ndarray
+    locations : (n_loc, dim) numpy.ndarray
         Receiver locations.
-    orientation : str, default = ``None``
-        Receiver orientation. Must be one of: ``None``, 'x', 'y' or 'z'
-    data_type : str, default = 'volt'
-        Data type. Choose one of: "volt", "apparent_resistivity", "apparent_chargeability"
+    data_type : {"volt", "apparent_resistivity", "apparent_chargeability"}
+        Data type.
     """
 
     # def __init__(self, locationsM, **kwargs):

@@ -4,7 +4,6 @@ import numpy as np
 from scipy import sparse as sp
 from empymod.transform import get_dlf_points
 
-from ..data import Data
 from ..simulation import BaseSimulation
 
 # from .time_domain.sources import MagDipole as t_MagDipole, CircularLoop as t_CircularLoop
@@ -13,9 +12,6 @@ from ..simulation import BaseSimulation
 from .. import utils
 from .. import props
 from empymod.utils import check_hankel
-
-from multiprocessing import Pool
-from sys import platform
 
 __all__ = ["BaseEM1DSimulation"]
 

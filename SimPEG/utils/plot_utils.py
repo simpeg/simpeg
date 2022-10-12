@@ -278,12 +278,12 @@ def plot_1d_layer_model(
     ----------
     thicknesses : list or numpy.ndarray of float
         A ``list`` or ``numpy.ndarray`` containing the layer thicknesses from the top layer down
-    values :list or numpy.ndarray of float
+    values : list or numpy.ndarray of float
         A ``list`` or ``numpy.ndarray`` containing the physical property values from the top layer down
     z0 : float
         Elevation of the surface
-    scale: str
-        scale {'linear', 'log'}. Plot physical property values on a linear or log10 scale.
+    scale: {'linear', 'log'}
+        Plot physical property values on a linear or log10 scale.
     ax: matplotlib.axes.Axes, optional
         An axis object for the plot
     plot_elevation : bool

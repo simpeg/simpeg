@@ -6,6 +6,27 @@ Time-Domain EM Module (:mod:`SimPEG.electromagnetics.time_domain`)
 
 About ``time_domain``
 
+Simulations
+-----------
+.. autosummary::
+  :toctree: generated/
+
+  Simulation1DLayered
+  Simulation3DMagneticFluxDensity
+  Simulation3DElectricField
+  Simulation3DMagneticField
+  Simulation3DCurrentDensity
+
+Fields
+------
+.. autosummary::
+  :toctree: generated/
+
+  Fields3DMagneticFluxDensity
+  Fields3DElectricField
+  Fields3DMagneticField
+  Fields3DCurrentDensity
+
 Receiver Classes
 ----------------
 

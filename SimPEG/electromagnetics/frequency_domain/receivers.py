@@ -9,13 +9,19 @@ class BaseRx(survey.BaseRx):
 
     Parameters
     ----------
-    locations : (n_loc, n_dim) np.ndarray
+    locations : (n_loc, n_dim) numpy.ndarray
         Receiver locations.
-    orientation : {'x', 'y', 'z'}
+    orientation : {'z', 'x', 'y'}
         Receiver orientation.
     component : {'real', 'imag', 'both', 'complex'}
         Component of the receiver; i.e. 'real' or 'imag'. The options 'both' and
         'complex' are only available for the 1D layered simulations.
+    data_type : {'field', 'ppm'}
+        Data type observed by the receiver, either field, or ppm secondary
+        of the total field.
+    use_source_receiver_offset : bool, optional
+        Whether to interpret the receiver locations as defining the source and receiver
+        offset.
     """
 
     def __init__(
@@ -100,7 +106,7 @@ class BaseRx(survey.BaseRx):
 
         Returns
         -------
-        str : ['field', 'ppm']
+        str : {'field', 'ppm'}
 
         Notes
         -----
@@ -132,8 +138,9 @@ class BaseRx(survey.BaseRx):
 
     @use_source_receiver_offset.setter
     def use_source_receiver_offset(self, val):
-        val = validate_type("use_source_receiver_offset", val, bool)
-        self._use_source_receiver_offset = val
+        self._use_source_receiver_offset = validate_type(
+            "use_source_receiver_offset", val, bool
+        )
 
     def eval(self, src, mesh, f):
         """Project fields from the mesh to the receiver(s).
@@ -149,7 +156,7 @@ class BaseRx(survey.BaseRx):
 
         Returns
         -------
-        np.ndarray
+        numpy.ndarray
             Fields projected to the receiver(s)
         """
         projected_grid = f._GLoc(self.projField) + self.orientation
@@ -170,17 +177,17 @@ class BaseRx(survey.BaseRx):
             The mesh on which the discrete set of equations is solved
         f : SimPEG.electromagnetic.frequency_domain.fields.FieldsFDEM
             The solution for the fields defined on the mesh
-        du_dm_v : np.ndarray, default = ``None``
+        du_dm_v : numpy.ndarray
             The derivative of the fields on the mesh with respect to the model,
             times a vector.
-        v : np.ndarray
+        v : numpy.ndarray, optional
             The vector which being multiplied
-        adjoint : bool, default = ``False``
+        adjoint : bool
             If ``True``, return the ajoint
 
         Returns
         -------
-        np.ndarray
+        numpy.ndarray
             The derivative times a vector at the receiver(s)
         """
 
@@ -231,12 +238,12 @@ class PointElectricField(BaseRx):
 
     Parameters
     ----------
-    locations : (n_loc, n_dim) np.ndarray
+    locations : (n_loc, n_dim) numpy.ndarray
         Receiver locations.
-    orientation : str, default = 'z'
-        Receiver orientation. Must be one of: 'x', 'y' or 'z'
-    component : str, default = 'real'
-        Real or imaginary component. Choose one of: 'real' or 'imag'
+    orientation : {'x', 'y', 'z'}
+        Receiver orientation.
+    component : {'real', 'imag'}
+        Real or imaginary component.
     """
 
     def __init__(self, locations, orientation="x", component="real", **kwargs):
@@ -249,12 +256,12 @@ class PointMagneticFluxDensity(BaseRx):
 
     Parameters
     ----------
-    locations : (n_loc, n_dim) np.ndarray
+    locations : (n_loc, n_dim) numpy.ndarray
         Receiver locations.
-    orientation : str, default = 'z'
-        Receiver orientation. Must be one of: 'x', 'y' or 'z'
-    component : str, default = 'real'
-        Real or imaginary component. Choose one of: 'real' or 'imag'
+    orientation : {'x', 'y', 'z'}
+        Receiver orientation.
+    component : {'real', 'imag'}
+        Real or imaginary component.
     """
 
     def __init__(self, locations, orientation="x", component="real", **kwargs):
@@ -267,12 +274,12 @@ class PointMagneticFluxDensitySecondary(BaseRx):
 
     Parameters
     ----------
-    locations : (n_loc, n_dim) np.ndarray
+    locations : (n_loc, n_dim) numpy.ndarray
         Receiver locations.
-    orientation : str, default = 'z'
-        Receiver orientation. Must be one of: 'x', 'y' or 'z'
-    component : str, default = 'real'
-        Real or imaginary component. Choose one of: 'real' or 'imag'
+    orientation : {'x', 'y', 'z'}
+        Receiver orientation.
+    component : {'real', 'imag'}
+        Real or imaginary component.
     """
 
     def __init__(self, locations, orientation="x", component="real", **kwargs):
@@ -285,12 +292,24 @@ class PointMagneticField(BaseRx):
 
     Parameters
     ----------
-    locations : (n_loc, n_dim) np.ndarray
+    locations : (n_loc, n_dim) numpy.ndarray
         Receiver locations.
     orientation : {'x', 'y', 'z'}
         Receiver orientation.
-    component : {'real', 'imag'}
-        Real or imaginary component.
+    component : {'real', 'imag', 'both', 'complex'}
+        Component of the receiver; i.e. 'real' or 'imag'. The options 'both' and
+        'complex' are only available for the 1D layered simulations.
+    data_type : {'field', 'ppm'}
+        Data type observed by the receiver, either field, or ppm secondary
+        of the total field.
+    use_source_receiver_offset : bool, optional
+        Whether to interpret the receiver locations as defining the source and receiver
+        offset.
+
+    Notes
+    -----
+    `data_type`, `use_source_receiver_offset`, and the options of `'both'` and
+    `'complex'` for component are only implemented for the `Simulation1DLayered`.
     """
 
     def __init__(self, locations, orientation="x", component="real", **kwargs):
@@ -303,13 +322,24 @@ class PointMagneticFieldSecondary(BaseRx):
     Magnetic flux FDEM receiver
 
 
-    locations : (n_loc, n_dim) np.ndarray
+    locations : (n_loc, n_dim) numpy.ndarray
         Receiver locations.
     orientation : {'x', 'y', 'z'}
         Receiver orientation
-    component : {'real', 'imag', 'complex', 'both'}
-        Real or imaginary component.
+    component : {'real', 'imag', 'both', 'complex'}
+        Component of the receiver; i.e. 'real' or 'imag'. The options 'both' and
+        'complex' are only available for the 1D layered simulations.
+    data_type : {'field', 'ppm'}
+        Data type observed by the receiver, either field, or ppm secondary
+        of the total field.
+    use_source_receiver_offset : bool, optional
+        Whether to interpret the receiver locations as defining the source and receiver
+        offset.
 
+    Notes
+    -----
+    `data_type`, `use_source_receiver_offset`, and the options of `'both'` and
+    `'complex'` for component are only implemented for the `Simulation1DLayered`.
     """
 
     def __init__(self, locations, orientation="x", component="real", **kwargs):
@@ -324,12 +354,12 @@ class PointCurrentDensity(BaseRx):
 
     Parameters
     ----------
-    locations : (n_loc, n_dim) np.ndarray
+    locations : (n_loc, n_dim) numpy.ndarray
         Receiver locations.
-    orientation : str, default = 'z'
-        Receiver orientation. Must be one of: 'x', 'y' or 'z'
-    component : str, default = 'real'
-        Real or imaginary component. Choose one of: 'real' or 'imag'
+    orientation : {'x', 'y', 'z'}
+        Receiver orientation.
+    component : {'real', 'imag'}
+        Real or imaginary component.
     """
 
     def __init__(self, locations, orientation="x", component="real", **kwargs):

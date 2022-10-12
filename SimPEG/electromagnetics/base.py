@@ -1,5 +1,3 @@
-import properties
-
 from ..survey import BaseSrc
 from ..utils import Zero
 from ..base import BaseElectricalPDESimulation, BaseMagneticPDESimulation
@@ -134,7 +132,7 @@ class BaseEMSrc(BaseSrc):
         ----------
         simulation : BaseEMSimulation
             An EM Simulation object
-        
+
         Returns
         -------
         numpy.ndarray
@@ -150,7 +148,7 @@ class BaseEMSrc(BaseSrc):
         ----------
         simulation : BaseEMSimulation
             An EM Simulation object
-        
+
         Returns
         -------
         numpy.ndarray
@@ -171,7 +169,7 @@ class BaseEMSrc(BaseSrc):
             A vector to take the dot product with
         adjoint : bool, default==Fasel
             If ``True``, return the adjoint operation
-        
+
         Returns
         -------
         numpy.ndarray
@@ -192,7 +190,7 @@ class BaseEMSrc(BaseSrc):
             A vector to take the dot product with
         adjoint : bool, default==Fasel
             If ``True``, return the adjoint operation
-        
+
         Returns
         -------
         numpy.ndarray

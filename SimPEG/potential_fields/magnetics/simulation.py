@@ -12,6 +12,7 @@ from SimPEG import Solver
 from SimPEG import props
 import properties
 from SimPEG.utils import mkvc, mat_utils, sdiag, setKwargs
+from SimPEG.utils.code_utils import validate_string, deprecate_property
 
 
 class Simulation3DIntegral(BasePFSimulation):
@@ -26,16 +27,12 @@ class Simulation3DIntegral(BasePFSimulation):
 
     def __init__(self, mesh, model_type="scalar", is_amplitude_data=False, **kwargs):
 
-        # If deprecated property set with kwargs
-        if "modelType" in kwargs:
-            model_type = kwargs.pop("modelType")
-
+        self.model_type = model_type
         super().__init__(mesh, **kwargs)
 
         self._G = None
         self._M = None
         self._gtg_diagonal = None
-        self.model_type = model_type
         self.is_amplitude_data = is_amplitude_data
         self.modelMap = self.chiMap
 
@@ -53,15 +50,7 @@ class Simulation3DIntegral(BasePFSimulation):
 
     @model_type.setter
     def model_type(self, value):
-        choices = ["scalar", "vector"]
-        value = value.lower()
-        if value not in choices:
-            raise ValueError(
-                "Model type ({}) unrecognized. Choose one of ['scalar', 'vector']".format(
-                    value
-                )
-            )
-        self._model_type = value
+        self._model_type = validate_string("model_type", value, ["scalar", "vector"])
 
     @property
     def modelType(self):
@@ -177,6 +166,10 @@ class Simulation3DIntegral(BasePFSimulation):
             )
 
         self._model_type = value
+
+    modelType = deprecate_property(
+        model_type, "modelType", "model_type", removal_version="0.18.0"
+    )
 
     @property
     def nD(self):

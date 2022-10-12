@@ -46,95 +46,6 @@ def k(frequency, sigma, mu=mu_0, eps=epsilon_0):
     return alp - 1j * beta
 
 
-def TriangleFun(time, ta, tb):
-    """Triangular waveform function
-
-    Parameters
-    ----------
-    time : numpy.ndarray
-        Times vector
-    ta : float
-        Peak time
-    tb : float
-        Start of off-time
-
-    Returns
-    -------
-    (n_time) numpy.ndarray
-        The waveform evaluated at all input times
-    """
-    out = np.zeros(time.size)
-    out[time <= ta] = 1 / ta * time[time <= ta]
-    out[(time > ta) & (time < tb)] = (
-        -1 / (tb - ta) * (time[(time > ta) & (time < tb)] - tb)
-    )
-    return out
-
-
-def TriangleFunDeriv(time, ta, tb):
-    """Derivative of triangular waveform function wrt time
-
-    Parameters
-    ----------
-    time : numpy.ndarray
-        Times vector
-    ta : float
-        Peak time
-    tb : float
-        Start of off-time
-
-    Returns
-    -------
-    (n_time) numpy.ndarray
-        Derivative wrt to time at all input times
-    """
-    out = np.zeros(time.size)
-    out[time <= ta] = 1 / ta
-    out[(time > ta) & (time < tb)] = -1 / (tb - ta)
-    return out
-
-
-def SineFun(time, ta):
-    """Sine waveform function
-
-    Parameters
-    ----------
-    time : numpy.ndarray
-        Times vector
-    ta : float
-        Pulse period
-
-    Returns
-    -------
-    (n_time) numpy.ndarray
-        The waveform evaluated at all input times
-    """
-    out = np.zeros(time.size)
-    out[time <= ta] = np.sin(1.0 / ta * np.pi * time[time <= ta])
-
-    return out
-
-
-def SineFunDeriv(time, ta):
-    """Derivative of sine waveform function
-
-    Parameters
-    ----------
-    time : numpy.ndarray
-        Times vector
-    ta : float
-        Pulse period
-
-    Returns
-    -------
-    (n_time) numpy.ndarray
-        The waveform evaluated at all input times
-    """
-    out = np.zeros(time.size)
-    out[time <= ta] = 1.0 / ta * np.pi * np.cos(1.0 / ta * np.pi * time[time <= ta])
-    return out
-
-
 def VTEMFun(time, ta, tb, a):
     """VTEM waveform function
 
@@ -160,7 +71,7 @@ def VTEMFun(time, ta, tb, a):
     return out
 
 
-def convolve_with_waveform(func, waveform, times, fargs=[], fkwargs={}):
+def convolve_with_waveform(func, waveform, times, fargs=None, fkwargs=None):
     """convolves the function with the given waveform
 
     This convolves the given function with the waveform and evaluates it at the given
@@ -173,20 +84,25 @@ def convolve_with_waveform(func, waveform, times, fargs=[], fkwargs={}):
         function of `t` that should be convolved
     waveform : SimPEG.electromagnetics.time_domain.waveforms.BaseWaveform
     times : array_like
-    fargs : list
+    fargs : list, optional
         extra arguments given to `func`
-    fkwargs : dict
+    fkwargs : dict, optional
         keyword arguments given to `func`
 
     Returns
     -------
-    np.ndarray
+    numpy.ndarray
         the convolution evaluate at the given times
     """
     try:
         t_nodes = waveform.time_nodes
     except AttributeError:
         raise TypeError(f"Unsupported waveform type of {type(waveform)}")
+
+    if fargs is None:
+        fargs = []
+    if fkwargs is None:
+        fkwargs = {}
 
     n_int = len(t_nodes) - 1
     out = np.zeros_like(times, dtype=float)

@@ -50,33 +50,33 @@ class Survey(BaseSurvey):
 
     def __init__(
         self,
-        source_list=None,
+        source_list,
         survey_geometry="surface",
         survey_type="dipole-dipole",
         **kwargs,
     ):
-        if source_list is None:
-            raise AttributeError("Survey cannot be instantiated without sources")
         super(Survey, self).__init__(source_list, **kwargs)
         self.survey_geometry = survey_geometry
         self.survey_type = survey_type
 
     @property
     def survey_geometry(self):
-        """Survey geometry; one of {"surface", "borehole", "general"}
+        """Survey geometry
+
+        This property is deprecated.
 
         Returns
         -------
         str
             Survey geometry; one of {"surface", "borehole", "general"}
         """
-        return self._survey_geometry
+        return "general"
 
     @survey_geometry.setter
     def survey_geometry(self, var):
         var = validate_string(
             "survey_geometry", var, ("surface", "borehole", "general")
-        ).lower()
+        )
         self._survey_geometry = var
 
     @property
@@ -96,7 +96,7 @@ class Survey(BaseSurvey):
             "survey_type",
             var,
             ("dipole-dipole", "pole-dipole", "dipole-pole", "pole-pole"),
-        ).lower()
+        )
         self._survey_type = var
 
     def __repr__(self):
@@ -192,7 +192,7 @@ class Survey(BaseSurvey):
 
         Returns
         -------
-        list of np.ndarray
+        list of numpy.ndarray
             List of length 2 containing the A and B electrode locations, in order.
         """
         src_a = []
@@ -216,8 +216,8 @@ class Survey(BaseSurvey):
 
         Parameters
         ----------
-        space_type : str, default = 'half-space'
-            Choose one of {'halfspace', 'wholespace'}
+        space_type : {'halfspace', 'wholespace'}
+            Calculate geometric factors using a half-space or whole-space formula.
         data_type : str, default = ``None``
             This input argument is now deprecated
         survey_type : str, default = ``None``
@@ -309,9 +309,8 @@ class Survey(BaseSurvey):
             The mesh on which the discretized fields are computed
         ind_active : numpy.ndarray of int or bool
             Active topography cells
-        option : str, default="top"
-            Define topography at tops of cells or cell centers. Choose from
-            "top" or "center"
+        option :{"top", "center"}
+            Define topography at tops of cells or cell centers.
         topography : (n, dim) numpy.ndarray, default = ``None``
             Surface topography
         force : bool, default = ``False``

@@ -470,7 +470,7 @@ class Point3DTipper(PointNaturalSource):
 
     def __init__(
         self,
-        locations=None,
+        locations,
         orientation="zx",
         component="real",
         locations_e=None,

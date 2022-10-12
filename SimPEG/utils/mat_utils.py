@@ -20,8 +20,19 @@ from discretize.utils import (
     inverse_2x2_block_diagonal,
     TensorType,
     make_property_tensor,
-    inverse_property_tensor
+    inverse_property_tensor,
 )
+
+# deprecated imports
+from discretize.utils import (
+    sdInv,
+    getSubArray,
+    inv3X3BlockDiagonal,
+    inv2X2BlockDiagonal,
+    makePropertyTensor,
+    invPropertyTensor,
+)
+
 
 def estimate_diagonal(matrix_arg, n, k=None, approach="Probing"):
     r"""Estimate the diagonal of a matrix.
@@ -52,15 +63,15 @@ def estimate_diagonal(matrix_arg, n, k=None, approach="Probing"):
         Number of vectors to be used to estimate the diagonal; i.e. number of iterations in estimation
     approach : str
         Method used for approximating diagonal. Must be one of {'probing', 'ones', 'random'}
-    
+
     Returns
     -------
     numpy.ndarray
         Estimate of the diagonal elements of the input matrix
-    
+
     """
 
-    if type(matrix_arg).__name__ == "ndarray":
+    if isinstance(matrix_arg, np.ndarray):
         A = matrix_arg
 
         def matrix_arg(v):
@@ -107,16 +118,16 @@ def unique_rows(M):
 
     Parameters
     ----------
-    M : numpy.array_like
+    M : array_like
         The input array
 
     Returns
     -------
-    unqM : numpy.array_like
+    unqM : numpy.ndarray
         Array consisting of the unique rows of the input array
-    unqInd : numpy.array_like of int
+    unqInd : numpy.ndarray of int
         Indices to project from input array to output array
-    unqInd : numpy.array_like of int
+    unqInd : numpy.ndarray of int
         Indices to project from output array to input array
 
     """
@@ -220,16 +231,16 @@ def eigenvalue_by_power_iteration(
 
 def cartesian2spherical(m):
     """Converts a set of 3D vectors from Cartesian to spherical coordinates.
-    
+
     Parameters
     ----------
-    m : (n, 3) numpy.array_like
+    m : (n, 3) array_like
         An array whose columns represent the x, y and z components of
         a set of vectors.
 
     Returns
     -------
-    (n, 3) numpy.array_like
+    (n, 3) numpy.ndarray
         An array whose columns represent the *a*, *t* and *p* components
         of a set of vectors in spherical coordinates.
 
@@ -247,11 +258,11 @@ def cartesian2spherical(m):
         \\mathbf{v^\\prime} = (a, t, p)
 
     where
-    
+
         - :math:`a` is the amplitude of the vector
         - :math:`t` is the azimuthal angle defined positive from vertical
         - :math:`p` is the radial angle defined positive CCW from Easting
-    
+
     """
 
     # nC = int(len(m)/3)
@@ -275,7 +286,7 @@ def cartesian2spherical(m):
 
 def spherical2cartesian(m):
     """Converts a set of 3D vectors from spherical to Catesian coordinates.
-    
+
     Parameters
     ----------
     m : (n, 3) array_like
@@ -284,7 +295,7 @@ def spherical2cartesian(m):
 
     Returns
     -------
-    (n, 3) array_like
+    (n, 3) numpy.ndarray
         An array whose columns represent the *x*, *y* and *z* components
         of the set of vectors in Cartesian.
 
@@ -302,7 +313,7 @@ def spherical2cartesian(m):
         \\mathbf{v^\\prime} = (a, t, p)
 
     where
-    
+
         - :math:`a` is the amplitude of the vector
         - :math:`t` is the azimuthal angle defined positive from vertical
         - :math:`p` is the radial angle defined positive CCW from Easting
@@ -374,12 +385,12 @@ def coterminal(theta):
 
     Parameters
     ----------
-    theta : float or numpy.array_like
+    theta : array_like
         Input angles
 
     Returns
     -------
-    float or numpy.array_like
+    numpy.ndarray
         Coterminal angles
 
     """
@@ -424,44 +435,11 @@ def define_plane_from_points(xyz1, xyz2, xyz3):
     return a, b, c, d
 
 
-
 ################################################
 #             DEPRECATED FUNCTIONS
 ################################################
 
-avExtrap = deprecate_function(
-    av_extrap, "avExtrap", removal_version="0.16.0"
-)
 
-sdInv = deprecate_function(
-    sdinv, "sdInv", removal_version="0.16.0"
-)
+diagEst = deprecate_function(estimate_diagonal, "diagEst", removal_version="0.16.0")
 
-getSubArray = deprecate_function(
-    get_subarray, "getSubArray", removal_version="0.16.0"
-)
-
-inv3X3BlockDiagonal = deprecate_function(
-    inverse_3x3_block_diagonal, "inv3X3BlockDiagonal", removal_version="0.16.0"
-)
-
-inv2X2BlockDiagonal = deprecate_function(
-    inverse_2x2_block_diagonal, "inv2X2BlockDiagonal", removal_version="0.16.0"
-)
-
-makePropertyTensor = deprecate_function(
-    make_property_tensor, "makePropertyTensor", removal_version="0.16.0"
-)
-
-invPropertyTensor = deprecate_function(
-    inverse_property_tensor, "makePropertyTensor", removal_version="0.16.0"
-)
-
-diagEst = deprecate_function(
-    estimate_diagonal, "diagEst", removal_version="0.16.0"
-)
-
-uniqueRows = deprecate_function(
-    unique_rows, "uniqueRows", removal_version="0.16.0"
-)
-
+uniqueRows = deprecate_function(unique_rows, "uniqueRows", removal_version="0.16.0")

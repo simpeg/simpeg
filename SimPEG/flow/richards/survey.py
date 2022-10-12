@@ -1,7 +1,9 @@
 import numpy as np
+
 # import properties
 
 from ...survey import BaseSurvey, BaseRx
+from ...utils import validate_list_of_types
 
 
 class Survey(BaseSurvey):
@@ -29,19 +31,7 @@ class Survey(BaseSurvey):
 
     @receiver_list.setter
     def receiver_list(self, new_list):
-
-        if isinstance(new_list, BaseRx):
-            new_list = [new_list]
-        elif isinstance(new_list, list):
-            pass
-        else:
-            raise TypeError("Receiver list must be a list of SimPEG.survey.BaseRx")
-
-        assert len(set(new_list)) == len(new_list), "The receiver_list must be unique. Cannot re-use receivers"
-
-        self._rxOrder = dict()
-        [self._rxOrder.setdefault(rx._uid, ii) for ii, rx in enumerate(new_list)]
-        self._receiver_list = new_list
+        new_list = validate_list_of_types("receiver_list", new_list, BaseRx)
 
     @property
     def nD(self):
@@ -61,7 +51,7 @@ class Survey(BaseSurvey):
         ----------
         simulation : SimPEG.flow.richards.simulation.SimulationNDCellCentered
             A Richards flow simulation class
-        f :
+        f : (n_times) list of numpy.ndarray
             Fields
         du_dm_v : numpy.ndarray, default = ``None``
             Derivative with respect to model times a vector
@@ -86,8 +76,8 @@ class Survey(BaseSurvey):
         ----------
         simulation : SimPEG.flow.richards.simulation.SimulationNDCellCentered
             A Richards flow simulation class
-        f :
-            Fields
+        f : (n_times) list of numpy.ndarray
+            Fields.
         v : numpy.ndarray, default = ``Nones``
             A vector
 

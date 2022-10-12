@@ -7,56 +7,8 @@ Utility Classes and Functions (:mod:`SimPEG.utils`)
 The ``utils`` package contains utilities for helping with common operations involving
 SimPEG.
 
-Utility Classes
-===============
-.. autosummary::
-  :toctree: generated/
-
-  Counter
-  # Identity
-  # Report
-  TensorType
-  # Zero
-
-
-Code Utility Functions
-======================
-
-.. autosummary::
-  :toctree: generated/
-
-  asArray_N_x_Dim
-  call_hooks
-  callHooks
-  check_stoppers
-  checkStoppers
-  create_wrapper_from_class
-  dependent_property
-  dependentProperty
-  deprecate_class
-  deprecate_function
-  deprecate_method
-  deprecate_module
-  deprecate_property
-  hook
-  memProfileWrapper
-  print_done
-  printDone
-  print_line
-  printLine
-  print_stoppers
-  printStoppers
-  print_titles
-  printTitles
-  requires
-  set_kwargs
-  setKwargs
-  validate_float
-  validate_integer
-  validate_list_of_types
-  validate_location_property
-  validate_ndarray_with_shape
-  validate_string
+Many of the utilities are imported from `discretize.utils`. See that package's
+documentation for many details on items.
 
 
 Coordinates Utility Functions
@@ -65,8 +17,6 @@ Coordinates Utility Functions
 .. autosummary::
   :toctree: generated/
 
-  rotatePointsFromNormals
-  rotationMatrixFromNormals
   rotation_matrix_from_normals
   rotate_points_from_normals
 
@@ -76,6 +26,7 @@ Counter Utility Functions
 .. autosummary::
   :toctree: generated/
 
+  Counter
   count
   timeIt
 
@@ -86,13 +37,9 @@ Curvilinear Utility Functions
   :toctree: generated/
 
   example_curvilinear_grid
-  ExampleLrmGrid
   face_info
-  faceInfo
   index_cube
-  indexCube
   volume_tetrahedron
-  volTetra
 
 
 IO Utility Functions
@@ -134,17 +81,12 @@ Matrix Utility Functions
   eigenvalue_by_power_iteration
   estimate_diagonal
   get_subarray
-  getSubArray
   kron3
   ind2sub
   inverse_2x2_block_diagonal
-  inv2X2BlockDiagonal
   inverse_3x3_block_diagonal
-  inv3X3BlockDiagonal
   inverse_property_tensor
-  invPropertyTensor
   make_property_tensor
-  makePropertyTensor
   mkvc
   ndgrid
   sdiag
@@ -153,7 +95,7 @@ Matrix Utility Functions
   spherical2cartesian
   spzeros
   sub2ind
-  uniqueRows
+  unique_rows
 
 
 Mesh Utility Functions
@@ -163,11 +105,9 @@ Mesh Utility Functions
   :toctree: generated/
 
   closest_points_index
-  closestPoints
   extract_core_mesh
-  ExtractCoreMesh
-  meshTensor
   unpack_widths
+  surface2inds
 
 
 Model Utility Functions
@@ -177,25 +117,15 @@ Model Utility Functions
   :toctree: generated/
 
   model_builder.add_block
-  model_builder.addBlock
   model_builder.create_2_layer_model
   model_builder.create_block_in_wholespace
   model_builder.create_ellipse_in_wholespace
   model_builder.create_from_function
   model_builder.create_layers_model
   model_builder.create_random_model
-  model_builder.defineBlock
-  model_builder.defineEllipse
-  model_builder.defineTwoLayers
   model_builder.get_indices_block
-  model_builder.getIndicesBlock
   model_builder.get_indices_polygon
   model_builder.get_indices_sphere
-  model_builder.getIndicesSphere
-  model_builder.layeredModel
-  model_builder.polygonInd
-  model_builder.randomModel
-  model_builder.scalarConductivity
 
 
 Plotting Utility Functions
@@ -205,7 +135,6 @@ Plotting Utility Functions
   :toctree: generated/
 
   plot2Ddata
-  plotLayer
   plot_1d_layer_model
 
 
@@ -214,54 +143,49 @@ PGI Utility Classes and Functions
 .. autosummary::
   :toctree: generated/
 
-  make_PGI_regularization
-  make_PGIwithRelationships_regularization
   WeightedGaussianMixture
   GaussianMixtureWithPrior
   GaussianMixtureWithNonlinearRelationships
   GaussianMixtureWithNonlinearRelationshipsWithPrior
+
+Code Utility Functions
+======================
+Many of the functions here are used internally to SimPEG and have minimal documentation.
+
+.. autosummary::
+  :toctree: generated/
+
+  asArray_N_x_Dim
+  call_hooks
+  check_stoppers
+  create_wrapper_from_class
+  dependent_property
+  deprecate_class
+  deprecate_function
+  deprecate_method
+  deprecate_module
+  deprecate_property
+  hook
+  print_done
+  printDone
+  print_line
+  print_stoppers
+  print_titles
+  requires
+  set_kwargs
+  validate_float
+  validate_integer
+  validate_list_of_types
+  validate_location_property
+  validate_ndarray_with_shape
+  validate_string
+  validate_callable
 
 """
 from __future__ import print_function
 
 from discretize.utils.interpolation_utils import interpmat
 
-from .mat_utils import (
-    mkvc,
-    sdiag,
-    sdinv,
-    sdInv,
-    speye,
-    kron3,
-    spzeros,
-    ddx,
-    av,
-    av_extrap,
-    ndgrid,
-    ind2sub,
-    sub2ind,
-    get_subarray,
-    getSubArray,
-    inverse_3x3_block_diagonal,
-    inv3X3BlockDiagonal,
-    inverse_2x2_block_diagonal,
-    inv2X2BlockDiagonal,
-    TensorType,
-    make_property_tensor,
-    makePropertyTensor,
-    inverse_property_tensor,
-    invPropertyTensor,
-    estimate_diagonal,
-    diagEst,
-    Zero,
-    Identity,
-    uniqueRows,
-    eigenvalue_by_power_iteration,
-    cartesian2spherical,
-    spherical2cartesian,
-    coterminal,
-    define_plane_from_points,
-)
 from .code_utils import (
     create_wrapper_from_class,
     memProfileWrapper,
@@ -297,6 +221,45 @@ from .code_utils import (
     validate_ndarray_with_shape,
     validate_string,
     validate_type,
+    validate_callable,
+)
+
+from .mat_utils import (
+    mkvc,
+    sdiag,
+    sdinv,
+    sdInv,
+    speye,
+    kron3,
+    spzeros,
+    ddx,
+    av,
+    av_extrap,
+    ndgrid,
+    ind2sub,
+    sub2ind,
+    get_subarray,
+    getSubArray,
+    inverse_3x3_block_diagonal,
+    inv3X3BlockDiagonal,
+    inverse_2x2_block_diagonal,
+    inv2X2BlockDiagonal,
+    TensorType,
+    make_property_tensor,
+    makePropertyTensor,
+    inverse_property_tensor,
+    invPropertyTensor,
+    estimate_diagonal,
+    diagEst,
+    Zero,
+    Identity,
+    unique_rows,
+    uniqueRows,
+    eigenvalue_by_power_iteration,
+    cartesian2spherical,
+    spherical2cartesian,
+    coterminal,
+    define_plane_from_points,
 )
 from .mesh_utils import (
     meshTensor,
@@ -305,12 +268,13 @@ from .mesh_utils import (
     unpack_widths,
     closest_points_index,
     extract_core_mesh,
+    surface2inds,
 )
 from .curv_utils import (
     volTetra,
     faceInfo,
     indexCube,
-    ExampleLrmGrid,
+    exampleLrmGrid,
     volume_tetrahedron,
     index_cube,
     face_info,

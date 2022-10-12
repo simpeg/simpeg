@@ -143,6 +143,23 @@ class IdentityMap(properties.HasProperties):
     def deriv(self, m, v=None):
         r"""Derivative of the mapping with respect to the input parameters.
 
+        Parameters
+        ----------
+        m : (nP) numpy.ndarray
+            A vector representing a set of model parameters
+        v : (nP) numpy.ndarray
+            If not ``None``, the method returns the derivative times the vector *v*
+
+        Returns
+        -------
+        scipy.sparse.csr_matrix or numpy.ndarray
+            Derivative of the mapping with respect to the model parameters. For an
+            identity mapping, this is just a sparse identity matrix. If the input
+            argument *v* is not ``None``, the method returns the derivative times
+            the vector *v*; which in this case is just *v*.
+
+        Notes
+        -----
         Let :math:`\mathbf{m}` be a set of model parameters and let :math:`\mathbf{I}`
         denote the identity map. Where the identity mapping acting on the model parameters
         can be expressed as:
@@ -156,22 +173,7 @@ class IdentityMap(properties.HasProperties):
         .. math::
             \frac{\partial \mathbf{u}}{\partial \mathbf{m}} = \mathbf{I}
 
-        Note that in this case, **deriv** simply returns a sparse identity matrix.
-
-        Parameters
-        ----------
-        m : (nP) numpy.ndarray
-            A vector representing a set of model parameters
-        v : (nP) numpy.ndarray
-            If not ``None``, the method returns the derivative times the vector *v*
-
-        Returns
-        -------
-        scipy.sparse.csr_matrix
-            Derivative of the mapping with respect to the model parameters. For an
-            identity mapping, this is just a sparse identity matrix. If the input
-            argument *v* is not ``None``, the method returns the derivative times
-            the vector *v*; which in this case is just *v*.
+        For the Identity map **deriv** simply returns a sparse identity matrix.
         """
         if v is not None:
             return v
@@ -210,36 +212,6 @@ class IdentityMap(properties.HasProperties):
         ), "nP must be an integer for {}".format(self.__class__.__name__)
         return check_derivative(
             lambda m: [self * m, self.deriv(m)], m, num=num, **kwargs
-        )
-
-    def testVec(self, m=None, **kwargs):
-        """Derivative test for the mapping times the model.
-
-        This test validates the mapping by performing a convergence test
-        on the mapping time a model.
-
-        Parameters
-        ----------
-        m : (nP) numpy.ndarray
-            Starting vector of model parameters for the derivative test
-        num : int
-            Number of iterations for the derivative test
-        kwargs : dict
-            Keyword arguments and associated values in the dictionary must
-            match those used in :meth:`discretize.tests.check_derivative`
-
-        Returns
-        -------
-        bool
-            Returns ``True`` if the test passes
-        """
-        print("Testing {0!s}".format(self))
-        if m is None:
-            m = abs(np.random.rand(self.nP))
-        if "plotIt" not in kwargs:
-            kwargs["plotIt"] = False
-        return check_derivative(
-            lambda m: [self * m, lambda x: self.deriv(m, x)], m, num=4, **kwargs
         )
 
     def _assertMatchesPair(self, pair):
@@ -285,7 +257,7 @@ class IdentityMap(properties.HasProperties):
         the ``dot`` method is used to create a combination mapping:
 
         .. math::
-            \mathbf{u}(\mathbf{m}) = (\mathbf{f_2 \circ f_1})(\mathbf{m})
+            u(\mathbf{m}) = f_2(f_1(\mathbf{m}))
 
         Where :math:`\mathbf{f_1} : M \rightarrow K_1` and acts on the
         model first, and :math:`\mathbf{f_2} : K_1 \rightarrow K_2`, the combination
@@ -355,8 +327,8 @@ class ComboMap(IdentityMap):
     r"""Combination mapping constructed by joining a set of other mappings.
 
     A ``ComboMap`` is a single mapping object made by joining a set
-    of basic mapping operations. When creating a ``ComboMap``, the
-    user provides a list of SimPEG mapping objects they wish to join.
+    of basic mapping operations by chaining them together, in order.
+    When creating a ``ComboMap``, the user provides a list of SimPEG mapping objects they wish to join.
     The order of the mappings in this list is from last to first; i.e.
     :math:`[\mathbf{f}_n , ... , \mathbf{f}_2 , \mathbf{f}_1]`.
 
@@ -364,25 +336,14 @@ class ComboMap(IdentityMap):
     set of input model parameters :math:`\mathbf{m}` is defined as:
 
     .. math::
-        \mathbf{u}(\mathbf{m}) = (\mathbf{f_n} \circ \cdots \circ \mathbf{f_2} \circ \mathbf{f_1})(\mathbf{m})
-
-
-    Derivatives for the combination mapping are computed using the chain
-    rule. Thus:
-
-    .. math::
-        \frac{\partial \mathbf{u}}{\partial \mathbf{m}} =
-        \frac{\partial \mathbf{f_n}}{\partial \mathbf{f_{n-1}}}
-        \cdots
-        \frac{\partial \mathbf{f_2}}{\partial \mathbf{f_{1}}}
-        \frac{\partial \mathbf{f_1}}{\partial \mathbf{m}}
+        \mathbf{u}(\mathbf{m}) = f_n(f_{n-1}(\cdots f_1(f_0(\mathbf{m}))))
 
     Note that any time that you create your own combination mapping,
     be sure to test that the derivative is correct.
 
     Parameters
     ----------
-    maps : list
+    maps : list of SimPEG.maps.IdentityMap
         A ``list`` of SimPEG mapping objects. The ordering of the mapping
         objects in the ``list`` is from last applied to first applied!
 
@@ -465,9 +426,8 @@ class ComboMap(IdentityMap):
 
         Returns
         -------
-        tuple
-            Dimensions of the mapping operator as a tuple of the
-            form (``int``,``int``).
+        (2) tuple of int
+            Dimensions of the mapping operator.
         """
         return (self.maps[0].shape[0], self.maps[-1].shape[1])
 
@@ -490,28 +450,7 @@ class ComboMap(IdentityMap):
     def deriv(self, m, v=None):
         r"""Derivative of the mapping with respect to the input parameters.
 
-        Let :math:`\mathbf{m}` be a set of model parameters and let
-        [:math:`\mathbf{f}_n,...,\mathbf{f}_1`] be the list of SimPEG mappings joined
-        to create a combination mapping. Recall that the list of mappings is ordered
-        from last applied to first applied.
-
-        Where the combination mapping acting on the model parameters
-        can be expressed as:
-
-        .. math::
-            \mathbf{u}(\mathbf{m}) = (\mathbf{f_n} \circ \cdots \circ \mathbf{f_2} \circ \mathbf{f_1})(\mathbf{m}),
-
-        the **deriv** method returns the derivative of :math:`\mathbf{u}` with respect
-        to the model parameters. To do this, we use the chain rule, i.e.:
-
-        .. math::
-            \frac{\partial \mathbf{u}}{\partial \mathbf{m}} =
-            \frac{\partial \mathbf{f_n}}{\partial \mathbf{f_{n-1}}}
-            \cdots
-            \frac{\partial \mathbf{f_2}}{\partial \mathbf{f_{1}}}
-            \frac{\partial \mathbf{f_1}}{\partial \mathbf{m}}
-
-        Note that any time that you create your own combination mapping,
+        Any time that you create your own combination mapping,
         be sure to test that the derivative is correct.
 
         Parameters
@@ -527,6 +466,29 @@ class ComboMap(IdentityMap):
             Derivative of the mapping with respect to the model parameters.
             If the input argument *v* is not ``None``, the method returns
             the derivative times the vector *v*.
+
+        Notes
+        -----
+        Let :math:`\mathbf{m}` be a set of model parameters and let
+        [:math:`\mathbf{f}_n,...,\mathbf{f}_1`] be the list of SimPEG mappings joined
+        to create a combination mapping. Recall that the list of mappings is ordered
+        from last applied to first applied.
+
+        Where the combination mapping acting on the model parameters
+        can be expressed as:
+
+        .. math::
+            \mathbf{u}(\mathbf{m}) = f_n(f_{n-1}(\cdots f_1(f_0(\mathbf{m}))))
+
+        The **deriv** method returns the derivative of :math:`\mathbf{u}` with respect
+        to the model parameters. To do this, we use the chain rule, i.e.:
+
+        .. math::
+            \frac{\partial \mathbf{u}}{\partial \mathbf{m}} =
+            \frac{\partial \mathbf{f_n}}{\partial \mathbf{f_{n-1}}}
+            \cdots
+            \frac{\partial \mathbf{f_2}}{\partial \mathbf{f_{1}}}
+            \frac{\partial \mathbf{f_1}}{\partial \mathbf{m}}
         """
 
         if v is not None:
@@ -1253,13 +1215,13 @@ class Wires(object):
 
 
 class SelfConsistentEffectiveMedium(IdentityMap, properties.HasProperties):
-    """
+    r"""
         Two phase self-consistent effective medium theory mapping for
         ellipsoidal inclusions. The inversion model is the concentration
         (volume fraction) of the phase 2 material.
 
-        The inversion model is :math:`\\varphi`. We solve for :math:`\sigma`
-        given :math:`\sigma_0`, :math:`\sigma_1` and :math:`\\varphi` . Each of
+        The inversion model is :math:`\varphi`. We solve for :math:`\sigma`
+        given :math:`\sigma_0`, :math:`\sigma_1` and :math:`\varphi` . Each of
         the following are implicit expressions of the effective conductivity.
         They are solved using a fixed point iteration.
 
@@ -1277,13 +1239,13 @@ class SelfConsistentEffectiveMedium(IdentityMap, properties.HasProperties):
 
         .. math::
 
-            (1-\\varphi)(\sigma - \sigma_0)R^{(0)} + \\varphi(\sigma - \sigma_1)R^{(1)} = 0.
+            (1-\\varphi)(\sigma - \sigma_0)R^{(0)} + \varphi(\sigma - \sigma_1)R^{(1)} = 0.
 
         Where :math:`R^{(j)}` is given by
 
         .. math::
 
-            R^{(j)} = \\left[1 + \\frac{1}{3}\\frac{\sigma_j - \sigma}{\sigma} \\right]^{-1}.
+            R^{(j)} = \left[1 + \frac{1}{3}\frac{\sigma_j - \sigma}{\sigma} \right]^{-1}.
 
         **Ellipsoids**
 
@@ -1296,7 +1258,7 @@ class SelfConsistentEffectiveMedium(IdentityMap, properties.HasProperties):
 
         .. math::
 
-            \sum_{j=1}^N \\varphi_j (\Sigma^* - \sigma_j\mathbf{I}) \mathbf{R}^{j, *} = 0
+            \sum_{j=1}^N \varphi_j (\Sigma^* - \sigma_j\mathbf{I}) \mathbf{R}^{j, *} = 0
 
         where
 
@@ -1308,28 +1270,28 @@ class SelfConsistentEffectiveMedium(IdentityMap, properties.HasProperties):
 
         .. math::
 
-            \mathbf{A}^* = \\left[\\begin{array}{ccc}
-                Q & 0 & 0 \\\\
-                0 & Q & 0 \\\\
+            \mathbf{A}^* = \left[\begin{array}{ccc}
+                Q & 0 & 0 \\
+                0 & Q & 0 \\
                 0 & 0 & 1-2Q
-            \end{array}\\right]
+            \end{array}\right]
 
         for a spheroid aligned along the z-axis. For an oblate spheroid
-        (:math:`\\alpha < 1`, pancake-like)
+        (:math:`\alpha < 1`, pancake-like)
 
         .. math::
 
-            Q = \\frac{1}{2}\\left(
-                1 + \\frac{1}{\\alpha^2 - 1} \\left[
-                    1 - \\frac{1}{\chi}\\tan^{-1}(\chi)
-                \\right]
-            \\right)
+            Q = \frac{1}{2}\left(
+                1 + \frac{1}{\alpha^2 - 1} \left[
+                    1 - \frac{1}{\chi}\tan^{-1}(\chi)
+                \right]
+            \right)
 
         where
 
         .. math::
 
-            \chi = \sqrt{\\frac{1}{\\alpha^2} - 1}
+            \chi = \sqrt{\frac{1}{\alpha^2} - 1}
 
 
         For reference, see

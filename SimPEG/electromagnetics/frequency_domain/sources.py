@@ -29,7 +29,7 @@ class BaseFDEMSrc(BaseEMSrc):
         A list of FDEM receivers
     frequency : float
         Source frequency
-    location : (dim) np.ndarray, default: ``None``
+    location : (dim) numpy.ndarray, default: ``None``
         Source location.
     """
 
@@ -40,19 +40,12 @@ class BaseFDEMSrc(BaseEMSrc):
     _hPrimary = None
     _jPrimary = None
 
-    def __init__(self, receiver_list=None, frequency=None, location=None, **kwargs):
+    def __init__(self, receiver_list, frequency, location=None, **kwargs):
 
         super(BaseFDEMSrc, self).__init__(
             receiver_list=receiver_list, location=location, **kwargs
         )
-        if "freq" in kwargs:
-            frequency = kwargs.pop("freq")
-        if frequency is None:
-            raise AttributeError(
-                "Source cannot be instantiated without assigning 'frequency'."
-            )
-        else:
-            self.frequency = frequency
+        self.frequency = frequency
 
     @property
     def frequency(self):
@@ -94,7 +87,7 @@ class BaseFDEMSrc(BaseEMSrc):
         ----------
         simulation : BaseFDEMSimulation
             A SimPEG FDEM simulation
-        v : np.ndarray
+        v : numpy.ndarray
             A vector
         adjoint : bool
             If ``True``, return the adjoint
@@ -130,7 +123,7 @@ class BaseFDEMSrc(BaseEMSrc):
         ----------
         simulation : BaseFDEMSimulation
             A SimPEG FDEM simulation
-        v : np.ndarray
+        v : numpy.ndarray
             A vector
         adjoint : bool
             If ``True``, return the adjoint
@@ -166,7 +159,7 @@ class BaseFDEMSrc(BaseEMSrc):
         ----------
         simulation : BaseFDEMSimulation
             A SimPEG FDEM simulation
-        v : np.ndarray
+        v : numpy.ndarray
             A vector
         adjoint : bool
             If ``True``, return the adjoint
@@ -202,7 +195,7 @@ class BaseFDEMSrc(BaseEMSrc):
         ----------
         simulation : BaseFDEMSimulation
             A SimPEG FDEM simulation
-        v : np.ndarray
+        v : numpy.ndarray
             A vector
         adjoint : bool
             If ``True``, return the adjoint
@@ -224,13 +217,13 @@ class RawVec_e(BaseFDEMSrc):
         A list of FDEM receivers
     frequency : float
         Source frequency
-    s_e: np.ndarray
+    s_e: numpy.ndarray
         Electric source term
     integrate : bool, default: ``False``
         If ``True``, integrate the source term; i.e. multiply by Me matrix
     """
 
-    def __init__(self, receiver_list=None, frequency=None, s_e=None, **kwargs):
+    def __init__(self, receiver_list, frequency, s_e, **kwargs):
         self._s_e = np.asarray(s_e, dtype=complex)
 
         super().__init__(receiver_list, frequency=frequency, **kwargs)
@@ -262,13 +255,13 @@ class RawVec_m(BaseFDEMSrc):
         A list of FDEM receivers
     frequency : float
         Source frequency
-    s_m: np.ndarray
+    s_m: numpy.ndarray
         Magnetic source term
     integrate : bool, default: ``False``
         If ``True``, integrate the source term; i.e. multiply by Me matrix
     """
 
-    def __init__(self, receiver_list=None, frequency=None, s_m=None, **kwargs):
+    def __init__(self, receiver_list, frequency, s_m, **kwargs):
         self._s_m = np.asarray(s_m, dtype=complex)
         super(RawVec_m, self).__init__(
             receiver_list=receiver_list, frequency=frequency, **kwargs
@@ -301,21 +294,22 @@ class RawVec(RawVec_e, RawVec_m):
         A list of FDEM receivers
     frequency : float
         Source frequency
-    s_e: np.ndarray
+    s_e: numpy.ndarray
         Electric source term
-    s_m: np.ndarray
+    s_m: numpy.ndarray
         Magnetic source term
     integrate : bool, default: ``False``
         If ``True``, integrate the source terms; i.e. multiply by Me matrix
     """
 
-    pass
-    # def __init__(
-    #     self, receiver_list=None, frequency=None, s_m=None, s_e=None, **kwargs
-    # ):
-    #     super().__init__(
-    #         receiver_list=receiver_list, frequency=frequency, s_m=None, s_e=None, **kwargs
-    #     )
+    def __init__(self, receiver_list, frequency, s_m, s_e, **kwargs):
+        super().__init__(
+            receiver_list=receiver_list,
+            frequency=frequency,
+            s_m=None,
+            s_e=None,
+            **kwargs,
+        )
 
 
 class MagDipole(BaseFDEMSrc):
@@ -374,24 +368,28 @@ class MagDipole(BaseFDEMSrc):
         A list of FDEM receivers
     frequency : float
         Source frequency
-    location : (dim) np.ndarray, default: np.r_[0., 0., 0.]
+    location : (dim) numpy.ndarray, default: numpy.r_[0., 0., 0.]
         Source location.
     moment : float
         Magnetic dipole moment amplitude
+    orientation : {'z', x', 'y'} or (dim) numpy.ndarray
+        Orientation of the dipole.
     mu : float
         Background magnetic permeability
     """
 
     def __init__(
         self,
-        receiver_list=None,
-        frequency=None,
-        location=np.r_[0.0, 0.0, 0.0],
+        receiver_list,
+        frequency,
+        location=None,
         moment=1.0,
         orientation="z",
         mu=mu_0,
         **kwargs,
     ):
+        if location is None:
+            location = np.r_[0.0, 0.0, 0.0]
 
         super(MagDipole, self).__init__(
             receiver_list=receiver_list,
@@ -455,7 +453,7 @@ class MagDipole(BaseFDEMSrc):
 
         Returns
         -------
-        (3) numpy.ndarray of float or str in {'x','y','z'}
+        (3) numpy.ndarray of float
             dipole orientation, normalized to unit magnitude
         """
         return self._orientation
@@ -689,16 +687,18 @@ class MagDipole_Bfield(MagDipole):
         A list of FDEM receivers
     frequency : float
         Source frequency
-    location : (dim) np.ndarray, default: np.r_[0., 0., 0.]
+    location : (dim) numpy.ndarray, default: np.r_[0., 0., 0.]
         Source location.
     moment : float
         Magnetic dipole moment amplitude
+    orientation : {'z', x', 'y'} or (dim) numpy.ndarray
+        Orientation of the dipole.
     mu : float
         Background magnetic permeability
     """
 
-    def __init__(self, receiver_list=None, frequency=None, location=None, **kwargs):
-        super(MagDipole_Bfield, self).__init__(
+    def __init__(self, receiver_list, frequency, location=None, **kwargs):
+        super().__init__(
             receiver_list=receiver_list,
             frequency=frequency,
             location=location,
@@ -770,6 +770,12 @@ class CircularLoop(MagDipole):
         Source frequency
     location : (dim) np.ndarray, default: np.r_[0., 0., 0.]
         Source location.
+    moment : float
+        Magnetic dipole moment amplitude
+    orientation : {'z', x', 'y'} or (dim) numpy.ndarray
+        Orientation of the dipole.
+    mu : float
+        Background magnetic permeability
     orientation : str, default: 'z'
         Loop orientation. One of ('x', 'y', 'z')
     radius : float, default: 1.0
@@ -782,20 +788,17 @@ class CircularLoop(MagDipole):
 
     def __init__(
         self,
-        receiver_list=None,
-        frequency=None,
-        location=np.r_[0.0, 0.0, 0.0],
+        receiver_list,
+        frequency,
+        location=None,
         orientation="z",
         radius=1.0,
         current=1.0,
         mu=mu_0,
         **kwargs,
     ):
-
-        if "moment" in kwargs:
-            kwargs.pop("moment")
-
-        BaseFDEMSrc.__init__(
+        kwargs.pop("moment", None)
+        super(MagDipole).__init__(
             self,
             receiver_list=receiver_list,
             frequency=frequency,
@@ -804,9 +807,9 @@ class CircularLoop(MagDipole):
         )
 
         self.orientation = orientation
+        self.mu = mu
         self.radius = radius
         self.current = current
-        self.mu = mu
 
     # radius = properties.Float("radius of the loop", default=1.0, min=0.0)
 
@@ -823,7 +826,7 @@ class CircularLoop(MagDipole):
 
     @radius.setter
     def radius(self, rad):
-        rad = validate_float("radius", rad, min_val=1e-10)
+        rad = validate_float("radius", rad, min_val=0, inclusive_min=False)
         self._radius = rad
 
     # current = properties.Float("current in the loop", default=1.0)

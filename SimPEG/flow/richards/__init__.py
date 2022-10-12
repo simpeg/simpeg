@@ -6,9 +6,14 @@ Richards Flow Module (:mod:`SimPEG.flow.richards`)
 
 About ``gravity``
 
+Simulations
+-----------
+.. autosummary::
+  :toctree: generated/
+  SimulationNDCellCentered
+
 Survey, Source and Receiver Classes
 -----------------------------------
-
 .. autosummary::
   :toctree: generated/
 
@@ -16,6 +21,14 @@ Survey, Source and Receiver Classes
   receivers.Saturation
   survey.Survey
 
+Empirical utilities
+-------------------
+.. autosummary::
+  :toctree: generated/
+
+  empirical.Pressure
+  empirical.Saturation
+  empirical.Survey
 
 """
 from . import empirical

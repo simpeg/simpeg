@@ -1,11 +1,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
-import copy
-from scipy.stats import multivariate_normal
-from scipy import spatial, linalg
+from scipy import linalg
 from scipy.special import logsumexp
-from scipy.sparse import diags
 from sklearn.mixture import GaussianMixture
 from sklearn.cluster import KMeans
 from sklearn.utils import check_array
@@ -14,7 +11,6 @@ from sklearn.mixture._gaussian_mixture import (
     _compute_precision_cholesky,
     _compute_log_det_cholesky,
     _estimate_gaussian_covariances_full,
-    _estimate_gaussian_covariances_tied,
     _estimate_gaussian_covariances_diag,
     _estimate_gaussian_covariances_spherical,
     _check_means,
@@ -23,15 +19,7 @@ from sklearn.mixture._gaussian_mixture import (
 )
 from sklearn.mixture._base import check_random_state, ConvergenceWarning
 import warnings
-from .mat_utils import mkvc
-from ..maps import IdentityMap, Wires, Identity
-from ..regularization import (
-    Smallness,
-    PGI,
-    PGIsmallness,
-    WeightedLeastSquares,
-    PGIwithRelationships,
-)
+from SimPEG.maps import IdentityMap
 
 
 ###############################################################################

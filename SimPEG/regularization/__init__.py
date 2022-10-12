@@ -170,14 +170,14 @@ from .jtv import JointTotalVariation
 
 @deprecate_class(removal_version="0.x.0", future_warn=True)
 class SimpleSmall(Smallness):
-    """Deprecated class, replaced by Small."""
+    """Deprecated class, replaced by Smallness."""
 
     pass
 
 
 @deprecate_class(removal_version="0.x.0", future_warn=True)
 class SimpleSmoothDeriv(SmoothnessFirstOrder):
-    """Deprecated class, replaced by SmoothDeriv."""
+    """Deprecated class, replaced by SmoothnessFirstOrder."""
 
     pass
 
@@ -217,21 +217,21 @@ class Tikhonov(WeightedLeastSquares):
 
 @deprecate_class(removal_version="0.x.0", future_warn=True)
 class Small(Smallness):
-    """Deprecated class, replaced by Small."""
+    """Deprecated class, replaced by Smallness."""
 
     pass
 
 
 @deprecate_class(removal_version="0.x.0", future_warn=True)
 class SmoothDeriv(SmoothnessFirstOrder):
-    """Deprecated class, replaced by SmoothDeriv."""
+    """Deprecated class, replaced by SmoothnessFirstOrder."""
 
     pass
 
 
 @deprecate_class(removal_version="0.x.0", future_warn=True)
 class SmoothDeriv2(SmoothnessSecondOrder):
-    """Deprecated class, replaced by SmoothDeriv."""
+    """Deprecated class, replaced by SmoothnessSecondOrder."""
 
     pass
 
