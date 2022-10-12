@@ -818,6 +818,11 @@ def validate_integer(property_name, var, min_val=-np.inf, max_val=np.inf):
     -------
     int
         Returns the input variable as a int once validated
+
+    Notes
+    -----
+    The variable is casted to an `int`, therefore if a float is passed, the decimal
+    value is discarded and a valid integer is returned.
     """
     try:
         var = int(var)
@@ -846,17 +851,21 @@ def validate_float(
     ----------
     property_name : str
         The name of the property being set
-    var : int or float
-        The input variable
+    var : number
+        The input variable which will be cast to a float
     min_val, max_val : int or float, optional
         Minimum/Maximum value
-    inclusive_min, inclusive_max : bool, optionals
+    inclusive_min, inclusive_max : bool, optional
         Whether the minimum and maximum values are inclusive.
 
     Returns
     -------
     float
         Returns the input variable as a float once validated
+
+    Notes
+    -----
+    The input is first attempted ot be cast to a float.
     """
     try:
         var = float(var)
@@ -897,16 +906,18 @@ def validate_list_of_types(property_name, var, class_type, ensure_unique=False):
         A list of objects
     class_type : class or tuple of class types
         Class type(s) that are allowed in the list
+    ensure_unique : bool, optional
+        Checks if all items in the var are unique items.
 
     Returns
     -------
     list
         Returns the list once validated
     """
-    if isinstance(var, class_type):
-        var = [var]
-    elif isinstance(var, list):
+    if isinstance(var, list):
         pass
+    elif isinstance(var, class_type):
+        var = [var]
     else:
         raise TypeError(f"'{property_name}' must be a list of '{class_type}'")
 
@@ -928,7 +939,7 @@ def validate_location_property(property_name, var, dim=None):
     ----------
     property_name : str
         The name of the property being set
-    var : numpy.array_like
+    var : array_like
         The input variable
     dim : int, optional
         The dimension; i.e. 1, 2 or 3
@@ -944,7 +955,7 @@ def validate_location_property(property_name, var, dim=None):
         raise TypeError(f"'{property_name}' must be 1D array_like, got {type(var)}")
 
     if len(var.shape) > 1:
-        raise TypeError(
+        raise ValueError(
             f"'{property_name}' must be 1D array_like, got {len(var.shape)}D"
         )
 
@@ -973,12 +984,12 @@ def validate_ndarray_with_shape(property_name, var, shape=None, dtype=float):
         The '*' indicates that an arbitrary number of elements is allowed
         along a particular dimension. If list then multiple shapes are accepted.
         By default, shape is a tuple of length ndim of '*'.
-    dtype : float (default), int, complex, bool
-        The data type for the array
+    dtype : class, optional
+        The data type for the array. I.e. float, int, complex, bool, etc.
 
     Returns
     -------
-    numpy.ndarray
+    numpy.ndarray of dtype
         Returns the array in the specified data type once validated
     """
 
@@ -1059,7 +1070,7 @@ def validate_type(property_name, obj, obj_type, cast=True, strict=False):
                 f"{type(obj).__name__} cannot be converted to type {obj_type.__name__} "
                 f"required for {property_name}."
             )
-    if strict and not type(obj) == obj_type:
+    if strict and type(obj) != obj_type:
         raise TypeError(
             f"Object must be exactly a {obj_type.__name__} for {property_name}"
         )
