@@ -400,9 +400,7 @@ class IO(properties.HasProperties):
 
             self.sort_inds = np.hstack(sort_inds)
 
-            if dimension == 2:
-                survey = Survey(source_lists)
-            elif dimension == 3:
+            if dimension in (2, 3):
                 survey = Survey(source_lists)
             else:
                 raise NotImplementedError()

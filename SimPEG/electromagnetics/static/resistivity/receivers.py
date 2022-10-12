@@ -58,7 +58,7 @@ class BaseRx(BaseSimPEGRx):
     @orientation.setter
     def orientation(self, var):
         if var is not None:
-            var = validate_string("orientation", var, ("x", "y", "z")).lower()
+            var = validate_string("orientation", var, ("x", "y", "z"))
         self._orientation = var
 
     # projField = properties.StringChoice(
@@ -87,15 +87,7 @@ class BaseRx(BaseSimPEGRx):
 
     @projField.setter
     def projField(self, var):
-
-        if isinstance(var, str):
-            var = var.lower()
-            if var not in ("phi", "e", "j"):
-                raise ValueError(f"projField must be either 'phi', 'e', 'j'. Got {var}")
-        else:
-            raise TypeError(f"projField must be a str. Got {type(var)}")
-
-        self._projField = var
+        self._projField = validate_string("projField", var, ("phi", "e", "j"))
 
     # data_type = properties.StringChoice(
     #     "Type of DC-IP survey",

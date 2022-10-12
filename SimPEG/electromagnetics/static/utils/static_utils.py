@@ -1245,7 +1245,7 @@ def generate_dcip_survey(endl, survey_type, a, b, n, dim=3, **kwargs):
             srcClass = dc.Src.Dipole([rxClass], (endl[0, :]), (endl[1, :]))
         SrcList.append(srcClass)
 
-    survey = dc.Survey(SrcList)
+    survey = dc.Survey(SrcList, survey_type=survey_type)
     return survey
 
 

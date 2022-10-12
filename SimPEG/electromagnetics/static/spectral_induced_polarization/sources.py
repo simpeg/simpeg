@@ -3,7 +3,7 @@ import numpy as np
 # import properties
 
 from .... import survey
-from ....utils import Zero, closestPoints, mkvc, validate_list_of_types
+from ....utils import Zero, closestPoints, mkvc, validate_list_of_types, validate_float
 from .receivers import BaseRx
 
 
@@ -41,7 +41,7 @@ class BaseSrc(survey.BaseSrc):
 
     @receiver_list.setter
     def receiver_list(self, new_list):
-        new_list = validate_list_of_types(
+        self._receiver_list = validate_list_of_types(
             "source_list", new_list, BaseRx, ensure_unique=True
         )
 
@@ -58,14 +58,9 @@ class BaseSrc(survey.BaseSrc):
 
     @current.setter
     def current(self, I):
-        try:
-            I = float(I)
-        except:
-            raise TypeError(f"current must be int or float, got {type(I)}")
-
-        if np.abs(I) == 0.0:
+        I = validate_float("current", I)
+        if I == 0.0:
             raise ValueError("current must be non-zero.")
-
         self._current = I
 
     def eval(self, simulation):

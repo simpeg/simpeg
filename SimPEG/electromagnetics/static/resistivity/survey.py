@@ -23,10 +23,10 @@ class Survey(BaseSurvey):
     ----------
     source_list : list of SimPEG.electromagnetic.static.resistivity.sources.BaseSrc
         List of SimPEG DC/IP sources
-    survey_geometry : str, default="surface"
-        Survey geometry. Choose one of {"surface", "borehole", "general"}
-    survey_type : str, default="dipole-dipole"
-        Survey type. Choose one of {"dipole-dipole", "pole-dipole", "dipole-pole", "pole-pole"}
+    survey_geometry : {"surface", "borehole", "general"}
+        Survey geometry.
+    survey_type : {"dipole-dipole", "pole-dipole", "dipole-pole", "pole-pole"}
+        Survey type.
     """
 
     # source_list = properties.List(
@@ -70,7 +70,7 @@ class Survey(BaseSurvey):
         str
             Survey geometry; one of {"surface", "borehole", "general"}
         """
-        return "general"
+        return self._survey_geometry
 
     @survey_geometry.setter
     def survey_geometry(self, var):
@@ -360,7 +360,9 @@ class Survey(BaseSurvey):
         elif self.survey_geometry == "borehole":
             raise Exception("Not implemented yet for borehole survey_geometry")
         else:
-            raise Exception("Input valid survey survey_geometry: surface or borehole")
+            raise Exception(
+                f"Input valid survey survey_geometry: {self.survey_geometry}"
+            )
 
     def drapeTopo(self, *args, **kwargs):
         """This method is deprecated. See :meth:`drape_electrodes_on_topography`"""
