@@ -449,9 +449,9 @@ class TrapezoidWaveform(BaseWaveform):
     Parameters
     ----------
     ramp_on : (2) array_like of float
-        time when the linear ramp_on ends
+        time when the linear ramp_on starts and stops
     ramp_off : (2) array_like of float
-        start of the ramp_off
+        time when of the ramp_off starts and stops
     off_time : float
         time when the transmitter_current returns to zero
 
@@ -614,7 +614,6 @@ class TriangularWaveform(TrapezoidWaveform):
             off_time=off_time,
             ramp_on=ramp_on,
             ramp_off=ramp_off,
-            has_initial_fields=False,
             **kwargs,
         )
         self.peak_time = peak_time
