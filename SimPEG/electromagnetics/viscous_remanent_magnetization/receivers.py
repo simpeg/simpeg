@@ -43,8 +43,6 @@ class Point(BaseRx):
         self, locations=None, times=None, field_type=None, orientation="z", **kwargs
     ):
 
-        super(Point, self).__init__(locations=locations, **kwargs)
-
         fieldType = kwargs.pop("fieldType", None)
         if fieldType is not None:
             warnings.warn(
@@ -58,6 +56,8 @@ class Point(BaseRx):
             )
         else:
             self.field_type = field_type
+
+        super(Point, self).__init__(locations=locations, **kwargs)
 
         if times is None:
             raise AttributeError(
