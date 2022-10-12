@@ -591,6 +591,7 @@ class BaseSurvey:
                 n_fields = src._fields_per_source
                 self.__sourceOrder[src._uid] = [ii + i for i in range(n_fields)]
                 ii += n_fields
+        return self.__sourceOrder
 
     @property
     def uid(self):
