@@ -222,7 +222,7 @@ def read_dcip2d_ubc(file_name, data_type, format_type):
         data_type,
         [
             "volt",
-            "apparent_resistivity",
+            "apparent_chargeability",
             "secondary_potential",
         ],
     )
@@ -451,7 +451,7 @@ def read_dcip3d_ubc(file_name, data_type):
         data_type,
         [
             "volt",
-            "apparent_resistivity",
+            "apparent_chargeability",
             "secondary_potential",
         ],
     )
@@ -661,7 +661,7 @@ def write_dcip2d_ubc(
         data_type,
         [
             "volt",
-            "apparent_resistivity",
+            "apparent_chargeability",
             "secondary_potential",
         ],
     )
@@ -841,7 +841,7 @@ def write_dcip3d_ubc(
         data_type,
         [
             "volt",
-            "apparent_resistivity",
+            "apparent_chargeability",
             "secondary_potential",
         ],
     )
