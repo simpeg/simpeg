@@ -74,22 +74,18 @@ class BaseSrc(survey.BaseSrc):
         numpy.ndarray
             The right-hand sides corresponding to the sources
         """
-        if self._q is not None:
-            return self._q
-        else:
-            if sim._formulation == "HJ":
-                inds = sim.mesh.closest_points_index(self.location, grid_loc="CC")
-                self._q = np.zeros(sim.mesh.nC)
-                self._q[inds] = self.current
-            elif sim._formulation == "EB":
-                loc = self.location
-                cur = self.current
-                interpolation_matrix = sim.mesh.get_interpolation_matrix(
-                    loc, grid_loc="N"
-                ).toarray()
-                q = np.sum(cur[:, np.newaxis] * interpolation_matrix, axis=0)
-                self._q = q
-            return self._q
+        if sim._formulation == "HJ":
+            inds = sim.mesh.closest_points_index(self.location, grid_loc="CC")
+            q = np.zeros(sim.mesh.nC)
+            q[inds] = self.current
+        elif sim._formulation == "EB":
+            loc = self.location
+            cur = self.current
+            interpolation_matrix = sim.mesh.get_interpolation_matrix(
+                loc, location_type="N"
+            ).toarray()
+            q = np.sum(cur[:, np.newaxis] * interpolation_matrix, axis=0)
+        return q
 
     def evalDeriv(self, sim):
         """Returns the derivative of the source term with respect to the model.
