@@ -21,9 +21,9 @@ class Survey(BaseSurvey):
 
     def __init__(self, source_field, **kwargs):
         self.source_field = validate_type(
-            "source_field", source_field, SourceField, cast=True
+            "source_field", source_field, SourceField, cast=False
         )
-        BaseSurvey.__init__(self, **kwargs)
+        super().__init__(source_list=None, **kwargs)
 
     def eval(self, fields):
         """Compute the fields

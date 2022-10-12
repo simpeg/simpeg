@@ -16,7 +16,7 @@ class Survey(BaseSurvey):
 
     def __init__(self, receiver_list, **kwargs):
         self.receiver_list = receiver_list
-        BaseSurvey.__init__(self, **kwargs)
+        super().__init__(source_list=None, **kwargs)
 
     @property
     def receiver_list(self):
@@ -31,7 +31,7 @@ class Survey(BaseSurvey):
 
     @receiver_list.setter
     def receiver_list(self, new_list):
-        new_list = validate_list_of_types("receiver_list", new_list, BaseRx)
+        self._receiver_list = validate_list_of_types("receiver_list", new_list, BaseRx)
 
     @property
     def nD(self):

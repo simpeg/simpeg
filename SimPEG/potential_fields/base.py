@@ -79,14 +79,15 @@ class BasePFSimulation(LinearSimulation):
                     "integers describing listing the active cells."
                 )
         else:
-            indices = np.arange(self.mesh.nC)
+            ind_active = np.arange(self.mesh.nC)
         self._ind_active = ind_active
 
-        self.nC = len(indices)
+        self.nC = len(ind_active)
 
         # Create active cell projector
         projection = csr(
-            (np.ones(self.nC), (indices, range(self.nC))), shape=(self.mesh.nC, self.nC)
+            (np.ones(self.nC), (ind_active, range(self.nC))),
+            shape=(self.mesh.nC, self.nC),
         )
         if not isinstance(mesh, (discretize.TensorMesh, discretize.TreeMesh)):
             raise ValueError("Mesh must be 3D tensor or Octree.")
