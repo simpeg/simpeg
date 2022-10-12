@@ -42,9 +42,7 @@ class BaseFDEMSrc(BaseEMSrc):
 
     def __init__(self, receiver_list, frequency, location=None, **kwargs):
 
-        super(BaseFDEMSrc, self).__init__(
-            receiver_list=receiver_list, location=location, **kwargs
-        )
+        super().__init__(receiver_list=receiver_list, location=location, **kwargs)
         self.frequency = frequency
 
     @property
@@ -263,9 +261,7 @@ class RawVec_m(BaseFDEMSrc):
 
     def __init__(self, receiver_list, frequency, s_m, **kwargs):
         self._s_m = np.asarray(s_m, dtype=complex)
-        super(RawVec_m, self).__init__(
-            receiver_list=receiver_list, frequency=frequency, **kwargs
-        )
+        super().__init__(receiver_list=receiver_list, frequency=frequency, **kwargs)
 
     def s_m(self, simulation):
         """Magnetic source term (s_m)
@@ -294,10 +290,10 @@ class RawVec(RawVec_e, RawVec_m):
         A list of FDEM receivers
     frequency : float
         Source frequency
-    s_e: numpy.ndarray
-        Electric source term
     s_m: numpy.ndarray
         Magnetic source term
+    s_e: numpy.ndarray
+        Electric source term
     integrate : bool, default: ``False``
         If ``True``, integrate the source terms; i.e. multiply by Me matrix
     """
@@ -306,8 +302,8 @@ class RawVec(RawVec_e, RawVec_m):
         super().__init__(
             receiver_list=receiver_list,
             frequency=frequency,
-            s_m=None,
-            s_e=None,
+            s_m=s_m,
+            s_e=s_e,
             **kwargs,
         )
 
@@ -391,7 +387,7 @@ class MagDipole(BaseFDEMSrc):
         if location is None:
             location = np.r_[0.0, 0.0, 0.0]
 
-        super(MagDipole, self).__init__(
+        super().__init__(
             receiver_list=receiver_list,
             frequency=frequency,
             location=location,
@@ -444,8 +440,7 @@ class MagDipole(BaseFDEMSrc):
 
     @moment.setter
     def moment(self, value):
-        value = validate_float("moment", value, min_val=0.0)
-        self._moment = value
+        self._moment = validate_float("moment", value, min_val=0.0)
 
     @property
     def orientation(self):
@@ -798,8 +793,7 @@ class CircularLoop(MagDipole):
         **kwargs,
     ):
         kwargs.pop("moment", None)
-        super(MagDipole).__init__(
-            self,
+        super().__init__(
             receiver_list=receiver_list,
             frequency=frequency,
             location=location,
@@ -866,7 +860,7 @@ class CircularLoop(MagDipole):
         return np.pi * self.radius ** 2 * np.abs(self.current)
 
     @moment.setter
-    def moment(self):
+    def moment(self, value):
         warnings.warn(
             "Moment is not set as a property. I is the product"
             "of the loop radius and transmitter current"

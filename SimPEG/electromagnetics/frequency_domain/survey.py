@@ -18,7 +18,7 @@ class Survey(BaseSurvey):
         super(Survey, self).__init__(source_list, **kwargs)
 
         _frequency_dict = {}
-        for src in source_list:
+        for src in self.source_list:
             if src.frequency not in _frequency_dict:
                 _frequency_dict[src.frequency] = []
             _frequency_dict[src.frequency] += [src]
