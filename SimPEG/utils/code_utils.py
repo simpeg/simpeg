@@ -1080,9 +1080,48 @@ def validate_callable(property_name, obj):
         The name of the property being set
     obj : object
         The object to test
+
+    Returns
+    -------
+    callable
     """
     if not callable(obj):
         raise TypeError(f"{property_name} must be callable and {type(obj)} is not.")
+    return obj
+
+
+def validate_direction(property_name, obj, dim=3):
+    """
+    Validate if an object represents a direction.
+
+    Parameters
+    ----------
+    property_name : str
+        The name of the property being set
+    obj : {"x", "y", "z"} or (dim) numpy.ndarray
+        The object to test
+    dim : int, optional
+        The dimension of the vector
+
+    Returns
+    -------
+    (dim) numpy.ndarray
+    """
+
+    if isinstance(obj, str):
+        obj = validate_string(property_name, obj, string_list=("x", "y", "z")[:dim])
+        if obj == "x":
+            obj = np.r_[1.0, 0.0, 0.0][:dim]
+        elif obj == "y":
+            obj = np.r_[0.0, 1.0, 0.0][:dim]
+        elif obj == "z":
+            obj = np.r_[0.0, 0.0, 1.0][:dim]
+
+    obj = validate_ndarray_with_shape(property_name, obj, shape=(dim,), dtype=float)
+
+    # Normalize the orientation
+    # do this to make a copy of the input
+    obj = obj / np.linalg.norm(obj)
     return obj
 
 

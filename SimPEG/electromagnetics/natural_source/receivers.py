@@ -138,8 +138,9 @@ class PointNaturalSource(BaseRx):
 
     @orientation.setter
     def orientation(self, var):
-        var = validate_string("orientation", var, string_list=("xx", "xy", "yx", "yy"))
-        self._orientation = var
+        self._orientation = validate_string(
+            "orientation", var, string_list=("xx", "xy", "yx", "yy")
+        )
 
     @property
     def locations_e(self):
@@ -498,8 +499,9 @@ class Point3DTipper(PointNaturalSource):
 
     @orientation.setter
     def orientation(self, var):
-        var = validate_string("orientation", var, string_list=("zx", "zy"))
-        self._orientation = var
+        self._orientation = validate_string(
+            "orientation", var, string_list=("zx", "zy")
+        )
 
     def _eval_tipper(self, src, mesh, f):
         # will grab both primary and secondary and sum them!

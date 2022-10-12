@@ -180,6 +180,7 @@ Many of the functions here are used internally to SimPEG and have minimal docume
   validate_ndarray_with_shape
   validate_string
   validate_callable
+  validate_direction
 
 """
 from __future__ import print_function
@@ -222,6 +223,7 @@ from .code_utils import (
     validate_string,
     validate_type,
     validate_callable,
+    validate_direction,
 )
 
 from .mat_utils import (

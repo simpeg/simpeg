@@ -98,8 +98,9 @@ class Point(BaseRx):
 
     @orientation.setter
     def orientation(self, var):
-        var = validate_string("orientation", var, string_list=("x", "y", "z"))
-        self._orientation = var.lower()
+        self._orientation = validate_string(
+            "orientation", var, string_list=("x", "y", "z")
+        )
 
     @property
     def field_type(self):

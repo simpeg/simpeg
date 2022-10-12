@@ -13,6 +13,7 @@ from ...utils import (
     validate_location_property,
     validate_ndarray_with_shape,
     validate_type,
+    validate_direction,
 )
 
 from ..utils import omega
@@ -455,23 +456,7 @@ class MagDipole(BaseFDEMSrc):
 
     @orientation.setter
     def orientation(self, var):
-
-        if isinstance(var, str):
-            var = validate_string(
-                "orientation", var.lower(), string_list=("x", "y", "z")
-            )
-            if var == "x":
-                var = np.r_[1.0, 0.0, 0.0]
-            elif var == "y":
-                var = np.r_[0.0, 1.0, 0.0]
-            elif var == "z":
-                var = np.r_[0.0, 0.0, 1.0]
-        var = validate_ndarray_with_shape("orientation", var, (3,))
-
-        # Normalize the orientation
-        var /= np.sqrt(np.sum(var ** 2))
-
-        self._orientation = var
+        self._orientation = validate_direction("orientation", var, dim=3)
 
     @property
     def mu(self):

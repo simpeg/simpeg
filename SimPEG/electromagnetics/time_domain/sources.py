@@ -14,6 +14,7 @@ from ...utils.code_utils import (
     validate_ndarray_with_shape,
     validate_location_property,
     validate_callable,
+    validate_direction,
 )
 
 from ...utils import set_kwargs, sdiag, Zero
@@ -46,7 +47,7 @@ class BaseWaveform:
         self.has_initial_fields = has_initial_fields
         self.off_time = off_time
         self.epsilon = epsilon
-        set_kwargs(self, **kwargs)
+        super().__init__(**kwargs)
 
     @property
     def has_initial_fields(self):
@@ -185,7 +186,7 @@ class StepOffWaveform(BaseWaveform):
     """
 
     def __init__(self, off_time=0.0, **kwargs):
-        super().__init__(off_time=off_time, has_initial_fields=True)
+        super().__init__(off_time=off_time, has_initial_fields=True, **kwargs)
 
     def eval(self, time):
         if (abs(time - 0.0) < self.epsilon) or ((time - self.off_time) < self.epsilon):
@@ -218,9 +219,7 @@ class RampOffWaveform(BaseWaveform):
     """
 
     def __init__(self, off_time=0.0, **kwargs):
-        BaseWaveform.__init__(
-            self, off_time=off_time, has_initial_fields=True, **kwargs
-        )
+        super().__init__(off_time=off_time, has_initial_fields=True, **kwargs)
 
     def eval(self, time):
         if abs(time - 0.0) < self.epsilon:
@@ -286,13 +285,12 @@ class RawWaveform(BaseWaveform):
     """
 
     def __init__(self, off_time=0.0, waveform_function=None, **kwargs):
-        super(RawWaveform, self).__init__(off_time=off_time)
+        super().__init__(off_time=off_time, **kwargs)
         if waveform_function is not None:
             self.waveform_function = waveform_function
         wavefct = kwargs.pop("waveFct", None)
         if wavefct is not None:
             self.waveFct = wavefct
-        set_kwargs(self, **kwargs)
 
     @property
     def waveform_function(self):
@@ -350,12 +348,11 @@ class VTEMWaveform(BaseWaveform):
     """
 
     def __init__(self, off_time=4.2e-3, peak_time=2.73e-3, ramp_on_rate=3.0, **kwargs):
-        BaseWaveform.__init__(self, has_initial_fields=False, off_time=off_time)
+        super().__init__(has_initial_fields=False, off_time=off_time, **kwargs)
         self.peak_time = peak_time
         self.ramp_on_rate = (
             ramp_on_rate  # we should come up with a better name for this
         )
-        set_kwargs(self, **kwargs)
 
     @property
     def peak_time(self):
@@ -473,11 +470,10 @@ class TrapezoidWaveform(BaseWaveform):
     """
 
     def __init__(self, ramp_on, ramp_off, off_time=None, **kwargs):
-        super(TrapezoidWaveform, self).__init__(has_initial_fields=False)
+        super().__init__(has_initial_fields=False, **kwargs)
         self.ramp_on = ramp_on
         self.ramp_off = ramp_off
         self.off_time = off_time if off_time is not None else self.ramp_off[-1]
-        set_kwargs(self, **kwargs)
 
     @property
     def ramp_on(self):
@@ -614,14 +610,14 @@ class TriangularWaveform(TrapezoidWaveform):
         ramp_on = np.r_[start_time, peak_time]
         ramp_off = np.r_[peak_time, off_time]
 
-        super(TriangularWaveform, self).__init__(
+        super().__init__(
             off_time=off_time,
             ramp_on=ramp_on,
             ramp_off=ramp_off,
             has_initial_fields=False,
+            **kwargs,
         )
         self.peak_time = peak_time
-        set_kwargs(self, **kwargs)
 
     @property
     def peak_time(self):
@@ -680,9 +676,7 @@ class QuarterSineRampOnWaveform(TrapezoidWaveform):
     """
 
     def __init__(self, ramp_on, ramp_off, **kwargs):
-        super(QuarterSineRampOnWaveform, self).__init__(
-            ramp_on=ramp_on, ramp_off=ramp_off, **kwargs
-        )
+        super().__init__(ramp_on=ramp_on, ramp_off=ramp_off, **kwargs)
 
     def eval(self, time):
         if time < self.ramp_on[0]:
@@ -745,9 +739,7 @@ class HalfSineWaveform(TrapezoidWaveform):
     """
 
     def __init__(self, ramp_on, ramp_off, **kwargs):
-        super(HalfSineWaveform, self).__init__(
-            ramp_on=ramp_on, ramp_off=ramp_off, **kwargs
-        )
+        super().__init__(ramp_on=ramp_on, ramp_off=ramp_off, **kwargs)
 
     def eval(self, time):
         if time < self.ramp_on[0]:
@@ -957,11 +949,7 @@ class BaseTDEMSrc(BaseEMSrc):
 
     @waveform.setter
     def waveform(self, wave):
-
-        if isinstance(wave, BaseWaveform):
-            self._waveform = wave
-        else:
-            raise TypeError(f"Must be an instance of 'BaseWaveform', Got {type(wave)}")
+        self._waveform = validate_type("waveform", wave, BaseWaveform, cast=False)
 
     @property
     def srcType(self):
@@ -1197,23 +1185,7 @@ class MagDipole(BaseTDEMSrc):
 
     @orientation.setter
     def orientation(self, var):
-
-        if isinstance(var, str):
-            var = validate_string(
-                "orientation", var.lower(), string_list=("x", "y", "z")
-            )
-            if var == "x":
-                var = np.r_[1.0, 0.0, 0.0]
-            elif var == "y":
-                var = np.r_[0.0, 1.0, 0.0]
-            elif var == "z":
-                var = np.r_[0.0, 0.0, 1.0]
-        var = validate_ndarray_with_shape("orientation", var, shape=(3,), dtype=float)
-
-        # Normalize the orientation
-        var /= np.sqrt(np.sum(var ** 2))
-
-        self._orientation = var
+        self._orientation = validate_direction("orientation", var, dim=3)
 
     @property
     def mu(self):
@@ -1599,6 +1571,10 @@ class LineCurrent(BaseTDEMSrc):
     locations : (n, 3) numpy.ndarray
         Array defining the node locations for the wire path. For inductive sources,
         you must close the loop.
+    current : float, optional
+        A non-zero current value.
+    mu : float, optional
+        Magnetic permeability to use.
     """
 
     # location = properties.Array("location of the source", shape=("*", 3))
