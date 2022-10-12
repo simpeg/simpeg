@@ -44,6 +44,21 @@ class BaseWaveform:
     """
 
     def __init__(self, has_initial_fields=False, off_time=0.0, epsilon=1e-9, **kwargs):
+        hasInitialFields = kwargs.pop("hasInitialFields", None)
+        if hasInitialFields is not None:
+            self.hasInitialFields = hasInitialFields
+        else:
+            self.has_initial_fields = has_initial_fields
+        offTime = kwargs.pop("offTime", None)
+        if offTime is not None:
+            self.offTime = offTime
+        else:
+            self.off_time = off_time
+        eps = kwargs.pop("eps", None)
+        if eps is not None:
+            self.eps = eps
+        else:
+            self.epsilon = epsilon
         self.has_initial_fields = has_initial_fields
         self.off_time = off_time
         self.epsilon = epsilon
@@ -285,12 +300,12 @@ class RawWaveform(BaseWaveform):
     """
 
     def __init__(self, off_time=0.0, waveform_function=None, **kwargs):
-        super().__init__(off_time=off_time, **kwargs)
         if waveform_function is not None:
             self.waveform_function = waveform_function
         wavefct = kwargs.pop("waveFct", None)
         if wavefct is not None:
             self.waveFct = wavefct
+        super().__init__(off_time=off_time, **kwargs)
 
     @property
     def waveform_function(self):
@@ -348,11 +363,17 @@ class VTEMWaveform(BaseWaveform):
     """
 
     def __init__(self, off_time=4.2e-3, peak_time=2.73e-3, ramp_on_rate=3.0, **kwargs):
+        peakTime = kwargs.pop("peakTime", None)
+        if peakTime is not None:
+            self.peakTime = peakTime
+        else:
+            self.peak_time = peak_time
+        a = kwargs.pop("a", None)
+        if a is not None:
+            self.a = a
+        else:
+            self.ramp_on_rate = ramp_on_rate
         super().__init__(has_initial_fields=False, off_time=off_time, **kwargs)
-        self.peak_time = peak_time
-        self.ramp_on_rate = (
-            ramp_on_rate  # we should come up with a better name for this
-        )
 
     @property
     def peak_time(self):
