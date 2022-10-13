@@ -59,9 +59,6 @@ class BaseWaveform:
             self.eps = eps
         else:
             self.epsilon = epsilon
-        self.has_initial_fields = has_initial_fields
-        self.off_time = off_time
-        self.epsilon = epsilon
         super().__init__(**kwargs)
 
     @property
@@ -248,7 +245,8 @@ class RampOffWaveform(BaseWaveform):
         t = np.asarray(time, dtype=float)
         out = np.zeros_like(t)
 
-        out[(t < self.offTime) & (t >= self.eps)] = -1.0 / self.offTime
+        if self.off_time > 0:
+            out[(t < self.off_time) & (t >= self.eps)] = -1.0 / self.off_time
 
         if out.ndim == 0:
             out = out.item()
@@ -364,16 +362,16 @@ class VTEMWaveform(BaseWaveform):
 
     def __init__(self, off_time=4.2e-3, peak_time=2.73e-3, ramp_on_rate=3.0, **kwargs):
         peakTime = kwargs.pop("peakTime", None)
-        if peakTime is not None:
-            self.peakTime = peakTime
-        else:
-            self.peak_time = peak_time
         a = kwargs.pop("a", None)
+        super().__init__(has_initial_fields=False, off_time=off_time, **kwargs)
         if a is not None:
             self.a = a
         else:
             self.ramp_on_rate = ramp_on_rate
-        super().__init__(has_initial_fields=False, off_time=off_time, **kwargs)
+        if peakTime is not None:
+            self.peakTime = peakTime
+        else:
+            self.peak_time = peak_time
 
     @property
     def peak_time(self):

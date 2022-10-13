@@ -31,7 +31,7 @@ class TestStepOffWaveform(unittest.TestCase):
         """For StepOffWaveform, offTime arg does not do anything."""
         step_off = StepOffWaveform(offTime=1e-3)
         result = [step_off.eval(t) for t in self.times]
-        expected = np.array([1.0] + [0.0] * 10)
+        expected = np.array([1.0, 1.0] + [0.0] * 9)
         assert_array_almost_equal(result, expected)
 
 

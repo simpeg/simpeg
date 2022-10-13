@@ -218,7 +218,7 @@ class EM1D_FD_FwdProblemTests(unittest.TestCase):
             location=np.r_[0.0, 0.0, 0.0],
             orientation="z",
             frequency=self.frequencies,
-            sigma=self.sigma,
+            sigma=np.asarray(self.sigma),
             quasistatic=True,
         )
         H_analytic = np.squeeze(dip.magnetic_field(np.array([[self.offset, 0.0]])))
@@ -246,7 +246,7 @@ class EM1D_FD_FwdProblemTests(unittest.TestCase):
             location=np.r_[0.0, 0.0, 0.0],
             orientation="z",
             frequency=self.frequencies,
-            sigma=self.sigma,
+            sigma=np.asarray(self.sigma),
             quasistatic=True,
         )
         H_analytic = np.squeeze(dip.magnetic_field(np.array([[self.offset, 0.0]])))
@@ -287,7 +287,7 @@ class EM1D_FD_FwdProblemTests(unittest.TestCase):
                 location=np.r_[0.0, 0.0, 0.0],
                 orientation="z",
                 frequency=[frequency],
-                sigma=sigma,
+                sigma=np.asarray(self.sigma),
                 quasistatic=True,
             )
             hv = np.squeeze(dip.magnetic_field(np.array([[self.offset, 0.0]])))
@@ -341,7 +341,7 @@ class EM1D_FD_FwdProblemTests(unittest.TestCase):
             location=np.r_[0.0, 0.0, 0.0],
             orientation="x",
             frequency=self.frequencies,
-            sigma=self.sigma,
+            sigma=np.asarray(self.sigma),
             quasistatic=True,
         )
         H_analytic = np.squeeze(dip.magnetic_field(np.array([[self.offset, 0.0]])))[
