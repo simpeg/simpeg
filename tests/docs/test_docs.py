@@ -1,9 +1,6 @@
 import unittest
 import os
 from sphinx.application import Sphinx
-import multiprocessing
-
-n_cpu = multiprocessing.cpu_count()
 
 
 class Doc_Test(unittest.TestCase):
@@ -23,7 +20,6 @@ class Doc_Test(unittest.TestCase):
             doctree_dir,
             buildername="html",
             warningiserror=False,
-            parallel=n_cpu,
             confoverrides={"plot_gallery": 0},
         )
         app.build(force_all=True)
@@ -39,7 +35,6 @@ class Doc_Test(unittest.TestCase):
             doctree_dir,
             buildername="linkcheck",
             warningiserror=False,
-            parallel=n_cpu,
             confoverrides={"plot_gallery": 0},
         )
         app.build(force_all=True)
