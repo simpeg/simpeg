@@ -1,6 +1,9 @@
 import unittest
 import os
 from sphinx.application import Sphinx
+import multiprocessing
+
+n_cpu = multiprocessing.cpu_count()
 
 
 class Doc_Test(unittest.TestCase):
@@ -20,9 +23,10 @@ class Doc_Test(unittest.TestCase):
             doctree_dir,
             buildername="html",
             warningiserror=False,
+            parallel=n_cpu,
             confoverrides={"plot_gallery": 0},
         )
-        app.build(force_all=True)
+        app.build()
 
     def test_linkcheck(self):
         src_dir = config_dir = self.path_to_docs
@@ -35,9 +39,10 @@ class Doc_Test(unittest.TestCase):
             doctree_dir,
             buildername="linkcheck",
             warningiserror=False,
+            parallel=n_cpu,
             confoverrides={"plot_gallery": 0},
         )
-        app.build(force_all=True)
+        app.build()
 
 
 if __name__ == "__main__":
