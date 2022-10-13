@@ -53,7 +53,7 @@ stages:
 
         - script: |
               eval "$(conda shell.bash hook)"
-              echo "  - python=${{ py_vers }}" >> environment_test.yml
+              echo "  - python="${{ py_vers }} >> environment_test.yml
               mamba env create -f environment_test.yml
               conda activate test
               pip install pytest-azurepipelines
