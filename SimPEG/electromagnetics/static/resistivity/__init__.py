@@ -5,32 +5,71 @@ DC Resistivity Module (:mod:`SimPEG.electromagnetics.static.resistivity`)
 .. currentmodule:: SimPEG.electromagnetics.static.resistivity
 
 
-Receiver Classes
-----------------
-
+Simulations
+===========
 .. autosummary::
   :toctree: generated/
 
-  receivers.BaseRx
+  Simulation1DLayers
+  Simulation2DCellCentered
+  Simulation2DNodal
+  Simulation3DCellCentered
+  Simulation3DNodal
+
+Receivers
+=========
+.. autosummary::
+  :toctree: generated/
+
   receivers.Dipole
   receivers.Pole
 
-Source Classes
---------------
+Sources
+=======
 .. autosummary::
   :toctree: generated/
 
-  sources.BaseSrc
   sources.Dipole
   sources.Pole
+  sources.Multipole
 
-Survey Classes
---------------
+Surveys
+=======
 .. autosummary::
   :toctree: generated/
 
-  survey.Survey
+  Survey
 
+Fields
+======
+.. autosummary::
+  :toctree: generated/
+
+  Fields2DCellCentered
+  Fields2DNodal
+  Fields3DCellCentered
+  Fields3DNodal
+
+Utilities
+=========
+.. autosummary::
+  :toctree: generated/
+
+  IO
+  run_inversion
+  utils.WennerSrcList
+
+Base Classes
+============
+.. autosummary::
+  :toctree: generated/
+
+  FieldsDC
+  Fields2D
+  simulation.BaseDCSimulation
+  simulation_2d.BaseDCSimulation2D
+  sources.BaseSrc
+  receivers.BaseRx
 """
 from .simulation import Simulation3DCellCentered, Simulation3DNodal
 from .simulation_2d import Simulation2DCellCentered, Simulation2DNodal

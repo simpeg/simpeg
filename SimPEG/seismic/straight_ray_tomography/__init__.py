@@ -7,15 +7,15 @@ Straight Ray Tomography Module (:mod:`SimPEG.seismic.straight_ray_tomography`)
 About ``straight_ray_tomography``
 
 Simulations
------------
+===========
 .. autosummary::
   :toctree: generated/
 
   Simulation
 
 
-Survey, Source and Receiver Classes
------------------------------------
+Survey, Sources and Receivers
+=============================
 
 .. autosummary::
   :toctree: generated/

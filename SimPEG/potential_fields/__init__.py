@@ -6,16 +6,8 @@ Base Classes and Functions (:mod:`SimPEG.potential_fields`)
 
 About ``potential_fields``
 
-There are two potential fields simulation modules
-
-.. toctree::
-  :maxdepth: 2
-
-  gravity
-  magnetics
-
 Base classes and utility functions
-----------------------------------
+==================================
 
 .. autosummary::
   :toctree: generated/

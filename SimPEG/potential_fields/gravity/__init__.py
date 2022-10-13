@@ -7,13 +7,16 @@ Gravity Simulation Module (:mod:`SimPEG.potential_fields.gravity`)
 About ``gravity``
 
 Simulations
------------
-Simulation3DIntegral
-SimulationEquivalentSourceLayer
-Simulation3DDifferential
+===========
+.. autosummary::
+  :toctree: generated/
 
-Survey, Source and Receiver Classes
------------------------------------
+  Simulation3DIntegral
+  SimulationEquivalentSourceLayer
+  Simulation3DDifferential
+
+Survey, Sources and Receivers
+============================
 
 .. autosummary::
   :toctree: generated/
@@ -24,7 +27,7 @@ Survey, Source and Receiver Classes
 
 
 Analytic functions
-------------------
+==================
 .. autosummary::
   :toctree: generated/
 

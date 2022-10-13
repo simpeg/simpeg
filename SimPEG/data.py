@@ -4,7 +4,6 @@ from six import integer_types
 import warnings
 
 from .survey import BaseSurvey
-from . import survey
 from .utils import mkvc
 
 __all__ = ["Data", "SyntheticData"]
@@ -84,7 +83,7 @@ class Data(properties.HasProperties):
 
     By using *standard_deviation* to assign the uncertainties, we are effectively
     providing :math:`\varepsilon` directly.
-    
+
     """
 
     dobs = properties.Array(
@@ -304,8 +303,8 @@ class Data(properties.HasProperties):
         dict
             Dictionary for indexing data by source and receiver
 
-        Example
-        -------
+        Examples
+        --------
         NEED EXAMPLE (1D TEM WOULD BE GOOD)
 
         """
@@ -374,7 +373,7 @@ class Data(properties.HasProperties):
 
 class SyntheticData(Data):
     """Class for creating synthetic data.
-    
+
     Parameters
     ----------
     survey : SimPEG.survey.BaseSurvey
@@ -429,18 +428,3 @@ class SyntheticData(Data):
     @properties.validator("dclean")
     def _dclean_validator(self, change):
         self._dobs_validator(change)
-
-
-# inject a new data class into the survey module
-class _Data(Data):
-    def __init__(self, *args, **kwargs):
-        raise NotImplementedError(
-            "The survey.Data class has been moved. To import the data class, "
-            "please use SimPEG.data.Data."
-        )
-
-
-survey.Data = _Data
-survey.Data.__name__ = "Data"
-survey.Data.__qualname__ = "Data"
-survey.Data.__module__ = "SimPEG.survey"

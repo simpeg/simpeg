@@ -5,30 +5,20 @@ Induced Polarization Module (:mod:`SimPEG.electromagnetics.static.induced_polari
 .. currentmodule:: SimPEG.electromagnetics.static.induced_polarization
 
 
-Receiver Classes
-----------------
-
-Receivers used by the ``induced_polarization`` module are found in the
-``SimPEG.electromagnetics.static.resistivity.receivers``.
-
-Source Classes
---------------
-
-Sources used by the ``induced_polarization`` module are found in the
-``SimPEG.electromagnetics.static.resistivity.sources``.
-
-Survey Classes
---------------
-
-The survey class used by the ``induced_polarization`` module is found in the
-``SimPEG.electromagnetics.static.resistivity.survey``. Below is additional
-functionality.
-
+Simulations
+===========
 .. autosummary::
   :toctree: generated/
 
-  survey.from_dc_to_ip_survey
+  Simulation2DCellCentered
+  Simulation2DNodal
+  Simulation3DCellCentered
+  Simulation3DNodal
 
+Receivers, Sources, and Surveys
+===============================
+The ``induced_polarization`` module makes use of receivers, sources, and surveys
+defined in the ``SimPEG.electromagnetics.static.resistivity`` module.
 """
 from .simulation import (
     Simulation3DCellCentered,
@@ -36,8 +26,9 @@ from .simulation import (
     Simulation2DCellCentered,
     Simulation2DNodal,
 )
-from .survey import Survey, from_dc_to_ip_survey
+from .survey import from_dc_to_ip_survey
 from .run import run_inversion
+from ..resistivity.survey import Survey
 from ..resistivity import receivers
 from ..resistivity import sources
 from ..resistivity import utils

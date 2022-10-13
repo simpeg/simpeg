@@ -4,10 +4,21 @@ Base SimPEG Classes (:mod:`SimPEG`)
 ========================================================
 .. currentmodule:: SimPEG
 
+SimPEG is built off of several base classes that define the
+general structure of simulations and inversion operations.
 
+Simulations
+===========
+.. autosummary::
+  :toctree: generated/
 
-Source, Receiver and Survey Classes
-===================================
+  simulation.BaseSimulation
+  simulation.BaseTimeSimulation
+  simulation.LinearSimulation
+  simulation.ExponentialSinusoidSimulation
+
+Surveys, Sources and Receivers
+==============================
 .. autosummary::
   :toctree: generated/
 
@@ -17,35 +28,102 @@ Source, Receiver and Survey Classes
   survey.BaseSurvey
   survey.BaseTimeSurvey
 
+Models
+======
+.. autosummary::
+  :toctree: generated/
 
-# Mapping Classes
-# ===============
-# .. autosummary::
-#   :toctree: generated/
+  models.Model
+  props.PhysicalProperty
+  props.Derivative
+  props.Invertible
+  props.Reciprocal
+  props.HasModel
 
-#   maps.BaseParametric
-#   maps.ChiMap
-#   maps.ComboMap
-#   maps.ComplexMap
-#   maps.ExpMap
-#   maps.IdentityMap
-#   maps.InjectActiveCells
-#   maps.MuRelative
-#   maps.LogMap
-#   maps.ParametricBlock
-#   maps.ParametricCircleMap
-#   maps.ParametricEllipsoid
-#   maps.ParametricLayer
-#   maps.ParametricPolyMap
-#   maps.Projection
-#   maps.ReciprocalMap
-#   maps.SphericalSystem
-#   maps.Surject2Dto3D
-#   maps.SurjectFull
-#   maps.SurjectUnits
-#   maps.SurjectVertical1D
-#   maps.Weighting
-#   maps.Wires
+Data
+====
+.. autosummary::
+  :toctree: generated/
+
+  data.Data
+  data.SyntheticData
+
+Fields
+======
+.. autosummary::
+  :toctree: generated/
+
+  fields.Fields
+  fields.TimeFields
+
+Mappings
+========
+.. autosummary::
+  :toctree: generated/
+
+  maps.BaseParametric
+  maps.ChiMap
+  maps.ComboMap
+  maps.ComplexMap
+  maps.ExpMap
+  maps.IdentityMap
+  maps.InjectActiveCells
+  maps.MuRelative
+  maps.LogMap
+  maps.ParametricBlock
+  maps.ParametricCircleMap
+  maps.ParametricEllipsoid
+  maps.ParametricLayer
+  maps.ParametricPolyMap
+  maps.Projection
+  maps.ReciprocalMap
+  maps.SphericalSystem
+  maps.Surject2Dto3D
+  maps.SurjectFull
+  maps.SurjectUnits
+  maps.SurjectVertical1D
+  maps.Weighting
+  maps.Wires
+
+Objective Function Pieces
+=========================
+.. autosummary::
+  :toctree: generated/
+
+  objective_function.BaseObjectiveFunction
+  objective_function.ComboObjectiveFunction
+  objective_function.L2ObjectiveFunction
+  data_misfit.BaseDataMisfit
+  data_misfit.L2DataMisfit
+
+Inversions
+==========
+
+Optimizations
+-------------
+.. autosummary::
+  :toctree: generated/
+
+  optimization.ProjectedGradient
+  optimization.BFGS
+  optimization.GaussNewton
+  optimization.InexactGaussNewton
+  optimization.SteepestDescent
+  optimization.NewtonRoot
+  optimization.ProjectedGNCG
+  optimization.Minimize
+  optimization.Remember
+  optimization.IterationPrinters
+  optimization.StoppingCriteria
+
+Base inversion pieces
+---------------------
+.. autosummary::
+  :toctree: generated/
+
+  inverse_problem.BaseInvProblem
+  inversion.BaseInversion
+
 
 """
 from __future__ import print_function

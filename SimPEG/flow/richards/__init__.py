@@ -4,16 +4,17 @@ Richards Flow Module (:mod:`SimPEG.flow.richards`)
 =======================================================================
 .. currentmodule:: SimPEG.flow.richards
 
-About ``gravity``
+About ``Richards flow``
 
 Simulations
------------
+===========
 .. autosummary::
   :toctree: generated/
+
   SimulationNDCellCentered
 
-Survey, Source and Receiver Classes
------------------------------------
+Survey, Sources and Receivers
+=============================
 .. autosummary::
   :toctree: generated/
 
@@ -22,13 +23,21 @@ Survey, Source and Receiver Classes
   survey.Survey
 
 Empirical utilities
--------------------
+===================
 .. autosummary::
   :toctree: generated/
 
-  empirical.Pressure
-  empirical.Saturation
-  empirical.Survey
+  empirical.NonLinearModel
+  empirical.BaseWaterRetention
+  empirical.BaseHydraulicConductivity
+  empirical.Haverkamp_theta
+  empirical.Haverkamp_k
+  empirical.haverkamp
+  empirical.HaverkampParams
+  empirical.Vangenuchten_theta
+  empirical.Vangenuchten_k
+  empirical.van_genuchten
+  empirical.VanGenuchtenParams
 
 """
 from . import empirical

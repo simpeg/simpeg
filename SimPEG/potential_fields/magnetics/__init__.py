@@ -7,7 +7,7 @@ Magnetics Simulation Module (:mod:`SimPEG.potential_fields.magnetics`)
 About ``magnetics``
 
 Simulations
------------
+===========
 .. autosummary::
   :toctree: generated/
 
@@ -16,7 +16,7 @@ Simulations
   Simulation3DDifferential
 
 Survey, Source and Receiver Classes
------------------------------------
+===================================
 
 .. autosummary::
   :toctree: generated/
@@ -26,11 +26,14 @@ Survey, Source and Receiver Classes
   Survey
 
 Analytics
----------
-analytics.IDTtoxyz
-analytics.MagSphereAnaFun
-analytics.MagSphereAnaFunA
-analytics.MagSphereFreeSpace
+=========
+.. autosummary::
+  :toctree: generated/
+
+  analytics.IDTtoxyz
+  analytics.MagSphereAnaFun
+  analytics.MagSphereAnaFunA
+  analytics.MagSphereFreeSpace
 """
 from . import survey
 from . import sources

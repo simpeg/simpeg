@@ -7,7 +7,7 @@ Electromagnetics Utilities (:mod:`SimPEG.electromagnetics.utils`)
 
 
 Current Utilities
------------------
+=================
 
 .. autosummary::
   :toctree: generated/
@@ -18,9 +18,8 @@ Current Utilities
   line_through_faces
   getSourceTermLineCurrentPolygon
 
-
 Waveform Utilities
-------------------
+==================
 
 .. autosummary::
   :toctree: generated/
