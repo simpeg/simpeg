@@ -230,7 +230,7 @@ class BaseRx(survey.BaseRx):
 
         assert v is not None, "v must be provided to compute the deriv or adjoint"
 
-        projected_grid = f._GLoc(self.projField) + self.orientation
+        projected_grid = f._GLoc(self.projField)
         P = self.getP(mesh, projected_grid)
 
         if not adjoint:
