@@ -784,7 +784,7 @@ class CircularLoop(MagDipole):
         if N is not None:
             self.N = N
         else:
-            self.n_turns = N
+            self.n_turns = n_turns
         super().__init__(
             receiver_list=receiver_list,
             frequency=frequency,
