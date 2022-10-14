@@ -21,14 +21,10 @@ class VRM_waveform_tests(unittest.TestCase):
         waveObj1 = vrm.waveforms.SquarePulse(delt=0.002, t0=0.0)
         waveObj2 = vrm.waveforms.ArbitraryDiscrete(t_wave=t, I_wave=I)
         waveObj3 = vrm.waveforms.ArbitraryPiecewise(t_wave=t, I_wave=I)
-        waveObj4 = vrm.waveforms.Custom(
-            times=times, eta=waveObj1.getCharDecay("b", times)
-        )
 
         decay1b = waveObj1.getCharDecay("b", times)
         decay2b = waveObj2.getCharDecay("b", times)
         decay3b = waveObj3.getCharDecay("b", times)
-        decay4b = waveObj4.getCharDecay()
 
         decay1dbdt = waveObj1.getCharDecay("dbdt", times)
         decay2dbdt = waveObj2.getCharDecay("dbdt", times)
@@ -36,12 +32,11 @@ class VRM_waveform_tests(unittest.TestCase):
 
         err1 = np.max(np.abs((decay2b - decay1b) / decay1b))
         err2 = np.max(np.abs((decay3b - decay1b) / decay1b))
-        err3 = np.max(np.abs((decay4b - decay1b) / decay1b))
-        err4 = np.max(np.abs((decay2dbdt - decay1dbdt) / decay1dbdt))
-        err5 = np.max(np.abs((decay3dbdt - decay1dbdt) / decay1dbdt))
+        err3 = np.max(np.abs((decay2dbdt - decay1dbdt) / decay1dbdt))
+        err4 = np.max(np.abs((decay3dbdt - decay1dbdt) / decay1dbdt))
 
         self.assertTrue(
-            err1 < 0.01 and err2 < 0.01 and err3 < 0.01 and err4 < 0.025 and err5 < 0.01
+            err1 < 0.01 and err2 < 0.01 and err3 < 0.025 and err4 < 0.01
         )
 
     def test_loguniform(self):

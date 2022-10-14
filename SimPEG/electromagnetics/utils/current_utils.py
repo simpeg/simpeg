@@ -5,8 +5,29 @@ import warnings
 
 
 def edge_basis_function(t, a1, l1, h1, a2, l2, h2):
-    """
-    Edge basis functions
+    """Edge basis function
+
+    Parameters
+    ----------
+    t : float
+        Parameterized distance along wire
+    a1 : float
+        Start of wire in first coordinate
+    l1 : float
+        Length of wire in first coordinate
+    h1 : float
+        Cell dimension in first coordinate
+    a2 : float
+        Start of wire in second coordinate
+    l2 : float
+        Length of wire in second coordinate
+    h2 : float
+        Cell dimension in second coordinate
+
+    Returns
+    -------
+    (4) numpy.ndarray
+        Edge weights
     """
     x1 = a1 + t * l1
     x2 = a2 + t * l2
@@ -27,11 +48,42 @@ def _simpsons_rule(a1, l1, h1, a2, l2, h2):
 
 # TODO: Extend this when current is defined on cell-face
 def getStraightLineCurrentIntegral(hx, hy, hz, ax, ay, az, bx, by, bz):
-    """
+    """Compute straight current line integral
+
     Compute integral int(W . J dx^3) in brick of size hx x hy x hz
     where W denotes the 12 local bilinear edge basis functions
     and where J prescribes a unit line current
     between points (ax,ay,az) and (bx,by,bz).
+
+    Parameters
+    ----------
+    hx : float
+        x cell dimension
+    hy : float
+        y cell dimension
+    hz : float
+        z cell dimension
+    ax : float
+        x-location of start of wire segement
+    ay :float
+        y-location of start of wire segement
+    az :float
+        z-location of start of wire segement
+    bx :float
+        x-location of end of wire segement
+    by :float
+        y-location of end of wire segement
+    bz :float
+        z-location of end of wire segement
+
+    Returns
+    -------
+    sx : float
+        x weight
+    sy : float
+        y weight
+    sz : flat
+        z weight
     """
 
     # length of line segment
@@ -47,7 +99,17 @@ def getStraightLineCurrentIntegral(hx, hy, hz, ax, ay, az, bx, by, bz):
     return sx, sy, sz
 
 
-def findlast(x):
+def _findlast(x):
+    """Returns last element
+
+    Parameters
+    ----------
+    array_like of int
+
+    Returns
+    -------
+
+    """
     if x.sum() == 0:
         return -1
     else:
@@ -64,13 +126,12 @@ def segmented_line_current_source_term(mesh, locs):
     ----------
     mesh : discretize.TreeMesh or discretize.TensorMesh
         The Mesh (3D) for the system.
-    locs : numpy.ndarray
+    locs : (n_points, 3) numpy.ndarray
         The array of locations of consecutive points along the polygonal path.
-        in a shape of (n_points, 3)
 
     Returns
     -------
-    numpy.ndarray of length (mesh.nE)
+    (mesh.n_edges) numpy.ndarray
         Contains the source term for all x, y, and z edges of the mesh.
 
     Notes
@@ -122,9 +183,9 @@ def _poly_line_source_tens(mesh, locs):
         ax = px[ip]
         ay = py[ip]
         az = pz[ip]
-        ix = findlast(np.logical_and(ax >= x[: nx - 1], ax <= x[1:nx]))
-        iy = findlast(np.logical_and(ay >= y[: ny - 1], ay <= y[1:ny]))
-        iz = findlast(np.logical_and(az >= z[: nz - 1], az <= z[1:nz]))
+        ix = _findlast(np.logical_and(ax >= x[: nx - 1], ax <= x[1:nx]))
+        iy = _findlast(np.logical_and(ay >= y[: ny - 1], ay <= y[1:ny]))
+        iz = _findlast(np.logical_and(az >= z[: nz - 1], az <= z[1:nz]))
 
         if (ix < 0) or (iy < 0) or (iz < 0):
             msg = "Polygon vertex (%.1f, %.1f, %.1f) is outside the mesh"
@@ -178,9 +239,9 @@ def _poly_line_source_tens(mesh, locs):
 
             # locate cell id
 
-            ix = findlast(np.logical_and(cx >= x[: nx - 1], cx <= x[1:nx]))
-            iy = findlast(np.logical_and(cy >= y[: ny - 1], cy <= y[1:ny]))
-            iz = findlast(np.logical_and(cz >= z[: nz - 1], cz <= z[1:nz]))
+            ix = _findlast(np.logical_and(cx >= x[: nx - 1], cx <= x[1:nx]))
+            iy = _findlast(np.logical_and(cy >= y[: ny - 1], cy <= y[1:ny]))
+            iz = _findlast(np.logical_and(cz >= z[: nz - 1], cz <= z[1:nz]))
 
             # local coordinates
             hxloc = hx[ix]
@@ -214,13 +275,13 @@ def _poly_line_source_tree(mesh, locs):
     ----------
     mesh : discretize.TreeMesh
         The OctTreeMesh (3D) for the system.
-    px, py, pz : 1D numpy.array
-        The 1D arrays contain the x, y, and z, locations of consecutive points
+    locs : (n, 3) numpy.array
+        Columns contain the x, y, and z locations of consecutive points
         along the polygonal path
 
     Returns
     -------
-    numpy.ndarray of length (mesh.nE)
+    (n_edges) numpy.ndarray
         Contains the source term for all x, y, and z edges of the OcTreeMesh.
     """
 
@@ -310,11 +371,28 @@ def line_through_faces(
     check_divergence=True,
     tolerance_divergence=1e-9,
 ):
-    """
+    """Define line current through cell faces
+
     Define the current through cell faces given path locations. Note that this
     will perform best of your path locations are at cell centers. Only paths
     that align with the mesh (e.g. a straight line in x, y, z) are currently
     supported
+
+    Parameters
+    ----------
+    mesh : discretize.TreeMesh
+        The OctTreeMesh (3D) for the system.
+    normalize_by_area : bool, default: ``True``
+        If ``True``, normalize by face area
+    check_divergence : bool, default: ``True``
+        If ``True``, carry out divergence check
+    tolerance_divergence: float, default: 1e-9
+        Tolerance for divergence check
+
+    Returns
+    -------
+    (mesh.n_faces) numpy.ndarray
+        Line current source on faces
     """
 
     current = np.zeros(mesh.n_faces)
@@ -436,6 +514,7 @@ def line_through_faces(
 
 
 def getSourceTermLineCurrentPolygon(xorig, hx, hy, hz, px, py, pz):
+    """getSourceTermLineCurrentPolygon is deprecated. Use :func:`segmented_line_current_source_term`"""
     warnings.warn(
         "getSourceTermLineCurrentPolygon has been deprecated and will be"
         "removed in SimPEG 0.17.0. Please use segmented_line_current_source_term.",

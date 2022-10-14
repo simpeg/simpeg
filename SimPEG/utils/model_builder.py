@@ -4,55 +4,67 @@ import scipy.ndimage as ndi
 import scipy.sparse as sp
 from .mat_utils import mkvc
 from scipy.spatial import Delaunay
-
-import sys
-
-if sys.version_info < (3,):
-    num_types = (int, long, float)
-else:
-    num_types = (int, float)
+from .code_utils import deprecate_function
+from discretize.base import BaseMesh
 
 
-def addBlock(gridCC, modelCC, p0, p1, blockProp):
+def add_block(cell_centers, model, p0, p1, prop_value):
+    """Add a homogeneous block to an existing cell centered model
+
+    Parameters
+    ----------
+    cell_centers : (n_cells, dim) numpy.ndarray or discretize.base.BaseMesh
+        A mesh or its gridded cell center locations
+    model : (n_cells) numpy.ndarray
+        Cell-centered model. Currently, this is only implemented for isotropic properties.
+    p0 : (dim) numpy.ndarray
+        Bottom southwest corner of the block
+    p1 : (dim) numpy.ndarray
+        Top northeast corner of the block
+    prop_value : float
+        Physical property value assigned to the block
+
+    Returns
+    -------
+    (n_cells) numpy.ndarray
+        The updated cell-centered model which includes the block
     """
-    Add a block to an existing cell centered model, modelCC
+    if isinstance(cell_centers, BaseMesh):
+        cell_centers = cell_centers.cell_centers
 
-    :param numpy.ndarray gridCC: mesh.gridCC is the cell centered grid
-    :param numpy.ndarray modelCC: cell centered model
-    :param numpy.ndarray p0: bottom, southwest corner of block
-    :param numpy.ndarray p1: top, northeast corner of block
-    :blockProp float blockProp: property to assign to the model
-
-    :return numpy.ndarray, modelBlock: model with block
-    """
-    ind = getIndicesBlock(p0, p1, gridCC)
-    modelBlock = modelCC.copy()
-    modelBlock[ind] = blockProp
-    return modelBlock
+    ind = get_indices_block(p0, p1, cell_centers)
+    new_model = model.copy()
+    new_model[ind] = prop_value
+    return new_model
 
 
-def getIndicesBlock(p0, p1, ccMesh):
-    """
-    Creates a vector containing the block indices in the cell centers mesh.
-    Returns a tuple
+def get_indices_block(p0, p1, cell_centers):
+    """Get indices for cells whose centers lie inside specified block
 
-    The block is defined by the points
+    Parameters
+    ----------
+    p0 : (dim) numpy.ndarray
+        Bottom southwest corner of the block
+    p1 : (dim) numpy.ndarray
+        Top northeast corner of the block
+    cell_centers : (n_cells, dim) numpy.ndarray or discretize.base.BaseMesh
+        A mesh or its gridded cell center locations
 
-    p0, describe the position of the left  upper  front corner, and
-
-    p1, describe the position of the right bottom back  corner.
-
-    ccMesh represents the cell-centered mesh
-
-    The points p0 and p1 must live in the the same dimensional space as the mesh.
+    Returns
+    -------
+    tuple of int
+        Indices of the cells whose center lie within the specified block
 
     """
+
+    if isinstance(cell_centers, BaseMesh):
+        cell_centers = cell_centers.cell_centers
 
     # Validation: p0 and p1 live in the same dimensional space
     assert len(p0) == len(p1), "Dimension mismatch. len(p0) != len(p1)"
 
     # Validation: mesh and points live in the same dimensional space
-    dimMesh = np.size(ccMesh[0, :])
+    dimMesh = np.size(cell_centers[0, :])
     assert len(p0) == dimMesh, "Dimension mismatch. len(p0) != dimMesh"
 
     for ii in range(len(p0)):
@@ -63,7 +75,7 @@ def getIndicesBlock(p0, p1, ccMesh):
         x1 = p0[0]
         x2 = p1[0]
 
-        indX = (x1 <= ccMesh[:, 0]) & (ccMesh[:, 0] <= x2)
+        indX = (x1 <= cell_centers[:, 0]) & (cell_centers[:, 0] <= x2)
         ind = np.where(indX)
 
     elif dimMesh == 2:
@@ -74,8 +86,8 @@ def getIndicesBlock(p0, p1, ccMesh):
         x2 = p1[0]
         y2 = p1[1]
 
-        indX = (x1 <= ccMesh[:, 0]) & (ccMesh[:, 0] <= x2)
-        indY = (y1 <= ccMesh[:, 1]) & (ccMesh[:, 1] <= y2)
+        indX = (x1 <= cell_centers[:, 0]) & (cell_centers[:, 0] <= x2)
+        indY = (y1 <= cell_centers[:, 1]) & (cell_centers[:, 1] <= y2)
 
         ind = np.where(indX & indY)
 
@@ -89,9 +101,9 @@ def getIndicesBlock(p0, p1, ccMesh):
         y2 = p1[1]
         z2 = p1[2]
 
-        indX = (x1 <= ccMesh[:, 0]) & (ccMesh[:, 0] <= x2)
-        indY = (y1 <= ccMesh[:, 1]) & (ccMesh[:, 1] <= y2)
-        indZ = (z1 <= ccMesh[:, 2]) & (ccMesh[:, 2] <= z2)
+        indX = (x1 <= cell_centers[:, 0]) & (cell_centers[:, 0] <= x2)
+        indY = (y1 <= cell_centers[:, 1]) & (cell_centers[:, 1] <= y2)
+        indZ = (z1 <= cell_centers[:, 2]) & (cell_centers[:, 2] <= z2)
 
         ind = np.where(indX & indY & indZ)
 
@@ -99,29 +111,80 @@ def getIndicesBlock(p0, p1, ccMesh):
     return ind
 
 
-def defineBlock(ccMesh, p0, p1, vals=None):
-    """
-    Build a block with the conductivity specified by condVal.  Returns an array.
-    vals[0]  conductivity of the block
-    vals[1]  conductivity of the ground
-    """
-    if vals is None:
-        vals = [0, 1]
-    sigma = np.zeros(ccMesh.shape[0]) + vals[1]
-    ind = getIndicesBlock(p0, p1, ccMesh)
+def create_block_in_wholespace(
+    cell_centers, p0, p1, background_value=0.0, block_value=1.0
+):
+    """Construct cell-centered model comprised of a block in a wholespace.
 
-    sigma[ind] = vals[0]
+    Parameters
+    ----------
+    cell_centers : (n_cells, dim) numpy.ndarray or discretize.base.BaseMesh
+        A mesh or its gridded cell center locations
+    p0 : (dim) numpy.ndarray
+        Bottom southwest corner of the block
+    p1 : (dim) numpy.ndarray
+        Top northeast corner of the block
+    background_value : float, optional
+        Background physical property value.
+    block_value : float, optional
+        Block physical property value
+
+    Returns
+    -------
+    (n_cells) numpy.ndarray
+        Physical property model defined at the cell centers
+    """
+
+    if isinstance(cell_centers, BaseMesh):
+        cell_centers = cell_centers.cell_centers
+
+    # Used to use a single input 'vals' for background and block
+    try:
+        background_value, block_value = background_value
+    except TypeError:
+        pass
+
+    sigma = np.zeros(cell_centers.shape[0]) + background_value
+    ind = getIndicesBlock(p0, p1, cell_centers)
+
+    sigma[ind] = block_value
 
     return mkvc(sigma)
 
 
-def defineElipse(ccMesh, center=None, anisotropy=None, slope=10.0, theta=0.0):
+def create_ellipse_in_wholespace(
+    cell_centers, center=None, anisotropy=None, slope=10.0, theta=0.0
+):
+    """Construct cell-centered model comprised of an ellipsoid in a wholespace.
+
+    Parameters
+    ----------
+    cell_centers : (n_cells, dim) numpy.ndarray or discretize.base.BaseMesh
+        A mesh or its gridded cell center locations
+    center : (dim) numpy.ndarray, optional
+        Center of the ellipsoid, default is [0, 0, 0]
+    anisotropy : (dim) numpy.ndarray, optional
+        Anisotropy, default is an isotropic elipse ([1, 1, 1]).
+    slope : float, optional
+        Slope
+    theta : float, optional
+        Angle
+
+    Returns
+    -------
+    (n_cells) numpy.ndarray
+        Physical property model defined at the cell centers
+    """
+
+    if isinstance(cell_centers, BaseMesh):
+        cell_centers = cell_centers.cell_centers
+
     if center is None:
         center = [0, 0, 0]
     if anisotropy is None:
         anisotropy = [1, 1, 1]
-    G = ccMesh.copy()
-    dim = ccMesh.shape[1]
+    G = cell_centers.copy()
+    dim = cell_centers.shape[1]
     for i in range(dim):
         G[:, i] = G[:, i] - center[i]
 
@@ -143,37 +206,45 @@ def defineElipse(ccMesh, center=None, anisotropy=None, slope=10.0, theta=0.0):
     return -np.arctan((D - 1) * slope) * (2.0 / np.pi) / 2.0 + 0.5
 
 
-def getIndicesSphere(center, radius, ccMesh):
+def get_indices_sphere(center, radius, cell_centers):
+    """Get indices for cells whose centers lie inside a sphere
+
+    Parameters
+    ----------
+    center : (dim) numpy.ndarray
+        Location of the center of the sphere
+    radius : float
+        Radius of the sphere
+    cell_centers : (n_cells, dim) numpy.ndarray or discretize.base.BaseMesh
+        A mesh or its gridded cell center locations
+
+    Returns
+    -------
+    tuple of int
+        Indices of the cells whose center lie within the specified sphere
+
     """
-    Creates a vector containing the sphere indices in the cell centers mesh.
-    Returns a tuple
 
-    The sphere is defined by the points
-
-    p0, describe the position of the center of the cell
-
-    r, describe the radius of the sphere.
-
-    ccMesh represents the cell-centered mesh
-
-    The points p0 must live in the the same dimensional space as the mesh.
-
-    """
+    if isinstance(cell_centers, BaseMesh):
+        cell_centers = cell_centers.cell_centers
 
     # Validation: mesh and point (p0) live in the same dimensional space
-    dimMesh = np.size(ccMesh[0, :])
+    dimMesh = np.size(cell_centers[0, :])
     assert len(center) == dimMesh, "Dimension mismatch. len(p0) != dimMesh"
 
     if dimMesh == 1:
         # Define the reference points
 
-        ind = np.abs(center[0] - ccMesh[:, 0]) < radius
+        ind = np.abs(center[0] - cell_centers[:, 0]) < radius
 
     elif dimMesh == 2:
         # Define the reference points
 
         ind = (
-            np.sqrt((center[0] - ccMesh[:, 0]) ** 2 + (center[1] - ccMesh[:, 1]) ** 2)
+            np.sqrt(
+                (center[0] - cell_centers[:, 0]) ** 2
+                + (center[1] - cell_centers[:, 1]) ** 2
+            )
             < radius
         )
 
@@ -181,9 +252,9 @@ def getIndicesSphere(center, radius, ccMesh):
         # Define the points
         ind = (
             np.sqrt(
-                (center[0] - ccMesh[:, 0]) ** 2
-                + (center[1] - ccMesh[:, 1]) ** 2
-                + (center[2] - ccMesh[:, 2]) ** 2
+                (center[0] - cell_centers[:, 0]) ** 2
+                + (center[1] - cell_centers[:, 1]) ** 2
+                + (center[2] - cell_centers[:, 2]) ** 2
             )
             < radius
         )
@@ -192,145 +263,202 @@ def getIndicesSphere(center, radius, ccMesh):
     return ind
 
 
-def defineTwoLayers(ccMesh, depth, vals=None):
+def create_2_layer_model(cell_centers, depth, top_value=1.0, bottom_value=0.0):
+    """Create a basic two layered model
+
+    This function creates a physical property model consisting of 2 layers.
+
+    Parameters
+    ----------
+    cell_centers : (n_cells, dim) numpy.ndarray or discretize.base.BaseMesh
+        A mesh or its gridded cell center locations
+    depth : float
+        Depth defining the interface between layer 1 and layer 2
+    top_value : float, optional
+        Physical property value for the top layer
+    bottom_value : float, optional
+        Physical property value for the bottom layer
+
+    Returns
+    -------
+    (n_cells) numpy.ndarray
+        Cell-centered physical property model
+
     """
-    Define a two layered model.  Depth of the first layer must be specified.
-    CondVals vector with the conductivity values of the layers.  Eg:
 
-    Convention to number the layers::
+    if isinstance(cell_centers, BaseMesh):
+        cell_centers = cell_centers.cell_centers
 
-        <----------------------------|------------------------------------>
-        0                          depth                                 zf
-             1st layer                       2nd layer
-    """
-    if vals is None:
-        vals = [0, 1]
-    sigma = np.zeros(ccMesh.shape[0]) + vals[1]
+    try:
+        top_value, bottom_value = top_value
+    except TypeError:
+        pass
 
-    dim = np.size(ccMesh[0, :])
+    sigma = np.zeros(cell_centers.shape[0]) + bottom_value
+
+    dim = np.size(cell_centers[0, :])
 
     p0 = np.zeros(dim)
     p1 = np.zeros(dim)
 
     # Identify 1st cell centered reference point
-    p0[0] = ccMesh[0, 0]
+    p0[0] = cell_centers[0, 0]
     if dim > 1:
-        p0[1] = ccMesh[0, 1]
+        p0[1] = cell_centers[0, 1]
     if dim > 2:
-        p0[2] = ccMesh[0, 2]
+        p0[2] = cell_centers[0, 2]
 
     # Identify the last cell-centered reference point
-    p1[0] = ccMesh[-1, 0]
+    p1[0] = cell_centers[-1, 0]
     if dim > 1:
-        p1[1] = ccMesh[-1, 1]
+        p1[1] = cell_centers[-1, 1]
     if dim > 2:
-        p1[2] = ccMesh[-1, 2]
+        p1[2] = cell_centers[-1, 2]
 
     # The depth is always defined on the last one.
     p1[len(p1) - 1] -= depth
 
-    ind = getIndicesBlock(p0, p1, ccMesh)
+    ind = getIndicesBlock(p0, p1, cell_centers)
 
-    sigma[ind] = vals[0]
+    sigma[ind] = top_value
 
     return mkvc(sigma)
 
 
-def scalarConductivity(ccMesh, pFunction):
+def create_from_function(cell_centers, fun_handle):
+    """Define physical property model from scalar analytic function.
+
+    For a function handle that defines a scalar physical property as function of
+    location, **create_from_function** outputs the discrete representation
+    of the physical property distribution on the mesh provided.
+
+    Parameters
+    ----------
+    cell_centers : (n_cells, dim) numpy.ndarray or discretize.base.BaseMesh
+        A mesh or its gridded cell center locations.
+    fun_handle : function
+        A function which defines a scalar physical property value as a function
+        of location. The input argument for the location must be an (*n*, *dim*)
+        ``numpy.ndarray``.
+
+    Returns
+    -------
+    (n_cells) numpy.ndarray
+        Cell-centered physical property model for the mesh.
     """
-    Define the distribution conductivity in the mesh according to the
-    analytical expression given in pFunction
-    """
-    dim = np.size(ccMesh[0, :])
-    CC = [ccMesh[:, 0]]
+
+    if isinstance(cell_centers, BaseMesh):
+        cell_centers = cell_centers.cell_centers
+
+    dim = np.size(cell_centers[0, :])
+    CC = [cell_centers[:, 0]]
     if dim > 1:
-        CC.append(ccMesh[:, 1])
+        CC.append(cell_centers[:, 1])
     if dim > 2:
-        CC.append(ccMesh[:, 2])
+        CC.append(cell_centers[:, 2])
 
-    sigma = pFunction(*CC)
+    sigma = fun_handle(*CC)
 
     return mkvc(sigma)
 
 
-def layeredModel(ccMesh, layerTops, layerValues):
-    """
-    Define a layered model from layerTops (z-positive up)
+def create_layers_model(cell_centers, layer_tops, layer_values):
+    """Create physical property model consisting of a set of infinite horizontal layers.
 
-    :param numpy.ndarray ccMesh: cell-centered mesh
-    :param numpy.ndarray layerTops: z-locations of the tops of each layer
-    :param numpy.ndarray layerValue: values of the property to assign for each layer (starting at the top)
-    :rtype: numpy.ndarray
-    :return: M, layered model on the mesh
+    Parameters
+    ----------
+    cell_centers : (n_cells, dim) numpy.ndarray or discretize.base.BaseMesh
+        A mesh or its gridded cell center locations
+    layer_tops : (n_layer) numpy.ndarray
+        Elevation values (z +ve up) for the top of each layer. Layers are defined from top to bottom.
+        The first value can be very large if the top layer (e.g. air) extends to infinity.
+    layer_values : (n_layer) numpy.ndarray
+        Physical property value for each layer from top to bottom.
+
+    Returns
+    -------
+    (n_cells) numpy.ndarray
+        Cell-centered physical property model for the mesh.
     """
 
-    descending = np.linalg.norm(sorted(layerTops, reverse=True) - layerTops) < 1e-20
+    if isinstance(cell_centers, BaseMesh):
+        cell_centers = cell_centers.cell_centers
+
+    descending = np.linalg.norm(sorted(layer_tops, reverse=True) - layer_tops) < 1e-20
 
     # TODO: put an error check to make sure that there is an ordering... needs to work with inf elts
     # assert ascending or descending, "Layers must be listed in either ascending or descending order"
 
     # start from bottom up
     if not descending:
-        zprop = np.hstack([mkvc(layerTops, 2), mkvc(layerValues, 2)])
+        zprop = np.hstack([mkvc(layer_tops, 2), mkvc(layer_values, 2)])
         zprop.sort(axis=0)
-        layerTops, layerValues = zprop[::-1, 0], zprop[::-1, 1]
+        layer_tops, layer_values = zprop[::-1, 0], zprop[::-1, 1]
 
     # put in vector form
-    layerTops, layerValues = mkvc(layerTops), mkvc(layerValues)
+    layer_tops, layer_values = mkvc(layer_tops), mkvc(layer_values)
 
     # initialize with bottom layer
-    dim = ccMesh.shape[1]
+    dim = cell_centers.shape[1]
     if dim == 3:
-        z = ccMesh[:, 2]
+        z = cell_centers[:, 2]
     elif dim == 2:
-        z = ccMesh[:, 1]
+        z = cell_centers[:, 1]
     elif dim == 1:
-        z = ccMesh[:, 0]
+        z = cell_centers[:, 0]
 
-    model = np.zeros(ccMesh.shape[0])
+    model = np.zeros(cell_centers.shape[0])
 
-    for i, top in enumerate(layerTops):
+    for i, top in enumerate(layer_tops):
         zind = z <= top
-        model[zind] = layerValues[i]
+        model[zind] = layer_values[i]
 
     return model
 
 
-def randomModel(shape, seed=None, anisotropy=None, its=100, bounds=None):
-    """
-    Create a random model by convolving a kernel with a
-    uniformly distributed model.
+def create_random_model(shape, seed=1000, anisotropy=None, its=100, bounds=None):
+    """Create random model by convolving a kernel with a uniformly distributed random model.
 
-    :param tuple shape: shape of the model.
-    :param int seed: pick which model to produce, prints the seed if you don't choose.
-    :param numpy.ndarray anisotropy: this is the (3 x n) blurring kernel that is used.
-    :param int its: number of smoothing iterations
-    :param list bounds: bounds on the model, len(list) == 2
-    :rtype: numpy.ndarray
-    :return: M, the model
+    Parameters
+    ----------
+    shape : int or tuple of int
+        Shape of the model. Can define a vector of size (n_cells) or define the dimensions of a tensor
+    seed : int, optional
+        If not None, sets the seed for the random uniform model that is convolved with the kernel.
+    anisotropy : numpy.ndarray
+        this is the (*3*, *n*) blurring kernel that is used.
+    its : int
+        Number of smoothing iterations after convolutions
+    bounds : list of float
+        Lower and upper bound for the model values
+
+    Returns
+    -------
+    numpy.ndarray
+        Physical property model
 
 
-    .. plot::
+    Examples
+    --------
 
-        import matplotlib.pyplot as plt
-        import SimPEG.utils.model_builder as MB
-        plt.colorbar(plt.imshow(MB.randomModel((50,50),bounds=[-4,0])))
-        plt.title('A very cool, yet completely random model.')
-        plt.show()
-
+    >>> import matplotlib.pyplot as plt
+    >>> from SimPEG.utils.model_builder import create_random_model
+    >>> m = create_random_model((50,50), bounds=[-4,0])
+    >>> plt.colorbar(plt.imshow(m))
+    >>> plt.title('A very cool, yet completely random model.')
+    >>> plt.show()
 
     """
     if bounds is None:
         bounds = [0, 1]
 
-    if seed is None:
-        seed = np.random.randint(1e3)
+    if seed is not None:
+        np.random.seed(seed)
         print("Using a seed of: ", seed)
 
-    if isinstance(shape, num_types):
+    if isinstance(shape, (int, float)):
         shape = (shape,)  # make it a tuple for consistency
 
-    np.random.seed(seed)
     mr = np.random.rand(*shape)
     if anisotropy is None:
         if len(shape) == 1:
@@ -358,28 +486,20 @@ def randomModel(shape, seed=None, anisotropy=None, its=100, bounds=None):
     return mi
 
 
-def PolygonInd(mesh, pts):
-    """
-    Find all voxel indices included in mpolygon (2D) or polyhedra (3D)
-    uniformly distributed model.
+def get_indices_polygon(mesh, pts):
+    """Get indices for cells whose centers lie within the convex hull of a set of points.
 
-    :param tuple shape: shape of the model.
-    :param int seed: pick which model to produce, prints the seed if you don't choose.
-    :param numpy.ndarray anisotropy: this is the (3 x n) blurring kernel that is used.
-    :param int its: number of smoothing iterations
-    :param list bounds: bounds on the model, len(list) == 2
-    :rtype: numpy.ndarray
-    :return: M, the model
+    Parameters
+    ----------
+    mesh : discretize.base.BaseMesh
+        Discretize mesh
+    pts : (n, dim) numpy.ndarray
+        Set of points defining the convex hull
 
-
-    .. plot::
-
-        import matplotlib.pyplot as plt
-        import SimPEG.utils.model_builder as MB
-        plt.colorbar(plt.imshow(MB.randomModel((50,50),bounds=[-4,0])))
-        plt.title('A very cool, yet completely random model.')
-        plt.show()
-
+    Returns
+    -------
+    tuple of int
+        Indices of the cells whose center lies within convex hull
 
     """
     if mesh.dim == 1:
@@ -389,5 +509,49 @@ def PolygonInd(mesh, pts):
     elif mesh.dim == 3:
         assert ~(pts.shape[1] != 3), "Please input (*,3) array"
     hull = Delaunay(pts)
-    inds = hull.find_simplex(mesh.gridCC) >= 0
+    inds = hull.find_simplex(mesh.cell_centers) >= 0
     return inds
+
+
+################################################
+#             DEPRECATED FUNCTIONS
+################################################
+
+
+addBlock = deprecate_function(add_block, "addBlock", removal_version="0.16.0")
+
+getIndicesBlock = deprecate_function(
+    get_indices_block, "getIndicesBlock", removal_version="0.16.0"
+)
+
+defineBlock = deprecate_function(
+    create_block_in_wholespace, "defineBlock", removal_version="0.16.0"
+)
+
+defineEllipse = deprecate_function(
+    create_ellipse_in_wholespace, "defineEllipse", removal_version="0.16.0"
+)
+
+getIndicesSphere = deprecate_function(
+    get_indices_sphere, "getIndicesSphere", removal_version="0.16.0"
+)
+
+defineTwoLayers = deprecate_function(
+    create_2_layer_model, "defineTwoLayers", removal_version="0.16.0"
+)
+
+layeredModel = deprecate_function(
+    create_layers_model, "layeredModel", removal_version="0.16.0"
+)
+
+randomModel = deprecate_function(
+    create_random_model, "randomModel", removal_version="0.16.0"
+)
+
+polygonInd = deprecate_function(
+    get_indices_polygon, "polygonInd", removal_version="0.16.0"
+)
+
+scalarConductivity = deprecate_function(
+    create_from_function, "scalarConductivity", removal_version="0.16.0"
+)

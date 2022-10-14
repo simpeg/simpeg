@@ -406,7 +406,3 @@ class DerivAdjoint_J(Base_DerivAdjoint_Test):
 
         def test_Jvec_adjoint_j_dbdtz(self):
             self.JvecVsJtvecTest("MagneticFluxTimeDerivativez")
-
-
-if __name__ == "__main__":
-    unittest.main()

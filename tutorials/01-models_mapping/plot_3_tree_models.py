@@ -233,7 +233,7 @@ xp = np.kron(np.ones((2)), [-10.0, 10.0, 55.0, 35.0])
 yp = np.kron([-1000.0, 1000.0], np.ones((4)))
 zp = np.kron(np.ones((2)), [-120.0, -120.0, 45.0, 45.0])
 xyz_pts = np.c_[mkvc(xp), mkvc(yp), mkvc(zp)]
-ind_polygon = model_builder.PolygonInd(mesh, xyz_pts)
+ind_polygon = model_builder.get_indices_polygon(mesh, xyz_pts)
 ind_polygon = ind_polygon[ind_active]  # So same size and order as model
 model[ind_polygon] = dyke_value
 
@@ -346,7 +346,7 @@ xp = np.kron(np.ones((2)), [-10.0, 10.0, 55.0, 35.0])
 yp = np.kron([-1000.0, 1000.0], np.ones((4)))
 zp = np.kron(np.ones((2)), [-120.0, -120.0, 45.0, 45.0])
 xyz_pts = np.c_[mkvc(xp), mkvc(yp), mkvc(zp)]
-ind_polygon = model_builder.PolygonInd(mesh, xyz_pts)
+ind_polygon = model_builder.get_indices_polygon(mesh, xyz_pts)
 ind_polygon = ind_polygon[ind_active]  # So same size and order as model
 model[ind_polygon, 0] = dyke_sigma_value
 

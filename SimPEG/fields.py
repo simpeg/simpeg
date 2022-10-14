@@ -113,7 +113,7 @@ class Fields(properties.HasProperties):
         if type(srcTestList) is slice:
             ind = srcTestList
         else:
-            ind = self.survey.getSourceIndex(srcTestList)
+            ind = self.survey.get_source_indices(srcTestList)
         return ind
 
     def _nameIndex(self, name, accessType):

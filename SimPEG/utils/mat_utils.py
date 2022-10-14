@@ -1,10 +1,11 @@
 import numpy as np
+from .code_utils import deprecate_method, deprecate_function
 from discretize.utils import (
     Zero,
     Identity,
     mkvc,
     sdiag,
-    sdInv,
+    sdinv,
     speye,
     kron3,
     spzeros,
@@ -14,41 +15,66 @@ from discretize.utils import (
     ndgrid,
     ind2sub,
     sub2ind,
+    get_subarray,
+    inverse_3x3_block_diagonal,
+    inverse_2x2_block_diagonal,
+    TensorType,
+    make_property_tensor,
+    inverse_property_tensor,
+)
+
+# deprecated imports
+from discretize.utils import (
+    sdInv,
     getSubArray,
     inv3X3BlockDiagonal,
     inv2X2BlockDiagonal,
-    TensorType,
     makePropertyTensor,
     invPropertyTensor,
 )
 
 
-def diagEst(matFun, n, k=None, approach="Probing"):
+def estimate_diagonal(matrix_arg, n, k=None, approach="Probing"):
+    r"""Estimate the diagonal of a matrix.
+
+    This function estimates the diagonal of a matrix using one of the following
+    iterative methods:
+
+        - **Probing:** cyclic permutations of vectors with 1's and 0's (default)
+        - **Ones:** random +/- 1 entries
+        - **Random:** random vectors with entries in the range [-1, 1]
+
+    The user can estimate the diagonal of the matrix by providing the matrix,
+    or by providing a function hangle which computes the dot product of the matrix
+    and a vector.
+
+    For background information on this method, see
+    `Bekas (et al., 2005) <http://www-users.cs.umn.edu/~saad/PDF/umsi-2005-082.pdf>`__
+    and `Selig (et al., 2012) <https://www.cita.utoronto.ca/~niels/diagonal.pdf>`__
+
+    Parameters
+    ----------
+    matrix_arg : numpy.ndarray or function
+        The matrix as a ``numpy.ndarray``, or a function handle which computes the dot product
+        between the matrix and a vector.
+    n : int
+        The length of the random vectors used to compute the diagonal; equals number of columns
+    k : int
+        Number of vectors to be used to estimate the diagonal; i.e. number of iterations in estimation
+    approach : str
+        Method used for approximating diagonal. Must be one of {'probing', 'ones', 'random'}
+
+    Returns
+    -------
+    numpy.ndarray
+        Estimate of the diagonal elements of the input matrix
+
     """
-    Estimate the diagonal of a matrix, A. Note that the matrix may be a
-    function which returns A times a vector.
 
-    Three different approaches have been implemented:
+    if isinstance(matrix_arg, np.ndarray):
+        A = matrix_arg
 
-    1. Probing: cyclic permutations of vectors with 1's and 0's (default)
-    2. Ones: random +/- 1 entries
-    3. Random: random vectors
-
-    :param callable matFun: takes a (numpy.ndarray) and multiplies it by a matrix to estimate the diagonal
-    :param int n: size of the vector that should be used to compute matFun(v)
-    :param int k: number of vectors to be used to estimate the diagonal
-    :param str approach: approach to be used for getting vectors
-    :rtype: numpy.ndarray
-    :return: est_diag(A)
-
-    Based on Saad https://doi.org/10.1016/j.apnum.2007.01.003,
-    and https://www.cita.utoronto.ca/~niels/diagonal.pdf
-    """
-
-    if type(matFun).__name__ == "ndarray":
-        A = matFun
-
-        def matFun(v):
+        def matrix_arg(v):
             return A.dot(v)
 
     if k is None:
@@ -79,7 +105,7 @@ def diagEst(matFun, n, k=None, approach="Probing"):
 
     for i in range(0, k):
         vk = getv(n, i)
-        Mv += matFun(vk) * vk
+        Mv += matrix_arg(vk) * vk
         vv += vk * vk
 
     d = Mv / vv
@@ -87,7 +113,24 @@ def diagEst(matFun, n, k=None, approach="Probing"):
     return d
 
 
-def uniqueRows(M):
+def unique_rows(M):
+    """Return unique rows, row indices and inverse indices.
+
+    Parameters
+    ----------
+    M : array_like
+        The input array
+
+    Returns
+    -------
+    unqM : numpy.ndarray
+        Array consisting of the unique rows of the input array
+    unqInd : numpy.ndarray of int
+        Indices to project from input array to output array
+    unqInd : numpy.ndarray of int
+        Indices to project from output array to input array
+
+    """
     b = np.ascontiguousarray(M).view(np.dtype((np.void, M.dtype.itemsize * M.shape[1])))
     _, unqInd = np.unique(b, return_index=True)
     _, invInd = np.unique(b, return_inverse=True)
@@ -98,27 +141,32 @@ def uniqueRows(M):
 def eigenvalue_by_power_iteration(
     combo_objfct, model, n_pw_iter=4, fields_list=None, seed=None
 ):
-    """
-    Estimate the highest eigenvalue of any objective function term or combination thereof
-    (data_misfit, regularization or ComboObjectiveFunction) for a given model.
-    The highest eigenvalue is estimated by power iterations and Rayleigh quotient.
+    """Estimate highest eigenvalue of one or a combo of objective functions using power iterations and the Rayleigh quotient.
+
+    Using power iterations and the Rayleigh quotient, this function estimates the largest
+    eigenvalue for a single :class:`SimPEG.BaseObjectiveFunction` or a combination of
+    objective functions stored in a :class:`SimPEG.ComboObjectiveFunction`.
 
     Parameters
     ----------
+    combo_objfct : SimPEG.BaseObjectiveFunction
+        Objective function or a combo objective function
+    model : numpy.ndarray
+        Current model
+    n_pw_iter : int
+        Number of power iterations used to estimate the highest eigenvalue
+    fields_list : list (optional)
+        ``list`` of fields objects for each data misfit term in combo_objfct. If none given,
+        they will be evaluated within the function. If combo_objfct mixs data misfit and regularization
+        terms, the list should contains SimPEG.fields for the data misfit terms and None for the
+        regularization term.
+    seed : int
+        Random seed for the initial random guess of eigenvector.
 
-    :param SimPEG.BaseObjectiveFunction combo_objfct: objective function term of which to estimate the highest eigenvalue
-    :param numpy.ndarray model: current geophysical model to estimate the objective function derivatives at
-    :param int n_pw_iter: number of power iterations to estimate the highest eigenvalue
-    :param list fiels_list: (optional) list of fields for each data misfit term in combo_objfct. If none given,
-                            they will be evaluated within the function. If combo_objfct mixs data misfit and regularization
-                            terms, the list should contains SimPEG.fields for the data misfit terms and None for the
-                            regularization term.
-    :param int seed: Random seed for the initial random guess of eigenvector.
-
-    Return
-    ------
-
-    :return float eigenvalue: estimated value of the highest eigenvalye
+    Returns
+    -------
+    float
+        Estimated value of the highest eigenvalue
 
     """
 
@@ -182,7 +230,40 @@ def eigenvalue_by_power_iteration(
 
 
 def cartesian2spherical(m):
-    """Convert from cartesian to spherical"""
+    """Converts a set of 3D vectors from Cartesian to spherical coordinates.
+
+    Parameters
+    ----------
+    m : (n, 3) array_like
+        An array whose columns represent the x, y and z components of
+        a set of vectors.
+
+    Returns
+    -------
+    (n, 3) numpy.ndarray
+        An array whose columns represent the *a*, *t* and *p* components
+        of a set of vectors in spherical coordinates.
+
+    Notes
+    -----
+
+    In Cartesian space, the components of each vector are defined as
+
+    .. math::
+        \\mathbf{v} = (v_x, v_y, v_z)
+
+    In spherical coordinates, vectors are is defined as:
+
+    .. math::
+        \\mathbf{v^\\prime} = (a, t, p)
+
+    where
+
+        - :math:`a` is the amplitude of the vector
+        - :math:`t` is the azimuthal angle defined positive from vertical
+        - :math:`p` is the radial angle defined positive CCW from Easting
+
+    """
 
     # nC = int(len(m)/3)
 
@@ -204,7 +285,40 @@ def cartesian2spherical(m):
 
 
 def spherical2cartesian(m):
-    """Convert from spherical to cartesian"""
+    """Converts a set of 3D vectors from spherical to Catesian coordinates.
+
+    Parameters
+    ----------
+    m : (n, 3) array_like
+        An array whose columns represent the *a*, *t* and *p* components of
+        a set of vectors in spherical coordinates.
+
+    Returns
+    -------
+    (n, 3) numpy.ndarray
+        An array whose columns represent the *x*, *y* and *z* components
+        of the set of vectors in Cartesian.
+
+    Notes
+    -----
+
+    In Cartesian space, the components of each vector are defined as
+
+    .. math::
+        \\mathbf{v} = (v_x, v_y, v_z)
+
+    In spherical coordinates, vectors are is defined as:
+
+    .. math::
+        \\mathbf{v^\\prime} = (a, t, p)
+
+    where
+
+        - :math:`a` is the amplitude of the vector
+        - :math:`t` is the azimuthal angle defined positive from vertical
+        - :math:`p` is the radial angle defined positive CCW from Easting
+
+    """
 
     a = m[:, 0] + 1e-8
     t = m[:, 1]
@@ -215,35 +329,38 @@ def spherical2cartesian(m):
     return m_xyz
 
 
-def dip_azimuth2cartesian(dip, azm_N):
+def dip_azimuth2cartesian(dip, azm):
+    """Convert vectors from dip-azimuth to Cartesian
+
+    This function takes the dip and azimuthal angles for a set of vectors and
+    converts to Cartesian coordinates. The output is a numpy.ndarray whose
+    columns represent the vectors' x, y and z components.
+
+    Parameters
+    ----------
+    dip : float or 1D numpy.ndarray
+        Dip angle in degrees. Values in range [0, 90]
+    azm : float or 1D numpy.ndarray
+        Asimuthal angle (strike) in degrees. Defined clockwise from Northing. Values is range [0, 360]
+
+    Returns
+    -------
+    (n, 3) numpy.ndarray
+        Numpy array whose columns represent the x, y and z components of the
+        vector(s) in Cartesian coordinates
+
     """
-    dip_azimuth2cartesian(dip,azm_N)
 
-    Function converting degree angles for dip and azimuth from north to a
-    3-components in cartesian coordinates.
-
-    INPUT
-    dip     : Value or vector of dip from horizontal in DEGREE
-    azm_N   : Value or vector of azimuth from north in DEGREE
-
-    OUTPUT
-    M       : [n-by-3] Array of xyz components of a unit vector in cartesian
-
-    Created on Dec, 20th 2015
-
-    @author: dominiquef
-    """
-
-    azm_N = np.asarray(azm_N)
+    azm = np.asarray(azm)
     dip = np.asarray(dip)
 
     # Number of elements
-    nC = azm_N.size
+    nC = azm.size
 
     M = np.zeros((nC, 3))
 
     # Modify azimuth from North to cartesian-X
-    azm_X = (450.0 - np.asarray(azm_N)) % 360.0
+    azm_X = (450.0 - np.asarray(azm)) % 360.0
     inc = -np.deg2rad(np.asarray(dip))
     dec = np.deg2rad(azm_X)
 
@@ -255,8 +372,27 @@ def dip_azimuth2cartesian(dip, azm_N):
 
 
 def coterminal(theta):
-    """
-    Compute coterminal angle so that [-pi < theta < pi]
+    """Compute coterminal angle
+
+    For a set of angles defined in radians, this function outputs their coterminal angles.
+    That is, for an angle :math:`\\theta` where:
+
+    .. math::
+        \\theta = 2\\pi N + \\gamma
+
+    and *N* is an integer, the function returns the value of :math:`\\gamma`.
+    The coterminal angle :math:`\\gamma` is within the range :math:`[-\\pi , \\pi]`.
+
+    Parameters
+    ----------
+    theta : array_like
+        Input angles
+
+    Returns
+    -------
+    numpy.ndarray
+        Coterminal angles
+
     """
 
     sub = theta[np.abs(theta) >= np.pi]
@@ -268,19 +404,18 @@ def coterminal(theta):
 
 
 def define_plane_from_points(xyz1, xyz2, xyz3):
-    """
-    Compute constants defining a plane from a set of points.
+    """Compute constants defining a plane from a set of points.
 
-    The equation defining a plane has the form ax+by+cz+d=0.
-    This utility returns the constants a, b, c and d.
+    The equation defining a plane has the form :math:`ax+by+cz+d=0`.
+    This utility returns the constants a, b, c and d defining the plane.
 
     Parameters
     ----------
-    xyz1 : numpy.ndarray
+    xyz1 : (3) numpy.ndarray
         First point needed to define the plane (x1, y1, z1)
-    xyz2 : numpy.ndarray
+    xyz2 : (3) numpy.ndarray
         Second point needed to define the plane (x2, y2, z2)
-    xyz3 : numpy.ndarray
+    xyz3 : (3) numpy.ndarray
         Third point needed to define the plane (x3, y3, z3)
 
     Returns
@@ -298,3 +433,13 @@ def define_plane_from_points(xyz1, xyz2, xyz3):
     d = -(a * xyz1[0] + b * xyz1[1] + c * xyz1[2])
 
     return a, b, c, d
+
+
+################################################
+#             DEPRECATED FUNCTIONS
+################################################
+
+
+diagEst = deprecate_function(estimate_diagonal, "diagEst", removal_version="0.16.0")
+
+uniqueRows = deprecate_function(unique_rows, "uniqueRows", removal_version="0.16.0")

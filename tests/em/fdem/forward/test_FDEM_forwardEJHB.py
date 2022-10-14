@@ -351,7 +351,3 @@ class FDEM_CrossCheck(unittest.TestCase):
                     SrcList, "h", "b", ["MagneticField", "z", "i"], TOL=TOLEJHB
                 )
             )
-
-
-if __name__ == "__main__":
-    unittest.main()

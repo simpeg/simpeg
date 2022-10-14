@@ -113,9 +113,9 @@ class FDEM_analyticTests(unittest.TestCase):
 
 
 class TestDipoles(unittest.TestCase):
-    def test_CylMeshEBDipoles(self, plotIt=plotIt):
+    def test_CylindricalMeshEBDipoles(self, plotIt=plotIt):
         print(
-            "Testing CylMesh Electric and Magnetic Dipoles in a wholespace-"
+            "Testing CylindricalMesh Electric and Magnetic Dipoles in a wholespace-"
             " Analytic: J-formulation"
         )
         sigmaback = 1.0
@@ -130,7 +130,7 @@ class TestDipoles(unittest.TestCase):
         hz = utils.meshTensor([(csz, npadz, -1.3), (csz, ncz), (csz, npadz, 1.3)])
 
         # define the cylindrical mesh
-        mesh = discretize.CylMesh([hx, 1, hz], [0.0, 0.0, -hz.sum() / 2])
+        mesh = discretize.CylindricalMesh([hx, 1, hz], [0.0, 0.0, -hz.sum() / 2])
 
         if plotIt:
             mesh.plotGrid()
@@ -142,7 +142,7 @@ class TestDipoles(unittest.TestCase):
         # set up source
         # test electric dipole
         src_loc = np.r_[0.0, 0.0, 0.0]
-        s_ind = utils.closestPoints(mesh, src_loc, "Fz") + mesh.nFx
+        s_ind = utils.closest_points_index(mesh, src_loc, "Fz") + mesh.nFx
 
         de = np.zeros(mesh.nF, dtype=complex)
         de[s_ind] = 1.0 / csz
@@ -305,7 +305,3 @@ class TestDipoles(unittest.TestCase):
 
         self.assertTrue(np.linalg.norm(bxa - bx) / np.linalg.norm(bxa) < tol_EBdipole)
         self.assertTrue(np.linalg.norm(bza - bz) / np.linalg.norm(bza) < tol_EBdipole)
-
-
-if __name__ == "__main__":
-    unittest.main()

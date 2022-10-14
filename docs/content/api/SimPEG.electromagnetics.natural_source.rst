@@ -1,0 +1,1 @@
+.. automodule:: SimPEG.electromagnetics.natural_source

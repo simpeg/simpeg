@@ -29,6 +29,7 @@ from discretize.tests import check_derivative
 
 
 TOL = 1e-8
+np.random.seed(25)
 
 
 class TestCheckDerivative(unittest.TestCase):

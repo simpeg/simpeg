@@ -224,7 +224,6 @@ class RegularizationTests(unittest.TestCase):
 
             [self.assertTrue(fct.units == "radian") for fct in reg.objfcts]
 
-
     def test_addition(self):
         mesh = discretize.TensorMesh([8, 7, 6])
         m = np.random.rand(mesh.nC)
@@ -318,13 +317,8 @@ class RegularizationTests(unittest.TestCase):
         with pytest.raises(TypeError) as error:
             reg.set_weights(user_weights="abc")
 
-        assert "Values provided for" in str(error)
-
         with pytest.raises(ValueError) as error:
             reg.set_weights(user_weights=cell_weights[1:])
-
-        assert "must be of shape" in str(error)
-
 
     def test_update_of_sparse_norms(self):
         mesh = discretize.TensorMesh([8, 7, 6])
@@ -374,7 +368,6 @@ class RegularizationTests(unittest.TestCase):
         reg.norms = None
         for obj in reg.objfcts:
             self.assertTrue(np.all(obj.norm == 2.0 * np.ones(obj._weights_shapes[0])))
-
 
     def test_linked_properties(self):
         mesh = discretize.TensorMesh([8, 7, 6])
@@ -508,7 +501,7 @@ class RegularizationTests(unittest.TestCase):
 
         assert "'units' must be None or type str." in str(error)
 
-        reg.model = 1.
+        reg.model = 1.0
 
         assert reg.model.shape[0] == mesh.nC, "Issue setting a model from float."
 
@@ -520,8 +513,9 @@ class RegularizationTests(unittest.TestCase):
         with pytest.raises(AttributeError) as error:
             print(reg.f_m_deriv(reg.model))
 
-        assert "Regularization class must have a 'f_m_deriv' implementation." in str(error)
-
+        assert "Regularization class must have a 'f_m_deriv' implementation." in str(
+            error
+        )
 
     def test_smooth_deriv(self):
         mesh = discretize.TensorMesh([8, 7])
@@ -551,7 +545,9 @@ class RegularizationTests(unittest.TestCase):
         assert "'reference_model_in_smooth must be of type 'bool'." in str(error)
 
         deriv_angle = smooth_deriv.f_m(np.r_[-np.pi, np.pi])
-        np.testing.assert_almost_equal(deriv_angle, 0., err_msg="Error computing coterminal angle")
+        np.testing.assert_almost_equal(
+            deriv_angle, 0.0, err_msg="Error computing coterminal angle"
+        )
 
     def test_sparse_properties(self):
         mesh = discretize.TensorMesh([8, 7])
