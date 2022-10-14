@@ -984,18 +984,28 @@ def validate_ndarray_with_shape(property_name, var, shape=None, dtype=float):
         The '*' indicates that an arbitrary number of elements is allowed
         along a particular dimension. If list then multiple shapes are accepted.
         By default, shape is a tuple of length ndim of '*'.
-    dtype : class, optional
+    dtype : class, or tuple of class, optional
         The data type for the array. I.e. float, int, complex, bool, etc.
+        Validated from left to right if a tuple.
 
     Returns
     -------
     numpy.ndarray of dtype
         Returns the array in the specified data type once validated
     """
+    if not isinstance(dtype, tuple):
+        dtypes = (dtype, )
+    else:
+        dtypes = dtype
+    for dtype in dtypes:
+        try:
+            var = np.asarray(var, dtype=dtype)
+            bad_type = False
+            break
+        except:
+            bad_type = True
 
-    try:
-        var = np.asarray(var, dtype=dtype)
-    except:
+    if bad_type:
         raise TypeError(
             f"'{property_name}' must be array_like with data type of {dtype}, got {type(var)}"
         )

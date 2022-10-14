@@ -214,6 +214,15 @@ def test_ndarray_validation():
     assert np.issubdtype(out.dtype, float)
     np.testing.assert_equal(out, np.array([3.0, 4.0, 5.0]))
 
+    # should convert to first good type
+    out = validate_ndarray_with_shape("array_prop", ["3", "4", "5"], dtype=(float, complex))
+    assert np.issubdtype(out.dtype, float)
+    np.testing.assert_equal(out, np.array([3.0, 4.0, 5.0]))
+
+    out = validate_ndarray_with_shape("array_prop", ["3j", "4j", "5j"], dtype=(float, complex))
+    assert np.issubdtype(out.dtype, complex)
+    np.testing.assert_equal(out, np.array([3.0j, 4.0j, 5.0j]))
+
     # Valid any shaped arrays
     assert validate_ndarray_with_shape(
         "NDarrayProperty", np.random.rand(3, 3, 3), ("*", "*", "*"), float
@@ -252,6 +261,11 @@ def test_ndarray_validation():
     # improper type
     with pytest.raises(TypeError):
         validate_ndarray_with_shape("NDarrayProperty", ["a", "b"], ("*",))
+
+    # improper types
+    with pytest.raises(TypeError):
+        validate_ndarray_with_shape("NDarrayProperty", ["a", "b"], ("*",), dtype=(float, complex))
+
     # a shape is more than 3D
     with pytest.raises(NotImplementedError):
         validate_ndarray_with_shape(
