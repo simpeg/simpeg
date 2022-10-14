@@ -11,7 +11,7 @@ from scipy.interpolate import UnivariateSpline
 from scipy.constants import mu_0
 from scipy.sparse import csr_matrix as csr
 
-import properties
+# import properties
 from discretize.tests import check_derivative
 from discretize import TensorMesh, CylMesh
 
@@ -24,10 +24,16 @@ from .utils import (
     sdiag,
     mat_utils,
     speye,
+    validate_type,
+    validate_ndarray_with_shape,
+    validate_float,
+    validate_direction,
+    validate_integer,
+    validate_string,
 )
 
 
-class IdentityMap(properties.HasProperties):
+class IdentityMap:
     r"""Identity mapping and the base mapping class for all other SimPEG mappings.
 
     The ``IdentityMap`` class is used to define the mapping when
@@ -58,8 +64,6 @@ class IdentityMap(properties.HasProperties):
     """
 
     def __init__(self, mesh=None, nP=None, **kwargs):
-        set_kwargs(self, **kwargs)
-
         if nP is not None:
             if isinstance(nP, string_types):
                 assert nP == "*", "nP must be an integer or '*', not {}".format(nP)
@@ -71,9 +75,10 @@ class IdentityMap(properties.HasProperties):
             nP = mesh.nC
         else:
             nP = "*"
-
         self.mesh = mesh
         self._nP = nP
+
+        super().__init__(**kwargs)
 
     @property
     def nP(self):
@@ -321,6 +326,23 @@ class IdentityMap(properties.HasProperties):
 
     def __len__(self):
         return 1
+
+    @property
+    def mesh(self):
+        """
+        The mesh used for the mapping
+
+        Returns
+        -------
+        discretize.base.BaseMesh or None
+        """
+        return self._mesh
+
+    @mesh.setter
+    def mesh(self, value):
+        if value is not None:
+            value = validate_type("mesh", value, discretize.base.BaseMesh, cast=False)
+        self._mesh = value
 
 
 class ComboMap(IdentityMap):
@@ -796,21 +818,35 @@ class SurjectUnits(IdentityMap):
 
     """
 
-    indices = properties.List(
-        "list of indices for each unit to be surjected into",
-        properties.Array(
-            "indices for the unit to be mapped to", dtype=bool, shape=("*",)
-        ),
-        required=True,
-    )
-
-    # n_blocks = properties.Integer(
-    #     "number of times to repeat the mapping", default=1, min=1
-    # )
-
     def __init__(self, indices, **kwargs):
         super(SurjectUnits, self).__init__(**kwargs)
         self.indices = indices
+
+    @property
+    def indices(self):
+        """List assigning a given physical property to specific model cells.
+
+        Each entry in the :class:`list` is a boolean :class:`numpy.ndarray` of length
+        *mesh.nC* that assigns the corresponding physical property value to the
+        appropriate mesh cells.
+
+        Returns
+        -------
+        (nP) list of (mesh.n_cells) numpy.ndarray
+        """
+        return self._indices
+
+    @indices.setter
+    def indices(self, values):
+        values = validate_type("indices", values, list)
+        for i in range(len(values)):
+            values[i] = validate_ndarray_with_shape(
+                "indices", values[i], shape=("*",), dtype=bool
+            )
+
+        if np.any([values[0].shape != x.shape for x in values[1:]]):
+            raise ValueError("All items in indices must have the same shape")
+        self._indices = values
 
     @property
     def P(self):
@@ -1214,7 +1250,7 @@ class Wires(object):
         return self._nP
 
 
-class SelfConsistentEffectiveMedium(IdentityMap, properties.HasProperties):
+class SelfConsistentEffectiveMedium(IdentityMap):
     r"""
         Two phase self-consistent effective medium theory mapping for
         ellipsoidal inclusions. The inversion model is the concentration
@@ -1300,44 +1336,161 @@ class SelfConsistentEffectiveMedium(IdentityMap, properties.HasProperties):
 
     """
 
-    sigma0 = properties.Float(
-        "physical property value for phase-0 material", min=0.0, required=True
-    )  # this should also be allowed to be an array
-
-    sigma1 = properties.Float(
-        "physical property value for phase-1 material", min=0.0, required=True
-    )
-
-    alpha0 = properties.Float("aspect ratio of the phase-0 ellipsoids", default=1.0)
-
-    alpha1 = properties.Float("aspect ratio of the phase-1 ellipsoids", default=1.0)
-
-    orientation0 = properties.Vector3(
-        "orientation of the phase-0 inclusions", default="Z"
-    )
-
-    orientation1 = properties.Vector3(
-        "orientation of the phase-1 inclusions", default="Z"
-    )
-
-    random = properties.Bool(
-        "are the inclusions randomly oriented (True) or preferentially "
-        "aligned (False)?",
-        default=True,
-    )
-
-    rel_tol = properties.Float(
-        "relative tolerance for convergence for the fixed-point iteration", default=1e-3
-    )
-
-    maxIter = properties.Integer(
-        "maximum number of iterations for the fixed point iteration " "calculation",
-        default=50,
-    )
-
-    def __init__(self, mesh=None, nP=None, sigstart=None, **kwargs):
+    def __init__(
+        self,
+        mesh=None,
+        nP=None,
+        sigstart=None,
+        sigma0=None,
+        sigma1=None,
+        alpha0=1.0,
+        alpha1=1.0,
+        orientation0="z",
+        orientation1="z",
+        random=True,
+        rel_tol=1e-3,
+        maxIter=50,
+        **kwargs,
+    ):
         self._sigstart = sigstart
+        self.sigma0 = sigma0
+        self.sigma1 = sigma1
+        self.alpha0 = alpha0
+        self.alpha1 = alpha1
+        self.orientation0 = orientation0
+        self.orientation1 = orientation1
+        self.random = random
+        self.rel_tol = rel_tol
+        self.maxIter = maxIter
         super(SelfConsistentEffectiveMedium, self).__init__(mesh, nP, **kwargs)
+
+    @property
+    def sigma0(self):
+        """Physical property value for phase-0 material.
+
+        Returns
+        -------
+        float
+        """
+        return self._sigma0
+
+    @sigma0.setter
+    def sigma0(self, value):
+        self._sigma0 = validate_float("sigma0", value, min_val=0.0)
+
+    @property
+    def sigma1(self):
+        """Physical property value for phase-1 material.
+
+        Returns
+        -------
+        float
+        """
+        return self._sigma1
+
+    @sigma1.setter
+    def sigma1(self, value):
+        self._sigma1 = validate_float("sigma1", value, min_val=0.0)
+
+    @property
+    def alpha0(self):
+        """Aspect ratio of the phase-0 ellipsoids.
+
+        Returns
+        -------
+        float
+        """
+        return self._alpha0
+
+    @alpha0.setter
+    def alpha0(self, value):
+        self._alpha0 = validate_float("alpha0", value, min_val=0.0)
+
+    @property
+    def alpha1(self):
+        """Aspect ratio of the phase-1 ellipsoids.
+
+        Returns
+        -------
+        float
+        """
+        return self._alpha1
+
+    @alpha1.setter
+    def alpha1(self, value):
+        self._alpha1 = validate_float("alpha1", value, min_val=0.0)
+
+    @property
+    def orientation0(self):
+        """Orientation of the phase-0 inclusions.
+
+        Returns
+        -------
+        numpy.ndarray
+        """
+        return self._orientation0
+
+    @orientation0.setter
+    def orientation0(self, value):
+        self._orientation0 = validate_direction("orientation0", value, dim=3)
+
+    @property
+    def orientation1(self):
+        """Orientation of the phase-0 inclusions.
+
+        Returns
+        -------
+        numpy.ndarray
+        """
+        return self._orientation1
+
+    @orientation1.setter
+    def orientation1(self, value):
+        self._orientation1 = validate_direction("orientation1", value, dim=3)
+
+    @property
+    def random(self):
+        """Are the inclusions randomly oriented (True) or preferentially aligned (False)?
+
+        Returns
+        -------
+        bool
+        """
+        return self._random
+
+    @random.setter
+    def random(self, value):
+        self._random = validate_type("random", value, bool)
+
+    @property
+    def rel_tol(self):
+        """relative tolerance for convergence for the fixed-point iteration.
+
+        Returns
+        -------
+        float
+        """
+        return self._rel_tol
+
+    @rel_tol.setter
+    def rel_tol(self, value):
+        self._rel_tol = validate_float(
+            "rel_tol", value, min_val=0.0, inclusive_min=False
+        )
+
+    @property
+    def maxIter(self):
+        """Maximum number of iterations for the fixed point iteration calculation.
+
+        Returns
+        -------
+        int
+        """
+        return self._maxIter
+
+    @maxIter.setter
+    def maxIter(self, value):
+        self._maxIter = validate_integer("maxIter", value, min_val=0)
 
     @property
     def tol(self):
@@ -1355,6 +1508,12 @@ class SelfConsistentEffectiveMedium(IdentityMap, properties.HasProperties):
         first guess for sigma
         """
         return self._sigstart
+
+    @sigstart.setter
+    def sigstart(self, value):
+        if value is not None:
+            value = validate_float("sigstart", value)
+        self._sigstart = value
 
     def wiener_bounds(self, phi1):
         """Define Wenner Conductivity Bounds
@@ -2616,8 +2775,8 @@ class Surject2Dto3D(IdentityMap):
     ----------
     mesh : discretize.TensorMesh
         A 3D tensor mesh
-    normal : str
-        Define the projection axis. Must be one of {'X','Y','Z'}
+    normal : {'X','Y','Z'}
+        Define the projection axis.
 
     Examples
     --------
@@ -2674,13 +2833,30 @@ class Surject2Dto3D(IdentityMap):
 
     """
 
-    normal = "Y"  #: The normal
-
-    def __init__(self, mesh, **kwargs):
-        assert isinstance(mesh, TensorMesh), "Only implemented for tensor meshes"
-        assert mesh.dim == 3, "Surject2Dto3D Only works for a 3D Mesh"
+    def __init__(self, mesh, normal="y", **kwargs):
+        self.normal = normal
         IdentityMap.__init__(self, mesh, **kwargs)
-        assert self.normal in ["X", "Y", "Z"], 'For now, only "Y" normal is supported'
+
+    @IdentityMap.mesh.setter
+    def mesh(self, value):
+        value = validate_type("mesh", value, discretize.TensorMesh, cast=False)
+        if value.dim != 3:
+            raise ValueError("Surject2Dto3D Only works for a 3D Mesh")
+        self._mesh = value
+
+    @property
+    def normal(self):
+        """The projection axis.
+
+        Returns
+        -------
+        str
+        """
+        return self._normal
+
+    @normal.setter
+    def normal(self, value):
+        self._normal = validate_string("normal", value, ("x", "y", "z"))
 
     @property
     def nP(self):
@@ -2688,29 +2864,29 @@ class Surject2Dto3D(IdentityMap):
 
         The number of cells in the
         last dimension of the mesh."""
-        if self.normal == "Z":
+        if self.normal == "z":
             return self.mesh.nCx * self.mesh.nCy
-        elif self.normal == "Y":
+        elif self.normal == "y":
             return self.mesh.nCx * self.mesh.nCz
-        elif self.normal == "X":
+        elif self.normal == "x":
             return self.mesh.nCy * self.mesh.nCz
 
     def _transform(self, m):
 
         m = mkvc(m)
-        if self.normal == "Z":
+        if self.normal == "z":
             return mkvc(
                 m.reshape(self.mesh.vnC[:2], order="F")[:, :, np.newaxis].repeat(
                     self.mesh.nCz, axis=2
                 )
             )
-        elif self.normal == "Y":
+        elif self.normal == "y":
             return mkvc(
                 m.reshape(self.mesh.vnC[::2], order="F")[:, np.newaxis, :].repeat(
                     self.mesh.nCy, axis=1
                 )
             )
-        elif self.normal == "X":
+        elif self.normal == "x":
             return mkvc(
                 m.reshape(self.mesh.vnC[1:], order="F")[np.newaxis, :, :].repeat(
                     self.mesh.nCx, axis=0
@@ -2763,19 +2939,58 @@ class Mesh2Mesh(IdentityMap):
     Takes a model on one mesh are translates it to another mesh.
     """
 
-    indActive = properties.Array("active indices on target mesh", dtype=bool)
+    def __init__(self, meshes, indActive=None, **kwargs):
 
-    def __init__(self, meshes, **kwargs):
-        set_kwargs(self, **kwargs)
+        try:
+            mesh, mesh2 = meshes
+        except:
+            raise TypeError("meshes must be a list of two meshes")
 
-        assert type(meshes) is list, "meshes must be a list of two meshes"
-        assert len(meshes) == 2, "meshes must be a list of two meshes"
-        assert (
-            meshes[0].dim == meshes[1].dim
-        ), "The two meshes must be the same dimension"
+        super().__init__(mesh=mesh, **kwargs)
 
-        self.mesh = meshes[0]
-        self.mesh2 = meshes[1]
+        self.mesh2 = mesh2
+        if self.mesh.dim != self.mesh2.dim:
+            raise ValueError("mesh and mesh2 must have the same dimension.")
+        self.indActive = indActive
+
+    # reset to not accepted None for mesh
+    @IdentityMap.mesh.setter
+    def mesh(self, value):
+        self._mesh = validate_type("mesh", value, discretize.base.BaseMesh, cast=False)
+
+    @property
+    def mesh2(self):
+        """The source mesh used for the mapping.
+
+        Returns
+        -------
+        discretize.base.BaseMesh
+        """
+        return self._mesh2
+
+    @mesh2.setter
+    def mesh2(self, value):
+        self._mesh2 = validate_type(
+            "mesh2", value, discretize.base.BaseMesh, cast=False
+        )
+
+    @property
+    def indActive(self):
+        """Active indices on target mesh.
+
+        Returns
+        -------
+        (mesh.n_cells) numpy.ndarray of bool or none
+        """
+        return self._indActive
+
+    @indActive.setter
+    def indActive(self, value):
+        if value is not None:
+            value = validate_ndarray_with_shape(
+                "indActive", value, shape=(self.mesh.n_cells,), dtype=bool
+            )
+        self._indActive = value
 
     @property
     def P(self):
@@ -4223,16 +4438,38 @@ class ParametricBlock(BaseParametric):
 
     """
 
-    epsilon = properties.Float(
-        "epsilon value used in the ekblom representation of the block", default=1e-6
-    )
-
-    p = properties.Float(
-        "p-value used in the ekblom representation of the block", default=10
-    )
-
-    def __init__(self, mesh, **kwargs):
+    def __init__(self, mesh, epsilon=1e-6, p=10, **kwargs):
+        self.epsilon = epsilon
+        self.p = p
         super(ParametricBlock, self).__init__(mesh, **kwargs)
+
+    @property
+    def epsilon(self):
+        """epsilon value used in the ekblom representation of the block.
+
+        Returns
+        -------
+        float
+        """
+        return self._epsilon
+
+    @epsilon.setter
+    def epsilon(self, value):
+        self._epsilon = validate_float("epsilon", value, min_val=0.0)
+
+    @property
+    def p(self):
+        """p-value used in the ekblom representation of the block.
+
+        Returns
+        -------
+        float
+        """
+        return self._p
+
+    @p.setter
+    def p(self, value):
+        self._p = validate_float("p", value, min_val=0.0)
 
     @property
     def nP(self):
