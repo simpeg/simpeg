@@ -1,4 +1,3 @@
-from ... import maps, utils
 from ..base_1d import BaseEM1DSimulation
 from .sources import StepOffWaveform
 from .receivers import (
@@ -7,7 +6,6 @@ from .receivers import (
     PointMagneticFluxTimeDerivative,
 )
 import numpy as np
-from scipy import sparse as sp
 
 from .survey import Survey
 from scipy.constants import mu_0
@@ -56,15 +54,19 @@ class Simulation1DLayered(BaseEM1DSimulation):
             self.topo = np.array([0, 0, 0], dtype=float)
 
         for i_src, src in enumerate(self.survey.source_list):
-            if src.location[2] < self.topo[2]:
+            if np.any(src.location[2] < self.topo[2]):
                 raise ValueError("Source must be located above the topography")
             for i_rx, rx in enumerate(src.receiver_list):
                 if rx.use_source_receiver_offset:
-                    if np.any(src.location[2]+rx.locations[:, 2] < self.topo[2]):
-                        raise ValueError("Receiver must be located above the topography")
+                    if np.any(src.location[2] + rx.locations[:, 2] < self.topo[2]):
+                        raise ValueError(
+                            "Receiver must be located above the topography"
+                        )
                 else:
                     if np.any(rx.locations[:, 2] < self.topo[2]):
-                        raise ValueError("Receiver must be located above the topography")
+                        raise ValueError(
+                            "Receiver must be located above the topography"
+                        )
 
     def get_coefficients(self):
         if self._coefficients_set is False:
@@ -178,7 +180,7 @@ class Simulation1DLayered(BaseEM1DSimulation):
                         a = np.maximum(a, 0.0)
                         quad_times = (b - a)[:, None] * (x + 1) / 2.0 + a[:, None]
                         quad_scale = (b - a) / 2
-                        wave_eval = wave.evalDeriv(rx.times[:, None] - quad_times)
+                        wave_eval = wave.eval_deriv(rx.times[:, None] - quad_times)
                         for i in range(n_t):
                             A[:, i] -= np.sum(
                                 quad_scale[:, None]
@@ -275,9 +277,13 @@ class Simulation1DLayered(BaseEM1DSimulation):
 
                 rTE = rTE_forward(frequencies, unique_lambs, sig, mu, self.thicknesses)
                 rTE = rTE[:, inv_lambs]
-                v_dh_temp = W @ (
-                    (C0s_dh * rTE) @ self.fhtfilt.j0 + (C1s_dh * rTE) @ self.fhtfilt.j1
-                ).T
+                v_dh_temp = (
+                    W
+                    @ (
+                        (C0s_dh * rTE) @ self.fhtfilt.j0
+                        + (C1s_dh * rTE) @ self.fhtfilt.j1
+                    ).T
+                )
                 # need to re-arange v_dh as it's currently (n_data x n_freqs)
                 # however it already contains all the relevant information...
                 # just need to map it from the rx index to the source index associated..

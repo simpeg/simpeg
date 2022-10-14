@@ -4,7 +4,6 @@ import numpy as np
 from scipy import sparse as sp
 from empymod.transform import get_dlf_points
 
-from ..data import Data
 from ..simulation import BaseSimulation
 
 # from .time_domain.sources import MagDipole as t_MagDipole, CircularLoop as t_CircularLoop
@@ -13,9 +12,6 @@ from ..simulation import BaseSimulation
 from .. import utils
 from .. import props
 from empymod.utils import check_hankel
-
-from multiprocessing import Pool
-from sys import platform
 
 __all__ = ["BaseEM1DSimulation"]
 
@@ -247,14 +243,6 @@ class BaseEM1DSimulation(BaseSimulation):
 
     def _compute_hankel_coefficients(self):
         survey = self.survey
-        if self.hMap is not None:
-            h_vector = np.zeros(len(survey.source_list))  # , self.h
-            # if it has an hMap, do not include the height in the
-            # pre-computed coefficients
-        else:
-            h_vector = np.array(
-                [src.location[2] - self.topo[-1] for src in self.survey.source_list]
-            )
         C0s = []
         C1s = []
         lambs = []
@@ -267,12 +255,16 @@ class BaseEM1DSimulation(BaseSimulation):
             class_name = type(src).__name__
             is_circular_loop = class_name == "CircularLoop"
             is_mag_dipole = class_name == "MagDipole"
-            is_wire_loop = class_name == "PiecewiseWireLoop"
+            is_wire_loop = class_name == "LineCurrent1D"
 
             if is_circular_loop:
                 if np.any(src.orientation[:-1] != 0.0):
                     raise ValueError("Can only simulate horizontal circular loops")
-            h = h_vector[i_src]  # source height above topo
+            if self.hMap is not None:
+                h = 0  # source height above topo
+            else:
+                h = src.location[2] - self.topo[-1]
+
             if is_circular_loop or is_mag_dipole:
                 src_x, src_y, src_z = src.orientation * src.moment / (4 * np.pi)
                 # src.moment is pi * radius**2 * I for circular loop
@@ -280,6 +272,7 @@ class BaseEM1DSimulation(BaseSimulation):
                 #######
                 # Hankel Transform coefficients
                 ######
+                rx_x, rx_y, rx_z = rx.orientation
 
                 # Compute receiver height
                 if rx.use_source_receiver_offset:
@@ -291,6 +284,8 @@ class BaseEM1DSimulation(BaseSimulation):
 
                 if is_wire_loop:
                     dxy = rx.locations[:, :2] - src._xyks
+                    h = src.location.mean(axis=0)[2] - self.topo[-1]
+                    z = h + rx.locations[:, 2] - src.location.mean(axis=0)[2]
                     offsets = np.linalg.norm(dxy, axis=-1)
                 else:
                     offsets = np.linalg.norm(dxyz[:, :-1], axis=-1)
@@ -311,79 +306,103 @@ class BaseEM1DSimulation(BaseSimulation):
                 C1 = 0.0
                 if is_circular_loop:
                     # I * a/ 2 * (lambda **2 )/ (lambda)
-                    C1 += src_z * (2 / src.radius) * lambd
+                    C1 += src_z * rx_z * (2 / src.radius) * lambd
                     n_w = 1
 
                 elif is_mag_dipole:
                     n_w = 1
                     if src_x != 0.0:
-                        if rx.orientation == "x":
+                        if rx_x != 0.0:
                             C0 += (
                                 src_x
+                                * rx_x
                                 * (dxyz[:, 0] ** 2 / offsets ** 2)[:, None]
                                 * lambd ** 2
                             )
                             C1 += (
                                 src_x
+                                * rx_x
                                 * (1 / offsets - 2 * dxyz[:, 0] ** 2 / offsets ** 3)[
                                     :, None
                                 ]
                                 * lambd
                             )
-                        elif rx.orientation == "y":
+                        if rx_y:
                             C0 += (
                                 src_x
+                                * rx_y
                                 * (dxyz[:, 0] * dxyz[:, 1] / offsets ** 2)[:, None]
                                 * lambd ** 2
                             )
                             C1 -= (
                                 src_x
+                                * rx_y
                                 * (2 * dxyz[:, 0] * dxyz[:, 1] / offsets ** 3)[:, None]
                                 * lambd
                             )
-                        elif rx.orientation == "z":
+                        if rx_z != 0.0:
                             # C0 += 0.0
-                            C1 -= (src_x * dxyz[:, 0] / offsets)[:, None] * lambd ** 2
+                            C1 -= (src_x * rx_z * dxyz[:, 0] / offsets)[
+                                :, None
+                            ] * lambd ** 2
                     if src_y != 0.0:
-                        if rx.orientation == "x":
+                        if rx_x != 0.0:
                             C0 += (
                                 src_y
+                                * rx_x
+                                * rx_x
                                 * (dxyz[:, 0] * dxyz[:, 1] / offsets ** 2)[:, None]
                                 * lambd ** 2
                             )
                             C1 -= (
                                 src_y
+                                * rx_x
                                 * (2 * dxyz[:, 0] * dxyz[:, 1] / offsets ** 3)[:, None]
                                 * lambd
                             )
-                        elif rx.orientation == "y":
+                        if rx_y != 0.0:
                             C0 += (
                                 src_y
+                                * rx_y
                                 * (dxyz[:, 1] ** 2 / offsets ** 2)[:, None]
                                 * lambd ** 2
                             )
                             C1 += (
                                 src_y
+                                * rx_y
                                 * (1 / offsets - 2 * dxyz[:, 1] ** 2 / offsets ** 3)[
                                     :, None
                                 ]
                                 * lambd
                             )
-                        elif rx.orientation == "z":
+                        if rx_z != 0.0:
                             # C0 += 0.0
-                            C1 -= (src_y * dxyz[:, 1] / offsets)[:, None] * lambd ** 2
+                            C1 -= (src_y * rx_z * dxyz[:, 1] / offsets)[
+                                :, None
+                            ] * lambd ** 2
                     if src_z != 0.0:
-                        if rx.orientation == "x":
+                        if rx_x != 0.0:
                             # C0 += 0.0
-                            C1 += (src_z * dxyz[:, 0] / offsets)[:, None] * lambd ** 2
-                        elif rx.orientation == "y":
+                            C1 += (src_z * rx_x * dxyz[:, 0] / offsets)[
+                                :, None
+                            ] * lambd ** 2
+                        if rx_y != 0.0:
                             # C0 += 0.0
-                            C1 += (src_z * dxyz[:, 1] / offsets)[:, None] * lambd ** 2
-                        elif rx.orientation == "z":
-                            C0 += src_z * lambd ** 2
+                            C1 += (src_z * rx_y * dxyz[:, 1] / offsets)[
+                                :, None
+                            ] * lambd ** 2
+                        if rx_z != 0.0:
+                            C0 += src_z * rx_z * lambd ** 2
                 elif is_wire_loop:
                     weights = src._weights
-                    dxy_rot = src.rotate_points_xy_var_theta(dxy, -src._thetas)
+                    thetas = -src._thetas
+                    R = np.stack(
+                        [
+                            [np.cos(thetas), -np.sin(thetas)],
+                            [np.sin(thetas), np.cos(thetas)],
+                        ]
+                    )
+                    dxy_rot = np.einsum("...i,ji...", dxy, R)
                     C1 = (1 / (4 * np.pi) * (dxy_rot[:, 1] / offsets * weights))[
                         :, None
                     ] * lambd

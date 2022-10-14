@@ -6,33 +6,38 @@ from functools import wraps
 
 
 class Counter(object):
-    """
+    """Class for recording iterations and operation times.
     Counter allows anything that calls it to record iterations and
     timings in a simple way.
 
     Also has plotting functions that allow quick recalls of data.
 
+    Examples
+    --------
     If you want to use this, import *count* or *timeIt* and use them as
     decorators on class methods.
 
-    ::
 
-        class MyClass(object):
-            def __init__(self, url):
-                self.counter = Counter()
+    >>> from SimPEG.utils import Counter, count, timeIt
 
-            @count
-            def MyMethod(self):
-                pass
+    >>> class MyClass(object):
+    ...     def __init__(self, url):
+    ...         self.counter = Counter()
+    ...     @count
+    ...     def MyMethod(self):
+    ...         pass
+    ...     @timeIt
+    ...     def MySecondMethod(self):
+    ...         pass
 
-            @timeIt
-            def MySecondMethod(self):
-                pass
-
-        c = MyClass('blah')
-        for i in range(100): c.MyMethod()
-        for i in range(300): c.MySecondMethod()
-        c.counter.summary()
+    >>> c = MyClass('blah')
+    >>> for i in range(100): c.MyMethod()
+    >>> for i in range(300): c.MySecondMethod()
+    >>> c.counter.summary()
+    Counters:
+      MyClass.MyMethod                        :      100
+    Times:                                        mean      sum
+      MyClass.MySecondMethod                  : 9.08e-07, 2.72e-04,  300x
 
     """
 
@@ -41,8 +46,12 @@ class Counter(object):
         self._timeList = {}
 
     def count(self, prop):
-        """
-        Increases the count of the property.
+        """Increases the count of the property.
+
+        Parameters
+        ----------
+        prop : str
+            The property being counted
         """
         assert isinstance(prop, string_types), "The property must be a string."
         if prop not in self._countList:
@@ -50,8 +59,12 @@ class Counter(object):
         self._countList[prop] += 1
 
     def countTic(self, prop):
-        """
-        Times a property call, this is the init call.
+        """Times a property call, this is the init call.
+
+        Parameters
+        ----------
+        prop : str
+            The property being timed
         """
         assert isinstance(prop, string_types), "The property must be a string."
         if prop not in self._timeList:
@@ -59,8 +72,12 @@ class Counter(object):
         self._timeList[prop].append(-time.time())
 
     def countToc(self, prop):
-        """
-        Times a property call, this is the end call.
+        """Times a property call, this is the end call.
+
+        Parameters
+        ----------
+        prop : str
+            The property being timed
         """
         assert isinstance(prop, string_types), "The property must be a string."
         assert prop in self._timeList, "The property must already be in the dictionary."
@@ -85,6 +102,14 @@ class Counter(object):
 
 
 def count(f):
+    """Count function (**DOCSTRING INCOMPLETE**)
+
+    Returns
+    -------
+    wrapper
+        Returns the wrapper
+    """
+
     @wraps(f)
     def wrapper(self, *args, **kwargs):
         counter = getattr(self, "counter", None)
@@ -97,6 +122,14 @@ def count(f):
 
 
 def timeIt(f):
+    """Timing function (**DOCSTRING INCOMPLETE**)
+
+    Returns
+    -------
+    wrapper
+        Returns the wrapper
+    """
+
     @wraps(f)
     def wrapper(self, *args, **kwargs):
         counter = getattr(self, "counter", None)

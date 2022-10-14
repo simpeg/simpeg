@@ -499,7 +499,7 @@ class LinearSimulation(BaseSimulation):
 
         if self.survey is None:
             # Give it an empty survey
-            self.survey = BaseSurvey()
+            self.survey = BaseSurvey([])
         if self.survey.nD == 0:
             # try seting the number of data to G
             if getattr(self, "G", None) is not None:

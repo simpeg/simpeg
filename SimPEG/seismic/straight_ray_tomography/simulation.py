@@ -7,7 +7,7 @@ from ...utils import sub2ind
 from ... import props
 
 
-def lengthInCell(O, D, x, y, plotIt=False):
+def _lengthInCell(O, D, x, y, plotIt=False):
 
     maxD = np.sqrt(np.sum(D ** 2))
     D = D / maxD
@@ -59,14 +59,14 @@ def lengthInCell(O, D, x, y, plotIt=False):
     return None
 
 
-def lineintegral(M, Tx, Rx):
+def _lineintegral(M, Tx, Rx):
     O, D = Tx, Rx - Tx
     I, J, V = [], [], []
     for i in range(M.nCx):
         for j in range(M.nCy):
             x = M.vectorNx[[i, i + 1]]
             y = M.vectorNy[[j, j + 1]]
-            v = lengthInCell(O, D, x, y)
+            v = _lengthInCell(O, D, x, y)
             if v is not None:
                 I += [i]
                 J += [j]
@@ -89,7 +89,7 @@ class Simulation2DIntegral(LinearSimulation):
         for src in self.survey.source_list:
             for rx in src.receiver_list:
                 for loc_i in range(rx.locations.shape[0]):
-                    inds, V = lineintegral(
+                    inds, V = _lineintegral(
                         self.mesh, src.location, rx.locations[loc_i, :]
                     )
                     self._A[inds * 0 + row, inds] = V

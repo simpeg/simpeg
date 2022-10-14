@@ -1,6 +1,11 @@
 sphinx
 sphinx_rtd_theme
 sphinx-gallery>=0.1.13
+sphinx-toolbox
+sphinxcontrib-apidoc
+pydata-sphinx-theme
+nbsphinx
+numpydoc
 pillow
 pylint
 numpy>=1.7
@@ -11,7 +16,6 @@ wheel
 pytest
 pytest-cov
 jupyter
-sphinxcontrib-napoleon
 toolz
 empymod
 scooby

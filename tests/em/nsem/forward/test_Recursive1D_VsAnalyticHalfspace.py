@@ -14,7 +14,7 @@ def create_survey(freq):
         nsem.receivers.PointNaturalSource(component="phase"),
     ]
 
-    source_list = [nsem.sources.Planewave(receivers_list, freq)]
+    source_list = [nsem.sources.Planewave(receivers_list, f) for f in freq]
 
     return nsem.survey.Survey(source_list)
 

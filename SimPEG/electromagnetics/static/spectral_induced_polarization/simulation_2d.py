@@ -44,7 +44,14 @@ class BaseSIPSimulation2D(BaseSIPSimulation):
                     u_src = u_ky[:, i_src]
                     for rx in src.receiver_list:
                         # wrt f, need possibility wrt m
-                        P = rx.getP(self.mesh, rx.projGLoc(f)).toarray()
+
+                        if getattr(rx, 'projGLoc', None) is None:
+                            if rx.orientation is not None:
+                                rx.projGLoc = f._GLoc(rx.projField) + rx.orientation
+                            else:
+                                rx.projGLoc = f._GLoc(rx.projField)
+
+                        P = rx.getP(self.mesh, rx.projGLoc).toarray()
 
                         ATinvdf_duT = self.Ainv[iky] * (P.T)
 
