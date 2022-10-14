@@ -1,74 +1,164 @@
 from __future__ import print_function
 
-import properties
 import numpy as np
 import scipy.sparse as sp
 import gc
 from .data_misfit import BaseDataMisfit
-from .props import BaseSimPEG, Model
 from .regularization import BaseRegularization, WeightedLeastSquares, Sparse
 from .objective_function import BaseObjectiveFunction, ComboObjectiveFunction
-from .utils import callHooks, timeIt
+from .optimization import Minimize
+from .utils import callHooks, timeIt, Counter, validate_float, validate_type, validate_ndarray_with_shape
 
 
-class BaseInvProblem(BaseSimPEG):
+class BaseInvProblem():
     """BaseInvProblem(dmisfit, reg, opt)"""
 
-    #: Trade-off parameter
-    beta = 1.0
-
-    #: Print debugging information
-    debug = False
-
-    #: Set this to a SimPEG.utils.Counter() if you want to count things
-    counter = None
-
-    #: DataMisfit
-    dmisfit = None
-
-    #: Regularization
-    reg = None
-
-    #: Optimization program
-    opt = None
-
-    #: List of strings, e.g. ['_MeSigma', '_MeSigmaI']
-    deleteTheseOnModelUpdate = []
-
-    model = Model("Inversion model.")
-
-    @properties.observer("model")
-    def _on_model_update(self, value):
-        """
-        Sets the current model, and removes dependent properties
-        """
-        for prop in self.deleteTheseOnModelUpdate:
-            if hasattr(self, prop):
-                delattr(self, prop)
-
-    def __init__(self, dmisfit, reg, opt, **kwargs):
-        super(BaseInvProblem, self).__init__(**kwargs)
-        assert isinstance(dmisfit, BaseDataMisfit) or isinstance(
-            dmisfit, BaseObjectiveFunction
-        ), "dmisfit must be a DataMisfit or ObjectiveFunction class."
+    def __init__(self, dmisfit, reg, opt, beta=1.0, debug=False, counter=None, **kwargs):
+        super().__init__(**kwargs)
         assert isinstance(reg, BaseRegularization) or isinstance(
             reg, BaseObjectiveFunction
         ), "reg must be a Regularization or Objective Function class."
 
-        if not isinstance(dmisfit, ComboObjectiveFunction):
-            dmisfit = ComboObjectiveFunction(objfcts=[dmisfit])
-
         self.dmisfit = dmisfit
-
-        if not isinstance(reg, ComboObjectiveFunction):
-            reg = ComboObjectiveFunction(objfcts=[reg])
 
         self.reg = reg
         self.opt = opt
+        self.beta = beta
+        self.debug = debug
+        self.counter = counter
+        self.model = None
         # TODO: Remove: (and make iteration printers better!)
         self.opt.parent = self
         self.reg.parent = self
         self.dmisfit.parent = self
+
+    #: Trade-off parameter
+    @property
+    def beta(self):
+        """Trade-off parameter
+
+        Returns
+        -------
+        float
+        """
+        return self._beta
+
+    @beta.setter
+    def beta(self, value):
+        self._beta = validate_float("beta", value, min_val=0.0)
+
+    @property
+    def debug(self):
+        """Whether to print debugging information.
+
+        Returns
+        -------
+        bool
+        """
+        return self._debug
+
+    @debug.setter
+    def debug(self, value):
+        self._debug = validate_type("debug", value, bool)
+
+    @property
+    def counter(self):
+        """Set this to a `SimPEG.utils.Counter` if you want to count things.
+
+        Returns
+        -------
+        None or SimPEG.utils.Counter
+        """
+        return self._counter
+
+    @counter.setter
+    def counter(self, value):
+        if value is not None:
+            value = validate_type("counter", value, Counter, cast=False)
+        self._counter = value
+
+    @property
+    def dmisfit(self):
+        """The data misfit.
+
+        Returns
+        -------
+        SimPEG.objective_function.ComboObjectiveFunction
+        """
+        return self._dmisfit
+
+    @dmisfit.setter
+    def dmisfit(self, value):
+        value = validate_type("dmisfit", value, BaseObjectiveFunction, cast=False)
+        if not isinstance(value, ComboObjectiveFunction):
+            value = ComboObjectiveFunction(objfcts=[value])
+        self._dmisfit = value
+
+    @property
+    def reg(self):
+        """The regularization object for the inversion
+
+        Returns
+        -------
+        SimPEG.objective_function.ComboObjectiveFunction
+        """
+        return self._reg
+
+    @reg.setter
+    def reg(self, value):
+        value = validate_type("reg", value, BaseObjectiveFunction, cast=False)
+        if not isinstance(value, ComboObjectiveFunction):
+            value = ComboObjectiveFunction(objfcts=[value])
+        self._reg = value
+
+    @property
+    def opt(self):
+        """The optimization routine.
+
+        Returns
+        -------
+        SimPEG.optimization.Minimize
+        """
+        return self._opt
+
+    @opt.setter
+    def opt(self, value):
+        self._opt = validate_type("opt", value, Minimize, cast=False)
+
+    @property
+    def deleteTheseOnModelUpdate(self):
+        """A list of properties stored on this object to delete when the model is updated
+
+        Returns
+        -------
+        list of str
+            For example `['_MeSigma', '_MeSigmaI']`.
+        """
+        return []
+
+    @property
+    def model(self):
+        """ The inversion model.
+
+        Returns
+        -------
+        numpy.ndarray
+        """
+        return self._model
+
+    @model.setter
+    def model(self, value):
+        if value is not None:
+            value = validate_ndarray_with_shape(
+                "model",
+                value,
+                shape=[("*", ), ("*", "*")],
+                dtype=None
+            )
+        for prop in self.deleteTheseOnModelUpdate:
+            if hasattr(self, prop):
+                delattr(self, prop)
+        self._model = value
 
     @callHooks("startup")
     def startup(self, m0):
