@@ -325,7 +325,7 @@ class WholespaceTests(unittest.TestCase):
 
     # WORKING
     def test_cyl_Bform_MagDipole_Bfield_Z(self):
-        self.assertTrue(
+        assert (
             analytic_wholespace_dipole_comparison(
                 "CYL",
                 "MagneticFluxDensity",
@@ -340,7 +340,7 @@ class WholespaceTests(unittest.TestCase):
 
     # WORKING
     def test_tensor_Bform_MagDipole_Bfield_Z(self):
-        self.assertTrue(
+        assert (
             analytic_wholespace_dipole_comparison(
                 "TENSOR",
                 "MagneticFluxDensity",
@@ -355,7 +355,7 @@ class WholespaceTests(unittest.TestCase):
 
     # WORKING
     def test_cyl_Bform_MagDipole_Bfield_Z_vector_orientation(self):
-        self.assertTrue(
+        assert (
             analytic_wholespace_dipole_comparison(
                 "CYL",
                 "MagneticFluxDensity",
@@ -370,7 +370,7 @@ class WholespaceTests(unittest.TestCase):
 
     # WORKING
     def test_tensor_Bform_MagDipole_Bfield_Z_vector_orientation(self):
-        self.assertTrue(
+        assert (
             analytic_wholespace_dipole_comparison(
                 "TENSOR",
                 "MagneticFluxDensity",
@@ -394,7 +394,7 @@ class WholespaceTests(unittest.TestCase):
             -np.sin(inclination),
         ]
         assert np.isclose(np.linalg.norm(tmi_orientation), 1.0)
-        self.assertTrue(
+        assert (
             analytic_wholespace_dipole_comparison(
                 "TENSOR",
                 "MagneticFluxDensity",
@@ -417,7 +417,7 @@ class WholespaceTests(unittest.TestCase):
 
     # WORKING
     def test_tensor_Eform_ElectricDipole_Efield_Z(self):
-        self.assertTrue(
+        assert (
             analytic_wholespace_dipole_comparison(
                 "TENSOR",
                 "ElectricField",
@@ -456,7 +456,7 @@ class WholespaceTests(unittest.TestCase):
 
     # NOT IMPLEMENTED NOT ACCURATE
     def test_tensor_Eform_ElectricDipole_dBdtfield_Z(self):
-        self.assertTrue(
+        assert (
             analytic_wholespace_dipole_comparison(
                 "TENSOR",
                 "ElectricField",
@@ -470,7 +470,7 @@ class WholespaceTests(unittest.TestCase):
         )
 
     def test_tensor_Eform_ElectricDipole_dBdtfield_X_vector_orientation(self):
-        self.assertTrue(
+        assert (
             analytic_wholespace_dipole_comparison(
                 "TENSOR",
                 "ElectricField",
@@ -493,7 +493,7 @@ class WholespaceTests(unittest.TestCase):
             -np.sin(inclination),
         ]
         assert np.isclose(np.linalg.norm(tmi_orientation), 1.0)
-        self.assertTrue(
+        assert (
             analytic_wholespace_dipole_comparison(
                 "TENSOR",
                 "ElectricField",
@@ -514,25 +514,25 @@ class WholespaceTests(unittest.TestCase):
 
 class TDEM_bTests(unittest.TestCase):
     def test_analytic_p2_CYL_50_MagDipolem(self):
-        self.assertTrue(
+        assert (
             analytic_halfspace_mag_dipole_comparison("CYL", rxOffset=50.0, sig_half=1e2)
             < 0.01
         )
 
     def test_analytic_p1_CYL_50_MagDipolem(self):
-        self.assertTrue(
+        assert (
             analytic_halfspace_mag_dipole_comparison("CYL", rxOffset=50.0, sig_half=1e1)
             < 0.01
         )
 
     def test_analytic_p0_CYL_50_MagDipolem(self):
-        self.assertTrue(
+        assert (
             analytic_halfspace_mag_dipole_comparison("CYL", rxOffset=50.0, sig_half=1e0)
             < 0.01
         )
 
     def test_analytic_m1_CYL_50_MagDipolem(self):
-        self.assertTrue(
+        assert (
             analytic_halfspace_mag_dipole_comparison(
                 "CYL", rxOffset=50.0, sig_half=1e-1
             )
@@ -540,7 +540,7 @@ class TDEM_bTests(unittest.TestCase):
         )
 
     def test_analytic_m2_CYL_50_MagDipolem(self):
-        self.assertTrue(
+        assert (
             analytic_halfspace_mag_dipole_comparison(
                 "CYL", rxOffset=50.0, sig_half=1e-2
             )
@@ -548,7 +548,7 @@ class TDEM_bTests(unittest.TestCase):
         )
 
     def test_analytic_m3_CYL_50_MagDipolem(self):
-        self.assertTrue(
+        assert (
             analytic_halfspace_mag_dipole_comparison(
                 "CYL", rxOffset=50.0, sig_half=1e-3
             )
@@ -556,31 +556,31 @@ class TDEM_bTests(unittest.TestCase):
         )
 
     def test_analytic_p0_CYL_1m_MagDipole(self):
-        self.assertTrue(
+        assert (
             analytic_halfspace_mag_dipole_comparison("CYL", rxOffset=1.0, sig_half=1e0)
             < 0.01
         )
 
     def test_analytic_m1_CYL_1m_MagDipole(self):
-        self.assertTrue(
+        assert (
             analytic_halfspace_mag_dipole_comparison("CYL", rxOffset=1.0, sig_half=1e-1)
             < 0.01
         )
 
     def test_analytic_m2_CYL_1m_MagDipole(self):
-        self.assertTrue(
+        assert (
             analytic_halfspace_mag_dipole_comparison("CYL", rxOffset=1.0, sig_half=1e-2)
             < 0.01
         )
 
     def test_analytic_m3_CYL_1m_MagDipole(self):
-        self.assertTrue(
+        assert (
             analytic_halfspace_mag_dipole_comparison("CYL", rxOffset=1.0, sig_half=1e-3)
             < 0.02
         )
 
     def test_analytic_p0_CYL_0m_CircularLoop(self):
-        self.assertTrue(
+        assert (
             analytic_halfspace_mag_dipole_comparison(
                 "CYL", src_type="CircularLoop", rxOffset=0.0, sig_half=1e0
             )
@@ -588,7 +588,7 @@ class TDEM_bTests(unittest.TestCase):
         )
 
     def test_analytic_m1_CYL_0m_CircularLoop(self):
-        self.assertTrue(
+        assert (
             analytic_halfspace_mag_dipole_comparison(
                 "CYL", src_type="CircularLoop", rxOffset=0.0, sig_half=1e-1
             )
@@ -596,7 +596,7 @@ class TDEM_bTests(unittest.TestCase):
         )
 
     def test_analytic_m2_CYL_0m_CircularLoop(self):
-        self.assertTrue(
+        assert (
             analytic_halfspace_mag_dipole_comparison(
                 "CYL", src_type="CircularLoop", rxOffset=0.0, sig_half=1e-2
             )
@@ -604,7 +604,7 @@ class TDEM_bTests(unittest.TestCase):
         )
 
     def test_analytic_m3_CYL_0m_CircularLoop(self):
-        self.assertTrue(
+        assert (
             analytic_halfspace_mag_dipole_comparison(
                 "CYL", src_type="CircularLoop", rxOffset=0.0, sig_half=1e-3
             )
