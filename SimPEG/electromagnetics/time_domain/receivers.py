@@ -111,12 +111,11 @@ class BaseRx(BaseTimeRx):
         scipy.sparse.csr_matrix
             P, the interpolation matrix
         """
-        x, y, z = self.orientation
         P = Zero()
         field = f._GLoc(self.projField)
         for strength, comp in zip(self.orientation, ["x", "y", "z"]):
             if strength != 0.0:
-                P = P + mesh.get_interpolation_matrix(self.locations, field + comp)
+                P = P + strength * mesh.get_interpolation_matrix(self.locations, field + comp)
         return P
 
     def getTimeP(self, time_mesh, f):

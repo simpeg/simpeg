@@ -165,11 +165,10 @@ class BaseRx(survey.BaseRx):
         if (mesh, projected_grid) in self._Ps:
             return self._Ps[(mesh, projected_grid)]
 
-        x, y, z = self.orientation
         P = Zero()
         for strength, comp in zip(self.orientation, ["x", "y", "z"]):
             if strength != 0.0:
-                P = P + mesh.get_interpolation_matrix(
+                P = P + strength * mesh.get_interpolation_matrix(
                     self.locations, projected_grid + comp
                 )
 
