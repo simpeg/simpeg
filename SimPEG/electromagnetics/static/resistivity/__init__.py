@@ -1,6 +1,6 @@
 """
 ============================================================================================
-DC Resistivity Module (:mod:`SimPEG.electromagnetics.static.resistivity`)
+DC Resistivity (:mod:`SimPEG.electromagnetics.static.resistivity`)
 ============================================================================================
 .. currentmodule:: SimPEG.electromagnetics.static.resistivity
 

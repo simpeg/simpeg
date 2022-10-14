@@ -1,6 +1,6 @@
 """
 =================================================================
-Base Classes (:mod:`SimPEG.electromagnetics`)
+Base EM (:mod:`SimPEG.electromagnetics`)
 =================================================================
 .. currentmodule:: SimPEG.electromagnetics
 

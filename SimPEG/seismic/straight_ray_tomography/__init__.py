@@ -1,6 +1,6 @@
 """
 ==================================================================================
-Straight Ray Tomography Module (:mod:`SimPEG.seismic.straight_ray_tomography`)
+Straight Ray Tomography (:mod:`SimPEG.seismic.straight_ray_tomography`)
 ==================================================================================
 .. currentmodule:: SimPEG.seismic.straight_ray_tomography
 

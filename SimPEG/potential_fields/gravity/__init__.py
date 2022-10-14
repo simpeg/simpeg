@@ -1,6 +1,6 @@
 """
 =======================================================================
-Gravity Simulation Module (:mod:`SimPEG.potential_fields.gravity`)
+Gravity Simulation (:mod:`SimPEG.potential_fields.gravity`)
 =======================================================================
 .. currentmodule:: SimPEG.potential_fields.gravity
 

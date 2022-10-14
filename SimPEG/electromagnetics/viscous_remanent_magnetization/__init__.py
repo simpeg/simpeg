@@ -1,6 +1,6 @@
 """
 ===========================================================================================================
-Viscous Remanent Magnetization Module (:mod:`SimPEG.electromagnetics.viscous_remanent_magnetization`)
+Viscous Remanent Magnetization (:mod:`SimPEG.electromagnetics.viscous_remanent_magnetization`)
 ===========================================================================================================
 .. currentmodule:: SimPEG.electromagnetics.viscous_remanent_magnetization
 

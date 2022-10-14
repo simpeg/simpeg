@@ -1,6 +1,6 @@
 """
 ==============================================================================
-Natural Source EM Module (:mod:`SimPEG.electromagnetics.natural_source`)
+Natural Source EM (:mod:`SimPEG.electromagnetics.natural_source`)
 ==============================================================================
 .. currentmodule:: SimPEG.electromagnetics.natural_source
 

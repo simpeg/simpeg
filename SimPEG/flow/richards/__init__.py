@@ -1,6 +1,6 @@
 """
 =======================================================================
-Richards Flow Module (:mod:`SimPEG.flow.richards`)
+Richards Flow (:mod:`SimPEG.flow.richards`)
 =======================================================================
 .. currentmodule:: SimPEG.flow.richards
 

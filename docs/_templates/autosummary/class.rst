@@ -3,10 +3,8 @@
 
 .. currentmodule:: {{ module }}
 
-.. inheritance-diagram:: {{ objname }}
-    :parts: 1
-
 .. autoclass:: {{ objname }}
+  :show-inheritance:
 
   {% block methods %}
    .. HACK -- the point here is that we don't want this to appear in the output, but the autosummary should still generate the pages.

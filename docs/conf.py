@@ -47,8 +47,6 @@ extensions = [
     "sphinx.ext.extlinks",
     "sphinx.ext.intersphinx",
     "sphinx.ext.mathjax",
-    "sphinx.ext.inheritance_diagram",
-    "sphinx.ext.graphviz",
     "sphinx_toolbox.collapse",
     "sphinx_gallery.gen_gallery",
     "sphinx.ext.todo",
@@ -484,9 +482,9 @@ sphinx_gallery_conf = {
 # How to display URL addresses: 'footnote', 'no', or 'inline'.
 # texinfo_show_urls = 'footnote'
 
-graphviz_dot = shutil.which("dot")
+# graphviz_dot = shutil.which("dot")
 # this must be png, because links on SVG are broken
-graphviz_output_format = "png"
+# graphviz_output_format = "png"
 
 autodoc_member_order = "bysource"
 

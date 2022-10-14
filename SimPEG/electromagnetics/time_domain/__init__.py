@@ -1,6 +1,6 @@
 """
 ==============================================================================
-Time-Domain EM Module (:mod:`SimPEG.electromagnetics.time_domain`)
+Time-Domain EM (:mod:`SimPEG.electromagnetics.time_domain`)
 ==============================================================================
 .. currentmodule:: SimPEG.electromagnetics.time_domain
 

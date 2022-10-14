@@ -9,6 +9,10 @@ general structure of simulations and inversion operations.
 
 Simulations
 ===========
+
+Base Simulations
+----------------
+
 .. autosummary::
   :toctree: generated/
 
@@ -16,9 +20,12 @@ Simulations
   simulation.BaseTimeSimulation
   simulation.LinearSimulation
   simulation.ExponentialSinusoidSimulation
+  base.BasePDESimulation
+  base.BaseElectricalPDESimulation
+  base.BaseMagneticPDESimulation
 
-Surveys, Sources and Receivers
-==============================
+Base Surveys, Sources and Receivers
+-----------------------------------
 .. autosummary::
   :toctree: generated/
 
@@ -29,7 +36,7 @@ Surveys, Sources and Receivers
   survey.BaseTimeSurvey
 
 Models
-======
+-----------------------------------
 .. autosummary::
   :toctree: generated/
 
@@ -41,7 +48,7 @@ Models
   props.HasModel
 
 Data
-====
+----
 .. autosummary::
   :toctree: generated/
 
@@ -49,7 +56,7 @@ Data
   data.SyntheticData
 
 Fields
-======
+------
 .. autosummary::
   :toctree: generated/
 
@@ -57,7 +64,7 @@ Fields
   fields.TimeFields
 
 Mappings
-========
+--------
 .. autosummary::
   :toctree: generated/
 
@@ -85,8 +92,11 @@ Mappings
   maps.Weighting
   maps.Wires
 
+Inversions
+==========
+
 Objective Function Pieces
-=========================
+-------------------------
 .. autosummary::
   :toctree: generated/
 
@@ -95,9 +105,6 @@ Objective Function Pieces
   objective_function.L2ObjectiveFunction
   data_misfit.BaseDataMisfit
   data_misfit.L2DataMisfit
-
-Inversions
-==========
 
 Optimizations
 -------------
@@ -123,7 +130,6 @@ Base inversion pieces
 
   inverse_problem.BaseInvProblem
   inversion.BaseInversion
-
 
 """
 from __future__ import print_function

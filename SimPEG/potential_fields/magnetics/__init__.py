@@ -1,6 +1,6 @@
 """
 =========================================================================
-Magnetics Simulation Module (:mod:`SimPEG.potential_fields.magnetics`)
+Magnetics Simulation (:mod:`SimPEG.potential_fields.magnetics`)
 =========================================================================
 .. currentmodule:: SimPEG.potential_fields.magnetics
 

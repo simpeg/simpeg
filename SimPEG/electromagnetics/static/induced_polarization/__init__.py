@@ -1,6 +1,6 @@
 """
 ============================================================================================
-Induced Polarization Module (:mod:`SimPEG.electromagnetics.static.induced_polarization`)
+Induced Polarization (:mod:`SimPEG.electromagnetics.static.induced_polarization`)
 ============================================================================================
 .. currentmodule:: SimPEG.electromagnetics.static.induced_polarization
 

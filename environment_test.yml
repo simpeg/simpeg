@@ -35,7 +35,6 @@ dependencies:
   - twine
   - memory_profiler
   - plotly
-  - graphviz
   - pyvista
   - pip
   - python=3.7

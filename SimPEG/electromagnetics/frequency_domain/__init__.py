@@ -1,6 +1,6 @@
 """
 ==============================================================================
-Frequency-Domain EM Module (:mod:`SimPEG.electromagnetics.frequency_domain`)
+Frequency-Domain EM (:mod:`SimPEG.electromagnetics.frequency_domain`)
 ==============================================================================
 .. currentmodule:: SimPEG.electromagnetics.frequency_domain
 
