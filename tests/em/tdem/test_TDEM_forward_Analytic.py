@@ -70,31 +70,25 @@ def analytic_wholespace_dipole_comparison(
 
     if src_type == "MagDipole":
         if rx_type == "MagneticFluxDensity":
-            analytic_solution = (
-                mu_0
-                * analytics.TDEM.TransientMagneticDipoleWholeSpace(
-                    np.c_[rx_offset].T,
-                    np.r_[0.0, 0.0, 0.0],
-                    sigma,
-                    times,
-                    "Z",
-                    fieldType="h",
-                    mu_r=1,
-                )[ind]
-            )
+            analytic_solution = mu_0 * analytics.TDEM.TransientMagneticDipoleWholeSpace(
+                np.c_[rx_offset].T,
+                np.r_[0.0, 0.0, 0.0],
+                sigma,
+                times,
+                "Z",
+                fieldType="h",
+                mu_r=1,
+            )[ind]
         elif rx_type == "MagneticFluxTimeDerivative":
-            analytic_solution = (
-                mu_0
-                * analytics.TDEM.TransientMagneticDipoleWholeSpace(
-                    np.c_[rx_offset].T,
-                    np.r_[0.0, 0.0, 0.0],
-                    sigma,
-                    times,
-                    "Z",
-                    fieldType="dhdt",
-                    mu_r=1,
-                )[ind]
-            )
+            analytic_solution = mu_0 * analytics.TDEM.TransientMagneticDipoleWholeSpace(
+                np.c_[rx_offset].T,
+                np.r_[0.0, 0.0, 0.0],
+                sigma,
+                times,
+                "Z",
+                fieldType="dhdt",
+                mu_r=1,
+            )[ind]
         else:
             analytic_solution = analytics.TDEM.TransientMagneticDipoleWholeSpace(
                 np.c_[rx_offset].T,
@@ -108,31 +102,25 @@ def analytic_wholespace_dipole_comparison(
 
     elif src_type == "ElectricDipole":
         if rx_type == "MagneticFluxDensity":
-            analytic_solution = (
-                mu_0
-                * analytics.TDEM.TransientElectricDipoleWholeSpace(
-                    np.c_[rx_offset].T,
-                    np.r_[0.0, 0.0, 0.0],
-                    sigma,
-                    times,
-                    "Z",
-                    fieldType="h",
-                    mu_r=1,
-                )[ind]
-            )
+            analytic_solution = mu_0 * analytics.TDEM.TransientElectricDipoleWholeSpace(
+                np.c_[rx_offset].T,
+                np.r_[0.0, 0.0, 0.0],
+                sigma,
+                times,
+                "Z",
+                fieldType="h",
+                mu_r=1,
+            )[ind]
         elif rx_type == "MagneticFluxTimeDerivative":
-            analytic_solution = (
-                mu_0
-                * analytics.TDEM.TransientElectricDipoleWholeSpace(
-                    np.c_[rx_offset].T,
-                    np.r_[0.0, 0.0, 0.0],
-                    sigma,
-                    times,
-                    "Z",
-                    fieldType="dhdt",
-                    mu_r=1,
-                )[ind]
-            )
+            analytic_solution = mu_0 * analytics.TDEM.TransientElectricDipoleWholeSpace(
+                np.c_[rx_offset].T,
+                np.r_[0.0, 0.0, 0.0],
+                sigma,
+                times,
+                "Z",
+                fieldType="dhdt",
+                mu_r=1,
+            )[ind]
         else:
             analytic_solution = analytics.TDEM.TransientElectricDipoleWholeSpace(
                 np.c_[rx_offset].T,
@@ -294,26 +282,6 @@ def analytic_halfspace_mag_dipole_comparison(
         plt.show()
 
     return log10diff
-
-
-class TDEM_SimpleSrcTests(unittest.TestCase):
-    def test_source(self):
-        waveform = tdem.sources.StepOffWaveform()
-        assert waveform.eval(0.0) == 1.0
-
-    def test_CircularLoop_test_N_depreciation(self):
-        """
-        Test depreciation of the N property
-        """
-        with self.assertWarns(Warning):
-            _ = tdem.sources.CircularLoop(
-                [np.c_[0.0, 0.0, 0.0]],
-                waveform=tdem.sources.StepOffWaveform(),
-                location=np.array([0.0, 0.0, 0.0]),
-                radius=1.0,
-                current=0.5,
-                N=2,
-            )
 
 
 ###########################################################

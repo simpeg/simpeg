@@ -177,7 +177,6 @@ class TestSimpleSourcePropertiesTensor(unittest.TestCase):
 
         return passed
 
-
     # ------------- GENERAL ------------------ #
 
     def test_integrate_source_failure(self):
@@ -187,7 +186,7 @@ class TestSimpleSourcePropertiesTensor(unittest.TestCase):
             [],
             frequency=self.frequency,
             location=self.location,
-            integrate=4.
+            integrate=4.0,
         )
 
     # ------------- TEST MAG DIPOLE ------------------ #
@@ -444,18 +443,19 @@ class TestSimpleSourcePropertiesTensor(unittest.TestCase):
         )
         assert self.bPrimaryTest(src, "j")
 
-    def test_CircularLoop_test_N_depreciation(self):
-        """
-        Test depreciation of the N argument (now n_turns)
-        """
-        with self.assertWarns(Warning):
-            src = fdem.sources.CircularLoop(
-                [],
-                frequency=self.frequency,
-                radius=np.sqrt(1 / np.pi),
-                location=self.location,
-                orientation="Z",
-                mu=mu_0,
-                current=0.5,
-                N=2,
-            )
+
+def test_CircularLoop_test_N_assign():
+    """
+    Test depreciation of the N argument (now n_turns)
+    """
+    src = fdem.sources.CircularLoop(
+        [],
+        frequency=1e-3,
+        radius=np.sqrt(1 / np.pi),
+        location=[0, 0, 0],
+        orientation="Z",
+        mu=mu_0,
+        current=0.5,
+        N=2,
+    )
+    assert src.n_turns == 2
