@@ -194,7 +194,3 @@ class FDEM_AdjointTests(unittest.TestCase):
 
         def test_Jtvec_adjointTest_hzi_Bform(self):
             self.assertTrue(adjointTest("b", ["MagneticField", "z", "i"]))
-
-
-if __name__ == "__main__":
-    unittest.main()

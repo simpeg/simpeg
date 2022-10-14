@@ -29,34 +29,69 @@ def plot2Ddata(
     shade_angle_altitude=45.0,
     shadeOpts={},
 ):
-    """
+    """Interpolate and plot unstructured 2D data.
 
-    Take unstructured xy points, interpolate, then plot in 2D
+    General plotting for scalar and vector quantities as a function of their
+    *x* and *y* locations. **plot2Ddata** uses interpolates the unstructured
+    data to a specified set of gridded locations before plotting with
+    :meth:`matplotlib.pyplot.contourf`. For vectors, :meth:`matplotlib.pyplot.streamplot`
+    is used to add a stream plot. As this function produces a plot for
+    2D data, the vertical position and vertical vector component (in the case
+    of a vector) is ignored.
 
-    :param numpy.ndarray xyz: data locations
-    :param numpy.ndarray data: data values
-    :param bool vec: plot streamplot?
-    :param float nx: number of x grid locations
-    :param float ny: number of y grid locations
-    :param matplotlib.axes ax: axes
-    :param boolean numpy.ndarray mask: mask for the array
-    :param boolean level: boolean to plot (or not)
-                            :meth:`matplotlib.pyplot.contour`
-    :param string figname: figure name
-    :param float ncontour: number of :meth:`matplotlib.pyplot.contourf`
-                            contours
-    :param bool dataloc: plot the data locations
-    :param dict controuOpts: :meth:`matplotlib.pyplot.contourf` options
-    :param dict levelOpts: :meth:`matplotlib.pyplot.contour` options
-    :param numpy.ndarray clim: colorbar limits
-    :param str method: interpolation method, either 'linear' or 'nearest'
-    :param bool shade: add shading to the plot
-    :param float shade_ncontour: number of :meth:`matplotlib.pyplot.contourf`
-                            contours for the shading
-    :param float shade_azimuth: azimuth for the light source in shading
-    :param float shade_angle_altitude: angle altitude for the light source
-                            in shading
-    :param dict shaeOpts: :meth:`matplotlib.pyplot.contourf` options
+    Parameters
+    ----------
+    xyz : numpy.ndarray
+        Data locations [x,y(,z)]. If the data locations are defined in 3D, the z-column is ignored.
+    data : numpy.ndarray
+        Data values. For scalar quantities, the data are stored in a 1D ``numpy.ndarray``.
+        For vector quantities, data are stored in a numpy array of shape (N, dim).
+    vec : bool
+        If ``True``, the data values represent a vector quantity and the function
+        creates a stream plot illustrating the *x* and *y* components of the vector.
+    nx : int
+        Number of grid locations along x-direction
+    ny : int
+        Number of grid locations along y-direction
+    ax : matplotlib.axes
+        An axes object on which to plot. If ``None``, the function creates an axes object
+    mask : numpy.ndarray of bool
+        Locations in the unstructured grid whose data are masked.
+    level : boolean
+        If ``True``, adds contours according to :meth:`matplotlib.pyplot.contour`
+    figname : str
+        Figure name
+    ncontour : int
+        number of contours in the contour plot
+    dataloc : bool
+        If ``True``, plot the data locations
+    contourOpts : dict
+        Dictionary defining keyword arguments when :meth:`matplotlib.pyplot.contourf` is called
+    levelOpts : dict
+        Dictionary defining keyword arguments when :meth:`matplotlib.pyplot.contourf` is called.
+        This is only necessary when *level* = ``True``.
+    clim : (2) numpy.ndarray
+        Colorbar limits
+    method : str
+        Interpolation method used to approximate at gridded locations. Must be 'linear' or 'nearest'
+    shade : bool
+        If ``True``, add shading to the plot
+    shade_ncontour : int
+        Number of :meth:`matplotlib.pyplot.contourf` contours for the shading
+    shade_azimuth : float
+        Azimuthal angle for the light source if shading
+    shade_angle_altitude : float
+        Altitude angle for the light source if shading
+
+    Returns
+    -------
+    cont : matplotlib.contour.ContourSet
+        The filled contour plot
+    ax : matplotlib.axes
+        The axes object for the plot.
+    CS : matplotlib.contour.ContourSet
+        If the input parameter *levels* is ``True``, the function outputs
+        the level set for the contours
 
     """
 
@@ -239,23 +274,25 @@ def plot_1d_layer_model(
     """
     Plot the vertical profile for a 1D layered Earth model.
 
-    Input:
-    thicknesses : List[Float]
-        A list or numpy.array containing the layer thicknesses from the top layer down
-    values : List[Float]
-        A list or numpy.array containing the physical property values from the top layer down
-    z0 : Float
+    Parameters
+    ----------
+    thicknesses : list or numpy.ndarray of float
+        A ``list`` or ``numpy.ndarray`` containing the layer thicknesses from the top layer down
+    values : list or numpy.ndarray of float
+        A ``list`` or ``numpy.ndarray`` containing the physical property values from the top layer down
+    z0 : float
         Elevation of the surface
-    scale: str
-        scale {'linear', 'log'}. Plot physical property values on a linear or log10 scale.
+    scale: {'linear', 'log'}
+        Plot physical property values on a linear or log10 scale.
     ax: matplotlib.axes.Axes, optional
         An axis object for the plot
     plot_elevation : bool
-        If False, the yaxis will be the depth. If True, the yaxis is the elevation.
+        If ``False``, the yaxis will be the depth. If ``True``, the yaxis is the elevation.
     show_layers : bool
         Plot horizontal lines to denote layers.
 
-    Output:
+    Returns
+    -------
     matplotlib.axes.Axes
         The axis object that holds the plot
 
@@ -312,6 +349,7 @@ def plot_1d_layer_model(
 def plotLayer(
     sig, LocSigZ, xscale="log", ax=None, showlayers=False, xlim=None, **kwargs
 ):
+    """*plotLayer* has been deprecated, please use :func:`plot_1d_layer_model`"""
     warnings.warn(
         "plotLayer has been deprecated, please use plot_1d_layer_model",
         DeprecationWarning,

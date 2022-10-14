@@ -77,23 +77,20 @@ def electrode_separations(survey_object, electrode_pair="all", **kwargs):
     """
     Calculate horizontal separation between specific or all electrodes.
 
-    Input:
+    Parameters
+    ----------
     survey_object : SimPEG.electromagnetics.static.survey.Survey
         A DC or IP survey object
-    electrode_pair : str or list of str
-        A string or list of strings from the following {'all', 'AB', 'MN', 'AM', 'AN', 'BM', 'BN}
+    electrode_pair : {'all', 'AB', 'MN', 'AM', 'AN', 'BM', 'BN}
+        Which electrode separation pairs to compute.
 
-    Output:
-    list of np.ndarray
+    Returns
+    -------
+    list of numpy.ndarray
         For each electrode pair specified, the electrode distance is returned
         in a list.
 
     """
-    if "survey_type" in kwargs:
-        raise TypeError(
-            "The survey_type is no longer necessary to calculate electrode separations. "
-            "It has been removed"
-        )
 
     if not isinstance(electrode_pair, list):
         if electrode_pair.lower() == "all":
@@ -183,15 +180,17 @@ def pseudo_locations(survey, wenner_tolerance=0.1, **kwargs):
     """
     Calculates the pseudo-sensitivity locations for 2D and 3D surveys.
 
-    Input:
+    Parameters
+    ----------
     survey : SimPEG.electromagnetics.static.resistivity.Survey
         A DC or IP survey
-    wenner_tolerance : float
+    wenner_tolerance : float, default=0.1
         If the center location for a source and receiver pair are within wenner_tolerance,
         we assume the datum was collected with a wenner configuration and the pseudo-location
         is computed based on the AB electrode spacing.
 
-    Output:
+    Returns
+    -------
     tuple of numpy.ndarray of the form (midxy, midz)
         For 2D surveys, *midxy* is a vector containing the along line position.
         For 3D surveys, *midxy* is an (n, 2) numpy array containing the (x,y) positions.
@@ -258,25 +257,32 @@ def pseudo_locations(survey, wenner_tolerance=0.1, **kwargs):
 
 
 def geometric_factor(survey_object, space_type="half space", **kwargs):
+    r"""
+    Calculate geometric factor for every datum.
+
+    Consider you have current electrodes *A* and *B*, and potential electrodes *M* and *N*.
+    Let :math:`R_{AM}` represents the scalar horizontal distance between electrodes *A*
+    and *M*; likewise for :math:`R_{BM}`, :math:`R_{AN}` and :math:`R_{BN}`.
+    The geometric factor is given by:
+
+    .. math::
+        G = \frac{1}{C} \bigg [ \frac{1}{R_{AM}} - \frac{1}{R_{BM}} - \frac{1}{R_{AN}} + \frac{1}{R_{BN}}  \bigg ]
+
+    where :math:`C=2\pi` for a halfspace and :math:`C=4\pi` for a wholespace.
+
+    Parameters
+    ----------
+    survey_object : SimPEG.electromagnetics.static.resistivity.Survey
+        A DC (or IP) survey object
+    space_type : {'half space', 'whole space'}
+        Compute geometric factor for a halfspace or wholespace.
+
+    Returns
+    -------
+    (nD) numpy.ndarray
+        Geometric factor for each datum
+
     """
-    Calculate Geometric Factor. Assuming that data are normalized voltages
-
-    Input:
-    :param SimPEG.electromagnetics.static.resistivity.Survey dc_survey: DC survey object
-    :param str survey_type: Either 'dipole-dipole' | 'pole-dipole'
-                           | 'dipole-pole' | 'pole-pole'
-    :param str space_type: Assuming whole-space or half-space
-                          ('whole-space' | 'half-space')
-
-    Output:
-    :return numpy.ndarray G: Geometric Factor
-
-    """
-    if "survey_type" in kwargs:
-        raise TypeError(
-            "The survey_type is no longer necessary to calculate geometric factor. "
-            "It has been removed."
-        )
     # Set factor for whole-space or half-space assumption
     if space_type.lower() in SPACE_TYPES["whole space"]:
         spaceFact = 4.0
@@ -307,14 +313,21 @@ def apparent_resistivity_from_voltage(
     """
     Calculate apparent resistivities from normalized voltages.
 
-    Input:
-    :param SimPEG.electromagnetics.static.resistivity.Survey: DC survey
-    :param numpy.ndarray volts: normalized voltage measurements [V/A]
-    :param String space_type: 'half_space' or 'whole_space'
-    :param float eps: Regularizer in case of a null geometric factor
+    Parameters
+    ----------
+    survey : SimPEG.electromagnetics.static.resistivity.Survey
+        A DC survey
+    volts : (nD) numpy.ndarray
+        Normalized voltage measurements [V/A]
+    space_type : {'half space', 'whole space'}
+        Compute apparent resistivity assume a half space or whole space.
+    eps : float, default=1e-10
+        Stabilization constant in case of a null geometric factor
 
-    Output:
-    :return rhoApp: apparent resistivity
+    Returns
+    -------
+    numpy.ndarray
+        Apparent resistivities for all data
     """
 
     G = geometric_factor(survey, space_type=space_type)
@@ -340,13 +353,25 @@ def convert_survey_3d_to_2d_lines(
     line. For each line, s = 0 defines the A-electrode location
     for the first source in the source list.
 
-    Input:
-    :param survey: DC survey class object
-    :param lineID: A numpy.array (nD,) containing the line ID for each datum
+    Parameters
+    ----------
+    survey : SimPEG.electromagnetics.static.resistivity.Survey
+        A DC (or IP) survey
+    lineID : (n_data) numpy.ndarray
+        Defines the corresponding line ID for each datum
+    data_type : {'volt', 'apparent_resistivity', 'apparent_conductivity', 'apparent_chargeability'}
+        Data type for the survey.
+    output_indexing : bool, default=``False``
+        If ``True`` output a list of indexing arrays that map from the original 3D
+        data to each 2D survey line.
 
-    Output:
-    :param survey: List of 2D DC survey class object
-    :rtype: List of SimPEG.electromagnetics.static.resistivity.Survey
+    Returns
+    -------
+    survey_list : list of SimPEG.electromagnetics.static.resistivity.Survey
+        A list of 2D survey objects
+    out_indices_list : list of numpy.ndarray
+        A list of indexing arrays that map from the original 3D data to each 2D
+        survey line.
     """
 
     # Find all unique line id
@@ -490,16 +515,15 @@ def plot_pseudosection(
     dobs : numpy.ndarray (ndata,) or None
         A data vector containing volts, integrated chargeabilities, apparent
         resistivities, apparent chargeabilities or data misfits.
-    plot_type: {'contourf', 'pcolor', or 'scatter'}
-        'scatter' creates a scatter plot, 'contourf' creates a filled contour plot, and
-        'pcolor' creates a linearly interpolated plot.
-    ax: mpl_toolkits.mplot3d.axes.Axes, optional
+    plot_type : {"contourf", "scatter", "pcolor"}
+        Which plot type to create.
+    ax : mpl_toolkits.mplot3d.axes.Axes, optional
         An axis for the plot
-    clim : list, optional
+    clim : (2) list, optional
         list containing the minimum and maximum value for the color range,
         i.e. [vmin, vmax]
-    scale: {'linear', 'log'}
-        Plot on linear or log base 10 scale
+    scale : {'linear', 'log'}
+        Plot on linear or log base 10 scale.
     pcolor_opts : dict, optional
         Dictionary defining kwargs for pcolor plot if `plot_type=='pcolor'`
     contourf_opts : dict, optional
@@ -521,38 +545,21 @@ def plot_pseudosection(
         data; e.g. 'S/m', '$\\Omega m$', '%'
     cax : mpl_toolkits.mplot3d.axes.Axes, optional
         An axis object for the colorbar
-    data_type: {None, "apparent_conductivity", "apparent_resistivity"}, optional
-        if dobs is None, this will transform the data vector in the `survey` parameter
+    data_type : str, optional
+        If dobs is ``None``, this will transform the data vector in the `survey` parameter
         when it is a SimPEG.data.Data object from voltage to the requested `data_type`.
-        This occurs when `dobs` is `None`.
-    space_type: {'half space', "whole space"}
-        space type to use for the transformation from voltage to `data_type`
-        if `dobs` is `None`.
+        This occurs when `dobs` is `None`. You may also use "apparent_conductivity"
+        or "apparent_resistivity" to define the data type.
+    space_type : {'half space', "whole space"}
+        Space type to used for the transformation from voltage to `data_type`
+        if `dobs` is ``None``.
 
-
-    Output:
+    Returns
+    -------
     mpl_toolkits.mplot3d.axes3d.Axes3D
         The axis object that holds the plot
 
     """
-    if "pcolorOpts" in kwargs:
-        raise TypeError(
-            "The pcolorOpts keyword has been removed. Please use "
-            "pcolor_opts instead."
-        )
-
-    if "data_location" in kwargs:
-        raise TypeError(
-            "The data_location keyword has been removed. Please use "
-            "data_locations instead."
-        )
-
-    if "contour_opts" in kwargs:
-        raise TypeError(
-            "The contour_opts keyword has been removed. Please use "
-            "contourf_opts instead."
-        )
-        contourf_opts = kwargs.pop("contour_opts")
 
     removed_kwargs = ["dim", "y_values", "sameratio", "survey_type"]
     for kwarg in removed_kwargs:
@@ -750,7 +757,8 @@ if has_plotly:
         all pseudo-locations. If a plane is specified, the user may create a scatter
         plot using points near that plane.
 
-        Input:
+        Parameters
+        ----------
         survey : SimPEG.electromagnetics.static.survey.Survey
             A DC or IP survey object
         dvec : numpy.ndarray
@@ -758,14 +766,14 @@ if has_plotly:
             resistivities or apparent chargeabilities.
         marker_size : int
             Sets the marker size for the points on the scatter plot
-        vlim : list
+        vlim : (2) list
             list containing the minimum and maximum value for the color range,
             i.e. [vmin, vmax]
-        scale: str
-            Plot on linear or log base 10 scale {'linear','log'}
+        scale : {'linear', 'log'}
+            Plot on linear or log base 10 scale.
         units : str
             A sting in d3 formatting the specified the units of *dvec*
-        plane_points : list of numpy.ndarray
+        plane_points : (3) list of numpy.ndarray
             A list of length 3 which contains the three xyz locations required to
             define a plane; i.e. [xyz1, xyz2, xyz3]. This functionality is used to
             plot only data that lie near this plane. A list of [xyz1, xyz2, xyz3]
@@ -781,11 +789,10 @@ if has_plotly:
         layout_opts : dict
             Dictionary defining figure layout properties, formatted according to plotly.Layout
 
-
-        Output:
-        fig:
+        Returns
+        -------
+        fig :
             A plotly figure
-
         """
 
         locations = pseudo_locations(survey)
@@ -935,7 +942,6 @@ def generate_survey_from_abmn_locations(
 
     Parameters
     ----------
-
     locations_a : numpy.array
         An (n, dim) numpy array containing A electrode locations
     locations_b : None or numpy.array
@@ -946,8 +952,8 @@ def generate_survey_from_abmn_locations(
     locations_n : numpy.array
         An (n, dim) numpy array containing N electrode locations. If None,
         we assume all receivers are Pole receivers.
-    data_type : str
-        Must be one of {'volt', 'apparent_conductivity', 'apparent_resistivity', 'apparent_chargeability'}
+    data_type : {'volt', 'apparent_conductivity', 'apparent_resistivity', 'apparent_chargeability'}
+        Data type of the receivers.
     output_sorting : bool
         This option is used if the ABMN locations are sorted during the creation of the survey
         and you would like to sort any data vectors associated with the electrode locations.
@@ -1069,23 +1075,26 @@ def generate_dcip_survey(endl, survey_type, a, b, n, dim=3, **kwargs):
 
     Assumes flat topo for now...
 
-    Input:
-    :param numpy.ndarray endl: input endpoints [x1, y1, z1, x2, y2, z2]
-    :param discretize.base.BaseMesh mesh: discretize mesh object
-    :param str survey_type: 'dipole-dipole' | 'pole-dipole' |
-        'dipole-pole' | 'pole-pole' | 'gradient'
-    :param int a: pole seperation
-    :param int b: dipole separation
-    :param int n: number of rx dipoles per tx
+    Parameters
+    ----------
+    endl : numpy.ndarray
+        End points for survey line [x1, y1, z1, x2, y2, z2]
+    survey_type : {'dipole-dipole', 'pole-dipole', 'dipole-pole', 'pole-pole', 'gradient'}
+        Survey type to generate.
+    a : int
+        pole seperation
+    b : int
+        dipole separation
+    n : int
+        number of receiver dipoles per source
+    dim : int, default=3
+        Create 2D or 3D survey
 
-    Output:
-    :return SimPEG.electromagnetics.static.resistivity.Survey dc_survey: DC survey object
+    Returns
+    -------
+    SimPEG.electromagnetics.static.resistivity.Survey
+        A DC survey object
     """
-    if "d2flag" in kwargs:
-        raise TypeError(
-            "The d2flag is no longer necessary to construct a survey. "
-            "It has been removed."
-        )
 
     def xy_2_r(x1, x2, y1, y2):
         r = np.sqrt(np.sum((x2 - x1) ** 2.0 + (y2 - y1) ** 2.0))
@@ -1235,9 +1244,8 @@ def generate_dcip_survey(endl, survey_type, a, b, n, dim=3, **kwargs):
                 rxClass = dc.Rx.Dipole(rx[:, [0, 2]], rx[:, [3, 5]])
             srcClass = dc.Src.Dipole([rxClass], (endl[0, :]), (endl[1, :]))
         SrcList.append(srcClass)
-        survey_type = "dipole-dipole"
 
-    survey = dc.Survey(SrcList, survey_type=survey_type.lower())
+    survey = dc.Survey(SrcList, survey_type=survey_type)
     return survey
 
 
@@ -1258,19 +1266,27 @@ def generate_dcip_sources_line(
     can be specified by the user. This function can be used to define multiple lines
     of DC/IP, which can be appended to create the sources for an entire survey.
 
-    Input:
-    :param str survey_type: 'dipole-dipole' | 'pole-dipole' |
-        'dipole-pole' | 'pole-pole'
-    :param str data_type: 'volt' | 'apparent_conductivity' |
-        'apparent_resistivity' | 'apparent_chargeability'
-    :param str dimension_type: '2D' or '3D'
-    :param np.array end_points: horizontal end points [x1, x2] or [x1, x2, y1, y2]
-    :param float, (N, 2) np.array for 2D or (N, 3) np.array for 3D: topography
-    :param int num_rx_per_src: number of receivers per souces
-    :param float station_spacing : distance between stations
+    Parameters
+    ----------
+    survey_type : {'dipole-dipole', 'pole-dipole', 'dipole-pole', 'pole-pole'}
+        Survey type.
+    data_type : {'volt', 'apparent_conductivity', 'apparent_resistivity', 'apparent_chargeability'}
+        Data type.
+    dimension_type : {'2D', '3D'}
+        Which dimension you are using.
+    end_points : numpy.array
+        Horizontal end points [x1, x2] or [x1, x2, y1, y2]
+    topo : (n, dim) numpy.ndarray
+        Define survey topography
+    num_rx_per_src : int
+        Maximum number of receivers per souces
+    station_spacing : float
+        Distance between stations
 
-    Output:
-    :return SimPEG.electromagnetics.static.resistivity.Survey dc_survey: DC survey object
+    Returns
+    -------
+    SimPEG.electromagnetics.static.resistivity.Survey
+        A DC survey object
     """
 
     assert survey_type.lower() in [
@@ -1393,11 +1409,15 @@ def xy_2_lineID(dc_survey):
     they were collected. May need to generalize for random
     point locations, but will be more expensive
 
-    Input:
-    :param DCdict Vectors of station location
+    Parameters
+    ----------
+    dc_survey : dict
+        Vectors of station location
 
-    Output:
-    :return LineID Vector of integers
+    Returns
+    -------
+    numpy.ndarray
+        LineID Vector of integers
     """
 
     # Compute unit vector between two points
@@ -1467,10 +1487,19 @@ def xy_2_lineID(dc_survey):
 
 
 def r_unit(p1, p2):
-    """
-    r_unit(x, y) : Function computes the unit vector
-    between two points with coordinates p1(x1, y1) and p2(x2, y2)
+    """Compute unit vector between two points
 
+    Parameters
+    ----------
+    p1 : (dim) numpy.array
+        Start point
+    p2 : (dim) numpy.array
+        End point
+
+    Returns
+    -------
+    (dim) numpy.array
+        Unit vector
     """
 
     assert len(p1) == len(p2), "locs must be the same shape."
@@ -1491,9 +1520,24 @@ def r_unit(p1, p2):
     return vec, r
 
 
-def gettopoCC(mesh, actind, option="top"):
+def gettopoCC(mesh, ind_active, option="top"):
     """
-    Get topography from active indices of mesh.
+    Generate surface topography from active indices of mesh.
+
+    Parameters
+    ----------
+    mesh : discretize.TensorMesh or discretize.TreeMesh
+        A tensor or tree mesh
+    ind_active : numpy.ndarray of bool or int
+        Active cells index; i.e. indices of cells below surface
+    option : {"top", "center"}
+        Use string to specify if the surface passes through the
+        tops or cell centers of surface cells.
+
+    Returns
+    -------
+    (n, dim) numpy.ndarray
+        xy[z] topography
     """
     if mesh._meshType == "TENSOR":
 
@@ -1501,7 +1545,9 @@ def gettopoCC(mesh, actind, option="top"):
 
             mesh2D = discretize.TensorMesh([mesh.hx, mesh.hy], mesh.x0[:2])
             zc = mesh.cell_centers[:, 2]
-            ACTIND = actind.reshape((mesh.vnC[0] * mesh.vnC[1], mesh.vnC[2]), order="F")
+            ACTIND = ind_active.reshape(
+                (mesh.vnC[0] * mesh.vnC[1], mesh.vnC[2]), order="F"
+            )
             ZC = zc.reshape((mesh.vnC[0] * mesh.vnC[1], mesh.vnC[2]), order="F")
             topoCC = np.zeros(ZC.shape[0])
 
@@ -1520,7 +1566,7 @@ def gettopoCC(mesh, actind, option="top"):
 
             mesh1D = discretize.TensorMesh([mesh.hx], [mesh.x0[0]])
             yc = mesh.cell_centers[:, 1]
-            ACTIND = actind.reshape((mesh.vnC[0], mesh.vnC[1]), order="F")
+            ACTIND = ind_active.reshape((mesh.vnC[0], mesh.vnC[1]), order="F")
             YC = yc.reshape((mesh.vnC[0], mesh.vnC[1]), order="F")
             topoCC = np.zeros(YC.shape[0])
             for i in range(YC.shape[0]):
@@ -1536,7 +1582,7 @@ def gettopoCC(mesh, actind, option="top"):
 
     elif mesh._meshType == "TREE":
 
-        inds = mesh.get_boundary_cells(actind, direction="zu")[0]
+        inds = mesh.get_boundary_cells(ind_active, direction="zu")[0]
 
         if option == "top":
             dz = mesh.h_gridded[inds, -1] * 0.5
@@ -1547,12 +1593,35 @@ def gettopoCC(mesh, actind, option="top"):
         raise NotImplementedError(f"{type(mesh)} mesh is not supported.")
 
 
-def drapeTopotoLoc(mesh, pts, actind=None, option="top", topo=None):
+def drapeTopotoLoc(mesh, pts, ind_active=None, option="top", topo=None, **kwargs):
+    """Drape locations right below discretized surface topography
+
+    This function projects the set of locations provided to the discrete
+    surface topography.
+
+    Parameters
+    ----------
+    mesh : discretize.TensorMesh or discretize.TreeMesh
+        A 2D tensor or tree mesh
+    pts : (n, dim) numpy.ndarray
+        The set of points being projected to the discretize surface topography
+    ind_active : numpy.ndarray of int or bool, optional
+        Index array for all cells lying below the surface topography. Surface topography
+        can be specified using the 'ind_active' or 'topo' input parameters.
+    option : {"top", "center"}
+        Define whether the cell center or entire cell of actice cells must be below the topography.
+        The topography is defined using the 'topo' input parameter.
+    topo : (n, dim) numpy.ndarray
+        Surface topography. Can be used if an active indices array cannot be provided
+        for the input parameter 'ind_active'
     """
-    Drape location right below (cell center) the topography
-    """
+
+    if "actind" in kwargs:
+        ind_active = kwargs.pop("actind")
+
     if isinstance(mesh, discretize.CurvilinearMesh):
         raise ValueError("Curvilinear mesh is not supported.")
+
     if mesh.dim == 2:
         # if shape is (*, 1) or (*, 2) just grab first column
         if pts.ndim == 2 and pts.shape[1] in [1, 2]:
@@ -1566,21 +1635,23 @@ def drapeTopotoLoc(mesh, pts, actind=None, option="top", topo=None):
         pts = pts[:, :2]
     else:
         raise ValueError("Unsupported mesh dimension")
-    if actind is None:
-        actind = surface2ind_topo(mesh, topo)
+
+    if ind_active is None:
+        ind_active = surface2ind_topo(mesh, topo)
+
     if mesh._meshType == "TENSOR":
-        meshtemp, topoCC = gettopoCC(mesh, actind, option=option)
+        meshtemp, topoCC = gettopoCC(mesh, ind_active, option=option)
         inds = closestPoints(meshtemp, pts)
         topo = topoCC[inds]
         out = np.c_[pts, topo]
 
     elif mesh._meshType == "TREE":
         if mesh.dim == 3:
-            uniqXYlocs, topoCC = gettopoCC(mesh, actind, option=option)
+            uniqXYlocs, topoCC = gettopoCC(mesh, ind_active, option=option)
             inds = closestPointsGrid(uniqXYlocs, pts)
             out = np.c_[uniqXYlocs[inds, :], topoCC[inds]]
         else:
-            uniqXlocs, topoCC = gettopoCC(mesh, actind, option=option)
+            uniqXlocs, topoCC = gettopoCC(mesh, ind_active, option=option)
             inds = closestPointsGrid(uniqXlocs, pts, dim=1)
             out = np.c_[uniqXlocs[inds], topoCC[inds]]
     else:
@@ -1590,8 +1661,27 @@ def drapeTopotoLoc(mesh, pts, actind=None, option="top", topo=None):
 
 
 def genTopography(mesh, zmin, zmax, seed=None, its=100, anisotropy=None):
+    """Generate random topography
+
+    Parameters
+    ----------
+    mesh : discretize.BaseMesh
+        A 2D or 3D mesh
+    zmin : float
+        Minimum topography [m]
+    zmax : float
+        Maximum topography [m]
+    seed : int, default=``None``
+        Set the seed for the random generated model or leave as ``None``
+    its : int, default=100
+        Number of smoothing iterations after convolutions
+    anisotropy : (3, n) numpy.ndarray, default=``None``
+        Apply a (3, n) blurring kernel that is used or leave as ``None`` in the case of isotropy.
+    """
+
     if isinstance(mesh, discretize.CurvilinearMesh):
         raise ValueError("Curvilinear mesh is not supported.")
+
     if mesh.dim == 3:
         mesh2D = discretize.TensorMesh([mesh.hx, mesh.hy], x0=[mesh.x0[0], mesh.x0[1]])
         out = model_builder.randomModel(
@@ -1611,9 +1701,19 @@ def genTopography(mesh, zmin, zmax, seed=None, its=100, anisotropy=None):
 def closestPointsGrid(grid, pts, dim=2):
     """Move a list of points to the closest points on a grid.
 
-    :param numpy.ndarray pts: Points to move
-    :rtype: numpy.ndarray
-    :return: nodeInds
+    Parameters
+    ----------
+    grid : (n, dim) numpy.ndarray
+        A gridded set of points
+    pts : (m, dim) numpy.ndarray
+        Points being projected to gridded locations
+    dim : int, default=2
+        Dimension of the points
+
+    Returns
+    -------
+    (m) numpy.ndarray
+        indices for the closest gridded location for all *pts* supplied.
     """
     if dim == 1:
         nodeInds = np.asarray(
@@ -1644,15 +1744,35 @@ def gen_3d_survey_from_2d_lines(
     """
     Generate 3D DC survey using gen_DCIPsurvey function.
 
-    Input:
-    :param str survey_type: 'dipole-dipole' | 'pole-dipole' |
-        'dipole-pole' | 'pole-pole' | 'gradient'
-    :param int a: pole seperation
-    :param int b: dipole separation
-    :param int n_spacing: number of rx dipoles per tx
+    Parameters
+    ----------
+    survey_type : str
+        Survey type. Choose one of {'dipole-dipole', 'pole-dipole', 'dipole-pole', 'pole-pole', 'gradient'}
+    a : int
+        pole seperation
+    b : int
+        dipole separation
+    n_spacing : int
+        number of receiver dipoles per source
+    n_lines : int, default=5
+        Number of survey lines
+    line_length : float, default=200.
+        Line length
+    line_spacing : float, default=20.
+        Line spacing
+    x0, y0, z0 : float, default=0.
+        The origin for the 3D survey
+    src_offset_y : float, default=0.
+        Source y offset
+    dim : int, default=3
+        Define 2D or 3D survey
+    is_IO : bool, default=``True``
+        If ``True``, is an IO class
 
-    Output:
-    :return SimPEG.dc.SurveyDC.Survey survey_3d: 3D DC survey object
+    Returns
+    -------
+    SimPEG.dc.SurveyDC.Survey
+        A 3D DC survey object
     """
     ylocs = np.arange(n_lines) * line_spacing + y0
 
@@ -1791,21 +1911,21 @@ def writeUBC_DCobs(
     ip_type=0,
     comment_lines="",
 ):
-    """
-    Write UBC GIF DCIP 2D or 3D observation file
+    # """
+    # Write UBC GIF DCIP 2D or 3D observation file
 
-    Input:
-    :param str fileName: including path where the file is written out
-    :param SimPEG.Data data: DC data object
-    :param int dim:  either 2 | 3
-    :param str format_type:  either 'surface' | 'general' | 'simple'
-    :param str survey_type: 'dipole-dipole' | 'pole-dipole' |
-        'dipole-pole' | 'pole-pole' | 'gradient'
+    # Input:
+    # :param str fileName: including path where the file is written out
+    # :param SimPEG.Data data: DC data object
+    # :param int dim:  either 2 | 3
+    # :param str format_type:  either 'surface' | 'general' | 'simple'
+    # :param str survey_type: 'dipole-dipole' | 'pole-dipole' |
+    #     'dipole-pole' | 'pole-pole' | 'gradient'
 
-    Output:
-    :return: UBC2D-Data file
-    :rtype: file
-    """
+    # Output:
+    # :return: UBC2D-Data file
+    # :rtype: file
+    # """
 
     warnings.warn(
         "The writeUBC_DCobs method has been deprecated. Please use "
@@ -1845,19 +1965,19 @@ def writeUBC_DClocs(
     ip_type=0,
     comment_lines="",
 ):
-    """
-    Write UBC GIF DCIP 2D or 3D locations file
+    # """
+    # Write UBC GIF DCIP 2D or 3D locations file
 
-    Input:
-    :param str fileName: including path where the file is written out
-    :param SimPEG.electromagnetics.static.resistivity.Survey dc_survey: DC survey object
-    :param int dim:  either 2 | 3
-    :param str survey_type:  either 'SURFACE' | 'GENERAL'
+    # Input:
+    # :param str fileName: including path where the file is written out
+    # :param SimPEG.electromagnetics.static.resistivity.Survey dc_survey: DC survey object
+    # :param int dim:  either 2 | 3
+    # :param str survey_type:  either 'SURFACE' | 'GENERAL'
 
-    Output:
-    :rtype: file
-    :return: UBC 2/3D-locations file
-    """
+    # Output:
+    # :rtype: file
+    # :return: UBC 2/3D-locations file
+    # """
 
     warnings.warn(
         "The writeUBC_DClocs method has been deprecated. Please use "
@@ -1891,22 +2011,22 @@ def writeUBC_DClocs(
 
 
 def readUBC_DC2Dpre(fileName):
-    """
-    Read UBC GIF DCIP 2D observation file and generate arrays
-    for tx-rx location
+    # """
+    # Read UBC GIF DCIP 2D observation file and generate arrays
+    # for tx-rx location
 
-    Input:
-    :param string fileName: path to the UBC GIF 3D obs file
+    # Input:
+    # :param string fileName: path to the UBC GIF 3D obs file
 
-    Output:
-    :return survey: 2D DC survey class object
-    :rtype: SimPEG.electromagnetics.static.resistivity.Survey
+    # Output:
+    # :return survey: 2D DC survey class object
+    # :rtype: SimPEG.electromagnetics.static.resistivity.Survey
 
-    Created on Mon March 9th, 2016 << Doug's 70th Birthday !! >>
+    # Created on Mon March 9th, 2016 << Doug's 70th Birthday !! >>
 
-    @author: dominiquef
+    # @author: dominiquef
 
-    """
+    # """
 
     warnings.warn(
         "The readUBC_DC2Dpre method has been deprecated. Please use "
@@ -1920,15 +2040,15 @@ def readUBC_DC2Dpre(fileName):
 
 
 def readUBC_DC3Dobs(fileName, data_type="volt"):
-    """
-    Read UBC GIF DCIP 3D observation file and generate arrays
-    for tx-rx location
-    Input:
-    :param string fileName: path to the UBC GIF 3D obs file
-    Output:
-    :param rx, tx, d, wd
-    :return
-    """
+    # """
+    # Read UBC GIF DCIP 3D observation file and generate arrays
+    # for tx-rx location
+    # Input:
+    # :param string fileName: path to the UBC GIF 3D obs file
+    # Output:
+    # :param rx, tx, d, wd
+    # :return
+    # """
 
     warnings.warn(
         "The readUBC_DC3Dobs method has been deprecated. Please use "
@@ -1963,4 +2083,4 @@ def generate_dcip_survey_line(
     if sources_only:
         return source_list
     else:
-        return dc.Survey(source_list, survey_type=survey_type.lower())
+        return dc.Survey(source_list)

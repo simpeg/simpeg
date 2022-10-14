@@ -1,11 +1,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
-import copy
-from scipy.stats import multivariate_normal
-from scipy import spatial, linalg
+from scipy import linalg
 from scipy.special import logsumexp
-from scipy.sparse import diags
 from sklearn.mixture import GaussianMixture
 from sklearn.cluster import KMeans
 from sklearn.utils import check_array
@@ -14,7 +11,6 @@ from sklearn.mixture._gaussian_mixture import (
     _compute_precision_cholesky,
     _compute_log_det_cholesky,
     _estimate_gaussian_covariances_full,
-    _estimate_gaussian_covariances_tied,
     _estimate_gaussian_covariances_diag,
     _estimate_gaussian_covariances_spherical,
     _check_means,
@@ -23,15 +19,7 @@ from sklearn.mixture._gaussian_mixture import (
 )
 from sklearn.mixture._base import check_random_state, ConvergenceWarning
 import warnings
-from .mat_utils import mkvc
-from ..maps import IdentityMap, Wires, Identity
-from ..regularization import (
-    Smallness,
-    PGI,
-    PGIsmallness,
-    WeightedLeastSquares,
-    PGIwithRelationships,
-)
+from SimPEG.maps import IdentityMap
 
 
 ###############################################################################
@@ -45,13 +33,17 @@ from ..regularization import (
 
 class WeightedGaussianMixture(GaussianMixture):
     """
+    Weighted Gaussian mixture class
+
     This class upon the GaussianMixture class from Scikit-Learn.
     Two main modifications:
-        1: Each sample/observation is given a weight, the volume of the
+
+        1. Each sample/observation is given a weight, the volume of the
         corresponding discretize.BaseMesh cell, when fitting the
         Gaussian Mixture Model (GMM). More volume gives more importance, ensuing a
         mesh-free evaluation of the clusters of the geophysical model.
-        2: When set manually, the proportions can be set either globally (normal behavior)
+
+        2. When set manually, the proportions can be set either globally (normal behavior)
         or cell-by-cell (improvements)
 
     Disclaimer: this class built upon the GaussianMixture class from Scikit-Learn.
@@ -62,9 +54,15 @@ class WeightedGaussianMixture(GaussianMixture):
 
     Addtional parameters to provide, compared to sklearn.mixture.gaussian_mixture:
 
-    :param discretize.BaseMesh (TensorMesh or QuadTree or Octree) mesh: the volume
+    Parameters
+    ----------
+    n_components : int
+        Number of components
+    mesh : discretize.BaseMesh
+        ``TensorMesh`` or ``QuadTree`` or Octree) mesh: the volume
         of the cells give each sample/observations its weight in the fitting proces
-    :param numpy.ndarry actv: (optional) active cells index
+    actv : numpy.ndarry, optional
+        Active indexes
     """
 
     def __init__(
@@ -114,9 +112,9 @@ class WeightedGaussianMixture(GaussianMixture):
         # setKwargs(self, **kwargs)
 
     def compute_clusters_precisions(self):
-        """
+        """Compute and set the precisions matrices and their Cholesky decomposition.
+
         Use this function after setting covariances manually.
-        Compute the precisions matrices and their Cholesky decomposition.
         """
         self.precisions_cholesky_ = _compute_precision_cholesky(
             self.covariances_, self.covariance_type
@@ -134,9 +132,9 @@ class WeightedGaussianMixture(GaussianMixture):
             self.precisions_ = self.precisions_cholesky_ ** 2
 
     def compute_clusters_covariances(self):
-        """
+        """Compute the precisions matrices and their Cholesky decomposition.
+
         Use this function after setting precisions matrices manually.
-        Compute the precisions matrices and their Cholesky decomposition.
         """
         self.covariances_cholesky_ = _compute_precision_cholesky(
             self.precisions_, self.covariance_type
@@ -158,16 +156,17 @@ class WeightedGaussianMixture(GaussianMixture):
         )
 
     def order_clusters_GM_weight(self, outputindex=False):
-        """
-        order clusters by decreasing weights
+        """Order clusters by decreasing weights
 
         PARAMETERS
         ----------
-        :param boolean outputindex: if True, return the sorting index
+        outputindex : bool, default: ``True``
+            If ``True``, return the sorting index
 
         RETURN
         ------
-        :return np.ndarray indx: sorting index
+        np.ndarray
+            Sorting index
         """
         if self.weights_.ndim == 1:
             indx = np.argsort(self.weights_, axis=0)[::-1]
@@ -201,6 +200,7 @@ class WeightedGaussianMixture(GaussianMixture):
             The proportions of components of each mixture.
         n_components : int
             Number of components.
+
         Returns
         -------
         weights : array, shape (n_components,)
@@ -400,17 +400,22 @@ class WeightedGaussianMixture(GaussianMixture):
         return np.average(log_prob_norm, weights=self.cell_volumes), log_resp
 
     def score(self, X, y=None):
-        """
+        """Compute the per-sample average log-likelihood
+
         [modified from Scikit-Learn.mixture.gaussian_mixture]
         Compute the per-sample average log-likelihood of the given data X.
+
         Parameters
         ----------
-        X : array-like, shape (n_samples, n_dimensions)
+        X : (n_samples, n_dimensions) array-like
             List of n_features-dimensional data points. Each row
             corresponds to a single data point.
+        y : ``None``
+            Placeholder variable
+
         Returns
         -------
-        log_likelihood : float
+        float
             Log likelihood of the Gaussian mixture given X.
         """
         return np.average(self.score_samples(X), weights=self.cell_volumes)
@@ -491,17 +496,22 @@ class WeightedGaussianMixture(GaussianMixture):
         )
 
     def score_samples_with_sensW(self, X, sensW):
-        """
+        """Compute the weighted log probabilities for each sample.
+
         [New function, modified from Scikit-Learn.mixture.gaussian_mixture.score_samples]
         Compute the weighted log probabilities for each sample.
+
         Parameters
         ----------
-        X : array-like, shape (n_samples, n_features)
+        X : (n_samples, n_features) array_like
             List of n_features-dimensional data points. Each row
             corresponds to a single data point.
+        sensW : (n_samples) array_like
+            Sensitivity weights
+
         Returns
         -------
-        log_prob : array, shape (n_samples,)
+        (n_samples) numpy.array
             Log probabilities of each data point in X.
         """
         check_is_fitted(self)
@@ -526,19 +536,29 @@ class WeightedGaussianMixture(GaussianMixture):
 
         Parameters
         ----------
-        ax: matplotlib axes to plot on; need to be a 3-array if flag2d is True
-        bool flag2d: flag to either plot a 1D or 2D probability distributions
-        int x_component: physical property to plot on the X-axis, as ordered in the GMM.
-        int y_component: physical property to plot on the Y-axis, as ordered in the GMM
-        float padding: how much relative padding around the petrophysical means for the 1D and 2D plots
-        int plotting_precision: number of divisions for the 1D and 2D plots
-        bool plot_membership: plot the membership rather than the probability
-        dict contour_opts: modify the plotting options of the contour plot (in 1D and 2D)
-        dict level_opts: modify the plotting options of the level plot (in 1D and 2D)
+        ax : matplotlib.Axes, optional
+            Matplotliv axes object. Need to be a 3-array if flag2d is True
+        flag2d : bool, default: ``False``
+            Flag to either plot a 1D or 2D probability distributions
+        x_component : int, optional
+            Physical property to plot on the X-axis, as ordered in the GMM.
+        y_component : int, optional
+            Physical property to plot on the Y-axis, as ordered in the GMM
+        padding : float, default: 0.2
+            How much relative padding around the petrophysical means for the 1D and 2D plots
+        plotting_precision : int, default: 100
+            Number of divisions for the 1D and 2D plots
+        plot_membership : bool, default: ``False``
+            Plot the membership rather than the probability
+        contour_opts : dict
+            Modify the plotting options of the contour plot (in 1D and 2D)
+        level_opts : dict
+            Modify the plotting options of the level plot (in 1D and 2D)
 
         Returns
         -------
-        ax: matplotlib axes
+        matplotlib.Axes
+            Axes including the plot
         """
 
         plotting_precision = int(plotting_precision)
@@ -775,16 +795,30 @@ class GaussianMixtureWithPrior(WeightedGaussianMixture):
 
     Addtional parameters to provide, compared to `WeightedGaussianMixture`:
 
-    :param numpy.ndarray kappa: strength of the confidence in the prior means
-    :param numpy.ndarry nu: strength of the confidence in the prior covariances
-    :param numpy.ndarry zeta: strength of the confidence in the prior proportions
-    :param str prior_type: "semi": semi-conjugate prior, the means and covariances priors are indepedent
-                           "full": conjugate prior, the means and covariances priors are inter-depedent
-    :param boolean update_covariances: True: semi or conjugate prior by averaging the covariances
-                                    False: alternative (not conjugate) prior: average the precisions instead
-    :param numpy.ndarray, dtype=int, shape=(index of the fixed cell, lithology index) fixed_membership:
-        a 2d numpy.ndarray to fix the membership to a chosen lithology of particular cells.
+    Parameters
+    ----------
+    kappa : numpy.ndarray
+        strength of the confidence in the prior means
+    nu : numpy.ndarry
+        strength of the confidence in the prior covariances
+    zeta : numpy.ndarry
+        strength of the confidence in the prior proportions
+    prior_type : str
+        Choose from one of the following:
+
+            - "semi": semi-conjugate prior, the means and covariances priors are indepedent
+            - "full": conjugate prior, the means and covariances priors are inter-depedent
+
+    update_covariances : bool
+        Choose from two options:
+
+        - ``True``: semi or conjugate prior by averaging the covariances
+        - ``False``: alternative (not conjugate) prior: average the precisions instead
+
+    fixed_membership : numpy.ndarray of int, optional
+        A 2d numpy.ndarray to fix the membership to a chosen lithology of particular cells.
         The first column contains the numeric index of the cells, the second column the respective lithology index.
+        Shape is (index of the fixed cell, lithology index) fixed_membership:
     """
 
     def __init__(
@@ -843,24 +877,22 @@ class GaussianMixtureWithPrior(WeightedGaussianMixture):
         # setKwargs(self, **kwargs)
 
     def order_cluster(self, outputindex=False):
-        """
+        """Order cluster
+
         Arrange the clusters of gmm in the same order as those of gmmref,
         based on their relative similarities and priorizing first the most proeminent
         clusters (highest proportions)
 
-        PARAMETERS
+        Parameters
         ----------
+        outputindex : bool, default: ``False``
+            If ``True``, return the ordering index for the clusters of GMM.
 
-        :param GaussianMixture gmm: Gaussian Mixture Model (GMM) to reorder.
-        :param GaussianMixture gmmref: reference GMM.
-        :param boolean outputindex: if True, return the ordering index for the clusters of gmm.
-                                Default is False.
-
-        RETURN
-        ------
-
-        :param numpy.ndarray indx: Optional, return the ordering index for the clusters of gmm
-
+        Returns
+        -------
+        numpy.ndarray of int
+            Returns the ordering index for the clusters of GMM if
+            *outputindex* is ``True``
         """
         self.order_clusters_GM_weight()
 
@@ -904,9 +936,15 @@ class GaussianMixtureWithPrior(WeightedGaussianMixture):
             return indx
 
     def update_gmm_with_priors(self, debug=False):
-        """
-        This function, inserted in the fit function, modify the Maximum Likelyhood Estimation (MLE)
+        """Update GMM with priors
+
+        This method, inserted in the fit function, modify the Maximum Likelyhood Estimation (MLE)
         of the GMM's parameters to a Maximum A Posteriori (MAP) estimation.
+
+        Parameters
+        ----------
+        debug : bool, default: ``False``
+            Print debug statments
         """
 
         self.compute_clusters_precisions()
@@ -994,9 +1032,9 @@ class GaussianMixtureWithPrior(WeightedGaussianMixture):
             print("after update precisions: ", self.precisions_)
 
     def fit(self, X, y=None, debug=False):
-        """
+        """Estimate model parameters with the EM algorithm.
+
         [modified from Scikit-Learn for Maximum A Posteriori estimates (MAP)]
-        Estimate model parameters with the EM algorithm.
         The method fits the model ``n_init`` times and sets the parameters with
         which the model has the largest likelihood or lower bound. Within each
         trial, the method iterates between E-step and M-step for ``max_iter``
@@ -1011,9 +1049,10 @@ class GaussianMixtureWithPrior(WeightedGaussianMixture):
         X : array-like, shape (n_samples, n_features)
             List of n_features-dimensional data points. Each row
             corresponds to a single data point.
-
         y : Ignored
             Not used, present for API consistency by convention.
+        debug : bool, default: ``False``
+            If ``True``, print debug statements
 
         Returns
         -------
@@ -1024,8 +1063,9 @@ class GaussianMixtureWithPrior(WeightedGaussianMixture):
         return self
 
     def fit_predict(self, X, y=None, debug=False):
-        """[modified from Scikit-Learn for Maximum A Posteriori estimates (MAP)]
-        Estimate model parameters using X and predict the labels for X.
+        """Estimate model parameters using X and predict the labels for X.
+
+        [modified from Scikit-Learn for Maximum A Posteriori estimates (MAP)]
         The method fits the model n_init times and sets the parameters with
         which the model has the largest likelihood or lower bound. Within each
         trial, the method iterates between E-step and M-step for `max_iter`
@@ -1033,17 +1073,20 @@ class GaussianMixtureWithPrior(WeightedGaussianMixture):
         `tol`, otherwise, a :class:`~sklearn.exceptions.ConvergenceWarning` is
         raised. After fitting, it predicts the most probable label for the
         input data points.
-        .. versionadded:: 0.20
+
         Parameters
         ----------
-        X : array-like of shape (n_samples, n_features)
+        X : (n_samples, n_features) array_like
             List of n_features-dimensional data points. Each row
             corresponds to a single data point.
         y : Ignored
             Not used, present for API consistency by convention.
+        debug : bool, default: ``False``
+            If ``True``, print debug statements
+
         Returns
         -------
-        labels : array, shape (n_samples,)
+        (n_samples) array
             Component labels.
         """
         if self.verbose:
@@ -1131,7 +1174,8 @@ class GaussianMixtureWithPrior(WeightedGaussianMixture):
 
 
 class GaussianMixtureWithNonlinearRelationships(WeightedGaussianMixture):
-    """
+    """Gaussian mixture class for non-linear relationships.
+
     This class built upon the WeightedGaussianMixture, which itself built upon from
     the mixture.gaussian_mixture.GaussianMixture class from Scikit-Learn.
 
@@ -1149,8 +1193,10 @@ class GaussianMixtureWithNonlinearRelationships(WeightedGaussianMixture):
 
     Addtional parameters to provide, compared to `WeightedGaussianMixture`:
 
-    :param list cluster_mapping (n_components, ): list of mapping describing
-        a nonlinear relationships between physical properties; one per cluster/unit.
+    Parameters
+    ----------
+    cluster_mapping : (n_components) list
+        List of mapping describing a nonlinear relationships between physical properties; one per cluster/unit.
     """
 
     def __init__(
@@ -1343,14 +1389,13 @@ class GaussianMixtureWithNonlinearRelationships(WeightedGaussianMixture):
 
         Parameters
         ----------
-        n_samples : int, optional
-            Number of samples to generate. Defaults to 1.
+        n_samples : int, default: `
+            Number of samples to generate.
 
         Returns
         -------
         X : array, shape (n_samples, n_features)
             Randomly generated sample
-
         y : array, shape (nsamples,)
             Component labels
 
@@ -1431,7 +1476,8 @@ class GaussianMixtureWithNonlinearRelationships(WeightedGaussianMixture):
 
 
 class GaussianMixtureWithNonlinearRelationshipsWithPrior(GaussianMixtureWithPrior):
-    """
+    """Gaussian mixture class for non-linear relationships with priors.
+
     This class built upon the `GaussianMixtureWithPrior`, which itself built upon from
     the `WeightedGaussianMixture`, built up from the
     mixture.gaussian_mixture.GaussianMixture class from Scikit-Learn.
@@ -1454,8 +1500,10 @@ class GaussianMixtureWithNonlinearRelationshipsWithPrior(GaussianMixtureWithPrio
 
     Addtional parameters to provide, compared to `GaussianMixtureWithPrior`:
 
-    :param list cluster_mapping (n_components, ): list of mapping describing
-        a nonlinear relationships between physical properties; one per cluster/unit.
+    Parameters
+    ----------
+    cluster_mapping : (n_components) list
+        List of mapping describing a nonlinear relationships between physical properties; one per cluster/unit.
 
     """
 

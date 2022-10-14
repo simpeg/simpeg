@@ -1,62 +1,99 @@
 import os
+
+# import properties
 import discretize
-import properties
 import numpy as np
 import multiprocessing
 from ..simulation import LinearSimulation
 from scipy.sparse import csr_matrix as csr
 from SimPEG.utils import mkvc
+from ..utils import validate_string
 
 ###############################################################################
 #                                                                             #
-#                             Base Potential Fields Simulation                   #
+#                             Base Potential Fields Simulation                #
 #                                                                             #
 ###############################################################################
 
 
 class BasePFSimulation(LinearSimulation):
+    r"""Base class for potential field simulations that use integral formulations.
 
+    For integral formulations, the forward simulation for a set of voxel cells
+    can be defined as a linear operation of the form:
+
+    .. math::
+        \mathbf{d} = \mathbf{Am}
+
+    where :math:`\mathbf{d}` are the data, :math:`\mathbf{m}` are the model paramters
+    and :math:`\mathbf{A}` is a linear operator defining the sensitivities. The primary
+    difference between child simulation classes is the kernel function used to create
+    the rows of :math:`\mathbf{A}`.
+
+    Parameters
+    ----------
+    mesh : discretize.TensorMesh or discretize.TreeMesh
+        A 3D tensor or tree mesh.
+    ind_active : np.ndarray of int or bool
+        Indices array denoting the active topography cells.
+    store_sensitivities : {'ram', 'disk', 'forward_only'}
+        Options for storing sensitivities. There are 3 options
+
+        - 'ram': sensitivities are stored in the computer's RAM
+        - 'disk': sensitivities are written to a directory
+        - 'forward_only': you intend only do perform a forward simulation and sensitivities do no need to be stored
+
+    """
     solver = None
 
-    actInd = properties.Array(
-        "Array of active cells (ground)", dtype=(bool, int), default=None
-    )
+    def __init__(self, mesh, ind_active=None, store_sensitivities="ram", **kwargs):
 
-    n_cpu = properties.Integer(
-        "Number of processors used for the forward simulation",
-        default=int(multiprocessing.cpu_count()),
-    )
+        # If deprecated property set with kwargs
+        if "actInd" in kwargs:
+            ind_active = kwargs.pop("actInd")
 
-    store_sensitivities = properties.StringChoice(
-        "Compute and store G", choices=["disk", "ram", "forward_only"], default="ram"
-    )
+        if "forwardOnly" in kwargs:
+            store_sensitivities = kwargs.pop("forwardOnly")
+            if store_sensitivities:
+                store_sensitivities = "forward_only"
 
-    def __init__(self, mesh, **kwargs):
+        self.store_sensitivities = store_sensitivities
+        LinearSimulation.__init__(self, mesh, **kwargs)
 
-        super().__init__(mesh=mesh, **kwargs)
-
-        # Find non-zero cells
-        if getattr(self, "actInd", None) is not None:
-            if self.actInd.dtype == "bool":
-                indices = np.where(self.actInd)[0]
-            else:
-                indices = self.actInd
-
+        # Find non-zero cells indices
+        if ind_active is not None:
+            try:
+                ind_active = np.asarray(ind_active)
+            except TypeError:
+                raise TypeError("ind_active must be array_like")
+            if np.issubdtype(ind_active.dtype, bool):
+                if len(ind_active) != mesh.n_cells:
+                    raise ValueError(
+                        "Boolean list of active cells must have length mesh.n_cells. "
+                        f"Saw {len(ind_active)} and expected {mesh.n_cells}."
+                    )
+                ind_active = np.where(ind_active)[0]
+            if not np.issubdtype(ind_active.dtype, np.integer):
+                raise ValueError(
+                    "ind_active must either be an array of booleans, or an array of "
+                    "integers describing listing the active cells."
+                )
         else:
+            ind_active = np.arange(self.mesh.nC)
+        self._ind_active = ind_active
 
-            indices = np.asarray(range(self.mesh.nC))
-
-        self.nC = len(indices)
+        self.nC = len(ind_active)
 
         # Create active cell projector
         projection = csr(
-            (np.ones(self.nC), (indices, range(self.nC))), shape=(self.mesh.nC, self.nC)
+            (np.ones(self.nC), (ind_active, range(self.nC))),
+            shape=(self.mesh.nC, self.nC),
         )
         if not isinstance(mesh, (discretize.TensorMesh, discretize.TreeMesh)):
             raise ValueError("Mesh must be 3D tensor or Octree.")
         # Create vectors of nodal location for the lower and upper corners
-        bsw = self.mesh.gridCC - self.mesh.h_gridded / 2.0
-        tne = self.mesh.gridCC + self.mesh.h_gridded / 2.0
+        bsw = self.mesh.cell_centers - self.mesh.h_gridded / 2.0
+        tne = self.mesh.cell_centers + self.mesh.h_gridded / 2.0
 
         xn1, xn2 = bsw[:, 0], tne[:, 0]
         yn1, yn2 = bsw[:, 1], tne[:, 1]
@@ -69,8 +106,62 @@ class BasePFSimulation(LinearSimulation):
             zn1, zn2 = bsw[:, 2], tne[:, 2]
             self.Zn = projection.T * np.c_[mkvc(zn1), mkvc(zn2)]
 
-    def linear_operator(self):
+    @property
+    def store_sensitivities(self):
+        """Options for storing sensitivities.
 
+        There are 3 options:
+
+        - 'ram': sensitivity matrix stored in RAM
+        - 'disk': sensitivities written and stored to disk
+        - 'forward_only': sensitivities are not store (only use for forward simulation)
+
+        Returns
+        -------
+        {'disk', 'ram', 'forward_only'}
+            A string defining the model type for the simulation.
+        """
+        if self._store_sensitivities is None:
+            self._store_sensitivities = "ram"
+        return self._store_sensitivities
+
+    @store_sensitivities.setter
+    def store_sensitivities(self, value):
+        self._store_sensitivities = validate_string(
+            "store_sensitivities", value, ["disk", "ram", "forward_only"]
+        )
+
+    @property
+    def ind_active(self):
+        """Active topography cells
+
+        Returns
+        -------
+        (n_cell) numpy.ndarray of bool
+            Returns the active topography cells
+        """
+        if self._ind_active is None:
+            self._ind_active = np.asarray(range(self.mesh.nC))
+        return self._ind_active
+
+    @property
+    def actInd(self):
+        """'actInd' is deprecated. Use 'ind_active' instead."""
+        warnings.warn(
+            "The 'actInd' property has been deprecated. "
+            "Please use 'ind_active'. This will be removed in version 0.17.0 of SimPEG.",
+            FutureWarning,
+        )
+        return self._ind_active
+
+    def linear_operator(self):
+        """Return linear operator
+
+        Returns
+        -------
+        numpy.ndarray
+            Linear operator
+        """
         self.nC = self.modelMap.shape[0]
 
         components = np.array(list(self.survey.components.keys()))
@@ -116,13 +207,7 @@ class BasePFSimulation(LinearSimulation):
         return kernel
 
     def evaluate_integral(self):
-        """
-        evaluate_integral
-
-        Compute the forward linear relationship between the model and the physics at a point.
-        :param self:
-        :return:
-        """
+        """'evaluate_integral' method no longer implemented for *BaseSimulation* class."""
 
         raise RuntimeError(
             f"Integral calculations must implemented by the subclass {self}."
@@ -172,7 +257,7 @@ class BasePFSimulation(LinearSimulation):
             "loading dask for parallelism by doing ``import SimPEG.dask``."
         )
 
-    @parallelized.setter
+    @n_cpu.setter
     def n_cpu(self, other):
         raise TypeError(
             "Do not set n_cpu. If interested, try out "
@@ -216,12 +301,21 @@ class BaseEquivalentSourceLayerSimulation(BasePFSimulation):
 
 
 def progress(iter, prog, final):
-    """
-    progress(iter,prog,final)
-    Function measuring the progress of a process and print to screen the %.
-    Useful to estimate the remaining runtime of a large problem.
-    Created on Dec, 20th 2015
-    @author: dominiquef
+    """Progress (% complete) for constructing sensitivity matrix
+
+    Parameters
+    ----------
+    iter : int
+        Current rows
+    prog : float
+        Progress
+    final : int
+        Number of rows (= number of receivers)
+
+    Returns
+    -------
+    float
+        % completed
     """
     arg = np.floor(float(iter) / float(final) * 10.0)
 
@@ -234,25 +328,25 @@ def progress(iter, prog, final):
 
 
 def get_dist_wgt(mesh, receiver_locations, actv, R, R0):
-    """
-    get_dist_wgt(xn,yn,zn,receiver_locations,R,R0)
+    """Compute distance weights for potential field simulations
 
-    Function creating a distance weighting function required for the magnetic
-    inverse problem.
+    Parameters
+    ----------
+    mesh : discretize.BaseMesh
+        A discretize mesh
+    receiver_locations : (n, 3) numpy.ndarray
+        Observation locations [x, y, z]
+    actv : (n_cell) numpy.ndarray of bool
+        Active cells vector [0:air , 1: ground]
+    R : float
+        Decay factor (mag=3, grav =2)
+    R0 : float
+        Stabilization factor. Usually a fraction of the minimum cell size
 
-    INPUT
-    xn, yn, zn : Node location
-    receiver_locations       : Observation locations [obsx, obsy, obsz]
-    actv        : Active cell vector [0:air , 1: ground]
-    R           : Decay factor (mag=3, grav =2)
-    R0          : Small factor added (default=dx/4)
-
-    OUTPUT
-    wr       : [nC] Vector of distance weighting
-
-    Created on Dec, 20th 2015
-
-    @author: dominiquef
+    Returns
+    -------
+    wr : (n_cell) numpy.ndarray
+        Distance weighting model; 0 for all inactive cells
     """
 
     # Find non-zero cells

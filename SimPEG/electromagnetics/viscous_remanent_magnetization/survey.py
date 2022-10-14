@@ -1,8 +1,10 @@
 import numpy as np
-import properties
+
+# import properties
 
 from ...survey import BaseSurvey
 from .sources import BaseSrcVRM
+from ...utils import validate_list_of_types, validate_ndarray_with_shape
 
 
 ############################################
@@ -11,22 +13,27 @@ from .sources import BaseSrcVRM
 
 
 class SurveyVRM(BaseSurvey):
+    """Base VRM survey
 
-    """"""
+    Parameters
+    ----------
+    source_list : list of SimPEG.electromagnetic.viscous_remanent_magnetization.sources.BaseSrcVRM
+        List of SimPEG VRM sources
+    t_active : numpy.ndarray of bool
+        Active time channels used in inversion
+    """
 
-    source_list = properties.List(
-        "A list of sources for the survey",
-        properties.Instance("A SimPEG source", BaseSrcVRM),
-        default=[],
-    )
+    # source_list = properties.List(
+    #     "A list of sources for the survey",
+    #     properties.Instance("A SimPEG source", BaseSrcVRM),
+    #     default=[],
+    # )
 
-    t_active = properties.Array(
-        "Boolean array where True denotes active data in the inversion", dtype=bool
-    )
+    # t_active = properties.Array(
+    #     "Boolean array where True denotes active data in the inversion", dtype=bool
+    # )
 
-    def __init__(self, source_list=None, **kwargs):
-
-        t_active = kwargs.pop("t_active", None)
+    def __init__(self, source_list, t_active=None, **kwargs):
 
         super(SurveyVRM, self).__init__(source_list=source_list, **kwargs)
 
@@ -34,17 +41,35 @@ class SurveyVRM(BaseSurvey):
         self._nD = self._nD_all
 
         if t_active is None:
-            self.t_active = np.ones(self._nD_all, dtype=bool)
-        else:
-            self.t_active = t_active
+            t_active = np.ones(self._nD_all, dtype=bool)
+        self.t_active = validate_ndarray_with_shape(
+            "t_active", t_active, shape=(self._nD_all,), dtype=bool
+        )
 
-    @properties.validator("t_active")
-    def _t_active_validator(self, change):
-        if self._nD_all != len(change["value"]):
-            raise ValueError(
-                "Length of t_active boolean array must equal number of data. Number of data is %i"
-                % self._nD_all
-            )
+    @property
+    def source_list(self):
+        """List of VRM sources associated with the survey
+
+        Returns
+        -------
+        list of BaseSrcVRM
+            List of VRM sources associated with the survey
+        """
+        return self._source_list
+
+    @source_list.setter
+    def source_list(self, new_list):
+        self._source_list = validate_list_of_types(
+            "source_list", new_list, BaseSrcVRM, ensure_unique=True
+        )
+
+    # @properties.validator("t_active")
+    # def _t_active_validator(self, change):
+    #     if self._nD_all != len(change["value"]):
+    #         raise ValueError(
+    #             "Length of t_active boolean array must equal number of data. Number of data is %i"
+    #             % self._nD_all
+    #         )
 
     @property
     def nD(self):

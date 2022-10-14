@@ -31,7 +31,7 @@ class TestStepOffWaveform(unittest.TestCase):
         """For StepOffWaveform, offTime arg does not do anything."""
         step_off = StepOffWaveform(offTime=1e-3)
         result = [step_off.eval(t) for t in self.times]
-        expected = np.array([1.0] + [0.0] * 10)
+        expected = np.array([1.0, 1.0] + [0.0] * 9)
         assert_array_almost_equal(result, expected)
 
 
@@ -58,7 +58,7 @@ class TestRampOffWaveform(unittest.TestCase):
 
         def f(t):
             wave_eval = np.array([wave.eval(ti) for ti in t])
-            dWave_dt = sp.diags(wave.evalDeriv(t))
+            dWave_dt = sp.diags(wave.eval_deriv(t))
             return wave_eval, dWave_dt
 
         t_nodes = wave.time_nodes
@@ -100,7 +100,7 @@ class TestVTEMWaveform(unittest.TestCase):
 
         def f(t):
             wave_eval = np.array([wave.eval(ti) for ti in t])
-            dWave_dt = sp.diags(wave.evalDeriv(t))
+            dWave_dt = sp.diags(wave.eval_deriv(t))
             return wave_eval, dWave_dt
 
         t_nodes = wave.time_nodes
@@ -142,7 +142,7 @@ class TestTrapezoidWaveform(unittest.TestCase):
 
         def f(t):
             wave_eval = np.array([wave.eval(ti) for ti in t])
-            dWave_dt = sp.diags(wave.evalDeriv(t))
+            dWave_dt = sp.diags(wave.eval_deriv(t))
             return wave_eval, dWave_dt
 
         t_nodes = wave.time_nodes
@@ -180,7 +180,7 @@ class TestTriangularWaveform(unittest.TestCase):
 
         def f(t):
             wave_eval = np.array([wave.eval(ti) for ti in t])
-            dWave_dt = sp.diags(wave.evalDeriv(t))
+            dWave_dt = sp.diags(wave.eval_deriv(t))
             return wave_eval, dWave_dt
 
         t_nodes = wave.time_nodes
@@ -253,7 +253,7 @@ class TestQuarterSineRampOnWaveform(unittest.TestCase):
 
         def f(t):
             wave_eval = np.array([wave.eval(ti) for ti in t])
-            dWave_dt = sp.diags(wave.evalDeriv(t))
+            dWave_dt = sp.diags(wave.eval_deriv(t))
             return wave_eval, dWave_dt
 
         t_nodes = wave.time_nodes
@@ -275,7 +275,7 @@ class TestQuarterSineRampOnWaveform(unittest.TestCase):
 
         def f(t):
             wave_eval = np.array([wave.eval(ti) for ti in t])
-            dWave_dt = sp.diags(wave.evalDeriv(t))
+            dWave_dt = sp.diags(wave.eval_deriv(t))
             return wave_eval, dWave_dt
 
         t_nodes = wave.time_nodes
@@ -297,7 +297,7 @@ class TestQuarterSineRampOnWaveform(unittest.TestCase):
 
         def f(t):
             wave_eval = np.array([wave.eval(ti) for ti in t])
-            dWave_dt = sp.diags(wave.evalDeriv(t))
+            dWave_dt = sp.diags(wave.eval_deriv(t))
             return wave_eval, dWave_dt
 
         t_nodes = wave.time_nodes
@@ -357,7 +357,7 @@ class TestHalfSineWaveform(unittest.TestCase):
 
         def f(t):
             wave_eval = np.array([wave.eval(ti) for ti in t])
-            dWave_dt = sp.diags(wave.evalDeriv(t))
+            dWave_dt = sp.diags(wave.eval_deriv(t))
             return wave_eval, dWave_dt
 
         t_nodes = wave.time_nodes
@@ -377,7 +377,7 @@ class TestHalfSineWaveform(unittest.TestCase):
 
         def f(t):
             wave_eval = np.array([wave.eval(ti) for ti in t])
-            dWave_dt = sp.diags(wave.evalDeriv(t))
+            dWave_dt = sp.diags(wave.eval_deriv(t))
             return wave_eval, dWave_dt
 
         t_nodes = wave.time_nodes
@@ -415,7 +415,7 @@ class TestPiecewiseLinearWaveform(unittest.TestCase):
 
         def f(t):
             wave_eval = np.array([wave.eval(ti) for ti in t])
-            dWave_dt = sp.diags(wave.evalDeriv(t))
+            dWave_dt = sp.diags(wave.eval_deriv(t))
             return wave_eval, dWave_dt
 
         t_nodes = wave.time_nodes

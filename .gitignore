@@ -43,6 +43,7 @@ nosetests.xml
 *.code-workspace
 docs/_build/
 docs/warnings.txt
+docs/content/api/generated/*
 .DS_Store
 docs/content/examples/*
 docs/content/tutorials/*
@@ -62,9 +63,11 @@ tutorials/05-dcr/dcr1d/*
 tutorials/05-dcr/dcr2d/*
 tutorials/05-dcr/dcr3d/*
 tutorials/05-dcr/outputs/*
+tutorials/05-dcr/*.html
 tutorials/06-ip/dcip2d/*
 tutorials/06-ip/dcip3d/*
 tutorials/06-ip/outputs/*
+tutorials/06-ip/*.html
 tutorials/07-fdem/em1dfm/*
 tutorials/07-fdem/em1dfm_stitched/*
 tutorials/07-fdem/outputs/*

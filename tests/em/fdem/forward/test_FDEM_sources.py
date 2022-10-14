@@ -177,6 +177,19 @@ class TestSimpleSourcePropertiesTensor(unittest.TestCase):
 
         return passed
 
+
+    # ------------- GENERAL ------------------ #
+
+    def test_integrate_source_failure(self):
+        self.assertRaises(
+            TypeError,
+            fdem.sources.BaseFDEMSrc,
+            [],
+            frequency=self.frequency,
+            location=self.location,
+            integrate=4.
+        )
+
     # ------------- TEST MAG DIPOLE ------------------ #
 
     def test_MagDipole_bPrimaryMu0_e(self):
@@ -446,7 +459,3 @@ class TestSimpleSourcePropertiesTensor(unittest.TestCase):
                 current=0.5,
                 N=2,
             )
-
-
-if __name__ == "__main__":
-    unittest.main()

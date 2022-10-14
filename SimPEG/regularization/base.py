@@ -9,7 +9,7 @@ from ..objective_function import BaseObjectiveFunction, ComboObjectiveFunction
 from .. import utils
 from .regularization_mesh import RegularizationMesh
 
-from SimPEG.utils.code_utils import deprecate_property, validate_array_type, validate_shape
+from SimPEG.utils.code_utils import deprecate_property, validate_ndarray_with_shape
 
 if TYPE_CHECKING:
     from scipy.sparse import csr_matrix
@@ -114,8 +114,10 @@ class BaseRegularization(BaseObjectiveFunction):
         if isinstance(values, float):
             values = np.ones(self._nC_residual) * values
 
-        validate_array_type("model", values, float)
-        validate_shape("model", values, (self._nC_residual,))
+        values = validate_ndarray_with_shape(
+            "model", values, shape=(self._nC_residual,), dtype=float
+        )
+
         self._model = values
 
     @property
@@ -166,7 +168,7 @@ class BaseRegularization(BaseObjectiveFunction):
         if getattr(self, "_mapping", None) is not None and self.mapping.shape != "*":
             return (self.mapping.shape[0],)
 
-        return "*"
+        return ("*",)
 
     @property
     def reference_model(self) -> np.ndarray:
@@ -179,8 +181,9 @@ class BaseRegularization(BaseObjectiveFunction):
             if isinstance(values, float):
                 values = np.ones(self._nC_residual) * values
 
-            validate_array_type("reference_model", values, float)
-            validate_shape("reference_model", values, (self._nC_residual,))
+            values = validate_ndarray_with_shape(
+                "reference_model", values, shape=(self._nC_residual,), dtype=float
+            )
         self._reference_model = values
 
     mref = deprecate_property(
@@ -245,8 +248,9 @@ class BaseRegularization(BaseObjectiveFunction):
         array([1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1.])
         """
         for key, values in weights.items():
-            validate_array_type("weights", values, float)
-            validate_shape("weights", values, self._weights_shapes)
+            values = validate_ndarray_with_shape(
+                "weights", values, shape=self._weights_shapes, dtype=float
+            )
             self._weights[key] = values
         self._W = None
 
@@ -703,16 +707,24 @@ class WeightedLeastSquares(ComboObjectiveFunction):
             if mesh.dim > 1:
                 objfcts.extend(
                     [
-                        SmoothnessFirstOrder(mesh=self.regularization_mesh, orientation="y"),
-                        SmoothnessSecondOrder(mesh=self.regularization_mesh, orientation="y"),
+                        SmoothnessFirstOrder(
+                            mesh=self.regularization_mesh, orientation="y"
+                        ),
+                        SmoothnessSecondOrder(
+                            mesh=self.regularization_mesh, orientation="y"
+                        ),
                     ]
                 )
 
             if mesh.dim > 2:
                 objfcts.extend(
                     [
-                        SmoothnessFirstOrder(mesh=self.regularization_mesh, orientation="z"),
-                        SmoothnessSecondOrder(mesh=self.regularization_mesh, orientation="z"),
+                        SmoothnessFirstOrder(
+                            mesh=self.regularization_mesh, orientation="z"
+                        ),
+                        SmoothnessSecondOrder(
+                            mesh=self.regularization_mesh, orientation="z"
+                        ),
                     ]
                 )
         else:
