@@ -15,9 +15,10 @@ from ...utils.code_utils import (
     validate_location_property,
     validate_callable,
     validate_direction,
+    validate_integer,
 )
 
-from ...utils import set_kwargs, sdiag, Zero
+from ...utils import sdiag, Zero
 from ..base import BaseEMSrc
 from ..utils import line_through_faces, segmented_line_current_source_term
 
@@ -1476,7 +1477,7 @@ class CircularLoop(MagDipole):
         orientation="z",
         radius=1.0,
         current=1.0,
-        N=1,
+        n_turns=1,
         mu=mu_0,
         srcType="inductive",
         **kwargs,
@@ -1487,6 +1488,12 @@ class CircularLoop(MagDipole):
         if "moment" in kwargs:
             kwargs.pop("moment")
 
+        N = kwargs.pop("N", None)
+        if N is not None:
+            self.N = N
+        else:
+            self.n_turns = n_turns
+
         BaseTDEMSrc.__init__(
             self, receiver_list=receiver_list, location=location, **kwargs
         )
@@ -1494,7 +1501,6 @@ class CircularLoop(MagDipole):
         self.orientation = orientation
         self.radius = radius
         self.current = current
-        self.N = N
         self.mu = mu
         self.srcType = srcType
 
@@ -1549,7 +1555,7 @@ class CircularLoop(MagDipole):
         float
             Dipole moment of the loop
         """
-        return np.pi * self.radius ** 2 * self.current * self.N
+        return np.pi * self.radius ** 2 * self.current * self.n_turns
 
     @moment.setter
     def moment(self):
@@ -1558,6 +1564,20 @@ class CircularLoop(MagDipole):
             "of the loop radius and transmitter current"
         )
         pass
+
+    @property
+    def n_turns(self):
+        """Number of turns in the loop.
+
+        Returns
+        -------
+        int
+        """
+        return self._n_turns
+
+    @n_turns.setter
+    def n_turns(self, value):
+        self._n_turns = validate_integer("n_turns", value, min_val=1)
 
     def _srcFct(self, obsLoc, coordinates="cartesian"):
         # return MagneticLoopVectorPotential(
@@ -1572,8 +1592,9 @@ class CircularLoop(MagDipole):
                 radius=self.radius,
                 current=self.current,
             )
-        return self._loop.vector_potential(obsLoc, coordinates)
+        return self.n_turns * self._loop.vector_potential(obsLoc, coordinates)
 
+    N = deprecate_property(n_turns, "N", "n_turns", removal_version="0.19.0")
 
 class LineCurrent(BaseTDEMSrc):
     """Line current source.

@@ -1,16 +1,14 @@
 from __future__ import print_function
+
 import unittest
+import warnings
 
 import discretize
-from scipy.constants import mu_0
-
-from SimPEG.electromagnetics import frequency_domain as fdem
-from geoana.em.static import MagneticDipoleWholeSpace
-
-# from SimPEG.electromagnetics.analytics.FDEM import MagneticDipoleWholeSpace
 import numpy as np
+from geoana.em.static import MagneticDipoleWholeSpace
+from scipy.constants import mu_0
 from SimPEG import maps, utils
-import warnings
+from SimPEG.electromagnetics import frequency_domain as fdem
 
 TOL = 0.5  # relative tolerance (to norm of soln)
 plotIt = False
@@ -102,11 +100,6 @@ class TestSimpleSourcePropertiesTensor(unittest.TestCase):
                 mu=src.mu,
             ).magnetic_flux_density(XYZ)
 
-            # return np.hstack(MagneticDipoleWholeSpace(XYZ, src.location,
-            #     0.,0., moment=1., orientation=src.orientation,
-            #     mu=src.mu
-            # ))
-
         if probType in ["e", "b"]:
             # TODO: clean up how we call analytics
             bx = ana_sol(self.mesh.gridFx)[:, 0]
@@ -171,8 +164,8 @@ class TestSimpleSourcePropertiesTensor(unittest.TestCase):
             print(self.mesh.vnF)
 
             fig, ax = plt.subplots(1, 2)
+            ax[0].semilogy(np.absolute(bPrimary_ana), linewidth=2.0)
             ax[0].semilogy(np.absolute(bPrimary))
-            ax[0].semilogy(np.absolute(bPrimary_ana))
             ax[0].legend(["|num|", "|ana|"])
             ax[0].set_ylim([tol, bPrimary.max() * 2])
 
@@ -184,7 +177,6 @@ class TestSimpleSourcePropertiesTensor(unittest.TestCase):
 
         return passed
 
-
     # ------------- GENERAL ------------------ #
 
     def test_integrate_source_failure(self):
@@ -194,7 +186,7 @@ class TestSimpleSourcePropertiesTensor(unittest.TestCase):
             [],
             frequency=self.frequency,
             location=self.location,
-            integrate=4.
+            integrate=4.0,
         )
 
     # ------------- TEST MAG DIPOLE ------------------ #
@@ -450,3 +442,20 @@ class TestSimpleSourcePropertiesTensor(unittest.TestCase):
             mu=50.0 * mu_0,
         )
         assert self.bPrimaryTest(src, "j")
+
+
+def test_CircularLoop_test_N_assign():
+    """
+    Test depreciation of the N argument (now n_turns)
+    """
+    src = fdem.sources.CircularLoop(
+        [],
+        frequency=1e-3,
+        radius=np.sqrt(1 / np.pi),
+        location=[0, 0, 0],
+        orientation="Z",
+        mu=mu_0,
+        current=0.5,
+        N=2,
+    )
+    assert src.n_turns == 2

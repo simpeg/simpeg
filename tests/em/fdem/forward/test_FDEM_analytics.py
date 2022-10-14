@@ -1,19 +1,19 @@
 from __future__ import print_function
+
 import unittest
-import numpy as np
-import scipy.sparse as sp
 
 import discretize
-from SimPEG import utils
-from SimPEG import SolverLU
-from SimPEG.electromagnetics import frequency_domain as fdem
-from SimPEG.electromagnetics import analytics
+import matplotlib.pylab as plt
+import numpy as np
+import scipy.sparse as sp
 from scipy.constants import mu_0
+from SimPEG import SolverLU, utils
+from SimPEG.electromagnetics import analytics
+from SimPEG.electromagnetics import frequency_domain as fdem
 
 # import matplotlib
 # matplotlib.use('Agg')
 
-import matplotlib.pylab as plt
 
 plotIt = False
 tol_Transect = 2e-1
@@ -48,6 +48,9 @@ class FDEM_analyticTests(unittest.TestCase):
                 location=np.r_[0.0, 0.0, 0.0],
                 frequency=freq,
                 radius=np.sqrt(1.0 / np.pi),
+                # test number of turns and current
+                n_turns=2,
+                current=0.5,
             ),
         ]
 

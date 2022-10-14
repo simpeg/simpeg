@@ -1,13 +1,15 @@
 from __future__ import division, print_function
+
 import unittest
-import numpy as np
+
 import discretize
-from SimPEG import maps, SolverLU
-from SimPEG.electromagnetics import time_domain as tdem
-from SimPEG.electromagnetics import analytics
-from scipy.constants import mu_0
 import matplotlib.pyplot as plt
+import numpy as np
 from pymatsolver import Pardiso as Solver
+from scipy.constants import mu_0
+from SimPEG import maps
+from SimPEG.electromagnetics import analytics
+from SimPEG.electromagnetics import time_domain as tdem
 
 
 def analytic_wholespace_dipole_comparison(
@@ -220,6 +222,9 @@ def analytic_halfspace_mag_dipole_comparison(
             waveform=tdem.Src.StepOffWaveform(),
             location=np.array([0.0, 0.0, 0.0]),
             radius=0.1,
+            # test number of turns and current
+            n_turns=2,
+            current=0.5,
         )
 
     survey = tdem.Survey([src])
@@ -277,12 +282,6 @@ def analytic_halfspace_mag_dipole_comparison(
         plt.show()
 
     return log10diff
-
-
-class TDEM_SimpleSrcTests(unittest.TestCase):
-    def test_source(self):
-        waveform = tdem.sources.StepOffWaveform()
-        assert waveform.eval(0.0) == 1.0
 
 
 ###########################################################
