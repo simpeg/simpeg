@@ -251,6 +251,9 @@ def analytic_halfspace_mag_dipole_comparison(
             waveform=tdem.Src.StepOffWaveform(),
             location=np.array([0.0, 0.0, 0.0]),
             radius=0.1,
+            # test number of turns and current
+            n_turns=2,
+            current=0.5,
         )
 
     survey = tdem.Survey([src])
@@ -308,12 +311,6 @@ def analytic_halfspace_mag_dipole_comparison(
         plt.show()
 
     return log10diff
-
-
-class TDEM_SimpleSrcTests(unittest.TestCase):
-    def test_source(self):
-        waveform = tdem.sources.StepOffWaveform()
-        assert waveform.eval(0.0) == 1.0
 
 
 ###########################################################

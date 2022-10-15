@@ -12,7 +12,9 @@ from SimPEG.electromagnetics.time_domain.sources import (
     QuarterSineRampOnWaveform,
     HalfSineWaveform,
     PiecewiseLinearWaveform,
+    CircularLoop,
 )
+
 from discretize.tests import check_derivative
 
 
@@ -428,3 +430,23 @@ class TestPiecewiseLinearWaveform(unittest.TestCase):
         dt = np.min(np.diff(t0)) * 0.5 * np.ones_like(t0)
 
         assert check_derivative(f, t0, dx=dt, plotIt=False)
+
+
+def test_simple_source():
+    waveform = StepOffWaveform()
+    assert waveform.eval(0.0) == 1.0
+
+
+def test_CircularLoop_test_N_assignment():
+    """
+    Test depreciation of the N property
+    """
+    loop = CircularLoop(
+        [],
+        waveform=StepOffWaveform(),
+        location=np.array([0.0, 0.0, 0.0]),
+        radius=1.0,
+        current=0.5,
+        N=2,
+    )
+    assert loop.n_turns == 2
