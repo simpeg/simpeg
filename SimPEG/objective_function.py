@@ -90,14 +90,6 @@ class BaseObjectiveFunction(BaseSimPEG):
         self._mapping = value
 
     @timeIt
-    def __call__(self, x, f=None):
-        raise NotImplementedError(
-            "The method __call__ has not been implemented for {}".format(
-                self.__class__.__name__
-            )
-        )
-
-    @timeIt
     def deriv(self, x, **kwargs):
         """
         First derivative of the objective function with respect to the model
