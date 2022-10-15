@@ -3,6 +3,7 @@ import scipy.sparse as sp
 import properties
 
 from .base import BaseSimilarityMeasure
+from ..utils import validate_type
 
 
 ###############################################################################
@@ -32,13 +33,9 @@ class CrossGradient(BaseSimilarityMeasure):
     #     "whether to implement normalized cross-gradient", default=False
     # )
 
-    approx_hessian = properties.Bool(
-        "whether to use the semi-positive definate approximation for the hessian",
-        default=True,
-    )
-
-    def __init__(self, mesh, wire_map, **kwargs):
+    def __init__(self, mesh, wire_map, approx_hessian=True, **kwargs):
         super().__init__(mesh, wire_map=wire_map, **kwargs)
+        self.approx_hessian = approx_hessian
 
         regmesh = self.regularization_mesh
 
@@ -46,6 +43,19 @@ class CrossGradient(BaseSimilarityMeasure):
             raise ValueError("Cross-Gradient is only defined for 2D or 3D")
         self._G = regmesh.cell_gradient
         self._Av = sp.diags(np.sqrt(regmesh.vol)) * regmesh.average_face_to_cell
+
+    @property
+    def approx_hessian(self):
+        """whether to use the semi-positive definate approximation for the hessian.
+        Returns
+        -------
+        bool
+        """
+        return self._approx_hessian
+
+    @approx_hessian.setter
+    def approx_hessian(self, value):
+        self._approx_hessian = validate_type("approx_hessian", value, bool)
 
     def _calculate_gradient(self, model, normalized=False, rtol=1e-6):
         """
