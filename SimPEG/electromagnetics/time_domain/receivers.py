@@ -1,7 +1,7 @@
 import scipy.sparse as sp
 
-# import properties
-from ...utils import mkvc, validate_string, validate_type
+from ...utils import mkvc, validate_string, validate_type, validate_direction
+from discretize.utils import Zero
 from ...survey import BaseTimeRx
 import warnings
 
@@ -13,7 +13,7 @@ class BaseRx(BaseTimeRx):
     ----------
     locations : (n_loc, n_dim) numpy.ndarray
         Receiver locations.
-    orientation : {'z', 'x', 'y'}
+    orientation : {'z', 'x', 'y'} or numpy.ndarray
         Receiver orientation.
     times : (n_times) numpy.ndarray
         Time channels
@@ -56,16 +56,14 @@ class BaseRx(BaseTimeRx):
 
         Returns
         -------
-        str
-            Orientation of the receiver. One of {'x', 'y', 'z'}
+        numpy.ndarray
+            Orientation of the receiver.
         """
         return self._orientation
 
     @orientation.setter
     def orientation(self, var):
-        self._orientation = validate_string(
-            "orientation", var, string_list=("x", "y", "z")
-        )
+        self._orientation = validate_direction("orientation", var, dim=3)
 
     # def projected_grid(self, f):
     #     """Grid Location projection (e.g. Ex Fy ...)"""
@@ -113,8 +111,12 @@ class BaseRx(BaseTimeRx):
         scipy.sparse.csr_matrix
             P, the interpolation matrix
         """
-        projected_grid = f._GLoc(self.projField) + self.orientation
-        return mesh.getInterpolationMat(self.locations, projected_grid)
+        P = Zero()
+        field = f._GLoc(self.projField)
+        for strength, comp in zip(self.orientation, ["x", "y", "z"]):
+            if strength != 0.0:
+                P = P + strength * mesh.get_interpolation_matrix(self.locations, field + comp)
+        return P
 
     def getTimeP(self, time_mesh, f):
         """Get time projection matrix from mesh to receivers.

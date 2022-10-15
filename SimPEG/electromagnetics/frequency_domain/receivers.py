@@ -1,7 +1,8 @@
 # import properties
 from ... import survey
-from ...utils import validate_string, validate_type
+from ...utils import validate_string, validate_type, validate_direction
 import warnings
+from discretize.utils import Zero
 
 
 class BaseRx(survey.BaseRx):
@@ -11,7 +12,7 @@ class BaseRx(survey.BaseRx):
     ----------
     locations : (n_loc, n_dim) numpy.ndarray
         Receiver locations.
-    orientation : {'z', 'x', 'y'}
+    orientation : {'z', 'x', 'y'} or numpy.ndarray
         Receiver orientation.
     component : {'real', 'imag', 'both', 'complex'}
         Component of the receiver; i.e. 'real' or 'imag'. The options 'both' and
@@ -56,15 +57,13 @@ class BaseRx(survey.BaseRx):
 
         Returns
         -------
-        str : {'x', 'y', 'z'}
+        numpy.ndarray
         """
         return self._orientation
 
     @orientation.setter
     def orientation(self, var):
-        self._orientation = validate_string(
-            "orientation", var, string_list=("x", "y", "z")
-        )
+        self._orientation = validate_direction("orientation", var, dim=3)
 
     @property
     def component(self):
@@ -143,6 +142,40 @@ class BaseRx(survey.BaseRx):
             "use_source_receiver_offset", val, bool
         )
 
+    def getP(self, mesh, projected_grid):
+        """Get projection matrix from mesh to receivers
+
+        Parameters
+        ----------
+        mesh : discretize.BaseMesh
+            A discretize mesh
+        projected_grid : str
+            Define what part of the mesh (i.e. edges, faces, centers, nodes) to
+            project from. Must be one of::
+
+                'E', 'edges_'           -> field defined on edges
+                'F', 'faces_'           -> field defined on faces
+                'CCV', 'cell_centers_'  -> vector field defined on cell centers
+
+        Returns
+        -------
+        scipy.sparse.csr_matrix
+            P, the interpolation matrix
+        """
+        if (mesh, projected_grid) in self._Ps:
+            return self._Ps[(mesh, projected_grid)]
+
+        P = Zero()
+        for strength, comp in zip(self.orientation, ["x", "y", "z"]):
+            if strength != 0.0:
+                P = P + strength * mesh.get_interpolation_matrix(
+                    self.locations, projected_grid + comp
+                )
+
+        if self.storeProjections:
+            self._Ps[(mesh, projected_grid)] = P
+        return P
+
     def eval(self, src, mesh, f):
         """Project fields from the mesh to the receiver(s).
 
@@ -160,7 +193,7 @@ class BaseRx(survey.BaseRx):
         numpy.ndarray
             Fields projected to the receiver(s)
         """
-        projected_grid = f._GLoc(self.projField) + self.orientation
+        projected_grid = f._GLoc(self.projField)
         P = self.getP(mesh, projected_grid)
         f_part_complex = f[src, self.projField]
         f_part = getattr(f_part_complex, self.component)  # real or imag component
@@ -196,7 +229,7 @@ class BaseRx(survey.BaseRx):
 
         assert v is not None, "v must be provided to compute the deriv or adjoint"
 
-        projected_grid = f._GLoc(self.projField) + self.orientation
+        projected_grid = f._GLoc(self.projField)
         P = self.getP(mesh, projected_grid)
 
         if not adjoint:

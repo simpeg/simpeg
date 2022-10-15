@@ -566,7 +566,7 @@ class MagDipole(BaseFDEMSrc):
                     else:
                         locs = rx.locations
                     h_rx = dipole.magnetic_field(locs)
-                    out.append(h_rx[:, {"x": 0, "y": 1, "z": 2}[rx.orientation]])
+                    out.append(h_rx @ rx.orientation)
                 self._1d_h = out
             return self._1d_h
         b = self.bPrimary(simulation)
