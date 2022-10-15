@@ -1,6 +1,5 @@
 import numpy as np
 import scipy.sparse as sp
-import properties
 
 from .base import BaseSimilarityMeasure
 from ..utils import validate_type

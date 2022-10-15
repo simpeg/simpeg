@@ -1,6 +1,6 @@
 import numpy as np
 import scipy.sparse as sp
-from utils import validate_ndarray_with_shape
+from ..utils import validate_ndarray_with_shape
 
 from .. import utils
 from .base import BaseSimilarityMeasure
