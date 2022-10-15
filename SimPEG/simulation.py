@@ -101,7 +101,7 @@ class BaseSimulation(props.HasModel):
         self._counter = value
 
     @property
-    def sensitivity_path(self, value):
+    def sensitivity_path(self):
         """Path to store the sensitivty.
 
         Returns
