@@ -11,6 +11,7 @@ from SimPEG.utils import (
     validate_type,
     validate_callable,
     validate_direction,
+    validate_active_indices,
 )
 
 
@@ -215,11 +216,15 @@ def test_ndarray_validation():
     np.testing.assert_equal(out, np.array([3.0, 4.0, 5.0]))
 
     # should convert to first good type
-    out = validate_ndarray_with_shape("array_prop", ["3", "4", "5"], dtype=(float, complex))
+    out = validate_ndarray_with_shape(
+        "array_prop", ["3", "4", "5"], dtype=(float, complex)
+    )
     assert np.issubdtype(out.dtype, float)
     np.testing.assert_equal(out, np.array([3.0, 4.0, 5.0]))
 
-    out = validate_ndarray_with_shape("array_prop", ["3j", "4j", "5j"], dtype=(float, complex))
+    out = validate_ndarray_with_shape(
+        "array_prop", ["3j", "4j", "5j"], dtype=(float, complex)
+    )
     assert np.issubdtype(out.dtype, complex)
     np.testing.assert_equal(out, np.array([3.0j, 4.0j, 5.0j]))
 
@@ -264,7 +269,9 @@ def test_ndarray_validation():
 
     # improper types
     with pytest.raises(TypeError):
-        validate_ndarray_with_shape("NDarrayProperty", ["a", "b"], ("*",), dtype=(float, complex))
+        validate_ndarray_with_shape(
+            "NDarrayProperty", ["a", "b"], ("*",), dtype=(float, complex)
+        )
 
     # a shape is more than 3D
     with pytest.raises(NotImplementedError):
@@ -394,3 +401,35 @@ def test_direction_validation():
     # should error on incorrect string for dimension
     with pytest.raises(ValueError):
         validate_direction("orient", "z", dim=2)
+
+
+def test_index_array_validation():
+    x = [1, 3, 5]
+    act_ind = np.r_[False, True, False, True, False, True]
+    np.testing.assert_equal(validate_active_indices("act_ind", x, 6), act_ind)
+
+    assert validate_active_indices("act_ind", act_ind, 6) is act_ind
+
+    # not 1D
+    with pytest.raises(ValueError):
+        validate_active_indices("act_ind", [[1, 2], [3, 4]], 6)
+
+    # not a boolean or an integer
+    with pytest.raises(TypeError):
+        validate_active_indices("act_ind", [1.0, 2.0, 3.0], 6)
+
+    # out of bounds
+    with pytest.raises(IndexError):
+        validate_active_indices("act_ind", [1, 3, 6], 6)
+
+    # double set a cell as active
+    with pytest.raises(ValueError):
+        validate_active_indices("act_ind", [0, 1, 0, 1, 0, 1], 6)
+
+    # wrong length boolean array (too long)
+    with pytest.raises(ValueError):
+        validate_active_indices("act_ind", act_ind, 4)
+
+    # wrong length boolean array (too short)
+    with pytest.raises(ValueError):
+        validate_active_indices("act_ind", act_ind, 8)
