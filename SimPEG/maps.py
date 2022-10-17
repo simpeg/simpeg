@@ -30,6 +30,8 @@ from .utils import (
     validate_direction,
     validate_integer,
     validate_string,
+    validate_active_indices,
+    validate_list_of_types,
 )
 
 
@@ -404,7 +406,7 @@ class ComboMap(IdentityMap):
     """
 
     def __init__(self, maps, **kwargs):
-        IdentityMap.__init__(self, None, **kwargs)
+        super().__init__(mesh=None, **kwargs)
 
         self.maps = []
         for ii, m in enumerate(maps):
@@ -671,7 +673,10 @@ class SumMap(ComboMap):
     """
 
     def __init__(self, maps, **kwargs):
-        IdentityMap.__init__(self, None, **kwargs)
+        maps = validate_list_of_types("maps", maps, IdentityMap)
+
+        # skip ComboMap's init
+        super(ComboMap, self).__init__(mesh=None, **kwargs)
 
         self.maps = []
         for ii, m in enumerate(maps):
@@ -819,7 +824,7 @@ class SurjectUnits(IdentityMap):
     """
 
     def __init__(self, indices, **kwargs):
-        super(SurjectUnits, self).__init__(**kwargs)
+        super().__init__(**kwargs)
         self.indices = indices
 
     @property
@@ -1793,7 +1798,7 @@ class ExpMap(IdentityMap):
     """
 
     def __init__(self, mesh=None, nP=None, **kwargs):
-        super(ExpMap, self).__init__(mesh=mesh, nP=nP, **kwargs)
+        super().__init__(mesh=mesh, nP=nP, **kwargs)
 
     def _transform(self, m):
         return np.exp(mkvc(m))
@@ -1882,7 +1887,7 @@ class ReciprocalMap(IdentityMap):
     """
 
     def __init__(self, mesh=None, nP=None, **kwargs):
-        super(ReciprocalMap, self).__init__(mesh=mesh, nP=nP, **kwargs)
+        super().__init__(mesh=mesh, nP=nP, **kwargs)
 
     def _transform(self, m):
         return 1.0 / mkvc(m)
@@ -1970,7 +1975,7 @@ class LogMap(IdentityMap):
     """
 
     def __init__(self, mesh=None, nP=None, **kwargs):
-        super(LogMap, self).__init__(mesh=mesh, nP=nP, **kwargs)
+        super().__init__(mesh=mesh, nP=nP, **kwargs)
 
     def _transform(self, m):
         return np.log(mkvc(m))
@@ -2065,7 +2070,7 @@ class ChiMap(IdentityMap):
     """
 
     def __init__(self, mesh=None, nP=None, **kwargs):
-        super(ChiMap, self).__init__(mesh=mesh, nP=nP, **kwargs)
+        super().__init__(mesh=mesh, nP=nP, **kwargs)
 
     def _transform(self, m):
         return mu_0 * (1 + m)
@@ -2158,7 +2163,7 @@ class MuRelative(IdentityMap):
     """
 
     def __init__(self, mesh=None, nP=None, **kwargs):
-        super(MuRelative, self).__init__(mesh=mesh, nP=nP, **kwargs)
+        super().__init__(mesh=mesh, nP=nP, **kwargs)
 
     def _transform(self, m):
         return mu_0 * m
@@ -2426,7 +2431,7 @@ class ComplexMap(IdentityMap):
     """
 
     def __init__(self, mesh=None, nP=None, **kwargs):
-        super(ComplexMap, self).__init__(mesh=mesh, nP=nP, **kwargs)
+        super().__init__(mesh=mesh, nP=nP, **kwargs)
         if nP is not None and mesh is not None:
             assert (
                 2 * mesh.nC == nP
@@ -2575,7 +2580,7 @@ class SurjectFull(IdentityMap):
     """
 
     def __init__(self, mesh, **kwargs):
-        IdentityMap.__init__(self, mesh, **kwargs)
+        super().__init__(mesh=mesh, **kwargs)
 
     @property
     def nP(self):
@@ -2696,7 +2701,7 @@ class SurjectVertical1D(IdentityMap):
         assert isinstance(
             mesh, (TensorMesh, CylMesh)
         ), "Only implemented for tensor meshes"
-        IdentityMap.__init__(self, mesh, **kwargs)
+        super().__init__(mesh=mesh, **kwargs)
 
     @property
     def nP(self):
@@ -2775,7 +2780,7 @@ class Surject2Dto3D(IdentityMap):
     ----------
     mesh : discretize.TensorMesh
         A 3D tensor mesh
-    normal : {'X','Y','Z'}
+    normal : {'y', 'x', 'z'}
         Define the projection axis.
 
     Examples
@@ -2835,7 +2840,7 @@ class Surject2Dto3D(IdentityMap):
 
     def __init__(self, mesh, normal="y", **kwargs):
         self.normal = normal
-        IdentityMap.__init__(self, mesh, **kwargs)
+        super().__init__(mesh=mesh, **kwargs)
 
     @IdentityMap.mesh.setter
     def mesh(self, value):
@@ -3049,37 +3054,55 @@ class InjectActiveCells(IdentityMap):
     indActive : numpy.ndarray
         Active cells array. Can be a boolean ``numpy.ndarray`` of length *mesh.nC*
         or a ``numpy.ndarray`` of ``int`` containing the indices of the active cells.
-    valInactive : float
+    valInactive : float or numpy.ndarray
         The physical property value assigned to all inactive cells in the mesh
 
     """
 
-    indActive = None  #: Active Cells
-    valInactive = None  #: Values of inactive Cells
-
-    def __init__(self, mesh, indActive, valInactive, nC=None):
+    def __init__(self, mesh, indActive=None, valInactive=0.0, nC=None):
         self.mesh = mesh
-
         self.nC = nC or mesh.nC
 
-        if indActive.dtype is not bool:
-            z = np.zeros(self.nC, dtype=bool)
-            z[indActive] = True
-            indActive = z
-        self.indActive = indActive
-        self.indInactive = np.logical_not(indActive)
-        if np.isscalar(valInactive):
-            self.valInactive = np.ones(self.nC) * float(valInactive)
-        else:
-            self.valInactive = np.ones(self.nC)
-            self.valInactive[self.indInactive] = valInactive.copy()
+        self._indActive = validate_active_indices("indActive", indActive, self.nC)
+        self._nP = np.sum(self.indActive)
 
-        self.valInactive[self.indActive] = 0
+        self.P = sp.eye(self.nC, format="csr")[:, self.indActive]
 
-        inds = np.nonzero(self.indActive)[0]
-        self.P = sp.csr_matrix(
-            (np.ones(inds.size), (inds, range(inds.size))), shape=(self.nC, self.nP)
-        )
+        self.valInactive = valInactive
+
+    @property
+    def valInactive(self):
+        """The physical property value assigned to all inactive cells in the mesh.
+
+        Returns
+        -------
+        numpy.ndarray
+        """
+        return self._valInactive
+
+    @valInactive.setter
+    def valInactive(self, value):
+        n_inactive = self.nC - self.nP
+        try:
+            value = validate_float("valInactive", value)
+            value = np.full(n_inactive, value)
+        except Exception:
+            pass
+        value = validate_ndarray_with_shape("valInactive", value, shape=(n_inactive,))
+
+        self._valInactive = np.zeros(self.nC, dtype=float)
+        self._valInactive[~self.indActive] = value
+
+    @property
+    def indActive(self):
+        """
+
+        Returns
+        -------
+        numpy.ndarray of bool
+
+        """
+        return self._indActive
 
     @property
     def shape(self):
@@ -3247,17 +3270,45 @@ class ParametricCircleMap(IdentityMap):
 
     """
 
-    slope = 1e-1
-
     def __init__(self, mesh, logSigma=True, slope=0.1):
-        assert mesh.dim == 2, (
-            "Working for a 2D mesh only right now. "
-            "But it isn't that hard to change.. :)"
-        )
-        IdentityMap.__init__(self, mesh)
+        super().__init__(mesh=mesh)
+        if mesh.dim != 2:
+            raise NotImplementedError(
+                "Mesh must be 2D, not implemented yet for other dimensions."
+            )
         # TODO: this should be done through a composition with and ExpMap
         self.logSigma = logSigma
         self.slope = slope
+
+    @property
+    def slope(self):
+        """Sharpness of the boundary.
+
+        Larger number are sharper.
+
+        Returns
+        -------
+        float
+        """
+        return self._slope
+
+    @slope.setter
+    def slope(self, value):
+        self._slope = validate_float("slope", value, min_val=0.0, inclusive_min=False)
+
+    @property
+    def logSigma(self):
+        """Whether the input needs to be transformed by an exponential
+
+        Returns
+        -------
+        float
+        """
+        return self._logSigma
+
+    @logSigma.setter
+    def logSigma(self, value):
+        self._logSigma = validate_type("logSigma", value, bool)
 
     @property
     def nP(self):
@@ -3461,8 +3512,7 @@ class ParametricPolyMap(IdentityMap):
     logSigma : bool
         If ``True``, parameters :math:`\sigma_1` and :math:`\sigma_2` represent
         the natural log of a physical property.
-    normal : str
-        Must be one of {'X','Y','Z'}
+    normal : {'x', 'y', 'z'}
     actInd : numpy.ndarray
         Active cells array. Can be a boolean ``numpy.ndarray`` of length *mesh.nC*
         or a ``numpy.ndarray`` of ``int`` containing the indices of the active cells.
@@ -3522,22 +3572,74 @@ class ParametricPolyMap(IdentityMap):
     """
 
     def __init__(self, mesh, order, logSigma=True, normal="X", actInd=None, slope=1e4):
-        IdentityMap.__init__(self, mesh)
+        super().__init__(mesh=mesh)
         self.logSigma = logSigma
         self.order = order
         self.normal = normal
-        self.actInd = actInd
         self.slope = slope
 
-        if getattr(self, "actInd", None) is None:
-            self.actInd = list(range(self.mesh.nC))
-            self.nC = self.mesh.nC
+        if actInd is None:
+            actInd = np.ones(mesh.n_cells, dtype=bool)
+        self.actInd = actInd
 
-        else:
-            if self.actInd.dtype == "bool":
-                self.nC = int(np.sum(self.actInd))
-            else:
-                self.nC = len(self.actInd)
+    @property
+    def slope(self):
+        """Sharpness of the boundary.
+
+        Larger number are sharper.
+
+        Returns
+        -------
+        float
+        """
+        return self._slope
+
+    @slope.setter
+    def slope(self, value):
+        self._slope = validate_float("slope", value, min_val=0.0, inclusive_min=False)
+
+    @property
+    def logSigma(self):
+        """Whether the input needs to be transformed by an exponential
+
+        Returns
+        -------
+        float
+        """
+        return self._logSigma
+
+    @logSigma.setter
+    def logSigma(self, value):
+        self._logSigma = validate_type("logSigma", value, bool)
+
+    @property
+    def normal(self):
+        """The projection axis.
+
+        Returns
+        -------
+        str
+        """
+        return self._normal
+
+    @normal.setter
+    def normal(self, value):
+        self._normal = validate_string("normal", value, ("x", "y", "z"))
+
+    @property
+    def actInd(self):
+        """Active indices of the mesh.
+
+        Returns
+        -------
+        (mesh.n_cells) numpy.ndarray of bool
+        """
+        return self._actInd
+
+    @actInd.setter
+    def actInd(self, value):
+        self._actInd = validate_active_indices("actInd", value, self.mesh.n_cells)
+        self._nC = sum(self._actInd)
 
     @property
     def shape(self):
@@ -3553,6 +3655,16 @@ class ParametricPolyMap(IdentityMap):
             *nC = mesh.nC*.
         """
         return (self.nC, self.nP)
+
+    @property
+    def nC(self):
+        """Number of active cells being mapped too.
+
+        Returns
+        -------
+        int
+        """
+        return self._nC
 
     @property
     def nP(self):
@@ -3581,9 +3693,9 @@ class ParametricPolyMap(IdentityMap):
         if self.mesh.dim == 2:
             X = self.mesh.cell_centers[self.actInd, 0]
             Y = self.mesh.cell_centers[self.actInd, 1]
-            if self.normal == "X":
+            if self.normal == "x":
                 f = polynomial.polyval(Y, c) - X
-            elif self.normal == "Y":
+            elif self.normal == "y":
                 f = polynomial.polyval(X, c) - Y
             else:
                 raise (Exception("Input for normal = X or Y or Z"))
@@ -3594,7 +3706,7 @@ class ParametricPolyMap(IdentityMap):
             Y = self.mesh.cell_centers[self.actInd, 1]
             Z = self.mesh.cell_centers[self.actInd, 2]
 
-            if self.normal == "X":
+            if self.normal == "x":
                 f = (
                     polynomial.polyval2d(
                         Y,
@@ -3603,7 +3715,7 @@ class ParametricPolyMap(IdentityMap):
                     )
                     - X
                 )
-            elif self.normal == "Y":
+            elif self.normal == "y":
                 f = (
                     polynomial.polyval2d(
                         X,
@@ -3612,7 +3724,7 @@ class ParametricPolyMap(IdentityMap):
                     )
                     - Y
                 )
-            elif self.normal == "Z":
+            elif self.normal == "z":
                 f = (
                     polynomial.polyval2d(
                         X,
@@ -3671,10 +3783,10 @@ class ParametricPolyMap(IdentityMap):
             X = self.mesh.cell_centers[self.actInd, 0]
             Y = self.mesh.cell_centers[self.actInd, 1]
 
-            if self.normal == "X":
+            if self.normal == "x":
                 f = polynomial.polyval(Y, c) - X
                 V = polynomial.polyvander(Y, len(c) - 1)
-            elif self.normal == "Y":
+            elif self.normal == "y":
                 f = polynomial.polyval(X, c) - Y
                 V = polynomial.polyvander(X, len(c) - 1)
             else:
@@ -3686,7 +3798,7 @@ class ParametricPolyMap(IdentityMap):
             Y = self.mesh.cell_centers[self.actInd, 1]
             Z = self.mesh.cell_centers[self.actInd, 2]
 
-            if self.normal == "X":
+            if self.normal == "x":
                 f = (
                     polynomial.polyval2d(
                         Y, Z, c.reshape((self.order[0] + 1, self.order[1] + 1))
@@ -3694,7 +3806,7 @@ class ParametricPolyMap(IdentityMap):
                     - X
                 )
                 V = polynomial.polyvander2d(Y, Z, self.order)
-            elif self.normal == "Y":
+            elif self.normal == "y":
                 f = (
                     polynomial.polyval2d(
                         X, Z, c.reshape((self.order[0] + 1, self.order[1] + 1))
@@ -3702,7 +3814,7 @@ class ParametricPolyMap(IdentityMap):
                     - Y
                 )
                 V = polynomial.polyvander2d(X, Z, self.order)
-            elif self.normal == "Z":
+            elif self.normal == "z":
                 f = (
                     polynomial.polyval2d(
                         X, Y, c.reshape((self.order[0] + 1, self.order[1] + 1))
@@ -3745,17 +3857,17 @@ class ParametricSplineMap(IdentityMap):
     ----------
     mesh : discretize.BaseMesh
         A discretize mesh
-    pts : (n, dim) numpy.ndarray
-
-    ptsv :
+    pts : (n) numpy.ndarray
+        Points for the 1D spline tie points.
+    ptsv : (2) array_like
+        Points for linear interpolation between two splines in 3D.
     order : int
         Order of the spline mapping; e.g. 3 is cubic spline
     logSigma : bool
         If ``True``, :math:`\sigma_1` and :math:`\sigma_2` represent the natural
         log of some physical property value for each unit.
-    normal : str
+    normal : {'x', 'y', 'z'}
         Defines the general direction of the normal vector for the interface.
-        Must be one of {'X', 'Y', 'Z'}
     slope : float
         Parameter for defining the sharpness of the boundary. The sharpness is increased
         if *slope* is large.
@@ -3789,19 +3901,123 @@ class ParametricSplineMap(IdentityMap):
     """
 
     def __init__(
-        self, mesh, pts, ptsv=None, order=3, logSigma=True, normal="X", slope=1e4
+        self, mesh, pts, ptsv=None, order=3, logSigma=True, normal="x", slope=1e4
     ):
-        if not isinstance(mesh, discretize.base.BaseTensorMesh):
-            raise NotImplementedError(f"{type(mesh)} is not supported.")
-        IdentityMap.__init__(self, mesh)
+        super().__init__(mesh=mesh)
+        self.slope = slope
         self.logSigma = logSigma
-        self.order = order
         self.normal = normal
+        self.order = order
         self.pts = pts
-        self.npts = np.size(pts)
         self.ptsv = ptsv
         self.spl = None
-        self.slope = slope
+
+    @IdentityMap.mesh.setter
+    def mesh(self, value):
+        self._mesh = validate_type(
+            "mesh", value, discretize.base.BaseTensorMesh, cast=False
+        )
+
+    @property
+    def slope(self):
+        """Sharpness of the boundary.
+
+        Larger number are sharper.
+
+        Returns
+        -------
+        float
+        """
+        return self._slope
+
+    @slope.setter
+    def slope(self, value):
+        self._slope = validate_float("slope", value, min_val=0.0, inclusive_min=False)
+
+    @property
+    def logSigma(self):
+        """Whether the input needs to be transformed by an exponential
+
+        Returns
+        -------
+        float
+        """
+        return self._logSigma
+
+    @logSigma.setter
+    def logSigma(self, value):
+        self._logSigma = validate_type("logSigma", value, bool)
+
+    @property
+    def normal(self):
+        """The projection axis.
+
+        Returns
+        -------
+        str
+        """
+        return self._normal
+
+    @normal.setter
+    def normal(self, value):
+        self._normal = validate_string("normal", value, ("x", "y", "z"))
+
+    @property
+    def order(self):
+        """Order of the spline mapping.
+
+        Returns
+        -------
+        int
+        """
+        return self._order
+
+    @order.setter
+    def order(self, value):
+        self._order = validate_integer("order", value, min_val=1)
+
+    @property
+    def pts(self):
+        """Points for the spline.
+
+        Returns
+        -------
+        numpy.ndarray
+        """
+        return self._pts
+
+    @pts.setter
+    def pts(self, value):
+        self._pts = validate_ndarray_with_shape("pts", value, shape=("*"), dtype=float)
+
+    @property
+    def npts(self):
+        """The number of points.
+
+        Returns
+        -------
+        int
+        """
+        return self._pts.shape[0]
+
+    @property
+    def ptsv(self):
+        """Bottom and top values for the 3D spline surface.
+
+        In 3D, two splines are created and linearly interpolated between these two
+        points.
+
+        Returns
+        -------
+        (2) numpy.ndarray
+        """
+        return self.ptsv
+
+    @ptsv.setter
+    def ptsv(self, value):
+        if value is not None:
+            value = validate_ndarray_with_shape("ptsv", value, shape=(2,))
+        self._ptsv = value
 
     @property
     def nP(self):
@@ -3833,9 +4049,9 @@ class ParametricSplineMap(IdentityMap):
             X = self.mesh.cell_centers[:, 0]
             Y = self.mesh.cell_centers[:, 1]
             self.spl = UnivariateSpline(self.pts, c, k=self.order, s=0)
-            if self.normal == "X":
+            if self.normal == "x":
                 f = self.spl(Y) - X
-            elif self.normal == "Y":
+            elif self.normal == "y":
                 f = self.spl(X) - Y
             else:
                 raise (Exception("Input for normal = X or Y or Z"))
@@ -3860,7 +4076,7 @@ class ParametricSplineMap(IdentityMap):
                 "splt": UnivariateSpline(self.pts, c[npts:], k=self.order, s=0),
             }
 
-            if self.normal == "X":
+            if self.normal == "x":
                 zb = self.ptsv[0]
                 zt = self.ptsv[1]
                 flines = (self.spl["splt"](Y) - self.spl["splb"](Y)) * (Z - zb) / (
@@ -3886,9 +4102,9 @@ class ParametricSplineMap(IdentityMap):
             X = self.mesh.cell_centers[:, 0]
             Y = self.mesh.cell_centers[:, 1]
 
-            if self.normal == "X":
+            if self.normal == "x":
                 f = self.spl(Y) - X
-            elif self.normal == "Y":
+            elif self.normal == "y":
                 f = self.spl(X) - Y
             else:
                 raise (Exception("Input for normal = X or Y or Z"))
@@ -3898,7 +4114,7 @@ class ParametricSplineMap(IdentityMap):
             Y = self.mesh.cell_centers[:, 1]
             Z = self.mesh.cell_centers[:, 2]
 
-            if self.normal == "X":
+            if self.normal == "x":
                 zb = self.ptsv[0]
                 zt = self.ptsv[1]
                 flines = (self.spl["splt"](Y) - self.spl["splb"](Y)) * (Z - zb) / (
@@ -3919,7 +4135,7 @@ class ParametricSplineMap(IdentityMap):
 
         if self.mesh.dim == 2:
             g3 = np.zeros((self.mesh.nC, self.npts))
-            if self.normal == "Y":
+            if self.normal == "y":
                 # Here we use perturbation to compute sensitivity
                 # TODO: bit more generalization of this ...
                 # Modfications for X and Z directions ...
@@ -3941,7 +4157,7 @@ class ParametricSplineMap(IdentityMap):
 
         elif self.mesh.dim == 3:
             g3 = np.zeros((self.mesh.nC, self.npts * 2))
-            if self.normal == "X":
+            if self.normal == "x":
                 # Here we use perturbation to compute sensitivity
                 for i in range(self.npts * 2):
                     ctemp = c[i]
@@ -4009,27 +4225,63 @@ class BaseParametric(IdentityMap):
     ----------
     mesh : discretize.BaseMesh
         A discretize mesh
-    indActive : numpy.ndarray
+    indActive : numpy.ndarray, optional
         Active cells array. Can be a boolean ``numpy.ndarray`` of length *mesh.nC*
         or a ``numpy.ndarray`` of ``int`` containing the indices of the active cells.
-    slope : float
-        Directly set the scaling parameter *a* which sets the sharpness of boundaries
+    slope : float, optional
+        Directly set the scaling parameter *slope* which sets the sharpness of boundaries
         between units.
-    slopeFact : float
+    slopeFact : float, optional
         Set sharpness of boundaries between units based on minimum cell size. If set,
-        the scalaing parameter *a = slopeFact / dh*.
+        the scalaing parameter *slope = slopeFact / dh*.
 
     """
 
-    slopeFact = 1  # will be scaled by the mesh.
-    slope = None
-    indActive = None
-
-    def __init__(self, mesh, **kwargs):
+    def __init__(self, mesh, slope=None, slopeFact=1.0, indActive=None, **kwargs):
         super(BaseParametric, self).__init__(mesh, **kwargs)
+        self.indActive = indActive
+        self.slopeFact = slopeFact
+        if slope is not None:
+            self.slope = slope
 
-        if self.slope is None:
-            self.slope = self.slopeFact / np.hstack(self.mesh.h).min()
+    @property
+    def slope(self):
+        """Defines the sharpness of the boundaries.
+
+        Returns
+        -------
+        float
+        """
+        return self._slope
+
+    @slope.setter
+    def slope(self, value):
+        self._slope = validate_float("slope", value, min_val=0.0)
+
+    @property
+    def slopeFact(self):
+        """Defines the slope scaled by the mesh.
+
+        Returns
+        -------
+        float
+        """
+        return self._slopeFact
+
+    @slopeFact.setter
+    def slopeFact(self, value):
+        self._slopeFact = validate_float("slopeFact", value, min_val=0.0)
+        self.slope = self._slopeFact / self.mesh.edge_lengths.min()
+
+    @property
+    def indActive(self):
+        return self._indActive
+
+    @indActive.setter
+    def indActive(self, value):
+        if value is not None:
+            value = validate_active_indices("indActive", value, self.mesh.n_cells)
+        self._indActive = value
 
     @property
     def x(self):
@@ -4138,7 +4390,7 @@ class ParametricLayer(BaseParametric):
     ----------
     mesh : discretize.BaseMesh
         A discretize mesh
-    actInd : numpy.ndarray
+    indActive : numpy.ndarray
         Active cells array. Can be a boolean ``numpy.ndarray`` of length *mesh.nC*
         or a ``numpy.ndarray`` of ``int`` containing the indices of the active cells.
     slope : float
@@ -4179,7 +4431,7 @@ class ParametricLayer(BaseParametric):
     """
 
     def __init__(self, mesh, **kwargs):
-        super(ParametricLayer, self).__init__(mesh, **kwargs)
+        super().__init__(mesh, **kwargs)
 
     @property
     def nP(self):
@@ -4396,7 +4648,7 @@ class ParametricBlock(BaseParametric):
     ----------
     mesh : discretize.BaseMesh
         A discretize mesh
-    actInd : numpy.ndarray
+    indActive : numpy.ndarray
         Active cells array. Can be a boolean ``numpy.ndarray`` of length *mesh.nC*
         or a ``numpy.ndarray`` of ``int`` containing the indices of the active cells.
     slope : float
@@ -4747,7 +4999,7 @@ class ParametricEllipsoid(ParametricBlock):
     ----------
     mesh : discretize.BaseMesh
         A discretize mesh
-    actInd : numpy.ndarray
+    indActive : numpy.ndarray
         Active cells array. Can be a boolean ``numpy.ndarray`` of length *mesh.nC*
         or a ``numpy.ndarray`` of ``int`` containing the indices of the active cells.
     slope : float
@@ -4817,7 +5069,7 @@ class ParametricCasingAndLayer(ParametricLayer):
             mesh._meshType == "CYL"
         ), "Parametric Casing in a layer map only works for a cyl mesh."
 
-        super(ParametricCasingAndLayer, self).__init__(mesh, **kwargs)
+        super().__init__(mesh, **kwargs)
 
     @property
     def nP(self):
@@ -5161,7 +5413,7 @@ class ParametricBlockInLayer(ParametricLayer):
 
     def __init__(self, mesh, **kwargs):
 
-        super(ParametricBlockInLayer, self).__init__(mesh, **kwargs)
+        super().__init__(mesh, **kwargs)
 
     @property
     def nP(self):
@@ -5567,54 +5819,108 @@ class TileMap(IdentityMap):
     local mesh. Everycell in the local mesh must also be in the global mesh.
     """
 
-    tol = 1e-8  # Tolerance to avoid zero division
-    components = 1  # Number of components in the model. =3 for vector model
-
-    def __init__(self, global_mesh, global_active, local_mesh, **kwargs):
+    def __init__(
+        self,
+        global_mesh,
+        global_active,
+        local_mesh,
+        tol=1e-8,
+        components=1,
+        **kwargs,
+    ):
         """
         Parameters
         ----------
         global_mesh : discretize.TreeMesh
             Global TreeMesh defining the entire domain.
-        global_active : bool, array of bool, or array of indices
-            Defines the active cells in the global_mesh.
+        global_active : numpy.ndarray of bool or int
+            Defines the active cells in the global mesh.
         local_mesh : discretize.TreeMesh
             Local TreeMesh for the simulation.
+        tol : float, optional
+            Tolerance to avoid zero division
+        components : int, optional
+            Number of components in the model. E.g. a vector model in 3D would have 3
+            components.
         """
-        kwargs.pop("mesh", None)
-        if global_mesh._meshType != "TREE":
-            raise ValueError("global_mesh must be a TreeMesh")
-        if local_mesh._meshType != "TREE":
-            raise ValueError("local_mesh must be a TreeMesh")
+        super().__init__(mesh=None, **kwargs)
+        self._global_mesh = validate_type(
+            "global_mesh", global_mesh, discretize.TreeMesh, cast=False
+        )
+        self._local_mesh = validate_type(
+            "local_mesh", local_mesh, discretize.TreeMesh, cast=False
+        )
 
-        super(TileMap, self).__init__(**kwargs)
-        self.global_mesh = global_mesh
-        self.global_active = global_active
-        self.local_mesh = local_mesh
+        self._global_active = validate_active_indices(
+            "global_active", global_active, self.global_mesh.n_cells
+        )
 
-        if not isinstance(self.global_active, bool):
-            temp = np.zeros(self.global_mesh.nC, dtype="bool")
-            temp[self.global_active] = True
-            self.global_active = temp
+        self._tol = validate_float("tol", tol, min_val=0.0, inclusive_min=False)
+        self._components = validate_integer("components", components, min_val=1)
 
+        # trigger creation of P
         self.P
+
+    @property
+    def global_mesh(self):
+        """Global TreeMesh defining the entire domain.
+
+        Returns
+        -------
+        discretize.TreeMesh
+        """
+        return self._global_mesh
+
+    @property
+    def local_mesh(self):
+        """Local TreeMesh defining the local domain.
+
+        Returns
+        -------
+        discretize.TreeMesh
+        """
+        return self._local_mesh
+
+    @property
+    def global_active(self):
+        """Defines the active cells in the global mesh.
+
+        Returns
+        -------
+        (global_mesh.n_cells) numpy.ndarray of bool
+        """
+        return self._global_active
 
     @property
     def local_active(self):
         """
         This is the local_active of the global_active used in the global problem.
+
+        Returns
+        -------
+        (local_mesh.n_cells) numpy.ndarray of bool
         """
-        return getattr(self, "_local_active", None)
+        return self._local_active
 
-    @local_active.setter
-    def local_active(self, local_active):
+    @property
+    def tol(self):
+        """Tolerance to avoid zero division.
 
-        if not isinstance(local_active, bool):
-            temp = np.zeros(self.local_mesh.nC, dtype="bool")
-            temp[local_active] = True
-            local_active = temp
+        Returns
+        -------
+        float
+        """
+        return self._tol
 
-        self._local_active = local_active
+    @property
+    def components(self):
+        """Number of components in the model.
+
+        Returns
+        -------
+        int
+        """
+        return self._components
 
     @property
     def P(self):
@@ -5635,7 +5941,7 @@ class TileMap(IdentityMap):
                 * speye(self.global_mesh.nC)[:, self.global_active]
             )
 
-            self.local_active = mkvc(np.sum(P, axis=1) > 0)
+            self._local_active = mkvc(np.sum(P, axis=1) > 0)
 
             P = P[self.local_active, :]
 
@@ -5680,38 +5986,97 @@ class PolynomialPetroClusterMap(IdentityMap):
     """
     Modeling polynomial relationships between physical properties
 
+    Parameters
+    ----------
+    coeffxx : array_like, optional
+        Coefficients for the xx component. Default is [0, 1]
+    coeffxy : array_like, optional
+        Coefficients for the xy component. Default is [0]
+    coeffyx : array_like, optional
+        Coefficients for the yx component. Default is [0]
+    coeffyy : array_like, optional
+        Coefficients for the yy component. Default is [0, 1]
     """
 
     def __init__(
         self,
-        coeffxx=np.r_[0.0, 1],
-        coeffxy=np.zeros(1),
-        coeffyx=np.zeros(1),
-        coeffyy=np.r_[0.0, 1],
+        coeffxx=None,
+        coeffxy=None,
+        coeffyx=None,
+        coeffyy=None,
         mesh=None,
         nP=None,
         **kwargs,
     ):
+        if coeffxx is None:
+            coeffxx = np.r_[0.0, 1.0]
+        if coeffxy is None:
+            coeffxy = np.r_[0.0]
+        if coeffyx is None:
+            coeffyx = np.r_[0.0]
+        if coeffyy is None:
+            coeffyy = np.r[0.0, 1.0]
 
-        self.coeffxx = coeffxx
-        self.coeffxy = coeffxy
-        self.coeffyx = coeffyx
-        self.coeffyy = coeffyy
-        self.polynomialxx = polynomial.Polynomial(self.coeffxx)
-        self.polynomialxy = polynomial.Polynomial(self.coeffxy)
-        self.polynomialyx = polynomial.Polynomial(self.coeffyx)
-        self.polynomialyy = polynomial.Polynomial(self.coeffyy)
-        self.polynomialxx_deriv = self.polynomialxx.deriv(m=1)
-        self.polynomialxy_deriv = self.polynomialxy.deriv(m=1)
-        self.polynomialyx_deriv = self.polynomialyx.deriv(m=1)
-        self.polynomialyy_deriv = self.polynomialyy.deriv(m=1)
+        self._coeffxx = validate_ndarray_with_shape("coeffxx", coeffxx, shape=("*",))
+        self._coeffxy = validate_ndarray_with_shape("coeffxy", coeffxy, shape=("*",))
+        self._coeffyx = validate_ndarray_with_shape("coeffyx", coeffyx, shape=("*",))
+        self._coeffyy = validate_ndarray_with_shape("coeffyy", coeffyy, shape=("*",))
 
-        super(PolynomialPetroClusterMap, self).__init__(mesh=mesh, nP=nP, **kwargs)
+        self._polynomialxx = polynomial.Polynomial(self.coeffxx)
+        self._polynomialxy = polynomial.Polynomial(self.coeffxy)
+        self._polynomialyx = polynomial.Polynomial(self.coeffyx)
+        self._polynomialyy = polynomial.Polynomial(self.coeffyy)
+        self._polynomialxx_deriv = self._polynomialxx.deriv(m=1)
+        self._polynomialxy_deriv = self._polynomialxy.deriv(m=1)
+        self._polynomialyx_deriv = self._polynomialyx.deriv(m=1)
+        self._polynomialyy_deriv = self._polynomialyy.deriv(m=1)
+
+        super().__init__(mesh=mesh, nP=nP, **kwargs)
+
+    @property
+    def coeffxx(self):
+        """Coefficients for the xx component.
+
+        Returns
+        -------
+        numpy.ndarray
+        """
+        return self._coeffxx
+
+    @property
+    def coeffxy(self):
+        """Coefficients for the xy component.
+
+        Returns
+        -------
+        numpy.ndarray
+        """
+        return self._coeffxy
+
+    @property
+    def coeffyx(self):
+        """Coefficients for the yx component.
+
+        Returns
+        -------
+        numpy.ndarray
+        """
+        return self._coeffyx
+
+    @property
+    def coeffyy(self):
+        """Coefficients for the yy component.
+
+        Returns
+        -------
+        numpy.ndarray
+        """
+        return self._coeffyy
 
     def _transform(self, m):
         out = m.copy()
-        out[:, 0] = self.polynomialxx(m[:, 0]) + self.polynomialxy(m[:, 1])
-        out[:, 1] = self.polynomialyx(m[:, 0]) + self.polynomialyy(m[:, 1])
+        out[:, 0] = self._polynomialxx(m[:, 0]) + self._polynomialxy(m[:, 1])
+        out[:, 1] = self._polynomialyx(m[:, 0]) + self._polynomialyy(m[:, 1])
         return out
 
     def inverse(self, D):
@@ -5725,21 +6090,21 @@ class PolynomialPetroClusterMap(IdentityMap):
 
         .. math::
 
-            m = \log{\sigma}
+            m = \\log{\\sigma}
 
         """
-        raise Exception("Not implemented")
+        raise NotImplementedError("Inverse is not implemented.")
 
     def _derivmatrix(self, m):
         return np.r_[
             [
                 [
-                    self.polynomialxx_deriv(m[:, 0])[0],
-                    self.polynomialyx_deriv(m[:, 0])[0],
+                    self._polynomialxx_deriv(m[:, 0])[0],
+                    self._polynomialyx_deriv(m[:, 0])[0],
                 ],
                 [
-                    self.polynomialxy_deriv(m[:, 1])[0],
-                    self.polynomialyy_deriv(m[:, 1])[0],
+                    self._polynomialxy_deriv(m[:, 1])[0],
+                    self._polynomialyy_deriv(m[:, 1])[0],
                 ],
             ]
         ]
