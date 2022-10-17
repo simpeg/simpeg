@@ -18,7 +18,7 @@ class Simulation1DLayered(BaseEM1DSimulation):
     for a single sounding.
     """
 
-    def __init__(self, survey, **kwargs):
+    def __init__(self, survey=None, **kwargs):
         super().__init__(survey=survey, **kwargs)
         self._coefficients_set = False
 
@@ -30,11 +30,15 @@ class Simulation1DLayered(BaseEM1DSimulation):
         -------
         SimPEG.electromagnetics.frequency_domain.survey.Survey
         """
+        if self._survey is None:
+            raise AttributeError("Simulation must have a survey set")
         return self._survey
 
     @survey.setter
     def survey(self, value):
-        self._survey = validate_type("survey", value, Survey, cast=False)
+        if value is not None:
+            value = validate_type("survey", value, Survey, cast=False)
+        self._survey = value
 
     def get_coefficients(self):
         if self._coefficients_set is False:

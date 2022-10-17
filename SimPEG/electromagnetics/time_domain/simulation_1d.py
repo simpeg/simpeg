@@ -26,7 +26,7 @@ class Simulation1DLayered(BaseEM1DSimulation):
     for a single sounding.
     """
 
-    def __init__(self, survey, time_filter="key_81_CosSin_2009", **kwargs):
+    def __init__(self, survey=None, time_filter="key_81_CosSin_2009", **kwargs):
         super().__init__(survey=survey, **kwargs)
         self._coefficients_set = False
         self.time_filter = time_filter
@@ -38,11 +38,15 @@ class Simulation1DLayered(BaseEM1DSimulation):
         -------
         SimPEG.electromagnetics.time_domain.survey.Survey
         """
+        if self._survey is None:
+            raise AttributeError("Simulation must have a survey set")
         return self._survey
 
     @survey.setter
     def survey(self, value):
-        self._survey = validate_type("survey", value, Survey, cast=False)
+        if value is not None:
+            value = validate_type("survey", value, Survey, cast=False)
+        self._survey = value
 
     @property
     def time_filter(self):
