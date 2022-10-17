@@ -11,8 +11,8 @@ from .analytics import CongruousMagBC
 from SimPEG import Solver
 from SimPEG import props
 import properties
-from SimPEG.utils import mkvc, mat_utils, sdiag, setKwargs
-from SimPEG.utils.code_utils import validate_string, deprecate_property
+from SimPEG.utils import mkvc, mat_utils, sdiag
+from SimPEG.utils.code_utils import validate_string, deprecate_property, validate_type
 
 
 class Simulation3DIntegral(BasePFSimulation):
@@ -53,32 +53,12 @@ class Simulation3DIntegral(BasePFSimulation):
         self._model_type = validate_string("model_type", value, ["scalar", "vector"])
 
     @property
-    def modelType(self):
-        warnings.warn(
-            "The 'modelType' property has been deprecated. "
-            "Please use 'model_type'. This will be removed in version 0.17.0 of SimPEG.",
-            FutureWarning,
-        )
-        return self.model_type
-
-    @modelType.setter
-    def modelType(self, value):
-        warnings.warn(
-            "The 'modelType' property has been deprecated. "
-            "Please use 'model_type'. This will be removed in version 0.17.0 of SimPEG.",
-            FutureWarning,
-        )
-        self.model_type = value
-
-    @property
     def is_amplitude_data(self):
         return self._is_amplitude_data
 
     @is_amplitude_data.setter
     def is_amplitude_data(self, value):
-        if not isinstance(value, bool):
-            raise ValueError("is_amplitude_data must be a bool")
-        self._is_amplitude_data = value
+        self._is_amplitude_data = validate_type("is_amplitude_data", value, bool)
 
     @property
     def M(self):
@@ -149,23 +129,6 @@ class Simulation3DIntegral(BasePFSimulation):
             self._G = self.linear_operator()
 
         return self._G
-
-    @property
-    def model_type(self) -> str:
-        """
-        Define the type of model. Choice of 'scalar' or 'vector' (3-components)
-        """
-        return self._model_type
-
-    @model_type.setter
-    def model_type(self, value: str):
-        if value not in ["scalar", "vector"]:
-            raise ValueError(
-                "'model_type' value should be a string: 'scalar' or 'vector'."
-                + f"Value {value} of type {type(value)} provided."
-            )
-
-        self._model_type = value
 
     modelType = deprecate_property(
         model_type, "modelType", "model_type", removal_version="0.18.0"
@@ -705,13 +668,6 @@ class Simulation3DIntegral(BasePFSimulation):
         if self.is_amplitude_data:
             deletes = deletes + ["_gtg_diagonal"]
         return deletes
-
-    @property
-    def coordinate_system(self):
-        raise AttributeError(
-            "The coordinate_system property has been removed. "
-            "Instead make use of `SimPEG.maps.SphericalSystem`."
-        )
 
 
 class SimulationEquivalentSourceLayer(

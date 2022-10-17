@@ -2,14 +2,12 @@ from __future__ import print_function
 
 import inspect
 import numpy as np
-import sys
 import warnings
 import properties
 
 from discretize.base import BaseMesh
 from discretize import TensorMesh
 from discretize.utils import unpack_widths
-import inspect
 
 from . import props
 from .data import SyntheticData, Data
