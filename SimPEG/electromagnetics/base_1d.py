@@ -43,7 +43,7 @@ class BaseEM1DSimulation(BaseSimulation):
 
     @hankel_filter.setter
     def hankel_filter(self, value):
-        self._hankel_fileter = validate_string("hankel_filter", value)
+        self._hankel_filter = validate_string("hankel_filter", value)
 
     _hankel_pts_per_dec = 0  # Default: Standard DLF
 
@@ -107,8 +107,43 @@ class BaseEM1DSimulation(BaseSimulation):
         "layer thicknesses (m)", default=np.array([])
     )
 
-    def __init__(self, mesh, hankel_filter="key_101_2009", fix_Jmatrix=False, **kwargs):
-        super().__init__(self, mesh=mesh, **kwargs)
+    @property
+    def topo(self):
+        """Topography.
+
+        Returns
+        -------
+        numpy.ndarray of float
+        """
+        return self._topo
+
+    @topo.setter
+    def topo(self, value):
+        self._topo = validate_ndarray_with_shape("topo", value, shape=("*",))
+
+    def __init__(
+        self, hankel_filter="key_101_2009", fix_Jmatrix=False, topo=None, **kwargs
+    ):
+        super().__init__(mesh=None, **kwargs)
+
+        if topo is None:
+            topo = np.r_[0.0, 0.0, 0.0]
+        self.topo = topo
+
+        for i_src, src in enumerate(self.survey.source_list):
+            if np.any(src.location[2] < self.topo[2]):
+                raise ValueError("Source must be located above the topography")
+            for i_rx, rx in enumerate(src.receiver_list):
+                if rx.use_source_receiver_offset:
+                    if np.any(src.location[2] + rx.locations[:, 2] < self.topo[2]):
+                        raise ValueError(
+                            "Receiver must be located above the topography"
+                        )
+                else:
+                    if np.any(rx.locations[:, 2] < self.topo[2]):
+                        raise ValueError(
+                            "Receiver must be located above the topography"
+                        )
 
         self.hankel_filter = hankel_filter
         self.fix_Jmatrix = fix_Jmatrix
