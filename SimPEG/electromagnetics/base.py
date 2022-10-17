@@ -1,5 +1,5 @@
 from ..survey import BaseSrc
-from ..utils import Zero
+from ..utils import Zero, validate_type
 from ..base import BaseElectricalPDESimulation, BaseMagneticPDESimulation
 
 __all__ = ["BaseEMSimulation", "BaseEMSrc"]
@@ -15,8 +15,23 @@ __all__ = ["BaseEMSimulation", "BaseEMSrc"]
 class BaseEMSimulation(BaseElectricalPDESimulation, BaseMagneticPDESimulation):
     """Base electromagnetic simulation class"""
 
-    verbose = False
-    storeInnerProduct = True
+    def __init__(self, mesh, storeInnerProduct=True, **kwargs):
+        super().__init__(mesh=mesh, **kwargs)
+        self.storeInnerProduct = storeInnerProduct
+
+    @property
+    def storeInnerProduct(self):
+        """Whether to store inner product matrices
+
+        Returns
+        -------
+        bool
+        """
+        return self._storeInnerProduct
+
+    @storeInnerProduct.setter
+    def storeInnerProduct(self, value):
+        self._storeInnerProduct = validate_type("storeInnerProduct", value, bool)
 
     ####################################################
     # Make A Symmetric

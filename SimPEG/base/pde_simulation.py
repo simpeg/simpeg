@@ -436,7 +436,7 @@ class BaseElectricalPDESimulation(BasePDESimulation):
     props.Reciprocal(sigma, rho)
 
     def __init__(self, mesh, **kwargs):
-        super().__init__(mesh, **kwargs)
+        super().__init__(mesh=mesh, **kwargs)
 
     @property
     def deleteTheseOnModelUpdate(self):
