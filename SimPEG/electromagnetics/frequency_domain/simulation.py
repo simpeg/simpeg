@@ -6,7 +6,7 @@ from discretize.utils import Zero
 
 from ... import props
 from ...data import Data
-from ...utils import mkvc
+from ...utils import mkvc, validate_type
 from ..base import BaseEMSimulation
 from ..utils import omega
 from .survey import Survey
@@ -62,12 +62,41 @@ class BaseFDEMSimulation(BaseEMSimulation):
 
     props.Reciprocal(mu, mui)
 
-    forward_only = properties.Boolean(
-        "If True, A-inverse not stored at each frequency in forward simulation",
-        default=False,
-    )
+    def __init__(self, mesh, survey=None, forward_only=False, **kwargs):
+        super().__init__(mesh=mesh, survey=survey, **kwargs)
+        self.forward_only = forward_only
 
-    survey = properties.Instance("a survey object", Survey, required=True)
+    @property
+    def survey(self):
+        """The simulations survey.
+
+        Returns
+        -------
+        SimPEG.electromagnetics.frequency_domain.survey.Survey
+        """
+        if self._survey is None:
+            raise AttributeError("Simulation must have a survey set")
+        return self._survey
+
+    @survey.setter
+    def survey(self, value):
+        if value is not None:
+            value = validate_type("survey", value, Survey, cast=False)
+        self._survey = value
+
+    @property
+    def forward_only(self):
+        """If True, A-inverse not stored at each frequency in forward simulation.
+
+        Returns
+        -------
+        bool
+        """
+        return self._forward_only
+
+    @forward_only.setter
+    def forward_only(self, value):
+        self._forward_only = validate_type("forward_only", value, bool)
 
     # @profile
     def fields(self, m=None):
@@ -246,9 +275,6 @@ class Simulation3DElectricField(BaseFDEMSimulation):
     _formulation = "EB"
     fieldsPair = Fields3DElectricField
 
-    def __init__(self, mesh, **kwargs):
-        super(Simulation3DElectricField, self).__init__(mesh, **kwargs)
-
     def getA(self, freq):
         """
         System matrix
@@ -384,9 +410,6 @@ class Simulation3DMagneticFluxDensity(BaseFDEMSimulation):
     _solutionType = "bSolution"
     _formulation = "EB"
     fieldsPair = Fields3DMagneticFluxDensity
-
-    def __init__(self, mesh, **kwargs):
-        super(Simulation3DMagneticFluxDensity, self).__init__(mesh, **kwargs)
 
     def getA(self, freq):
         """
@@ -565,9 +588,6 @@ class Simulation3DCurrentDensity(BaseFDEMSimulation):
     _solutionType = "jSolution"
     _formulation = "HJ"
     fieldsPair = Fields3DCurrentDensity
-
-    def __init__(self, mesh, **kwargs):
-        super(Simulation3DCurrentDensity, self).__init__(mesh, **kwargs)
 
     def getA(self, freq):
         """
@@ -755,9 +775,6 @@ class Simulation3DMagneticField(BaseFDEMSimulation):
     _solutionType = "hSolution"
     _formulation = "HJ"
     fieldsPair = Fields3DMagneticField
-
-    def __init__(self, mesh, **kwargs):
-        super(Simulation3DMagneticField, self).__init__(mesh, **kwargs)
 
     def getA(self, freq):
         """
