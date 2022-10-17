@@ -693,10 +693,8 @@ class Simulation3DDifferential(BaseMagneticPDESimulation):
     Secondary field approach using differential equations!
     """
 
-    survey = properties.Instance("a survey object", Survey, required=True)
-
-    def __init__(self, mesh, **kwargs):
-        super().__init__(mesh, **kwargs)
+    def __init__(self, mesh, survey=None, **kwargs):
+        super().__init__(mesh, survey=survey, **kwargs)
 
         Pbc, Pin, self._Pout = self.mesh.getBCProjWF("neumann", discretization="CC")
 
@@ -704,18 +702,23 @@ class Simulation3DDifferential(BaseMagneticPDESimulation):
         Mc = sdiag(self.mesh.vol)
         self._Div = Mc * Dface * Pin.T * Pin
 
-    # @property
-    # def survey(self):
-    #     return self._survey
+    @property
+    def survey(self):
+        """The survey for this simulation.
 
-    # @survey.setter
-    # def survey(self, obj):
-    #     if isinstance(obj, Survey):
-    #         self._survey = obj
-    #     else:
-    #         raise TypeError(
-    #             "Survey must be an instace of class {Survey}".format(Survey)
-    #         )
+        Returns
+        -------
+        SimPEG.potential_fields.magnetics.survey.Survey
+        """
+        if self._survey is None:
+            raise AttributeError("Simulation must have a survey")
+        return self._survey
+
+    @survey.setter
+    def survey(self, obj):
+        if obj is not None:
+            obj = validate_type("survey", obj, Survey, cast=False)
+        self._survey = obj
 
     @property
     def MfMuI(self):

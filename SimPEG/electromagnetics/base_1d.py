@@ -101,8 +101,6 @@ class BaseEM1DSimulation(BaseSimulation):
         "Receiver Height (m), h > 0",
     )
 
-    topo = properties.Array("Topography (x, y, z)", dtype=float)
-
     thicknesses, thicknessesMap, thicknessesDeriv = props.Invertible(
         "layer thicknesses (m)", default=np.array([])
     )
