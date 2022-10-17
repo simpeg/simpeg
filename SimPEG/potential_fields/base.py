@@ -3,11 +3,12 @@ import os
 # import properties
 import discretize
 import numpy as np
-import multiprocessing
+import warnings
 from ..simulation import LinearSimulation
 from scipy.sparse import csr_matrix as csr
+import scipy.sparse as sp
 from SimPEG.utils import mkvc
-from ..utils import validate_string
+from ..utils import validate_string, validate_active_indices
 
 ###############################################################################
 #                                                                             #
@@ -44,8 +45,6 @@ class BasePFSimulation(LinearSimulation):
         - 'forward_only': you intend only do perform a forward simulation and sensitivities do no need to be stored
 
     """
-    solver = None
-
     def __init__(self, mesh, ind_active=None, store_sensitivities="ram", **kwargs):
 
         # If deprecated property set with kwargs
@@ -58,37 +57,21 @@ class BasePFSimulation(LinearSimulation):
                 store_sensitivities = "forward_only"
 
         self.store_sensitivities = store_sensitivities
-        LinearSimulation.__init__(self, mesh, **kwargs)
+        super().__init__(mesh, **kwargs)
+        self.solver = None
 
         # Find non-zero cells indices
         if ind_active is not None:
-            try:
-                ind_active = np.asarray(ind_active)
-            except TypeError:
-                raise TypeError("ind_active must be array_like")
-            if np.issubdtype(ind_active.dtype, bool):
-                if len(ind_active) != mesh.n_cells:
-                    raise ValueError(
-                        "Boolean list of active cells must have length mesh.n_cells. "
-                        f"Saw {len(ind_active)} and expected {mesh.n_cells}."
-                    )
-                ind_active = np.where(ind_active)[0]
-            if not np.issubdtype(ind_active.dtype, np.integer):
-                raise ValueError(
-                    "ind_active must either be an array of booleans, or an array of "
-                    "integers describing listing the active cells."
-                )
+            ind_active = validate_active_indices("ind_active", ind_active, mesh.n_cells)
         else:
-            ind_active = np.arange(self.mesh.nC)
+            ind_active = np.ones(mesh.n_cells, dtype=bool)
         self._ind_active = ind_active
 
-        self.nC = len(ind_active)
+        self.nC = sum(ind_active)
 
         # Create active cell projector
-        projection = csr(
-            (np.ones(self.nC), (ind_active, range(self.nC))),
-            shape=(self.mesh.nC, self.nC),
-        )
+        projection = sp.eye(mesh.n_cells, format='csr')[:, ind_active]
+
         if not isinstance(mesh, (discretize.TensorMesh, discretize.TreeMesh)):
             raise ValueError("Mesh must be 3D tensor or Octree.")
         # Create vectors of nodal location for the lower and upper corners
@@ -140,8 +123,6 @@ class BasePFSimulation(LinearSimulation):
         (n_cell) numpy.ndarray of bool
             Returns the active topography cells
         """
-        if self._ind_active is None:
-            self._ind_active = np.asarray(range(self.mesh.nC))
         return self._ind_active
 
     @property
