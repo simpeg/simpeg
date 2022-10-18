@@ -44,25 +44,10 @@ class BaseIPSimulation(BasePDESimulation):
 
     eta, etaMap, etaDeriv = props.Invertible("Electrical Chargeability (V/V)")
 
-    _data_type = properties.StringChoice(
-        "IP data type",
-        default="volt",
-        choices=["volt", "apparent_chargeability"],
-    )
-
-    data_type = deprecate_property(
-        _data_type,
-        "data_type",
-        new_name="receiver.data_type",
-        removal_version="0.17.0",
-        future_warn=True,
-    )
-
     _Jmatrix = None
     _f = None  # the DC fields
     _pred = None
     _scale = None
-    gtgdiag = None
 
     def fields(self, m):
         if self.verbose:
@@ -82,7 +67,6 @@ class BaseIPSimulation(BasePDESimulation):
                 for rx in src.receiver_list:
                     if (
                         rx.data_type == "apparent_chargeability"
-                        or self._data_type == "apparent_chargeability"
                     ):
                         scale[src, rx] = 1.0 / rx.eval(src, self.mesh, f)
             self._scale = scale.dobs
@@ -107,16 +91,16 @@ class BaseIPSimulation(BasePDESimulation):
         return self._pred
 
     def getJtJdiag(self, m, W=None):
-        if self.gtgdiag is None:
+        if getattr(self, "_gtgdiag", None) is None:
             J = self.getJ(m)
             if W is None:
                 W = self._scale ** 2
             else:
                 W = (self._scale * W.diagonal()) ** 2
 
-            self.gtgdiag = np.einsum("i,ij,ij->j", W, J, J)
+            self._gtgdiag = np.einsum("i,ij,ij->j", W, J, J)
 
-        return self.gtgdiag
+        return self._gtgdiag
 
     def Jvec(self, m, v, f=None):
         return self._scale * super().Jvec(m, v, f)
