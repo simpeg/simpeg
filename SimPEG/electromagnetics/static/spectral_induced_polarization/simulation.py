@@ -1,12 +1,11 @@
 import numpy as np
 import sys
 import gc
-import properties
 
 from .... import props
-from .... import maps
 from .data import Data
-from ....utils import sdiag
+from ....utils import sdiag, validate_type, validate_active_indices
+import scipy.sparse as sp
 
 from ..induced_polarization.simulation import BaseIPSimulation
 from ..induced_polarization import (
@@ -19,22 +18,14 @@ from .survey import Survey
 class BaseSIPSimulation(BaseIPSimulation):
 
     tau, tauMap, tauDeriv = props.Invertible("Time constant (s)", default=0.1)
-
     taui, tauiMap, tauiDeriv = props.Invertible("Inverse of time constant (1/s)")
+    props.Reciprocal(tau, taui)
 
     c, cMap, cDeriv = props.Invertible("Frequency dependency", default=0.5)
 
-    props.Reciprocal(tau, taui)
-
-    survey = properties.Instance("an SIP survey object", Survey, required=True)
-
     Ainv = None
     _f = None
-    actinds = None
-    storeJ = False
     _Jmatrix = None
-    actMap = None
-    n_pulse = 1
     _dc_voltage_set = False
 
     _eta_store = None
@@ -42,24 +33,93 @@ class BaseSIPSimulation(BaseIPSimulation):
     _c_store = None
     _pred = None
 
-    storeInnerProduct = True
+    def __init__(
+        self,
+        mesh,
+        survey=None,
+        storeJ=False,
+        actinds=None,
+        storeInnerProduct=True,
+        **kwargs
+    ):
+        super().__init__(mesh=mesh, survey=survey, **kwargs)
+        self.storeJ = storeJ
+        self.storeInnerProduct = storeInnerProduct
+        self.actinds = actinds
 
-    def __init__(self, mesh, **kwargs):
-        super().__init__(mesh, **kwargs)
-        self.n = self.mesh.nN
+    @property
+    def survey(self):
+        """The SIP survey object.
 
+        Returns
+        -------
+        SimPEG.electromagnetics.static.spectral_induced_polarization.survey.Survey
+        """
+        if self._survey is None:
+            raise AttributeError("Simulation must have a survey")
+        return self._survey
+
+    @survey.setter
+    def survey(self, value):
+        if value is not None:
+            value = validate_type("survey", value, Survey, cast=False)
+        self._survey = value
+
+    @property
+    def actinds(self):
+        """Active indices when storing J.
+
+        Returns
+        -------
+        (mesh.n_cells) numpy.ndarray of bool
+        """
+        return self._actinds
+
+    @actinds.setter
+    def actinds(self, value):
         if self.storeJ:
-            if self.actinds is None:
-                print("You did not put Active indices")
-                print("So, set actMap = IdentityMap(mesh)")
-                self.actinds = np.ones(mesh.nC, dtype=bool)
+            if value is None:
+                value = np.ones(self.mesh.n_cells, dtype=bool)
+            value = validate_active_indices("actinds", value, self.mesh.n_cells)
+            self._actinds = value
+            self._P = sp.eye(self.nC, format="csr")[:, self.indActive]
 
-            self.actMap = maps.InjectActiveCells(mesh, self.actinds, 0.0)
+    @property
+    def storeInnerProduct(self):
+        """Whether to store inner product matrices
+
+        Returns
+        -------
+        bool
+        """
+        return self._storeInnerProduct
+
+    @storeInnerProduct.setter
+    def storeInnerProduct(self, value):
+        self._storeInnerProduct = validate_type("storeInnerProduct", value, bool)
+
+    @property
+    def storeJ(self):
+        """Whether to store the sensitivity matrix
+
+        Returns
+        -------
+        bool
+        """
+        return self._storeJ
+
+    @storeJ.setter
+    def storeJ(self, value):
+        self._storeJ = validate_type("storeJ", value, bool)
+
+    @property
+    def n(self):
+        return self.mesh.n_nodes
 
     @property
     def sigmaDeriv(self):
         if self.storeJ:
-            dsigma_dlogsigma = sdiag(self.sigma) * self.actMap.P
+            dsigma_dlogsigma = sdiag(self.sigma) * self._P
         else:
             dsigma_dlogsigma = sdiag(self.sigma)
         return -dsigma_dlogsigma
@@ -67,7 +127,7 @@ class BaseSIPSimulation(BaseIPSimulation):
     @property
     def rhoDeriv(self):
         if self.storeJ:
-            drho_dlogrho = sdiag(self.rho) * self.actMap.P
+            drho_dlogrho = sdiag(self.rho) * self._P
         else:
             drho_dlogrho = sdiag(self.rho)
         return drho_dlogrho
@@ -302,7 +362,7 @@ class BaseSIPSimulation(BaseIPSimulation):
                 f = self.fields(m)
 
             Jt = np.zeros(
-                (self.actMap.nP, int(self.survey.nD / self.survey.unique_times.size)),
+                (self._P.shape[1], int(self.survey.nD / self.survey.unique_times.size)),
                 order="F",
             )
             istrt = int(0)
@@ -348,7 +408,7 @@ class BaseSIPSimulation(BaseIPSimulation):
         wd = Wd.diagonal().reshape((self.survey.locations_n, ntime), order="F")
         for tind in range(ntime):
             t = self.survey.unique_times[tind]
-            Jtv = self.actMap.P * J.T * sdiag(wd[:, tind])
+            Jtv = self._P * J.T * sdiag(wd[:, tind])
             JtJdiag += (
                 (self.PetaEtaDeriv(t, Jtv, adjoint=True) ** 2).sum(axis=1)
                 + (self.PetaTauiDeriv(t, Jtv, adjoint=True) ** 2).sum(axis=1)
@@ -379,9 +439,7 @@ class BaseSIPSimulation(BaseIPSimulation):
             self.model = m
             for tind in range(ntime):
                 Jv.append(
-                    J.dot(
-                        self.actMap.P.T * self.get_peta(self.survey.unique_times[tind])
-                    )
+                    J.dot(self._P.T * self.get_peta(self.survey.unique_times[tind]))
                 )
             return np.hstack(Jv)
 
@@ -443,7 +501,7 @@ class BaseSIPSimulation(BaseIPSimulation):
                 v0 = self.PetaEtaDeriv(t, v)
                 v1 = self.PetaTauiDeriv(t, v)
                 v2 = self.PetaCDeriv(t, v)
-                PTv = self.actMap.P.T * (v0 + v1 + v2)
+                PTv = self._P.T * (v0 + v1 + v2)
                 Jv.append(J.dot(PTv))
 
             return np.hstack(Jv)
@@ -489,7 +547,7 @@ class BaseSIPSimulation(BaseIPSimulation):
 
             for tind in range(ntime):
                 t = self.survey.unique_times[tind]
-                Jtv = self.actMap.P * J.T.dot(v[:, tind])
+                Jtv = self._P * J.T.dot(v[:, tind])
                 Jtvec += (
                     self.PetaEtaDeriv(t, Jtv, adjoint=True)
                     + self.PetaTauiDeriv(t, Jtv, adjoint=True)
