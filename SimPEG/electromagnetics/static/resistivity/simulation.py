@@ -1,6 +1,5 @@
 import numpy as np
 import scipy.sparse as sp
-import properties
 
 from ....utils import mkvc, Zero, validate_type, validate_string
 from ....data import Data
@@ -311,7 +310,7 @@ class Simulation3DCellCentered(BaseDCSimulation):
         """
         return self._bc_type
 
-    @bc_type
+    @bc_type.setter
     def bc_type(self, value):
         self._bc_type = validate_string(
             "bc_type", value, ["Dirichlet", "Nuemann", "Robin", "Mixed"]
@@ -468,7 +467,7 @@ class Simulation3DNodal(BaseDCSimulation):
         """
         return self._bc_type
 
-    @bc_type
+    @bc_type.setter
     def bc_type(self, value):
         self._bc_type = validate_string("bc_type", value, ["Nuemann", "Robin", "Mixed"])
 

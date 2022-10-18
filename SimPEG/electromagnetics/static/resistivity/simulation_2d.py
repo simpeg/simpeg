@@ -1,7 +1,6 @@
 import numpy as np
 from scipy.optimize import minimize
 import warnings
-import properties
 
 
 from ....utils import (
@@ -457,18 +456,32 @@ class Simulation2DCellCentered(BaseDCSimulation2D):
     fieldsPair = Fields2DCellCentered
     fieldsPair_fwd = Fields3DCellCentered
 
-    bc_type = properties.StringChoice(
-        "Type of boundary condition to use for simulation. Note that Robin and Mixed "
-        "are equivalent.",
-        choices=["Dirichlet", "Neumann", "Robin", "Mixed"],
-        default="Robin",
-    )
-
-    def __init__(self, mesh, **kwargs):
-        BaseDCSimulation2D.__init__(self, mesh, **kwargs)
+    def __init__(self, mesh, survey=None, bc_type="Robin", **kwargs):
+        super().__init__(mesh, survey=survey, **kwargs)
         V = sdiag(self.mesh.cell_volumes)
         self.Div = V @ self.mesh.face_divergence
         self.Grad = self.Div.T
+        self.bc_type = bc_type
+
+    @property
+    def bc_type(self):
+        """Type of boundary condition to use for simulation.
+
+        Returns
+        -------
+        {"Dirichlet", "Neumann", "Robin", "Mixed"}
+
+        Notes
+        -----
+        Robin and Mixed are equivalent.
+        """
+        return self._bc_type
+
+    @bc_type.setter
+    def bc_type(self, value):
+        self._bc_type = validate_string(
+            "bc_type", value, ["Dirichlet", "Nuemann", "Robin", "Mixed"]
+        )
 
     def getA(self, ky):
         """
@@ -585,17 +598,29 @@ class Simulation2DNodal(BaseDCSimulation2D):
     fieldsPair_fwd = Fields3DNodal
     _gradT = None
 
-    bc_type = properties.StringChoice(
-        "Type of boundary condition to use for simulation. Note that Robin and Mixed "
-        "are equivalent.",
-        choices=["Neumann", "Robin", "Mixed"],
-        default="Robin",
-    )
-
-    def __init__(self, mesh, **kwargs):
-        BaseDCSimulation2D.__init__(self, mesh, **kwargs)
+    def __init__(self, mesh, survey=None, bc_type="Robin", **kwargs):
+        super().__init__(mesh=mesh, survey=survey, **kwargs)
         self.solver_opts["is_symmetric"] = True
         self.solver_opts["is_positive_definite"] = True
+        self.bc_type = bc_type
+
+    @property
+    def bc_type(self):
+        """Type of boundary condition to use for simulation.
+
+        Returns
+        -------
+        {"Neumann", "Robin", "Mixed"}
+
+        Notes
+        -----
+        Robin and Mixed are equivalent.
+        """
+        return self._bc_type
+
+    @bc_type.setter
+    def bc_type(self, value):
+        self._bc_type = validate_string("bc_type", value, ["Nuemann", "Robin", "Mixed"])
 
     def getA(self, ky):
         """
