@@ -1,5 +1,4 @@
 import numpy as np
-import properties
 from scipy.constants import epsilon_0
 
 from ....fields import TimeFields
@@ -42,8 +41,6 @@ class Fields2D(TimeFields):
     nFrequencies)
 
     """
-
-    simulation = properties.Instance("2D DC simulation", BaseElectricalPDESimulation)
 
     knownFields = {}
     dtype = float

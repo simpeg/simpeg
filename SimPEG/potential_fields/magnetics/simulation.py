@@ -10,7 +10,6 @@ from .analytics import CongruousMagBC
 
 from SimPEG import Solver
 from SimPEG import props
-import properties
 from SimPEG.utils import mkvc, mat_utils, sdiag
 from SimPEG.utils.code_utils import validate_string, deprecate_property, validate_type
 

@@ -162,30 +162,6 @@ class BaseSimulation(props.HasModel):
     def verbose(self, value):
         self._verbose = validate_type("verbose", value, bool)
 
-    # def _reset(self, name=None):
-    #     """Revert specified property to default value
-    #
-    #     If no property is specified, all properties are returned to default.
-    #     """
-    #     if name is None:
-    #         for key in self._props:
-    #             if isinstance(self._props[key], properties.basic.Property):
-    #                 self._reset(key)
-    #         return
-    #     if name not in self._props:
-    #         raise AttributeError(
-    #             "Input name '{}' is not a known " "property or attribute".format(name)
-    #         )
-    #     if not isinstance(self._props[name], properties.basic.Property):
-    #         raise AttributeError("Cannot reset GettableProperty " "'{}'".format(name))
-    #     if name in self._defaults:
-    #         val = self._defaults[name]
-    #     else:
-    #         val = self._props[name].default
-    #     # if callable(val):
-    #     #     val = val()
-    #     setattr(self, name, val)
-
     ###########################################################################
     # Properties and observers
 

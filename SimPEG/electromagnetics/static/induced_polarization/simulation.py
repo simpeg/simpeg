@@ -1,7 +1,5 @@
 import numpy as np
-import properties
 import scipy.sparse as sp
-from ....utils.code_utils import deprecate_property
 
 from .... import props, maps
 from ....data import Data
@@ -65,9 +63,7 @@ class BaseIPSimulation(BasePDESimulation):
             # loop through receievers to check if they need to set the _dc_voltage
             for src in self.survey.source_list:
                 for rx in src.receiver_list:
-                    if (
-                        rx.data_type == "apparent_chargeability"
-                    ):
+                    if rx.data_type == "apparent_chargeability":
                         scale[src, rx] = 1.0 / rx.eval(src, self.mesh, f)
             self._scale = scale.dobs
 

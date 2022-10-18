@@ -1,4 +1,3 @@
-import properties
 from scipy.constants import mu_0
 import numpy as np
 from scipy import sparse as sp
