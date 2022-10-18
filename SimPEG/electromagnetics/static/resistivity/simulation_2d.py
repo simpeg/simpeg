@@ -4,7 +4,14 @@ import warnings
 import properties
 
 
-from ....utils import mkvc, sdiag, Zero
+from ....utils import (
+    mkvc,
+    sdiag,
+    Zero,
+    validate_type,
+    validate_string,
+    validate_integer,
+)
 from ....base import BaseElectricalPDESimulation
 from ....data import Data
 
@@ -21,26 +28,29 @@ class BaseDCSimulation2D(BaseElectricalPDESimulation):
     Base 2.5D DC problem
     """
 
-    survey = properties.Instance("a DC survey object", Survey, required=True)
-
-    storeJ = properties.Bool("store the sensitivity matrix?", default=False)
-
-    nky = properties.Integer(
-        "Number of kys to use in wavenumber space", required=False, default=11
-    )
-
     fieldsPair = Fields2D  # SimPEG.EM.Static.Fields_2D
     fieldsPair_fwd = FieldsDC
     # there's actually nT+1 fields, so we don't need to store the last one
     _Jmatrix = None
-    fix_Jmatrix = False
     _mini_survey = None
 
-    def __init__(self, *args, **kwargs):
-        miniaturize = kwargs.pop("miniaturize", False)
-        do_trap = kwargs.pop("do_trap", False)
-        super().__init__(*args, **kwargs)
+    def __init__(
+        self,
+        mesh,
+        survey=None,
+        nky=11,
+        storeJ=False,
+        miniaturize=False,
+        do_trap=False,
+        fix_Jmatrix=False,
+        **kwargs,
+    ):
+        super().__init__(mesh=mesh, survey=survey, **kwargs)
+        self.nky = nky
+        self.storeJ = storeJ
+        self.fix_Jmatrix = fix_Jmatrix
 
+        do_trap = validate_type("do_trap", do_trap, bool)
         if not do_trap:
             # try to find an optimal set of quadrature points and weights
             def get_phi(r):
@@ -112,8 +122,69 @@ class BaseDCSimulation2D(BaseElectricalPDESimulation):
 
         # Do stuff to simplify the forward and JTvec operation if number of dipole
         # sources is greater than the number of unique pole sources
+        miniaturize = validate_type("miniaturize", miniaturize, bool)
         if miniaturize:
             self._dipoles, self._invs, self._mini_survey = _mini_pole_pole(self.survey)
+
+    @property
+    def survey(self):
+        """The DC survey object.
+
+        Returns
+        -------
+        SimPEG.electromagnetics.static.resistivity.survey.Survey
+        """
+        if self._survey is None:
+            raise AttributeError("Simulation must have a survey")
+        return self._survey
+
+    @survey.setter
+    def survey(self, value):
+        if value is not None:
+            value = validate_type("survey", value, Survey, cast=False)
+        self._survey = value
+
+    @property
+    def nky(self):
+        """Number of kys to use in wavenumber space.
+
+        Returns
+        -------
+        int
+        """
+        return self._nky
+
+    @nky.setter
+    def nky(self, value):
+        self._nky = validate_integer("nky", value, min_val=3)
+
+    @property
+    def storeJ(self):
+        """Whether to store the sensitivity matrix
+
+        Returns
+        -------
+        bool
+        """
+        return self._storeJ
+
+    @storeJ.setter
+    def storeJ(self, value):
+        self._storeJ = validate_type("storeJ", value, bool)
+
+    @property
+    def fix_Jmatrix(self):
+        """Whether to fix the sensitivity matrix between iterations.
+
+        Returns
+        -------
+        bool
+        """
+        return self._fix_Jmatrix
+
+    @fix_Jmatrix.setter
+    def fix_Jmatrix(self, value):
+        self._fix_Jmatrix = validate_type("fix_Jmatrix", value, bool)
 
     def fields(self, m=None):
         if self.verbose:

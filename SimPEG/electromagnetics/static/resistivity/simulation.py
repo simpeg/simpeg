@@ -2,7 +2,7 @@ import numpy as np
 import scipy.sparse as sp
 import properties
 
-from ....utils import mkvc, Zero
+from ....utils import mkvc, Zero, validate_type, validate_string
 from ....data import Data
 from ....base import BaseElectricalPDESimulation
 from .survey import Survey
@@ -16,23 +16,50 @@ class BaseDCSimulation(BaseElectricalPDESimulation):
     Base DC Problem
     """
 
-    survey = properties.Instance("a DC survey object", Survey, required=True)
-
-    storeJ = properties.Bool("store the sensitivity matrix?", default=False)
-
     _mini_survey = None
 
     Ainv = None
     _Jmatrix = None
-    gtgdiag = None
 
-    def __init__(self, *args, **kwargs):
-        miniaturize = kwargs.pop("miniaturize", False)
-        super().__init__(*args, **kwargs)
+    def __init__(self, mesh, survey=None, storeJ=False, miniaturize=False, **kwargs):
+        super().__init__(mesh=mesh, survey=survey, **kwargs)
         # Do stuff to simplify the forward and JTvec operation if number of dipole
         # sources is greater than the number of unique pole sources
+        miniaturize = validate_type("miniaturize", miniaturize, bool)
         if miniaturize:
             self._dipoles, self._invs, self._mini_survey = _mini_pole_pole(self.survey)
+
+    @property
+    def survey(self):
+        """The DC survey object.
+
+        Returns
+        -------
+        SimPEG.electromagnetics.static.resistivity.survey.Survey
+        """
+        if self._survey is None:
+            raise AttributeError("Simulation must have a survey")
+        return self._survey
+
+    @survey.setter
+    def survey(self, value):
+        if value is not None:
+            value = validate_type("survey", value, Survey, cast=False)
+        self._survey = value
+
+    @property
+    def storeJ(self):
+        """Whether to store the sensitivity matrix
+
+        Returns
+        -------
+        bool
+        """
+        return self._storeJ
+
+    @storeJ.setter
+    def storeJ(self, value):
+        self._storeJ = validate_type("storeJ", value, bool)
 
     def fields(self, m=None, calcJ=True):
         if m is not None:
@@ -74,7 +101,7 @@ class BaseDCSimulation(BaseElectricalPDESimulation):
         """
         Return the diagonal of JtJ
         """
-        if self.gtgdiag is None:
+        if getattr(self, "_gtgdiag", None) is None:
             J = self.getJ(m)
 
             if W is None:
@@ -86,8 +113,8 @@ class BaseDCSimulation(BaseElectricalPDESimulation):
             for i in range(J.shape[0]):
                 diag += (W[i]) * (J[i] * J[i])
 
-            self.gtgdiag = diag
-        return self.gtgdiag
+            self._gtgdiag = diag
+        return self._gtgdiag
 
     def Jvec(self, m, v, f=None):
         """
@@ -226,8 +253,8 @@ class BaseDCSimulation(BaseElectricalPDESimulation):
         toDelete = super().deleteTheseOnModelUpdate
         if self._Jmatrix is not None:
             toDelete = toDelete + ["_Jmatrix"]
-        if self.gtgdiag is not None:
-            toDelete = toDelete + ["gtgdiag"]
+        if self._gtgdiag is not None:
+            toDelete = toDelete + ["_gtgdiag"]
         return toDelete
 
     def _mini_survey_data(self, d_mini):
@@ -264,17 +291,31 @@ class Simulation3DCellCentered(BaseDCSimulation):
     _formulation = "HJ"  # CC potentials means J is on faces
     fieldsPair = Fields3DCellCentered
 
-    bc_type = properties.StringChoice(
-        "Type of boundary condition to use for simulation. Note that Robin and Mixed "
-        "are equivalent.",
-        choices=["Dirichlet", "Neumann", "Robin", "Mixed"],
-        default="Robin",
-    )
+    def __init__(self, mesh, survey=None, bc_type="Robin", **kwargs):
 
-    def __init__(self, mesh, **kwargs):
-
-        BaseDCSimulation.__init__(self, mesh, **kwargs)
+        super().__init__(self, mesh=mesh, survey=survey, **kwargs)
+        self.bc_type = bc_type
         self.setBC()
+
+    @property
+    def bc_type(self):
+        """Type of boundary condition to use for simulation.
+
+        Returns
+        -------
+        {"Dirichlet", "Neumann", "Robin", "Mixed"}
+
+        Notes
+        -----
+        Robin and Mixed are equivalent.
+        """
+        return self._bc_type
+
+    @bc_type
+    def bc_type(self, value):
+        self._bc_type = validate_string(
+            "bc_type", value, ["Dirichlet", "Nuemann", "Robin", "Mixed"]
+        )
 
     def getA(self, resistivity=None):
         """
@@ -402,22 +443,34 @@ class Simulation3DNodal(BaseDCSimulation):
     _formulation = "EB"  # N potentials means B is on faces
     fieldsPair = Fields3DNodal
 
-    bc_type = properties.StringChoice(
-        "Type of boundary condition to use for simulation. Note that Robin and Mixed "
-        "are equivalent.",
-        choices=["Neumann", "Robin", "Mixed"],
-        default="Robin",
-    )
-
-    def __init__(self, mesh, **kwargs):
-        super().__init__(mesh, **kwargs)
+    def __init__(self, mesh, survey=None, bc_type="Robin", **kwargs):
+        super().__init__(mesh=mesh, survey=survey, **kwargs)
         # Not sure why I need to do this
         # To evaluate mesh.aveE2CC, this is required....
         if mesh._meshType == "TREE":
             mesh.nodalGrad
         elif mesh._meshType == "CYL":
-            self.bc_type == "Neumann"
+            bc_type == "Neumann"
+        self.bc_type = bc_type
         self.setBC()
+
+    @property
+    def bc_type(self):
+        """Type of boundary condition to use for simulation.
+
+        Returns
+        -------
+        {"Neumann", "Robin", "Mixed"}
+
+        Notes
+        -----
+        Robin and Mixed are equivalent.
+        """
+        return self._bc_type
+
+    @bc_type
+    def bc_type(self, value):
+        self._bc_type = validate_string("bc_type", value, ["Nuemann", "Robin", "Mixed"])
 
     def getA(self, resistivity=None):
         """
