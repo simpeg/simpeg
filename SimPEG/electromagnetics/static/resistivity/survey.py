@@ -5,7 +5,6 @@ from __future__ import unicode_literals
 
 import numpy as np
 
-# import properties
 from ....utils.code_utils import deprecate_property, validate_string
 
 from ....survey import BaseSurvey

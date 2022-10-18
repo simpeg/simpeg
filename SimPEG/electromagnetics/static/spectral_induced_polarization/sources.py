@@ -1,7 +1,5 @@
 import numpy as np
 
-# import properties
-
 from .... import survey
 from ....utils import Zero, closestPoints, mkvc, validate_list_of_types, validate_float
 from .receivers import BaseRx

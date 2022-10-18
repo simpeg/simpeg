@@ -1,7 +1,5 @@
 import numpy as np
 
-# import properties
-
 from ....survey import BaseTimeSurvey
 from . import sources
 from . import receivers

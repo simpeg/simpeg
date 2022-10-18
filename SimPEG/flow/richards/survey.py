@@ -1,6 +1,5 @@
 import numpy as np
 
-# import properties
 
 from ...survey import BaseSurvey, BaseRx
 from ...utils import validate_list_of_types

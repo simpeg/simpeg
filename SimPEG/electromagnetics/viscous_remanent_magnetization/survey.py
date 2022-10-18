@@ -1,6 +1,5 @@
 import numpy as np
 
-# import properties
 
 from ...survey import BaseSurvey
 from .sources import BaseSrcVRM

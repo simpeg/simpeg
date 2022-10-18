@@ -11,7 +11,6 @@ from scipy.interpolate import UnivariateSpline
 from scipy.constants import mu_0
 from scipy.sparse import csr_matrix as csr
 
-# import properties
 from discretize.tests import check_derivative
 from discretize import TensorMesh, CylMesh
 

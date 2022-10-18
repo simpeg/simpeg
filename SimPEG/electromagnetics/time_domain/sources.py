@@ -5,7 +5,6 @@ from geoana.em.static import CircularLoopWholeSpace, MagneticDipoleWholeSpace
 from scipy.constants import mu_0
 from scipy.special import roots_legendre
 
-# import properties
 from ...utils.code_utils import (
     deprecate_property,
     validate_float,

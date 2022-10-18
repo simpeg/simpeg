@@ -1,6 +1,5 @@
 import numpy as np
 
-# import properties
 from ....utils import (
     sdiag,
     validate_string,

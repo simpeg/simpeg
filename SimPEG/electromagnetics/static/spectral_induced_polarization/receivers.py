@@ -1,6 +1,5 @@
 import numpy as np
 
-# import properties
 from ....utils import sdiag, validate_string, validate_ndarray_with_shape
 
 from ....survey import BaseTimeRx

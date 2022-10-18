@@ -7,8 +7,6 @@ from ...utils import (
     validate_callable,
 )
 
-# import properties
-
 
 class BaseVRMWaveform:
     """

@@ -1,6 +1,5 @@
 import os
 
-# import properties
 import discretize
 import numpy as np
 import warnings
@@ -45,6 +44,7 @@ class BasePFSimulation(LinearSimulation):
         - 'forward_only': you intend only do perform a forward simulation and sensitivities do no need to be stored
 
     """
+
     def __init__(self, mesh, ind_active=None, store_sensitivities="ram", **kwargs):
 
         # If deprecated property set with kwargs
@@ -70,7 +70,7 @@ class BasePFSimulation(LinearSimulation):
         self.nC = sum(ind_active)
 
         # Create active cell projector
-        projection = sp.eye(mesh.n_cells, format='csr')[:, ind_active]
+        projection = sp.eye(mesh.n_cells, format="csr")[:, ind_active]
 
         if not isinstance(mesh, (discretize.TensorMesh, discretize.TreeMesh)):
             raise ValueError("Mesh must be 3D tensor or Octree.")

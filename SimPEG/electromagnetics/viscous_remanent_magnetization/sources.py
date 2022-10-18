@@ -2,7 +2,6 @@ import numpy as np
 import scipy.special as spec
 from ...utils import validate_ndarray_with_shape, validate_float
 
-# import properties
 
 from ...survey import BaseSrc
 from .waveforms import BaseVRMWaveform

@@ -3,8 +3,6 @@ from ...utils.code_utils import deprecate_class, validate_string
 import numpy as np
 from scipy.constants import mu_0
 
-# import properties
-
 from ...survey import BaseRx
 
 

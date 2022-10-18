@@ -1,4 +1,3 @@
-# import properties
 from ... import survey
 from ...utils import validate_string, validate_type
 import warnings

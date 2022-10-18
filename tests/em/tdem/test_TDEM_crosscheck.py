@@ -2,8 +2,6 @@ from __future__ import division, print_function
 import unittest
 import discretize
 
-# import properties
-
 from SimPEG import maps
 from SimPEG.electromagnetics import time_domain as tdem
 from SimPEG.electromagnetics import utils

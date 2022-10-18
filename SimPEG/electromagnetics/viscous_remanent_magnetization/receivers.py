@@ -7,7 +7,6 @@ from ...utils import (
 )
 import warnings
 
-# import properties
 
 #########################################
 # POINT RECEIVER CLASS FOR VRM
