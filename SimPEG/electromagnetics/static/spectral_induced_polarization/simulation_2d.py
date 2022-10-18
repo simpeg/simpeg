@@ -9,8 +9,8 @@ from .simulation import BaseSIPSimulation
 
 class BaseSIPSimulation2D(BaseSIPSimulation):
     def __init__(self, mesh, **kwargs):
-        self.storeJ = True
-        super().__init__(mesh, **kwargs)
+        kwargs.pop("storeJ", None)
+        super().__init__(mesh, storeJ=True, **kwargs)
 
     def getJ(self, m, f=None):
         """
