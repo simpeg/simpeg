@@ -2,11 +2,19 @@ import numpy as np
 import scipy.sparse as sp
 import time
 import warnings
+import properties
 
 from ... import utils
 from ...simulation import BaseTimeSimulation
 from ... import optimization
-from ...utils import validate_type, validate_ndarray_with_shape, deprecate_property, validate_string, validate_integer, validate_float
+from ...utils import (
+    validate_type,
+    validate_ndarray_with_shape,
+    deprecate_property,
+    validate_string,
+    validate_integer,
+    validate_float,
+)
 
 from .survey import Survey
 from .empirical import BaseHydraulicConductivity
@@ -15,6 +23,8 @@ from .empirical import BaseWaterRetention
 
 class SimulationNDCellCentered(BaseTimeSimulation):
     """Richards Simulation"""
+
+    # _nested_simulations = ["hydraulic_conductivity", "water_retention"]
 
     def __init__(
         self,
@@ -29,7 +39,7 @@ class SimulationNDCellCentered(BaseTimeSimulation):
         root_finder_tol=1e-4,
         **kwargs
     ):
-        debug = kwargs.pop('debug', None)
+        debug = kwargs.pop("debug", None)
         if debug is not None:
             self.debug = debug
         super().__init__(mesh=mesh, **kwargs)
@@ -40,33 +50,42 @@ class SimulationNDCellCentered(BaseTimeSimulation):
         self.method = method
         self.root_finder_max_iter = root_finder_max_iter
 
-    @property
-    def hydraulic_conductivity(self):
-        """hydraulic conductivity function
+    hydraulic_conductivity = properties.Instance(
+        "hydraulic conductivity function", BaseHydraulicConductivity
+    )
+    water_retention = properties.Instance("water retention curve", BaseWaterRetention)
 
-        Returns
-        -------
-        SimPEG.flow.richards.empirical.BaseHydraulicConductivity
-        """
-        return self._hydraulic_conductivity
-
-    @hydraulic_conductivity.setter
-    def hydraulic_conductivity(self, value):
-        self._hydraulic_conductivity = validate_type("hydraulic_conductivity", value, BaseHydraulicConductivity, cast=False)
-
-    @property
-    def water_retention(self):
-        """water retention curve
-
-        Returns
-        -------
-        SimPEG.flow.richards.empirical.BaseWaterRetention
-        """
-        return self._water_retention
-
-    @water_retention.setter
-    def water_retention(self, value):
-        self._water_retention = validate_type("water_retention", value, BaseWaterRetention, cast=False)
+    # @property
+    # def hydraulic_conductivity(self):
+    #     """hydraulic conductivity function
+    #
+    #     Returns
+    #     -------
+    #     SimPEG.flow.richards.empirical.BaseHydraulicConductivity
+    #     """
+    #     return self._hydraulic_conductivity
+    #
+    # @hydraulic_conductivity.setter
+    # def hydraulic_conductivity(self, value):
+    #     self._hydraulic_conductivity = validate_type(
+    #         "hydraulic_conductivity", value, BaseHydraulicConductivity, cast=False
+    #     )
+    #
+    # @property
+    # def water_retention(self):
+    #     """water retention curve
+    #
+    #     Returns
+    #     -------
+    #     SimPEG.flow.richards.empirical.BaseWaterRetention
+    #     """
+    #     return self._water_retention
+    #
+    # @water_retention.setter
+    # def water_retention(self, value):
+    #     self._water_retention = validate_type(
+    #         "water_retention", value, BaseWaterRetention, cast=False
+    #     )
 
     # TODO: This can also be a function(time, u_ii)
     @property
@@ -81,7 +100,9 @@ class SimulationNDCellCentered(BaseTimeSimulation):
 
     @boundary_conditions.setter
     def boundary_conditions(self, value):
-        self._boundary_conditions = validate_ndarray_with_shape("boundary_conditions", value)
+        self._boundary_conditions = validate_ndarray_with_shape(
+            "boundary_conditions", value
+        )
 
     @property
     def initial_conditions(self, value):
@@ -95,9 +116,13 @@ class SimulationNDCellCentered(BaseTimeSimulation):
 
     @initial_conditions.setter
     def initial_conditions(self, value):
-        self._initial_conditions = validate_ndarray_with_shape("initial_conditions", value)
+        self._initial_conditions = validate_ndarray_with_shape(
+            "initial_conditions", value
+        )
 
-    debug = deprecate_property(BaseTimeSimulation.verbose, "debug", "verbose", removal_version="0.19.0")
+    debug = deprecate_property(
+        BaseTimeSimulation.verbose, "debug", "verbose", removal_version="0.19.0"
+    )
 
     @property
     def method(self):
@@ -143,7 +168,9 @@ class SimulationNDCellCentered(BaseTimeSimulation):
 
     @root_finder_max_iter.setter
     def root_finder_max_iter(self, value):
-        self._root_finder_max_iter = validate_integer("root_finder_max_iter", value, min_val=1)
+        self._root_finder_max_iter = validate_integer(
+            "root_finder_max_iter", value, min_val=1
+        )
         if hasattr(self, "_root_finder"):
             del self._root_finder
 
@@ -153,7 +180,9 @@ class SimulationNDCellCentered(BaseTimeSimulation):
 
     @root_finder_tol.setter
     def root_finder_tol(self, value):
-        self._root_finder_tol = validate_float("root_finder_tol", value, min_val=0.0, inclusive_min=False)
+        self._root_finder_tol = validate_float(
+            "root_finder_tol", value, min_val=0.0, inclusive_min=False
+        )
         if hasattr(self, "_root_finder"):
             del self._root_finder
 
