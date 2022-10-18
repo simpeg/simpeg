@@ -844,12 +844,7 @@ class SurjectUnits(IdentityMap):
     def indices(self, values):
         values = validate_type("indices", values, list)
         for i in range(len(values)):
-            values[i] = validate_ndarray_with_shape(
-                "indices", values[i], shape=("*",), dtype=bool
-            )
-
-        if np.any([values[0].shape != x.shape for x in values[1:]]):
-            raise ValueError("All items in indices must have the same shape")
+            values[i] = validate_active_indices("indices", values[i], self.mesh.n_cells)
         self._indices = values
 
     @property
