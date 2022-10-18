@@ -1,12 +1,16 @@
 import discretize
 import numpy as np
 import scipy.sparse as sp
-import properties
 
 from ...simulation import BaseSimulation
 from ... import props
 from ... import maps
-from ...utils import mkvc
+from ...utils import (
+    mkvc,
+    validate_type,
+    validate_ndarray_with_shape,
+    validate_active_indices,
+)
 
 from .survey import SurveyVRM
 from .receivers import Point, SquareLoop
@@ -21,87 +25,101 @@ class BaseVRMSimulation(BaseSimulation):
     """"""
 
     _AisSet = False
-    refinement_factor = properties.Integer("Sensitivity refinement factor", min=0)
-    refinement_distance = properties.Array(
-        "Sensitivity refinement radii from sources", dtype=float
-    )
-    indActive = properties.Array("Topography active cells", dtype=bool)
 
-    def __init__(self, mesh=None, **kwargs):
+    def __init__(
+        self,
+        mesh,
+        survey=None,
+        refinement_factor=None,
+        refinement_distance=None,
+        indActive=None,
+        **kwargs,
+    ):
+        super().__init__(mesh=mesh, survey=survey, **kwargs)
 
-        refinement_factor = kwargs.pop("refinement_factor", None)
-        refinement_distance = kwargs.pop("refinement_distance", None)
-        indActive = kwargs.pop("indActive", None)
-
-        if not isinstance(mesh, (discretize.TensorMesh, discretize.TreeMesh)):
-            raise ValueError("Mesh must be 3D tensor or 3D tree.")
-        if len(mesh.h) != 3:
-            raise ValueError(
-                f"Mesh must be 3D tensor or 3D tree. Current mesh is {len(mesh.h)}"
-            )
-
-        super(BaseVRMSimulation, self).__init__(mesh, **kwargs)
-
-        if refinement_factor is None and refinement_distance is None:
-            self.refinement_factor = 3
-            self.refinement_distance = list(
-                1.25
-                * np.mean(
-                    np.r_[np.min(mesh.h[0]), np.min(mesh.h[1]), np.min(mesh.h[2])]
-                )
-                * np.arange(1, 4)
-            )
-        elif refinement_factor is None and refinement_distance is not None:
-            self.refinement_factor = len(refinement_distance)
-            self.refinement_distance = refinement_distance
-        elif refinement_factor is not None and refinement_distance is None:
-            self.refinement_factor = refinement_factor
-            self.refinement_distance = list(
+        if refinement_distance is None:
+            if refinement_factor is None:
+                refinement_factor = 3
+            refinement_distance = (
                 1.25
                 * np.mean(
                     np.r_[np.min(mesh.h[0]), np.min(mesh.h[1]), np.min(mesh.h[2])]
                 )
                 * np.arange(1, refinement_factor + 1)
             )
-        else:
-            self.refinement_factor = refinement_factor
-            self.refinement_distance = refinement_distance
-
+        self.refinement_distance = refinement_distance
         if indActive is None:
-            self.indActive = np.ones(mesh.nC, dtype=bool)
-        else:
-            self.indActive = indActive
+            indActive = np.ones(self.mesh.n_cells, dtype=bool)
+        self.indActive = indActive
 
-    @properties.observer("refinement_factor")
-    def _refinement_factor_observer(self, change):
-        if change["value"] > 4:
-            print(
-                "Refinement factor larger than 4 may result in computations which exceed memory limits"
-            )
-        if self.refinement_distance is not None and change["value"] != len(
-            self.refinement_distance
-        ):
-            print(
-                "Number of refinement radii currently DOES NOT match refinement_factor"
-            )
-
-    @properties.observer("refinement_distance")
-    def _refinement_distance_validator(self, change):
-        if (
-            self.refinement_factor is not None
-            and len(change["value"]) != self.refinement_factor
-        ):
-            print("Number of refinement radii current DOES NOT match refinement_factor")
-
-    @properties.validator("indActive")
-    def _indActive_validator(self, change):
-
-        if len(change["value"]) != self.mesh.nC:
+    @BaseSimulation.mesh.setter
+    def mesh(self, value):
+        value = validate_type(
+            "mesh", value, (discretize.TensorMesh, discretize.TreeMesh), cast=False
+        )
+        if value.dim != 3:
             raise ValueError(
-                "Length of active topo cells array must equal number of mesh cells (nC = {})".format(
-                    self.mesh.nC
-                )
+                f"Mesh must be 3D tensor or 3D tree. Current mesh is {value.dim}"
             )
+        self._mesh = value
+
+    @property
+    def survey(self):
+        """The VRM survey.
+
+        Returns
+        -------
+        SimPEG.electromagnetics.viscous_temanent_magnetization.survey.Survey
+        """
+        if self._survey is None:
+            raise AttributeError("Simulation must have a survey.")
+        return self._survey
+
+    @survey.setter
+    def survey(self, value):
+        if value is not None:
+            value = validate_type("survey", value, SurveyVRM, cast=False)
+        self._survey = value
+
+    @property
+    def refinement_factor(self):
+        """The number of refinement distances.
+
+        Returns
+        -------
+        int
+        """
+        return len(self.refinement_distance)
+
+    @property
+    def refinement_distance(self):
+        """Sensitivity refinement radii from sources.
+
+        Returns
+        -------
+        numpy.ndarray
+        """
+        return self._refinement_distance
+
+    @refinement_distance.setter
+    def refinement_distance(self, value):
+        self._refinement_distance = validate_ndarray_with_shape(
+            "refinement_distance", value, shape=("*",)
+        )
+
+    @property
+    def indActive(self):
+        """Topography active cells.
+
+        Returns
+        -------
+        (mesh.n_cells) numpy.ndarray of bool
+        """
+        return self._indActive
+
+    @indActive.setter
+    def indActive(self, value):
+        self._indActive = validate_active_indices("indActive", value, self.mesh.n_cells)
 
     def _getH0matrix(self, xyz, pp):
 
@@ -426,14 +444,16 @@ class BaseVRMSimulation(BaseSimulation):
                     0.5
                     * rxObj.width
                     * np.reshape(
-                        np.kron(ds[rxObj.quadrature_order - 1], np.ones(nw)), (nw ** 2, 1)
+                        np.kron(ds[rxObj.quadrature_order - 1], np.ones(nw)),
+                        (nw ** 2, 1),
                     )
                 )
                 s2 = (
                     0.5
                     * rxObj.width
                     * np.reshape(
-                        np.kron(np.ones(nw), ds[rxObj.quadrature_order - 1]), (nw ** 2, 1)
+                        np.kron(np.ones(nw), ds[rxObj.quadrature_order - 1]),
+                        (nw ** 2, 1),
                     )
                 )
 
@@ -794,15 +814,13 @@ class Simulation3DLinear(BaseVRMSimulation):
     _TisSet = False
     _xiMap = None
 
-    survey = properties.Instance("VRM Survey", SurveyVRM)
-
     xi, xiMap, xiDeriv = props.Invertible(
         "Amalgamated Viscous Remanent Magnetization Parameter xi = dchi/ln(tau2/tau1)"
     )
 
     def __init__(self, mesh, **kwargs):
 
-        super(Simulation3DLinear, self).__init__(mesh, **kwargs)
+        super().__init__(mesh, **kwargs)
 
         nAct = list(self.indActive).count(True)
         if self.xiMap is None:
