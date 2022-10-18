@@ -6,9 +6,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 from scipy.constants import mu_0
 
-import properties
-
-from ...utils import omega, validate_type, validate_list_of_types
+from ...utils import omega
+from ....utils import validate_type, validate_list_of_types
 
 
 # Define the default component dictionaries
