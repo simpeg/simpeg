@@ -20,7 +20,6 @@ This example is a simple joint inversion that consists of a
 
 import numpy as np
 import scipy.sparse as sp
-import properties
 import matplotlib.pyplot as plt
 
 from SimPEG.seismic import straight_ray_tomography as tomo
@@ -48,11 +47,19 @@ class Volume(objective_function.BaseObjectiveFunction):
         \phi_v = \frac{1}{2}|| \int_V m dV - \text{knownVolume} ||^2
     """
 
-    knownVolume = properties.Float("known volume", default=0.0, min=0.0)
-
-    def __init__(self, mesh, **kwargs):
+    def __init__(self, mesh, knownVolume=0.0, **kwargs):
         self.mesh = mesh
-        super(Volume, self).__init__(**kwargs)
+        self.knownVolume = knownVolume
+        super().__init__(**kwargs)
+
+    @property
+    def knownVolume(self):
+        """known volume"""
+        return self._knownVolume
+
+    @knownVolume.setter
+    def knownVolume(self, value):
+        self._knownVolume = utils.validate_float("knownVolume", value, min_val=0.0)
 
     def __call__(self, m):
         return 0.5 * (self.estVol(m) - self.knownVolume) ** 2
