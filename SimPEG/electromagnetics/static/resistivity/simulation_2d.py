@@ -464,18 +464,14 @@ class Simulation2DCellCentered(BaseDCSimulation2D):
 
         Returns
         -------
-        {"Dirichlet", "Neumann", "Robin", "Mixed"}
-
-        Notes
-        -----
-        Robin and Mixed are equivalent.
+        {"Dirichlet", "Neumann", "Robin"}
         """
         return self._bc_type
 
     @bc_type.setter
     def bc_type(self, value):
         self._bc_type = validate_string(
-            "bc_type", value, ["Dirichlet", "Neumann", "Robin", "Mixed"]
+            "bc_type", value, ["Dirichlet", "Neumann", ("Robin", "Mixed")]
         )
 
     def getA(self, ky):
@@ -605,7 +601,7 @@ class Simulation2DNodal(BaseDCSimulation2D):
 
         Returns
         -------
-        {"Neumann", "Robin", "Mixed"}
+        {"Neumann", "Robin"}
 
         Notes
         -----
@@ -615,7 +611,9 @@ class Simulation2DNodal(BaseDCSimulation2D):
 
     @bc_type.setter
     def bc_type(self, value):
-        self._bc_type = validate_string("bc_type", value, ["Neumann", "Robin", "Mixed"])
+        self._bc_type = validate_string(
+            "bc_type", value, ["Neumann", ("Robin", "Mixed")]
+        )
 
     def getA(self, ky):
         """

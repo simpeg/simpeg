@@ -309,7 +309,7 @@ class Simulation3DCellCentered(BaseDCSimulation):
     @bc_type.setter
     def bc_type(self, value):
         self._bc_type = validate_string(
-            "bc_type", value, ["Dirichlet", "Neumann", "Robin", "Mixed"]
+            "bc_type", value, ["Dirichlet", "Neumann", ("Robin", "Mixed")]
         )
 
     def getA(self, resistivity=None):
@@ -382,7 +382,7 @@ class Simulation3DCellCentered(BaseDCSimulation):
             return
         elif self.bc_type == "Neumann":
             alpha, beta, gamma = 0, 1, 0
-        else:  # self.bc_type == "Mixed":
+        else:
             boundary_faces = mesh.boundary_faces
             boundary_normals = mesh.boundary_face_outward_normals
             n_bf = len(boundary_faces)
@@ -465,7 +465,9 @@ class Simulation3DNodal(BaseDCSimulation):
 
     @bc_type.setter
     def bc_type(self, value):
-        self._bc_type = validate_string("bc_type", value, ["Neumann", "Robin", "Mixed"])
+        self._bc_type = validate_string(
+            "bc_type", value, ["Neumann", ("Robin", "Mixed")]
+        )
 
     def getA(self, resistivity=None):
         """
