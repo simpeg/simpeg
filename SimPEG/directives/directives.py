@@ -58,7 +58,6 @@ class InversionDirective:
         self.dmisfit = dmisfit
         self.reg = reg
         set_kwargs(self, **kwargs)
-        super().__init__(**kwargs)
 
     @property
     def verbose(self):
@@ -771,10 +770,9 @@ class TargetMisfit(InversionDirective):
     def __init__(self, target=None, phi_d_star=None, chifact=1.0, **kwargs):
         super().__init__(**kwargs)
         self.chifact = chifact
-        if phi_d_star is not None:
-            self.phi_d_star = phi_d_star
-            if target is not None:
-                raise AttributeError("Attempted to set both target and phi_d_star.")
+        self.phi_d_star = phi_d_star
+        if phi_d_star is not None and target is not None:
+            raise AttributeError("Attempted to set both target and phi_d_star.")
         if target is not None:
             self.target = target
 
@@ -787,15 +785,6 @@ class TargetMisfit(InversionDirective):
         float
         """
         if getattr(self, "_target", None) is None:
-            # the factor of 0.5 is because we do phid = 0.5*||dpred - dobs||^2
-            if self.phi_d_star is None:
-
-                nD = 0
-                for survey in self.survey:
-                    nD += survey.nD
-
-                self.phi_d_star = 0.5 * nD
-
             self._target = self.chifact * self.phi_d_star
         return self._target
 
@@ -836,6 +825,12 @@ class TargetMisfit(InversionDirective):
 
     @phi_d_star.setter
     def phi_d_star(self, value):
+        # the factor of 0.5 is because we do phid = 0.5*||dpred - dobs||^2
+        if value is None:
+            nD = 0
+            for survey in self.survey:
+                nD += survey.nD
+            value = 0.5 * nD
         self._phi_d_star = validate_float(
             "phi_d_star", value, min_val=0.0, inclusive_min=False
         )
