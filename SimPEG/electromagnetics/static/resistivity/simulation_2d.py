@@ -30,7 +30,6 @@ class BaseDCSimulation2D(BaseElectricalPDESimulation):
     fieldsPair = Fields2D  # SimPEG.EM.Static.Fields_2D
     fieldsPair_fwd = FieldsDC
     # there's actually nT+1 fields, so we don't need to store the last one
-    _Jmatrix = None
     _mini_survey = None
 
     def __init__(
@@ -244,9 +243,7 @@ class BaseDCSimulation2D(BaseElectricalPDESimulation):
         """
         Generate Full sensitivity matrix
         """
-        if self._Jmatrix is not None:
-            return self._Jmatrix
-        else:
+        if getattr(self, "_Jmatrix", None) is None:
             if self.verbose:
                 print("Calculating J and storing")
             self.model = m
@@ -417,9 +414,7 @@ class BaseDCSimulation2D(BaseElectricalPDESimulation):
         toDelete = super().deleteTheseOnModelUpdate
         if self.fix_Jmatrix:
             return toDelete
-        if self._Jmatrix is not None:
-            toDelete = toDelete + ["_Jmatrix"]
-        return toDelete
+        return toDelete + ["_Jmatrix"]
 
     def _mini_survey_data(self, d_mini):
         if self._mini_survey is not None:
@@ -480,7 +475,7 @@ class Simulation2DCellCentered(BaseDCSimulation2D):
     @bc_type.setter
     def bc_type(self, value):
         self._bc_type = validate_string(
-            "bc_type", value, ["Dirichlet", "Nuemann", "Robin", "Mixed"]
+            "bc_type", value, ["Dirichlet", "Neumann", "Robin", "Mixed"]
         )
 
     def getA(self, ky):
@@ -620,7 +615,7 @@ class Simulation2DNodal(BaseDCSimulation2D):
 
     @bc_type.setter
     def bc_type(self, value):
-        self._bc_type = validate_string("bc_type", value, ["Nuemann", "Robin", "Mixed"])
+        self._bc_type = validate_string("bc_type", value, ["Neumann", "Robin", "Mixed"])
 
     def getA(self, ky):
         """

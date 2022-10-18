@@ -18,10 +18,10 @@ class BaseDCSimulation(BaseElectricalPDESimulation):
     _mini_survey = None
 
     Ainv = None
-    _Jmatrix = None
 
     def __init__(self, mesh, survey=None, storeJ=False, miniaturize=False, **kwargs):
         super().__init__(mesh=mesh, survey=survey, **kwargs)
+        self.storeJ = storeJ
         # Do stuff to simplify the forward and JTvec operation if number of dipole
         # sources is greater than the number of unique pole sources
         miniaturize = validate_type("miniaturize", miniaturize, bool)
@@ -76,7 +76,7 @@ class BaseDCSimulation(BaseElectricalPDESimulation):
         return f
 
     def getJ(self, m, f=None):
-        if self._Jmatrix is None:
+        if getattr(self, "_Jmatrix", None) is None:
             if f is None:
                 f = self.fields(m)
             self._Jmatrix = self._Jtvec(m, v=None, f=f).T
@@ -250,11 +250,7 @@ class BaseDCSimulation(BaseElectricalPDESimulation):
     @property
     def deleteTheseOnModelUpdate(self):
         toDelete = super().deleteTheseOnModelUpdate
-        if self._Jmatrix is not None:
-            toDelete = toDelete + ["_Jmatrix"]
-        if self._gtgdiag is not None:
-            toDelete = toDelete + ["_gtgdiag"]
-        return toDelete
+        return toDelete + ["_Jmatrix", "_gtgdiag"]
 
     def _mini_survey_data(self, d_mini):
         if self._mini_survey is not None:
@@ -292,7 +288,7 @@ class Simulation3DCellCentered(BaseDCSimulation):
 
     def __init__(self, mesh, survey=None, bc_type="Robin", **kwargs):
 
-        super().__init__(self, mesh=mesh, survey=survey, **kwargs)
+        super().__init__(mesh=mesh, survey=survey, **kwargs)
         self.bc_type = bc_type
         self.setBC()
 
@@ -313,7 +309,7 @@ class Simulation3DCellCentered(BaseDCSimulation):
     @bc_type.setter
     def bc_type(self, value):
         self._bc_type = validate_string(
-            "bc_type", value, ["Dirichlet", "Nuemann", "Robin", "Mixed"]
+            "bc_type", value, ["Dirichlet", "Neumann", "Robin", "Mixed"]
         )
 
     def getA(self, resistivity=None):
@@ -469,7 +465,7 @@ class Simulation3DNodal(BaseDCSimulation):
 
     @bc_type.setter
     def bc_type(self, value):
-        self._bc_type = validate_string("bc_type", value, ["Nuemann", "Robin", "Mixed"])
+        self._bc_type = validate_string("bc_type", value, ["Neumann", "Robin", "Mixed"])
 
     def getA(self, resistivity=None):
         """

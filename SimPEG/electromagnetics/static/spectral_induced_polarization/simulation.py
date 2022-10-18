@@ -82,7 +82,7 @@ class BaseSIPSimulation(BaseIPSimulation):
                 value = np.ones(self.mesh.n_cells, dtype=bool)
             value = validate_active_indices("actinds", value, self.mesh.n_cells)
             self._actinds = value
-            self._P = sp.eye(self.nC, format="csr")[:, self.indActive]
+            self._P = sp.eye(self.mesh.n_cells, format="csr")[:, value]
 
     @property
     def storeInnerProduct(self):
@@ -332,10 +332,7 @@ class BaseSIPSimulation(BaseIPSimulation):
             # loop through receievers to check if they need to set the _dc_voltage
             for src in self.survey.source_list:
                 for rx in src.receiver_list:
-                    if (
-                        rx.data_type == "apparent_chargeability"
-                        or self._data_type == "apparent_chargeability"
-                    ):
+                    if rx.data_type == "apparent_chargeability":
                         rx.data_type = "volt"
                         rx._dc_voltage = rx.eval(src, self.mesh, f)
                         if rx.storeProjections:
