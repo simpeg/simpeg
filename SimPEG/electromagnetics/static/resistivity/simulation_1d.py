@@ -1,5 +1,4 @@
 import numpy as np
-import properties
 
 from ....utils import mkvc
 from ....simulation import BaseSimulation
@@ -15,6 +14,7 @@ except ImportError:
     from empymod.transform import get_dlf_points
 from empymod.utils import check_hankel
 from ..utils import static_utils
+from ....utils import validate_type, validate_string
 
 
 class Simulation1DLayers(BaseSimulation):
@@ -30,37 +30,115 @@ class Simulation1DLayers(BaseSimulation):
         "thicknesses of the layers"
     )
 
-    survey = properties.Instance("a DC survey object", Survey, required=True)
-
-    storeJ = properties.Bool("store the sensitivity", default=False)
-
-    data_type = "volt"
-    hankel_pts_per_dec = None  # Default: Standard DLF
-
-    # TODO: using 51 filter coefficient could be overkill, use less if possible
-    hankel_filter = "key_51_2012"  # Default: Hankel filter
-
-    _Jmatrix = None
-    fix_Jmatrix = False
-
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
+    def __init__(
+        self,
+        survey=None,
+        storeJ=False,
+        data_type="volt",
+        hankel_pts_per_dec=None,
+        hankel_filter="key_51_2012",
+        fix_Jmatrix=False,
+        **kwargs,
+    ):
+        super().__init__(survey=survey, **kwargs)
+        self.storeJ = storeJ
+        self.data_type = data_type
+        self.fix_Jmatrix = fix_Jmatrix
         try:
-            ht, htarg = check_hankel(
-                "fht", [self.hankel_filter, self.hankel_pts_per_dec], 1
-            )
-            self.fhtfilt = htarg[0]  # Store filter
-            self.hankel_pts_per_dec = htarg[1]  # Store pts_per_dec
+            ht, htarg = check_hankel("fht", [hankel_filter, hankel_pts_per_dec], 1)
+            self._fhtfilt = htarg[0]  # Store filter
+            self._hankel_pts_per_dec = htarg[1]  # Store pts_per_dec
         except ValueError:
             arg = {}
-            arg["dlf"] = self.hankel_filter
-            if self.hankel_pts_per_dec is not None:
-                arg["pts_per_dec"] = self.hankel_pts_per_dec
+            arg["dlf"] = hankel_filter
+            if hankel_pts_per_dec is not None:
+                arg["pts_per_dec"] = hankel_pts_per_dec
             ht, htarg = check_hankel("dlf", arg, 1)
-            self.fhtfilt = htarg["dlf"]  # Store filter
-            self.hankel_pts_per_dec = htarg["pts_per_dec"]  # Store pts_per_dec
-        self.hankel_filter = self.fhtfilt.name  # Store name
-        self.n_filter = self.fhtfilt.base.size
+            self._fhtfilt = htarg["dlf"]  # Store filter
+            self._hankel_pts_per_dec = htarg["pts_per_dec"]  # Store pts_per_dec
+        self._hankel_filter = self._fhtfilt.name
+
+    @property
+    def survey(self):
+        """The DC survey object.
+
+        Returns
+        -------
+        SimPEG.electromagnetics.static.resistivity.survey.Survey
+        """
+        if self._survey is None:
+            raise AttributeError("Simulation must have a survey.")
+        return self._survey
+
+    @survey.setter
+    def survey(self, value):
+        if value is not None:
+            value = validate_type("survey", value, Survey, cast=False)
+        self._survey = value
+
+    @property
+    def storeJ(self):
+        """Whether to store the sensitivity matrix.
+
+        Returns
+        -------
+        bool
+        """
+        return self._storeJ
+
+    @storeJ.setter
+    def storeJ(self, value):
+        self._storeJ = validate_type("storeJ", value, bool)
+
+    @property
+    def hankel_filter(self):
+        """The hankel filter key.
+
+        Returns
+        -------
+        str
+        """
+        return self._hankel_filter
+
+    @property
+    def hankel_pts_per_dec(self):
+        """Number of hankel transform points per decade.
+
+        Returns
+        -------
+        int
+        """
+        return self._hankel_pts_per_dec
+
+    @property
+    def fix_Jmatrix(self):
+        """Whether to fix the sensitivity matrix between iterations.
+
+        Returns
+        -------
+        bool
+        """
+        return self._fix_Jmatrix
+
+    @fix_Jmatrix.setter
+    def fix_Jmatrix(self, value):
+        self._fix_Jmatrix = validate_type("fix_Jmatrix", value, bool)
+
+    @property
+    def data_type(self):
+        """The type of data observered by the receivers.
+
+        Returns
+        -------
+        {"volt", "apparent_resistivity"}
+        """
+        return self._data_type
+
+    @data_type.setter
+    def data_type(self, value):
+        self._data_type = validate_string(
+            "data_type", value, ["volt", "apparent_resistivity"]
+        )
 
     def fields(self, m):
 
@@ -86,7 +164,7 @@ class Simulation1DLayers(BaseSimulation):
                     PJ,
                     self.lambd,
                     self.offset,
-                    self.fhtfilt,
+                    self._fhtfilt,
                     self.hankel_pts_per_dec,
                     factAng=None,
                     ab=33,
@@ -99,7 +177,7 @@ class Simulation1DLayers(BaseSimulation):
                     PJ,
                     self.lambd,
                     self.offset,
-                    self.fhtfilt,
+                    self._fhtfilt,
                     self.hankel_pts_per_dec,
                     ang_fact=None,
                     ab=33,
@@ -138,9 +216,7 @@ class Simulation1DLayers(BaseSimulation):
         """
         Generate Full sensitivity matrix using central difference
         """
-        if self._Jmatrix is not None:
-            return self._Jmatrix
-        else:
+        if getattr(self, "_Jmatrix", None) is None:
             if self.verbose:
                 print("Calculating J and storing")
             self.model = m
@@ -186,10 +262,7 @@ class Simulation1DLayers(BaseSimulation):
         toDelete = super().deleteTheseOnModelUpdate
         if self.fix_Jmatrix:
             return toDelete
-
-        if self._Jmatrix is not None:
-            toDelete = toDelete + ["_Jmatrix"]
-        return toDelete
+        return toDelete + ["_Jmatrix"]
 
     @property
     def electrode_separations(self):
@@ -226,10 +299,10 @@ class Simulation1DLayers(BaseSimulation):
         # TODO: only works isotropic sigma
         if getattr(self, "_lambd", None) is None:
             self._lambd = np.empty(
-                [self.offset.size, self.n_filter], order="F", dtype=complex
+                [self.offset.size, self._fhtfilt.base.size], order="F", dtype=complex
             )
             self.lambd[:, :], _ = get_dlf_points(
-                self.fhtfilt, self.offset, self.hankel_pts_per_dec
+                self._fhtfilt, self.offset, self.hankel_pts_per_dec
             )
         return self._lambd
 
