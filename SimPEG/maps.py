@@ -1339,7 +1339,6 @@ class SelfConsistentEffectiveMedium(IdentityMap):
         self,
         mesh=None,
         nP=None,
-        sigstart=None,
         sigma0=None,
         sigma1=None,
         alpha0=1.0,
@@ -1351,7 +1350,7 @@ class SelfConsistentEffectiveMedium(IdentityMap):
         maxIter=50,
         **kwargs,
     ):
-        self._sigstart = sigstart
+        self._sigstart = None
         self.sigma0 = sigma0
         self.sigma1 = sigma1
         self.alpha0 = alpha0
