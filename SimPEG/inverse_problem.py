@@ -7,13 +7,23 @@ from .data_misfit import BaseDataMisfit
 from .regularization import BaseRegularization, WeightedLeastSquares, Sparse
 from .objective_function import BaseObjectiveFunction, ComboObjectiveFunction
 from .optimization import Minimize
-from .utils import callHooks, timeIt, Counter, validate_float, validate_type, validate_ndarray_with_shape
+from .utils import (
+    callHooks,
+    timeIt,
+    Counter,
+    validate_float,
+    validate_type,
+    validate_ndarray_with_shape,
+)
+from .simulation import DefaultSolver
 
 
-class BaseInvProblem():
+class BaseInvProblem:
     """BaseInvProblem(dmisfit, reg, opt)"""
 
-    def __init__(self, dmisfit, reg, opt, beta=1.0, debug=False, counter=None, **kwargs):
+    def __init__(
+        self, dmisfit, reg, opt, beta=1.0, debug=False, counter=None, **kwargs
+    ):
         super().__init__(**kwargs)
         assert isinstance(reg, BaseRegularization) or isinstance(
             reg, BaseObjectiveFunction
@@ -138,7 +148,7 @@ class BaseInvProblem():
 
     @property
     def model(self):
-        """ The inversion model.
+        """The inversion model.
 
         Returns
         -------
@@ -150,10 +160,7 @@ class BaseInvProblem():
     def model(self, value):
         if value is not None:
             value = validate_ndarray_with_shape(
-                "model",
-                value,
-                shape=[("*", ), ("*", "*")],
-                dtype=None
+                "model", value, shape=[("*",), ("*", "*")], dtype=None
             )
         for prop in self.deleteTheseOnModelUpdate:
             if hasattr(self, prop):
@@ -183,25 +190,42 @@ class BaseInvProblem():
         self.phi_m = np.nan
 
         self.model = m0
+
+        solver = DefaultSolver
+        set_default = True
         for objfct in self.dmisfit.objfcts:
 
             if (
                 isinstance(objfct, BaseDataMisfit)
                 and getattr(objfct.simulation, "solver", None) is not None
             ):
+                solver = objfct.simulation.solver
+                solver_opts = objfct.simulation.solver_opts
                 print(
                     """
                         SimPEG.InvProblem is setting bfgsH0 to the inverse of the eval2Deriv.
-                        ***Done using same Solver and solver_opts as the {} problem***
+                        ***Done using same Solver, and solver_opts as the {} problem***
                         """.format(
                         objfct.simulation.__class__.__name__
                     )
                 )
-                self.opt.bfgsH0 = objfct.simulation.solver(
-                    sp.csr_matrix(self.reg.deriv2(self.model)),
-                    **objfct.simulation.solver_opts
-                )
+                set_default = False
                 break
+        if set_default:
+            print(
+                """
+                    SimPEG.InvProblem is setting bfgsH0 to the inverse of the eval2Deriv.
+                    ***Done using the default solver {} and no solver_opts.***
+                    """.format(
+                    DefaultSolver.__name__
+                )
+            )
+            solver = DefaultSolver
+            solver_opts = {}
+
+        self.opt.bfgsH0 = solver(
+            sp.csr_matrix(self.reg.deriv2(self.model)), **solver_opts
+        )
 
     @property
     def warmstart(self):
