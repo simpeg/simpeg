@@ -4,10 +4,6 @@ from scipy.constants import epsilon_0
 from ....fields import TimeFields
 from ....utils import Identity, Zero
 
-# TODO: this should be the BaseDCSimulation2D --> but circular imports at the
-# moment, so we can settle for its base at the moment
-from ....base import BaseElectricalPDESimulation
-
 
 class Fields2D(TimeFields):
 
