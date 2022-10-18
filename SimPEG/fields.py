@@ -16,10 +16,30 @@ class Fields:
     """
 
     _dtype = float
+    _knownFields = {}
+    _aliasFields = {}
 
-    def __init__(self, simulation, **kwargs):
+    def __init__(
+        self, simulation, knownFields=None, aliasFields=None, dtype=None, **kwargs
+    ):
         super().__init__(**kwargs)
         self.simulation = simulation
+
+        if knownFields is not None:
+            knownFields = validate_type("knownFields", knownFields, dict, cast=False)
+            self._knownFields = knownFields
+        if aliasFields is not None:
+            aliasFields = validate_type("aliasFields", aliasFields, dict, cast=False)
+            self._aliasFields = aliasFields
+        if dtype is not None:
+            self._dtype = dtype
+
+        # check overlapping fields
+        if any(key in self.aliasFields for key in self.knownFields):
+            raise KeyError(
+                "Aliased fields and Known Fields have overlapping definitions."
+            )
+
         self._fields = {}
         self.startup()
 
@@ -58,7 +78,7 @@ class Fields:
         dict
             They keys are the field names and the values are the field locations.
         """
-        raise NotImplementedError()
+        return self._knownFields
 
     @property
     def aliasFields(self):
@@ -82,11 +102,16 @@ class Fields:
             field's alias, it's location on the mesh, and the function (or the name of
             it) to create it from the aliased field.
         """
-        raise NotImplementedError()
+        return self._aliasFields
 
     @property
     def dtype(self):
-        """The data type of the storage matrix"""
+        """The data type of the storage matrix
+
+        Returns
+        -------
+        dtype or dict of {str : dtype}
+        """
         return self._dtype
 
     @property
