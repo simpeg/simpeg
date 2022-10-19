@@ -33,6 +33,12 @@ class Simulation1DLayers(BaseSimulation):
     def __init__(
         self,
         survey=None,
+        sigma=None,
+        sigmaMap=None,
+        rho=None,
+        rhoMap=None,
+        thicknesses=None,
+        thicknessesMap=None,
         storeJ=False,
         data_type="volt",
         hankel_pts_per_dec=None,
@@ -41,6 +47,12 @@ class Simulation1DLayers(BaseSimulation):
         **kwargs,
     ):
         super().__init__(survey=survey, **kwargs)
+        self.sigma = sigma
+        self.rho = rho
+        self.thicknesses = thicknesses
+        self.sigmaMap = sigmaMap
+        self.rhoMap = rhoMap
+        self.thicknessesMap = thicknessesMap
         self.storeJ = storeJ
         self.data_type = data_type
         self.fix_Jmatrix = fix_Jmatrix

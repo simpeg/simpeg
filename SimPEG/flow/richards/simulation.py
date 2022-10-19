@@ -2,7 +2,8 @@ import numpy as np
 import scipy.sparse as sp
 import time
 import warnings
-import properties
+
+# import properties
 
 from ... import utils
 from ...simulation import BaseTimeSimulation
@@ -15,6 +16,7 @@ from ...utils import (
     validate_integer,
     validate_float,
 )
+from ...props import NestedModeler
 
 from .survey import Survey
 from .empirical import BaseHydraulicConductivity
@@ -50,42 +52,10 @@ class SimulationNDCellCentered(BaseTimeSimulation):
         self.method = method
         self.root_finder_max_iter = root_finder_max_iter
 
-    hydraulic_conductivity = properties.Instance(
+    hydraulic_conductivity = NestedModeler(
         "hydraulic conductivity function", BaseHydraulicConductivity
     )
-    water_retention = properties.Instance("water retention curve", BaseWaterRetention)
-
-    # @property
-    # def hydraulic_conductivity(self):
-    #     """hydraulic conductivity function
-    #
-    #     Returns
-    #     -------
-    #     SimPEG.flow.richards.empirical.BaseHydraulicConductivity
-    #     """
-    #     return self._hydraulic_conductivity
-    #
-    # @hydraulic_conductivity.setter
-    # def hydraulic_conductivity(self, value):
-    #     self._hydraulic_conductivity = validate_type(
-    #         "hydraulic_conductivity", value, BaseHydraulicConductivity, cast=False
-    #     )
-    #
-    # @property
-    # def water_retention(self):
-    #     """water retention curve
-    #
-    #     Returns
-    #     -------
-    #     SimPEG.flow.richards.empirical.BaseWaterRetention
-    #     """
-    #     return self._water_retention
-    #
-    # @water_retention.setter
-    # def water_retention(self, value):
-    #     self._water_retention = validate_type(
-    #         "water_retention", value, BaseWaterRetention, cast=False
-    #     )
+    water_retention = NestedModeler("water retention curve", BaseWaterRetention)
 
     # TODO: This can also be a function(time, u_ii)
     @property

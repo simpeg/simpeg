@@ -3,7 +3,6 @@ from __future__ import print_function
 import inspect
 import numpy as np
 import warnings
-import properties
 
 from discretize.base import BaseMesh
 from discretize import TensorMesh
@@ -166,50 +165,28 @@ class BaseSimulation(props.HasModel):
     # Properties and observers
 
     #: List of strings, e.g. ['_MeSigma', '_MeSigmaI']
-    # TODO: rename to _delete_on_model_update
-    @property
-    def deleteTheseOnModelUpdate(self):
-        """A list of properties stored on this object to delete when the model is updated
 
-        Returns
-        -------
-        list of str
-            For example `['_MeSigma', '_MeSigmaI']`.
-        """
-        return []
-
-    #: List of matrix names to have their factors cleared on a model update
-    @property
-    def clean_on_model_update(self):
-        """A list of solver objects to clean when the model is updated
-
-        Returns
-        -------
-        list of str
-        """
-        return []
-
-    @properties.observer("model")
-    def _on_model_update(self, change):
-        if change["previous"] is change["value"]:
-            return
-        if (
-            isinstance(change["previous"], np.ndarray)
-            and isinstance(change["value"], np.ndarray)
-            and np.allclose(change["previous"], change["value"])
-        ):
-            return
-
-        # cached properties to delete
-        for prop in self.deleteTheseOnModelUpdate:
-            if hasattr(self, prop):
-                delattr(self, prop)
-
-        # matrix factors to clear
-        for mat in self.clean_on_model_update:
-            if getattr(self, mat, None) is not None:
-                getattr(self, mat).clean()  # clean factors
-                setattr(self, mat, None)  # set to none
+    # @properties.observer("model")
+    # def _on_model_update(self, change):
+    #     if change["previous"] is change["value"]:
+    #         return
+    #     if (
+    #         isinstance(change["previous"], np.ndarray)
+    #         and isinstance(change["value"], np.ndarray)
+    #         and np.allclose(change["previous"], change["value"])
+    #     ):
+    #         return
+    #
+    #     # cached properties to delete
+    #     for prop in self.deleteTheseOnModelUpdate:
+    #         if hasattr(self, prop):
+    #             delattr(self, prop)
+    #
+    #     # matrix factors to clear
+    #     for mat in self.clean_on_model_update:
+    #         if getattr(self, mat, None) is not None:
+    #             getattr(self, mat).clean()  # clean factors
+    #             setattr(self, mat, None)  # set to none
 
     ###########################################################################
     # Instantiation

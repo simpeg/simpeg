@@ -41,9 +41,26 @@ class Simulation1DRecursive(BaseSimulation):
         "thicknesses of the layers starting from the bottom of the mesh"
     )
 
-    def __init__(self, survey=None, fix_Jmatrix=False, **kwargs):
+    def __init__(
+        self,
+        survey=None,
+        sigma=None,
+        sigmaMap=None,
+        rho=None,
+        rhoMap=None,
+        thicknesses=None,
+        thicknessesMap=None,
+        fix_Jmatrix=False,
+        **kwargs
+    ):
         super().__init__(mesh=None, survey=survey, **kwargs)
         self.fix_Jmatrix = fix_Jmatrix
+        self.sigma = sigma
+        self.rho = rho
+        self.thicknesses = thicknesses
+        self.sigmaMap = sigmaMap
+        self.rhoMap = rhoMap
+        self.thicknessesMap = thicknessesMap
 
     @property
     def survey(self):

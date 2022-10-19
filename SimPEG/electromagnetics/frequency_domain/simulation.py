@@ -55,12 +55,6 @@ class BaseFDEMSimulation(BaseEMSimulation):
 
     fieldsPair = FieldsFDEM
 
-    mu, muMap, muDeriv = props.Invertible("Magnetic Permeability (H/m)", default=mu_0)
-
-    mui, muiMap, muiDeriv = props.Invertible("Inverse Magnetic Permeability (m/H)")
-
-    props.Reciprocal(mu, mui)
-
     def __init__(self, mesh, survey=None, forward_only=False, **kwargs):
         super().__init__(mesh=mesh, survey=survey, **kwargs)
         self.forward_only = forward_only

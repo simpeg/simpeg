@@ -818,9 +818,11 @@ class Simulation3DLinear(BaseVRMSimulation):
         "Amalgamated Viscous Remanent Magnetization Parameter xi = dchi/ln(tau2/tau1)"
     )
 
-    def __init__(self, mesh, **kwargs):
+    def __init__(self, mesh, xi=None, xiMap=None, **kwargs):
 
         super().__init__(mesh, **kwargs)
+        self.xi = xi
+        self.xiMap = xiMap
 
         nAct = list(self.indActive).count(True)
         if self.xiMap is None:
@@ -979,9 +981,14 @@ class Simulation3DLogUniform(BaseVRMSimulation):
     tau1 = props.PhysicalProperty("Low bound time-relaxation constant")
     tau2 = props.PhysicalProperty("Upper bound time-relaxation constant")
 
-    def __init__(self, mesh, **kwargs):
-
-        super(Simulation3DLogUniform, self).__init__(mesh, **kwargs)
+    def __init__(
+        self, mesh, survey=None, chi0=None, dchi=None, tau1=None, tau2=None, **kwargs
+    ):
+        super(Simulation3DLogUniform, self).__init__(mesh=mesh, survey=survey, **kwargs)
+        self.chi0 = chi0
+        self.dchi = dchi
+        self.tau1 = tau1
+        self.tau2 = tau2
 
     @property
     def A(self):

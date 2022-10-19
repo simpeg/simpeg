@@ -435,8 +435,14 @@ class BaseElectricalPDESimulation(BasePDESimulation):
     rho, rhoMap, rhoDeriv = props.Invertible("Electrical resistivity (Ohm m)")
     props.Reciprocal(sigma, rho)
 
-    def __init__(self, mesh, **kwargs):
+    def __init__(
+        self, mesh, sigma=None, sigmaMap=None, rho=None, rhoMap=None, **kwargs
+    ):
         super().__init__(mesh=mesh, **kwargs)
+        self.sigma = sigma
+        self.rho = rho
+        self.sigmaMap = sigmaMap
+        self.rhoMap = rhoMap
 
     @property
     def deleteTheseOnModelUpdate(self):
@@ -483,12 +489,18 @@ class BaseElectricalPDESimulation(BasePDESimulation):
 @with_property_mass_matrices("mui")
 class BaseMagneticPDESimulation(BasePDESimulation):
 
-    mu, muMap, muDeriv = props.Invertible("Magnetic Permeability (H/m)", default=mu_0)
+    mu, muMap, muDeriv = props.Invertible(
+        "Magnetic Permeability (H/m)",
+    )
     mui, muiMap, muiDeriv = props.Invertible("Inverse Magnetic Permeability (m/H)")
     props.Reciprocal(mu, mui)
 
-    def __init__(self, mesh, **kwargs):
-        super().__init__(mesh, **kwargs)
+    def __init__(self, mesh, mu=mu_0, muMap=None, mui=None, muiMap=None, **kwargs):
+        super().__init__(mesh=mesh, **kwargs)
+        self.mu = mu
+        self.mui = mui
+        self.muMap = muMap
+        self.muiMap = muiMap
 
     @property
     def deleteTheseOnModelUpdate(self):

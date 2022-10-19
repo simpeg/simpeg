@@ -2,7 +2,8 @@ import numpy as np
 from scipy.constants import epsilon_0
 
 from ....fields import TimeFields
-from ....utils import Identity, Zero
+from ....utils import Identity, Zero, validate_type
+from ....simulation import BaseSimulation
 
 
 class Fields2D(TimeFields):
@@ -40,6 +41,12 @@ class Fields2D(TimeFields):
 
     knownFields = {}
     dtype = float
+
+    @TimeFields.simulation.setter
+    def simulation(self, value):
+        self._simulation = validate_type(
+            "simulation", value, BaseSimulation, cast=False
+        )
 
     @property
     def survey(self):

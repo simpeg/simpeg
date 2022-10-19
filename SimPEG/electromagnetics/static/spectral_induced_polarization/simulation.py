@@ -37,12 +37,24 @@ class BaseSIPSimulation(BaseIPSimulation):
         self,
         mesh,
         survey=None,
+        tau=0.1,
+        tauMap=None,
+        taui=None,
+        tauiMap=None,
+        c=0.5,
+        cMap=None,
         storeJ=False,
         actinds=None,
         storeInnerProduct=True,
         **kwargs
     ):
         super().__init__(mesh=mesh, survey=survey, **kwargs)
+        self.tau = tau
+        self.taui = taui
+        self.tauMap = tauMap
+        self.tauiMap = tauiMap
+        self.c = c
+        self.cMap = cMap
         self.storeJ = storeJ
         self.storeInnerProduct = storeInnerProduct
         self.actinds = actinds

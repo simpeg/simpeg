@@ -42,6 +42,22 @@ class BaseIPSimulation(BasePDESimulation):
 
     eta, etaMap, etaDeriv = props.Invertible("Electrical Chargeability (V/V)")
 
+    def __init__(
+        self,
+        mesh=None,
+        survey=None,
+        sigma=None,
+        rho=None,
+        eta=None,
+        etaMap=None,
+        **kwargs
+    ):
+        super().__init__(mesh=mesh, survey=survey, **kwargs)
+        self.sigma = sigma
+        self.rho = rho
+        self.eta = eta
+        self.etaMap = etaMap
+
     _Jmatrix = None
     _f = None  # the DC fields
     _pred = None
