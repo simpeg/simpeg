@@ -954,13 +954,13 @@ class MultiTargetMisfits(InversionDirective):
 
         Returns
         -------
-        numpy.ndarray
+        float
         """
         return self._chiSmall
 
     @chiSmall.setter
     def chiSmall(self, value):
-        self._chiSmall = validate_ndarray_with_shape("chiSmall", value, shape=("*",))
+        self._chiSmall = validate_float("chiSmall", value)
         self._CLtarget = None
 
     @property
@@ -978,7 +978,7 @@ class MultiTargetMisfits(InversionDirective):
     @phi_ms_star.setter
     def phi_ms_star(self, value):
         if value is not None:
-            value = validate_ndarray_with_shape("phi_ms_star", value, shape=("*",))
+            value = validate_float("phi_ms_star", value)
         self._phi_ms_star = value
         self._CLtarget = None
 

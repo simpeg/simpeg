@@ -6020,7 +6020,7 @@ class PolynomialPetroClusterMap(IdentityMap):
         if coeffyx is None:
             coeffyx = np.r_[0.0]
         if coeffyy is None:
-            coeffyy = np.r[0.0, 1.0]
+            coeffyy = np.r_[0.0, 1.0]
 
         self._coeffxx = validate_ndarray_with_shape("coeffxx", coeffxx, shape=("*",))
         self._coeffxy = validate_ndarray_with_shape("coeffxy", coeffxy, shape=("*",))
