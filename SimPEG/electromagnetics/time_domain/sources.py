@@ -44,16 +44,8 @@ class BaseWaveform:
     """
 
     def __init__(self, has_initial_fields=False, off_time=0.0, epsilon=1e-9, **kwargs):
-        hasInitialFields = kwargs.pop("hasInitialFields", None)
-        if hasInitialFields is not None:
-            self.hasInitialFields = hasInitialFields
-        else:
-            self.has_initial_fields = has_initial_fields
-        offTime = kwargs.pop("offTime", None)
-        if offTime is not None:
-            self.offTime = offTime
-        else:
-            self.off_time = off_time
+        self.has_initial_fields = has_initial_fields
+        self.off_time = off_time
         eps = kwargs.pop("eps", None)
         if eps is not None:
             self.eps = eps
@@ -426,8 +418,8 @@ class VTEMWaveform(BaseWaveform):
             / (1.0 - np.exp(-self.a))
         )
 
-        p_2 = (t > self.peakTime) & (t < self.offTime)
-        out[p_2] = -1.0 / (self.offTime - self.peakTime)
+        p_2 = (t > self.peakTime) & (t < self.off_time)
+        out[p_2] = -1.0 / (self.off_time - self.peakTime)
 
         if out.ndim == 0:
             out = out.item()

@@ -65,7 +65,7 @@ def run(plotIt=True):
     # Forming function handle for waveform using 1D linear interpolation
     wavefun = interp1d(prb.times, out)
     t0 = 0.006
-    waveform = TDEM.Src.RawWaveform(offTime=t0, waveform_function=wavefun)
+    waveform = TDEM.Src.RawWaveform(off_time=t0, waveform_function=wavefun)
 
     rx = TDEM.Rx.PointMagneticFluxTimeDerivative(
         rxloc, np.logspace(-4, -2.5, 11) + t0, "z"

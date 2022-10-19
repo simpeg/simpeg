@@ -77,7 +77,7 @@ receiver_locations = np.c_[mkvc(xrx), mkvc(yrx), mkvc(zrx)]
 #
 
 # Define the waveform object for tdem simulation. Here we use the step-off.
-tdem_waveform = tdem.sources.StepOffWaveform(offTime=0.0)
+tdem_waveform = tdem.sources.StepOffWaveform(off_time=0.0)
 
 # Define survey object
 tdem_source_list = []

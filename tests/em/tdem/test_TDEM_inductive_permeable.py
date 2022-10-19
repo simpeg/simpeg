@@ -127,9 +127,9 @@ class TestInductiveSourcesPermeability(unittest.TestCase):
         time_steps = ramp
 
         time_mesh = discretize.TensorMesh([ramp])
-        offTime = 10000
+        off_time = 10000
         waveform = tdem.Src.QuarterSineRampOnWaveform(
-            ramp_on=np.r_[1e-4, 20], ramp_off=offTime - np.r_[1e-4, 0]
+            ramp_on=np.r_[1e-4, 20], ramp_off=off_time - np.r_[1e-4, 0]
         )
 
         if plotIt:

@@ -55,7 +55,7 @@ def get_survey(times, t0):
     out = utils.VTEMFun(times, 0.00595, 0.006, 100)
     wavefun = interp1d(times, out)
 
-    waveform = tdem.Src.RawWaveform(offTime=t0, waveform_function=wavefun)
+    waveform = tdem.Src.RawWaveform(off_time=t0, waveform_function=wavefun)
     src = tdem.Src.MagDipole([], waveform=waveform, location=np.array([0.0, 0.0, 0.0]))
 
     return tdem.Survey([src])

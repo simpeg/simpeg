@@ -53,7 +53,7 @@ def halfSpaceProblemAnaDiff(
     out = utils.VTEMFun(times, 0.00595, 0.006, 100)
     wavefun = interp1d(times, out)
     t0 = 0.006
-    waveform = tdem.Src.RawWaveform(offTime=t0, waveform_function=wavefun)
+    waveform = tdem.Src.RawWaveform(off_time=t0, waveform_function=wavefun)
 
     rx = getattr(tdem.Rx, "Point{}".format(rxType[:-1]))(
         np.array([[rxOffset, 0.0, 0.0]]), np.logspace(-4, -3, 31) + t0, rxType[-1]
