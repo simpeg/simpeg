@@ -371,7 +371,11 @@ class HasModel(BaseSimPEG, metaclass=PhysicalPropertyMetaclass):
 
     @property
     def model(self):
-        """The inversion model"""
+        """The inversion model
+        Returns
+        -------
+        numpy.ndarray
+        """
         return self._model
 
     @model.setter
