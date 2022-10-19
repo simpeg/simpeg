@@ -4,7 +4,6 @@ from discretize.utils import Zero
 from ..simulation import BaseSimulation
 from .. import props
 from scipy.constants import mu_0
-import properties
 
 
 def __inner_mat_mul_op(M, u, v=None, adjoint=False):
@@ -456,33 +455,12 @@ class BaseElectricalPDESimulation(BasePDESimulation):
             )
         return toDelete
 
-    @properties.observer("sigma")
-    def _clear_mats_on_sigma_update(self, change):
-        if change["previous"] is change["value"]:
-            return
-        if (
-            isinstance(change["previous"], np.ndarray)
-            and isinstance(change["value"], np.ndarray)
-            and np.allclose(change["previous"], change["value"])
-        ):
-            return
-        for mat in self._clear_on_sigma_update + self._clear_on_rho_update:
-            if hasattr(self, mat):
-                delattr(self, mat)
-
-    @properties.observer("rho")
-    def _clear_mats_on_rho_update(self, change):
-        if change["previous"] is change["value"]:
-            return
-        if (
-            isinstance(change["previous"], np.ndarray)
-            and isinstance(change["value"], np.ndarray)
-            and np.allclose(change["previous"], change["value"])
-        ):
-            return
-        for mat in self._clear_on_sigma_update + self._clear_on_rho_update:
-            if hasattr(self, mat):
-                delattr(self, mat)
+    def __setattr__(self, name, value):
+        super().__setattr__(name, value)
+        if name in ["sigma", "rho"]:
+            for mat in self._clear_on_sigma_update + self._clear_on_rho_update:
+                if hasattr(self, mat):
+                    delattr(self, mat)
 
 
 @with_property_mass_matrices("mu")
@@ -502,6 +480,13 @@ class BaseMagneticPDESimulation(BasePDESimulation):
         self.muMap = muMap
         self.muiMap = muiMap
 
+    def __setattr__(self, name, value):
+        super().__setattr__(name, value)
+        if name in ["mu", "mui"]:
+            for mat in self._clear_on_sigma_update + self._clear_on_rho_update:
+                if hasattr(self, mat):
+                    delattr(self, mat)
+
     @property
     def deleteTheseOnModelUpdate(self):
         """
@@ -511,31 +496,3 @@ class BaseMagneticPDESimulation(BasePDESimulation):
         if self.muMap is not None or self.muiMap is not None:
             toDelete = toDelete + self._clear_on_mu_update + self._clear_on_mui_update
         return toDelete
-
-    @properties.observer("mu")
-    def _clear_mats_on_mu_update(self, change):
-        if change["previous"] is change["value"]:
-            return
-        if (
-            isinstance(change["previous"], np.ndarray)
-            and isinstance(change["value"], np.ndarray)
-            and np.allclose(change["previous"], change["value"])
-        ):
-            return
-        for mat in self._clear_on_mu_update + self._clear_on_mui_update:
-            if hasattr(self, mat):
-                delattr(self, mat)
-
-    @properties.observer("mui")
-    def _clear_mats_on_mui_update(self, change):
-        if change["previous"] is change["value"]:
-            return
-        if (
-            isinstance(change["previous"], np.ndarray)
-            and isinstance(change["value"], np.ndarray)
-            and np.allclose(change["previous"], change["value"])
-        ):
-            return
-        for mat in self._clear_on_mu_update + self._clear_on_mui_update:
-            if hasattr(self, mat):
-                delattr(self, mat)
