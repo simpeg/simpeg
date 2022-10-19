@@ -55,8 +55,6 @@ class BaseWaterRetention(NonLinearModel):
             plt.figure()
             ax = plt.subplot(111)
 
-        self.validate()
-
         h = -np.logspace(-2, 3, 1000)
         ax.semilogx(-h, self(h))
         ax.set_title("Water retention curve")
@@ -71,8 +69,6 @@ class BaseHydraulicConductivity(NonLinearModel):
         if ax is None:
             plt.figure()
             ax = plt.subplot(111)
-
-        self.validate()
 
         h = -np.logspace(-2, 3, 1000)
         ax.loglog(-h, self(h))
