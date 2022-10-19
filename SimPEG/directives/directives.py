@@ -820,19 +820,22 @@ class TargetMisfit(InversionDirective):
         -------
         float
         """
+        # the factor of 0.5 is because we do phid = 0.5*||dpred - dobs||^2
+        if self._phi_d_star is None:
+            nD = 0
+            for survey in self.survey:
+                nD += survey.nD
+            self._phi_d_star = 0.5 * nD
         return self._phi_d_star
 
     @phi_d_star.setter
     def phi_d_star(self, value):
         # the factor of 0.5 is because we do phid = 0.5*||dpred - dobs||^2
-        if value is None:
-            nD = 0
-            for survey in self.survey:
-                nD += survey.nD
-            value = 0.5 * nD
-        self._phi_d_star = validate_float(
-            "phi_d_star", value, min_val=0.0, inclusive_min=False
-        )
+        if value is not None:
+            value = validate_float(
+                "phi_d_star", value, min_val=0.0, inclusive_min=False
+            )
+        self._phi_d_star = value
         self._target = None
 
     def endIter(self):
