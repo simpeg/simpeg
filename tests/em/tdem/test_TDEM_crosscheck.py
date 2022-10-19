@@ -13,13 +13,12 @@ from pymatsolver import Pardiso as Solver
 TOL = 1e-4
 FLR = 1e-20
 
-# set a seed so that the same conductivity model is used for all runs
-np.random.seed(25)
-
 
 def setUp_TDEM(
     prbtype="MagneticFluxDensity", rxcomp="bz", waveform="stepoff", src_type=None
 ):
+    # set a seed so that the same conductivity model is used for all runs
+    np.random.seed(25)
     cs = 5.0
     ncx = 8
     ncy = 8

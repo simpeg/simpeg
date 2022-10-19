@@ -17,7 +17,6 @@ testAdjoint = False
 
 TOL = 1e-4
 EPS = 1e-20
-np.random.seed(4)
 
 
 def get_mesh():
@@ -120,6 +119,8 @@ class Base_DerivAdjoint_Test(unittest.TestCase):
                 src.receiver_list = rxlist
 
     def JvecTest(self, rxcomp):
+
+        np.random.seed(4)
         self.set_receiver_list(rxcomp)
 
         def derChk(m):
@@ -136,6 +137,7 @@ class Base_DerivAdjoint_Test(unittest.TestCase):
         tests.checkDerivative(derChk, self.m, plotIt=False, num=2, eps=1e-20)
 
     def JvecVsJtvecTest(self, rxcomp):
+        np.random.seed(4)
         self.set_receiver_list(rxcomp)
         print(
             "\nAdjoint Testing Jvec, Jtvec prob {}, {}".format(self.formulation, rxcomp)
