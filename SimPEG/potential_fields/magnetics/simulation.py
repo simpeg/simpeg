@@ -20,14 +20,22 @@ class Simulation3DIntegral(BasePFSimulation):
 
     """
 
-    chi, chiMap, chiDeriv = props.Invertible(
-        "Magnetic Susceptibility (SI)", default=1.0
-    )
+    chi, chiMap, chiDeriv = props.Invertible("Magnetic Susceptibility (SI)")
 
-    def __init__(self, mesh, model_type="scalar", is_amplitude_data=False, **kwargs):
+    def __init__(
+        self,
+        mesh,
+        chi=None,
+        chiMap=None,
+        model_type="scalar",
+        is_amplitude_data=False,
+        **kwargs
+    ):
 
         self.model_type = model_type
         super().__init__(mesh, **kwargs)
+        self.chi = chi
+        self.chiMap = None
 
         self._G = None
         self._M = None

@@ -501,8 +501,10 @@ class LinearSimulation(BaseSimulation):
         "The model for a linear problem"
     )
 
-    def __init__(self, mesh=None, **kwargs):
+    def __init__(self, mesh=None, linear_model=None, model_map=None, **kwargs):
         super().__init__(mesh=mesh, **kwargs)
+        self.linear_model = linear_model
+        self.model_map = model_map
         self.solver = None
 
         if self.survey is None:

@@ -53,9 +53,9 @@ class SimulationNDCellCentered(BaseTimeSimulation):
         self.root_finder_max_iter = root_finder_max_iter
 
     hydraulic_conductivity = NestedModeler(
-        "hydraulic conductivity function", BaseHydraulicConductivity
+        BaseHydraulicConductivity, "hydraulic conductivity function"
     )
-    water_retention = NestedModeler("water retention curve", BaseWaterRetention)
+    water_retention = NestedModeler(BaseWaterRetention, "water retention curve")
 
     # TODO: This can also be a function(time, u_ii)
     @property

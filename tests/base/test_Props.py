@@ -25,10 +25,18 @@ class SimpleExample(props.HasModel):
         "Derivative of sigma wrt the model.", physical_property=sigma
     )
 
+    def __init__(self, sigma=None, sigmaMap=None):
+        self.sigma = sigma
+        self.sigmaMap = sigmaMap
+
 
 class ShortcutExample(props.HasModel):
 
     sigma, sigmaMap, sigmaDeriv = props.Invertible("Electrical conductivity (S/m)")
+
+    def __init__(self, sigma=None, sigmaMap=None):
+        self.sigma = sigma
+        self.sigmaMap = sigmaMap
 
 
 class ReciprocalMappingExample(props.HasModel):
@@ -39,6 +47,12 @@ class ReciprocalMappingExample(props.HasModel):
 
     props.Reciprocal(sigma, rho)
 
+    def __init__(self, sigma=None, sigmaMap=None, rho=None, rhoMap=None):
+        self.sigma = sigma
+        self.rho = rho
+        self.sigmaMap = sigmaMap
+        self.rhoMap = rhoMap
+
 
 class ReciprocalExample(props.HasModel):
 
@@ -47,6 +61,11 @@ class ReciprocalExample(props.HasModel):
     rho = props.PhysicalProperty("Electrical resistivity (Ohm m)")
 
     props.Reciprocal(sigma, rho)
+
+    def __init__(self, sigma=None, sigmaMap=None, rho=None):
+        self.sigma = sigma
+        self.rho = rho
+        self.sigmaMap = sigmaMap
 
 
 class ReciprocalPropExample(props.HasModel):
@@ -57,16 +76,24 @@ class ReciprocalPropExample(props.HasModel):
 
     props.Reciprocal(sigma, rho)
 
+    def __init__(self, sigma=None, rho=None, rhoMap=None):
+        self.sigma = sigma
+        self.rho = rho
+
 
 class ReciprocalPropExampleDefaults(props.HasModel):
 
-    sigma = props.PhysicalProperty(
-        "Electrical conductivity (S/m)", default=np.r_[1.0, 2.0, 3.0]
-    )
+    sigma = props.PhysicalProperty("Electrical conductivity (S/m)")
 
     rho = props.PhysicalProperty("Electrical resistivity (Ohm m)")
 
     props.Reciprocal(sigma, rho)
+
+    def __init__(self, sigma=None, sigmaMap=None, rho=None, rhoMap=None):
+        if sigma is None:
+            sigma = np.r_[1.0, 2.0, 3.0]
+        self.sigma = sigma
+        self.rho = rho
 
 
 class ComplicatedInversion(props.HasModel):
@@ -79,9 +106,22 @@ class ComplicatedInversion(props.HasModel):
 
     gamma, gammaMap, gammaDeriv = props.Invertible("fitting parameter", default=4.74)
 
+    def __init__(
+        self, Ks=24.96, KsMap=None, A=1.175e06, AMap=None, gamma=4.74, gammaMap=None
+    ):
+        self.Ks = Ks
+        self.KsMap = KsMap
+        self.A = A
+        self.AMap = AMap
+        self.gamma = gamma
+        self.gammaMap = gammaMap
+
 
 class NestedModels(props.HasModel):
-    complicated = properties.Instance("Nested models", ComplicatedInversion)
+    nest_model = props.NestedModeler(ComplicatedInversion, "Nested models")
+
+    def __init__(self, nest_model=None):
+        self.nest_model = nest_model
 
 
 class TestPropMaps(unittest.TestCase):
