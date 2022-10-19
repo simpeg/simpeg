@@ -97,7 +97,7 @@ waveform = tdem.sources.TrapezoidWaveform(
 # def wave_function(t):
 #     return - t/(np.max(waveform_times) - np.min(waveform_times))
 #
-# waveform = tdem.sources.RawWaveform(waveFct=wave_function, offTime=0.)
+# waveform = tdem.sources.RawWaveform(waveform_function=wave_function, offTime=0.)
 
 # Evaluate the waveform for each on time.
 waveform_value = [waveform.eval(t) for t in waveform_times]

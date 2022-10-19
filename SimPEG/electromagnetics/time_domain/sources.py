@@ -300,9 +300,6 @@ class RawWaveform(BaseWaveform):
     def __init__(self, off_time=0.0, waveform_function=None, **kwargs):
         if waveform_function is not None:
             self.waveform_function = waveform_function
-        wavefct = kwargs.pop("waveFct", None)
-        if wavefct is not None:
-            self.waveFct = wavefct
         super().__init__(off_time=off_time, **kwargs)
 
     @property
