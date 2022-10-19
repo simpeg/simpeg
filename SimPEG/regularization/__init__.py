@@ -168,21 +168,21 @@ from .correspondence import LinearCorrespondence
 from .jtv import JointTotalVariation
 
 
-@deprecate_class(removal_version="0.x.0", future_warn=True)
+@deprecate_class(removal_version="0.19.0", future_warn=True)
 class SimpleSmall(Smallness):
     """Deprecated class, replaced by Smallness."""
 
     pass
 
 
-@deprecate_class(removal_version="0.x.0", future_warn=True)
+@deprecate_class(removal_version="0.19.0", future_warn=True)
 class SimpleSmoothDeriv(SmoothnessFirstOrder):
     """Deprecated class, replaced by SmoothnessFirstOrder."""
 
     pass
 
 
-@deprecate_class(removal_version="0.x.0", future_warn=True)
+@deprecate_class(removal_version="0.19.0", future_warn=True)
 class Simple(WeightedLeastSquares):
     """Deprecated class, replaced by WeightedLeastSquares."""
 
@@ -198,7 +198,7 @@ class Simple(WeightedLeastSquares):
         )
 
 
-@deprecate_class(removal_version="0.x.0", future_warn=True)
+@deprecate_class(removal_version="0.19.0", future_warn=True)
 class Tikhonov(WeightedLeastSquares):
     """Deprecated class, replaced by WeightedLeastSquares."""
 
@@ -215,28 +215,28 @@ class Tikhonov(WeightedLeastSquares):
         )
 
 
-@deprecate_class(removal_version="0.x.0", future_warn=True)
+@deprecate_class(removal_version="0.19.0", future_warn=True)
 class Small(Smallness):
     """Deprecated class, replaced by Smallness."""
 
     pass
 
 
-@deprecate_class(removal_version="0.x.0", future_warn=True)
+@deprecate_class(removal_version="0.19.0", future_warn=True)
 class SmoothDeriv(SmoothnessFirstOrder):
     """Deprecated class, replaced by SmoothnessFirstOrder."""
 
     pass
 
 
-@deprecate_class(removal_version="0.x.0", future_warn=True)
+@deprecate_class(removal_version="0.19.0", future_warn=True)
 class SmoothDeriv2(SmoothnessSecondOrder):
     """Deprecated class, replaced by SmoothnessSecondOrder."""
 
     pass
 
 
-@deprecate_class(removal_version="0.x.0", future_warn=True)
+@deprecate_class(removal_version="0.19.0", future_warn=True)
 class PGIwithNonlinearRelationshipsSmallness(PGIsmallness):
     """Deprecated class, replaced by PGIsmallness."""
 
@@ -244,7 +244,7 @@ class PGIwithNonlinearRelationshipsSmallness(PGIsmallness):
         super().__init__(gmm, non_linear_relationships=True, **kwargs)
 
 
-@deprecate_class(removal_version="0.x.0", future_warn=True)
+@deprecate_class(removal_version="0.19.0", future_warn=True)
 class PGIwithRelationships(PGI):
     """Deprecated class, replaced by PGI."""
 

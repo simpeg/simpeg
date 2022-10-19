@@ -2997,9 +2997,7 @@ class Mesh2Mesh(IdentityMap):
     @indActive.setter
     def indActive(self, value):
         if value is not None:
-            value = validate_ndarray_with_shape(
-                "indActive", value, shape=(self.mesh.n_cells,), dtype=bool
-            )
+            value = validate_active_indices("indActive", value, self.mesh.n_cells)
         self._indActive = value
 
     @property
@@ -4016,7 +4014,7 @@ class ParametricSplineMap(IdentityMap):
         -------
         (2) numpy.ndarray
         """
-        return self.ptsv
+        return self._ptsv
 
     @ptsv.setter
     def ptsv(self, value):

@@ -149,10 +149,13 @@ class SparseSmoothness(BaseSparse, SmoothnessFirstOrder):
                     if self.units is not None and self.units.lower() == "radian":
                         Ave = getattr(self.regularization_mesh, f"aveCC2F{comp}")
                         length_scales = Ave * (
-                                self.regularization_mesh.Pac.T
-                                * self.regularization_mesh.mesh.h_gridded[:, ii]
+                            self.regularization_mesh.Pac.T
+                            * self.regularization_mesh.mesh.h_gridded[:, ii]
                         )
-                        dm = utils.mat_utils.coterminal(dm * length_scales) / length_scales
+                        dm = (
+                            utils.mat_utils.coterminal(dm * length_scales)
+                            / length_scales
+                        )
 
                     f_m += np.abs(
                         getattr(self.regularization_mesh, f"aveF{comp}2CC") * dm
@@ -182,7 +185,7 @@ class SparseSmoothness(BaseSparse, SmoothnessFirstOrder):
         self._gradient_type = value
 
     gradientType = utils.code_utils.deprecate_property(
-        gradient_type, "gradientType", "0.x.0", error=False, future_warn=False
+        gradient_type, "gradientType", "0.19.0", error=False, future_warn=True
     )
 
 
@@ -240,10 +243,14 @@ class Sparse(WeightedLeastSquares):
         ]
 
         if mesh.dim > 1:
-            objfcts.append(SparseSmoothness(mesh=self.regularization_mesh, orientation="y"))
+            objfcts.append(
+                SparseSmoothness(mesh=self.regularization_mesh, orientation="y")
+            )
 
         if mesh.dim > 2:
-            objfcts.append(SparseSmoothness(mesh=self.regularization_mesh, orientation="z"))
+            objfcts.append(
+                SparseSmoothness(mesh=self.regularization_mesh, orientation="z")
+            )
 
         gradientType = kwargs.pop("gradientType", None)
         super().__init__(
@@ -280,7 +287,7 @@ class Sparse(WeightedLeastSquares):
         self._gradient_type = value
 
     gradientType = utils.code_utils.deprecate_property(
-        gradient_type, "gradientType", "0.x.0", error=False, future_warn=False
+        gradient_type, "gradientType", "0.19.0", error=False, future_warn=True
     )
 
     @property

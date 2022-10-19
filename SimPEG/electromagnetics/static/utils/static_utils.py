@@ -1868,19 +1868,16 @@ def apparent_resistivity(
 
 
 source_receiver_midpoints = deprecate_method(
-    pseudo_locations, "source_receiver_midpoints", "0.17.0", future_warn=True
+    pseudo_locations, "source_receiver_midpoints", "0.17.0", error=True
 )
 
 
 def plot_layer(rho, mesh, **kwargs):
-    warnings.warn(
+    raise NotImplementedError(
         "The plot_layer method has been deprecated. Please use "
         "plot_1d_layer_model instead. This will be removed in version"
         " 0.17.0 of SimPEG",
-        FutureWarning,
     )
-
-    return plot_1d_layer_model(mesh.hx, rho, z0=mesh.origin[0], **kwargs)
 
 
 def convertObs_DC3D_to_2D(survey, lineID, flag="local"):
@@ -1891,15 +1888,12 @@ def convertObs_DC3D_to_2D(survey, lineID, flag="local"):
 
 
 def getSrc_locs(survey):
-    warnings.warn(
+    raise NotImplementedError(
         "The getSrc_locs method has been deprecated. Source "
         "locations are now computed as a method of the survey "
         "class. Please use Survey.source_locations(). This method "
         " will be removed in version 0.17.0 of SimPEG",
-        FutureWarning,
     )
-
-    return survey.source_locations()
 
 
 def writeUBC_DCobs(
@@ -1927,33 +1921,12 @@ def writeUBC_DCobs(
     # :rtype: file
     # """
 
-    warnings.warn(
+    raise NotImplementedError(
         "The writeUBC_DCobs method has been deprecated. Please use "
         "write_dcip2d_ubc or write_dcip3d_ubc instead. These are imported "
         "from SimPEG.utils.io_utils. This function will be removed in version"
         " 0.17.0 of SimPEG",
-        FutureWarning,
     )
-
-    if dim == 2:
-        write_dcip2d_ubc(
-            fileName,
-            data,
-            "volt",
-            "dobs",
-            format_type=format_type,
-            comment_lines=comment_lines,
-        )
-
-    elif dim == 3:
-        write_dcip3d_ubc(
-            fileName,
-            data,
-            "volt",
-            "dobs",
-            format_type=format_type,
-            comment_lines=comment_lines,
-        )
 
 
 def writeUBC_DClocs(
@@ -1979,7 +1952,7 @@ def writeUBC_DClocs(
     # :return: UBC 2/3D-locations file
     # """
 
-    warnings.warn(
+    raise NotImplementedError(
         "The writeUBC_DClocs method has been deprecated. Please use "
         "write_dcip2d_ubc or write_dcip3d_ubc instead. These are imported "
         "from SimPEG.utils.io_utils. This function will be removed in version"
@@ -1987,100 +1960,37 @@ def writeUBC_DClocs(
         FutureWarning,
     )
 
-    data = Data(dc_survey)
-
-    if dim == 2:
-        write_dcip2d_ubc(
-            fileName,
-            data,
-            "volt",
-            "survey",
-            format_type=format_type,
-            comment_lines=comment_lines,
-        )
-
-    elif dim == 3:
-        write_dcip3d_ubc(
-            fileName,
-            data,
-            "volt",
-            "survey",
-            format_type=format_type,
-            comment_lines=comment_lines,
-        )
-
 
 def readUBC_DC2Dpre(fileName):
-    # """
-    # Read UBC GIF DCIP 2D observation file and generate arrays
-    # for tx-rx location
 
-    # Input:
-    # :param string fileName: path to the UBC GIF 3D obs file
-
-    # Output:
-    # :return survey: 2D DC survey class object
-    # :rtype: SimPEG.electromagnetics.static.resistivity.Survey
-
-    # Created on Mon March 9th, 2016 << Doug's 70th Birthday !! >>
-
-    # @author: dominiquef
-
-    # """
-
-    warnings.warn(
+    raise NotImplementedError(
         "The readUBC_DC2Dpre method has been deprecated. Please use "
         "read_dcip2d_ubc instead. This is imported "
         "from SimPEG.utils.io_utils. This function will be removed in version"
         " 0.17.0 of SimPEG",
-        FutureWarning,
     )
-
-    return read_dcip2d_ubc(fileName, "volt", "general")
 
 
 def readUBC_DC3Dobs(fileName, data_type="volt"):
-    # """
-    # Read UBC GIF DCIP 3D observation file and generate arrays
-    # for tx-rx location
-    # Input:
-    # :param string fileName: path to the UBC GIF 3D obs file
-    # Output:
-    # :param rx, tx, d, wd
-    # :return
-    # """
-
-    warnings.warn(
+    raise NotImplementedError(
         "The readUBC_DC3Dobs method has been deprecated. Please use "
         "read_dcip3d_ubc instead. This is imported "
         "from SimPEG.utils.io_utils. This function will be removed in version"
         " 0.17.0 of SimPEG",
-        FutureWarning,
     )
-
-    return read_dcip3d_ubc(fileName, data_type)
 
 
 gen_DCIPsurvey = deprecate_method(
-    generate_dcip_survey, "gen_DCIPsurvey", removal_version="0.17.0", future_warn=True
+    generate_dcip_survey, "gen_DCIPsurvey", removal_version="0.17.0", error=True
 )
 
 
 def generate_dcip_survey_line(
     survey_type, data_type, endl, topo, ds, dh, n, dim_flag="2.5D", sources_only=False
 ):
-    warnings.warn(
+    raise NotImplementedError(
         "The gen_dcip_survey_line method has been deprecated. Please use "
         "generate_dcip_sources_line instead. This will be removed in version"
         " 0.17.0 of SimPEG",
         FutureWarning,
     )
-
-    source_list = generate_dcip_sources_line(
-        survey_type, data_type, dim_flag, endl, topo, n, ds
-    )
-
-    if sources_only:
-        return source_list
-    else:
-        return dc.Survey(source_list)
