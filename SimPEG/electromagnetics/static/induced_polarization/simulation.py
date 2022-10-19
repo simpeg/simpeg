@@ -50,6 +50,8 @@ class BaseIPSimulation(BasePDESimulation):
         rho=None,
         eta=None,
         etaMap=None,
+        Ainv=None,  # A DC's Ainv
+        _f=None,  # A pre-computed DC field
         **kwargs
     ):
         super().__init__(mesh=mesh, survey=survey, **kwargs)
@@ -57,9 +59,11 @@ class BaseIPSimulation(BasePDESimulation):
         self.rho = rho
         self.eta = eta
         self.etaMap = etaMap
+        if Ainv is not None:
+            self.Ainv = Ainv
+        self._f = _f
 
     _Jmatrix = None
-    _f = None  # the DC fields
     _pred = None
     _scale = None
 
