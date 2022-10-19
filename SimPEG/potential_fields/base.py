@@ -5,9 +5,9 @@ import numpy as np
 import warnings
 from ..simulation import LinearSimulation
 from scipy.sparse import csr_matrix as csr
-import scipy.sparse as sp
 from SimPEG.utils import mkvc
 from ..utils import validate_string, validate_active_indices
+import multiprocessing
 
 ###############################################################################
 #                                                                             #
@@ -90,10 +90,10 @@ class BasePFSimulation(LinearSimulation):
                     inds[:-1, 1:, 1:].reshape(-1, order="F"),
                     inds[1:, 1:, 1:].reshape(-1, order="F"),
                 ]
-            cell_nodes = np.stack(cell_nodes, axis=-1)[indices]
+            cell_nodes = np.stack(cell_nodes, axis=-1)[ind_active]
         elif isinstance(mesh, discretize.TreeMesh):
             nodes = np.r_[mesh.nodes, mesh.hanging_nodes]
-            cell_nodes = mesh.cell_nodes[indices]
+            cell_nodes = mesh.cell_nodes[ind_active]
         else:
             raise ValueError("Mesh must be 3D tensor or Octree.")
         unique, unique_inv = np.unique(cell_nodes.T, return_inverse=True)
@@ -154,14 +154,6 @@ class BasePFSimulation(LinearSimulation):
         numpy.ndarray
             Linear operator
         """
-        self.nC = self.modelMap.shape[0]
-
-        components = np.array(list(self.survey.components.keys()))
-        active_components = np.hstack(
-            [np.c_[values] for values in self.survey.components.values()]
-        ).tolist()
-        nD = self.survey.nD
-
         if self.store_sensitivities == "disk":
             sens_name = self.sensitivity_path + "sensitivity.npy"
             if os.path.exists(sens_name):
@@ -185,64 +177,6 @@ class BasePFSimulation(LinearSimulation):
             os.makedirs(self.sensitivity_path, exist_ok=True)
             np.save(sens_name, kernel)
         return kernel
-
-    def evaluate_integral(self):
-        """'evaluate_integral' method no longer implemented for *BaseSimulation* class."""
-
-        raise RuntimeError(
-            f"Integral calculations must implemented by the subclass {self}."
-        )
-
-    @property
-    def forwardOnly(self):
-        """The forwardOnly property has been removed. Please set the store_sensitivites
-        property instead.
-        """
-        raise TypeError(
-            "The forwardOnly property has been removed. Please set the store_sensitivites "
-            "property instead."
-        )
-
-    @forwardOnly.setter
-    def forwardOnly(self, other):
-        raise TypeError(
-            "The forwardOnly property has been removed. Please set the store_sensitivites "
-            "property instead."
-        )
-
-    @property
-    def parallelized(self):
-        """The parallelized property has been removed. If interested, try out
-        loading dask for parallelism by doing ``import SimPEG.dask``.
-        """
-        raise TypeError(
-            "parallelized has been removed. If interested, try out "
-            "loading dask for parallelism by doing ``import SimPEG.dask``. "
-        )
-
-    @parallelized.setter
-    def parallelized(self, other):
-        raise TypeError(
-            "Do not set parallelized. If interested, try out "
-            "loading dask for parallelism by doing ``import SimPEG.dask``."
-        )
-
-    @property
-    def n_cpu(self):
-        """The parallelized property has been removed. If interested, try out
-        loading dask for parallelism by doing ``import SimPEG.dask``.
-        """
-        raise TypeError(
-            "n_cpu has been removed. If interested, try out "
-            "loading dask for parallelism by doing ``import SimPEG.dask``."
-        )
-
-    @n_cpu.setter
-    def n_cpu(self, other):
-        raise TypeError(
-            "Do not set n_cpu. If interested, try out "
-            "loading dask for parallelism by doing ``import SimPEG.dask``."
-        )
 
 
 class BaseEquivalentSourceLayerSimulation(BasePFSimulation):
