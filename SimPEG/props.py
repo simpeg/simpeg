@@ -6,13 +6,7 @@ from __future__ import unicode_literals
 import numpy as np
 
 from .maps import IdentityMap, ReciprocalMap
-from .utils import (
-    Zero,
-    Identity,
-    validate_type,
-    validate_ndarray_with_shape,
-    validate_float,
-)
+from .utils import Zero, validate_type, validate_ndarray_with_shape
 
 
 class Mapping:
@@ -250,7 +244,7 @@ class NestedModeler:
         return property(fget=fget, fset=fset, fdel=fdel, doc=doc)
 
 
-def Invertible(property_name, default=None):
+def Invertible(property_name):
 
     mapping = Mapping(f"Mapping of the inversion model to {property_name}.")
 

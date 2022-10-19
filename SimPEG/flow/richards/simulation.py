@@ -1,9 +1,6 @@
 import numpy as np
 import scipy.sparse as sp
 import time
-import warnings
-
-# import properties
 
 from ... import utils
 from ...simulation import BaseTimeSimulation
