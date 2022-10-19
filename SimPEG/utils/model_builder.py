@@ -518,40 +518,40 @@ def get_indices_polygon(mesh, pts):
 ################################################
 
 
-addBlock = deprecate_function(add_block, "addBlock", removal_version="0.16.0")
+addBlock = deprecate_function(add_block, "addBlock", removal_version="0.19.0")
 
 getIndicesBlock = deprecate_function(
-    get_indices_block, "getIndicesBlock", removal_version="0.16.0"
+    get_indices_block, "getIndicesBlock", removal_version="0.19.0"
 )
 
 defineBlock = deprecate_function(
-    create_block_in_wholespace, "defineBlock", removal_version="0.16.0"
+    create_block_in_wholespace, "defineBlock", removal_version="0.19.0"
 )
 
 defineEllipse = deprecate_function(
-    create_ellipse_in_wholespace, "defineEllipse", removal_version="0.16.0"
+    create_ellipse_in_wholespace, "defineEllipse", removal_version="0.19.0"
 )
 
 getIndicesSphere = deprecate_function(
-    get_indices_sphere, "getIndicesSphere", removal_version="0.16.0"
+    get_indices_sphere, "getIndicesSphere", removal_version="0.19.0"
 )
 
 defineTwoLayers = deprecate_function(
-    create_2_layer_model, "defineTwoLayers", removal_version="0.16.0"
+    create_2_layer_model, "defineTwoLayers", removal_version="0.19.0"
 )
 
 layeredModel = deprecate_function(
-    create_layers_model, "layeredModel", removal_version="0.16.0"
+    create_layers_model, "layeredModel", removal_version="0.19.0"
 )
 
 randomModel = deprecate_function(
-    create_random_model, "randomModel", removal_version="0.16.0"
+    create_random_model, "randomModel", removal_version="0.19.0"
 )
 
 polygonInd = deprecate_function(
-    get_indices_polygon, "polygonInd", removal_version="0.16.0"
+    get_indices_polygon, "polygonInd", removal_version="0.19.0"
 )
 
 scalarConductivity = deprecate_function(
-    create_from_function, "scalarConductivity", removal_version="0.16.0"
+    create_from_function, "scalarConductivity", removal_version="0.19.0"
 )

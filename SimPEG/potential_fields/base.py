@@ -49,12 +49,14 @@ class BasePFSimulation(LinearSimulation):
 
         # If deprecated property set with kwargs
         if "actInd" in kwargs:
-            ind_active = kwargs.pop("actInd")
+            raise AttributeError(
+                "actInd was removed in SimPEG 0.17.0, please use ind_active"
+            )
 
         if "forwardOnly" in kwargs:
-            store_sensitivities = kwargs.pop("forwardOnly")
-            if store_sensitivities:
-                store_sensitivities = "forward_only"
+            raise AttributeError(
+                "forwardOnly was removed in SimPEG 0.17.0, please set store_sensitivities='forward_only'"
+            )
 
         self.store_sensitivities = store_sensitivities
         super().__init__(mesh, **kwargs)
@@ -128,12 +130,10 @@ class BasePFSimulation(LinearSimulation):
     @property
     def actInd(self):
         """'actInd' is deprecated. Use 'ind_active' instead."""
-        warnings.warn(
+        raise AttributeError(
             "The 'actInd' property has been deprecated. "
             "Please use 'ind_active'. This will be removed in version 0.17.0 of SimPEG.",
-            FutureWarning,
         )
-        return self._ind_active
 
     def linear_operator(self):
         """Return linear operator

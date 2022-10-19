@@ -162,7 +162,7 @@ class Survey(BaseSurvey):
         "electrode_locations",
         new_name="unique_electrode_locations",
         removal_version="0.17.0",
-        future_warn=True,
+        error=True,
     )
 
     @property

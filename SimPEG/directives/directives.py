@@ -149,14 +149,6 @@ class InversionDirective:
         """
         return [objfcts.simulation for objfcts in self.dmisfit.objfcts]
 
-    prob = deprecate_property(
-        simulation,
-        "prob",
-        new_name="simulation",
-        removal_version="0.16.0",
-        error=True,
-    )
-
     def initialize(self):
         pass
 

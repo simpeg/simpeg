@@ -440,6 +440,6 @@ def define_plane_from_points(xyz1, xyz2, xyz3):
 ################################################
 
 
-diagEst = deprecate_function(estimate_diagonal, "diagEst", removal_version="0.16.0")
+diagEst = deprecate_function(estimate_diagonal, "diagEst", removal_version="0.19.0")
 
-uniqueRows = deprecate_function(unique_rows, "uniqueRows", removal_version="0.16.0")
+uniqueRows = deprecate_function(unique_rows, "uniqueRows", removal_version="0.19.0")

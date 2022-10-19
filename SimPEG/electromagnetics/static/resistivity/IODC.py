@@ -728,12 +728,10 @@ class IO:
         return G
 
     def from_ambn_locations_to_survey(self, *args, **kwargs):
-        warnings.warn(
+        raise NotImplementedError(
             "from_ambn_locations_to_survey has been renamed to "
             "from_abmn_locations_to_survey. It will be removed in a future version 0.17.0 of simpeg",
-            FutureWarning,
         )
-        return self.from_abmn_locations_to_survey(*args, **kwargs)
 
     def from_abmn_locations_to_survey(
         self,

@@ -152,7 +152,7 @@ class BaseWaveform:
         "hasInitialFields",
         new_name="has_initial_fields",
         removal_version="0.17.0",
-        future_warn=True,
+        error=True,
     )
 
     offTime = deprecate_property(
@@ -160,7 +160,7 @@ class BaseWaveform:
         "offTime",
         new_name="off_time",
         removal_version="0.17.0",
-        future_warn=True,
+        error=True,
     )
 
     eps = deprecate_property(
@@ -168,7 +168,7 @@ class BaseWaveform:
         "eps",
         new_name="epsilon",
         removal_version="0.17.0",
-        future_warn=True,
+        error=True,
     )
 
 
@@ -329,7 +329,7 @@ class RawWaveform(BaseWaveform):
         "waveFct",
         new_name="waveform_function",
         removal_version="0.17.0",
-        future_warn=True,
+        error=True,
     )
 
 
@@ -449,7 +449,7 @@ class VTEMWaveform(BaseWaveform):
         "peakTime",
         new_name="peak_time",
         removal_version="0.17.0",
-        future_warn=True,
+        error=True,
     )
 
     a = deprecate_property(
@@ -457,7 +457,7 @@ class VTEMWaveform(BaseWaveform):
         "a",
         new_name="ramp_on_rate",
         removal_version="0.17.0",
-        future_warn=True,
+        error=True,
     )
 
 
@@ -594,37 +594,20 @@ class TriangularWaveform(TrapezoidWaveform):
 
     """
 
-    def __init__(self, start_time=None, off_time=None, peak_time=None, **kwargs):
+    def __init__(self, start_time, off_time, peak_time, **kwargs):
 
-        if start_time is None:
-            start_time = kwargs.get("startTime")
-            if start_time is None:
-                raise Exception("start_time must be provided")
-            else:
-                warnings.warn(
-                    "startTime will be deprecated in 0.17.0. Please update your code to use peak_time instead",
-                    FutureWarning,
-                )
-
-        if peak_time is None:
-            peak_time = kwargs.get("peakTime")
-            if peak_time is None:
-                raise Exception("peak_time must be provided")
-            else:
-                warnings.warn(
-                    "peakTime will be deprecated in 0.17.0. Please update your code to use peak_time instead",
-                    FutureWarning,
-                )
-
-        if off_time is None:
-            off_time = kwargs.pop("offTime")
-            if off_time is None:
-                raise Exception("off_time must be provided")
-            else:
-                warnings.warn(
-                    "offTime will be deprecated in 0.17.0. Please update your code to use off_time instead",
-                    FutureWarning,
-                )
+        if kwargs.get("startTime", None):
+            AttributeError(
+                "startTime will be deprecated in 0.17.0. Please update your code to use start_time instead",
+            )
+        if kwargs.get("peakTime", None):
+            AttributeError(
+                "peakTime will be deprecated in 0.17.0. Please update your code to use peak_time instead",
+            )
+        if kwargs.get("offTime", None):
+            AttributeError(
+                "offTime will be deprecated in 0.17.0. Please update your code to use off_time instead",
+            )
 
         ramp_on = np.r_[start_time, peak_time]
         ramp_off = np.r_[peak_time, off_time]
@@ -664,7 +647,7 @@ class TriangularWaveform(TrapezoidWaveform):
         "peakTime",
         new_name="peak_time",
         removal_version="0.17.0",
-        future_warn=True,
+        error=True,
     )
 
 
