@@ -5,12 +5,12 @@ from dask import delayed, array, config
 from dask.diagnostics import ProgressBar
 from ..utils import compute_chunk_sizes
 
-Sim._chunk_format = "row"
-
 
 @property
 def chunk_format(self):
     "Apply memory chunks along rows of G, either 'equal', 'row', or 'auto'"
+    if getattr(self, "_chunk_format", None) is None:
+        self._chunk_format = "row"
     return self._chunk_format
 
 
