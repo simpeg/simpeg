@@ -431,3 +431,17 @@ class HasModel(BaseSimPEG, metaclass=PhysicalPropertyMetaclass):
                         setattr(self, mat, None)  # set to none
 
         self._model = value
+
+    @model.deleter
+    def model(self):
+        self._model = (None,)
+        # cached properties to delete
+        for prop in self.deleteTheseOnModelUpdate:
+            if hasattr(self, prop):
+                delattr(self, prop)
+
+        # matrix factors to clear
+        for mat in self.clean_on_model_update:
+            if getattr(self, mat, None) is not None:
+                getattr(self, mat).clean()  # clean factors
+                setattr(self, mat, None)  # set to none
