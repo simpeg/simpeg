@@ -50,7 +50,9 @@ class SimulationNDCellCentered(BaseTimeSimulation):
         self.boundary_conditions = boundary_conditions
         self.initial_conditions = initial_conditions
         self.method = method
+        self.do_newton = do_newton
         self.root_finder_max_iter = root_finder_max_iter
+        self.root_finder_tol = root_finder_tol
 
     hydraulic_conductivity = NestedModeler(
         BaseHydraulicConductivity, "hydraulic conductivity function"
@@ -59,7 +61,7 @@ class SimulationNDCellCentered(BaseTimeSimulation):
 
     # TODO: This can also be a function(time, u_ii)
     @property
-    def boundary_conditions(self, value):
+    def boundary_conditions(self):
         """The boundary conditions.
 
         Returns
@@ -75,7 +77,7 @@ class SimulationNDCellCentered(BaseTimeSimulation):
         )
 
     @property
-    def initial_conditions(self, value):
+    def initial_conditions(self):
         """The initial conditions.
 
         Returns
@@ -156,21 +158,21 @@ class SimulationNDCellCentered(BaseTimeSimulation):
         if hasattr(self, "_root_finder"):
             del self._root_finder
 
-    def __setattr__(self, name, value):
-        super().__setattr__(name, value)
-        if name == "model":
-            if (
-                not self.hydraulic_conductivity.needs_model
-                and not self.water_retention.needs_model
-            ):
-                warnings.warn("There is no model to set.")
-
-            if self.hydraulic_conductivity.needs_model:
-                self.hydraulic_conductivity.model = value
-
-            if self.water_retention.needs_model:
-                self.water_retention.model = value
-            # update the nested models in hydraulic_conductivity and water_retention
+    # def __setattr__(self, name, value):
+    #     super().__setattr__(name, value)
+    #     if name == "model":
+    #         if (
+    #             not self.hydraulic_conductivity.needs_model
+    #             and not self.water_retention.needs_model
+    #         ):
+    #             warnings.warn("There is no model to set.")
+    #
+    #         if self.hydraulic_conductivity.needs_model:
+    #             self.hydraulic_conductivity.model = value
+    #
+    #         if self.water_retention.needs_model:
+    #             self.water_retention.model = value
+    #         # update the nested models in hydraulic_conductivity and water_retention
 
     def getBoundaryConditions(self, ii, u_ii):
         if isinstance(self.boundary_conditions, np.ndarray):

@@ -97,6 +97,7 @@ class Haverkamp_theta(BaseWaterRetention):
 
     def __init__(
         self,
+        mesh,
         theta_r=0.075,
         theta_rMap=None,
         theta_s=0.287,
@@ -107,7 +108,7 @@ class Haverkamp_theta(BaseWaterRetention):
         betaMap=None,
         **kwargs
     ):
-        super().__init__(**kwargs)
+        super().__init__(mesh=mesh, **kwargs)
         self.theta_r = theta_r
         self.theta_rMap = theta_rMap
         self.theta_s = theta_s
@@ -223,6 +224,7 @@ class Haverkamp_k(BaseHydraulicConductivity):
 
     def __init__(
         self,
+        mesh,
         Ks=9.44e-03,
         KsMap=None,
         A=1.175e06,
@@ -231,7 +233,7 @@ class Haverkamp_k(BaseHydraulicConductivity):
         gammaMap=None,
         **kwargs
     ):
-        super().__init__(**kwargs)
+        super().__init__(mesh=mesh, **kwargs)
         self.Ks = Ks
         self.KsMap = KsMap
         self.A = A
@@ -341,6 +343,7 @@ class Vangenuchten_theta(BaseWaterRetention):
 
     def __init__(
         self,
+        mesh,
         theta_r=0.078,
         theta_rMap=None,
         theta_s=0.430,
@@ -351,7 +354,7 @@ class Vangenuchten_theta(BaseWaterRetention):
         alphaMap=None,
         **kwargs
     ):
-        super().__init__(**kwargs)
+        super().__init__(mesh=mesh, **kwargs)
         self.theta_r = theta_r
         self.theta_rMap = theta_rMap
         self.theta_s = theta_s
@@ -359,7 +362,7 @@ class Vangenuchten_theta(BaseWaterRetention):
         self.alpha = alpha
         self.alphaMap = alphaMap
         self.n = n
-        self.nMap = n
+        self.nMap = nMap
 
     def _get_params(self):
         return self.theta_r, self.theta_s, self.alpha, self.n
@@ -496,6 +499,7 @@ class Vangenuchten_k(BaseHydraulicConductivity):
 
     def __init__(
         self,
+        mesh,
         Ks=24.96,
         KsMap=None,
         I=0.5,
@@ -506,7 +510,7 @@ class Vangenuchten_k(BaseHydraulicConductivity):
         alphaMap=None,
         **kwargs
     ):
-        super().__init__(**kwargs)
+        super().__init__(mesh=mesh, **kwargs)
         self.Ks = Ks
         self.KsMap = KsMap
         self.I = I

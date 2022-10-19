@@ -6,7 +6,13 @@ from __future__ import unicode_literals
 import numpy as np
 
 from .maps import IdentityMap, ReciprocalMap
-from .utils import Zero, Identity, validate_type, validate_ndarray_with_shape
+from .utils import (
+    Zero,
+    Identity,
+    validate_type,
+    validate_ndarray_with_shape,
+    validate_float,
+)
 
 
 class Mapping:
@@ -61,21 +67,10 @@ class Mapping:
             if value is not None:
                 value = validate_type(scope.name, value, IdentityMap, cast=False)
                 scope.clear_props(self)
-                self._act_map_names.add(scope.name)
-            if value is None:
-                try:
-                    self._act_map_names.remove(scope.name)
-                except KeyError:
-                    pass
-            self._all_map_names.add(scope.name)
             setattr(self, f"_{scope.name}", value)
 
         def fdel(self):
             setattr(self, f"_{scope.name}", None)
-            try:
-                self._act_map_names.remove(scope.name)
-            except KeyError:
-                pass
 
         return property(fget=fget, fset=fset, fdel=fdel, doc=doc)
 
@@ -178,6 +173,9 @@ class PhysicalProperty:
                 value = validate_ndarray_with_shape(
                     scope.name, value, shape=scope.shape, dtype=scope.dtype
                 )
+                if value.ndim == 0:
+                    value = value.item()
+
                 if scope.reciprocal:
                     delattr(self, scope.reciprocal.name)
                 scope.clear_mappings(self)
@@ -244,7 +242,6 @@ class NestedModeler:
         def fset(self, value):
             if value is not None:
                 value = validate_type(scope.name, value, scope.modeler_type, cast=False)
-            self._nested_modelers.add(scope.name)
             setattr(self, f"_{scope.name}", value)
 
         def fdel(self):
@@ -308,10 +305,12 @@ class PhysicalPropertyMetaclass(type):
             value.name = key
             classdict[key] = value.get_property()
 
+        map_names = classdict.get("_all_map_names", set())
         # set the mappings as @properties
         for key, value in map_dict.items():
             value.name = key
             classdict[key] = value.get_property()
+            map_names.add(key)
 
         # set the derivatives as @properties
         for key, value in deriv_dict.items():
@@ -319,12 +318,20 @@ class PhysicalPropertyMetaclass(type):
             classdict[key] = value.get_property()
 
         # set the nested_modelers as @properties
+        nested_modelers = set()
         for key, value in nested_dict.items():
             value.name = key
             classdict[key] = value.get_property()
+            nested_modelers.add(key)
 
         newcls = super().__new__(mcs, name, bases, classdict)
-        newcls._maps = map_dict
+
+        for parent in reversed(newcls.__mro__):
+            map_names.update(getattr(parent, "_all_map_names", set()))
+            nested_modelers.update(getattr(parent, "_nested_modelers", set()))
+
+        newcls._all_map_names = map_names
+        newcls._nested_modelers = nested_modelers
 
         return newcls
 
@@ -333,9 +340,14 @@ class HasModel(BaseSimPEG, metaclass=PhysicalPropertyMetaclass):
     def __init__(self, model=None, **kwargs):
         self.model = model
         super().__init__(**kwargs)
-        self._act_map_names = set()
-        self._all_map_names = set()
-        self._nested_modelers = set()
+
+    @property
+    def _act_map_names(self):
+        return set(
+            name
+            for name in self._all_map_names
+            if getattr(self, f"_{name}", None) is not None
+        )
 
     @property
     def needs_model(self):
@@ -413,6 +425,19 @@ class HasModel(BaseSimPEG, metaclass=PhysicalPropertyMetaclass):
                         len(value), "\n    ".join(errors)
                     )
                 )
+            previous = getattr(self, "_model", None)
+            try:
+                for modeler_name in self._nested_modelers:
+                    modeler = getattr(self, modeler_name)
+                    if modeler.needs_model:
+                        modeler.model = value
+            except Exception as err:
+                # reset the nested_modelers and then throw the error
+                for modeler_name in self._nested_modelers:
+                    modeler = getattr(self, modeler_name)
+                    if modeler.needs_model:
+                        modeler.model = previous
+                raise err
 
         # trigger model update function.
         previous_value = getattr(self, "_model", None)
