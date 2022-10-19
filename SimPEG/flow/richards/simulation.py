@@ -23,8 +23,6 @@ from .empirical import BaseWaterRetention
 class SimulationNDCellCentered(BaseTimeSimulation):
     """Richards Simulation"""
 
-    # _nested_simulations = ["hydraulic_conductivity", "water_retention"]
-
     def __init__(
         self,
         mesh,
@@ -154,22 +152,6 @@ class SimulationNDCellCentered(BaseTimeSimulation):
         )
         if hasattr(self, "_root_finder"):
             del self._root_finder
-
-    # def __setattr__(self, name, value):
-    #     super().__setattr__(name, value)
-    #     if name == "model":
-    #         if (
-    #             not self.hydraulic_conductivity.needs_model
-    #             and not self.water_retention.needs_model
-    #         ):
-    #             warnings.warn("There is no model to set.")
-    #
-    #         if self.hydraulic_conductivity.needs_model:
-    #             self.hydraulic_conductivity.model = value
-    #
-    #         if self.water_retention.needs_model:
-    #             self.water_retention.model = value
-    #         # update the nested models in hydraulic_conductivity and water_retention
 
     def getBoundaryConditions(self, ii, u_ii):
         if isinstance(self.boundary_conditions, np.ndarray):
