@@ -104,13 +104,11 @@ class ReciprocalPropExampleDefaults(props.HasModel):
 
 class ComplicatedInversion(props.HasModel):
 
-    Ks, KsMap, KsDeriv = props.Invertible(
-        "Saturated hydraulic conductivity", default=24.96
-    )
+    Ks, KsMap, KsDeriv = props.Invertible("Saturated hydraulic conductivity")
 
-    A, AMap, ADeriv = props.Invertible("fitting parameter", default=1.175e06)
+    A, AMap, ADeriv = props.Invertible("fitting parameter")
 
-    gamma, gammaMap, gammaDeriv = props.Invertible("fitting parameter", default=4.74)
+    gamma, gammaMap, gammaDeriv = props.Invertible("fitting parameter")
 
     def __init__(
         self,
