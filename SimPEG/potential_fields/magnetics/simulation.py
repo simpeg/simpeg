@@ -35,7 +35,7 @@ class Simulation3DIntegral(BasePFSimulation):
         self.model_type = model_type
         super().__init__(mesh, **kwargs)
         self.chi = chi
-        self.chiMap = None
+        self.chiMap = chiMap
 
         self._G = None
         self._M = None
