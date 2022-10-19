@@ -38,10 +38,6 @@ class BaseRx(BaseTimeRx):
         self.data_type = data_type
         self.projField = projField
 
-    # orientation = properties.StringChoice(
-    #     "orientation of the receiver. Must currently be 'x', 'y', 'z'", ["x", "y", "z"]
-    # )
-
     @property
     def orientation(self):
         """Orientation of the receiver.
@@ -59,12 +55,6 @@ class BaseRx(BaseTimeRx):
             var = validate_string("orientation", var, ("x", "y", "z")).lower()
         self._orientation = var
 
-    # projField = properties.StringChoice(
-    #     "field to be projected in the calculation of the data",
-    #     choices=["phi", "e", "j"],
-    #     default="phi",
-    # )
-
     @property
     def projField(self):
         """Fields on the mesh
@@ -80,13 +70,6 @@ class BaseRx(BaseTimeRx):
     def projField(self, var):
         var = validate_string("projField", var, ("phi", "e", "j")).lower()
         self._projField = var
-
-    # data_type = properties.StringChoice(
-    #     "Type of DC-IP survey",
-    #     required=True,
-    #     default="volt",
-    #     choices=["volt", "apparent_resistivity", "apparent_chargeability"],
-    # )
 
     @property
     def data_type(self):
@@ -235,13 +218,6 @@ class Dipole(BaseRx):
     data_type : {"volt", "apparent_chargeability"}
         Data type.
     """
-
-    # locations = properties.List(
-    #     "list of locations of each electrode in a dipole receiver",
-    #     RxLocationArray("location of electrode", shape=("*", "*")),
-    #     min_length=1,
-    #     max_length=2,
-    # )
 
     def __init__(
         self, locations_m=None, locations_n=None, times=None, locations=None, **kwargs

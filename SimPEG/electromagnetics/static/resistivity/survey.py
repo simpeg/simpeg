@@ -28,25 +28,6 @@ class Survey(BaseSurvey):
         Survey type.
     """
 
-    # source_list = properties.List(
-    #     "A list of sources for the survey",
-    #     properties.Instance("A DC source", Src.BaseSrc),
-    #     default=[],
-    # )
-
-    # # Survey
-    # survey_geometry = properties.StringChoice(
-    #     "Survey geometry of DC surveys",
-    #     default="surface",
-    #     choices=["surface", "borehole", "general"],
-    # )
-
-    # survey_type = properties.StringChoice(
-    #     "DC-IP Survey type",
-    #     default="dipole-dipole",
-    #     choices=["dipole-dipole", "pole-dipole", "dipole-pole", "pole-pole"],
-    # )
-
     def __init__(
         self,
         source_list,

@@ -8,11 +8,6 @@ from ...utils import validate_list_of_types
 class Survey(BaseSurvey):
     """Richards flow surve class"""
 
-    # receiver_list = properties.List(
-    #     "list of receivers for flow simulations",
-    #     properties.Instance("A receiver instance", BaseRx),
-    # )
-
     def __init__(self, receiver_list, **kwargs):
         self.receiver_list = receiver_list
         super().__init__(source_list=None, **kwargs)

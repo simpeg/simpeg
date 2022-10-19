@@ -24,14 +24,6 @@ class CrossGradient(BaseSimilarityMeasure):
 
     """
 
-    # These are not fully implemented yet
-    # grad_tol = properties.Float(
-    #     "tolerance for avoiding the exteremly small gradient amplitude", default=1e-10
-    # )
-    # normalized = properties.Bool(
-    #     "whether to implement normalized cross-gradient", default=False
-    # )
-
     def __init__(self, mesh, wire_map, approx_hessian=True, **kwargs):
         super().__init__(mesh, wire_map=wire_map, **kwargs)
         self.approx_hessian = approx_hessian

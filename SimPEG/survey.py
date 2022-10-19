@@ -15,54 +15,6 @@ from .utils.code_utils import (
 )
 from .props import BaseSimPEG
 
-# class RxLocationArray(properties.Array):
-#     """Locations array for receivers"""
-
-#     class_info = "an array of receiver locations"
-
-#     def validate(self, instance, value):
-#         """Validation method for setting locations array
-
-#         Parameters
-#         ----------
-#         instance : class
-#             The class used to validate the input argument *value*
-#         value :
-#             The input used to define the locations for a given receiver.
-
-#         Returns
-#         -------
-#         properties.Array
-#             The receiver location array
-#         """
-#         value = np.atleast_2d(value)
-#         return super(RxLocationArray, self).validate(instance, value)
-
-
-# class SourceLocationArray(properties.Array):
-#     """Locations array for sources"""
-
-#     class_info = "a 1D array denoting the source location"
-
-#     def validate(self, instance, value):
-#         """Validation method for setting locations array
-
-#         Parameters
-#         ----------
-#         instance : class
-#             The class used to validate the input argument *value*
-#         value :
-#             The input used to define the locations for a given source.
-
-#         Returns
-#         -------
-#         properties.Array
-#             The source location array
-#         """
-#         if not isinstance(value, np.ndarray):
-#             value = np.atleast_1d(np.array(value))
-#         return super(SourceLocationArray, self).validate(instance, value)
-
 
 class BaseRx:
     """Base SimPEG receiver class.
@@ -167,29 +119,6 @@ class BaseRx:
         """
         return self._uid
 
-    # TODO: write a validator that checks against mesh dimension in the
-    # BaseSimulation
-    # TODO: location
-    # locations = RxLocationArray(
-    #     "Locations of the receivers (nRx x nDim)", shape=("*", "*"), required=True
-    # )
-
-    # TODO: project_grid?
-    # projected_grid = properties.StringChoice(
-    #     "Projection grid location, default is CC",
-    #     choices=["CC", "Fx", "Fy", "Fz", "Ex", "Ey", "Ez", "N"],
-    #     default="CC",
-    # )
-
-    # TODO: store_projections
-    # storeProjections = properties.Bool(
-    #     "Store calls to getP (organized by mesh)", default=True
-    # )
-
-    # _uid = properties.Uuid("unique ID for the receiver")
-
-    # _Ps = properties.Dictionary("dictonary for storing projections",)
-
     @property
     def nD(self):
         """Number of data associated with the receiver
@@ -266,10 +195,6 @@ class BaseTimeRx(BaseRx):
 
         self.times = times
 
-    # times = properties.Array(
-    #     "times where the recievers measure data", shape=("*",), required=True
-    # )
-
     @property
     def times(self):
         """Time channels for the receiver
@@ -286,38 +211,6 @@ class BaseTimeRx(BaseRx):
         self._times = validate_ndarray_with_shape(
             "times", value, shape=("*",), dtype=float
         )
-
-    # projected_time_grid = properties.StringChoice(
-    #     "location on the time mesh where the data are projected from",
-    #     choices=["N", "CC"],
-    #     default="N",
-    # )
-
-    # @property
-    # def projected_time_grid(self):
-    #     """Define gridding for projection from all time steps to receiver time channels.
-
-    #     A ``str`` is used to the define gridding of the time steps and how they are
-    #     projected to the time channels. The choices are as follows:
-
-    #     - "CC": time-steps defined as cell centers
-    #     - "N": time-steps defined as nodes
-
-    #     Returns
-    #     -------
-    #     str
-    #         The gridding used for the time-steps.
-    #     """
-    #     return self._projected_time_grid
-
-    # @projected_time_grid.setter
-    # def projected_time_grid(self, var):
-    #     if (var in ["CC", "N"]) == False:
-    #         raise TypeError(
-    #             f"projected_time_grid must be 'CC' or 'N'. Got {type(var)}"
-    #         )
-
-    #     self._projected_time_grid = var
 
     @property
     def nD(self):
@@ -417,10 +310,6 @@ class BaseSrc:
         if name == "receiver_list":
             self.__rxOrder = None
 
-    # location = SourceLocationArray(
-    #     "Location of the source [x, y, z] in 3D", shape=("*",), required=False
-    # )
-
     @property
     def location(self):
         """Source location
@@ -435,10 +324,6 @@ class BaseSrc:
     @location.setter
     def location(self, loc):
         self._location = validate_location_property("location", loc)
-
-    # receiver_list = properties.List(
-    #     "receiver list", properties.Instance("a SimPEG receiver", BaseRx), default=[]
-    # )
 
     @property
     def receiver_list(self):
@@ -477,8 +362,6 @@ class BaseSrc:
             A universal unique identifier
         """
         return self._uid
-
-    # _uid = properties.Uuid("unique identifier for the source")
 
     _fields_per_source = 1
 
@@ -617,30 +500,6 @@ class BaseSurvey:
     @counter.setter
     def counter(self, new_obj):
         self._counter = validate_type("counter", new_obj, Counter, cast=False)
-
-    # source_list = properties.List(
-    #     "A list of sources for the survey",
-    #     properties.Instance("A SimPEG source", BaseSrc),
-    #     default=[],
-    # )
-
-    # def __init__(self, source_list=None, **kwargs):
-    #     super(BaseSurvey, self).__init__(**kwargs)
-    #     if source_list is not None:
-    #         self.source_list = source_list
-
-    # @properties.validator("source_list")
-    # def _source_list_validator(self, change):
-    #     value = change["value"]
-    #     if len(set(value)) != len(value):
-    #         raise Exception("The source_list must be unique")
-    #     self._sourceOrder = dict()
-    #     [self._sourceOrder.setdefault(src._uid, ii) for ii, src in enumerate(value)]
-    #     ii = 0
-    #     for src in value:
-    #         n_fields = src._fields_per_source
-    #         self._sourceOrder[src._uid] = [ii + i for i in range(n_fields)]
-    #         ii += n_fields
 
     # TODO: this should be private
     def get_source_indices(self, sources):

@@ -72,8 +72,6 @@ class BaseEMSrc(BaseSrc):
         )
         self.integrate = integrate
 
-    # integrate = properties.Bool("integrate the source term?", default=False)
-
     @property
     def integrate(self):
         """Integrated source term

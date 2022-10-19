@@ -162,33 +162,6 @@ class BaseSimulation(props.HasModel):
         self._verbose = validate_type("verbose", value, bool)
 
     ###########################################################################
-    # Properties and observers
-
-    #: List of strings, e.g. ['_MeSigma', '_MeSigmaI']
-
-    # @properties.observer("model")
-    # def _on_model_update(self, change):
-    #     if change["previous"] is change["value"]:
-    #         return
-    #     if (
-    #         isinstance(change["previous"], np.ndarray)
-    #         and isinstance(change["value"], np.ndarray)
-    #         and np.allclose(change["previous"], change["value"])
-    #     ):
-    #         return
-    #
-    #     # cached properties to delete
-    #     for prop in self.deleteTheseOnModelUpdate:
-    #         if hasattr(self, prop):
-    #             delattr(self, prop)
-    #
-    #     # matrix factors to clear
-    #     for mat in self.clean_on_model_update:
-    #         if getattr(self, mat, None) is not None:
-    #             getattr(self, mat).clean()  # clean factors
-    #             setattr(self, mat, None)  # set to none
-
-    ###########################################################################
     # Instantiation
 
     def __init__(

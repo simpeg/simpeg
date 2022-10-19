@@ -17,12 +17,6 @@ class Survey(BaseSurvey):
         List of SimPEG TDEM sources
     """
 
-    # source_list = properties.List(
-    #     "A list of sources for the survey",
-    #     properties.Instance("A SimPEG source", BaseTDEMSrc),
-    #     default=[],
-    # )
-
     def __init__(self, source_list, **kwargs):
         super(Survey, self).__init__(source_list, **kwargs)
 

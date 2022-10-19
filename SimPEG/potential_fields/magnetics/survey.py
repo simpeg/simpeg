@@ -13,12 +13,6 @@ class Survey(BaseSurvey):
         A source object that defines the Earth's inducing field
     """
 
-    # source_field = properties.Instance(
-    #     "The inducing field source for the survey",
-    #     properties.Instance("A SimPEG source", SourceField),
-    #     default=SourceField
-    # )
-
     def __init__(self, source_field, **kwargs):
         self.source_field = validate_type(
             "source_field", source_field, SourceField, cast=False

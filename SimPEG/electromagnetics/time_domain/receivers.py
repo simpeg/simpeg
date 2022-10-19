@@ -45,10 +45,6 @@ class BaseRx(BaseTimeRx):
         self.use_source_receiver_offset = use_source_receiver_offset
         super().__init__(locations=locations, times=times, **kwargs)
 
-    # orientation = properties.StringChoice(
-    #     "orientation of the receiver. Must currently be 'x', 'y', 'z'", ["x", "y", "z"]
-    # )
-
     @property
     def orientation(self):
         """Orientation of the receiver.

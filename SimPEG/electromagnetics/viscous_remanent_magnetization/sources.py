@@ -405,8 +405,6 @@ class LineCurrent(BaseSrcVRM):
         VRM waveform
     """
 
-    # location = properties.Array("location of the source wire points", shape=("*", 3))
-
     def __init__(self, receiver_list, location, Imax, waveform, **kwargs):
 
         super(LineCurrent, self).__init__(receiver_list, location, waveform, **kwargs)

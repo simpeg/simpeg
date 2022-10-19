@@ -927,15 +927,6 @@ class BaseTDEMSrc(BaseEMSrc):
         Implement as an inductive or galvanic source
     """
 
-    # # rxPair = Rx
-    # waveform = properties.Instance(
-    #     "A source waveform", BaseWaveform, default=StepOffWaveform()
-    # )
-    # srcType = properties.StringChoice(
-    #     "is the source a galvanic of inductive source",
-    #     choices=["inductive", "galvanic"],
-    # )
-
     def __init__(
         self,
         receiver_list=None,
@@ -1117,24 +1108,6 @@ class MagDipole(BaseTDEMSrc):
     source_type : {'inductive', 'galvanic'}
         Implement as an inductive or galvanic source
     """
-
-    # moment = properties.Float("dipole moment of the transmitter", default=1.0, min=0.0)
-    # mu = properties.Float("permeability of the background", default=mu_0, min=0.0)
-    # orientation = properties.Vector3(
-    #     "orientation of the source", default="Z", length=1.0, required=True
-    # )
-    # location = LocationVector(
-    #     "location of the source", default=np.r_[0.0, 0.0, 0.0], shape=(3,)
-    # )
-    # loc = deprecate_property(
-    #     location, "loc", new_name="location", removal_version="0.16.0", error=True
-    # )
-
-    # def __init__(self, receiver_list=None, **kwargs):
-    #     kwargs.pop("srcType", None)
-    #     BaseTDEMSrc.__init__(
-    #         self, receiver_list=receiver_list, srcType="inductive", **kwargs
-    #     )
 
     def __init__(
         self,
@@ -1497,8 +1470,6 @@ class CircularLoop(MagDipole):
         self.mu = mu
         self.srcType = srcType
 
-    # radius = properties.Float("radius of the loop source", default=1.0, min=0.0)
-
     @property
     def radius(self):
         """Loop radius
@@ -1514,8 +1485,6 @@ class CircularLoop(MagDipole):
     def radius(self, rad):
         rad = validate_float("radius", rad, min_val=0, inclusive_min=False)
         self._radius = rad
-
-    # current = properties.Float("current in the loop", default=1.0)
 
     @property
     def current(self):
@@ -1534,8 +1503,6 @@ class CircularLoop(MagDipole):
         if np.abs(I) == 0.0:
             raise ValueError("current must be non-zero.")
         self._current = I
-
-    # N = properties.Float("number of turns in the loop", default=1.0)
 
     @property
     def moment(self):
@@ -1593,17 +1560,6 @@ class LineCurrent(BaseTDEMSrc):
     mu : float, optional
         Magnetic permeability to use.
     """
-
-    # location = properties.Array("location of the source", shape=("*", 3))
-    # loc = deprecate_property(
-    #     location, "loc", new_name="location", removal_version="0.16.0", error=True
-    # )
-    # current = properties.Float("current in the line", default=1.0)
-
-    # def __init__(self, receiver_list=None, **kwargs):
-    #     self.integrate = False
-    #     kwargs.pop("srcType", None)  # TODO: generalize this to loop sources
-    #     super(LineCurrent, self).__init__(receiver_list, srcType="galvanic", **kwargs)
 
     def __init__(
         self,
@@ -2108,13 +2064,6 @@ class LineCurrent1D(LineCurrent):
 # TODO: this should be generalized and plugged into getting the Line current
 # on faces
 class RawVec_Grounded(LineCurrent):
-
-    # mu = properties.Float(
-    #     "permeability of the background", default=mu_0, min=0.
-    # )
-
-    # _s_e = properties.Array("source term", shape=("*",))
-
     def __init__(self, receiver_list=None, s_e=None, **kwargs):
         self.integrate = False
         kwargs.pop("srcType", None)

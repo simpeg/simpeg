@@ -23,14 +23,6 @@ class Survey(BaseTimeSurvey):
     _n_pulse = 2
     _T = 8.0
 
-    # source_list = properties.List(
-    #     "A list of sources for the survey",
-    #     properties.Instance("A SimPEG source", sources.BaseSrc),
-    #     default=[],
-    # )
-
-    # def __init__(self, source_list=None, **kwargs):
-    #     super().__init__(source_list, **kwargs)
     def __init__(
         self,
         source_list=None,

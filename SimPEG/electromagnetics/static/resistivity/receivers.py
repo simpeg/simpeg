@@ -39,10 +39,6 @@ class BaseRx(BaseSimPEGRx):
         self.data_type = data_type
         self.projField = projField
 
-    # orientation = properties.StringChoice(
-    #     "orientation of the receiver. Must currently be 'x', 'y', 'z'", ["x", "y", "z"]
-    # )
-
     @property
     def orientation(self):
         """Orientation of the receiver.
@@ -59,12 +55,6 @@ class BaseRx(BaseSimPEGRx):
         if var is not None:
             var = validate_string("orientation", var, ("x", "y", "z"))
         self._orientation = var
-
-    # projField = properties.StringChoice(
-    #     "field to be projected in the calculation of the data",
-    #     choices=["phi", "e", "j"],
-    #     default="phi",
-    # )
 
     _geometric_factor = {}
 
@@ -87,13 +77,6 @@ class BaseRx(BaseSimPEGRx):
     @projField.setter
     def projField(self, var):
         self._projField = validate_string("projField", var, ("phi", "e", "j"))
-
-    # data_type = properties.StringChoice(
-    #     "Type of DC-IP survey",
-    #     required=True,
-    #     default="volt",
-    #     choices=["volt", "apparent_resistivity", "apparent_chargeability"],
-    # )
 
     @property
     def data_type(self):
@@ -288,13 +271,6 @@ class Dipole(BaseRx):
     Either pass both `locations_m` and `locations_n` arguments, or pass only `locations`
     argument.
     """
-
-    # locations = properties.List(
-    #     "list of locations of each electrode in a dipole receiver",
-    #     RxLocationArray("location of electrode", shape=("*", "*")),
-    #     min_length=1,
-    #     max_length=2,
-    # )
 
     def __init__(
         self,

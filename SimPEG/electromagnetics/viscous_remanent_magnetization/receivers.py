@@ -28,16 +28,6 @@ class Point(BaseRx):
         Receiver orientation.
     """
 
-    # times = properties.Array("Observation times", dtype=float)
-
-    # fieldType = properties.StringChoice(
-    #     "Field type", choices=["h", "b", "dhdt", "dbdt"]
-    # )
-
-    # orientation = properties.StringChoice(
-    #     "Component of response", choices=["x", "y", "z"]
-    # )
-
     def __init__(
         self, locations=None, times=None, field_type=None, orientation="z", **kwargs
     ):
@@ -181,12 +171,6 @@ class SquareLoop(Point):
         Order of numerical quadrature for approximating the magnetic flux through
         the receiver coil.
     """
-
-    # width = properties.Float("Square loop width", min=1e-6)
-    # nTurns = properties.Integer("Number of loop turns", min=1, default=1)
-    # quadOrder = properties.Integer(
-    #     "Order for numerical quadrature integration over loop", min=1, max=7, default=3
-    # )
 
     def __init__(
         self,

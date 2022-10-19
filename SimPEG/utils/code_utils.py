@@ -4,7 +4,6 @@ from typing import TYPE_CHECKING
 import numpy as np
 from functools import wraps
 import warnings
-import properties
 
 from discretize.utils import asArray_N_x_Dim
 
@@ -616,10 +615,6 @@ def deprecate_property(
             new_name = prop.fget.__qualname__
         cls_name = new_name.split(".")[0]
         old_name = f"{cls_name}.{old_name}"
-    elif isinstance(prop, properties.GettableProperty):
-        if new_name is None:
-            new_name = prop.name
-        prop = prop.get_property()
 
     message = f"{old_name} has been deprecated, please use {new_name}."
     if error:
