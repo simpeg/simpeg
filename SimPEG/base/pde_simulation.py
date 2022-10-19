@@ -483,7 +483,7 @@ class BaseMagneticPDESimulation(BasePDESimulation):
     def __setattr__(self, name, value):
         super().__setattr__(name, value)
         if name in ["mu", "mui"]:
-            for mat in self._clear_on_sigma_update + self._clear_on_rho_update:
+            for mat in self._clear_on_mu_update + self._clear_on_mui_update:
                 if hasattr(self, mat):
                     delattr(self, mat)
 
