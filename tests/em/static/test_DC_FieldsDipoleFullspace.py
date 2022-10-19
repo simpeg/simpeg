@@ -103,8 +103,7 @@ class DC_CC_DipoleFullspaceTests(unittest.TestCase):
         )
         simulation.solver = Solver
 
-        #        f = simulation.fields()
-        f = simulation.fields(self.sigma)
+        f = simulation.fields()
         eNumeric = utils.mkvc(f[self.survey.source_list, "e"])
         jNumeric = utils.mkvc(f[self.survey.source_list, "j"])
         # also test we can get charge and charge density
@@ -137,7 +136,7 @@ class DC_CC_DipoleFullspaceTests(unittest.TestCase):
         )
         simulation.solver = Solver
 
-        f = simulation.fields(self.sigma)
+        f = simulation.fields()
         eNumeric = utils.mkvc(f[self.survey.source_list, "e"])
         jNumeric = utils.mkvc(f[self.survey.source_list, "j"])
         errE = np.linalg.norm(
@@ -166,7 +165,7 @@ class DC_CC_DipoleFullspaceTests(unittest.TestCase):
         )
         simulation.solver = Solver
 
-        f = simulation.fields(self.sigma)
+        f = simulation.fields()
         eNumeric = utils.mkvc(f[self.survey.source_list, "e"])
         jNumeric = utils.mkvc(f[self.survey.source_list, "j"])
         errE = np.linalg.norm(
@@ -278,7 +277,7 @@ class DC_N_DipoleFullspaceTests(unittest.TestCase):
         )
         simulation.solver = Solver
 
-        f = simulation.fields(self.sigma)
+        f = simulation.fields()
         eNumeric = utils.mkvc(f[self.survey.source_list, "e"])
         jNumeric = utils.mkvc(f[self.survey.source_list, "j"])
         # also test if we can get charge and charge_density

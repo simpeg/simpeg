@@ -8,7 +8,6 @@ import scipy.sparse as sp
 from SimPEG.Utils import Zero
 from SimPEG.EM.Static.DC import getxBCyBC_CC
 from SimPEG import Props
-import properties
 
 
 class BaseSPProblem(BaseDCProblem):
@@ -57,11 +56,11 @@ class Problem_CC(BaseSPProblem, Simulation3DCellCentered):
     fieldsPair = Fields3DCellCentered
     modelType = None
     bc_type = "Mixed"
-    coordinate_system = properties.StringChoice(
-        "Type of coordinate system we are regularizing in",
-        choices=["cartesian", "spherical"],
-        default="cartesian",
-    )
+    # coordinate_system = StringChoice(
+    #     "Type of coordinate system we are regularizing in",
+    #     choices=["cartesian", "spherical"],
+    #     default="cartesian",
+    # )
 
     def __init__(self, mesh, **kwargs):
         BaseSPProblem.__init__(self, mesh, **kwargs)

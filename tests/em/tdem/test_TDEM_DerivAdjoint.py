@@ -15,8 +15,6 @@ testAdjoint = True
 
 TOL = 1e-4
 
-np.random.seed(10)
-
 
 def get_mesh():
     cs = 10.0
@@ -104,6 +102,8 @@ class Base_DerivAdjoint_Test(unittest.TestCase):
                 src.receiver_list = rxlist
 
     def JvecTest(self, rxcomp):
+
+        np.random.seed(10)
         self.set_receiver_list(rxcomp)
 
         def derChk(m):
@@ -120,6 +120,7 @@ class Base_DerivAdjoint_Test(unittest.TestCase):
         tests.checkDerivative(derChk, self.m, plotIt=False, num=2, eps=1e-20)
 
     def JvecVsJtvecTest(self, rxcomp):
+        np.random.seed(10)
         self.set_receiver_list(rxcomp)
         print(
             "\nAdjoint Testing Jvec, Jtvec prob {}, {}".format(self.formulation, rxcomp)
@@ -406,7 +407,3 @@ class DerivAdjoint_J(Base_DerivAdjoint_Test):
 
         def test_Jvec_adjoint_j_dbdtz(self):
             self.JvecVsJtvecTest("MagneticFluxTimeDerivativez")
-
-
-if __name__ == "__main__":
-    unittest.main()

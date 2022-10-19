@@ -2,195 +2,610 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib
-import properties
 import warnings
 
 from discretize import TensorMesh, TreeMesh
 from discretize.base import BaseMesh
-from discretize.utils import refine_tree_xyz, mkvc, meshTensor
+from discretize.utils import refine_tree_xyz, meshTensor
 
 from ....data import Data
-from ....utils import sdiag, uniqueRows, surface2ind_topo, plot2Ddata
+from ....utils import (
+    sdiag,
+    uniqueRows,
+    surface2ind_topo,
+    plot2Ddata,
+    validate_type,
+    validate_integer,
+    validate_string,
+    validate_ndarray_with_shape,
+    validate_float,
+)
 from ..utils import geometric_factor
 from . import sources as Src
 from . import receivers as Rx
 from .survey import Survey
 
 
-class IO(properties.HasProperties):
-    """"""
+class IO:
+    def __init__(
+        self,
+        survey_layout="SURFACE",
+        survey_type="dipole-dipole",
+        dimension=2,
+        a_locations=None,
+        b_locations=None,
+        m_locations=None,
+        n_location=None,
+        electrode_locations=None,
+        data_dc_type="volt",
+        data_dc=None,
+        data_ip_type="volt",
+        data_ip=None,
+        data_sip_type="volt",
+        data_sip=None,
+        times_ip=None,
+        G=None,
+        grids=None,
+        space_type="half-space",
+        line_inds=None,
+        sort_inds=None,
+        mesh=None,
+        dx=None,
+        dy=None,
+        dz=None,
+        npad_x=5,
+        npad_y=5,
+        npad_z=5,
+        pad_rate_x=1.3,
+        pad_rate_y=1.3,
+        pad_rate_z=1.3,
+        ncell_per_dipole=4,
+        corezlength=None,
+        **kwargs,
+    ):
+        super().__init__(**kwargs)
 
-    # Survey
-    survey_layout = properties.StringChoice(
-        "Survey geometry of DC surveys",
-        default="SURFACE",
-        choices=["SURFACE", "BOREHOLE", "GENERAL"],
-    )
+        self.survey_layout = survey_layout
+        self.survey_type = survey_type
+        self.dimension = dimension
+        self.a_locations = a_locations
+        self.b_locations = b_locations
+        self.m_locations = m_locations
+        self.n_location = n_location
+        self.electrode_locations = electrode_locations
+        self.data_dc_type = data_dc_type
+        self.data_dc = data_dc
+        self.data_ip_type = data_ip_type
+        self.data_ip = data_ip
+        self.data_sip_type = data_sip_type
+        self.data_sip = data_sip
+        self.times_ip = times_ip
+        self.G = G
+        self.grids = grids
+        self.space_type = space_type
+        self.line_inds = line_inds
+        self.sort_inds = sort_inds
+        self.mesh = mesh
+        self.dx = dx
+        self.dy = dy
+        self.dz = dz
+        self.npad_x = npad_x
+        self.npad_y = npad_y
+        self.npad_z = npad_z
+        self.pad_rate_x = pad_rate_x
+        self.pad_rate_y = pad_rate_y
+        self.pad_rate_z = pad_rate_z
+        self.ncell_per_dipole = ncell_per_dipole
+        self.corezlength = corezlength
+        warnings.warn("code under construction - API might change in the future")
 
-    survey_type = properties.StringChoice(
-        "DC-IP Survey type",
-        default="dipole-dipole",
-        choices=["dipole-dipole", "pole-dipole", "dipole-pole", "pole-pole"],
-    )
+    @property
+    def survey_layout(self):
+        """Survey geometry of DC surveys.
 
-    dimension = properties.Integer(
-        "Dimension of electrode locations", default=2, required=True
-    )
+        Returns
+        -------
+        {"SURFACE", "BOREHOLE", "GENERAL"}
+        """
+        return self._survey_layout
 
-    a_locations = properties.Array(
-        "locations of the positive (+) current electrodes",
-        required=True,
-        shape=("*", "*"),  # ('*', 3) for 3D or ('*', 2) for 2D
-        dtype=float,  # data are floats
-    )
+    @survey_layout.setter
+    def survey_layout(self, value):
+        self._survey_layout = validate_string(
+            "survey_layout", value, ("SURFACE", "BOREHOLE", "GENERAL")
+        )
 
-    b_locations = properties.Array(
-        "locations of the negative (-) current electrodes",
-        required=True,
-        shape=("*", "*"),  # ('*', 3) for 3D or ('*', 2) for 2D
-        dtype=float,  # data are floats
-    )
+    @property
+    def survey_type(self):
+        """Survey geometry of DC surveys.
 
-    m_locations = properties.Array(
-        "locations of the positive (+) potential electrodes",
-        required=True,
-        shape=("*", "*"),  # ('*', 3) for 3D or ('*', 2) for 2D
-        dtype=float,  # data are floats
-    )
+        Returns
+        -------
+        {"dipole-dipole", "pole-dipole", "dipole-pole", "pole-pole"}
+        """
+        return self._survey_type
 
-    n_locations = properties.Array(
-        "locations of the negative (-) potential electrodes",
-        required=True,
-        shape=("*", "*"),  # ('*', 3) for 3D or ('*', 2) for 2D
-        dtype=float,  # data are floats
-    )
+    @survey_type.setter
+    def survey_type(self, value):
+        self._survey_type = validate_string(
+            "survey_type",
+            value,
+            ("dipole-dipole", "pole-dipole", "dipole-pole", "pole-pole"),
+        )
 
-    electrode_locations = properties.Array(
-        "unique locations of a, b, m, n electrodes",
-        required=True,
-        shape=("*", "*"),  # ('*', 3) for 3D or ('*', 2) for 2D
-        dtype=float,  # data are floats
-    )
+    @property
+    def dimension(self):
+        """Dimension of electrode locations.
+
+        Returns
+        -------
+        int
+        """
+        return self._dimension
+
+    @dimension.setter
+    def dimension(self, value):
+        self._dimension = validate_integer("dimension", value, min_val=2, max_val=3)
+
+    @property
+    def a_locations(self):
+        """Locations of the positive (+) current electrodes.
+
+        Returns
+        -------
+        numpy.ndarray of float
+        """
+        return self._a_locations
+
+    @a_locations.setter
+    def a_locations(self, value):
+        if value is not None:
+            value = validate_ndarray_with_shape("a_locations", value, shape=("*", "*"))
+        self._a_locations = value
+
+    @property
+    def b_locations(self):
+        """Locations of the negative (-) current electrodes.
+
+        Returns
+        -------
+        numpy.ndarray of float
+        """
+        return self._b_locations
+
+    @b_locations.setter
+    def b_locations(self, value):
+        if value is not None:
+            value = validate_ndarray_with_shape("b_locations", value, shape=("*", "*"))
+        self._b_locations = value
+
+    @property
+    def m_locations(self):
+        """Locations of the positive (+) potential electrodes.
+
+        Returns
+        -------
+        numpy.ndarray of float
+        """
+        return self._m_locations
+
+    @m_locations.setter
+    def m_locations(self, value):
+        if value is not None:
+            value = validate_ndarray_with_shape("m_locations", value, shape=("*", "*"))
+        self._m_locations = value
+
+    @property
+    def n_locations(self):
+        """Locations of the negative (-) potential electrodes.
+
+        Returns
+        -------
+        numpy.ndarray of float
+        """
+        return self._n_locations
+
+    @n_locations.setter
+    def n_locations(self, value):
+        if value is not None:
+            value = validate_ndarray_with_shape("n_locations", value, shape=("*", "*"))
+        self._n_locations = value
+
+    @property
+    def electrode_locations(self):
+        """Unique locations of a, b, m, n electrodes.
+
+        Returns
+        -------
+        numpy.ndarray of float
+        """
+        return self._electrode_locations
+
+    @electrode_locations.setter
+    def electrode_locations(self, value):
+        if value is not None:
+            value = validate_ndarray_with_shape(
+                "electrode_locations", value, shape=("*", "*")
+            )
+        self._electrode_locations = value
 
     # Data
-    data_dc_type = properties.StringChoice(
-        "Type of DC-IP survey",
-        required=True,
-        default="volt",
-        choices=[
-            "volt",
-            "apparent_resistivity",
-            "apparent_conductivity",
-        ],
-    )
+    @property
+    def data_dc_type(self):
+        """Type of DC-IP survey.
 
-    data_dc = properties.Array(
-        "Measured DC data", shape=("*",), dtype=float  # data are floats
-    )
+        Returns
+        -------
+        {"volt", "apparent_resistivity", "apparent_conductivity"}
+        """
+        return self._data_dc_type
 
-    data_ip_type = properties.StringChoice(
-        "Type of DC-IP survey",
-        required=True,
-        default="volt",
-        choices=[
-            "volt",
-            "apparent_chargeability",
-        ],
-    )
+    @data_dc_type.setter
+    def data_dc_type(self, value):
+        self._data_dc_type = validate_string(
+            "data_dc_type",
+            value,
+            ("volt", "apparent_resistivity", "apparent_conductivity"),
+        )
 
-    data_ip = properties.Array(
-        "Measured IP data", shape=("*",), dtype=float  # data are floats
-    )
+    @property
+    def data_dc(self):
+        """Measured DC data.
 
-    data_sip_type = properties.StringChoice(
-        "Type of DC-IP survey",
-        required=True,
-        default="volt",
-        choices=[
-            "volt",
-            "apparent_chargeability",
-        ],
-    )
+        Returns
+        -------
+        numpy.ndarray of float
+        """
+        return self._data_dc
 
-    data_sip = properties.Array(
-        "Measured Spectral IP data", shape=("*", "*"), dtype=float  # data are floats
-    )
+    @data_dc.setter
+    def data_dc(self, value):
+        if value is not None:
+            value = validate_ndarray_with_shape("data_dc", value, shape=("*",))
+        self._data_dc = value
 
-    times_ip = properties.Array(
-        "Time channels of measured Spectral IP voltages (s)",
-        required=True,
-        shape=("*",),
-        dtype=float,  # data are floats
-    )
+    @property
+    def data_ip_type(self):
+        """Type of DC-IP survey.
 
-    G = properties.Array(
-        "Geometric factor of DC-IP survey", shape=("*",), dtype=float  # data are floats
-    )
+        Returns
+        -------
+        {"volt", "apparent_chargeability"}
+        """
+        return self._data_ip_type
 
-    grids = properties.Array(
-        "Spatial grids for plotting pseudo-section",
-        shape=("*", "*"),
-        dtype=float,  # data are floats
-    )
+    @data_ip_type.setter
+    def data_ip_type(self, value):
+        self._data_ip_type = validate_string(
+            "data_ip_type", value, ("volt", "apparent_chargeability")
+        )
 
-    space_type = properties.StringChoice(
-        "Assumption to compute apparent resistivity",
-        default="half-space",
-        choices=["half-space", "whole-space"],
-    )
+    @property
+    def data_ip(self):
+        """Measured IP data.
 
-    line_inds = properties.Array(
-        "Line indices", required=True, shape=("*",), dtype=int  # data are floats
-    )
-    sort_inds = properties.Array(
-        "Sorting indices from ABMN",
-        required=True,
-        shape=("*",),
-        dtype=int,  # data are floats
-    )
+        Returns
+        -------
+        numpy.ndarray of float
+        """
+        return self._data_ip
+
+    @data_ip.setter
+    def data_ip(self, value):
+        if value is not None:
+            value = validate_ndarray_with_shape("data_ip", value, shape=("*",))
+        self._data_ip = value
+
+    @property
+    def data_sip_type(self):
+        """Type of DC-IP survey.
+
+        Returns
+        -------
+        {"volt", "apparent_chargeability"}
+        """
+        return self._data_sip_type
+
+    @data_sip_type.setter
+    def data_sip_type(self, value):
+        self._data_sip_type = validate_string(
+            "data_sip_type", value, ("volt", "apparent_chargeability")
+        )
+
+    @property
+    def data_sip(self):
+        """Measured Spectral IP data.
+
+        Returns
+        -------
+        numpy.ndarray of float
+        """
+        return self._data_sip
+
+    @data_sip.setter
+    def data_sip(self, value):
+        if value is not None:
+            value = validate_ndarray_with_shape("data_sip", value, shape=("*",))
+        self._data_sip = value
+
+    @property
+    def times_ip(self):
+        """Time channels of measured Spectral IP voltages (s).
+
+        Returns
+        -------
+        numpy.ndarray of float
+        """
+        return self._data_sip
+
+    @times_ip.setter
+    def times_ip(self, value):
+        if value is not None:
+            value = validate_ndarray_with_shape("times_ip", value, shape=("*",))
+        self._times_ip = value
+
+    @property
+    def G(self):
+        """Geometric factor of DC-IP survey.
+
+        Returns
+        -------
+        numpy.ndarray of float
+        """
+        return self._G
+
+    @G.setter
+    def G(self, value):
+        if value is not None:
+            value = validate_ndarray_with_shape("G", value, shape=("*",))
+        self._G = value
+
+    @property
+    def grids(self):
+        """Geometric factor of DC-IP survey.
+
+        Returns
+        -------
+        numpy.ndarray of float
+        """
+        return self._grids
+
+    @grids.setter
+    def grids(self, value):
+        if value is not None:
+            value = validate_ndarray_with_shape("grids", value, shape=("*", "*"))
+        self._grids = value
+
+    @property
+    def space_type(self):
+        """Type of DC-IP survey.
+
+        Returns
+        -------
+        {"half-space", "whole-space"}
+        """
+        return self._space_type
+
+    @space_type.setter
+    def space_type(self, value):
+        self._space_type = validate_string(
+            "space_type", value, ("half-space", "whole-space")
+        )
+
+    @property
+    def line_inds(self):
+        """Line indices.
+
+        Returns
+        -------
+        numpy.ndarray of int
+        """
+        return self._line_inds
+
+    @line_inds.setter
+    def line_inds(self, value):
+        if value is not None:
+            value = validate_ndarray_with_shape(
+                "line_inds", value, shape=("*",), dtype=int
+            )
+        self._line_inds = value
+
+    @property
+    def sort_inds(self):
+        """Sorting indices from ABMN
+
+        Returns
+        -------
+        numpy.ndarray of int
+        """
+        return self._sort_inds
+
+    @sort_inds.setter
+    def sort_inds(self, value):
+        if value is not None:
+            value = validate_ndarray_with_shape(
+                "sort_inds", value, shape=("*",), dtype=int
+            )
+        self._sort_inds = value
 
     # Related to Physics and Discretization
-    mesh = properties.Instance("Mesh for discretization", BaseMesh, required=True)
+    @property
+    def mesh(self):
+        """Mesh for discretization.
 
-    dx = properties.Float(
-        "Length of corecell in x-direction",
-        required=True,
-    )
-    dy = properties.Float("Length of corecell in y-direction", required=True)
-    dz = properties.Float("Length of corecell in z-direction", required=True)
+        Returns
+        -------
+        discretize.base.BaseMesh
+        """
+        return self._mesh
 
-    npad_x = properties.Integer(
-        "The number of padding cells x-direction", required=True, default=5
-    )
+    @mesh.setter
+    def mesh(self, value):
+        if value is not None:
+            value = validate_type("mesh", value, BaseMesh, cast=False)
+        self._mesh = value
 
-    npad_y = properties.Integer(
-        "The number of padding cells y-direction", required=True, default=5
-    )
+    @property
+    def dx(self):
+        """Length of corecell in x-direction.
 
-    npad_z = properties.Integer(
-        "The number of padding cells z-direction", required=True, default=5
-    )
+        Returns
+        -------
+        float
+        """
+        return self._dx
 
-    pad_rate_x = properties.Float(
-        "Expansion rate of padding cells in  x-direction", required=True, default=1.3
-    )
+    @dx.setter
+    def dx(self, value):
+        if value is not None:
+            value = validate_float("dx", value, min_val=0.0, inclusive_min=False)
+        self._dx = value
 
-    pad_rate_y = properties.Float(
-        "Expansion rate of padding cells in  y-direction", required=True, default=1.3
-    )
+    @property
+    def dy(self):
+        """Length of corecell in y-direction.
 
-    pad_rate_z = properties.Float(
-        "Expansion rate of padding cells in  z-direction", required=True, default=1.3
-    )
+        Returns
+        -------
+        float
+        """
+        return self._dy
 
-    ncell_per_dipole = properties.Integer(
-        "The number of cells between dipole electrodes", required=True, default=4
-    )
+    @dy.setter
+    def dy(self, value):
+        if value is not None:
+            value = validate_float("dy", value, min_val=0.0, inclusive_min=False)
+        self._dy = value
 
-    corezlength = properties.Float(
-        "Core depth (m)",
-        required=True,
-    )
+    @property
+    def dz(self):
+        """Length of corecell in z-direction.
+
+        Returns
+        -------
+        float
+        """
+        return self._dz
+
+    @dz.setter
+    def dz(self, value):
+        if value is not None:
+            value = validate_float("dz", value, min_val=0.0, inclusive_min=False)
+        self._dz = value
+
+    @property
+    def npad_x(self):
+        """The number of padding cells x-direction.
+
+        Returns
+        -------
+        int
+        """
+        return self._npad_x
+
+    @npad_x.setter
+    def npad_x(self, value):
+        self._npad_x = validate_integer("npad_x", value, min_val=0)
+
+    @property
+    def npad_y(self):
+        """The number of padding cells y-direction.
+
+        Returns
+        -------
+        int
+        """
+        return self._npad_y
+
+    @npad_y.setter
+    def npad_y(self, value):
+        self._npad_y = validate_integer("npad_y", value, min_val=0)
+
+    @property
+    def npad_z(self):
+        """The number of padding cells y-direction.
+
+        Returns
+        -------
+        int
+        """
+        return self._npad_z
+
+    @npad_z.setter
+    def npad_z(self, value):
+        self._npad_z = validate_integer("npad_z", value, min_val=0)
+
+    @property
+    def pad_rate_x(self):
+        """Expansion rate of padding cells in  x-direction.
+
+        Returns
+        -------
+        float
+        """
+        return self._pad_rate_x
+
+    @pad_rate_x.setter
+    def pad_rate_x(self, value):
+        self._pad_rate_x = validate_float("pad_rate_x", value)
+
+    @property
+    def pad_rate_y(self):
+        """Expansion rate of padding cells in  x-direction.
+
+        Returns
+        -------
+        float
+        """
+        return self._pad_rate_y
+
+    @pad_rate_y.setter
+    def pad_rate_y(self, value):
+        self._pad_rate_y = validate_float("pad_rate_y", value)
+
+    @property
+    def pad_rate_z(self):
+        """Expansion rate of padding cells in  x-direction.
+
+        Returns
+        -------
+        float
+        """
+        return self._pad_rate_z
+
+    @pad_rate_z.setter
+    def pad_rate_z(self, value):
+        self._pad_rate_z = validate_float("pad_rate_z", value)
+
+    @property
+    def ncell_per_dipole(self):
+        """The number of cells between dipole electrodes.
+
+        Returns
+        -------
+        int
+        """
+        return self._ncell_per_dipole
+
+    @ncell_per_dipole.setter
+    def ncell_per_dipole(self, value):
+        self._ncell_per_dipole = validate_integer("ncell_per_dipole", value, min_val=0)
+
+    @property
+    def corezlength(self):
+        """Core depth (m).
+
+        Returns
+        -------
+        float
+        """
+        return self._pad_rate_z
+
+    @corezlength.setter
+    def corezlength(self, value):
+        if value is not None:
+            value = validate_float("corezlength", value)
+        self._corezlength = value
 
     # For synthetic surveys
     x0 = None
@@ -198,10 +613,6 @@ class IO(properties.HasProperties):
     a = None
     n_spacing = None
     n_data = None
-
-    def __init__(self, **kwargs):
-        super(IO, self).__init__(**kwargs)
-        warnings.warn("code under construction - API might change in the future")
 
     # Properties
     @property
@@ -400,9 +811,7 @@ class IO(properties.HasProperties):
 
             self.sort_inds = np.hstack(sort_inds)
 
-            if dimension == 2:
-                survey = Survey(source_lists)
-            elif dimension == 3:
+            if dimension in (2, 3):
                 survey = Survey(source_lists)
             else:
                 raise NotImplementedError()
@@ -821,7 +1230,7 @@ class IO(properties.HasProperties):
             fig.savefig(figname, dpi=200)
 
     def read_ubc_dc2d_obs_file(self, filename, input_type="simple", toponame=None):
-        obsfile = np.genfromtxt(filename, delimiter=" \n", dtype=np.str, comments="!")
+        obsfile = np.genfromtxt(filename, delimiter=" \n", dtype=str, comments="!")
         if input_type == "general":
             topo = None
             n_src = 0

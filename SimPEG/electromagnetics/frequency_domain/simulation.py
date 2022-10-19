@@ -1,12 +1,11 @@
 import numpy as np
 import scipy.sparse as sp
 from scipy.constants import mu_0
-import properties
 from discretize.utils import Zero
 
 from ... import props
 from ...data import Data
-from ...utils import mkvc
+from ...utils import mkvc, validate_type
 from ..base import BaseEMSimulation
 from ..utils import omega
 from .survey import Survey
@@ -56,18 +55,41 @@ class BaseFDEMSimulation(BaseEMSimulation):
 
     fieldsPair = FieldsFDEM
 
-    mu, muMap, muDeriv = props.Invertible("Magnetic Permeability (H/m)", default=mu_0)
+    def __init__(self, mesh, survey=None, forward_only=False, **kwargs):
+        super().__init__(mesh=mesh, survey=survey, **kwargs)
+        self.forward_only = forward_only
 
-    mui, muiMap, muiDeriv = props.Invertible("Inverse Magnetic Permeability (m/H)")
+    @property
+    def survey(self):
+        """The simulations survey.
 
-    props.Reciprocal(mu, mui)
+        Returns
+        -------
+        SimPEG.electromagnetics.frequency_domain.survey.Survey
+        """
+        if self._survey is None:
+            raise AttributeError("Simulation must have a survey set")
+        return self._survey
 
-    forward_only = properties.Boolean(
-        "If True, A-inverse not stored at each frequency in forward simulation",
-        default=False,
-    )
+    @survey.setter
+    def survey(self, value):
+        if value is not None:
+            value = validate_type("survey", value, Survey, cast=False)
+        self._survey = value
 
-    survey = properties.Instance("a survey object", Survey, required=True)
+    @property
+    def forward_only(self):
+        """If True, A-inverse not stored at each frequency in forward simulation.
+
+        Returns
+        -------
+        bool
+        """
+        return self._forward_only
+
+    @forward_only.setter
+    def forward_only(self, value):
+        self._forward_only = validate_type("forward_only", value, bool)
 
     # @profile
     def fields(self, m=None):
@@ -246,9 +268,6 @@ class Simulation3DElectricField(BaseFDEMSimulation):
     _formulation = "EB"
     fieldsPair = Fields3DElectricField
 
-    def __init__(self, mesh, **kwargs):
-        super(Simulation3DElectricField, self).__init__(mesh, **kwargs)
-
     def getA(self, freq):
         """
         System matrix
@@ -264,7 +283,7 @@ class Simulation3DElectricField(BaseFDEMSimulation):
 
         MfMui = self.MfMui
         MeSigma = self.MeSigma
-        C = self.mesh.edgeCurl
+        C = self.mesh.edge_curl
 
         return C.T.tocsr() * MfMui * C + 1j * omega(freq) * MeSigma
 
@@ -301,7 +320,7 @@ class Simulation3DElectricField(BaseFDEMSimulation):
 
         """
 
-        C = self.mesh.edgeCurl
+        C = self.mesh.edge_curl
 
         if adjoint:
             return self.MfMuiDeriv(C * u).T * (C * v)
@@ -329,7 +348,7 @@ class Simulation3DElectricField(BaseFDEMSimulation):
         """
 
         s_m, s_e = self.getSourceTerm(freq)
-        C = self.mesh.edgeCurl
+        C = self.mesh.edge_curl
         MfMui = self.MfMui
 
         return C.T * (MfMui * s_m) - 1j * omega(freq) * s_e
@@ -341,7 +360,7 @@ class Simulation3DElectricField(BaseFDEMSimulation):
         includes calls to derivatives in the sources
         """
 
-        C = self.mesh.edgeCurl
+        C = self.mesh.edge_curl
         MfMui = self.MfMui
         s_m, s_e = self.getSourceTerm(freq)
         s_mDeriv, s_eDeriv = src.evalDeriv(self, adjoint=adjoint)
@@ -385,9 +404,6 @@ class Simulation3DMagneticFluxDensity(BaseFDEMSimulation):
     _formulation = "EB"
     fieldsPair = Fields3DMagneticFluxDensity
 
-    def __init__(self, mesh, **kwargs):
-        super(Simulation3DMagneticFluxDensity, self).__init__(mesh, **kwargs)
-
     def getA(self, freq):
         """
         System matrix
@@ -403,7 +419,7 @@ class Simulation3DMagneticFluxDensity(BaseFDEMSimulation):
 
         MfMui = self.MfMui
         MeSigmaI = self.MeSigmaI
-        C = self.mesh.edgeCurl
+        C = self.mesh.edge_curl
         iomega = 1j * omega(freq) * sp.eye(self.mesh.nF)
 
         A = C * (MeSigmaI * (C.T.tocsr() * MfMui)) + iomega
@@ -433,7 +449,7 @@ class Simulation3DMagneticFluxDensity(BaseFDEMSimulation):
         """
 
         MfMui = self.MfMui
-        C = self.mesh.edgeCurl
+        C = self.mesh.edge_curl
         MeSigmaIDeriv = self.MeSigmaIDeriv
         vec = C.T * (MfMui * u)
 
@@ -450,7 +466,7 @@ class Simulation3DMagneticFluxDensity(BaseFDEMSimulation):
         MfMui = self.MfMui
         MfMuiDeriv = self.MfMuiDeriv(u)
         MeSigmaI = self.MeSigmaI
-        C = self.mesh.edgeCurl
+        C = self.mesh.edge_curl
 
         if adjoint:
             return MfMuiDeriv.T * (C * (MeSigmaI.T * (C.T * v)))
@@ -483,7 +499,7 @@ class Simulation3DMagneticFluxDensity(BaseFDEMSimulation):
         """
 
         s_m, s_e = self.getSourceTerm(freq)
-        C = self.mesh.edgeCurl
+        C = self.mesh.edge_curl
         MeSigmaI = self.MeSigmaI
 
         RHS = s_m + C * (MeSigmaI * s_e)
@@ -506,7 +522,7 @@ class Simulation3DMagneticFluxDensity(BaseFDEMSimulation):
         :return: product of rhs deriv with a vector
         """
 
-        C = self.mesh.edgeCurl
+        C = self.mesh.edge_curl
         s_m, s_e = src.eval(self)
         MfMui = self.MfMui
 
@@ -566,9 +582,6 @@ class Simulation3DCurrentDensity(BaseFDEMSimulation):
     _formulation = "HJ"
     fieldsPair = Fields3DCurrentDensity
 
-    def __init__(self, mesh, **kwargs):
-        super(Simulation3DCurrentDensity, self).__init__(mesh, **kwargs)
-
     def getA(self, freq):
         """
         System matrix
@@ -584,7 +597,7 @@ class Simulation3DCurrentDensity(BaseFDEMSimulation):
 
         MeMuI = self.MeMuI
         MfRho = self.MfRho
-        C = self.mesh.edgeCurl
+        C = self.mesh.edge_curl
         iomega = 1j * omega(freq) * sp.eye(self.mesh.nF)
 
         A = C * MeMuI * C.T.tocsr() * MfRho + iomega
@@ -620,7 +633,7 @@ class Simulation3DCurrentDensity(BaseFDEMSimulation):
 
         MeMuI = self.MeMuI
         MfRho = self.MfRho
-        C = self.mesh.edgeCurl
+        C = self.mesh.edge_curl
 
         if adjoint:
             vec = C * (MeMuI.T * (C.T * v))
@@ -635,7 +648,7 @@ class Simulation3DCurrentDensity(BaseFDEMSimulation):
 
     def getADeriv_mu(self, freq, u, v, adjoint=False):
 
-        C = self.mesh.edgeCurl
+        C = self.mesh.edge_curl
         MfRho = self.MfRho
 
         MeMuIDeriv = self.MeMuIDeriv(C.T * (MfRho * u))
@@ -678,7 +691,7 @@ class Simulation3DCurrentDensity(BaseFDEMSimulation):
         """
 
         s_m, s_e = self.getSourceTerm(freq)
-        C = self.mesh.edgeCurl
+        C = self.mesh.edge_curl
         MeMuI = self.MeMuI
 
         RHS = C * (MeMuI * s_m) - 1j * omega(freq) * s_e
@@ -705,7 +718,7 @@ class Simulation3DCurrentDensity(BaseFDEMSimulation):
         #     MfRho = self.MfRho
         #     return MfRho.T*RHS
 
-        C = self.mesh.edgeCurl
+        C = self.mesh.edge_curl
         MeMuI = self.MeMuI
         MeMuIDeriv = self.MeMuIDeriv
         s_mDeriv, s_eDeriv = src.evalDeriv(self, adjoint=adjoint)
@@ -756,9 +769,6 @@ class Simulation3DMagneticField(BaseFDEMSimulation):
     _formulation = "HJ"
     fieldsPair = Fields3DMagneticField
 
-    def __init__(self, mesh, **kwargs):
-        super(Simulation3DMagneticField, self).__init__(mesh, **kwargs)
-
     def getA(self, freq):
         """
         System matrix
@@ -776,7 +786,7 @@ class Simulation3DMagneticField(BaseFDEMSimulation):
 
         MeMu = self.MeMu
         MfRho = self.MfRho
-        C = self.mesh.edgeCurl
+        C = self.mesh.edge_curl
 
         return C.T.tocsr() * (MfRho * C) + 1j * omega(freq) * MeMu
 
@@ -799,7 +809,7 @@ class Simulation3DMagneticField(BaseFDEMSimulation):
         :return: derivative of the system matrix times a vector (nP,) or
             adjoint (nD,)
         """
-        C = self.mesh.edgeCurl
+        C = self.mesh.edge_curl
         if adjoint:
             return self.MfRhoDeriv(C * u, C * v, adjoint)
         return C.T * self.MfRhoDeriv(C * u, v, adjoint)
@@ -833,7 +843,7 @@ class Simulation3DMagneticField(BaseFDEMSimulation):
         """
 
         s_m, s_e = self.getSourceTerm(freq)
-        C = self.mesh.edgeCurl
+        C = self.mesh.edge_curl
         MfRho = self.MfRho
 
         return s_m + C.T * (MfRho * s_e)
@@ -851,7 +861,7 @@ class Simulation3DMagneticField(BaseFDEMSimulation):
         """
 
         _, s_e = src.eval(self)
-        C = self.mesh.edgeCurl
+        C = self.mesh.edge_curl
         MfRho = self.MfRho
 
         # MfRhoDeriv = self.MfRhoDeriv(s_e)

@@ -185,13 +185,8 @@ mesh = TensorMesh([hx, hy, hz], "CCN")
 # Here, we create starting and/or reference models for the inversion as
 # well as the mapping from the model space to the active cells. Starting and
 # reference models can be a constant background value or contain a-priori
-# structures. Here, the background is 1e-6 g/cc.
+# structures.
 #
-
-# Define density contrast values for each unit in g/cc. Don't make this 0!
-# Otherwise the gradient for the 1st iteration is zero and the inversion will
-# not converge.
-background_density = 1e-6
 
 # Find the indices of the active cells in forward model (ones below surface)
 ind_active = surface2ind_topo(mesh, xyz_topo)
@@ -201,7 +196,7 @@ nC = int(ind_active.sum())
 model_map = maps.IdentityMap(nP=nC)  # model consists of a value for each active cell
 
 # Define and plot starting model
-starting_model = background_density * np.ones(nC)
+starting_model = np.zeros(nC)
 
 
 ##############################################
@@ -235,7 +230,7 @@ simulation = gravity.simulation.Simulation3DIntegral(
 dmis = data_misfit.L2DataMisfit(data=data_object, simulation=simulation)
 
 # Define the regularization (model objective function).
-reg = regularization.Simple(mesh, indActive=ind_active, mapping=model_map)
+reg = regularization.WeightedLeastSquares(mesh, indActive=ind_active, mapping=model_map)
 
 # Define how the optimization problem is solved. Here we will use a projected
 # Gauss-Newton approach that employs the conjugate gradient solver.

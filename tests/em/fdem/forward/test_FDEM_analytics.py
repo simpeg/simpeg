@@ -1,19 +1,19 @@
 from __future__ import print_function
+
 import unittest
-import numpy as np
-import scipy.sparse as sp
 
 import discretize
-from SimPEG import utils
-from SimPEG import SolverLU
-from SimPEG.electromagnetics import frequency_domain as fdem
-from SimPEG.electromagnetics import analytics
+import matplotlib.pylab as plt
+import numpy as np
+import scipy.sparse as sp
 from scipy.constants import mu_0
+from SimPEG import SolverLU, utils
+from SimPEG.electromagnetics import analytics
+from SimPEG.electromagnetics import frequency_domain as fdem
 
 # import matplotlib
 # matplotlib.use('Agg')
 
-import matplotlib.pylab as plt
 
 plotIt = False
 tol_Transect = 2e-1
@@ -48,6 +48,9 @@ class FDEM_analyticTests(unittest.TestCase):
                 location=np.r_[0.0, 0.0, 0.0],
                 frequency=freq,
                 radius=np.sqrt(1.0 / np.pi),
+                # test number of turns and current
+                n_turns=2,
+                current=0.5,
             ),
         ]
 
@@ -113,9 +116,9 @@ class FDEM_analyticTests(unittest.TestCase):
 
 
 class TestDipoles(unittest.TestCase):
-    def test_CylMeshEBDipoles(self, plotIt=plotIt):
+    def test_CylindricalMeshEBDipoles(self, plotIt=plotIt):
         print(
-            "Testing CylMesh Electric and Magnetic Dipoles in a wholespace-"
+            "Testing CylindricalMesh Electric and Magnetic Dipoles in a wholespace-"
             " Analytic: J-formulation"
         )
         sigmaback = 1.0
@@ -130,7 +133,7 @@ class TestDipoles(unittest.TestCase):
         hz = utils.meshTensor([(csz, npadz, -1.3), (csz, ncz), (csz, npadz, 1.3)])
 
         # define the cylindrical mesh
-        mesh = discretize.CylMesh([hx, 1, hz], [0.0, 0.0, -hz.sum() / 2])
+        mesh = discretize.CylindricalMesh([hx, 1, hz], [0.0, 0.0, -hz.sum() / 2])
 
         if plotIt:
             mesh.plotGrid()
@@ -142,7 +145,7 @@ class TestDipoles(unittest.TestCase):
         # set up source
         # test electric dipole
         src_loc = np.r_[0.0, 0.0, 0.0]
-        s_ind = utils.closestPoints(mesh, src_loc, "Fz") + mesh.nFx
+        s_ind = utils.closest_points_index(mesh, src_loc, "Fz") + mesh.nFx
 
         de = np.zeros(mesh.nF, dtype=complex)
         de[s_ind] = 1.0 / csz
@@ -305,7 +308,3 @@ class TestDipoles(unittest.TestCase):
 
         self.assertTrue(np.linalg.norm(bxa - bx) / np.linalg.norm(bxa) < tol_EBdipole)
         self.assertTrue(np.linalg.norm(bza - bz) / np.linalg.norm(bza) < tol_EBdipole)
-
-
-if __name__ == "__main__":
-    unittest.main()

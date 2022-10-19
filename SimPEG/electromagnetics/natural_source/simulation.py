@@ -195,8 +195,9 @@ class Simulation1DPrimarySecondary(Simulation1DElectricField):
 
     fieldsPair = Fields1DPrimarySecondary
 
-    # Initiate properties
-    _sigmaPrimary = None
+    def __init__(self, mesh, survey=None, sigmaPrimary=None, **kwargs):
+        super().__init__(mesh=mesh, survey=survey, **kwargs)
+        self.sigmaPrimary = sigmaPrimary
 
     @property
     def sigmaPrimary(self):
@@ -717,8 +718,9 @@ class Simulation3DPrimarySecondary(Simulation3DElectricField):
 
     """
 
-    # Initiate properties
-    _sigmaPrimary = None
+    def __init__(self, mesh, survey=None, sigmaPrimary=None, **kwargs):
+        super().__init__(mesh=mesh, survey=survey, **kwargs)
+        self.sigmaPrimary = sigmaPrimary
 
     # fieldsPair = Fields3DPrimarySecondary
 

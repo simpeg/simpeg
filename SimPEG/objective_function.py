@@ -8,7 +8,7 @@ import scipy.sparse as sp
 from six import integer_types
 import warnings
 
-from discretize.tests import checkDerivative
+from discretize.tests import check_derivative
 
 from .maps import IdentityMap
 from .props import BaseSimPEG
@@ -90,14 +90,6 @@ class BaseObjectiveFunction(BaseSimPEG):
         self._mapping = value
 
     @timeIt
-    def __call__(self, x, f=None):
-        raise NotImplementedError(
-            "The method __call__ has not been implemented for {}".format(
-                self.__class__.__name__
-            )
-        )
-
-    @timeIt
     def deriv(self, x, **kwargs):
         """
         First derivative of the objective function with respect to the model
@@ -127,7 +119,7 @@ class BaseObjectiveFunction(BaseSimPEG):
             else:
                 x = np.random.randn(self.nP)
 
-        return checkDerivative(
+        return check_derivative(
             lambda m: [self(m), self.deriv(m)], x, num=num, plotIt=plotIt, **kwargs
         )
 
@@ -141,7 +133,7 @@ class BaseObjectiveFunction(BaseSimPEG):
 
         v = x + 0.1 * np.random.rand(len(x))
         expectedOrder = kwargs.pop("expectedOrder", 1)
-        return checkDerivative(
+        return check_derivative(
             lambda m: [self.deriv(m).dot(v), self.deriv2(m, v=v)],
             x,
             num=num,
@@ -294,10 +286,6 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
         return self.multipliers[key], self.objfcts[key]
 
     @property
-    def __len__(self):
-        return self.objfcts.__len__
-
-    @property
     def multipliers(self):
         return self._multipliers
 
@@ -393,6 +381,22 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
             if not isinstance(curW, Zero):
                 W.append(curW)
         return sp.vstack(W)
+
+    def get_functions_of_type(self, fun_class) -> list:
+        """
+        Find an objective function type from a ComboObjectiveFunction class.
+        """
+        target = []
+        if isinstance(self, fun_class):
+            target += [self]
+        else:
+            for fct in self.objfcts:
+                if isinstance(fct, ComboObjectiveFunction):
+                    target += [fct.get_functions_of_type(fun_class)]
+                elif isinstance(fct, fun_class):
+                    target += [fct]
+
+        return [fun for fun in target if fun]
 
 
 class L2ObjectiveFunction(BaseObjectiveFunction):

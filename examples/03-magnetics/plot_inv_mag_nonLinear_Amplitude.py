@@ -339,7 +339,7 @@ data_obj = data.Data(survey, dobs=bAmp, noise_floor=wd)
 
 # Create a sparse regularization
 reg = regularization.Sparse(mesh, indActive=actv, mapping=idenMap)
-reg.norms = np.c_[1, 0, 0, 0]
+reg.norms = [1, 0, 0, 0]
 reg.mref = np.zeros(nC)
 
 # Data misfit function

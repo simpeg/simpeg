@@ -279,7 +279,3 @@ class TestInductiveSourcesPermeability(unittest.TestCase):
             mesh.getFaceInnerProduct(1.0 / 1e-3 * np.ones(mesh.nC), invMat=True) * w,
             prob.MfRhoI * w,
         )
-
-
-if __name__ == "__main__":
-    unittest.main()

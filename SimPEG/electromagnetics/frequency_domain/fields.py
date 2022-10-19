@@ -31,7 +31,7 @@ class FieldsFDEM(Fields):
     """
 
     knownFields = {}
-    dtype = complex
+    _dtype = complex
 
     def _GLoc(self, fieldType):
         """Grid location of the fieldType"""

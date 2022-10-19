@@ -2,7 +2,8 @@ parameters:
   os : ['ubuntu-latest']
   py_vers: ['3.7']
   test: ['tests/em',
-         'tests/docs tests/base tests/flow tests/seis tests/utils',
+         'tests/base tests/flow tests/seis tests/utils',
+         'tests/docs',
          'tests/examples/test_examples_1.py',
          'tests/examples/test_examples_2.py',
          'tests/examples/test_examples_3.py',
@@ -23,18 +24,28 @@ jobs:
           - script: echo "##vso[task.prependpath]$CONDA/bin"
             displayName: Add conda to PATH
 
-          - script: conda create --yes --quiet --name test python=${{ py_vers }} pip
-            displayName: Create Anaconda environment
+          - script: sudo chown -R $USER $CONDA
+            displayName: Take ownership of conda installation
+
+          - script: |
+              eval "$(conda shell.bash hook)"
+              conda update --yes --quiet -n base conda
+              conda install --yes --quiet -c conda-forge mamba
+            displayName: Install mamba
+
+          - script: |
+                eval "$(conda shell.bash hook)"
+                echo "  - python="${{ py_vers }} >> environment_test.yml
+                mamba env create -f environment_test.yml
+                conda activate test
+                pip install pytest-azurepipelines
+            displayName: Create Anaconda testing environment
 
           - script: |
               eval "$(conda shell.bash hook)"
               conda activate test
-              conda install --yes --quiet numpy scipy matplotlib ipython h5py
-              conda install --yes -c conda-forge "discretize>=0.7.1" empymod geoana properties vectormath pandas dask zarr fsspec pymatsolver
-              pip install -r requirements_dev.txt
-              pip install pytest-azurepipelines
               pip install -e .
-            displayName: Install requirements and build
+            displayName: Build package
 
           - script: |
               eval "$(conda shell.bash hook)"

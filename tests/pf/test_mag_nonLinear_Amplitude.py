@@ -235,7 +235,7 @@ class AmpProblemTest(unittest.TestCase):
 
         # Create a sparse regularization
         reg = regularization.Sparse(mesh, indActive=actv, mapping=idenMap)
-        reg.norms = np.c_[1, 0, 0, 0]
+        reg.norms = [1, 0, 0, 0]
         reg.mref = np.zeros(nC)
 
         # Data misfit function

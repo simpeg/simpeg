@@ -12,10 +12,9 @@ testAdjoint = True
 
 TOL = 0.5
 
-np.random.seed(10)
-
 
 def setUp_TDEM(prbtype="ElectricField", rxcomp="ElectricFieldx", src_z=0.0):
+    np.random.seed(10)
     cs = 5.0
     ncx = 8
     ncy = 8
@@ -145,7 +144,3 @@ class TDEM_DerivTests(unittest.TestCase):
 
         def test_Jvec_adjoint_j_ey(self):
             self.JvecVsJtvecTest("CurrentDensity", "ElectricFieldy", src_z=-2.5)
-
-
-if __name__ == "__main__":
-    unittest.main()

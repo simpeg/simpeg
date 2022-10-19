@@ -594,7 +594,3 @@ class FDEM_CrossCheck(unittest.TestCase):
                     TOL=TOLEJHB,
                 )
             )
-
-
-if __name__ == "__main__":
-    unittest.main()

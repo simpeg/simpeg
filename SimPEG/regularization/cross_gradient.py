@@ -1,8 +1,8 @@
 import numpy as np
 import scipy.sparse as sp
-import properties
 
 from .base import BaseSimilarityMeasure
+from ..utils import validate_type
 
 
 ###############################################################################
@@ -24,31 +24,29 @@ class CrossGradient(BaseSimilarityMeasure):
 
     """
 
-    # reset this here to clear out the properties attribute
-    cell_weights = None
-
-    # These are not fully implemented yet
-    # grad_tol = properties.Float(
-    #     "tolerance for avoiding the exteremly small gradient amplitude", default=1e-10
-    # )
-    # normalized = properties.Bool(
-    #     "whether to implement normalized cross-gradient", default=False
-    # )
-
-    approx_hessian = properties.Bool(
-        "whether to use the semi-positive definate approximation for the hessian",
-        default=True,
-    )
-
-    def __init__(self, mesh, wire_map, **kwargs):
+    def __init__(self, mesh, wire_map, approx_hessian=True, **kwargs):
         super().__init__(mesh, wire_map=wire_map, **kwargs)
+        self.approx_hessian = approx_hessian
 
-        regmesh = self.regmesh
+        regmesh = self.regularization_mesh
 
         if regmesh.mesh.dim not in (2, 3):
             raise ValueError("Cross-Gradient is only defined for 2D or 3D")
         self._G = regmesh.cell_gradient
         self._Av = sp.diags(np.sqrt(regmesh.vol)) * regmesh.average_face_to_cell
+
+    @property
+    def approx_hessian(self):
+        """whether to use the semi-positive definate approximation for the hessian.
+        Returns
+        -------
+        bool
+        """
+        return self._approx_hessian
+
+    @approx_hessian.setter
+    def approx_hessian(self, value):
+        self._approx_hessian = validate_type("approx_hessian", value, bool)
 
     def _calculate_gradient(self, model, normalized=False, rtol=1e-6):
         """
@@ -66,7 +64,7 @@ class CrossGradient(BaseSimilarityMeasure):
                  and each column represents a component of the gradient.
 
         """
-        regmesh = self.regmesh
+        regmesh = self.regularization_mesh
         Avs = [regmesh.aveFx2CC, regmesh.aveFy2CC]
         if regmesh.dim == 3:
             Avs.append(regmesh.aveFz2CC)
@@ -109,7 +107,7 @@ class CrossGradient(BaseSimilarityMeasure):
 
         # for each model cell, compute the cross product of the gradient vectors.
         cross_prod = np.cross(grad_m1, grad_m2)
-        if self.regmesh.dim == 3:
+        if self.regularization_mesh.dim == 3:
             cross_prod = np.linalg.norm(cross_prod, axis=-1)
 
         return cross_prod

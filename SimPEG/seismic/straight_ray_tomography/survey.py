@@ -3,20 +3,50 @@ from ...survey import BaseSurvey
 
 
 class StraightRaySurvey(BaseSurvey):
-    # def __init__(self, source_list):
-    #     self.source_list = source_list
+    """Straight ray tomography survey    """
 
     @property
     def nD(self):
+        """Number of data
+
+        Returns
+        -------
+        int
+            Number of data
+        """
         n = 0
         for tx in self.source_list:
             n += np.sum([rx.nD for rx in tx.receiver_list])
         return n
 
     def projectFields(self, u):
+        """Returns fields
+
+        Parameters
+        ----------
+        u : numpy.ndarray
+            Fields
+
+        Returns
+        -------
+        numpy.ndarray
+            Returns the input argument *u*
+        """
         return u
 
     def plot(self, ax=None):
+        """Plot straight ray topography
+
+        Parameters
+        ----------
+        ax : matplotlib.Axes, optional
+            Axes object
+
+        Returns
+        -------
+        matplotlib.Axes
+            The plot on the axes
+        """
         import matplotlib.pyplot as plt
 
         if ax is None:
