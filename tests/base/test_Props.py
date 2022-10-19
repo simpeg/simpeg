@@ -199,7 +199,7 @@ class TestPropMaps(unittest.TestCase):
         # change your mind?
         # PM = pickle.loads(pickle.dumps(PM))
         PM.rhoMap = expMap
-        assert PM._get("sigmaMap") is None
+        assert PM._sigmaMap is None
         assert len(PM.rhoMap) == 1
         assert len(PM.sigmaMap) == 2
         # PM = pickle.loads(pickle.dumps(PM))
