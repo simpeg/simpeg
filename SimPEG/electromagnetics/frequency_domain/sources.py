@@ -9,12 +9,13 @@ from ...utils import (
     mkvc,
     Zero,
     validate_float,
-    validate_string,
     validate_location_property,
     validate_ndarray_with_shape,
     validate_type,
     validate_direction,
+    validate_integer,
 )
+from ...utils.code_utils import deprecate_property
 
 from ..utils import omega
 from ..utils import segmented_line_current_source_term, line_through_faces
@@ -549,7 +550,7 @@ class MagDipole(BaseFDEMSrc):
                     else:
                         locs = rx.locations
                     h_rx = dipole.magnetic_field(locs)
-                    out.append(h_rx[:, {"x": 0, "y": 1, "z": 2}[rx.orientation]])
+                    out.append(h_rx @ rx.orientation)
                 self._1d_h = out
             return self._1d_h
         b = self.bPrimary(simulation)
@@ -758,10 +759,16 @@ class CircularLoop(MagDipole):
         orientation="z",
         radius=1.0,
         current=1.0,
+        n_turns=1,
         mu=mu_0,
         **kwargs,
     ):
         kwargs.pop("moment", None)
+        N = kwargs.pop("N", None)
+        if N is not None:
+            self.N = N
+        else:
+            self.n_turns = n_turns
         super().__init__(
             receiver_list=receiver_list,
             frequency=frequency,
@@ -808,9 +815,6 @@ class CircularLoop(MagDipole):
             raise ValueError("current must be non-zero.")
         self._current = I
 
-    # def __init__(self, receiver_list=None, frequency=None, location=None, **kwargs):
-    #     super(CircularLoop, self).__init__(receiver_list, frequency, location, **kwargs)
-
     @property
     def moment(self):
         """Dipole moment of the loop.
@@ -822,7 +826,7 @@ class CircularLoop(MagDipole):
         float
             Dipole moment of the loop
         """
-        return np.pi * self.radius ** 2 * np.abs(self.current)
+        return np.pi * self.radius ** 2 * np.abs(self.current) * self.n_turns
 
     @moment.setter
     def moment(self, value):
@@ -831,6 +835,20 @@ class CircularLoop(MagDipole):
             "of the loop radius and transmitter current"
         )
         pass
+
+    @property
+    def n_turns(self):
+        """Number of turns in the loop.
+
+        Returns
+        -------
+        int
+        """
+        return self._n_turns
+
+    @n_turns.setter
+    def n_turns(self, value):
+        self._n_turns = validate_integer("n_turns", value, min_val=1)
 
     def _srcFct(self, obsLoc, coordinates="cartesian"):
         if getattr(self, "_loop", None) is None:
@@ -841,7 +859,9 @@ class CircularLoop(MagDipole):
                 radius=self.radius,
                 current=self.current,
             )
-        return self._loop.vector_potential(obsLoc, coordinates)
+        return self.n_turns * self._loop.vector_potential(obsLoc, coordinates)
+
+    N = deprecate_property(n_turns, "N", "n_turns", removal_version="0.19.0")
 
 
 class PrimSecSigma(BaseFDEMSrc):
