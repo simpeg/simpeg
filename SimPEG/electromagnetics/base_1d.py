@@ -30,36 +30,6 @@ class BaseEM1DSimulation(BaseSimulation):
     Applications: Chapter 4 (Ward and Hohmann, 1988).
     """
 
-    @property
-    def hankel_filter(self):
-        """The hankely filter to use.
-
-        Returns
-        -------
-        str
-        """
-        return self._hankel_filter
-
-    @hankel_filter.setter
-    def hankel_filter(self, value):
-        self._hankel_filter = validate_string("hankel_filter", value)
-
-    _hankel_pts_per_dec = 0  # Default: Standard DLF
-
-    @property
-    def fix_Jmatrix(self):
-        """Whether to fix the sensitivity matrix.
-
-        Returns
-        -------
-        bool
-        """
-        return self._fix_Jmatrix
-
-    @fix_Jmatrix.setter
-    def fix_Jmatrix(self, value):
-        self._fix_Jmatrix = validate_type("fix_Jmatrix", value, bool)
-
     _formulation = "1D"
     _coefficients_set = False
 
@@ -70,58 +40,73 @@ class BaseEM1DSimulation(BaseSimulation):
     rho, rhoMap, rhoDeriv = props.Invertible("Electrical resistivity (Ohm m)")
     props.Reciprocal(sigma, rho)
 
-    eta = props.PhysicalProperty(
-        "Intrinsic chargeability (V/V), 0 <= eta < 1", default=0.0
-    )
-    tau = props.PhysicalProperty("Time constant for Cole-Cole model (s)", default=1.0)
-    c = props.PhysicalProperty(
-        "Frequency Dependency for Cole-Cole model, 0 < c < 1", default=0.5
-    )
+    eta = props.PhysicalProperty("Intrinsic chargeability (V/V), 0 <= eta < 1")
+    tau = props.PhysicalProperty("Time constant for Cole-Cole model (s)")
+    c = props.PhysicalProperty("Frequency Dependency for Cole-Cole model, 0 < c < 1")
 
     # Properties for magnetic susceptibility
     mu, muMap, muDeriv = props.Invertible(
-        "Magnetic permeability at infinite frequency (SI)", default=mu_0
+        "Magnetic permeability at infinite frequency (SI)"
     )
     dchi = props.PhysicalProperty(
-        "DC magnetic susceptibility for viscous remanent magnetization contribution (SI)",
-        default=0.0,
+        "DC magnetic susceptibility for viscous remanent magnetization contribution (SI)"
     )
     tau1 = props.PhysicalProperty(
-        "Lower bound for log-uniform distribution of time-relaxation constants for viscous remanent magnetization (s)",
-        default=1e-10,
+        "Lower bound for log-uniform distribution of time-relaxation constants for viscous remanent magnetization (s)"
     )
     tau2 = props.PhysicalProperty(
-        "Upper bound for log-uniform distribution of time-relaxation constants for viscous remanent magnetization (s)",
-        default=10.0,
+        "Upper bound for log-uniform distribution of time-relaxation constants for viscous remanent magnetization (s)"
     )
 
     # Additional properties
-    h, hMap, hDeriv = props.Invertible(
-        "Receiver Height (m), h > 0",
-    )
+    h, hMap, hDeriv = props.Invertible("Receiver Height (m), h > 0")
 
     thicknesses, thicknessesMap, thicknessesDeriv = props.Invertible(
-        "layer thicknesses (m)", default=np.array([])
+        "layer thicknesses (m)"
     )
 
-    @property
-    def topo(self):
-        """Topography.
-
-        Returns
-        -------
-        numpy.ndarray of float
-        """
-        return self._topo
-
-    @topo.setter
-    def topo(self, value):
-        self._topo = validate_ndarray_with_shape("topo", value, shape=("*",))
-
     def __init__(
-        self, hankel_filter="key_101_2009", fix_Jmatrix=False, topo=None, **kwargs
+        self,
+        sigma=None,
+        sigmaMap=None,
+        rho=None,
+        rhoMap=None,
+        thicknesses=None,
+        thicknessesMap=None,
+        mu=mu_0,
+        muMap=None,
+        h=None,
+        hMap=None,
+        eta=0.0,
+        tau=1.0,
+        c=0.5,
+        dchi=0.0,
+        tau1=1.0e-10,
+        tau2=10.0,
+        hankel_filter="key_101_2009",
+        fix_Jmatrix=False,
+        topo=None,
+        **kwargs,
     ):
         super().__init__(mesh=None, **kwargs)
+        self.sigma = sigma
+        self.rho = rho
+        self.sigmaMap = sigmaMap
+        self.rhoMap = rhoMap
+        self.mu = mu
+        self.muMap = muMap
+        self.h = h
+        self.hMap = hMap
+        if thicknesses is None:
+            thicknesses = np.array([])
+        self.thicknesses = thicknesses
+        self.thicknessesMap = thicknessesMap
+        self.eta = eta
+        self.tau = tau
+        self.c = c
+        self.dchi = dchi
+        self.tau1 = tau1
+        self.tau2 = tau2
 
         if topo is None:
             topo = np.r_[0.0, 0.0, 0.0]
@@ -154,6 +139,50 @@ class BaseEM1DSimulation(BaseSimulation):
         # self.hankel_pts_per_dec = htarg["pts_per_dec"]  # Store pts_per_dec
         if self.verbose:
             print(">> Use " + self.hankel_filter + " filter for Hankel Transform")
+
+    @property
+    def hankel_filter(self):
+        """The hankely filter to use.
+
+        Returns
+        -------
+        str
+        """
+        return self._hankel_filter
+
+    @hankel_filter.setter
+    def hankel_filter(self, value):
+        self._hankel_filter = validate_string("hankel_filter", value)
+
+    _hankel_pts_per_dec = 0  # Default: Standard DLF
+
+    @property
+    def fix_Jmatrix(self):
+        """Whether to fix the sensitivity matrix.
+
+        Returns
+        -------
+        bool
+        """
+        return self._fix_Jmatrix
+
+    @fix_Jmatrix.setter
+    def fix_Jmatrix(self, value):
+        self._fix_Jmatrix = validate_type("fix_Jmatrix", value, bool)
+
+    @property
+    def topo(self):
+        """Topography.
+
+        Returns
+        -------
+        numpy.ndarray of float
+        """
+        return self._topo
+
+    @topo.setter
+    def topo(self, value):
+        self._topo = validate_ndarray_with_shape("topo", value, shape=("*",))
 
     @property
     def n_layer(self):

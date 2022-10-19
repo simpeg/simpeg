@@ -17,11 +17,11 @@ from .survey import Survey
 
 class BaseSIPSimulation(BaseIPSimulation):
 
-    tau, tauMap, tauDeriv = props.Invertible("Time constant (s)", default=0.1)
+    tau, tauMap, tauDeriv = props.Invertible("Time constant (s)")
     taui, tauiMap, tauiDeriv = props.Invertible("Inverse of time constant (1/s)")
     props.Reciprocal(tau, taui)
 
-    c, cMap, cDeriv = props.Invertible("Frequency dependency", default=0.5)
+    c, cMap, cDeriv = props.Invertible("Frequency dependency")
 
     Ainv = None
     _f = None
