@@ -1757,7 +1757,7 @@ class Update_IRLS(InversionDirective):
     @max_irls_iterations.setter
     def max_irls_iterations(self, value):
         self._max_irls_iterations = validate_integer(
-            "max_irls_iterations", value, min_val=1
+            "max_irls_iterations", value, min_val=0
         )
 
     @property
@@ -2075,7 +2075,7 @@ class UpdatePreconditioner(InversionDirective):
 
     @update_every_iteration.setter
     def update_every_iteration(self, value):
-        self._supdate_every_iteration = validate_type(
+        self._update_every_iteration = validate_type(
             "update_every_iteration", value, bool
         )
 
