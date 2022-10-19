@@ -843,8 +843,20 @@ class SurjectUnits(IdentityMap):
     @indices.setter
     def indices(self, values):
         values = validate_type("indices", values, list)
+        mesh = self.mesh
+        last_shape = None
         for i in range(len(values)):
-            values[i] = validate_active_indices("indices", values[i], self.mesh.n_cells)
+            if mesh is not None:
+                values[i] = validate_active_indices(
+                    "indices", values[i], self.mesh.n_cells
+                )
+            else:
+                values[i] = validate_ndarray_with_shape(
+                    "indices", values[i], shape=("*",), dtype=int
+                )
+                if last_shape is not None and last_shape != values[i].shape:
+                    raise ValueError("all indicies must have the same shape.")
+                last_shape = values[i].shape
         self._indices = values
 
     @property

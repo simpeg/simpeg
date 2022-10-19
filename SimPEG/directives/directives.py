@@ -923,20 +923,24 @@ class MultiTargetMisfits(InversionDirective):
         -------
         float
         """
-        return self._phi_d_star
-
-    @phi_d_star.setter
-    def phi_d_star(self, value):
         # the factor of 0.5 is because we do phid = 0.5*|| dpred - dobs||^2
-        if value is None:
+        if getattr(self, "_phi_d_star", None) is None:
             # Check if it is a ComboObjective
             if isinstance(self.dmisfit, ComboObjectiveFunction):
                 value = np.r_[[0.5 * survey.nD for survey in self.survey]]
             else:
                 value = np.r_[[0.5 * self.survey.nD]]
-        self._phi_d_star = validate_ndarray_with_shape(
-            "phi_d_star", value, shape=("*",)
-        )
+            self._phi_d_star = value
+            self._DMtarget = None
+
+        return self._phi_d_star
+
+    @phi_d_star.setter
+    def phi_d_star(self, value):
+        # the factor of 0.5 is because we do phid = 0.5*|| dpred - dobs||^2
+        if value is not None:
+            value = validate_ndarray_with_shape("phi_d_star", value, shape=("*",))
+        self._phi_d_star = value
         self._DMtarget = None
 
     @property
@@ -1265,7 +1269,6 @@ class MultiTargetMisfits(InversionDirective):
 
     def endIter(self):
 
-        self.AllStop = False
         self._DM = False
         self._CL = True
         self._DP = True
