@@ -266,7 +266,7 @@ def surface_layer_index(mesh, topo, index=0):
     inds = np.unique(inds)
 
     # Extract vertical neighbors from Gradz operator
-    Dz = mesh._cellGradzStencil
+    Dz = mesh.stencil_cell_gradient_z
     Iz, Jz, _ = sp.find(Dz)
     jz = np.sort(Jz[np.argsort(Iz)].reshape((int(Iz.shape[0] / 2), 2)), axis=1)
     for ii in range(index):
