@@ -86,12 +86,13 @@ def run(plotIt=True):
     h = np.ones(nC) * de / nC
     M = discretize.TensorMesh([h, h])
 
-    y = np.linspace(M.vectorCCy[0], M.vectorCCx[-1], int(np.floor(nC / 4)))
-    rlocs = np.c_[0 * y + M.vectorCCx[-1], y]
+    y = np.linspace(M.cell_centers_y[0], M.cell_centers_x[-1], int(np.floor(nC / 4)))
+    rlocs = np.c_[0 * y + M.cell_centers_x[-1], y]
     rx = tomo.Rx(rlocs)
 
     source_list = [
-        tomo.Src(location=np.r_[M.vectorCCx[0], yi], receiver_list=[rx]) for yi in y
+        tomo.Src(location=np.r_[M.cell_centers_x[0], yi], receiver_list=[rx])
+        for yi in y
     ]
 
     # phi model

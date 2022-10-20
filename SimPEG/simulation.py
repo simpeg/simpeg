@@ -631,8 +631,8 @@ class ExponentialSinusoidSimulation(LinearSimulation):
         """
         Kernel functions for the decaying oscillating exponential functions.
         """
-        return np.exp(self.p * self.jk[k] * self.mesh.vectorCCx) * np.cos(
-            np.pi * self.q * self.jk[k] * self.mesh.vectorCCx
+        return np.exp(self.p * self.jk[k] * self.mesh.cell_centers_x) * np.cos(
+            np.pi * self.q * self.jk[k] * self.mesh.cell_centers_x
         )
 
     @property

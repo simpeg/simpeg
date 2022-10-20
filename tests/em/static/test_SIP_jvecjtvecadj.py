@@ -44,8 +44,12 @@ class SIPProblemTestsCC(unittest.TestCase):
         tau[blkind0] = 0.1
         tau[blkind1] = 0.01
 
-        x = mesh.vectorCCx[(mesh.vectorCCx > -155.0) & (mesh.vectorCCx < 155.0)]
-        y = mesh.vectorCCy[(mesh.vectorCCy > -155.0) & (mesh.vectorCCy < 155.0)]
+        x = mesh.cell_centers_x[
+            (mesh.cell_centers_x > -155.0) & (mesh.cell_centers_x < 155.0)
+        ]
+        y = mesh.cell_centers_y[
+            (mesh.cell_centers_y > -155.0) & (mesh.cell_centers_y < 155.0)
+        ]
         Aloc = np.r_[-200.0, 0.0, 0.0]
         Bloc = np.r_[200.0, 0.0, 0.0]
         M = utils.ndgrid(x - 25.0, y, np.r_[0.0])
@@ -140,8 +144,12 @@ class SIPProblemTestsN(unittest.TestCase):
         tau[blkind0] = 0.1
         tau[blkind1] = 0.01
 
-        x = mesh.vectorCCx[(mesh.vectorCCx > -155.0) & (mesh.vectorCCx < 155.0)]
-        y = mesh.vectorCCy[(mesh.vectorCCy > -155.0) & (mesh.vectorCCy < 155.0)]
+        x = mesh.cell_centers_x[
+            (mesh.cell_centers_x > -155.0) & (mesh.cell_centers_x < 155.0)
+        ]
+        y = mesh.cell_centers_y[
+            (mesh.cell_centers_y > -155.0) & (mesh.cell_centers_y < 155.0)
+        ]
         Aloc = np.r_[-200.0, 0.0, 0.0]
         Bloc = np.r_[200.0, 0.0, 0.0]
         M = utils.ndgrid(x - 25.0, y, np.r_[0.0])
@@ -243,8 +251,12 @@ class SIPProblemTestsN_air(unittest.TestCase):
         actmaptau = maps.InjectActiveCells(mesh, ~airind, 1.0)
         actmapc = maps.InjectActiveCells(mesh, ~airind, 1.0)
 
-        x = mesh.vectorCCx[(mesh.vectorCCx > -155.0) & (mesh.vectorCCx < 155.0)]
-        y = mesh.vectorCCy[(mesh.vectorCCy > -155.0) & (mesh.vectorCCy < 155.0)]
+        x = mesh.cell_centers_x[
+            (mesh.cell_centers_x > -155.0) & (mesh.cell_centers_x < 155.0)
+        ]
+        y = mesh.cell_centers_y[
+            (mesh.cell_centers_y > -155.0) & (mesh.cell_centers_y < 155.0)
+        ]
         Aloc = np.r_[-200.0, 0.0, 0.0]
         Bloc = np.r_[200.0, 0.0, 0.0]
         M = utils.ndgrid(x - 25.0, y, np.r_[0.0])

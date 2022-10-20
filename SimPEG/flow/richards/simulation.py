@@ -157,7 +157,7 @@ class SimulationNDCellCentered(BaseTimeSimulation):
         if isinstance(self.boundary_conditions, np.ndarray):
             return self.boundary_conditions
 
-        time = self.time_mesh.vectorCCx[ii]
+        time = self.time_mesh.cell_centers_x[ii]
 
         return self.boundary_conditions(time, u_ii)
 

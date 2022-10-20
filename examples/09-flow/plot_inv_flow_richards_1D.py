@@ -77,7 +77,7 @@ def run(plotIt=True):
 
     # Create the survey
     locs = -np.arange(2, 38, 4.0).reshape(-1, 1)
-    times = np.arange(30, prob.time_mesh.vectorCCx[-1], 60)
+    times = np.arange(30, prob.time_mesh.cell_centers_x[-1], 60)
     rxSat = richards.receivers.Saturation(locs, times)
     survey = richards.Survey([rxSat])
     prob.survey = survey

@@ -193,7 +193,7 @@ ax[3].set_aspect(0.05)
 ax[3].set_title("nT", fontsize=16)
 # overlay true geology model for comparison
 indz = -9
-indslicezplot = mesh.gridCC[:, 2] == mesh.vectorCCz[indz]
+indslicezplot = mesh.gridCC[:, 2] == mesh.cell_centers_z[indz]
 for i in range(2):
     utils.plot2Ddata(
         mesh.gridCC[indslicezplot][:, [0, 1]],
@@ -551,9 +551,9 @@ suscb.set_label("Magnetic susceptibility\nmodel (SI)", fontsize=16)
 ax[2, 3].set_aspect(10)
 
 # overlay true geology model for comparison
-indslicexplot = mesh.gridCC[:, 0] == mesh.vectorCCx[indx]
-indsliceyplot = mesh.gridCC[:, 1] == mesh.vectorCCy[indy]
-indslicezplot = mesh.gridCC[:, 2] == mesh.vectorCCz[indz]
+indslicexplot = mesh.gridCC[:, 0] == mesh.cell_centers_x[indx]
+indsliceyplot = mesh.gridCC[:, 1] == mesh.cell_centers_y[indy]
+indslicezplot = mesh.gridCC[:, 2] == mesh.cell_centers_z[indz]
 for i in range(3):
     for j, (plane, indd) in enumerate(
         zip([[1, 2], [0, 2], [0, 1]], [indslicexplot, indsliceyplot, indslicezplot])
@@ -575,14 +575,14 @@ for i in range(3):
 # plot the locations of the cross-sections
 for i in range(3):
     ax[i, 0].plot(
-        mesh.vectorCCy[indy] * np.ones(2), [-300, 500], c="k", linestyle="dotted"
+        mesh.cell_centers_y[indy] * np.ones(2), [-300, 500], c="k", linestyle="dotted"
     )
     ax[i, 0].plot(
         [
             data_mag.survey.receiver_locations[:, 1].min(),
             data_mag.survey.receiver_locations[:, 1].max(),
         ],
-        mesh.vectorCCz[indz] * np.ones(2),
+        mesh.cell_centers_z[indz] * np.ones(2),
         c="k",
         linestyle="dotted",
     )
@@ -594,14 +594,14 @@ for i in range(3):
     )
 
     ax[i, 1].plot(
-        mesh.vectorCCx[indx] * np.ones(2), [-300, 500], c="k", linestyle="dotted"
+        mesh.cell_centers_x[indx] * np.ones(2), [-300, 500], c="k", linestyle="dotted"
     )
     ax[i, 1].plot(
         [
             data_mag.survey.receiver_locations[:, 0].min(),
             data_mag.survey.receiver_locations[:, 0].max(),
         ],
-        mesh.vectorCCz[indz] * np.ones(2),
+        mesh.cell_centers_z[indz] * np.ones(2),
         c="k",
         linestyle="dotted",
     )
@@ -613,7 +613,7 @@ for i in range(3):
     )
 
     ax[i, 2].plot(
-        mesh.vectorCCx[indx] * np.ones(2),
+        mesh.cell_centers_x[indx] * np.ones(2),
         [
             data_mag.survey.receiver_locations[:, 1].min(),
             data_mag.survey.receiver_locations[:, 1].max(),
@@ -626,7 +626,7 @@ for i in range(3):
             data_mag.survey.receiver_locations[:, 0].min(),
             data_mag.survey.receiver_locations[:, 0].max(),
         ],
-        mesh.vectorCCy[indy] * np.ones(2),
+        mesh.cell_centers_y[indy] * np.ones(2),
         c="k",
         linestyle="dotted",
     )

@@ -45,7 +45,9 @@ class SIPProblemTestsCC(unittest.TestCase):
         tau[blkind0] = 0.1
         tau[blkind1] = 0.1
 
-        x = mesh.vectorCCx[(mesh.vectorCCx > -155.0) & (mesh.vectorCCx < 155.0)]
+        x = mesh.cell_centers_x[
+            (mesh.cell_centers_x > -155.0) & (mesh.cell_centers_x < 155.0)
+        ]
 
         Aloc = np.r_[-200.0, 0.0]
         Bloc = np.r_[200.0, 0.0]
@@ -136,7 +138,9 @@ class SIPProblemTestsN(unittest.TestCase):
         tau[blkind0] = 0.1
         tau[blkind1] = 0.1
 
-        x = mesh.vectorCCx[(mesh.vectorCCx > -155.0) & (mesh.vectorCCx < 155.0)]
+        x = mesh.cell_centers_x[
+            (mesh.cell_centers_x > -155.0) & (mesh.cell_centers_x < 155.0)
+        ]
 
         Aloc = np.r_[-200.0, 0.0]
         Bloc = np.r_[200.0, 0.0]
@@ -228,7 +232,9 @@ class SIPProblemTestsN_air(unittest.TestCase):
         tau[blkind0] = 0.1
         tau[blkind1] = 0.1
 
-        x = mesh.vectorCCx[(mesh.vectorCCx > -155.0) & (mesh.vectorCCx < 155.0)]
+        x = mesh.cell_centers_x[
+            (mesh.cell_centers_x > -155.0) & (mesh.cell_centers_x < 155.0)
+        ]
 
         Aloc = np.r_[-200.0, -50]
         Bloc = np.r_[200.0, -50]

@@ -127,7 +127,7 @@ mesh.plotGrid()
 # Here, we set up a 2D tensor mesh which we will represent the inversion model
 # on
 
-inversion_mesh = discretize.TensorMesh([mesh.h[0], mesh.h[2][mesh.vectorCCz <= 0]])
+inversion_mesh = discretize.TensorMesh([mesh.h[0], mesh.h[2][mesh.cell_centers_z <= 0]])
 inversion_mesh.x0 = [-inversion_mesh.h[0].sum() / 2.0, -inversion_mesh.h[1].sum()]
 inversion_mesh.plotGrid()
 

@@ -4144,7 +4144,7 @@ class ParametricSplineMap(IdentityMap):
                 # Modfications for X and Z directions ...
                 for i in range(np.size(self.pts)):
                     ctemp = c[i]
-                    ind = np.argmin(abs(self.mesh.vectorCCy - ctemp))
+                    ind = np.argmin(abs(self.mesh.cell_centers_y - ctemp))
                     ca = c.copy()
                     cb = c.copy()
                     dy = self.mesh.h[1][ind] * 1.5
@@ -4164,7 +4164,7 @@ class ParametricSplineMap(IdentityMap):
                 # Here we use perturbation to compute sensitivity
                 for i in range(self.npts * 2):
                     ctemp = c[i]
-                    ind = np.argmin(abs(self.mesh.vectorCCy - ctemp))
+                    ind = np.argmin(abs(self.mesh.cell_centers_y - ctemp))
                     ca = c.copy()
                     cb = c.copy()
                     dy = self.mesh.h[1][ind] * 1.5

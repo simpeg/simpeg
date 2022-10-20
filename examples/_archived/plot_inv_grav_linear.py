@@ -169,8 +169,8 @@ def run(plotIt=True):
             m_l2, ax=ax, normal="Z", ind=zpanel, grid=True, clim=(vmin, vmax)
         )
         plt.plot(
-            ([mesh.vectorCCx[0], mesh.vectorCCx[-1]]),
-            ([mesh.vectorCCy[ypanel], mesh.vectorCCy[ypanel]]),
+            ([mesh.cell_centers_x[0], mesh.cell_centers_x[-1]]),
+            ([mesh.cell_centers_y[ypanel], mesh.cell_centers_y[ypanel]]),
             color="w",
         )
         plt.title("Plan l2-model.")
@@ -183,8 +183,8 @@ def run(plotIt=True):
         ax = plt.subplot(322)
         mesh.plotSlice(m_l2, ax=ax, normal="Y", ind=midx, grid=True, clim=(vmin, vmax))
         plt.plot(
-            ([mesh.vectorCCx[0], mesh.vectorCCx[-1]]),
-            ([mesh.vectorCCz[zpanel], mesh.vectorCCz[zpanel]]),
+            ([mesh.cell_centers_x[0], mesh.cell_centers_x[-1]]),
+            ([mesh.cell_centers_z[zpanel], mesh.cell_centers_z[zpanel]]),
             color="w",
         )
         plt.title("E-W l2-model.")
@@ -199,8 +199,8 @@ def run(plotIt=True):
             m_lp, ax=ax, normal="Z", ind=zpanel, grid=True, clim=(vmin, vmax)
         )
         plt.plot(
-            ([mesh.vectorCCx[0], mesh.vectorCCx[-1]]),
-            ([mesh.vectorCCy[ypanel], mesh.vectorCCy[ypanel]]),
+            ([mesh.cell_centers_x[0], mesh.cell_centers_x[-1]]),
+            ([mesh.cell_centers_y[ypanel], mesh.cell_centers_y[ypanel]]),
             color="w",
         )
         plt.title("Plan lp-model.")
@@ -213,8 +213,8 @@ def run(plotIt=True):
         ax = plt.subplot(324)
         mesh.plotSlice(m_lp, ax=ax, normal="Y", ind=midx, grid=True, clim=(vmin, vmax))
         plt.plot(
-            ([mesh.vectorCCx[0], mesh.vectorCCx[-1]]),
-            ([mesh.vectorCCz[zpanel], mesh.vectorCCz[zpanel]]),
+            ([mesh.cell_centers_x[0], mesh.cell_centers_x[-1]]),
+            ([mesh.cell_centers_z[zpanel], mesh.cell_centers_z[zpanel]]),
             color="w",
         )
         plt.title("E-W lp-model.")
@@ -229,8 +229,8 @@ def run(plotIt=True):
             m_true, ax=ax, normal="Z", ind=zpanel, grid=True, clim=(vmin, vmax)
         )
         plt.plot(
-            ([mesh.vectorCCx[0], mesh.vectorCCx[-1]]),
-            ([mesh.vectorCCy[ypanel], mesh.vectorCCy[ypanel]]),
+            ([mesh.cell_centers_x[0], mesh.cell_centers_x[-1]]),
+            ([mesh.cell_centers_y[ypanel], mesh.cell_centers_y[ypanel]]),
             color="w",
         )
         plt.title("Plan true model.")
@@ -245,8 +245,8 @@ def run(plotIt=True):
             m_true, ax=ax, normal="Y", ind=midx, grid=True, clim=(vmin, vmax)
         )
         plt.plot(
-            ([mesh.vectorCCx[0], mesh.vectorCCx[-1]]),
-            ([mesh.vectorCCz[zpanel], mesh.vectorCCz[zpanel]]),
+            ([mesh.cell_centers_x[0], mesh.cell_centers_x[-1]]),
+            ([mesh.cell_centers_z[zpanel], mesh.cell_centers_z[zpanel]]),
             color="w",
         )
         plt.title("E-W true model.")

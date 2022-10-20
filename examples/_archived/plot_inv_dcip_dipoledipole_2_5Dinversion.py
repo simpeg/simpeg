@@ -46,7 +46,9 @@ def run(plotIt=True, survey_type="dipole-dipole"):
     zmin, zmax = 0, 0
     endl = np.array([[xmin, ymin, zmin], [xmax, ymax, zmax]])
     # Generate DC survey object
-    survey = generate_dcip_survey(endl, survey_type=survey_type, dim=2, a=10, b=10, n=10)
+    survey = generate_dcip_survey(
+        endl, survey_type=survey_type, dim=2, a=10, b=10, n=10
+    )
     survey = IO.from_abmn_locations_to_survey(
         survey.locations_a,
         survey.locations_b,
@@ -59,7 +61,7 @@ def run(plotIt=True, survey_type="dipole-dipole"):
     # Obtain 2D TensorMesh
     mesh, actind = IO.set_mesh()
     topo, mesh1D = genTopography(mesh, -10, 0, its=100)
-    actind = utils.surface2ind_topo(mesh, np.c_[mesh1D.vectorCCx, topo])
+    actind = utils.surface2ind_topo(mesh, np.c_[mesh1D.cell_centers_x, topo])
     survey.drape_electrodes_on_topography(mesh, actind, option="top")
 
     # Build a conductivity model

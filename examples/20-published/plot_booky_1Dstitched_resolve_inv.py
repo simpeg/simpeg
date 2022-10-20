@@ -187,7 +187,7 @@ def run(runIt=False, plotIt=True, saveIt=False, saveFig=False, cleanup=True):
     temp_pad = temp[-1] * 1.3 ** np.arange(npad)
     hz = np.r_[temp_pad[::-1], temp[::-1], temp, temp_pad]
     mesh = discretize.CylMesh([hx, 1, hz], "00C")
-    active = mesh.vectorCCz < 0.0
+    active = mesh.cell_centers_z < 0.0
 
     # survey parameters
     rxOffset = 7.86  # tx-rx separation
@@ -291,7 +291,7 @@ def run(runIt=False, plotIt=True, saveIt=False, saveFig=False, cleanup=True):
 
     # titles of plots
     title = [
-        ("(a) Recovered model, %.1f m depth") % (-mesh.vectorCCz[active][indz]),
+        ("(a) Recovered model, %.1f m depth") % (-mesh.cell_centers_z[active][indz]),
         "(b) Obs (Real 400 Hz)",
         "(c) Pred (Real 400 Hz)",
     ]

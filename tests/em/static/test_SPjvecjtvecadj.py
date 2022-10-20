@@ -23,8 +23,8 @@
 #         actind = mesh.gridCC[:, 2] < -0.2
 #         # actMap = maps.InjectActiveCells(mesh, actind, 0.)
 #
-#         xyzM = utils.ndgrid(np.ones_like(mesh.vectorCCx[:-1])*-0.4, np.ones_like(mesh.vectorCCy)*-0.4, np.r_[-0.3])
-#         xyzN = utils.ndgrid(mesh.vectorCCx[1:], mesh.vectorCCy, np.r_[-0.3])
+#         xyzM = utils.ndgrid(np.ones_like(mesh.cell_centers_x[:-1])*-0.4, np.ones_like(mesh.cell_centers_y)*-0.4, np.r_[-0.3])
+#         xyzN = utils.ndgrid(mesh.cell_centers_x[1:], mesh.cell_centers_y, np.r_[-0.3])
 #
 #         rx = sp.receivers.Dipole(xyzN, xyzM)
 #         src = sp.sources.StreamingCurrents([rx], L=np.ones(mesh.nC), mesh=mesh,

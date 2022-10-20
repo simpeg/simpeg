@@ -454,9 +454,9 @@ class RegularizationTests(unittest.TestCase):
         temp_pad = temp[-1] * 1.3 ** np.arange(npad)
         hz = np.r_[temp_pad[::-1], temp[::-1], temp, temp_pad]
         mesh = discretize.CylMesh([hx, 1, hz], "00C")
-        active = mesh.vectorCCz < 0.0
+        active = mesh.cell_centers_z < 0.0
 
-        active = mesh.vectorCCz < 0.0
+        active = mesh.cell_centers_z < 0.0
         actMap = maps.InjectActiveCells(
             mesh, active, np.log(1e-8), nC=mesh.shape_cells[2]
         )

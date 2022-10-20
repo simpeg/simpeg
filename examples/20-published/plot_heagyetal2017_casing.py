@@ -199,9 +199,9 @@ class PrimSecCasingExample(object):
 
             print(
                 "Cyl Mesh Extent xmax: {},: zmin: {}, zmax: {}".format(
-                    self._meshp.vectorCCx.max(),
-                    self._meshp.vectorCCz.min(),
-                    self._meshp.vectorCCz.max(),
+                    self._meshp.cell_centers_x.max(),
+                    self._meshp.cell_centers_z.min(),
+                    self._meshp.cell_centers_z.max(),
                 )
             )
 
@@ -508,12 +508,12 @@ class PrimSecCasingExample(object):
             print("Secondary Mesh ... ")
             print(
                 " xmin, xmax, zmin, zmax: ",
-                self._meshs.vectorCCx.min(),
-                self._meshs.vectorCCx.max(),
-                self._meshs.vectorCCy.min(),
-                self._meshs.vectorCCy.max(),
-                self._meshs.vectorCCz.min(),
-                self._meshs.vectorCCz.max(),
+                self._meshs.cell_centers_x.min(),
+                self._meshs.cell_centers_x.max(),
+                self._meshs.cell_centers_y.min(),
+                self._meshs.cell_centers_y.max(),
+                self._meshs.cell_centers_z.min(),
+                self._meshs.cell_centers_z.max(),
             )
             print(" nC, vnC", self._meshs.nC, self._meshs.vnC)
 
@@ -763,15 +763,15 @@ class PrimSecCasingExample(object):
         # )
 
         f = ax.pcolormesh(
-            meshs_plt.vectorCCx,
-            meshs_plt.vectorCCy,
+            meshs_plt.cell_centers_x,
+            meshs_plt.cell_centers_y,
             (s_e_abs_cc).reshape(meshs_plt.vnC[:2], order="F").T,
             cmap=plt.get_cmap("viridis"),
         )
 
         ax.streamplot(
-            meshs_plt.vectorCCx,
-            meshs_plt.vectorCCy,
+            meshs_plt.cell_centers_x,
+            meshs_plt.cell_centers_y,
             s_e_stream_cc[: meshs_plt.nC].reshape(meshs_plt.vnC[:2]),
             s_e_stream_cc[meshs_plt.nC : meshs_plt.nC * 2].reshape(meshs_plt.vnC[:2]),
             density=1.5,

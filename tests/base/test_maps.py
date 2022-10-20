@@ -260,7 +260,7 @@ class MapTests(unittest.TestCase):
     def test_activeCells(self):
         M = discretize.TensorMesh([2, 4], "0C")
         for actMap in [
-            maps.InjectActiveCells(M, M.vectorCCy <= 0, 10, nC=M.shape_cells[1]),
+            maps.InjectActiveCells(M, M.cell_centers_y <= 0, 10, nC=M.shape_cells[1]),
         ]:
 
             vertMap = maps.SurjectVertical1D(M)
@@ -277,7 +277,9 @@ class MapTests(unittest.TestCase):
         M = discretize.TensorMesh([2, 4], "0C")
         expMap = maps.ExpMap(M)
         vertMap = maps.SurjectVertical1D(M)
-        actMap = maps.InjectActiveCells(M, M.vectorCCy <= 0, 10, nC=M.shape_cells[1])
+        actMap = maps.InjectActiveCells(
+            M, M.cell_centers_y <= 0, 10, nC=M.shape_cells[1]
+        )
         m = np.r_[1.0, 2.0]
         t_true = np.exp(np.r_[1, 1, 2, 2, 10, 10, 10, 10.0])
 
@@ -354,7 +356,7 @@ class MapTests(unittest.TestCase):
 
     def test_ParametricSplineMap(self):
         M2 = discretize.TensorMesh([np.ones(10), np.ones(10)], "CN")
-        x = M2.vectorCCx
+        x = M2.cell_centers_x
         mParamSpline = maps.ParametricSplineMap(M2, x, normal="Y", order=1)
         self.assertTrue(mParamSpline.test())
 

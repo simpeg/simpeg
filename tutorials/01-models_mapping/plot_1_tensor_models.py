@@ -73,7 +73,7 @@ fig = plt.figure(figsize=(5, 5))
 ax = fig.add_subplot(111)
 ind_slice = int(mesh.shape_cells[1] / 2)
 mesh.plotSlice(model_map * model, normal="Y", ax=ax, ind=ind_slice, grid=True)
-ax.set_title("Model slice at y = {} m".format(mesh.vectorCCy[ind_slice]))
+ax.set_title("Model slice at y = {} m".format(mesh.cell_centers_y[ind_slice]))
 plt.show()
 
 #############################################
@@ -121,7 +121,7 @@ fig = plt.figure(figsize=(5, 5))
 ax = fig.add_subplot(111)
 ind_slice = int(mesh.shape_cells[1] / 2)
 mesh.plotSlice(model_map * model, normal="Y", ax=ax, ind=ind_slice, grid=True)
-ax.set_title("Model slice at y = {} m".format(mesh.vectorCCy[ind_slice]))
+ax.set_title("Model slice at y = {} m".format(mesh.cell_centers_y[ind_slice]))
 plt.show()
 
 
@@ -176,7 +176,7 @@ fig = plt.figure(figsize=(5, 5))
 ax = fig.add_subplot(111)
 ind_slice = int(mesh.shape_cells[1] / 2)
 mesh.plotSlice(model_map * model, normal="Y", ax=ax, ind=ind_slice, grid=True)
-ax.set_title("Model slice at y = {} m".format(mesh.vectorCCy[ind_slice]))
+ax.set_title("Model slice at y = {} m".format(mesh.cell_centers_y[ind_slice]))
 plt.show()
 
 
@@ -228,7 +228,7 @@ fig = plt.figure(figsize=(5, 5))
 ax = fig.add_subplot(111)
 ind_slice = int(mesh.shape_cells[1] / 2)
 mesh.plotSlice(model_map * model, normal="Y", ax=ax, ind=ind_slice, grid=True)
-ax.set_title("Model slice at y = {} m".format(mesh.vectorCCy[ind_slice]))
+ax.set_title("Model slice at y = {} m".format(mesh.cell_centers_y[ind_slice]))
 plt.show()
 
 
@@ -271,7 +271,7 @@ fig = plt.figure(figsize=(5, 5))
 ax = fig.add_subplot(111)
 ind_slice = int(mesh.shape_cells[1] / 2)
 mesh.plotSlice(model_map * model, normal="Y", ax=ax, ind=ind_slice, grid=True)
-ax.set_title("Model slice at y = {} m".format(mesh.vectorCCy[ind_slice]))
+ax.set_title("Model slice at y = {} m".format(mesh.cell_centers_y[ind_slice]))
 plt.show()
 
 
@@ -339,5 +339,5 @@ fig = plt.figure(figsize=(5, 5))
 ax = fig.add_subplot(111)
 ind_slice = int(mesh.shape_cells[1] / 2)
 mesh.plotSlice(sigma_map * model, normal="Y", ax=ax, ind=ind_slice, grid=True)
-ax.set_title("Model slice at y = {} m".format(mesh.vectorCCy[ind_slice]))
+ax.set_title("Model slice at y = {} m".format(mesh.cell_centers_y[ind_slice]))
 plt.show()

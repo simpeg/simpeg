@@ -75,7 +75,9 @@ def run(
     # Obtain 2D TensorMesh
     mesh, actind = IO.set_mesh()
     # Flat topography
-    actind = utils.surface2ind_topo(mesh, np.c_[mesh.vectorCCx, mesh.vectorCCx * 0.0])
+    actind = utils.surface2ind_topo(
+        mesh, np.c_[mesh.cell_centers_x, mesh.cell_centers_x * 0.0]
+    )
     survey.drape_electrodes_on_topography(mesh, actind, option="top")
     # Use Exponential Map: m = log(rho)
     actmap = maps.InjectActiveCells(mesh, indActive=actind, valInactive=np.log(1e8))

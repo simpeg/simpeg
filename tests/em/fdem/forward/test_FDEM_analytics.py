@@ -170,9 +170,9 @@ class TestDipoles(unittest.TestCase):
 
         rlim = [20.0, 500.0]
         # lookAtTx = de_p
-        r = mesh.vectorCCx[
-            np.argmin(np.abs(mesh.vectorCCx - rlim[0])) : np.argmin(
-                np.abs(mesh.vectorCCx - rlim[1])
+        r = mesh.cell_centers_x[
+            np.argmin(np.abs(mesh.cell_centers_x - rlim[0])) : np.argmin(
+                np.abs(mesh.cell_centers_x - rlim[1])
             )
         ]
         z = 100.0

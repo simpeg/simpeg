@@ -59,7 +59,7 @@ def surface2ind_topo(mesh, topo, gridLoc="CC", method="nearest", fill_value=np.n
                 topo = np.vstack((topo, np.c_[XYOut, topoOut]))
 
             if gridLoc == "CC":
-                XY = ndgrid(mesh.vectorCCx, mesh.vectorCCy)
+                XY = ndgrid(mesh.cell_centers_x, mesh.cell_centers_y)
                 Zcc = mesh.gridCC[:, 2].reshape(
                     (np.prod(mesh.vnC[:2]), mesh.shape_cells[2]), order="F"
                 )
@@ -256,7 +256,7 @@ def surface_layer_index(mesh, topo, index=0):
                 bind[elt] = i
         return np.vstack([bind.get(itm, None) for itm in a])
 
-    grid_x, grid_y = np.meshgrid(mesh.vectorCCx, mesh.vectorCCy)
+    grid_x, grid_y = np.meshgrid(mesh.cell_centers_x, mesh.cell_centers_y)
     zInterp = mkvc(
         griddata(topo[:, :2], topo[:, 2], (grid_x, grid_y), method="nearest")
     )

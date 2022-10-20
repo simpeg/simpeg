@@ -27,8 +27,8 @@ def run(plotIt=True):
     hz = [(cs, npad, -1.3), (cs, ncz), (cs, npad, 1.3)]
     mesh = discretize.CylMesh([hx, 1, hz], "00C")
 
-    active = mesh.vectorCCz < 0.0
-    layer = (mesh.vectorCCz < 0.0) & (mesh.vectorCCz >= -100.0)
+    active = mesh.cell_centers_z < 0.0
+    layer = (mesh.cell_centers_z < 0.0) & (mesh.cell_centers_z >= -100.0)
     actMap = maps.InjectActiveCells(mesh, active, np.log(1e-8), nC=mesh.shape_cells[2])
     mapping = maps.ExpMap(mesh) * maps.SurjectVertical1D(mesh) * actMap
     sig_half = 2e-3
@@ -81,8 +81,8 @@ def run(plotIt=True):
         ax[0].set_xlabel("Time (s)", fontsize=14)
         ax[0].grid(color="k", alpha=0.5, linestyle="dashed", linewidth=0.5)
 
-        plt.semilogx(sigma[active], mesh.vectorCCz[active])
-        plt.semilogx(np.exp(mopt), mesh.vectorCCz[active])
+        plt.semilogx(sigma[active], mesh.cell_centers_z[active])
+        plt.semilogx(np.exp(mopt), mesh.cell_centers_z[active])
         ax[1].set_ylim(-600, 0)
         ax[1].set_xlim(1e-4, 1e-2)
         ax[1].set_xlabel("Conductivity (S/m)", fontsize=14)

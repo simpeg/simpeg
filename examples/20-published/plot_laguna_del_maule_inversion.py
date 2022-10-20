@@ -187,13 +187,13 @@ def run(plotIt=True, cleanAfterRun=True):
             pcolorOpts={"cmap": "bwr"},
         )
         plt.plot(
-            np.array([mesh.vectorCCx[0], mesh.vectorCCx[-1]]),
-            np.array([mesh.vectorCCy[yslice], mesh.vectorCCy[yslice]]),
+            np.array([mesh.cell_centers_x[0], mesh.cell_centers_x[-1]]),
+            np.array([mesh.cell_centers_y[yslice], mesh.cell_centers_y[yslice]]),
             c="gray",
             linestyle="--",
         )
         plt.scatter(rxLoc[0:, 0], rxLoc[0:, 1], color="k", s=1)
-        plt.title("Z: " + str(mesh.vectorCCz[-16]) + " m")
+        plt.title("Z: " + str(mesh.cell_centers_z[-16]) + " m")
         plt.xlabel("Easting (m)")
         plt.ylabel("Northing (m)")
         plt.gca().set_aspect("equal", adjustable="box")
@@ -212,13 +212,13 @@ def run(plotIt=True, cleanAfterRun=True):
             pcolorOpts={"cmap": "bwr"},
         )
         plt.plot(
-            np.array([mesh.vectorCCx[0], mesh.vectorCCx[-1]]),
-            np.array([mesh.vectorCCy[yslice], mesh.vectorCCy[yslice]]),
+            np.array([mesh.cell_centers_x[0], mesh.cell_centers_x[-1]]),
+            np.array([mesh.cell_centers_y[yslice], mesh.cell_centers_y[yslice]]),
             c="gray",
             linestyle="--",
         )
         plt.scatter(rxLoc[0:, 0], rxLoc[0:, 1], color="k", s=1)
-        plt.title("Z: " + str(mesh.vectorCCz[-27]) + " m")
+        plt.title("Z: " + str(mesh.cell_centers_z[-27]) + " m")
         plt.xlabel("Easting (m)")
         plt.ylabel("Northing (m)")
         plt.gca().set_aspect("equal", adjustable="box")
@@ -273,13 +273,13 @@ def run(plotIt=True, cleanAfterRun=True):
             pcolorOpts={"cmap": "bwr"},
         )
         plt.plot(
-            np.array([mesh.vectorCCx[0], mesh.vectorCCx[-1]]),
-            np.array([mesh.vectorCCy[yslice], mesh.vectorCCy[yslice]]),
+            np.array([mesh.cell_centers_x[0], mesh.cell_centers_x[-1]]),
+            np.array([mesh.cell_centers_y[yslice], mesh.cell_centers_y[yslice]]),
             c="gray",
             linestyle="--",
         )
         plt.scatter(rxLoc[0:, 0], rxLoc[0:, 1], color="k", s=1)
-        plt.title("Z: " + str(mesh.vectorCCz[-16]) + " m")
+        plt.title("Z: " + str(mesh.cell_centers_z[-16]) + " m")
         plt.xlabel("Easting (m)")
         plt.ylabel("Northing (m)")
         plt.gca().set_aspect("equal", adjustable="box")
@@ -298,13 +298,13 @@ def run(plotIt=True, cleanAfterRun=True):
             pcolorOpts={"cmap": "bwr"},
         )
         plt.plot(
-            np.array([mesh.vectorCCx[0], mesh.vectorCCx[-1]]),
-            np.array([mesh.vectorCCy[yslice], mesh.vectorCCy[yslice]]),
+            np.array([mesh.cell_centers_x[0], mesh.cell_centers_x[-1]]),
+            np.array([mesh.cell_centers_y[yslice], mesh.cell_centers_y[yslice]]),
             c="gray",
             linestyle="--",
         )
         plt.scatter(rxLoc[0:, 0], rxLoc[0:, 1], color="k", s=1)
-        plt.title("Z: " + str(mesh.vectorCCz[-27]) + " m")
+        plt.title("Z: " + str(mesh.cell_centers_z[-27]) + " m")
         plt.xlabel("Easting (m)")
         plt.ylabel("Northing (m)")
         plt.gca().set_aspect("equal", adjustable="box")

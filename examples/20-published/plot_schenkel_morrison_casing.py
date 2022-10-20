@@ -120,7 +120,9 @@ def run(plotIt=True):
 
     print(
         "Mesh Extent xmax: {0:f},: zmin: {1:f}, zmax: {2:f}".format(
-            mesh.vectorCCx.max(), mesh.vectorCCz.min(), mesh.vectorCCz.max()
+            mesh.cell_centers_x.max(),
+            mesh.cell_centers_z.min(),
+            mesh.cell_centers_z.max(),
         )
     )
     print("Number of cells", mesh.nC)

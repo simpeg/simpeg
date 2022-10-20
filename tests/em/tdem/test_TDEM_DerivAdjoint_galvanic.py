@@ -31,7 +31,7 @@ def setUp_TDEM(prbtype="ElectricField", rxcomp="ElectricFieldx", src_z=0.0):
         "CCC",
     )
 
-    active = mesh.vectorCCz < 0.0
+    active = mesh.cell_centers_z < 0.0
     activeMap = maps.InjectActiveCells(
         mesh, active, np.log(1e-8), nC=mesh.shape_cells[2]
     )

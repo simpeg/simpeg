@@ -206,13 +206,13 @@ mesh
 # required to get the responses (cell centers in x, cell edges in y, z).
 
 print(
-    f"Rec-{{x;y;z}} :: {rec[0] in np.round(mesh.vectorCCx)!s:>5}; "
+    f"Rec-{{x;y;z}} :: {rec[0] in np.round(mesh.cell_centers_x)!s:>5}; "
     f"{rec[1] in np.round(mesh.nodes_y)!s:>5}; "
     f"{rec[2] in np.round(mesh.nodes_z)!s:>5}"
 )
 print(
-    f"Src-x       :: {src[0] in np.round(mesh.vectorCCx)!s:>5}; "
-    f"{src[1] in np.round(mesh.vectorCCx)!s:>5}"
+    f"Src-x       :: {src[0] in np.round(mesh.cell_centers_x)!s:>5}; "
+    f"{src[1] in np.round(mesh.cell_centers_x)!s:>5}"
 )
 print(
     f"Src-y       :: {src[2] in np.round(mesh.nodes_y)!s:>5}; "

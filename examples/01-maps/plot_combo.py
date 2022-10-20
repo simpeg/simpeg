@@ -45,7 +45,7 @@ def run(plotIt=True):
         return
 
     figs, axs = plt.subplots(1, 2)
-    axs[0].plot(m, M.vectorCCy, "b-o")
+    axs[0].plot(m, M.cell_centers_y, "b-o")
     axs[0].set_title("Model")
     axs[0].set_ylabel("Depth, y")
     axs[0].set_xlabel("Value, $m_i$")

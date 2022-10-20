@@ -166,13 +166,13 @@ def run(plotIt=True, saveFig=False, cleanup=True):
     temp_pad = temp[-1] * 1.3 ** np.arange(npad)
     hz = np.r_[temp_pad[::-1], temp[::-1], temp, temp_pad]
     mesh = discretize.CylMesh([hx, 1, hz], "00C")
-    active = mesh.vectorCCz < 0.0
+    active = mesh.cell_centers_z < 0.0
 
     # Step2: Set a SurjectVertical1D mapping
     # Note: this sets our inversion model as 1D log conductivity
     # below subsurface
 
-    active = mesh.vectorCCz < 0.0
+    active = mesh.cell_centers_z < 0.0
     actMap = maps.InjectActiveCells(mesh, active, np.log(1e-8), nC=mesh.shape_cells[2])
     mapping = maps.ExpMap(mesh) * maps.SurjectVertical1D(mesh) * actMap
     sig_half = 1e-1
@@ -400,8 +400,8 @@ def run(plotIt=True, saveFig=False, cleanup=True):
     # Recovered Models
     sigma_re = np.repeat(np.exp(mopt_re), 2, axis=0)
     sigma_sky = np.repeat(np.exp(mopt_sky), 2, axis=0)
-    z = np.repeat(mesh.vectorCCz[active][1:], 2, axis=0)
-    z = np.r_[mesh.vectorCCz[active][0], z, mesh.vectorCCz[active][-1]]
+    z = np.repeat(mesh.cell_centers_z[active][1:], 2, axis=0)
+    z = np.r_[mesh.cell_centers_z[active][0], z, mesh.cell_centers_z[active][-1]]
 
     ax0.semilogx(sigma_re, z, "k", lw=2, label="RESOLVE")
     ax0.semilogx(sigma_sky, z, "b", lw=2, label="SkyTEM")
