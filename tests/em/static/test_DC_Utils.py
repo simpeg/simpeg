@@ -99,8 +99,8 @@ class DCUtilsTests_halfspace(unittest.TestCase):
 
             # Testing IO
             surveyfile = os.path.sep.join([self.basePath, test_file])
-            utils.writeUBC_DCobs(
-                surveyfile, dobs, survey_type=survey_type, dim=3, format_type="GENERAL"
+            io_utils.write_dcip3d_ubc(
+                surveyfile, dobs, "volt", "dobs", format_type="GENERAL"
             )
             data2 = utils.read_dcip3d_ubc(surveyfile)
             self.assertTrue(np.allclose(mkvc(data2), mkvc(dobs)))
