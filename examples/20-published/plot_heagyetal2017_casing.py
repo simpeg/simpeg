@@ -1324,7 +1324,7 @@ class PrimSecCasingExample(object):
             def fun(x):
                 return [sec_problem.dpred(x), lambda x: sec_problem.Jvec(self.mtrue, x)]
 
-            tests.checkDerivative(fun, self.mtrue, num=2, plotIt=False)
+            tests.check_derivative(fun, self.mtrue, num=2, plotIt=False)
 
         # -------------- Calculate Fields --------------------------------- #
         # Background

@@ -63,7 +63,7 @@
 #         self.dmis = dmis
 #
 #     def test_misfit(self):
-#         passed = tests.checkDerivative(
+#         passed = tests.check_derivative(
 #             lambda m: [
 #                 self.p.dpred(m), lambda mx: self.p.Jvec(self.m0, mx)
 #             ],
@@ -85,7 +85,7 @@
 #         self.assertTrue(passed)
 #
 #     def test_dataObj(self):
-#         passed = tests.checkDerivative(
+#         passed = tests.check_derivative(
 #             lambda m: [self.dmis(m), self.dmis.deriv(m)],
 #             self.m0,
 #             plotIt=False,

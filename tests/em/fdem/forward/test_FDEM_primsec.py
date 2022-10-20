@@ -136,7 +136,7 @@ class PrimSecFDEMTest(object):
                 lambda x: self.secondarySimulation.Jvec(x0, x, f=self.fields_primsec),
             ]
 
-        return tests.checkDerivative(fun, x0, num=2, plotIt=False)
+        return tests.check_derivative(fun, x0, num=2, plotIt=False)
 
     def AdjointTest(self):
         print("\nTesting adjoint")

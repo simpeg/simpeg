@@ -69,7 +69,7 @@ class DCProblemTestsCC(unittest.TestCase):
         self.dobs = dobs
 
     def test_misfit(self):
-        passed = tests.checkDerivative(
+        passed = tests.check_derivative(
             lambda m: [self.p.dpred(m), lambda mx: self.p.Jvec(self.m0, mx)],
             self.m0,
             plotIt=False,
@@ -89,7 +89,7 @@ class DCProblemTestsCC(unittest.TestCase):
         self.assertTrue(passed)
 
     def test_dataObj(self):
-        passed = tests.checkDerivative(
+        passed = tests.check_derivative(
             lambda m: [self.dmis(m), self.dmis.deriv(m)], self.m0, plotIt=False, num=6
         )
         self.assertTrue(passed)
@@ -141,7 +141,7 @@ class DCProblemTestsCC_fields(unittest.TestCase):
         def fun(x):
             return self.prob.dpred(x), lambda x: self.prob.Jvec(x0, x)
 
-        return tests.checkDerivative(fun, x0, num=3, plotIt=False)
+        return tests.check_derivative(fun, x0, num=3, plotIt=False)
 
     def test_e_adjoint(self):
         print("Adjoint Test for e")
@@ -210,7 +210,7 @@ class DCProblemTestsN(unittest.TestCase):
         self.dobs = dobs
 
     def test_misfit(self):
-        passed = tests.checkDerivative(
+        passed = tests.check_derivative(
             lambda m: [self.p.dpred(m), lambda mx: self.p.Jvec(self.m0, mx)],
             self.m0,
             plotIt=False,
@@ -230,7 +230,7 @@ class DCProblemTestsN(unittest.TestCase):
         self.assertTrue(passed)
 
     def test_dataObj(self):
-        passed = tests.checkDerivative(
+        passed = tests.check_derivative(
             lambda m: [self.dmis(m), self.dmis.deriv(m)], self.m0, plotIt=False, num=3
         )
         self.assertTrue(passed)
@@ -282,7 +282,7 @@ class DCProblemTestsN_Robin(unittest.TestCase):
         self.dobs = dobs
 
     def test_misfit(self):
-        passed = tests.checkDerivative(
+        passed = tests.check_derivative(
             lambda m: [self.p.dpred(m), lambda mx: self.p.Jvec(self.m0, mx)],
             self.m0,
             plotIt=False,
@@ -302,7 +302,7 @@ class DCProblemTestsN_Robin(unittest.TestCase):
         self.assertTrue(passed)
 
     def test_dataObj(self):
-        passed = tests.checkDerivative(
+        passed = tests.check_derivative(
             lambda m: [self.dmis(m), self.dmis.deriv(m)], self.m0, plotIt=False, num=3
         )
         self.assertTrue(passed)
@@ -354,7 +354,7 @@ class DCProblemTestsCC_storeJ(unittest.TestCase):
         self.dobs = dobs
 
     def test_misfit(self):
-        passed = tests.checkDerivative(
+        passed = tests.check_derivative(
             lambda m: [self.p.dpred(m), lambda mx: self.p.Jvec(self.m0, mx)],
             self.m0,
             plotIt=False,
@@ -374,7 +374,7 @@ class DCProblemTestsCC_storeJ(unittest.TestCase):
         self.assertTrue(passed)
 
     def test_dataObj(self):
-        passed = tests.checkDerivative(
+        passed = tests.check_derivative(
             lambda m: [self.dmis(m), self.dmis.deriv(m)], self.m0, plotIt=False, num=4
         )
         self.assertTrue(passed)
@@ -433,7 +433,7 @@ class DCProblemTestsN_storeJ(unittest.TestCase):
         self.dobs = dobs
 
     def test_misfit(self):
-        passed = tests.checkDerivative(
+        passed = tests.check_derivative(
             lambda m: [self.p.dpred(m), lambda mx: self.p.Jvec(self.m0, mx)],
             self.m0,
             plotIt=False,
@@ -453,7 +453,7 @@ class DCProblemTestsN_storeJ(unittest.TestCase):
         self.assertTrue(passed)
 
     def test_dataObj(self):
-        passed = tests.checkDerivative(
+        passed = tests.check_derivative(
             lambda m: [self.dmis(m), self.dmis.deriv(m)], self.m0, plotIt=False, num=3
         )
         self.assertTrue(passed)
@@ -516,7 +516,7 @@ class DCProblemTestsN_storeJ_Robin(unittest.TestCase):
         self.dobs = dobs
 
     def test_misfit(self):
-        passed = tests.checkDerivative(
+        passed = tests.check_derivative(
             lambda m: [self.p.dpred(m), lambda mx: self.p.Jvec(self.m0, mx)],
             self.m0,
             plotIt=False,
@@ -536,7 +536,7 @@ class DCProblemTestsN_storeJ_Robin(unittest.TestCase):
         self.assertTrue(passed)
 
     def test_dataObj(self):
-        passed = tests.checkDerivative(
+        passed = tests.check_derivative(
             lambda m: [self.dmis(m), self.dmis.deriv(m)], self.m0, plotIt=False, num=3
         )
         self.assertTrue(passed)

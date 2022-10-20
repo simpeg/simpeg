@@ -119,7 +119,7 @@ class Base_DerivAdjoint_Test(unittest.TestCase):
                 prbtype=self.formulation, rxcomp=rxcomp
             )
         )
-        tests.checkDerivative(derChk, self.m, plotIt=False, num=2, eps=1e-20)
+        tests.check_derivative(derChk, self.m, plotIt=False, num=2, eps=1e-20)
 
     def JvecVsJtvecTest(self, rxcomp):
         np.random.seed(10)

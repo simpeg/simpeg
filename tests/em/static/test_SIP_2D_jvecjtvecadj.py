@@ -90,7 +90,7 @@ class SIPProblemTestsCC(unittest.TestCase):
         self.dobs = dobs
 
     def test_misfit(self):
-        passed = tests.checkDerivative(
+        passed = tests.check_derivative(
             lambda m: [self.p.dpred(m), lambda mx: self.p.Jvec(self.m0, mx)],
             self.m0,
             plotIt=False,
@@ -110,7 +110,7 @@ class SIPProblemTestsCC(unittest.TestCase):
         self.assertTrue(passed)
 
     def test_dataObj(self):
-        passed = tests.checkDerivative(
+        passed = tests.check_derivative(
             lambda m: [self.dmis(m), self.dmis.deriv(m)], self.m0, plotIt=False, num=3
         )
         self.assertTrue(passed)
@@ -183,7 +183,7 @@ class SIPProblemTestsN(unittest.TestCase):
         self.dobs = dobs
 
     def test_misfit(self):
-        passed = tests.checkDerivative(
+        passed = tests.check_derivative(
             lambda m: [self.p.dpred(m), lambda mx: self.p.Jvec(self.m0, mx)],
             self.m0,
             plotIt=False,
@@ -202,7 +202,7 @@ class SIPProblemTestsN(unittest.TestCase):
         self.assertTrue(passed)
 
     def test_dataObj(self):
-        passed = tests.checkDerivative(
+        passed = tests.check_derivative(
             lambda m: [self.dmis(m), self.dmis.deriv(m)], self.m0, plotIt=False, num=2
         )
         self.assertTrue(passed)
@@ -288,7 +288,7 @@ class SIPProblemTestsN_air(unittest.TestCase):
         self.dobs = dobs
 
     def test_misfit(self):
-        passed = tests.checkDerivative(
+        passed = tests.check_derivative(
             lambda m: [self.p.dpred(m), lambda mx: self.p.Jvec(self.m0, mx)],
             self.m0,
             plotIt=False,
@@ -307,7 +307,7 @@ class SIPProblemTestsN_air(unittest.TestCase):
         self.assertTrue(passed)
 
     def test_dataObj(self):
-        passed = tests.checkDerivative(
+        passed = tests.check_derivative(
             lambda m: [self.dmis(m), self.dmis.deriv(m)], self.m0, plotIt=False, num=3
         )
         self.assertTrue(passed)

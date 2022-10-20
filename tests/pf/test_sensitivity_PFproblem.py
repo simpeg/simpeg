@@ -79,7 +79,7 @@
 #
 #         d_mu = mu*0.8
 #         derChk = lambda m: [MfmuI(m), lambda mx: dMfmuI(self.chi, mx)]
-#         passed = Tests.checkDerivative(derChk, mu, num=4, dx = d_mu, plotIt=False)
+#         passed = Tests.check_derivative(derChk, mu, num=4, dx = d_mu, plotIt=False)
 #
 #         self.assertTrue(passed)
 #
@@ -121,7 +121,7 @@
 #
 #         d_chi = self.chi*0.8
 #         derChk = lambda m: [Cm_A(m), lambda mx: dCdm_A(self.chi, mx)]
-#         passed = Tests.checkDerivative(derChk, self.chi, num=4, dx = d_chi, plotIt=False)
+#         passed = Tests.check_derivative(derChk, self.chi, num=4, dx = d_chi, plotIt=False)
 #         self.assertTrue(passed)
 #
 #
@@ -169,7 +169,7 @@
 #
 #         d_chi = self.chi*0.8
 #         derChk = lambda m: [Cm_RHS(m), lambda mx: dCdm_RHS(self.chi, mx)]
-#         passed = Tests.checkDerivative(derChk, self.chi, num=4, dx = d_chi, plotIt=False)
+#         passed = Tests.check_derivative(derChk, self.chi, num=4, dx = d_chi, plotIt=False)
 #         self.assertTrue(passed)
 #
 #
@@ -218,7 +218,7 @@
 #
 #     #     derChk = lambda m: [ufun(m), lambda mx: dudm(self.chi, mx)]
 #     #     # TODO: I am not sure why the order get worse as step decreases .. --;
-#     #     passed = Tests.checkDerivative(derChk, self.chi, num=2, dx = d_chi, plotIt=False)
+#     #     passed = Tests.check_derivative(derChk, self.chi, num=2, dx = d_chi, plotIt=False)
 #     #     self.assertTrue(passed)
 #
 #
@@ -270,7 +270,7 @@
 #
 #     #     derChk = lambda m: [Bfun(m), lambda mx: dBdm(self.chi, mx)]
 #     #     # TODO: I am not sure why the order get worse as step decreases .. --;
-#     #     passed = Tests.checkDerivative(derChk, self.chi, num=2, dx = d_chi, plotIt=False)
+#     #     passed = Tests.check_derivative(derChk, self.chi, num=2, dx = d_chi, plotIt=False)
 #     #     self.assertTrue(passed)
 #
 #
@@ -284,7 +284,7 @@
 #
 #         derChk = lambda m: (self.survey.dpred(m), lambda v: self.prob.Jvec(m, v))
 #         # TODO: I am not sure why the order get worse as step decreases .. --;
-#         passed = Tests.checkDerivative(derChk, self.chi, num=2, dx = d_chi, plotIt=False)
+#         passed = Tests.check_derivative(derChk, self.chi, num=2, dx = d_chi, plotIt=False)
 #         self.assertTrue(passed)
 #
 #     def test_Jtvec(self):
@@ -300,7 +300,7 @@
 #             return misfit, dmisfit
 #
 #         # TODO: I am not sure why the order get worse as step decreases .. --;
-#         passed = Tests.checkDerivative(misfit, self.chi, num=4, plotIt=False)
+#         passed = Tests.check_derivative(misfit, self.chi, num=4, plotIt=False)
 #         self.assertTrue(passed)
 #
 # if __name__ == '__main__':

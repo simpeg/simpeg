@@ -234,7 +234,7 @@ class ComplexResistivityTest(unittest.TestCase):
         def fun(x):
             return sim.dpred(x), lambda x: sim.Jvec(self.model, x)
 
-        passed = tests.checkDerivative(fun, self.model, num=3, plotIt=False)
+        passed = tests.check_derivative(fun, self.model, num=3, plotIt=False)
         self.assertTrue(passed)
 
     def check_adjoint(self, sim):
