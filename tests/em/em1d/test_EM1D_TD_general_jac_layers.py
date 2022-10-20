@@ -120,7 +120,7 @@ class EM1D_TD_general_Jac_layers_ProblemTests(unittest.TestCase):
         self.assertTrue(passed)
 
 
-class EM1D_TD_LineCurrent1D_Jac_layers_ProblemTests(unittest.TestCase):
+class EM1D_TD_LineCurrent_Jac_layers_ProblemTests(unittest.TestCase):
     def setUp(self):
         # WalkTEM waveform
         # Low moment
@@ -216,10 +216,10 @@ class EM1D_TD_LineCurrent1D_Jac_layers_ProblemTests(unittest.TestCase):
             hm_waveform_times, hm_waveform_current
         )
 
-        source_lm = tdem.sources.LineCurrent1D(
+        source_lm = tdem.sources.LineCurrent(
             receiver_list_lm, wire_paths, waveform=lm_wave
         )
-        source_hm = tdem.sources.LineCurrent1D(
+        source_hm = tdem.sources.LineCurrent(
             receiver_list_hm, wire_paths, waveform=hm_wave
         )
         source_list.append(source_lm)

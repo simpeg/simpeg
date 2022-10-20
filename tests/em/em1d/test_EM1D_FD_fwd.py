@@ -454,7 +454,7 @@ class EM1D_FD_FwdProblemTests(unittest.TestCase):
         self.assertLess(err, 1e-5)
 
 
-class EM1D_FD_LineCurrent1DTest(unittest.TestCase):
+class EM1D_FD_LineCurrentTest(unittest.TestCase):
     def setUp(self):
 
         x_path = np.array([-2, -2, 2, 2, -2])
@@ -476,7 +476,7 @@ class EM1D_FD_LineCurrent1DTest(unittest.TestCase):
         )
 
         for freq in frequencies:
-            source = fdem.sources.LineCurrent1D(receiver_list, freq, wire_paths)
+            source = fdem.sources.LineCurrent(receiver_list, freq, wire_paths)
             source_list.append(source)
 
         # Survey

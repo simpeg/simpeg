@@ -76,7 +76,7 @@ class Simulation1DLayered(BaseEM1DSimulation):
         i_freq = []
         for i_src, src in enumerate(survey.source_list):
             class_name = type(src).__name__
-            is_wire_loop = class_name == "LineCurrent1D"
+            is_wire_loop = class_name == "LineCurrent"
             i_f = np.searchsorted(frequencies, src.frequency)
             for i_rx, rx in enumerate(src.receiver_list):
                 if is_wire_loop:
@@ -153,7 +153,7 @@ class Simulation1DLayered(BaseEM1DSimulation):
                 i = 0
                 for i_src, src in enumerate(self.survey.source_list):
                     class_name = type(src).__name__
-                    is_wire_loop = class_name == "LineCurrent1D"
+                    is_wire_loop = class_name == "LineCurrent"
 
                     h = h_vec[i_src]
                     if is_wire_loop:
@@ -185,7 +185,7 @@ class Simulation1DLayered(BaseEM1DSimulation):
                 i = 0
                 for i_src, src in enumerate(self.survey.source_list):
                     class_name = type(src).__name__
-                    is_wire_loop = class_name == "LineCurrent1D"
+                    is_wire_loop = class_name == "LineCurrent"
                     if is_wire_loop:
                         nD = sum(
                             rx.locations.shape[0] * src.n_quad_points
@@ -251,7 +251,7 @@ class Simulation1DLayered(BaseEM1DSimulation):
             out = np.zeros((self.survey.nD, v.shape[1]))
         for i_src, src in enumerate(self.survey.source_list):
             class_name = type(src).__name__
-            is_wire_loop = class_name == "LineCurrent1D"
+            is_wire_loop = class_name == "LineCurrent"
             for i_rx, rx in enumerate(src.receiver_list):
                 i_dat_p1 = i_dat + rx.nD
                 i_v_p1 = i_v + rx.locations.shape[0]
@@ -261,7 +261,7 @@ class Simulation1DLayered(BaseEM1DSimulation):
                     if rx.data_type == "ppm":
                         if is_wire_loop:
                             raise NotImplementedError(
-                                "Primary field for LineCurrent1D has not been implemented"
+                                "Primary field for LineCurrent has not been implemented"
                             )
                         if v_slice.ndim == 2:
                             v_slice /= src.hPrimary(self)[i_rx][:, None]
@@ -271,7 +271,7 @@ class Simulation1DLayered(BaseEM1DSimulation):
                 elif isinstance(rx, PointMagneticField):
                     if is_wire_loop:
                         raise NotImplementedError(
-                            "Primary field for LineCurrent1D has not been implemented"
+                            "Primary field for LineCurrent has not been implemented"
                         )
                     if v_slice.ndim == 2:
                         pass

@@ -1,6 +1,7 @@
 from scipy.constants import mu_0
 import numpy as np
 from scipy import sparse as sp
+from scipy.special import roots_legendre
 from empymod.transform import get_dlf_points
 
 from ..simulation import BaseSimulation
@@ -9,7 +10,12 @@ from ..simulation import BaseSimulation
 # from .frequency_domain.sources import MagDipole as f_MagDipole, CircularLoop as f_CircularLoop
 
 from .. import utils
-from ..utils import validate_string, validate_ndarray_with_shape, validate_type
+from ..utils import (
+    validate_string,
+    validate_ndarray_with_shape,
+    validate_type,
+    validate_integer,
+)
 from .. import props
 from empymod.utils import check_hankel
 
@@ -86,6 +92,7 @@ class BaseEM1DSimulation(BaseSimulation):
         hankel_filter="key_101_2009",
         fix_Jmatrix=False,
         topo=None,
+        n_points_per_path=3,
         **kwargs,
     ):
         super().__init__(mesh=None, **kwargs)
@@ -107,6 +114,7 @@ class BaseEM1DSimulation(BaseSimulation):
         self.dchi = dchi
         self.tau1 = tau1
         self.tau2 = tau2
+        self.n_points_per_path = n_points_per_path
 
         if topo is None:
             topo = np.r_[0.0, 0.0, 0.0]
@@ -200,6 +208,20 @@ class BaseEM1DSimulation(BaseSimulation):
         if self.thicknesses is not None:
             return np.r_[0.0, -np.cumsum(self.thicknesses)]
         return None
+
+    @property
+    def n_points_per_path(self):
+        """The number of integration points for each segment of line current sources.
+
+        Returns
+        -------
+        int
+        """
+        return self._n_points_per_path
+
+    @n_points_per_path.setter
+    def n_points_per_path(self, val):
+        self._n_points_per_path = validate_integer("n_points_per_path", val, min_val=1)
 
     def compute_complex_sigma(self, frequencies):
         """
@@ -342,7 +364,7 @@ class BaseEM1DSimulation(BaseSimulation):
             class_name = type(src).__name__
             is_circular_loop = class_name == "CircularLoop"
             is_mag_dipole = class_name == "MagDipole"
-            is_wire_loop = class_name == "LineCurrent1D"
+            is_wire_loop = class_name == "LineCurrent"
 
             if is_circular_loop:
                 if np.any(src.orientation[:-1] != 0.0):
@@ -355,6 +377,30 @@ class BaseEM1DSimulation(BaseSimulation):
             if is_circular_loop or is_mag_dipole:
                 src_x, src_y, src_z = src.orientation * src.moment / (4 * np.pi)
                 # src.moment is pi * radius**2 * I for circular loop
+            if is_wire_loop:
+                x, w = roots_legendre(self.n_points_per_path)
+                xy_src_path = src.location[:, :2]
+                xyks = []
+                thetas = []
+                weights = []
+                for i_path in range(src.location.shape[0] - 1):
+                    dx = xy_src_path[i_path + 1, 0] - xy_src_path[i_path, 0]
+                    dy = xy_src_path[i_path + 1, 1] - xy_src_path[i_path, 1]
+                    dl = np.sqrt(dx ** 2 + dy ** 2)
+                    theta = np.arctan2(dy, dx)
+                    lk = np.c_[(x + 1) * dl / 2, np.zeros(self.n_points_per_path)]
+
+                    R = np.array([[dx, -dy], [dy, dx]]) / dl
+                    xyk = lk.dot(R.T) + xy_src_path[i_path, :]
+
+                    xyks.append(xyk)
+                    thetas.append(theta * np.ones(xyk.shape[0]))
+                    weights.append(w * dl / 2)
+                # store these for future evalution of integrals
+                xyks = np.vstack(xyks)
+                weights = np.hstack(weights)
+                thetas = -np.hstack(thetas)
+
             for i_rx, rx in enumerate(src.receiver_list):
                 #######
                 # Hankel Transform coefficients
@@ -370,7 +416,7 @@ class BaseEM1DSimulation(BaseSimulation):
                     z = h + rx.locations[:, 2] - src.location[2]
 
                 if is_wire_loop:
-                    dxy = rx.locations[:, :2] - src._xyks
+                    dxy = rx.locations[:, :2] - xyks
                     h = src.location.mean(axis=0)[2] - self.topo[-1]
                     z = h + rx.locations[:, 2] - src.location.mean(axis=0)[2]
                     offsets = np.linalg.norm(dxy, axis=-1)
@@ -481,8 +527,6 @@ class BaseEM1DSimulation(BaseSimulation):
                         if rx_z != 0.0:
                             C0 += src_z * rx_z * lambd ** 2
                 elif is_wire_loop:
-                    weights = src._weights
-                    thetas = -src._thetas
                     R = np.stack(
                         [
                             [np.cos(thetas), -np.sin(thetas)],
