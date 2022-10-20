@@ -190,7 +190,8 @@ class Simulation3DIntegral(BasePFSimulation):
         Jvec = self.G @ dmu_dm_v.astype(np.float32)
 
         if self.is_amplitude_data:
-            Jvec = Jvec.reshape((3, -1), order="F")
+            # dask doesn't support an "order" argument to reshape...
+            Jvec = Jvec.reshape((-1, 3)).T  # reshape((3, -1), order="F")
             ampDeriv_Jvec = self.ampDeriv * Jvec
             return ampDeriv_Jvec[0] + ampDeriv_Jvec[1] + ampDeriv_Jvec[2]
         else:
@@ -200,7 +201,9 @@ class Simulation3DIntegral(BasePFSimulation):
         self.model = m
 
         if self.is_amplitude_data:
-            v = (self.ampDeriv * v).reshape(-1, order="F")
+            v = self.ampDeriv * v
+            # dask doesn't support and "order" argument to reshape...
+            v = v.T.reshape(-1)  # .reshape(-1, order="F")
         Jtvec = self.G.T @ v.astype(np.float32)
         return np.asarray(self.chiDeriv.T @ Jtvec)
 
@@ -432,9 +435,7 @@ class Simulation3DIntegral(BasePFSimulation):
     def deleteTheseOnModelUpdate(self):
         deletes = super().deleteTheseOnModelUpdate
         if self.is_amplitude_data:
-            deletes = deletes + ["_gtg_diagonal"]
-            if self.is_amplitude_data:
-                deletes += ["_ampDeriv"]
+            deletes = deletes + ["_gtg_diagonal", "_ampDeriv"]
         return deletes
 
 
