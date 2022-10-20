@@ -329,7 +329,7 @@ class EM1D_FD_Jacobian_Test_CircularLoop(unittest.TestCase):
             print("EM1DFM Circular Loop Jtvec test works")
 
 
-class EM1D_FD_Jacobian_Test_LineCurrent1D(unittest.TestCase):
+class EM1D_FD_Jacobian_Test_LineCurrent(unittest.TestCase):
     # Tests 2nd order convergence of Jvec and Jtvec for piecewise linear loop.
     # - All rx orientations
     # - All rx components
@@ -365,7 +365,7 @@ class EM1D_FD_Jacobian_Test_LineCurrent1D(unittest.TestCase):
                         )
                     )
 
-            source_list.append(fdem.sources.LineCurrent1D(receiver_list, f, wire_paths))
+            source_list.append(fdem.sources.LineCurrent(receiver_list, f, wire_paths))
 
         # Survey
         survey = fdem.Survey(source_list)
