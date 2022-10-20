@@ -228,17 +228,17 @@ class SimulationNDCellCentered(BaseTimeSimulation):
     @property
     def Dz(self):
         if self.mesh.dim == 1:
-            return self.mesh.face_divergencex
+            return self.mesh.face_x_divergence
 
         if self.mesh.dim == 2:
             mats = (
                 utils.spzeros(self.mesh.nC, self.mesh.vnF[0]),
-                self.mesh.face_divergencey,
+                self.mesh.face_y_divergence,
             )
         elif self.mesh.dim == 3:
             mats = (
                 utils.spzeros(self.mesh.nC, self.mesh.vnF[0] + self.mesh.vnF[1]),
-                self.mesh.face_divergencez,
+                self.mesh.face_z_divergence,
             )
         return sp.hstack(mats, format="csr")
 

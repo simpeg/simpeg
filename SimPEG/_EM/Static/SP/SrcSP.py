@@ -26,9 +26,9 @@ class StreamingCurrents(Src.BaseSrc):
 
             self.Grad = -sp.vstack(
                 (
-                    self.Pafx * self.mesh.face_divergencex.T * self.V * self.Pac,
-                    self.Pafy * self.mesh.face_divergencey.T * self.V * self.Pac,
-                    self.Pafz * self.mesh.face_divergencez.T * self.V * self.Pac,
+                    self.Pafx * self.mesh.face_x_divergence.T * self.V * self.Pac,
+                    self.Pafy * self.mesh.face_y_divergence.T * self.V * self.Pac,
+                    self.Pafz * self.mesh.face_z_divergence.T * self.V * self.Pac,
                 )
             )
 
