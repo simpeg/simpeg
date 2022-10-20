@@ -202,22 +202,24 @@ class BaseDCSimulation(BaseElectricalPDESimulation):
         :return: q (nC or nN, nSrc)
         """
 
-        if self._mini_survey is not None:
-            Srcs = self._mini_survey.source_list
-        else:
-            Srcs = self.survey.source_list
+        if getattr(self, "_q", None) is None:
+            if self._mini_survey is not None:
+                Srcs = self._mini_survey.source_list
+            else:
+                Srcs = self.survey.source_list
 
-        if self._formulation == "EB":
-            n = self.mesh.nN
+            if self._formulation == "EB":
+                n = self.mesh.nN
 
-        elif self._formulation == "HJ":
-            n = self.mesh.nC
+            elif self._formulation == "HJ":
+                n = self.mesh.nC
 
-        q = np.zeros((n, len(Srcs)), order="F")
+            q = np.zeros((n, len(Srcs)), order="F")
 
-        for i, source in enumerate(Srcs):
-            q[:, i] = source.eval(self)
-        return q
+            for i, source in enumerate(Srcs):
+                q[:, i] = source.eval(self)
+            self._q = q
+        return self._q
 
     @property
     def deleteTheseOnModelUpdate(self):

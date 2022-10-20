@@ -12,6 +12,7 @@ from SimPEG import Solver
 from SimPEG import props
 import properties
 from SimPEG.utils import mkvc, mat_utils, sdiag, setKwargs
+from SimPEG.utils.code_utils import validate_string, deprecate_property
 
 
 class Simulation3DIntegral(BasePFSimulation):
@@ -24,19 +25,60 @@ class Simulation3DIntegral(BasePFSimulation):
         "Magnetic Susceptibility (SI)", default=1.0
     )
 
-    is_amplitude_data = properties.Boolean(
-        "Whether the supplied data is amplitude data", default=False
-    )
+    def __init__(self, mesh, model_type="scalar", is_amplitude_data=False, **kwargs):
 
-    _model_type: str = "scalar"
-
-    def __init__(self, mesh, **kwargs):
+        self.model_type = model_type
         super().__init__(mesh, **kwargs)
+
         self._G = None
         self._M = None
         self._gtg_diagonal = None
+        self.is_amplitude_data = is_amplitude_data
         self.modelMap = self.chiMap
-        setKwargs(self, **kwargs)
+
+    @property
+    def model_type(self):
+        """Type of magnetization model
+
+        Returns
+        -------
+        str
+            A string defining the model type for the simulation.
+            One of {'scalar', 'vector'}.
+        """
+        return self._model_type
+
+    @model_type.setter
+    def model_type(self, value):
+        self._model_type = validate_string("model_type", value, ["scalar", "vector"])
+
+    @property
+    def modelType(self):
+        warnings.warn(
+            "The 'modelType' property has been deprecated. "
+            "Please use 'model_type'. This will be removed in version 0.17.0 of SimPEG.",
+            FutureWarning,
+        )
+        return self.model_type
+
+    @modelType.setter
+    def modelType(self, value):
+        warnings.warn(
+            "The 'modelType' property has been deprecated. "
+            "Please use 'model_type'. This will be removed in version 0.17.0 of SimPEG.",
+            FutureWarning,
+        )
+        self.model_type = value
+
+    @property
+    def is_amplitude_data(self):
+        return self._is_amplitude_data
+
+    @is_amplitude_data.setter
+    def is_amplitude_data(self, value):
+        if not isinstance(value, bool):
+            raise ValueError("is_amplitude_data must be a bool")
+        self._is_amplitude_data = value
 
     @property
     def M(self):
@@ -124,6 +166,10 @@ class Simulation3DIntegral(BasePFSimulation):
             )
 
         self._model_type = value
+
+    modelType = deprecate_property(
+        model_type, "modelType", "model_type", removal_version="0.18.0"
+    )
 
     @property
     def nD(self):
@@ -702,6 +748,19 @@ class Simulation3DDifferential(BaseMagneticPDESimulation):
         Mc = sdiag(self.mesh.vol)
         self._Div = Mc * Dface * Pin.T * Pin
 
+    # @property
+    # def survey(self):
+    #     return self._survey
+
+    # @survey.setter
+    # def survey(self, obj):
+    #     if isinstance(obj, Survey):
+    #         self._survey = obj
+    #     else:
+    #         raise TypeError(
+    #             "Survey must be an instace of class {Survey}".format(Survey)
+    #         )
+
     @property
     def MfMuI(self):
         return self._MfMuI
@@ -1123,21 +1182,27 @@ def MagneticsDiffSecondaryInv(mesh, model, data, **kwargs):
     Inversion module for MagneticsDiffSecondary
 
     """
-    from SimPEG import Optimization, Regularization, Parameters, ObjFunction, Inversion
+    from SimPEG import (
+        optimization,
+        regularization,
+        directives,
+        objective_function,
+        inversion,
+    )
 
     prob = Simulation3DDifferential(mesh, survey=data, mu=model)
 
     miter = kwargs.get("maxIter", 10)
 
     # Create an optimization program
-    opt = Optimization.InexactGaussNewton(maxIter=miter)
+    opt = optimization.InexactGaussNewton(maxIter=miter)
     opt.bfgsH0 = Solver(sp.identity(model.nP), flag="D")
     # Create a regularization program
-    reg = Regularization.Tikhonov(model)
+    reg = regularization.WeightedLeastSquares(model)
     # Create an objective function
-    beta = Parameters.BetaSchedule(beta0=1e0)
-    obj = ObjFunction.BaseObjFunction(prob, reg, beta=beta)
+    beta = directives.BetaSchedule(beta0=1e0)
+    obj = objective_function.BaseObjFunction(prob, reg, beta=beta)
     # Create an inversion object
-    inv = Inversion.BaseInversion(obj, opt)
+    inv = inversion.BaseInversion(obj, opt)
 
     return inv, reg

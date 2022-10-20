@@ -2,6 +2,7 @@ from __future__ import print_function
 import numpy as np
 from discretize.utils import mkvc
 import warnings
+from ..code_utils import validate_string, validate_type
 
 
 ########################################################################################
@@ -21,37 +22,66 @@ def read_dcip_xyz(
     dict_headers=None,
     is_surface_data=False,
 ):
-    """
-    Read XYZ formatted file for 2D or 3D formatted DC/IP data.
+    """Read 2D or 3D DC/IP data from XYZ-formatted file.
+
+    This function loads DC and/or IP data from XYZ-formatted data files into the
+    SimPEG framework; i.e. each row defines the data for the unique electrode
+    locations provided. This function is versatile enough to load 2D or 3D data.
+    The data file may include elevations for the electrodes or be surface formatted.
+    Columns containing data which are not defined as part of a
+    :class:`SimPEG.data.Data` object may be loaded and output to a dictionary.
 
     Parameters
     ----------
+    file_name : str
+        Path to the data file
+    data_type : {"volt", "apparent_resistivity", "apparent_chargeability"}
+        Type of data being loaded.
+    a_headers : list or tuple of str
+        A list or tuple of strings providing the headers of the A-electrode location columns;
+        i.e. the X (, Y and Z) columns.
+    b_headers : list or tuple of str
+        A list or tuple of strings providing the headers of the B-electrode location columns;
+        i.e. the X (, Y and Z) columns.
+    m_headers : list or tuple of str
+        A list or tuple of strings providing the headers of the M-electrode location columns;
+        i.e. the X (, Y and Z) columns.
+    n_headers : list or tuple of str
+        A list or tuple of strings providing the headers of the N-electrode location columns;
+        i.e. the X (, Y and Z) columns.
+    data_header : str
+        The header for the data column
+    uncertainties_header : str
+        The header for the column containing the data uncertainties
+    dict_headers : list or tuple of str
+        Provide the hearders for additional data columns that you would like to load and output
+        to a dictionary.
+    is_surface_data : bool
+        If ``True``, we assume electrode elevations are not supplied. That is, the header lists
+        for ``a``, ``b``, ``m`` and ``n`` electrode locations do not have headers for
+        elevation columns.
 
-    file_name: Path to xyz file
-    data_type: ["volt", "apparent_resistivity", "apparent_chargeability"]
-    a_headers: A list or tuple of strings representing the headers of the A-electrode location
-    b_headers: A list or tuple of strings representing the headers of the B-electrode location
-    m_headers: A list or tuple of strings representing the headers of the M-electrode location
-    n_headers: A list or tuple of strings representing the headers of the N-electrode location
-    data_header: String representing the header for the data column
-    uncertainties_header: String representing the header for the data column
-    dict_headers: list or tuple of strings for additional data columns being loaded into a dictionary
-    is_surface_data: True if surface formatted and electrode elevations are not supplied
+    Returns
+    -------
+    SimPEG.data.Data
+        DC or IP data. The survey attribute associated with the data object will be an
+        instance of :class:`SimPEG.electromagnetics.static.resistivity.survey.Survey`
+        or :class:`SimPEG.electromagnetics.static.induced_polarization.survey.Survey`
+    dict
+        If additional columns are loaded and output to a dictionary using the keyward argument
+        `dict_headers`, the output of this function has the form `(out_data, out_dict)`.
     """
-
-    if data_type.lower() not in [
-        "volt",
-        "apparent_resistivity",
-        "apparent_chargeability",
-    ]:
-        raise Exception(
-            "data_type must be one of 'volt', 'apparent_resistivity', 'apparent_chargeability'"
-        )
-
-    data_type = data_type.lower()
+    data_type = validate_string(
+        "data_type",
+        data_type,
+        [
+            "volt",
+            "apparent_resistivity",
+            "apparent_chargeability",
+        ],
+    )
 
     # Prevent circular import
-    from ...electromagnetics.static import resistivity as dc
     from ...electromagnetics.static.utils import generate_survey_from_abmn_locations
     from ...data import Data
 
@@ -160,45 +190,52 @@ def read_dcip_xyz(
 
 
 def read_dcip2d_ubc(file_name, data_type, format_type):
-    """
-    Read 2D DC/IP survey, predicted and observation files in UBC-GIF format.
+    """Read UBC-GIF DCIP2D formatted survey or data files.
+
+    This method can load survey locations, predicted data or observations
+    files formatted for the UBC-GIF DCIP2D coding package. For more, see
+    the `UBC-GIF DCIP2D online manual <https://dcip2d.readthedocs.io/en/latest/>`__.
 
     Parameters
     ----------
-
     file_name : str
         The file path to the data file
-    data_type: str
-        Must be one of {'volt', 'apparent_chargeability', 'secondary_potential'}
-    format_type: str
-        Parameter 'data_type' must be one of {'general', 'surface', 'simple'}
+    data_type : {'volt', 'apparent_chargeability', 'secondary_potential'}
+        The type of data.
+    format_type : {'general', 'surface', 'simple'}
+        The format of the formated file.
 
     Returns
     -------
-    data_object
-        A SimPEG.data.Data object containing:
+    SimPEG.data.Data
+        A SimPEG data object. The data from the input file is loaded and parsed into
+        three attributes of the data object:
 
-        - The survey
-        - Observed/predicted data (if present in the data file)
-        - Uncertainties (if present in the data file). Note that predicted DC data
-        files contain the apparent resistivities, which are loaded into SimPEG and
-        defined as uncertainties.
+        - `survey`: the survey geometry as defined by an instance of :class`SimPEG.electromagnetics.static.resistivity.survey.Survey` or :class`SimPEG.electromagnetics.static.induced_polarization.survey.Survey`
+        - `dobs`: observed/predicted data if present in the data file
+        - `standard_deviations`: uncertainties (if observed data file) or apparent resistivities (if predicted data file)
 
     """
-    data_type = data_type.lower()
-    format_type = format_type.lower()
 
-    assert data_type in [
-        "volt",
-        "apparent_chargeability",
-        "secondary_potential",
-    ], "Parameter 'data_type' must be one of {'volt', 'apparent_chargeability', 'secondary_potential'}"
+    data_type = validate_string(
+        "data_type",
+        data_type,
+        [
+            "volt",
+            "apparent_chargeability",
+            "secondary_potential",
+        ],
+    )
 
-    assert format_type in [
-        "general",
-        "surface",
-        "simple",
-    ], "Parameter 'format_type' must be one of {'general', 'surface', 'simple'}"
+    format_type = validate_string(
+        "format_type",
+        format_type,
+        [
+            "general",
+            "surface",
+            "simple",
+        ],
+    )
 
     # Prevent circular import
     from ...electromagnetics.static import resistivity as dc
@@ -206,7 +243,7 @@ def read_dcip2d_ubc(file_name, data_type, format_type):
     from ...data import Data
 
     # Load file
-    obsfile = np.genfromtxt(file_name, delimiter="\n", dtype=np.str, comments="!")
+    obsfile = np.genfromtxt(file_name, delimiter="\n", dtype=str, comments="!")
 
     # Find starting data
     start_index = 0
@@ -219,12 +256,11 @@ def read_dcip2d_ubc(file_name, data_type, format_type):
 
     # Since SimPEG defines secondary potential from IP as voltage,
     # we must use this type when defining the receivers.
-    if data_type.lower() == "secondary_potential":
+    if data_type == "secondary_potential":
         data_type = "volt"
 
     # Pre-allocate
     source_list = []
-    receiver_list = []
     d = []
     wd = []
 
@@ -233,10 +269,10 @@ def read_dcip2d_ubc(file_name, data_type, format_type):
     is_pole_tx = False
     is_pole_rx = False
 
-    if format_type.lower() == "simple":
+    if format_type == "simple":
 
         # Load numeric data into an array
-        if data_type.lower() == "volt":
+        if data_type == "volt":
             data_array = np.loadtxt(file_name, comments="!", skiprows=start_index)
         else:
             data_array = np.loadtxt(
@@ -385,49 +421,50 @@ def read_dcip2d_ubc(file_name, data_type, format_type):
 
 
 def read_dcip3d_ubc(file_name, data_type):
-    """
-    Read 3D DC/IP survey, predicted and observation files in UBC-GIF format.
+    """Read UBC-GIF DCIP3D formatted survey or data files.
+
+    This method can load survey locations, predicted data or observations
+    files formatted for the UBC-GIF DCIP3D coding package. For more, see
+    the `UBC-GIF DCIP3D online manual <https://dcip3d.readthedocs.io/en/latest/>`__.
 
     Parameters
     ----------
-
     file_name : str
         The file path to the data file
-    data_type : str {'volt', 'apparent_chargeability', secondary_potential'}
-        Data type. Choose from {'volt', 'apparent_chargeability', secondary_potential'}
+    data_type : {'volt', 'apparent_chargeability', secondary_potential'}
+        Data type.
 
     Returns
     -------
-    data_object
-        A SimPEG.data.Data object containing:
+    SimPEG.data.Data
+        A SimPEG data object. The data from the input file is loaded and parsed into
+        three attributes of the data object:
 
-        - The survey
-        - Observed/predicted data (if present in the data file)
-        - Uncertainties (if present in the data file). Note that predicted DC data
-        files contain the apparent resistivities, which are loaded into SimPEG and
-        defined as uncertainties.
+        - `survey`: the survey geometry as defined by an instance of :class`SimPEG.electromagnetics.static.resitivity.survey.Survey` or :class`SimPEG.electromagnetics.static.induced_polarization.survey.Survey`
+        - `dobs`: observed/predicted data if present in the data file
+        - `standard_deviations`: uncertainties (if observed data file) or apparent resistivities (if predicted data file)
 
     """
 
-    data_type = data_type.lower()
-
-    assert data_type in [
-        "volt",
-        "apparent_chargeability",
-        "secondary_potential",
-    ], "Parameter 'data_type' must be one of {'volt', 'apparent_chargeability', 'secondary_potential'}"
+    data_type = validate_string(
+        "data_type",
+        data_type,
+        [
+            "volt",
+            "apparent_chargeability",
+            "secondary_potential",
+        ],
+    )
 
     # Prevent circular import
     from ...electromagnetics.static import resistivity as dc
-    from ...electromagnetics.static.utils import generate_survey_from_abmn_locations
     from ...data import Data
 
     # Load file
-    obsfile = np.genfromtxt(file_name, delimiter="\n", dtype=np.str, comments="!")
+    obsfile = np.genfromtxt(file_name, delimiter="\n", dtype=str, comments="!")
 
     # Pre-allocate
     source_list = []
-    receiver_list = []
     d = []
     wd = []
 
@@ -544,27 +581,28 @@ def read_dcip3d_ubc(file_name, data_type):
 
 
 def read_dcipoctree_ubc(file_name, data_type):
-    """
-    Read 3D DC/IP survey, predicted and observation files in UBC-GIF format.
+    """Read UBC-GIF DCIP OcTree formatted survey or data files.
+
+    This method can load survey locations, predicted data or observations
+    files formatted for the UBC-GIF DCIP OcTree coding package. For more, see
+    the `UBC-GIF DCIP OcTree online manual <https://dcipoctree.readthedocs.io/en/latest/>`__.
 
     Parameters
     ----------
-
     file_name : str
         The file path to the data file
-    data_type : str {'volt', 'apparent_chargeability', secondary_potential'}
-        Data type. Choose from {'volt', 'apparent_chargeability', secondary_potential'}
+    data_type : {'volt', 'apparent_chargeability', secondary_potential'}
+        Data type.
 
     Returns
     -------
-    data_object
-        A SimPEG.data.Data object containing:
+    SimPEG.data.Data
+        A SimPEG data object. The data from the input file is loaded and parsed into
+        three attributes of the data object:
 
-        - The survey
-        - Observed/predicted data (if present in the data file)
-        - Uncertainties (if present in the data file). Note that predicted DC data
-        files contain the apparent resistivities, which are loaded into SimPEG and
-        defined as uncertainties.
+        - `survey`: the survey geometry as defined by an instance of :class`SimPEG.electromagnetics.static.resistivity.survey.Survey` or :class`SimPEG.electromagnetics.static.induced_polarization.survey.Survey`
+        - `dobs`: observed/predicted data if present in the data file
+        - `standard_deviations`: uncertainties (if observed data file) or apparent resistivities (if predicted data file)
 
     """
 
@@ -579,29 +617,31 @@ def write_dcip2d_ubc(
     format_type="general",
     comment_lines=None,
 ):
-    """
-    Write UBC DCIP3D formatted survey, predicted or observation files.
+    """Write UBC-GIF DCIP2D formatted survey or data files.
+
+    This function can write survey locations, predicted data or observations
+    files formatted for the UBC-GIF DCIP2D coding package. For more, see
+    the `UBC-GIF DCIP2D online manual <https://dcip2d.readthedocs.io/en/latest/>`__.
 
     Parameters
     ----------
-    file_name: str
+    file_name : str
         file path for output file
-    data_object:
-        SimPEG.data.Data object
-    data_type: str
-        Must be on of {'volt', 'apparent_chargeability', 'secondary_potential'}
-    file_type: str
-        Must be one of {'survey', 'dpred', 'dobs'}
-    format_type: str
-        Must be on of {'general', 'surface', 'simple'}
-    comment_lines:
+    data_object :
+        SimPEG.data.Data object. The `survey` attribute of this data object must be
+        an instance of :class`SimPEG.electromagnetics.static.resistivity.survey.Survey` or
+        :class`SimPEG.electromagnetics.static.induced_polarization.survey.Survey`
+    data_type : {'volt', 'apparent_chargeability', 'secondary_potential'}
+        The type of data.
+    file_type : {'survey', 'dpred', 'dobs'}
+        Whether to include predicted data/observed data in the file.
+    format_type : {'general', 'surface', 'simple'}
+        The format of the file to write.
+    comment_lines :
+        Comment lines printed to beginning of the file
     """
 
     # Prevent circular import
-    from ...electromagnetics.static import resistivity as dc
-    from ...electromagnetics.static.utils.static_utils import (
-        apparent_resistivity_from_voltage,
-    )
     from ...electromagnetics.static.resistivity.sources import (
         Pole as PoleSrc,
         Dipole as DipoleSrc,
@@ -614,39 +654,37 @@ def write_dcip2d_ubc(
     from ...data import Data
 
     # Validate inputs
-    if not isinstance(data_object, Data):
-        raise Exception(
-            "A Data instance ({datacls}: <{datapref}.{datacls}>) must be "
-            "provided as the second input. The provided input is a "
-            "{providedcls} <{providedpref}.{providedcls}>".format(
-                datacls=Data.__name__,
-                datapref=Data.__module__,
-                providedcls=data_object.__class__.__name__,
-                providedpref=data_object.__module__,
-            )
-        )
+    data_object = validate_type("data_object", data_object, Data, cast=False)
 
-    data_type = data_type.lower()
-    file_type = file_type.lower()
-    format_type = format_type.lower()
+    data_type = validate_string(
+        "data_type",
+        data_type,
+        [
+            "volt",
+            "apparent_chargeability",
+            "secondary_potential",
+        ],
+    )
 
-    assert data_type in [
-        "volt",
-        "apparent_chargeability",
-        "secondary_potential",
-    ], "Parameter 'data_type' must be one of {'volt', 'apparent_chargeability', 'secondary_potential'}"
+    file_type = validate_string(
+        "file_type",
+        file_type,
+        [
+            "survey",
+            "dpred",
+            "dobs",
+        ],
+    )
 
-    assert file_type in [
-        "survey",
-        "dpred",
-        "dobs",
-    ], "Parameter 'file_type' must be one of {'survey', 'dpred', 'dobs'}"
-
-    assert format_type in [
-        "general",
-        "surface",
-        "simple",
-    ], "Parameter 'format_type' must be one of {'general', 'surface', 'simple'}"
+    format_type = validate_string(
+        "format_type",
+        format_type,
+        [
+            "general",
+            "surface",
+            "simple",
+        ],
+    )
 
     # Write comments and IP type (if applicable)
     with open(file_name, "w") as fid:
@@ -760,21 +798,28 @@ def write_dcip3d_ubc(
     format_type="general",
     comment_lines=None,
 ):
-    """
-    Write UBC DCIP3D formatted survey, predicted or observation files.
+    """Write UBC-GIF DCIP3D formatted survey or data files.
+
+    This function can write survey locations, predicted data or observations
+    files formatted for the UBC-GIF DCIP3D coding package. For more, see
+    the `UBC-GIF DCIP3D online manual <https://dcip3d.readthedocs.io/en/latest/>`__.
 
     Parameters
     ----------
-    file_name:
-    data_object:
-    data_type: {'volt', 'apparent_chargeability', 'secondary_potential'}
-    file_type: 'survey', 'dpred', 'dobs'
-    format_type: 'general', 'surface'
-    comment_lines:
+    file_name : str
+        file path for output file
+    data_object :
+        SimPEG.data.Data object. The `survey` attribute of this data object must be
+        an instance of :class`SimPEG.electromagnetics.static.resistivity.survey.Survey` or
+        :class`SimPEG.electromagnetics.static.induced_polarization.survey.Survey`
+    data_type : {'volt', 'apparent_chargeability', 'secondary_potential'}
+    file_type : {'survey', 'dpred', 'dobs'}
+    format_type : {'general', 'surface'}
+    comment_lines : str
+        Comments added to beginning of output file
     """
 
     # Prevent circular import
-    from ...electromagnetics.static import resistivity as dc
     from ...electromagnetics.static.utils.static_utils import (
         apparent_resistivity_from_voltage,
     )
@@ -789,38 +834,36 @@ def write_dcip3d_ubc(
     from ...data import Data
 
     # Validate inputs
-    if not isinstance(data_object, Data):
-        raise Exception(
-            "A Data instance ({datacls}: <{datapref}.{datacls}>) must be "
-            "provided as the second input. The provided input is a "
-            "{providedcls} <{providedpref}.{providedcls}>".format(
-                datacls=Data.__name__,
-                datapref=Data.__module__,
-                providedcls=data_object.__class__.__name__,
-                providedpref=data_object.__module__,
-            )
-        )
+    data_object = validate_type("data_object", data_object, Data, cast=False)
 
-    data_type = data_type.lower()
-    file_type = file_type.lower()
-    format_type = format_type.lower()
+    data_type = validate_string(
+        "data_type",
+        data_type,
+        [
+            "volt",
+            "apparent_chargeability",
+            "secondary_potential",
+        ],
+    )
 
-    assert data_type in [
-        "volt",
-        "apparent_chargeability",
-        "secondary_potential",
-    ], "Parameter 'data_type' must be one of {'volt', 'apparent_chargeability', 'secondary_potential'}"
+    file_type = validate_string(
+        "file_type",
+        file_type,
+        [
+            "survey",
+            "dpred",
+            "dobs",
+        ],
+    )
 
-    assert file_type in [
-        "survey",
-        "dpred",
-        "dobs",
-    ], "Parameter 'file_type' must be one of {'survey', 'dpred', 'dobs'}"
-
-    assert format_type in [
-        "general",
-        "surface",
-    ], "Parameter 'format_type' must be one of {'general', 'surface'}"
+    format_type = validate_string(
+        "format_type",
+        format_type,
+        [
+            "general",
+            "surface",
+        ],
+    )
 
     # Predicted DC data will automatically contain apparent resistivity column.
     # Here we compute the apparent resistivities and treat it like an uncertainties column.
@@ -912,17 +955,25 @@ def write_dcipoctree_ubc(
     format_type="general",
     comment_lines="",
 ):
-    """
-    Write UBC DCIPoctree formatted survey, predicted or observation files.
+    """Write UBC-GIF DCIP OcTree formatted survey or data files.
+
+    This function can write survey locations, predicted data or observations
+    files formatted for the UBC-GIF DCIP OcTree coding package. For more, see
+    the `UBC-GIF DCIP OcTree online manual <https://dcipoctree.readthedocs.io/en/latest/>`__.
 
     Parameters
     ----------
-    file_name:
-    data_object:
-    data_type: 'volt', 'apparent_chargeability', 'secondary_potential'
-    file_type: 'survey', 'dpred', 'dobs'
-    format_type: 'general', 'surface'
-    comment_lines:)
+    file_name : str
+        file path for output file
+    data_object :
+        SimPEG.data.Data object. The `survey` attribute of this data object must be
+        an instance of :class`SimPEG.electromagnetics.static.resistivity.survey.Survey` or
+        :class`SimPEG.electromagnetics.static.induced_polarization.survey.Survey`
+    data_type : {'volt', 'apparent_chargeability', 'secondary_potential'}
+    file_type : {'survey', 'dpred', 'dobs'}
+    format_type : {'general', 'surface'}
+    comment_lines : str
+        Comments added to beginning of output file
     """
 
     write_dcip3d_ubc(
@@ -938,17 +989,31 @@ def write_dcipoctree_ubc(
 def write_dcip_xyz(
     file_name, data_object, data_header=None, uncertainties_header=None, out_dict=None
 ):
-    """
-    Write 2D or 3D DC/IP data to an xyz formatted text file.
+    """Write 2D or 3D DC/IP data to XYZ-formatted file.
+
+    This function writes DC and/or IP data from the SimPEG framework to an XYZ-formatted
+    data file; i.e. each row in the file defines the data for the unique electrode
+    locations provided. This function is versatile enough to write 2D or 3D data.
+    The data may include elevations for the electrodes or be surface formatted.
 
     Parameters
     ----------
-    file_name:
-    data_object:
-    data_header: String for the header for your data column. If None, the observed data in the data_object are not written to file
-    uncertainties_header: String for the header for your uncertainties column. If None, the uncertatinties in the data_object are not written to file
-    out_dict: a python dictionary containing the name and associated vector of any additional information you want to write. out_dict = {header1: vec1, header2: vec2, ...}
-
+    file_name : str
+        Path to the file
+    data_object : SimPEG.data.Data
+        SimPEG.data.Data object. The `survey` attribute of this data object must be
+        an instance of :class`SimPEG.electromagnetics.static.resistivity.survey.Survey` or
+        :class`SimPEG.electromagnetics.static.induced_polarization.survey.Survey`
+    data_header: str
+        Header for the data column; i.e. the header for the data defined in the `dobs`
+        attibute of the data object. If ``None``, these data are not written to file
+    uncertainties_header : str
+        Header for the uncertainties column; i.e. the header for the uncertainties defined in
+        the `standard_deviations` attibute of the data object. If ``None``, these data are not
+        written to file
+    out_dict : dict
+        A python dictionary containing the names and associated vectors for any additional data
+        columns you wish to write to the file; out_dict = {header1: vec1, header2: vec2, ...}.
     """
 
     out_columns = np.c_[

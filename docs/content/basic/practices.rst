@@ -109,8 +109,7 @@ solution <https://github.com/simpeg/simpeg/blob/main/tests/em/fdem/forward/test_
 Order and Derivative Tests
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-:ref:`Order tests <api_Tests>` can be
-used when you are testing differential operators (we are using a second-order,
+Order tests can be used when you are testing differential operators (we are using a second-order,
 staggered grid discretization for our operators). For example, testing a 2D
 curl operator in `test_operators.py <https://github.com/simpeg/discretize/blob/main/tests/base/test_operators.py>`_
 
@@ -187,9 +186,9 @@ For example:
 .. code:: python
 
 
-    class Tikhonov(BaseComboRegularization):
+    class WeightedLeastSquares(BaseComboRegularization):
         """
-        L2 Tikhonov regularization with both smallness and smoothness (first order
+        L2 WeightedLeastSquares regularization with both smallness and smoothness (first order
         derivative) contributions.
 
         .. math::

@@ -75,7 +75,3 @@ class Casing_DerivTest(unittest.TestCase):
         tests.checkDerivative(
             CasingMagDipole2Deriv_z_z, np.random.randn(n), plotIt=False
         )
-
-
-if __name__ == "__main__":
-    unittest.main()

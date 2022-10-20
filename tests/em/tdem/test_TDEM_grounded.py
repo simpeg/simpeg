@@ -160,7 +160,3 @@ class TestGroundedSourceTDEM_j(unittest.TestCase):
 class TestGroundedSourceTDEM_h(TestGroundedSourceTDEM_j):
 
     prob_type = "MagneticField"
-
-
-if __name__ == "__main__":
-    unittest.main()

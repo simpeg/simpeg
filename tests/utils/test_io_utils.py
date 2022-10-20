@@ -236,7 +236,7 @@ class TestIO_MAG3D(unittest.TestCase):
         source_field = magnetics.sources.SourceField(
             receiver_list=receiver_list, parameters=inducing_field
         )
-        survey = gravity.survey.Survey(source_field)
+        survey = magnetics.survey.Survey(source_field)
 
         self.survey = survey
         self.dobs = dobs

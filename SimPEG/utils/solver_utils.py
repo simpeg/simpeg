@@ -20,15 +20,50 @@ def _checkAccuracy(A, b, X, accuracyTol):
 
 
 def SolverWrapD(fun, factorize=True, checkAccuracy=True, accuracyTol=1e-6, name=None):
-    """
-    Wraps a direct Solver.
+    """Wraps a direct Solver.)
 
-    ::
+    Parameters
+    ----------
+    fun : callable
+        A function handle that accepts a sparse matrix input.
+    factorize : bool, default: ``True``
+        If True, `fun` returns a solver object that has `solve` and
+        `factorize` methods.
+    checkAccuracy : bool, default: ``True``
+        If ``True``, verify the accuracy of the solve
+    accuracyTol : float, default: 1e-6
+        Minimum accuracy of the solve
+    name : str, optional
+        A name for the function
 
-        import scipy.sparse as sp
-        Solver   = solver_utils.SolverWrapD(sp.linalg.spsolve, factorize=False)
-        SolverLU = solver_utils.SolverWrapD(sp.linalg.splu, factorize=True)
+    Returns
+    -------
+    Solver
+        A new solver class created from a direct solver `fun`.
 
+    Examples
+    --------
+    A solver that does not have a factorize method.
+
+    >>> from SimPEG.utils.solver_utils import SolverWrapD
+    >>> import scipy.sparse as sp
+    >>> SpSolver = SolverWrapD(sp.linalg.spsolve, factorize=False)
+    >>> A = sp.diags([1, -1], [0, 1], shape=(10, 10))
+    >>> b = np.arange(10)
+    >>> Ainv = SpSolver(A)
+    >>> x_solve = Ainv * b
+    >>> A @ x_solve
+    array([0., 1., 2., 3., 4., 5., 6., 7., 8., 9.])
+
+    Or one that has a factorize method (which can be re-used on multiple solves)
+
+    >>> SolverLU = SolverWrapD(sp.linalg.splu, factorize=True)
+    >>> A = sp.diags([1, -1], [0, 1], shape=(10, 10))
+    >>> b = np.arange(10)
+    >>> Ainv = SolverLU(A)
+    >>> x_solve = Ainv * b
+    >>> A @ x_solve
+    array([0., 1., 2., 3., 4., 5., 6., 7., 8., 9.])
     """
 
     def __init__(self, A, **kwargs):
@@ -113,14 +148,39 @@ def SolverWrapD(fun, factorize=True, checkAccuracy=True, accuracyTol=1e-6, name=
 
 
 def SolverWrapI(fun, checkAccuracy=True, accuracyTol=1e-5, name=None):
-    """
-    Wraps an iterative Solver.
+    """Wraps an iterative Solver.
 
-    ::
+    Parameters
+    ----------
+    fun : function
+        A function handle that accepts two arguments, a sparse matrix and a rhs array.
+    checkAccuracy : bool, default: ``True``
+        If ``True``, verify the accuracy of the solve
+    accuracyTol : float, default: 1e-5
+        Minimum accuracy of the solve
+    name : str, optional
+        A name for the function
 
-        import scipy.sparse as sp
-        SolverCG = solver_utils.SolverWrapI(sp.linalg.cg)
+    Returns
+    -------
+    Solver
+        A new solver class created from the function.
 
+    Examples
+    --------
+
+    >>> import scipy.sparse as sp
+    >>> from SimPEG.utils.solver_utils import SolverWrapI
+
+    >>> SolverCG = SolverWrapI(sp.linalg.cg)
+    >>> A = sp.diags([-1, 2, -1], [-1, 0, 1], shape=(10, 10))
+    >>> b = np.arange(10)
+    >>> Ainv = SolverCG(A)
+    >>> x_solve = Ainv * b
+    >>> A @ x_solve
+    array([3.55271368e-15, 1.00000000e+00, 2.00000000e+00, 3.00000000e+00,
+       4.00000000e+00, 5.00000000e+00, 6.00000000e+00, 7.00000000e+00,
+       8.00000000e+00, 9.00000000e+00])
     """
 
     def __init__(self, A, **kwargs):
@@ -205,7 +265,26 @@ SolverBiCG = SolverWrapI(linalg.bicgstab, name="SolverBiCG")
 
 
 class SolverDiag(object):
-    """docstring for SolverDiag"""
+    """Solver for a diagonal linear system
+
+    This is a simple solver used for diagonal matrices.
+
+    Parameters
+    ----------
+    A :
+        A diagonal linear system
+
+    Examples
+    --------
+    >>> import scipy.sparse as sp
+    >>> from SimPEG.utils.solver_utils import SolverDiag
+    >>> A = sp.diags(np.linspace(1, 2, 10))
+    >>> b = np.arange(10)
+    >>> Ainv = SolverDiag(A)
+    >>> x_solve = Ainv * b
+    >>> A @ x_solve
+    array([0., 1., 2., 3., 4., 5., 6., 7., 8., 9.])
+    """
 
     def __init__(self, A, **kwargs):
         self.A = A
@@ -214,6 +293,7 @@ class SolverDiag(object):
             warnings.warn(f"{kwarg} is not recognized and will be ignored")
 
     def __mul__(self, rhs):
+
         n = self.A.shape[0]
         assert rhs.size % n == 0, "Incorrect shape of rhs."
         nrhs = rhs.size // n
@@ -240,4 +320,5 @@ class SolverDiag(object):
         return rhs / self._diagonal.repeat(nrhs).reshape((n, nrhs))
 
     def clean(self):
+        """Clean"""
         pass

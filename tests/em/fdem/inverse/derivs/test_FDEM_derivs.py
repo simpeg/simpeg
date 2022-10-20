@@ -193,7 +193,3 @@ class FDEM_DerivTests(unittest.TestCase):
                         self.assertTrue(
                             derivTest("h", ["MagneticField", orientation, comp], src)
                         )
-
-
-if __name__ == "__main__":
-    unittest.main()

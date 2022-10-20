@@ -12,8 +12,7 @@ with this,
 We hope to answer that question with this release!
 
 This release will break backward compatibility as many modules and classes have
-been renamed. Check out the :ref:`sphx_glr_content_examples` and :ref:`simpeg_tuts`
-(which have also been improved) to see how it's done.
+been renamed. Check out the :ref:`sphx_glr_content_examples` to see how it's done.
 
 We are also only supporting Python versions >=3.6 at this time. We have dropped all
 testing and development on Python versions previous to this (especially

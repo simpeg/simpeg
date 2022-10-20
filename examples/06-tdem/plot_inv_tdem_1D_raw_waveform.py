@@ -81,7 +81,7 @@ def run(plotIt=True):
 
     dmisfit = data_misfit.L2DataMisfit(simulation=prb, data=data)
     regMesh = discretize.TensorMesh([mesh.hz[mapping.maps[-1].indActive]])
-    reg = regularization.Simple(regMesh)
+    reg = regularization.WeightedLeastSquares(regMesh)
     opt = optimization.InexactGaussNewton(maxIter=5, LSshorten=0.5)
     invProb = inverse_problem.BaseInvProblem(dmisfit, reg, opt)
     target = directives.TargetMisfit()

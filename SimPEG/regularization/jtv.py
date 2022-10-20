@@ -28,7 +28,7 @@ class JointTotalVariation(BaseSimilarityMeasure):
     def __init__(self, mesh, wire_map, **kwargs):
         super().__init__(mesh, wire_map=wire_map, **kwargs)
 
-        regmesh = self.regmesh
+        regmesh = self.regularization_mesh
         self._G = regmesh.cell_gradient
         vsq = regmesh.vol ** 2
         self._Av = sp.diags(vsq) * regmesh.average_face_to_cell
@@ -50,7 +50,7 @@ class JointTotalVariation(BaseSimilarityMeasure):
         m1, m2 = self.wire_map * model
         Av = self._Av
         G = self._G
-        v2 = self.regmesh.vol ** 2
+        v2 = self.regularization_mesh.vol ** 2
         g_m1 = G @ m1
         g_m2 = G @ m2
 
@@ -76,7 +76,7 @@ class JointTotalVariation(BaseSimilarityMeasure):
         m1, m2 = self.wire_map * model
         Av = self._Av
         G = self._G
-        v2 = self.regmesh.vol ** 2
+        v2 = self.regularization_mesh.vol ** 2
         g_m1 = G @ m1
         g_m2 = G @ m2
 
@@ -107,7 +107,7 @@ class JointTotalVariation(BaseSimilarityMeasure):
         m1, m2 = self.wire_map * model
         Av = self._Av
         G = self._G
-        v2 = self.regmesh.vol ** 2
+        v2 = self.regularization_mesh.vol ** 2
         g_m1 = G @ m1
         g_m2 = G @ m2
 

@@ -5,7 +5,7 @@ from dask import delayed, array, config
 from dask.diagnostics import ProgressBar
 from ..utils import compute_chunk_sizes
 
-Sim._chunk_format = "equal"
+Sim._chunk_format = "row"
 
 
 @property
@@ -90,7 +90,6 @@ def dask_linear_operator(self):
             pred = (stack @ self.model).compute()
         return pred
     else:
-        print(stack.chunks)
         with ProgressBar():
             print("Computing sensitivities to local ram")
             kernel = array.asarray(stack.compute())

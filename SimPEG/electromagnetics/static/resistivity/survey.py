@@ -4,8 +4,9 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import numpy as np
-import properties
-from ....utils.code_utils import deprecate_property
+
+# import properties
+from ....utils.code_utils import deprecate_property, validate_string
 
 from ....survey import BaseSurvey
 from ..utils import drapeTopotoLoc
@@ -16,31 +17,87 @@ from SimPEG import data
 
 
 class Survey(BaseSurvey):
+    """DC/IP survey class
+
+    Parameters
+    ----------
+    source_list : list of SimPEG.electromagnetic.static.resistivity.sources.BaseSrc
+        List of SimPEG DC/IP sources
+    survey_geometry : {"surface", "borehole", "general"}
+        Survey geometry.
+    survey_type : {"dipole-dipole", "pole-dipole", "dipole-pole", "pole-pole"}
+        Survey type.
     """
-    Base DC survey
-    """
 
-    source_list = properties.List(
-        "A list of sources for the survey",
-        properties.Instance("A DC source", Src.BaseSrc),
-        default=[],
-    )
+    # source_list = properties.List(
+    #     "A list of sources for the survey",
+    #     properties.Instance("A DC source", Src.BaseSrc),
+    #     default=[],
+    # )
 
-    # Survey
-    survey_geometry = properties.StringChoice(
-        "Survey geometry of DC surveys",
-        default="surface",
-        choices=["surface", "borehole", "general"],
-    )
+    # # Survey
+    # survey_geometry = properties.StringChoice(
+    #     "Survey geometry of DC surveys",
+    #     default="surface",
+    #     choices=["surface", "borehole", "general"],
+    # )
 
-    survey_type = properties.StringChoice(
-        "DC-IP Survey type",
-        default="dipole-dipole",
-        choices=["dipole-dipole", "pole-dipole", "dipole-pole", "pole-pole"],
-    )
+    # survey_type = properties.StringChoice(
+    #     "DC-IP Survey type",
+    #     default="dipole-dipole",
+    #     choices=["dipole-dipole", "pole-dipole", "dipole-pole", "pole-pole"],
+    # )
 
-    def __init__(self, source_list, **kwargs):
+    def __init__(
+        self,
+        source_list,
+        survey_geometry="surface",
+        survey_type="dipole-dipole",
+        **kwargs,
+    ):
         super(Survey, self).__init__(source_list, **kwargs)
+        self.survey_geometry = survey_geometry
+        self.survey_type = survey_type
+
+    @property
+    def survey_geometry(self):
+        """Survey geometry
+
+        This property is deprecated.
+
+        Returns
+        -------
+        str
+            Survey geometry; one of {"surface", "borehole", "general"}
+        """
+        return self._survey_geometry
+
+    @survey_geometry.setter
+    def survey_geometry(self, var):
+        var = validate_string(
+            "survey_geometry", var, ("surface", "borehole", "general")
+        )
+        self._survey_geometry = var
+
+    @property
+    def survey_type(self):
+        """Survey type; one of {"dipole-dipole", "pole-dipole", "dipole-pole", "pole-pole"}
+
+        Returns
+        -------
+        str
+            Survey type; one of {"dipole-dipole", "pole-dipole", "dipole-pole", "pole-pole"}
+        """
+        return self._survey_type
+
+    @survey_type.setter
+    def survey_type(self, var):
+        var = validate_string(
+            "survey_type",
+            var,
+            ("dipole-dipole", "pole-dipole", "dipole-pole", "pole-pole"),
+        )
+        self._survey_type = var
 
     def __repr__(self):
         return (
@@ -51,7 +108,12 @@ class Survey(BaseSurvey):
     @property
     def locations_a(self):
         """
-        Location of the positive (+) current electrodes for each datum
+        Locations of the positive (+) current electrodes in the survey
+
+        Returns
+        -------
+        (nD, dim) numpy.ndarray
+            Locations of the positive (+) current electrodes in the survey
         """
         if getattr(self, "_locations_a", None) is None:
             self._set_abmn_locations()
@@ -60,7 +122,12 @@ class Survey(BaseSurvey):
     @property
     def locations_b(self):
         """
-        Location of the negative (-) current electrodes for each datum
+        Locations of the negative (-) current electrodes in the survey
+
+        Returns
+        -------
+        (nD, dim) numpy.ndarray
+            Locations of the negative (-) current electrodes in the survey
         """
         if getattr(self, "_locations_b", None) is None:
             self._set_abmn_locations()
@@ -69,7 +136,12 @@ class Survey(BaseSurvey):
     @property
     def locations_m(self):
         """
-        Location of the positive (+) potential electrodes for each datum
+        Locations of the positive (+) potential electrodes in the survey
+
+        Returns
+        -------
+        (nD, dim) numpy.ndarray
+            Locations of the positive (+) potential electrodes in the survey
         """
         if getattr(self, "_locations_m", None) is None:
             self._set_abmn_locations()
@@ -78,7 +150,12 @@ class Survey(BaseSurvey):
     @property
     def locations_n(self):
         """
-        Location of the negative (-) potential electrodes for each datum
+        Locations of the negative (-) potential electrodes in the survey
+
+        Returns
+        -------
+        (nD, dim) numpy.ndarray
+            Locations of the negative (-) potential electrodes in the survey
         """
         if getattr(self, "_locations_n", None) is None:
             self._set_abmn_locations()
@@ -88,6 +165,11 @@ class Survey(BaseSurvey):
     def unique_electrode_locations(self):
         """
         Unique locations of the A, B, M, N electrodes
+
+        Returns
+        -------
+        (n, dim) numpy.ndarray
+            The set of unique electrode locations used in the survey
         """
         loc_a = self.locations_a
         loc_b = self.locations_b
@@ -108,12 +190,10 @@ class Survey(BaseSurvey):
         """
         Returns, in order, the source locations for all sources in the survey.
 
-        Input:
-        :param self: SimPEG.electromagnetics.static.resistivity.Survey
-
-        Output:
-        :return source_locations: List of np.ndarray containing the A and B
-        electrode locations.
+        Returns
+        -------
+        list of numpy.ndarray
+            List of length 2 containing the A and B electrode locations, in order.
         """
         src_a = []
         src_b = []
@@ -127,10 +207,27 @@ class Survey(BaseSurvey):
 
     def set_geometric_factor(
         self,
-        space_type="half-space",
+        space_type="halfspace",
         data_type=None,
         survey_type=None,
     ):
+        """
+        Set and return the geometric factor for all data
+
+        Parameters
+        ----------
+        space_type : {'halfspace', 'wholespace'}
+            Calculate geometric factors using a half-space or whole-space formula.
+        data_type : str, default = ``None``
+            This input argument is now deprecated
+        survey_type : str, default = ``None``
+            This input argument is now deprecated
+
+        Returns
+        -------
+        (nD) numpy.ndarray
+            The geometric factor for each datum
+        """
         if data_type is not None:
             raise TypeError(
                 "The data_type kwarg has been removed, please set the data_type on the "
@@ -194,6 +291,7 @@ class Survey(BaseSurvey):
         self._locations_n = np.vstack(locations_n)
 
     def getABMN_locations(self):
+        """The 'getABMN_locations' method has been removed."""
         raise TypeError(
             "The getABMN_locations method has been Removed. Please instead "
             "ask for the property of interest: survey.locations_a, "
@@ -201,9 +299,24 @@ class Survey(BaseSurvey):
         )
 
     def drape_electrodes_on_topography(
-        self, mesh, actind, option="top", topography=None, force=False
+        self, mesh, ind_active, option="top", topography=None, force=False
     ):
-        """Shift electrode locations to be on [top] of the active cells."""
+        """Shift electrode locations to discrete surface topography.
+
+        Parameters
+        ----------
+        mesh : discretize.TensorMesh or discretize.TreeMesh
+            The mesh on which the discretized fields are computed
+        ind_active : numpy.ndarray of int or bool
+            Active topography cells
+        option :{"top", "center"}
+            Define topography at tops of cells or cell centers.
+        topography : (n, dim) numpy.ndarray, default = ``None``
+            Surface topography
+        force : bool, default = ``False``
+            If ``True`` force electrodes to surface even if borehole
+
+        """
         if self.survey_geometry == "surface":
             loc_a = self.locations_a[:, :2]
             loc_b = self.locations_b[:, :2]
@@ -217,7 +330,7 @@ class Survey(BaseSurvey):
             inv_m, inv_n = inv[: len(loc_m)], inv[len(loc_m) :]
 
             electrodes_shifted = drapeTopotoLoc(
-                mesh, unique_electrodes, actind=actind, option=option
+                mesh, unique_electrodes, ind_active=ind_active, option=option
             )
             a_shifted = electrodes_shifted[inv_a]
             b_shifted = electrodes_shifted[inv_b]
@@ -247,9 +360,12 @@ class Survey(BaseSurvey):
         elif self.survey_geometry == "borehole":
             raise Exception("Not implemented yet for borehole survey_geometry")
         else:
-            raise Exception("Input valid survey survey_geometry: surface or borehole")
+            raise Exception(
+                f"Input valid survey survey_geometry: {self.survey_geometry}"
+            )
 
     def drapeTopo(self, *args, **kwargs):
+        """This method is deprecated. See :meth:`drape_electrodes_on_topography`"""
         raise TypeError(
             "The drapeTopo method has been removed. Please instead "
             "use the drape_electrodes_on_topography method."

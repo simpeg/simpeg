@@ -1,28 +1,24 @@
+from __future__ import annotations
 import numpy as np
 import scipy.sparse as sp
 import warnings
-import properties
-from scipy.stats import multivariate_normal
-from scipy.special import logsumexp
+
 import copy
 from ..utils import (
-    speye,
     sdiag,
     mkvc,
     timeIt,
     Identity,
-    Zero,
-    coterminal,
 )
 from ..maps import IdentityMap, Wires
-from .. import props
+from ..objective_function import ComboObjectiveFunction
 from .base import (
-    BaseRegularization,
-    SimpleComboRegularization,
-    BaseComboRegularization,
+    WeightedLeastSquares,
+    RegularizationMesh,
+    Smallness,
 )
-from .tikhonov import *
 
+from SimPEG.utils.code_utils import deprecate_property, validate_ndarray_with_shape
 
 ###############################################################################
 #                                                                             #
@@ -35,7 +31,7 @@ from .tikhonov import *
 #####################################
 
 
-class PGIsmallness(BaseRegularization):
+class PGIsmallness(Smallness):
     """
     Smallness term for the petrophysically constrained regularization (PGI)
     with cell_weights similar to the regularization.tikhonov.SimpleSmall class.
@@ -50,106 +46,178 @@ class PGIsmallness(BaseRegularization):
     :param boolean approx_eval: use the L2-approximation evaluation of the smallness term
     """
 
-    _multiplier_pair = "alpha_s"
+    _multiplier_pair = "alpha_pgi"
+    _maplist = None
+    _wiresmap = None
 
     def __init__(
         self,
-        gmm,
+        gmmref,
+        gmm=None,
         wiresmap=None,
         maplist=None,
         mesh=None,
         approx_gradient=True,  # L2 approximate of the gradients
         approx_eval=True,  # L2 approximate of the value
         approx_hessian=True,
-        **kwargs
+        non_linear_relationships=False,
+        **kwargs,
     ):
-
+        self.gmmref = copy.deepcopy(gmmref)
+        self.gmmref.order_clusters_GM_weight()
         self.approx_gradient = approx_gradient
         self.approx_eval = approx_eval
         self.approx_hessian = approx_hessian
-
-        super(PGIsmallness, self).__init__(mesh=mesh, **kwargs)
-        self.gmm = gmm
+        self.non_linear_relationships = non_linear_relationships
+        self._gmm = copy.deepcopy(gmm)
         self.wiresmap = wiresmap
         self.maplist = maplist
+
+        if "mapping" in kwargs:
+            warnings.warn(
+                f"Property 'mapping' of class {type(self)} cannot be set. Defaults to IdentityMap."
+            )
+            kwargs.pop("mapping")
+
+        weights = kwargs.pop("weights", None)
+
+        super().__init__(mesh=mesh, mapping=IdentityMap(nP=self.shape[0]), **kwargs)
 
         # Save repetitive computations (see withmapping implementation)
         self._r_first_deriv = None
         self._r_second_deriv = None
 
-    @property
-    def W(self):
-        """
-        Weighting matrix
-        Need to change the size to match self.wiresmap.maps * mesh.nC
-        """
+        if weights is not None:
+            if isinstance(weights, (np.ndarray, list)):
+                weights = {"user_weights": np.r_[weights].flatten()}
+            self.set_weights(**weights)
 
-        if self.cell_weights is not None:
-            if len(self.cell_weights) == self.wiresmap.nP:
-                return (
-                    sp.kron(
-                        speye(len(self.wiresmap.maps)),
-                        sdiag(np.sqrt(self.regmesh.vol)),
-                    )
-                    * sdiag(np.sqrt(self.cell_weights))
-                )
-            else:
-                return sp.kron(
-                    speye(len(self.wiresmap.maps)),
-                    sdiag(np.sqrt(self.regmesh.vol)),
-                ) * sp.kron(
-                    speye(len(self.wiresmap.maps)), sdiag(np.sqrt(self.cell_weights))
-                )
-        else:
-            return sp.kron(
-                speye(len(self.wiresmap.maps)),
-                sdiag(np.sqrt(self.regmesh.vol)),
+    def set_weights(self, **weights):
+
+        for key, values in weights.items():
+            values = validate_ndarray_with_shape("weights", values, dtype=float)
+
+            if values.shape[0] == self.regularization_mesh.nC:
+                values = np.tile(values, len(self.wiresmap.maps))
+
+            values = validate_ndarray_with_shape(
+                "weights", values, shape=(self._nC_residual,), dtype=float
             )
 
-    @properties.validator("cell_weights")
-    def _validate_cell_weights(self, change):
-        if change["value"] is not None:
-            if self._nC_residual != "*":
-                if (len(change["value"]) != self._nC_residual) and (
-                    len(change["value"]) != len(self.wiresmap.maps) * self._nC_residual
-                ):
-                    raise Exception(
-                        "cell_weights must be length {} or {} not {}".format(
-                            self._nC_residual,
-                            len(self.wiresmap.maps) * self._nC_residual,
-                            len(change["value"]),
-                        )
-                    )
+            self._weights[key] = values
+
+        self._W = None
+
+    @property
+    def gmm(self):
+        if getattr(self, "_gmm", None) is None:
+            self._gmm = copy.deepcopy(self.gmmref)
+        return self._gmm
+
+    @gmm.setter
+    def gmm(self, gm):
+        if gm is not None:
+            self._gmm = copy.deepcopy(gm)
+
+    @property
+    def shape(self):
+        """"""
+        return (self.wiresmap.nP,)
 
     def membership(self, m):
         modellist = self.wiresmap * m
         model = np.c_[[a * b for a, b in zip(self.maplist, modellist)]].T
-        return self.gmm.predict(model)  # mkvc(m, numDims=2))
+        return self.gmm.predict(model)
 
     def compute_quasi_geology_model(self):
         # used once mref is built
-        mreflist = self.wiresmap * self.mref
+        mreflist = self.wiresmap * self.reference_model
         mrefarray = np.c_[[a * b for a, b in zip(self.maplist, mreflist)]].T
         return np.c_[
             [((mrefarray - mean) ** 2).sum(axis=1) for mean in self.gmm.means_]
         ].argmin(axis=0)
 
-    @timeIt
-    def __call__(self, m, externalW=True):
+    @property
+    def non_linear_relationships(self):
+        """Flag for non-linear GMM relationships"""
+        return self._non_linear_relationships
 
-        if externalW:
+    @non_linear_relationships.setter
+    def non_linear_relationships(self, value: bool):
+        if not isinstance(value, bool):
+            raise ValueError(
+                "Input value for 'non_linear_relationships' must be of type 'bool'. "
+                f"Provided {value} of type {type(value)}."
+            )
+        self._non_linear_relationships = value
+
+    @property
+    def wiresmap(self):
+        if getattr(self, "_wiresmap", None) is None:
+            self._wiresmap = Wires(("m", self.regularization_mesh.nC))
+        return self._wiresmap
+
+    @wiresmap.setter
+    def wiresmap(self, wires):
+        if self._maplist is not None and len(wires.maps) != len(self._maplist):
+            raise Exception(
+                f"Provided 'wiresmap' should have wires the len of 'maplist' {len(self._maplist)}."
+            )
+
+        if not isinstance(wires, Wires):
+            raise ValueError(f"Attribure 'wiresmap' should be of type {Wires} or None.")
+
+        self._wiresmap = wires
+
+    @property
+    def maplist(self):
+        if getattr(self, "_maplist", None) is None:
+            self._maplist = [
+                IdentityMap(self.regularization_mesh) for maps in self.wiresmap.maps
+            ]
+        return self._maplist
+
+    @maplist.setter
+    def maplist(self, maplist):
+        if self._wiresmap is not None and len(maplist) != len(self._wiresmap.maps):
+            raise Exception(
+                f"Provided 'maplist' should be a list of maps equal to the 'wiresmap' list of len {len(self._maplist)}."
+            )
+
+        if not isinstance(maplist, (list, type(None))):
+            raise ValueError("Attribure 'maplist' should be a list of maps or None.")
+
+        if isinstance(maplist, list) and not all(
+            isinstance(map, IdentityMap) for map in maplist
+        ):
+            raise ValueError(f"Attribure 'maplist' should be a list of maps or None.")
+
+        self._maplist = maplist
+
+    @timeIt
+    def __call__(self, m, external_weights=True):
+
+        if external_weights:
             W = self.W
         else:
             W = Identity()
 
         if getattr(self, "mref", None) is None:
-            self.mref = mkvc(self.gmm.means_[self.membership(m)])
+            self.reference_model = mkvc(self.gmm.means_[self.membership(m)])
 
         if self.approx_eval:
             membership = self.compute_quasi_geology_model()
             dm = self.wiresmap * (m)
-            dmref = self.wiresmap * (self.mref)
+            dmref = self.wiresmap * (self.reference_model)
             dmm = np.c_[[a * b for a, b in zip(self.maplist, dm)]].T
+            if self.non_linear_relationships:
+                dmm = np.r_[
+                    [
+                        self.gmm.cluster_mapping[membership[i]] * dmm[i].reshape(-1, 2)
+                        for i in range(dmm.shape[0])
+                    ]
+                ].reshape(-1, 2)
+
             dmmref = np.c_[[a for a in dmref]].T
             dmr = dmm - dmmref
             r0 = (W * mkvc(dmr)).reshape(dmr.shape, order="F")
@@ -186,44 +254,63 @@ class PGIsmallness(BaseRegularization):
             modellist = self.wiresmap * m
             model = np.c_[[a * b for a, b in zip(self.maplist, modellist)]].T
 
-            if externalW and getattr(self.W, "diagonal", None) is not None:
-                sensW = np.c_[
-                    [wire[1] * self.W.diagonal() for wire in self.wiresmap.maps]
-                ].T
-            else:
-                sensW = np.ones_like(model)
+            if self.non_linear_relationships:
+                score = self.gmm.score_samples(model)
+                score_vec = mkvc(np.r_[[score for maps in self.wiresmap.maps]])
+                return -np.sum((W.T * W) * score_vec) / len(self.wiresmap.maps)
 
-            score = self.gmm.score_samples_with_sensW(model, sensW)
-            # score_vec = mkvc(np.r_[[score for maps in self.wiresmap.maps]])
-            # return -np.sum((W.T * W) * score_vec) / len(self.wiresmap.maps)
-            return -np.sum(score)
+            else:
+                if external_weights and getattr(self.W, "diagonal", None) is not None:
+                    sensW = np.c_[
+                        [wire[1] * self.W.diagonal() for wire in self.wiresmap.maps]
+                    ].T
+                else:
+                    sensW = np.ones_like(model)
+
+                score = self.gmm.score_samples_with_sensW(model, sensW)
+                # score_vec = mkvc(np.r_[[score for maps in self.wiresmap.maps]])
+                # return -np.sum((W.T * W) * score_vec) / len(self.wiresmap.maps)
+                return -np.sum(score)
 
     @timeIt
     def deriv(self, m):
 
         if getattr(self, "mref", None) is None:
-            self.mref = mkvc(self.gmm.means_[self.membership(m)])
+            self.reference_model = mkvc(self.gmm.means_[self.membership(m)])
 
         membership = self.compute_quasi_geology_model()
         modellist = self.wiresmap * m
-        mreflist = self.wiresmap * self.mref
+        dmmodel = np.c_[[a * b for a, b in zip(self.maplist, modellist)]].T
+        mreflist = self.wiresmap * self.reference_model
         mD = [a.deriv(b) for a, b in zip(self.maplist, modellist)]
         mD = sp.block_diag(mD)
 
+        if self.non_linear_relationships:
+            dmmodel = np.r_[
+                [
+                    self.gmm.cluster_mapping[membership[i]] * dmmodel[i].reshape(-1, 2)
+                    for i in range(dmmodel.shape[0])
+                ]
+            ].reshape(-1, 2)
+
         if self.approx_gradient:
-            dmmodel = np.c_[[a * b for a, b in zip(self.maplist, modellist)]].T
+
             dmmref = np.c_[[a for a in mreflist]].T
             dm = dmmodel - dmmref
             r0 = (self.W * (mkvc(dm))).reshape(dm.shape, order="F")
 
             if self.gmm.covariance_type == "tied":
+
+                if self.non_linear_relationships:
+                    raise Exception("Not implemented")
+
                 r = mkvc(
                     np.r_[[np.dot(self.gmm.precisions_, r0[i]) for i in range(len(r0))]]
                 )
             elif (
                 self.gmm.covariance_type == "diag"
                 or self.gmm.covariance_type == "spherical"
-            ):
+            ) and not self.non_linear_relationships:
                 r = mkvc(
                     np.r_[
                         [
@@ -237,17 +324,39 @@ class PGIsmallness(BaseRegularization):
                     ]
                 )
             else:
-                r = mkvc(
-                    np.r_[
-                        [
-                            np.dot(self.gmm.precisions_[membership[i]], r0[i])
-                            for i in range(len(r0))
+                if self.non_linear_relationships:
+                    r = mkvc(
+                        np.r_[
+                            [
+                                mkvc(
+                                    self.gmm.cluster_mapping[membership[i]].deriv(
+                                        dmmodel[i],
+                                        v=np.dot(
+                                            self.gmm.precisions_[membership[i]], r0[i]
+                                        ),
+                                    )
+                                )
+                                for i in range(dmmodel.shape[0])
+                            ]
                         ]
-                    ]
-                )
-            return mkvc(mD.T * (self.W * r))
+                    )
+
+                else:
+                    r0 = (self.W * (mkvc(dm))).reshape(dm.shape, order="F")
+                    r = mkvc(
+                        np.r_[
+                            [
+                                np.dot(self.gmm.precisions_[membership[i]], r0[i])
+                                for i in range(len(r0))
+                            ]
+                        ]
+                    )
+            return mkvc(mD.T * (self.W.T * r))
 
         else:
+            if self.non_linear_relationships:
+                raise Exception("Not implemented")
+
             modellist = self.wiresmap * m
             model = np.c_[[a * b for a, b in zip(self.maplist, modellist)]].T
 
@@ -358,30 +467,85 @@ class PGIsmallness(BaseRegularization):
     def deriv2(self, m, v=None):
 
         if getattr(self, "mref", None) is None:
-            self.mref = mkvc(self.gmm.means_[self.membership(m)])
+            self.reference_model = mkvc(self.gmm.means_[self.membership(m)])
 
         if self.approx_hessian:
             # we approximate it with the covariance of the cluster
             # whose each point belong
             membership = self.compute_quasi_geology_model()
             modellist = self.wiresmap * m
+            dmmodel = np.c_[[a * b for a, b in zip(self.maplist, modellist)]].T
             mD = [a.deriv(b) for a, b in zip(self.maplist, modellist)]
             mD = sp.block_diag(mD)
+            if self._r_second_deriv is None:
+                if self.gmm.covariance_type == "tied":
+                    if self.non_linear_relationships:
+                        r = np.r_[
+                            [
+                                self.gmm.cluster_mapping[membership[i]].deriv(
+                                    dmmodel[i],
+                                    v=(
+                                        self.gmm.cluster_mapping[membership[i]].deriv(
+                                            dmmodel[i], v=self.gmm.precisions_
+                                        )
+                                    ).T,
+                                )
+                                for i in range(len(dmmodel))
+                            ]
+                        ]
+                    else:
 
-            if self.gmm.covariance_type == "tied":
-                r = self.gmm.precisions_[np.newaxis, :, :][np.zeros_like(membership)]
-            elif (
-                self.gmm.covariance_type == "spherical"
-                or self.gmm.covariance_type == "diag"
-            ):
-                r = np.r_[
-                    [
-                        self.gmm.precisions_[memb] * np.eye(len(self.wiresmap.maps))
-                        for memb in membership
-                    ]
-                ]
-            else:
-                r = self.gmm.precisions_[membership]
+                        r = self.gmm.precisions_[np.newaxis, :, :][
+                            np.zeros_like(membership)
+                        ]
+                elif (
+                    self.gmm.covariance_type == "spherical"
+                    or self.gmm.covariance_type == "diag"
+                ):
+                    if self.non_linear_relationships:
+                        r = np.r_[
+                            [
+                                self.gmm.cluster_mapping[membership[i]].deriv(
+                                    dmmodel[i],
+                                    v=(
+                                        self.gmm.cluster_mapping[membership[i]].deriv(
+                                            dmmodel[i],
+                                            v=self.gmm.precisions_[membership[i]]
+                                            * np.eye(len(self.wiresmap.maps)),
+                                        )
+                                    ).T,
+                                )
+                                for i in range(len(dmmodel))
+                            ]
+                        ]
+                    else:
+                        r = np.r_[
+                            [
+                                self.gmm.precisions_[memb]
+                                * np.eye(len(self.wiresmap.maps))
+                                for memb in membership
+                            ]
+                        ]
+                else:
+                    if self.non_linear_relationships:
+                        r = np.r_[
+                            [
+                                self.gmm.cluster_mapping[membership[i]].deriv(
+                                    dmmodel[i],
+                                    v=(
+                                        self.gmm.cluster_mapping[membership[i]].deriv(
+                                            dmmodel[i],
+                                            v=self.gmm.precisions_[membership[i]],
+                                        )
+                                    ).T,
+                                )
+                                for i in range(len(dmmodel))
+                            ]
+                        ]
+                    else:
+                        r = self.gmm.precisions_[membership]
+
+                self._r_second_deriv = r
 
             if v is not None:
                 mDv = self.wiresmap * (mD * v)
@@ -391,13 +555,25 @@ class PGIsmallness(BaseRegularization):
                     mD.T
                     * (
                         self.W
-                        * (mkvc(np.r_[[np.dot(r[i], r0[i]) for i in range(len(r0))]]))
+                        * (
+                            mkvc(
+                                np.r_[
+                                    [
+                                        np.dot(self._r_second_deriv[i], r0[i])
+                                        for i in range(len(r0))
+                                    ]
+                                ]
+                            )
+                        )
                     )
                 )
             else:
                 # Forming the Hessian by diagonal blocks
                 hlist = [
-                    [r[:, i, j] for i in range(len(self.wiresmap.maps))]
+                    [
+                        self._r_second_deriv[:, i, j]
+                        for i in range(len(self.wiresmap.maps))
+                    ]
                     for j in range(len(self.wiresmap.maps))
                 ]
                 Hr = sp.csc_matrix((0, 0), dtype=np.float64)
@@ -412,6 +588,9 @@ class PGIsmallness(BaseRegularization):
                 return (mD.T * mD) * (self.W * (Hr))
 
         else:
+            if self.non_linear_relationships:
+                raise Exception("Not implemented")
+
             # non distinct clusters positive definite approximated Hessian
             modellist = self.wiresmap * m
             model = np.c_[[a * b for a, b in zip(self.maplist, modellist)]].T
@@ -489,11 +668,11 @@ class PGIsmallness(BaseRegularization):
 
             if v is not None:
                 return Hr.dot(v)
-            else:
-                return Hr
+
+            return Hr
 
 
-class PGI(SimpleComboRegularization):
+class PGI(ComboObjectiveFunction):
     """
     class similar to regularization.tikhonov.Simple, with a PGIsmallness.
     PARAMETERS
@@ -511,539 +690,95 @@ class PGI(SimpleComboRegularization):
         self,
         mesh,
         gmmref,
+        alpha_s=None,
+        alpha_x=None,
+        alpha_y=None,
+        alpha_z=None,
+        alpha_xx=0.0,
+        alpha_yy=0.0,
+        alpha_zz=0.0,
         gmm=None,
         wiresmap=None,
         maplist=None,
+        alpha_pgi=None,
         approx_hessian=True,
         approx_gradient=True,
         approx_eval=True,
-        alpha_s=1.0,
-        alpha_x=1.0,
-        alpha_y=1.0,
-        alpha_z=1.0,
-        alpha_xx=0.0,
-        alpha_yy=0.0,
-        alpha_zz=0.0,
-        **kwargs
+        weights_list=None,
+        non_linear_relationships: bool = False,
+        reference_model_in_smooth: bool = False,
+        **kwargs,
     ):
-        self.gmmref = copy.deepcopy(gmmref)
-        self.gmmref.order_clusters_GM_weight()
-        self._gmm = copy.deepcopy(gmm)
         self._wiresmap = wiresmap
         self._maplist = maplist
-        self._mesh = mesh
-        self.mesh = mesh
-        self._approx_hessian = approx_hessian
-        self._approx_gradient = approx_gradient
-        self._approx_eval = approx_eval
-        self.mapping = IdentityMap(mesh, nP=self.wiresmap.nP)
+        self.regularization_mesh = mesh
+        self.gmmref = copy.deepcopy(gmmref)
+        self.gmmref.order_clusters_GM_weight()
 
         objfcts = [
             PGIsmallness(
-                mesh=mesh,
-                gmm=self.gmm,
+                gmmref,
+                mesh=self.regularization_mesh,
+                gmm=gmm,
                 wiresmap=self.wiresmap,
                 maplist=self.maplist,
-                approx_gradient=approx_gradient,
                 approx_eval=approx_eval,
-                mapping=self.mapping,
-                **kwargs
+                approx_gradient=approx_gradient,
+                approx_hessian=approx_hessian,
+                non_linear_relationships=non_linear_relationships,
+                weights=weights_list,
+                **kwargs,
             )
         ]
 
-        super(PGI, self).__init__(
-            mesh=mesh,
-            alpha_s=alpha_s,
-            alpha_x=alpha_x,
-            alpha_y=alpha_y,
-            alpha_z=alpha_z,
-            alpha_xx=alpha_xx,
-            alpha_yy=alpha_yy,
-            alpha_zz=alpha_zz,
-            objfcts=objfcts,
-            **kwargs
-        )
+        if not isinstance(weights_list, list):
+            weights_list = [weights_list] * len(self.maplist)
 
-    # Properties
-    alpha_s = props.Float("PGI smallness multiplier")
-
-    @property
-    def gmm(self):
-        if getattr(self, "_gmm", None) is None:
-            self._gmm = copy.deepcopy(self.gmmref)
-        return self._gmm
-
-    @gmm.setter
-    def gmm(self, gm):
-        if gm is not None:
-            self._gmm = copy.deepcopy(gm)
-        self.objfcts[0].gmm = self.gmm
-
-    def membership(self, m):
-        return self.objfcts[0].membership(m)
-
-    def compute_quasi_geology_model(self):
-        return self.objfcts[0].compute_quasi_geology_model()
-
-    @property
-    def wiresmap(self):
-        if getattr(self, "_wiresmap", None) is None:
-            self._wiresmap = Wires(("m", self._mesh.nC))
-        return self._wiresmap
-
-    @wiresmap.setter
-    def wiresmap(self, wm):
-        if wm is not None:
-            self._wiresmap = wm
-        self.objfcts[0].wiresmap = self.wiresmap
-
-    @property
-    def maplist(self):
-        if getattr(self, "_maplist", None) is None:
-            self._maplist = [IdentityMap(self._mesh) for maps in self.wiresmap.maps]
-        return self._maplist
-
-    @maplist.setter
-    def maplist(self, mp):
-        if mp is not None:
-            self._maplist = mp
-        self.objfcts[0].maplist = self.maplist
-
-    @property
-    def approx_gradient(self):
-        if getattr(self, "_approx_gradient", None) is None:
-            self._approx_gradient = True
-        return self._approx_gradient
-
-    @property
-    def approx_hessian(self):
-        if getattr(self, "_approx_hessian", None) is None:
-            self._approx_hessian = True
-        return self._approx_hessian
-
-    @approx_hessian.setter
-    def approx_hessian(self, ap):
-        if ap is not None:
-            self._approx_hessian = ap
-        self.objfcts[0].approx_hessian = self.approx_hessian
-
-    @approx_gradient.setter
-    def approx_gradient(self, ap):
-        if ap is not None:
-            self._approx_gradient = ap
-        self.objfcts[0].approx_gradient = self.approx_gradient
-
-    @property
-    def approx_eval(self):
-        if getattr(self, "_approx_eval", None) is None:
-            self._approx_eval = True
-        return self._approx_eval
-
-    @approx_eval.setter
-    def approx_eval(self, ap):
-        if ap is not None:
-            self._approx_eval = ap
-        self.objfcts[0].approx_eval = self.approx_eval
-
-
-class PGIwithNonlinearRelationshipsSmallness(BaseRegularization):
-    """
-    Smallness term for the petrophysically constrained regularization (PGI) with
-    nonlinear relationships between physical properties and cells_weight s
-    imilar to the ones used in regularization.tikhonov.Simple.
-
-    PARAMETERS
-    ----------
-    :param SimPEG.utils.GaussianMixtureWithNonlinearRelationships gmm: GMM to use
-    :param SimPEG.maps.Wires wiresmap: wires mapping to the various physical properties
-    :param list maplist: list of SimPEG.maps for each physical property.
-    :param discretize.BaseMesh mesh: tensor, QuadTree or Octree mesh
-    :param boolean approx_gradient: use the L2-approximation of the gradient, default is True
-    :param boolean approx_eval: use the L2-approximation evaluation of the smallness term
-    """
-
-    _multiplier_pair = "alpha_s"
-
-    def __init__(
-        self,
-        gmm,
-        wiresmap=None,
-        maplist=None,
-        mesh=None,
-        approx_gradient=True,
-        approx_eval=True,
-        **kwargs
-    ):
-
-        self.approx_gradient = approx_gradient
-        self.approx_eval = approx_eval
-
-        super(PGIwithNonlinearRelationshipsSmallness, self).__init__(
-            mesh=mesh, **kwargs
-        )
-        self.gmm = gmm
-        self.wiresmap = wiresmap
-        self.maplist = maplist
-
-        # storing the numpy.polynomial derivatives computations (somewhat long)
-        self._r_first_deriv = None
-        self._r_second_deriv = None
-
-    @property
-    def W(self):
-        """
-        Weighting matrix
-        Need to change the size to match self.wiresmap.maps * mesh.nC
-        """
-
-        if self.cell_weights is not None:
-            if len(self.cell_weights) == self.wiresmap.nP:
-                return (
-                    sp.kron(
-                        speye(len(self.wiresmap.maps)),
-                        sdiag(np.sqrt(self.regmesh.vol)),
-                    )
-                    * sdiag(np.sqrt(self.cell_weights))
+        for map, wire, weights in zip(self.maplist, self.wiresmap.maps, weights_list):
+            objfcts += [
+                WeightedLeastSquares(
+                    alpha_s=0.0,
+                    alpha_x=alpha_x,
+                    alpha_y=alpha_y,
+                    alpha_z=alpha_z,
+                    alpha_xx=alpha_xx,
+                    alpha_yy=alpha_yy,
+                    alpha_zz=alpha_zz,
+                    mesh=self.regularization_mesh,
+                    mapping=map * wire[1],
+                    weights=weights,
+                    **kwargs,
                 )
-            else:
-                return sp.kron(
-                    speye(len(self.wiresmap.maps)),
-                    sdiag(np.sqrt(self.regmesh.vol)),
-                ) * sp.kron(
-                    speye(len(self.wiresmap.maps)), sdiag(np.sqrt(self.cell_weights))
-                )
-        else:
-            return sp.kron(
-                speye(len(self.wiresmap.maps)),
-                sdiag(np.sqrt(self.regmesh.vol)),
-            )
-
-    @properties.validator("cell_weights")
-    def _validate_cell_weights(self, change):
-        if change["value"] is not None:
-            if self._nC_residual != "*":
-                if (len(change["value"]) != self._nC_residual) and (
-                    len(change["value"]) != len(self.wiresmap.maps) * self._nC_residual
-                ):
-                    raise Exception(
-                        "cell_weights must be length {} or {} not {}".format(
-                            self._nC_residual,
-                            len(self.wiresmap.maps) * self._nC_residual,
-                            len(change["value"]),
-                        )
-                    )
-
-    def membership(self, m):
-        modellist = self.wiresmap * m
-        model = np.c_[[a * b for a, b in zip(self.maplist, modellist)]].T
-        return self.gmm.predict(model)
-
-    def compute_quasi_geology_model(self):
-        # used once mref is built
-        mreflist = self.wiresmap * self.mref
-        mrefarray = np.c_[[a * b for a, b in zip(self.maplist, mreflist)]].T
-        return np.c_[
-            [((mrefarray - mean) ** 2).sum(axis=1) for mean in self.gmm.means_]
-        ].argmin(axis=0)
-
-    @timeIt
-    def __call__(self, m, externalW=True):
-
-        if externalW:
-            W = self.W
-        else:
-            W = Identity()
-
-        if getattr(self, "mref", None) is None:
-            self.mref = mkvc(self.gmm.means_[self.membership(m)])
-
-        if self.approx_eval:
-            membership = self.compute_quasi_geology_model()
-            dm = self.wiresmap * (m)
-            dmref = self.wiresmap * (self.mref)
-            dmm = np.c_[[a * b for a, b in zip(self.maplist, dm)]].T
-            dmm = np.r_[
-                [
-                    self.gmm.cluster_mapping[membership[i]] * dmm[i].reshape(-1, 2)
-                    for i in range(dmm.shape[0])
-                ]
-            ].reshape(-1, 2)
-            dmmref = np.c_[[a for a in dmref]].T
-            dmr = dmm - dmmref
-            r0 = W * mkvc(dmr)
-
-            if self.gmm.covariance_type == "tied":
-                r1 = np.r_[
-                    [
-                        np.dot(self.gmm.precisions_, np.r_[dmr[i]])
-                        for i in range(len(dmr))
-                    ]
-                ]
-            elif (
-                self.gmm.covariance_type == "diag"
-                or self.gmm.covariance_type == "spherical"
-            ):
-                r1 = np.r_[
-                    [
-                        np.dot(
-                            self.gmm.precisions_[membership[i]]
-                            * np.eye(len(self.wiresmap.maps)),
-                            np.r_[dmr[i]],
-                        )
-                        for i in range(len(dmr))
-                    ]
-                ]
-            else:
-                r1 = np.r_[
-                    [
-                        np.dot(self.gmm.precisions_[membership[i]], np.r_[dmr[i]])
-                        for i in range(len(dmr))
-                    ]
-                ]
-
-            return 0.5 * r0.dot(W * mkvc(r1))
-
-        else:
-            modellist = self.wiresmap * m
-            model = np.c_[[a * b for a, b in zip(self.maplist, modellist)]].T
-            score = self.gmm.score_samples(model)
-            score_vec = mkvc(np.r_[[score for maps in self.wiresmap.maps]])
-            return -np.sum((W.T * W) * score_vec) / len(self.wiresmap.maps)
-
-    @timeIt
-    def deriv(self, m):
-
-        if getattr(self, "mref", None) is None:
-            self.mref = mkvc(self.gmm.means_[self.membership(m)])
-
-        membership = self.compute_quasi_geology_model()
-        modellist = self.wiresmap * m
-        dmmodel = np.c_[[a * b for a, b in zip(self.maplist, modellist)]].T
-        mreflist = self.wiresmap * self.mref
-        mD = [a.deriv(b) for a, b in zip(self.maplist, modellist)]
-        mD = sp.block_diag(mD)
-
-        if self.approx_gradient:
-            dmm = np.r_[
-                [
-                    self.gmm.cluster_mapping[membership[i]] * dmmodel[i].reshape(-1, 2)
-                    for i in range(dmmodel.shape[0])
-                ]
-            ].reshape(-1, 2)
-            dmmref = np.c_[[a for a in mreflist]].T
-            dm = dmm - dmmref
-
-            if self.gmm.covariance_type == "tied":
-                raise Exception("Not implemented")
-            else:
-                r = self.W * mkvc(
-                    np.r_[
-                        [
-                            mkvc(
-                                self.gmm.cluster_mapping[membership[i]].deriv(
-                                    dmmodel[i],
-                                    v=np.dot(
-                                        self.gmm.precisions_[membership[i]], dm[i]
-                                    ),
-                                )
-                            )
-                            for i in range(dmmodel.shape[0])
-                        ]
-                    ]
-                )
-            return mkvc(mD.T * (self.W.T * r))
-
-        else:
-            raise Exception("Not implemented")
-
-    @timeIt
-    def deriv2(self, m, v=None):
-
-        if getattr(self, "mref", None) is None:
-            self.mref = mkvc(self.gmm.means_[self.membership(m)])
-
-        # For a positive definite Hessian,
-        # we approximate it with the covariance of the cluster
-        # whose each point belong
-        membership = self.compute_quasi_geology_model()
-        modellist = self.wiresmap * m
-        dmmodel = np.c_[[a * b for a, b in zip(self.maplist, modellist)]].T
-        mD = [a.deriv(b) for a, b in zip(self.maplist, modellist)]
-        mD = sp.block_diag(mD)
-
-        if self._r_second_deriv is None:
-            if self.gmm.covariance_type == "tied":
-                r = np.r_[
-                    [
-                        self.gmm.cluster_mapping[membership[i]].deriv(
-                            dmmodel[i],
-                            v=(
-                                self.gmm.cluster_mapping[membership[i]].deriv(
-                                    dmmodel[i], v=self.gmm.precisions_
-                                )
-                            ).T,
-                        )
-                        for i in range(len(dmmodel))
-                    ]
-                ]
-            elif (
-                self.gmm.covariance_type == "spherical"
-                or self.gmm.covariance_type == "diag"
-            ):
-                r = np.r_[
-                    [
-                        self.gmm.cluster_mapping[membership[i]].deriv(
-                            dmmodel[i],
-                            v=(
-                                self.gmm.cluster_mapping[membership[i]].deriv(
-                                    dmmodel[i],
-                                    v=self.gmm.precisions_[membership[i]]
-                                    * np.eye(len(self.wiresmap.maps)),
-                                )
-                            ).T,
-                        )
-                        for i in range(len(dmmodel))
-                    ]
-                ]
-            else:
-                r = np.r_[
-                    [
-                        self.gmm.cluster_mapping[membership[i]].deriv(
-                            dmmodel[i],
-                            v=(
-                                self.gmm.cluster_mapping[membership[i]].deriv(
-                                    dmmodel[i], v=self.gmm.precisions_[membership[i]]
-                                )
-                            ).T,
-                        )
-                        for i in range(len(dmmodel))
-                    ]
-                ]
-            self._r_second_deriv = r
-
-        if v is not None:
-            mDv = self.wiresmap * (mD * v)
-            mDv = np.c_[mDv]
-            return mkvc(
-                mD.T
-                * (
-                    (self.W.T * self.W)
-                    * mkvc(
-                        np.r_[
-                            [
-                                np.dot(self._r_second_deriv[i], mDv[i])
-                                for i in range(len(mDv))
-                            ]
-                        ]
-                    )
-                )
-            )
-        else:
-            # Forming the Hessian by diagonal blocks
-            hlist = [
-                [self._r_second_deriv[:, i, j] for i in range(len(self.wiresmap.maps))]
-                for j in range(len(self.wiresmap.maps))
             ]
 
-            Hr = sp.csc_matrix((0, 0), dtype=np.float64)
-            for i in range(len(self.wiresmap.maps)):
-                Hc = sp.csc_matrix((0, 0), dtype=np.float64)
-                for j in range(len(self.wiresmap.maps)):
-                    Hc = sp.hstack([Hc, sdiag(hlist[i][j])])
-                Hr = sp.vstack([Hr, Hc])
+        super().__init__(objfcts=objfcts)
+        self.reference_model_in_smooth = reference_model_in_smooth
 
-            mDW = self.W * mD
+    @property
+    def alpha_pgi(self):
+        """PGI smallness weight"""
+        if getattr(self, "_alpha_pgi", None) is None:
+            self._alpha_pgi = self.multipliers[0]
+        return self._alpha_pgi
 
-            return (mDW.T * mDW) * Hr
-
-
-class PGIwithRelationships(SimpleComboRegularization):
-    """
-    class similar to regularization.tikhonov.Simple, with a
-    PGIwithNonlinearRelationshipsSmallness.
-
-    PARAMETERS
-    ----------
-    :param SimPEG.utils.GaussianMixtureWithNonlinearRelationships gmmref: refereence/prior GMM
-    :param SimPEG.utils.GaussianMixtureWithNonlinearRelationships gmm: GMM to use
-    :param SimPEG.maps.Wires wiresmap: wires mapping to the various physical properties
-    :param list maplist: list of SimPEG.maps for each physical property.
-    :param discretize.BaseMesh mesh: tensor, QuadTree or Octree mesh
-    :param boolean approx_gradient: use the L2-approximation of the gradient, default is True
-    :param boolean approx_eval: use the L2-approximation evaluation of the smallness term
-    """
-
-    def __init__(
-        self,
-        mesh,
-        gmmref,
-        gmm=None,
-        wiresmap=None,
-        maplist=None,
-        approx_gradient=True,
-        approx_eval=True,
-        alpha_s=1.0,
-        alpha_x=1.0,
-        alpha_y=1.0,
-        alpha_z=1.0,
-        alpha_xx=0.0,
-        alpha_yy=0.0,
-        alpha_zz=0.0,
-        **kwargs
-    ):
-        self.gmmref = copy.deepcopy(gmmref)
-        self.gmmref.order_clusters_GM_weight()
-        self._gmm = copy.deepcopy(gmm)
-        self._wiresmap = wiresmap
-        self._maplist = maplist
-        self._mesh = mesh
-        self.mesh = mesh
-        self._approx_gradient = approx_gradient
-        self._approx_eval = approx_eval
-        self.mapping = IdentityMap(mesh, nP=self.wiresmap.nP)
-
-        objfcts = [
-            PGIwithNonlinearRelationshipsSmallness(
-                mesh=mesh,
-                gmm=self.gmm,
-                wiresmap=self.wiresmap,
-                maplist=self.maplist,
-                approx_gradient=approx_gradient,
-                approx_eval=approx_eval,
-                mapping=self.mapping,
-                **kwargs
+    @alpha_pgi.setter
+    def alpha_pgi(self, value):
+        if isinstance(value, (float, int)) and value < 0:
+            raise ValueError(
+                "Input 'alpha_pgi' value must me of type float > 0"
+                f"Value {value} of type {type(value)} provided"
             )
-        ]
-
-        super(PGIwithRelationships, self).__init__(
-            mesh=mesh,
-            alpha_s=alpha_s,
-            alpha_x=alpha_x,
-            alpha_y=alpha_y,
-            alpha_z=alpha_z,
-            alpha_xx=alpha_xx,
-            alpha_yy=alpha_yy,
-            alpha_zz=alpha_zz,
-            objfcts=objfcts,
-            **kwargs
-        )
-
-    # Properties
-    alpha_s = props.Float("PGI smallness multiplier")
+        self._alpha_pgi = value
+        self._multipliers[0] = value
 
     @property
     def gmm(self):
-        if getattr(self, "_gmm", None) is None:
-            self._gmm = copy.deepcopy(self.gmmref)
-        return self._gmm
+        return self.objfcts[0].gmm
 
     @gmm.setter
     def gmm(self, gm):
-        if gm is not None:
-            self._gmm = copy.deepcopy(gm)
-        self.objfcts[0].gmm = self.gmm
+        self.objfcts[0].gmm = copy.deepcopy(gm)
 
-    # @classmethod
     def membership(self, m):
         return self.objfcts[0].membership(m)
 
@@ -1053,35 +788,65 @@ class PGIwithRelationships(SimpleComboRegularization):
     @property
     def wiresmap(self):
         if getattr(self, "_wiresmap", None) is None:
-            self._wiresmap = Wires(("m", self._mesh.nC))
+            self._wiresmap = Wires(("m", self.regularization_mesh.nC))
         return self._wiresmap
-
-    @wiresmap.setter
-    def wiresmap(self, wm):
-        if wm is not None:
-            self._wiresmap = wm
-        self.objfcts[0].wiresmap = self.wiresmap
 
     @property
     def maplist(self):
         if getattr(self, "_maplist", None) is None:
-            self._maplist = [IdentityMap(self._mesh) for maps in self.wiresmap.maps]
+            self._maplist = [
+                IdentityMap(self.regularization_mesh) for maps in self.wiresmap.maps
+            ]
         return self._maplist
 
-    @maplist.setter
-    def maplist(self, mp):
-        if mp is not None:
-            self._maplist = mp
-        self.objfcts[0].maplist = self.maplist
+    @property
+    def regularization_mesh(self) -> RegularizationMesh:
+        """Regularization mesh"""
+        return self._regularization_mesh
+
+    @regularization_mesh.setter
+    def regularization_mesh(self, mesh: RegularizationMesh):
+        if not isinstance(mesh, RegularizationMesh):
+            mesh = RegularizationMesh(mesh)
+
+        self._regularization_mesh = mesh
 
     @property
-    def approx_gradient(self):
-        if getattr(self, "_approx_gradient", None) is None:
-            self._approx_gradient = True
-        return self._approx_gradient
+    def reference_model_in_smooth(self) -> bool:
+        """
+        Use the reference model in the model gradient penalties.
+        """
+        return self._reference_model_in_smooth
 
-    @approx_gradient.setter
-    def approx_gradient(self, ap):
-        if ap is not None:
-            self._approx_gradient = ap
-        self.objfcts[0].approx_gradient = self.approx_gradient
+    @reference_model_in_smooth.setter
+    def reference_model_in_smooth(self, value: bool):
+        if not isinstance(value, bool):
+            raise TypeError(
+                "'reference_model_in_smooth must be of type 'bool'. "
+                f"Value of type {type(value)} provided."
+            )
+        self._reference_model_in_smooth = value
+        for fct in self.objfcts[1:]:
+            if getattr(fct, "reference_model_in_smooth", None) is not None:
+                fct.reference_model_in_smooth = value
+
+    @property
+    def reference_model(self) -> np.ndarray:
+        """Reference physical property model"""
+        return self.objfcts[0].reference_model
+
+    @reference_model.setter
+    def reference_model(self, values: np.ndarray | float):
+
+        if isinstance(values, float):
+            values = np.ones(self._nC_residual) * values
+
+        for fct in self.objfcts:
+            fct.reference_model = values
+
+    mref = deprecate_property(
+        reference_model,
+        "mref",
+        "reference_model",
+        error=False,
+    )

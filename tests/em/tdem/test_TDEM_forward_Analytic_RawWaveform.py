@@ -1,15 +1,17 @@
 from __future__ import division, print_function
-import unittest
-import discretize
-import numpy as np
-from scipy.constants import mu_0
-import matplotlib.pyplot as plt
-from scipy.interpolate import interp1d
-from pymatsolver import Pardiso as Solver
 
+import unittest
+
+import discretize
+import matplotlib.pyplot as plt
+import numpy as np
+from pymatsolver import Pardiso as Solver
+from scipy.constants import mu_0
+from scipy.interpolate import interp1d
 from SimPEG import maps
+from SimPEG.electromagnetics import analytics
 from SimPEG.electromagnetics import time_domain as tdem
-from SimPEG.electromagnetics import analytics, utils
+from SimPEG.electromagnetics import utils
 
 
 def halfSpaceProblemAnaDiff(
@@ -31,10 +33,10 @@ def halfSpaceProblemAnaDiff(
         mesh = discretize.CylMesh([hx, 1, hz], "00C")
 
     elif meshType == "TENSOR":
-        cs, nc, npad = 20.0, 13, 5
-        hx = [(cs, npad, -1.3), (cs, nc), (cs, npad, 1.3)]
-        hy = [(cs, npad, -1.3), (cs, nc), (cs, npad, 1.3)]
-        hz = [(cs, npad, -1.3), (cs, nc), (cs, npad, 1.3)]
+        cs, nc, npad = 20.0, 20, 7
+        hx = [(cs, npad, 1.5), (cs, nc), (cs, npad, 1.5)]
+        hy = [(cs, npad, 1.5), (cs, nc), (cs, npad, 1.5)]
+        hz = [(cs, npad, 1.5), (cs, nc), (cs, npad, 1.5)]
         mesh = discretize.TensorMesh([hx, hy, hz], "CCC")
 
     active = mesh.vectorCCz < 0.0
@@ -65,6 +67,16 @@ def halfSpaceProblemAnaDiff(
         src = tdem.Src.CircularLoop(
             [rx], waveform=waveform, location=np.array([0.0, 0.0, 0.0]), radius=13.0
         )
+    elif srctype == "LineCurrent":
+        side = 100.0 * np.sqrt(np.pi)
+        loop_path = np.c_[
+            [-side / 2, -side / 2, 0],
+            [side / 2, -side / 2, 0],
+            [side / 2, side / 2, 0],
+            [-side / 2, side / 2, 0],
+            [-side / 2, -side / 2, 0],
+        ].T
+        src = tdem.sources.LineCurrent([rx], waveform=waveform, location=loop_path)
 
     survey = tdem.Survey([src])
     prb = tdem.Simulation3DMagneticFluxDensity(
@@ -82,6 +94,8 @@ def halfSpaceProblemAnaDiff(
         )
     elif srctype == "CircularLoop":
         bz_ana = mu_0 * analytics.hzAnalyticCentLoopT(13, rx.times - t0, sig_half)
+    elif srctype == "LineCurrent":
+        bz_ana = mu_0 * analytics.hzAnalyticCentLoopT(100.0, rx.times - t0, sig_half)
 
     bz_calc = prb.dpred(sigma)
     ind = np.logical_and(rx.times - t0 > bounds[0], rx.times - t0 < bounds[1])
@@ -146,7 +160,7 @@ class TDEM_bTests(unittest.TestCase):
             halfSpaceProblemAnaDiff(
                 "CYL", srctype="CircularLoop", rxOffset=0.0, sig_half=1e0
             )
-            < 0.02
+            < 0.01
         )
 
     def test_analytic_m1_CYL_0m_CircularLoop(self):
@@ -168,11 +182,43 @@ class TDEM_bTests(unittest.TestCase):
     def test_analytic_m3_CYL_0m_CircularLoop(self):
         self.assertTrue(
             halfSpaceProblemAnaDiff(
-                "CYL", srctype="CircularLoop", rxOffset=0.0, sig_half=1e-3
+                "CYL",
+                srctype="CircularLoop",
+                rxOffset=0.0,
+                sig_half=1e-3,
             )
             < 0.01
         )
 
+    def test_analytic_m1_TENSOR_0m_LineCurrent(self):
+        self.assertTrue(
+            halfSpaceProblemAnaDiff(
+                "TENSOR",
+                srctype="LineCurrent",
+                rxOffset=0.0,
+                sig_half=1e-1,
+            )
+            < 0.01
+        )
 
-if __name__ == "__main__":
-    unittest.main()
+    def test_analytic_m2_TENSOR_0m_LineCurrent(self):
+        self.assertTrue(
+            halfSpaceProblemAnaDiff(
+                "TENSOR",
+                srctype="LineCurrent",
+                rxOffset=0.0,
+                sig_half=1e-2,
+            )
+            < 0.01
+        )
+
+    def test_analytic_m3_TENSOR_0m_LineCurrent(self):
+        self.assertTrue(
+            halfSpaceProblemAnaDiff(
+                "TENSOR",
+                srctype="LineCurrent",
+                rxOffset=0.0,
+                sig_half=1e-3,
+            )
+            < 0.01
+        )

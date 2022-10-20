@@ -1,68 +1,161 @@
 import scipy.sparse as sp
-import properties
 
-from ...utils import mkvc
+from ...utils import mkvc, validate_string, validate_type, validate_direction
+from discretize.utils import Zero
 from ...survey import BaseTimeRx
+import warnings
 
 
 class BaseRx(BaseTimeRx):
+    """Base TDEM receiver class
+
+    Parameters
+    ----------
+    locations : (n_loc, n_dim) numpy.ndarray
+        Receiver locations.
+    orientation : {'z', 'x', 'y'} or numpy.ndarray
+        Receiver orientation.
+    times : (n_times) numpy.ndarray
+        Time channels
     """
-    Time domain receiver base class
 
-    :param numpy.ndarray locations: receiver locations (ie. :code:`np.r_[x,y,z]`)
-    :param numpy.ndarray times: times
-    :param string orientation: receiver orientation 'x', 'y' or 'z'
-    """
-
-    orientation = properties.StringChoice(
-        "orientation of the receiver. Must currently be 'x', 'y', 'z'", ["x", "y", "z"]
-    )
-
-    def __init__(self, locations, times, orientation=None, **kwargs):
+    def __init__(
+        self,
+        locations,
+        times,
+        orientation="z",
+        use_source_receiver_offset=False,
+        **kwargs
+    ):
         proj = kwargs.pop("projComp", None)
         if proj is not None:
+            warnings.warn(
+                "'projComp' overrides the 'orientation' property which automatically"
+                " handles the projection from the mesh the receivers!!! "
+                "'projComp' is deprecated and will be removed in SimPEG 0.16.0."
+            )
             self.projComp = proj
-        else:
-            self.orientation = orientation
+
+        if locations is None:
+            raise AttributeError("'locations' are required. Cannot be 'None'")
+
+        if times is None:
+            raise AttributeError("'times' are required. Cannot be 'None'")
+
+        self.orientation = orientation
+        self.use_source_receiver_offset = use_source_receiver_offset
         super().__init__(locations=locations, times=times, **kwargs)
 
-    def projGLoc(self, f):
-        """Grid Location projection (e.g. Ex Fy ...)"""
-        return f._GLoc(self.projField) + self.orientation
+    # orientation = properties.StringChoice(
+    #     "orientation of the receiver. Must currently be 'x', 'y', 'z'", ["x", "y", "z"]
+    # )
 
-    def projTLoc(self, f):
-        """Time Location projection (e.g. CC N)"""
-        return f._TLoc(self.projField)
+    @property
+    def orientation(self):
+        """Orientation of the receiver.
+
+        Returns
+        -------
+        numpy.ndarray
+            Orientation of the receiver.
+        """
+        return self._orientation
+
+    @orientation.setter
+    def orientation(self, var):
+        self._orientation = validate_direction("orientation", var, dim=3)
+
+    # def projected_grid(self, f):
+    #     """Grid Location projection (e.g. Ex Fy ...)"""
+    #     return f._GLoc(self.projField) + self.orientation
+
+    @property
+    def use_source_receiver_offset(self):
+        """Use source-receiver offset.
+
+        Whether to interpret the location as a source-receiver offset.
+
+        Returns
+        -------
+        bool
+
+        Notes
+        -----
+        This is currently only implemented for the 1D layered code.
+        """
+        return self._use_source_receiver_offset
+
+    @use_source_receiver_offset.setter
+    def use_source_receiver_offset(self, val):
+        self._use_source_receiver_offset = validate_type(
+            "use_source_receiver_offset", val, bool
+        )
+
+    # def projected_time_grid(self, f):
+    #     """Time Location projection (e.g. CC N)"""
+    #     return f._TLoc(self.projField)
 
     def getSpatialP(self, mesh, f):
-        """
-        Returns the spatial projection matrix.
+        """Get spatial projection matrix from mesh to receivers.
 
-        .. note::
+        Only constructed when called.
 
-            This is not stored in memory, but is created on demand.
+        Parameters
+        ----------
+        mesh : discretize.BaseMesh
+            A discretize mesh
+        f : SimPEG.electromagnetics.time_domain.fields.FieldsTDEM
+
+        Returns
+        -------
+        scipy.sparse.csr_matrix
+            P, the interpolation matrix
         """
-        return mesh.getInterpolationMat(self.locations, self.projGLoc(f))
+        P = Zero()
+        field = f._GLoc(self.projField)
+        for strength, comp in zip(self.orientation, ["x", "y", "z"]):
+            if strength != 0.0:
+                P = P + strength * mesh.get_interpolation_matrix(self.locations, field + comp)
+        return P
 
     def getTimeP(self, time_mesh, f):
-        """
-        Returns the time projection matrix.
+        """Get time projection matrix from mesh to receivers.
 
-        .. note::
+        Only constructed when called.
 
-            This is not stored in memory, but is created on demand.
+        Parameters
+        ----------
+        time_mesh : discretize.TensorMesh
+            A 1D ``TensorMesh`` defining the time discretization
+        f : SimPEG.electromagnetics.time_domain.fields.FieldsTDEM
+
+        Returns
+        -------
+        scipy.sparse.csr_matrix
+            P, the interpolation matrix
         """
-        return time_mesh.getInterpolationMat(self.times, self.projTLoc(f))
+        projected_time_grid = f._TLoc(self.projField)
+        return time_mesh.getInterpolationMat(self.times, projected_time_grid)
 
     def getP(self, mesh, time_mesh, f):
-        """
-        Returns the projection matrices as a
-        list for all components collected by
-        the receivers.
+        """Returns projection matrices as a list for all components collected by the receivers.
 
-        .. note::
+        Parameters
+        ----------
+        mesh : discretize.BaseMesh
+            A discretize mesh defining spatial discretization
+        time_mesh : discretize.TensorMesh
+            A 1D ``TensorMesh`` defining the time discretization
+        f : SimPEG.electromagnetics.time_domain.fields.FieldsTDEM
 
-            Projection matrices are stored as a dictionary (mesh, time_mesh) if storeProjections is True
+        Returns
+        -------
+        scipy.sparse.csr_matrix
+            Returns full projection matrix from fields to receivers.
+
+        Notes
+        -----
+        Projection matrices are stored as a dictionary (mesh, time_mesh) if storeProjections is True
         """
         if (mesh, time_mesh) in self._Ps:
             return self._Ps[(mesh, time_mesh)]
@@ -76,50 +169,54 @@ class BaseRx(BaseTimeRx):
 
         return P
 
-    def getTimeP(self, time_mesh, f):
-        """
-        Returns the time projection matrix.
-
-        .. note::
-
-            This is not stored in memory, but is created on demand.
-        """
-        # if self.projField == 'dbdt':
-        #     return time_mesh.getInterpolationMat(
-        #         self.times, self.projTLoc(f)
-        #     )*time_mesh.faceDiv
-        # else:
-        return time_mesh.getInterpolationMat(self.times, self.projTLoc(f))
-
     def eval(self, src, mesh, time_mesh, f):
-        """
-        Project fields to receivers to get data.
+        """Project fields to receivers to get data.
 
-        :param SimPEG.electromagnetics.time_domain.sources.BaseWaveform src: TDEM source
-        :param discretize.base.BaseMesh mesh: mesh used
-        :param Fields f: fields object
-        :rtype: numpy.ndarray
-        :return: fields projected to recievers
-        """
+        Parameters
+        ----------
+        src : SimPEG.electromagnetics.frequency_domain.sources.BaseTDEMSrc
+            A time-domain EM source
+        mesh : discretize.base.BaseMesh
+            The mesh on which the discrete set of equations is solved
+        time_mesh : discretize.TensorMesh
+            A 1D ``TensorMesh`` defining the time discretization
+        f : SimPEG.electromagnetic.time_domain.fields.FieldsTDEM
+            The solution for the fields defined on the mesh
 
+        Returns
+        -------
+        numpy.ndarray
+            Fields projected to the receiver(s)
+        """
         P = self.getP(mesh, time_mesh, f)
         f_part = mkvc(f[src, self.projField, :])
         return P * f_part
 
     def evalDeriv(self, src, mesh, time_mesh, f, v, adjoint=False):
-        """
-        Derivative of projected fields with respect to the inversion model times a vector.
+        """Derivative of projected fields with respect to the inversion model times a vector.
 
-        :param SimPEG.electromagnetics.time_domain.sources.BaseWaveform src: TDEM source
-        :param discretize.base.BaseMesh mesh: mesh used
-        :param discretize.base.BaseMesh time_mesh: time mesh
-        :param Fields f: fields object
-        :param numpy.ndarray v: vector to multiply
-        :rtype: numpy.ndarray
-        :return: fields projected to recievers
-        """
+        Parameters
+        ----------
+        src : SimPEG.electromagnetics.frequency_domain.sources.BaseTDEMSrc
+            A time-domain EM source
+        mesh : discretize.base.BaseMesh
+            The mesh on which the discrete set of equations is solved
+        time_mesh : discretize.TensorMesh
+            A 1D ``TensorMesh`` defining the time discretization
+        f : SimPEG.electromagnetic.time_domain.fields.FieldsTDEM
+            The solution for the fields defined on the mesh
+        v : numpy.ndarray
+            A vector
+        adjoint : bool, default = ``False``
+            If ``True``, return the adjoint
 
+        Returns
+        -------
+        numpy.ndarray
+            derivative of fields times a vector projected to the receiver(s)
+        """
         P = self.getP(mesh, time_mesh, f)
+
         if not adjoint:
             return P * v
         elif adjoint:
@@ -129,15 +226,19 @@ class BaseRx(BaseTimeRx):
 
 
 class PointElectricField(BaseRx):
-    """
-    Electric field TDEM receiver
+    """Measure TDEM electric field at a point.
 
-    :param numpy.ndarray locations: receiver locations (ie. :code:`np.r_[x,y,z]`)
-    :param numpy.ndarray times: times
-    :param string orientation: receiver orientation 'x', 'y' or 'z'
+    Parameters
+    ----------
+    locations : (n_loc, n_dim) numpy.ndarray
+        Receiver locations.
+    times : (n_times) numpy.ndarray
+        Time channels
+    orientation : {'z', 'x', 'y'}
+        Receiver orientation.
     """
 
-    def __init__(self, locations=None, times=None, orientation="x", **kwargs):
+    def __init__(self, locations=None, times=None, orientation="z", **kwargs):
         self.projField = "e"
         super(PointElectricField, self).__init__(
             locations, times, orientation, **kwargs
@@ -145,15 +246,19 @@ class PointElectricField(BaseRx):
 
 
 class PointMagneticFluxDensity(BaseRx):
-    """
-    Magnetic flux TDEM receiver
+    """Measure TDEM magnetic flux density at a point.
 
-    :param numpy.ndarray locations: receiver locations (ie. :code:`np.r_[x,y,z]`)
-    :param numpy.ndarray times: times
-    :param string orientation: receiver orientation 'x', 'y' or 'z'
+    Parameters
+    ----------
+    locations : (n_loc, n_dim) numpy.ndarray
+        Receiver locations.
+    times : (n_times) numpy.ndarray
+        Time channels
+    orientation : {'z', 'x', 'y'}
+        Receiver orientation.
     """
 
-    def __init__(self, locations=None, times=None, orientation="x", **kwargs):
+    def __init__(self, locations=None, times=None, orientation="z", **kwargs):
         self.projField = "b"
         super(PointMagneticFluxDensity, self).__init__(
             locations, times, orientation, **kwargs
@@ -161,21 +266,43 @@ class PointMagneticFluxDensity(BaseRx):
 
 
 class PointMagneticFluxTimeDerivative(BaseRx):
-    """
-    dbdt TDEM receiver
+    """Measure time-derivative of magnetic flux density at a point.
 
-    :param numpy.ndarray locations: receiver locations (ie. :code:`np.r_[x,y,z]`)
-    :param numpy.ndarray times: times
-    :param string orientation: receiver orientation 'x', 'y' or 'z'
+    Parameters
+    ----------
+    locations : (n_loc, n_dim) numpy.ndarray
+        Receiver locations.
+    times : (n_times) numpy.ndarray
+        Time channels
+    orientation : {'z', 'x', 'y'}
+        Receiver orientation.
     """
 
-    def __init__(self, locations=None, times=None, orientation="x", **kwargs):
+    def __init__(self, locations=None, times=None, orientation="z", **kwargs):
         self.projField = "dbdt"
         super(PointMagneticFluxTimeDerivative, self).__init__(
             locations, times, orientation, **kwargs
         )
 
     def eval(self, src, mesh, time_mesh, f):
+        """Project solution of fields to receivers to get data.
+
+        Parameters
+        ----------
+        src : SimPEG.electromagnetics.frequency_domain.sources.BaseTDEMSrc
+            A time-domain EM source
+        mesh : discretize.base.BaseMesh
+            The mesh on which the discrete set of equations is solved
+        time_mesh : discretize.TensorMesh
+            A 1D ``TensorMesh`` defining the time discretization
+        f : SimPEG.electromagnetic.time_domain.fields.FieldsTDEM
+            The solution for the fields defined on the mesh
+
+        Returns
+        -------
+        numpy.ndarray
+            Fields projected to the receiver(s)
+        """
 
         if self.projField in f.aliasFields:
             return super(PointMagneticFluxTimeDerivative, self).eval(
@@ -186,19 +313,27 @@ class PointMagneticFluxTimeDerivative(BaseRx):
         f_part = mkvc(f[src, "b", :])
         return P * f_part
 
-    def projGLoc(self, f):
-        """Grid Location projection (e.g. Ex Fy ...)"""
-        if self.projField in f.aliasFields:
-            return super(PointMagneticFluxTimeDerivative, self).projGLoc(f)
-        return f._GLoc(self.projField) + self.orientation
+    # def projected_grid(self, f):
+    #     """Grid Location projection (e.g. Ex Fy ...)"""
+    #     if self.projField in f.aliasFields:
+    #         return super(PointMagneticFluxTimeDerivative, self).projected_grid(f)
+    #     return f._GLoc(self.projField) + self.orientation
 
     def getTimeP(self, time_mesh, f):
-        """
-        Returns the time projection matrix.
+        """Get time projection matrix from mesh to receivers.
 
-        .. note::
+        Only constructed when called.
 
-            This is not stored in memory, but is created on demand.
+        Parameters
+        ----------
+        time_mesh : discretize.TensorMesh
+            A 1D ``TensorMesh`` defining the time discretization
+        f : SimPEG.electromagnetics.time_domain.fields.FieldsTDEM
+
+        Returns
+        -------
+        scipy.sparse.csr_matrix
+            P, the interpolation matrix
         """
         if self.projField in f.aliasFields:
             return super(PointMagneticFluxTimeDerivative, self).getTimeP(time_mesh, f)
@@ -207,12 +342,16 @@ class PointMagneticFluxTimeDerivative(BaseRx):
 
 
 class PointMagneticField(BaseRx):
-    """
-    Magnetic field TDEM receiver
+    """Measure TDEM magnetic field at a point.
 
-    :param numpy.ndarray locations: receiver locations (ie. :code:`np.r_[x,y,z]`)
-    :param numpy.ndarray times: times
-    :param string orientation: receiver orientation 'x', 'y' or 'z'
+    Parameters
+    ----------
+    locations : (n_loc, n_dim) numpy.ndarray
+        Receiver locations.
+    times : (n_times) numpy.ndarray
+        Time channels
+    orientation : {'z', 'x', 'y'}
+        Receiver orientation.
     """
 
     def __init__(self, locations=None, times=None, orientation="x", **kwargs):
@@ -223,12 +362,16 @@ class PointMagneticField(BaseRx):
 
 
 class PointCurrentDensity(BaseRx):
-    """
-    Current density TDEM receiver
+    """Measure TDEM current density at a point.
 
-    :param numpy.ndarray locations: receiver locations (ie. :code:`np.r_[x,y,z]`)
-    :param numpy.ndarray times: times
-    :param string orientation: receiver orientation 'x', 'y' or 'z'
+    Parameters
+    ----------
+    locations : (n_loc, n_dim) numpy.ndarray
+        Receiver locations.
+    times : (n_times) numpy.ndarray
+        Time channels
+    orientation : {'z', 'x', 'y'}
+        Receiver orientation.
     """
 
     def __init__(self, locations=None, times=None, orientation="x", **kwargs):
@@ -239,6 +382,18 @@ class PointCurrentDensity(BaseRx):
 
 
 class PointMagneticFieldTimeDerivative(BaseRx):
+    """Measure time-derivative of magnet field at a point.
+
+    Parameters
+    ----------
+    locations : (n_loc, n_dim) numpy.ndarray
+        Receiver locations.
+    times : (n_times) numpy.ndarray
+        Time channels
+    orientation : {'z', 'x', 'y'}
+        Receiver orientation.
+    """
+
     def __init__(self, locations=None, times=None, orientation="x", **kwargs):
         self.projField = "dhdt"
         super(PointMagneticFieldTimeDerivative, self).__init__(

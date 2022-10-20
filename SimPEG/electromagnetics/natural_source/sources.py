@@ -1,7 +1,6 @@
 import numpy as np
 
 from ... import maps
-from ...utils.code_utils import deprecate_class
 from ..frequency_domain.sources import BaseFDEMSrc
 from ..utils import omega
 from .utils.source_utils import homo1DModelSource
@@ -18,8 +17,12 @@ class Planewave(BaseFDEMSrc):
     """
     Source class for the 1D and pseudo-3D problems.
 
-    :param list receiver_list: List of SimPEG.electromagnetics.natural_sources.receivers.PointNaturalSource
-    :param float frequency: frequency for the source
+    Parameters
+    ----------
+    receiver_list : list of SimPEG.electromagnetics.frequency_domain.receivers.BaseRx
+        A list of NSEM receivers
+    frequency : float
+        Source frequency
     """
 
     # This class is only provided to have a uniquely identifiable "Planewave" class
@@ -33,7 +36,14 @@ class PlanewaveXYPrimary(Planewave):
     NSEM planewave source for both polarizations (x and y)
     estimated from a single 1D primary models.
 
-
+    Parameters
+    ----------
+    receiver_list : list of SimPEG.electromagnetics.frequency_domain.receivers.BaseRx
+        A list of NSEM receivers
+    frequency : float
+        Source frequency
+    sigma_primary : float, default: ``None``
+        Wholespace conductivity for primary field
     """
 
     _fields_per_source = 2
@@ -82,6 +92,18 @@ class PlanewaveXYPrimary(Planewave):
             return self._sigma1d, self._sigma_p
 
     def ePrimary(self, simulation):
+        """Primary electric field
+
+        Parameters
+        ----------
+        simulation : SimPEG.electromagnetics.natural_source_simulation.BaseNSEMSimulation
+            A NSEM simulation
+
+        Returns
+        -------
+        numpy.ndarray
+            Primary electric field
+        """
         if self._ePrimary is None:
             sigma_1d, _ = self._get_sigmas(simulation)
             self._ePrimary = homo1DModelSource(
@@ -90,18 +112,39 @@ class PlanewaveXYPrimary(Planewave):
         return self._ePrimary
 
     def bPrimary(self, simulation):
+        """Primary magnetic field
+
+        Parameters
+        ----------
+        simulation : SimPEG.electromagnetics.frequency_domain.simulation.BaseFDEMSimulation
+            A NSEM simulation
+
+        Returns
+        -------
+        numpy.ndarray
+            Primary magnetic field
+        """
         # Project ePrimary to bPrimary
         # Satisfies the primary(background) field conditions
         if simulation.mesh.dim == 1:
-            C = simulation.mesh.nodalGrad
+            C = simulation.mesh.nodal_gradient
         elif simulation.mesh.dim == 3:
-            C = simulation.mesh.edgeCurl
+            C = simulation.mesh.edge_curl
         bBG_bp = (-C * self.ePrimary(simulation)) * (1 / (1j * omega(self.frequency)))
         return bBG_bp
 
     def s_e(self, simulation):
-        """
-        Get the electrical field source
+        """Electric source term
+
+        Parameters
+        ----------
+        simulation : SimPEG.electromagnetics.frequency_domain.simulation.BaseFDEMSimulation
+            A NSEM simulation
+
+        Returns
+        -------
+        numpy.ndarray
+            Electric source term on mesh.
         """
         e_p = self.ePrimary(simulation)
         # Make mass matrix
@@ -110,26 +153,52 @@ class PlanewaveXYPrimary(Planewave):
         if simulation.mesh.dim == 1:
             Map_sigma_p = maps.SurjectVertical1D(simulation.mesh)
             sigma_p = Map_sigma_p._transform(self.sigma1d)
-            Mesigma = simulation.mesh.getFaceInnerProduct(simulation.sigma)
-            Mesigma_p = simulation.mesh.getFaceInnerProduct(sigma_p)
+            Mesigma = simulation.mesh.get_face_inner_product(simulation.sigma)
+            Mesigma_p = simulation.mesh.get_face_inner_product(sigma_p)
         if simulation.mesh.dim == 2:
             pass
         if simulation.mesh.dim == 3:
             _, sigma_p = self._get_sigmas(simulation)
             Mesigma = simulation.MeSigma
-            Mesigma_p = simulation.mesh.getEdgeInnerProduct(sigma_p)
+            Mesigma_p = simulation.mesh.get_edge_inner_product(sigma_p)
         return Mesigma * e_p - Mesigma_p * e_p
 
     def s_eDeriv(self, simulation, v, adjoint=False):
-        """
-        The derivative of S_e with respect to
+        """Derivative of electric source term with respect to model
+
+        Parameters
+        ----------
+        simulation : SimPEG.electromagnetics.frequency_domain.simulation.BaseFDEMSimulation
+            A NSEM simulation
+        v : numpy.ndarray
+            A vector
+        adjoint : bool, default: ``False``
+            If ``True``, perform the adjoint operation
+
+        Returns
+        -------
+        numpy.ndarray
+            Derivative of electric source term on mesh.
         """
 
         return self.s_eDeriv_m(simulation, v, adjoint)
 
     def s_eDeriv_m(self, simulation, v, adjoint=False):
-        """
-        Get the derivative of S_e wrt to sigma (m)
+        """Derivative of electric source term with respect to model
+
+        Parameters
+        ----------
+        simulation : SimPEG.electromagnetics.frequency_domain.simulation.BaseFDEMSimulation
+            A NSEM simulation
+        v : numpy.ndarray
+            A vector
+        adjoint : bool, default: ``False``
+            If ``True``, perform the adjoint operation
+
+        Returns
+        -------
+        numpy.ndarray
+            Derivative of electric source term on mesh.
         """
         # Need to deal with
         if simulation.mesh.dim == 1:
@@ -146,16 +215,3 @@ class PlanewaveXYPrimary(Planewave):
 
     S_e = s_e
     S_eDeriv = s_eDeriv
-
-
-############
-# Deprecated
-############
-@deprecate_class(removal_version="0.15.0")
-class Planewave_xy_1Dprimary(PlanewaveXYPrimary):
-    pass
-
-
-@deprecate_class(removal_version="0.15.0")
-class Planewave_xy_1DhomotD(PlanewaveXYPrimary):
-    pass

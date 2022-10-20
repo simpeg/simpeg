@@ -236,7 +236,7 @@ class AmpProblemTest(unittest.TestCase):
 
         # Create a sparse regularization
         reg = regularization.Sparse(mesh, indActive=actv, mapping=idenMap)
-        reg.norms = np.c_[1, 0, 0, 0]
+        reg.norms = [1, 0, 0, 0]
         reg.mref = np.zeros(nC)
 
         # Data misfit function
@@ -314,7 +314,10 @@ class AmpProblemTest(unittest.TestCase):
     def tearDown(self):
         # Clean up the working directory
         if self.sim.store_sensitivities == "disk":
-            shutil.rmtree(self.sim.sensitivity_path)
+            try:
+                shutil.rmtree(self.sim.sensitivity_path)
+            except:
+                pass
 
 
 if __name__ == "__main__":

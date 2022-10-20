@@ -231,7 +231,7 @@ plt.show()
 idenMap = maps.IdentityMap(nP=nC)
 
 # Create a regularization
-reg = regularization.Sparse(mesh, indActive=activeCells, mapping=idenMap)
+reg = regularization.Sparse(mesh, active_cells=activeCells, mapping=idenMap)
 
 m0 = np.ones(nC) * 1e-4  # Starting model
 
