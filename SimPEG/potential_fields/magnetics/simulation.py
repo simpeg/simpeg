@@ -1034,7 +1034,7 @@ class Simulation3DDifferential(BaseMagneticPDESimulation):
     @property
     def Qfx(self):
         if getattr(self, "_Qfx", None) is None:
-            self._Qfx = self.mesh.getInterpolationMat(
+            self._Qfx = self.mesh.get_interpolation_matrix(
                 self.survey.receiver_locations, "Fx"
             )
         return self._Qfx
@@ -1042,7 +1042,7 @@ class Simulation3DDifferential(BaseMagneticPDESimulation):
     @property
     def Qfy(self):
         if getattr(self, "_Qfy", None) is None:
-            self._Qfy = self.mesh.getInterpolationMat(
+            self._Qfy = self.mesh.get_interpolation_matrix(
                 self.survey.receiver_locations, "Fy"
             )
         return self._Qfy
@@ -1050,7 +1050,7 @@ class Simulation3DDifferential(BaseMagneticPDESimulation):
     @property
     def Qfz(self):
         if getattr(self, "_Qfz", None) is None:
-            self._Qfz = self.mesh.getInterpolationMat(
+            self._Qfz = self.mesh.get_interpolation_matrix(
                 self.survey.receiver_locations, "Fz"
             )
         return self._Qfz

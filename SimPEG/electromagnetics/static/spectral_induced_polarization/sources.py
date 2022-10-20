@@ -223,11 +223,11 @@ class Dipole(BaseSrc):
             q = np.zeros(simulation.mesh.nC)
             q[inds] = self.current * np.r_[1.0, -1.0]
         elif simulation._formulation == "EB":
-            qa = simulation.mesh.getInterpolationMat(
-                self.location[0], locType="N"
+            qa = simulation.mesh.get_interpolation_matrix(
+                self.location[0], location_type="N"
             ).todense()
-            qb = -simulation.mesh.getInterpolationMat(
-                self.location[1], locType="N"
+            qb = -simulation.mesh.get_interpolation_matrix(
+                self.location[1], location_type="N"
             ).todense()
             q = self.current * mkvc(qa + qb)
         return q
@@ -267,8 +267,8 @@ class Pole(BaseSrc):
             q = np.zeros(simulation.mesh.nC)
             q[inds] = self.current * np.r_[1.0]
         elif simulation._formulation == "EB":
-            q = simulation.mesh.getInterpolationMat(
-                self.location, locType="N"
+            q = simulation.mesh.get_interpolation_matrix(
+                self.location, location_type="N"
             ).todense()
             q = self.current * mkvc(q)
         return q

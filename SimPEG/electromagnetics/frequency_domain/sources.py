@@ -961,10 +961,10 @@ class PrimSecMappedSigma(BaseFDEMSrc):
         # get interpolation mat from primary mesh to secondary mesh
         if self.primarySimulation.mesh._meshType == "CYL":
             return self.primarySimulation.mesh.getInterpolationMatCartMesh(
-                simulation.mesh, locType=locType, locTypeTo=locTypeTo
+                simulation.mesh, location_type=locType, locTypeTo=locTypeTo
             )
-        return self.primarySimulation.mesh.getInterploationMat(
-            simulation.mesh, locType=locType, locTypeTo=locTypeTo
+        return self.primarySimulation.mesh.getInterplotionMat(
+            simulation.mesh, location_type=locType, locTypeTo=locTypeTo
         )
 
         # return self.__ProjPrimary

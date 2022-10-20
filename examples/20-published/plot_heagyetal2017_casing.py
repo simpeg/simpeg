@@ -704,9 +704,9 @@ class PrimSecCasingExample(object):
         )
 
         # Construct interpolation matrices
-        Px = self.meshs.getInterpolationMat(meshs_plt.gridEx, locType="Ex")
-        Py = self.meshs.getInterpolationMat(meshs_plt.gridEy, locType="Ey")
-        Pz = self.meshs.getInterpolationMat(meshs_plt.gridEz, locType="Ez")
+        Px = self.meshs.get_interpolation_matrix(meshs_plt.gridEx, location_type="Ex")
+        Py = self.meshs.get_interpolation_matrix(meshs_plt.gridEy, location_type="Ey")
+        Pz = self.meshs.get_interpolation_matrix(meshs_plt.gridEz, location_type="Ez")
         P = sp.vstack([Px, Py, Pz])
 
         # for regions outside of the anomalous block, the source current

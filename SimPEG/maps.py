@@ -3003,7 +3003,7 @@ class Mesh2Mesh(IdentityMap):
     @property
     def P(self):
         if getattr(self, "_P", None) is None:
-            self._P = self.mesh2.getInterpolationMat(
+            self._P = self.mesh2.get_interpolation_matrix(
                 self.mesh.cell_centers[self.indActive, :]
                 if self.indActive is not None
                 else self.mesh.cell_centers,
