@@ -129,8 +129,8 @@ class TestDipoles(unittest.TestCase):
         csx, ncx, npadx = 5, 50, 25
         csz, ncz, npadz = 5, 50, 25
 
-        hx = utils.meshTensor([(csx, ncx), (csx, npadx, 1.3)])
-        hz = utils.meshTensor([(csz, npadz, -1.3), (csz, ncz), (csz, npadz, 1.3)])
+        hx = utils.unpack_widths([(csx, ncx), (csx, npadx, 1.3)])
+        hz = utils.unpack_widths([(csz, npadz, -1.3), (csz, ncz), (csz, npadz, 1.3)])
 
         # define the cylindrical mesh
         mesh = discretize.CylindricalMesh([hx, 1, hz], [0.0, 0.0, -hz.sum() / 2])

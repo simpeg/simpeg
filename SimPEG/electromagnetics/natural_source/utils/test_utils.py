@@ -6,7 +6,7 @@ import numpy as np
 
 import discretize
 from SimPEG import maps, mkvc, utils, Data
-from ....utils import meshTensor
+from ....utils import unpack_widths
 from ..receivers import (
     PointNaturalSource,
     Point3DTipper,
@@ -47,13 +47,16 @@ def setup1DSurvey(sigmaHalf, tD=False, structure=False):
     freqs = np.logspace(3, -3, num_frequencies)
     # Make the mesh
     ct = 5
-    air = meshTensor([(ct, 25, 1.3)])
-    # coreT0 = meshTensor([(ct,15,1.2)])
-    # coreT1 = np.kron(meshTensor([(coreT0[-1],15,1.3)]),np.ones((7,)))
+    air = unpack_widths([(ct, 25, 1.3)])
+    # coreT0 = unpack_widths([(ct,15,1.2)])
+    # coreT1 = np.kron(unpack_widths([(coreT0[-1],15,1.3)]),np.ones((7,)))
     core = np.concatenate(
-        (np.kron(meshTensor([(ct, 15, -1.2)]), np.ones((10,))), meshTensor([(ct, 20)]))
+        (
+            np.kron(unpack_widths([(ct, 15, -1.2)]), np.ones((10,))),
+            unpack_widths([(ct, 20)]),
+        )
     )
-    bot = meshTensor([(core[0], 20, -1.3)])
+    bot = unpack_widths([(core[0], 20, -1.3)])
     x0 = -np.array([np.sum(np.concatenate((core, bot)))])
     m1d = discretize.TensorMesh([np.concatenate((bot, core, air))], x0=x0)
     # Make the model
@@ -91,13 +94,16 @@ def setup1DSurveyElectricMagnetic(sigmaHalf, tD=False, structure=False):
     frequencies = np.logspace(3, -3, nFreq)
     # Make the mesh
     ct = 5
-    air = meshTensor([(ct, 25, 1.3)])
-    # coreT0 = meshTensor([(ct,15,1.2)])
-    # coreT1 = np.kron(meshTensor([(coreT0[-1],15,1.3)]),np.ones((7,)))
+    air = unpack_widths([(ct, 25, 1.3)])
+    # coreT0 = unpack_widths([(ct,15,1.2)])
+    # coreT1 = np.kron(unpack_widths([(coreT0[-1],15,1.3)]),np.ones((7,)))
     core = np.concatenate(
-        (np.kron(meshTensor([(ct, 15, -1.2)]), np.ones((10,))), meshTensor([(ct, 20)]))
+        (
+            np.kron(unpack_widths([(ct, 15, -1.2)]), np.ones((10,))),
+            unpack_widths([(ct, 20)]),
+        )
     )
-    bot = meshTensor([(core[0], 20, -1.3)])
+    bot = unpack_widths([(core[0], 20, -1.3)])
     x0 = -np.array([np.sum(np.concatenate((core, bot)))])
     m1d = discretize.TensorMesh([np.concatenate((bot, core, air))], x0=x0)
     # Make the model

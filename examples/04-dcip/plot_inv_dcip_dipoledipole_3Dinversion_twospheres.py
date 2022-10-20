@@ -95,7 +95,7 @@ xmin, xmax = -20.0, 20.0
 ymin, ymax = -15.0, 15.0
 zmin, zmax = -10.0, 0.0
 xyzlim = np.r_[[[xmin, xmax], [ymin, ymax], [zmin, zmax]]]
-actind, meshCore = utils.mesh_utils.ExtractCoreMesh(xyzlim, mesh)
+actind, meshCore = utils.mesh_utils.extract_core_mesh(xyzlim, mesh)
 
 
 # Function to plot cylinder border

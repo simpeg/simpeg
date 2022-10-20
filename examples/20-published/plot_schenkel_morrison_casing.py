@@ -90,8 +90,8 @@ def run(plotIt=True):
 
     # pad nicely to second cell size
     npadx1 = np.floor(np.log(csx2 / csx1) / np.log(pfx1))
-    hx1a = utils.meshTensor([(csx1, ncx1)])
-    hx1b = utils.meshTensor([(csx1, npadx1, pfx1)])
+    hx1a = utils.unpack_widths([(csx1, ncx1)])
+    hx1b = utils.unpack_widths([(csx1, npadx1, pfx1)])
     dx1 = sum(hx1a) + sum(hx1b)
     dx1 = np.floor(dx1 / csx2)
     hx1b *= (dx1 * csx2 - sum(hx1a)) / sum(hx1b)
@@ -100,8 +100,8 @@ def run(plotIt=True):
     dx2 = 300.0  # uniform mesh out to here
     ncx2 = np.ceil((dx2 - dx1) / csx2)
     npadx2 = 45
-    hx2a = utils.meshTensor([(csx2, ncx2)])
-    hx2b = utils.meshTensor([(csx2, npadx2, pfx2)])
+    hx2a = utils.unpack_widths([(csx2, ncx2)])
+    hx2b = utils.unpack_widths([(csx2, npadx2, pfx2)])
     hx = np.hstack([hx1a, hx1b, hx2a, hx2b])
 
     # z-direction
@@ -111,7 +111,7 @@ def run(plotIt=True):
     # x-direction
     ncz, npadzu, npadzd = np.int(np.ceil(np.diff(casing_z)[0] / csz)) + 10, 68, 68
     # vector of cell widths in the z-direction
-    hz = utils.meshTensor([(csz, npadzd, -1.3), (csz, ncz), (csz, npadzu, 1.3)])
+    hz = utils.unpack_widths([(csz, npadzd, -1.3), (csz, ncz), (csz, npadzu, 1.3)])
 
     # Mesh
     mesh = discretize.CylMesh(

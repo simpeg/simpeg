@@ -172,16 +172,16 @@ class PrimSecCasingExample(object):
             # ------------- Assemble the Cyl Mesh ------------- #
             # pad nicely to second cell size
             npadx1 = np.floor(np.log(csx2 / csx1) / np.log(pfx1))
-            hx1a = utils.meshTensor([(csx1, ncx1)])
-            hx1b = utils.meshTensor([(csx1, npadx1, pfx1)])
+            hx1a = utils.unpack_widths([(csx1, ncx1)])
+            hx1b = utils.unpack_widths([(csx1, npadx1, pfx1)])
             dx1 = sum(hx1a) + sum(hx1b)
             dx1 = np.floor(dx1 / csx2)
             hx1b *= (dx1 * csx2 - sum(hx1a)) / sum(hx1b)
 
             # second chunk of mesh
             ncx2 = np.ceil((dx2 - dx1) / csx2)
-            hx2a = utils.meshTensor([(csx2, ncx2)])
-            hx2b = utils.meshTensor([(csx2, npadx2, pfx2)])
+            hx2a = utils.unpack_widths([(csx2, ncx2)])
+            hx2b = utils.unpack_widths([(csx2, npadx2, pfx2)])
             hx = np.hstack([hx1a, hx1b, hx2a, hx2b])
 
             # cell size, number of core cells, number of padding cells in the
@@ -190,7 +190,9 @@ class PrimSecCasingExample(object):
             npadzu, npadzd = 43, 43
 
             # vector of cell widths in the z-direction
-            hz = utils.meshTensor([(csz, npadzd, -pfz), (csz, ncz), (csz, npadzu, pfz)])
+            hz = utils.unpack_widths(
+                [(csz, npadzd, -pfz), (csz, ncz), (csz, npadzu, pfz)]
+            )
 
             # primary mesh
             self._meshp = discretize.CylMesh(
@@ -498,9 +500,9 @@ class PrimSecCasingExample(object):
             csz, ncz, npadz = 25, 40, 14
             pf = 1.5
 
-            hx = utils.meshTensor([(csx, npadx, -pf), (csx, ncx), (csx, npadx, pf)])
-            hy = utils.meshTensor([(csy, npady, -pf), (csy, ncy), (csy, npady, pf)])
-            hz = utils.meshTensor([(csz, npadz, -pf), (csz, ncz), (csz, npadz, pf)])
+            hx = utils.unpack_widths([(csx, npadx, -pf), (csx, ncx), (csx, npadx, pf)])
+            hy = utils.unpack_widths([(csy, npady, -pf), (csy, ncy), (csy, npady, pf)])
+            hz = utils.unpack_widths([(csz, npadz, -pf), (csz, ncz), (csz, npadz, pf)])
 
             x0 = np.r_[-hx.sum() / 2.0, -hy.sum() / 2.0, -hz[: npadz + ncz].sum()]
             self._meshs = discretize.TensorMesh([hx, hy, hz], x0=x0)

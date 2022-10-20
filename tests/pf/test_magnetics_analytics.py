@@ -17,7 +17,6 @@ class TestBoundaryConditionAnalytics(unittest.TestCase):
         hxind = [(0, 25, 1.3), (21, 12.5), (0, 25, 1.3)]
         hyind = [(0, 25, 1.3), (21, 12.5), (0, 25, 1.3)]
         hzind = [(0, 25, 1.3), (20, 12.5), (0, 25, 1.3)]
-        # hx, hy, hz = Utils.meshTensors(hxind, hyind, hzind)
         M3 = discretize.TensorMesh([hxind, hyind, hzind], "CCC")
         indxd, indxu, indyd, indyu, indzd, indzu = M3.faceBoundaryInd
         mu0 = 4 * np.pi * 1e-7
