@@ -166,7 +166,7 @@ plotting_map = maps.InjectActiveCells(mesh, ind_active, np.nan)
 log_model = np.log10(model)
 
 ax1 = fig.add_axes([0.20, 0.1, 0.54, 0.85])
-mesh.plotImage(
+mesh.plot_image(
     plotting_map * log_model,
     ax=ax1,
     grid=False,

@@ -455,7 +455,7 @@ fig = plt.figure(figsize=(10, 4))
 plotting_map = maps.InjectActiveCells(mesh, ind_active, np.nan)
 
 ax1 = fig.add_axes([0.15, 0.15, 0.67, 0.75])
-mesh.plotSlice(
+mesh.plot_slice(
     plotting_map * true_conductivity_model_log10,
     ax=ax1,
     normal="Y",
@@ -485,7 +485,7 @@ recovered_conductivity_model_log10 = np.log10(np.exp(recovered_conductivity_mode
 fig = plt.figure(figsize=(10, 4))
 
 ax1 = fig.add_axes([0.15, 0.15, 0.67, 0.75])
-mesh.plotSlice(
+mesh.plot_slice(
     plotting_map * recovered_conductivity_model_log10,
     ax=ax1,
     normal="Y",
@@ -693,7 +693,7 @@ fig = plt.figure(figsize=(10, 4))
 plotting_map = maps.InjectActiveCells(mesh, ind_active, np.nan)
 
 ax1 = fig.add_axes([0.15, 0.15, 0.67, 0.75])
-mesh.plotSlice(
+mesh.plot_slice(
     plotting_map * true_chargeability_model,
     ax=ax1,
     normal="Y",
@@ -721,7 +721,7 @@ cbar.set_label("Intrinsic Chargeability [V/V]", rotation=270, labelpad=15, size=
 fig = plt.figure(figsize=(10, 4))
 
 ax1 = fig.add_axes([0.15, 0.15, 0.67, 0.75])
-mesh.plotSlice(
+mesh.plot_slice(
     plotting_map * recovered_chargeability_model,
     ax=ax1,
     normal="Y",

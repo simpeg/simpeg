@@ -139,7 +139,7 @@ fig = plt.figure(figsize=(9, 4))
 
 plotting_map = maps.InjectActiveCells(mesh, ind_active, np.nan)
 ax1 = fig.add_axes([0.1, 0.12, 0.73, 0.78])
-mesh.plotSlice(
+mesh.plot_slice(
     plotting_map * model,
     normal="Y",
     ax=ax1,

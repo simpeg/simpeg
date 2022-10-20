@@ -136,7 +136,7 @@ class TestDipoles(unittest.TestCase):
         mesh = discretize.CylindricalMesh([hx, 1, hz], [0.0, 0.0, -hz.sum() / 2])
 
         if plotIt:
-            mesh.plotGrid()
+            mesh.plot_grid()
 
         # make sure mesh is big enough
         self.assertTrue(mesh.h[2].sum() > skdpth * 2.0)

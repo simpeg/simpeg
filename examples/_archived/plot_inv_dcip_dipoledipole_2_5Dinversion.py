@@ -84,13 +84,13 @@ def run(plotIt=True, survey_type="dipole-dipole"):
         ax = plt.subplot(111)
         temp = rho.copy()
         temp[~actind] = np.nan
-        out = mesh.plotImage(
+        out = mesh.plot_image(
             temp,
             grid=True,
             ax=ax,
-            gridOpts={"alpha": 0.2},
+            grid_opts={"alpha": 0.2},
             clim=(10, 1000),
-            pcolorOpts={"cmap": "viridis", "norm": colors.LogNorm()},
+            pcolor_opts={"cmap": "viridis", "norm": colors.LogNorm()},
         )
         ax.plot(
             survey.electrode_locations[:, 0], survey.electrode_locations[:, 1], "k."
@@ -187,13 +187,13 @@ def run(plotIt=True, survey_type="dipole-dipole"):
         ax = plt.subplot(111)
         temp = rho.copy()
         temp[~actind] = np.nan
-        out = mesh.plotImage(
+        out = mesh.plot_image(
             jtj_cc,
             grid=True,
             ax=ax,
-            gridOpts={"alpha": 0.2},
+            grid_opts={"alpha": 0.2},
             clim=(0.005, 0.5),
-            pcolorOpts={"cmap": "viridis", "norm": colors.LogNorm()},
+            pcolor_opts={"cmap": "viridis", "norm": colors.LogNorm()},
         )
         ax.plot(
             survey.electrode_locations[:, 0], survey.electrode_locations[:, 1], "k."
@@ -217,16 +217,16 @@ def run(plotIt=True, survey_type="dipole-dipole"):
     if plotIt:
         vmin, vmax = rho.min(), rho.max()
         fig, ax = plt.subplots(2, 1, figsize=(20, 6))
-        out1 = mesh.plotImage(
+        out1 = mesh.plot_image(
             rho_true,
             clim=(10, 1000),
-            pcolorOpts={"cmap": "viridis", "norm": colors.LogNorm()},
+            pcolor_opts={"cmap": "viridis", "norm": colors.LogNorm()},
             ax=ax[0],
         )
-        out2 = mesh.plotImage(
+        out2 = mesh.plot_image(
             rho_est,
             clim=(10, 1000),
-            pcolorOpts={"cmap": "viridis", "norm": colors.LogNorm()},
+            pcolor_opts={"cmap": "viridis", "norm": colors.LogNorm()},
             ax=ax[1],
         )
         out = [out1, out2]

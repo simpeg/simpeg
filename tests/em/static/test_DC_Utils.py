@@ -117,7 +117,7 @@ class DCUtilsTests_halfspace(unittest.TestCase):
                     scale="log",
                     clim=None,
                     data_type="appResistivity",
-                    pcolorOpts={"cmap": "viridis"},
+                    pcolor_opts={"cmap": "viridis"},
                     data_location=True,
                 )
                 plt.show()

@@ -72,30 +72,30 @@ ticksize, labelsize = 14, 16
 for _, axx in enumerate(ax):
     axx.set_aspect(1)
     axx.tick_params(labelsize=ticksize)
-mesh.plotSlice(
+mesh.plot_slice(
     true_geology,
     normal="X",
     ax=ax[0],
     ind=-17,
     clim=[0, 2],
-    pcolorOpts={"cmap": "inferno_r"},
+    pcolor_opts={"cmap": "inferno_r"},
     grid=True,
 )
-mesh.plotSlice(
+mesh.plot_slice(
     true_geology,
     normal="Y",
     ax=ax[1],
     clim=[0, 2],
-    pcolorOpts={"cmap": "inferno_r"},
+    pcolor_opts={"cmap": "inferno_r"},
     grid=True,
 )
-geoplot = mesh.plotSlice(
+geoplot = mesh.plot_slice(
     true_geology,
     normal="Z",
     ax=ax[2],
     clim=[0, 2],
     ind=-10,
-    pcolorOpts={"cmap": "inferno_r"},
+    pcolor_opts={"cmap": "inferno_r"},
     grid=True,
 )
 geocb = plt.colorbar(geoplot[0], cax=ax[3], ticks=[0, 1, 2])
@@ -135,12 +135,12 @@ plt.gca().set_ylim(
         data_mag.survey.receiver_locations[:, 1].max(),
     ]
 )
-mesh.plotSlice(
+mesh.plot_slice(
     np.ones(mesh.nC),
     normal="Z",
     ind=int(-10),
     grid=True,
-    pcolorOpts={"cmap": "Greys"},
+    pcolor_opts={"cmap": "Greys"},
     ax=ax[0],
 )
 mm = utils.plot2Ddata(
@@ -163,12 +163,12 @@ ax[0].set_title(
 plt.colorbar(mm[0], cax=ax[2], orientation="horizontal")
 ax[2].set_aspect(0.05)
 ax[2].set_title("mGal", fontsize=16)
-mesh.plotSlice(
+mesh.plot_slice(
     np.ones(mesh.nC),
     normal="Z",
     ind=int(-10),
     grid=True,
-    pcolorOpts={"cmap": "Greys"},
+    pcolor_opts={"cmap": "Greys"},
     ax=ax[1],
 )
 mm = utils.plot2Ddata(
@@ -463,29 +463,29 @@ indx = 15
 indy = 17
 indz = -9
 # geology model
-mesh.plotSlice(
+mesh.plot_slice(
     quasi_geology_model_no_info,
     normal="X",
     ax=ax[0, 0],
     clim=[0, 2],
     ind=indx,
-    pcolorOpts={"cmap": "inferno_r"},
+    pcolor_opts={"cmap": "inferno_r"},
 )
-mesh.plotSlice(
+mesh.plot_slice(
     quasi_geology_model_no_info,
     normal="Y",
     ax=ax[0, 1],
     clim=[0, 2],
     ind=indy,
-    pcolorOpts={"cmap": "inferno_r"},
+    pcolor_opts={"cmap": "inferno_r"},
 )
-geoplot = mesh.plotSlice(
+geoplot = mesh.plot_slice(
     quasi_geology_model_no_info,
     normal="Z",
     ax=ax[0, 2],
     clim=[0, 2],
     ind=indz,
-    pcolorOpts={"cmap": "inferno_r"},
+    pcolor_opts={"cmap": "inferno_r"},
 )
 geocb = plt.colorbar(geoplot[0], cax=ax[0, 3], ticks=[0, 1, 2])
 geocb.set_ticklabels(["BCK", "PK", "VK"])
@@ -493,58 +493,58 @@ geocb.set_label("Quasi-Geology model\n(Rock units classification)", fontsize=16)
 ax[0, 3].set_aspect(10)
 
 # gravity model
-mesh.plotSlice(
+mesh.plot_slice(
     density_model_no_info,
     normal="X",
     ax=ax[1, 0],
     clim=[-1, 0],
     ind=indx,
-    pcolorOpts={"cmap": "Blues_r"},
+    pcolor_opts={"cmap": "Blues_r"},
 )
-mesh.plotSlice(
+mesh.plot_slice(
     density_model_no_info,
     normal="Y",
     ax=ax[1, 1],
     clim=[-1, 0],
     ind=indy,
-    pcolorOpts={"cmap": "Blues_r"},
+    pcolor_opts={"cmap": "Blues_r"},
 )
-denplot = mesh.plotSlice(
+denplot = mesh.plot_slice(
     density_model_no_info,
     normal="Z",
     ax=ax[1, 2],
     clim=[-1, 0],
     ind=indz,
-    pcolorOpts={"cmap": "Blues_r"},
+    pcolor_opts={"cmap": "Blues_r"},
 )
 dencb = plt.colorbar(denplot[0], cax=ax[1, 3])
 dencb.set_label("Density contrast\nmodel (g/cc)", fontsize=16)
 ax[1, 3].set_aspect(10)
 
 # magnetic model
-mesh.plotSlice(
+mesh.plot_slice(
     magsus_model_no_info,
     normal="X",
     ax=ax[2, 0],
     clim=[0, 0.025],
     ind=indx,
-    pcolorOpts={"cmap": "Reds"},
+    pcolor_opts={"cmap": "Reds"},
 )
-mesh.plotSlice(
+mesh.plot_slice(
     magsus_model_no_info,
     normal="Y",
     ax=ax[2, 1],
     clim=[0, 0.025],
     ind=indy,
-    pcolorOpts={"cmap": "Reds"},
+    pcolor_opts={"cmap": "Reds"},
 )
-susplot = mesh.plotSlice(
+susplot = mesh.plot_slice(
     magsus_model_no_info,
     normal="Z",
     ax=ax[2, 2],
     clim=[0, 0.025],
     ind=indz,
-    pcolorOpts={"cmap": "Reds"},
+    pcolor_opts={"cmap": "Reds"},
 )
 suscb = plt.colorbar(susplot[0], cax=ax[2, 3])
 suscb.set_label("Magnetic susceptibility\nmodel (SI)", fontsize=16)

@@ -130,7 +130,7 @@ def run(plotIt=True):
     if plotIt is True:
         fig, ax = plt.subplots(1, 1, figsize=(6, 4))
         ax.set_title("Simulation Mesh")
-        mesh.plotGrid(ax=ax)
+        mesh.plot_grid(ax=ax)
 
     # Put the model on the mesh
     sigWholespace = sigmaback * np.ones((mesh.nC))
@@ -153,7 +153,7 @@ def run(plotIt=True):
         # plot models
         fig, ax = plt.subplots(1, 1, figsize=(4, 4))
 
-        im = mesh.plotImage(np.log10(sigCasing), ax=ax)[0]
+        im = mesh.plot_image(np.log10(sigCasing), ax=ax)[0]
         im.set_clim(clim_sig)
         plt.colorbar(im, ax=ax)
         ax.grid(which="both")

@@ -194,7 +194,7 @@ def run(plotIt=True):
             actvMap * model,
             aspect="equal",
             zslice=30,
-            pcolorOpts={"cmap": "inferno_r"},
+            pcolor_opts={"cmap": "inferno_r"},
             transparent="slider",
         )
 
@@ -202,7 +202,7 @@ def run(plotIt=True):
             actvMap * sumMap * mrecSum,
             aspect="equal",
             zslice=30,
-            pcolorOpts={"cmap": "inferno_r"},
+            pcolor_opts={"cmap": "inferno_r"},
             transparent="slider",
         )
 

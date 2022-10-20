@@ -133,7 +133,7 @@ plotting_map = maps.InjectActiveCells(mesh, ind_active, np.nan)
 log_model = np.log10(conductivity_model)  # So scaling is log-scale
 
 ax1 = fig.add_axes([0.14, 0.1, 0.6, 0.85])
-mesh.plotImage(
+mesh.plot_image(
     plotting_map * log_model,
     ax=ax1,
     grid=False,

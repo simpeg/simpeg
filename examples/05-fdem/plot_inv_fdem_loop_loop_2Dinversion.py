@@ -118,7 +118,7 @@ mesh.x0 = np.r_[
 ]
 
 print("the mesh has {} cells".format(mesh.nC))
-mesh.plotGrid()
+mesh.plot_grid()
 
 ###############################################################################
 # Inversion Mesh
@@ -129,7 +129,7 @@ mesh.plotGrid()
 
 inversion_mesh = discretize.TensorMesh([mesh.h[0], mesh.h[2][mesh.cell_centers_z <= 0]])
 inversion_mesh.x0 = [-inversion_mesh.h[0].sum() / 2.0, -inversion_mesh.h[1].sum()]
-inversion_mesh.plotGrid()
+inversion_mesh.plot_grid()
 
 ###############################################################################
 # Mappings
@@ -165,7 +165,7 @@ interface_depth = interface(inversion_mesh.gridCC[:, 0])
 m_true[inversion_mesh.gridCC[:, 1] > interface_depth] = np.log(sigma_surface)
 
 fig, ax = plt.subplots(1, 1)
-cb = plt.colorbar(inversion_mesh.plotImage(m_true, ax=ax, grid=True)[0], ax=ax)
+cb = plt.colorbar(inversion_mesh.plot_image(m_true, ax=ax, grid=True)[0], ax=ax)
 cb.set_label("$\log(\sigma)$")
 ax.set_title("true model")
 ax.set_xlim([-10, 10])
@@ -329,7 +329,7 @@ clim = np.r_[np.log(sigma_surface), np.log(sigma_deep)]
 
 # recovered model
 cb = plt.colorbar(
-    inversion_mesh.plotImage(mrec, ax=ax[0], clim=clim)[0],
+    inversion_mesh.plot_image(mrec, ax=ax[0], clim=clim)[0],
     ax=ax[0],
 )
 ax[0].set_title("recovered model")
@@ -337,7 +337,7 @@ cb.set_label("$\log(\sigma)$")
 
 # true model
 cb = plt.colorbar(
-    inversion_mesh.plotImage(m_true, ax=ax[1], clim=clim)[0],
+    inversion_mesh.plot_image(m_true, ax=ax[1], clim=clim)[0],
     ax=ax[1],
 )
 ax[1].set_title("true model")

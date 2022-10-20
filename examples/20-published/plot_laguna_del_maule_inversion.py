@@ -178,13 +178,13 @@ def run(plotIt=True, cleanAfterRun=True):
         plt.figure(figsize=(10, 7))
         plt.suptitle("Smooth Inversion: Depth weight = " + str(wgtexp))
         ax = plt.subplot(221)
-        dat1 = mesh.plotSlice(
+        dat1 = mesh.plot_slice(
             L2out,
             ax=ax,
             normal="Z",
             ind=-16,
             clim=(vmin, vmax),
-            pcolorOpts={"cmap": "bwr"},
+            pcolor_opts={"cmap": "bwr"},
         )
         plt.plot(
             np.array([mesh.cell_centers_x[0], mesh.cell_centers_x[-1]]),
@@ -203,13 +203,13 @@ def run(plotIt=True, cleanAfterRun=True):
         cb.set_label("Density (g/cc$^3$)")
 
         ax = plt.subplot(222)
-        dat = mesh.plotSlice(
+        dat = mesh.plot_slice(
             L2out,
             ax=ax,
             normal="Z",
             ind=-27,
             clim=(vmin, vmax),
-            pcolorOpts={"cmap": "bwr"},
+            pcolor_opts={"cmap": "bwr"},
         )
         plt.plot(
             np.array([mesh.cell_centers_x[0], mesh.cell_centers_x[-1]]),
@@ -228,13 +228,13 @@ def run(plotIt=True, cleanAfterRun=True):
         cb.set_label("Density (g/cc$^3$)")
 
         ax = plt.subplot(212)
-        mesh.plotSlice(
+        mesh.plot_slice(
             L2out,
             ax=ax,
             normal="Y",
             ind=yslice,
             clim=(vmin, vmax),
-            pcolorOpts={"cmap": "bwr"},
+            pcolor_opts={"cmap": "bwr"},
         )
         plt.title("Cross Section")
         plt.xlabel("Easting(m)")
@@ -264,13 +264,13 @@ def run(plotIt=True, cleanAfterRun=True):
             + str(round(reg.objfcts[1].irls_threshold, 2))
         )
         ax = plt.subplot(221)
-        dat = mesh.plotSlice(
+        dat = mesh.plot_slice(
             Lpout,
             ax=ax,
             normal="Z",
             ind=-16,
             clim=(vmin, vmax),
-            pcolorOpts={"cmap": "bwr"},
+            pcolor_opts={"cmap": "bwr"},
         )
         plt.plot(
             np.array([mesh.cell_centers_x[0], mesh.cell_centers_x[-1]]),
@@ -289,13 +289,13 @@ def run(plotIt=True, cleanAfterRun=True):
         cb.set_label("Density (g/cc$^3$)")
 
         ax = plt.subplot(222)
-        dat = mesh.plotSlice(
+        dat = mesh.plot_slice(
             Lpout,
             ax=ax,
             normal="Z",
             ind=-27,
             clim=(vmin, vmax),
-            pcolorOpts={"cmap": "bwr"},
+            pcolor_opts={"cmap": "bwr"},
         )
         plt.plot(
             np.array([mesh.cell_centers_x[0], mesh.cell_centers_x[-1]]),
@@ -314,13 +314,13 @@ def run(plotIt=True, cleanAfterRun=True):
         cb.set_label("Density (g/cc$^3$)")
 
         ax = plt.subplot(212)
-        dat = mesh.plotSlice(
+        dat = mesh.plot_slice(
             Lpout,
             ax=ax,
             normal="Y",
             ind=yslice,
             clim=(vmin, vmax),
-            pcolorOpts={"cmap": "bwr"},
+            pcolor_opts={"cmap": "bwr"},
         )
         plt.title("Cross Section")
         plt.xlabel("Easting (m)")

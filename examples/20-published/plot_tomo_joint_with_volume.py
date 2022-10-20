@@ -139,7 +139,7 @@ def run(plotIt=True):
 
     if plotIt:
         fig, ax = plt.subplots(1, 1)
-        cb = plt.colorbar(M.plotImage(phitrue, ax=ax)[0], ax=ax)
+        cb = plt.colorbar(M.plot_image(phitrue, ax=ax)[0], ax=ax)
         survey.plot(ax=ax)
         cb.set_label("$\\varphi$")
 
@@ -190,9 +190,9 @@ def run(plotIt=True):
         ax.legend(["dobs", "dpred0", "dpred w/o Vol", "dpred with Vol"])
 
         fig, ax = plt.subplots(1, 3, figsize=(16, 4))
-        im0 = M.plotImage(phitrue, ax=ax[0])[0]
-        im1 = M.plotImage(mopt1, ax=ax[1])[0]
-        im2 = M.plotImage(mopt2, ax=ax[2])[0]
+        im0 = M.plot_image(phitrue, ax=ax[0])[0]
+        im1 = M.plot_image(mopt1, ax=ax[1])[0]
+        im2 = M.plot_image(mopt2, ax=ax[2])[0]
 
         for im in [im0, im1, im2]:
             im.set_clim([0.0, phi1])

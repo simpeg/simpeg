@@ -125,12 +125,12 @@ class MagInvLinProblemTest(unittest.TestCase):
         # plt.figure()
         # ax = plt.subplot(1, 2, 1)
         # midx = int(self.mesh.shape_cells[0]/2)
-        # self.mesh.plotSlice(self.actvMap*mrec, ax=ax, normal='Y', ind=midx,
+        # self.mesh.plot_slice(self.actvMap*mrec, ax=ax, normal='Y', ind=midx,
         #                grid=True, clim=(0, 0.02))
 
         # ax = plt.subplot(1, 2, 2)
         # midx = int(self.mesh.shape_cells[0]/2)
-        # self.mesh.plotSlice(self.actvMap*self.model, ax=ax, normal='Y', ind=midx,
+        # self.mesh.plot_slice(self.actvMap*self.model, ax=ax, normal='Y', ind=midx,
         #                grid=True, clim=(0, 0.02))
         # plt.show()
 

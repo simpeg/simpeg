@@ -165,7 +165,7 @@ def run(plotIt=True):
 
         # Plot L2 model
         ax = plt.subplot(321)
-        mesh.plotSlice(
+        mesh.plot_slice(
             m_l2, ax=ax, normal="Z", ind=zpanel, grid=True, clim=(vmin, vmax)
         )
         plt.plot(
@@ -181,7 +181,7 @@ def run(plotIt=True):
 
         # Vertical section
         ax = plt.subplot(322)
-        mesh.plotSlice(m_l2, ax=ax, normal="Y", ind=midx, grid=True, clim=(vmin, vmax))
+        mesh.plot_slice(m_l2, ax=ax, normal="Y", ind=midx, grid=True, clim=(vmin, vmax))
         plt.plot(
             ([mesh.cell_centers_x[0], mesh.cell_centers_x[-1]]),
             ([mesh.cell_centers_z[zpanel], mesh.cell_centers_z[zpanel]]),
@@ -195,7 +195,7 @@ def run(plotIt=True):
 
         # Plot Lp model
         ax = plt.subplot(323)
-        mesh.plotSlice(
+        mesh.plot_slice(
             m_lp, ax=ax, normal="Z", ind=zpanel, grid=True, clim=(vmin, vmax)
         )
         plt.plot(
@@ -211,7 +211,7 @@ def run(plotIt=True):
 
         # Vertical section
         ax = plt.subplot(324)
-        mesh.plotSlice(m_lp, ax=ax, normal="Y", ind=midx, grid=True, clim=(vmin, vmax))
+        mesh.plot_slice(m_lp, ax=ax, normal="Y", ind=midx, grid=True, clim=(vmin, vmax))
         plt.plot(
             ([mesh.cell_centers_x[0], mesh.cell_centers_x[-1]]),
             ([mesh.cell_centers_z[zpanel], mesh.cell_centers_z[zpanel]]),
@@ -225,7 +225,7 @@ def run(plotIt=True):
 
         # Plot True model
         ax = plt.subplot(325)
-        mesh.plotSlice(
+        mesh.plot_slice(
             m_true, ax=ax, normal="Z", ind=zpanel, grid=True, clim=(vmin, vmax)
         )
         plt.plot(
@@ -241,7 +241,7 @@ def run(plotIt=True):
 
         # Vertical section
         ax = plt.subplot(326)
-        mesh.plotSlice(
+        mesh.plot_slice(
             m_true, ax=ax, normal="Y", ind=midx, grid=True, clim=(vmin, vmax)
         )
         plt.plot(

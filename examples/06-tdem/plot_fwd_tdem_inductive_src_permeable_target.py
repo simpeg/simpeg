@@ -72,7 +72,7 @@ mesh = discretize.CylMesh(
 mesh.x0 = [0, 0, -mesh.h[2][: npadz + ncz].sum()]
 
 # plot the mesh
-mesh.plotGrid()
+mesh.plot_grid()
 
 
 ###############################################################################
@@ -99,10 +99,10 @@ fig, ax = plt.subplots(1, 1, figsize=(6, 5))
 
 # plot the permeability
 plt.colorbar(
-    mesh.plotImage(
+    mesh.plot_image(
         mur_model,
         ax=ax,
-        pcolorOpts={"norm": LogNorm()},  # plot on a log-scale
+        pcolor_opts={"norm": LogNorm()},  # plot on a log-scale
         mirror=True,
     )[0],
     ax=ax,
@@ -265,7 +265,7 @@ def plotBFieldResults(
         plotme = b_magnetostatic - b_ramp_on
 
     cb = plt.colorbar(
-        mesh.plotImage(
+        mesh.plot_image(
             plotme,
             view="vec",
             v_type="F",

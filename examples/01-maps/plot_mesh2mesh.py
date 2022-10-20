@@ -26,13 +26,13 @@ def run(plotIt=True):
         return
 
     ax = plt.subplot(131)
-    M.plotImage(v, ax=ax)
+    M.plot_image(v, ax=ax)
     ax.set_title("Fine Mesh (Original)")
     ax = plt.subplot(132)
-    M2.plotImage(H, clim=[0, 1], ax=ax)
+    M2.plot_image(H, clim=[0, 1], ax=ax)
     ax.set_title("Course Mesh")
     ax = plt.subplot(133)
-    M.plotImage(h, clim=[0, 1], ax=ax)
+    M.plot_image(h, clim=[0, 1], ax=ax)
     ax.set_title("Fine Mesh (Interpolated)")
 
 

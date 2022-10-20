@@ -86,7 +86,7 @@ model[ind_pipe] = pipe_value
 # Plotting
 fig = plt.figure(figsize=(5, 5))
 ax = fig.add_subplot(111)
-mesh.plotImage(model_map * model, ax=ax, grid=True)
+mesh.plot_image(model_map * model, ax=ax, grid=True)
 ax.set_title("Cylindrically Symmetric Model")
 
 
@@ -132,7 +132,7 @@ model_map = active_map * reciprocal_map * exponential_map
 # Plotting
 fig = plt.figure(figsize=(5, 5))
 ax = fig.add_subplot(111)
-mesh.plotImage(model_map * model, ax=ax, grid=True)
+mesh.plot_image(model_map * model, ax=ax, grid=True)
 ax.set_title("Cylindrically Symmetric Model")
 
 
@@ -170,7 +170,7 @@ model_map = active_map * parametric_map
 # Plotting
 fig = plt.figure(figsize=(5, 5))
 ax = fig.add_subplot(111)
-mesh.plotImage(model_map * model, ax=ax, grid=True)
+mesh.plot_image(model_map * model, ax=ax, grid=True)
 ax.set_title("Cylindrically Symmetric Model")
 
 
@@ -229,5 +229,5 @@ mu_map = active_map * wire_map.mu
 # Plotting
 fig = plt.figure(figsize=(5, 5))
 ax = fig.add_subplot(111)
-mesh.plotImage(sigma_map * model, ax=ax, grid=True)
+mesh.plot_image(sigma_map * model, ax=ax, grid=True)
 ax.set_title("Cylindrically Symmetric Model")

@@ -52,7 +52,7 @@ def run(plotIt=True):
     axs[0].set_xlim(0, 3)
     axs[0].set_ylim(0, 1)
     clbar = plt.colorbar(
-        M.plotImage(sig, ax=axs[1], grid=True, gridOpts=dict(color="grey"))[0]
+        M.plot_image(sig, ax=axs[1], grid=True, grid_opts=dict(color="grey"))[0]
     )
     axs[1].set_title("Physical Property")
     axs[1].set_ylabel("Depth, y")

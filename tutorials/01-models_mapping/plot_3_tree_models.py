@@ -124,7 +124,7 @@ model[ind_block] = block_value
 fig = plt.figure(figsize=(5, 5))
 ax = fig.add_subplot(111)
 ind_slice = int(mesh.h[1].size / 2)
-mesh.plotSlice(model_map * model, normal="Y", ax=ax, ind=ind_slice, grid=True)
+mesh.plot_slice(model_map * model, normal="Y", ax=ax, ind=ind_slice, grid=True)
 ax.set_title(
     "Model slice at y = {} m".format(mesh.x0[1] + np.sum(mesh.h[1][0:ind_slice]))
 )
@@ -184,7 +184,7 @@ model_map = active_map * reciprocal_map * exponential_map
 fig = plt.figure(figsize=(5, 5))
 ax = fig.add_subplot(111)
 ind_slice = int(mesh.h[1].size / 2)
-mesh.plotSlice(model_map * model, normal="Y", ax=ax, ind=ind_slice, grid=True)
+mesh.plot_slice(model_map * model, normal="Y", ax=ax, ind=ind_slice, grid=True)
 ax.set_title(
     "Model slice at y = {} m".format(mesh.x0[1] + np.sum(mesh.h[1][0:ind_slice]))
 )
@@ -241,7 +241,7 @@ model[ind_polygon] = dyke_value
 fig = plt.figure(figsize=(5, 5))
 ax = fig.add_subplot(111)
 ind_slice = int(mesh.h[1].size / 2)
-mesh.plotSlice(model_map * model, normal="Y", ax=ax, ind=ind_slice, grid=True)
+mesh.plot_slice(model_map * model, normal="Y", ax=ax, ind=ind_slice, grid=True)
 ax.set_title(
     "Model slice at y = {} m".format(mesh.x0[1] + np.sum(mesh.h[1][0:ind_slice]))
 )
@@ -289,7 +289,7 @@ model_map = active_map * parametric_map
 fig = plt.figure(figsize=(5, 5))
 ax = fig.add_subplot(111)
 ind_slice = int(mesh.h[1].size / 2)
-mesh.plotSlice(model_map * model, normal="Y", ax=ax, ind=ind_slice, grid=True)
+mesh.plot_slice(model_map * model, normal="Y", ax=ax, ind=ind_slice, grid=True)
 ax.set_title(
     "Model slice at y = {} m".format(mesh.x0[1] + np.sum(mesh.h[1][0:ind_slice]))
 )
@@ -362,7 +362,7 @@ mu_map = active_map * wire_map.mu
 fig = plt.figure(figsize=(5, 5))
 ax = fig.add_subplot(111)
 ind_slice = int(mesh.h[1].size / 2)
-mesh.plotSlice(sigma_map * model, normal="Y", ax=ax, ind=ind_slice, grid=True)
+mesh.plot_slice(sigma_map * model, normal="Y", ax=ax, ind=ind_slice, grid=True)
 ax.set_title(
     "Model slice at y = {} m".format(mesh.x0[1] + np.sum(mesh.h[1][0:ind_slice]))
 )

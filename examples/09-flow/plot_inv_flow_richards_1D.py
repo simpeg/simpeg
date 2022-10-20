@@ -125,7 +125,7 @@ def run(plotIt=True):
         ax = plt.subplot(222)
         mesh2d = discretize.TensorMesh([prob.time_mesh.h[0] / 60, prob.mesh.h[0]], "0N")
         sats = [theta_fun(_) for _ in Hs]
-        clr = mesh2d.plotImage(np.c_[sats][1:, :], ax=ax)
+        clr = mesh2d.plot_image(np.c_[sats][1:, :], ax=ax)
         cmap0 = matplotlib.cm.RdYlBu_r
         clr[0].set_cmap(cmap0)
         c = plt.colorbar(clr[0])
@@ -137,7 +137,7 @@ def run(plotIt=True):
         ax = plt.subplot(224)
         mesh2d = discretize.TensorMesh([prob.time_mesh.h[0] / 60, prob.mesh.h[0]], "0N")
         sats = [theta_fun(_) for _ in Hs_opt]
-        clr = mesh2d.plotImage(np.c_[sats][1:, :], ax=ax)
+        clr = mesh2d.plot_image(np.c_[sats][1:, :], ax=ax)
         cmap0 = matplotlib.cm.RdYlBu_r
         clr[0].set_cmap(cmap0)
         c = plt.colorbar(clr[0])

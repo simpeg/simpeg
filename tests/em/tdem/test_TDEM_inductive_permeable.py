@@ -52,7 +52,7 @@ class TestInductiveSourcesPermeability(unittest.TestCase):
 
         # Plot the mesh
         if plotIt:
-            mesh.plotGrid()
+            mesh.plot_grid()
             plt.show()
 
         self.radius_loop = radius_loop
@@ -97,16 +97,16 @@ class TestInductiveSourcesPermeability(unittest.TestCase):
 
             for a, key in zip(ax, model_names):
                 plt.colorbar(
-                    mesh.plotImage(
+                    mesh.plot_image(
                         mu_dict[key],
                         ax=a,
-                        pcolorOpts={"norm": LogNorm()},  # plot on a log-scale
+                        pcolor_opts={"norm": LogNorm()},  # plot on a log-scale
                         mirror=True,
                     )[0],
                     ax=a,
                 )
                 a.set_title("{}".format(key), fontsize=13)
-                #     cylMeshGen.mesh.plotGrid(ax=a, slice='theta') # uncomment to plot the mesh on top of this
+                #     cylMeshGen.mesh.plot_grid(ax=a, slice='theta') # uncomment to plot the mesh on top of this
                 a.set_xlim(xlim)
                 a.set_ylim(zlim)
             plt.tight_layout()

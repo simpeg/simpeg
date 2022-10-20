@@ -119,9 +119,9 @@ class GravInvLinProblemTest(unittest.TestCase):
         # import matplotlib.pyplot as plt
         # plt.figure()
         # ax = plt.subplot(1, 2, 1)
-        # self.mesh.plotSlice(self.actvMap*mrec, ax=ax, clim=(0, 0.5))
+        # self.mesh.plot_slice(self.actvMap*mrec, ax=ax, clim=(0, 0.5))
         # ax = plt.subplot(1, 2, 2)
-        # self.mesh.plotSlice(self.actvMap*self.model, ax=ax, clim=(0, 0.5))
+        # self.mesh.plot_slice(self.actvMap*self.model, ax=ax, clim=(0, 0.5))
         # plt.show()
         print(f"RESIDUAL !! {residual}")
         self.assertTrue(residual < 0.05)

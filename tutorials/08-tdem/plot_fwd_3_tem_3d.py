@@ -244,7 +244,7 @@ log_model = np.log10(model)
 plotting_map = maps.InjectActiveCells(mesh, ind_active, np.nan)
 
 ax1 = fig.add_axes([0.13, 0.1, 0.6, 0.85])
-mesh.plotSlice(
+mesh.plot_slice(
     plotting_map * log_model,
     normal="Y",
     ax=ax1,

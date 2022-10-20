@@ -1842,7 +1842,7 @@ def plot_pseudoSection(
     clim=None,
     scale="linear",
     sameratio=True,
-    pcolorOpts={},
+    pcolor_opts={},
     data_location=False,
     dobs=None,
     dim=2,

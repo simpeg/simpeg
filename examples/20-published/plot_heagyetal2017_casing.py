@@ -422,7 +422,7 @@ class PrimSecCasingExample(object):
                 #     # connected
 
                 #     fig, ax = plt.subplots(1, 1, figsize=(6, 4))
-                #     meshp.plotGrid(ax=ax)
+                #     meshp.plot_grid(ax=ax)
                 #     ax.plot(meshp.gridFz[dgv_ind, 0], meshp.gridFz[dgv_ind, 2], 'rd')
                 #     ax.plot(meshp.gridFx[dgh_ind2, 0], meshp.gridFx[dgh_ind2, 2], 'rd')
                 #     ax.plot(meshp.gridFz[sgv_ind, 0], meshp.gridFz[sgv_ind, 2], 'rd')
@@ -453,16 +453,16 @@ class PrimSecCasingExample(object):
 
     def plotPrimaryMesh(self):
         fig, ax = plt.subplots(1, 1, figsize=(6, 4))
-        self.meshp.plotGrid(ax=ax)
+        self.meshp.plot_grid(ax=ax)
         plt.title("Cyl Mesh")
         return ax
 
     def plotPrimaryProperties(self):
         fig, ax = plt.subplots(1, 2, figsize=(10, 4))
-        f = self.meshp.plotImage(
+        f = self.meshp.plot_image(
             self.muModel / mu_0,
             ax=ax[0],
-            pcolorOpts={"cmap": plt.get_cmap("viridis")},
+            pcolor_opts={"cmap": plt.get_cmap("viridis")},
             grid=False,
         )
         plt.colorbar(f[0], ax=ax[0])
@@ -470,10 +470,10 @@ class PrimSecCasingExample(object):
         ax[0].set_ylim([-1.5e3, 500])
         ax[0].set_title("mu_r")
 
-        f = self.meshp.plotImage(
+        f = self.meshp.plot_image(
             np.log10(self.primaryMapping * self.mtrue),
             ax=ax[1],
-            pcolorOpts={"cmap": plt.get_cmap("viridis")},
+            pcolor_opts={"cmap": plt.get_cmap("viridis")},
             grid=False,
         )
         plt.colorbar(f[0], ax=ax[1])
@@ -649,7 +649,7 @@ class PrimSecCasingExample(object):
         jcart = projF * primaryFields[:, "j"]
 
         fig, ax = plt.subplots(1, 1, figsize=(6, 7.75))
-        f = meshcart.plotSlice(
+        f = meshcart.plot_slice(
             jcart.real,
             normal="Y",
             v_type="F",
@@ -754,12 +754,12 @@ class PrimSecCasingExample(object):
         # plot
         fig, ax = plt.subplots(1, 1, figsize=(7.5, 6))
 
-        # f = meshs_plt.plotSlice(
+        # f = meshs_plt.plot_slice(
         #     np.ma.masked_where(maskme_e, s_e_plt.real),
         #     normal='Z',
-        #     vType='CCv',
+        #     v_type='CCv',
         #     view='abs',
-        #     pcolorOpts={'cmap':plt.get_cmap('viridis')}, ax=ax
+        #     pcolor_opts={'cmap':plt.get_cmap('viridis')}, ax=ax
         # )
 
         f = ax.pcolormesh(
@@ -954,7 +954,7 @@ class PrimSecCasingExample(object):
             ax.set_ylabel(ylabel)
 
             if plotGrid:
-                self.meshs.plotSlice(
+                self.meshs.plot_slice(
                     np.nan * np.ones(mesh.nC), normal="Z", grid=True, ax=ax
                 )
 

@@ -156,7 +156,7 @@ def run(plotIt=True):
 
         # Plot L2 model
         ax = plt.subplot(321)
-        mesh.plotSlice(
+        mesh.plot_slice(
             m_l2,
             ax=ax,
             normal="Z",
@@ -177,7 +177,7 @@ def run(plotIt=True):
 
         # Vertica section
         ax = plt.subplot(322)
-        mesh.plotSlice(
+        mesh.plot_slice(
             m_l2,
             ax=ax,
             normal="Y",
@@ -198,7 +198,7 @@ def run(plotIt=True):
 
         # Plot Lp model
         ax = plt.subplot(323)
-        mesh.plotSlice(
+        mesh.plot_slice(
             m_lp,
             ax=ax,
             normal="Z",
@@ -219,7 +219,7 @@ def run(plotIt=True):
 
         # Vertical section
         ax = plt.subplot(324)
-        mesh.plotSlice(
+        mesh.plot_slice(
             m_lp,
             ax=ax,
             normal="Y",
@@ -240,7 +240,7 @@ def run(plotIt=True):
 
         # Plot True model
         ax = plt.subplot(325)
-        mesh.plotSlice(
+        mesh.plot_slice(
             m_true,
             ax=ax,
             normal="Z",
@@ -261,7 +261,7 @@ def run(plotIt=True):
 
         # Vertical section
         ax = plt.subplot(326)
-        mesh.plotSlice(
+        mesh.plot_slice(
             m_true,
             ax=ax,
             normal="Y",

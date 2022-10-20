@@ -241,7 +241,7 @@ class MapTests(unittest.TestCase):
         mod = models.Model(m, mapping=combo)
         # print mod.transform
         # import matplotlib.pyplot as plt
-        # plt.colorbar(M.plotImage(mod.transform)[0])
+        # plt.colorbar(M.plot_image(mod.transform)[0])
         # plt.show()
         self.assertLess(np.linalg.norm(mod.transform - t_true, np.inf), TOL)
 

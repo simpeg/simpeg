@@ -207,7 +207,7 @@ plotting_map = maps.InjectActiveCells(mesh, ind_active, np.nan)
 log_mod = np.log10(conductivity_model)
 
 ax1 = fig.add_axes([0.15, 0.15, 0.68, 0.75])
-mesh.plotSlice(
+mesh.plot_slice(
     plotting_map * log_mod,
     ax=ax1,
     normal="Y",
