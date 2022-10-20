@@ -240,7 +240,7 @@ class Fields2DNodal(Fields2D):
         """
         return -epsilon_0 * (
             self.mesh.nodal_gradient.T
-            * self.mesh.getEdgeInnerProduct()
+            * self.mesh.get_edge_inner_product()
             * self._e(phiSolution, source_list)
         )
 

@@ -741,12 +741,12 @@ class Simulation3DDifferential(BaseMagneticPDESimulation):
 
     def makeMassMatrices(self, m):
         mu = self.muMap * m
-        self._MfMui = self.mesh.getFaceInnerProduct(1.0 / mu) / self.mesh.dim
-        # self._MfMui = self.mesh.getFaceInnerProduct(1./mu)
+        self._MfMui = self.mesh.get_face_inner_product(1.0 / mu) / self.mesh.dim
+        # self._MfMui = self.mesh.get_face_inner_product(1./mu)
         # TODO: this will break if tensor mu
         self._MfMuI = sdiag(1.0 / self._MfMui.diagonal())
-        self._MfMu0 = self.mesh.getFaceInnerProduct(1.0 / mu_0) / self.mesh.dim
-        # self._MfMu0 = self.mesh.getFaceInnerProduct(1/mu_0)
+        self._MfMu0 = self.mesh.get_face_inner_product(1.0 / mu_0) / self.mesh.dim
+        # self._MfMu0 = self.mesh.get_face_inner_product(1/mu_0)
 
     @utils.requires("survey")
     def getB0(self):

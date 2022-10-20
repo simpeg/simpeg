@@ -44,8 +44,8 @@ class BaseSPProblem(BaseDCProblem):
         return toDelete
 
     def evalq(self, Qv, vel):
-        MfQviI = self.mesh.getFaceInnerProduct(1.0 / Qv, invMat=True)
-        Mf = self.mesh.getFaceInnerProduct()
+        MfQviI = self.mesh.get_face_inner_product(1.0 / Qv, invert_matrix=True)
+        Mf = self.mesh.get_face_inner_product()
         return self.Div * (Mf * (MfQviI * vel))
 
 

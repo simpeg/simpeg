@@ -1220,9 +1220,9 @@ class MagDipole(BaseTDEMSrc):
         if getattr(self, "_hp", None) is None:
             if simulation._formulation == "EB":
                 bp = simulation.mesh.edge_curl * self._aSrc(simulation)
-                self._MfMuip = simulation.mesh.getFaceInnerProduct(1.0 / self.mu)
-                self._MfMuipI = simulation.mesh.getFaceInnerProduct(
-                    1.0 / self.mu, invMat=True
+                self._MfMuip = simulation.mesh.get_face_inner_product(1.0 / self.mu)
+                self._MfMuipI = simulation.mesh.get_face_inner_product(
+                    1.0 / self.mu, invert_matrix=True
                 )
                 self._hp = self._MfMuip * bp
             else:
@@ -1356,7 +1356,7 @@ class MagDipole(BaseTDEMSrc):
         b = self._bSrc(simulation)
 
         if simulation._formulation == "EB":
-            MfMui = simulation.mesh.getFaceInnerProduct(1.0 / self.mu)
+            MfMui = simulation.mesh.get_face_inner_product(1.0 / self.mu)
 
             if (
                 self.waveform.has_initial_fields is True

@@ -596,11 +596,13 @@ class MagDipole(BaseFDEMSrc):
 
             if formulation == "EB":
                 mui_s = simulation.mui - 1.0 / self.mu
-                MMui_s = simulation.mesh.getFaceInnerProduct(mui_s)
+                MMui_s = simulation.mesh.get_face_inner_product(mui_s)
                 C = simulation.mesh.edge_curl
             elif formulation == "HJ":
                 mu_s = simulation.mu - self.mu
-                MMui_s = simulation.mesh.getEdgeInnerProduct(mu_s, invMat=True)
+                MMui_s = simulation.mesh.get_edge_inner_product(
+                    mu_s, invert_matrix=True
+                )
                 C = simulation.mesh.edge_curl.T
 
             return -C.T * (MMui_s * self.bPrimary(simulation))
@@ -630,7 +632,9 @@ class MagDipole(BaseFDEMSrc):
                 return Zero()
                 # raise NotImplementedError
                 mu_s = simulation.mu - self.mu
-                MMui_s = simulation.mesh.getEdgeInnerProduct(mu_s, invMat=True)
+                MMui_s = simulation.mesh.get_edge_inner_product(
+                    mu_s, invert_matrix=True
+                )
                 C = simulation.mesh.edge_curl.T
 
                 return -C.T * (MMui_s * self.bPrimary(simulation))
@@ -880,7 +884,7 @@ class PrimSecSigma(BaseFDEMSrc):
 
     def s_e(self, simulation):
         return (
-            simulation.MeSigma - simulation.mesh.getEdgeInnerProduct(self.sigBack)
+            simulation.MeSigma - simulation.mesh.get_edge_inner_product(self.sigBack)
         ) * self.ePrimary(simulation)
 
     def s_eDeriv(self, simulation, v, adjoint=False):
@@ -1143,7 +1147,7 @@ class PrimSecMappedSigma(BaseFDEMSrc):
         sigmaPrimary = self.map2meshSecondary * simulation.model
 
         return mkvc(
-            (simulation.MeSigma - simulation.mesh.getEdgeInnerProduct(sigmaPrimary))
+            (simulation.MeSigma - simulation.mesh.get_edge_inner_product(sigmaPrimary))
             * self.ePrimary(simulation, f=f)
         )
 
@@ -1167,7 +1171,7 @@ class PrimSecMappedSigma(BaseFDEMSrc):
                     simulation,
                     (
                         simulation.MeSigma
-                        - simulation.mesh.getEdgeInnerProduct(sigmaPrimary)
+                        - simulation.mesh.get_edge_inner_product(sigmaPrimary)
                     ).T
                     * v,
                     adjoint=adjoint,
@@ -1179,7 +1183,10 @@ class PrimSecMappedSigma(BaseFDEMSrc):
             simulation.MeSigmaDeriv(ePrimary, v, adjoint)
             - simulation.mesh.getEdgeInnerProductDeriv(sigmaPrimary)(ePrimary)
             * (sigmaPrimaryDeriv * v)
-            + (simulation.MeSigma - simulation.mesh.getEdgeInnerProduct(sigmaPrimary))
+            + (
+                simulation.MeSigma
+                - simulation.mesh.get_edge_inner_product(sigmaPrimary)
+            )
             * self.ePrimaryDeriv(simulation, v, adjoint=adjoint, f=f)
         )
 

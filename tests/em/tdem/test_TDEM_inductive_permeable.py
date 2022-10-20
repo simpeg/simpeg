@@ -241,20 +241,23 @@ class TestInductiveSourcesPermeability(unittest.TestCase):
         v = utils.mkvc(np.random.rand(mesh.nE))
         w = utils.mkvc(np.random.rand(mesh.nF))
         assert np.all(
-            mesh.getEdgeInnerProduct(1e-4 * np.ones(mesh.nC)) * v == prob.MeSigma * v
+            mesh.get_edge_inner_product(1e-4 * np.ones(mesh.nC)) * v == prob.MeSigma * v
         )
 
         assert np.all(
-            mesh.getEdgeInnerProduct(1e-4 * np.ones(mesh.nC), invMat=True) * v
+            mesh.get_edge_inner_product(1e-4 * np.ones(mesh.nC), invert_matrix=True) * v
             == prob.MeSigmaI * v
         )
         assert np.all(
-            mesh.getFaceInnerProduct(1.0 / 1e-4 * np.ones(mesh.nC)) * w
+            mesh.get_face_inner_product(1.0 / 1e-4 * np.ones(mesh.nC)) * w
             == prob.MfRho * w
         )
 
         assert np.all(
-            mesh.getFaceInnerProduct(1.0 / 1e-4 * np.ones(mesh.nC), invMat=True) * w
+            mesh.get_face_inner_product(
+                1.0 / 1e-4 * np.ones(mesh.nC), invert_matrix=True
+            )
+            * w
             == prob.MfRhoI * w
         )
 
@@ -263,19 +266,24 @@ class TestInductiveSourcesPermeability(unittest.TestCase):
         w = utils.mkvc(np.random.rand(mesh.nF))
 
         np.testing.assert_allclose(
-            mesh.getEdgeInnerProduct(1e-3 * np.ones(mesh.nC)) * v, prob.MeSigma * v
+            mesh.get_edge_inner_product(1e-3 * np.ones(mesh.nC)) * v, prob.MeSigma * v
         )
 
         np.testing.assert_allclose(
-            mesh.getEdgeInnerProduct(1e-3 * np.ones(mesh.nC), invMat=True) * v,
+            mesh.get_edge_inner_product(1e-3 * np.ones(mesh.nC), invert_matrix=True)
+            * v,
             prob.MeSigmaI * v,
         )
 
         np.testing.assert_allclose(
-            mesh.getFaceInnerProduct(1.0 / 1e-3 * np.ones(mesh.nC)) * w, prob.MfRho * w
+            mesh.get_face_inner_product(1.0 / 1e-3 * np.ones(mesh.nC)) * w,
+            prob.MfRho * w,
         )
 
         np.testing.assert_allclose(
-            mesh.getFaceInnerProduct(1.0 / 1e-3 * np.ones(mesh.nC), invMat=True) * w,
+            mesh.get_face_inner_product(
+                1.0 / 1e-3 * np.ones(mesh.nC), invert_matrix=True
+            )
+            * w,
             prob.MfRhoI * w,
         )

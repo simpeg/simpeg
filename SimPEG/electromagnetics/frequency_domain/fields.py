@@ -613,7 +613,7 @@ class Fields3DElectricField(FieldsFDEM):
         """
         return -epsilon_0 * (
             self.mesh.nodal_gradient.T
-            * self.mesh.getEdgeInnerProduct()
+            * self.mesh.get_edge_inner_product()
             * self._e(eSolution, source_list)
         )
 
@@ -934,7 +934,7 @@ class Fields3DMagneticFluxDensity(FieldsFDEM):
         """
         return -epsilon_0 * (
             self.mesh.nodal_gradient.T
-            * self.mesh.getEdgeInnerProduct()
+            * self.mesh.get_edge_inner_product()
             * self._e(bSolution, source_list)
         )
 

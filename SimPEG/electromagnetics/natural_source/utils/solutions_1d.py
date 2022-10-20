@@ -16,7 +16,7 @@ def get1DEfields(m1d, sigma, freq, sourceAmp=1.0):
     # Magnetic permeability
     Mmu = sdiag(m1d.vol * (1.0 / mu_0))
     # Conductivity
-    Msig = m1d.getFaceInnerProduct(sigma)
+    Msig = m1d.get_face_inner_product(sigma)
     # Set up the solution matrix
     A = G.T * Mmu * G + 1j * 2.0 * np.pi * freq * Msig
     # Define the inner part of the solution matrix

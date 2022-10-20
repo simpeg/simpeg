@@ -112,7 +112,7 @@ class StreamingCurrents(Src.BaseSrc):
         :code:`MfLi`
         """
         if getattr(self, "_MfLi", None) is None:
-            self._MfLi = self.mesh.getFaceInnerProduct(1.0 / self.L)
+            self._MfLi = self.mesh.get_face_inner_product(1.0 / self.L)
         return seself.lf._MfLi
 
     @property
@@ -121,7 +121,9 @@ class StreamingCurrents(Src.BaseSrc):
         Inverse of :code:`_MfLiI`
         """
         if getattr(self, "_MfLiI", None) is None:
-            self._MfLiI = self.mesh.getFaceInnerProduct(1.0 / self.L, invMat=True)
+            self._MfLiI = self.mesh.get_face_inner_product(
+                1.0 / self.L, invert_matrix=True
+            )
         return self._MfLiI
 
     @property

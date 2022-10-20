@@ -323,7 +323,7 @@ class Simulation3DCellCentered(BaseDCSimulation):
         if resistivity is None:
             MfRhoI = self.MfRhoI
         else:
-            MfRhoI = self.mesh.getFaceInnerProduct(resistivity, invMat=True)
+            MfRhoI = self.mesh.get_face_inner_product(resistivity, invert_matrix=True)
         A = D @ MfRhoI @ G
 
         if self.bc_type == "Neumann":
@@ -477,7 +477,7 @@ class Simulation3DNodal(BaseDCSimulation):
         if resistivity is None:
             MeSigma = self.MeSigma
         else:
-            MeSigma = self.mesh.getEdgeInnerProduct(1.0 / resistivity)
+            MeSigma = self.mesh.get_edge_inner_product(1.0 / resistivity)
         Grad = self.mesh.nodal_gradient
         A = Grad.T @ MeSigma @ Grad
 

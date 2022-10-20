@@ -81,7 +81,9 @@ def getFDEMProblem(fdemType, comp, SrcList, freq, useMu=False, verbose=False):
                     + np.sum(mesh.vnE[:1])
                 ] = 1e-3
                 Src.append(
-                    fdem.Src.RawVec([rx0], freq, S_m, mesh.getEdgeInnerProduct() * S_e)
+                    fdem.Src.RawVec(
+                        [rx0], freq, S_m, mesh.get_edge_inner_product() * S_e
+                    )
                 )
 
             elif fdemType == "h" or fdemType == "j":
@@ -96,7 +98,9 @@ def getFDEMProblem(fdemType, comp, SrcList, freq, useMu=False, verbose=False):
                     + np.sum(mesh.vnF[:1])
                 ] = 1e-3
                 Src.append(
-                    fdem.Src.RawVec([rx0], freq, mesh.getEdgeInnerProduct() * S_m, S_e)
+                    fdem.Src.RawVec(
+                        [rx0], freq, mesh.get_edge_inner_product() * S_m, S_e
+                    )
                 )
 
     if verbose:
