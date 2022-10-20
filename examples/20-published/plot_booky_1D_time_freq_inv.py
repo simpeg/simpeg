@@ -305,7 +305,7 @@ def run(plotIt=True, saveFig=False, cleanup=True):
             radius=radius,
             orientation="z",
             waveform=TDEM.Src.VTEMWaveform(
-                off_time=off_time, peak_time=peak_time, a=3.0
+                off_time=off_time, peak_time=peak_time, ramp_on_rate=3.0
             ),
         )
     ]
