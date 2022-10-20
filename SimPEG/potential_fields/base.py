@@ -154,12 +154,15 @@ class BasePFSimulation(LinearSimulation):
         numpy.ndarray
             Linear operator
         """
+        n_cells = self.nC
+        if getattr(self, "model_type", None) == "vector":
+            n_cells *= 3
         if self.store_sensitivities == "disk":
             sens_name = self.sensitivity_path + "sensitivity.npy"
             if os.path.exists(sens_name):
                 # do not pull array completely into ram, just need to check the size
                 kernel = np.load(sens_name, mmap_mode="r")
-                if kernel.shape == (self.survey.nD, self.nC):
+                if kernel.shape == (self.survey.nD, n_cells):
                     print(f"Found sensitivity file at {sens_name} with expected shape")
                     kernel = np.asarray(kernel)
                     return kernel
