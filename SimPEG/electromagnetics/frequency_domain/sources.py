@@ -1257,6 +1257,17 @@ class LineCurrent(BaseFDEMSrc):
             raise ValueError("current must be non-zero.")
         self._current = I
 
+    @property
+    def n_segments(self):
+        """
+        The number of line current segments.
+
+        Returns
+        -------
+        int
+        """
+        return self.location.shape[0] - 1
+
     def Mejs(self, simulation):
         """Integrated electrical source term on edges
 
@@ -1350,60 +1361,9 @@ class LineCurrent(BaseFDEMSrc):
         elif simulation._formulation == "HJ":
             return self.Mfjs(simulation)
 
-
-class LineCurrent1D(LineCurrent):
-    def __init__(
-        self, receiver_list, frequency, locations, n_points_per_path=3, **kwargs
-    ):
-        super().__init__(
-            receiver_list, frequency=frequency, location=locations, **kwargs
-        )
-        self.n_points_per_path = n_points_per_path
-        # calculate lateral dipole locations
-        x, w = roots_legendre(self.n_points_per_path)
-        xy_src_path = self.location[:, :2]
-        n_path = len(xy_src_path) - 1
-        xyks = []
-        thetas = []
-        weights = []
-        for i_path in range(n_path):
-            dx = xy_src_path[i_path + 1, 0] - xy_src_path[i_path, 0]
-            dy = xy_src_path[i_path + 1, 1] - xy_src_path[i_path, 1]
-            dl = np.sqrt(dx ** 2 + dy ** 2)
-            theta = np.arctan2(dy, dx)
-            lk = np.c_[(x + 1) * dl / 2, np.zeros(self.n_points_per_path)]
-
-            R = np.array([[dx, -dy], [dy, dx]]) / dl
-            xyk = lk.dot(R.T) + xy_src_path[i_path, :]
-
-            xyks.append(xyk)
-            thetas.append(theta * np.ones(xyk.shape[0]))
-            weights.append(w * dl / 2)
-        # store these for future evalution of integrals
-        self._xyks = np.vstack(xyks)
-        self._weights = np.hstack(weights)
-        self._thetas = np.hstack(thetas)
-
-    @property
-    def n_quad_points(self):
-        self._n_quad_points = len(self._weights)
-        return self._n_quad_points
-
-    @property
-    def n_points_per_path(self):
-        """The number of integration points for each line segment.
-
-        Returns
-        -------
-        int
-        """
-        return self._n_points_per_path
-
-    @n_points_per_path.setter
-    def n_points_per_path(self, val):
-        self._n_points_per_path = validate_type("n_points_per_path", val, int)
-
     def hPrimary(self, simulation):
-        raise NotImplementedError(
-            "Primary field calculation for LineCurrent1D has not been implemented"
-        )
+        if simulation._formulation == "1D":
+            raise NotImplementedError(
+                "Primary field calculation for LineCurrent has not been implemented"
+            )
+        return super().hPrimary(simulation)
