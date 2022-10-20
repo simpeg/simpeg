@@ -44,11 +44,15 @@ Sim.__init__ = __init__
 def dask_linear_operator(self):
     forward_only = self.store_sensitivities == "forward_only"
     row = delayed(self.evaluate_integral, pure=True)
+    n_cells = self.nC
+    if getattr(self, "model_type", None) == "vector":
+        n_cells *= 3
+
     rows = [
         array.from_delayed(
             row(receiver_location, components),
             dtype=np.float32,
-            shape=(len(components),) if forward_only else (len(components), self.nC),
+            shape=(len(components),) if forward_only else (len(components), n_cells),
         )
         for receiver_location, components in self.survey._location_component_iterator()
     ]
@@ -57,7 +61,7 @@ def dask_linear_operator(self):
     else:
         stack = array.vstack(rows)
         # Chunking options
-        if self.chunk_format == "row" or self.store_sensitivities == "forward_only":
+        if self.chunk_format == "row":
             config.set({"array.chunk-size": f"{self.max_chunk_size}MiB"})
             # Autochunking by rows is faster and more memory efficient for
             # very large problems sensitivty and forward calculations
@@ -102,7 +106,7 @@ def dask_linear_operator(self):
     else:
         with ProgressBar():
             print("Computing sensitivities to local ram")
-            kernel = stack.compute()
+            kernel = stack.persist()
     return kernel
 
 
