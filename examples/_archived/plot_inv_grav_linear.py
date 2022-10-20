@@ -83,7 +83,7 @@ def run(plotIt=True):
 
     # Create the forward simulation
     simulation = gravity.simulation.Simulation3DIntegral(
-        survey=survey, mesh=mesh, rhoMap=idenMap, actInd=actv
+        survey=survey, mesh=mesh, rhoMap=idenMap, ind_active=actv
     )
 
     # Compute linear forward operator and compute some data

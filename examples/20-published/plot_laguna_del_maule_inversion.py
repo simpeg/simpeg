@@ -94,7 +94,7 @@ def run(plotIt=True, cleanAfterRun=True):
     # Now that we have a model and a survey we can build the linear system ...
     # Create the forward model operator
     simulation = gravity.simulation.Simulation3DIntegral(
-        survey=survey, mesh=mesh, rhoMap=staticCells, actInd=active
+        survey=survey, mesh=mesh, rhoMap=staticCells, ind_active=active
     )
 
     # %% Create inversion objects

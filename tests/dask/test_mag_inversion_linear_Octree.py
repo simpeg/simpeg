@@ -104,7 +104,7 @@ class MagInvLinProblemTest(unittest.TestCase):
             self.mesh,
             survey=survey,
             chiMap=idenMap,
-            actInd=actv,
+            ind_active=actv,
             store_sensitivities="ram",
         )
         self.sim = sim
@@ -118,7 +118,7 @@ class MagInvLinProblemTest(unittest.TestCase):
             active_cells=actv,
             mapping=idenMap,
             gradient_type="components",
-            norms=[0, 0, 0, 0]
+            norms=[0, 0, 0, 0],
         )
         reg.reference_model = np.zeros(nC)
 

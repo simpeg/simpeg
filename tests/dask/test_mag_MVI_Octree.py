@@ -96,7 +96,7 @@ class MVIProblemTest(unittest.TestCase):
             survey=survey,
             model_type="vector",
             chiMap=idenMap,
-            actInd=actv,
+            ind_active=actv,
             store_sensitivities="disk",
         )
         self.sim = sim

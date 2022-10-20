@@ -233,7 +233,7 @@ simulation_grav = pf.gravity.simulation.Simulation3DIntegral(
     survey=data_grav.survey,
     mesh=mesh,
     rhoMap=wires.den,
-    actInd=actv,
+    ind_active=actv,
 )
 dmis_grav = data_misfit.L2DataMisfit(data=data_grav, simulation=simulation_grav)
 # Mag problem
@@ -241,7 +241,7 @@ simulation_mag = pf.magnetics.simulation.Simulation3DIntegral(
     survey=data_mag.survey,
     mesh=mesh,
     chiMap=wires.sus,
-    actInd=actv,
+    ind_active=actv,
 )
 dmis_mag = data_misfit.L2DataMisfit(data=data_mag, simulation=simulation_mag)
 
