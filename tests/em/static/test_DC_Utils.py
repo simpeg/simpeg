@@ -75,7 +75,7 @@ class DCUtilsTests_halfspace(unittest.TestCase):
             ],
         ):
             print("\n Testing {} ... ".format(survey_type))
-            survey = utils.gen_DCIPsurvey(
+            survey = utils.generate_dcip_survey(
                 self.xyz,
                 survey_type,
                 self.survey_a,
@@ -99,10 +99,10 @@ class DCUtilsTests_halfspace(unittest.TestCase):
 
             # Testing IO
             surveyfile = os.path.sep.join([self.basePath, test_file])
-            utils.writeUBC_DCobs(
-                surveyfile, dobs, survey_type=survey_type, dim=3, format_type="GENERAL"
+            io_utils.write_dcip3d_ubc(
+                surveyfile, dobs, "volt", "dobs", format_type="GENERAL"
             )
-            data2 = utils.readUBC_DC3Dobs(surveyfile)
+            data2 = utils.read_dcip3d_ubc(surveyfile)
             self.assertTrue(np.allclose(mkvc(data2), mkvc(dobs)))
 
             if self.plotIt:
@@ -123,7 +123,7 @@ class DCUtilsTests_halfspace(unittest.TestCase):
                 plt.show()
 
             # Test the utils functions electrode_separations,
-            # source_receiver_midpoints, geometric_factor,
+            # pseudo_locations, geometric_factor,
             # apparent_resistivity all at once
             rhoapp = utils.apparent_resistivity_from_voltage(
                 dobs.survey, dobs.dobs, space_type="half-space", eps=0.0
@@ -161,7 +161,7 @@ class DCUtilsTests_fullspace(unittest.TestCase):
         )
 
         survey_file = os.path.sep.join([self.basePath, "dPred_fullspace.txt"])
-        data = utils.readUBC_DC3Dobs(survey_file)
+        data = utils.read_dcip3d_ubc(survey_file)
         self.survey = data.survey
         self.data = data
 

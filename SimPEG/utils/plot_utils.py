@@ -269,6 +269,7 @@ def plot_1d_layer_model(
     ax=None,
     plot_elevation=False,
     show_layers=False,
+    vlim=None,
     **kwargs
 ):
     """
@@ -290,6 +291,8 @@ def plot_1d_layer_model(
         If ``False``, the yaxis will be the depth. If ``True``, the yaxis is the elevation.
     show_layers : bool
         Plot horizontal lines to denote layers.
+    vlim : tuple, optional
+        The limits for the x-axis.
 
     Returns
     -------
@@ -302,8 +305,11 @@ def plot_1d_layer_model(
         thicknesses = np.r_[thicknesses, thicknesses[-1]]
     z_grid = np.r_[0.0, np.cumsum(thicknesses)]
     resistivity = np.repeat(values, 2)
-    v_min = 0.9 * np.min(values)
-    v_max = 1.1 * np.max(values)
+    if vlim is None:
+        v_min = 0.9 * np.min(values)
+        v_max = 1.1 * np.max(values)
+    else:
+        v_min, v_max = vlim
 
     z = []
     for i in range(0, len(thicknesses)):

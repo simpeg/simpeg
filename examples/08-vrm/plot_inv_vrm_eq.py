@@ -100,7 +100,7 @@ for pp in range(0, loc.shape[0]):
 
     loc_pp = np.reshape(loc[pp, :], (1, 3))
     receiver_listVRM = [
-        VRM.Rx.Point(loc_pp, times=times, fieldType="dbdt", orientation="z")
+        VRM.Rx.Point(loc_pp, times=times, field_type="dbdt", orientation="z")
     ]
 
     source_listVRM.append(

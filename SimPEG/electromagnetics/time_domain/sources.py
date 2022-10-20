@@ -44,21 +44,18 @@ class BaseWaveform:
     """
 
     def __init__(self, has_initial_fields=False, off_time=0.0, epsilon=1e-9, **kwargs):
-        hasInitialFields = kwargs.pop("hasInitialFields", None)
-        if hasInitialFields is not None:
-            self.hasInitialFields = hasInitialFields
-        else:
-            self.has_initial_fields = has_initial_fields
-        offTime = kwargs.pop("offTime", None)
-        if offTime is not None:
-            self.offTime = offTime
-        else:
-            self.off_time = off_time
-        eps = kwargs.pop("eps", None)
-        if eps is not None:
-            self.eps = eps
-        else:
-            self.epsilon = epsilon
+        if kwargs.pop("hasInitialFields", None):
+            raise AttributeError(
+                "hasInitialFields was removed in 0.17.0 use has_initial_fields"
+            )
+        if kwargs.pop("offTime", None):
+            raise AttributeError("offTime was removed in 0.17.0 use off_time")
+        if kwargs.pop("eps", None):
+            raise AttributeError("eps was removed in 0.17.0 use epsilon")
+
+        self.has_initial_fields = has_initial_fields
+        self.off_time = off_time
+        self.epsilon = epsilon
         super().__init__(**kwargs)
 
     @property
@@ -300,9 +297,6 @@ class RawWaveform(BaseWaveform):
     def __init__(self, off_time=0.0, waveform_function=None, **kwargs):
         if waveform_function is not None:
             self.waveform_function = waveform_function
-        wavefct = kwargs.pop("waveFct", None)
-        if wavefct is not None:
-            self.waveFct = wavefct
         super().__init__(off_time=off_time, **kwargs)
 
     @property
@@ -361,17 +355,13 @@ class VTEMWaveform(BaseWaveform):
     """
 
     def __init__(self, off_time=4.2e-3, peak_time=2.73e-3, ramp_on_rate=3.0, **kwargs):
-        peakTime = kwargs.pop("peakTime", None)
-        a = kwargs.pop("a", None)
+        if kwargs.pop("peakTime", None):
+            raise AttributeError("peakTime was removed in 0.17.0, use peak_time")
+        if kwargs.pop("a", None):
+            raise AttributeError("a was removed in 0.17.0, use ramp_on_rate")
         super().__init__(has_initial_fields=False, off_time=off_time, **kwargs)
-        if a is not None:
-            self.a = a
-        else:
-            self.ramp_on_rate = ramp_on_rate
-        if peakTime is not None:
-            self.peakTime = peakTime
-        else:
-            self.peak_time = peak_time
+        self.ramp_on_rate = ramp_on_rate
+        self.peak_time = peak_time
 
     @property
     def peak_time(self):
@@ -421,16 +411,16 @@ class VTEMWaveform(BaseWaveform):
         t = np.asarray(time, dtype=float)
         out = np.zeros_like(t)
 
-        p_1 = (t <= self.peakTime) & (t >= 0.0)
+        p_1 = (t <= self.peak_time) & (t >= 0.0)
         out[p_1] = (
-            self.a
-            / self.peakTime
-            * np.exp(-self.a * t[p_1] / self.peakTime)
-            / (1.0 - np.exp(-self.a))
+            self.ramp_on_rate
+            / self.peak_time
+            * np.exp(-self.ramp_on_rate * t[p_1] / self.peak_time)
+            / (1.0 - np.exp(-self.ramp_on_rate))
         )
 
-        p_2 = (t > self.peakTime) & (t < self.offTime)
-        out[p_2] = -1.0 / (self.offTime - self.peakTime)
+        p_2 = (t > self.peak_time) & (t < self.off_time)
+        out[p_2] = -1.0 / (self.off_time - self.peak_time)
 
         if out.ndim == 0:
             out = out.item()
@@ -444,9 +434,9 @@ class VTEMWaveform(BaseWaveform):
     # Deprecated
     ##########################
 
-    peakTime = deprecate_property(
+    peak_time = deprecate_property(
         peak_time,
-        "peakTime",
+        "peak_time",
         new_name="peak_time",
         removal_version="0.17.0",
         error=True,
@@ -600,9 +590,9 @@ class TriangularWaveform(TrapezoidWaveform):
             AttributeError(
                 "startTime will be deprecated in 0.17.0. Please update your code to use start_time instead",
             )
-        if kwargs.get("peakTime", None):
+        if kwargs.get("peak_time", None):
             AttributeError(
-                "peakTime will be deprecated in 0.17.0. Please update your code to use peak_time instead",
+                "peak_time will be deprecated in 0.17.0. Please update your code to use peak_time instead",
             )
         if kwargs.get("offTime", None):
             AttributeError(
@@ -642,9 +632,9 @@ class TriangularWaveform(TrapezoidWaveform):
     # Deprecated
     ##########################
 
-    peakTime = deprecate_property(
+    peak_time = deprecate_property(
         peak_time,
-        "peakTime",
+        "peak_time",
         new_name="peak_time",
         removal_version="0.17.0",
         error=True,

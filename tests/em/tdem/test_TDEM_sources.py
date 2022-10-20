@@ -30,8 +30,8 @@ class TestStepOffWaveform(unittest.TestCase):
         assert_array_almost_equal(result, expected)
 
     def test_waveform_with_custom_off_time(self):
-        """For StepOffWaveform, offTime arg does not do anything."""
-        step_off = StepOffWaveform(offTime=1e-3)
+        """For StepOffWaveform, off_time arg does not do anything."""
+        step_off = StepOffWaveform(off_time=1e-3)
         result = [step_off.eval(t) for t in self.times]
         expected = np.array([1.0, 1.0] + [0.0] * 9)
         assert_array_almost_equal(result, expected)
@@ -43,20 +43,20 @@ class TestRampOffWaveform(unittest.TestCase):
         cls.times = np.linspace(start=0, stop=1e-2, num=11)
 
     def test_waveform_with_whole_offtime(self):
-        ramp_off = RampOffWaveform(offTime=1e-2)
+        ramp_off = RampOffWaveform(off_time=1e-2)
         result = [ramp_off.eval(t) for t in self.times]
         expected = np.array([1.0, 0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.2, 0.1, 0.0])
         assert_array_almost_equal(result, expected)
 
     def test_waveform_with_partial_off_time(self):
-        ramp_off = RampOffWaveform(offTime=5e-3)
+        ramp_off = RampOffWaveform(off_time=5e-3)
         result = [ramp_off.eval(t) for t in self.times]
         expected = np.array([1.0, 0.8, 0.6, 0.4, 0.2, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
         assert_array_almost_equal(result, expected)
 
     def test_waveform_derivative(self):
         # Test the waveform derivative at points between the time_nodes
-        wave = RampOffWaveform(offTime=1e-2)
+        wave = RampOffWaveform(off_time=1e-2)
 
         def f(t):
             wave_eval = np.array([wave.eval(ti) for ti in t])
@@ -89,7 +89,7 @@ class TestVTEMWaveform(unittest.TestCase):
         assert_array_almost_equal(result, expected)
 
     def test_waveform_with_custom_param(self):
-        vtem = VTEMWaveform(offTime=8e-3, peakTime=4e-3, a=2.0)
+        vtem = VTEMWaveform(off_time=8e-3, peak_time=4e-3, ramp_on_rate=2.0)
         result = [vtem.eval(t) for t in self.times]
         expected = np.array(
             [0.0, 0.455054, 0.731059, 0.898464, 1.0, 0.75, 0.5, 0.25, 0.0, 0.0, 0.0]
@@ -98,7 +98,7 @@ class TestVTEMWaveform(unittest.TestCase):
 
     def test_waveform_derivative(self):
         # Test the waveform derivative at points between the time_nodes
-        wave = VTEMWaveform(offTime=8e-3, peakTime=4e-3, a=2.0)
+        wave = VTEMWaveform(off_time=8e-3, peak_time=4e-3, ramp_on_rate=2.0)
 
         def f(t):
             wave_eval = np.array([wave.eval(ti) for ti in t])

@@ -56,7 +56,7 @@ write_file = False
 # begins at t=0. Other waveforms are discuss in the OcTree simulation example.
 #
 
-waveform = tdem.sources.StepOffWaveform(offTime=0.0)
+waveform = tdem.sources.StepOffWaveform(off_time=0.0)
 
 
 #####################################################################

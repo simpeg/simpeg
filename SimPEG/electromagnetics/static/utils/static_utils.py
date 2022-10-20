@@ -1742,7 +1742,7 @@ def gen_3d_survey_from_2d_lines(
     is_IO=True,
 ):
     """
-    Generate 3D DC survey using gen_DCIPsurvey function.
+    Generate 3D DC survey using generate_dcip_survey function.
 
     Parameters
     ----------
@@ -1786,7 +1786,7 @@ def gen_3d_survey_from_2d_lines(
         zmin, zmax = 0, 0
         IO_2d = dc.IO()
         endl = np.array([[xmin, ymin, zmin], [xmax, ymax, zmax]])
-        survey_2d = gen_DCIPsurvey(
+        survey_2d = generate_dcip_survey(
             endl,
             survey_type,
             a,

@@ -93,7 +93,7 @@ for pp in range(0, locations.shape[0]):
     loc_pp = np.reshape(locations[pp, :], (1, 3))
     receivers_list = [
         vrm.receivers.Point(
-            loc_pp, times=time_channels, fieldType="dbdt", orientation="z"
+            loc_pp, times=time_channels, field_type="dbdt", orientation="z"
         )
     ]
 

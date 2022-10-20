@@ -137,9 +137,9 @@ ramp = [
 time_mesh = discretize.TensorMesh([ramp])
 
 # define an off time past when we will simulate to keep the transmitter on
-offTime = 100
+off_time = 100
 quarter_sine = TDEM.Src.QuarterSineRampOnWaveform(
-    ramp_on=np.r_[0.0, 3], ramp_off=offTime - np.r_[1.0, 0]
+    ramp_on=np.r_[0.0, 3], ramp_off=off_time - np.r_[1.0, 0]
 )
 
 # evaluate the waveform at each time in the simulation

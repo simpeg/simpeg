@@ -19,7 +19,7 @@ subsequent IP inversion to recover a chargeability model.
 
 from SimPEG.electromagnetics.static import resistivity as DC
 from SimPEG.electromagnetics.static import induced_polarization as IP
-from SimPEG.electromagnetics.static.utils import gen_DCIPsurvey, genTopography
+from SimPEG.electromagnetics.static.utils import generate_dcip_survey, genTopography
 from SimPEG import maps, utils
 import matplotlib.pyplot as plt
 from matplotlib import colors
@@ -43,7 +43,7 @@ def run(plotIt=True, survey_type="dipole-dipole"):
     zmin, zmax = 0, 0
     endl = np.array([[xmin, ymin, zmin], [xmax, ymax, zmax]])
     # Generate DC survey object
-    survey_dc = gen_DCIPsurvey(endl, survey_type=survey_type, dim=2, a=10, b=10, n=10)
+    survey_dc = generate_dcip_survey(endl, survey_type=survey_type, dim=2, a=10, b=10, n=10)
     survey_dc = IO.from_abmn_locations_to_survey(
         survey_dc.locations_a,
         survey_dc.locations_b,

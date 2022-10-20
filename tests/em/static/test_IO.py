@@ -23,10 +23,10 @@ class TestsIO(unittest.TestCase):
         # Generate DC survey object
 
     def test_flat_dpdp(self):
-        self.survey = utils.gen_DCIPsurvey(
+        self.survey = utils.generate_dcip_survey(
             self.endl, "dipole-dipole", dim=2, a=10, b=10, n=10
         )
-        self.survey = self.IO.from_ambn_locations_to_survey(
+        self.survey = self.IO.from_abmn_locations_to_survey(
             self.survey.locations_a,
             self.survey.locations_b,
             self.survey.locations_m,
@@ -42,7 +42,7 @@ class TestsIO(unittest.TestCase):
         mesh, actind = self.IO.set_mesh()
 
     def test_topo_dpdp(self):
-        self.survey = utils.gen_DCIPsurvey(
+        self.survey = utils.generate_dcip_survey(
             self.endl, "dipole-dipole", dim=2, a=10, b=10, n=10
         )
         self.survey = self.IO.from_abmn_locations_to_survey(

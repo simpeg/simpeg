@@ -59,7 +59,13 @@ class GravInvLinProblemTest(unittest.TestCase):
 
         # We can now create a density model and generate data
         # Here a simple block in half-space
-        model = np.zeros((self.mesh.shape_cells[0], self.mesh.shape_cells[1], self.mesh.shape_cells[2]))
+        model = np.zeros(
+            (
+                self.mesh.shape_cells[0],
+                self.mesh.shape_cells[1],
+                self.mesh.shape_cells[2],
+            )
+        )
         model[(midx - 2) : (midx + 2), (midy - 2) : (midy + 2), -6:-2] = 0.5
         model = utils.mkvc(model)
         self.model = model[actv]
@@ -72,7 +78,7 @@ class GravInvLinProblemTest(unittest.TestCase):
             self.mesh,
             survey=survey,
             rhoMap=idenMap,
-            actInd=actv,
+            ind_active=actv,
             store_sensitivities="ram",
         )
 

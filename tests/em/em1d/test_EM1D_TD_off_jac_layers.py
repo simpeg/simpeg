@@ -184,7 +184,7 @@ class EM1D_TD_Jacobian_Test_CircularLoop(unittest.TestCase):
         source_location = np.array([0.0, 0.0, 100.0 + 1e-5])
         rx_location = np.array([[0.0, 0.0, 100.0 + 1e-5]])
         radius = 20.0
-        waveform = tdem.sources.StepOffWaveform(offTime=0.0)
+        waveform = tdem.sources.StepOffWaveform(off_time=0.0)
         times = np.logspace(-5, -2, 10)
         orientations = ['x','y','z']
         

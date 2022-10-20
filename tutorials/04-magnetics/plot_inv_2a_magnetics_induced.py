@@ -233,7 +233,7 @@ simulation = magnetics.simulation.Simulation3DIntegral(
     mesh=mesh,
     model_type="scalar",
     chiMap=model_map,
-    actInd=active_cells,
+    ind_active=active_cells,
 )
 
 

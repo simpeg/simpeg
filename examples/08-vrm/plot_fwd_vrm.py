@@ -88,7 +88,9 @@ src_list_vrm = []
 for pp in range(0, loc.shape[0]):
 
     loc_pp = np.reshape(loc[pp, :], (1, 3))
-    rx_list_vrm = [VRM.Rx.Point(loc_pp, times=times, fieldType="dbdt", orientation="z")]
+    rx_list_vrm = [
+        VRM.Rx.Point(loc_pp, times=times, field_type="dbdt", orientation="z")
+    ]
 
     src_list_vrm.append(
         VRM.Src.MagDipole(rx_list_vrm, mkvc(loc[pp, :]), [0.0, 0.0, 0.01], waveform)

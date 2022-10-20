@@ -60,7 +60,7 @@ def run(
     zmin, zmax = 0, 0
     endl = np.array([[xmin, ymin, zmin], [xmax, ymax, zmax]])
     # Generate DC survey object
-    survey = DCutils.gen_DCIPsurvey(
+    survey = DCutils.generate_dcip_survey(
         endl, survey_type=survey_type, dim=2, a=10, b=10, n=10
     )
     survey = IO.from_abmn_locations_to_survey(
