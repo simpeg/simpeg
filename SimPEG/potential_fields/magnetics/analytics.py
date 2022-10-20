@@ -109,7 +109,7 @@ def CongruousMagBC(mesh, Bo, chi):
     yc = sum(chi[ind] * mesh.gridCC[:, 1][ind]) / sum(chi[ind])
     zc = sum(chi[ind] * mesh.gridCC[:, 2][ind]) / sum(chi[ind])
 
-    indxd, indxu, indyd, indyu, indzd, indzu = mesh.faceBoundaryInd
+    indxd, indxu, indyd, indyu, indzd, indzu = mesh.face_boundary_indices
 
     const = mu_0 / (4 * np.pi) * mom
     rfun = lambda x: np.sqrt(
