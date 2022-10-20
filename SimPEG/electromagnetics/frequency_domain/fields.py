@@ -612,7 +612,7 @@ class Fields3DElectricField(FieldsFDEM):
             \int \nabla \codt \vec{e} =  \int \frac{\rho_v }{\epsillon_0}
         """
         return -epsilon_0 * (
-            self.mesh.nodalGrad.T
+            self.mesh.nodal_gradient.T
             * self.mesh.getEdgeInnerProduct()
             * self._e(eSolution, source_list)
         )
@@ -933,7 +933,7 @@ class Fields3DMagneticFluxDensity(FieldsFDEM):
             \int \nabla \codt \vec{e} =  \int \frac{\rho_v }{\epsillon_0}
         """
         return -epsilon_0 * (
-            self.mesh.nodalGrad.T
+            self.mesh.nodal_gradient.T
             * self.mesh.getEdgeInnerProduct()
             * self._e(bSolution, source_list)
         )

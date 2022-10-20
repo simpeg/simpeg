@@ -1310,7 +1310,7 @@ class LineCurrent(BaseFDEMSrc):
             and on faces for 'HJ' formulation.
         """
         if simulation._formulation == "EB":
-            Grad = simulation.mesh.nodalGrad
+            Grad = simulation.mesh.nodal_gradient
             return Grad.T * self.Mejs(simulation)
         elif simulation._formulation == "HJ":
             Div = sdiag(simulation.mesh.vol) * simulation.mesh.faceDiv

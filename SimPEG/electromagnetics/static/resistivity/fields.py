@@ -233,7 +233,7 @@ class Fields3DNodal(FieldsDC):
         .. math::
             \vec{e} = -\nabla \phi
         """
-        return -self.mesh.nodalGrad * phiSolution
+        return -self.mesh.nodal_gradient * phiSolution
 
     def _charge(self, phiSolution, source_list):
         """
@@ -241,7 +241,7 @@ class Fields3DNodal(FieldsDC):
             \int \nabla \codt \vec{e} =  \int \frac{\rho_v }{\epsillon_0}
         """
         return -epsilon_0 * (
-            self.mesh.nodalGrad.T
+            self.mesh.nodal_gradient.T
             * self.mesh.getEdgeInnerProduct()
             * self._e(phiSolution, source_list)
         )

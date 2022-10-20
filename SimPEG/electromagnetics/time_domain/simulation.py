@@ -834,7 +834,7 @@ class Simulation3DElectricField(BaseTDEMSimulation):
 
         # Treating initial condition when a galvanic source is included
         tInd = -1
-        Grad = self.mesh.nodalGrad
+        Grad = self.mesh.nodal_gradient
 
         for isrc, src in enumerate(self.survey.source_list):
             if src.srcType == "galvanic":
@@ -941,14 +941,14 @@ class Simulation3DElectricField(BaseTDEMSimulation):
 
     def getAdc(self):
         MeSigma = self.MeSigma
-        Grad = self.mesh.nodalGrad
+        Grad = self.mesh.nodal_gradient
         Adc = Grad.T * MeSigma * Grad
         # Handling Null space of A
         Adc[0, 0] = Adc[0, 0] + 1.0
         return Adc
 
     def getAdcDeriv(self, u, v, adjoint=False):
-        Grad = self.mesh.nodalGrad
+        Grad = self.mesh.nodal_gradient
         if not adjoint:
             return Grad.T * self.MeSigmaDeriv(-u, v, adjoint)
         elif adjoint:

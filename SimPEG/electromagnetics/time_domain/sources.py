@@ -1665,7 +1665,7 @@ class LineCurrent(BaseTDEMSrc):
             and on faces for 'HJ' formulation.
         """
         if simulation._formulation == "EB":
-            Grad = simulation.mesh.nodalGrad
+            Grad = simulation.mesh.nodal_gradient
             return Grad.T * self.Mejs(simulation)
         elif simulation._formulation == "HJ":
             Div = sdiag(simulation.mesh.vol) * simulation.mesh.faceDiv
@@ -1727,7 +1727,7 @@ class LineCurrent(BaseTDEMSrc):
         if self.waveform.has_initial_fields:
             if simulation._formulation == "EB":
                 phi = self.phiInitial(simulation)
-                return -simulation.mesh.nodalGrad * phi
+                return -simulation.mesh.nodal_gradient * phi
             else:
                 raise NotImplementedError
         else:
@@ -1752,7 +1752,7 @@ class LineCurrent(BaseTDEMSrc):
         """
         if self.waveform.has_initial_fields:
             edc = f[self, "e", 0]
-            Grad = simulation.mesh.nodalGrad
+            Grad = simulation.mesh.nodal_gradient
             if adjoint is False:
                 AdcDeriv_v = simulation.getAdcDeriv(edc, v, adjoint=adjoint)
                 edcDeriv = Grad * (simulation.Adcinv * AdcDeriv_v)

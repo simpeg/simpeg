@@ -11,7 +11,7 @@ def get1DEfields(m1d, sigma, freq, sourceAmp=1.0):
     """Function to get 1D electrical fields"""
 
     # Get the gradient
-    G = m1d.nodalGrad
+    G = m1d.nodal_gradient
     # Mass matrices
     # Magnetic permeability
     Mmu = sdiag(m1d.vol * (1.0 / mu_0))

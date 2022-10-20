@@ -625,7 +625,7 @@ class Simulation2DNodal(BaseDCSimulation2D):
 
         MeSigma = self.MeSigma
         MnSigma = self.MnSigma
-        Grad = self.mesh.nodalGrad
+        Grad = self.mesh.nodal_gradient
         if self._gradT is None:
             self._gradT = Grad.T.tocsr()  # cache the .tocsr()
         GradT = self._gradT
@@ -646,7 +646,7 @@ class Simulation2DNodal(BaseDCSimulation2D):
 
     def getADeriv(self, ky, u, v, adjoint=False):
 
-        Grad = self.mesh.nodalGrad
+        Grad = self.mesh.nodal_gradient
 
         if adjoint:
             out = self.MeSigmaDeriv(

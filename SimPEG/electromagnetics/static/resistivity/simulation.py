@@ -443,7 +443,7 @@ class Simulation3DNodal(BaseDCSimulation):
         # Not sure why I need to do this
         # To evaluate mesh.aveE2CC, this is required....
         if mesh._meshType == "TREE":
-            mesh.nodalGrad
+            mesh.nodal_gradient
         elif mesh._meshType == "CYL":
             bc_type == "Neumann"
         self.bc_type = bc_type
@@ -478,7 +478,7 @@ class Simulation3DNodal(BaseDCSimulation):
             MeSigma = self.MeSigma
         else:
             MeSigma = self.mesh.getEdgeInnerProduct(1.0 / resistivity)
-        Grad = self.mesh.nodalGrad
+        Grad = self.mesh.nodal_gradient
         A = Grad.T @ MeSigma @ Grad
 
         if self.bc_type == "Neumann":
@@ -508,7 +508,7 @@ class Simulation3DNodal(BaseDCSimulation):
         Product of the derivative of our system matrix with respect to the
         model and a vector
         """
-        Grad = self.mesh.nodalGrad
+        Grad = self.mesh.nodal_gradient
         if not adjoint:
             out = Grad.T @ self.MeSigmaDeriv(Grad @ u, v, adjoint)
         else:
