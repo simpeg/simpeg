@@ -123,10 +123,10 @@ model[ind_block] = block_value
 # We can plot a slice of the model at Y=-2.5
 fig = plt.figure(figsize=(5, 5))
 ax = fig.add_subplot(111)
-ind_slice = int(mesh.hy.size / 2)
+ind_slice = int(mesh.h[1].size / 2)
 mesh.plotSlice(model_map * model, normal="Y", ax=ax, ind=ind_slice, grid=True)
 ax.set_title(
-    "Model slice at y = {} m".format(mesh.x0[1] + np.sum(mesh.hy[0:ind_slice]))
+    "Model slice at y = {} m".format(mesh.x0[1] + np.sum(mesh.h[1][0:ind_slice]))
 )
 plt.show()
 
@@ -183,10 +183,10 @@ model_map = active_map * reciprocal_map * exponential_map
 # Plot
 fig = plt.figure(figsize=(5, 5))
 ax = fig.add_subplot(111)
-ind_slice = int(mesh.hy.size / 2)
+ind_slice = int(mesh.h[1].size / 2)
 mesh.plotSlice(model_map * model, normal="Y", ax=ax, ind=ind_slice, grid=True)
 ax.set_title(
-    "Model slice at y = {} m".format(mesh.x0[1] + np.sum(mesh.hy[0:ind_slice]))
+    "Model slice at y = {} m".format(mesh.x0[1] + np.sum(mesh.h[1][0:ind_slice]))
 )
 plt.show()
 
@@ -240,10 +240,10 @@ model[ind_polygon] = dyke_value
 # Plot
 fig = plt.figure(figsize=(5, 5))
 ax = fig.add_subplot(111)
-ind_slice = int(mesh.hy.size / 2)
+ind_slice = int(mesh.h[1].size / 2)
 mesh.plotSlice(model_map * model, normal="Y", ax=ax, ind=ind_slice, grid=True)
 ax.set_title(
-    "Model slice at y = {} m".format(mesh.x0[1] + np.sum(mesh.hy[0:ind_slice]))
+    "Model slice at y = {} m".format(mesh.x0[1] + np.sum(mesh.h[1][0:ind_slice]))
 )
 plt.show()
 
@@ -288,10 +288,10 @@ model_map = active_map * parametric_map
 # Plot
 fig = plt.figure(figsize=(5, 5))
 ax = fig.add_subplot(111)
-ind_slice = int(mesh.hy.size / 2)
+ind_slice = int(mesh.h[1].size / 2)
 mesh.plotSlice(model_map * model, normal="Y", ax=ax, ind=ind_slice, grid=True)
 ax.set_title(
-    "Model slice at y = {} m".format(mesh.x0[1] + np.sum(mesh.hy[0:ind_slice]))
+    "Model slice at y = {} m".format(mesh.x0[1] + np.sum(mesh.h[1][0:ind_slice]))
 )
 plt.show()
 
@@ -361,9 +361,9 @@ mu_map = active_map * wire_map.mu
 # Plot
 fig = plt.figure(figsize=(5, 5))
 ax = fig.add_subplot(111)
-ind_slice = int(mesh.hy.size / 2)
+ind_slice = int(mesh.h[1].size / 2)
 mesh.plotSlice(sigma_map * model, normal="Y", ax=ax, ind=ind_slice, grid=True)
 ax.set_title(
-    "Model slice at y = {} m".format(mesh.x0[1] + np.sum(mesh.hy[0:ind_slice]))
+    "Model slice at y = {} m".format(mesh.x0[1] + np.sum(mesh.h[1][0:ind_slice]))
 )
 plt.show()

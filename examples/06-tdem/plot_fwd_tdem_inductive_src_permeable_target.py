@@ -69,7 +69,7 @@ mesh = discretize.CylMesh(
 )
 
 # put the origin at the top of the target
-mesh.x0 = [0, 0, -mesh.hz[: npadz + ncz].sum()]
+mesh.x0 = [0, 0, -mesh.h[2][: npadz + ncz].sum()]
 
 # plot the mesh
 mesh.plotGrid()

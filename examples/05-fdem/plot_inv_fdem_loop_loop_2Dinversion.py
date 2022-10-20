@@ -114,7 +114,7 @@ mesh = discretize.TensorMesh(
 )
 # set the origin
 mesh.x0 = np.r_[
-    -mesh.hx.sum() / 2.0, -mesh.hy.sum() / 2.0, -mesh.hz[: npadz + ncz].sum()
+    -mesh.h[0].sum() / 2.0, -mesh.h[1].sum() / 2.0, -mesh.h[2][: npadz + ncz].sum()
 ]
 
 print("the mesh has {} cells".format(mesh.nC))
@@ -127,8 +127,8 @@ mesh.plotGrid()
 # Here, we set up a 2D tensor mesh which we will represent the inversion model
 # on
 
-inversion_mesh = discretize.TensorMesh([mesh.hx, mesh.hz[mesh.vectorCCz <= 0]])
-inversion_mesh.x0 = [-inversion_mesh.hx.sum() / 2.0, -inversion_mesh.hy.sum()]
+inversion_mesh = discretize.TensorMesh([mesh.h[0], mesh.h[2][mesh.vectorCCz <= 0]])
+inversion_mesh.x0 = [-inversion_mesh.h[0].sum() / 2.0, -inversion_mesh.h[1].sum()]
 inversion_mesh.plotGrid()
 
 ###############################################################################
@@ -140,7 +140,7 @@ inversion_mesh.plotGrid()
 # the surface, fixing the conductivity of the air cells to 1e-8 S/m
 
 # create a 2D mesh that includes air cells
-mesh2D = discretize.TensorMesh([mesh.hx, mesh.hz], x0=mesh.x0[[0, 2]])
+mesh2D = discretize.TensorMesh([mesh.h[0], mesh.h[2]], x0=mesh.x0[[0, 2]])
 active_inds = mesh2D.gridCC[:, 1] < 0  # active indices are below the surface
 
 

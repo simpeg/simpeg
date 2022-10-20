@@ -1543,7 +1543,7 @@ def gettopoCC(mesh, ind_active, option="top"):
 
         if mesh.dim == 3:
 
-            mesh2D = discretize.TensorMesh([mesh.hx, mesh.hy], mesh.x0[:2])
+            mesh2D = discretize.TensorMesh([mesh.h[0], mesh.h[1]], mesh.x0[:2])
             zc = mesh.cell_centers[:, 2]
             ACTIND = ind_active.reshape(
                 (mesh.vnC[0] * mesh.vnC[1], mesh.vnC[2]), order="F"
@@ -1554,7 +1554,7 @@ def gettopoCC(mesh, ind_active, option="top"):
             for i in range(ZC.shape[0]):
                 ind = np.argmax(ZC[i, :][ACTIND[i, :]])
                 if option == "top":
-                    dz = mesh.hz[ACTIND[i, :]][ind] * 0.5
+                    dz = mesh.h[2][ACTIND[i, :]][ind] * 0.5
                 elif option == "center":
                     dz = 0.0
                 else:
@@ -1564,7 +1564,7 @@ def gettopoCC(mesh, ind_active, option="top"):
 
         elif mesh.dim == 2:
 
-            mesh1D = discretize.TensorMesh([mesh.hx], [mesh.x0[0]])
+            mesh1D = discretize.TensorMesh([mesh.h[0]], [mesh.x0[0]])
             yc = mesh.cell_centers[:, 1]
             ACTIND = ind_active.reshape((mesh.vnC[0], mesh.vnC[1]), order="F")
             YC = yc.reshape((mesh.vnC[0], mesh.vnC[1]), order="F")
@@ -1572,7 +1572,7 @@ def gettopoCC(mesh, ind_active, option="top"):
             for i in range(YC.shape[0]):
                 ind = np.argmax(YC[i, :][ACTIND[i, :]])
                 if option == "top":
-                    dy = mesh.hy[ACTIND[i, :]][ind] * 0.5
+                    dy = mesh.h[1][ACTIND[i, :]][ind] * 0.5
                 elif option == "center":
                     dy = 0.0
                 else:
@@ -1683,13 +1683,15 @@ def genTopography(mesh, zmin, zmax, seed=None, its=100, anisotropy=None):
         raise ValueError("Curvilinear mesh is not supported.")
 
     if mesh.dim == 3:
-        mesh2D = discretize.TensorMesh([mesh.hx, mesh.hy], x0=[mesh.x0[0], mesh.x0[1]])
+        mesh2D = discretize.TensorMesh(
+            [mesh.h[0], mesh.h[1]], x0=[mesh.x0[0], mesh.x0[1]]
+        )
         out = model_builder.randomModel(
             mesh.vnC[:2], bounds=[zmin, zmax], its=its, seed=seed, anisotropy=anisotropy
         )
         return out, mesh2D
     elif mesh.dim == 2:
-        mesh1D = discretize.TensorMesh([mesh.hx], x0=[mesh.x0[0]])
+        mesh1D = discretize.TensorMesh([mesh.h[0]], x0=[mesh.x0[0]])
         out = model_builder.randomModel(
             mesh.vnC[:1], bounds=[zmin, zmax], its=its, seed=seed, anisotropy=anisotropy
         )

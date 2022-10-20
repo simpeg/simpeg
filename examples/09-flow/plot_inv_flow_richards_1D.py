@@ -123,7 +123,7 @@ def run(plotIt=True):
         plt.legend(("$m_{rec}$", "$m_{true}$", "Data locations"), loc=4)
 
         ax = plt.subplot(222)
-        mesh2d = discretize.TensorMesh([prob.time_mesh.hx / 60, prob.mesh.hx], "0N")
+        mesh2d = discretize.TensorMesh([prob.time_mesh.h[0] / 60, prob.mesh.h[0]], "0N")
         sats = [theta_fun(_) for _ in Hs]
         clr = mesh2d.plotImage(np.c_[sats][1:, :], ax=ax)
         cmap0 = matplotlib.cm.RdYlBu_r
@@ -135,7 +135,7 @@ def run(plotIt=True):
         plt.title("True saturation over time")
 
         ax = plt.subplot(224)
-        mesh2d = discretize.TensorMesh([prob.time_mesh.hx / 60, prob.mesh.hx], "0N")
+        mesh2d = discretize.TensorMesh([prob.time_mesh.h[0] / 60, prob.mesh.h[0]], "0N")
         sats = [theta_fun(_) for _ in Hs_opt]
         clr = mesh2d.plotImage(np.c_[sats][1:, :], ax=ax)
         cmap0 = matplotlib.cm.RdYlBu_r

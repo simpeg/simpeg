@@ -211,7 +211,7 @@ mesh.plotSlice(
     plotting_map * log_mod,
     ax=ax1,
     normal="Y",
-    ind=int(len(mesh.hy) / 2),
+    ind=int(len(mesh.h[1]) / 2),
     grid=True,
     clim=(np.log10(resistor_value), np.log10(conductor_value)),
     pcolor_opts={"cmap": mpl.cm.viridis},

@@ -362,7 +362,9 @@ class MapTests(unittest.TestCase):
         M1 = discretize.TensorMesh([np.ones(10)], "C")
         block = maps.ParametricBlock(M1)
         self.assertTrue(
-            block.test(m=np.hstack([np.random.rand(2), np.r_[M1.x0, 2 * M1.hx.min()]]))
+            block.test(
+                m=np.hstack([np.random.rand(2), np.r_[M1.x0, 2 * M1.h[0].min()]])
+            )
         )
 
         M2 = discretize.TensorMesh([np.ones(10), np.ones(20)], "CC")
@@ -372,8 +374,8 @@ class MapTests(unittest.TestCase):
                 m=np.hstack(
                     [
                         np.random.rand(2),
-                        np.r_[M2.x0[0], 2 * M2.hx.min()],
-                        np.r_[M2.x0[1], 4 * M2.hy.min()],
+                        np.r_[M2.x0[0], 2 * M2.h[0].min()],
+                        np.r_[M2.x0[1], 4 * M2.h[1].min()],
                     ]
                 )
             )
@@ -386,9 +388,9 @@ class MapTests(unittest.TestCase):
                 m=np.hstack(
                     [
                         np.random.rand(2),
-                        np.r_[M3.x0[0], 2 * M3.hx.min()],
-                        np.r_[M3.x0[1], 4 * M3.hy.min()],
-                        np.r_[M3.x0[2], 5 * M3.hz.min()],
+                        np.r_[M3.x0[0], 2 * M3.h[0].min()],
+                        np.r_[M3.x0[1], 4 * M3.h[1].min()],
+                        np.r_[M3.x0[2], 5 * M3.h[2].min()],
                     ]
                 )
             )
@@ -402,8 +404,8 @@ class MapTests(unittest.TestCase):
                 m=np.hstack(
                     [
                         np.random.rand(2),
-                        np.r_[M2.x0[0], 2 * M2.hx.min()],
-                        np.r_[M2.x0[1], 4 * M2.hy.min()],
+                        np.r_[M2.x0[0], 2 * M2.h[0].min()],
+                        np.r_[M2.x0[1], 4 * M2.h[1].min()],
                     ]
                 )
             )
@@ -416,9 +418,9 @@ class MapTests(unittest.TestCase):
                 m=np.hstack(
                     [
                         np.random.rand(2),
-                        np.r_[M3.x0[0], 2 * M3.hx.min()],
-                        np.r_[M3.x0[1], 4 * M3.hy.min()],
-                        np.r_[M3.x0[2], 5 * M3.hz.min()],
+                        np.r_[M3.x0[0], 2 * M3.h[0].min()],
+                        np.r_[M3.x0[1], 4 * M3.h[1].min()],
+                        np.r_[M3.x0[2], 5 * M3.h[2].min()],
                     ]
                 )
             )
@@ -439,8 +441,8 @@ class MapTests(unittest.TestCase):
         m0 = np.hstack(
             [
                 np.random.rand(3),
-                np.r_[M2.x0[0], 2 * M2.hx.min()],
-                np.r_[M2.x0[1], 4 * M2.hy.min()],
+                np.r_[M2.x0[0], 2 * M2.h[0].min()],
+                np.r_[M2.x0[1], 4 * M2.h[1].min()],
             ]
         )
 

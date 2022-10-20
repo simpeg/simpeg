@@ -139,8 +139,8 @@ class TestDipoles(unittest.TestCase):
             mesh.plotGrid()
 
         # make sure mesh is big enough
-        self.assertTrue(mesh.hz.sum() > skdpth * 2.0)
-        self.assertTrue(mesh.hx.sum() > skdpth * 2.0)
+        self.assertTrue(mesh.h[2].sum() > skdpth * 2.0)
+        self.assertTrue(mesh.h[0].sum() > skdpth * 2.0)
 
         # set up source
         # test electric dipole

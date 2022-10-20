@@ -49,7 +49,7 @@ class PlanewaveXYPrimary(Planewave):
     _fields_per_source = 2
 
     def __init__(self, receiver_list, frequency, sigma_primary=None):
-        # assert mkvc(self.mesh.hz.shape,1) == mkvc(sigma1d.shape,1),'The number of values in the 1D background model does not match the number of vertical cells (hz).'
+        # assert mkvc(self.mesh.h[2].shape,1) == mkvc(sigma1d.shape,1),'The number of values in the 1D background model does not match the number of vertical cells (hz).'
         self.sigma1d = None
         self._sigma_primary = sigma_primary
         super(PlanewaveXYPrimary, self).__init__(receiver_list, frequency)

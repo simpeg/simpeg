@@ -2683,7 +2683,7 @@ class SurjectVertical1D(IdentityMap):
     >>> fig1 = plt.figure(figsize=(5,5))
     >>> ax1 = fig1.add_subplot(111)
     >>> plot_1d_layer_model(
-    >>>     mesh1D.hx, np.flip(m), ax=ax1, z0=0,
+    >>>     mesh1D.h[0], np.flip(m), ax=ax1, z0=0,
     >>>     scale='linear', show_layers=True, plot_elevation=True
     >>> )
     >>> ax1.set_xlim([-0.1, 11])
@@ -4147,7 +4147,7 @@ class ParametricSplineMap(IdentityMap):
                     ind = np.argmin(abs(self.mesh.vectorCCy - ctemp))
                     ca = c.copy()
                     cb = c.copy()
-                    dy = self.mesh.hy[ind] * 1.5
+                    dy = self.mesh.h[1][ind] * 1.5
                     ca[i] = ctemp + dy
                     cb[i] = ctemp - dy
                     spla = UnivariateSpline(self.pts, ca, k=self.order, s=0)
@@ -4167,7 +4167,7 @@ class ParametricSplineMap(IdentityMap):
                     ind = np.argmin(abs(self.mesh.vectorCCy - ctemp))
                     ca = c.copy()
                     cb = c.copy()
-                    dy = self.mesh.hy[ind] * 1.5
+                    dy = self.mesh.h[1][ind] * 1.5
                     ca[i] = ctemp + dy
                     cb[i] = ctemp - dy
 

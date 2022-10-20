@@ -248,7 +248,7 @@ mesh.plotSlice(
     plotting_map * log_model,
     normal="Y",
     ax=ax1,
-    ind=int(mesh.hx.size / 2),
+    ind=int(mesh.h[0].size / 2),
     grid=True,
     clim=(np.min(log_model), np.max(log_model)),
 )

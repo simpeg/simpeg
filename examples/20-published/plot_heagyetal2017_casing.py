@@ -376,7 +376,7 @@ class PrimSecCasingExample(object):
 
                 # vertically directed wire in borehole
                 # go through the center of the well
-                dgv_indx = meshp.gridFz[:, 0] < meshp.hx.min()
+                dgv_indx = meshp.gridFz[:, 0] < meshp.h[0].min()
                 dgv_indz = (meshp.gridFz[:, 2] >= src_a[2]) & (
                     meshp.gridFz[:, 2] <= src_b[2]
                 )
@@ -384,19 +384,19 @@ class PrimSecCasingExample(object):
                 dg_z[dgv_ind] = -1.0
 
                 # couple to the casing downhole - top part
-                dgh_indx = meshp.gridFx[:, 0] <= casing_a + meshp.hx.min() * 2
+                dgh_indx = meshp.gridFx[:, 0] <= casing_a + meshp.h[0].min() * 2
 
                 # couple to the casing downhole - bottom part
                 dgh_indz2 = (meshp.gridFx[:, 2] <= src_a[2]) & (
-                    meshp.gridFx[:, 2] > src_a[2] - meshp.hz.min()
+                    meshp.gridFx[:, 2] > src_a[2] - meshp.h[2].min()
                 )
                 dgh_ind2 = dgh_indx & dgh_indz2
                 dg_x[dgh_ind2] = 1.0
 
                 # horizontally directed wire
                 sgh_indx = meshp.gridFx[:, 0] <= src_b[0]
-                sgh_indz = (meshp.gridFx[:, 2] > meshp.hz.min()) & (
-                    meshp.gridFx[:, 2] < 2 * meshp.hz.min()
+                sgh_indz = (meshp.gridFx[:, 2] > meshp.h[2].min()) & (
+                    meshp.gridFx[:, 2] < 2 * meshp.h[2].min()
                 )
                 sgh_ind = sgh_indx & sgh_indz
                 dg_x[sgh_ind] = -1.0
@@ -405,8 +405,8 @@ class PrimSecCasingExample(object):
                 sgv_indx = (meshp.gridFz[:, 0] > src_b[0] * 0.9) & (
                     meshp.gridFz[:, 0] < src_b[0] * 1.1
                 )
-                sgv_indz = (meshp.gridFz[:, 2] >= -meshp.hz.min()) & (
-                    meshp.gridFz[:, 2] < 2 * meshp.hz.min()
+                sgv_indz = (meshp.gridFz[:, 2] >= -meshp.h[2].min()) & (
+                    meshp.gridFz[:, 2] < 2 * meshp.h[2].min()
                 )
                 sgv_ind = sgv_indx & sgv_indz
                 dg_z[sgv_ind] = 1.0

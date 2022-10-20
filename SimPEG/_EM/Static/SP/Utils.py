@@ -37,7 +37,7 @@ def readSeepageModel(fname, mesh=None, xsurf=None, ysurf=None):
         hx = [(cs, npad, -1.3), (cs, ncx), (cs, npad, 1.3)]
         hy = [(cs, npad, -1.3), (cs, ncy)]
         mesh = Mesh.TensorMesh([hx, hy], x0=[xmin, ymin])
-        mesh._x0 = np.r_[xmin - mesh.hx[:10].sum(), xmin - mesh.hy[:10].sum()]
+        mesh._x0 = np.r_[xmin - mesh.h[0][:10].sum(), xmin - mesh.h[1][:10].sum()]
         # ...
         xsurf = np.r_[-1e10, 55, 90, 94, 109, 112, 126.5, +1e10]
         ysurf = np.r_[27.5, 27.5, 43.2, 43.2, 35, 35, 27.5, 27.5]

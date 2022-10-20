@@ -199,7 +199,7 @@ mesh.plotSlice(
     plotting_map * plotting_model,
     normal="Y",
     ax=ax1,
-    ind=int(mesh.hy.size / 2),
+    ind=int(mesh.h[1].size / 2),
     grid=True,
     clim=(np.min(plotting_model), np.max(plotting_model)),
 )

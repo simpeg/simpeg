@@ -56,7 +56,7 @@ def run(plotIt=True):
     data = simulation.make_synthetic_data(mtrue, relative_error=rel_err)
 
     dmisfit = data_misfit.L2DataMisfit(simulation=simulation, data=data)
-    regMesh = discretize.TensorMesh([mesh.hz[mapping.maps[-1].indActive]])
+    regMesh = discretize.TensorMesh([mesh.h[2][mapping.maps[-1].indActive]])
     reg = regularization.WeightedLeastSquares(regMesh, alpha_s=1e-2, alpha_x=1.0)
     opt = optimization.InexactGaussNewton(maxIter=5, LSshorten=0.5)
     invProb = inverse_problem.BaseInvProblem(dmisfit, reg, opt)

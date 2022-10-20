@@ -117,7 +117,7 @@ def run(plotIt=True):
         plt.ylabel("Saturation")
 
         ax = plt.subplot(212)
-        mesh2d = discretize.TensorMesh([prob.time_mesh.hx / 60, prob.mesh.hx], "0N")
+        mesh2d = discretize.TensorMesh([prob.time_mesh.h[0] / 60, prob.mesh.h[0]], "0N")
         sats = [theta_fun(_) for _ in Hs]
         clr = mesh2d.plotImage(np.c_[sats][1:, :], ax=ax)
         cmap0 = matplotlib.cm.RdYlBu_r

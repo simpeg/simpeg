@@ -125,7 +125,7 @@ def resolve_1Dinversions(
     dmisfit = data_misfit.L2DataMisfit(simulation=prb, data=dat)
 
     # regularization
-    regMesh = discretize.TensorMesh([mesh.hz[mapping.maps[-1].indActive]])
+    regMesh = discretize.TensorMesh([mesh.h[2][mapping.maps[-1].indActive]])
     reg = regularization.WeightedLeastSquares(regMesh)
     reg.mref = mref
 

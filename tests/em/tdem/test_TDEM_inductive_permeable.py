@@ -48,7 +48,7 @@ class TestInductiveSourcesPermeability(unittest.TestCase):
                 [(csz, npadz, -pfz), (csz, ncz), (csz, npadz, pfz)],
             ]
         )
-        mesh.x0 = [0, 0, -mesh.hz[: npadz + ncz].sum()]
+        mesh.x0 = [0, 0, -mesh.h[2][: npadz + ncz].sum()]
 
         # Plot the mesh
         if plotIt:

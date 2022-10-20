@@ -306,7 +306,9 @@ dc_regularization = regularization.WeightedLeastSquares(
     reference_model=starting_conductivity_model,
 )
 
-dc_regularization.reference_model_in_smooth = True  # Include reference model in smoothness
+dc_regularization.reference_model_in_smooth = (
+    True  # Include reference model in smoothness
+)
 
 # Define how the optimization problem is solved.
 dc_optimization = optimization.InexactGaussNewton(
@@ -416,7 +418,7 @@ mesh.plotSlice(
     plotting_map * true_conductivity_model_log10,
     ax=ax1,
     normal="Y",
-    ind=int(len(mesh.hy) / 2),
+    ind=int(len(mesh.h[1]) / 2),
     grid=False,
     clim=(true_conductivity_model_log10.min(), true_conductivity_model_log10.max()),
     pcolor_opts={"cmap": mpl.cm.viridis},
@@ -446,7 +448,7 @@ mesh.plotSlice(
     plotting_map * recovered_conductivity_model_log10,
     ax=ax1,
     normal="Y",
-    ind=int(len(mesh.hy) / 2),
+    ind=int(len(mesh.h[1]) / 2),
     grid=False,
     clim=(true_conductivity_model_log10.min(), true_conductivity_model_log10.max()),
     pcolor_opts={"cmap": mpl.cm.viridis},

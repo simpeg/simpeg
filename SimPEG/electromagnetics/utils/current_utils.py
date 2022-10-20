@@ -454,8 +454,8 @@ def line_through_faces(
             if not (np.allclose(loca[1], locb[1]) and np.allclose(loca[2], locb[2])):
                 not_aligned_error(i)
 
-            ylocs = loca[1] + mesh.hy.min() / 4 * np.r_[-1, 1]
-            zlocs = loca[2] + mesh.hz.min() / 4 * np.r_[-1, 1]
+            ylocs = loca[1] + mesh.h[1].min() / 4 * np.r_[-1, 1]
+            zlocs = loca[2] + mesh.h[2].min() / 4 * np.r_[-1, 1]
 
         elif dimension == 1:
             ylocs = np.r_[locations[i, 1], locations[i + 1, 1]]
@@ -463,8 +463,8 @@ def line_through_faces(
             if not (np.allclose(loca[0], locb[0]) and np.allclose(loca[2], locb[2])):
                 not_aligned_error(i)
 
-            xlocs = loca[0] + mesh.hx.min() / 4 * np.r_[-1, 1]
-            zlocs = loca[2] + mesh.hz.min() / 4 * np.r_[-1, 1]
+            xlocs = loca[0] + mesh.h[0].min() / 4 * np.r_[-1, 1]
+            zlocs = loca[2] + mesh.h[2].min() / 4 * np.r_[-1, 1]
 
         elif dimension == 2:
             zlocs = np.r_[locations[i, 2], locations[i + 1, 2]]
@@ -472,8 +472,8 @@ def line_through_faces(
             if not (np.allclose(loca[0], locb[0]) and np.allclose(loca[1], locb[1])):
                 not_aligned_error(i)
 
-            xlocs = loca[0] + mesh.hx.min() / 4 * np.r_[-1, 1]
-            ylocs = loca[1] + mesh.hy.min() / 4 * np.r_[-1, 1]
+            xlocs = loca[0] + mesh.h[0].min() / 4 * np.r_[-1, 1]
+            ylocs = loca[1] + mesh.h[1].min() / 4 * np.r_[-1, 1]
 
         src_inds = (
             (grid[:, 0] >= xlocs.min())

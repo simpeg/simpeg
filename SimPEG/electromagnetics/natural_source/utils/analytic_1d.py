@@ -36,7 +36,7 @@ def getEHfields(m1d, sigma, freq, zd, scaleUD=True, scaleValue=1):
         1, 0
     ] = scaleValue  # Set the wave amplitude as 1 into the half-space at the bottom of the mesh
     # Loop over all the layers, starting at the bottom layer
-    for lnr, h in enumerate(m1d.hx):  # lnr-number of layer, h-thickness of the layer
+    for lnr, h in enumerate(m1d.h[0]):  # lnr-number of layer, h-thickness of the layer
         # Calculate
         yp1 = k[lnr] / (w * mu[lnr])  # Admittance of the layer below the current layer
         zp = (w * mu[lnr + 1]) / k[lnr + 1]  # Impedance in the current layer
@@ -109,7 +109,7 @@ def getImpedance(m1d, sigma, freq):
 
     # Initiate the impedances
     Z1d = np.empty(len(freq), dtype="complex")
-    h = m1d.hx  # vectorNx[:-1]
+    h = m1d.h[0]  # vectorNx[:-1]
     # Start the process
     for nrFr, fr in enumerate(freq):
         om = 2 * np.pi * fr

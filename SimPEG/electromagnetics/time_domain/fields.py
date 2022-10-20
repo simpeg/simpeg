@@ -333,7 +333,7 @@ class Fields3DElectricField(FieldsTDEM):
             "To obtain b-fields, please use Simulation3DMagneticFluxDensity"
         )
         # dbdt = self._dbdt(eSolution, source_list, tInd)
-        # dt = self.simulation.time_mesh.hx
+        # dt = self.simulation.time_mesh.h[0]
         # # assume widths of "ghost cells" same on either end
         # dtn = np.hstack([dt[0], 0.5*(dt[1:] + dt[:-1]), dt[-1]])
         # return dtn[tInd] * dbdt

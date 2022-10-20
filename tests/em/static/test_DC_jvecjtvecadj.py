@@ -108,7 +108,7 @@ class DCProblemTestsCC_fields(unittest.TestCase):
             ]
         )
 
-        mesh.x0 = np.r_[0.0, 0.0, -mesh.hz[: npad + nc].sum()]
+        mesh.x0 = np.r_[0.0, 0.0, -mesh.h[2][: npad + nc].sum()]
 
         # receivers
         rx_x = np.linspace(10, 200, 20)

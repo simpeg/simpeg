@@ -644,7 +644,7 @@ class ExponentialSinusoidSimulation(LinearSimulation):
             G = np.empty((self.n_kernels, self.mesh.nC))
 
             for i in range(self.n_kernels):
-                G[i, :] = self.g(i) * self.mesh.hx
+                G[i, :] = self.g(i) * self.mesh.h[0]
 
             self._G = G
         return self._G

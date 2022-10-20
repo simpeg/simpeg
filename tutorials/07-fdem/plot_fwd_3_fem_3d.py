@@ -197,7 +197,7 @@ mesh.plotSlice(
     plotting_map * log_model,
     normal="Y",
     ax=ax1,
-    ind=int(mesh.hx.size / 2),
+    ind=int(mesh.h[0].size / 2),
     grid=False,
     clim=(np.log10(background_conductivity), np.log10(block_conductivity)),
 )

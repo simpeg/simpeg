@@ -108,12 +108,12 @@ class TestSimpleSourcePropertiesTensor(unittest.TestCase):
 
             # remove the z faces right next to the source
             ignore_these = (
-                (-self.mesh.hx.min() + src.location[0] <= self.mesh.gridFz[:, 0])
-                & (self.mesh.gridFz[:, 0] <= self.mesh.hx.min() + src.location[0])
-                & (-self.mesh.hy.min() + src.location[1] <= self.mesh.gridFz[:, 1])
-                & (self.mesh.gridFz[:, 1] <= self.mesh.hy.min() + src.location[1])
-                & (-self.mesh.hz.min() + src.location[2] <= self.mesh.gridFz[:, 2])
-                & (self.mesh.gridFz[:, 2] <= self.mesh.hz.min() + src.location[2])
+                (-self.mesh.h[0].min() + src.location[0] <= self.mesh.gridFz[:, 0])
+                & (self.mesh.gridFz[:, 0] <= self.mesh.h[0].min() + src.location[0])
+                & (-self.mesh.h[1].min() + src.location[1] <= self.mesh.gridFz[:, 1])
+                & (self.mesh.gridFz[:, 1] <= self.mesh.h[1].min() + src.location[1])
+                & (-self.mesh.h[2].min() + src.location[2] <= self.mesh.gridFz[:, 2])
+                & (self.mesh.gridFz[:, 2] <= self.mesh.h[2].min() + src.location[2])
             )
 
             look_at_these = np.ones(self.mesh.nFx + self.mesh.nFy, dtype=bool)
@@ -126,12 +126,12 @@ class TestSimpleSourcePropertiesTensor(unittest.TestCase):
 
             # remove the z faces right next to the source
             ignore_these = (
-                (-self.mesh.hx.min() + src.location[0] <= self.mesh.gridEz[:, 0])
-                & (self.mesh.gridEz[:, 0] <= self.mesh.hx.min() + src.location[0])
-                & (-self.mesh.hy.min() + src.location[1] <= self.mesh.gridEz[:, 1])
-                & (self.mesh.gridEz[:, 1] <= self.mesh.hy.min() + src.location[1])
-                & (-self.mesh.hz.min() + src.location[2] <= self.mesh.gridEz[:, 2])
-                & (self.mesh.gridEz[:, 2] <= self.mesh.hz.min() + src.location[2])
+                (-self.mesh.h[0].min() + src.location[0] <= self.mesh.gridEz[:, 0])
+                & (self.mesh.gridEz[:, 0] <= self.mesh.h[0].min() + src.location[0])
+                & (-self.mesh.h[1].min() + src.location[1] <= self.mesh.gridEz[:, 1])
+                & (self.mesh.gridEz[:, 1] <= self.mesh.h[1].min() + src.location[1])
+                & (-self.mesh.h[2].min() + src.location[2] <= self.mesh.gridEz[:, 2])
+                & (self.mesh.gridEz[:, 2] <= self.mesh.h[2].min() + src.location[2])
             )
 
             look_at_these = np.ones(self.mesh.nEx + self.mesh.nEy, dtype=bool)

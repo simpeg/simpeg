@@ -86,9 +86,9 @@ def analytic1DModelSource(mesh, freq, sigma_1d):
     if mesh.dim == 1:
         mesh1d = mesh
     elif mesh.dim == 2:
-        mesh1d = discretize.TensorMesh([mesh.hy], np.array([mesh.x0[1]]))
+        mesh1d = discretize.TensorMesh([mesh.h[1]], np.array([mesh.x0[1]]))
     elif mesh.dim == 3:
-        mesh1d = discretize.TensorMesh([mesh.hz], np.array([mesh.x0[2]]))
+        mesh1d = discretize.TensorMesh([mesh.h[2]], np.array([mesh.x0[2]]))
 
     # # Note: Everything is using e^iwt
     Eu, Ed, _, _ = getEHfields(mesh1d, sigma_1d, freq, mesh.vectorNz)
