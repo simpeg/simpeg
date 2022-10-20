@@ -85,7 +85,7 @@ def run(plotIt=True):
         survey=survey,
         mesh=mesh,
         chiMap=idenMap,
-        actInd=actv,
+        ind_active=actv,
     )
 
     # Compute linear forward operator and compute some data
@@ -101,7 +101,7 @@ def run(plotIt=True):
     # Create a regularization
     reg = regularization.Sparse(mesh, indActive=actv, mapping=idenMap)
     reg.mref = np.zeros(nC)
-    reg.norms = np.c_[0, 0, 0, 0]
+    reg.norms = [0, 0, 0, 0]
     # reg.eps_p, reg.eps_q = 1e-0, 1e-0
 
     # Create sensitivity weights from our linear forward operator

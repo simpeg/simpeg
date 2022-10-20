@@ -1,11 +1,13 @@
 import os
-# import properties
+
 import discretize
 import numpy as np
-import multiprocessing
+import warnings
 from ..simulation import LinearSimulation
 from scipy.sparse import csr_matrix as csr
+import scipy.sparse as sp
 from SimPEG.utils import mkvc
+from ..utils import validate_string, validate_active_indices
 
 ###############################################################################
 #                                                                             #
@@ -34,7 +36,7 @@ class BasePFSimulation(LinearSimulation):
         A 3D tensor or tree mesh.
     ind_active : np.ndarray of int or bool
         Indices array denoting the active topography cells.
-    store_sensitivities : str {'ram', 'disk', 'forward_only'}, Default='ram'
+    store_sensitivities : {'ram', 'disk', 'forward_only'}
         Options for storing sensitivities. There are 3 options
 
         - 'ram': sensitivities are stored in the computer's RAM
@@ -42,51 +44,36 @@ class BasePFSimulation(LinearSimulation):
         - 'forward_only': you intend only do perform a forward simulation and sensitivities do no need to be stored
 
     """
-    # actInd = properties.Array(
-    #     "Array of active cells (ground)", dtype=(bool, int), default=None
-    # )
 
-    def __init__(self, mesh, ind_active=None, store_sensitivities='ram', **kwargs):
+    def __init__(self, mesh, ind_active=None, store_sensitivities="ram", **kwargs):
 
         # If deprecated property set with kwargs
         if "actInd" in kwargs:
-            ind_active = kwargs.pop("actInd")
-        if ind_active is not None:
-            self._ind_active = ind_active
-
-        if "forwardOnly" in kwargs:
-            store_sensitivities = kwargs.pop("forwardOnly")
-            if store_sensitivities:
-                self.store_sensitivities = 'forward_only'
-        else:
-            self.store_sensitivities = store_sensitivities
-
-        if "n_cpu" in kwargs:
-            del kwargs["n_cpu"]
-            warnings.warn(
-                "n_cpu has been deprecated. If interested, try out "
-                "loading dask for parallelism by doing ``import SimPEG.dask``. "
-                "This will be removed in version 0.16.0 of SimPEG",
-                FutureWarning,
+            raise AttributeError(
+                "actInd was removed in SimPEG 0.17.0, please use ind_active"
             )
 
-        LinearSimulation.__init__(self, mesh, **kwargs)
-        
-        # Find non-zero cells indices
-        if getattr(self, "ind_active", None) is not None:
-            if self.ind_active.dtype == "bool":
-                indices = np.where(self.ind_active)[0]
-            else:
-                indices = self.ind_active
-        else:
-            indices = np.asarray(range(self.mesh.nC))
+        if "forwardOnly" in kwargs:
+            raise AttributeError(
+                "forwardOnly was removed in SimPEG 0.17.0, please set store_sensitivities='forward_only'"
+            )
 
-        self.nC = len(indices)
+        self.store_sensitivities = store_sensitivities
+        super().__init__(mesh, **kwargs)
+        self.solver = None
+
+        # Find non-zero cells indices
+        if ind_active is not None:
+            ind_active = validate_active_indices("ind_active", ind_active, mesh.n_cells)
+        else:
+            ind_active = np.ones(mesh.n_cells, dtype=bool)
+        self._ind_active = ind_active
+
+        self.nC = sum(ind_active)
 
         # Create active cell projector
-        projection = csr(
-            (np.ones(self.nC), (indices, range(self.nC))), shape=(self.mesh.nC, self.nC)
-        )
+        projection = sp.eye(mesh.n_cells, format="csr")[:, ind_active]
+
         if not isinstance(mesh, (discretize.TensorMesh, discretize.TreeMesh)):
             raise ValueError("Mesh must be 3D tensor or Octree.")
         # Create vectors of nodal location for the lower and upper corners
@@ -116,24 +103,18 @@ class BasePFSimulation(LinearSimulation):
 
         Returns
         -------
-        str
+        {'disk', 'ram', 'forward_only'}
             A string defining the model type for the simulation.
-            One of {'disk', 'ram', 'forward_only'}.
         """
         if self._store_sensitivities is None:
-            self._store_sensitivities = 'ram'
+            self._store_sensitivities = "ram"
         return self._store_sensitivities
 
     @store_sensitivities.setter
     def store_sensitivities(self, value):
-        choices = ["disk", "ram", "forward_only"]
-        value = value.lower()
-        if value not in choices:
-            raise ValueError(
-                "Store sensitivities option ({}) unrecognized. ",
-                "Choose one of ['disk', 'ram', 'forward_only']".format(value)
-            )
-        self._store_sensitivities = value
+        self._store_sensitivities = validate_string(
+            "store_sensitivities", value, ["disk", "ram", "forward_only"]
+        )
 
     @property
     def ind_active(self):
@@ -144,43 +125,15 @@ class BasePFSimulation(LinearSimulation):
         (n_cell) numpy.ndarray of bool
             Returns the active topography cells
         """
-        if self._ind_active is None:
-            self._ind_active = np.asarray(range(self.mesh.nC))
         return self._ind_active
-
-    @ind_active.setter
-    def ind_active(self, input_array):
-        if not isinstance(input_array, (tuple, list, np.ndarray)):
-            raise TypeError(
-                "'ind_active' must be set using a tuple, list or numpy.ndarray"
-            )
-        if isinstance(input_array, (tuple, list)):
-            input_array = np.array(input_array)
-        if not isinstance(input_array.dtype, (int, bool)):
-            raise TypeError("'ind_active' must be an array of int or bool")
-
-        self._ind_active = input_array
 
     @property
     def actInd(self):
         """'actInd' is deprecated. Use 'ind_active' instead."""
-        warnings.warn(
+        raise AttributeError(
             "The 'actInd' property has been deprecated. "
             "Please use 'ind_active'. This will be removed in version 0.17.0 of SimPEG.",
-            FutureWarning,
         )
-        return self._ind_active
-
-    @actInd.setter
-    def actInd(self, value):
-        warnings.warn(
-            "The 'actInd' property has been deprecated. "
-            "Please use 'ind_active'. This will be removed in version 0.17.0 of SimPEG.",
-            FutureWarning,
-        )
-        self.ind_active(value)
-
-    
 
     def linear_operator(self):
         """Return linear operator
@@ -285,7 +238,7 @@ class BasePFSimulation(LinearSimulation):
             "loading dask for parallelism by doing ``import SimPEG.dask``."
         )
 
-    @parallelized.setter
+    @n_cpu.setter
     def n_cpu(self, other):
         raise TypeError(
             "Do not set n_cpu. If interested, try out "
@@ -339,7 +292,7 @@ def progress(iter, prog, final):
         Progress
     final : int
         Number of rows (= number of receivers)
-    
+
     Returns
     -------
     float
@@ -372,6 +325,7 @@ def get_dist_wgt(mesh, receiver_locations, actv, R, R0):
         Stabilization factor. Usually a fraction of the minimum cell size
 
     Returns
+    -------
     wr : (n_cell) numpy.ndarray
         Distance weighting model; 0 for all inactive cells
     """

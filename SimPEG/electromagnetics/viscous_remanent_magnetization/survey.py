@@ -1,8 +1,9 @@
 import numpy as np
-# import properties
+
 
 from ...survey import BaseSurvey
 from .sources import BaseSrcVRM
+from ...utils import validate_list_of_types, validate_ndarray_with_shape
 
 
 ############################################
@@ -21,20 +22,7 @@ class SurveyVRM(BaseSurvey):
         Active time channels used in inversion
     """
 
-    # source_list = properties.List(
-    #     "A list of sources for the survey",
-    #     properties.Instance("A SimPEG source", BaseSrcVRM),
-    #     default=[],
-    # )
-
-    # t_active = properties.Array(
-    #     "Boolean array where True denotes active data in the inversion", dtype=bool
-    # )
-
-    def __init__(self, source_list=None, t_active=None, **kwargs):
-
-        if source_list is None:
-            raise AttributeError("Survey cannot be instantiated without sources")
+    def __init__(self, source_list, t_active=None, **kwargs):
 
         super(SurveyVRM, self).__init__(source_list=source_list, **kwargs)
 
@@ -42,9 +30,10 @@ class SurveyVRM(BaseSurvey):
         self._nD = self._nD_all
 
         if t_active is None:
-            self.t_active = np.ones(self._nD_all, dtype=bool)
-        else:
-            self.t_active = t_active
+            t_active = np.ones(self._nD_all, dtype=bool)
+        self.t_active = validate_ndarray_with_shape(
+            "t_active", t_active, shape=(self._nD_all,), dtype=bool
+        )
 
     @property
     def source_list(self):
@@ -59,30 +48,9 @@ class SurveyVRM(BaseSurvey):
 
     @source_list.setter
     def source_list(self, new_list):
-        if not isinstance(new_list, list):
-            new_list = [new_list]
-        
-        if any([isinstance(x, BaseSrcVRM)==False for x in new_list]):
-            raise TypeError("Source list must be a list of SimPEG.electromagnetics.viscour_remanent_magnetization.sources.BaseSrcVRM")
-
-        assert len(set(new_list)) == len(new_list), "The source_list must be unique. Cannot re-use sources"
-
-        self._sourceOrder = dict()
-        # [self._sourceOrder.setdefault(src._uid, ii) for ii, src in enumerate(new_list)]
-        ii = 0
-        for src in new_list:
-            n_fields = src._fields_per_source
-            self._sourceOrder[src._uid] = [ii + i for i in range(n_fields)]
-            ii += n_fields
-        self._source_list = new_list
-
-    # @properties.validator("t_active")
-    # def _t_active_validator(self, change):
-    #     if self._nD_all != len(change["value"]):
-    #         raise ValueError(
-    #             "Length of t_active boolean array must equal number of data. Number of data is %i"
-    #             % self._nD_all
-    #         )
+        self._source_list = validate_list_of_types(
+            "source_list", new_list, BaseSrcVRM, ensure_unique=True
+        )
 
     @property
     def nD(self):

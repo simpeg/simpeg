@@ -1,60 +1,19 @@
 import numpy as np
 import scipy.sparse as sp
-# import properties
+
 import warnings
 import uuid
 
 from .utils import Counter
-from .utils.code_utils import deprecate_property, deprecate_method
+from .utils.code_utils import (
+    deprecate_property,
+    deprecate_method,
+    validate_location_property,
+    validate_ndarray_with_shape,
+    validate_list_of_types,
+    validate_type,
+)
 from .props import BaseSimPEG
-
-# class RxLocationArray(properties.Array):
-#     """Locations array for receivers"""
-
-#     class_info = "an array of receiver locations"
-
-#     def validate(self, instance, value):
-#         """Validation method for setting locations array
-
-#         Parameters
-#         ----------
-#         instance : class
-#             The class used to validate the input argument *value*
-#         value :
-#             The input used to define the locations for a given receiver.
-
-#         Returns
-#         -------
-#         properties.Array
-#             The receiver location array
-#         """
-#         value = np.atleast_2d(value)
-#         return super(RxLocationArray, self).validate(instance, value)
-
-
-# class SourceLocationArray(properties.Array):
-#     """Locations array for sources"""
-
-#     class_info = "a 1D array denoting the source location"
-
-#     def validate(self, instance, value):
-#         """Validation method for setting locations array
-
-#         Parameters
-#         ----------
-#         instance : class
-#             The class used to validate the input argument *value*
-#         value :
-#             The input used to define the locations for a given source.
-
-#         Returns
-#         -------
-#         properties.Array
-#             The source location array
-#         """
-#         if not isinstance(value, np.ndarray):
-#             value = np.atleast_1d(np.array(value))
-#         return super(SourceLocationArray, self).validate(instance, value)
 
 
 class BaseRx:
@@ -70,7 +29,6 @@ class BaseRx:
 
     _Ps = None
 
-
     def __init__(self, locations, storeProjections=False, **kwargs):
 
         self.locations = locations
@@ -82,11 +40,16 @@ class BaseRx:
                 "BaseRx no longer has an rxType property. Each receiver type is defined by "
                 "a different receiver class."
             )
-        if 'projGLoc' in kwargs:
+        projGLoc = kwargs.pop("projGLoc", None)
+        if projGLoc is not None:
             warnings.warn(
                 "'projGLoc' is no longer of property of the receiver class. It is set automatically "
                 "based on the receiver and simulation class. Will be remove in SimPEG 0.18.0"
             )
+        # ideally there shouldn't be any kwargs left to hit, but this will throw an
+        # error if kwargs hasn't been emptied properly. This also will allow proper
+        # initialization in multiple inheritence.
+        super().__init__(**kwargs)
 
         # Remaining properties
         if getattr(self, "_Ps", None) is None:
@@ -107,11 +70,9 @@ class BaseRx:
 
     @locations.setter
     def locations(self, locs):
-        try:
-            locs = np.atleast_2d(locs).astype(float)
-        except:
-            raise TypeError(f"locations must be (n_loc, n_dim) array_like, got {type(locs)}")
-        self._locations = locs
+        self._locations = validate_ndarray_with_shape(
+            "locations", locs, shape=("*", "*"), dtype=float
+        )
 
     # @property
     # def projected_grid(self):
@@ -158,32 +119,6 @@ class BaseRx:
         """
         return self._uid
 
-
-    # TODO: write a validator that checks against mesh dimension in the
-    # BaseSimulation
-    # TODO: location
-    # locations = RxLocationArray(
-    #     "Locations of the receivers (nRx x nDim)", shape=("*", "*"), required=True
-    # )
-
-    # TODO: project_grid?
-    # projected_grid = properties.StringChoice(
-    #     "Projection grid location, default is CC",
-    #     choices=["CC", "Fx", "Fy", "Fz", "Ex", "Ey", "Ez", "N"],
-    #     default="CC",
-    # )
-
-    # TODO: store_projections
-    # storeProjections = properties.Bool(
-    #     "Store calls to getP (organized by mesh)", default=True
-    # )
-
-    # _uid = properties.Uuid("unique ID for the receiver")
-
-    # _Ps = properties.Dictionary("dictonary for storing projections",)
-
-    
-
     @property
     def nD(self):
         """Number of data associated with the receiver
@@ -226,7 +161,7 @@ class BaseRx:
         if (mesh, projected_grid) in self._Ps:
             return self._Ps[(mesh, projected_grid)]
 
-        P = mesh.getInterpolationMat(self.locations, projected_grid)
+        P = mesh.get_interpolation_matrix(self.locations, projected_grid)
         if self.storeProjections:
             self._Ps[(mesh, projected_grid)] = P
         return P
@@ -249,20 +184,16 @@ class BaseTimeRx(BaseRx):
 
     Parameters
     ----------
-    locations : (n, dim) numpy.ndarray
+    locations : (n, dim) array_like
         Receiver locations
-    times : numpy.array_like
+    times : array_like
         Time channels
     """
 
-    def __init__(self, locations=None, times=None, **kwargs):
-        super(BaseTimeRx, self).__init__(locations=locations, **kwargs)
-        if times is not None:
-            self.times = times
+    def __init__(self, locations, times, **kwargs):
+        super().__init__(locations=locations, **kwargs)
 
-    # times = properties.Array(
-    #     "times where the recievers measure data", shape=("*",), required=True
-    # )
+        self.times = times
 
     @property
     def times(self):
@@ -277,49 +208,9 @@ class BaseTimeRx(BaseRx):
 
     @times.setter
     def times(self, value):
-        # Ensure float or numpy array of float
-        try:
-            value = np.atleast_1d(value).astype(float)
-        except:
-            raise TypeError(f"times is not a valid type. Got {type(value)}")
-        
-        if value.ndim > 1:
-            raise TypeError("times must be ('*') array")
-
-        self._times = value
-
-    # projected_time_grid = properties.StringChoice(
-    #     "location on the time mesh where the data are projected from",
-    #     choices=["N", "CC"],
-    #     default="N",
-    # )
-
-    # @property
-    # def projected_time_grid(self):
-    #     """Define gridding for projection from all time steps to receiver time channels.
-
-    #     A ``str`` is used to the define gridding of the time steps and how they are
-    #     projected to the time channels. The choices are as follows:
-
-    #     - "CC": time-steps defined as cell centers
-    #     - "N": time-steps defined as nodes
-
-    #     Returns
-    #     -------
-    #     str
-    #         The gridding used for the time-steps.
-    #     """
-    #     return self._projected_time_grid
-
-    # @projected_time_grid.setter
-    # def projected_time_grid(self, var):
-    #     if (var in ["CC", "N"]) == False:
-    #         raise TypeError(
-    #             f"projected_time_grid must be 'CC' or 'N'. Got {type(var)}"
-    #         )
-
-    #     self._projected_time_grid = var
-    
+        self._times = validate_ndarray_with_shape(
+            "times", value, shape=("*",), dtype=float
+        )
 
     @property
     def nD(self):
@@ -337,8 +228,9 @@ class BaseTimeRx(BaseRx):
 
         Parameters
         ----------
-        mesh: discretize.BaseMesh
+        mesh : discretize.BaseMesh
             A ``discretize`` mesh; i.e. ``TensorMesh``, ``CylMesh``, ``TreeMesh``
+        projected_grid :
 
         Returns
         -------
@@ -347,7 +239,7 @@ class BaseTimeRx(BaseRx):
             edges, etc...) to the receivers. The returned quantity is not stored
             in memory. Instead, it is created on demand when needed.
         """
-        return mesh.getInterpolationMat(self.locations, projected_grid)
+        return mesh.get_interpolation_matrix(self.locations, projected_grid)
 
     def getTimeP(self, time_mesh, projected_time_grid="N"):
         """Returns the time projection matrix from all time steps to receiver time channels.
@@ -364,7 +256,7 @@ class BaseTimeRx(BaseRx):
             edges, etc...) to the receivers. The returned quantity is not stored
             in memory. Instead, it is created on demand when needed.
         """
-        return time_mesh.getInterpolationMat(self.times, projected_time_grid)
+        return time_mesh.get_interpolation_matrix(self.times, projected_time_grid)
 
     def getP(self, mesh, time_mesh, projected_grid="CC", projected_time_grid="N"):
         """
@@ -395,27 +287,28 @@ class BaseSrc:
 
     Parameters
     ----------
-    location : (n_dim) numpy.ndarray
-        Location of the source
     receiver_list : list of SimPEG.survey.BaseRx objects
         Sets the receivers associated with the source
+    location : (n_dim) numpy.ndarray
+        Location of the source
     """
-
-    _receiver_list = []
 
     def __init__(self, receiver_list=None, location=None, **kwargs):
 
-        if receiver_list is not None:
-            self.receiver_list = receiver_list
+        if receiver_list is None:
+            receiver_list = []
+        self.receiver_list = receiver_list
 
         if location is not None:
             self.location = location
 
         self._uid = uuid.uuid4()
 
-    # location = SourceLocationArray(
-    #     "Location of the source [x, y, z] in 3D", shape=("*",), required=False
-    # )
+    # add a listener to receiver_list to reset the __rxOrder.
+    def __setattr__(self, name, item):
+        super().__setattr__(name, item)
+        if name == "receiver_list":
+            self.__rxOrder = None
 
     @property
     def location(self):
@@ -430,19 +323,7 @@ class BaseSrc:
 
     @location.setter
     def location(self, loc):
-        try:
-            loc = np.atleast_1d(loc).astype(float).squeeze()
-        except:
-            raise TypeError(f"location must be (n_dim) array_like, got {type(loc)}")
-
-        if loc.ndim > 1:
-            raise TypeError(f"location must be (n_dim) array_like, got {type(loc)}")
-
-        self._location = loc
-
-    # receiver_list = properties.List(
-    #     "receiver list", properties.Instance("a SimPEG receiver", BaseRx), default=[]
-    # )
+        self._location = validate_location_property("location", loc)
 
     @property
     def receiver_list(self):
@@ -457,27 +338,19 @@ class BaseSrc:
 
     @receiver_list.setter
     def receiver_list(self, new_list):
+        self._receiver_list = validate_list_of_types(
+            "receiver_list", new_list, BaseRx, ensure_unique=True
+        )
 
-        if isinstance(new_list, BaseRx):
-            new_list = [new_list]
-        elif isinstance(new_list, list):
-            pass
-        else:
-            raise TypeError("Receiver list must be a list of SimPEG.survey.BaseRx")
-
-        assert len(set(new_list)) == len(new_list), "The receiver_list must be unique. Cannot re-use receivers"
-
-        self._rxOrder = dict()
-        [self._rxOrder.setdefault(rx._uid, ii) for ii, rx in enumerate(new_list)]
-        self._receiver_list = new_list
-
-    # @properties.validator("receiver_list")
-    # def _receiver_list_validator(self, change):
-    #     value = change["value"]
-    #     assert len(set(value)) == len(value), "The receiver_list must be unique"
-    #     self._rxOrder = dict()
-    #     [self._rxOrder.setdefault(rx._uid, ii) for ii, rx in enumerate(value)]
-
+    @property
+    def _rxOrder(self):
+        if getattr(self.__rxOrder, None) is None:
+            self.__rxOrder = {}
+            [
+                self.__rxOrder.setdefault(rx.uid, ii)
+                for ii, rx in enumerate(self.receiver_list)
+            ]
+        return self.__rxOrder
 
     @property
     def uid(self):
@@ -490,12 +363,10 @@ class BaseSrc:
         """
         return self._uid
 
-    # _uid = properties.Uuid("unique identifier for the source")
-
     _fields_per_source = 1
 
     def get_receiver_indices(self, receivers):
-        """Get indices for a subset of receivers within the source's receivers list. 
+        """Get indices for a subset of receivers within the source's receivers list.
 
         Parameters
         ----------
@@ -504,8 +375,8 @@ class BaseSrc:
 
         Returns
         -------
-        np.ndarray of int
-            Indices for the subset receivers 
+        numpy.ndarray of int
+            Indices for the subset receivers
         """
 
         if not isinstance(receivers, list):
@@ -557,19 +428,18 @@ class BaseSurvey:
         A SimPEG counter object
     """
 
-    _source_list = []
-
-    def __init__(self, source_list=None, counter=None, **kwargs):
+    def __init__(self, source_list, counter=None, **kwargs):
 
         # Source list
-        if source_list is not None:
-            self.source_list = source_list
+        if source_list is None:
+            source_list = []
+        self.source_list = source_list
 
         if counter is not None:
             self.counter = counter
 
         self._uid = uuid.uuid4()
-
+        super().__init__(**kwargs)
 
     @property
     def source_list(self):
@@ -582,26 +452,28 @@ class BaseSurvey:
         """
         return self._source_list
 
+    # add a listener to source_list to reset the __sourceOrder.
+    def __setattr__(self, name, item):
+        super().__setattr__(name, item)
+        if name == "source_list":
+            self.__sourceOrder = None
+
     @source_list.setter
     def source_list(self, new_list):
-        if not isinstance(new_list, list):
-            new_list = [new_list]
-        
-        if any([isinstance(x, BaseSrc)==False for x in new_list]):
-            raise TypeError("Source list must be a list of SimPEG.survey.BaseSrc")
+        self._source_list = validate_list_of_types(
+            "source_list", new_list, BaseSrc, ensure_unique=True
+        )
 
-        if len(set(new_list)) != len(new_list):
-            raise AttributeError("The source_list must be unique. Cannot re-use sources")
-
-        self._sourceOrder = dict()
-        # [self._sourceOrder.setdefault(src._uid, ii) for ii, src in enumerate(new_list)]
-        ii = 0
-        for src in new_list:
-            n_fields = src._fields_per_source
-            self._sourceOrder[src._uid] = [ii + i for i in range(n_fields)]
-            ii += n_fields
-
-        self._source_list = new_list
+    @property
+    def _sourceOrder(self):
+        if getattr(self, "__sourceOrder", None) is None:
+            self.__sourceOrder = {}
+            ii = 0
+            for src in self.source_list:
+                n_fields = src._fields_per_source
+                self.__sourceOrder[src._uid] = [ii + i for i in range(n_fields)]
+                ii += n_fields
+        return self.__sourceOrder
 
     @property
     def uid(self):
@@ -627,36 +499,7 @@ class BaseSurvey:
 
     @counter.setter
     def counter(self, new_obj):
-
-        if not isinstance(new_obj, Counter):
-            TypeError(f"Must be a SimPEG counter object. Got {type(new_obj)}")
-
-        self._counter = new_obj
-
-    # source_list = properties.List(
-    #     "A list of sources for the survey",
-    #     properties.Instance("A SimPEG source", BaseSrc),
-    #     default=[],
-    # )
-
-    # def __init__(self, source_list=None, **kwargs):
-    #     super(BaseSurvey, self).__init__(**kwargs)
-    #     if source_list is not None:
-    #         self.source_list = source_list
-
-    # @properties.validator("source_list")
-    # def _source_list_validator(self, change):
-    #     value = change["value"]
-    #     if len(set(value)) != len(value):
-    #         raise Exception("The source_list must be unique")
-    #     self._sourceOrder = dict()
-    #     [self._sourceOrder.setdefault(src._uid, ii) for ii, src in enumerate(value)]
-    #     ii = 0
-    #     for src in value:
-    #         n_fields = src._fields_per_source
-    #         self._sourceOrder[src._uid] = [ii + i for i in range(n_fields)]
-    #         ii += n_fields
-
+        self._counter = validate_type("counter", new_obj, Counter, cast=False)
 
     # TODO: this should be private
     def get_source_indices(self, sources):
@@ -665,9 +508,9 @@ class BaseSurvey:
 
         inds = []
         for src in sources:
-            if getattr(src, "_uid", None) is None:
+            if getattr(src, "uid", None) is None:
                 raise KeyError("Source does not have a _uid: {0!s}".format(str(src)))
-            ind = self._sourceOrder.get(src._uid, None)
+            ind = self._sourceOrder.get(src.uid, None)
             if ind is None:
                 raise KeyError(
                     "Some of the sources specified are not in this survey. "
@@ -693,7 +536,7 @@ class BaseSurvey:
 
         Returns
         -------
-        (n_src) np.ndarray of int
+        (n_src) numpy.ndarray of int
             Number of associate data for each source
         """
         if getattr(self, "_vnD", None) is None:
@@ -720,19 +563,13 @@ class BaseSurvey:
 class BaseTimeSurvey(BaseSurvey):
     """Base SimPEG survey class for time-dependent simulations."""
 
-    def __init__(self, source_list=None, uid=None, counter=None, **kwargs):
-        super(BaseTimeSurvey, self).__init__(
-            source_list=source_list, uid=uid, counter=counter, **kwargs
-        )
-
-
     @property
     def unique_times(self):
         """Unique time channels for all survey receivers.
 
         Returns
         -------
-        np.ndarray
+        numpy.ndarray
             The unique time channels for all survey receivers.
         """
         if getattr(self, "_unique_times", None) is None:

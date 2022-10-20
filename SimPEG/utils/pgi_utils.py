@@ -1,11 +1,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
-import copy
-from scipy.stats import multivariate_normal
-from scipy import spatial, linalg
+from scipy import linalg
 from scipy.special import logsumexp
-from scipy.sparse import diags
 from sklearn.mixture import GaussianMixture
 from sklearn.cluster import KMeans
 from sklearn.utils import check_array
@@ -14,7 +11,6 @@ from sklearn.mixture._gaussian_mixture import (
     _compute_precision_cholesky,
     _compute_log_det_cholesky,
     _estimate_gaussian_covariances_full,
-    _estimate_gaussian_covariances_tied,
     _estimate_gaussian_covariances_diag,
     _estimate_gaussian_covariances_spherical,
     _check_means,
@@ -23,301 +19,7 @@ from sklearn.mixture._gaussian_mixture import (
 )
 from sklearn.mixture._base import check_random_state, ConvergenceWarning
 import warnings
-from .mat_utils import mkvc
-from ..maps import IdentityMap, Wires, Identity
-from ..regularization import (
-    Simple,
-    PGI,
-    Tikhonov,
-    PGIwithRelationships,
-)
-
-
-def make_PGI_regularization(
-    mesh,
-    gmmref,
-    gmm=None,
-    wiresmap=None,
-    maplist=None,
-    cell_weights_list=None,
-    approx_hessian=True,
-    approx_gradient=True,
-    approx_eval=True,
-    alpha_s=1.0,
-    alpha_x=1.0,
-    alpha_y=1.0,
-    alpha_z=1.0,
-    alpha_xx=0.0,
-    alpha_yy=0.0,
-    alpha_zz=0.0,
-    **kwargs,
-):
-    """Create a complete PGI regularization.
-
-    Create a complete PGI regularization term ``ComboObjectiveFunction`` with all
-    necessary smallness and smoothness terms for any number of physical properties
-    and associated mapping.
-
-    Parameters
-    ----------
-    mesh : discretize.TensorMesh or discretize.TreeMesh
-        TensorMesh or Treemesh object, used to weights the physical properties by cell
-        volumes when updating the Gaussian Mixture Model (GMM)
-    gmmref : WeightedGaussianMixture
-        Reference GMM.
-    gmm : WeightedGaussianMixture, optional
-        Initial GMM. If not provided, gmmref is used.
-    wiresmap : maps.Wires
-        Wires map to obtain the various physical properties from the model.
-        Optional for single physical property inversion. Required for multi-
-        physical properties inversion.
-    maplist : list, optional
-        List of mapping for each physical property. Default is the IdentityMap for all.
-    cell_weights_list : list of numpy.ndarray
-        List of cell weights to apply to each physical property.
-    approx_hessian : bool, default: ``True``
-        If ``True``, use the PGI least-squares approximation of the full nonlinear regularizer
-        for computing the regularizer gradient.
-    approx_gradient : bool, default: ``True``
-        If ``True``, use the PGI least-squares approximation of the full nonlinear regularizer
-        for computing the regularizer gradient.
-    approx_eval : bool, default: ``True``
-        If ``True``, use the PGI least-squares approximation of the full nonlinear regularizer
-        for computing the value of the regularizer.
-    alpha_s : float, default: 1.0
-        alpha_s multiplier for the PGI smallness.
-    alpha_x : float, default: 1.0
-        alpha_x multiplier for the 1st-derivative.
-        Smoothness terms in X-direction for each physical property.
-    alpha_y : float, default: 1.0
-        alpha_y multiplier for the 1st-derivative.
-        Smoothness terms in Y-direction for each physical property.
-    alpha_z : float, default: 1.0
-        alpha_z multiplier for the 1st-derivative.
-        Smoothness terms in Z-direction for each physical property.
-    alpha_xx : float or numpy.ndarray, default: 1.0
-        alpha_x multiplier for the 2nd-derivative.
-        Smoothness terms in X-direction for each physical property.
-    alpha_yy : float or numpy.ndarray, default: 1.0
-        alpha_y multiplier for the 2nd-derivative.
-        Smoothness terms in Y-direction for each physical property.
-    alpha_zz : float or numpy.ndarray, default: 1.0
-        alpha_z multiplier for the 2nd-derivative.
-        Smoothness terms in Z-direction for each physical property.
-
-    Returns
-    -------
-    SimPEG.objective_function.ComboObjectiveFunction
-        Full regularization with PGIsmallness and smoothness terms for all
-        physical properties in all direction.
-    """
-
-    if wiresmap is None:
-        if "indActive" in kwargs.keys():
-            indActive = kwargs.pop("indActive")
-            wrmp = Wires(("m", int(indActive.sum())))
-        else:
-            wrmp = Wires(("m", mesh.nC))
-    else:
-        wrmp = wiresmap
-
-    if maplist is None:
-        mplst = [IdentityMap(mesh) for maps in wrmp.maps]
-    else:
-        mplst = maplist
-
-    if cell_weights_list is None:
-        clwhtlst = [np.ones(maps[1].shape[0]) for maps in wrmp.maps]
-    else:
-        clwhtlst = cell_weights_list
-
-    reg = PGI(
-        mesh=mesh,
-        gmmref=gmmref,
-        gmm=gmm,
-        wiresmap=wiresmap,
-        maplist=maplist,
-        approx_hessian=approx_hessian,
-        approx_gradient=approx_gradient,
-        approx_eval=approx_eval,
-        alpha_s=alpha_s,
-        alpha_x=0.0,
-        alpha_y=0.0,
-        alpha_z=0.0,
-        **kwargs,
-    )
-
-    if cell_weights_list is not None:
-        reg.objfcts[0].cell_weights = np.hstack(clwhtlst)
-
-    if isinstance(alpha_x, float):
-        alph_x = alpha_x * np.ones(len(wrmp.maps))
-    else:
-        alph_x = alpha_x
-
-    if isinstance(alpha_y, float):
-        alph_y = alpha_y * np.ones(len(wrmp.maps))
-    else:
-        alph_y = alpha_y
-
-    if isinstance(alpha_z, float):
-        alph_z = alpha_z * np.ones(len(wrmp.maps))
-    else:
-        alph_z = alpha_z
-
-    for i, (wire, maps) in enumerate(zip(wrmp.maps, mplst)):
-        reg += Tikhonov(
-            mesh=mesh,
-            mapping=maps * wire[1],
-            alpha_s=0.0,
-            alpha_x=alph_x[i],
-            alpha_y=alph_y[i],
-            alpha_z=alph_z[i],
-            cell_weights=clwhtlst[i],
-            **kwargs,
-        )
-
-    return reg
-
-
-def make_PGIwithRelationships_regularization(
-    mesh,
-    gmmref,
-    gmm=None,
-    wiresmap=None,
-    maplist=None,
-    cell_weights_list=None,
-    approx_gradient=True,
-    approx_eval=True,
-    alpha_s=1.0,
-    alpha_x=1.0,
-    alpha_y=1.0,
-    alpha_z=1.0,
-    alpha_xx=0.0,
-    alpha_yy=0.0,
-    alpha_zz=0.0,
-    **kwargs,
-):
-    """
-    Create a complete PGI.
-
-    Create a complete PGI, with nonlinear relationships, regularization term ComboObjectiveFunction with all
-    necessary smallness and smoothness terms for any number of physical properties
-    and associated mapping.
-
-    Parameters
-    ----------
-    mesh : discretize.TensorMesh or discretize.TreeMesh
-        Tensor or tree mesh object, used to weights
-        the physical properties by cell volumes when updating the
-        Gaussian Mixture Model (GMM)
-    gmmref : WeightedGaussianMixture
-        Reference GMM
-    gmm : WeightedGaussianMixture, optional
-        Initial GMM. If not provided, gmmref is used.
-    wiresmap : maps.Wires, optional
-        Wires map to obtain the various physical properties from the model.
-        Optional for single physical property inversion. Required for multi-
-        physical properties inversion.
-    maplist : list, optional
-        List of mapping for each physical property. Default is the IdentityMap for all.
-    cell_weights_list : list of numpy.ndarray, optional
-        list of cells weight to apply to each physical property.
-    approx_gradient : bool, default: ``True``
-        If ``True``, use the PGI least-squares approximation of the full nonlinear regularizer
-        for computing the regularizer gradient.
-    approx_eval : bool, default: ``True``
-        If ``True``, use the PGI least-squares approximation of the full nonlinear regularizer
-        for computing the value of the regularizer.
-    alpha_s : float, default: 1.0
-        alpha_s multiplier for the PGI smallness.
-    alpha_x : float, default: 1.0
-        alpha_x multiplier for the 1st-derivative.
-        Smoothness terms in X-direction for each physical property.
-    alpha_y : float, default: 1.0
-        alpha_y multiplier for the 1st-derivative.
-        Smoothness terms in Y-direction for each physical property.
-    alpha_z : float, default: 1.0
-        alpha_z multiplier for the 1st-derivative.
-        Smoothness terms in Z-direction for each physical property.
-    alpha_xx : float or numpy.ndarray, default: 1.0
-        alpha_x multiplier for the 2nd-derivative.
-        Smoothness terms in X-direction for each physical property.
-    alpha_yy : float or numpy.ndarray, default: 1.0
-        alpha_y multiplier for the 2nd-derivative.
-        Smoothness terms in Y-direction for each physical property.
-    alpha_zz : float or numpy.ndarray, default: 1.0
-        alpha_z multiplier for the 2nd-derivative.
-        Smoothness terms in Z-direction for each physical property.
-
-    Returns
-    -------
-    SimPEG.objective_function.ComboObjectiveFunction
-        Full regularization with ``PGIwithNonlinearRelationshipsSmallness`` and smoothness terms
-        for all physical properties in all direction.
-    """
-
-    if wiresmap is None:
-        wrmp = Wires(("m", mesh.nC))
-    else:
-        wrmp = wiresmap
-
-    if maplist is None:
-        mplst = [IdentityMap(mesh) for maps in wrmp.maps]
-    else:
-        mplst = maplist
-
-    if cell_weights_list is None:
-        clwhtlst = [np.ones(maps[1].shape[0]) for maps in wrmp.maps]
-    else:
-        clwhtlst = cell_weights_list
-
-    reg = PGIwithRelationships(
-        mesh=mesh,
-        gmmref=gmmref,
-        gmm=gmm,
-        wiresmap=wiresmap,
-        maplist=maplist,
-        approx_gradient=approx_gradient,
-        approx_eval=approx_eval,
-        alpha_s=alpha_s,
-        alpha_x=0.0,
-        alpha_y=0.0,
-        alpha_z=0.0,
-        **kwargs,
-    )
-
-    if cell_weights_list is not None:
-        reg.objfcts[0].cell_weights = np.hstack(clwhtlst)
-
-    if isinstance(alpha_x, float):
-        alph_x = alpha_x * np.ones(len(wrmp.maps))
-    else:
-        alph_x = alpha_x
-
-    if isinstance(alpha_y, float):
-        alph_y = alpha_y * np.ones(len(wrmp.maps))
-    else:
-        alph_y = alpha_y
-
-    if isinstance(alpha_z, float):
-        alph_z = alpha_z * np.ones(len(wrmp.maps))
-    else:
-        alph_z = alpha_z
-
-    for i, (wire, maps) in enumerate(zip(wrmp.maps, mplst)):
-        reg += Tikhonov(
-            mesh=mesh,
-            mapping=maps * wire[1],
-            alpha_s=0.0,
-            alpha_x=alph_x[i],
-            alpha_y=alph_y[i],
-            alpha_z=alph_z[i],
-            cell_weights=clwhtlst[i],
-            **kwargs,
-        )
-
-    return reg
+from SimPEG.maps import IdentityMap
 
 
 ###############################################################################
@@ -335,12 +37,12 @@ class WeightedGaussianMixture(GaussianMixture):
 
     This class upon the GaussianMixture class from Scikit-Learn.
     Two main modifications:
-        
+
         1. Each sample/observation is given a weight, the volume of the
         corresponding discretize.BaseMesh cell, when fitting the
         Gaussian Mixture Model (GMM). More volume gives more importance, ensuing a
         mesh-free evaluation of the clusters of the geophysical model.
-        
+
         2. When set manually, the proportions can be set either globally (normal behavior)
         or cell-by-cell (improvements)
 
@@ -702,7 +404,7 @@ class WeightedGaussianMixture(GaussianMixture):
 
         [modified from Scikit-Learn.mixture.gaussian_mixture]
         Compute the per-sample average log-likelihood of the given data X.
-        
+
         Parameters
         ----------
         X : (n_samples, n_dimensions) array-like
@@ -795,10 +497,10 @@ class WeightedGaussianMixture(GaussianMixture):
 
     def score_samples_with_sensW(self, X, sensW):
         """Compute the weighted log probabilities for each sample.
-        
+
         [New function, modified from Scikit-Learn.mixture.gaussian_mixture.score_samples]
         Compute the weighted log probabilities for each sample.
-        
+
         Parameters
         ----------
         X : (n_samples, n_features) array_like
@@ -1092,7 +794,7 @@ class GaussianMixtureWithPrior(WeightedGaussianMixture):
     and we are grateful for their contributions to the open-source community.
 
     Addtional parameters to provide, compared to `WeightedGaussianMixture`:
-    
+
     Parameters
     ----------
     kappa : numpy.ndarray
@@ -1106,13 +808,13 @@ class GaussianMixtureWithPrior(WeightedGaussianMixture):
 
             - "semi": semi-conjugate prior, the means and covariances priors are indepedent
             - "full": conjugate prior, the means and covariances priors are inter-depedent
-    
+
     update_covariances : bool
         Choose from two options:
 
         - ``True``: semi or conjugate prior by averaging the covariances
         - ``False``: alternative (not conjugate) prior: average the precisions instead
-    
+
     fixed_membership : numpy.ndarray of int, optional
         A 2d numpy.ndarray to fix the membership to a chosen lithology of particular cells.
         The first column contains the numeric index of the cells, the second column the respective lithology index.
@@ -1238,7 +940,7 @@ class GaussianMixtureWithPrior(WeightedGaussianMixture):
 
         This method, inserted in the fit function, modify the Maximum Likelyhood Estimation (MLE)
         of the GMM's parameters to a Maximum A Posteriori (MAP) estimation.
-        
+
         Parameters
         ----------
         debug : bool, default: ``False``
@@ -1331,7 +1033,7 @@ class GaussianMixtureWithPrior(WeightedGaussianMixture):
 
     def fit(self, X, y=None, debug=False):
         """Estimate model parameters with the EM algorithm.
-        
+
         [modified from Scikit-Learn for Maximum A Posteriori estimates (MAP)]
         The method fits the model ``n_init`` times and sets the parameters with
         which the model has the largest likelihood or lower bound. Within each
@@ -1362,7 +1064,7 @@ class GaussianMixtureWithPrior(WeightedGaussianMixture):
 
     def fit_predict(self, X, y=None, debug=False):
         """Estimate model parameters using X and predict the labels for X.
-        
+
         [modified from Scikit-Learn for Maximum A Posteriori estimates (MAP)]
         The method fits the model n_init times and sets the parameters with
         which the model has the largest likelihood or lower bound. Within each
@@ -1371,17 +1073,17 @@ class GaussianMixtureWithPrior(WeightedGaussianMixture):
         `tol`, otherwise, a :class:`~sklearn.exceptions.ConvergenceWarning` is
         raised. After fitting, it predicts the most probable label for the
         input data points.
-        
+
         Parameters
         ----------
-        X : (n_samples, n_features) array_like 
+        X : (n_samples, n_features) array_like
             List of n_features-dimensional data points. Each row
             corresponds to a single data point.
         y : Ignored
             Not used, present for API consistency by convention.
         debug : bool, default: ``False``
             If ``True``, print debug statements
-        
+
         Returns
         -------
         (n_samples) array

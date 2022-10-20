@@ -1,9 +1,10 @@
 import numpy as np
 import scipy.special as spec
-# import properties
+from ...utils import validate_ndarray_with_shape, validate_float
+
 
 from ...survey import BaseSrc
-from .waveforms import StepOff, SquarePulse, ArbitraryDiscrete, ArbitraryPiecewise
+from .waveforms import BaseVRMWaveform
 
 #########################################
 # BASE VRM SOURCE CLASS
@@ -17,20 +18,15 @@ class BaseSrcVRM(BaseSrc):
     ----------
     receiver_list : list of SimPEG.electromagnetics.viscous_remanent_magnetization.receivers.Point
         A list of VRM receivers
-    location : (3) numpy.array_like
+    location : (3) array_like
         Source location
-    waveform : 
+    waveform : SimPEG.electromagnetics.viscous_remanent_magnetization.waveforms.BaseVRMWaveform
         A VRM waveform
     """
 
     def __init__(self, receiver_list, location=None, waveform=None, **kwargs):
 
-        if (
-            isinstance(
-                waveform, (StepOff, SquarePulse, ArbitraryDiscrete, ArbitraryPiecewise)
-            )
-            == False
-        ):
+        if not isinstance(waveform, BaseVRMWaveform):
             AttributeError(
                 "Waveform must be an instance of a VRM waveform class: StepOff, SquarePulse or Arbitrary"
             )
@@ -75,11 +71,11 @@ class MagDipole(BaseSrcVRM):
     ----------
     receiver_list : list of SimPEG.electromagnetics.viscous_remanent_magnetization.receivers.Point
         VRM receivers
-    location : (3) numpy.array_like
+    location : (3) array_like
         source location
-    moment : (3) numpy.array_like
+    moment : (3) array_like
         dipole moment (mx, my, mz)
-    waveform :
+    waveform : SimPEG.electromagnetics.viscous_remanent_magnetization.waveforms.BaseVRMWaveform
         VRM waveform
     """
 
@@ -105,22 +101,16 @@ class MagDipole(BaseSrcVRM):
 
         Returns
         -------
-        (3) np.ndarray
+        (3) numpy.ndarray
             Dipole moment (mx, my, mz)
         """
         return self._moment
 
     @moment.setter
-    def moment(self, loc):
-        try:
-            loc = np.atleast_1d(loc).astype(float).squeeze()
-        except:
-            raise TypeError(f"moment must be (3) array_like, got {type(loc)}")
-
-        if loc.ndim > 1:
-            raise TypeError(f"moment must be (3) array_like, got {type(loc)}")
-
-        self._moment = loc
+    def moment(self, val):
+        self._moment = validate_ndarray_with_shape(
+            "moment", val, shape=("*",), dtype=float
+        )
 
     def getH0(self, xyz):
         """Compute inducing field at locations xyz
@@ -211,13 +201,15 @@ class CircLoop(BaseSrcVRM):
     ----------
     receiver_list : list of SimPEG.electromagnetics.viscous_remanent_magnetization.receivers.Point
         VRM receivers
-    location : (3) numpy.array_like
+    location : (3) array_like
         source location
     radius : float
         loop radius
+    orientation : (2) array_like
+        Circular loop normal azimuth and declination
     Imax : float
         Maximum current amplitude
-    waveform :
+    waveform : SimPEG.electromagnetics.viscous_remanent_magnetization.waveforms.BaseVRMWaveform
         VRM waveform
     """
 
@@ -237,9 +229,11 @@ class CircLoop(BaseSrcVRM):
 
         super(CircLoop, self).__init__(receiver_list, location, waveform, **kwargs)
 
-        self.orientation = orientation
-        self.radius = radius
-        self.Imax = Imax
+        self.orientation = validate_ndarray_with_shape(
+            "orientation", orientation, shape=(2,), dtype=float
+        )
+        self.radius = validate_float("radius", radius, min_val=0.0, inclusive_min=False)
+        self.Imax = validate_float("Imax", Imax)
 
     def getH0(self, xyz):
         """Compute inducing field at locations xyz
@@ -405,20 +399,17 @@ class LineCurrent(BaseSrcVRM):
     location : (n, 3) numpy.ndarray
         Array defining the node locations for the wire path. For inductive sources,
         you must close the loop.
+    Imax : float
+        Maximum current amplitude
+    waveform : SimPEG.electromagnetics.viscous_remanent_magnetization.waveforms.BaseVRMWaveform
+        VRM waveform
     """
-
-    # location = properties.Array("location of the source wire points", shape=("*", 3))
 
     def __init__(self, receiver_list, location, Imax, waveform, **kwargs):
 
-        if np.shape(location)[0] < 4:
-            raise ValueError(
-                "Attribute 'location' must be np.array(N+1,3) where N is the number of line segments."
-            )
-
         super(LineCurrent, self).__init__(receiver_list, location, waveform, **kwargs)
 
-        self.Imax = Imax
+        self.Imax = validate_float("Imax", Imax)
 
     @property
     def location(self):
@@ -426,22 +417,16 @@ class LineCurrent(BaseSrcVRM):
 
         Returns
         -------
-        (n, 3) np.ndarray
+        (n, 3) numpy.ndarray
             Line current node locations.
         """
         return self._location
 
     @location.setter
     def location(self, loc):
-        try:
-            loc = np.atleast_2d(loc).astype(float)
-        except:
-            raise TypeError(f"location must be (n, 3) array_like, got {type(loc)}")
-
-        if loc.ndim != 2:
-            raise TypeError(f"location must be (n, 3) array_like, got {type(loc)}")
-
-        self._location = loc
+        self._location = loc = validate_ndarray_with_shape(
+            "location", loc, shape=("*", 3)
+        )
 
     def getH0(self, xyz):
         """Compute inducing field at locations xyz

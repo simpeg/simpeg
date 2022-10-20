@@ -145,7 +145,7 @@ survey = gravity.survey.Survey(srcField)
 
 # Create the forward simulation for the global dataset
 simulation = gravity.simulation.Simulation3DIntegral(
-    survey=survey, mesh=mesh, rhoMap=idenMap, actInd=activeCells
+    survey=survey, mesh=mesh, rhoMap=idenMap, ind_active=activeCells
 )
 
 # Compute linear forward operator and compute some data
@@ -174,7 +174,7 @@ for ii, local_survey in enumerate(local_surveys):
         survey=local_survey,
         mesh=local_meshes[ii],
         rhoMap=tile_map,
-        actInd=local_actives,
+        ind_active=local_actives,
         sensitivity_path=f"Inversion\Tile{ii}.zarr",
     )
 
@@ -231,7 +231,7 @@ plt.show()
 idenMap = maps.IdentityMap(nP=nC)
 
 # Create a regularization
-reg = regularization.Sparse(mesh, indActive=activeCells, mapping=idenMap)
+reg = regularization.Sparse(mesh, active_cells=activeCells, mapping=idenMap)
 
 m0 = np.ones(nC) * 1e-4  # Starting model
 

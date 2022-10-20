@@ -11,9 +11,9 @@ class Point(survey.BaseRx):
 
     Parameters
     ----------
-    locations: (n_loc, 3) np.ndarray
+    locations: (n_loc, 3) numpy.ndarray
         Receiver locations
-    components: str or list or str
+    components: str or list of str
         Data component(s) measured at each receiver location. Use a ``str`` for a
         single component or a ``list`` of ``str`` if multiple components are simulated
         at each location. Component choices are:
@@ -28,14 +28,13 @@ class Point(survey.BaseRx):
         - "gyz"  --> z-derivative of the y-component (and visa versa)
         - "gzz"  --> z-derivative of the z-component
         - "guv"  --> UV component
-        - "amp"  --> amplitude of the gravity field
     """
 
-    def __init__(self, locations=None, components="gz", **kwargs):
+    def __init__(self, locations, components="gz", **kwargs):
 
         super(Point, self).__init__(locations, **kwargs)
 
-        n_locations = locations.shape[0]
+        n_locations = self.locations.shape[0]
 
         if isinstance(components, str):
             components = [components]

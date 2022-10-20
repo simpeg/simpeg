@@ -1,53 +1,13 @@
 import numpy as np
-import properties
-from six import integer_types
 import warnings
 
 from .survey import BaseSurvey
-from . import survey
-from .utils import mkvc
+from .utils import mkvc, validate_ndarray_with_shape, validate_float, validate_type
 
 __all__ = ["Data", "SyntheticData"]
 
 
-class UncertaintyArray(properties.Array):
-    """Class for data uncertainties.
-
-    ``UncertaintyArray`` is a class that ensures data uncertainties may
-    only be defined by as a :class:`scalar` or :class:`numpy.ndarray`.
-    If the uncertainties are defined using a single :class:`scalar` value,
-    that value defines the uncertainties for all observed data. If the
-    uncertainties are defined by an :class:`numpy.ndarray`, a
-    specific uncertainty is being applied to each datum in the observed
-    data.
-    """
-
-    class_info = "An array that can be set by a scalar value or numpy array"
-
-    def validate(self, instance, value):
-        """Validate uncertainties array.
-
-        Parameters
-        ----------
-        instance : class
-            Class for numerical values; e.g. ``float``, ``double``, ...
-        value : object
-            An input quantity you wish to evaluate
-
-        Returns
-        -------
-        float or (n) numpy.array
-            If *value* is a single numerical value, the return is a float.
-            If *value* is a numpy.array, the return is a numpy array.
-        """
-        if isinstance(value, integer_types):
-            return float(value)
-        elif isinstance(value, float):
-            return value
-        return super(properties.Array, self).validate(instance, value)
-
-
-class Data(properties.HasProperties):
+class Data():
     r"""Class for defining data in SimPEG.
 
     The ``Data`` class is used to create an object which connects the survey geometry,
@@ -60,18 +20,19 @@ class Data(properties.HasProperties):
         the survey geometry; i.e. sources, receivers, data type.
     dobs : (n) numpy.ndarray
         Observed data.
-    relative_error : UncertaintyArray
+    relative_error : None or float or numpy.ndarray, optional
         Assign relative uncertainties to the data using relative error; sometimes
         referred to as percent uncertainties. For each datum, we assume the
         standard deviation of Gaussian noise is the relative error times the
         absolute value of the datum; i.e. :math:`C_{err} \times |d|`.
-    noise_floor : UncertaintyArray
+    noise_floor : None or float or numpy.ndarray, optional
         Assign floor/absolute uncertainties to the data. For each datum, we assume
         standard deviation of Gaussian noise is equal to *noise_floor*.
-    standard_deviation : UncertaintyArray
+    standard_deviation : None or float or numpy.ndarray, optional
         Directly define the uncertainties on the data by assuming we know the standard
         deviations of the Gaussian noise. This is essentially the same as *noise_floor*.
-        If set however, this will override *relative_error* and *noise_floor*.
+        If set however, this will override *relative_error* and *noise_floor*. If none
+        are given, this defaults to 0.0
 
     Notes
     -----
@@ -84,85 +45,8 @@ class Data(properties.HasProperties):
 
     By using *standard_deviation* to assign the uncertainties, we are effectively
     providing :math:`\varepsilon` directly.
-    
+
     """
-
-    dobs = properties.Array(
-        """
-        Vector of the observed data. The data can be set using the survey
-        parameters:
-
-        .. code:: python
-
-            data = Data(survey)
-            for src in survey.source_list:
-                for rx in src.receiver_list:
-                    data[src, rx] = datum
-
-        """,
-        shape=("*",),
-        required=True,
-    )
-
-    relative_error = UncertaintyArray(
-        """
-        Relative error of the data. This can be set using an array of the
-        same size as the data (e.g. if you want to assign a different relative
-        error to each datum) or as a scalar if you would like to assign a
-        the same relative error to all data.
-
-        The standard_deviation is constructed as follows::
-
-            sqrt( (relative_error * np.abs(dobs))**2 + noise_floor**2 )
-
-        For example, if you set
-
-        .. code:: python
-
-            data = Data(survey, dobs=dobs)
-            data.relative_error = 0.05
-
-        then the contribution to the standard_deviation is equal to
-
-        .. code:: python
-
-            data.relative_error * np.abs(data.dobs)
-
-        """,
-        shape=("*",),
-    )
-
-    noise_floor = UncertaintyArray(
-        """
-        Noise floor of the data. This can be set using an array of the
-        same size as the data (e.g. if you want to assign a different noise
-        floor to each datum) or as a scalar if you would like to assign a
-        the same noise floor to all data.
-
-        The standard_deviation is constructed as follows::
-
-            sqrt( (relative_error * np.abs(dobs))**2 + noise_floor**2 )
-
-        For example, if you set
-
-        .. code:: python
-
-            data = Data(survey, dobs=dobs)
-            data.noise_floor = 1e-10
-
-        then the contribution to the standard_deviation is equal to
-
-        .. code:: python
-
-            data.noise_floor
-
-        """,
-        shape=("*",),
-    )
-
-    survey = properties.Instance("a SimPEG survey object", BaseSurvey, required=True)
-
-    _uid = properties.Uuid("unique ID for the data")
 
     #######################
     # Instantiate the class
@@ -174,20 +58,19 @@ class Data(properties.HasProperties):
         relative_error=None,
         noise_floor=None,
         standard_deviation=None,
+        **kwargs
     ):
-        super(Data, self).__init__()
+        super().__init__(**kwargs)
         self.survey = survey
 
         # Observed data
         if dobs is None:
-            dobs = np.nan * np.ones(survey.nD)  # initialize data as nans
+            dobs = np.full(survey.nD, np.nan)  # initialize data as nans
         self.dobs = dobs
 
-        if relative_error is not None:
-            self.relative_error = relative_error
+        self.relative_error = relative_error
 
-        if noise_floor is not None:
-            self.noise_floor = noise_floor
+        self.noise_floor = noise_floor
 
         if standard_deviation is not None:
             if relative_error is not None or noise_floor is not None:
@@ -207,6 +90,127 @@ class Data(properties.HasProperties):
     #######################
     # Properties
     #######################
+
+    @property
+    def survey(self):
+        """The survey for this data.
+
+        Returns
+        -------
+        SimPEG.simulation.BaseSurvey
+        """
+        return self._survey
+
+    @survey.setter
+    def survey(self, value):
+        self._survey = validate_type("survey", value, BaseSurvey, cast=False)
+
+    @property
+    def dobs(self):
+        """Vector of the observed data.
+
+        Returns
+        -------
+        numpy.ndarray
+
+        Notes
+        --------
+        This array can also be modified by directly indexing the data object
+        using the a tuple of the survey's sources and receivers.
+
+        >>> data = Data(survey)
+        >>> for src in survey.source_list:
+        ...     for rx in src.receiver_list:
+        ...         data[src, rx] = datum
+        """
+        return self._dobs
+
+    @dobs.setter
+    def dobs(self, value):
+        self._dobs = validate_ndarray_with_shape("dobs", value, shape=(self.survey.nD, ), dtype=(float, complex))
+
+    @property
+    def relative_error(self):
+        """Relative error of the data.
+
+        This can be set using an array of the
+        same size as the data (e.g. if you want to assign a different relative
+        error to each datum) or as a scalar if you would like to assign a
+        the same relative error to all data.
+
+        The standard_deviation is constructed as follows::
+
+            np.sqrt( (relative_error * np.abs(dobs))**2 + noise_floor**2 )
+
+        For example, if you set
+
+        >>> data = Data(survey, dobs=dobs)
+        >>> data.relative_error = 0.05
+
+        then the contribution to the standard_deviation is equal to
+
+        >>> data.relative_error * np.abs(data.dobs)
+
+        Returns
+        -------
+        None or float or numpy.ndarray
+        """
+        return self._relative_error
+
+    @relative_error.setter
+    def relative_error(self, value):
+        if value is not None:
+            try:
+                value = validate_float("relative_error", value)
+                value = np.full(self.survey.nD, value)
+            except TypeError:
+                pass
+            value = validate_ndarray_with_shape("relative_error", value, shape=(self.survey.nD, ))
+            if np.any(value < 0.0):
+                raise ValueError("relative_error must be positive.")
+        self._relative_error = value
+
+    @property
+    def noise_floor(self):
+        """Noise floor of the data.
+
+        This can be set using an array of the
+        same size as the data (e.g. if you want to assign a different noise
+        floor to each datum) or as a scalar if you would like to assign a
+        the same noise floor to all data.
+
+        The standard_deviation is constructed as follows::
+
+            np.sqrt( (relative_error * np.abs(dobs))**2 + noise_floor**2 )
+
+        For example, if you set
+
+        >>> data = Data(survey, dobs=dobs)
+        >>> data.noise_floor = 1e-10
+
+        then the contribution to the standard_deviation is equal to
+
+        >>> data.noise_floor
+
+        Returns
+        -------
+        None or float or numpy.ndarray
+        """
+        return self._noise_floor
+
+    @noise_floor.setter
+    def noise_floor(self, value):
+        if value is not None:
+            try:
+                value = validate_float("noise_floor", value)
+                value = np.full(self.survey.nD, value)
+            except TypeError:
+                pass
+            value = validate_ndarray_with_shape("noise_floor", value, shape=(self.survey.nD, ))
+            if np.any(value < 0.0):
+                raise ValueError("noise_floor must be positive.")
+        self._noise_floor = value
+
     @property
     def standard_deviation(self):
         r"""Return data uncertainties; i.e. the estimates of the standard deviations of the noise.
@@ -231,7 +235,7 @@ class Data(properties.HasProperties):
             estimates of the standard deviations of the noise on the data.
         """
         if self.relative_error is None and self.noise_floor is None:
-            raise Exception(
+            raise TypeError(
                 "The relative_error and / or noise_floor must be set "
                 "before asking for uncertainties. Alternatively, the "
                 "standard_deviation can be set directly"
@@ -239,9 +243,9 @@ class Data(properties.HasProperties):
 
         uncert = np.zeros(self.nD)
         if self.relative_error is not None:
-            uncert += np.array(self.relative_error * np.absolute(self.dobs)) ** 2
+            uncert += (self.relative_error * np.absolute(self.dobs)) ** 2
         if self.noise_floor is not None:
-            uncert += np.array(self.noise_floor) ** 2
+            uncert += self.noise_floor ** 2
 
         return np.sqrt(uncert)
 
@@ -272,27 +276,6 @@ class Data(properties.HasProperties):
         """
         return self.dobs.shape
 
-    ##########################
-    # Observers and validators
-    ##########################
-
-    @properties.validator("dobs")
-    def _dobs_validator(self, change):
-        if self.survey.nD != len(change["value"]):
-            raise ValueError(
-                "{} must have the same length as the number of data. The "
-                "provided input has len {}, while the survey expects "
-                "survey.nD = {}".format(
-                    change["name"], len(change["value"]), self.survey.nD
-                )
-            )
-
-    @properties.validator(["relative_error", "noise_floor"])
-    def _standard_deviation_validator(self, change):
-        if isinstance(change["value"], float):
-            change["value"] = change["value"] * np.ones(self.nD)
-        self._dobs_validator(change)
-
     @property
     def index_dictionary(self):
         """Dictionary for indexing data by sources and receiver.
@@ -304,8 +287,8 @@ class Data(properties.HasProperties):
         dict
             Dictionary for indexing data by source and receiver
 
-        Example
-        -------
+        Examples
+        --------
         NEED EXAMPLE (1D TEM WOULD BE GOOD)
 
         """
@@ -374,7 +357,7 @@ class Data(properties.HasProperties):
 
 class SyntheticData(Data):
     """Class for creating synthetic data.
-    
+
     Parameters
     ----------
     survey : SimPEG.survey.BaseSurvey
@@ -394,24 +377,6 @@ class SyntheticData(Data):
         standard deviation of Gaussian noise is equal to *noise_floor*.
     """
 
-    dclean = properties.Array(
-        """
-        Vector of the clean synthetic data. The data can be set using the survey
-        parameters:
-
-        .. code:: python
-
-            data = Data(survey)
-            for src in survey.source_list:
-                for rx in src.receiver_list:
-                    index = data.index_dictionary(src, rx)
-                    data.dclean[indices] = datum
-
-        """,
-        shape=("*",),
-        required=True,
-    )
-
     def __init__(
         self, survey, dobs=None, dclean=None, relative_error=None, noise_floor=None
     ):
@@ -423,24 +388,32 @@ class SyntheticData(Data):
         )
 
         if dclean is None:
-            dclean = np.nan * np.ones(self.survey.nD)
+            dclean = np.full(self.survey.nD, np.nan)
         self.dclean = dclean
 
-    @properties.validator("dclean")
-    def _dclean_validator(self, change):
-        self._dobs_validator(change)
+    @property
+    def dclean(self):
+        """
+        Vector of the clean synthetic data.
 
+        Returns
+        -------
+        numpy.ndarray
 
-# inject a new data class into the survey module
-class _Data(Data):
-    def __init__(self, *args, **kwargs):
-        raise NotImplementedError(
-            "The survey.Data class has been moved. To import the data class, "
-            "please use SimPEG.data.Data."
-        )
+        Notes
+        --------
+        This array should be indexing the data object
+        using the a tuple of the survey's sources and receivers.
 
+        >>> data = Data(survey)
+        >>> for src in survey.source_list:
+        ...     for rx in src.receiver_list:
+        ...         index = data.index_dictionary(src, rx)
+        ...         data.dclean[src, rx] = datum
 
-survey.Data = _Data
-survey.Data.__name__ = "Data"
-survey.Data.__qualname__ = "Data"
-survey.Data.__module__ = "SimPEG.survey"
+        """
+        return self._dclean
+
+    @dclean.setter
+    def dclean(self, value):
+        self._dclean = validate_ndarray_with_shape("dclean", value, shape=(self.survey.nD, ), dtype=(float, complex))

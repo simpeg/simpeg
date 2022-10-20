@@ -269,6 +269,7 @@ def plot_1d_layer_model(
     ax=None,
     plot_elevation=False,
     show_layers=False,
+    vlim=None,
     **kwargs
 ):
     """
@@ -278,18 +279,20 @@ def plot_1d_layer_model(
     ----------
     thicknesses : list or numpy.ndarray of float
         A ``list`` or ``numpy.ndarray`` containing the layer thicknesses from the top layer down
-    values :list or numpy.ndarray of float
+    values : list or numpy.ndarray of float
         A ``list`` or ``numpy.ndarray`` containing the physical property values from the top layer down
     z0 : float
         Elevation of the surface
-    scale: str
-        scale {'linear', 'log'}. Plot physical property values on a linear or log10 scale.
+    scale: {'linear', 'log'}
+        Plot physical property values on a linear or log10 scale.
     ax: matplotlib.axes.Axes, optional
         An axis object for the plot
     plot_elevation : bool
         If ``False``, the yaxis will be the depth. If ``True``, the yaxis is the elevation.
     show_layers : bool
         Plot horizontal lines to denote layers.
+    vlim : tuple, optional
+        The limits for the x-axis.
 
     Returns
     -------
@@ -302,8 +305,11 @@ def plot_1d_layer_model(
         thicknesses = np.r_[thicknesses, thicknesses[-1]]
     z_grid = np.r_[0.0, np.cumsum(thicknesses)]
     resistivity = np.repeat(values, 2)
-    v_min = 0.9 * np.min(values)
-    v_max = 1.1 * np.max(values)
+    if vlim is None:
+        v_min = 0.9 * np.min(values)
+        v_max = 1.1 * np.max(values)
+    else:
+        v_min, v_max = vlim
 
     z = []
     for i in range(0, len(thicknesses)):

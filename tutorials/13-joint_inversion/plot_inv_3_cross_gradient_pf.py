@@ -275,7 +275,7 @@ starting_model = np.r_[background_dens * np.ones(nC), background_susc * np.ones(
 #
 
 simulation_grav = gravity.simulation.Simulation3DIntegral(
-    survey=survey_grav, mesh=mesh, rhoMap=wires.density, actInd=ind_active
+    survey=survey_grav, mesh=mesh, rhoMap=wires.density, ind_active=ind_active
 )
 
 simulation_mag = magnetics.simulation.Simulation3DIntegral(
@@ -283,7 +283,7 @@ simulation_mag = magnetics.simulation.Simulation3DIntegral(
     mesh=mesh,
     model_type="scalar",
     chiMap=wires.susceptibility,
-    actInd=ind_active,
+    ind_active=ind_active,
 )
 
 
@@ -307,8 +307,10 @@ dmis_grav = data_misfit.L2DataMisfit(data=data_object_grav, simulation=simulatio
 dmis_mag = data_misfit.L2DataMisfit(data=data_object_mag, simulation=simulation_mag)
 
 # Define the regularization (model objective function).
-reg_grav = regularization.Simple(mesh, indActive=ind_active, mapping=wires.density)
-reg_mag = regularization.Simple(
+reg_grav = regularization.WeightedLeastSquares(
+    mesh, indActive=ind_active, mapping=wires.density
+)
+reg_mag = regularization.WeightedLeastSquares(
     mesh, indActive=ind_active, mapping=wires.susceptibility
 )
 

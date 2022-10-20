@@ -148,7 +148,7 @@ data_obj = sim.make_synthetic_data(true_model, relative_error=std, add_noise=Tru
 dmis = data_misfit.L2DataMisfit(simulation=sim, data=data_obj)
 
 # Define the regularization (model objective function).
-reg = regularization.Tikhonov(mesh, alpha_s=1.0, alpha_x=1.0)
+reg = regularization.WeightedLeastSquares(mesh, alpha_s=1.0, alpha_x=1.0)
 
 # Define how the optimization problem is solved.
 opt = optimization.InexactGaussNewton(maxIter=50)

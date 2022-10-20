@@ -40,6 +40,7 @@ nosetests.xml
 
 *.sublime-project
 *.sublime-workspace
+*.code-workspace
 docs/_build/
 docs/warnings.txt
 docs/content/api/generated/*
@@ -47,6 +48,7 @@ docs/content/api/generated/*
 docs/content/examples/*
 docs/content/tutorials/*
 docs/modules/*
+.vscode/*
 
 # paths to where data are downloaded
 examples/20-published/bookpurnong_inversion/*
@@ -66,6 +68,12 @@ tutorials/06-ip/dcip2d/*
 tutorials/06-ip/dcip3d/*
 tutorials/06-ip/outputs/*
 tutorials/06-ip/*.html
+tutorials/07-fdem/em1dfm/*
+tutorials/07-fdem/em1dfm_stitched/*
+tutorials/07-fdem/outputs/*
+tutorials/08-tdem/em1dtm/*
+tutorials/08-tdem/em1dtm_stitched/*
+tutorials/08-tdem/outputs/*
 tutorials/12-seismic/seismic/*
 tutorials/13-joint_inversion/pgi/*
 tutorials/13-joint_inversion/cross_gradient_data/*

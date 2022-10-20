@@ -1,8 +1,5 @@
 @import url(https://fonts.googleapis.com/css?family=Raleway);
 
-.navbar-light {
-    background: #acd6af!important;
-}
 .navbar-nav>.active>.nav-link {
     color: #000000!important;
 }
@@ -27,4 +24,42 @@ h3{
 }
 .column > h3{
     font-family: "Raleway", Helvetica, Arial, sans-serif;
+}
+
+/* Dark theme tweaking
+Matplotlib images are in png and inverted while other output
+types are assumed to be normal images.
+*/
+html[data-theme=dark] img[src*='.png'] {
+    filter: invert(0.82) brightness(0.8) contrast(1.2);
+}
+
+html[data-theme=dark] img[src*='simpeg-logo.png'] {
+    filter: invert(0.82) brightness(0.8) contrast(1.2) hue-rotate(180deg);
+}
+
+html[data-theme=dark] .MathJax_SVG *  {
+    fill: var(--pst-color-text-base);
+}
+
+html[data-theme=dark] #navbar-icon-links i.fa {
+    color: #a6a6a6;
+}
+html[data-theme=dark] #navbar-icon-links i.fab {
+    color: #a6a6a6;
+}
+html[data-theme=dark] #navbar-icon-links i.far {
+    color: #a6a6a6;
+}
+html[data-theme=dark] #navbar-icon-links i.fas {
+    color: #a6a6a6;
+}
+html[data-theme=dark] .navbar-nav>.active>.nav-link {
+    color: #FFFFFF!important;
+}
+html[data-theme=dark] #navbar-main {
+    background: #213a1b!important;
+}
+html[data-theme=light] #navbar-main {
+    background: #acd6af!important;
 }

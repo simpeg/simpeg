@@ -12,22 +12,28 @@ Geophysical Simulation Modules
 
   SimPEG.potential_fields
   SimPEG.electromagnetics
-  SimPEG.flow.richards
-  SimPEG.seismic.straight_ray_tomography
+  SimPEG.flow
+  SimPEG.seismic
 
+SimPEG Building Blocks
+======================
 
+Base SimPEG
+-----------
+.. toctree::
+  :maxdepth: 3
 
-Base SimPEG Classes
-===================
+  SimPEG
 
+Regularizations
+---------------
 .. toctree::
   :maxdepth: 2
 
-  SimPEG.base
-
+  SimPEG.regularization
 
 Utilities
-=========
+---------
 
 Classes and functions for performing useful operations.
 
@@ -35,7 +41,3 @@ Classes and functions for performing useful operations.
   :maxdepth: 2
 
   SimPEG.utils
-
-
-
-

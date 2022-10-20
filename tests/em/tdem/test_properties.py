@@ -1,58 +1,43 @@
-import unittest
 import numpy as np
-np.random.seed(43)
+import pytest
 
 from SimPEG.electromagnetics import frequency_domain as fdem
 from SimPEG.electromagnetics import time_domain as tdem
 
-class TestTxRxPropertyFailures(unittest.TestCase):
 
-    def test_receiver_properties(self):
+def test_receiver_properties():
 
-        xyz = np.c_[0., 0., 0.]
-        times = np.logspace(-5, -2, 4)
-        projComp = 'Fx'
-        rx = tdem.receivers.BaseRx(xyz, times, projComp=projComp)
+    xyz = np.c_[0.0, 0.0, 0.0]
+    times = np.logspace(-5, -2, 4)
+    projComp = "Fx"
+    rx = tdem.receivers.BaseRx(xyz, times, projComp=projComp)
 
-        self.assertTrue((rx.projComp==projComp))
-        self.assertRaises(AttributeError, tdem.receivers.BaseRx, None, times)
-        self.assertRaises(AttributeError, tdem.receivers.BaseRx, xyz, None)
-        self.assertRaises(TypeError, tdem.receivers.BaseRx, xyz, component='potato')
-        self.assertRaises(TypeError, tdem.receivers.BaseRx, xyz, component=6.)
-        
-        print('Test receiver property raises passes')
+    assert rx.projComp == projComp
 
-    def test_source_properties(self):
 
-        xyz = np.r_[0., 0., 0.]
+def test_source_properties():
 
-        # Base source
-        src = tdem.sources.BaseTDEMSrc([], location=xyz, srcType='inductive')
-        self.assertTrue((src.srcType=='inductive'))
-        
-        # MagDipole
-        self.assertRaises(TypeError, tdem.sources.MagDipole, [], location='not_a_vector')
-        self.assertRaises(ValueError, tdem.sources.MagDipole, [], location=[0., 0., 0., 0.])
-        self.assertRaises(TypeError, tdem.sources.MagDipole, [], xyz, orientation=['list', 'of', 'string'])
-        self.assertRaises(ValueError, tdem.sources.MagDipole, [], xyz, orientation=[1, 0, 0, 0])
+    xyz = np.r_[0.0, 0.0, 0.0]
 
-        # CircularLoop
-        self.assertRaises(ValueError, tdem.sources.CircularLoop, [], location=[0., 0., 0.], current=0.)
+    # Base source
+    src = tdem.sources.BaseTDEMSrc([], location=xyz, srcType="inductive")
+    assert src.srcType == "inductive"
 
-        # LineCurrent
-        self.assertRaises(TypeError, tdem.sources.LineCurrent, [], location=['a','b','c'])
-        self.assertRaises(TypeError, tdem.sources.LineCurrent, [], location=np.random.rand(5, 3, 2))
-        self.assertRaises(ValueError, tdem.sources.LineCurrent, [], location=np.random.rand(5, 3), current=0.)
+    # loop galvinic vs inductive
+    loop_points = [
+        [0, 0, 0],
+        [1, 0, 0],
+        [0, 1, 0],
+        [0, 0, 0],
+    ]
 
-        print('Test source property raises passes')
+    src = tdem.sources.LineCurrent([], location=loop_points)
+    assert src.srcType == "inductive"
 
-    def test_survey_properties(self):
+    src = tdem.sources.LineCurrent([], location=loop_points[:-1])
+    assert src.srcType == "galvanic"
 
-        self.assertRaises(AttributeError, tdem.survey.Survey, None)
+    with pytest.raises(ValueError):
+        tdem.sources.LineCurrent([], location=loop_points, current=0)
 
-        src = fdem.sources.MagDipole([], 1., np.r_[0., 0., 1.])
-        self.assertRaises(TypeError, tdem.survey.Survey, src)
-
-        
-if __name__ == "__main__":
-    unittest.main()
+    print("Test source property raises passes")

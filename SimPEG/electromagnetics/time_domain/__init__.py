@@ -1,18 +1,28 @@
 """
 ==============================================================================
-Time-Domain EM Module (:mod:`SimPEG.electromagnetics.time_domain`)
+Time-Domain EM (:mod:`SimPEG.electromagnetics.time_domain`)
 ==============================================================================
 .. currentmodule:: SimPEG.electromagnetics.time_domain
 
 About ``time_domain``
 
-Receiver Classes
-----------------
+Simulations
+===========
+.. autosummary::
+  :toctree: generated/
+
+  Simulation1DLayered
+  Simulation3DMagneticFluxDensity
+  Simulation3DElectricField
+  Simulation3DMagneticField
+  Simulation3DCurrentDensity
+
+Receivers
+=========
 
 .. autosummary::
   :toctree: generated/
 
-  receivers.BaseRx
   receivers.PointElectricField
   receivers.PointCurrentDensity
   receivers.PointMagneticFluxDensity
@@ -21,13 +31,12 @@ Receiver Classes
   receivers.PointMagneticFieldTimeDerivative
 
 
-Waveform Functions and Classes
-------------------------------
+Waveforms
+=========
 
 .. autosummary::
   :toctree: generated/
 
-  sources.BaseWaveform
   sources.StepOffWaveform
   sources.RampOffWaveform
   sources.RawWaveform
@@ -37,25 +46,47 @@ Waveform Functions and Classes
   sources.QuarterSineRampOnWaveform
   sources.HalfSineWaveform
 
-
-Source Classes
---------------
+Sources
+=======
 
 .. autosummary::
   :toctree: generated/
 
-  sources.BaseTDEMSrc
   sources.MagDipole
   sources.CircularLoop
   sources.LineCurrent
   sources.RawVec_Grounded
 
-Survey Classes
---------------
+Surveys
+=======
 .. autosummary::
   :toctree: generated/
 
   survey.Survey
+
+Fields
+======
+.. autosummary::
+  :toctree: generated/
+
+  Fields3DMagneticFluxDensity
+  Fields3DElectricField
+  Fields3DMagneticField
+  Fields3DCurrentDensity
+
+Base Classes
+============
+
+.. autosummary::
+  :toctree: generated/
+
+  receivers.BaseRx
+  sources.BaseWaveform
+  sources.BaseTDEMSrc
+  simulation.BaseTDEMSimulation
+  fields.FieldsTDEM
+  fields.FieldsDerivativesEB
+  fields.FieldsDerivativesHJ
 
 """
 from .simulation import (
@@ -64,6 +95,7 @@ from .simulation import (
     Simulation3DMagneticField,
     Simulation3DCurrentDensity,
 )
+from .simulation_1d import Simulation1DLayered
 from .fields import (
     Fields3DMagneticFluxDensity,
     Fields3DElectricField,

@@ -1,21 +1,38 @@
 """
 =======================================================================
-Gravity Simulation Module (:mod:`SimPEG.potential_fields.gravity`)
+Gravity Simulation (:mod:`SimPEG.potential_fields.gravity`)
 =======================================================================
 .. currentmodule:: SimPEG.potential_fields.gravity
 
 About ``gravity``
 
-Survey, Source and Receiver Classes
------------------------------------
+Simulations
+===========
+.. autosummary::
+  :toctree: generated/
+
+  Simulation3DIntegral
+  SimulationEquivalentSourceLayer
+  Simulation3DDifferential
+
+Survey, Sources and Receivers
+============================
 
 .. autosummary::
   :toctree: generated/
 
-  receivers.Point
-  sources.SourceField
-  survey.Survey
+  Point
+  SourceField
+  Survey
 
+
+Analytic functions
+==================
+.. autosummary::
+  :toctree: generated/
+
+  analytics.GravSphereFreeSpace
+  analytics.GravityGradientSphereFreeSpace
 
 """
 from . import survey

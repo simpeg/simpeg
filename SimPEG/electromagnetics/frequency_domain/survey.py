@@ -1,6 +1,7 @@
 from scipy.constants import mu_0
 from ...survey import BaseSurvey
 from .sources import BaseFDEMSrc
+from ...utils import validate_list_of_types
 
 
 class Survey(BaseSurvey):
@@ -12,14 +13,12 @@ class Survey(BaseSurvey):
         List of SimPEG FDEM sources
     """
 
-    def __init__(self, source_list=None, **kwargs):
-        
-        if source_list is None:
-            raise AttributeError("Frequency domain survey cannot be instantiated without sources")
+    def __init__(self, source_list, **kwargs):
+
         super(Survey, self).__init__(source_list, **kwargs)
 
         _frequency_dict = {}
-        for src in source_list:
+        for src in self.source_list:
             if src.frequency not in _frequency_dict:
                 _frequency_dict[src.frequency] = []
             _frequency_dict[src.frequency] += [src]
@@ -40,22 +39,9 @@ class Survey(BaseSurvey):
 
     @source_list.setter
     def source_list(self, new_list):
-        if not isinstance(new_list, list):
-            new_list = [new_list]
-        
-        if any([isinstance(x, BaseFDEMSrc)==False for x in new_list]):
-            raise TypeError("Source list must be a list of SimPEG.survey.BaseFDEMSrc")
-
-        assert len(set(new_list)) == len(new_list), "The source_list must be unique. Cannot re-use sources"
-
-        self._sourceOrder = dict()
-        # [self._sourceOrder.setdefault(src._uid, ii) for ii, src in enumerate(new_list)]
-        ii = 0
-        for src in new_list:
-            n_fields = src._fields_per_source
-            self._sourceOrder[src._uid] = [ii + i for i in range(n_fields)]
-            ii += n_fields
-        self._source_list = new_list
+        self._source_list = validate_list_of_types(
+            "source_list", new_list, BaseFDEMSrc, ensure_unique=True
+        )
 
     @property
     def frequencies(self):

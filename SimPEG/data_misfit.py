@@ -1,6 +1,5 @@
 import numpy as np
-import properties
-from .utils import Counter, sdiag, timeIt, Identity
+from .utils import Counter, sdiag, timeIt, Identity, validate_type
 from .data import Data
 from .simulation import BaseSimulation
 from .objective_function import L2ObjectiveFunction
@@ -17,36 +16,72 @@ class BaseDataMisfit(L2ObjectiveFunction):
         term.
     """
 
-    data = properties.Instance(
-        "A SimPEG data class containing the observed data", Data, required=True
-    )
+    def __init__(self, data, simulation, debug=False, counter=None, **kwargs):
+        super().__init__(**kwargs)
 
-    simulation = properties.Instance(
-        "A SimPEG simulation", BaseSimulation, required=True
-    )
+        self.data = data
+        self.simulation = simulation
+        self.debug = debug
+        self.count = counter
 
-    debug = properties.Bool(
-        "Print debugging information", default=False, required=False
-    )
+    @property
+    def data(self):
+        """A SimPEG data class containing the observed data.
 
-    counter = properties.Instance(
-        "Set this to a SimPEG.utils.Counter() if you want to count things",
-        Counter,
-        required=False,
-    )
+        Returns
+        -------
+        SimPEG.data.Data
+        """
+        return self._data
 
-    _has_fields = properties.Bool(
-        "Data Misfits take fields, handy to store them", default=True
-    )
+    @data.setter
+    def data(self, value):
+        self._data = validate_type("data", value, Data, cast=False)
 
-    def __init__(self, data=None, simulation=None, **kwargs):
-        if simulation is not None:
-            kwargs["simulation"] = simulation
+    @property
+    def simulation(self):
+        """A SimPEG simulation.
 
-        super(BaseDataMisfit, self).__init__(**kwargs)
+        Returns
+        -------
+        SimPEG.simulation.BaseSimulation
+        """
+        return self._simulation
 
-        if data is not None:
-            self.data = data
+    @simulation.setter
+    def simulation(self, value):
+        self._simulation = validate_type(
+            "simulation", value, BaseSimulation, cast=False
+        )
+
+    @property
+    def debug(self):
+        """Print debugging information.
+
+        Returns
+        -------
+        bool
+        """
+        return self._debug
+
+    @debug.setter
+    def debug(self, value):
+        self._debug = validate_type("debug", value, bool)
+
+    @property
+    def counter(self):
+        """Set this to a ``SimPEG.utils.Counter`` if you want to count things.
+
+        Returns
+        -------
+        SimPEG.utils.Counter or None
+        """
+        return self._counter
+
+    @counter.setter
+    def counter(self, value):
+        if value is not None:
+            value = validate_type("counter", value, Counter, cast=False)
 
     @property
     def nP(self):

@@ -2,6 +2,7 @@ from __future__ import print_function
 import numpy as np
 from discretize.utils import mkvc
 import warnings
+from ..code_utils import validate_string, validate_type
 
 
 ########################################################################################
@@ -34,8 +35,8 @@ def read_dcip_xyz(
     ----------
     file_name : str
         Path to the data file
-    data_type : str
-        Type of data being loaded. One of {"volt", "apparent_resistivity", "apparent_chargeability"}
+    data_type : {"volt", "apparent_resistivity", "apparent_chargeability"}
+        Type of data being loaded.
     a_headers : list or tuple of str
         A list or tuple of strings providing the headers of the A-electrode location columns;
         i.e. the X (, Y and Z) columns.
@@ -58,7 +59,7 @@ def read_dcip_xyz(
     is_surface_data : bool
         If ``True``, we assume electrode elevations are not supplied. That is, the header lists
         for ``a``, ``b``, ``m`` and ``n`` electrode locations do not have headers for
-        elevation columns. 
+        elevation columns.
 
     Returns
     -------
@@ -70,20 +71,17 @@ def read_dcip_xyz(
         If additional columns are loaded and output to a dictionary using the keyward argument
         `dict_headers`, the output of this function has the form `(out_data, out_dict)`.
     """
-
-    if data_type.lower() not in [
-        "volt",
-        "apparent_resistivity",
-        "apparent_chargeability",
-    ]:
-        raise Exception(
-            "data_type must be one of 'volt', 'apparent_resistivity', 'apparent_chargeability'"
-        )
-
-    data_type = data_type.lower()
+    data_type = validate_string(
+        "data_type",
+        data_type,
+        [
+            "volt",
+            "apparent_resistivity",
+            "apparent_chargeability",
+        ],
+    )
 
     # Prevent circular import
-    from ...electromagnetics.static import resistivity as dc
     from ...electromagnetics.static.utils import generate_survey_from_abmn_locations
     from ...data import Data
 
@@ -202,10 +200,10 @@ def read_dcip2d_ubc(file_name, data_type, format_type):
     ----------
     file_name : str
         The file path to the data file
-    data_type : str
-        Must be one of {'volt', 'apparent_chargeability', 'secondary_potential'}
-    format_type : str
-        Parameter 'data_type' must be one of {'general', 'surface', 'simple'}
+    data_type : {'volt', 'apparent_chargeability', 'secondary_potential'}
+        The type of data.
+    format_type : {'general', 'surface', 'simple'}
+        The format of the formated file.
 
     Returns
     -------
@@ -218,20 +216,26 @@ def read_dcip2d_ubc(file_name, data_type, format_type):
         - `standard_deviations`: uncertainties (if observed data file) or apparent resistivities (if predicted data file)
 
     """
-    data_type = data_type.lower()
-    format_type = format_type.lower()
 
-    assert data_type in [
-        "volt",
-        "apparent_chargeability",
-        "secondary_potential",
-    ], "Parameter 'data_type' must be one of {'volt', 'apparent_chargeability', 'secondary_potential'}"
+    data_type = validate_string(
+        "data_type",
+        data_type,
+        [
+            "volt",
+            "apparent_chargeability",
+            "secondary_potential",
+        ],
+    )
 
-    assert format_type in [
-        "general",
-        "surface",
-        "simple",
-    ], "Parameter 'format_type' must be one of {'general', 'surface', 'simple'}"
+    format_type = validate_string(
+        "format_type",
+        format_type,
+        [
+            "general",
+            "surface",
+            "simple",
+        ],
+    )
 
     # Prevent circular import
     from ...electromagnetics.static import resistivity as dc
@@ -239,7 +243,7 @@ def read_dcip2d_ubc(file_name, data_type, format_type):
     from ...data import Data
 
     # Load file
-    obsfile = np.genfromtxt(file_name, delimiter="\n", dtype=np.str, comments="!")
+    obsfile = np.genfromtxt(file_name, delimiter="\n", dtype=str, comments="!")
 
     # Find starting data
     start_index = 0
@@ -252,12 +256,11 @@ def read_dcip2d_ubc(file_name, data_type, format_type):
 
     # Since SimPEG defines secondary potential from IP as voltage,
     # we must use this type when defining the receivers.
-    if data_type.lower() == "secondary_potential":
+    if data_type == "secondary_potential":
         data_type = "volt"
 
     # Pre-allocate
     source_list = []
-    receiver_list = []
     d = []
     wd = []
 
@@ -266,10 +269,10 @@ def read_dcip2d_ubc(file_name, data_type, format_type):
     is_pole_tx = False
     is_pole_rx = False
 
-    if format_type.lower() == "simple":
+    if format_type == "simple":
 
         # Load numeric data into an array
-        if data_type.lower() == "volt":
+        if data_type == "volt":
             data_array = np.loadtxt(file_name, comments="!", skiprows=start_index)
         else:
             data_array = np.loadtxt(
@@ -428,8 +431,8 @@ def read_dcip3d_ubc(file_name, data_type):
     ----------
     file_name : str
         The file path to the data file
-    data_type : str {'volt', 'apparent_chargeability', secondary_potential'}
-        Data type. Choose from {'volt', 'apparent_chargeability', secondary_potential'}
+    data_type : {'volt', 'apparent_chargeability', secondary_potential'}
+        Data type.
 
     Returns
     -------
@@ -443,25 +446,25 @@ def read_dcip3d_ubc(file_name, data_type):
 
     """
 
-    data_type = data_type.lower()
-
-    assert data_type in [
-        "volt",
-        "apparent_chargeability",
-        "secondary_potential",
-    ], "Parameter 'data_type' must be one of {'volt', 'apparent_chargeability', 'secondary_potential'}"
+    data_type = validate_string(
+        "data_type",
+        data_type,
+        [
+            "volt",
+            "apparent_chargeability",
+            "secondary_potential",
+        ],
+    )
 
     # Prevent circular import
     from ...electromagnetics.static import resistivity as dc
-    from ...electromagnetics.static.utils import generate_survey_from_abmn_locations
     from ...data import Data
 
     # Load file
-    obsfile = np.genfromtxt(file_name, delimiter="\n", dtype=np.str, comments="!")
+    obsfile = np.genfromtxt(file_name, delimiter="\n", dtype=str, comments="!")
 
     # Pre-allocate
     source_list = []
-    receiver_list = []
     d = []
     wd = []
 
@@ -588,8 +591,8 @@ def read_dcipoctree_ubc(file_name, data_type):
     ----------
     file_name : str
         The file path to the data file
-    data_type : str {'volt', 'apparent_chargeability', secondary_potential'}
-        Data type. Choose from {'volt', 'apparent_chargeability', secondary_potential'}
+    data_type : {'volt', 'apparent_chargeability', secondary_potential'}
+        Data type.
 
     Returns
     -------
@@ -628,21 +631,17 @@ def write_dcip2d_ubc(
         SimPEG.data.Data object. The `survey` attribute of this data object must be
         an instance of :class`SimPEG.electromagnetics.static.resistivity.survey.Survey` or
         :class`SimPEG.electromagnetics.static.induced_polarization.survey.Survey`
-    data_type : str
-        Must be on of {'volt', 'apparent_chargeability', 'secondary_potential'}
-    file_type : str
-        Must be one of {'survey', 'dpred', 'dobs'}
-    format_type : str
-        Must be on of {'general', 'surface', 'simple'}
+    data_type : {'volt', 'apparent_chargeability', 'secondary_potential'}
+        The type of data.
+    file_type : {'survey', 'dpred', 'dobs'}
+        Whether to include predicted data/observed data in the file.
+    format_type : {'general', 'surface', 'simple'}
+        The format of the file to write.
     comment_lines :
         Comment lines printed to beginning of the file
     """
 
     # Prevent circular import
-    from ...electromagnetics.static import resistivity as dc
-    from ...electromagnetics.static.utils.static_utils import (
-        apparent_resistivity_from_voltage,
-    )
     from ...electromagnetics.static.resistivity.sources import (
         Pole as PoleSrc,
         Dipole as DipoleSrc,
@@ -655,39 +654,37 @@ def write_dcip2d_ubc(
     from ...data import Data
 
     # Validate inputs
-    if not isinstance(data_object, Data):
-        raise Exception(
-            "A Data instance ({datacls}: <{datapref}.{datacls}>) must be "
-            "provided as the second input. The provided input is a "
-            "{providedcls} <{providedpref}.{providedcls}>".format(
-                datacls=Data.__name__,
-                datapref=Data.__module__,
-                providedcls=data_object.__class__.__name__,
-                providedpref=data_object.__module__,
-            )
-        )
+    data_object = validate_type("data_object", data_object, Data, cast=False)
 
-    data_type = data_type.lower()
-    file_type = file_type.lower()
-    format_type = format_type.lower()
+    data_type = validate_string(
+        "data_type",
+        data_type,
+        [
+            "volt",
+            "apparent_chargeability",
+            "secondary_potential",
+        ],
+    )
 
-    assert data_type in [
-        "volt",
-        "apparent_chargeability",
-        "secondary_potential",
-    ], "Parameter 'data_type' must be one of {'volt', 'apparent_chargeability', 'secondary_potential'}"
+    file_type = validate_string(
+        "file_type",
+        file_type,
+        [
+            "survey",
+            "dpred",
+            "dobs",
+        ],
+    )
 
-    assert file_type in [
-        "survey",
-        "dpred",
-        "dobs",
-    ], "Parameter 'file_type' must be one of {'survey', 'dpred', 'dobs'}"
-
-    assert format_type in [
-        "general",
-        "surface",
-        "simple",
-    ], "Parameter 'format_type' must be one of {'general', 'surface', 'simple'}"
+    format_type = validate_string(
+        "format_type",
+        format_type,
+        [
+            "general",
+            "surface",
+            "simple",
+        ],
+    )
 
     # Write comments and IP type (if applicable)
     with open(file_name, "w") as fid:
@@ -815,18 +812,14 @@ def write_dcip3d_ubc(
         SimPEG.data.Data object. The `survey` attribute of this data object must be
         an instance of :class`SimPEG.electromagnetics.static.resistivity.survey.Survey` or
         :class`SimPEG.electromagnetics.static.induced_polarization.survey.Survey`
-    data_type : str
-        One of {'volt', 'apparent_chargeability', 'secondary_potential'}
-    file_type : str
-        On of {'survey', 'dpred', 'dobs'}
-    format_type : str
-        One of {'general', 'surface'
+    data_type : {'volt', 'apparent_chargeability', 'secondary_potential'}
+    file_type : {'survey', 'dpred', 'dobs'}
+    format_type : {'general', 'surface'}
     comment_lines : str
         Comments added to beginning of output file
     """
 
     # Prevent circular import
-    from ...electromagnetics.static import resistivity as dc
     from ...electromagnetics.static.utils.static_utils import (
         apparent_resistivity_from_voltage,
     )
@@ -841,38 +834,36 @@ def write_dcip3d_ubc(
     from ...data import Data
 
     # Validate inputs
-    if not isinstance(data_object, Data):
-        raise Exception(
-            "A Data instance ({datacls}: <{datapref}.{datacls}>) must be "
-            "provided as the second input. The provided input is a "
-            "{providedcls} <{providedpref}.{providedcls}>".format(
-                datacls=Data.__name__,
-                datapref=Data.__module__,
-                providedcls=data_object.__class__.__name__,
-                providedpref=data_object.__module__,
-            )
-        )
+    data_object = validate_type("data_object", data_object, Data, cast=False)
 
-    data_type = data_type.lower()
-    file_type = file_type.lower()
-    format_type = format_type.lower()
+    data_type = validate_string(
+        "data_type",
+        data_type,
+        [
+            "volt",
+            "apparent_chargeability",
+            "secondary_potential",
+        ],
+    )
 
-    assert data_type in [
-        "volt",
-        "apparent_chargeability",
-        "secondary_potential",
-    ], "Parameter 'data_type' must be one of {'volt', 'apparent_chargeability', 'secondary_potential'}"
+    file_type = validate_string(
+        "file_type",
+        file_type,
+        [
+            "survey",
+            "dpred",
+            "dobs",
+        ],
+    )
 
-    assert file_type in [
-        "survey",
-        "dpred",
-        "dobs",
-    ], "Parameter 'file_type' must be one of {'survey', 'dpred', 'dobs'}"
-
-    assert format_type in [
-        "general",
-        "surface",
-    ], "Parameter 'format_type' must be one of {'general', 'surface'}"
+    format_type = validate_string(
+        "format_type",
+        format_type,
+        [
+            "general",
+            "surface",
+        ],
+    )
 
     # Predicted DC data will automatically contain apparent resistivity column.
     # Here we compute the apparent resistivities and treat it like an uncertainties column.
@@ -978,12 +969,9 @@ def write_dcipoctree_ubc(
         SimPEG.data.Data object. The `survey` attribute of this data object must be
         an instance of :class`SimPEG.electromagnetics.static.resistivity.survey.Survey` or
         :class`SimPEG.electromagnetics.static.induced_polarization.survey.Survey`
-    data_type : str
-        One of {'volt', 'apparent_chargeability', 'secondary_potential'}
-    file_type : str
-        On of {'survey', 'dpred', 'dobs'}
-    format_type : str
-        One of {'general', 'surface'
+    data_type : {'volt', 'apparent_chargeability', 'secondary_potential'}
+    file_type : {'survey', 'dpred', 'dobs'}
+    format_type : {'general', 'surface'}
     comment_lines : str
         Comments added to beginning of output file
     """

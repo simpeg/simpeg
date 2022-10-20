@@ -4,8 +4,8 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import numpy as np
-# import properties
-from ....utils.code_utils import deprecate_property, validate_string_property
+
+from ....utils.code_utils import deprecate_property, validate_string
 
 from ....survey import BaseSurvey
 from ..utils import drapeTopotoLoc
@@ -22,41 +22,28 @@ class Survey(BaseSurvey):
     ----------
     source_list : list of SimPEG.electromagnetic.static.resistivity.sources.BaseSrc
         List of SimPEG DC/IP sources
-    survey_geometry : str, default="surface"
-        Survey geometry. Choose one of {"surface", "borehole", "general"}
-    survey_type : str, default="dipole-dipole"
-        Survey type. Choose one of {"dipole-dipole", "pole-dipole", "dipole-pole", "pole-pole"}
+    survey_geometry : {"surface", "borehole", "general"}
+        Survey geometry.
+    survey_type : {"dipole-dipole", "pole-dipole", "dipole-pole", "pole-pole"}
+        Survey type.
     """
 
-    # source_list = properties.List(
-    #     "A list of sources for the survey",
-    #     properties.Instance("A DC source", Src.BaseSrc),
-    #     default=[],
-    # )
-
-    # # Survey
-    # survey_geometry = properties.StringChoice(
-    #     "Survey geometry of DC surveys",
-    #     default="surface",
-    #     choices=["surface", "borehole", "general"],
-    # )
-
-    # survey_type = properties.StringChoice(
-    #     "DC-IP Survey type",
-    #     default="dipole-dipole",
-    #     choices=["dipole-dipole", "pole-dipole", "dipole-pole", "pole-pole"],
-    # )
-
-    def __init__(self, source_list=None, survey_geometry="surface", survey_type="dipole-dipole", **kwargs):
-        if source_list is None:
-            raise AttributeError("Survey cannot be instantiated without sources")
+    def __init__(
+        self,
+        source_list,
+        survey_geometry="surface",
+        survey_type="dipole-dipole",
+        **kwargs,
+    ):
         super(Survey, self).__init__(source_list, **kwargs)
         self.survey_geometry = survey_geometry
         self.survey_type = survey_type
 
     @property
     def survey_geometry(self):
-        """Survey geometry; one of {"surface", "borehole", "general"}
+        """Survey geometry
+
+        This property is deprecated.
 
         Returns
         -------
@@ -67,8 +54,10 @@ class Survey(BaseSurvey):
 
     @survey_geometry.setter
     def survey_geometry(self, var):
-        var = validate_string_property('survey_geometry', var, ("surface", "borehole", "general")).lower()
-        self._survey_geometry = var 
+        var = validate_string(
+            "survey_geometry", var, ("surface", "borehole", "general")
+        )
+        self._survey_geometry = var
 
     @property
     def survey_type(self):
@@ -83,8 +72,12 @@ class Survey(BaseSurvey):
 
     @survey_type.setter
     def survey_type(self, var):
-        var = validate_string_property('survey_type', var, ("dipole-dipole", "pole-dipole", "dipole-pole", "pole-pole")).lower()
-        self._survey_type = var 
+        var = validate_string(
+            "survey_type",
+            var,
+            ("dipole-dipole", "pole-dipole", "dipole-pole", "pole-pole"),
+        )
+        self._survey_type = var
 
     def __repr__(self):
         return (
@@ -169,7 +162,7 @@ class Survey(BaseSurvey):
         "electrode_locations",
         new_name="unique_electrode_locations",
         removal_version="0.17.0",
-        future_warn=True,
+        error=True,
     )
 
     @property
@@ -179,7 +172,7 @@ class Survey(BaseSurvey):
 
         Returns
         -------
-        list of np.ndarray
+        list of numpy.ndarray
             List of length 2 containing the A and B electrode locations, in order.
         """
         src_a = []
@@ -203,8 +196,8 @@ class Survey(BaseSurvey):
 
         Parameters
         ----------
-        space_type : str, default = 'half-space'
-            Choose one of {'halfspace', 'wholespace'}
+        space_type : {'halfspace', 'wholespace'}
+            Calculate geometric factors using a half-space or whole-space formula.
         data_type : str, default = ``None``
             This input argument is now deprecated
         survey_type : str, default = ``None``
@@ -296,9 +289,8 @@ class Survey(BaseSurvey):
             The mesh on which the discretized fields are computed
         ind_active : numpy.ndarray of int or bool
             Active topography cells
-        option : str, default="top"
-            Define topography at tops of cells or cell centers. Choose from
-            "top" or "center"
+        option :{"top", "center"}
+            Define topography at tops of cells or cell centers.
         topography : (n, dim) numpy.ndarray, default = ``None``
             Surface topography
         force : bool, default = ``False``
@@ -348,7 +340,9 @@ class Survey(BaseSurvey):
         elif self.survey_geometry == "borehole":
             raise Exception("Not implemented yet for borehole survey_geometry")
         else:
-            raise Exception("Input valid survey survey_geometry: surface or borehole")
+            raise Exception(
+                f"Input valid survey survey_geometry: {self.survey_geometry}"
+            )
 
     def drapeTopo(self, *args, **kwargs):
         """This method is deprecated. See :meth:`drape_electrodes_on_topography`"""

@@ -1,6 +1,6 @@
 import numpy as np
 from .... import survey
-from ....utils import Zero
+from ....utils import Zero, validate_ndarray_with_shape
 
 
 class BaseSrc(survey.BaseSrc):
@@ -10,7 +10,7 @@ class BaseSrc(survey.BaseSrc):
     ----------
     receiver_list : list of SimPEG.electromagnetics.static.resistivity.receivers.BaseRx
         A list of DC/IP receivers
-    location : (n_source, dim) np.ndarray
+    location : (n_source, dim) numpy.ndarray
         Source locations
     current : float or numpy.ndarray, default: 1.0
         Current amplitude [A]
@@ -36,9 +36,9 @@ class BaseSrc(survey.BaseSrc):
 
     @location.setter
     def location(self, other):
-        other = np.asarray(other, dtype=float)
-        other = np.atleast_2d(other)
-        self._location = other
+        self._location = validate_ndarray_with_shape(
+            "location", other, shape=("*", "*"), dtype=float
+        )
 
     @property
     def current(self):
@@ -53,9 +53,7 @@ class BaseSrc(survey.BaseSrc):
 
     @current.setter
     def current(self, other):
-        other = np.atleast_1d(np.asarray(other, dtype=float))
-        if other.ndim > 1:
-            raise ValueError("Too many dimensions for current array")
+        other = validate_ndarray_with_shape("current", other, shape=("*",), dtype=float)
         if len(other) > 1 and len(other) != self.location.shape[0]:
             raise ValueError(
                 "Current must be constant or equal to the number of specified source locations."
@@ -73,28 +71,36 @@ class BaseSrc(survey.BaseSrc):
 
         Returns
         -------
-        np.ndarray
+        numpy.ndarray
             The right-hand sides corresponding to the sources
         """
-        if self._q is not None:
-            return self._q
-        else:
-            if sim._formulation == "HJ":
-                inds = sim.mesh.closest_points_index(self.location, grid_loc="CC")
-                self._q = np.zeros(sim.mesh.nC)
-                self._q[inds] = self.current
-            elif sim._formulation == "EB":
-                loc = self.location
-                cur = self.current
-                interpolation_matrix = sim.mesh.get_interpolation_matrix(
-                    loc, locType="N"
-                ).toarray()
-                q = np.sum(cur[:, np.newaxis] * interpolation_matrix, axis=0)
-                self._q = q
-            return self._q
+        if sim._formulation == "HJ":
+            inds = sim.mesh.closest_points_index(self.location, grid_loc="CC")
+            q = np.zeros(sim.mesh.nC)
+            q[inds] = self.current
+        elif sim._formulation == "EB":
+            loc = self.location
+            cur = self.current
+            interpolation_matrix = sim.mesh.get_interpolation_matrix(
+                loc, location_type="N"
+            ).toarray()
+            q = np.sum(cur[:, np.newaxis] * interpolation_matrix, axis=0)
+        return q
 
     def evalDeriv(self, sim):
-        """Returns :class:`Zero`."""
+        """Returns the derivative of the source term with respect to the model.
+
+        This is zero.
+
+        Parameters
+        ----------
+        sim : SimPEG.base.BaseElectricalPDESimulation
+            The static electromagnetic simulation
+
+        Returns
+        -------
+        discretize.utils.Zero
+        """
         return Zero()
 
 
@@ -223,6 +229,7 @@ class Pole(BaseSrc):
     location : (n_source, dim) numpy.ndarray
         Electrode locations
     """
+
     def __init__(self, receiver_list, location=None, **kwargs):
         super().__init__(receiver_list=receiver_list, location=location, **kwargs)
         if len(self.location) != 1:

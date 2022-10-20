@@ -47,7 +47,7 @@ class IPProblemTestsCC(unittest.TestCase):
         dobs = simulation.make_synthetic_data(mSynth, add_noise=True)
         # Now set up the problem to do some minimization
         dmis = data_misfit.L2DataMisfit(data=dobs, simulation=simulation)
-        reg = regularization.Tikhonov(mesh)
+        reg = regularization.WeightedLeastSquares(mesh)
         opt = optimization.InexactGaussNewton(
             maxIterLS=20, maxIter=10, tolF=1e-6, tolX=1e-6, tolG=1e-6, maxIterCG=6
         )
@@ -118,7 +118,7 @@ class IPProblemTestsN(unittest.TestCase):
         dobs = simulation.make_synthetic_data(mSynth, add_noise=True)
         # Now set up the problem to do some minimization
         dmis = data_misfit.L2DataMisfit(data=dobs, simulation=simulation)
-        reg = regularization.Tikhonov(mesh)
+        reg = regularization.WeightedLeastSquares(mesh)
         opt = optimization.InexactGaussNewton(
             maxIterLS=20, maxIter=10, tolF=1e-6, tolX=1e-6, tolG=1e-6, maxIterCG=6
         )
@@ -192,7 +192,7 @@ class IPProblemTestsCC_storeJ(unittest.TestCase):
         dobs = simulation.make_synthetic_data(mSynth, add_noise=True)
         # Now set up the problem to do some minimization
         dmis = data_misfit.L2DataMisfit(data=dobs, simulation=simulation)
-        reg = regularization.Tikhonov(mesh)
+        reg = regularization.WeightedLeastSquares(mesh)
         opt = optimization.InexactGaussNewton(
             maxIterLS=20, maxIter=10, tolF=1e-6, tolX=1e-6, tolG=1e-6, maxIterCG=6
         )
@@ -273,7 +273,7 @@ class IPProblemTestsN_storeJ(unittest.TestCase):
         dobs = simulation.make_synthetic_data(mSynth, add_noise=True)
         # Now set up the problem to do some minimization
         dmis = data_misfit.L2DataMisfit(data=dobs, simulation=simulation)
-        reg = regularization.Tikhonov(mesh)
+        reg = regularization.WeightedLeastSquares(mesh)
         opt = optimization.InexactGaussNewton(
             maxIterLS=20, maxIter=10, tolF=1e-6, tolX=1e-6, tolG=1e-6, maxIterCG=6
         )

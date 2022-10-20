@@ -6,7 +6,7 @@ from __future__ import unicode_literals
 import unittest
 import numpy as np
 import pickle
-import properties
+import inspect
 
 import discretize
 
@@ -25,10 +25,20 @@ class SimpleExample(props.HasModel):
         "Derivative of sigma wrt the model.", physical_property=sigma
     )
 
+    def __init__(self, sigma=None, sigmaMap=None, **kwargs):
+        super().__init__(**kwargs)
+        self.sigma = sigma
+        self.sigmaMap = sigmaMap
+
 
 class ShortcutExample(props.HasModel):
 
     sigma, sigmaMap, sigmaDeriv = props.Invertible("Electrical conductivity (S/m)")
+
+    def __init__(self, sigma=None, sigmaMap=None, **kwargs):
+        super().__init__(**kwargs)
+        self.sigma = sigma
+        self.sigmaMap = sigmaMap
 
 
 class ReciprocalMappingExample(props.HasModel):
@@ -39,6 +49,13 @@ class ReciprocalMappingExample(props.HasModel):
 
     props.Reciprocal(sigma, rho)
 
+    def __init__(self, sigma=None, sigmaMap=None, rho=None, rhoMap=None, **kwargs):
+        super().__init__(**kwargs)
+        self.sigma = sigma
+        self.rho = rho
+        self.sigmaMap = sigmaMap
+        self.rhoMap = rhoMap
+
 
 class ReciprocalExample(props.HasModel):
 
@@ -47,6 +64,12 @@ class ReciprocalExample(props.HasModel):
     rho = props.PhysicalProperty("Electrical resistivity (Ohm m)")
 
     props.Reciprocal(sigma, rho)
+
+    def __init__(self, sigma=None, sigmaMap=None, rho=None, **kwargs):
+        super().__init__(**kwargs)
+        self.sigma = sigma
+        self.rho = rho
+        self.sigmaMap = sigmaMap
 
 
 class ReciprocalPropExample(props.HasModel):
@@ -57,31 +80,61 @@ class ReciprocalPropExample(props.HasModel):
 
     props.Reciprocal(sigma, rho)
 
+    def __init__(self, sigma=None, rho=None, rhoMap=None, **kwargs):
+        super().__init__(**kwargs)
+        self.sigma = sigma
+        self.rho = rho
+
 
 class ReciprocalPropExampleDefaults(props.HasModel):
 
-    sigma = props.PhysicalProperty(
-        "Electrical conductivity (S/m)", default=np.r_[1.0, 2.0, 3.0]
-    )
+    sigma = props.PhysicalProperty("Electrical conductivity (S/m)")
 
     rho = props.PhysicalProperty("Electrical resistivity (Ohm m)")
 
     props.Reciprocal(sigma, rho)
 
+    def __init__(self, sigma=None, sigmaMap=None, rho=None, rhoMap=None, **kwargs):
+        super().__init__(**kwargs)
+        if sigma is None:
+            sigma = np.r_[1.0, 2.0, 3.0]
+        self.sigma = sigma
+        self.rho = rho
+
 
 class ComplicatedInversion(props.HasModel):
 
-    Ks, KsMap, KsDeriv = props.Invertible(
-        "Saturated hydraulic conductivity", default=24.96
-    )
+    Ks, KsMap, KsDeriv = props.Invertible("Saturated hydraulic conductivity")
 
-    A, AMap, ADeriv = props.Invertible("fitting parameter", default=1.175e06)
+    A, AMap, ADeriv = props.Invertible("fitting parameter")
 
-    gamma, gammaMap, gammaDeriv = props.Invertible("fitting parameter", default=4.74)
+    gamma, gammaMap, gammaDeriv = props.Invertible("fitting parameter")
+
+    def __init__(
+        self,
+        Ks=24.96,
+        KsMap=None,
+        A=1.175e06,
+        AMap=None,
+        gamma=4.74,
+        gammaMap=None,
+        **kwargs
+    ):
+        super().__init__(**kwargs)
+        self.Ks = Ks
+        self.KsMap = KsMap
+        self.A = A
+        self.AMap = AMap
+        self.gamma = gamma
+        self.gammaMap = gammaMap
 
 
 class NestedModels(props.HasModel):
-    complicated = properties.Instance("Nested models", ComplicatedInversion)
+    nest_model = props.NestedModeler(ComplicatedInversion, "Nested models")
+
+    def __init__(self, nest_model=None, **kwargs):
+        super().__init__(**kwargs)
+        self.nest_model = nest_model
 
 
 class TestPropMaps(unittest.TestCase):
@@ -144,7 +197,7 @@ class TestPropMaps(unittest.TestCase):
         # change your mind?
         # PM = pickle.loads(pickle.dumps(PM))
         PM.rhoMap = expMap
-        assert PM._get("sigmaMap") is None
+        assert PM._sigmaMap is None
         assert len(PM.rhoMap) == 1
         assert len(PM.sigmaMap) == 2
         # PM = pickle.loads(pickle.dumps(PM))
@@ -209,36 +262,11 @@ class TestPropMaps(unittest.TestCase):
         mappings or other defaults.
         """
         PM = ComplicatedInversion()
+        params = inspect.signature(ComplicatedInversion).parameters
 
-        assert PM.Ks == PM._props["Ks"].default
-        assert PM.gamma == PM._props["gamma"].default
-        assert PM.A == PM._props["A"].default
-
-    def test_summary_validate(self):
-
-        PM = ComplicatedInversion()
-        PM.summary()
-        PM.validate()
-        with self.assertRaises(ValueError):
-            PM.model = np.ones(2)
-            PM.summary()
-            PM.validate()
-        PM.AMap = maps.ExpMap(nP=3)
-        with self.assertRaises(ValueError):
-            PM.model = np.ones(2)
-            PM.summary()
-            PM.validate()
-        PM.gammaMap = maps.ExpMap(nP=2)
-        with self.assertRaises(ValueError):
-            # maps are mismatching sizes
-            PM.model = np.ones(2)
-            PM.summary()
-            PM.validate()
-        PM.AMap = maps.ExpMap(nP=2)
-        PM.model = np.ones(2)
-        PM.summary()
-        PM.validate()
-        assert PM.KsDeriv == 0
+        np.testing.assert_equal(PM.Ks, params["Ks"].default)
+        np.testing.assert_equal(PM.gamma, params["gamma"].default)
+        np.testing.assert_equal(PM.A, params["A"].default)
 
     def test_nested(self):
         PM = NestedModels()

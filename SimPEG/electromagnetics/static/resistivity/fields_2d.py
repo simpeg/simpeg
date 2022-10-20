@@ -1,13 +1,9 @@
 import numpy as np
-import properties
 from scipy.constants import epsilon_0
 
 from ....fields import TimeFields
-from ....utils import Identity, Zero
-
-# TODO: this should be the BaseDCSimulation2D --> but circular imports at the
-# moment, so we can settle for its base at the moment
-from ....base import BaseElectricalPDESimulation
+from ....utils import Identity, Zero, validate_type
+from ....simulation import BaseSimulation
 
 
 class Fields2D(TimeFields):
@@ -43,10 +39,14 @@ class Fields2D(TimeFields):
 
     """
 
-    simulation = properties.Instance("2D DC simulation", BaseElectricalPDESimulation)
-
     knownFields = {}
     dtype = float
+
+    @TimeFields.simulation.setter
+    def simulation(self, value):
+        self._simulation = validate_type(
+            "simulation", value, BaseSimulation, cast=False
+        )
 
     @property
     def survey(self):

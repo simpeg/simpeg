@@ -1,7 +1,5 @@
-import properties
-
 from ..survey import BaseSrc
-from ..utils import Zero
+from ..utils import Zero, validate_type
 from ..base import BaseElectricalPDESimulation, BaseMagneticPDESimulation
 
 __all__ = ["BaseEMSimulation", "BaseEMSrc"]
@@ -17,8 +15,23 @@ __all__ = ["BaseEMSimulation", "BaseEMSrc"]
 class BaseEMSimulation(BaseElectricalPDESimulation, BaseMagneticPDESimulation):
     """Base electromagnetic simulation class"""
 
-    verbose = False
-    storeInnerProduct = True
+    def __init__(self, mesh, storeInnerProduct=True, **kwargs):
+        super().__init__(mesh=mesh, **kwargs)
+        self.storeInnerProduct = storeInnerProduct
+
+    @property
+    def storeInnerProduct(self):
+        """Whether to store inner product matrices
+
+        Returns
+        -------
+        bool
+        """
+        return self._storeInnerProduct
+
+    @storeInnerProduct.setter
+    def storeInnerProduct(self, value):
+        self._storeInnerProduct = validate_type("storeInnerProduct", value, bool)
 
     ####################################################
     # Make A Symmetric
@@ -58,8 +71,6 @@ class BaseEMSrc(BaseSrc):
             receiver_list=receiver_list, location=location, **kwargs
         )
         self.integrate = integrate
-
-    # integrate = properties.Bool("integrate the source term?", default=False)
 
     @property
     def integrate(self):
@@ -134,7 +145,7 @@ class BaseEMSrc(BaseSrc):
         ----------
         simulation : BaseEMSimulation
             An EM Simulation object
-        
+
         Returns
         -------
         numpy.ndarray
@@ -150,7 +161,7 @@ class BaseEMSrc(BaseSrc):
         ----------
         simulation : BaseEMSimulation
             An EM Simulation object
-        
+
         Returns
         -------
         numpy.ndarray
@@ -171,7 +182,7 @@ class BaseEMSrc(BaseSrc):
             A vector to take the dot product with
         adjoint : bool, default==Fasel
             If ``True``, return the adjoint operation
-        
+
         Returns
         -------
         numpy.ndarray
@@ -192,7 +203,7 @@ class BaseEMSrc(BaseSrc):
             A vector to take the dot product with
         adjoint : bool, default==Fasel
             If ``True``, return the adjoint operation
-        
+
         Returns
         -------
         numpy.ndarray

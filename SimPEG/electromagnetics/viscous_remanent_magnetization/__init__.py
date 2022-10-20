@@ -1,13 +1,22 @@
 """
 ===========================================================================================================
-Viscous Remanent Magnetization Module (:mod:`SimPEG.electromagnetics.viscous_remanent_magnetization`)
+Viscous Remanent Magnetization (:mod:`SimPEG.electromagnetics.viscous_remanent_magnetization`)
 ===========================================================================================================
 .. currentmodule:: SimPEG.electromagnetics.viscous_remanent_magnetization
 
 About ``viscous_remanent_magnetization``
 
-Receiver Classes
-----------------
+Simulations
+===========
+
+.. autosummary::
+  :toctree: generated/
+
+  Simulation3DLinear
+  Simulation3DLogUniform
+
+Receivers
+=========
 
 .. autosummary::
   :toctree: generated/
@@ -16,8 +25,8 @@ Receiver Classes
   receivers.SquareLoop
 
 
-Waveform Functions and Classes
-------------------------------
+Waveforms
+=========
 
 .. autosummary::
   :toctree: generated/
@@ -27,25 +36,34 @@ Waveform Functions and Classes
   waveforms.ArbitraryDiscrete
   waveforms.ArbitraryPiecewise
   waveforms.Custom
+  waveforms.BaseVRMWaveform
 
 
-Source Classes
---------------
+Sources
+=======
 
 .. autosummary::
   :toctree: generated/
 
-  sources.BaseSrcVRM
   sources.MagDipole
   sources.CircLoop
   sources.LineCurrent
 
-Survey Classes
---------------
+Surveys
+=======
 .. autosummary::
   :toctree: generated/
 
-  survey.SurveyVRM
+  Survey
+
+Base Classes
+============
+.. autosummary::
+  :toctree: generated/
+
+  BaseVRMSimulation
+  sources.BaseSrcVRM
+  waveforms.BaseVRMWaveform
 
 """
 from . import receivers

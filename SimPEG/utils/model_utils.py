@@ -40,9 +40,9 @@ def surface2ind_topo(mesh, topo, gridLoc="CC", method="nearest", fill_value=np.n
 
         if mesh.dim == 3:
             # Check if Topo points are inside of the mesh
-            xmin, xmax = mesh.vectorNx.min(), mesh.vectorNx.max()
+            xmin, xmax = mesh.nodes_x.min(), mesh.nodes_x.max()
             xminTopo, xmaxTopo = topo[:, 0].min(), topo[:, 0].max()
-            ymin, ymax = mesh.vectorNy.min(), mesh.vectorNy.max()
+            ymin, ymax = mesh.nodes_y.min(), mesh.nodes_y.max()
             yminTopo, ymaxTopo = topo[:, 1].min(), topo[:, 1].max()
             if (
                 (xminTopo > xmin)
@@ -52,20 +52,16 @@ def surface2ind_topo(mesh, topo, gridLoc="CC", method="nearest", fill_value=np.n
             ):
                 # If not, use nearest neihbor to extrapolate them
                 Ftopo = NearestNDInterpolator(topo[:, :2], topo[:, 2])
-                xinds = np.logical_or(
-                    xminTopo < mesh.vectorNx, xmaxTopo > mesh.vectorNx
-                )
-                yinds = np.logical_or(
-                    yminTopo < mesh.vectorNy, ymaxTopo > mesh.vectorNy
-                )
-                XYOut = ndgrid(mesh.vectorNx[xinds], mesh.vectorNy[yinds])
+                xinds = np.logical_or(xminTopo < mesh.nodes_x, xmaxTopo > mesh.nodes_x)
+                yinds = np.logical_or(yminTopo < mesh.nodes_y, ymaxTopo > mesh.nodes_y)
+                XYOut = ndgrid(mesh.nodes_x[xinds], mesh.nodes_y[yinds])
                 topoOut = Ftopo(XYOut)
                 topo = np.vstack((topo, np.c_[XYOut, topoOut]))
 
             if gridLoc == "CC":
                 XY = ndgrid(mesh.vectorCCx, mesh.vectorCCy)
                 Zcc = mesh.gridCC[:, 2].reshape(
-                    (np.prod(mesh.vnC[:2]), mesh.nCz), order="F"
+                    (np.prod(mesh.vnC[:2]), mesh.shape_cells[2]), order="F"
                 )
                 gridTopo = griddata(
                     topo[:, :2], topo[:, 2], XY, method=method, fill_value=fill_value
@@ -75,7 +71,7 @@ def surface2ind_topo(mesh, topo, gridLoc="CC", method="nearest", fill_value=np.n
 
             elif gridLoc == "N":
 
-                XY = ndgrid(mesh.vectorNx, mesh.vectorNy)
+                XY = ndgrid(mesh.nodes_x, mesh.nodes_y)
                 gridTopo = griddata(
                     topo[:, :2], topo[:, 2], XY, method=method, fill_value=fill_value
                 )
@@ -89,11 +85,11 @@ def surface2ind_topo(mesh, topo, gridLoc="CC", method="nearest", fill_value=np.n
                     )
 
                 # TODO: this will only work for tensor meshes
-                Nz = mesh.vectorNz[1:]
+                Nz = mesh.nodes_z[1:]
                 actind = np.array([False] * mesh.nC).reshape(mesh.vnC, order="F")
 
-                for ii in range(mesh.nCx):
-                    for jj in range(mesh.nCy):
+                for ii in range(mesh.shape_cells[0]):
+                    for jj in range(mesh.shape_cells[1]):
                         actind[ii, jj, :] = [
                             np.all(gridTopo[ii : ii + 2, jj : jj + 2] >= Nz[kk])
                             for kk in range(len(Nz))
@@ -101,7 +97,7 @@ def surface2ind_topo(mesh, topo, gridLoc="CC", method="nearest", fill_value=np.n
 
         elif mesh.dim == 2:
             # Check if Topo points are inside of the mesh
-            xmin, xmax = mesh.vectorNx.min(), mesh.vectorNx.max()
+            xmin, xmax = mesh.nodes_x.min(), mesh.nodes_x.max()
             xminTopo, xmaxTopo = topo[:, 0].min(), topo[:, 0].max()
             if (xminTopo > xmin) or (xmaxTopo < xmax):
                 fill_value = "extrapolate"
@@ -114,7 +110,7 @@ def surface2ind_topo(mesh, topo, gridLoc="CC", method="nearest", fill_value=np.n
 
             elif gridLoc == "N":
 
-                gridTopo = Ftopo(mesh.vectorNx)
+                gridTopo = Ftopo(mesh.nodes_x)
                 if mesh._meshType not in ["TENSOR", "CYL", "BASETENSOR"]:
                     raise NotImplementedError(
                         "Nodal surface2ind_topo not implemented for {0!s} mesh".format(
@@ -123,10 +119,10 @@ def surface2ind_topo(mesh, topo, gridLoc="CC", method="nearest", fill_value=np.n
                     )
 
                 # TODO: this will only work for tensor meshes
-                Ny = mesh.vectorNy[1:]
+                Ny = mesh.nodes_y[1:]
                 actind = np.array([False] * mesh.nC).reshape(mesh.vnC, order="F")
 
-                for ii in range(mesh.nCx):
+                for ii in range(mesh.shape_cells[0]):
                     actind[ii, :] = [
                         np.all(gridTopo[ii : ii + 2] > Ny[kk]) for kk in range(len(Ny))
                     ]

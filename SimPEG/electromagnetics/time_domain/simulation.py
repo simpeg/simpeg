@@ -2,11 +2,10 @@ import numpy as np
 import scipy.sparse as sp
 from scipy.special import ellipk, ellipe
 import time
-import properties
 
 from ...data import Data
 from ...simulation import BaseTimeSimulation
-from ...utils import mkvc, sdiag, speye, Zero
+from ...utils import mkvc, sdiag, speye, Zero, validate_type, validate_float
 from ..base import BaseEMSimulation
 from .survey import Survey
 from .receivers import *
@@ -28,18 +27,48 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
     Euler.
     """
 
-    clean_on_model_update = ["_Adcinv"]  #: clear DC matrix factors on any model updates
-    dt_threshold = 1e-8
-
-    survey = properties.Instance("a survey object", Survey, required=True)
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, mesh, survey=None, dt_threshold=1e-8, **kwargs):
+        super().__init__(mesh=mesh, survey=survey, **kwargs)
+        self.dt_threshold = dt_threshold
         if self.muMap is not None:
             raise NotImplementedError(
                 "Time domain EM simulations do not support magnetic permeability "
                 "inversion, yet."
             )
+
+    @property
+    def survey(self):
+        """The survey for the simulation
+        Returns
+        -------
+        SimPEG.electromagnetics.time_domain.survey.Survey
+        """
+        if self._survey is None:
+            raise AttributeError("Simulation must have a survey set")
+        return self._survey
+
+    @survey.setter
+    def survey(self, value):
+        if value is not None:
+            value = validate_type("survey", value, Survey, cast=False)
+        self._survey = value
+
+    @property
+    def dt_threshold(self):
+        """The threshold used to determine if a previous matrix factor can be reused.
+
+        If the difference in time steps falls below this threshold, the factored matrix
+        is re-used.
+
+        Returns
+        -------
+        float
+        """
+        return self._dt_threshold
+
+    @dt_threshold.setter
+    def dt_threshold(self, value):
+        self._dt_threshold = validate_float("dt_threshold", value, min_val=0.0)
 
     # def fields_nostore(self, m):
     #     """
@@ -443,6 +472,11 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
             Adc = self.getAdc()
             self._Adcinv = self.solver(Adc)
         return self._Adcinv
+
+    @property
+    def clean_on_model_update(self):
+        items = super().clean_on_model_update
+        return items + ["_Adcinv"]  #: clear DC matrix factors on any model updates
 
 
 ###############################################################################

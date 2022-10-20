@@ -98,7 +98,7 @@ class AmpProblemTest(unittest.TestCase):
             survey=survey,
             mesh=mesh,
             chiMap=idenMap,
-            actInd=actv,
+            ind_active=actv,
             store_sensitivities="forward_only",
         )
         simulation.M = M_xyz
@@ -135,7 +135,7 @@ class AmpProblemTest(unittest.TestCase):
             mesh=mesh,
             survey=survey,
             chiMap=idenMap,
-            actInd=surf,
+            ind_active=surf,
             store_sensitivities="ram",
         )
         simulation.model = mstart
@@ -198,7 +198,7 @@ class AmpProblemTest(unittest.TestCase):
             mesh=mesh,
             survey=surveyAmp,
             chiMap=idenMap,
-            actInd=surf,
+            ind_active=surf,
             is_amplitude_data=True,
             store_sensitivities="forward_only",
         )
@@ -227,7 +227,7 @@ class AmpProblemTest(unittest.TestCase):
             survey=surveyAmp,
             mesh=mesh,
             chiMap=idenMap,
-            actInd=actv,
+            ind_active=actv,
             is_amplitude_data=True,
         )
 
@@ -235,7 +235,7 @@ class AmpProblemTest(unittest.TestCase):
 
         # Create a sparse regularization
         reg = regularization.Sparse(mesh, indActive=actv, mapping=idenMap)
-        reg.norms = np.c_[1, 0, 0, 0]
+        reg.norms = [1, 0, 0, 0]
         reg.mref = np.zeros(nC)
 
         # Data misfit function

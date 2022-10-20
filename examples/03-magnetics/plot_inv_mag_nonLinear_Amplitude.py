@@ -149,7 +149,7 @@ simulation = magnetics.simulation.Simulation3DIntegral(
     survey=survey,
     mesh=mesh,
     chiMap=idenMap,
-    actInd=actv,
+    ind_active=actv,
     store_sensitivities="forward_only",
 )
 simulation.M = M_xyz
@@ -223,7 +223,7 @@ idenMap = maps.IdentityMap(nP=nC)
 
 # Create static map
 simulation = magnetics.simulation.Simulation3DIntegral(
-    mesh=mesh, survey=survey, chiMap=idenMap, actInd=surf, store_sensitivities="ram"
+    mesh=mesh, survey=survey, chiMap=idenMap, ind_active=surf, store_sensitivities="ram"
 )
 
 wr = simulation.getJtJdiag(mstart) ** 0.5
@@ -274,7 +274,7 @@ srcField = magnetics.sources.SourceField(receiver_list=[receiver_list], paramete
 surveyAmp = magnetics.survey.Survey(srcField)
 
 simulation = magnetics.simulation.Simulation3DIntegral(
-    mesh=mesh, survey=surveyAmp, chiMap=idenMap, actInd=surf, is_amplitude_data=True
+    mesh=mesh, survey=surveyAmp, chiMap=idenMap, ind_active=surf, is_amplitude_data=True
 )
 
 bAmp = simulation.fields(mrec)
@@ -332,14 +332,14 @@ mstart = np.ones(nC) * 1e-4
 
 # Create the forward model operator
 simulation = magnetics.simulation.Simulation3DIntegral(
-    survey=surveyAmp, mesh=mesh, chiMap=idenMap, actInd=actv, is_amplitude_data=True
+    survey=surveyAmp, mesh=mesh, chiMap=idenMap, ind_active=actv, is_amplitude_data=True
 )
 
 data_obj = data.Data(survey, dobs=bAmp, noise_floor=wd)
 
 # Create a sparse regularization
 reg = regularization.Sparse(mesh, indActive=actv, mapping=idenMap)
-reg.norms = np.c_[1, 0, 0, 0]
+reg.norms = [1, 0, 0, 0]
 reg.mref = np.zeros(nC)
 
 # Data misfit function

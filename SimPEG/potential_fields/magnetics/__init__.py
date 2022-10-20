@@ -1,22 +1,39 @@
 """
 =========================================================================
-Magnetics Simulation Module (:mod:`SimPEG.potential_fields.magnetics`)
+Magnetics Simulation (:mod:`SimPEG.potential_fields.magnetics`)
 =========================================================================
 .. currentmodule:: SimPEG.potential_fields.magnetics
 
 About ``magnetics``
 
+Simulations
+===========
+.. autosummary::
+  :toctree: generated/
+
+  Simulation3DIntegral
+  SimulationEquivalentSourceLayer
+  Simulation3DDifferential
+
 Survey, Source and Receiver Classes
------------------------------------
+===================================
 
 .. autosummary::
   :toctree: generated/
 
-  receivers.Point
-  sources.SourceField
-  survey.Survey
+  Point
+  SourceField
+  Survey
 
+Analytics
+=========
+.. autosummary::
+  :toctree: generated/
 
+  analytics.IDTtoxyz
+  analytics.MagSphereAnaFun
+  analytics.MagSphereAnaFunA
+  analytics.MagSphereFreeSpace
 """
 from . import survey
 from . import sources

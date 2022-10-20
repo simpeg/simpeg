@@ -1,8 +1,12 @@
 from ...survey import BaseRx
-from ...utils import validate_float_property, validate_string_property, validate_integer_property
-import numpy as np
+from ...utils import (
+    validate_float,
+    validate_string,
+    validate_integer,
+    validate_ndarray_with_shape,
+)
 import warnings
-# import properties
+
 
 #########################################
 # POINT RECEIVER CLASS FOR VRM
@@ -18,40 +22,34 @@ class Point(BaseRx):
         Receiver locations
     times : numpy.ndarray
         Time channels
-    field_type : str
-        Fields being measured. Choose from {'h', 'b', 'dhdt', 'dbdt'
-    orientation : str, default = 'z'
-        Receiver orientation. Choose from {'x', 'y', 'z'}
+    field_type : {'h', 'b', 'dhdt', 'dbdt'}
+        Fields being measured.
+    orientation : {'z', 'y', 'z'}
+        Receiver orientation.
     """
 
-    # times = properties.Array("Observation times", dtype=float)
+    def __init__(
+        self, locations=None, times=None, field_type=None, orientation="z", **kwargs
+    ):
 
-    # fieldType = properties.StringChoice(
-    #     "Field type", choices=["h", "b", "dhdt", "dbdt"]
-    # )
-
-    # orientation = properties.StringChoice(
-    #     "Component of response", choices=["x", "y", "z"]
-    # )
-
-    def __init__(self, locations=None, times=None, field_type=None, orientation='z', **kwargs):
-
-        super(Point, self).__init__(locations=locations, **kwargs)
-
-        fieldType = kwargs.pop("fieldType", None)
-        if fieldType is not None:
-            warnings.warn(
+        if kwargs.pop("fieldType", None):
+            raise AttributeError(
                 "'fieldType' is a deprecated property. Please use 'field_type' instead."
                 "'fieldType' be removed in SimPEG 0.17.0."
             )
-            field_type = fieldType
         if field_type is None:
-            raise AttributeError("VRM receiver class cannot be instantiated witout 'field_type")
+            raise AttributeError(
+                "VRM receiver class cannot be instantiated witout 'field_type"
+            )
         else:
             self.field_type = field_type
-        
+
+        super(Point, self).__init__(locations=locations, **kwargs)
+
         if times is None:
-            raise AttributeError("VRM receiver class cannot be instantiated without 'times'")
+            raise AttributeError(
+                "VRM receiver class cannot be instantiated without 'times'"
+            )
         else:
             self.times = times
 
@@ -70,16 +68,9 @@ class Point(BaseRx):
 
     @times.setter
     def times(self, value):
-        # Ensure float or numpy array of float
-        try:
-            value = np.atleast_1d(value).astype(float)
-        except:
-            raise TypeError(f"times is not a valid type. Got {type(value)}")
-        
-        if value.ndim > 1:
-            raise TypeError(f"times must be ('*') array")
-
-        self._times = value
+        self._times = validate_ndarray_with_shape(
+            "times", value, shape=("*",), dtype=float
+        )
 
     @property
     def orientation(self):
@@ -87,15 +78,16 @@ class Point(BaseRx):
 
         Returns
         -------
-        str
-            Orientation of the receiver. One of {'x', 'y', 'z'}
+        {'x', 'y', 'z'}
+            Orientation of the receiver.
         """
         return self._orientation
 
     @orientation.setter
     def orientation(self, var):
-        var = validate_string_property('orientation', var, string_list=('x', 'y', 'z'))
-        self._orientation = var.lower()
+        self._orientation = validate_string(
+            "orientation", var, string_list=("x", "y", "z")
+        )
 
     @property
     def field_type(self):
@@ -110,7 +102,9 @@ class Point(BaseRx):
 
     @field_type.setter
     def field_type(self, var):
-        var = validate_string_property('field_type', var, string_list=('h', 'b', 'dhdt', 'dbdt')).lower()
+        var = validate_string(
+            "field_type", var, string_list=("h", "b", "dhdt", "dbdt")
+        ).lower()
         self._field_type = var
 
     @property
@@ -156,17 +150,17 @@ class SquareLoop(Point):
     area of the loop, then multiplied by the number of coils, then normalized
     by the dipole moment. As a result, the units for fields predicted with this
     type of receiver are the same as 'h', 'b', 'dhdt' and 'dbdt', respectively.
-    
+
     Parameters
     ----------
     locations : (n, 3) numpy.ndarray
         Center location of the square loop
     times : numpy.ndarray
         Time channels
-    field_type : str
-        Fields being measured. Choose from {'h', 'b', 'dhdt', 'dbdt'
-    orientation : str, default = 'z'
-        Receiver orientation. Choose from {'x', 'y', 'z'}
+    field_type : {'h', 'b', 'dhdt', 'dbdt'}
+        Fields being measured.
+    orientation : {'z', 'x', 'y'}
+        Receiver orientation.
     width : float, default = 1.0
         Loop width (m)
     n_turns : int, default = 1
@@ -174,42 +168,38 @@ class SquareLoop(Point):
     quadrature_order : int, default = 3
         Order of numerical quadrature for approximating the magnetic flux through
         the receiver coil.
-    
     """
-
-    # width = properties.Float("Square loop width", min=1e-6)
-    # nTurns = properties.Integer("Number of loop turns", min=1, default=1)
-    # quadOrder = properties.Integer(
-    #     "Order for numerical quadrature integration over loop", min=1, max=7, default=3
-    # )
 
     def __init__(
         self,
         locations=None,
         times=None,
         field_type=None,
-        orientation='z',
+        orientation="z",
         width=1.0,
         n_turns=1,
         quadrature_order=3,
-        **kwargs):
+        **kwargs,
+    ):
 
-        if 'nTurns' in kwargs:
-            warnings.warn(
+        if "nTurns" in kwargs:
+            raise AttributeError(
                 "'nTurns' is a deprecated property. Please use 'n_turns' instead."
                 "'nTurns' be removed in SimPEG 0.17.0."
             )
-            n_turns = kwargs.pop('nTurns')
 
-        if 'quadOrder' in kwargs:
-            warnings.warn(
+        if "quadOrder" in kwargs:
+            raise AttributeError(
                 "'quadOrder' is a deprecated property. Please use 'quadrature_order' instead."
                 "'quadOrder' be removed in SimPEG 0.17.0."
             )
-            quadrature_order = kwargs.pop('quadOrder')
 
         super(SquareLoop, self).__init__(
-            locations=locations, times=times, field_type=field_type, orientation=orientation, **kwargs
+            locations=locations,
+            times=times,
+            field_type=field_type,
+            orientation=orientation,
+            **kwargs,
         )
 
         self.width = width
@@ -229,10 +219,7 @@ class SquareLoop(Point):
 
     @width.setter
     def width(self, value):
-        value = validate_float_property('width', value)
-        if value <= 0.:
-            raise ValueError("Width must be positive")
-        self._width = value
+        self._width = validate_float("width", value, min_val=0.0, inclusive_min=False)
 
     @property
     def n_turns(self):
@@ -247,8 +234,7 @@ class SquareLoop(Point):
 
     @n_turns.setter
     def n_turns(self, value):
-        value = validate_integer_property('n_turns', value, min_val=1)
-        self._n_turns = value
+        self._n_turns = validate_integer("n_turns", value, min_val=1)
 
     @property
     def quadrature_order(self):
@@ -263,5 +249,5 @@ class SquareLoop(Point):
 
     @quadrature_order.setter
     def quadrature_order(self, value):
-        value = validate_integer_property('quadrature_order', value, min_val=1, max_val=7)
-        self._quadrature_order = value       
+        value = validate_integer("quadrature_order", value, min_val=1, max_val=7)
+        self._quadrature_order = value

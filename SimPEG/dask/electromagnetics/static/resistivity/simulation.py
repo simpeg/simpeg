@@ -15,7 +15,7 @@ def dask_getJ(self, m, f=None):
     Generate Full sensitivity matrix
     """
 
-    if self._Jmatrix is not None:
+    if getattr(self, "_Jmatrix", None) is not None:
         return self._Jmatrix
     if f is None:
         f = self.fields(m)
@@ -114,16 +114,16 @@ def dask_getJtJdiag(self, m, W=None):
     """
     Return the diagonal of JtJ
     """
-    if self.gtgdiag is None:
+    if getattr(self, "_gtgdiag", None) is None:
 
         # Need to check if multiplying weights makes sense
         if W is None:
-            self.gtgdiag = da.sum(self.getJ(m) ** 2, axis=0).compute()
+            self._gtgdiag = da.sum(self.getJ(m) ** 2, axis=0).compute()
         else:
             w = da.from_array(W.diagonal())[:, None]
-            self.gtgdiag = da.sum((w * self.getJ(m)) ** 2, axis=0).compute()
+            self._gtgdiag = da.sum((w * self.getJ(m)) ** 2, axis=0).compute()
 
-    return self.gtgdiag
+    return self._gtgdiag
 
 
 Sim.getJtJdiag = dask_getJtJdiag

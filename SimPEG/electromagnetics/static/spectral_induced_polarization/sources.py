@@ -1,9 +1,9 @@
 import numpy as np
-# import properties
 
 from .... import survey
-from ....utils import Zero, closestPoints, mkvc
+from ....utils import Zero, closestPoints, mkvc, validate_list_of_types, validate_float
 from .receivers import BaseRx
+
 
 class BaseSrc(survey.BaseSrc):
     """Base spectral IP source
@@ -12,16 +12,16 @@ class BaseSrc(survey.BaseSrc):
     ----------
     receiver_list : list of SimPEG.electromagnetics.static.resistivity.receivers.BaseRx
         A list of DC/IP receivers
-    location : (dim) np.ndarray
+    location : (dim) numpy.ndarray
         Source location
     current : float, default=1.0
         Current amplitude [A]
     """
 
-    # current = properties.Float("Source current", default=1.0)
-
     def __init__(self, receiver_list, location, current=1.0, **kwargs):
-        super(BaseSrc, self).__init__(receiver_list=receiver_list, location=location, **kwargs)
+        super(BaseSrc, self).__init__(
+            receiver_list=receiver_list, location=location, **kwargs
+        )
         self.current = current
 
     @property
@@ -37,19 +37,9 @@ class BaseSrc(survey.BaseSrc):
 
     @receiver_list.setter
     def receiver_list(self, new_list):
-
-        if isinstance(new_list, BaseRx):
-            new_list = [new_list]
-        elif isinstance(new_list, list):
-            pass
-        else:
-            raise TypeError("Receiver list must be a list of SimPEG.electromagnetics.static.spectral_induced_polarization.receivers.BaseRx")
-
-        assert len(set(new_list)) == len(new_list), "The receiver_list must be unique. Cannot re-use receivers"
-
-        self._rxOrder = dict()
-        [self._rxOrder.setdefault(rx._uid, ii) for ii, rx in enumerate(new_list)]
-        self._receiver_list = new_list
+        self._receiver_list = validate_list_of_types(
+            "source_list", new_list, BaseRx, ensure_unique=True
+        )
 
     @property
     def current(self):
@@ -64,14 +54,9 @@ class BaseSrc(survey.BaseSrc):
 
     @current.setter
     def current(self, I):
-        try:
-            I = float(I)
-        except:
-            raise TypeError(f"current must be int or float, got {type(I)}")
-
-        if np.abs(I) == 0.:
+        I = validate_float("current", I)
+        if I == 0.0:
             raise ValueError("current must be non-zero.")
-
         self._current = I
 
     def eval(self, simulation):
@@ -112,21 +97,16 @@ class Dipole(BaseSrc):
     ----------
     receiver_list : list of SimPEG.electromagnetics.static.spectral_induced_polarization.receivers.BaseRx
         A list of spectral IP receivers
-    location_a : (dim) numpy.array_like
+    location_a : (dim) numpy.ndarray
         A electrode location; remember to set 'location_b' keyword argument to define N electrode locations.
-    location_b : (dim) numpy.array_like
+    location_b : (dim) numpy.ndarray
         B electrode location; remember to set 'location_a' keyword argument to define M electrode locations.
-    location : list or tuple of length 2 of numpy.array_like
+    location : list or tuple of length 2 of numpy.ndarray
         A and B electrode locations. In this case, do not set the 'location_a' and 'location_b'
         keyword arguments. And we supply a list or tuple of the form [location_a, location_b].
     current : float, default=1.0
         Current amplitude [A]
     """
-
-    # location = properties.List(
-    #     "location of the source electrodes",
-    #     survey.SourceLocationArray("location of electrode"),
-    # )
 
     def __init__(
         self,
@@ -136,21 +116,6 @@ class Dipole(BaseSrc):
         location=None,
         **kwargs,
     ):
-        # Check for old keywords
-        if "locationA" in kwargs.keys():
-            location_a = kwargs.pop("locationA")
-            raise TypeError(
-                "The locationA property has been removed. Please set the "
-                "location_a property instead.",
-            )
-
-        if "locationB" in kwargs.keys():
-            location_b = kwargs.pop("locationB")
-            raise TypeError(
-                "The locationB property has been removed. Please set the "
-                "location_b property instead.",
-            )
-
         # if location_a set, then use location_a, location_b
         if location_a is not None:
             if location_b is None:
@@ -201,11 +166,11 @@ class Dipole(BaseSrc):
     def location(self, locs):
         if len(locs) != 2:
             raise ValueError(
-                    "locations must be a list or tuple of length 2: "
-                    "[location_a, location_b. The input locations has "
-                    f"length {len(locs)}"
-                )
-        
+                "locations must be a list or tuple of length 2: "
+                "[location_a, location_b. The input locations has "
+                f"length {len(locs)}"
+            )
+
         locs = [np.atleast_1d(locs[0]), np.atleast_1d(locs[1])]
 
         # check the size of locations_m, locations_n
@@ -215,7 +180,7 @@ class Dipole(BaseSrc):
                 f"location_b (shape: {locs[1].shape}) need to be "
                 f"the same size"
             )
-            
+
         self._locations = locs
 
     @property
@@ -247,10 +212,10 @@ class Dipole(BaseSrc):
         ----------
         sim : SimPEG.electromagnetics.static.spectral_induced_polarization.simulation.BaseDCSimulation
             A spectral IP simulation
-        
+
         Returns
         -------
-        np.ndarray
+        numpy.ndarray
             Discretize source term on the mesh
         """
         if simulation._formulation == "HJ":
@@ -275,7 +240,7 @@ class Pole(BaseSrc):
     ----------
     receiver_list : list of SimPEG.electromagnetics.static.spectral_induced_polarization.receivers.BaseRx
         list of spectral IP receivers
-    location : (dim) numpy.array_like
+    location : (dim) array_like
         Electrode location
     current : float, default=1.0
         Current amplitude [A]
@@ -291,10 +256,10 @@ class Pole(BaseSrc):
         ----------
         sim : SimPEG.electromagnetics.static.resistivity.simulation.BaseDCSimulation
             A DC/IP simulation
-        
+
         Returns
         -------
-        np.ndarray
+        numpy.ndarray
             Discretize source term on the mesh
         """
         if simulation._formulation == "HJ":

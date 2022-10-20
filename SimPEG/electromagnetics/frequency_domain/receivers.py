@@ -1,7 +1,7 @@
-# import properties
 from ... import survey
-from ...utils import validate_string_property
+from ...utils import validate_string, validate_type, validate_direction
 import warnings
+from discretize.utils import Zero
 
 
 class BaseRx(survey.BaseRx):
@@ -9,32 +9,46 @@ class BaseRx(survey.BaseRx):
 
     Parameters
     ----------
-    locations : (n_loc, n_dim) np.ndarray
-        Receiver locations. 
-    orientation : str, default = 'z'
-        Receiver orientation. Must be one of: 'x', 'y' or 'z'
-    component : str, default = 'real'
-        Real or imaginary component. Choose one of: 'real' or 'imag'
+    locations : (n_loc, n_dim) numpy.ndarray
+        Receiver locations.
+    orientation : {'z', 'x', 'y'} or numpy.ndarray
+        Receiver orientation.
+    component : {'real', 'imag', 'both', 'complex'}
+        Component of the receiver; i.e. 'real' or 'imag'. The options 'both' and
+        'complex' are only available for the 1D layered simulations.
+    data_type : {'field', 'ppm'}
+        Data type observed by the receiver, either field, or ppm secondary
+        of the total field.
+    use_source_receiver_offset : bool, optional
+        Whether to interpret the receiver locations as defining the source and receiver
+        offset.
     """
 
-    def __init__(self, locations, orientation='z', component='real', **kwargs):
+    def __init__(
+        self,
+        locations,
+        orientation="z",
+        component="real",
+        data_type="field",
+        use_source_receiver_offset=False,
+        **kwargs,
+    ):
+
         proj = kwargs.pop("projComp", None)
         if proj is not None:
             warnings.warn(
                 "'projComp' overrides the 'orientation' property which automatically"
                 " handles the projection from the mesh the receivers!!! "
-                "'projComp' is deprecated and will be removed in SimPEG 0.16.0."
+                "'projComp' is deprecated and will be removed in SimPEG 0.19.0."
             )
             self.projComp = proj
 
         self.orientation = orientation
         self.component = component
+        self.data_type = data_type
+        self.use_source_receiver_offset = use_source_receiver_offset
 
-        super(BaseRx, self).__init__(locations, **kwargs)
-
-    # orientation = properties.StringChoice(
-    #     "orientation of the receiver. Must currently be 'x', 'y', 'z'", ["x", "y", "z"]
-    # )
+        super().__init__(locations, **kwargs)
 
     @property
     def orientation(self):
@@ -42,23 +56,13 @@ class BaseRx(survey.BaseRx):
 
         Returns
         -------
-        str
-            Orientation of the receiver. One of {'x', 'y', 'z'}
+        numpy.ndarray
         """
         return self._orientation
 
     @orientation.setter
     def orientation(self, var):
-        var = validate_string_property('orientation', var, string_list=('x', 'y', 'z'))
-        self._orientation = var.lower()
-
-    # component = properties.StringChoice(
-    #     "component of the field (real or imag)",
-    #     {
-    #         "real": ["re", "in-phase", "in phase"],
-    #         "imag": ["imaginary", "im", "out-of-phase", "out of phase"],
-    #     },
-    # )
+        self._orientation = validate_direction("orientation", var, dim=3)
 
     @property
     def component(self):
@@ -66,28 +70,110 @@ class BaseRx(survey.BaseRx):
 
         Returns
         -------
-        str
-            Orientation of the receiver; i.e. 'real' or 'imag'
+        str : {'real', 'imag', 'both', 'complex'}
+            Component of the receiver; i.e. 'real' or 'imag'. The options 'both' and
+            'complex' are only available for the 1D layered simulations.
         """
         return self._component
 
     @component.setter
-    def component(self, var):
+    def component(self, val):
+        self._component = validate_string(
+            "component",
+            val,
+            (
+                ("real", "re", "in-phase", "in phase"),
+                (
+                    "imag",
+                    "imaginary",
+                    "im",
+                    "out-of-phase",
+                    "out of phase",
+                    "quadrature",
+                ),
+                "both",
+                "complex",
+            ),
+        )
 
-        if isinstance(var, str):
-            if var.lower() in ('real', 're', 'in-phase', 'in phase'):
-                self._component = 'real'
-            elif var.lower() in ('imag', 'imaginary', 'im', 'out-of-phase', 'out of phase', 'quadrature'):
-                self._component = 'imag'
-            else:
-                raise ValueError(f"orientation must be either 'real' or 'imag'. Got {var}")
-        else:
-            raise TypeError(f"orientation must be a str. Got {type(var)}")
+    @property
+    def data_type(self):
+        """The type of data for this receiver.
 
-    # def projected_grid(self, f):
-    #     """Grid Location projection (e.g. Ex Fy ...)"""
-    #     return f._GLoc(self.projField) + self.orientation
+        The data type is either a field measurement or a part per million (ppm) measurement
+        of the primary field.
 
+        Returns
+        -------
+        str : {'field', 'ppm'}
+
+        Notes
+        -----
+        This is currently only implemented for the 1D layered simulations.
+        """
+        return self._data_type
+
+    @data_type.setter
+    def data_type(self, val):
+        self._data_type = validate_string(
+            "data_type", val, string_list=("field", "ppm")
+        )
+
+    @property
+    def use_source_receiver_offset(self):
+        """Use source-receiver offset.
+
+        Whether to interpret the location as a source-receiver offset.
+
+        Returns
+        -------
+        bool
+
+        Notes
+        -----
+        This is currently only implemented for the 1D layered code.
+        """
+        return self._use_source_receiver_offset
+
+    @use_source_receiver_offset.setter
+    def use_source_receiver_offset(self, val):
+        self._use_source_receiver_offset = validate_type(
+            "use_source_receiver_offset", val, bool
+        )
+
+    def getP(self, mesh, projected_grid):
+        """Get projection matrix from mesh to receivers
+
+        Parameters
+        ----------
+        mesh : discretize.BaseMesh
+            A discretize mesh
+        projected_grid : str
+            Define what part of the mesh (i.e. edges, faces, centers, nodes) to
+            project from. Must be one of::
+
+                'E', 'edges_'           -> field defined on edges
+                'F', 'faces_'           -> field defined on faces
+                'CCV', 'cell_centers_'  -> vector field defined on cell centers
+
+        Returns
+        -------
+        scipy.sparse.csr_matrix
+            P, the interpolation matrix
+        """
+        if (mesh, projected_grid) in self._Ps:
+            return self._Ps[(mesh, projected_grid)]
+
+        P = Zero()
+        for strength, comp in zip(self.orientation, ["x", "y", "z"]):
+            if strength != 0.0:
+                P = P + strength * mesh.get_interpolation_matrix(
+                    self.locations, projected_grid + comp
+                )
+
+        if self.storeProjections:
+            self._Ps[(mesh, projected_grid)] = P
+        return P
 
     def eval(self, src, mesh, f):
         """Project fields from the mesh to the receiver(s).
@@ -100,13 +186,13 @@ class BaseRx(survey.BaseRx):
             The mesh on which the discrete set of equations is solved
         f : SimPEG.electromagnetic.frequency_domain.fields.FieldsFDEM
             The solution for the fields defined on the mesh
-        
+
         Returns
         -------
-        np.ndarray
+        numpy.ndarray
             Fields projected to the receiver(s)
         """
-        projected_grid = f._GLoc(self.projField) + self.orientation
+        projected_grid = f._GLoc(self.projField)
         P = self.getP(mesh, projected_grid)
         f_part_complex = f[src, self.projField]
         f_part = getattr(f_part_complex, self.component)  # real or imag component
@@ -124,25 +210,25 @@ class BaseRx(survey.BaseRx):
             The mesh on which the discrete set of equations is solved
         f : SimPEG.electromagnetic.frequency_domain.fields.FieldsFDEM
             The solution for the fields defined on the mesh
-        du_dm_v : np.ndarray, default = ``None``
+        du_dm_v : numpy.ndarray
             The derivative of the fields on the mesh with respect to the model,
             times a vector.
-        v : np.ndarray
+        v : numpy.ndarray, optional
             The vector which being multiplied
-        adjoint : bool, default = ``False``
+        adjoint : bool
             If ``True``, return the ajoint
-        
+
         Returns
         -------
-        np.ndarray
+        numpy.ndarray
             The derivative times a vector at the receiver(s)
         """
 
         df_dmFun = getattr(f, "_{0}Deriv".format(self.projField), None)
 
         assert v is not None, "v must be provided to compute the deriv or adjoint"
-        
-        projected_grid = f._GLoc(self.projField) + self.orientation
+
+        projected_grid = f._GLoc(self.projField)
         P = self.getP(mesh, projected_grid)
 
         if not adjoint:
@@ -172,23 +258,30 @@ class BaseRx(survey.BaseRx):
 
             return df_duT, df_dmT
 
+    @property
+    def nD(self):
+        if self.component == "both":
+            return int(self.locations.shape[0] * 2)
+        else:
+            return self.locations.shape[0]
+
 
 class PointElectricField(BaseRx):
     """Measure FDEM electric field at a point.
 
     Parameters
     ----------
-    locations : (n_loc, n_dim) np.ndarray
-        Receiver locations. 
-    orientation : str, default = 'z'
-        Receiver orientation. Must be one of: 'x', 'y' or 'z'
-    component : str, default = 'real'
-        Real or imaginary component. Choose one of: 'real' or 'imag'
+    locations : (n_loc, n_dim) numpy.ndarray
+        Receiver locations.
+    orientation : {'x', 'y', 'z'}
+        Receiver orientation.
+    component : {'real', 'imag'}
+        Real or imaginary component.
     """
 
-    def __init__(self, locations, orientation="x", component="real"):
+    def __init__(self, locations, orientation="x", component="real", **kwargs):
         self.projField = "e"
-        super(PointElectricField, self).__init__(locations, orientation, component)
+        super().__init__(locations, orientation, component, **kwargs)
 
 
 class PointMagneticFluxDensity(BaseRx):
@@ -196,19 +289,17 @@ class PointMagneticFluxDensity(BaseRx):
 
     Parameters
     ----------
-    locations : (n_loc, n_dim) np.ndarray
-        Receiver locations. 
-    orientation : str, default = 'z'
-        Receiver orientation. Must be one of: 'x', 'y' or 'z'
-    component : str, default = 'real'
-        Real or imaginary component. Choose one of: 'real' or 'imag'
+    locations : (n_loc, n_dim) numpy.ndarray
+        Receiver locations.
+    orientation : {'x', 'y', 'z'}
+        Receiver orientation.
+    component : {'real', 'imag'}
+        Real or imaginary component.
     """
 
-    def __init__(self, locations, orientation="x", component="real"):
+    def __init__(self, locations, orientation="x", component="real", **kwargs):
         self.projField = "b"
-        super(PointMagneticFluxDensity, self).__init__(
-            locations, orientation, component
-        )
+        super().__init__(locations, orientation, component, **kwargs)
 
 
 class PointMagneticFluxDensitySecondary(BaseRx):
@@ -216,19 +307,17 @@ class PointMagneticFluxDensitySecondary(BaseRx):
 
     Parameters
     ----------
-    locations : (n_loc, n_dim) np.ndarray
-        Receiver locations. 
-    orientation : str, default = 'z'
-        Receiver orientation. Must be one of: 'x', 'y' or 'z'
-    component : str, default = 'real'
-        Real or imaginary component. Choose one of: 'real' or 'imag'
+    locations : (n_loc, n_dim) numpy.ndarray
+        Receiver locations.
+    orientation : {'x', 'y', 'z'}
+        Receiver orientation.
+    component : {'real', 'imag'}
+        Real or imaginary component.
     """
 
-    def __init__(self, locations, orientation="x", component="real"):
+    def __init__(self, locations, orientation="x", component="real", **kwargs):
         self.projField = "bSecondary"
-        super(PointMagneticFluxDensitySecondary, self).__init__(
-            locations, orientation, component
-        )
+        super().__init__(locations, orientation, component, **kwargs)
 
 
 class PointMagneticField(BaseRx):
@@ -236,17 +325,61 @@ class PointMagneticField(BaseRx):
 
     Parameters
     ----------
-    locations : (n_loc, n_dim) np.ndarray
-        Receiver locations. 
-    orientation : str, default = 'z'
-        Receiver orientation. Must be one of: 'x', 'y' or 'z'
-    component : str, default = 'real'
-        Real or imaginary component. Choose one of: 'real' or 'imag'
+    locations : (n_loc, n_dim) numpy.ndarray
+        Receiver locations.
+    orientation : {'x', 'y', 'z'}
+        Receiver orientation.
+    component : {'real', 'imag', 'both', 'complex'}
+        Component of the receiver; i.e. 'real' or 'imag'. The options 'both' and
+        'complex' are only available for the 1D layered simulations.
+    data_type : {'field', 'ppm'}
+        Data type observed by the receiver, either field, or ppm secondary
+        of the total field.
+    use_source_receiver_offset : bool, optional
+        Whether to interpret the receiver locations as defining the source and receiver
+        offset.
+
+    Notes
+    -----
+    `data_type`, `use_source_receiver_offset`, and the options of `'both'` and
+    `'complex'` for component are only implemented for the `Simulation1DLayered`.
     """
 
-    def __init__(self, locations, orientation="x", component="real"):
+    def __init__(self, locations, orientation="x", component="real", **kwargs):
         self.projField = "h"
-        super(PointMagneticField, self).__init__(locations, orientation, component)
+        super().__init__(locations, orientation, component, **kwargs)
+
+
+class PointMagneticFieldSecondary(BaseRx):
+    """
+    Magnetic flux FDEM receiver
+
+
+    locations : (n_loc, n_dim) numpy.ndarray
+        Receiver locations.
+    orientation : {'x', 'y', 'z'}
+        Receiver orientation
+    component : {'real', 'imag', 'both', 'complex'}
+        Component of the receiver; i.e. 'real' or 'imag'. The options 'both' and
+        'complex' are only available for the 1D layered simulations.
+    data_type : {'field', 'ppm'}
+        Data type observed by the receiver, either field, or ppm secondary
+        of the total field.
+    use_source_receiver_offset : bool, optional
+        Whether to interpret the receiver locations as defining the source and receiver
+        offset.
+
+    Notes
+    -----
+    `data_type`, `use_source_receiver_offset`, and the options of `'both'` and
+    `'complex'` for component are only implemented for the `Simulation1DLayered`.
+    """
+
+    def __init__(self, locations, orientation="x", component="real", **kwargs):
+        self.projField = "hSecondary"
+        super().__init__(
+            locations, orientation=orientation, component=component, **kwargs
+        )
 
 
 class PointCurrentDensity(BaseRx):
@@ -254,14 +387,14 @@ class PointCurrentDensity(BaseRx):
 
     Parameters
     ----------
-    locations : (n_loc, n_dim) np.ndarray
-        Receiver locations. 
-    orientation : str, default = 'z'
-        Receiver orientation. Must be one of: 'x', 'y' or 'z'
-    component : str, default = 'real'
-        Real or imaginary component. Choose one of: 'real' or 'imag'
+    locations : (n_loc, n_dim) numpy.ndarray
+        Receiver locations.
+    orientation : {'x', 'y', 'z'}
+        Receiver orientation.
+    component : {'real', 'imag'}
+        Real or imaginary component.
     """
 
-    def __init__(self, locations, orientation="x", component="real"):
+    def __init__(self, locations, orientation="x", component="real", **kwargs):
         self.projField = "j"
-        super(PointCurrentDensity, self).__init__(locations, orientation, component)
+        super().__init__(locations, orientation, component, **kwargs)

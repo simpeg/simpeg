@@ -186,9 +186,9 @@ For example:
 .. code:: python
 
 
-    class Tikhonov(BaseComboRegularization):
+    class WeightedLeastSquares(BaseComboRegularization):
         """
-        L2 Tikhonov regularization with both smallness and smoothness (first order
+        L2 WeightedLeastSquares regularization with both smallness and smoothness (first order
         derivative) contributions.
 
         .. math::

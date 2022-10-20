@@ -99,7 +99,7 @@ def getStraightLineCurrentIntegral(hx, hy, hz, ax, ay, az, bx, by, bz):
     return sx, sy, sz
 
 
-def findlast(x):
+def _findlast(x):
     """Returns last element
 
     Parameters
@@ -126,13 +126,12 @@ def segmented_line_current_source_term(mesh, locs):
     ----------
     mesh : discretize.TreeMesh or discretize.TensorMesh
         The Mesh (3D) for the system.
-    locs : numpy.ndarray
+    locs : (n_points, 3) numpy.ndarray
         The array of locations of consecutive points along the polygonal path.
-        in a shape of (n_points, 3)
 
     Returns
     -------
-    (mesh.nE) numpy.ndarray
+    (mesh.n_edges) numpy.ndarray
         Contains the source term for all x, y, and z edges of the mesh.
 
     Notes
@@ -184,9 +183,9 @@ def _poly_line_source_tens(mesh, locs):
         ax = px[ip]
         ay = py[ip]
         az = pz[ip]
-        ix = findlast(np.logical_and(ax >= x[: nx - 1], ax <= x[1:nx]))
-        iy = findlast(np.logical_and(ay >= y[: ny - 1], ay <= y[1:ny]))
-        iz = findlast(np.logical_and(az >= z[: nz - 1], az <= z[1:nz]))
+        ix = _findlast(np.logical_and(ax >= x[: nx - 1], ax <= x[1:nx]))
+        iy = _findlast(np.logical_and(ay >= y[: ny - 1], ay <= y[1:ny]))
+        iz = _findlast(np.logical_and(az >= z[: nz - 1], az <= z[1:nz]))
 
         if (ix < 0) or (iy < 0) or (iz < 0):
             msg = "Polygon vertex (%.1f, %.1f, %.1f) is outside the mesh"
@@ -240,9 +239,9 @@ def _poly_line_source_tens(mesh, locs):
 
             # locate cell id
 
-            ix = findlast(np.logical_and(cx >= x[: nx - 1], cx <= x[1:nx]))
-            iy = findlast(np.logical_and(cy >= y[: ny - 1], cy <= y[1:ny]))
-            iz = findlast(np.logical_and(cz >= z[: nz - 1], cz <= z[1:nz]))
+            ix = _findlast(np.logical_and(cx >= x[: nx - 1], cx <= x[1:nx]))
+            iy = _findlast(np.logical_and(cy >= y[: ny - 1], cy <= y[1:ny]))
+            iz = _findlast(np.logical_and(cz >= z[: nz - 1], cz <= z[1:nz]))
 
             # local coordinates
             hxloc = hx[ix]
@@ -392,7 +391,7 @@ def line_through_faces(
 
     Returns
     -------
-    (n_faces) numpy.ndarray
+    (mesh.n_faces) numpy.ndarray
         Line current source on faces
     """
 
@@ -516,11 +515,7 @@ def line_through_faces(
 
 def getSourceTermLineCurrentPolygon(xorig, hx, hy, hz, px, py, pz):
     """getSourceTermLineCurrentPolygon is deprecated. Use :func:`segmented_line_current_source_term`"""
-    warnings.warn(
+    raise NotImplementedError(
         "getSourceTermLineCurrentPolygon has been deprecated and will be"
         "removed in SimPEG 0.17.0. Please use segmented_line_current_source_term.",
-        FutureWarning,
     )
-    mesh = discretize.TensorMesh((hx, hy, hz), x0=xorig)
-    locs = np.c_[px, py, pz]
-    return segmented_line_current_source_term(mesh, locs)

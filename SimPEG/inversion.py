@@ -4,19 +4,87 @@ import numpy as np
 
 from .optimization import Remember, IterationPrinters, StoppingCriteria
 from .directives import DirectiveList
-from .utils import setKwargs, timeIt
+from .utils import timeIt, Counter, validate_type, validate_string
 
 
 class BaseInversion(object):
     """Inversion Class"""
 
-    name = "BaseInversion"
+    def __init__(
+        self,
+        invProb,
+        directiveList=None,
+        counter=None,
+        debug=False,
+        name="BaseInversion",
+        **kwargs
+    ):
+        if directiveList is None:
+            directiveList = []
+        self.directiveList = directiveList
+        self.counter = counter
+        self.debug = debug
+        self.name = name
+        super().__init__(**kwargs)
+
+        self.invProb = invProb
+
+        self.opt = invProb.opt
+        self.opt.callback = self._optCallback
+
+        self.stoppers = [StoppingCriteria.iteration]
+
+        # Check if we have inserted printers into the optimization
+        if IterationPrinters.phi_d not in self.opt.printers:
+            self.opt.printers.insert(1, IterationPrinters.beta)
+            self.opt.printers.insert(2, IterationPrinters.phi_d)
+            self.opt.printers.insert(3, IterationPrinters.phi_m)
+
+    @property
+    def name(self):
+        """The name of the inversion.
+
+        Returns
+        -------
+        str
+        """
+        return self._name
+
+    @name.setter
+    def name(self, value):
+        self._name = validate_string("name", value)
 
     #: Print debugging information
-    debug = False
+    @property
+    def debug(self):
+        """Debugging flag.
+
+        Returns
+        -------
+        bool
+        """
+        return self._debug
+
+    @debug.setter
+    def debug(self, value):
+        self._debug = validate_type("debug", value, bool)
 
     #: Set this to a SimPEG.utils.Counter() if you want to count things
-    counter = None
+    @property
+    def counter(self):
+        """The counter.
+
+        Returns
+        -------
+        None or SimPEG.utils.Counter
+        """
+        return self._counter
+
+    @counter.setter
+    def counter(self, value):
+        if value is not None:
+            value = validate_type("counter", value, Counter, cast=False)
+        self._counter = value
 
     @property
     def directiveList(self):
@@ -33,25 +101,6 @@ class BaseInversion(object):
         value.validate()  # validate before setting
         self._directiveList = value
         self._directiveList.inversion = self
-
-    def __init__(self, invProb, directiveList=None, **kwargs):
-        if directiveList is None:
-            directiveList = []
-        self.directiveList = directiveList
-        setKwargs(self, **kwargs)
-
-        self.invProb = invProb
-
-        self.opt = invProb.opt
-        self.opt.callback = self._optCallback
-
-        self.stoppers = [StoppingCriteria.iteration]
-
-        # Check if we have inserted printers into the optimization
-        if IterationPrinters.phi_d not in self.opt.printers:
-            self.opt.printers.insert(1, IterationPrinters.beta)
-            self.opt.printers.insert(2, IterationPrinters.phi_d)
-            self.opt.printers.insert(3, IterationPrinters.phi_m)
 
     @timeIt
     def run(self, m0):

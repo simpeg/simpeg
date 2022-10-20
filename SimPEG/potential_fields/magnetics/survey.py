@@ -1,5 +1,7 @@
 import numpy as np
 from ...survey import BaseSurvey
+from ...utils.code_utils import validate_type
+from .sources import SourceField
 
 
 class Survey(BaseSurvey):
@@ -11,19 +13,15 @@ class Survey(BaseSurvey):
         A source object that defines the Earth's inducing field
     """
 
-    # source_field = properties.Instance(
-    #     "The inducing field source for the survey",
-    #     properties.Instance("A SimPEG source", SourceField),
-    #     default=SourceField
-    # )
-
     def __init__(self, source_field, **kwargs):
-        self.source_field = source_field
-        BaseSurvey.__init__(self, **kwargs)
+        self.source_field = validate_type(
+            "source_field", source_field, SourceField, cast=False
+        )
+        super().__init__(source_list=None, **kwargs)
 
     def eval(self, fields):
         """Compute the fields
-        
+
         Parameters
         ----------
         fields : numpy.ndarray

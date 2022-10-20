@@ -1,10 +1,10 @@
 import numpy as np
-# import properties
 
 from ....survey import BaseTimeSurvey
 from . import sources
 from . import receivers
 from .. import resistivity as dc
+from ....utils import validate_string
 
 
 class Survey(BaseTimeSurvey):
@@ -14,30 +14,27 @@ class Survey(BaseTimeSurvey):
     ----------
     source_list : list of SimPEG.electromagnetic.static.spectral_induced_polarization.sources.BaseSrc
         List of SimPEG spectral IP sources
-    survey_geometry : str, default="surface"
-        Survey geometry. Choose one of {"surface", "borehole", "general"}
-    survey_type : str, default="dipole-dipole"
-        Survey type. Choose one of {"dipole-dipole", "pole-dipole", "dipole-pole", "pole-pole"}
+    survey_geometry : {"surface", "borehole", "general"}
+        Survey geometry.
+    survey_type : {"dipole-dipole", "pole-dipole", "dipole-pole", "pole-pole"}
+        Survey type.
     """
 
     _n_pulse = 2
     _T = 8.0
 
-    # source_list = properties.List(
-    #     "A list of sources for the survey",
-    #     properties.Instance("A SimPEG source", sources.BaseSrc),
-    #     default=[],
-    # )
-
-    # def __init__(self, source_list=None, **kwargs):
-    #     super().__init__(source_list, **kwargs)
-    def __init__(self, source_list=None, survey_geometry="surface", survey_type="dipole-dipole", **kwargs):
+    def __init__(
+        self,
+        source_list=None,
+        survey_geometry="surface",
+        survey_type="dipole-dipole",
+        **kwargs
+    ):
         if source_list is None:
             raise AttributeError("Survey cannot be instantiated without sources")
         super(Survey, self).__init__(source_list, **kwargs)
         self.survey_geometry = survey_geometry
         self.survey_type = survey_type
-
 
     @property
     def n_pulse(self):
@@ -60,8 +57,6 @@ class Survey(BaseTimeSurvey):
             Period
         """
         return self._T
-    
-    
 
     @property
     def survey_geometry(self):
@@ -76,14 +71,9 @@ class Survey(BaseTimeSurvey):
 
     @survey_geometry.setter
     def survey_geometry(self, var):
-
-        if isinstance(var, str):
-            if var.lower() in ("surface", "borehole", "general"):
-                self._survey_geometry = var.lower() 
-            else:
-                raise ValueError(f"'survey_geometry' must be 'surface', 'borehole' or 'general'. Got {var}")
-        else:
-            raise TypeError(f"'survey_geometry' must be a str. Got {type(var)}")
+        self._survey_geometry = validate_string(
+            "survey_geometry", var, ("surface", "borehole", "general")
+        )
 
     @property
     def survey_type(self):
@@ -98,15 +88,11 @@ class Survey(BaseTimeSurvey):
 
     @survey_type.setter
     def survey_type(self, var):
-
-        if isinstance(var, str):
-            if var.lower() in ("dipole-dipole", "pole-dipole", "dipole-pole", "pole-pole"):
-                self._survey_type = var.lower() 
-            else:
-                raise ValueError(f"'survey_type' must be 'dipole-dipole', 'pole-dipole', 'dipole-pole', 'pole-pole'. Got {var}")
-        else:
-            raise TypeError(f"'survey_type' must be a str. Got {type(var)}")
-
+        self._survey_type = validate_string(
+            "survey_type",
+            var,
+            ("dipole-dipole", "pole-dipole", "dipole-pole", "pole-pole"),
+        )
 
     @property
     def n_locations(self):
@@ -117,7 +103,7 @@ class Survey(BaseTimeSurvey):
         int
             Number of data locations
         """
-        return int(self.nD / self.unique_times.size)
+        return int(self.nD // self.unique_times.size)
 
 
 def from_dc_to_sip_survey(survey_dc, times):
@@ -132,8 +118,8 @@ def from_dc_to_sip_survey(survey_dc, times):
 
     Returns
     -------
-    SimPEG.electromagnetics.static.induced_polarization.survey.Survey
-        An IP survey object
+    SimPEG.electromagnetics.static.spectral_induced_polarization.survey.Survey
+        An SIP survey object
     """
     source_list = survey_dc.source_list
 
