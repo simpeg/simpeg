@@ -245,7 +245,9 @@ def run(plotIt=True, saveFig=False, cleanup=True):
 
     # Regularization
     regMesh = discretize.TensorMesh([mesh.hz[mapping.maps[-1].indActive]])
-    reg = regularization.WeightedLeastSquares(regMesh, mapping=maps.IdentityMap(regMesh))
+    reg = regularization.WeightedLeastSquares(
+        regMesh, mapping=maps.IdentityMap(regMesh)
+    )
 
     # Optimization
     opt = optimization.InexactGaussNewton(maxIter=5)
@@ -288,7 +290,7 @@ def run(plotIt=True, saveFig=False, cleanup=True):
 
     # Note: we are Using theoretical VTEM waveform,
     # but effectively fits SkyTEM waveform
-    peakTime = 1.0000000e-02
+    peak_time = 1.0000000e-02
     a = 3.0
 
     dbdt_z = TDEM.Rx.PointMagneticFluxTimeDerivative(
@@ -302,13 +304,15 @@ def run(plotIt=True, saveFig=False, cleanup=True):
             location=srcLoc,
             radius=radius,
             orientation="z",
-            waveform=TDEM.Src.VTEMWaveform(off_time=off_time, peakTime=peakTime, a=3.0),
+            waveform=TDEM.Src.VTEMWaveform(
+                off_time=off_time, peak_time=peak_time, a=3.0
+            ),
         )
     ]
     # solve the problem at these times
     timeSteps = [
-        (peakTime / 5, 5),
-        ((off_time - peakTime) / 5, 5),
+        (peak_time / 5, 5),
+        ((off_time - peak_time) / 5, 5),
         (1e-5, 5),
         (5e-5, 5),
         (1e-4, 10),
@@ -359,7 +363,9 @@ def run(plotIt=True, saveFig=False, cleanup=True):
 
     # Regularization
     regMesh = discretize.TensorMesh([mesh.hz[mapping.maps[-1].indActive]])
-    reg = regularization.WeightedLeastSquares(regMesh, mapping=maps.IdentityMap(regMesh))
+    reg = regularization.WeightedLeastSquares(
+        regMesh, mapping=maps.IdentityMap(regMesh)
+    )
 
     # Optimization
     opt = optimization.InexactGaussNewton(maxIter=5)
