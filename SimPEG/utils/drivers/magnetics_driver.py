@@ -319,7 +319,13 @@ class MagneticsDriver_Inv(object):
             # Cycle through three components and permute from UBC to SimPEG
             for ii in range(3):
                 m = np.reshape(
-                    M[:, ii], (self.mesh.nCz, self.mesh.nCx, self.mesh.nCy), order="F"
+                    M[:, ii],
+                    (
+                        self.mesh.shape_cells[2],
+                        self.mesh.shape_cells[0],
+                        self.mesh.shape_cells[1],
+                    ),
+                    order="F",
                 )
 
                 m = m[::-1, :, :]

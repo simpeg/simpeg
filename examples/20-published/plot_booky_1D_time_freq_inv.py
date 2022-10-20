@@ -173,11 +173,11 @@ def run(plotIt=True, saveFig=False, cleanup=True):
     # below subsurface
 
     active = mesh.vectorCCz < 0.0
-    actMap = maps.InjectActiveCells(mesh, active, np.log(1e-8), nC=mesh.nCz)
+    actMap = maps.InjectActiveCells(mesh, active, np.log(1e-8), nC=mesh.shape_cells[2])
     mapping = maps.ExpMap(mesh) * maps.SurjectVertical1D(mesh) * actMap
     sig_half = 1e-1
     sig_air = 1e-8
-    sigma = np.ones(mesh.nCz) * sig_air
+    sigma = np.ones(mesh.shape_cells[2]) * sig_air
     sigma[active] = sig_half
 
     # Initial and reference model

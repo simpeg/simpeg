@@ -232,7 +232,7 @@ def analytic_halfspace_mag_dipole_comparison(
         mesh = discretize.TensorMesh([hx, hy, hz], "CCC")
 
     active = mesh.vectorCCz < 0.0
-    actMap = maps.InjectActiveCells(mesh, active, np.log(1e-8), nC=mesh.nCz)
+    actMap = maps.InjectActiveCells(mesh, active, np.log(1e-8), nC=mesh.shape_cells[2])
     mapping = maps.ExpMap(mesh) * maps.SurjectVertical1D(mesh) * actMap
 
     rx = getattr(tdem.receivers, "Point{}".format(rx_type[:-1]))(
@@ -271,7 +271,7 @@ def analytic_halfspace_mag_dipole_comparison(
     )
     sim.solver = Solver
 
-    sigma = np.ones(mesh.nCz) * 1e-8
+    sigma = np.ones(mesh.shape_cells[2]) * 1e-8
     sigma[active] = sig_half
     sigma = np.log(sigma[active])
 

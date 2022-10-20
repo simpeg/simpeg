@@ -89,7 +89,7 @@ def run(plotIt=True, cleanAfterRun=True):
     mstart = driver.m0[dynamic]
 
     # Get index of the center
-    midx = int(mesh.nCx / 2)
+    midx = int(mesh.shape_cells[0] / 2)
     # %%
     # Now that we have a model and a survey we can build the linear system ...
     # Create the forward model operator

@@ -62,8 +62,8 @@ def _lengthInCell(O, D, x, y, plotIt=False):
 def _lineintegral(M, Tx, Rx):
     O, D = Tx, Rx - Tx
     I, J, V = [], [], []
-    for i in range(M.nCx):
-        for j in range(M.nCy):
+    for i in range(M.shape_cells[0]):
+        for j in range(M.shape_cells[1]):
             x = M.vectorNx[[i, i + 1]]
             y = M.vectorNy[[j, j + 1]]
             v = _lengthInCell(O, D, x, y)

@@ -213,7 +213,9 @@ class RichardsTests2D(BaseRichardsTest):
     def get_conditions(self, mesh):
         bc = np.array([-61.5, -20.7])
         bc = np.r_[
-            np.zeros(mesh.nCy * 2), np.ones(mesh.nCx) * bc[0], np.ones(mesh.nCx) * bc[1]
+            np.zeros(mesh.shape_cells[1] * 2),
+            np.ones(mesh.shape_cells[0]) * bc[0],
+            np.ones(mesh.shape_cells[0]) * bc[1],
         ]
         h = np.zeros(mesh.nC) + bc[0]
         return bc, h
@@ -255,10 +257,10 @@ class RichardsTests3D(BaseRichardsTest):
     def get_conditions(self, mesh):
         bc = np.array([-61.5, -20.7])
         bc = np.r_[
-            np.zeros(mesh.nCy * mesh.nCz * 2),
-            np.zeros(mesh.nCx * mesh.nCz * 2),
-            np.ones(mesh.nCx * mesh.nCy) * bc[0],
-            np.ones(mesh.nCx * mesh.nCy) * bc[1],
+            np.zeros(mesh.shape_cells[1] * mesh.shape_cells[2] * 2),
+            np.zeros(mesh.shape_cells[0] * mesh.shape_cells[2] * 2),
+            np.ones(mesh.shape_cells[0] * mesh.shape_cells[1]) * bc[0],
+            np.ones(mesh.shape_cells[0] * mesh.shape_cells[1]) * bc[1],
         ]
         h = np.zeros(mesh.nC) + bc[0]
         return bc, h

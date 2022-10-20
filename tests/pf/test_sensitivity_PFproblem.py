@@ -212,7 +212,7 @@
 #
 #     #         return dudm
 #
-#     #     d_chi = 10.0*self.chi #np.random.rand(mesh.nCz)
+#     #     d_chi = 10.0*self.chi #np.random.rand(mesh.shape_cells[2])
 #     #     d_sph_ind = PF.MagAnalytics.spheremodel(self.prob.mesh, 0., 0., -50., 50)
 #     #     d_chi[d_sph_ind] = 0.1
 #
@@ -264,7 +264,7 @@
 #
 #     #         return dBdmv
 #
-#     #     d_chi = 10.0*self.chi #np.random.rand(mesh.nCz)
+#     #     d_chi = 10.0*self.chi #np.random.rand(mesh.shape_cells[2])
 #     #     d_sph_ind = PF.MagAnalytics.spheremodel(self.prob.mesh, 0., 0., -50., 50)
 #     #     d_chi[d_sph_ind] = 0.1
 #
@@ -278,7 +278,7 @@
 #     def test_Jvec(self):
 #         print(">> Derivative test for Jvec")
 #
-#         d_chi = 10.0*self.chi #np.random.rand(mesh.nCz)
+#         d_chi = 10.0*self.chi #np.random.rand(mesh.shape_cells[2])
 #         d_sph_ind = PF.MagAnalytics.spheremodel(self.prob.mesh, 0., 0., -50., 50)
 #         d_chi[d_sph_ind] = 0.1
 #

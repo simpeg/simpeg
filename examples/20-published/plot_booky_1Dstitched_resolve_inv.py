@@ -198,13 +198,15 @@ def run(runIt=False, plotIt=True, saveIt=False, saveFig=False, cleanup=True):
 
         # set up the mappings - we are inverting for 1D log conductivity
         # below the earth's surface.
-        actMap = maps.InjectActiveCells(mesh, active, np.log(1e-8), nC=mesh.nCz)
+        actMap = maps.InjectActiveCells(
+            mesh, active, np.log(1e-8), nC=mesh.shape_cells[2]
+        )
         mapping = maps.ExpMap(mesh) * maps.SurjectVertical1D(mesh) * actMap
 
         # build starting and reference model
         sig_half = 1e-1
         sig_air = 1e-8
-        sigma = np.ones(mesh.nCz) * sig_air
+        sigma = np.ones(mesh.shape_cells[2]) * sig_air
         sigma[active] = sig_half
         m0 = np.log(1e-1) * np.ones(active.sum())  # starting model
         mref = np.log(1e-1) * np.ones(active.sum())  # reference model

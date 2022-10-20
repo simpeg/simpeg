@@ -40,7 +40,7 @@ def halfSpaceProblemAnaDiff(
         mesh = discretize.TensorMesh([hx, hy, hz], "CCC")
 
     active = mesh.vectorCCz < 0.0
-    actMap = maps.InjectActiveCells(mesh, active, np.log(1e-8), nC=mesh.nCz)
+    actMap = maps.InjectActiveCells(mesh, active, np.log(1e-8), nC=mesh.shape_cells[2])
     mapping = maps.ExpMap(mesh) * maps.SurjectVertical1D(mesh) * actMap
 
     time_steps = [(1e-3, 5), (1e-4, 5), (5e-5, 10), (5e-5, 10), (1e-4, 10)]
@@ -84,7 +84,7 @@ def halfSpaceProblemAnaDiff(
     )
     prb.solver = Solver
 
-    sigma = np.ones(mesh.nCz) * 1e-8
+    sigma = np.ones(mesh.shape_cells[2]) * 1e-8
     sigma[active] = sig_half
     sigma = np.log(sigma[active])
 

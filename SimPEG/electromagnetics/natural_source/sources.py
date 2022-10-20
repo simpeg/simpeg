@@ -84,7 +84,7 @@ class PlanewaveXYPrimary(Planewave):
                     volume_average(mesh1d, mesh3d, np.log(self._sigma1d))
                 )
             else:
-                self._sigma1d = simulation.mesh.r(
+                self._sigma1d = simulation.mesh.reshape(
                     simulation._sigmaPrimary, "CC", "CC", "M"
                 )[:]
                 self._sigma_p = None

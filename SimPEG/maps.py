@@ -2875,11 +2875,11 @@ class Surject2Dto3D(IdentityMap):
         The number of cells in the
         last dimension of the mesh."""
         if self.normal == "z":
-            return self.mesh.nCx * self.mesh.nCy
+            return self.mesh.shape_cells[0] * self.mesh.shape_cells[1]
         elif self.normal == "y":
-            return self.mesh.nCx * self.mesh.nCz
+            return self.mesh.shape_cells[0] * self.mesh.shape_cells[2]
         elif self.normal == "x":
-            return self.mesh.nCy * self.mesh.nCz
+            return self.mesh.shape_cells[1] * self.mesh.shape_cells[2]
 
     def _transform(self, m):
 
@@ -2887,19 +2887,19 @@ class Surject2Dto3D(IdentityMap):
         if self.normal == "z":
             return mkvc(
                 m.reshape(self.mesh.vnC[:2], order="F")[:, :, np.newaxis].repeat(
-                    self.mesh.nCz, axis=2
+                    self.mesh.shape_cells[2], axis=2
                 )
             )
         elif self.normal == "y":
             return mkvc(
                 m.reshape(self.mesh.vnC[::2], order="F")[:, np.newaxis, :].repeat(
-                    self.mesh.nCy, axis=1
+                    self.mesh.shape_cells[1], axis=1
                 )
             )
         elif self.normal == "x":
             return mkvc(
                 m.reshape(self.mesh.vnC[1:], order="F")[np.newaxis, :, :].repeat(
-                    self.mesh.nCx, axis=0
+                    self.mesh.shape_cells[0], axis=0
                 )
             )
 

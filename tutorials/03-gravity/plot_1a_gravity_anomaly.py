@@ -151,7 +151,7 @@ mesh.plotSlice(
     plotting_map * model,
     normal="Y",
     ax=ax1,
-    ind=int(mesh.nCy / 2),
+    ind=int(mesh.shape_cells[1] / 2),
     grid=True,
     clim=(np.min(model), np.max(model)),
     pcolorOpts={"cmap": "viridis"},

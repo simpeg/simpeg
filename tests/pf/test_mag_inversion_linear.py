@@ -35,8 +35,8 @@ class MagInvLinProblemTest(unittest.TestCase):
         self.mesh = discretize.TensorMesh([hxind, hyind, hzind], "CCC")
 
         # Get index of the center
-        midx = int(self.mesh.nCx / 2)
-        midy = int(self.mesh.nCy / 2)
+        midx = int(self.mesh.shape_cells[0] / 2)
+        midy = int(self.mesh.shape_cells[1] / 2)
 
         # Lets create a simple Gaussian topo and set the active cells
         [xx, yy] = np.meshgrid(self.mesh.vectorNx, self.mesh.vectorNy)
@@ -66,7 +66,7 @@ class MagInvLinProblemTest(unittest.TestCase):
 
         # We can now create a susceptibility model and generate data
         # Here a simple block in half-space
-        model = np.zeros((self.mesh.nCx, self.mesh.nCy, self.mesh.nCz))
+        model = np.zeros(mesh.shape_cells)
         model[(midx - 2) : (midx + 2), (midy - 2) : (midy + 2), -6:-2] = 0.02
         model = utils.mkvc(model)
         self.model = model[actv]
@@ -124,12 +124,12 @@ class MagInvLinProblemTest(unittest.TestCase):
 
         # plt.figure()
         # ax = plt.subplot(1, 2, 1)
-        # midx = int(self.mesh.nCx/2)
+        # midx = int(self.mesh.shape_cells[0]/2)
         # self.mesh.plotSlice(self.actvMap*mrec, ax=ax, normal='Y', ind=midx,
         #                grid=True, clim=(0, 0.02))
 
         # ax = plt.subplot(1, 2, 2)
-        # midx = int(self.mesh.nCx/2)
+        # midx = int(self.mesh.shape_cells[0]/2)
         # self.mesh.plotSlice(self.actvMap*self.model, ax=ax, normal='Y', ind=midx,
         #                grid=True, clim=(0, 0.02))
         # plt.show()

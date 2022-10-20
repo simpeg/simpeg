@@ -55,12 +55,12 @@ def run(plotIt=True, saveFig=False):
     sig_half = 1e-2  # Half-space conductivity
     sig_air = 1e-8  # Air conductivity
     sig_layer = 5e-2  # Layer conductivity
-    sigma = np.ones(mesh.nCz) * sig_air
+    sigma = np.ones(mesh.shape_cells[2]) * sig_air
     sigma[active] = sig_half
     sigma[layer] = sig_layer
 
     # Mapping
-    actMap = maps.InjectActiveCells(mesh, active, np.log(1e-8), nC=mesh.nCz)
+    actMap = maps.InjectActiveCells(mesh, active, np.log(1e-8), nC=mesh.shape_cells[2])
     mapping = maps.ExpMap(mesh) * maps.SurjectVertical1D(mesh) * actMap
     mtrue = np.log(sigma[active])
 

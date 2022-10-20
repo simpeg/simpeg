@@ -260,7 +260,7 @@ class MapTests(unittest.TestCase):
     def test_activeCells(self):
         M = discretize.TensorMesh([2, 4], "0C")
         for actMap in [
-            maps.InjectActiveCells(M, M.vectorCCy <= 0, 10, nC=M.nCy),
+            maps.InjectActiveCells(M, M.vectorCCy <= 0, 10, nC=M.shape_cells[1]),
         ]:
 
             vertMap = maps.SurjectVertical1D(M)
@@ -277,7 +277,7 @@ class MapTests(unittest.TestCase):
         M = discretize.TensorMesh([2, 4], "0C")
         expMap = maps.ExpMap(M)
         vertMap = maps.SurjectVertical1D(M)
-        actMap = maps.InjectActiveCells(M, M.vectorCCy <= 0, 10, nC=M.nCy)
+        actMap = maps.InjectActiveCells(M, M.vectorCCy <= 0, 10, nC=M.shape_cells[1])
         m = np.r_[1.0, 2.0]
         t_true = np.exp(np.r_[1, 1, 2, 2, 10, 10, 10, 10.0])
 
@@ -547,18 +547,18 @@ class TestWires(unittest.TestCase):
         mesh = discretize.TensorMesh([10, 10, 10])
 
         wires = maps.Wires(
-            ("sigma", mesh.nCz),
+            ("sigma", mesh.shape_cells[2]),
             ("mu_casing", 1),
         )
 
-        model = np.arange(mesh.nCz + 1)
+        model = np.arange(mesh.shape_cells[2] + 1)
 
         assert isinstance(wires.sigma, maps.Projection)
-        assert wires.nP == mesh.nCz + 1
+        assert wires.nP == mesh.shape_cells[2] + 1
 
         named_model = wires * model
 
-        named_model.sigma == model[: mesh.nCz]
+        named_model.sigma == model[: mesh.shape_cells[2]]
         assert named_model.mu_casing == 10
 
 

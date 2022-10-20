@@ -36,7 +36,9 @@ def get_mesh():
 
 def get_mapping(mesh):
     active = mesh.vectorCCz < 0.0
-    activeMap = maps.InjectActiveCells(mesh, active, np.log(1e-8), nC=mesh.nCz)
+    activeMap = maps.InjectActiveCells(
+        mesh, active, np.log(1e-8), nC=mesh.shape_cells[2]
+    )
     return maps.ExpMap(mesh) * maps.SurjectVertical1D(mesh) * activeMap
 
 

@@ -38,8 +38,8 @@ def run(plotIt=True):
     mesh = TensorMesh([hxind, hyind, hzind], "CCC")
 
     # Get index of the center
-    midx = int(mesh.nCx / 2)
-    midy = int(mesh.nCy / 2)
+    midx = int(mesh.shape_cells[0] / 2)
+    midy = int(mesh.shape_cells[1] / 2)
 
     # Lets create a simple Gaussian topo and set the active cells
     [xx, yy] = np.meshgrid(mesh.vectorNx, mesh.vectorNy)
@@ -69,7 +69,7 @@ def run(plotIt=True):
 
     # We can now create a density model and generate data
     # Here a simple block in half-space
-    model = np.zeros((mesh.nCx, mesh.nCy, mesh.nCz))
+    model = np.zeros(mesh.shape_cells)
     model[(midx - 5) : (midx - 1), (midy - 2) : (midy + 2), -10:-6] = 0.75
     model[(midx + 1) : (midx + 5), (midy - 2) : (midy + 2), -10:-6] = -0.75
     model = utils.mkvc(model)
