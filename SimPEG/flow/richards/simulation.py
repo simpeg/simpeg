@@ -261,7 +261,7 @@ class SimulationNDCellCentered(BaseTimeSimulation):
 
         DIV = self.mesh.face_divergence
         GRAD = self.mesh.cell_gradient
-        BC = self.mesh.cellGradBC
+        BC = self.mesh.cell_gradient_BC
         AV = self.mesh.aveF2CC.T
         Dz = self.Dz
 
@@ -311,7 +311,7 @@ class SimulationNDCellCentered(BaseTimeSimulation):
 
         DIV = self.mesh.face_divergence
         GRAD = self.mesh.cell_gradient
-        BC = self.mesh.cellGradBC
+        BC = self.mesh.cell_gradient_BC
         AV = self.mesh.aveF2CC.T
         Dz = self.Dz
 
