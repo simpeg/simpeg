@@ -133,7 +133,7 @@ curl operator in `test_operators.py <https://github.com/simpeg/discretize/blob/m
 
             sol_curl2d = call2(sol, self.M.gridCC)
             Ec = cartE2(self.M, ex, ey)
-            sol_ana = self.M.edgeCurl*self.M.project_face_vector(Ec)
+            sol_ana = self.M.edge_curl*self.M.project_face_vector(Ec)
             err = np.linalg.norm((sol_curl2d-sol_ana), np.inf)
 
             return err

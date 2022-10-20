@@ -1219,7 +1219,7 @@ class MagDipole(BaseTDEMSrc):
     def _rhs_magnetostatic(self, simulation):
         if getattr(self, "_hp", None) is None:
             if simulation._formulation == "EB":
-                bp = simulation.mesh.edgeCurl * self._aSrc(simulation)
+                bp = simulation.mesh.edge_curl * self._aSrc(simulation)
                 self._MfMuip = simulation.mesh.getFaceInnerProduct(1.0 / self.mu)
                 self._MfMuipI = simulation.mesh.getFaceInnerProduct(
                     1.0 / self.mu, invMat=True
@@ -1255,10 +1255,10 @@ class MagDipole(BaseTDEMSrc):
 
     def _bSrc(self, simulation):
         if simulation._formulation == "EB":
-            C = simulation.mesh.edgeCurl
+            C = simulation.mesh.edge_curl
 
         elif simulation._formulation == "HJ":
-            C = simulation.mesh.edgeCurl.T
+            C = simulation.mesh.edge_curl.T
 
         return C * self._aSrc(simulation)
 
@@ -1352,7 +1352,7 @@ class MagDipole(BaseTDEMSrc):
         numpy.ndarray
             Electric source term on mesh.
         """
-        C = simulation.mesh.edgeCurl
+        C = simulation.mesh.edge_curl
         b = self._bSrc(simulation)
 
         if simulation._formulation == "EB":
@@ -1834,7 +1834,7 @@ class LineCurrent(BaseTDEMSrc):
         vol = simulation.mesh.vol
         Div = sdiag(vol) * simulation.mesh.face_divergence
         return (
-            simulation.mesh.edgeCurl * simulation.MeMuI * simulation.mesh.edgeCurl.T
+            simulation.mesh.edge_curl * simulation.MeMuI * simulation.mesh.edge_curl.T
             - Div.T
             * sdiag(1.0 / vol * simulation.mui)
             * Div  # stabalizing term. See (Chen, Haber & Oldenburg 2002)
@@ -1928,7 +1928,7 @@ class LineCurrent(BaseTDEMSrc):
             raise NotImplementedError
 
         a = self._aInitial(simulation)
-        return simulation.mesh.edgeCurl.T * a
+        return simulation.mesh.edge_curl.T * a
 
     def bInitialDeriv(self, simulation, v, adjoint=False, f=None):
         """Compute derivative of intitial magnetic flux density times a vector
@@ -1954,9 +1954,9 @@ class LineCurrent(BaseTDEMSrc):
 
         if adjoint is True:
             return self._aInitialDeriv(
-                simulation, simulation.mesh.edgeCurl * v, adjoint=True
+                simulation, simulation.mesh.edge_curl * v, adjoint=True
             )
-        return simulation.mesh.edgeCurl.T * self._aInitialDeriv(simulation, v)
+        return simulation.mesh.edge_curl.T * self._aInitialDeriv(simulation, v)
 
     def s_m(self, simulation, time):
         """Returns :class:`Zero` for ``LineCurrent``"""
@@ -2132,7 +2132,7 @@ class RawVec_Grounded(LineCurrent):
     #     vol = simulation.mesh.vol
 
     #     return (
-    #         simulation.mesh.edgeCurl * simulation.MeMuI * simulation.mesh.edgeCurl.T
+    #         simulation.mesh.edge_curl * simulation.MeMuI * simulation.mesh.edge_curl.T
     #         - simulation.mesh.face_divergence.T
     #         * sdiag(1.0 / vol * simulation.mui)
     #         * simulation.mesh.face_divergence  # stabalizing term. See (Chen, Haber & Oldenburg 2002)
@@ -2185,7 +2185,7 @@ class RawVec_Grounded(LineCurrent):
     #         return Zero()
 
     #     a = self._aInitial(simulation)
-    #     return simulation.mesh.edgeCurl.T * a
+    #     return simulation.mesh.edge_curl.T * a
 
     # def bInitialDeriv(self, simulation, v, adjoint=False, f=None):
     #     if simulation._fieldType not in ["j", "h"]:
@@ -2195,8 +2195,8 @@ class RawVec_Grounded(LineCurrent):
     #         return Zero()
 
     #     if adjoint is True:
-    #         return self._aInitialDeriv(simulation, simulation.mesh.edgeCurl * v, adjoint=True)
-    #     return simulation.mesh.edgeCurl.T * self._aInitialDeriv(simulation, v)
+    #         return self._aInitialDeriv(simulation, simulation.mesh.edge_curl * v, adjoint=True)
+    #     return simulation.mesh.edge_curl.T * self._aInitialDeriv(simulation, v)
 
     # def s_e(self, simulation, time):
     #     # if simulation._fieldType == 'h':

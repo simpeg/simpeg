@@ -496,13 +496,13 @@ class MagDipole(BaseFDEMSrc):
             gridX = simulation.mesh.gridEx
             gridY = simulation.mesh.gridEy
             gridZ = simulation.mesh.gridEz
-            C = simulation.mesh.edgeCurl
+            C = simulation.mesh.edge_curl
 
         elif formulation == "HJ":
             gridX = simulation.mesh.gridFx
             gridY = simulation.mesh.gridFy
             gridZ = simulation.mesh.gridFz
-            C = simulation.mesh.edgeCurl.T
+            C = simulation.mesh.edge_curl.T
 
         if simulation.mesh._meshType == "CYL":
             coordinates = "cylindrical"
@@ -597,11 +597,11 @@ class MagDipole(BaseFDEMSrc):
             if formulation == "EB":
                 mui_s = simulation.mui - 1.0 / self.mu
                 MMui_s = simulation.mesh.getFaceInnerProduct(mui_s)
-                C = simulation.mesh.edgeCurl
+                C = simulation.mesh.edge_curl
             elif formulation == "HJ":
                 mu_s = simulation.mu - self.mu
                 MMui_s = simulation.mesh.getEdgeInnerProduct(mu_s, invMat=True)
-                C = simulation.mesh.edgeCurl.T
+                C = simulation.mesh.edge_curl.T
 
             return -C.T * (MMui_s * self.bPrimary(simulation))
 
@@ -619,7 +619,7 @@ class MagDipole(BaseFDEMSrc):
                     )
                     * simulation.muiDeriv
                 )
-                C = simulation.mesh.edgeCurl
+                C = simulation.mesh.edge_curl
 
                 if adjoint:
                     return -MMui_sDeriv.T * (C * v)
@@ -631,7 +631,7 @@ class MagDipole(BaseFDEMSrc):
                 # raise NotImplementedError
                 mu_s = simulation.mu - self.mu
                 MMui_s = simulation.mesh.getEdgeInnerProduct(mu_s, invMat=True)
-                C = simulation.mesh.edgeCurl.T
+                C = simulation.mesh.edge_curl.T
 
                 return -C.T * (MMui_s * self.bPrimary(simulation))
 

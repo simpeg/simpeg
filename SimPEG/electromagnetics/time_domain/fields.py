@@ -135,7 +135,7 @@ class Fields3DMagneticFluxDensity(FieldsTDEM):
         self._MeSigmaI = self.simulation.MeSigmaI
         self._MeSigmaDeriv = self.simulation.MeSigmaDeriv
         self._MeSigmaIDeriv = self.simulation.MeSigmaIDeriv
-        self._edgeCurl = self.simulation.mesh.edgeCurl
+        self._edgeCurl = self.simulation.mesh.edge_curl
         self._MfMui = self.simulation.MfMui
         self._timeMesh = self.simulation.time_mesh
 
@@ -292,7 +292,7 @@ class Fields3DElectricField(FieldsTDEM):
         self._MeSigmaI = self.simulation.MeSigmaI
         self._MeSigmaDeriv = self.simulation.MeSigmaDeriv
         self._MeSigmaIDeriv = self.simulation.MeSigmaIDeriv
-        self._edgeCurl = self.simulation.mesh.edgeCurl
+        self._edgeCurl = self.simulation.mesh.edge_curl
         self._MfMui = self.simulation.MfMui
 
     def _TLoc(self, fieldType):
@@ -408,7 +408,7 @@ class Fields3DMagneticField(FieldsTDEM):
 
     def startup(self):
         self._times = self.simulation.times
-        self._edgeCurl = self.simulation.mesh.edgeCurl
+        self._edgeCurl = self.simulation.mesh.edge_curl
         self._MeMuI = self.simulation.MeMuI
         self._MeMu = self.simulation.MeMu
         self._MfRho = self.simulation.MfRho
@@ -575,7 +575,7 @@ class Fields3DCurrentDensity(FieldsTDEM):
 
     def startup(self):
         self._times = self.simulation.times
-        self._edgeCurl = self.simulation.mesh.edgeCurl
+        self._edgeCurl = self.simulation.mesh.edge_curl
         self._MeMuI = self.simulation.MeMuI
         self._MfRho = self.simulation.MfRho
         self._MfRhoDeriv = self.simulation.MfRhoDeriv

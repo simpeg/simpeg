@@ -532,7 +532,7 @@ class Fields3DPrimarySecondary(Fields):
         :rtype: numpy.ndarray
         :return: secondary magnetic flux as defined by the sources
         """
-        C = self.mesh.edgeCurl
+        C = self.mesh.edge_curl
         b = C * e_pxSolution
         for i, src in enumerate(source_list):
             b[:, i] *= -1.0 / (1j * omega(src.frequency))
@@ -547,7 +547,7 @@ class Fields3DPrimarySecondary(Fields):
         :rtype: numpy.ndarray
         :return: secondary magnetic flux as defined by the sources
         """
-        C = self.mesh.edgeCurl
+        C = self.mesh.edge_curl
         b = C * e_pySolution
         for i, src in enumerate(source_list):
             b[:, i] *= -1.0 / (1j * omega(src.frequency))
@@ -697,7 +697,7 @@ class Fields3DPrimarySecondary(Fields):
         """
         # Primary does not depend on u
         C = sp.hstack(
-            (self.mesh.edgeCurl, spzeros(self.mesh.nF, self.mesh.nE))
+            (self.mesh.edge_curl, spzeros(self.mesh.nF, self.mesh.nE))
         )  # This works for adjoint = None
         if adjoint:
             return -1.0 / (1j * omega(src.frequency)) * (C.T * du_dm_v)
@@ -714,7 +714,7 @@ class Fields3DPrimarySecondary(Fields):
         """
         # Primary does not depend on u
         C = sp.hstack(
-            (spzeros(self.mesh.nF, self.mesh.nE), self.mesh.edgeCurl)
+            (spzeros(self.mesh.nF, self.mesh.nE), self.mesh.edge_curl)
         )  # This works for adjoint = None
         if adjoint:
             return -1.0 / (1j * omega(src.frequency)) * (C.T * du_dm_v)

@@ -318,7 +318,7 @@ class Fields3DElectricField(FieldsFDEM):
     }
 
     def startup(self):
-        self._edgeCurl = self.simulation.mesh.edgeCurl
+        self._edgeCurl = self.simulation.mesh.edge_curl
         self._aveE2CCV = self.simulation.mesh.aveE2CCV
         self._aveF2CCV = self.simulation.mesh.aveF2CCV
         self._nC = self.simulation.mesh.nC
@@ -646,7 +646,7 @@ class Fields3DMagneticFluxDensity(FieldsFDEM):
     }
 
     def startup(self):
-        self._edgeCurl = self.simulation.mesh.edgeCurl
+        self._edgeCurl = self.simulation.mesh.edge_curl
         self._MeSigma = self.simulation.MeSigma
         self._MeSigmaI = self.simulation.MeSigmaI
         self._MfMui = self.simulation.MfMui
@@ -967,7 +967,7 @@ class Fields3DCurrentDensity(FieldsFDEM):
     }
 
     def startup(self):
-        self._edgeCurl = self.simulation.mesh.edgeCurl
+        self._edgeCurl = self.simulation.mesh.edge_curl
         self._MeMu = self.simulation.MeMu
         self._MeMuI = self.simulation.MeMuI
         self._MeMuIDeriv = self.simulation.MeMuIDeriv
@@ -1335,7 +1335,7 @@ class Fields3DMagneticField(FieldsFDEM):
     }
 
     def startup(self):
-        self._edgeCurl = self.simulation.mesh.edgeCurl
+        self._edgeCurl = self.simulation.mesh.edge_curl
         self._MeMu = self.simulation.MeMu
         self._MeMuDeriv = self.simulation.MeMuDeriv
         # self._MeMuI = self.simulation.MeMuI
