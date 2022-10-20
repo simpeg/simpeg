@@ -102,7 +102,7 @@ class DCUtilsTests_halfspace(unittest.TestCase):
             io_utils.write_dcip3d_ubc(
                 surveyfile, dobs, "volt", "dobs", format_type="GENERAL"
             )
-            data2 = utils.read_dcip3d_ubc(surveyfile)
+            data2 = io_utils.read_dcip3d_ubc(surveyfile, "volt")
             self.assertTrue(np.allclose(mkvc(data2), mkvc(dobs)))
 
             if self.plotIt:
@@ -161,7 +161,7 @@ class DCUtilsTests_fullspace(unittest.TestCase):
         )
 
         survey_file = os.path.sep.join([self.basePath, "dPred_fullspace.txt"])
-        data = utils.read_dcip3d_ubc(survey_file)
+        data = io_utils.read_dcip3d_ubc(survey_file, "volt")
         self.survey = data.survey
         self.data = data
 

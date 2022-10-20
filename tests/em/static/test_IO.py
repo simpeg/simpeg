@@ -66,8 +66,8 @@ class TestsIO(unittest.TestCase):
         if self.plotIt:
             mesh.plotImage(actind)
             plt.plot(
-                self.survey.electrode_locations[:, 0],
-                self.survey.electrode_locations[:, 1],
+                self.survey.unique_electrode_locations[:, 0],
+                self.survey.unique_electrode_locations[:, 1],
                 "k.",
             )
             plt.show()
