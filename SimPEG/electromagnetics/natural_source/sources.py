@@ -66,8 +66,8 @@ class PlanewaveXYPrimary(Planewave):
                 mesh3d = simulation.mesh
                 x0 = mesh3d.x0
                 hs = [
-                    [mesh3d.vectorNx[-1] - x0[0]],
-                    [mesh3d.vectorNy[-1] - x0[1]],
+                    [mesh3d.nodes_x[-1] - x0[0]],
+                    [mesh3d.nodes_y[-1] - x0[1]],
                     mesh3d.h[-1],
                 ]
                 mesh1d = discretize.TensorMesh(hs, x0=x0)

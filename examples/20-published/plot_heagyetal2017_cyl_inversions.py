@@ -180,9 +180,9 @@ def run(plotIt=True, saveFig=False):
         # Plot the model
         # z_true = np.repeat(mesh.vectorCCz[active][1:], 2, axis=0)
         # z_true = np.r_[mesh.vectorCCz[active][0], z_true, mesh.vectorCCz[active][-1]]
-        activeN = mesh.vectorNz <= 0.0 + cs / 2.0
-        z_true = np.repeat(mesh.vectorNz[activeN][1:-1], 2, axis=0)
-        z_true = np.r_[mesh.vectorNz[activeN][0], z_true, mesh.vectorNz[activeN][-1]]
+        activeN = mesh.nodes_z <= 0.0 + cs / 2.0
+        z_true = np.repeat(mesh.nodes_z[activeN][1:-1], 2, axis=0)
+        z_true = np.r_[mesh.nodes_z[activeN][0], z_true, mesh.nodes_z[activeN][-1]]
         sigma_true = np.repeat(sigma[active], 2, axis=0)
 
         ax0.semilogx(sigma_true, z_true, "k-", lw=2, label="True")

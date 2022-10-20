@@ -25,7 +25,7 @@ def get1DEfields(m1d, sigma, freq, sourceAmp=1.0):
     Aio = A[1:-1, [0, -1]]
 
     # Set the boundary conditions
-    Ed, Eu, Hd, Hu = getEHfields(m1d, sigma, freq, m1d.vectorNx)
+    Ed, Eu, Hd, Hu = getEHfields(m1d, sigma, freq, m1d.nodes_x)
     Etot = Ed + Eu
     if sourceAmp is not None:
         Etot = (

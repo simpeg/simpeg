@@ -54,7 +54,7 @@ def make_example_mesh():
 def refine_topography(mesh):
 
     # Define topography and refine
-    [xx, yy] = np.meshgrid(mesh.vectorNx, mesh.vectorNy)
+    [xx, yy] = np.meshgrid(mesh.nodes_x, mesh.nodes_y)
     zz = -3 * np.exp((xx ** 2 + yy ** 2) / 60 ** 2) + 45.0
     topo = np.c_[mkvc(xx), mkvc(yy), mkvc(zz)]
 
@@ -97,7 +97,7 @@ block_value = 70.0
 
 # Define surface topography as an (N, 3) np.array. You could also load a file
 # containing the xyz points
-[xx, yy] = np.meshgrid(mesh.vectorNx, mesh.vectorNy)
+[xx, yy] = np.meshgrid(mesh.nodes_x, mesh.nodes_y)
 zz = -3 * np.exp((xx ** 2 + yy ** 2) / 60 ** 2) + 45.0
 topo = np.c_[mkvc(xx), mkvc(yy), mkvc(zz)]
 
@@ -152,7 +152,7 @@ dyke_value = np.log(1.0 / 40.0)
 block_value = np.log(1.0 / 70.0)
 
 # Define surface topography
-[xx, yy] = np.meshgrid(mesh.vectorNx, mesh.vectorNy)
+[xx, yy] = np.meshgrid(mesh.nodes_x, mesh.nodes_y)
 zz = -3 * np.exp((xx ** 2 + yy ** 2) / 60 ** 2) + 45.0
 topo = np.c_[mkvc(xx), mkvc(yy), mkvc(zz)]
 
@@ -211,7 +211,7 @@ dyke_value = 40.0
 sphere_value = 70.0
 
 # Define surface topography
-[xx, yy] = np.meshgrid(mesh.vectorNx, mesh.vectorNy)
+[xx, yy] = np.meshgrid(mesh.nodes_x, mesh.nodes_y)
 zz = -3 * np.exp((xx ** 2 + yy ** 2) / 60 ** 2) + 45.0
 topo = np.c_[mkvc(xx), mkvc(yy), mkvc(zz)]
 
@@ -269,7 +269,7 @@ xc, yc, zc = -20.0, 0.0, -20.0  # center of block
 dx, dy, dz = 25.0, 40.0, 30.0  # dimensions in x,y,z
 
 # Define surface topography
-[xx, yy] = np.meshgrid(mesh.vectorNx, mesh.vectorNy)
+[xx, yy] = np.meshgrid(mesh.nodes_x, mesh.nodes_y)
 zz = -3 * np.exp((xx ** 2 + yy ** 2) / 60 ** 2) + 45.0
 topo = np.c_[mkvc(xx), mkvc(yy), mkvc(zz)]
 
@@ -323,7 +323,7 @@ background_mu_value = 1.0
 sphere_mu_value = 1.25
 
 # Define surface topography
-[xx, yy] = np.meshgrid(mesh.vectorNx, mesh.vectorNy)
+[xx, yy] = np.meshgrid(mesh.nodes_x, mesh.nodes_y)
 zz = -3 * np.exp((xx ** 2 + yy ** 2) / 60 ** 2) + 45.0
 topo = np.c_[mkvc(xx), mkvc(yy), mkvc(zz)]
 

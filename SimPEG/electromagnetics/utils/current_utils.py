@@ -301,7 +301,7 @@ def _poly_line_source_tree(mesh, locs):
     dim = mesh.dim
     for ip in range(nP + 1):
         A = points[0]
-        xF = np.array([mesh.vectorNx[-1], mesh.vectorNy[-1], mesh.vectorNz[-1]])
+        xF = np.array([mesh.nodes_x[-1], mesh.nodes_y[-1], mesh.nodes_z[-1]])
         if np.any(A < x0) or np.any(A > xF):
             msg = "Polygon vertex ({.1f}, {.1f}, {.1f}) is outside the mesh".format(*A)
             raise ValueError(msg)

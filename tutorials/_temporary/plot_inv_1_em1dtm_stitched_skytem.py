@@ -448,7 +448,7 @@ for ii, mod in enumerate(models_list):
         #        clim=(np.log10(0.1), np.log10(1)),
         pcolorOpts={"cmap": "viridis"},
     )
-    ax1.set_ylim(mesh_plotting.vectorNy.min(), mesh_plotting.vectorNy.max())
+    ax1.set_ylim(mesh_plotting.nodes_y.min(), mesh_plotting.nodes_y.max())
 
     ax1.set_title("Conductivity Model")
     ax1.set_xlabel("x (m)")

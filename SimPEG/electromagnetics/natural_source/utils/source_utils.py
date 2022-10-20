@@ -91,10 +91,10 @@ def analytic1DModelSource(mesh, freq, sigma_1d):
         mesh1d = discretize.TensorMesh([mesh.h[2]], np.array([mesh.x0[2]]))
 
     # # Note: Everything is using e^iwt
-    Eu, Ed, _, _ = getEHfields(mesh1d, sigma_1d, freq, mesh.vectorNz)
+    Eu, Ed, _, _ = getEHfields(mesh1d, sigma_1d, freq, mesh.nodes_z)
     # Make the fields into a dictionary of location and the fields
     e0_1d = Eu + Ed
-    E1dFieldDict = dict(zip(mesh.vectorNz, e0_1d))
+    E1dFieldDict = dict(zip(mesh.nodes_z, e0_1d))
     if mesh.dim == 1:
         eBG_px = mkvc(e0_1d, 2)
         eBG_py = -mkvc(

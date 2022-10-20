@@ -200,8 +200,8 @@ class DC_N_MultipoleFullspaceTests(unittest.TestCase):
         sigma = np.ones(mesh.nC) * 1e-2
 
         # Set up survey parameters for numeric solution
-        x = mesh.vectorNx[(mesh.vectorNx > -75.0) & (mesh.vectorNx < 75.0)]
-        y = mesh.vectorNy[(mesh.vectorNy > -75.0) & (mesh.vectorNy < 75.0)]
+        x = mesh.nodes_x[(mesh.nodes_x > -75.0) & (mesh.nodes_x < 75.0)]
+        y = mesh.nodes_y[(mesh.nodes_y > -75.0) & (mesh.nodes_y < 75.0)]
 
         Aloc = np.r_[2.25, 0.0, 0.0]
         Bloc = np.r_[1.25, 0.0, 0.0]

@@ -156,8 +156,8 @@ class ComplexResistivityTest(unittest.TestCase):
         # give background a value
         x0 = self.mesh.x0
         hs = [
-            [self.mesh.vectorNx[-1] - x0[0]],
-            [self.mesh.vectorNy[-1] - x0[1]],
+            [self.mesh.nodes_x[-1] - x0[0]],
+            [self.mesh.nodes_y[-1] - x0[1]],
             self.mesh.h[-1],
         ]
         mesh1d = discretize.TensorMesh(hs, x0=x0)
