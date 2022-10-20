@@ -94,10 +94,10 @@ class Fields3DCellCentered(FieldsDC):
         elif getattr(self.simulation, "bc_type", None) == "Neumann":
             if self.mesh._meshType == "TREE":
                 raise NotImplementedError()
-            mesh.setCellGradBC("neumann")
+            mesh.set_cell_gradient_BC("neumann")
             self.cellGrad = mesh.cell_gradient
         else:
-            mesh.setCellGradBC("neumann")
+            mesh.set_cell_gradient_BC("neumann")
             self.cellGrad = mesh.cell_gradient
 
         self._MfRhoI = self.simulation.MfRhoI

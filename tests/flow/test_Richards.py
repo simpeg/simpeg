@@ -117,7 +117,7 @@ class BaseRichardsTest(unittest.TestCase):
 class RichardsTests1D(BaseRichardsTest):
     def get_mesh(self):
         mesh = discretize.TensorMesh([np.ones(20)])
-        mesh.setCellGradBC("dirichlet")
+        mesh.set_cell_gradient_BC("dirichlet")
         print(mesh.dim)
         return mesh
 
@@ -201,7 +201,7 @@ class RichardsTests1D_Multi(RichardsTests1D):
 class RichardsTests2D(BaseRichardsTest):
     def get_mesh(self):
         mesh = discretize.TensorMesh([np.ones(8), np.ones(30)])
-        mesh.setCellGradBC(["neumann", "dirichlet"])
+        mesh.set_cell_gradient_BC(["neumann", "dirichlet"])
         return mesh
 
     def get_rx_list(self, times):
@@ -245,7 +245,7 @@ class RichardsTests2D(BaseRichardsTest):
 class RichardsTests3D(BaseRichardsTest):
     def get_mesh(self):
         mesh = discretize.TensorMesh([np.ones(8), np.ones(20), np.ones(10)])
-        mesh.setCellGradBC(["neumann", "neumann", "dirichlet"])
+        mesh.set_cell_gradient_BC(["neumann", "neumann", "dirichlet"])
         return mesh
 
     def get_rx_list(self, times):

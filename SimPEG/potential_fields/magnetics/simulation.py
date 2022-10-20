@@ -703,7 +703,9 @@ class Simulation3DDifferential(BaseMagneticPDESimulation):
     def __init__(self, mesh, survey=None, **kwargs):
         super().__init__(mesh, survey=survey, **kwargs)
 
-        Pbc, Pin, self._Pout = self.mesh.getBCProjWF("neumann", discretization="CC")
+        Pbc, Pin, self._Pout = self.mesh.get_BC_projections(
+            "neumann", discretization="CC"
+        )
 
         Dface = self.mesh.face_divergence
         Mc = sdiag(self.mesh.vol)

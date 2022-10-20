@@ -44,7 +44,7 @@ from SimPEG.flow import richards
 def run(plotIt=True):
 
     M = discretize.TensorMesh([np.ones(40)], x0="N")
-    M.setCellGradBC("dirichlet")
+    M.set_cell_gradient_BC("dirichlet")
     # We will use the haverkamp empirical model with parameters from Celia1990
     k_fun, theta_fun = richards.empirical.haverkamp(
         M,
