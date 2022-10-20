@@ -9,7 +9,8 @@ parameters:
          'tests/examples/test_examples_3.py',
          'tests/examples/test_tutorials_1.py tests/examples/test_tutorials_2.py',
          'tests/examples/test_tutorials_3.py',
-         'tests/pf tests/dask',
+         'tests/pf'
+         'tests/dask', # This must be ran on it's own to avoid modifying the code from any other tests.
          ]
 
 jobs:

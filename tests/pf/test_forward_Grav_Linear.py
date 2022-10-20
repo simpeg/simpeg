@@ -63,7 +63,7 @@ def test_ana_grav_forward(tmp_path):
         mesh,
         survey=survey,
         rhoMap=idenMap,
-        actInd=active_cells,
+        ind_active=active_cells,
         store_sensitivities="disk",
         sensitivity_path=str(tmp_path) + os.sep,
     )
@@ -146,7 +146,7 @@ def test_ana_gg_forward():
         mesh,
         survey=survey,
         rhoMap=idenMap,
-        actInd=active_cells,
+        ind_active=active_cells,
         store_sensitivities="forward_only",
     )
 

@@ -69,7 +69,7 @@ def test_ana_mag_forward():
         mesh,
         survey=survey,
         chiMap=idenMap,
-        actInd=active_cells,
+        ind_active=active_cells,
         store_sensitivities="forward_only",
     )
 
@@ -162,7 +162,7 @@ def test_ana_mag_grad_forward():
         mesh,
         survey=survey,
         chiMap=idenMap,
-        actInd=active_cells,
+        ind_active=active_cells,
         store_sensitivities="forward_only",
     )
 
@@ -253,7 +253,7 @@ def test_ana_mag_vec_forward():
         mesh,
         survey=survey,
         chiMap=idenMap,
-        actInd=active_cells,
+        ind_active=active_cells,
         store_sensitivities="forward_only",
         model_type="vector",
     )
@@ -338,7 +338,7 @@ def test_ana_mag_amp_forward():
         mesh,
         survey=survey,
         chiMap=idenMap,
-        actInd=active_cells,
+        ind_active=active_cells,
         store_sensitivities="forward_only",
         model_type="vector",
         is_amplitude_data=True,
