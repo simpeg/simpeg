@@ -228,14 +228,17 @@ class SimulationNDCellCentered(BaseTimeSimulation):
     @property
     def Dz(self):
         if self.mesh.dim == 1:
-            return self.mesh.faceDivx
+            return self.mesh.face_divergencex
 
         if self.mesh.dim == 2:
-            mats = (utils.spzeros(self.mesh.nC, self.mesh.vnF[0]), self.mesh.faceDivy)
+            mats = (
+                utils.spzeros(self.mesh.nC, self.mesh.vnF[0]),
+                self.mesh.face_divergencey,
+            )
         elif self.mesh.dim == 3:
             mats = (
                 utils.spzeros(self.mesh.nC, self.mesh.vnF[0] + self.mesh.vnF[1]),
-                self.mesh.faceDivz,
+                self.mesh.face_divergencez,
             )
         return sp.hstack(mats, format="csr")
 
@@ -256,7 +259,7 @@ class SimulationNDCellCentered(BaseTimeSimulation):
         if m is not None:
             self.model = m
 
-        DIV = self.mesh.faceDiv
+        DIV = self.mesh.face_divergence
         GRAD = self.mesh.cellGrad
         BC = self.mesh.cellGradBC
         AV = self.mesh.aveF2CC.T
@@ -306,7 +309,7 @@ class SimulationNDCellCentered(BaseTimeSimulation):
         if m is not None:
             self.model = m
 
-        DIV = self.mesh.faceDiv
+        DIV = self.mesh.face_divergence
         GRAD = self.mesh.cellGrad
         BC = self.mesh.cellGradBC
         AV = self.mesh.aveF2CC.T

@@ -90,7 +90,7 @@ class Fields3DCellCentered(FieldsDC):
     def startup(self):
         mesh = self.simulation.mesh
         if getattr(self.simulation, "bc_type", None) == "Dirichlet":
-            self.cellGrad = -mesh.faceDiv.T
+            self.cellGrad = -mesh.face_divergence.T
         elif getattr(self.simulation, "bc_type", None) == "Neumann":
             if self.mesh._meshType == "TREE":
                 raise NotImplementedError()
@@ -108,7 +108,7 @@ class Fields3DCellCentered(FieldsDC):
         self._Grad = self.simulation.Grad
         self._MfI = self.simulation.MfI
         self._Vol = self.simulation.Vol
-        self._faceDiv = self.simulation.mesh.faceDiv
+        self._faceDiv = self.simulation.mesh.face_divergence
 
     def _GLoc(self, fieldType):
         if fieldType == "phi":
@@ -153,7 +153,7 @@ class Fields3DCellCentered(FieldsDC):
         """
         # return self._MfI * self._MfRho * self._j(phiSolution, source_list)
         return self._MfI * self._Grad * phiSolution
-        # simulation._MfI * cart_mesh.faceDiv.T * p
+        # simulation._MfI * cart_mesh.face_divergence.T * p
 
     def _eDeriv_u(self, src, v, adjoint=False):
         if adjoint:

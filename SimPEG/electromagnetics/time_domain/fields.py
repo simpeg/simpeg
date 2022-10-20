@@ -152,7 +152,7 @@ class Fields3DMagneticFluxDensity(FieldsTDEM):
         return Zero()
 
     def _dbdt(self, bSolution, source_list, tInd):
-        # self._timeMesh.faceDiv
+        # self._timeMesh.face_divergence
         dbdt = -self._edgeCurl * self._e(bSolution, source_list, tInd)
         for i, src in enumerate(source_list):
             s_m = src.s_m(self.simulation, self._times[tInd])
@@ -553,7 +553,10 @@ class Fields3DMagneticField(FieldsTDEM):
         return (
             epsilon_0
             * vol
-            * (self.simulation.mesh.faceDiv * self._e(hSolution, source_list, tInd))
+            * (
+                self.simulation.mesh.face_divergence
+                * self._e(hSolution, source_list, tInd)
+            )
         )
 
 
@@ -646,7 +649,7 @@ class Fields3DCurrentDensity(FieldsTDEM):
 
     def _charge_density(self, jSolution, source_list, tInd):
         return epsilon_0 * (
-            self.simulation.mesh.faceDiv * self._e(jSolution, source_list, tInd)
+            self.simulation.mesh.face_divergence * self._e(jSolution, source_list, tInd)
         )
 
     def _dbdt(self, jSolution, source_list, tInd):

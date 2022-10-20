@@ -134,7 +134,7 @@
 #         Mc = utils.sdiag(vol)
 #         aveF2CC = self.prob.mesh.aveF2CC
 #         B0 = self.prob.getB0()
-#         Dface = self.prob.mesh.faceDiv
+#         Dface = self.prob.mesh.face_divergence
 #
 #         def Cm_RHS(chi):
 #
@@ -182,7 +182,7 @@
 #     #     Mc = utils.sdiag(vol)
 #     #     aveF2CC = self.prob.mesh.aveF2CC
 #     #     B0 = self.prob.getB0()
-#     #     Dface = self.prob.mesh.faceDiv
+#     #     Dface = self.prob.mesh.face_divergence
 #
 #     #     def ufun(chi):
 #     #         u = self.prob.fields(chi)['u']
@@ -231,7 +231,7 @@
 #     #     Mc = utils.sdiag(vol)
 #     #     aveF2CC = self.prob.mesh.aveF2CC
 #     #     B0 = self.prob.getB0()
-#     #     Dface = self.prob.mesh.faceDiv
+#     #     Dface = self.prob.mesh.face_divergence
 #
 #     #     def Bfun(chi):
 #     #         B = self.prob.fields(chi)['B']

@@ -1313,7 +1313,7 @@ class LineCurrent(BaseFDEMSrc):
             Grad = simulation.mesh.nodal_gradient
             return Grad.T * self.Mejs(simulation)
         elif simulation._formulation == "HJ":
-            Div = sdiag(simulation.mesh.vol) * simulation.mesh.faceDiv
+            Div = sdiag(simulation.mesh.vol) * simulation.mesh.face_divergence
             return Div * self.Mfjs(simulation)
 
     def s_m(self, simulation):

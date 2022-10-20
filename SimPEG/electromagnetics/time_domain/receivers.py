@@ -322,7 +322,10 @@ class PointMagneticFluxTimeDerivative(BaseRx):
         if self.projField in f.aliasFields:
             return super(PointMagneticFluxTimeDerivative, self).getTimeP(time_mesh, f)
 
-        return time_mesh.get_interpolation_matrix(self.times, "CC") * time_mesh.faceDiv
+        return (
+            time_mesh.get_interpolation_matrix(self.times, "CC")
+            * time_mesh.face_divergence
+        )
 
 
 class PointMagneticField(BaseRx):

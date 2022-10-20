@@ -705,7 +705,7 @@ class Simulation3DDifferential(BaseMagneticPDESimulation):
 
         Pbc, Pin, self._Pout = self.mesh.getBCProjWF("neumann", discretization="CC")
 
-        Dface = self.mesh.faceDiv
+        Dface = self.mesh.face_divergence
         Mc = sdiag(self.mesh.vol)
         self._Div = Mc * Dface * Pin.T * Pin
 
@@ -976,7 +976,7 @@ class Simulation3DDifferential(BaseMagneticPDESimulation):
 
         vol = self.mesh.vol
         Div = self._Div
-        Dface = self.mesh.faceDiv
+        Dface = self.mesh.face_divergence
         P = self.survey.projectFieldsDeriv(B)  # Projection matrix
         B0 = self.getB0()
 

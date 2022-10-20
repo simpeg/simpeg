@@ -1204,7 +1204,9 @@ class MagDipole(BaseTDEMSrc):
     def _getAmagnetostatic(self, simulation):
         if simulation._formulation == "EB":
             return (
-                simulation.mesh.faceDiv * simulation.MfMuiI * simulation.mesh.faceDiv.T
+                simulation.mesh.face_divergence
+                * simulation.MfMuiI
+                * simulation.mesh.face_divergence.T
             )
         else:
             raise NotImplementedError(
@@ -1232,7 +1234,7 @@ class MagDipole(BaseTDEMSrc):
                 )
 
         if simulation._formulation == "EB":
-            return -simulation.mesh.faceDiv * (
+            return -simulation.mesh.face_divergence * (
                 (simulation.MfMuiI - self._MfMuipI) * self._hp
             )
         else:
@@ -1285,7 +1287,7 @@ class MagDipole(BaseTDEMSrc):
 
         else:
             if simulation._formulation == "EB":
-                hs = simulation.mesh.faceDiv.T * self._phiSrc(simulation)
+                hs = simulation.mesh.face_divergence.T * self._phiSrc(simulation)
                 ht = self._hp + hs
                 return simulation.MfMuiI * ht
             else:
@@ -1668,7 +1670,7 @@ class LineCurrent(BaseTDEMSrc):
             Grad = simulation.mesh.nodal_gradient
             return Grad.T * self.Mejs(simulation)
         elif simulation._formulation == "HJ":
-            Div = sdiag(simulation.mesh.vol) * simulation.mesh.faceDiv
+            Div = sdiag(simulation.mesh.vol) * simulation.mesh.face_divergence
             return Div * self.Mfjs(simulation)
 
     def phiInitial(self, simulation):
@@ -1780,7 +1782,7 @@ class LineCurrent(BaseTDEMSrc):
         if self.waveform.has_initial_fields:
             if simulation._formulation == "HJ":
                 phi = self.phiInitial(simulation)
-                Div = sdiag(simulation.mesh.vol) * simulation.mesh.faceDiv
+                Div = sdiag(simulation.mesh.vol) * simulation.mesh.face_divergence
                 return -simulation.MfRhoI * (Div.T * phi)
             else:
                 raise NotImplementedError
@@ -1810,7 +1812,7 @@ class LineCurrent(BaseTDEMSrc):
             raise NotImplementedError
 
         phi = self.phiInitial(simulation)
-        Div = sdiag(simulation.mesh.vol) * simulation.mesh.faceDiv
+        Div = sdiag(simulation.mesh.vol) * simulation.mesh.face_divergence
 
         if adjoint is True:
             return -(
@@ -1830,7 +1832,7 @@ class LineCurrent(BaseTDEMSrc):
             raise NotImplementedError
 
         vol = simulation.mesh.vol
-        Div = sdiag(vol) * simulation.mesh.faceDiv
+        Div = sdiag(vol) * simulation.mesh.face_divergence
         return (
             simulation.mesh.edgeCurl * simulation.MeMuI * simulation.mesh.edgeCurl.T
             - Div.T
@@ -2070,7 +2072,7 @@ class RawVec_Grounded(LineCurrent):
             self._Mfjs = self._s_e = s_e
 
     # def getRHSdc(self, simulation):
-    #     return sdiag(simulation.mesh.vol) * simulation.mesh.faceDiv * self._s_e
+    #     return sdiag(simulation.mesh.vol) * simulation.mesh.face_divergence * self._s_e
 
     # def phiInitial(self, simulation):
     #     if self.waveform.has_initial_fields:
@@ -2102,7 +2104,7 @@ class RawVec_Grounded(LineCurrent):
     #         return Zero()
 
     #     phi = self.phiInitial(simulation)
-    #     Div = sdiag(simulation.mesh.vol) * simulation.mesh.faceDiv
+    #     Div = sdiag(simulation.mesh.vol) * simulation.mesh.face_divergence
     #     return -simulation.MfRhoI * (Div.T * phi)
 
     # def jInitialDeriv(self, simulation, v, adjoint=False):
@@ -2113,7 +2115,7 @@ class RawVec_Grounded(LineCurrent):
     #         return Zero()
 
     #     phi = self.phiInitial(simulation)
-    #     Div = sdiag(simulation.mesh.vol) * simulation.mesh.faceDiv
+    #     Div = sdiag(simulation.mesh.vol) * simulation.mesh.face_divergence
 
     #     if adjoint is True:
     #         return -(
@@ -2131,9 +2133,9 @@ class RawVec_Grounded(LineCurrent):
 
     #     return (
     #         simulation.mesh.edgeCurl * simulation.MeMuI * simulation.mesh.edgeCurl.T
-    #         - simulation.mesh.faceDiv.T
+    #         - simulation.mesh.face_divergence.T
     #         * sdiag(1.0 / vol * simulation.mui)
-    #         * simulation.mesh.faceDiv  # stabalizing term. See (Chen, Haber & Oldenburg 2002)
+    #         * simulation.mesh.face_divergence  # stabalizing term. See (Chen, Haber & Oldenburg 2002)
     #     )
 
     # def _aInitial(self, simulation):
