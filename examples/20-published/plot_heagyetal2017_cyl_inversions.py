@@ -46,7 +46,7 @@ def run(plotIt=True, saveFig=False):
     cs, ncx, ncz, npad = 10.0, 15, 25, 13  # padded cyl mesh
     hx = [(cs, ncx), (cs, npad, 1.3)]
     hz = [(cs, npad, -1.3), (cs, ncz), (cs, npad, 1.3)]
-    mesh = discretizeCylindricalMesh([hx, 1, hz], "00C")
+    mesh = discretize.CylMesh([hx, 1, hz], "00C")
 
     # Conductivity model
     layerz = np.r_[-200.0, -100.0]

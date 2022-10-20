@@ -100,7 +100,7 @@ class DCProblemTestsCC_fields(unittest.TestCase):
         cs = 10
         nc = 20
         npad = 10
-        mesh = discretizeCylindricalMesh(
+        mesh = discretize.CylMesh(
             [
                 [(cs, nc), (cs, npad, 1.3)],
                 np.r_[2 * np.pi],

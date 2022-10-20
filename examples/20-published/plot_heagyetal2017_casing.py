@@ -195,7 +195,7 @@ class PrimSecCasingExample(object):
             )
 
             # primary mesh
-            self._meshp = discretizeCylindricalMesh(
+            self._meshp = discretize.CylMesh(
                 [hx, 1.0, hz], [0.0, 0.0, -np.sum(hz[: npadzu + ncz - nza])]
             )
 
@@ -646,7 +646,7 @@ class PrimSecCasingExample(object):
             [[(csx, ncx)], [(csx, 1)], [(csz, ncz)]], [0, -csx / 2.0, -zmax]
         )
 
-        projF = self.meshp.get_interpolation_matrix_cartesian_mesh(meshcart, "F")
+        projF = self.meshp.getInterpolationMatCartMesh(meshcart, "F")
 
         jcart = projF * primaryFields[:, "j"]
 

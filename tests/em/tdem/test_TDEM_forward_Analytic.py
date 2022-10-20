@@ -29,7 +29,7 @@ def analytic_wholespace_dipole_comparison(
         cs, ncx, ncz, npad = 5.0, 30, 10, 15
         hx = [(cs, ncx), (cs, npad, 1.3)]
         hz = [(cs, npad, -1.3), (cs, ncz), (cs, npad, 1.3)]
-        mesh = discretizeCylindricalMesh([hx, 1, hz], "00C")
+        mesh = discretize.CylMesh([hx, 1, hz], "00C")
 
     elif mesh_type == "TENSOR":
         cs, nc, npad = 8.0, 14, 8
@@ -222,7 +222,7 @@ def analytic_halfspace_mag_dipole_comparison(
         cs, ncx, ncz, npad = 5.0, 30, 10, 15
         hx = [(cs, ncx), (cs, npad, 1.3)]
         hz = [(cs, npad, -1.3), (cs, ncz), (cs, npad, 1.3)]
-        mesh = discretizeCylindricalMesh([hx, 1, hz], "00C")
+        mesh = discretize.CylMesh([hx, 1, hz], "00C")
 
     elif mesh_type == "TENSOR":
         cs, nc, npad = 20.0, 13, 5

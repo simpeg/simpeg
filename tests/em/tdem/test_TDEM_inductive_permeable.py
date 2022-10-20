@@ -41,7 +41,7 @@ class TestInductiveSourcesPermeability(unittest.TestCase):
         pfz = 1.4
 
         ncz = int(target_l / csz)
-        mesh = discretizeCylindricalMesh(
+        mesh = discretize.CylMesh(
             [
                 [(csx, int(domainx / csx)), (csx, npadx, pfx)],
                 1,

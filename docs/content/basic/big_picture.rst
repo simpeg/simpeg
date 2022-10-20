@@ -108,7 +108,7 @@ not show class inheritance, as each of the base classes outlined have many
 subtypes that can be interchanged. The :class:`discretize.base.BaseMesh`
 class, for example, could be a regular Cartesian mesh
 :class:`discretize.TensorMesh` or a cylindrical coordinate mesh
-:class:`discretizeCylindricalMesh`, which have many properties in common. These
+:class:`discretize.CylMesh`, which have many properties in common. These
 common features, such as both meshes being created from tensor products, can
 be exploited through inheritance of base classes, and differences can be
 expressed through subtype polymorphism. Please look at the documentation here
