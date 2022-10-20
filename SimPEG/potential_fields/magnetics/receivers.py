@@ -1,4 +1,5 @@
 from ... import survey
+from ...utils import validate_string
 
 
 class Point(survey.BaseRx):
@@ -37,23 +38,22 @@ class Point(survey.BaseRx):
         if isinstance(components, str):
             components = [components]
         for component in components:
-            if component not in [
-                "bxx",
-                "bxy",
-                "bxz",
-                "byy",
-                "byz",
-                "bzz",
-                "bx",
-                "by",
-                "bz",
-                "tmi",
-            ]:
-                raise ValueError(
-                    f"{component} not recognized. Must be "
-                    "'bxx', 'bxy', 'bxz', 'byy',"
-                    "'byz', 'bzz', 'bx', 'by', 'bz', or 'tmi'. "
-                )
+            validate_string(
+                "component",
+                component,
+                [
+                    "bxx",
+                    "bxy",
+                    "bxz",
+                    "byy",
+                    "byz",
+                    "bzz",
+                    "bx",
+                    "by",
+                    "bz",
+                    "tmi",
+                ],
+            )
         self.components = components
 
     @property

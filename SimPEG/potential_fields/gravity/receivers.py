@@ -1,4 +1,5 @@
 from ... import survey
+from ...utils import validate_string
 
 
 class Point(survey.BaseRx):
@@ -33,29 +34,26 @@ class Point(survey.BaseRx):
 
         super(Point, self).__init__(locations, **kwargs)
 
-        n_locations = self.locations.shape[0]
-
         if isinstance(components, str):
             components = [components]
 
         for component in components:
-            if component not in [
-                "gx",
-                "gy",
-                "gz",
-                "gxx",
-                "gxy",
-                "gxz",
-                "gyy",
-                "gyz",
-                "gzz",
-                "guv",
-            ]:
-                raise ValueError(
-                    f"{component} not recognized, must be one of "
-                    "'gx', 'gy', 'gz', 'gxx', 'gxy', 'gxz'"
-                    "'gyy', 'gyz', 'gzz', or 'guv'"
-                )
+            validate_string(
+                "component",
+                component,
+                [
+                    "gx",
+                    "gy",
+                    "gz",
+                    "gxx",
+                    "gxy",
+                    "gxz",
+                    "gyy",
+                    "gyz",
+                    "gzz",
+                    "guv",
+                ],
+            )
         self.components = components
 
     @property

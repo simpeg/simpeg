@@ -1,6 +1,6 @@
 from ...survey import BaseSrc
 from SimPEG.utils.mat_utils import dip_azimuth2cartesian
-from SimPEG.utils.code_utils import deprecate_class
+from SimPEG.utils.code_utils import deprecate_class, validate_float
 
 
 class UniformBackgroundField(BaseSrc):
@@ -50,11 +50,7 @@ class UniformBackgroundField(BaseSrc):
 
     @amplitude.setter
     def amplitude(self, value):
-        try:
-            value = float(value)
-        except Exception:
-            raise TypeError("amplitude must be a number")
-        self._amplitude = value
+        self._amplitude = validate_float("amplitude", value)
 
     @property
     def inclination(self):
@@ -69,13 +65,9 @@ class UniformBackgroundField(BaseSrc):
 
     @inclination.setter
     def inclination(self, value):
-        try:
-            value = float(value)
-        except Exception:
-            raise TypeError("inclination must be a number")
-        if value > 90 or value < -90:
-            raise ValueError("inclination should be between -90 and 90")
-        self._inclination = value
+        self._inclination = validate_float(
+            "inclination", value, min_val=-90.0, max_val=90.0
+        )
 
     @property
     def declination(self):
@@ -90,11 +82,7 @@ class UniformBackgroundField(BaseSrc):
 
     @declination.setter
     def declination(self, value):
-        try:
-            value = float(value)
-        except Exception:
-            raise TypeError("declination must be a number")
-        self._declination = value
+        self._declination = validate_float("declination", value)
 
     @property
     def b0(self):
