@@ -3008,7 +3008,7 @@ class Mesh2Mesh(IdentityMap):
                 if self.indActive is not None
                 else self.mesh.cell_centers,
                 "CC",
-                zerosOutside=True,
+                zeros_outside=True,
             )
         return self._P
 
