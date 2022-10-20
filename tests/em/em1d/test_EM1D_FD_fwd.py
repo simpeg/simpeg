@@ -198,7 +198,7 @@ class EM1D_FD_FwdProblemTests(unittest.TestCase):
         )
 
         # Number of filters
-        self.assertEqual(sim.n_filter, sim.fhtfilt.base.size)
+        self.assertEqual(sim.n_filter, sim._fhtfilt.base.size)
 
         # Layer depths
         depths = np.r_[0.0, -np.cumsum(self.thicknesses)]

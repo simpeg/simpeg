@@ -57,7 +57,7 @@ class MagFwdProblemTests(unittest.TestCase):
             mesh,
             survey=self.survey,
             chiMap=idenMap,
-            actInd=sph_ind,
+            ind_active=sph_ind,
             store_sensitivities="forward_only",
         )
 

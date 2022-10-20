@@ -181,6 +181,7 @@ Many of the functions here are used internally to SimPEG and have minimal docume
   validate_string
   validate_callable
   validate_direction
+  validate_active_indices
 
 """
 from __future__ import print_function
@@ -224,6 +225,7 @@ from .code_utils import (
     validate_type,
     validate_callable,
     validate_direction,
+    validate_active_indices,
 )
 
 from .mat_utils import (

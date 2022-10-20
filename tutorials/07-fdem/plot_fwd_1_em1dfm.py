@@ -30,7 +30,7 @@ from discretize import TensorMesh
 
 from SimPEG import maps
 from SimPEG.electromagnetics import frequency_domain as fdem
-from SimPEG.electromagnetics.utils.em1d_utils import plot_layer
+from SimPEG.utils import plot_1d_layer_model
 
 plt.rcParams.update({"font.size": 16})
 write_output = False
@@ -131,7 +131,7 @@ mesh_for_plotting = TensorMesh([thicknesses_for_plotting])
 
 fig = plt.figure(figsize=(6, 5))
 ax = fig.add_axes([0.15, 0.15, 0.8, 0.75])
-plot_layer(model, mesh_for_plotting, ax=ax, showlayers=False)
+plot_1d_layer_model(thicknesses_for_plotting, model, ax=ax, show_layers=False)
 plt.gca().invert_yaxis()
 
 #######################################################################

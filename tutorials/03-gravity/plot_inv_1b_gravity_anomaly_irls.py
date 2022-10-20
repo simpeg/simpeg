@@ -210,7 +210,7 @@ starting_model = np.zeros(nC)
 #
 
 simulation = gravity.simulation.Simulation3DIntegral(
-    survey=survey, mesh=mesh, rhoMap=model_map, actInd=ind_active
+    survey=survey, mesh=mesh, rhoMap=model_map, ind_active=ind_active
 )
 
 

@@ -5,7 +5,6 @@ from geoana.em.static import CircularLoopWholeSpace, MagneticDipoleWholeSpace
 from scipy.constants import mu_0
 from scipy.special import roots_legendre
 
-# import properties
 from ...utils.code_utils import (
     deprecate_property,
     validate_float,
@@ -45,21 +44,18 @@ class BaseWaveform:
     """
 
     def __init__(self, has_initial_fields=False, off_time=0.0, epsilon=1e-9, **kwargs):
-        hasInitialFields = kwargs.pop("hasInitialFields", None)
-        if hasInitialFields is not None:
-            self.hasInitialFields = hasInitialFields
-        else:
-            self.has_initial_fields = has_initial_fields
-        offTime = kwargs.pop("offTime", None)
-        if offTime is not None:
-            self.offTime = offTime
-        else:
-            self.off_time = off_time
-        eps = kwargs.pop("eps", None)
-        if eps is not None:
-            self.eps = eps
-        else:
-            self.epsilon = epsilon
+        if kwargs.pop("hasInitialFields", None):
+            raise AttributeError(
+                "hasInitialFields was removed in 0.17.0 use has_initial_fields"
+            )
+        if kwargs.pop("offTime", None):
+            raise AttributeError("offTime was removed in 0.17.0 use off_time")
+        if kwargs.pop("eps", None):
+            raise AttributeError("eps was removed in 0.17.0 use epsilon")
+
+        self.has_initial_fields = has_initial_fields
+        self.off_time = off_time
+        self.epsilon = epsilon
         super().__init__(**kwargs)
 
     @property
@@ -153,7 +149,7 @@ class BaseWaveform:
         "hasInitialFields",
         new_name="has_initial_fields",
         removal_version="0.17.0",
-        future_warn=True,
+        error=True,
     )
 
     offTime = deprecate_property(
@@ -161,7 +157,7 @@ class BaseWaveform:
         "offTime",
         new_name="off_time",
         removal_version="0.17.0",
-        future_warn=True,
+        error=True,
     )
 
     eps = deprecate_property(
@@ -169,7 +165,7 @@ class BaseWaveform:
         "eps",
         new_name="epsilon",
         removal_version="0.17.0",
-        future_warn=True,
+        error=True,
     )
 
 
@@ -247,7 +243,7 @@ class RampOffWaveform(BaseWaveform):
         out = np.zeros_like(t)
 
         if self.off_time > 0:
-            out[(t < self.off_time) & (t >= self.eps)] = -1.0 / self.off_time
+            out[(t < self.off_time) & (t >= self.epsilon)] = -1.0 / self.off_time
 
         if out.ndim == 0:
             out = out.item()
@@ -301,9 +297,6 @@ class RawWaveform(BaseWaveform):
     def __init__(self, off_time=0.0, waveform_function=None, **kwargs):
         if waveform_function is not None:
             self.waveform_function = waveform_function
-        wavefct = kwargs.pop("waveFct", None)
-        if wavefct is not None:
-            self.waveFct = wavefct
         super().__init__(off_time=off_time, **kwargs)
 
     @property
@@ -330,7 +323,7 @@ class RawWaveform(BaseWaveform):
         "waveFct",
         new_name="waveform_function",
         removal_version="0.17.0",
-        future_warn=True,
+        error=True,
     )
 
 
@@ -362,17 +355,13 @@ class VTEMWaveform(BaseWaveform):
     """
 
     def __init__(self, off_time=4.2e-3, peak_time=2.73e-3, ramp_on_rate=3.0, **kwargs):
-        peakTime = kwargs.pop("peakTime", None)
-        a = kwargs.pop("a", None)
+        if kwargs.pop("peakTime", None):
+            raise AttributeError("peakTime was removed in 0.17.0, use peak_time")
+        if kwargs.pop("a", None):
+            raise AttributeError("a was removed in 0.17.0, use ramp_on_rate")
         super().__init__(has_initial_fields=False, off_time=off_time, **kwargs)
-        if a is not None:
-            self.a = a
-        else:
-            self.ramp_on_rate = ramp_on_rate
-        if peakTime is not None:
-            self.peakTime = peakTime
-        else:
-            self.peak_time = peak_time
+        self.ramp_on_rate = ramp_on_rate
+        self.peak_time = peak_time
 
     @property
     def peak_time(self):
@@ -422,16 +411,16 @@ class VTEMWaveform(BaseWaveform):
         t = np.asarray(time, dtype=float)
         out = np.zeros_like(t)
 
-        p_1 = (t <= self.peakTime) & (t >= 0.0)
+        p_1 = (t <= self.peak_time) & (t >= 0.0)
         out[p_1] = (
-            self.a
-            / self.peakTime
-            * np.exp(-self.a * t[p_1] / self.peakTime)
-            / (1.0 - np.exp(-self.a))
+            self.ramp_on_rate
+            / self.peak_time
+            * np.exp(-self.ramp_on_rate * t[p_1] / self.peak_time)
+            / (1.0 - np.exp(-self.ramp_on_rate))
         )
 
-        p_2 = (t > self.peakTime) & (t < self.offTime)
-        out[p_2] = -1.0 / (self.offTime - self.peakTime)
+        p_2 = (t > self.peak_time) & (t < self.off_time)
+        out[p_2] = -1.0 / (self.off_time - self.peak_time)
 
         if out.ndim == 0:
             out = out.item()
@@ -450,7 +439,7 @@ class VTEMWaveform(BaseWaveform):
         "peakTime",
         new_name="peak_time",
         removal_version="0.17.0",
-        future_warn=True,
+        error=True,
     )
 
     a = deprecate_property(
@@ -458,7 +447,7 @@ class VTEMWaveform(BaseWaveform):
         "a",
         new_name="ramp_on_rate",
         removal_version="0.17.0",
-        future_warn=True,
+        error=True,
     )
 
 
@@ -595,37 +584,20 @@ class TriangularWaveform(TrapezoidWaveform):
 
     """
 
-    def __init__(self, start_time=None, off_time=None, peak_time=None, **kwargs):
+    def __init__(self, start_time, off_time, peak_time, **kwargs):
 
-        if start_time is None:
-            start_time = kwargs.get("startTime")
-            if start_time is None:
-                raise Exception("start_time must be provided")
-            else:
-                warnings.warn(
-                    "startTime will be deprecated in 0.17.0. Please update your code to use peak_time instead",
-                    FutureWarning,
-                )
-
-        if peak_time is None:
-            peak_time = kwargs.get("peakTime")
-            if peak_time is None:
-                raise Exception("peak_time must be provided")
-            else:
-                warnings.warn(
-                    "peakTime will be deprecated in 0.17.0. Please update your code to use peak_time instead",
-                    FutureWarning,
-                )
-
-        if off_time is None:
-            off_time = kwargs.pop("offTime")
-            if off_time is None:
-                raise Exception("off_time must be provided")
-            else:
-                warnings.warn(
-                    "offTime will be deprecated in 0.17.0. Please update your code to use off_time instead",
-                    FutureWarning,
-                )
+        if kwargs.get("startTime", None):
+            AttributeError(
+                "startTime will be deprecated in 0.17.0. Please update your code to use start_time instead",
+            )
+        if kwargs.get("peak_time", None):
+            AttributeError(
+                "peak_time will be deprecated in 0.17.0. Please update your code to use peak_time instead",
+            )
+        if kwargs.get("offTime", None):
+            AttributeError(
+                "offTime will be deprecated in 0.17.0. Please update your code to use off_time instead",
+            )
 
         ramp_on = np.r_[start_time, peak_time]
         ramp_off = np.r_[peak_time, off_time]
@@ -665,7 +637,7 @@ class TriangularWaveform(TrapezoidWaveform):
         "peakTime",
         new_name="peak_time",
         removal_version="0.17.0",
-        future_warn=True,
+        error=True,
     )
 
 
@@ -929,15 +901,6 @@ class BaseTDEMSrc(BaseEMSrc):
         Implement as an inductive or galvanic source
     """
 
-    # # rxPair = Rx
-    # waveform = properties.Instance(
-    #     "A source waveform", BaseWaveform, default=StepOffWaveform()
-    # )
-    # srcType = properties.StringChoice(
-    #     "is the source a galvanic of inductive source",
-    #     choices=["inductive", "galvanic"],
-    # )
-
     def __init__(
         self,
         receiver_list=None,
@@ -1119,24 +1082,6 @@ class MagDipole(BaseTDEMSrc):
     source_type : {'inductive', 'galvanic'}
         Implement as an inductive or galvanic source
     """
-
-    # moment = properties.Float("dipole moment of the transmitter", default=1.0, min=0.0)
-    # mu = properties.Float("permeability of the background", default=mu_0, min=0.0)
-    # orientation = properties.Vector3(
-    #     "orientation of the source", default="Z", length=1.0, required=True
-    # )
-    # location = LocationVector(
-    #     "location of the source", default=np.r_[0.0, 0.0, 0.0], shape=(3,)
-    # )
-    # loc = deprecate_property(
-    #     location, "loc", new_name="location", removal_version="0.16.0", error=True
-    # )
-
-    # def __init__(self, receiver_list=None, **kwargs):
-    #     kwargs.pop("srcType", None)
-    #     BaseTDEMSrc.__init__(
-    #         self, receiver_list=receiver_list, srcType="inductive", **kwargs
-    #     )
 
     def __init__(
         self,
@@ -1504,8 +1449,6 @@ class CircularLoop(MagDipole):
         self.mu = mu
         self.srcType = srcType
 
-    # radius = properties.Float("radius of the loop source", default=1.0, min=0.0)
-
     @property
     def radius(self):
         """Loop radius
@@ -1521,8 +1464,6 @@ class CircularLoop(MagDipole):
     def radius(self, rad):
         rad = validate_float("radius", rad, min_val=0, inclusive_min=False)
         self._radius = rad
-
-    # current = properties.Float("current in the loop", default=1.0)
 
     @property
     def current(self):
@@ -1541,8 +1482,6 @@ class CircularLoop(MagDipole):
         if np.abs(I) == 0.0:
             raise ValueError("current must be non-zero.")
         self._current = I
-
-    # N = properties.Float("number of turns in the loop", default=1.0)
 
     @property
     def moment(self):
@@ -1596,6 +1535,7 @@ class CircularLoop(MagDipole):
 
     N = deprecate_property(n_turns, "N", "n_turns", removal_version="0.19.0")
 
+
 class LineCurrent(BaseTDEMSrc):
     """Line current source.
 
@@ -1615,17 +1555,6 @@ class LineCurrent(BaseTDEMSrc):
     mu : float, optional
         Magnetic permeability to use.
     """
-
-    # location = properties.Array("location of the source", shape=("*", 3))
-    # loc = deprecate_property(
-    #     location, "loc", new_name="location", removal_version="0.16.0", error=True
-    # )
-    # current = properties.Float("current in the line", default=1.0)
-
-    # def __init__(self, receiver_list=None, **kwargs):
-    #     self.integrate = False
-    #     kwargs.pop("srcType", None)  # TODO: generalize this to loop sources
-    #     super(LineCurrent, self).__init__(receiver_list, srcType="galvanic", **kwargs)
 
     def __init__(
         self,
@@ -2130,13 +2059,6 @@ class LineCurrent1D(LineCurrent):
 # TODO: this should be generalized and plugged into getting the Line current
 # on faces
 class RawVec_Grounded(LineCurrent):
-
-    # mu = properties.Float(
-    #     "permeability of the background", default=mu_0, min=0.
-    # )
-
-    # _s_e = properties.Array("source term", shape=("*",))
-
     def __init__(self, receiver_list=None, s_e=None, **kwargs):
         self.integrate = False
         kwargs.pop("srcType", None)

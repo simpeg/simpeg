@@ -55,7 +55,7 @@ class GravFwdProblemTests(unittest.TestCase):
             mesh,
             survey=self.survey,
             rhoMap=idenMap,
-            actInd=sph_ind,
+            ind_active=sph_ind,
             store_sensitivities="disk",
         )
 
@@ -142,7 +142,7 @@ class GravityGradientFwdProblemTests(unittest.TestCase):
             mesh,
             survey=self.survey,
             rhoMap=idenMap,
-            actInd=sph_ind,
+            ind_active=sph_ind,
             store_sensitivities="forward_only",
         )
 

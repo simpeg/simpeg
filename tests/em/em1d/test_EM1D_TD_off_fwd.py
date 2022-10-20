@@ -27,7 +27,7 @@ class EM1D_FD_test_failures(unittest.TestCase):
     def test_instantiation_failures(self):
         
         times = np.logspace(-5, -2, 31)
-        waveform = tdem.sources.StepOffWaveform(offTime=0.0)
+        waveform = tdem.sources.StepOffWaveform(off_time=0.0)
         x_offset = 10.
         z_tx = [-10., 1., 1., 1.]
         z_rx = [1., -10., -10., 1.]
@@ -98,7 +98,7 @@ class EM1D_TD_MagDipole_Tests(unittest.TestCase):
         src_location = np.array([0.0, 0.0, 100.0 + 1e-5])
         rx_location = np.array([[50.0, 50.0, 100.0 + 1e-5]])
         times = np.logspace(-5, -2, 31)
-        waveform = tdem.sources.StepOffWaveform(offTime=0.0)
+        waveform = tdem.sources.StepOffWaveform(off_time=0.0)
         orientations = ['x','y','z']
         
         sigma = 0.01
@@ -210,7 +210,7 @@ class EM1D_TD_Loop_Center_Tests(unittest.TestCase):
         src_location = np.array([0.0, 0.0, 100.0 + 1e-5])
         rx_location = np.array([[0.0, 0.0, 100.0 + 1e-5]])
         times = np.logspace(-5, -2, 31)
-        waveform = tdem.sources.StepOffWaveform(offTime=0.0)
+        waveform = tdem.sources.StepOffWaveform(off_time=0.0)
         radius = 25.
         
         sigma = 0.01

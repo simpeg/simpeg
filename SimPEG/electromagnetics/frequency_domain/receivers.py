@@ -1,4 +1,3 @@
-# import properties
 from ... import survey
 from ...utils import validate_string, validate_type, validate_direction
 import warnings
@@ -40,7 +39,7 @@ class BaseRx(survey.BaseRx):
             warnings.warn(
                 "'projComp' overrides the 'orientation' property which automatically"
                 " handles the projection from the mesh the receivers!!! "
-                "'projComp' is deprecated and will be removed in SimPEG 0.16.0."
+                "'projComp' is deprecated and will be removed in SimPEG 0.19.0."
             )
             self.projComp = proj
 

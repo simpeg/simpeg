@@ -66,7 +66,7 @@ class FieldsTest(unittest.TestCase):
 
     def test_overlappingFields(self):
         self.assertRaises(
-            AssertionError,
+            KeyError,
             fields.Fields,
             self.simulation,
             knownFields={"b": "F"},

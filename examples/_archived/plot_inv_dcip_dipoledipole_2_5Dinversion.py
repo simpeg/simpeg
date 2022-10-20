@@ -13,7 +13,7 @@ User is promoted to try different suvey_type such as 'pole-dipole',
 """
 
 from SimPEG.electromagnetics.static import resistivity as DC
-from SimPEG.electromagnetics.static.utils import gen_DCIPsurvey, genTopography
+from SimPEG.electromagnetics.static.utils import generate_dcip_survey, genTopography
 from SimPEG import (
     maps,
     utils,
@@ -46,7 +46,7 @@ def run(plotIt=True, survey_type="dipole-dipole"):
     zmin, zmax = 0, 0
     endl = np.array([[xmin, ymin, zmin], [xmax, ymax, zmax]])
     # Generate DC survey object
-    survey = gen_DCIPsurvey(endl, survey_type=survey_type, dim=2, a=10, b=10, n=10)
+    survey = generate_dcip_survey(endl, survey_type=survey_type, dim=2, a=10, b=10, n=10)
     survey = IO.from_abmn_locations_to_survey(
         survey.locations_a,
         survey.locations_b,

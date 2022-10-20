@@ -3,8 +3,6 @@ from ...utils.code_utils import deprecate_class, validate_string
 import numpy as np
 from scipy.constants import mu_0
 
-# import properties
-
 from ...survey import BaseRx
 
 
@@ -27,26 +25,6 @@ class PointNaturalSource(BaseRx):
     component : {'real', 'imag', 'apparent_resistivity', 'phase'}
         MT data type.
     """
-
-    # component = properties.StringChoice(
-    #     "component of the field (real, imag, apparent_resistivity, or phase)",
-    #     {
-    #         "real": ["re", "in-phase", "in phase"],
-    #         "imag": ["imaginary", "im", "out-of-phase", "out of phase"],
-    #         "apparent_resistivity": [
-    #             "apparent resistivity",
-    #             "apparent-resistivity",
-    #             "app_rho",
-    #             "app_res",
-    #         ],
-    #         "phase": ["phi"],
-    #     },
-    # )
-
-    # orientation = properties.StringChoice(
-    #     "orientation of the receiver. Must currently be 'xy', 'yx'",
-    #     ["xx", "xy", "yx", "yy"],
-    # )
 
     def __init__(
         self,
@@ -464,10 +442,6 @@ class Point3DTipper(PointNaturalSource):
     component : str, default = 'real'
         NSEM data type. Choose one of {'real', 'imag', 'apparent_resistivity', 'phase'}
     """
-
-    # orientation = properties.StringChoice(
-    #     "orientation of the receiver. Must currently be 'zx', 'zy'", ["zx", "zy"]
-    # )
 
     def __init__(
         self,

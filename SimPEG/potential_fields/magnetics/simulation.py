@@ -10,9 +10,8 @@ from .analytics import CongruousMagBC
 
 from SimPEG import Solver
 from SimPEG import props
-import properties
-from SimPEG.utils import mkvc, mat_utils, sdiag, setKwargs
-from SimPEG.utils.code_utils import validate_string, deprecate_property
+from SimPEG.utils import mkvc, mat_utils, sdiag
+from SimPEG.utils.code_utils import validate_string, deprecate_property, validate_type
 
 
 class Simulation3DIntegral(BasePFSimulation):
@@ -21,14 +20,22 @@ class Simulation3DIntegral(BasePFSimulation):
 
     """
 
-    chi, chiMap, chiDeriv = props.Invertible(
-        "Magnetic Susceptibility (SI)", default=1.0
-    )
+    chi, chiMap, chiDeriv = props.Invertible("Magnetic Susceptibility (SI)")
 
-    def __init__(self, mesh, model_type="scalar", is_amplitude_data=False, **kwargs):
+    def __init__(
+        self,
+        mesh,
+        chi=None,
+        chiMap=None,
+        model_type="scalar",
+        is_amplitude_data=False,
+        **kwargs
+    ):
 
         self.model_type = model_type
         super().__init__(mesh, **kwargs)
+        self.chi = chi
+        self.chiMap = chiMap
 
         self._G = None
         self._M = None
@@ -53,32 +60,12 @@ class Simulation3DIntegral(BasePFSimulation):
         self._model_type = validate_string("model_type", value, ["scalar", "vector"])
 
     @property
-    def modelType(self):
-        warnings.warn(
-            "The 'modelType' property has been deprecated. "
-            "Please use 'model_type'. This will be removed in version 0.17.0 of SimPEG.",
-            FutureWarning,
-        )
-        return self.model_type
-
-    @modelType.setter
-    def modelType(self, value):
-        warnings.warn(
-            "The 'modelType' property has been deprecated. "
-            "Please use 'model_type'. This will be removed in version 0.17.0 of SimPEG.",
-            FutureWarning,
-        )
-        self.model_type = value
-
-    @property
     def is_amplitude_data(self):
         return self._is_amplitude_data
 
     @is_amplitude_data.setter
     def is_amplitude_data(self, value):
-        if not isinstance(value, bool):
-            raise ValueError("is_amplitude_data must be a bool")
-        self._is_amplitude_data = value
+        self._is_amplitude_data = validate_type("is_amplitude_data", value, bool)
 
     @property
     def M(self):
@@ -149,23 +136,6 @@ class Simulation3DIntegral(BasePFSimulation):
             self._G = self.linear_operator()
 
         return self._G
-
-    @property
-    def model_type(self) -> str:
-        """
-        Define the type of model. Choice of 'scalar' or 'vector' (3-components)
-        """
-        return self._model_type
-
-    @model_type.setter
-    def model_type(self, value: str):
-        if value not in ["scalar", "vector"]:
-            raise ValueError(
-                "'model_type' value should be a string: 'scalar' or 'vector'."
-                + f"Value {value} of type {type(value)} provided."
-            )
-
-        self._model_type = value
 
     modelType = deprecate_property(
         model_type, "modelType", "model_type", removal_version="0.18.0"
@@ -706,13 +676,6 @@ class Simulation3DIntegral(BasePFSimulation):
             deletes = deletes + ["_gtg_diagonal"]
         return deletes
 
-    @property
-    def coordinate_system(self):
-        raise AttributeError(
-            "The coordinate_system property has been removed. "
-            "Instead make use of `SimPEG.maps.SphericalSystem`."
-        )
-
 
 class SimulationEquivalentSourceLayer(
     BaseEquivalentSourceLayerSimulation, Simulation3DIntegral
@@ -737,10 +700,8 @@ class Simulation3DDifferential(BaseMagneticPDESimulation):
     Secondary field approach using differential equations!
     """
 
-    survey = properties.Instance("a survey object", Survey, required=True)
-
-    def __init__(self, mesh, **kwargs):
-        super().__init__(mesh, **kwargs)
+    def __init__(self, mesh, survey=None, **kwargs):
+        super().__init__(mesh, survey=survey, **kwargs)
 
         Pbc, Pin, self._Pout = self.mesh.getBCProjWF("neumann", discretization="CC")
 
@@ -748,18 +709,23 @@ class Simulation3DDifferential(BaseMagneticPDESimulation):
         Mc = sdiag(self.mesh.vol)
         self._Div = Mc * Dface * Pin.T * Pin
 
-    # @property
-    # def survey(self):
-    #     return self._survey
+    @property
+    def survey(self):
+        """The survey for this simulation.
 
-    # @survey.setter
-    # def survey(self, obj):
-    #     if isinstance(obj, Survey):
-    #         self._survey = obj
-    #     else:
-    #         raise TypeError(
-    #             "Survey must be an instace of class {Survey}".format(Survey)
-    #         )
+        Returns
+        -------
+        SimPEG.potential_fields.magnetics.survey.Survey
+        """
+        if self._survey is None:
+            raise AttributeError("Simulation must have a survey")
+        return self._survey
+
+    @survey.setter
+    def survey(self, obj):
+        if obj is not None:
+            obj = validate_type("survey", obj, Survey, cast=False)
+        self._survey = obj
 
     @property
     def MfMuI(self):

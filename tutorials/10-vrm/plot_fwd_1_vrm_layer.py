@@ -102,7 +102,7 @@ xyz = np.c_[0.0, 0.0, 0.5]
 
 # There are 4 parameters needed to define a receiver.
 dbdt_receivers = [
-    vrm.receivers.Point(xyz, times=time_channels, fieldType="dbdt", orientation="z")
+    vrm.receivers.Point(xyz, times=time_channels, field_type="dbdt", orientation="z")
 ]
 
 # Define sources

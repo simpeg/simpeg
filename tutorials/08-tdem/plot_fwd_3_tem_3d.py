@@ -84,12 +84,12 @@ waveform_times = np.linspace(-0.002, 0, 21)
 # For the trapezoidal waveform we define the ramp on interval, the
 # ramp-off interval and the off-time.
 waveform = tdem.sources.TrapezoidWaveform(
-    ramp_on=np.r_[-0.002, -0.001], ramp_off=np.r_[-0.001, 0.0], offTime=0.0
+    ramp_on=np.r_[-0.002, -0.001], ramp_off=np.r_[-0.001, 0.0], off_time=0.0
 )
 
 # Uncomment to try a quarter sine wave ramp on, followed by a linear ramp-off.
 # waveform = tdem.sources.QuarterSineRampOnWaveform(
-#     ramp_on=np.r_[-0.002, -0.001],  ramp_off=np.r_[-0.001, 0.], offTime=0.
+#     ramp_on=np.r_[-0.002, -0.001],  ramp_off=np.r_[-0.001, 0.], off_time=0.
 # )
 
 # Uncomment to try a custom waveform (just a linear ramp-off). This requires
@@ -97,7 +97,7 @@ waveform = tdem.sources.TrapezoidWaveform(
 # def wave_function(t):
 #     return - t/(np.max(waveform_times) - np.min(waveform_times))
 #
-# waveform = tdem.sources.RawWaveform(waveFct=wave_function, offTime=0.)
+# waveform = tdem.sources.RawWaveform(waveform_function=wave_function, off_time=0.)
 
 # Evaluate the waveform for each on time.
 waveform_value = [waveform.eval(t) for t in waveform_times]

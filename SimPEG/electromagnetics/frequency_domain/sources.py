@@ -35,8 +35,6 @@ class BaseFDEMSrc(BaseEMSrc):
         Source location.
     """
 
-    # frequency = properties.Float("frequency of the source", min=0, required=True)
-
     _ePrimary = None
     _bPrimary = None
     _hPrimary = None
@@ -399,20 +397,6 @@ class MagDipole(BaseFDEMSrc):
         self.moment = moment
         self.orientation = orientation
         self.mu = mu
-
-    # moment = properties.Float("dipole moment of the transmitter", default=1.0, min=0.0)
-    # mu = properties.Float("permeability of the background", default=mu_0, min=0.0)
-    # orientation = properties.Vector3(
-    #     "orientation of the source", default="Z", length=1.0, required=True
-    # )
-    # location = LocationVector(
-    #     "location of the source", default=np.r_[0.0, 0.0, 0.0], shape=(3,)
-    # )
-
-    # def __init__(self, receiver_list=None, frequency=None, location=None, **kwargs):
-    #     super(MagDipole, self).__init__(receiver_list, frequency=frequency, **kwargs)
-    #     if location is not None:
-    #         self.location = location
 
     @property
     def location(self):
@@ -797,8 +781,6 @@ class CircularLoop(MagDipole):
         self.radius = radius
         self.current = current
 
-    # n_turns = properties.Integer("number of turns in the loop", default=1)
-
     @property
     def radius(self):
         """Loop radius
@@ -814,8 +796,6 @@ class CircularLoop(MagDipole):
     def radius(self, rad):
         rad = validate_float("radius", rad, min_val=0, inclusive_min=False)
         self._radius = rad
-
-    # current = properties.Float("current in the loop", default=1.0)
 
     @property
     def current(self):
@@ -834,9 +814,6 @@ class CircularLoop(MagDipole):
         if np.abs(I) == 0.0:
             raise ValueError("current must be non-zero.")
         self._current = I
-
-    # def __init__(self, receiver_list=None, frequency=None, location=None, **kwargs):
-    #     super(CircularLoop, self).__init__(receiver_list, frequency, location, **kwargs)
 
     @property
     def moment(self):
@@ -873,7 +850,6 @@ class CircularLoop(MagDipole):
     def n_turns(self, value):
         self._n_turns = validate_integer("n_turns", value, min_val=1)
 
-
     def _srcFct(self, obsLoc, coordinates="cartesian"):
         if getattr(self, "_loop", None) is None:
             self._loop = CircularLoopWholeSpace(
@@ -886,6 +862,7 @@ class CircularLoop(MagDipole):
         return self.n_turns * self._loop.vector_potential(obsLoc, coordinates)
 
     N = deprecate_property(n_turns, "N", "n_turns", removal_version="0.19.0")
+
 
 class PrimSecSigma(BaseFDEMSrc):
     def __init__(
@@ -1246,8 +1223,6 @@ class LineCurrent(BaseFDEMSrc):
         self.current = current
         self.mu = mu
 
-    # location = properties.Array("location of the source", shape=("*", 3))
-
     @property
     def location(self):
         """Line current nodes locations
@@ -1263,8 +1238,6 @@ class LineCurrent(BaseFDEMSrc):
     def location(self, loc):
         loc = validate_ndarray_with_shape("location", loc, shape=("*", 3))
         self._location = loc
-
-    # current = properties.Float("current in the line", default=1.0)
 
     @property
     def current(self):
@@ -1379,11 +1352,6 @@ class LineCurrent(BaseFDEMSrc):
 
 
 class LineCurrent1D(LineCurrent):
-
-    # n_points_per_path = properties.Integer(
-    #     "number of quadrature points per linear wire path", default=3
-    # )
-
     def __init__(
         self, receiver_list, frequency, locations, n_points_per_path=3, **kwargs
     ):

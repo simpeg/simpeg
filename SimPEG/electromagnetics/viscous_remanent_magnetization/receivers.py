@@ -7,7 +7,6 @@ from ...utils import (
 )
 import warnings
 
-# import properties
 
 #########################################
 # POINT RECEIVER CLASS FOR VRM
@@ -29,27 +28,15 @@ class Point(BaseRx):
         Receiver orientation.
     """
 
-    # times = properties.Array("Observation times", dtype=float)
-
-    # fieldType = properties.StringChoice(
-    #     "Field type", choices=["h", "b", "dhdt", "dbdt"]
-    # )
-
-    # orientation = properties.StringChoice(
-    #     "Component of response", choices=["x", "y", "z"]
-    # )
-
     def __init__(
         self, locations=None, times=None, field_type=None, orientation="z", **kwargs
     ):
 
-        fieldType = kwargs.pop("fieldType", None)
-        if fieldType is not None:
-            warnings.warn(
+        if kwargs.pop("fieldType", None):
+            raise AttributeError(
                 "'fieldType' is a deprecated property. Please use 'field_type' instead."
                 "'fieldType' be removed in SimPEG 0.17.0."
             )
-            field_type = fieldType
         if field_type is None:
             raise AttributeError(
                 "VRM receiver class cannot be instantiated witout 'field_type"
@@ -183,12 +170,6 @@ class SquareLoop(Point):
         the receiver coil.
     """
 
-    # width = properties.Float("Square loop width", min=1e-6)
-    # nTurns = properties.Integer("Number of loop turns", min=1, default=1)
-    # quadOrder = properties.Integer(
-    #     "Order for numerical quadrature integration over loop", min=1, max=7, default=3
-    # )
-
     def __init__(
         self,
         locations=None,
@@ -202,18 +183,16 @@ class SquareLoop(Point):
     ):
 
         if "nTurns" in kwargs:
-            warnings.warn(
+            raise AttributeError(
                 "'nTurns' is a deprecated property. Please use 'n_turns' instead."
                 "'nTurns' be removed in SimPEG 0.17.0."
             )
-            n_turns = kwargs.pop("nTurns")
 
         if "quadOrder" in kwargs:
-            warnings.warn(
+            raise AttributeError(
                 "'quadOrder' is a deprecated property. Please use 'quadrature_order' instead."
                 "'quadOrder' be removed in SimPEG 0.17.0."
             )
-            quadrature_order = kwargs.pop("quadOrder")
 
         super(SquareLoop, self).__init__(
             locations=locations,

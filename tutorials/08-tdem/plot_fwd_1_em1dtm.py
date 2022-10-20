@@ -25,11 +25,10 @@ of the loop and measures the vertical component of the response.
 import numpy as np
 import os
 from matplotlib import pyplot as plt
-from discretize import TensorMesh
 
 from SimPEG import maps
 import SimPEG.electromagnetics.time_domain as tdem
-from SimPEG.electromagnetics.utils.em1d_utils import plot_layer
+from SimPEG.utils import plot_1d_layer_model
 
 write_output = False
 plt.rcParams.update({"font.size": 16})
@@ -117,11 +116,10 @@ model_mapping = maps.IdentityMap(nP=n_layer)
 
 # Plot conductivity model
 thicknesses_for_plotting = np.r_[thicknesses, 40.0]
-mesh_for_plotting = TensorMesh([thicknesses_for_plotting])
 
 fig = plt.figure(figsize=(6, 5))
 ax = fig.add_axes([0.15, 0.15, 0.8, 0.8])
-plot_layer(model, mesh_for_plotting, ax=ax, showlayers=False)
+plot_1d_layer_model(thicknesses_for_plotting, model, ax=ax, show_layers=False)
 plt.gca().invert_yaxis()
 
 

@@ -2,7 +2,6 @@ import numpy as np
 import scipy.special as spec
 from ...utils import validate_ndarray_with_shape, validate_float
 
-# import properties
 
 from ...survey import BaseSrc
 from .waveforms import BaseVRMWaveform
@@ -405,8 +404,6 @@ class LineCurrent(BaseSrcVRM):
     waveform : SimPEG.electromagnetics.viscous_remanent_magnetization.waveforms.BaseVRMWaveform
         VRM waveform
     """
-
-    # location = properties.Array("location of the source wire points", shape=("*", 3))
 
     def __init__(self, receiver_list, location, Imax, waveform, **kwargs):
 

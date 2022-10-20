@@ -1,6 +1,6 @@
 import scipy.sparse as sp
 
-from ...utils import mkvc, validate_string, validate_type, validate_direction
+from ...utils import mkvc, validate_type, validate_direction
 from discretize.utils import Zero
 from ...survey import BaseTimeRx
 import warnings
@@ -32,7 +32,7 @@ class BaseRx(BaseTimeRx):
             warnings.warn(
                 "'projComp' overrides the 'orientation' property which automatically"
                 " handles the projection from the mesh the receivers!!! "
-                "'projComp' is deprecated and will be removed in SimPEG 0.16.0."
+                "'projComp' is deprecated and will be removed in SimPEG 0.19.0."
             )
             self.projComp = proj
 
@@ -45,10 +45,6 @@ class BaseRx(BaseTimeRx):
         self.orientation = orientation
         self.use_source_receiver_offset = use_source_receiver_offset
         super().__init__(locations=locations, times=times, **kwargs)
-
-    # orientation = properties.StringChoice(
-    #     "orientation of the receiver. Must currently be 'x', 'y', 'z'", ["x", "y", "z"]
-    # )
 
     @property
     def orientation(self):
@@ -64,10 +60,6 @@ class BaseRx(BaseTimeRx):
     @orientation.setter
     def orientation(self, var):
         self._orientation = validate_direction("orientation", var, dim=3)
-
-    # def projected_grid(self, f):
-    #     """Grid Location projection (e.g. Ex Fy ...)"""
-    #     return f._GLoc(self.projField) + self.orientation
 
     @property
     def use_source_receiver_offset(self):
@@ -91,10 +83,6 @@ class BaseRx(BaseTimeRx):
             "use_source_receiver_offset", val, bool
         )
 
-    # def projected_time_grid(self, f):
-    #     """Time Location projection (e.g. CC N)"""
-    #     return f._TLoc(self.projField)
-
     def getSpatialP(self, mesh, f):
         """Get spatial projection matrix from mesh to receivers.
 
@@ -115,7 +103,9 @@ class BaseRx(BaseTimeRx):
         field = f._GLoc(self.projField)
         for strength, comp in zip(self.orientation, ["x", "y", "z"]):
             if strength != 0.0:
-                P = P + strength * mesh.get_interpolation_matrix(self.locations, field + comp)
+                P = P + strength * mesh.get_interpolation_matrix(
+                    self.locations, field + comp
+                )
         return P
 
     def getTimeP(self, time_mesh, f):
@@ -312,12 +302,6 @@ class PointMagneticFluxTimeDerivative(BaseRx):
         P = self.getP(mesh, time_mesh, f)
         f_part = mkvc(f[src, "b", :])
         return P * f_part
-
-    # def projected_grid(self, f):
-    #     """Grid Location projection (e.g. Ex Fy ...)"""
-    #     if self.projField in f.aliasFields:
-    #         return super(PointMagneticFluxTimeDerivative, self).projected_grid(f)
-    #     return f._GLoc(self.projField) + self.orientation
 
     def getTimeP(self, time_mesh, f):
         """Get time projection matrix from mesh to receivers.

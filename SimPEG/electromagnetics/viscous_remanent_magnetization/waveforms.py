@@ -7,8 +7,6 @@ from ...utils import (
     validate_callable,
 )
 
-# import properties
-
 
 class BaseVRMWaveform:
     """
@@ -32,8 +30,6 @@ class StepOff(BaseVRMWaveform):
     t0 : float
         Beginning of the off-time
     """
-
-    # t0 = properties.Float("Start of off-time", default=0.0)
 
     def __init__(self, t0=0.0):
 
@@ -179,9 +175,6 @@ class SquarePulse(StepOff):
     t0 : float
         Beginning of the off-time
     """
-
-    # t0 = properties.Float("Start of off-time", default=0.0)
-    # delt = properties.Float("Pulse width")
 
     def __init__(self, delt, t0=0.0):
         super(SquarePulse, self).__init__(t0=t0)

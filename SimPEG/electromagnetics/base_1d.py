@@ -1,4 +1,3 @@
-import properties
 from scipy.constants import mu_0
 import numpy as np
 from scipy import sparse as sp
@@ -10,6 +9,7 @@ from ..simulation import BaseSimulation
 # from .frequency_domain.sources import MagDipole as f_MagDipole, CircularLoop as f_CircularLoop
 
 from .. import utils
+from ..utils import validate_string, validate_ndarray_with_shape, validate_type
 from .. import props
 from empymod.utils import check_hankel
 
@@ -30,72 +30,159 @@ class BaseEM1DSimulation(BaseSimulation):
     Applications: Chapter 4 (Ward and Hohmann, 1988).
     """
 
-    hankel_filter = "key_101_2009"  # Default: Hankel filter
-    _hankel_pts_per_dec = 0  # Default: Standard DLF
-    verbose = False
-    fix_Jmatrix = False
     _formulation = "1D"
     _coefficients_set = False
-    gtgdiag = None
 
     # Properties for electrical conductivity/resistivity
     sigma, sigmaMap, sigmaDeriv = props.Invertible(
         "Electrical conductivity at infinite frequency (S/m)"
     )
-
     rho, rhoMap, rhoDeriv = props.Invertible("Electrical resistivity (Ohm m)")
-
     props.Reciprocal(sigma, rho)
 
-    eta = props.PhysicalProperty(
-        "Intrinsic chargeability (V/V), 0 <= eta < 1", default=0.0
-    )
-    tau = props.PhysicalProperty("Time constant for Cole-Cole model (s)", default=1.0)
-    c = props.PhysicalProperty(
-        "Frequency Dependency for Cole-Cole model, 0 < c < 1", default=0.5
-    )
+    eta = props.PhysicalProperty("Intrinsic chargeability (V/V), 0 <= eta < 1")
+    tau = props.PhysicalProperty("Time constant for Cole-Cole model (s)")
+    c = props.PhysicalProperty("Frequency Dependency for Cole-Cole model, 0 < c < 1")
 
     # Properties for magnetic susceptibility
     mu, muMap, muDeriv = props.Invertible(
-        "Magnetic permeability at infinite frequency (SI)", default=mu_0
+        "Magnetic permeability at infinite frequency (SI)"
     )
     dchi = props.PhysicalProperty(
-        "DC magnetic susceptibility for viscous remanent magnetization contribution (SI)",
-        default=0.0,
+        "DC magnetic susceptibility for viscous remanent magnetization contribution (SI)"
     )
     tau1 = props.PhysicalProperty(
-        "Lower bound for log-uniform distribution of time-relaxation constants for viscous remanent magnetization (s)",
-        default=1e-10,
+        "Lower bound for log-uniform distribution of time-relaxation constants for viscous remanent magnetization (s)"
     )
     tau2 = props.PhysicalProperty(
-        "Upper bound for log-uniform distribution of time-relaxation constants for viscous remanent magnetization (s)",
-        default=10.0,
+        "Upper bound for log-uniform distribution of time-relaxation constants for viscous remanent magnetization (s)"
     )
 
     # Additional properties
-    h, hMap, hDeriv = props.Invertible(
-        "Receiver Height (m), h > 0",
-    )
-
-    topo = properties.Array("Topography (x, y, z)", dtype=float)
+    h, hMap, hDeriv = props.Invertible("Receiver Height (m), h > 0")
 
     thicknesses, thicknessesMap, thicknessesDeriv = props.Invertible(
-        "layer thicknesses (m)", default=np.array([])
+        "layer thicknesses (m)"
     )
 
-    def __init__(self, **kwargs):
-        BaseSimulation.__init__(self, **kwargs)
+    def __init__(
+        self,
+        sigma=None,
+        sigmaMap=None,
+        rho=None,
+        rhoMap=None,
+        thicknesses=None,
+        thicknessesMap=None,
+        mu=mu_0,
+        muMap=None,
+        h=None,
+        hMap=None,
+        eta=0.0,
+        tau=1.0,
+        c=0.5,
+        dchi=0.0,
+        tau1=1.0e-10,
+        tau2=10.0,
+        hankel_filter="key_101_2009",
+        fix_Jmatrix=False,
+        topo=None,
+        **kwargs,
+    ):
+        super().__init__(mesh=None, **kwargs)
+        self.sigma = sigma
+        self.rho = rho
+        self.sigmaMap = sigmaMap
+        self.rhoMap = rhoMap
+        self.mu = mu
+        self.muMap = muMap
+        self.h = h
+        self.hMap = hMap
+        if thicknesses is None:
+            thicknesses = np.array([])
+        self.thicknesses = thicknesses
+        self.thicknessesMap = thicknessesMap
+        self.eta = eta
+        self.tau = tau
+        self.c = c
+        self.dchi = dchi
+        self.tau1 = tau1
+        self.tau2 = tau2
 
+        if topo is None:
+            topo = np.r_[0.0, 0.0, 0.0]
+        self.topo = topo
+
+        for i_src, src in enumerate(self.survey.source_list):
+            if np.any(src.location[2] < self.topo[2]):
+                raise ValueError("Source must be located above the topography")
+            for i_rx, rx in enumerate(src.receiver_list):
+                if rx.use_source_receiver_offset:
+                    if np.any(src.location[2] + rx.locations[:, 2] < self.topo[2]):
+                        raise ValueError(
+                            "Receiver must be located above the topography"
+                        )
+                else:
+                    if np.any(rx.locations[:, 2] < self.topo[2]):
+                        raise ValueError(
+                            "Receiver must be located above the topography"
+                        )
+
+        self.hankel_filter = hankel_filter
+        self.fix_Jmatrix = fix_Jmatrix
         # Check input arguments. If self.hankel_filter is not a valid filter,
         # it will set it to the default (key_201_2009).
         ht, htarg = check_hankel(
             "dlf", {"dlf": self.hankel_filter, "pts_per_dec": 0}, 1
         )
 
-        self.fhtfilt = htarg["dlf"]  # Store filter
-        self.hankel_pts_per_dec = htarg["pts_per_dec"]  # Store pts_per_dec
+        self._fhtfilt = htarg["dlf"]  # Store filter
+        # self.hankel_pts_per_dec = htarg["pts_per_dec"]  # Store pts_per_dec
         if self.verbose:
             print(">> Use " + self.hankel_filter + " filter for Hankel Transform")
+
+    @property
+    def hankel_filter(self):
+        """The hankely filter to use.
+
+        Returns
+        -------
+        str
+        """
+        return self._hankel_filter
+
+    @hankel_filter.setter
+    def hankel_filter(self, value):
+        self._hankel_filter = validate_string("hankel_filter", value)
+
+    _hankel_pts_per_dec = 0  # Default: Standard DLF
+
+    @property
+    def fix_Jmatrix(self):
+        """Whether to fix the sensitivity matrix.
+
+        Returns
+        -------
+        bool
+        """
+        return self._fix_Jmatrix
+
+    @fix_Jmatrix.setter
+    def fix_Jmatrix(self, value):
+        self._fix_Jmatrix = validate_type("fix_Jmatrix", value, bool)
+
+    @property
+    def topo(self):
+        """Topography.
+
+        Returns
+        -------
+        numpy.ndarray of float
+        """
+        return self._topo
+
+    @topo.setter
+    def topo(self, value):
+        self._topo = validate_ndarray_with_shape("topo", value, shape=("*",))
 
     @property
     def n_layer(self):
@@ -105,7 +192,7 @@ class BaseEM1DSimulation(BaseSimulation):
     @property
     def n_filter(self):
         """Length of filter"""
-        return self.fhtfilt.base.size
+        return self._fhtfilt.base.size
 
     @property
     def depth(self):
@@ -299,7 +386,7 @@ class BaseEM1DSimulation(BaseSimulation):
 
                 # computations for hankel transform...
                 lambd, _ = get_dlf_points(
-                    self.fhtfilt, offsets, self._hankel_pts_per_dec
+                    self._fhtfilt, offsets, self._hankel_pts_per_dec
                 )
                 # calculate the source-rx coefficients for the hankel transform
                 C0 = 0.0
@@ -438,9 +525,9 @@ class BaseEM1DSimulation(BaseSimulation):
 
     @property
     def deleteTheseOnModelUpdate(self):
-        toDelete = []
+        toDelete = super().deleteTheseOnModelUpdate
         if self.fix_Jmatrix is False:
-            toDelete += ["_J"]
+            toDelete += ["_J", "_gtgdiag"]
         return toDelete
 
     def depth_of_investigation_christiansen_2012(self, std, thres_hold=0.8):
@@ -460,7 +547,7 @@ class BaseEM1DSimulation(BaseSimulation):
         return delta
 
     def getJtJdiag(self, m, W=None):
-        if self.gtgdiag is None:
+        if getattr(self, "_gtgdiag", None) is None:
             Js = self.getJ(m)
             if W is None:
                 W = np.ones(self.survey.nD)
@@ -479,5 +566,5 @@ class BaseEM1DSimulation(BaseSimulation):
             if self.thicknessesMap is not None:
                 J = Js["dthick"] @ self.thicknessesDeriv
                 out = out + np.einsum("i,ij,ij->j", W, J, J)
-            self.gtgdiag = out
-        return self.gtgdiag
+            self._gtgdiag = out
+        return self._gtgdiag

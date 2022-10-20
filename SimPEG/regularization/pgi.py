@@ -173,7 +173,8 @@ class PGIsmallness(Smallness):
     def maplist(self):
         if getattr(self, "_maplist", None) is None:
             self._maplist = [
-                IdentityMap(self.regularization_mesh) for maps in self.wiresmap.maps
+                IdentityMap(nP=self.regularization_mesh.nC)
+                for maps in self.wiresmap.maps
             ]
         return self._maplist
 
@@ -795,7 +796,8 @@ class PGI(ComboObjectiveFunction):
     def maplist(self):
         if getattr(self, "_maplist", None) is None:
             self._maplist = [
-                IdentityMap(self.regularization_mesh) for maps in self.wiresmap.maps
+                IdentityMap(nP=self.regularization_mesh.nC)
+                for maps in self.wiresmap.maps
             ]
         return self._maplist
 

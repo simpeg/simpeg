@@ -78,7 +78,7 @@ class GravInvLinProblemTest(unittest.TestCase):
             self.mesh,
             survey=survey,
             rhoMap=idenMap,
-            actInd=actv,
+            ind_active=actv,
             store_sensitivities="ram",
         )
 

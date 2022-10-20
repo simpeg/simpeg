@@ -9,8 +9,8 @@ from .simulation import BaseSIPSimulation
 
 class BaseSIPSimulation2D(BaseSIPSimulation):
     def __init__(self, mesh, **kwargs):
-        self.storeJ = True
-        super().__init__(mesh, **kwargs)
+        kwargs.pop("storeJ", None)
+        super().__init__(mesh, storeJ=True, **kwargs)
 
     def getJ(self, m, f=None):
         """
@@ -34,7 +34,7 @@ class BaseSIPSimulation2D(BaseSIPSimulation):
                 f = self.fields(m)
 
             Jt = np.zeros(
-                (self.actMap.nP, int(self.survey.nD / self.survey.unique_times.size)),
+                (self._P.shape[1], int(self.survey.nD / self.survey.unique_times.size)),
                 order="F",
             )
             for iky, ky in enumerate(kys):
@@ -45,7 +45,7 @@ class BaseSIPSimulation2D(BaseSIPSimulation):
                     for rx in src.receiver_list:
                         # wrt f, need possibility wrt m
 
-                        if getattr(rx, 'projGLoc', None) is None:
+                        if getattr(rx, "projGLoc", None) is None:
                             if rx.orientation is not None:
                                 rx.projGLoc = f._GLoc(rx.projField) + rx.orientation
                             else:

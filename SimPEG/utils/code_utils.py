@@ -4,7 +4,6 @@ from typing import TYPE_CHECKING
 import numpy as np
 from functools import wraps
 import warnings
-import properties
 
 from discretize.utils import asArray_N_x_Dim
 
@@ -616,10 +615,6 @@ def deprecate_property(
             new_name = prop.fget.__qualname__
         cls_name = new_name.split(".")[0]
         old_name = f"{cls_name}.{old_name}"
-    elif isinstance(prop, properties.GettableProperty):
-        if new_name is None:
-            new_name = prop.name
-        prop = prop.get_property()
 
     message = f"{old_name} has been deprecated, please use {new_name}."
     if error:
@@ -984,18 +979,28 @@ def validate_ndarray_with_shape(property_name, var, shape=None, dtype=float):
         The '*' indicates that an arbitrary number of elements is allowed
         along a particular dimension. If list then multiple shapes are accepted.
         By default, shape is a tuple of length ndim of '*'.
-    dtype : class, optional
+    dtype : class, or tuple of class, optional
         The data type for the array. I.e. float, int, complex, bool, etc.
+        Validated from left to right if a tuple.
 
     Returns
     -------
     numpy.ndarray of dtype
         Returns the array in the specified data type once validated
     """
+    if not isinstance(dtype, tuple):
+        dtypes = (dtype,)
+    else:
+        dtypes = dtype
+    for dtype in dtypes:
+        try:
+            var = np.asarray(var, dtype=dtype)
+            bad_type = False
+            break
+        except:
+            bad_type = True
 
-    try:
-        var = np.asarray(var, dtype=dtype)
-    except:
+    if bad_type:
         raise TypeError(
             f"'{property_name}' must be array_like with data type of {dtype}, got {type(var)}"
         )
@@ -1134,6 +1139,59 @@ def validate_direction(property_name, obj, dim=3):
     # do this to make a copy of the input
     obj = obj / np.linalg.norm(obj)
     return obj
+
+
+def validate_active_indices(property_name, index_arr, n_cells):
+    """Validates an array intended to indicate a list of active indices.
+
+    This accepts either an array of booleans, or an array of active integers.
+
+    Parameters
+    ----------
+    property_name : str
+        The name of the property
+    index_arr : array_like
+        The active index array to validate
+    n_cells : int
+        The length of the expected array
+
+    Returns
+    -------
+    (n_cells) numpy.ndarray of bool
+
+    """
+    index_arr = np.asarray(index_arr)
+    index_arr = np.atleast_1d(np.squeeze(index_arr))
+    if index_arr.ndim != 1:
+        raise ValueError(f"{property_name} must be a 1D array.")
+
+    if not np.issubdtype(index_arr.dtype, bool):
+        if not np.issubdtype(index_arr.dtype, np.integer):
+            raise TypeError(
+                f"{property_name} must be an array of integers (or boolean) "
+                "indicating the active cells."
+            )
+
+        tmp = np.zeros((n_cells,), dtype=bool)
+        if index_arr.max() >= n_cells:
+            raise IndexError(
+                f"maximum index {index_arr.max()} out of bounds for `{property_name}` with size {n_cells}"
+            )
+        tmp[index_arr] = True
+
+        if np.sum(tmp) != len(index_arr):
+            # This line should cause an error to be thrown if someone
+            # accidentally passes a list of 0 & 1 integers instead of passing
+            # it a list of booleans.
+            raise ValueError(
+                f"{property_name} was interpreted as a list of active indices and you "
+                "attempted to set the same cell as active multiple times."
+            )
+        index_arr = tmp
+
+    if index_arr.shape != (n_cells,):
+        raise ValueError(f"Input 'active_cells' must have shape {(n_cells,)}")
+    return index_arr
 
 
 ###############################################################

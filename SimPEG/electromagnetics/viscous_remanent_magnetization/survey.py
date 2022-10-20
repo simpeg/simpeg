@@ -1,6 +1,5 @@
 import numpy as np
 
-# import properties
 
 from ...survey import BaseSurvey
 from .sources import BaseSrcVRM
@@ -22,16 +21,6 @@ class SurveyVRM(BaseSurvey):
     t_active : numpy.ndarray of bool
         Active time channels used in inversion
     """
-
-    # source_list = properties.List(
-    #     "A list of sources for the survey",
-    #     properties.Instance("A SimPEG source", BaseSrcVRM),
-    #     default=[],
-    # )
-
-    # t_active = properties.Array(
-    #     "Boolean array where True denotes active data in the inversion", dtype=bool
-    # )
 
     def __init__(self, source_list, t_active=None, **kwargs):
 
@@ -62,14 +51,6 @@ class SurveyVRM(BaseSurvey):
         self._source_list = validate_list_of_types(
             "source_list", new_list, BaseSrcVRM, ensure_unique=True
         )
-
-    # @properties.validator("t_active")
-    # def _t_active_validator(self, change):
-    #     if self._nD_all != len(change["value"]):
-    #         raise ValueError(
-    #             "Length of t_active boolean array must equal number of data. Number of data is %i"
-    #             % self._nD_all
-    #         )
 
     @property
     def nD(self):

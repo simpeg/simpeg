@@ -12,10 +12,9 @@ testAdjoint = True
 
 TOL = 0.5
 
-np.random.seed(10)
-
 
 def setUp_TDEM(prbtype="ElectricField", rxcomp="ElectricFieldx", src_z=0.0):
+    np.random.seed(10)
     cs = 5.0
     ncx = 8
     ncy = 8

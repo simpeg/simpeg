@@ -1,6 +1,5 @@
-from SimPEG.utils import mkvc, sdiag, setKwargs
+from SimPEG.utils import mkvc, sdiag
 from SimPEG import props
-from ...simulation import BaseSimulation
 from ...base import BasePDESimulation
 from ..base import BasePFSimulation, BaseEquivalentSourceLayerSimulation
 from .survey import Survey
@@ -15,10 +14,12 @@ class Simulation3DIntegral(BasePFSimulation):
 
     """
 
-    rho, rhoMap, rhoDeriv = props.Invertible("Physical property", default=1.0)
+    rho, rhoMap, rhoDeriv = props.Invertible("Density")
 
-    def __init__(self, mesh, **kwargs):
+    def __init__(self, mesh, rho=None, rhoMap=None, **kwargs):
         super().__init__(mesh, **kwargs)
+        self.rho = rho
+        self.rhoMap = rhoMap
         self._G = None
         self._gtg_diagonal = None
         self.modelMap = self.rhoMap
@@ -351,14 +352,12 @@ class Simulation3DDifferential(BasePDESimulation):
         \big [ \mathbf{D M_f D^T} \big ] \mathbf{u} = - \mathbf{M_c \, \rho}
     """
 
-    _deprecate_main_map = "rhoMap"
+    rho, rhoMap, rhoDeriv = props.Invertible("Specific density (g/cc)")
 
-    rho, rhoMap, rhoDeriv = props.Invertible("Specific density (g/cc)", default=1.0)
-
-    solver = None
-
-    def __init__(self, mesh, **kwargs):
-        BaseSimulation.__init__(self, mesh, **kwargs)
+    def __init__(self, mesh, rho=1.0, rhoMap=None, **kwargs):
+        super().__init__(mesh, **kwargs)
+        self.rho = rho
+        self.rhoMap = rhoMap
 
         self._Div = self.mesh.face_divergence
 

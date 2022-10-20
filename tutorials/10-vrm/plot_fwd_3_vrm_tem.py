@@ -77,7 +77,7 @@ receiver_locations = np.c_[mkvc(xrx), mkvc(yrx), mkvc(zrx)]
 #
 
 # Define the waveform object for tdem simulation. Here we use the step-off.
-tdem_waveform = tdem.sources.StepOffWaveform(offTime=0.0)
+tdem_waveform = tdem.sources.StepOffWaveform(off_time=0.0)
 
 # Define survey object
 tdem_source_list = []
@@ -183,7 +183,7 @@ for pp in range(0, receiver_locations.shape[0]):
     loc_pp = np.reshape(receiver_locations[pp, :], (1, 3))
     vrm_receivers_list = [
         vrm.receivers.Point(
-            loc_pp, times=time_channels, fieldType="dbdt", orientation="z"
+            loc_pp, times=time_channels, field_type="dbdt", orientation="z"
         )
     ]
 

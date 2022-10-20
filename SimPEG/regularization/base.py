@@ -99,7 +99,8 @@ class BaseRegularization(BaseObjectiveFunction):
     indActive = deprecate_property(
         active_cells,
         "indActive",
-        "0.x.0",
+        "0.19.0",
+        future_warn=True,
         error=False,
     )
 
@@ -189,7 +190,8 @@ class BaseRegularization(BaseObjectiveFunction):
     mref = deprecate_property(
         reference_model,
         "mref",
-        "0.x.0",
+        "0.19.0",
+        future_warn=True,
         error=False,
     )
 
@@ -201,7 +203,8 @@ class BaseRegularization(BaseObjectiveFunction):
     regmesh = deprecate_property(
         regularization_mesh,
         "regmesh",
-        "0.x.0",
+        "0.19.0",
+        future_warn=True,
         error=False,
     )
 
@@ -210,8 +213,8 @@ class BaseRegularization(BaseObjectiveFunction):
         """Deprecated property for 'volume' and user defined weights."""
         warnings.warn(
             "cell_weights are deprecated please access weights using the `set_weights`,"
-            " `get_weights`, and `remove_weights` functionality. This will be removed in 0.x.0",
-            DeprecationWarning,
+            " `get_weights`, and `remove_weights` functionality. This will be removed in 0.19.0",
+            FutureWarning,
         )
         return np.prod(list(self._weights.values()), axis=0)
 
@@ -219,8 +222,8 @@ class BaseRegularization(BaseObjectiveFunction):
     def cell_weights(self, value):
         warnings.warn(
             "cell_weights are deprecated please access weights using the `set_weights`,"
-            " `get_weights`, and `remove_weights` functionality. This will be removed in 0.x.0",
-            DeprecationWarning,
+            " `get_weights`, and `remove_weights` functionality. This will be removed in 0.19.0",
+            FutureWarning,
         )
         self.set_weights(cell_weights=value)
 
@@ -762,8 +765,8 @@ class WeightedLeastSquares(ComboObjectiveFunction):
     def cell_weights(self, value):
         warnings.warn(
             "cell_weights are deprecated please access weights using the `set_weights`,"
-            " `get_weights`, and `remove_weights` functionality. This will be removed in 0.x.0",
-            DeprecationWarning,
+            " `get_weights`, and `remove_weights` functionality. This will be removed in 0.19.0",
+            FutureWarning,
         )
         self.set_weights(cell_weights=value)
 
@@ -1011,7 +1014,7 @@ class WeightedLeastSquares(ComboObjectiveFunction):
     indActive = deprecate_property(
         active_cells,
         "indActive",
-        "0.x.0",
+        "0.19.0",
         error=False,
     )
 
@@ -1034,7 +1037,8 @@ class WeightedLeastSquares(ComboObjectiveFunction):
     mref = deprecate_property(
         reference_model,
         "mref",
-        "0.x.0",
+        "0.19.0",
+        future_warn=True,
         error=False,
     )
 

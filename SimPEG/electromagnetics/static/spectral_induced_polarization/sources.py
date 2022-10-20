@@ -1,7 +1,5 @@
 import numpy as np
 
-# import properties
-
 from .... import survey
 from ....utils import Zero, closestPoints, mkvc, validate_list_of_types, validate_float
 from .receivers import BaseRx
@@ -19,8 +17,6 @@ class BaseSrc(survey.BaseSrc):
     current : float, default=1.0
         Current amplitude [A]
     """
-
-    # current = properties.Float("Source current", default=1.0)
 
     def __init__(self, receiver_list, location, current=1.0, **kwargs):
         super(BaseSrc, self).__init__(
@@ -111,11 +107,6 @@ class Dipole(BaseSrc):
     current : float, default=1.0
         Current amplitude [A]
     """
-
-    # location = properties.List(
-    #     "location of the source electrodes",
-    #     survey.SourceLocationArray("location of electrode"),
-    # )
 
     def __init__(
         self,

@@ -5,7 +5,6 @@ from __future__ import unicode_literals
 
 import numpy as np
 
-# import properties
 from ....utils.code_utils import deprecate_property, validate_string
 
 from ....survey import BaseSurvey
@@ -28,25 +27,6 @@ class Survey(BaseSurvey):
     survey_type : {"dipole-dipole", "pole-dipole", "dipole-pole", "pole-pole"}
         Survey type.
     """
-
-    # source_list = properties.List(
-    #     "A list of sources for the survey",
-    #     properties.Instance("A DC source", Src.BaseSrc),
-    #     default=[],
-    # )
-
-    # # Survey
-    # survey_geometry = properties.StringChoice(
-    #     "Survey geometry of DC surveys",
-    #     default="surface",
-    #     choices=["surface", "borehole", "general"],
-    # )
-
-    # survey_type = properties.StringChoice(
-    #     "DC-IP Survey type",
-    #     default="dipole-dipole",
-    #     choices=["dipole-dipole", "pole-dipole", "dipole-pole", "pole-pole"],
-    # )
 
     def __init__(
         self,
@@ -182,7 +162,7 @@ class Survey(BaseSurvey):
         "electrode_locations",
         new_name="unique_electrode_locations",
         removal_version="0.17.0",
-        future_warn=True,
+        error=True,
     )
 
     @property

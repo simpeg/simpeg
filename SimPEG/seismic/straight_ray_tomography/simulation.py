@@ -79,6 +79,13 @@ class Simulation2DIntegral(LinearSimulation):
 
     slowness, slownessMap, slownessDeriv = props.Invertible("Slowness model (1/v)")
 
+    def __init__(
+        self, mesh=None, survey=None, slowness=None, slownessMap=None, **kwargs
+    ):
+        super().__init__(mesh=mesh, survey=survey, **kwargs)
+        self.slowness = slowness
+        self.slownessMap = slownessMap
+
     @property
     def A(self):
         if getattr(self, "_A", None) is not None:
