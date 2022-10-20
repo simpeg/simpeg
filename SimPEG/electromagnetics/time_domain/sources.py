@@ -434,9 +434,9 @@ class VTEMWaveform(BaseWaveform):
     # Deprecated
     ##########################
 
-    peak_time = deprecate_property(
+    peakTime = deprecate_property(
         peak_time,
-        "peak_time",
+        "peakTime",
         new_name="peak_time",
         removal_version="0.17.0",
         error=True,
@@ -632,9 +632,9 @@ class TriangularWaveform(TrapezoidWaveform):
     # Deprecated
     ##########################
 
-    peak_time = deprecate_property(
+    peakTime = deprecate_property(
         peak_time,
-        "peak_time",
+        "peakTime",
         new_name="peak_time",
         removal_version="0.17.0",
         error=True,
