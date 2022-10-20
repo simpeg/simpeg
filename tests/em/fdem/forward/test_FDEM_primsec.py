@@ -248,7 +248,7 @@ class PrimSecFDEMSrcTest_Cyl2Cart_HJ_EB(unittest.TestCase, PrimSecFDEMTest):
         )
         self.primarySimulation.solver = Solver
         s_e = np.zeros(meshp.nF)
-        inds = meshp.nFx + utils.closestPoints(meshp, src_loc, gridLoc="Fz")
+        inds = meshp.nFx + meshp.closest_points_index(src_loc, grid_loc="Fz")
         s_e[inds] = 1.0 / csz
         primarySrc = fdem.Src.RawVec_e(
             self.rxlist, frequency=freq, s_e=s_e / meshp.face_areas
@@ -275,7 +275,9 @@ class PrimSecFDEMSrcTest_Cyl2Cart_HJ_EB(unittest.TestCase, PrimSecFDEMTest):
         # Full 3D problem to compare with
 
         s_e3D = np.zeros(meshs.nE)
-        inds = meshs.nEx + meshs.nEy + utils.closestPoints(meshs, src_loc, gridLoc="Ez")
+        inds = (
+            meshs.nEx + meshs.nEy + meshs.closest_points_index(src_loc, grid_loc="Ez")
+        )
         s_e3D[inds] = [1.0 / (len(inds))] * len(inds)
 
         src3D = fdem.Src.RawVec_e(self.rxlist, frequency=freq, s_e=s_e3D)

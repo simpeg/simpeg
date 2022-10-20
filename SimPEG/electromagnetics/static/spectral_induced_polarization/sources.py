@@ -1,7 +1,7 @@
 import numpy as np
 
 from .... import survey
-from ....utils import Zero, closestPoints, mkvc, validate_list_of_types, validate_float
+from ....utils import Zero, mkvc, validate_list_of_types, validate_float
 from .receivers import BaseRx
 
 
@@ -219,7 +219,7 @@ class Dipole(BaseSrc):
             Discretize source term on the mesh
         """
         if simulation._formulation == "HJ":
-            inds = closestPoints(simulation.mesh, self.location, gridLoc="CC")
+            inds = simulation.mesh.closest_points_index(self.location, grid_loc="CC")
             q = np.zeros(simulation.mesh.nC)
             q[inds] = self.current * np.r_[1.0, -1.0]
         elif simulation._formulation == "EB":
@@ -263,7 +263,7 @@ class Pole(BaseSrc):
             Discretize source term on the mesh
         """
         if simulation._formulation == "HJ":
-            inds = closestPoints(simulation.mesh, self.location)
+            inds = simulation.mesh.closest_points_index(self.location)
             q = np.zeros(simulation.mesh.nC)
             q[inds] = self.current * np.r_[1.0]
         elif simulation._formulation == "EB":

@@ -36,8 +36,8 @@
 #                 )
 #
 #         q = np.zeros(mesh.nC)
-#         inda = utils.closestPoints(mesh, np.r_[-0.5, 0., -0.8])
-#         indb = utils.closestPoints(mesh, np.r_[0.5, 0., -0.8])
+#         inda = mesh.closest_points_index(np.r_[-0.5, 0., -0.8])
+#         indb = mesh.closest_points_index(np.r_[0.5, 0., -0.8])
 #         q[inda] = 1.
 #         q[indb] = -1.
 #

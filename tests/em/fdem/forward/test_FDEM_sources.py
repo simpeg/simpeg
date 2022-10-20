@@ -36,7 +36,7 @@ class TestSimpleSourcePropertiesTensor(unittest.TestCase):
 
         loc = np.r_[0.0, 0.0, 0.0]
         self.location = utils.mkvc(
-            self.mesh.gridCC[utils.closestPoints(self.mesh, loc, "CC"), :]
+            self.mesh.gridCC[self.mesh.closest_points_index(loc, "CC"), :]
         )
 
     def test_MagDipole(self):

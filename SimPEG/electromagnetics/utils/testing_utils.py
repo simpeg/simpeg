@@ -73,11 +73,11 @@ def getFDEMProblem(fdemType, comp, SrcList, freq, useMu=False, verbose=False):
                 S_m = np.zeros(mesh.nF)
                 S_e = np.zeros(mesh.nE)
                 S_m[
-                    utils.closestPoints(mesh, [0.0, 0.0, 0.0], "Fz")
+                    mesh.closest_points_index([0.0, 0.0, 0.0], "Fz")
                     + np.sum(mesh.vnF[:1])
                 ] = 1e-3
                 S_e[
-                    utils.closestPoints(mesh, [0.0, 0.0, 0.0], "Ez")
+                    mesh.closest_points_index([0.0, 0.0, 0.0], "Ez")
                     + np.sum(mesh.vnE[:1])
                 ] = 1e-3
                 Src.append(
@@ -90,11 +90,11 @@ def getFDEMProblem(fdemType, comp, SrcList, freq, useMu=False, verbose=False):
                 S_m = np.zeros(mesh.nE)
                 S_e = np.zeros(mesh.nF)
                 S_m[
-                    utils.closestPoints(mesh, [0.0, 0.0, 0.0], "Ez")
+                    mesh.closest_points_index([0.0, 0.0, 0.0], "Ez")
                     + np.sum(mesh.vnE[:1])
                 ] = 1e-3
                 S_e[
-                    utils.closestPoints(mesh, [0.0, 0.0, 0.0], "Fz")
+                    mesh.closest_points_index([0.0, 0.0, 0.0], "Fz")
                     + np.sum(mesh.vnF[:1])
                 ] = 1e-3
                 Src.append(

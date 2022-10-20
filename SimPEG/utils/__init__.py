@@ -186,7 +186,7 @@ Many of the functions here are used internally to SimPEG and have minimal docume
 """
 from __future__ import print_function
 
-from discretize.utils.interpolation_utils import interpmat
+from discretize.utils.interpolation_utils import interpmat, interpolation_matrix
 
 from .code_utils import (
     create_wrapper_from_class,

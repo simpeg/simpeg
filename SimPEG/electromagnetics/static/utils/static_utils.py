@@ -10,7 +10,6 @@ from ..resistivity import sources, receivers
 from ....data import Data
 from .. import resistivity as dc
 from ....utils import (
-    closestPoints,
     mkvc,
     surface2ind_topo,
     model_builder,
@@ -1641,7 +1640,7 @@ def drapeTopotoLoc(mesh, pts, ind_active=None, option="top", topo=None, **kwargs
 
     if mesh._meshType == "TENSOR":
         meshtemp, topoCC = gettopoCC(mesh, ind_active, option=option)
-        inds = closestPoints(meshtemp, pts)
+        inds = meshtemp.closest_points_index(pts)
         topo = topoCC[inds]
         out = np.c_[pts, topo]
 
