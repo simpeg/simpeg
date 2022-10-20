@@ -479,7 +479,7 @@ class Simulation3DNodal(BaseDCSimulation):
         else:
             MeSigma = self.mesh.get_edge_inner_product(1.0 / resistivity)
         Grad = self.mesh.nodal_gradient
-        A = Grad.T @ MeSigma @ Grad
+        A = Grad.T.tocsr() @ MeSigma @ Grad
 
         if self.bc_type == "Neumann":
             # Handling Null space of A
@@ -491,7 +491,7 @@ class Simulation3DNodal(BaseDCSimulation):
             # Dirichlet BC type should already have failed
             # Also, this will fail if sigma is anisotropic
             try:
-                A = A + sp.diags(self._AvgBC @ self.sigma)
+                A = A + sp.diags(self._AvgBC @ self.sigma, format="csr")
             except ValueError as err:
                 if len(self.sigma) != len(self.mesh):
                     raise NotImplementedError(

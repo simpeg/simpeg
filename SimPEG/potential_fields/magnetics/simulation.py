@@ -709,7 +709,7 @@ class Simulation3DDifferential(BaseMagneticPDESimulation):
 
         Dface = self.mesh.face_divergence
         Mc = sdiag(self.mesh.vol)
-        self._Div = Mc * Dface * Pin.T * Pin
+        self._Div = Mc * Dface * Pin.T.tocsr() * Pin
 
     @property
     def survey(self):
@@ -792,7 +792,7 @@ class Simulation3DDifferential(BaseMagneticPDESimulation):
             \mathbf{A} =  \Div(\MfMui)^{-1}\Div^{T}
 
         """
-        return self._Div * self.MfMuI * self._Div.T
+        return self._Div * self.MfMuI * self._Div.T.tocsr()
 
     def fields(self, m):
         """

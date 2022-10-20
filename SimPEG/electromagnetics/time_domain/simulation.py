@@ -342,7 +342,7 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
             # refactor if we need to
             if AdiagTinv is None:  # and tInd > -1:
                 Adiag = self.getAdiag(tInd)
-                AdiagTinv = self.solver(Adiag.T, **self.solver_opts)
+                AdiagTinv = self.solver(Adiag.T.tocsr(), **self.solver_opts)
 
             if tInd < self.nT - 1:
                 Asubdiag = self.getAsubdiag(tInd + 1)
@@ -571,10 +571,10 @@ class Simulation3DMagneticFluxDensity(BaseTDEMSimulation):
         MfMui = self.MfMui
         I = speye(self.mesh.n_faces)
 
-        A = 1.0 / dt * I + (C * (MeSigmaI * (C.T * MfMui)))
+        A = 1.0 / dt * I + (C * (MeSigmaI * (C.T.tocsr() * MfMui)))
 
         if self._makeASymmetric is True:
-            return MfMui.T * A
+            return MfMui.T.tocsr() * A
         return A
 
     def getAdiagDeriv(self, tInd, u, v, adjoint=False):
@@ -883,7 +883,7 @@ class Simulation3DElectricField(BaseTDEMSimulation):
         MfMui = self.MfMui
         MeSigma = self.MeSigma
 
-        return C.T * (MfMui * C) + 1.0 / dt * MeSigma
+        return C.T.tocsr() * (MfMui * C) + 1.0 / dt * MeSigma
 
     def getAdiagDeriv(self, tInd, u, v, adjoint=False):
         """
@@ -942,7 +942,7 @@ class Simulation3DElectricField(BaseTDEMSimulation):
     def getAdc(self):
         MeSigma = self.MeSigma
         Grad = self.mesh.nodal_gradient
-        Adc = Grad.T * MeSigma * Grad
+        Adc = Grad.T.tocsr() * MeSigma * Grad
         # Handling Null space of A
         Adc[0, 0] = Adc[0, 0] + 1.0
         return Adc
@@ -951,9 +951,8 @@ class Simulation3DElectricField(BaseTDEMSimulation):
         Grad = self.mesh.nodal_gradient
         if not adjoint:
             return Grad.T * self.MeSigmaDeriv(-u, v, adjoint)
-        elif adjoint:
+        else:
             return self.MeSigmaDeriv(-u, Grad * v, adjoint)
-        return Adc
 
     # def clean(self):
     #     """

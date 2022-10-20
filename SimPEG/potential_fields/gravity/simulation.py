@@ -379,7 +379,7 @@ class Simulation3DDifferential(BasePDESimulation):
         """
         # Constructs A with 0 dirichlet
         if getattr(self, "_A", None) is None:
-            self._A = self._Div * self.Mf * self._Div.T
+            self._A = self._Div * self.Mf * self._Div.T.tocsr()
         return self._A
 
     def fields(self, m=None):

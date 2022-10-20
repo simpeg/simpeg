@@ -1205,7 +1205,7 @@ class MagDipole(BaseTDEMSrc):
             return (
                 simulation.mesh.face_divergence
                 * simulation.MfMuiI
-                * simulation.mesh.face_divergence.T
+                * simulation.mesh.face_divergence.T.tocsr()
             )
         else:
             raise NotImplementedError(
@@ -1845,8 +1845,10 @@ class LineCurrent(BaseTDEMSrc):
         vol = simulation.mesh.vol
         Div = sdiag(vol) * simulation.mesh.face_divergence
         return (
-            simulation.mesh.edge_curl * simulation.MeMuI * simulation.mesh.edge_curl.T
-            - Div.T
+            simulation.mesh.edge_curl
+            * simulation.MeMuI
+            * simulation.mesh.edge_curl.T.tocsr()
+            - Div.T.tocsr()
             * sdiag(1.0 / vol * simulation.mui)
             * Div  # stabalizing term. See (Chen, Haber & Oldenburg 2002)
         )
