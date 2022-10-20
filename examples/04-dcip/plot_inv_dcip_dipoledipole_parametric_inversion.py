@@ -108,7 +108,11 @@ def run(
         gridOpts={"alpha": 0.2},
         pcolorOpts={"cmap": "viridis", "norm": colors.LogNorm(10, 1000)},
     )
-    ax.plot(survey.electrode_locations[:, 0], survey.electrode_locations[:, 1], "k.")
+    ax.plot(
+        survey.unique_electrode_locations[:, 0],
+        survey.unique_electrode_locations[:, 1],
+        "k.",
+    )
     ax.set_xlim(IO.grids[:, 0].min(), IO.grids[:, 0].max())
     ax.set_ylim(-IO.grids[:, 1].max(), IO.grids[:, 1].min())
     cb = plt.colorbar(out[0])
@@ -128,7 +132,11 @@ def run(
         gridOpts={"alpha": 0.2},
         pcolorOpts={"cmap": "viridis", "norm": colors.LogNorm(10, 1000)},
     )
-    ax.plot(survey.electrode_locations[:, 0], survey.electrode_locations[:, 1], "k.")
+    ax.plot(
+        survey.unique_electrode_locations[:, 0],
+        survey.unique_electrode_locations[:, 1],
+        "k.",
+    )
     ax.set_xlim(IO.grids[:, 0].min(), IO.grids[:, 0].max())
     ax.set_ylim(-IO.grids[:, 1].max(), IO.grids[:, 1].min())
     cb = plt.colorbar(out[0])
@@ -198,7 +206,9 @@ def run(
     out = [out1, out2]
     for i in range(2):
         ax[i].plot(
-            survey.electrode_locations[:, 0], survey.electrode_locations[:, 1], "kv"
+            survey.unique_electrode_locations[:, 0],
+            survey.unique_electrode_locations[:, 1],
+            "kv",
         )
         ax[i].set_xlim(IO.grids[:, 0].min(), IO.grids[:, 0].max())
         ax[i].set_ylim(-IO.grids[:, 1].max(), IO.grids[:, 1].min())

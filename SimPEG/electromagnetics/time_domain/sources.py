@@ -243,7 +243,7 @@ class RampOffWaveform(BaseWaveform):
         out = np.zeros_like(t)
 
         if self.off_time > 0:
-            out[(t < self.off_time) & (t >= self.eps)] = -1.0 / self.off_time
+            out[(t < self.off_time) & (t >= self.epsilon)] = -1.0 / self.off_time
 
         if out.ndim == 0:
             out = out.item()
@@ -434,9 +434,9 @@ class VTEMWaveform(BaseWaveform):
     # Deprecated
     ##########################
 
-    peak_time = deprecate_property(
+    peakTime = deprecate_property(
         peak_time,
-        "peak_time",
+        "peakTime",
         new_name="peak_time",
         removal_version="0.17.0",
         error=True,
@@ -632,9 +632,9 @@ class TriangularWaveform(TrapezoidWaveform):
     # Deprecated
     ##########################
 
-    peak_time = deprecate_property(
+    peakTime = deprecate_property(
         peak_time,
-        "peak_time",
+        "peakTime",
         new_name="peak_time",
         removal_version="0.17.0",
         error=True,
