@@ -616,7 +616,7 @@ class MagDipole(BaseFDEMSrc):
             if formulation == "EB":
                 mui_s = simulation.mui - 1.0 / self.mu
                 MMui_sDeriv = (
-                    simulation.mesh.getFaceInnerProductDeriv(mui_s)(
+                    simulation.mesh.get_face_inner_product_deriv(mui_s)(
                         self.bPrimary(simulation)
                     )
                     * simulation.muiDeriv
@@ -1164,7 +1164,9 @@ class PrimSecMappedSigma(BaseFDEMSrc):
                 simulation.MeSigmaDeriv(ePrimary, v, adjoint)
                 - (
                     sigmaPrimaryDeriv.T
-                    * simulation.mesh.getEdgeInnerProductDeriv(sigmaPrimary)(ePrimary).T
+                    * simulation.mesh.get_edge_inner_product_deriv(sigmaPrimary)(
+                        ePrimary
+                    ).T
                     * v
                 )
                 + self.ePrimaryDeriv(
@@ -1181,7 +1183,7 @@ class PrimSecMappedSigma(BaseFDEMSrc):
 
         return (
             simulation.MeSigmaDeriv(ePrimary, v, adjoint)
-            - simulation.mesh.getEdgeInnerProductDeriv(sigmaPrimary)(ePrimary)
+            - simulation.mesh.get_edge_inner_product_deriv(sigmaPrimary)(ePrimary)
             * (sigmaPrimaryDeriv * v)
             + (
                 simulation.MeSigma
