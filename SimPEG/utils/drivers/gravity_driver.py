@@ -169,7 +169,7 @@ class GravityDriver_Inv(object):
     @property
     def mesh(self):
         if getattr(self, "_mesh", None) is None:
-            self._mesh = TensorMesh.readUBC(self.basePath + self.mshfile)
+            self._mesh = TensorMesh.read_UBC(self.basePath + self.mshfile)
         return self._mesh
 
     @property
@@ -243,7 +243,7 @@ class GravityDriver_Inv(object):
                 self._m0 = np.ones(self.nC) * self.mstart
             else:
 
-                self._m0 = TensorMesh.readModelUBC(
+                self._m0 = TensorMesh.read_model_UBC(
                     self.mesh, self.basePath + self.mstart
                 )
 
@@ -255,7 +255,7 @@ class GravityDriver_Inv(object):
             if isinstance(self._mrefInput, float):
                 self._mref = np.ones(self.nC) * self._mrefInput
             else:
-                self._mref = TensorMesh.readModelUBC(
+                self._mref = TensorMesh.read_model_UBC(
                     self.mesh, self.basePath + self._mrefInput
                 )
                 self._mref = self._mref[self.activeCells]
@@ -266,7 +266,7 @@ class GravityDriver_Inv(object):
         if getattr(self, "_activeModel", None) is None:
             if isinstance(self._staticInput, str):
                 # Read from file active cells with 0:air, 1:dynamic, -1 static
-                self._activeModel = TensorMesh.readModelUBC(
+                self._activeModel = TensorMesh.read_model_UBC(
                     self.mesh, self.basePath + self._staticInput
                 )
 

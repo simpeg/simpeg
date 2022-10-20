@@ -235,7 +235,7 @@ def setupSimpegNSEM_tests_location_assign_list(
     survey_ns.m_true = model_true
 
     # write out the true model
-    # discretize.TensorMesh.writeUBC(mesh,'Mesh-pre.msh', models={'Sigma-pre.dat': np.exp(model_true)})
+    # discretize.TensorMesh.write_UBC(mesh,'Mesh-pre.msh', models={'Sigma-pre.dat': np.exp(model_true)})
     # create background conductivity model
     sigma_back = 1e-2
     sigBG = np.zeros(mesh.nC) * sigma_back
@@ -360,7 +360,7 @@ def setupSimpegNSEM_PrimarySecondary(inputSetup, freqs, comp="Imp", singleFreq=F
     survey_ns.m_true = model_true
 
     # write out the true model
-    # discretize.TensorMesh.writeUBC(mesh,'Mesh-pre.msh', models={'Sigma-pre.dat': np.exp(model_true)})
+    # discretize.TensorMesh.write_UBC(mesh,'Mesh-pre.msh', models={'Sigma-pre.dat': np.exp(model_true)})
     # create background conductivity model
     sigma_back = 1e-2
     sigBG = np.zeros(mesh.nC) * sigma_back
