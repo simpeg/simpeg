@@ -80,7 +80,8 @@ class Simulation1DLayered(BaseEM1DSimulation):
             i_f = np.searchsorted(frequencies, src.frequency)
             for i_rx, rx in enumerate(src.receiver_list):
                 if is_wire_loop:
-                    i_freq.append([i_f] * rx.locations.shape[0] * src.n_quad_points)
+                    n_quad_points = src.n_segments * self.n_points_per_path
+                    i_freq.append([i_f] * rx.locations.shape[0] * n_quad_points)
                 else:
                     i_freq.append([i_f] * rx.locations.shape[0])
         self._i_freq = np.hstack(i_freq)
@@ -157,8 +158,9 @@ class Simulation1DLayered(BaseEM1DSimulation):
 
                     h = h_vec[i_src]
                     if is_wire_loop:
+                        n_quad_points = src.n_segments * self.n_points_per_path
                         nD = sum(
-                            rx.locations.shape[0] * src.n_quad_points
+                            rx.locations.shape[0] * n_quad_points
                             for rx in src.receiver_list
                         )
                     else:
@@ -187,8 +189,9 @@ class Simulation1DLayered(BaseEM1DSimulation):
                     class_name = type(src).__name__
                     is_wire_loop = class_name == "LineCurrent"
                     if is_wire_loop:
+                        n_quad_points = src.n_segments * self.n_points_per_path
                         nD = sum(
-                            rx.locations.shape[0] * src.n_quad_points
+                            rx.locations.shape[0] * n_quad_points
                             for rx in src.receiver_list
                         )
                     else:

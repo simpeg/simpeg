@@ -383,7 +383,7 @@ class BaseEM1DSimulation(BaseSimulation):
                 xyks = []
                 thetas = []
                 weights = []
-                for i_path in range(src.location.shape[0] - 1):
+                for i_path in range(src.n_segments):
                     dx = xy_src_path[i_path + 1, 0] - xy_src_path[i_path, 0]
                     dy = xy_src_path[i_path + 1, 1] - xy_src_path[i_path, 1]
                     dl = np.sqrt(dx ** 2 + dy ** 2)

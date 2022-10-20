@@ -1257,6 +1257,17 @@ class LineCurrent(BaseFDEMSrc):
             raise ValueError("current must be non-zero.")
         self._current = I
 
+    @property
+    def n_segments(self):
+        """
+        The number of line current segments.
+
+        Returns
+        -------
+        int
+        """
+        return self.location.shape[0] - 1
+
     def Mejs(self, simulation):
         """Integrated electrical source term on edges
 

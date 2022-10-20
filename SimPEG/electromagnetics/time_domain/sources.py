@@ -1548,7 +1548,8 @@ class LineCurrent(BaseTDEMSrc):
         List of TDEM receivers
     locations : (n, 3) numpy.ndarray
         Array defining the node locations for the wire path. For inductive sources,
-        you must close the loop.
+        you must close the loop, (i.e. provide the same point as the first and last
+        entry of the array).
     current : float, optional
         A non-zero current value.
     mu : float, optional
@@ -1610,6 +1611,17 @@ class LineCurrent(BaseTDEMSrc):
         if np.abs(I) == 0.0:
             raise ValueError("current must be non-zero.")
         self._current = I
+
+    @property
+    def n_segments(self):
+        """
+        The number of line current segments.
+
+        Returns
+        -------
+        int
+        """
+        return self.location.shape[0] - 1
 
     def Mejs(self, simulation):
         """Integrated electrical source term on edges
