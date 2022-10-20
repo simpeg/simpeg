@@ -6,41 +6,6 @@ from dask.diagnostics import ProgressBar
 from ..utils import compute_chunk_sizes
 
 
-@property
-def chunk_format(self):
-    "Apply memory chunks along rows of G, either 'equal', 'row', or 'auto'"
-    return self._chunk_format
-
-
-@chunk_format.setter
-def chunk_format(self, other):
-    if other not in ["equal", "row", "auto"]:
-        raise ValueError("Chunk format must be 'equal', 'row', or 'auto'")
-    self._chunk_format = other
-
-
-Sim.chunk_format = chunk_format
-
-# add chunk_format as an option to __init__
-_old_init = Sim.__init__
-
-
-def __init__(
-    self, mesh, ind_active=None, store_sensitivities="ram", chunk_format="row", **kwargs
-):
-    _old_init(
-        self,
-        mesh,
-        ind_active=ind_active,
-        store_sensitivities=store_sensitivities,
-        **kwargs,
-    )
-    self.chunk_format = chunk_format
-
-
-Sim.__init__ = __init__
-
-
 def dask_linear_operator(self):
     forward_only = self.store_sensitivities == "forward_only"
     row = delayed(self.evaluate_integral, pure=True)
