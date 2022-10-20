@@ -324,7 +324,7 @@ def write_gg3d_ubc(filename, data_object):
     survey = data_object.survey
 
     # Convert component types from UBC to SimPEG
-    components = list(survey.components.keys())
+    components = survey.components
     n_comp = len(components)
     factor = np.ones(n_comp)
 
