@@ -83,7 +83,7 @@ def resolve_1Dinversions(
     Perform a single 1D inversion for a RESOLVE sounding for Horizontal
     Coplanar Coil data (both real and imaginary).
 
-    :param discretize.CylMesh mesh: mesh used for the forward simulation
+    :param discretizeCylindricalMesh mesh: mesh used for the forward simulation
     :param numpy.ndarray dobs: observed data
     :param float src_height: height of the source above the ground
     :param numpy.ndarray freqs: frequencies
@@ -186,7 +186,7 @@ def run(runIt=False, plotIt=True, saveIt=False, saveFig=False, cleanup=True):
     temp = np.logspace(np.log10(1.0), np.log10(12.0), 19)
     temp_pad = temp[-1] * 1.3 ** np.arange(npad)
     hz = np.r_[temp_pad[::-1], temp[::-1], temp, temp_pad]
-    mesh = discretize.CylMesh([hx, 1, hz], "00C")
+    mesh = discretizeCylindricalMesh([hx, 1, hz], "00C")
     active = mesh.cell_centers_z < 0.0
 
     # survey parameters

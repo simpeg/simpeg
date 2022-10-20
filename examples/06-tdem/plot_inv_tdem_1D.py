@@ -25,7 +25,7 @@ def run(plotIt=True):
     cs, ncx, ncz, npad = 5.0, 25, 15, 15
     hx = [(cs, ncx), (cs, npad, 1.3)]
     hz = [(cs, npad, -1.3), (cs, ncz), (cs, npad, 1.3)]
-    mesh = discretize.CylMesh([hx, 1, hz], "00C")
+    mesh = discretizeCylindricalMesh([hx, 1, hz], "00C")
 
     active = mesh.cell_centers_z < 0.0
     layer = (mesh.cell_centers_z < 0.0) & (mesh.cell_centers_z >= -100.0)

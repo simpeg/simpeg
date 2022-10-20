@@ -30,7 +30,7 @@ def halfSpaceProblemAnaDiff(
         cs, ncx, ncz, npad = 15.0, 30, 10, 15
         hx = [(cs, ncx), (cs, npad, 1.3)]
         hz = [(cs, npad, -1.3), (cs, ncz), (cs, npad, 1.3)]
-        mesh = discretize.CylMesh([hx, 1, hz], "00C")
+        mesh = discretizeCylindricalMesh([hx, 1, hz], "00C")
 
     elif meshType == "TENSOR":
         cs, nc, npad = 20.0, 20, 7

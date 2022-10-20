@@ -453,7 +453,7 @@ class RegularizationTests(unittest.TestCase):
         temp = np.logspace(np.log10(1.0), np.log10(12.0), 19)
         temp_pad = temp[-1] * 1.3 ** np.arange(npad)
         hz = np.r_[temp_pad[::-1], temp[::-1], temp, temp_pad]
-        mesh = discretize.CylMesh([hx, 1, hz], "00C")
+        mesh = discretizeCylindricalMesh([hx, 1, hz], "00C")
         active = mesh.cell_centers_z < 0.0
 
         active = mesh.cell_centers_z < 0.0
@@ -478,7 +478,7 @@ class RegularizationTests(unittest.TestCase):
         temp = np.logspace(np.log10(1.0), np.log10(12.0), 19)
         temp_pad = temp[-1] * 1.3 ** np.arange(npad)
         hz = np.r_[temp_pad[::-1], temp[::-1], temp, temp_pad]
-        mesh = discretize.CylMesh([hx, 3, hz], "00C")
+        mesh = discretizeCylindricalMesh([hx, 3, hz], "00C")
         active = mesh.cell_centers[:, 2] < 0.0
 
         reg = regularization.WeightedLeastSquares(mesh, active_cells=active)

@@ -100,7 +100,7 @@ class MapTests(unittest.TestCase):
         self.mesh2 = discretize.TensorMesh([a, b], x0=np.array([3, 5]))
         self.mesh3 = discretize.TensorMesh([a, b, [3, 4]], x0=np.array([3, 5, 2]))
         self.mesh22 = discretize.TensorMesh([b, a], x0=np.array([3, 5]))
-        self.meshCyl = discretize.CylMesh([10.0, 1.0, 10.0], x0="00C")
+        self.meshCyl = discretizeCylindricalMesh([10.0, 1.0, 10.0], x0="00C")
 
     def test_transforms2D(self):
         for M in self.maps2test2D:

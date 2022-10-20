@@ -60,7 +60,7 @@ pfz = 1.4  # expansion factor for the padding to infinity in the z-direction
 ncz = int(target_l / csz)  # number of z cells in the core region
 
 # create the cyl mesh
-mesh = discretize.CylMesh(
+mesh = discretizeCylindricalMesh(
     [
         [(csx, int(domainx / csx)), (csx, npadx, pfx)],
         1,
