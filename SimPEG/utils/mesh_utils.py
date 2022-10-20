@@ -57,7 +57,7 @@ def surface2inds(vrtx, trgl, mesh, boundaries=True, internal=True):
 
     # Convert the mesh
     vtkMesh = vtk.vtkRectilinearGrid()
-    vtkMesh.SetDimensions(mesh.nNx, mesh.nNy, mesh.nNz)
+    vtkMesh.SetDimensions(*mesh.shape_nodes)
     vtkMesh.SetXCoordinates(npsup.numpy_to_vtk(mesh.vectorNx, deep=1))
     vtkMesh.SetYCoordinates(npsup.numpy_to_vtk(mesh.vectorNy, deep=1))
     vtkMesh.SetZCoordinates(npsup.numpy_to_vtk(mesh.vectorNz, deep=1))
