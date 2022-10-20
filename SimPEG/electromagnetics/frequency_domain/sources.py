@@ -507,7 +507,7 @@ class MagDipole(BaseFDEMSrc):
         if simulation.mesh._meshType == "CYL":
             coordinates = "cylindrical"
 
-            if simulation.mesh.isSymmetric is True:
+            if simulation.mesh.is_symmetric is True:
                 if not (np.linalg.norm(self.orientation - np.r_[0.0, 0.0, 1.0]) < 1e-6):
                     raise AssertionError(
                         "for cylindrical symmetry, the dipole must be oriented"
@@ -709,7 +709,7 @@ class MagDipole_Bfield(MagDipole):
 
         if simulation.mesh._meshType == "CYL":
             coordinates = "cylindrical"
-            if simulation.mesh.isSymmetric:
+            if simulation.mesh.is_symmetric:
                 bx = self._srcFct(gridX)[:, 0]
                 bz = self._srcFct(gridZ)[:, 2]
                 b = np.concatenate((bx, bz))
@@ -965,10 +965,10 @@ class PrimSecMappedSigma(BaseFDEMSrc):
         # get interpolation mat from primary mesh to secondary mesh
         if self.primarySimulation.mesh._meshType == "CYL":
             return self.primarySimulation.mesh.getInterpolationMatCartMesh(
-                simulation.mesh, location_type=locType, locTypeTo=locTypeTo
+                simulation.mesh, location_type=locType, location_type_to=locTypeTo
             )
         return self.primarySimulation.mesh.getInterplotionMat(
-            simulation.mesh, location_type=locType, locTypeTo=locTypeTo
+            simulation.mesh, location_type=locType, location_type_to=locTypeTo
         )
 
         # return self.__ProjPrimary
