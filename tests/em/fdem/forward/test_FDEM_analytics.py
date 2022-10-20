@@ -149,7 +149,7 @@ class TestDipoles(unittest.TestCase):
 
         de = np.zeros(mesh.nF, dtype=complex)
         de[s_ind] = 1.0 / csz
-        de_p = [fdem.Src.RawVec_e([], freq, de / mesh.area)]
+        de_p = [fdem.Src.RawVec_e([], freq, de / mesh.face_areas)]
 
         dm_p = [fdem.Src.MagDipole([], freq, src_loc)]
 

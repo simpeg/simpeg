@@ -487,7 +487,7 @@ def line_through_faces(
         current[current_inds][src_inds] = direction
 
     if normalize_by_area:
-        current = current / mesh.area
+        current = current / mesh.face_areas
 
     # check that there is only a divergence at the ends if not a loop
     if check_divergence:

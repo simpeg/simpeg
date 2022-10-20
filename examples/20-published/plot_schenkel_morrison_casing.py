@@ -194,7 +194,7 @@ def run(plotIt=True):
 
     # assemble the source
     sg = np.hstack([sg_x, sg_y, sg_z])
-    sg_p = [FDEM.Src.RawVec_e([], _, sg / mesh.area) for _ in freqs]
+    sg_p = [FDEM.Src.RawVec_e([], _, sg / mesh.face_areas) for _ in freqs]
 
     # downhole source
     dg_x = np.zeros(mesh.vnF[0], dtype=complex)
@@ -225,7 +225,7 @@ def run(plotIt=True):
 
     # assemble the source
     dg = np.hstack([dg_x, dg_y, dg_z])
-    dg_p = [FDEM.Src.RawVec_e([], _, dg / mesh.area) for _ in freqs]
+    dg_p = [FDEM.Src.RawVec_e([], _, dg / mesh.face_areas) for _ in freqs]
 
     # ------------ Problem and Survey ---------------
     survey = FDEM.Survey(sg_p + dg_p)
@@ -245,8 +245,8 @@ def run(plotIt=True):
     jn1 = fieldsCasing[sg_p, "j"]
 
     # current
-    in0 = [mesh.area * fieldsCasing[dg_p, "j"][:, i] for i in range(len(freqs))]
-    in1 = [mesh.area * fieldsCasing[sg_p, "j"][:, i] for i in range(len(freqs))]
+    in0 = [mesh.face_areas * fieldsCasing[dg_p, "j"][:, i] for i in range(len(freqs))]
+    in1 = [mesh.face_areas * fieldsCasing[sg_p, "j"][:, i] for i in range(len(freqs))]
 
     in0 = np.vstack(in0).T
     in1 = np.vstack(in1).T

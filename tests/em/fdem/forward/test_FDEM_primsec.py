@@ -251,7 +251,7 @@ class PrimSecFDEMSrcTest_Cyl2Cart_HJ_EB(unittest.TestCase, PrimSecFDEMTest):
         inds = meshp.nFx + utils.closestPoints(meshp, src_loc, gridLoc="Fz")
         s_e[inds] = 1.0 / csz
         primarySrc = fdem.Src.RawVec_e(
-            self.rxlist, frequency=freq, s_e=s_e / meshp.area
+            self.rxlist, frequency=freq, s_e=s_e / meshp.face_areas
         )
         self.primarySurvey = fdem.Survey([primarySrc])
 

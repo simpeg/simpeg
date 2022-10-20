@@ -413,7 +413,9 @@ class PrimSecCasingExample(object):
 
                 # assemble the source (downhole grounded primary)
                 dg = np.hstack([dg_x, dg_y, dg_z])
-                dg_p = [FDEM.Src.RawVec_e([], _, dg / meshp.area) for _ in self.freqs]
+                dg_p = [
+                    FDEM.Src.RawVec_e([], _, dg / meshp.face_areas) for _ in self.freqs
+                ]
 
                 # if plotIt:
                 #     # Plot the source to make sure the path is infact
