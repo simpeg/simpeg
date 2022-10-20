@@ -89,7 +89,7 @@ class TestVTEMWaveform(unittest.TestCase):
         assert_array_almost_equal(result, expected)
 
     def test_waveform_with_custom_param(self):
-        vtem = VTEMWaveform(off_time=8e-3, peak_time=4e-3, a=2.0)
+        vtem = VTEMWaveform(off_time=8e-3, peak_time=4e-3, ramp_on_rate=2.0)
         result = [vtem.eval(t) for t in self.times]
         expected = np.array(
             [0.0, 0.455054, 0.731059, 0.898464, 1.0, 0.75, 0.5, 0.25, 0.0, 0.0, 0.0]
@@ -98,7 +98,7 @@ class TestVTEMWaveform(unittest.TestCase):
 
     def test_waveform_derivative(self):
         # Test the waveform derivative at points between the time_nodes
-        wave = VTEMWaveform(off_time=8e-3, peak_time=4e-3, a=2.0)
+        wave = VTEMWaveform(off_time=8e-3, peak_time=4e-3, ramp_on_rate=2.0)
 
         def f(t):
             wave_eval = np.array([wave.eval(ti) for ti in t])
