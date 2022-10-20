@@ -123,7 +123,7 @@ class DCUtilsTests_halfspace(unittest.TestCase):
                 plt.show()
 
             # Test the utils functions electrode_separations,
-            # source_receiver_midpoints, geometric_factor,
+            # pseudo_locations, geometric_factor,
             # apparent_resistivity all at once
             rhoapp = utils.apparent_resistivity_from_voltage(
                 dobs.survey, dobs.dobs, space_type="half-space", eps=0.0

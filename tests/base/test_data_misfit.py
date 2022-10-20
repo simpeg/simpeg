@@ -42,7 +42,6 @@ class DataMisfitTest(unittest.TestCase):
         self.sim = sim
         self.survey = sim.survey
         # self.survey = survey
-        # self.prob = prob
         self.data = synthetic_data
         self.dmis = dmis
 
