@@ -180,7 +180,7 @@ class Fields2DCellCentered(Fields2D):
         sim = self.simulation
         return (
             epsilon_0
-            * sim.mesh.vol[:, None]
+            * sim.mesh.cell_volumes[:, None]
             * (sim.mesh.face_divergence * self._e(phiSolution, source_list))
         )
 
@@ -247,7 +247,7 @@ class Fields2DNodal(Fields2D):
     def _charge_density(self, phiSolution, source_list):
         return (
             self.mesh.aveN2CC * self._charge(phiSolution, source_list)
-        ) / self.mesh.vol[:, None]
+        ) / self.mesh.cell_volumes[:, None]
 
 
 Fields2DCellCentred = Fields2DCellCentered

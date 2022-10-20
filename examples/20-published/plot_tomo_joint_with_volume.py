@@ -68,12 +68,12 @@ class Volume(objective_function.BaseObjectiveFunction):
         return np.inner(self.mesh.vol, m)
 
     def deriv(self, m):
-        # return (self.mesh.vol * np.inner(self.mesh.vol, m))
-        return self.mesh.vol * (self.knownVolume - np.inner(self.mesh.vol, m))
+        # return (self.mesh.cell_volumes * np.inner(self.mesh.vol, m))
+        return self.mesh.cell_volumes * (self.knownVolume - np.inner(self.mesh.vol, m))
 
     def deriv2(self, m, v=None):
         if v is not None:
-            return utils.mkvc(self.mesh.vol * np.inner(self.mesh.vol, v))
+            return utils.mkvc(self.mesh.cell_volumes * np.inner(self.mesh.vol, v))
         else:
             # TODO: this is inefficent. It is a fully dense matrix
             return sp.csc_matrix(np.outer(self.mesh.vol, self.mesh.vol))

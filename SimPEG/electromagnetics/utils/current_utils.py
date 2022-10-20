@@ -491,7 +491,7 @@ def line_through_faces(
 
     # check that there is only a divergence at the ends if not a loop
     if check_divergence:
-        div = mesh.vol * mesh.face_divergence * current
+        div = mesh.cell_volumes * mesh.face_divergence * current
         nonzero = np.abs(div) > tolerance_divergence
 
         # check if the source is a loop or grounded

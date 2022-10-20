@@ -249,7 +249,7 @@ class Fields3DNodal(FieldsDC):
     def _charge_density(self, phiSolution, source_list):
         return (
             self.mesh.aveN2CC * self._charge(phiSolution, source_list)
-        ) / self.mesh.vol[:, None]
+        ) / self.mesh.cell_volumes[:, None]
 
 
 Fields3DCellCentred = Fields3DCellCentered

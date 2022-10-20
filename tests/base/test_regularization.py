@@ -160,7 +160,7 @@ class RegularizationTests(unittest.TestCase):
                     mesh, active_cells=indAct
                 )
 
-                assert (regularization_mesh.vol == mesh.vol[indAct]).all()
+                assert (regularization_mesh.vol == mesh.cell_volumes[indAct]).all()
 
     def test_property_mirroring(self):
         mesh = discretize.TensorMesh([8, 7, 6])

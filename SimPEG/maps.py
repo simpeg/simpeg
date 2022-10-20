@@ -5950,7 +5950,7 @@ class TileMap(IdentityMap):
 
             self._P = sp.block_diag(
                 [
-                    sdiag(1.0 / self.local_mesh.vol[self.local_active]) * P
+                    sdiag(1.0 / self.local_mesh.cell_volumes[self.local_active]) * P
                     for ii in range(self.components)
                 ]
             )

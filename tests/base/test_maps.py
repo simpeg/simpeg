@@ -525,7 +525,7 @@ class MapTests(unittest.TestCase):
         activeCells = utils.surface2ind_topo(mesh, rxLocs)
 
         model = np.random.randn(int(activeCells.sum()))
-        total_mass = (model * mesh.vol[activeCells]).sum()
+        total_mass = (model * mesh.cell_volumes[activeCells]).sum()
 
         for local_mesh in local_meshes:
 
@@ -536,7 +536,7 @@ class MapTests(unittest.TestCase):
             )
 
             local_mass = (
-                (tile_map * model) * local_mesh.vol[tile_map.local_active]
+                (tile_map * model) * local_mesh.cell_volumes[tile_map.local_active]
             ).sum()
 
             self.assertTrue((local_mass - total_mass) / total_mass < 1e-8)

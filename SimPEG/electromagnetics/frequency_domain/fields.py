@@ -620,7 +620,7 @@ class Fields3DElectricField(FieldsFDEM):
     def _charge_density(self, eSolution, source_list):
         return (
             self.mesh.aveN2CC * self._charge(eSolution, source_list)
-        ) / self.mesh.vol[:, None]
+        ) / self.mesh.cell_volumes[:, None]
 
 
 class Fields3DMagneticFluxDensity(FieldsFDEM):
@@ -941,7 +941,7 @@ class Fields3DMagneticFluxDensity(FieldsFDEM):
     def _charge_density(self, bSolution, source_list):
         return (
             self.mesh.aveN2CC * self._charge(bSolution, source_list)
-        ) / self.mesh.vol[:, None]
+        ) / self.mesh.cell_volumes[:, None]
 
 
 class Fields3DCurrentDensity(FieldsFDEM):
@@ -1300,7 +1300,9 @@ class Fields3DCurrentDensity(FieldsFDEM):
 
             \int \nabla \codt \vec{e} =  \int \frac{\rho_v }{\epsillon_0}
         """
-        return self.mesh.vol[:, None] * self._charge_density(jSolution, source_list)
+        return self.mesh.cell_volumes[:, None] * self._charge_density(
+            jSolution, source_list
+        )
 
     def _charge_density(self, jSolution, source_list):
         """
@@ -1595,7 +1597,9 @@ class Fields3DMagneticField(FieldsFDEM):
 
             \int \nabla \codt \vec{e} =  \int \frac{\rho_v }{\epsillon_0}
         """
-        return self.mesh.vol[:, None] * self._charge_density(hSolution, source_list)
+        return self.mesh.cell_volumes[:, None] * self._charge_density(
+            hSolution, source_list
+        )
 
     def _charge_density(self, hSolution, source_list):
         """
