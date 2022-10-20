@@ -20,7 +20,7 @@ defined and mapped to cylindrical meshes. Some things we consider are:
 # --------------
 #
 
-from discretize import CylMesh
+from discretize import CylindricalMesh
 from SimPEG.utils import mkvc
 from SimPEG import maps
 import numpy as np
@@ -44,7 +44,7 @@ def make_example_mesh():
     hz = [(dh, 5, -1.3), (dh, ncz), (dh, 5, 1.3)]
 
     # Use flag of 1 to denote perfect rotational symmetry
-    mesh = CylMesh([hr, 1, hz], "0CC")
+    mesh = CylindricalMesh([hr, 1, hz], "0CC")
 
     return mesh
 

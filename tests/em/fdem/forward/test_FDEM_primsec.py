@@ -69,7 +69,7 @@ pf = 1.5
 # primary mesh
 hx = [(csx, ncx), (csx, npadx, pf)]
 hz = [(csz, npadz, -pf), (csz, ncz), (csz, npadz, pf)]
-meshp = discretize.CylMesh([hx, 1.0, hz], x0="0CC")
+meshp = discretize.CylindricalMesh([hx, 1.0, hz], x0="0CC")
 
 # secondary mesh
 h = [(csz, npadz - 4, -pf), (csz, ncz), (csz, npadz - 4, pf)]

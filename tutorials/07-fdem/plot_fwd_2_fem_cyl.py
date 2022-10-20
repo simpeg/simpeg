@@ -24,7 +24,7 @@ sufficient accuracy.
 # --------------
 #
 
-from discretize import CylMesh
+from discretize import CylindricalMesh
 from discretize.utils import mkvc
 
 from SimPEG import maps
@@ -114,7 +114,7 @@ hz = [
     (10.0, 10, 1.5),
 ]  # discretization in vertical direction
 
-mesh = CylMesh([hr, 1, hz], x0="00C")
+mesh = CylindricalMesh([hr, 1, hz], x0="00C")
 
 ###############################################################
 # Create Conductivity/Resistivity Model and Mapping

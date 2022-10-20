@@ -32,7 +32,7 @@ import SimPEG.electromagnetics.viscous_remanent_magnetization as vrm
 import SimPEG.electromagnetics.time_domain as tdem
 from SimPEG import maps
 
-from discretize import TensorMesh, CylMesh
+from discretize import TensorMesh, CylindricalMesh
 from discretize.utils import mkvc
 
 import numpy as np
@@ -104,7 +104,7 @@ tdem_survey = tdem.Survey(tdem_source_list)
 # Define cylindrical mesh
 hr = [(10.0, 50), (10.0, 10, 1.5)]
 hz = [(10.0, 10, -1.5), (10.0, 100), (10.0, 10, 1.5)]
-mesh = CylMesh([hr, 1, hz], x0="00C")
+mesh = CylindricalMesh([hr, 1, hz], x0="00C")
 
 # Define model
 air_conductivity = 1e-8

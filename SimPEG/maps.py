@@ -12,7 +12,7 @@ from scipy.constants import mu_0
 from scipy.sparse import csr_matrix as csr
 
 from discretize.tests import check_derivative
-from discretize import TensorMesh, CylMesh
+from discretize import TensorMesh, CylindricalMesh
 
 from .utils import (
     set_kwargs,
@@ -2704,7 +2704,7 @@ class SurjectVertical1D(IdentityMap):
 
     def __init__(self, mesh, **kwargs):
         assert isinstance(
-            mesh, (TensorMesh, CylMesh)
+            mesh, (TensorMesh, CylindricalMesh)
         ), "Only implemented for tensor meshes"
         super().__init__(mesh=mesh, **kwargs)
 

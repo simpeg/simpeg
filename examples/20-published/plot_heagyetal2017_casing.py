@@ -195,7 +195,7 @@ class PrimSecCasingExample(object):
             )
 
             # primary mesh
-            self._meshp = discretize.CylMesh(
+            self._meshp = discretize.CylindricalMesh(
                 [hx, 1.0, hz], [0.0, 0.0, -np.sum(hz[: npadzu + ncz - nza])]
             )
 

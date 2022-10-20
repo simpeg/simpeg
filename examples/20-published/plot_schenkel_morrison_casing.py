@@ -114,7 +114,7 @@ def run(plotIt=True):
     hz = utils.unpack_widths([(csz, npadzd, -1.3), (csz, ncz), (csz, npadzu, 1.3)])
 
     # Mesh
-    mesh = discretize.CylMesh(
+    mesh = discretize.CylindricalMesh(
         [hx, 1.0, hz], [0.0, 0.0, -np.sum(hz[: npadzu + ncz - nza])]
     )
 
