@@ -15,7 +15,7 @@ from SimPEG.utils import (
     make_property_tensor,
     index_cube,
     ind2sub,
-    asArray_N_x_Dim,
+    as_array_n_by_dim,
     TensorType,
     diagEst,
     count,
@@ -278,25 +278,25 @@ class TestSequenceFunctions(unittest.TestCase):
             Z = B2 * A - sp.identity(M.nC * 3)
             self.assertTrue(np.linalg.norm(Z.todense().ravel(), 2) < TOL)
 
-    def test_asArray_N_x_Dim(self):
+    def test_as_array_n_by_dim(self):
 
         true = np.array([[1, 2, 3]])
 
-        listArray = asArray_N_x_Dim([1, 2, 3], 3)
+        listArray = as_array_n_by_dim([1, 2, 3], 3)
         self.assertTrue(np.all(true == listArray))
         self.assertTrue(true.shape == listArray.shape)
 
-        listArray = asArray_N_x_Dim(np.r_[1, 2, 3], 3)
+        listArray = as_array_n_by_dim(np.r_[1, 2, 3], 3)
         self.assertTrue(np.all(true == listArray))
         self.assertTrue(true.shape == listArray.shape)
 
-        listArray = asArray_N_x_Dim(np.array([[1, 2, 3.0]]), 3)
+        listArray = as_array_n_by_dim(np.array([[1, 2, 3.0]]), 3)
         self.assertTrue(np.all(true == listArray))
         self.assertTrue(true.shape == listArray.shape)
 
         true = np.array([[1, 2], [4, 5]])
 
-        listArray = asArray_N_x_Dim([[1, 2], [4, 5]], 2)
+        listArray = as_array_n_by_dim([[1, 2], [4, 5]], 2)
         self.assertTrue(np.all(true == listArray))
         self.assertTrue(true.shape == listArray.shape)
 

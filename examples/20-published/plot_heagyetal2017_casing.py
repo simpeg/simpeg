@@ -646,7 +646,7 @@ class PrimSecCasingExample(object):
             [[(csx, ncx)], [(csx, 1)], [(csz, ncz)]], [0, -csx / 2.0, -zmax]
         )
 
-        projF = self.meshp.getInterpolationMatCartMesh(meshcart, "F")
+        projF = self.meshp.get_interpolation_matrix_cartesian_mesh(meshcart, "F")
 
         jcart = projF * primaryFields[:, "j"]
 

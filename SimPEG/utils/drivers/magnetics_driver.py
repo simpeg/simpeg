@@ -1,7 +1,7 @@
 import re
 import os
 from discretize import TensorMesh
-from discretize.utils.meshutils import active_from_xyz
+from discretize.utils import active_from_xyz
 
 try:
     from SimPEG import utils

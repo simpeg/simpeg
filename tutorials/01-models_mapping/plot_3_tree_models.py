@@ -20,7 +20,7 @@ OcTree meshes. Some things we consider are:
 
 
 from discretize import TreeMesh
-from discretize.utils.meshutils import refine_tree_xyz
+from discretize.utils import refine_tree_xyz
 from SimPEG.utils import mkvc, model_builder, surface2ind_topo
 from SimPEG import maps
 import numpy as np
