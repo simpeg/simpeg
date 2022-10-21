@@ -72,7 +72,9 @@ def read_mag3d_ubc(obs_file):
         d = None
 
     rxLoc = magnetics.receivers.Point(locXYZ)
-    srcField = magnetics.sources.SourceField([rxLoc], parameters=(B[2], B[0], B[1]))
+    srcField = magnetics.sources.UniformBackgroundField(
+        [rxLoc], amplitude=B[2], inclination=B[0], declination=B[1]
+    )
     survey = magnetics.survey.Survey(srcField)
     data_object = Data(survey, dobs=d, standard_deviation=wd)
 
@@ -97,9 +99,13 @@ def write_mag3d_ubc(filename, data_object):
     survey = data_object.survey
 
     src = survey.source_field
+    if len(src.receiver_list) > 1:
+        raise NotImplementedError(
+            "Writing of ubc format only supported for a single receiver."
+        )
     B = (src.amplitude, src.inclination, src.declination)
 
-    data = survey.source_field.receiver_list[0].locations
+    data = src.receiver_list[0].locations
 
     if data_object.dobs is not None:
         data = np.c_[data, data_object.dobs]
@@ -204,8 +210,13 @@ def write_grav3d_ubc(filename, data_object):
         data object must be an instance of :class:`SimPEG.potential_fields.gravity.survey.Survey`
     """
     survey = data_object.survey
+    src = survey.source_field
+    if len(src.receiver_list) > 1:
+        raise NotImplementedError(
+            "Writing of ubc format only supported for a single receiver."
+        )
 
-    data = survey.source_field.receiver_list[0].locations
+    data = src.receiver_list[0].locations
 
     # UBC and SimPEG use opposite sign for gravity data so
     # data are multiplied by -1.
@@ -322,9 +333,14 @@ def write_gg3d_ubc(filename, data_object):
         data object must be an instance of :class:`SimPEG.potential_fields.gravity.survey.Survey`
     """
     survey = data_object.survey
+    src = survey.source_field
 
     # Convert component types from UBC to SimPEG
-    components = survey.components
+    if len(src.receiver_list) > 1:
+        raise NotImplementedError(
+            "Writing of ubc format only supported for a single receiver."
+        )
+    components = src.receiver_list[0].components
     n_comp = len(components)
     factor = np.ones(n_comp)
 
@@ -338,7 +354,7 @@ def write_gg3d_ubc(filename, data_object):
 
     components = ",".join(components)
 
-    output = survey.source_field.receiver_list[0].locations
+    output = src.receiver_list[0].locations
     n_loc = np.shape(output)[0]
 
     if np.any(data_object.dobs != 0):

@@ -92,6 +92,17 @@ class Survey(BaseSurvey):
                 yield loc, rx.components
 
     @property
+    def vnD(self):
+        """Vector number of data
+
+        Returns
+        -------
+        list of int
+            The number of data for each receivers.
+        """
+        return self.source_field.vnD
+
+    @property
     def Qfx(self):
         """Projection matrix from x-faces to receiver locations.
 

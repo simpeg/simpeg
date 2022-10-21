@@ -1,7 +1,7 @@
 import numpy as np
 from ...survey import BaseSurvey
 from ...utils.code_utils import validate_type
-from .sources import SourceField
+from .sources import UniformBackgroundField
 
 
 class Survey(BaseSurvey):
@@ -15,7 +15,7 @@ class Survey(BaseSurvey):
 
     def __init__(self, source_field, **kwargs):
         self.source_field = validate_type(
-            "source_field", source_field, SourceField, cast=False
+            "source_field", source_field, UniformBackgroundField, cast=False
         )
         super().__init__(source_list=None, **kwargs)
 
@@ -96,18 +96,7 @@ class Survey(BaseSurvey):
         list of int
             The number of data for each receivers.
         """
-
-        if getattr(self, "_vnD", None) is None:
-            self._vnD = []
-            for receiver in self.source_field.receiver_list:
-                for component in receiver.components:
-
-                    # If non-empty than logcial for empty entries
-                    self._vnD.append(len(receiver.components))
-
-            print(self._vnD)
-            self._vnD = np.asarray(self._vnD)
-        return self._vnD
+        return self.source_field.vnD
 
 
 # make this look like it lives in the below module
