@@ -1681,7 +1681,7 @@ class LineCurrent(BaseTDEMSrc):
             Grad = simulation.mesh.nodal_gradient
             return Grad.T * self.Mejs(simulation)
         elif simulation._formulation == "HJ":
-            Div = sdiag(simulation.mesh.vol) * simulation.mesh.face_divergence
+            Div = sdiag(simulation.mesh.cell_volumes) * simulation.mesh.face_divergence
             return Div * self.Mfjs(simulation)
 
     def phiInitial(self, simulation):
@@ -1793,7 +1793,10 @@ class LineCurrent(BaseTDEMSrc):
         if self.waveform.has_initial_fields:
             if simulation._formulation == "HJ":
                 phi = self.phiInitial(simulation)
-                Div = sdiag(simulation.mesh.vol) * simulation.mesh.face_divergence
+                Div = (
+                    sdiag(simulation.mesh.cell_volumes)
+                    * simulation.mesh.face_divergence
+                )
                 return -simulation.MfRhoI * (Div.T * phi)
             else:
                 raise NotImplementedError
@@ -1823,7 +1826,7 @@ class LineCurrent(BaseTDEMSrc):
             raise NotImplementedError
 
         phi = self.phiInitial(simulation)
-        Div = sdiag(simulation.mesh.vol) * simulation.mesh.face_divergence
+        Div = sdiag(simulation.mesh.cell_volumes) * simulation.mesh.face_divergence
 
         if adjoint is True:
             return -(
@@ -1842,7 +1845,7 @@ class LineCurrent(BaseTDEMSrc):
         if simulation._formulation != "HJ":
             raise NotImplementedError
 
-        vol = simulation.mesh.vol
+        vol = simulation.mesh.cell_volumes
         Div = sdiag(vol) * simulation.mesh.face_divergence
         return (
             simulation.mesh.edge_curl
@@ -2010,7 +2013,7 @@ class RawVec_Grounded(LineCurrent):
             self._Mfjs = self._s_e = s_e
 
     # def getRHSdc(self, simulation):
-    #     return sdiag(simulation.mesh.vol) * simulation.mesh.face_divergence * self._s_e
+    #     return sdiag(simulation.mesh.cell_volumes) * simulation.mesh.face_divergence * self._s_e
 
     # def phiInitial(self, simulation):
     #     if self.waveform.has_initial_fields:
@@ -2042,7 +2045,7 @@ class RawVec_Grounded(LineCurrent):
     #         return Zero()
 
     #     phi = self.phiInitial(simulation)
-    #     Div = sdiag(simulation.mesh.vol) * simulation.mesh.face_divergence
+    #     Div = sdiag(simulation.mesh.cell_volumes) * simulation.mesh.face_divergence
     #     return -simulation.MfRhoI * (Div.T * phi)
 
     # def jInitialDeriv(self, simulation, v, adjoint=False):
@@ -2053,7 +2056,7 @@ class RawVec_Grounded(LineCurrent):
     #         return Zero()
 
     #     phi = self.phiInitial(simulation)
-    #     Div = sdiag(simulation.mesh.vol) * simulation.mesh.face_divergence
+    #     Div = sdiag(simulation.mesh.cell_volumes) * simulation.mesh.face_divergence
 
     #     if adjoint is True:
     #         return -(
@@ -2067,7 +2070,7 @@ class RawVec_Grounded(LineCurrent):
     #     if simulation._fieldType not in ["j", "h"]:
     #         raise NotImplementedError
 
-    #     vol = simulation.mesh.vol
+    #     vol = simulation.mesh.cell_volumes
 
     #     return (
     #         simulation.mesh.edge_curl * simulation.MeMuI * simulation.mesh.edge_curl.T

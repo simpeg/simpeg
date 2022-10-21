@@ -708,7 +708,7 @@ class Simulation3DDifferential(BaseMagneticPDESimulation):
         )
 
         Dface = self.mesh.face_divergence
-        Mc = sdiag(self.mesh.vol)
+        Mc = sdiag(self.mesh.cell_volumes)
         self._Div = Mc * Dface * Pin.T.tocsr() * Pin
 
     @property
@@ -900,7 +900,7 @@ class Simulation3DDifferential(BaseMagneticPDESimulation):
         dmu_dm = self.muDeriv
         # dchidmu = sdiag(1 / mu_0 * np.ones(self.mesh.nC))
 
-        vol = self.mesh.vol
+        vol = self.mesh.cell_volumes
         Div = self._Div
         P = self.survey.projectFieldsDeriv(B)  # Projection matrix
         B0 = self.getB0()
@@ -976,7 +976,7 @@ class Simulation3DDifferential(BaseMagneticPDESimulation):
         dmu_dm = self.mapping.deriv(m)
         # dchidmu = sdiag(1 / mu_0 * np.ones(self.mesh.nC))
 
-        vol = self.mesh.vol
+        vol = self.mesh.cell_volumes
         Div = self._Div
         Dface = self.mesh.face_divergence
         P = self.survey.projectFieldsDeriv(B)  # Projection matrix

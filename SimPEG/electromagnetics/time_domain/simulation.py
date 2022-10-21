@@ -1061,13 +1061,13 @@ class Simulation3DMagneticField(BaseTDEMSimulation):
         return Zero()  # assumes no derivs on sources
 
     def getAdc(self):
-        D = sdiag(self.mesh.vol) * self.mesh.face_divergence
+        D = sdiag(self.mesh.cell_volumes) * self.mesh.face_divergence
         G = D.T
         MfRhoI = self.MfRhoI
         return D * MfRhoI * G
 
     def getAdcDeriv(self, u, v, adjoint=False):
-        D = sdiag(self.mesh.vol) * self.mesh.face_divergence
+        D = sdiag(self.mesh.cell_volumes) * self.mesh.face_divergence
         G = D.T
 
         if adjoint:
@@ -1166,13 +1166,13 @@ class Simulation3DCurrentDensity(BaseTDEMSimulation):
         return Zero()  # assumes no derivs on sources
 
     def getAdc(self):
-        D = sdiag(self.mesh.vol) * self.mesh.face_divergence
+        D = sdiag(self.mesh.cell_volumes) * self.mesh.face_divergence
         G = D.T
         MfRhoI = self.MfRhoI
         return D * MfRhoI * G
 
     def getAdcDeriv(self, u, v, adjoint=False):
-        D = sdiag(self.mesh.vol) * self.mesh.face_divergence
+        D = sdiag(self.mesh.cell_volumes) * self.mesh.face_divergence
         G = D.T
 
         if adjoint:

@@ -65,18 +65,24 @@ class Volume(objective_function.BaseObjectiveFunction):
         return 0.5 * (self.estVol(m) - self.knownVolume) ** 2
 
     def estVol(self, m):
-        return np.inner(self.mesh.vol, m)
+        return np.inner(self.mesh.cell_volumes, m)
 
     def deriv(self, m):
-        # return (self.mesh.cell_volumes * np.inner(self.mesh.vol, m))
-        return self.mesh.cell_volumes * (self.knownVolume - np.inner(self.mesh.vol, m))
+        # return (self.mesh.cell_volumes * np.inner(self.mesh.cell_volumes, m))
+        return self.mesh.cell_volumes * (
+            self.knownVolume - np.inner(self.mesh.cell_volumes, m)
+        )
 
     def deriv2(self, m, v=None):
         if v is not None:
-            return utils.mkvc(self.mesh.cell_volumes * np.inner(self.mesh.vol, v))
+            return utils.mkvc(
+                self.mesh.cell_volumes * np.inner(self.mesh.cell_volumes, v)
+            )
         else:
             # TODO: this is inefficent. It is a fully dense matrix
-            return sp.csc_matrix(np.outer(self.mesh.vol, self.mesh.vol))
+            return sp.csc_matrix(
+                np.outer(self.mesh.cell_volumes, self.mesh.cell_volumes)
+            )
 
 
 def run(plotIt=True):
@@ -102,7 +108,7 @@ def run(plotIt=True):
         M.gridCC, [0.4, 0.6], [0.6, 0.4], [phi1, phi0]
     )
 
-    knownVolume = np.sum(phitrue * M.vol)
+    knownVolume = np.sum(phitrue * M.cell_volumes)
     print("True Volume: {}".format(knownVolume))
 
     # Set up true conductivity model and plot the model transform

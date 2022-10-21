@@ -70,7 +70,7 @@
 #
 #         def dMfmuI(chi, v):
 #             self.sim.makeMassMatrices(chi)
-#             vol = self.M.vol
+#             vol = self.M.cell_volumes
 #             aveF2CC = self.M.aveF2CC
 #             MfMuI = self.sim.MfMuI.diagonal()
 #             dMfMuI = utils.sdiag(MfMuI**2)*aveF2CC.T*utils.sdiag(vol*1./mu**2)
@@ -87,7 +87,7 @@
 #     def test_dCdm_Av(self):
 #         print('\n >>Derivative for Cm_A.')
 #         Div = self.prob._Div
-#         vol = self.prob.mesh.vol
+#         vol = self.prob.mesh.cell_volumes
 #         aveF2CC = self.prob.mesh.aveF2CC
 #
 #         def Cm_A(chi):
@@ -130,7 +130,7 @@
 #         u = self.u
 #         Div = self.prob._Div
 #         mu = self.model*self.chi
-#         vol = self.prob.mesh.vol
+#         vol = self.prob.mesh.cell_volumes
 #         Mc = utils.sdiag(vol)
 #         aveF2CC = self.prob.mesh.aveF2CC
 #         B0 = self.prob.getB0()
@@ -178,7 +178,7 @@
 #     #     u = self.u
 #     #     Div = self.prob._Div
 #     #     mu = self.model*(self.chi)
-#     #     vol = self.prob.mesh.vol
+#     #     vol = self.prob.mesh.cell_volumes
 #     #     Mc = utils.sdiag(vol)
 #     #     aveF2CC = self.prob.mesh.aveF2CC
 #     #     B0 = self.prob.getB0()
@@ -227,7 +227,7 @@
 #     #     u = self.u
 #     #     Div = self.prob._Div
 #     #     mu = self.model*(self.chi)
-#     #     vol = self.prob.mesh.vol
+#     #     vol = self.prob.mesh.cell_volumes
 #     #     Mc = utils.sdiag(vol)
 #     #     aveF2CC = self.prob.mesh.aveF2CC
 #     #     B0 = self.prob.getB0()

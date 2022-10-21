@@ -97,7 +97,7 @@ def CongruousMagBC(mesh, Bo, chi):
     ind = chi > 0.0
     V = mesh.cell_volumes[ind].sum()
 
-    gamma = 1 / V * (chi * mesh.vol).sum()  # like a mass!
+    gamma = 1 / V * (chi * mesh.cell_volumes).sum()  # like a mass!
 
     Bot = np.sqrt(sum(Bo ** 2))
     mx = Bo[0] / Bot

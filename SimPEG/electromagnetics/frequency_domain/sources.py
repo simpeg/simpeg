@@ -8,10 +8,10 @@ from geoana.em.static import MagneticDipoleWholeSpace, CircularLoopWholeSpace
 from ...utils import (
     mkvc,
     Zero,
+    sdiag,
     validate_float,
     validate_location_property,
     validate_ndarray_with_shape,
-    validate_type,
     validate_direction,
     validate_integer,
 )
@@ -1333,7 +1333,7 @@ class LineCurrent(BaseFDEMSrc):
             Grad = simulation.mesh.nodal_gradient
             return Grad.T * self.Mejs(simulation)
         elif simulation._formulation == "HJ":
-            Div = sdiag(simulation.mesh.vol) * simulation.mesh.face_divergence
+            Div = sdiag(simulation.mesh.cell_volumes) * simulation.mesh.face_divergence
             return Div * self.Mfjs(simulation)
 
     def s_m(self, simulation):

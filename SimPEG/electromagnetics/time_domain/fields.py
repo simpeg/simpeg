@@ -549,7 +549,7 @@ class Fields3DMagneticField(FieldsTDEM):
         )
 
     def _charge(self, hSolution, source_list, tInd):
-        vol = sdiag(self.simulation.mesh.vol)
+        vol = sdiag(self.simulation.mesh.cell_volumes)
         return (
             epsilon_0
             * vol
@@ -644,7 +644,7 @@ class Fields3DCurrentDensity(FieldsTDEM):
         return self.simulation.MfI * self._MfRhoDeriv(jSolution, v)
 
     def _charge(self, jSolution, source_list, tInd):
-        vol = sdiag(self.simulation.mesh.vol)
+        vol = sdiag(self.simulation.mesh.cell_volumes)
         return vol * self._charge_density(jSolution, source_list, tInd)
 
     def _charge_density(self, jSolution, source_list, tInd):

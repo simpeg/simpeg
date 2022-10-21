@@ -362,7 +362,7 @@ def get_dist_wgt(mesh, receiver_locations, actv, R, R0):
     hY = P.T * mkvc(hY)
     hZ = P.T * mkvc(hZ)
 
-    V = P.T * mkvc(mesh.vol)
+    V = P.T * mkvc(mesh.cell_volumes)
     wr = np.zeros(nC)
 
     ndata = receiver_locations.shape[0]

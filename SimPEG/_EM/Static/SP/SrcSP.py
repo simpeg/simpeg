@@ -103,7 +103,7 @@ class StreamingCurrents(Src.BaseSrc):
         :code:`V`
         """
         if getattr(self, "_V", None) is None:
-            self._V = Utils.sdiag(self.mesh.vol)
+            self._V = Utils.sdiag(self.mesh.cell_volumes)
         return self._V
 
     @property

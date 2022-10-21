@@ -5938,7 +5938,10 @@ class TileMap(IdentityMap):
 
             P = (
                 sp.csr_matrix(
-                    (self.global_mesh.vol, (in_local, np.arange(self.global_mesh.nC))),
+                    (
+                        self.global_mesh.cell_volumes,
+                        (in_local, np.arange(self.global_mesh.nC)),
+                    ),
                     shape=(self.local_mesh.nC, self.global_mesh.nC),
                 )
                 * speye(self.global_mesh.nC)[:, self.global_active]
