@@ -98,6 +98,7 @@ class MVIProblemTest(unittest.TestCase):
             chiMap=idenMap,
             ind_active=actv,
             store_sensitivities="disk",
+            chunk_format="auto",
         )
         self.sim = sim
 

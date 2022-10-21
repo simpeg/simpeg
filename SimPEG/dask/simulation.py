@@ -1,4 +1,5 @@
 from ..simulation import BaseSimulation as Sim
+from ..utils import validate_string, validate_integer
 
 
 @property
@@ -9,9 +10,9 @@ def chunk_format(self):
 
 @chunk_format.setter
 def chunk_format(self, other):
-    if other not in ["equal", "row", "auto"]:
-        raise ValueError("Chunk format must be 'equal', 'row', or 'auto'")
-    self._chunk_format = other
+    self._chunk_format = validate_string(
+        "chunk_format", other, ("equal", "row", "auto")
+    )
 
 
 Sim.chunk_format = chunk_format
@@ -25,9 +26,7 @@ def max_ram(self):
 
 @max_ram.setter
 def max_ram(self, other):
-    if other <= 0:
-        raise ValueError("max_ram must be greater than 0")
-    self._max_ram = other
+    self._max_ram = validate_integer("max_ram", other, min_val=1)
 
 
 Sim.max_ram = max_ram
@@ -41,9 +40,7 @@ def max_chunk_size(self):
 
 @max_chunk_size.setter
 def max_chunk_size(self, other):
-    if other <= 0:
-        raise ValueError("max_chunk_size must be greater than 0")
-    self._max_chunk_size = other
+    self._max_chunk_size = validate_integer("max_chunk_size", other, min_val=1)
 
 
 Sim.max_chunk_size = max_chunk_size
