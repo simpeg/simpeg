@@ -3,7 +3,6 @@ import warnings
 import numpy as np
 from geoana.em.static import CircularLoopWholeSpace, MagneticDipoleWholeSpace
 from scipy.constants import mu_0
-from scipy.special import roots_legendre
 
 from ...utils.code_utils import (
     deprecate_property,
@@ -1551,7 +1550,8 @@ class LineCurrent(BaseTDEMSrc):
         List of TDEM receivers
     locations : (n, 3) numpy.ndarray
         Array defining the node locations for the wire path. For inductive sources,
-        you must close the loop.
+        you must close the loop, (i.e. provide the same point as the first and last
+        entry of the array).
     current : float, optional
         A non-zero current value.
     mu : float, optional
@@ -1613,6 +1613,17 @@ class LineCurrent(BaseTDEMSrc):
         if np.abs(I) == 0.0:
             raise ValueError("current must be non-zero.")
         self._current = I
+
+    @property
+    def n_segments(self):
+        """
+        The number of line current segments.
+
+        Returns
+        -------
+        int
+        """
+        return self.location.shape[0] - 1
 
     def Mejs(self, simulation):
         """Integrated electrical source term on edges
@@ -1981,81 +1992,6 @@ class LineCurrent(BaseTDEMSrc):
             return self.Mejs(simulation) * self.waveform.eval(time)
         elif simulation._formulation == "HJ":
             return self.Mfjs(simulation) * self.waveform.eval(time)
-
-
-class LineCurrent1D(LineCurrent):
-
-    """1D Line current source.
-
-    Given the wire path provided by the (n_loc, 3) locations array,
-    the cells intersected by the wire path are identified and integrated
-    source terms are computed.
-
-    Parameters
-    ----------
-    receiver_list : list of SimPEG.electromagnetics.time_domain.receivers.BaseRx
-        List of TDEM receivers
-    locations : (n,3) numpy.ndarray
-        Array defining the node locations for the wire path. For inductive sources,
-        you must close the loop.
-    n_points_per_path : int
-        The number of quadrature points to integrate along the path.
-    """
-
-    def __init__(
-        self, receiver_list, locations, current=1.0, n_points_per_path=3, **kwargs
-    ):
-        super().__init__(receiver_list, location=locations, **kwargs)
-        self.n_points_per_path = n_points_per_path
-        # calculate lateral dipole locations
-        x, w = roots_legendre(self.n_points_per_path)
-        xy_src_path = self.location[:, :2]
-        n_path = len(xy_src_path) - 1
-        xyks = []
-        thetas = []
-        weights = []
-        for i_path in range(n_path):
-            dx = xy_src_path[i_path + 1, 0] - xy_src_path[i_path, 0]
-            dy = xy_src_path[i_path + 1, 1] - xy_src_path[i_path, 1]
-            dl = np.sqrt(dx ** 2 + dy ** 2)
-            theta = np.arctan2(dy, dx)
-            lk = np.c_[(x + 1) * dl / 2, np.zeros(self.n_points_per_path)]
-
-            R = np.array([[dx, -dy], [dy, dx]]) / dl
-            xyk = lk.dot(R.T) + xy_src_path[i_path, :]
-
-            xyks.append(xyk)
-            thetas.append(theta * np.ones(xyk.shape[0]))
-            weights.append(w * dl / 2)
-        # store these for future evalution of integrals
-        self._xyks = np.vstack(xyks)
-        self._weights = np.hstack(weights)
-        self._thetas = np.hstack(thetas)
-
-    @property
-    def n_quad_points(self):
-        self._n_quad_points = len(self._weights)
-        return self._n_quad_points
-
-    @property
-    def n_points_per_path(self):
-        """The number of integration points for each line segment.
-
-        Returns
-        -------
-        int
-        """
-        return self._n_points_per_path
-
-    @n_points_per_path.setter
-    def n_points_per_path(self, val):
-        try:
-            val = int(val)
-        except Exception:
-            raise TypeError("n_points_per_path must be an integer")
-        if val <= 0:
-            raise ValueError("n_points_per_path must be positive")
-        self._n_points_per_path = val
 
 
 # TODO: this should be generalized and plugged into getting the Line current

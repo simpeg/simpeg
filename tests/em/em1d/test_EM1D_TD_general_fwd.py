@@ -100,7 +100,7 @@ class EM1D_TD_CircularLoop_FwdProblemTests(unittest.TestCase):
         np.testing.assert_allclose(dbdt, dbdt_analytic, atol=0.0, rtol=1e-2)
 
 
-class EM1D_TD_LineCurrent1D_FwdProblemTests(unittest.TestCase):
+class EM1D_TD_LineCurrent_FwdProblemTests(unittest.TestCase):
     def setUp(self):
         # WalkTEM waveform
         # Low moment
@@ -196,10 +196,10 @@ class EM1D_TD_LineCurrent1D_FwdProblemTests(unittest.TestCase):
             hm_waveform_times, hm_waveform_current
         )
 
-        source_lm = tdem.sources.LineCurrent1D(
+        source_lm = tdem.sources.LineCurrent(
             receiver_list_lm, wire_paths, waveform=lm_wave
         )
-        source_hm = tdem.sources.LineCurrent1D(
+        source_hm = tdem.sources.LineCurrent(
             receiver_list_hm, wire_paths, waveform=hm_wave
         )
         source_list.append(source_lm)
