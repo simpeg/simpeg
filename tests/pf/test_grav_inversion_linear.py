@@ -15,8 +15,6 @@ from SimPEG import (
 )
 from SimPEG.potential_fields import gravity
 
-np.random.seed(43)
-
 
 class GravInvLinProblemTest(unittest.TestCase):
     def setUp(self):
