@@ -22,7 +22,7 @@ Survey, Source and Receiver Classes
   :toctree: generated/
 
   Point
-  SourceField
+  UniformBackgroundField
   Survey
 
 Analytics
@@ -47,5 +47,5 @@ from .simulation import (
     Simulation3DDifferential,
 )
 from .survey import Survey
-from .sources import SourceField
+from .sources import SourceField, UniformBackgroundField
 from .receivers import Point

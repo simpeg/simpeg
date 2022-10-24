@@ -43,7 +43,9 @@ class Survey(BaseSurvey):
         int
             Number of receivers in the survey
         """
-        return self.source_field.receiver_list[0].locations.shape[0]
+        return sum(
+            receiver.locations.shape[0] for receiver in self.source_field.receiver_list
+        )
 
     @property
     def receiver_locations(self):
@@ -71,7 +73,7 @@ class Survey(BaseSurvey):
         int
             Number of data for the survey
         """
-        return len(self.receiver_locations) * len(self.components)
+        return sum(receiver.nD for receiver in self.source_field.receiver_list)
 
     @property
     def components(self):
@@ -83,6 +85,22 @@ class Survey(BaseSurvey):
             Number of components measured at each receiver.
         """
         return self.source_field.receiver_list[0].components
+
+    def _location_component_iterator(self):
+        for rx in self.source_field.receiver_list:
+            for loc in rx.locations:
+                yield loc, rx.components
+
+    @property
+    def vnD(self):
+        """Vector number of data
+
+        Returns
+        -------
+        list of int
+            The number of data for each receivers.
+        """
+        return self.source_field.vnD
 
     @property
     def Qfx(self):

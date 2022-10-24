@@ -5,9 +5,9 @@ import numpy as np
 import warnings
 from ..simulation import LinearSimulation
 from scipy.sparse import csr_matrix as csr
-import scipy.sparse as sp
 from SimPEG.utils import mkvc
 from ..utils import validate_string, validate_active_indices
+import multiprocessing
 
 ###############################################################################
 #                                                                             #
@@ -71,25 +71,36 @@ class BasePFSimulation(LinearSimulation):
 
         self.nC = sum(ind_active)
 
-        # Create active cell projector
-        projection = sp.eye(mesh.n_cells, format="csr")[:, ind_active]
-
-        if not isinstance(mesh, (discretize.TensorMesh, discretize.TreeMesh)):
+        if isinstance(mesh, discretize.TensorMesh):
+            nodes = mesh.nodes
+            inds = np.arange(mesh.n_nodes).reshape(mesh.shape_nodes, order="F")
+            if mesh.dim == 2:
+                cell_nodes = [
+                    inds[:-1, :-1].reshape(-1, order="F"),
+                    inds[1:, :-1].reshape(-1, order="F"),
+                    inds[:-1, 1:].reshape(-1, order="F"),
+                    inds[1:, 1:].reshape(-1, order="F"),
+                ]
+            if mesh.dim == 3:
+                cell_nodes = [
+                    inds[:-1, :-1, :-1].reshape(-1, order="F"),
+                    inds[1:, :-1, :-1].reshape(-1, order="F"),
+                    inds[:-1, 1:, :-1].reshape(-1, order="F"),
+                    inds[1:, 1:, :-1].reshape(-1, order="F"),
+                    inds[:-1, :-1, 1:].reshape(-1, order="F"),
+                    inds[1:, :-1, 1:].reshape(-1, order="F"),
+                    inds[:-1, 1:, 1:].reshape(-1, order="F"),
+                    inds[1:, 1:, 1:].reshape(-1, order="F"),
+                ]
+            cell_nodes = np.stack(cell_nodes, axis=-1)[ind_active]
+        elif isinstance(mesh, discretize.TreeMesh):
+            nodes = np.r_[mesh.nodes, mesh.hanging_nodes]
+            cell_nodes = mesh.cell_nodes[ind_active]
+        else:
             raise ValueError("Mesh must be 3D tensor or Octree.")
-        # Create vectors of nodal location for the lower and upper corners
-        bsw = self.mesh.cell_centers - self.mesh.h_gridded / 2.0
-        tne = self.mesh.cell_centers + self.mesh.h_gridded / 2.0
-
-        xn1, xn2 = bsw[:, 0], tne[:, 0]
-        yn1, yn2 = bsw[:, 1], tne[:, 1]
-
-        self.Yn = projection.T * np.c_[mkvc(yn1), mkvc(yn2)]
-        self.Xn = projection.T * np.c_[mkvc(xn1), mkvc(xn2)]
-
-        # Allows for 2D mesh where Zn is defined by user
-        if self.mesh.dim > 2:
-            zn1, zn2 = bsw[:, 2], tne[:, 2]
-            self.Zn = projection.T * np.c_[mkvc(zn1), mkvc(zn2)]
+        unique, unique_inv = np.unique(cell_nodes.T, return_inverse=True)
+        self._nodes = nodes[unique]  # unique active nodes
+        self._unique_inv = unique_inv.reshape(cell_nodes.T.shape)
 
     @property
     def store_sensitivities(self):
@@ -143,107 +154,32 @@ class BasePFSimulation(LinearSimulation):
         numpy.ndarray
             Linear operator
         """
-        self.nC = self.modelMap.shape[0]
-
-        components = np.array(list(self.survey.components.keys()))
-        active_components = np.hstack(
-            [np.c_[values] for values in self.survey.components.values()]
-        ).tolist()
-        nD = self.survey.nD
-
+        n_cells = self.nC
+        if getattr(self, "model_type", None) == "vector":
+            n_cells *= 3
         if self.store_sensitivities == "disk":
             sens_name = self.sensitivity_path + "sensitivity.npy"
             if os.path.exists(sens_name):
                 # do not pull array completely into ram, just need to check the size
                 kernel = np.load(sens_name, mmap_mode="r")
-                if kernel.shape == (nD, self.nC):
+                if kernel.shape == (self.survey.nD, n_cells):
                     print(f"Found sensitivity file at {sens_name} with expected shape")
                     kernel = np.asarray(kernel)
                     return kernel
-        # Single threaded
+        # multiprocessed
+        with multiprocessing.pool.Pool() as pool:
+            kernel = pool.starmap(
+                self.evaluate_integral, self.survey._location_component_iterator()
+            )
         if self.store_sensitivities != "forward_only":
-            kernel = np.vstack(
-                [
-                    self.evaluate_integral(receiver, components[component])
-                    for receiver, component in zip(
-                        self.survey.receiver_locations.tolist(), active_components
-                    )
-                ]
-            )
+            kernel = np.vstack(kernel)
         else:
-            kernel = np.hstack(
-                [
-                    self.evaluate_integral(receiver, components[component]).dot(
-                        self.model
-                    )
-                    for receiver, component in zip(
-                        self.survey.receiver_locations.tolist(), active_components
-                    )
-                ]
-            )
+            kernel = np.concatenate(kernel)
         if self.store_sensitivities == "disk":
             print(f"writing sensitivity to {sens_name}")
             os.makedirs(self.sensitivity_path, exist_ok=True)
             np.save(sens_name, kernel)
         return kernel
-
-    def evaluate_integral(self):
-        """'evaluate_integral' method no longer implemented for *BaseSimulation* class."""
-
-        raise RuntimeError(
-            f"Integral calculations must implemented by the subclass {self}."
-        )
-
-    @property
-    def forwardOnly(self):
-        """The forwardOnly property has been removed. Please set the store_sensitivites
-        property instead.
-        """
-        raise TypeError(
-            "The forwardOnly property has been removed. Please set the store_sensitivites "
-            "property instead."
-        )
-
-    @forwardOnly.setter
-    def forwardOnly(self, other):
-        raise TypeError(
-            "The forwardOnly property has been removed. Please set the store_sensitivites "
-            "property instead."
-        )
-
-    @property
-    def parallelized(self):
-        """The parallelized property has been removed. If interested, try out
-        loading dask for parallelism by doing ``import SimPEG.dask``.
-        """
-        raise TypeError(
-            "parallelized has been removed. If interested, try out "
-            "loading dask for parallelism by doing ``import SimPEG.dask``. "
-        )
-
-    @parallelized.setter
-    def parallelized(self, other):
-        raise TypeError(
-            "Do not set parallelized. If interested, try out "
-            "loading dask for parallelism by doing ``import SimPEG.dask``."
-        )
-
-    @property
-    def n_cpu(self):
-        """The parallelized property has been removed. If interested, try out
-        loading dask for parallelism by doing ``import SimPEG.dask``.
-        """
-        raise TypeError(
-            "n_cpu has been removed. If interested, try out "
-            "loading dask for parallelism by doing ``import SimPEG.dask``."
-        )
-
-    @n_cpu.setter
-    def n_cpu(self, other):
-        raise TypeError(
-            "Do not set n_cpu. If interested, try out "
-            "loading dask for parallelism by doing ``import SimPEG.dask``."
-        )
 
 
 class BaseEquivalentSourceLayerSimulation(BasePFSimulation):
@@ -278,7 +214,19 @@ class BaseEquivalentSourceLayerSimulation(BasePFSimulation):
                 "'cell_z_top' and 'cell_z_bottom' must have length equal to number of cells."
             )
 
-        self.Zn = np.c_[cell_z_bottom, cell_z_top]
+        all_nodes = self._nodes[self._unique_inv]
+        all_nodes = [
+            np.c_[all_nodes[0], cell_z_bottom],
+            np.c_[all_nodes[1], cell_z_bottom],
+            np.c_[all_nodes[2], cell_z_bottom],
+            np.c_[all_nodes[3], cell_z_bottom],
+            np.c_[all_nodes[0], cell_z_top],
+            np.c_[all_nodes[1], cell_z_top],
+            np.c_[all_nodes[2], cell_z_top],
+            np.c_[all_nodes[3], cell_z_top],
+        ]
+        self._nodes = np.stack(all_nodes, axis=0)
+        self._unique_inv = None
 
 
 def progress(iter, prog, final):
