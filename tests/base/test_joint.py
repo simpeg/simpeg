@@ -30,13 +30,21 @@ class DataMisfitTest(unittest.TestCase):
         # prob = DC.Simulation3DCellCentered(mesh, rhoMap=maps.ExpMap(mesh))
         # prob1 = DC.Simulation3DCellCentered(mesh, rhoMap=maps.ExpMap(mesh))
 
-        rx = DC.Rx.Pole(utils.ndgrid([mesh.vectorCCx, np.r_[mesh.vectorCCy.max()]]))
-        rx1 = DC.Rx.Pole(utils.ndgrid([mesh.vectorCCx, np.r_[mesh.vectorCCy.min()]]))
+        rx = DC.Rx.Pole(
+            utils.ndgrid([mesh.cell_centers_x, np.r_[mesh.cell_centers_y.max()]])
+        )
+        rx1 = DC.Rx.Pole(
+            utils.ndgrid([mesh.cell_centers_x, np.r_[mesh.cell_centers_y.min()]])
+        )
         src = DC.Src.Dipole(
-            [rx], np.r_[-0.25, mesh.vectorCCy.max()], np.r_[0.25, mesh.vectorCCy.max()]
+            [rx],
+            np.r_[-0.25, mesh.cell_centers_y.max()],
+            np.r_[0.25, mesh.cell_centers_y.max()],
         )
         src1 = DC.Src.Dipole(
-            [rx1], np.r_[-0.25, mesh.vectorCCy.max()], np.r_[0.25, mesh.vectorCCy.max()]
+            [rx1],
+            np.r_[-0.25, mesh.cell_centers_y.max()],
+            np.r_[0.25, mesh.cell_centers_y.max()],
         )
         survey = DC.Survey([src])
         simulation0 = DC.simulation.Simulation3DCellCentered(

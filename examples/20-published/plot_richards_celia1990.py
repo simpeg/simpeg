@@ -50,7 +50,7 @@ from SimPEG.flow import richards
 def run(plotIt=True):
 
     M = discretize.TensorMesh([np.ones(40)])
-    M.setCellGradBC("dirichlet")
+    M.set_cell_gradient_BC("dirichlet")
     params = richards.empirical.HaverkampParams().celia1990
     k_fun, theta_fun = richards.empirical.haverkamp(M, **params)
     k_fun.KsMap = maps.IdentityMap(nP=M.nC)

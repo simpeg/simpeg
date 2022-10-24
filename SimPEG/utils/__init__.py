@@ -155,7 +155,7 @@ Many of the functions here are used internally to SimPEG and have minimal docume
 .. autosummary::
   :toctree: generated/
 
-  asArray_N_x_Dim
+  as_array_n_by_dim
   call_hooks
   check_stoppers
   create_wrapper_from_class
@@ -186,7 +186,7 @@ Many of the functions here are used internally to SimPEG and have minimal docume
 """
 from __future__ import print_function
 
-from discretize.utils.interpolation_utils import interpmat
+from discretize.utils.interpolation_utils import interpmat, interpolation_matrix
 
 from .code_utils import (
     create_wrapper_from_class,
@@ -214,6 +214,7 @@ from .code_utils import (
     dependent_property,
     dependentProperty,
     asArray_N_x_Dim,
+    as_array_n_by_dim,
     requires,
     Report,
     validate_float,

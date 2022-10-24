@@ -23,11 +23,13 @@ def dotest(MYSOLVER, multi=False, A=None, **solverOpts):
 
         M = TensorMesh(h)
 
-        D = M.faceDiv
-        G = -M.faceDiv.T
-        Msig = M.getFaceInnerProduct()
+        D = M.face_divergence
+        G = -M.face_divergence.T
+        Msig = M.get_face_inner_product()
         A = D * Msig * G
-        A[-1, -1] *= 1 / M.vol[-1]  # remove the constant null space from the matrix
+        A[-1, -1] *= (
+            1 / M.cell_volumes[-1]
+        )  # remove the constant null space from the matrix
     else:
         M = TensorMesh([A.shape[0]])
 

@@ -77,7 +77,7 @@ class DCProblem_2DTests(unittest.TestCase):
         self.data = data
 
     def test_misfit(self):
-        passed = tests.checkDerivative(
+        passed = tests.check_derivative(
             lambda m: (self.p.dpred(m), lambda mx: self.p.Jvec(self.m0, mx)),
             self.m0,
             plotIt=False,
@@ -97,7 +97,7 @@ class DCProblem_2DTests(unittest.TestCase):
         self.assertTrue(passed)
 
     def test_dataObj(self):
-        passed = tests.checkDerivative(
+        passed = tests.check_derivative(
             lambda m: [self.dmis(m), self.dmis.deriv(m)], self.m0, plotIt=False, num=3
         )
         self.assertTrue(passed)

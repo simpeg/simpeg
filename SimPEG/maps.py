@@ -12,7 +12,7 @@ from scipy.constants import mu_0
 from scipy.sparse import csr_matrix as csr
 
 from discretize.tests import check_derivative
-from discretize import TensorMesh, CylMesh
+from discretize import TensorMesh, CylindricalMesh
 
 from .utils import (
     set_kwargs,
@@ -2683,7 +2683,7 @@ class SurjectVertical1D(IdentityMap):
     >>> fig1 = plt.figure(figsize=(5,5))
     >>> ax1 = fig1.add_subplot(111)
     >>> plot_1d_layer_model(
-    >>>     mesh1D.hx, np.flip(m), ax=ax1, z0=0,
+    >>>     mesh1D.h[0], np.flip(m), ax=ax1, z0=0,
     >>>     scale='linear', show_layers=True, plot_elevation=True
     >>> )
     >>> ax1.set_xlim([-0.1, 11])
@@ -2704,7 +2704,7 @@ class SurjectVertical1D(IdentityMap):
 
     def __init__(self, mesh, **kwargs):
         assert isinstance(
-            mesh, (TensorMesh, CylMesh)
+            mesh, (TensorMesh, CylindricalMesh)
         ), "Only implemented for tensor meshes"
         super().__init__(mesh=mesh, **kwargs)
 
@@ -2875,11 +2875,11 @@ class Surject2Dto3D(IdentityMap):
         The number of cells in the
         last dimension of the mesh."""
         if self.normal == "z":
-            return self.mesh.nCx * self.mesh.nCy
+            return self.mesh.shape_cells[0] * self.mesh.shape_cells[1]
         elif self.normal == "y":
-            return self.mesh.nCx * self.mesh.nCz
+            return self.mesh.shape_cells[0] * self.mesh.shape_cells[2]
         elif self.normal == "x":
-            return self.mesh.nCy * self.mesh.nCz
+            return self.mesh.shape_cells[1] * self.mesh.shape_cells[2]
 
     def _transform(self, m):
 
@@ -2887,19 +2887,19 @@ class Surject2Dto3D(IdentityMap):
         if self.normal == "z":
             return mkvc(
                 m.reshape(self.mesh.vnC[:2], order="F")[:, :, np.newaxis].repeat(
-                    self.mesh.nCz, axis=2
+                    self.mesh.shape_cells[2], axis=2
                 )
             )
         elif self.normal == "y":
             return mkvc(
                 m.reshape(self.mesh.vnC[::2], order="F")[:, np.newaxis, :].repeat(
-                    self.mesh.nCy, axis=1
+                    self.mesh.shape_cells[1], axis=1
                 )
             )
         elif self.normal == "x":
             return mkvc(
                 m.reshape(self.mesh.vnC[1:], order="F")[np.newaxis, :, :].repeat(
-                    self.mesh.nCx, axis=0
+                    self.mesh.shape_cells[0], axis=0
                 )
             )
 
@@ -3003,12 +3003,12 @@ class Mesh2Mesh(IdentityMap):
     @property
     def P(self):
         if getattr(self, "_P", None) is None:
-            self._P = self.mesh2.getInterpolationMat(
+            self._P = self.mesh2.get_interpolation_matrix(
                 self.mesh.cell_centers[self.indActive, :]
                 if self.indActive is not None
                 else self.mesh.cell_centers,
                 "CC",
-                zerosOutside=True,
+                zeros_outside=True,
             )
         return self._P
 
@@ -4144,10 +4144,10 @@ class ParametricSplineMap(IdentityMap):
                 # Modfications for X and Z directions ...
                 for i in range(np.size(self.pts)):
                     ctemp = c[i]
-                    ind = np.argmin(abs(self.mesh.vectorCCy - ctemp))
+                    ind = np.argmin(abs(self.mesh.cell_centers_y - ctemp))
                     ca = c.copy()
                     cb = c.copy()
-                    dy = self.mesh.hy[ind] * 1.5
+                    dy = self.mesh.h[1][ind] * 1.5
                     ca[i] = ctemp + dy
                     cb[i] = ctemp - dy
                     spla = UnivariateSpline(self.pts, ca, k=self.order, s=0)
@@ -4164,10 +4164,10 @@ class ParametricSplineMap(IdentityMap):
                 # Here we use perturbation to compute sensitivity
                 for i in range(self.npts * 2):
                     ctemp = c[i]
-                    ind = np.argmin(abs(self.mesh.vectorCCy - ctemp))
+                    ind = np.argmin(abs(self.mesh.cell_centers_y - ctemp))
                     ca = c.copy()
                     cb = c.copy()
-                    dy = self.mesh.hy[ind] * 1.5
+                    dy = self.mesh.h[1][ind] * 1.5
                     ca[i] = ctemp + dy
                     cb[i] = ctemp - dy
 
@@ -5938,7 +5938,10 @@ class TileMap(IdentityMap):
 
             P = (
                 sp.csr_matrix(
-                    (self.global_mesh.vol, (in_local, np.arange(self.global_mesh.nC))),
+                    (
+                        self.global_mesh.cell_volumes,
+                        (in_local, np.arange(self.global_mesh.nC)),
+                    ),
                     shape=(self.local_mesh.nC, self.global_mesh.nC),
                 )
                 * speye(self.global_mesh.nC)[:, self.global_active]
@@ -5950,7 +5953,7 @@ class TileMap(IdentityMap):
 
             self._P = sp.block_diag(
                 [
-                    sdiag(1.0 / self.local_mesh.vol[self.local_active]) * P
+                    sdiag(1.0 / self.local_mesh.cell_volumes[self.local_active]) * P
                     for ii in range(self.components)
                 ]
             )

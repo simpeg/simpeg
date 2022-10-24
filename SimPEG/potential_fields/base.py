@@ -296,8 +296,10 @@ def get_dist_wgt(mesh, receiver_locations, actv, R, R0):
     p = 1 / np.sqrt(3)
 
     # Create cell center location
-    Ym, Xm, Zm = np.meshgrid(mesh.vectorCCy, mesh.vectorCCx, mesh.vectorCCz)
-    hY, hX, hZ = np.meshgrid(mesh.hy, mesh.hx, mesh.hz)
+    Ym, Xm, Zm = np.meshgrid(
+        mesh.cell_centers_y, mesh.cell_centers_x, mesh.cell_centers_z
+    )
+    hY, hX, hZ = np.meshgrid(mesh.h[1], mesh.h[0], mesh.h[2])
 
     # Remove air cells
     Xm = P.T * mkvc(Xm)
@@ -308,7 +310,7 @@ def get_dist_wgt(mesh, receiver_locations, actv, R, R0):
     hY = P.T * mkvc(hY)
     hZ = P.T * mkvc(hZ)
 
-    V = P.T * mkvc(mesh.vol)
+    V = P.T * mkvc(mesh.cell_volumes)
     wr = np.zeros(nC)
 
     ndata = receiver_locations.shape[0]

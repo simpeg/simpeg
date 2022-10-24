@@ -440,15 +440,15 @@ for ii, mod in enumerate(models_list):
     ax1 = fig.add_axes([0.1, 0.12, 0.73, 0.78])
     log_mod = np.log10(mod)
 
-    mesh_plotting.plotImage(
+    mesh_plotting.plot_image(
         log_mod,
         ax=ax1,
         grid=False,
         clim=(np.log10(true_model.min()), np.log10(true_model.max())),
         #        clim=(np.log10(0.1), np.log10(1)),
-        pcolorOpts={"cmap": "viridis"},
+        pcolor_opts={"cmap": "viridis"},
     )
-    ax1.set_ylim(mesh_plotting.vectorNy.min(), mesh_plotting.vectorNy.max())
+    ax1.set_ylim(mesh_plotting.nodes_y.min(), mesh_plotting.nodes_y.max())
 
     ax1.set_title("Conductivity Model")
     ax1.set_xlabel("x (m)")

@@ -43,7 +43,9 @@ def run(plotIt=True, survey_type="dipole-dipole"):
     zmin, zmax = 0, 0
     endl = np.array([[xmin, ymin, zmin], [xmax, ymax, zmax]])
     # Generate DC survey object
-    survey_dc = generate_dcip_survey(endl, survey_type=survey_type, dim=2, a=10, b=10, n=10)
+    survey_dc = generate_dcip_survey(
+        endl, survey_type=survey_type, dim=2, a=10, b=10, n=10
+    )
     survey_dc = IO.from_abmn_locations_to_survey(
         survey_dc.locations_a,
         survey_dc.locations_b,
@@ -57,7 +59,7 @@ def run(plotIt=True, survey_type="dipole-dipole"):
     # Obtain 2D TensorMesh
     mesh, actind = IO.set_mesh()
     topo, mesh1D = genTopography(mesh, -10, 0, its=100)
-    actind = utils.surface2ind_topo(mesh, np.c_[mesh1D.vectorCCx, topo])
+    actind = utils.surface2ind_topo(mesh, np.c_[mesh1D.cell_centers_x, topo])
     survey_dc.drape_electrodes_on_topography(mesh, actind, option="top")
 
     # Build conductivity and chargeability model
@@ -86,21 +88,21 @@ def run(plotIt=True, survey_type="dipole-dipole"):
         temp_charg = charg.copy()
         temp_charg[~actind] = np.nan
 
-        out1 = mesh.plotImage(
+        out1 = mesh.plot_image(
             temp_rho,
             grid=True,
             ax=axs[0],
-            gridOpts={"alpha": 0.2},
+            grid_opts={"alpha": 0.2},
             clim=(10, 1000),
-            pcolorOpts={"cmap": "viridis", "norm": colors.LogNorm()},
+            pcolor_opts={"cmap": "viridis", "norm": colors.LogNorm()},
         )
-        out2 = mesh.plotImage(
+        out2 = mesh.plot_image(
             temp_charg,
             grid=True,
             ax=axs[1],
-            gridOpts={"alpha": 0.2},
+            grid_opts={"alpha": 0.2},
             clim=(0, 0.1),
-            pcolorOpts={"cmap": "magma"},
+            pcolor_opts={"cmap": "magma"},
         )
         for i in range(2):
             axs[i].plot(
@@ -198,16 +200,16 @@ def run(plotIt=True, survey_type="dipole-dipole"):
     if plotIt:
         vmin, vmax = rho.min(), rho.max()
         fig, ax = plt.subplots(2, 1, figsize=(20, 6))
-        out1 = mesh.plotImage(
+        out1 = mesh.plot_image(
             rho_true,
             clim=(10, 1000),
-            pcolorOpts={"cmap": "viridis", "norm": colors.LogNorm()},
+            pcolor_opts={"cmap": "viridis", "norm": colors.LogNorm()},
             ax=ax[0],
         )
-        out2 = mesh.plotImage(
+        out2 = mesh.plot_image(
             rho_est,
             clim=(10, 1000),
-            pcolorOpts={"cmap": "viridis", "norm": colors.LogNorm()},
+            pcolor_opts={"cmap": "viridis", "norm": colors.LogNorm()},
             ax=ax[1],
         )
         out = [out1, out2]
@@ -273,11 +275,11 @@ def run(plotIt=True, survey_type="dipole-dipole"):
     # show recovered chargeability
     if plotIt:
         fig, ax = plt.subplots(2, 1, figsize=(20, 6))
-        out1 = mesh.plotImage(
-            charg_true, clim=(0, 0.1), pcolorOpts={"cmap": "magma"}, ax=ax[0]
+        out1 = mesh.plot_image(
+            charg_true, clim=(0, 0.1), pcolor_opts={"cmap": "magma"}, ax=ax[0]
         )
-        out2 = mesh.plotImage(
-            charg_est, clim=(0, 0.1), pcolorOpts={"cmap": "magma"}, ax=ax[1]
+        out2 = mesh.plot_image(
+            charg_est, clim=(0, 0.1), pcolor_opts={"cmap": "magma"}, ax=ax[1]
         )
         out = [out1, out2]
         for i in range(2):

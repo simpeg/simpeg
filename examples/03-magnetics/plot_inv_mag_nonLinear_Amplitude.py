@@ -183,12 +183,12 @@ ax = plt.subplot(2, 1, 2)
 
 # Create active map to go from reduce set to full
 actvPlot = maps.InjectActiveCells(mesh, actv, np.nan)
-mesh.plotSlice(
+mesh.plot_slice(
     actvPlot * model,
     ax=ax,
     normal="Y",
     ind=66,
-    pcolorOpts={"vmin": 0.0, "vmax": 0.01},
+    pcolor_opts={"vmin": 0.0, "vmax": 0.01},
     grid=True,
 )
 ax.set_xlim([-200, 200])
@@ -297,12 +297,12 @@ plt.gca().set_aspect("equal", adjustable="box")
 
 # Plot the equivalent layer model
 ax = plt.subplot(2, 1, 2)
-mesh.plotSlice(
+mesh.plot_slice(
     surfMap * mrec,
     ax=ax,
     normal="Y",
     ind=66,
-    pcolorOpts={"vmin": 0.0, "vmax": 0.01},
+    pcolor_opts={"vmin": 0.0, "vmax": 0.01},
     grid=True,
 )
 ax.set_xlim([-200, 200])
@@ -401,12 +401,12 @@ plt.gca().set_aspect("equal", adjustable="box")
 
 # Plot the l2 model
 ax = plt.subplot(3, 1, 2)
-im = mesh.plotSlice(
+im = mesh.plot_slice(
     actvPlot * invProb.l2model,
     ax=ax,
     normal="Y",
     ind=66,
-    pcolorOpts={"vmin": 0.0, "vmax": 0.01},
+    pcolor_opts={"vmin": 0.0, "vmax": 0.01},
     grid=True,
 )
 plt.colorbar(im[0])
@@ -418,12 +418,12 @@ plt.gca().set_aspect("equal", adjustable="box")
 
 # Plot the lp model
 ax = plt.subplot(3, 1, 3)
-im = mesh.plotSlice(
+im = mesh.plot_slice(
     actvPlot * invProb.model,
     ax=ax,
     normal="Y",
     ind=66,
-    pcolorOpts={"vmin": 0.0, "vmax": 0.01},
+    pcolor_opts={"vmin": 0.0, "vmax": 0.01},
     grid=True,
 )
 plt.colorbar(im[0])

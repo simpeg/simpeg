@@ -33,16 +33,16 @@ def run(plotIt=True):
     cs, ncx, ncz, npad = 5.0, 25, 24, 15
     hx = [(cs, ncx), (cs, npad, 1.3)]
     hz = [(cs, npad, -1.3), (cs, ncz), (cs, npad, 1.3)]
-    mesh = discretize.CylMesh([hx, 1, hz], "00C")
+    mesh = discretize.CylindricalMesh([hx, 1, hz], "00C")
 
-    active = mesh.vectorCCz < 0.0
-    layer = (mesh.vectorCCz < -50.0) & (mesh.vectorCCz >= -150.0)
-    actMap = maps.InjectActiveCells(mesh, active, np.log(1e-8), nC=mesh.nCz)
+    active = mesh.cell_centers_z < 0.0
+    layer = (mesh.cell_centers_z < -50.0) & (mesh.cell_centers_z >= -150.0)
+    actMap = maps.InjectActiveCells(mesh, active, np.log(1e-8), nC=mesh.shape_cells[2])
     mapping = maps.ExpMap(mesh) * maps.SurjectVertical1D(mesh) * actMap
     sig_half = 1e-3
     sig_air = 1e-8
     sig_layer = 1e-2
-    sigma = np.ones(mesh.nCz) * sig_air
+    sigma = np.ones(mesh.shape_cells[2]) * sig_air
     sigma[active] = sig_half
     sigma[layer] = sig_layer
     mtrue = np.log(sigma[active])
@@ -80,7 +80,7 @@ def run(plotIt=True):
     data = prb.make_synthetic_data(mtrue, relative_error=0.02, noise_floor=1e-11)
 
     dmisfit = data_misfit.L2DataMisfit(simulation=prb, data=data)
-    regMesh = discretize.TensorMesh([mesh.hz[mapping.maps[-1].indActive]])
+    regMesh = discretize.TensorMesh([mesh.h[2][mapping.maps[-1].indActive]])
     reg = regularization.WeightedLeastSquares(regMesh)
     opt = optimization.InexactGaussNewton(maxIter=5, LSshorten=0.5)
     invProb = inverse_problem.BaseInvProblem(dmisfit, reg, opt)
@@ -108,8 +108,8 @@ def run(plotIt=True):
         ax[0].set_xlabel("Time (s)", fontsize=14)
         ax[0].grid(color="k", alpha=0.5, linestyle="dashed", linewidth=0.5)
 
-        plt.semilogx(sigma[active], mesh.vectorCCz[active])
-        plt.semilogx(np.exp(mopt), mesh.vectorCCz[active])
+        plt.semilogx(sigma[active], mesh.cell_centers_z[active])
+        plt.semilogx(np.exp(mopt), mesh.cell_centers_z[active])
         ax[1].set_ylim(-600, 0)
         ax[1].set_xlim(1e-4, 1e-1)
         ax[1].set_xlabel("Conductivity (S/m)", fontsize=14)

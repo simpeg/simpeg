@@ -285,9 +285,9 @@ class AmpProblemTest(unittest.TestCase):
         # # Plot the amplitude model
         # plt.figure()
         # ax = plt.subplot(2, 1, 1)
-        # im = self.mesh.plotSlice(self.actvPlot*self.model,
+        # im = self.mesh.plot_slice(self.actvPlot*self.model,
         #  ax=ax, normal='Y', ind=66,
-        #     pcolorOpts={"vmin":0., "vmax":0.01}
+        #     pcolor_opts={"vmin":0., "vmax":0.01}
         # )
         # plt.colorbar(im[0])
         # ax.set_xlim([-200, 200])
@@ -297,8 +297,8 @@ class AmpProblemTest(unittest.TestCase):
         # plt.gca().set_aspect('equal', adjustable='box')
 
         # ax = plt.subplot(2, 1, 2)
-        # im = self.mesh.plotSlice(self.actvPlot*mrec_Amp, ax=ax, normal='Y', ind=66,
-        #     pcolorOpts={"vmin":0., "vmax":0.01}
+        # im = self.mesh.plot_slice(self.actvPlot*mrec_Amp, ax=ax, normal='Y', ind=66,
+        #     pcolor_opts={"vmin":0., "vmax":0.01}
         # )
         # plt.colorbar(im[0])
         # ax.set_xlim([-200, 200])

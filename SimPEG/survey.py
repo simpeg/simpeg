@@ -229,7 +229,7 @@ class BaseTimeRx(BaseRx):
         Parameters
         ----------
         mesh : discretize.BaseMesh
-            A ``discretize`` mesh; i.e. ``TensorMesh``, ``CylMesh``, ``TreeMesh``
+            A ``discretize`` mesh; i.e. ``TensorMesh``, ``CylindricalMesh``, ``TreeMesh``
         projected_grid :
 
         Returns

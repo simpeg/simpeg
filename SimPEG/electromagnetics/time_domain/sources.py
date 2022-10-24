@@ -1190,7 +1190,7 @@ class MagDipole(BaseTDEMSrc):
 
         if simulation.mesh._meshType == "CYL":
             coordinates = "cylindrical"
-            if simulation.mesh.isSymmetric:
+            if simulation.mesh.is_symmetric:
                 return self._srcFct(gridY)[:, 1]
 
         ax = self._srcFct(gridX, coordinates)[:, 0]
@@ -1203,7 +1203,9 @@ class MagDipole(BaseTDEMSrc):
     def _getAmagnetostatic(self, simulation):
         if simulation._formulation == "EB":
             return (
-                simulation.mesh.faceDiv * simulation.MfMuiI * simulation.mesh.faceDiv.T
+                simulation.mesh.face_divergence
+                * simulation.MfMuiI
+                * simulation.mesh.face_divergence.T.tocsr()
             )
         else:
             raise NotImplementedError(
@@ -1216,10 +1218,10 @@ class MagDipole(BaseTDEMSrc):
     def _rhs_magnetostatic(self, simulation):
         if getattr(self, "_hp", None) is None:
             if simulation._formulation == "EB":
-                bp = simulation.mesh.edgeCurl * self._aSrc(simulation)
-                self._MfMuip = simulation.mesh.getFaceInnerProduct(1.0 / self.mu)
-                self._MfMuipI = simulation.mesh.getFaceInnerProduct(
-                    1.0 / self.mu, invMat=True
+                bp = simulation.mesh.edge_curl * self._aSrc(simulation)
+                self._MfMuip = simulation.mesh.get_face_inner_product(1.0 / self.mu)
+                self._MfMuipI = simulation.mesh.get_face_inner_product(
+                    1.0 / self.mu, invert_matrix=True
                 )
                 self._hp = self._MfMuip * bp
             else:
@@ -1231,7 +1233,7 @@ class MagDipole(BaseTDEMSrc):
                 )
 
         if simulation._formulation == "EB":
-            return -simulation.mesh.faceDiv * (
+            return -simulation.mesh.face_divergence * (
                 (simulation.MfMuiI - self._MfMuipI) * self._hp
             )
         else:
@@ -1252,10 +1254,10 @@ class MagDipole(BaseTDEMSrc):
 
     def _bSrc(self, simulation):
         if simulation._formulation == "EB":
-            C = simulation.mesh.edgeCurl
+            C = simulation.mesh.edge_curl
 
         elif simulation._formulation == "HJ":
-            C = simulation.mesh.edgeCurl.T
+            C = simulation.mesh.edge_curl.T
 
         return C * self._aSrc(simulation)
 
@@ -1284,7 +1286,7 @@ class MagDipole(BaseTDEMSrc):
 
         else:
             if simulation._formulation == "EB":
-                hs = simulation.mesh.faceDiv.T * self._phiSrc(simulation)
+                hs = simulation.mesh.face_divergence.T * self._phiSrc(simulation)
                 ht = self._hp + hs
                 return simulation.MfMuiI * ht
             else:
@@ -1349,11 +1351,11 @@ class MagDipole(BaseTDEMSrc):
         numpy.ndarray
             Electric source term on mesh.
         """
-        C = simulation.mesh.edgeCurl
+        C = simulation.mesh.edge_curl
         b = self._bSrc(simulation)
 
         if simulation._formulation == "EB":
-            MfMui = simulation.mesh.getFaceInnerProduct(1.0 / self.mu)
+            MfMui = simulation.mesh.get_face_inner_product(1.0 / self.mu)
 
             if (
                 self.waveform.has_initial_fields is True
@@ -1676,10 +1678,10 @@ class LineCurrent(BaseTDEMSrc):
             and on faces for 'HJ' formulation.
         """
         if simulation._formulation == "EB":
-            Grad = simulation.mesh.nodalGrad
+            Grad = simulation.mesh.nodal_gradient
             return Grad.T * self.Mejs(simulation)
         elif simulation._formulation == "HJ":
-            Div = sdiag(simulation.mesh.vol) * simulation.mesh.faceDiv
+            Div = sdiag(simulation.mesh.cell_volumes) * simulation.mesh.face_divergence
             return Div * self.Mfjs(simulation)
 
     def phiInitial(self, simulation):
@@ -1738,7 +1740,7 @@ class LineCurrent(BaseTDEMSrc):
         if self.waveform.has_initial_fields:
             if simulation._formulation == "EB":
                 phi = self.phiInitial(simulation)
-                return -simulation.mesh.nodalGrad * phi
+                return -simulation.mesh.nodal_gradient * phi
             else:
                 raise NotImplementedError
         else:
@@ -1763,7 +1765,7 @@ class LineCurrent(BaseTDEMSrc):
         """
         if self.waveform.has_initial_fields:
             edc = f[self, "e", 0]
-            Grad = simulation.mesh.nodalGrad
+            Grad = simulation.mesh.nodal_gradient
             if adjoint is False:
                 AdcDeriv_v = simulation.getAdcDeriv(edc, v, adjoint=adjoint)
                 edcDeriv = Grad * (simulation.Adcinv * AdcDeriv_v)
@@ -1791,7 +1793,10 @@ class LineCurrent(BaseTDEMSrc):
         if self.waveform.has_initial_fields:
             if simulation._formulation == "HJ":
                 phi = self.phiInitial(simulation)
-                Div = sdiag(simulation.mesh.vol) * simulation.mesh.faceDiv
+                Div = (
+                    sdiag(simulation.mesh.cell_volumes)
+                    * simulation.mesh.face_divergence
+                )
                 return -simulation.MfRhoI * (Div.T * phi)
             else:
                 raise NotImplementedError
@@ -1821,7 +1826,7 @@ class LineCurrent(BaseTDEMSrc):
             raise NotImplementedError
 
         phi = self.phiInitial(simulation)
-        Div = sdiag(simulation.mesh.vol) * simulation.mesh.faceDiv
+        Div = sdiag(simulation.mesh.cell_volumes) * simulation.mesh.face_divergence
 
         if adjoint is True:
             return -(
@@ -1840,11 +1845,13 @@ class LineCurrent(BaseTDEMSrc):
         if simulation._formulation != "HJ":
             raise NotImplementedError
 
-        vol = simulation.mesh.vol
-        Div = sdiag(vol) * simulation.mesh.faceDiv
+        vol = simulation.mesh.cell_volumes
+        Div = sdiag(vol) * simulation.mesh.face_divergence
         return (
-            simulation.mesh.edgeCurl * simulation.MeMuI * simulation.mesh.edgeCurl.T
-            - Div.T
+            simulation.mesh.edge_curl
+            * simulation.MeMuI
+            * simulation.mesh.edge_curl.T.tocsr()
+            - Div.T.tocsr()
             * sdiag(1.0 / vol * simulation.mui)
             * Div  # stabalizing term. See (Chen, Haber & Oldenburg 2002)
         )
@@ -1937,7 +1944,7 @@ class LineCurrent(BaseTDEMSrc):
             raise NotImplementedError
 
         a = self._aInitial(simulation)
-        return simulation.mesh.edgeCurl.T * a
+        return simulation.mesh.edge_curl.T * a
 
     def bInitialDeriv(self, simulation, v, adjoint=False, f=None):
         """Compute derivative of intitial magnetic flux density times a vector
@@ -1963,9 +1970,9 @@ class LineCurrent(BaseTDEMSrc):
 
         if adjoint is True:
             return self._aInitialDeriv(
-                simulation, simulation.mesh.edgeCurl * v, adjoint=True
+                simulation, simulation.mesh.edge_curl * v, adjoint=True
             )
-        return simulation.mesh.edgeCurl.T * self._aInitialDeriv(simulation, v)
+        return simulation.mesh.edge_curl.T * self._aInitialDeriv(simulation, v)
 
     def s_m(self, simulation, time):
         """Returns :class:`Zero` for ``LineCurrent``"""
@@ -2006,7 +2013,7 @@ class RawVec_Grounded(LineCurrent):
             self._Mfjs = self._s_e = s_e
 
     # def getRHSdc(self, simulation):
-    #     return sdiag(simulation.mesh.vol) * simulation.mesh.faceDiv * self._s_e
+    #     return sdiag(simulation.mesh.cell_volumes) * simulation.mesh.face_divergence * self._s_e
 
     # def phiInitial(self, simulation):
     #     if self.waveform.has_initial_fields:
@@ -2038,7 +2045,7 @@ class RawVec_Grounded(LineCurrent):
     #         return Zero()
 
     #     phi = self.phiInitial(simulation)
-    #     Div = sdiag(simulation.mesh.vol) * simulation.mesh.faceDiv
+    #     Div = sdiag(simulation.mesh.cell_volumes) * simulation.mesh.face_divergence
     #     return -simulation.MfRhoI * (Div.T * phi)
 
     # def jInitialDeriv(self, simulation, v, adjoint=False):
@@ -2049,7 +2056,7 @@ class RawVec_Grounded(LineCurrent):
     #         return Zero()
 
     #     phi = self.phiInitial(simulation)
-    #     Div = sdiag(simulation.mesh.vol) * simulation.mesh.faceDiv
+    #     Div = sdiag(simulation.mesh.cell_volumes) * simulation.mesh.face_divergence
 
     #     if adjoint is True:
     #         return -(
@@ -2063,13 +2070,13 @@ class RawVec_Grounded(LineCurrent):
     #     if simulation._fieldType not in ["j", "h"]:
     #         raise NotImplementedError
 
-    #     vol = simulation.mesh.vol
+    #     vol = simulation.mesh.cell_volumes
 
     #     return (
-    #         simulation.mesh.edgeCurl * simulation.MeMuI * simulation.mesh.edgeCurl.T
-    #         - simulation.mesh.faceDiv.T
+    #         simulation.mesh.edge_curl * simulation.MeMuI * simulation.mesh.edge_curl.T
+    #         - simulation.mesh.face_divergence.T
     #         * sdiag(1.0 / vol * simulation.mui)
-    #         * simulation.mesh.faceDiv  # stabalizing term. See (Chen, Haber & Oldenburg 2002)
+    #         * simulation.mesh.face_divergence  # stabalizing term. See (Chen, Haber & Oldenburg 2002)
     #     )
 
     # def _aInitial(self, simulation):
@@ -2119,7 +2126,7 @@ class RawVec_Grounded(LineCurrent):
     #         return Zero()
 
     #     a = self._aInitial(simulation)
-    #     return simulation.mesh.edgeCurl.T * a
+    #     return simulation.mesh.edge_curl.T * a
 
     # def bInitialDeriv(self, simulation, v, adjoint=False, f=None):
     #     if simulation._fieldType not in ["j", "h"]:
@@ -2129,8 +2136,8 @@ class RawVec_Grounded(LineCurrent):
     #         return Zero()
 
     #     if adjoint is True:
-    #         return self._aInitialDeriv(simulation, simulation.mesh.edgeCurl * v, adjoint=True)
-    #     return simulation.mesh.edgeCurl.T * self._aInitialDeriv(simulation, v)
+    #         return self._aInitialDeriv(simulation, simulation.mesh.edge_curl * v, adjoint=True)
+    #     return simulation.mesh.edge_curl.T * self._aInitialDeriv(simulation, v)
 
     # def s_e(self, simulation, time):
     #     # if simulation._fieldType == 'h':

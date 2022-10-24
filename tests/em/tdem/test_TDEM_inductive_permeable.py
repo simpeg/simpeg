@@ -41,18 +41,18 @@ class TestInductiveSourcesPermeability(unittest.TestCase):
         pfz = 1.4
 
         ncz = int(target_l / csz)
-        mesh = discretize.CylMesh(
+        mesh = discretize.CylindricalMesh(
             [
                 [(csx, int(domainx / csx)), (csx, npadx, pfx)],
                 1,
                 [(csz, npadz, -pfz), (csz, ncz), (csz, npadz, pfz)],
             ]
         )
-        mesh.x0 = [0, 0, -mesh.hz[: npadz + ncz].sum()]
+        mesh.x0 = [0, 0, -mesh.h[2][: npadz + ncz].sum()]
 
         # Plot the mesh
         if plotIt:
-            mesh.plotGrid()
+            mesh.plot_grid()
             plt.show()
 
         self.radius_loop = radius_loop
@@ -97,16 +97,16 @@ class TestInductiveSourcesPermeability(unittest.TestCase):
 
             for a, key in zip(ax, model_names):
                 plt.colorbar(
-                    mesh.plotImage(
+                    mesh.plot_image(
                         mu_dict[key],
                         ax=a,
-                        pcolorOpts={"norm": LogNorm()},  # plot on a log-scale
+                        pcolor_opts={"norm": LogNorm()},  # plot on a log-scale
                         mirror=True,
                     )[0],
                     ax=a,
                 )
                 a.set_title("{}".format(key), fontsize=13)
-                #     cylMeshGen.mesh.plotGrid(ax=a, slice='theta') # uncomment to plot the mesh on top of this
+                #     cylMeshGen.mesh.plot_grid(ax=a, slice='theta') # uncomment to plot the mesh on top of this
                 a.set_xlim(xlim)
                 a.set_ylim(zlim)
             plt.tight_layout()
@@ -241,20 +241,23 @@ class TestInductiveSourcesPermeability(unittest.TestCase):
         v = utils.mkvc(np.random.rand(mesh.nE))
         w = utils.mkvc(np.random.rand(mesh.nF))
         assert np.all(
-            mesh.getEdgeInnerProduct(1e-4 * np.ones(mesh.nC)) * v == prob.MeSigma * v
+            mesh.get_edge_inner_product(1e-4 * np.ones(mesh.nC)) * v == prob.MeSigma * v
         )
 
         assert np.all(
-            mesh.getEdgeInnerProduct(1e-4 * np.ones(mesh.nC), invMat=True) * v
+            mesh.get_edge_inner_product(1e-4 * np.ones(mesh.nC), invert_matrix=True) * v
             == prob.MeSigmaI * v
         )
         assert np.all(
-            mesh.getFaceInnerProduct(1.0 / 1e-4 * np.ones(mesh.nC)) * w
+            mesh.get_face_inner_product(1.0 / 1e-4 * np.ones(mesh.nC)) * w
             == prob.MfRho * w
         )
 
         assert np.all(
-            mesh.getFaceInnerProduct(1.0 / 1e-4 * np.ones(mesh.nC), invMat=True) * w
+            mesh.get_face_inner_product(
+                1.0 / 1e-4 * np.ones(mesh.nC), invert_matrix=True
+            )
+            * w
             == prob.MfRhoI * w
         )
 
@@ -263,19 +266,24 @@ class TestInductiveSourcesPermeability(unittest.TestCase):
         w = utils.mkvc(np.random.rand(mesh.nF))
 
         np.testing.assert_allclose(
-            mesh.getEdgeInnerProduct(1e-3 * np.ones(mesh.nC)) * v, prob.MeSigma * v
+            mesh.get_edge_inner_product(1e-3 * np.ones(mesh.nC)) * v, prob.MeSigma * v
         )
 
         np.testing.assert_allclose(
-            mesh.getEdgeInnerProduct(1e-3 * np.ones(mesh.nC), invMat=True) * v,
+            mesh.get_edge_inner_product(1e-3 * np.ones(mesh.nC), invert_matrix=True)
+            * v,
             prob.MeSigmaI * v,
         )
 
         np.testing.assert_allclose(
-            mesh.getFaceInnerProduct(1.0 / 1e-3 * np.ones(mesh.nC)) * w, prob.MfRho * w
+            mesh.get_face_inner_product(1.0 / 1e-3 * np.ones(mesh.nC)) * w,
+            prob.MfRho * w,
         )
 
         np.testing.assert_allclose(
-            mesh.getFaceInnerProduct(1.0 / 1e-3 * np.ones(mesh.nC), invMat=True) * w,
+            mesh.get_face_inner_product(
+                1.0 / 1e-3 * np.ones(mesh.nC), invert_matrix=True
+            )
+            * w,
             prob.MfRhoI * w,
         )

@@ -49,7 +49,7 @@ class PlanewaveXYPrimary(Planewave):
     _fields_per_source = 2
 
     def __init__(self, receiver_list, frequency, sigma_primary=None):
-        # assert mkvc(self.mesh.hz.shape,1) == mkvc(sigma1d.shape,1),'The number of values in the 1D background model does not match the number of vertical cells (hz).'
+        # assert mkvc(self.mesh.h[2].shape,1) == mkvc(sigma1d.shape,1),'The number of values in the 1D background model does not match the number of vertical cells (hz).'
         self.sigma1d = None
         self._sigma_primary = sigma_primary
         super(PlanewaveXYPrimary, self).__init__(receiver_list, frequency)
@@ -66,8 +66,8 @@ class PlanewaveXYPrimary(Planewave):
                 mesh3d = simulation.mesh
                 x0 = mesh3d.x0
                 hs = [
-                    [mesh3d.vectorNx[-1] - x0[0]],
-                    [mesh3d.vectorNy[-1] - x0[1]],
+                    [mesh3d.nodes_x[-1] - x0[0]],
+                    [mesh3d.nodes_y[-1] - x0[1]],
                     mesh3d.h[-1],
                 ]
                 mesh1d = discretize.TensorMesh(hs, x0=x0)
@@ -84,7 +84,7 @@ class PlanewaveXYPrimary(Planewave):
                     volume_average(mesh1d, mesh3d, np.log(self._sigma1d))
                 )
             else:
-                self._sigma1d = simulation.mesh.r(
+                self._sigma1d = simulation.mesh.reshape(
                     simulation._sigmaPrimary, "CC", "CC", "M"
                 )[:]
                 self._sigma_p = None

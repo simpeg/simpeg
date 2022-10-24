@@ -117,7 +117,7 @@ class BaseRichardsTest(unittest.TestCase):
 class RichardsTests1D(BaseRichardsTest):
     def get_mesh(self):
         mesh = discretize.TensorMesh([np.ones(20)])
-        mesh.setCellGradBC("dirichlet")
+        mesh.set_cell_gradient_BC("dirichlet")
         print(mesh.dim)
         return mesh
 
@@ -201,7 +201,7 @@ class RichardsTests1D_Multi(RichardsTests1D):
 class RichardsTests2D(BaseRichardsTest):
     def get_mesh(self):
         mesh = discretize.TensorMesh([np.ones(8), np.ones(30)])
-        mesh.setCellGradBC(["neumann", "dirichlet"])
+        mesh.set_cell_gradient_BC(["neumann", "dirichlet"])
         return mesh
 
     def get_rx_list(self, times):
@@ -213,7 +213,9 @@ class RichardsTests2D(BaseRichardsTest):
     def get_conditions(self, mesh):
         bc = np.array([-61.5, -20.7])
         bc = np.r_[
-            np.zeros(mesh.nCy * 2), np.ones(mesh.nCx) * bc[0], np.ones(mesh.nCx) * bc[1]
+            np.zeros(mesh.shape_cells[1] * 2),
+            np.ones(mesh.shape_cells[0]) * bc[0],
+            np.ones(mesh.shape_cells[0]) * bc[1],
         ]
         h = np.zeros(mesh.nC) + bc[0]
         return bc, h
@@ -243,7 +245,7 @@ class RichardsTests2D(BaseRichardsTest):
 class RichardsTests3D(BaseRichardsTest):
     def get_mesh(self):
         mesh = discretize.TensorMesh([np.ones(8), np.ones(20), np.ones(10)])
-        mesh.setCellGradBC(["neumann", "neumann", "dirichlet"])
+        mesh.set_cell_gradient_BC(["neumann", "neumann", "dirichlet"])
         return mesh
 
     def get_rx_list(self, times):
@@ -255,10 +257,10 @@ class RichardsTests3D(BaseRichardsTest):
     def get_conditions(self, mesh):
         bc = np.array([-61.5, -20.7])
         bc = np.r_[
-            np.zeros(mesh.nCy * mesh.nCz * 2),
-            np.zeros(mesh.nCx * mesh.nCz * 2),
-            np.ones(mesh.nCx * mesh.nCy) * bc[0],
-            np.ones(mesh.nCx * mesh.nCy) * bc[1],
+            np.zeros(mesh.shape_cells[1] * mesh.shape_cells[2] * 2),
+            np.zeros(mesh.shape_cells[0] * mesh.shape_cells[2] * 2),
+            np.ones(mesh.shape_cells[0] * mesh.shape_cells[1]) * bc[0],
+            np.ones(mesh.shape_cells[0] * mesh.shape_cells[1]) * bc[1],
         ]
         h = np.zeros(mesh.nC) + bc[0]
         return bc, h

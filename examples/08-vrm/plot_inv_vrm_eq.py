@@ -241,12 +241,12 @@ titlestr1 = ["True Model (z = 0 m)", "Equivalent Source Model"]
 
 for qq in range(0, 2):
     ax1[qq] = Fig.add_axes([0.15 + 0.35 * qq, 0.7, 0.25, 0.25])
-    cplot1[qq] = mesh.plotSlice(
+    cplot1[qq] = mesh.plot_slice(
         map_mod[qq] * xi_mod[qq],
         ind=int((ncz + 2 * npad) / 2 - 1),
         ax=ax1[qq],
         grid=True,
-        pcolorOpts={"cmap": "gist_heat_r"},
+        pcolor_opts={"cmap": "gist_heat_r"},
     )
     cplot1[qq][0].set_clim((0.0, max_val))
     ax1[qq].set_xlabel("X [m]", fontsize=font_size)

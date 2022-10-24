@@ -112,7 +112,7 @@ class Survey(BaseSurvey):
             The projection matrix from x-faces to receiver locations
         """
         if getattr(self, "_Qfx", None) is None:
-            self._Qfx = self.prob.mesh.getInterpolationMat(
+            self._Qfx = self.prob.mesh.get_interpolation_matrix(
                 self.receiver_locations, "Fx"
             )
         return self._Qfx
@@ -127,7 +127,7 @@ class Survey(BaseSurvey):
             The projection matrix from y-faces to receiver locations
         """
         if getattr(self, "_Qfy", None) is None:
-            self._Qfy = self.prob.mesh.getInterpolationMat(
+            self._Qfy = self.prob.mesh.get_interpolation_matrix(
                 self.receiver_locations, "Fy"
             )
         return self._Qfy
@@ -142,7 +142,7 @@ class Survey(BaseSurvey):
             The projection matrix from z-faces to receiver locations
         """
         if getattr(self, "_Qfz", None) is None:
-            self._Qfz = self.prob.mesh.getInterpolationMat(
+            self._Qfz = self.prob.mesh.get_interpolation_matrix(
                 self.receiver_locations, "Fz"
             )
         return self._Qfz

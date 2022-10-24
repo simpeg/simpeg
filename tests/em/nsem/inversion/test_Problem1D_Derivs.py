@@ -57,7 +57,7 @@ def DerivJvecTest_1D(halfspace_value, freq=False, expMap=True):
     def fun(x):
         return simulation.dpred(x), lambda x: simulation.Jvec(x0, x)
 
-    return tests.checkDerivative(fun, x0, num=6, plotIt=False, eps=FLR)
+    return tests.check_derivative(fun, x0, num=6, plotIt=False, eps=FLR)
 
 
 def DerivJvecTest(halfspace_value, freq=False, expMap=True):
@@ -82,7 +82,7 @@ def DerivJvecTest(halfspace_value, freq=False, expMap=True):
     def fun(x):
         return simulation.dpred(x), lambda x: simulation.Jvec(x0, x)
 
-    return tests.checkDerivative(fun, x0, num=4, plotIt=False, eps=FLR)
+    return tests.check_derivative(fun, x0, num=4, plotIt=False, eps=FLR)
 
 
 class NSEM_DerivTests(unittest.TestCase):
