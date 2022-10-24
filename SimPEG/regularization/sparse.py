@@ -12,6 +12,12 @@ from .base import (
     SmoothnessFirstOrder,
 )
 from .. import utils
+from ..utils import (
+    validate_ndarray_with_shape,
+    validate_float,
+    validate_type,
+    validate_string,
+)
 
 
 class BaseSparse(BaseRegularization):
@@ -34,12 +40,7 @@ class BaseSparse(BaseRegularization):
 
     @irls_scaled.setter
     def irls_scaled(self, value: bool):
-        if not isinstance(value, bool):
-            raise TypeError(
-                "'irls_scaled must be of type 'bool'. "
-                f"Value of type {type(value)} provided."
-            )
-        self._irls_scaled = value
+        self._irls_scaled = validate_type("irls_scaled", value, bool, cast=False)
 
     @property
     def irls_threshold(self):
@@ -50,10 +51,9 @@ class BaseSparse(BaseRegularization):
 
     @irls_threshold.setter
     def irls_threshold(self, value):
-        value = float(value)
-        if value <= 0:
-            raise ValueError("Value of 'irls_threshold' should be greater than 0.")
-        self._irls_threshold = value
+        self._irls_threshold = validate_float(
+            "irls_threshold", value, min_val=0.0, inclusive_min=False
+        )
 
     @property
     def norm(self):
@@ -66,14 +66,19 @@ class BaseSparse(BaseRegularization):
     def norm(self, value: float | np.ndarray | None):
         if value is None:
             value = np.ones(self._weights_shapes[0]) * 2.0
-        else:
-            if isinstance(value, (float, int)):
-                value = np.ones(self._weights_shapes[0]) * value
+        expected_shapes = self._weights_shapes
+        if isinstance(expected_shapes, list):
+            expected_shapes = expected_shapes[0]
+        value = validate_ndarray_with_shape(
+            "norm", value, shape=[expected_shapes, (1,)], dtype=float
+        )
+        if value.shape == (1,):
+            value = np.full(expected_shapes[0], value)
 
-            if np.any(value < 0) or np.any(value > 2):
-                raise ValueError(
-                    "Value provided for 'norm' should be in the interval [0, 2]"
-                )
+        if np.any(value < 0) or np.any(value > 2):
+            raise ValueError(
+                "Value provided for 'norm' should be in the interval [0, 2]"
+            )
         self._norm = value
 
     def get_lp_weights(self, f_m):
@@ -177,12 +182,9 @@ class SparseSmoothness(BaseSparse, SmoothnessFirstOrder):
 
     @gradient_type.setter
     def gradient_type(self, value: str):
-        if value not in ["total", "components"]:
-            raise TypeError(
-                "Value for 'gradient_type' must be 'total' or 'components'. "
-                f"Value {value} provided."
-            )
-        self._gradient_type = value
+        self._gradient_type = validate_string(
+            "gradient_type", value, ["total", "components"]
+        )
 
     gradientType = utils.code_utils.deprecate_property(
         gradient_type, "gradientType", "0.19.0", error=False, future_warn=True
@@ -302,16 +304,21 @@ class Sparse(WeightedLeastSquares):
         if values is not None:
             if len(values) != len(self.objfcts):
                 raise ValueError(
-                    "The number of values provided for 'norms' does not "
-                    "match the number of regularization functions."
+                    f"The number of values provided for 'norms', {len(values)}, does not "
+                    f"match the number of regularization functions, {len(self.objfcts)}."
                 )
         else:
             values = [None] * len(self.objfcts)
-
-        for val, fct in zip(values, self.objfcts):
-            fct.norm = val
-
-        self._norms = values
+        previous_norms = getattr(self, "_norms", [None] * len(self.objfcts))
+        try:
+            for val, fct in zip(values, self.objfcts):
+                fct.norm = val
+            self._norms = values
+        except Exception as err:
+            # reset the norms if failed
+            for val, fct in zip(previous_norms, self.objfcts):
+                fct.norm = val
+            raise err
 
     @property
     def irls_scaled(self) -> bool:
@@ -322,11 +329,7 @@ class Sparse(WeightedLeastSquares):
 
     @irls_scaled.setter
     def irls_scaled(self, value: bool):
-        if not isinstance(value, bool):
-            raise TypeError(
-                "'irls_scaled must be of type 'bool'. "
-                f"Value of type {type(value)} provided."
-            )
+        value = validate_type("irls_scaled", value, bool, cast=False)
         for fct in self.objfcts:
             fct.irls_scaled = value
         self._irls_scaled = value
@@ -340,14 +343,12 @@ class Sparse(WeightedLeastSquares):
 
     @irls_threshold.setter
     def irls_threshold(self, value):
-        value = float(value)
-        if value <= 0:
-            raise ValueError("Value of 'irls_threshold' should be greater than 0.")
-
-        self._irls_threshold = value
-
+        value = validate_float(
+            "irls_threshold", value, min_val=0.0, inclusive_min=False
+        )
         for fct in self.objfcts:
             fct.irls_threshold = value
+        self._irls_threshold = value
 
     def update_weights(self, model):
         """
