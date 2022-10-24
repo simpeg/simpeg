@@ -237,7 +237,7 @@ class Simulation3DIntegral(BasePFSimulation):
 
         return amplitude
 
-    def evaluate_integral(self, receiver_location, components, model=None):
+    def evaluate_integral(self, receiver_location, components):
         """
         Load in the active nodes of a tensor mesh and computes the magnetic
         forward relation between a cuboid and a given observation
@@ -322,7 +322,7 @@ class Simulation3DIntegral(BasePFSimulation):
 
         rows = {}
         M = self.M
-        for component in components:
+        for component in set(components):
             if component == "bx":
                 vals_x = node_evals["gxx"]
                 vals_y = node_evals["gxy"]

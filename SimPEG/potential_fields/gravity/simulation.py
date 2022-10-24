@@ -102,7 +102,7 @@ class Simulation3DIntegral(BasePFSimulation):
 
         return self._gtg_diagonal
 
-    def evaluate_integral(self, receiver_location, components, model=None):
+    def evaluate_integral(self, receiver_location, components):
         """
         Compute the forward linear relationship between the model and the physics at a point
         and for all components of the survey.
@@ -160,7 +160,7 @@ class Simulation3DIntegral(BasePFSimulation):
                 node_evals["gzz"] = -node_evals["gxx"] - node_evals["gyy"]
 
         rows = {}
-        for component in components:
+        for component in set(components):
             vals = node_evals[component]
             if self._unique_inv is not None:
                 vals = vals[self._unique_inv]
