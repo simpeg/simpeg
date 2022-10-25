@@ -886,9 +886,9 @@ class ExponentialWaveform(BaseWaveform):
     start_time : float, default: -1e-2
         time at which the transmitter is turned on in units of seconds
     peak_time : float, default: -1e-3
-        the peak time for the waveform
+        the peak time for the waveform in units of seconds
     ramp_on_tau : float, default: 1e-3
-        time constant tau controlling how quickly the waveform ramps on (1-e^(-t/tau))
+        time constant tau in units of seconds controlling how quickly the waveform ramps on (formula: 1-e^(-t/tau))
 
     Examples
     --------
