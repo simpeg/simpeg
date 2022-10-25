@@ -111,3 +111,4 @@ Pull requests
 * `#1113 <https://github.com/simpeg/simpeg/pull/1113>`__: Pf update
 * `#1115 <https://github.com/simpeg/simpeg/pull/1115>`__: Discretize deprecation cleanup
 * `#1117 <https://github.com/simpeg/simpeg/pull/1117>`__: Make sparse regularization use the validator functions
+* `#1119 <https://github.com/simpeg/simpeg/pull/1119>`__: 0.18.0 Release Notes
