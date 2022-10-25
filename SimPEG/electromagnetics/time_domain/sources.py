@@ -948,7 +948,13 @@ class ExponentialWaveform(BaseWaveform):
 
     @peak_time.setter
     def peak_time(self, value):
-        value = validate_float("peak_time", value, max_val=self.off_time)
+        value = validate_float(
+            "peak_time",
+            value,
+            min_val=self.start_time,
+            max_val=self.off_time,
+            inclusive_min=False,
+        )
         self._peak_time = value
 
     @property
