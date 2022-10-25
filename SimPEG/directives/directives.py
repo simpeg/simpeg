@@ -2311,7 +2311,8 @@ class UpdateSensitivityWeights(InversionDirective):
         wr **= 0.5
         for reg in self.reg.objfcts:
             if not isinstance(reg, BaseSimilarityMeasure):
-                for sub_reg in reg.objfcts:
+                sub_regs = getattr(reg, "objfcts", [reg])
+                for sub_reg in sub_regs:
                     sub_reg.set_weights(sensitivity=sub_reg.mapping * wr)
 
     def validate(self, directiveList):
