@@ -4,19 +4,18 @@ import numpy as np
 from geoana.em.static import CircularLoopWholeSpace, MagneticDipoleWholeSpace
 from scipy.constants import mu_0
 
+from ...utils import Zero, sdiag
 from ...utils.code_utils import (
     deprecate_property,
-    validate_float,
-    validate_string,
-    validate_type,
-    validate_ndarray_with_shape,
-    validate_location_property,
     validate_callable,
     validate_direction,
+    validate_float,
     validate_integer,
+    validate_location_property,
+    validate_ndarray_with_shape,
+    validate_string,
+    validate_type,
 )
-
-from ...utils import sdiag, Zero
 from ..base import BaseEMSrc
 from ..utils import line_through_faces, segmented_line_current_source_term
 
@@ -878,6 +877,133 @@ class PiecewiseLinearWaveform(BaseWaveform):
         return self.times
 
 
+class ExponentialWaveform(BaseWaveform):
+    """
+    An exponential ramp-on and linear ramp-off waveform
+
+    Parameters
+    ----------
+    start_time : float, default: -1e-2
+        time at which the transmitter is turned on in units of seconds
+    peak_time : float, default: -1e-3
+        the peak time for the waveform
+    ramp_on_tau : float, default: 1e-3
+        time constant tau controlling how quickly the waveform ramps on (1-e^(-t/tau))
+
+    Examples
+    --------
+
+    >>> import matplotlib.pyplot as plt
+    >>> import numpy as np
+    >>> from SimPEG.electromagnetics import time_domain as tdem
+
+    >>> times = np.linspace(-1e-2, 1e-2, 1000)
+    >>> waveform = tdem.sources.ExponentialWaveform()
+    >>> plt.plot(times, [waveform.eval(t) for t in times])
+    >>> plt.show()
+
+    """
+
+    def __init__(
+        self,
+        start_time=-1e-2,
+        peak_time=-1e-3,
+        ramp_on_tau=1e-3,
+        off_time=0.0,
+        **kwargs,
+    ):
+        super().__init__(hasInitialFields=False, off_time=off_time, **kwargs)
+        self.start_time = start_time
+        self.peak_time = peak_time
+        self.ramp_on_tau = ramp_on_tau
+
+    @property
+    def start_time(self):
+        """Peak time
+
+        Returns
+        -------
+        float
+            The peak time for the Exponential waveform
+        """
+        return self._start_time
+
+    @start_time.setter
+    def start_time(self, value):
+        value = validate_float(
+            "start_time", value, max_val=self.off_time, inclusive_max=False
+        )
+        self._start_time = value
+
+    @property
+    def peak_time(self):
+        """Peak time
+
+        Returns
+        -------
+        float
+            The peak time for the VTEM waveform
+        """
+        return self._peak_time
+
+    @peak_time.setter
+    def peak_time(self, value):
+        value = validate_float("peak_time", value, max_val=self.off_time)
+        self._peak_time = value
+
+    @property
+    def ramp_on_tau(self):
+        """Ramp on rate
+
+        Parameter controlling how quickly the waveform ramps on (default is 3)
+
+        Returns
+        -------
+        float
+            Ramp on rate
+        """
+        return self._ramp_on_tau
+
+    @ramp_on_tau.setter
+    def ramp_on_tau(self, value):
+        value = validate_float("ramp_on_tau", value, min_val=0.0, inclusive_min=False)
+        self._ramp_on_tau = value
+
+    def eval(self, time):
+        if time <= self.start_time:
+            return 0.0
+        elif time <= self.peak_time:
+            # normalize to unity at the peak time
+            return (1.0 - np.exp(-(time - self.start_time) / self.ramp_on_tau)) / (
+                1.0 - np.exp(-(self.peak_time - self.start_time) / self.ramp_on_tau)
+            )
+        elif (time < self.off_time) and (time > self.peak_time):
+            return -1.0 / (self.off_time - self.peak_time) * (time - self.off_time)
+        else:
+            return 0.0
+
+    def eval_deriv(self, time):
+        t = np.asarray(time, dtype=float)
+        out = np.zeros_like(t)
+
+        p_1 = (t <= self.peak_time) & (t >= self.start_time)
+        out[p_1] = np.exp(-(t[p_1] - self.start_time) / self.ramp_on_tau) / (
+            self.ramp_on_tau
+            * (1.0 - np.exp(-(self.peak_time - self.start_time) / self.ramp_on_tau))
+        )
+
+        p_2 = (t > self.peak_time) & (t < self.off_time)
+        out[p_2] = -1.0 / (self.off_time - self.peak_time)
+
+        if out.ndim == 0:
+            out = out.item()
+        return out
+
+    @property
+    def time_nodes(self):
+        return np.r_[self.start_time, self.peak_time, self.off_time]
+
+
 ###############################################################################
 #                                                                             #
 #                                    Sources                                  #
@@ -1495,7 +1621,7 @@ class CircularLoop(MagDipole):
         float
             Dipole moment of the loop
         """
-        return np.pi * self.radius ** 2 * self.current * self.n_turns
+        return np.pi * self.radius**2 * self.current * self.n_turns
 
     @moment.setter
     def moment(self):
