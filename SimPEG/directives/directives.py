@@ -18,6 +18,7 @@ from ..regularization import (
     SmoothnessFirstOrder,
     SparseSmoothness,
     BaseSimilarityMeasure,
+    BaseVectorRegularization,
 )
 from ..utils import (
     mkvc,
@@ -2302,16 +2303,25 @@ class UpdateSensitivityWeights(InversionDirective):
         wr = np.zeros_like(self.invProb.model)
         for reg in self.reg.objfcts:
             if not isinstance(reg, BaseSimilarityMeasure):
-                wr += reg.mapping.deriv(self.invProb.model).T * (
-                    (reg.mapping * jtj_diag) / reg.regularization_mesh.vol ** 2.0
-                )
+                mesh = reg.regularization_mesh
+                mapped_jtj_diag = reg.mapping * jtj_diag
+                if mapped_jtj_diag.size // mesh.dim > 1:
+                    mapped_jtj_diag = mapped_jtj_diag.reshape((mesh.nC, -1), order="F")
+                    wr_temp = (
+                        mapped_jtj_diag / reg.regularization_mesh.vol[:, None] ** 2.0
+                    )
+                    wr_temp = wr_temp.reshape(-1, order="F")
+                else:
+                    wr_temp = mapped_jtj_diag / reg.regularization_mesh.vol ** 2
+                wr += reg.mapping.deriv(self.invProb.model).T * wr_temp
         if self.normalization:
             wr /= wr.max()
         wr += self.threshold
         wr **= 0.5
         for reg in self.reg.objfcts:
             if not isinstance(reg, BaseSimilarityMeasure):
-                for sub_reg in reg.objfcts:
+                sub_regs = getattr(reg, "objfcts", [reg])
+                for sub_reg in sub_regs:
                     sub_reg.set_weights(sensitivity=sub_reg.mapping * wr)
 
     def validate(self, directiveList):
