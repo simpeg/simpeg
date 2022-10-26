@@ -2,20 +2,20 @@ import unittest
 
 import numpy as np
 import scipy.sparse as sp
+from discretize.tests import check_derivative
 from numpy.testing import assert_array_almost_equal
 from SimPEG.electromagnetics.time_domain.sources import (
-    StepOffWaveform,
-    RampOffWaveform,
-    VTEMWaveform,
-    TrapezoidWaveform,
-    TriangularWaveform,
-    QuarterSineRampOnWaveform,
+    CircularLoop,
+    ExponentialWaveform,
     HalfSineWaveform,
     PiecewiseLinearWaveform,
-    CircularLoop,
+    QuarterSineRampOnWaveform,
+    RampOffWaveform,
+    StepOffWaveform,
+    TrapezoidWaveform,
+    TriangularWaveform,
+    VTEMWaveform,
 )
-
-from discretize.tests import check_derivative
 
 
 class TestStepOffWaveform(unittest.TestCase):
@@ -421,6 +421,96 @@ class TestPiecewiseLinearWaveform(unittest.TestCase):
             return wave_eval, dWave_dt
 
         t_nodes = wave.time_nodes
+        t0 = np.concatenate(
+            [
+                np.linspace(t_nodes[i], t_nodes[i + 1], 6)[1:-2]
+                for i in range(len(t_nodes) - 1)
+            ]
+        )
+        dt = np.min(np.diff(t0)) * 0.5 * np.ones_like(t0)
+
+        assert check_derivative(f, t0, dx=dt, plotIt=False)
+
+
+class TestExponentialWaveform(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.times = np.linspace(start=-1e-2, stop=1e-2, num=21)
+
+    def test_waveform_with_default_param(self):
+        exponential_waveform = ExponentialWaveform()
+        result = [exponential_waveform.eval(t) for t in self.times]
+        expected = np.array(
+            [
+                0.0,
+                0.632198578331253,
+                0.8647714380371352,
+                0.9503302116973793,
+                0.9818055255388237,
+                0.9933846464055102,
+                0.9976443669192032,
+                0.9992114305213273,
+                0.9997879210035567,
+                0.9999999999999991,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+            ]
+        )
+        assert_array_almost_equal(result, expected)
+
+    def test_waveform_with_custom_param(self):
+        exponential_waveform = ExponentialWaveform(
+            start_time=-8e-3, off_time=8e-3, peak_time=5e-3
+        )
+        result = [exponential_waveform.eval(t) for t in self.times]
+        expected = np.array(
+            [
+                0.0,
+                0.0,
+                0.0,
+                0.6321219876324751,
+                0.8646666711948914,
+                0.9502150794312231,
+                0.981686580046311,
+                0.9932642981054164,
+                0.9975235025550406,
+                0.9990903763078033,
+                0.9996667969483558,
+                0.999878850251482,
+                0.9999568603021346,
+                0.9999855585959744,
+                0.9999961161082748,
+                1.0,
+                0.6666666666666666,
+                0.33333333333333304,
+                0.0,
+                0.0,
+                0.0,
+            ]
+        )
+        assert_array_almost_equal(result, expected)
+
+    def test_waveform_derivative(self):
+        # Test the waveform derivative at points between the time_nodes
+        exponential_waveform = ExponentialWaveform(
+            start_time=-8e-3, off_time=8e-3, peak_time=5e-3
+        )
+
+        def f(t):
+            wave_eval = np.array([exponential_waveform.eval(ti) for ti in t])
+            dWave_dt = sp.diags(exponential_waveform.eval_deriv(t))
+            return wave_eval, dWave_dt
+
+        t_nodes = exponential_waveform.time_nodes
         t0 = np.concatenate(
             [
                 np.linspace(t_nodes[i], t_nodes[i + 1], 6)[1:-2]
