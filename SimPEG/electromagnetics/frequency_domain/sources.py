@@ -777,6 +777,7 @@ class CircularLoop(MagDipole):
             receiver_list=receiver_list,
             frequency=frequency,
             location=location,
+            moment=None,
             **kwargs,
         )
 
@@ -834,10 +835,11 @@ class CircularLoop(MagDipole):
 
     @moment.setter
     def moment(self, value):
-        warnings.warn(
-            "Moment is not set as a property. I is the product"
-            "of the loop radius and transmitter current"
-        )
+        if value is not None:
+            warnings.warn(
+                "Moment is not set as a property. I is the product"
+                "of the loop radius and transmitter current"
+            )
         pass
 
     @property
