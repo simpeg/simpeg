@@ -171,7 +171,7 @@ class BaseSimulation(props.HasModel):
         survey=None,
         solver=None,
         solver_opts=None,
-        sensitivity_path="./sensitivity/",
+        sensitivity_path=os.path.join(".", "sensitivity"),
         counter=None,
         verbose=False,
         **kwargs,
