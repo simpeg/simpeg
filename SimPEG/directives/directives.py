@@ -1443,25 +1443,16 @@ class SaveOutputEveryIteration(SaveEveryIteration):
 
         phi_s, phi_x, phi_y, phi_z = 0, 0, 0, 0
 
-        if getattr(self.reg.objfcts[0], "objfcts", None) is not None:
-            for reg in self.reg.objfcts:
+        for reg in self.reg.objfcts:
+            if getattr(reg, "alpha_s", None):
                 phi_s += reg.objfcts[0](self.invProb.model) * reg.alpha_s
+            if getattr(reg, "alpha_x", None):
                 phi_x += reg.objfcts[1](self.invProb.model) * reg.alpha_x
 
-                if reg.regularization_mesh.dim == 2:
-                    phi_y += reg.objfcts[2](self.invProb.model) * reg.alpha_y
-                elif reg.regularization_mesh.dim == 3:
-                    phi_y += reg.objfcts[2](self.invProb.model) * reg.alpha_y
-                    phi_z += reg.objfcts[3](self.invProb.model) * reg.alpha_z
-        elif getattr(self.reg.objfcts[0], "objfcts", None) is None:
-            phi_s += self.reg.objfcts[0](self.invProb.model) * self.reg.alpha_s
-            phi_x += self.reg.objfcts[1](self.invProb.model) * self.reg.alpha_x
-
-            if self.reg.regularization_mesh.dim == 2:
-                phi_y += self.reg.objfcts[2](self.invProb.model) * self.reg.alpha_y
-            elif self.reg.regularization_mesh.dim == 3:
-                phi_y += self.reg.objfcts[2](self.invProb.model) * self.reg.alpha_y
-                phi_z += self.reg.objfcts[3](self.invProb.model) * self.reg.alpha_z
+            if reg.regularization_mesh.dim > 1 and getattr(reg, "alpha_y", None):
+                phi_y += reg.objfcts[2](self.invProb.model) * reg.alpha_y
+            if reg.regularization_mesh.dim > 2 and getattr(reg, "alpha_z", None):
+                phi_z += reg.objfcts[3](self.invProb.model) * reg.alpha_z
 
         self.beta.append(self.invProb.beta)
         self.phi_d.append(self.invProb.phi_d)
