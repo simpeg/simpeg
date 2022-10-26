@@ -17,7 +17,6 @@ testAdjoint = False
 
 TOL = 1e-4
 EPS = 1e-20
-np.random.seed(4)
 
 
 def get_mesh():
@@ -38,8 +37,10 @@ def get_mesh():
 
 
 def get_mapping(mesh):
-    active = mesh.vectorCCz < 0.0
-    activeMap = maps.InjectActiveCells(mesh, active, np.log(1e-8), nC=mesh.nCz)
+    active = mesh.cell_centers_z < 0.0
+    activeMap = maps.InjectActiveCells(
+        mesh, active, np.log(1e-8), nC=mesh.shape_cells[2]
+    )
     return maps.ExpMap(mesh) * maps.SurjectVertical1D(mesh) * activeMap
 
 
@@ -56,7 +57,7 @@ def get_survey(times, t0):
     out = utils.VTEMFun(times, 0.00595, 0.006, 100)
     wavefun = interp1d(times, out)
 
-    waveform = tdem.Src.RawWaveform(offTime=t0, waveFct=wavefun)
+    waveform = tdem.Src.RawWaveform(off_time=t0, waveform_function=wavefun)
     src = tdem.Src.MagDipole([], waveform=waveform, location=np.array([0.0, 0.0, 0.0]))
 
     return tdem.Survey([src])
@@ -120,6 +121,8 @@ class Base_DerivAdjoint_Test(unittest.TestCase):
                 src.receiver_list = rxlist
 
     def JvecTest(self, rxcomp):
+
+        np.random.seed(4)
         self.set_receiver_list(rxcomp)
 
         def derChk(m):
@@ -133,9 +136,10 @@ class Base_DerivAdjoint_Test(unittest.TestCase):
                 prbtype=self.formulation, rxcomp=rxcomp
             )
         )
-        tests.checkDerivative(derChk, self.m, plotIt=False, num=2, eps=1e-20)
+        tests.check_derivative(derChk, self.m, plotIt=False, num=2, eps=1e-20)
 
     def JvecVsJtvecTest(self, rxcomp):
+        np.random.seed(4)
         self.set_receiver_list(rxcomp)
         print(
             "\nAdjoint Testing Jvec, Jtvec prob {}, {}".format(self.formulation, rxcomp)
@@ -310,7 +314,7 @@ class DerivAdjoint_J(Base_DerivAdjoint_Test):
 #             return Av, ADeriv_dm
 
 #         print('\n Testing ADeriv {}'.format(prbtype))
-#         tests.checkDerivative(AderivFun, m0, plotIt=False, num=4, eps=EPS)
+#         tests.check_derivative(AderivFun, m0, plotIt=False, num=4, eps=EPS)
 
 #     def A_adjointTest(self, prbtype):
 #         prb, m0, mesh = setUp_TDEM(prbtype)
@@ -393,7 +397,3 @@ class DerivAdjoint_J(Base_DerivAdjoint_Test):
 #             )
 #         )
 #         self.assertTrue(passed)
-
-
-if __name__ == "__main__":
-    unittest.main()

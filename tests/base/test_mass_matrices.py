@@ -14,7 +14,16 @@ from discretize.utils import Zero
 class SimpleSim(BasePDESimulation):
     sigma, sigmaMap, sigmaDeriv = props.Invertible("Electrical conductivity (S/m)")
 
-    mu, muMap, muDeriv = props.Invertible("Magnetic Permeability", default=mu_0)
+    mu, muMap, muDeriv = props.Invertible("Magnetic Permeability")
+
+    def __init__(
+        self, mesh, survey=None, sigma=None, sigmaMap=None, mu=mu_0, muMap=None
+    ):
+        super().__init__(mesh=mesh, survey=survey)
+        self.sigma = sigma
+        self.mu = mu
+        self.sigmaMap = sigmaMap
+        self.muMap = muMap
 
     @property
     def deleteTheseOnModelUpdate(self):

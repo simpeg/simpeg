@@ -223,7 +223,7 @@ simulation = dc.simulation_1d.Simulation1DLayers(
 dmis = data_misfit.L2DataMisfit(simulation=simulation, data=data_object)
 
 # Define the regularization (model objective function)
-reg = regularization.Simple(mesh, alpha_s=1.0, alpha_x=1.0, mref=starting_model)
+reg = regularization.WeightedLeastSquares(mesh, alpha_s=1.0, alpha_x=1.0, reference_model=starting_model)
 
 # Define how the optimization problem is solved. Here we will use an inexact
 # Gauss-Newton approach that employs the conjugate gradient solver.

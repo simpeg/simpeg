@@ -38,12 +38,12 @@ def run(plotIt=True):
     mesh = TensorMesh([hxind, hyind, hzind], "CCC")
 
     # Get index of the center
-    midx = int(mesh.nCx / 2)
-    midy = int(mesh.nCy / 2)
+    midx = int(mesh.shape_cells[0] / 2)
+    midy = int(mesh.shape_cells[1] / 2)
 
     # Lets create a simple Gaussian topo and set the active cells
-    [xx, yy] = np.meshgrid(mesh.vectorNx, mesh.vectorNy)
-    zz = -np.exp((xx ** 2 + yy ** 2) / 75 ** 2) + mesh.vectorNz[-1]
+    [xx, yy] = np.meshgrid(mesh.nodes_x, mesh.nodes_y)
+    zz = -np.exp((xx ** 2 + yy ** 2) / 75 ** 2) + mesh.nodes_z[-1]
 
     # We would usually load a topofile
     topo = np.c_[utils.mkvc(xx), utils.mkvc(yy), utils.mkvc(zz)]
@@ -59,7 +59,7 @@ def run(plotIt=True):
     X, Y = np.meshgrid(xr, yr)
 
     # Move the observation points 5m above the topo
-    Z = -np.exp((X ** 2 + Y ** 2) / 75 ** 2) + mesh.vectorNz[-1] + 5.0
+    Z = -np.exp((X ** 2 + Y ** 2) / 75 ** 2) + mesh.nodes_z[-1] + 5.0
 
     # Create a MAGsurvey
     rxLoc = np.c_[utils.mkvc(X.T), utils.mkvc(Y.T), utils.mkvc(Z.T)]
@@ -69,7 +69,7 @@ def run(plotIt=True):
 
     # We can now create a susceptibility model and generate data
     # Here a simple block in half-space
-    model = np.zeros((mesh.nCx, mesh.nCy, mesh.nCz))
+    model = np.zeros(mesh.shape_cells)
     model[(midx - 2) : (midx + 2), (midy - 2) : (midy + 2), -6:-2] = 0.02
     model = utils.mkvc(model)
     model = model[actv]
@@ -85,7 +85,7 @@ def run(plotIt=True):
         survey=survey,
         mesh=mesh,
         chiMap=idenMap,
-        actInd=actv,
+        ind_active=actv,
     )
 
     # Compute linear forward operator and compute some data
@@ -101,7 +101,7 @@ def run(plotIt=True):
     # Create a regularization
     reg = regularization.Sparse(mesh, indActive=actv, mapping=idenMap)
     reg.mref = np.zeros(nC)
-    reg.norms = np.c_[0, 0, 0, 0]
+    reg.norms = [0, 0, 0, 0]
     # reg.eps_p, reg.eps_q = 1e-0, 1e-0
 
     # Create sensitivity weights from our linear forward operator
@@ -156,7 +156,7 @@ def run(plotIt=True):
 
         # Plot L2 model
         ax = plt.subplot(321)
-        mesh.plotSlice(
+        mesh.plot_slice(
             m_l2,
             ax=ax,
             normal="Z",
@@ -165,8 +165,8 @@ def run(plotIt=True):
             clim=(model.min(), model.max()),
         )
         plt.plot(
-            ([mesh.vectorCCx[0], mesh.vectorCCx[-1]]),
-            ([mesh.vectorCCy[ypanel], mesh.vectorCCy[ypanel]]),
+            ([mesh.cell_centers_x[0], mesh.cell_centers_x[-1]]),
+            ([mesh.cell_centers_y[ypanel], mesh.cell_centers_y[ypanel]]),
             color="w",
         )
         plt.title("Plan l2-model.")
@@ -177,7 +177,7 @@ def run(plotIt=True):
 
         # Vertica section
         ax = plt.subplot(322)
-        mesh.plotSlice(
+        mesh.plot_slice(
             m_l2,
             ax=ax,
             normal="Y",
@@ -186,8 +186,8 @@ def run(plotIt=True):
             clim=(model.min(), model.max()),
         )
         plt.plot(
-            ([mesh.vectorCCx[0], mesh.vectorCCx[-1]]),
-            ([mesh.vectorCCz[zpanel], mesh.vectorCCz[zpanel]]),
+            ([mesh.cell_centers_x[0], mesh.cell_centers_x[-1]]),
+            ([mesh.cell_centers_z[zpanel], mesh.cell_centers_z[zpanel]]),
             color="w",
         )
         plt.title("E-W l2-model.")
@@ -198,7 +198,7 @@ def run(plotIt=True):
 
         # Plot Lp model
         ax = plt.subplot(323)
-        mesh.plotSlice(
+        mesh.plot_slice(
             m_lp,
             ax=ax,
             normal="Z",
@@ -207,8 +207,8 @@ def run(plotIt=True):
             clim=(model.min(), model.max()),
         )
         plt.plot(
-            ([mesh.vectorCCx[0], mesh.vectorCCx[-1]]),
-            ([mesh.vectorCCy[ypanel], mesh.vectorCCy[ypanel]]),
+            ([mesh.cell_centers_x[0], mesh.cell_centers_x[-1]]),
+            ([mesh.cell_centers_y[ypanel], mesh.cell_centers_y[ypanel]]),
             color="w",
         )
         plt.title("Plan lp-model.")
@@ -219,7 +219,7 @@ def run(plotIt=True):
 
         # Vertical section
         ax = plt.subplot(324)
-        mesh.plotSlice(
+        mesh.plot_slice(
             m_lp,
             ax=ax,
             normal="Y",
@@ -228,8 +228,8 @@ def run(plotIt=True):
             clim=(model.min(), model.max()),
         )
         plt.plot(
-            ([mesh.vectorCCx[0], mesh.vectorCCx[-1]]),
-            ([mesh.vectorCCz[zpanel], mesh.vectorCCz[zpanel]]),
+            ([mesh.cell_centers_x[0], mesh.cell_centers_x[-1]]),
+            ([mesh.cell_centers_z[zpanel], mesh.cell_centers_z[zpanel]]),
             color="w",
         )
         plt.title("E-W lp-model.")
@@ -240,7 +240,7 @@ def run(plotIt=True):
 
         # Plot True model
         ax = plt.subplot(325)
-        mesh.plotSlice(
+        mesh.plot_slice(
             m_true,
             ax=ax,
             normal="Z",
@@ -249,8 +249,8 @@ def run(plotIt=True):
             clim=(model.min(), model.max()),
         )
         plt.plot(
-            ([mesh.vectorCCx[0], mesh.vectorCCx[-1]]),
-            ([mesh.vectorCCy[ypanel], mesh.vectorCCy[ypanel]]),
+            ([mesh.cell_centers_x[0], mesh.cell_centers_x[-1]]),
+            ([mesh.cell_centers_y[ypanel], mesh.cell_centers_y[ypanel]]),
             color="w",
         )
         plt.title("Plan true model.")
@@ -261,7 +261,7 @@ def run(plotIt=True):
 
         # Vertical section
         ax = plt.subplot(326)
-        mesh.plotSlice(
+        mesh.plot_slice(
             m_true,
             ax=ax,
             normal="Y",
@@ -270,8 +270,8 @@ def run(plotIt=True):
             clim=(model.min(), model.max()),
         )
         plt.plot(
-            ([mesh.vectorCCx[0], mesh.vectorCCx[-1]]),
-            ([mesh.vectorCCz[zpanel], mesh.vectorCCz[zpanel]]),
+            ([mesh.cell_centers_x[0], mesh.cell_centers_x[-1]]),
+            ([mesh.cell_centers_z[zpanel], mesh.cell_centers_z[zpanel]]),
             color="w",
         )
         plt.title("E-W true model.")

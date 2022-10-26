@@ -52,7 +52,7 @@ class DCProblemTestsCC(unittest.TestCase):
 
         # Now set up the problem to do some minimization
         dmis = data_misfit.L2DataMisfit(simulation=simulation, data=dobs)
-        reg = regularization.Tikhonov(mesh)
+        reg = regularization.WeightedLeastSquares(mesh)
         opt = optimization.InexactGaussNewton(
             maxIterLS=20, maxIter=10, tolF=1e-6, tolX=1e-6, tolG=1e-6, maxIterCG=6
         )
@@ -69,7 +69,7 @@ class DCProblemTestsCC(unittest.TestCase):
         self.dobs = dobs
 
     def test_misfit(self):
-        passed = tests.checkDerivative(
+        passed = tests.check_derivative(
             lambda m: [self.p.dpred(m), lambda mx: self.p.Jvec(self.m0, mx)],
             self.m0,
             plotIt=False,
@@ -89,7 +89,7 @@ class DCProblemTestsCC(unittest.TestCase):
         self.assertTrue(passed)
 
     def test_dataObj(self):
-        passed = tests.checkDerivative(
+        passed = tests.check_derivative(
             lambda m: [self.dmis(m), self.dmis.deriv(m)], self.m0, plotIt=False, num=6
         )
         self.assertTrue(passed)
@@ -100,7 +100,7 @@ class DCProblemTestsCC_fields(unittest.TestCase):
         cs = 10
         nc = 20
         npad = 10
-        mesh = discretize.CylMesh(
+        mesh = discretize.CylindricalMesh(
             [
                 [(cs, nc), (cs, npad, 1.3)],
                 np.r_[2 * np.pi],
@@ -108,7 +108,7 @@ class DCProblemTestsCC_fields(unittest.TestCase):
             ]
         )
 
-        mesh.x0 = np.r_[0.0, 0.0, -mesh.hz[: npad + nc].sum()]
+        mesh.x0 = np.r_[0.0, 0.0, -mesh.h[2][: npad + nc].sum()]
 
         # receivers
         rx_x = np.linspace(10, 200, 20)
@@ -141,7 +141,7 @@ class DCProblemTestsCC_fields(unittest.TestCase):
         def fun(x):
             return self.prob.dpred(x), lambda x: self.prob.Jvec(x0, x)
 
-        return tests.checkDerivative(fun, x0, num=3, plotIt=False)
+        return tests.check_derivative(fun, x0, num=3, plotIt=False)
 
     def test_e_adjoint(self):
         print("Adjoint Test for e")
@@ -193,7 +193,7 @@ class DCProblemTestsN(unittest.TestCase):
 
         # Now set up the problem to do some minimization
         dmis = data_misfit.L2DataMisfit(simulation=simulation, data=dobs)
-        reg = regularization.Tikhonov(mesh)
+        reg = regularization.WeightedLeastSquares(mesh)
         opt = optimization.InexactGaussNewton(
             maxIterLS=20, maxIter=10, tolF=1e-6, tolX=1e-6, tolG=1e-6, maxIterCG=6
         )
@@ -210,7 +210,7 @@ class DCProblemTestsN(unittest.TestCase):
         self.dobs = dobs
 
     def test_misfit(self):
-        passed = tests.checkDerivative(
+        passed = tests.check_derivative(
             lambda m: [self.p.dpred(m), lambda mx: self.p.Jvec(self.m0, mx)],
             self.m0,
             plotIt=False,
@@ -230,7 +230,7 @@ class DCProblemTestsN(unittest.TestCase):
         self.assertTrue(passed)
 
     def test_dataObj(self):
-        passed = tests.checkDerivative(
+        passed = tests.check_derivative(
             lambda m: [self.dmis(m), self.dmis.deriv(m)], self.m0, plotIt=False, num=3
         )
         self.assertTrue(passed)
@@ -265,7 +265,7 @@ class DCProblemTestsN_Robin(unittest.TestCase):
 
         # Now set up the problem to do some minimization
         dmis = data_misfit.L2DataMisfit(simulation=simulation, data=dobs)
-        reg = regularization.Tikhonov(mesh)
+        reg = regularization.WeightedLeastSquares(mesh)
         opt = optimization.InexactGaussNewton(
             maxIterLS=20, maxIter=10, tolF=1e-6, tolX=1e-6, tolG=1e-6, maxIterCG=6
         )
@@ -282,7 +282,7 @@ class DCProblemTestsN_Robin(unittest.TestCase):
         self.dobs = dobs
 
     def test_misfit(self):
-        passed = tests.checkDerivative(
+        passed = tests.check_derivative(
             lambda m: [self.p.dpred(m), lambda mx: self.p.Jvec(self.m0, mx)],
             self.m0,
             plotIt=False,
@@ -302,7 +302,7 @@ class DCProblemTestsN_Robin(unittest.TestCase):
         self.assertTrue(passed)
 
     def test_dataObj(self):
-        passed = tests.checkDerivative(
+        passed = tests.check_derivative(
             lambda m: [self.dmis(m), self.dmis.deriv(m)], self.m0, plotIt=False, num=3
         )
         self.assertTrue(passed)
@@ -337,7 +337,7 @@ class DCProblemTestsCC_storeJ(unittest.TestCase):
 
         # Now set up the problem to do some minimization
         dmis = data_misfit.L2DataMisfit(simulation=simulation, data=dobs)
-        reg = regularization.Tikhonov(mesh)
+        reg = regularization.WeightedLeastSquares(mesh)
         opt = optimization.InexactGaussNewton(
             maxIterLS=20, maxIter=10, tolF=1e-6, tolX=1e-6, tolG=1e-6, maxIterCG=6
         )
@@ -354,7 +354,7 @@ class DCProblemTestsCC_storeJ(unittest.TestCase):
         self.dobs = dobs
 
     def test_misfit(self):
-        passed = tests.checkDerivative(
+        passed = tests.check_derivative(
             lambda m: [self.p.dpred(m), lambda mx: self.p.Jvec(self.m0, mx)],
             self.m0,
             plotIt=False,
@@ -374,7 +374,7 @@ class DCProblemTestsCC_storeJ(unittest.TestCase):
         self.assertTrue(passed)
 
     def test_dataObj(self):
-        passed = tests.checkDerivative(
+        passed = tests.check_derivative(
             lambda m: [self.dmis(m), self.dmis.deriv(m)], self.m0, plotIt=False, num=4
         )
         self.assertTrue(passed)
@@ -416,7 +416,7 @@ class DCProblemTestsN_storeJ(unittest.TestCase):
 
         # Now set up the problem to do some minimization
         dmis = data_misfit.L2DataMisfit(simulation=simulation, data=dobs)
-        reg = regularization.Tikhonov(mesh)
+        reg = regularization.WeightedLeastSquares(mesh)
         opt = optimization.InexactGaussNewton(
             maxIterLS=20, maxIter=10, tolF=1e-6, tolX=1e-6, tolG=1e-6, maxIterCG=6
         )
@@ -433,7 +433,7 @@ class DCProblemTestsN_storeJ(unittest.TestCase):
         self.dobs = dobs
 
     def test_misfit(self):
-        passed = tests.checkDerivative(
+        passed = tests.check_derivative(
             lambda m: [self.p.dpred(m), lambda mx: self.p.Jvec(self.m0, mx)],
             self.m0,
             plotIt=False,
@@ -453,7 +453,7 @@ class DCProblemTestsN_storeJ(unittest.TestCase):
         self.assertTrue(passed)
 
     def test_dataObj(self):
-        passed = tests.checkDerivative(
+        passed = tests.check_derivative(
             lambda m: [self.dmis(m), self.dmis.deriv(m)], self.m0, plotIt=False, num=3
         )
         self.assertTrue(passed)
@@ -499,7 +499,7 @@ class DCProblemTestsN_storeJ_Robin(unittest.TestCase):
 
         # Now set up the problem to do some minimization
         dmis = data_misfit.L2DataMisfit(simulation=simulation, data=dobs)
-        reg = regularization.Tikhonov(mesh)
+        reg = regularization.WeightedLeastSquares(mesh)
         opt = optimization.InexactGaussNewton(
             maxIterLS=20, maxIter=10, tolF=1e-6, tolX=1e-6, tolG=1e-6, maxIterCG=6
         )
@@ -516,7 +516,7 @@ class DCProblemTestsN_storeJ_Robin(unittest.TestCase):
         self.dobs = dobs
 
     def test_misfit(self):
-        passed = tests.checkDerivative(
+        passed = tests.check_derivative(
             lambda m: [self.p.dpred(m), lambda mx: self.p.Jvec(self.m0, mx)],
             self.m0,
             plotIt=False,
@@ -536,7 +536,7 @@ class DCProblemTestsN_storeJ_Robin(unittest.TestCase):
         self.assertTrue(passed)
 
     def test_dataObj(self):
-        passed = tests.checkDerivative(
+        passed = tests.check_derivative(
             lambda m: [self.dmis(m), self.dmis.deriv(m)], self.m0, plotIt=False, num=3
         )
         self.assertTrue(passed)

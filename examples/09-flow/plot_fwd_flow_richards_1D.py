@@ -50,7 +50,7 @@ from SimPEG.flow import richards
 def run(plotIt=True):
 
     M = discretize.TensorMesh([np.ones(40)], x0="N")
-    M.setCellGradBC("dirichlet")
+    M.set_cell_gradient_BC("dirichlet")
     # We will use the haverkamp empirical model with parameters from Celia1990
     k_fun, theta_fun = richards.empirical.haverkamp(
         M,
@@ -83,7 +83,7 @@ def run(plotIt=True):
 
     # Create the survey
     locs = -np.arange(2, 38, 4.0).reshape(-1, 1)
-    times = np.arange(30, prob.time_mesh.vectorCCx[-1], 60)
+    times = np.arange(30, prob.time_mesh.cell_centers_x[-1], 60)
     rxSat = richards.receivers.Saturation(locs, times)
     survey = richards.Survey([rxSat])
     prob.survey = survey
@@ -117,9 +117,9 @@ def run(plotIt=True):
         plt.ylabel("Saturation")
 
         ax = plt.subplot(212)
-        mesh2d = discretize.TensorMesh([prob.time_mesh.hx / 60, prob.mesh.hx], "0N")
+        mesh2d = discretize.TensorMesh([prob.time_mesh.h[0] / 60, prob.mesh.h[0]], "0N")
         sats = [theta_fun(_) for _ in Hs]
-        clr = mesh2d.plotImage(np.c_[sats][1:, :], ax=ax)
+        clr = mesh2d.plot_image(np.c_[sats][1:, :], ax=ax)
         cmap0 = matplotlib.cm.RdYlBu_r
         clr[0].set_cmap(cmap0)
         c = plt.colorbar(clr[0])

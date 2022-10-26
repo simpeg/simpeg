@@ -27,8 +27,12 @@ class DC_CC_DipoleFullspaceTests(unittest.TestCase):
         sigma = np.ones(mesh.nC) * 1e-2
 
         # Set up survey parameters for numeric solution
-        x = mesh.vectorCCx[(mesh.vectorCCx > -75.0) & (mesh.vectorCCx < 75.0)]
-        y = mesh.vectorCCy[(mesh.vectorCCy > -75.0) & (mesh.vectorCCy < 75.0)]
+        x = mesh.cell_centers_x[
+            (mesh.cell_centers_x > -75.0) & (mesh.cell_centers_x < 75.0)
+        ]
+        y = mesh.cell_centers_y[
+            (mesh.cell_centers_y > -75.0) & (mesh.cell_centers_y < 75.0)
+        ]
 
         Aloc = np.r_[1.0, 0.0, 0.0]
         Bloc = np.r_[-1.0, 0.0, 0.0]
@@ -103,8 +107,7 @@ class DC_CC_DipoleFullspaceTests(unittest.TestCase):
         )
         simulation.solver = Solver
 
-        #        f = simulation.fields()
-        f = simulation.fields(self.sigma)
+        f = simulation.fields()
         eNumeric = utils.mkvc(f[self.survey.source_list, "e"])
         jNumeric = utils.mkvc(f[self.survey.source_list, "j"])
         # also test we can get charge and charge density
@@ -137,7 +140,7 @@ class DC_CC_DipoleFullspaceTests(unittest.TestCase):
         )
         simulation.solver = Solver
 
-        f = simulation.fields(self.sigma)
+        f = simulation.fields()
         eNumeric = utils.mkvc(f[self.survey.source_list, "e"])
         jNumeric = utils.mkvc(f[self.survey.source_list, "j"])
         errE = np.linalg.norm(
@@ -166,7 +169,7 @@ class DC_CC_DipoleFullspaceTests(unittest.TestCase):
         )
         simulation.solver = Solver
 
-        f = simulation.fields(self.sigma)
+        f = simulation.fields()
         eNumeric = utils.mkvc(f[self.survey.source_list, "e"])
         jNumeric = utils.mkvc(f[self.survey.source_list, "j"])
         errE = np.linalg.norm(
@@ -202,8 +205,8 @@ class DC_N_DipoleFullspaceTests(unittest.TestCase):
         sigma = np.ones(mesh.nC) * 1e-2
 
         # Set up survey parameters for numeric solution
-        x = mesh.vectorNx[(mesh.vectorNx > -75.0) & (mesh.vectorNx < 75.0)]
-        y = mesh.vectorNy[(mesh.vectorNy > -75.0) & (mesh.vectorNy < 75.0)]
+        x = mesh.nodes_x[(mesh.nodes_x > -75.0) & (mesh.nodes_x < 75.0)]
+        y = mesh.nodes_y[(mesh.nodes_y > -75.0) & (mesh.nodes_y < 75.0)]
 
         Aloc = np.r_[1.25, 0.0, 0.0]
         Bloc = np.r_[-1.25, 0.0, 0.0]
@@ -278,7 +281,7 @@ class DC_N_DipoleFullspaceTests(unittest.TestCase):
         )
         simulation.solver = Solver
 
-        f = simulation.fields(self.sigma)
+        f = simulation.fields()
         eNumeric = utils.mkvc(f[self.survey.source_list, "e"])
         jNumeric = utils.mkvc(f[self.survey.source_list, "j"])
         # also test if we can get charge and charge_density

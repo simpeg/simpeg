@@ -147,14 +147,14 @@ fig = plt.figure(figsize=(9, 4))
 plotting_map = maps.InjectActiveCells(mesh, ind_active, np.nan)
 
 ax1 = fig.add_axes([0.1, 0.12, 0.73, 0.78])
-mesh.plotSlice(
+mesh.plot_slice(
     plotting_map * model,
     normal="Y",
     ax=ax1,
-    ind=int(mesh.nCy / 2),
+    ind=int(mesh.shape_cells[1] / 2),
     grid=True,
     clim=(np.min(model), np.max(model)),
-    pcolorOpts={"cmap": "viridis"},
+    pcolor_opts={"cmap": "viridis"},
 )
 ax1.set_title("Model slice at y = 0 m")
 ax1.set_xlabel("x (m)")
@@ -184,7 +184,7 @@ simulation = gravity.simulation.Simulation3DIntegral(
     survey=survey,
     mesh=mesh,
     rhoMap=model_map,
-    actInd=ind_active,
+    ind_active=ind_active,
     store_sensitivities="forward_only",
 )
 

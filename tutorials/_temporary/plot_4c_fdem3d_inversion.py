@@ -312,10 +312,10 @@ dmis = data_misfit.L2DataMisfit(data=data_object, simulation=simulation)
 dmis.W = utils.sdiag(1 / uncertainties)
 
 # Define the regularization (model objective function)
-reg = regularization.Simple(
+reg = regularization.WeightedLeastSquares(
     mesh,
     indActive=ind_active,
-    mref=starting_model,
+    reference_model=starting_model,
     alpha_s=1e-2,
     alpha_x=1,
     alpha_y=1,
@@ -388,14 +388,14 @@ fig = plt.figure(figsize=(9, 4))
 plotting_map = maps.InjectActiveCells(mesh, ind_active, np.nan)
 
 ax1 = fig.add_axes([0.1, 0.1, 0.73, 0.8])
-mesh.plotSlice(
+mesh.plot_slice(
     plotting_map * true_model,
     normal="Y",
     ax=ax1,
-    ind=int(mesh.hy.size / 2),
+    ind=int(mesh.h[1].size / 2),
     grid=True,
     clim=(np.min(true_model), np.max(true_model)),
-    pcolorOpts={"cmap": "jet"},
+    pcolor_opts={"cmap": "jet"},
 )
 ax1.set_title("Model slice at y = 0 m")
 
@@ -414,14 +414,14 @@ fig = plt.figure(figsize=(9, 4))
 plotting_map = maps.InjectActiveCells(mesh, ind_active, np.nan)
 
 ax1 = fig.add_axes([0.1, 0.1, 0.73, 0.8])
-mesh.plotSlice(
+mesh.plot_slice(
     plotting_map * recovered_model,
     normal="Z",
     ax=ax1,
-    ind=int(mesh.hz.size / 2 - 1),
+    ind=int(mesh.h[2].size / 2 - 1),
     grid=True,
     clim=(np.min(recovered_model), np.max(recovered_model)),
-    pcolorOpts={"cmap": "jet"},
+    pcolor_opts={"cmap": "jet"},
 )
 ax1.set_title("Model slice at y = 0 m")
 

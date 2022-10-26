@@ -14,7 +14,7 @@ from SimPEG import (
     directives,
     inversion,
 )
-from SimPEG.potential_fields import gravity, get_dist_wgt
+from SimPEG.potential_fields import gravity
 
 import shutil
 
@@ -24,7 +24,6 @@ np.random.seed(43)
 class GravInvLinProblemTest(unittest.TestCase):
     def setUp(self):
 
-        ndv = -100
         # Create a self.mesh
         dx = 5.0
 
@@ -35,21 +34,20 @@ class GravInvLinProblemTest(unittest.TestCase):
         self.mesh = discretize.TensorMesh([hxind, hyind, hzind], "CCC")
 
         # Get index of the center
-        midx = int(self.mesh.nCx / 2)
-        midy = int(self.mesh.nCy / 2)
+        midx = int(self.mesh.shape_cells[0] / 2)
+        midy = int(self.mesh.shape_cells[1] / 2)
 
         # Lets create a simple Gaussian topo and set the active cells
-        [xx, yy] = np.meshgrid(self.mesh.vectorNx, self.mesh.vectorNy)
-        zz = -np.exp((xx ** 2 + yy ** 2) / 75 ** 2) + self.mesh.vectorNz[-1]
+        [xx, yy] = np.meshgrid(self.mesh.nodes_x, self.mesh.nodes_y)
+        zz = -np.exp((xx ** 2 + yy ** 2) / 75 ** 2) + self.mesh.nodes_z[-1]
 
         # Go from topo to actv cells
         topo = np.c_[utils.mkvc(xx), utils.mkvc(yy), utils.mkvc(zz)]
         actv = utils.surface2ind_topo(self.mesh, topo, "N")
-        actv = np.where(actv)[0]
 
         # Create active map to go from reduce space to full
         self.actvMap = maps.InjectActiveCells(self.mesh, actv, -100)
-        nC = len(actv)
+        nC = int(actv.sum())
 
         # Create and array of observation points
         xr = np.linspace(-20.0, 20.0, 20)
@@ -57,7 +55,7 @@ class GravInvLinProblemTest(unittest.TestCase):
         X, Y = np.meshgrid(xr, yr)
 
         # Move the observation points 5m above the topo
-        Z = -np.exp((X ** 2 + Y ** 2) / 75 ** 2) + self.mesh.vectorNz[-1] + 5.0
+        Z = -np.exp((X ** 2 + Y ** 2) / 75 ** 2) + self.mesh.nodes_z[-1] + 5.0
 
         # Create a MAGsurvey
         locXYZ = np.c_[utils.mkvc(X.T), utils.mkvc(Y.T), utils.mkvc(Z.T)]
@@ -67,13 +65,10 @@ class GravInvLinProblemTest(unittest.TestCase):
 
         # We can now create a density model and generate data
         # Here a simple block in half-space
-        model = np.zeros((self.mesh.nCx, self.mesh.nCy, self.mesh.nCz))
+        model = np.zeros(self.mesh.shape_cells)
         model[(midx - 2) : (midx + 2), (midy - 2) : (midy + 2), -6:-2] = 0.5
         model = utils.mkvc(model)
         self.model = model[actv]
-
-        # Create active map to go from reduce set to full
-        actvMap = maps.InjectActiveCells(self.mesh, actv, ndv)
 
         # Create reduced identity map
         idenMap = maps.IdentityMap(nP=nC)
@@ -83,35 +78,33 @@ class GravInvLinProblemTest(unittest.TestCase):
             self.mesh,
             survey=survey,
             rhoMap=idenMap,
-            actInd=actv,
+            ind_active=actv,
             store_sensitivities="ram",
+            chunk_format="row",
         )
 
         # Compute linear forward operator and compute some data
         # computing sensitivities to ram is best using dask processes
         with dask.config.set(scheduler="processes"):
             data = sim.make_synthetic_data(
-                self.model, relative_error=0.0, noise_floor=0.001, add_noise=True
+                self.model, relative_error=0.0, noise_floor=0.0005, add_noise=True
             )
-        print(sim.G)
-
         # Create a regularization
-        reg = regularization.Sparse(self.mesh, indActive=actv, mapping=idenMap)
-        reg.norms = np.c_[0, 0, 0, 0]
-        reg.gradientType = "component"
-        # reg.eps_p, reg.eps_q = 5e-2, 1e-2
+        reg = regularization.Sparse(self.mesh, active_cells=actv, mapping=idenMap)
+        reg.norms = [0, 0, 0, 0]
+        reg.gradient_type = "components"
 
         # Data misfit function
         dmis = data_misfit.L2DataMisfit(simulation=sim, data=data)
 
         # Add directives to the inversion
         opt = optimization.ProjectedGNCG(
-            maxIter=100, lower=-1.0, upper=1.0, maxIterLS=20, maxIterCG=10, tolCG=1e-3
+            maxIter=100, lower=-1.0, upper=1.0, maxIterLS=20, maxIterCG=10, tolCG=1e-4
         )
-        invProb = inverse_problem.BaseInvProblem(dmis, reg, opt, beta=1e8)
+        invProb = inverse_problem.BaseInvProblem(dmis, reg, opt, beta=1e2)
 
         # Here is where the norms are applied
-        IRLS = directives.Update_IRLS(f_min_change=1e-4, minGNiter=1)
+        IRLS = directives.Update_IRLS(max_irls_iterations=20, chifact_start=2.0)
         update_Jacobi = directives.UpdatePreconditioner()
         sensitivity_weights = directives.UpdateSensitivityWeights(everyIter=False)
         self.inv = inversion.BaseInversion(
@@ -120,30 +113,28 @@ class GravInvLinProblemTest(unittest.TestCase):
         self.sim = sim
 
     def test_grav_inverse(self):
-
         # Run the inversion
         mrec = self.inv.run(self.model)
         residual = np.linalg.norm(mrec - self.model) / np.linalg.norm(self.model)
-        print(residual)
 
+        # import matplotlib.pyplot as plt
         # plt.figure()
         # ax = plt.subplot(1, 2, 1)
-        # midx = int(self.mesh.nCx/2)
-        # self.mesh.plotSlice(self.actvMap*mrec, ax=ax, normal='Y', ind=midx,
-        #                grid=True, clim=(0, 0.5))
-
+        # self.mesh.plot_slice(self.actvMap*mrec, ax=ax, clim=(0, 0.5))
         # ax = plt.subplot(1, 2, 2)
-        # midx = int(self.mesh.nCx/2)
-        # self.mesh.plotSlice(self.actvMap*self.model, ax=ax, normal='Y', ind=midx,
-        #                grid=True, clim=(0, 0.5))
+        # self.mesh.plot_slice(self.actvMap*self.model, ax=ax, clim=(0, 0.5))
         # plt.show()
-
+        print(f"RESIDUAL !! {residual}")
         self.assertTrue(residual < 0.05)
 
     def tearDown(self):
         # Clean up the working directory
         if self.sim.store_sensitivities == "disk":
-            shutil.rmtree(self.sim.sensitivity_path)
+            # Clean up the working directory
+            try:
+                shutil.rmtree(self.sim.sensitivity_path)
+            except:
+                pass
 
 
 if __name__ == "__main__":

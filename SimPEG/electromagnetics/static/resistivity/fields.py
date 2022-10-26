@@ -90,15 +90,15 @@ class Fields3DCellCentered(FieldsDC):
     def startup(self):
         mesh = self.simulation.mesh
         if getattr(self.simulation, "bc_type", None) == "Dirichlet":
-            self.cellGrad = -mesh.faceDiv.T
+            self.cellGrad = -mesh.face_divergence.T
         elif getattr(self.simulation, "bc_type", None) == "Neumann":
             if self.mesh._meshType == "TREE":
                 raise NotImplementedError()
-            mesh.setCellGradBC("neumann")
-            self.cellGrad = mesh.cellGrad
+            mesh.set_cell_gradient_BC("neumann")
+            self.cellGrad = mesh.cell_gradient
         else:
-            mesh.setCellGradBC("neumann")
-            self.cellGrad = mesh.cellGrad
+            mesh.set_cell_gradient_BC("neumann")
+            self.cellGrad = mesh.cell_gradient
 
         self._MfRhoI = self.simulation.MfRhoI
         self._MfRhoIDeriv = self.simulation.MfRhoIDeriv
@@ -108,7 +108,7 @@ class Fields3DCellCentered(FieldsDC):
         self._Grad = self.simulation.Grad
         self._MfI = self.simulation.MfI
         self._Vol = self.simulation.Vol
-        self._faceDiv = self.simulation.mesh.faceDiv
+        self._faceDiv = self.simulation.mesh.face_divergence
 
     def _GLoc(self, fieldType):
         if fieldType == "phi":
@@ -153,7 +153,7 @@ class Fields3DCellCentered(FieldsDC):
         """
         # return self._MfI * self._MfRho * self._j(phiSolution, source_list)
         return self._MfI * self._Grad * phiSolution
-        # simulation._MfI * cart_mesh.faceDiv.T * p
+        # simulation._MfI * cart_mesh.face_divergence.T * p
 
     def _eDeriv_u(self, src, v, adjoint=False):
         if adjoint:
@@ -233,7 +233,7 @@ class Fields3DNodal(FieldsDC):
         .. math::
             \vec{e} = -\nabla \phi
         """
-        return -self.mesh.nodalGrad * phiSolution
+        return -self.mesh.nodal_gradient * phiSolution
 
     def _charge(self, phiSolution, source_list):
         """
@@ -241,15 +241,15 @@ class Fields3DNodal(FieldsDC):
             \int \nabla \codt \vec{e} =  \int \frac{\rho_v }{\epsillon_0}
         """
         return -epsilon_0 * (
-            self.mesh.nodalGrad.T
-            * self.mesh.getEdgeInnerProduct()
+            self.mesh.nodal_gradient.T
+            * self.mesh.get_edge_inner_product()
             * self._e(phiSolution, source_list)
         )
 
     def _charge_density(self, phiSolution, source_list):
         return (
             self.mesh.aveN2CC * self._charge(phiSolution, source_list)
-        ) / self.mesh.vol[:, None]
+        ) / self.mesh.cell_volumes[:, None]
 
 
 Fields3DCellCentred = Fields3DCellCentered

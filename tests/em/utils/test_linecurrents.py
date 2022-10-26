@@ -97,14 +97,14 @@ class LineCurrentFacesTest(unittest.TestCase):
             line_vertices = np.array(
                 [
                     [
-                        self.mesh.vectorCCx[points[0, 0]],
-                        self.mesh.vectorCCy[points[0, 1]],
-                        self.mesh.vectorCCz[points[0, 2]],
+                        self.mesh.cell_centers_x[points[0, 0]],
+                        self.mesh.cell_centers_y[points[0, 1]],
+                        self.mesh.cell_centers_z[points[0, 2]],
                     ],
                     [
-                        self.mesh.vectorCCx[points[1, 0]],
-                        self.mesh.vectorCCy[points[1, 1]],
-                        self.mesh.vectorCCz[points[1, 2]],
+                        self.mesh.cell_centers_x[points[1, 0]],
+                        self.mesh.cell_centers_y[points[1, 1]],
+                        self.mesh.cell_centers_z[points[1, 2]],
                     ],
                 ]
             )

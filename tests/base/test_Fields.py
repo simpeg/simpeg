@@ -66,7 +66,7 @@ class FieldsTest(unittest.TestCase):
 
     def test_overlappingFields(self):
         self.assertRaises(
-            AssertionError,
+            KeyError,
             fields.Fields,
             self.simulation,
             knownFields={"b": "F"},
@@ -169,7 +169,7 @@ class FieldsTest_Alias(unittest.TestCase):
         self.F = fields.Fields(
             sim,
             knownFields={"e": "E"},
-            aliasFields={"b": ["e", "F", (lambda e, ind: self.F.mesh.edgeCurl * e)]},
+            aliasFields={"b": ["e", "F", (lambda e, ind: self.F.mesh.edge_curl * e)]},
         )
         self.Src0 = Src0
         self.Src1 = Src1
@@ -192,11 +192,11 @@ class FieldsTest_Alias(unittest.TestCase):
         nSrc = F.survey.nSrc
         e = np.random.rand(F.mesh.nE, nSrc)
         F[:, "e"] = e
-        self.assertTrue(np.all(F[:, "b"] == F.mesh.edgeCurl * e))
+        self.assertTrue(np.all(F[:, "b"] == F.mesh.edge_curl * e))
 
         e = np.random.rand(F.mesh.nE, 1)
         F[self.Src0, "e"] = e
-        self.assertTrue(np.all(F[self.Src0, "b"] == F.mesh.edgeCurl * e))
+        self.assertTrue(np.all(F[self.Src0, "b"] == F.mesh.edge_curl * e))
 
         def f():
             F[self.Src0, "b"] = F[self.Src0, "b"]
@@ -206,7 +206,7 @@ class FieldsTest_Alias(unittest.TestCase):
     def test_aliasFunction(self):
         def alias(e, ind):
             self.assertTrue(ind[0] is self.Src0)
-            return self.F.mesh.edgeCurl * e
+            return self.F.mesh.edge_curl * e
 
         F = fields.Fields(
             self.simulation,
@@ -221,7 +221,7 @@ class FieldsTest_Alias(unittest.TestCase):
             self.assertTrue(type(ind) is list)
             self.assertTrue(ind[0] is self.Src0)
             self.assertTrue(ind[1] is self.Src1)
-            return self.F.mesh.edgeCurl * e
+            return self.F.mesh.edge_curl * e
 
         F = fields.Fields(
             self.simulation,
@@ -385,7 +385,7 @@ class FieldsTest_Time_Aliased(unittest.TestCase):
         )
 
         def alias(b, srcInd, timeInd):
-            return self.F.mesh.edgeCurl.T * b + timeInd
+            return self.F.mesh.edge_curl.T * b + timeInd
 
         self.F = fields.TimeFields(
             sim, knownFields={"b": "F"}, aliasFields={"e": ["b", "E", alias]}
@@ -413,11 +413,11 @@ class FieldsTest_Time_Aliased(unittest.TestCase):
         nT = F.simulation.nT + 1
         b = np.random.rand(F.mesh.nF, nSrc, nT)
         F[:, "b", :] = b
-        self.assertTrue(np.all(F[:, "e", 0] == F.mesh.edgeCurl.T * b[:, :, 0]))
+        self.assertTrue(np.all(F[:, "e", 0] == F.mesh.edge_curl.T * b[:, :, 0]))
 
         e = list(range(nT))
         for i in range(nT):
-            e[i] = F.mesh.edgeCurl.T * b[:, :, i] + i
+            e[i] = F.mesh.edge_curl.T * b[:, :, i] + i
             e[i] = e[i][:, :, np.newaxis]
         e = np.concatenate(e, axis=2)
         self.assertTrue(np.all(F[:, "e", :] == e))
@@ -428,7 +428,7 @@ class FieldsTest_Time_Aliased(unittest.TestCase):
 
         b = np.random.rand(F.mesh.nF, nT)
         F[self.Src0, "b", :] = b
-        Cb = F.mesh.edgeCurl.T * b
+        Cb = F.mesh.edge_curl.T * b
         for i in range(Cb.shape[1]):
             Cb[:, i] += i
         self.assertTrue(np.all(F[self.Src0, "e", :] == Cb))
@@ -445,7 +445,7 @@ class FieldsTest_Time_Aliased(unittest.TestCase):
         def alias(e, srcInd, timeInd):
             count[0] += 1
             self.assertTrue(srcInd[0] is self.Src0)
-            return self.F.mesh.edgeCurl * e
+            return self.F.mesh.edge_curl * e
 
         F = fields.TimeFields(
             self.simulation,
@@ -468,7 +468,7 @@ class FieldsTest_Time_Aliased(unittest.TestCase):
             self.assertTrue(type(srcInd) is list)
             self.assertTrue(srcInd[0] is self.Src0)
             self.assertTrue(srcInd[1] is self.Src1)
-            return self.F.mesh.edgeCurl * e
+            return self.F.mesh.edge_curl * e
 
         F = fields.TimeFields(
             self.simulation,

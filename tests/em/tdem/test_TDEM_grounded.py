@@ -101,7 +101,9 @@ class TestGroundedSourceTDEM_j(unittest.TestCase):
         m0 = np.log(self.sigma) + np.random.rand(self.mesh.nC)
         self.prob.model = m0
 
-        return tests.checkDerivative(deriv_fct, np.log(self.sigma), num=3, plotIt=False)
+        return tests.check_derivative(
+            deriv_fct, np.log(self.sigma), num=3, plotIt=False
+        )
 
     def test_deriv_phi(self):
         def deriv_check(m):
@@ -160,7 +162,3 @@ class TestGroundedSourceTDEM_j(unittest.TestCase):
 class TestGroundedSourceTDEM_h(TestGroundedSourceTDEM_j):
 
     prob_type = "MagneticField"
-
-
-if __name__ == "__main__":
-    unittest.main()

@@ -3,12 +3,11 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from .. import receivers as rx
-import properties
 
 from .plot_utils import ApparentResPhsStationPlot, TipperAmplitudeStationPlot
 
 
-class NSEM_data_viewer(properties.HasProperties):
+class NSEM_data_viewer():
     """
     An interactive SimPEG NSEM Data viewer.
 

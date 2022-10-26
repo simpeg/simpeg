@@ -300,13 +300,15 @@ dc_simulation = dc.simulation.Simulation3DNodal(
 dc_data_misfit = data_misfit.L2DataMisfit(data=dc_data, simulation=dc_simulation)
 
 # Define the regularization (model objective function)
-dc_regularization = regularization.Simple(
+dc_regularization = regularization.WeightedLeastSquares(
     mesh,
     indActive=ind_active,
-    mref=starting_conductivity_model,
+    reference_model=starting_conductivity_model,
 )
 
-dc_regularization.mrefInSmooth = True  # Include reference model in smoothness
+dc_regularization.reference_model_in_smooth = (
+    True  # Include reference model in smoothness
+)
 
 # Define how the optimization problem is solved.
 dc_optimization = optimization.InexactGaussNewton(
@@ -412,11 +414,11 @@ fig = plt.figure(figsize=(10, 4))
 plotting_map = maps.InjectActiveCells(mesh, ind_active, np.nan)
 
 ax1 = fig.add_axes([0.15, 0.15, 0.67, 0.75])
-mesh.plotSlice(
+mesh.plot_slice(
     plotting_map * true_conductivity_model_log10,
     ax=ax1,
     normal="Y",
-    ind=int(len(mesh.hy) / 2),
+    ind=int(len(mesh.h[1]) / 2),
     grid=False,
     clim=(true_conductivity_model_log10.min(), true_conductivity_model_log10.max()),
     pcolor_opts={"cmap": mpl.cm.viridis},
@@ -442,11 +444,11 @@ recovered_conductivity_model_log10 = np.log10(np.exp(recovered_conductivity_mode
 fig = plt.figure(figsize=(10, 4))
 
 ax1 = fig.add_axes([0.15, 0.15, 0.67, 0.75])
-mesh.plotSlice(
+mesh.plot_slice(
     plotting_map * recovered_conductivity_model_log10,
     ax=ax1,
     normal="Y",
-    ind=int(len(mesh.hy) / 2),
+    ind=int(len(mesh.h[1]) / 2),
     grid=False,
     clim=(true_conductivity_model_log10.min(), true_conductivity_model_log10.max()),
     pcolor_opts={"cmap": mpl.cm.viridis},

@@ -149,7 +149,7 @@ simulation = magnetics.simulation.Simulation3DIntegral(
     survey=survey,
     mesh=mesh,
     chiMap=idenMap,
-    actInd=actv,
+    ind_active=actv,
     store_sensitivities="forward_only",
 )
 simulation.M = M_xyz
@@ -183,12 +183,12 @@ ax = plt.subplot(2, 1, 2)
 
 # Create active map to go from reduce set to full
 actvPlot = maps.InjectActiveCells(mesh, actv, np.nan)
-mesh.plotSlice(
+mesh.plot_slice(
     actvPlot * model,
     ax=ax,
     normal="Y",
     ind=66,
-    pcolorOpts={"vmin": 0.0, "vmax": 0.01},
+    pcolor_opts={"vmin": 0.0, "vmax": 0.01},
     grid=True,
 )
 ax.set_xlim([-200, 200])
@@ -223,7 +223,7 @@ idenMap = maps.IdentityMap(nP=nC)
 
 # Create static map
 simulation = magnetics.simulation.Simulation3DIntegral(
-    mesh=mesh, survey=survey, chiMap=idenMap, actInd=surf, store_sensitivities="ram"
+    mesh=mesh, survey=survey, chiMap=idenMap, ind_active=surf, store_sensitivities="ram"
 )
 
 wr = simulation.getJtJdiag(mstart) ** 0.5
@@ -274,7 +274,7 @@ srcField = magnetics.sources.SourceField(receiver_list=[receiver_list], paramete
 surveyAmp = magnetics.survey.Survey(srcField)
 
 simulation = magnetics.simulation.Simulation3DIntegral(
-    mesh=mesh, survey=surveyAmp, chiMap=idenMap, actInd=surf, is_amplitude_data=True
+    mesh=mesh, survey=surveyAmp, chiMap=idenMap, ind_active=surf, is_amplitude_data=True
 )
 
 bAmp = simulation.fields(mrec)
@@ -297,12 +297,12 @@ plt.gca().set_aspect("equal", adjustable="box")
 
 # Plot the equivalent layer model
 ax = plt.subplot(2, 1, 2)
-mesh.plotSlice(
+mesh.plot_slice(
     surfMap * mrec,
     ax=ax,
     normal="Y",
     ind=66,
-    pcolorOpts={"vmin": 0.0, "vmax": 0.01},
+    pcolor_opts={"vmin": 0.0, "vmax": 0.01},
     grid=True,
 )
 ax.set_xlim([-200, 200])
@@ -332,14 +332,14 @@ mstart = np.ones(nC) * 1e-4
 
 # Create the forward model operator
 simulation = magnetics.simulation.Simulation3DIntegral(
-    survey=surveyAmp, mesh=mesh, chiMap=idenMap, actInd=actv, is_amplitude_data=True
+    survey=surveyAmp, mesh=mesh, chiMap=idenMap, ind_active=actv, is_amplitude_data=True
 )
 
 data_obj = data.Data(survey, dobs=bAmp, noise_floor=wd)
 
 # Create a sparse regularization
 reg = regularization.Sparse(mesh, indActive=actv, mapping=idenMap)
-reg.norms = np.c_[1, 0, 0, 0]
+reg.norms = [1, 0, 0, 0]
 reg.mref = np.zeros(nC)
 
 # Data misfit function
@@ -401,12 +401,12 @@ plt.gca().set_aspect("equal", adjustable="box")
 
 # Plot the l2 model
 ax = plt.subplot(3, 1, 2)
-im = mesh.plotSlice(
+im = mesh.plot_slice(
     actvPlot * invProb.l2model,
     ax=ax,
     normal="Y",
     ind=66,
-    pcolorOpts={"vmin": 0.0, "vmax": 0.01},
+    pcolor_opts={"vmin": 0.0, "vmax": 0.01},
     grid=True,
 )
 plt.colorbar(im[0])
@@ -418,12 +418,12 @@ plt.gca().set_aspect("equal", adjustable="box")
 
 # Plot the lp model
 ax = plt.subplot(3, 1, 3)
-im = mesh.plotSlice(
+im = mesh.plot_slice(
     actvPlot * invProb.model,
     ax=ax,
     normal="Y",
     ind=66,
-    pcolorOpts={"vmin": 0.0, "vmax": 0.01},
+    pcolor_opts={"vmin": 0.0, "vmax": 0.01},
     grid=True,
 )
 plt.colorbar(im[0])

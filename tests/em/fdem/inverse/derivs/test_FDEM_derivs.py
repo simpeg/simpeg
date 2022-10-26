@@ -46,7 +46,7 @@ def derivTest(fdemType, comp, src):
     def fun(x):
         return prb.dpred(x), lambda x: prb.Jvec(x0, x)
 
-    return tests.checkDerivative(fun, x0, num=2, plotIt=False, eps=FLR)
+    return tests.check_derivative(fun, x0, num=2, plotIt=False, eps=FLR)
 
 
 class FDEM_DerivTests(unittest.TestCase):
@@ -193,7 +193,3 @@ class FDEM_DerivTests(unittest.TestCase):
                         self.assertTrue(
                             derivTest("h", ["MagneticField", orientation, comp], src)
                         )
-
-
-if __name__ == "__main__":
-    unittest.main()

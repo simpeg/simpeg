@@ -1,6 +1,6 @@
 """
-Forward Simulation with User-Defined Waveform on a Tree Mesh
-============================================================
+3D Forward Simulation with User-Defined Waveforms
+=================================================
 
 Here we use the module *SimPEG.electromagnetics.time_domain* to predict the
 TDEM response for a trapezoidal waveform. We consider an airborne survey
@@ -84,12 +84,12 @@ waveform_times = np.linspace(-0.002, 0, 21)
 # For the trapezoidal waveform we define the ramp on interval, the
 # ramp-off interval and the off-time.
 waveform = tdem.sources.TrapezoidWaveform(
-    ramp_on=np.r_[-0.002, -0.001], ramp_off=np.r_[-0.001, 0.0], offTime=0.0
+    ramp_on=np.r_[-0.002, -0.001], ramp_off=np.r_[-0.001, 0.0], off_time=0.0
 )
 
 # Uncomment to try a quarter sine wave ramp on, followed by a linear ramp-off.
 # waveform = tdem.sources.QuarterSineRampOnWaveform(
-#     ramp_on=np.r_[-0.002, -0.001],  ramp_off=np.r_[-0.001, 0.], offTime=0.
+#     ramp_on=np.r_[-0.002, -0.001],  ramp_off=np.r_[-0.001, 0.], off_time=0.
 # )
 
 # Uncomment to try a custom waveform (just a linear ramp-off). This requires
@@ -97,7 +97,7 @@ waveform = tdem.sources.TrapezoidWaveform(
 # def wave_function(t):
 #     return - t/(np.max(waveform_times) - np.min(waveform_times))
 #
-# waveform = tdem.sources.RawWaveform(waveFct=wave_function, offTime=0.)
+# waveform = tdem.sources.RawWaveform(waveform_function=wave_function, off_time=0.)
 
 # Evaluate the waveform for each on time.
 waveform_value = [waveform.eval(t) for t in waveform_times]
@@ -244,11 +244,11 @@ log_model = np.log10(model)
 plotting_map = maps.InjectActiveCells(mesh, ind_active, np.nan)
 
 ax1 = fig.add_axes([0.13, 0.1, 0.6, 0.85])
-mesh.plotSlice(
+mesh.plot_slice(
     plotting_map * log_model,
     normal="Y",
     ax=ax1,
-    ind=int(mesh.hx.size / 2),
+    ind=int(mesh.h[0].size / 2),
     grid=True,
     clim=(np.min(log_model), np.max(log_model)),
 )

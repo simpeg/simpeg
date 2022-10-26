@@ -42,23 +42,22 @@ def run(plotIt=True):
     mesh = discretize.TensorMesh([hxind, hyind, hzind], "CCC")
 
     # Lets create a simple Gaussian topo and set the active cells
-    [xx, yy] = np.meshgrid(mesh.vectorNx, mesh.vectorNy)
-    zz = -np.exp((xx ** 2 + yy ** 2) / 75 ** 2) + mesh.vectorNz[-1]
+    [xx, yy] = np.meshgrid(mesh.nodes_x, mesh.nodes_y)
+    zz = -np.exp((xx ** 2 + yy ** 2) / 75 ** 2) + mesh.nodes_z[-1]
 
     # We would usually load a topofile
     topo = np.c_[utils.mkvc(xx), utils.mkvc(yy), utils.mkvc(zz)]
 
     # Go from topo to array of indices of active cells
     actv = utils.surface2ind_topo(mesh, topo, "N")
-    actv = np.where(actv)[0]
-
+    nC = int(actv.sum())
     # Create and array of observation points
     xr = np.linspace(-20.0, 20.0, 20)
     yr = np.linspace(-20.0, 20.0, 20)
     X, Y = np.meshgrid(xr, yr)
 
     # Move the observation points 5m above the topo
-    Z = -np.exp((X ** 2 + Y ** 2) / 75 ** 2) + mesh.vectorNz[-1] + 5.0
+    Z = -np.exp((X ** 2 + Y ** 2) / 75 ** 2) + mesh.nodes_z[-1] + 5.0
 
     # Create a MAGsurvey
     rxLoc = np.c_[utils.mkvc(X.T), utils.mkvc(Y.T), utils.mkvc(Z.T)]
@@ -84,14 +83,14 @@ def run(plotIt=True):
     actvMap = maps.InjectActiveCells(mesh, actv, np.nan)
 
     # Create reduced identity map
-    idenMap = maps.IdentityMap(nP=len(actv))
+    idenMap = maps.IdentityMap(nP=nC)
 
     # Create the forward model operator
     prob = magnetics.Simulation3DIntegral(
         mesh,
         survey=survey,
         chiMap=idenMap,
-        actInd=actv,
+        ind_active=actv,
         store_sensitivities="forward_only",
     )
 
@@ -105,36 +104,40 @@ def run(plotIt=True):
     homogMap = maps.SurjectUnits(domains)
 
     # Create a wire map for a second model space, voxel based
-    wires = maps.Wires(("homo", len(domains)), ("hetero", len(actv)))
+    wires = maps.Wires(("homo", len(domains)), ("hetero", nC))
 
     # Create Sum map
     sumMap = maps.SumMap([homogMap * wires.homo, wires.hetero])
 
     # Create the forward model operator
     prob = magnetics.Simulation3DIntegral(
-        mesh, survey=survey, chiMap=sumMap, actInd=actv, store_sensitivities="ram"
+        mesh, survey=survey, chiMap=sumMap, ind_active=actv, store_sensitivities="ram"
     )
 
     # Make depth weighting
     wr = np.zeros(sumMap.shape[1])
-    print(prob.nC)
+
     # print(prob.M.shape) # why does this reset nC
     G = prob.G
 
     # Take the cell number out of the scaling.
     # Want to keep high sens for large volumes
-    scale = utils.sdiag(
-        np.r_[utils.mkvc(1.0 / homogMap.P.sum(axis=0)), np.ones_like(actv)]
+    scale = utils.sdiag(np.r_[utils.mkvc(1.0 / homogMap.P.sum(axis=0)), np.ones(nC)])
+
+    # for ii in range(survey.nD):
+    #     wr += (
+    #         (prob.G[ii, :] * prob.chiMap.deriv(np.ones(sumMap.shape[1]) * 1e-4) * scale)
+    #         / data.standard_deviation[ii]
+    #     ) ** 2.0 / np.r_[homogMap.P.T * mesh.cell_volumes[actv], mesh.cell_volumes[actv]] **2.
+
+    wr = (
+        prob.getJtJdiag(np.ones(sumMap.shape[1]))
+        / np.r_[homogMap.P.T * mesh.cell_volumes[actv], mesh.cell_volumes[actv]] ** 2.0
     )
-
-    for ii in range(survey.nD):
-        wr += (
-            (prob.G[ii, :] * prob.chiMap.deriv(np.ones(sumMap.shape[1]) * 1e-4) * scale)
-            / data.standard_deviation[ii]
-        ) ** 2.0
-
     # Scale the model spaces independently
-    wr[wires.homo.index] /= np.max((wires.homo * wr))
+    wr[wires.homo.index] /= np.max((wires.homo * wr)) * utils.mkvc(
+        homogMap.P.sum(axis=0).flatten()
+    )
     wr[wires.hetero.index] /= np.max(wires.hetero * wr)
     wr = wr ** 0.5
 
@@ -144,13 +147,15 @@ def run(plotIt=True):
 
     reg_m1 = regularization.Sparse(regMesh, mapping=wires.homo)
     reg_m1.cell_weights = wires.homo * wr
-    reg_m1.norms = np.c_[0, 2, 2, 2]
+    reg_m1.norms = [0, 2]
     reg_m1.mref = np.zeros(sumMap.shape[1])
 
     # Regularization for the voxel model
-    reg_m2 = regularization.Sparse(mesh, indActive=actv, mapping=wires.hetero)
+    reg_m2 = regularization.Sparse(
+        mesh, active_cells=actv, mapping=wires.hetero, gradient_type="components"
+    )
     reg_m2.cell_weights = wires.hetero * wr
-    reg_m2.norms = np.c_[0, 1, 1, 1]
+    reg_m2.norms = [0, 0, 0, 0]
     reg_m2.mref = np.zeros(sumMap.shape[1])
 
     reg = reg_m1 + reg_m2
@@ -170,7 +175,7 @@ def run(plotIt=True):
         eps=1e-6,
     )
     invProb = inverse_problem.BaseInvProblem(dmis, reg, opt)
-    betaest = directives.BetaEstimate_ByEig()
+    betaest = directives.BetaEstimate_ByEig(beta0_ratio=1e-2)
 
     # Here is where the norms are applied
     # Use pick a threshold parameter empirically based on the distribution of
@@ -189,7 +194,7 @@ def run(plotIt=True):
             actvMap * model,
             aspect="equal",
             zslice=30,
-            pcolorOpts={"cmap": "inferno_r"},
+            pcolor_opts={"cmap": "inferno_r"},
             transparent="slider",
         )
 
@@ -197,7 +202,7 @@ def run(plotIt=True):
             actvMap * sumMap * mrecSum,
             aspect="equal",
             zslice=30,
-            pcolorOpts={"cmap": "inferno_r"},
+            pcolor_opts={"cmap": "inferno_r"},
             transparent="slider",
         )
 
