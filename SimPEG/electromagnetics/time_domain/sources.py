@@ -959,9 +959,9 @@ class ExponentialWaveform(BaseWaveform):
 
     @property
     def ramp_on_tau(self):
-        """Ramp on rate
+        """Ramp on rate control parameter.
 
-        Parameter controlling how quickly the waveform ramps on (default is 3)
+        Parameter controlling how quickly the waveform ramps on.
 
         Returns
         -------
