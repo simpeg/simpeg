@@ -919,12 +919,12 @@ class ExponentialWaveform(BaseWaveform):
 
     @property
     def start_time(self):
-        """Peak time
+        """Start time
 
         Returns
         -------
         float
-            The peak time for the Exponential waveform
+            The start time for the Exponential waveform in units of seconds
         """
         return self._start_time
 
@@ -942,7 +942,7 @@ class ExponentialWaveform(BaseWaveform):
         Returns
         -------
         float
-            The peak time for the VTEM waveform
+            The peak time for the Exponential waveform in units of seconds
         """
         return self._peak_time
 
@@ -961,12 +961,12 @@ class ExponentialWaveform(BaseWaveform):
     def ramp_on_tau(self):
         """Ramp on rate control parameter.
 
-        Parameter controlling how quickly the waveform ramps on.
+        Time constant tau controlling how quickly the waveform ramps on in units of seconds
 
         Returns
         -------
         float
-            Ramp on rate
+            Ramp on time constant tau
         """
         return self._ramp_on_tau
 
