@@ -1,24 +1,16 @@
 from __future__ import annotations
-import numpy as np
-import scipy.sparse as sp
-import warnings
 
 import copy
-from ..utils import (
-    sdiag,
-    mkvc,
-    timeIt,
-    Identity,
-)
+import warnings
+
+import numpy as np
+import scipy.sparse as sp
+from SimPEG.utils.code_utils import deprecate_property, validate_ndarray_with_shape
+
 from ..maps import IdentityMap, Wires
 from ..objective_function import ComboObjectiveFunction
-from .base import (
-    WeightedLeastSquares,
-    RegularizationMesh,
-    Smallness,
-)
-
-from SimPEG.utils.code_utils import deprecate_property, validate_ndarray_with_shape
+from ..utils import Identity, mkvc, sdiag, timeIt
+from .base import RegularizationMesh, Smallness, WeightedLeastSquares
 
 ###############################################################################
 #                                                                             #
@@ -132,7 +124,7 @@ class PGIsmallness(Smallness):
     def compute_quasi_geology_model(self):
         # used once mref is built
         mreflist = self.wiresmap * self.reference_model
-        mrefarray = np.c_[[a * b for a, b in zip(self.maplist, mreflist)]].T
+        mrefarray = np.c_[[a for a in mreflist]].T
         return np.c_[
             [((mrefarray - mean) ** 2).sum(axis=1) for mean in self.gmm.means_]
         ].argmin(axis=0)
@@ -186,12 +178,16 @@ class PGIsmallness(Smallness):
             )
 
         if not isinstance(maplist, (list, type(None))):
-            raise ValueError("Attribure 'maplist' should be a list of maps or None.")
+            raise ValueError(
+                f"Attribute 'maplist' should be a list of maps or None.{type(maplist)} was given."
+            )
 
         if isinstance(maplist, list) and not all(
             isinstance(map, IdentityMap) for map in maplist
         ):
-            raise ValueError(f"Attribure 'maplist' should be a list of maps or None.")
+            raise ValueError(
+                f"Attribute 'maplist' should be a list of maps or None.{type(maplist)} was given."
+            )
 
         self._maplist = maplist
 
