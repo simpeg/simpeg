@@ -20,6 +20,7 @@ Highlights
 * Multipole DC sources
 * Bug fixes!
 
+
 Removal of `properties` and the new API documentation website
 -------------------------------------------------------------
 The first thing you might've noticed is the new layout of the SimPEG documentation page.
@@ -69,8 +70,8 @@ FDEM and TDEM improvements
 Time domain and frequency domain receivers now support arbitrary orientations. There
 are now also new properties on `CircularLoop` sources enabling an `n_turns` attribute.
 
-Multipole sources
------------------
+DC Multipole sources
+--------------------
 The static module should now support multipole sources!
 
 Contributors
@@ -111,4 +112,6 @@ Pull requests
 * `#1113 <https://github.com/simpeg/simpeg/pull/1113>`__: Pf update
 * `#1115 <https://github.com/simpeg/simpeg/pull/1115>`__: Discretize deprecation cleanup
 * `#1117 <https://github.com/simpeg/simpeg/pull/1117>`__: Make sparse regularization use the validator functions
+* `#1118 <https://github.com/simpeg/simpeg/pull/1118>`__: TDEM exponential waveform
 * `#1119 <https://github.com/simpeg/simpeg/pull/1119>`__: 0.18.0 Release Notes
+* `#1120 <https://github.com/simpeg/simpeg/pull/1120>`__: Single reg directive fix
