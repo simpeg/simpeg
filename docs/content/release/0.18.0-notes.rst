@@ -4,6 +4,8 @@
 SimPEG 0.18.0 Release Notes
 ===========================
 
+October 26th, 2022
+
 This minor release is a major step forward for SimPEG and includes many additions and
 improvements to the codebase.
 

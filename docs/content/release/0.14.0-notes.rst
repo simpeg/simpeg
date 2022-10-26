@@ -4,6 +4,8 @@
 SimPEG 0.14.0 Release Notes
 ===========================
 
+May 27th, 2020
+
 This release marks a major change in the structure of SimPEG, and it all started
 with this,
 
