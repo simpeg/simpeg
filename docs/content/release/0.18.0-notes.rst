@@ -89,6 +89,7 @@ this release (in no particular order).
 * `@lheagy <https://github.com/lheagy>`__
 * `@nwilliams-kobold  <https://github.com/nwilliams-kobold >`__
 * `@ngodber <https://github.com/ngodber>`__
+* `@santisoler <https://github.com/santisoler>`__
 
 Pull requests
 =============
@@ -109,6 +110,7 @@ Pull requests
 * `#1096 <https://github.com/simpeg/simpeg/pull/1096>`__: bug fix for inversion with only a single parameter
 * `#1097 <https://github.com/simpeg/simpeg/pull/1097>`__: Update geoapps 0.8.0
 * `#1100 <https://github.com/simpeg/simpeg/pull/1100>`__: add exception for B-field computation with EB formulation when the waveform starts at 0.
+* `#1107 <https://github.com/simpeg/simpeg/pull/1107>`__: Improve how path to sensitivity files are built
 * `#1111 <https://github.com/simpeg/simpeg/pull/1111>`__: Remove all properties
 * `#1114 <https://github.com/simpeg/simpeg/pull/1114>`__: Remove LineCurrent1D
 * `#1113 <https://github.com/simpeg/simpeg/pull/1113>`__: Pf update
