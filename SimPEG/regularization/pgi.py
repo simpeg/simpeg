@@ -5,11 +5,17 @@ import warnings
 
 import numpy as np
 import scipy.sparse as sp
-from SimPEG.utils.code_utils import deprecate_property, validate_ndarray_with_shape
 
 from ..maps import IdentityMap, Wires
 from ..objective_function import ComboObjectiveFunction
-from ..utils import Identity, mkvc, sdiag, timeIt
+from ..utils import (
+    Identity,
+    deprecate_property,
+    mkvc,
+    sdiag,
+    timeIt,
+    validate_ndarray_with_shape,
+)
 from .base import RegularizationMesh, Smallness, WeightedLeastSquares
 
 ###############################################################################
