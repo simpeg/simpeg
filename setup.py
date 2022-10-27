@@ -40,7 +40,7 @@ setup(
         "pymatsolver>=0.1.1",
         "matplotlib",
         "discretize>=0.7.1",
-        "geoana>=0.3.0",
+        "geoana>=0.4.0",
         "empymod",
         "pandas",
     ],
