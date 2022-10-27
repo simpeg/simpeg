@@ -13,19 +13,19 @@ We explore it through the UBC linear example.
 #####################
 
 import discretize as Mesh
+import matplotlib.pyplot as plt
+import numpy as np
 from SimPEG import (
-    simulation,
-    maps,
     data_misfit,
     directives,
-    optimization,
-    regularization,
     inverse_problem,
     inversion,
+    maps,
+    optimization,
+    regularization,
+    simulation,
     utils,
 )
-import numpy as np
-import matplotlib.pyplot as plt
 
 # Random seed for reproductibility
 np.random.seed(1)
@@ -58,7 +58,7 @@ mtrue[mesh.cell_centers_x > 0.2] = 1.0
 mtrue[mesh.cell_centers_x > 0.35] = 0.0
 t = (mesh.cell_centers_x - 0.65) / 0.25
 indx = np.abs(t) < 1
-mtrue[indx] = -(((1 - t ** 2.0) ** 2.0)[indx])
+mtrue[indx] = -(((1 - t**2.0) ** 2.0)[indx])
 
 mtrue = np.zeros(mesh.nC)
 mtrue[mesh.cell_centers_x > 0.3] = 1.0

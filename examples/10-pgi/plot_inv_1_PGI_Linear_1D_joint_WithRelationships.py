@@ -10,19 +10,19 @@ properties are linked by polynomial relationships that change between rock units
 """
 
 import discretize as Mesh
+import matplotlib.pyplot as plt
+import numpy as np
 from SimPEG import (
-    simulation,
-    maps,
     data_misfit,
     directives,
-    optimization,
-    regularization,
     inverse_problem,
     inversion,
+    maps,
+    optimization,
+    regularization,
+    simulation,
     utils,
 )
-import numpy as np
-import matplotlib.pyplot as plt
 
 # Random seed for reproductibility
 np.random.seed(1)
@@ -128,9 +128,9 @@ dmis = dmis1 + dmis2
 minit = np.zeros_like(m)
 
 # Distance weighting
-wr1 = np.sum(prob1.G ** 2.0, axis=0) ** 0.5 / mesh.cell_volumes
+wr1 = np.sum(prob1.G**2.0, axis=0) ** 0.5 / mesh.cell_volumes
 wr1 = wr1 / np.max(wr1)
-wr2 = np.sum(prob2.G ** 2.0, axis=0) ** 0.5 / mesh.cell_volumes
+wr2 = np.sum(prob2.G**2.0, axis=0) ** 0.5 / mesh.cell_volumes
 wr2 = wr2 / np.max(wr2)
 
 reg_simple = regularization.PGI(
@@ -207,9 +207,7 @@ scales = directives.ScalingMultipleDataMisfits_ByEig(
     chi0_ratio=np.r_[1.0, 1.0], verbose=True, n_pw_iter=10
 )
 scaling_schedule = directives.JointScalingSchedule(verbose=True)
-alpha0_ratio = np.r_[
-    100.0 * np.ones(2), 1, 1
-]
+alpha0_ratio = np.r_[100.0 * np.ones(2), 1, 1]
 alphas = directives.AlphasSmoothEstimate_ByEig(
     alpha0_ratio=alpha0_ratio, n_pw_iter=10, verbose=True
 )

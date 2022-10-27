@@ -6,31 +6,26 @@
 
 from __future__ import print_function
 
-import numpy as np
-import matplotlib.pyplot as plt
 import copy
-from ..objective_function import ComboObjectiveFunction
+
+import matplotlib.pyplot as plt
+import numpy as np
+
+from ..directives import InversionDirective, MultiTargetMisfits
 from ..regularization import (
-    Smallness,
-    SparseSmallness,
-    Sparse,
-    PGIsmallness,
-    PGIwithNonlinearRelationshipsSmallness,
     PGI,
+    PGIsmallness,
+    PGIwithRelationships,
     SmoothnessFirstOrder,
     SparseSmoothness,
-    PGIwithRelationships,
 )
 from ..utils import (
-    mkvc,
-    WeightedGaussianMixture,
-    GaussianMixtureWithPrior,
     GaussianMixtureWithNonlinearRelationships,
     GaussianMixtureWithNonlinearRelationshipsWithPrior,
-    Zero,
+    GaussianMixtureWithPrior,
+    WeightedGaussianMixture,
+    mkvc,
 )
-from ..directives import InversionDirective, MultiTargetMisfits
-from ..utils.code_utils import deprecate_property
 
 
 class PGI_UpdateParameters(InversionDirective):
@@ -364,7 +359,9 @@ class PGI_AddMrefInSmooth(InversionDirective):
                         [
                             i,
                             j,
-                            isinstance(regpart, (SmoothnessFirstOrder, SparseSmoothness)),
+                            isinstance(
+                                regpart, (SmoothnessFirstOrder, SparseSmoothness)
+                            ),
                         ]
                     ]
             self.Smooth = np.r_[Smooth]

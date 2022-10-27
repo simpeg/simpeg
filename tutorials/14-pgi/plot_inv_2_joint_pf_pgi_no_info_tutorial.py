@@ -29,22 +29,20 @@ Volume 224, Issue 1, January 2021, Pages 40-68, DOI: `10.1093/gji/ggaa378
 #
 
 import discretize as ds
+import matplotlib.pyplot as plt
+import numpy as np
 import SimPEG.potential_fields as pf
 from SimPEG import (
-    maps,
-    utils,
-    simulation,
-    inverse_problem,
-    inversion,
-    optimization,
-    regularization,
     data_misfit,
     directives,
+    inverse_problem,
+    inversion,
+    maps,
+    optimization,
+    regularization,
+    utils,
 )
 from SimPEG.utils import io_utils
-import numpy as np
-import matplotlib.pyplot as plt
-from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 
 # Reproducible science
 np.random.seed(518936)
@@ -334,10 +332,10 @@ plt.show()
 
 # Create PGI regularization
 # Sensitivity weighting
-wr_grav = np.sum(simulation_grav.G ** 2.0, axis=0) ** 0.5 / (mesh.cell_volumes[actv])
+wr_grav = np.sum(simulation_grav.G**2.0, axis=0) ** 0.5 / (mesh.cell_volumes[actv])
 wr_grav = wr_grav / np.max(wr_grav)
 
-wr_mag = np.sum(simulation_mag.G ** 2.0, axis=0) ** 0.5 / (mesh.cell_volumes[actv])
+wr_mag = np.sum(simulation_mag.G**2.0, axis=0) ** 0.5 / (mesh.cell_volumes[actv])
 wr_mag = wr_mag / np.max(wr_mag)
 
 # create joint PGI regularization with smoothness
