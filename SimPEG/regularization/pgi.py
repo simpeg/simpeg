@@ -852,5 +852,7 @@ class PGI(ComboObjectiveFunction):
         reference_model,
         "mref",
         "reference_model",
+        "0.19.0",
+        future_warn=True,
         error=False,
     )

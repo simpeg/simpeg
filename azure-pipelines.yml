@@ -28,7 +28,7 @@ stages:
         vmImage: ubuntu-latest
       variables:
         python.version: '3.7'
-      timeoutInMinutes: 120
+      timeoutInMinutes: 180
       steps:
         - script: |
             git config --global user.name ${GH_NAME}

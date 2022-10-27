@@ -1573,7 +1573,7 @@ class CircularLoop(MagDipole):
             self.n_turns = n_turns
 
         BaseTDEMSrc.__init__(
-            self, receiver_list=receiver_list, location=location, **kwargs
+            self, receiver_list=receiver_list, location=location, moment=None, **kwargs
         )
 
         self.orientation = orientation
@@ -1627,14 +1627,15 @@ class CircularLoop(MagDipole):
         float
             Dipole moment of the loop
         """
-        return np.pi * self.radius**2 * self.current * self.n_turns
+        return np.pi * self.radius ** 2 * self.current * self.n_turns
 
     @moment.setter
-    def moment(self):
-        warnings.warn(
-            "Moment is not set as a property. I is the product"
-            "of the loop radius and transmitter current"
-        )
+    def moment(self, value):
+        if value is not None:
+            warnings.warn(
+                "Moment is not set as a property. I is the product"
+                "of the loop radius and transmitter current"
+            )
         pass
 
     @property
