@@ -4,6 +4,8 @@
 SimPEG 0.17.0 Release Notes
 ===========================
 
+April 15th, 2022
+
 This minor release contains new magnetotelluric simulations, improved electromagnetic
 sources, and efforts to unify some of the underlying PDE codes.
 

@@ -99,6 +99,7 @@ class BaseRegularization(BaseObjectiveFunction):
     indActive = deprecate_property(
         active_cells,
         "indActive",
+        "active_cells",
         "0.19.0",
         future_warn=True,
         error=False,
@@ -190,6 +191,7 @@ class BaseRegularization(BaseObjectiveFunction):
     mref = deprecate_property(
         reference_model,
         "mref",
+        "reference_model",
         "0.19.0",
         future_warn=True,
         error=False,
@@ -203,6 +205,7 @@ class BaseRegularization(BaseObjectiveFunction):
     regmesh = deprecate_property(
         regularization_mesh,
         "regmesh",
+        "regularization_mesh",
         "0.19.0",
         future_warn=True,
         error=False,
@@ -1014,8 +1017,10 @@ class WeightedLeastSquares(ComboObjectiveFunction):
     indActive = deprecate_property(
         active_cells,
         "indActive",
+        "active_cells",
         "0.19.0",
         error=False,
+        future_warn=True,
     )
 
     @property
@@ -1037,6 +1042,7 @@ class WeightedLeastSquares(ComboObjectiveFunction):
     mref = deprecate_property(
         reference_model,
         "mref",
+        "reference_model",
         "0.19.0",
         future_warn=True,
         error=False,
