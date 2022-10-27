@@ -44,7 +44,7 @@ def dask_linear_operator(self):
             stack = stack.rechunk({0: -1, 1: "auto"})
 
     if self.store_sensitivities == "disk":
-        sens_name = self.sensitivity_path + "sensitivity.zarr"
+        sens_name = os.path.join(self.sensitivity_path, "sensitivity.zarr")
         if os.path.exists(sens_name):
             kernel = array.from_zarr(sens_name)
             if np.all(
