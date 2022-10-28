@@ -184,8 +184,6 @@ Many of the functions here are used internally to SimPEG and have minimal docume
   validate_active_indices
 
 """
-from __future__ import print_function
-
 from discretize.utils.interpolation_utils import interpmat, interpolation_matrix
 
 from .code_utils import (

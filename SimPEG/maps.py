@@ -1,5 +1,3 @@
-from six import integer_types
-from six import string_types
 from collections import namedtuple
 import warnings
 import discretize
@@ -66,10 +64,10 @@ class IdentityMap:
 
     def __init__(self, mesh=None, nP=None, **kwargs):
         if nP is not None:
-            if isinstance(nP, string_types):
+            if isinstance(nP, str):
                 assert nP == "*", "nP must be an integer or '*', not {}".format(nP)
             assert isinstance(
-                nP, integer_types + (np.int64,)
+                nP, (int, np.integer)
             ), "Number of parameters must be an integer. Not `{}`.".format(type(nP))
             nP = int(nP)
         elif mesh is not None:
@@ -183,7 +181,7 @@ class IdentityMap:
         """
         if v is not None:
             return v
-        if isinstance(self.nP, integer_types):
+        if isinstance(self.nP, (int, np.integer)):
             return sp.identity(self.nP)
         return Identity()
 
@@ -214,7 +212,7 @@ class IdentityMap:
             kwargs["plotIt"] = False
 
         assert isinstance(
-            self.nP, integer_types
+            self.nP, (int, np.integer)
         ), "nP must be an integer for {}".format(self.__class__.__name__)
         return check_derivative(
             lambda m: [self * m, self.deriv(m)], m, num=num, **kwargs
@@ -1221,10 +1219,10 @@ class Wires(object):
             assert (
                 isinstance(arg, tuple)
                 and len(arg) == 2
-                and isinstance(arg[0], string_types)
+                and isinstance(arg[0], str)
                 and
                 # TODO: this should be extended to a slice.
-                isinstance(arg[1], integer_types)
+                isinstance(arg[1], (int, np.integer))
             ), (
                 "Each wire needs to be a tuple: (name, length). "
                 "You provided: {}".format(arg)

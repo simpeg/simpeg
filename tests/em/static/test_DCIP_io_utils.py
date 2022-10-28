@@ -1,5 +1,3 @@
-from __future__ import print_function
-
 # import matplotlib
 # matplotlib.use('Agg')
 import unittest

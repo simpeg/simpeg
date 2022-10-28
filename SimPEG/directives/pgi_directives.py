@@ -4,8 +4,6 @@
 #                                                                             #
 ###############################################################################
 
-from __future__ import print_function
-
 import numpy as np
 import matplotlib.pyplot as plt
 import copy
@@ -364,7 +362,9 @@ class PGI_AddMrefInSmooth(InversionDirective):
                         [
                             i,
                             j,
-                            isinstance(regpart, (SmoothnessFirstOrder, SparseSmoothness)),
+                            isinstance(
+                                regpart, (SmoothnessFirstOrder, SparseSmoothness)
+                            ),
                         ]
                     ]
             self.Smooth = np.r_[Smooth]
