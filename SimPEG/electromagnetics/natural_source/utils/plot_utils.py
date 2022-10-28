@@ -1,7 +1,3 @@
-from __future__ import print_function
-from __future__ import absolute_import
-from __future__ import division
-
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy.constants import mu_0
@@ -45,7 +41,7 @@ def _validate_kwargs(input_dict, compare_dict):
     return input_dict
 
 
-class BaseDataNSEMPlots():
+class BaseDataNSEMPlots:
     """
     A class container of matplotlib panels for plotting
     NSEM data.

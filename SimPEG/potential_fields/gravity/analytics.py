@@ -1,4 +1,3 @@
-from __future__ import print_function
 from scipy.constants import G
 from SimPEG.utils import mkvc
 import numpy as np

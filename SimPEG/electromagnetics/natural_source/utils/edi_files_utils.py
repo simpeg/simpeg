@@ -1,5 +1,3 @@
-from __future__ import print_function
-
 # Functions to import and export MT EDI files.
 from SimPEG import mkvc
 from scipy.constants import mu_0

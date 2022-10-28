@@ -1,4 +1,4 @@
-from __future__ import print_function, division, annotations
+from __future__ import annotations
 import types
 from typing import TYPE_CHECKING
 import numpy as np

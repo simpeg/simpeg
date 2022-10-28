@@ -1,4 +1,3 @@
-from __future__ import print_function
 import unittest
 import SimPEG.dask
 from SimPEG import (
