@@ -1,4 +1,3 @@
-from six import string_types
 import numpy as np
 
 from .simulation import BaseSimulation, BaseTimeSimulation
@@ -259,7 +258,7 @@ class Fields:
             # Aliased fields
             alias, loc, func = self.aliasFields[name]
 
-            if isinstance(func, string_types):
+            if isinstance(func, str):
                 assert hasattr(self, func), (
                     "The alias field function is a string, but it does not "
                     "exist in the Fields class."
@@ -369,7 +368,7 @@ class TimeFields(Fields):
         else:
             # Aliased fields
             alias, loc, func = self.aliasFields[name]
-            if isinstance(func, string_types):
+            if isinstance(func, str):
                 assert hasattr(self, func), (
                     "The alias field function is a string, but it does "
                     "not exist in the Fields class."

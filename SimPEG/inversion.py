@@ -1,4 +1,3 @@
-from __future__ import print_function
 import scipy.sparse as sp
 import numpy as np
 

@@ -1,4 +1,3 @@
-from __future__ import division
 import numpy as np
 from scipy.constants import mu_0, pi
 from scipy.special import erf

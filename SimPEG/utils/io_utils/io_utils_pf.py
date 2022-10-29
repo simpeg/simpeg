@@ -1,4 +1,3 @@
-from __future__ import print_function
 import numpy as np
 from discretize.utils import mkvc
 from ...utils.code_utils import deprecate_method

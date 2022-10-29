@@ -1,5 +1,3 @@
-from __future__ import print_function
-
 # Analytic solution of EM fields due to a plane wave
 
 import numpy as np

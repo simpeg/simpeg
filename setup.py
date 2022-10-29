@@ -1,6 +1,4 @@
 #!/usr/bin/env python
-from __future__ import print_function
-
 """SimPEG: Simulation and Parameter Estimation in Geophysics
 
 SimPEG is a python package for simulation and gradient based

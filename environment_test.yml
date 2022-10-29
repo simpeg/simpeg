@@ -35,4 +35,4 @@ dependencies:
   - plotly
   - pyvista
   - pip
-  - python=3.7
+  - python-kaleido
