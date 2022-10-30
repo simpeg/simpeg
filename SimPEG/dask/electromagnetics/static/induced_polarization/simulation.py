@@ -19,6 +19,7 @@ from ..resistivity.simulation import (
 from ....simulation import Jmatrix, dask_getJtJdiag
 
 Sim.compute_J = compute_J
+Sim.store_sensitivities = "ram"
 Sim.getSourceTerm = dask_getSourceTerm
 Sim.Jmatrix = Jmatrix
 Sim.getJtJdiag = dask_getJtJdiag

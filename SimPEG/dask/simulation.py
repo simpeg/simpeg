@@ -5,8 +5,6 @@ import warnings
 from ..data import SyntheticData
 import numpy as np
 from .utils import compute
-from ..utils import mkvc
-from ..data import Data
 
 Sim._max_ram = 16
 
@@ -88,6 +86,7 @@ def make_synthetic_data(
         relative_error=relative_error,
         noise_floor=noise_floor,
     )
+
 
 Sim.make_synthetic_data = make_synthetic_data
 

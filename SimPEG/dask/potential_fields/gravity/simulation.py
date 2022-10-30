@@ -7,6 +7,7 @@ from scipy.sparse import csr_matrix as csr
 from dask.distributed import Future, get_client
 
 Sim.linear_operator = linear_operator
+Sim.store_sensitivities = "ram"
 
 
 def dask_fields(self, m):

@@ -8,6 +8,7 @@ from dask import delayed, array
 
 
 Sim.linear_operator = linear_operator
+Sim.store_sensitivities = "ram"
 
 
 def dask_fields(self, m):
