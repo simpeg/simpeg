@@ -1,5 +1,5 @@
 from ...simulation import Jmatrix, dask_Jvec, dask_Jtvec, dask_getJtJdiag
-from ..simulation import dpred
+from ..simulation import dask_dpred
 from ....electromagnetics.frequency_domain.simulation import BaseFDEMSimulation as Sim
 from ....utils import Zero
 import numpy as np
@@ -13,7 +13,7 @@ Sim.store_sensitivities = "ram"
 Sim.Jvec = dask_Jvec
 Sim.Jtvec = dask_Jtvec
 Sim.Jmatrix = Jmatrix
-Sim.dpred = dpred
+Sim.dpred = dask_dpred
 Sim.getJtJdiag = dask_getJtJdiag
 
 

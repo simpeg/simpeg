@@ -1,6 +1,6 @@
 import scipy.sparse as sp
 from ....simulation import Jmatrix, dask_Jvec, dask_Jtvec, dask_getJtJdiag
-from ...simulation import dpred
+from ...simulation import dask_dpred
 from .....electromagnetics.static.resistivity.simulation import BaseDCSimulation as Sim
 from .....utils import Zero
 import dask.array as da
@@ -16,7 +16,7 @@ Sim.Jvec = dask_Jvec
 Sim.Jtvec = dask_Jtvec
 Sim.Jmatrix = Jmatrix
 Sim.getJtJdiag = dask_getJtJdiag
-Sim.dpred = dpred
+Sim.dpred = dask_dpred
 
 
 def dask_fields(self, m=None, return_Ainv=False):
