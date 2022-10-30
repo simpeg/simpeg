@@ -4,10 +4,9 @@ import numpy as np
 from ...potential_fields.base import BasePFSimulation as Sim
 import os
 from dask import delayed, array, config
-from dask.diagnostics import ProgressBar
 from zarr.errors import ArrayNotFoundError
 from ..utils import compute_chunk_sizes
-from dask.distributed import get_client, Future, Client
+from dask.distributed import get_client, Future
 
 Sim._chunk_format = "row"
 

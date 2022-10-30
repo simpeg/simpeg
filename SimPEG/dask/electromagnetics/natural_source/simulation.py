@@ -1,12 +1,6 @@
 from ....electromagnetics.natural_source.simulation import Simulation2DMagneticField as Sim_m
 from ....electromagnetics.natural_source.simulation import Simulation2DElectricField as Sim_e
-from ....utils import Zero, mkvc
-import numpy as np
-import scipy.sparse as sp
-import dask.array as da
-from dask.distributed import Future
-import zarr
-from time import time
+
 
 def dask_magnetic_boundary_fields(self, model=None):
     "Returns the 1D field objects at the boundaries"

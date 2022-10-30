@@ -1,4 +1,5 @@
-from ...simulation import Jmatrix, Jvec, Jtvec
+from ...simulation import Jmatrix, dask_Jvec, dask_Jtvec, dask_getJtJdiag
+from ..simulation import dpred
 from ....electromagnetics.frequency_domain.simulation import BaseFDEMSimulation as Sim
 from ....utils import Zero
 import numpy as np
@@ -9,9 +10,11 @@ import zarr
 Sim.sensitivity_path = './sensitivity/'
 Sim.gtgdiag = None
 Sim.store_sensitivities = "ram"
-Sim.Jvec = Jvec
-Sim.Jtvec = Jtvec
+Sim.Jvec = dask_Jvec
+Sim.Jtvec = dask_Jtvec
 Sim.Jmatrix = Jmatrix
+Sim.dpred = dpred
+Sim.getJtJdiag = dask_getJtJdiag
 
 
 def fields(self, m=None, return_Ainv=False):
@@ -145,5 +148,6 @@ def compute_J(self, f=None, Ainv=None):
         return da.from_zarr(self.sensitivity_path + f"J.zarr")
     else:
         return Jmatrix
+
 
 Sim.compute_J = compute_J

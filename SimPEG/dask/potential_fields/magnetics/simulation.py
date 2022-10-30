@@ -1,14 +1,10 @@
 import numpy as np
 from ..base import linear_operator
 from ....potential_fields.magnetics import Simulation3DIntegral as Sim
-# from ....potential_fields.magnetics.simulation import evaluate_integral
 from ....utils import sdiag, mkvc
-from dask import array, delayed
 from scipy.sparse import csr_matrix as csr
-from dask.distributed import get_client, Future, Client
-from dask import delayed, array, config
-from ...utils import compute_chunk_sizes
-import os
+from dask.distributed import get_client, Future
+from dask import delayed, array
 
 
 Sim.linear_operator = linear_operator
@@ -89,7 +85,6 @@ def dask_getJtJdiag(self, m, W=None):
             diag = diag.compute()
 
         self._gtg_diagonal = diag
-
 
     return mkvc((sdiag(np.sqrt(self._gtg_diagonal)) @ self.chiDeriv).power(2).sum(axis=0))
 

@@ -116,7 +116,7 @@ def dask_Jvec(self, m, v):
     if isinstance(self.Jmatrix, Future):
         self.Jmatrix  # Wait to finish
 
-    return array.dot(self.Jmatrix, v)
+    return array.dot(self.Jmatrix, v.astype(np.float32))
 
 
 Sim.Jvec = dask_Jvec
@@ -130,7 +130,7 @@ def dask_Jtvec(self, m, v):
     if isinstance(self.Jmatrix, Future):
         self.Jmatrix  # Wait to finish
 
-    return array.dot(v, self.Jmatrix)
+    return array.dot(v.astype(np.float32), self.Jmatrix)
 
 
 Sim.Jtvec = dask_Jtvec

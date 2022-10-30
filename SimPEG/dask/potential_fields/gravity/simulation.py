@@ -1,14 +1,10 @@
 import numpy as np
-import os
 from ..base import linear_operator
 from ....potential_fields.gravity import Simulation3DIntegral as Sim
-# from ....potential_fields.gravity.simulation import evaluate_integral
 from ....utils import sdiag, mkvc
-from dask import array, delayed, config
+from dask import array, delayed
 from scipy.sparse import csr_matrix as csr
 from dask.distributed import Future, get_client
-from dask.diagnostics import ProgressBar
-from ...utils import compute_chunk_sizes
 
 Sim.linear_operator = linear_operator
 

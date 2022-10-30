@@ -1,33 +1,33 @@
 import scipy.sparse as sp
-
+from ....simulation import Jmatrix, dask_Jvec, dask_Jtvec, dask_getJtJdiag
+from ...simulation import dpred
 from .....electromagnetics.static.resistivity.simulation import BaseDCSimulation as Sim
-from .....utils import Zero, mkvc
-from .....data import Data
-from ....utils import compute_chunk_sizes
-import dask
+from .....utils import Zero
 import dask.array as da
-from dask.distributed import Future
 import numpy as np
 import zarr
-import os
-import shutil
 import numcodecs
 
 numcodecs.blosc.use_threads = False
 
 Sim.sensitivity_path = './sensitivity/'
+Sim.store_sensitivities = "ram"
+Sim.Jvec = dask_Jvec
+Sim.Jtvec = dask_Jtvec
+Sim.Jmatrix = Jmatrix
+Sim.getJtJdiag = dask_getJtJdiag
+Sim.dpred = dpred
 
 
 def dask_fields(self, m=None, return_Ainv=False):
     if m is not None:
         self.model = m
 
-
     A = self.getA()
     Ainv = self.solver(A, **self.solver_opts)
     RHS = self.getRHS()
 
-    f = self.fieldsPair(self, shape=RHS.shape)
+    f = self.fieldsPair(self)
     f[:, self._solutionType] = Ainv * RHS
 
     Ainv.clean()
@@ -39,54 +39,6 @@ def dask_fields(self, m=None, return_Ainv=False):
 
 
 Sim.fields = dask_fields
-
-
-def dask_getJtJdiag(self, m, W=None):
-    """
-        Return the diagonal of JtJ
-    """
-    self.model = m
-    if self.gtgdiag is None:
-        if isinstance(self.Jmatrix, Future):
-            self.Jmatrix  # Wait to finish
-        # Need to check if multiplying weights makes sense
-        if W is None:
-            self.gtgdiag = da.sum(self.Jmatrix ** 2, axis=0).compute()
-        else:
-            w = da.from_array(W.diagonal(), chunks='auto')[:, None]
-            self.gtgdiag = da.sum((w * self.Jmatrix) ** 2, axis=0).compute()
-
-    return self.gtgdiag
-
-
-Sim.getJtJdiag = dask_getJtJdiag
-
-
-def dask_Jvec(self, m, v):
-    """
-        Compute sensitivity matrix (J) and vector (v) product.
-    """
-    self.model = m
-    if isinstance(self.Jmatrix, Future):
-        self.Jmatrix  # Wait to finish
-
-    return da.dot(self.Jmatrix, v).astype(np.float32)
-
-
-Sim.Jvec = dask_Jvec
-
-
-def dask_Jtvec(self, m, v):
-    """
-        Compute adjoint sensitivity matrix (J^T) and vector (v) product.
-    """
-    self.model = m
-    if isinstance(self.Jmatrix, Future):
-        self.Jmatrix  # Wait to finish
-
-    return da.dot(v, self.Jmatrix).astype(np.float32)
-
-Sim.Jtvec = dask_Jtvec
 
 
 def compute_J(self, f=None, Ainv=None):
@@ -159,48 +111,6 @@ def compute_J(self, f=None, Ainv=None):
 
 
 Sim.compute_J = compute_J
-
-
-# This could technically be handled by dask.simulation, but doesn't seem to register
-@dask.delayed
-def dask_dpred(self, m=None, f=None, compute_J=False):
-    """
-    dpred(m, f=None)
-    Create the projected data from a model.
-    The fields, f, (if provided) will be used for the predicted data
-    instead of recalculating the fields (which may be expensive!).
-
-    .. math::
-
-        d_\\text{pred} = P(f(m))
-
-    Where P is a projection of the fields onto the data space.
-    """
-    if self.survey is None:
-        raise AttributeError(
-            "The survey has not yet been set and is required to compute "
-            "data. Please set the survey for the simulation: "
-            "simulation.survey = survey"
-        )
-
-    if f is None:
-        if m is None:
-            m = self.model
-        f, Ainv = self.fields(m, return_Ainv=compute_J)
-
-    data = Data(self.survey)
-    for src in self.survey.source_list:
-        for rx in src.receiver_list:
-            data[src, rx] = rx.eval(src, self.mesh, f)
-
-    if compute_J:
-        Jmatrix = self.compute_J(f=f, Ainv=Ainv)
-        return (mkvc(data), Jmatrix)
-
-    return mkvc(data)
-
-
-Sim.dpred = dask_dpred
 
 
 def dask_getSourceTerm(self):
