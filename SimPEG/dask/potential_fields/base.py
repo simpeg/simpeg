@@ -83,43 +83,38 @@ Sim.linear_operator = linear_operator
 @property
 def Jmatrix(self):
     if getattr(self, "_Jmatrix", None) is None:
-        if self.store_sensitivities == "ram":
-            self._Jmatrix = np.asarray(self.linear_operator())
-        else:
-            try:
-                client = get_client()
-                workers = self.workers if isinstance(self.workers, tuple) else None
-                self.Xn, self.Yn, self.Zn = client.scatter(
-                    [self.Xn, self.Yn, self.Zn]
+        if self.workers is not None:
+            client = get_client()
+            self.Xn, self.Yn, self.Zn = client.scatter(
+                [self.Xn, self.Yn, self.Zn], workers=self.workers
+            )
+            if self.store_sensitivities == "ram":
+                self._Jmatrix = client.persist(
+                    self.linear_operator(),
+                    workers=self.workers
                 )
-
-                # if getattr(self, "tmi_projection", None) is not None:
-                #     self._tmi_projection = client.scatter(
-                #         [self.tmi_projection], workers=workers
-                #     )
-                #
-                # if getattr(self, "M", None) is not None:
-                #     self._M = client.scatter(
-                #         [self._M], workers=workers
-                #     )
-
+            else:
                 self._Jmatrix = client.compute(
-                        self.linear_operator(),
-                    workers=workers
+                    self.linear_operator(),
+                    workers=self.workers
                 )
-            except ValueError:
-                delayed_array = self.linear_operator()
+        else:
+            delayed_array = self.linear_operator()
 
-                if "store-map" not in delayed_array.name:
-                    self._Jmatrix = delayed_array
-                else:
-                    return delayed_array
+            if "store-map" in delayed_array.name or self.store_sensitivities == "forward_only":
+                return delayed_array
+
+            if self.store_sensitivities == "ram":
+                self._Jmatrix = delayed_array.persist()
+            else:
+                self._Jmatrix = delayed_array
 
     elif isinstance(self._Jmatrix, Future):
         self._Jmatrix.result()
         self._Jmatrix = array.from_zarr(os.path.join(self.sensitivity_path, "J.zarr"))
 
     return self._Jmatrix
+
 
 Sim.Jmatrix = Jmatrix
 
