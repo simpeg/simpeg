@@ -14,21 +14,37 @@ from .utils.plot_utils import DataNSEMPlotMethods
 
 
 class Data(BaseData, DataNSEMPlotMethods):
-    """
-    Data class for NSEMdata. Stores the data vector indexed by the survey.
-    """
+    """Data class for NSEMdata.
 
+    Stores the data vector indexed by the survey.
+
+    Parameters
+    ----------
+    survey : SimPEG.survey.Survey
+        Natural source EM survey
+    dobs : numpy.ndarray
+        Observed data
+    relative_error : numpy.ndarray, optional
+        Relative error
+    noise_floor : numpy.ndarray, optional
+        Noise floor
+    """
     def __init__(self, survey, dobs=None, relative_error=None, noise_floor=None):
         BaseData.__init__(self, survey, dobs, relative_error, noise_floor)
 
     def toRecArray(self, returnType="RealImag"):
         """
         Returns a numpy.recarray for a SimpegNSEM impedance data object.
-
-        :param returnType: Switches between returning a rec array where the impedance is split to real and imaginary ('RealImag') or is a complex ('Complex')
-        :type returnType: str, optional
-        :rtype: numpy.recarray
-        :return: Record array with data, with indexed columns
+        
+        Parameters
+        ----------
+        returnType : str, default: "RealImag:
+            Switches between returning a receiver array where the impedance is split to real and imaginary ('RealImag') or is a complex ('Complex')
+        
+        Returns
+        -------
+        numpy.recarray
+            Record array with data, with indexed columns
         """
 
         # Define the record fields
@@ -119,15 +135,19 @@ class Data(BaseData, DataNSEMPlotMethods):
 
     @classmethod
     def fromRecArray(cls, recArray, srcType="primary"):
-        """
-        Class method that reads in a numpy record array to NSEMdata object.
+        """Class method that reads in a numpy record array to NSEMdata object.
 
-        :param recArray: Record array with the data. Has to have ('freq','x','y','z') columns and some ('zxx','zxy','zyx','zyy','tzx','tzy')
-        :type recArray: numpy.recarray
+        Parameters
+        ----------
+        recArray : numpy.ndarray
+            Record array with the data. Has to have ('freq','x','y','z') columns and some ('zxx','zxy','zyx','zyy','tzx','tzy')
+        srcType : str, default: "primary"
+            The type of SimPEG.EM.NSEM.SrcNSEM to be used. Either "primary" or "total"
 
-        :param srcType: The type of SimPEG.EM.NSEM.SrcNSEM to be used
-        :type srcType: str, optional
-
+        Returns
+        -------
+        SimPEG.electromagnetics.natural_source.sources.SrcNSEM
+            Natural source
         """
         if srcType == "primary":
             src = PlanewaveXYPrimary

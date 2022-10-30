@@ -304,7 +304,7 @@ regmap = maps.IdentityMap(nP=int(ind_active.sum()))
 reg = regularization.Sparse(
     mesh,
     indActive=ind_active,
-    mref=starting_conductivity_model,
+    reference_model=starting_conductivity_model,
     mapping=regmap,
     gradientType="total",
     alpha_s=0.01,
@@ -312,12 +312,12 @@ reg = regularization.Sparse(
     alpha_y=1,
 )
 
-reg.mrefInSmooth = True  # Include reference model in smoothness
+reg.reference_model_in_smooth = True  # Include reference model in smoothness
 
 p = 0
 qx = 1
 qz = 1
-reg.norms = np.c_[p, qx, qz]
+reg.norms = [p, qx, qz]
 
 # Define how the optimization problem is solved. Here we will use an inexact
 # Gauss-Newton approach.

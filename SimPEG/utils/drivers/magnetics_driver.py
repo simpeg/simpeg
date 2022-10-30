@@ -1,6 +1,7 @@
 import re
 import os
 from discretize import TensorMesh
+from discretize.utils import active_from_xyz
 
 try:
     from SimPEG import utils
@@ -178,7 +179,7 @@ class MagneticsDriver_Inv(object):
     @property
     def mesh(self):
         if getattr(self, "_mesh", None) is None:
-            self._mesh = TensorMesh.readUBC(self.basePath + self.mshfile)
+            self._mesh = TensorMesh.read_UBC(self.basePath + self.mshfile)
         return self._mesh
 
     @property
@@ -198,7 +199,7 @@ class MagneticsDriver_Inv(object):
                 topo = np.genfromtxt(self.basePath + self.topofile, skip_header=1)
 
                 # Find the active cells
-                active = utils.surface2ind_topo(self.mesh, topo, "N")
+                active = active_from_xyz(self.mesh, topo, "N")
 
             elif isinstance(self._staticInput, float):
                 active = self.m0 != self._staticInput
@@ -207,9 +208,7 @@ class MagneticsDriver_Inv(object):
                 # Read from file active cells with 0:air, 1:dynamic, -1 static
                 active = self.activeModel != 0
 
-            inds = np.where(active)[0]
-
-            self._activeCells = inds
+            self._activeCells = active
 
             # Reduce m0 to active space
             if len(self.m0) > len(self._activeCells):
@@ -255,7 +254,7 @@ class MagneticsDriver_Inv(object):
             if isinstance(self.mstart, float):
                 self._m0 = np.ones(self.nC) * self.mstart
             else:
-                self._m0 = TensorMesh.readModelUBC(
+                self._m0 = TensorMesh.read_model_UBC(
                     self.mesh, self.basePath + self.mstart
                 )
 
@@ -267,7 +266,7 @@ class MagneticsDriver_Inv(object):
             if isinstance(self._mrefInput, float):
                 self._mref = np.ones(self.nC) * self._mrefInput
             else:
-                self._mref = TensorMesh.readModelUBC(
+                self._mref = TensorMesh.read_model_UBC(
                     self.mesh, self.basePath + self._mrefInput
                 )
 
@@ -281,7 +280,7 @@ class MagneticsDriver_Inv(object):
         if getattr(self, "_activeModel", None) is None:
             if self._staticInput == "FILE":
                 # Read from file active cells with 0:air, 1:dynamic, -1 static
-                self._activeModel = TensorMesh.readModelUBC(
+                self._activeModel = TensorMesh.read_model_UBC(
                     self.mesh, self.basePath + self._staticInput
                 )
 
@@ -320,7 +319,13 @@ class MagneticsDriver_Inv(object):
             # Cycle through three components and permute from UBC to SimPEG
             for ii in range(3):
                 m = np.reshape(
-                    M[:, ii], (self.mesh.nCz, self.mesh.nCx, self.mesh.nCy), order="F"
+                    M[:, ii],
+                    (
+                        self.mesh.shape_cells[2],
+                        self.mesh.shape_cells[0],
+                        self.mesh.shape_cells[1],
+                    ),
+                    order="F",
                 )
 
                 m = m[::-1, :, :]

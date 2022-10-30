@@ -1,4 +1,3 @@
-import properties
 import numpy as np
 import matplotlib.pyplot as plt
 import warnings
@@ -8,47 +7,73 @@ from ..data_misfit import BaseDataMisfit
 from ..objective_function import ComboObjectiveFunction
 from ..maps import IdentityMap, Wires
 from ..regularization import (
-    BaseComboRegularization,
+    WeightedLeastSquares,
     BaseRegularization,
-    SimpleSmall,
-    Small,
-    SparseSmall,
-    Simple,
-    Tikhonov,
+    BaseSparse,
+    Smallness,
     Sparse,
+    SparseSmallness,
     PGIsmallness,
     PGIwithNonlinearRelationshipsSmallness,
-    PGI,
-    SmoothDeriv,
-    SimpleSmoothDeriv,
-    SparseDeriv,
-    PGIwithRelationships,
+    SmoothnessFirstOrder,
+    SparseSmoothness,
     BaseSimilarityMeasure,
 )
 from ..utils import (
     mkvc,
-    setKwargs,
+    set_kwargs,
     sdiag,
     diagEst,
     spherical2cartesian,
     cartesian2spherical,
     Zero,
     eigenvalue_by_power_iteration,
+    validate_string,
+)
+from ..utils.code_utils import (
+    deprecate_property,
+    validate_type,
+    validate_integer,
+    validate_float,
+    validate_ndarray_with_shape,
 )
 from .. import optimization
 
 
-class InversionDirective(properties.HasProperties):
+class InversionDirective:
     """InversionDirective"""
 
     _REGISTRY = {}
 
-    debug = False  #: Print debugging information
-    _regPair = [BaseComboRegularization, BaseRegularization, ComboObjectiveFunction]
+    _regPair = [WeightedLeastSquares, BaseRegularization, ComboObjectiveFunction]
     _dmisfitPair = [BaseDataMisfit, ComboObjectiveFunction]
 
-    def __init__(self, **kwargs):
-        setKwargs(self, **kwargs)
+    def __init__(self, inversion=None, dmisfit=None, reg=None, verbose=False, **kwargs):
+        self.inversion = inversion
+        self.dmisfit = dmisfit
+        self.reg = reg
+        debug = kwargs.pop("debug", None)
+        if debug is not None:
+            self.debug = debug
+        else:
+            self.verbose = verbose
+        set_kwargs(self, **kwargs)
+
+    @property
+    def verbose(self):
+        """Whether to print debug information.
+
+        Returns
+        -------
+        bool
+        """
+        return self._verbose
+
+    @verbose.setter
+    def verbose(self, value):
+        self._verbose = validate_type("verbose", value, bool)
+
+    debug = deprecate_property(verbose, "debug", "verbose", removal_version="0.19.0")
 
     @property
     def inversion(self):
@@ -81,12 +106,13 @@ class InversionDirective(properties.HasProperties):
 
     @reg.setter
     def reg(self, value):
-        assert any(
-            [isinstance(value, regtype) for regtype in self._regPair]
-        ), "Regularization must be in {}, not {}".format(self._regPair, type(value))
+        if value is not None:
+            assert any(
+                [isinstance(value, regtype) for regtype in self._regPair]
+            ), "Regularization must be in {}, not {}".format(self._regPair, type(value))
 
-        if isinstance(value, BaseComboRegularization):
-            value = 1 * value  # turn it into a combo objective function
+            if isinstance(value, WeightedLeastSquares):
+                value = 1 * value  # turn it into a combo objective function
         self._reg = value
 
     @property
@@ -97,13 +123,14 @@ class InversionDirective(properties.HasProperties):
 
     @dmisfit.setter
     def dmisfit(self, value):
+        if value is not None:
 
-        assert any(
-            [isinstance(value, dmisfittype) for dmisfittype in self._dmisfitPair]
-        ), "Misfit must be in {}, not {}".format(self._dmisfitPair, type(value))
+            assert any(
+                [isinstance(value, dmisfittype) for dmisfittype in self._dmisfitPair]
+            ), "Misfit must be in {}, not {}".format(self._dmisfitPair, type(value))
 
-        if not isinstance(value, ComboObjectiveFunction):
-            value = 1 * value  # turn it into a combo objective function
+            if not isinstance(value, ComboObjectiveFunction):
+                value = 1 * value  # turn it into a combo objective function
         self._dmisfit = value
 
     @property
@@ -136,17 +163,17 @@ class InversionDirective(properties.HasProperties):
 
 
 class DirectiveList(object):
-
-    dList = None  #: The list of Directives
-
-    def __init__(self, *directives, **kwargs):
+    def __init__(self, *directives, inversion=None, debug=False, **kwargs):
+        super().__init__(**kwargs)
         self.dList = []
         for d in directives:
             assert isinstance(
                 d, InversionDirective
             ), "All directives must be InversionDirectives not {}".format(type(d))
             self.dList.append(d)
-        setKwargs(self, **kwargs)
+
+        self.inversion = inversion
+        self.verbose = debug
 
     @property
     def debug(self):
@@ -177,7 +204,7 @@ class DirectiveList(object):
 
     def call(self, ruleType):
         if self.dList is None:
-            if self.debug:
+            if self.verbose:
                 print("DirectiveList is None, no directives to call!")
             return
 
@@ -202,10 +229,57 @@ class BetaEstimate_ByEig(InversionDirective):
 
     """
 
-    beta0_ratio = 1.0  #: the estimated ratio is multiplied by this to obtain beta
-    n_pw_iter = 4  #: number of power iterations for estimation.
-    seed = None  #: Random seed for the directive
-    method = "power_iteration"
+    def __init__(self, beta0_ratio=1.0, n_pw_iter=4, seed=None, **kwargs):
+        super().__init__(**kwargs)
+        self.beta0_ratio = beta0_ratio
+        self.n_pw_iter = n_pw_iter
+        self.seed = seed
+
+    @property
+    def beta0_ratio(self):
+        """The estimated ratio is multiplied by this to obtain beta.
+
+        Returns
+        -------
+        float
+        """
+        return self._beta0_ratio
+
+    @beta0_ratio.setter
+    def beta0_ratio(self, value):
+        self._beta0_ratio = validate_float(
+            "beta0_ratio", value, min_val=0.0, inclusive_min=False
+        )
+
+    @property
+    def n_pw_iter(self):
+        """Number of power iterations for estimation.
+
+        Returns
+        -------
+        int
+        """
+        return self._n_pw_iter
+
+    @n_pw_iter.setter
+    def n_pw_iter(self, value):
+        self._n_pw_iter = validate_integer("n_pw_iter", value, min_val=1)
+
+    @property
+    def seed(self):
+        """Random seed to initialize with
+
+        Returns
+        -------
+        int
+        """
+        return self._seed
+
+    @seed.setter
+    def seed(self, value):
+        if value is not None:
+            value = validate_integer("seed", value, min_val=1)
+        self._seed = value
 
     def initialize(self):
         """
@@ -235,36 +309,23 @@ class BetaEstimate_ByEig(InversionDirective):
         if self.seed is not None:
             np.random.seed(self.seed)
 
-        if self.debug:
+        if self.verbose:
             print("Calculating the beta0 parameter.")
 
         m = self.invProb.model
 
-        if self.method == "power_iteration":
+        dm_eigenvalue = eigenvalue_by_power_iteration(
+            self.dmisfit,
+            m,
+            n_pw_iter=self.n_pw_iter,
+        )
+        reg_eigenvalue = eigenvalue_by_power_iteration(
+            self.reg,
+            m,
+            n_pw_iter=self.n_pw_iter,
+        )
 
-            dm_eigenvalue = eigenvalue_by_power_iteration(
-                self.dmisfit,
-                m,
-                n_pw_iter=self.n_pw_iter,
-            )
-            reg_eigenvalue = eigenvalue_by_power_iteration(
-                self.reg,
-                m,
-                n_pw_iter=self.n_pw_iter,
-            )
-
-            self.ratio = dm_eigenvalue / reg_eigenvalue
-
-        else:
-
-            x0 = np.random.rand(*m.shape)
-            phi_d_deriv = self.dmisfit.deriv2(m, x0)
-            t = np.dot(x0, phi_d_deriv)
-            reg = self.reg.deriv2(m, v=x0)
-            b = np.dot(x0, reg)
-
-            self.ratio = np.asarray(t / b)
-        
+        self.ratio = dm_eigenvalue / reg_eigenvalue
         self.beta0 = self.beta0_ratio * self.ratio
 
         self.invProb.beta = self.beta0
@@ -273,12 +334,44 @@ class BetaEstimate_ByEig(InversionDirective):
 class BetaSchedule(InversionDirective):
     """BetaSchedule"""
 
-    coolingFactor = 8.0
-    coolingRate = 3
+    def __init__(self, coolingFactor=8.0, coolingRate=3, **kwargs):
+        super().__init__(**kwargs)
+        self.coolingFactor = coolingFactor
+        self.coolingRate = coolingRate
+
+    @property
+    def coolingFactor(self):
+        """Beta is divided by this value every `coolingRate` iterations.
+
+        Returns
+        -------
+        float
+        """
+        return self._coolingFactor
+
+    @coolingFactor.setter
+    def coolingFactor(self, value):
+        self._coolingFactor = validate_float(
+            "coolingFactor", value, min_val=0.0, inclusive_min=False
+        )
+
+    @property
+    def coolingRate(self):
+        """Cool after this number of iterations.
+
+        Returns
+        -------
+        int
+        """
+        return self._coolingRate
+
+    @coolingRate.setter
+    def coolingRate(self, value):
+        self._coolingRate = validate_integer("coolingRate", value, min_val=1)
 
     def endIter(self):
         if self.opt.iter > 0 and self.opt.iter % self.coolingRate == 0:
-            if self.debug:
+            if self.verbose:
                 print(
                     "BetaSchedule is cooling Beta. Iteration: {0:d}".format(
                         self.opt.iter
@@ -295,135 +388,125 @@ class AlphasSmoothEstimate_ByEig(InversionDirective):
     The highest eigenvalue are estimated through power iterations and Rayleigh quotient.
     """
 
-    alpha0_ratio = (
-        1.0  #: the estimated Alpha_smooth is multiplied by this ratio (int or array)
-    )
-    n_pw_iter = 4  #: number of power iterations for the estimate
-    verbose = False  #: print the estimated alphas at the initialization
-    debug = False  #: print the current process
-    seed = None  # random seed for the directive
+    def __init__(self, alpha0_ratio=1.0, n_pw_iter=4, seed=None, **kwargs):
+        super().__init__(**kwargs)
+        self.alpha0_ratio = alpha0_ratio
+        self.n_pw_iter = n_pw_iter
+        self.seed = seed
+
+    @property
+    def alpha0_ratio(self):
+        """the estimated Alpha_smooth is multiplied by this ratio (int or array)
+
+        Returns
+        -------
+        numpy.ndarray
+        """
+        return self._alpha0_ratio
+
+    @alpha0_ratio.setter
+    def alpha0_ratio(self, value):
+        self._alpha0_ratio = validate_ndarray_with_shape(
+            "alpha0_ratio", value, shape=("*",)
+        )
+
+    @property
+    def n_pw_iter(self):
+        """Number of power iterations for estimation.
+
+        Returns
+        -------
+        int
+        """
+        return self._n_pw_iter
+
+    @n_pw_iter.setter
+    def n_pw_iter(self, value):
+        self._n_pw_iter = validate_integer("n_pw_iter", value, min_val=1)
+
+    @property
+    def seed(self):
+        """Random seed to initialize with
+
+        Returns
+        -------
+        int
+        """
+        return self._seed
+
+    @seed.setter
+    def seed(self, value):
+        if value is not None:
+            value = validate_integer("seed", value, min_val=1)
+        self._seed = value
 
     def initialize(self):
         """"""
         if self.seed is not None:
             np.random.seed(self.seed)
 
-        if getattr(self.reg.objfcts[0], "objfcts", None) is not None:
-            nbr = np.sum(
-                [len(self.reg.objfcts[i].objfcts) for i in range(len(self.reg.objfcts))]
+        smoothness = []
+        smallness = []
+        parents = {}
+        for regobjcts in self.reg.objfcts:
+
+            if isinstance(regobjcts, ComboObjectiveFunction):
+                objfcts = regobjcts.objfcts
+            else:
+                objfcts = [regobjcts]
+
+            for obj in objfcts:
+
+                if isinstance(
+                    obj,
+                    (
+                        Smallness,
+                        SparseSmallness,
+                        PGIsmallness,
+                        PGIwithNonlinearRelationshipsSmallness,
+                    ),
+                ):
+                    smallness += [obj]
+
+                elif isinstance(obj, (SmoothnessFirstOrder, SparseSmoothness)):
+                    parents[obj] = regobjcts
+                    smoothness += [obj]
+
+        if len(smallness) == 0:
+            raise UserWarning(
+                "Directive 'AlphasSmoothEstimate_ByEig' requires a regularization with at least one Small instance."
             )
-            # Find the smallness terms in a two-levels combo-regularization.
-            smallness = []
-            alpha0 = []
-            for i, regobjcts in enumerate(self.reg.objfcts):
-                for j, regpart in enumerate(regobjcts.objfcts):
-                    alpha0 += [self.reg.multipliers[i] * regobjcts.multipliers[j]]
-                    smallness += [
-                        [
-                            i,
-                            j,
-                            isinstance(
-                                regpart,
-                                (
-                                    SimpleSmall,
-                                    Small,
-                                    SparseSmall,
-                                    PGIsmallness,
-                                    PGIwithNonlinearRelationshipsSmallness,
-                                ),
-                            ),
-                        ]
-                    ]
-            smallness = np.r_[smallness]
-            # Select the first, only considered, smallness term.
-            smallness = smallness[smallness[:, 2] == 1][:, :2][0]
 
-            # Find the smoothness terms in a two-levels combo-regularization.
-            smoothness = []
-            for i, regobjcts in enumerate(self.reg.objfcts):
-                for j, regpart in enumerate(regobjcts.objfcts):
-                    smoothness += [
-                        [
-                            i,
-                            j,
-                            isinstance(
-                                regpart, (SmoothDeriv, SimpleSmoothDeriv, SparseDeriv)
-                            ),
-                        ]
-                    ]
-            smoothness = np.r_[smoothness]
-            mode = 1
+        smallness_eigenvalue = eigenvalue_by_power_iteration(
+            smallness[0],
+            self.invProb.model,
+            n_pw_iter=self.n_pw_iter,
+        )
 
-        else:
-            nbr = len(self.reg.objfcts)
-            alpha0 = self.reg.multipliers
-            smoothness = np.r_[
-                [
-                    isinstance(regpart, (SmoothDeriv, SimpleSmoothDeriv, SparseDeriv))
-                    for regpart in self.reg.objfcts
-                ]
-            ]
-            mode = 2
+        self.alpha0_ratio = self.alpha0_ratio * np.ones(len(smoothness))
 
-        if not isinstance(self.alpha0_ratio, np.ndarray):
-            self.alpha0_ratio = self.alpha0_ratio * np.ones(nbr)
+        if len(self.alpha0_ratio) != len(smoothness):
+            raise ValueError(
+                f"Input values for 'alpha0_ratio' should be of len({len(smoothness)}). Provided {self.alpha0_ratio}"
+            )
 
-        if self.debug:
-            print("Calculating the Alpha0 parameter.")
-
-        m = self.invProb.model
-
-        if mode == 2:
-            smallness_eigenvalue = eigenvalue_by_power_iteration(
-                self.reg.objfcts[0],
-                m,
+        alphas = []
+        for user_alpha, obj in zip(self.alpha0_ratio, smoothness):
+            smooth_i_eigenvalue = eigenvalue_by_power_iteration(
+                obj,
+                self.invProb.model,
                 n_pw_iter=self.n_pw_iter,
             )
-            for i in range(nbr):
-                if smoothness[i]:
-                    smooth_i_eigenvalue = eigenvalue_by_power_iteration(
-                        self.reg.objfcts[i],
-                        m,
-                        n_pw_iter=self.n_pw_iter,
-                    )
-                    ratio = smallness_eigenvalue / smooth_i_eigenvalue
+            ratio = smallness_eigenvalue / smooth_i_eigenvalue
 
-                    alpha0[i] *= self.alpha0_ratio[i] * ratio
-                    mtype = self.reg.objfcts[i]._multiplier_pair
-                    setattr(self.reg, mtype, alpha0[i])
+            mtype = obj._multiplier_pair
 
-        elif mode == 1:
-            smallness_eigenvalue = eigenvalue_by_power_iteration(
-                self.reg.objfcts[smallness[0]].objfcts[smallness[1]],
-                m,
-                n_pw_iter=self.n_pw_iter,
-            )
-            for i in range(nbr):
-                ratio = []
-                if smoothness[i, 2]:
-                    idx = smoothness[i, :2]
-                    smooth_i_eigenvalue = eigenvalue_by_power_iteration(
-                        self.reg.objfcts[idx[0]].objfcts[idx[1]],
-                        m,
-                        n_pw_iter=self.n_pw_iter,
-                    )
-
-                    ratio = np.divide(
-                        smallness_eigenvalue,
-                        smooth_i_eigenvalue,
-                        out=np.zeros_like(smallness_eigenvalue),
-                        where=smooth_i_eigenvalue != 0,
-                    )
-
-                    alpha0[i] *= self.alpha0_ratio[i] * ratio
-                    mtype = self.reg.objfcts[idx[0]].objfcts[idx[1]]._multiplier_pair
-                    setattr(self.reg.objfcts[idx[0]], mtype, alpha0[i])
+            new_alpha = getattr(parents[obj], mtype) * user_alpha * ratio
+            setattr(parents[obj], mtype, new_alpha)
+            alphas += [new_alpha]
 
         if self.verbose:
-            print("Alpha scales: ", self.reg.multipliers)
-            if mode == 1:
-                for objf in self.reg.objfcts:
-                    print("Alpha scales: ", objf.multipliers)
+            print(f"Alpha scales: {alphas}")
 
 
 class ScalingMultipleDataMisfits_ByEig(InversionDirective):
@@ -434,18 +517,64 @@ class ScalingMultipleDataMisfits_ByEig(InversionDirective):
     The highest eigenvalue are estimated through power iterations and Rayleigh quotient.
     """
 
-    n_pw_iter = 4  #: number of power iterations for the estimate
-    chi0_ratio = None  #: The initial scaling ratio (default is data misfit multipliers)
-    verbose = False  #: print the estimated data misfits multipliers
-    debug = False  #: print the current process
-    seed = None  # random seed for the directive
+    def __init__(self, chi0_ratio=None, n_pw_iter=4, seed=None, **kwargs):
+        super().__init__(**kwargs)
+        self.chi0_ratio = chi0_ratio
+        self.n_pw_iter = n_pw_iter
+        self.seed = seed
+
+    @property
+    def chi0_ratio(self):
+        """the estimated Alpha_smooth is multiplied by this ratio (int or array)
+
+        Returns
+        -------
+        numpy.ndarray
+        """
+        return self._chi0_ratio
+
+    @chi0_ratio.setter
+    def chi0_ratio(self, value):
+        if value is not None:
+            value = validate_ndarray_with_shape("chi0_ratio", value, shape=("*",))
+        self._chi0_ratio = value
+
+    @property
+    def n_pw_iter(self):
+        """Number of power iterations for estimation.
+
+        Returns
+        -------
+        int
+        """
+        return self._n_pw_iter
+
+    @n_pw_iter.setter
+    def n_pw_iter(self, value):
+        self._n_pw_iter = validate_integer("n_pw_iter", value, min_val=1)
+
+    @property
+    def seed(self):
+        """Random seed to initialize with
+
+        Returns
+        -------
+        int
+        """
+        return self._seed
+
+    @seed.setter
+    def seed(self, value):
+        if value is not None:
+            value = validate_integer("seed", value, min_val=1)
+        self._seed = value
 
     def initialize(self):
         """"""
         if self.seed is not None:
             np.random.seed(self.seed)
 
-        if self.debug:
+        if self.verbose:
             print("Calculating the scaling parameter.")
 
         if (
@@ -484,12 +613,87 @@ class JointScalingSchedule(InversionDirective):
     It implements the strategy described in https://doi.org/10.1093/gji/ggaa378.
     """
 
-    verbose = False
-    warmingFactor = 1.0
-    mode = 1
-    chimax = 1e10
-    chimin = 1e-10
-    update_rate = 1
+    def __init__(
+        self, warmingFactor=1.0, chimax=1e10, chimin=1e-10, update_rate=1, **kwargs
+    ):
+        super().__init__(**kwargs)
+        self.mode = 1
+        self.warmingFactor = warmingFactor
+        self.chimax = chimax
+        self.chimin = chimin
+        self.update_rate = update_rate
+
+    @property
+    def mode(self):
+        """The type of update to perform.
+
+        Returns
+        -------
+        {1, 2}
+        """
+        return self._mode
+
+    @mode.setter
+    def mode(self, value):
+        self._mode = validate_integer("mode", value, min_val=1, max_val=2)
+
+    @property
+    def warmingFactor(self):
+        """Factor to adjust scaling of the data misfits by.
+
+        Returns
+        -------
+        float
+        """
+        return self._warmingFactor
+
+    @warmingFactor.setter
+    def warmingFactor(self, value):
+        self._warmingFactor = validate_float(
+            "warmingFactor", value, min_val=0.0, inclusive_min=False
+        )
+
+    @property
+    def chimax(self):
+        """Maximum chi factor.
+
+        Returns
+        -------
+        float
+        """
+        return self._chimax
+
+    @chimax.setter
+    def chimax(self, value):
+        self._chimax = validate_float("chimax", value, min_val=0.0, inclusive_min=False)
+
+    @property
+    def chimin(self):
+        """Minimum chi factor.
+
+        Returns
+        -------
+        float
+        """
+        return self._chimin
+
+    @chimin.setter
+    def chimin(self, value):
+        self._chimin = validate_float("chimin", value, min_val=0.0, inclusive_min=False)
+
+    @property
+    def update_rate(self):
+        """Will update the data misfit scalings after this many iterations.
+
+        Returns
+        -------
+        int
+        """
+        return self._update_rate
+
+    @update_rate.setter
+    def update_rate(self, value):
+        self._update_rate = validate_integer("update_rate", value, min_val=1)
 
     def initialize(self):
 
@@ -554,27 +758,77 @@ class TargetMisfit(InversionDirective):
     Check out MultiTargetMisfits
     """
 
-    chifact = 1.0
-    phi_d_star = None
+    def __init__(self, target=None, phi_d_star=None, chifact=1.0, **kwargs):
+        super().__init__(**kwargs)
+        self.chifact = chifact
+        self.phi_d_star = phi_d_star
+        if phi_d_star is not None and target is not None:
+            raise AttributeError("Attempted to set both target and phi_d_star.")
+        if target is not None:
+            self.target = target
 
     @property
     def target(self):
+        """The target value for the data misfit
+
+        Returns
+        -------
+        float
+        """
         if getattr(self, "_target", None) is None:
-            # the factor of 0.5 is because we do phid = 0.5*||dpred - dobs||^2
-            if self.phi_d_star is None:
-
-                nD = 0
-                for survey in self.survey:
-                    nD += survey.nD
-
-                self.phi_d_star = 0.5 * nD
-
             self._target = self.chifact * self.phi_d_star
         return self._target
 
     @target.setter
     def target(self, val):
-        self._target = val
+        self._target = validate_float("target", val, min_val=0.0, inclusive_min=False)
+
+    @property
+    def chifact(self):
+        """The a multiplier for the target data misfit value.
+
+        The target value is `chifact` times `phi_d_star`
+
+        Returns
+        -------
+        float
+        """
+        return self._chifact
+
+    @chifact.setter
+    def chifact(self, value):
+        self._chifact = validate_float(
+            "chifact", value, min_val=0.0, inclusive_min=False
+        )
+        self._target = None
+
+    @property
+    def phi_d_star(self):
+        """The target phi_d value for the data misfit.
+
+        The target value is `chifact` times `phi_d_star`
+
+        Returns
+        -------
+        float
+        """
+        # the factor of 0.5 is because we do phid = 0.5*||dpred - dobs||^2
+        if self._phi_d_star is None:
+            nD = 0
+            for survey in self.survey:
+                nD += survey.nD
+            self._phi_d_star = 0.5 * nD
+        return self._phi_d_star
+
+    @phi_d_star.setter
+    def phi_d_star(self, value):
+        # the factor of 0.5 is because we do phid = 0.5*||dpred - dobs||^2
+        if value is not None:
+            value = validate_float(
+                "phi_d_star", value, min_val=0.0, inclusive_min=False
+            )
+        self._phi_d_star = value
+        self._target = None
 
     def endIter(self):
         if self.invProb.phi_d < self.target:
@@ -589,27 +843,192 @@ class TargetMisfit(InversionDirective):
 
 
 class MultiTargetMisfits(InversionDirective):
+    def __init__(
+        self,
+        WeightsInTarget=False,
+        chifact=1.0,
+        phi_d_star=None,
+        TriggerSmall=True,
+        chiSmall=1.0,
+        phi_ms_star=None,
+        TriggerTheta=False,
+        ToleranceTheta=1.0,
+        distance_norm=np.inf,
+        **kwargs,
+    ):
+        super().__init__(**kwargs)
 
-    WeightsInTarget = 0
-    verbose = False
-    # Chi factor for Geophsyical Data Misfit
-    chifact = 1.0
-    phi_d_star = None
+        self.WeightsInTarget = WeightsInTarget
+        # Chi factor for Geophsyical Data Misfit
+        self.chifact = chifact
+        self.phi_d_star = phi_d_star
 
-    # Chifact for Clustering/Smallness
-    TriggerSmall = True
-    chiSmall = 1.0
-    phi_ms_star = None
+        # Chifact for Clustering/Smallness
+        self.TriggerSmall = TriggerSmall
+        self.chiSmall = chiSmall
+        self.phi_ms_star = phi_ms_star
 
-    # Tolerance for parameters difference with their priors
-    TriggerTheta = False  # deactivated by default
-    ToleranceTheta = 1.0
-    distance_norm = np.inf
+        # Tolerance for parameters difference with their priors
+        self.TriggerTheta = TriggerTheta  # deactivated by default
+        self.ToleranceTheta = ToleranceTheta
+        self.distance_norm = distance_norm
 
-    AllStop = False
-    DM = False  # geophysical fit condition
-    CL = False  # petrophysical fit condition
-    DP = False  # parameters difference with their priors condition
+        self._DM = False
+        self._CL = False
+        self._DP = False
+
+    @property
+    def WeightsInTarget(self):
+        """Whether to account for weights in the petrophysical misfit.
+
+        Returns
+        -------
+        bool
+        """
+        return self._WeightsInTarget
+
+    @WeightsInTarget.setter
+    def WeightsInTarget(self, value):
+        self._WeightsInTarget = validate_type("WeightsInTarget", value, bool)
+
+    @property
+    def chifact(self):
+        """The a multiplier for the target Geophysical data misfit value.
+
+        The target value is `chifact` times `phi_d_star`
+
+        Returns
+        -------
+        numpy.ndarray
+        """
+        return self._chifact
+
+    @chifact.setter
+    def chifact(self, value):
+        self._chifact = validate_ndarray_with_shape("chifact", value, shape=("*",))
+        self._DMtarget = None
+
+    @property
+    def phi_d_star(self):
+        """The target phi_d value for the Geophysical data misfit.
+
+        The target value is `chifact` times `phi_d_star`
+
+        Returns
+        -------
+        float
+        """
+        # the factor of 0.5 is because we do phid = 0.5*|| dpred - dobs||^2
+        if getattr(self, "_phi_d_star", None) is None:
+            # Check if it is a ComboObjective
+            if isinstance(self.dmisfit, ComboObjectiveFunction):
+                value = np.r_[[0.5 * survey.nD for survey in self.survey]]
+            else:
+                value = np.r_[[0.5 * self.survey.nD]]
+            self._phi_d_star = value
+            self._DMtarget = None
+
+        return self._phi_d_star
+
+    @phi_d_star.setter
+    def phi_d_star(self, value):
+        # the factor of 0.5 is because we do phid = 0.5*|| dpred - dobs||^2
+        if value is not None:
+            value = validate_ndarray_with_shape("phi_d_star", value, shape=("*",))
+        self._phi_d_star = value
+        self._DMtarget = None
+
+    @property
+    def chiSmall(self):
+        """The a multiplier for the target petrophysical misfit value.
+
+        The target value is `chiSmall` times `phi_ms_star`
+
+        Returns
+        -------
+        float
+        """
+        return self._chiSmall
+
+    @chiSmall.setter
+    def chiSmall(self, value):
+        self._chiSmall = validate_float("chiSmall", value)
+        self._CLtarget = None
+
+    @property
+    def phi_ms_star(self):
+        """The target value for the petrophysical data misfit.
+
+        The target value is `chiSmall` times `phi_ms_star`
+
+        Returns
+        -------
+        float
+        """
+        return self._phi_ms_star
+
+    @phi_ms_star.setter
+    def phi_ms_star(self, value):
+        if value is not None:
+            value = validate_float("phi_ms_star", value)
+        self._phi_ms_star = value
+        self._CLtarget = None
+
+    @property
+    def TriggerSmall(self):
+        """Whether to trigger the smallness misfit test.
+
+        Returns
+        -------
+        bool
+        """
+        return self._TriggerSmall
+
+    @TriggerSmall.setter
+    def TriggerSmall(self, value):
+        self._TriggerSmall = validate_type("TriggerSmall", value, bool)
+
+    @property
+    def TriggerTheta(self):
+        """Whether to trigger the GMM misfit test.
+
+        Returns
+        -------
+        bool
+        """
+        return self._TriggerTheta
+
+    @TriggerTheta.setter
+    def TriggerTheta(self, value):
+        self._TriggerTheta = validate_type("TriggerTheta", value, bool)
+
+    @property
+    def ToleranceTheta(self):
+        """Target value for the GMM misfit.
+
+        Returns
+        -------
+        float
+        """
+        return self._ToleranceTheta
+
+    @ToleranceTheta.setter
+    def ToleranceTheta(self, value):
+        self._ToleranceTheta = validate_float("ToleranceTheta", value, min_val=0.0)
+
+    @property
+    def distance_norm(self):
+        """Distance norm to use for GMM misfit measure.
+
+        Returns
+        -------
+        float
+        """
+        return self._distance_norm
+
+    @distance_norm.setter
+    def distance_norm(self, value):
+        self._distance_norm = validate_float("distance_norm", value, min_val=0.0)
 
     def initialize(self):
         self.dmlist = np.r_[[dmis(self.invProb.model) for dmis in self.dmisfit.objfcts]]
@@ -647,7 +1066,7 @@ class MultiTargetMisfits(InversionDirective):
                     self.smallness[0]
                 ].objfcts[self.smallness[1]]
 
-                if self.debug:
+                if self.verbose:
                     print(
                         type(
                             self.invProb.reg.objfcts[self.smallness[0]].objfcts[
@@ -687,22 +1106,55 @@ class MultiTargetMisfits(InversionDirective):
                 self.smallness = smallness[smallness[:, 1] == 1][:, :1][0]
                 self.pgi_smallness = self.invProb.reg.objfcts[self.smallness[0]]
 
-                if self.debug:
+                if self.verbose:
                     print(type(self.invProb.reg.objfcts[self.smallness[0]]))
 
             self._regmode = 2
 
     @property
+    def DM(self):
+        """Whether the geophysical data misfit target was satisfied.
+
+        Returns
+        -------
+        bool
+        """
+        return self._DM
+
+    @property
+    def CL(self):
+        """Whether the petrophysical misfit target was satisified.
+
+        Returns
+        -------
+        bool
+        """
+        return self._CL
+
+    @property
+    def DP(self):
+        """Whether the GMM misfit was below the threshold.
+
+        Returns
+        -------
+        bool
+        """
+        return self._DP
+
+    @property
+    def AllStop(self):
+        """Whether all target misfit values have been met.
+
+        Returns
+        -------
+        bool
+        """
+
+        return self.DM and self.CL and self.DP
+
+    @property
     def DMtarget(self):
         if getattr(self, "_DMtarget", None) is None:
-            # the factor of 0.5 is because we do phid = 0.5*|| dpred - dobs||^2
-            if self.phi_d_star is None:
-                # Check if it is a ComboObjective
-                if isinstance(self.dmisfit, ComboObjectiveFunction):
-                    self.phi_d_star = np.r_[[0.5 * survey.nD for survey in self.survey]]
-                else:
-                    self.phi_d_star = np.r_[[0.5 * self.survey.nD]]
-
             self._DMtarget = self.chifact * self.phi_d_star
         return self._DMtarget
 
@@ -757,8 +1209,7 @@ class MultiTargetMisfits(InversionDirective):
         else:
             return (
                 self.pgi_smallness(
-                    self.invProb.model,
-                    externalW=self.WeightsInTarget,
+                    self.invProb.model, external_weights=self.WeightsInTarget
                 )
                 / self.CLnormalizedConstant
             )
@@ -813,27 +1264,25 @@ class MultiTargetMisfits(InversionDirective):
 
     def endIter(self):
 
-        self.AllStop = False
-        self.DM = False
-        self.CL = True
-        self.DP = True
+        self._DM = False
+        self._CL = True
+        self._DP = True
         self.dmlist = np.r_[[dmis(self.invProb.model) for dmis in self.dmisfit.objfcts]]
         self.targetlist = np.r_[
             [dm < tgt for dm, tgt in zip(self.dmlist, self.DMtarget)]
         ]
 
         if np.all(self.targetlist):
-            self.DM = True
+            self._DM = True
 
         if self.TriggerSmall and np.any(self.smallness != -1):
             if self.phims() > self.CLtarget:
-                self.CL = False
+                self._CL = False
 
         if self.TriggerTheta:
             if self.ThetaTarget() > self.ToleranceTheta:
-                self.DP = False
+                self._DP = False
 
-        self.AllStop = self.DM and self.CL and self.DP
         if self.verbose:
             message = "geophys. misfits: " + "; ".join(
                 map(
@@ -872,19 +1321,43 @@ class SaveEveryIteration(InversionDirective):
     ``InversionModel-YYYY-MM-DD-HH-MM-iter.npy``
     """
 
-    directory = properties.String("directory to save results in", default=".")
+    def __init__(self, directory=".", name="InversionModel", **kwargs):
+        super().__init__(**kwargs)
+        self.directory = directory
+        self.name = name
 
-    name = properties.String(
-        "root of the filename to be saved", default="InversionModel"
-    )
+    @property
+    def directory(self):
+        """Directory to save results in.
 
-    @properties.validator("directory")
-    def _ensure_abspath(self, change):
-        val = change["value"]
-        fullpath = os.path.abspath(os.path.expanduser(val))
+        Returns
+        -------
+        str
+        """
+        return self._directory
+
+    @directory.setter
+    def directory(self, value):
+        value = validate_string("directory", value)
+        fullpath = os.path.abspath(os.path.expanduser(value))
 
         if not os.path.isdir(fullpath):
             os.mkdir(fullpath)
+        self._directory = value
+
+    @property
+    def name(self):
+        """Root of the filename to be saved.
+
+        Returns
+        -------
+        str
+        """
+        return self._name
+
+    @name.setter
+    def name(self, value):
+        self._name = validate_string("name", value)
 
     @property
     def fileName(self):
@@ -923,16 +1396,26 @@ class SaveModelEveryIteration(SaveEveryIteration):
 class SaveOutputEveryIteration(SaveEveryIteration):
     """SaveOutputEveryIteration"""
 
-    header = None
     save_txt = True
-    beta = None
-    phi_d = None
-    phi_m = None
-    phi_m_small = None
-    phi_m_smooth_x = None
-    phi_m_smooth_y = None
-    phi_m_smooth_z = None
-    phi = None
+
+    def __init__(self, save_txt=True, **kwargs):
+        super().__init__(**kwargs)
+
+        self.save_txt = save_txt
+
+    @property
+    def save_txt(self):
+        """Whether to save the output as a text file.
+
+        Returns
+        -------
+        bool
+        """
+        return self._save_txt
+
+    @save_txt.setter
+    def save_txt(self, value):
+        self._save_txt = validate_type("save_txt", value, bool)
 
     def initialize(self):
         if self.save_txt is True:
@@ -941,8 +1424,8 @@ class SaveOutputEveryIteration(SaveEveryIteration):
                 "progress as: '###-{0!s}.txt'".format(self.fileName)
             )
             f = open(self.fileName + ".txt", "w")
-            self.header = "  #     beta     phi_d     phi_m   phi_m_small     phi_m_smoomth_x     phi_m_smoomth_y     phi_m_smoomth_z      phi\n"
-            f.write(self.header)
+            header = "  #     beta     phi_d     phi_m   phi_m_small     phi_m_smoomth_x     phi_m_smoomth_y     phi_m_smoomth_z      phi\n"
+            f.write(header)
             f.close()
 
         # Create a list of each
@@ -960,25 +1443,20 @@ class SaveOutputEveryIteration(SaveEveryIteration):
 
         phi_s, phi_x, phi_y, phi_z = 0, 0, 0, 0
 
-        if getattr(self.reg.objfcts[0], "objfcts", None) is not None:
-            for reg in self.reg.objfcts:
-                phi_s += reg.objfcts[0](self.invProb.model) * reg.alpha_s
-                phi_x += reg.objfcts[1](self.invProb.model) * reg.alpha_x
+        for reg in self.reg.objfcts:
+            if isinstance(reg, Sparse):
+                i_s, i_x, i_y, i_z = 0, 1, 2, 3
+            else:
+                i_s, i_x, i_y, i_z = 0, 1, 3, 5
+            if getattr(reg, "alpha_s", None):
+                phi_s += reg.objfcts[i_s](self.invProb.model) * reg.alpha_s
+            if getattr(reg, "alpha_x", None):
+                phi_x += reg.objfcts[i_x](self.invProb.model) * reg.alpha_x
 
-                if reg.regmesh.dim == 2:
-                    phi_y += reg.objfcts[2](self.invProb.model) * reg.alpha_y
-                elif reg.regmesh.dim == 3:
-                    phi_y += reg.objfcts[2](self.invProb.model) * reg.alpha_y
-                    phi_z += reg.objfcts[3](self.invProb.model) * reg.alpha_z
-        elif getattr(self.reg.objfcts[0], "objfcts", None) is None:
-            phi_s += self.reg.objfcts[0](self.invProb.model) * self.reg.alpha_s
-            phi_x += self.reg.objfcts[1](self.invProb.model) * self.reg.alpha_x
-
-            if self.reg.regmesh.dim == 2:
-                phi_y += self.reg.objfcts[2](self.invProb.model) * self.reg.alpha_y
-            elif self.reg.regmesh.dim == 3:
-                phi_y += self.reg.objfcts[2](self.invProb.model) * self.reg.alpha_y
-                phi_z += self.reg.objfcts[3](self.invProb.model) * self.reg.alpha_z
+            if reg.regularization_mesh.dim > 1 and getattr(reg, "alpha_y", None):
+                phi_y += reg.objfcts[i_y](self.invProb.model) * reg.alpha_y
+            if reg.regularization_mesh.dim > 2 and getattr(reg, "alpha_z", None):
+                phi_z += reg.objfcts[i_z](self.invProb.model) * reg.alpha_z
 
         self.beta.append(self.invProb.beta)
         self.phi_d.append(self.invProb.phi_d)
@@ -1146,8 +1624,23 @@ class SaveOutputDictEveryIteration(SaveEveryIteration):
     """
 
     # Initialize the output dict
-    outDict = None
-    saveOnDisk = False
+    def __init__(self, saveOnDisk=False, **kwargs):
+        super().__init__(**kwargs)
+        self.saveOnDisk = saveOnDisk
+
+    @property
+    def saveOnDisk(self):
+        """Whether to save the output dict to disk.
+
+        Returns
+        -------
+        bool
+        """
+        return self._saveOnDisk
+
+    @saveOnDisk.setter
+    def saveOnDisk(self, value):
+        self._saveOnDisk = validate_type("saveOnDisk", value, bool)
 
     def initialize(self):
         self.outDict = {}
@@ -1213,15 +1706,10 @@ class Update_IRLS(InversionDirective):
     # Solving parameter for IRLS (mode:2)
     irls_iteration = 0
     minGNiter = 1
-    max_irls_iterations = properties.Integer("maximum irls iterations", default=20)
     iterStart = 0
     sphericalDomain = False
 
     # Beta schedule
-    update_beta = properties.Bool("Update beta", default=True)
-    beta_search = properties.Bool("Do a beta search", default=False)
-    coolingFactor = properties.Float("Cooling factor", default=2.0)
-    coolingRate = properties.Integer("Cooling rate", default=1)
     ComboObjFun = False
     mode = 1
     coolEpsOptimized = True
@@ -1232,6 +1720,96 @@ class Update_IRLS(InversionDirective):
     coolEpsFact = 1.2
     silent = False
     fix_Jmatrix = False
+
+    def __init__(
+        self,
+        max_irls_iterations=20,
+        update_beta=True,
+        beta_search=False,
+        coolingFactor=2.0,
+        coolingRate=1,
+        **kwargs,
+    ):
+        super().__init__(**kwargs)
+        self.max_irls_iterations = max_irls_iterations
+        self.update_beta = update_beta
+        self.beta_search = beta_search
+        self.coolingFactor = coolingFactor
+        self.coolingRate = coolingRate
+
+    @property
+    def max_irls_iterations(self):
+        """Maximum irls iterations.
+
+        Returns
+        -------
+        int
+        """
+        return self._max_irls_iterations
+
+    @max_irls_iterations.setter
+    def max_irls_iterations(self, value):
+        self._max_irls_iterations = validate_integer(
+            "max_irls_iterations", value, min_val=0
+        )
+
+    @property
+    def coolingFactor(self):
+        """Beta is divided by this value every `coolingRate` iterations.
+
+        Returns
+        -------
+        float
+        """
+        return self._coolingFactor
+
+    @coolingFactor.setter
+    def coolingFactor(self, value):
+        self._coolingFactor = validate_float(
+            "coolingFactor", value, min_val=0.0, inclusive_min=False
+        )
+
+    @property
+    def coolingRate(self):
+        """Cool after this number of iterations.
+
+        Returns
+        -------
+        int
+        """
+        return self._coolingRate
+
+    @coolingRate.setter
+    def coolingRate(self, value):
+        self._coolingRate = validate_integer("coolingRate", value, min_val=1)
+
+    @property
+    def update_beta(self):
+        """Whether to update beta.
+
+        Returns
+        -------
+        bool
+        """
+        return self._update_beta
+
+    @update_beta.setter
+    def update_beta(self, value):
+        self._update_beta = validate_type("update_beta", value, bool)
+
+    @property
+    def beta_search(self):
+        """Whether to do a beta search.
+
+        Returns
+        -------
+        bool
+        """
+        return self._beta_search
+
+    @beta_search.setter
+    def beta_search(self, value):
+        self._beta_search = validate_type("beta_search", value, bool)
 
     @property
     def target(self):
@@ -1272,7 +1850,7 @@ class Update_IRLS(InversionDirective):
             self.norms = []
             for reg in self.reg.objfcts:
                 self.norms.append(reg.norms)
-                reg.norms = np.c_[2.0, 2.0, 2.0, 2.0]
+                reg.norms = [2.0 for obj in reg.objfcts]
                 reg.model = self.invProb.model
 
         # Update the model used by the regularization
@@ -1295,12 +1873,10 @@ class Update_IRLS(InversionDirective):
                 self.mode != 1,
             ]
         ):
-
             ratio = self.target / self.invProb.phi_d
 
             if ratio > 1:
                 ratio = np.mean([2.0, ratio])
-
             else:
                 ratio = np.mean([0.75, ratio])
 
@@ -1316,97 +1892,38 @@ class Update_IRLS(InversionDirective):
                 return
 
         elif np.all([self.mode == 1, self.opt.iter % self.coolingRate == 0]):
-
             self.invProb.beta = self.invProb.beta / self.coolingFactor
-
-        phim_new = 0
-        for reg in self.reg.objfcts:
-            for comp, multipier in zip(reg.objfcts, reg.multipliers):
-                if multipier > 0:
-                    phim_new += np.sum(
-                        comp.f_m ** 2.0
-                        / (comp.f_m ** 2.0 + comp.epsilon ** 2.0)
-                        ** (1 - comp.norm / 2.0)
-                    )
-
-        # Update the model used by the regularization
-        phi_m_last = []
-        for reg in self.reg.objfcts:
-            reg.model = self.invProb.model
-            phi_m_last += [reg(self.invProb.model)]
 
         # After reaching target misfit with l2-norm, switch to IRLS (mode:2)
         if np.all([self.invProb.phi_d < self.start, self.mode == 1]):
-            self.startIRLS()
+            self.start_irls()
 
         # Only update after GN iterations
         if np.all(
             [(self.opt.iter - self.iterStart) % self.minGNiter == 0, self.mode != 1]
         ):
-
-            if self.fix_Jmatrix:
-                print(">> Fix Jmatrix")
-                self.invProb.dmisfit.simulation.fix_Jmatrix = True
-            # Check for maximum number of IRLS cycles
-            if self.irls_iteration == self.max_irls_iterations:
-                if not self.silent:
-                    print(
-                        "Reach maximum number of IRLS cycles:"
-                        + " {0:d}".format(self.max_irls_iterations)
-                    )
-
+            if self.stopping_criteria():
                 self.opt.stopNextIteration = True
                 return
 
             # Print to screen
             for reg in self.reg.objfcts:
-
-                if reg.eps_p > self.floorEps_p and self.coolEps_p:
-                    reg.eps_p /= self.coolEpsFact
-                    # print('Eps_p: ' + str(reg.eps_p))
-                if reg.eps_q > self.floorEps_q and self.coolEps_q:
-                    reg.eps_q /= self.coolEpsFact
-                    # print('Eps_q: ' + str(reg.eps_q))
-
-            # Remember the value of the norm from previous R matrices
-            # self.f_old = self.reg(self.invProb.model)
+                for obj in reg.objfcts:
+                    if isinstance(reg, (Sparse, BaseSparse)):
+                        obj.irls_threshold = obj.irls_threshold / self.coolEpsFact
 
             self.irls_iteration += 1
 
             # Reset the regularization matrices so that it is
             # recalculated for current model. Do it to all levels of comboObj
             for reg in self.reg.objfcts:
-
-                # If comboObj, go down one more level
-                for comp in reg.objfcts:
-                    comp.stashedR = None
-
-            for dmis in self.dmisfit.objfcts:
-                if getattr(dmis, "stashedR", None) is not None:
-                    dmis.stashedR = None
-
-            # Compute new model objective function value
-            f_change = np.abs(self.f_old - phim_new) / (self.f_old + 1e-12)
-
-            # Check if the function has changed enough
-            if np.all(
-                [
-                    f_change < self.f_min_change,
-                    self.irls_iteration > 1,
-                    np.abs(1.0 - self.invProb.phi_d / self.target) < self.beta_tol,
-                ]
-            ):
-
-                print("Minimum decrease in regularization." + "End of IRLS")
-                self.opt.stopNextIteration = True
-                return
-
-            self.f_old = phim_new
+                if isinstance(reg, (Sparse, BaseSparse)):
+                    reg.update_weights(reg.model)
 
             self.update_beta = True
             self.invProb.phi_m_last = self.reg(self.invProb.model)
 
-    def startIRLS(self):
+    def start_irls(self):
         if not self.silent:
             print(
                 "Reached starting chifact with l2-norm regularization:"
@@ -1422,21 +1939,23 @@ class Update_IRLS(InversionDirective):
 
         self.invProb.phi_m_last = self.reg(self.invProb.model)
 
-        # Either use the supplied epsilon, or fix base on distribution of
+        # Either use the supplied irls_threshold, or fix base on distribution of
         # model values
         for reg in self.reg.objfcts:
 
-            if getattr(reg, "eps_p", None) is None:
+            if not isinstance(reg, Sparse):
+                continue
 
-                reg.eps_p = np.percentile(
-                    np.abs(reg.mapping * reg._delta_m(self.invProb.model)), self.prctile
+            for obj in reg.objfcts:
+
+                threshold = np.percentile(
+                    np.abs(obj.mapping * obj._delta_m(self.invProb.model)), self.prctile
                 )
 
-            if getattr(reg, "eps_q", None) is None:
+                if isinstance(obj, SmoothnessFirstOrder):
+                    threshold /= reg.regularization_mesh.base_length
 
-                reg.eps_q = np.percentile(
-                    np.abs(reg.mapping * reg._delta_m(self.invProb.model)), self.prctile
-                )
+                obj.irls_threshold = threshold
 
         # Re-assign the norms supplied by user l2 -> lp
         for reg, norms in zip(self.reg.objfcts, self.norms):
@@ -1448,7 +1967,7 @@ class Update_IRLS(InversionDirective):
         # Print to screen
         for reg in self.reg.objfcts:
             if not self.silent:
-                print("eps_p: " + str(reg.eps_p) + " eps_q: " + str(reg.eps_q))
+                print("irls_threshold " + str(reg.objfcts[0].irls_threshold))
 
     def angleScale(self):
         """
@@ -1458,16 +1977,19 @@ class Update_IRLS(InversionDirective):
         # Currently implemented for MVI-S only
         max_p = []
         for reg in self.reg.objfcts[0].objfcts:
-            eps_p = reg.epsilon
-            f_m = abs(reg.f_m)
+            f_m = abs(reg.f_m(reg.model))
             max_p += [np.max(f_m)]
 
         max_p = np.asarray(max_p).max()
 
         max_s = [np.pi, np.pi]
 
-        for obj, var in zip(self.reg.objfcts[1:3], max_s):
-            obj.scales = np.ones(obj.scales.shape) * max_p / var
+        for reg, var in zip(self.reg.objfcts[1:], max_s):
+            for obj in reg.objfcts:
+                # TODO Need to make weights_shapes a public method
+                obj.set_weights(
+                    angle_scale=np.ones(obj._weights_shapes[0]) * max_p / var
+                )
 
     def validate(self, directiveList):
         # check if a linear preconditioner is in the list, if not warn else
@@ -1489,13 +2011,66 @@ class Update_IRLS(InversionDirective):
             )
         return True
 
+    def stopping_criteria(self):
+        """
+        Check for stopping criteria of max_irls_iteration or minimum change.
+        """
+        phim_new = 0
+        for reg in self.reg.objfcts:
+            if isinstance(reg, (Sparse, BaseSparse)):
+                reg.model = self.invProb.model
+                phim_new += reg(reg.model)
+
+        # Check for maximum number of IRLS cycles1
+        if self.irls_iteration == self.max_irls_iterations:
+            if not self.silent:
+                print(
+                    "Reach maximum number of IRLS cycles:"
+                    + " {0:d}".format(self.max_irls_iterations)
+                )
+            return True
+
+        # Check if the function has changed enough
+        f_change = np.abs(self.f_old - phim_new) / (self.f_old + 1e-12)
+        if np.all(
+            [
+                f_change < self.f_min_change,
+                self.irls_iteration > 1,
+                np.abs(1.0 - self.invProb.phi_d / self.target) < self.beta_tol,
+            ]
+        ):
+            print("Minimum decrease in regularization." + "End of IRLS")
+            return True
+
+        self.f_old = phim_new
+
+        return False
+
 
 class UpdatePreconditioner(InversionDirective):
     """
     Create a Jacobi preconditioner for the linear problem
     """
 
-    update_every_iteration = True  #: Update every iterations if False
+    def __init__(self, update_every_iteration=True, **kwargs):
+        super().__init__(**kwargs)
+        self.update_every_iteration = update_every_iteration
+
+    @property
+    def update_every_iteration(self):
+        """Whether to update the preconditioner at every iteration.
+
+        Returns
+        -------
+        bool
+        """
+        return self._update_every_iteration
+
+    @update_every_iteration.setter
+    def update_every_iteration(self, value):
+        self._update_every_iteration = validate_type(
+            "update_every_iteration", value, bool
+        )
 
     def initialize(self):
 
@@ -1563,8 +2138,44 @@ class Update_Wj(InversionDirective):
     Create approx-sensitivity base weighting using the probing method
     """
 
-    k = None  # Number of probing cycles
-    itr = None  # Iteration number to update Wj, or always update if None
+    def __init__(self, k=None, itr=None, **kwargs):
+        self.k = k
+        self.itr = itr
+        super().__init__(**kwargs)
+
+    @property
+    def k(self):
+        """Number of probing cycles for the estimator.
+
+        Returns
+        -------
+        int
+        """
+        return self._k
+
+    @k.setter
+    def k(self, value):
+        if value is not None:
+            value = validate_integer("k", value, min_val=1)
+        self._k = value
+
+    @property
+    def itr(self):
+        """Which iteration to update the sensitivity.
+
+        Will always update if `None`.
+
+        Returns
+        -------
+        int or None
+        """
+        return self._itr
+
+    @itr.setter
+    def itr(self, value):
+        if value is not None:
+            value = validate_integer("itr", value, min_val=1)
+        self._itr = value
 
     def endIter(self):
 
@@ -1594,9 +2205,53 @@ class UpdateSensitivityWeights(InversionDirective):
     Good for any problem where J is formed explicitly.
     """
 
-    everyIter = True
-    threshold = 1e-12
-    normalization: bool = True
+    def __init__(self, everyIter=True, threshold=1e-12, normalization=True, **kwargs):
+        super().__init__(**kwargs)
+        self.everyIter = everyIter
+        self.threshold = threshold
+        self.normalization = normalization
+
+    @property
+    def everyIter(self):
+        """Whether to update the sensitivity weights at every iteration.
+
+        Returns
+        -------
+        bool
+        """
+        return self._everyIter
+
+    @everyIter.setter
+    def everyIter(self, value):
+        self._everyIter = validate_type("everyIter", value, bool)
+
+    @property
+    def threshold(self):
+        """A small threshold added to the weights to represent a minimum weighting value.
+
+        Returns
+        -------
+        float
+        """
+        return self._threshold
+
+    @threshold.setter
+    def threshold(self, value):
+        self._threshold = validate_float("threshold", value, min_val=0.0)
+
+    @property
+    def normalization(self):
+        """Whether to normalize by the smallest sensitivity weight.
+
+        Returns
+        -------
+        bool
+        """
+        return self._normalization
+
+    @normalization.setter
+    def normalization(self, value):
+        self._normalization = validate_type("normalization", value, bool)
 
     def initialize(self):
         """
@@ -1643,14 +2298,17 @@ class UpdateSensitivityWeights(InversionDirective):
         for reg in self.reg.objfcts:
             if not isinstance(reg, BaseSimilarityMeasure):
                 wr += reg.mapping.deriv(self.invProb.model).T * (
-                    (reg.mapping * jtj_diag) / reg.objfcts[0].regmesh.vol ** 2.0
+                    (reg.mapping * jtj_diag) / reg.regularization_mesh.vol ** 2.0
                 )
-        wr /= wr.max()
+        if self.normalization:
+            wr /= wr.max()
         wr += self.threshold
         wr **= 0.5
         for reg in self.reg.objfcts:
             if not isinstance(reg, BaseSimilarityMeasure):
-                reg.cell_weights = reg.mapping * wr
+                sub_regs = getattr(reg, "objfcts", [reg])
+                for sub_reg in sub_regs:
+                    sub_reg.set_weights(sensitivity=sub_reg.mapping * wr)
 
     def validate(self, directiveList):
         # check if a beta estimator is in the list after setting the weights

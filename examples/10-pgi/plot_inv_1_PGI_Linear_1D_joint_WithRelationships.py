@@ -2,7 +2,7 @@
 Petrophysically guided inversion: Joint linear example with nonlinear relationships
 ===================================================================================
 
-We do a comparison between the classic Tikhonov inversion
+We do a comparison between the classic least-squares inversion
 and our formulation of a petrophysically guided inversion.
 We explore it through coupling two linear problems whose respective physical
 properties are linked by polynomial relationships that change between rock units.
@@ -132,17 +132,15 @@ wr1 = np.sum(prob1.G ** 2.0, axis=0) ** 0.5 / mesh.cell_volumes
 wr1 = wr1 / np.max(wr1)
 wr2 = np.sum(prob2.G ** 2.0, axis=0) ** 0.5 / mesh.cell_volumes
 wr2 = wr2 / np.max(wr2)
-wr = np.r_[wr1, wr2]
-W = utils.sdiag(wr)
 
-reg_simple = utils.make_PGIwithRelationships_regularization(
+reg_simple = regularization.PGI(
     mesh=mesh,
     gmmref=clfmapping,
     gmm=clfmapping,
     approx_gradient=True,
-    alpha_x=1.0,
     wiresmap=wires,
-    cell_weights_list=[wr1, wr2],
+    non_linear_relationships=True,
+    weights_list=[wr1, wr2],
 )
 
 opt = optimization.ProjectedGNCG(
@@ -161,11 +159,7 @@ scales = directives.ScalingMultipleDataMisfits_ByEig(
     chi0_ratio=np.r_[1.0, 1.0], verbose=True, n_pw_iter=10
 )
 scaling_schedule = directives.JointScalingSchedule(verbose=True)
-alpha0_ratio = np.r_[
-    np.zeros(len(reg_simple.objfcts[0].objfcts)),
-    100.0 * np.ones(len(reg_simple.objfcts[1].objfcts)),
-    1.0 * np.ones(len(reg_simple.objfcts[2].objfcts)),
-]
+alpha0_ratio = np.r_[1e6, 1e4, 1, 1]
 alphas = directives.AlphasSmoothEstimate_ByEig(
     alpha0_ratio=alpha0_ratio, n_pw_iter=10, verbose=True
 )
@@ -187,14 +181,14 @@ inv = inversion.BaseInversion(
 mcluster_map = inv.run(minit)
 
 # Inversion with no nonlinear mapping
-reg_simple_no_map = utils.make_PGI_regularization(
+reg_simple_no_map = regularization.PGI(
     mesh=mesh,
     gmmref=clfnomapping,
     gmm=clfnomapping,
     approx_gradient=True,
-    alpha_x=1.0,
     wiresmap=wires,
-    cell_weights_list=[wr1, wr2],
+    non_linear_relationships=False,
+    weights_list=[wr1, wr2],
 )
 
 opt = optimization.ProjectedGNCG(
@@ -206,7 +200,6 @@ opt = optimization.ProjectedGNCG(
     upper=10,
 )
 
-
 invProb = inverse_problem.BaseInvProblem(dmis, reg_simple_no_map, opt)
 
 # directives
@@ -215,9 +208,7 @@ scales = directives.ScalingMultipleDataMisfits_ByEig(
 )
 scaling_schedule = directives.JointScalingSchedule(verbose=True)
 alpha0_ratio = np.r_[
-    np.zeros(len(reg_simple_no_map.objfcts[0].objfcts)),
-    100.0 * np.ones(len(reg_simple_no_map.objfcts[1].objfcts)),
-    1.0 * np.ones(len(reg_simple_no_map.objfcts[2].objfcts)),
+    100.0 * np.ones(2), 1, 1
 ]
 alphas = directives.AlphasSmoothEstimate_ByEig(
     alpha0_ratio=alpha0_ratio, n_pw_iter=10, verbose=True
@@ -241,11 +232,15 @@ inv = inversion.BaseInversion(
 
 mcluster_no_map = inv.run(minit)
 
-# Tikhonov Inversion
+# WeightedLeastSquares Inversion
 
-reg1 = regularization.Tikhonov(mesh, alpha_s=1.0, alpha_x=1.0, mapping=wires.m1)
+reg1 = regularization.WeightedLeastSquares(
+    mesh, alpha_s=1.0, alpha_x=1.0, mapping=wires.m1
+)
 reg1.cell_weights = wr1
-reg2 = regularization.Tikhonov(mesh, alpha_s=1.0, alpha_x=1.0, mapping=wires.m2)
+reg2 = regularization.WeightedLeastSquares(
+    mesh, alpha_s=1.0, alpha_x=1.0, mapping=wires.m2
+)
 reg2.cell_weights = wr2
 reg = reg1 + reg2
 
@@ -261,10 +256,7 @@ opt = optimization.ProjectedGNCG(
 invProb = inverse_problem.BaseInvProblem(dmis, reg, opt)
 
 # directives
-alpha0_ratio = np.r_[
-    100.0 * np.ones(len(reg.objfcts[0].objfcts)),
-    1.0 * np.ones(len(reg.objfcts[1].objfcts)),
-]
+alpha0_ratio = np.r_[1, 1, 1, 1]
 alphas = directives.AlphasSmoothEstimate_ByEig(
     alpha0_ratio=alpha0_ratio, n_pw_iter=10, verbose=True
 )
@@ -341,13 +333,6 @@ axes[3].legend(["True Petrophysical Distribution", "Recovered model crossplot"])
 axes[3].set_xlabel("Property 1")
 axes[3].set_ylabel("Property 2")
 
-# fig.suptitle(
-#    'Doodling with Mapping: one mapping per identified rock unit\n' +
-#    'Joint inversion of 1D Linear Problems ' +
-#    'with nonlinear petrophysical relationships',
-#    fontsize=24
-# )
-
 axes[4].set_axis_off()
 axes[4].text(
     0.5 * (left + right),
@@ -361,8 +346,6 @@ axes[4].text(
 )
 
 axes[5].plot(mesh.cell_centers_x, wires.m1 * mcluster_no_map, "b.-", ms=5, marker="v")
-# axes[5].plot(mesh.cell_centers_x, wires.m1 * reg_simple_no_map.objfcts[0].mref, 'g--')
-
 axes[5].plot(mesh.cell_centers_x, wires.m1 * m, "k--")
 axes[5].set_title("Problem 1")
 axes[5].legend(["Recovered Model", "True Model"], loc=1)
@@ -370,8 +353,6 @@ axes[5].set_xlabel("X")
 axes[5].set_ylabel("Property 1")
 
 axes[6].plot(mesh.cell_centers_x, wires.m2 * mcluster_no_map, "r.-", ms=5, marker="v")
-# axes[6].plot(mesh.cell_centers_x, wires.m2 * reg_simple_no_map.objfcts[0].mref, 'g--')
-
 axes[6].plot(mesh.cell_centers_x, wires.m2 * m, "k--")
 axes[6].set_title("Problem 2")
 axes[6].legend(["Recovered Model", "True Model"], loc=1)
@@ -412,7 +393,7 @@ axes[8].set_axis_off()
 axes[8].text(
     0.5 * (left + right),
     0.5 * (bottom + top),
-    ("Tikhonov\n~Using a single cluster"),
+    ("Least-Squares\n~Using a single cluster"),
     horizontalalignment="center",
     verticalalignment="center",
     fontsize=20,

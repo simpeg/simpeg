@@ -109,8 +109,7 @@ solution <https://github.com/simpeg/simpeg/blob/main/tests/em/fdem/forward/test_
 Order and Derivative Tests
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-:ref:`Order tests <api_Tests>` can be
-used when you are testing differential operators (we are using a second-order,
+Order tests can be used when you are testing differential operators (we are using a second-order,
 staggered grid discretization for our operators). For example, testing a 2D
 curl operator in `test_operators.py <https://github.com/simpeg/discretize/blob/main/tests/base/test_operators.py>`_
 
@@ -134,7 +133,7 @@ curl operator in `test_operators.py <https://github.com/simpeg/discretize/blob/m
 
             sol_curl2d = call2(sol, self.M.gridCC)
             Ec = cartE2(self.M, ex, ey)
-            sol_ana = self.M.edgeCurl*self.M.projectFaceVector(Ec)
+            sol_ana = self.M.edge_curl*self.M.project_face_vector(Ec)
             err = np.linalg.norm((sol_curl2d-sol_ana), np.inf)
 
             return err
@@ -143,7 +142,7 @@ curl operator in `test_operators.py <https://github.com/simpeg/discretize/blob/m
             self.orderTest()
 
 Derivative tests are a particular type or :ref:`order_test`, and since they
-are used so extensively, SimPEG includes a :code:`checkDerivative` method.
+are used so extensively, SimPEG includes a :code:`check_derivative` method.
 
 In the case
 of testing a derivative, we consider a Taylor expansion of a function about
@@ -170,7 +169,7 @@ DEM_derivs.py>`_
 
         def fun(x):
             return survey.dpred(x), lambda x: prb.Jvec(x0, x)
-        return Tests.checkDerivative(fun, x0, num=2, plotIt=False, eps=FLR)
+        return tests.check_derivative(fun, x0, num=2, plotIt=False, eps=FLR)
 
 .. _documentation:
 
@@ -187,9 +186,9 @@ For example:
 .. code:: python
 
 
-    class Tikhonov(BaseComboRegularization):
+    class WeightedLeastSquares(BaseComboRegularization):
         """
-        L2 Tikhonov regularization with both smallness and smoothness (first order
+        L2 WeightedLeastSquares regularization with both smallness and smoothness (first order
         derivative) contributions.
 
         .. math::

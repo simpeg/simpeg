@@ -1,11 +1,10 @@
 import numpy as np
 import scipy.sparse as sp
 import time
-import properties
 
 from ...data import Data
 from ...simulation import BaseTimeSimulation
-from ...utils import mkvc, sdiag, speye, Zero
+from ...utils import mkvc, sdiag, speye, Zero, validate_type, validate_float
 from ..base import BaseEMSimulation
 from .survey import Survey
 from .fields import (
@@ -25,18 +24,48 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
     Euler.
     """
 
-    clean_on_model_update = ["_Adcinv"]  #: clear DC matrix factors on any model updates
-    dt_threshold = 1e-8
-
-    survey = properties.Instance("a survey object", Survey, required=True)
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, mesh, survey=None, dt_threshold=1e-8, **kwargs):
+        super().__init__(mesh=mesh, survey=survey, **kwargs)
+        self.dt_threshold = dt_threshold
         if self.muMap is not None:
             raise NotImplementedError(
                 "Time domain EM simulations do not support magnetic permeability "
                 "inversion, yet."
             )
+
+    @property
+    def survey(self):
+        """The survey for the simulation
+        Returns
+        -------
+        SimPEG.electromagnetics.time_domain.survey.Survey
+        """
+        if self._survey is None:
+            raise AttributeError("Simulation must have a survey set")
+        return self._survey
+
+    @survey.setter
+    def survey(self, value):
+        if value is not None:
+            value = validate_type("survey", value, Survey, cast=False)
+        self._survey = value
+
+    @property
+    def dt_threshold(self):
+        """The threshold used to determine if a previous matrix factor can be reused.
+
+        If the difference in time steps falls below this threshold, the factored matrix
+        is re-used.
+
+        Returns
+        -------
+        float
+        """
+        return self._dt_threshold
+
+    @dt_threshold.setter
+    def dt_threshold(self, value):
+        self._dt_threshold = validate_float("dt_threshold", value, min_val=0.0)
 
     # def fields_nostore(self, m):
     #     """
@@ -141,9 +170,9 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
         # this is a bit silly
 
         # if self._fieldType == 'b' or self._fieldType == 'j':
-        #     ifields = np.zeros((self.mesh.nF, len(Srcs)))
+        #     ifields = np.zeros((self.mesh.n_faces, len(Srcs)))
         # elif self._fieldType == 'e' or self._fieldType == 'h':
-        #     ifields = np.zeros((self.mesh.nE, len(Srcs)))
+        #     ifields = np.zeros((self.mesh.n_edges, len(Srcs)))
 
         # for i, src in enumerate(self.survey.source_list):
         dun_dm_v = np.hstack(
@@ -313,7 +342,7 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
             # refactor if we need to
             if AdiagTinv is None:  # and tInd > -1:
                 Adiag = self.getAdiag(tInd)
-                AdiagTinv = self.solver(Adiag.T, **self.solver_opts)
+                AdiagTinv = self.solver(Adiag.T.tocsr(), **self.solver_opts)
 
             if tInd < self.nT - 1:
                 Asubdiag = self.getAsubdiag(tInd + 1)
@@ -366,11 +395,11 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
         Srcs = self.survey.source_list
 
         if self._formulation == "EB":
-            s_m = np.zeros((self.mesh.nF, len(Srcs)))
-            s_e = np.zeros((self.mesh.nE, len(Srcs)))
+            s_m = np.zeros((self.mesh.n_faces, len(Srcs)))
+            s_e = np.zeros((self.mesh.n_edges, len(Srcs)))
         elif self._formulation == "HJ":
-            s_m = np.zeros((self.mesh.nE, len(Srcs)))
-            s_e = np.zeros((self.mesh.nF, len(Srcs)))
+            s_m = np.zeros((self.mesh.n_edges, len(Srcs)))
+            s_e = np.zeros((self.mesh.n_faces, len(Srcs)))
 
         for i, src in enumerate(Srcs):
             smi, sei = src.eval(self, self.times[tInd])
@@ -387,9 +416,9 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
         Srcs = self.survey.source_list
 
         if self._fieldType in ["b", "j"]:
-            ifields = np.zeros((self.mesh.nF, len(Srcs)))
+            ifields = np.zeros((self.mesh.n_faces, len(Srcs)))
         elif self._fieldType in ["e", "h"]:
-            ifields = np.zeros((self.mesh.nE, len(Srcs)))
+            ifields = np.zeros((self.mesh.n_edges, len(Srcs)))
 
         if self.verbose:
             print("Calculating Initial fields")
@@ -412,15 +441,15 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
         # take care of any utils.zero cases
         if adjoint is False:
             if self._fieldType in ["b", "j"]:
-                ifieldsDeriv += np.zeros(self.mesh.nF)
+                ifieldsDeriv += np.zeros(self.mesh.n_faces)
             elif self._fieldType in ["e", "h"]:
-                ifieldsDeriv += np.zeros(self.mesh.nE)
+                ifieldsDeriv += np.zeros(self.mesh.n_edges)
 
         elif adjoint is True:
             if self._fieldType in ["b", "j"]:
-                ifieldsDeriv += np.zeros(self.mesh.nF)
+                ifieldsDeriv += np.zeros(self.mesh.n_faces)
             elif self._fieldType in ["e", "h"]:
-                ifieldsDeriv[0] += np.zeros(self.mesh.nE)
+                ifieldsDeriv[0] += np.zeros(self.mesh.n_edges)
             ifieldsDeriv[1] += np.zeros_like(self.model)  # take care of a  Zero() case
 
         return ifieldsDeriv
@@ -440,6 +469,11 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
             Adc = self.getAdc()
             self._Adcinv = self.solver(Adc)
         return self._Adcinv
+
+    @property
+    def clean_on_model_update(self):
+        items = super().clean_on_model_update
+        return items + ["_Adcinv"]  #: clear DC matrix factors on any model updates
 
 
 ###############################################################################
@@ -532,22 +566,22 @@ class Simulation3DMagneticFluxDensity(BaseTDEMSimulation):
         assert tInd >= 0 and tInd < self.nT
 
         dt = self.time_steps[tInd]
-        C = self.mesh.edgeCurl
+        C = self.mesh.edge_curl
         MeSigmaI = self.MeSigmaI
         MfMui = self.MfMui
-        I = speye(self.mesh.nF)
+        I = speye(self.mesh.n_faces)
 
-        A = 1.0 / dt * I + (C * (MeSigmaI * (C.T * MfMui)))
+        A = 1.0 / dt * I + (C * (MeSigmaI * (C.T.tocsr() * MfMui)))
 
         if self._makeASymmetric is True:
-            return MfMui.T * A
+            return MfMui.T.tocsr() * A
         return A
 
     def getAdiagDeriv(self, tInd, u, v, adjoint=False):
         """
         Derivative of ADiag
         """
-        C = self.mesh.edgeCurl
+        C = self.mesh.edge_curl
 
         # def MeSigmaIDeriv(x):
         #     return self.MeSigmaIDeriv(x)
@@ -572,7 +606,7 @@ class Simulation3DMagneticFluxDensity(BaseTDEMSimulation):
 
         dt = self.time_steps[tInd]
         MfMui = self.MfMui
-        Asubdiag = -1.0 / dt * sp.eye(self.mesh.nF)
+        Asubdiag = -1.0 / dt * sp.eye(self.mesh.n_faces)
 
         if self._makeASymmetric is True:
             return MfMui.T * Asubdiag
@@ -586,7 +620,7 @@ class Simulation3DMagneticFluxDensity(BaseTDEMSimulation):
         """
         Assemble the RHS
         """
-        C = self.mesh.edgeCurl
+        C = self.mesh.edge_curl
         MeSigmaI = self.MeSigmaI
         MfMui = self.MfMui
 
@@ -602,7 +636,7 @@ class Simulation3DMagneticFluxDensity(BaseTDEMSimulation):
         Derivative of the RHS
         """
 
-        C = self.mesh.edgeCurl
+        C = self.mesh.edge_curl
         MeSigmaI = self.MeSigmaI
 
         MfMui = self.MfMui
@@ -800,7 +834,7 @@ class Simulation3DElectricField(BaseTDEMSimulation):
 
         # Treating initial condition when a galvanic source is included
         tInd = -1
-        Grad = self.mesh.nodalGrad
+        Grad = self.mesh.nodal_gradient
 
         for isrc, src in enumerate(self.survey.source_list):
             if src.srcType == "galvanic":
@@ -845,11 +879,11 @@ class Simulation3DElectricField(BaseTDEMSimulation):
         assert tInd >= 0 and tInd < self.nT
 
         dt = self.time_steps[tInd]
-        C = self.mesh.edgeCurl
+        C = self.mesh.edge_curl
         MfMui = self.MfMui
         MeSigma = self.MeSigma
 
-        return C.T * (MfMui * C) + 1.0 / dt * MeSigma
+        return C.T.tocsr() * (MfMui * C) + 1.0 / dt * MeSigma
 
     def getAdiagDeriv(self, tInd, u, v, adjoint=False):
         """
@@ -899,7 +933,7 @@ class Simulation3DElectricField(BaseTDEMSimulation):
         s_m, s_e = self.getSourceTerm(tInd)
         _, s_en1 = self.getSourceTerm(tInd - 1)
 
-        return -1.0 / dt * (s_e - s_en1) + self.mesh.edgeCurl.T * self.MfMui * s_m
+        return -1.0 / dt * (s_e - s_en1) + self.mesh.edge_curl.T * self.MfMui * s_m
 
     def getRHSDeriv(self, tInd, src, v, adjoint=False):
         # right now, we are assuming that s_e, s_m do not depend on the model.
@@ -907,19 +941,18 @@ class Simulation3DElectricField(BaseTDEMSimulation):
 
     def getAdc(self):
         MeSigma = self.MeSigma
-        Grad = self.mesh.nodalGrad
-        Adc = Grad.T * MeSigma * Grad
+        Grad = self.mesh.nodal_gradient
+        Adc = Grad.T.tocsr() * MeSigma * Grad
         # Handling Null space of A
         Adc[0, 0] = Adc[0, 0] + 1.0
         return Adc
 
     def getAdcDeriv(self, u, v, adjoint=False):
-        Grad = self.mesh.nodalGrad
+        Grad = self.mesh.nodal_gradient
         if not adjoint:
             return Grad.T * self.MeSigmaDeriv(-u, v, adjoint)
-        elif adjoint:
+        else:
             return self.MeSigmaDeriv(-u, Grad * v, adjoint)
-        return Adc
 
     # def clean(self):
     #     """
@@ -980,7 +1013,7 @@ class Simulation3DMagneticField(BaseTDEMSimulation):
         assert tInd >= 0 and tInd < self.nT
 
         dt = self.time_steps[tInd]
-        C = self.mesh.edgeCurl
+        C = self.mesh.edge_curl
         MfRho = self.MfRho
         MeMu = self.MeMu
 
@@ -990,7 +1023,7 @@ class Simulation3DMagneticField(BaseTDEMSimulation):
         assert tInd >= 0 and tInd < self.nT
 
         dt = self.time_steps[tInd]
-        C = self.mesh.edgeCurl
+        C = self.mesh.edge_curl
 
         if adjoint:
             return self.MfRhoDeriv(C * u, C * v, adjoint)
@@ -1009,14 +1042,14 @@ class Simulation3DMagneticField(BaseTDEMSimulation):
 
     def getRHS(self, tInd):
 
-        C = self.mesh.edgeCurl
+        C = self.mesh.edge_curl
         MfRho = self.MfRho
         s_m, s_e = self.getSourceTerm(tInd)
 
         return C.T * (MfRho * s_e) + s_m
 
     def getRHSDeriv(self, tInd, src, v, adjoint=False):
-        C = self.mesh.edgeCurl
+        C = self.mesh.edge_curl
         s_m, s_e = src.eval(self, self.times[tInd])
 
         if adjoint is True:
@@ -1028,13 +1061,13 @@ class Simulation3DMagneticField(BaseTDEMSimulation):
         return Zero()  # assumes no derivs on sources
 
     def getAdc(self):
-        D = sdiag(self.mesh.vol) * self.mesh.faceDiv
+        D = sdiag(self.mesh.cell_volumes) * self.mesh.face_divergence
         G = D.T
         MfRhoI = self.MfRhoI
         return D * MfRhoI * G
 
     def getAdcDeriv(self, u, v, adjoint=False):
-        D = sdiag(self.mesh.vol) * self.mesh.faceDiv
+        D = sdiag(self.mesh.cell_volumes) * self.mesh.face_divergence
         G = D.T
 
         if adjoint:
@@ -1070,10 +1103,10 @@ class Simulation3DCurrentDensity(BaseTDEMSimulation):
         assert tInd >= 0 and tInd < self.nT
 
         dt = self.time_steps[tInd]
-        C = self.mesh.edgeCurl
+        C = self.mesh.edge_curl
         MfRho = self.MfRho
         MeMuI = self.MeMuI
-        eye = sp.eye(self.mesh.nF)
+        eye = sp.eye(self.mesh.n_faces)
 
         A = C * (MeMuI * (C.T * MfRho)) + 1.0 / dt * eye
 
@@ -1086,7 +1119,7 @@ class Simulation3DCurrentDensity(BaseTDEMSimulation):
         assert tInd >= 0 and tInd < self.nT
 
         dt = self.time_steps[tInd]
-        C = self.mesh.edgeCurl
+        C = self.mesh.edge_curl
         MfRho = self.MfRho
         MeMuI = self.MeMuI
 
@@ -1102,7 +1135,7 @@ class Simulation3DCurrentDensity(BaseTDEMSimulation):
 
     def getAsubdiag(self, tInd):
         assert tInd >= 0 and tInd < self.nT
-        eye = sp.eye(self.mesh.nF)
+        eye = sp.eye(self.mesh.n_faces)
 
         dt = self.time_steps[tInd]
 
@@ -1118,7 +1151,7 @@ class Simulation3DCurrentDensity(BaseTDEMSimulation):
         if tInd == len(self.time_steps):
             tInd = tInd - 1
 
-        C = self.mesh.edgeCurl
+        C = self.mesh.edge_curl
         MeMuI = self.MeMuI
         dt = self.time_steps[tInd]
         s_m, s_e = self.getSourceTerm(tInd)
@@ -1133,13 +1166,13 @@ class Simulation3DCurrentDensity(BaseTDEMSimulation):
         return Zero()  # assumes no derivs on sources
 
     def getAdc(self):
-        D = sdiag(self.mesh.vol) * self.mesh.faceDiv
+        D = sdiag(self.mesh.cell_volumes) * self.mesh.face_divergence
         G = D.T
         MfRhoI = self.MfRhoI
         return D * MfRhoI * G
 
     def getAdcDeriv(self, u, v, adjoint=False):
-        D = sdiag(self.mesh.vol) * self.mesh.faceDiv
+        D = sdiag(self.mesh.cell_volumes) * self.mesh.face_divergence
         G = D.T
 
         if adjoint:

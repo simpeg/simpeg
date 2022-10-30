@@ -44,7 +44,7 @@ from SimPEG.flow import richards
 def run(plotIt=True):
 
     M = discretize.TensorMesh([np.ones(40)], x0="N")
-    M.setCellGradBC("dirichlet")
+    M.set_cell_gradient_BC("dirichlet")
     # We will use the haverkamp empirical model with parameters from Celia1990
     k_fun, theta_fun = richards.empirical.haverkamp(
         M,
@@ -77,7 +77,7 @@ def run(plotIt=True):
 
     # Create the survey
     locs = -np.arange(2, 38, 4.0).reshape(-1, 1)
-    times = np.arange(30, prob.time_mesh.vectorCCx[-1], 60)
+    times = np.arange(30, prob.time_mesh.cell_centers_x[-1], 60)
     rxSat = richards.receivers.Saturation(locs, times)
     survey = richards.Survey([rxSat])
     prob.survey = survey
@@ -98,7 +98,7 @@ def run(plotIt=True):
     )
 
     # Setup a pretty standard inversion
-    reg = regularization.Tikhonov(M, alpha_s=1e-1)
+    reg = regularization.WeightedLeastSquares(M, alpha_s=1e-1)
     dmis = data_misfit.L2DataMisfit(simulation=prob, data=data)
     opt = optimization.InexactGaussNewton(maxIter=20, maxIterCG=10)
     invProb = inverse_problem.BaseInvProblem(dmis, reg, opt)
@@ -123,9 +123,9 @@ def run(plotIt=True):
         plt.legend(("$m_{rec}$", "$m_{true}$", "Data locations"), loc=4)
 
         ax = plt.subplot(222)
-        mesh2d = discretize.TensorMesh([prob.time_mesh.hx / 60, prob.mesh.hx], "0N")
+        mesh2d = discretize.TensorMesh([prob.time_mesh.h[0] / 60, prob.mesh.h[0]], "0N")
         sats = [theta_fun(_) for _ in Hs]
-        clr = mesh2d.plotImage(np.c_[sats][1:, :], ax=ax)
+        clr = mesh2d.plot_image(np.c_[sats][1:, :], ax=ax)
         cmap0 = matplotlib.cm.RdYlBu_r
         clr[0].set_cmap(cmap0)
         c = plt.colorbar(clr[0])
@@ -135,9 +135,9 @@ def run(plotIt=True):
         plt.title("True saturation over time")
 
         ax = plt.subplot(224)
-        mesh2d = discretize.TensorMesh([prob.time_mesh.hx / 60, prob.mesh.hx], "0N")
+        mesh2d = discretize.TensorMesh([prob.time_mesh.h[0] / 60, prob.mesh.h[0]], "0N")
         sats = [theta_fun(_) for _ in Hs_opt]
-        clr = mesh2d.plotImage(np.c_[sats][1:, :], ax=ax)
+        clr = mesh2d.plot_image(np.c_[sats][1:, :], ax=ax)
         cmap0 = matplotlib.cm.RdYlBu_r
         clr[0].set_cmap(cmap0)
         c = plt.colorbar(clr[0])

@@ -1,10 +1,16 @@
 import numpy as np
 from scipy.optimize import minimize
 import warnings
-import properties
 
 
-from ....utils import mkvc, sdiag, Zero
+from ....utils import (
+    mkvc,
+    sdiag,
+    Zero,
+    validate_type,
+    validate_string,
+    validate_integer,
+)
 from ....base import BaseElectricalPDESimulation
 from ....data import Data
 
@@ -21,26 +27,28 @@ class BaseDCSimulation2D(BaseElectricalPDESimulation):
     Base 2.5D DC problem
     """
 
-    survey = properties.Instance("a DC survey object", Survey, required=True)
-
-    storeJ = properties.Bool("store the sensitivity matrix?", default=False)
-
-    nky = properties.Integer(
-        "Number of kys to use in wavenumber space", required=False, default=11
-    )
-
     fieldsPair = Fields2D  # SimPEG.EM.Static.Fields_2D
     fieldsPair_fwd = FieldsDC
     # there's actually nT+1 fields, so we don't need to store the last one
-    _Jmatrix = None
-    fix_Jmatrix = False
     _mini_survey = None
 
-    def __init__(self, *args, **kwargs):
-        miniaturize = kwargs.pop("miniaturize", False)
-        do_trap = kwargs.pop("do_trap", False)
-        super().__init__(*args, **kwargs)
+    def __init__(
+        self,
+        mesh,
+        survey=None,
+        nky=11,
+        storeJ=False,
+        miniaturize=False,
+        do_trap=False,
+        fix_Jmatrix=False,
+        **kwargs,
+    ):
+        super().__init__(mesh=mesh, survey=survey, **kwargs)
+        self.nky = nky
+        self.storeJ = storeJ
+        self.fix_Jmatrix = fix_Jmatrix
 
+        do_trap = validate_type("do_trap", do_trap, bool)
         if not do_trap:
             # try to find an optimal set of quadrature points and weights
             def get_phi(r):
@@ -112,8 +120,69 @@ class BaseDCSimulation2D(BaseElectricalPDESimulation):
 
         # Do stuff to simplify the forward and JTvec operation if number of dipole
         # sources is greater than the number of unique pole sources
+        miniaturize = validate_type("miniaturize", miniaturize, bool)
         if miniaturize:
             self._dipoles, self._invs, self._mini_survey = _mini_pole_pole(self.survey)
+
+    @property
+    def survey(self):
+        """The DC survey object.
+
+        Returns
+        -------
+        SimPEG.electromagnetics.static.resistivity.survey.Survey
+        """
+        if self._survey is None:
+            raise AttributeError("Simulation must have a survey")
+        return self._survey
+
+    @survey.setter
+    def survey(self, value):
+        if value is not None:
+            value = validate_type("survey", value, Survey, cast=False)
+        self._survey = value
+
+    @property
+    def nky(self):
+        """Number of kys to use in wavenumber space.
+
+        Returns
+        -------
+        int
+        """
+        return self._nky
+
+    @nky.setter
+    def nky(self, value):
+        self._nky = validate_integer("nky", value, min_val=3)
+
+    @property
+    def storeJ(self):
+        """Whether to store the sensitivity matrix
+
+        Returns
+        -------
+        bool
+        """
+        return self._storeJ
+
+    @storeJ.setter
+    def storeJ(self, value):
+        self._storeJ = validate_type("storeJ", value, bool)
+
+    @property
+    def fix_Jmatrix(self):
+        """Whether to fix the sensitivity matrix between iterations.
+
+        Returns
+        -------
+        bool
+        """
+        return self._fix_Jmatrix
+
+    @fix_Jmatrix.setter
+    def fix_Jmatrix(self, value):
+        self._fix_Jmatrix = validate_type("fix_Jmatrix", value, bool)
 
     def fields(self, m=None):
         if self.verbose:
@@ -174,9 +243,7 @@ class BaseDCSimulation2D(BaseElectricalPDESimulation):
         """
         Generate Full sensitivity matrix
         """
-        if self._Jmatrix is not None:
-            return self._Jmatrix
-        else:
+        if getattr(self, "_Jmatrix", None) is None:
             if self.verbose:
                 print("Calculating J and storing")
             self.model = m
@@ -347,9 +414,7 @@ class BaseDCSimulation2D(BaseElectricalPDESimulation):
         toDelete = super().deleteTheseOnModelUpdate
         if self.fix_Jmatrix:
             return toDelete
-        if self._Jmatrix is not None:
-            toDelete = toDelete + ["_Jmatrix"]
-        return toDelete
+        return toDelete + ["_Jmatrix"]
 
     def _mini_survey_data(self, d_mini):
         if self._mini_survey is not None:
@@ -386,18 +451,28 @@ class Simulation2DCellCentered(BaseDCSimulation2D):
     fieldsPair = Fields2DCellCentered
     fieldsPair_fwd = Fields3DCellCentered
 
-    bc_type = properties.StringChoice(
-        "Type of boundary condition to use for simulation. Note that Robin and Mixed "
-        "are equivalent.",
-        choices=["Dirichlet", "Neumann", "Robin", "Mixed"],
-        default="Robin",
-    )
-
-    def __init__(self, mesh, **kwargs):
-        BaseDCSimulation2D.__init__(self, mesh, **kwargs)
+    def __init__(self, mesh, survey=None, bc_type="Robin", **kwargs):
+        super().__init__(mesh, survey=survey, **kwargs)
         V = sdiag(self.mesh.cell_volumes)
         self.Div = V @ self.mesh.face_divergence
         self.Grad = self.Div.T
+        self.bc_type = bc_type
+
+    @property
+    def bc_type(self):
+        """Type of boundary condition to use for simulation.
+
+        Returns
+        -------
+        {"Dirichlet", "Neumann", "Robin"}
+        """
+        return self._bc_type
+
+    @bc_type.setter
+    def bc_type(self, value):
+        self._bc_type = validate_string(
+            "bc_type", value, ["Dirichlet", "Neumann", ("Robin", "Mixed")]
+        )
 
     def getA(self, ky):
         """
@@ -514,17 +589,31 @@ class Simulation2DNodal(BaseDCSimulation2D):
     fieldsPair_fwd = Fields3DNodal
     _gradT = None
 
-    bc_type = properties.StringChoice(
-        "Type of boundary condition to use for simulation. Note that Robin and Mixed "
-        "are equivalent.",
-        choices=["Neumann", "Robin", "Mixed"],
-        default="Robin",
-    )
-
-    def __init__(self, mesh, **kwargs):
-        BaseDCSimulation2D.__init__(self, mesh, **kwargs)
+    def __init__(self, mesh, survey=None, bc_type="Robin", **kwargs):
+        super().__init__(mesh=mesh, survey=survey, **kwargs)
         self.solver_opts["is_symmetric"] = True
         self.solver_opts["is_positive_definite"] = True
+        self.bc_type = bc_type
+
+    @property
+    def bc_type(self):
+        """Type of boundary condition to use for simulation.
+
+        Returns
+        -------
+        {"Neumann", "Robin"}
+
+        Notes
+        -----
+        Robin and Mixed are equivalent.
+        """
+        return self._bc_type
+
+    @bc_type.setter
+    def bc_type(self, value):
+        self._bc_type = validate_string(
+            "bc_type", value, ["Neumann", ("Robin", "Mixed")]
+        )
 
     def getA(self, ky):
         """
@@ -536,7 +625,7 @@ class Simulation2DNodal(BaseDCSimulation2D):
 
         MeSigma = self.MeSigma
         MnSigma = self.MnSigma
-        Grad = self.mesh.nodalGrad
+        Grad = self.mesh.nodal_gradient
         if self._gradT is None:
             self._gradT = Grad.T.tocsr()  # cache the .tocsr()
         GradT = self._gradT
@@ -557,7 +646,7 @@ class Simulation2DNodal(BaseDCSimulation2D):
 
     def getADeriv(self, ky, u, v, adjoint=False):
 
-        Grad = self.mesh.nodalGrad
+        Grad = self.mesh.nodal_gradient
 
         if adjoint:
             out = self.MeSigmaDeriv(

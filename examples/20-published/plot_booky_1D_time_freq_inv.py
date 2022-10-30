@@ -165,19 +165,19 @@ def run(plotIt=True, saveFig=False, cleanup=True):
     temp = np.logspace(np.log10(1.0), np.log10(12.0), 19)
     temp_pad = temp[-1] * 1.3 ** np.arange(npad)
     hz = np.r_[temp_pad[::-1], temp[::-1], temp, temp_pad]
-    mesh = discretize.CylMesh([hx, 1, hz], "00C")
-    active = mesh.vectorCCz < 0.0
+    mesh = discretize.CylindricalMesh([hx, 1, hz], "00C")
+    active = mesh.cell_centers_z < 0.0
 
     # Step2: Set a SurjectVertical1D mapping
     # Note: this sets our inversion model as 1D log conductivity
     # below subsurface
 
-    active = mesh.vectorCCz < 0.0
-    actMap = maps.InjectActiveCells(mesh, active, np.log(1e-8), nC=mesh.nCz)
+    active = mesh.cell_centers_z < 0.0
+    actMap = maps.InjectActiveCells(mesh, active, np.log(1e-8), nC=mesh.shape_cells[2])
     mapping = maps.ExpMap(mesh) * maps.SurjectVertical1D(mesh) * actMap
     sig_half = 1e-1
     sig_air = 1e-8
-    sigma = np.ones(mesh.nCz) * sig_air
+    sigma = np.ones(mesh.shape_cells[2]) * sig_air
     sigma[active] = sig_half
 
     # Initial and reference model
@@ -244,8 +244,10 @@ def run(plotIt=True, saveFig=False, cleanup=True):
     dmisfit = data_misfit.L2DataMisfit(simulation=prb, data=data_resolve)
 
     # Regularization
-    regMesh = discretize.TensorMesh([mesh.hz[mapping.maps[-1].indActive]])
-    reg = regularization.Simple(regMesh, mapping=maps.IdentityMap(regMesh))
+    regMesh = discretize.TensorMesh([mesh.h[2][mapping.maps[-1].indActive]])
+    reg = regularization.WeightedLeastSquares(
+        regMesh, mapping=maps.IdentityMap(regMesh)
+    )
 
     # Optimization
     opt = optimization.InexactGaussNewton(maxIter=5)
@@ -283,16 +285,16 @@ def run(plotIt=True, saveFig=False, cleanup=True):
     t0 = skytem["t0"][()]
     times = skytem["times"][()]
     waveform_skytem = skytem["waveform"][()]
-    offTime = t0
+    off_time = t0
     times_off = times - t0
 
     # Note: we are Using theoretical VTEM waveform,
     # but effectively fits SkyTEM waveform
-    peakTime = 1.0000000e-02
+    peak_time = 1.0000000e-02
     a = 3.0
 
     dbdt_z = TDEM.Rx.PointMagneticFluxTimeDerivative(
-        locations=rxLoc, times=times_off[:-3] + offTime, orientation="z"
+        locations=rxLoc, times=times_off[:-3] + off_time, orientation="z"
     )  # vertical db_dt
 
     receiver_list = [dbdt_z]  # list of receivers
@@ -302,13 +304,15 @@ def run(plotIt=True, saveFig=False, cleanup=True):
             location=srcLoc,
             radius=radius,
             orientation="z",
-            waveform=TDEM.Src.VTEMWaveform(offTime=offTime, peakTime=peakTime, a=3.0),
+            waveform=TDEM.Src.VTEMWaveform(
+                off_time=off_time, peak_time=peak_time, ramp_on_rate=3.0
+            ),
         )
     ]
     # solve the problem at these times
     timeSteps = [
-        (peakTime / 5, 5),
-        ((offTime - peakTime) / 5, 5),
+        (peak_time / 5, 5),
+        ((off_time - peak_time) / 5, 5),
         (1e-5, 5),
         (5e-5, 5),
         (1e-4, 10),
@@ -358,8 +362,10 @@ def run(plotIt=True, saveFig=False, cleanup=True):
     dmisfit = data_misfit.L2DataMisfit(simulation=prob, data=data_sky)
 
     # Regularization
-    regMesh = discretize.TensorMesh([mesh.hz[mapping.maps[-1].indActive]])
-    reg = regularization.Simple(regMesh, mapping=maps.IdentityMap(regMesh))
+    regMesh = discretize.TensorMesh([mesh.h[2][mapping.maps[-1].indActive]])
+    reg = regularization.WeightedLeastSquares(
+        regMesh, mapping=maps.IdentityMap(regMesh)
+    )
 
     # Optimization
     opt = optimization.InexactGaussNewton(maxIter=5)
@@ -394,8 +400,8 @@ def run(plotIt=True, saveFig=False, cleanup=True):
     # Recovered Models
     sigma_re = np.repeat(np.exp(mopt_re), 2, axis=0)
     sigma_sky = np.repeat(np.exp(mopt_sky), 2, axis=0)
-    z = np.repeat(mesh.vectorCCz[active][1:], 2, axis=0)
-    z = np.r_[mesh.vectorCCz[active][0], z, mesh.vectorCCz[active][-1]]
+    z = np.repeat(mesh.cell_centers_z[active][1:], 2, axis=0)
+    z = np.r_[mesh.cell_centers_z[active][0], z, mesh.cell_centers_z[active][-1]]
 
     ax0.semilogx(sigma_re, z, "k", lw=2, label="RESOLVE")
     ax0.semilogx(sigma_sky, z, "b", lw=2, label="SkyTEM")

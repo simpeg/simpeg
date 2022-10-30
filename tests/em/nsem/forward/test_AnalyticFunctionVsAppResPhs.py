@@ -1,4 +1,3 @@
-from __future__ import print_function
 import unittest
 from SimPEG.electromagnetics import natural_source as nsem
 from SimPEG import discretize

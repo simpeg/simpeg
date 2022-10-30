@@ -1,4 +1,3 @@
-from __future__ import print_function
 import unittest
 import numpy as np
 from scipy.constants import mu_0
@@ -117,7 +116,3 @@ class FDEM_AdjointTests(unittest.TestCase):
                                 "h", ["MagneticFluxDensity", orientation, comp], src
                             )
                         )
-
-
-if __name__ == "__main__":
-    unittest.main()

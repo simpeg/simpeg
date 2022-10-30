@@ -309,10 +309,10 @@ dc_simulation = dc.Simulation2DNodal(
 dc_data_misfit = data_misfit.L2DataMisfit(data=dc_data, simulation=dc_simulation)
 
 # Define the regularization (model objective function)
-dc_regularization = regularization.Simple(
+dc_regularization = regularization.WeightedLeastSquares(
     mesh,
     indActive=ind_active,
-    mref=starting_conductivity_model,
+    reference_model=starting_conductivity_model,
     alpha_s=0.01,
     alpha_x=1,
     alpha_y=1,
@@ -429,8 +429,8 @@ recovered_conductivity = conductivity_map * recovered_conductivity_model
 recovered_conductivity[~ind_active] = np.NaN
 
 ax1 = fig.add_axes([0.14, 0.17, 0.68, 0.7])
-mesh.plotImage(
-    recovered_conductivity, normal="Y", ax=ax1, grid=False, pcolorOpts={"norm": norm}
+mesh.plot_image(
+    recovered_conductivity, normal="Y", ax=ax1, grid=False, pcolor_opts={"norm": norm}
 )
 ax1.set_xlim(-600, 600)
 ax1.set_ylim(-600, 0)
@@ -540,7 +540,7 @@ ip_simulation = ip.Simulation2DNodal(
 ip_data_misfit = data_misfit.L2DataMisfit(data=ip_data, simulation=ip_simulation)
 
 # Define the regularization (model objective function)
-ip_regularization = regularization.Simple(
+ip_regularization = regularization.WeightedLeastSquares(
     mesh,
     indActive=ind_active,
     mapping=maps.IdentityMap(nP=nC),

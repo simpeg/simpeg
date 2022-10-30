@@ -5,6 +5,7 @@ Release Notes
 .. toctree::
     :maxdepth: 2
 
+    0.18.0 <0.18.0-notes>
     0.17.0 <0.17.0-notes>
     0.16.0 <0.16.0-notes>
     0.15.2 <0.15.2-notes>

@@ -100,7 +100,7 @@ for pp in range(0, loc.shape[0]):
 
     loc_pp = np.reshape(loc[pp, :], (1, 3))
     receiver_listVRM = [
-        VRM.Rx.Point(loc_pp, times=times, fieldType="dbdt", orientation="z")
+        VRM.Rx.Point(loc_pp, times=times, field_type="dbdt", orientation="z")
     ]
 
     source_listVRM.append(
@@ -197,7 +197,7 @@ w = utils.mkvc((np.sum(np.array(problem_inv.A) ** 2, axis=0))) ** 0.5
 w = w / np.max(w)
 w = w
 
-reg = regularization.SimpleSmall(mesh=mesh, indActive=actCells, cell_weights=w)
+reg = regularization.Smallness(mesh=mesh, indActive=actCells, cell_weights=w)
 opt = optimization.ProjectedGNCG(
     maxIter=20, lower=0.0, upper=1e-2, maxIterLS=20, tolCG=1e-4
 )
@@ -241,12 +241,12 @@ titlestr1 = ["True Model (z = 0 m)", "Equivalent Source Model"]
 
 for qq in range(0, 2):
     ax1[qq] = Fig.add_axes([0.15 + 0.35 * qq, 0.7, 0.25, 0.25])
-    cplot1[qq] = mesh.plotSlice(
+    cplot1[qq] = mesh.plot_slice(
         map_mod[qq] * xi_mod[qq],
         ind=int((ncz + 2 * npad) / 2 - 1),
         ax=ax1[qq],
         grid=True,
-        pcolorOpts={"cmap": "gist_heat_r"},
+        pcolor_opts={"cmap": "gist_heat_r"},
     )
     cplot1[qq][0].set_clim((0.0, max_val))
     ax1[qq].set_xlabel("X [m]", fontsize=font_size)

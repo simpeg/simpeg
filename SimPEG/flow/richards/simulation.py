@@ -1,12 +1,19 @@
 import numpy as np
 import scipy.sparse as sp
 import time
-import properties
-import warnings
 
 from ... import utils
 from ...simulation import BaseTimeSimulation
 from ... import optimization
+from ...utils import (
+    validate_type,
+    validate_ndarray_with_shape,
+    deprecate_property,
+    validate_string,
+    validate_integer,
+    validate_float,
+)
+from ...props import NestedModeler
 
 from .survey import Survey
 from .empirical import BaseHydraulicConductivity
@@ -16,72 +23,143 @@ from .empirical import BaseWaterRetention
 class SimulationNDCellCentered(BaseTimeSimulation):
     """Richards Simulation"""
 
-    hydraulic_conductivity = properties.Instance(
-        "hydraulic conductivity function", BaseHydraulicConductivity
+    def __init__(
+        self,
+        mesh,
+        hydraulic_conductivity,
+        water_retention,
+        boundary_conditions,
+        initial_conditions,
+        method="mixed",
+        do_newton=False,
+        root_finder_max_iter=30,
+        root_finder_tol=1e-4,
+        **kwargs
+    ):
+        debug = kwargs.pop("debug", None)
+        if debug is not None:
+            self.debug = debug
+        super().__init__(mesh=mesh, **kwargs)
+        self.hydraulic_conductivity = hydraulic_conductivity
+        self.water_retention = water_retention
+        self.boundary_conditions = boundary_conditions
+        self.initial_conditions = initial_conditions
+        self.method = method
+        self.do_newton = do_newton
+        self.root_finder_max_iter = root_finder_max_iter
+        self.root_finder_tol = root_finder_tol
+
+    hydraulic_conductivity = NestedModeler(
+        BaseHydraulicConductivity, "hydraulic conductivity function"
     )
-    water_retention = properties.Instance("water retention curve", BaseWaterRetention)
+    water_retention = NestedModeler(BaseWaterRetention, "water retention curve")
 
     # TODO: This can also be a function(time, u_ii)
-    boundary_conditions = properties.Array("boundary conditions")
-    initial_conditions = properties.Array("initial conditions")
+    @property
+    def boundary_conditions(self):
+        """The boundary conditions.
 
-    debug = properties.Bool("Show all messages", default=False)
-
-    method = properties.StringChoice(
-        "Formulation used, See notes in Celia et al., 1990",
-        default="mixed",
-        choices=["mixed", "head"],
-    )
-
-    do_newton = properties.Bool(
-        "Do a Newton iteration vs. a Picard iteration", default=False
-    )
-
-    root_finder_max_iter = properties.Integer(
-        "Maximum iterations for root_finder iteration", default=30
-    )
-
-    root_finder_tol = properties.Float("tolerance of the root_finder", default=1e-4)
-
-    @properties.observer("model")
-    def _on_model_change(self, change):
-        """Update the nested model functions when the
-        model of the problem changes.
-
-        Specifically :code:`hydraulic_conductivity` and
-        :code:`water_retention` models are updated iff they have mappings.
+        Returns
+        -------
+        numpy.ndarray
         """
+        return self._boundary_conditions
 
-        if (
-            not self.hydraulic_conductivity.needs_model
-            and not self.water_retention.needs_model
-        ):
-            warnings.warn("There is no model to set.")
-            return
+    @boundary_conditions.setter
+    def boundary_conditions(self, value):
+        self._boundary_conditions = validate_ndarray_with_shape(
+            "boundary_conditions", value
+        )
 
-        model = change["value"]
+    @property
+    def initial_conditions(self):
+        """The initial conditions.
 
-        if self.hydraulic_conductivity.needs_model:
-            self.hydraulic_conductivity.model = model
+        Returns
+        -------
+        numpy.ndarray
+        """
+        return self._initial_conditions
 
-        if self.water_retention.needs_model:
-            self.water_retention.model = model
+    @initial_conditions.setter
+    def initial_conditions(self, value):
+        self._initial_conditions = validate_ndarray_with_shape(
+            "initial_conditions", value
+        )
+
+    debug = deprecate_property(
+        BaseTimeSimulation.verbose, "debug", "verbose", removal_version="0.19.0"
+    )
+
+    @property
+    def method(self):
+        """Formulation used.
+
+        See notes in Celia et al., 1990
+
+        Returns
+        -------
+        {"mixed", "head"}
+        """
+        return self._method
+
+    @method.setter
+    def method(self, value):
+        self._method = validate_string("method", value, ["mixed", "head"])
+
+    @property
+    def do_newton(self):
+        """Do a Newton iteration vs. a Picard iteration.
+
+        Returns
+        -------
+        bool
+        """
+        return self._do_newton
+
+    @do_newton.setter
+    def do_newton(self, value):
+        self._do_newton = validate_type("do_newton", value, bool)
+        if hasattr(self, "_root_finder"):
+            del self._root_finder
+
+    @property
+    def root_finder_max_iter(self):
+        """Maximum iterations for root_finder iteration.
+
+        Returns
+        -------
+        int
+        """
+        return self._root_finder_max_iter
+
+    @root_finder_max_iter.setter
+    def root_finder_max_iter(self, value):
+        self._root_finder_max_iter = validate_integer(
+            "root_finder_max_iter", value, min_val=1
+        )
+        if hasattr(self, "_root_finder"):
+            del self._root_finder
+
+    @property
+    def root_finder_tol(self):
+        return self._root_finder_tol
+
+    @root_finder_tol.setter
+    def root_finder_tol(self, value):
+        self._root_finder_tol = validate_float(
+            "root_finder_tol", value, min_val=0.0, inclusive_min=False
+        )
+        if hasattr(self, "_root_finder"):
+            del self._root_finder
 
     def getBoundaryConditions(self, ii, u_ii):
         if isinstance(self.boundary_conditions, np.ndarray):
             return self.boundary_conditions
 
-        time = self.time_mesh.vectorCCx[ii]
+        time = self.time_mesh.cell_centers_x[ii]
 
         return self.boundary_conditions(time, u_ii)
-
-    @properties.observer(["do_newton", "root_finder_max_iter", "root_finder_tol"])
-    def _on_root_finder_update(self, change):
-        """Setting do_newton etc. will clear the root_finder,
-        which will be reinitialized when called
-        """
-        if hasattr(self, "_root_finder"):
-            del self._root_finder
 
     @property
     def root_finder(self):
@@ -113,7 +191,7 @@ class SimulationNDCellCentered(BaseTimeSimulation):
                 ),
                 u[ii],
             )
-            if self.debug:
+            if self.verbose:
                 print(
                     "Solving Fields ({0:4d}/{1:d} - {2:3.1f}% Done) {3:d} "
                     "Iterations, {4:4.2f} seconds".format(
@@ -150,14 +228,17 @@ class SimulationNDCellCentered(BaseTimeSimulation):
     @property
     def Dz(self):
         if self.mesh.dim == 1:
-            return self.mesh.faceDivx
+            return self.mesh.face_x_divergence
 
         if self.mesh.dim == 2:
-            mats = (utils.spzeros(self.mesh.nC, self.mesh.vnF[0]), self.mesh.faceDivy)
+            mats = (
+                utils.spzeros(self.mesh.nC, self.mesh.vnF[0]),
+                self.mesh.face_y_divergence,
+            )
         elif self.mesh.dim == 3:
             mats = (
                 utils.spzeros(self.mesh.nC, self.mesh.vnF[0] + self.mesh.vnF[1]),
-                self.mesh.faceDivz,
+                self.mesh.face_z_divergence,
             )
         return sp.hstack(mats, format="csr")
 
@@ -178,9 +259,9 @@ class SimulationNDCellCentered(BaseTimeSimulation):
         if m is not None:
             self.model = m
 
-        DIV = self.mesh.faceDiv
-        GRAD = self.mesh.cellGrad
-        BC = self.mesh.cellGradBC
+        DIV = self.mesh.face_divergence
+        GRAD = self.mesh.cell_gradient
+        BC = self.mesh.cell_gradient_BC
         AV = self.mesh.aveF2CC.T
         Dz = self.Dz
 
@@ -228,9 +309,9 @@ class SimulationNDCellCentered(BaseTimeSimulation):
         if m is not None:
             self.model = m
 
-        DIV = self.mesh.faceDiv
-        GRAD = self.mesh.cellGrad
-        BC = self.mesh.cellGradBC
+        DIV = self.mesh.face_divergence
+        GRAD = self.mesh.cell_gradient
+        BC = self.mesh.cell_gradient_BC
         AV = self.mesh.aveF2CC.T
         Dz = self.Dz
 

@@ -1,5 +1,3 @@
-from __future__ import print_function
-
 # Analytic solution of EM fields due to a plane wave
 
 import numpy as np
@@ -36,7 +34,7 @@ def getEHfields(m1d, sigma, freq, zd, scaleUD=True, scaleValue=1):
         1, 0
     ] = scaleValue  # Set the wave amplitude as 1 into the half-space at the bottom of the mesh
     # Loop over all the layers, starting at the bottom layer
-    for lnr, h in enumerate(m1d.hx):  # lnr-number of layer, h-thickness of the layer
+    for lnr, h in enumerate(m1d.h[0]):  # lnr-number of layer, h-thickness of the layer
         # Calculate
         yp1 = k[lnr] / (w * mu[lnr])  # Admittance of the layer below the current layer
         zp = (w * mu[lnr + 1]) / k[lnr + 1]  # Impedance in the current layer
@@ -72,7 +70,7 @@ def getEHfields(m1d, sigma, freq, zd, scaleUD=True, scaleValue=1):
 
     # Loop over the layers and calculate the fields
     # In the halfspace below the mesh
-    dup = m1d.vectorNx[0]
+    dup = m1d.nodes_x[0]
     dind = dup >= zd
     Ed[dind] = UDp[1, 0] * np.exp(-1j * k[0] * (dup - zd[dind]))
     Eu[dind] = UDp[0, 0] * np.exp(1j * k[0] * (dup - zd[dind]))
@@ -82,8 +80,8 @@ def getEHfields(m1d, sigma, freq, zd, scaleUD=True, scaleValue=1):
         k[1::],
         mu[1::],
         eps[1::],
-        m1d.vectorNx[:-1],
-        m1d.vectorNx[1::],
+        m1d.nodes_x[:-1],
+        m1d.nodes_x[1::],
         UDp[0, 1::],
         UDp[1, 1::],
     ):
@@ -109,7 +107,7 @@ def getImpedance(m1d, sigma, freq):
 
     # Initiate the impedances
     Z1d = np.empty(len(freq), dtype="complex")
-    h = m1d.hx  # vectorNx[:-1]
+    h = m1d.h[0]  # vectorNx[:-1]
     # Start the process
     for nrFr, fr in enumerate(freq):
         om = 2 * np.pi * fr

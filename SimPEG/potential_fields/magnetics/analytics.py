@@ -95,9 +95,9 @@ def CongruousMagBC(mesh, Bo, chi):
     """
 
     ind = chi > 0.0
-    V = mesh.vol[ind].sum()
+    V = mesh.cell_volumes[ind].sum()
 
-    gamma = 1 / V * (chi * mesh.vol).sum()  # like a mass!
+    gamma = 1 / V * (chi * mesh.cell_volumes).sum()  # like a mass!
 
     Bot = np.sqrt(sum(Bo ** 2))
     mx = Bo[0] / Bot
@@ -109,7 +109,7 @@ def CongruousMagBC(mesh, Bo, chi):
     yc = sum(chi[ind] * mesh.gridCC[:, 1][ind]) / sum(chi[ind])
     zc = sum(chi[ind] * mesh.gridCC[:, 2][ind]) / sum(chi[ind])
 
-    indxd, indxu, indyd, indyu, indzd, indzu = mesh.faceBoundaryInd
+    indxd, indxu, indyd, indyu, indzd, indzu = mesh.face_boundary_indices
 
     const = mu_0 / (4 * np.pi) * mom
     rfun = lambda x: np.sqrt(

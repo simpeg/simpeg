@@ -1,6 +1,6 @@
 """
-Forward Simulation on a Tree Mesh
-=================================
+3D Forward Simulation on a Tree Mesh
+====================================
 
 Here we use the module *SimPEG.electromagnetics.frequency_domain* to simulate the
 FDEM response for an airborne survey using an OcTree mesh and a
@@ -193,12 +193,12 @@ plotting_map = maps.InjectActiveCells(mesh, ind_active, np.nan)
 log_model = np.log10(model)
 
 ax1 = fig.add_axes([0.13, 0.1, 0.6, 0.85])
-mesh.plotSlice(
+mesh.plot_slice(
     plotting_map * log_model,
     normal="Y",
     ax=ax1,
-    ind=int(mesh.hx.size / 2),
-    grid=True,
+    ind=int(mesh.h[0].size / 2),
+    grid=False,
     clim=(np.log10(background_conductivity), np.log10(block_conductivity)),
 )
 ax1.set_title("Conductivity Model at Y = 0 m")

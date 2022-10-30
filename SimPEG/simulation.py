@@ -1,20 +1,26 @@
-from __future__ import print_function
-
+import os
 import inspect
 import numpy as np
-import sys
 import warnings
-import properties
-from properties.utils import undefined
 
 from discretize.base import BaseMesh
 from discretize import TensorMesh
-from discretize.utils import meshTensor
+from discretize.utils import unpack_widths
 
 from . import props
 from .data import SyntheticData, Data
 from .survey import BaseSurvey
-from .utils import Counter, timeIt, count, mkvc
+from .utils import (
+    Counter,
+    timeIt,
+    count,
+    mkvc,
+    validate_ndarray_with_shape,
+    validate_float,
+    validate_type,
+    validate_string,
+    validate_integer,
+)
 
 try:
     from pymatsolver import Pardiso as DefaultSolver
@@ -22,85 +28,6 @@ except ImportError:
     from .utils.solver_utils import SolverLU as DefaultSolver
 
 __all__ = ["LinearSimulation", "ExponentialSinusoidSimulation"]
-
-
-##############################################################################
-#                                                                            #
-#                             Custom Properties                              #
-#                                                                            #
-##############################################################################
-
-
-class TimeStepArray(properties.Array):
-
-    class_info = "an array or list of tuples specifying the mesh tensor"
-
-    def validate(self, instance, value):
-        if isinstance(value, list):
-            value = meshTensor(value)
-        return super(TimeStepArray, self).validate(instance, value)
-
-
-class Class(properties.Property):
-
-    class_info = "a property that is an uninstantiated class"
-
-    def __init__(self, doc, **kwargs):
-        default = kwargs.pop("default", None)
-        super(Class, self).__init__(doc, **kwargs)
-        if default is not None:
-            self._parent_module = default.__module__
-            print(default)
-            print(self._parent_module)
-            self.default = default
-
-    @property
-    def default(self):
-        """Default value of the Property"""
-        return getattr(self, "_default", self._class_default)
-
-    @default.setter
-    def default(self, value):
-        self.validate(None, value)
-        self._default = value
-
-    def validate(self, instance, value):
-        if inspect.isclass(value) is False:
-            extra = "Expected an uninstantiated class. The provided value is not"
-            self.error(instance, value, TypeError, extra)
-        self._parent_module = value.__module__
-        return value
-
-    def serializer(self, value, **kwargs):
-        return "{}.{}".format(self._parent_module, value.__name__)
-
-    def deserializer(self, value, **kwargs):
-        name = value.split(".")
-        try:
-            module = sys.modules[".".join(name[:-1])]
-        except KeyError:
-            raise ImportError(
-                "{} not found. Please install {}".format(".".join(value, name[0]))
-            )
-        return getattr(module, name[-1])
-
-    def sphinx(self):
-        """Basic docstring formatted for Sphinx docs"""
-        default_val = self.default
-        default_str = "{}".format(self.default)
-        try:
-            if default_val is None or default_val is undefined:
-                default_str = ""
-            elif len(default_val) == 0:  # pylint: disable=len-as-condition
-                default_str = ""
-            else:
-                default_str = ", Default: {}".format(default_str)
-        except TypeError:
-            default_str = ", Default: {}".format(default_str)
-
-        prop_doc = super(properties.Property, self).sphinx()
-        prop_doc = None
-        return "{doc}{default}".format(doc=prop_doc, default=default_str)
 
 
 ##############################################################################
@@ -121,101 +48,145 @@ class BaseSimulation(props.HasModel):
 
     _REGISTRY = {}
 
-    mesh = properties.Instance("a discretize mesh instance", BaseMesh)
+    @property
+    def mesh(self):
+        """Discretize mesh for the simulation
 
-    survey = properties.Instance("a survey object", BaseSurvey)
-
-    counter = properties.Instance("A SimPEG.utils.Counter object", Counter)
-
-    sensitivity_path = properties.String(
-        "path to store the sensitivty", default="./sensitivity/"
-    )
-
-    # TODO: need to implement a serializer for this & setter
-    solver = Class(
-        "Linear algebra solver (e.g. from pymatsolver)",
-        # default=pymatsolver.Solver
-    )
-
-    solver_opts = properties.Dictionary("solver options as a kwarg dict", default={})
-
-    verbose = properties.Boolean("Verbosity flag", default=False)
-
-    def _reset(self, name=None):
-        """Revert specified property to default value
-
-        If no property is specified, all properties are returned to default.
+        Returns
+        -------
+        discretize.base.BaseMesh
         """
-        if name is None:
-            for key in self._props:
-                if isinstance(self._props[key], properties.basic.Property):
-                    self._reset(key)
-            return
-        if name not in self._props:
-            raise AttributeError(
-                "Input name '{}' is not a known " "property or attribute".format(name)
-            )
-        if not isinstance(self._props[name], properties.basic.Property):
-            raise AttributeError("Cannot reset GettableProperty " "'{}'".format(name))
-        if name in self._defaults:
-            val = self._defaults[name]
-        else:
-            val = self._props[name].default
-        # if callable(val):
-        #     val = val()
-        setattr(self, name, val)
+        return self._mesh
 
-    ###########################################################################
-    # Properties and observers
+    @mesh.setter
+    def mesh(self, value):
+        if value is not None:
+            value = validate_type("mesh", value, BaseMesh, cast=False)
+        self._mesh = value
 
-    #: List of strings, e.g. ['_MeSigma', '_MeSigmaI']
-    # TODO: rename to _delete_on_model_update
-    deleteTheseOnModelUpdate = []
+    @property
+    def survey(self):
+        """The survey for the simulation.
 
-    #: List of matrix names to have their factors cleared on a model update
-    clean_on_model_update = []
+        Returns
+        -------
+        SimPEG.survey.BaseSurvey
+        """
+        return self._survey
 
-    @properties.observer("model")
-    def _on_model_update(self, change):
-        if change["previous"] is change["value"]:
-            return
-        if (
-            isinstance(change["previous"], np.ndarray)
-            and isinstance(change["value"], np.ndarray)
-            and np.allclose(change["previous"], change["value"])
-        ):
-            return
+    @survey.setter
+    def survey(self, value):
+        if value is not None:
+            value = validate_type("survey", value, BaseSurvey, cast=False)
+        self._survey = value
 
-        # cached properties to delete
-        for prop in self.deleteTheseOnModelUpdate:
-            if hasattr(self, prop):
-                delattr(self, prop)
+    @property
+    def counter(self):
+        """The counter.
 
-        # matrix factors to clear
-        for mat in self.clean_on_model_update:
-            if getattr(self, mat, None) is not None:
-                getattr(self, mat).clean()  # clean factors
-                setattr(self, mat, None)  # set to none
+        Returns
+        -------
+        None or SimPEG.utils.Counter
+        """
+        return self._counter
+
+    @counter.setter
+    def counter(self, value):
+        if value is not None:
+            value = validate_type("counter", value, Counter, cast=False)
+        self._counter = value
+
+    @property
+    def sensitivity_path(self):
+        """Path to store the sensitivty.
+
+        Returns
+        -------
+        str
+        """
+        return self._sensitivity_path
+
+    @sensitivity_path.setter
+    def sensitivity_path(self, value):
+        self._sensitivity_path = validate_string("sensitivity_path", value)
+
+    @property
+    def solver(self):
+        """Linear algebra solver (e.g. from pymatsolver).
+
+        Returns
+        -------
+        class
+            A solver class that, when instantiated allows a multiplication with the
+            returned object.
+        """
+        return self._solver
+
+    @solver.setter
+    def solver(self, cls):
+        if cls is not None:
+            if not inspect.isclass(cls):
+                raise TypeError(f"solver must be a class, not a {type(cls)}")
+            if not hasattr(cls, "__mul__"):
+                raise TypeError("solver must support the multiplication operator, `*`.")
+        self._solver = cls
+
+    @property
+    def solver_opts(self):
+        """Options passed to the `solver` class on initialization.
+
+        Returns
+        -------
+        dict
+            Passed as keyword arguments to the solver.
+        """
+        return self._solver_opts
+
+    @solver_opts.setter
+    def solver_opts(self, value):
+        self._solver_opts = validate_type("solver_opts", value, dict, cast=False)
+
+    @property
+    def verbose(self):
+        """Verbosity flag.
+
+        Returns
+        -------
+        bool
+        """
+        return self._verbose
+
+    @verbose.setter
+    def verbose(self, value):
+        self._verbose = validate_type("verbose", value, bool)
 
     ###########################################################################
     # Instantiation
 
-    def __init__(self, mesh=None, **kwargs):
-        # raise exception if user tries to set "mapping"
-        if "mapping" in kwargs.keys():
-            raise Exception(
-                "Deprecated (in 0.4.0): use one of {}".format(
-                    [p for p in self._props.keys() if "Map" in p]
-                )
-            )
+    def __init__(
+        self,
+        mesh=None,
+        survey=None,
+        solver=None,
+        solver_opts=None,
+        sensitivity_path=os.path.join(".", "sensitivity"),
+        counter=None,
+        verbose=False,
+        **kwargs,
+    ):
+        self.mesh = mesh
+        self.survey = survey
+        if solver is None:
+            solver = DefaultSolver
+        self.solver = solver
+        if solver_opts is None:
+            solver_opts = {}
+        self.solver_opts = solver_opts
+        self.sensitivity_path = sensitivity_path
+        self.counter = counter
+        self.verbose = verbose
 
-        if mesh is not None:
-            kwargs["mesh"] = mesh
-
-        super(BaseSimulation, self).__init__(**kwargs)
-
-        if "solver" not in kwargs.keys() and "Solver" not in kwargs.keys():
-            self.solver = DefaultSolver
+        super().__init__(**kwargs)
 
     ###########################################################################
     # Methods
@@ -334,8 +305,8 @@ class BaseSimulation(props.HasModel):
         """
         Make synthetic data given a model, and a standard deviation.
         :param numpy.ndarray m: geophysical model
-        :param numpy.ndarray relative_error: standard deviation
-        :param numpy.ndarray noise_floor: noise floor
+        :param numpy.ndarray | float relative_error: standard deviation
+        :param numpy.ndarray | float noise_floor: noise floor
         :param numpy.ndarray f: fields for the given model (if pre-calculated)
         """
 
@@ -365,49 +336,63 @@ class BaseSimulation(props.HasModel):
             noise_floor=noise_floor,
         )
 
-    def pair(self, survey):
-        """
-        Removed pairing method. Please use :code:`simulation.survey=survey`
-        instead.
-        """
-        raise TypeError(
-            "Simulation.pair(survey) has been removed. Please update your code "
-            "to instead use simulation.survey = survey, or pass it upon intialization "
-            "of the simulation object."
-        )
-
 
 class BaseTimeSimulation(BaseSimulation):
     """
     Base class for a time domain simulation
     """
 
-    time_steps = TimeStepArray(
-        """
-        Sets/gets the time steps for the time domain simulation.
+    @property
+    def time_steps(self):
+        """The time steps for the time domain simulation.
+
         You can set as an array of dt's or as a list of tuples/floats.
-        Tuples must be length two with [..., (dt, repeat), ...]
+        If it is set as a list, tuples are unpacked with
+        `discretize.utils.unpack_widths``.
+
         For example, the following setters are the same::
 
-            sim.time_steps = [(1e-6, 3), 1e-5, (1e-4, 2)]
-            sim.time_steps = np.r_[1e-6,1e-6,1e-6,1e-5,1e-4,1e-4]
+        >>> sim.time_steps = [(1e-6, 3), 1e-5, (1e-4, 2)]
+        >>> sim.time_steps = np.r_[1e-6,1e-6,1e-6,1e-5,1e-4,1e-4]
 
-        """,
-        dtype=float,
-    )
+        Returns
+        -------
+        numpy.ndarray
 
-    t0 = properties.Float("Origin of the time discretization", default=0.0)
+        See Also
+        --------
+        discretize.utils.unpack_widths
+        """
+        return self._time_steps
 
-    def __init__(self, mesh=None, **kwargs):
-        super(BaseTimeSimulation, self).__init__(mesh=mesh, **kwargs)
-
-    @properties.observer("time_steps")
-    def _remove_time_mesh_on_time_step_update(self, change):
+    @time_steps.setter
+    def time_steps(self, value):
+        if value is not None:
+            if isinstance(value, list):
+                value = unpack_widths(value)
+            value = validate_ndarray_with_shape("time_steps", value, shape=("*",))
+        self._time_steps = value
         del self.time_mesh
 
-    @properties.observer("t0")
-    def _remove_time_mesh_on_t0_update(self, change):
+    @property
+    def t0(self):
+        """Start time for the discretization.
+
+        Returns
+        -------
+        float
+        """
+        return self._t0
+
+    @t0.setter
+    def t0(self, value):
+        self._t0 = validate_float("t0", value)
         del self.time_mesh
+
+    def __init__(self, mesh=None, t0=0.0, time_steps=None, **kwargs):
+        self.t0 = t0
+        self.time_steps = time_steps
+        super().__init__(mesh=mesh, **kwargs)
 
     @property
     def time_mesh(self):
@@ -427,7 +412,7 @@ class BaseTimeSimulation(BaseSimulation):
 
     @property
     def nT(self):
-        return self.time_mesh.nC
+        return self.time_mesh.n_cells
 
     @property
     def times(self):
@@ -488,16 +473,17 @@ class LinearSimulation(BaseSimulation):
         "The model for a linear problem"
     )
 
-    mesh = properties.Instance("a discretize mesh instance", BaseMesh, required=True)
-
-    survey = properties.Instance("a survey object", BaseSurvey)
-
-    def __init__(self, mesh=None, **kwargs):
-        super(LinearSimulation, self).__init__(mesh=mesh, **kwargs)
+    def __init__(self, mesh=None, linear_model=None, model_map=None, G=None, **kwargs):
+        super().__init__(mesh=mesh, **kwargs)
+        self.linear_model = linear_model
+        self.model_map = model_map
+        self.solver = None
+        if G is not None:
+            self.G = G
 
         if self.survey is None:
             # Give it an empty survey
-            self.survey = BaseSurvey()
+            self.survey = BaseSurvey([])
         if self.survey.nD == 0:
             # try seting the number of data to G
             if getattr(self, "G", None) is not None:
@@ -553,19 +539,82 @@ class ExponentialSinusoidSimulation(LinearSimulation):
         \\int_x e^{p j_k x} \\cos(\\pi q j_k x) \\quad, j_k \\in [j_0, ..., j_n]
     """
 
-    n_kernels = properties.Integer(
-        "number of kernels defining the linear problem", default=20
-    )
+    @property
+    def n_kernels(self):
+        """The number of kernels for the linear problem
 
-    p = properties.Float("rate of exponential decay of the kernel", default=-0.25)
+        Returns
+        -------
+        int
+        """
+        return self._n_kernels
 
-    q = properties.Float("rate of oscillation of the kernel", default=0.25)
+    @n_kernels.setter
+    def n_kernels(self, value):
+        self._n_kernels = validate_integer("n_kernels", value, min_val=1)
 
-    j0 = properties.Float("maximum value for :math:`j_k = j_0`", default=0.0)
+    @property
+    def p(self):
+        """Rate of exponential decay of the kernel.
 
-    jn = properties.Float("maximum value for :math:`j_k = j_n`", default=60.0)
+        Returns
+        -------
+        float
+        """
+        return self._p
 
-    def __init__(self, **kwargs):
+    @p.setter
+    def p(self, value):
+        self._p = validate_float("p", value)
+
+    @property
+    def q(self):
+        """rate of oscillation of the kernel.
+
+        Returns
+        -------
+        float
+        """
+        return self._q
+
+    @q.setter
+    def q(self, value):
+        self._q = validate_float("q", value)
+
+    @property
+    def j0(self):
+        """Maximum value for :math:`j_k = j_0`.
+
+        Returns
+        -------
+        float
+        """
+        return self._j0
+
+    @j0.setter
+    def j0(self, value):
+        self._j0 = validate_float("j0", value)
+
+    @property
+    def jn(self):
+        """Maximum value for :math:`j_k = j_n`.
+
+        Returns
+        -------
+        float
+        """
+        return self._jn
+
+    @jn.setter
+    def jn(self, value):
+        self._jn = validate_float("jn", value)
+
+    def __init__(self, n_kernels=20, p=-0.25, q=0.25, j0=0.0, jn=60.0, **kwargs):
+        self.n_kernels = n_kernels
+        self.p = p
+        self.q = q
+        self.j0 = j0
+        self.jn = jn
         super(ExponentialSinusoidSimulation, self).__init__(**kwargs)
 
     @property
@@ -581,8 +630,8 @@ class ExponentialSinusoidSimulation(LinearSimulation):
         """
         Kernel functions for the decaying oscillating exponential functions.
         """
-        return np.exp(self.p * self.jk[k] * self.mesh.vectorCCx) * np.cos(
-            np.pi * self.q * self.jk[k] * self.mesh.vectorCCx
+        return np.exp(self.p * self.jk[k] * self.mesh.cell_centers_x) * np.cos(
+            np.pi * self.q * self.jk[k] * self.mesh.cell_centers_x
         )
 
     @property
@@ -594,7 +643,7 @@ class ExponentialSinusoidSimulation(LinearSimulation):
             G = np.empty((self.n_kernels, self.mesh.nC))
 
             for i in range(self.n_kernels):
-                G[i, :] = self.g(i) * self.mesh.hx
+                G[i, :] = self.g(i) * self.mesh.h[0]
 
             self._G = G
         return self._G

@@ -1,4 +1,3 @@
-from __future__ import print_function
 import numpy as np
 import SimPEG.dask
 from SimPEG import (
@@ -99,7 +98,7 @@ class AmpProblemTest(unittest.TestCase):
             survey=survey,
             mesh=mesh,
             chiMap=idenMap,
-            actInd=actv,
+            ind_active=actv,
             store_sensitivities="forward_only",
         )
         simulation.M = M_xyz
@@ -136,7 +135,7 @@ class AmpProblemTest(unittest.TestCase):
             mesh=mesh,
             survey=survey,
             chiMap=idenMap,
-            actInd=surf,
+            ind_active=surf,
             store_sensitivities="ram",
         )
         simulation.model = mstart
@@ -199,7 +198,7 @@ class AmpProblemTest(unittest.TestCase):
             mesh=mesh,
             survey=surveyAmp,
             chiMap=idenMap,
-            actInd=surf,
+            ind_active=surf,
             is_amplitude_data=True,
             store_sensitivities="forward_only",
         )
@@ -228,7 +227,7 @@ class AmpProblemTest(unittest.TestCase):
             survey=surveyAmp,
             mesh=mesh,
             chiMap=idenMap,
-            actInd=actv,
+            ind_active=actv,
             is_amplitude_data=True,
         )
 
@@ -236,7 +235,7 @@ class AmpProblemTest(unittest.TestCase):
 
         # Create a sparse regularization
         reg = regularization.Sparse(mesh, indActive=actv, mapping=idenMap)
-        reg.norms = np.c_[1, 0, 0, 0]
+        reg.norms = [1, 0, 0, 0]
         reg.mref = np.zeros(nC)
 
         # Data misfit function
@@ -286,9 +285,9 @@ class AmpProblemTest(unittest.TestCase):
         # # Plot the amplitude model
         # plt.figure()
         # ax = plt.subplot(2, 1, 1)
-        # im = self.mesh.plotSlice(self.actvPlot*self.model,
+        # im = self.mesh.plot_slice(self.actvPlot*self.model,
         #  ax=ax, normal='Y', ind=66,
-        #     pcolorOpts={"vmin":0., "vmax":0.01}
+        #     pcolor_opts={"vmin":0., "vmax":0.01}
         # )
         # plt.colorbar(im[0])
         # ax.set_xlim([-200, 200])
@@ -298,8 +297,8 @@ class AmpProblemTest(unittest.TestCase):
         # plt.gca().set_aspect('equal', adjustable='box')
 
         # ax = plt.subplot(2, 1, 2)
-        # im = self.mesh.plotSlice(self.actvPlot*mrec_Amp, ax=ax, normal='Y', ind=66,
-        #     pcolorOpts={"vmin":0., "vmax":0.01}
+        # im = self.mesh.plot_slice(self.actvPlot*mrec_Amp, ax=ax, normal='Y', ind=66,
+        #     pcolor_opts={"vmin":0., "vmax":0.01}
         # )
         # plt.colorbar(im[0])
         # ax.set_xlim([-200, 200])
@@ -314,7 +313,10 @@ class AmpProblemTest(unittest.TestCase):
     def tearDown(self):
         # Clean up the working directory
         if self.sim.store_sensitivities == "disk":
-            shutil.rmtree(self.sim.sensitivity_path)
+            try:
+                shutil.rmtree(self.sim.sensitivity_path)
+            except:
+                pass
 
 
 if __name__ == "__main__":

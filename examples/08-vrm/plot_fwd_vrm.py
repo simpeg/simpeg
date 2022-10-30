@@ -88,7 +88,9 @@ src_list_vrm = []
 for pp in range(0, loc.shape[0]):
 
     loc_pp = np.reshape(loc[pp, :], (1, 3))
-    rx_list_vrm = [VRM.Rx.Point(loc_pp, times=times, fieldType="dbdt", orientation="z")]
+    rx_list_vrm = [
+        VRM.Rx.Point(loc_pp, times=times, field_type="dbdt", orientation="z")
+    ]
 
     src_list_vrm.append(
         VRM.Src.MagDipole(rx_list_vrm, mkvc(loc[pp, :]), [0.0, 0.0, 0.01], waveform)
@@ -163,13 +165,13 @@ param_3 = [-12, 0, 0]
 
 for qq in range(0, 3):
     ax1[qq] = Fig.add_axes([0.07 + qq * 0.29, 0.7, 0.23, 0.23])
-    cplot1[qq] = mesh.plotSlice(
+    cplot1[qq] = mesh.plot_slice(
         plotMap * xi_true,
         normal=view_str[qq],
         ind=int((param_1[qq] + 2 * npad) / 2 - param_2[qq]),
         ax=ax1[qq],
         grid=True,
-        pcolorOpts={"cmap": "gist_heat_r"},
+        pcolor_opts={"cmap": "gist_heat_r"},
     )
     cplot1[qq][0].set_clim((0.0, np.max(xi_true)))
     ax1[qq].set_xlabel("Y [m]", fontsize=font_size)

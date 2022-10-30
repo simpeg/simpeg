@@ -1,10 +1,7 @@
-from __future__ import print_function
-
 import numpy as np
 import scipy.sparse as sp
-from six import string_types
 
-from .utils.solver_utils import SolverWrapI, Solver
+from .utils.solver_utils import SolverWrapI, Solver, SolverDiag
 from .utils import (
     callHooks,
     checkStoppers,
@@ -741,14 +738,14 @@ class Remember(object):
     def _startupRemember(self, x0):
         self._rememberList = {}
         for param in self._rememberThese:
-            if isinstance(param, string_types):
+            if isinstance(param, str):
                 self._rememberList[param] = []
             elif isinstance(param, tuple):
                 self._rememberList[param[0]] = []
 
     def _doEndIterationRemember(self, *args):
         for param in self._rememberThese:
-            if isinstance(param, string_types):
+            if isinstance(param, str):
                 if self.debug:
                     print("Remember is remembering: " + param)
                 val = getattr(self, param, None)
@@ -1030,7 +1027,7 @@ class InexactGaussNewton(BFGS, Minimize, Remember):
 
     .. math::
 
-        \mathbf{H p = -g}
+        \\mathbf{H p = -g}
 
     By default BFGS is used as the preconditioner.
 

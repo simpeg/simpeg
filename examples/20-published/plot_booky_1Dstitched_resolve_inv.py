@@ -83,7 +83,7 @@ def resolve_1Dinversions(
     Perform a single 1D inversion for a RESOLVE sounding for Horizontal
     Coplanar Coil data (both real and imaginary).
 
-    :param discretize.CylMesh mesh: mesh used for the forward simulation
+    :param discretize.CylindricalMesh mesh: mesh used for the forward simulation
     :param numpy.ndarray dobs: observed data
     :param float src_height: height of the source above the ground
     :param numpy.ndarray freqs: frequencies
@@ -125,8 +125,8 @@ def resolve_1Dinversions(
     dmisfit = data_misfit.L2DataMisfit(simulation=prb, data=dat)
 
     # regularization
-    regMesh = discretize.TensorMesh([mesh.hz[mapping.maps[-1].indActive]])
-    reg = regularization.Simple(regMesh)
+    regMesh = discretize.TensorMesh([mesh.h[2][mapping.maps[-1].indActive]])
+    reg = regularization.WeightedLeastSquares(regMesh)
     reg.mref = mref
 
     # optimization
@@ -186,8 +186,8 @@ def run(runIt=False, plotIt=True, saveIt=False, saveFig=False, cleanup=True):
     temp = np.logspace(np.log10(1.0), np.log10(12.0), 19)
     temp_pad = temp[-1] * 1.3 ** np.arange(npad)
     hz = np.r_[temp_pad[::-1], temp[::-1], temp, temp_pad]
-    mesh = discretize.CylMesh([hx, 1, hz], "00C")
-    active = mesh.vectorCCz < 0.0
+    mesh = discretize.CylindricalMesh([hx, 1, hz], "00C")
+    active = mesh.cell_centers_z < 0.0
 
     # survey parameters
     rxOffset = 7.86  # tx-rx separation
@@ -198,13 +198,15 @@ def run(runIt=False, plotIt=True, saveIt=False, saveFig=False, cleanup=True):
 
         # set up the mappings - we are inverting for 1D log conductivity
         # below the earth's surface.
-        actMap = maps.InjectActiveCells(mesh, active, np.log(1e-8), nC=mesh.nCz)
+        actMap = maps.InjectActiveCells(
+            mesh, active, np.log(1e-8), nC=mesh.shape_cells[2]
+        )
         mapping = maps.ExpMap(mesh) * maps.SurjectVertical1D(mesh) * actMap
 
         # build starting and reference model
         sig_half = 1e-1
         sig_air = 1e-8
-        sigma = np.ones(mesh.nCz) * sig_air
+        sigma = np.ones(mesh.shape_cells[2]) * sig_air
         sigma[active] = sig_half
         m0 = np.log(1e-1) * np.ones(active.sum())  # starting model
         mref = np.log(1e-1) * np.ones(active.sum())  # reference model
@@ -289,7 +291,7 @@ def run(runIt=False, plotIt=True, saveIt=False, saveFig=False, cleanup=True):
 
     # titles of plots
     title = [
-        ("(a) Recovered model, %.1f m depth") % (-mesh.vectorCCz[active][indz]),
+        ("(a) Recovered model, %.1f m depth") % (-mesh.cell_centers_z[active][indz]),
         "(b) Obs (Real 400 Hz)",
         "(c) Pred (Real 400 Hz)",
     ]

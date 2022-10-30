@@ -1,14 +1,9 @@
-from __future__ import print_function
-from __future__ import absolute_import
-from __future__ import division
-
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy.constants import mu_0
 
-import properties
-
 from ...utils import omega
+from ....utils import validate_type, validate_list_of_types
 
 
 # Define the default component dictionaries
@@ -46,19 +41,49 @@ def _validate_kwargs(input_dict, compare_dict):
     return input_dict
 
 
-class BaseDataNSEMPlots(properties.HasProperties):
+class BaseDataNSEMPlots:
     """
     A class container of matplotlib panels for plotting
     NSEM data.
 
     """
 
-    fig = properties.Instance("Figure plotting", plt.Figure, required=False)
-    axes = properties.List(
-        "List of plot axes",
-        properties.Instance("Axes to plot the on", plt.Axes),
-        required=False,
-    )
+    def __init__(self, fig=None, axes=None, **kwargs):
+        super().__init__(**kwargs)
+        self.fig = fig
+        self.axes = axes
+
+    @property
+    def fig(self):
+        """Figure for plotting.
+
+        Returns
+        -------
+        matplotlib.figure.Figure
+        """
+        return self._fig
+
+    @fig.setter
+    def fig(self, value):
+        if value is not None:
+            value = validate_type("fig", value, plt.Figure, cast=False)
+        self._fig = value
+
+    @property
+    def axes(self):
+        """Figure for plotting.
+
+        Returns
+        -------
+        list of matplotlib.axes.Axes
+        """
+        return self._axes
+
+    @axes.setter
+    def axes(self, value):
+        if value is not None:
+            value = validate_list_of_types("axes", value, plt.Axes)
+        self._axes = value
 
     def setup(self):
         """

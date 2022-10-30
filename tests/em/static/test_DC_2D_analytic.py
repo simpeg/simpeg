@@ -368,7 +368,7 @@ class DCProblemAnalyticTests_DPField(unittest.TestCase):
             sigma=self.sigma,
             solver=self.solver,
         )
-        field = simulation.fields(self.sigma)
+        field = simulation.fields()
 
         # just test if we can get each property of the field
         field[:, "phi"][:, 0]
@@ -386,7 +386,7 @@ class DCProblemAnalyticTests_DPField(unittest.TestCase):
             sigma=self.sigma,
             solver=self.solver,
         )
-        field = simulation.fields(self.sigma)
+        field = simulation.fields()
         data = field[:, "phi"][:, 0]
 
         # also test if we can get the other things charge and charge_density

@@ -4,6 +4,8 @@
 SimPEG 0.15.2 Release Notes
 ===========================
 
+November 12th, 2021
+
 This patch release contains some improvements and bug fixes for the code base.
 
 Updates

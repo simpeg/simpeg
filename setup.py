@@ -1,6 +1,4 @@
 #!/usr/bin/env python
-from __future__ import print_function
-
 """SimPEG: Simulation and Parameter Estimation in Geophysics
 
 SimPEG is a python package for simulation and gradient based
@@ -31,7 +29,7 @@ with open("README.rst") as f:
 
 setup(
     name="SimPEG",
-    version="0.17.0",
+    version="0.18.0",
     packages=find_packages(exclude=["tests*", "examples*", "tutorials*"]),
     install_requires=[
         "numpy>=1.7",
@@ -39,10 +37,8 @@ setup(
         "scikit-learn>=0.22",
         "pymatsolver>=0.1.1",
         "matplotlib",
-        "properties>=0.5.2",
-        "vectormath>=0.2.0",
         "discretize>=0.7.1",
-        "geoana>=0.0.4",
+        "geoana>=0.4.0",
         "empymod",
         "pandas",
     ],

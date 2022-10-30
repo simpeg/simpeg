@@ -32,7 +32,7 @@ import SimPEG.electromagnetics.viscous_remanent_magnetization as vrm
 import SimPEG.electromagnetics.time_domain as tdem
 from SimPEG import maps
 
-from discretize import TensorMesh, CylMesh
+from discretize import TensorMesh, CylindricalMesh
 from discretize.utils import mkvc
 
 import numpy as np
@@ -77,7 +77,7 @@ receiver_locations = np.c_[mkvc(xrx), mkvc(yrx), mkvc(zrx)]
 #
 
 # Define the waveform object for tdem simulation. Here we use the step-off.
-tdem_waveform = tdem.sources.StepOffWaveform(offTime=0.0)
+tdem_waveform = tdem.sources.StepOffWaveform(off_time=0.0)
 
 # Define survey object
 tdem_source_list = []
@@ -104,7 +104,7 @@ tdem_survey = tdem.Survey(tdem_source_list)
 # Define cylindrical mesh
 hr = [(10.0, 50), (10.0, 10, 1.5)]
 hz = [(10.0, 10, -1.5), (10.0, 100), (10.0, 10, 1.5)]
-mesh = CylMesh([hr, 1, hz], x0="00C")
+mesh = CylindricalMesh([hr, 1, hz], x0="00C")
 
 # Define model
 air_conductivity = 1e-8
@@ -133,7 +133,7 @@ plotting_map = maps.InjectActiveCells(mesh, ind_active, np.nan)
 log_model = np.log10(conductivity_model)  # So scaling is log-scale
 
 ax1 = fig.add_axes([0.14, 0.1, 0.6, 0.85])
-mesh.plotImage(
+mesh.plot_image(
     plotting_map * log_model,
     ax=ax1,
     grid=False,
@@ -183,7 +183,7 @@ for pp in range(0, receiver_locations.shape[0]):
     loc_pp = np.reshape(receiver_locations[pp, :], (1, 3))
     vrm_receivers_list = [
         vrm.receivers.Point(
-            loc_pp, times=time_channels, fieldType="dbdt", orientation="z"
+            loc_pp, times=time_channels, field_type="dbdt", orientation="z"
         )
     ]
 

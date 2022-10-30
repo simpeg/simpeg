@@ -1,13 +1,9 @@
 import numpy as np
-import properties
 from scipy.constants import epsilon_0
 
 from ....fields import TimeFields
-from ....utils import Identity, Zero
-
-# TODO: this should be the BaseDCSimulation2D --> but circular imports at the
-# moment, so we can settle for its base at the moment
-from ....base import BaseElectricalPDESimulation
+from ....utils import Identity, Zero, validate_type
+from ....simulation import BaseSimulation
 
 
 class Fields2D(TimeFields):
@@ -43,10 +39,14 @@ class Fields2D(TimeFields):
 
     """
 
-    simulation = properties.Instance("2D DC simulation", BaseElectricalPDESimulation)
-
     knownFields = {}
     dtype = float
+
+    @TimeFields.simulation.setter
+    def simulation(self, value):
+        self._simulation = validate_type(
+            "simulation", value, BaseSimulation, cast=False
+        )
 
     @property
     def survey(self):
@@ -180,8 +180,8 @@ class Fields2DCellCentered(Fields2D):
         sim = self.simulation
         return (
             epsilon_0
-            * sim.mesh.vol[:, None]
-            * (sim.mesh.faceDiv * self._e(phiSolution, source_list))
+            * sim.mesh.cell_volumes[:, None]
+            * (sim.mesh.face_divergence * self._e(phiSolution, source_list))
         )
 
     def _charge_density(self, phiSolution, source_list):
@@ -192,7 +192,9 @@ class Fields2DCellCentered(Fields2D):
             \frac{1}{V}\int \frac{\rho_v }{\epsillon_0}
         """
         sim = self.simulation
-        return epsilon_0 * (sim.mesh.faceDiv * self._e(phiSolution, source_list))
+        return epsilon_0 * (
+            sim.mesh.face_divergence * self._e(phiSolution, source_list)
+        )
 
 
 class Fields2DNodal(Fields2D):
@@ -229,7 +231,7 @@ class Fields2DNodal(Fields2D):
         .. math::
             \vec{e} = -\nabla \phi
         """
-        return -self.mesh.nodalGrad * self._phi(phiSolution, source_list)
+        return -self.mesh.nodal_gradient * self._phi(phiSolution, source_list)
 
     def _charge(self, phiSolution, source_list):
         """
@@ -237,15 +239,15 @@ class Fields2DNodal(Fields2D):
             \int \nabla \codt \vec{e} =  \int \frac{\rho_v }{\epsillon_0}
         """
         return -epsilon_0 * (
-            self.mesh.nodalGrad.T
-            * self.mesh.getEdgeInnerProduct()
+            self.mesh.nodal_gradient.T
+            * self.mesh.get_edge_inner_product()
             * self._e(phiSolution, source_list)
         )
 
     def _charge_density(self, phiSolution, source_list):
         return (
             self.mesh.aveN2CC * self._charge(phiSolution, source_list)
-        ) / self.mesh.vol[:, None]
+        ) / self.mesh.cell_volumes[:, None]
 
 
 Fields2DCellCentred = Fields2DCellCentered

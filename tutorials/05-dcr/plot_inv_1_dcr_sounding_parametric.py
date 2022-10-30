@@ -219,12 +219,16 @@ simulation = dc.simulation_1d.Simulation1DLayers(
 dmis = data_misfit.L2DataMisfit(simulation=simulation, data=data_object)
 
 # Define the regularization on the parameters related to resistivity
-mesh_rho = TensorMesh([mesh.hx.size])
-reg_rho = regularization.Simple(mesh_rho, alpha_s=0.01, alpha_x=1, mapping=wire_map.rho)
+mesh_rho = TensorMesh([mesh.h[0].size])
+reg_rho = regularization.WeightedLeastSquares(
+    mesh_rho, alpha_s=0.01, alpha_x=1, mapping=wire_map.rho
+)
 
 # Define the regularization on the parameters related to layer thickness
-mesh_t = TensorMesh([mesh.hx.size - 1])
-reg_t = regularization.Simple(mesh_t, alpha_s=0.01, alpha_x=1, mapping=wire_map.t)
+mesh_t = TensorMesh([mesh.h[0].size - 1])
+reg_t = regularization.WeightedLeastSquares(
+    mesh_t, alpha_s=0.01, alpha_x=1, mapping=wire_map.t
+)
 
 # Combine to make regularization for the inversion problem
 reg = reg_rho + reg_t

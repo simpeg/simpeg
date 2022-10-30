@@ -100,7 +100,7 @@ class MapTests(unittest.TestCase):
         self.mesh2 = discretize.TensorMesh([a, b], x0=np.array([3, 5]))
         self.mesh3 = discretize.TensorMesh([a, b, [3, 4]], x0=np.array([3, 5, 2]))
         self.mesh22 = discretize.TensorMesh([b, a], x0=np.array([3, 5]))
-        self.meshCyl = discretize.CylMesh([10.0, 1.0, 10.0], x0="00C")
+        self.meshCyl = discretize.CylindricalMesh([10.0, 1.0, 10.0], x0="00C")
 
     def test_transforms2D(self):
         for M in self.maps2test2D:
@@ -108,7 +108,7 @@ class MapTests(unittest.TestCase):
 
     def test_transforms2Dvec(self):
         for M in self.maps2test2D:
-            self.assertTrue(M(self.mesh2).testVec())
+            self.assertTrue(M(self.mesh2).test())
 
     def test_transforms3D(self):
         for M in self.maps2test3D:
@@ -116,7 +116,7 @@ class MapTests(unittest.TestCase):
 
     def test_transforms3Dvec(self):
         for M in self.maps2test3D:
-            self.assertTrue(M(self.mesh3).testVec())
+            self.assertTrue(M(self.mesh3).test())
 
     def test_invtransforms2D(self):
         for M in self.maps2test2D:
@@ -224,7 +224,7 @@ class MapTests(unittest.TestCase):
 
     def test_Mesh2MeshMapVec(self):
         mapping = maps.Mesh2Mesh([self.mesh22, self.mesh2])
-        self.assertTrue(mapping.testVec())
+        self.assertTrue(mapping.test())
 
     def test_mapMultiplication(self):
         M = discretize.TensorMesh([2, 3])
@@ -241,7 +241,7 @@ class MapTests(unittest.TestCase):
         mod = models.Model(m, mapping=combo)
         # print mod.transform
         # import matplotlib.pyplot as plt
-        # plt.colorbar(M.plotImage(mod.transform)[0])
+        # plt.colorbar(M.plot_image(mod.transform)[0])
         # plt.show()
         self.assertLess(np.linalg.norm(mod.transform - t_true, np.inf), TOL)
 
@@ -260,7 +260,7 @@ class MapTests(unittest.TestCase):
     def test_activeCells(self):
         M = discretize.TensorMesh([2, 4], "0C")
         for actMap in [
-            maps.InjectActiveCells(M, M.vectorCCy <= 0, 10, nC=M.nCy),
+            maps.InjectActiveCells(M, M.cell_centers_y <= 0, 10, nC=M.shape_cells[1]),
         ]:
 
             vertMap = maps.SurjectVertical1D(M)
@@ -277,7 +277,9 @@ class MapTests(unittest.TestCase):
         M = discretize.TensorMesh([2, 4], "0C")
         expMap = maps.ExpMap(M)
         vertMap = maps.SurjectVertical1D(M)
-        actMap = maps.InjectActiveCells(M, M.vectorCCy <= 0, 10, nC=M.nCy)
+        actMap = maps.InjectActiveCells(
+            M, M.cell_centers_y <= 0, 10, nC=M.shape_cells[1]
+        )
         m = np.r_[1.0, 2.0]
         t_true = np.exp(np.r_[1, 1, 2, 2, 10, 10, 10, 10.0])
 
@@ -312,7 +314,6 @@ class MapTests(unittest.TestCase):
             # m2to3 = maps.Surject2Dto3D(M3, normal='X')
             m = np.arange(m2to3.nP)
             self.assertTrue(m2to3.test())
-            self.assertTrue(m2to3.testVec())
             self.assertTrue(
                 np.all(utils.mkvc((m2to3 * m).reshape(M3.vnC, order="F")[0, :, :]) == m)
             )
@@ -328,7 +329,6 @@ class MapTests(unittest.TestCase):
             # m2to3 = maps.Surject2Dto3D(M3, normal='Y')
             m = np.arange(m2to3.nP)
             self.assertTrue(m2to3.test())
-            self.assertTrue(m2to3.testVec())
             self.assertTrue(
                 np.all(utils.mkvc((m2to3 * m).reshape(M3.vnC, order="F")[:, 0, :]) == m)
             )
@@ -345,7 +345,6 @@ class MapTests(unittest.TestCase):
             # m2to3 = maps.Surject2Dto3D(M3, normal='Z')
             m = np.arange(m2to3.nP)
             self.assertTrue(m2to3.test())
-            self.assertTrue(m2to3.testVec())
             self.assertTrue(
                 np.all(utils.mkvc((m2to3 * m).reshape(M3.vnC, order="F")[:, :, 0]) == m)
             )
@@ -354,20 +353,20 @@ class MapTests(unittest.TestCase):
         M2 = discretize.TensorMesh([np.ones(10), np.ones(10)], "CN")
         mParamPoly = maps.ParametricPolyMap(M2, 2, logSigma=True, normal="Y")
         self.assertTrue(mParamPoly.test(m=np.r_[1.0, 1.0, 0.0, 0.0, 0.0]))
-        self.assertTrue(mParamPoly.testVec(m=np.r_[1.0, 1.0, 0.0, 0.0, 0.0]))
 
     def test_ParametricSplineMap(self):
         M2 = discretize.TensorMesh([np.ones(10), np.ones(10)], "CN")
-        x = M2.vectorCCx
+        x = M2.cell_centers_x
         mParamSpline = maps.ParametricSplineMap(M2, x, normal="Y", order=1)
         self.assertTrue(mParamSpline.test())
-        self.assertTrue(mParamSpline.testVec())
 
     def test_parametric_block(self):
         M1 = discretize.TensorMesh([np.ones(10)], "C")
         block = maps.ParametricBlock(M1)
         self.assertTrue(
-            block.test(m=np.hstack([np.random.rand(2), np.r_[M1.x0, 2 * M1.hx.min()]]))
+            block.test(
+                m=np.hstack([np.random.rand(2), np.r_[M1.x0, 2 * M1.h[0].min()]])
+            )
         )
 
         M2 = discretize.TensorMesh([np.ones(10), np.ones(20)], "CC")
@@ -377,8 +376,8 @@ class MapTests(unittest.TestCase):
                 m=np.hstack(
                     [
                         np.random.rand(2),
-                        np.r_[M2.x0[0], 2 * M2.hx.min()],
-                        np.r_[M2.x0[1], 4 * M2.hy.min()],
+                        np.r_[M2.x0[0], 2 * M2.h[0].min()],
+                        np.r_[M2.x0[1], 4 * M2.h[1].min()],
                     ]
                 )
             )
@@ -391,9 +390,9 @@ class MapTests(unittest.TestCase):
                 m=np.hstack(
                     [
                         np.random.rand(2),
-                        np.r_[M3.x0[0], 2 * M3.hx.min()],
-                        np.r_[M3.x0[1], 4 * M3.hy.min()],
-                        np.r_[M3.x0[2], 5 * M3.hz.min()],
+                        np.r_[M3.x0[0], 2 * M3.h[0].min()],
+                        np.r_[M3.x0[1], 4 * M3.h[1].min()],
+                        np.r_[M3.x0[2], 5 * M3.h[2].min()],
                     ]
                 )
             )
@@ -407,8 +406,8 @@ class MapTests(unittest.TestCase):
                 m=np.hstack(
                     [
                         np.random.rand(2),
-                        np.r_[M2.x0[0], 2 * M2.hx.min()],
-                        np.r_[M2.x0[1], 4 * M2.hy.min()],
+                        np.r_[M2.x0[0], 2 * M2.h[0].min()],
+                        np.r_[M2.x0[1], 4 * M2.h[1].min()],
                     ]
                 )
             )
@@ -421,9 +420,9 @@ class MapTests(unittest.TestCase):
                 m=np.hstack(
                     [
                         np.random.rand(2),
-                        np.r_[M3.x0[0], 2 * M3.hx.min()],
-                        np.r_[M3.x0[1], 4 * M3.hy.min()],
-                        np.r_[M3.x0[2], 5 * M3.hz.min()],
+                        np.r_[M3.x0[0], 2 * M3.h[0].min()],
+                        np.r_[M3.x0[1], 4 * M3.h[1].min()],
+                        np.r_[M3.x0[2], 5 * M3.h[2].min()],
                     ]
                 )
             )
@@ -444,8 +443,8 @@ class MapTests(unittest.TestCase):
         m0 = np.hstack(
             [
                 np.random.rand(3),
-                np.r_[M2.x0[0], 2 * M2.hx.min()],
-                np.r_[M2.x0[1], 4 * M2.hy.min()],
+                np.r_[M2.x0[0], 2 * M2.h[0].min()],
+                np.r_[M2.x0[1], 4 * M2.h[1].min()],
             ]
         )
 
@@ -530,7 +529,7 @@ class MapTests(unittest.TestCase):
         activeCells = utils.surface2ind_topo(mesh, rxLocs)
 
         model = np.random.randn(int(activeCells.sum()))
-        total_mass = (model * mesh.vol[activeCells]).sum()
+        total_mass = (model * mesh.cell_volumes[activeCells]).sum()
 
         for local_mesh in local_meshes:
 
@@ -541,7 +540,7 @@ class MapTests(unittest.TestCase):
             )
 
             local_mass = (
-                (tile_map * model) * local_mesh.vol[tile_map.local_active]
+                (tile_map * model) * local_mesh.cell_volumes[tile_map.local_active]
             ).sum()
 
             self.assertTrue((local_mass - total_mass) / total_mass < 1e-8)
@@ -552,18 +551,18 @@ class TestWires(unittest.TestCase):
         mesh = discretize.TensorMesh([10, 10, 10])
 
         wires = maps.Wires(
-            ("sigma", mesh.nCz),
+            ("sigma", mesh.shape_cells[2]),
             ("mu_casing", 1),
         )
 
-        model = np.arange(mesh.nCz + 1)
+        model = np.arange(mesh.shape_cells[2] + 1)
 
         assert isinstance(wires.sigma, maps.Projection)
-        assert wires.nP == mesh.nCz + 1
+        assert wires.nP == mesh.shape_cells[2] + 1
 
         named_model = wires * model
 
-        named_model.sigma == model[: mesh.nCz]
+        named_model.sigma == model[: mesh.shape_cells[2]]
         assert named_model.mu_casing == 10
 
 
@@ -572,7 +571,7 @@ class TestSCEMT(unittest.TestCase):
         mesh = discretize.TensorMesh([4, 5, 3])
         mapping = maps.SelfConsistentEffectiveMedium(mesh, sigma0=1e-1, sigma1=1.0)
         m = np.abs(np.random.rand(mesh.nC))
-        mapping.test(m=m, dx=0.05, num=3)
+        mapping.test(m=m, dx=0.05 * np.ones(mesh.n_cells), num=3)
 
     def test_spheroidalInclusions(self):
         mesh = discretize.TensorMesh([4, 3, 2])
@@ -580,7 +579,7 @@ class TestSCEMT(unittest.TestCase):
             mesh, sigma0=1e-1, sigma1=1.0, alpha0=0.8, alpha1=0.9, rel_tol=1e-8
         )
         m = np.abs(np.random.rand(mesh.nC))
-        mapping.test(m=m, dx=0.05, num=3)
+        mapping.test(m=m, dx=0.05 * np.ones(mesh.n_cells), num=3)
 
 
 if __name__ == "__main__":

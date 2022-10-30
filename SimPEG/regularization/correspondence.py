@@ -1,6 +1,6 @@
 import numpy as np
 import scipy.sparse as sp
-import properties
+from ..utils import validate_ndarray_with_shape
 
 from .. import utils
 from .base import BaseSimilarityMeasure
@@ -18,11 +18,27 @@ class LinearCorrespondence(BaseSimilarityMeasure):
 
     """
 
-    coefficients = properties.Array(
-        "coefficients for the linear relationship between parameters",
-        shape=(3,),
-        default=np.array([1.0, -1.0, 0.0]),
-    )
+    def __init__(self, mesh, wire_map, coefficients=None, **kwargs):
+        super().__init__(mesh, wire_map, **kwargs)
+        if coefficients is None:
+            coefficients = np.r_[1.0, -1.0, 0.0]
+        self.coefficients = coefficients
+
+    @property
+    def coefficients(self):
+        """coefficients for the linear relationship between parameters.
+
+        Returns
+        -------
+        (3) numpy.ndarray of float
+        """
+        return self._coefficients
+
+    @coefficients.setter
+    def coefficients(self, value):
+        self._coefficients = validate_ndarray_with_shape(
+            "coefficients", value, shape=(3,)
+        )
 
     def relation(self, model):
         """
@@ -98,7 +114,7 @@ class LinearCorrespondence(BaseSimilarityMeasure):
             p2 = k2 * k1 * v1 + k2 ** 2 * v2
             return np.r_[p1, p2]
         else:
-            n = self.regmesh.nC
+            n = self.regularization_mesh.nC
             A = utils.sdiag(np.ones(n) * (k1 ** 2))
             B = utils.sdiag(np.ones(n) * (k2 ** 2))
             C = utils.sdiag(np.ones(n) * (k1 * k2))

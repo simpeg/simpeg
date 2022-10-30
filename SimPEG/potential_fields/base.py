@@ -1,180 +1,185 @@
 import os
+
 import discretize
-import properties
 import numpy as np
-import multiprocessing
+import warnings
 from ..simulation import LinearSimulation
 from scipy.sparse import csr_matrix as csr
 from SimPEG.utils import mkvc
+from ..utils import validate_string, validate_active_indices
+import multiprocessing
 
 ###############################################################################
 #                                                                             #
-#                             Base Potential Fields Simulation                   #
+#                             Base Potential Fields Simulation                #
 #                                                                             #
 ###############################################################################
 
 
 class BasePFSimulation(LinearSimulation):
-    actInd = properties.Array(
-        "Array of active cells (ground)", dtype=(bool, int), default=None
-    )
+    r"""Base class for potential field simulations that use integral formulations.
 
-    n_cpu = properties.Integer(
-        "Number of processors used for the forward simulation",
-        default=int(multiprocessing.cpu_count()),
-    )
+    For integral formulations, the forward simulation for a set of voxel cells
+    can be defined as a linear operation of the form:
 
-    store_sensitivities = properties.StringChoice(
-        "Compute and store G", choices=["disk", "ram", "forward_only"], default="ram"
-    )
+    .. math::
+        \mathbf{d} = \mathbf{Am}
 
-    def __init__(self, mesh, **kwargs):
+    where :math:`\mathbf{d}` are the data, :math:`\mathbf{m}` are the model paramters
+    and :math:`\mathbf{A}` is a linear operator defining the sensitivities. The primary
+    difference between child simulation classes is the kernel function used to create
+    the rows of :math:`\mathbf{A}`.
 
-        LinearSimulation.__init__(self, mesh, **kwargs)
+    Parameters
+    ----------
+    mesh : discretize.TensorMesh or discretize.TreeMesh
+        A 3D tensor or tree mesh.
+    ind_active : np.ndarray of int or bool
+        Indices array denoting the active topography cells.
+    store_sensitivities : {'ram', 'disk', 'forward_only'}
+        Options for storing sensitivities. There are 3 options
 
-        # Find non-zero cells
-        if getattr(self, "actInd", None) is not None:
-            if self.actInd.dtype == "bool":
-                indices = np.where(self.actInd)[0]
-            else:
-                indices = self.actInd
+        - 'ram': sensitivities are stored in the computer's RAM
+        - 'disk': sensitivities are written to a directory
+        - 'forward_only': you intend only do perform a forward simulation and sensitivities do no need to be stored
 
+    """
+
+    def __init__(self, mesh, ind_active=None, store_sensitivities="ram", **kwargs):
+
+        # If deprecated property set with kwargs
+        if "actInd" in kwargs:
+            raise AttributeError(
+                "actInd was removed in SimPEG 0.17.0, please use ind_active"
+            )
+
+        if "forwardOnly" in kwargs:
+            raise AttributeError(
+                "forwardOnly was removed in SimPEG 0.17.0, please set store_sensitivities='forward_only'"
+            )
+
+        self.store_sensitivities = store_sensitivities
+        super().__init__(mesh, **kwargs)
+        self.solver = None
+
+        # Find non-zero cells indices
+        if ind_active is not None:
+            ind_active = validate_active_indices("ind_active", ind_active, mesh.n_cells)
         else:
+            ind_active = np.ones(mesh.n_cells, dtype=bool)
+        self._ind_active = ind_active
 
-            indices = np.asarray(range(self.mesh.nC))
+        self.nC = sum(ind_active)
 
-        self.nC = len(indices)
-
-        # Create active cell projector
-        projection = csr(
-            (np.ones(self.nC), (indices, range(self.nC))), shape=(self.mesh.nC, self.nC)
-        )
-        if not isinstance(mesh, (discretize.TensorMesh, discretize.TreeMesh)):
+        if isinstance(mesh, discretize.TensorMesh):
+            nodes = mesh.nodes
+            inds = np.arange(mesh.n_nodes).reshape(mesh.shape_nodes, order="F")
+            if mesh.dim == 2:
+                cell_nodes = [
+                    inds[:-1, :-1].reshape(-1, order="F"),
+                    inds[1:, :-1].reshape(-1, order="F"),
+                    inds[:-1, 1:].reshape(-1, order="F"),
+                    inds[1:, 1:].reshape(-1, order="F"),
+                ]
+            if mesh.dim == 3:
+                cell_nodes = [
+                    inds[:-1, :-1, :-1].reshape(-1, order="F"),
+                    inds[1:, :-1, :-1].reshape(-1, order="F"),
+                    inds[:-1, 1:, :-1].reshape(-1, order="F"),
+                    inds[1:, 1:, :-1].reshape(-1, order="F"),
+                    inds[:-1, :-1, 1:].reshape(-1, order="F"),
+                    inds[1:, :-1, 1:].reshape(-1, order="F"),
+                    inds[:-1, 1:, 1:].reshape(-1, order="F"),
+                    inds[1:, 1:, 1:].reshape(-1, order="F"),
+                ]
+            cell_nodes = np.stack(cell_nodes, axis=-1)[ind_active]
+        elif isinstance(mesh, discretize.TreeMesh):
+            nodes = np.r_[mesh.nodes, mesh.hanging_nodes]
+            cell_nodes = mesh.cell_nodes[ind_active]
+        else:
             raise ValueError("Mesh must be 3D tensor or Octree.")
-        # Create vectors of nodal location for the lower and upper corners
-        bsw = self.mesh.gridCC - self.mesh.h_gridded / 2.0
-        tne = self.mesh.gridCC + self.mesh.h_gridded / 2.0
+        unique, unique_inv = np.unique(cell_nodes.T, return_inverse=True)
+        self._nodes = nodes[unique]  # unique active nodes
+        self._unique_inv = unique_inv.reshape(cell_nodes.T.shape)
 
-        xn1, xn2 = bsw[:, 0], tne[:, 0]
-        yn1, yn2 = bsw[:, 1], tne[:, 1]
+    @property
+    def store_sensitivities(self):
+        """Options for storing sensitivities.
 
-        self.Yn = projection.T * np.c_[mkvc(yn1), mkvc(yn2)]
-        self.Xn = projection.T * np.c_[mkvc(xn1), mkvc(xn2)]
+        There are 3 options:
 
-        # Allows for 2D mesh where Zn is defined by user
-        if self.mesh.dim > 2:
-            zn1, zn2 = bsw[:, 2], tne[:, 2]
-            self.Zn = projection.T * np.c_[mkvc(zn1), mkvc(zn2)]
+        - 'ram': sensitivity matrix stored in RAM
+        - 'disk': sensitivities written and stored to disk
+        - 'forward_only': sensitivities are not store (only use for forward simulation)
+
+        Returns
+        -------
+        {'disk', 'ram', 'forward_only'}
+            A string defining the model type for the simulation.
+        """
+        if self._store_sensitivities is None:
+            self._store_sensitivities = "ram"
+        return self._store_sensitivities
+
+    @store_sensitivities.setter
+    def store_sensitivities(self, value):
+        self._store_sensitivities = validate_string(
+            "store_sensitivities", value, ["disk", "ram", "forward_only"]
+        )
+
+    @property
+    def ind_active(self):
+        """Active topography cells
+
+        Returns
+        -------
+        (n_cell) numpy.ndarray of bool
+            Returns the active topography cells
+        """
+        return self._ind_active
+
+    @property
+    def actInd(self):
+        """'actInd' is deprecated. Use 'ind_active' instead."""
+        raise AttributeError(
+            "The 'actInd' property has been deprecated. "
+            "Please use 'ind_active'. This will be removed in version 0.17.0 of SimPEG.",
+        )
 
     def linear_operator(self):
+        """Return linear operator
 
-        self.nC = self.modelMap.shape[0]
-
-        components = np.array(list(self.survey.components.keys()))
-        active_components = np.hstack(
-            [np.c_[values] for values in self.survey.components.values()]
-        ).tolist()
-        nD = self.survey.nD
-
+        Returns
+        -------
+        numpy.ndarray
+            Linear operator
+        """
+        n_cells = self.nC
+        if getattr(self, "model_type", None) == "vector":
+            n_cells *= 3
         if self.store_sensitivities == "disk":
-            sens_name = self.sensitivity_path + "sensitivity.npy"
+            sens_name = os.path.join(self.sensitivity_path, "sensitivity.npy")
             if os.path.exists(sens_name):
                 # do not pull array completely into ram, just need to check the size
                 kernel = np.load(sens_name, mmap_mode="r")
-                if kernel.shape == (nD, self.nC):
+                if kernel.shape == (self.survey.nD, n_cells):
                     print(f"Found sensitivity file at {sens_name} with expected shape")
                     kernel = np.asarray(kernel)
                     return kernel
-        # Single threaded
+        # multiprocessed
+        with multiprocessing.pool.Pool() as pool:
+            kernel = pool.starmap(
+                self.evaluate_integral, self.survey._location_component_iterator()
+            )
         if self.store_sensitivities != "forward_only":
-            kernel = np.vstack(
-                [
-                    self.evaluate_integral(receiver, components[component])
-                    for receiver, component in zip(
-                        self.survey.receiver_locations.tolist(), active_components
-                    )
-                ]
-            )
+            kernel = np.vstack(kernel)
         else:
-            kernel = np.hstack(
-                [
-                    self.evaluate_integral(receiver, components[component]).dot(
-                        self.model
-                    )
-                    for receiver, component in zip(
-                        self.survey.receiver_locations.tolist(), active_components
-                    )
-                ]
-            )
+            kernel = np.concatenate(kernel)
         if self.store_sensitivities == "disk":
             print(f"writing sensitivity to {sens_name}")
             os.makedirs(self.sensitivity_path, exist_ok=True)
             np.save(sens_name, kernel)
         return kernel
-
-    def evaluate_integral(self):
-        """
-        evaluate_integral
-
-        Compute the forward linear relationship between the model and the physics at a point.
-        :param self:
-        :return:
-        """
-
-        raise RuntimeError(
-            f"Integral calculations must implemented by the subclass {self}."
-        )
-
-    @property
-    def forwardOnly(self):
-        """The forwardOnly property has been removed. Please set the store_sensitivites
-        property instead.
-        """
-        raise TypeError(
-            "The forwardOnly property has been removed. Please set the store_sensitivites "
-            "property instead."
-        )
-
-    @forwardOnly.setter
-    def forwardOnly(self, other):
-        raise TypeError(
-            "The forwardOnly property has been removed. Please set the store_sensitivites "
-            "property instead."
-        )
-
-    @property
-    def parallelized(self):
-        """The parallelized property has been removed. If interested, try out
-        loading dask for parallelism by doing ``import SimPEG.dask``.
-        """
-        raise TypeError(
-            "parallelized has been removed. If interested, try out "
-            "loading dask for parallelism by doing ``import SimPEG.dask``. "
-        )
-
-    @parallelized.setter
-    def parallelized(self, other):
-        raise TypeError(
-            "Do not set parallelized. If interested, try out "
-            "loading dask for parallelism by doing ``import SimPEG.dask``."
-        )
-
-    @property
-    def n_cpu(self):
-        """The parallelized property has been removed. If interested, try out
-        loading dask for parallelism by doing ``import SimPEG.dask``.
-        """
-        raise TypeError(
-            "n_cpu has been removed. If interested, try out "
-            "loading dask for parallelism by doing ``import SimPEG.dask``."
-        )
-
-    @parallelized.setter
-    def n_cpu(self, other):
-        raise TypeError(
-            "Do not set n_cpu. If interested, try out "
-            "loading dask for parallelism by doing ``import SimPEG.dask``."
-        )
 
 
 class BaseEquivalentSourceLayerSimulation(BasePFSimulation):
@@ -209,16 +214,37 @@ class BaseEquivalentSourceLayerSimulation(BasePFSimulation):
                 "'cell_z_top' and 'cell_z_bottom' must have length equal to number of cells."
             )
 
-        self.Zn = np.c_[cell_z_bottom, cell_z_top]
+        all_nodes = self._nodes[self._unique_inv]
+        all_nodes = [
+            np.c_[all_nodes[0], cell_z_bottom],
+            np.c_[all_nodes[1], cell_z_bottom],
+            np.c_[all_nodes[2], cell_z_bottom],
+            np.c_[all_nodes[3], cell_z_bottom],
+            np.c_[all_nodes[0], cell_z_top],
+            np.c_[all_nodes[1], cell_z_top],
+            np.c_[all_nodes[2], cell_z_top],
+            np.c_[all_nodes[3], cell_z_top],
+        ]
+        self._nodes = np.stack(all_nodes, axis=0)
+        self._unique_inv = None
 
 
 def progress(iter, prog, final):
-    """
-    progress(iter,prog,final)
-    Function measuring the progress of a process and print to screen the %.
-    Useful to estimate the remaining runtime of a large problem.
-    Created on Dec, 20th 2015
-    @author: dominiquef
+    """Progress (% complete) for constructing sensitivity matrix
+
+    Parameters
+    ----------
+    iter : int
+        Current rows
+    prog : float
+        Progress
+    final : int
+        Number of rows (= number of receivers)
+
+    Returns
+    -------
+    float
+        % completed
     """
     arg = np.floor(float(iter) / float(final) * 10.0)
 
@@ -231,25 +257,25 @@ def progress(iter, prog, final):
 
 
 def get_dist_wgt(mesh, receiver_locations, actv, R, R0):
-    """
-    get_dist_wgt(xn,yn,zn,receiver_locations,R,R0)
+    """Compute distance weights for potential field simulations
 
-    Function creating a distance weighting function required for the magnetic
-    inverse problem.
+    Parameters
+    ----------
+    mesh : discretize.BaseMesh
+        A discretize mesh
+    receiver_locations : (n, 3) numpy.ndarray
+        Observation locations [x, y, z]
+    actv : (n_cell) numpy.ndarray of bool
+        Active cells vector [0:air , 1: ground]
+    R : float
+        Decay factor (mag=3, grav =2)
+    R0 : float
+        Stabilization factor. Usually a fraction of the minimum cell size
 
-    INPUT
-    xn, yn, zn : Node location
-    receiver_locations       : Observation locations [obsx, obsy, obsz]
-    actv        : Active cell vector [0:air , 1: ground]
-    R           : Decay factor (mag=3, grav =2)
-    R0          : Small factor added (default=dx/4)
-
-    OUTPUT
-    wr       : [nC] Vector of distance weighting
-
-    Created on Dec, 20th 2015
-
-    @author: dominiquef
+    Returns
+    -------
+    wr : (n_cell) numpy.ndarray
+        Distance weighting model; 0 for all inactive cells
     """
 
     # Find non-zero cells
@@ -270,8 +296,10 @@ def get_dist_wgt(mesh, receiver_locations, actv, R, R0):
     p = 1 / np.sqrt(3)
 
     # Create cell center location
-    Ym, Xm, Zm = np.meshgrid(mesh.vectorCCy, mesh.vectorCCx, mesh.vectorCCz)
-    hY, hX, hZ = np.meshgrid(mesh.hy, mesh.hx, mesh.hz)
+    Ym, Xm, Zm = np.meshgrid(
+        mesh.cell_centers_y, mesh.cell_centers_x, mesh.cell_centers_z
+    )
+    hY, hX, hZ = np.meshgrid(mesh.h[1], mesh.h[0], mesh.h[2])
 
     # Remove air cells
     Xm = P.T * mkvc(Xm)
@@ -282,7 +310,7 @@ def get_dist_wgt(mesh, receiver_locations, actv, R, R0):
     hY = P.T * mkvc(hY)
     hZ = P.T * mkvc(hZ)
 
-    V = P.T * mkvc(mesh.vol)
+    V = P.T * mkvc(mesh.cell_volumes)
     wr = np.zeros(nC)
 
     ndata = receiver_locations.shape[0]

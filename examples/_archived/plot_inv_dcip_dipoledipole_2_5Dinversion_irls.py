@@ -21,7 +21,7 @@ But if you want share edges of the model, you can try:
 """
 
 from SimPEG.electromagnetics.static import resistivity as DC
-from SimPEG.electromagnetics.static.utils import gen_DCIPsurvey, genTopography
+from SimPEG.electromagnetics.static.utils import generate_dcip_survey, genTopography
 from SimPEG import (
     maps,
     utils,
@@ -54,7 +54,9 @@ def run(plotIt=True, survey_type="dipole-dipole", p=0.0, qx=2.0, qz=2.0):
     zmin, zmax = 0, 0
     endl = np.array([[xmin, ymin, zmin], [xmax, ymax, zmax]])
     # Generate DC survey object
-    survey = gen_DCIPsurvey(endl, survey_type=survey_type, dim=2, a=10, b=10, n=10)
+    survey = generate_dcip_survey(
+        endl, survey_type=survey_type, dim=2, a=10, b=10, n=10
+    )
     survey = IO.from_abmn_locations_to_survey(
         survey.locations_a,
         survey.locations_b,
@@ -67,7 +69,7 @@ def run(plotIt=True, survey_type="dipole-dipole", p=0.0, qx=2.0, qz=2.0):
     # Obtain 2D TensorMesh
     mesh, actind = IO.set_mesh()
     topo, mesh1D = genTopography(mesh, -10, 0, its=100)
-    actind = utils.surface2ind_topo(mesh, np.c_[mesh1D.vectorCCx, topo])
+    actind = utils.surface2ind_topo(mesh, np.c_[mesh1D.cell_centers_x, topo])
     survey.drape_electrodes_on_topography(mesh, actind, option="top")
 
     # Build a conductivity model
@@ -90,13 +92,13 @@ def run(plotIt=True, survey_type="dipole-dipole", p=0.0, qx=2.0, qz=2.0):
         ax = plt.subplot(111)
         temp = rho.copy()
         temp[~actind] = np.nan
-        out = mesh.plotImage(
+        out = mesh.plot_image(
             temp,
             grid=True,
             ax=ax,
-            gridOpts={"alpha": 0.2},
+            grid_opts={"alpha": 0.2},
             clim=(10, 1000),
-            pcolorOpts={"cmap": "viridis", "norm": colors.LogNorm()},
+            pcolor_opts={"cmap": "viridis", "norm": colors.LogNorm()},
         )
         ax.plot(
             survey.electrode_locations[:, 0], survey.electrode_locations[:, 1], "k."
@@ -156,7 +158,7 @@ def run(plotIt=True, survey_type="dipole-dipole", p=0.0, qx=2.0, qz=2.0):
         mesh, indActive=actind, mapping=regmap, gradientType="components"
     )
     #     gradientType = 'components'
-    reg.norms = np.c_[p, qx, qz, 0.0]
+    reg.norms = [p, qx, qz, 0.0]
     IRLS = directives.Update_IRLS(
         max_irls_iterations=20, minGNiter=1, beta_search=False, fix_Jmatrix=True
     )
@@ -186,22 +188,22 @@ def run(plotIt=True, survey_type="dipole-dipole", p=0.0, qx=2.0, qz=2.0):
     if plotIt:
         vmin, vmax = rho.min(), rho.max()
         fig, ax = plt.subplots(3, 1, figsize=(20, 9))
-        out1 = mesh.plotImage(
+        out1 = mesh.plot_image(
             rho_true,
             clim=(10, 1000),
-            pcolorOpts={"cmap": "viridis", "norm": colors.LogNorm()},
+            pcolor_opts={"cmap": "viridis", "norm": colors.LogNorm()},
             ax=ax[0],
         )
-        out2 = mesh.plotImage(
+        out2 = mesh.plot_image(
             rho_est_l2,
             clim=(10, 1000),
-            pcolorOpts={"cmap": "viridis", "norm": colors.LogNorm()},
+            pcolor_opts={"cmap": "viridis", "norm": colors.LogNorm()},
             ax=ax[1],
         )
-        out3 = mesh.plotImage(
+        out3 = mesh.plot_image(
             rho_est,
             clim=(10, 1000),
-            pcolorOpts={"cmap": "viridis", "norm": colors.LogNorm()},
+            pcolor_opts={"cmap": "viridis", "norm": colors.LogNorm()},
             ax=ax[2],
         )
 

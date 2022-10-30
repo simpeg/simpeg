@@ -93,7 +93,7 @@ for pp in range(0, locations.shape[0]):
     loc_pp = np.reshape(locations[pp, :], (1, 3))
     receivers_list = [
         vrm.receivers.Point(
-            loc_pp, times=time_channels, fieldType="dbdt", orientation="z"
+            loc_pp, times=time_channels, field_type="dbdt", orientation="z"
         )
     ]
 
@@ -189,14 +189,14 @@ fig = plt.figure(figsize=(7.5, 7))
 
 plotting_map = maps.InjectActiveCells(mesh, ind_active, np.nan)
 ax1 = fig.add_axes([0.09, 0.12, 0.72, 0.77])
-mesh.plotSlice(
+mesh.plot_slice(
     plotting_map * model,
     normal="Z",
     ax=ax1,
     ind=0,
     grid=True,
     clim=(np.min(model), np.max(model)),
-    pcolorOpts={"cmap": "magma_r"},
+    pcolor_opts={"cmap": "magma_r"},
 )
 ax1.set_title("Model slice at z = 0 m")
 ax1.set_xlabel("x (m)")

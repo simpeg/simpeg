@@ -1,4 +1,3 @@
-from __future__ import print_function
 import unittest
 import numpy as np
 from scipy.constants import mu_0
@@ -194,7 +193,3 @@ class FDEM_AdjointTests(unittest.TestCase):
 
         def test_Jtvec_adjointTest_hzi_Bform(self):
             self.assertTrue(adjointTest("b", ["MagneticField", "z", "i"]))
-
-
-if __name__ == "__main__":
-    unittest.main()

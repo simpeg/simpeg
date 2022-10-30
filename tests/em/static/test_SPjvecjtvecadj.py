@@ -1,4 +1,4 @@
-# from __future__ import print_function
+#
 # import unittest
 # import numpy as np
 #
@@ -23,8 +23,8 @@
 #         actind = mesh.gridCC[:, 2] < -0.2
 #         # actMap = maps.InjectActiveCells(mesh, actind, 0.)
 #
-#         xyzM = utils.ndgrid(np.ones_like(mesh.vectorCCx[:-1])*-0.4, np.ones_like(mesh.vectorCCy)*-0.4, np.r_[-0.3])
-#         xyzN = utils.ndgrid(mesh.vectorCCx[1:], mesh.vectorCCy, np.r_[-0.3])
+#         xyzM = utils.ndgrid(np.ones_like(mesh.cell_centers_x[:-1])*-0.4, np.ones_like(mesh.cell_centers_y)*-0.4, np.r_[-0.3])
+#         xyzN = utils.ndgrid(mesh.cell_centers_x[1:], mesh.cell_centers_y, np.r_[-0.3])
 #
 #         rx = sp.receivers.Dipole(xyzN, xyzM)
 #         src = sp.sources.StreamingCurrents([rx], L=np.ones(mesh.nC), mesh=mesh,
@@ -36,8 +36,8 @@
 #                 )
 #
 #         q = np.zeros(mesh.nC)
-#         inda = utils.closestPoints(mesh, np.r_[-0.5, 0., -0.8])
-#         indb = utils.closestPoints(mesh, np.r_[0.5, 0., -0.8])
+#         inda = mesh.closest_points_index(np.r_[-0.5, 0., -0.8])
+#         indb = mesh.closest_points_index(np.r_[0.5, 0., -0.8])
 #         q[inda] = 1.
 #         q[indb] = -1.
 #
@@ -63,7 +63,7 @@
 #         self.dmis = dmis
 #
 #     def test_misfit(self):
-#         passed = tests.checkDerivative(
+#         passed = tests.check_derivative(
 #             lambda m: [
 #                 self.p.dpred(m), lambda mx: self.p.Jvec(self.m0, mx)
 #             ],
@@ -85,7 +85,7 @@
 #         self.assertTrue(passed)
 #
 #     def test_dataObj(self):
-#         passed = tests.checkDerivative(
+#         passed = tests.check_derivative(
 #             lambda m: [self.dmis(m), self.dmis.deriv(m)],
 #             self.m0,
 #             plotIt=False,
