@@ -1,7 +1,6 @@
 from ..simulation import BaseSimulation as Sim
 from dask.distributed import get_client, Future, Client
 from dask import array, delayed
-from dask.delayed import Delayed
 import warnings
 from ..data import SyntheticData
 import numpy as np
@@ -137,6 +136,32 @@ def dask_Jtvec(self, m, v):
 Sim.Jtvec = dask_Jtvec
 
 
+def dask_getJtJdiag(self, m, W=None):
+    """
+        Return the diagonal of JtJ
+    """
+    self.model = m
+    if self.gtgdiag is None:
+        if isinstance(self.Jmatrix, Future):
+            self.Jmatrix  # Wait to finish
+
+        if W is None:
+            W = np.ones(self.nD)
+        else:
+            W = W.diagonal()
+
+        diag = array.einsum('i,ij,ij->j', W, self.Jmatrix, self.Jmatrix)
+
+        if isinstance(diag, array.Array):
+            diag = np.asarray(diag.compute())
+
+        self.gtgdiag = diag
+    return self.gtgdiag
+
+
+Sim.getJtJdiag = dask_getJtJdiag
+
+
 @property
 def Jmatrix(self):
     """
@@ -163,45 +188,4 @@ def Jmatrix(self):
 
 
 Sim.Jmatrix = Jmatrix
-
-
-@delayed
-def dask_dpred(self, m=None, f=None, compute_J=False):
-    """
-    dpred(m, f=None)
-    Create the projected data from a model.
-    The fields, f, (if provided) will be used for the predicted data
-    instead of recalculating the fields (which may be expensive!).
-
-    .. math::
-
-        d_\\text{pred} = P(f(m))
-
-    Where P is a projection of the fields onto the data space.
-    """
-    if self.survey is None:
-        raise AttributeError(
-            "The survey has not yet been set and is required to compute "
-            "data. Please set the survey for the simulation: "
-            "simulation.survey = survey"
-        )
-
-    if f is None:
-        if m is None:
-            m = self.model
-        f, Ainv = self.fields(m, return_Ainv=compute_J)
-
-    data = Data(self.survey)
-    for src in self.survey.source_list:
-        for rx in src.receiver_list:
-            data[src, rx] = rx.eval(src, self.mesh, f)
-
-    if compute_J:
-        Jmatrix = self.compute_J(f=f, Ainv=Ainv)
-        return (mkvc(data), Jmatrix)
-
-    return mkvc(data)
-
-
-Sim.dpred = dask_dpred
 

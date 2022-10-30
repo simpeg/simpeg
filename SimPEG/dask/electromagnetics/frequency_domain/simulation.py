@@ -1,15 +1,17 @@
+from ...simulation import Jmatrix, Jvec, Jtvec
 from ....electromagnetics.frequency_domain.simulation import BaseFDEMSimulation as Sim
-from ....utils import Zero, mkvc
+from ....utils import Zero
 import numpy as np
 import scipy.sparse as sp
 import dask.array as da
-from dask.distributed import Future
 import zarr
-from time import time
 
 Sim.sensitivity_path = './sensitivity/'
 Sim.gtgdiag = None
-Sim.store_sensitivities = True
+Sim.store_sensitivities = "ram"
+Sim.Jvec = Jvec
+Sim.Jtvec = Jtvec
+Sim.Jmatrix = Jmatrix
 
 
 def fields(self, m=None, return_Ainv=False):
@@ -42,60 +44,6 @@ def fields(self, m=None, return_Ainv=False):
 Sim.fields = fields
 
 
-def dask_getJtJdiag(self, m, W=None):
-    """
-        Return the diagonal of JtJ
-    """
-    self.model = m
-    if self.gtgdiag is None:
-        if isinstance(self.Jmatrix, Future):
-            self.Jmatrix  # Wait to finish
-
-        if W is None:
-            W = np.ones(self.nD)
-        else:
-            W = W.diagonal()
-
-        diag = da.einsum('i,ij,ij->j', W, self.Jmatrix, self.Jmatrix)
-
-        if isinstance(diag, da.Array):
-            diag = np.asarray(diag.compute())
-
-        self.gtgdiag = diag
-    return self.gtgdiag
-
-
-Sim.getJtJdiag = dask_getJtJdiag
-
-
-def dask_Jvec(self, m, v):
-    """
-        Compute sensitivity matrix (J) and vector (v) product.
-    """
-    self.model = m
-    if isinstance(self.Jmatrix, Future):
-        self.Jmatrix  # Wait to finish
-
-    return da.dot(self.Jmatrix, v)
-
-
-Sim.Jvec = dask_Jvec
-
-
-def dask_Jtvec(self, m, v):
-    """
-        Compute adjoint sensitivity matrix (J^T) and vector (v) product.
-    """
-    self.model = m
-    if isinstance(self.Jmatrix, Future):
-        self.Jmatrix  # Wait to finish
-
-    return da.dot(v, self.Jmatrix)
-
-
-Sim.Jtvec = dask_Jtvec
-
-
 def compute_J(self, f=None, Ainv=None):
 
     if f is None:
@@ -115,7 +63,6 @@ def compute_J(self, f=None, Ainv=None):
         )
     else:
         Jmatrix = np.zeros((self.survey.nD, m_size), dtype=np.float32)
-
 
     def eval_store_block(A, freq, df_duT, df_dmT, u_src, src, row_count):
         """
