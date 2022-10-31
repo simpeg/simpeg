@@ -1,24 +1,17 @@
 from __future__ import annotations
-import numpy as np
-import scipy.sparse as sp
-import warnings
 
 import copy
-from ..utils import (
-    sdiag,
-    mkvc,
-    timeIt,
-    Identity,
-)
+import warnings
+
+import numpy as np
+import scipy.sparse as sp
+from SimPEG.utils.code_utils import (deprecate_property,
+                                     validate_ndarray_with_shape)
+
 from ..maps import IdentityMap, Wires
 from ..objective_function import ComboObjectiveFunction
-from .base import (
-    WeightedLeastSquares,
-    RegularizationMesh,
-    Smallness,
-)
-
-from SimPEG.utils.code_utils import deprecate_property, validate_ndarray_with_shape
+from ..utils import Identity, mkvc, sdiag, timeIt
+from .base import RegularizationMesh, Smallness, WeightedLeastSquares
 
 ###############################################################################
 #                                                                             #
@@ -691,7 +684,6 @@ class PGI(ComboObjectiveFunction):
         self,
         mesh,
         gmmref,
-        alpha_s=None,
         alpha_x=None,
         alpha_y=None,
         alpha_z=None,
@@ -754,6 +746,7 @@ class PGI(ComboObjectiveFunction):
 
         super().__init__(objfcts=objfcts)
         self.reference_model_in_smooth = reference_model_in_smooth
+        self.alpha_pgi = alpha_pgi
 
     @property
     def alpha_pgi(self):
