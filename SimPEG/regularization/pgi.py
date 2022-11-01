@@ -692,7 +692,7 @@ class PGI(ComboObjectiveFunction):
         gmm=None,
         wiresmap=None,
         maplist=None,
-        alpha_pgi=None,
+        alpha_pgi=1.0,
         approx_hessian=True,
         approx_gradient=True,
         approx_eval=True,
@@ -756,11 +756,14 @@ class PGI(ComboObjectiveFunction):
 
     @alpha_pgi.setter
     def alpha_pgi(self, value):
-        if isinstance(value, (float, int)) and value < 0:
-            raise ValueError(
-                "Input 'alpha_pgi' value must me of type float > 0"
-                f"Value {value} of type {type(value)} provided"
-            )
+        if value is None:
+            value = 1.0
+        try:
+            value = float(value)
+        except (ValueError, TypeError):
+            raise TypeError(f"alpha_pgi must be a real number, saw type{type(value)}")
+        if value < 0:
+            raise ValueError(f"alpha_pgi must be non-negative, not {value}")
         self._alpha_pgi = value
         self._multipliers[0] = value
 
