@@ -9,7 +9,7 @@ from SimPEG.utils.code_utils import deprecate_property, validate_ndarray_with_sh
 
 from ..maps import IdentityMap, Wires
 from ..objective_function import ComboObjectiveFunction
-from ..utils import Identity, mkvc, sdiag, timeIt
+from ..utils import Identity, mkvc, sdiag, timeIt, validate_float
 from .base import RegularizationMesh, Smallness, WeightedLeastSquares
 
 ###############################################################################
@@ -756,14 +756,7 @@ class PGI(ComboObjectiveFunction):
 
     @alpha_pgi.setter
     def alpha_pgi(self, value):
-        if value is None:
-            value = 1.0
-        try:
-            value = float(value)
-        except (ValueError, TypeError):
-            raise TypeError(f"alpha_pgi must be a real number, saw type{type(value)}")
-        if value < 0:
-            raise ValueError(f"alpha_pgi must be non-negative, not {value}")
+        value = validate_float("alpha_pgi", value, min_val=0.0)
         self._alpha_pgi = value
         self._multipliers[0] = value
 
