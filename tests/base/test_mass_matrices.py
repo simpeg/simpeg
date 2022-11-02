@@ -41,9 +41,24 @@ class TestSim(unittest.TestCase):
         self.mesh = discretize.TensorMesh([5, 6, 7])
 
         self.sim = SimpleSim(self.mesh, sigmaMap=maps.ExpMap())
-        self.start_mod = np.log(1e-2 * np.ones(self.mesh.n_cells)) + np.random.randn(
-            self.mesh.n_cells
-        )
+        n_cells = self.mesh.n_cells
+        self.start_mod = np.log(np.full(n_cells, 1e-2)) + np.random.randn(n_cells)
+        self.start_diag_mod = np.r_[
+            np.log(np.full(n_cells, 1e-2)),
+            np.log(np.full(n_cells, 2e-2)),
+            np.log(np.full(n_cells, 3e-2))
+        ] + np.random.randn(3 * n_cells)
+
+        self.sim_full_aniso = SimpleSim(self.mesh, sigmaMap=maps.IdentityMap())
+
+        self.start_full_mod = np.r_[
+            np.full(n_cells, 1),
+            np.full(n_cells, 2),
+            np.full(n_cells, 3),
+            np.full(n_cells, -1),
+            np.full(n_cells, 1),
+            np.full(n_cells, -2),
+        ]
 
     def test_zero_returns(self):
         n_c = self.mesh.n_cells
@@ -339,6 +354,40 @@ class TestSim(unittest.TestCase):
         u = np.random.randn(self.mesh.n_edges)
         sim = self.sim
         x0 = self.start_mod
+
+        def f(x):
+            sim.model = x
+            d = sim.MeSigma @ u
+
+            def Jvec(v):
+                sim.model = x0
+                return sim.MeSigmaDeriv(u, v)
+
+            return d, Jvec
+
+        assert check_derivative(f, x0=x0, num=3, plotIt=False)
+
+    def test_Me_diagonal_anisotropy_deriv(self):
+        u = np.random.randn(self.mesh.n_edges)
+        sim = self.sim
+        x0 = self.start_diag_mod
+
+        def f(x):
+            sim.model = x
+            d = sim.MeSigma @ u
+
+            def Jvec(v):
+                sim.model = x0
+                return sim.MeSigmaDeriv(u, v)
+
+            return d, Jvec
+
+        assert check_derivative(f, x0=x0, num=3, plotIt=False)
+
+    def test_Me_full_anisotropy_deriv(self):
+        u = np.random.randn(self.mesh.n_edges)
+        sim = self.sim_full_aniso
+        x0 = self.start_full_mod
 
         def f(x):
             sim.model = x

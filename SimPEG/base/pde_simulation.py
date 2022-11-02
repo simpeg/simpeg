@@ -232,8 +232,9 @@ def with_property_mass_matrices(property_name):
                 return Zero()
             stash_name = f"_Mf_{arg}_deriv"
             if getattr(self, stash_name, None) is None:
+                prop = getattr(self, arg.lower())
                 M_prop_deriv = self.mesh.get_face_inner_product_deriv(
-                    np.ones(self.mesh.n_cells)
+                    model=prop
                 )(np.ones(self.mesh.n_faces)) * getattr(self, f"{arg.lower()}Deriv")
                 setattr(self, stash_name, M_prop_deriv)
             return __inner_mat_mul_op(
@@ -252,8 +253,9 @@ def with_property_mass_matrices(property_name):
                 return Zero()
             stash_name = f"_Me_{arg}_deriv"
             if getattr(self, stash_name, None) is None:
+                prop = getattr(self, arg.lower())
                 M_prop_deriv = self.mesh.get_edge_inner_product_deriv(
-                    np.ones(self.mesh.n_cells)
+                    prop
                 )(np.ones(self.mesh.n_edges)) * getattr(self, f"{arg.lower()}Deriv")
                 setattr(self, stash_name, M_prop_deriv)
             return __inner_mat_mul_op(
