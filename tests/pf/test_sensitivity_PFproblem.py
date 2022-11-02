@@ -1,4 +1,4 @@
-# from __future__ import print_function
+#
 # import unittest
 # import numpy as np
 # #from simpegPF import BaseMag
@@ -70,7 +70,7 @@
 #
 #         def dMfmuI(chi, v):
 #             self.sim.makeMassMatrices(chi)
-#             vol = self.M.vol
+#             vol = self.M.cell_volumes
 #             aveF2CC = self.M.aveF2CC
 #             MfMuI = self.sim.MfMuI.diagonal()
 #             dMfMuI = utils.sdiag(MfMuI**2)*aveF2CC.T*utils.sdiag(vol*1./mu**2)
@@ -79,7 +79,7 @@
 #
 #         d_mu = mu*0.8
 #         derChk = lambda m: [MfmuI(m), lambda mx: dMfmuI(self.chi, mx)]
-#         passed = Tests.checkDerivative(derChk, mu, num=4, dx = d_mu, plotIt=False)
+#         passed = Tests.check_derivative(derChk, mu, num=4, dx = d_mu, plotIt=False)
 #
 #         self.assertTrue(passed)
 #
@@ -87,7 +87,7 @@
 #     def test_dCdm_Av(self):
 #         print('\n >>Derivative for Cm_A.')
 #         Div = self.prob._Div
-#         vol = self.prob.mesh.vol
+#         vol = self.prob.mesh.cell_volumes
 #         aveF2CC = self.prob.mesh.aveF2CC
 #
 #         def Cm_A(chi):
@@ -121,7 +121,7 @@
 #
 #         d_chi = self.chi*0.8
 #         derChk = lambda m: [Cm_A(m), lambda mx: dCdm_A(self.chi, mx)]
-#         passed = Tests.checkDerivative(derChk, self.chi, num=4, dx = d_chi, plotIt=False)
+#         passed = Tests.check_derivative(derChk, self.chi, num=4, dx = d_chi, plotIt=False)
 #         self.assertTrue(passed)
 #
 #
@@ -130,11 +130,11 @@
 #         u = self.u
 #         Div = self.prob._Div
 #         mu = self.model*self.chi
-#         vol = self.prob.mesh.vol
+#         vol = self.prob.mesh.cell_volumes
 #         Mc = utils.sdiag(vol)
 #         aveF2CC = self.prob.mesh.aveF2CC
 #         B0 = self.prob.getB0()
-#         Dface = self.prob.mesh.faceDiv
+#         Dface = self.prob.mesh.face_divergence
 #
 #         def Cm_RHS(chi):
 #
@@ -169,7 +169,7 @@
 #
 #         d_chi = self.chi*0.8
 #         derChk = lambda m: [Cm_RHS(m), lambda mx: dCdm_RHS(self.chi, mx)]
-#         passed = Tests.checkDerivative(derChk, self.chi, num=4, dx = d_chi, plotIt=False)
+#         passed = Tests.check_derivative(derChk, self.chi, num=4, dx = d_chi, plotIt=False)
 #         self.assertTrue(passed)
 #
 #
@@ -178,11 +178,11 @@
 #     #     u = self.u
 #     #     Div = self.prob._Div
 #     #     mu = self.model*(self.chi)
-#     #     vol = self.prob.mesh.vol
+#     #     vol = self.prob.mesh.cell_volumes
 #     #     Mc = utils.sdiag(vol)
 #     #     aveF2CC = self.prob.mesh.aveF2CC
 #     #     B0 = self.prob.getB0()
-#     #     Dface = self.prob.mesh.faceDiv
+#     #     Dface = self.prob.mesh.face_divergence
 #
 #     #     def ufun(chi):
 #     #         u = self.prob.fields(chi)['u']
@@ -212,13 +212,13 @@
 #
 #     #         return dudm
 #
-#     #     d_chi = 10.0*self.chi #np.random.rand(mesh.nCz)
+#     #     d_chi = 10.0*self.chi #np.random.rand(mesh.shape_cells[2])
 #     #     d_sph_ind = PF.MagAnalytics.spheremodel(self.prob.mesh, 0., 0., -50., 50)
 #     #     d_chi[d_sph_ind] = 0.1
 #
 #     #     derChk = lambda m: [ufun(m), lambda mx: dudm(self.chi, mx)]
 #     #     # TODO: I am not sure why the order get worse as step decreases .. --;
-#     #     passed = Tests.checkDerivative(derChk, self.chi, num=2, dx = d_chi, plotIt=False)
+#     #     passed = Tests.check_derivative(derChk, self.chi, num=2, dx = d_chi, plotIt=False)
 #     #     self.assertTrue(passed)
 #
 #
@@ -227,11 +227,11 @@
 #     #     u = self.u
 #     #     Div = self.prob._Div
 #     #     mu = self.model*(self.chi)
-#     #     vol = self.prob.mesh.vol
+#     #     vol = self.prob.mesh.cell_volumes
 #     #     Mc = utils.sdiag(vol)
 #     #     aveF2CC = self.prob.mesh.aveF2CC
 #     #     B0 = self.prob.getB0()
-#     #     Dface = self.prob.mesh.faceDiv
+#     #     Dface = self.prob.mesh.face_divergence
 #
 #     #     def Bfun(chi):
 #     #         B = self.prob.fields(chi)['B']
@@ -264,13 +264,13 @@
 #
 #     #         return dBdmv
 #
-#     #     d_chi = 10.0*self.chi #np.random.rand(mesh.nCz)
+#     #     d_chi = 10.0*self.chi #np.random.rand(mesh.shape_cells[2])
 #     #     d_sph_ind = PF.MagAnalytics.spheremodel(self.prob.mesh, 0., 0., -50., 50)
 #     #     d_chi[d_sph_ind] = 0.1
 #
 #     #     derChk = lambda m: [Bfun(m), lambda mx: dBdm(self.chi, mx)]
 #     #     # TODO: I am not sure why the order get worse as step decreases .. --;
-#     #     passed = Tests.checkDerivative(derChk, self.chi, num=2, dx = d_chi, plotIt=False)
+#     #     passed = Tests.check_derivative(derChk, self.chi, num=2, dx = d_chi, plotIt=False)
 #     #     self.assertTrue(passed)
 #
 #
@@ -278,13 +278,13 @@
 #     def test_Jvec(self):
 #         print(">> Derivative test for Jvec")
 #
-#         d_chi = 10.0*self.chi #np.random.rand(mesh.nCz)
+#         d_chi = 10.0*self.chi #np.random.rand(mesh.shape_cells[2])
 #         d_sph_ind = PF.MagAnalytics.spheremodel(self.prob.mesh, 0., 0., -50., 50)
 #         d_chi[d_sph_ind] = 0.1
 #
 #         derChk = lambda m: (self.survey.dpred(m), lambda v: self.prob.Jvec(m, v))
 #         # TODO: I am not sure why the order get worse as step decreases .. --;
-#         passed = Tests.checkDerivative(derChk, self.chi, num=2, dx = d_chi, plotIt=False)
+#         passed = Tests.check_derivative(derChk, self.chi, num=2, dx = d_chi, plotIt=False)
 #         self.assertTrue(passed)
 #
 #     def test_Jtvec(self):
@@ -300,7 +300,7 @@
 #             return misfit, dmisfit
 #
 #         # TODO: I am not sure why the order get worse as step decreases .. --;
-#         passed = Tests.checkDerivative(misfit, self.chi, num=4, plotIt=False)
+#         passed = Tests.check_derivative(misfit, self.chi, num=4, plotIt=False)
 #         self.assertTrue(passed)
 #
 # if __name__ == '__main__':

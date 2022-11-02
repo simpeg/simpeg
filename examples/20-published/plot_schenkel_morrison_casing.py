@@ -44,7 +44,6 @@ If you would use this example for a code comparison, or build upon it,
 a citation would be much appreciated!
 
 """
-from __future__ import print_function
 import matplotlib.pylab as plt
 import numpy as np
 import discretize
@@ -90,8 +89,8 @@ def run(plotIt=True):
 
     # pad nicely to second cell size
     npadx1 = np.floor(np.log(csx2 / csx1) / np.log(pfx1))
-    hx1a = utils.meshTensor([(csx1, ncx1)])
-    hx1b = utils.meshTensor([(csx1, npadx1, pfx1)])
+    hx1a = utils.unpack_widths([(csx1, ncx1)])
+    hx1b = utils.unpack_widths([(csx1, npadx1, pfx1)])
     dx1 = sum(hx1a) + sum(hx1b)
     dx1 = np.floor(dx1 / csx2)
     hx1b *= (dx1 * csx2 - sum(hx1a)) / sum(hx1b)
@@ -100,8 +99,8 @@ def run(plotIt=True):
     dx2 = 300.0  # uniform mesh out to here
     ncx2 = np.ceil((dx2 - dx1) / csx2)
     npadx2 = 45
-    hx2a = utils.meshTensor([(csx2, ncx2)])
-    hx2b = utils.meshTensor([(csx2, npadx2, pfx2)])
+    hx2a = utils.unpack_widths([(csx2, ncx2)])
+    hx2b = utils.unpack_widths([(csx2, npadx2, pfx2)])
     hx = np.hstack([hx1a, hx1b, hx2a, hx2b])
 
     # z-direction
@@ -111,16 +110,18 @@ def run(plotIt=True):
     # x-direction
     ncz, npadzu, npadzd = np.int(np.ceil(np.diff(casing_z)[0] / csz)) + 10, 68, 68
     # vector of cell widths in the z-direction
-    hz = utils.meshTensor([(csz, npadzd, -1.3), (csz, ncz), (csz, npadzu, 1.3)])
+    hz = utils.unpack_widths([(csz, npadzd, -1.3), (csz, ncz), (csz, npadzu, 1.3)])
 
     # Mesh
-    mesh = discretize.CylMesh(
+    mesh = discretize.CylindricalMesh(
         [hx, 1.0, hz], [0.0, 0.0, -np.sum(hz[: npadzu + ncz - nza])]
     )
 
     print(
         "Mesh Extent xmax: {0:f},: zmin: {1:f}, zmax: {2:f}".format(
-            mesh.vectorCCx.max(), mesh.vectorCCz.min(), mesh.vectorCCz.max()
+            mesh.cell_centers_x.max(),
+            mesh.cell_centers_z.min(),
+            mesh.cell_centers_z.max(),
         )
     )
     print("Number of cells", mesh.nC)
@@ -128,7 +129,7 @@ def run(plotIt=True):
     if plotIt is True:
         fig, ax = plt.subplots(1, 1, figsize=(6, 4))
         ax.set_title("Simulation Mesh")
-        mesh.plotGrid(ax=ax)
+        mesh.plot_grid(ax=ax)
 
     # Put the model on the mesh
     sigWholespace = sigmaback * np.ones((mesh.nC))
@@ -151,7 +152,7 @@ def run(plotIt=True):
         # plot models
         fig, ax = plt.subplots(1, 1, figsize=(4, 4))
 
-        im = mesh.plotImage(np.log10(sigCasing), ax=ax)[0]
+        im = mesh.plot_image(np.log10(sigCasing), ax=ax)[0]
         im.set_clim(clim_sig)
         plt.colorbar(im, ax=ax)
         ax.grid(which="both")
@@ -194,7 +195,7 @@ def run(plotIt=True):
 
     # assemble the source
     sg = np.hstack([sg_x, sg_y, sg_z])
-    sg_p = [FDEM.Src.RawVec_e([], _, sg / mesh.area) for _ in freqs]
+    sg_p = [FDEM.Src.RawVec_e([], _, sg / mesh.face_areas) for _ in freqs]
 
     # downhole source
     dg_x = np.zeros(mesh.vnF[0], dtype=complex)
@@ -225,7 +226,7 @@ def run(plotIt=True):
 
     # assemble the source
     dg = np.hstack([dg_x, dg_y, dg_z])
-    dg_p = [FDEM.Src.RawVec_e([], _, dg / mesh.area) for _ in freqs]
+    dg_p = [FDEM.Src.RawVec_e([], _, dg / mesh.face_areas) for _ in freqs]
 
     # ------------ Problem and Survey ---------------
     survey = FDEM.Survey(sg_p + dg_p)
@@ -245,8 +246,8 @@ def run(plotIt=True):
     jn1 = fieldsCasing[sg_p, "j"]
 
     # current
-    in0 = [mesh.area * fieldsCasing[dg_p, "j"][:, i] for i in range(len(freqs))]
-    in1 = [mesh.area * fieldsCasing[sg_p, "j"][:, i] for i in range(len(freqs))]
+    in0 = [mesh.face_areas * fieldsCasing[dg_p, "j"][:, i] for i in range(len(freqs))]
+    in1 = [mesh.face_areas * fieldsCasing[sg_p, "j"][:, i] for i in range(len(freqs))]
 
     in0 = np.vstack(in0).T
     in1 = np.vstack(in1).T

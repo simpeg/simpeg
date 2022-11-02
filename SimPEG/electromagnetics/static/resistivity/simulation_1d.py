@@ -325,7 +325,7 @@ class Simulation1DLayers(BaseSimulation):
     #     """
     #     # TODO: only works isotropic sigma
     #     if getattr(self, '_t', None) is None:
-    #         self._t = self.mesh.hx[:-1]
+    #         self._t = self.mesh.h[0][:-1]
     #     return self._t
 
     @property

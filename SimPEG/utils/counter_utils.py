@@ -1,5 +1,3 @@
-from __future__ import print_function
-from six import string_types
 import time
 import numpy as np
 from functools import wraps
@@ -53,7 +51,7 @@ class Counter(object):
         prop : str
             The property being counted
         """
-        assert isinstance(prop, string_types), "The property must be a string."
+        assert isinstance(prop, str), "The property must be a string."
         if prop not in self._countList:
             self._countList[prop] = 0
         self._countList[prop] += 1
@@ -66,7 +64,7 @@ class Counter(object):
         prop : str
             The property being timed
         """
-        assert isinstance(prop, string_types), "The property must be a string."
+        assert isinstance(prop, str), "The property must be a string."
         if prop not in self._timeList:
             self._timeList[prop] = []
         self._timeList[prop].append(-time.time())
@@ -79,7 +77,7 @@ class Counter(object):
         prop : str
             The property being timed
         """
-        assert isinstance(prop, string_types), "The property must be a string."
+        assert isinstance(prop, str), "The property must be a string."
         assert prop in self._timeList, "The property must already be in the dictionary."
         self._timeList[prop][-1] += time.time()
 

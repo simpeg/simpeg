@@ -75,7 +75,9 @@ def run(
     # Obtain 2D TensorMesh
     mesh, actind = IO.set_mesh()
     # Flat topography
-    actind = utils.surface2ind_topo(mesh, np.c_[mesh.vectorCCx, mesh.vectorCCx * 0.0])
+    actind = utils.surface2ind_topo(
+        mesh, np.c_[mesh.cell_centers_x, mesh.cell_centers_x * 0.0]
+    )
     survey.drape_electrodes_on_topography(mesh, actind, option="top")
     # Use Exponential Map: m = log(rho)
     actmap = maps.InjectActiveCells(mesh, indActive=actind, valInactive=np.log(1e8))
@@ -101,12 +103,12 @@ def run(
     ax = plt.subplot(111)
     temp = rho.copy()
     temp[~actind] = np.nan
-    out = mesh.plotImage(
+    out = mesh.plot_image(
         temp,
         grid=False,
         ax=ax,
-        gridOpts={"alpha": 0.2},
-        pcolorOpts={"cmap": "viridis", "norm": colors.LogNorm(10, 1000)},
+        grid_opts={"alpha": 0.2},
+        pcolor_opts={"cmap": "viridis", "norm": colors.LogNorm(10, 1000)},
     )
     ax.plot(
         survey.unique_electrode_locations[:, 0],
@@ -125,12 +127,12 @@ def run(
     ax = plt.subplot(111)
     temp = rho0.copy()
     temp[~actind] = np.nan
-    out = mesh.plotImage(
+    out = mesh.plot_image(
         temp,
         grid=False,
         ax=ax,
-        gridOpts={"alpha": 0.2},
-        pcolorOpts={"cmap": "viridis", "norm": colors.LogNorm(10, 1000)},
+        grid_opts={"alpha": 0.2},
+        pcolor_opts={"cmap": "viridis", "norm": colors.LogNorm(10, 1000)},
     )
     ax.plot(
         survey.unique_electrode_locations[:, 0],
@@ -193,14 +195,14 @@ def run(
     rho_true = rho.copy()
     # show recovered conductivity
     fig, ax = plt.subplots(2, 1, figsize=(20, 6))
-    out1 = mesh.plotImage(
+    out1 = mesh.plot_image(
         rho_true,
-        pcolorOpts={"cmap": "viridis", "norm": colors.LogNorm(10, 1000)},
+        pcolor_opts={"cmap": "viridis", "norm": colors.LogNorm(10, 1000)},
         ax=ax[0],
     )
-    out2 = mesh.plotImage(
+    out2 = mesh.plot_image(
         rho_est,
-        pcolorOpts={"cmap": "viridis", "norm": colors.LogNorm(10, 1000)},
+        pcolor_opts={"cmap": "viridis", "norm": colors.LogNorm(10, 1000)},
         ax=ax[1],
     )
     out = [out1, out2]

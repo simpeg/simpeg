@@ -1,5 +1,3 @@
-from __future__ import print_function
-
 import unittest
 
 import discretize
@@ -85,7 +83,7 @@ class FDEM_analyticTests(unittest.TestCase):
             x = np.linspace(-55, 55, 12)
             XYZ = utils.ndgrid(x, np.r_[0], np.r_[0])
 
-            P = self.mesh.getInterpolationMat(XYZ, "Fz")
+            P = self.mesh.get_interpolation_matrix(XYZ, "Fz")
 
             ana = mu_0 * np.imag(
                 analytics.FDEM.hzAnalyticDipoleF(x, src.frequency, self.sig)
@@ -129,18 +127,18 @@ class TestDipoles(unittest.TestCase):
         csx, ncx, npadx = 5, 50, 25
         csz, ncz, npadz = 5, 50, 25
 
-        hx = utils.meshTensor([(csx, ncx), (csx, npadx, 1.3)])
-        hz = utils.meshTensor([(csz, npadz, -1.3), (csz, ncz), (csz, npadz, 1.3)])
+        hx = utils.unpack_widths([(csx, ncx), (csx, npadx, 1.3)])
+        hz = utils.unpack_widths([(csz, npadz, -1.3), (csz, ncz), (csz, npadz, 1.3)])
 
         # define the cylindrical mesh
         mesh = discretize.CylindricalMesh([hx, 1, hz], [0.0, 0.0, -hz.sum() / 2])
 
         if plotIt:
-            mesh.plotGrid()
+            mesh.plot_grid()
 
         # make sure mesh is big enough
-        self.assertTrue(mesh.hz.sum() > skdpth * 2.0)
-        self.assertTrue(mesh.hx.sum() > skdpth * 2.0)
+        self.assertTrue(mesh.h[2].sum() > skdpth * 2.0)
+        self.assertTrue(mesh.h[0].sum() > skdpth * 2.0)
 
         # set up source
         # test electric dipole
@@ -149,7 +147,7 @@ class TestDipoles(unittest.TestCase):
 
         de = np.zeros(mesh.nF, dtype=complex)
         de[s_ind] = 1.0 / csz
-        de_p = [fdem.Src.RawVec_e([], freq, de / mesh.area)]
+        de_p = [fdem.Src.RawVec_e([], freq, de / mesh.face_areas)]
 
         dm_p = [fdem.Src.MagDipole([], freq, src_loc)]
 
@@ -170,9 +168,9 @@ class TestDipoles(unittest.TestCase):
 
         rlim = [20.0, 500.0]
         # lookAtTx = de_p
-        r = mesh.vectorCCx[
-            np.argmin(np.abs(mesh.vectorCCx - rlim[0])) : np.argmin(
-                np.abs(mesh.vectorCCx - rlim[1])
+        r = mesh.cell_centers_x[
+            np.argmin(np.abs(mesh.cell_centers_x - rlim[0])) : np.argmin(
+                np.abs(mesh.cell_centers_x - rlim[1])
             )
         ]
         z = 100.0
@@ -180,7 +178,7 @@ class TestDipoles(unittest.TestCase):
         # where we choose to measure
         XYZ = utils.ndgrid(r, np.r_[0.0], np.r_[z])
 
-        Pf = mesh.getInterpolationMat(XYZ, "CC")
+        Pf = mesh.get_interpolation_matrix(XYZ, "CC")
         Zero = sp.csr_matrix(Pf.shape)
         Pfx, Pfz = sp.hstack([Pf, Zero]), sp.hstack([Zero, Pf])
 

@@ -26,7 +26,7 @@ simulate the fields at each time channel with sufficient accuracy.
 # --------------
 #
 
-from discretize import CylMesh
+from discretize import CylindricalMesh
 from discretize.utils import mkvc
 
 from SimPEG import maps
@@ -124,7 +124,7 @@ survey = tdem.Survey(source_list)
 hr = [(5.0, 40), (5.0, 15, 1.5)]
 hz = [(5.0, 15, -1.5), (5.0, 300), (5.0, 15, 1.5)]
 
-mesh = CylMesh([hr, 1, hz], x0="00C")
+mesh = CylindricalMesh([hr, 1, hz], x0="00C")
 
 ###############################################################
 # Create Conductivity/Resistivity Model and Mapping
@@ -166,7 +166,7 @@ plotting_map = maps.InjectActiveCells(mesh, ind_active, np.nan)
 log_model = np.log10(model)
 
 ax1 = fig.add_axes([0.20, 0.1, 0.54, 0.85])
-mesh.plotImage(
+mesh.plot_image(
     plotting_map * log_model,
     ax=ax1,
     grid=False,

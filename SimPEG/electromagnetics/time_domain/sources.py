@@ -4,19 +4,18 @@ import numpy as np
 from geoana.em.static import CircularLoopWholeSpace, MagneticDipoleWholeSpace
 from scipy.constants import mu_0
 
+from ...utils import Zero, sdiag
 from ...utils.code_utils import (
     deprecate_property,
-    validate_float,
-    validate_string,
-    validate_type,
-    validate_ndarray_with_shape,
-    validate_location_property,
     validate_callable,
     validate_direction,
+    validate_float,
     validate_integer,
+    validate_location_property,
+    validate_ndarray_with_shape,
+    validate_string,
+    validate_type,
 )
-
-from ...utils import sdiag, Zero
 from ..base import BaseEMSrc
 from ..utils import line_through_faces, segmented_line_current_source_term
 
@@ -878,6 +877,139 @@ class PiecewiseLinearWaveform(BaseWaveform):
         return self.times
 
 
+class ExponentialWaveform(BaseWaveform):
+    """
+    An exponential ramp-on and linear ramp-off waveform
+
+    Parameters
+    ----------
+    start_time : float, default: -1e-2
+        time at which the transmitter is turned on in units of seconds
+    peak_time : float, default: -1e-3
+        the peak time for the waveform in units of seconds
+    ramp_on_tau : float, default: 1e-3
+        time constant tau in units of seconds controlling how quickly the waveform ramps on (formula: 1-e^(-t/tau))
+
+    Examples
+    --------
+
+    >>> import matplotlib.pyplot as plt
+    >>> import numpy as np
+    >>> from SimPEG.electromagnetics import time_domain as tdem
+
+    >>> times = np.linspace(-1e-2, 1e-2, 1000)
+    >>> waveform = tdem.sources.ExponentialWaveform()
+    >>> plt.plot(times, [waveform.eval(t) for t in times])
+    >>> plt.show()
+
+    """
+
+    def __init__(
+        self,
+        start_time=-1e-2,
+        peak_time=-1e-3,
+        ramp_on_tau=1e-3,
+        off_time=0.0,
+        **kwargs,
+    ):
+        super().__init__(hasInitialFields=False, off_time=off_time, **kwargs)
+        self.start_time = start_time
+        self.peak_time = peak_time
+        self.ramp_on_tau = ramp_on_tau
+
+    @property
+    def start_time(self):
+        """Start time
+
+        Returns
+        -------
+        float
+            The start time for the Exponential waveform in units of seconds
+        """
+        return self._start_time
+
+    @start_time.setter
+    def start_time(self, value):
+        value = validate_float(
+            "start_time", value, max_val=self.off_time, inclusive_max=False
+        )
+        self._start_time = value
+
+    @property
+    def peak_time(self):
+        """Peak time
+
+        Returns
+        -------
+        float
+            The peak time for the Exponential waveform in units of seconds
+        """
+        return self._peak_time
+
+    @peak_time.setter
+    def peak_time(self, value):
+        value = validate_float(
+            "peak_time",
+            value,
+            min_val=self.start_time,
+            max_val=self.off_time,
+            inclusive_min=False,
+        )
+        self._peak_time = value
+
+    @property
+    def ramp_on_tau(self):
+        """Ramp on rate control parameter.
+
+        Time constant tau controlling how quickly the waveform ramps on in units of seconds
+
+        Returns
+        -------
+        float
+            Ramp on time constant tau
+        """
+        return self._ramp_on_tau
+
+    @ramp_on_tau.setter
+    def ramp_on_tau(self, value):
+        value = validate_float("ramp_on_tau", value, min_val=0.0, inclusive_min=False)
+        self._ramp_on_tau = value
+
+    def eval(self, time):
+        if time <= self.start_time:
+            return 0.0
+        elif time <= self.peak_time:
+            # normalize to unity at the peak time
+            return (1.0 - np.exp(-(time - self.start_time) / self.ramp_on_tau)) / (
+                1.0 - np.exp(-(self.peak_time - self.start_time) / self.ramp_on_tau)
+            )
+        elif (time < self.off_time) and (time > self.peak_time):
+            return -1.0 / (self.off_time - self.peak_time) * (time - self.off_time)
+        else:
+            return 0.0
+
+    def eval_deriv(self, time):
+        t = np.asarray(time, dtype=float)
+        out = np.zeros_like(t)
+
+        p_1 = (t <= self.peak_time) & (t >= self.start_time)
+        out[p_1] = np.exp(-(t[p_1] - self.start_time) / self.ramp_on_tau) / (
+            self.ramp_on_tau
+            * (1.0 - np.exp(-(self.peak_time - self.start_time) / self.ramp_on_tau))
+        )
+
+        p_2 = (t > self.peak_time) & (t < self.off_time)
+        out[p_2] = -1.0 / (self.off_time - self.peak_time)
+
+        if out.ndim == 0:
+            out = out.item()
+        return out
+
+    @property
+    def time_nodes(self):
+        return np.r_[self.start_time, self.peak_time, self.off_time]
+
+
 ###############################################################################
 #                                                                             #
 #                                    Sources                                  #
@@ -1190,7 +1322,7 @@ class MagDipole(BaseTDEMSrc):
 
         if simulation.mesh._meshType == "CYL":
             coordinates = "cylindrical"
-            if simulation.mesh.isSymmetric:
+            if simulation.mesh.is_symmetric:
                 return self._srcFct(gridY)[:, 1]
 
         ax = self._srcFct(gridX, coordinates)[:, 0]
@@ -1203,7 +1335,9 @@ class MagDipole(BaseTDEMSrc):
     def _getAmagnetostatic(self, simulation):
         if simulation._formulation == "EB":
             return (
-                simulation.mesh.faceDiv * simulation.MfMuiI * simulation.mesh.faceDiv.T
+                simulation.mesh.face_divergence
+                * simulation.MfMuiI
+                * simulation.mesh.face_divergence.T.tocsr()
             )
         else:
             raise NotImplementedError(
@@ -1216,10 +1350,10 @@ class MagDipole(BaseTDEMSrc):
     def _rhs_magnetostatic(self, simulation):
         if getattr(self, "_hp", None) is None:
             if simulation._formulation == "EB":
-                bp = simulation.mesh.edgeCurl * self._aSrc(simulation)
-                self._MfMuip = simulation.mesh.getFaceInnerProduct(1.0 / self.mu)
-                self._MfMuipI = simulation.mesh.getFaceInnerProduct(
-                    1.0 / self.mu, invMat=True
+                bp = simulation.mesh.edge_curl * self._aSrc(simulation)
+                self._MfMuip = simulation.mesh.get_face_inner_product(1.0 / self.mu)
+                self._MfMuipI = simulation.mesh.get_face_inner_product(
+                    1.0 / self.mu, invert_matrix=True
                 )
                 self._hp = self._MfMuip * bp
             else:
@@ -1231,7 +1365,7 @@ class MagDipole(BaseTDEMSrc):
                 )
 
         if simulation._formulation == "EB":
-            return -simulation.mesh.faceDiv * (
+            return -simulation.mesh.face_divergence * (
                 (simulation.MfMuiI - self._MfMuipI) * self._hp
             )
         else:
@@ -1252,10 +1386,10 @@ class MagDipole(BaseTDEMSrc):
 
     def _bSrc(self, simulation):
         if simulation._formulation == "EB":
-            C = simulation.mesh.edgeCurl
+            C = simulation.mesh.edge_curl
 
         elif simulation._formulation == "HJ":
-            C = simulation.mesh.edgeCurl.T
+            C = simulation.mesh.edge_curl.T
 
         return C * self._aSrc(simulation)
 
@@ -1284,7 +1418,7 @@ class MagDipole(BaseTDEMSrc):
 
         else:
             if simulation._formulation == "EB":
-                hs = simulation.mesh.faceDiv.T * self._phiSrc(simulation)
+                hs = simulation.mesh.face_divergence.T * self._phiSrc(simulation)
                 ht = self._hp + hs
                 return simulation.MfMuiI * ht
             else:
@@ -1349,11 +1483,11 @@ class MagDipole(BaseTDEMSrc):
         numpy.ndarray
             Electric source term on mesh.
         """
-        C = simulation.mesh.edgeCurl
+        C = simulation.mesh.edge_curl
         b = self._bSrc(simulation)
 
         if simulation._formulation == "EB":
-            MfMui = simulation.mesh.getFaceInnerProduct(1.0 / self.mu)
+            MfMui = simulation.mesh.get_face_inner_product(1.0 / self.mu)
 
             if (
                 self.waveform.has_initial_fields is True
@@ -1439,7 +1573,7 @@ class CircularLoop(MagDipole):
             self.n_turns = n_turns
 
         BaseTDEMSrc.__init__(
-            self, receiver_list=receiver_list, location=location, **kwargs
+            self, receiver_list=receiver_list, location=location, moment=None, **kwargs
         )
 
         self.orientation = orientation
@@ -1496,11 +1630,12 @@ class CircularLoop(MagDipole):
         return np.pi * self.radius ** 2 * self.current * self.n_turns
 
     @moment.setter
-    def moment(self):
-        warnings.warn(
-            "Moment is not set as a property. I is the product"
-            "of the loop radius and transmitter current"
-        )
+    def moment(self, value):
+        if value is not None:
+            warnings.warn(
+                "Moment is not set as a property. I is the product"
+                "of the loop radius and transmitter current"
+            )
         pass
 
     @property
@@ -1676,10 +1811,10 @@ class LineCurrent(BaseTDEMSrc):
             and on faces for 'HJ' formulation.
         """
         if simulation._formulation == "EB":
-            Grad = simulation.mesh.nodalGrad
+            Grad = simulation.mesh.nodal_gradient
             return Grad.T * self.Mejs(simulation)
         elif simulation._formulation == "HJ":
-            Div = sdiag(simulation.mesh.vol) * simulation.mesh.faceDiv
+            Div = sdiag(simulation.mesh.cell_volumes) * simulation.mesh.face_divergence
             return Div * self.Mfjs(simulation)
 
     def phiInitial(self, simulation):
@@ -1738,7 +1873,7 @@ class LineCurrent(BaseTDEMSrc):
         if self.waveform.has_initial_fields:
             if simulation._formulation == "EB":
                 phi = self.phiInitial(simulation)
-                return -simulation.mesh.nodalGrad * phi
+                return -simulation.mesh.nodal_gradient * phi
             else:
                 raise NotImplementedError
         else:
@@ -1763,7 +1898,7 @@ class LineCurrent(BaseTDEMSrc):
         """
         if self.waveform.has_initial_fields:
             edc = f[self, "e", 0]
-            Grad = simulation.mesh.nodalGrad
+            Grad = simulation.mesh.nodal_gradient
             if adjoint is False:
                 AdcDeriv_v = simulation.getAdcDeriv(edc, v, adjoint=adjoint)
                 edcDeriv = Grad * (simulation.Adcinv * AdcDeriv_v)
@@ -1791,7 +1926,10 @@ class LineCurrent(BaseTDEMSrc):
         if self.waveform.has_initial_fields:
             if simulation._formulation == "HJ":
                 phi = self.phiInitial(simulation)
-                Div = sdiag(simulation.mesh.vol) * simulation.mesh.faceDiv
+                Div = (
+                    sdiag(simulation.mesh.cell_volumes)
+                    * simulation.mesh.face_divergence
+                )
                 return -simulation.MfRhoI * (Div.T * phi)
             else:
                 raise NotImplementedError
@@ -1821,7 +1959,7 @@ class LineCurrent(BaseTDEMSrc):
             raise NotImplementedError
 
         phi = self.phiInitial(simulation)
-        Div = sdiag(simulation.mesh.vol) * simulation.mesh.faceDiv
+        Div = sdiag(simulation.mesh.cell_volumes) * simulation.mesh.face_divergence
 
         if adjoint is True:
             return -(
@@ -1840,11 +1978,13 @@ class LineCurrent(BaseTDEMSrc):
         if simulation._formulation != "HJ":
             raise NotImplementedError
 
-        vol = simulation.mesh.vol
-        Div = sdiag(vol) * simulation.mesh.faceDiv
+        vol = simulation.mesh.cell_volumes
+        Div = sdiag(vol) * simulation.mesh.face_divergence
         return (
-            simulation.mesh.edgeCurl * simulation.MeMuI * simulation.mesh.edgeCurl.T
-            - Div.T
+            simulation.mesh.edge_curl
+            * simulation.MeMuI
+            * simulation.mesh.edge_curl.T.tocsr()
+            - Div.T.tocsr()
             * sdiag(1.0 / vol * simulation.mui)
             * Div  # stabalizing term. See (Chen, Haber & Oldenburg 2002)
         )
@@ -1937,7 +2077,7 @@ class LineCurrent(BaseTDEMSrc):
             raise NotImplementedError
 
         a = self._aInitial(simulation)
-        return simulation.mesh.edgeCurl.T * a
+        return simulation.mesh.edge_curl.T * a
 
     def bInitialDeriv(self, simulation, v, adjoint=False, f=None):
         """Compute derivative of intitial magnetic flux density times a vector
@@ -1963,9 +2103,9 @@ class LineCurrent(BaseTDEMSrc):
 
         if adjoint is True:
             return self._aInitialDeriv(
-                simulation, simulation.mesh.edgeCurl * v, adjoint=True
+                simulation, simulation.mesh.edge_curl * v, adjoint=True
             )
-        return simulation.mesh.edgeCurl.T * self._aInitialDeriv(simulation, v)
+        return simulation.mesh.edge_curl.T * self._aInitialDeriv(simulation, v)
 
     def s_m(self, simulation, time):
         """Returns :class:`Zero` for ``LineCurrent``"""
@@ -2006,7 +2146,7 @@ class RawVec_Grounded(LineCurrent):
             self._Mfjs = self._s_e = s_e
 
     # def getRHSdc(self, simulation):
-    #     return sdiag(simulation.mesh.vol) * simulation.mesh.faceDiv * self._s_e
+    #     return sdiag(simulation.mesh.cell_volumes) * simulation.mesh.face_divergence * self._s_e
 
     # def phiInitial(self, simulation):
     #     if self.waveform.has_initial_fields:
@@ -2038,7 +2178,7 @@ class RawVec_Grounded(LineCurrent):
     #         return Zero()
 
     #     phi = self.phiInitial(simulation)
-    #     Div = sdiag(simulation.mesh.vol) * simulation.mesh.faceDiv
+    #     Div = sdiag(simulation.mesh.cell_volumes) * simulation.mesh.face_divergence
     #     return -simulation.MfRhoI * (Div.T * phi)
 
     # def jInitialDeriv(self, simulation, v, adjoint=False):
@@ -2049,7 +2189,7 @@ class RawVec_Grounded(LineCurrent):
     #         return Zero()
 
     #     phi = self.phiInitial(simulation)
-    #     Div = sdiag(simulation.mesh.vol) * simulation.mesh.faceDiv
+    #     Div = sdiag(simulation.mesh.cell_volumes) * simulation.mesh.face_divergence
 
     #     if adjoint is True:
     #         return -(
@@ -2063,13 +2203,13 @@ class RawVec_Grounded(LineCurrent):
     #     if simulation._fieldType not in ["j", "h"]:
     #         raise NotImplementedError
 
-    #     vol = simulation.mesh.vol
+    #     vol = simulation.mesh.cell_volumes
 
     #     return (
-    #         simulation.mesh.edgeCurl * simulation.MeMuI * simulation.mesh.edgeCurl.T
-    #         - simulation.mesh.faceDiv.T
+    #         simulation.mesh.edge_curl * simulation.MeMuI * simulation.mesh.edge_curl.T
+    #         - simulation.mesh.face_divergence.T
     #         * sdiag(1.0 / vol * simulation.mui)
-    #         * simulation.mesh.faceDiv  # stabalizing term. See (Chen, Haber & Oldenburg 2002)
+    #         * simulation.mesh.face_divergence  # stabalizing term. See (Chen, Haber & Oldenburg 2002)
     #     )
 
     # def _aInitial(self, simulation):
@@ -2119,7 +2259,7 @@ class RawVec_Grounded(LineCurrent):
     #         return Zero()
 
     #     a = self._aInitial(simulation)
-    #     return simulation.mesh.edgeCurl.T * a
+    #     return simulation.mesh.edge_curl.T * a
 
     # def bInitialDeriv(self, simulation, v, adjoint=False, f=None):
     #     if simulation._fieldType not in ["j", "h"]:
@@ -2129,8 +2269,8 @@ class RawVec_Grounded(LineCurrent):
     #         return Zero()
 
     #     if adjoint is True:
-    #         return self._aInitialDeriv(simulation, simulation.mesh.edgeCurl * v, adjoint=True)
-    #     return simulation.mesh.edgeCurl.T * self._aInitialDeriv(simulation, v)
+    #         return self._aInitialDeriv(simulation, simulation.mesh.edge_curl * v, adjoint=True)
+    #     return simulation.mesh.edge_curl.T * self._aInitialDeriv(simulation, v)
 
     # def s_e(self, simulation, time):
     #     # if simulation._fieldType == 'h':

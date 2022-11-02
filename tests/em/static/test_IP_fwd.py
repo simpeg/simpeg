@@ -1,4 +1,3 @@
-from __future__ import print_function
 import unittest
 
 import numpy as np
@@ -24,8 +23,12 @@ class IPProblemAnalyticTests(unittest.TestCase):
         hz = [(cs, npad, -1.3), (cs, 20)]
         mesh = discretize.TensorMesh([hx, hy, hz], x0="CCN")
 
-        x = mesh.vectorCCx[(mesh.vectorCCx > -80.0) & (mesh.vectorCCx < 80.0)]
-        y = mesh.vectorCCy[(mesh.vectorCCy > -80.0) & (mesh.vectorCCy < 80.0)]
+        x = mesh.cell_centers_x[
+            (mesh.cell_centers_x > -80.0) & (mesh.cell_centers_x < 80.0)
+        ]
+        y = mesh.cell_centers_y[
+            (mesh.cell_centers_y > -80.0) & (mesh.cell_centers_y < 80.0)
+        ]
         Aloc = np.r_[-100.0, 0.0, 0.0]
         Bloc = np.r_[100.0, 0.0, 0.0]
         M = utils.ndgrid(x - 12.5, y, np.r_[0.0])
@@ -120,8 +123,12 @@ class ApparentChargeability3DTest(unittest.TestCase):
         hz = [(cs, npad, -1.3), (cs, 20)]
         mesh = discretize.TensorMesh([hx, hy, hz], x0="CCN")
 
-        x = mesh.vectorCCx[(mesh.vectorCCx > -80.0) & (mesh.vectorCCx < 80.0)]
-        y = mesh.vectorCCy[(mesh.vectorCCy > -80.0) & (mesh.vectorCCy < 80.0)]
+        x = mesh.cell_centers_x[
+            (mesh.cell_centers_x > -80.0) & (mesh.cell_centers_x < 80.0)
+        ]
+        y = mesh.cell_centers_y[
+            (mesh.cell_centers_y > -80.0) & (mesh.cell_centers_y < 80.0)
+        ]
         Aloc = np.r_[-100.0, 0.0, 0.0]
         Bloc = np.r_[100.0, 0.0, 0.0]
         M = utils.ndgrid(x - 12.5, y, np.r_[0.0])

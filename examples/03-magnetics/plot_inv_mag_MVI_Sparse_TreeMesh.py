@@ -194,7 +194,7 @@ def plotVectorSectionsOctree(
         axs = plt.subplot(111)
 
     if fill:
-        temp_mesh.plotImage(amp, ax=axs, clim=[vmin, vmax], grid=True)
+        temp_mesh.plot_image(amp, ax=axs, clim=[vmin, vmax], grid=True)
 
     axs.quiver(
         temp_mesh.gridCC[:, 0],

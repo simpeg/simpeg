@@ -1,4 +1,3 @@
-from __future__ import print_function
 import unittest
 
 from discretize import TensorMesh
@@ -27,8 +26,12 @@ class DC_CC_MultipoleFullspaceTests(unittest.TestCase):
         sigma = np.ones(mesh.nC) * 1e-2
 
         # Set up survey parameters for numeric solution
-        x = mesh.vectorCCx[(mesh.vectorCCx > -75.0) & (mesh.vectorCCx < 75.0)]
-        y = mesh.vectorCCy[(mesh.vectorCCy > -75.0) & (mesh.vectorCCy < 75.0)]
+        x = mesh.cell_centers_x[
+            (mesh.cell_centers_x > -75.0) & (mesh.cell_centers_x < 75.0)
+        ]
+        y = mesh.cell_centers_y[
+            (mesh.cell_centers_y > -75.0) & (mesh.cell_centers_y < 75.0)
+        ]
 
         Aloc = np.r_[2.0, 0.0, 0.0]
         Bloc = np.r_[1.0, 0.0, 0.0]
@@ -200,8 +203,8 @@ class DC_N_MultipoleFullspaceTests(unittest.TestCase):
         sigma = np.ones(mesh.nC) * 1e-2
 
         # Set up survey parameters for numeric solution
-        x = mesh.vectorNx[(mesh.vectorNx > -75.0) & (mesh.vectorNx < 75.0)]
-        y = mesh.vectorNy[(mesh.vectorNy > -75.0) & (mesh.vectorNy < 75.0)]
+        x = mesh.nodes_x[(mesh.nodes_x > -75.0) & (mesh.nodes_x < 75.0)]
+        y = mesh.nodes_y[(mesh.nodes_y > -75.0) & (mesh.nodes_y < 75.0)]
 
         Aloc = np.r_[2.25, 0.0, 0.0]
         Bloc = np.r_[1.25, 0.0, 0.0]

@@ -4,6 +4,8 @@
 SimPEG 0.14.3 Release Notes
 ===========================
 
+November 19th, 2020
+
 This release mostly contains bug fixes and/or smaller additions to the code base
 that add additional functionality. We apologize for the delay caused by testing
 difficulties.

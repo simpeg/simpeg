@@ -237,7 +237,7 @@ class Simulation3DIntegral(BasePFSimulation):
 
         return amplitude
 
-    def evaluate_integral(self, receiver_location, components, model=None):
+    def evaluate_integral(self, receiver_location, components):
         """
         Load in the active nodes of a tensor mesh and computes the magnetic
         forward relation between a cuboid and a given observation
@@ -322,7 +322,7 @@ class Simulation3DIntegral(BasePFSimulation):
 
         rows = {}
         M = self.M
-        for component in components:
+        for component in set(components):
             if component == "bx":
                 vals_x = node_evals["gxx"]
                 vals_y = node_evals["gxy"]
@@ -465,11 +465,13 @@ class Simulation3DDifferential(BaseMagneticPDESimulation):
     def __init__(self, mesh, survey=None, **kwargs):
         super().__init__(mesh, survey=survey, **kwargs)
 
-        Pbc, Pin, self._Pout = self.mesh.getBCProjWF("neumann", discretization="CC")
+        Pbc, Pin, self._Pout = self.mesh.get_BC_projections(
+            "neumann", discretization="CC"
+        )
 
-        Dface = self.mesh.faceDiv
-        Mc = sdiag(self.mesh.vol)
-        self._Div = Mc * Dface * Pin.T * Pin
+        Dface = self.mesh.face_divergence
+        Mc = sdiag(self.mesh.cell_volumes)
+        self._Div = Mc * Dface * Pin.T.tocsr() * Pin
 
     @property
     def survey(self):
@@ -503,12 +505,12 @@ class Simulation3DDifferential(BaseMagneticPDESimulation):
 
     def makeMassMatrices(self, m):
         mu = self.muMap * m
-        self._MfMui = self.mesh.getFaceInnerProduct(1.0 / mu) / self.mesh.dim
-        # self._MfMui = self.mesh.getFaceInnerProduct(1./mu)
+        self._MfMui = self.mesh.get_face_inner_product(1.0 / mu) / self.mesh.dim
+        # self._MfMui = self.mesh.get_face_inner_product(1./mu)
         # TODO: this will break if tensor mu
         self._MfMuI = sdiag(1.0 / self._MfMui.diagonal())
-        self._MfMu0 = self.mesh.getFaceInnerProduct(1.0 / mu_0) / self.mesh.dim
-        # self._MfMu0 = self.mesh.getFaceInnerProduct(1/mu_0)
+        self._MfMu0 = self.mesh.get_face_inner_product(1.0 / mu_0) / self.mesh.dim
+        # self._MfMu0 = self.mesh.get_face_inner_product(1/mu_0)
 
     @utils.requires("survey")
     def getB0(self):
@@ -552,7 +554,7 @@ class Simulation3DDifferential(BaseMagneticPDESimulation):
             \\mathbf{A} =  \\Div(\\MfMui)^{-1}\\Div^{T}
 
         """
-        return self._Div * self.MfMuI * self._Div.T
+        return self._Div * self.MfMuI * self._Div.T.tocsr()
 
     def fields(self, m):
         """
@@ -660,7 +662,7 @@ class Simulation3DDifferential(BaseMagneticPDESimulation):
         dmu_dm = self.muDeriv
         # dchidmu = sdiag(1 / mu_0 * np.ones(self.mesh.nC))
 
-        vol = self.mesh.vol
+        vol = self.mesh.cell_volumes
         Div = self._Div
         P = self.survey.projectFieldsDeriv(B)  # Projection matrix
         B0 = self.getB0()
@@ -736,9 +738,9 @@ class Simulation3DDifferential(BaseMagneticPDESimulation):
         dmu_dm = self.mapping.deriv(m)
         # dchidmu = sdiag(1 / mu_0 * np.ones(self.mesh.nC))
 
-        vol = self.mesh.vol
+        vol = self.mesh.cell_volumes
         Div = self._Div
-        Dface = self.mesh.faceDiv
+        Dface = self.mesh.face_divergence
         P = self.survey.projectFieldsDeriv(B)  # Projection matrix
         B0 = self.getB0()
 
@@ -796,7 +798,7 @@ class Simulation3DDifferential(BaseMagneticPDESimulation):
     @property
     def Qfx(self):
         if getattr(self, "_Qfx", None) is None:
-            self._Qfx = self.mesh.getInterpolationMat(
+            self._Qfx = self.mesh.get_interpolation_matrix(
                 self.survey.receiver_locations, "Fx"
             )
         return self._Qfx
@@ -804,7 +806,7 @@ class Simulation3DDifferential(BaseMagneticPDESimulation):
     @property
     def Qfy(self):
         if getattr(self, "_Qfy", None) is None:
-            self._Qfy = self.mesh.getInterpolationMat(
+            self._Qfy = self.mesh.get_interpolation_matrix(
                 self.survey.receiver_locations, "Fy"
             )
         return self._Qfy
@@ -812,7 +814,7 @@ class Simulation3DDifferential(BaseMagneticPDESimulation):
     @property
     def Qfz(self):
         if getattr(self, "_Qfz", None) is None:
-            self._Qfz = self.mesh.getInterpolationMat(
+            self._Qfz = self.mesh.get_interpolation_matrix(
                 self.survey.receiver_locations, "Fz"
             )
         return self._Qfz

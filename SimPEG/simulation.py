@@ -1,5 +1,4 @@
-from __future__ import print_function
-
+import os
 import inspect
 import numpy as np
 import warnings
@@ -170,7 +169,7 @@ class BaseSimulation(props.HasModel):
         survey=None,
         solver=None,
         solver_opts=None,
-        sensitivity_path="./sensitivity/",
+        sensitivity_path=os.path.join(".", "sensitivity"),
         counter=None,
         verbose=False,
         **kwargs,
@@ -631,8 +630,8 @@ class ExponentialSinusoidSimulation(LinearSimulation):
         """
         Kernel functions for the decaying oscillating exponential functions.
         """
-        return np.exp(self.p * self.jk[k] * self.mesh.vectorCCx) * np.cos(
-            np.pi * self.q * self.jk[k] * self.mesh.vectorCCx
+        return np.exp(self.p * self.jk[k] * self.mesh.cell_centers_x) * np.cos(
+            np.pi * self.q * self.jk[k] * self.mesh.cell_centers_x
         )
 
     @property
@@ -644,7 +643,7 @@ class ExponentialSinusoidSimulation(LinearSimulation):
             G = np.empty((self.n_kernels, self.mesh.nC))
 
             for i in range(self.n_kernels):
-                G[i, :] = self.g(i) * self.mesh.hx
+                G[i, :] = self.g(i) * self.mesh.h[0]
 
             self._G = G
         return self._G

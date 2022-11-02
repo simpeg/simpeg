@@ -41,7 +41,7 @@ def run(plotIt=True):
 
     if plotIt is True:
         fig, ax = plt.subplots(1, 1, figsize=(4, 6))
-        mesh.plotImage(rho, ax=ax)
+        mesh.plot_image(rho, ax=ax)
 
 
 if __name__ == "__main__":

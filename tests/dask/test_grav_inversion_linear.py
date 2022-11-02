@@ -1,4 +1,3 @@
-from __future__ import print_function
 import unittest
 import numpy as np
 import discretize
@@ -55,7 +54,7 @@ class GravInvLinProblemTest(unittest.TestCase):
         X, Y = np.meshgrid(xr, yr)
 
         # Move the observation points 5m above the topo
-        Z = -np.exp((X ** 2 + Y ** 2) / 75 ** 2) + self.mesh.vectorNz[-1] + 5.0
+        Z = -np.exp((X ** 2 + Y ** 2) / 75 ** 2) + self.mesh.nodes_z[-1] + 5.0
 
         # Create a MAGsurvey
         locXYZ = np.c_[utils.mkvc(X.T), utils.mkvc(Y.T), utils.mkvc(Z.T)]
@@ -120,9 +119,9 @@ class GravInvLinProblemTest(unittest.TestCase):
         # import matplotlib.pyplot as plt
         # plt.figure()
         # ax = plt.subplot(1, 2, 1)
-        # self.mesh.plotSlice(self.actvMap*mrec, ax=ax, clim=(0, 0.5))
+        # self.mesh.plot_slice(self.actvMap*mrec, ax=ax, clim=(0, 0.5))
         # ax = plt.subplot(1, 2, 2)
-        # self.mesh.plotSlice(self.actvMap*self.model, ax=ax, clim=(0, 0.5))
+        # self.mesh.plot_slice(self.actvMap*self.model, ax=ax, clim=(0, 0.5))
         # plt.show()
         print(f"RESIDUAL !! {residual}")
         self.assertTrue(residual < 0.05)

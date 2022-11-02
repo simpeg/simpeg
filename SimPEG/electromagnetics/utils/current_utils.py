@@ -301,7 +301,7 @@ def _poly_line_source_tree(mesh, locs):
     dim = mesh.dim
     for ip in range(nP + 1):
         A = points[0]
-        xF = np.array([mesh.vectorNx[-1], mesh.vectorNy[-1], mesh.vectorNz[-1]])
+        xF = np.array([mesh.nodes_x[-1], mesh.nodes_y[-1], mesh.nodes_z[-1]])
         if np.any(A < x0) or np.any(A > xF):
             msg = "Polygon vertex ({.1f}, {.1f}, {.1f}) is outside the mesh".format(*A)
             raise ValueError(msg)
@@ -454,8 +454,8 @@ def line_through_faces(
             if not (np.allclose(loca[1], locb[1]) and np.allclose(loca[2], locb[2])):
                 not_aligned_error(i)
 
-            ylocs = loca[1] + mesh.hy.min() / 4 * np.r_[-1, 1]
-            zlocs = loca[2] + mesh.hz.min() / 4 * np.r_[-1, 1]
+            ylocs = loca[1] + mesh.h[1].min() / 4 * np.r_[-1, 1]
+            zlocs = loca[2] + mesh.h[2].min() / 4 * np.r_[-1, 1]
 
         elif dimension == 1:
             ylocs = np.r_[locations[i, 1], locations[i + 1, 1]]
@@ -463,8 +463,8 @@ def line_through_faces(
             if not (np.allclose(loca[0], locb[0]) and np.allclose(loca[2], locb[2])):
                 not_aligned_error(i)
 
-            xlocs = loca[0] + mesh.hx.min() / 4 * np.r_[-1, 1]
-            zlocs = loca[2] + mesh.hz.min() / 4 * np.r_[-1, 1]
+            xlocs = loca[0] + mesh.h[0].min() / 4 * np.r_[-1, 1]
+            zlocs = loca[2] + mesh.h[2].min() / 4 * np.r_[-1, 1]
 
         elif dimension == 2:
             zlocs = np.r_[locations[i, 2], locations[i + 1, 2]]
@@ -472,8 +472,8 @@ def line_through_faces(
             if not (np.allclose(loca[0], locb[0]) and np.allclose(loca[1], locb[1])):
                 not_aligned_error(i)
 
-            xlocs = loca[0] + mesh.hx.min() / 4 * np.r_[-1, 1]
-            ylocs = loca[1] + mesh.hy.min() / 4 * np.r_[-1, 1]
+            xlocs = loca[0] + mesh.h[0].min() / 4 * np.r_[-1, 1]
+            ylocs = loca[1] + mesh.h[1].min() / 4 * np.r_[-1, 1]
 
         src_inds = (
             (grid[:, 0] >= xlocs.min())
@@ -487,11 +487,11 @@ def line_through_faces(
         current[current_inds][src_inds] = direction
 
     if normalize_by_area:
-        current = current / mesh.area
+        current = current / mesh.face_areas
 
     # check that there is only a divergence at the ends if not a loop
     if check_divergence:
-        div = mesh.vol * mesh.face_divergence * current
+        div = mesh.cell_volumes * mesh.face_divergence * current
         nonzero = np.abs(div) > tolerance_divergence
 
         # check if the source is a loop or grounded

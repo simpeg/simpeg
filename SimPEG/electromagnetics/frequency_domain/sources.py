@@ -8,10 +8,10 @@ from geoana.em.static import MagneticDipoleWholeSpace, CircularLoopWholeSpace
 from ...utils import (
     mkvc,
     Zero,
+    sdiag,
     validate_float,
     validate_location_property,
     validate_ndarray_with_shape,
-    validate_type,
     validate_direction,
     validate_integer,
 )
@@ -496,18 +496,18 @@ class MagDipole(BaseFDEMSrc):
             gridX = simulation.mesh.gridEx
             gridY = simulation.mesh.gridEy
             gridZ = simulation.mesh.gridEz
-            C = simulation.mesh.edgeCurl
+            C = simulation.mesh.edge_curl
 
         elif formulation == "HJ":
             gridX = simulation.mesh.gridFx
             gridY = simulation.mesh.gridFy
             gridZ = simulation.mesh.gridFz
-            C = simulation.mesh.edgeCurl.T
+            C = simulation.mesh.edge_curl.T
 
         if simulation.mesh._meshType == "CYL":
             coordinates = "cylindrical"
 
-            if simulation.mesh.isSymmetric is True:
+            if simulation.mesh.is_symmetric is True:
                 if not (np.linalg.norm(self.orientation - np.r_[0.0, 0.0, 1.0]) < 1e-6):
                     raise AssertionError(
                         "for cylindrical symmetry, the dipole must be oriented"
@@ -596,12 +596,14 @@ class MagDipole(BaseFDEMSrc):
 
             if formulation == "EB":
                 mui_s = simulation.mui - 1.0 / self.mu
-                MMui_s = simulation.mesh.getFaceInnerProduct(mui_s)
-                C = simulation.mesh.edgeCurl
+                MMui_s = simulation.mesh.get_face_inner_product(mui_s)
+                C = simulation.mesh.edge_curl
             elif formulation == "HJ":
                 mu_s = simulation.mu - self.mu
-                MMui_s = simulation.mesh.getEdgeInnerProduct(mu_s, invMat=True)
-                C = simulation.mesh.edgeCurl.T
+                MMui_s = simulation.mesh.get_edge_inner_product(
+                    mu_s, invert_matrix=True
+                )
+                C = simulation.mesh.edge_curl.T
 
             return -C.T * (MMui_s * self.bPrimary(simulation))
 
@@ -614,12 +616,12 @@ class MagDipole(BaseFDEMSrc):
             if formulation == "EB":
                 mui_s = simulation.mui - 1.0 / self.mu
                 MMui_sDeriv = (
-                    simulation.mesh.getFaceInnerProductDeriv(mui_s)(
+                    simulation.mesh.get_face_inner_product_deriv(mui_s)(
                         self.bPrimary(simulation)
                     )
                     * simulation.muiDeriv
                 )
-                C = simulation.mesh.edgeCurl
+                C = simulation.mesh.edge_curl
 
                 if adjoint:
                     return -MMui_sDeriv.T * (C * v)
@@ -630,8 +632,10 @@ class MagDipole(BaseFDEMSrc):
                 return Zero()
                 # raise NotImplementedError
                 mu_s = simulation.mu - self.mu
-                MMui_s = simulation.mesh.getEdgeInnerProduct(mu_s, invMat=True)
-                C = simulation.mesh.edgeCurl.T
+                MMui_s = simulation.mesh.get_edge_inner_product(
+                    mu_s, invert_matrix=True
+                )
+                C = simulation.mesh.edge_curl.T
 
                 return -C.T * (MMui_s * self.bPrimary(simulation))
 
@@ -705,7 +709,7 @@ class MagDipole_Bfield(MagDipole):
 
         if simulation.mesh._meshType == "CYL":
             coordinates = "cylindrical"
-            if simulation.mesh.isSymmetric:
+            if simulation.mesh.is_symmetric:
                 bx = self._srcFct(gridX)[:, 0]
                 bz = self._srcFct(gridZ)[:, 2]
                 b = np.concatenate((bx, bz))
@@ -773,6 +777,7 @@ class CircularLoop(MagDipole):
             receiver_list=receiver_list,
             frequency=frequency,
             location=location,
+            moment=None,
             **kwargs,
         )
 
@@ -830,10 +835,11 @@ class CircularLoop(MagDipole):
 
     @moment.setter
     def moment(self, value):
-        warnings.warn(
-            "Moment is not set as a property. I is the product"
-            "of the loop radius and transmitter current"
-        )
+        if value is not None:
+            warnings.warn(
+                "Moment is not set as a property. I is the product"
+                "of the loop radius and transmitter current"
+            )
         pass
 
     @property
@@ -880,7 +886,7 @@ class PrimSecSigma(BaseFDEMSrc):
 
     def s_e(self, simulation):
         return (
-            simulation.MeSigma - simulation.mesh.getEdgeInnerProduct(self.sigBack)
+            simulation.MeSigma - simulation.mesh.get_edge_inner_product(self.sigBack)
         ) * self.ePrimary(simulation)
 
     def s_eDeriv(self, simulation, v, adjoint=False):
@@ -960,11 +966,11 @@ class PrimSecMappedSigma(BaseFDEMSrc):
 
         # get interpolation mat from primary mesh to secondary mesh
         if self.primarySimulation.mesh._meshType == "CYL":
-            return self.primarySimulation.mesh.getInterpolationMatCartMesh(
-                simulation.mesh, locType=locType, locTypeTo=locTypeTo
+            return self.primarySimulation.mesh.get_interpolation_matrix_cartesian_mesh(
+                simulation.mesh, location_type=locType, location_type_to=locTypeTo
             )
-        return self.primarySimulation.mesh.getInterploationMat(
-            simulation.mesh, locType=locType, locTypeTo=locTypeTo
+        return self.primarySimulation.mesh.getInterplotionMat(
+            simulation.mesh, location_type=locType, location_type_to=locTypeTo
         )
 
         # return self.__ProjPrimary
@@ -1143,7 +1149,7 @@ class PrimSecMappedSigma(BaseFDEMSrc):
         sigmaPrimary = self.map2meshSecondary * simulation.model
 
         return mkvc(
-            (simulation.MeSigma - simulation.mesh.getEdgeInnerProduct(sigmaPrimary))
+            (simulation.MeSigma - simulation.mesh.get_edge_inner_product(sigmaPrimary))
             * self.ePrimary(simulation, f=f)
         )
 
@@ -1160,14 +1166,16 @@ class PrimSecMappedSigma(BaseFDEMSrc):
                 simulation.MeSigmaDeriv(ePrimary, v, adjoint)
                 - (
                     sigmaPrimaryDeriv.T
-                    * simulation.mesh.getEdgeInnerProductDeriv(sigmaPrimary)(ePrimary).T
+                    * simulation.mesh.get_edge_inner_product_deriv(sigmaPrimary)(
+                        ePrimary
+                    ).T
                     * v
                 )
                 + self.ePrimaryDeriv(
                     simulation,
                     (
                         simulation.MeSigma
-                        - simulation.mesh.getEdgeInnerProduct(sigmaPrimary)
+                        - simulation.mesh.get_edge_inner_product(sigmaPrimary)
                     ).T
                     * v,
                     adjoint=adjoint,
@@ -1177,9 +1185,12 @@ class PrimSecMappedSigma(BaseFDEMSrc):
 
         return (
             simulation.MeSigmaDeriv(ePrimary, v, adjoint)
-            - simulation.mesh.getEdgeInnerProductDeriv(sigmaPrimary)(ePrimary)
+            - simulation.mesh.get_edge_inner_product_deriv(sigmaPrimary)(ePrimary)
             * (sigmaPrimaryDeriv * v)
-            + (simulation.MeSigma - simulation.mesh.getEdgeInnerProduct(sigmaPrimary))
+            + (
+                simulation.MeSigma
+                - simulation.mesh.get_edge_inner_product(sigmaPrimary)
+            )
             * self.ePrimaryDeriv(simulation, v, adjoint=adjoint, f=f)
         )
 
@@ -1321,10 +1332,10 @@ class LineCurrent(BaseFDEMSrc):
             and on faces for 'HJ' formulation.
         """
         if simulation._formulation == "EB":
-            Grad = simulation.mesh.nodalGrad
+            Grad = simulation.mesh.nodal_gradient
             return Grad.T * self.Mejs(simulation)
         elif simulation._formulation == "HJ":
-            Div = sdiag(simulation.mesh.vol) * simulation.mesh.faceDiv
+            Div = sdiag(simulation.mesh.cell_volumes) * simulation.mesh.face_divergence
             return Div * self.Mfjs(simulation)
 
     def s_m(self, simulation):

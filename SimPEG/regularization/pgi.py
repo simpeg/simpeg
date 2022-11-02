@@ -1,24 +1,16 @@
 from __future__ import annotations
-import numpy as np
-import scipy.sparse as sp
-import warnings
 
 import copy
-from ..utils import (
-    sdiag,
-    mkvc,
-    timeIt,
-    Identity,
-)
+import warnings
+
+import numpy as np
+import scipy.sparse as sp
+from SimPEG.utils.code_utils import deprecate_property, validate_ndarray_with_shape
+
 from ..maps import IdentityMap, Wires
 from ..objective_function import ComboObjectiveFunction
-from .base import (
-    WeightedLeastSquares,
-    RegularizationMesh,
-    Smallness,
-)
-
-from SimPEG.utils.code_utils import deprecate_property, validate_ndarray_with_shape
+from ..utils import Identity, mkvc, sdiag, timeIt, validate_float
+from .base import RegularizationMesh, Smallness, WeightedLeastSquares
 
 ###############################################################################
 #                                                                             #
@@ -691,7 +683,6 @@ class PGI(ComboObjectiveFunction):
         self,
         mesh,
         gmmref,
-        alpha_s=None,
         alpha_x=None,
         alpha_y=None,
         alpha_z=None,
@@ -701,7 +692,7 @@ class PGI(ComboObjectiveFunction):
         gmm=None,
         wiresmap=None,
         maplist=None,
-        alpha_pgi=None,
+        alpha_pgi=1.0,
         approx_hessian=True,
         approx_gradient=True,
         approx_eval=True,
@@ -754,6 +745,7 @@ class PGI(ComboObjectiveFunction):
 
         super().__init__(objfcts=objfcts)
         self.reference_model_in_smooth = reference_model_in_smooth
+        self.alpha_pgi = alpha_pgi
 
     @property
     def alpha_pgi(self):
@@ -764,11 +756,7 @@ class PGI(ComboObjectiveFunction):
 
     @alpha_pgi.setter
     def alpha_pgi(self, value):
-        if isinstance(value, (float, int)) and value < 0:
-            raise ValueError(
-                "Input 'alpha_pgi' value must me of type float > 0"
-                f"Value {value} of type {type(value)} provided"
-            )
+        value = validate_float("alpha_pgi", value, min_val=0.0)
         self._alpha_pgi = value
         self._multipliers[0] = value
 
@@ -850,5 +838,7 @@ class PGI(ComboObjectiveFunction):
         reference_model,
         "mref",
         "reference_model",
+        "0.19.0",
+        future_warn=True,
         error=False,
     )

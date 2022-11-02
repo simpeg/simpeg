@@ -36,7 +36,7 @@ def setupProblem(
 ):
     rxcomp = ["real", "imag"]
 
-    loc = utils.ndgrid([mesh.vectorCCx, np.r_[0.0], mesh.vectorCCz])
+    loc = utils.ndgrid([mesh.cell_centers_x, np.r_[0.0], mesh.cell_centers_z])
 
     if prbtype in ["ElectricField", "MagneticFluxDensity"]:
         rxfields_y = ["ElectricField", "CurrentDensity"]

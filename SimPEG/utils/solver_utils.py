@@ -1,4 +1,3 @@
-from __future__ import print_function
 import numpy as np
 from scipy.sparse import linalg
 from .mat_utils import mkvc
