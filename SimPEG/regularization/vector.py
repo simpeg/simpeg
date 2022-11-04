@@ -54,18 +54,18 @@ class CrossReferenceRegularization(Smallness, BaseVectorRegularization):
         if value.shape != (nC, mesh.dim):
             if value.shape == (mesh.dim,):
                 # expand it out for each mesh cell
-                ref_dir = np.tile(value, (nC, 1))
+                value = np.tile(value, (nC, 1))
             else:
                 raise ValueError(f"ref_dir must be shape {(nC, mesh.dim)}")
-        self._ref_dir = ref_dir
+        self._ref_dir = value
 
-        R0 = sp.diags(ref_dir[:, 0])
-        R1 = sp.diags(ref_dir[:, 1])
-        if ref_dir.shape[1] == 2:
+        R0 = sp.diags(value[:, 0])
+        R1 = sp.diags(value[:, 1])
+        if value.shape[1] == 2:
             X = sp.bmat([[R1, -R0]])
-        elif ref_dir.shape[1] == 3:
+        elif value.shape[1] == 3:
             Z = sp.csr_matrix((nC, nC))
-            R2 = sp.diags(ref_dir[:, 2])
+            R2 = sp.diags(value[:, 2])
             X = sp.bmat(
                 [
                     [Z, R2, -R1],
