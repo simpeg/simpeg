@@ -10,19 +10,19 @@ properties are linked by polynomial relationships that change between rock units
 """
 
 import discretize as Mesh
+import matplotlib.pyplot as plt
+import numpy as np
 from SimPEG import (
-    simulation,
-    maps,
     data_misfit,
     directives,
-    optimization,
-    regularization,
     inverse_problem,
     inversion,
+    maps,
+    optimization,
+    regularization,
+    simulation,
     utils,
 )
-import numpy as np
-import matplotlib.pyplot as plt
 
 # Random seed for reproductibility
 np.random.seed(1)
