@@ -1208,9 +1208,13 @@ class LineCurrent(BaseFDEMSrc):
         List of FDEM receivers
     frequency : float
         Source frequency
-    locations : (n,3) numpy.ndarray
+    location : (n,3) numpy.ndarray
         Array defining the node locations for the wire path. For inductive sources,
         you must close the loop.
+    current : float, optional
+        Strength of the current.
+    mu : float, optional
+        Magnetic permeability to use.
     """
 
     def __init__(
