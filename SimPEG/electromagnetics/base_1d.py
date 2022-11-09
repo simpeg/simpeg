@@ -121,7 +121,7 @@ class BaseEM1DSimulation(BaseSimulation):
         self.topo = topo
 
         for i_src, src in enumerate(self.survey.source_list):
-            if np.any(src.location[2] < self.topo[2]):
+            if np.any(src.location[..., 2] < self.topo[2]):
                 raise ValueError("Source must be located above the topography")
             for i_rx, rx in enumerate(src.receiver_list):
                 if rx.use_source_receiver_offset:
@@ -398,7 +398,7 @@ class BaseEM1DSimulation(BaseSimulation):
                     weights.append(w * dl / 2)
                 # store these for future evalution of integrals
                 xyks = np.vstack(xyks)
-                weights = np.hstack(weights)
+                weights = np.hstack(weights) * src.current
                 thetas = -np.hstack(thetas)
 
             for i_rx, rx in enumerate(src.receiver_list):
