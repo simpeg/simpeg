@@ -1701,9 +1701,15 @@ class LineCurrent(BaseTDEMSrc):
         **kwargs,
     ):
 
-        BaseTDEMSrc.__init__(
-            self, receiver_list=receiver_list, location=location, **kwargs
+        super().__init__(
+            receiver_list=receiver_list, location=location, **kwargs
         )
+        for rx in self.receiver_list:
+            if getattr(rx, 'use_source_receiver_offset', False):
+                raise ValueError(
+                    "use_source_receiver_offset is ambiguous for a line current and is "
+                    "not supported."
+                )
 
         self.integrate = False
         self.current = current
