@@ -398,7 +398,7 @@ class BaseEM1DSimulation(BaseSimulation):
                     weights.append(w * dl / 2)
                 # store these for future evalution of integrals
                 xyks = np.vstack(xyks)
-                weights = np.hstack(weights)
+                weights = np.hstack(weights) * src.current
                 thetas = -np.hstack(thetas)
 
             for i_rx, rx in enumerate(src.receiver_list):
