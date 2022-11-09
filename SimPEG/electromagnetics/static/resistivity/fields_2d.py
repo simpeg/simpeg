@@ -164,23 +164,31 @@ class Fields2DCellCentered(Fields2D):
     def _j(self, phiSolution, source_list):
         phi_ky = phiSolution
         sim = self.simulation
-        if sim.bc_type == 'Dirichlet':
+        if sim.bc_type == "Dirichlet":
             phi = self._phi(phi_ky, source_list)
             return sim.MfRhoI @ (sim.Grad @ phi)
         j = np.zeros((sim.mesh.n_faces, phi_ky.shape[1]))
         for i, (ky, w) in enumerate(zip(sim._quad_points, sim._quad_weights)):
-            j += sim.MfRhoI * (sim.Grad @ phi_ky[..., i] - sim._MBC[ky] @ phi_ky[..., i]) * w
+            j += (
+                sim.MfRhoI
+                * (sim.Grad @ phi_ky[..., i] - sim._MBC[ky] @ phi_ky[..., i])
+                * w
+            )
         return j
 
     def _e(self, phiSolution, source_list):
         phi_ky = phiSolution
         sim = self.simulation
-        if sim.bc_type == 'Dirichlet':
+        if sim.bc_type == "Dirichlet":
             phi = self._phi(phi_ky, source_list)
             return sim.MfI @ (sim.Grad @ phi)
         e = np.zeros((sim.mesh.n_faces, phi_ky.shape[1]))
         for i, (ky, w) in enumerate(zip(sim._quad_points, sim._quad_weights)):
-            e += sim.MfI * (sim.Grad @ phi_ky[..., i] - sim._MBC[ky] @ phi_ky[..., i]) * w
+            e += (
+                sim.MfI
+                * (sim.Grad @ phi_ky[..., i] - sim._MBC[ky] @ phi_ky[..., i])
+                * w
+            )
         return e
 
     def _charge(self, phiSolution, source_list):
