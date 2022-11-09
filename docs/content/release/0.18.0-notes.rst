@@ -87,7 +87,7 @@ this release (in no particular order).
 * `@sgkang <https://github.com/sgkang>`__
 * `@thibaut-kobold <https://github.com/thibaut-kobold>`__
 * `@lheagy <https://github.com/lheagy>`__
-* `@nwilliams-kobold  <https://github.com/nwilliams-kobold >`__
+* `@nwilliams-kobold <https://github.com/nwilliams-kobold>`__
 * `@ngodber <https://github.com/ngodber>`__
 * `@santisoler <https://github.com/santisoler>`__
 
