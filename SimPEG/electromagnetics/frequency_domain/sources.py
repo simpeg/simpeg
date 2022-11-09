@@ -1234,7 +1234,7 @@ class LineCurrent(BaseFDEMSrc):
             **kwargs,
         )
         for rx in self.receiver_list:
-            if getattr(rx, 'use_source_receiver_offset', False):
+            if getattr(rx, "use_source_receiver_offset", False):
                 raise ValueError(
                     "use_source_receiver_offset is ambiguous for a line current and is "
                     "not supported."
