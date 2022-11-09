@@ -3,7 +3,7 @@ from ...survey import BaseSurvey
 
 
 class StraightRaySurvey(BaseSurvey):
-    """Straight ray tomography survey    """
+    """Straight ray tomography survey"""
 
     @property
     def nD(self):

@@ -384,7 +384,7 @@ class DCProblemAnalyticTests_DPField(unittest.TestCase):
             survey=self.survey,
             sigma=self.sigma,
             solver=self.solver,
-            bc_type='Dirichlet'
+            bc_type="Dirichlet",
         )
         field = simulation.fields()
 
@@ -395,7 +395,6 @@ class DCProblemAnalyticTests_DPField(unittest.TestCase):
         field[:, "charge"]
         field[:, "charge_density"]
         print("got fields CC")
-
 
     def test_Simulation2DNodal(self, tolerance=0.05):
 

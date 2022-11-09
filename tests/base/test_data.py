@@ -9,7 +9,6 @@ from SimPEG import data_misfit, simulation, survey
 from SimPEG import Data
 
 
-
 class DataTest(unittest.TestCase):
     def setUp(self):
         np.random.seed(17)
@@ -36,7 +35,9 @@ class DataTest(unittest.TestCase):
         floor = np.min(np.abs(self.dobs))
         data = Data(self.sim.survey, dobs=self.dobs, noise_floor=floor)
         np.testing.assert_equal(data.noise_floor, floor * np.ones(len(self.dobs)))
-        np.testing.assert_equal(data.standard_deviation, floor * np.ones(len(self.dobs)))
+        np.testing.assert_equal(
+            data.standard_deviation, floor * np.ones(len(self.dobs))
+        )
 
     def test_instantiation_relative_floor(self):
         relative = 0.5
