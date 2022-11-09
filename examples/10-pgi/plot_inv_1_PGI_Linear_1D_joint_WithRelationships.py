@@ -10,19 +10,19 @@ properties are linked by polynomial relationships that change between rock units
 """
 
 import discretize as Mesh
+import matplotlib.pyplot as plt
+import numpy as np
 from SimPEG import (
-    simulation,
-    maps,
     data_misfit,
     directives,
-    optimization,
-    regularization,
     inverse_problem,
     inversion,
+    maps,
+    optimization,
+    regularization,
+    simulation,
     utils,
 )
-import numpy as np
-import matplotlib.pyplot as plt
 
 # Random seed for reproductibility
 np.random.seed(1)
@@ -207,9 +207,7 @@ scales = directives.ScalingMultipleDataMisfits_ByEig(
     chi0_ratio=np.r_[1.0, 1.0], verbose=True, n_pw_iter=10
 )
 scaling_schedule = directives.JointScalingSchedule(verbose=True)
-alpha0_ratio = np.r_[
-    100.0 * np.ones(2), 1, 1
-]
+alpha0_ratio = np.r_[100.0 * np.ones(2), 1, 1]
 alphas = directives.AlphasSmoothEstimate_ByEig(
     alpha0_ratio=alpha0_ratio, n_pw_iter=10, verbose=True
 )
