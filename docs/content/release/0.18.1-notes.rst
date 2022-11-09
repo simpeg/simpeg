@@ -42,4 +42,4 @@ Pull requests
 * `#1126  <https://github.com/simpeg/simpeg/pull/1126>`__: fix alpha multipliers in PGI
 * `#1128  <https://github.com/simpeg/simpeg/pull/1128>`__: Fix for 2D_CC boundary conditions
 * `#1129  <https://github.com/simpeg/simpeg/pull/1129>`__: Line current 1D fix
-* `#1128  <https://github.com/simpeg/simpeg/pull/1128>`__: 0.18.1 release
+* `#1131  <https://github.com/simpeg/simpeg/pull/1131>`__: 0.18.1 release
