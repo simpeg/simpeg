@@ -8,7 +8,6 @@ from discretize import TensorMesh, TreeMesh
 from discretize.base import BaseMesh
 from discretize.utils import refine_tree_xyz, unpack_widths
 
-from ....data import Data
 from ....utils import (
     sdiag,
     uniqueRows,

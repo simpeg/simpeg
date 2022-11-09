@@ -7,7 +7,6 @@ import matplotlib as mpl
 from matplotlib import ticker
 import warnings
 from ..resistivity import sources, receivers
-from ....data import Data
 from .. import resistivity as dc
 from ....utils import (
     mkvc,
@@ -15,14 +14,7 @@ from ....utils import (
     model_builder,
     define_plane_from_points,
 )
-from ....utils.io_utils import (
-    read_dcip2d_ubc,
-    write_dcip2d_ubc,
-    read_dcip3d_ubc,
-    write_dcip3d_ubc,
-)
 
-from ....utils.plot_utils import plot_1d_layer_model
 
 from ....utils.code_utils import deprecate_method
 

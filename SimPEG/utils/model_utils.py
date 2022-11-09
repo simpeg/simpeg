@@ -1,4 +1,3 @@
-import discretize
 
 from .mat_utils import mkvc, ndgrid, uniqueRows
 import numpy as np

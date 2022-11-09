@@ -1,10 +1,7 @@
 from SimPEG.EM.Static.DC import Src
-from SimPEG import Props
-from SimPEG.Utils import sdiag
 from SimPEG import Utils
 import scipy.sparse as sp
 import numpy as np
-from SimPEG.EM.Static.DC import Survey
 
 
 class StreamingCurrents(Src.BaseSrc):

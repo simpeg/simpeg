@@ -5,15 +5,9 @@
 ###############################################################################
 
 import numpy as np
-import matplotlib.pyplot as plt
 import copy
-from ..objective_function import ComboObjectiveFunction
 from ..regularization import (
-    Smallness,
-    SparseSmallness,
-    Sparse,
     PGIsmallness,
-    PGIwithNonlinearRelationshipsSmallness,
     PGI,
     SmoothnessFirstOrder,
     SparseSmoothness,
@@ -25,10 +19,8 @@ from ..utils import (
     GaussianMixtureWithPrior,
     GaussianMixtureWithNonlinearRelationships,
     GaussianMixtureWithNonlinearRelationshipsWithPrior,
-    Zero,
 )
 from ..directives import InversionDirective, MultiTargetMisfits
-from ..utils.code_utils import deprecate_property
 
 
 class PGI_UpdateParameters(InversionDirective):

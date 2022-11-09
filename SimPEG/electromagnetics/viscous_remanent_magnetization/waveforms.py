@@ -13,7 +13,6 @@ class BaseVRMWaveform:
     The Base VRM Waveform object
     """
 
-    pass
     # included to have an identifiable base class for the VRM waveforms
 
 

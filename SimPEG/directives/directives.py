@@ -37,7 +37,6 @@ from ..utils.code_utils import (
     validate_float,
     validate_ndarray_with_shape,
 )
-from .. import optimization
 
 
 class InversionDirective:

@@ -2,7 +2,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 import numpy.lib.recfunctions as recFunc
 from scipy.constants import mu_0
-from scipy import interpolate as sciint
 
 import SimPEG as simpeg
 from SimPEG.electromagnetics.natural_source.survey import Survey, Data

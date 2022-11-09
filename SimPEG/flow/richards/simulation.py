@@ -15,7 +15,6 @@ from ...utils import (
 )
 from ...props import NestedModeler
 
-from .survey import Survey
 from .empirical import BaseHydraulicConductivity
 from .empirical import BaseWaterRetention
 

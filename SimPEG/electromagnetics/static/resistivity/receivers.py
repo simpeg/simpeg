@@ -1,9 +1,7 @@
-import numpy as np
 
 from ....utils import (
     sdiag,
     validate_string,
-    validate_float,
     validate_ndarray_with_shape,
 )
 from ....survey import BaseRx as BaseSimPEGRx

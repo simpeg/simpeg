@@ -6,14 +6,11 @@ import uuid
 
 from .utils import Counter
 from .utils.code_utils import (
-    deprecate_property,
-    deprecate_method,
     validate_location_property,
     validate_ndarray_with_shape,
     validate_list_of_types,
     validate_type,
 )
-from .props import BaseSimPEG
 
 
 class BaseRx:

@@ -1,12 +1,9 @@
-from SimPEG import Problem, Utils, Maps, Mesh
-from SimPEG.EM.Base import BaseEMProblem
+from SimPEG import Utils
 from SimPEG.EM.Static.DC.FieldsDC import FieldsDC, Fields3DCellCentered
 from SimPEG.EM.Static.DC import Survey, BaseDCProblem, Simulation3DCellCentered
-from SimPEG.Utils import sdiag
 import numpy as np
 import scipy.sparse as sp
 from SimPEG.Utils import Zero
-from SimPEG.EM.Static.DC import getxBCyBC_CC
 from SimPEG import Props
 
 

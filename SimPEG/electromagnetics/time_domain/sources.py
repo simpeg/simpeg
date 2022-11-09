@@ -1636,7 +1636,6 @@ class CircularLoop(MagDipole):
                 "Moment is not set as a property. I is the product"
                 "of the loop radius and transmitter current"
             )
-        pass
 
     @property
     def n_turns(self):

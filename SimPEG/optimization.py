@@ -440,7 +440,6 @@ class Minimize(object):
         :rtype: None
         :return: None
         """
-        pass
 
     def printInit(self, inLS=False):
         """
@@ -511,7 +510,6 @@ class Minimize(object):
         :return: None
 
         """
-        pass
 
     def stoppingCriteria(self, inLS=False):
         if self.iter == 0:
