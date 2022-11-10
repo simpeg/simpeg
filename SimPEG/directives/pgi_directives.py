@@ -4,23 +4,26 @@
 #                                                                             #
 ###############################################################################
 
-import numpy as np
 import copy
+
+import matplotlib.pyplot as plt
+import numpy as np
+
+from ..directives import InversionDirective, MultiTargetMisfits
 from ..regularization import (
-    PGIsmallness,
     PGI,
+    PGIsmallness,
+    PGIwithRelationships,
     SmoothnessFirstOrder,
     SparseSmoothness,
-    PGIwithRelationships,
 )
 from ..utils import (
-    mkvc,
-    WeightedGaussianMixture,
-    GaussianMixtureWithPrior,
     GaussianMixtureWithNonlinearRelationships,
     GaussianMixtureWithNonlinearRelationshipsWithPrior,
+    GaussianMixtureWithPrior,
+    WeightedGaussianMixture,
+    mkvc,
 )
-from ..directives import InversionDirective, MultiTargetMisfits
 
 
 class PGI_UpdateParameters(InversionDirective):

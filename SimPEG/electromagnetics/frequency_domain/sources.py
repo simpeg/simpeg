@@ -1206,9 +1206,13 @@ class LineCurrent(BaseFDEMSrc):
         List of FDEM receivers
     frequency : float
         Source frequency
-    locations : (n,3) numpy.ndarray
+    location : (n,3) numpy.ndarray
         Array defining the node locations for the wire path. For inductive sources,
         you must close the loop.
+    current : float, optional
+        Strength of the current.
+    mu : float, optional
+        Magnetic permeability to use.
     """
 
     def __init__(
@@ -1221,13 +1225,18 @@ class LineCurrent(BaseFDEMSrc):
         **kwargs,
     ):
 
-        BaseFDEMSrc.__init__(
-            self,
+        super().__init__(
             receiver_list=receiver_list,
             frequency=frequency,
             location=location,
             **kwargs,
         )
+        for rx in self.receiver_list:
+            if getattr(rx, "use_source_receiver_offset", False):
+                raise ValueError(
+                    "use_source_receiver_offset is ambiguous for a line current and is "
+                    "not supported."
+                )
 
         self.current = current
         self.mu = mu
