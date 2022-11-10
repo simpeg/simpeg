@@ -1,4 +1,5 @@
 import unittest
+import pytest
 import warnings
 
 import discretize
@@ -457,3 +458,14 @@ def test_CircularLoop_test_N_assign():
         N=2,
     )
     assert src.n_turns == 2
+
+
+def test_line_current_failures():
+
+    rx_locs = [[0.5, 0.5, 0]]
+    tx_locs = [[0, 0, 0], [0, 1, 0], [1, 1, 0], [1, 0, 0], [0, 0, 0]]
+    rx = fdem.receivers.PointMagneticFluxDensity(
+        rx_locs, orientation="z", use_source_receiver_offset=True
+    )
+    with pytest.raises(ValueError):
+        fdem.sources.LineCurrent([rx], 10, tx_locs)
