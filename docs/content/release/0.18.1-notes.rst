@@ -13,18 +13,11 @@ Bug Fixes
 
 Several small bugs have been squashed
 
-* DC 2D cell centered fields now respect the boundary conditions when querying
-for current density and the electric field.
-* For the 1D electromagnetic simulations, `LineCurrent` sources were not being correctly
-queried to verify they were above the surface. They now also respect the `current`
-attribute.
-* The `alpha_phi` property was not properly hooked into the `__init__` function of `PGI`
-regularization.
-* when determining the quasi geology model of `PGI`, we were incorrectly applying the
-model mappings to the reference model, (inconsistent with its definition).
-* Removed dependance on ``six`` package, as we haven't supported python 2 for a while,
-and cleaned up leftover `future` imports.
-
+* DC 2D cell centered fields now respect the boundary conditions when querying for current density and the electric field.
+* For the 1D electromagnetic simulations, `LineCurrent` sources were not being correctly queried to verify they were above the surface. They now also respect the `current` attribute.
+* The `alpha_phi` property was not properly hooked into the `__init__` function of `PGI` regularization.
+* When determining the quasi geology model of `PGI`, we were incorrectly applying the model mappings to the reference model, (inconsistent with its definition).
+* Removed dependance on ``six`` package, as we haven't supported python 2 for a while, and cleaned up leftover `future` imports.
 
 Contributors
 ============
@@ -33,6 +26,7 @@ this release (in no particular order).
 
 * `@jcapriot <https://github.com/jcapriot>`__
 * `@thast <https://github.com/thast>`__
+* `@santisoler <https://github.com/santisoler>`__
 
 Pull requests
 =============
@@ -42,4 +36,5 @@ Pull requests
 * `#1126  <https://github.com/simpeg/simpeg/pull/1126>`__: fix alpha multipliers in PGI
 * `#1128  <https://github.com/simpeg/simpeg/pull/1128>`__: Fix for 2D_CC boundary conditions
 * `#1129  <https://github.com/simpeg/simpeg/pull/1129>`__: Line current 1D fix
+* `#1130  <https://github.com/simpeg/simpeg/pull/1130>`__: Fix broken math in regularization docs
 * `#1131  <https://github.com/simpeg/simpeg/pull/1131>`__: 0.18.1 release
