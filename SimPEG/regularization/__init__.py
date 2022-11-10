@@ -1,4 +1,4 @@
-"""
+r"""
 =============================================
 Regularization (:mod:`SimPEG.regularization`)
 =============================================
@@ -23,7 +23,13 @@ should be thought of as (m-m_ref) but otherwise it is exactly the same:
 
 .. math::
 
-    R(m) = \int_\Omega \frac{\alpha_x}{2}\left(\frac{\partial m}{\partial x}\right)^2 + \frac{\alpha_y}{2}\left(\frac{\partial m}{\partial y}\right)^2 \partial v
+    R(m) =
+        \int_\Omega
+        \frac{\alpha_x}{2}
+            \left( \frac{\partial m}{\partial x} \right)^2
+        + \frac{\alpha_y}{2}
+            \left( \frac{\partial m}{\partial y} \right)^2
+        \partial v
 
 Our discrete gradient operator works on cell centers and gives the derivative
 on the cell faces, which is not where we want to be evaluating this integral.
@@ -33,9 +39,18 @@ looks like this:
 
 .. math::
 
-    R(m) \approx \sum_{ij} \left[\frac{\alpha_x}{2}\left[\left(\frac{m_{i+1,j} - m_{i,j}}{h}\right)^2 + \left(\frac{m_{i,j} - m_{i-1,j}}{h}\right)^2\right] \\
-    + \frac{\alpha_y}{2}\left[\left(\frac{m_{i,j+1} - m_{i,j}}{h}\right)^2 + \left(\frac{m_{i,j} - m_{i,j-1}}{h}\right)^2\right]
-    \right]h^2
+    R(m) \approx
+        \sum_{ij}
+        \left[
+            \frac{\alpha_x}{2} \left[
+                \left( \frac{m_{i+1,j} - m_{i,j}}{h} \right)^2
+                + \left( \frac{m_{i,j} - m_{i-1,j}}{h} \right)^2
+            \right] \\
+            + \frac{\alpha_y}{2} \left[
+                \left( \frac{m_{i,j+1} - m_{i,j}}{h} \right)^2
+                + \left( \frac{m_{i,j} - m_{i,j-1}}{h} \right)^2
+            \right]
+        \right] h^2
 
 If we let D_1 be the derivative matrix in the x direction
 
@@ -58,7 +73,11 @@ Where d_1 is the one dimensional derivative:
 
 .. math::
 
-    R(m) \approx \mathbf{v}^\top \left[\frac{\alpha_x}{2}\mathbf{A}_1 (\mathbf{D}_1 m) \odot (\mathbf{D}_1 m) + \frac{\alpha_y}{2}\mathbf{A}_2 (\mathbf{D}_2 m) \odot (\mathbf{D}_2 m) \right]
+    R(m) \approx
+        \mathbf{v}^\top \left[
+            \frac{\alpha_x}{2} \mathbf{A}_1 (\mathbf{D}_1 m) \odot (\mathbf{D}_1 m)
+            + \frac{\alpha_y}{2} \mathbf{A}_2 (\mathbf{D}_2 m) \odot (\mathbf{D}_2 m)
+        \right]
 
 Recall that this is really a just point wise multiplication, or a diagonal
 matrix times a vector. When we multiply by something in a diagonal we can
@@ -66,7 +85,10 @@ interchange and it gives the same results (i.e. it is point wise)
 
 .. math::
 
-    \mathbf{a\odot b} = \text{diag}(\mathbf{a})\mathbf{b} = \text{diag}(\mathbf{b})\mathbf{a} = \mathbf{b\odot a}
+    \mathbf{a\odot b}
+        = \text{diag}(\mathbf{a})\mathbf{b}
+        = \text{diag}(\mathbf{b})\mathbf{a}
+        = \mathbf{b\odot a}
 
 and the transpose also is true (but the sizes have to make sense...):
 
@@ -78,13 +100,22 @@ So R(m) can simplify to:
 
 .. math::
 
-    R(m) \approx  \mathbf{m}^\top \left[\frac{\alpha_x}{2}\mathbf{D}_1^\top \text{diag}(\mathbf{A}_1^\top\mathbf{v}) \mathbf{D}_1 +  \frac{\alpha_y}{2}\mathbf{D}_2^\top \text{diag}(\mathbf{A}_2^\top \mathbf{v}) \mathbf{D}_2 \right] \mathbf{m}
+    R(m) \approx
+        \mathbf{m}^\top \left[
+            \frac{\alpha_x}{2} \mathbf{D}_1^\top
+            \text{diag} (\mathbf{A}_1^\top \mathbf{v}) \mathbf{D}_1
+            + \frac{\alpha_y}{2} \mathbf{D}_2^\top
+            \text{diag} (\mathbf{A}_2^\top \mathbf{v}) \mathbf{D}_2
+        \right]
+        \mathbf{m}
 
 We will define W_x as:
 
 .. math::
 
-    \mathbf{W}_x = \sqrt{\alpha_x}\text{diag}\left(\sqrt{\mathbf{A}_1^\top\mathbf{v}}\right) \mathbf{D}_1
+    \mathbf{W}_x =
+        \sqrt{\alpha_x}
+        \text{diag} \left(\sqrt{\mathbf{A}_1^\top\mathbf{v}}\right) \mathbf{D}_1
 
 
 And then W as a tall matrix of all of the different regularization terms:
@@ -172,12 +203,14 @@ from .jtv import JointTotalVariation
 class SimpleSmall(Smallness):
     """Deprecated class, replaced by Smallness."""
 
+    pass
 
 
 @deprecate_class(removal_version="0.19.0", future_warn=True)
 class SimpleSmoothDeriv(SmoothnessFirstOrder):
     """Deprecated class, replaced by SmoothnessFirstOrder."""
 
+    pass
 
 
 @deprecate_class(removal_version="0.19.0", future_warn=True)
@@ -217,18 +250,21 @@ class Tikhonov(WeightedLeastSquares):
 class Small(Smallness):
     """Deprecated class, replaced by Smallness."""
 
+    pass
 
 
 @deprecate_class(removal_version="0.19.0", future_warn=True)
 class SmoothDeriv(SmoothnessFirstOrder):
     """Deprecated class, replaced by SmoothnessFirstOrder."""
 
+    pass
 
 
 @deprecate_class(removal_version="0.19.0", future_warn=True)
 class SmoothDeriv2(SmoothnessSecondOrder):
     """Deprecated class, replaced by SmoothnessSecondOrder."""
 
+    pass
 
 
 @deprecate_class(removal_version="0.19.0", future_warn=True)

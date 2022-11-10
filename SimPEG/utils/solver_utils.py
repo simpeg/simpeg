@@ -320,3 +320,4 @@ class SolverDiag(object):
 
     def clean(self):
         """Clean"""
+        pass

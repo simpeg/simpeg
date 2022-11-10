@@ -1636,6 +1636,7 @@ class CircularLoop(MagDipole):
                 "Moment is not set as a property. I is the product"
                 "of the loop radius and transmitter current"
             )
+        pass
 
     @property
     def n_turns(self):
@@ -1680,7 +1681,7 @@ class LineCurrent(BaseTDEMSrc):
     ----------
     receiver_list : list of SimPEG.electromagnetics.time_domain.receivers.BaseRx
         List of TDEM receivers
-    locations : (n, 3) numpy.ndarray
+    location : (n, 3) numpy.ndarray
         Array defining the node locations for the wire path. For inductive sources,
         you must close the loop, (i.e. provide the same point as the first and last
         entry of the array).
@@ -1700,9 +1701,13 @@ class LineCurrent(BaseTDEMSrc):
         **kwargs,
     ):
 
-        BaseTDEMSrc.__init__(
-            self, receiver_list=receiver_list, location=location, **kwargs
-        )
+        super().__init__(receiver_list=receiver_list, location=location, **kwargs)
+        for rx in self.receiver_list:
+            if getattr(rx, "use_source_receiver_offset", False):
+                raise ValueError(
+                    "use_source_receiver_offset is ambiguous for a line current and is "
+                    "not supported."
+                )
 
         self.integrate = False
         self.current = current

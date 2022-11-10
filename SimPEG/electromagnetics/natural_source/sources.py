@@ -26,6 +26,7 @@ class Planewave(BaseFDEMSrc):
     """
 
     # This class is only provided to have a uniquely identifiable "Planewave" class
+    pass
 
 
 # Need to implement such that it works for all dims.

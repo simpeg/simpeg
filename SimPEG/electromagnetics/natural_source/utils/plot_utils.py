@@ -334,6 +334,7 @@ class DataNSEMPlotMethods(object):
         """
         Just for reference
         """
+        pass
 
     def plot_app_res(
         self,
