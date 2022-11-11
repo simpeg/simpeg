@@ -15,6 +15,23 @@ pr:
     exclude:
     - '*no-ci*'
 stages:
+
+- stage: Style check
+  jobs:
+    - job:
+      displayName: Run style checks
+      pool:
+        vmImage: ubuntu-latest
+      variables:
+        python.version: '3.7'
+      steps:
+        - script: |
+            pip install -r requirements_style.txt
+          displayName: "Install dependencies to run the checks"
+
+        - script: make check
+          displayName: "Run style checks"
+
 - stage: Testing
   jobs:
     - template: ./.azure-pipelines/matrix.yml
