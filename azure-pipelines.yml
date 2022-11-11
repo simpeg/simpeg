@@ -19,7 +19,7 @@ stages:
 - stage: Style check
   jobs:
     - job:
-      displayName: Run style checks
+      displayName: Run style checks with Black
       pool:
         vmImage: ubuntu-latest
       variables:
@@ -29,8 +29,21 @@ stages:
             pip install -r requirements_style.txt
           displayName: "Install dependencies to run the checks"
 
-        - script: make check
-          displayName: "Run style checks"
+        - script: make black
+          displayName: "Run black"
+    - job:
+      displayName: Run style checks with flake8
+      pool:
+        vmImage: ubuntu-latest
+      variables:
+        python.version: '3.7'
+      steps:
+        - script: |
+            pip install -r requirements_style.txt
+          displayName: "Install dependencies to run the checks"
+
+        - script: make flake
+          displayName: "Run flake8"
 
 - stage: Testing
   jobs:
