@@ -16,7 +16,7 @@ pr:
     - '*no-ci*'
 stages:
 
-- stage: Style check
+- stage: StyleChecks
   jobs:
     - job:
       displayName: Run style checks with Black
