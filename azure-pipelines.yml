@@ -17,7 +17,6 @@ pr:
 stages:
 
 - stage: StyleChecks
-  continueOnError: true
   jobs:
     - job:
       displayName: Run style checks with Black
@@ -47,6 +46,7 @@ stages:
           displayName: "Run flake8"
 
 - stage: Testing
+  condition: succeededOrFailed("StyleChecks")
   jobs:
     - template: ./.azure-pipelines/matrix.yml
 
