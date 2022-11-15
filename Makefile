@@ -26,7 +26,9 @@ clean:
 check: black flake
 
 black:
-	black --check SimPEG examples
+	black --version
+	black --check SimPEG examples tutorials tests
 
 flake:
-	flake8 SimPEG examples
+	flake8 --version
+	flake8 SimPEG examples tutorials tests
