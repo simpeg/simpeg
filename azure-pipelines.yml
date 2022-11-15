@@ -17,6 +17,7 @@ pr:
 stages:
 
 - stage: StyleChecks
+  displayName: "Style Checks"
   jobs:
     - job:
       displayName: Run style checks with Black
@@ -46,12 +47,14 @@ stages:
           displayName: "Run flake8"
 
 - stage: Testing
-  condition: succeededOrFailed(StyleChecks)
+  dependsOn: StyleChecks
+  condition: ne(dependencies.StyleChecks.result, 'Cancelled')
   jobs:
     - template: ./.azure-pipelines/matrix.yml
 
 - stage: Deploy
-  condition: and(succeeded(Testing), startsWith(variables['build.sourceBranch'], 'refs/tags/'))
+  dependsOn: Testubg
+  condition: and(in(dependencies.StyleChecks.result, 'Succeeded', 'SucceededWithIssues'), startsWith(variables['build.sourceBranch'], 'refs/tags/'))
   jobs:
     - job:
       displayName: Deploy Docs and source
