@@ -53,8 +53,8 @@ stages:
     - template: ./.azure-pipelines/matrix.yml
 
 - stage: Deploy
-  dependsOn: Testubg
-  condition: and(in(dependencies.StyleChecks.result, 'Succeeded', 'SucceededWithIssues'), startsWith(variables['build.sourceBranch'], 'refs/tags/'))
+  dependsOn: Testing
+  condition: and(in(dependencies.Testing.result, 'Succeeded', 'SucceededWithIssues'), startsWith(variables['build.sourceBranch'], 'refs/tags/'))
   jobs:
     - job:
       displayName: Deploy Docs and source
