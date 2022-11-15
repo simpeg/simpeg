@@ -46,12 +46,12 @@ stages:
           displayName: "Run flake8"
 
 - stage: Testing
-  condition: succeededOrFailed("StyleChecks")
+  condition: succeededOrFailed(StyleChecks)
   jobs:
     - template: ./.azure-pipelines/matrix.yml
 
 - stage: Deploy
-  condition: and(succeeded("Testing"), startsWith(variables['build.sourceBranch'], 'refs/tags/'))
+  condition: and(succeeded(Testing), startsWith(variables['build.sourceBranch'], 'refs/tags/'))
   jobs:
     - job:
       displayName: Deploy Docs and source
