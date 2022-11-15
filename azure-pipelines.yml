@@ -17,6 +17,7 @@ pr:
 stages:
 
 - stage: StyleChecks
+  continueOnError: true
   jobs:
     - job:
       displayName: Run style checks with Black
@@ -50,7 +51,7 @@ stages:
     - template: ./.azure-pipelines/matrix.yml
 
 - stage: Deploy
-  condition: and(succeeded(), startsWith(variables['build.sourceBranch'], 'refs/tags/'))
+  condition: and(succeeded("Testing"), startsWith(variables['build.sourceBranch'], 'refs/tags/'))
   jobs:
     - job:
       displayName: Deploy Docs and source
