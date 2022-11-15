@@ -1,3 +1,5 @@
+STYLE_CHECK_FILES=SimPEG examples tutorials tests
+
 .PHONY: build coverage lint graphs tests docs check black flake
 
 build:
@@ -27,8 +29,8 @@ check: black flake
 
 black:
 	black --version
-	black --check SimPEG examples tutorials tests
+	black --check ${STYLE_CHECK_FILES}
 
 flake:
 	flake8 --version
-	flake8 SimPEG examples tutorials tests
+	flake8 ${STYLE_CHECK_FILES}
