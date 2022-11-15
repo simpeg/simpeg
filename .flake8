@@ -14,7 +14,6 @@ extend-ignore =
     E741,
     # Line break before binary operator (conflicts with black)
     W503,
-
 exclude =
     .git,
     __pycache__,
@@ -22,7 +21,9 @@ exclude =
 per-file-ignores =
     # disable unused-imports errors on __init__.py
     __init__.py: F401
-
+exclude-from-doctest =
+    # Don't check style in docstring of test functions
+    tests
 
 # Configure flake8-rst-docstrings
 # -------------------------------
