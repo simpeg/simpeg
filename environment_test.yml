@@ -38,6 +38,7 @@ dependencies:
   - python-kaleido
   # Linters and code style
   - black==21.7b0
+  - click==8.0.4 # pin click needed by the pinned black version
   - flake8
   - flake8-bugbear
   - flake8-builtins
