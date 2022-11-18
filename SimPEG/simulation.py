@@ -1,3 +1,6 @@
+"""
+Define simulation classes
+"""
 import os
 import inspect
 import numpy as np
@@ -285,7 +288,7 @@ class BaseSimulation(props.HasModel):
 
     @count
     def residual(self, m, dobs, f=None):
-        """residual(m, dobs, f=None)
+        r"""
         The data residual:
 
         .. math::
