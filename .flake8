@@ -14,6 +14,8 @@ extend-ignore =
     E741,
     # Line break before binary operator (conflicts with black)
     W503,
+    # Ignore spaces before a colon (Black handles it)
+    E203,
 exclude =
     .git,
     __pycache__,
