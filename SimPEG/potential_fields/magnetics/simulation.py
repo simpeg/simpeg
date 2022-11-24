@@ -582,76 +582,92 @@ class Simulation3DDifferential(BaseMagneticPDESimulation):
 
     @utils.timeIt
     def Jvec(self, m, v, u=None):
-        """
-            Computing Jacobian multiplied by vector
+        r"""
+        Computing Jacobian multiplied by vector
 
-            By setting our problem as
+        By setting our problem as
 
-            .. math ::
+        .. math ::
 
-                \mathbf{C}(\mathbf{m}, \mathbf{u}) = \mathbf{A}\mathbf{u} - \mathbf{rhs} = 0
+            \mathbf{C}(\mathbf{m}, \mathbf{u}) = \mathbf{A}\mathbf{u} - \mathbf{rhs} = 0
 
-            And taking derivative w.r.t m
+        And taking derivative w.r.t m
 
-            .. math ::
+        .. math ::
 
-                \\nabla \mathbf{C}(\mathbf{m}, \mathbf{u}) = \\nabla_m \mathbf{C}(\mathbf{m}) \delta \mathbf{m} +
-                                                             \\nabla_u \mathbf{C}(\mathbf{u}) \delta \mathbf{u} = 0
+            \nabla \mathbf{C}(\mathbf{m}, \mathbf{u}) =
+                \nabla_m \mathbf{C}(\mathbf{m}) \delta \mathbf{m} +
+                \nabla_u \mathbf{C}(\mathbf{u}) \delta \mathbf{u} = 0
 
-                \\frac{\delta \mathbf{u}}{\delta \mathbf{m}} = - [\\nabla_u \mathbf{C}(\mathbf{u})]^{-1}\\nabla_m \mathbf{C}(\mathbf{m})
+            \frac{\delta \mathbf{u}}{\delta \mathbf{m}} =
+                - [\nabla_u \mathbf{C}(\mathbf{u})]^{-1}\nabla_m \mathbf{C}(\mathbf{m})
 
-            With some linear algebra we can have
+        With some linear algebra we can have
 
-            .. math ::
+        .. math ::
 
-                \\nabla_u \mathbf{C}(\mathbf{u}) = \mathbf{A}
+            \nabla_u \mathbf{C}(\mathbf{u}) = \mathbf{A}
 
-                \\nabla_m \mathbf{C}(\mathbf{m}) =
-                \\frac{\partial \mathbf{A}}{\partial \mathbf{m}}(\mathbf{m})\mathbf{u} - \\frac{\partial \mathbf{rhs}(\mathbf{m})}{\partial \mathbf{m}}
+            \nabla_m \mathbf{C}(\mathbf{m}) =
+                \frac{\partial \mathbf{A}} {\partial \mathbf{m}} (\mathbf{m}) \mathbf{u}
+                - \frac{\partial \mathbf{rhs}(\mathbf{m})}{\partial \mathbf{m}}
 
-            .. math ::
+        .. math ::
 
-                \\frac{\partial \mathbf{A}}{\partial \mathbf{m}}(\mathbf{m})\mathbf{u} =
-                \\frac{\partial \mathbf{\mu}}{\partial \mathbf{m}} \left[\Div \diag (\Div^T \mathbf{u}) \dMfMuI \\right]
+            \frac{\partial \mathbf{A}}{\partial \mathbf{m}}(\mathbf{m})\mathbf{u} =
+                \frac{\partial \mathbf{\mu}}{\partial \mathbf{m}}
+                \left[\Div \diag (\Div^T \mathbf{u}) \dMfMuI \right]
 
-                \dMfMuI = \diag(\MfMui)^{-1}_{vec} \mathbf{Av}_{F2CC}^T\diag(\mathbf{v})\diag(\\frac{1}{\mu^2})
+            \dMfMuI =
+                \diag(\MfMui)^{-1}_{vec}
+                \mathbf{Av}_{F2CC}^T\diag(\mathbf{v})\diag(\frac{1}{\mu^2})
 
-                \\frac{\partial \mathbf{rhs}(\mathbf{m})}{\partial \mathbf{m}} =  \\frac{\partial \mathbf{\mu}}{\partial \mathbf{m}} \left[
-                \Div \diag(\M^f_{\mu_{0}^{-1}}\mathbf{B}_0) \dMfMuI \\right] - \diag(\mathbf{v})\mathbf{D} \mathbf{P}_{out}^T\\frac{\partial B_{sBC}}{\partial \mathbf{m}}
-
-            In the end,
-
-            .. math ::
-
-                \\frac{\delta \mathbf{u}}{\delta \mathbf{m}} =
-                - [ \mathbf{A} ]^{-1}\left[ \\frac{\partial \mathbf{A}}{\partial \mathbf{m}}(\mathbf{m})\mathbf{u}
-                - \\frac{\partial \mathbf{rhs}(\mathbf{m})}{\partial \mathbf{m}} \\right]
-
-            A little tricky point here is we are not interested in potential (u), but interested in magnetic flux (B).
-            Thus, we need sensitivity for B. Now we take derivative of B w.r.t m and have
-
-            .. math ::
-
-                \\frac{\delta \mathbf{B}} {\delta \mathbf{m}} = \\frac{\partial \mathbf{\mu} } {\partial \mathbf{m} }
+            \frac{\partial \mathbf{rhs}(\mathbf{m})}{\partial \mathbf{m}} =
+                \frac{\partial \mathbf{\mu}}{\partial \mathbf{m}}
                 \left[
-                \diag(\M^f_{\mu_{0}^{-1} } \mathbf{B}_0) \dMfMuI  \\
-                 -  \diag (\Div^T\mathbf{u})\dMfMuI
-                \\right ]
+                    \Div \diag(\M^f_{\mu_{0}^{-1}}\mathbf{B}_0) \dMfMuI
+                \right]
+                - \diag(\mathbf{v}) \mathbf{D} \mathbf{P}_{out}^T
+                    \frac{\partial B_{sBC}}{\partial \mathbf{m}}
 
-                 -  (\MfMui)^{-1}\Div^T\\frac{\delta\mathbf{u}}{\delta \mathbf{m}}
+        In the end,
 
-            Finally we evaluate the above, but we should remember that
+        .. math ::
 
-            .. note ::
+            \frac{\delta \mathbf{u}}{\delta \mathbf{m}} =
+            - [ \mathbf{A} ]^{-1}
+            \left[
+                \frac{\partial \mathbf{A}}{\partial \mathbf{m}}(\mathbf{m})\mathbf{u}
+                - \frac{\partial \mathbf{rhs}(\mathbf{m})}{\partial \mathbf{m}}
+            \right]
 
-                We only want to evalute
+        A little tricky point here is we are not interested in potential (u), but interested in magnetic flux (B).
+        Thus, we need sensitivity for B. Now we take derivative of B w.r.t m and have
 
-                .. math ::
+        .. math ::
 
-                    \mathbf{J}\mathbf{v} = \\frac{\delta \mathbf{P}\mathbf{B}} {\delta \mathbf{m}}\mathbf{v}
+            \frac{\delta \mathbf{B}} {\delta \mathbf{m}} =
+            \frac{\partial \mathbf{\mu} } {\partial \mathbf{m} }
+            \left[
+                \diag(\M^f_{\mu_{0}^{-1} } \mathbf{B}_0) \dMfMuI  \
+                 - \diag (\Div^T\mathbf{u})\dMfMuI
+            \right ]
 
-                Since forming sensitivity matrix is very expensive in that this monster is "big" and "dense" matrix!!
+             -  (\MfMui)^{-1}\Div^T\frac{\delta\mathbf{u}}{\delta \mathbf{m}}
 
+        Finally we evaluate the above, but we should remember that
+
+        .. note ::
+
+            We only want to evaluate
+
+            .. math ::
+
+                \mathbf{J}\mathbf{v} =
+                    \frac{\delta \mathbf{P}\mathbf{B}} {\delta \mathbf{m}}\mathbf{v}
+
+            Since forming sensitivity matrix is very expensive in that this
+            monster is "big" and "dense" matrix!!
 
         """
         if u is None:
@@ -702,24 +718,30 @@ class Simulation3DDifferential(BaseMagneticPDESimulation):
 
     @utils.timeIt
     def Jtvec(self, m, v, u=None):
-        """
-            Computing Jacobian^T multiplied by vector.
+        r"""
+        Computing Jacobian^T multiplied by vector.
 
         .. math ::
 
-            (\\frac{\delta \mathbf{P}\mathbf{B}} {\delta \mathbf{m}})^{T} = \left[ \mathbf{P}_{deriv}\\frac{\partial \mathbf{\mu} } {\partial \mathbf{m} }
-            \left[
-            \diag(\M^f_{\mu_{0}^{-1} } \mathbf{B}_0) \dMfMuI  \\
-             -  \diag (\Div^T\mathbf{u})\dMfMuI
-            \\right ]\\right]^{T}
-
-             -  \left[\mathbf{P}_{deriv}(\MfMui)^{-1}\Div^T\\frac{\delta\mathbf{u}}{\delta \mathbf{m}} \\right]^{T}
+            (\frac{\delta \mathbf{P}\mathbf{B}} {\delta \mathbf{m}})^{T} =
+                \left[
+                    \mathbf{P}_{deriv}\frac{\partial \mathbf{\mu} } {\partial \mathbf{m} }
+                    \left[
+                        \diag(\M^f_{\mu_{0}^{-1} } \mathbf{B}_0) \dMfMuI
+                         - \diag (\Div^T\mathbf{u})\dMfMuI
+                    \right ]
+                \right]^{T}
+                 -
+                 \left[
+                     \mathbf{P}_{deriv}(\MfMui)^{-1} \Div^T
+                     \frac{\delta\mathbf{u}}{\delta \mathbf{m}}
+                 \right]^{T}
 
         where
 
         .. math ::
 
-            \mathbf{P}_{derv} = \\frac{\partial \mathbf{P}}{\partial\mathbf{B}}
+            \mathbf{P}_{derv} = \frac{\partial \mathbf{P}}{\partial\mathbf{B}}
 
         .. note ::
 
@@ -727,7 +749,8 @@ class Simulation3DDifferential(BaseMagneticPDESimulation):
 
             .. math ::
 
-                \mathbf{J}^{T}\mathbf{v} = (\\frac{\delta \mathbf{P}\mathbf{B}} {\delta \mathbf{m}})^{T} \mathbf{v}
+                \mathbf{J}^{T}\mathbf{v} =
+                (\frac{\delta \mathbf{P}\mathbf{B}} {\delta \mathbf{m}})^{T} \mathbf{v}
 
         """
         if u is None:
@@ -820,7 +843,7 @@ class Simulation3DDifferential(BaseMagneticPDESimulation):
         return self._Qfz
 
     def projectFields(self, u):
-        """
+        r"""
         This function projects the fields onto the data space.
         Especially, here for we use total magnetic intensity (TMI) data,
         which is common in practice.
@@ -834,7 +857,7 @@ class Simulation3DDifferential(BaseMagneticPDESimulation):
 
         .. math ::
 
-            \\text{TMI} = \\vec{B}_s \cdot \hat{B}_0
+            \text{TMI} = \vec{B}_s \cdot \hat{B}_0
 
         """
         # TODO: There can be some different tyes of data like |B| or B
@@ -864,12 +887,12 @@ class Simulation3DDifferential(BaseMagneticPDESimulation):
 
     @utils.count
     def projectFieldsDeriv(self, B):
-        """
+        r"""
         This function projects the fields onto the data space.
 
         .. math::
 
-            \\frac{\partial d_\\text{pred}}{\partial \mathbf{B}} = \mathbf{P}
+            \frac{\partial d_\text{pred}}{\partial \mathbf{B}} = \mathbf{P}
 
         Especially, this function is for TMI data type
         """
