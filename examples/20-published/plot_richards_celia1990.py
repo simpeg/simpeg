@@ -90,7 +90,9 @@ def run(plotIt=True):
     plt.title("Mixed Method")
     plt.xlabel("Depth, cm")
     plt.ylabel("Pressure Head, cm")
-    plt.legend(("$\Delta t$ = 10 sec", "$\Delta t$ = 30 sec", "$\Delta t$ = 120 sec"))
+    plt.legend(
+        (r"$\Delta t$ = 10 sec", r"$\Delta t$ = 30 sec", r"$\Delta t$ = 120 sec")
+    )
     plt.subplot(122)
     plt.plot(40 - M.gridCC, Hs_H010[-1], "b-")
     plt.plot(40 - M.gridCC, Hs_H030[-1], "r-")
@@ -99,7 +101,9 @@ def run(plotIt=True):
     plt.title("Head-Based Method")
     plt.xlabel("Depth, cm")
     plt.ylabel("Pressure Head, cm")
-    plt.legend(("$\Delta t$ = 10 sec", "$\Delta t$ = 30 sec", "$\Delta t$ = 120 sec"))
+    plt.legend(
+        (r"$\Delta t$ = 10 sec", r"$\Delta t$ = 30 sec", r"$\Delta t$ = 120 sec")
+    )
 
 
 if __name__ == "__main__":

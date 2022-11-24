@@ -187,7 +187,7 @@ cbar14 = mpl.colorbar.ColorbarBase(
     ax1[3], cmap=mpl.cm.gist_heat_r, norm=norm, orientation="vertical"
 )
 cbar14.set_label(
-    "$\Delta \chi /$ln$(\lambda_2 / \lambda_1 )$ [SI]",
+    r"$\Delta \chi /$ln$(\lambda_2 / \lambda_1 )$ [SI]",
     rotation=270,
     labelpad=15,
     size=font_size,

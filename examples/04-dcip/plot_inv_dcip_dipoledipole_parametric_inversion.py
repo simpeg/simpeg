@@ -215,7 +215,7 @@ def run(
         ax[i].set_xlim(IO.grids[:, 0].min(), IO.grids[:, 0].max())
         ax[i].set_ylim(-IO.grids[:, 1].max(), IO.grids[:, 1].min())
         cb = plt.colorbar(out[i][0], ax=ax[i])
-        cb.set_label("Resistivity ($\Omega$m)")
+        cb.set_label(r"Resistivity ($\Omega$m)")
         ax[i].set_xlabel("Northing (m)")
         ax[i].set_ylabel("Elevation (m)")
         ax[i].set_aspect("equal")

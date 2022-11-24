@@ -1006,13 +1006,13 @@ class PrimSecCasingExample(object):
         J_block_ex = J[2, :nrx].reshape(nx, ny, order="F")
         J_block_ey = J[2, nrx:].reshape(nx, ny, order="F")
 
-        clabelSigs = "Sensitivity (V/m / log($\sigma$))"
+        clabelSigs = r"Sensitivity (V/m / log($\sigma$))"
 
         fig, ax = plt.subplots(3, 2, figsize=(12, 15))
         ax[0][0] = plotJ(
             ax[0][0],
             J_back_ex,
-            "(a) Sensitivity of $E_x$ wrt log($\sigma_{back}$)",
+            r"(a) Sensitivity of $E_x$ wrt log($\sigma_{back}$)",
             plotGrid=plotGrid,
             xlim=xlim,
             ylim=ylim,
@@ -1024,7 +1024,7 @@ class PrimSecCasingExample(object):
         ax[0][1] = plotJ(
             ax[0][1],
             J_back_ey,
-            "(b) Sensitivity of $E_y$ wrt log($\sigma_{back}$)",
+            r"(b) Sensitivity of $E_y$ wrt log($\sigma_{back}$)",
             plotGrid=plotGrid,
             xlim=xlim,
             ylim=ylim,
@@ -1036,7 +1036,7 @@ class PrimSecCasingExample(object):
         ax[1][0] = plotJ(
             ax[1][0],
             J_layer_ex,
-            "(c) Sensitivity of $E_x$ wrt log($\sigma_{layer}$)",
+            r"(c) Sensitivity of $E_x$ wrt log($\sigma_{layer}$)",
             plotGrid=plotGrid,
             xlim=xlim,
             ylim=ylim,
@@ -1048,7 +1048,7 @@ class PrimSecCasingExample(object):
         ax[1][1] = plotJ(
             ax[1][1],
             J_layer_ey,
-            "(d) Sensitivity of $E_y$ wrt log($\sigma_{layer}$)",
+            r"(d) Sensitivity of $E_y$ wrt log($\sigma_{layer}$)",
             plotGrid=plotGrid,
             xlim=xlim,
             ylim=ylim,
@@ -1061,7 +1061,7 @@ class PrimSecCasingExample(object):
         ax[2][0] = plotJ(
             ax[2][0],
             J_block_ex,
-            "(e) Sensitivity of $E_x$ wrt log($\sigma_{block}$)",
+            r"(e) Sensitivity of $E_x$ wrt log($\sigma_{block}$)",
             plotGrid=plotGrid,
             xlim=xlim,
             ylim=ylim,
@@ -1074,7 +1074,7 @@ class PrimSecCasingExample(object):
         ax[2][1] = plotJ(
             ax[2][1],
             J_block_ey,
-            "(f) Sensitivity of $E_y$ wrt log($\sigma_{block}$)",
+            r"(f) Sensitivity of $E_y$ wrt log($\sigma_{block}$)",
             plotGrid=plotGrid,
             xlim=xlim,
             ylim=ylim,
