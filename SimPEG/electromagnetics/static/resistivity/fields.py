@@ -146,7 +146,7 @@ class Fields3DCellCentered(FieldsDC):
         return self._MfRhoIDeriv(self._Grad * v)
 
     def _e(self, phiSolution, source_list):
-        """
+        r"""
         .. math::
 
             \vec{e} = \rho \vec{j}

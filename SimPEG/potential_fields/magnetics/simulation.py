@@ -523,11 +523,14 @@ class Simulation3DDifferential(BaseMagneticPDESimulation):
         return B0
 
     def getRHS(self, m):
-        """
+        r"""
 
         .. math ::
 
-            \\mathbf{rhs} = \\Div(\\MfMui)^{-1}\\mathbf{M}^f_{\\mu_0^{-1}}\\mathbf{B}_0 - \\Div\\mathbf{B}_0+\\diag(v)\\mathbf{D} \\mathbf{P}_{out}^T \\mathbf{B}_{sBC}
+            \mathbf{rhs} =
+                \Div(\MfMui)^{-1}\mathbf{M}^f_{\mu_0^{-1}}\mathbf{B}_0
+                - \Div\mathbf{B}_0
+                +\diag(v)\mathbf{D} \mathbf{P}_{out}^T \mathbf{B}_{sBC}
 
         """
         B0 = self.getB0()
@@ -544,21 +547,22 @@ class Simulation3DDifferential(BaseMagneticPDESimulation):
         return self._Div * self.MfMuI * self.MfMu0 * B0 - self._Div * B0
 
     def getA(self, m):
-        """
+        r"""
         GetA creates and returns the A matrix for the Magnetics problem
 
         The A matrix has the form:
 
         .. math ::
 
-            \\mathbf{A} =  \\Div(\\MfMui)^{-1}\\Div^{T}
+            \mathbf{A} =  \Div(\MfMui)^{-1}\Div^{T}
 
         """
         return self._Div * self.MfMuI * self._Div.T.tocsr()
 
     def fields(self, m):
-        """
+        r"""
         Return magnetic potential (u) and flux (B)
+
         u: defined on the cell center [nC x 1]
         B: defined on the cell center [nG x 1]
 
@@ -566,7 +570,10 @@ class Simulation3DDifferential(BaseMagneticPDESimulation):
 
         .. math ::
 
-            \\mathbf{B}_s = (\\MfMui)^{-1}\\mathbf{M}^f_{\\mu_0^{-1}}\\mathbf{B}_0-\\mathbf{B}_0 -(\\MfMui)^{-1}\\Div^T \\mathbf{u}
+            \mathbf{B}_s =
+                (\MfMui)^{-1}\mathbf{M}^f_{\mu_0^{-1}}\mathbf{B}_0
+                - \mathbf{B}_0
+                - (\MfMui)^{-1}\Div^T \mathbf{u}
 
         """
         self.makeMassMatrices(m)

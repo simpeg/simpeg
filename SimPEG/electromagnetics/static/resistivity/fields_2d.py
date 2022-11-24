@@ -8,8 +8,7 @@ from ....simulation import BaseSimulation
 
 class Fields2D(TimeFields):
 
-    """
-
+    r"""
     Fancy Field Storage for a 2.5D code.
 
     u[:,'phi', kyInd] = phi
@@ -34,8 +33,8 @@ class Fields2D(TimeFields):
         e = f[:,'e']
         b = f[:,'b']
 
-    The array returned will be size (nE or nF, nSrcs :math:`\\times`
-    nFrequencies)
+    The array returned will be size (``nE`` or ``nF``, ``nSrcs`` :math:`\times`
+    ``nFrequencies``)
 
     """
 

@@ -480,12 +480,12 @@ class BaseSIPSimulation(BaseIPSimulation):
             return np.hstack(Jv)
 
     def dpred(self, m, f=None):
-        """
+        r"""
         Predicted data.
 
         .. math::
 
-            d_\\text{pred} = Pf(m)
+            d_\text{pred} = Pf(m)
 
         """
         if f is None:

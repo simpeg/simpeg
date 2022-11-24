@@ -981,7 +981,7 @@ class Simulation3DElectricField(BaseTDEMSimulation):
 
 
 class Simulation3DMagneticField(BaseTDEMSimulation):
-    """
+    r"""
     Solve the H-J formulation of Maxwell's equations for the magnetic field h.
 
     We start with Maxwell's equations in terms of the magnetic field and
@@ -989,22 +989,23 @@ class Simulation3DMagneticField(BaseTDEMSimulation):
 
     .. math::
 
-        \\nabla \\times \\rho \\mathbf{j} + \\mu \\frac{\\partial h}{\\partial t} = \\mathbf{s_m} \\
-        \\nabla \\times \\mathbf{h} - \\mathbf{j} = \\mathbf{s_e}
+        \nabla \times \rho \mathbf{j} + \mu \frac{\partial h}{\partial t} = \mathbf{s_m} \
+        \nabla \times \mathbf{h} - \mathbf{j} = \mathbf{s_e}
 
 
-    and eliminate :math:`\\mathbf{j}` using
+    and eliminate :math:`\mathbf{j}` using
 
     .. math::
 
-        \\mathbf{j} = \\nabla \\times \\mathbf{h} - \\mathbf{s_e}
+        \mathbf{j} = \nabla \times \mathbf{h} - \mathbf{s_e}
 
 
     giving
 
     .. math::
 
-        \\nabla \\times \\rho \\nabla \\times \\mathbf{h} + \\mu \\frac{\\partial h}{\\partial t} =  \\nabla \\times \\rho \\mathbf{s_e} + \\mathbf{s_m}
+        \nabla \times \rho \nabla \times \mathbf{h} + \mu \frac{\partial h}{\partial t}
+            = \nabla \times \rho \mathbf{s_e} + \mathbf{s_m}
 
 
     """
