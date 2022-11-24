@@ -6,8 +6,8 @@ import warnings
 from ..simulation import LinearSimulation
 from scipy.sparse import csr_matrix as csr
 from SimPEG.utils import mkvc
-from ..utils import validate_string, validate_active_indices
-import multiprocessing
+from ..utils import validate_string, validate_active_indices, validate_integer
+from multiprocessing.pool import Pool
 
 ###############################################################################
 #                                                                             #
@@ -43,9 +43,19 @@ class BasePFSimulation(LinearSimulation):
         - 'disk': sensitivities are written to a directory
         - 'forward_only': you intend only do perform a forward simulation and sensitivities do no need to be stored
 
+    n_processes : None or int, optional
+        The number of processes to use in the internal multiprocessing pool for forward
+        modeling.
     """
 
-    def __init__(self, mesh, ind_active=None, store_sensitivities="ram", **kwargs):
+    def __init__(
+        self,
+        mesh,
+        ind_active=None,
+        store_sensitivities="ram",
+        n_processes=None,
+        **kwargs,
+    ):
 
         # If deprecated property set with kwargs
         if "actInd" in kwargs:
@@ -61,6 +71,7 @@ class BasePFSimulation(LinearSimulation):
         self.store_sensitivities = store_sensitivities
         super().__init__(mesh, **kwargs)
         self.solver = None
+        self.n_processes = n_processes
 
         # Find non-zero cells indices
         if ind_active is not None:
@@ -128,6 +139,16 @@ class BasePFSimulation(LinearSimulation):
         )
 
     @property
+    def n_processes(self):
+        return self._n_processes
+
+    @n_processes.setter
+    def n_processes(self, value):
+        if value is not None:
+            value = validate_integer("n_processes", value, min_val=1)
+        self._n_processes = value
+
+    @property
     def ind_active(self):
         """Active topography cells
 
@@ -167,7 +188,7 @@ class BasePFSimulation(LinearSimulation):
                     kernel = np.asarray(kernel)
                     return kernel
         # multiprocessed
-        with multiprocessing.pool.Pool() as pool:
+        with Pool(processes=self.n_processes) as pool:
             kernel = pool.starmap(
                 self.evaluate_integral, self.survey._location_component_iterator()
             )
