@@ -38,8 +38,7 @@ from SimPEG import (
 
 
 class Volume(objective_function.BaseObjectiveFunction):
-
-    """
+    r"""
     A regularization on the volume integral of the model
 
     .. math::
@@ -125,8 +124,8 @@ def run(plotIt=True):
         sigetest = sigmaMapTest * testphis
         ax.semilogy(testphis, sigetest)
         ax.set_title("Model Transform")
-        ax.set_xlabel("$\\varphi$")
-        ax.set_ylabel("$\sigma$")
+        ax.set_xlabel(r"$\varphi$")
+        ax.set_ylabel(r"$\sigma$")
 
     sigmaMap = maps.SelfConsistentEffectiveMedium(M, sigma0=sigma0, sigma1=sigma1)
 
@@ -147,7 +146,7 @@ def run(plotIt=True):
         fig, ax = plt.subplots(1, 1)
         cb = plt.colorbar(M.plot_image(phitrue, ax=ax)[0], ax=ax)
         survey.plot(ax=ax)
-        cb.set_label("$\\varphi$")
+        cb.set_label(r"$\varphi$")
 
     # get observed data
     data = problem.make_synthetic_data(phitrue, relative_error=0.03, add_noise=True)

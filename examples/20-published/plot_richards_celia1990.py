@@ -1,4 +1,4 @@
-"""
+r"""
 FLOW: Richards: 1D: Celia1990
 =============================
 
@@ -10,25 +10,25 @@ The most fundamental form, referred to as the
 
 .. math::
 
-    \\frac{\partial \\theta(\psi)}{\partial t} -
-    \\nabla \cdot k(\psi) \\nabla \psi -
-    \\frac{\partial k(\psi)}{\partial z} = 0
+    \frac{\partial \theta(\psi)}{\partial t} -
+    \nabla \cdot k(\psi) \nabla \psi -
+    \frac{\partial k(\psi)}{\partial z} = 0
     \quad \psi \in \Omega
 
-where \\\\(\\\\theta\\\\) is water content, and \\\\(\\\\psi\\\\)
+where :math:`\theta` is water content, and :math:`\psi`
 is pressure head. This formulation of Richards equation is called the
-'mixed'-form because the equation is parameterized in \\\\(\\\\psi\\\\)
-but the time-stepping is in terms of \\\\(\\\\theta\\\\).
+'mixed'-form because the equation is parameterized in :math:`\psi`
+but the time-stepping is in terms of :math:`\theta`.
 
 As noted in Celia1990_ the 'head'-based form of Richards
 equation can be written in the continuous form as:
 
 .. math::
 
-    \\frac{\partial \\theta}{\partial \psi}
-    \\frac{\partial \psi}{\partial t} -
-    \\nabla \cdot k(\psi) \\nabla \psi -
-    \\frac{\partial k(\psi)}{\partial z} = 0
+    \frac{\partial \theta}{\partial \psi}
+    \frac{\partial \psi}{\partial t} -
+    \nabla \cdot k(\psi) \nabla \psi -
+    \frac{\partial k(\psi)}{\partial z} = 0
     \quad \psi \in \Omega
 
 However, it can be shown that this does not conserve mass in the

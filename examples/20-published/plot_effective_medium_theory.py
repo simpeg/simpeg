@@ -1,4 +1,4 @@
-"""
+r"""
 Effective Medium Theory Mapping
 ===============================
 
@@ -76,7 +76,7 @@ fig, ax = plt.subplots(1, 1, figsize=(7, 4), dpi=350)
 ax.semilogy(phi, sige)
 ax.grid(which="both", alpha=0.4)
 ax.legend(["{:1.0e} S/m".format(s) for s in sigma1])
-ax.set_xlabel("Volume fraction of proppant $\phi$")
+ax.set_xlabel(r"Volume fraction of proppant $\phi$")
 ax.set_ylabel("Effective conductivity (S/m)")
 
 plt.tight_layout()
