@@ -40,16 +40,15 @@ class StreamingCurrents(Src.BaseSrc):
         return q
 
     def eval(self, prob):
-        """
+        r"""
+        Computing source term using:
 
-            Computing source term using:
+        - Hydraulic head: h
+        - Cross coupling coefficient: L
 
-            - Hydraulic head: h
-            - Cross coupling coefficient: L
+        .. math::
 
-            .. math::
-
-                -\nabla \cdot \vec{j}^s = \nabla \cdot L \nabla \phi \\
+            -\nabla \cdot \vec{j}^s = \nabla \cdot L \nabla \phi
 
         """
         if prob._formulation == "HJ":

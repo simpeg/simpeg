@@ -33,7 +33,7 @@ def read_GOCAD_ts(tsfile):
 
     # Run down all the vertices and save in array
     while re.match("VRTX", line):
-        l_input = re.split("[\s*]", line)
+        l_input = re.split(r"[\s*]", line)
         temp = np.array(l_input[2:5])
         vrtx.append(temp.astype(np.float))
 
@@ -51,7 +51,7 @@ def read_GOCAD_ts(tsfile):
 
     # Run down all the vertices and save in array
     while re.match("TRGL", line):
-        l_input = re.split("[\s*]", line)
+        l_input = re.split(r"[\s*]", line)
         temp = np.array(l_input[1:4])
         trgl.append(temp.astype(np.int))
 

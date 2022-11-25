@@ -1,3 +1,6 @@
+"""
+Define simulation classes
+"""
 import os
 import inspect
 import numpy as np
@@ -202,7 +205,7 @@ class BaseSimulation(props.HasModel):
         raise NotImplementedError("fields has not been implemented for this ")
 
     def dpred(self, m=None, f=None):
-        """
+        r"""
         dpred(m, f=None)
         Create the projected data from a model.
         The fields, f, (if provided) will be used for the predicted data
@@ -210,7 +213,7 @@ class BaseSimulation(props.HasModel):
 
         .. math::
 
-            d_\\text{pred} = P(f(m))
+            d_\text{pred} = P(f(m))
 
         Where P is a projection of the fields onto the data space.
         """
@@ -285,7 +288,7 @@ class BaseSimulation(props.HasModel):
 
     @count
     def residual(self, m, dobs, f=None):
-        """residual(m, dobs, f=None)
+        r"""
         The data residual:
 
         .. math::
@@ -420,7 +423,7 @@ class BaseTimeSimulation(BaseSimulation):
         return self.time_mesh.nodes_x
 
     def dpred(self, m=None, f=None):
-        """
+        r"""
         dpred(m, f=None)
         Create the projected data from a model.
         The fields, f, (if provided) will be used for the predicted data
@@ -428,7 +431,7 @@ class BaseTimeSimulation(BaseSimulation):
 
         .. math::
 
-            d_\\text{pred} = P(f(m))
+            d_\text{pred} = P(f(m))
 
         Where P is a projection of the fields onto the data space.
         """
@@ -530,13 +533,13 @@ class LinearSimulation(BaseSimulation):
 
 
 class ExponentialSinusoidSimulation(LinearSimulation):
-    """
+    r"""
     This is the simulation class for the linear problem consisting of
     exponentially decaying sinusoids. The rows of the G matrix are
 
     .. math::
 
-        \\int_x e^{p j_k x} \\cos(\\pi q j_k x) \\quad, j_k \\in [j_0, ..., j_n]
+        \int_x e^{p j_k x} \cos(\pi q j_k x) \quad, j_k \in [j_0, ..., j_n]
     """
 
     @property

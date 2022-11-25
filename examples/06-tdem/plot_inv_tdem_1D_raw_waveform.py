@@ -115,7 +115,7 @@ def run(plotIt=True):
         ax[1].set_xlabel("Conductivity (S/m)", fontsize=14)
         ax[1].set_ylabel("Depth (m)", fontsize=14)
         ax[1].grid(color="k", alpha=0.5, linestyle="dashed", linewidth=0.5)
-        plt.legend(["$\sigma_{true}$", "$\sigma_{pred}$"])
+        plt.legend([r"$\sigma_{true}$", r"$\sigma_{pred}$"])
 
 
 if __name__ == "__main__":

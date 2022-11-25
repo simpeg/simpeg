@@ -1618,9 +1618,9 @@ class CircularLoop(MagDipole):
 
     @property
     def moment(self):
-        """Dipole moment of the loop.
+        r"""Dipole moment of the loop.
 
-        The dipole moment is given by :math:`NI\\pi r^2`
+        The dipole moment is given by :math:`NI\pi r^2`
 
         Returns
         -------

@@ -92,12 +92,12 @@ class BaseIPSimulation(BasePDESimulation):
         return self._f
 
     def dpred(self, m=None, f=None):
-        """
+        r"""
         Predicted data.
 
         .. math::
 
-            d_\\text{pred} = Pf(m)
+            d_\text{pred} = Pf(m)
 
         """
         # return self.Jvec(m, m, f=f)

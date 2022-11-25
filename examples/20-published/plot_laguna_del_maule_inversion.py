@@ -258,9 +258,9 @@ def run(plotIt=True, cleanAfterRun=True):
         plt.suptitle(
             "Compact Inversion: Depth weight = "
             + str(wgtexp)
-            + ": $\epsilon_p$ = "
+            + r": $\epsilon_p$ = "
             + str(round(reg.objfcts[0].irls_threshold, 1))
-            + ": $\epsilon_q$ = "
+            + r": $\epsilon_q$ = "
             + str(round(reg.objfcts[1].irls_threshold, 2))
         )
         ax = plt.subplot(221)

@@ -228,7 +228,7 @@ cplot1 = plot2Ddata(
     contourOpts={"cmap": "bwr"},
 )
 cplot1[0].set_clim((-v_max, v_max))
-ax1.set_title("$\partial g /\partial x$")
+ax1.set_title(r"$\partial g /\partial x$")
 ax1.set_xlabel("x (m)")
 ax1.set_ylabel("y (m)")
 
@@ -242,7 +242,7 @@ cplot2 = plot2Ddata(
     contourOpts={"cmap": "bwr"},
 )
 cplot2[0].set_clim((-v_max, v_max))
-ax2.set_title("$\partial g /\partial y$")
+ax2.set_title(r"$\partial g /\partial y$")
 ax2.set_xlabel("x (m)")
 ax2.set_yticks([])
 
@@ -256,7 +256,7 @@ cplot3 = plot2Ddata(
     contourOpts={"cmap": "bwr"},
 )
 cplot3[0].set_clim((-v_max, v_max))
-ax3.set_title("$\partial g /\partial z$")
+ax3.set_title(r"$\partial g /\partial z$")
 ax3.set_xlabel("x (m)")
 ax3.set_yticks([])
 

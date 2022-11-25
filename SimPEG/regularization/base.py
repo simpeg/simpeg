@@ -304,12 +304,12 @@ class BaseRegularization(BaseObjectiveFunction):
 
     @utils.timeIt
     def __call__(self, m):
-        """
+        r"""
         We use a weighted 2-norm objective function
 
         .. math::
 
-            r(m) = \\frac{1}{2} \\| \\mathbf{W} \\mathbf{f(m)} \\|_2^2
+            r(m) = \frac{1}{2} \| \mathbf{W} \mathbf{f(m)} \|_2^2
         """
         r = self.W * self.f_m(m)
         return 0.5 * r.dot(r)
@@ -324,20 +324,19 @@ class BaseRegularization(BaseObjectiveFunction):
 
     @utils.timeIt
     def deriv(self, m) -> np.ndarray:
-        """
-
+        r"""
         The regularization is:
 
         .. math::
 
-            R(m) = \\frac{1}{2}\\mathbf{(m-m_\\text{ref})^\\top W^\\top
-                   W(m-m_\\text{ref})}
+            R(m) = \frac{1}{2}\mathbf{(m-m_\text{ref})^\top W^\top
+                   W(m-m_\text{ref})}
 
         So the derivative is straight forward:
 
         .. math::
 
-            R(m) = \\mathbf{W^\\top W (m-m_\\text{ref})}
+            R(m) = \mathbf{W^\top W (m-m_\text{ref})}
 
         """
         r = self.W * self.f_m(m)
@@ -345,7 +344,7 @@ class BaseRegularization(BaseObjectiveFunction):
 
     @utils.timeIt
     def deriv2(self, m, v=None) -> csr_matrix:
-        """
+        r"""
         Second derivative
 
         :param numpy.ndarray m: geophysical model
@@ -357,14 +356,14 @@ class BaseRegularization(BaseObjectiveFunction):
 
         .. math::
 
-            R(m) = \\frac{1}{2}\\mathbf{(m-m_\\text{ref})^\\top W^\\top
-            W(m-m_\\text{ref})}
+            R(m) = \frac{1}{2}\mathbf{(m-m_\text{ref})^\top W^\top
+            W(m-m_\text{ref})}
 
         So the second derivative is straight forward:
 
         .. math::
 
-            R(m) = \\mathbf{W^\\top W}
+            R(m) = \mathbf{W^\top W}
 
         """
         f_m_deriv = self.f_m_deriv(m)
@@ -375,21 +374,21 @@ class BaseRegularization(BaseObjectiveFunction):
 
 
 class Smallness(BaseRegularization):
-    """
+    r"""
     Small regularization - L2 regularization on the difference between a
     model and a reference model.
 
     .. math::
 
-        r(m) = \\frac{1}{2}(\\mathbf{m} - \\mathbf{m_ref})^\top \\mathbf{V}^T
-            \\mathbf{W}^T
-        \\mathbf{W} \\mathbf{V} (\\mathbf{m} - \\mathbf{m_{ref}})
+        r(m) = \frac{1}{2}(\mathbf{m} - \mathbf{m_ref})^\top \mathbf{V}^T
+            \mathbf{W}^T
+        \mathbf{W} \mathbf{V} (\mathbf{m} - \mathbf{m_{ref}})
 
     where
-    :math:`\\mathbf{m}` is the model,
-    :math:`\\mathbf{m_{ref}}` is a reference model,
-    :math:`\\mathbf{V}` are square root of cell volumes and
-    :math:`\\mathbf{W}` is a weighting matrix (default Identity). If fixed or
+    :math:`\mathbf{m}` is the model,
+    :math:`\mathbf{m_{ref}}` is a reference model,
+    :math:`\mathbf{V}` are square root of cell volumes and
+    :math:`\mathbf{W}` is a weighting matrix (default Identity). If fixed or
         free weights are provided, then it is :code:`diag(np.sqrt(weights))`).
 
 
