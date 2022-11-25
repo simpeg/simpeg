@@ -127,7 +127,7 @@ mpl.rcParams.update({"font.size": 14})
 ax1 = fig.add_axes([0.15, 0.1, 0.7, 0.85])
 ax1.semilogy(electrode_separations, dobs, "b")
 ax1.set_xlabel("AB/2 (m)")
-ax1.set_ylabel("Apparent Resistivity ($\Omega m$)")
+ax1.set_ylabel(r"Apparent Resistivity ($\Omega m$)")
 plt.show()
 
 ###############################################
