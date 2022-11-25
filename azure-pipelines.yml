@@ -15,12 +15,46 @@ pr:
     exclude:
     - '*no-ci*'
 stages:
+
+- stage: StyleChecks
+  displayName: "Style Checks"
+  jobs:
+    - job:
+      displayName: Run style checks with Black
+      pool:
+        vmImage: ubuntu-latest
+      variables:
+        python.version: '3.7'
+      steps:
+        - script: |
+            pip install -r requirements_style.txt
+          displayName: "Install dependencies to run the checks"
+
+        - script: make black
+          displayName: "Run black"
+    - job:
+      displayName: Run style checks with flake8
+      pool:
+        vmImage: ubuntu-latest
+      variables:
+        python.version: '3.7'
+      steps:
+        - script: |
+            pip install -r requirements_style.txt
+          displayName: "Install dependencies to run the checks"
+
+        - script: make flake
+          displayName: "Run flake8"
+
 - stage: Testing
+  dependsOn: StyleChecks
+  condition: ne(dependencies.StyleChecks.result, 'Cancelled')
   jobs:
     - template: ./.azure-pipelines/matrix.yml
 
 - stage: Deploy
-  condition: and(succeeded(), startsWith(variables['build.sourceBranch'], 'refs/tags/'))
+  dependsOn: Testing
+  condition: and(in(dependencies.Testing.result, 'Succeeded', 'SucceededWithIssues'), startsWith(variables['build.sourceBranch'], 'refs/tags/'))
   jobs:
     - job:
       displayName: Deploy Docs and source
