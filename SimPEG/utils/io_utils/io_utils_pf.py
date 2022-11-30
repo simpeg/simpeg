@@ -296,7 +296,7 @@ def read_gg3d_ubc(obs_file):
                     d.append(factor * temp[3 : 3 + n_comp])
                     wd.append(temp[3 + n_comp :])
                 ii += 1
-            except:
+            except IOError:
                 raise IOError(f"Unable to read data line {ii}: {line}")
 
     # Turn into vector. For multiple components, SimPEG orders by rows
