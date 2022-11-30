@@ -299,7 +299,7 @@ def _poly_line_source_tree(mesh, locs):
     nP = len(points) - 1
     x0 = mesh.x0
     dim = mesh.dim
-    for ip in range(nP + 1):
+    for _ in range(nP + 1):
         A = points[0]
         xF = np.array([mesh.nodes_x[-1], mesh.nodes_y[-1], mesh.nodes_z[-1]])
         if np.any(A < x0) or np.any(A > xF):

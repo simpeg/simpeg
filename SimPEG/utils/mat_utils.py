@@ -184,7 +184,7 @@ def eigenvalue_by_power_iteration(
     # create Field for data misfit if necessary and not provided
     if fields_list is None:
         fields_list = []
-        for k, obj in enumerate(combo_objfct.objfcts):
+        for obj in combo_objfct.objfcts:
             if hasattr(obj, "simulation"):
                 fields_list += [obj.simulation.fields(model)]
             else:
@@ -196,7 +196,7 @@ def eigenvalue_by_power_iteration(
         fields_list = [fields_list]
 
     # Power iteration: estimate eigenvector
-    for i in range(n_pw_iter):
+    for _ in range(n_pw_iter):
         x1 = 0.0
         for j, (mult, obj) in enumerate(
             zip(combo_objfct.multipliers, combo_objfct.objfcts)

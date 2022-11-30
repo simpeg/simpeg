@@ -1,4 +1,4 @@
-"""
+"""s
 Heagy et al., 2017 Load and Plot Bookpurnong Data
 =================================================
 
@@ -106,7 +106,7 @@ def run(plotIt=True, saveIt=False, saveFig=False, cleanup=True):
     header_skytem = lines[0].split()
     info_skytem = []
     data_skytem = []
-    for i, line in enumerate(lines[1:]):
+    for line in lines[1:]:
         if len(line.split()) != 65:
             info_skytem.append(np.array(line.split()[:16], dtype="O"))
             data_skytem.append(np.array(line.split()[16 : 16 + 24], dtype="float"))

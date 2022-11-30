@@ -74,11 +74,11 @@ class Simulation1DLayered(BaseEM1DSimulation):
         frequencies = np.array(survey.frequencies)
         # Compute coefficients for Hankel transform
         i_freq = []
-        for i_src, src in enumerate(survey.source_list):
+        for src in survey.source_list:
             class_name = type(src).__name__
             is_wire_loop = class_name == "LineCurrent"
             i_f = np.searchsorted(frequencies, src.frequency)
-            for i_rx, rx in enumerate(src.receiver_list):
+            for rx in src.receiver_list:
                 if is_wire_loop:
                     n_quad_points = src.n_segments * self.n_points_per_path
                     i_freq.append([i_f] * rx.locations.shape[0] * n_quad_points)
@@ -252,7 +252,7 @@ class Simulation1DLayered(BaseEM1DSimulation):
             out = np.zeros(self.survey.nD)
         else:
             out = np.zeros((self.survey.nD, v.shape[1]))
-        for i_src, src in enumerate(self.survey.source_list):
+        for src in self.survey.source_list:
             class_name = type(src).__name__
             is_wire_loop = class_name == "LineCurrent"
             for i_rx, rx in enumerate(src.receiver_list):

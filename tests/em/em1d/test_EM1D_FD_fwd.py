@@ -163,7 +163,7 @@ class EM1D_FD_FwdProblemTests(unittest.TestCase):
         )
 
         source_list = []
-        for ii, frequency in enumerate(frequencies):
+        for frequency in frequencies:
             src = fdem.sources.MagDipole(
                 receiver_list, frequency, src_location, orientation="z"
             )
@@ -318,7 +318,7 @@ class EM1D_FD_FwdProblemTests(unittest.TestCase):
         )
 
         source_list = []
-        for ii, frequency in enumerate(frequencies):
+        for frequency in frequencies:
             src = fdem.sources.MagDipole(
                 receiver_list, frequency, src_location, orientation="x"
             )
@@ -372,7 +372,7 @@ class EM1D_FD_FwdProblemTests(unittest.TestCase):
         )
 
         source_list = []
-        for ii, frequency in enumerate(frequencies):
+        for frequency in frequencies:
             src = fdem.sources.CircularLoop(
                 receiver_list, frequency, src_location, radius=5.0
             )
@@ -417,7 +417,7 @@ class EM1D_FD_FwdProblemTests(unittest.TestCase):
         )
 
         source_list = []
-        for ii, frequency in enumerate(frequencies):
+        for frequency in frequencies:
             src = fdem.sources.CircularLoop(
                 receiver_list, frequency, src_location, radius=5.0
             )

@@ -32,7 +32,7 @@ def WennerSrcList(n_electrodes, a_spacing, in2D=False, plotIt=False):
     elocs -= (n_electrodes * a_spacing - a_spacing) / 2
     space = 1
     WENNER = np.zeros((0,), dtype=int)
-    for ii in range(n_electrodes):
+    for _ in range(n_electrodes):
         for jj in range(n_electrodes):
             test = np.r_[jj, jj + space, jj + space * 2, jj + space * 3]
             if np.any(test >= n_electrodes):

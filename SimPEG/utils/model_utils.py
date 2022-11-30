@@ -269,7 +269,7 @@ def surface_layer_index(mesh, topo, index=0):
     Dz = mesh.stencil_cell_gradient_z
     Iz, Jz, _ = sp.find(Dz)
     jz = np.sort(Jz[np.argsort(Iz)].reshape((int(Iz.shape[0] / 2), 2)), axis=1)
-    for ii in range(index):
+    for _ in range(index):
 
         members = ismember(inds, jz[:, 1])
         inds = np.squeeze(jz[members, 0])

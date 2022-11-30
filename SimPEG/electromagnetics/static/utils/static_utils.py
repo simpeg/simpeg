@@ -211,7 +211,7 @@ def pseudo_locations(survey, wenner_tolerance=0.1, **kwargs):
     midpoints = []
     ds = []
 
-    for ii, source in enumerate(survey.source_list):
+    for source in survey.source_list:
         src_loc = source.location
         src_midpoint = np.mean(src_loc, axis=0)[None, :]
 
@@ -425,7 +425,7 @@ def convert_survey_3d_to_2d_lines(
         ]
 
         # For each source in the line
-        for ii, ind in enumerate(ab_index):
+        for ind in ab_index:
 
             # Get source location
             src_loc_a = mkvc(a_locs_s[ind, :])
@@ -1007,7 +1007,7 @@ def generate_survey_from_abmn_locations(
 
     # Loop over all unique source locations
     source_list = []
-    for ii, ind in enumerate(ab_index):
+    for ind in ab_index:
 
         # Get source location
         src_loc_a = mkvc(locations_a[ind, :])

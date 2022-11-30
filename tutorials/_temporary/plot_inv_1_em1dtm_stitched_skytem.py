@@ -434,7 +434,7 @@ recovered_model = mkvc(np.fliplr(recovered_model))
 models_list = [true_model, l2_model, recovered_model]
 
 
-for ii, mod in enumerate(models_list):
+for mod in models_list:
 
     fig = plt.figure(figsize=(9, 3))
     ax1 = fig.add_axes([0.1, 0.12, 0.73, 0.78])

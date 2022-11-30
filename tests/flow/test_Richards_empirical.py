@@ -42,7 +42,7 @@ class TestModels(unittest.TestCase):
 
         u = np.random.randn(mesh.nC)
 
-        for name, opt, nM in opts:
+        for name, opt, _ in opts:
             van = richards.empirical.Haverkamp_theta(mesh, **opt)
 
             x0 = np.concatenate([seeds[n] for n in name.split("-")])
@@ -84,7 +84,7 @@ class TestModels(unittest.TestCase):
 
         u = np.random.randn(mesh.nC)
 
-        for name, opt, nM in opts:
+        for name, opt, _ in opts:
             van = richards.empirical.Vangenuchten_theta(mesh, **opt)
 
             x0 = np.concatenate([seeds[n] for n in name.split("-")])
@@ -144,7 +144,7 @@ class TestModels(unittest.TestCase):
 
         u = np.random.randn(mesh.nC)
 
-        for name, opt, nM in opts:
+        for name, opt, _ in opts:
             np.random.seed(2)
             hav = richards.empirical.Haverkamp_k(mesh, **opt)
 
@@ -192,7 +192,7 @@ class TestModels(unittest.TestCase):
 
         u = np.random.randn(mesh.nC)
 
-        for name, opt, nM in opts:
+        for name, opt, _ in opts:
             van = richards.empirical.Vangenuchten_k(mesh, **opt)
 
             x0 = np.concatenate([seeds[n] for n in name.split("-")])
