@@ -5,7 +5,7 @@ from discretize.utils import active_from_xyz
 
 try:
     from SimPEG import utils
-except:
+except ImportError:
     from SimPEG import Utils as utils
 
 import numpy as np

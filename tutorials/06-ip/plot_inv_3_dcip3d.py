@@ -60,7 +60,7 @@ try:
     from SimPEG.electromagnetics.static.utils.static_utils import plot_3d_pseudosection
 
     has_plotly = True
-except:
+except ImportError:
     has_plotly = False
     pass
 

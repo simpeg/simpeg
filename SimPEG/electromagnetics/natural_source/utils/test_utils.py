@@ -483,7 +483,7 @@ def setupSimpegNSEM_ePrimSec(inputSetup, comp="Imp", singleFreq=False, expMap=Tr
         from pymatsolver import Pardiso
 
         problem.solver = Pardiso
-    except:
+    except ImportError:
         pass
 
     return (survey, problem)
