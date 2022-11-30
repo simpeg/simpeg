@@ -1,4 +1,5 @@
 from collections import namedtuple
+from collections.abc import Iterable
 import warnings
 import discretize
 import numpy as np
@@ -2949,17 +2950,28 @@ class Mesh2Mesh(IdentityMap):
     """
 
     def __init__(self, meshes, indActive=None, **kwargs):
+        # Sanity checks for the meshes parameter
+        if not isinstance(meshes, Iterable):
+            raise ValueError(
+                "Invalid 'meshes' argument: it must be a list of two meshes."
+            )
+        if len(meshes) != 2:
+            raise ValueError(
+                f"Found 'meshes' with '{len(meshes)}' elements. "
+                + "It must be a list containing two meshes."
+            )
+        mesh, mesh2 = meshes
 
-        try:
-            mesh, mesh2 = meshes
-        except:
-            raise TypeError("meshes must be a list of two meshes")
+        # Check dimensions of both meshes
+        if mesh.dim != mesh2.dim:
+            raise ValueError(
+                f"Found meshes with dimensions '{mesh.dim}' and '{mesh2.dim}'. "
+                + "Both meshes must have the same dimension."
+            )
 
         super().__init__(mesh=mesh, **kwargs)
 
         self.mesh2 = mesh2
-        if self.mesh.dim != self.mesh2.dim:
-            raise ValueError("mesh and mesh2 must have the same dimension.")
         self.indActive = indActive
 
     # reset to not accepted None for mesh
