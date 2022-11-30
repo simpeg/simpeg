@@ -821,7 +821,7 @@ def validate_integer(property_name, var, min_val=-np.inf, max_val=np.inf):
     """
     try:
         var = int(var)
-    except:
+    except TypeError:
         raise TypeError(f"'{property_name}' must be a number, got '{type(var)}'")
 
     if (var < min_val) | (var > max_val):
@@ -864,7 +864,7 @@ def validate_float(
     """
     try:
         var = float(var)
-    except:
+    except TypeError:
         raise TypeError(f"'{property_name}' must be int or float, got '{type(var)}'")
 
     value_range_string = f"{min_val}, {max_val}"
@@ -946,7 +946,7 @@ def validate_location_property(property_name, var, dim=None):
     """
     try:
         var = np.atleast_1d(var).astype(float).squeeze()
-    except:
+    except TypeError:
         raise TypeError(f"'{property_name}' must be 1D array_like, got {type(var)}")
 
     if len(var.shape) > 1:
