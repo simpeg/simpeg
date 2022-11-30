@@ -53,20 +53,24 @@ class RegularizationMesh(props.BaseSimPEG):
                 "The RegulatizationMesh already has an 'active_cells' property set."
             )
         if values is not None:
-            try:
-                values = np.asarray(values)
-            except:
-                raise ValueError("Input 'active_cells' must be array_like.")
-
-            if values.dtype != bool:
-                try:
-                    tmp = np.zeros(self.mesh.nC, dtype=bool)
-                    tmp[values] = True
-                except:
-                    raise ValueError(
-                        "Values must be an array of integers or an array of bools "
-                        "indicating the active cells"
-                    )
+            # Convert values into an array if needed
+            values = np.asarray(values)
+            # Check if values has the right dimensions and size
+            if values.shape != (self.mesh.nC,):
+                raise ValueError(
+                    f"Found 'active_cells' with shape {values.shape}. "
+                    + f"It must have the follwing shape: {(self.mesh.nC,)}."
+                )
+            # Check if type of values elements are booleans or integers
+            if values.dtype != bool or values.dtype.type != "i":
+                raise ValueError(
+                    f"Found invalid 'values' argument with data type {values.dtype}. "
+                    + "It must contain booleans or integers."
+                )
+            # Replace values array for its equivalent as bools if it's full of ints
+            if values.dtype.type == "i":
+                tmp = np.zeros(self.mesh.nC, dtype=bool)
+                tmp[values] = True
                 if np.sum(tmp) != len(values):
                     # This line should cause an error to be thrown if someone
                     # accidentally passes a list of 0 & 1 integers instead of passing
@@ -76,11 +80,6 @@ class RegularizationMesh(props.BaseSimPEG):
                         "attempted to set the same cell as active multiple times."
                     )
                 values = tmp
-
-            if values.shape != (self.mesh.nC,):
-                raise ValueError(
-                    f"Input 'active_cells' must have shape {(self.mesh.nC,)}"
-                )
             # Ensure any cached operators created when
             # active_cells was None are deleted
             self._vol = None
