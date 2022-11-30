@@ -3,9 +3,9 @@ if __name__ == "__main__":
     import unittest
 
     test_file_strings = glob.glob("test*.py")
-    module_strings = [str[0 : len(str) - 3] for str in test_file_strings]
+    module_strings = [s[0 : len(s) - 3] for s in test_file_strings]
     suites = [
-        unittest.defaultTestLoader.loadTestsFromName(str) for str in module_strings
+        unittest.defaultTestLoader.loadTestsFromName(s) for s in module_strings
     ]
     testSuite = unittest.TestSuite(suites)
 
