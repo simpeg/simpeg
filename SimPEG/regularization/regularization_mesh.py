@@ -1,6 +1,6 @@
 import numpy as np
 import scipy.sparse as sp
-from SimPEG.utils.code_utils import deprecate_property
+from SimPEG.utils.code_utils import deprecate_property, validate_active_indices
 
 from .. import props
 from .. import utils
@@ -53,33 +53,7 @@ class RegularizationMesh(props.BaseSimPEG):
                 "The RegulatizationMesh already has an 'active_cells' property set."
             )
         if values is not None:
-            # Convert values into an array if needed
-            values = np.asarray(values)
-            # Check if values has the right dimensions and size
-            if values.shape != (self.mesh.nC,):
-                raise ValueError(
-                    f"Found 'active_cells' with shape {values.shape}. "
-                    + f"It must have the follwing shape: {(self.mesh.nC,)}."
-                )
-            # Check if type of values elements are booleans or integers
-            if values.dtype != bool or values.dtype.type != "i":
-                raise ValueError(
-                    f"Found invalid 'values' argument with data type {values.dtype}. "
-                    + "It must contain booleans or integers."
-                )
-            # Replace values array for its equivalent as bools if it's full of ints
-            if values.dtype.type == "i":
-                tmp = np.zeros(self.mesh.nC, dtype=bool)
-                tmp[values] = True
-                if np.sum(tmp) != len(values):
-                    # This line should cause an error to be thrown if someone
-                    # accidentally passes a list of 0 & 1 integers instead of passing
-                    # it a list of booleans.
-                    raise ValueError(
-                        "Array was interpretted as a list of active indices and you "
-                        "attempted to set the same cell as active multiple times."
-                    )
-                values = tmp
+            values = validate_active_indices("values", values, self.mesh.nC)
             # Ensure any cached operators created when
             # active_cells was None are deleted
             self._vol = None
