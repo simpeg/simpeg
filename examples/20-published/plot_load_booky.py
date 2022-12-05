@@ -130,7 +130,7 @@ def run(plotIt=True, saveIt=False, saveFig=False, cleanup=True):
     # Plot the data
     nskip = 40
     fig = plt.figure(figsize=(12 * 0.8, 6 * 0.8))
-    title = ["Resolve In-phase 400 Hz", "SkyTEM High moment 156 $\mu$s"]
+    title = ["Resolve In-phase 400 Hz", r"SkyTEM High moment 156 $\mu$s"]
     ax1 = plt.subplot(121)
     ax2 = plt.subplot(122)
     axs = [ax1, ax2]

@@ -7,7 +7,7 @@ from .utils import mkvc, validate_ndarray_with_shape, validate_float, validate_t
 __all__ = ["Data", "SyntheticData"]
 
 
-class Data():
+class Data:
     r"""Class for defining data in SimPEG.
 
     The ``Data`` class is used to create an object which connects the survey geometry,
@@ -127,7 +127,9 @@ class Data():
 
     @dobs.setter
     def dobs(self, value):
-        self._dobs = validate_ndarray_with_shape("dobs", value, shape=(self.survey.nD, ), dtype=(float, complex))
+        self._dobs = validate_ndarray_with_shape(
+            "dobs", value, shape=(self.survey.nD,), dtype=(float, complex)
+        )
 
     @property
     def relative_error(self):
@@ -165,7 +167,9 @@ class Data():
                 value = np.full(self.survey.nD, value)
             except TypeError:
                 pass
-            value = validate_ndarray_with_shape("relative_error", value, shape=(self.survey.nD, ))
+            value = validate_ndarray_with_shape(
+                "relative_error", value, shape=(self.survey.nD,)
+            )
             if np.any(value < 0.0):
                 raise ValueError("relative_error must be positive.")
         self._relative_error = value
@@ -206,7 +210,9 @@ class Data():
                 value = np.full(self.survey.nD, value)
             except TypeError:
                 pass
-            value = validate_ndarray_with_shape("noise_floor", value, shape=(self.survey.nD, ))
+            value = validate_ndarray_with_shape(
+                "noise_floor", value, shape=(self.survey.nD,)
+            )
             if np.any(value < 0.0):
                 raise ValueError("noise_floor must be positive.")
         self._noise_floor = value
@@ -356,7 +362,8 @@ class Data():
 
 
 class SyntheticData(Data):
-    """Class for creating synthetic data.
+    r"""
+    Class for creating synthetic data.
 
     Parameters
     ----------
@@ -416,4 +423,6 @@ class SyntheticData(Data):
 
     @dclean.setter
     def dclean(self, value):
-        self._dclean = validate_ndarray_with_shape("dclean", value, shape=(self.survey.nD, ), dtype=(float, complex))
+        self._dclean = validate_ndarray_with_shape(
+            "dclean", value, shape=(self.survey.nD,), dtype=(float, complex)
+        )

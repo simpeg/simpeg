@@ -56,7 +56,7 @@ def run(plotIt=True):
     )
     axs[1].set_title("Physical Property")
     axs[1].set_ylabel("Depth, y")
-    clbar.set_label("$\sigma = \exp(\mathbf{P}m)$")
+    clbar.set_label(r"$\sigma = \exp(\mathbf{P}m)$")
     plt.tight_layout()
 
 

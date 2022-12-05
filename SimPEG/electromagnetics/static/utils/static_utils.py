@@ -500,7 +500,7 @@ def plot_pseudosection(
     space_type="half space",
     **kwargs,
 ):
-    """
+    r"""
     Plot 2D DC/IP data in pseudo-section.
 
     This utility allows the user to image 2D DC/IP data in pseudosection as
@@ -541,7 +541,7 @@ def plot_pseudosection(
         Dictionary defining kwargs for the colorbar
     cbar_label : str
         A string stating the color bar label for the
-        data; e.g. 'S/m', '$\\Omega m$', '%'
+        data; e.g. 'S/m', '$\Omega m$', '%'
     cax : mpl_toolkits.mplot3d.axes.Axes, optional
         An axis object for the colorbar
     data_type : str, optional

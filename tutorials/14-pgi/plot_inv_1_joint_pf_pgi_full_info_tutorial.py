@@ -28,22 +28,20 @@ Volume 224, Issue 1, January 2021, Pages 40-68, DOI: `10.1093/gji/ggaa378
 #
 
 import discretize as ds
+import matplotlib.pyplot as plt
+import numpy as np
 import SimPEG.potential_fields as pf
 from SimPEG import (
-    maps,
-    utils,
-    simulation,
-    inverse_problem,
-    inversion,
-    optimization,
-    regularization,
     data_misfit,
     directives,
+    inverse_problem,
+    inversion,
+    maps,
+    optimization,
+    regularization,
+    utils,
 )
 from SimPEG.utils import io_utils
-import numpy as np
-import matplotlib.pyplot as plt
-from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 
 # Reproducible science
 np.random.seed(518936)
@@ -327,7 +325,7 @@ reg = regularization.PGI(
     wiresmap=wires,
     maplist=[idenMap, idenMap],
     active_cells=actv,
-    alpha_s=1.0,
+    alpha_pgi=1.0,
     alpha_x=1.0,
     alpha_y=1.0,
     alpha_z=1.0,
@@ -356,7 +354,7 @@ alpha0_ratio = np.r_[
     1e-4 * 100.0 * np.ones(len(reg.objfcts[2].objfcts[1:])),
 ]
 Alphas = directives.AlphasSmoothEstimate_ByEig(alpha0_ratio=alpha0_ratio, verbose=True)
-# initialize beta and beta/alpha_s schedule
+# initialize beta and beta/alpha_pgi schedule
 beta = directives.BetaEstimate_ByEig(beta0_ratio=1e-2)
 betaIt = directives.PGI_BetaAlphaSchedule(
     verbose=True,

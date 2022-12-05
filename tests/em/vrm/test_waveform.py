@@ -35,9 +35,7 @@ class VRM_waveform_tests(unittest.TestCase):
         err3 = np.max(np.abs((decay2dbdt - decay1dbdt) / decay1dbdt))
         err4 = np.max(np.abs((decay3dbdt - decay1dbdt) / decay1dbdt))
 
-        self.assertTrue(
-            err1 < 0.01 and err2 < 0.01 and err3 < 0.025 and err4 < 0.01
-        )
+        self.assertTrue(err1 < 0.01 and err2 < 0.01 and err3 < 0.025 and err4 < 0.01)
 
     def test_loguniform(self):
 

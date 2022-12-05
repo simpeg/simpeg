@@ -142,7 +142,7 @@ ax.set_ylim(0.0, 1.1 * sigma)
 ax.set_xlabel("Frequency (Hz)")
 ax.set_ylabel("Conductivity")
 ax.legend(
-    ["$\sigma_{\infty}$", "$Re[\sigma (\omega)]$", "$Im[\sigma (\omega)]$"],
+    [r"$\sigma_{\infty}$", r"$Re[\sigma (\omega)]$", r"$Im[\sigma (\omega)]$"],
     loc="center right",
 )
 plt.show()

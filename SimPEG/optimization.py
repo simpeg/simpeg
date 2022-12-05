@@ -1022,12 +1022,12 @@ class GaussNewton(Minimize, Remember):
 
 
 class InexactGaussNewton(BFGS, Minimize, Remember):
-    """
+    r"""
     Minimizes using CG as the inexact solver of
 
     .. math::
 
-        \\mathbf{H p = -g}
+        \mathbf{H p = -g}
 
     By default BFGS is used as the preconditioner.
 
@@ -1088,7 +1088,7 @@ class SteepestDescent(Minimize, Remember):
 
 
 class NewtonRoot(object):
-    """
+    r"""
     Newton Method - Root Finding
 
     root = newtonRoot(fun,x);
@@ -1096,7 +1096,7 @@ class NewtonRoot(object):
     Where fun is the function that returns the function value as well as
     the gradient.
 
-    For iterative solving of dh = -J\\r, use O.solveTol = TOL. For direct
+    For iterative solving of dh = -J\r, use O.solveTol = TOL. For direct
     solves, use SOLVETOL = 0 (default)
 
     Rowan Cockett
