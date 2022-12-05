@@ -2951,15 +2951,10 @@ class Mesh2Mesh(IdentityMap):
 
     def __init__(self, meshes, indActive=None, **kwargs):
         # Sanity checks for the meshes parameter
-        if not isinstance(meshes, Iterable):
-            raise ValueError(
-                "Invalid 'meshes' argument: it must be a list of two meshes."
-            )
-        if len(meshes) != 2:
-            raise ValueError(
-                f"Found 'meshes' with '{len(meshes)}' elements. "
-                + "It must be a list containing two meshes."
-            )
+        try:
+            mesh, mesh2 = meshes
+        except TypeError:
+            raise TypeError("Couldn't unpack 'meshes' into two meshes.")
         mesh, mesh2 = meshes
 
         # Check dimensions of both meshes
