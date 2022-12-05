@@ -286,18 +286,23 @@ def read_gg3d_ubc(obs_file):
 
         ii = 0
         while ii < ndat:
+            line = fid.readline()
+            if not line:
+                raise IOError(f"Found EOF at line {ii + 3} while reading '{obs_file}'.")
             try:
-                line = fid.readline()
                 temp = np.array(line.split(), dtype=float)
-                locXYZ[ii, :] = temp[:3]
-                if len(temp) == 3 + n_comp:
-                    d.append(factor * temp[3:])
-                elif len(temp) == 3 + n_comp * 2:
-                    d.append(factor * temp[3 : 3 + n_comp])
-                    wd.append(temp[3 + n_comp :])
-                ii += 1
             except IOError:
-                raise IOError(f"Unable to read data line {ii}: {line}")
+                raise IOError(
+                    f"Unable to parse line {ii + 3} of '{obs_file}' as a sequence of "
+                    + f"floats: '{line}'."
+                )
+            locXYZ[ii, :] = temp[:3]
+            if len(temp) == 3 + n_comp:
+                d.append(factor * temp[3:])
+            elif len(temp) == 3 + n_comp * 2:
+                d.append(factor * temp[3 : 3 + n_comp])
+                wd.append(temp[3 + n_comp :])
+            ii += 1
 
     # Turn into vector. For multiple components, SimPEG orders by rows
     if len(d) > 0:
