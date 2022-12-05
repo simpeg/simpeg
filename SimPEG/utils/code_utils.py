@@ -1070,11 +1070,11 @@ def validate_type(property_name, obj, obj_type, cast=True, strict=False):
     if cast:
         try:
             obj = obj_type(obj)
-        except TypeError:
+        except Exception as err:
             raise TypeError(
                 f"{type(obj).__name__} cannot be converted to type {obj_type.__name__} "
                 f"required for {property_name}."
-            )
+            ) from err
     if strict and type(obj) != obj_type:
         raise TypeError(
             f"Object must be exactly a {obj_type.__name__} for {property_name}"
