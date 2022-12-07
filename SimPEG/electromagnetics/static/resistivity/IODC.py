@@ -1160,7 +1160,7 @@ class IO:
                 val = self.apparent_resistivity[inds]
             else:
                 val = data.copy()[inds]
-            label_tmp = "Apparent Res. ($\Omega$m)"
+            label_tmp = r"Apparent Res. ($\Omega$m)"
         elif data_type == "volt":
             if data is None:
                 val = self.voltages[inds]

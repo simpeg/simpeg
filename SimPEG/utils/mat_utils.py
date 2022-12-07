@@ -203,7 +203,8 @@ def eigenvalue_by_power_iteration(
 
 
 def cartesian2spherical(m):
-    """Converts a set of 3D vectors from Cartesian to spherical coordinates.
+    r"""
+    Converts a set of 3D vectors from Cartesian to spherical coordinates.
 
     Parameters
     ----------
@@ -223,12 +224,14 @@ def cartesian2spherical(m):
     In Cartesian space, the components of each vector are defined as
 
     .. math::
-        \\mathbf{v} = (v_x, v_y, v_z)
+
+        \mathbf{v} = (v_x, v_y, v_z)
 
     In spherical coordinates, vectors are is defined as:
 
     .. math::
-        \\mathbf{v^\\prime} = (a, t, p)
+
+        \mathbf{v^\prime} = (a, t, p)
 
     where
 
@@ -258,7 +261,8 @@ def cartesian2spherical(m):
 
 
 def spherical2cartesian(m):
-    """Converts a set of 3D vectors from spherical to Catesian coordinates.
+    r"""
+    Converts a set of 3D vectors from spherical to Catesian coordinates.
 
     Parameters
     ----------
@@ -278,12 +282,14 @@ def spherical2cartesian(m):
     In Cartesian space, the components of each vector are defined as
 
     .. math::
-        \\mathbf{v} = (v_x, v_y, v_z)
+
+        \mathbf{v} = (v_x, v_y, v_z)
 
     In spherical coordinates, vectors are is defined as:
 
     .. math::
-        \\mathbf{v^\\prime} = (a, t, p)
+
+        \mathbf{v^\prime} = (a, t, p)
 
     where
 
@@ -345,16 +351,18 @@ def dip_azimuth2cartesian(dip, azm):
 
 
 def coterminal(theta):
-    """Compute coterminal angle
+    r"""
+    Compute coterminal angle
 
     For a set of angles defined in radians, this function outputs their coterminal angles.
-    That is, for an angle :math:`\\theta` where:
+    That is, for an angle :math:`\theta` where:
 
     .. math::
-        \\theta = 2\\pi N + \\gamma
 
-    and *N* is an integer, the function returns the value of :math:`\\gamma`.
-    The coterminal angle :math:`\\gamma` is within the range :math:`[-\\pi , \\pi]`.
+        \theta = 2\pi N + \gamma
+
+    and *N* is an integer, the function returns the value of :math:`\gamma`.
+    The coterminal angle :math:`\gamma` is within the range :math:`[-\pi , \pi]`.
 
     Parameters
     ----------

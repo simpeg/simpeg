@@ -97,7 +97,7 @@ def run(plotIt=True, saveFig=False, cleanup=True):
 
     # Plot both resolve and skytem data on 2D plane
     fig = plt.figure(figsize=(13, 6))
-    title = ["RESOLVE In-phase 400 Hz", "SkyTEM High moment 156 $\mu$s"]
+    title = ["RESOLVE In-phase 400 Hz", r"SkyTEM High moment 156 $\mu$s"]
     ax1 = plt.subplot(121)
     ax2 = plt.subplot(122)
     axs = [ax1, ax2]
@@ -459,7 +459,7 @@ def run(plotIt=True, saveFig=False, cleanup=True):
     )
     ax2.set_xlim(times_off.min() * 1e6 * 1.2, times_off.max() * 1e6 * 1.1)
 
-    ax2.set_xlabel("Time ($\mu s$)")
+    ax2.set_xlabel(r"Time ($\mu s$)")
     ax2.set_ylabel("dBz / dt (V/A-m$^4$)")
     ax2.set_title("(c) SkyTEM High-moment")
     ax2.grid(True)

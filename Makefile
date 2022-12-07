@@ -1,4 +1,6 @@
-.PHONY: build coverage lint graphs tests docs
+STYLE_CHECK_FILES=SimPEG examples tutorials tests
+
+.PHONY: build coverage lint graphs tests docs check black flake
 
 build:
 	python setup.py build_ext --inplace
@@ -22,3 +24,13 @@ docs:
 clean:
 	cd docs;make clean
 	find . -name "*.pyc" | xargs -I {} rm -v "{}"
+
+check: black flake
+
+black:
+	black --version
+	black --check ${STYLE_CHECK_FILES}
+
+flake:
+	flake8 --version
+	flake8 ${STYLE_CHECK_FILES}

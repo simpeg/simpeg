@@ -135,7 +135,7 @@ def run(plotIt=True, survey_type="dipole-dipole", p=0.0, qx=2.0, qz=2.0):
     if plotIt:
         fig = plt.figure()
         out = hist(data.dobs / IO.G, bins=20)
-        plt.xlabel("Apparent Resisitivty ($\Omega$m)")
+        plt.xlabel(r"Apparent Resisitivty ($\Omega$m)")
         plt.show()
 
     # Set initial model based upon histogram
@@ -216,7 +216,7 @@ def run(plotIt=True, survey_type="dipole-dipole", p=0.0, qx=2.0, qz=2.0):
             ax[i].set_xlim(IO.grids[:, 0].min(), IO.grids[:, 0].max())
             ax[i].set_ylim(-IO.grids[:, 1].max(), IO.grids[:, 1].min())
             cb = plt.colorbar(out[i][0], ax=ax[i])
-            cb.set_label("Resistivity ($\Omega$m)")
+            cb.set_label(r"Resistivity ($\Omega$m)")
             ax[i].set_xlabel("Northing (m)")
             ax[i].set_ylabel("Elevation (m)")
             ax[i].set_aspect("equal")

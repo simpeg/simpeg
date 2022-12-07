@@ -6,8 +6,7 @@ from ..utils import omega
 
 
 class FieldsFDEM(Fields):
-    """
-
+    r"""
     Fancy Field Storage for a FDEM survey. Only one field type is stored for
     each problem, the rest are computed. The fields object acts like an array
     and is indexed by
@@ -26,8 +25,8 @@ class FieldsFDEM(Fields):
         e = f[:,'e']
         b = f[:,'b']
 
-    The array returned will be size (nE or nF, nSrcs :math:`\\times`
-    nFrequencies)
+    The array returned will be size (``nE`` or ``nF``, ``nSrcs`` :math:`\times`
+    ``nFrequencies``)
     """
 
     knownFields = {}
@@ -148,7 +147,7 @@ class FieldsFDEM(Fields):
         )
 
     def _eDeriv(self, src, du_dm_v, v, adjoint=False):
-        """
+        r"""
         Total derivative of e with respect to the inversion model. Returns
         :math:`d\mathbf{e}/d\mathbf{m}` for forward and
         (:math:`d\mathbf{e}/d\mathbf{u}`, :math:`d\mathb{u}/d\mathbf{m}`)
@@ -180,7 +179,7 @@ class FieldsFDEM(Fields):
         )
 
     def _bDeriv(self, src, du_dm_v, v, adjoint=False):
-        """
+        r"""
         Total derivative of b with respect to the inversion model. Returns
         :math:`d\mathbf{b}/d\mathbf{m}` for forward and
         (:math:`d\mathbf{b}/d\mathbf{u}`, :math:`d\mathb{u}/d\mathbf{m}`) for
@@ -212,7 +211,7 @@ class FieldsFDEM(Fields):
         )
 
     def _bSecondaryDeriv(self, src, du_dm_v, v, adjoint=False):
-        """
+        r"""
         Total derivative of b with respect to the inversion model. Returns
         :math:`d\mathbf{b}/d\mathbf{m}` for forward and
         (:math:`d\mathbf{b}/d\mathbf{u}`, :math:`d\mathb{u}/d\mathbf{m}`) for
@@ -231,7 +230,7 @@ class FieldsFDEM(Fields):
         return self._bDeriv(src, du_dm_v, v, adjoint=adjoint)
 
     def _hDeriv(self, src, du_dm_v, v, adjoint=False):
-        """
+        r"""
         Total derivative of h with respect to the inversion model. Returns
         :math:`d\mathbf{h}/d\mathbf{m}` for forward and
         (:math:`d\mathbf{h}/d\mathbf{u}`, :math:`d\mathb{u}/d\mathbf{m}`)
@@ -263,7 +262,7 @@ class FieldsFDEM(Fields):
         )
 
     def _jDeriv(self, src, du_dm_v, v, adjoint=False):
-        """
+        r"""
         Total derivative of j with respect to the inversion model. Returns
         :math:`d\mathbf{j}/d\mathbf{m}` for forward and
         (:math:`d\mathbf{j}/d\mathbf{u}`, :math:`d\mathb{u}/d\mathbf{m}`) for
@@ -607,7 +606,7 @@ class Fields3DElectricField(FieldsFDEM):
         ) + self._hDeriv_mui(src, v, adjoint=adjoint)
 
     def _charge(self, eSolution, source_list):
-        """
+        r"""
         .. math::
             \int \nabla \codt \vec{e} =  \int \frac{\rho_v }{\epsillon_0}
         """
@@ -928,8 +927,9 @@ class Fields3DMagneticFluxDensity(FieldsFDEM):
         )
 
     def _charge(self, bSolution, source_list):
-        """
+        r"""
         .. math::
+
             \int \nabla \codt \vec{e} =  \int \frac{\rho_v }{\epsillon_0}
         """
         return -epsilon_0 * (
@@ -1295,7 +1295,7 @@ class Fields3DCurrentDensity(FieldsFDEM):
         ) + src.bPrimaryDeriv(self.simulation, v, adjoint)
 
     def _charge(self, jSolution, source_list):
-        """
+        r"""
         .. math::
 
             \int \nabla \codt \vec{e} =  \int \frac{\rho_v }{\epsillon_0}
@@ -1305,7 +1305,7 @@ class Fields3DCurrentDensity(FieldsFDEM):
         )
 
     def _charge_density(self, jSolution, source_list):
-        """
+        r"""
         .. math::
 
             \frac{1}{V}\int \nabla \codt \vec{e} =
@@ -1592,7 +1592,7 @@ class Fields3DMagneticField(FieldsFDEM):
         )
 
     def _charge(self, hSolution, source_list):
-        """
+        r"""
         .. math::
 
             \int \nabla \codt \vec{e} =  \int \frac{\rho_v }{\epsillon_0}
@@ -1602,7 +1602,7 @@ class Fields3DMagneticField(FieldsFDEM):
         )
 
     def _charge_density(self, hSolution, source_list):
-        """
+        r"""
         .. math::
 
             \frac{1}{V}\int \nabla \codt \vec{e} =

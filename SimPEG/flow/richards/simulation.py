@@ -204,13 +204,15 @@ class SimulationNDCellCentered(BaseTimeSimulation):
         return u
 
     def dpred(self, m, f=None):
-        """Create the projected data from a model.
+        r"""
+        Create the projected data from a model.
+
         The field, f, (if provided) will be used for the predicted data
         instead of recalculating the fields (which may be expensive!).
 
         .. math::
 
-            d_\\text{pred} = P(f(m), m)
+            d_\text{pred} = P(f(m), m)
 
         Where P is a projection of the fields onto the data space.
         """
@@ -246,6 +248,8 @@ class SimulationNDCellCentered(BaseTimeSimulation):
         """Diagonals and rhs of the jacobian system
 
         The matrix that we are computing has the form::
+
+        .. code::
 
             .-                                      -. .-  -.   .-  -.
             |  Adiag                                 | | h1 |   | b1 |

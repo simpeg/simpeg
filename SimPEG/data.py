@@ -362,7 +362,8 @@ class Data:
 
 
 class SyntheticData(Data):
-    """Class for creating synthetic data.
+    r"""
+    Class for creating synthetic data.
 
     Parameters
     ----------

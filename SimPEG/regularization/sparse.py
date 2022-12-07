@@ -192,29 +192,29 @@ class SparseSmoothness(BaseSparse, SmoothnessFirstOrder):
 
 
 class Sparse(WeightedLeastSquares):
-    """
+    r"""
     The regularization is:
 
     .. math::
 
-        R(m) = \\frac{1}{2}\\mathbf{(m-m_\\text{ref})^\\top W^\\top R^\\top R
-        W(m-m_\\text{ref})}
+        R(m) = \frac{1}{2}\mathbf{(m-m_\text{ref})^\top W^\top R^\top R
+        W(m-m_\text{ref})}
 
     where the IRLS weight
 
     .. math::
 
-        R = \\eta \\text{diag} \\left[\\mathbf{r}_s \\right]^{1/2} \\
-        r_{s_i} = {\\Big( {({m_i}^{(k-1)})}^{2} + \\epsilon^2 \\Big)}^{p_s/2 - 1}
+        R = \eta \text{diag} \left[\mathbf{r}_s \right]^{1/2} \
+        r_{s_i} = {\Big( {({m_i}^{(k-1)})}^{2} + \epsilon^2 \Big)}^{p_s/2 - 1}
 
     where k denotes the iteration number. So the derivative is straight forward:
 
     .. math::
 
-        R(m) = \\mathbf{W^\\top R^\\top R W (m-m_\\text{ref})}
+        R(m) = \mathbf{W^\top R^\top R W (m-m_\text{ref})}
 
     The IRLS weights are re-computed after each beta solves using
-    :obj:`~SimPEG.directives.Update_IRLS` within the inversion directives.
+    :class:`~SimPEG.directives.Update_IRLS` within the inversion directives.
     """
 
     def __init__(

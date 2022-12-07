@@ -41,6 +41,7 @@ class IdentityMap:
     the identity matrix; i.e.:
 
     .. math::
+
         \mathbf{u}(\mathbf{m}) = \mathbf{Im}
 
     The ``IdentityMap`` also acts as the base class for all other SimPEG mapping classes.
@@ -6083,7 +6084,7 @@ class PolynomialPetroClusterMap(IdentityMap):
         return out
 
     def inverse(self, D):
-        """
+        r"""
         :param numpy.array D: physical property
         :rtype: numpy.array
         :return: model
@@ -6093,7 +6094,7 @@ class PolynomialPetroClusterMap(IdentityMap):
 
         .. math::
 
-            m = \\log{\\sigma}
+            m = \log{\sigma}
 
         """
         raise NotImplementedError("Inverse is not implemented.")

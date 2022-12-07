@@ -8,8 +8,7 @@ from ....simulation import BaseSimulation
 
 class Fields2D(TimeFields):
 
-    """
-
+    r"""
     Fancy Field Storage for a 2.5D code.
 
     u[:,'phi', kyInd] = phi
@@ -34,8 +33,8 @@ class Fields2D(TimeFields):
         e = f[:,'e']
         b = f[:,'b']
 
-    The array returned will be size (nE or nF, nSrcs :math:`\\times`
-    nFrequencies)
+    The array returned will be size (``nE`` or ``nF``, ``nSrcs`` :math:`\times`
+    ``nFrequencies``)
 
     """
 
@@ -192,7 +191,7 @@ class Fields2DCellCentered(Fields2D):
         return e
 
     def _charge(self, phiSolution, source_list):
-        """
+        r"""
         .. math::
 
             \int \nabla \codt \vec{e} =  \int \frac{\rho_v }{\epsillon_0}
@@ -205,7 +204,7 @@ class Fields2DCellCentered(Fields2D):
         )
 
     def _charge_density(self, phiSolution, source_list):
-        """
+        r"""
         .. math::
 
             \frac{1}{V}\int \nabla \codt \vec{e} =
@@ -246,16 +245,19 @@ class Fields2DNodal(Fields2D):
         return sim.MeI * sim.MeSigma * self._e(phiSolution, source_list)
 
     def _e(self, phiSolution, source_list):
-        """
+        r"""
         In HJ formulation e is not well-defined!!
+
         .. math::
+
             \vec{e} = -\nabla \phi
         """
         return -self.mesh.nodal_gradient * self._phi(phiSolution, source_list)
 
     def _charge(self, phiSolution, source_list):
-        """
+        r"""
         .. math::
+
             \int \nabla \codt \vec{e} =  \int \frac{\rho_v }{\epsillon_0}
         """
         return -epsilon_0 * (

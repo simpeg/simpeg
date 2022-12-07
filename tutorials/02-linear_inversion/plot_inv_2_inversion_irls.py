@@ -3,7 +3,7 @@ Sparse Inversion with Iteratively Re-Weighted Least-Squares
 ===========================================================
 
 Least-squares inversion produces smooth models which may not be an accurate
-representation of the true model. Here we demonstrate the basics of inverting 
+representation of the true model. Here we demonstrate the basics of inverting
 for sparse and/or blocky models. Here, we used the iteratively reweighted
 least-squares approach. For this tutorial, we focus on the following:
 
@@ -248,6 +248,6 @@ ax.text(
     bbox={"facecolor": "white"},
 )
 
-ax.set_ylabel("$\phi_d$", size=16, rotation=0)
+ax.set_ylabel(r"$\phi_d$", size=16, rotation=0)
 ax.set_xlabel("Iterations", size=14)
-twin.set_ylabel("$\phi_m$", size=16, rotation=0)
+twin.set_ylabel(r"$\phi_m$", size=16, rotation=0)
