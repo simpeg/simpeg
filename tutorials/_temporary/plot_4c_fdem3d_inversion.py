@@ -24,7 +24,7 @@ can be used to invert other types of geophysical data.
 # --------------
 #
 
-import os, shutil
+import os
 import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt

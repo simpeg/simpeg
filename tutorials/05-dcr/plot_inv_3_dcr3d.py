@@ -32,13 +32,12 @@ import matplotlib.pyplot as plt
 import tarfile
 
 from discretize import TreeMesh
-from discretize.utils import mkvc, refine_tree_xyz
+from discretize.utils import refine_tree_xyz
 
 from SimPEG.utils import surface2ind_topo, model_builder
 from SimPEG.utils.io_utils.io_utils_electromagnetics import read_dcip_xyz
 from SimPEG import (
     maps,
-    data,
     data_misfit,
     regularization,
     optimization,

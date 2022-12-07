@@ -23,11 +23,9 @@ and two North-South lines.
 # --------------
 #
 
-from discretize.utils import mkvc
 
 from SimPEG import utils
 from SimPEG.utils.io_utils.io_utils_electromagnetics import read_dcip_xyz
-from SimPEG.electromagnetics.static import resistivity as dc
 from SimPEG.electromagnetics.static.utils.static_utils import (
     apparent_resistivity_from_voltage,
     convert_survey_3d_to_2d_lines,

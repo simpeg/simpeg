@@ -28,7 +28,7 @@ import os
 from discretize import TensorMesh
 from discretize.utils import mkvc
 from SimPEG.utils import plot2Ddata, model_builder, surface2ind_topo
-from SimPEG import maps, utils
+from SimPEG import maps
 from SimPEG.potential_fields import magnetics
 
 write_output = False
