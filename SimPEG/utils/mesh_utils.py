@@ -1,6 +1,17 @@
+import numpy as np
+
+from discretize.utils import (  # noqa: F401
+    unpack_widths,
+    closest_points_index,
+    extract_core_mesh,
+)
 
 # deprecated imports
-import numpy as np
+from discretize.utils import (  # noqa: F401
+    meshTensor,
+    closestPoints,
+    ExtractCoreMesh,
+)
 
 
 def surface2inds(vrtx, trgl, mesh, boundaries=True, internal=True):

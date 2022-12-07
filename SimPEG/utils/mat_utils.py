@@ -1,10 +1,37 @@
 import numpy as np
 from .code_utils import deprecate_function
-from discretize.utils import (
+from discretize.utils import (  # noqa: F401
     Zero,
+    Identity,
+    mkvc,
+    sdiag,
+    sdinv,
+    speye,
+    kron3,
+    spzeros,
+    ddx,
+    av,
+    av_extrap,
+    ndgrid,
+    ind2sub,
+    sub2ind,
+    get_subarray,
+    inverse_3x3_block_diagonal,
+    inverse_2x2_block_diagonal,
+    TensorType,
+    make_property_tensor,
+    inverse_property_tensor,
 )
 
 # deprecated imports
+from discretize.utils import (  # noqa: F401
+    sdInv,
+    getSubArray,
+    inv3X3BlockDiagonal,
+    inv2X2BlockDiagonal,
+    makePropertyTensor,
+    invPropertyTensor,
+)
 
 
 def estimate_diagonal(matrix_arg, n, k=None, approach="Probing"):
