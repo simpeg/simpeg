@@ -153,7 +153,7 @@ ax.set_xlabel("Frequency (Hz)")
 ax.set_ylabel("Conductivity")
 ax.set_title("Dispersive Electrical Conductivity")
 ax.legend(
-    ["$\sigma_{DC}$", "$Re[\sigma (\omega)]$", "$Im[\sigma (\omega)]$"],
+    [r"$\sigma_{DC}$", r"$Re[\sigma (\omega)]$", r"$Im[\sigma (\omega)]$"],
     loc="center right",
 )
 
@@ -169,7 +169,7 @@ ax.set_xlabel("Frequency (Hz)")
 ax.set_ylabel("Susceptibility")
 ax.set_title("Dispersive Magnetic Susceptibility")
 ax.legend(
-    ["$\chi_{DC}$", "$Re[\chi (\omega)]$", "$Im[\chi (\omega)]$"], loc="lower left"
+    [r"$\chi_{DC}$", r"$Re[\chi (\omega)]$", r"$Im[\chi (\omega)]$"], loc="lower left"
 )
 
 #######################################################################

@@ -277,9 +277,9 @@ def run(plotIt=True):
             bbox={"facecolor": "white"},
         )
 
-        axs.set_ylabel("$\phi_d$", size=16, rotation=0)
+        axs.set_ylabel(r"$\phi_d$", size=16, rotation=0)
         axs.set_xlabel("Iterations", size=14)
-        twin.set_ylabel("$\phi_m$", size=16, rotation=0)
+        twin.set_ylabel(r"$\phi_m$", size=16, rotation=0)
 
 
 if __name__ == "__main__":

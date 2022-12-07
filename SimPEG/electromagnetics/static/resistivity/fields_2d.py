@@ -8,8 +8,7 @@ from ....simulation import BaseSimulation
 
 class Fields2D(TimeFields):
 
-    """
-
+    r"""
     Fancy Field Storage for a 2.5D code.
 
     u[:,'phi', kyInd] = phi
@@ -34,8 +33,8 @@ class Fields2D(TimeFields):
         e = f[:,'e']
         b = f[:,'b']
 
-    The array returned will be size (nE or nF, nSrcs :math:`\\times`
-    nFrequencies)
+    The array returned will be size (``nE`` or ``nF``, ``nSrcs`` :math:`\times`
+    ``nFrequencies``)
 
     """
 
@@ -162,17 +161,37 @@ class Fields2DCellCentered(Fields2D):
             raise Exception("Field type must be phi, e, j")
 
     def _j(self, phiSolution, source_list):
-        phi = self._phi(phiSolution, source_list)
+        phi_ky = phiSolution
         sim = self.simulation
-        return sim.MfRhoI * sim.Grad * phi
+        if sim.bc_type == "Dirichlet":
+            phi = self._phi(phi_ky, source_list)
+            return sim.MfRhoI @ (sim.Grad @ phi)
+        j = np.zeros((sim.mesh.n_faces, phi_ky.shape[1]))
+        for i, (ky, w) in enumerate(zip(sim._quad_points, sim._quad_weights)):
+            j += (
+                sim.MfRhoI
+                * (sim.Grad @ phi_ky[..., i] - sim._MBC[ky] @ phi_ky[..., i])
+                * w
+            )
+        return j
 
     def _e(self, phiSolution, source_list):
-        phi = self._phi(phiSolution, source_list)
+        phi_ky = phiSolution
         sim = self.simulation
-        return sim.MfI * sim.Grad * phi
+        if sim.bc_type == "Dirichlet":
+            phi = self._phi(phi_ky, source_list)
+            return sim.MfI @ (sim.Grad @ phi)
+        e = np.zeros((sim.mesh.n_faces, phi_ky.shape[1]))
+        for i, (ky, w) in enumerate(zip(sim._quad_points, sim._quad_weights)):
+            e += (
+                sim.MfI
+                * (sim.Grad @ phi_ky[..., i] - sim._MBC[ky] @ phi_ky[..., i])
+                * w
+            )
+        return e
 
     def _charge(self, phiSolution, source_list):
-        """
+        r"""
         .. math::
 
             \int \nabla \codt \vec{e} =  \int \frac{\rho_v }{\epsillon_0}
@@ -185,7 +204,7 @@ class Fields2DCellCentered(Fields2D):
         )
 
     def _charge_density(self, phiSolution, source_list):
-        """
+        r"""
         .. math::
 
             \frac{1}{V}\int \nabla \codt \vec{e} =
@@ -226,16 +245,19 @@ class Fields2DNodal(Fields2D):
         return sim.MeI * sim.MeSigma * self._e(phiSolution, source_list)
 
     def _e(self, phiSolution, source_list):
-        """
+        r"""
         In HJ formulation e is not well-defined!!
+
         .. math::
+
             \vec{e} = -\nabla \phi
         """
         return -self.mesh.nodal_gradient * self._phi(phiSolution, source_list)
 
     def _charge(self, phiSolution, source_list):
-        """
+        r"""
         .. math::
+
             \int \nabla \codt \vec{e} =  \int \frac{\rho_v }{\epsillon_0}
         """
         return -epsilon_0 * (

@@ -162,14 +162,16 @@ class BaseDataMisfit(L2ObjectiveFunction):
 
 
 class L2DataMisfit(BaseDataMisfit):
-    """
+    r"""
     The data misfit with an l_2 norm:
 
     .. math::
 
-        \mu_\\text{data} = {1\over 2}\left|
-        \mathbf{W}_d (\mathbf{d}_\\text{pred} -
-        \mathbf{d}_\\text{obs}) \\right|_2^2
+        \mu_\text{data} =
+            \frac{1}{2}
+            \left|
+                \mathbf{W}_d (\mathbf{d}_\text{pred} - \mathbf{d}_\text{obs})
+            \right|_2^2
     """
 
     @timeIt
@@ -181,8 +183,7 @@ class L2DataMisfit(BaseDataMisfit):
 
     @timeIt
     def deriv(self, m, f=None):
-        """
-        deriv(m, f=None)
+        r"""
         Derivative of the data misfit
 
         .. math::
@@ -203,8 +204,8 @@ class L2DataMisfit(BaseDataMisfit):
 
     @timeIt
     def deriv2(self, m, v, f=None):
-        """
-        deriv2(m, v, f=None)
+        r"""
+        Second derivative of the data misfit
 
         .. math::
 

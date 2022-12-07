@@ -5,6 +5,7 @@ PF: Gravity: Tiled Inversion Linear
 Invert data in tiles.
 
 """
+import os
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -175,7 +176,7 @@ for ii, local_survey in enumerate(local_surveys):
         mesh=local_meshes[ii],
         rhoMap=tile_map,
         ind_active=local_actives,
-        sensitivity_path=f"Inversion\Tile{ii}.zarr",
+        sensitivity_path=os.path.join("Inversion", f"Tile{ii}.zarr"),
     )
 
     data_object = data.Data(

@@ -1,0 +1,40 @@
+.. _0.18.1_notes:
+
+===========================
+SimPEG 0.18.1 Release Notes
+===========================
+
+November 9th, 2022
+
+This release patches a few small bugs from the previous release.
+
+Bug Fixes
+=========
+
+Several small bugs have been squashed
+
+* DC 2D cell centered fields now respect the boundary conditions when querying for current density and the electric field.
+* For the 1D electromagnetic simulations, `LineCurrent` sources were not being correctly queried to verify they were above the surface. They now also respect the `current` attribute.
+* The `alpha_phi` property was not properly hooked into the `__init__` function of `PGI` regularization.
+* When determining the quasi geology model of `PGI`, we were incorrectly applying the model mappings to the reference model, (inconsistent with its definition).
+* Removed dependance on ``six`` package, as we haven't supported python 2 for a while, and cleaned up leftover `future` imports.
+
+Contributors
+============
+This is a combination of contributors and reviewers who've made contributions towards
+this release (in no particular order).
+
+* `@jcapriot <https://github.com/jcapriot>`__
+* `@thast <https://github.com/thast>`__
+* `@santisoler <https://github.com/santisoler>`__
+
+Pull requests
+=============
+
+* `#1122  <https://github.com/simpeg/simpeg/pull/1122>`__: fix unnecessary call to maplist on the reference model
+* `#1123  <https://github.com/simpeg/simpeg/pull/1123>`__: Cleanup six and __future__ imports
+* `#1126  <https://github.com/simpeg/simpeg/pull/1126>`__: fix alpha multipliers in PGI
+* `#1128  <https://github.com/simpeg/simpeg/pull/1128>`__: Fix for 2D_CC boundary conditions
+* `#1129  <https://github.com/simpeg/simpeg/pull/1129>`__: Line current 1D fix
+* `#1130  <https://github.com/simpeg/simpeg/pull/1130>`__: Fix broken math in regularization docs
+* `#1131  <https://github.com/simpeg/simpeg/pull/1131>`__: 0.18.1 release

@@ -6,8 +6,7 @@ from ...utils import mkvc, sdiag, Zero
 
 
 class FieldsTDEM(TimeFields):
-    """
-
+    r"""
     Fancy Field Storage for a TDEM simulation. Only one field type is stored for
     each problem, the rest are computed. The fields obejct acts like an array
     and is indexed by
@@ -26,7 +25,7 @@ class FieldsTDEM(TimeFields):
         e = f[:,'e']
         b = f[:,'b']
 
-    The array returned will be size (nE or nF, nSrcs :math:`\\times`
+    The array returned will be size (nE or nF, nSrcs :math:`\times`
     nFrequencies)
     """
 

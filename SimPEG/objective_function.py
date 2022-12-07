@@ -394,7 +394,7 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
 
 
 class L2ObjectiveFunction(BaseObjectiveFunction):
-    """
+    r"""
     An L2-Objective Function
 
     .. math::

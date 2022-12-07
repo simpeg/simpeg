@@ -282,7 +282,7 @@ class BetaEstimate_ByEig(InversionDirective):
         self._seed = value
 
     def initialize(self):
-        """
+        r"""
         The initial beta is calculated by comparing the estimated
         eigenvalues of JtJ and WtW.
         To estimate the eigenvector of **A**, we will use one iteration
@@ -295,13 +295,19 @@ class BetaEstimate_ByEig(InversionDirective):
         use the *Rayleigh quotient* to approximate the largest eigenvalue.
 
         .. math::
-            \lambda_0 = \\frac{\mathbf{x^\\top A x}}{\mathbf{x^\\top x}}
+            \lambda_0 = \frac{\mathbf{x^\top A x}}{\mathbf{x^\top x}}
 
         We will approximate the largest eigenvalue for both JtJ and WtW,
         and use some ratio of the quotient to estimate beta0.
 
         .. math::
-            \\beta_0 = \gamma \\frac{\mathbf{x^\\top J^\\top J x}}{\mathbf{x^\\top W^\\top W x}}
+            \beta_0 =
+                \gamma
+                \frac{
+                    \mathbf{x^\top J^\top J x}
+                }{
+                    \mathbf{x^\top W^\top W x}
+                }
 
         :rtype: float
         :return: beta0
@@ -1533,12 +1539,12 @@ class SaveOutputEveryIteration(SaveEveryIteration):
         ax = plt.subplot(111)
         ax_1 = ax.twinx()
         ax.semilogy(
-            np.arange(len(self.phi_d)), self.phi_d, "k-", lw=2, label="$\phi_d$"
+            np.arange(len(self.phi_d)), self.phi_d, "k-", lw=2, label=r"$\phi_d$"
         )
 
         if plot_phi_m:
             ax_1.semilogy(
-                np.arange(len(self.phi_d)), self.phi_m, "r", lw=2, label="$\phi_m$"
+                np.arange(len(self.phi_d)), self.phi_m, "r", lw=2, label=r"$\phi_m$"
             )
 
         if plot_small_smooth or plot_small:
@@ -1565,8 +1571,8 @@ class SaveOutputEveryIteration(SaveEveryIteration):
             "k:",
         )
         ax.set_xlabel("Iteration")
-        ax.set_ylabel("$\phi_d$")
-        ax_1.set_ylabel("$\phi_m$", color="r")
+        ax.set_ylabel(r"$\phi_d$")
+        ax_1.set_ylabel(r"$\phi_m$", color="r")
         ax_1.tick_params(axis="y", which="both", colors="red")
 
         plt.show()
@@ -1591,18 +1597,18 @@ class SaveOutputEveryIteration(SaveEveryIteration):
 
         ax1.plot(self.beta, self.phi_d, "k-", lw=2, ms=4)
         ax1.set_xlim(np.hstack(self.beta).min(), np.hstack(self.beta).max())
-        ax1.set_xlabel("$\\beta$", fontsize=14)
-        ax1.set_ylabel("$\phi_d$", fontsize=14)
+        ax1.set_xlabel(r"$\beta$", fontsize=14)
+        ax1.set_ylabel(r"$\phi_d$", fontsize=14)
 
         ax2.plot(self.beta, self.phi_m, "k-", lw=2)
         ax2.set_xlim(np.hstack(self.beta).min(), np.hstack(self.beta).max())
-        ax2.set_xlabel("$\\beta$", fontsize=14)
-        ax2.set_ylabel("$\phi_m$", fontsize=14)
+        ax2.set_xlabel(r"$\beta$", fontsize=14)
+        ax2.set_ylabel(r"$\phi_m$", fontsize=14)
 
         ax3.plot(self.phi_m, self.phi_d, "k-", lw=2)
         ax3.set_xlim(np.hstack(self.phi_m).min(), np.hstack(self.phi_m).max())
-        ax3.set_xlabel("$\phi_m$", fontsize=14)
-        ax3.set_ylabel("$\phi_d$", fontsize=14)
+        ax3.set_xlabel(r"$\phi_m$", fontsize=14)
+        ax3.set_ylabel(r"$\phi_d$", fontsize=14)
 
         if self.i_target is not None:
             ax1.plot(self.beta[self.i_target], self.phi_d[self.i_target], "k*", ms=10)
@@ -2335,10 +2341,10 @@ class UpdateSensitivityWeights(InversionDirective):
 
 
 class ProjectSphericalBounds(InversionDirective):
-    """
+    r"""
     Trick for spherical coordinate system.
-    Project \theta and \phi angles back to [-\pi,\pi] using
-    back and forth conversion.
+    Project :math:`\theta` and :math:`\phi` angles back to :math:`[-\pi,\pi]`
+    using back and forth conversion.
     spherical->cartesian->spherical
     """
 

@@ -8,26 +8,29 @@ from ..frequency_domain.survey import Survey
 
 
 class Simulation1DRecursive(BaseSimulation):
-    """
+    r"""
     Simulation class for the 1D MT problem using recursive solution.
 
-    This solution is defined with z +ve upward and a :math:`+i\\omega t`
+    This solution is defined with z +ve upward and a :math:`+i\omega t`
     Fourier convention. First, let:
 
     .. math::
-        \\alpha_i^2 = i\\omega\\mu_i\\sigma_i
+
+        \alpha_i^2 = i\omega\mu_i\sigma_i
 
     The complex impedance in layer :math:`i` is given by:
 
     .. math::
-        Z_i = \\dfrac{\\alpha_i}{\\sigma_i} \\Bigg [
-        \\dfrac{\\sigma_i Z_{i+1} - \\alpha_i tanh(\\alpha_i h_i)}
-        {\\alpha_i - \\sigma_i Z_{i+1}tanh(\\alpha_i h_i)} \\Bigg ]
+
+        Z_i = \dfrac{\alpha_i}{\sigma_i} \Bigg [
+        \dfrac{\sigma_i Z_{i+1} - \alpha_i tanh(\alpha_i h_i)}
+        {\alpha_i - \sigma_i Z_{i+1}tanh(\alpha_i h_i)} \Bigg ]
 
     where the complex impedance in the bottom half-space is given by:
 
     .. math::
-        Z_N = - \\frac{\\alpha_N}{\\sigma_N}
+
+        Z_N = - \frac{\alpha_N}{\sigma_N}
 
 
     """
