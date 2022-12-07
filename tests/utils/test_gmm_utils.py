@@ -7,7 +7,7 @@ from SimPEG.utils import (
     WeightedGaussianMixture,
     GaussianMixtureWithPrior,
 )
-from scipy.stats import norm, multivariate_normal
+from scipy.stats import multivariate_normal
 
 
 class TestGMMs(unittest.TestCase):

@@ -1,12 +1,9 @@
 import numpy as np
-import scipy.sparse as sp
-import matplotlib.pyplot as plt
 from scipy.constants import mu_0
 import unittest
 
 # SimPEG, discretize
 import discretize
-from discretize import utils
 from SimPEG.electromagnetics import time_domain as tdem
 from SimPEG import maps, tests
 from pymatsolver import Pardiso

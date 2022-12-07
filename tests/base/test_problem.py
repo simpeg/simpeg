@@ -1,7 +1,6 @@
 import unittest
 import discretize
 import discretize
-from SimPEG import maps
 from SimPEG import simulation
 import numpy as np
 

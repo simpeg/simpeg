@@ -7,7 +7,6 @@ from SimPEG.electromagnetics import time_domain as tdem
 from SimPEG.electromagnetics import utils
 from scipy.interpolate import interp1d
 from pymatsolver import Pardiso as Solver
-from discretize.utils import unpack_widths
 
 plotIt = False
 

@@ -3,7 +3,6 @@ import unittest
 import discretize
 import numpy as np
 from pymatsolver import SolverLU
-from scipy.sparse.linalg import LinearOperator, bicgstab, spsolve
 from scipy.stats import multivariate_normal
 from SimPEG import regularization
 from SimPEG.maps import Wires

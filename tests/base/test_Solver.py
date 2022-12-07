@@ -4,7 +4,6 @@ from SimPEG import Solver, SolverDiag, SolverCG, SolverLU
 from discretize import TensorMesh
 from SimPEG.utils import sdiag
 import numpy as np
-import scipy.sparse as sparse
 
 TOLD = 1e-10
 TOLI = 1e-3

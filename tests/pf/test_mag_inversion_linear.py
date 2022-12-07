@@ -15,7 +15,6 @@ import numpy as np
 # import SimPEG.PF as PF
 from SimPEG.potential_fields import magnetics as mag
 import shutil
-import matplotlib.pyplot as plt
 
 
 class MagInvLinProblemTest(unittest.TestCase):

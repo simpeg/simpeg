@@ -10,11 +10,9 @@ from SimPEG import (
     optimization,
     inverse_problem,
     tests,
-    utils,
 )
 from SimPEG.utils import mkvc
 from SimPEG.electromagnetics import resistivity as dc
-from pymatsolver import Pardiso
 import shutil
 
 np.random.seed(40)

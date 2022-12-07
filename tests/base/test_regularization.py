@@ -2,13 +2,10 @@ import numpy as np
 import unittest
 
 import pytest
-from scipy.stats import multivariate_normal
-from scipy.sparse.linalg import spsolve, LinearOperator, bicgstab
-from scipy.spatial import Delaunay
 import inspect
 
 import discretize
-from SimPEG import maps, regularization, utils, tests, objective_function
+from SimPEG import maps, objective_function, regularization, utils
 
 
 TOL = 1e-7

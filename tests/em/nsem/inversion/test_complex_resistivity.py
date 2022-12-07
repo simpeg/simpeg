@@ -1,9 +1,9 @@
 import unittest
 
 # import SimPEG.dask as simpeg
-from SimPEG import maps, utils, data, tests
+from SimPEG import maps, tests
 import discretize
-from discretize.utils import mkvc, refine_tree_xyz
+from discretize.utils import mkvc
 from SimPEG.electromagnetics import natural_source as ns
 import numpy as np
 from pymatsolver import Pardiso as Solver
