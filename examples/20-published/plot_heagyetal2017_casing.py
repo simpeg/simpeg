@@ -32,8 +32,7 @@ This example was updated for SimPEG 0.14.0 on January 31st, 2020 by Joseph Capri
 """
 import discretize
 from SimPEG import utils, maps, tests
-from SimPEG.electromagnetics import mu_0, frequency_domain as FDEM, analytics
-from SimPEG.electromagnetics.utils import omega
+from SimPEG.electromagnetics import frequency_domain as FDEM, mu_0
 from SimPEG.utils.io_utils import download
 
 # try:

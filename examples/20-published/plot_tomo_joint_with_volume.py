@@ -32,7 +32,6 @@ from SimPEG import (
     inverse_problem,
     inversion,
     data_misfit,
-    directives,
     objective_function,
 )
 

@@ -19,9 +19,7 @@ assumption in order to improve the recovery of a compact prism.
 
 import scipy as sp
 import numpy as np
-import shutil
 import matplotlib.pyplot as plt
-from scipy.interpolate import NearestNDInterpolator
 from SimPEG import (
     data,
     data_misfit,
