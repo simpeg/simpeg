@@ -1,5 +1,5 @@
 import numpy as np
-import SimPEG.dask
+import SimPEG.dask  # noqa: F401
 from SimPEG import (
     data,
     data_misfit,

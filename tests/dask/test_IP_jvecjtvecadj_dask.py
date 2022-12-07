@@ -2,7 +2,7 @@ import unittest
 import discretize
 import numpy as np
 
-import SimPEG.dask
+import SimPEG.dask  # noqa: F401
 from SimPEG import maps
 from SimPEG import data_misfit
 from SimPEG import regularization

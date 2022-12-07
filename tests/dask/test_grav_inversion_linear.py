@@ -2,7 +2,7 @@ import unittest
 import numpy as np
 import discretize
 import dask
-import SimPEG.dask
+import SimPEG.dask  # noqa: F401
 from SimPEG import (
     utils,
     maps,
