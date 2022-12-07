@@ -2955,7 +2955,6 @@ class Mesh2Mesh(IdentityMap):
             mesh, mesh2 = meshes
         except TypeError:
             raise TypeError("Couldn't unpack 'meshes' into two meshes.")
-        mesh, mesh2 = meshes
 
         # Check dimensions of both meshes
         if mesh.dim != mesh2.dim:
