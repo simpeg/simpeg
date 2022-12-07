@@ -3,10 +3,7 @@ import os
 from discretize import TensorMesh
 from discretize.utils import active_from_xyz
 
-try:
-    from SimPEG import utils
-except ImportError:
-    from SimPEG import Utils as utils
+from SimPEG import utils
 
 import numpy as np
 

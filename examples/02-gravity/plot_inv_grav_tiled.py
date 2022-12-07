@@ -23,12 +23,8 @@ from SimPEG import (
 )
 from discretize.utils import mesh_builder_xyz, refine_tree_xyz
 
-try:
-    from SimPEG import utils
-    from SimPEG.utils import plot2Ddata
-except ImportError:
-    from SimPEG import Utils as utils
-    from SimPEG.Utils.Plotutils import plot2Ddata
+from SimPEG import utils
+from SimPEG.utils import plot2Ddata
 
 import shutil
 
