@@ -4,7 +4,7 @@ import numpy as np
 from functools import wraps
 import warnings
 
-from discretize.utils import asArray_N_x_Dim, as_array_n_by_dim
+from discretize.utils import asArray_N_x_Dim, as_array_n_by_dim  # noqa: F401
 
 # scooby is a soft dependency for SimPEG
 try:

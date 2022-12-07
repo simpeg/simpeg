@@ -6,7 +6,6 @@
 
 import copy
 
-import matplotlib.pyplot as plt
 import numpy as np
 
 from ..directives import InversionDirective, MultiTargetMisfits
