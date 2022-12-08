@@ -60,13 +60,12 @@ stages:
 
 - stage: Testing
   dependsOn: StyleChecks
-  condition: ne(dependencies.StyleChecks.result, 'Cancelled')
   jobs:
     - template: ./.azure-pipelines/matrix.yml
 
 - stage: Deploy
   dependsOn: Testing
-  condition: and(in(dependencies.Testing.result, 'Succeeded', 'SucceededWithIssues'), startsWith(variables['build.sourceBranch'], 'refs/tags/'))
+  condition: startsWith(variables['build.sourceBranch'], 'refs/tags/')
   jobs:
     - job:
       displayName: Deploy Docs and source
