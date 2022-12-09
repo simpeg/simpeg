@@ -17,9 +17,9 @@ def plot2Ddata(
     figname=None,
     ncontour=10,
     dataloc=False,
-    contourOpts={},
-    levelOpts={},
-    streamplotOpts={},
+    contourOpts=None,
+    levelOpts=None,
+    streamplotOpts=None,
     scale="linear",
     clim=None,
     method="linear",
@@ -27,7 +27,7 @@ def plot2Ddata(
     shade_ncontour=100,
     shade_azimuth=-45.0,
     shade_angle_altitude=45.0,
-    shadeOpts={},
+    shadeOpts=None,
 ):
     """Interpolate and plot unstructured 2D data.
 
@@ -100,6 +100,15 @@ def plot2Ddata(
 
     if clim is not None:
         vlimits = [np.min(clim), np.max(clim)]
+
+    if contourOpts is None:
+        contourOpts = {}
+    if levelOpts is None:
+        levelOpts = {}
+    if streamplotOpts is None:
+        streamplotOpts = {}
+    if shadeOpts is None:
+        shadeOpts = {}
 
     for i, key in enumerate(["vmin", "vmax"]):
         if key in contourOpts.keys():

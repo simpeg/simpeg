@@ -528,8 +528,8 @@ class WeightedGaussianMixture(GaussianMixture):
         padding=0.2,
         plotting_precision=100,
         plot_membership=False,
-        contour_opts={},
-        level_opts={},
+        contour_opts=None,
+        level_opts=None,
     ):
         """
         Utils to plot the marginal PDFs of a GMM, either in 1D or 2D (1 or 2 physical properties at the time).
@@ -730,9 +730,13 @@ class WeightedGaussianMixture(GaussianMixture):
                 rv2d = clf2d.score_samples(pos.reshape(-1, 2))
                 labely = "2D Probability Density Distribution"
 
+            if contour_opts is None:
+                contour_opts = {}
             contour_opts = {"levels": 10, "cmap": "viridis", **contour_opts}
             surf = ax[1].contourf(x, y, rv2d.reshape(x.shape), **contour_opts)
 
+            if level_opts is None:
+                level_opts = {}
             level_opts = {
                 "levels": 10,
                 "colors": "k",

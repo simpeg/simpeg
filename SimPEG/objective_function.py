@@ -225,8 +225,10 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
     _multiplier_types = (float, None, Zero, np.float64, int, np.integer)  # Directive
     _multipliers = None
 
-    def __init__(self, objfcts=[], multipliers=None, **kwargs):
+    def __init__(self, objfcts=None, multipliers=None, **kwargs):
 
+        if objfcts is None:
+            objfcts = []
         if multipliers is None:
             multipliers = len(objfcts) * [1]
 
