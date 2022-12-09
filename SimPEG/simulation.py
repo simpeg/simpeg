@@ -172,7 +172,7 @@ class BaseSimulation(props.HasModel):
         survey=None,
         solver=None,
         solver_opts=None,
-        sensitivity_path=os.path.join(".", "sensitivity"),
+        sensitivity_path=None,
         counter=None,
         verbose=False,
         **kwargs,
@@ -185,6 +185,8 @@ class BaseSimulation(props.HasModel):
         if solver_opts is None:
             solver_opts = {}
         self.solver_opts = solver_opts
+        if sensitivity_path is None:
+            sensitivity_path = os.path.join(".", "sensitivity")
         self.sensitivity_path = sensitivity_path
         self.counter = counter
         self.verbose = verbose
