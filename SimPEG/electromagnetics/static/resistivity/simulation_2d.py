@@ -589,11 +589,12 @@ class Simulation2DNodal(BaseDCSimulation2D):
     fieldsPair_fwd = Fields3DNodal
     _gradT = None
 
-    def __init__(self, mesh, survey=None, bc_type="Robin", **kwargs):
+    def __init__(self, mesh, survey=None, bc_type="Robin", surface_faces=None, **kwargs):
         super().__init__(mesh=mesh, survey=survey, **kwargs)
         self.solver_opts["is_symmetric"] = True
         self.solver_opts["is_positive_definite"] = True
         self.bc_type = bc_type
+        self.surface_faces = surface_faces
 
     @property
     def bc_type(self):
@@ -724,17 +725,20 @@ class Simulation2DNodal(BaseDCSimulation2D):
             r_hat = r_vec / r[:, None]
             r_dot_n = np.einsum("ij,ij->i", r_hat, boundary_normals)
 
-            # determine faces that are on the sides and bottom of the mesh...
-            if mesh._meshType.lower() == "tree":
-                not_top = boundary_faces[:, -1] != top_v
+            if self.surface_faces is None:
+                # determine faces that are on the sides and bottom of the mesh...
+                if mesh._meshType.lower() == "tree":
+                    not_top = boundary_faces[:, -1] != top_v
+                elif mesh._meshType.lower() in ['tensor', 'curv']:
+                    # mesh faces are ordered, faces_x, faces_y, faces_z so...
+                    is_b = make_boundary_bool(mesh.shape_faces_y)
+                    is_t = np.zeros(mesh.shape_faces_y, dtype=bool, order="F")
+                    is_t[:, -1] = True
+                    is_t = is_t.reshape(-1, order="F")[is_b]
+                    not_top = np.zeros(boundary_faces.shape[0], dtype=bool)
+                    not_top[-len(is_t) :] = ~is_t
             else:
-                # mesh faces are ordered, faces_x, faces_y, faces_z so...
-                is_b = make_boundary_bool(mesh.shape_faces_y)
-                is_t = np.zeros(mesh.shape_faces_y, dtype=bool, order="F")
-                is_t[:, -1] = True
-                is_t = is_t.reshape(-1, order="F")[is_b]
-                not_top = np.zeros(boundary_faces.shape[0], dtype=bool)
-                not_top[-len(is_t) :] = ~is_t
+                not_top = ~self.surface_faces
 
             # use the exponentiall scaled modified bessel function of second kind,
             # (the division will cancel out the scaling)

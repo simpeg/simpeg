@@ -438,7 +438,7 @@ class Simulation3DNodal(BaseDCSimulation):
     _formulation = "EB"  # N potentials means B is on faces
     fieldsPair = Fields3DNodal
 
-    def __init__(self, mesh, survey=None, bc_type="Robin", **kwargs):
+    def __init__(self, mesh, survey=None, bc_type="Robin", surface_faces=None, **kwargs):
         super().__init__(mesh=mesh, survey=survey, **kwargs)
         # Not sure why I need to do this
         # To evaluate mesh.aveE2CC, this is required....
@@ -447,6 +447,7 @@ class Simulation3DNodal(BaseDCSimulation):
         elif mesh._meshType == "CYL":
             bc_type == "Neumann"
         self.bc_type = bc_type
+        self.surface_faces = surface_faces
         self.setBC()
 
     @property
@@ -567,7 +568,7 @@ class Simulation3DNodal(BaseDCSimulation):
             # determine faces that are on the sides and bottom of the mesh...
             if mesh._meshType.lower() == "tree":
                 not_top = boundary_faces[:, -1] != top_v
-            else:
+            elif mesh._meshType.lower() in ['tensor', 'curv']:
                 # mesh faces are ordered, faces_x, faces_y, faces_z so...
                 if mesh.dim == 2:
                     is_b = make_boundary_bool(mesh.shape_faces_y)
@@ -580,6 +581,9 @@ class Simulation3DNodal(BaseDCSimulation):
                 is_t = is_t.reshape(-1, order="F")[is_b]
                 not_top = np.zeros(boundary_faces.shape[0], dtype=bool)
                 not_top[-len(is_t) :] = ~is_t
+            else:
+                not_top = ~self.surface_faces
+
             alpha[not_top] = (r_dot_n / r)[not_top]
 
             P_bf = self.mesh.project_face_to_boundary_face
