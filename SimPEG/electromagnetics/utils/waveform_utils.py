@@ -108,7 +108,7 @@ def convolve_with_waveform(func, waveform, times, fargs=None, fkwargs=None):
     out = np.zeros_like(times, dtype=float)
     for it, t in enumerate(times):
 
-        def integral(quad_time):
+        def integral(quad_time, t):
             wave_eval = waveform.eval_deriv(t - quad_time)
             return wave_eval * func(quad_time, *fargs, **fkwargs)
 
@@ -118,6 +118,6 @@ def convolve_with_waveform(func, waveform, times, fargs=None, fkwargs=None):
             # just do not evaluate the integral at negative times...
             a = np.maximum(a, 0.0)
             b = np.maximum(b, 0.0)
-            val, _ = integrate.quadrature(integral, a, b, tol=0.0, maxiter=500)
+            val, _ = integrate.quadrature(integral, a, b, tol=0.0, maxiter=500, args=t)
             out[it] -= val
     return out
