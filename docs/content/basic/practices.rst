@@ -133,7 +133,7 @@ curl operator in `test_operators.py <https://github.com/simpeg/discretize/blob/m
 
             sol_curl2d = call2(sol, self.M.gridCC)
             Ec = cartE2(self.M, ex, ey)
-            sol_ana = self.M.edgeCurl*self.M.projectFaceVector(Ec)
+            sol_ana = self.M.edge_curl*self.M.project_face_vector(Ec)
             err = np.linalg.norm((sol_curl2d-sol_ana), np.inf)
 
             return err
@@ -142,7 +142,7 @@ curl operator in `test_operators.py <https://github.com/simpeg/discretize/blob/m
             self.orderTest()
 
 Derivative tests are a particular type or :ref:`order_test`, and since they
-are used so extensively, SimPEG includes a :code:`checkDerivative` method.
+are used so extensively, SimPEG includes a :code:`check_derivative` method.
 
 In the case
 of testing a derivative, we consider a Taylor expansion of a function about
@@ -169,7 +169,7 @@ DEM_derivs.py>`_
 
         def fun(x):
             return survey.dpred(x), lambda x: prb.Jvec(x0, x)
-        return Tests.checkDerivative(fun, x0, num=2, plotIt=False, eps=FLR)
+        return tests.check_derivative(fun, x0, num=2, plotIt=False, eps=FLR)
 
 .. _documentation:
 

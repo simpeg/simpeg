@@ -1,5 +1,3 @@
-from __future__ import division, print_function
-
 import unittest
 
 import discretize
@@ -29,7 +27,7 @@ def analytic_wholespace_dipole_comparison(
         cs, ncx, ncz, npad = 5.0, 30, 10, 15
         hx = [(cs, ncx), (cs, npad, 1.3)]
         hz = [(cs, npad, -1.3), (cs, ncz), (cs, npad, 1.3)]
-        mesh = discretize.CylMesh([hx, 1, hz], "00C")
+        mesh = discretize.CylindricalMesh([hx, 1, hz], "00C")
 
     elif mesh_type == "TENSOR":
         cs, nc, npad = 8.0, 14, 8
@@ -222,7 +220,7 @@ def analytic_halfspace_mag_dipole_comparison(
         cs, ncx, ncz, npad = 5.0, 30, 10, 15
         hx = [(cs, ncx), (cs, npad, 1.3)]
         hz = [(cs, npad, -1.3), (cs, ncz), (cs, npad, 1.3)]
-        mesh = discretize.CylMesh([hx, 1, hz], "00C")
+        mesh = discretize.CylindricalMesh([hx, 1, hz], "00C")
 
     elif mesh_type == "TENSOR":
         cs, nc, npad = 20.0, 13, 5
@@ -231,8 +229,8 @@ def analytic_halfspace_mag_dipole_comparison(
         hz = [(cs, npad, -1.3), (cs, nc), (cs, npad, 1.3)]
         mesh = discretize.TensorMesh([hx, hy, hz], "CCC")
 
-    active = mesh.vectorCCz < 0.0
-    actMap = maps.InjectActiveCells(mesh, active, np.log(1e-8), nC=mesh.nCz)
+    active = mesh.cell_centers_z < 0.0
+    actMap = maps.InjectActiveCells(mesh, active, np.log(1e-8), nC=mesh.shape_cells[2])
     mapping = maps.ExpMap(mesh) * maps.SurjectVertical1D(mesh) * actMap
 
     rx = getattr(tdem.receivers, "Point{}".format(rx_type[:-1]))(
@@ -271,7 +269,7 @@ def analytic_halfspace_mag_dipole_comparison(
     )
     sim.solver = Solver
 
-    sigma = np.ones(mesh.nCz) * 1e-8
+    sigma = np.ones(mesh.shape_cells[2]) * 1e-8
     sigma[active] = sig_half
     sigma = np.log(sigma[active])
 

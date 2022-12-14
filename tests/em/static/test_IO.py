@@ -61,10 +61,10 @@ class TestsIO(unittest.TestCase):
 
         mesh, actind = self.IO.set_mesh()
         topo, mesh1D = utils.genTopography(mesh, -10, 0, its=100)
-        mesh, actind = self.IO.set_mesh(topo=np.c_[mesh1D.vectorCCx, topo])
+        mesh, actind = self.IO.set_mesh(topo=np.c_[mesh1D.cell_centers_x, topo])
         self.survey.drape_electrodes_on_topography(mesh, actind, option="top")
         if self.plotIt:
-            mesh.plotImage(actind)
+            mesh.plot_image(actind)
             plt.plot(
                 self.survey.unique_electrode_locations[:, 0],
                 self.survey.unique_electrode_locations[:, 1],

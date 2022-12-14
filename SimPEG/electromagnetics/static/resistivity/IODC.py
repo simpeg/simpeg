@@ -6,7 +6,7 @@ import warnings
 
 from discretize import TensorMesh, TreeMesh
 from discretize.base import BaseMesh
-from discretize.utils import refine_tree_xyz, meshTensor
+from discretize.utils import refine_tree_xyz, unpack_widths
 
 from ....data import Data
 from ....utils import (
@@ -1050,8 +1050,8 @@ class IO:
             # Quadtree mesh
             if dimension == 2:
 
-                pad_length_x = np.sum(meshTensor([(dx, npad_x, pad_rate_x)]))
-                pad_length_z = np.sum(meshTensor([(dz, npad_z, pad_rate_z)]))
+                pad_length_x = np.sum(unpack_widths([(dx, npad_x, pad_rate_x)]))
+                pad_length_z = np.sum(unpack_widths([(dz, npad_z, pad_rate_z)]))
 
                 dom_width_x = lineLength + 2 * pad_length_x  # domain width x
                 dom_width_z = corezlength + pad_length_z  # domain width z
@@ -1075,8 +1075,8 @@ class IO:
                 hx = [(dx, nbcx)]
                 hz = [(dz, nbcz)]
 
-                mesh_width = np.sum(meshTensor(hx))
-                mesh_height = np.sum(meshTensor(hz))
+                mesh_width = np.sum(unpack_widths(hx))
+                mesh_height = np.sum(unpack_widths(hz))
 
                 array_midpoint = 0.5 * (
                     self.electrode_locations[:, 0].min()
@@ -1161,7 +1161,7 @@ class IO:
                 val = self.apparent_resistivity[inds]
             else:
                 val = data.copy()[inds]
-            label_tmp = "Apparent Res. ($\Omega$m)"
+            label_tmp = r"Apparent Res. ($\Omega$m)"
         elif data_type == "volt":
             if data is None:
                 val = self.voltages[inds]

@@ -201,14 +201,14 @@ ax1 = fig.add_axes([0.1, 0.12, 0.73, 0.78])
 log_mod = np.log10(model)
 # log_mod = np.log10(temp_model)
 
-mesh2D.plotImage(
+mesh2D.plot_image(
     log_mod,
     ax=ax1,
     grid=True,
     clim=(np.log10(overburden_conductivity), np.log10(slope_conductivity)),
-    pcolorOpts={"cmap": "viridis"},
+    pcolor_opts={"cmap": "viridis"},
 )
-ax1.set_ylim(mesh2D.vectorNy.min(), mesh2D.vectorNy.max())
+ax1.set_ylim(mesh2D.nodes_y.min(), mesh2D.nodes_y.max())
 
 ax1.set_title("Conductivity Model")
 ax1.set_xlabel("x (m)")
@@ -229,14 +229,14 @@ ax1 = fig.add_axes([0.1, 0.12, 0.73, 0.78])
 log_mod_sounding = np.log10(sounding_models)
 sounding_models = np.log(sounding_models)
 
-mesh_soundings.plotImage(
+mesh_soundings.plot_image(
     log_mod_sounding,
     ax=ax1,
     grid=True,
     clim=(np.log10(overburden_conductivity), np.log10(slope_conductivity)),
-    pcolorOpts={"cmap": "viridis"},
+    pcolor_opts={"cmap": "viridis"},
 )
-ax1.set_ylim(mesh_soundings.vectorNy.min(), mesh_soundings.vectorNy.max())
+ax1.set_ylim(mesh_soundings.nodes_y.min(), mesh_soundings.nodes_y.max())
 
 ax1.set_title("Ordered Sounding Models")
 ax1.set_xlabel("hz (m)")

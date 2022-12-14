@@ -7,12 +7,13 @@ from .base import BaseSimilarityMeasure
 
 
 class LinearCorrespondence(BaseSimilarityMeasure):
-    """
+    r"""
     The petrophysical linear constraint for joint inversions.
 
     ..math::
-        \\phi_c({\\mathbf m}_{\\mathbf1},{\\mathbf m}_{\\mathbf2})=\\lambda\\sum_{i=1}^M
-        (k_1*m_1 + k_2*m_2 + k_3)
+
+        \phi_c({\mathbf m}_{\mathbf1},{\mathbf m}_{\mathbf2})
+        = \lambda\sum_{i=1}^M (k_1*m_1 + k_2*m_2 + k_3)
 
     Assuming that we are working with two models only.
 

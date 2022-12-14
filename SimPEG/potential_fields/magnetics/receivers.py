@@ -1,5 +1,5 @@
-import numpy as np
 from ... import survey
+from ...utils import validate_string
 
 
 class Point(survey.BaseRx):
@@ -35,53 +35,34 @@ class Point(survey.BaseRx):
 
         super().__init__(locations, **kwargs)
 
-        n_locations = self.locations.shape[0]
-
         if isinstance(components, str):
             components = [components]
-
-        component_dict = {}
         for component in components:
-            component_dict[component] = np.ones(n_locations, dtype="bool")
+            validate_string(
+                "component",
+                component,
+                [
+                    "bxx",
+                    "bxy",
+                    "bxz",
+                    "byy",
+                    "byz",
+                    "bzz",
+                    "bx",
+                    "by",
+                    "bz",
+                    "tmi",
+                ],
+            )
+        self.components = components
 
-        assert np.all(
-            [
-                component
-                in ["bxx", "bxy", "bxz", "byy", "byz", "bzz", "bx", "by", "bz", "tmi"]
-                for component in list(component_dict.keys())
-            ]
-        ), (
-            "Components {0!s} not known. Components must be in "
-            "'bxx', 'bxy', 'bxz', 'byy',"
-            "'byz', 'bzz', 'bx', 'by', 'bz', 'tmi'. "
-            "Arbitrary orientations have not yet been "
-            "implemented.".format(component)
-        )
-        self.components = component_dict
-
+    @property
     def nD(self):
-        """Number of data
+        """Number of data.
 
         Returns
         -------
         int
             Number of data for the receiver (locations X components)
         """
-
-        if self.receiver_index is not None:
-            return self.location_index.shape[0]
-        elif self.locations is not None:
-            return self.locations.shape[0]
-        else:
-            return None
-
-    def receiver_index(self):
-        """Receiver index
-
-        Returns
-        -------
-        np.ndarray of int
-            Receiver indices
-        """
-
-        return self.receiver_index
+        return self.locations.shape[0] * len(self.components)

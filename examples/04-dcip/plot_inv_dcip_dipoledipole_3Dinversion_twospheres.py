@@ -1,4 +1,4 @@
-"""
+r"""
 3D DC inversion of Dipole Dipole array
 ======================================
 
@@ -7,11 +7,11 @@ one conductive, the other one resistive compared to the background.
 
 We restrain the inversion to the Core Mesh through the use an Active Cells
 mapping that we combine with an exponetial mapping to invert
-in log conductivity space. Here mapping,  :math:`\\mathcal{M}`,
+in log conductivity space. Here mapping,  :math:`\mathcal{M}`,
 indicates transformation of our model to a different space:
 
 .. math::
-    \\sigma = \\mathcal{M}(\\mathbf{m})
+    \sigma = \mathcal{M}(\mathbf{m})
 
 Following example will show you how user can implement a 3D DC inversion.
 """
@@ -95,7 +95,7 @@ xmin, xmax = -20.0, 20.0
 ymin, ymax = -15.0, 15.0
 zmin, zmax = -10.0, 0.0
 xyzlim = np.r_[[[xmin, xmax], [ymin, ymax], [zmin, zmax]]]
-actind, meshCore = utils.mesh_utils.ExtractCoreMesh(xyzlim, mesh)
+actind, meshCore = utils.mesh_utils.extract_core_mesh(xyzlim, mesh)
 
 
 # Function to plot cylinder border
@@ -126,21 +126,27 @@ xmin, xmax = -15.0, 15.0
 ymin, ymax = 0.0, 0.0
 zmin, zmax = 0, 0
 endl = np.array([[xmin, ymin, zmin], [xmax, ymax, zmax]])
-survey1 = DCutils.generate_dcip_survey(endl, "dipole-dipole", dim=mesh.dim, a=3, b=3, n=8)
+survey1 = DCutils.generate_dcip_survey(
+    endl, "dipole-dipole", dim=mesh.dim, a=3, b=3, n=8
+)
 
 # Line 2
 xmin, xmax = -15.0, 15.0
 ymin, ymax = 5.0, 5.0
 zmin, zmax = 0, 0
 endl = np.array([[xmin, ymin, zmin], [xmax, ymax, zmax]])
-survey2 = DCutils.generate_dcip_survey(endl, "dipole-dipole", dim=mesh.dim, a=3, b=3, n=8)
+survey2 = DCutils.generate_dcip_survey(
+    endl, "dipole-dipole", dim=mesh.dim, a=3, b=3, n=8
+)
 
 # Line 3
 xmin, xmax = -15.0, 15.0
 ymin, ymax = -5.0, -5.0
 zmin, zmax = 0, 0
 endl = np.array([[xmin, ymin, zmin], [xmax, ymax, zmax]])
-survey3 = DCutils.generate_dcip_survey(endl, "dipole-dipole", dim=mesh.dim, a=3, b=3, n=8)
+survey3 = DCutils.generate_dcip_survey(
+    endl, "dipole-dipole", dim=mesh.dim, a=3, b=3, n=8
+)
 
 # Concatenate lines
 survey = DC.Survey(survey1.source_list + survey2.source_list + survey3.source_list)
@@ -197,21 +203,23 @@ cyl1h = getCylinderPoints(x1, y1, r1)
 
 clim = [(mtrue[actind]).min(), (mtrue[actind]).max()]
 
-dat = meshCore.plotSlice(
+dat = meshCore.plot_slice(
     ((mtrue[actind])), ax=ax[0], normal="Y", clim=clim, ind=int(ncy / 2)
 )
 ax[0].set_title("Ground Truth, Vertical")
 ax[0].set_aspect("equal")
 
-meshCore.plotSlice((minv), ax=ax[1], normal="Y", clim=clim, ind=int(ncy / 2))
+meshCore.plot_slice((minv), ax=ax[1], normal="Y", clim=clim, ind=int(ncy / 2))
 ax[1].set_aspect("equal")
 ax[1].set_title("Inverted Model, Vertical")
 
-meshCore.plotSlice(((mtrue[actind])), ax=ax[2], normal="Z", clim=clim, ind=int(ncz / 2))
+meshCore.plot_slice(
+    ((mtrue[actind])), ax=ax[2], normal="Z", clim=clim, ind=int(ncz / 2)
+)
 ax[2].set_title("Ground Truth, Horizontal")
 ax[2].set_aspect("equal")
 
-meshCore.plotSlice((minv), ax=ax[3], normal="Z", clim=clim, ind=int(ncz / 2))
+meshCore.plot_slice((minv), ax=ax[3], normal="Z", clim=clim, ind=int(ncz / 2))
 ax[3].set_title("Inverted Model, Horizontal")
 ax[3].set_aspect("equal")
 

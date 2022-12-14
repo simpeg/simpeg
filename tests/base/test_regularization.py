@@ -1,8 +1,3 @@
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-
 import numpy as np
 import unittest
 
@@ -160,7 +155,7 @@ class RegularizationTests(unittest.TestCase):
                     mesh, active_cells=indAct
                 )
 
-                assert (regularization_mesh.vol == mesh.vol[indAct]).all()
+                assert (regularization_mesh.vol == mesh.cell_volumes[indAct]).all()
 
     def test_property_mirroring(self):
         mesh = discretize.TensorMesh([8, 7, 6])
@@ -329,45 +324,54 @@ class RegularizationTests(unittest.TestCase):
 
         reg = regularization.Sparse(mesh, weights=cell_weights)
 
-        with pytest.raises(ValueError) as error:
+        np.testing.assert_equal(reg.norms, [1, 1, 1, 1])
+
+        with pytest.raises(ValueError):
             reg.norms = [1, 1]
 
-        assert "The number of values provided for 'norms'" in str(error)
-
         reg.norms = [2.0, 2.0, 2.0, 2.0]
-        self.assertTrue(
-            np.all(
-                reg.norms
-                == np.kron(
-                    np.ones((reg.regularization_mesh.Pac.shape[1], 1)),
-                    np.c_[2.0, 2.0, 2.0, 2.0],
-                )
-            )
-        )
-        self.assertTrue(np.all(reg.objfcts[0].norm == 2.0 * np.ones(mesh.nC)))
-        self.assertTrue(np.all(reg.objfcts[1].norm == 2.0 * np.ones(mesh.nFx)))
+        np.testing.assert_equal(reg.objfcts[0].norm, 2.0 * np.ones(mesh.nC))
+        np.testing.assert_equal(reg.objfcts[1].norm, 2.0 * np.ones(mesh.nFx))
+        np.testing.assert_equal(reg.objfcts[2].norm, 2.0 * np.ones(mesh.nFy))
+        np.testing.assert_equal(reg.objfcts[3].norm, 2.0 * np.ones(mesh.nFz))
+        for norm, objfct in zip(reg.norms, reg.objfcts):
+            np.testing.assert_equal(norm, objfct.norm)
 
-        self.assertTrue(np.all(reg.objfcts[2].norm == 2.0 * np.ones(mesh.nFy)))
-        self.assertTrue(np.all(reg.objfcts[3].norm == 2.0 * np.ones(mesh.nFz)))
-
-        reg.norms = [0.0, 1.0, 1.0, 1.0]
-        self.assertTrue(
-            np.all(
-                reg.norms
-                == np.kron(
-                    np.ones((reg.regularization_mesh.Pac.shape[1], 1)),
-                    np.c_[0.0, 1.0, 1.0, 1.0],
-                )
-            )
-        )
-        self.assertTrue(np.all(reg.objfcts[0].norm == 0.0 * np.ones(mesh.nC)))
-        self.assertTrue(np.all(reg.objfcts[1].norm == 1.0 * np.ones(mesh.nFx)))
-        self.assertTrue(np.all(reg.objfcts[2].norm == 1.0 * np.ones(mesh.nFy)))
-        self.assertTrue(np.all(reg.objfcts[3].norm == 1.0 * np.ones(mesh.nFz)))
+        reg.norms = np.r_[0, 1, 1, 1]
+        np.testing.assert_equal(reg.objfcts[0].norm, 0.0 * np.ones(mesh.nC))
+        np.testing.assert_equal(reg.objfcts[1].norm, 1.0 * np.ones(mesh.nFx))
+        np.testing.assert_equal(reg.objfcts[2].norm, 1.0 * np.ones(mesh.nFy))
+        np.testing.assert_equal(reg.objfcts[3].norm, 1.0 * np.ones(mesh.nFz))
+        for norm, objfct in zip(reg.norms, reg.objfcts):
+            np.testing.assert_equal(norm, objfct.norm)
 
         reg.norms = None
         for obj in reg.objfcts:
-            self.assertTrue(np.all(obj.norm == 2.0 * np.ones(obj._weights_shapes[0])))
+            np.testing.assert_equal(obj.norm, 2.0 * np.ones(obj._weights_shapes[0]))
+
+        # test with setting as multiple arrays
+        reg.norms = [
+            np.random.rand(mesh.n_cells),
+            np.random.rand(mesh.nFx),
+            np.random.rand(mesh.nFy),
+            np.random.rand(mesh.nFz),
+        ]
+        for norm, objfct in zip(reg.norms, reg.objfcts):
+            np.testing.assert_equal(norm, objfct.norm)
+
+        # test with not setting all as an array
+        v = [0, np.random.rand(mesh.nFx), 2, 2]
+        reg.norms = v
+        np.testing.assert_equal(reg.objfcts[0].norm, 0.0 * np.ones(mesh.nC))
+        np.testing.assert_equal(reg.objfcts[1].norm, v[1])
+        np.testing.assert_equal(reg.objfcts[2].norm, 2 * np.ones(mesh.nFy))
+        np.testing.assert_equal(reg.objfcts[3].norm, 2 * np.ones(mesh.nFz))
+
+        # test resetting if not all work...
+        reg.norms = [1, 1, 1, 1]
+        with pytest.raises(ValueError):
+            reg.norms = [1, 2, 3, 2]
+        assert reg.norms == [1, 1, 1, 1]
 
     def test_linked_properties(self):
         mesh = discretize.TensorMesh([8, 7, 6])
@@ -414,33 +418,21 @@ class RegularizationTests(unittest.TestCase):
             with pytest.raises(TypeError) as error:
                 setattr(reg, f"alpha_{comp}", "abc")
 
-            assert f"alpha_{comp} must be a real number" in str(error)
-
             with pytest.raises(ValueError) as error:
                 setattr(reg, f"alpha_{comp}", -1)
-
-            assert f"alpha_{comp} must be non-negative" in str(error)
 
             if comp in ["x", "y", "z"]:
                 with pytest.raises(TypeError) as error:
                     setattr(reg, f"length_scale_{comp}", "abc")
 
-                assert f"length_scale_{comp} must be a real number" in str(error)
-
         with pytest.raises(ValueError) as error:
             reg = regularization.WeightedLeastSquares(mesh, alpha_x=1, length_scale_x=1)
-
-        assert "Attempted to set both alpha_x and length_scale_x" in str(error)
 
         with pytest.raises(ValueError) as error:
             reg = regularization.WeightedLeastSquares(mesh, alpha_y=1, length_scale_y=1)
 
-        assert "Attempted to set both alpha_y and length_scale_y" in str(error)
-
         with pytest.raises(ValueError) as error:
             reg = regularization.WeightedLeastSquares(mesh, alpha_z=1, length_scale_z=1)
-
-        assert "Attempted to set both alpha_z and length_scale_z" in str(error)
 
     def test_nC_residual(self):
 
@@ -453,11 +445,13 @@ class RegularizationTests(unittest.TestCase):
         temp = np.logspace(np.log10(1.0), np.log10(12.0), 19)
         temp_pad = temp[-1] * 1.3 ** np.arange(npad)
         hz = np.r_[temp_pad[::-1], temp[::-1], temp, temp_pad]
-        mesh = discretize.CylMesh([hx, 1, hz], "00C")
-        active = mesh.vectorCCz < 0.0
+        mesh = discretize.CylindricalMesh([hx, 1, hz], "00C")
+        active = mesh.cell_centers_z < 0.0
 
-        active = mesh.vectorCCz < 0.0
-        actMap = maps.InjectActiveCells(mesh, active, np.log(1e-8), nC=mesh.nCz)
+        active = mesh.cell_centers_z < 0.0
+        actMap = maps.InjectActiveCells(
+            mesh, active, np.log(1e-8), nC=mesh.shape_cells[2]
+        )
         mapping = maps.ExpMap(mesh) * maps.SurjectVertical1D(mesh) * actMap
 
         regMesh = discretize.TensorMesh([mesh.h[2][mapping.maps[-1].indActive]])
@@ -476,7 +470,7 @@ class RegularizationTests(unittest.TestCase):
         temp = np.logspace(np.log10(1.0), np.log10(12.0), 19)
         temp_pad = temp[-1] * 1.3 ** np.arange(npad)
         hz = np.r_[temp_pad[::-1], temp[::-1], temp, temp_pad]
-        mesh = discretize.CylMesh([hx, 3, hz], "00C")
+        mesh = discretize.CylindricalMesh([hx, 3, hz], "00C")
         active = mesh.cell_centers[:, 2] < 0.0
 
         reg = regularization.WeightedLeastSquares(mesh, active_cells=active)
@@ -558,14 +552,10 @@ class RegularizationTests(unittest.TestCase):
             with pytest.raises(ValueError) as error:
                 reg.irls_threshold = -1
 
-            assert "Value of 'irls_threshold' should be greater than 0." in str(error)
-
             assert reg.irls_scaled  # Default
 
             with pytest.raises(TypeError) as error:
                 reg.irls_scaled = -1
-
-            assert "'irls_scaled must be of type 'bool'" in str(error)
 
             assert reg.gradient_type == "total"  # Check default
 

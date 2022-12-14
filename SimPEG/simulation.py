@@ -1,5 +1,7 @@
-from __future__ import print_function
-
+"""
+Define simulation classes
+"""
+import os
 import inspect
 import numpy as np
 import warnings
@@ -170,7 +172,7 @@ class BaseSimulation(props.HasModel):
         survey=None,
         solver=None,
         solver_opts=None,
-        sensitivity_path="./sensitivity/",
+        sensitivity_path=os.path.join(".", "sensitivity"),
         counter=None,
         verbose=False,
         **kwargs,
@@ -203,7 +205,7 @@ class BaseSimulation(props.HasModel):
         raise NotImplementedError("fields has not been implemented for this ")
 
     def dpred(self, m=None, f=None):
-        """
+        r"""
         dpred(m, f=None)
         Create the projected data from a model.
         The fields, f, (if provided) will be used for the predicted data
@@ -211,7 +213,7 @@ class BaseSimulation(props.HasModel):
 
         .. math::
 
-            d_\\text{pred} = P(f(m))
+            d_\text{pred} = P(f(m))
 
         Where P is a projection of the fields onto the data space.
         """
@@ -286,7 +288,7 @@ class BaseSimulation(props.HasModel):
 
     @count
     def residual(self, m, dobs, f=None):
-        """residual(m, dobs, f=None)
+        r"""
         The data residual:
 
         .. math::
@@ -421,7 +423,7 @@ class BaseTimeSimulation(BaseSimulation):
         return self.time_mesh.nodes_x
 
     def dpred(self, m=None, f=None):
-        """
+        r"""
         dpred(m, f=None)
         Create the projected data from a model.
         The fields, f, (if provided) will be used for the predicted data
@@ -429,7 +431,7 @@ class BaseTimeSimulation(BaseSimulation):
 
         .. math::
 
-            d_\\text{pred} = P(f(m))
+            d_\text{pred} = P(f(m))
 
         Where P is a projection of the fields onto the data space.
         """
@@ -531,13 +533,13 @@ class LinearSimulation(BaseSimulation):
 
 
 class ExponentialSinusoidSimulation(LinearSimulation):
-    """
+    r"""
     This is the simulation class for the linear problem consisting of
     exponentially decaying sinusoids. The rows of the G matrix are
 
     .. math::
 
-        \\int_x e^{p j_k x} \\cos(\\pi q j_k x) \\quad, j_k \\in [j_0, ..., j_n]
+        \int_x e^{p j_k x} \cos(\pi q j_k x) \quad, j_k \in [j_0, ..., j_n]
     """
 
     @property
@@ -631,8 +633,8 @@ class ExponentialSinusoidSimulation(LinearSimulation):
         """
         Kernel functions for the decaying oscillating exponential functions.
         """
-        return np.exp(self.p * self.jk[k] * self.mesh.vectorCCx) * np.cos(
-            np.pi * self.q * self.jk[k] * self.mesh.vectorCCx
+        return np.exp(self.p * self.jk[k] * self.mesh.cell_centers_x) * np.cos(
+            np.pi * self.q * self.jk[k] * self.mesh.cell_centers_x
         )
 
     @property
@@ -644,7 +646,7 @@ class ExponentialSinusoidSimulation(LinearSimulation):
             G = np.empty((self.n_kernels, self.mesh.nC))
 
             for i in range(self.n_kernels):
-                G[i, :] = self.g(i) * self.mesh.hx
+                G[i, :] = self.g(i) * self.mesh.h[0]
 
             self._G = G
         return self._G

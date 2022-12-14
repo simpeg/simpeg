@@ -10,7 +10,6 @@ from ..resistivity import sources, receivers
 from ....data import Data
 from .. import resistivity as dc
 from ....utils import (
-    closestPoints,
     mkvc,
     surface2ind_topo,
     model_builder,
@@ -501,7 +500,7 @@ def plot_pseudosection(
     space_type="half space",
     **kwargs,
 ):
-    """
+    r"""
     Plot 2D DC/IP data in pseudo-section.
 
     This utility allows the user to image 2D DC/IP data in pseudosection as
@@ -542,7 +541,7 @@ def plot_pseudosection(
         Dictionary defining kwargs for the colorbar
     cbar_label : str
         A string stating the color bar label for the
-        data; e.g. 'S/m', '$\\Omega m$', '%'
+        data; e.g. 'S/m', '$\Omega m$', '%'
     cax : mpl_toolkits.mplot3d.axes.Axes, optional
         An axis object for the colorbar
     data_type : str, optional
@@ -1543,7 +1542,7 @@ def gettopoCC(mesh, ind_active, option="top"):
 
         if mesh.dim == 3:
 
-            mesh2D = discretize.TensorMesh([mesh.hx, mesh.hy], mesh.x0[:2])
+            mesh2D = discretize.TensorMesh([mesh.h[0], mesh.h[1]], mesh.x0[:2])
             zc = mesh.cell_centers[:, 2]
             ACTIND = ind_active.reshape(
                 (mesh.vnC[0] * mesh.vnC[1], mesh.vnC[2]), order="F"
@@ -1554,7 +1553,7 @@ def gettopoCC(mesh, ind_active, option="top"):
             for i in range(ZC.shape[0]):
                 ind = np.argmax(ZC[i, :][ACTIND[i, :]])
                 if option == "top":
-                    dz = mesh.hz[ACTIND[i, :]][ind] * 0.5
+                    dz = mesh.h[2][ACTIND[i, :]][ind] * 0.5
                 elif option == "center":
                     dz = 0.0
                 else:
@@ -1564,7 +1563,7 @@ def gettopoCC(mesh, ind_active, option="top"):
 
         elif mesh.dim == 2:
 
-            mesh1D = discretize.TensorMesh([mesh.hx], [mesh.x0[0]])
+            mesh1D = discretize.TensorMesh([mesh.h[0]], [mesh.x0[0]])
             yc = mesh.cell_centers[:, 1]
             ACTIND = ind_active.reshape((mesh.vnC[0], mesh.vnC[1]), order="F")
             YC = yc.reshape((mesh.vnC[0], mesh.vnC[1]), order="F")
@@ -1572,7 +1571,7 @@ def gettopoCC(mesh, ind_active, option="top"):
             for i in range(YC.shape[0]):
                 ind = np.argmax(YC[i, :][ACTIND[i, :]])
                 if option == "top":
-                    dy = mesh.hy[ACTIND[i, :]][ind] * 0.5
+                    dy = mesh.h[1][ACTIND[i, :]][ind] * 0.5
                 elif option == "center":
                     dy = 0.0
                 else:
@@ -1641,7 +1640,7 @@ def drapeTopotoLoc(mesh, pts, ind_active=None, option="top", topo=None, **kwargs
 
     if mesh._meshType == "TENSOR":
         meshtemp, topoCC = gettopoCC(mesh, ind_active, option=option)
-        inds = closestPoints(meshtemp, pts)
+        inds = meshtemp.closest_points_index(pts)
         topo = topoCC[inds]
         out = np.c_[pts, topo]
 
@@ -1683,13 +1682,15 @@ def genTopography(mesh, zmin, zmax, seed=None, its=100, anisotropy=None):
         raise ValueError("Curvilinear mesh is not supported.")
 
     if mesh.dim == 3:
-        mesh2D = discretize.TensorMesh([mesh.hx, mesh.hy], x0=[mesh.x0[0], mesh.x0[1]])
+        mesh2D = discretize.TensorMesh(
+            [mesh.h[0], mesh.h[1]], x0=[mesh.x0[0], mesh.x0[1]]
+        )
         out = model_builder.randomModel(
             mesh.vnC[:2], bounds=[zmin, zmax], its=its, seed=seed, anisotropy=anisotropy
         )
         return out, mesh2D
     elif mesh.dim == 2:
-        mesh1D = discretize.TensorMesh([mesh.hx], x0=[mesh.x0[0]])
+        mesh1D = discretize.TensorMesh([mesh.h[0]], x0=[mesh.x0[0]])
         out = model_builder.randomModel(
             mesh.vnC[:1], bounds=[zmin, zmax], its=its, seed=seed, anisotropy=anisotropy
         )
@@ -1840,7 +1841,7 @@ def plot_pseudoSection(
     clim=None,
     scale="linear",
     sameratio=True,
-    pcolorOpts={},
+    pcolor_opts={},
     data_location=False,
     dobs=None,
     dim=2,

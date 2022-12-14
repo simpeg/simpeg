@@ -1,4 +1,4 @@
-name: test
+name: simpeg-test
 channels:
   - conda-forge
 dependencies:
@@ -8,7 +8,7 @@ dependencies:
   - pymatsolver>=0.1.1
   - matplotlib
   - discretize>=0.7.1
-  - geoana>=0.3.0
+  - geoana>=0.4.0
   - empymod
   - pandas
   - dask
@@ -35,4 +35,13 @@ dependencies:
   - plotly
   - pyvista
   - pip
-  - python=3.7
+  - python-kaleido
+  # Linters and code style
+  - black==21.7b0
+  - click==8.0.4 # pin click needed by the pinned black version
+  - flake8
+  - flake8-bugbear
+  - flake8-builtins
+  - flake8-mutable
+  - flake8-rst-docstrings
+  - flake8-docstrings

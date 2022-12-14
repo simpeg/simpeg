@@ -31,8 +31,10 @@ def setUp_TDEM(prbtype="ElectricField", rxcomp="ElectricFieldx", src_z=0.0):
         "CCC",
     )
 
-    active = mesh.vectorCCz < 0.0
-    activeMap = maps.InjectActiveCells(mesh, active, np.log(1e-8), nC=mesh.nCz)
+    active = mesh.cell_centers_z < 0.0
+    activeMap = maps.InjectActiveCells(
+        mesh, active, np.log(1e-8), nC=mesh.shape_cells[2]
+    )
     mapping = maps.ExpMap(mesh) * maps.SurjectVertical1D(mesh) * activeMap
 
     rxOffset = 0.0
@@ -77,7 +79,7 @@ class TDEM_DerivTests(unittest.TestCase):
                 return [prb.dpred(m), lambda mx: prb.Jvec(m, mx)]
 
             print("test_Jvec_{prbtype}_{rxcomp}".format(prbtype=prbtype, rxcomp=rxcomp))
-            tests.checkDerivative(derChk, m, plotIt=False, num=2, eps=1e-20)
+            tests.check_derivative(derChk, m, plotIt=False, num=2, eps=1e-20)
 
         def test_Jvec_e_dbzdt(self):
             self.JvecTest("ElectricField", "MagneticFluxTimeDerivativez")

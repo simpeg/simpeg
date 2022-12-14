@@ -6,6 +6,12 @@ from .survey import Survey
 import scipy.constants as constants
 from scipy.constants import G as NewtG
 import numpy as np
+from geoana.kernels import (
+    prism_fz,
+    prism_fzz,
+    prism_fzx,
+    prism_fzy,
+)
 
 
 class Simulation3DIntegral(BasePFSimulation):
@@ -28,11 +34,10 @@ class Simulation3DIntegral(BasePFSimulation):
         self.model = m
 
         if self.store_sensitivities == "forward_only":
-            self.model = m
             # Compute the linear operation without forming the full dense G
             fields = mkvc(self.linear_operator())
         else:
-            fields = self.G @ (self.rhoMap @ m).astype(np.float32)
+            fields = self.G @ (self.rho).astype(np.float32)
 
         return np.asarray(fields)
 
@@ -97,7 +102,7 @@ class Simulation3DIntegral(BasePFSimulation):
 
         return self._gtg_diagonal
 
-    def evaluate_integral(self, receiver_location, components, tolerance=1e-4):
+    def evaluate_integral(self, receiver_location, components):
         """
         Compute the forward linear relationship between the model and the physics at a point
         and for all components of the survey.
@@ -118,200 +123,72 @@ class Simulation3DIntegral(BasePFSimulation):
                     g_c = [g_cx g_cy g_cz]
 
         """
-        # base cell dimensions
-        min_hx, min_hy = self.mesh.h[0].min(), self.mesh.h[1].min()
-        if len(self.mesh.h) < 3:
-            # Allow for 2D quadtree representations by using a dummy cell height.
-            # Actually cell heights will come from externally defined ``self.Zn``
-            min_hz = np.minimum(min_hx, min_hy) / 10.0
-        else:
-            min_hz = self.mesh.h[2].min()
+        dr = self._nodes - receiver_location
+        dx = dr[..., 0]
+        dy = dr[..., 1]
+        dz = dr[..., 2]
 
-        # comp. pos. differences for tne, bsw nodes. Adjust if location within
-        # tolerance of a node or edge
-        dx = self.Xn - receiver_location[0]
-        dx[np.abs(dx) / min_hx < tolerance] = tolerance * min_hx
-        dy = self.Yn - receiver_location[1]
-        dy[np.abs(dy) / min_hy < tolerance] = tolerance * min_hy
-        dz = self.Zn - receiver_location[2]
-        dz[np.abs(dz) / min_hz < tolerance] = tolerance * min_hz
-
-        rows = {component: np.zeros(self.Xn.shape[0]) for component in components}
-
-        gxx = np.zeros(self.Xn.shape[0])
-        gyy = np.zeros(self.Xn.shape[0])
-
-        for aa in range(2):
-            for bb in range(2):
-                for cc in range(2):
-
-                    r = (
-                        mkvc(dx[:, aa]) ** 2
-                        + mkvc(dy[:, bb]) ** 2
-                        + mkvc(dz[:, cc]) ** 2
-                    ) ** (0.50)
-
-                    dz_r = dz[:, cc] + r
-                    dy_r = dy[:, bb] + r
-                    dx_r = dx[:, aa] + r
-
-                    dxr = dx[:, aa] * r
-                    dyr = dy[:, bb] * r
-                    dzr = dz[:, cc] * r
-
-                    dydz = dy[:, bb] * dz[:, cc]
-                    dxdy = dx[:, aa] * dy[:, bb]
-                    dxdz = dx[:, aa] * dz[:, cc]
-
-                    if "gx" in components:
-                        rows["gx"] += (
-                            (-1) ** aa
-                            * (-1) ** bb
-                            * (-1) ** cc
-                            * (
-                                dy[:, bb] * np.log(dz_r)
-                                + dz[:, cc] * np.log(dy_r)
-                                - dx[:, aa] * np.arctan(dydz / dxr)
-                            )
-                        )
-
-                    if "gy" in components:
-                        rows["gy"] += (
-                            (-1) ** aa
-                            * (-1) ** bb
-                            * (-1) ** cc
-                            * (
-                                dx[:, aa] * np.log(dz_r)
-                                + dz[:, cc] * np.log(dx_r)
-                                - dy[:, bb] * np.arctan(dxdz / dyr)
-                            )
-                        )
-
-                    if "gz" in components:
-                        rows["gz"] += (
-                            (-1) ** aa
-                            * (-1) ** bb
-                            * (-1) ** cc
-                            * (
-                                dx[:, aa] * np.log(dy_r)
-                                + dy[:, bb] * np.log(dx_r)
-                                - dz[:, cc] * np.arctan(dxdy / dzr)
-                            )
-                        )
-
-                    arg = dy[:, bb] * dz[:, cc] / dxr
-
-                    if (
-                        ("gxx" in components)
-                        or ("gzz" in components)
-                        or ("guv" in components)
-                    ):
-                        gxx -= (
-                            (-1) ** aa
-                            * (-1) ** bb
-                            * (-1) ** cc
-                            * (
-                                dxdy / (r * dz_r)
-                                + dxdz / (r * dy_r)
-                                - np.arctan(arg)
-                                + dx[:, aa]
-                                * (1.0 / (1 + arg ** 2.0))
-                                * dydz
-                                / dxr ** 2.0
-                                * (r + dx[:, aa] ** 2.0 / r)
-                            )
-                        )
-
-                    if "gxy" in components:
-                        rows["gxy"] -= (
-                            (-1) ** aa
-                            * (-1) ** bb
-                            * (-1) ** cc
-                            * (
-                                np.log(dz_r)
-                                + dy[:, bb] ** 2.0 / (r * dz_r)
-                                + dz[:, cc] / r
-                                - 1.0
-                                / (1 + arg ** 2.0)
-                                * (dz[:, cc] / r ** 2)
-                                * (r - dy[:, bb] ** 2.0 / r)
-                            )
-                        )
-
-                    if "gxz" in components:
-                        rows["gxz"] -= (
-                            (-1) ** aa
-                            * (-1) ** bb
-                            * (-1) ** cc
-                            * (
-                                np.log(dy_r)
-                                + dz[:, cc] ** 2.0 / (r * dy_r)
-                                + dy[:, bb] / r
-                                - 1.0
-                                / (1 + arg ** 2.0)
-                                * (dy[:, bb] / (r ** 2))
-                                * (r - dz[:, cc] ** 2.0 / r)
-                            )
-                        )
-
-                    arg = dx[:, aa] * dz[:, cc] / dyr
-
-                    if (
-                        ("gyy" in components)
-                        or ("gzz" in components)
-                        or ("guv" in components)
-                    ):
-                        gyy -= (
-                            (-1) ** aa
-                            * (-1) ** bb
-                            * (-1) ** cc
-                            * (
-                                dxdy / (r * dz_r)
-                                + dydz / (r * dx_r)
-                                - np.arctan(arg)
-                                + dy[:, bb]
-                                * (1.0 / (1 + arg ** 2.0))
-                                * dxdz
-                                / dyr ** 2.0
-                                * (r + dy[:, bb] ** 2.0 / r)
-                            )
-                        )
-
-                    if "gyz" in components:
-                        rows["gyz"] -= (
-                            (-1) ** aa
-                            * (-1) ** bb
-                            * (-1) ** cc
-                            * (
-                                np.log(dx_r)
-                                + dz[:, cc] ** 2.0 / (r * (dx_r))
-                                + dx[:, aa] / r
-                                - 1.0
-                                / (1 + arg ** 2.0)
-                                * (dx[:, aa] / (r ** 2))
-                                * (r - dz[:, cc] ** 2.0 / r)
-                            )
-                        )
-
-        if "gyy" in components:
-            rows["gyy"] = gyy
-
-        if "gxx" in components:
-            rows["gxx"] = gxx
-
+        node_evals = {}
+        if "gx" in components:
+            node_evals["gx"] = prism_fz(dy, dz, dx)
+        if "gy" in components:
+            node_evals["gy"] = prism_fz(dz, dx, dy)
+        if "gz" in components:
+            node_evals["gz"] = prism_fz(dx, dy, dz)
+        if "gxy" in components:
+            node_evals["gxy"] = prism_fzx(dy, dz, dx)
+        if "gxz" in components:
+            node_evals["gxz"] = prism_fzx(dx, dy, dz)
+        if "gyz" in components:
+            node_evals["gyz"] = prism_fzy(dx, dy, dz)
+        if "gxx" in components or "guv" in components:
+            node_evals["gxx"] = prism_fzz(dy, dz, dx)
+        if "gyy" in components or "guv" in components:
+            node_evals["gyy"] = prism_fzz(dz, dx, dy)
+            if "guv" in components:
+                node_evals["guv"] = (node_evals["gyy"] - node_evals["gxx"]) * 0.5
+                # (NN - EE) / 2
+        inside_adjust = False
         if "gzz" in components:
-            rows["gzz"] = -gxx - gyy
+            if "gxx" not in node_evals or "gyy" not in node_evals:
+                node_evals["gzz"] = prism_fzz(dx, dy, dz)
+            else:
+                inside_adjust = True
+                # The below need to be adjusted for observation points within a cell.
+                # because `gxx + gyy + gzz = -4 * pi * G * rho`
+                # gzz = - gxx - gyy - 4 * np.pi * G * rho[in_cell]
+                node_evals["gzz"] = -node_evals["gxx"] - node_evals["gyy"]
 
-        if "guv" in components:
-            rows["guv"] = -0.5 * (gxx - gyy)
-
-        for component in components:
+        rows = {}
+        for component in set(components):
+            vals = node_evals[component]
+            if self._unique_inv is not None:
+                vals = vals[self._unique_inv]
+            cell_vals = (
+                vals[0]
+                - vals[1]
+                - vals[2]
+                + vals[3]
+                - vals[4]
+                + vals[5]
+                + vals[6]
+                - vals[7]
+            )
+            if inside_adjust and component == "gzz":
+                # should subtract 4 * pi to the cell containing the observation point
+                # just need a little logic to find the containing cell
+                # cell_vals[inside_cell] += 4 * np.pi
+                pass
+            if self.store_sensitivities == "forward_only":
+                rows[component] = cell_vals @ self.rho
+            else:
+                rows[component] = cell_vals
             if len(component) == 3:
                 rows[component] *= constants.G * 1e12  # conversion for Eotvos
             else:
                 rows[component] *= constants.G * 1e8  # conversion for mGal
 
-        return np.vstack([rows[component] for component in components])
+        return np.stack([rows[component] for component in components])
 
 
 class SimulationEquivalentSourceLayer(
@@ -379,7 +256,7 @@ class Simulation3DDifferential(BasePDESimulation):
         """
         # Constructs A with 0 dirichlet
         if getattr(self, "_A", None) is None:
-            self._A = self._Div * self.Mf * self._Div.T
+            self._A = self._Div * self.Mf * self._Div.T.tocsr()
         return self._A
 
     def fields(self, m=None):

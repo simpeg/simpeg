@@ -1,0 +1,38 @@
+# -----------------------------
+# Configuration file for flake8
+# -----------------------------
+
+# Configure flake8
+# ----------------
+[flake8]
+extend-ignore =
+    # Too many leading '#' for block comment
+    E266,
+    # Line too long (82 > 79 characters)
+    E501,
+    # Do not use variables named 'I', 'O', or 'l'
+    E741,
+    # Line break before binary operator (conflicts with black)
+    W503,
+    # Ignore spaces before a colon (Black handles it)
+    E203,
+exclude =
+    .git,
+    __pycache__,
+    .ipynb_checkpoints,
+per-file-ignores =
+    # disable unused-imports errors on __init__.py
+    __init__.py: F401
+exclude-from-doctest =
+    # Don't check style in docstring of test functions
+    tests
+
+# Configure flake8-rst-docstrings
+# -------------------------------
+# Add some roles used in our docstrings
+rst-roles =
+    class,
+    func,
+    mod,
+    meth,
+    ref,

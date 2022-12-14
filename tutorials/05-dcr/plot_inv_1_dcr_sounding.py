@@ -223,7 +223,9 @@ simulation = dc.simulation_1d.Simulation1DLayers(
 dmis = data_misfit.L2DataMisfit(simulation=simulation, data=data_object)
 
 # Define the regularization (model objective function)
-reg = regularization.WeightedLeastSquares(mesh, alpha_s=1.0, alpha_x=1.0, reference_model=starting_model)
+reg = regularization.WeightedLeastSquares(
+    mesh, alpha_s=1.0, alpha_x=1.0, reference_model=starting_model
+)
 
 # Define how the optimization problem is solved. Here we will use an inexact
 # Gauss-Newton approach that employs the conjugate gradient solver.
@@ -315,6 +317,6 @@ ax1 = fig.add_axes([0.2, 0.1, 0.6, 0.8])
 ax1.semilogy(electrode_separations, dobs, "b")
 ax1.semilogy(electrode_separations, inv_prob.dpred, "r")
 ax1.set_xlabel("AB/2 (m)")
-ax1.set_ylabel("Apparent Resistivity ($\Omega m$)")
+ax1.set_ylabel(r"Apparent Resistivity ($\Omega m$)")
 ax1.legend(["True Sounding Curve", "Predicted Sounding Curve"])
 plt.show()

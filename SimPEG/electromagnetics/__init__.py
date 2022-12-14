@@ -22,9 +22,9 @@ those functions directly from that package.
 .. autosummary::
   :toctree: generated/
 
-  analytics.hzAnalyticDipoleT
-  analytics.hzAnalyticCentLoopT
-  analytics.hzAnalyticDipoleF
+  analytics.h[2]AnalyticDipoleT
+  analytics.h[2]AnalyticCentLoopT
+  analytics.h[2]AnalyticDipoleF
   analytics.getCasingEphiMagDipole
   analytics.getCasingHrMagDipole
   analytics.getCasingHzMagDipole

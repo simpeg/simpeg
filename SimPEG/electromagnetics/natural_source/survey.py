@@ -29,18 +29,19 @@ class Data(BaseData, DataNSEMPlotMethods):
     noise_floor : numpy.ndarray, optional
         Noise floor
     """
+
     def __init__(self, survey, dobs=None, relative_error=None, noise_floor=None):
         BaseData.__init__(self, survey, dobs, relative_error, noise_floor)
 
     def toRecArray(self, returnType="RealImag"):
         """
         Returns a numpy.recarray for a SimpegNSEM impedance data object.
-        
+
         Parameters
         ----------
         returnType : str, default: "RealImag:
             Switches between returning a receiver array where the impedance is split to real and imaginary ('RealImag') or is a complex ('Complex')
-        
+
         Returns
         -------
         numpy.recarray

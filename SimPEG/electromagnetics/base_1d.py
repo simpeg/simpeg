@@ -121,7 +121,7 @@ class BaseEM1DSimulation(BaseSimulation):
         self.topo = topo
 
         for i_src, src in enumerate(self.survey.source_list):
-            if np.any(src.location[2] < self.topo[2]):
+            if np.any(src.location[..., 2] < self.topo[2]):
                 raise ValueError("Source must be located above the topography")
             for i_rx, rx in enumerate(src.receiver_list):
                 if rx.use_source_receiver_offset:
@@ -224,13 +224,14 @@ class BaseEM1DSimulation(BaseSimulation):
         self._n_points_per_path = validate_integer("n_points_per_path", val, min_val=1)
 
     def compute_complex_sigma(self, frequencies):
-        """
+        r"""
         Computes the complex conductivity matrix using Pelton's Cole-Cole model:
 
         .. math ::
-            \\sigma (\\omega ) = \\sigma \\Bigg [
-            1 - \\eta \\Bigg ( \\frac{1}{1 + (1-\\eta ) (1 + i\\omega \\tau)^c} \\Bigg )
-            \\Bigg ]
+
+            \sigma (\omega ) = \sigma \Bigg [
+                1 - \eta \Bigg ( \frac{1}{1 + (1-\eta ) (1 + i\omega \tau)^c} \Bigg )
+            \Bigg ]
 
         :param numpy.array frequencies: np.array(N,) containing frequencies
         :rtype: numpy.ndarray: np.array(n_layer, n_frequency)
@@ -271,15 +272,16 @@ class BaseEM1DSimulation(BaseSimulation):
             return sigma_complex
 
     def compute_complex_mu(self, frequencies):
-        """
+        r"""
         Computes the complex magnetic permeability matrix assuming a log-uniform
         distribution of time-relaxation constants:
 
         .. math::
-            \\chi (\\omega ) = \\chi + \\Delta \\chi \\Bigg [
-            1 - \\Bigg ( \\frac{1}{ln (\\tau_2 / \\tau_1 )} \\Bigg )
-            ln \\Bigg ( \\frac{1 + i\\omega \\tau_2}{1 + i\\omega tau_1} ) \\Bigg )
-            \\Bigg ]
+
+            \chi (\omega ) = \chi + \Delta \chi \Bigg [
+                1 - \Bigg ( \frac{1}{ln (\tau_2 / \tau_1 )} \Bigg )
+                ln \Bigg ( \frac{1 + i\omega \tau_2}{1 + i\omega tau_1} ) \Bigg )
+            \Bigg ]
 
         :param numpy.array frequencies: np.array(N,) containing frequencies
         :rtype: numpy.ndarray: np.array(n_layer, n_frequency)
@@ -398,7 +400,7 @@ class BaseEM1DSimulation(BaseSimulation):
                     weights.append(w * dl / 2)
                 # store these for future evalution of integrals
                 xyks = np.vstack(xyks)
-                weights = np.hstack(weights)
+                weights = np.hstack(weights) * src.current
                 thetas = -np.hstack(thetas)
 
             for i_rx, rx in enumerate(src.receiver_list):

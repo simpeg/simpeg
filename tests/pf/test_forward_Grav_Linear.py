@@ -1,189 +1,181 @@
 import unittest
 import discretize
-from SimPEG import utils, maps
-from SimPEG.utils.model_builder import getIndicesSphere
+from SimPEG import maps
 from SimPEG.potential_fields import gravity
+from geoana.gravity import Prism
 import numpy as np
-import shutil
-
-nx = 5
-ny = 5
+import os
 
 
-class GravFwdProblemTests(unittest.TestCase):
-    def setUp(self):
+def test_ana_grav_forward(tmp_path):
+    nx = 5
+    ny = 5
 
-        # Define sphere parameters
-        self.rad = 2.0
-        self.rho = 0.1
+    # Define a mesh
+    cs = 0.2
+    hxind = [(cs, 41)]
+    hyind = [(cs, 41)]
+    hzind = [(cs, 41)]
+    mesh = discretize.TensorMesh([hxind, hyind, hzind], "CCC")
 
-        # Define a mesh
-        cs = 0.2
-        hxind = [(cs, 21)]
-        hyind = [(cs, 21)]
-        hzind = [(cs, 21)]
-        mesh = discretize.TensorMesh([hxind, hyind, hzind], "CCC")
+    # create a model of two blocks, 1 inside the other
+    block1 = np.array([[-1.5, 1.5], [-1.5, 1.5], [-1.5, 1.5]])
+    block2 = np.array([[-0.7, 0.7], [-0.7, 0.7], [-0.7, 0.7]])
 
-        # Get cells inside the sphere
-        sph_ind = getIndicesSphere([0.0, 0.0, 0.0], self.rad, mesh.cell_centers)
-
-        # Adjust density for volume difference
-        Vratio = (4.0 / 3.0 * np.pi * self.rad ** 3.0) / (np.sum(sph_ind) * cs ** 3.0)
-        model = np.ones(mesh.nC) * self.rho * Vratio
-        self.model = model[sph_ind]
-
-        # Create reduced identity map for Linear Pproblem
-        idenMap = maps.IdentityMap(nP=int(sum(sph_ind)))
-
-        # Create plane of observations
-        xr = np.linspace(-20, 20, nx)
-        yr = np.linspace(-20, 20, ny)
-        X, Y = np.meshgrid(xr, yr)
-        self.xr = xr
-        self.yr = yr
-
-        components = ["gx", "gy", "gz"]
-
-        # Move obs plane 3 radius away from sphere
-        Z = np.ones((xr.size, yr.size)) * 3.0 * self.rad
-        self.locXyz = np.c_[utils.mkvc(X), utils.mkvc(Y), utils.mkvc(Z)]
-        receivers = gravity.Point(self.locXyz, components=components)
-        sources = gravity.SourceField([receivers])
-        self.survey = gravity.Survey(sources)
-
-        self.sim = gravity.Simulation3DIntegral(
-            mesh,
-            survey=self.survey,
-            rhoMap=idenMap,
-            ind_active=sph_ind,
-            store_sensitivities="disk",
+    def get_block_inds(grid, block):
+        return np.where(
+            (grid[:, 0] > block[0, 0])
+            & (grid[:, 0] < block[0, 1])
+            & (grid[:, 1] > block[1, 0])
+            & (grid[:, 1] < block[1, 1])
+            & (grid[:, 2] > block[2, 0])
+            & (grid[:, 2] < block[2, 1])
         )
 
-    def test_ana_grav_forward(self):
+    block1_inds = get_block_inds(mesh.cell_centers, block1)
+    block2_inds = get_block_inds(mesh.cell_centers, block2)
 
-        # Compute 3-component grav data
+    rho1 = 1.0
+    rho2 = 2.0
 
-        data = self.sim.dpred(self.model)
+    model = np.zeros(mesh.n_cells)
+    model[block1_inds] = rho1
+    model[block2_inds] = rho2
 
-        # Compute analytical response from mass sphere
-        gxa, gya, gza = gravity.analytics.GravSphereFreeSpace(
-            self.locXyz[:, 0],
-            self.locXyz[:, 1],
-            self.locXyz[:, 2],
-            self.rad,
-            0,
-            0,
-            0,
-            self.rho,
+    active_cells = model != 0.0
+    model_reduced = model[active_cells]
+
+    # Create reduced identity map for Linear Pproblem
+    idenMap = maps.IdentityMap(nP=int(sum(active_cells)))
+
+    # Create plane of observations
+    xr = np.linspace(-20, 20, nx)
+    yr = np.linspace(-20, 20, ny)
+    X, Y = np.meshgrid(xr, yr)
+    Z = np.ones_like(X) * 3.0
+    locXyz = np.c_[X.reshape(-1), Y.reshape(-1), Z.reshape(-1)]
+
+    receivers = gravity.Point(locXyz, components=["gx", "gy", "gz"])
+    sources = gravity.SourceField([receivers])
+    survey = gravity.Survey(sources)
+
+    sim = gravity.Simulation3DIntegral(
+        mesh,
+        survey=survey,
+        rhoMap=idenMap,
+        ind_active=active_cells,
+        store_sensitivities="disk",
+        sensitivity_path=str(tmp_path) + os.sep,
+        n_processes=4,
+    )
+
+    data = sim.dpred(model_reduced)
+    d_x = data[0::3]
+    d_y = data[1::3]
+    d_z = data[2::3]
+
+    # Compute analytical response from dense prism
+    prism_1 = Prism(block1[:, 0], block1[:, 1], rho1 * 1000)  # g/cc to kg/m**3
+    prism_2 = Prism(block2[:, 0], block2[:, 1], -rho1 * 1000)
+    prism_3 = Prism(block2[:, 0], block2[:, 1], rho2 * 1000)
+
+    d = (
+        prism_1.gravitational_field(locXyz)
+        + prism_2.gravitational_field(locXyz)
+        + prism_3.gravitational_field(locXyz)
+    ) * 1e5  # convert to mGal from m/s^2
+    np.testing.assert_allclose(d_x, d[:, 0], rtol=1e-10, atol=1e-14)
+    np.testing.assert_allclose(d_y, d[:, 1], rtol=1e-10, atol=1e-14)
+    np.testing.assert_allclose(d_z, d[:, 2], rtol=1e-10, atol=1e-14)
+
+
+def test_ana_gg_forward():
+    nx = 5
+    ny = 5
+
+    # Define a mesh
+    cs = 0.2
+    hxind = [(cs, 41)]
+    hyind = [(cs, 41)]
+    hzind = [(cs, 41)]
+    mesh = discretize.TensorMesh([hxind, hyind, hzind], "CCC")
+
+    # create a model of two blocks, 1 inside the other
+    block1 = np.array([[-1.5, 1.5], [-1.5, 1.5], [-1.5, 1.5]])
+    block2 = np.array([[-0.7, 0.7], [-0.7, 0.7], [-0.7, 0.7]])
+
+    def get_block_inds(grid, block):
+        return np.where(
+            (grid[:, 0] > block[0, 0])
+            & (grid[:, 0] < block[0, 1])
+            & (grid[:, 1] > block[1, 0])
+            & (grid[:, 1] < block[1, 1])
+            & (grid[:, 2] > block[2, 0])
+            & (grid[:, 2] < block[2, 1])
         )
 
-        d_x = data[0::3]
-        d_y = data[1::3]
-        d_z = data[2::3]
-        # Compute residual
-        err_x = np.linalg.norm(d_x - gxa) / np.linalg.norm(gxa)
-        err_y = np.linalg.norm(d_y - gya) / np.linalg.norm(gya)
-        err_z = np.linalg.norm(d_z - gza) / np.linalg.norm(gza)
-        self.assertLess(err_x, 0.005)
-        self.assertLess(err_y, 0.005)
-        self.assertLess(err_z, 0.005)
+    block1_inds = get_block_inds(mesh.cell_centers, block1)
+    block2_inds = get_block_inds(mesh.cell_centers, block2)
 
-    def tearDown(self):
-        # Clean up the working directory
-        try:
-            if self.sim.store_sensitivities == "disk":
-                shutil.rmtree(self.sim.sensitivity_path)
-        except FileNotFoundError:
-            pass
+    rho1 = 1.0
+    rho2 = 2.0
 
+    model = np.zeros(mesh.n_cells)
+    model[block1_inds] = rho1
+    model[block2_inds] = rho2
 
-class GravityGradientFwdProblemTests(unittest.TestCase):
-    def setUp(self):
+    active_cells = model != 0.0
+    model_reduced = model[active_cells]
 
-        # Define sphere parameters
-        self.rad = 2.0
-        self.rho = 0.1
+    # Create reduced identity map for Linear Pproblem
+    idenMap = maps.IdentityMap(nP=int(sum(active_cells)))
 
-        # Define a mesh
-        cs = 0.2
-        hxind = [(cs, 21)]
-        hyind = [(cs, 21)]
-        hzind = [(cs, 21)]
-        mesh = discretize.TensorMesh([hxind, hyind, hzind], "CCC")
+    # Create plane of observations
+    xr = np.linspace(-20, 20, nx)
+    yr = np.linspace(-20, 20, ny)
+    X, Y = np.meshgrid(xr, yr)
+    Z = np.ones_like(X) * 3.0
+    locXyz = np.c_[X.reshape(-1), Y.reshape(-1), Z.reshape(-1)]
 
-        # Get cells inside the sphere
-        sph_ind = getIndicesSphere([0.0, 0.0, 0.0], self.rad, mesh.cell_centers)
+    receivers = gravity.Point(
+        locXyz, components=["gxx", "gxy", "gxz", "gyy", "gyz", "gzz"]
+    )
+    sources = gravity.SourceField([receivers])
+    survey = gravity.Survey(sources)
 
-        # Adjust density for volume difference
-        Vratio = (4.0 / 3.0 * np.pi * self.rad ** 3.0) / (np.sum(sph_ind) * cs ** 3.0)
-        model = np.ones(mesh.nC) * self.rho * Vratio
-        self.model = model[sph_ind]
+    sim = gravity.Simulation3DIntegral(
+        mesh,
+        survey=survey,
+        rhoMap=idenMap,
+        ind_active=active_cells,
+        store_sensitivities="forward_only",
+    )
 
-        # Create reduced identity map for Linear Pproblem
-        idenMap = maps.IdentityMap(nP=int(sum(sph_ind)))
+    data = sim.dpred(model_reduced)
+    d_xx = data[0::6]
+    d_xy = data[1::6]
+    d_xz = data[2::6]
+    d_yy = data[3::6]
+    d_yz = data[4::6]
+    d_zz = data[5::6]
 
-        # Create plane of observations
-        xr = np.linspace(-20, 20, nx)
-        yr = np.linspace(-20, 20, ny)
-        X, Y = np.meshgrid(xr, yr)
-        self.xr = xr
-        self.yr = yr
+    # Compute analytical response from dense prism
+    prism_1 = Prism(block1[:, 0], block1[:, 1], rho1 * 1000)  # g/cc to kg/m**3
+    prism_2 = Prism(block2[:, 0], block2[:, 1], -rho1 * 1000)
+    prism_3 = Prism(block2[:, 0], block2[:, 1], rho2 * 1000)
 
-        components = ["gxx", "gxy", "gxz", "gyy", "gyz", "gzz"]
+    d = (
+        prism_1.gravitational_gradient(locXyz)
+        + prism_2.gravitational_gradient(locXyz)
+        + prism_3.gravitational_gradient(locXyz)
+    ) * 1e9  # convert to Eotvos from 1/s^2
 
-        # Move obs plane 2 radius away from sphere
-        Z = np.ones((xr.size, yr.size)) * 3.0 * self.rad
-        self.locXyz = np.c_[utils.mkvc(X), utils.mkvc(Y), utils.mkvc(Z)]
-        receivers = gravity.Point(self.locXyz, components=components)
-        sources = gravity.SourceField([receivers])
-        self.survey = gravity.Survey(sources)
-
-        self.sim = gravity.Simulation3DIntegral(
-            mesh,
-            survey=self.survey,
-            rhoMap=idenMap,
-            ind_active=sph_ind,
-            store_sensitivities="forward_only",
-        )
-
-    def test_ana_gg_forward(self):
-
-        # Compute 3-component grav data
-        data = self.sim.dpred(self.model)
-
-        # Compute analytical response from mass sphere
-        out = gravity.analytics.GravityGradientSphereFreeSpace(
-            self.locXyz[:, 0],
-            self.locXyz[:, 1],
-            self.locXyz[:, 2],
-            self.rad,
-            0,
-            0,
-            0,
-            self.rho,
-        )
-        gxxa, gxya, gxza, gyya, gyza, gzza = out
-
-        d_xx = data[0::6]
-        d_xy = data[1::6]
-        d_xz = data[2::6]
-        d_yy = data[3::6]
-        d_yz = data[4::6]
-        d_zz = data[5::6]
-
-        # Compute residual
-        err_xx = np.linalg.norm(d_xx - gxxa) / np.linalg.norm(gxxa)
-        err_xy = np.linalg.norm(d_xy - gxya) / np.linalg.norm(gxya)
-        err_xz = np.linalg.norm(d_xz - gxza) / np.linalg.norm(gxza)
-        err_yy = np.linalg.norm(d_yy - gyya) / np.linalg.norm(gyya)
-        err_yz = np.linalg.norm(d_yz - gyza) / np.linalg.norm(gyza)
-        err_zz = np.linalg.norm(d_zz - gzza) / np.linalg.norm(gzza)
-        self.assertLess(err_xx, 0.005)
-        self.assertLess(err_xy, 0.005)
-        self.assertLess(err_xz, 0.005)
-        self.assertLess(err_yy, 0.005)
-        self.assertLess(err_yz, 0.005)
-        self.assertLess(err_zz, 0.005)
+    np.testing.assert_allclose(d_xx, d[..., 0, 0], rtol=1e-10, atol=1e-12)
+    np.testing.assert_allclose(d_xy, d[..., 0, 1], rtol=1e-10, atol=1e-12)
+    np.testing.assert_allclose(d_xz, d[..., 0, 2], rtol=1e-10, atol=1e-12)
+    np.testing.assert_allclose(d_yy, d[..., 1, 1], rtol=1e-10, atol=1e-12)
+    np.testing.assert_allclose(d_yz, d[..., 1, 2], rtol=1e-10, atol=1e-12)
+    np.testing.assert_allclose(d_zz, d[..., 2, 2], rtol=1e-10, atol=1e-12)
 
 
 if __name__ == "__main__":

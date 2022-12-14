@@ -189,14 +189,14 @@ fig = plt.figure(figsize=(7.5, 7))
 
 plotting_map = maps.InjectActiveCells(mesh, ind_active, np.nan)
 ax1 = fig.add_axes([0.09, 0.12, 0.72, 0.77])
-mesh.plotSlice(
+mesh.plot_slice(
     plotting_map * model,
     normal="Z",
     ax=ax1,
     ind=0,
     grid=True,
     clim=(np.min(model), np.max(model)),
-    pcolorOpts={"cmap": "magma_r"},
+    pcolor_opts={"cmap": "magma_r"},
 )
 ax1.set_title("Model slice at z = 0 m")
 ax1.set_xlabel("x (m)")

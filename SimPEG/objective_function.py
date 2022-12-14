@@ -1,11 +1,5 @@
-from __future__ import absolute_import
-from __future__ import print_function
-from __future__ import unicode_literals
-from __future__ import division
-
 import numpy as np
 import scipy.sparse as sp
-from six import integer_types
 import warnings
 
 from discretize.tests import check_derivative
@@ -228,7 +222,7 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
 
     """
 
-    _multiplier_types = (float, None, Zero, np.float64) + integer_types  # Directive
+    _multiplier_types = (float, None, Zero, np.float64, int, np.integer)  # Directive
     _multipliers = None
 
     def __init__(self, objfcts=[], multipliers=None, **kwargs):
@@ -400,7 +394,7 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
 
 
 class L2ObjectiveFunction(BaseObjectiveFunction):
-    """
+    r"""
     An L2-Objective Function
 
     .. math::

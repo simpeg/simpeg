@@ -285,7 +285,7 @@ class BetaEstimate_ByEig(InversionDirective):
         self._seed = value
 
     def initialize(self):
-        """
+        r"""
         The initial beta is calculated by comparing the estimated
         eigenvalues of JtJ and WtW.
         To estimate the eigenvector of **A**, we will use one iteration
@@ -298,13 +298,19 @@ class BetaEstimate_ByEig(InversionDirective):
         use the *Rayleigh quotient* to approximate the largest eigenvalue.
 
         .. math::
-            \lambda_0 = \\frac{\mathbf{x^\\top A x}}{\mathbf{x^\\top x}}
+            \lambda_0 = \frac{\mathbf{x^\top A x}}{\mathbf{x^\top x}}
 
         We will approximate the largest eigenvalue for both JtJ and WtW,
         and use some ratio of the quotient to estimate beta0.
 
         .. math::
-            \\beta_0 = \gamma \\frac{\mathbf{x^\\top J^\\top J x}}{\mathbf{x^\\top W^\\top W x}}
+            \beta_0 =
+                \gamma
+                \frac{
+                    \mathbf{x^\top J^\top J x}
+                }{
+                    \mathbf{x^\top W^\top W x}
+                }
 
         :rtype: float
         :return: beta0
@@ -1455,25 +1461,20 @@ class SaveOutputEveryIteration(SaveEveryIteration):
 
         phi_s, phi_x, phi_y, phi_z = 0, 0, 0, 0
 
-        if getattr(self.reg.objfcts[0], "objfcts", None) is not None:
-            for reg in self.reg.objfcts:
-                phi_s += reg.objfcts[0](self.invProb.model) * reg.alpha_s
-                phi_x += reg.objfcts[1](self.invProb.model) * reg.alpha_x
+        for reg in self.reg.objfcts:
+            if isinstance(reg, Sparse):
+                i_s, i_x, i_y, i_z = 0, 1, 2, 3
+            else:
+                i_s, i_x, i_y, i_z = 0, 1, 3, 5
+            if getattr(reg, "alpha_s", None):
+                phi_s += reg.objfcts[i_s](self.invProb.model) * reg.alpha_s
+            if getattr(reg, "alpha_x", None):
+                phi_x += reg.objfcts[i_x](self.invProb.model) * reg.alpha_x
 
-                if reg.regularization_mesh.dim == 2:
-                    phi_y += reg.objfcts[2](self.invProb.model) * reg.alpha_y
-                elif reg.regularization_mesh.dim == 3:
-                    phi_y += reg.objfcts[2](self.invProb.model) * reg.alpha_y
-                    phi_z += reg.objfcts[3](self.invProb.model) * reg.alpha_z
-        elif getattr(self.reg.objfcts[0], "objfcts", None) is None:
-            phi_s += self.reg.objfcts[0](self.invProb.model) * self.reg.alpha_s
-            phi_x += self.reg.objfcts[1](self.invProb.model) * self.reg.alpha_x
-
-            if self.reg.regularization_mesh.dim == 2:
-                phi_y += self.reg.objfcts[2](self.invProb.model) * self.reg.alpha_y
-            elif self.reg.regularization_mesh.dim == 3:
-                phi_y += self.reg.objfcts[2](self.invProb.model) * self.reg.alpha_y
-                phi_z += self.reg.objfcts[3](self.invProb.model) * self.reg.alpha_z
+            if reg.regularization_mesh.dim > 1 and getattr(reg, "alpha_y", None):
+                phi_y += reg.objfcts[i_y](self.invProb.model) * reg.alpha_y
+            if reg.regularization_mesh.dim > 2 and getattr(reg, "alpha_z", None):
+                phi_z += reg.objfcts[i_z](self.invProb.model) * reg.alpha_z
 
         self.beta.append(self.invProb.beta)
         self.phi_d.append(self.invProb.phi_d)
@@ -1550,12 +1551,12 @@ class SaveOutputEveryIteration(SaveEveryIteration):
         ax = plt.subplot(111)
         ax_1 = ax.twinx()
         ax.semilogy(
-            np.arange(len(self.phi_d)), self.phi_d, "k-", lw=2, label="$\phi_d$"
+            np.arange(len(self.phi_d)), self.phi_d, "k-", lw=2, label=r"$\phi_d$"
         )
 
         if plot_phi_m:
             ax_1.semilogy(
-                np.arange(len(self.phi_d)), self.phi_m, "r", lw=2, label="$\phi_m$"
+                np.arange(len(self.phi_d)), self.phi_m, "r", lw=2, label=r"$\phi_m$"
             )
 
         if plot_small_smooth or plot_small:
@@ -1582,8 +1583,8 @@ class SaveOutputEveryIteration(SaveEveryIteration):
             "k:",
         )
         ax.set_xlabel("Iteration")
-        ax.set_ylabel("$\phi_d$")
-        ax_1.set_ylabel("$\phi_m$", color="r")
+        ax.set_ylabel(r"$\phi_d$")
+        ax_1.set_ylabel(r"$\phi_m$", color="r")
         ax_1.tick_params(axis="y", which="both", colors="red")
 
         plt.show()
@@ -1608,18 +1609,18 @@ class SaveOutputEveryIteration(SaveEveryIteration):
 
         ax1.plot(self.beta, self.phi_d, "k-", lw=2, ms=4)
         ax1.set_xlim(np.hstack(self.beta).min(), np.hstack(self.beta).max())
-        ax1.set_xlabel("$\\beta$", fontsize=14)
-        ax1.set_ylabel("$\phi_d$", fontsize=14)
+        ax1.set_xlabel(r"$\beta$", fontsize=14)
+        ax1.set_ylabel(r"$\phi_d$", fontsize=14)
 
         ax2.plot(self.beta, self.phi_m, "k-", lw=2)
         ax2.set_xlim(np.hstack(self.beta).min(), np.hstack(self.beta).max())
-        ax2.set_xlabel("$\\beta$", fontsize=14)
-        ax2.set_ylabel("$\phi_m$", fontsize=14)
+        ax2.set_xlabel(r"$\beta$", fontsize=14)
+        ax2.set_ylabel(r"$\phi_m$", fontsize=14)
 
         ax3.plot(self.phi_m, self.phi_d, "k-", lw=2)
         ax3.set_xlim(np.hstack(self.phi_m).min(), np.hstack(self.phi_m).max())
-        ax3.set_xlabel("$\phi_m$", fontsize=14)
-        ax3.set_ylabel("$\phi_d$", fontsize=14)
+        ax3.set_xlabel(r"$\phi_m$", fontsize=14)
+        ax3.set_ylabel(r"$\phi_d$", fontsize=14)
 
         if self.i_target is not None:
             ax1.plot(self.beta[self.i_target], self.phi_d[self.i_target], "k*", ms=10)
@@ -2328,7 +2329,8 @@ class UpdateSensitivityWeights(InversionDirective):
         wr **= 0.5
         for reg in self.reg.objfcts:
             if not isinstance(reg, BaseSimilarityMeasure):
-                for sub_reg in reg.objfcts:
+                sub_regs = getattr(reg, "objfcts", [reg])
+                for sub_reg in sub_regs:
                     sub_reg.set_weights(sensitivity=sub_reg.mapping * wr)
 
     def validate(self, directiveList):
@@ -2522,10 +2524,10 @@ class UpdateMref(InversionDirective):
         
 
 class ProjectSphericalBounds(InversionDirective):
-    """
+    r"""
     Trick for spherical coordinate system.
-    Project \theta and \phi angles back to [-\pi,\pi] using
-    back and forth conversion.
+    Project :math:`\theta` and :math:`\phi` angles back to :math:`[-\pi,\pi]`
+    using back and forth conversion.
     spherical->cartesian->spherical
     """
 

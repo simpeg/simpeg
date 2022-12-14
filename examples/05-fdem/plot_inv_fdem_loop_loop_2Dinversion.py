@@ -114,11 +114,11 @@ mesh = discretize.TensorMesh(
 )
 # set the origin
 mesh.x0 = np.r_[
-    -mesh.hx.sum() / 2.0, -mesh.hy.sum() / 2.0, -mesh.hz[: npadz + ncz].sum()
+    -mesh.h[0].sum() / 2.0, -mesh.h[1].sum() / 2.0, -mesh.h[2][: npadz + ncz].sum()
 ]
 
 print("the mesh has {} cells".format(mesh.nC))
-mesh.plotGrid()
+mesh.plot_grid()
 
 ###############################################################################
 # Inversion Mesh
@@ -127,9 +127,9 @@ mesh.plotGrid()
 # Here, we set up a 2D tensor mesh which we will represent the inversion model
 # on
 
-inversion_mesh = discretize.TensorMesh([mesh.hx, mesh.hz[mesh.vectorCCz <= 0]])
-inversion_mesh.x0 = [-inversion_mesh.hx.sum() / 2.0, -inversion_mesh.hy.sum()]
-inversion_mesh.plotGrid()
+inversion_mesh = discretize.TensorMesh([mesh.h[0], mesh.h[2][mesh.cell_centers_z <= 0]])
+inversion_mesh.x0 = [-inversion_mesh.h[0].sum() / 2.0, -inversion_mesh.h[1].sum()]
+inversion_mesh.plot_grid()
 
 ###############################################################################
 # Mappings
@@ -140,7 +140,7 @@ inversion_mesh.plotGrid()
 # the surface, fixing the conductivity of the air cells to 1e-8 S/m
 
 # create a 2D mesh that includes air cells
-mesh2D = discretize.TensorMesh([mesh.hx, mesh.hz], x0=mesh.x0[[0, 2]])
+mesh2D = discretize.TensorMesh([mesh.h[0], mesh.h[2]], x0=mesh.x0[[0, 2]])
 active_inds = mesh2D.gridCC[:, 1] < 0  # active indices are below the surface
 
 
@@ -165,8 +165,8 @@ interface_depth = interface(inversion_mesh.gridCC[:, 0])
 m_true[inversion_mesh.gridCC[:, 1] > interface_depth] = np.log(sigma_surface)
 
 fig, ax = plt.subplots(1, 1)
-cb = plt.colorbar(inversion_mesh.plotImage(m_true, ax=ax, grid=True)[0], ax=ax)
-cb.set_label("$\log(\sigma)$")
+cb = plt.colorbar(inversion_mesh.plot_image(m_true, ax=ax, grid=True)[0], ax=ax)
+cb.set_label(r"$\log(\sigma)$")
 ax.set_title("true model")
 ax.set_xlim([-10, 10])
 ax.set_ylim([-2, 0])
@@ -329,19 +329,19 @@ clim = np.r_[np.log(sigma_surface), np.log(sigma_deep)]
 
 # recovered model
 cb = plt.colorbar(
-    inversion_mesh.plotImage(mrec, ax=ax[0], clim=clim)[0],
+    inversion_mesh.plot_image(mrec, ax=ax[0], clim=clim)[0],
     ax=ax[0],
 )
 ax[0].set_title("recovered model")
-cb.set_label("$\log(\sigma)$")
+cb.set_label(r"$\log(\sigma)$")
 
 # true model
 cb = plt.colorbar(
-    inversion_mesh.plotImage(m_true, ax=ax[1], clim=clim)[0],
+    inversion_mesh.plot_image(m_true, ax=ax[1], clim=clim)[0],
     ax=ax[1],
 )
 ax[1].set_title("true model")
-cb.set_label("$\log(\sigma)$")
+cb.set_label(r"$\log(\sigma)$")
 
 # # uncomment to plot the true interface
 # x = np.linspace(-10, 10, 50)

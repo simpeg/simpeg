@@ -1,4 +1,3 @@
-from __future__ import division
 import numpy as np
 from scipy.constants import mu_0, pi
 from scipy.special import erf
@@ -48,7 +47,7 @@ def TransientMagneticDipoleWholeSpace(
     else:
         mx, my, mz = moment[0], moment[1], moment[2]
 
-    XYZ = utils.asArray_N_x_Dim(XYZ, 3)
+    XYZ = utils.as_array_n_by_dim(XYZ, 3)
 
     dx = XYZ[:, 0] - srcLoc[0]
     dy = XYZ[:, 1] - srcLoc[1]
@@ -136,7 +135,7 @@ def TransientElectricDipoleWholeSpace(
     else:
         mx, my, mz = moment[0], moment[1], moment[2]
 
-    XYZ = utils.asArray_N_x_Dim(XYZ, 3)
+    XYZ = utils.as_array_n_by_dim(XYZ, 3)
 
     dx = XYZ[:, 0] - srcLoc[0]
     dy = XYZ[:, 1] - srcLoc[1]

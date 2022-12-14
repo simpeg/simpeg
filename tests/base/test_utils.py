@@ -1,4 +1,3 @@
-from __future__ import print_function
 import unittest
 import numpy as np
 import scipy.sparse as sp
@@ -9,13 +8,13 @@ from SimPEG.utils import (
     sub2ind,
     ndgrid,
     mkvc,
-    inv2X2BlockDiagonal,
-    inv3X3BlockDiagonal,
-    invPropertyTensor,
-    makePropertyTensor,
-    indexCube,
+    inverse_2x2_block_diagonal,
+    inverse_3x3_block_diagonal,
+    inverse_property_tensor,
+    make_property_tensor,
+    index_cube,
     ind2sub,
-    asArray_N_x_Dim,
+    as_array_n_by_dim,
     TensorType,
     diagEst,
     count,
@@ -138,44 +137,44 @@ class TestSequenceFunctions(unittest.TestCase):
         self.assertTrue(np.all(ind2sub(x.shape, [0, 4, 5, 9])[0] == [0, 4, 0, 4]))
         self.assertTrue(np.all(ind2sub(x.shape, [0, 4, 5, 9])[1] == [0, 0, 1, 1]))
 
-    def test_indexCube_2D(self):
+    def test_index_cube_2D(self):
         nN = np.array([3, 3])
-        self.assertTrue(np.all(indexCube("A", nN) == np.array([0, 1, 3, 4])))
-        self.assertTrue(np.all(indexCube("B", nN) == np.array([3, 4, 6, 7])))
-        self.assertTrue(np.all(indexCube("C", nN) == np.array([4, 5, 7, 8])))
-        self.assertTrue(np.all(indexCube("D", nN) == np.array([1, 2, 4, 5])))
+        self.assertTrue(np.all(index_cube("A", nN) == np.array([0, 1, 3, 4])))
+        self.assertTrue(np.all(index_cube("B", nN) == np.array([3, 4, 6, 7])))
+        self.assertTrue(np.all(index_cube("C", nN) == np.array([4, 5, 7, 8])))
+        self.assertTrue(np.all(index_cube("D", nN) == np.array([1, 2, 4, 5])))
 
-    def test_indexCube_3D(self):
+    def test_index_cube_3D(self):
         nN = np.array([3, 3, 3])
         self.assertTrue(
-            np.all(indexCube("A", nN) == np.array([0, 1, 3, 4, 9, 10, 12, 13]))
+            np.all(index_cube("A", nN) == np.array([0, 1, 3, 4, 9, 10, 12, 13]))
         )
         self.assertTrue(
-            np.all(indexCube("B", nN) == np.array([3, 4, 6, 7, 12, 13, 15, 16]))
+            np.all(index_cube("B", nN) == np.array([3, 4, 6, 7, 12, 13, 15, 16]))
         )
         self.assertTrue(
-            np.all(indexCube("C", nN) == np.array([4, 5, 7, 8, 13, 14, 16, 17]))
+            np.all(index_cube("C", nN) == np.array([4, 5, 7, 8, 13, 14, 16, 17]))
         )
         self.assertTrue(
-            np.all(indexCube("D", nN) == np.array([1, 2, 4, 5, 10, 11, 13, 14]))
+            np.all(index_cube("D", nN) == np.array([1, 2, 4, 5, 10, 11, 13, 14]))
         )
         self.assertTrue(
-            np.all(indexCube("E", nN) == np.array([9, 10, 12, 13, 18, 19, 21, 22]))
+            np.all(index_cube("E", nN) == np.array([9, 10, 12, 13, 18, 19, 21, 22]))
         )
         self.assertTrue(
-            np.all(indexCube("F", nN) == np.array([12, 13, 15, 16, 21, 22, 24, 25]))
+            np.all(index_cube("F", nN) == np.array([12, 13, 15, 16, 21, 22, 24, 25]))
         )
         self.assertTrue(
-            np.all(indexCube("G", nN) == np.array([13, 14, 16, 17, 22, 23, 25, 26]))
+            np.all(index_cube("G", nN) == np.array([13, 14, 16, 17, 22, 23, 25, 26]))
         )
         self.assertTrue(
-            np.all(indexCube("H", nN) == np.array([10, 11, 13, 14, 19, 20, 22, 23]))
+            np.all(index_cube("H", nN) == np.array([10, 11, 13, 14, 19, 20, 22, 23]))
         )
 
     def test_invXXXBlockDiagonal(self):
         a = [np.random.rand(5, 1) for i in range(4)]
 
-        B = inv2X2BlockDiagonal(*a)
+        B = inverse_2x2_block_diagonal(*a)
 
         A = sp.vstack(
             (
@@ -188,7 +187,7 @@ class TestSequenceFunctions(unittest.TestCase):
         self.assertTrue(np.linalg.norm(Z2.todense().ravel(), 2) < TOL)
 
         a = [np.random.rand(5, 1) for i in range(9)]
-        B = inv3X3BlockDiagonal(*a)
+        B = inverse_3x3_block_diagonal(*a)
 
         A = sp.vstack(
             (
@@ -202,7 +201,7 @@ class TestSequenceFunctions(unittest.TestCase):
 
         self.assertTrue(np.linalg.norm(Z3.todense().ravel(), 2) < TOL)
 
-    def test_invPropertyTensor2D(self):
+    def test_inverse_property_tensor2D(self):
         M = discretize.TensorMesh([6, 6])
         a1 = np.random.rand(M.nC)
         a2 = np.random.rand(M.nC)
@@ -212,10 +211,10 @@ class TestSequenceFunctions(unittest.TestCase):
         prop3 = np.c_[a1, a2, a3]
 
         for prop in [4, prop1, prop2, prop3]:
-            b = invPropertyTensor(M, prop)
-            A = makePropertyTensor(M, prop)
-            B1 = makePropertyTensor(M, b)
-            B2 = invPropertyTensor(M, prop, returnMatrix=True)
+            b = inverse_property_tensor(M, prop)
+            A = make_property_tensor(M, prop)
+            B1 = make_property_tensor(M, b)
+            B2 = inverse_property_tensor(M, prop, return_matrix=True)
 
             Z = B1 * A - sp.identity(M.nC * 2)
             self.assertTrue(np.linalg.norm(Z.todense().ravel(), 2) < TOL)
@@ -255,7 +254,7 @@ class TestSequenceFunctions(unittest.TestCase):
         self.assertRaises(Exception, TensorType, M, np.c_[a1, a2, a3, a3])
         self.assertTrue(TensorType(M, None) == -1)
 
-    def test_invPropertyTensor3D(self):
+    def test_inverse_property_tensor3D(self):
         M = discretize.TensorMesh([6, 6, 6])
         a1 = np.random.rand(M.nC)
         a2 = np.random.rand(M.nC)
@@ -268,35 +267,35 @@ class TestSequenceFunctions(unittest.TestCase):
         prop3 = np.c_[a1, a2, a3, a4, a5, a6]
 
         for prop in [4, prop1, prop2, prop3]:
-            b = invPropertyTensor(M, prop)
-            A = makePropertyTensor(M, prop)
-            B1 = makePropertyTensor(M, b)
-            B2 = invPropertyTensor(M, prop, returnMatrix=True)
+            b = inverse_property_tensor(M, prop)
+            A = make_property_tensor(M, prop)
+            B1 = make_property_tensor(M, b)
+            B2 = inverse_property_tensor(M, prop, return_matrix=True)
 
             Z = B1 * A - sp.identity(M.nC * 3)
             self.assertTrue(np.linalg.norm(Z.todense().ravel(), 2) < TOL)
             Z = B2 * A - sp.identity(M.nC * 3)
             self.assertTrue(np.linalg.norm(Z.todense().ravel(), 2) < TOL)
 
-    def test_asArray_N_x_Dim(self):
+    def test_as_array_n_by_dim(self):
 
         true = np.array([[1, 2, 3]])
 
-        listArray = asArray_N_x_Dim([1, 2, 3], 3)
+        listArray = as_array_n_by_dim([1, 2, 3], 3)
         self.assertTrue(np.all(true == listArray))
         self.assertTrue(true.shape == listArray.shape)
 
-        listArray = asArray_N_x_Dim(np.r_[1, 2, 3], 3)
+        listArray = as_array_n_by_dim(np.r_[1, 2, 3], 3)
         self.assertTrue(np.all(true == listArray))
         self.assertTrue(true.shape == listArray.shape)
 
-        listArray = asArray_N_x_Dim(np.array([[1, 2, 3.0]]), 3)
+        listArray = as_array_n_by_dim(np.array([[1, 2, 3.0]]), 3)
         self.assertTrue(np.all(true == listArray))
         self.assertTrue(true.shape == listArray.shape)
 
         true = np.array([[1, 2], [4, 5]])
 
-        listArray = asArray_N_x_Dim([[1, 2], [4, 5]], 2)
+        listArray = as_array_n_by_dim([[1, 2], [4, 5]], 2)
         self.assertTrue(np.all(true == listArray))
         self.assertTrue(true.shape == listArray.shape)
 

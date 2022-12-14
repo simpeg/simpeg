@@ -1,4 +1,3 @@
-from __future__ import print_function
 import unittest
 import SimPEG.dask
 from SimPEG import (
@@ -98,6 +97,7 @@ class MVIProblemTest(unittest.TestCase):
             chiMap=idenMap,
             ind_active=actv,
             store_sensitivities="disk",
+            chunk_format="auto",
         )
         self.sim = sim
 

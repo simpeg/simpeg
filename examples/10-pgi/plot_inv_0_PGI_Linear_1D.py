@@ -13,19 +13,19 @@ We explore it through the UBC linear example.
 #####################
 
 import discretize as Mesh
+import matplotlib.pyplot as plt
+import numpy as np
 from SimPEG import (
-    simulation,
-    maps,
     data_misfit,
     directives,
-    optimization,
-    regularization,
     inverse_problem,
     inversion,
+    maps,
+    optimization,
+    regularization,
+    simulation,
     utils,
 )
-import numpy as np
-import matplotlib.pyplot as plt
 
 # Random seed for reproductibility
 np.random.seed(1)
@@ -109,7 +109,7 @@ clf.fit(mtrue.reshape(-1, 1))
 reg = regularization.PGI(
     gmmref=clf,
     mesh=mesh,
-    alpha_s=1.0,
+    alpha_pgi=1.0,
     alpha_x=1.0,
 )
 

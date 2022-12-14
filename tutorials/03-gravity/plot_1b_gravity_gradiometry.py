@@ -169,14 +169,14 @@ fig = plt.figure(figsize=(9, 4))
 plotting_map = maps.InjectActiveCells(mesh, ind_active, np.nan)
 
 ax1 = fig.add_axes([0.1, 0.12, 0.73, 0.78])
-mesh.plotSlice(
+mesh.plot_slice(
     plotting_map * model,
     normal="Y",
     ax=ax1,
-    ind=int(mesh.hy.size / 2),
+    ind=int(mesh.h[1].size / 2),
     grid=True,
     clim=(np.min(model), np.max(model)),
-    pcolorOpts={"cmap": "viridis"},
+    pcolor_opts={"cmap": "viridis"},
 )
 ax1.set_title("Model slice at y = 0 m")
 ax1.set_xlabel("x (m)")
@@ -228,7 +228,7 @@ cplot1 = plot2Ddata(
     contourOpts={"cmap": "bwr"},
 )
 cplot1[0].set_clim((-v_max, v_max))
-ax1.set_title("$\partial g /\partial x$")
+ax1.set_title(r"$\partial g /\partial x$")
 ax1.set_xlabel("x (m)")
 ax1.set_ylabel("y (m)")
 
@@ -242,7 +242,7 @@ cplot2 = plot2Ddata(
     contourOpts={"cmap": "bwr"},
 )
 cplot2[0].set_clim((-v_max, v_max))
-ax2.set_title("$\partial g /\partial y$")
+ax2.set_title(r"$\partial g /\partial y$")
 ax2.set_xlabel("x (m)")
 ax2.set_yticks([])
 
@@ -256,7 +256,7 @@ cplot3 = plot2Ddata(
     contourOpts={"cmap": "bwr"},
 )
 cplot3[0].set_clim((-v_max, v_max))
-ax3.set_title("$\partial g /\partial z$")
+ax3.set_title(r"$\partial g /\partial z$")
 ax3.set_xlabel("x (m)")
 ax3.set_yticks([])
 

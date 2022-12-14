@@ -6,8 +6,7 @@ from ...utils import mkvc, sdiag, Zero
 
 
 class FieldsTDEM(TimeFields):
-    """
-
+    r"""
     Fancy Field Storage for a TDEM simulation. Only one field type is stored for
     each problem, the rest are computed. The fields obejct acts like an array
     and is indexed by
@@ -26,7 +25,7 @@ class FieldsTDEM(TimeFields):
         e = f[:,'e']
         b = f[:,'b']
 
-    The array returned will be size (nE or nF, nSrcs :math:`\\times`
+    The array returned will be size (nE or nF, nSrcs :math:`\times`
     nFrequencies)
     """
 
@@ -135,7 +134,7 @@ class Fields3DMagneticFluxDensity(FieldsTDEM):
         self._MeSigmaI = self.simulation.MeSigmaI
         self._MeSigmaDeriv = self.simulation.MeSigmaDeriv
         self._MeSigmaIDeriv = self.simulation.MeSigmaIDeriv
-        self._edgeCurl = self.simulation.mesh.edgeCurl
+        self._edgeCurl = self.simulation.mesh.edge_curl
         self._MfMui = self.simulation.MfMui
         self._timeMesh = self.simulation.time_mesh
 
@@ -152,7 +151,7 @@ class Fields3DMagneticFluxDensity(FieldsTDEM):
         return Zero()
 
     def _dbdt(self, bSolution, source_list, tInd):
-        # self._timeMesh.faceDiv
+        # self._timeMesh.face_divergence
         dbdt = -self._edgeCurl * self._e(bSolution, source_list, tInd)
         for i, src in enumerate(source_list):
             s_m = src.s_m(self.simulation, self._times[tInd])
@@ -292,7 +291,7 @@ class Fields3DElectricField(FieldsTDEM):
         self._MeSigmaI = self.simulation.MeSigmaI
         self._MeSigmaDeriv = self.simulation.MeSigmaDeriv
         self._MeSigmaIDeriv = self.simulation.MeSigmaIDeriv
-        self._edgeCurl = self.simulation.mesh.edgeCurl
+        self._edgeCurl = self.simulation.mesh.edge_curl
         self._MfMui = self.simulation.MfMui
 
     def _TLoc(self, fieldType):
@@ -333,7 +332,7 @@ class Fields3DElectricField(FieldsTDEM):
             "To obtain b-fields, please use Simulation3DMagneticFluxDensity"
         )
         # dbdt = self._dbdt(eSolution, source_list, tInd)
-        # dt = self.simulation.time_mesh.hx
+        # dt = self.simulation.time_mesh.h[0]
         # # assume widths of "ghost cells" same on either end
         # dtn = np.hstack([dt[0], 0.5*(dt[1:] + dt[:-1]), dt[-1]])
         # return dtn[tInd] * dbdt
@@ -408,7 +407,7 @@ class Fields3DMagneticField(FieldsTDEM):
 
     def startup(self):
         self._times = self.simulation.times
-        self._edgeCurl = self.simulation.mesh.edgeCurl
+        self._edgeCurl = self.simulation.mesh.edge_curl
         self._MeMuI = self.simulation.MeMuI
         self._MeMu = self.simulation.MeMu
         self._MfRho = self.simulation.MfRho
@@ -549,11 +548,14 @@ class Fields3DMagneticField(FieldsTDEM):
         )
 
     def _charge(self, hSolution, source_list, tInd):
-        vol = sdiag(self.simulation.mesh.vol)
+        vol = sdiag(self.simulation.mesh.cell_volumes)
         return (
             epsilon_0
             * vol
-            * (self.simulation.mesh.faceDiv * self._e(hSolution, source_list, tInd))
+            * (
+                self.simulation.mesh.face_divergence
+                * self._e(hSolution, source_list, tInd)
+            )
         )
 
 
@@ -572,7 +574,7 @@ class Fields3DCurrentDensity(FieldsTDEM):
 
     def startup(self):
         self._times = self.simulation.times
-        self._edgeCurl = self.simulation.mesh.edgeCurl
+        self._edgeCurl = self.simulation.mesh.edge_curl
         self._MeMuI = self.simulation.MeMuI
         self._MfRho = self.simulation.MfRho
         self._MfRhoDeriv = self.simulation.MfRhoDeriv
@@ -641,12 +643,12 @@ class Fields3DCurrentDensity(FieldsTDEM):
         return self.simulation.MfI * self._MfRhoDeriv(jSolution, v)
 
     def _charge(self, jSolution, source_list, tInd):
-        vol = sdiag(self.simulation.mesh.vol)
+        vol = sdiag(self.simulation.mesh.cell_volumes)
         return vol * self._charge_density(jSolution, source_list, tInd)
 
     def _charge_density(self, jSolution, source_list, tInd):
         return epsilon_0 * (
-            self.simulation.mesh.faceDiv * self._e(jSolution, source_list, tInd)
+            self.simulation.mesh.face_divergence * self._e(jSolution, source_list, tInd)
         )
 
     def _dbdt(self, jSolution, source_list, tInd):

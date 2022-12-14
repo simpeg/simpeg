@@ -17,6 +17,7 @@ dirs_to_test = [
     "11-flow",
     "12-seismic",
     "13-joint_inversion",
+    "14-pgi",
 ]
 
 

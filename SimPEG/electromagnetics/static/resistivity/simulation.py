@@ -323,7 +323,7 @@ class Simulation3DCellCentered(BaseDCSimulation):
         if resistivity is None:
             MfRhoI = self.MfRhoI
         else:
-            MfRhoI = self.mesh.getFaceInnerProduct(resistivity, invMat=True)
+            MfRhoI = self.mesh.get_face_inner_product(resistivity, invert_matrix=True)
         A = D @ MfRhoI @ G
 
         if self.bc_type == "Neumann":
@@ -443,7 +443,7 @@ class Simulation3DNodal(BaseDCSimulation):
         # Not sure why I need to do this
         # To evaluate mesh.aveE2CC, this is required....
         if mesh._meshType == "TREE":
-            mesh.nodalGrad
+            mesh.nodal_gradient
         elif mesh._meshType == "CYL":
             bc_type == "Neumann"
         self.bc_type = bc_type
@@ -477,9 +477,9 @@ class Simulation3DNodal(BaseDCSimulation):
         if resistivity is None:
             MeSigma = self.MeSigma
         else:
-            MeSigma = self.mesh.getEdgeInnerProduct(1.0 / resistivity)
-        Grad = self.mesh.nodalGrad
-        A = Grad.T @ MeSigma @ Grad
+            MeSigma = self.mesh.get_edge_inner_product(1.0 / resistivity)
+        Grad = self.mesh.nodal_gradient
+        A = Grad.T.tocsr() @ MeSigma @ Grad
 
         if self.bc_type == "Neumann":
             # Handling Null space of A
@@ -491,7 +491,7 @@ class Simulation3DNodal(BaseDCSimulation):
             # Dirichlet BC type should already have failed
             # Also, this will fail if sigma is anisotropic
             try:
-                A = A + sp.diags(self._AvgBC @ self.sigma)
+                A = A + sp.diags(self._AvgBC @ self.sigma, format="csr")
             except ValueError as err:
                 if len(self.sigma) != len(self.mesh):
                     raise NotImplementedError(
@@ -508,7 +508,7 @@ class Simulation3DNodal(BaseDCSimulation):
         Product of the derivative of our system matrix with respect to the
         model and a vector
         """
-        Grad = self.mesh.nodalGrad
+        Grad = self.mesh.nodal_gradient
         if not adjoint:
             out = Grad.T @ self.MeSigmaDeriv(Grad @ u, v, adjoint)
         else:

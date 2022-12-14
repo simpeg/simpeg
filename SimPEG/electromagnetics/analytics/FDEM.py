@@ -1,4 +1,3 @@
-from __future__ import division
 import numpy as np
 from scipy.constants import mu_0, pi, epsilon_0
 from SimPEG import utils
@@ -17,7 +16,7 @@ def hzAnalyticDipoleF(r, freq, sigma, secondary=True, mu=mu_0):
         import matplotlib.pyplot as plt
         from SimPEG import electromagnetics as EM
         freq = np.logspace(-1, 5, 301)
-        test = EM.analytics.hzAnalyticDipoleF(
+        test = EM.analytics.h[2]AnalyticDipoleF(
                 100, freq, 0.01, secondary=False)
         plt.loglog(freq, test.real, 'C0-', label='Real')
         plt.loglog(freq, -test.real, 'C0--')
@@ -135,7 +134,7 @@ def MagneticDipoleWholeSpace(
     else:
         mx, my, mz = moment[0], moment[1], moment[2]
 
-    XYZ = utils.asArray_N_x_Dim(XYZ, 3)
+    XYZ = utils.as_array_n_by_dim(XYZ, 3)
 
     dx = XYZ[:, 0] - srcLoc[0]
     dy = XYZ[:, 1] - srcLoc[1]
@@ -226,7 +225,7 @@ def ElectricDipoleWholeSpace(
     else:
         mx, my, mz = moment[0], moment[1], moment[2]
 
-    XYZ = utils.asArray_N_x_Dim(XYZ, 3)
+    XYZ = utils.as_array_n_by_dim(XYZ, 3)
 
     dx = XYZ[:, 0] - srcLoc[0]
     dy = XYZ[:, 1] - srcLoc[1]

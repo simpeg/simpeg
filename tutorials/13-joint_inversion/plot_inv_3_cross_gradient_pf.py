@@ -435,7 +435,7 @@ plotting_map = maps.InjectActiveCells(mesh, ind_active, np.nan)
 
 fig = plt.figure(figsize=(9, 8))
 ax1 = plt.subplot(211)
-(im,) = mesh.plotSlice(
+(im,) = mesh.plot_slice(
     plotting_map * m_dens_joint,
     normal="Y",
     ax=ax1,
@@ -446,7 +446,7 @@ cbar = plt.colorbar(im)
 cbar.set_label("g/cc", rotation=270, labelpad=15, size=12)
 
 ax2 = plt.subplot(212)
-(im,) = mesh.plotSlice(
+(im,) = mesh.plot_slice(
     plotting_map * m_susc_joint, normal="Y", ax=ax2, pcolor_opts={"cmap": "inferno"}
 )
 ax2.set_title("Susceptibility model slice at y = 0 m")

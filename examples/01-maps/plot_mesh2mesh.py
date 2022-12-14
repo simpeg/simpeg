@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 def run(plotIt=True):
 
     M = discretize.TensorMesh([100, 100])
-    h1 = utils.meshTensor([(6, 7, -1.5), (6, 10), (6, 7, 1.5)])
+    h1 = utils.unpack_widths([(6, 7, -1.5), (6, 10), (6, 7, 1.5)])
     h1 = h1 / h1.sum()
     M2 = discretize.TensorMesh([h1, h1])
     V = utils.model_builder.randomModel(M.vnC, seed=79, its=50)
@@ -26,13 +26,13 @@ def run(plotIt=True):
         return
 
     ax = plt.subplot(131)
-    M.plotImage(v, ax=ax)
+    M.plot_image(v, ax=ax)
     ax.set_title("Fine Mesh (Original)")
     ax = plt.subplot(132)
-    M2.plotImage(H, clim=[0, 1], ax=ax)
+    M2.plot_image(H, clim=[0, 1], ax=ax)
     ax.set_title("Course Mesh")
     ax = plt.subplot(133)
-    M.plotImage(h, clim=[0, 1], ax=ax)
+    M.plot_image(h, clim=[0, 1], ax=ax)
     ax.set_title("Fine Mesh (Interpolated)")
 
 

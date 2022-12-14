@@ -124,7 +124,7 @@ class BaseRx(BaseTimeRx):
             P, the interpolation matrix
         """
         projected_time_grid = f._TLoc(self.projField)
-        return time_mesh.getInterpolationMat(self.times, projected_time_grid)
+        return time_mesh.get_interpolation_matrix(self.times, projected_time_grid)
 
     def getP(self, mesh, time_mesh, f):
         """Returns projection matrices as a list for all components collected by the receivers.
@@ -365,7 +365,10 @@ class PointMagneticFluxTimeDerivative(BaseRx):
         if self.projField in f.aliasFields:
             return super(PointMagneticFluxTimeDerivative, self).getTimeP(time_mesh, f)
 
-        return time_mesh.getInterpolationMat(self.times, "CC") * time_mesh.faceDiv
+        return (
+            time_mesh.get_interpolation_matrix(self.times, "CC")
+            * time_mesh.face_divergence
+        )
 
 
 class PointMagneticField(BaseRx):

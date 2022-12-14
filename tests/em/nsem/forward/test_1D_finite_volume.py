@@ -20,7 +20,7 @@ class FiniteVolume1DTest(unittest.TestCase):
         npad = 30
         pf = 1.2
         mesh = TensorMesh([[(csz, npad, -pf), (csz, nc), (csz, npad)]], "N")
-        mesh.x0 = np.r_[-mesh.hx[:-npad].sum()]
+        mesh.x0 = np.r_[-mesh.h[0][:-npad].sum()]
 
         self.npad = npad
         self.mesh = mesh

@@ -5,6 +5,7 @@ PF: Gravity: Tiled Inversion Linear
 Invert data in tiles.
 
 """
+import os
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -175,7 +176,7 @@ for ii, local_survey in enumerate(local_surveys):
         mesh=local_meshes[ii],
         rhoMap=tile_map,
         ind_active=local_actives,
-        sensitivity_path=f"Inversion\Tile{ii}.zarr",
+        sensitivity_path=os.path.join("Inversion", f"Tile{ii}.zarr"),
     )
 
     data_object = data.Data(
@@ -202,7 +203,7 @@ for ii, local_misfit in enumerate(local_misfits):
     inject_local = maps.InjectActiveCells(local_mesh, local_map.local_active, np.nan)
 
     ax = plt.subplot(2, 2, ii + 1)
-    local_mesh.plotSlice(
+    local_mesh.plot_slice(
         inject_local * (local_map * model), normal="Y", ax=ax, grid=True
     )
     ax.set_aspect("equal")
@@ -213,7 +214,7 @@ for ii, local_misfit in enumerate(local_misfits):
 inject_global = maps.InjectActiveCells(mesh, activeCells, np.nan)
 
 ax = plt.subplot(2, 1, 2)
-mesh.plotSlice(inject_global * model, normal="Y", ax=ax, grid=True)
+mesh.plot_slice(inject_global * model, normal="Y", ax=ax, grid=True)
 ax.set_title(f"Global Mesh. Active cells {activeCells.sum()}")
 ax.set_aspect("equal")
 plt.show()
@@ -265,12 +266,12 @@ mrec = inv.run(m0)
 
 # Plot the result
 ax = plt.subplot(1, 2, 1)
-mesh.plotSlice(inject_global * model, normal="Y", ax=ax, grid=True)
+mesh.plot_slice(inject_global * model, normal="Y", ax=ax, grid=True)
 ax.set_title("True")
 ax.set_aspect("equal")
 
 ax = plt.subplot(1, 2, 2)
-mesh.plotSlice(inject_global * mrec, normal="Y", ax=ax, grid=True)
+mesh.plot_slice(inject_global * mrec, normal="Y", ax=ax, grid=True)
 ax.set_title("Recovered")
 ax.set_aspect("equal")
 plt.show()

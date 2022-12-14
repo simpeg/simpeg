@@ -38,8 +38,7 @@ from SimPEG import (
 
 
 class Volume(objective_function.BaseObjectiveFunction):
-
-    """
+    r"""
     A regularization on the volume integral of the model
 
     .. math::
@@ -65,18 +64,24 @@ class Volume(objective_function.BaseObjectiveFunction):
         return 0.5 * (self.estVol(m) - self.knownVolume) ** 2
 
     def estVol(self, m):
-        return np.inner(self.mesh.vol, m)
+        return np.inner(self.mesh.cell_volumes, m)
 
     def deriv(self, m):
-        # return (self.mesh.vol * np.inner(self.mesh.vol, m))
-        return self.mesh.vol * (self.knownVolume - np.inner(self.mesh.vol, m))
+        # return (self.mesh.cell_volumes * np.inner(self.mesh.cell_volumes, m))
+        return self.mesh.cell_volumes * (
+            self.knownVolume - np.inner(self.mesh.cell_volumes, m)
+        )
 
     def deriv2(self, m, v=None):
         if v is not None:
-            return utils.mkvc(self.mesh.vol * np.inner(self.mesh.vol, v))
+            return utils.mkvc(
+                self.mesh.cell_volumes * np.inner(self.mesh.cell_volumes, v)
+            )
         else:
             # TODO: this is inefficent. It is a fully dense matrix
-            return sp.csc_matrix(np.outer(self.mesh.vol, self.mesh.vol))
+            return sp.csc_matrix(
+                np.outer(self.mesh.cell_volumes, self.mesh.cell_volumes)
+            )
 
 
 def run(plotIt=True):
@@ -86,12 +91,13 @@ def run(plotIt=True):
     h = np.ones(nC) * de / nC
     M = discretize.TensorMesh([h, h])
 
-    y = np.linspace(M.vectorCCy[0], M.vectorCCx[-1], int(np.floor(nC / 4)))
-    rlocs = np.c_[0 * y + M.vectorCCx[-1], y]
+    y = np.linspace(M.cell_centers_y[0], M.cell_centers_x[-1], int(np.floor(nC / 4)))
+    rlocs = np.c_[0 * y + M.cell_centers_x[-1], y]
     rx = tomo.Rx(rlocs)
 
     source_list = [
-        tomo.Src(location=np.r_[M.vectorCCx[0], yi], receiver_list=[rx]) for yi in y
+        tomo.Src(location=np.r_[M.cell_centers_x[0], yi], receiver_list=[rx])
+        for yi in y
     ]
 
     # phi model
@@ -101,7 +107,7 @@ def run(plotIt=True):
         M.gridCC, [0.4, 0.6], [0.6, 0.4], [phi1, phi0]
     )
 
-    knownVolume = np.sum(phitrue * M.vol)
+    knownVolume = np.sum(phitrue * M.cell_volumes)
     print("True Volume: {}".format(knownVolume))
 
     # Set up true conductivity model and plot the model transform
@@ -118,8 +124,8 @@ def run(plotIt=True):
         sigetest = sigmaMapTest * testphis
         ax.semilogy(testphis, sigetest)
         ax.set_title("Model Transform")
-        ax.set_xlabel("$\\varphi$")
-        ax.set_ylabel("$\sigma$")
+        ax.set_xlabel(r"$\varphi$")
+        ax.set_ylabel(r"$\sigma$")
 
     sigmaMap = maps.SelfConsistentEffectiveMedium(M, sigma0=sigma0, sigma1=sigma1)
 
@@ -138,9 +144,9 @@ def run(plotIt=True):
 
     if plotIt:
         fig, ax = plt.subplots(1, 1)
-        cb = plt.colorbar(M.plotImage(phitrue, ax=ax)[0], ax=ax)
+        cb = plt.colorbar(M.plot_image(phitrue, ax=ax)[0], ax=ax)
         survey.plot(ax=ax)
-        cb.set_label("$\\varphi$")
+        cb.set_label(r"$\varphi$")
 
     # get observed data
     data = problem.make_synthetic_data(phitrue, relative_error=0.03, add_noise=True)
@@ -189,9 +195,9 @@ def run(plotIt=True):
         ax.legend(["dobs", "dpred0", "dpred w/o Vol", "dpred with Vol"])
 
         fig, ax = plt.subplots(1, 3, figsize=(16, 4))
-        im0 = M.plotImage(phitrue, ax=ax[0])[0]
-        im1 = M.plotImage(mopt1, ax=ax[1])[0]
-        im2 = M.plotImage(mopt2, ax=ax[2])[0]
+        im0 = M.plot_image(phitrue, ax=ax[0])[0]
+        im1 = M.plot_image(mopt1, ax=ax[1])[0]
+        im2 = M.plot_image(mopt2, ax=ax[2])[0]
 
         for im in [im0, im1, im2]:
             im.set_clim([0.0, phi1])

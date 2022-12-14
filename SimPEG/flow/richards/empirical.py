@@ -58,7 +58,7 @@ class BaseWaterRetention(NonLinearModel):
         h = -np.logspace(-2, 3, 1000)
         ax.semilogx(-h, self(h))
         ax.set_title("Water retention curve")
-        ax.set_xlabel("Soil water potential, $- \psi$")
+        ax.set_xlabel(r"Soil water potential, $-\psi$")
         ax.set_ylabel("Water content, $\\theta$")
 
 
@@ -73,7 +73,7 @@ class BaseHydraulicConductivity(NonLinearModel):
         h = -np.logspace(-2, 3, 1000)
         ax.loglog(-h, self(h))
         ax.set_title("Hydraulic conductivity function")
-        ax.set_xlabel("Soil water potential, $- \psi$")
+        ax.set_xlabel(r"Soil water potential, $-\psi$")
         ax.set_ylabel("Hydraulic conductivity, $K$")
 
 

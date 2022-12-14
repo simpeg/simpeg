@@ -6,19 +6,19 @@ import numpy as np
 
 
 def MagSphereAnaFun(x, y, z, R, x0, y0, z0, mu1, mu2, H0, flag="total"):
-    """
-        test
-        Analytic function for Magnetics problem. The set up here is
-        magnetic sphere in whole-space assuming that the inducing field is oriented in the x-direction.
+    r"""
+    test
+    Analytic function for Magnetics problem. The set up here is
+    magnetic sphere in whole-space assuming that the inducing field is oriented
+    in the x-direction.
 
-        * (x0, y0, z0)
-        * (x0, y0, z0 ): is the center location of sphere
-        * r: is the radius of the sphere
+    * (x0, y0, z0)
+    * (x0, y0, z0 ): is the center location of sphere
+    * r: is the radius of the sphere
 
     .. math::
 
         \mathbf{H}_0 = H_0\hat{x}
-
 
     """
 
@@ -79,7 +79,9 @@ def MagSphereAnaFun(x, y, z, R, x0, y0, z0, mu1, mu2, H0, flag="total"):
 
 
 def CongruousMagBC(mesh, Bo, chi):
-    """Computing boundary condition using Congrous sphere method.
+    r"""
+    Computing boundary condition using Congrous sphere method.
+
     This is designed for secondary field formulation.
 
     >> Input
@@ -90,14 +92,21 @@ def CongruousMagBC(mesh, Bo, chi):
 
     .. math::
 
-        \\vec{B}(r) = \\frac{\mu_0}{4\pi} \\frac{m}{ \| \\vec{r} - \\vec{r}_0\|^3}[3\hat{m}\cdot\hat{r}-\hat{m}]
+        \vec{B}(r) =
+            \frac{\mu_0}{4\pi}
+            \frac{
+                m
+            }{
+                \| \vec{r} - \vec{r}_0 \|^3
+            }
+            [3\hat{m}\cdot\hat{r}-\hat{m}]
 
     """
 
     ind = chi > 0.0
-    V = mesh.vol[ind].sum()
+    V = mesh.cell_volumes[ind].sum()
 
-    gamma = 1 / V * (chi * mesh.vol).sum()  # like a mass!
+    gamma = 1 / V * (chi * mesh.cell_volumes).sum()  # like a mass!
 
     Bot = np.sqrt(sum(Bo ** 2))
     mx = Bo[0] / Bot
@@ -109,7 +118,7 @@ def CongruousMagBC(mesh, Bo, chi):
     yc = sum(chi[ind] * mesh.gridCC[:, 1][ind]) / sum(chi[ind])
     zc = sum(chi[ind] * mesh.gridCC[:, 2][ind]) / sum(chi[ind])
 
-    indxd, indxu, indyd, indyu, indzd, indzu = mesh.faceBoundaryInd
+    indxd, indxu, indyd, indyu, indzd, indzu = mesh.face_boundary_indices
 
     const = mu_0 / (4 * np.pi) * mom
     rfun = lambda x: np.sqrt(
@@ -192,8 +201,11 @@ def CongruousMagBC(mesh, Bo, chi):
 
 
 def MagSphereAnaFunA(x, y, z, R, xc, yc, zc, chi, Bo, flag):
-    """Computing boundary condition using Congrous sphere method.
+    r"""
+    Computing boundary condition using Congrous sphere method.
+
     This is designed for secondary field formulation.
+
     >> Input
     mesh:   Mesh class
     Bo:     np.array([Box, Boy, Boz]): Primary magnetic flux
@@ -201,7 +213,14 @@ def MagSphereAnaFunA(x, y, z, R, xc, yc, zc, chi, Bo, flag):
 
     .. math::
 
-        \\vec{B}(r) = \\frac{\mu_0}{4\pi}\\frac{m}{\| \\vec{r}-\\vec{r}_0\|^3}[3\hat{m}\cdot\hat{r}-\hat{m}]
+        \vec{B}(r) =
+            \frac{\mu_0}{4\pi}
+            \frac{
+                m
+            }{
+                \| \vec{r}-\vec{r}_0 \|^3
+            }
+            [3\hat{m}\cdot\hat{r}-\hat{m}]
 
     """
     if ~np.size(x) == np.size(y) == np.size(z):

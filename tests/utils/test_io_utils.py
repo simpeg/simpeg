@@ -1,4 +1,3 @@
-from __future__ import print_function
 import unittest
 import numpy as np
 
@@ -44,13 +43,18 @@ class TestIO_GRAV3D(unittest.TestCase):
         std = np.random.uniform(1, 10, 5)
 
         xyz = np.c_[x, y, z]
-        receiver_list = [gravity.receivers.Point(xyz, components="gz")]
-        source_field = gravity.sources.SourceField(receiver_list=receiver_list)
+        rx = gravity.receivers.Point(xyz, components="gz")
+        source_field = gravity.sources.SourceField(receiver_list=rx)
         survey = gravity.survey.Survey(source_field)
 
         self.survey = survey
         self.dobs = dobs
         self.std = std
+
+        rx2 = gravity.receivers.Point(xyz, components=["gx", "gy"])
+        src_bad = gravity.sources.SourceField([rx, rx2])
+        survey_bad = gravity.survey.Survey(src_bad)
+        self.survey_bad = survey_bad
 
     def test_io_survey(self):
 
@@ -114,6 +118,12 @@ class TestIO_GRAV3D(unittest.TestCase):
 
         print("OBSERVED DATA FILE IO FOR GRAV3D PASSED")
 
+    def test_bad_write(self):
+
+        data_object = Data(survey=self.survey_bad)
+        with self.assertRaises(NotImplementedError):
+            write_grav3d_ubc("survey.grv", data_object)
+
 
 print("==========================================")
 print("     TESTING GRAVITY GRADIOMETRY IO")
@@ -136,13 +146,18 @@ class TestIO_GG3D(unittest.TestCase):
 
         components = ["gxx", "gxy", "gxz", "gyy", "gyz", "gzz"]
         xyz = np.c_[x, y, z]
-        receiver_list = [gravity.receivers.Point(xyz, components=components)]
-        source_field = gravity.sources.SourceField(receiver_list=receiver_list)
+        rx = gravity.receivers.Point(xyz, components=components)
+        source_field = gravity.sources.SourceField(receiver_list=rx)
         survey = gravity.survey.Survey(source_field)
 
         self.survey = survey
         self.dobs = dobs
         self.std = std
+
+        rx2 = gravity.receivers.Point(xyz, components=components)
+        src_bad = gravity.sources.SourceField([rx, rx2])
+        survey_bad = gravity.survey.Survey(src_bad)
+        self.survey_bad = survey_bad
 
     def test_io_survey(self):
 
@@ -209,6 +224,12 @@ class TestIO_GG3D(unittest.TestCase):
 
         print("OBSERVED DATA FILE IO FOR GG3D PASSED")
 
+    def test_bad_write(self):
+
+        data_object = Data(survey=self.survey_bad)
+        with self.assertRaises(NotImplementedError):
+            write_gg3d_ubc("survey.grv", data_object)
+
 
 print("==========================================")
 print("         TESTING MAGNETICS IO")
@@ -230,17 +251,22 @@ class TestIO_MAG3D(unittest.TestCase):
         std = np.random.uniform(1, 10, 5)
 
         xyz = np.c_[x, y, z]
-        receiver_list = [magnetics.receivers.Point(xyz, components="tmi")]
+        rx = magnetics.receivers.Point(xyz, components="tmi")
 
         inducing_field = (50000.0, 60.0, 15.0)
         source_field = magnetics.sources.SourceField(
-            receiver_list=receiver_list, parameters=inducing_field
+            receiver_list=rx, parameters=inducing_field
         )
         survey = magnetics.survey.Survey(source_field)
 
         self.survey = survey
         self.dobs = dobs
         self.std = std
+
+        rx2 = magnetics.receivers.Point(xyz, components="tmi")
+        src_bad = magnetics.sources.SourceField([rx, rx2])
+        survey_bad = magnetics.survey.Survey(src_bad)
+        self.survey_bad = survey_bad
 
     def test_io_survey(self):
 
@@ -260,8 +286,8 @@ class TestIO_MAG3D(unittest.TestCase):
 
         passed = np.all(
             np.isclose(
-                self.survey.source_field.parameters,
-                data_loaded.survey.source_field.parameters,
+                self.survey.source_field.b0,
+                data_loaded.survey.source_field.b0,
             )
         )
         self.assertTrue(passed, True)
@@ -287,8 +313,8 @@ class TestIO_MAG3D(unittest.TestCase):
 
         passed = np.all(
             np.isclose(
-                self.survey.source_field.parameters,
-                data_loaded.survey.source_field.parameters,
+                self.survey.source_field.b0,
+                data_loaded.survey.source_field.b0,
             )
         )
         self.assertTrue(passed, True)
@@ -320,13 +346,19 @@ class TestIO_MAG3D(unittest.TestCase):
 
         passed = np.all(
             np.isclose(
-                self.survey.source_field.parameters,
-                data_loaded.survey.source_field.parameters,
+                self.survey.source_field.b0,
+                data_loaded.survey.source_field.b0,
             )
         )
         self.assertTrue(passed, True)
 
         print("OBSERVED DATA FILE IO FOR MAG3D PASSED")
+
+    def test_bad_write(self):
+
+        data_object = Data(survey=self.survey_bad)
+        with self.assertRaises(NotImplementedError):
+            write_mag3d_ubc("survey.grv", data_object)
 
 
 ####################################################################################

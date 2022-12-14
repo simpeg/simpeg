@@ -1,8 +1,5 @@
-from __future__ import print_function
-
 import numpy as np
 import scipy.sparse as sp
-from six import string_types
 
 from .utils.solver_utils import SolverWrapI, Solver, SolverDiag
 from .utils import (
@@ -741,14 +738,14 @@ class Remember(object):
     def _startupRemember(self, x0):
         self._rememberList = {}
         for param in self._rememberThese:
-            if isinstance(param, string_types):
+            if isinstance(param, str):
                 self._rememberList[param] = []
             elif isinstance(param, tuple):
                 self._rememberList[param[0]] = []
 
     def _doEndIterationRemember(self, *args):
         for param in self._rememberThese:
-            if isinstance(param, string_types):
+            if isinstance(param, str):
                 if self.debug:
                     print("Remember is remembering: " + param)
                 val = getattr(self, param, None)
@@ -1025,12 +1022,12 @@ class GaussNewton(Minimize, Remember):
 
 
 class InexactGaussNewton(BFGS, Minimize, Remember):
-    """
+    r"""
     Minimizes using CG as the inexact solver of
 
     .. math::
 
-        \\mathbf{H p = -g}
+        \mathbf{H p = -g}
 
     By default BFGS is used as the preconditioner.
 
@@ -1091,7 +1088,7 @@ class SteepestDescent(Minimize, Remember):
 
 
 class NewtonRoot(object):
-    """
+    r"""
     Newton Method - Root Finding
 
     root = newtonRoot(fun,x);
@@ -1099,7 +1096,7 @@ class NewtonRoot(object):
     Where fun is the function that returns the function value as well as
     the gradient.
 
-    For iterative solving of dh = -J\\r, use O.solveTol = TOL. For direct
+    For iterative solving of dh = -J\r, use O.solveTol = TOL. For direct
     solves, use SOLVETOL = 0 (default)
 
     Rowan Cockett
