@@ -1,6 +1,7 @@
 import numpy as np
 import scipy.sparse as sp
 from scipy.special import ellipk, ellipe
+from scipy.linalg import orth
 import time
 
 from ...data import Data
@@ -958,7 +959,7 @@ class Simulation3DElectricField(BaseTDEMSimulation):
             return self.MeSigmaDeriv(-u, Grad * v, adjoint)
         return Adc
 
-    def getJtJdiag_currents(self, m, W=None, f=None):
+    def getJtJdiag_currents(self, m, W=None, f=None, n_hutchinson_samples=25):
 
         if W is None:
             W = np.ones(self.survey.nD)
@@ -971,7 +972,7 @@ class Simulation3DElectricField(BaseTDEMSimulation):
         mesh = self.mesh
         a_sig = (self.sigmaMap * m) * mkvc(np.outer(self.mesh.hx, self.mesh.hz))
 
-        diagJtJ = np.zeros(len(m))
+        diagJtJ_estimate = np.zeros(len(m))
         dsigdm_T = self.sigmaDeriv.T
 
         COUNT = 0
@@ -995,7 +996,7 @@ class Simulation3DElectricField(BaseTDEMSimulation):
                 n_loc = np.shape(rx.locations)[0]
 
                 xyz_rx = [rx.locations[ii, :] for ii in range(0, np.shape(rx.locations)[0])]
-                sum_g_a_sig = np.zeros_like(n_times * mesh.nC, dtype=float)
+                # sum_g_a_sig = np.zeros_like(n_times * mesh.nC, dtype=float)
 
                 for ii, loc in enumerate(xyz_rx):
                     
@@ -1005,28 +1006,57 @@ class Simulation3DElectricField(BaseTDEMSimulation):
 
                     temp = sdiag(g_a_sig).dot(e_array)
                     temp = sdiag(Wi).dot((dsigdm_T.dot(temp)).T)
-                    diagJtJ += np.sum(temp**2, axis=0)
+                    diagJtJ_estimate += np.sum(temp**2, axis=0)
 
-                    sum_g_a_sig = sum_g_a_sig + np.kron(Wi, g_a_sig)
+                #     sum_g_a_sig = sum_g_a_sig + np.kron(Wi, g_a_sig)
 
-                COUNT = COUNT + rx.nD
+                # COUNT = COUNT + rx.nD
 
-                # Compute term 2 contribution
-                src_e = CircularLoop(
-                    [rx_e],
-                    location=src.location,
-                    waveform=src.waveform,
-                    current=src.current,
-                    radius=src.radius
-                )
+                # # Compute term 2 contribution
+                # src_e = CircularLoop(
+                #     [rx_e],
+                #     location=src.location,
+                #     waveform=src.waveform,
+                #     current=src.current,
+                #     radius=src.radius
+                # )
                 
-                survey_e = Survey([src_e])
-                sim_e = Simulation3DElectricField(
-                    self.mesh, survey=survey_e, sigmaMap=self.sigmaMap, time_steps=self.time_steps, t0=self.t0
-                )
-                diagJtJ += np.abs(sim_e.Jtvec(m, sum_g_a_sig))
+                # survey_e = Survey([src_e])
+                # sim_e = Simulation3DElectricField(
+                #     self.mesh, survey=survey_e, sigmaMap=self.sigmaMap, time_steps=self.time_steps, t0=self.t0
+                # )
+                # diagJtJ += np.abs(sim_e.Jtvec(m, sum_g_a_sig))
 
-        return diagJtJ
+        # Preconditionned Hutchinson's
+        w = np.sqrt(diagJtJ_estimate)
+        
+        diagJtJ_correction = np.zeros_like(w)
+        u = np.random.uniform(-1., 1., size=(len(m), n_hutchinson_samples))
+        u = orth(u)  # Make orthonormal
+        u2 = np.sum(u**2, axis=1)
+
+        print("\n    Hutchinson iteration:", end="")
+
+        for ii in range(0, n_hutchinson_samples):
+
+            ui = u[:, ii]
+            
+            diagJtJ_correction += (
+                sdiag(ui / w) * (
+                    self.Jtvec(
+                        m,
+                        self.Jvec(m, ui / w, f),
+                        f
+                    )
+                )
+            )
+
+            if ii == n_hutchinson_samples-1:
+                print(' {}'.format(ii))
+            else:
+                print(' {}'.format(ii), end="")
+
+        return diagJtJ_estimate * diagJtJ_correction / u2
 
 
     def _cylmesh_geometric_factor(self, xyz_rx, comp, dh=None):
@@ -1048,15 +1078,15 @@ class Simulation3DElectricField(BaseTDEMSimulation):
         Q = (1 + alpha)**2 + beta**2 + 1e-7*dh  # For stability
         k = np.sqrt(4*alpha / Q)
 
-        if comp == 'x':
-            return (2 * a * np.pi * np.sqrt(Q))**-1 * gamma * (
+        x_comp = (2 * a * np.pi * np.sqrt(Q))**-1 * gamma * (
                 ellipe(k)*(1. + alpha**2 + beta**2)/(Q  - 4 * alpha) - ellipk(k)
             )
-        elif comp == 'z':
-            return (2 * a * np.pi * np.sqrt(Q))**-1 * (
+        
+        z_comp = (2 * a * np.pi * np.sqrt(Q))**-1 * (
                 ellipe(k)*(1. - alpha**2 - beta**2)/(Q  - 4 * alpha) + ellipk(k)
             )
-
+        
+        return comp[0]*x_comp + comp[-1]*z_comp
 
 
 

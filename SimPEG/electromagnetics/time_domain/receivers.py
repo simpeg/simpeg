@@ -1,6 +1,6 @@
 import scipy.sparse as sp
 from ...utils import mkvc, validate_type, validate_direction
-from discretize.utils import Zero
+from discretize.utils import Zero, sdiag
 from ...survey import BaseTimeRx
 import warnings
 

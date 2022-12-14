@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import warnings
 import os
 import scipy.sparse as sp
+from scipy.interpolate import NearestNDInterpolator, LinearNDInterpolator
 from ..data_misfit import BaseDataMisfit
 from ..objective_function import ComboObjectiveFunction
 from ..maps import IdentityMap, Wires
@@ -38,6 +39,8 @@ from ..utils.code_utils import (
     validate_ndarray_with_shape,
 )
 from .. import optimization
+
+from scipy.ndimage.filters import gaussian_filter
 
 
 class InversionDirective:
@@ -2361,8 +2364,8 @@ class CurrentBasedSensitivityWeights(InversionDirective):
 
     everyIter = False
     everyBeta = True
-    startingBetaIter = 2
-    threshold = 1000.
+    startingBetaIter = 1
+    threshold = 100.
 
     def initialize(self):
         """
@@ -2412,7 +2415,18 @@ class CurrentBasedSensitivityWeights(InversionDirective):
 
         for sim, dmisfit in zip(self.simulation, self.dmisfit.objfcts):
             # jtj_diag += sim.getJtJdiag_currents(m, W=dmisfit.W)
-            jtj_diag += sim.getJtJdiag_currents(m, W=None)
+            jtj_diag_temp = sim.getJtJdiag_currents(m, W=None)
+
+            # Enforce positivity
+            if np.any(jtj_diag_temp < 0.):
+
+                pos_ind = jtj_diag_temp > 0.
+                ind_active = sim.mesh.cell_centers[:, 2] < 0.
+                centers = sim.mesh.cell_centers[ind_active, 0::2]
+                interp_fun = LinearNDInterpolator(centers[pos_ind, :], jtj_diag_temp[pos_ind], fill_value=0.)
+                jtj_diag_temp[~pos_ind] = interp_fun(centers[~pos_ind, :])
+
+            jtj_diag += jtj_diag_temp
 
         # Normalize and threshold weights
         wr = np.zeros_like(self.invProb.model)
@@ -2423,6 +2437,15 @@ class CurrentBasedSensitivityWeights(InversionDirective):
                 )
         
         wr **= 0.5
+
+        # Apply Gaussian smoothing
+        # ncx = 175
+        # ncz = 130
+
+        # wr = np.reshape(wr, (ncz, ncx))
+        # wr = gaussian_filter(wr, 0.25)
+        # wr = np.reshape(wr, ncz*ncx)
+
         wr = self.threshold * wr / wr.max()
         wr[wr < 1.] = 1.
 
