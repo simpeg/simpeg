@@ -211,9 +211,11 @@ class BaseEquivalentSourceLayerSimulation(BasePFSimulation):
     mesh : discretize.BaseMesh
         A 2D tensor or tree mesh defining discretization along the x and y directions
     cell_z_top : numpy.ndarray or float
-        Define the elevations for the top face of all cells in the layer
+        Define the elevations for the top face of all cells in the layer. If an array it should be the same size as
+        the active cell set.
     cell_z_bottom : numpy.ndarray or float
-        Define the elevations for the bottom face of all cells in the layer
+        Define the elevations for the bottom face of all cells in the layer. If an array it should be the same size as
+        the active cell set.
 
     """
 
@@ -225,14 +227,15 @@ class BaseEquivalentSourceLayerSimulation(BasePFSimulation):
         super().__init__(mesh, **kwargs)
 
         if isinstance(cell_z_top, (int, float)):
-            cell_z_top = float(cell_z_top) * np.ones(mesh.nC)
+            cell_z_top = float(cell_z_top) * np.ones(self.nC)
 
         if isinstance(cell_z_bottom, (int, float)):
-            cell_z_bottom = float(cell_z_bottom) * np.ones(mesh.nC)
+            cell_z_bottom = float(cell_z_bottom) * np.ones(self.nC)
 
-        if (mesh.nC != len(cell_z_top)) | (mesh.nC != len(cell_z_bottom)):
+        if (self.nC != len(cell_z_top)) | (self.nC != len(cell_z_bottom)):
             raise AttributeError(
-                "'cell_z_top' and 'cell_z_bottom' must have length equal to number of cells."
+                "'cell_z_top' and 'cell_z_bottom' must have length equal to number of cells, and match the number of",
+                "active cells."
             )
 
         all_nodes = self._nodes[self._unique_inv]
