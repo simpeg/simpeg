@@ -1,17 +1,14 @@
-from SimPEG.utils import mkvc, sdiag
-from SimPEG import props
-from ...base import BasePDESimulation
-from ..base import BasePFSimulation, BaseEquivalentSourceLayerSimulation
-from .survey import Survey
-import scipy.constants as constants
-from scipy.constants import G as NewtG
 import numpy as np
-from geoana.kernels import (
-    prism_fz,
-    prism_fzz,
-    prism_fzx,
-    prism_fzy,
-)
+import scipy.constants as constants
+from geoana.kernels import prism_fz, prism_fzx, prism_fzy, prism_fzz
+from scipy.constants import G as NewtG
+
+from SimPEG import props
+from SimPEG.utils import mkvc, sdiag
+
+from ...base import BasePDESimulation
+from ..base import BaseEquivalentSourceLayerSimulation, BasePFSimulation
+from .survey import Survey
 
 
 class Simulation3DIntegral(BasePFSimulation):
@@ -202,9 +199,11 @@ class SimulationEquivalentSourceLayer(
     mesh : discretize.BaseMesh
         A 2D tensor or tree mesh defining discretization along the x and y directions
     cell_z_top : numpy.ndarray or float
-        Define the elevations for the top face of all cells in the layer
+        Define the elevations for the top face of all cells in the layer. If an array it should be the same size as
+        the active cell set.
     cell_z_bottom : numpy.ndarray or float
-        Define the elevations for the bottom face of all cells in the layer
+        Define the elevations for the bottom face of all cells in the layer. If an array it should be the same size as
+        the active cell set.
     """
 
 

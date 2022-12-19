@@ -1,13 +1,15 @@
 import os
+import warnings
+from multiprocessing.pool import Pool
 
 import discretize
 import numpy as np
-import warnings
-from ..simulation import LinearSimulation
 from scipy.sparse import csr_matrix as csr
+
 from SimPEG.utils import mkvc
-from ..utils import validate_string, validate_active_indices, validate_integer
-from multiprocessing.pool import Pool
+
+from ..simulation import LinearSimulation
+from ..utils import validate_active_indices, validate_integer, validate_string
 
 ###############################################################################
 #                                                                             #
@@ -211,12 +213,11 @@ class BaseEquivalentSourceLayerSimulation(BasePFSimulation):
     mesh : discretize.BaseMesh
         A 2D tensor or tree mesh defining discretization along the x and y directions
     cell_z_top : numpy.ndarray or float
-        Define the elevations for the top face of all cells in the layer. If an array it should be the same size as
-        the active cell set.
+        Define the elevations for the top face of all cells in the layer. If an array,
+        it should be the same size as the active cell set.
     cell_z_bottom : numpy.ndarray or float
-        Define the elevations for the bottom face of all cells in the layer. If an array it should be the same size as
-        the active cell set.
-
+        Define the elevations for the bottom face of all cells in the layer. If an array,
+        it should be the same size as the active cell set.
     """
 
     def __init__(self, mesh, cell_z_top, cell_z_bottom, **kwargs):
@@ -234,8 +235,8 @@ class BaseEquivalentSourceLayerSimulation(BasePFSimulation):
 
         if (self.nC != len(cell_z_top)) | (self.nC != len(cell_z_bottom)):
             raise AttributeError(
-                "'cell_z_top' and 'cell_z_bottom' must have length equal to number of cells, and match the number of",
-                "active cells."
+                "'cell_z_top' and 'cell_z_bottom' must have length equal to number of",
+                "cells, and match the number of active cells."
             )
 
         all_nodes = self._nodes[self._unique_inv]
