@@ -1,5 +1,4 @@
 import os
-import warnings
 from multiprocessing.pool import Pool
 
 import discretize
@@ -152,7 +151,7 @@ class BasePFSimulation(LinearSimulation):
 
     @property
     def ind_active(self):
-        """Active topography cells
+        """Active topography cells.
 
         Returns
         -------
@@ -170,7 +169,7 @@ class BasePFSimulation(LinearSimulation):
         )
 
     def linear_operator(self):
-        """Return linear operator
+        """Return linear operator.
 
         Returns
         -------
@@ -206,7 +205,7 @@ class BasePFSimulation(LinearSimulation):
 
 
 class BaseEquivalentSourceLayerSimulation(BasePFSimulation):
-    """Base equivalent source layer simulation class
+    """Base equivalent source layer simulation class.
 
     Parameters
     ----------
@@ -255,7 +254,7 @@ class BaseEquivalentSourceLayerSimulation(BasePFSimulation):
 
 
 def progress(iter, prog, final):
-    """Progress (% complete) for constructing sensitivity matrix
+    """Progress (% complete) for constructing sensitivity matrix.
 
     Parameters
     ----------
@@ -282,7 +281,7 @@ def progress(iter, prog, final):
 
 
 def get_dist_wgt(mesh, receiver_locations, actv, R, R0):
-    """Compute distance weights for potential field simulations
+    """Compute distance weights for potential field simulations.
 
     Parameters
     ----------
@@ -302,7 +301,6 @@ def get_dist_wgt(mesh, receiver_locations, actv, R, R0):
     wr : (n_cell) numpy.ndarray
         Distance weighting model; 0 for all inactive cells
     """
-
     # Find non-zero cells
     if actv.dtype == "bool":
         inds = (

@@ -334,7 +334,6 @@ class QuadTreeLinProblemTest(unittest.TestCase):
 
         print("Z_TOP OR Z_BOTTOM LENGTH MATCHING NACTIVE-CELLS ERROR TEST PASSED.")
 
-
     def test_quadtree_grav_inverse(self):
 
         # Run the inversion from a zero starting model
