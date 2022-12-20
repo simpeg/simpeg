@@ -737,7 +737,9 @@ class PGI(ComboObjectiveFunction):
         if not isinstance(weights_list, list):
             weights_list = [weights_list] * len(self.maplist)
 
-        for model_map, wire, weights in zip(self.maplist, self.wiresmap.maps, weights_list):
+        for model_map, wire, weights in zip(
+            self.maplist, self.wiresmap.maps, weights_list
+        ):
             objfcts += [
                 WeightedLeastSquares(
                     alpha_s=0.0,

@@ -378,12 +378,14 @@ def test_direction_validation():
         2.0,
     ]
     np.testing.assert_equal(
-        validate_direction("orient", direction, dim=1), direction / np.linalg.norm(direction)
+        validate_direction("orient", direction, dim=1),
+        direction / np.linalg.norm(direction),
     )
 
     direction = [2.0, 1.0]
     np.testing.assert_equal(
-        validate_direction("orient", direction, dim=2), direction / np.linalg.norm(direction)
+        validate_direction("orient", direction, dim=2),
+        direction / np.linalg.norm(direction),
     )
 
     # should error on incorrect dimension and passed array
