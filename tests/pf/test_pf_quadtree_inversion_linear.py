@@ -317,7 +317,7 @@ class QuadTreeLinProblemTest(unittest.TestCase):
         print("Z_TOP OR Z_BOTTOM LENGTH MATCHING NCELLS ERROR TEST PASSED.")
 
         # Make the last cell inactive
-        ind_active = np.ones(5, dtype='bool')
+        ind_active = np.ones(5, dtype="bool")
         ind_active[-1] = False
         nC = int(ind_active.sum())
         subset_idenMap = maps.IdentityMap(nP=nC)

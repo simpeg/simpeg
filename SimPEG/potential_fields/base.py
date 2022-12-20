@@ -235,7 +235,7 @@ class BaseEquivalentSourceLayerSimulation(BasePFSimulation):
         if (self.nC != len(cell_z_top)) | (self.nC != len(cell_z_bottom)):
             raise AttributeError(
                 "'cell_z_top' and 'cell_z_bottom' must have length equal to number of",
-                "cells, and match the number of active cells."
+                "cells, and match the number of active cells.",
             )
 
         all_nodes = self._nodes[self._unique_inv]
