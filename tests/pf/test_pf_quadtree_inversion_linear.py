@@ -316,7 +316,8 @@ class QuadTreeLinProblemTest(unittest.TestCase):
 
         print("Z_TOP OR Z_BOTTOM LENGTH MATCHING NCELLS ERROR TEST PASSED.")
 
-        # Make the last cell inactive
+        # Make the last cell inactive and then call it with cell tops and
+        # bottoms for all cells
         ind_active = np.ones(5, dtype="bool")
         ind_active[-1] = False
         nC = int(ind_active.sum())
@@ -325,8 +326,8 @@ class QuadTreeLinProblemTest(unittest.TestCase):
             AttributeError,
             gravity.SimulationEquivalentSourceLayer,
             self.mesh,
-            np.zeros(nC),
-            -5.0 * np.ones(nC),
+            np.zeros(self.mesh.nC),
+            -5.0 * np.ones(self.mesh.nC),
             survey=grav_survey,
             rhoMap=subset_idenMap,
             ind_active=ind_active,
