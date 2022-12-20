@@ -318,7 +318,7 @@ class QuadTreeLinProblemTest(unittest.TestCase):
 
         # Make the last cell inactive and then call it with cell tops and
         # bottoms for all cells
-        ind_active = np.ones(5, dtype="bool")
+        ind_active = np.ones(self.mesh.nC, dtype="bool")
         ind_active[-1] = False
         nC = int(ind_active.sum())
         subset_idenMap = maps.IdentityMap(nP=nC)
