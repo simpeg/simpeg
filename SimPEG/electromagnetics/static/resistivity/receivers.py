@@ -157,7 +157,7 @@ class BaseRx(BaseSimPEGRx):
     #         return f._GLoc(self.projField) + self.orientation
     #     return f._GLoc(self.projField)
 
-    def eval(self, src, mesh, f):
+    def eval(self, src, mesh, f):  # noqa: A003
         """Project fields from the mesh to the receiver(s).
 
         Parameters
