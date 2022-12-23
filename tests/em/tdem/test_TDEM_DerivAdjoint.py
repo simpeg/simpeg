@@ -67,20 +67,21 @@ class Base_DerivAdjoint_Test(unittest.TestCase):
         mapping = get_mapping(mesh)
         self.survey = get_survey()
         self.prob = get_prob(mesh, mapping, self.formulation, survey=self.survey)
+        self.prob_store = get_prob(mesh, mapping, self.formulation, survey=self.survey, forward_only=False)
         self.m = np.log(1e-1) * np.ones(self.prob.sigmaMap.nP) + 1e-3 * np.random.randn(
             self.prob.sigmaMap.nP
         )
         print("Solving Fields for problem {}".format(self.formulation))
         t = time.time()
-        self.fields = self.prob.fields(self.m)
+        self.fields = self.prob_store.fields(self.m)
         print("... done. Time: {}\n".format(time.time() - t))
 
         # create a prob where will be re-computing fields at each jvec
         # iteration
         mesh = get_mesh()
         mapping = get_mapping(mesh)
-        self.surveyfwd = get_survey()
-        self.probfwd = get_prob(mesh, mapping, self.formulation, survey=self.surveyfwd)
+        self.survey_fwd = get_survey()
+        self.prob_fwd = get_prob(mesh, mapping, self.formulation, survey=self.survey_fwd)
 
     def get_rx(self, rxcomp):
         rxOffset = 15.0
@@ -97,7 +98,7 @@ class Base_DerivAdjoint_Test(unittest.TestCase):
 
         # append to srclists
         for source_list, rxlist in zip(
-            [self.survey.source_list, self.surveyfwd.source_list], [rx, rxfwd]
+            [self.survey.source_list, self.survey_fwd.source_list], [rx, rxfwd]
         ):
             for src in source_list:
                 src.receiver_list = rxlist
@@ -109,8 +110,14 @@ class Base_DerivAdjoint_Test(unittest.TestCase):
 
         def derChk(m):
             return [
-                self.probfwd.dpred(m),
+                self.prob_fwd.dpred(m),
                 lambda mx: self.prob.Jvec(self.m, mx, f=self.fields),
+            ]
+
+        def derChk_ram(m):
+            return [
+                self.prob_fwd.dpred(m),
+                lambda mx: self.prob_store.Jvec(self.m, mx, f=self.fields),
             ]
 
         print(
@@ -119,6 +126,7 @@ class Base_DerivAdjoint_Test(unittest.TestCase):
             )
         )
         tests.check_derivative(derChk, self.m, plotIt=False, num=2, eps=1e-20)
+        tests.check_derivative(derChk_ram, self.m, plotIt=False, num=2, eps=1e-20)
 
     def JvecVsJtvecTest(self, rxcomp):
         np.random.seed(10)
@@ -129,8 +137,21 @@ class Base_DerivAdjoint_Test(unittest.TestCase):
 
         m = np.random.rand(self.prob.sigmaMap.nP)
         d = np.random.randn(self.prob.survey.nD)
+        
         V1 = d.dot(self.prob.Jvec(self.m, m, f=self.fields))
         V2 = m.dot(self.prob.Jtvec(self.m, d, f=self.fields))
+        tol = TOL * (np.abs(V1) + np.abs(V2)) / 2.0
+        passed = np.abs(V1 - V2) < tol
+
+        print(
+            "    {v1} {v2} {passed}".format(
+                prbtype=self.formulation, v1=V1, v2=V2, passed=passed
+            )
+        )
+        self.assertTrue(passed)
+
+        V1 = d.dot(self.prob_store.Jvec(self.m, m, f=self.fields))
+        V2 = m.dot(self.prob_store.Jtvec(self.m, d, f=self.fields))
         tol = TOL * (np.abs(V1) + np.abs(V2)) / 2.0
         passed = np.abs(V1 - V2) < tol
 

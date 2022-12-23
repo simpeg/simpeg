@@ -28,15 +28,45 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
     Euler.
     """
 
-    def __init__(self, mesh, survey=None, dt_threshold=1e-8, **kwargs):
+    def __init__(
+            self,
+            mesh,
+            survey=None,
+            dt_threshold=1e-8,
+            forward_only=True,
+            **kwargs
+        ):
         super().__init__(mesh=mesh, survey=survey, **kwargs)
         self.dt_threshold = dt_threshold
+        self.forward_only = forward_only
         if self.muMap is not None:
             raise NotImplementedError(
                 "Time domain EM simulations do not support magnetic permeability "
                 "inversion, yet."
             )
 
+    @property
+    def forward_only(self):
+        """Specify only forward problem is solved. Factorizations are not stored.
+        
+        If ``True``, factorizations are discarded when the time-step length changes.
+        If ``False``, factorizations of A inverse and A transpose inverse are stored
+        until the model is updated.
+
+        Returns
+        -------
+        bool
+
+        """
+        return self._forward_only
+        
+    @forward_only.setter
+    def forward_only(self, value):
+        if isinstance(value, bool):
+            self._forward_only = value
+        else:
+            raise TypeError("'forward_only' must be set with bool")
+    
     @property
     def survey(self):
         """The survey for the simulation
@@ -71,15 +101,6 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
     def dt_threshold(self, value):
         self._dt_threshold = validate_float("dt_threshold", value, min_val=0.0)
 
-    # def fields_nostore(self, m):
-    #     """
-    #     Solve the forward problem without storing fields
-
-    #     :param numpy.ndarray m: inversion model (nP,)
-    #     :rtype: numpy.ndarray
-    #     :return numpy.ndarray: numpy.ndarray (nD,)
-
-    #     """
 
     def fields(self, m):
         """
@@ -90,57 +111,122 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
         :return f: fields object
         """
 
-        tic = time.time()
+        # Update current model
         self.model = m
-
+        
+        # Instantiate the fields object and pair with the simulation
         f = self.fieldsPair(self)
-
-        # set initial fields
-        f[:, self._fieldType + "Solution", 0] = self.getInitialFields()
+        
+        # Compute initial fields for all sources
+        f[:, self._fieldType + "Solution", 0] = self.getInitialFields()  # mesh x n_src
 
         if self.verbose:
             print("{}\nCalculating fields(m)\n{}".format("*" * 50, "*" * 50))
+        
+        # Forward problem if factorization aren't stored at all
+        if self.forward_only:
+            
+            Ainv = None
+            
+            # Forward solve at all time steps
+            for tInd, dt in enumerate(self.time_steps):
+                
+                # Clean current factorization if step length changes
+                if Ainv is not None and (
+                    tInd > 0 and abs(dt - self.time_steps[tInd - 1]) > self.dt_threshold
+                ):
+                    Ainv.clean()
+                    Ainv = None
+                
+                # Factoring Ainv
+                if Ainv is None:
+                    
+                    A = self.getAdiag(tInd)
+                    
+                    if self.verbose:
+                        print("Factoring...   (dt = {:e})".format(dt))
+                    
+                    Ainv = self.solver(A, **self.solver_opts)
+                    
+                    if self.verbose:
+                        print("Done")
 
-        # timestep to solve forward
-        Ainv = None
-        for tInd, dt in enumerate(self.time_steps):
-            # keep factors if dt is the same as previous step b/c A will be the
-            # same
-            if Ainv is not None and (
-                tInd > 0 and abs(dt - self.time_steps[tInd - 1]) > self.dt_threshold
-            ):
-                Ainv.clean()
-                Ainv = None
+                # RHS for all sources and subdiag matrix at current time step
+                rhs = self.getRHS(tInd + 1)  # this is on the nodes of the time mesh
+                Asubdiag = self.getAsubdiag(tInd)
+    
+                if self.verbose:
+                    print("    Solving...   (tInd = {:d})".format(tInd + 1))
+    
+                # taking a step
+                sol = Ainv * (rhs - Asubdiag * f[:, (self._fieldType + "Solution"), tInd])
+    
+                if self.verbose:
+                    print("    Done...")
+    
+                if sol.ndim == 1:
+                    sol.shape = (sol.size, 1)
+                
+                # At the fields at current time step to fields object
+                f[:, self._fieldType + "Solution", tInd + 1] = sol
+    
+            # clean factor and return
+            Ainv.clean()
+            
+        # Forward problem if factorizations stored to RAM
+        else:
 
-            if Ainv is None:
+            # When factorizations must be stored. Find index of each
+            # time step length's first occurrence in chronological order.
+            unique_step_lengths = np.unique(self.time_steps)
+            unique_step_indices = np.sort(
+                [self.time_steps.tolist().index(ii) for ii in unique_step_lengths]
+            )
+            unique_step_lengths = self.time_steps[unique_step_indices].tolist()
+            
+            # Clean factorizations for preexisting model.
+            if hasattr(self, 'Ainv'):
+                [x.clean() for x in self.Ainv]
+            self.Ainv = len(unique_step_lengths) * [None]
+            
+            if hasattr(self, 'ATinv'):
+                [x.clean() for x in self.ATinv]
+            self.ATinv = len(unique_step_lengths) * [None]
+            
+            # Compute new factorizations
+            for ii, tInd in enumerate(unique_step_indices):
+                
+                if self.verbose:
+                    print("Factoring...   (dt = {:e})".format(unique_step_lengths[ii]))
+                        
                 A = self.getAdiag(tInd)
+                self.Ainv[ii] = self.solver(A, **self.solver_opts)
+
                 if self.verbose:
-                    print("Factoring...   (dt = {:e})".format(dt))
-                Ainv = self.solver(A, **self.solver_opts)
+                    print("    Done...")
+            
+            # Do the time-stepping
+            for tInd, dt in enumerate(self.time_steps):
+                
+                # RHS and subdiag matrix at current time step
+                rhs = self.getRHS(tInd + 1)  # this is on the nodes of the time mesh
+                Asubdiag = self.getAsubdiag(tInd)
+    
                 if self.verbose:
-                    print("Done")
-
-            rhs = self.getRHS(tInd + 1)  # this is on the nodes of the time mesh
-            Asubdiag = self.getAsubdiag(tInd)
-
-            if self.verbose:
-                print("    Solving...   (tInd = {:d})".format(tInd + 1))
-
-            # taking a step
-            sol = Ainv * (rhs - Asubdiag * f[:, (self._fieldType + "Solution"), tInd])
-
-            if self.verbose:
-                print("    Done...")
-
-            if sol.ndim == 1:
-                sol.shape = (sol.size, 1)
-            f[:, self._fieldType + "Solution", tInd + 1] = sol
-
+                    print("    Solving...   (tInd = {:d})".format(tInd + 1))
+    
+                # taking a step
+                solver_index = unique_step_lengths.index(dt)
+                sol = self.Ainv[solver_index] * (rhs - Asubdiag * f[:, (self._fieldType + "Solution"), tInd])
+    
+                if sol.ndim == 1:
+                    sol.shape = (sol.size, 1)
+                f[:, self._fieldType + "Solution", tInd + 1] = sol
+    
         if self.verbose:
             print("{}\nDone calculating fields(m)\n{}".format("*" * 50, "*" * 50))
-
-        # clean factors and return
-        Ainv.clean()
+            
+        # Returns the fields object
         return f
 
     def Jvec(self, m, v, f=None):
@@ -165,7 +251,8 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
             \frac{d \mathbf{RHS}}{d \mathbf{m}}
 
         """
-
+        
+        # Recompute fields, clean preexisting factorizations (and refactor)
         if f is None:
             f = self.fields(m)
 
@@ -194,49 +281,100 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
         # store the field derivs we need to project to calc full deriv
         df_dm_v = self.Fields_Derivs(self)
 
-        Adiaginv = None
+        
+        # Jvec if factorization aren't stored at all, or are written to disk
+        if self.forward_only:
+            
+            Adiaginv = None
 
-        for tInd, dt in zip(range(self.nT), self.time_steps):
-            # keep factors if dt is the same as previous step b/c A will be the
-            # same
-            if Adiaginv is not None and (tInd > 0 and dt != self.time_steps[tInd - 1]):
-                Adiaginv.clean()
-                Adiaginv = None
+            for tInd, dt in zip(range(self.nT), self.time_steps):
+                
+                # Clean current factorization if step length changes
+                if Adiaginv is not None and (tInd > 0 and dt != self.time_steps[tInd - 1]):
+                    Adiaginv.clean()
+                    Adiaginv = None
 
-            if Adiaginv is None:
-                A = self.getAdiag(tInd)
-                Adiaginv = self.solver(A, **self.solver_opts)
+                if Adiaginv is None:
+                    A = self.getAdiag(tInd)
+                    Adiaginv = self.solver(A, **self.solver_opts)
 
-            Asubdiag = self.getAsubdiag(tInd)
+                Asubdiag = self.getAsubdiag(tInd)
 
-            for i, src in enumerate(self.survey.source_list):
+                for i, src in enumerate(self.survey.source_list):
 
-                # here, we are lagging by a timestep, so filling in as we go
-                for projField in set([rx.projField for rx in src.receiver_list]):
-                    df_dmFun = getattr(f, "_%sDeriv" % projField, None)
-                    # df_dm_v is dense, but we only need the times at
-                    # (rx.P.T * ones > 0)
-                    # This should be called rx.footprint
+                    # here, we are lagging by a timestep, so filling in as we go
+                    for projField in set([rx.projField for rx in src.receiver_list]):
+                        df_dmFun = getattr(f, "_%sDeriv" % projField, None)
+                        # df_dm_v is dense, but we only need the times at
+                        # (rx.P.T * ones > 0)
+                        # This should be called rx.footprint
 
-                    df_dm_v[src, "{}Deriv".format(projField), tInd] = df_dmFun(
-                        tInd, src, dun_dm_v[:, i], v
-                    )
+                        df_dm_v[src, "{}Deriv".format(projField), tInd] = df_dmFun(
+                            tInd, src, dun_dm_v[:, i], v
+                        )
 
-                un_src = f[src, ftype, tInd + 1]
+                    un_src = f[src, ftype, tInd + 1]
 
-                # cell centered on time mesh
-                dA_dm_v = self.getAdiagDeriv(tInd, un_src, v)
-                # on nodes of time mesh
-                dRHS_dm_v = self.getRHSDeriv(tInd + 1, src, v)
+                    # cell centered on time mesh
+                    dA_dm_v = self.getAdiagDeriv(tInd, un_src, v)
+                    # on nodes of time mesh
+                    dRHS_dm_v = self.getRHSDeriv(tInd + 1, src, v)
 
-                dAsubdiag_dm_v = self.getAsubdiagDeriv(tInd, f[src, ftype, tInd], v)
+                    dAsubdiag_dm_v = self.getAsubdiagDeriv(tInd, f[src, ftype, tInd], v)
 
-                JRHS = dRHS_dm_v - dAsubdiag_dm_v - dA_dm_v
+                    JRHS = dRHS_dm_v - dAsubdiag_dm_v - dA_dm_v
 
-                # step in time and overwrite
-                if tInd != len(self.time_steps + 1):
-                    dun_dm_v[:, i] = Adiaginv * (JRHS - Asubdiag * dun_dm_v[:, i])
+                    # step in time and overwrite
+                    if tInd != len(self.time_steps + 1):
+                        dun_dm_v[:, i] = Adiaginv * (JRHS - Asubdiag * dun_dm_v[:, i])
 
+            Adiaginv.clean()
+        
+        # Jvec when factorizations stored to RAM
+        else:
+
+            # When factorizations must be stored. Find index of each
+            # time step length's first occurrence in chronological order.
+            unique_step_lengths = np.unique(self.time_steps)
+            unique_step_indices = np.sort(
+                [self.time_steps.tolist().index(ii) for ii in unique_step_lengths]
+            )
+            unique_step_lengths = self.time_steps[unique_step_indices].tolist()
+            
+            for tInd, dt in zip(range(self.nT), self.time_steps):
+                
+                Asubdiag = self.getAsubdiag(tInd)
+                solver_index = unique_step_lengths.index(dt)
+
+                for i, src in enumerate(self.survey.source_list):
+
+                    # here, we are lagging by a timestep, so filling in as we go
+                    for projField in set([rx.projField for rx in src.receiver_list]):
+                        df_dmFun = getattr(f, "_%sDeriv" % projField, None)
+                        # df_dm_v is dense, but we only need the times at
+                        # (rx.P.T * ones > 0)
+                        # This should be called rx.footprint
+
+                        df_dm_v[src, "{}Deriv".format(projField), tInd] = df_dmFun(
+                            tInd, src, dun_dm_v[:, i], v
+                        )
+
+                    un_src = f[src, ftype, tInd + 1]
+
+                    # cell centered on time mesh
+                    dA_dm_v = self.getAdiagDeriv(tInd, un_src, v)
+                    # on nodes of time mesh
+                    dRHS_dm_v = self.getRHSDeriv(tInd + 1, src, v)
+
+                    dAsubdiag_dm_v = self.getAsubdiagDeriv(tInd, f[src, ftype, tInd], v)
+
+                    JRHS = dRHS_dm_v - dAsubdiag_dm_v - dA_dm_v
+
+                    # step in time and overwrite
+                    if tInd != len(self.time_steps + 1):
+                        dun_dm_v[:, i] = self.Ainv[solver_index] * (JRHS - Asubdiag * dun_dm_v[:, i])
+
+        # Apply projection to data
         Jv = []
         for src in self.survey.source_list:
             for rx in src.receiver_list:
@@ -249,7 +387,7 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
                         mkvc(df_dm_v[src, "%sDeriv" % rx.projField, :]),
                     )
                 )
-        Adiaginv.clean()
+        
         # del df_dm_v, dun_dm_v, Asubdiag
         # return mkvc(Jv)
         return np.hstack(Jv)
@@ -338,64 +476,118 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
 
         del PT_v  # no longer need this
 
-        AdiagTinv = None
+        if self.forward_only:
 
-        # Do the back-solve through time
-        # if the previous timestep is the same: no need to refactor the matrix
-        # for tInd, dt in zip(range(self.nT), self.time_steps):
+            AdiagTinv = None
 
-        for tInd in reversed(range(self.nT)):
-            # tInd = tIndP - 1
-            if AdiagTinv is not None and (
-                tInd <= self.nT and self.time_steps[tInd] != self.time_steps[tInd + 1]
-            ):
+            # Do the back-solve through time
+            # if the previous timestep is the same: no need to refactor the matrix
+            # for tInd, dt in zip(range(self.nT), self.time_steps):
+
+            for tInd in reversed(range(self.nT)):
+                # tInd = tIndP - 1
+                if AdiagTinv is not None and (
+                    tInd <= self.nT and self.time_steps[tInd] != self.time_steps[tInd + 1]
+                ):
+                    AdiagTinv.clean()
+                    AdiagTinv = None
+
+                # refactor if we need to
+                if AdiagTinv is None:  # and tInd > -1:
+                    Adiag = self.getAdiag(tInd)
+                    AdiagTinv = self.solver(Adiag.T.tocsr(), **self.solver_opts)
+
+                if tInd < self.nT - 1:
+                    Asubdiag = self.getAsubdiag(tInd + 1)
+
+                for isrc, src in enumerate(self.survey.source_list):
+
+                    # solve against df_duT_v
+                    if tInd >= self.nT - 1:
+                        # last timestep (first to be solved)
+                        ATinv_df_duT_v[isrc, :] = (
+                            AdiagTinv
+                            * df_duT_v[src, "{}Deriv".format(self._fieldType), tInd + 1]
+                        )
+                    elif tInd > -1:
+                        ATinv_df_duT_v[isrc, :] = AdiagTinv * (
+                            mkvc(df_duT_v[src, "{}Deriv".format(self._fieldType), tInd + 1])
+                            - Asubdiag.T * mkvc(ATinv_df_duT_v[isrc, :])
+                        )
+
+                    dAsubdiagT_dm_v = self.getAsubdiagDeriv(
+                        tInd, f[src, ftype, tInd], ATinv_df_duT_v[isrc, :], adjoint=True
+                    )
+
+                    dRHST_dm_v = self.getRHSDeriv(
+                        tInd + 1, src, ATinv_df_duT_v[isrc, :], adjoint=True
+                    )  # on nodes of time mesh
+
+                    un_src = f[src, ftype, tInd + 1]
+                    # cell centered on time mesh
+                    dAT_dm_v = self.getAdiagDeriv(
+                        tInd, un_src, ATinv_df_duT_v[isrc, :], adjoint=True
+                    )
+
+                    JTv = JTv + mkvc(-dAT_dm_v - dAsubdiagT_dm_v + dRHST_dm_v)
+
+            # del df_duT_v, ATinv_df_duT_v, A, Asubdiag
+            if AdiagTinv is not None:
                 AdiagTinv.clean()
-                AdiagTinv = None
 
-            # refactor if we need to
-            if AdiagTinv is None:  # and tInd > -1:
-                Adiag = self.getAdiag(tInd)
-                AdiagTinv = self.solver(Adiag.T.tocsr(), **self.solver_opts)
+        else:
 
-            if tInd < self.nT - 1:
-                Asubdiag = self.getAsubdiag(tInd + 1)
+            # When factorizations must be stored. Find index of each time step
+            # length's first occurrence in chronological order.
+            unique_step_lengths = np.unique(self.time_steps)
+            unique_step_indices = np.sort(
+                [self.time_steps.tolist().index(ii) for ii in unique_step_lengths]
+            )
+            unique_step_lengths = self.time_steps[unique_step_indices].tolist()
 
-            for isrc, src in enumerate(self.survey.source_list):
+            # Compute new factorizations
+            if any([x is None for x in self.ATinv]): 
+                for ii, tInd in enumerate(unique_step_indices):
+                    Adiag = self.getAdiag(tInd)
+                    self.ATinv[ii] = self.solver(Adiag.T.tocsr(), **self.solver_opts)
 
-                # solve against df_duT_v
-                if tInd >= self.nT - 1:
-                    # last timestep (first to be solved)
-                    ATinv_df_duT_v[isrc, :] = (
-                        AdiagTinv
-                        * df_duT_v[src, "{}Deriv".format(self._fieldType), tInd + 1]
+            for tInd in reversed(range(self.nT)):
+                
+                if tInd < self.nT - 1:
+                    Asubdiag = self.getAsubdiag(tInd + 1)
+
+                solver_index = unique_step_lengths.index(self.time_steps[tInd])
+
+                for isrc, src in enumerate(self.survey.source_list):
+
+                    # solve against df_duT_v
+                    if tInd >= self.nT - 1:
+                        # last timestep (first to be solved)
+                        ATinv_df_duT_v[isrc, :] = (
+                            self.ATinv[solver_index]
+                            * df_duT_v[src, "{}Deriv".format(self._fieldType), tInd + 1]
+                        )
+                    elif tInd > -1:
+                        ATinv_df_duT_v[isrc, :] = self.ATinv[solver_index] * (
+                            mkvc(df_duT_v[src, "{}Deriv".format(self._fieldType), tInd + 1])
+                            - Asubdiag.T * mkvc(ATinv_df_duT_v[isrc, :])
+                        )
+
+                    dAsubdiagT_dm_v = self.getAsubdiagDeriv(
+                        tInd, f[src, ftype, tInd], ATinv_df_duT_v[isrc, :], adjoint=True
                     )
-                elif tInd > -1:
-                    ATinv_df_duT_v[isrc, :] = AdiagTinv * (
-                        mkvc(df_duT_v[src, "{}Deriv".format(self._fieldType), tInd + 1])
-                        - Asubdiag.T * mkvc(ATinv_df_duT_v[isrc, :])
+
+                    dRHST_dm_v = self.getRHSDeriv(
+                        tInd + 1, src, ATinv_df_duT_v[isrc, :], adjoint=True
+                    )  # on nodes of time mesh
+
+                    un_src = f[src, ftype, tInd + 1]
+                    # cell centered on time mesh
+                    dAT_dm_v = self.getAdiagDeriv(
+                        tInd, un_src, ATinv_df_duT_v[isrc, :], adjoint=True
                     )
 
-                dAsubdiagT_dm_v = self.getAsubdiagDeriv(
-                    tInd, f[src, ftype, tInd], ATinv_df_duT_v[isrc, :], adjoint=True
-                )
-
-                dRHST_dm_v = self.getRHSDeriv(
-                    tInd + 1, src, ATinv_df_duT_v[isrc, :], adjoint=True
-                )  # on nodes of time mesh
-
-                un_src = f[src, ftype, tInd + 1]
-                # cell centered on time mesh
-                dAT_dm_v = self.getAdiagDeriv(
-                    tInd, un_src, ATinv_df_duT_v[isrc, :], adjoint=True
-                )
-
-                JTv = JTv + mkvc(-dAT_dm_v - dAsubdiagT_dm_v + dRHST_dm_v)
-
-        # Treat the initial condition
-
-        # del df_duT_v, ATinv_df_duT_v, A, Asubdiag
-        if AdiagTinv is not None:
-            AdiagTinv.clean()
+                    JTv = JTv + mkvc(-dAT_dm_v - dAsubdiagT_dm_v + dRHST_dm_v)
 
         return mkvc(JTv).astype(float)
 
@@ -792,58 +984,117 @@ class Simulation3DElectricField(BaseTDEMSimulation):
         # no longer need this
         del PT_v
 
-        AdiagTinv = None
+        if self.forward_only:
+            AdiagTinv = None
 
-        # Do the back-solve through time
-        # if the previous timestep is the same: no need to refactor the matrix
-        # for tInd, dt in zip(range(self.nT), self.time_steps):
+            # Do the back-solve through time
+            # if the previous timestep is the same: no need to refactor the matrix
+            # for tInd, dt in zip(range(self.nT), self.time_steps):
 
-        for tInd in reversed(range(self.nT)):
-            # tInd = tIndP - 1
-            if AdiagTinv is not None and (
-                tInd <= self.nT and self.time_steps[tInd] != self.time_steps[tInd + 1]
-            ):
+            for tInd in reversed(range(self.nT)):
+                # tInd = tIndP - 1
+                if AdiagTinv is not None and (
+                    tInd <= self.nT and self.time_steps[tInd] != self.time_steps[tInd + 1]
+                ):
+                    AdiagTinv.clean()
+                    AdiagTinv = None
+
+                # refactor if we need to
+                if AdiagTinv is None:  # and tInd > -1:
+                    Adiag = self.getAdiag(tInd)
+                    AdiagTinv = self.solver(Adiag.T, **self.solver_opts)
+
+                if tInd < self.nT - 1:
+                    Asubdiag = self.getAsubdiag(tInd + 1)
+
+                for isrc, src in enumerate(self.survey.source_list):
+
+                    # solve against df_duT_v
+                    if tInd >= self.nT - 1:
+                        # last timestep (first to be solved)
+                        ATinv_df_duT_v[isrc, :] = (
+                            AdiagTinv
+                            * df_duT_v[src, "{}Deriv".format(self._fieldType), tInd + 1]
+                        )
+                    elif tInd > -1:
+                        ATinv_df_duT_v[isrc, :] = AdiagTinv * (
+                            mkvc(df_duT_v[src, "{}Deriv".format(self._fieldType), tInd + 1])
+                            - Asubdiag.T * mkvc(ATinv_df_duT_v[isrc, :])
+                        )
+
+                    dAsubdiagT_dm_v = self.getAsubdiagDeriv(
+                        tInd, f[src, ftype, tInd], ATinv_df_duT_v[isrc, :], adjoint=True
+                    )
+
+                    dRHST_dm_v = self.getRHSDeriv(
+                        tInd + 1, src, ATinv_df_duT_v[isrc, :], adjoint=True
+                    )  # on nodes of time mesh
+
+                    un_src = f[src, ftype, tInd + 1]
+                    # cell centered on time mesh
+                    dAT_dm_v = self.getAdiagDeriv(
+                        tInd, un_src, ATinv_df_duT_v[isrc, :], adjoint=True
+                    )
+
+                    JTv = JTv + mkvc(-dAT_dm_v - dAsubdiagT_dm_v + dRHST_dm_v)
+
+            # del df_duT_v, ATinv_df_duT_v, A, Asubdiag
+            if AdiagTinv is not None:
                 AdiagTinv.clean()
-                AdiagTinv = None
 
-            # refactor if we need to
-            if AdiagTinv is None:  # and tInd > -1:
-                Adiag = self.getAdiag(tInd)
-                AdiagTinv = self.solver(Adiag.T, **self.solver_opts)
+        else:
 
-            if tInd < self.nT - 1:
-                Asubdiag = self.getAsubdiag(tInd + 1)
+            # When factorizations must be stored. Find index of each time step
+            # length's first occurrence in chronological order.
+            unique_step_lengths = np.unique(self.time_steps)
+            unique_step_indices = np.sort(
+                [self.time_steps.tolist().index(ii) for ii in unique_step_lengths]
+            )
+            unique_step_lengths = self.time_steps[unique_step_indices].tolist()
 
-            for isrc, src in enumerate(self.survey.source_list):
+            # Compute new factorizations
+            if any([x is None for x in self.ATinv]): 
+                for ii, tInd in enumerate(unique_step_indices):
+                    Adiag = self.getAdiag(tInd)
+                    self.ATinv[ii] = self.solver(Adiag.T.tocsr(), **self.solver_opts)
 
-                # solve against df_duT_v
-                if tInd >= self.nT - 1:
-                    # last timestep (first to be solved)
-                    ATinv_df_duT_v[isrc, :] = (
-                        AdiagTinv
-                        * df_duT_v[src, "{}Deriv".format(self._fieldType), tInd + 1]
+            for tInd in reversed(range(self.nT)):
+                
+                if tInd < self.nT - 1:
+                    Asubdiag = self.getAsubdiag(tInd + 1)
+
+                solver_index = unique_step_lengths.index(self.time_steps[tInd])
+
+                for isrc, src in enumerate(self.survey.source_list):
+
+                    # solve against df_duT_v
+                    if tInd >= self.nT - 1:
+                        # last timestep (first to be solved)
+                        ATinv_df_duT_v[isrc, :] = (
+                            self.ATinv[solver_index]
+                            * df_duT_v[src, "{}Deriv".format(self._fieldType), tInd + 1]
+                        )
+                    elif tInd > -1:
+                        ATinv_df_duT_v[isrc, :] = self.ATinv[solver_index] * (
+                            mkvc(df_duT_v[src, "{}Deriv".format(self._fieldType), tInd + 1])
+                            - Asubdiag.T * mkvc(ATinv_df_duT_v[isrc, :])
+                        )
+
+                    dAsubdiagT_dm_v = self.getAsubdiagDeriv(
+                        tInd, f[src, ftype, tInd], ATinv_df_duT_v[isrc, :], adjoint=True
                     )
-                elif tInd > -1:
-                    ATinv_df_duT_v[isrc, :] = AdiagTinv * (
-                        mkvc(df_duT_v[src, "{}Deriv".format(self._fieldType), tInd + 1])
-                        - Asubdiag.T * mkvc(ATinv_df_duT_v[isrc, :])
+
+                    dRHST_dm_v = self.getRHSDeriv(
+                        tInd + 1, src, ATinv_df_duT_v[isrc, :], adjoint=True
+                    )  # on nodes of time mesh
+
+                    un_src = f[src, ftype, tInd + 1]
+                    # cell centered on time mesh
+                    dAT_dm_v = self.getAdiagDeriv(
+                        tInd, un_src, ATinv_df_duT_v[isrc, :], adjoint=True
                     )
 
-                dAsubdiagT_dm_v = self.getAsubdiagDeriv(
-                    tInd, f[src, ftype, tInd], ATinv_df_duT_v[isrc, :], adjoint=True
-                )
-
-                dRHST_dm_v = self.getRHSDeriv(
-                    tInd + 1, src, ATinv_df_duT_v[isrc, :], adjoint=True
-                )  # on nodes of time mesh
-
-                un_src = f[src, ftype, tInd + 1]
-                # cell centered on time mesh
-                dAT_dm_v = self.getAdiagDeriv(
-                    tInd, un_src, ATinv_df_duT_v[isrc, :], adjoint=True
-                )
-
-                JTv = JTv + mkvc(-dAT_dm_v - dAsubdiagT_dm_v + dRHST_dm_v)
+                    JTv = JTv + mkvc(-dAT_dm_v - dAsubdiagT_dm_v + dRHST_dm_v)
 
         # Treating initial condition when a galvanic source is included
         tInd = -1
@@ -878,10 +1129,6 @@ class Simulation3DElectricField(BaseTDEMSimulation):
                 )
 
                 JTv = JTv + mkvc(-dAT_dm_v + dRHST_dm_v)
-
-        # del df_duT_v, ATinv_df_duT_v, A, Asubdiag
-        if AdiagTinv is not None:
-            AdiagTinv.clean()
 
         return mkvc(JTv).astype(float)
 
