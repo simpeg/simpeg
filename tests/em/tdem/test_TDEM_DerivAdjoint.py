@@ -67,7 +67,9 @@ class Base_DerivAdjoint_Test(unittest.TestCase):
         mapping = get_mapping(mesh)
         self.survey = get_survey()
         self.prob = get_prob(mesh, mapping, self.formulation, survey=self.survey)
-        self.prob_store = get_prob(mesh, mapping, self.formulation, survey=self.survey, forward_only=False)
+        self.prob_store = get_prob(
+            mesh, mapping, self.formulation, survey=self.survey, forward_only=False
+        )
         self.m = np.log(1e-1) * np.ones(self.prob.sigmaMap.nP) + 1e-3 * np.random.randn(
             self.prob.sigmaMap.nP
         )
@@ -81,7 +83,9 @@ class Base_DerivAdjoint_Test(unittest.TestCase):
         mesh = get_mesh()
         mapping = get_mapping(mesh)
         self.survey_fwd = get_survey()
-        self.prob_fwd = get_prob(mesh, mapping, self.formulation, survey=self.survey_fwd)
+        self.prob_fwd = get_prob(
+            mesh, mapping, self.formulation, survey=self.survey_fwd
+        )
 
     def get_rx(self, rxcomp):
         rxOffset = 15.0
@@ -137,7 +141,7 @@ class Base_DerivAdjoint_Test(unittest.TestCase):
 
         m = np.random.rand(self.prob.sigmaMap.nP)
         d = np.random.randn(self.prob.survey.nD)
-        
+
         V1 = d.dot(self.prob.Jvec(self.m, m, f=self.fields))
         V2 = m.dot(self.prob.Jtvec(self.m, d, f=self.fields))
         tol = TOL * (np.abs(V1) + np.abs(V2)) / 2.0
