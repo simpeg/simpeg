@@ -25,13 +25,8 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
     """
 
     def __init__(
-            self,
-            mesh,
-            survey=None,
-            dt_threshold=1e-8,
-            forward_only=True,
-            **kwargs
-        ):
+        self, mesh, survey=None, dt_threshold=1e-8, forward_only=True, **kwargs
+    ):
         super().__init__(mesh=mesh, survey=survey, **kwargs)
         self.dt_threshold = dt_threshold
         self.forward_only = forward_only
@@ -55,14 +50,14 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
 
         """
         return self._forward_only
-        
+
     @forward_only.setter
     def forward_only(self, value):
         if isinstance(value, bool):
             self._forward_only = value
         else:
             raise TypeError("'forward_only' must be set with bool")
-    
+
     @property
     def survey(self):
         """The survey for the simulation
@@ -97,7 +92,6 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
     def dt_threshold(self, value):
         self._dt_threshold = validate_float("dt_threshold", value, min_val=0.0)
 
-
     def fields(self, m):
         """
         Solve the forward problem for the fields.
@@ -109,66 +103,68 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
 
         # Update current model
         self.model = m
-        
+
         # Instantiate the fields object and pair with the simulation
         f = self.fieldsPair(self)
-        
+
         # Compute initial fields for all sources
         f[:, self._fieldType + "Solution", 0] = self.getInitialFields()  # mesh x n_src
 
         if self.verbose:
             print("{}\nCalculating fields(m)\n{}".format("*" * 50, "*" * 50))
-        
+
         # Forward problem if factorization aren't stored at all
         if self.forward_only:
-            
+
             Ainv = None
-            
+
             # Forward solve at all time steps
             for tInd, dt in enumerate(self.time_steps):
-                
+
                 # Clean current factorization if step length changes
                 if Ainv is not None and (
                     tInd > 0 and abs(dt - self.time_steps[tInd - 1]) > self.dt_threshold
                 ):
                     Ainv.clean()
                     Ainv = None
-                
+
                 # Factoring Ainv
                 if Ainv is None:
-                    
+
                     A = self.getAdiag(tInd)
-                    
+
                     if self.verbose:
                         print("Factoring...   (dt = {:e})".format(dt))
-                    
+
                     Ainv = self.solver(A, **self.solver_opts)
-                    
+
                     if self.verbose:
                         print("Done")
 
                 # RHS for all sources and subdiag matrix at current time step
                 rhs = self.getRHS(tInd + 1)  # this is on the nodes of the time mesh
                 Asubdiag = self.getAsubdiag(tInd)
-    
+
                 if self.verbose:
                     print("    Solving...   (tInd = {:d})".format(tInd + 1))
-    
+
                 # taking a step
-                sol = Ainv * (rhs - Asubdiag * f[:, (self._fieldType + "Solution"), tInd])
-    
+                sol = Ainv * (
+                    rhs - Asubdiag * f[:, (self._fieldType + "Solution"), tInd]
+                )
+
                 if self.verbose:
                     print("    Done...")
-    
+
                 if sol.ndim == 1:
                     sol.shape = (sol.size, 1)
-                
+
                 # At the fields at current time step to fields object
                 f[:, self._fieldType + "Solution", tInd + 1] = sol
-    
+
             # clean factor and return
             Ainv.clean()
-            
+
         # Forward problem if factorizations stored to RAM
         else:
 
@@ -179,49 +175,51 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
                 [self.time_steps.tolist().index(ii) for ii in unique_step_lengths]
             )
             unique_step_lengths = self.time_steps[unique_step_indices].tolist()
-            
+
             # Clean factorizations for preexisting model.
-            if hasattr(self, 'Ainv'):
+            if hasattr(self, "Ainv"):
                 [x.clean() for x in self.Ainv]
             self.Ainv = len(unique_step_lengths) * [None]
-            
-            if hasattr(self, 'ATinv'):
+
+            if hasattr(self, "ATinv"):
                 [x.clean() for x in self.ATinv]
             self.ATinv = len(unique_step_lengths) * [None]
-            
+
             # Compute new factorizations
             for ii, tInd in enumerate(unique_step_indices):
-                
+
                 if self.verbose:
                     print("Factoring...   (dt = {:e})".format(unique_step_lengths[ii]))
-                        
+
                 A = self.getAdiag(tInd)
                 self.Ainv[ii] = self.solver(A, **self.solver_opts)
 
                 if self.verbose:
                     print("    Done...")
-            
+
             # Do the time-stepping
             for tInd, dt in enumerate(self.time_steps):
-                
+
                 # RHS and subdiag matrix at current time step
                 rhs = self.getRHS(tInd + 1)  # this is on the nodes of the time mesh
                 Asubdiag = self.getAsubdiag(tInd)
-    
+
                 if self.verbose:
                     print("    Solving...   (tInd = {:d})".format(tInd + 1))
-    
+
                 # taking a step
                 solver_index = unique_step_lengths.index(dt)
-                sol = self.Ainv[solver_index] * (rhs - Asubdiag * f[:, (self._fieldType + "Solution"), tInd])
-    
+                sol = self.Ainv[solver_index] * (
+                    rhs - Asubdiag * f[:, (self._fieldType + "Solution"), tInd]
+                )
+
                 if sol.ndim == 1:
                     sol.shape = (sol.size, 1)
                 f[:, self._fieldType + "Solution", tInd + 1] = sol
-    
+
         if self.verbose:
             print("{}\nDone calculating fields(m)\n{}".format("*" * 50, "*" * 50))
-            
+
         # Returns the fields object
         return f
 
@@ -247,7 +245,7 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
             \frac{d \mathbf{RHS}}{d \mathbf{m}}
 
         """
-        
+
         # Recompute fields, clean preexisting factorizations (and refactor)
         if f is None:
             f = self.fields(m)
@@ -277,16 +275,17 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
         # store the field derivs we need to project to calc full deriv
         df_dm_v = self.Fields_Derivs(self)
 
-        
         # Jvec if factorization aren't stored at all, or are written to disk
         if self.forward_only:
-            
+
             Adiaginv = None
 
             for tInd, dt in zip(range(self.nT), self.time_steps):
-                
+
                 # Clean current factorization if step length changes
-                if Adiaginv is not None and (tInd > 0 and dt != self.time_steps[tInd - 1]):
+                if Adiaginv is not None and (
+                    tInd > 0 and dt != self.time_steps[tInd - 1]
+                ):
                     Adiaginv.clean()
                     Adiaginv = None
 
@@ -325,7 +324,7 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
                         dun_dm_v[:, i] = Adiaginv * (JRHS - Asubdiag * dun_dm_v[:, i])
 
             Adiaginv.clean()
-        
+
         # Jvec when factorizations stored to RAM
         else:
 
@@ -336,9 +335,9 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
                 [self.time_steps.tolist().index(ii) for ii in unique_step_lengths]
             )
             unique_step_lengths = self.time_steps[unique_step_indices].tolist()
-            
+
             for tInd, dt in zip(range(self.nT), self.time_steps):
-                
+
                 Asubdiag = self.getAsubdiag(tInd)
                 solver_index = unique_step_lengths.index(dt)
 
@@ -368,7 +367,9 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
 
                     # step in time and overwrite
                     if tInd != len(self.time_steps + 1):
-                        dun_dm_v[:, i] = self.Ainv[solver_index] * (JRHS - Asubdiag * dun_dm_v[:, i])
+                        dun_dm_v[:, i] = self.Ainv[solver_index] * (
+                            JRHS - Asubdiag * dun_dm_v[:, i]
+                        )
 
         # Apply projection to data
         Jv = []
@@ -383,7 +384,7 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
                         mkvc(df_dm_v[src, "%sDeriv" % rx.projField, :]),
                     )
                 )
-        
+
         # del df_dm_v, dun_dm_v, Asubdiag
         # return mkvc(Jv)
         return np.hstack(Jv)
@@ -483,7 +484,8 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
             for tInd in reversed(range(self.nT)):
                 # tInd = tIndP - 1
                 if AdiagTinv is not None and (
-                    tInd <= self.nT and self.time_steps[tInd] != self.time_steps[tInd + 1]
+                    tInd <= self.nT
+                    and self.time_steps[tInd] != self.time_steps[tInd + 1]
                 ):
                     AdiagTinv.clean()
                     AdiagTinv = None
@@ -507,7 +509,11 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
                         )
                     elif tInd > -1:
                         ATinv_df_duT_v[isrc, :] = AdiagTinv * (
-                            mkvc(df_duT_v[src, "{}Deriv".format(self._fieldType), tInd + 1])
+                            mkvc(
+                                df_duT_v[
+                                    src, "{}Deriv".format(self._fieldType), tInd + 1
+                                ]
+                            )
                             - Asubdiag.T * mkvc(ATinv_df_duT_v[isrc, :])
                         )
 
@@ -542,13 +548,13 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
             unique_step_lengths = self.time_steps[unique_step_indices].tolist()
 
             # Compute new factorizations
-            if any([x is None for x in self.ATinv]): 
+            if any([x is None for x in self.ATinv]):
                 for ii, tInd in enumerate(unique_step_indices):
                     Adiag = self.getAdiag(tInd)
                     self.ATinv[ii] = self.solver(Adiag.T.tocsr(), **self.solver_opts)
 
             for tInd in reversed(range(self.nT)):
-                
+
                 if tInd < self.nT - 1:
                     Asubdiag = self.getAsubdiag(tInd + 1)
 
@@ -565,7 +571,11 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
                         )
                     elif tInd > -1:
                         ATinv_df_duT_v[isrc, :] = self.ATinv[solver_index] * (
-                            mkvc(df_duT_v[src, "{}Deriv".format(self._fieldType), tInd + 1])
+                            mkvc(
+                                df_duT_v[
+                                    src, "{}Deriv".format(self._fieldType), tInd + 1
+                                ]
+                            )
                             - Asubdiag.T * mkvc(ATinv_df_duT_v[isrc, :])
                         )
 
@@ -990,7 +1000,8 @@ class Simulation3DElectricField(BaseTDEMSimulation):
             for tInd in reversed(range(self.nT)):
                 # tInd = tIndP - 1
                 if AdiagTinv is not None and (
-                    tInd <= self.nT and self.time_steps[tInd] != self.time_steps[tInd + 1]
+                    tInd <= self.nT
+                    and self.time_steps[tInd] != self.time_steps[tInd + 1]
                 ):
                     AdiagTinv.clean()
                     AdiagTinv = None
@@ -1014,7 +1025,11 @@ class Simulation3DElectricField(BaseTDEMSimulation):
                         )
                     elif tInd > -1:
                         ATinv_df_duT_v[isrc, :] = AdiagTinv * (
-                            mkvc(df_duT_v[src, "{}Deriv".format(self._fieldType), tInd + 1])
+                            mkvc(
+                                df_duT_v[
+                                    src, "{}Deriv".format(self._fieldType), tInd + 1
+                                ]
+                            )
                             - Asubdiag.T * mkvc(ATinv_df_duT_v[isrc, :])
                         )
 
@@ -1049,13 +1064,13 @@ class Simulation3DElectricField(BaseTDEMSimulation):
             unique_step_lengths = self.time_steps[unique_step_indices].tolist()
 
             # Compute new factorizations
-            if any([x is None for x in self.ATinv]): 
+            if any([x is None for x in self.ATinv]):
                 for ii, tInd in enumerate(unique_step_indices):
                     Adiag = self.getAdiag(tInd)
                     self.ATinv[ii] = self.solver(Adiag.T.tocsr(), **self.solver_opts)
 
             for tInd in reversed(range(self.nT)):
-                
+
                 if tInd < self.nT - 1:
                     Asubdiag = self.getAsubdiag(tInd + 1)
 
@@ -1072,7 +1087,11 @@ class Simulation3DElectricField(BaseTDEMSimulation):
                         )
                     elif tInd > -1:
                         ATinv_df_duT_v[isrc, :] = self.ATinv[solver_index] * (
-                            mkvc(df_duT_v[src, "{}Deriv".format(self._fieldType), tInd + 1])
+                            mkvc(
+                                df_duT_v[
+                                    src, "{}Deriv".format(self._fieldType), tInd + 1
+                                ]
+                            )
                             - Asubdiag.T * mkvc(ATinv_df_duT_v[isrc, :])
                         )
 
