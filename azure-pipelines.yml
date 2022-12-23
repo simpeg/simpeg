@@ -29,11 +29,11 @@ stages:
         - script: |
             pip install -r requirements_style.txt
           displayName: "Install dependencies to run the checks"
-
         - script: make black
           displayName: "Run black"
+
     - job:
-      displayName: Run style checks with flake8
+      displayName: Run (permissive) style checks with flake8
       pool:
         vmImage: ubuntu-latest
       variables:
@@ -42,19 +42,30 @@ stages:
         - script: |
             pip install -r requirements_style.txt
           displayName: "Install dependencies to run the checks"
+        - script: make flake-permissive
+          displayName: "Run flake8"
 
-        - script: make flake
+    - job:
+      displayName: Run style checks with flake8 (allowed to fail)
+      pool:
+        vmImage: ubuntu-latest
+      variables:
+        python.version: '3.7'
+      steps:
+        - script: |
+            pip install -r requirements_style.txt
+          displayName: "Install dependencies to run the checks"
+        - script: FLAKE8_OPTS="--exit-zero" make flake
           displayName: "Run flake8"
 
 - stage: Testing
   dependsOn: StyleChecks
-  condition: ne(dependencies.StyleChecks.result, 'Cancelled')
   jobs:
     - template: ./.azure-pipelines/matrix.yml
 
 - stage: Deploy
   dependsOn: Testing
-  condition: and(in(dependencies.Testing.result, 'Succeeded', 'SucceededWithIssues'), startsWith(variables['build.sourceBranch'], 'refs/tags/'))
+  condition: startsWith(variables['build.sourceBranch'], 'refs/tags/')
   jobs:
     - job:
       displayName: Deploy Docs and source
