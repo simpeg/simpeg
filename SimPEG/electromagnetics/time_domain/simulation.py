@@ -545,14 +545,14 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
             if any([x is None for x in self.ATinv]): 
                 for ii, tInd in enumerate(unique_step_indices):
                     Adiag = self.getAdiag(tInd)
-                    self.ATinv = self.solver(Adiag.T.tocsr(), **self.solver_opts)
+                    self.ATinv[ii] = self.solver(Adiag.T.tocsr(), **self.solver_opts)
 
             for tInd in reversed(range(self.nT)):
                 
                 if tInd < self.nT - 1:
                     Asubdiag = self.getAsubdiag(tInd + 1)
 
-                solver_index = unique_step_lengths.index(self.times_steps[tInd])
+                solver_index = unique_step_lengths.index(self.time_steps[tInd])
 
                 for isrc, src in enumerate(self.survey.source_list):
 
@@ -1052,14 +1052,14 @@ class Simulation3DElectricField(BaseTDEMSimulation):
             if any([x is None for x in self.ATinv]): 
                 for ii, tInd in enumerate(unique_step_indices):
                     Adiag = self.getAdiag(tInd)
-                    self.ATinv = self.solver(Adiag.T.tocsr(), **self.solver_opts)
+                    self.ATinv[ii] = self.solver(Adiag.T.tocsr(), **self.solver_opts)
 
             for tInd in reversed(range(self.nT)):
                 
                 if tInd < self.nT - 1:
                     Asubdiag = self.getAsubdiag(tInd + 1)
 
-                solver_index = unique_step_lengths.index(self.times_steps[tInd])
+                solver_index = unique_step_lengths.index(self.time_steps[tInd])
 
                 for isrc, src in enumerate(self.survey.source_list):
 
