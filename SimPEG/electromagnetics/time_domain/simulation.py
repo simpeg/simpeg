@@ -117,6 +117,9 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
             if hasattr(self, "Ainv"):
                 {k: v.clean() for k, v in self.Ainv.items()}
             else:
+                self.time_steps = self.dt_threshold * np.round(
+                    self.time_steps / self.dt_threshold
+                )  # In case round-off error
                 self.Ainv = dict.fromkeys(np.unique(self.time_steps).tolist(), None)
 
             if hasattr(self, "ATinv"):
@@ -124,7 +127,6 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
             else:
                 self.ATinv = dict.fromkeys(np.unique(self.time_steps).tolist(), None)
 
-            # Compute new factorizations
             for dt in np.unique(self.time_steps).tolist():
 
                 if self.verbose:
