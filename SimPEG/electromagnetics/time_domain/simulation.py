@@ -4,6 +4,8 @@ from scipy.special import ellipk, ellipe
 from scipy.linalg import orth
 import time
 
+from discretize import CylindricalMesh, TensorMesh, TreeMesh
+
 from ...data import Data
 from ...simulation import BaseTimeSimulation
 from ...utils import mkvc, sdiag, speye, Zero, validate_type, validate_float
@@ -579,6 +581,50 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
         items = super().clean_on_model_update
         return items + ["_Adcinv"]  #: clear DC matrix factors on any model updates
 
+    def _cylmesh_geometric_factor(self, xyz_rx, comp, dh=None):
+
+        # Stabilization constant for rx next to cell centers
+        if dh is None:
+            dh = 0.1*np.sqrt(np.min(self.mesh.hx) * np.min(self.mesh.hz))
+            
+        a = self.mesh.cell_centers[:, 0]  # "loop radii"
+        s = xyz_rx[0]
+        dz = xyz_rx[-1] - self.mesh.cell_centers[:, -1]
+        r = np.sqrt((a-s)**2 + dz**2) + dh
+
+        alpha = s / a
+        beta = dz / a
+        gamma = dz / (s + dh)  # For stability
+        
+        Q = (1 + alpha)**2 + beta**2 + 1e-7*dh  # For stability
+        k = np.sqrt(4*alpha / Q)
+
+        x_comp = (2 * a * np.pi * np.sqrt(Q))**-1 * gamma * (
+                ellipe(k)*(1. + alpha**2 + beta**2)/(Q  - 4 * alpha) - ellipk(k)
+            )
+        
+        z_comp = (2 * a * np.pi * np.sqrt(Q))**-1 * (
+                ellipe(k)*(1. - alpha**2 - beta**2)/(Q  - 4 * alpha) + ellipk(k)
+            )
+        
+        return comp[0]*x_comp + comp[-1]*z_comp
+
+    def _mesh3d_geometric_factor(self, xyz_rx, comp, dh=None):
+        
+        if dh is None:
+            dh = 0.1*sum([np.min(h) for h in self.mesh.h])**(1/3)
+
+        dx = xyz_rx[0] - self.mesh.cell_centers[:, 0]
+        dy = xyz_rx[1] - self.mesh.cell_centers[:, 1]
+        dz = xyz_rx[2] - self.mesh.cell_centers[:, 2]
+        r = np.sqrt(dx**2 + dy**2 + dz**2) + dh
+
+        gx = (4*np.pi*r**3)**-1 * (comp[2] * dy - comp[1] * dz)
+        gy = (4*np.pi*r**3)**-1 * (comp[0] * dz - comp[2] * dx)
+        gz = (4*np.pi*r**3)**-1 * (comp[1] * dx - comp[0] * dy)
+
+        return [gx, gy, gz]
+
 
 ###############################################################################
 #                                                                             #
@@ -1085,130 +1131,123 @@ class Simulation3DElectricField(BaseTDEMSimulation):
         if f is None:
             f = self.fields(m)
 
-        mesh = self.mesh
-        a_sig = (self.sigmaMap * m) * mkvc(np.outer(self.mesh.hx, self.mesh.hz))
-
         diagJtJ_estimate = np.zeros(len(m))
         dsigdm_T = self.sigmaDeriv.T
 
+        # Product of volumes(areas) and conductivities
+        mesh = self.mesh
+        if isinstance(mesh, CylindricalMesh):
+            vol_sig = (self.sigmaMap * m) * mkvc(np.outer(self.mesh.hx, self.mesh.hz))
+        elif isinstance(mesh, (TensorMesh, TreeMesh)) and mesh.dim == 3:
+            vol_sig = (self.sigmaMap * m) * mesh.cell_volumes
+        else:
+            NotImplementedError("getJtJdiag_currents only implemented for CylindricalMesh, 3D TensorMesh and 3D TreeMesh")
+
         COUNT = 0
         
-        for src in self.survey.source_list:
-            for rx in src.receiver_list:
+        if isinstance(mesh, CylindricalMesh):
 
-                # Define e-field receiver to project to cell-centers at correct times
-                if isinstance(rx, PointMagneticFluxDensity):
-                    rx_e = PointElectricField(self.mesh.cell_centers, rx.times, 'y')
-                elif isinstance(rx, PointMagneticFluxTimeDerivative):
-                    rx_e = PointElectricFieldTimeDerivative(self.mesh.cell_centers, rx.times, 'y')
-                else:
-                    raise NotImplementedError('Not implemented')
-                
-                # e or de/dt at cell centers at all receiver times
-                e_array = mesh.average_edge_to_cell * (f[src,'e'] * rx_e.getTimeP(self.time_mesh, f).T)
+            for src in self.survey.source_list:
+                for rx in src.receiver_list:
 
-                # Compute term 1 contribution
-                n_times = len(rx.times)
-                n_loc = np.shape(rx.locations)[0]
-
-                xyz_rx = [rx.locations[ii, :] for ii in range(0, np.shape(rx.locations)[0])]
-                # sum_g_a_sig = np.zeros_like(n_times * mesh.nC, dtype=float)
-
-                for ii, loc in enumerate(xyz_rx):
+                    # Define e-field receiver to project to cell-centers at correct times
+                    if isinstance(rx, PointMagneticFluxDensity):
+                        rx_e = PointElectricField(self.mesh.cell_centers, rx.times, 'y')
+                    elif isinstance(rx, PointMagneticFluxTimeDerivative):
+                        rx_e = PointElectricFieldTimeDerivative(self.mesh.cell_centers, rx.times, 'y')
+                    else:
+                        raise NotImplementedError('Only implemented for B and dB/dt receivers')
                     
-                    g_a_sig = a_sig * self._cylmesh_geometric_factor(loc, rx.orientation, dh=None)
-                    
-                    Wi = W[COUNT+ii:COUNT+rx.nD:n_loc]
+                    # e or de/dt at cell centers at all receiver times
+                    e_array = mesh.average_edge_to_cell * (f[src,'e'] * rx_e.getTimeP(self.time_mesh, f).T)
 
-                    temp = sdiag(g_a_sig).dot(e_array)
-                    temp = sdiag(Wi).dot((dsigdm_T.dot(temp)).T)
-                    diagJtJ_estimate += np.sum(temp**2, axis=0)
+                    # Compute term 1 contribution
+                    n_times = len(rx.times)
+                    n_loc = np.shape(rx.locations)[0]
 
-                #     sum_g_a_sig = sum_g_a_sig + np.kron(Wi, g_a_sig)
+                    xyz_rx = [rx.locations[ii, :] for ii in range(0, np.shape(rx.locations)[0])]
 
-                # COUNT = COUNT + rx.nD
+                    for ii, loc in enumerate(xyz_rx):
+                        
+                        g_vol_sig = vol_sig * self._cylmesh_geometric_factor(loc, rx.orientation, dh=None)
+                        
+                        Wi = W[COUNT+ii:COUNT+rx.nD:n_loc]
 
-                # # Compute term 2 contribution
-                # src_e = CircularLoop(
-                #     [rx_e],
-                #     location=src.location,
-                #     waveform=src.waveform,
-                #     current=src.current,
-                #     radius=src.radius
-                # )
-                
-                # survey_e = Survey([src_e])
-                # sim_e = Simulation3DElectricField(
-                #     self.mesh, survey=survey_e, sigmaMap=self.sigmaMap, time_steps=self.time_steps, t0=self.t0
-                # )
-                # diagJtJ += np.abs(sim_e.Jtvec(m, sum_g_a_sig))
+                        temp = sdiag(g_vol_sig).dot(e_array)
+                        temp = sdiag(Wi).dot((dsigdm_T.dot(temp)).T)
+                        diagJtJ_estimate += np.sum(temp**2, axis=0)
 
-        # Preconditionned Hutchinson's
-        w = np.sqrt(diagJtJ_estimate)
-        
-        diagJtJ_correction = np.zeros_like(w)
-        u = np.random.uniform(-1., 1., size=(len(m), n_hutchinson_samples))
-        u = orth(u)  # Make orthonormal
-        u2 = np.sum(u**2, axis=1)
-
-        print("\n    Hutchinson iteration:", end="")
-
-        for ii in range(0, n_hutchinson_samples):
-
-            ui = u[:, ii]
+        else:
             
-            diagJtJ_correction += (
-                sdiag(ui / w) * (
-                    self.Jtvec(
-                        m,
-                        self.Jvec(m, ui / w, f),
-                        f
+            n_cells = self.mesh.nC
+
+            for src in self.survey.source_list:
+                for rx in src.receiver_list:
+
+                    # Define e-field receiver to project to cell-centers at correct times
+                    if isinstance(rx, PointMagneticFluxDensity):
+                        rx_e = [PointElectricField(self.mesh.cell_centers, rx.times, comp) for comp in ['x', 'y', 'z']]
+                    elif isinstance(rx, PointMagneticFluxTimeDerivative):
+                        rx_e = [PointElectricFieldTimeDerivative(self.mesh.cell_centers, rx.times, comp) for comp in ['x', 'y', 'z']]
+                    else:
+                        raise NotImplementedError('Only implemented for B and dB/dt receivers')
+
+                    # e or de/dt at cell centers at all receiver times
+                    fields_at_rx_times = f[src,'e'] * rx_e[0].getTimeP(self.time_mesh, f).T
+                    e_array = self.mesh.average_edge_to_cell_vector * fields_at_rx_times
+                    e_array = [e_array[ii*n_cells:(ii+1)*n_cells, :] for ii in range(0, 3)]
+                    
+                    # Compute term 1 contribution
+                    n_times = len(rx.times)
+                    n_loc = np.shape(rx.locations)[0]
+
+                    xyz_rx = [rx.locations[ii, :] for ii in range(0, np.shape(rx.locations)[0])]
+
+                    for ii, loc in enumerate(xyz_rx):
+                        
+                        Wi = W[COUNT+ii:COUNT+rx.nD:n_loc]
+
+                        g = self._mesh3d_geometric_factor(loc, rx.orientation, dh=None)
+                        temp = sum([
+                            sdiag(g[ii]*vol_sig).dot(e_array[ii]) for ii in range(0, 3)
+                        ])
+                        temp = sdiag(Wi).dot((dsigdm_T.dot(temp)).T)
+                        diagJtJ_estimate += np.sum(temp**2, axis=0)
+
+        if n_hutchinson_samples == 0:
+            return diagJtJ_estimate
+        
+        else:
+            # Preconditionned Hutchinson's
+            w = np.sqrt(diagJtJ_estimate)
+            
+            diagJtJ_correction = np.zeros_like(w)
+            u = np.random.uniform(-1., 1., size=(len(m), n_hutchinson_samples))
+            u = orth(u)  # Make orthonormal
+            u2 = np.sum(u**2, axis=1)
+    
+            print("\n    Hutchinson iteration:", end="")
+    
+            for ii in range(0, n_hutchinson_samples):
+    
+                ui = u[:, ii]
+                
+                diagJtJ_correction += (
+                    sdiag(ui / w) * (
+                        self.Jtvec(
+                            m,
+                            self.Jvec(m, ui / w, f),
+                            f
+                        )
                     )
                 )
-            )
-
-            if ii == n_hutchinson_samples-1:
-                print(' {}'.format(ii))
-            else:
-                print(' {}'.format(ii), end="")
-
-        return diagJtJ_estimate * diagJtJ_correction / u2
-
-
-    def _cylmesh_geometric_factor(self, xyz_rx, comp, dh=None):
-
-        # Stabilization constant for rx next to cell centers
-        if dh is None:
-            dh = 0.1*np.sqrt(np.min(self.mesh.hx) * np.min(self.mesh.hz))
-
-        # "loop radii"
-        a = self.mesh.cell_centers[:, 0]
-        s = xyz_rx[0]
-        dz = xyz_rx[-1] - self.mesh.cell_centers[:, -1]
-        r = np.sqrt((a-s)**2 + dz**2) + dh
-
-        alpha = s / a
-        beta = dz / a
-        gamma = dz / (s + dh)  # For stability
-        
-        Q = (1 + alpha)**2 + beta**2 + 1e-7*dh  # For stability
-        k = np.sqrt(4*alpha / Q)
-
-        x_comp = (2 * a * np.pi * np.sqrt(Q))**-1 * gamma * (
-                ellipe(k)*(1. + alpha**2 + beta**2)/(Q  - 4 * alpha) - ellipk(k)
-            )
-        
-        z_comp = (2 * a * np.pi * np.sqrt(Q))**-1 * (
-                ellipe(k)*(1. - alpha**2 - beta**2)/(Q  - 4 * alpha) + ellipk(k)
-            )
-        
-        return comp[0]*x_comp + comp[-1]*z_comp
-
-
-
-
-
-
+    
+                if ii == n_hutchinson_samples-1:
+                    print(' {}'.format(ii))
+                else:
+                    print(' {}'.format(ii), end="")
+    
+            return diagJtJ_estimate * diagJtJ_correction / u2
 
 
     # def clean(self):
@@ -1437,36 +1476,3 @@ class Simulation3DCurrentDensity(BaseTDEMSimulation):
             #      self.MfRhoIDeriv(G * u, D.T * v, adjoint=True)
             return self.MfRhoIDeriv(G * u, G * v, adjoint=True)
         return D * self.MfRhoIDeriv(G * u, v)
-
-
-
-def _geometric_factor_cylindrical_mesh(self, ind_active, xyz_rx, dh=None):
-    """Compute geometric factor for cyl mesh current-based weights.
-
-    mesh: Cylindrical mesh
-    ind_active: Active mesh cells
-    xyz_rx: receiver location
-    dh: stabilization constant
-    """
-
-    a = self.mesh.cell_centers[ind_active, 0]  # "loop radii"
-    s = rx.locations[:, 0]                     # radial scalar distance
-    dz = xyz_rx[-1] - xyz_cc[:, -1]            # vertical distance
-    
-    alpha = s / a
-    beta = dz / a
-    gamma = dz / (s + dh)  # For stability
-    
-    Q = (1 + alpha)**2 + beta**2
-    
-    k = np.sqrt(4*alpha / Q)
-    
-    Hx = (2 * a * np.pi * np.sqrt(Q))**-1 * gamma * (
-        ellipe(k)*(1. + alpha**2 + beta**2)/(Q  - 4 * alpha) - ellipk(k)
-    )
-    Hz = (2 * a * np.pi * np.sqrt(Q))**-1 * (
-        ellipe(k)*(1. - alpha**2 - beta**2)/(Q  - 4 * alpha) + ellipk(k)
-    )
-    
-    return Hx, Hz
-
