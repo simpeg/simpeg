@@ -122,9 +122,9 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
                 )  # In case round-off error
                 self.Ainv = dict.fromkeys(np.unique(self.time_steps).tolist(), None)
 
-            if hasattr(self, "ATinv"):
+            try:
                 {k: v.clean() for k, v in self.ATinv.items()}
-            else:
+            except:
                 self.ATinv = dict.fromkeys(np.unique(self.time_steps).tolist(), None)
 
             for dt in np.unique(self.time_steps).tolist():
