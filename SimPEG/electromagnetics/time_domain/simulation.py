@@ -1,6 +1,5 @@
 import numpy as np
 import scipy.sparse as sp
-import time
 
 from ...data import Data
 from ...simulation import BaseTimeSimulation
@@ -111,7 +110,7 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
         f[:, self._fieldType + "Solution", 0] = self.getInitialFields()  # mesh x n_src
 
         # Store Factorizations
-        if self.forward_only == False:
+        if self.forward_only is False:
 
             # Clean factorizations for preexisting model.
             if hasattr(self, "Ainv"):
@@ -124,7 +123,7 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
 
             try:
                 {k: v.clean() for k, v in self.ATinv.items()}
-            except:
+            except (AttributeError):
                 self.ATinv = dict.fromkeys(np.unique(self.time_steps).tolist(), None)
 
             for dt in np.unique(self.time_steps).tolist():
@@ -740,7 +739,7 @@ class Simulation3DMagneticFluxDensity(BaseTDEMSimulation):
         C = self.mesh.edge_curl
         MeSigmaI = self.MeSigmaI
 
-        MfMui = self.MfMui
+        # MfMui = self.MfMui
 
         _, s_e = src.eval(self, self.times[tInd])
         s_mDeriv, s_eDeriv = src.evalDeriv(self, self.times[tInd], adjoint=adjoint)
@@ -1140,7 +1139,7 @@ class Simulation3DMagneticField(BaseTDEMSimulation):
     def getAdiagDeriv(self, tInd, u, v, adjoint=False):
         assert tInd >= 0 and tInd < self.nT
 
-        dt = self.time_steps[tInd]
+        # dt = self.time_steps[tInd]
         C = self.mesh.edge_curl
 
         if adjoint:
@@ -1235,7 +1234,7 @@ class Simulation3DCurrentDensity(BaseTDEMSimulation):
     def getAdiagDeriv(self, tInd, u, v, adjoint=False):
         assert tInd >= 0 and tInd < self.nT
 
-        dt = self.time_steps[tInd]
+        # dt = self.time_steps[tInd]
         C = self.mesh.edge_curl
         MfRho = self.MfRho
         MeMuI = self.MeMuI
