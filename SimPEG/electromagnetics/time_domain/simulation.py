@@ -1,11 +1,8 @@
 import numpy as np
 import scipy.sparse as sp
-<<<<<<< HEAD
 from scipy.special import ellipk, ellipe
 from scipy.linalg import orth
 import time
-=======
->>>>>>> tem_store_factorizations_ram
 
 from discretize import CylindricalMesh, TensorMesh, TreeMesh
 
