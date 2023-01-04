@@ -1,5 +1,6 @@
 import numpy as np
 import pytest
+from discretize import TensorMesh
 
 from SimPEG.electromagnetics import frequency_domain as fdem
 from SimPEG.electromagnetics import time_domain as tdem
@@ -41,3 +42,16 @@ def test_source_properties():
         tdem.sources.LineCurrent([], location=loop_points, current=0)
 
     print("Test source property raises passes")
+
+
+def test_simulation_properties():
+
+    survey = tdem.survey.Survey([])
+    mesh = TensorMesh([[(10, 10)], [(10, 10)], [(10, 10)]])
+
+    with pytest.raises(TypeError):
+        simulation = tdem.simulation.Simulation3DElectricField(
+            survey=survey, mesh=mesh, forward_only=5
+        )
+
+    print("Test simulation property raises passes")
