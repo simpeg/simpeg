@@ -612,7 +612,7 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
     def _mesh3d_geometric_factor(self, xyz_rx, comp, dh=None):
         
         if dh is None:
-            dh = 0.1*sum([np.min(h) for h in self.mesh.h])**(1/3)
+            dh = 0.5*sum([np.min(h) for h in self.mesh.h])**(1/3)
 
         dx = xyz_rx[0] - self.mesh.cell_centers[:, 0]
         dy = xyz_rx[1] - self.mesh.cell_centers[:, 1]
@@ -1137,9 +1137,11 @@ class Simulation3DElectricField(BaseTDEMSimulation):
         # Product of volumes(areas) and conductivities
         mesh = self.mesh
         if isinstance(mesh, CylindricalMesh):
-            vol_sig = (self.sigmaMap * m) * mkvc(np.outer(self.mesh.hx, self.mesh.hz))
+            # A = (self.sigmaMap * m) * mkvc(np.outer(self.mesh.hx, self.mesh.hz))
+            A = sdiag(mkvc(np.outer(self.mesh.hx, self.mesh.hz)))
         elif isinstance(mesh, (TensorMesh, TreeMesh)) and mesh.dim == 3:
-            vol_sig = (self.sigmaMap * m) * mesh.cell_volumes
+            # A = (self.sigmaMap * m) * sdiag((mesh.cell_volumes / mesh.h_gridded.T).reshape(-1))
+            A = sdiag((self.mesh.cell_volumes / self.mesh.h_gridded.T).reshape(-1))
         else:
             NotImplementedError("getJtJdiag_currents only implemented for CylindricalMesh, 3D TensorMesh and 3D TreeMesh")
 
@@ -1159,7 +1161,7 @@ class Simulation3DElectricField(BaseTDEMSimulation):
                         raise NotImplementedError('Only implemented for B and dB/dt receivers')
                     
                     # e or de/dt at cell centers at all receiver times
-                    e_array = mesh.average_edge_to_cell * (f[src,'e'] * rx_e.getTimeP(self.time_mesh, f).T)
+                    e_areas = A.dot(mesh.average_edge_to_cell * (f[src,'e'] * rx_e.getTimeP(self.time_mesh, f).T))
 
                     # Compute term 1 contribution
                     n_times = len(rx.times)
@@ -1169,13 +1171,15 @@ class Simulation3DElectricField(BaseTDEMSimulation):
 
                     for ii, loc in enumerate(xyz_rx):
                         
-                        g_vol_sig = vol_sig * self._cylmesh_geometric_factor(loc, rx.orientation, dh=None)
+                        g = self._cylmesh_geometric_factor(loc, rx.orientation, dh=None)
                         
                         Wi = W[COUNT+ii:COUNT+rx.nD:n_loc]
 
-                        temp = sdiag(g_vol_sig).dot(e_array)
-                        temp = sdiag(Wi).dot((dsigdm_T.dot(temp)).T)
+                        temp = sdiag(g).dot(e_areas)
+                        temp = sdiag(Wi).dot((dsigdm_T.dot(e_areas)).T)
                         diagJtJ_estimate += np.sum(temp**2, axis=0)
+
+                    COUNT = COUNT + n_times*n_loc
 
         else:
             
@@ -1194,8 +1198,8 @@ class Simulation3DElectricField(BaseTDEMSimulation):
 
                     # e or de/dt at cell centers at all receiver times
                     fields_at_rx_times = f[src,'e'] * rx_e[0].getTimeP(self.time_mesh, f).T
-                    e_array = self.mesh.average_edge_to_cell_vector * fields_at_rx_times
-                    e_array = [e_array[ii*n_cells:(ii+1)*n_cells, :] for ii in range(0, 3)]
+                    e_areas = A.dot(self.mesh.average_edge_to_cell_vector * fields_at_rx_times)
+                    e_areas = [e_areas[ii*n_cells:(ii+1)*n_cells, :] for ii in range(0, 3)]
                     
                     # Compute term 1 contribution
                     n_times = len(rx.times)
@@ -1208,11 +1212,12 @@ class Simulation3DElectricField(BaseTDEMSimulation):
                         Wi = W[COUNT+ii:COUNT+rx.nD:n_loc]
 
                         g = self._mesh3d_geometric_factor(loc, rx.orientation, dh=None)
-                        temp = sum([
-                            sdiag(g[ii]*vol_sig).dot(e_array[ii]) for ii in range(0, 3)
-                        ])
+                        
+                        temp = sum([sdiag(g[ii]).dot(e_areas[ii]) for ii in range(0, 3)])
                         temp = sdiag(Wi).dot((dsigdm_T.dot(temp)).T)
                         diagJtJ_estimate += np.sum(temp**2, axis=0)
+
+                    COUNT = COUNT + n_times*n_loc
 
         if n_hutchinson_samples == 0:
             return diagJtJ_estimate
