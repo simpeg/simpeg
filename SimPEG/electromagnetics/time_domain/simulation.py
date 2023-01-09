@@ -24,7 +24,7 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
     """
 
     def __init__(
-        self, mesh, survey=None, dt_threshold=1e-8, forward_only=True, **kwargs
+        self, mesh, survey=None, dt_threshold=1e-10, forward_only=True, **kwargs
     ):
         super().__init__(mesh=mesh, survey=survey, **kwargs)
         self.dt_threshold = dt_threshold
@@ -89,7 +89,7 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
 
     @dt_threshold.setter
     def dt_threshold(self, value):
-        self._dt_threshold = validate_float("dt_threshold", value, min_val=0.0)
+        self._dt_threshold = validate_float("dt_threshold", value, min_val=1e-16)
 
     def fields(self, m):
         """
