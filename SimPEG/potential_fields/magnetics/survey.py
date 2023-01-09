@@ -19,7 +19,7 @@ class Survey(BaseSurvey):
         )
         super().__init__(source_list=None, **kwargs)
 
-    def eval(self, fields):
+    def eval(self, fields):  # noqa: A003
         """Compute the fields
 
         Parameters

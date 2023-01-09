@@ -175,7 +175,7 @@ class BaseRx(survey.BaseRx):
             self._Ps[(mesh, projected_grid)] = P
         return P
 
-    def eval(self, src, mesh, f):
+    def eval(self, src, mesh, f):  # noqa: A003
         """Project fields from the mesh to the receiver(s).
 
         Parameters
