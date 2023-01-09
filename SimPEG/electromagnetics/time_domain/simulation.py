@@ -31,7 +31,7 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
     """
 
     def __init__(
-        self, mesh, survey=None, dt_threshold=1e-8, forward_only=True, **kwargs
+        self, mesh, survey=None, dt_threshold=1e-10, forward_only=True, **kwargs
     ):
         super().__init__(mesh=mesh, survey=survey, **kwargs)
         self.dt_threshold = dt_threshold
@@ -96,7 +96,7 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
 
     @dt_threshold.setter
     def dt_threshold(self, value):
-        self._dt_threshold = validate_float("dt_threshold", value, min_val=0.0)
+        self._dt_threshold = validate_float("dt_threshold", value, min_val=1e-16)
 
     def fields(self, m):
         """
@@ -121,7 +121,7 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
 
             # Clean factorizations for preexisting model.
             if hasattr(self, "Ainv"):
-                {k: v.clean() for k, v in self.Ainv.items()}
+                self.Ainv = {k: v.clean() for k, v in self.Ainv.items()}
             else:
                 self.time_steps = self.dt_threshold * np.round(
                     self.time_steps / self.dt_threshold
@@ -129,7 +129,7 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
                 self.Ainv = dict.fromkeys(np.unique(self.time_steps).tolist(), None)
 
             try:
-                {k: v.clean() for k, v in self.ATinv.items()}
+                self.ATinv = {k: v.clean() for k, v in self.ATinv.items()}
             except (AttributeError):
                 self.ATinv = dict.fromkeys(np.unique(self.time_steps).tolist(), None)
 
