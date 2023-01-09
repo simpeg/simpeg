@@ -89,7 +89,7 @@ class BaseEMSrc(BaseSrc):
             raise TypeError(f"integrate property is a bool. Got {type(var)}")
         self._integrate = var
 
-    def eval(self, simulation):
+    def eval(self, simulation):  # noqa: A003
         """Return magnetic and electric source terms
 
         Parameters

@@ -139,7 +139,7 @@ class BaseRx(BaseTimeRx):
         time_inds = np.in1d(times_all, self.times)
         return time_inds
 
-    def eval(self, src, mesh, f):
+    def eval(self, src, mesh, f):  # noqa: A003
         """Project fields to receivers to get data.
 
         Parameters
