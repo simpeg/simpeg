@@ -61,7 +61,7 @@ class BaseSrc(survey.BaseSrc):
             )
         self._current = other
 
-    def eval(self, sim):
+    def eval(self, sim):  # noqa: A003
         """Discretize sources to mesh
 
         Parameters
