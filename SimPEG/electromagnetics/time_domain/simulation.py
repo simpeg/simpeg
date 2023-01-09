@@ -114,7 +114,7 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
 
             # Clean factorizations for preexisting model.
             if hasattr(self, "Ainv"):
-                {k: v.clean() for k, v in self.Ainv.items()}
+                self.Ainv = {k: v.clean() for k, v in self.Ainv.items()}
             else:
                 self.time_steps = self.dt_threshold * np.round(
                     self.time_steps / self.dt_threshold
@@ -122,7 +122,7 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
                 self.Ainv = dict.fromkeys(np.unique(self.time_steps).tolist(), None)
 
             try:
-                {k: v.clean() for k, v in self.ATinv.items()}
+                self.ATinv = {k: v.clean() for k, v in self.ATinv.items()}
             except (AttributeError):
                 self.ATinv = dict.fromkeys(np.unique(self.time_steps).tolist(), None)
 
