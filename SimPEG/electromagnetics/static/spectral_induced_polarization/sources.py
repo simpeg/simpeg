@@ -59,7 +59,7 @@ class BaseSrc(survey.BaseSrc):
             raise ValueError("current must be non-zero.")
         self._current = I
 
-    def eval(self, simulation):
+    def eval(self, simulation):  # noqa: A003
         """Not implemented for BaseSrc"""
         raise NotImplementedError
 
@@ -205,7 +205,7 @@ class Dipole(BaseSrc):
         """
         return self.location[1]
 
-    def eval(self, simulation):
+    def eval(self, simulation):  # noqa: A003
         """Project source to mesh.
 
         Parameters
@@ -249,7 +249,7 @@ class Pole(BaseSrc):
     def __init__(self, receiver_list=None, location=None, **kwargs):
         super(Pole, self).__init__(receiver_list, location=location, **kwargs)
 
-    def eval(self, simulation):
+    def eval(self, simulation):  # noqa: A003
         """Project source to mesh.
 
         Parameters
