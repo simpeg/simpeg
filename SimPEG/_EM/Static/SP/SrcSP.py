@@ -39,7 +39,7 @@ class StreamingCurrents(Src.BaseSrc):
         q = self.Grad.T * self.mesh.aveCCV2F * j
         return q
 
-    def eval(self, prob):
+    def eval(self, prob):  # noqa: A003
         r"""
         Computing source term using:
 
