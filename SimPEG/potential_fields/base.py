@@ -250,7 +250,7 @@ class BaseEquivalentSourceLayerSimulation(BasePFSimulation):
         self._unique_inv = None
 
 
-def progress(iter, prog, final):
+def progress(iteration, prog, final):
     """Progress (% complete) for constructing sensitivity matrix
 
     Parameters
@@ -267,7 +267,7 @@ def progress(iter, prog, final):
     float
         % completed
     """
-    arg = np.floor(float(iter) / float(final) * 10.0)
+    arg = np.floor(float(iteration) / float(final) * 10.0)
 
     if arg > prog:
 

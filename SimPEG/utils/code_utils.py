@@ -774,10 +774,10 @@ def validate_string(property_name, var, string_list=None, case_sensitive=False):
         if not case_sensitive:
             test_var = var.casefold()
             # also fold the string_list for comparison
-            def fold_input(input):
-                if isinstance(input, (list, tuple)):
-                    return [fold_input(x) for x in input]
-                return input.casefold()
+            def fold_input(input_variable):
+                if isinstance(input_variable, (list, tuple)):
+                    return [fold_input(x) for x in input_variable]
+                return input_variable.casefold()
 
             test_string_list = fold_input(string_list)
         else:

@@ -190,7 +190,7 @@ class PGIsmallness(Smallness):
             )
 
         if isinstance(maplist, list) and not all(
-            isinstance(map, IdentityMap) for map in maplist
+            isinstance(m, IdentityMap) for m in maplist
         ):
             raise ValueError(
                 f"Attribute 'maplist' should be a list of maps or None.{type(maplist)} was given."
@@ -737,7 +737,9 @@ class PGI(ComboObjectiveFunction):
         if not isinstance(weights_list, list):
             weights_list = [weights_list] * len(self.maplist)
 
-        for map, wire, weights in zip(self.maplist, self.wiresmap.maps, weights_list):
+        for model_map, wire, weights in zip(
+            self.maplist, self.wiresmap.maps, weights_list
+        ):
             objfcts += [
                 WeightedLeastSquares(
                     alpha_s=0.0,
@@ -748,7 +750,7 @@ class PGI(ComboObjectiveFunction):
                     alpha_yy=alpha_yy,
                     alpha_zz=alpha_zz,
                     mesh=self.regularization_mesh,
-                    mapping=map * wire[1],
+                    mapping=model_map * wire[1],
                     weights=weights,
                     **kwargs,
                 )
