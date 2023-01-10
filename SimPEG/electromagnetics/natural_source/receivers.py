@@ -368,7 +368,7 @@ class PointNaturalSource(BaseRx):
             rx_deriv = getattr(imp_deriv, self.component)
         return rx_deriv
 
-    def eval(self, src, mesh, f, return_complex=False):
+    def eval(self, src, mesh, f, return_complex=False):  # noqa: A003
         """
         Project the fields to natural source data.
 
@@ -556,7 +556,7 @@ class Point3DTipper(PointNaturalSource):
 
         return (bot * dtop_v - top * dbot_v) / (bot * bot)
 
-    def eval(self, src, mesh, f, return_complex=False):
+    def eval(self, src, mesh, f, return_complex=False):  # noqa: A003
         """
         Project the fields to natural source data.
 
