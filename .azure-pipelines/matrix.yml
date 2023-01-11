@@ -30,7 +30,7 @@ jobs:
               echo "##vso[task.prependpath]./bin"
             displayName: Add micromamba to PATH
 
-          - script: sudo chown -R $USER micromamba
+          - script: sudo chown -R $USER /home/vsts/micromamba
             displayName: Take ownership of micromamba installation
 
           - script: |
