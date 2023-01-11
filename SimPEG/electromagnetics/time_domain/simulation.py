@@ -24,9 +24,10 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
     Euler.
     """
 
-    def __init__(self, mesh, survey=None, dt_threshold=1e-8, **kwargs):
+    def __init__(self, mesh, survey=None, dt_threshold=1e-8, store_factors=False, **kwargs):
         super().__init__(mesh=mesh, survey=survey, **kwargs)
         self.dt_threshold = dt_threshold
+        self._Ainvs = {}
         if self.muMap is not None:
             raise NotImplementedError(
                 "Time domain EM simulations do not support magnetic permeability "
@@ -52,10 +53,10 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
 
     @property
     def dt_threshold(self):
-        """The threshold used to determine if a previous matrix factor can be reused.
+        """The relative threshold to determine if a previous matrix factor can be reused.
 
-        If the difference in time steps falls below this threshold, the factored matrix
-        is re-used.
+        If the difference in time steps falls below this relative threshold, the
+        factored matrix is re-used.
 
         Returns
         -------
@@ -65,7 +66,26 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
 
     @dt_threshold.setter
     def dt_threshold(self, value):
-        self._dt_threshold = validate_float("dt_threshold", value, min_val=0.0)
+        value = validate_float("dt_threshold", value, min_val=0.0, max_val=1.0)
+        self._dt_threshold = value
+        self._dt_precision = None if value == 0.0 else np.ceil(-np.log10(value))
+
+    @property
+    def store_factors(self):
+        """If True, A-inverse is stored for each unique time step.
+
+        This can accelerate the jacobian vector operations while running inversions at
+        the cost of increased memory consuption.
+
+        Returns
+        -------
+        bool
+        """
+        return self._store_factors
+
+    @store_factors.setter
+    def store_factors(self, value):
+        self._store_factors = validate_type("store_factors", value, bool)
 
     # def fields_nostore(self, m):
     #     """
@@ -89,6 +109,10 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
         tic = time.time()
         self.model = m
 
+        if self.store_factors:
+            for dt_str in self._Ainvs:
+                self._Ainvs[dt_str].clean()
+
         f = self.fieldsPair(self)
 
         # set initial fields
@@ -99,10 +123,14 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
 
         # timestep to solve forward
         Ainv = None
+        Ainvs = {}
         for tInd, dt in enumerate(self.time_steps):
             # keep factors if dt is the same as previous step b/c A will be the
             # same
-            if Ainv is not None and (
+            if self.store_factors:
+                dt_str = np.format_float_scientific(dt, precision=self._dt_precision)
+                Ainv = Ainvs.get(dt_str, None)
+            else if Ainv is not None and (
                 tInd > 0 and abs(dt - self.time_steps[tInd - 1]) > self.dt_threshold
             ):
                 Ainv.clean()
@@ -132,11 +160,17 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
                 sol.shape = (sol.size, 1)
             f[:, self._fieldType + "Solution", tInd + 1] = sol
 
+            if self.store_factors:
+                Ainvs[dt_str] = Ainv
+
         if self.verbose:
             print("{}\nDone calculating fields(m)\n{}".format("*" * 50, "*" * 50))
 
         # clean factors and return
-        Ainv.clean()
+        if self.store_factors:
+            self._Ainvs = Ainvs
+        else:
+            Ainv.clean()
         return f
 
     def Jvec(self, m, v, f=None):
@@ -195,13 +229,19 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
         for tInd, dt in zip(range(self.nT), self.time_steps):
             # keep factors if dt is the same as previous step b/c A will be the
             # same
-            if Adiaginv is not None and (tInd > 0 and dt != self.time_steps[tInd - 1]):
+
+            if self.store_factors:
+                dt_str = np.format_float_scientific(dt, precision=self._dt_precision)
+                Adiaginv = self._Ainvs.get(dt_str, None)
+            else if Adiaginv is not None and (tInd > 0 and abs(dt - self.time_steps[tInd - 1]) > self.dt_threshold):
                 Adiaginv.clean()
                 Adiaginv = None
 
             if Adiaginv is None:
                 A = self.getAdiag(tInd)
                 Adiaginv = self.solver(A, **self.solver_opts)
+            if self.store_factors:
+                self._Ainv[dt_str] = Adiaginv
 
             Asubdiag = self.getAsubdiag(tInd)
 
@@ -245,7 +285,9 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
                         mkvc(df_dm_v[src, "%sDeriv" % rx.projField, :]),
                     )
                 )
-        Adiaginv.clean()
+
+        if not self.store_factors:
+            Adiaginv.clean()
         # del df_dm_v, dun_dm_v, Asubdiag
         # return mkvc(Jv)
         return np.hstack(Jv)
@@ -340,10 +382,15 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
         # if the previous timestep is the same: no need to refactor the matrix
         # for tInd, dt in zip(range(self.nT), self.time_steps):
 
-        for tInd in reversed(range(self.nT)):
+        for tInd, dt in zip(range(self.nT)[::-1], self.time_steps[::-1]):
             # tInd = tIndP - 1
+            if self.store_factors:
+                dt_str = np.format_float_scientific(dt, precision=self._dt_precision)
+                if not self._makeASymmetric:
+                    dt_str += "T"
+                AdiagTinv = self._Ainvs.get(dt_str, None)
             if AdiagTinv is not None and (
-                tInd <= self.nT and self.time_steps[tInd] != self.time_steps[tInd + 1]
+                tInd <= self.nT and abs(dt - self.time_steps[tInd + 1]) > self.dt_threshold
             ):
                 AdiagTinv.clean()
                 AdiagTinv = None
@@ -352,6 +399,8 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
             if AdiagTinv is None:  # and tInd > -1:
                 Adiag = self.getAdiag(tInd)
                 AdiagTinv = self.solver(Adiag.T.tocsr(), **self.solver_opts)
+            if self.store_factors:
+                self._Ainv[dt_str] = AdiagTinv
 
             if tInd < self.nT - 1:
                 Asubdiag = self.getAsubdiag(tInd + 1)
@@ -390,7 +439,7 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
         # Treat the initial condition
 
         # del df_duT_v, ATinv_df_duT_v, A, Asubdiag
-        if AdiagTinv is not None:
+        if not self.store_factors and AdiagTinv is not None:
             AdiagTinv.clean()
 
         return mkvc(JTv).astype(float)
