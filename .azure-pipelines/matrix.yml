@@ -31,18 +31,18 @@ jobs:
 
           - bash: |
               echo "  - python="${{ py_vers }} >> environment_test.yml
-              micromamba create -f environment_test.yml
-              micromamba activate simpeg-test
+              ./bin/micromamba create -f environment_test.yml
+              ./bin/micromamba activate simpeg-test
               pip install pytest-azurepipelines
             displayName: Create Anaconda testing environment
 
           - bash: |
-              micromamba activate simpeg-test
+              ./bin/micromamba activate simpeg-test
               pip install -e .
             displayName: Build package
 
           - bash: |
-              micromamba activate simpeg-test
+              ./bin/micromamba activate simpeg-test
               export KMP_WARNINGS=0
               pytest ${{ test }} -v -s --cov-config=.coveragerc --cov=SimPEG --cov-report=xml --cov-report=html -W ignore::DeprecationWarning
             displayName: 'Testing ${{ test }}'
