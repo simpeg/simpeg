@@ -31,6 +31,7 @@ jobs:
             displayName: Add micromamba to PATH
 
           - script: |
+              eval "$(micromamba shell hook --shell=bash)"
               echo "  - python="${{ py_vers }} >> environment_test.yml
               micromamba env create -f environment_test.yml
               micromamba activate simpeg-test
@@ -38,11 +39,13 @@ jobs:
             displayName: Create Anaconda testing environment
 
           - script: |
+              eval "$(micromamba shell hook --shell=bash)"
               micromamba activate simpeg-test
               pip install -e .
             displayName: Build package
 
           - script: |
+              eval "$(micromamba shell hook --shell=bash)"
               micromamba activate simpeg-test
               export KMP_WARNINGS=0
               pytest ${{ test }} -v -s --cov-config=.coveragerc --cov=SimPEG --cov-report=xml --cov-report=html -W ignore::DeprecationWarning
