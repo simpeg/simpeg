@@ -27,6 +27,7 @@ jobs:
               export MAMBA_ROOT_PREFIX=~/micromamba
               eval "$(./bin/micromamba shell hook -s posix)"
               ./bin/micromamba shell init -s bash -p ~/micromamba
+              mkdir -p ~/micromamba/pkgs/
             displayName: Install micromamba
 
           - bash: |
