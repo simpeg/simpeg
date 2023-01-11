@@ -30,7 +30,7 @@ jobs:
           - bash: |
               source "${HOME}/conda/etc/profile.d/conda.sh"
               source "${HOME}/conda/etc/profile.d/mamba.sh"
-              mamba create -f environment_test.yml
+              mamba env create -f environment_test.yml
               conda activate simpeg-test
               pip install pytest-azurepipelines
             displayName: Create Anaconda testing environment
