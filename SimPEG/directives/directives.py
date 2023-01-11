@@ -78,7 +78,9 @@ class InversionDirective:
     @property
     def inversion(self):
         """This is the inversion of the InversionDirective instance."""
-        return getattr(self, "_inversion", None)
+        if not hasattr(self, "_inversion"):
+            return None
+        return self._inversion
 
     @inversion.setter
     def inversion(self, i):
@@ -2265,7 +2267,7 @@ class UpdateSensitivityWeights(InversionDirective):
         for optimization and regularization
         """
         for reg in self.reg.objfcts:
-            if not isinstance(getattr(reg, "mapping"), (IdentityMap, Wires)):
+            if not isinstance(reg.mapping, (IdentityMap, Wires)):
                 raise TypeError(
                     f"Mapping for the regularization must be of type {IdentityMap} or {Wires}. "
                     + f"Input mapping of type {type(reg.mapping)}."
