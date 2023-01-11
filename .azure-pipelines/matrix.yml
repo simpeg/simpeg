@@ -30,6 +30,9 @@ jobs:
               echo "##vso[task.prependpath]./bin"
             displayName: Add micromamba to PATH
 
+          - script: sudo chown -R $USER micromamba
+            displayName: Take ownership of micromamba installation
+
           - script: |
               eval "$(micromamba shell hook --shell=bash)"
               echo "  - python="${{ py_vers }} >> environment_test.yml
