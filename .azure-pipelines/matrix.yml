@@ -31,8 +31,9 @@ jobs:
             displayName: Add conda to PATH
 
           - bash: |
-              eval "$(conda shell.bash hook)"
-              micromamba create -f environment_test.yml
+              source "${HOME}/conda/etc/profile.d/conda.sh"
+              conda activate
+              mamba create -f environment_test.yml
               conda activate simpeg-test
               pip install pytest-azurepipelines
             displayName: Create Anaconda testing environment
