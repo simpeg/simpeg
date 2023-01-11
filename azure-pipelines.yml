@@ -16,47 +16,47 @@ pr:
     - '*no-ci*'
 stages:
 
-# - stage: StyleChecks
-#   displayName: "Style Checks"
-#   jobs:
-#     - job:
-#       displayName: Run style checks with Black
-#       pool:
-#         vmImage: ubuntu-latest
-#       variables:
-#         python.version: '3.7'
-#       steps:
-#         - script: |
-#             pip install -r requirements_style.txt
-#           displayName: "Install dependencies to run the checks"
-#         - script: make black
-#           displayName: "Run black"
-#
-#     - job:
-#       displayName: Run (permissive) style checks with flake8
-#       pool:
-#         vmImage: ubuntu-latest
-#       variables:
-#         python.version: '3.7'
-#       steps:
-#         - script: |
-#             pip install -r requirements_style.txt
-#           displayName: "Install dependencies to run the checks"
-#         - script: make flake-permissive
-#           displayName: "Run flake8"
-#
-#     - job:
-#       displayName: Run style checks with flake8 (allowed to fail)
-#       pool:
-#         vmImage: ubuntu-latest
-#       variables:
-#         python.version: '3.7'
-#       steps:
-#         - script: |
-#             pip install -r requirements_style.txt
-#           displayName: "Install dependencies to run the checks"
-#         - script: FLAKE8_OPTS="--exit-zero" make flake
-#           displayName: "Run flake8"
+- stage: StyleChecks
+  displayName: "Style Checks"
+  jobs:
+    - job:
+      displayName: Run style checks with Black
+      pool:
+        vmImage: ubuntu-latest
+      variables:
+        python.version: '3.7'
+      steps:
+        - script: |
+            pip install -r requirements_style.txt
+          displayName: "Install dependencies to run the checks"
+        - script: make black
+          displayName: "Run black"
+
+    - job:
+      displayName: Run (permissive) style checks with flake8
+      pool:
+        vmImage: ubuntu-latest
+      variables:
+        python.version: '3.7'
+      steps:
+        - script: |
+            pip install -r requirements_style.txt
+          displayName: "Install dependencies to run the checks"
+        - script: make flake-permissive
+          displayName: "Run flake8"
+
+    - job:
+      displayName: Run style checks with flake8 (allowed to fail)
+      pool:
+        vmImage: ubuntu-latest
+      variables:
+        python.version: '3.7'
+      steps:
+        - script: |
+            pip install -r requirements_style.txt
+          displayName: "Install dependencies to run the checks"
+        - script: FLAKE8_OPTS="--exit-zero" make flake
+          displayName: "Run flake8"
 
 - stage: Testing
   #dependsOn: StyleChecks
@@ -84,34 +84,28 @@ stages:
             GH_NAME: $(gh.name)
             GH_EMAIL: $(gh.email)
 
-        - script: echo '##vso[task.prependpath]$CONDA/bin'
-          displayName: Add conda to PATH
-
-        - script: sudo chown -R $USER $CONDA
-          displayName: Take ownership of conda installation
-
         - script: |
-            eval "$(conda shell.bash hook)"
-            conda update --yes --quiet -n base conda
-            conda install --yes --quiet -c conda-forge mamba
+            wget -O Mambaforge.sh  "https://github.com/conda-forge/miniforge/releases/latest/download/Mambaforge-$(uname)-$(uname -m).sh"
+            bash Mambaforge.sh -b -p "${HOME}/conda"
           displayName: Install mamba
 
         - script: |
-              eval "$(conda shell.bash hook)"
-              echo "  - python="$(python.version) >> environment_test.yml
-              mamba env create -f environment_test.yml
-              conda activate simpeg-test
-              pip install pytest-azurepipelines
+            source "${HOME}/conda/etc/profile.d/conda.sh"
+            source "${HOME}/conda/etc/profile.d/mamba.sh"
+            echo "  - python="$(python.version) >> environment_test.yml
+            mamba env create -f environment_test.yml
+            conda activate simpeg-test
+            pip install pytest-azurepipelines
           displayName: Create Anaconda testing environment
 
         - script: |
-            eval "$(conda shell.bash hook)"
+            source "${HOME}/conda/etc/profile.d/conda.sh"
             conda activate simpeg-test
             pip install -e .
           displayName: Build package
 
         - script: |
-            eval "$(conda shell.bash hook)"
+            source "${HOME}/conda/etc/profile.d/conda.sh"
             conda activate simpeg-test
             python setup.py sdist
             twine upload --skip-existing dist/*
@@ -121,7 +115,7 @@ stages:
             TWINE_PASSWORD: $(twine.password)
 
         - script: |
-            eval "$(conda shell.bash hook)"
+            source "${HOME}/conda/etc/profile.d/conda.sh"
             conda activate simpeg-test
             export KMP_WARNINGS=0
             cd docs

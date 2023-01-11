@@ -22,12 +22,12 @@ jobs:
           pool:
             vmImage: ${{ os }}
           steps:
-          - bash: |
+          - script: |
               wget -O Mambaforge.sh  "https://github.com/conda-forge/miniforge/releases/latest/download/Mambaforge-$(uname)-$(uname -m).sh"
               bash Mambaforge.sh -b -p "${HOME}/conda"
             displayName: Install mamba
 
-          - bash: |
+          - script: |
               source "${HOME}/conda/etc/profile.d/conda.sh"
               source "${HOME}/conda/etc/profile.d/mamba.sh"
               echo "  - python="${{ py_vers }} >> environment_test.yml
@@ -36,20 +36,20 @@ jobs:
               pip install pytest-azurepipelines
             displayName: Create Anaconda testing environment
 
-          - bash: |
+          - script: |
               source "${HOME}/conda/etc/profile.d/conda.sh"
               conda activate simpeg-test
               pip install -e .
             displayName: Build package
 
-          - bash: |
+          - script: |
               source "${HOME}/conda/etc/profile.d/conda.sh"
               conda activate simpeg-test
               export KMP_WARNINGS=0
               pytest ${{ test }} -v -s --cov-config=.coveragerc --cov=SimPEG --cov-report=xml --cov-report=html -W ignore::DeprecationWarning
             displayName: 'Testing ${{ test }}'
 
-          - bash: |
+          - script: |
               bash <(curl -s https://codecov.io/bash)
             displayName: 'Upload coverage to codecov.io'
             condition: eq(${{ py_vers }}, '3.7')
