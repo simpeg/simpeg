@@ -28,10 +28,10 @@ jobs:
 
           - script: |
               echo "##vso[task.prependpath]./bin"
+              micromamba shell init --shell=bash --prefix=~/micromamba
             displayName: Add micromamba to PATH
 
           - script: |
-              micromamba shell init --shell=bash --prefix=~/micromamba
               echo "  - python="${{ py_vers }} >> environment_test.yml
               micromamba env create -f environment_test.yml
               micromamba activate simpeg-test
