@@ -26,25 +26,23 @@ jobs:
               curl micro.mamba.pm/install.sh | bash
             displayName: Install micromamba
 
-          - script: echo "##vso[task.prependpath]./bin"
+          - script: |
+              echo "##vso[task.prependpath]./bin"
             displayName: Add micromamba to PATH
 
           - script: |
-#                eval "$(micromamba shell.bash hook)"
-                echo "  - python="${{ py_vers }} >> environment_test.yml
-                micromamba env create -f environment_test.yml
-                micromamba activate simpeg-test
-                pip install pytest-azurepipelines
+              echo "  - python="${{ py_vers }} >> environment_test.yml
+              micromamba env create -f environment_test.yml
+              micromamba activate simpeg-test
+              pip install pytest-azurepipelines
             displayName: Create Anaconda testing environment
 
           - script: |
-#              eval "$(micromamba shell.bash hook)"
               micromamba activate simpeg-test
               pip install -e .
             displayName: Build package
 
           - script: |
-#              eval "$(micromamba shell.bash hook)"
               micromamba activate simpeg-test
               export KMP_WARNINGS=0
               pytest ${{ test }} -v -s --cov-config=.coveragerc --cov=SimPEG --cov-report=xml --cov-report=html -W ignore::DeprecationWarning
