@@ -30,23 +30,23 @@ jobs:
               mkdir -p ~/micromamba/pkgs/
             displayName: Install micromamba
 
+          - bash: echo '##vso[task.prependpath]./bin'
+            displayName: Add micromamba to PATH
+
           - bash: |
-              eval "$(./bin/micromamba shell hook --shell=bash)"
               echo "  - python="${{ py_vers }} >> environment_test.yml
-              ./bin/micromamba create -f environment_test.yml
-              ./bin/micromamba activate simpeg-test
+              micromamba create -y -f environment_test.yml
+              micromamba activate simpeg-test
               pip install pytest-azurepipelines
             displayName: Create Anaconda testing environment
 
           - bash: |
-              eval "$(./bin/micromamba shell hook --shell=bash)"
-              ./bin/micromamba activate simpeg-test
+              micromamba activate simpeg-test
               pip install -e .
             displayName: Build package
 
           - bash: |
-              eval "$(./bin/micromamba shell hook --shell=bash)"
-              ./bin/micromamba activate simpeg-test
+              micromamba activate simpeg-test
               export KMP_WARNINGS=0
               pytest ${{ test }} -v -s --cov-config=.coveragerc --cov=SimPEG --cov-report=xml --cov-report=html -W ignore::DeprecationWarning
             displayName: 'Testing ${{ test }}'
