@@ -31,7 +31,7 @@ jobs:
             displayName: Install micromamba
 
           - bash: |
-              ./bin/micromamba shell init -s bash -p ~/micromamba
+              source ~/.bashrc
               eval "$(./bin/micromamba shell hook --shell=bash)"
               echo $MAMBA_EXE
               ./bin/micromamba create -y -f environment_test.yml
@@ -40,14 +40,14 @@ jobs:
             displayName: Create Anaconda testing environment
 
           - bash: |
-              ./bin/micromamba shell init -s bash -p ~/micromamba
+              source ~/.bashrc
               eval "$(./bin/micromamba shell hook --shell=bash)"
               micromamba activate simpeg-test
               pip install -e .
             displayName: Build package
 
           - bash: |
-              ./bin/micromamba shell init -s bash -p ~/micromamba
+              source ~/.bashrc
               eval "$(./bin/micromamba shell hook --shell=bash)"
               micromamba activate simpeg-test
               export KMP_WARNINGS=0
