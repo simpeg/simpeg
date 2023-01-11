@@ -23,32 +23,29 @@ jobs:
             vmImage: ${{ os }}
           steps:
           - bash: |
-              curl -Ls https://micro.mamba.pm/api/micromamba/linux-64/latest | tar -xvj bin/micromamba
-              export MAMBA_ROOT_PREFIX=~/micromamba
-              eval "$(./bin/micromamba shell hook -s posix)"
-              ./bin/micromamba shell init -s bash -p ~/micromamba
-              mkdir -p ~/micromamba/pkgs/
+              wget -O Miniforge3.sh "https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-$(uname)-$(uname -m).sh"
+              bash Miniforge3.sh -b -p "${HOME}/conda"
             displayName: Install micromamba
 
+          - script: echo '##vso[task.prependpath]${HOME}/conda/bin'
+            displayName: Add conda to PATH
+
           - bash: |
-              eval "$(./bin/micromamba shell hook --shell=bash)"
-              ./bin/micromamba activate
-              ./bin/micromamba create -y -f environment_test.yml
-              ./bin/micromamba activate simpeg-test
+              eval "$(conda shell.bash hook)"
+              mamba create -f environment_test.yml
+              conda activate simpeg-test
               pip install pytest-azurepipelines
             displayName: Create Anaconda testing environment
 
           - bash: |
-              eval "$(./bin/micromamba shell hook --shell=bash)"
-              ./bin/micromamba activate
-              micromamba activate simpeg-test
+              eval "$(conda shell.bash hook)"
+              conda activate simpeg-test
               pip install -e .
             displayName: Build package
 
           - bash: |
-              eval "$(./bin/micromamba shell hook --shell=bash)"
-              ./bin/micromamba activate
-              micromamba activate simpeg-test
+              eval "$(conda shell.bash hook)"
+              conda activate simpeg-test
               export KMP_WARNINGS=0
               pytest ${{ test }} -v -s --cov-config=.coveragerc --cov=SimPEG --cov-report=xml --cov-report=html -W ignore::DeprecationWarning
             displayName: 'Testing ${{ test }}'
