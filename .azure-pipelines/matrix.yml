@@ -27,11 +27,8 @@ jobs:
               bash Miniforge3.sh -b -p ~/miniforge
             displayName: Install mamba
 
-          - script: echo '##vso[task.prependpath]~/miniforge/bin'
-            displayName: Add conda to PATH
-
           - bash: |
-              source "${HOME}/miniforge/etc/profile.d/conda.sh"
+              source ~/miniforge/etc/profile.d/conda.sh
               conda activate
               mamba create -f environment_test.yml
               conda activate simpeg-test
