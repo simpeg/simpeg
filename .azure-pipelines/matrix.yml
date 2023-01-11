@@ -31,22 +31,23 @@ jobs:
             displayName: Install micromamba
 
           - bash: |
-              source .bashrc
+              ./bin/micromamba shell init -s bash -p ~/micromamba
               eval "$(./bin/micromamba shell hook --shell=bash)"
+              echo $MAMBA_EXE
               ./bin/micromamba create -y -f environment_test.yml
               ./bin/micromamba activate simpeg-test
               pip install pytest-azurepipelines
             displayName: Create Anaconda testing environment
 
           - bash: |
-              source .bashrc
+              ./bin/micromamba shell init -s bash -p ~/micromamba
               eval "$(./bin/micromamba shell hook --shell=bash)"
               micromamba activate simpeg-test
               pip install -e .
             displayName: Build package
 
           - bash: |
-              source .bashrc
+              ./bin/micromamba shell init -s bash -p ~/micromamba
               eval "$(./bin/micromamba shell hook --shell=bash)"
               micromamba activate simpeg-test
               export KMP_WARNINGS=0
