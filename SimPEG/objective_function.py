@@ -69,8 +69,8 @@ class BaseObjectiveFunction(BaseSimPEG):
         """
         A `SimPEG.Maps` instance
         """
-        if getattr(self, "_mapping") is None:
-            if getattr(self, "_nP") is not None:
+        if self._mapping is None:
+            if self._nP is not None:
                 self._mapping = self.mapPair(nP=self.nP)
             else:
                 self._mapping = self.mapPair()
