@@ -5,6 +5,7 @@ import numpy as np
 from scipy.constants import mu_0
 from geoana.em.fdem import (
     MagneticDipoleHalfSpace,
+    omega,
     vertical_magnetic_field_horizontal_loop as mag_field,
 )
 import empymod
@@ -283,12 +284,15 @@ class EM1D_FD_FwdProblemTests(unittest.TestCase):
 
         H_analytic = []
         for sigma, frequency in zip(sigmas, self.frequencies):
+            sig = np.real(sigma)
+            eps = np.imag(sigma) / omega(frequency)
             dip = MagneticDipoleHalfSpace(
                 location=np.r_[0.0, 0.0, 0.0],
                 orientation="z",
                 frequency=[frequency],
-                sigma=np.asarray(self.sigma),
-                quasistatic=True,
+                sigma=sig,
+                epsilon=eps,
+                quasistatic=False,
             )
             hv = np.squeeze(dip.magnetic_field(np.array([[self.offset, 0.0]])))
             hx = hv[0]
