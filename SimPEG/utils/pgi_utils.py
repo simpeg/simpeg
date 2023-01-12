@@ -1,26 +1,27 @@
-import numpy as np
+import warnings
+
 import matplotlib.pyplot as plt
+import numpy as np
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 from scipy import linalg
 from scipy.special import logsumexp
-from sklearn.mixture import GaussianMixture
 from sklearn.cluster import KMeans
-from sklearn.utils import check_array
-from sklearn.utils.validation import check_is_fitted
+from sklearn.mixture import GaussianMixture
+from sklearn.mixture._base import ConvergenceWarning, check_random_state
 from sklearn.mixture._gaussian_mixture import (
-    _compute_precision_cholesky,
-    _compute_log_det_cholesky,
-    _estimate_gaussian_covariances_full,
-    _estimate_gaussian_covariances_diag,
-    _estimate_gaussian_covariances_spherical,
     _check_means,
     _check_precisions,
     _check_shape,
+    _compute_log_det_cholesky,
+    _compute_precision_cholesky,
+    _estimate_gaussian_covariances_diag,
+    _estimate_gaussian_covariances_full,
+    _estimate_gaussian_covariances_spherical,
 )
-from sklearn.mixture._base import check_random_state, ConvergenceWarning
-import warnings
-from SimPEG.maps import IdentityMap
+from sklearn.utils import check_array
+from sklearn.utils.validation import check_is_fitted
 
+from SimPEG.maps import IdentityMap
 
 ###############################################################################
 # Disclaimer: the following classes built upon the GaussianMixture class      #
@@ -129,7 +130,7 @@ class WeightedGaussianMixture(GaussianMixture):
                 self.precisions_cholesky_, self.precisions_cholesky_.T
             )
         else:
-            self.precisions_ = self.precisions_cholesky_ ** 2
+            self.precisions_ = self.precisions_cholesky_**2
 
     def compute_clusters_covariances(self):
         """Compute the precisions matrices and their Cholesky decomposition.
@@ -149,7 +150,7 @@ class WeightedGaussianMixture(GaussianMixture):
                 self.covariances_cholesky_, self.covariances_cholesky_.T
             )
         else:
-            self.covariances_ = self.covariances_cholesky_ ** 2
+            self.covariances_ = self.covariances_cholesky_**2
 
         self.precisions_cholesky_ = _compute_precision_cholesky(
             self.covariances_, self.covariance_type
@@ -618,9 +619,11 @@ class WeightedGaussianMixture(GaussianMixture):
         clfx = GaussianMixture(
             n_components=self.n_components,
             means_init=meansx,
+            # limit computation to minimum as we set the model parameter a posteriori
             n_init=1,
             max_iter=2,
-            tol=np.inf,
+            # put a high tolerance to avoid warning about low model fit
+            tol=1e256,
         )
         # random fit, we set values after.
         clfx.fit(np.random.randn(10, 1))
@@ -668,9 +671,11 @@ class WeightedGaussianMixture(GaussianMixture):
             clfy = GaussianMixture(
                 n_components=self.n_components,
                 means_init=meansy,
+                # limit computation to minimum as we set the model parameter a posteriori
                 n_init=1,
                 max_iter=2,
-                tol=np.inf,
+                # put a high tolerance to avoid warning about low model fit
+                tol=1e256,
             )
             # random fit, we set values after.
             clfy.fit(np.random.randn(10, 1))
@@ -702,9 +707,11 @@ class WeightedGaussianMixture(GaussianMixture):
             clf2d = GaussianMixture(
                 n_components=self.n_components,
                 means_init=mean2d,
+                # limit computation to minimum as we set the model parameter a posteriori
                 n_init=1,
                 max_iter=2,
-                tol=np.inf,
+                # put a high tolerance to avoid warning about low model fit
+                tol=1e256,
             )
             # random fit, we set values after.
             clf2d.fit(np.random.randn(10, 2))
@@ -1642,7 +1649,7 @@ class GaussianMixtureWithNonlinearRelationshipsWithPrior(GaussianMixtureWithPrio
 
         elif covariance_type == "diag" or covariance_type == "spherical":
             log_prob = np.empty((n_samples, n_components))
-            precisions = precisions_chol ** 2
+            precisions = precisions_chol**2
             for k, (mu, prec_chol, mapping) in enumerate(
                 zip(means, precisions_chol, cluster_mapping)
             ):
