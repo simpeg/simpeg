@@ -77,7 +77,12 @@ class Base_DerivAdjoint_Test(unittest.TestCase):
         self.survey = get_survey(times, self.t0)
 
         self.prob = get_prob(
-            mesh, mapping, self.formulation, survey=self.survey, time_steps=time_steps
+            mesh,
+            mapping,
+            self.formulation,
+            survey=self.survey,
+            time_steps=time_steps,
+            store_factors=False,
         )
         self.m = np.log(1e-1) * np.ones(self.prob.sigmaMap.nP)
 
@@ -97,6 +102,7 @@ class Base_DerivAdjoint_Test(unittest.TestCase):
             self.formulation,
             survey=self.surveyfwd,
             time_steps=time_steps,
+            store_factors=True,
         )
 
     def get_rx(self, rxcomp):
@@ -176,10 +182,10 @@ class DerivAdjoint_E(Base_DerivAdjoint_Test):
 
     if testAdjoint:
 
-        def test_Jvec_adjoint_e_ey(self):
+        def test_Jvec_adjoint_e_dbxdt(self):
             self.JvecVsJtvecTest("MagneticFluxTimeDerivativex")
 
-        def test_Jvec_adjoint_e_ey(self):
+        def test_Jvec_adjoint_e_dbzdt(self):
             self.JvecVsJtvecTest("MagneticFluxTimeDerivativez")
 
         def test_Jvec_adjoint_e_ey(self):

@@ -24,9 +24,12 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
     Euler.
     """
 
-    def __init__(self, mesh, survey=None, dt_threshold=1e-8, store_factors=False, **kwargs):
+    def __init__(
+        self, mesh, survey=None, dt_threshold=1e-8, store_factors=True, **kwargs
+    ):
         super().__init__(mesh=mesh, survey=survey, **kwargs)
         self.dt_threshold = dt_threshold
+        self.store_factors = store_factors
         self._Ainvs = {}
         if self.muMap is not None:
             raise NotImplementedError(
@@ -53,10 +56,10 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
 
     @property
     def dt_threshold(self):
-        """The relative threshold to determine if a previous matrix factor can be reused.
+        """The threshold to determine if a previous matrix factor can be reused.
 
-        If the difference in time steps falls below this relative threshold, the
-        factored matrix is re-used.
+        If the difference in time steps falls below this threshold, the factored matrix
+        is re-used.
 
         Returns
         -------
@@ -68,7 +71,7 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
     def dt_threshold(self, value):
         value = validate_float("dt_threshold", value, min_val=0.0, max_val=1.0)
         self._dt_threshold = value
-        self._dt_precision = None if value == 0.0 else np.ceil(-np.log10(value))
+        self._dt_precision = None if value == 0.0 else int(np.ceil(-np.log10(value)))
 
     @property
     def store_factors(self):
@@ -109,9 +112,10 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
         tic = time.time()
         self.model = m
 
+        # first make sure any previously stored keys are cleaned
         if self.store_factors:
-            for dt_str in self._Ainvs:
-                self._Ainvs[dt_str].clean()
+            for dt_key in self._Ainvs:
+                self._Ainvs[dt_key].clean()
 
         f = self.fieldsPair(self)
 
@@ -125,12 +129,12 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
         Ainv = None
         Ainvs = {}
         for tInd, dt in enumerate(self.time_steps):
-            # keep factors if dt is the same as previous step b/c A will be the
-            # same
+            # keep factors if dt is the same as previous step b/c A will be the same
             if self.store_factors:
-                dt_str = np.format_float_scientific(dt, precision=self._dt_precision)
-                Ainv = Ainvs.get(dt_str, None)
-            else if Ainv is not None and (
+                precision = self._dt_precision
+                dt_key = dt if precision is None else np.around(dt, precision)
+                Ainv = Ainvs.get(dt_key, None)
+            elif Ainv is not None and (
                 tInd > 0 and abs(dt - self.time_steps[tInd - 1]) > self.dt_threshold
             ):
                 Ainv.clean()
@@ -161,7 +165,7 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
             f[:, self._fieldType + "Solution", tInd + 1] = sol
 
             if self.store_factors:
-                Ainvs[dt_str] = Ainv
+                Ainvs[dt_key] = Ainv
 
         if self.verbose:
             print("{}\nDone calculating fields(m)\n{}".format("*" * 50, "*" * 50))
@@ -231,17 +235,18 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
             # same
 
             if self.store_factors:
-                dt_str = np.format_float_scientific(dt, precision=self._dt_precision)
-                Adiaginv = self._Ainvs.get(dt_str, None)
-            else if Adiaginv is not None and (tInd > 0 and abs(dt - self.time_steps[tInd - 1]) > self.dt_threshold):
+                precision = self._dt_precision
+                dt_key = dt if precision is None else np.around(dt, precision)
+                Adiaginv = self._Ainvs.get(dt_key, None)
+            elif Adiaginv is not None and (
+                tInd > 0 and abs(dt - self.time_steps[tInd - 1]) > self.dt_threshold
+            ):
                 Adiaginv.clean()
                 Adiaginv = None
 
             if Adiaginv is None:
                 A = self.getAdiag(tInd)
                 Adiaginv = self.solver(A, **self.solver_opts)
-            if self.store_factors:
-                self._Ainv[dt_str] = Adiaginv
 
             Asubdiag = self.getAsubdiag(tInd)
 
@@ -385,12 +390,16 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
         for tInd, dt in zip(range(self.nT)[::-1], self.time_steps[::-1]):
             # tInd = tIndP - 1
             if self.store_factors:
-                dt_str = np.format_float_scientific(dt, precision=self._dt_precision)
+                precision = self._dt_precision
+                dt_key = dt if precision is None else np.around(dt, precision)
                 if not self._makeASymmetric:
-                    dt_str += "T"
-                AdiagTinv = self._Ainvs.get(dt_str, None)
-            if AdiagTinv is not None and (
-                tInd <= self.nT and abs(dt - self.time_steps[tInd + 1]) > self.dt_threshold
+                    # If it's not symmetric then we need to use the transposed factor
+                    # Here just save it as a new key with the dt and "T"
+                    dt_key = f"{dt_key}.T"
+                AdiagTinv = self._Ainvs.get(dt_key, None)
+            elif AdiagTinv is not None and (
+                tInd <= self.nT
+                and abs(dt - self.time_steps[tInd + 1]) > self.dt_threshold
             ):
                 AdiagTinv.clean()
                 AdiagTinv = None
@@ -400,7 +409,9 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
                 Adiag = self.getAdiag(tInd)
                 AdiagTinv = self.solver(Adiag.T.tocsr(), **self.solver_opts)
             if self.store_factors:
-                self._Ainv[dt_str] = AdiagTinv
+                # do this just incase it needed to be created
+                # At worst it is just a no-op if the matrix already existed
+                self._Ainvs[dt_key] = AdiagTinv
 
             if tInd < self.nT - 1:
                 Asubdiag = self.getAsubdiag(tInd + 1)
@@ -843,10 +854,19 @@ class Simulation3DElectricField(BaseTDEMSimulation):
         # if the previous timestep is the same: no need to refactor the matrix
         # for tInd, dt in zip(range(self.nT), self.time_steps):
 
-        for tInd in reversed(range(self.nT)):
+        for tInd, dt in zip(range(self.nT)[::-1], self.time_steps[::-1]):
             # tInd = tIndP - 1
-            if AdiagTinv is not None and (
-                tInd <= self.nT and self.time_steps[tInd] != self.time_steps[tInd + 1]
+            if self.store_factors:
+                precision = self._dt_precision
+                dt_key = dt if precision is None else np.around(dt, precision)
+                if not self._makeASymmetric:
+                    # If it's not symmetric then we need to use the transposed factor
+                    # Here just save it as a new key with the dt and "T"
+                    dt_key = f"{dt_key}.T"
+                AdiagTinv = self._Ainvs.get(dt_key, None)
+            elif AdiagTinv is not None and (
+                tInd <= self.nT
+                and abs(dt - self.time_steps[tInd + 1]) > self.dt_threshold
             ):
                 AdiagTinv.clean()
                 AdiagTinv = None
@@ -855,6 +875,10 @@ class Simulation3DElectricField(BaseTDEMSimulation):
             if AdiagTinv is None:  # and tInd > -1:
                 Adiag = self.getAdiag(tInd)
                 AdiagTinv = self.solver(Adiag.T, **self.solver_opts)
+            if self.store_factors:
+                # do this just incase it needed to be created
+                # At worst it is just a no-op if the matrix already existed
+                self._Ainvs[dt_key] = AdiagTinv
 
             if tInd < self.nT - 1:
                 Asubdiag = self.getAsubdiag(tInd + 1)
@@ -925,7 +949,7 @@ class Simulation3DElectricField(BaseTDEMSimulation):
                 JTv = JTv + mkvc(-dAT_dm_v + dRHST_dm_v)
 
         # del df_duT_v, ATinv_df_duT_v, A, Asubdiag
-        if AdiagTinv is not None:
+        if not self.store_factors and AdiagTinv is not None:
             AdiagTinv.clean()
 
         return mkvc(JTv).astype(float)
