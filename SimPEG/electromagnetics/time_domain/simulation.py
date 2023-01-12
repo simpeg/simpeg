@@ -56,7 +56,7 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
 
     @property
     def dt_threshold(self):
-        """The threshold to determine if a previous matrix factor can be reused.
+        """The threshold used to determine if a previous matrix factor can be reused.
 
         If the difference in time steps falls below this threshold, the factored matrix
         is re-used.
@@ -69,7 +69,7 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
 
     @dt_threshold.setter
     def dt_threshold(self, value):
-        value = validate_float("dt_threshold", value, min_val=0.0, max_val=1.0)
+        value = validate_float("dt_threshold", value, min_val=0.0)
         self._dt_threshold = value
         self._dt_precision = None if value == 0.0 else int(np.ceil(-np.log10(value)))
 
