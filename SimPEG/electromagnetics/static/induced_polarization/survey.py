@@ -1,4 +1,5 @@
 from ..resistivity import Survey
+from ..resistivity import receivers, sources  # noqa: F401
 
 
 def from_dc_to_ip_survey(dc_survey, dim="2.5D"):

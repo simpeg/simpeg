@@ -14,14 +14,14 @@ from ....utils import (
     model_builder,
     define_plane_from_points,
 )
-from ....utils.io_utils import (
+from ....utils.io_utils import (  # noqa: F401
     read_dcip2d_ubc,
     write_dcip2d_ubc,
     read_dcip3d_ubc,
     write_dcip3d_ubc,
 )
 
-from ....utils.plot_utils import plot_1d_layer_model
+from ....utils.plot_utils import plot_1d_layer_model  # noqa: F401
 
 from ....utils.code_utils import deprecate_method
 
