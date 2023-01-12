@@ -116,6 +116,7 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
         if self.store_factors:
             for dt_key in self._Ainvs:
                 self._Ainvs[dt_key].clean()
+            self._Ainvs = {}
 
         f = self.fieldsPair(self)
 
