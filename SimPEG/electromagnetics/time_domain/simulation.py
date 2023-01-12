@@ -127,13 +127,12 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
 
         # timestep to solve forward
         Ainv = None
-        Ainvs = {}
         for tInd, dt in enumerate(self.time_steps):
             # keep factors if dt is the same as previous step b/c A will be the same
             if self.store_factors:
                 precision = self._dt_precision
                 dt_key = dt if precision is None else np.around(dt, precision)
-                Ainv = Ainvs.get(dt_key, None)
+                Ainv = self._Ainvs.get(dt_key, None)
             elif Ainv is not None and (
                 tInd > 0 and abs(dt - self.time_steps[tInd - 1]) > self.dt_threshold
             ):
@@ -165,15 +164,13 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
             f[:, self._fieldType + "Solution", tInd + 1] = sol
 
             if self.store_factors:
-                Ainvs[dt_key] = Ainv
+                self._Ainvs[dt_key] = Ainv
 
         if self.verbose:
             print("{}\nDone calculating fields(m)\n{}".format("*" * 50, "*" * 50))
 
         # clean factors and return
-        if self.store_factors:
-            self._Ainvs = Ainvs
-        else:
+        if not self.store_factors:
             Ainv.clean()
         return f
 
