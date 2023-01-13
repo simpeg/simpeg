@@ -74,7 +74,8 @@ class PGIsmallness(Smallness):
 
         if "mapping" in kwargs:
             warnings.warn(
-                f"Property 'mapping' of class {type(self)} cannot be set. Defaults to IdentityMap."
+                f"Property 'mapping' of class {type(self)} cannot be set. Defaults to"
+                " IdentityMap."
             )
             kwargs.pop("mapping")
 
@@ -92,7 +93,6 @@ class PGIsmallness(Smallness):
             self.set_weights(**weights)
 
     def set_weights(self, **weights):
-
         for key, values in weights.items():
             values = validate_ndarray_with_shape("weights", values, dtype=float)
 
@@ -160,7 +160,8 @@ class PGIsmallness(Smallness):
     def wiresmap(self, wires):
         if self._maplist is not None and len(wires.maps) != len(self._maplist):
             raise Exception(
-                f"Provided 'wiresmap' should have wires the len of 'maplist' {len(self._maplist)}."
+                "Provided 'wiresmap' should have wires the len of 'maplist'"
+                f" {len(self._maplist)}."
             )
 
         if not isinstance(wires, Wires):
@@ -181,26 +182,28 @@ class PGIsmallness(Smallness):
     def maplist(self, maplist):
         if self._wiresmap is not None and len(maplist) != len(self._wiresmap.maps):
             raise Exception(
-                f"Provided 'maplist' should be a list of maps equal to the 'wiresmap' list of len {len(self._maplist)}."
+                "Provided 'maplist' should be a list of maps equal to the 'wiresmap'"
+                f" list of len {len(self._maplist)}."
             )
 
         if not isinstance(maplist, (list, type(None))):
             raise ValueError(
-                f"Attribute 'maplist' should be a list of maps or None.{type(maplist)} was given."
+                "Attribute 'maplist' should be a list of maps or"
+                f" None.{type(maplist)} was given."
             )
 
         if isinstance(maplist, list) and not all(
             isinstance(m, IdentityMap) for m in maplist
         ):
             raise ValueError(
-                f"Attribute 'maplist' should be a list of maps or None.{type(maplist)} was given."
+                "Attribute 'maplist' should be a list of maps or"
+                f" None.{type(maplist)} was given."
             )
 
         self._maplist = maplist
 
     @timeIt
     def __call__(self, m, external_weights=True):
-
         if external_weights:
             W = self.W
         else:
@@ -278,7 +281,6 @@ class PGIsmallness(Smallness):
 
     @timeIt
     def deriv(self, m):
-
         if getattr(self, "mref", None) is None:
             self.reference_model = mkvc(self.gmm.means_[self.membership(m)])
 
@@ -298,13 +300,11 @@ class PGIsmallness(Smallness):
             ].reshape(-1, 2)
 
         if self.approx_gradient:
-
             dmmref = np.c_[[a for a in mreflist]].T
             dm = dmmodel - dmmref
             r0 = (self.W * (mkvc(dm))).reshape(dm.shape, order="F")
 
             if self.gmm.covariance_type == "tied":
-
                 if self.non_linear_relationships:
                     raise Exception("Not implemented")
 
@@ -469,7 +469,6 @@ class PGIsmallness(Smallness):
 
     @timeIt
     def deriv2(self, m, v=None):
-
         if getattr(self, "reference_model", None) is None:
             self.reference_model = mkvc(self.gmm.means_[self.membership(m)])
 
@@ -498,7 +497,6 @@ class PGIsmallness(Smallness):
                             ]
                         ]
                     else:
-
                         r = self.gmm.precisions_[np.newaxis, :, :][
                             np.zeros_like(membership)
                         ]
@@ -618,7 +616,6 @@ class PGIsmallness(Smallness):
             )
             for k in range(self.gmm.n_components):
                 if self.gmm.covariance_type == "tied":
-
                     W.append(
                         [
                             np.diag(sensW[i]).dot(
@@ -825,8 +822,8 @@ class PGI(ComboObjectiveFunction):
     def reference_model_in_smooth(self, value: bool):
         if not isinstance(value, bool):
             raise TypeError(
-                "'reference_model_in_smooth must be of type 'bool'. "
-                f"Value of type {type(value)} provided."
+                "'reference_model_in_smooth must be of type 'bool'. Value of type"
+                f" {type(value)} provided."
             )
         self._reference_model_in_smooth = value
         for fct in self.objfcts[1:]:
@@ -840,7 +837,6 @@ class PGI(ComboObjectiveFunction):
 
     @reference_model.setter
     def reference_model(self, values: np.ndarray | float):
-
         if isinstance(values, float):
             values = np.ones(self._nC_residual) * values
 

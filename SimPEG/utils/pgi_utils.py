@@ -28,7 +28,7 @@ from SimPEG.maps import IdentityMap
 # from Scikit-Learn. New functionalitie are added, as well as modifications to#
 # existing functions, to serve the purposes pursued within SimPEG.            #
 # This use is allowed by the Scikit-Learn licensing (BSD-3-Clause License)    #
-# and we are grateful for their contributions to the open-source community.   #                                                   #
+# and we are grateful for their contributions to the open-source community.   #
 ###############################################################################
 
 
@@ -221,16 +221,16 @@ class WeightedGaussianMixture(GaussianMixture):
         # check range
         if any(np.less(weights, 0.0)) or any(np.greater(weights, 1.0)):
             raise ValueError(
-                "The parameter 'weights' should be in the range "
-                "[0, 1], but got max value %.5f, min value %.5f"
-                % (np.min(weights), np.max(weights))
+                "The parameter 'weights' should be in the range [0, 1], but got max"
+                " value %.5f, min value %.5f" % (np.min(weights), np.max(weights))
             )
 
         # check normalization
         if not np.allclose(np.abs(1.0 - np.sum(weights.T, axis=0)), 0.0):
             raise ValueError(
-                "The parameter 'weights' should be normalized, "
-                "but got sum(weights) = %.5f" % np.sum(weights)
+                "The parameter 'weights' should be normalized, but got sum(weights) ="
+                " %.5f"
+                % np.sum(weights)
             )
 
         return weights
@@ -245,7 +245,8 @@ class WeightedGaussianMixture(GaussianMixture):
             raise ValueError(
                 "Invalid value for 'covariance_type': %s "
                 "'covariance_type' should be in "
-                "['spherical', 'tied', 'diag', 'full']" % self.covariance_type
+                "['spherical', 'tied', 'diag', 'full']"
+                % self.covariance_type
             )
 
         if self.weights_init is not None:
@@ -655,7 +656,6 @@ class WeightedGaussianMixture(GaussianMixture):
         ax[0].set_ylabel("Probability Density values")
 
         if flag2d:
-
             dy = padding * (
                 self.means_[:, y_component].max() - self.means_[:, y_component].min()
             )
@@ -1225,7 +1225,6 @@ class GaussianMixtureWithNonlinearRelationships(WeightedGaussianMixture):
         verbose_interval=10,
         cluster_mapping=None,
     ):
-
         if cluster_mapping is None:
             self.cluster_mapping = [IdentityMap() for i in range(n_components)]
         else:
@@ -1411,8 +1410,8 @@ class GaussianMixtureWithNonlinearRelationships(WeightedGaussianMixture):
 
         if n_samples < 1:
             raise ValueError(
-                "Invalid value for 'n_samples': %d . The sampling requires at "
-                "least one sample." % (self.n_components)
+                "Invalid value for 'n_samples': %d . The sampling requires at least one"
+                " sample." % (self.n_components)
             )
 
         _, n_features = self.means_.shape
@@ -1537,7 +1536,6 @@ class GaussianMixtureWithNonlinearRelationshipsWithPrior(GaussianMixtureWithPrio
         update_covariances=True,
         fixed_membership=None,
     ):
-
         if cluster_mapping is None:
             self.cluster_mapping = gmmref.cluster_mapping
         else:
