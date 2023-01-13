@@ -229,8 +229,7 @@ class WeightedGaussianMixture(GaussianMixture):
         if not np.allclose(np.abs(1.0 - np.sum(weights.T, axis=0)), 0.0):
             raise ValueError(
                 "The parameter 'weights' should be normalized, but got sum(weights) ="
-                " %.5f"
-                % np.sum(weights)
+                " %.5f" % np.sum(weights)
             )
 
         return weights
@@ -245,8 +244,7 @@ class WeightedGaussianMixture(GaussianMixture):
             raise ValueError(
                 "Invalid value for 'covariance_type': %s "
                 "'covariance_type' should be in "
-                "['spherical', 'tied', 'diag', 'full']"
-                % self.covariance_type
+                "['spherical', 'tied', 'diag', 'full']" % self.covariance_type
             )
 
         if self.weights_init is not None:
