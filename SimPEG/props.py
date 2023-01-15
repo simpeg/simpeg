@@ -444,7 +444,8 @@ class HasModel(BaseSimPEG, metaclass=PhysicalPropertyMetaclass):
                 # matrix factors to clear
                 for mat in self.clean_on_model_update:
                     if getattr(self, mat, None) is not None:
-                        getattr(self, mat).clean()  # clean factors
+                        if hasattr(getattr(self, mat), "clean"):
+                            getattr(self, mat).clean()  # clean factors
                         setattr(self, mat, None)  # set to none
 
         self._model = value
@@ -460,5 +461,6 @@ class HasModel(BaseSimPEG, metaclass=PhysicalPropertyMetaclass):
         # matrix factors to clear
         for mat in self.clean_on_model_update:
             if getattr(self, mat, None) is not None:
-                getattr(self, mat).clean()  # clean factors
+                if hasattr(getattr(self, mat), "clean"):
+                    getattr(self, mat).clean()
                 setattr(self, mat, None)  # set to none

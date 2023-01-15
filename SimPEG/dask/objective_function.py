@@ -5,7 +5,7 @@ import os
 import shutil
 import numpy as np
 from dask.distributed import Future, get_client, Client
-
+from ..data_misfit import L2DataMisfit
 BaseObjectiveFunction._workers = None
 
 
@@ -95,7 +95,7 @@ def dask_deriv(self, m, f=None):
             continue
         else:
 
-            if f is not None and hasattr(objfct, "fields"):
+            if f is not None and isinstance(objfct, L2DataMisfit):
                 fct = objfct.deriv(m, f=f[i])
             else:
                 fct = objfct.deriv(m)
