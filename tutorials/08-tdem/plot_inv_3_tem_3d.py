@@ -341,7 +341,7 @@ opt = optimization.ProjectedGNCG(
     maxIter=15, lower=-np.inf, upper=np.inf, maxIterLS=10, maxIterCG=20, tolCG=1e-4
 )
 
-inv_prob = inverse_problem.BaseInvProblem(dmis, reg, opt)
+inv_prob = inverse_problem.BaseInvProblem(dmis, reg, opt, beta=5e-4)
 directive_list = [
     directives.UpdateSensitivityWeights(threshold=5),
     directives.Update_IRLS(
@@ -353,7 +353,7 @@ directive_list = [
         chifact_target=1.0,
     ),
     directives.UpdatePreconditioner(),
-    directives.BetaEstimate_ByEig(beta0_ratio=1e+2)
+    # directives.BetaEstimate_ByEig(beta0_ratio=1e+2)
 ]
 
 inv = inversion.BaseInversion(
