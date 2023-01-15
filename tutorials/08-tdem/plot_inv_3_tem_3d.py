@@ -387,23 +387,24 @@ ax1.set_ylim([-500, 0])
 ax1.set_aspect('equal')
 plt.show()
 
-ax2 = plt.subplot(2,1,1)
-im = mesh.plotSlice(
-    np.log10(plotting_map * inv_prob.l2model),
-    normal="Y",
-    ax=ax2,
-    grid=True,
-    # clim=(-3, 0),
-    pcolor_opts={"cmap": mpl.cm.viridis},
-)
-ax2.set_title("L2 Model")
-ax2.set_xlabel("x (m)")
-ax2.set_ylabel("z (m)")
-plt.colorbar(im[0])
-ax2.set_xlim([-500, 500])
-ax2.set_ylim([-500, 0])
-ax2.set_aspect('equal')
-plt.show()
+if hasattr(inv_prob, "l2model"):
+    ax2 = plt.subplot(2,1,1)
+    im = mesh.plotSlice(
+        np.log10(plotting_map * inv_prob.l2model),
+        normal="Y",
+        ax=ax2,
+        grid=True,
+        # clim=(-3, 0),
+        pcolor_opts={"cmap": mpl.cm.viridis},
+    )
+    ax2.set_title("L2 Model")
+    ax2.set_xlabel("x (m)")
+    ax2.set_ylabel("z (m)")
+    plt.colorbar(im[0])
+    ax2.set_xlim([-500, 500])
+    ax2.set_ylim([-500, 0])
+    ax2.set_aspect('equal')
+    plt.show()
 #######################################################
 # Optional: Export Data
 # ---------------------
@@ -422,16 +423,17 @@ axs.set_yscale("symlog", linthresh=1e-16)
 axs.set_title("LP Predicted")
 axs.set_ylim([-1e-10, 0])
 
-axs = plt.subplot(2,1,1)
-plt.plot(dpred.reshape((-1, n_times)), "k")
-plt.plot(data_object.dobs.reshape((-1, n_times)), "b")
-plt.plot(simulation.dpred(inv_prob.l2model).reshape((-1, n_times)), "r")
-plt.plot(data_object.standard_deviation.reshape((-1, n_times)), "k--")
-plt.plot(-data_object.standard_deviation.reshape((-1, n_times)), "k--")
-axs.set_yscale("symlog", linthresh=1e-16)
-axs.set_title("L2 Predicted")
-axs.set_ylim([-1e-10, 0])
-plt.show()
+if hasattr(inv_prob, "l2model"):
+    axs = plt.subplot(2,1,1)
+    plt.plot(dpred.reshape((-1, n_times)), "k")
+    plt.plot(data_object.dobs.reshape((-1, n_times)), "b")
+    plt.plot(simulation.dpred(inv_prob.l2model).reshape((-1, n_times)), "r")
+    plt.plot(data_object.standard_deviation.reshape((-1, n_times)), "k--")
+    plt.plot(-data_object.standard_deviation.reshape((-1, n_times)), "k--")
+    axs.set_yscale("symlog", linthresh=1e-16)
+    axs.set_title("L2 Predicted")
+    axs.set_ylim([-1e-10, 0])
+    plt.show()
 
 if save_file:
 

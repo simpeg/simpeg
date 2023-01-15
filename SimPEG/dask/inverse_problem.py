@@ -8,7 +8,7 @@ from dask.distributed import Future, get_client
 import dask.array as da
 import gc
 from scipy.sparse.linalg import LinearOperator
-from ..regularization import BaseComboRegularization, Sparse
+from ..regularization import WeightedLeastSquares, Sparse
 from ..data_misfit import BaseDataMisfit
 from ..objective_function import BaseObjectiveFunction, ComboObjectiveFunction
 
@@ -107,7 +107,7 @@ def get_dpred(self, m, f=None, compute_J=False):
 
             if hasattr(objfct, "simulation"):
 
-                if objfct.model_map is not None:
+                if getattr(objfct, "model_map", None) is not None:
                     vec = objfct.model_map @ m
                 else:
                     vec = m
@@ -189,7 +189,7 @@ def dask_evalFunction(self, m, return_g=True, return_H=True):
 
 
     if isinstance(self.reg, ComboObjectiveFunction) and not isinstance(
-            self.reg, BaseComboRegularization
+            self.reg, WeightedLeastSquares
     ):
         reg2Deriv = []
         for fct in self.reg.objfcts:
@@ -215,7 +215,7 @@ def dask_evalFunction(self, m, return_g=True, return_H=True):
         self.phi_y = 0.0
         self.phi_z = 0.0
 
-        if not isinstance(self.reg, BaseComboRegularization):
+        if not isinstance(self.reg, WeightedLeastSquares):
             regs = self.reg.objfcts
             mults = self.reg.multipliers
         else:

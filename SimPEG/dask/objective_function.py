@@ -6,6 +6,9 @@ import shutil
 import numpy as np
 from dask.distributed import Future, get_client, Client
 
+BaseObjectiveFunction._workers = None
+
+
 @property
 def client(self):
     if getattr(self, '_client', None) is None:
@@ -92,7 +95,7 @@ def dask_deriv(self, m, f=None):
             continue
         else:
 
-            if f is not None and objfct._has_fields:
+            if f is not None and hasattr(objfct, "fields"):
                 fct = objfct.deriv(m, f=f[i])
             else:
                 fct = objfct.deriv(m)
