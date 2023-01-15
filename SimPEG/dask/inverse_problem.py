@@ -2,12 +2,10 @@ from ..inverse_problem import BaseInvProblem
 import numpy as np
 from time import time
 from datetime import timedelta
-from dask.delayed import Delayed
-from dask.diagnostics import ProgressBar
 from dask.distributed import Future, get_client
 import dask.array as da
-import gc
 from scipy.sparse.linalg import LinearOperator
+from ..simulation import LinearSimulation
 from ..regularization import WeightedLeastSquares, Sparse
 from ..data_misfit import BaseDataMisfit
 from ..objective_function import BaseObjectiveFunction, ComboObjectiveFunction
@@ -168,15 +166,7 @@ BaseInvProblem.get_dpred = get_dpred
 def dask_evalFunction(self, m, return_g=True, return_H=True):
     """evalFunction(m, return_g=True, return_H=True)
     """
-
     self.model = m
-    # gc.collect()
-
-    # Store fields if doing a line-search
-    # f = self.getFields(m, store=(return_g is False and return_H is False))
-
-    # if isinstance(self.dmisfit, BaseDataMisfit):
-    # phi_d = np.asarray(self.dmisfit(m, f=f))
     self.dpred = self.get_dpred(m, compute_J=return_H)
 
     phi_d = 0
