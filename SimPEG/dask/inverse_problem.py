@@ -7,6 +7,7 @@ from dask.diagnostics import ProgressBar
 from dask.distributed import Future, get_client
 import dask.array as da
 import gc
+from scipy.sparse.linalg import LinearOperator
 from ..regularization import BaseComboRegularization, Sparse
 from ..data_misfit import BaseDataMisfit
 from ..objective_function import BaseObjectiveFunction, ComboObjectiveFunction
@@ -257,7 +258,7 @@ def dask_evalFunction(self, m, return_g=True, return_H=True):
 
             return H
 
-        H = H_fun
+        H = LinearOperator((m.size, m.size), H_fun, dtype=m.dtype)
         out += (H,)
     return out if len(out) > 1 else out[0]
 

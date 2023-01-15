@@ -9,7 +9,6 @@ try:
     import SimPEG.dask.simulation
     import SimPEG.dask.data_misfit
     import SimPEG.dask.inverse_problem
-    import SimPEG.dask.optimization
     import SimPEG.dask.objective_function
 
 except ImportError as err:
