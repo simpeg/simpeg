@@ -34,7 +34,6 @@ from discretize.utils import mkvc, refine_tree_xyz
 from SimPEG.utils import surface2ind_topo, model_builder
 from SimPEG import (
     maps,
-    data,
     data_misfit,
     regularization,
     optimization,
@@ -46,7 +45,6 @@ from SimPEG import (
 from SimPEG.electromagnetics.static import resistivity as dc
 from SimPEG.electromagnetics.static.utils.static_utils import (
     plot_pseudosection,
-    apparent_resistivity_from_voltage,
 )
 from SimPEG.utils.io_utils.io_utils_electromagnetics import read_dcip2d_ubc
 

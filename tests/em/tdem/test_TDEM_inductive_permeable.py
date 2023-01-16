@@ -3,15 +3,13 @@ import unittest
 import discretize
 from discretize import utils
 import numpy as np
-import scipy.sparse as sp
 import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
-from scipy.constants import mu_0, inch, foot
+from scipy.constants import mu_0
 import time
 
 from SimPEG.electromagnetics import time_domain as tdem
 from SimPEG import utils, maps
-from SimPEG.utils import Zero
 
 from pymatsolver import Pardiso
 

@@ -2,7 +2,6 @@ from SimPEG.utils import mkvc, sdiag
 from SimPEG import props
 from ...base import BasePDESimulation
 from ..base import BasePFSimulation, BaseEquivalentSourceLayerSimulation
-from .survey import Survey
 import scipy.constants as constants
 from scipy.constants import G as NewtG
 import numpy as np
