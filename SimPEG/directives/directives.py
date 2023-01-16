@@ -331,12 +331,6 @@ class BetaEstimate_ByEig(InversionDirective):
                 self.reg, m, n_pw_iter=self.n_pw_iter,
             )
             self.ratio = np.asarray(dm_eigenvalue / reg_eigenvalue)
-        elif self.method == "max_derivatives":
-            x0 = np.random.rand(*m.shape)
-            phi_d_deriv = np.abs(self.dmisfit.deriv(m)).max()
-            dm = x0 / x0.max() * m.max()
-            phi_m_deriv = np.abs(self.reg.deriv(m + dm)).max()
-            self.ratio = np.asarray(phi_d_deriv / phi_m_deriv)
         else:
             x0 = np.random.rand(*m.shape)
             phi_d_deriv = self.dmisfit.deriv2(m, x0)
