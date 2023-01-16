@@ -12,10 +12,10 @@ from ..code_utils import validate_string, validate_type
 def read_dcip_xyz(
     file_name,
     data_type,
-    a_headers=["XA", "YA", "ZA"],
-    b_headers=["XB", "YB", "ZB"],
-    m_headers=["XM", "YM", "ZM"],
-    n_headers=["XN", "YN", "ZN"],
+    a_headers=("XA", "YA", "ZA"),
+    b_headers=("XB", "YB", "ZB"),
+    m_headers=("XM", "YM", "ZM"),
+    n_headers=("XN", "YN", "ZN"),
     data_header=None,
     uncertainties_header=None,
     dict_headers=None,
@@ -91,7 +91,7 @@ def read_dcip_xyz(
     file_headers = file_headers.split()
 
     # Find indices of columns being loaded
-    out_headers = a_headers + b_headers + m_headers + n_headers
+    out_headers = list(a_headers) + list(b_headers) + list(m_headers) + list(n_headers)
 
     has_data = False
     has_uncert = False
