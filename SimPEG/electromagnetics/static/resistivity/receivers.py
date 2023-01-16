@@ -1,4 +1,3 @@
-
 from ....utils import (
     sdiag,
     validate_string,

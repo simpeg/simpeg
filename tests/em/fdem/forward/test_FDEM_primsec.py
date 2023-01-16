@@ -5,10 +5,7 @@ import discretize
 from SimPEG import maps, tests, utils
 from SimPEG.electromagnetics import frequency_domain as fdem
 
-try:
-    from pymatsolver import Pardiso as Solver
-except ImportError:
-    from SimPEG import Solver as SolverLU
+from pymatsolver import Pardiso as Solver
 
 import numpy as np
 import unittest
