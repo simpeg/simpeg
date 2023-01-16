@@ -1,14 +1,17 @@
 import unittest
-from SimPEG.utils.solver_utils import Solver, SolverLU, SolverCG, SolverBiCG, SolverDiag
-import scipy.sparse as sp
+
 import numpy as np
+import scipy.sparse as sp
+
+from SimPEG.utils.solver_utils import (Solver, SolverBiCG, SolverCG,
+                                       SolverDiag, SolverLU)
 
 
 class TestSolve(unittest.TestCase):
     def setUp(self):
         # Create a random matrix
         n = 400
-        A = sp.random(n, n, density=0.25)
+        A = np.random(n, n, density=0.25)
 
         self.n = n
         self.A = 0.5 * (A + A.T) + n * sp.eye(n)

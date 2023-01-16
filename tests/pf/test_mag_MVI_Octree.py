@@ -1,20 +1,11 @@
-import unittest
-from SimPEG import (
-    directives,
-    maps,
-    inverse_problem,
-    optimization,
-    data_misfit,
-    inversion,
-    utils,
-    regularization,
-)
-
-
-from discretize.utils import mesh_builder_xyz, refine_tree_xyz
-import numpy as np
-from SimPEG.potential_fields import magnetics as mag
 import shutil
+import unittest
+
+import numpy as np
+from discretize.utils import mesh_builder_xyz, refine_tree_xyz
+
+from SimPEG import data_misfit, directives, inverse_problem, inversion, maps, optimization, regularization, utils
+from SimPEG.potential_fields import magnetics as mag
 
 
 class MVIProblemTest(unittest.TestCase):
@@ -53,12 +44,8 @@ class MVIProblemTest(unittest.TestCase):
         h = [5, 5, 5]
         padDist = np.ones((3, 2)) * 100
 
-        mesh = mesh_builder_xyz(
-            xyzLoc, h, padding_distance=padDist, depth_core=100, mesh_type="tree"
-        )
-        mesh = refine_tree_xyz(
-            mesh, topo, method="surface", octree_levels=[4, 4], finalize=True
-        )
+        mesh = mesh_builder_xyz(xyzLoc, h, padding_distance=padDist, depth_core=100, mesh_type="tree")
+        mesh = refine_tree_xyz(mesh, topo, method="surface", octree_levels=[4, 4], finalize=True)
         self.mesh = mesh
         # Define an active cells from topo
         actv = utils.surface2ind_topo(mesh, topo)
@@ -100,9 +87,7 @@ class MVIProblemTest(unittest.TestCase):
         self.sim = sim
 
         # Compute some data and add some random noise
-        data = sim.make_synthetic_data(
-            utils.mkvc(self.model), relative_error=0.0, noise_floor=5.0, add_noise=True
-        )
+        data = sim.make_synthetic_data(utils.mkvc(self.model), relative_error=0.0, noise_floor=5.0, add_noise=True)
 
         # This Mapping connects the regularizations for the three-component
         # vector model
@@ -126,9 +111,7 @@ class MVIProblemTest(unittest.TestCase):
         # dmis.W = 1./survey.std
 
         # Add directives to the inversion
-        opt = optimization.ProjectedGNCG(
-            maxIter=10, lower=-10, upper=10.0, maxIterLS=5, maxIterCG=5, tolCG=1e-4
-        )
+        opt = optimization.ProjectedGNCG(maxIter=10, lower=-10, upper=10.0, maxIterLS=5, maxIterCG=5, tolCG=1e-4)
 
         invProb = inverse_problem.BaseInvProblem(dmis, reg, opt)
 
@@ -138,16 +121,12 @@ class MVIProblemTest(unittest.TestCase):
         # Here is where the norms are applied
         # Use pick a treshold parameter empirically based on the distribution of
         #  model parameters
-        IRLS = directives.Update_IRLS(
-            f_min_change=1e-3, max_irls_iterations=0, beta_tol=5e-1
-        )
+        IRLS = directives.Update_IRLS(f_min_change=1e-3, max_irls_iterations=0, beta_tol=5e-1)
 
         # Pre-conditioner
         update_Jacobi = directives.UpdatePreconditioner()
         sensitivity_weights = directives.UpdateSensitivityWeights(everyIter=False)
-        inv = inversion.BaseInversion(
-            invProb, directiveList=[sensitivity_weights, IRLS, update_Jacobi, betaest]
-        )
+        inv = inversion.BaseInversion(invProb, directiveList=[sensitivity_weights, IRLS, update_Jacobi, betaest])
 
         # Run the inversion
         m0 = np.ones(3 * nC) * 1e-4  # Starting model
@@ -170,13 +149,13 @@ class MVIProblemTest(unittest.TestCase):
         # Regularize the vertical angle of the vectors
         reg_t = regularization.Sparse(mesh, active_cells=actv, mapping=wires.theta)
         reg_t.alpha_s = 0.0  # No reference angle
-        reg_t.space = "spherical"
+        reg_t.units = "radian"
         reg_t.norms = [2.0, 0.0, 0.0, 0.0]  # Only norm on gradients used
 
         # Regularize the horizontal angle of the vectors
         reg_p = regularization.Sparse(mesh, active_cells=actv, mapping=wires.phi)
         reg_p.alpha_s = 0.0  # No reference angle
-        reg_p.space = "spherical"
+        reg_p.units = "radian"
         reg_p.norms = [2.0, 0.0, 0.0, 0.0]  # Only norm on gradients used
 
         reg = reg_a + reg_t + reg_p
@@ -221,14 +200,13 @@ class MVIProblemTest(unittest.TestCase):
         )
 
     def test_mag_inverse(self):
-
         # Run the inversion
         mrec_MVI_S = self.inv.run(self.mstart)
 
         nC = int(mrec_MVI_S.shape[0] / 3)
-        vec_xyz = utils.mat_utils.spherical2cartesian(
-            mrec_MVI_S.reshape((nC, 3), order="F")
-        ).reshape((nC, 3), order="F")
+        vec_xyz = utils.mat_utils.spherical2cartesian(mrec_MVI_S.reshape((nC, 3), order="F")).reshape(
+            (nC, 3), order="F"
+        )
 
         residual = np.linalg.norm(vec_xyz - self.model) / np.linalg.norm(self.model)
 
