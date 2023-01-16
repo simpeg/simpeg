@@ -307,7 +307,7 @@ floors = np.kron(
     np.median(np.abs(dpred).reshape((-1, n_times)), axis=0)*0.75,
 ) + 1e-16
 noise = np.random.randn(dpred.shape[0]) * ( #1e-15)
-            np.abs(dpred) * 0.02
+            np.abs(dpred) * 0.0
 )
 
 data_object = data.Data(
@@ -341,7 +341,7 @@ opt = optimization.ProjectedGNCG(
     maxIter=15, lower=-np.inf, upper=np.inf, maxIterLS=10, maxIterCG=20, tolCG=1e-4
 )
 
-inv_prob = inverse_problem.BaseInvProblem(dmis, reg, opt, beta=5e-4)
+inv_prob = inverse_problem.BaseInvProblem(dmis, reg, opt)
 directive_list = [
     directives.UpdateSensitivityWeights(threshold=5),
     directives.Update_IRLS(
@@ -353,7 +353,7 @@ directive_list = [
         chifact_target=1.0,
     ),
     directives.UpdatePreconditioner(),
-    # directives.BetaEstimate_ByEig(beta0_ratio=1e+2)
+    directives.BetaEstimate_ByEig(beta0_ratio=1e+2)
 ]
 
 inv = inversion.BaseInversion(
