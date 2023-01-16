@@ -353,7 +353,7 @@ directive_list = [
         chifact_target=1.0,
     ),
     directives.UpdatePreconditioner(),
-    directives.BetaEstimate_ByEig(beta0_ratio=1e+2)
+    directives.BetaEstimate_ByEig(beta0_ratio=1e+2, method="max_derivatives")
 ]
 
 inv = inversion.BaseInversion(
