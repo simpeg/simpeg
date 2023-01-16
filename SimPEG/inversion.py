@@ -1,7 +1,6 @@
-import scipy.sparse as sp
 import numpy as np
 
-from .optimization import Remember, IterationPrinters, StoppingCriteria
+from .optimization import IterationPrinters, StoppingCriteria
 from .directives import DirectiveList
 from .utils import timeIt, Counter, validate_type, validate_string
 
