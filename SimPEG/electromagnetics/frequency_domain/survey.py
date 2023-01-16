@@ -1,4 +1,3 @@
-from scipy.constants import mu_0
 from ...survey import BaseSurvey
 from .sources import BaseFDEMSrc
 from ...utils import validate_list_of_types

@@ -4,7 +4,7 @@ import unittest
 import numpy as np
 from discretize.utils import mesh_builder_xyz, refine_tree_xyz
 
-import SimPEG.dask
+import SimPEG.dask  # noqa: F401
 from SimPEG import data_misfit, directives, inverse_problem, inversion, maps, optimization, regularization, utils
 from SimPEG.potential_fields import magnetics as mag
 
