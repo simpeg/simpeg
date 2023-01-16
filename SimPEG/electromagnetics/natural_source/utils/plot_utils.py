@@ -680,7 +680,7 @@ def _get_map_data(data, frequency, orientation, component, plot_error=False):
             plot_data = np.arctan2(imag_data, real_data) * (180.0 / np.pi)
             if plot_error:
                 phs_uncert = (
-                    (1.0 / (real_data ** 2 + imag_data ** 2))
+                    (1.0 / (real_data**2 + imag_data**2))
                     * ((real_data * real_uncert - imag_data * imag_uncert))
                 ) * (180.0 / np.pi)
                 # Scale back the errorbars
@@ -695,7 +695,6 @@ def _get_map_data(data, frequency, orientation, component, plot_error=False):
                 )
                 errorbars = [amp_uncert, amp_uncert]  # [low_unsert, up_unsert]
     else:
-
         if plot_error:
             freqs, plot_data, std_data, floor_data = _extract_frequency_data(
                 data, frequency, orientation, component, return_uncert=error
@@ -710,7 +709,6 @@ def _get_map_data(data, frequency, orientation, component, plot_error=False):
 
 
 def _get_station_data(data, location, orientation, component, plot_error=False):
-
     # Get the components
     if component in ["app_res", "phase", "amplitude"]:
         real_tuple = _extract_location_data(
@@ -742,7 +740,7 @@ def _get_station_data(data, location, orientation, component, plot_error=False):
             plot_data = np.arctan2(imag_data, real_data) * (180.0 / np.pi)
             if plot_error:
                 phs_uncert = (
-                    (1.0 / (real_data ** 2 + imag_data ** 2))
+                    (1.0 / (real_data**2 + imag_data**2))
                     * ((real_data * real_uncert - imag_data * imag_uncert))
                 ) * (180.0 / np.pi)
                 # Scale back the errorbars
@@ -774,7 +772,6 @@ def _get_station_data(data, location, orientation, component, plot_error=False):
 
 
 def _get_plot_data(data, location, orientation, component):
-
     if "app_res" in component:
         freqs, dat_r = _extract_location_data(data, location, orientation, "real")
         freqs, dat_i = _extract_location_data(data, location, orientation, "imag")

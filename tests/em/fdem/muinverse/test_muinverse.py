@@ -85,7 +85,6 @@ def setupProblem(
     survey = fdem.Survey([src])
 
     if sigmaInInversion:
-
         wires = maps.Wires(("mu", mesh.nC), ("sigma", mesh.nC))
 
         muMap = maps.MuRelative(mesh) * wires.mu

@@ -12,7 +12,6 @@ from SimPEG.utils import WeightedGaussianMixture, mkvc
 
 class TestPGI(unittest.TestCase):
     def setUp(self):
-
         np.random.seed(518936)
 
         # Create a cloud of  random points from a random gaussian mixture
@@ -54,7 +53,6 @@ class TestPGI(unittest.TestCase):
         self.PlotIt = False
 
     def test_full_covariances(self):
-
         print("Test Full covariances: ")
         print("=======================")
         # Fit a Gaussian Mixture
@@ -163,7 +161,6 @@ class TestPGI(unittest.TestCase):
             plt.show()
 
     def test_tied_covariances(self):
-
         print("Test Tied covariances: ")
         print("=======================")
         # Fit a Gaussian Mixture
@@ -269,7 +266,6 @@ class TestPGI(unittest.TestCase):
             plt.show()
 
     def test_diag_covariances(self):
-
         print("Test Diagonal covariances: ")
         print("===========================")
         # Fit a Gaussian Mixture
@@ -374,7 +370,6 @@ class TestPGI(unittest.TestCase):
             plt.show()
 
     def test_spherical_covariances(self):
-
         print("Test Spherical covariances: ")
         print("============================")
         # Fit a Gaussian Mixture

@@ -147,7 +147,6 @@ apparent_conductivity = 1 / apparent_resistivity_from_voltage(
 )
 
 if has_plotly:
-
     # Plot DC Data
     fig = plot_3d_pseudosection(
         dc_data.survey, apparent_conductivity, scale="log", units="S/m"
@@ -180,7 +179,6 @@ else:
 #
 
 if has_plotly:
-
     # Plot IP Data
     fig = plot_3d_pseudosection(
         ip_data.survey,
@@ -526,7 +524,6 @@ dpred_dc = dc_inverse_problem.dpred
 dc_normalized_misfit = (dc_data.dobs - dpred_dc) / dc_data.standard_deviation
 
 if has_plotly:
-
     # Plot IP Data
     fig = plot_3d_pseudosection(
         dc_data.survey,
@@ -758,7 +755,6 @@ dpred_ip = ip_inverse_problem.dpred
 ip_normalized_misfit = (ip_data.dobs - dpred_ip) / ip_data.standard_deviation
 
 if has_plotly:
-
     fig = plot_3d_pseudosection(
         ip_data.survey,
         ip_normalized_misfit,

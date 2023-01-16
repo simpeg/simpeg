@@ -63,7 +63,6 @@ class TestInductiveSourcesPermeability(unittest.TestCase):
         self.mesh = mesh
 
     def test_permeable_sources(self):
-
         target_mur = self.target_mur
         target_l = self.target_l
         target_r = self.target_r

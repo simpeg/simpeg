@@ -295,7 +295,7 @@ def convert3Dto1Dobject(NSEMdata, rxType3D="yx"):
 
 ### Other utils, that don't take NSEM as an input
 def appResPhs(freq, z):
-    app_res = ((1.0 / (8e-7 * np.pi ** 2)) / freq) * np.abs(z) ** 2
+    app_res = ((1.0 / (8e-7 * np.pi**2)) / freq) * np.abs(z) ** 2
     app_phs = np.arctan2(z.imag, z.real) * (180 / np.pi)
     return app_res, app_phs
 
@@ -320,7 +320,6 @@ def rec_to_ndarr(rec_arr, data_type=float):
 
 
 def makeAnalyticSolution(mesh, model, elev, freqs):
-
     data1D = []
     for freq in freqs:
         anaEd, anaEu, anaHd, anaHu = analytic_1d.getEHfields(mesh, model, freq, elev)
@@ -344,7 +343,6 @@ def makeAnalyticSolution(mesh, model, elev, freqs):
 
 
 def plotMT1DModelData(problem, models, symList=None):
-
     # Setup the figure
     fontSize = 15
 

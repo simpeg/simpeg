@@ -148,7 +148,6 @@ class BaseObjectiveFunction(BaseSimPEG):
     __numpy_ufunc__ = True
 
     def __add__(self, objfct2):
-
         if isinstance(objfct2, Zero):
             return self
 
@@ -226,7 +225,6 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
     _multipliers = None
 
     def __init__(self, objfcts=None, multipliers=None, **kwargs):
-
         if objfcts is None:
             objfcts = []
         if multipliers is None:
@@ -302,7 +300,6 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
         self._multipliers = value
 
     def __call__(self, m, f=None):
-
         fct = 0.0
         for i, phi in enumerate(self):
             multiplier, objfct = phi
@@ -405,7 +402,6 @@ class L2ObjectiveFunction(BaseObjectiveFunction):
     """
 
     def __init__(self, W=None, **kwargs):
-
         super(L2ObjectiveFunction, self).__init__(**kwargs)
         if W is not None:
             if self.nP == "*":

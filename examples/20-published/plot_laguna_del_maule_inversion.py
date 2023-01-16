@@ -34,7 +34,6 @@ from SimPEG.utils.drivers.gravity_driver import GravityDriver_Inv
 
 
 def run(plotIt=True, cleanAfterRun=True):
-
     # Start by downloading files from the remote repository
     # directory where the downloaded files are
 

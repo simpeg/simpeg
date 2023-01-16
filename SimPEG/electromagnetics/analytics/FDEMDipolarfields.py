@@ -12,7 +12,6 @@ omega = lambda f: 2.0 * np.pi * f
 def E_from_ElectricDipoleWholeSpace(
     XYZ, srcLoc, sig, f, current=1.0, length=1.0, orientation="X", kappa=0.0, epsr=1.0
 ):
-
     """
     Computing Analytic Electric fields from Electrical Dipole in a Wholespace
     TODO:
@@ -33,38 +32,37 @@ def E_from_ElectricDipoleWholeSpace(
     dy = XYZ[:, 1] - srcLoc[1]
     dz = XYZ[:, 2] - srcLoc[2]
 
-    r = np.sqrt(dx ** 2.0 + dy ** 2.0 + dz ** 2.0)
+    r = np.sqrt(dx**2.0 + dy**2.0 + dz**2.0)
     # k  = np.sqrt( -1j*2.*np.pi*f*mu*sig )
     k = np.sqrt(omega(f) ** 2.0 * mu * epsilon - 1j * omega(f) * mu * sig)
 
-    front = current * length / (4.0 * np.pi * sig_hat * r ** 3) * np.exp(-1j * k * r)
-    mid = -(k ** 2) * r ** 2 + 3 * 1j * k * r + 3
+    front = current * length / (4.0 * np.pi * sig_hat * r**3) * np.exp(-1j * k * r)
+    mid = -(k**2) * r**2 + 3 * 1j * k * r + 3
 
     if orientation.upper() == "X":
-        Ex = front * ((dx ** 2 / r ** 2) * mid + (k ** 2 * r ** 2 - 1j * k * r - 1.0))
-        Ey = front * (dx * dy / r ** 2) * mid
-        Ez = front * (dx * dz / r ** 2) * mid
+        Ex = front * ((dx**2 / r**2) * mid + (k**2 * r**2 - 1j * k * r - 1.0))
+        Ey = front * (dx * dy / r**2) * mid
+        Ez = front * (dx * dz / r**2) * mid
         return Ex, Ey, Ez
 
     elif orientation.upper() == "Y":
         #  x--> y, y--> z, z-->x
-        Ey = front * ((dy ** 2 / r ** 2) * mid + (k ** 2 * r ** 2 - 1j * k * r - 1.0))
-        Ez = front * (dy * dz / r ** 2) * mid
-        Ex = front * (dy * dx / r ** 2) * mid
+        Ey = front * ((dy**2 / r**2) * mid + (k**2 * r**2 - 1j * k * r - 1.0))
+        Ez = front * (dy * dz / r**2) * mid
+        Ex = front * (dy * dx / r**2) * mid
         return Ex, Ey, Ez
 
     elif orientation.upper() == "Z":
         # x --> z, y --> x, z --> y
-        Ez = front * ((dz ** 2 / r ** 2) * mid + (k ** 2 * r ** 2 - 1j * k * r - 1.0))
-        Ex = front * (dz * dx / r ** 2) * mid
-        Ey = front * (dz * dy / r ** 2) * mid
+        Ez = front * ((dz**2 / r**2) * mid + (k**2 * r**2 - 1j * k * r - 1.0))
+        Ex = front * (dz * dx / r**2) * mid
+        Ey = front * (dz * dy / r**2) * mid
         return Ex, Ey, Ez
 
 
 def E_galvanic_from_ElectricDipoleWholeSpace(
     XYZ, srcLoc, sig, f, current=1.0, length=1.0, orientation="X", kappa=1.0, epsr=1.0
 ):
-
     """
     Computing Galvanic portion of Electric fields from Electrical Dipole in a Wholespace
     TODO:
@@ -85,38 +83,37 @@ def E_galvanic_from_ElectricDipoleWholeSpace(
     dy = XYZ[:, 1] - srcLoc[1]
     dz = XYZ[:, 2] - srcLoc[2]
 
-    r = np.sqrt(dx ** 2.0 + dy ** 2.0 + dz ** 2.0)
+    r = np.sqrt(dx**2.0 + dy**2.0 + dz**2.0)
     # k  = np.sqrt( -1j*2.*np.pi*f*mu*sig )
     k = np.sqrt(omega(f) ** 2.0 * mu * epsilon - 1j * omega(f) * mu * sig)
 
-    front = current * length / (4.0 * np.pi * sig_hat * r ** 3) * np.exp(-1j * k * r)
-    mid = -(k ** 2) * r ** 2 + 3 * 1j * k * r + 3
+    front = current * length / (4.0 * np.pi * sig_hat * r**3) * np.exp(-1j * k * r)
+    mid = -(k**2) * r**2 + 3 * 1j * k * r + 3
 
     if orientation.upper() == "X":
-        Ex_galvanic = front * ((dx ** 2 / r ** 2) * mid + (-1j * k * r - 1.0))
-        Ey_galvanic = front * (dx * dy / r ** 2) * mid
-        Ez_galvanic = front * (dx * dz / r ** 2) * mid
+        Ex_galvanic = front * ((dx**2 / r**2) * mid + (-1j * k * r - 1.0))
+        Ey_galvanic = front * (dx * dy / r**2) * mid
+        Ez_galvanic = front * (dx * dz / r**2) * mid
         return Ex_galvanic, Ey_galvanic, Ez_galvanic
 
     elif orientation.upper() == "Y":
         #  x--> y, y--> z, z-->x
-        Ey_galvanic = front * ((dy ** 2 / r ** 2) * mid + (-1j * k * r - 1.0))
-        Ez_galvanic = front * (dy * dz / r ** 2) * mid
-        Ex_galvanic = front * (dy * dx / r ** 2) * mid
+        Ey_galvanic = front * ((dy**2 / r**2) * mid + (-1j * k * r - 1.0))
+        Ez_galvanic = front * (dy * dz / r**2) * mid
+        Ex_galvanic = front * (dy * dx / r**2) * mid
         return Ex_galvanic, Ey_galvanic, Ez_galvanic
 
     elif orientation.upper() == "Z":
         # x --> z, y --> x, z --> y
-        Ez_galvanic = front * ((dz ** 2 / r ** 2) * mid + (-1j * k * r - 1.0))
-        Ex_galvanic = front * (dz * dx / r ** 2) * mid
-        Ey_galvanic = front * (dz * dy / r ** 2) * mid
+        Ez_galvanic = front * ((dz**2 / r**2) * mid + (-1j * k * r - 1.0))
+        Ex_galvanic = front * (dz * dx / r**2) * mid
+        Ey_galvanic = front * (dz * dy / r**2) * mid
         return Ex_galvanic, Ey_galvanic, Ez_galvanic
 
 
 def E_inductive_from_ElectricDipoleWholeSpace(
     XYZ, srcLoc, sig, f, current=1.0, length=1.0, orientation="X", kappa=1.0, epsr=1.0
 ):
-
     """
     Computing Inductive portion of Electric fields from Electrical Dipole in a Wholespace
     TODO:
@@ -137,28 +134,28 @@ def E_inductive_from_ElectricDipoleWholeSpace(
     dy = XYZ[:, 1] - srcLoc[1]
     dz = XYZ[:, 2] - srcLoc[2]
 
-    r = np.sqrt(dx ** 2.0 + dy ** 2.0 + dz ** 2.0)
+    r = np.sqrt(dx**2.0 + dy**2.0 + dz**2.0)
     # k  = np.sqrt( -1j*2.*np.pi*f*mu*sig )
     k = np.sqrt(omega(f) ** 2.0 * mu * epsilon - 1j * omega(f) * mu * sig)
 
-    front = current * length / (4.0 * np.pi * sig_hat * r ** 3) * np.exp(-1j * k * r)
+    front = current * length / (4.0 * np.pi * sig_hat * r**3) * np.exp(-1j * k * r)
 
     if orientation.upper() == "X":
-        Ex_inductive = front * (k ** 2 * r ** 2)
+        Ex_inductive = front * (k**2 * r**2)
         Ey_inductive = np.zeros_like(Ex_inductive)
         Ez_inductive = np.zeros_like(Ex_inductive)
         return Ex_inductive, Ey_inductive, Ez_inductive
 
     elif orientation.upper() == "Y":
         #  x--> y, y--> z, z-->x
-        Ey_inductive = front * (k ** 2 * r ** 2)
+        Ey_inductive = front * (k**2 * r**2)
         Ez_inductive = np.zeros_like(Ey_inductive)
         Ex_inductive = np.zeros_like(Ey_inductive)
         return Ex_inductive, Ey_inductive, Ez_inductive
 
     elif orientation.upper() == "Z":
         # x --> z, y --> x, z --> y
-        Ez_inductive = front * (k ** 2 * r ** 2)
+        Ez_inductive = front * (k**2 * r**2)
         Ex_inductive = np.zeros_like(Ez_inductive)
         Ey_inductive = np.zeros_like(Ez_inductive)
         return Ex_inductive, Ey_inductive, Ez_inductive
@@ -167,7 +164,6 @@ def E_inductive_from_ElectricDipoleWholeSpace(
 def J_from_ElectricDipoleWholeSpace(
     XYZ, srcLoc, sig, f, current=1.0, length=1.0, orientation="X", kappa=1.0, epsr=1.0
 ):
-
     """
     Computing Current densities from Electrical Dipole in a Wholespace
     TODO:
@@ -194,7 +190,6 @@ def J_from_ElectricDipoleWholeSpace(
 def J_galvanic_from_ElectricDipoleWholeSpace(
     XYZ, srcLoc, sig, f, current=1.0, length=1.0, orientation="X", kappa=1.0, epsr=1.0
 ):
-
     """
     Computing Galvanic portion of Current densities from Electrical Dipole in a Wholespace
     TODO:
@@ -221,7 +216,6 @@ def J_galvanic_from_ElectricDipoleWholeSpace(
 def J_inductive_from_ElectricDipoleWholeSpace(
     XYZ, srcLoc, sig, f, current=1.0, length=1.0, orientation="X", kappa=1.0, epsr=1.0
 ):
-
     """
     Computing Inductive portion of Current densities from Electrical Dipole in a Wholespace
     TODO:
@@ -252,7 +246,6 @@ def J_inductive_from_ElectricDipoleWholeSpace(
 def H_from_ElectricDipoleWholeSpace(
     XYZ, srcLoc, sig, f, current=1.0, length=1.0, orientation="X", kappa=1.0, epsr=1.0
 ):
-
     """
     Computing Magnetic fields from Electrical Dipole in a Wholespace
     TODO:
@@ -271,14 +264,14 @@ def H_from_ElectricDipoleWholeSpace(
     dy = XYZ[:, 1] - srcLoc[1]
     dz = XYZ[:, 2] - srcLoc[2]
 
-    r = np.sqrt(dx ** 2.0 + dy ** 2.0 + dz ** 2.0)
+    r = np.sqrt(dx**2.0 + dy**2.0 + dz**2.0)
     # k  = np.sqrt( -1j*2.*np.pi*f*mu*sig )
     k = np.sqrt(omega(f) ** 2.0 * mu * epsilon - 1j * omega(f) * mu * sig)
 
     front = (
         current
         * length
-        / (4.0 * np.pi * r ** 2)
+        / (4.0 * np.pi * r**2)
         * (-1j * k * r + 1)
         * np.exp(-1j * k * r)
     )
@@ -305,7 +298,6 @@ def H_from_ElectricDipoleWholeSpace(
 def B_from_ElectricDipoleWholeSpace(
     XYZ, srcLoc, sig, f, current=1.0, length=1.0, orientation="X", kappa=1.0, epsr=1.0
 ):
-
     """
     Computing Magnetic flux densites from Electrical Dipole in a Wholespace
     TODO:
@@ -332,7 +324,6 @@ def B_from_ElectricDipoleWholeSpace(
 def A_from_ElectricDipoleWholeSpace(
     XYZ, srcLoc, sig, f, current=1.0, length=1.0, orientation="X", kappa=1.0, epsr=1.0
 ):
-
     """
     Computing Electric vector potentials from Electrical Dipole in a Wholespace
     TODO:
@@ -351,7 +342,7 @@ def A_from_ElectricDipoleWholeSpace(
     dy = XYZ[:, 1] - srcLoc[1]
     dz = XYZ[:, 2] - srcLoc[2]
 
-    r = np.sqrt(dx ** 2.0 + dy ** 2.0 + dz ** 2.0)
+    r = np.sqrt(dx**2.0 + dy**2.0 + dz**2.0)
     k = np.sqrt(omega(f) ** 2.0 * mu * epsilon - 1j * omega(f) * mu * sig)
 
     front = current * length / (4.0 * np.pi * r)

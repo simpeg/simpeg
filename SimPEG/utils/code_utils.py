@@ -286,7 +286,6 @@ def call_hooks(match, mainFirst=False):
     def callHooksWrap(f):
         @wraps(f)
         def wrapper(self, *args, **kwargs):
-
             if not mainFirst:
                 for method in [
                     posible for posible in dir(self) if ("_" + match) in posible
@@ -773,6 +772,7 @@ def validate_string(property_name, var, string_list=None, case_sensitive=False):
             return var
         if not case_sensitive:
             test_var = var.casefold()
+
             # also fold the string_list for comparison
             def fold_input(input_variable):
                 if isinstance(input_variable, (list, tuple)):

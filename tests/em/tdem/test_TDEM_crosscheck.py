@@ -89,7 +89,6 @@ def CrossCheck(
     waveform="stepoff",
     src_type=None,
 ):
-
     prb1, m1, mesh1 = setUp_TDEM(prbtype1, rxcomp, waveform, src_type)
     prb2, _, mesh2 = setUp_TDEM(prbtype2, rxcomp, waveform, src_type)
 
@@ -256,7 +255,6 @@ class TDEM_cross_check_EB(unittest.TestCase):
             )
 
     def test_waveform_instantiation(self):
-
         rx_list = [
             tdem.receivers.PointMagneticFluxDensity(
                 locations=[np.r_[0.0, 0.0, 0.0]],

@@ -37,7 +37,6 @@ def surface2ind_topo(mesh, topo, gridLoc="CC", method="nearest", fill_value=np.n
         Index vector for cells lying below the topography
     """
     if mesh._meshType == "TENSOR":
-
         if mesh.dim == 3:
             # Check if Topo points are inside of the mesh
             xmin, xmax = mesh.nodes_x.min(), mesh.nodes_x.max()
@@ -70,7 +69,6 @@ def surface2ind_topo(mesh, topo, gridLoc="CC", method="nearest", fill_value=np.n
                 actind = np.hstack(actind)
 
             elif gridLoc == "N":
-
                 XY = ndgrid(mesh.nodes_x, mesh.nodes_y)
                 gridTopo = griddata(
                     topo[:, :2], topo[:, 2], XY, method=method, fill_value=fill_value
@@ -109,7 +107,6 @@ def surface2ind_topo(mesh, topo, gridLoc="CC", method="nearest", fill_value=np.n
                 actind = mesh.gridCC[:, 1] <= gridTopo
 
             elif gridLoc == "N":
-
                 gridTopo = Ftopo(mesh.nodes_x)
                 if mesh._meshType not in ["TENSOR", "CYL", "BASETENSOR"]:
                     raise NotImplementedError(
@@ -180,7 +177,6 @@ def surface2ind_topo(mesh, topo, gridLoc="CC", method="nearest", fill_value=np.n
                 raise Exception("gridLoc must be either CC or N")
 
         elif mesh.dim == 2:
-
             if gridLoc == "CC":
                 # Compute unique X location
                 uniqX = np.unique(
@@ -270,7 +266,6 @@ def surface_layer_index(mesh, topo, index=0):
     Iz, Jz, _ = sp.find(Dz)
     jz = np.sort(Jz[np.argsort(Iz)].reshape((int(Iz.shape[0] / 2), 2)), axis=1)
     for ii in range(index):
-
         members = ismember(inds, jz[:, 1])
         inds = np.squeeze(jz[members, 0])
 
@@ -331,7 +326,6 @@ def depth_weighting(mesh, reference_locs, indActive=None, exponent=2.0, threshol
 
     # reference_locs is a 2d array
     elif reference_locs.ndim == 2:
-
         tree = cKDTree(reference_locs[:, :-1])
         _, ind = tree.query(mesh.cell_centers[:, :-1])
         delta_z = np.abs(mesh.cell_centers[:, -1] - reference_locs[ind, -1])

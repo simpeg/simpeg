@@ -166,7 +166,6 @@ ax.legend(obs_string, loc="upper right")
 #
 
 if save_file:
-
     dir_path = os.path.dirname(tomo.__file__).split(os.path.sep)[:-3]
     dir_path.extend(["tutorials", "seismic", "assets"])
     dir_path = os.path.sep.join(dir_path) + os.path.sep

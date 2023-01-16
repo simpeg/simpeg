@@ -129,7 +129,7 @@ class WeightedGaussianMixture(GaussianMixture):
                 self.precisions_cholesky_, self.precisions_cholesky_.T
             )
         else:
-            self.precisions_ = self.precisions_cholesky_ ** 2
+            self.precisions_ = self.precisions_cholesky_**2
 
     def compute_clusters_covariances(self):
         """Compute the precisions matrices and their Cholesky decomposition.
@@ -149,7 +149,7 @@ class WeightedGaussianMixture(GaussianMixture):
                 self.covariances_cholesky_, self.covariances_cholesky_.T
             )
         else:
-            self.covariances_ = self.covariances_cholesky_ ** 2
+            self.covariances_ = self.covariances_cholesky_**2
 
         self.precisions_cholesky_ = _compute_precision_cholesky(
             self.covariances_, self.covariance_type
@@ -652,7 +652,6 @@ class WeightedGaussianMixture(GaussianMixture):
         ax[0].set_ylabel("Probability Density values")
 
         if flag2d:
-
             dy = padding * (
                 self.means_[:, y_component].max() - self.means_[:, y_component].min()
             )
@@ -1222,7 +1221,6 @@ class GaussianMixtureWithNonlinearRelationships(WeightedGaussianMixture):
         verbose_interval=10,
         cluster_mapping=None,
     ):
-
         if cluster_mapping is None:
             self.cluster_mapping = [IdentityMap() for i in range(n_components)]
         else:
@@ -1534,7 +1532,6 @@ class GaussianMixtureWithNonlinearRelationshipsWithPrior(GaussianMixtureWithPrio
         update_covariances=True,
         fixed_membership=None,
     ):
-
         if cluster_mapping is None:
             self.cluster_mapping = gmmref.cluster_mapping
         else:
@@ -1646,7 +1643,7 @@ class GaussianMixtureWithNonlinearRelationshipsWithPrior(GaussianMixtureWithPrio
 
         elif covariance_type == "diag" or covariance_type == "spherical":
             log_prob = np.empty((n_samples, n_components))
-            precisions = precisions_chol ** 2
+            precisions = precisions_chol**2
             for k, (mu, prec_chol, mapping) in enumerate(
                 zip(means, precisions_chol, cluster_mapping)
             ):

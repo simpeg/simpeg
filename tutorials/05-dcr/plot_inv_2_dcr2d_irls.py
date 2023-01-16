@@ -424,7 +424,6 @@ plotting_model = [
 ]
 
 for ii in range(0, 3):
-
     ax1[ii] = fig.add_axes([0.14, 0.75 - 0.3 * ii, 0.68, 0.2])
     mesh.plot_image(
         plotting_model[ii],
@@ -469,7 +468,6 @@ cbar = 3 * [None]
 cplot = 3 * [None]
 
 for ii in range(0, 3):
-
     ax1[ii] = fig.add_axes([0.15, 0.72 - 0.33 * ii, 0.65, 0.21])
     cax1[ii] = fig.add_axes([0.81, 0.72 - 0.33 * ii, 0.03, 0.21])
     cplot[ii] = plot_pseudosection(

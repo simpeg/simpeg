@@ -33,7 +33,6 @@ import matplotlib.pyplot as plt
 
 
 def run(plotIt=True):
-
     M = discretize.TensorMesh([7, 5])
     v1dMap = maps.SurjectVertical1D(M)
     expMap = maps.ExpMap(M)

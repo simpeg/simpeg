@@ -53,7 +53,6 @@ class PGI_UpdateParameters(InversionDirective):
     keep_ref_fixed_in_Smooth = True  # keep mref fixed in the Smoothness
 
     def initialize(self):
-
         pgi_reg = self.reg.get_functions_of_type(PGIsmallness)
         if len(pgi_reg) != 1:
             raise UserWarning(
@@ -206,7 +205,6 @@ class PGI_BetaAlphaSchedule(InversionDirective):
         self.pgi_reg = pgi_reg[0]
 
     def endIter(self):
-
         self.DM = self.inversion.directiveList.dList[self.targetclass].DM
         self.dmlist = self.inversion.directiveList.dList[self.targetclass].dmlist
         self.DMtarget = self.inversion.directiveList.dList[self.targetclass].DMtarget
@@ -251,9 +249,7 @@ class PGI_BetaAlphaSchedule(InversionDirective):
                     self.mode == 1,
                 ]
             ):
-
                 if np.all([self.invProb.beta > self.betamin]):
-
                     ratio = 1.0
                     indx = self.dmlist > (1.0 + self.tolerance) * self.DMtarget
                     if np.any(indx) and self.ratio_in_cooling:
@@ -264,9 +260,7 @@ class PGI_BetaAlphaSchedule(InversionDirective):
                         print("Decreasing beta to counter data misfit decrase plateau.")
 
             elif np.all([self.DM, self.mode == 2]):
-
                 if np.all([self.pgi_reg.alpha_pgi < self.alphasmax]):
-
                     ratio = np.median(self.DMtarget / self.dmlist)
                     self.pgi_reg.alpha_pgi *= self.warmingFactor * ratio
 
@@ -282,9 +276,7 @@ class PGI_BetaAlphaSchedule(InversionDirective):
                     self.mode == 2,
                 ]
             ):
-
                 if np.all([self.invProb.beta > self.betamin]):
-
                     ratio = 1.0
                     indx = self.dmlist > (1.0 + self.tolerance) * self.DMtarget
                     if np.any(indx) and self.ratio_in_cooling:

@@ -12,7 +12,6 @@ import empymod
 
 class EM1D_FD_test_failures(unittest.TestCase):
     def setUp(self):
-
         nearthick = np.logspace(-1, 1, 5)
         deepthick = np.logspace(1, 2, 10)
         thicknesses = np.r_[nearthick, deepthick]
@@ -23,7 +22,6 @@ class EM1D_FD_test_failures(unittest.TestCase):
         self.nlayers = len(thicknesses) + 1
 
     def test_height_failures(self):
-
         frequencies = np.logspace(-1, 5, 6)
         x_offset = 10.0
         z_tx = [-10.0, 1.0, 1.0]
@@ -71,7 +69,6 @@ class EM1D_FD_test_failures(unittest.TestCase):
             print(test_type_string[ii] + " TEST PASSED")
 
     def test_loop_orientation_failures(self):
-
         src_location = np.array([0.0, 0.0, 1e-5])
         frequencies = np.logspace(-1, 5, 6)
         sigma_map = maps.ExpMap(nP=self.nlayers)
@@ -84,7 +81,6 @@ class EM1D_FD_test_failures(unittest.TestCase):
         error_type = [ValueError, ValueError]
 
         for ii in range(0, len(offsets)):
-
             rx_location = np.array([[offsets[ii], 0.0, 1e-5]])
             receiver_list = [
                 fdem.receivers.PointMagneticFieldSecondary(
@@ -116,7 +112,6 @@ class EM1D_FD_test_failures(unittest.TestCase):
 
 class EM1D_FD_FwdProblemTests(unittest.TestCase):
     def setUp(self):
-
         nearthick = np.logspace(-1, 1, 5)
         deepthick = np.logspace(1, 2, 10)
         thicknesses = np.r_[nearthick, deepthick]
@@ -192,7 +187,6 @@ class EM1D_FD_FwdProblemTests(unittest.TestCase):
         self.nlayers = len(thicknesses) + 1
 
     def test_basic_properties(self):
-
         sim = fdem.Simulation1DLayered(
             survey=self.survey, thicknesses=self.thicknesses, topo=self.topo
         )
@@ -205,7 +199,6 @@ class EM1D_FD_FwdProblemTests(unittest.TestCase):
         self.assertTrue(np.all(depths == sim.depth))
 
     def test_EM1DFDfwd_VMD_Halfspace(self):
-
         sigma_map = maps.ExpMap(nP=1)
         sim = fdem.Simulation1DLayered(
             survey=self.survey, sigmaMap=sigma_map, topo=self.topo
@@ -230,7 +223,6 @@ class EM1D_FD_FwdProblemTests(unittest.TestCase):
         self.assertLess(err, 1e-5)
 
     def test_EM1DFDfwd_VMD_RealCond(self):
-
         sigma_map = maps.ExpMap(nP=self.nlayers)
         sim = fdem.Simulation1DLayered(
             survey=self.survey,
@@ -258,7 +250,6 @@ class EM1D_FD_FwdProblemTests(unittest.TestCase):
         self.assertLess(err, 1e-5)
 
     def test_EM1DFDfwd_VMD_ComplexCond(self):
-
         sigma_map = maps.IdentityMap(nP=self.nlayers)
         mu = mu_0 * np.ones(self.nlayers)
         tau = self.tau * np.ones(self.nlayers)
@@ -299,7 +290,6 @@ class EM1D_FD_FwdProblemTests(unittest.TestCase):
         self.assertTrue(err < 1e-2)
 
     def test_EM1DFDfwd_HMD_RealCond(self):
-
         src_location = np.array([0.0, 0.0, 100.0 + 1e-5])
         rx_location = np.array([self.offset, 0.0, 100.0 + 1e-5])
         frequencies = np.logspace(-1, 5, 61)
@@ -353,7 +343,6 @@ class EM1D_FD_FwdProblemTests(unittest.TestCase):
         self.assertLess(err, 1e-5)
 
     def test_EM1DFDfwd_CircularLoop_RealCond(self):
-
         src_location = np.array([0.0, 0.0, 100.0 + 1e-5])
         rx_location = np.array([0.0, 0.0, 100.0 + 1e-5])
         frequencies = np.logspace(-1, 5, 61)
@@ -398,7 +387,6 @@ class EM1D_FD_FwdProblemTests(unittest.TestCase):
         self.assertLess(err, 1e-5)
 
     def test_EM1DFDfwd_CircularLoop_ComplexCond(self):
-
         src_location = np.array([0.0, 0.0, 100.0 + 1e-5])
         rx_location = np.array([0.0, 0.0, 100.0 + 1e-5])
         frequencies = np.logspace(-1, 5, 61)
@@ -456,7 +444,6 @@ class EM1D_FD_FwdProblemTests(unittest.TestCase):
 
 class EM1D_FD_LineCurrentTest(unittest.TestCase):
     def setUp(self):
-
         x_path = np.array([-2, -2, 2, 2, -2])
         y_path = np.array([-1, 1, 1, -1, -1])
         frequencies = np.logspace(0, 4)
@@ -493,7 +480,6 @@ class EM1D_FD_LineCurrentTest(unittest.TestCase):
         self.thicknesses = thicknesses
 
     def test_with_empymod(self):
-
         sigma_map = maps.ExpMap(nP=1)
         sim = fdem.Simulation1DLayered(
             survey=self.survey,

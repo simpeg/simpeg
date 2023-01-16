@@ -31,7 +31,6 @@ class EDIimporter:
     _2out = None  # The projection operator
 
     def __init__(self, EDIfilesList, compList=None, outEPSG=None):
-
         # Set the fileList
         self.filesList = EDIfilesList
         # Set the components to import
@@ -56,7 +55,6 @@ class EDIimporter:
             self._outEPSG = outEPSG
 
     def __call__(self, comps=None):
-
         if comps is None:
             return self._data
 

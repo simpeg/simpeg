@@ -8,7 +8,6 @@ from SimPEG.EM.Static.DC import Survey
 
 
 class StreamingCurrents(Src.BaseSrc):
-
     L = None
     mesh = None
     modelType = None

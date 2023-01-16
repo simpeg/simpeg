@@ -583,7 +583,6 @@ class TriangularWaveform(TrapezoidWaveform):
     """
 
     def __init__(self, start_time, off_time, peak_time, **kwargs):
-
         if kwargs.get("startTime", None):
             AttributeError(
                 "startTime will be deprecated in 0.17.0. Please update your code to use start_time instead",
@@ -1040,7 +1039,6 @@ class BaseTDEMSrc(BaseEMSrc):
         srcType=None,
         **kwargs,
     ):
-
         super(BaseTDEMSrc, self).__init__(
             receiver_list=receiver_list, location=location, **kwargs
         )
@@ -1502,7 +1500,6 @@ class MagDipole(BaseTDEMSrc):
                 return C.T * (MfMui * b) * self.waveform.eval(time)
 
         elif simulation._formulation == "HJ":
-
             h = 1.0 / self.mu * b
 
             if (
@@ -1627,7 +1624,7 @@ class CircularLoop(MagDipole):
         float
             Dipole moment of the loop
         """
-        return np.pi * self.radius ** 2 * self.current * self.n_turns
+        return np.pi * self.radius**2 * self.current * self.n_turns
 
     @moment.setter
     def moment(self, value):
@@ -1700,7 +1697,6 @@ class LineCurrent(BaseTDEMSrc):
         srcType=None,
         **kwargs,
     ):
-
         super().__init__(receiver_list=receiver_list, location=location, **kwargs)
         for rx in self.receiver_list:
             if getattr(rx, "use_source_receiver_offset", False):

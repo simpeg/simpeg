@@ -183,7 +183,6 @@ class QuadTreeLinProblemTest(unittest.TestCase):
             )
 
         def create_inversion(self, sim, data, beta=1e3):
-
             # Create a regularization
             reg = regularization.Sparse(self.mesh, mapping=self.idenMap)
             reg.norms = [0, 0, 0]
@@ -267,7 +266,6 @@ class QuadTreeLinProblemTest(unittest.TestCase):
         self.mag_inv = create_inversion(self, self.mag_sim, self.mag_data, beta=1e3)
 
     def test_instantiation_failures(self):
-
         # Ensure simulation can't be instantiated with 3D mesh.
         dh = 5.0
         hx = [(dh, 5, -1.3), (dh, 10), (dh, 5, 1.3)]
@@ -317,7 +315,6 @@ class QuadTreeLinProblemTest(unittest.TestCase):
         print("Z_TOP OR Z_BOTTOM LENGTH MATCHING NCELLS ERROR TEST PASSED.")
 
     def test_quadtree_grav_inverse(self):
-
         # Run the inversion from a zero starting model
         mrec = self.grav_inv.run(np.zeros(self.mesh.nC))
 
@@ -335,7 +332,6 @@ class QuadTreeLinProblemTest(unittest.TestCase):
         self.assertLess(data_misfit, dpred.shape[0] * 1.1)
 
     def test_quadtree_mag_inverse(self):
-
         # Run the inversion from a zero starting model
         mrec = self.mag_inv.run(np.zeros(self.mesh.nC))
 

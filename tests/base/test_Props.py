@@ -11,7 +11,6 @@ from SimPEG import props
 
 
 class SimpleExample(props.HasModel):
-
     sigmaMap = props.Mapping("Mapping to the inversion model.")
 
     sigma = props.PhysicalProperty("Electrical conductivity (S/m)", mapping=sigmaMap)
@@ -27,7 +26,6 @@ class SimpleExample(props.HasModel):
 
 
 class ShortcutExample(props.HasModel):
-
     sigma, sigmaMap, sigmaDeriv = props.Invertible("Electrical conductivity (S/m)")
 
     def __init__(self, sigma=None, sigmaMap=None, **kwargs):
@@ -37,7 +35,6 @@ class ShortcutExample(props.HasModel):
 
 
 class ReciprocalMappingExample(props.HasModel):
-
     sigma, sigmaMap, sigmaDeriv = props.Invertible("Electrical conductivity (S/m)")
 
     rho, rhoMap, rhoDeriv = props.Invertible("Electrical resistivity (Ohm m)")
@@ -53,7 +50,6 @@ class ReciprocalMappingExample(props.HasModel):
 
 
 class ReciprocalExample(props.HasModel):
-
     sigma, sigmaMap, sigmaDeriv = props.Invertible("Electrical conductivity (S/m)")
 
     rho = props.PhysicalProperty("Electrical resistivity (Ohm m)")
@@ -68,7 +64,6 @@ class ReciprocalExample(props.HasModel):
 
 
 class ReciprocalPropExample(props.HasModel):
-
     sigma = props.PhysicalProperty("Electrical conductivity (S/m)")
 
     rho = props.PhysicalProperty("Electrical resistivity (Ohm m)")
@@ -82,7 +77,6 @@ class ReciprocalPropExample(props.HasModel):
 
 
 class ReciprocalPropExampleDefaults(props.HasModel):
-
     sigma = props.PhysicalProperty("Electrical conductivity (S/m)")
 
     rho = props.PhysicalProperty("Electrical resistivity (Ohm m)")
@@ -98,7 +92,6 @@ class ReciprocalPropExampleDefaults(props.HasModel):
 
 
 class ComplicatedInversion(props.HasModel):
-
     Ks, KsMap, KsDeriv = props.Invertible("Saturated hydraulic conductivity")
 
     A, AMap, ADeriv = props.Invertible("fitting parameter")
@@ -141,7 +134,6 @@ class TestPropMaps(unittest.TestCase):
         assert expMap.nP == 3
 
         for Example in [SimpleExample, ShortcutExample]:
-
             PM = Example(sigmaMap=expMap)
             assert PM.sigmaMap is not None
             assert PM.sigmaMap is expMap
@@ -226,7 +218,6 @@ class TestPropMaps(unittest.TestCase):
         assert isinstance(PM.sigmaDeriv.todense(), np.ndarray)
 
     def test_reciprocal_no_maps(self):
-
         PM = ReciprocalPropExample()
         self.assertRaises(AttributeError, getattr, PM, "sigma")
 
@@ -242,7 +233,6 @@ class TestPropMaps(unittest.TestCase):
         assert np.all(PM.sigma == 1.0 / np.r_[1.0, 2.0, 3.0])
 
     def test_reciprocal_defaults(self):
-
         PM = ReciprocalPropExampleDefaults()
         assert np.all(PM.sigma == np.r_[1.0, 2.0, 3.0])
         assert np.all(PM.rho == 1.0 / np.r_[1.0, 2.0, 3.0])

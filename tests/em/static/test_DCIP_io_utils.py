@@ -13,7 +13,6 @@ import os
 
 class Test_DCIP_IO(unittest.TestCase):
     def setUp(self):
-
         self.survey_type = ["pole-pole", "dipole-pole", "pole-dipole", "dipole-dipole"]
         self.topo = 10
         self.num_rx_per_src = 4
@@ -24,7 +23,6 @@ class Test_DCIP_IO(unittest.TestCase):
         os.mkdir(self.dir_path)
 
     def test_dc2d(self):
-
         data_type = "volt"
         end_points = np.array([-100, 100])
 
@@ -80,7 +78,6 @@ class Test_DCIP_IO(unittest.TestCase):
         print("READ/WRITE METHODS FOR DC2D DATA PASSED!")
 
     def test_ip2d(self):
-
         data_type = "apparent_chargeability"
         end_points = np.array([-100, 100])
 
@@ -137,7 +134,6 @@ class Test_DCIP_IO(unittest.TestCase):
         print("READ/WRITE METHODS FOR IP2D DATA PASSED!")
 
     def test_dcip3d(self):
-
         # Survey parameters
         data_type = "volt"
         end_points = np.array([-100, 50, 100, -50])
