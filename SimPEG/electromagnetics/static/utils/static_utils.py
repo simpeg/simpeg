@@ -877,7 +877,7 @@ if has_plotly:
                 plane_points = [plane_points]
 
             # Expand to list of only one plane distance for all planes
-            if isinstance(plane_distance, list) != True:
+            if not isinstance(plane_distance, list):
                 plane_distance = len(plane_points) * [plane_distance]
 
             # Pre-allocate index for points on plane(s)
@@ -999,9 +999,9 @@ def generate_survey_from_abmn_locations(
     if locations_n is None:
         locations_n = locations_m
 
-    if (
+    if not (
         locations_a.shape == locations_b.shape == locations_m.shape == locations_n.shape
-    ) == False:
+    ):
         raise ValueError(
             "Arrays containing A, B, M and N electrode locations must be same shape."
         )

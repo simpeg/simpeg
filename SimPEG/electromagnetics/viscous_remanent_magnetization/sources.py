@@ -576,8 +576,8 @@ class LineCurrent(BaseSrcVRM):
                 )
 
                 ind = (
-                    (k_pos == False)
-                    & (k_neg == False)
+                    (not k_pos)
+                    & (not k_neg)
                     & (ref_flag_tt < refinement_factor + 1 - nn)
                 )
                 ref_flag_tt[ind] = refinement_factor - nn
