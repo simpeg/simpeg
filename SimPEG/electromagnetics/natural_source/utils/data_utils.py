@@ -441,10 +441,13 @@ def plotMT1DModelData(problem, models, symList=None):
     return fig
 
 
-def plotImpAppRes(dataArrays, plotLoc, textStr=[]):
+def plotImpAppRes(dataArrays, plotLoc, textStr=None):
     """
     Plots amplitude impedance and phase
     """
+    # Define textStr as empty list if it's None
+    if textStr is None:
+        textStr = []
     # Make the figure and axes
     fig, axT = plt.subplots(2, 2, sharex=True)
     axes = axT.ravel()
