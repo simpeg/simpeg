@@ -1,7 +1,6 @@
 import numpy as np
 from scipy.constants import mu_0, pi, epsilon_0
 from SimPEG import utils
-import warnings
 
 
 def hzAnalyticDipoleF(r, freq, sigma, secondary=True, mu=mu_0):
