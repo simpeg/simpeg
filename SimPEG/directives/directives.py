@@ -2319,12 +2319,12 @@ class UpdateSensitivityWeights(InversionDirective):
         if self.normalization:
             wr /= wr.max()
 
+        wr **= 0.5
         if self.method == "percent_amplitude":
             wr += np.abs(wr.max() - wr.min()) * self.threshold / 100.  # #np.percentile(wr, self.threshold) #threshold
         else:
             wr += self.threshold
 
-        wr **= 0.5
         for reg in self.reg.objfcts:
             if not isinstance(reg, BaseSimilarityMeasure):
                 sub_regs = getattr(reg, "objfcts", [reg])
