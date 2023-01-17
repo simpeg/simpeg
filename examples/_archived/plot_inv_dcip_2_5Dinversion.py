@@ -198,7 +198,6 @@ def run(plotIt=True, survey_type="dipole-dipole"):
 
     # show recovered conductivity
     if plotIt:
-        vmin, vmax = rho.min(), rho.max()
         fig, ax = plt.subplots(2, 1, figsize=(20, 6))
         out1 = mesh.plot_image(
             rho_true,
@@ -231,7 +230,7 @@ def run(plotIt=True, survey_type="dipole-dipole"):
 
     # Show apparent resisitivty histogram
     if plotIt:
-        fig = plt.figure(figsize=(10, 4))
+        plt.figure(figsize=(10, 4))
         ax1 = plt.subplot(121)
         out = hist(np.log10(abs(IO.voltages_ip)), bins=20)
         ax1.set_xlabel("log10 IP voltage (V)")

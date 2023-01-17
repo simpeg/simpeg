@@ -278,16 +278,12 @@ def plotIsoStaImpedance(
 
     if not pColor:
         if "xx" in flag:
-            lab = "XX"
             pColor = "g"
         elif "xy" in flag:
-            lab = "XY"
             pColor = "r"
         elif "yx" in flag:
-            lab = "YX"
             pColor = "b"
         elif "yy" in flag:
-            lab = "YY"
             pColor = "y"
 
     ax.plot(
@@ -454,12 +450,9 @@ def plotPsudoSectNSDiff(
     # Define the plot axes
     if "x" in sectDict.keys()[0]:
         x0 = arr0["y"]
-        x1 = arr1["y"]
     else:
         x0 = arr0["x"]
-        x1 = arr1["x"]
     y0 = arr0["freq"]
-    y1 = arr1["freq"]
 
     if par == "abs":
         if useLog:

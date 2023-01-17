@@ -63,7 +63,6 @@ def run(plotIt=True):
     sigmaair = 1e-8  # air
     sigmaback = 1e-2  # background
     sigmacasing = 1e6  # casing
-    sigmainside = sigmaback  # inside the casing
 
     casing_t = 0.006  # 1cm thickness
     casing_l = 300  # length of the casing
@@ -76,7 +75,6 @@ def run(plotIt=True):
     # ------------------ SURVEY PARAMETERS ------------------
     freqs = np.r_[1e-6]  # [1e-1, 1, 5] # frequencies
     dsz = -300  # down-hole z source location
-    src_loc = np.r_[0.0, 0.0, dsz]
     inf_loc = np.r_[0.0, 0.0, 1e4]
 
     print("Skin Depth: ", [(500.0 / np.sqrt(sigmaback * _)) for _ in freqs])
@@ -127,7 +125,7 @@ def run(plotIt=True):
     print("Number of cells", mesh.nC)
 
     if plotIt is True:
-        fig, ax = plt.subplots(1, 1, figsize=(6, 4))
+        _, ax = plt.subplots(1, 1, figsize=(6, 4))
         ax.set_title("Simulation Mesh")
         mesh.plot_grid(ax=ax)
 
@@ -246,8 +244,8 @@ def run(plotIt=True):
     jn1 = fieldsCasing[sg_p, "j"]
 
     # current
-    in0 = [mesh.face_areas * fieldsCasing[dg_p, "j"][:, i] for i in range(len(freqs))]
-    in1 = [mesh.face_areas * fieldsCasing[sg_p, "j"][:, i] for i in range(len(freqs))]
+    in0 = [mesh.face_areas * jn0[:, i] for i in range(len(freqs))]
+    in1 = [mesh.face_areas * jn1[:, i] for i in range(len(freqs))]
 
     in0 = np.vstack(in0).T
     in1 = np.vstack(in1).T

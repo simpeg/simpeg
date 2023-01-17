@@ -56,7 +56,7 @@ def save_dict_to_hdf5(fname, dictionary):
     """
     f = h5py.File(fname, "w")
     for key in dictionary.keys():
-        dset = f.create_dataset(key, data=dictionary[key])
+        f.create_dataset(key, data=dictionary[key])
     f.close()
 
 
@@ -92,7 +92,6 @@ def run(plotIt=True, saveIt=False, saveFig=False, cleanup=True):
 
     xyz_resolve = resolve[:, 8:11]
     data_resolve = resolve[:, 16:-1]
-    line_resolve = np.unique(resolve[:, -1])
 
     # Load SkyTEM (2006)
     fid = open(
@@ -116,13 +115,11 @@ def run(plotIt=True, saveIt=False, saveFig=False, cleanup=True):
     info_skytem = np.vstack(info_skytem)
     data_skytem = np.vstack(data_skytem)
     lines_skytem = info_skytem[:, 1].astype(float)
-    line_skytem = np.unique(lines_skytem)
     inds = lines_skytem < 2026
     info_skytem = info_skytem[inds, :]
     data_skytem = data_skytem[inds, :].astype(float)
     xyz_skytem = info_skytem[:, [13, 12]].astype(float)
     lines_skytem = info_skytem[:, 1].astype(float)
-    line_skytem = np.unique(lines_skytem)
 
     # Load path of Murray River
     river_path = np.loadtxt(os.path.sep.join([directory, "MurrayRiver.txt"]))
@@ -191,7 +188,7 @@ def run(plotIt=True, saveIt=False, saveFig=False, cleanup=True):
     if saveFig:
         fig.savefig("bookpurnong_data.png")
 
-    cs, ncx, ncz, npad = 1.0, 10.0, 10.0, 20
+    cs, ncx, npad = 1.0, 10.0, 20
     hx = [(cs, ncx), (cs, npad, 1.3)]
     npad = 12
     temp = np.logspace(np.log10(1.0), np.log10(12.0), 19)

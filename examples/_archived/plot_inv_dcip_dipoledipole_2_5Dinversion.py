@@ -71,7 +71,6 @@ def run(plotIt=True, survey_type="dipole-dipole"):
     blk_inds_r = utils.model_builder.getIndicesSphere(
         np.r_[140.0, -25.0], 12.5, mesh.gridCC
     )
-    layer_inds = mesh.gridCC[:, 1] > -5.0
     sigma = np.ones(mesh.nC) * 1.0 / 100.0
     sigma[blk_inds_c] = 1.0 / 10.0
     sigma[blk_inds_r] = 1.0 / 1000.0
@@ -113,12 +112,6 @@ def run(plotIt=True, survey_type="dipole-dipole"):
     # "N" means potential is defined at nodes
     prb = DC.Simulation2DNodal(
         mesh, survey=survey, rhoMap=mapping, storeJ=True, Solver=Solver, verbose=True
-    )
-
-    geometric_factor = survey.set_geometric_factor(
-        data_type="apparent_resistivity",
-        survey_type="dipole-dipole",
-        space_type="half-space",
     )
 
     # Make synthetic DC data with 5% Gaussian noise
@@ -215,7 +208,6 @@ def run(plotIt=True, survey_type="dipole-dipole"):
 
     # show recovered conductivity
     if plotIt:
-        vmin, vmax = rho.min(), rho.max()
         fig, ax = plt.subplots(2, 1, figsize=(20, 6))
         out1 = mesh.plot_image(
             rho_true,

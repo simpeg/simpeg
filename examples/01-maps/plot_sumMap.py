@@ -114,22 +114,9 @@ def run(plotIt=True):
         mesh, survey=survey, chiMap=sumMap, ind_active=actv, store_sensitivities="ram"
     )
 
-    # Make depth weighting
-    wr = np.zeros(sumMap.shape[1])
-
-    # print(prob.M.shape) # why does this reset nC
-    G = prob.G
-
+    # Make sensitivity weighting
     # Take the cell number out of the scaling.
     # Want to keep high sens for large volumes
-    scale = utils.sdiag(np.r_[utils.mkvc(1.0 / homogMap.P.sum(axis=0)), np.ones(nC)])
-
-    # for ii in range(survey.nD):
-    #     wr += (
-    #         (prob.G[ii, :] * prob.chiMap.deriv(np.ones(sumMap.shape[1]) * 1e-4) * scale)
-    #         / data.standard_deviation[ii]
-    #     ) ** 2.0 / np.r_[homogMap.P.T * mesh.cell_volumes[actv], mesh.cell_volumes[actv]] **2.
-
     wr = (
         prob.getJtJdiag(np.ones(sumMap.shape[1]))
         / np.r_[homogMap.P.T * mesh.cell_volumes[actv], mesh.cell_volumes[actv]] ** 2.0

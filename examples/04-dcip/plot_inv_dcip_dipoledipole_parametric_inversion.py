@@ -80,7 +80,6 @@ def run(
     )
     survey.drape_electrodes_on_topography(mesh, actind, option="top")
     # Use Exponential Map: m = log(rho)
-    actmap = maps.InjectActiveCells(mesh, indActive=actind, valInactive=np.log(1e8))
     parametric_block = maps.ParametricBlock(mesh, slopeFact=1e2)
     mapping = maps.ExpMap(mesh) * parametric_block
     # Set true model

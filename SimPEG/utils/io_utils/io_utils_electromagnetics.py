@@ -1024,10 +1024,8 @@ def write_dcip_xyz(
 
     # Determine if 2D or 3D survey
     if np.shape(out_columns)[1] == 8:
-        dim = 2
         out_headers = "XA    ZA    XB    ZB    XM    ZM    XN    ZN"
     else:
-        dim = 3
         out_headers = (
             "XA    YA    ZA    XB    YB    ZB    XM    YM    ZM    XN    YN    ZN"
         )

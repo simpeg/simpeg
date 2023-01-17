@@ -43,7 +43,7 @@ class directivesValidation(unittest.TestCase):
 
         IRLS = directives.Update_IRLS(f_min_change=1e-4, minGNiter=3, beta_tol=1e-2)
         update_Jacobi = directives.UpdatePreconditioner()
-        dList = [betaest, IRLS]
+        dList = [betaest, IRLS, update_Jacobi]
         directiveList = directives.DirectiveList(*dList)
 
         with pytest.warns(UserWarning):

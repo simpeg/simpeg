@@ -1436,7 +1436,6 @@ def xy_2_lineID(dc_survey):
     lineID = np.zeros(nstn)
 
     linenum = 0
-    indx = 0
 
     for ii in range(nstn):
 
@@ -1484,7 +1483,6 @@ def xy_2_lineID(dc_survey):
                 xym[0] = xym[0] + 1e-3
 
             linenum += 1
-            indx = ii
 
         else:
             xym = np.mean([xy0, xin], axis=0)

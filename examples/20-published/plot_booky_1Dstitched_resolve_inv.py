@@ -180,7 +180,7 @@ def run(runIt=False, plotIt=True, saveIt=False, saveFig=False, cleanup=True):
     frequency_cp = resolve["frequency_cp"][()]
 
     # build a mesh
-    cs, ncx, ncz, npad = 1.0, 10.0, 10.0, 20
+    cs, ncx, npad = 1.0, 10.0, 20
     hx = [(cs, ncx), (cs, npad, 1.3)]
     npad = 12
     temp = np.logspace(np.log10(1.0), np.log10(12.0), 19)
@@ -215,9 +215,6 @@ def run(runIt=False, plotIt=True, saveIt=False, saveFig=False, cleanup=True):
         mopt_re = []  # recovered model
         dpred_re = []  # predicted data
         dobs_re = []  # observed data
-
-        # downsample the data for the inversion
-        nskip = 40
 
         # set up a noise model
         # 10% for the 3 lowest frequencies, 15% for the two highest
@@ -282,8 +279,6 @@ def run(runIt=False, plotIt=True, saveIt=False, saveFig=False, cleanup=True):
     plt.close(fig)
 
     # plot from the paper
-    fs = 13  # fontsize
-    # matplotlib.rcParams['font.size'] = fs
     plt.figure(figsize=(13, 7))
     ax0 = plt.subplot2grid((2, 3), (0, 0), rowspan=2, colspan=2)
     ax1 = plt.subplot2grid((2, 3), (0, 2))
@@ -321,7 +316,6 @@ def run(runIt=False, plotIt=True, saveIt=False, saveFig=False, cleanup=True):
 
     # plot observed and predicted data
     freq_ind = 0
-    axs = [ax1, ax2]
     temp_dobs = dobs_re[:, freq_ind].copy()
     ax1.plot(river_path[:, 0], river_path[:, 1], "k-", lw=0.5)
     inf = temp_dobs / abs(bp) * 1e6
@@ -371,10 +365,8 @@ def run(runIt=False, plotIt=True, saveIt=False, saveFig=False, cleanup=True):
     for i, ax in enumerate([ax0, ax1, ax2]):
         xticks = [460000, 463000]
         yticks = [6195000, 6198000, 6201000]
-        xloc, yloc = 462100.0, 6196500.0
         ax.set_xticks(xticks)
         ax.set_yticks(yticks)
-        # ax.plot(xloc, yloc, 'wo')
         ax.plot(river_path[:, 0], river_path[:, 1], "k", lw=0.5)
 
         ax.set_aspect("equal")

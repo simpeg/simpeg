@@ -158,9 +158,6 @@ class TipperAmplitudeStationPlot(BaseDataNSEMPlots):
 
         axes = self.axes
 
-        # Set keyword arguments
-        st_kwargs = {"marker": "_", "ls": "None"}
-        eb_kwargs = {"ls": "None"}
         # Pop the data from the list
         data = data_list[0]
 
@@ -254,9 +251,6 @@ class ApparentResPhsStationPlot(BaseDataNSEMPlots):
 
         axes = self.axes
 
-        # Set keyword arguments
-        st_kwargs = {"marker": "_", "ls": "None"}
-        eb_kwargs = {"ls": "None"}
         # Pop the data from the list
         data = data_list[0]
 
@@ -370,7 +364,7 @@ class DataNSEMPlotMethods(object):
             ax.set_xlabel("Frequency [Hz]")
             ax.set_ylabel("Apperent resistivity [Ohm m]")
         else:
-            fig = ax.get_figure()
+            ax.get_figure()
 
         for comp in components:
             st_kwargs = _validate_kwargs(comp_plot_dict[comp], DEFAULT_COMP_DICT[comp])
@@ -417,7 +411,7 @@ class DataNSEMPlotMethods(object):
             ax.set_xlabel("Frequency [Hz]")
             ax.set_ylabel("Phase angle [Degrees]")
         else:
-            fig = ax.get_figure()
+            ax.get_figure()
 
         for comp in components:
             st_kwargs = _validate_kwargs(comp_plot_dict[comp], DEFAULT_COMP_DICT[comp])
@@ -465,7 +459,7 @@ class DataNSEMPlotMethods(object):
             ax.set_xlabel("Frequency [Hz]")
             ax.set_ylabel("Impedance amplitude [V/A]")
         else:
-            fig = ax.get_figure()
+            ax.get_figure()
 
         for comp in components:
             st_kwargs = _validate_kwargs(comp_plot_dict[comp], DEFAULT_COMP_DICT[comp])
@@ -513,7 +507,7 @@ class DataNSEMPlotMethods(object):
             ax.set_xlabel("Frequency [Hz]")
             ax.set_ylabel("Tipper magnitude [unitless]")
         else:
-            fig = ax.get_figure()
+            ax.get_figure()
 
         for comp in components:
             st_kwargs = _validate_kwargs(comp_plot_dict[comp], DEFAULT_COMP_DICT[comp])

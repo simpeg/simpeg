@@ -131,18 +131,12 @@ def run(plotIt=True):
     # scale the slowness so it is on a ~linear scale
     slownessMap = maps.LogMap(M) * sigmaMap
 
-    # set up the true sig model and log model dobs
-    sigtrue = sigmaMap * phitrue
-
-    # modt = Model.BaseModel(M);
-    slownesstrue = slownessMap * phitrue  # true model (m = log(sigma))
-
     # set up the problem and survey
     survey = tomo.Survey(source_list)
     problem = tomo.Simulation(M, survey=survey, slownessMap=slownessMap)
 
     if plotIt:
-        fig, ax = plt.subplots(1, 1)
+        _, ax = plt.subplots(1, 1)
         cb = plt.colorbar(M.plot_image(phitrue, ax=ax)[0], ax=ax)
         survey.plot(ax=ax)
         cb.set_label(r"$\varphi$")
