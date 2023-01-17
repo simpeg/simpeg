@@ -1,5 +1,4 @@
-black==21.7b0
-click==8.0.4
+black==23.1a1
 flake8
 flake8-bugbear
 flake8-builtins
