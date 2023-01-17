@@ -4,9 +4,7 @@ import numpy as np
 
 from discretize import TensorMesh
 
-from SimPEG.potential_fields import magnetics
 from SimPEG import (
-    maps,
     utils,
 )
 

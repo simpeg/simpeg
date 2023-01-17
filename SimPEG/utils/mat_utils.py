@@ -1,6 +1,6 @@
 import numpy as np
-from .code_utils import deprecate_method, deprecate_function
-from discretize.utils import (
+from .code_utils import deprecate_function
+from discretize.utils import (  # noqa: F401
     Zero,
     Identity,
     mkvc,
@@ -24,7 +24,7 @@ from discretize.utils import (
 )
 
 # deprecated imports
-from discretize.utils import (
+from discretize.utils import (  # noqa: F401
     sdInv,
     getSubArray,
     inv3X3BlockDiagonal,

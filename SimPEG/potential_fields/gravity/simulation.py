@@ -8,7 +8,6 @@ from SimPEG.utils import mkvc, sdiag
 
 from ...base import BasePDESimulation
 from ..base import BaseEquivalentSourceLayerSimulation, BasePFSimulation
-from .survey import Survey
 
 
 class Simulation3DIntegral(BasePFSimulation):
