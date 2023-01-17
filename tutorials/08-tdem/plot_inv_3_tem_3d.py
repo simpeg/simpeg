@@ -307,7 +307,7 @@ floors = np.kron(
     np.median(np.abs(dpred).reshape((-1, n_times)), axis=0)*0.75,
 ) + 1e-16
 noise = np.random.randn(dpred.shape[0]) * ( #1e-15)
-            np.abs(dpred) * 0.0
+            np.abs(dpred) * 0.02
 )
 
 data_object = data.Data(
@@ -353,7 +353,7 @@ directive_list = [
         chifact_target=1.0,
     ),
     directives.UpdatePreconditioner(),
-    directives.BetaEstimate_ByEig(beta0_ratio=1e+2, method="old")
+    directives.BetaEstimate_ByEig(beta0_ratio=5e+2, method="old")
 ]
 
 inv = inversion.BaseInversion(
