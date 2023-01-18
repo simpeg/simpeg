@@ -11,7 +11,6 @@ STYLE_CHECK_FILES = SimPEG examples tutorials tests
 # flake-permissive target.
 FLAKE8_IGNORE = "E121,E123,E126,E226,E24,E704,W503,W504,\
 	B001,\
-	B008,\
 	B015,\
 	B017,\
 	B023,\
@@ -47,7 +46,6 @@ FLAKE8_IGNORE = "E121,E123,E126,E226,E24,E704,W503,W504,\
 	E712,\
 	E722,\
 	E731,\
-	F401,\
 	F403,\
 	F405,\
 	F522,\

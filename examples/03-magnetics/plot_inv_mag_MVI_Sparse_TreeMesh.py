@@ -50,7 +50,7 @@ import matplotlib.pyplot as plt
 # As a simple case, we pick a vertical inducing field of magnitude 50,000 nT.
 #
 #
-sp.random.seed(1)
+np.random.seed(1)
 # We will assume a vertical inducing field
 H0 = (50000.0, 90.0, 0.0)
 
@@ -391,7 +391,7 @@ reg_t = regularization.Sparse(
     mesh, gradient_type="components", active_cells=actv, mapping=wires.theta
 )
 reg_t.alpha_s = 0.0  # No reference angle
-reg_t.space = "spherical"
+reg_t.units = "radian"
 reg_t.norms = [0.0, 0.0, 0.0, 0.0]  # Only norm on gradients used
 
 # Regularize the horizontal angle of the vectors
@@ -399,7 +399,7 @@ reg_p = regularization.Sparse(
     mesh, gradient_type="components", active_cells=actv, mapping=wires.phi
 )
 reg_p.alpha_s = 0.0  # No reference angle
-reg_p.space = "spherical"
+reg_p.units = "radian"
 reg_p.norms = [0.0, 0.0, 0.0, 0.0]  # Only norm on gradients used
 
 reg = reg_a + reg_t + reg_p

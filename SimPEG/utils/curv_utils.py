@@ -1,4 +1,4 @@
-from discretize.utils import (
+from discretize.utils import (  # noqa: F401
     volume_tetrahedron,
     index_cube,
     face_info,
@@ -6,4 +6,4 @@ from discretize.utils import (
 )
 
 # deprecated functions
-from discretize.utils import volTetra, indexCube, faceInfo, exampleLrmGrid
+from discretize.utils import volTetra, indexCube, faceInfo, exampleLrmGrid  # noqa: F401
