@@ -2213,10 +2213,18 @@ class UpdateSensitivityWeights(InversionDirective):
     Good for any problem where J is formed explicitly.
     """
 
-    def __init__(self, everyIter=True, threshold=1e-12, normalization=True, **kwargs):
+    def __init__(
+            self,
+            everyIter=True,
+            threshold=1e-12,
+            normalization=True,
+            method="percent_amplitude",
+            **kwargs
+    ):
         super().__init__(**kwargs)
         self.everyIter = everyIter
         self.threshold = threshold
+        self.method = method
         self.normalization = normalization
 
     @property
@@ -2310,7 +2318,12 @@ class UpdateSensitivityWeights(InversionDirective):
                 )
         if self.normalization:
             wr /= wr.max()
-        wr += self.threshold
+
+        if self.method == "percent_amplitude":
+            wr += np.abs(wr.max() - wr.min()) * self.threshold / 100.  # #np.percentile(wr, self.threshold) #threshold
+        else:
+            wr += self.threshold
+
         wr **= 0.5
         for reg in self.reg.objfcts:
             if not isinstance(reg, BaseSimilarityMeasure):
