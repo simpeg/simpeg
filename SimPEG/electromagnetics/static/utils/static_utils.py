@@ -7,7 +7,6 @@ import matplotlib as mpl
 from matplotlib import ticker
 import warnings
 from ..resistivity import sources, receivers
-from ....data import Data
 from .. import resistivity as dc
 from ....utils import (
     mkvc,
@@ -15,14 +14,14 @@ from ....utils import (
     model_builder,
     define_plane_from_points,
 )
-from ....utils.io_utils import (
+from ....utils.io_utils import (  # noqa: F401
     read_dcip2d_ubc,
     write_dcip2d_ubc,
     read_dcip3d_ubc,
     write_dcip3d_ubc,
 )
 
-from ....utils.plot_utils import plot_1d_layer_model
+from ....utils.plot_utils import plot_1d_layer_model  # noqa: F401
 
 from ....utils.code_utils import deprecate_method
 
@@ -487,12 +486,12 @@ def plot_pseudosection(
     ax=None,
     clim=None,
     scale="linear",
-    pcolor_opts={},
-    contourf_opts={},
-    scatter_opts={},
+    pcolor_opts=None,
+    contourf_opts=None,
+    scatter_opts=None,
     mask_topography=False,
     create_colorbar=True,
-    cbar_opts={},
+    cbar_opts=None,
     cbar_label="",
     cax=None,
     data_locations=False,
@@ -624,7 +623,10 @@ def plot_pseudosection(
     # Scatter plot
     if plot_type == "scatter":
         # grab a shallow copy
-        s_opts = scatter_opts.copy()
+        if scatter_opts is None:
+            s_opts = {}
+        else:
+            s_opts = scatter_opts.copy()
         s = s_opts.pop("s", 40)
         norm = s_opts.pop("norm", norm)
         if isinstance(norm, mpl.colors.LogNorm):
@@ -633,7 +635,10 @@ def plot_pseudosection(
         data_plot = ax.scatter(x, z, s=s, c=dobs, norm=norm, **s_opts)
     # Filled contour plot
     elif plot_type == "contourf":
-        opts = contourf_opts.copy()
+        if contourf_opts is None:
+            opts = {}
+        else:
+            opts = contourf_opts.copy()
         norm = opts.pop("norm", norm)
         if isinstance(norm, mpl.colors.LogNorm):
             dobs = np.abs(dobs)
@@ -658,7 +663,10 @@ def plot_pseudosection(
             ax.plot(x, z, "k.", ms=1, alpha=0.4)
 
     elif plot_type == "pcolor":
-        opts = pcolor_opts.copy()
+        if pcolor_opts is None:
+            opts = {}
+        else:
+            opts = pcolor_opts.copy()
         norm = opts.pop("norm", norm)
         if isinstance(norm, mpl.colors.LogNorm):
             dobs = np.abs(dobs)
@@ -709,6 +717,8 @@ def plot_pseudosection(
     ax.set_ylabel("Pseudo-elevation (m)")
 
     # Define colorbar
+    if cbar_opts is None:
+        cbar_opts = {}
     if create_colorbar:
         cbar = plt.colorbar(
             data_plot,
@@ -1841,7 +1851,7 @@ def plot_pseudoSection(
     clim=None,
     scale="linear",
     sameratio=True,
-    pcolor_opts={},
+    pcolor_opts=None,
     data_location=False,
     dobs=None,
     dim=2,

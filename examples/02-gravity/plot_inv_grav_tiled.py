@@ -9,7 +9,6 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 
-from discretize import TensorMesh
 from SimPEG.potential_fields import gravity
 from SimPEG import (
     maps,
@@ -24,9 +23,6 @@ from SimPEG import (
 from discretize.utils import mesh_builder_xyz, refine_tree_xyz
 
 from SimPEG import utils
-from SimPEG.utils import plot2Ddata
-
-import shutil
 
 ###############################################################################
 # Setup

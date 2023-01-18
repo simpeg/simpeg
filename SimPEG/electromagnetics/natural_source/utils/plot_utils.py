@@ -339,7 +339,7 @@ class DataNSEMPlotMethods(object):
     def plot_app_res(
         self,
         location,
-        components=["xy", "yx"],
+        components=("xy", "yx"),
         ax=None,
         errorbars=False,
         comp_plot_dict=DEFAULT_COMP_DICT,
@@ -388,7 +388,7 @@ class DataNSEMPlotMethods(object):
     def plot_app_phs(
         self,
         location,
-        components=["xy", "yx"],
+        components=("xy", "yx"),
         ax=None,
         errorbars=False,
         comp_plot_dict=DEFAULT_COMP_DICT,
@@ -435,7 +435,7 @@ class DataNSEMPlotMethods(object):
     def plot_imp_amp(
         self,
         location,
-        components=["xy", "yx"],
+        components=("xy", "yx"),
         ax=None,
         errorbars=False,
         comp_plot_dict=DEFAULT_COMP_DICT,
@@ -483,7 +483,7 @@ class DataNSEMPlotMethods(object):
     def plot_tip_amp(
         self,
         location,
-        components=["zx", "zy"],
+        components=("zx", "zy"),
         ax=None,
         errorbars=False,
         comp_plot_dict=DEFAULT_COMP_DICT,
