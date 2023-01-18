@@ -1,4 +1,4 @@
-"""s
+"""
 Heagy et al., 2017 Load and Plot Bookpurnong Data
 =================================================
 

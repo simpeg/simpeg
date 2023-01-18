@@ -144,7 +144,7 @@ class TestModels(unittest.TestCase):
 
         u = np.random.randn(mesh.nC)
 
-        for name, opt, _ in opts:
+        for name, opt, nM in opts:
             np.random.seed(2)
             hav = richards.empirical.Haverkamp_k(mesh, **opt)
 
