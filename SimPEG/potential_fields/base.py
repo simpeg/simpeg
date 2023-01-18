@@ -75,13 +75,13 @@ class BasePFSimulation(LinearSimulation):
         self.n_processes = n_processes
 
         # Find non-zero cells indices
-        if ind_active is not None:
-            ind_active = validate_active_indices("ind_active", ind_active, mesh.n_cells)
-        else:
+        if ind_active is None:
             ind_active = np.ones(mesh.n_cells, dtype=bool)
+        else:
+            ind_active = validate_active_indices("ind_active", ind_active, mesh.n_cells)
         self._ind_active = ind_active
 
-        self.nC = sum(ind_active)
+        self.nC = int(sum(ind_active))
 
         if isinstance(mesh, discretize.TensorMesh):
             nodes = mesh.nodes
