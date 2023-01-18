@@ -202,7 +202,10 @@ class QuadTreeLinProblemTest(unittest.TestCase):
                 add_noise=True,
             )
 
-        def create_magnetics_sim_active(self, block_value=1.0, noise_floor=0.01):
+        def create_magnetics_sim_active(
+                    self,
+                    block_value=1.0, noise_floor=0.01
+                ):
             # Create a magnetic survey
             H0 = (50000.0, 90.0, 0.0)
             mag_rxLoc = magnetics.Point(data_xyz)
@@ -276,7 +279,12 @@ class QuadTreeLinProblemTest(unittest.TestCase):
             sensitivity_weights = directives.UpdateSensitivityWeights()
             update_Jacobi = directives.UpdatePreconditioner()
             inv = inversion.BaseInversion(
-                invProb, directiveList=[IRLS, sensitivity_weights, update_Jacobi]
+                invProb,
+                directiveList=[
+                    IRLS,
+                    sensitivity_weights,
+                    update_Jacobi
+                ]
             )
 
             return inv
@@ -430,7 +438,10 @@ class QuadTreeLinProblemTest(unittest.TestCase):
             ind_active=ind_active,
         )
 
-        print("Z_TOP OR Z_BOTTOM LENGTH MATCHING NACTIVE-CELLS ERROR TEST PASSED.")
+        print(
+            "Z_TOP OR Z_BOTTOM LENGTH MATCHING "
+            "NACTIVE-CELLS ERROR TEST PASSED."
+        )
 
     def test_quadtree_grav_inverse(self):
 
@@ -441,8 +452,9 @@ class QuadTreeLinProblemTest(unittest.TestCase):
         dpred = self.grav_sim.dpred(self.grav_model)
 
         # Check models match well enough (allowing for random noise)
-        model_residual = np.linalg.norm(mrec - self.grav_model) / np.linalg.norm(
-            self.grav_model
+        model_residual = (
+                np.linalg.norm(mrec - self.grav_model) /
+                np.linalg.norm(self.grav_model)
         )
         self.assertAlmostEqual(model_residual, 0.1, delta=0.1)
 
@@ -459,8 +471,9 @@ class QuadTreeLinProblemTest(unittest.TestCase):
         dpred = self.mag_sim.dpred(self.mag_model)
 
         # Check models match well enough (allowing for random noise)
-        model_residual = np.linalg.norm(mrec - self.mag_model) / np.linalg.norm(
-            self.mag_model
+        model_residual = (
+                np.linalg.norm(mrec - self.mag_model) /
+                np.linalg.norm(self.mag_model)
         )
         self.assertAlmostEqual(model_residual, 0.1, delta=0.1)
 
