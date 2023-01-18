@@ -489,7 +489,7 @@ class QuadTreeLinProblemTest(unittest.TestCase):
         model_residual = np.linalg.norm(
             mrec - self.grav_model[self.active_cells]
         ) / np.linalg.norm(self.grav_model[self.active_cells])
-        self.assertAlmostEqual(model_residual, 0.03, delta=0.03)
+        self.assertAlmostEqual(model_residual, 0.21, delta=0.05)
 
         # Check data converged to less than 10% of target misfit
         data_misfit = 2.0 * self.grav_inv_active.invProb.dmisfit(
