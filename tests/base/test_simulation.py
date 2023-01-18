@@ -1,7 +1,7 @@
 import unittest
 import numpy as np
 import discretize
-from SimPEG import simulation, survey, maps
+from SimPEG import maps, simulation
 
 
 class TestLinearSimulation(unittest.TestCase):

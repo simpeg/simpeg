@@ -1,7 +1,6 @@
 import unittest
 
 import numpy as np
-import scipy.sparse as sp
 
 import discretize
 from SimPEG import (

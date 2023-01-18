@@ -5,7 +5,6 @@ from ...utils import (
     validate_integer,
     validate_ndarray_with_shape,
 )
-import warnings
 
 
 #########################################

@@ -2,11 +2,6 @@ import unittest
 import numpy as np
 from importlib import import_module
 from discretize import TensorMesh
-from SimPEG import utils
-from SimPEG import electromagnetics as EM
-from SimPEG.electromagnetics.static import resistivity as DC
-import discretize
-from pymatsolver import Pardiso as Solver
 
 
 mesh = TensorMesh([2, 2, 2])

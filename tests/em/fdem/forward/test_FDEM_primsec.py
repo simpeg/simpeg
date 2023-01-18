@@ -2,18 +2,11 @@
 # matplotlib.use('Agg')
 
 import discretize
-from scipy.constants import mu_0
 from SimPEG import maps, tests, utils
 from SimPEG.electromagnetics import frequency_domain as fdem
-from SimPEG.electromagnetics.utils import omega
 
-try:
-    from pymatsolver import Pardiso as Solver
-except ImportError:
-    from SimPEG import Solver as SolverLU
+from pymatsolver import Pardiso as Solver
 
-import time
-import os
 import numpy as np
 import unittest
 
