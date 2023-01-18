@@ -5,8 +5,16 @@ import numpy as np
 from discretize import TensorMesh
 from discretize.utils import mesh_builder_xyz, mkvc, refine_tree_xyz
 
-from SimPEG import (data_misfit, directives, inverse_problem, inversion, maps,
-                    optimization, regularization, utils)
+from SimPEG import (
+    data_misfit,
+    directives,
+    inverse_problem,
+    inversion,
+    maps,
+    optimization,
+    regularization,
+    utils,
+)
 from SimPEG.potential_fields import gravity, magnetics
 
 np.random.seed(44)
