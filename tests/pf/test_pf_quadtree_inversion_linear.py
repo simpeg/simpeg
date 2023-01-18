@@ -45,7 +45,10 @@ class QuadTreeLinProblemTest(unittest.TestCase):
             nCpad = [2, 4]
 
             mesh = mesh_builder_xyz(
-                topo[:, :2], h, padding_distance=padDist, mesh_type="TREE",
+                topo[:, :2],
+                h,
+                padding_distance=padDist,
+                mesh_type="TREE",
             )
 
             self.mesh = refine_tree_xyz(
@@ -327,7 +330,11 @@ class QuadTreeLinProblemTest(unittest.TestCase):
 
         create_gravity_sim(self, block_value=0.3, noise_floor=0.001)
         self.grav_inv = create_inversion(
-            self, self.grav_sim, self.grav_data, beta=1e3, all_active=True,
+            self,
+            self.grav_sim,
+            self.grav_data,
+            beta=1e3,
+            all_active=True,
         )
 
         create_gravity_sim_active(self, block_value=0.3, noise_floor=0.001)
@@ -341,12 +348,20 @@ class QuadTreeLinProblemTest(unittest.TestCase):
 
         create_magnetics_sim(self, block_value=0.03, noise_floor=3.0)
         self.mag_inv = create_inversion(
-            self, self.mag_sim, self.mag_data, beta=1e3, all_active=True,
+            self,
+            self.mag_sim,
+            self.mag_data,
+            beta=1e3,
+            all_active=True,
         )
 
         create_magnetics_sim_active(self, block_value=0.03, noise_floor=3.0)
         self.mag_inv_active = create_inversion(
-            self, self.mag_sim_active, self.mag_data_active, beta=1e3, all_active=False,
+            self,
+            self.mag_sim_active,
+            self.mag_data_active,
+            beta=1e3,
+            all_active=False,
         )
 
     def test_instantiation_failures(self):
