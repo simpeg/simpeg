@@ -231,8 +231,9 @@ class BetaEstimate_ByEig(InversionDirective):
 
     """
 
-    def __init__(self, beta0_ratio=1.0, n_pw_iter=4, seed=None, **kwargs):
+    def __init__(self, beta0_ratio=1.0, n_pw_iter=4, seed=None, method="power_iteration", **kwargs):
         super().__init__(**kwargs)
+        self.method = method
         self.beta0_ratio = beta0_ratio
         self.n_pw_iter = n_pw_iter
         self.seed = seed
@@ -322,18 +323,28 @@ class BetaEstimate_ByEig(InversionDirective):
 
         m = self.invProb.model
 
-        dm_eigenvalue = eigenvalue_by_power_iteration(
-            self.dmisfit,
-            m,
-            n_pw_iter=self.n_pw_iter,
-        )
-        reg_eigenvalue = eigenvalue_by_power_iteration(
-            self.reg,
-            m,
-            n_pw_iter=self.n_pw_iter,
-        )
+        if self.method == "power_iteration":
+            dm_eigenvalue = eigenvalue_by_power_iteration(
+                self.dmisfit, m, n_pw_iter=self.n_pw_iter,
+            )
+            reg_eigenvalue = eigenvalue_by_power_iteration(
+                self.reg, m, n_pw_iter=self.n_pw_iter,
+            )
+            self.ratio = np.asarray(dm_eigenvalue / reg_eigenvalue)
+        elif self.method == "max_derivatives":
+            x0 = np.random.rand(*m.shape)
+            phi_d_deriv = np.abs(self.dmisfit.deriv(m)).max()
+            dm = x0 / x0.max() * m.max()
+            phi_m_deriv = np.abs(self.reg.deriv(m + dm)).max()
+            self.ratio = np.asarray(phi_d_deriv / phi_m_deriv)
+        else:
+            x0 = np.random.rand(*m.shape)
+            phi_d_deriv = self.dmisfit.deriv2(m, x0)
+            t = np.dot(x0, phi_d_deriv)
+            reg = self.reg.deriv2(m, v=x0)
+            b = np.dot(x0, reg)
+            self.ratio = np.asarray(t / b)
 
-        self.ratio = dm_eigenvalue / reg_eigenvalue
         self.beta0 = self.beta0_ratio * self.ratio
 
         self.invProb.beta = self.beta0
