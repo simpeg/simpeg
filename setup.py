@@ -31,7 +31,7 @@ setup(
     name="SimPEG",
     version="0.18.1",
     packages=find_packages(exclude=["tests*", "examples*", "tutorials*"]),
-    python_requires='>=3.8',
+    python_requires=">=3.8",
     install_requires=[
         "numpy>=1.7",
         "scipy>=1.0.0",
