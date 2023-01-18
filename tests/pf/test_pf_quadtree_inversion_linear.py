@@ -202,10 +202,7 @@ class QuadTreeLinProblemTest(unittest.TestCase):
                 add_noise=True,
             )
 
-        def create_magnetics_sim_active(
-                    self,
-                    block_value=1.0, noise_floor=0.01
-                ):
+        def create_magnetics_sim_active(self, block_value=1.0, noise_floor=0.01):
             # Create a magnetic survey
             H0 = (50000.0, 90.0, 0.0)
             mag_rxLoc = magnetics.Point(data_xyz)
@@ -246,9 +243,7 @@ class QuadTreeLinProblemTest(unittest.TestCase):
 
             # Create a regularization
             reg = regularization.Sparse(
-                self.mesh,
-                active_cells=active_cells,
-                mapping=mapping
+                self.mesh, active_cells=active_cells, mapping=mapping
             )
             reg.norms = [0, 0, 0]
             reg.gradient_type = "components"
@@ -279,12 +274,7 @@ class QuadTreeLinProblemTest(unittest.TestCase):
             sensitivity_weights = directives.UpdateSensitivityWeights()
             update_Jacobi = directives.UpdatePreconditioner()
             inv = inversion.BaseInversion(
-                invProb,
-                directiveList=[
-                    IRLS,
-                    sensitivity_weights,
-                    update_Jacobi
-                ]
+                invProb, directiveList=[IRLS, sensitivity_weights, update_Jacobi]
             )
 
             return inv
@@ -337,11 +327,7 @@ class QuadTreeLinProblemTest(unittest.TestCase):
 
         create_gravity_sim(self, block_value=0.3, noise_floor=0.001)
         self.grav_inv = create_inversion(
-            self,
-            self.grav_sim,
-            self.grav_data,
-            beta=1e3,
-            all_active=True,
+            self, self.grav_sim, self.grav_data, beta=1e3, all_active=True,
         )
 
         create_gravity_sim_active(self, block_value=0.3, noise_floor=0.001)
@@ -355,20 +341,12 @@ class QuadTreeLinProblemTest(unittest.TestCase):
 
         create_magnetics_sim(self, block_value=0.03, noise_floor=3.0)
         self.mag_inv = create_inversion(
-            self,
-            self.mag_sim,
-            self.mag_data,
-            beta=1e3,
-            all_active=True,
+            self, self.mag_sim, self.mag_data, beta=1e3, all_active=True,
         )
 
         create_magnetics_sim_active(self, block_value=0.03, noise_floor=3.0)
         self.mag_inv_active = create_inversion(
-            self,
-            self.mag_sim_active,
-            self.mag_data_active,
-            beta=1e3,
-            all_active=False,
+            self, self.mag_sim_active, self.mag_data_active, beta=1e3, all_active=False,
         )
 
     def test_instantiation_failures(self):
@@ -438,10 +416,7 @@ class QuadTreeLinProblemTest(unittest.TestCase):
             ind_active=ind_active,
         )
 
-        print(
-            "Z_TOP OR Z_BOTTOM LENGTH MATCHING "
-            "NACTIVE-CELLS ERROR TEST PASSED."
-        )
+        print("Z_TOP OR Z_BOTTOM LENGTH MATCHING NACTIVE-CELLS ERROR TEST PASSED.")
 
     def test_quadtree_grav_inverse(self):
 
@@ -452,9 +427,8 @@ class QuadTreeLinProblemTest(unittest.TestCase):
         dpred = self.grav_sim.dpred(self.grav_model)
 
         # Check models match well enough (allowing for random noise)
-        model_residual = (
-                np.linalg.norm(mrec - self.grav_model) /
-                np.linalg.norm(self.grav_model)
+        model_residual = np.linalg.norm(mrec - self.grav_model) / np.linalg.norm(
+            self.grav_model
         )
         self.assertAlmostEqual(model_residual, 0.1, delta=0.1)
 
@@ -471,9 +445,8 @@ class QuadTreeLinProblemTest(unittest.TestCase):
         dpred = self.mag_sim.dpred(self.mag_model)
 
         # Check models match well enough (allowing for random noise)
-        model_residual = (
-                np.linalg.norm(mrec - self.mag_model) /
-                np.linalg.norm(self.mag_model)
+        model_residual = np.linalg.norm(mrec - self.mag_model) / np.linalg.norm(
+            self.mag_model
         )
         self.assertAlmostEqual(model_residual, 0.1, delta=0.1)
 
@@ -491,9 +464,8 @@ class QuadTreeLinProblemTest(unittest.TestCase):
 
         # Check models match well enough (allowing for random noise)
         model_residual = np.linalg.norm(
-            mrec - self.grav_model[self.active_cells]) / np.linalg.norm(
-            self.grav_model[self.active_cells]
-        )
+            mrec - self.grav_model[self.active_cells]
+        ) / np.linalg.norm(self.grav_model[self.active_cells])
         self.assertAlmostEqual(model_residual, 0.1, delta=0.1)
 
         # Check data converged to less than 10% of target misfit
@@ -512,9 +484,8 @@ class QuadTreeLinProblemTest(unittest.TestCase):
 
         # Check models match well enough (allowing for random noise)
         model_residual = np.linalg.norm(
-            mrec - self.mag_model[self.active_cells]) / np.linalg.norm(
-            self.mag_model[self.active_cells]
-        )
+            mrec - self.mag_model[self.active_cells]
+        ) / np.linalg.norm(self.mag_model[self.active_cells])
         self.assertAlmostEqual(model_residual, 0.1, delta=0.1)
 
         # Check data converged to less than 10% of target misfit
