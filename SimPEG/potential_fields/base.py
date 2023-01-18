@@ -2,7 +2,6 @@ import os
 
 import discretize
 import numpy as np
-import warnings
 from ..simulation import LinearSimulation
 from scipy.sparse import csr_matrix as csr
 from SimPEG.utils import mkvc

@@ -38,7 +38,6 @@ from discretize.utils import mkvc, refine_tree_xyz
 from SimPEG.utils import surface2ind_topo, model_builder
 from SimPEG import (
     maps,
-    data,
     data_misfit,
     regularization,
     optimization,

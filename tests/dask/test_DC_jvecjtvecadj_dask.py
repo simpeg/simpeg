@@ -1,7 +1,7 @@
 import unittest
 import numpy as np
 import discretize
-import SimPEG.dask
+import SimPEG.dask  # noqa: F401
 from SimPEG import (
     maps,
     data_misfit,
@@ -10,11 +10,9 @@ from SimPEG import (
     optimization,
     inverse_problem,
     tests,
-    utils,
 )
 from SimPEG.utils import mkvc
 from SimPEG.electromagnetics import resistivity as dc
-from pymatsolver import Pardiso
 import shutil
 
 np.random.seed(40)

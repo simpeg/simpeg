@@ -1,7 +1,6 @@
 import numpy as np
 from scipy.constants import mu_0
 import warnings
-from scipy.special import roots_legendre
 
 from geoana.em.static import MagneticDipoleWholeSpace, CircularLoopWholeSpace
 

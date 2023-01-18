@@ -2,7 +2,6 @@ import discretize
 from SimPEG import maps, utils, tests
 from SimPEG.electromagnetics import frequency_domain as fdem
 import numpy as np
-from scipy.constants import mu_0
 
 import unittest
 

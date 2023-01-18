@@ -1,9 +1,7 @@
 import numpy as np
 import scipy.sparse as sp
-from scipy.constants import mu_0
 from discretize.utils import Zero
 
-from ... import props
 from ...data import Data
 from ...utils import mkvc, validate_type
 from ..base import BaseEMSimulation

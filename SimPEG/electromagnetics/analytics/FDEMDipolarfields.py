@@ -1,6 +1,5 @@
 import numpy as np
-from scipy.constants import mu_0, pi, epsilon_0
-from scipy.special import erf
+from scipy.constants import epsilon_0, mu_0
 from SimPEG import utils
 
 omega = lambda f: 2.0 * np.pi * f

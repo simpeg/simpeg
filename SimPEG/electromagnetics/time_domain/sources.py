@@ -1035,10 +1035,13 @@ class BaseTDEMSrc(BaseEMSrc):
         self,
         receiver_list=None,
         location=None,
-        waveform=StepOffWaveform(),
+        waveform=None,
         srcType=None,
         **kwargs,
     ):
+
+        if waveform is None:
+            waveform = StepOffWaveform()
         super(BaseTDEMSrc, self).__init__(
             receiver_list=receiver_list, location=location, **kwargs
         )

@@ -16,7 +16,6 @@ import shutil
 import tarfile
 from SimPEG.potential_fields import gravity
 from SimPEG import (
-    data,
     data_misfit,
     maps,
     regularization,
@@ -25,7 +24,6 @@ from SimPEG import (
     directives,
     inversion,
 )
-from SimPEG import utils
 from SimPEG.utils import download, plot2Ddata
 
 import matplotlib.pyplot as plt

@@ -1,7 +1,7 @@
 import numpy as np
 from scipy.constants import epsilon_0
 from ...fields import Fields
-from ...utils import mkvc, Zero, Identity, sdiag
+from ...utils import Identity, Zero, mkvc
 from ..utils import omega
 
 

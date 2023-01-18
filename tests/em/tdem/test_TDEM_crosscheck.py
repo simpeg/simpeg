@@ -6,7 +6,6 @@ from SimPEG.electromagnetics import time_domain as tdem
 from SimPEG.electromagnetics import utils
 import numpy as np
 
-import warnings
 from pymatsolver import Pardiso as Solver
 
 TOL = 1e-4

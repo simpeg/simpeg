@@ -1,6 +1,5 @@
 import unittest
 import numpy as np
-import pickle
 import inspect
 
 import discretize

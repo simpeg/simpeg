@@ -13,7 +13,6 @@ from discretize.tests import check_derivative
 from discretize import TensorMesh, CylindricalMesh
 
 from .utils import (
-    set_kwargs,
     mkvc,
     rotation_matrix_from_normals,
     Zero,
