@@ -115,7 +115,7 @@ class LinearCorrespondence(BaseSimilarityMeasure):
             p2 = k2 * k1 * v1 + k2 ** 2 * v2
             return np.r_[p1, p2]
         else:
-            n = self.regularization_mesh.nC
+            n = self.regularization_mesh.n_cells
             A = utils.sdiag(np.ones(n) * (k1 ** 2))
             B = utils.sdiag(np.ones(n) * (k2 ** 2))
             C = utils.sdiag(np.ones(n) * (k1 * k2))

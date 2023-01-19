@@ -164,7 +164,7 @@ class RegularizationTests(unittest.TestCase):
             active_cells = mesh.gridCC[:, 2] < 0.6
             reg = getattr(regularization, regType)(mesh, active_cells=active_cells)
 
-            self.assertTrue(reg.nP == reg.regularization_mesh.nC)
+            self.assertTrue(reg.nP == reg.regularization_mesh.n_cells)
 
             [
                 self.assertTrue(np.all(fct.active_cells == active_cells))

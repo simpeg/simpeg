@@ -96,7 +96,7 @@ class PGIsmallness(Smallness):
         for key, values in weights.items():
             values = validate_ndarray_with_shape("weights", values, dtype=float)
 
-            if values.shape[0] == self.regularization_mesh.nC:
+            if values.shape[0] == self.regularization_mesh.n_cells:
                 values = np.tile(values, len(self.wiresmap.maps))
 
             values = validate_ndarray_with_shape(
@@ -153,7 +153,7 @@ class PGIsmallness(Smallness):
     @property
     def wiresmap(self):
         if getattr(self, "_wiresmap", None) is None:
-            self._wiresmap = Wires(("m", self.regularization_mesh.nC))
+            self._wiresmap = Wires(("m", self.regularization_mesh.n_cells))
         return self._wiresmap
 
     @wiresmap.setter
@@ -172,7 +172,7 @@ class PGIsmallness(Smallness):
     def maplist(self):
         if getattr(self, "_maplist", None) is None:
             self._maplist = [
-                IdentityMap(nP=self.regularization_mesh.nC)
+                IdentityMap(nP=self.regularization_mesh.n_cells)
                 for maps in self.wiresmap.maps
             ]
         return self._maplist
@@ -788,14 +788,14 @@ class PGI(ComboObjectiveFunction):
     @property
     def wiresmap(self):
         if getattr(self, "_wiresmap", None) is None:
-            self._wiresmap = Wires(("m", self.regularization_mesh.nC))
+            self._wiresmap = Wires(("m", self.regularization_mesh.n_cells))
         return self._wiresmap
 
     @property
     def maplist(self):
         if getattr(self, "_maplist", None) is None:
             self._maplist = [
-                IdentityMap(nP=self.regularization_mesh.nC)
+                IdentityMap(nP=self.regularization_mesh.n_cells)
                 for maps in self.wiresmap.maps
             ]
         return self._maplist

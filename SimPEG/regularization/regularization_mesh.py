@@ -117,13 +117,19 @@ class RegularizationMesh(props.BaseSimPEG):
         return self._vol
 
     @property
-    def nC(self) -> int:
-        """
-        Number of cells being regularized.
+    def n_cells(self) -> int:
+        """Number of cells being regularized.
+        Returns
+        -------
+        int
         """
         if self.active_cells is not None:
             return int(self.active_cells.sum())
-        return self.mesh.nC
+        return self.mesh.n_cells
+
+    nC = deprecate_property(
+        n_cells, old_name="nC", new_name="n_cells", removal_version="0.19.0"
+    )
 
     @property
     def dim(self) -> int:

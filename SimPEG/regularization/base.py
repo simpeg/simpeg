@@ -163,9 +163,9 @@ class BaseRegularization(BaseObjectiveFunction):
         """
         if (
             getattr(self, "_regularization_mesh", None) is not None
-            and self.regularization_mesh.nC != "*"
+            and self.regularization_mesh.n_cells != "*"
         ):
-            return (self.regularization_mesh.nC,)
+            return (self.regularization_mesh.n_cells,)
 
         if getattr(self, "_mapping", None) is not None and self.mapping.shape != "*":
             return (self.mapping.shape[0],)
@@ -291,7 +291,7 @@ class BaseRegularization(BaseObjectiveFunction):
             return self.mapping.shape[1]
 
         if nC != "*" and nC is not None:
-            return self.regularization_mesh.nC
+            return self.regularization_mesh.n_cells
 
         return self._weights_shapes[0]
 
@@ -546,7 +546,7 @@ class SmoothnessFirstOrder(BaseRegularization):
             )
             weights = 1.0
             for values in self._weights.values():
-                if values.shape[0] == self.regularization_mesh.nC:
+                if values.shape[0] == self.regularization_mesh.n_cells:
                     values = average_cell_2_face * values
                 weights *= values
             self._W = utils.sdiag(weights ** 0.5)
@@ -965,9 +965,9 @@ class WeightedLeastSquares(ComboObjectiveFunction):
             return self.mapping.nP
         elif (
             getattr(self, "_regularization_mesh", None) is not None
-            and self.regularization_mesh.nC != "*"
+            and self.regularization_mesh.n_cells != "*"
         ):
-            return self.regularization_mesh.nC
+            return self.regularization_mesh.n_cells
         else:
             return "*"
 
@@ -983,7 +983,7 @@ class WeightedLeastSquares(ComboObjectiveFunction):
         if mapping is not None and mapping.shape[1] != "*":
             return self.mapping.shape[1]
         elif nC != "*" and nC is not None:
-            return self.regularization_mesh.nC
+            return self.regularization_mesh.n_cells
         else:
             return self.nP
 
