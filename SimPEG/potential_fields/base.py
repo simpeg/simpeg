@@ -1,12 +1,14 @@
 import os
+from multiprocessing.pool import Pool
 
 import discretize
 import numpy as np
-from ..simulation import LinearSimulation
 from scipy.sparse import csr_matrix as csr
+
 from SimPEG.utils import mkvc
-from ..utils import validate_string, validate_active_indices, validate_integer
-from multiprocessing.pool import Pool
+
+from ..simulation import LinearSimulation
+from ..utils import validate_active_indices, validate_integer, validate_string
 
 ###############################################################################
 #                                                                             #
@@ -73,13 +75,13 @@ class BasePFSimulation(LinearSimulation):
         self.n_processes = n_processes
 
         # Find non-zero cells indices
-        if ind_active is not None:
-            ind_active = validate_active_indices("ind_active", ind_active, mesh.n_cells)
-        else:
+        if ind_active is None:
             ind_active = np.ones(mesh.n_cells, dtype=bool)
+        else:
+            ind_active = validate_active_indices("ind_active", ind_active, mesh.n_cells)
         self._ind_active = ind_active
 
-        self.nC = sum(ind_active)
+        self.nC = int(sum(ind_active))
 
         if isinstance(mesh, discretize.TensorMesh):
             nodes = mesh.nodes
@@ -149,7 +151,7 @@ class BasePFSimulation(LinearSimulation):
 
     @property
     def ind_active(self):
-        """Active topography cells
+        """Active topography cells.
 
         Returns
         -------
@@ -167,7 +169,7 @@ class BasePFSimulation(LinearSimulation):
         )
 
     def linear_operator(self):
-        """Return linear operator
+        """Return linear operator.
 
         Returns
         -------
@@ -203,17 +205,18 @@ class BasePFSimulation(LinearSimulation):
 
 
 class BaseEquivalentSourceLayerSimulation(BasePFSimulation):
-    """Base equivalent source layer simulation class
+    """Base equivalent source layer simulation class.
 
     Parameters
     ----------
     mesh : discretize.BaseMesh
         A 2D tensor or tree mesh defining discretization along the x and y directions
     cell_z_top : numpy.ndarray or float
-        Define the elevations for the top face of all cells in the layer
+        Define the elevations for the top face of all cells in the layer. If an array,
+        it should be the same size as the active cell set.
     cell_z_bottom : numpy.ndarray or float
-        Define the elevations for the bottom face of all cells in the layer
-
+        Define the elevations for the bottom face of all cells in the layer. If an array,
+        it should be the same size as the active cell set.
     """
 
     def __init__(self, mesh, cell_z_top, cell_z_bottom, **kwargs):
@@ -224,14 +227,15 @@ class BaseEquivalentSourceLayerSimulation(BasePFSimulation):
         super().__init__(mesh, **kwargs)
 
         if isinstance(cell_z_top, (int, float)):
-            cell_z_top = float(cell_z_top) * np.ones(mesh.nC)
+            cell_z_top = float(cell_z_top) * np.ones(self.nC)
 
         if isinstance(cell_z_bottom, (int, float)):
-            cell_z_bottom = float(cell_z_bottom) * np.ones(mesh.nC)
+            cell_z_bottom = float(cell_z_bottom) * np.ones(self.nC)
 
-        if (mesh.nC != len(cell_z_top)) | (mesh.nC != len(cell_z_bottom)):
+        if (self.nC != len(cell_z_top)) | (self.nC != len(cell_z_bottom)):
             raise AttributeError(
-                "'cell_z_top' and 'cell_z_bottom' must have length equal to number of cells."
+                "'cell_z_top' and 'cell_z_bottom' must have length equal to number of",
+                "cells, and match the number of active cells.",
             )
 
         all_nodes = self._nodes[self._unique_inv]
@@ -250,11 +254,11 @@ class BaseEquivalentSourceLayerSimulation(BasePFSimulation):
 
 
 def progress(iteration, prog, final):
-    """Progress (% complete) for constructing sensitivity matrix
+    """Progress (% complete) for constructing sensitivity matrix.
 
     Parameters
     ----------
-    iter : int
+    iteration : int
         Current rows
     prog : float
         Progress
@@ -277,7 +281,7 @@ def progress(iteration, prog, final):
 
 
 def get_dist_wgt(mesh, receiver_locations, actv, R, R0):
-    """Compute distance weights for potential field simulations
+    """Compute distance weights for potential field simulations.
 
     Parameters
     ----------
@@ -297,7 +301,6 @@ def get_dist_wgt(mesh, receiver_locations, actv, R, R0):
     wr : (n_cell) numpy.ndarray
         Distance weighting model; 0 for all inactive cells
     """
-
     # Find non-zero cells
     if actv.dtype == "bool":
         inds = (
