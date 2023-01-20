@@ -315,7 +315,7 @@ class AmpProblemTest(unittest.TestCase):
         if self.sim.store_sensitivities == "disk":
             try:
                 shutil.rmtree(self.sim.sensitivity_path)
-            except:
+            except FileNotFoundError:
                 pass
 
 

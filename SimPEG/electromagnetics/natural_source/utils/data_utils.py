@@ -408,10 +408,7 @@ def plotMT1DModelData(problem, models, symList=None):
         pDt.plotIsoStaImpedance(axR, loc, data1D, "zyx", "res", pColor=col)
         # Appphs
         pDt.plotIsoStaImpedance(axP, loc, data1D, "zyx", "phs", pColor=col)
-        try:
-            allData = np.concatenate((allData, simpeg.mkvc(data1D["zyx"], 2)), 1)
-        except:
-            allData = simpeg.mkvc(data1D["zyx"], 2)
+        allData = simpeg.mkvc(data1D["zyx"], 2)
     freq = simpeg.mkvc(data1D["freq"], 2)
     res, phs = appResPhs(freq, allData)
 

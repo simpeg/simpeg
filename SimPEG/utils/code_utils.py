@@ -996,7 +996,7 @@ def validate_ndarray_with_shape(property_name, var, shape=None, dtype=float):
             var = np.asarray(var, dtype=dtype)
             bad_type = False
             break
-        except:
+        except TypeError, ValueError:
             bad_type = True
 
     if bad_type:
