@@ -152,7 +152,6 @@ class SIPProblemTestsN(unittest.TestCase):
         Aloc = np.r_[-200.0, 0.0, 0.0]
         Bloc = np.r_[200.0, 0.0, 0.0]
         M = utils.ndgrid(x - 25.0, y, np.r_[0.0])
-        N = utils.ndgrid(x + 25.0, y, np.r_[0.0])
 
         times = np.arange(10) * 1e-3 + 1e-3
         rx = sip.receivers.Pole(M, times)

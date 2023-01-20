@@ -173,7 +173,6 @@ class DCProblemAnalyticTests_DPP(unittest.TestCase):
             np.logical_and(mesh.cell_centers_x > -150, mesh.cell_centers_x < 250)
         ]
         M = utils.ndgrid(x, np.r_[0.0])
-        N = utils.ndgrid(x + 12.5 * 4, np.r_[0.0])
         A0loc = np.r_[-200, 0.0]
         A1loc = np.r_[-250, 0.0]
         rxloc = np.c_[M, np.zeros(x.size)]

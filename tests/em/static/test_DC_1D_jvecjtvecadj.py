@@ -29,9 +29,6 @@ class DC1DSimulation(unittest.TestCase):
         xtemp_rxP = -5
         xtemp_rxN = 5
         ytemp_rx = 0.0
-        abhalf = abs(xtemp_txP - xtemp_txN) * 0.5
-        a = xtemp_rxN - xtemp_rxP
-        b = ((xtemp_txN - xtemp_txP) - a) * 0.5
 
         # We generate tx and rx lists:
         srclist = []

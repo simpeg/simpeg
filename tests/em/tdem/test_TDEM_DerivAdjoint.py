@@ -147,11 +147,8 @@ class TDEM_Fields_B_Pieces(Base_DerivAdjoint_Test):
     formulation = "MagneticFluxDensity"
 
     def test_eDeriv_m_adjoint(self):
-        tInd = 0
-
         prb = self.prob
         f = self.fields
-        v = np.random.rand(prb.mesh.nF)
 
         print("\n Testing eDeriv_m Adjoint")
 

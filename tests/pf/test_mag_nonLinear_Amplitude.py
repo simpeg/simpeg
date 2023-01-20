@@ -123,9 +123,6 @@ class AmpProblemTest(unittest.TestCase):
         nC = np.count_nonzero(surf)  # Number of active cells
         mstart = np.ones(nC) * 1e-4
 
-        # Create active map to go from reduce set to full
-        surfMap = maps.InjectActiveCells(mesh, surf, np.nan)
-
         # Create identity map
         idenMap = maps.IdentityMap(nP=nC)
 
@@ -212,8 +209,6 @@ class AmpProblemTest(unittest.TestCase):
         # susceptibility. This is a non-linear inversion.
         #
 
-        # Create active map to go from reduce space to full
-        actvMap = maps.InjectActiveCells(mesh, actv, -100)
         nC = int(actv.sum())
 
         # Create identity map

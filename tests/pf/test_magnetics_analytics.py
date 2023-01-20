@@ -19,13 +19,11 @@ class TestBoundaryConditionAnalytics(unittest.TestCase):
         hzind = [(0, 25, 1.3), (20, 12.5), (0, 25, 1.3)]
         M3 = discretize.TensorMesh([hxind, hyind, hzind], "CCC")
         indxd, indxu, indyd, indyu, indzd, indzu = M3.face_boundary_indices
-        mu0 = 4 * np.pi * 1e-7
         chibkg = 0.0
         chiblk = 0.01
         chi = np.ones(M3.nC) * chibkg
         sph_ind = getIndicesSphere([0, 0, 0], 100, M3.gridCC)
         chi[sph_ind] = chiblk
-        mu = (1.0 + chi) * mu0
         Bbc, const = mag.analytics.CongruousMagBC(M3, np.array([1.0, 0.0, 0.0]), chi)
 
         flag = "secondary"

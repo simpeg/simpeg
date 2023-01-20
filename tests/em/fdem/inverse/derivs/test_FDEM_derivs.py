@@ -40,8 +40,6 @@ def derivTest(fdemType, comp, src):
         x0 = x0 + np.random.randn(prb.sigmaMap.nP) * np.log(CONDUCTIVITY) * 1e-1
         # mu = mu + np.random.randn(prb.sigmaMap.nP)*MU*1e-1
 
-    survey = prb.survey
-
     def fun(x):
         return prb.dpred(x), lambda x: prb.Jvec(x0, x)
 
