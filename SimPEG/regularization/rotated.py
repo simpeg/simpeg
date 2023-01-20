@@ -23,8 +23,10 @@ class SmoothnessFullGradient(BaseRegularization):
         The weights of the regularization for each axis. This can be defined for each cell
         in the mesh. Default is uniform weights equal to the smallest edge length squared.
     reg_dirs : (mesh.dim, mesh.dim) or (mesh.n_cells, mesh.dim, mesh.dim) array_like of float
-        The direction of the regularization axes. Each matrix should be orthonormal.
-        Default is Identity.
+        Matrix or list of matrices whose columns represent the regularization directions.
+        Each matrix should be orthonormal. Default is Identity.
+    ortho_check : bool, optional
+        Whether to check `reg_dirs` for orthogonality.
     **kwargs
         Keyword arguments passed to the parent class ``BaseRegularization``.
 
@@ -51,11 +53,11 @@ class SmoothnessFullGradient(BaseRegularization):
     We can also rotate the axis in which we want to preferentially smooth. Say we want to
     smooth twice as much along the +x1,+x2 diagonal as we do along the -x1,+x2 diagonal,
     effectively rotating our smoothing 45 degrees. Note that we must provide orthonormal
-    vectors.
+    vectors, and the columns of the matrix represent the vectors (not the rows).
     >>> sqrt2 = np.sqrt(2)
     >>> reg_dirs = [
+    ...     [sqrt2, -sqrt2],
     ...     [sqrt2, sqrt2],
-    ...     [-sqrt2, sqrt2],
     ... ]
     >>> reg = SmoothnessFullGradient(mesh, alphas, reg_dirs=reg_dirs)
 
@@ -77,7 +79,7 @@ class SmoothnessFullGradient(BaseRegularization):
     anisotropic alpha used for rotated gradients.
     """
 
-    def __init__(self, mesh, alphas=None, reg_dirs=None, **kwargs):
+    def __init__(self, mesh, alphas=None, reg_dirs=None, ortho_check=True, **kwargs):
         if mesh.dim < 2:
             raise TypeError("Mesh must have dimension higher than 1")
         super().__init__(mesh=mesh, **kwargs)
@@ -91,12 +93,15 @@ class SmoothnessFullGradient(BaseRegularization):
             shape=[(mesh.dim,), ("*", mesh.dim)],
             dtype=float,
         )
-        n_cells = self.regularization_mesh.n_cells
+        n_active_cells = self.regularization_mesh.n_cells
         if len(alphas.shape) == 1:
-            alphas = np.tile(alphas, (n_cells, 1))
-        if alphas.shape[0] != n_cells:
-            if alphas.shape[0] == mesh.n_cells:
-                alphas = alphas[self.active_cells]
+            alphas = np.tile(alphas, (mesh.n_cells, 1))
+        if alphas.shape[0] != mesh.n_cells:
+            # check if I need to expand from active cells to all cells (needed for discretize)
+            if alphas.shape[0] == n_active_cells and self.active_cells is not None:
+                alpha_temp = np.zeros((mesh.n_cells, mesh.dim))
+                alpha_temp[self.active_cells] = alphas
+                alphas = alpha_temp
             else:
                 raise IndexError(
                     f"`alphas` first dimension, {alphas.shape[0]}, must be either number "
@@ -114,22 +119,29 @@ class SmoothnessFullGradient(BaseRegularization):
                 dtype=float,
             )
             if reg_dirs.shape == (mesh.dim, mesh.dim):
-                reg_dirs = np.tile(reg_dirs, (n_cells, 1, 1))
-            if reg_dirs.shape[0] != n_cells:
-                if reg_dirs.shape[0] == mesh.n_cells:
-                    reg_dirs = reg_dirs[self.active_cells]
+                reg_dirs = np.tile(reg_dirs, (mesh.n_cells, 1, 1))
+            if reg_dirs.shape[0] != mesh.n_cells:
+                # check if I need to expand from active cells to all cells (needed for discretize)
+                if (
+                    reg_dirs.shape[0] == n_active_cells
+                    and self.active_cells is not None
+                ):
+                    reg_dirs_temp = np.zeros((mesh.n_cells, mesh.dim, mesh.dim))
+                    reg_dirs_temp[self.active_cells] = reg_dirs
+                    reg_dirs = reg_dirs_temp
                 else:
                     raise IndexError(
                         f"`reg_dirs` first dimension, {reg_dirs.shape[0]}, must be either number "
                         f"of active cells {n_cells}, or the number of mesh cells {mesh.n_cells}. "
                     )
             # check orthogonality?
-            eye = np.eye(mesh.dim)
-            for i, M in enumerate(reg_dirs):
-                if not np.allclose(eye, reg_dirs.T @ reg_dirs):
-                    raise ValueError(f"Matrix {i} is not orthonormal")
+            if ortho_check:
+                eye = np.eye(mesh.dim)
+                for i, M in enumerate(reg_dirs):
+                    if not np.allclose(eye, M @ M.T):
+                        raise ValueError(f"Matrix {i} is not orthonormal")
             # create a stack of matrices of dir.T @ alphas @ dir
-            anis_alpha = np.einsum("ikn,ik,ikm->inm", reg_dirs, anis_alpha, reg_dirs)
+            anis_alpha = np.einsum("ink,ik,imk->inm", reg_dirs, anis_alpha, reg_dirs)
             # Then select the upper diagonal components for input to discretize
             if mesh.dim == 2:
                 anis_alpha = np.stack(
@@ -187,18 +199,24 @@ class SmoothnessFullGradient(BaseRegularization):
         """
         if getattr(self, "_cell_gradient", None) is None:
             mesh = self.regularization_mesh.mesh
-            # Turn off cell_gradient at boundary faces
-            bf = mesh.project_face_to_boundary_face.indices
-            v = np.ones(mesh.n_faces)
-            v[bf] = 0.0
-            P = sp.diags(v)
             try:
                 cell_gradient = mesh.cell_gradient
             except AttributeError:
                 a = mesh.face_areas
                 v = mesh.average_cell_to_face @ mesh.cell_volumes
                 cell_gradient = sp.diags(a / v) @ mesh.stencil_cell_gradient
-            self._cell_gradient = P @ cell_gradient
+
+            v = np.ones(mesh.n_cells)
+            # Turn off cell_gradient at boundary faces
+            if self.active_cells is not None:
+                v[~self.active_cells] = 0
+
+            dv = cell_gradient @ v
+            P = sp.diags((np.abs(dv) <= 1e-16).astype(int))
+            cell_gradient = P @ cell_gradient
+            if self.active_cells is not None:
+                cell_gradient = cell_gradient[:, self.active_cells]
+            self._cell_gradient = cell_gradient
         return self._cell_gradient
 
     @property
@@ -215,7 +233,9 @@ class SmoothnessFullGradient(BaseRegularization):
             for values in self._weights.values():
                 cell_weights *= values
             reg_model = self._anis_alpha * cell_weights[:, None]
-            reg_model[~self.active_cells] = 0.0
+            # turn off measure in inactive cells
+            if self.active_cells is not None:
+                reg_model[~self.active_cells] = 0.0
 
             self._W = mesh.get_face_inner_product(reg_model)
         return self._W
