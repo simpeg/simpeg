@@ -5,7 +5,7 @@ import numpy as np
 
 from SimPEG.electromagnetics import resistivity as dc
 from SimPEG.electromagnetics.static import utils
-from SimPEG import maps, mkvc, data
+from SimPEG import data
 from SimPEG.utils.io_utils import io_utils_electromagnetics as io_utils
 import shutil
 import os

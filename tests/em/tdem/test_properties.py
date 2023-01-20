@@ -2,7 +2,6 @@ import numpy as np
 import pytest
 from discretize import TensorMesh
 
-from SimPEG.electromagnetics import frequency_domain as fdem
 from SimPEG.electromagnetics import time_domain as tdem
 
 

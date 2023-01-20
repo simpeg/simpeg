@@ -42,14 +42,14 @@ class TestModels(unittest.TestCase):
 
         u = np.random.randn(mesh.nC)
 
-        for name, opt, nM in opts:
+        for name, opt, _ in opts:
             van = richards.empirical.Haverkamp_theta(mesh, **opt)
 
             x0 = np.concatenate([seeds[n] for n in name.split("-")])
 
             def fun(m):
-                van.model = m
-                return van(u), van.derivM(u)
+                van.model = m  # noqa: B023
+                return van(u), van.derivM(u)  # noqa: B023
 
             print("Haverkamp_theta test m deriv:  ", name)
 
@@ -84,14 +84,14 @@ class TestModels(unittest.TestCase):
 
         u = np.random.randn(mesh.nC)
 
-        for name, opt, nM in opts:
+        for name, opt, _ in opts:
             van = richards.empirical.Vangenuchten_theta(mesh, **opt)
 
             x0 = np.concatenate([seeds[n] for n in name.split("-")])
 
             def fun(m):
-                van.model = m
-                return van(u), van.derivM(u)
+                van.model = m  # noqa: B023
+                return van(u), van.derivM(u)  # noqa: B023
 
             print("Vangenuchten_theta test m deriv:  ", name)
 
@@ -149,8 +149,8 @@ class TestModels(unittest.TestCase):
             hav = richards.empirical.Haverkamp_k(mesh, **opt)
 
             def fun(m):
-                hav.model = m
-                return hav(u), hav.derivM(u)
+                hav.model = m  # noqa: B023
+                return hav(u), hav.derivM(u)  # noqa: B023
 
             print("Haverkamp_k test m deriv:  ", name)
 
@@ -192,14 +192,14 @@ class TestModels(unittest.TestCase):
 
         u = np.random.randn(mesh.nC)
 
-        for name, opt, nM in opts:
+        for name, opt, _ in opts:
             van = richards.empirical.Vangenuchten_k(mesh, **opt)
 
             x0 = np.concatenate([seeds[n] for n in name.split("-")])
 
             def fun(m):
-                van.model = m
-                return van(u), van.derivM(u)
+                van.model = m  # noqa: B023
+                return van(u), van.derivM(u)  # noqa: B023
 
             print("Vangenuchten_k test m deriv:  ", name)
 

@@ -6,14 +6,11 @@ import uuid
 
 from .utils import Counter
 from .utils.code_utils import (
-    deprecate_property,
-    deprecate_method,
     validate_location_property,
     validate_ndarray_with_shape,
     validate_list_of_types,
     validate_type,
 )
-from .props import BaseSimPEG
 
 
 class BaseRx:
@@ -166,7 +163,7 @@ class BaseRx:
             self._Ps[(mesh, projected_grid)] = P
         return P
 
-    def eval(self, **kwargs):
+    def eval(self, **kwargs):  # noqa: A003
         """Not implemented for BaseRx"""
         raise NotImplementedError(
             "the eval method for {} has not been implemented".format(self)

@@ -69,9 +69,9 @@ class TestCounter(unittest.TestCase):
                 pass
 
         c = MyClass("blah")
-        for i in range(100):
+        for _ in range(100):
             c.MyMethod()
-        for i in range(300):
+        for _ in range(300):
             c.MySecondMethod()
         c.counter.summary()
         self.assertTrue(True)
