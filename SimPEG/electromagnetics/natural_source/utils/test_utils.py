@@ -67,7 +67,7 @@ def setup1DSurvey(sigmaHalf, tD=False, structure=False):
         sigma[deep] = 0.1
 
     receiver_list = []
-    for rxType in ["z1d", "z1d"]:
+    for _ in range(len(["z1d", "z1d"])):
         receiver_list.append(
             PointNaturalSource(mkvc(np.array([0.0]), 2).T, component="real")
         )
@@ -114,7 +114,7 @@ def setup1DSurveyElectricMagnetic(sigmaHalf, tD=False, structure=False):
         sigma[deep] = 0.1
 
     rxList = []
-    for rxType in ["z1d", "z1d"]:
+    for _ in range(len(["z1d", "z1d"])):
         rxList.append(PointNaturalSource(mkvc(np.array([0.0]), 2).T, component="real"))
         rxList.append(PointNaturalSource(mkvc(np.array([0.0]), 2).T, component="imag"))
     # Source list

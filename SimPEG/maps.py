@@ -1244,7 +1244,7 @@ class Wires(object):
     def __mul__(self, val):
         assert isinstance(val, np.ndarray)
         split = []
-        for n, w in self.maps:
+        for _, w in self.maps:
             split += [w * val]
         return self._tuple(*split)
 
@@ -1696,7 +1696,7 @@ class SelfConsistentEffectiveMedium(IdentityMap):
         if self.random is False:
             sige1 = sige1 * np.eye(3)
 
-        for i in range(self.maxIter):
+        for _ in range(self.maxIter):
             R0 = self.getR(self.sigma0, sige1, self.alpha0, self.orientation0)
             R1 = self.getR(self.sigma1, sige1, self.alpha1, self.orientation1)
 

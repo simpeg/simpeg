@@ -81,7 +81,7 @@ class EDIimporter:
         # Make the outarray
         dtRI = [(compS.lower().replace(".", ""), float) for compS in tmpCompList]
         # Loop through all the files
-        for nrEDI, EDIfile in enumerate(self.filesList):
+        for EDIfile in self.filesList:
             # Read the file into a list of the lines
             with open(EDIfile, "r") as fid:
                 EDIlines = fid.readlines()
