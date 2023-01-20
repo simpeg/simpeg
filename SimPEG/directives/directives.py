@@ -2206,43 +2206,81 @@ class Update_Wj(InversionDirective):
 
 class UpdateSensitivityWeights(InversionDirective):
     """
-    Directive to take care of re-weighting
-    the non-linear problems. Assumes that the map of the regularization
-    function is either Wires or Identity.
+    Update sensitivity weighting for non-linear problems.
+
+    Assumes that the map of the regularization function is either Wires or Identity.
     Good for any problem where J is formed explicitly.
+
+    Parameters
+    ----------
+    every_iteration : bool
+        Update sensitivity weighting at every model update if ``True``.
+        Create sensitivity weights for starting model only if ``False``.
+    threshold : None, str
+        Threshold for 
+
     """
 
     def __init__(
             self,
-            everyIter=True,
+            every_iteration=True,
             threshold=1e-12,
-            normalization=True,
-            method="percent_amplitude",
+            threshold_method='global',
+            normalization_method=None,
             **kwargs
     ):
         super().__init__(**kwargs)
-        self.everyIter = everyIter
-        self.threshold = threshold
-        self.method = method
-        self.normalization = normalization
 
+        if "everyIter" in kwargs.keys():
+            warnings.warn(
+                "'everyIter' property is deprecated and will be removed in SimPEG 0.19.0."
+                "Please use 'every_iteration'."
+            )
+            every_iteration = kwargs.pop("everyIter")
+
+        if "normalization" in kwargs.keys():
+            warnings.warn(
+                "'normalization' property is deprecated and will be removed in SimPEG 0.19.0."
+                "Please define normalization using 'normalization_method'."
+            )
+            normalization_method = kwargs.pop("normalization")
+            if normalization_method is True:
+                normalization_method = 'maximum'
+            else:
+                normalization_method = None
+        
+        self.every_iteration = every_iteration
+        self.threshold = threshold
+        self.threshold_method = threshold_method
+        self.normalization_method = normalization_method
+        
     @property
-    def everyIter(self):
+    def every_iteration(self):
         """Whether to update the sensitivity weights at every iteration.
+
+        Update sensitivity weighting at every model update if ``True``.
+        Create sensitivity weights for starting model only if ``False``.
 
         Returns
         -------
         bool
         """
-        return self._everyIter
+        return self._every_iteration
 
-    @everyIter.setter
-    def everyIter(self, value):
-        self._everyIter = validate_type("everyIter", value, bool)
+    @every_iteration.setter
+    def every_iteration(self, value):
+        self._every_iteration = validate_type("every_iteration", value, bool)
+
+    deprecate_property(
+        every_iteration, 'everyIter', 'every_iteration', removal_version="0.19.0"
+    )
 
     @property
     def threshold(self):
-        """A small threshold added to the weights to represent a minimum weighting value.
+        """Threshold value used to set minimum weighting value.
+
+        The way thresholding is applied to the weighting model depends on the
+        'threshold_type' property. Choices are as follows:
 
         Returns
         -------
@@ -2255,18 +2293,65 @@ class UpdateSensitivityWeights(InversionDirective):
         self._threshold = validate_float("threshold", value, min_val=0.0)
 
     @property
-    def normalization(self):
-        """Whether to normalize by the smallest sensitivity weight.
+    def threshold_method(self):
+        """Method used to apply lower thresholding to sensitivity weights. The options are as follows:
+
+            - **global:** threshold is applied by adding a constant value to the weighting model
+            - **percentile:** a value between 0 and 100 which uses a percentile cutoff of RMS sensitivity values to set the threshold 
+            - **amplitude:** a value beetween 0 and 1 which sets the threshold as a fraction of the largest RMS sensitivity value
 
         Returns
         -------
-        bool
+        str
         """
-        return self._normalization
+        return self._threshold_method
 
-    @normalization.setter
-    def normalization(self, value):
-        self._normalization = validate_type("normalization", value, bool)
+    @threshold_method.setter
+    def threshold_method(self, value):
+        self._threshold_method = validate_string(
+            "threshold_method", value, string_list=['global', 'percentile', 'amplitude']
+        ).lower()
+
+    @property
+    def normalization_method(self):
+        """Normalization method applied to sensitivity weights.
+
+        Options are:
+
+            - ``None``: normalization is not applied
+            - **maximum:** sensitivity weights are normalized by the largest value such that the largest weight is equal to 1.
+            - **minimum:** sensitivity weights are normalized by the smallest value, after thresholding, such that the smallest weights are equal to 1.
+
+        Returns
+        -------
+        None, str
+        """
+        return self._normalization_method
+
+    @normalization_method.setter
+    def normalization_method(self, value):
+        
+        if value is None:
+            self._normalization_method = value
+
+        elif isinstance(value, bool):
+            warnings.warn(
+                "Boolean type for 'normalization_method' is deprecated and will be removed in 0.19.0."
+                "Please use None, 'maximum' or 'minimum'."
+            )
+            if value:
+                self._normalization_method = 'maximum'
+            else:
+                self._normalization_method = None
+
+        else:
+            self._normalization_method = validate_string(
+                "normalization_method", value, string_list=['minimum', 'maximum']
+            ).lower()
+
+    deprecate_property(
+        normalization_method, 'normalization', 'normalization_method', removal_version="0.19.0"
+    )
 
     def initialize(self):
         """
@@ -2286,7 +2371,7 @@ class UpdateSensitivityWeights(InversionDirective):
         """
         Update inverse problem
         """
-        if self.everyIter:
+        if self.every_iteration:
             self.update()
 
     def update(self):
@@ -2308,22 +2393,33 @@ class UpdateSensitivityWeights(InversionDirective):
             else:
                 jtj_diag += sim.getJtJdiag(m, W=dmisfit.W)
 
-        # Normalize and threshold weights
+        # Compute and sum root-mean squared sensitivities for all objective functions
         wr = np.zeros_like(self.invProb.model)
         for reg in self.reg.objfcts:
             if not isinstance(reg, BaseSimilarityMeasure):
                 wr += reg.mapping.deriv(self.invProb.model).T * (
                     (reg.mapping * jtj_diag) / reg.regularization_mesh.vol ** 2.0
                 )
-        if self.normalization:
-            wr /= wr.max()
-
-        if self.method == "percent_amplitude":
-            wr += np.abs(wr.max() - wr.min()) * self.threshold / 100.  # #np.percentile(wr, self.threshold) #threshold
-        else:
-            wr += self.threshold
 
         wr **= 0.5
+
+        # Apply thresholding
+        if self.threshold_method == 'global':
+            wr += self.threshold
+        elif self.threshold_method == 'percentile':
+            temp = np.percentile(wr, self.threshold)
+            wr[wr<temp] = temp
+        else:
+            temp = self.threshold * wr.max()
+            wr[wr<temp] = temp
+
+        # Apply normalization
+        if self.normalization_method == 'maximum':
+            wr /= wr.max()
+        elif self.normalization_method == 'minimum':
+            wr /= wr.min()
+
+        # Add sensitivity weighting to all model objective functions
         for reg in self.reg.objfcts:
             if not isinstance(reg, BaseSimilarityMeasure):
                 sub_regs = getattr(reg, "objfcts", [reg])
