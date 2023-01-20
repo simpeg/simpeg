@@ -34,12 +34,14 @@ from SimPEG import dask
 from SimPEG.utils import plot2Ddata, surface2ind_topo, model_builder
 from SimPEG import data, data_misfit, directives, maps, optimization, regularization, inverse_problem, inversion
 import SimPEG.electromagnetics.time_domain as tdem
-
+from geoh5py.workspace import Workspace
+from geoh5py.objects import Curve
+from geoapps.driver_base.utils import treemesh_2_octree
 import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import os
-
+from time import time
 try:
     from pymatsolver import Pardiso as Solver
 except ImportError:
@@ -49,6 +51,7 @@ save_file = False
 
 # sphinx_gallery_thumbnail_number = 3
 
+ws = Workspace(f"./Test_{time():.0f}.geoh5")
 
 ###############################################################
 # Defining Topography
@@ -165,7 +168,7 @@ for ii in range(ntx):
     )
 
 survey = tdem.Survey(source_list)
-
+tem_survey = Curve.create(ws, vertices=receiver_locations, name="TEM Survey")
 ###############################################################
 # Create OcTree Mesh
 # ------------------
@@ -205,6 +208,7 @@ mesh = refine_tree_xyz(mesh, xyz, octree_levels=[0, 2, 4], method="box", finaliz
 
 mesh.finalize()
 
+octree = treemesh_2_octree(ws, mesh)
 ###############################################################
 # Create Conductivity Model and Mapping for OcTree Mesh
 # -----------------------------------------------------
@@ -344,6 +348,13 @@ opt = optimization.ProjectedGNCG(
 inv_prob = inverse_problem.BaseInvProblem(dmis, reg, opt)
 directive_list = [
     directives.UpdateSensitivityWeights(threshold=5),
+    directives.SaveIterationsGeoH5(octree, transforms=[plotting_map], sorting=mesh._ubc_order),
+    directives.SaveIterationsGeoH5(
+        tem_survey,
+        attribute_type="predicted",
+        channels=[f"{val:.2e}" for val in time_channels],
+        association="VERTEX"
+    ),
     directives.Update_IRLS(
         max_irls_iterations=10,
         coolingRate=2,

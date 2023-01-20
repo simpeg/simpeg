@@ -17,6 +17,7 @@ from .directives import (
     JointScalingSchedule,
     UpdateSensitivityWeights,
     ProjectSphericalBounds,
+    SaveIterationsGeoH5
 )
 
 from .pgi_directives import (
