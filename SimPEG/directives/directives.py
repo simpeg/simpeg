@@ -2420,6 +2420,7 @@ class SaveIterationsGeoH5(InversionDirective):
         self.data_type = {}
         self._association = None
         self.attribute_type = "model"
+        self.order = "F"
         self._label = None
         self.channels = [""]
         self.components = [""]
@@ -2588,7 +2589,7 @@ class SaveIterationsGeoH5(InversionDirective):
         Reshape function
         """
         if getattr(self, "_reshape", None) is None:
-            self._reshape = lambda x: x.reshape((len(self.channels), len(self.components), -1), order="F")
+            self._reshape = lambda x: x.reshape((len(self.channels), len(self.components), -1), order=self.order)
 
         return self._reshape
 
