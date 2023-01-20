@@ -177,23 +177,6 @@ def compute_J(self, f=None, Ainv=None):
     # else:
     #     return Jmatrix
     solution_type = self._fieldType + "Solution"  # the thing we solved for
-    field_type = "{}Deriv".format(self._fieldType)
-
-    # Ensure v is a data object.
-    # if not isinstance(v, Data):
-    #     v = Data(self.survey, v)
-
-    df_duT_v = []
-
-    # same size as fields at a single timestep
-    ATinv_df_duT_v = np.zeros(
-        (
-            len(self.survey.source_list),
-            len(f[self.survey.source_list[0], solution_type, 0]),
-        ),
-        dtype=float,
-    )
-
     # Loop over sources and receivers to create a fields object:
     # PT_v, df_duT_v, df_dmT_v
     # initialize storage for PT_v (don't need to preserve over sources)
