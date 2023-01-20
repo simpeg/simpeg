@@ -364,26 +364,28 @@ def test_direction_validation():
     )
 
     # should normalize and return arbitrary array
-    dir = [1, 2, 3]
+    direction = [1, 2, 3]
     # should pass an normalized array through
     np.testing.assert_equal(
-        validate_direction("orient", dir), dir / np.linalg.norm(dir)
+        validate_direction("orient", direction), direction / np.linalg.norm(direction)
     )
 
     # dimensions should be respected for defaults
     np.testing.assert_equal(validate_direction("orient", "x", dim=1), np.r_[1.0])
     np.testing.assert_equal(validate_direction("orient", "x", dim=2), np.r_[1.0, 0.0])
     np.testing.assert_equal(validate_direction("orient", "y", dim=2), np.r_[0.0, 1.0])
-    dir = [
+    direction = [
         2.0,
     ]
     np.testing.assert_equal(
-        validate_direction("orient", dir, dim=1), dir / np.linalg.norm(dir)
+        validate_direction("orient", direction, dim=1),
+        direction / np.linalg.norm(direction),
     )
 
-    dir = [2.0, 1.0]
+    direction = [2.0, 1.0]
     np.testing.assert_equal(
-        validate_direction("orient", dir, dim=2), dir / np.linalg.norm(dir)
+        validate_direction("orient", direction, dim=2),
+        direction / np.linalg.norm(direction),
     )
 
     # should error on incorrect dimension and passed array

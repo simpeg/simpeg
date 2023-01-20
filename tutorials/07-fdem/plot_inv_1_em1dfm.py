@@ -26,15 +26,11 @@ at a 10 m offset from the source in ppm.
 
 import os, tarfile
 import numpy as np
-import matplotlib as mpl
 import matplotlib.pyplot as plt
 
 from discretize import TensorMesh
 
 import SimPEG.electromagnetics.frequency_domain as fdem
-from SimPEG.electromagnetics.utils.em1d_utils import (
-    get_vertical_discretization_frequency,
-)
 from SimPEG.utils import mkvc, plot_1d_layer_model
 from SimPEG import (
     maps,

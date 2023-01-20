@@ -102,8 +102,8 @@ class Simulation1DLayered(BaseEM1DSimulation):
         x, w = roots_legendre(251)
         # loop through source and receiver lists to find the minimum and maximum
         # evaluation times for the step response
-        for i_src, src in enumerate(survey.source_list):
-            for i_rx, rx in enumerate(src.receiver_list):
+        for src in survey.source_list:
+            for rx in src.receiver_list:
                 wave = src.waveform
                 if isinstance(wave, StepOffWaveform):
                     times = rx.times[rx.times > 0]
@@ -143,8 +143,8 @@ class Simulation1DLayered(BaseEM1DSimulation):
             splines.append(sp)
         # As will go from frequency to time domain
         As = []
-        for i_src, src in enumerate(survey.source_list):
-            for i_rx, rx in enumerate(src.receiver_list):
+        for src in survey.source_list:
+            for rx in src.receiver_list:
                 #######
                 # Fourier Transform coefficients
                 ######
@@ -346,8 +346,8 @@ class Simulation1DLayered(BaseEM1DSimulation):
         i_dat = 0
         i_A = 0
         i = 0
-        for i_src, src in enumerate(self.survey.source_list):
-            for i_rx, rx in enumerate(src.receiver_list):
+        for src in self.survey.source_list:
+            for rx in src.receiver_list:
                 i_datp1 = i_dat + rx.nD
                 n_locs = rx.locations.shape[0]
                 i_p1 = i + n_locs

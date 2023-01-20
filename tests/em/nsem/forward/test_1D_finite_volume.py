@@ -2,7 +2,6 @@ import numpy as np
 from discretize import TensorMesh
 from SimPEG.electromagnetics import natural_source as nsem
 from SimPEG import maps
-import matplotlib.pyplot as plt
 from pymatsolver import Pardiso
 import unittest
 
