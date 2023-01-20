@@ -9,19 +9,19 @@ from scipy.constants import mu_0
 def __inner_mat_mul_op(M, u, v=None, adjoint=False):
     u = np.squeeze(u)
     if v is not None:
-        if v.ndim > 1:
+        if v.ndim > 1 and not isinstance(v, (sp.csr_matrix, sp.csc_matrix, sp.coo_matrix)):
             v = np.squeeze(v)
         if u.ndim > 1:
             # u has multiple fields
             if v.ndim == 1:
-                v = v[:, None]
+                v = sp.diags(v)
         else:
             if v.ndim > 1:
-                u = u[:, None]
+                u = sp.diags(u)
         if v.ndim > 2:
             u = u[:, None, :]
         if adjoint:
-            if u.ndim > 1 and u.shape[-1] > 1:
+            if u.ndim > 1 and u.shape[-1] > 1 and not isinstance(u, sp.dia_matrix):
                 return M.T * (u * v).sum(axis=-1)
             return M.T * (u * v)
         if u.ndim > 1 and u.shape[1] > 1:

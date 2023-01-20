@@ -122,70 +122,13 @@ def compute_J(self, f=None, Ainv=None):
         )
     else:
         Jmatrix = np.zeros((self.survey.nD, m_size), dtype=np.float32)
-    #
-    # count = 0
-    # block_count = 0
-    #
-    # for tInd, dt in enumerate(self.time_steps):
-    #
-    #     for ss, src in enumerate(self.survey.source_list):
-    #         df_duT, df_dmT = [], []
-    #         blocks_dfduT = []
-    #         blocks_dfdmT = []
-    #         u_src = f[src, self._fieldType, :]
-    #
-    #         col_chunks = int(np.ceil(
-    #             float(self.survey.nD) / np.ceil(float(u_src.shape[0]) * self.survey.nD * 8. * 1e-6 / self.max_chunk_size)
-    #         ))
-    #
-    #         for rx in src.receiver_list:
-    #             v = np.eye(rx.nD, dtype=float)
-    #             n_blocs = np.ceil(2 * rx.nD / col_chunks * self.n_cpu)
-    #
-    #             for block in np.array_split(v, n_blocs, axis=1):
-    #
-    #                 block_count += block.shape[1] * 2
-    #                 blocks_dfduT.append(
-    #                     array.from_delayed(
-    #                         delayed(dfduT, pure=True)(src, rx, self.mesh, self.time_mesh, f, block),
-    #                         dtype=np.float32,
-    #                         shape=(u_src.shape[0], block.shape[1]*2)
-    #                     )
-    #                 )
-    #                 blocks_dfdmT.append(
-    #                         delayed(dfdmT, pure=True)(src, rx, self.mesh, f, block),
-    #                 )
-    #
-    #                 if block_count >= (col_chunks * self.n_cpu):
-    #
-    #                     count = parallel_block_compute(self, Ainv[dt], Jmatrix, freq, u_src, src, blocks_dfduT, blocks_dfdmT, count, self.n_cpu, m_size)
-    #                     blocks_dfduT = []
-    #                     blocks_dfdmT = []
-    #                     block_count = 0
-    #
-    #         if blocks_dfduT:
-    #             count = parallel_block_compute(
-    #                 self, A_i, Jmatrix, freq, u_src, src, blocks_dfduT, blocks_dfdmT, count, self.n_cpu, m_size)
-    #             block_count = 0
-    #
-    # for A in Ainv:
-    #     A.clean()
-    #
-    # if self.store_sensitivities == "disk":
-    #     del Jmatrix
-    #     return array.from_zarr(self.sensitivity_path + f"J.zarr")
-    # else:
-    #     return Jmatrix
+
     solution_type = self._fieldType + "Solution"  # the thing we solved for
-    # Loop over sources and receivers to create a fields object:
-    # PT_v, df_duT_v, df_dmT_v
-    # initialize storage for PT_v (don't need to preserve over sources)
-    # PT_v = self.Fields_Derivs(self)
     block_size = len(f[self.survey.source_list[0], solution_type, 0])
     d_count = 0
     for i_s, src in enumerate(self.survey.source_list):
         for rx in src.receiver_list:
-            v = np.eye(rx.nD, dtype=float)
+            v = sp.eye(rx.nD, dtype=float)
             PT_v = rx.evalDeriv(
                 src, self.mesh, self.time_mesh, f, v, adjoint=True
             )
@@ -206,11 +149,11 @@ def compute_J(self, f=None, Ainv=None):
                 AdiagTinv = Ainv[dt]
 
                 if tInd >= self.nT - 1:
-                    ATinv_df_duT_v = AdiagTinv * df_duT_past
+                    ATinv_df_duT_v = AdiagTinv * df_duT_past.toarray()
                 else:
                     Asubdiag = self.getAsubdiag(tInd+1)
                     ATinv_df_duT_v = AdiagTinv * (
-                            df_duT_past
+                            df_duT_past.toarray()
                             - Asubdiag.T * ATinv_df_duT_v
                     )
 
