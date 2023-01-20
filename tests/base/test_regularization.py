@@ -2,13 +2,10 @@ import numpy as np
 import unittest
 
 import pytest
-from scipy.stats import multivariate_normal
-from scipy.sparse.linalg import spsolve, LinearOperator, bicgstab
-from scipy.spatial import Delaunay
 import inspect
 
 import discretize
-from SimPEG import maps, regularization, utils, tests, objective_function
+from SimPEG import maps, objective_function, regularization, utils
 
 
 TOL = 1e-7
@@ -54,7 +51,7 @@ class RegularizationTests(unittest.TestCase):
                 if r.__name__ in IGNORE_ME:
                     continue
 
-                for i, mesh in enumerate(self.meshlist):
+                for mesh in self.meshlist:
 
                     if mesh.dim < 3 and r.__name__[-1] == "z":
                         continue
@@ -89,7 +86,7 @@ class RegularizationTests(unittest.TestCase):
                 if r.__name__ in IGNORE_ME:
                     continue
 
-                for i, mesh in enumerate(self.meshlist[:1]):
+                for mesh in self.meshlist[:1]:
 
                     print("Testing Active Cells {0:d}D".format((mesh.dim)))
 
@@ -132,7 +129,7 @@ class RegularizationTests(unittest.TestCase):
 
         def test_regularizationMesh(self):
 
-            for i, mesh in enumerate(self.meshlist):
+            for mesh in self.meshlist:
 
                 print("Testing {0:d}D".format(mesh.dim))
 

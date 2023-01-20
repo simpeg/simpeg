@@ -37,7 +37,6 @@ from ..utils.code_utils import (
     validate_float,
     validate_ndarray_with_shape,
 )
-from .. import optimization
 
 
 class InversionDirective:
@@ -78,7 +77,9 @@ class InversionDirective:
     @property
     def inversion(self):
         """This is the inversion of the InversionDirective instance."""
-        return getattr(self, "_inversion", None)
+        if not hasattr(self, "_inversion"):
+            return None
+        return self._inversion
 
     @inversion.setter
     def inversion(self, i):
@@ -600,7 +601,7 @@ class ScalingMultipleDataMisfits_ByEig(InversionDirective):
         m = self.invProb.model
 
         dm_eigenvalue_list = []
-        for j, dm in enumerate(self.dmisfit.objfcts):
+        for dm in self.dmisfit.objfcts:
             dm_eigenvalue_list += [eigenvalue_by_power_iteration(dm, m)]
 
         self.chi0 = self.chi0_ratio / np.r_[dm_eigenvalue_list]
@@ -2265,7 +2266,7 @@ class UpdateSensitivityWeights(InversionDirective):
         for optimization and regularization
         """
         for reg in self.reg.objfcts:
-            if not isinstance(getattr(reg, "mapping"), (IdentityMap, Wires)):
+            if not isinstance(reg.mapping, (IdentityMap, Wires)):
                 raise TypeError(
                     f"Mapping for the regularization must be of type {IdentityMap} or {Wires}. "
                     + f"Input mapping of type {type(reg.mapping)}."

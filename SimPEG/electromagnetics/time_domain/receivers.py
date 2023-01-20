@@ -159,7 +159,7 @@ class BaseRx(BaseTimeRx):
 
         return P
 
-    def eval(self, src, mesh, time_mesh, f):
+    def eval(self, src, mesh, time_mesh, f):  # noqa: A003
         """Project fields to receivers to get data.
 
         Parameters
@@ -274,7 +274,7 @@ class PointMagneticFluxTimeDerivative(BaseRx):
             locations, times, orientation, **kwargs
         )
 
-    def eval(self, src, mesh, time_mesh, f):
+    def eval(self, src, mesh, time_mesh, f):  # noqa: A003
         """Project solution of fields to receivers to get data.
 
         Parameters

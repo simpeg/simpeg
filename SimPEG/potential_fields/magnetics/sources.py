@@ -109,7 +109,7 @@ class SourceField(UniformBackgroundField):
         - *declination* is the declination of the Earth's field in degrees
     """
 
-    def __init__(self, receiver_list=None, parameters=[50000, 90, 0]):
+    def __init__(self, receiver_list=None, parameters=(50000, 90, 0)):
         super().__init__(
             receiver_list=receiver_list,
             amplitude=parameters[0],

@@ -120,10 +120,10 @@ class BaseEM1DSimulation(BaseSimulation):
             topo = np.r_[0.0, 0.0, 0.0]
         self.topo = topo
 
-        for i_src, src in enumerate(self.survey.source_list):
+        for src in self.survey.source_list:
             if np.any(src.location[..., 2] < self.topo[2]):
                 raise ValueError("Source must be located above the topography")
-            for i_rx, rx in enumerate(src.receiver_list):
+            for rx in src.receiver_list:
                 if rx.use_source_receiver_offset:
                     if np.any(src.location[2] + rx.locations[:, 2] < self.topo[2]):
                         raise ValueError(
@@ -360,7 +360,7 @@ class BaseEM1DSimulation(BaseSimulation):
         Is = []
         n_w_past = 0
         i_count = 0
-        for i_src, src in enumerate(survey.source_list):
+        for src in survey.source_list:
             # doing the check for source type by checking its name
             # to avoid importing and checking "isinstance"
             class_name = type(src).__name__
@@ -403,7 +403,7 @@ class BaseEM1DSimulation(BaseSimulation):
                 weights = np.hstack(weights) * src.current
                 thetas = -np.hstack(thetas)
 
-            for i_rx, rx in enumerate(src.receiver_list):
+            for rx in src.receiver_list:
                 #######
                 # Hankel Transform coefficients
                 ######
