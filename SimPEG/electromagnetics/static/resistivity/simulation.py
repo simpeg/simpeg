@@ -1,7 +1,13 @@
 import numpy as np
 import scipy.sparse as sp
 
-from ....utils import mkvc, Zero, validate_type, validate_string
+from ....utils import (
+    mkvc,
+    Zero,
+    validate_type,
+    validate_string,
+    validate_active_indices,
+)
 from ....data import Data
 from ....base import BaseElectricalPDESimulation
 from .survey import Survey
@@ -19,9 +25,18 @@ class BaseDCSimulation(BaseElectricalPDESimulation):
 
     Ainv = None
 
-    def __init__(self, mesh, survey=None, storeJ=False, miniaturize=False, **kwargs):
+    def __init__(
+        self,
+        mesh,
+        survey=None,
+        storeJ=False,
+        miniaturize=False,
+        surface_faces=None,
+        **kwargs
+    ):
         super().__init__(mesh=mesh, survey=survey, **kwargs)
         self.storeJ = storeJ
+        self.surface_faces = surface_faces
         # Do stuff to simplify the forward and JTvec operation if number of dipole
         # sources is greater than the number of unique pole sources
         miniaturize = validate_type("miniaturize", miniaturize, bool)
@@ -59,6 +74,27 @@ class BaseDCSimulation(BaseElectricalPDESimulation):
     @storeJ.setter
     def storeJ(self, value):
         self._storeJ = validate_type("storeJ", value, bool)
+
+    @property
+    def surface_faces(self):
+        """Array defining which boundary faces to interpret as surfaces of Neumann boundary
+
+        DC problems will always enforce a Neumann boundary on surface interfaces.
+        The default (available on semi-structured grids) assumes the top interface
+        is the surface.
+
+        Returns
+        -------
+        None or (n_bf, ) numpy.ndarray of bool
+        """
+        return self._surface_faces
+
+    @surface_faces.setter
+    def surface_faces(self, value):
+        if value is not None:
+            n_bf = self.mesh.boundary_faces.shape[0]
+            value = validate_active_indices("surface_faces", value, n_bf)
+        self._surface_faces = value
 
     def fields(self, m=None, calcJ=True):
         if m is not None:
@@ -406,22 +442,26 @@ class Simulation3DCellCentered(BaseDCSimulation):
             r_hat = r_vec / r[:, None]
             r_dot_n = np.einsum("ij,ij->i", r_hat, boundary_normals)
 
-            # determine faces that are on the sides and bottom of the mesh...
-            if mesh._meshType.lower() == "tree":
-                not_top = boundary_faces[:, -1] != top_v
-            else:
-                # mesh faces are ordered, faces_x, faces_y, faces_z so...
-                if mesh.dim == 2:
-                    is_b = make_boundary_bool(mesh.shape_faces_y)
-                    is_t = np.zeros(mesh.shape_faces_y, dtype=bool, order="F")
-                    is_t[:, -1] = True
+            if self.surface_faces is None:
+                # determine faces that are on the sides and bottom of the mesh...
+                if mesh._meshType.lower() == "tree":
+                    not_top = boundary_faces[:, -1] != top_v
                 else:
-                    is_b = make_boundary_bool(mesh.shape_faces_z)
-                    is_t = np.zeros(mesh.shape_faces_z, dtype=bool, order="F")
-                    is_t[:, :, -1] = True
-                is_t = is_t.reshape(-1, order="F")[is_b]
-                not_top = np.zeros(boundary_faces.shape[0], dtype=bool)
-                not_top[-len(is_t) :] = ~is_t
+                    # mesh faces are ordered, faces_x, faces_y, faces_z so...
+                    if mesh.dim == 2:
+                        is_b = make_boundary_bool(mesh.shape_faces_y)
+                        is_t = np.zeros(mesh.shape_faces_y, dtype=bool, order="F")
+                        is_t[:, -1] = True
+                    else:
+                        is_b = make_boundary_bool(mesh.shape_faces_z)
+                        is_t = np.zeros(mesh.shape_faces_z, dtype=bool, order="F")
+                        is_t[:, :, -1] = True
+                    is_t = is_t.reshape(-1, order="F")[is_b]
+                    not_top = np.ones(boundary_faces.shape[0], dtype=bool)
+                    not_top[-len(is_t) :] = ~is_t
+                    self.surface_faces = ~not_top
+            else:
+                not_top = ~self.surface_faces
             alpha[not_top] = (r_dot_n / r)[not_top]
 
         B, bc = mesh.cell_gradient_weak_form_robin(alpha, beta, gamma)
@@ -438,7 +478,7 @@ class Simulation3DNodal(BaseDCSimulation):
     _formulation = "EB"  # N potentials means B is on faces
     fieldsPair = Fields3DNodal
 
-    def __init__(self, mesh, survey=None, bc_type="Robin", surface_faces=None, **kwargs):
+    def __init__(self, mesh, survey=None, bc_type="Robin", **kwargs):
         super().__init__(mesh=mesh, survey=survey, **kwargs)
         # Not sure why I need to do this
         # To evaluate mesh.aveE2CC, this is required....
@@ -447,7 +487,6 @@ class Simulation3DNodal(BaseDCSimulation):
         elif mesh._meshType == "CYL":
             bc_type == "Neumann"
         self.bc_type = bc_type
-        self.surface_faces = surface_faces
         self.setBC()
 
     @property
@@ -568,7 +607,7 @@ class Simulation3DNodal(BaseDCSimulation):
             # determine faces that are on the sides and bottom of the mesh...
             if mesh._meshType.lower() == "tree":
                 not_top = boundary_faces[:, -1] != top_v
-            elif mesh._meshType.lower() in ['tensor', 'curv']:
+            elif mesh._meshType.lower() in ["tensor", "curv"]:
                 # mesh faces are ordered, faces_x, faces_y, faces_z so...
                 if mesh.dim == 2:
                     is_b = make_boundary_bool(mesh.shape_faces_y)
@@ -579,7 +618,7 @@ class Simulation3DNodal(BaseDCSimulation):
                     is_t = np.zeros(mesh.shape_faces_z, dtype=bool, order="F")
                     is_t[:, :, -1] = True
                 is_t = is_t.reshape(-1, order="F")[is_b]
-                not_top = np.zeros(boundary_faces.shape[0], dtype=bool)
+                not_top = np.ones(boundary_faces.shape[0], dtype=bool)
                 not_top[-len(is_t) :] = ~is_t
             else:
                 not_top = ~self.surface_faces
