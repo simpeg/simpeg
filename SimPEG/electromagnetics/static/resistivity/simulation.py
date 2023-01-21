@@ -32,7 +32,7 @@ class BaseDCSimulation(BaseElectricalPDESimulation):
         storeJ=False,
         miniaturize=False,
         surface_faces=None,
-        **kwargs
+        **kwargs,
     ):
         super().__init__(mesh=mesh, survey=survey, **kwargs)
         self.storeJ = storeJ
@@ -446,7 +446,7 @@ class Simulation3DCellCentered(BaseDCSimulation):
                 # determine faces that are on the sides and bottom of the mesh...
                 if mesh._meshType.lower() == "tree":
                     not_top = boundary_faces[:, -1] != top_v
-                else:
+                elif mesh._meshType.lower() in ["tensor", "curv"]:
                     # mesh faces are ordered, faces_x, faces_y, faces_z so...
                     if mesh.dim == 2:
                         is_b = make_boundary_bool(mesh.shape_faces_y)
@@ -460,6 +460,11 @@ class Simulation3DCellCentered(BaseDCSimulation):
                     not_top = np.ones(boundary_faces.shape[0], dtype=bool)
                     not_top[-len(is_t) :] = ~is_t
                     self.surface_faces = ~not_top
+                else:
+                    raise NotImplementedError(
+                        f"Unable to infer surface boundaries for {type(mesh)}, please "
+                        f"set the `surface_faces` property."
+                    )
             else:
                 not_top = ~self.surface_faces
             alpha[not_top] = (r_dot_n / r)[not_top]
@@ -605,21 +610,27 @@ class Simulation3DNodal(BaseDCSimulation):
             r_dot_n = np.einsum("ij,ij->i", r_hat, boundary_normals)
 
             # determine faces that are on the sides and bottom of the mesh...
-            if mesh._meshType.lower() == "tree":
-                not_top = boundary_faces[:, -1] != top_v
-            elif mesh._meshType.lower() in ["tensor", "curv"]:
-                # mesh faces are ordered, faces_x, faces_y, faces_z so...
-                if mesh.dim == 2:
-                    is_b = make_boundary_bool(mesh.shape_faces_y)
-                    is_t = np.zeros(mesh.shape_faces_y, dtype=bool, order="F")
-                    is_t[:, -1] = True
+            if self.surface_faces is None:
+                if mesh._meshType.lower() == "tree":
+                    not_top = boundary_faces[:, -1] != top_v
+                elif mesh._meshType.lower() in ["tensor", "curv"]:
+                    # mesh faces are ordered, faces_x, faces_y, faces_z so...
+                    if mesh.dim == 2:
+                        is_b = make_boundary_bool(mesh.shape_faces_y)
+                        is_t = np.zeros(mesh.shape_faces_y, dtype=bool, order="F")
+                        is_t[:, -1] = True
+                    else:
+                        is_b = make_boundary_bool(mesh.shape_faces_z)
+                        is_t = np.zeros(mesh.shape_faces_z, dtype=bool, order="F")
+                        is_t[:, :, -1] = True
+                    is_t = is_t.reshape(-1, order="F")[is_b]
+                    not_top = np.ones(boundary_faces.shape[0], dtype=bool)
+                    not_top[-len(is_t) :] = ~is_t
                 else:
-                    is_b = make_boundary_bool(mesh.shape_faces_z)
-                    is_t = np.zeros(mesh.shape_faces_z, dtype=bool, order="F")
-                    is_t[:, :, -1] = True
-                is_t = is_t.reshape(-1, order="F")[is_b]
-                not_top = np.ones(boundary_faces.shape[0], dtype=bool)
-                not_top[-len(is_t) :] = ~is_t
+                    raise NotImplementedError(
+                        f"Unable to infer surface boundaries for {type(mesh)}, please "
+                        f"set the `surface_faces` property."
+                    )
             else:
                 not_top = ~self.surface_faces
 

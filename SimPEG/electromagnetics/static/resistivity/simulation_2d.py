@@ -583,7 +583,7 @@ class Simulation2DCellCentered(BaseDCSimulation2D):
                 # determine faces that are on the sides and bottom of the mesh...
                 if mesh._meshType.lower() == "tree":
                     not_top = boundary_faces[:, -1] != top_v
-                else:
+                elif mesh._meshType.lower() in ["tensor", "curv"]:
                     # mesh faces are ordered, faces_x, faces_y, faces_z so...
                     is_b = make_boundary_bool(mesh.shape_faces_y)
                     is_t = np.zeros(mesh.shape_faces_y, dtype=bool, order="F")
@@ -591,6 +591,11 @@ class Simulation2DCellCentered(BaseDCSimulation2D):
                     is_t = is_t.reshape(-1, order="F")[is_b]
                     not_top = np.ones(boundary_faces.shape[0], dtype=bool)
                     not_top[-len(is_t) :] = ~is_t
+                else:
+                    raise NotImplementedError(
+                        f"Unable to infer surface boundaries for {type(mesh)}, please "
+                        f"set the `surface_faces` property."
+                    )
             else:
                 not_top = ~self.surface_faces
 
@@ -763,6 +768,11 @@ class Simulation2DNodal(BaseDCSimulation2D):
                     is_t = is_t.reshape(-1, order="F")[is_b]
                     not_top = np.ones(boundary_faces.shape[0], dtype=bool)
                     not_top[-len(is_t) :] = ~is_t
+                else:
+                    raise NotImplementedError(
+                        f"Unable to infer surface boundaries for {type(mesh)}, please "
+                        f"set the `surface_faces` property."
+                    )
             else:
                 not_top = ~self.surface_faces
 
