@@ -2205,28 +2205,83 @@ class Update_Wj(InversionDirective):
 
 
 class UpdateSensitivityWeights(InversionDirective):
-    """
-    Update sensitivity weighting for non-linear problems.
+    r"""
+    Sensitivity weighting for linear and non-linear problems.
 
-    Assumes that the map of the regularization function is either Wires or Identity.
-    Good for any problem where J is formed explicitly.
+    Compute and apply root-mean squared sensitivities as cell weights in the regularization.
+    Assumes that the map of the regularization function is either ``Wires`` or ``Identity``.
+    This directive requires that the sensitivities be stored explicitly.
 
     Parameters
     ----------
     every_iteration : bool
-        Update sensitivity weighting at every model update if ``True``.
-        Create sensitivity weights for starting model only if ``False``.
-    threshold : None, str
-        Threshold for 
+        When ``True``, update sensitivity weighting at every model update; non-linear problems.
+        When ``False``, create sensitivity weights for starting model only; linear problems.
+    threshold_value : float
+        Threshold value for smallest weighting value
+    threshold_method : str {'global', 'percentile', 'amplitude'}
+        Threshold method for how `threshold_value` is applied:
+
+            - **global:** `threshold_value` is added to the cell weights prior to normalization; must be greater than 0.
+            - **percentile:** the smallest root-mean squared sensitivity is set using percentile threshold; must be between 0 and 100
+            - **amplitude:** the smallest root-mean squared sensitivity is a fractional percent of the largest value; must be between 0 and 1
+
+    normalization_method : None, 'minimum', 'maximum'
+        Normalization method applied to sensitivity weights.
+
+        Options are:
+
+            - ``None``: normalization is not applied
+            - **maximum:** sensitivity weights are normalized by the largest value such that the largest weight is equal to 1.
+            - **minimum:** sensitivity weights are normalized by the smallest value, after thresholding, such that the smallest weights are equal to 1.
+
+    Notes
+    -----
+    Let :math:`\mathbf{J}` represent the Jacobian. To create sensitivity weights, root-mean squared (RMS) sensitivities
+    :math:`\mathbf{s}` are computed by summing the squares of the rows of the Jacobian:
+
+    .. math::
+        \mathbf{s} = \Bigg [ \sum_i \, \mathbf{J_{i, \centerdot }}^2 \, \Bigg ]^{1/2}
+
+    The dynamic range of RMS sensitivities can span many orders of magnitude. When computing sensitivity
+    weights, thresholding is generally applied to set a minimum value.
+
+    Thresholding
+    ^^^^^^^^^^^^
+
+    If **global** thresholding is applied, we add a constant :math:`\tau` to the RMS sensitivities:
+
+    .. math::
+        \mathbf{\tilde{s}} = \mathbf{s} + \tau
+
+    In the case of **percentile** thresholding, we let :math:`s_{\%}` represent a given percentile.
+    Thresholding to set a minimum value is applied as follows:
+
+    .. math::
+        \tilde{s}_j = \begin{bases}
+        s_j \;\; for \;\; s_j \geq s_{\%} \\
+        s_{\%} \;\; for \;\; s_j < s_{\%}
+        \end{cases}
+
+    If **absolute** thresholding is applied, we define :math:`\eta` as a fractional percent.
+    In this case, thresholding is applied as follows:
+
+    .. math::
+        \tilde{s}_j = \begin{bases}
+        s_j \;\; for \;\; s_j \geq \eta s_{max} \\
+        \eta s_{max} \;\; for \;\; s_j < \eta s_{max}
+        \end{cases}
+
+    
 
     """
 
     def __init__(
             self,
-            every_iteration=True,
-            threshold=1e-12,
+            every_iteration=False,
+            threshold_value=1e-12,
             threshold_method='global',
-            normalization_method=None,
+            normalization_method='maximum',
             **kwargs
     ):
         super().__init__(**kwargs)
@@ -2237,6 +2292,13 @@ class UpdateSensitivityWeights(InversionDirective):
                 "Please use 'every_iteration'."
             )
             every_iteration = kwargs.pop("everyIter")
+
+        if "threshold" in kwargs.keys():
+            warnings.warn(
+                "'threshold' property is deprecated and will be removed in SimPEG 0.19.0."
+                "Please use 'threshold_value'."
+            )
+            threshold_value = kwargs.pop("threshold")
 
         if "normalization" in kwargs.keys():
             warnings.warn(
@@ -2250,16 +2312,16 @@ class UpdateSensitivityWeights(InversionDirective):
                 normalization_method = None
         
         self.every_iteration = every_iteration
-        self.threshold = threshold
+        self.threshold_value = threshold_value
         self.threshold_method = threshold_method
         self.normalization_method = normalization_method
         
     @property
     def every_iteration(self):
-        """Whether to update the sensitivity weights at every iteration.
+        """Update sensitivity weights when model is updated.
 
-        Update sensitivity weighting at every model update if ``True``.
-        Create sensitivity weights for starting model only if ``False``.
+        When ``True``, update sensitivity weighting at every model update; non-linear problems.
+        When ``False``, create sensitivity weights for starting model only; linear problems.
 
         Returns
         -------
@@ -2276,7 +2338,7 @@ class UpdateSensitivityWeights(InversionDirective):
     )
 
     @property
-    def threshold(self):
+    def threshold_value(self):
         """Threshold value used to set minimum weighting value.
 
         The way thresholding is applied to the weighting model depends on the
@@ -2286,19 +2348,24 @@ class UpdateSensitivityWeights(InversionDirective):
         -------
         float
         """
-        return self._threshold
+        return self._threshold_value
 
-    @threshold.setter
-    def threshold(self, value):
-        self._threshold = validate_float("threshold", value, min_val=0.0)
+    @threshold_value.setter
+    def threshold_value(self, value):
+        self._threshold_value = validate_float("threshold_value", value, min_val=0.0)
+
+    deprecate_property(
+        threshold_value, 'threshold', 'threshold_value', removal_version="0.19.0"
+    )
 
     @property
     def threshold_method(self):
-        """Method used to apply lower thresholding to sensitivity weights. The options are as follows:
+        """Threshold method for how `threshold_value` is applied:
 
-            - **global:** threshold is applied by adding a constant value to the weighting model
-            - **percentile:** a value between 0 and 100 which uses a percentile cutoff of RMS sensitivity values to set the threshold 
-            - **amplitude:** a value beetween 0 and 1 which sets the threshold as a fraction of the largest RMS sensitivity value
+            - **global:** `threshold_value` is added to the cell weights prior to normalization; must be greater than 0.
+            - **percentile:** the smallest root-mean squared sensitivity is set using percentile threshold; must be between 0 and 100
+            - **amplitude:** the smallest root-mean squared sensitivity is a fractional percent of the largest value; must be between 0 and 1
+
 
         Returns
         -------
@@ -2354,10 +2421,7 @@ class UpdateSensitivityWeights(InversionDirective):
     )
 
     def initialize(self):
-        """
-        Calculate and update sensitivity
-        for optimization and regularization
-        """
+        """Compute sensitivity weights upon starting the inversion."""
         for reg in self.reg.objfcts:
             if not isinstance(reg.mapping, (IdentityMap, Wires)):
                 raise TypeError(
@@ -2368,17 +2432,14 @@ class UpdateSensitivityWeights(InversionDirective):
         self.update()
 
     def endIter(self):
-        """
-        Update inverse problem
-        """
+        """Execute end of iteration."""
+
         if self.every_iteration:
             self.update()
 
     def update(self):
-        """
-        Compute explicitly the main diagonal of JtJ
+        """Update sensitivity weights"""
 
-        """
         jtj_diag = np.zeros_like(self.invProb.model)
         m = self.invProb.model
 
@@ -2427,6 +2488,13 @@ class UpdateSensitivityWeights(InversionDirective):
                     sub_reg.set_weights(sensitivity=sub_reg.mapping * wr)
 
     def validate(self, directiveList):
+        """Validate directive against directives list.
+
+        Returns
+        -------
+        bool
+            Returns ``True`` if validation passes. Otherwise, an error is thrown.
+        """
         # check if a beta estimator is in the list after setting the weights
         dList = directiveList.dList
         self_ind = dList.index(self)
