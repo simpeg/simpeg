@@ -2420,7 +2420,6 @@ class SaveIterationsGeoH5(InversionDirective):
         self.data_type = {}
         self._association = None
         self.attribute_type = "model"
-        self.order = "F"
         self._label = None
         self.channels = [""]
         self.components = [""]
@@ -2450,7 +2449,7 @@ class SaveIterationsGeoH5(InversionDirective):
         Regroup channel values along rows.
         """
         if isinstance(dpred, np.ndarray):
-            return dpred.reshape((1, -1))
+            return self.reshape(dpred)
 
         n_tiles = int(np.ceil(len(dpred) / len(self.channels)))
         block_size = len(dpred) / n_tiles
@@ -2589,7 +2588,7 @@ class SaveIterationsGeoH5(InversionDirective):
         Reshape function
         """
         if getattr(self, "_reshape", None) is None:
-            self._reshape = lambda x: x.reshape((len(self.channels), len(self.components), -1), order=self.order)
+            self._reshape = lambda x: x.reshape((len(self.channels), len(self.components), -1))
 
         return self._reshape
 
