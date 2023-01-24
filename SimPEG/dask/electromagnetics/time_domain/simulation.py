@@ -101,7 +101,7 @@ def dask_dpred(self, m=None, f=None, compute_J=False):
 
 
 Sim.dpred = dask_dpred
-
+Sim.field_derivs = None
 
 def compute_J(self, f=None, Ainv=None):
 
@@ -114,74 +114,90 @@ def compute_J(self, f=None, Ainv=None):
     ))
 
     if self.store_sensitivities == "disk":
-        Jmatrix = zarr.open(
-            self.sensitivity_path + f"J.zarr",
+        self.J_initializer = zarr.open(
+            self.sensitivity_path + f"J_initializer.zarr",
             mode='w',
             shape=(self.survey.nD, m_size),
             chunks=(row_chunks, m_size)
         )
     else:
-        Jmatrix = np.zeros((self.survey.nD, m_size), dtype=np.float32)
-
+        self.J_initializer = np.zeros((self.survey.nD, m_size), dtype=np.float32)
     solution_type = self._fieldType + "Solution"  # the thing we solved for
-    block_size = len(f[self.survey.source_list[0], solution_type, 0])
-    d_count = 0
-    for i_s, src in enumerate(self.survey.source_list):
-        for rx in src.receiver_list:
-            v = sp.eye(rx.nD, dtype=float)
-            PT_v = rx.evalDeriv(
-                src, self.mesh, self.time_mesh, f, v, adjoint=True
-            )
-            df_duTFun = getattr(f, "_{}Deriv".format(rx.projField), None)
-            cur = df_duTFun(
-                self.nT,
-                src,
-                None,
-                PT_v[-block_size:, :],
-                adjoint=True,
-            )
-            df_duT_past = cur[0]
 
-            if not isinstance(cur[1], Zero):
-                Jmatrix[d_count:d_count+rx.nD, :] += cur[1].T
+    if self.field_derivs is None:
+        block_size = len(f[self.survey.source_list[0], solution_type, 0])
+        d_count = 0
+        df_duT_v = []
+        for i_s, src in enumerate(self.survey.source_list):
+            src_field_derivs = []
+            for rx in src.receiver_list:
+                v = sp.eye(rx.nD, dtype=float)
+                PT_v = rx.evalDeriv(
+                    src, self.mesh, self.time_mesh, f, v, adjoint=True
+                )
+                df_duTFun = getattr(f, "_{}Deriv".format(rx.projField), None)
 
-            for tInd, dt in zip(reversed(range(self.nT)), reversed(self.time_steps)):
-                AdiagTinv = Ainv[dt]
-
-                if tInd >= self.nT - 1:
-                    ATinv_df_duT_v = AdiagTinv * df_duT_past.toarray()
-                else:
-                    Asubdiag = self.getAsubdiag(tInd+1)
-                    ATinv_df_duT_v = AdiagTinv * (
-                            df_duT_past.toarray()
-                            - Asubdiag.T * ATinv_df_duT_v
+                for tInd in range(self.nT + 1):
+                    cur = df_duTFun(
+                        self.nT,
+                        src,
+                        None,
+                        PT_v[tInd*block_size:(tInd+1)*block_size, :],
+                        adjoint=True,
                     )
 
-                dAsubdiagT_dm_v = self.getAsubdiagDeriv(
-                    tInd, f[src, solution_type, tInd], ATinv_df_duT_v, adjoint=True
-                )
+                    if not isinstance(cur[1], Zero):
+                        self.J_initializer[d_count:d_count+rx.nD, :] += cur[1].T
 
-                dRHST_dm_v = self.getRHSDeriv(
-                    tInd + 1, src, ATinv_df_duT_v, adjoint=True
-                )
-                un_src = f[src, solution_type, tInd + 1]
-                dAT_dm_v = self.getAdiagDeriv(
-                    tInd, un_src, ATinv_df_duT_v, adjoint=True
-                )
-                Jmatrix[d_count:d_count+rx.nD, :] += (-dAT_dm_v - dAsubdiagT_dm_v + dRHST_dm_v).T
-                cur = df_duTFun(
-                    tInd,
-                    src,
-                    None,
-                    PT_v[(tInd * block_size):((tInd+1) * block_size), :],
-                    adjoint=True,
-                )
-                df_duT_past = cur[0]
+                    src_field_derivs += [cur[0]]
 
-                if not isinstance(cur[1], Zero):
-                    Jmatrix[d_count:d_count+rx.nD, :] += cur[1].T
-
+            df_duT_v += [src_field_derivs]
             d_count += rx.nD
+
+        self.field_derivs = df_duT_v
+
+    if self.store_sensitivities == "disk":
+        Jmatrix = zarr.open(
+            self.sensitivity_path + f"J.zarr",
+            mode='w',
+            shape=(self.survey.nD, m_size),
+            chunks=(row_chunks, m_size)
+        ) + self.J_initializer
+    else:
+        Jmatrix = np.zeros((self.survey.nD, m_size), dtype=np.float32) + self.J_initializer
+
+    ATinv_df_duT_v = []
+    for tInd, dt in zip(reversed(range(self.nT)), reversed(self.time_steps)):
+        AdiagTinv = Ainv[dt]
+
+        if tInd < self.nT - 1:
+            Asubdiag = self.getAsubdiag(tInd + 1)
+
+        d_count = 0
+        for isrc, src in enumerate(self.survey.source_list):
+
+            if tInd >= self.nT - 1:
+                ATinv_df_duT_v += [AdiagTinv * self.field_derivs[isrc][tInd+1].toarray()]
+            else:
+                ATinv_df_duT_v[isrc] = AdiagTinv * (
+                        self.field_derivs[isrc][tInd+1].toarray()
+                        - Asubdiag.T * ATinv_df_duT_v[isrc]
+                )
+
+            dAsubdiagT_dm_v = self.getAsubdiagDeriv(
+                tInd, f[src, solution_type, tInd], ATinv_df_duT_v[isrc], adjoint=True
+            )
+
+            dRHST_dm_v = self.getRHSDeriv(
+                tInd + 1, src, ATinv_df_duT_v[isrc], adjoint=True
+            )
+            un_src = f[src, solution_type, tInd + 1]
+            dAT_dm_v = self.getAdiagDeriv(
+                tInd, un_src, ATinv_df_duT_v[isrc], adjoint=True
+            )
+            Jmatrix[d_count:d_count+dAT_dm_v.shape[1], :] += (-dAT_dm_v - dAsubdiagT_dm_v + dRHST_dm_v).T
+
+            d_count += dAT_dm_v.shape[1]
 
     for A in Ainv.values():
         A.clean()
