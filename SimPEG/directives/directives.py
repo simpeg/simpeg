@@ -2588,7 +2588,7 @@ class SaveIterationsGeoH5(InversionDirective):
         Reshape function
         """
         if getattr(self, "_reshape", None) is None:
-            self._reshape = lambda x: x.reshape((len(self.channels), len(self.components), -1))
+            self._reshape = lambda x: x.reshape((len(self.channels), len(self.components), -1), order="F")
 
         return self._reshape
 
