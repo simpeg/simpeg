@@ -1,3 +1,5 @@
+import dask
+
 from ....electromagnetics.time_domain.simulation import BaseTDEMSimulation as Sim
 from ....utils import Zero
 import numpy as np
@@ -126,35 +128,40 @@ def compute_J(self, f=None, Ainv=None):
 
     if self.field_derivs is None:
         block_size = len(f[self.survey.source_list[0], solution_type, 0])
-        d_count = 0
-        df_duT_v = []
-        for i_s, src in enumerate(self.survey.source_list):
-            src_field_derivs = []
-            for rx in src.receiver_list:
-                v = sp.eye(rx.nD, dtype=float)
-                PT_v = rx.evalDeriv(
-                    src, self.mesh, self.time_mesh, f, v, adjoint=True
-                )
-                df_duTFun = getattr(f, "_{}Deriv".format(rx.projField), None)
 
-                for tInd in range(self.nT + 1):
-                    cur = df_duTFun(
-                        self.nT,
-                        src,
-                        None,
-                        PT_v[tInd*block_size:(tInd+1)*block_size, :],
-                        adjoint=True,
-                    )
+        field_derivs = []
+        for tInd in range(self.nT + 1):
+            d_count = 0
+            df_duT_v = []
+            for i_s, src in enumerate(self.survey.source_list):
 
-                    if not isinstance(cur[1], Zero):
-                        self.J_initializer[d_count:d_count+rx.nD, :] += cur[1].T
+                # for rx in src.receiver_list:
+                # v = sp.eye(rx.nD, dtype=float)
+                # PT_v = rx.evalDeriv(
+                #     src, self.mesh, self.time_mesh, f, v, adjoint=True
+                # )
+                # df_duTFun = getattr(f, "_{}Deriv".format(rx.projField), None)
+                #
+                # for tInd in range(self.nT + 1):
+                #     cur = df_duTFun(
+                #         self.nT,
+                #         src,
+                #         None,
+                #         PT_v[tInd*block_size:(tInd+1)*block_size, :],
+                #         adjoint=True,
+                #     )
+                #
+                #     if not isinstance(cur[1], Zero):
+                #         self.J_initializer[d_count:d_count+rx.nD, :] += cur[1].T
 
-                    src_field_derivs += [cur[0]]
+                src_field_derivs = delayed(block_deriv, pure=True)(self, src, tInd, f, block_size, d_count)
 
-            df_duT_v += [src_field_derivs]
-            d_count += rx.nD
+                df_duT_v += [src_field_derivs]
+                d_count += np.sum([rx.nD for rx in src.receiver_list])
 
-        self.field_derivs = df_duT_v
+            field_derivs += [df_duT_v]
+
+        self.field_derivs = dask.compute(field_derivs)[0]
 
     if self.store_sensitivities == "disk":
         Jmatrix = zarr.open(
@@ -174,30 +181,23 @@ def compute_J(self, f=None, Ainv=None):
             Asubdiag = self.getAsubdiag(tInd + 1)
 
         d_count = 0
+        row_blocks = []
         for isrc, src in enumerate(self.survey.source_list):
 
             if tInd >= self.nT - 1:
-                ATinv_df_duT_v += [AdiagTinv * self.field_derivs[isrc][tInd+1].toarray()]
+                ATinv_df_duT_v += [AdiagTinv * self.field_derivs[tInd+1][isrc].toarray()]
             else:
                 ATinv_df_duT_v[isrc] = AdiagTinv * (
-                        self.field_derivs[isrc][tInd+1].toarray()
+                        self.field_derivs[tInd+1][isrc].toarray()
                         - Asubdiag.T * ATinv_df_duT_v[isrc]
                 )
-
-            dAsubdiagT_dm_v = self.getAsubdiagDeriv(
-                tInd, f[src, solution_type, tInd], ATinv_df_duT_v[isrc], adjoint=True
+            row_blocks.append(
+                delayed(parallel_block_compute, pure=True)(
+                    self, f, src, ATinv_df_duT_v[isrc], d_count, tInd, solution_type, Jmatrix),
             )
+            d_count += ATinv_df_duT_v[isrc].shape[1]
 
-            dRHST_dm_v = self.getRHSDeriv(
-                tInd + 1, src, ATinv_df_duT_v[isrc], adjoint=True
-            )
-            un_src = f[src, solution_type, tInd + 1]
-            dAT_dm_v = self.getAdiagDeriv(
-                tInd, un_src, ATinv_df_duT_v[isrc], adjoint=True
-            )
-            Jmatrix[d_count:d_count+dAT_dm_v.shape[1], :] += (-dAT_dm_v - dAsubdiagT_dm_v + dRHST_dm_v).T
-
-            d_count += dAT_dm_v.shape[1]
+        dask.compute(row_blocks)
 
     for A in Ainv.values():
         A.clean()
@@ -211,92 +211,45 @@ def compute_J(self, f=None, Ainv=None):
 Sim.compute_J = compute_J
 
 
-def dfduT(source, receiver, mesh, time_mesh, fields, block):
-    dfduT, _ = receiver.evalDeriv(
-        source, mesh, time_mesh, fields, v=block, adjoint=True
+def block_deriv(simulation, src, tInd, f, block_size, d_count):
+    src_field_derivs = None
+    for rx in src.receiver_list:
+
+        v = sp.eye(rx.nD, dtype=float)
+        PT_v = rx.evalDeriv(
+            src, simulation.mesh, simulation.time_mesh, f, v, adjoint=True
+        )
+        df_duTFun = getattr(f, "_{}Deriv".format(rx.projField), None)
+
+        cur = df_duTFun(
+            simulation.nT,
+            src,
+            None,
+            PT_v[tInd * block_size:(tInd + 1) * block_size, :],
+            adjoint=True,
+        )
+
+        if not isinstance(cur[1], Zero):
+            simulation.J_initializer[d_count:d_count + rx.nD, :] += cur[1].T
+
+        if src_field_derivs is None:
+            src_field_derivs = cur[0]
+        else:
+            src_field_derivs += cur[0]
+
+    return src_field_derivs
+
+
+def parallel_block_compute(simulation, f, src, ATinv_df_duT_v, d_count, tInd, solution_type, Jmatrix):
+    dAsubdiagT_dm_v = simulation.getAsubdiagDeriv(
+        tInd, f[src, solution_type, tInd], ATinv_df_duT_v, adjoint=True
     )
 
-    return dfduT
-
-
-def dfdmT(source, receiver, mesh, fields, block):
-    _, dfdmT = receiver.evalDeriv(
-        source, mesh, fields, v=block, adjoint=True
+    dRHST_dm_v = simulation.getRHSDeriv(
+        tInd + 1, src, ATinv_df_duT_v, adjoint=True
     )
-
-    return dfdmT
-
-
-def eval_block(simulation, Ainv_deriv_u, frequency, deriv_m, fields, source):
-    """
-    Evaluate the sensitivities for the block or data and store to zarr
-    """
-    dA_dmT = simulation.getADeriv(frequency, fields, Ainv_deriv_u, adjoint=True)
-    dRHS_dmT = simulation.getRHSDeriv(frequency, source, Ainv_deriv_u, adjoint=True)
-    du_dmT = -dA_dmT
-    if not isinstance(dRHS_dmT, Zero):
-        du_dmT += dRHS_dmT
-    if not isinstance(deriv_m, Zero):
-        du_dmT += deriv_m
-
-    return np.array(du_dmT, dtype=complex).real.T
-
-
-def parallel_block_compute(simulation, A_i, Jmatrix, freq, u_src, src, blocks_deriv_u, blocks_deriv_m, counter, sub_threads, m_size):
-
-    field_derivs = array.hstack(blocks_deriv_u).compute()
-
-    # Direct-solver call
-
-    ATinvdf_duT = A_i * field_derivs
-
-    # Even split
-
-    split = np.linspace(0, (ATinvdf_duT.shape[1]) / 2, sub_threads)[1:-1].astype(int) * 2
-    sub_blocks_deriv_u = np.array_split(ATinvdf_duT, split, axis=1)
-
-    if isinstance(compute(blocks_deriv_m[0])[0], Zero):
-        sub_blocks_dfdmt = [Zero()] * len(sub_blocks_deriv_u)
-    else:
-        compute_blocks_deriv_m = array.hstack([
-            array.from_delayed(
-                dfdmT_block,
-                dtype=np.float32,
-                shape=(u_src.shape[0], dfdmT_block.shape[1] * 2))
-            for dfdmT_block in blocks_deriv_m
-        ]).compute()
-        sub_blocks_dfdmt = np.array_split(compute_blocks_deriv_m, split, axis=1)
-
-    sub_process = []
-
-    for sub_block_dfduT, sub_block_dfdmT in zip(sub_blocks_deriv_u, sub_blocks_dfdmt):
-        row_size = int(sub_block_dfduT.shape[1] / 2)
-        sub_process.append(
-            array.from_delayed(
-                delayed(eval_block, pure=True)(
-                    simulation,
-                    sub_block_dfduT,
-                    freq,
-                    sub_block_dfdmT,
-                    u_src,
-                    src
-                ),
-                dtype=np.float32,
-                shape=(row_size, m_size)
-            )
-        )
-
-    block = array.vstack(sub_process).compute()
-
-    if simulation.store_sensitivities == "disk":
-        Jmatrix.set_orthogonal_selection(
-            (np.arange(counter, counter + block.shape[0]), slice(None)),
-            block.astype(np.float32)
-        )
-    else:
-        Jmatrix[counter: counter + block.shape[0], :] = (
-            block.astype(np.float32)
-        )
-
-    counter += block.shape[0]
-    return counter
+    un_src = f[src, solution_type, tInd + 1]
+    dAT_dm_v = simulation.getAdiagDeriv(
+        tInd, un_src, ATinv_df_duT_v, adjoint=True
+    )
+    Jmatrix[d_count:d_count + dAT_dm_v.shape[1], :] += (-dAT_dm_v - dAsubdiagT_dm_v + dRHST_dm_v).T
