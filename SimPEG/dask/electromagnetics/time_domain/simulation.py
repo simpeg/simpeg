@@ -134,28 +134,7 @@ def compute_J(self, f=None, Ainv=None):
             d_count = 0
             df_duT_v = []
             for i_s, src in enumerate(self.survey.source_list):
-
-                # for rx in src.receiver_list:
-                # v = sp.eye(rx.nD, dtype=float)
-                # PT_v = rx.evalDeriv(
-                #     src, self.mesh, self.time_mesh, f, v, adjoint=True
-                # )
-                # df_duTFun = getattr(f, "_{}Deriv".format(rx.projField), None)
-                #
-                # for tInd in range(self.nT + 1):
-                #     cur = df_duTFun(
-                #         self.nT,
-                #         src,
-                #         None,
-                #         PT_v[tInd*block_size:(tInd+1)*block_size, :],
-                #         adjoint=True,
-                #     )
-                #
-                #     if not isinstance(cur[1], Zero):
-                #         self.J_initializer[d_count:d_count+rx.nD, :] += cur[1].T
-
                 src_field_derivs = delayed(block_deriv, pure=True)(self, src, tInd, f, block_size, d_count)
-
                 df_duT_v += [src_field_derivs]
                 d_count += np.sum([rx.nD for rx in src.receiver_list])
 
@@ -173,31 +152,30 @@ def compute_J(self, f=None, Ainv=None):
     else:
         Jmatrix = np.zeros((self.survey.nD, m_size), dtype=np.float32) + self.J_initializer
 
-    ATinv_df_duT_v = []
+    ATinv_df_duT_v = {}
+    field_derivs_t = {}
     for tInd, dt in zip(reversed(range(self.nT)), reversed(self.time_steps)):
         AdiagTinv = Ainv[dt]
 
-        if tInd < self.nT - 1:
-            Asubdiag = self.getAsubdiag(tInd + 1)
+        Asubdiag = self.getAsubdiag(tInd)
 
         d_count = 0
         row_blocks = []
         for isrc, src in enumerate(self.survey.source_list):
 
-            if tInd >= self.nT - 1:
-                ATinv_df_duT_v += [AdiagTinv * self.field_derivs[tInd+1][isrc].toarray()]
+
+            if isrc not in field_derivs_t:
+                ATinv_df_duT_v[isrc] = AdiagTinv * self.field_derivs[tInd+1][isrc].toarray()
             else:
-                ATinv_df_duT_v[isrc] = AdiagTinv * (
-                        self.field_derivs[tInd+1][isrc].toarray()
-                        - Asubdiag.T * ATinv_df_duT_v[isrc]
-                )
+                ATinv_df_duT_v[isrc] = AdiagTinv * field_derivs_t[isrc]
+
             row_blocks.append(
                 delayed(parallel_block_compute, pure=True)(
-                    self, f, src, ATinv_df_duT_v[isrc], d_count, tInd, solution_type, Jmatrix),
+                    self, f, src, ATinv_df_duT_v[isrc], d_count, tInd, solution_type, Jmatrix, Asubdiag, self.field_derivs[tInd][isrc]),
             )
             d_count += ATinv_df_duT_v[isrc].shape[1]
 
-        dask.compute(row_blocks)
+        field_derivs_t = {isrc: elem for isrc, elem in enumerate(dask.compute(row_blocks)[0])}
 
     for A in Ainv.values():
         A.clean()
@@ -240,7 +218,12 @@ def block_deriv(simulation, src, tInd, f, block_size, d_count):
     return src_field_derivs
 
 
-def parallel_block_compute(simulation, f, src, ATinv_df_duT_v, d_count, tInd, solution_type, Jmatrix):
+def parallel_block_compute(simulation, f, src, ATinv_df_duT_v, d_count, tInd, solution_type, Jmatrix, Asubdiag, field_derivs):
+    field_derivs_t = (
+        field_derivs.toarray()
+        - Asubdiag.T * ATinv_df_duT_v
+    )
+
     dAsubdiagT_dm_v = simulation.getAsubdiagDeriv(
         tInd, f[src, solution_type, tInd], ATinv_df_duT_v, adjoint=True
     )
@@ -253,3 +236,5 @@ def parallel_block_compute(simulation, f, src, ATinv_df_duT_v, d_count, tInd, so
         tInd, un_src, ATinv_df_duT_v, adjoint=True
     )
     Jmatrix[d_count:d_count + dAT_dm_v.shape[1], :] += (-dAT_dm_v - dAsubdiagT_dm_v + dRHST_dm_v).T
+
+    return field_derivs_t
