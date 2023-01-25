@@ -155,32 +155,37 @@ def compute_J(self, f=None, Ainv=None):
             chunks=(row_chunks, m_size)
         ) + self.J_initializer
     else:
-        Jmatrix = np.zeros((self.survey.nD, m_size), dtype=np.float32) + self.J_initializer
+        Jmatrix = dask.delayed(np.zeros((self.survey.nD, m_size), dtype=np.float32) + self.J_initializer)
 
-    ATinv_df_duT_v = {}
+    # ATinv_df_duT_v = {}
+    f = dask.delayed(f)
     field_derivs_t = {}
     for tInd, dt in zip(reversed(range(self.nT)), reversed(self.time_steps)):
         AdiagTinv = Ainv[dt]
         Asubdiag = self.getAsubdiag(tInd)
         d_count = 0
         row_blocks = []
+
         tc_loop = time()
         print(f"Loop sources for {tInd}")
         for isrc, src in enumerate(self.survey.source_list):
+            source_blocks = []
+            for block in range(len(self.field_derivs[tInd][isrc])):
+                if isrc not in field_derivs_t:
+                    ATinv_df_duT_v = AdiagTinv * self.field_derivs[tInd+1][isrc][block].toarray()
+                else:
+                    ATinv_df_duT_v = AdiagTinv * field_derivs_t[isrc][block]
 
-            if isrc not in field_derivs_t:
-                ATinv_df_duT_v[isrc] = AdiagTinv * self.field_derivs[tInd+1][isrc].toarray()
-            else:
-                ATinv_df_duT_v[isrc] = AdiagTinv * field_derivs_t[isrc]
+                tc = time()
 
-            tc = time()
-            row_blocks.append(
-                delayed(parallel_block_compute, pure=True)(
-                    self, f, src, ATinv_df_duT_v[isrc], d_count, tInd, solution_type, Jmatrix, Asubdiag, self.field_derivs[tInd][isrc]),
-            )
-            print(f"Appending block {isrc} in {time() - tc} seconds")
-            d_count += ATinv_df_duT_v[isrc].shape[1]
+                source_blocks.append(
+                    delayed(parallel_block_compute, pure=True)(
+                        self, f, src, ATinv_df_duT_v, d_count, tInd, solution_type, Jmatrix, Asubdiag, self.field_derivs[tInd][isrc][block]),
+                )
+                print(f"Appending block {isrc} in {time() - tc} seconds")
+                d_count += ATinv_df_duT_v.shape[1]
 
+            row_blocks.append(source_blocks)
         print(f"Done in {time() - tc_loop} seconds")
         tc = time()
         print(f"Compute field derivs for {tInd}")
@@ -194,7 +199,7 @@ def compute_J(self, f=None, Ainv=None):
         del Jmatrix
         return array.from_zarr(self.sensitivity_path + f"J.zarr")
     else:
-        return Jmatrix
+        return Jmatrix.compute()
 
 Sim.compute_J = compute_J
 
@@ -225,7 +230,9 @@ def block_deriv(simulation, src, tInd, f, block_size, d_count):
         else:
             src_field_derivs += cur[0]
 
-    return src_field_derivs
+    col_blocks = int(np.ceil(np.prod(src_field_derivs.shape) * 8. * 1e-6 / 128.))
+    ind_col = np.array_split(np.arange(src_field_derivs.shape[1]), col_blocks)
+    return [src_field_derivs[:, ind] for ind in ind_col]
 
 
 def parallel_block_compute(simulation, f, src, ATinv_df_duT_v, d_count, tInd, solution_type, Jmatrix, Asubdiag, field_derivs):
