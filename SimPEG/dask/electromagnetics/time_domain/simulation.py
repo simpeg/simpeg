@@ -4,7 +4,7 @@ from ....electromagnetics.time_domain.simulation import BaseTDEMSimulation as Si
 from ....utils import Zero
 import numpy as np
 import scipy.sparse as sp
-
+from time import time
 from dask import array, compute, delayed
 from SimPEG.dask.simulation import dask_Jvec, dask_Jtvec, dask_getJtJdiag
 import zarr
@@ -127,6 +127,8 @@ def compute_J(self, f=None, Ainv=None):
     solution_type = self._fieldType + "Solution"  # the thing we solved for
 
     if self.field_derivs is None:
+
+        print("Start loop for field derivs")
         block_size = len(f[self.survey.source_list[0], solution_type, 0])
 
         field_derivs = []
@@ -139,8 +141,11 @@ def compute_J(self, f=None, Ainv=None):
                 d_count += np.sum([rx.nD for rx in src.receiver_list])
 
             field_derivs += [df_duT_v]
+        print("Dask loop field derivs")
+        tc = time()
 
         self.field_derivs = dask.compute(field_derivs)[0]
+        print(f"Done in {time() - tc} seconds")
 
     if self.store_sensitivities == "disk":
         Jmatrix = zarr.open(
@@ -159,6 +164,8 @@ def compute_J(self, f=None, Ainv=None):
         Asubdiag = self.getAsubdiag(tInd)
         d_count = 0
         row_blocks = []
+        tc = time()
+        print(f"Loop sources for {tInd}")
         for isrc, src in enumerate(self.survey.source_list):
 
             if isrc not in field_derivs_t:
@@ -172,8 +179,12 @@ def compute_J(self, f=None, Ainv=None):
             )
             d_count += ATinv_df_duT_v[isrc].shape[1]
 
+        print(f"Done in {time() - tc} seconds")
+        tc = time()
+        print(f"Compute field derivs for {tInd}")
         field_derivs_t = {isrc: elem for isrc, elem in enumerate(dask.compute(row_blocks)[0])}
-
+        print(f"Done in {time() - tc} seconds")
+        
     for A in Ainv.values():
         A.clean()
 
