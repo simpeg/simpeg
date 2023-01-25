@@ -156,13 +156,10 @@ def compute_J(self, f=None, Ainv=None):
     field_derivs_t = {}
     for tInd, dt in zip(reversed(range(self.nT)), reversed(self.time_steps)):
         AdiagTinv = Ainv[dt]
-
         Asubdiag = self.getAsubdiag(tInd)
-
         d_count = 0
         row_blocks = []
         for isrc, src in enumerate(self.survey.source_list):
-
 
             if isrc not in field_derivs_t:
                 ATinv_df_duT_v[isrc] = AdiagTinv * self.field_derivs[tInd+1][isrc].toarray()
