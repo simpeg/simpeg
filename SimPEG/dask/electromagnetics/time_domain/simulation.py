@@ -9,6 +9,7 @@ from dask import array, compute, delayed
 from SimPEG.dask.simulation import dask_Jvec, dask_Jtvec, dask_getJtJdiag
 import zarr
 from SimPEG.utils import mkvc
+from tqdm import tqdm
 Sim.sensitivity_path = './sensitivity/'
 Sim.gtgdiag = None
 Sim.store_sensitivities = True
@@ -141,11 +142,11 @@ def compute_J(self, f=None, Ainv=None):
                 d_count += np.sum([rx.nD for rx in src.receiver_list])
 
             field_derivs += [df_duT_v]
-        print("Dask loop field derivs")
-        tc = time()
+        # print("Dask loop field derivs")
+        # tc = time()
 
         self.field_derivs = dask.compute(field_derivs)[0]
-        print(f"Done in {time() - tc} seconds")
+        # print(f"Done in {time() - tc} seconds")
 
     if self.store_sensitivities == "disk":
         Jmatrix = zarr.open(
@@ -160,14 +161,14 @@ def compute_J(self, f=None, Ainv=None):
     # ATinv_df_duT_v = {}
     f = dask.delayed(f)
     field_derivs_t = {}
-    for tInd, dt in zip(reversed(range(self.nT)), reversed(self.time_steps)):
+    for tInd, dt in tqdm(zip(reversed(range(self.nT)), reversed(self.time_steps))):
         AdiagTinv = Ainv[dt]
         Asubdiag = self.getAsubdiag(tInd)
         d_count = 0
         row_blocks = []
 
-        tc_loop = time()
-        print(f"Loop sources for {tInd}")
+        # tc_loop = time()
+        # print(f"Loop sources for {tInd}")
         for isrc, src in enumerate(self.survey.source_list):
             source_blocks = []
             for block in range(len(self.field_derivs[tInd][isrc])):
@@ -176,21 +177,21 @@ def compute_J(self, f=None, Ainv=None):
                 else:
                     ATinv_df_duT_v = AdiagTinv * field_derivs_t[isrc][block]
 
-                tc = time()
+                # tc = time()
 
                 source_blocks.append(
                     delayed(parallel_block_compute, pure=True)(
                         self, f, src, ATinv_df_duT_v, d_count, tInd, solution_type, Jmatrix, Asubdiag, self.field_derivs[tInd][isrc][block]),
                 )
-                print(f"Appending block {isrc} in {time() - tc} seconds")
+                # print(f"Appending block {isrc} in {time() - tc} seconds")
                 d_count += ATinv_df_duT_v.shape[1]
 
             row_blocks.append(source_blocks)
-        print(f"Done in {time() - tc_loop} seconds")
-        tc = time()
-        print(f"Compute field derivs for {tInd}")
+        # print(f"Done in {time() - tc_loop} seconds")
+        # tc = time()
+        # print(f"Compute field derivs for {tInd}")
         field_derivs_t = {isrc: elem for isrc, elem in enumerate(dask.compute(row_blocks)[0])}
-        print(f"Done in {time() - tc} seconds")
+        # print(f"Done in {time() - tc} seconds")
 
     for A in Ainv.values():
         A.clean()
