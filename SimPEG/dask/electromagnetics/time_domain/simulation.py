@@ -164,7 +164,7 @@ def compute_J(self, f=None, Ainv=None):
         Asubdiag = self.getAsubdiag(tInd)
         d_count = 0
         row_blocks = []
-        tc = time()
+        tc_loop = time()
         print(f"Loop sources for {tInd}")
         for isrc, src in enumerate(self.survey.source_list):
 
@@ -173,18 +173,20 @@ def compute_J(self, f=None, Ainv=None):
             else:
                 ATinv_df_duT_v[isrc] = AdiagTinv * field_derivs_t[isrc]
 
+            tc = time()
             row_blocks.append(
                 delayed(parallel_block_compute, pure=True)(
                     self, f, src, ATinv_df_duT_v[isrc], d_count, tInd, solution_type, Jmatrix, Asubdiag, self.field_derivs[tInd][isrc]),
             )
+            print(f"Appending block {isrc} in {time() - tc} seconds")
             d_count += ATinv_df_duT_v[isrc].shape[1]
 
-        print(f"Done in {time() - tc} seconds")
+        print(f"Done in {time() - tc_loop} seconds")
         tc = time()
         print(f"Compute field derivs for {tInd}")
         field_derivs_t = {isrc: elem for isrc, elem in enumerate(dask.compute(row_blocks)[0])}
         print(f"Done in {time() - tc} seconds")
-        
+
     for A in Ainv.values():
         A.clean()
 
