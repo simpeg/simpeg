@@ -1,6 +1,5 @@
-from __future__ import print_function
 import unittest
-import SimPEG.dask
+import SimPEG.dask  # noqa: F401
 from SimPEG import (
     directives,
     maps,
@@ -96,8 +95,9 @@ class MVIProblemTest(unittest.TestCase):
             survey=survey,
             model_type="vector",
             chiMap=idenMap,
-            actInd=actv,
+            ind_active=actv,
             store_sensitivities="disk",
+            chunk_format="auto",
         )
         self.sim = sim
 

@@ -9,7 +9,7 @@ from ..objective_function import BaseObjectiveFunction, ComboObjectiveFunction
 from .. import utils
 from .regularization_mesh import RegularizationMesh
 
-from SimPEG.utils.code_utils import deprecate_property, validate_array_type, validate_shape
+from SimPEG.utils.code_utils import deprecate_property, validate_ndarray_with_shape
 
 if TYPE_CHECKING:
     from scipy.sparse import csr_matrix
@@ -99,7 +99,9 @@ class BaseRegularization(BaseObjectiveFunction):
     indActive = deprecate_property(
         active_cells,
         "indActive",
-        "0.x.0",
+        "active_cells",
+        "0.19.0",
+        future_warn=True,
         error=False,
     )
 
@@ -114,8 +116,10 @@ class BaseRegularization(BaseObjectiveFunction):
         if isinstance(values, float):
             values = np.ones(self._nC_residual) * values
 
-        validate_array_type("model", values, float)
-        validate_shape("model", values, (self._nC_residual,))
+        values = validate_ndarray_with_shape(
+            "model", values, shape=(self._nC_residual,), dtype=float
+        )
+
         self._model = values
 
     @property
@@ -166,7 +170,7 @@ class BaseRegularization(BaseObjectiveFunction):
         if getattr(self, "_mapping", None) is not None and self.mapping.shape != "*":
             return (self.mapping.shape[0],)
 
-        return "*"
+        return ("*",)
 
     @property
     def reference_model(self) -> np.ndarray:
@@ -179,14 +183,17 @@ class BaseRegularization(BaseObjectiveFunction):
             if isinstance(values, float):
                 values = np.ones(self._nC_residual) * values
 
-            validate_array_type("reference_model", values, float)
-            validate_shape("reference_model", values, (self._nC_residual,))
+            values = validate_ndarray_with_shape(
+                "reference_model", values, shape=(self._nC_residual,), dtype=float
+            )
         self._reference_model = values
 
     mref = deprecate_property(
         reference_model,
         "mref",
-        "0.x.0",
+        "reference_model",
+        "0.19.0",
+        future_warn=True,
         error=False,
     )
 
@@ -198,7 +205,9 @@ class BaseRegularization(BaseObjectiveFunction):
     regmesh = deprecate_property(
         regularization_mesh,
         "regmesh",
-        "0.x.0",
+        "regularization_mesh",
+        "0.19.0",
+        future_warn=True,
         error=False,
     )
 
@@ -207,8 +216,8 @@ class BaseRegularization(BaseObjectiveFunction):
         """Deprecated property for 'volume' and user defined weights."""
         warnings.warn(
             "cell_weights are deprecated please access weights using the `set_weights`,"
-            " `get_weights`, and `remove_weights` functionality. This will be removed in 0.x.0",
-            DeprecationWarning,
+            " `get_weights`, and `remove_weights` functionality. This will be removed in 0.19.0",
+            FutureWarning,
         )
         return np.prod(list(self._weights.values()), axis=0)
 
@@ -216,8 +225,8 @@ class BaseRegularization(BaseObjectiveFunction):
     def cell_weights(self, value):
         warnings.warn(
             "cell_weights are deprecated please access weights using the `set_weights`,"
-            " `get_weights`, and `remove_weights` functionality. This will be removed in 0.x.0",
-            DeprecationWarning,
+            " `get_weights`, and `remove_weights` functionality. This will be removed in 0.19.0",
+            FutureWarning,
         )
         self.set_weights(cell_weights=value)
 
@@ -245,8 +254,9 @@ class BaseRegularization(BaseObjectiveFunction):
         array([1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1.])
         """
         for key, values in weights.items():
-            validate_array_type("weights", values, float)
-            validate_shape("weights", values, self._weights_shapes)
+            values = validate_ndarray_with_shape(
+                "weights", values, shape=self._weights_shapes, dtype=float
+            )
             self._weights[key] = values
         self._W = None
 
@@ -294,12 +304,12 @@ class BaseRegularization(BaseObjectiveFunction):
 
     @utils.timeIt
     def __call__(self, m):
-        """
+        r"""
         We use a weighted 2-norm objective function
 
         .. math::
 
-            r(m) = \\frac{1}{2} \\| \\mathbf{W} \\mathbf{f(m)} \\|_2^2
+            r(m) = \frac{1}{2} \| \mathbf{W} \mathbf{f(m)} \|_2^2
         """
         r = self.W * self.f_m(m)
         return 0.5 * r.dot(r)
@@ -314,20 +324,19 @@ class BaseRegularization(BaseObjectiveFunction):
 
     @utils.timeIt
     def deriv(self, m) -> np.ndarray:
-        """
-
+        r"""
         The regularization is:
 
         .. math::
 
-            R(m) = \\frac{1}{2}\\mathbf{(m-m_\\text{ref})^\\top W^\\top
-                   W(m-m_\\text{ref})}
+            R(m) = \frac{1}{2}\mathbf{(m-m_\text{ref})^\top W^\top
+                   W(m-m_\text{ref})}
 
         So the derivative is straight forward:
 
         .. math::
 
-            R(m) = \\mathbf{W^\\top W (m-m_\\text{ref})}
+            R(m) = \mathbf{W^\top W (m-m_\text{ref})}
 
         """
         r = self.W * self.f_m(m)
@@ -335,7 +344,7 @@ class BaseRegularization(BaseObjectiveFunction):
 
     @utils.timeIt
     def deriv2(self, m, v=None) -> csr_matrix:
-        """
+        r"""
         Second derivative
 
         :param numpy.ndarray m: geophysical model
@@ -347,14 +356,14 @@ class BaseRegularization(BaseObjectiveFunction):
 
         .. math::
 
-            R(m) = \\frac{1}{2}\\mathbf{(m-m_\\text{ref})^\\top W^\\top
-            W(m-m_\\text{ref})}
+            R(m) = \frac{1}{2}\mathbf{(m-m_\text{ref})^\top W^\top
+            W(m-m_\text{ref})}
 
         So the second derivative is straight forward:
 
         .. math::
 
-            R(m) = \\mathbf{W^\\top W}
+            R(m) = \mathbf{W^\top W}
 
         """
         f_m_deriv = self.f_m_deriv(m)
@@ -365,21 +374,21 @@ class BaseRegularization(BaseObjectiveFunction):
 
 
 class Smallness(BaseRegularization):
-    """
+    r"""
     Small regularization - L2 regularization on the difference between a
     model and a reference model.
 
     .. math::
 
-        r(m) = \\frac{1}{2}(\\mathbf{m} - \\mathbf{m_ref})^\top \\mathbf{V}^T
-            \\mathbf{W}^T
-        \\mathbf{W} \\mathbf{V} (\\mathbf{m} - \\mathbf{m_{ref}})
+        r(m) = \frac{1}{2}(\mathbf{m} - \mathbf{m_ref})^\top \mathbf{V}^T
+            \mathbf{W}^T
+        \mathbf{W} \mathbf{V} (\mathbf{m} - \mathbf{m_{ref}})
 
     where
-    :math:`\\mathbf{m}` is the model,
-    :math:`\\mathbf{m_{ref}}` is a reference model,
-    :math:`\\mathbf{V}` are square root of cell volumes and
-    :math:`\\mathbf{W}` is a weighting matrix (default Identity). If fixed or
+    :math:`\mathbf{m}` is the model,
+    :math:`\mathbf{m_{ref}}` is a reference model,
+    :math:`\mathbf{V}` are square root of cell volumes and
+    :math:`\mathbf{W}` is a weighting matrix (default Identity). If fixed or
         free weights are provided, then it is :code:`diag(np.sqrt(weights))`).
 
 
@@ -703,16 +712,24 @@ class WeightedLeastSquares(ComboObjectiveFunction):
             if mesh.dim > 1:
                 objfcts.extend(
                     [
-                        SmoothnessFirstOrder(mesh=self.regularization_mesh, orientation="y"),
-                        SmoothnessSecondOrder(mesh=self.regularization_mesh, orientation="y"),
+                        SmoothnessFirstOrder(
+                            mesh=self.regularization_mesh, orientation="y"
+                        ),
+                        SmoothnessSecondOrder(
+                            mesh=self.regularization_mesh, orientation="y"
+                        ),
                     ]
                 )
 
             if mesh.dim > 2:
                 objfcts.extend(
                     [
-                        SmoothnessFirstOrder(mesh=self.regularization_mesh, orientation="z"),
-                        SmoothnessSecondOrder(mesh=self.regularization_mesh, orientation="z"),
+                        SmoothnessFirstOrder(
+                            mesh=self.regularization_mesh, orientation="z"
+                        ),
+                        SmoothnessSecondOrder(
+                            mesh=self.regularization_mesh, orientation="z"
+                        ),
                     ]
                 )
         else:
@@ -750,8 +767,8 @@ class WeightedLeastSquares(ComboObjectiveFunction):
     def cell_weights(self, value):
         warnings.warn(
             "cell_weights are deprecated please access weights using the `set_weights`,"
-            " `get_weights`, and `remove_weights` functionality. This will be removed in 0.x.0",
-            DeprecationWarning,
+            " `get_weights`, and `remove_weights` functionality. This will be removed in 0.19.0",
+            FutureWarning,
         )
         self.set_weights(cell_weights=value)
 
@@ -999,8 +1016,10 @@ class WeightedLeastSquares(ComboObjectiveFunction):
     indActive = deprecate_property(
         active_cells,
         "indActive",
-        "0.x.0",
+        "active_cells",
+        "0.19.0",
         error=False,
+        future_warn=True,
     )
 
     @property
@@ -1022,7 +1041,9 @@ class WeightedLeastSquares(ComboObjectiveFunction):
     mref = deprecate_property(
         reference_model,
         "mref",
-        "0.x.0",
+        "reference_model",
+        "0.19.0",
+        future_warn=True,
         error=False,
     )
 

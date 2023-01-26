@@ -1,12 +1,9 @@
-from __future__ import print_function
-
 import unittest
 
 import numpy as np
-import scipy.sparse as sp
 import discretize
 
-from SimPEG import maps, utils
+from SimPEG import maps
 from SimPEG import data_misfit, simulation, survey
 
 np.random.seed(17)
@@ -42,7 +39,6 @@ class DataMisfitTest(unittest.TestCase):
         self.sim = sim
         self.survey = sim.survey
         # self.survey = survey
-        # self.prob = prob
         self.data = synthetic_data
         self.dmis = dmis
 

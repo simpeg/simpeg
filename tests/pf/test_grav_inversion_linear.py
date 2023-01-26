@@ -15,8 +15,6 @@ from SimPEG import (
 )
 from SimPEG.potential_fields import gravity
 
-np.random.seed(43)
-
 
 class GravInvLinProblemTest(unittest.TestCase):
     def setUp(self):
@@ -32,8 +30,8 @@ class GravInvLinProblemTest(unittest.TestCase):
         midy = int(self.mesh.shape_cells[1] / 2)
 
         # Lets create a simple Gaussian topo and set the active cells
-        [xx, yy] = np.meshgrid(self.mesh.vectorNx, self.mesh.vectorNy)
-        zz = -np.exp((xx ** 2 + yy ** 2) / 75 ** 2) + self.mesh.vectorNz[-1]
+        [xx, yy] = np.meshgrid(self.mesh.nodes_x, self.mesh.nodes_y)
+        zz = -np.exp((xx ** 2 + yy ** 2) / 75 ** 2) + self.mesh.nodes_z[-1]
 
         # Go from topo to actv cells
         topo = np.c_[utils.mkvc(xx), utils.mkvc(yy), utils.mkvc(zz)]
@@ -49,7 +47,7 @@ class GravInvLinProblemTest(unittest.TestCase):
         X, Y = np.meshgrid(xr, yr)
 
         # Move the observation points 5m above the topo
-        Z = -np.exp((X ** 2 + Y ** 2) / 75 ** 2) + self.mesh.vectorNz[-1] + 5.0
+        Z = -np.exp((X ** 2 + Y ** 2) / 75 ** 2) + self.mesh.nodes_z[-1] + 5.0
 
         # Create a MAGsurvey
         locXYZ = np.c_[utils.mkvc(X.T), utils.mkvc(Y.T), utils.mkvc(Z.T)]
@@ -59,7 +57,13 @@ class GravInvLinProblemTest(unittest.TestCase):
 
         # We can now create a density model and generate data
         # Here a simple block in half-space
-        model = np.zeros((self.mesh.shape_cells[0], self.mesh.shape_cells[1], self.mesh.shape_cells[2]))
+        model = np.zeros(
+            (
+                self.mesh.shape_cells[0],
+                self.mesh.shape_cells[1],
+                self.mesh.shape_cells[2],
+            )
+        )
         model[(midx - 2) : (midx + 2), (midy - 2) : (midy + 2), -6:-2] = 0.5
         model = utils.mkvc(model)
         self.model = model[actv]
@@ -72,7 +76,7 @@ class GravInvLinProblemTest(unittest.TestCase):
             self.mesh,
             survey=survey,
             rhoMap=idenMap,
-            actInd=actv,
+            ind_active=actv,
             store_sensitivities="ram",
         )
 

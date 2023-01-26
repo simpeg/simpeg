@@ -1,12 +1,10 @@
-from six import string_types
 import numpy as np
-import properties
 
 from .simulation import BaseSimulation, BaseTimeSimulation
-from .utils import mkvc
+from .utils import mkvc, validate_type
 
 
-class Fields(properties.HasProperties):
+class Fields:
     """Fancy Field Storage
     .. code::python
         fields = Fields(
@@ -16,46 +14,109 @@ class Fields(properties.HasProperties):
         print(fields[src0,'phi'])
     """
 
-    simulation = properties.Instance("a SimPEG simulation", BaseSimulation)
+    _dtype = float
+    _knownFields = {}
+    _aliasFields = {}
 
-    knownFields = properties.Dictionary(
-        """
-        a dictionary with the names of the know fields and their location on
-        a mesh e.g. {"e": "E", "phi": "CC"}
-        """,
-        required=True,
-    )
+    def __init__(
+        self, simulation, knownFields=None, aliasFields=None, dtype=None, **kwargs
+    ):
+        super().__init__(**kwargs)
+        self.simulation = simulation
 
-    aliasFields = properties.Dictionary(
-        """
-        a dictionary of the aliased fields with [alias, location, function],
-        e.g. {"b":["e","F",lambda(F,e,ind)]}
-        """,
-        default={},
-    )
-    #: dtype is the type of the storage matrix. This can be a dictionary.
-    dtype = float
+        if knownFields is not None:
+            knownFields = validate_type("knownFields", knownFields, dict, cast=False)
+            self._knownFields = knownFields
+        if aliasFields is not None:
+            aliasFields = validate_type("aliasFields", aliasFields, dict, cast=False)
+            self._aliasFields = aliasFields
+        if dtype is not None:
+            self._dtype = dtype
 
-    def __init__(self, simulation=None, **kwargs):
-        super(Fields, self).__init__(**kwargs)
-        if simulation is not None:
-            self.simulation = simulation
+        # check overlapping fields
+        if any(key in self.aliasFields for key in self.knownFields):
+            raise KeyError(
+                "Aliased fields and Known Fields have overlapping definitions."
+            )
+
         self._fields = {}
         self.startup()
 
-    @properties.validator("knownFields")
-    def _check_overlap_with_aliased(self, change):
-        allFields = [k for k in change["value"]] + [a for a in self.aliasFields]
-        assert len(allFields) == len(
-            set(allFields)
-        ), "Aliased fields and Known Fields have overlapping definitions."
+    @property
+    def simulation(self):
+        """The simulation object that created these fields
 
-    @properties.validator("aliasFields")
-    def _check_overlap_with_known(self, change):
-        allFields = [k for k in self.knownFields] + [a for a in change["value"]]
-        assert len(allFields) == len(
-            set(allFields)
-        ), "Aliased fields and Known Fields have overlapping definitions."
+        Returns
+        -------
+        SimPEG.simulation.BaseSimulation
+        """
+        return self._simulation
+
+    @simulation.setter
+    def simulation(self, value):
+        self._simulation = validate_type(
+            "simulation", value, BaseSimulation, cast=False
+        )
+
+    @property
+    def knownFields(self):
+        """The known fields of this object.
+
+        The dictionary representing the known fields and their locations on the simulation
+        mesh. The keys are the names of the fields, and the values are the location on
+        the mesh.
+
+        >>> fields.knownFields
+        {'e': 'E', 'phi': 'CC'}
+
+        Would represent that the `e` field and `phi` fields are known, and they are
+        located on the mesh edges and cell centers, respectively.
+
+        Returns
+        -------
+        dict
+            They keys are the field names and the values are the field locations.
+        """
+        return self._knownFields
+
+    @property
+    def aliasFields(self):
+        """The aliased fields of this object.
+
+        The dictionary representing the aliased fields that can be accessed on this
+        object. The keys are the names of the fields, and the values are a list of the
+        known field, the aliased field's location on the mesh, and a function that goes
+        from the known field to the aliased field.
+
+        >>> fields.aliasFields
+        {'b': ['e', 'F', '_e']}
+
+        Would represent that the `e` field and `phi` fields are known, and they are
+        located on the mesh edges and cell centers, respectively.
+
+        Returns
+        -------
+        dict of {str: list}
+            They keys are the field names and the values are list consiting of the
+            field's alias, it's location on the mesh, and the function (or the name of
+            it) to create it from the aliased field.
+        """
+        return self._aliasFields
+
+    @property
+    def dtype(self):
+        """The data type of the storage matrix
+
+        Returns
+        -------
+        dtype or dict of {str : dtype}
+        """
+        return self._dtype
+
+    @property
+    def knownFields(self):
+        """Fields known to this object."""
+        return self._knownFields
 
     @property
     def mesh(self):
@@ -113,7 +174,7 @@ class Fields(properties.HasProperties):
         if type(srcTestList) is slice:
             ind = srcTestList
         else:
-            ind = self.survey.getSourceIndex(srcTestList)
+            ind = self.survey.get_source_indices(srcTestList)
         return ind
 
     def _nameIndex(self, name, accessType):
@@ -197,7 +258,7 @@ class Fields(properties.HasProperties):
             # Aliased fields
             alias, loc, func = self.aliasFields[name]
 
-            if isinstance(func, string_types):
+            if isinstance(func, str):
                 assert hasattr(self, func), (
                     "The alias field function is a string, but it does not "
                     "exist in the Fields class."
@@ -225,10 +286,21 @@ class TimeFields(Fields):
         print(fields[src0,'phi'])
     """
 
-    simulation = properties.Instance("a SimPEG time simulation", BaseTimeSimulation)
+    @property
+    def simulation(self):
+        """The simulation object that created these fields
 
-    def __init__(self, simulation=None, **kwargs):
-        super(TimeFields, self).__init__(simulation=simulation, **kwargs)
+        Returns
+        -------
+        SimPEG.simulation.BaseTimeSimulation
+        """
+        return self._simulation
+
+    @simulation.setter
+    def simulation(self, value):
+        self._simulation = validate_type(
+            "simulation", value, BaseTimeSimulation, cast=False
+        )
 
     def _storageShape(self, loc):
         nP = {
@@ -296,7 +368,7 @@ class TimeFields(Fields):
         else:
             # Aliased fields
             alias, loc, func = self.aliasFields[name]
-            if isinstance(func, string_types):
+            if isinstance(func, str):
                 assert hasattr(self, func), (
                     "The alias field function is a string, but it does "
                     "not exist in the Fields class."

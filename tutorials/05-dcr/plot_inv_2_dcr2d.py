@@ -34,7 +34,6 @@ from discretize.utils import mkvc, refine_tree_xyz
 from SimPEG.utils import surface2ind_topo, model_builder
 from SimPEG import (
     maps,
-    data,
     data_misfit,
     regularization,
     optimization,
@@ -46,7 +45,6 @@ from SimPEG import (
 from SimPEG.electromagnetics.static import resistivity as dc
 from SimPEG.electromagnetics.static.utils.static_utils import (
     plot_pseudosection,
-    apparent_resistivity_from_voltage,
 )
 from SimPEG.utils.io_utils.io_utils_electromagnetics import read_dcip2d_ubc
 
@@ -412,7 +410,7 @@ recovered_conductivity[~ind_active] = np.NaN
 
 ax1 = fig.add_axes([0.14, 0.17, 0.68, 0.7])
 mesh.plot_image(
-    recovered_conductivity, normal="Y", ax=ax1, grid=False, pcolorOpts={"norm": norm}
+    recovered_conductivity, normal="Y", ax=ax1, grid=False, pcolor_opts={"norm": norm}
 )
 ax1.set_xlim(-600, 600)
 ax1.set_ylim(-600, 0)

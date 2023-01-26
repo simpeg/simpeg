@@ -83,7 +83,7 @@ class EM1D_TD_general_Jac_layers_ProblemTests(unittest.TestCase):
 
         dm = m_1D * 0.5
         derChk = lambda m: [fwdfun(m), lambda mx: jacfun(m, mx)]
-        passed = tests.checkDerivative(
+        passed = tests.check_derivative(
             derChk, m_1D, num=4, dx=dm, plotIt=False, eps=1e-15
         )
         self.assertTrue(passed)
@@ -116,11 +116,11 @@ class EM1D_TD_general_Jac_layers_ProblemTests(unittest.TestCase):
             return misfit, dmisfit
 
         derChk = lambda m: misfit(m, dobs)
-        passed = tests.checkDerivative(derChk, m_ini, num=4, plotIt=False, eps=1e-26)
+        passed = tests.check_derivative(derChk, m_ini, num=4, plotIt=False, eps=1e-26)
         self.assertTrue(passed)
 
 
-class EM1D_TD_PiecewiseWireLoop_Jac_layers_ProblemTests(unittest.TestCase):
+class EM1D_TD_LineCurrent_Jac_layers_ProblemTests(unittest.TestCase):
     def setUp(self):
         # WalkTEM waveform
         # Low moment
@@ -216,11 +216,11 @@ class EM1D_TD_PiecewiseWireLoop_Jac_layers_ProblemTests(unittest.TestCase):
             hm_waveform_times, hm_waveform_current
         )
 
-        source_lm = tdem.sources.PiecewiseWireLoop(
-            receiver_list_lm, wire_paths=wire_paths, waveform=lm_wave
+        source_lm = tdem.sources.LineCurrent(
+            receiver_list_lm, wire_paths, waveform=lm_wave
         )
-        source_hm = tdem.sources.PiecewiseWireLoop(
-            receiver_list_hm, wire_paths=wire_paths, waveform=hm_wave
+        source_hm = tdem.sources.LineCurrent(
+            receiver_list_hm, wire_paths, waveform=hm_wave
         )
         source_list.append(source_lm)
         source_list.append(source_hm)
@@ -261,7 +261,7 @@ class EM1D_TD_PiecewiseWireLoop_Jac_layers_ProblemTests(unittest.TestCase):
 
         dm = m_1D * 0.5
         derChk = lambda m: [fwdfun(m), lambda mx: jacfun(m, mx)]
-        passed = tests.checkDerivative(
+        passed = tests.check_derivative(
             derChk, m_1D, num=4, dx=dm, plotIt=False, eps=1e-15
         )
         self.assertTrue(passed)
@@ -293,7 +293,7 @@ class EM1D_TD_PiecewiseWireLoop_Jac_layers_ProblemTests(unittest.TestCase):
             return misfit, dmisfit
 
         derChk = lambda m: misfit(m, dobs)
-        passed = tests.checkDerivative(derChk, m_ini, num=4, plotIt=False, eps=1e-26)
+        passed = tests.check_derivative(derChk, m_ini, num=4, plotIt=False, eps=1e-26)
         self.assertTrue(passed)
 
 

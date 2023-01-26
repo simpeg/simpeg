@@ -1,4 +1,3 @@
-from __future__ import print_function
 import unittest
 from SimPEG import mkvc
 from SimPEG.electromagnetics import natural_source as nsem

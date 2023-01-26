@@ -46,21 +46,21 @@ def run(plotIt=True, saveFig=False):
     cs, ncx, ncz, npad = 10.0, 15, 25, 13  # padded cyl mesh
     hx = [(cs, ncx), (cs, npad, 1.3)]
     hz = [(cs, npad, -1.3), (cs, ncz), (cs, npad, 1.3)]
-    mesh = discretize.CylMesh([hx, 1, hz], "00C")
+    mesh = discretize.CylindricalMesh([hx, 1, hz], "00C")
 
     # Conductivity model
     layerz = np.r_[-200.0, -100.0]
-    layer = (mesh.vectorCCz >= layerz[0]) & (mesh.vectorCCz <= layerz[1])
-    active = mesh.vectorCCz < 0.0
+    layer = (mesh.cell_centers_z >= layerz[0]) & (mesh.cell_centers_z <= layerz[1])
+    active = mesh.cell_centers_z < 0.0
     sig_half = 1e-2  # Half-space conductivity
     sig_air = 1e-8  # Air conductivity
     sig_layer = 5e-2  # Layer conductivity
-    sigma = np.ones(mesh.nCz) * sig_air
+    sigma = np.ones(mesh.shape_cells[2]) * sig_air
     sigma[active] = sig_half
     sigma[layer] = sig_layer
 
     # Mapping
-    actMap = maps.InjectActiveCells(mesh, active, np.log(1e-8), nC=mesh.nCz)
+    actMap = maps.InjectActiveCells(mesh, active, np.log(1e-8), nC=mesh.shape_cells[2])
     mapping = maps.ExpMap(mesh) * maps.SurjectVertical1D(mesh) * actMap
     mtrue = np.log(sigma[active])
 
@@ -80,11 +80,11 @@ def run(plotIt=True, saveFig=False):
     )
     print(
         "max x ",
-        mesh.vectorCCx.max(),
+        mesh.cell_centers_x.max(),
         "min z ",
-        mesh.vectorCCz.min(),
+        mesh.cell_centers_z.min(),
         "max z ",
-        mesh.vectorCCz.max(),
+        mesh.cell_centers_z.max(),
     )
 
     source_list = [
@@ -102,7 +102,7 @@ def run(plotIt=True, saveFig=False):
     # FDEM inversion
     np.random.seed(1)
     dmisfit = data_misfit.L2DataMisfit(simulation=prbFD, data=dataFD)
-    regMesh = discretize.TensorMesh([mesh.hz[mapping.maps[-1].indActive]])
+    regMesh = discretize.TensorMesh([mesh.h[2][mapping.maps[-1].indActive]])
     reg = regularization.WeightedLeastSquares(regMesh)
     opt = optimization.InexactGaussNewton(maxIterCG=10)
     invProb = inverse_problem.BaseInvProblem(dmisfit, reg, opt)
@@ -148,7 +148,7 @@ def run(plotIt=True, saveFig=False):
 
     # TDEM inversion
     dmisfit = data_misfit.L2DataMisfit(simulation=prbTD, data=dataTD)
-    regMesh = discretize.TensorMesh([mesh.hz[mapping.maps[-1].indActive]])
+    regMesh = discretize.TensorMesh([mesh.h[2][mapping.maps[-1].indActive]])
     reg = regularization.WeightedLeastSquares(regMesh)
     opt = optimization.InexactGaussNewton(maxIterCG=10)
     invProb = inverse_problem.BaseInvProblem(dmisfit, reg, opt)
@@ -178,18 +178,18 @@ def run(plotIt=True, saveFig=False):
         matplotlib.rcParams["font.size"] = fs
 
         # Plot the model
-        # z_true = np.repeat(mesh.vectorCCz[active][1:], 2, axis=0)
-        # z_true = np.r_[mesh.vectorCCz[active][0], z_true, mesh.vectorCCz[active][-1]]
-        activeN = mesh.vectorNz <= 0.0 + cs / 2.0
-        z_true = np.repeat(mesh.vectorNz[activeN][1:-1], 2, axis=0)
-        z_true = np.r_[mesh.vectorNz[activeN][0], z_true, mesh.vectorNz[activeN][-1]]
+        # z_true = np.repeat(mesh.cell_centers_z[active][1:], 2, axis=0)
+        # z_true = np.r_[mesh.cell_centers_z[active][0], z_true, mesh.cell_centers_z[active][-1]]
+        activeN = mesh.nodes_z <= 0.0 + cs / 2.0
+        z_true = np.repeat(mesh.nodes_z[activeN][1:-1], 2, axis=0)
+        z_true = np.r_[mesh.nodes_z[activeN][0], z_true, mesh.nodes_z[activeN][-1]]
         sigma_true = np.repeat(sigma[active], 2, axis=0)
 
         ax0.semilogx(sigma_true, z_true, "k-", lw=2, label="True")
 
         ax0.semilogx(
             np.exp(moptFD),
-            mesh.vectorCCz[active],
+            mesh.cell_centers_z[active],
             "bo",
             ms=6,
             markeredgecolor="k",
@@ -198,7 +198,7 @@ def run(plotIt=True, saveFig=False):
         )
         ax0.semilogx(
             np.exp(moptTD),
-            mesh.vectorCCz[active],
+            mesh.cell_centers_z[active],
             "r*",
             ms=10,
             markeredgecolor="k",

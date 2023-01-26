@@ -1,15 +1,12 @@
-import numpy as np
 import unittest
+
 import discretize
+import numpy as np
+from pymatsolver import SolverLU
+from scipy.stats import multivariate_normal
 from SimPEG import regularization
 from SimPEG.maps import Wires
-from SimPEG.utils import (
-    mkvc,
-    WeightedGaussianMixture,
-)
-from scipy.stats import multivariate_normal
-from scipy.sparse.linalg import spsolve, LinearOperator, bicgstab
-from pymatsolver import SolverLU
+from SimPEG.utils import WeightedGaussianMixture, mkvc
 
 
 class TestPGI(unittest.TestCase):
@@ -80,7 +77,6 @@ class TestPGI(unittest.TestCase):
             clf,
             approx_gradient=True,
             alpha_x=0.0,
-            alpha_s=0.0,
             wiresmap=self.wires,
             weights_list=self.cell_weights_list,
         )
@@ -190,7 +186,6 @@ class TestPGI(unittest.TestCase):
             clf,
             approx_gradient=True,
             alpha_x=0.0,
-            alpha_s=0.0,
             wiresmap=self.wires,
             weights_list=self.cell_weights_list,
         )
@@ -296,7 +291,6 @@ class TestPGI(unittest.TestCase):
             clf,
             approx_gradient=True,
             alpha_x=0.0,
-            alpha_s=0.0,
             wiresmap=self.wires,
             weights_list=self.cell_weights_list,
         )
@@ -402,7 +396,6 @@ class TestPGI(unittest.TestCase):
             clf,
             approx_gradient=True,
             alpha_x=0.0,
-            alpha_s=0.0,
             wiresmap=self.wires,
             weights_list=self.cell_weights_list,
         )

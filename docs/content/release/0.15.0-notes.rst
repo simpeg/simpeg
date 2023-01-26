@@ -4,6 +4,8 @@
 SimPEG 0.15.0 Release Notes
 ===========================
 
+May 19th, 2021
+
 This minor release encompasses many different additions and improvements that have been
 made to SimPEG since the previous release!
 

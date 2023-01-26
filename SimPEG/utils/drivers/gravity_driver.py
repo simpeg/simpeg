@@ -1,7 +1,7 @@
 import re
 import os
 from discretize import TensorMesh
-from discretize.utils.meshutils import active_from_xyz
+from discretize.utils import active_from_xyz
 
 try:
     from SimPEG import utils
@@ -49,12 +49,12 @@ class GravityDriver_Inv(object):
 
         # Line 1: Mesh
         line = fid.readline()
-        l_input = re.split("[!\s]", line)
+        l_input = re.split(r"[!\s]", line)
         mshfile = l_input[1].rstrip()
 
         # Line 2: Observation file
         line = fid.readline()
-        l_input = re.split("[!\s]", line)
+        l_input = re.split(r"[!\s]", line)
         obsfile = l_input[1].rstrip()
 
         # Line 3: Topo, active-dyn, active-static
@@ -62,7 +62,7 @@ class GravityDriver_Inv(object):
         staticInput = None
 
         line = fid.readline()
-        l_input = re.split("[!\s]", line)
+        l_input = re.split(r"[!\s]", line)
         if l_input[0] == "TOPO":
             topofile = l_input[1].rstrip()
 
@@ -74,7 +74,7 @@ class GravityDriver_Inv(object):
 
         # Line 4: Starting model
         line = fid.readline()
-        l_input = re.split("[!\s]", line)
+        l_input = re.split(r"[!\s]", line)
         if l_input[0] == "VALUE":
             mstart = float(l_input[1])
 
@@ -83,7 +83,7 @@ class GravityDriver_Inv(object):
 
         # Line 5: Reference model
         line = fid.readline()
-        l_input = re.split("[!\s]", line)
+        l_input = re.split(r"[!\s]", line)
         if l_input[0] == "VALUE":
             mref = float(l_input[1])
 
@@ -92,7 +92,7 @@ class GravityDriver_Inv(object):
 
         # Line 6: Cell weights
         line = fid.readline()
-        l_input = re.split("[!\s]", line)
+        l_input = re.split(r"[!\s]", line)
         if l_input[0] == "DEFAULT":
             wgtfile = None
 
@@ -101,7 +101,7 @@ class GravityDriver_Inv(object):
 
         # Line 7: Target chi-factor
         line = fid.readline()
-        l_input = re.split("[!\s]", line)
+        l_input = re.split(r"[!\s]", line)
         if l_input[0] == "DEFAULT":
             chi = 1.0
 
@@ -110,7 +110,7 @@ class GravityDriver_Inv(object):
 
         # Line 8: Alpha values
         line = fid.readline()
-        l_input = re.split("[!\s]", line)
+        l_input = re.split(r"[!\s]", line)
         if l_input[0] == "VALUE":
 
             val = np.array(l_input[1:5])
@@ -122,7 +122,7 @@ class GravityDriver_Inv(object):
 
         # Line 9: Bounds
         line = fid.readline()
-        l_input = re.split("[!\s]", line)
+        l_input = re.split(r"[!\s]", line)
         if l_input[0] == "VALUE":
             val = np.array(l_input[1:3])
             bounds = val.astype(np.float)
@@ -135,7 +135,7 @@ class GravityDriver_Inv(object):
 
         # Line 10: Norms
         line = fid.readline()
-        l_input = re.split("[!\s]", line)
+        l_input = re.split(r"[!\s]", line)
         if l_input[0] == "VALUE":
             val = np.array(l_input[1:6])
             lpnorms = val.astype(np.float)
@@ -145,7 +145,7 @@ class GravityDriver_Inv(object):
 
         # Line 11: Treshold values
         line = fid.readline()
-        l_input = re.split("[!\s]", line)
+        l_input = re.split(r"[!\s]", line)
         if l_input[0] == "VALUE":
             val = np.array(l_input[1:3])
             eps = val.astype(np.float)
@@ -169,7 +169,7 @@ class GravityDriver_Inv(object):
     @property
     def mesh(self):
         if getattr(self, "_mesh", None) is None:
-            self._mesh = TensorMesh.readUBC(self.basePath + self.mshfile)
+            self._mesh = TensorMesh.read_UBC(self.basePath + self.mshfile)
         return self._mesh
 
     @property
@@ -243,7 +243,7 @@ class GravityDriver_Inv(object):
                 self._m0 = np.ones(self.nC) * self.mstart
             else:
 
-                self._m0 = TensorMesh.readModelUBC(
+                self._m0 = TensorMesh.read_model_UBC(
                     self.mesh, self.basePath + self.mstart
                 )
 
@@ -255,7 +255,7 @@ class GravityDriver_Inv(object):
             if isinstance(self._mrefInput, float):
                 self._mref = np.ones(self.nC) * self._mrefInput
             else:
-                self._mref = TensorMesh.readModelUBC(
+                self._mref = TensorMesh.read_model_UBC(
                     self.mesh, self.basePath + self._mrefInput
                 )
                 self._mref = self._mref[self.activeCells]
@@ -266,7 +266,7 @@ class GravityDriver_Inv(object):
         if getattr(self, "_activeModel", None) is None:
             if isinstance(self._staticInput, str):
                 # Read from file active cells with 0:air, 1:dynamic, -1 static
-                self._activeModel = TensorMesh.readModelUBC(
+                self._activeModel = TensorMesh.read_model_UBC(
                     self.mesh, self.basePath + self._staticInput
                 )
 

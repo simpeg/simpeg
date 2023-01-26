@@ -1,4 +1,3 @@
-from __future__ import print_function
 import unittest
 import discretize
 
@@ -24,8 +23,12 @@ class DCProblemAnalyticTests(unittest.TestCase):
         mesh = discretize.TensorMesh([hx, hy, hz], x0="CCN")
         sigma = np.ones(mesh.nC) * 1e-2
 
-        x = mesh.vectorCCx[(mesh.vectorCCx > -100) & (mesh.vectorCCx < 100)]
-        y = mesh.vectorCCy[(mesh.vectorCCy > -100) & (mesh.vectorCCy < 100)]
+        x = mesh.cell_centers_x[
+            (mesh.cell_centers_x > -100) & (mesh.cell_centers_x < 100)
+        ]
+        y = mesh.cell_centers_y[
+            (mesh.cell_centers_y > -100) & (mesh.cell_centers_y < 100)
+        ]
 
         Aloc = np.r_[-200.0, 0.0, 0.0]
         Bloc = np.r_[200.0, 0.0, 0.0]
@@ -143,8 +146,12 @@ class DCProblemAnalyticTests_Dirichlet(unittest.TestCase):
         mesh = discretize.TensorMesh([hx, hy, hz], x0="CCC")
         sigma = np.ones(mesh.nC) * 1e-2
 
-        x = mesh.vectorCCx[(mesh.vectorCCx > -155.0) & (mesh.vectorCCx < 155.0)]
-        y = mesh.vectorCCy[(mesh.vectorCCy > -155.0) & (mesh.vectorCCy < 155.0)]
+        x = mesh.cell_centers_x[
+            (mesh.cell_centers_x > -155.0) & (mesh.cell_centers_x < 155.0)
+        ]
+        y = mesh.cell_centers_y[
+            (mesh.cell_centers_y > -155.0) & (mesh.cell_centers_y < 155.0)
+        ]
 
         Aloc = np.r_[-200.0, 0.0, 0.0]
         Bloc = np.r_[200.0, 0.0, 0.0]
@@ -202,8 +209,12 @@ class DCProblemAnalyticTests_Mixed(unittest.TestCase):
         mesh = discretize.TensorMesh([hx, hy, hz], x0="CCN")
         sigma = np.ones(mesh.nC) * 1e-2
 
-        x = mesh.vectorCCx[(mesh.vectorCCx > -155.0) & (mesh.vectorCCx < 155.0)]
-        y = mesh.vectorCCy[(mesh.vectorCCy > -155.0) & (mesh.vectorCCy < 155.0)]
+        x = mesh.cell_centers_x[
+            (mesh.cell_centers_x > -155.0) & (mesh.cell_centers_x < 155.0)
+        ]
+        y = mesh.cell_centers_y[
+            (mesh.cell_centers_y > -155.0) & (mesh.cell_centers_y < 155.0)
+        ]
 
         Aloc = np.r_[-200.0, 0.0, 0.0]
 

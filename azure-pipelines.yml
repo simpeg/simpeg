@@ -15,12 +15,57 @@ pr:
     exclude:
     - '*no-ci*'
 stages:
+
+- stage: StyleChecks
+  displayName: "Style Checks"
+  jobs:
+    - job:
+      displayName: Run style checks with Black
+      pool:
+        vmImage: ubuntu-latest
+      variables:
+        python.version: '3.7'
+      steps:
+        - script: |
+            pip install -r requirements_style.txt
+          displayName: "Install dependencies to run the checks"
+        - script: make black
+          displayName: "Run black"
+
+    - job:
+      displayName: Run (permissive) style checks with flake8
+      pool:
+        vmImage: ubuntu-latest
+      variables:
+        python.version: '3.7'
+      steps:
+        - script: |
+            pip install -r requirements_style.txt
+          displayName: "Install dependencies to run the checks"
+        - script: make flake-permissive
+          displayName: "Run flake8"
+
+    - job:
+      displayName: Run style checks with flake8 (allowed to fail)
+      pool:
+        vmImage: ubuntu-latest
+      variables:
+        python.version: '3.7'
+      steps:
+        - script: |
+            pip install -r requirements_style.txt
+          displayName: "Install dependencies to run the checks"
+        - script: FLAKE8_OPTS="--exit-zero" make flake
+          displayName: "Run flake8"
+
 - stage: Testing
+  dependsOn: StyleChecks
   jobs:
     - template: ./.azure-pipelines/matrix.yml
 
 - stage: Deploy
-  condition: and(succeeded(), startsWith(variables['build.sourceBranch'], 'refs/tags/'))
+  dependsOn: Testing
+  condition: startsWith(variables['build.sourceBranch'], 'refs/tags/')
   jobs:
     - job:
       displayName: Deploy Docs and source
@@ -28,7 +73,7 @@ stages:
         vmImage: ubuntu-latest
       variables:
         python.version: '3.7'
-      timeoutInMinutes: 120
+      timeoutInMinutes: 180
       steps:
         - script: |
             git config --global user.name ${GH_NAME}
@@ -39,24 +84,29 @@ stages:
             GH_NAME: $(gh.name)
             GH_EMAIL: $(gh.email)
 
-        - script: echo '##vso[task.prependpath]$CONDA/bin'
-          displayName: Add conda to PATH
-
-        - script: conda create --yes --quiet --name deploy python=$(python.version) pip
-          displayName: Create Anaconda environment
+        - script: |
+            wget -O Mambaforge.sh  "https://github.com/conda-forge/miniforge/releases/latest/download/Mambaforge-$(uname)-$(uname -m).sh"
+            bash Mambaforge.sh -b -p "${HOME}/conda"
+          displayName: Install mamba
 
         - script: |
-            eval "$(conda shell.bash hook)"
-            conda activate deploy
-            conda install --yes --quiet numpy scipy matplotlib ipython h5py
-            conda install --yes -c conda-forge "discretize>=0.7.1" empymod geoana properties vectormath pandas dask "zarr<2.13.0" fsspec python-kaleido pymatsolver
-            pip install -r requirements_dev.txt
+            source "${HOME}/conda/etc/profile.d/conda.sh"
+            source "${HOME}/conda/etc/profile.d/mamba.sh"
+            echo "  - python="$(python.version) >> environment_test.yml
+            mamba env create -f environment_test.yml
+            conda activate simpeg-test
+            pip install pytest-azurepipelines
+          displayName: Create Anaconda testing environment
+
+        - script: |
+            source "${HOME}/conda/etc/profile.d/conda.sh"
+            conda activate simpeg-test
             pip install -e .
-          displayName: Install requirements and build
+          displayName: Build package
 
         - script: |
-            eval "$(conda shell.bash hook)"
-            conda activate deploy
+            source "${HOME}/conda/etc/profile.d/conda.sh"
+            conda activate simpeg-test
             python setup.py sdist
             twine upload --skip-existing dist/*
           displayName: Deploy source
@@ -65,8 +115,8 @@ stages:
             TWINE_PASSWORD: $(twine.password)
 
         - script: |
-            eval "$(conda shell.bash hook)"
-            conda activate deploy
+            source "${HOME}/conda/etc/profile.d/conda.sh"
+            conda activate simpeg-test
             export KMP_WARNINGS=0
             cd docs
             make html

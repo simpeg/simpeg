@@ -1,12 +1,7 @@
-from __future__ import print_function
-from __future__ import absolute_import
-from __future__ import division
-
 import matplotlib.pyplot as plt
 import numpy as np
 import numpy.lib.recfunctions as recFunc
 from scipy.constants import mu_0
-from scipy import interpolate as sciint
 
 import SimPEG as simpeg
 from SimPEG.electromagnetics.natural_source.survey import Survey, Data
@@ -445,10 +440,13 @@ def plotMT1DModelData(problem, models, symList=None):
     return fig
 
 
-def plotImpAppRes(dataArrays, plotLoc, textStr=[]):
+def plotImpAppRes(dataArrays, plotLoc, textStr=None):
     """
     Plots amplitude impedance and phase
     """
+    # Define textStr as empty list if it's None
+    if textStr is None:
+        textStr = []
     # Make the figure and axes
     fig, axT = plt.subplots(2, 2, sharex=True)
     axes = axT.ravel()

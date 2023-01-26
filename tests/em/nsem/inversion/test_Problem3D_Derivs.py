@@ -1,7 +1,3 @@
-from __future__ import print_function
-from __future__ import absolute_import
-from __future__ import division
-
 # Test functions
 import unittest
 import numpy as np
@@ -38,7 +34,7 @@ def DerivJvecTest(inputSetup, comp="All", freq=False, expMap=True):
     def fun(x):
         return simulation.dpred(x), lambda x: simulation.Jvec(m, x)
 
-    return tests.checkDerivative(fun, m, num=3, plotIt=False, eps=FLR)
+    return tests.check_derivative(fun, m, num=3, plotIt=False, eps=FLR)
 
 
 def DerivProjfieldsTest(inputSetup, comp="All", freq=False):
@@ -68,7 +64,7 @@ def DerivProjfieldsTest(inputSetup, comp="All", freq=False):
             lambda t: rx.evalDeriv(src, survey.mesh, f0, mkvc(t, 2)),
         )
 
-    return tests.checkDerivative(fun, u0, num=3, plotIt=False, eps=FLR)
+    return tests.check_derivative(fun, u0, num=3, plotIt=False, eps=FLR)
 
 
 class NSEM_DerivTests(unittest.TestCase):

@@ -4,6 +4,8 @@
 SimPEG 0.14.1 Release Notes
 ===========================
 
+June 8th, 2020
+
 This release contains a few small bug fixes and parameter renaming for a few
 functions.
 

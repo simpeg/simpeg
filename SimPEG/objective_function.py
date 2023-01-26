@@ -1,12 +1,5 @@
-from __future__ import absolute_import
-from __future__ import print_function
-from __future__ import unicode_literals
-from __future__ import division
-
 import numpy as np
 import scipy.sparse as sp
-from six import integer_types
-import warnings
 
 from discretize.tests import check_derivative
 
@@ -75,8 +68,8 @@ class BaseObjectiveFunction(BaseSimPEG):
         """
         A `SimPEG.Maps` instance
         """
-        if getattr(self, "_mapping") is None:
-            if getattr(self, "_nP") is not None:
+        if self._mapping is None:
+            if self._nP is not None:
                 self._mapping = self.mapPair(nP=self.nP)
             else:
                 self._mapping = self.mapPair()
@@ -88,14 +81,6 @@ class BaseObjectiveFunction(BaseSimPEG):
             "mapping must be an instance of a {}, not a {}"
         ).format(self.mapPair, value.__class__.__name__)
         self._mapping = value
-
-    @timeIt
-    def __call__(self, x, f=None):
-        raise NotImplementedError(
-            "The method __call__ has not been implemented for {}".format(
-                self.__class__.__name__
-            )
-        )
 
     @timeIt
     def deriv(self, x, **kwargs):
@@ -236,11 +221,13 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
 
     """
 
-    _multiplier_types = (float, None, Zero, np.float64) + integer_types  # Directive
+    _multiplier_types = (float, None, Zero, np.float64, int, np.integer)  # Directive
     _multipliers = None
 
-    def __init__(self, objfcts=[], multipliers=None, **kwargs):
+    def __init__(self, objfcts=None, multipliers=None, **kwargs):
 
+        if objfcts is None:
+            objfcts = []
         if multipliers is None:
             multipliers = len(objfcts) * [1]
 
@@ -408,7 +395,7 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
 
 
 class L2ObjectiveFunction(BaseObjectiveFunction):
-    """
+    r"""
     An L2-Objective Function
 
     .. math::

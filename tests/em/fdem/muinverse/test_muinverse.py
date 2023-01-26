@@ -2,7 +2,6 @@ import discretize
 from SimPEG import maps, utils, tests
 from SimPEG.electromagnetics import frequency_domain as fdem
 import numpy as np
-from scipy.constants import mu_0
 
 import unittest
 
@@ -18,7 +17,7 @@ def setupMeshModel():
     hx = [(cs, nc), (cs, npad, 1.3)]
     hz = [(cs, npad, -1.3), (cs, nc), (cs, npad, 1.3)]
 
-    mesh = discretize.CylMesh([hx, 1.0, hz], "0CC")
+    mesh = discretize.CylindricalMesh([hx, 1.0, hz], "0CC")
     muMod = 1 + MuMax * np.random.randn(mesh.nC)
     sigmaMod = np.random.randn(mesh.nC)
 
@@ -36,7 +35,7 @@ def setupProblem(
 ):
     rxcomp = ["real", "imag"]
 
-    loc = utils.ndgrid([mesh.vectorCCx, np.r_[0.0], mesh.vectorCCz])
+    loc = utils.ndgrid([mesh.cell_centers_x, np.r_[0.0], mesh.cell_centers_z])
 
     if prbtype in ["ElectricField", "MagneticFluxDensity"]:
         rxfields_y = ["ElectricField", "CurrentDensity"]
@@ -74,7 +73,7 @@ def setupProblem(
         )
 
     elif prbtype in ["MagneticField", "CurrentDensity"]:
-        ind = utils.closestPoints(mesh, src_loc, "Fz") + mesh.vnF[0]
+        ind = utils.closest_points_index(mesh, src_loc, "Fz") + mesh.vnF[0]
         vec = np.zeros(mesh.nF)
         vec[ind] = 1.0
 
@@ -181,7 +180,7 @@ class MuTests(unittest.TestCase):
 
         dx = np.random.rand(*mod.shape) * (mod.max() - mod.min()) * 0.01
 
-        return tests.checkDerivative(fun, mod, dx=dx, num=3, plotIt=False)
+        return tests.check_derivative(fun, mod, dx=dx, num=3, plotIt=False)
 
     def JtvecTest(
         self, prbtype="ElectricField", sigmaInInversion=False, invertMui=False

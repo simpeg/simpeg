@@ -101,7 +101,7 @@ class MagInvLinProblemTest(unittest.TestCase):
             self.mesh,
             survey=survey,
             chiMap=idenMap,
-            actInd=actv,
+            ind_active=actv,
             store_sensitivities="ram",
         )
         self.sim = sim
@@ -149,7 +149,7 @@ class MagInvLinProblemTest(unittest.TestCase):
         # self.mesh.plot_slice(self.actvMap*self.model, ax=ax, normal="Y", grid=True)
         # plt.show()
 
-        self.assertLess(residual, .5)
+        self.assertLess(residual, 0.5)
 
     def tearDown(self):
         # Clean up the working directory

@@ -17,6 +17,7 @@ dirs_to_test = [
     "11-flow",
     "12-seismic",
     "13-joint_inversion",
+    "14-pgi",
 ]
 
 
@@ -39,8 +40,8 @@ def create_runner(script_path):
 
 
 # Programatically add tests to Examples
-for dir in dirs_to_test:
-    script_dir = os.path.sep.join(example_dir + [dir])
+for directory in dirs_to_test:
+    script_dir = os.path.sep.join(example_dir + [directory])
     os.chdir(script_dir)
     scripts = glob.glob(os.path.sep.join([script_dir] + ["*.py"]))
     scripts.sort()

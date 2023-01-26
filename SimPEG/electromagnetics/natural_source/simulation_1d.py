@@ -1,33 +1,36 @@
 import numpy as np
-import properties
 from scipy.constants import mu_0
 
 from ...simulation import BaseSimulation
 from ... import props
+from ...utils import validate_type
 from ..frequency_domain.survey import Survey
 
 
 class Simulation1DRecursive(BaseSimulation):
-    """
+    r"""
     Simulation class for the 1D MT problem using recursive solution.
 
-    This solution is defined with z +ve upward and a :math:`+i\\omega t`
+    This solution is defined with z +ve upward and a :math:`+i\omega t`
     Fourier convention. First, let:
 
     .. math::
-        \\alpha_i^2 = i\\omega\\mu_i\\sigma_i
+
+        \alpha_i^2 = i\omega\mu_i\sigma_i
 
     The complex impedance in layer :math:`i` is given by:
 
     .. math::
-        Z_i = \\dfrac{\\alpha_i}{\\sigma_i} \\Bigg [
-        \\dfrac{\\sigma_i Z_{i+1} - \\alpha_i tanh(\\alpha_i h_i)}
-        {\\alpha_i - \\sigma_i Z_{i+1}tanh(\\alpha_i h_i)} \\Bigg ]
+
+        Z_i = \dfrac{\alpha_i}{\sigma_i} \Bigg [
+        \dfrac{\sigma_i Z_{i+1} - \alpha_i tanh(\alpha_i h_i)}
+        {\alpha_i - \sigma_i Z_{i+1}tanh(\alpha_i h_i)} \Bigg ]
 
     where the complex impedance in the bottom half-space is given by:
 
     .. math::
-        Z_N = - \\frac{\\alpha_N}{\\sigma_N}
+
+        Z_N = - \frac{\alpha_N}{\sigma_N}
 
 
     """
@@ -41,9 +44,58 @@ class Simulation1DRecursive(BaseSimulation):
         "thicknesses of the layers starting from the bottom of the mesh"
     )
 
-    # Must be 1D survey object
-    survey = properties.Instance("a frequency_domain survey", Survey, required=True)
-    fix_Jmatrix = False
+    def __init__(
+        self,
+        survey=None,
+        sigma=None,
+        sigmaMap=None,
+        rho=None,
+        rhoMap=None,
+        thicknesses=None,
+        thicknessesMap=None,
+        fix_Jmatrix=False,
+        **kwargs
+    ):
+        super().__init__(mesh=None, survey=survey, **kwargs)
+        self.fix_Jmatrix = fix_Jmatrix
+        self.sigma = sigma
+        self.rho = rho
+        self.thicknesses = thicknesses
+        self.sigmaMap = sigmaMap
+        self.rhoMap = rhoMap
+        self.thicknessesMap = thicknessesMap
+
+    @property
+    def survey(self):
+        """The simulations survey.
+
+        Returns
+        -------
+        SimPEG.electromagnetics.frequency_domain.survey.Survey
+        """
+        if self._survey is None:
+            raise AttributeError("Simulation must have a survey set")
+        return self._survey
+
+    @survey.setter
+    def survey(self, value):
+        if value is not None:
+            value = validate_type("survey", value, Survey, cast=False)
+        self._survey = value
+
+    @property
+    def fix_Jmatrix(self):
+        """Whether to fix the sensitivity matrix.
+
+        Returns
+        -------
+        bool
+        """
+        return self._fix_Jmatrix
+
+    @fix_Jmatrix.setter
+    def fix_Jmatrix(self, value):
+        self._fix_Jmatrix = validate_type("fix_Jmatrix", value, bool)
 
     # TODO: These should be moved to geoana
     def _get_recursive_impedances(self, frequencies, thicknesses, sigmas):

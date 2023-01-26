@@ -36,13 +36,13 @@ class VRM_fwd_tests(unittest.TestCase):
         )
 
         receiver_list = [
-            vrm.receivers.Point(loc_rx, times=times, fieldType="dhdt", orientation="x")
+            vrm.receivers.Point(loc_rx, times=times, field_type="dhdt", orientation="x")
         ]
         receiver_list.append(
-            vrm.receivers.Point(loc_rx, times=times, fieldType="dhdt", orientation="y")
+            vrm.receivers.Point(loc_rx, times=times, field_type="dhdt", orientation="y")
         )
         receiver_list.append(
-            vrm.receivers.Point(loc_rx, times=times, fieldType="dhdt", orientation="z")
+            vrm.receivers.Point(loc_rx, times=times, field_type="dhdt", orientation="z")
         )
 
         alpha = np.random.uniform(0, np.pi)
@@ -118,13 +118,13 @@ class VRM_fwd_tests(unittest.TestCase):
         )
 
         receiver_list = [
-            vrm.receivers.Point(loc_rx, times=times, fieldType="dhdt", orientation="x")
+            vrm.receivers.Point(loc_rx, times=times, field_type="dhdt", orientation="x")
         ]
         receiver_list.append(
-            vrm.receivers.Point(loc_rx, times=times, fieldType="dhdt", orientation="y")
+            vrm.receivers.Point(loc_rx, times=times, field_type="dhdt", orientation="y")
         )
         receiver_list.append(
-            vrm.receivers.Point(loc_rx, times=times, fieldType="dhdt", orientation="z")
+            vrm.receivers.Point(loc_rx, times=times, field_type="dhdt", orientation="z")
         )
 
         alpha = np.random.uniform(0, np.pi)
@@ -197,7 +197,7 @@ class VRM_fwd_tests(unittest.TestCase):
         a = 0.1
         loc_rx = np.c_[0.0, 0.0, z]
         receiver_list = [
-            vrm.receivers.Point(loc_rx, times=times, fieldType="dhdt", orientation="z")
+            vrm.receivers.Point(loc_rx, times=times, field_type="dhdt", orientation="z")
         ]
         txList = [
             vrm.sources.CircLoop(
@@ -254,12 +254,12 @@ class VRM_fwd_tests(unittest.TestCase):
         a = 5
         receiver_list = [
             vrm.receivers.Point(
-                np.c_[a, 0.0, z], times=times, fieldType="dhdt", orientation="x"
+                np.c_[a, 0.0, z], times=times, field_type="dhdt", orientation="x"
             )
         ]
         receiver_list.append(
             vrm.receivers.Point(
-                np.c_[0.0, a, z], times=times, fieldType="dhdt", orientation="y"
+                np.c_[0.0, a, z], times=times, field_type="dhdt", orientation="y"
             )
         )
         txList = [
@@ -365,7 +365,7 @@ class VRM_fwd_tests(unittest.TestCase):
 
         loc_rx = np.c_[4.0, 4.0, 8.25]
         receiver_list = [
-            vrm.receivers.Point(loc_rx, times=times, fieldType="dhdt", orientation="z")
+            vrm.receivers.Point(loc_rx, times=times, field_type="dhdt", orientation="z")
         ]
         txList = [
             vrm.sources.MagDipole(
@@ -457,13 +457,13 @@ class VRM_fwd_tests(unittest.TestCase):
         )
 
         receiver_list1 = [
-            vrm.receivers.Point(loc_rx, times=times, fieldType="dhdt", orientation="x")
+            vrm.receivers.Point(loc_rx, times=times, field_type="dhdt", orientation="x")
         ]
         receiver_list1.append(
-            vrm.receivers.Point(loc_rx, times=times, fieldType="dhdt", orientation="y")
+            vrm.receivers.Point(loc_rx, times=times, field_type="dhdt", orientation="y")
         )
         receiver_list1.append(
-            vrm.receivers.Point(loc_rx, times=times, fieldType="dhdt", orientation="z")
+            vrm.receivers.Point(loc_rx, times=times, field_type="dhdt", orientation="z")
         )
 
         w = 0.1
@@ -473,8 +473,8 @@ class VRM_fwd_tests(unittest.TestCase):
                 loc_rx,
                 times=times,
                 width=w,
-                nTurns=N,
-                fieldType="dhdt",
+                n_turns=N,
+                field_type="dhdt",
                 orientation="x",
             )
         ]
@@ -483,8 +483,8 @@ class VRM_fwd_tests(unittest.TestCase):
                 loc_rx,
                 times=times,
                 width=w,
-                nTurns=N,
-                fieldType="dhdt",
+                n_turns=N,
+                field_type="dhdt",
                 orientation="y",
             )
         )
@@ -493,8 +493,8 @@ class VRM_fwd_tests(unittest.TestCase):
                 loc_rx,
                 times=times,
                 width=w,
-                nTurns=N,
-                fieldType="dhdt",
+                n_turns=N,
+                field_type="dhdt",
                 orientation="z",
             )
         )

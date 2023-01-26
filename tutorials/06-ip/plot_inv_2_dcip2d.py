@@ -38,7 +38,6 @@ from discretize.utils import mkvc, refine_tree_xyz
 from SimPEG.utils import surface2ind_topo, model_builder
 from SimPEG import (
     maps,
-    data,
     data_misfit,
     regularization,
     optimization,
@@ -429,8 +428,8 @@ recovered_conductivity = conductivity_map * recovered_conductivity_model
 recovered_conductivity[~ind_active] = np.NaN
 
 ax1 = fig.add_axes([0.14, 0.17, 0.68, 0.7])
-mesh.plotImage(
-    recovered_conductivity, normal="Y", ax=ax1, grid=False, pcolorOpts={"norm": norm}
+mesh.plot_image(
+    recovered_conductivity, normal="Y", ax=ax1, grid=False, pcolor_opts={"norm": norm}
 )
 ax1.set_xlim(-600, 600)
 ax1.set_ylim(-600, 0)

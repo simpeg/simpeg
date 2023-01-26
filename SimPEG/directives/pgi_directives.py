@@ -4,33 +4,25 @@
 #                                                                             #
 ###############################################################################
 
-from __future__ import print_function
+import copy
 
 import numpy as np
-import matplotlib.pyplot as plt
-import copy
-from ..objective_function import ComboObjectiveFunction
+
+from ..directives import InversionDirective, MultiTargetMisfits
 from ..regularization import (
-    Smallness,
-    SparseSmallness,
-    Sparse,
-    PGIsmallness,
-    PGIwithNonlinearRelationshipsSmallness,
     PGI,
+    PGIsmallness,
     SmoothnessFirstOrder,
     SparseSmoothnessFirstOrder,
     PGIwithRelationships,
 )
 from ..utils import (
-    mkvc,
-    WeightedGaussianMixture,
-    GaussianMixtureWithPrior,
     GaussianMixtureWithNonlinearRelationships,
     GaussianMixtureWithNonlinearRelationshipsWithPrior,
-    Zero,
+    GaussianMixtureWithPrior,
+    WeightedGaussianMixture,
+    mkvc,
 )
-from ..directives import InversionDirective, MultiTargetMisfits
-from ..utils.code_utils import deprecate_property
 
 
 class PGI_UpdateParameters(InversionDirective):

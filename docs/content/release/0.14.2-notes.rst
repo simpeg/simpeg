@@ -4,6 +4,8 @@
 SimPEG 0.14.2 Release Notes
 ===========================
 
+July 21st, 2020
+
 This release contains some bug fixes that have cropped up since the last release,
 as well as a few additions from some new contributors!
 

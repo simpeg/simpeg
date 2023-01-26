@@ -37,7 +37,7 @@ def readSeepageModel(fname, mesh=None, xsurf=None, ysurf=None):
         hx = [(cs, npad, -1.3), (cs, ncx), (cs, npad, 1.3)]
         hy = [(cs, npad, -1.3), (cs, ncy)]
         mesh = Mesh.TensorMesh([hx, hy], x0=[xmin, ymin])
-        mesh._x0 = np.r_[xmin - mesh.hx[:10].sum(), xmin - mesh.hy[:10].sum()]
+        mesh._x0 = np.r_[xmin - mesh.h[0][:10].sum(), xmin - mesh.h[1][:10].sum()]
         # ...
         xsurf = np.r_[-1e10, 55, 90, 94, 109, 112, 126.5, +1e10]
         ysurf = np.r_[27.5, 27.5, 43.2, 43.2, 35, 35, 27.5, 27.5]
@@ -88,7 +88,7 @@ def writeVectorUBC(mesh, fileName, model):
 
     for ii in range(3):
         # Reshape model to a matrix
-        modelMat = mesh.r(model[:, ii], "CC", "CC", "M")
+        modelMat = mesh.reshape(model[:, ii], "CC", "CC", "M")
         # Transpose the axes
         modelMatT = modelMat.transpose((2, 0, 1))
         # Flip UBC order
@@ -114,17 +114,29 @@ def readVectorUBC(mesh, fileName):
     # Fist line is the size of the model
     # model = np.array(model.ravel()[0].split(), dtype=float)
 
-    vx = np.reshape(model[:, 0], (mesh.nCz, mesh.nCx, mesh.nCy), order="F")
+    vx = np.reshape(
+        model[:, 0],
+        (mesh.shape_cells[2], mesh.shape_cells[0], mesh.shape_cells[1]),
+        order="F",
+    )
     vx = vx[::-1, :, :]
     vx = np.transpose(vx, (1, 2, 0))
     vx = Utils.mkvc(vx)
 
-    vy = np.reshape(model[:, 1], (mesh.nCz, mesh.nCx, mesh.nCy), order="F")
+    vy = np.reshape(
+        model[:, 1],
+        (mesh.shape_cells[2], mesh.shape_cells[0], mesh.shape_cells[1]),
+        order="F",
+    )
     vy = vy[::-1, :, :]
     vy = np.transpose(vy, (1, 2, 0))
     vy = Utils.mkvc(vy)
 
-    vz = np.reshape(model[:, 2], (mesh.nCz, mesh.nCx, mesh.nCy), order="F")
+    vz = np.reshape(
+        model[:, 2],
+        (mesh.shape_cells[2], mesh.shape_cells[0], mesh.shape_cells[1]),
+        order="F",
+    )
     vz = vz[::-1, :, :]
     vz = np.transpose(vz, (1, 2, 0))
     vz = Utils.mkvc(vz)

@@ -1,11 +1,9 @@
-from __future__ import print_function
 import unittest
 import numpy as np
 
 # from SimPEG.potential_fields import gravity
 from SimPEG.utils.drivers import GravityDriver_Inv
 from SimPEG.utils import io_utils
-from scipy.constants import mu_0
 import shutil
 import os
 

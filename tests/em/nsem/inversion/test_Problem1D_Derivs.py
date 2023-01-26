@@ -1,13 +1,8 @@
-from __future__ import print_function
-from __future__ import absolute_import
-from __future__ import division
-
 import unittest
 import numpy as np
 from scipy.constants import mu_0
-from SimPEG import maps, mkvc, tests
+from SimPEG import maps, tests
 from SimPEG.electromagnetics import natural_source as nsem
-from discretize import TensorMesh
 
 TOL = 1e-4
 FLR = 1e-20  # "zero", so if residual below this --> pass regardless of order
@@ -57,7 +52,7 @@ def DerivJvecTest_1D(halfspace_value, freq=False, expMap=True):
     def fun(x):
         return simulation.dpred(x), lambda x: simulation.Jvec(x0, x)
 
-    return tests.checkDerivative(fun, x0, num=6, plotIt=False, eps=FLR)
+    return tests.check_derivative(fun, x0, num=6, plotIt=False, eps=FLR)
 
 
 def DerivJvecTest(halfspace_value, freq=False, expMap=True):
@@ -82,7 +77,7 @@ def DerivJvecTest(halfspace_value, freq=False, expMap=True):
     def fun(x):
         return simulation.dpred(x), lambda x: simulation.Jvec(x0, x)
 
-    return tests.checkDerivative(fun, x0, num=4, plotIt=False, eps=FLR)
+    return tests.check_derivative(fun, x0, num=4, plotIt=False, eps=FLR)
 
 
 class NSEM_DerivTests(unittest.TestCase):

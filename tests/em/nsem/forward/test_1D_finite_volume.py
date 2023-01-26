@@ -2,7 +2,6 @@ import numpy as np
 from discretize import TensorMesh
 from SimPEG.electromagnetics import natural_source as nsem
 from SimPEG import maps
-import matplotlib.pyplot as plt
 from pymatsolver import Pardiso
 import unittest
 
@@ -20,7 +19,7 @@ class FiniteVolume1DTest(unittest.TestCase):
         npad = 30
         pf = 1.2
         mesh = TensorMesh([[(csz, npad, -pf), (csz, nc), (csz, npad)]], "N")
-        mesh.x0 = np.r_[-mesh.hx[:-npad].sum()]
+        mesh.x0 = np.r_[-mesh.h[0][:-npad].sum()]
 
         self.npad = npad
         self.mesh = mesh

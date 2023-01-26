@@ -1,5 +1,3 @@
-import discretize
-
 from .mat_utils import mkvc, ndgrid, uniqueRows
 import numpy as np
 from scipy.interpolate import griddata, interp1d
@@ -9,26 +7,32 @@ import scipy.sparse as sp
 
 
 def surface2ind_topo(mesh, topo, gridLoc="CC", method="nearest", fill_value=np.nan):
-    """
-    Get active indices from topography
+    """Get indices of active cells from topography.
+
+    For a mesh and surface topography, this function returns the indices of cells
+    lying below the discretized surface topography.
 
     Parameters
     ----------
-
-    :param TensorMesh mesh: TensorMesh object on which to discretize the topography
-    :param numpy.ndarray topo: [X,Y,Z] topographic data
-    :param str gridLoc: 'CC' or 'N'. Default is 'CC'.
-                        Discretize the topography
-                        on cells-center 'CC' or nodes 'N'
-    :param str method: 'nearest' or 'linear' or 'cubic'. Default is 'nearest'.
-                       Interpolation method for the topographic data
-    :param float fill_value: default is np.nan. Filling value for extrapolation
+    mesh : discretize.TensorMesh or discretize.TreeMesh
+        Mesh on which you want to identify active cells
+    topo : (n, 3) numpy.ndarray
+        Topography data as a ``numpyndarray`` with columns [x,y,z]; can use [x,z] for 2D meshes.
+        Topography data can be unstructured.
+    gridLoc : str {'CC', 'N'}
+        If 'CC', all cells whose centers are below the topography are active cells.
+        If 'N', then cells must lie entirely below the topography in order to be active cells.
+    method : str {'nearest','linear','cubic'}
+        Interpolation method for approximating topography at cell's horizontal position.
+        Default is 'nearest'.
+    fill_value : float
+        Defines the elevation for cells outside the horizontal extent of the topography data.
+        Default is :py:class:`numpy.nan`.
 
     Returns
     -------
-
-    :param numpy.ndarray actind: index vector for the active cells on the mesh
-                               below the topography
+    numpy.ndarray of int
+        Index vector for cells lying below the topography
     """
     if mesh._meshType == "TENSOR":
 
@@ -53,7 +57,7 @@ def surface2ind_topo(mesh, topo, gridLoc="CC", method="nearest", fill_value=np.n
                 topo = np.vstack((topo, np.c_[XYOut, topoOut]))
 
             if gridLoc == "CC":
-                XY = ndgrid(mesh.vectorCCx, mesh.vectorCCy)
+                XY = ndgrid(mesh.cell_centers_x, mesh.cell_centers_y)
                 Zcc = mesh.gridCC[:, 2].reshape(
                     (np.prod(mesh.vnC[:2]), mesh.shape_cells[2]), order="F"
                 )
@@ -134,9 +138,9 @@ def surface2ind_topo(mesh, topo, gridLoc="CC", method="nearest", fill_value=np.n
                     Ftopo = NearestNDInterpolator(topo[:, :2], topo[:, 2])
                 elif method == "linear":
                     # Check if Topo points are inside of the mesh
-                    xmin, xmax = mesh.x0[0], mesh.hx.sum() + mesh.x0[0]
+                    xmin, xmax = mesh.x0[0], mesh.h[0].sum() + mesh.x0[0]
                     xminTopo, xmaxTopo = topo[:, 0].min(), topo[:, 0].max()
-                    ymin, ymax = mesh.x0[1], mesh.hy.sum() + mesh.x0[1]
+                    ymin, ymax = mesh.x0[1], mesh.h[1].sum() + mesh.x0[1]
                     yminTopo, ymaxTopo = topo[:, 1].min(), topo[:, 1].max()
                     if (
                         (xminTopo > xmin)
@@ -185,7 +189,7 @@ def surface2ind_topo(mesh, topo, gridLoc="CC", method="nearest", fill_value=np.n
                     Ftopo = interp1d(topo[:, 0], topo[:, -1], kind="nearest")
                 elif method == "linear":
                     # Check if Topo points are inside of the mesh
-                    xmin, xmax = mesh.x0[0], mesh.hx.sum() + mesh.x0[0]
+                    xmin, xmax = mesh.x0[0], mesh.h[0].sum() + mesh.x0[0]
                     xminTopo, xmaxTopo = topo[:, 0].min(), topo[:, 0].max()
                     if (xminTopo > xmin) or (xmaxTopo < xmax):
                         # If not, use nearest neihbor to extrapolate them
@@ -221,8 +225,22 @@ def surface2ind_topo(mesh, topo, gridLoc="CC", method="nearest", fill_value=np.n
 
 
 def surface_layer_index(mesh, topo, index=0):
-    """
-    Find the ith layer below topo
+    """Find ith layer of cells below topo for a tensor mesh.
+
+    Parameters
+    ----------
+    mesh : discretize.TensorMesh
+        Input mesh
+    topo : (n, 3) numpy.ndarray
+        Topography data as a numpy array with columns [x,y,z]; can use [x,z] for 2D meshes.
+        Topography data can be unstructured.
+    index : int
+        How many layers below the surface you want to find
+
+    Returns
+    -------
+    numpy.ndarray of int
+        Index vector for layer of cells
     """
 
     actv = np.zeros(mesh.nC, dtype="bool")
@@ -236,7 +254,7 @@ def surface_layer_index(mesh, topo, index=0):
                 bind[elt] = i
         return np.vstack([bind.get(itm, None) for itm in a])
 
-    grid_x, grid_y = np.meshgrid(mesh.vectorCCx, mesh.vectorCCy)
+    grid_x, grid_y = np.meshgrid(mesh.cell_centers_x, mesh.cell_centers_y)
     zInterp = mkvc(
         griddata(topo[:, :2], topo[:, 2], (grid_x, grid_y), method="nearest")
     )
@@ -246,10 +264,10 @@ def surface_layer_index(mesh, topo, index=0):
     inds = np.unique(inds)
 
     # Extract vertical neighbors from Gradz operator
-    Dz = mesh._cellGradzStencil
+    Dz = mesh.stencil_cell_gradient_z
     Iz, Jz, _ = sp.find(Dz)
     jz = np.sort(Jz[np.argsort(Iz)].reshape((int(Iz.shape[0] / 2), 2)), axis=1)
-    for ii in range(index):
+    for _ in range(index):
 
         members = ismember(inds, jz[:, 1])
         inds = np.squeeze(jz[members, 0])
@@ -272,11 +290,11 @@ def depth_weighting(mesh, reference_locs, indActive=None, exponent=2.0, threshol
     ----------
     mesh : discretize.base.BaseMesh
         discretize model space.
-    reference_locs : float or (N, dim) numpy.ndarray
+    reference_locs : float or (n, dim) numpy.ndarray
         the reference values for top of the points
     indActive : (mesh.n_cells) numpy.ndarray of bool, optional
         index vector for the active cells on the mesh.
-        A value of `None` implies every cell is active.
+        A value of ``None`` implies every cell is active.
     exponent : float, optional
         exponent parameter for depth weighting.
     threshold : float, optional
@@ -284,17 +302,17 @@ def depth_weighting(mesh, reference_locs, indActive=None, exponent=2.0, threshol
 
     Returns
     -------
-    wz : (n_active) numpy.ndarray
+    (n_active) numpy.ndarray
         Normalized depth weights for the mesh, at every active cell.
 
     Notes
     -----
-    When ``reference_locs`` is a single value the function is defined as,
+    When *reference_locs* is a single value the function is defined as,
 
     >>> wz = (np.abs(mesh.cell_centers[:, -1] - reference_locs) + threshold) ** (-0.5 * exponent)
 
-    When ``reference_locs`` is an array of values, the difference is between the
-    nearest point (of first two dimensions) in ``reference_locs``.
+    When *reference_locs* is an array of values, the difference is between the
+    nearest point (of first two dimensions) in *reference_locs*.
     'exponent' and 'threshold' are two adjustable parameters.
     """
 

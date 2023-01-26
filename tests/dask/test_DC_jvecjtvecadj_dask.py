@@ -1,8 +1,7 @@
-from __future__ import print_function
 import unittest
 import numpy as np
 import discretize
-import SimPEG.dask
+import SimPEG.dask  # noqa: F401
 from SimPEG import (
     maps,
     data_misfit,
@@ -11,11 +10,9 @@ from SimPEG import (
     optimization,
     inverse_problem,
     tests,
-    utils,
 )
 from SimPEG.utils import mkvc
 from SimPEG.electromagnetics import resistivity as dc
-from pymatsolver import Pardiso
 import shutil
 
 np.random.seed(40)
@@ -70,7 +67,7 @@ class DCProblemTestsCC_storeJ(unittest.TestCase):
         self.dobs = dobs
 
     def test_misfit(self):
-        passed = tests.checkDerivative(
+        passed = tests.check_derivative(
             lambda m: [self.p.dpred(m), lambda mx: self.p.Jvec(self.m0, mx)],
             self.m0,
             plotIt=False,
@@ -90,7 +87,7 @@ class DCProblemTestsCC_storeJ(unittest.TestCase):
         self.assertTrue(passed)
 
     def test_dataObj(self):
-        passed = tests.checkDerivative(
+        passed = tests.check_derivative(
             lambda m: [self.dmis(m), self.dmis.deriv(m)], self.m0, plotIt=False, num=6
         )
         self.assertTrue(passed)
@@ -149,7 +146,7 @@ class DCProblemTestsN_storeJ(unittest.TestCase):
         self.dobs = dobs
 
     def test_misfit(self):
-        passed = tests.checkDerivative(
+        passed = tests.check_derivative(
             lambda m: [self.p.dpred(m), lambda mx: self.p.Jvec(self.m0, mx)],
             self.m0,
             plotIt=False,
@@ -169,7 +166,7 @@ class DCProblemTestsN_storeJ(unittest.TestCase):
         self.assertTrue(passed)
 
     def test_dataObj(self):
-        passed = tests.checkDerivative(
+        passed = tests.check_derivative(
             lambda m: [self.dmis(m), self.dmis.deriv(m)], self.m0, plotIt=False, num=3
         )
         self.assertTrue(passed)

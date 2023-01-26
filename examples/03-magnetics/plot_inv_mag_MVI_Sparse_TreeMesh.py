@@ -194,7 +194,7 @@ def plotVectorSectionsOctree(
         axs = plt.subplot(111)
 
     if fill:
-        temp_mesh.plotImage(amp, ax=axs, clim=[vmin, vmax], grid=True)
+        temp_mesh.plot_image(amp, ax=axs, clim=[vmin, vmax], grid=True)
 
     axs.quiver(
         temp_mesh.gridCC[:, 0],
@@ -247,7 +247,7 @@ idenMap = maps.IdentityMap(nP=nC * 3)
 
 # Create the simulation
 simulation = magnetics.simulation.Simulation3DIntegral(
-    survey=survey, mesh=mesh, chiMap=idenMap, actInd=actv, model_type="vector"
+    survey=survey, mesh=mesh, chiMap=idenMap, ind_active=actv, model_type="vector"
 )
 
 # Compute some data and add some random noise
@@ -391,7 +391,7 @@ reg_t = regularization.Sparse(
     mesh, gradient_type="components", active_cells=actv, mapping=wires.theta
 )
 reg_t.alpha_s = 0.0  # No reference angle
-reg_t.space = "spherical"
+reg_t.units = "radian"
 reg_t.norms = [0.0, 0.0, 0.0, 0.0]  # Only norm on gradients used
 
 # Regularize the horizontal angle of the vectors
@@ -399,7 +399,7 @@ reg_p = regularization.Sparse(
     mesh, gradient_type="components", active_cells=actv, mapping=wires.phi
 )
 reg_p.alpha_s = 0.0  # No reference angle
-reg_p.space = "spherical"
+reg_p.units = "radian"
 reg_p.norms = [0.0, 0.0, 0.0, 0.0]  # Only norm on gradients used
 
 reg = reg_a + reg_t + reg_p

@@ -1,28 +1,45 @@
 import numpy as np
 import scipy.sparse as sp
-import properties
+from ..utils import validate_ndarray_with_shape
 
 from .. import utils
 from .base import BaseSimilarityMeasure
 
 
 class LinearCorrespondence(BaseSimilarityMeasure):
-    """
+    r"""
     The petrophysical linear constraint for joint inversions.
 
     ..math::
-        \\phi_c({\\mathbf m}_{\\mathbf1},{\\mathbf m}_{\\mathbf2})=\\lambda\\sum_{i=1}^M
-        (k_1*m_1 + k_2*m_2 + k_3)
+
+        \phi_c({\mathbf m}_{\mathbf1},{\mathbf m}_{\mathbf2})
+        = \lambda\sum_{i=1}^M (k_1*m_1 + k_2*m_2 + k_3)
 
     Assuming that we are working with two models only.
 
     """
 
-    coefficients = properties.Array(
-        "coefficients for the linear relationship between parameters",
-        shape=(3,),
-        default=np.array([1.0, -1.0, 0.0]),
-    )
+    def __init__(self, mesh, wire_map, coefficients=None, **kwargs):
+        super().__init__(mesh, wire_map, **kwargs)
+        if coefficients is None:
+            coefficients = np.r_[1.0, -1.0, 0.0]
+        self.coefficients = coefficients
+
+    @property
+    def coefficients(self):
+        """coefficients for the linear relationship between parameters.
+
+        Returns
+        -------
+        (3) numpy.ndarray of float
+        """
+        return self._coefficients
+
+    @coefficients.setter
+    def coefficients(self, value):
+        self._coefficients = validate_ndarray_with_shape(
+            "coefficients", value, shape=(3,)
+        )
 
     def relation(self, model):
         """

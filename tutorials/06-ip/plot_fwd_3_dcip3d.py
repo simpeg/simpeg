@@ -213,11 +213,11 @@ plotting_map = maps.InjectActiveCells(mesh, ind_active, np.nan)
 log_mod = np.log10(conductivity_model)
 
 ax1 = fig.add_axes([0.15, 0.15, 0.67, 0.75])
-mesh.plotSlice(
+mesh.plot_slice(
     plotting_map * log_mod,
     ax=ax1,
     normal="Y",
-    ind=int(len(mesh.hy) / 2),
+    ind=int(len(mesh.h[1]) / 2),
     grid=True,
     clim=(np.log10(resistor_value), np.log10(conductor_value)),
     pcolor_opts={"cmap": mpl.cm.viridis},
@@ -401,11 +401,11 @@ fig = plt.figure(figsize=(10, 4))
 plotting_map = maps.InjectActiveCells(mesh, ind_active, np.nan)
 
 ax1 = fig.add_axes([0.15, 0.15, 0.67, 0.75])
-mesh.plotSlice(
+mesh.plot_slice(
     plotting_map * chargeability_model,
     ax=ax1,
     normal="Y",
-    ind=int(len(mesh.hy) / 2),
+    ind=int(len(mesh.h[1]) / 2),
     grid=True,
     clim=(background_value, chargeable_value),
     pcolor_opts={"cmap": mpl.cm.plasma},

@@ -1,6 +1,5 @@
-from __future__ import print_function
 import unittest
-import SimPEG.dask
+import SimPEG.dask  # noqa: F401
 from SimPEG import (
     directives,
     maps,
@@ -104,8 +103,9 @@ class MagInvLinProblemTest(unittest.TestCase):
             self.mesh,
             survey=survey,
             chiMap=idenMap,
-            actInd=actv,
+            ind_active=actv,
             store_sensitivities="ram",
+            chunk_format="equal",
         )
         self.sim = sim
         data = sim.make_synthetic_data(
@@ -118,7 +118,7 @@ class MagInvLinProblemTest(unittest.TestCase):
             active_cells=actv,
             mapping=idenMap,
             gradient_type="components",
-            norms=[0, 0, 0, 0]
+            norms=[0, 0, 0, 0],
         )
         reg.reference_model = np.zeros(nC)
 

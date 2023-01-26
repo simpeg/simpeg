@@ -33,13 +33,12 @@ import matplotlib.pyplot as plt
 import tarfile
 
 from discretize import TreeMesh
-from discretize.utils import mkvc, refine_tree_xyz
+from discretize.utils import refine_tree_xyz
 
 from SimPEG.utils import surface2ind_topo, model_builder
 from SimPEG.utils.io_utils.io_utils_electromagnetics import read_dcip_xyz
 from SimPEG import (
     maps,
-    data,
     data_misfit,
     regularization,
     optimization,
@@ -355,7 +354,9 @@ dc_regularization = regularization.WeightedLeastSquares(
     reference_model=starting_conductivity_model,
 )
 
-dc_regularization.reference_model_in_smooth = True  # Include reference model in smoothness
+dc_regularization.reference_model_in_smooth = (
+    True  # Include reference model in smoothness
+)
 
 # Define how the optimization problem is solved.
 dc_optimization = optimization.InexactGaussNewton(maxIter=15, maxIterCG=30, tolCG=1e-2)
@@ -453,11 +454,11 @@ fig = plt.figure(figsize=(10, 4))
 plotting_map = maps.InjectActiveCells(mesh, ind_active, np.nan)
 
 ax1 = fig.add_axes([0.15, 0.15, 0.67, 0.75])
-mesh.plotSlice(
+mesh.plot_slice(
     plotting_map * true_conductivity_model_log10,
     ax=ax1,
     normal="Y",
-    ind=int(len(mesh.hy) / 2),
+    ind=int(len(mesh.h[1]) / 2),
     grid=False,
     clim=(true_conductivity_model_log10.min(), true_conductivity_model_log10.max()),
     pcolor_opts={"cmap": mpl.cm.viridis},
@@ -483,11 +484,11 @@ recovered_conductivity_model_log10 = np.log10(np.exp(recovered_conductivity_mode
 fig = plt.figure(figsize=(10, 4))
 
 ax1 = fig.add_axes([0.15, 0.15, 0.67, 0.75])
-mesh.plotSlice(
+mesh.plot_slice(
     plotting_map * recovered_conductivity_model_log10,
     ax=ax1,
     normal="Y",
-    ind=int(len(mesh.hy) / 2),
+    ind=int(len(mesh.h[1]) / 2),
     grid=False,
     clim=(true_conductivity_model_log10.min(), true_conductivity_model_log10.max()),
     pcolor_opts={"cmap": mpl.cm.viridis},
@@ -691,11 +692,11 @@ fig = plt.figure(figsize=(10, 4))
 plotting_map = maps.InjectActiveCells(mesh, ind_active, np.nan)
 
 ax1 = fig.add_axes([0.15, 0.15, 0.67, 0.75])
-mesh.plotSlice(
+mesh.plot_slice(
     plotting_map * true_chargeability_model,
     ax=ax1,
     normal="Y",
-    ind=int(len(mesh.hy) / 2),
+    ind=int(len(mesh.h[1]) / 2),
     grid=False,
     clim=(true_chargeability_model.min(), true_chargeability_model.max()),
     pcolor_opts={"cmap": mpl.cm.plasma},
@@ -719,11 +720,11 @@ cbar.set_label("Intrinsic Chargeability [V/V]", rotation=270, labelpad=15, size=
 fig = plt.figure(figsize=(10, 4))
 
 ax1 = fig.add_axes([0.15, 0.15, 0.67, 0.75])
-mesh.plotSlice(
+mesh.plot_slice(
     plotting_map * recovered_chargeability_model,
     ax=ax1,
     normal="Y",
-    ind=int(len(mesh.hy) / 2),
+    ind=int(len(mesh.h[1]) / 2),
     grid=False,
     clim=(true_chargeability_model.min(), true_chargeability_model.max()),
     pcolor_opts={"cmap": mpl.cm.plasma},

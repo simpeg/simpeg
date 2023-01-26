@@ -1,7 +1,5 @@
-from __future__ import division
 import numpy as np
-from scipy.constants import mu_0, pi, epsilon_0
-from scipy.special import erf
+from scipy.constants import epsilon_0, mu_0
 from SimPEG import utils
 
 omega = lambda f: 2.0 * np.pi * f
@@ -23,7 +21,7 @@ def E_from_ElectricDipoleWholeSpace(
     epsilon = epsilon_0 * epsr
     sig_hat = sig + 1j * omega(f) * epsilon
 
-    XYZ = utils.asArray_N_x_Dim(XYZ, 3)
+    XYZ = utils.as_array_n_by_dim(XYZ, 3)
     # Check
     if XYZ.shape[0] > 1 & f.shape[0] > 1:
         raise Exception(
@@ -75,7 +73,7 @@ def E_galvanic_from_ElectricDipoleWholeSpace(
     epsilon = epsilon_0 * epsr
     sig_hat = sig + 1j * omega(f) * epsilon
 
-    XYZ = utils.asArray_N_x_Dim(XYZ, 3)
+    XYZ = utils.as_array_n_by_dim(XYZ, 3)
     # Check
     if XYZ.shape[0] > 1 & f.shape[0] > 1:
         raise Exception(
@@ -127,7 +125,7 @@ def E_inductive_from_ElectricDipoleWholeSpace(
     epsilon = epsilon_0 * epsr
     sig_hat = sig + 1j * omega(f) * epsilon
 
-    XYZ = utils.asArray_N_x_Dim(XYZ, 3)
+    XYZ = utils.as_array_n_by_dim(XYZ, 3)
     # Check
     if XYZ.shape[0] > 1 & f.shape[0] > 1:
         raise Exception(
@@ -261,7 +259,7 @@ def H_from_ElectricDipoleWholeSpace(
     """
     mu = mu_0 * (1 + kappa)
     epsilon = epsilon_0 * epsr
-    XYZ = utils.asArray_N_x_Dim(XYZ, 3)
+    XYZ = utils.as_array_n_by_dim(XYZ, 3)
     # Check
     if XYZ.shape[0] > 1 & f.shape[0] > 1:
         raise Exception(
@@ -341,7 +339,7 @@ def A_from_ElectricDipoleWholeSpace(
     """
     mu = mu_0 * (1 + kappa)
     epsilon = epsilon_0 * epsr
-    XYZ = utils.asArray_N_x_Dim(XYZ, 3)
+    XYZ = utils.as_array_n_by_dim(XYZ, 3)
     # Check
     if XYZ.shape[0] > 1 & f.shape[0] > 1:
         raise Exception(
