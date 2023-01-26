@@ -206,7 +206,7 @@ class PGIsmallness(Smallness):
         else:
             W = Identity()
 
-        if getattr(self, "mref", None) is None:
+        if getattr(self, "reference_model", None) is None:
             self.reference_model = mkvc(self.gmm.means_[self.membership(m)])
 
         if self.approx_eval:

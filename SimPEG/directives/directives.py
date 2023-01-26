@@ -37,7 +37,6 @@ from ..utils.code_utils import (
     validate_float,
     validate_ndarray_with_shape,
 )
-from .. import optimization
 
 
 class InversionDirective:
@@ -613,7 +612,7 @@ class ScalingMultipleDataMisfits_ByEig(InversionDirective):
         m = self.invProb.model
 
         dm_eigenvalue_list = []
-        for j, dm in enumerate(self.dmisfit.objfcts):
+        for dm in self.dmisfit.objfcts:
             dm_eigenvalue_list += [eigenvalue_by_power_iteration(dm, m)]
 
         self.chi0 = self.chi0_ratio / np.r_[dm_eigenvalue_list]

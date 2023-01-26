@@ -1,5 +1,4 @@
 import unittest
-import warnings
 import pytest
 import numpy as np
 

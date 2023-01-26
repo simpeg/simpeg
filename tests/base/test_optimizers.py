@@ -1,6 +1,4 @@
 import unittest
-from SimPEG import Solver
-from discretize import TensorMesh
 from SimPEG.utils import sdiag
 import numpy as np
 import scipy.sparse as sp
