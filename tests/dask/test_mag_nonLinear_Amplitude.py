@@ -67,7 +67,7 @@ class AmpProblemTest(unittest.TestCase):
         )
 
         # Define an active cells from topo
-        actv = utils.surface2ind_topo(mesh, topo)
+        actv = utils.active_from_xyz(mesh, topo)
         nC = int(actv.sum())
 
         # Convert the inclination declination to vector in Cartesian

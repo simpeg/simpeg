@@ -274,6 +274,7 @@ from .mesh_utils import (
     closest_points_index,
     extract_core_mesh,
     surface2inds,
+    active_from_xyz,
 )
 from .curv_utils import (
     volTetra,

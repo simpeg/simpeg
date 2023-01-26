@@ -526,7 +526,7 @@ class MapTests(unittest.TestCase):
         mesh.finalize()
 
         # Define an active cells from topo
-        activeCells = utils.surface2ind_topo(mesh, rxLocs)
+        activeCells = utils.active_from_xyz(mesh, rxLocs)
 
         model = np.random.randn(int(activeCells.sum()))
         total_mass = (model * mesh.cell_volumes[activeCells]).sum()

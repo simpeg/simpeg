@@ -62,7 +62,7 @@ class MVIProblemTest(unittest.TestCase):
         )
         self.mesh = mesh
         # Define an active cells from topo
-        actv = utils.surface2ind_topo(mesh, topo)
+        actv = utils.active_from_xyz(mesh, topo)
         nC = int(actv.sum())
 
         model = np.zeros((mesh.nC, 3))
