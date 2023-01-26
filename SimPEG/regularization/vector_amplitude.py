@@ -16,7 +16,7 @@ from .sparse import (
     SparseSmoothnessFirstOrder
 )
 from .. import utils
-from SimPEG.utils.code_utils import validate_array_type, validate_shape
+from SimPEG.utils.code_utils import validate_ndarray_with_shape
 
 if TYPE_CHECKING:
     from scipy.sparse import csr_matrix
@@ -75,8 +75,7 @@ class BaseAmplitude(BaseRegularization):
 
             self._weights[key] = {}
             for (name, _), value in zip(self.mapping.maps, values):
-                validate_array_type("weights", value, float)
-                validate_shape("weights", value, self._weights_shapes)
+                validate_ndarray_with_shape("weights", value, shape=self._weights_shapes, dtype=float)
                 self._weights[key][name] = value
 
         self._W = None

@@ -6121,3 +6121,24 @@ class PolynomialPetroClusterMap(IdentityMap):
         else:
             out = np.dot(self._derivmatrix(m.reshape(-1, 2)), v.reshape(2, -1))
             return out
+
+
+class Group(Wires, IdentityMap):
+    def __init__(self, *args):
+        super(Group, self).__init__(*args)
+
+        # Remove wires that are not part of the group
+        self._maps = ((name, wire) for (name, wire) in self.maps if name != "_")
+        self._nP = int(np.sum([wire.shape[0] for (_, wire) in self.maps]))
+
+    def deriv(self, m, v=None):
+        """
+        :param numpy.ndarray m: model
+        :rtype: scipy.sparse.csr_matrix
+        :return: derivative of transformed model
+        """
+        deriv = []
+        for name, wire in self.maps:
+            deriv += [wire.deriv(m, v)]
+
+        return deriv

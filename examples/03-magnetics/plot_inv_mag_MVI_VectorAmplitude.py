@@ -12,6 +12,7 @@ regularization borrowed from ...
 
 from discretize import TreeMesh
 from SimPEG import (
+    dask,
     data,
     data_misfit,
     directives,
@@ -263,7 +264,7 @@ idenMap = maps.IdentityMap(nP=nC * 3)
 
 # Create the simulation
 simulation = magnetics.simulation.Simulation3DIntegral(
-    survey=survey, mesh=mesh, chiMap=idenMap, actInd=actv, model_type="vector"
+    survey=survey, mesh=mesh, chiMap=idenMap, ind_active=actv, model_type="vector"
 )
 
 # Compute some data and add some random noise
@@ -343,31 +344,31 @@ reg_amp.reference_model = mkvc(model)
 
 # Create three regularizations for the different components
 # of magnetization
-reg_p = regularization.Sparse(
-    mesh,
-    active_cells=actv,
-    mapping=wires.p,
-    reference_model_in_smooth=False,
-    norms=[0, 0, 0, 0],
-    alpha_s=0
-)
-reg_s = regularization.Sparse(
-    mesh,
-    active_cells=actv,
-    mapping=wires.s,
-    reference_model_in_smooth=False,
-    norms=[0, 0, 0, 0],
-    alpha_s=0
-)
-reg_t = regularization.Sparse(
-    mesh,
-    active_cells=actv,
-    mapping=wires.t,
-    reference_model_in_smooth=False,
-    norms=[0, 0, 0, 0],
-    alpha_s=0
-)
-reg_components = reg_p + reg_s + reg_t
+# reg_p = regularization.Sparse(
+#     mesh,
+#     active_cells=actv,
+#     mapping=wires.p,
+#     reference_model_in_smooth=False,
+#     norms=[0, 0, 0, 0],
+#     alpha_s=0
+# )
+# reg_s = regularization.Sparse(
+#     mesh,
+#     active_cells=actv,
+#     mapping=wires.s,
+#     reference_model_in_smooth=False,
+#     norms=[0, 0, 0, 0],
+#     alpha_s=0
+# )
+# reg_t = regularization.Sparse(
+#     mesh,
+#     active_cells=actv,
+#     mapping=wires.t,
+#     reference_model_in_smooth=False,
+#     norms=[0, 0, 0, 0],
+#     alpha_s=0
+# )
+# reg_components = reg_p + reg_s + reg_t
 
 # reg_x = regularization.Sparse(
 #     mesh,
