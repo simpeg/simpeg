@@ -2217,7 +2217,7 @@ class UpdateSensitivityWeights(InversionDirective):
     every_iteration : bool
         When ``True``, update sensitivity weighting at every model update; non-linear problems.
         When ``False``, create sensitivity weights for starting model only; linear problems.
-    threshold_value : float
+    threshold : float
         Threshold value for smallest weighting value
     threshold_method : str {'global', 'percentile', 'amplitude'}
         Threshold method for how `threshold_value` is applied:
@@ -2226,7 +2226,7 @@ class UpdateSensitivityWeights(InversionDirective):
             - **percentile:** the smallest root-mean squared sensitivity is set using percentile threshold; must be between 0 and 100
             - **amplitude:** the smallest root-mean squared sensitivity is a fractional percent of the largest value; must be between 0 and 1
 
-    normalization_method : None, 'minimum', 'maximum'
+    normalization_method : None, 'min_value', 'maximum'
         Normalization method applied to sensitivity weights.
 
         Options are:
@@ -2284,7 +2284,6 @@ class UpdateSensitivityWeights(InversionDirective):
             normalization_method='maximum',
             **kwargs
     ):
-        super().__init__(**kwargs)
 
         if "everyIter" in kwargs.keys():
             warnings.warn(
@@ -2310,6 +2309,8 @@ class UpdateSensitivityWeights(InversionDirective):
                 normalization_method = 'maximum'
             else:
                 normalization_method = None
+
+        super().__init__(**kwargs)
         
         self.every_iteration = every_iteration
         self.threshold_value = threshold_value
@@ -2466,13 +2467,11 @@ class UpdateSensitivityWeights(InversionDirective):
 
         # Apply thresholding
         if self.threshold_method == 'global':
-            wr += self.threshold
+            wr += self.threshold_value
         elif self.threshold_method == 'percentile':
-            temp = np.percentile(wr, self.threshold)
-            wr[wr<temp] = temp
+            wr = np.clip(wr, a_min=np.percentile(wr, self.threshold_value), a_max=np.inf)
         else:
-            temp = self.threshold * wr.max()
-            wr[wr<temp] = temp
+            wr = np.clip(wr, a_min=self.threshold_value*wr.max(), a_max=np.inf)
 
         # Apply normalization
         if self.normalization_method == 'maximum':
