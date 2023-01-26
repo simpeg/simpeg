@@ -32,7 +32,7 @@ import tarfile
 
 from discretize import TensorMesh
 
-from SimPEG.utils import plot2Ddata, surface2ind_topo, model_builder
+from SimPEG.utils import plot2Ddata, active_from_xyz, model_builder
 from SimPEG.potential_fields import gravity
 from SimPEG import (
     maps,
@@ -189,7 +189,7 @@ mesh = TensorMesh([hx, hy, hz], "CCN")
 #
 
 # Find the indices of the active cells in forward model (ones below surface)
-ind_active = surface2ind_topo(mesh, xyz_topo)
+ind_active = active_from_xyz(mesh, xyz_topo)
 
 # Define mapping from model to active cells
 nC = int(ind_active.sum())

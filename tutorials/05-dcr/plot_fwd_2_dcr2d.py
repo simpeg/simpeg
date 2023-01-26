@@ -24,7 +24,7 @@ on the following:
 from discretize import TreeMesh
 from discretize.utils import mkvc, refine_tree_xyz
 
-from SimPEG.utils import model_builder, surface2ind_topo
+from SimPEG.utils import model_builder, active_from_xyz
 from SimPEG.utils.io_utils.io_utils_electromagnetics import write_dcip2d_ubc
 from SimPEG import maps, data
 from SimPEG.electromagnetics.static import resistivity as dc
@@ -174,7 +174,7 @@ conductor_conductivity = 1e-1
 resistor_conductivity = 1e-3
 
 # Find active cells in forward modeling (cell below surface)
-ind_active = surface2ind_topo(mesh, topo_xyz[:, [0, 2]])
+ind_active = active_from_xyz(mesh, topo_xyz[:, [0, 2]])
 
 # Define mapping from model to active cells
 nC = int(ind_active.sum())

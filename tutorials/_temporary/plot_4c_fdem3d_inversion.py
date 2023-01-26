@@ -32,7 +32,7 @@ import matplotlib.pyplot as plt
 from discretize import TreeMesh
 from discretize.utils import refine_tree_xyz
 
-from SimPEG.utils import plot2Ddata, surface2ind_topo, mkvc
+from SimPEG.utils import plot2Ddata, active_from_xyz, mkvc
 from SimPEG.electromagnetics import frequency_domain as fdem
 from SimPEG import (
     maps,
@@ -270,7 +270,7 @@ air_conductivity = np.log(1e-8)
 background_conductivity = np.log(1e-2)
 
 # Find the indecies of the active cells in forward model (ones below surface)
-ind_active = surface2ind_topo(mesh, xyz_topo)
+ind_active = active_from_xyz(mesh, xyz_topo)
 
 active_map = maps.InjectActiveCells(mesh, ind_active, np.exp(air_conductivity))
 nC = int(ind_active.sum())

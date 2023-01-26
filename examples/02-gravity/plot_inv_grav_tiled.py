@@ -113,7 +113,7 @@ for local_mesh in local_meshes:
 mesh.finalize()
 
 # Define an active cells from topo
-activeCells = utils.surface2ind_topo(mesh, topo)
+activeCells = utils.active_from_xyz(mesh, topo)
 nC = int(activeCells.sum())
 
 # We can now create a density model and generate data

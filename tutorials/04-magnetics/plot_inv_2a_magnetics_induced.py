@@ -35,7 +35,7 @@ import tarfile
 from discretize import TensorMesh
 
 from SimPEG.potential_fields import magnetics
-from SimPEG.utils import plot2Ddata, surface2ind_topo, model_builder
+from SimPEG.utils import plot2Ddata, active_from_xyz, model_builder
 from SimPEG import (
     maps,
     data,
@@ -210,7 +210,7 @@ mesh = TensorMesh([hx, hy, hz], "CCN")
 background_susceptibility = 1e-4
 
 # Find the indecies of the active cells in forward model (ones below surface)
-active_cells = surface2ind_topo(mesh, topo_xyz)
+active_cells = active_from_xyz(mesh, topo_xyz)
 
 # Define mapping from model to active cells
 nC = int(active_cells.sum())

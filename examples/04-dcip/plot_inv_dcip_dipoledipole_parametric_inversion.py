@@ -75,7 +75,7 @@ def run(
     # Obtain 2D TensorMesh
     mesh, actind = IO.set_mesh()
     # Flat topography
-    actind = utils.surface2ind_topo(
+    actind = utils.active_from_xyz(
         mesh, np.c_[mesh.cell_centers_x, mesh.cell_centers_x * 0.0]
     )
     survey.drape_electrodes_on_topography(mesh, actind, option="top")

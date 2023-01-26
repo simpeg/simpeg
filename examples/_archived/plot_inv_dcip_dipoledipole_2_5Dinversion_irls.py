@@ -69,7 +69,7 @@ def run(plotIt=True, survey_type="dipole-dipole", p=0.0, qx=2.0, qz=2.0):
     # Obtain 2D TensorMesh
     mesh, actind = IO.set_mesh()
     topo, mesh1D = genTopography(mesh, -10, 0, its=100)
-    actind = utils.surface2ind_topo(mesh, np.c_[mesh1D.cell_centers_x, topo])
+    actind = utils.active_from_xyz(mesh, np.c_[mesh1D.cell_centers_x, topo])
     survey.drape_electrodes_on_topography(mesh, actind, option="top")
 
     # Build a conductivity model

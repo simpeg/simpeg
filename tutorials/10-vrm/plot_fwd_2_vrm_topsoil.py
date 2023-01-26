@@ -27,7 +27,7 @@ tutorial have been developed for modeling both the inductive and VRM responses.
 #
 
 from SimPEG.electromagnetics import viscous_remanent_magnetization as vrm
-from SimPEG.utils import plot2Ddata, surface2ind_topo
+from SimPEG.utils import plot2Ddata, active_from_xyz
 from SimPEG import maps
 
 from discretize import TreeMesh
@@ -160,7 +160,7 @@ mesh.finalize()
 #
 
 # Find cells active in the forward simulation (cells below surface)
-ind_active = surface2ind_topo(mesh, xyz_topo)
+ind_active = active_from_xyz(mesh, xyz_topo)
 
 # Define 3D Gaussian distribution parameters
 xyzc = mesh.gridCC[ind_active, :]

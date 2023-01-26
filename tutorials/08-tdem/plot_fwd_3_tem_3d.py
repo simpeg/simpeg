@@ -31,7 +31,7 @@ to simulate the fields at each time channel with sufficient accuracy.
 from discretize import TreeMesh
 from discretize.utils import mkvc, refine_tree_xyz
 
-from SimPEG.utils import plot2Ddata, surface2ind_topo
+from SimPEG.utils import plot2Ddata, active_from_xyz
 from SimPEG import maps
 import SimPEG.electromagnetics.time_domain as tdem
 
@@ -220,7 +220,7 @@ background_conductivity = 2e-3
 block_conductivity = 2e0
 
 # Active cells are cells below the surface.
-ind_active = surface2ind_topo(mesh, topo_xyz)
+ind_active = active_from_xyz(mesh, topo_xyz)
 model_map = maps.InjectActiveCells(mesh, ind_active, air_conductivity)
 
 # Define the model

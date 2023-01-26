@@ -49,7 +49,7 @@ def run(plotIt=True):
     topo = np.c_[utils.mkvc(xx), utils.mkvc(yy), utils.mkvc(zz)]
 
     # Go from topo to array of indices of active cells
-    actv = utils.surface2ind_topo(mesh, topo, "N")
+    actv = utils.active_from_xyz(mesh, topo, "N")
     nC = int(actv.sum())
     # Create and array of observation points
     xr = np.linspace(-20.0, 20.0, 20)

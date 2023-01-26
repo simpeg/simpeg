@@ -27,7 +27,7 @@ import os
 
 from discretize import TensorMesh
 from discretize.utils import mkvc
-from SimPEG.utils import plot2Ddata, model_builder, surface2ind_topo
+from SimPEG.utils import plot2Ddata, model_builder, active_from_xyz
 from SimPEG import maps
 from SimPEG.potential_fields import magnetics
 
@@ -120,7 +120,7 @@ background_susceptibility = 0.0001
 sphere_susceptibility = 0.01
 
 # Find cells that are active in the forward modeling (cells below surface)
-ind_active = surface2ind_topo(mesh, xyz_topo)
+ind_active = active_from_xyz(mesh, xyz_topo)
 
 # Define mapping from model to active cells
 nC = int(ind_active.sum())
