@@ -22,7 +22,6 @@ from SimPEG.utils import (
     Counter,
     download,
     surface2ind_topo,
-    active_from_xyz,
 )
 import discretize
 from discretize.tests import check_derivative
