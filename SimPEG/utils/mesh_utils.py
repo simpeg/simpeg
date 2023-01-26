@@ -5,7 +5,7 @@ from discretize.utils import (  # noqa: F401
     unpack_widths,
     closest_points_index,
     extract_core_mesh,
-    active_from_xyz
+    active_from_xyz,
 )
 
 # deprecated imports
