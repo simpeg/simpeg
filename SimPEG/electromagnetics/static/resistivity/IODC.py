@@ -11,7 +11,7 @@ from discretize.utils import refine_tree_xyz, unpack_widths
 from ....utils import (
     sdiag,
     uniqueRows,
-    surface2ind_topo,
+    active_from_xyz,
     plot2Ddata,
     validate_type,
     validate_integer,
@@ -1117,7 +1117,7 @@ class IO:
                 "set_mesh currently generates TensorMesh or TreeMesh"
             )
 
-        actind = surface2ind_topo(mesh, locs, method=method, fill_value=np.nan)
+        actind = active_from_xyz(mesh, locs, method=method)
 
         return mesh, actind
 
