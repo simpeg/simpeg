@@ -2271,18 +2271,15 @@ class UpdateSensitivityWeights(InversionDirective):
         s_j \;\; for \;\; s_j \geq \eta s_{max} \\
         \eta s_{max} \;\; for \;\; s_j < \eta s_{max}
         \end{cases}
-
-    
-
     """
 
     def __init__(
-            self,
-            every_iteration=False,
-            threshold_value=1e-12,
-            threshold_method='global',
-            normalization_method='maximum',
-            **kwargs
+        self,
+        every_iteration=False,
+        threshold_value=1e-12,
+        threshold_method="global",
+        normalization_method="maximum",
+        **kwargs,
     ):
 
         if "everyIter" in kwargs.keys():
@@ -2306,17 +2303,17 @@ class UpdateSensitivityWeights(InversionDirective):
             )
             normalization_method = kwargs.pop("normalization")
             if normalization_method is True:
-                normalization_method = 'maximum'
+                normalization_method = "maximum"
             else:
                 normalization_method = None
 
         super().__init__(**kwargs)
-        
+
         self.every_iteration = every_iteration
         self.threshold_value = threshold_value
         self.threshold_method = threshold_method
         self.normalization_method = normalization_method
-        
+
     @property
     def every_iteration(self):
         """Update sensitivity weights when model is updated.
@@ -2335,7 +2332,7 @@ class UpdateSensitivityWeights(InversionDirective):
         self._every_iteration = validate_type("every_iteration", value, bool)
 
     deprecate_property(
-        every_iteration, 'everyIter', 'every_iteration', removal_version="0.19.0"
+        every_iteration, "everyIter", "every_iteration", removal_version="0.19.0"
     )
 
     @property
@@ -2356,7 +2353,7 @@ class UpdateSensitivityWeights(InversionDirective):
         self._threshold_value = validate_float("threshold_value", value, min_val=0.0)
 
     deprecate_property(
-        threshold_value, 'threshold', 'threshold_value', removal_version="0.19.0"
+        threshold_value, "threshold", "threshold_value", removal_version="0.19.0"
     )
 
     @property
@@ -2377,7 +2374,7 @@ class UpdateSensitivityWeights(InversionDirective):
     @threshold_method.setter
     def threshold_method(self, value):
         self._threshold_method = validate_string(
-            "threshold_method", value, string_list=['global', 'percentile', 'amplitude']
+            "threshold_method", value, string_list=["global", "percentile", "amplitude"]
         ).lower()
 
     @property
@@ -2398,7 +2395,7 @@ class UpdateSensitivityWeights(InversionDirective):
 
     @normalization_method.setter
     def normalization_method(self, value):
-        
+
         if value is None:
             self._normalization_method = value
 
@@ -2408,17 +2405,20 @@ class UpdateSensitivityWeights(InversionDirective):
                 "Please use None, 'maximum' or 'minimum'."
             )
             if value:
-                self._normalization_method = 'maximum'
+                self._normalization_method = "maximum"
             else:
                 self._normalization_method = None
 
         else:
             self._normalization_method = validate_string(
-                "normalization_method", value, string_list=['minimum', 'maximum']
+                "normalization_method", value, string_list=["minimum", "maximum"]
             ).lower()
 
     deprecate_property(
-        normalization_method, 'normalization', 'normalization_method', removal_version="0.19.0"
+        normalization_method,
+        "normalization",
+        "normalization_method",
+        removal_version="0.19.0",
     )
 
     def initialize(self):
@@ -2466,17 +2466,19 @@ class UpdateSensitivityWeights(InversionDirective):
         wr **= 0.5
 
         # Apply thresholding
-        if self.threshold_method == 'global':
+        if self.threshold_method == "global":
             wr += self.threshold_value
-        elif self.threshold_method == 'percentile':
-            wr = np.clip(wr, a_min=np.percentile(wr, self.threshold_value), a_max=np.inf)
+        elif self.threshold_method == "percentile":
+            wr = np.clip(
+                wr, a_min=np.percentile(wr, self.threshold_value), a_max=np.inf
+            )
         else:
-            wr = np.clip(wr, a_min=self.threshold_value*wr.max(), a_max=np.inf)
+            wr = np.clip(wr, a_min=self.threshold_value * wr.max(), a_max=np.inf)
 
         # Apply normalization
-        if self.normalization_method == 'maximum':
+        if self.normalization_method == "maximum":
             wr /= wr.max()
-        elif self.normalization_method == 'minimum':
+        elif self.normalization_method == "minimum":
             wr /= wr.min()
 
         # Add sensitivity weighting to all model objective functions
