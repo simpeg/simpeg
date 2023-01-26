@@ -221,9 +221,55 @@ class DirectiveList(object):
         return True
 
 
-class BetaEstimate_ByEig(InversionDirective):
+class SetInitialBeta(InversionDirective):
+    """Manually set the starting trade-off parameter (beta)
+
+    Parameters
+    ----------
+    beta0 : float
+        The starting beta value
+
     """
-    Estimate the trade-off parameter beta between the data misfit(s) and the
+    def __init__(self, beta0=10.):
+        super().__init__(**kwargs)
+        self.beta0 = beta0
+
+    @property
+    def beta0(self):
+        """The initial trade-off parameter (beta)
+
+        Returns
+        -------
+        float
+        """
+        return self._def beta0
+
+    @beta0.setter
+    def beta0(self, value):
+        self._beta0 = validate_float("beta0", value, min_val=0.0)
+
+    def validate(self, directive_list):
+        """Validate against the list of directive"""
+
+        beta_ind = [isinstance(d, BetaEstimate_ByEig) for d in directive_list.d_list]
+
+        assert ~np.any(beta_ind), (
+            "Both 'SetInitialBeta' and 'BetaEstimate_ByEig' directives found in "
+            "directives list. Only one directive can be used to set the initial beta."
+        )
+
+        return True
+
+    def initialize(self):
+        """Apply directive to initialize the inverse problem"""
+        self.invProb.beta = self.beta0
+
+    
+
+class BetaEstimate_ByEig(InversionDirective):
+    """Estimate the initial trade-off parameter (beta).
+
+    between the data misfit(s) and the
     regularization as a multiple of the ratio between the highest eigenvalue of the
     data misfit term and the highest eigenvalue of the regularization.
     The highest eigenvalues are estimated through power iterations and Rayleigh quotient.
@@ -282,6 +328,20 @@ class BetaEstimate_ByEig(InversionDirective):
         if value is not None:
             value = validate_integer("seed", value, min_val=1)
         self._seed = value
+
+
+    def validate(self, directive_list):
+        """Validate against the list of directive"""
+
+        beta_ind = [isinstance(d, SetInitialBeta) for d in directive_list.d_list]
+
+        assert ~np.any(beta_ind), (
+            "Both 'SetInitialBeta' and 'BetaEstimate_ByEig' directives found in "
+            "directives list. Only one directive can be used to set the initial beta."
+        )
+
+        return True
+
 
     def initialize(self):
         r"""
