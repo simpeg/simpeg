@@ -214,7 +214,7 @@ topo_file = io_utils.download(
 )
 topo = np.genfromtxt(topo_file, skip_header=1)
 # find the active cells
-actv = utils.active_from_xyz(mesh, topo, gridLoc="CC")
+actv = utils.active_from_xyz(mesh, topo, "CC")
 # Create active map to go from reduce set to full
 ndv = np.nan
 actvMap = maps.InjectActiveCells(mesh, actv, ndv)
