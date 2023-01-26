@@ -16,8 +16,9 @@ def _r2(xyz):
 
 
 def _getCasingHertzMagDipole(
-    srcloc, obsloc, freq, sigma, a, b, mu=mu_0 * np.ones(3), eps=epsilon_0, moment=1.0
+    srcloc, obsloc, freq, sigma, a, b, mu=(mu_0, mu_0, mu_0), eps=epsilon_0, moment=1.0
 ):
+    mu = np.asarray(mu)
     Kc1 = getKc(freq, sigma[1], a, b, mu[1], eps)
 
     nobs = obsloc.shape[0]
@@ -31,8 +32,9 @@ def _getCasingHertzMagDipole(
 
 
 def _getCasingHertzMagDipoleDeriv_r(
-    srcloc, obsloc, freq, sigma, a, b, mu=mu_0 * np.ones(3), eps=epsilon_0, moment=1.0
+    srcloc, obsloc, freq, sigma, a, b, mu=(mu_0, mu_0, mu_0), eps=epsilon_0, moment=1.0
 ):
+    mu = np.asarray(mu)
     HertzZ = _getCasingHertzMagDipole(
         srcloc, obsloc, freq, sigma, a, b, mu, eps, moment
     )
@@ -48,8 +50,9 @@ def _getCasingHertzMagDipoleDeriv_r(
 
 
 def _getCasingHertzMagDipoleDeriv_z(
-    srcloc, obsloc, freq, sigma, a, b, mu=mu_0 * np.ones(3), eps=epsilon_0, moment=1.0
+    srcloc, obsloc, freq, sigma, a, b, mu=(mu_0, mu_0, mu_0), eps=epsilon_0, moment=1.0
 ):
+    mu = np.asarray(mu)
     HertzZ = _getCasingHertzMagDipole(
         srcloc, obsloc, freq, sigma, a, b, mu, eps, moment
     )
@@ -65,8 +68,9 @@ def _getCasingHertzMagDipoleDeriv_z(
 
 
 def _getCasingHertzMagDipole2Deriv_z_r(
-    srcloc, obsloc, freq, sigma, a, b, mu=mu_0 * np.ones(3), eps=epsilon_0, moment=1.0
+    srcloc, obsloc, freq, sigma, a, b, mu=(mu_0, mu_0, mu_0), eps=epsilon_0, moment=1.0
 ):
+    mu = np.asarray(mu)
     HertzZ = _getCasingHertzMagDipole(
         srcloc, obsloc, freq, sigma, a, b, mu, eps, moment
     )
@@ -89,8 +93,9 @@ def _getCasingHertzMagDipole2Deriv_z_r(
 
 
 def _getCasingHertzMagDipole2Deriv_z_z(
-    srcloc, obsloc, freq, sigma, a, b, mu=mu_0 * np.ones(3), eps=epsilon_0, moment=1.0
+    srcloc, obsloc, freq, sigma, a, b, mu=(mu_0, mu_0, mu_0), eps=epsilon_0, moment=1.0
 ):
+    mu = np.asarray(mu)
     HertzZ = _getCasingHertzMagDipole(
         srcloc, obsloc, freq, sigma, a, b, mu, eps, moment
     )
@@ -113,8 +118,9 @@ def _getCasingHertzMagDipole2Deriv_z_z(
 
 
 def getCasingEphiMagDipole(
-    srcloc, obsloc, freq, sigma, a, b, mu=mu_0 * np.ones(3), eps=epsilon_0, moment=1.0
+    srcloc, obsloc, freq, sigma, a, b, mu=(mu_0, mu_0, mu_0), eps=epsilon_0, moment=1.0
 ):
+    mu = np.asarray(mu)
     return (
         1j
         * omega(freq)
@@ -126,16 +132,18 @@ def getCasingEphiMagDipole(
 
 
 def getCasingHrMagDipole(
-    srcloc, obsloc, freq, sigma, a, b, mu=mu_0 * np.ones(3), eps=epsilon_0, moment=1.0
+    srcloc, obsloc, freq, sigma, a, b, mu=(mu_0, mu_0, mu_0), eps=epsilon_0, moment=1.0
 ):
+    mu = np.asarray(mu)
     return _getCasingHertzMagDipole2Deriv_z_r(
         srcloc, obsloc, freq, sigma, a, b, mu, eps, moment
     )
 
 
 def getCasingHzMagDipole(
-    srcloc, obsloc, freq, sigma, a, b, mu=mu_0 * np.ones(3), eps=epsilon_0, moment=1.0
+    srcloc, obsloc, freq, sigma, a, b, mu=(mu_0, mu_0, mu_0), eps=epsilon_0, moment=1.0
 ):
+    mu = np.asarray(mu)
     d2HertzZdz2 = _getCasingHertzMagDipole2Deriv_z_z(
         srcloc, obsloc, freq, sigma, a, b, mu, eps, moment
     )
@@ -147,16 +155,18 @@ def getCasingHzMagDipole(
 
 
 def getCasingBrMagDipole(
-    srcloc, obsloc, freq, sigma, a, b, mu=mu_0 * np.ones(3), eps=epsilon_0, moment=1.0
+    srcloc, obsloc, freq, sigma, a, b, mu=(mu_0, mu_0, mu_0), eps=epsilon_0, moment=1.0
 ):
+    mu = np.asarray(mu)
     return mu_0 * getCasingHrMagDipole(
         srcloc, obsloc, freq, sigma, a, b, mu, eps, moment
     )
 
 
 def getCasingBzMagDipole(
-    srcloc, obsloc, freq, sigma, a, b, mu=mu_0 * np.ones(3), eps=epsilon_0, moment=1.0
+    srcloc, obsloc, freq, sigma, a, b, mu=(mu_0, mu_0, mu_0), eps=epsilon_0, moment=1.0
 ):
+    mu = np.asarray(mu)
     return mu_0 * getCasingHzMagDipole(
         srcloc, obsloc, freq, sigma, a, b, mu, eps, moment
     )

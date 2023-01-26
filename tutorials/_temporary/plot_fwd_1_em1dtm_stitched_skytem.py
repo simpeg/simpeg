@@ -17,7 +17,6 @@ import numpy as np
 import os
 import matplotlib as mpl
 from matplotlib import pyplot as plt
-from matplotlib.colors import LogNorm
 from discretize import TensorMesh
 from pymatsolver import PardisoSolver
 
@@ -25,7 +24,6 @@ from SimPEG import maps
 from SimPEG.utils import mkvc
 import SimPEG.electromagnetics.time_domain_1d as em1d
 from SimPEG.electromagnetics.utils.em1d_utils import (
-    plot_layer,
     get_vertical_discretization_time,
 )
 from SimPEG.electromagnetics.time_domain_1d.known_waveforms import (

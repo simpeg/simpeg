@@ -61,7 +61,7 @@ class TestEigenvalues(unittest.TestCase):
         multipliers /= np.sum(multipliers)
         self.multipliers = multipliers
         dmiscombo = dmis
-        for i, mult in enumerate(multipliers):
+        for mult in multipliers:
             dmiscombo += mult * dmis
         self.dmiscombo = dmiscombo
 
@@ -87,9 +87,7 @@ class TestEigenvalues(unittest.TestCase):
 
         # Test for multiple data misfit
         WtW = 0.0
-        for i, (mult, dm) in enumerate(
-            zip(self.dmiscombo.multipliers, self.dmiscombo.objfcts)
-        ):
+        for mult, dm in zip(self.dmiscombo.multipliers, self.dmiscombo.objfcts):
             WtW += mult * dm.W ** 2
         dmiscombo_matrix = self.G.T.dot(WtW.dot(self.G))
         max_eigenvalue_numpy, _ = eigsh(dmiscombo_matrix, k=1)
