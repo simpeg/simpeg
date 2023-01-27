@@ -2109,7 +2109,7 @@ class UpdatePreconditioner(InversionDirective):
                 )
                 JtJdiag += np.sum(np.power((dmisfit.W * sim.getJ(m)), 2), axis=0)
             else:
-                JtJdiag += sim.getJtJdiag(m, W=dmisfit.W)
+                JtJdiag += dmisfit.getJtJdiag(m)
 
         diagA = JtJdiag + self.invProb.beta * regDiag
         diagA[diagA != 0] = diagA[diagA != 0] ** -1.0
@@ -2140,7 +2140,7 @@ class UpdatePreconditioner(InversionDirective):
                 )
                 JtJdiag += np.sum(np.power((dmisfit.W * sim.getJ(m)), 2), axis=0)
             else:
-                JtJdiag += sim.getJtJdiag(m, W=dmisfit.W)
+                JtJdiag += dmisfit.getJtJdiag(m)
 
         diagA = JtJdiag + self.invProb.beta * regDiag
         diagA[diagA != 0] = diagA[diagA != 0] ** -1.0
@@ -2314,7 +2314,8 @@ class UpdateSensitivityWeights(InversionDirective):
                     )
                 jtj_diag += mkvc(np.sum((dmisfit.W * sim.getJ(m)) ** 2.0, axis=0))
             else:
-                jtj_diag += sim.getJtJdiag(m, W=dmisfit.W)
+                jtj_diag += dmisfit.getJtJdiag(m)
+
 
         # Normalize and threshold weights
         wr = np.zeros_like(self.invProb.model)

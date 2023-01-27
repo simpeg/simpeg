@@ -249,7 +249,7 @@ def block_deriv(simulation, src, tInd, f, block_size, d_count):
     return src_field_derivs
 
 def parallel_block_compute(simulation, f, src, ATinv_df_duT_v, d_count, col_block, tInd, solution_type, Jmatrix, Asubdiag, field_derivs):
-    field_derivs_t = (
+    field_derivs_t = np.asarray(
         field_derivs[:, col_block]
         - Asubdiag.T * ATinv_df_duT_v[:, col_block]
     )
