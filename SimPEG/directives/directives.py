@@ -336,7 +336,8 @@ class SetInitialBeta(InversionDirective):
 
     The ``SetInitialBeta`` directive manually sets the initial trade-off parameter
     (beta) between the data misfit and model objective function for the first beta
-    iteration.
+    iteration. A separate directive is used for updating the trade-off parameter at
+    successive beta iterations; see :class:`BetaSchedule`.
 
     Parameters
     ----------
@@ -347,14 +348,13 @@ class SetInitialBeta(InversionDirective):
     -----
     Let :math:`\phi_d` represent the data misfit, :math:`\phi_m` represent the model
     objective function and :math:`\mathbf{m_0}` represent the starting model. The first
-    model update is obtained by solving the following objective function:
+    model update is obtained by minimizing the a global objective function of the form:
 
     .. math::
         \phi (\mathbf{m_0}) = \phi_d (\mathbf{m_0}) + \beta_0 \phi_m (\mathbf{m_0})
 
-    where :math:`\beta_0` represents the initial trade-off parameter (beta). The
-    ``SetInitialBeta`` directive is used to set the value of :math:`\beta_0` manually.
-
+    where :math:`\beta_0` represents the initial trade-off parameter (beta).
+    The ``SetInitialBeta`` directive sets the value of :math:`\beta_0` manually.
     """
     def __init__(self, beta0=10.):
         super().__init__(**kwargs)
@@ -376,17 +376,16 @@ class SetInitialBeta(InversionDirective):
 
     def validate(self, directive_list):
 
-        beta_ind = [isinstance(d, BetaEstimate_ByEig) for d in directive_list.d_list]
+        ind = [isinstance(d, BaseBetaEstimator) for d in directive_list.d_list]
 
-        assert ~np.any(beta_ind), (
-            "Both 'SetInitialBeta' and 'BetaEstimate_ByEig' directives found in "
+        assert ~np.any(ind), (
+            "Both 'SetInitialBeta' and initial beta estimation directives found in "
             "directives list. Only one directive can be used to set the initial beta."
         )
 
         return True
 
     def initialize(self):
-        """Apply directive to initialize the inverse problem"""
         self.invProb.beta = self.beta0
 
     
@@ -399,7 +398,7 @@ class BaseBetaEstimator(InversionDirective):
 
     Parameters
     ----------
-    beta0_ratio: float
+    beta0_ratio : float
         Desired ratio between data misfit and model objective function at initial beta iteration
     seed : int, None
         Seed used for random sampling
@@ -445,79 +444,69 @@ class BaseBetaEstimator(InversionDirective):
 
     def validate(self, directive_list):
 
-        beta_ind = [isinstance(d, SetInitialBeta) for d in directive_list.d_list]
+        ind = [isinstance(d, SetInitialBeta) for d in directive_list.d_list]
+        assert np.sum(ind) == 1, (
+            "Multiple directives for estimating initial beta detected in directives list. "
+            "Only one directive can be used to set the initial beta."
+        )
 
-        assert ~np.any(beta_ind), (
-            "Both 'SetInitialBeta' and 'BetaEstimate_ByEig' directives found in "
+        ind = [isinstance(d, SetInitialBeta) for d in directive_list.d_list]
+
+        assert ~np.any(ind), (
+            "Both 'SetInitialBeta' and {} directives found in ".format(type(self))
             "directives list. Only one directive can be used to set the initial beta."
         )
 
         return True
 
+class BetaEstimateMaxDerivative(BaseBetaEstimator):
+    r"""Estimate initial trade-off parameter (beta) using largest derivatives.
 
-class BetaEstimate_ByEig(BaseBetaEstimator):
-    """Estimate the initial trade-off parameter (beta).
+    The initial trade-off parameter (beta) is estimated by scaling the ratio
+    between the largest derivatives in the gradient of the data misfit and
+    model objective function. A separate directive is used for updating the
+    trade-off parameter at successive beta iterations; see :class:`BetaSchedule`.
 
-    between the data misfit(s) and the
-    regularization as a multiple of the ratio between the highest eigenvalue of the
-    data misfit term and the highest eigenvalue of the regularization.
-    The highest eigenvalues are estimated through power iterations and Rayleigh quotient.
+    Parameters
+    ----------
+    beta0_ratio: float
+        Desired ratio between data misfit and model objective function at initial beta iteration
+    seed : int, None
+        Seed used for random sampling
+
+    Notes
+    -----
+    Let :math:`\phi_d` represent the data misfit, :math:`\phi_m` represent the model
+    objective function and :math:`\mathbf{m_0}` represent the starting model. The first
+    model update is obtained by minimizing the a global objective function of the form:
+
+    .. math::
+        \phi (\mathbf{m_0}) = \phi_d (\mathbf{m_0}) + \beta_0 \phi_m (\mathbf{m_0})
+
+    where :math:`\beta_0` represents the initial trade-off parameter (beta).
+    
+    We define :math:`\gamma` as the desired ratio between the data misfit and model objective
+    functions at the initial beta iteration (defined by the 'beta0_ratio' input argument).
+    Here, the initial trade-off parameter is computed according to:
+
+    .. math::
+        \beta_0 = \gamma \frac{| \nabla_m \phi_d (\mathbf{m_0}) |_{max}}{| \nabla_m \phi_m (\mathbf{m_0 + \delta m}) |_{max}}
+
+    where
+
+    .. math::
+        \delta \mathbf{m} = \frac{m_{max}}{\mu_{max}} \boldsymbol{\mu}
+
+    and :math:`\boldsymbol{\mu}` is a set of independent samples from the
+    continuous uniform distribution between 0 and 1. 
 
     """
 
-    def __init__(self, beta0_ratio=1.0, n_pw_iter=4, seed=None, method="power_iteration", **kwargs):
+    def __init__(self, beta0_ratio=1.0, seed=None, **kwargs):
         super().__init__(beta0_ratio, seed, **kwargs)
-        self.method = method\
-        self.n_pw_iter = n_pw_iter
-        self.seed = seed
-
-    
-
-    @property
-    def n_pw_iter(self):
-        """Number of power iterations for estimation.
-
-        Returns
-        -------
-        int
-        """
-        return self._n_pw_iter
-
-    @n_pw_iter.setter
-    def n_pw_iter(self, value):
-        self._n_pw_iter = validate_integer("n_pw_iter", value, min_val=1)
 
     def initialize(self):
-        r"""
-        The initial beta is calculated by comparing the estimated
-        eigenvalues of JtJ and WtW.
-        To estimate the eigenvector of **A**, we will use one iteration
-        of the *Power Method*:
 
-        .. math::
-            \mathbf{x_1 = A x_0}
-
-        Given this (very course) approximation of the eigenvector, we can
-        use the *Rayleigh quotient* to approximate the largest eigenvalue.
-
-        .. math::
-            \lambda_0 = \frac{\mathbf{x^\top A x}}{\mathbf{x^\top x}}
-
-        We will approximate the largest eigenvalue for both JtJ and WtW,
-        and use some ratio of the quotient to estimate beta0.
-
-        .. math::
-            \beta_0 =
-                \gamma
-                \frac{
-                    \mathbf{x^\top J^\top J x}
-                }{
-                    \mathbf{x^\top W^\top W x}
-                }
-
-        :rtype: float
-        :return: beta0
-        """
         if self.seed is not None:
             np.random.seed(self.seed)
 
@@ -526,35 +515,123 @@ class BetaEstimate_ByEig(BaseBetaEstimator):
 
         m = self.invProb.model
 
-        if self.method == "power_iteration":
-            dm_eigenvalue = eigenvalue_by_power_iteration(
-                self.dmisfit, m, n_pw_iter=self.n_pw_iter,
-            )
-            reg_eigenvalue = eigenvalue_by_power_iteration(
-                self.reg, m, n_pw_iter=self.n_pw_iter,
-            )
-            self.ratio = np.asarray(dm_eigenvalue / reg_eigenvalue)
-        elif self.method == "max_derivatives":
-            x0 = np.random.rand(*m.shape)
-            phi_d_deriv = np.abs(self.dmisfit.deriv(m)).max()
-            dm = x0 / x0.max() * m.max()
-            phi_m_deriv = np.abs(self.reg.deriv(m + dm)).max()
-            self.ratio = np.asarray(phi_d_deriv / phi_m_deriv)
-        else:
-            x0 = np.random.rand(*m.shape)
-            phi_d_deriv = self.dmisfit.deriv2(m, x0)
-            t = np.dot(x0, phi_d_deriv)
-            reg = self.reg.deriv2(m, v=x0)
-            b = np.dot(x0, reg)
-            self.ratio = np.asarray(t / b)
+        x0 = np.random.rand(*m.shape)
+        phi_d_deriv = np.abs(self.dmisfit.deriv(m)).max()
+        dm = x0 / x0.max() * m.max()
+        phi_m_deriv = np.abs(self.reg.deriv(m + dm)).max()
+        self.ratio = np.asarray(phi_d_deriv / phi_m_deriv)
 
         self.beta0 = self.beta0_ratio * self.ratio
 
         self.invProb.beta = self.beta0
 
 
+class BetaEstimate_ByEig(BaseBetaEstimator):
+    r"""Estimate initial trade-off parameter (beta) by power iteration.
+
+    The initial trade-off parameter (beta) is estimated by scaling the ratio
+    between the largest eigenvalue in the second derivative of the data
+    misfit and the model objective function. The largest eigenvalues are estimated
+    using the power iteration method; see :func:`SimPEG.utils.eigenvalue_by_power_iteration`.
+    Note that a separate directive is used for updating the trade-off parameter at successive
+    beta iterations; see :class:`BetaSchedule`.
+
+    Parameters
+    ----------
+    beta0_ratio: float
+        Desired ratio between data misfit and model objective function at initial beta iteration
+    n_pw_iter : int
+        Number of power iterations used to estimate largest eigenvalues
+    seed : int, None
+        Seed used for random sampling
+
+    Notes
+    -----
+    Let :math:`\phi_d` represent the data misfit, :math:`\phi_m` represent the model
+    objective function and :math:`\mathbf{m_0}` represent the starting model. The first
+    model update is obtained by minimizing the a global objective function of the form:
+
+    .. math::
+        \phi (\mathbf{m_0}) = \phi_d (\mathbf{m_0}) + \beta_0 \phi_m (\mathbf{m_0})
+
+    where :math:`\beta_0` represents the initial trade-off parameter (beta).
+    Let :math:`\gamma` define the desired ratio between the data misfit and model
+    objective functions at the initial beta iteration (defined by the 'beta0_ratio' input argument).
+    Using the power iteration approach, our initial trade-off parameter is given by:
+
+    .. math::
+        \beta_0 = \gamma \frac{\lambda_d}{\lambda_m}
+
+    where :math:`\lambda_d` as the largest eigenvalue of the Hessian of the data misfit, and
+    :math:`\lambda_m` as the largest eigenvalue of the Hessian of the model objective function.
+    For each Hessian, the largest eigenvalue is computed using power iteration. The input
+    parameter 'n_pw_iter' sets the number of power iterations used in the estimate.
+
+    For a description of the power iteration approach for estimating the larges eigenvalue,
+    see :func:`SimPEG.utils.eigenvalue_by_power_iteration`.
+
+    """
+
+    def __init__(self, beta0_ratio=1.0, n_pw_iter=4, seed=None, **kwargs):
+        super().__init__(beta0_ratio, seed, **kwargs)
+        self.n_pw_iter = n_pw_iter
+
+    @property
+    def n_pw_iter(self):
+        """Number of power iterations for estimating largest eigenvalues
+
+        Returns
+        -------
+        int
+            Number of power iterations for estimating largest eigenvalues
+        """
+        return self._n_pw_iter
+
+    @n_pw_iter.setter
+    def n_pw_iter(self, value):
+        self._n_pw_iter = validate_integer("n_pw_iter", value, min_val=1)
+
+    def initialize(self):
+
+        if self.seed is not None:
+            np.random.seed(self.seed)
+
+        if self.verbose:
+            print("Calculating the beta0 parameter.")
+
+        m = self.invProb.model
+
+        dm_eigenvalue = eigenvalue_by_power_iteration(
+            self.dmisfit, m, n_pw_iter=self.n_pw_iter,
+        )
+        reg_eigenvalue = eigenvalue_by_power_iteration(
+            self.reg, m, n_pw_iter=self.n_pw_iter,
+        )
+        
+        self.ratio = np.asarray(dm_eigenvalue / reg_eigenvalue)
+        self.beta0 = self.beta0_ratio * self.ratio
+        self.invProb.beta = self.beta0
+
+
 class BetaSchedule(InversionDirective):
-    """BetaSchedule"""
+    """Reduce trade-off parameter (beta) at successive iterations using a cooling schedule.
+
+    For linear least-squares problems, the optimization problem can be solved in a
+    single step and the cooling rate can be set to *1*. For non-linear optimization
+    problems, multiple steps are required obtain the minimizer for a fixed trade-off
+    parameter. In this case, the cooling rate should be larger than 1.
+
+    Parameters
+    ----------
+    coolingFactor : float
+        The factor by which the trade-off parameter is decreased when updated.
+        The preexisting value of the trade-off parameter is divided by the cooling factor.
+    coolingRate : int
+        Sets the number of successive iterations before the trade-off parameter is reduced.
+        Use *1* for linear least-squares optimization problems. Use *2* for weakly non-linear
+        optimization problems. Use *3* for general non-linear optimization problems.
+
+    """
 
     def __init__(self, coolingFactor=8.0, coolingRate=3, **kwargs):
         super().__init__(**kwargs)

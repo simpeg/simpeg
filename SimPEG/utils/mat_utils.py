@@ -141,10 +141,10 @@ def unique_rows(M):
 def eigenvalue_by_power_iteration(
     combo_objfct, model, n_pw_iter=4, fields_list=None, seed=None
 ):
-    """Estimate highest eigenvalue of one or a combo of objective functions using power iterations and the Rayleigh quotient.
+    r"""Estimate largest eigenvalue in absolute value using power iteration.
 
-    Using power iterations and the Rayleigh quotient, this function estimates the largest
-    eigenvalue for a single :class:`SimPEG.BaseObjectiveFunction` or a combination of
+    Uses the power iteration approach to estimate the largest eigenvalue in absolute
+    value for a single :class:`SimPEG.BaseObjectiveFunction` or a combination of
     objective functions stored in a :class:`SimPEG.ComboObjectiveFunction`.
 
     Parameters
@@ -166,7 +166,24 @@ def eigenvalue_by_power_iteration(
     Returns
     -------
     float
-        Estimated value of the highest eigenvalue
+        Estimated value of the highest eigenvalue in absolute value
+
+    Notes
+    -----
+    After *k* power iterations, the largest eigenvalue in absolute value is
+    approximated by the Rayleigh quotient:
+
+    .. math::
+        \lambda_k = \frac{\mathbf{x_k^T A x_k}}{\mathbf{x_k^T x_k}}
+
+    where :math:`\mathfb{A}` is our matrix and :math:`\mathfb{x_k}` is computed
+    recursively according to:
+
+    .. math::
+        \mathbf{x_{k+1}} = \frac{\mathbf{A x_k}}{\| \mathbf{Ax_k} \|}
+
+    The elements of the initial vector :math:`\mathbf{x_0}` are randomly
+    selected from a uniform distribution. 
 
     """
 
