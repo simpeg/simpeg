@@ -287,6 +287,29 @@ def cartesian2spherical(m):
     return m_atp
 
 
+def cartesian2amplitude_dip_azimuth(m):
+    """
+    Convert from cartesian to amplitude, dip (positive down) and
+    azimuth (clockwise for North), in degree.
+    """
+    atp = cartesian2spherical(m).reshape((-1, 3), order='F')
+    atp[:, 1] = np.rad2deg(-1.0 * atp[:, 1])
+    atp[:, 2] = (450.0 - np.rad2deg(atp[:, 2])) % 360.0
+
+    return atp
+
+
+def spherical2cartesian(m):
+    """ Convert from spherical to cartesian """
+    m = m.reshape((-1, 3), order='F')
+    a = m[:, 0] + 1e-8
+    t = m[:, 1]
+    p = m[:, 2]
+    m_xyz = np.r_[a * np.cos(t) * np.cos(p), a * np.cos(t) * np.sin(p), a * np.sin(t)]
+
+    return m_xyz
+
+
 def spherical2cartesian(m):
     r"""
     Converts a set of 3D vectors from spherical to Catesian coordinates.
