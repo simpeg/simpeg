@@ -20,7 +20,7 @@ from SimPEG import (
     directives,
     inversion,
 )
-from discretize.utils import mesh_builder_xyz, refine_tree_xyz
+from discretize.utils import mesh_builder_xyz, refine_tree_xyz, active_from_xyz
 
 try:
     from SimPEG import utils
@@ -113,7 +113,7 @@ for local_mesh in local_meshes:
 mesh.finalize()
 
 # Define an active cells from topo
-activeCells = utils.active_from_xyz(mesh, topo)
+activeCells = active_from_xyz(mesh, topo)
 nC = int(activeCells.sum())
 
 # We can now create a density model and generate data

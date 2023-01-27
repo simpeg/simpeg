@@ -25,8 +25,8 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 
 from discretize import TreeMesh
-from discretize.utils import mkvc, refine_tree_xyz
-from SimPEG.utils import plot2Ddata, model_builder, active_from_xyz
+from discretize.utils import mkvc, refine_tree_xyz, active_from_xyz
+from SimPEG.utils import plot2Ddata, model_builder
 from SimPEG import maps
 from SimPEG.potential_fields import gravity
 

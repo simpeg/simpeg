@@ -33,9 +33,9 @@ from matplotlib.colors import LogNorm
 import tarfile
 
 from discretize import TreeMesh
-from discretize.utils import mkvc, refine_tree_xyz
+from discretize.utils import mkvc, refine_tree_xyz, active_from_xyz
 
-from SimPEG.utils import active_from_xyz, model_builder
+from SimPEG.utils import model_builder
 from SimPEG import (
     maps,
     data_misfit,

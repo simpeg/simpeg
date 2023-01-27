@@ -33,9 +33,9 @@ import matplotlib.pyplot as plt
 import tarfile
 
 from discretize import TreeMesh
-from discretize.utils import refine_tree_xyz
+from discretize.utils import refine_tree_xyz, active_from_xyz
 
-from SimPEG.utils import active_from_xyz, model_builder
+from SimPEG.utils import model_builder
 from SimPEG.utils.io_utils.io_utils_electromagnetics import read_dcip_xyz
 from SimPEG import (
     maps,

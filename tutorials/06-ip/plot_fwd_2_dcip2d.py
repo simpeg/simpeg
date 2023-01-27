@@ -30,9 +30,9 @@ pseudo-sections as apparent conductivities and apparent chargeabilities.
 #
 
 from discretize import TreeMesh
-from discretize.utils import mkvc, refine_tree_xyz
+from discretize.utils import mkvc, refine_tree_xyz, active_from_xyz
 
-from SimPEG.utils import model_builder, active_from_xyz
+from SimPEG.utils import model_builder
 from SimPEG.utils.io_utils.io_utils_electromagnetics import write_dcip2d_ubc
 from SimPEG import maps, data
 from SimPEG.electromagnetics.static import resistivity as dc

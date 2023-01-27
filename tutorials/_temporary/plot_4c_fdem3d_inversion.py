@@ -30,9 +30,9 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 
 from discretize import TreeMesh
-from discretize.utils import refine_tree_xyz
+from discretize.utils import refine_tree_xyz, active_from_xyz
 
-from SimPEG.utils import plot2Ddata, active_from_xyz, mkvc
+from SimPEG.utils import plot2Ddata, mkvc
 from SimPEG.electromagnetics import frequency_domain as fdem
 from SimPEG import (
     maps,

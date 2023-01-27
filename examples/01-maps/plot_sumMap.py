@@ -12,7 +12,8 @@ model.
 
 
 """
-import discretize
+from discretize import TensorMesh
+from discretize.utils import active_from_xyz
 from SimPEG import (
     utils,
     maps,
@@ -39,7 +40,7 @@ def run(plotIt=True):
     hyind = [(dx, 5, -1.3), (dx, 10), (dx, 5, 1.3)]
     hzind = [(dx, 5, -1.3), (dx, 10)]
 
-    mesh = discretize.TensorMesh([hxind, hyind, hzind], "CCC")
+    mesh = TensorMesh([hxind, hyind, hzind], "CCC")
 
     # Lets create a simple Gaussian topo and set the active cells
     [xx, yy] = np.meshgrid(mesh.nodes_x, mesh.nodes_y)
@@ -49,7 +50,7 @@ def run(plotIt=True):
     topo = np.c_[utils.mkvc(xx), utils.mkvc(yy), utils.mkvc(zz)]
 
     # Go from topo to array of indices of active cells
-    actv = utils.active_from_xyz(mesh, topo, "N")
+    actv = active_from_xyz(mesh, topo, "N")
     nC = int(actv.sum())
     # Create and array of observation points
     xr = np.linspace(-20.0, 20.0, 20)
@@ -143,7 +144,7 @@ def run(plotIt=True):
 
     ## Create a regularization
     # For the homogeneous model
-    regMesh = discretize.TensorMesh([len(domains)])
+    regMesh = TensorMesh([len(domains)])
 
     reg_m1 = regularization.Sparse(regMesh, mapping=wires.homo)
     reg_m1.cell_weights = wires.homo * wr

@@ -33,9 +33,9 @@ import matplotlib.pyplot as plt
 import tarfile
 
 from discretize import TensorMesh
-
+from discretize.utils import active_from_xyz
 from SimPEG.potential_fields import magnetics
-from SimPEG.utils import plot2Ddata, active_from_xyz, model_builder
+from SimPEG.utils import plot2Ddata, model_builder
 from SimPEG import (
     maps,
     data,

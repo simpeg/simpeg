@@ -29,9 +29,9 @@ sufficient accuracy.
 #
 
 from discretize import TreeMesh
-from discretize.utils import mkvc, refine_tree_xyz
+from discretize.utils import mkvc, refine_tree_xyz, active_from_xyz
 
-from SimPEG.utils import plot2Ddata, active_from_xyz
+from SimPEG.utils import plot2Ddata
 from SimPEG import maps
 import SimPEG.electromagnetics.frequency_domain as fdem
 

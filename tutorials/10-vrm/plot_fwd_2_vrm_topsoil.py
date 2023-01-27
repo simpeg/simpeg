@@ -27,11 +27,11 @@ tutorial have been developed for modeling both the inductive and VRM responses.
 #
 
 from SimPEG.electromagnetics import viscous_remanent_magnetization as vrm
-from SimPEG.utils import plot2Ddata, active_from_xyz
+from SimPEG.utils import plot2Ddata
 from SimPEG import maps
 
 from discretize import TreeMesh
-from discretize.utils import mkvc, refine_tree_xyz
+from discretize.utils import mkvc, refine_tree_xyz, active_from_xyz
 
 import numpy as np
 from scipy.interpolate import LinearNDInterpolator

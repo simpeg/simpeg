@@ -20,8 +20,8 @@ OcTree meshes. Some things we consider are:
 
 
 from discretize import TreeMesh
-from discretize.utils import refine_tree_xyz
-from SimPEG.utils import mkvc, model_builder, active_from_xyz
+from discretize.utils import refine_tree_xyz, active_from_xyz
+from SimPEG.utils import mkvc, model_builder
 from SimPEG import maps
 import numpy as np
 import matplotlib.pyplot as plt

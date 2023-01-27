@@ -32,16 +32,17 @@ def surface2ind_topo(mesh, topo, gridLoc="CC", method="nearest", fill_value=np.n
 
     Returns
     -------
-    (n_cells) numpy.ndarray of bool
-        1D mask array of *bool* for the active cells below xyz.
+    (n_active) numpy.ndarray of int
+        Indices of active cells below xyz.
     """
     warnings.warn(
-        "The surface2ind_topo function has been deprecated, please use active_from_xyz. "
-        "This will be removed in SimPEG 0.19.0",
+        "The surface2ind_topo function has been deprecated, please import "
+        "discretize.utils.active_from_xyz. This will be removed in SimPEG 0.20.0",
         FutureWarning,
     )
 
-    return active_from_xyz(mesh, topo, gridLoc, method)
+    active_cells = active_from_xyz(mesh, topo, gridLoc, method)
+    return np.arange(mesh.n_cells)[active_cells]
 
 
 def surface_layer_index(mesh, topo, index=0):

@@ -19,7 +19,8 @@ tensor meshes. Some things we consider are:
 #
 
 from discretize import TensorMesh
-from SimPEG.utils import mkvc, active_from_xyz, model_builder
+from discretize.utils import active_from_xyz
+from SimPEG.utils import mkvc, model_builder
 from SimPEG import maps
 import numpy as np
 import matplotlib.pyplot as plt

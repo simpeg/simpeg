@@ -26,9 +26,9 @@ import matplotlib.pyplot as plt
 import os
 
 from discretize import TensorMesh
-from discretize.utils import mkvc
+from discretize.utils import mkvc, active_from_xyz
 
-from SimPEG.utils import plot2Ddata, model_builder, active_from_xyz
+from SimPEG.utils import plot2Ddata, model_builder
 from SimPEG import maps
 from SimPEG.potential_fields import gravity
 
