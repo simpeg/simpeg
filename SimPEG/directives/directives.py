@@ -2451,20 +2451,20 @@ class SaveIterationsGeoH5(InversionDirective):
         if isinstance(dpred, np.ndarray):
             return self.reshape(dpred)
 
-        n_tiles = int(np.ceil(len(dpred) / len(self.channels)))
-        block_size = len(dpred) / n_tiles
-        tile_stack = []
-        channels = []
-        count = 0
-        for pred in dpred:
-            channels += [pred]
-            count += 1
-            if count == block_size:
-                tile_stack += [self.reshape(np.vstack(channels))]
-                channels = []
-                count = 0
+        # n_tiles = int(np.ceil(len(dpred) / len(self.channels)))
+        # block_size = len(dpred) / n_tiles
+        # tile_stack = []
+        # channels = []
+        # count = 0
+        # for pred in dpred:
+        #     channels += [pred]
+        #     count += 1
+        #     if count == block_size:
+        #         tile_stack += [self.reshape(np.vstack(channels))]
+        #         channels = []
+        #         count = 0
 
-        return np.dstack(tile_stack)
+        return self.reshape(np.hstack(dpred))
 
     def save_components(self, iteration: int, values: list[np.ndarray] = None):
         """

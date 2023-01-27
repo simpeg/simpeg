@@ -16,13 +16,24 @@ class BaseDataMisfit(L2ObjectiveFunction):
         term.
     """
 
-    def __init__(self, data, simulation, debug=False, counter=None, **kwargs):
+    def __init__(self, data, simulation, model_map=None, debug=False, counter=None, **kwargs):
         super().__init__(**kwargs)
 
         self.data = data
         self.simulation = simulation
         self.debug = debug
         self.count = counter
+        self.model_map = model_map
+
+    @property
+    def model_map(self):
+        return getattr(self, "_model_map", None)
+
+    @model_map.setter
+    def model_map(self, value):
+        if value is None:
+            value = Identity()
+        self._model_map = value
 
     @property
     def data(self):
