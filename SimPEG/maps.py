@@ -5845,7 +5845,7 @@ class TileMap(IdentityMap):
             Number of components in the model. E.g. a vector model in 3D would have 3
             components.
         """
-        super().__init__(mesh=None, **kwargs)
+        super().__init__(mesh=None)
         self._global_mesh = validate_type(
             "global_mesh", global_mesh, discretize.TreeMesh, cast=False
         )
