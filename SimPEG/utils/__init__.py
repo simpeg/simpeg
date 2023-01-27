@@ -272,7 +272,7 @@ from .mesh_utils import (
     unpack_widths,
     closest_points_index,
     extract_core_mesh,
-    surface2inds
+    surface2inds,
 )
 from .curv_utils import (
     volTetra,
