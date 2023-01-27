@@ -358,7 +358,7 @@ class SetInitialBeta(InversionDirective):
     The ``SetInitialBeta`` directive sets the value of :math:`\beta_0` manually.
     """
 
-    def __init__(self, beta0=10.0):
+    def __init__(self, beta0=10.0, **kwargs):
         super().__init__(**kwargs)
         self.beta0 = beta0
 
@@ -379,8 +379,8 @@ class SetInitialBeta(InversionDirective):
     def validate(self, directive_list):
 
         ind = [
-            isinstance(d, [SetInitialBeta, BaseBetaEstimator])
-            for d in directive_list.d_list
+            isinstance(d, (SetInitialBeta, BaseBetaEstimator))
+            for d in directive_list.dList
         ]
         assert np.sum(ind) == 1, (
             "Multiple directives for setting initial beta detected in directives list. "
@@ -456,8 +456,8 @@ class BaseBetaEstimator(InversionDirective):
     def validate(self, directive_list):
 
         ind = [
-            isinstance(d, [SetInitialBeta, BaseBetaEstimator])
-            for d in directive_list.d_list
+            isinstance(d, (SetInitialBeta, BaseBetaEstimator))
+            for d in directive_list.dList
         ]
         assert np.sum(ind) == 1, (
             "Multiple directives for setting initial beta detected in directives list. "
@@ -2625,7 +2625,7 @@ class UpdateSensitivityWeights(InversionDirective):
         self_ind = dList.index(self)
 
         beta_estimator_ind = [
-            isinstance(d, [SetInitialBeta, BaseBetaEstimator]) for d in dList
+            isinstance(d, (SetInitialBeta, BaseBetaEstimator)) for d in dList
         ]
         lin_precond_ind = [isinstance(d, UpdatePreconditioner) for d in dList]
 
