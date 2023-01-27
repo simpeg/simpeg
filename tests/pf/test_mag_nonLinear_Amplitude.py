@@ -13,7 +13,7 @@ from SimPEG import (
 from SimPEG.potential_fields import magnetics
 from SimPEG import utils
 from SimPEG.utils import mkvc
-from discretize.utils import mesh_builder_xyz, refine_tree_xyz
+from discretize.utils import mesh_builder_xyz, refine_tree_xyz, active_from_xyz
 import unittest
 import shutil
 
@@ -66,7 +66,7 @@ class AmpProblemTest(unittest.TestCase):
         )
 
         # Define an active cells from topo
-        actv = utils.active_from_xyz(mesh, topo)
+        actv = active_from_xyz(mesh, topo)
         nC = int(actv.sum())
 
         # Convert the inclination declination to vector in Cartesian

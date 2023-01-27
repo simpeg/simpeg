@@ -1,6 +1,7 @@
 import unittest
 import numpy as np
 import discretize
+from discretize.utils import active_from_xyz
 import dask
 import SimPEG.dask  # noqa: F401
 from SimPEG import (
@@ -42,7 +43,7 @@ class GravInvLinProblemTest(unittest.TestCase):
 
         # Go from topo to actv cells
         topo = np.c_[utils.mkvc(xx), utils.mkvc(yy), utils.mkvc(zz)]
-        actv = utils.active_from_xyz(self.mesh, topo, "N")
+        actv = active_from_xyz(self.mesh, topo, "N")
 
         # Create active map to go from reduce space to full
         self.actvMap = maps.InjectActiveCells(self.mesh, actv, -100)
