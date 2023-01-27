@@ -390,22 +390,25 @@ class SetInitialBeta(InversionDirective):
         self.invProb.beta = self.beta0
 
     
+class BaseBetaEstimator(InversionDirective):
+    """Base class for estimating initial trade-off parameter (beta)
 
-class BetaEstimate_ByEig(InversionDirective):
-    """Estimate the initial trade-off parameter (beta).
+    This class has properties and methods inherited by directive classes which estimate
+    the initial trade-off parameter (beta). This class is not used directly to create
+    directives for the inversion.
 
-    between the data misfit(s) and the
-    regularization as a multiple of the ratio between the highest eigenvalue of the
-    data misfit term and the highest eigenvalue of the regularization.
-    The highest eigenvalues are estimated through power iterations and Rayleigh quotient.
+    Parameters
+    ----------
+    beta0_ratio: float
+        Desired ratio between data misfit and model objective function at initial beta iteration
+    seed : int, None
+        Seed used for random sampling
 
     """
 
     def __init__(self, beta0_ratio=1.0, n_pw_iter=4, seed=None, method="power_iteration", **kwargs):
         super().__init__(**kwargs)
-        self.method = method
         self.beta0_ratio = beta0_ratio
-        self.n_pw_iter = n_pw_iter
         self.seed = seed
 
     @property
@@ -425,20 +428,6 @@ class BetaEstimate_ByEig(InversionDirective):
         )
 
     @property
-    def n_pw_iter(self):
-        """Number of power iterations for estimation.
-
-        Returns
-        -------
-        int
-        """
-        return self._n_pw_iter
-
-    @n_pw_iter.setter
-    def n_pw_iter(self, value):
-        self._n_pw_iter = validate_integer("n_pw_iter", value, min_val=1)
-
-    @property
     def seed(self):
         """Random seed to initialize with
 
@@ -454,7 +443,6 @@ class BetaEstimate_ByEig(InversionDirective):
             value = validate_integer("seed", value, min_val=1)
         self._seed = value
 
-
     def validate(self, directive_list):
 
         beta_ind = [isinstance(d, SetInitialBeta) for d in directive_list.d_list]
@@ -466,6 +454,38 @@ class BetaEstimate_ByEig(InversionDirective):
 
         return True
 
+
+class BetaEstimate_ByEig(BaseBetaEstimator):
+    """Estimate the initial trade-off parameter (beta).
+
+    between the data misfit(s) and the
+    regularization as a multiple of the ratio between the highest eigenvalue of the
+    data misfit term and the highest eigenvalue of the regularization.
+    The highest eigenvalues are estimated through power iterations and Rayleigh quotient.
+
+    """
+
+    def __init__(self, beta0_ratio=1.0, n_pw_iter=4, seed=None, method="power_iteration", **kwargs):
+        super().__init__(beta0_ratio, seed, **kwargs)
+        self.method = method\
+        self.n_pw_iter = n_pw_iter
+        self.seed = seed
+
+    
+
+    @property
+    def n_pw_iter(self):
+        """Number of power iterations for estimation.
+
+        Returns
+        -------
+        int
+        """
+        return self._n_pw_iter
+
+    @n_pw_iter.setter
+    def n_pw_iter(self, value):
+        self._n_pw_iter = validate_integer("n_pw_iter", value, min_val=1)
 
     def initialize(self):
         r"""
