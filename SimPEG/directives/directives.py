@@ -187,7 +187,7 @@ class InversionDirective:
     @property
     def survey(self):
         """Return survey for all data misfits
-        
+
         Assuming that ``dmisfit`` is always a ``ComboObjectiveFunction``,
         return a list containing the survey for each data misfit; i.e.
         [survey1, survey2, ...]
@@ -202,7 +202,7 @@ class InversionDirective:
     @property
     def simulation(self):
         """Return simulation for all data misfits
-        
+
         Assuming that ``dmisfit`` is always a ``ComboObjectiveFunction``,
         return a list containing the simulation for each data misfit; i.e.
         [sim1, sim2, ...]
@@ -263,6 +263,7 @@ class DirectiveList(object):
         Whether or not to print debugging information
 
     """
+
     def __init__(self, *directives, inversion=None, debug=False, **kwargs):
         super().__init__(**kwargs)
         self.dList = []
@@ -356,7 +357,8 @@ class SetInitialBeta(InversionDirective):
     where :math:`\beta_0` represents the initial trade-off parameter (beta).
     The ``SetInitialBeta`` directive sets the value of :math:`\beta_0` manually.
     """
-    def __init__(self, beta0=10.):
+
+    def __init__(self, beta0=10.0):
         super().__init__(**kwargs)
         self.beta0 = beta0
 
@@ -368,7 +370,7 @@ class SetInitialBeta(InversionDirective):
         -------
         float
         """
-        return self._def beta0
+        return self._beta0
 
     @beta0.setter
     def beta0(self, value):
@@ -376,11 +378,13 @@ class SetInitialBeta(InversionDirective):
 
     def validate(self, directive_list):
 
-        ind = [isinstance(d, BaseBetaEstimator) for d in directive_list.d_list]
-
-        assert ~np.any(ind), (
-            "Both 'SetInitialBeta' and initial beta estimation directives found in "
-            "directives list. Only one directive can be used to set the initial beta."
+        ind = [
+            isinstance(d, [SetInitialBeta, BaseBetaEstimator])
+            for d in directive_list.d_list
+        ]
+        assert np.sum(ind) == 1, (
+            "Multiple directives for setting initial beta detected in directives list. "
+            "Only one directive can be used to set the initial beta."
         )
 
         return True
@@ -388,7 +392,7 @@ class SetInitialBeta(InversionDirective):
     def initialize(self):
         self.invProb.beta = self.beta0
 
-    
+
 class BaseBetaEstimator(InversionDirective):
     """Base class for estimating initial trade-off parameter (beta)
 
@@ -405,7 +409,14 @@ class BaseBetaEstimator(InversionDirective):
 
     """
 
-    def __init__(self, beta0_ratio=1.0, n_pw_iter=4, seed=None, method="power_iteration", **kwargs):
+    def __init__(
+        self,
+        beta0_ratio=1.0,
+        n_pw_iter=4,
+        seed=None,
+        method="power_iteration",
+        **kwargs,
+    ):
         super().__init__(**kwargs)
         self.beta0_ratio = beta0_ratio
         self.seed = seed
@@ -444,20 +455,17 @@ class BaseBetaEstimator(InversionDirective):
 
     def validate(self, directive_list):
 
-        ind = [isinstance(d, SetInitialBeta) for d in directive_list.d_list]
+        ind = [
+            isinstance(d, [SetInitialBeta, BaseBetaEstimator])
+            for d in directive_list.d_list
+        ]
         assert np.sum(ind) == 1, (
-            "Multiple directives for estimating initial beta detected in directives list. "
+            "Multiple directives for setting initial beta detected in directives list. "
             "Only one directive can be used to set the initial beta."
         )
 
-        ind = [isinstance(d, SetInitialBeta) for d in directive_list.d_list]
-
-        assert ~np.any(ind), (
-            "Both 'SetInitialBeta' and {} directives found in ".format(type(self))
-            "directives list. Only one directive can be used to set the initial beta."
-        )
-
         return True
+
 
 class BetaEstimateMaxDerivative(BaseBetaEstimator):
     r"""Estimate initial trade-off parameter (beta) using largest derivatives.
@@ -484,7 +492,7 @@ class BetaEstimateMaxDerivative(BaseBetaEstimator):
         \phi (\mathbf{m_0}) = \phi_d (\mathbf{m_0}) + \beta_0 \phi_m (\mathbf{m_0})
 
     where :math:`\beta_0` represents the initial trade-off parameter (beta).
-    
+
     We define :math:`\gamma` as the desired ratio between the data misfit and model objective
     functions at the initial beta iteration (defined by the 'beta0_ratio' input argument).
     Here, the initial trade-off parameter is computed according to:
@@ -498,7 +506,7 @@ class BetaEstimateMaxDerivative(BaseBetaEstimator):
         \delta \mathbf{m} = \frac{m_{max}}{\mu_{max}} \boldsymbol{\mu}
 
     and :math:`\boldsymbol{\mu}` is a set of independent samples from the
-    continuous uniform distribution between 0 and 1. 
+    continuous uniform distribution between 0 and 1.
 
     """
 
@@ -519,10 +527,9 @@ class BetaEstimateMaxDerivative(BaseBetaEstimator):
         phi_d_deriv = np.abs(self.dmisfit.deriv(m)).max()
         dm = x0 / x0.max() * m.max()
         phi_m_deriv = np.abs(self.reg.deriv(m + dm)).max()
+
         self.ratio = np.asarray(phi_d_deriv / phi_m_deriv)
-
         self.beta0 = self.beta0_ratio * self.ratio
-
         self.invProb.beta = self.beta0
 
 
@@ -602,12 +609,16 @@ class BetaEstimate_ByEig(BaseBetaEstimator):
         m = self.invProb.model
 
         dm_eigenvalue = eigenvalue_by_power_iteration(
-            self.dmisfit, m, n_pw_iter=self.n_pw_iter,
+            self.dmisfit,
+            m,
+            n_pw_iter=self.n_pw_iter,
         )
         reg_eigenvalue = eigenvalue_by_power_iteration(
-            self.reg, m, n_pw_iter=self.n_pw_iter,
+            self.reg,
+            m,
+            n_pw_iter=self.n_pw_iter,
         )
-        
+
         self.ratio = np.asarray(dm_eigenvalue / reg_eigenvalue)
         self.beta0 = self.beta0_ratio * self.ratio
         self.invProb.beta = self.beta0
@@ -2609,16 +2620,18 @@ class UpdateSensitivityWeights(InversionDirective):
                     sub_reg.set_weights(sensitivity=sub_reg.mapping * wr)
 
     def validate(self, directiveList):
-        
+
         dList = directiveList.dList
         self_ind = dList.index(self)
-        
-        beta_estimator_ind = [isinstance(d, BetaEstimate_ByEig) for d in dList]
+
+        beta_estimator_ind = [
+            isinstance(d, [SetInitialBeta, BaseBetaEstimator]) for d in dList
+        ]
         lin_precond_ind = [isinstance(d, UpdatePreconditioner) for d in dList]
 
         if any(beta_estimator_ind):
             assert beta_estimator_ind.index(True) > self_ind, (
-                "The directive 'BetaEstimate_ByEig' must be after UpdateSensitivityWeights "
+                "The directive for setting intial beta must be after UpdateSensitivityWeights "
                 "in the directiveList"
             )
 
