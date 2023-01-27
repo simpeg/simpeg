@@ -6,12 +6,11 @@ import warnings
 
 from discretize import TensorMesh, TreeMesh
 from discretize.base import BaseMesh
-from discretize.utils import refine_tree_xyz, unpack_widths
+from discretize.utils import refine_tree_xyz, unpack_widths, active_from_xyz
 
 from ....utils import (
     sdiag,
     uniqueRows,
-    active_from_xyz,
     plot2Ddata,
     validate_type,
     validate_integer,
