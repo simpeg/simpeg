@@ -319,8 +319,8 @@ class TestSequenceFunctions(unittest.TestCase):
             mesh_topo, vancouver_topo, gridLoc="N", method="nearest"
         )
 
-        assert np.sum(indtopoCC) == 8729
-        assert np.sum(indtopoN) == 8212
+        assert len(np.where(indtopoCC)[0]) == 8728
+        assert len(np.where(indtopoN)[0]) == 8211
 
 
 class TestDiagEst(unittest.TestCase):
