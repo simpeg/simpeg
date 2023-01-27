@@ -39,10 +39,10 @@ class directivesValidation(unittest.TestCase):
             self.assertTrue(directiveList.validate())
 
     def test_validation_initial_beta_fail(self):
-        
-        beta_1 = directives.SetInitialBeta(1.)
+
+        beta_1 = directives.SetInitialBeta(1.0)
         beta_2 = directives.BetaEstimateMaxDerivative()
-        
+
         dList = [beta_1, beta_2]
         directiveList = directives.DirectiveList(*dList)
         with self.assertRaises(AssertionError):
@@ -52,7 +52,6 @@ class directivesValidation(unittest.TestCase):
         directiveList = directives.DirectiveList(*dList)
         with self.assertRaises(AssertionError):
             self.assertTrue(directiveList.validate())
-
 
     def test_validation_warning(self):
         betaest = directives.BetaEstimate_ByEig()

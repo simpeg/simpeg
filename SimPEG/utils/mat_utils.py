@@ -183,7 +183,7 @@ def eigenvalue_by_power_iteration(
         \mathbf{x_{k+1}} = \frac{\mathbf{A x_k}}{\| \mathbf{Ax_k} \|}
 
     The elements of the initial vector :math:`\mathbf{x_0}` are randomly
-    selected from a uniform distribution. 
+    selected from a uniform distribution.
 
     """
 
