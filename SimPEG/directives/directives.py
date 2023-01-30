@@ -332,67 +332,6 @@ class DirectiveList(object):
         return True
 
 
-class SetInitialBeta(InversionDirective):
-    r"""Manually set the initial trade-off parameter (beta).
-
-    The ``SetInitialBeta`` directive manually sets the initial trade-off parameter
-    (beta) between the data misfit and model objective function for the first beta
-    iteration. A separate directive is used for updating the trade-off parameter at
-    successive beta iterations; see :class:`BetaSchedule`.
-
-    Parameters
-    ----------
-    beta0 : float
-        The initial beta value
-
-    Notes
-    -----
-    Let :math:`\phi_d` represent the data misfit, :math:`\phi_m` represent the model
-    objective function and :math:`\mathbf{m_0}` represent the starting model. The first
-    model update is obtained by minimizing the a global objective function of the form:
-
-    .. math::
-        \phi (\mathbf{m_0}) = \phi_d (\mathbf{m_0}) + \beta_0 \phi_m (\mathbf{m_0})
-
-    where :math:`\beta_0` represents the initial trade-off parameter (beta).
-    The ``SetInitialBeta`` directive sets the value of :math:`\beta_0` manually.
-    """
-
-    def __init__(self, beta0=10.0, **kwargs):
-        super().__init__(**kwargs)
-        self.beta0 = beta0
-
-    @property
-    def beta0(self):
-        """The initial trade-off parameter (beta)
-
-        Returns
-        -------
-        float
-        """
-        return self._beta0
-
-    @beta0.setter
-    def beta0(self, value):
-        self._beta0 = validate_float("beta0", value, min_val=0.0)
-
-    def validate(self, directive_list):
-
-        ind = [
-            isinstance(d, (SetInitialBeta, BaseBetaEstimator))
-            for d in directive_list.dList
-        ]
-        assert np.sum(ind) == 1, (
-            "Multiple directives for setting initial beta detected in directives list. "
-            "Only one directive can be used to set the initial beta."
-        )
-
-        return True
-
-    def initialize(self):
-        self.invProb.beta = self.beta0
-
-
 class BaseBetaEstimator(InversionDirective):
     """Base class for estimating initial trade-off parameter (beta)
 
@@ -455,12 +394,9 @@ class BaseBetaEstimator(InversionDirective):
 
     def validate(self, directive_list):
 
-        ind = [
-            isinstance(d, (SetInitialBeta, BaseBetaEstimator))
-            for d in directive_list.dList
-        ]
+        ind = [isinstance(d, BaseBetaEstimator) for d in directive_list.dList]
         assert np.sum(ind) == 1, (
-            "Multiple directives for setting initial beta detected in directives list. "
+            "Multiple directives for computing initial beta detected in directives list. "
             "Only one directive can be used to set the initial beta."
         )
 
@@ -472,7 +408,9 @@ class BetaEstimateMaxDerivative(BaseBetaEstimator):
 
     The initial trade-off parameter (beta) is estimated by scaling the ratio
     between the largest derivatives in the gradient of the data misfit and
-    model objective function. A separate directive is used for updating the
+    model objective function. The estimated trade-off parameter is used to
+    update the **beta** property in the associated :class:`SimPEG.inverse_problem.BaseInvProblem`
+    object prior to running the inversion. A separate directive is used for updating the
     trade-off parameter at successive beta iterations; see :class:`BetaSchedule`.
 
     Parameters
@@ -540,6 +478,8 @@ class BetaEstimate_ByEig(BaseBetaEstimator):
     between the largest eigenvalue in the second derivative of the data
     misfit and the model objective function. The largest eigenvalues are estimated
     using the power iteration method; see :func:`SimPEG.utils.eigenvalue_by_power_iteration`.
+    The estimated trade-off parameter is used to update the **beta** property in the
+    associated :class:`SimPEG.inverse_problem.BaseInvProblem` object prior to running the inversion.
     Note that a separate directive is used for updating the trade-off parameter at successive
     beta iterations; see :class:`BetaSchedule`.
 
@@ -627,6 +567,8 @@ class BetaEstimate_ByEig(BaseBetaEstimator):
 class BetaSchedule(InversionDirective):
     """Reduce trade-off parameter (beta) at successive iterations using a cooling schedule.
 
+    Updates the **beta** property in the associated :class:`SimPEG.inverse_problem.BaseInvProblem`
+    while the inversion is running.
     For linear least-squares problems, the optimization problem can be solved in a
     single step and the cooling rate can be set to *1*. For non-linear optimization
     problems, multiple steps are required obtain the minimizer for a fixed trade-off
@@ -2625,7 +2567,7 @@ class UpdateSensitivityWeights(InversionDirective):
         self_ind = dList.index(self)
 
         beta_estimator_ind = [
-            isinstance(d, (SetInitialBeta, BaseBetaEstimator)) for d in dList
+            isinstance(d, BaseBetaEstimator) for d in dList
         ]
         lin_precond_ind = [isinstance(d, UpdatePreconditioner) for d in dList]
 

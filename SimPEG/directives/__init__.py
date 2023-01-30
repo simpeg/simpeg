@@ -1,7 +1,6 @@
 from .directives import (
     InversionDirective,
     DirectiveList,
-    SetInitialBeta,
     BetaEstimateMaxDerivative,
     BetaEstimate_ByEig,
     BetaSchedule,
