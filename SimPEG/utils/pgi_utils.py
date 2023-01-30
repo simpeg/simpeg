@@ -618,9 +618,11 @@ class WeightedGaussianMixture(GaussianMixture):
         clfx = GaussianMixture(
             n_components=self.n_components,
             means_init=meansx,
+            # limit computation to minimum as we set the model parameter a posteriori
             n_init=1,
             max_iter=2,
-            tol=np.inf,
+            # put a high tolerance to avoid warning about low model fit
+            tol=1e256,
         )
         # random fit, we set values after.
         clfx.fit(np.random.randn(10, 1))
@@ -668,9 +670,11 @@ class WeightedGaussianMixture(GaussianMixture):
             clfy = GaussianMixture(
                 n_components=self.n_components,
                 means_init=meansy,
+                # limit computation to minimum as we set the model parameter a posteriori
                 n_init=1,
                 max_iter=2,
-                tol=np.inf,
+                # put a high tolerance to avoid warning about low model fit
+                tol=1e256,
             )
             # random fit, we set values after.
             clfy.fit(np.random.randn(10, 1))
