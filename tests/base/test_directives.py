@@ -127,7 +127,7 @@ class ValidationInInversion(unittest.TestCase):
                 "every_iteration": True,
                 "threshold_value": 1,
                 "threshold_method": "percentile",
-                "normalization_method": "maximum",
+                "normalization": True,
             },
             {
                 "every_iteration": True,
@@ -136,6 +136,14 @@ class ValidationInInversion(unittest.TestCase):
                 "normalization_method": "minimum",
             },
         ]
+
+        # Test setter warnings
+        d_temp = directives.UpdateSensitivityWeights()
+        d_temp.normalization_method = True
+        self.assertTrue(d_temp.normalization_method == "maximum")
+
+        d_temp.normalization_method = False
+        self.assertTrue(d_temp.normalization_method is None)
 
         # Compute test cell weights
         sqrt_diagJtJ = (

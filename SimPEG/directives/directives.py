@@ -2284,21 +2284,21 @@ class UpdateSensitivityWeights(InversionDirective):
 
         if "everyIter" in kwargs.keys():
             warnings.warn(
-                "'everyIter' property is deprecated and will be removed in SimPEG 0.19.0."
+                "'everyIter' property is deprecated and will be removed in SimPEG 0.20.0."
                 "Please use 'every_iteration'."
             )
             every_iteration = kwargs.pop("everyIter")
 
         if "threshold" in kwargs.keys():
             warnings.warn(
-                "'threshold' property is deprecated and will be removed in SimPEG 0.19.0."
+                "'threshold' property is deprecated and will be removed in SimPEG 0.20.0."
                 "Please use 'threshold_value'."
             )
             threshold_value = kwargs.pop("threshold")
 
         if "normalization" in kwargs.keys():
             warnings.warn(
-                "'normalization' property is deprecated and will be removed in SimPEG 0.19.0."
+                "'normalization' property is deprecated and will be removed in SimPEG 0.20.0."
                 "Please define normalization using 'normalization_method'."
             )
             normalization_method = kwargs.pop("normalization")
@@ -2332,7 +2332,7 @@ class UpdateSensitivityWeights(InversionDirective):
         self._every_iteration = validate_type("every_iteration", value, bool)
 
     deprecate_property(
-        every_iteration, "everyIter", "every_iteration", removal_version="0.19.0"
+        every_iteration, "everyIter", "every_iteration", removal_version="0.20.0"
     )
 
     @property
@@ -2353,7 +2353,7 @@ class UpdateSensitivityWeights(InversionDirective):
         self._threshold_value = validate_float("threshold_value", value, min_val=0.0)
 
     deprecate_property(
-        threshold_value, "threshold", "threshold_value", removal_version="0.19.0"
+        threshold_value, "threshold", "threshold_value", removal_version="0.20.0"
     )
 
     @property
