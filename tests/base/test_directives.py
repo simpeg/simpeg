@@ -41,7 +41,7 @@ class directivesValidation(unittest.TestCase):
     def test_validation_initial_beta_fail(self):
 
         beta_1 = directives.BetaEstimateMaxDerivative()
-        beta_1 = directives.BetaEstimate_ByEig()
+        beta_2 = directives.BetaEstimate_ByEig()
 
         dList = [beta_1, beta_2]
         directiveList = directives.DirectiveList(*dList)
