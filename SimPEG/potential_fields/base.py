@@ -188,11 +188,16 @@ class BasePFSimulation(LinearSimulation):
                     print(f"Found sensitivity file at {sens_name} with expected shape")
                     kernel = np.asarray(kernel)
                     return kernel
-        # multiprocessed
-        with Pool(processes=self.n_processes) as pool:
-            kernel = pool.starmap(
-                self.evaluate_integral, self.survey._location_component_iterator()
-            )
+        if self.n_processes == 1:
+            kernel = []
+            for args in self.survey._location_component_iterator():
+                kernel.append(self.evaluate_integral(*args))
+        else:
+            # multiprocessed
+            with Pool(processes=self.n_processes) as pool:
+                kernel = pool.starmap(
+                    self.evaluate_integral, self.survey._location_component_iterator()
+                )
         if self.store_sensitivities != "forward_only":
             kernel = np.vstack(kernel)
         else:
