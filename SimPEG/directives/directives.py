@@ -2566,9 +2566,7 @@ class UpdateSensitivityWeights(InversionDirective):
         dList = directiveList.dList
         self_ind = dList.index(self)
 
-        beta_estimator_ind = [
-            isinstance(d, BaseBetaEstimator) for d in dList
-        ]
+        beta_estimator_ind = [isinstance(d, BaseBetaEstimator) for d in dList]
         lin_precond_ind = [isinstance(d, UpdatePreconditioner) for d in dList]
 
         if any(beta_estimator_ind):
