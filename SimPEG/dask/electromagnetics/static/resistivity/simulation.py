@@ -56,7 +56,7 @@ def dask_getJ(self, m, f=None):
                 m_size / np.ceil(m_size * n_col * 8 * 1e-6 / self.max_chunk_size)
             )
             ind = 0
-            for col in range(n_block_col):
+            for _ in range(n_block_col):
                 ATinvdf_duT = da.asarray(
                     self.Ainv * df_duT[:, ind : ind + n_col]
                 ).rechunk((nrows, n_col))

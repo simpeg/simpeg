@@ -51,7 +51,7 @@ class RegularizationTests(unittest.TestCase):
                 if r.__name__ in IGNORE_ME:
                     continue
 
-                for i, mesh in enumerate(self.meshlist):
+                for mesh in self.meshlist:
                     if mesh.dim < 3 and r.__name__[-1] == "z":
                         continue
                     if mesh.dim < 2 and r.__name__[-1] == "y":
@@ -85,7 +85,7 @@ class RegularizationTests(unittest.TestCase):
                 if r.__name__ in IGNORE_ME:
                     continue
 
-                for i, mesh in enumerate(self.meshlist[:1]):
+                for mesh in self.meshlist[:1]:
                     print("Testing Active Cells {0:d}D".format((mesh.dim)))
 
                     if mesh.dim == 1:
@@ -126,7 +126,7 @@ class RegularizationTests(unittest.TestCase):
     if testRegMesh:
 
         def test_regularizationMesh(self):
-            for i, mesh in enumerate(self.meshlist):
+            for mesh in self.meshlist:
                 print("Testing {0:d}D".format(mesh.dim))
 
                 if mesh.dim == 1:

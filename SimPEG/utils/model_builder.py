@@ -475,7 +475,7 @@ def create_random_model(shape, seed=1000, anisotropy=None, its=100, bounds=None)
 
     smth = smth / smth.sum()  # normalize
     mi = mr
-    for i in range(its):
+    for _ in range(its):
         mi = ndi.convolve(mi, smth)
 
     # scale the model to live between the bounds.
