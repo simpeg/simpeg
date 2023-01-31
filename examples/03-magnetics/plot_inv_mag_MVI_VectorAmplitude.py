@@ -245,7 +245,7 @@ ind = utils.model_builder.getIndicesBlock(
     mesh.gridCC,
 )[0]
 model_amp[ind] = 0.05
-model_azm_dip[ind, 0] = 0.
+model_azm_dip[ind, 0] = 45.
 model_azm_dip[ind, 1] = 90.
 
 # Remove air cells
@@ -337,9 +337,9 @@ reg_amp = regularization.VectorAmplitude(
     mesh, wires, active_cells=actv,
     reference_model_in_smooth=True,
 )
-reg_amp.norms = [1.0, 0, 0, 0]
+reg_amp.norms = [0.0, 0, 0, 0]
 # reg_amp.alpha_s = 0.0
-reg_amp.gradient_type = "components"
+reg_amp.gradient_type = "total"
 reg_amp.reference_model = mkvc(model)
 
 # Create three regularizations for the different components
@@ -427,7 +427,7 @@ update_Jacobi = directives.UpdatePreconditioner()
 # )
 
 update_dir = directives.UpdateReferenceVector(
-    reg_amp, wires, component="amplitude"
+    reg_amp, wires, component="direction"
 )
 inv = inversion.BaseInversion(
     invProb, directiveList=[
