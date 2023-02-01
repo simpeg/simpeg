@@ -23,16 +23,6 @@ from discretize.utils import (  # noqa: F401
     inverse_property_tensor,
 )
 
-# deprecated imports
-from discretize.utils import (  # noqa: F401
-    sdInv,
-    getSubArray,
-    inv3X3BlockDiagonal,
-    inv2X2BlockDiagonal,
-    makePropertyTensor,
-    invPropertyTensor,
-)
-
 
 def estimate_diagonal(matrix_arg, n, k=None, approach="Probing"):
     r"""Estimate the diagonal of a matrix.
@@ -449,5 +439,32 @@ def define_plane_from_points(xyz1, xyz2, xyz3):
 
 
 diagEst = deprecate_function(estimate_diagonal, "diagEst", removal_version="0.19.0")
-
 uniqueRows = deprecate_function(unique_rows, "uniqueRows", removal_version="0.19.0")
+sdInv = deprecate_function(sdinv, "sdInv", removal_version="0.19.0", future_warn=True)
+getSubArray = deprecate_function(
+    get_subarray, "getSubArray", removal_version="0.19.0", future_warn=True
+)
+inv3X3BlockDiagonal = deprecate_function(
+    inverse_3x3_block_diagonal,
+    "inv3X3BlockDiagonal",
+    removal_version="0.19.0",
+    future_warn=True,
+)
+inv2X2BlockDiagonal = deprecate_function(
+    inverse_2x2_block_diagonal,
+    "inv2X2BlockDiagonal",
+    removal_version="0.19.0",
+    future_warn=True,
+)
+makePropertyTensor = deprecate_function(
+    make_property_tensor,
+    "makePropertyTensor",
+    removal_version="0.19.0",
+    future_warn=True,
+)
+invPropertyTensor = deprecate_function(
+    inverse_property_tensor,
+    "invPropertyTensor",
+    removal_version="0.19.0",
+    future_warn=True,
+)
