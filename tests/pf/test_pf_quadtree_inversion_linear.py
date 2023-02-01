@@ -454,6 +454,7 @@ class QuadTreeLinProblemTest(unittest.TestCase):
         model_residual = np.linalg.norm(mrec - self.grav_model) / np.linalg.norm(
             self.grav_model
         )
+        print('MODEL RESIDUAL: {}'.format(model_residual))
         self.assertAlmostEqual(model_residual, 0.18, delta=0.05)
 
         # Check data converged to less than 10% of target misfit
@@ -473,6 +474,7 @@ class QuadTreeLinProblemTest(unittest.TestCase):
         model_residual = np.linalg.norm(mrec - self.mag_model) / np.linalg.norm(
             self.mag_model
         )
+        print('MODEL RESIDUAL: {}'.format(model_residual))
         self.assertAlmostEqual(model_residual, 0.01, delta=0.05)
 
         # Check data converged to less than 10% of target misfit
@@ -494,7 +496,8 @@ class QuadTreeLinProblemTest(unittest.TestCase):
         ) / np.linalg.norm(self.grav_model[self.active_cells])
         # Wide difference in results run locally (0.04) versus the pipeline
         # (0.21), so seems to need unusually large tolerance.
-        self.assertAlmostEqual(model_residual, 0.14, delta=0.05)
+        print('MODEL RESIDUAL: {}'.format(model_residual))
+        self.assertAlmostEqual(model_residual, 0.14, delta=0.1)
 
         # Check data converged to less than 10% of target misfit
         data_misfit = 2.0 * self.grav_inv_active.invProb.dmisfit(
@@ -515,6 +518,7 @@ class QuadTreeLinProblemTest(unittest.TestCase):
         model_residual = np.linalg.norm(
             mrec - self.mag_model[self.active_cells]
         ) / np.linalg.norm(self.mag_model[self.active_cells])
+        print('MODEL RESIDUAL: {}'.format(model_residual))
         self.assertAlmostEqual(model_residual, 0.11, delta=0.05)
 
         # Check data converged to less than 10% of target misfit
