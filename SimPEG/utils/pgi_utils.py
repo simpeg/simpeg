@@ -707,7 +707,7 @@ class WeightedGaussianMixture(GaussianMixture):
                 means_init=mean2d,
                 n_init=1,
                 max_iter=2,
-                tol=np.inf,
+                tol=1e256,
             )
             # random fit, we set values after.
             clf2d.fit(np.random.randn(10, 2))
@@ -1106,7 +1106,7 @@ class GaussianMixtureWithPrior(WeightedGaussianMixture):
                 f"but got n_components = {self.n_components}, "
                 f"n_samples = {X.shape[0]}"
             )
-        self._check_initial_parameters(X)
+        self._check_parameters(X)
 
         # if we enable warm_start, we will have a unique initialisation
         do_init = not (self.warm_start and hasattr(self, "converged_"))
