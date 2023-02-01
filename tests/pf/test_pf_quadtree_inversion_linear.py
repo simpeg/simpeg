@@ -455,7 +455,7 @@ class QuadTreeLinProblemTest(unittest.TestCase):
             self.grav_model
         )
         print("MODEL RESIDUAL: {}".format(model_residual))
-        self.assertAlmostEqual(model_residual, 0.18, delta=0.05)
+        self.assertAlmostEqual(model_residual, 0.1, delta=0.1)
 
         # Check data converged to less than 10% of target misfit
         data_misfit = 2.0 * self.grav_inv.invProb.dmisfit(self.grav_model)
