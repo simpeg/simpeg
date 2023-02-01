@@ -26,7 +26,7 @@ class BaseObjectiveFunction(BaseSimPEG):
 
     mapPair = IdentityMap  #: Base class of expected maps
     _mapping = None  #: An IdentityMap instance.
-    _hasFields = False  #: should we have the option to store fields
+    _has_fields = False  #: should we have the option to store fields
 
     _nP = None  #: number of parameters
 
@@ -305,7 +305,7 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
             if multiplier == 0.0:  # don't evaluate the fct
                 continue
             else:
-                if f is not None and objfct._hasFields:
+                if f is not None and objfct._has_fields:
                     fct += multiplier * objfct(m, f=f[i])
                 else:
                     fct += multiplier * objfct(m)
@@ -326,7 +326,7 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
             if multiplier == 0.0:  # don't evaluate the fct
                 continue
             else:
-                if f is not None and objfct._hasFields:
+                if f is not None and objfct._has_fields:
                     aux = objfct.deriv(m, f=f[i])
                     if not isinstance(aux, Zero):
                         g += multiplier * aux
@@ -352,7 +352,7 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
             if multiplier == 0.0:  # don't evaluate the fct
                 continue
             else:
-                if f is not None and objfct._hasFields:
+                if f is not None and objfct._has_fields:
                     objfct_H = objfct.deriv2(m, v, f=f[i])
                 else:
                     objfct_H = objfct.deriv2(m, v)
