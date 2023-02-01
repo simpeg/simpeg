@@ -32,7 +32,6 @@ class Point(survey.BaseRx):
     """
 
     def __init__(self, locations, components="tmi", **kwargs):
-
         super().__init__(locations, **kwargs)
 
         if isinstance(components, str):

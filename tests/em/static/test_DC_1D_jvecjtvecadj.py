@@ -21,7 +21,6 @@ FLR = 1e-20  # "zero", so if residual below this --> pass regardless of order
 
 class DC1DSimulation(unittest.TestCase):
     def setUp(self):
-
         ntx = 31
         xtemp_txP = np.logspace(1, 3, ntx)
         xtemp_txN = -xtemp_txP

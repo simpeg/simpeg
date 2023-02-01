@@ -8,7 +8,6 @@ from SimPEG import Props
 
 
 class BaseSPProblem(BaseDCProblem):
-
     h, hMap, hDeriv = Props.Invertible("Hydraulic Head (m)")
 
     q, qMap, qDeriv = Props.Invertible("Streaming current source (A/m^3)")
@@ -47,7 +46,6 @@ class BaseSPProblem(BaseDCProblem):
 
 
 class Problem_CC(BaseSPProblem, Simulation3DCellCentered):
-
     _solutionType = "phiSolution"
     _formulation = "HJ"  # CC potentials means J is on faces
     fieldsPair = Fields3DCellCentered
@@ -99,7 +97,6 @@ class Problem_CC_Jstore(Problem_CC):
         return self._G
 
     def getJ(self, m, f=None):
-
         if self.coordinate_system == "cartesian":
             return self.G
         else:
@@ -107,7 +104,6 @@ class Problem_CC_Jstore(Problem_CC):
             return self.G * self.S
 
     def Jvec(self, m, v, f=None):
-
         self.model = m
 
         if self.coordinate_system == "cartesian":
@@ -116,7 +112,6 @@ class Problem_CC_Jstore(Problem_CC):
             return np.dot(self.G, self.S.dot(v))
 
     def Jtvec(self, m, v, f=None):
-
         self.model = m
 
         if self.coordinate_system == "cartesian":
@@ -126,7 +121,6 @@ class Problem_CC_Jstore(Problem_CC):
 
     @Utils.count
     def fields(self, m):
-
         self.model = m
 
         if self.coordinate_system == "spherical":

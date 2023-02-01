@@ -89,7 +89,6 @@ def surface_layer_index(mesh, topo, index=0):
     Iz, Jz, _ = sp.find(Dz)
     jz = np.sort(Jz[np.argsort(Iz)].reshape((int(Iz.shape[0] / 2), 2)), axis=1)
     for _ in range(index):
-
         members = ismember(inds, jz[:, 1])
         inds = np.squeeze(jz[members, 0])
 
@@ -160,7 +159,6 @@ def depth_weighting(
 
     # reference_locs is a 2d array
     elif reference_locs.ndim == 2:
-
         tree = cKDTree(reference_locs[:, :-1])
         _, ind = tree.query(mesh.cell_centers[:, :-1])
         delta_z = np.abs(mesh.cell_centers[:, -1] - reference_locs[ind, -1])

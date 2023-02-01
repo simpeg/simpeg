@@ -278,7 +278,6 @@ class TestSequenceFunctions(unittest.TestCase):
             self.assertTrue(np.linalg.norm(Z.todense().ravel(), 2) < TOL)
 
     def test_as_array_n_by_dim(self):
-
         true = np.array([[1, 2, 3]])
 
         listArray = as_array_n_by_dim([1, 2, 3], 3)

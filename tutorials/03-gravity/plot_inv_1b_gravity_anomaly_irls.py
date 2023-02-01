@@ -417,7 +417,6 @@ cplot = 3 * [None]
 v_lim = [np.max(np.abs(dobs)), np.max(np.abs(dobs)), np.max(np.abs(data_array[:, 2]))]
 
 for ii in range(0, 3):
-
     ax1[ii] = fig.add_axes([0.33 * ii + 0.03, 0.11, 0.23, 0.84])
     cplot[ii] = plot2Ddata(
         receiver_list[0].locations,

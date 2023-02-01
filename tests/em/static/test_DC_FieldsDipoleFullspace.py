@@ -16,7 +16,6 @@ from scipy.constants import mu_0, epsilon_0
 
 class DC_CC_DipoleFullspaceTests(unittest.TestCase):
     def setUp(self):
-
         cs = 0.5
         npad = 11
         hx = [(cs, npad, -1.5), (cs, 15), (cs, npad, 1.5)]
@@ -194,7 +193,6 @@ class DC_CC_DipoleFullspaceTests(unittest.TestCase):
 
 class DC_N_DipoleFullspaceTests(unittest.TestCase):
     def setUp(self):
-
         cs = 0.5
         npad = 11
         hx = [(cs, npad, -1.5), (cs, 15), (cs, npad, 1.5)]

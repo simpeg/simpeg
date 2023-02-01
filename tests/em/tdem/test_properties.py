@@ -5,7 +5,6 @@ from SimPEG.electromagnetics import time_domain as tdem
 
 
 def test_receiver_properties():
-
     xyz = np.c_[0.0, 0.0, 0.0]
     times = np.logspace(-5, -2, 4)
     projComp = "Fx"
@@ -15,7 +14,6 @@ def test_receiver_properties():
 
 
 def test_source_properties():
-
     xyz = np.r_[0.0, 0.0, 0.0]
 
     # Base source

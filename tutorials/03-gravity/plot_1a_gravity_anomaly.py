@@ -45,7 +45,7 @@ save_output = False
 #
 
 [x_topo, y_topo] = np.meshgrid(np.linspace(-200, 200, 41), np.linspace(-200, 200, 41))
-z_topo = -15 * np.exp(-(x_topo ** 2 + y_topo ** 2) / 80 ** 2)
+z_topo = -15 * np.exp(-(x_topo**2 + y_topo**2) / 80**2)
 x_topo, y_topo, z_topo = mkvc(x_topo), mkvc(y_topo), mkvc(z_topo)
 topo_xyz = np.c_[x_topo, y_topo, z_topo]
 
@@ -220,7 +220,6 @@ plt.show()
 #
 
 if save_output:
-
     dir_path = os.path.dirname(__file__).split(os.path.sep)
     dir_path.extend(["outputs"])
     dir_path = os.path.sep.join(dir_path) + os.path.sep

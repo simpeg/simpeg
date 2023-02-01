@@ -32,7 +32,7 @@ class GravInvLinProblemTest(unittest.TestCase):
 
         # Lets create a simple Gaussian topo and set the active cells
         [xx, yy] = np.meshgrid(self.mesh.nodes_x, self.mesh.nodes_y)
-        zz = -np.exp((xx ** 2 + yy ** 2) / 75 ** 2) + self.mesh.nodes_z[-1]
+        zz = -np.exp((xx**2 + yy**2) / 75**2) + self.mesh.nodes_z[-1]
 
         # Go from topo to actv cells
         topo = np.c_[utils.mkvc(xx), utils.mkvc(yy), utils.mkvc(zz)]
@@ -48,7 +48,7 @@ class GravInvLinProblemTest(unittest.TestCase):
         X, Y = np.meshgrid(xr, yr)
 
         # Move the observation points 5m above the topo
-        Z = -np.exp((X ** 2 + Y ** 2) / 75 ** 2) + self.mesh.nodes_z[-1] + 5.0
+        Z = -np.exp((X**2 + Y**2) / 75**2) + self.mesh.nodes_z[-1] + 5.0
 
         # Create a MAGsurvey
         locXYZ = np.c_[utils.mkvc(X.T), utils.mkvc(Y.T), utils.mkvc(Z.T)]
@@ -110,7 +110,6 @@ class GravInvLinProblemTest(unittest.TestCase):
         self.sim = sim
 
     def test_grav_inverse(self):
-
         # Run the inversion
         mrec = self.inv.run(self.model)
         residual = np.linalg.norm(mrec - self.model) / np.linalg.norm(self.model)

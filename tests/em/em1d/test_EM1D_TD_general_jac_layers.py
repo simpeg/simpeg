@@ -7,7 +7,6 @@ import SimPEG.electromagnetics.time_domain as tdem
 
 class EM1D_TD_general_Jac_layers_ProblemTests(unittest.TestCase):
     def setUp(self):
-
         nearthick = np.logspace(-1, 1, 5)
         deepthick = np.logspace(1, 2, 10)
         thicknesses = np.r_[nearthick, deepthick]
@@ -62,7 +61,6 @@ class EM1D_TD_general_Jac_layers_ProblemTests(unittest.TestCase):
         self.a = radius
 
     def test_EM1DTDJvec_Layers(self):
-
         sigma_map = maps.ExpMap(nP=self.nlayers)
         sim = tdem.Simulation1DLayered(
             survey=self.survey,
@@ -89,7 +87,6 @@ class EM1D_TD_general_Jac_layers_ProblemTests(unittest.TestCase):
         self.assertTrue(passed)
 
     def test_EM1DTDJtvec_Layers(self):
-
         sigma_map = maps.ExpMap(nP=self.nlayers)
         sim = tdem.Simulation1DLayered(
             survey=self.survey,
@@ -241,7 +238,6 @@ class EM1D_TD_LineCurrent_Jac_layers_ProblemTests(unittest.TestCase):
         self.nlayers = len(thicknesses) + 1
 
     def test_EM1DTDJvec_Layers(self):
-
         sigma_map = maps.ExpMap(nP=self.nlayers)
         sim = tdem.Simulation1DLayered(
             survey=self.survey,
@@ -267,7 +263,6 @@ class EM1D_TD_LineCurrent_Jac_layers_ProblemTests(unittest.TestCase):
         self.assertTrue(passed)
 
     def test_EM1DTDJtvec_Layers(self):
-
         sigma_map = maps.ExpMap(nP=self.nlayers)
         sim = tdem.Simulation1DLayered(
             survey=self.survey,

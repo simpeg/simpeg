@@ -225,7 +225,6 @@ class MVIProblemTest(unittest.TestCase):
         )
 
     def test_mag_inverse(self):
-
         # Run the inversion
         mrec_MVI_S = self.inv.run(self.mstart)
 
