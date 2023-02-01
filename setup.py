@@ -40,7 +40,7 @@ setup(
         "matplotlib",
         "discretize>=0.7.1",
         "geoana>=0.4.0",
-        "empymod",
+        "empymod>=2.0.0",
         "pandas",
     ],
     author="Rowan Cockett",

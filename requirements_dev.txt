@@ -17,9 +17,9 @@ pytest
 pytest-cov
 jupyter
 toolz
-empymod
+empymod>=2.0.0
 scooby
-black==21.7b0
+black==23.1a1
 pre-commit
 twine
 memory_profiler
