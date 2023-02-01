@@ -672,14 +672,14 @@ def _get_map_data(data, frequency, orientation, component, plot_error=False):
             comp_data = real_data + 1j * imag_data
             plot_data = (1.0 / (mu_0 * omega(freqs))) * np.abs(comp_data) ** 2
             if plot_error:
-                res_uncert = (2.0 / (mu_0 * omega(freqs))) * (
-                    real_data * real_uncert + imag_data * imag_uncert
+                res_uncert = (2.0 / (mu_0 * omega(freqs))) * np.sqrt(
+                    (real_data * real_uncert) ** 2 + (imag_data * imag_uncert) ** 2
                 )
                 errorbars = [res_uncert, res_uncert]
         elif "phase" in component:
             plot_data = np.arctan2(imag_data, real_data) * (180.0 / np.pi)
             if plot_error:
-                phs_uncert = (
+                phs_uncert = np.abs(
                     (1.0 / (real_data**2 + imag_data**2))
                     * ((real_data * real_uncert - imag_data * imag_uncert))
                 ) * (180.0 / np.pi)
@@ -732,14 +732,14 @@ def _get_station_data(data, location, orientation, component, plot_error=False):
             comp_data = real_data + 1j * imag_data
             plot_data = (1.0 / (mu_0 * omega(freqs))) * np.abs(comp_data) ** 2
             if plot_error:
-                res_uncert = (2.0 / (mu_0 * omega(freqs))) * (
-                    real_data * real_uncert + imag_data * imag_uncert
+                res_uncert = (2.0 / (mu_0 * omega(freqs))) * np.sqrt(
+                    (real_data * real_uncert) ** 2 + (imag_data * imag_uncert) ** 2
                 )
                 errorbars = [res_uncert, res_uncert]
         elif "phase" in component:
             plot_data = np.arctan2(imag_data, real_data) * (180.0 / np.pi)
             if plot_error:
-                phs_uncert = (
+                phs_uncert = np.abs(
                     (1.0 / (real_data**2 + imag_data**2))
                     * ((real_data * real_uncert - imag_data * imag_uncert))
                 ) * (180.0 / np.pi)
