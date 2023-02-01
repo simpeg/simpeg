@@ -1,7 +1,6 @@
 import numpy as np
 
 from discretize.utils import (  # noqa: F401
-    random_model,
     unpack_widths,
     closest_points_index,
     extract_core_mesh,

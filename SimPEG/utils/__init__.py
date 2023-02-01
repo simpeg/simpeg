@@ -104,7 +104,6 @@ Mesh Utility Functions
 .. autosummary::
   :toctree: generated/
 
-  random_model
   closest_points_index
   extract_core_mesh
   unpack_widths

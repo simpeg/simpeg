@@ -141,7 +141,7 @@ def depth_weighting(
 
     if "indActive" in kwargs:
         warnings.warn(
-            "The indActive keyword argument has been deprecated, please use grid_loc. "
+            "The indActive keyword argument has been deprecated, please use active_cells. "
             "This will be removed in SimPEG 0.19.0",
             FutureWarning,
         )
