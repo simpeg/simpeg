@@ -1,4 +1,4 @@
-black==23.1a1
+black==23.1.0
 flake8
 flake8-bugbear
 flake8-builtins
