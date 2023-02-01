@@ -242,7 +242,6 @@ class QuadTreeLinProblemTest(unittest.TestCase):
             )
 
         def create_inversion(self, sim, data, beta=1e3, all_active=True):
-
             if all_active:
                 mapping = self.idenMap
                 active_cells = None
@@ -373,7 +372,6 @@ class QuadTreeLinProblemTest(unittest.TestCase):
         )
 
     def test_instantiation_failures(self):
-
         # Ensure simulation can't be instantiated with 3D mesh.
         dh = 5.0
         hx = [(dh, 5, -1.3), (dh, 10), (dh, 5, 1.3)]

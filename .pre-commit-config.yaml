@@ -1,7 +1,6 @@
 repos:
   - repo: https://github.com/psf/black
-    rev: 21.7b0
+    rev: 23.1.0
     hooks:
       - id: black
-        language_version: python3.8
-        additional_dependencies: ['click==8.0.4']
+        language_version: python3.10

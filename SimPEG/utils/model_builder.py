@@ -201,7 +201,7 @@ def create_ellipse_in_wholespace(
     for i in range(dim):
         G[:, i] = G[:, i] / anisotropy[i] * 2.0
 
-    D = np.sqrt(np.sum(G ** 2, axis=1))
+    D = np.sqrt(np.sum(G**2, axis=1))
     return -np.arctan((D - 1) * slope) * (2.0 / np.pi) / 2.0 + 0.5
 
 

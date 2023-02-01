@@ -61,7 +61,6 @@ class Simulation1DElectricField(BaseFDEMSimulation):
     fieldsPair = Fields1DElectricField
 
     def __init__(self, mesh, **kwargs):
-
         if mesh.dim > 1:
             raise ValueError(
                 f"The mesh must be a 1D mesh. The provided mesh has dimension {mesh.dim}"
@@ -265,7 +264,6 @@ class Simulation2DElectricField(BaseFDEMSimulation):
     fieldsPair = Fields2DElectricField
 
     def __init__(self, mesh, h_bc=None, **kwargs):
-
         if mesh.dim != 2:
             raise ValueError(
                 f"The mesh must be a 2D mesh. The provided mesh has dimension {mesh.dim}"
@@ -492,7 +490,6 @@ class Simulation2DMagneticField(BaseFDEMSimulation):
     fieldsPair = Fields2DMagneticField
 
     def __init__(self, mesh, e_bc=None, **kwargs):
-
         if mesh.dim != 2:
             raise ValueError(
                 f"The mesh must be a 2D mesh. The provided mesh has dimension {mesh.dim}"

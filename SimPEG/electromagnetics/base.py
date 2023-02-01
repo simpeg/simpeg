@@ -66,7 +66,6 @@ class BaseEMSrc(BaseSrc):
     """
 
     def __init__(self, receiver_list=None, location=None, integrate=False, **kwargs):
-
         super(BaseEMSrc, self).__init__(
             receiver_list=receiver_list, location=location, **kwargs
         )
