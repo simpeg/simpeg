@@ -2181,9 +2181,16 @@ class UpdateSensitivityWeights(InversionDirective):
     r"""
     Sensitivity weighting for linear and non-linear problems.
 
-    Compute and apply root-mean squared sensitivities as cell weights in the regularization.
-    Assumes that the map of the regularization function is either ``Wires`` or ``Identity``.
-    This directive requires that the sensitivities be stored explicitly.
+    This directive computes the root-mean squared sensitivities for the
+    forward simulation(s) attached to the inverse problem, then truncates
+    and scales the result to create cell weights
+    which are applied in the regularization.
+
+    This directive **requires** that the map for the regularization function is either
+    class:`SimPEG.maps.Wires` or class:`SimPEG.maps.Identity`. In other words, the
+    sensitivity weighting cannot be applied for parametric inversion. In addition,
+    the simulation(s) connected to the inverse problem **must** have a ``getJ`` or
+    ``getJtJdiag`` method.
 
     Parameters
     ----------
@@ -2192,21 +2199,27 @@ class UpdateSensitivityWeights(InversionDirective):
         When ``False``, create sensitivity weights for starting model only; linear problems.
     threshold : float
         Threshold value for smallest weighting value
-    threshold_method : str {'global', 'percentile', 'amplitude'}
+    threshold_method : {'global', 'percentile', 'amplitude'}
         Threshold method for how `threshold_value` is applied:
 
-            - **global:** `threshold_value` is added to the cell weights prior to normalization; must be greater than 0.
-            - **percentile:** the smallest root-mean squared sensitivity is set using percentile threshold; must be between 0 and 100
-            - **amplitude:** the smallest root-mean squared sensitivity is a fractional percent of the largest value; must be between 0 and 1
+            - global:
+                `threshold_value` is added to the cell weights prior to normalization; must be greater than 0.
+            - percentile:
+                the smallest root-mean squared sensitivity is set using percentile threshold; must be between 0 and 100
+            - amplitude:
+                the smallest root-mean squared sensitivity is a fractional percent of the largest value; must be between 0 and 1
 
-    normalization_method : None, 'min_value', 'maximum'
+    normalization_method : {None, 'min_value', 'maximum'}
         Normalization method applied to sensitivity weights.
 
         Options are:
 
-            - ``None``: normalization is not applied
-            - **maximum:** sensitivity weights are normalized by the largest value such that the largest weight is equal to 1.
-            - **minimum:** sensitivity weights are normalized by the smallest value, after thresholding, such that the smallest weights are equal to 1.
+            - ``None``:
+                normalization is not applied
+            - maximum:
+                sensitivity weights are normalized by the largest value such that the largest weight is equal to 1.
+            - minimum:
+                sensitivity weights are normalized by the smallest value, after thresholding, such that the smallest weights are equal to 1.
 
     Notes
     -----
@@ -2231,7 +2244,7 @@ class UpdateSensitivityWeights(InversionDirective):
     Thresholding to set a minimum value is applied as follows:
 
     .. math::
-        \tilde{s}_j = \begin{bases}
+        \tilde{s}_j = \begin{cases}
         s_j \;\; for \;\; s_j \geq s_{\%} \\
         s_{\%} \;\; for \;\; s_j < s_{\%}
         \end{cases}
@@ -2240,7 +2253,7 @@ class UpdateSensitivityWeights(InversionDirective):
     In this case, thresholding is applied as follows:
 
     .. math::
-        \tilde{s}_j = \begin{bases}
+        \tilde{s}_j = \begin{cases}
         s_j \;\; for \;\; s_j \geq \eta s_{max} \\
         \eta s_{max} \;\; for \;\; s_j < \eta s_{max}
         \end{cases}
@@ -2254,7 +2267,6 @@ class UpdateSensitivityWeights(InversionDirective):
         normalization_method="maximum",
         **kwargs,
     ):
-
         if "everyIter" in kwargs.keys():
             warnings.warn(
                 "'everyIter' property is deprecated and will be removed in SimPEG 0.20.0."
@@ -2304,7 +2316,7 @@ class UpdateSensitivityWeights(InversionDirective):
     def every_iteration(self, value):
         self._every_iteration = validate_type("every_iteration", value, bool)
 
-    deprecate_property(
+    everyIter = deprecate_property(
         every_iteration, "everyIter", "every_iteration", removal_version="0.20.0"
     )
 
@@ -2313,7 +2325,15 @@ class UpdateSensitivityWeights(InversionDirective):
         """Threshold value used to set minimum weighting value.
 
         The way thresholding is applied to the weighting model depends on the
-        'threshold_type' property. Choices are as follows:
+        `threshold_method` property. The choices for `threshold_method` are:
+
+            - global:
+                `threshold_value` is added to the cell weights prior to normalization; must be greater than 0.
+            - percentile:
+                `threshold_value` is a percentile cutoff; must be between 0 and 100
+            - amplitude:
+                `threshold_value` is the fractional percent of the largest value; must be between 0 and 1
+
 
         Returns
         -------
@@ -2325,7 +2345,7 @@ class UpdateSensitivityWeights(InversionDirective):
     def threshold_value(self, value):
         self._threshold_value = validate_float("threshold_value", value, min_val=0.0)
 
-    deprecate_property(
+    threshold = deprecate_property(
         threshold_value, "threshold", "threshold_value", removal_version="0.20.0"
     )
 
@@ -2333,9 +2353,12 @@ class UpdateSensitivityWeights(InversionDirective):
     def threshold_method(self):
         """Threshold method for how `threshold_value` is applied:
 
-            - **global:** `threshold_value` is added to the cell weights prior to normalization; must be greater than 0.
-            - **percentile:** the smallest root-mean squared sensitivity is set using percentile threshold; must be between 0 and 100
-            - **amplitude:** the smallest root-mean squared sensitivity is a fractional percent of the largest value; must be between 0 and 1
+            - global:
+                `threshold_value` is added to the cell weights prior to normalization; must be greater than 0.
+            - percentile:
+                the smallest root-mean squared sensitivity is set using percentile threshold; must be between 0 and 100
+            - amplitude:
+                the smallest root-mean squared sensitivity is a fractional percent of the largest value; must be between 0 and 1
 
 
         Returns
@@ -2348,7 +2371,7 @@ class UpdateSensitivityWeights(InversionDirective):
     def threshold_method(self, value):
         self._threshold_method = validate_string(
             "threshold_method", value, string_list=["global", "percentile", "amplitude"]
-        ).lower()
+        )
 
     @property
     def normalization_method(self):
@@ -2356,9 +2379,12 @@ class UpdateSensitivityWeights(InversionDirective):
 
         Options are:
 
-            - ``None``: normalization is not applied
-            - **maximum:** sensitivity weights are normalized by the largest value such that the largest weight is equal to 1.
-            - **minimum:** sensitivity weights are normalized by the smallest value, after thresholding, such that the smallest weights are equal to 1.
+            - ``None``
+                normalization is not applied
+            - maximum:
+                sensitivity weights are normalized by the largest value such that the largest weight is equal to 1.
+            - minimum:
+                sensitivity weights are normalized by the smallest value, after thresholding, such that the smallest weights are equal to 1.
 
         Returns
         -------
@@ -2368,13 +2394,12 @@ class UpdateSensitivityWeights(InversionDirective):
 
     @normalization_method.setter
     def normalization_method(self, value):
-
         if value is None:
             self._normalization_method = value
 
         elif isinstance(value, bool):
             warnings.warn(
-                "Boolean type for 'normalization_method' is deprecated and will be removed in 0.19.0."
+                "Boolean type for 'normalization_method' is deprecated and will be removed in 0.20.0."
                 "Please use None, 'maximum' or 'minimum'."
             )
             if value:
@@ -2385,13 +2410,13 @@ class UpdateSensitivityWeights(InversionDirective):
         else:
             self._normalization_method = validate_string(
                 "normalization_method", value, string_list=["minimum", "maximum"]
-            ).lower()
+            )
 
-    deprecate_property(
+    normalization = deprecate_property(
         normalization_method,
         "normalization",
         "normalization_method",
-        removal_version="0.19.0",
+        removal_version="0.20.0",
     )
 
     def initialize(self):
@@ -2463,6 +2488,14 @@ class UpdateSensitivityWeights(InversionDirective):
 
     def validate(self, directiveList):
         """Validate directive against directives list.
+
+        The ``UpdateSensitivityWeights`` directive impacts the regularization by applying
+        cell weights. As a result, its place in the :class:`DirectivesList` must be
+        before any directives which update the preconditioner for the inverse problem
+        (i.e. :class:`UpdatePreconditioner`), and must be before any directives that
+        estimate the starting trade-off parameter (i.e. :class:`EstimateBeta_ByEig`
+        and :class:`EstimateBetaMaxDerivative`).
+
 
         Returns
         -------

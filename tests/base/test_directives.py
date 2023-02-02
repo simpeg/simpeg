@@ -84,7 +84,6 @@ class ValidationInInversion(unittest.TestCase):
         self.sim = sim
 
     def test_validation_in_inversion(self):
-
         reg = regularization.Sparse(self.mesh)
         reg.reference_model = np.zeros(self.mesh.nC)
         reg.norms = [0, 1, 1, 1]
@@ -120,7 +119,6 @@ class ValidationInInversion(unittest.TestCase):
             inv.directiveList = [update_Jacobi, sensitivity_weights]
 
     def test_sensitivity_weighting(self):
-
         tests_list = [
             {"everyIter": False, "threshold": 1e-12, "normalization": False},
             {
@@ -167,7 +165,6 @@ class ValidationInInversion(unittest.TestCase):
         weights_list = [self.mesh.cell_volumes * w for w in [w1, w2, w3]]
 
         for ii, wi in enumerate(weights_list):
-
             reg = regularization.WeightedLeastSquares(self.mesh)
             invProb = inverse_problem.BaseInvProblem(self.dmis, reg, self.opt)
             invProb.model = self.model
