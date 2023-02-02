@@ -11,7 +11,6 @@ FLR = 1e-14
 
 class TomoTest(unittest.TestCase):
     def setUp(self):
-
         nC = 20
         M = discretize.TensorMesh([nC, nC])
         y = np.linspace(0.0, 1.0, nC // 2)

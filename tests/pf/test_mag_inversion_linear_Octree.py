@@ -18,7 +18,6 @@ from SimPEG.potential_fields import magnetics as mag
 
 class MagInvLinProblemTest(unittest.TestCase):
     def setUp(self):
-
         np.random.seed(0)
 
         # First we need to define the direction of the inducing field

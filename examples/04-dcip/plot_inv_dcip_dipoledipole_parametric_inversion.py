@@ -49,7 +49,6 @@ def run(
     block_y0=-10,
     block_dy=5,
 ):
-
     np.random.seed(1)
     # Initiate I/O class for DC
     IO = DC.IO()

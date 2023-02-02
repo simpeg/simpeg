@@ -701,14 +701,12 @@ class AlphasSmoothEstimate_ByEig(InversionDirective):
         smallness = []
         parents = {}
         for regobjcts in self.reg.objfcts:
-
             if isinstance(regobjcts, ComboObjectiveFunction):
                 objfcts = regobjcts.objfcts
             else:
                 objfcts = [regobjcts]
 
             for obj in objfcts:
-
                 if isinstance(
                     obj,
                     (
@@ -948,7 +946,6 @@ class JointScalingSchedule(InversionDirective):
         self._update_rate = validate_integer("update_rate", value, min_val=1)
 
     def initialize(self):
-
         if (
             getattr(self.dmisfit, "objfcts", None) is None
             or len(self.dmisfit.objfcts) == 1
@@ -973,7 +970,6 @@ class JointScalingSchedule(InversionDirective):
             print("Initial data misfit scales: ", self.dmisfit.multipliers)
 
     def endIter(self):
-
         self.dmlist = self.inversion.directiveList.dList[self.targetclass].dmlist
 
         if np.any(self.dmlist < self.DMtarget):
@@ -982,13 +978,10 @@ class JointScalingSchedule(InversionDirective):
             self.mode = 1
 
         if self.opt.iter > 0 and self.opt.iter % self.update_rate == 0:
-
             if self.mode == 2:
-
                 if np.all(np.r_[self.dmisfit.multipliers] > self.chimin) and np.all(
                     np.r_[self.dmisfit.multipliers] < self.chimax
                 ):
-
                     indx = self.dmlist > self.DMtarget
                     if np.any(indx):
                         multipliers = self.warmingFactor * np.median(
@@ -1515,7 +1508,6 @@ class MultiTargetMisfits(InversionDirective):
         return maxdiff
 
     def endIter(self):
-
         self._DM = False
         self._CL = True
         self._DP = True
@@ -1692,7 +1684,6 @@ class SaveOutputEveryIteration(SaveEveryIteration):
         self.phi = []
 
     def endIter(self):
-
         phi_s, phi_x, phi_y, phi_z = 0, 0, 0, 0
 
         for reg in self.reg.objfcts:
@@ -1771,7 +1762,6 @@ class SaveOutputEveryIteration(SaveEveryIteration):
         plot_small=False,
         plot_smooth=False,
     ):
-
         self.target_misfit = self.invProb.dmisfit.simulation.survey.nD / 2.0
         self.i_target = None
 
@@ -1826,7 +1816,6 @@ class SaveOutputEveryIteration(SaveEveryIteration):
             fig.savefig(fname, dpi=dpi)
 
     def plot_tikhonov_curves(self, fname=None, dpi=200):
-
         self.target_misfit = self.invProb.dmisfit.simulation.survey.nD / 2.0
         self.i_target = None
 
@@ -1904,7 +1893,6 @@ class SaveOutputDictEveryIteration(SaveEveryIteration):
             )
 
     def endIter(self):
-
         # regCombo = ["phi_ms", "phi_msx"]
 
         # if self.simulation[0].mesh.dim >= 2:
@@ -1939,14 +1927,12 @@ class SaveOutputDictEveryIteration(SaveEveryIteration):
 
         # Save the file as a npz
         if self.saveOnDisk:
-
             np.savez("{:03d}-{:s}".format(self.opt.iter, self.fileName), iterDict)
 
         self.outDict[self.opt.iter] = iterDict
 
 
 class Update_IRLS(InversionDirective):
-
     f_old = 0
     f_min_change = 1e-2
     beta_tol = 1e-1
@@ -2087,7 +2073,6 @@ class Update_IRLS(InversionDirective):
                     self._start += survey.nD * 0.5 * self.chifact_start
 
             else:
-
                 self._start = self.survey.nD * 0.5 * self.chifact_start
         return self._start
 
@@ -2096,9 +2081,7 @@ class Update_IRLS(InversionDirective):
         self._start = val
 
     def initialize(self):
-
         if self.mode == 1:
-
             self.norms = []
             for reg in self.reg.objfcts:
                 self.norms.append(reg.norms)
@@ -2113,7 +2096,6 @@ class Update_IRLS(InversionDirective):
             self.angleScale()
 
     def endIter(self):
-
         if self.sphericalDomain:
             self.angleScale()
 
@@ -2194,12 +2176,10 @@ class Update_IRLS(InversionDirective):
         # Either use the supplied irls_threshold, or fix base on distribution of
         # model values
         for reg in self.reg.objfcts:
-
             if not isinstance(reg, Sparse):
                 continue
 
             for obj in reg.objfcts:
-
                 threshold = np.percentile(
                     np.abs(obj.mapping * obj._delta_m(self.invProb.model)), self.prctile
                 )
@@ -2324,7 +2304,6 @@ class UpdatePreconditioner(InversionDirective):
         )
 
     def initialize(self):
-
         # Create the pre-conditioner
         regDiag = np.zeros_like(self.invProb.model)
         m = self.invProb.model
@@ -2337,7 +2316,6 @@ class UpdatePreconditioner(InversionDirective):
 
         JtJdiag = np.zeros_like(self.invProb.model)
         for sim, dmisfit in zip(self.simulation, self.dmisfit.objfcts):
-
             if getattr(sim, "getJtJdiag", None) is None:
                 assert getattr(sim, "getJ", None) is not None, (
                     "Simulation does not have a getJ attribute."
@@ -2368,7 +2346,6 @@ class UpdatePreconditioner(InversionDirective):
 
         JtJdiag = np.zeros_like(self.invProb.model)
         for sim, dmisfit in zip(self.simulation, self.dmisfit.objfcts):
-
             if getattr(sim, "getJtJdiag", None) is None:
                 assert getattr(sim, "getJ", None) is not None, (
                     "Simulation does not have a getJ attribute."
@@ -2429,15 +2406,12 @@ class Update_Wj(InversionDirective):
         self._itr = value
 
     def endIter(self):
-
         if self.itr is None or self.itr == self.opt.iter:
-
             m = self.invProb.model
             if self.k is None:
                 self.k = int(self.survey.nD / 10)
 
             def JtJv(v):
-
                 Jv = self.simulation.Jvec(m, v)
 
                 return self.simulation.Jtvec(m, Jv)
@@ -2549,7 +2523,7 @@ class UpdateSensitivityWeights(InversionDirective):
         for reg in self.reg.objfcts:
             if not isinstance(reg, BaseSimilarityMeasure):
                 wr += reg.mapping.deriv(self.invProb.model).T * (
-                    (reg.mapping * jtj_diag) / reg.regularization_mesh.vol ** 2.0
+                    (reg.mapping * jtj_diag) / reg.regularization_mesh.vol**2.0
                 )
         if self.normalization:
             wr /= wr.max()
@@ -2593,7 +2567,6 @@ class ProjectSphericalBounds(InversionDirective):
     """
 
     def initialize(self):
-
         x = self.invProb.model
         # Convert to cartesian than back to avoid over rotation
         nC = int(len(x) / 3)
@@ -2609,7 +2582,6 @@ class ProjectSphericalBounds(InversionDirective):
         self.opt.xc = m
 
     def endIter(self):
-
         x = self.invProb.model
         nC = int(len(x) / 3)
 

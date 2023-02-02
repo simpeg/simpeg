@@ -26,7 +26,7 @@ class BaseObjectiveFunction(BaseSimPEG):
 
     mapPair = IdentityMap  #: Base class of expected maps
     _mapping = None  #: An IdentityMap instance.
-    _hasFields = False  #: should we have the option to store fields
+    _has_fields = False  #: should we have the option to store fields
 
     _nP = None  #: number of parameters
 
@@ -147,7 +147,6 @@ class BaseObjectiveFunction(BaseSimPEG):
     __numpy_ufunc__ = True
 
     def __add__(self, objfct2):
-
         if isinstance(objfct2, Zero):
             return self
 
@@ -225,7 +224,6 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
     _multipliers = None
 
     def __init__(self, objfcts=None, multipliers=None, **kwargs):
-
         if objfcts is None:
             objfcts = []
         if multipliers is None:
@@ -301,14 +299,13 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
         self._multipliers = value
 
     def __call__(self, m, f=None):
-
         fct = 0.0
         for i, phi in enumerate(self):
             multiplier, objfct = phi
             if multiplier == 0.0:  # don't evaluate the fct
                 continue
             else:
-                if f is not None and objfct._hasFields:
+                if f is not None and objfct._has_fields:
                     fct += multiplier * objfct(m, f=f[i])
                 else:
                     fct += multiplier * objfct(m)
@@ -329,7 +326,7 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
             if multiplier == 0.0:  # don't evaluate the fct
                 continue
             else:
-                if f is not None and objfct._hasFields:
+                if f is not None and objfct._has_fields:
                     aux = objfct.deriv(m, f=f[i])
                     if not isinstance(aux, Zero):
                         g += multiplier * aux
@@ -355,7 +352,7 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
             if multiplier == 0.0:  # don't evaluate the fct
                 continue
             else:
-                if f is not None and objfct._hasFields:
+                if f is not None and objfct._has_fields:
                     objfct_H = objfct.deriv2(m, v, f=f[i])
                 else:
                     objfct_H = objfct.deriv2(m, v)
@@ -404,7 +401,6 @@ class L2ObjectiveFunction(BaseObjectiveFunction):
     """
 
     def __init__(self, W=None, **kwargs):
-
         super(L2ObjectiveFunction, self).__init__(**kwargs)
         if W is not None:
             if self.nP == "*":

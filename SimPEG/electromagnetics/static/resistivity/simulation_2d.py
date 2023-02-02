@@ -59,7 +59,7 @@ class BaseDCSimulation2D(BaseElectricalPDESimulation):
 
                 def phi(k):
                     # use log10 transform to enforce positivity
-                    k = 10 ** k
+                    k = 10**k
                     A = r[:, None] * k0(r[:, None] * k)
                     v_i = A @ np.linalg.solve(A.T @ A, A.T @ e)
                     dv = (e - v_i) / len(r)
@@ -511,7 +511,7 @@ class Simulation2DCellCentered(BaseDCSimulation2D):
             G = G - self._MBC[ky]
         MfRhoI = self.MfRhoI
         # Get resistivity rho
-        A = D * MfRhoI * G + ky ** 2 * self.MccSigma
+        A = D * MfRhoI * G + ky**2 * self.MccSigma
         if self.bc_type == "Neumann":
             A[0, 0] = A[0, 0] + 1.0
         return A
@@ -524,11 +524,11 @@ class Simulation2DCellCentered(BaseDCSimulation2D):
         if adjoint:
             return self.MfRhoIDeriv(
                 G * u, D.T * v, adjoint=adjoint
-            ) + ky ** 2 * self.MccSigmaDeriv(u, v, adjoint=adjoint)
+            ) + ky**2 * self.MccSigmaDeriv(u, v, adjoint=adjoint)
         else:
             return D * self.MfRhoIDeriv(
                 G * u, v, adjoint=adjoint
-            ) + ky ** 2 * self.MccSigmaDeriv(u, v, adjoint=adjoint)
+            ) + ky**2 * self.MccSigmaDeriv(u, v, adjoint=adjoint)
 
     def getRHS(self, ky):
         """
@@ -661,7 +661,7 @@ class Simulation2DNodal(BaseDCSimulation2D):
         if self._gradT is None:
             self._gradT = Grad.T.tocsr()  # cache the .tocsr()
         GradT = self._gradT
-        A = GradT * MeSigma * Grad + ky ** 2 * MnSigma
+        A = GradT * MeSigma * Grad + ky**2 * MnSigma
 
         if self.bc_type != "Neumann":
             try:
@@ -677,17 +677,16 @@ class Simulation2DNodal(BaseDCSimulation2D):
         return A
 
     def getADeriv(self, ky, u, v, adjoint=False):
-
         Grad = self.mesh.nodal_gradient
 
         if adjoint:
             out = self.MeSigmaDeriv(
                 Grad * u, Grad * v, adjoint=adjoint
-            ) + ky ** 2 * self.MnSigmaDeriv(u, v, adjoint=adjoint)
+            ) + ky**2 * self.MnSigmaDeriv(u, v, adjoint=adjoint)
         else:
             out = Grad.T * self.MeSigmaDeriv(
                 Grad * u, v, adjoint=adjoint
-            ) + ky ** 2 * self.MnSigmaDeriv(u, v, adjoint=adjoint)
+            ) + ky**2 * self.MnSigmaDeriv(u, v, adjoint=adjoint)
         if self.bc_type != "Neumann" and self.sigmaMap is not None:
             if getattr(self, "_MBC_sigma", None) is None:
                 self._MBC_sigma = {}

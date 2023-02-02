@@ -25,7 +25,6 @@ class GravSensProblemTests(unittest.TestCase):
         )
 
     def test_gravity_inversion(self):
-
         inp_file = os.path.sep.join([self.basePath, "SimPEG_Grav_Input.inp"])
 
         driver = GravityDriver_Inv(inp_file)

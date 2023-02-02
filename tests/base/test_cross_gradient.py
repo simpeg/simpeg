@@ -13,7 +13,6 @@ np.random.seed(10)
 
 class CrossGradientTensor2D(unittest.TestCase):
     def setUp(self):
-
         dh = 1.0
         nx = 12
         ny = 12
@@ -104,7 +103,6 @@ class CrossGradientTensor2D(unittest.TestCase):
 
 class CrossGradientTensor3D(unittest.TestCase):
     def setUp(self):
-
         dh = 1.0
         nx = 12
         ny = 12
@@ -183,7 +181,6 @@ class CrossGradientTensor3D(unittest.TestCase):
 
 class CrossGradientTree2D(unittest.TestCase):
     def setUp(self):
-
         dh = 1.0
         nx = 16
         ny = 16
@@ -245,7 +242,6 @@ class CrossGradientTree2D(unittest.TestCase):
 
 class CrossGradientTree3D(unittest.TestCase):
     def setUp(self):
-
         dh = 1.0
         nx = 16
         ny = 16

@@ -58,7 +58,6 @@ except Exception:
 
 
 def run(plotIt=True):
-
     # ------------------ MODEL ------------------
     sigmaair = 1e-8  # air
     sigmaback = 1e-2  # background

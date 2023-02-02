@@ -144,7 +144,6 @@ source_list = []  # Create empty list to store sources
 
 # Each unique location defines a new transmitter
 for ii in range(ntx):
-
     # Here we define receivers that measure the h-field in A/m
     dbzdt_receiver = tdem.receivers.PointMagneticFluxTimeDerivative(
         receiver_locations[ii, :], time_channels, "z"
@@ -300,7 +299,7 @@ simulation.time_steps = time_steps
 dpred = simulation.dpred(model)
 
 # Data were organized by location, then by time channel
-dpred_plotting = np.reshape(dpred, (n_tx ** 2, n_times))
+dpred_plotting = np.reshape(dpred, (n_tx**2, n_times))
 
 # Plot
 fig = plt.figure(figsize=(10, 4))
@@ -356,7 +355,6 @@ plt.show()
 #
 
 if save_file:
-
     dir_path = os.path.dirname(tdem.__file__).split(os.path.sep)[:-3]
     dir_path.extend(["tutorials", "assets", "tdem"])
     dir_path = os.path.sep.join(dir_path) + os.path.sep
