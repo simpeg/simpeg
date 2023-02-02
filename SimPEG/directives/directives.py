@@ -393,7 +393,6 @@ class BaseBetaEstimator(InversionDirective):
         self._seed = value
 
     def validate(self, directive_list):
-
         ind = [isinstance(d, BaseBetaEstimator) for d in directive_list.dList]
         assert np.sum(ind) == 1, (
             "Multiple directives for computing initial beta detected in directives list. "
@@ -452,7 +451,6 @@ class BetaEstimateMaxDerivative(BaseBetaEstimator):
         super().__init__(beta0_ratio, seed, **kwargs)
 
     def initialize(self):
-
         if self.seed is not None:
             np.random.seed(self.seed)
 
@@ -539,7 +537,6 @@ class BetaEstimate_ByEig(BaseBetaEstimator):
         self._n_pw_iter = validate_integer("n_pw_iter", value, min_val=1)
 
     def initialize(self):
-
         if self.seed is not None:
             np.random.seed(self.seed)
 
@@ -2224,7 +2221,6 @@ class Update_IRLS(InversionDirective):
                 )
 
     def validate(self, directiveList):
-
         dList = directiveList.dList
         self_ind = dList.index(self)
         lin_precond_ind = [isinstance(d, UpdatePreconditioner) for d in dList]
@@ -2536,7 +2532,6 @@ class UpdateSensitivityWeights(InversionDirective):
                     sub_reg.set_weights(sensitivity=sub_reg.mapping * wr)
 
     def validate(self, directiveList):
-
         dList = directiveList.dList
         self_ind = dList.index(self)
 
