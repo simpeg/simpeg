@@ -16,7 +16,6 @@ def _get_projections(u):
 
 
 def _partition_args(mesh, Hcond, Theta, hcond_args, theta_args, **kwargs):
-
     hcond_params = {k: kwargs[k] for k in kwargs if k in hcond_args}
     theta_params = {k: kwargs[k] for k in kwargs if k in theta_args}
 
@@ -78,7 +77,6 @@ class BaseHydraulicConductivity(NonLinearModel):
 
 
 class Haverkamp_theta(BaseWaterRetention):
-
     theta_r, theta_rMap, theta_rDeriv = props.Invertible(
         "residual water content [L3L-3]"
     )
@@ -211,7 +209,6 @@ class Haverkamp_theta(BaseWaterRetention):
 
 
 class Haverkamp_k(BaseHydraulicConductivity):
-
     Ks, KsMap, KsDeriv = props.Invertible("Saturated hydraulic conductivity")
 
     A, AMap, ADeriv = props.Invertible("fitting parameter")
@@ -322,7 +319,6 @@ class HaverkampParams(object):
 
 
 class Vangenuchten_theta(BaseWaterRetention):
-
     theta_r, theta_rMap, theta_rDeriv = props.Invertible(
         "residual water content [L3L-3]"
     )
@@ -439,7 +435,7 @@ class Vangenuchten_theta(BaseWaterRetention):
                 * np.log(abs(alpha * u))
                 * abs(alpha * u) ** n
                 / (abs(alpha * u) ** n + 1.0)
-                - 1.0 * np.log(abs(alpha * u) ** n + 1.0) / n ** 2
+                - 1.0 * np.log(abs(alpha * u) ** n + 1.0) / n**2
             )
             * (abs(alpha * u) ** n + 1.0) ** (-1.0 + 1.0 / n)
         )
@@ -482,7 +478,6 @@ class Vangenuchten_theta(BaseWaterRetention):
 
 
 class Vangenuchten_k(BaseHydraulicConductivity):
-
     Ks, KsMap, KsDeriv = props.Invertible("Saturated hydraulic conductivity")
 
     I, IMap, IDeriv = props.Invertible("")
@@ -530,7 +525,7 @@ class Vangenuchten_k(BaseHydraulicConductivity):
         P_p, P_n = _get_projections(u)  # Compute the positive/negative domains
         theta_e = 1.0 / ((1.0 + abs(alpha * u) ** n) ** m)
         f_p = P_p * np.ones(len(u)) * Ks  # ensures scalar Ks works
-        f_n = P_n * Ks * theta_e ** I * ((1.0 - (1.0 - theta_e ** (1.0 / m)) ** m) ** 2)
+        f_n = P_n * Ks * theta_e**I * ((1.0 - (1.0 - theta_e ** (1.0 / m)) ** m) ** 2)
         return f_p + f_n
 
     def derivM(self, u):
@@ -576,7 +571,7 @@ class Vangenuchten_k(BaseHydraulicConductivity):
         dKs_dm_n = (
             P_n
             * utils.sdiag(
-                theta_e ** I * ((1.0 - (1.0 - theta_e ** (1.0 / m)) ** m) ** 2)
+                theta_e**I * ((1.0 - (1.0 - theta_e ** (1.0 / m)) ** m) ** 2)
             )
             * self.KsDeriv
         )
@@ -644,7 +639,7 @@ class Vangenuchten_k(BaseHydraulicConductivity):
             * np.log(abs(alpha * u))
             * abs(alpha * u) ** n
             / (abs(alpha * u) ** n + 1.0)
-            - 1.0 * np.log(abs(alpha * u) ** n + 1.0) / n ** 2
+            - 1.0 * np.log(abs(alpha * u) ** n + 1.0) / n**2
         ) * (
             -(
                 (
@@ -688,14 +683,14 @@ class Vangenuchten_k(BaseHydraulicConductivity):
                     * np.log(abs(alpha * u))
                     * abs(alpha * u) ** n
                     / (abs(alpha * u) ** n + 1.0)
-                    - 1.0 * np.log(abs(alpha * u) ** n + 1.0) / n ** 2
+                    - 1.0 * np.log(abs(alpha * u) ** n + 1.0) / n**2
                 )
                 * (abs(alpha * u) ** n + 1.0) ** (-1.0 + 1.0 / n)
                 * (abs(alpha * u) ** n + 1.0) ** (1.0 - 1.0 / n)
                 / (1.0 - 1.0 / n)
                 - 1.0
                 * np.log(1.0 * (abs(alpha * u) ** n + 1.0) ** (-1.0 + 1.0 / n))
-                / (n ** 2 * (1.0 - 1.0 / n) ** 2)
+                / (n**2 * (1.0 - 1.0 / n) ** 2)
             )
             / (
                 -(
@@ -712,7 +707,7 @@ class Vangenuchten_k(BaseHydraulicConductivity):
                 )
                 + 1.0
             )
-            / n ** 2
+            / n**2
         ) * (
             -(
                 (

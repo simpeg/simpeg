@@ -74,7 +74,6 @@ MAPS_TO_EXCLUDE_3D = [
 
 class MapTests(unittest.TestCase):
     def setUp(self):
-
         maps2test2D = [M for M in dir(maps) if M not in MAPS_TO_EXCLUDE_2D]
         maps2test3D = [M for M in dir(maps) if M not in MAPS_TO_EXCLUDE_3D]
 
@@ -169,7 +168,6 @@ class MapTests(unittest.TestCase):
         self.assertTrue(mapping.test(m))
 
     def test_transforms_logMap_reciprocalMap(self):
-
         # Note that log/reciprocal maps can be kinda finicky, so we are being
         # explicit about the random seed.
 
@@ -262,7 +260,6 @@ class MapTests(unittest.TestCase):
         for actMap in [
             maps.InjectActiveCells(M, M.cell_centers_y <= 0, 10, nC=M.shape_cells[1]),
         ]:
-
             vertMap = maps.SurjectVertical1D(M)
             combo = vertMap * actMap
             m = np.r_[1.0, 2.0]
@@ -310,7 +307,6 @@ class MapTests(unittest.TestCase):
         for m2to3 in [
             maps.Surject2Dto3D(M3, normal="X"),
         ]:
-
             # m2to3 = maps.Surject2Dto3D(M3, normal='X')
             m = np.arange(m2to3.nP)
             self.assertTrue(m2to3.test())
@@ -341,7 +337,6 @@ class MapTests(unittest.TestCase):
         for m2to3 in [
             maps.Surject2Dto3D(M3, normal="Z"),
         ]:
-
             # m2to3 = maps.Surject2Dto3D(M3, normal='Z')
             m = np.arange(m2to3.nP)
             self.assertTrue(m2to3.test())
@@ -500,7 +495,6 @@ class MapTests(unittest.TestCase):
         local_meshes = []
 
         for ii in range(rxLocs.shape[0]):
-
             local_mesh = mesh_builder_xyz(
                 rxLocs, h, padding_distance=padDist, mesh_type="tree"
             )
@@ -532,7 +526,6 @@ class MapTests(unittest.TestCase):
         total_mass = (model * mesh.cell_volumes[activeCells]).sum()
 
         for local_mesh in local_meshes:
-
             tile_map = maps.TileMap(
                 mesh,
                 activeCells,

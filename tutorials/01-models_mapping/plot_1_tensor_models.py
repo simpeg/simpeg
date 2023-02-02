@@ -35,7 +35,6 @@ import matplotlib.pyplot as plt
 
 
 def make_example_mesh():
-
     dh = 5.0
     hx = [(dh, 5, -1.3), (dh, 20), (dh, 5, 1.3)]
     hy = [(dh, 5, -1.3), (dh, 20), (dh, 5, 1.3)]
@@ -94,7 +93,7 @@ block_value = 70.0
 # Define surface topography as an (N, 3) np.array. You could also load a file
 # containing the xyz points
 [xx, yy] = np.meshgrid(mesh.nodes_x, mesh.nodes_y)
-zz = -3 * np.exp((xx ** 2 + yy ** 2) / 75 ** 2) + 40.0
+zz = -3 * np.exp((xx**2 + yy**2) / 75**2) + 40.0
 topo = np.c_[mkvc(xx), mkvc(yy), mkvc(zz)]
 
 # Find cells below topography and define mapping
@@ -144,7 +143,7 @@ block_value = np.log(1.0 / 70.0)
 
 # Define surface topography
 [xx, yy] = np.meshgrid(mesh.nodes_x, mesh.nodes_y)
-zz = -3 * np.exp((xx ** 2 + yy ** 2) / 75 ** 2) + 40.0
+zz = -3 * np.exp((xx**2 + yy**2) / 75**2) + 40.0
 topo = np.c_[mkvc(xx), mkvc(yy), mkvc(zz)]
 
 # Find cells below topography
@@ -198,7 +197,7 @@ sphere_value = 70.0
 
 # Define surface topography
 [xx, yy] = np.meshgrid(mesh.nodes_x, mesh.nodes_y)
-zz = -3 * np.exp((xx ** 2 + yy ** 2) / 75 ** 2) + 40.0
+zz = -3 * np.exp((xx**2 + yy**2) / 75**2) + 40.0
 topo = np.c_[mkvc(xx), mkvc(yy), mkvc(zz)]
 
 # Set active cells and define unit values
@@ -251,7 +250,7 @@ dx, dy, dz = 30.0, 40.0, 30.0  # dimensions in x,y,z
 
 # Define surface topography
 [xx, yy] = np.meshgrid(mesh.nodes_x, mesh.nodes_y)
-zz = -3 * np.exp((xx ** 2 + yy ** 2) / 75 ** 2) + 40.0
+zz = -3 * np.exp((xx**2 + yy**2) / 75**2) + 40.0
 topo = np.c_[mkvc(xx), mkvc(yy), mkvc(zz)]
 
 # Set active cells and define unit values
@@ -300,7 +299,7 @@ sphere_mu = 1.25
 
 # Define surface topography
 [xx, yy] = np.meshgrid(mesh.nodes_x, mesh.nodes_y)
-zz = -3 * np.exp((xx ** 2 + yy ** 2) / 75 ** 2) + 40.0
+zz = -3 * np.exp((xx**2 + yy**2) / 75**2) + 40.0
 topo = np.c_[mkvc(xx), mkvc(yy), mkvc(zz)]
 
 # Set active cells

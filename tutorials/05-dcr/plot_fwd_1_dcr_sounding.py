@@ -59,7 +59,6 @@ electrode_separations = np.linspace(a_min, a_max, n_stations)
 source_list = []  # create empty array for sources to live
 
 for ii in range(0, len(electrode_separations)):
-
     # Extract separation parameter for sources and receivers
     a = electrode_separations[ii]
 
@@ -149,7 +148,6 @@ plt.show()
 #
 
 if write_output:
-
     dir_path = os.path.dirname(__file__).split(os.path.sep)
     dir_path.extend(["outputs"])
     dir_path = os.path.sep.join(dir_path) + os.path.sep

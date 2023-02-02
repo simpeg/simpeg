@@ -96,7 +96,6 @@ k = np.r_[k, len(dobs) + 1]
 
 source_list = []
 for ii in range(0, n_sources):
-
     # Receiver locations for source ii
     receiver_locations = xy_receivers[k[ii] : k[ii + 1], :]
     receiver_list = [tomo.Rx(receiver_locations)]
@@ -120,7 +119,6 @@ ax = fig.add_subplot(111)
 obs_string = []
 
 for ii in range(0, n_source):
-
     x_plotting = xy_receivers[k[ii] : k[ii + 1], 0]
     dobs_plotting = dobs[k[ii] : k[ii + 1]]
     ax.plot(x_plotting, dobs_plotting)

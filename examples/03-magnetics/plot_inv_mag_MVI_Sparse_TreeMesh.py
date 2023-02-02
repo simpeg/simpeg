@@ -137,7 +137,6 @@ def plotVectorSectionsOctree(
     actvMap=None,
     fill=True,
 ):
-
     """
     Plot section through a 3D tensor model
     """
@@ -188,7 +187,7 @@ def plotVectorSectionsOctree(
     # Interpolate values from mesh.gridCC to grid2d
     ind_3d_to_2d = mesh._get_containing_cell_indexes(tm_gridboost)
     v2d = m[ind_3d_to_2d, :]
-    amp = np.sum(v2d ** 2.0, axis=1) ** 0.5
+    amp = np.sum(v2d**2.0, axis=1) ** 0.5
 
     if axs is None:
         axs = plt.subplot(111)

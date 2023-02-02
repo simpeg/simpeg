@@ -856,7 +856,6 @@ class Fields3DMagneticFluxDensity(FieldsFDEM):
         # forgetting the source term here
 
     def _jDeriv_mui(self, src, v, adjoint=False):
-
         if adjoint:
             return self._MfMuiDeriv(
                 self[src, "b"], (self._edgeCurl * (self._MeI.T * v)), adjoint
