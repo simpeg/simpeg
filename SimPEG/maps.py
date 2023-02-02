@@ -11,15 +11,17 @@ from scipy.sparse import csr_matrix as csr
 
 from discretize.tests import check_derivative
 from discretize import TensorMesh, CylindricalMesh
-
-from .utils import (
+from discretize.utils import (
     mkvc,
     rotation_matrix_from_normals,
     Zero,
     Identity,
     sdiag,
-    mat_utils,
     speye,
+)
+
+from .utils import (
+    mat_utils,
     validate_type,
     validate_ndarray_with_shape,
     validate_float,
