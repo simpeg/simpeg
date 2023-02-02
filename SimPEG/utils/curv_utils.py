@@ -4,6 +4,21 @@ from discretize.utils import (  # noqa: F401
     face_info,
     example_curvilinear_grid,
 )
+from .code_utils import deprecate_function
 
 # deprecated functions
-from discretize.utils import volTetra, indexCube, faceInfo, exampleLrmGrid  # noqa: F401
+volTetra = deprecate_function(
+    volume_tetrahedron, "volTetra", removal_version="0.19.0", future_warn=True
+)
+indexCube = deprecate_function(
+    index_cube, "indexCube", removal_version="0.19.0", future_warn=True
+)
+faceInfo = deprecate_function(
+    face_info, "faceInfo", removal_version="0.19.0", future_warn=True
+)
+exampleLrmGrid = deprecate_function(
+    example_curvilinear_grid,
+    "exampleLrmGrid",
+    removal_version="0.19.0",
+    future_warn=True,
+)
