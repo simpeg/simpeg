@@ -174,7 +174,6 @@ class Survey(BaseSurvey):
         src_b = []
 
         for src in self.source_list:
-
             src_a.append(src.location_a)
             src_b.append(src.location_b)
 

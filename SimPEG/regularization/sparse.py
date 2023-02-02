@@ -95,12 +95,12 @@ class BaseSparse(BaseRegularization):
             l2_max[self.norm < 1] = self.irls_threshold / np.sqrt(
                 1.0 - self.norm[self.norm < 1]
             )
-            lp_values = l2_max / (l2_max ** 2.0 + self.irls_threshold ** 2.0) ** (
+            lp_values = l2_max / (l2_max**2.0 + self.irls_threshold**2.0) ** (
                 1.0 - self.norm / 2.0
             )
             lp_scale[lp_values != 0] = np.abs(f_m).max() / lp_values[lp_values != 0]
 
-        return lp_scale / (f_m ** 2.0 + self.irls_threshold ** 2.0) ** (
+        return lp_scale / (f_m**2.0 + self.irls_threshold**2.0) ** (
             1.0 - self.norm / 2.0
         )
 
@@ -141,7 +141,6 @@ class SparseSmoothness(BaseSparse, SmoothnessFirstOrder):
         Compute and store the irls weights.
         """
         if self.gradient_type == "total":
-
             delta_m = self.mapping * self._delta_m(m)
             f_m = np.zeros_like(delta_m)
             for ii, comp in enumerate("xyz"):

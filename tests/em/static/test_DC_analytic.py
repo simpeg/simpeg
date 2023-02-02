@@ -14,7 +14,6 @@ except ImportError:
 
 class DCProblemAnalyticTests(unittest.TestCase):
     def setUp(self):
-
         cs = 25.0
         npad = 7
         hx = [(cs, npad, -1.3), (cs, 21), (cs, npad, 1.3)]
@@ -138,7 +137,6 @@ class DCProblemAnalyticTests(unittest.TestCase):
 # for wholepsace Earth.
 class DCProblemAnalyticTests_Dirichlet(unittest.TestCase):
     def setUp(self):
-
         cs = 25.0
         hx = [(cs, 7, -1.3), (cs, 21), (cs, 7, 1.3)]
         hy = [(cs, 7, -1.3), (cs, 21), (cs, 7, 1.3)]
@@ -201,7 +199,6 @@ class DCProblemAnalyticTests_Dirichlet(unittest.TestCase):
 # This is for Pole-Pole case
 class DCProblemAnalyticTests_Mixed(unittest.TestCase):
     def setUp(self):
-
         cs = 25.0
         hx = [(cs, 7, -1.5), (cs, 21), (cs, 7, 1.5)]
         hy = [(cs, 7, -1.5), (cs, 21), (cs, 7, 1.5)]

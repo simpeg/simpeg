@@ -90,7 +90,6 @@ source_list = []  # Create empty list to store sources
 # Each unique location and frequency defines a new transmitter
 for ii in range(len(frequencies)):
     for jj in range(ntx):
-
         # Define receivers of different type at each location
         bzr_receiver = fdem.receivers.PointMagneticFluxDensitySecondary(
             receiver_locations[jj, :], "z", "real"
@@ -303,7 +302,6 @@ plt.show()
 
 
 if save_file:
-
     dir_path = os.path.dirname(fdem.__file__).split(os.path.sep)[:-3]
     dir_path.extend(["tutorials", "assets", "fdem"])
     dir_path = os.path.sep.join(dir_path) + os.path.sep

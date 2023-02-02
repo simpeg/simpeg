@@ -57,7 +57,6 @@ class BasePFSimulation(LinearSimulation):
         n_processes=None,
         **kwargs,
     ):
-
         # If deprecated property set with kwargs
         if "actInd" in kwargs:
             raise AttributeError(
@@ -188,11 +187,16 @@ class BasePFSimulation(LinearSimulation):
                     print(f"Found sensitivity file at {sens_name} with expected shape")
                     kernel = np.asarray(kernel)
                     return kernel
-        # multiprocessed
-        with Pool(processes=self.n_processes) as pool:
-            kernel = pool.starmap(
-                self.evaluate_integral, self.survey._location_component_iterator()
-            )
+        if self.n_processes == 1:
+            kernel = []
+            for args in self.survey._location_component_iterator():
+                kernel.append(self.evaluate_integral(*args))
+        else:
+            # multiprocessed
+            with Pool(processes=self.n_processes) as pool:
+                kernel = pool.starmap(
+                    self.evaluate_integral, self.survey._location_component_iterator()
+                )
         if self.store_sensitivities != "forward_only":
             kernel = np.vstack(kernel)
         else:
@@ -220,7 +224,6 @@ class BaseEquivalentSourceLayerSimulation(BasePFSimulation):
     """
 
     def __init__(self, mesh, cell_z_top, cell_z_bottom, **kwargs):
-
         if mesh.dim != 2:
             raise AttributeError("Mesh to equivalent source layer must be 2D.")
 
@@ -273,7 +276,6 @@ def progress(iteration, prog, final):
     arg = np.floor(float(iteration) / float(final) * 10.0)
 
     if arg > prog:
-
         print("Done " + str(arg * 10) + " %")
         prog = arg
 
@@ -341,7 +343,6 @@ def get_dist_wgt(mesh, receiver_locations, actv, R, R0):
     print("Begin calculation of distance weighting for R= " + str(R))
 
     for dd in range(ndata):
-
         nx1 = (Xm - hX * p - receiver_locations[dd, 0]) ** 2
         nx2 = (Xm + hX * p - receiver_locations[dd, 0]) ** 2
 

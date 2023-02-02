@@ -13,7 +13,6 @@ MU = mu_0
 
 
 def JvecAdjointTest_1D(sigmaHalf, formulation="PrimSec"):
-
     # Frequencies being measured
     frequencies = np.logspace(0, 4, 21)
 

@@ -323,7 +323,6 @@ class Simulation3DCellCentered(BaseDCSimulation):
     fieldsPair = Fields3DCellCentered
 
     def __init__(self, mesh, survey=None, bc_type="Robin", **kwargs):
-
         super().__init__(mesh=mesh, survey=survey, **kwargs)
         self.bc_type = bc_type
         self.setBC()

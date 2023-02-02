@@ -24,7 +24,6 @@ import matplotlib.pyplot as plt
 
 
 def run(plotIt=True):
-
     mesh = discretize.TensorMesh([50, 50], x0="CC")  # 2D tensor mesh
     mapping = maps.ParametricLayer(mesh)  # parametric layer in wholespace
 

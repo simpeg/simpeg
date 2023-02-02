@@ -205,7 +205,7 @@ def _poly_line_source_tens(mesh, locs):
         dx = bx - ax
         dy = by - ay
         dz = bz - az
-        d = np.sqrt(dx ** 2 + dy ** 2 + dz ** 2)
+        d = np.sqrt(dx**2 + dy**2 + dz**2)
 
         tol = d * np.finfo(float).eps
 
@@ -232,7 +232,6 @@ def _poly_line_source_tens(mesh, locs):
         tc = 0.5 * (t[:nq] + t[1 : nq + 1])
 
         for iq in range(nq):
-
             cx = ax + tc[iq] * dx
             cy = ay + tc[iq] * dy
             cz = az + tc[iq] * dz
@@ -410,7 +409,6 @@ def line_through_faces(
 
     # next step: find segments between lines
     for i in range(locations.shape[0] - 1):
-
         dimension = np.nonzero(np.abs(locations[i, :] - locations[i + 1, :]))[0]
         if len(dimension) > 1:
             not_aligned_error(i)

@@ -112,7 +112,6 @@ class BaseRegularization(BaseObjectiveFunction):
 
     @model.setter
     def model(self, values: np.ndarray | float):
-
         if isinstance(values, float):
             values = np.ones(self._nC_residual) * values
 
@@ -275,7 +274,7 @@ class BaseRegularization(BaseObjectiveFunction):
         """
         if getattr(self, "_W", None) is None:
             weights = np.prod(list(self._weights.values()), axis=0)
-            self._W = utils.sdiag(weights ** 0.5)
+            self._W = utils.sdiag(weights**0.5)
         return self._W
 
     @property
@@ -549,7 +548,7 @@ class SmoothnessFirstOrder(BaseRegularization):
                 if values.shape[0] == self.regularization_mesh.n_cells:
                     values = average_cell_2_face * values
                 weights *= values
-            self._W = utils.sdiag(weights ** 0.5)
+            self._W = utils.sdiag(weights**0.5)
         return self._W
 
     @property
@@ -618,7 +617,7 @@ class SmoothnessSecondOrder(SmoothnessFirstOrder):
         """
         if getattr(self, "_W", None) is None:
             weights = np.prod(list(self._weights.values()), axis=0)
-            self._W = utils.sdiag(weights ** 0.5)
+            self._W = utils.sdiag(weights**0.5)
 
         return self._W
 
@@ -657,7 +656,6 @@ class WeightedLeastSquares(ComboObjectiveFunction):
         weights=None,
         **kwargs,
     ):
-
         if isinstance(mesh, BaseMesh):
             mesh = RegularizationMesh(mesh)
 
@@ -1029,7 +1027,6 @@ class WeightedLeastSquares(ComboObjectiveFunction):
 
     @reference_model.setter
     def reference_model(self, values: np.ndarray | float):
-
         if isinstance(values, float):
             values = np.ones(self._nC_residual) * values
 
@@ -1054,7 +1051,6 @@ class WeightedLeastSquares(ComboObjectiveFunction):
 
     @model.setter
     def model(self, values: np.ndarray | float):
-
         if isinstance(values, float):
             values = np.ones(self._nC_residual) * values
 
@@ -1135,7 +1131,6 @@ class BaseSimilarityMeasure(BaseRegularization):
 
     @wire_map.setter
     def wire_map(self, wires):
-
         try:
             m1, m2 = wires.maps  # Assume a map has been passed for each model.
         except ValueError:
