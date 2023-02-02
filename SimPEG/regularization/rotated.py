@@ -86,7 +86,7 @@ class SmoothnessFullGradient(BaseRegularization):
 
         if alphas is None:
             edge_length = np.min(mesh.edge_lengths)
-            alphas = edge_length ** 2 * np.ones(mesh.dim)
+            alphas = edge_length**2 * np.ones(mesh.dim)
         alphas = validate_ndarray_with_shape(
             "alphas",
             alphas,
