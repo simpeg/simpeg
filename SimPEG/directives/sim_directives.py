@@ -160,7 +160,6 @@ class SimilarityMeasureSaveOutputEveryIteration(SaveEveryIteration):
         self.phi_sim = []
 
     def endIter(self):
-
         self.betas.append(["{:.2e}".format(elem) for elem in self.invProb.betas])
         self.phi_d.append(["{:.3e}".format(elem) for elem in self.invProb.phi_d_list])
         self.phi_m.append(["{:.3e}".format(elem) for elem in self.invProb.phi_m_list])
@@ -318,7 +317,6 @@ class PairedBetaSchedule(InversionDirective):
         self.dmis_met = np.zeros_like(self.invProb.betas, dtype=bool)
 
     def endIter(self):
-
         # Check if target misfit has been reached, if so, set dmis_met to True
         for i, phi_d in enumerate(self.invProb.phi_d_list):
             self.dmis_met[i] = phi_d < self.target[i]

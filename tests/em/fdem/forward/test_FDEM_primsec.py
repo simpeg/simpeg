@@ -85,7 +85,6 @@ primaryMap2Meshs = (
 
 
 class PrimSecFDEMTest(object):
-
     # --------------------- Run some tests! --------------------- #
     def DataTest(self):
         print("\nTesting Data")
@@ -155,7 +154,6 @@ class PrimSecFDEMTest(object):
 class PrimSecFDEMSrcTest_Cyl2Cart_EB_EB(unittest.TestCase, PrimSecFDEMTest):
     @classmethod
     def setUpClass(self):
-
         print("\n------- Testing Primary Secondary Source EB -> EB --------\n")
         # receivers
         self.rxlist = []
@@ -223,7 +221,6 @@ class PrimSecFDEMSrcTest_Cyl2Cart_EB_EB(unittest.TestCase, PrimSecFDEMTest):
 class PrimSecFDEMSrcTest_Cyl2Cart_HJ_EB(unittest.TestCase, PrimSecFDEMTest):
     @classmethod
     def setUpClass(self):
-
         print("\n------- Testing Primary Secondary Source HJ -> EB --------\n")
         # receivers
         self.rxlist = []

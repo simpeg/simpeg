@@ -13,7 +13,6 @@ class EM1D_FD_Jacobian_Test_MagDipole(unittest.TestCase):
     # - Span many frequencies
     # - Tests derivatives wrt sigma, mu, thicknesses and h
     def setUp(self):
-
         # Layers and topography
         nearthick = np.logspace(-1, 1, 5)
         deepthick = np.logspace(1, 2, 10)
@@ -32,12 +31,10 @@ class EM1D_FD_Jacobian_Test_MagDipole(unittest.TestCase):
         source_list = []
         for f in frequencies:
             for tx_orientation in orientations:
-
                 receiver_list = []
 
                 for rx_orientation in orientations:
                     for comp in components:
-
                         receiver_list.append(
                             fdem.receivers.PointMagneticFieldSecondary(
                                 rx_location, orientation=rx_orientation, component=comp
@@ -89,7 +86,6 @@ class EM1D_FD_Jacobian_Test_MagDipole(unittest.TestCase):
         self.sim = sim
 
     def test_EM1DFDJvec_Layers(self):
-
         # Conductivity
         sigma_half = 0.01
         sigma_blk = 0.1
@@ -126,7 +122,6 @@ class EM1D_FD_Jacobian_Test_MagDipole(unittest.TestCase):
             print("EM1DFM MagDipole Jvec test works")
 
     def test_EM1DFDJtvec_Layers(self):
-
         # Conductivity
         sigma_half = 0.01
         sigma_blk = 0.1
@@ -175,7 +170,6 @@ class EM1D_FD_Jacobian_Test_CircularLoop(unittest.TestCase):
     # - Span many frequencies
     # - Tests derivatives wrt sigma, mu, thicknesses and h
     def setUp(self):
-
         nearthick = np.logspace(-1, 1, 5)
         deepthick = np.logspace(1, 2, 10)
         thicknesses = np.r_[nearthick, deepthick]
@@ -193,12 +187,10 @@ class EM1D_FD_Jacobian_Test_CircularLoop(unittest.TestCase):
         # Define sources and receivers
         source_list = []
         for f in frequencies:
-
             receiver_list = []
 
             for rx_orientation in orientations:
                 for comp in components:
-
                     receiver_list.append(
                         fdem.receivers.PointMagneticFieldSecondary(
                             rx_location, orientation=rx_orientation, component=comp
@@ -248,7 +240,6 @@ class EM1D_FD_Jacobian_Test_CircularLoop(unittest.TestCase):
         self.sim = sim
 
     def test_EM1DFDJvec_Layers(self):
-
         # Conductivity
         sigma_half = 0.01
         sigma_blk = 0.1
@@ -285,7 +276,6 @@ class EM1D_FD_Jacobian_Test_CircularLoop(unittest.TestCase):
             print("EM1DFM Circular Loop Jvec test works")
 
     def test_EM1DFDJtvec_Layers(self):
-
         # Conductivity
         sigma_half = 0.01
         sigma_blk = 0.1
@@ -334,7 +324,6 @@ class EM1D_FD_Jacobian_Test_LineCurrent(unittest.TestCase):
     # - Span many frequencies
     # - Tests derivatives wrt sigma, mu, thicknesses and h
     def setUp(self):
-
         x_path = np.array([-2, -2, 2, 2, -2])
         y_path = np.array([-1, 1, 1, -1, -1])
         frequencies = np.logspace(0, 4)
@@ -349,12 +338,10 @@ class EM1D_FD_Jacobian_Test_LineCurrent(unittest.TestCase):
         # Define sources and receivers
         source_list = []
         for f in frequencies:
-
             receiver_list = []
 
             for rx_orientation in orientations:
                 for comp in components:
-
                     receiver_list.append(
                         fdem.receivers.PointMagneticFieldSecondary(
                             receiver_location,
@@ -389,7 +376,6 @@ class EM1D_FD_Jacobian_Test_LineCurrent(unittest.TestCase):
         self.sim = sim
 
     def test_EM1DFDJvec_Layers(self):
-
         # Conductivity
         sigma_half = 0.01
         sigma_blk = 0.1
@@ -424,7 +410,6 @@ class EM1D_FD_Jacobian_Test_LineCurrent(unittest.TestCase):
             print("EM1DFM Piecewise Linear Loop Jtvec test works")
 
     def test_EM1DFDJtvec_Layers(self):
-
         # Conductivity
         sigma_half = 0.01
         sigma_blk = 0.1

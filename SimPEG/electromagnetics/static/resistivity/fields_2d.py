@@ -7,7 +7,6 @@ from ....simulation import BaseSimulation
 
 
 class Fields2D(TimeFields):
-
     r"""
     Fancy Field Storage for a 2.5D code.
 
@@ -150,6 +149,7 @@ class Fields2DCellCentered(Fields2D):
         "charge": ["phiSolution", "CC", "_charge"],
         "charge_density": ["phiSolution", "CC", "_charge_density"],
     }
+
     # primary - secondary
     # CC variables
     def _GLoc(self, fieldType):

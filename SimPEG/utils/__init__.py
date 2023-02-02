@@ -184,34 +184,24 @@ Many of the functions here are used internally to SimPEG and have minimal docume
   validate_active_indices
 
 """
-from discretize.utils.interpolation_utils import interpmat, interpolation_matrix
+from discretize.utils.interpolation_utils import interpolation_matrix
 
 from .code_utils import (
     create_wrapper_from_class,
-    memProfileWrapper,
     hook,
     set_kwargs,
-    setKwargs,
     print_titles,
-    printTitles,
     print_line,
-    printLine,
     check_stoppers,
-    checkStoppers,
     print_stoppers,
-    printStoppers,
     print_done,
-    printDone,
     call_hooks,
-    callHooks,
     deprecate_property,
     deprecate_module,
     deprecate_method,
     deprecate_function,
     deprecate_class,
     dependent_property,
-    dependentProperty,
-    asArray_N_x_Dim,
     as_array_n_by_dim,
     requires,
     Report,
@@ -231,7 +221,6 @@ from .mat_utils import (
     mkvc,
     sdiag,
     sdinv,
-    sdInv,
     speye,
     kron3,
     spzeros,
@@ -242,22 +231,15 @@ from .mat_utils import (
     ind2sub,
     sub2ind,
     get_subarray,
-    getSubArray,
     inverse_3x3_block_diagonal,
-    inv3X3BlockDiagonal,
     inverse_2x2_block_diagonal,
-    inv2X2BlockDiagonal,
     TensorType,
     make_property_tensor,
-    makePropertyTensor,
     inverse_property_tensor,
-    invPropertyTensor,
     estimate_diagonal,
-    diagEst,
     Zero,
     Identity,
     unique_rows,
-    uniqueRows,
     eigenvalue_by_power_iteration,
     cartesian2spherical,
     spherical2cartesian,
@@ -265,19 +247,12 @@ from .mat_utils import (
     define_plane_from_points,
 )
 from .mesh_utils import (
-    meshTensor,
-    closestPoints,
-    ExtractCoreMesh,
     unpack_widths,
     closest_points_index,
     extract_core_mesh,
     surface2inds,
 )
 from .curv_utils import (
-    volTetra,
-    faceInfo,
-    indexCube,
-    exampleLrmGrid,
     volume_tetrahedron,
     index_cube,
     face_info,
@@ -288,8 +263,6 @@ from . import model_builder
 from . import solver_utils
 from . import io_utils
 from .coord_utils import (
-    rotatePointsFromNormals,
-    rotationMatrixFromNormals,
     rotation_matrix_from_normals,
     rotate_points_from_normals,
 )
@@ -302,4 +275,47 @@ from .pgi_utils import (
     GaussianMixtureWithPrior,
     GaussianMixtureWithNonlinearRelationships,
     GaussianMixtureWithNonlinearRelationshipsWithPrior,
+)
+
+# Deprecated imports
+interpmat = deprecate_function(
+    interpolation_matrix, "interpmat", removal_version="0.19.0", future_warn=True
+)
+
+from .code_utils import (
+    memProfileWrapper,
+    setKwargs,
+    printTitles,
+    printLine,
+    checkStoppers,
+    printStoppers,
+    printDone,
+    callHooks,
+    dependentProperty,
+    asArray_N_x_Dim,
+)
+from .mat_utils import (
+    sdInv,
+    getSubArray,
+    inv3X3BlockDiagonal,
+    inv2X2BlockDiagonal,
+    makePropertyTensor,
+    invPropertyTensor,
+    diagEst,
+    uniqueRows,
+)
+from .mesh_utils import (
+    meshTensor,
+    closestPoints,
+    ExtractCoreMesh,
+)
+from .curv_utils import (
+    volTetra,
+    faceInfo,
+    indexCube,
+    exampleLrmGrid,
+)
+from .coord_utils import (
+    rotatePointsFromNormals,
+    rotationMatrixFromNormals,
 )

@@ -10,12 +10,10 @@ from pymatsolver import Pardiso
 
 
 class TestGroundedSourceTDEM_j(unittest.TestCase):
-
     prob_type = "CurrentDensity"
 
     @classmethod
     def setUpClass(self):
-
         # mesh
         cs = 10
         npad = 4
@@ -133,7 +131,6 @@ class TestGroundedSourceTDEM_j(unittest.TestCase):
         self.derivtest(deriv_check)
 
     def test_adjoint_phi(self):
-
         v = np.random.rand(self.mesh.nC)
         w = np.random.rand(self.mesh.nC)
         a = w.T.dot(self.src._phiInitialDeriv(self.prob, v=v))
@@ -141,7 +138,6 @@ class TestGroundedSourceTDEM_j(unittest.TestCase):
         self.assertTrue(np.allclose(a, b))
 
     def test_adjoint_j(self):
-
         v = np.random.rand(self.mesh.nC)
         w = np.random.rand(self.mesh.nF)
         a = w.T.dot(self.src.jInitialDeriv(self.prob, v=v))
@@ -157,5 +153,4 @@ class TestGroundedSourceTDEM_j(unittest.TestCase):
 
 
 class TestGroundedSourceTDEM_h(TestGroundedSourceTDEM_j):
-
     prob_type = "MagneticField"
