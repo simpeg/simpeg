@@ -2263,7 +2263,7 @@ class UpdateSensitivityWeights(InversionDirective):
         self,
         every_iteration=False,
         threshold_value=1e-12,
-        threshold_method="global",
+        threshold_method="amplitude",
         normalization_method="maximum",
         **kwargs,
     ):
