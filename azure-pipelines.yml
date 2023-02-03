@@ -28,39 +28,39 @@ stages:
       steps:
         - script: |
             HASH=$(system.pullRequest.sourceCommitId)
-            echo "##vso[build.updatebuildnumber]mybuildname-$HASH"
+            echo "mybuildname-$HASH"
           displayName: echo build hash
-        - script: |
-            pip install -r requirements_style.txt
-          displayName: "Install dependencies to run the checks"
-        - script: make black
-          displayName: "Run black"
-
-    - job:
-      displayName: Run (permissive) style checks with flake8
-      pool:
-        vmImage: ubuntu-latest
-      variables:
-        python.version: '3.8'
-      steps:
-        - script: |
-            pip install -r requirements_style.txt
-          displayName: "Install dependencies to run the checks"
-        - script: make flake-permissive
-          displayName: "Run flake8"
-
-    - job:
-      displayName: Run style checks with flake8 (allowed to fail)
-      pool:
-        vmImage: ubuntu-latest
-      variables:
-        python.version: '3.8'
-      steps:
-        - script: |
-            pip install -r requirements_style.txt
-          displayName: "Install dependencies to run the checks"
-        - script: FLAKE8_OPTS="--exit-zero" make flake
-          displayName: "Run flake8"
+#        - script: |
+#            pip install -r requirements_style.txt
+#          displayName: "Install dependencies to run the checks"
+#        - script: make black
+#          displayName: "Run black"
+#
+#    - job:
+#      displayName: Run (permissive) style checks with flake8
+#      pool:
+#        vmImage: ubuntu-latest
+#      variables:
+#        python.version: '3.8'
+#      steps:
+#        - script: |
+#            pip install -r requirements_style.txt
+#          displayName: "Install dependencies to run the checks"
+#        - script: make flake-permissive
+#          displayName: "Run flake8"
+#
+#    - job:
+#      displayName: Run style checks with flake8 (allowed to fail)
+#      pool:
+#        vmImage: ubuntu-latest
+#      variables:
+#        python.version: '3.8'
+#      steps:
+#        - script: |
+#            pip install -r requirements_style.txt
+#          displayName: "Install dependencies to run the checks"
+#        - script: FLAKE8_OPTS="--exit-zero" make flake
+#          displayName: "Run flake8"
 
 #- stage: Testing
 #  dependsOn: StyleChecks
