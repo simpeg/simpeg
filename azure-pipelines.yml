@@ -30,6 +30,12 @@ stages:
             HASH=$(system.pullRequest.sourceCommitId)
             echo "mybuildname-$HASH"
           displayName: echo build hash
+          condition: startsWith(variables['build.sourceBranch'], 'refs/pull/')
+        - script: |
+            echo "Not on a PR branch"
+          displayName: echo build hash
+          condition: not(startsWith(variables['build.sourceBranch'], 'refs/pull/'))
+
 #        - script: |
 #            pip install -r requirements_style.txt
 #          displayName: "Install dependencies to run the checks"
