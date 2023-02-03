@@ -534,6 +534,82 @@ class ComboMap(IdentityMap):
         return len(self.maps)
 
 
+class LinearMap(IdentityMap):
+    """A generalized linear mapping.
+
+    A simple map that implements the linear mapping,
+
+    >>> y = A @ x + b
+
+    Parameters
+    ----------
+    A : (M, N) array_like, optional
+        The matrix operator, can be any object that implements `__matmul__`
+        and has a `shape` attribute.
+    b : (M) array_like, optional
+        Additive part of the linear operation.
+    """
+
+    def __init__(self, A, b=None, **kwargs):
+        mesh = kwargs.pop("mesh", None)
+        nP = kwargs.pop("nP", None)
+        super().__init__(**kwargs)
+        self.A = A
+        self.b = b
+
+    @property
+    def A(self):
+        """The linear operator matrix.
+
+        Returns
+        -------
+        LinearOperator
+            Must support matrix multiplication and have a shape attribute.
+        """
+        return self._A
+
+    @A.setter
+    def A(self, value):
+        if not hasattr(value, "__matmul__"):
+            raise TypeError(
+                f"{repr(value)} does not implement the matrix multiplication operator."
+            )
+        if not hasattr(value, "shape"):
+            raise TypeError(f"{repr(value)} does not have a shape attribute.")
+        self._A = value
+        self._nP = value.shape[1]
+        self._shape = value.shape
+
+    @property
+    def shape(self):
+        return self.A._shape
+
+    def b(self):
+        """Added part of the linear operation.
+
+        Returns
+        -------
+        numpy.ndarray
+        """
+        return self._b
+
+    @b.setter
+    def b(self, value):
+        if value is not None:
+            value = validate_ndarray_with_shape("b", value, shape=(self.shape[0],))
+        self._b = value
+
+    def _transform(self, m):
+        if self._b is None:
+            return self._A @ m
+        return self._A @ m + self._b
+
+    def deriv(self, m, v=None):
+        if v is None:
+            return self._A
+        return self._A @ v
+
+
 class Projection(IdentityMap):
     r"""Projection mapping.
 
