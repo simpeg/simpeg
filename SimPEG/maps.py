@@ -582,8 +582,9 @@ class LinearMap(IdentityMap):
 
     @property
     def shape(self):
-        return self.A._shape
+        return self._shape
 
+    @property
     def b(self):
         """Added part of the linear operation.
 
