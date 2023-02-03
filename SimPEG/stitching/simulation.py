@@ -1,6 +1,7 @@
 import numpy as np
 
 from ..simulation import BaseSimulation
+from ..survey import BaseSurvey
 from ..maps import IdentityMap
 from ..utils import validate_list_of_types
 from ..props import HasModel
@@ -12,6 +13,12 @@ class ComboSimulation(BaseSimulation):
         #
         self.simulations = simulations
         self.model_mappings = model_mappings
+        # give myself a BaseSurvey that has the number of data equal to the sum of the
+        # sims data
+        survey = BaseSurvey([])
+        vnD = [sim.survey.nD for sim in self.simulations]
+        survey._vnD = vnD
+        self.survey = survey
 
     @property
     def simulations(self):
