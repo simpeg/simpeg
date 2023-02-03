@@ -22,11 +22,6 @@ jobs:
           pool:
             vmImage: ${{ os }}
           steps:
-          - bash: |
-              HASH=$(git rev-parse --short $BUILD_SOURCEVERSION)
-              echo "##vso[build.updatebuildnumber]mybuildname-$HASH"
-            displayName: echo build hash
-
           - script: |
               wget -O Mambaforge.sh  "https://github.com/conda-forge/miniforge/releases/latest/download/Mambaforge-$(uname)-$(uname -m).sh"
               bash Mambaforge.sh -b -p "${HOME}/conda"

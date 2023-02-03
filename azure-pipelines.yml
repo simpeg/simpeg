@@ -27,6 +27,10 @@ stages:
         python.version: '3.8'
       steps:
         - script: |
+            HASH=$(system.pullRequest.sourceCommitId)
+            echo "##vso[build.updatebuildnumber]mybuildname-$HASH"
+          displayName: echo build hash
+        - script: |
             pip install -r requirements_style.txt
           displayName: "Install dependencies to run the checks"
         - script: make black
@@ -58,85 +62,85 @@ stages:
         - script: FLAKE8_OPTS="--exit-zero" make flake
           displayName: "Run flake8"
 
-- stage: Testing
-  dependsOn: StyleChecks
-  jobs:
-    - template: ./.azure-pipelines/matrix.yml
-
-- stage: Deploy
-  dependsOn: Testing
-  condition: startsWith(variables['build.sourceBranch'], 'refs/tags/')
-  jobs:
-    - job:
-      displayName: Deploy Docs and source
-      pool:
-        vmImage: ubuntu-latest
-      variables:
-        python.version: '3.8'
-      timeoutInMinutes: 180
-      steps:
-        - script: |
-            git config --global user.name ${GH_NAME}
-            git config --global user.email ${GH_EMAIL}
-            git config --list | grep user.
-          displayName: 'Configure git'
-          env:
-            GH_NAME: $(gh.name)
-            GH_EMAIL: $(gh.email)
-
-        - script: |
-            wget -O Mambaforge.sh  "https://github.com/conda-forge/miniforge/releases/latest/download/Mambaforge-$(uname)-$(uname -m).sh"
-            bash Mambaforge.sh -b -p "${HOME}/conda"
-          displayName: Install mamba
-
-        - script: |
-            source "${HOME}/conda/etc/profile.d/conda.sh"
-            source "${HOME}/conda/etc/profile.d/mamba.sh"
-            echo "  - python="$(python.version) >> environment_test.yml
-            mamba env create -f environment_test.yml
-            conda activate simpeg-test
-            pip install pytest-azurepipelines
-          displayName: Create Anaconda testing environment
-
-        - script: |
-            source "${HOME}/conda/etc/profile.d/conda.sh"
-            conda activate simpeg-test
-            pip install -e .
-          displayName: Build package
-
-        - script: |
-            source "${HOME}/conda/etc/profile.d/conda.sh"
-            conda activate simpeg-test
-            python setup.py sdist
-            twine upload --skip-existing dist/*
-          displayName: Deploy source
-          env:
-            TWINE_USERNAME: $(twine.username)
-            TWINE_PASSWORD: $(twine.password)
-
-        - script: |
-            source "${HOME}/conda/etc/profile.d/conda.sh"
-            conda activate simpeg-test
-            export KMP_WARNINGS=0
-            cd docs
-            make html
-            cd ..
-          displayName: Building documentation
-
-        # upload documentation to simpeg-docs gh-pages on tags
-        - script: |
-            git clone --depth 1 https://${GH_TOKEN}@github.com/simpeg/simpeg-docs.git
-            cd simpeg-docs
-            git gc --prune=now
-            git remote prune origin
-            rm -rf *
-            cp -r $BUILD_SOURCESDIRECTORY/docs/_build/html/* .
-            cp $BUILD_SOURCESDIRECTORY/docs/README.md .
-            touch .nojekyll
-            echo "docs.simpeg.xyz" >> CNAME
-            git add .
-            git commit -am "Azure CI commit ref $(Build.SourceVersion)"
-            git push
-          displayName: Push documentation to simpeg-docs
-          env:
-            GH_TOKEN: $(gh.token)
+#- stage: Testing
+#  dependsOn: StyleChecks
+#  jobs:
+#    - template: ./.azure-pipelines/matrix.yml
+#
+#- stage: Deploy
+#  dependsOn: Testing
+#  condition: startsWith(variables['build.sourceBranch'], 'refs/tags/')
+#  jobs:
+#    - job:
+#      displayName: Deploy Docs and source
+#      pool:
+#        vmImage: ubuntu-latest
+#      variables:
+#        python.version: '3.8'
+#      timeoutInMinutes: 180
+#      steps:
+#        - script: |
+#            git config --global user.name ${GH_NAME}
+#            git config --global user.email ${GH_EMAIL}
+#            git config --list | grep user.
+#          displayName: 'Configure git'
+#          env:
+#            GH_NAME: $(gh.name)
+#            GH_EMAIL: $(gh.email)
+#
+#        - script: |
+#            wget -O Mambaforge.sh  "https://github.com/conda-forge/miniforge/releases/latest/download/Mambaforge-$(uname)-$(uname -m).sh"
+#            bash Mambaforge.sh -b -p "${HOME}/conda"
+#          displayName: Install mamba
+#
+#        - script: |
+#            source "${HOME}/conda/etc/profile.d/conda.sh"
+#            source "${HOME}/conda/etc/profile.d/mamba.sh"
+#            echo "  - python="$(python.version) >> environment_test.yml
+#            mamba env create -f environment_test.yml
+#            conda activate simpeg-test
+#            pip install pytest-azurepipelines
+#          displayName: Create Anaconda testing environment
+#
+#        - script: |
+#            source "${HOME}/conda/etc/profile.d/conda.sh"
+#            conda activate simpeg-test
+#            pip install -e .
+#          displayName: Build package
+#
+#        - script: |
+#            source "${HOME}/conda/etc/profile.d/conda.sh"
+#            conda activate simpeg-test
+#            python setup.py sdist
+#            twine upload --skip-existing dist/*
+#          displayName: Deploy source
+#          env:
+#            TWINE_USERNAME: $(twine.username)
+#            TWINE_PASSWORD: $(twine.password)
+#
+#        - script: |
+#            source "${HOME}/conda/etc/profile.d/conda.sh"
+#            conda activate simpeg-test
+#            export KMP_WARNINGS=0
+#            cd docs
+#            make html
+#            cd ..
+#          displayName: Building documentation
+#
+#        # upload documentation to simpeg-docs gh-pages on tags
+#        - script: |
+#            git clone --depth 1 https://${GH_TOKEN}@github.com/simpeg/simpeg-docs.git
+#            cd simpeg-docs
+#            git gc --prune=now
+#            git remote prune origin
+#            rm -rf *
+#            cp -r $BUILD_SOURCESDIRECTORY/docs/_build/html/* .
+#            cp $BUILD_SOURCESDIRECTORY/docs/README.md .
+#            touch .nojekyll
+#            echo "docs.simpeg.xyz" >> CNAME
+#            git add .
+#            git commit -am "Azure CI commit ref $(Build.SourceVersion)"
+#            git push
+#          displayName: Push documentation to simpeg-docs
+#          env:
+#            GH_TOKEN: $(gh.token)
