@@ -50,6 +50,8 @@ jobs:
             displayName: 'Testing ${{ test }}'
 
           - script: |
-              bash <(curl -s https://codecov.io/bash)
+              curl -Os https://uploader.codecov.io/latest/linux/codecov
+              chmod +x codecov
+              ./codecov
             displayName: 'Upload coverage to codecov.io'
             condition: eq(${{ py_vers }}, '3.8')
