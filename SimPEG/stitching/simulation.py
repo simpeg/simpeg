@@ -77,6 +77,7 @@ class ComboSimulation(BaseSimulation):
         f = []
         multi_sim = len(self.simulations)
         for mapping, sim in zip(self.model_mappings, self.simulations):
+            sim.model = mapping * self.model
             f.append(sim.fields(m=sim.model))
         return f
 
@@ -86,7 +87,8 @@ class ComboSimulation(BaseSimulation):
                 m = self.model
             f = self.fields(m)
         d_pred = []
-        for sim, field in zip(self.simulations, f):
+        for mapping, sim, field in zip(self.model_mappings, self.simulations, f):
+            sim.model = mapping * self.model
             d_pred.append(sim.dpred(m=sim.model, f=field))
         return np.concatenate(d_pred)
 
@@ -99,6 +101,7 @@ class ComboSimulation(BaseSimulation):
         for mapping, sim, field in zip(self.model_mappings, self.simulations, f):
             # Every d_pred needs to be setup to grab the current model
             # if given m=None as an argument.
+            sim.model = mapping * self.model
             sim_v = mapping.deriv(self.model) @ v
             j_vec.append(sim.Jvec(sim.model, sim_v, f=field))
         return np.concatenate(j_vec)
@@ -111,6 +114,7 @@ class ComboSimulation(BaseSimulation):
         jt_vec = 0
         ind_v_start = 0
         for mapping, sim, field in zip(self.model_mappings, self.simulations, f):
+            sim.model = mapping * self.model
             ind_v_end = ind_v_start + sim.survey.nD
             sim_v = v[ind_v_start:ind_v_end]
             ind_v_start = ind_v_end
