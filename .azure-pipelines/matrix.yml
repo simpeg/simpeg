@@ -52,6 +52,13 @@ jobs:
           - script: |
               curl -Os https://uploader.codecov.io/latest/linux/codecov
               chmod +x codecov
+              ./codecov --sha $(system.pullRequest.sourceCommitId)
+            displayName: 'Upload PR coverage to codecov.io'
+            condition: and(eq(${{ py_vers }}, '3.8'), startsWith(variables['build.sourceBranch'], 'refs/pull/'))
+
+          - script: |
+              curl -Os https://uploader.codecov.io/latest/linux/codecov
+              chmod +x codecov
               ./codecov
             displayName: 'Upload coverage to codecov.io'
-            condition: eq(${{ py_vers }}, '3.8')
+            condition: and(eq(${{ py_vers }}, '3.8'), not(startsWith(variables['build.sourceBranch'], 'refs/pull/')))
