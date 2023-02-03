@@ -427,6 +427,7 @@ class HasModel(BaseSimPEG, metaclass=PhysicalPropertyMetaclass):
 
         # trigger model update function.
         previous_value = getattr(self, "_model", None)
+        updated = False
         if previous_value is not value:
             if not (
                 isinstance(previous_value, np.ndarray)
@@ -443,8 +444,14 @@ class HasModel(BaseSimPEG, metaclass=PhysicalPropertyMetaclass):
                     if getattr(self, mat, None) is not None:
                         getattr(self, mat).clean()  # clean factors
                         setattr(self, mat, None)  # set to none
+                updated = True
 
         self._model = value
+        # Most of the time this return value is completely ignored
+        # However if you need to know if the model was updated in
+        # and child class, you can always access the method:
+        # HasModel.model.fset
+        return updated
 
     @model.deleter
     def model(self):
