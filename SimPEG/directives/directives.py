@@ -2341,10 +2341,24 @@ class CurrentBasedSensitivityWeights(InversionDirective):
     Good for any problem where J is formed explicitly.
     """
 
-    everyIter = False
-    everyBeta = True
-    startingBetaIter = 1
-    threshold = 100.
+
+    def __init__(
+        self,
+        everyIter=False,
+        everyBeta=True,
+        startingBetaIter=1,
+        threshold=100.,
+        n_hutchinson_samples=40,
+        **kwargs
+    ):
+        
+        super().__init__(**kwargs)
+        self.everyIter = everyIter
+        self.everyBeta = everyBeta
+        self.startingBetaIter = startingBetaIter
+        self.threshold = threshold
+        self.normalization = normalization
+        self.n_hutchinson_samples = n_hutchinson_samples
 
     def initialize(self):
         """
@@ -2394,7 +2408,7 @@ class CurrentBasedSensitivityWeights(InversionDirective):
 
         for sim, dmisfit in zip(self.simulation, self.dmisfit.objfcts):
             # jtj_diag += sim.getJtJdiag_currents(m, W=dmisfit.W)
-            jtj_diag_temp = sim.getJtJdiag_currents(m, W=None)
+            jtj_diag_temp = sim.getJtJdiag_currents(m, W=dmisfit.W, n_hutchinson_samples=self.n_hutchinson_samples)
 
             # Enforce positivity
             if np.any(jtj_diag_temp < 0.):

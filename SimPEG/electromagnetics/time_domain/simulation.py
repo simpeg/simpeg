@@ -1116,7 +1116,7 @@ class Simulation3DElectricField(BaseTDEMSimulation):
         else:
             return self.MeSigmaDeriv(-u, Grad * v, adjoint)
 
-    def getJtJdiag_currents(self, m, W=None, f=None, n_hutchinson_samples=25):
+    def getJtJdiag_currents(self, m, W=None, f=None, n_hutchinson_samples=40):
 
         if W is None:
             W = np.ones(self.survey.nD)
