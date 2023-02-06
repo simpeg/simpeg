@@ -5828,6 +5828,7 @@ class TileMap(IdentityMap):
         local_mesh,
         tol=1e-8,
         components=1,
+        enforce_active=True,
         **kwargs,
     ):
         """
@@ -5859,7 +5860,7 @@ class TileMap(IdentityMap):
 
         self._tol = validate_float("tol", tol, min_val=0.0, inclusive_min=False)
         self._components = validate_integer("components", components, min_val=1)
-
+        self.enforce_active = enforce_active
         # trigger creation of P
         self.P
 
@@ -5948,11 +5949,17 @@ class TileMap(IdentityMap):
 
             self._local_active = mkvc(np.sum(P, axis=1) > 0)
 
+            if self.enforce_active:
+                self.local_active[
+                    self.local_mesh._get_containing_cell_indexes(
+                        self.global_mesh.cell_centers[self.global_active == False, :]
+                    )
+                ] = False
             P = P[self.local_active, :]
 
             self._P = sp.block_diag(
                 [
-                    sdiag(1.0 / self.local_mesh.cell_volumes[self.local_active]) * P
+                    sdiag(1.0 / np.sum(P, axis=1)) * P
                     for ii in range(self.components)
                 ]
             )
