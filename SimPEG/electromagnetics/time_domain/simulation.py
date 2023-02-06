@@ -1135,8 +1135,8 @@ class Simulation3DElectricField(BaseTDEMSimulation):
             # A = (self.sigmaMap * m) * mkvc(np.outer(self.mesh.hx, self.mesh.hz))
             A = sdiag(mkvc(np.outer(self.mesh.hx, self.mesh.hz)))
         elif isinstance(mesh, (TensorMesh, TreeMesh)) and mesh.dim == 3:
-            # A = (self.sigmaMap * m) * sdiag((mesh.cell_volumes / mesh.h_gridded.T).reshape(-1))
-            A = sdiag((self.mesh.cell_volumes / self.mesh.h_gridded.T).reshape(-1))
+            #     A = sdiag((mesh.cell_volumes / mesh.h_gridded.T).reshape(-1))
+            A = sdiag(np.tile(mesh.cell_volumes, 3))  # x areas to get from current density to current. Then x length to get dipole moment
         else:
             NotImplementedError("getJtJdiag_currents only implemented for CylindricalMesh, 3D TensorMesh and 3D TreeMesh")
 
