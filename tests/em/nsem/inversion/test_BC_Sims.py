@@ -36,7 +36,6 @@ def check_adjoint(sim, test_mod):
 
 
 def create_simulation_1d(sim_type, deriv_type):
-
     cs = 100
     ncz = 200
     npad = 20
@@ -113,7 +112,7 @@ def create_simulation_2d(sim_type, deriv_type, mesh_type, fixed_boundary=False):
 
     if mesh_type == "TreeMesh":
         mesh = TensorMesh([hx, hz])
-        mesh.origin = np.r_[-mesh.hx.sum() / 2, -mesh.hy[:-npad].sum()]
+        mesh.origin = np.r_[-mesh.h[0].sum() / 2, -mesh.h[1][:-npad].sum()]
 
         mesh = TreeMesh([hx, hz], mesh.origin)
         mesh.refine_ball(
@@ -121,7 +120,7 @@ def create_simulation_2d(sim_type, deriv_type, mesh_type, fixed_boundary=False):
         )
     else:
         mesh = TensorMesh([hx, hz])
-        mesh.origin = np.r_[-mesh.hx.sum() / 2, -mesh.hy[:-npad].sum()]
+        mesh.origin = np.r_[-mesh.h[0].sum() / 2, -mesh.h[1][:-npad].sum()]
 
     sigma_back = 1e-1
     sigma_right = 1e-3

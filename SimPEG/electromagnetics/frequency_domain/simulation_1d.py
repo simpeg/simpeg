@@ -1,22 +1,10 @@
-from ... import maps, utils
+from ...utils import validate_type
 from ..base_1d import BaseEM1DSimulation
 from .receivers import PointMagneticFieldSecondary, PointMagneticField
 from .survey import Survey
 import numpy as np
-from scipy import sparse as sp
-import properties
 
 from geoana.kernels.tranverse_electric_reflections import rTE_forward, rTE_gradient
-
-try:
-    from multiprocessing import Pool
-    from sys import platform
-except ImportError:
-    print("multiprocessing is not available")
-    PARALLEL = False
-else:
-    PARALLEL = True
-    import multiprocessing
 
 
 #######################################################################
@@ -30,24 +18,27 @@ class Simulation1DLayered(BaseEM1DSimulation):
     for a single sounding.
     """
 
-    survey = properties.Instance("a survey object", Survey, required=True)
-
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        if self.topo is None:
-            self.topo = np.array([0, 0, 0], dtype=float)
+    def __init__(self, survey=None, **kwargs):
+        super().__init__(survey=survey, **kwargs)
         self._coefficients_set = False
 
-        for i_src, src in enumerate(self.survey.source_list):
-            if src.location[2] < self.topo[2]:
-                raise ValueError("Source must be located above the topography")
-            for i_rx, rx in enumerate(src.receiver_list):
-                if rx.use_source_receiver_offset:
-                    if np.any(src.location[2]+rx.locations[:, 2] < self.topo[2]):
-                        raise ValueError("Receiver must be located above the topography")
-                else:
-                    if np.any(rx.locations[:, 2] < self.topo[2]):
-                        raise ValueError("Receiver must be located above the topography")
+    @property
+    def survey(self):
+        """The simulations survey.
+
+        Returns
+        -------
+        SimPEG.electromagnetics.frequency_domain.survey.Survey
+        """
+        if self._survey is None:
+            raise AttributeError("Simulation must have a survey set")
+        return self._survey
+
+    @survey.setter
+    def survey(self, value):
+        if value is not None:
+            value = validate_type("survey", value, Survey, cast=False)
+        self._survey = value
 
     def get_coefficients(self):
         if self._coefficients_set is False:
@@ -83,13 +74,14 @@ class Simulation1DLayered(BaseEM1DSimulation):
         frequencies = np.array(survey.frequencies)
         # Compute coefficients for Hankel transform
         i_freq = []
-        for i_src, src in enumerate(survey.source_list):
+        for src in survey.source_list:
             class_name = type(src).__name__
-            is_wire_loop = class_name == "PiecewiseWireLoop"
+            is_wire_loop = class_name == "LineCurrent"
             i_f = np.searchsorted(frequencies, src.frequency)
-            for i_rx, rx in enumerate(src.receiver_list):
+            for rx in src.receiver_list:
                 if is_wire_loop:
-                    i_freq.append([i_f] * rx.locations.shape[0] * src.n_quad_points)
+                    n_quad_points = src.n_segments * self.n_points_per_path
+                    i_freq.append([i_f] * rx.locations.shape[0] * n_quad_points)
                 else:
                     i_freq.append([i_f] * rx.locations.shape[0])
         self._i_freq = np.hstack(i_freq)
@@ -132,7 +124,7 @@ class Simulation1DLayered(BaseEM1DSimulation):
         rTE = rTE_forward(frequencies, unique_lambs, sig, mu, self.thicknesses)
         rTE = rTE[i_freq]
         rTE = np.take_along_axis(rTE, inv_lambs, axis=1)
-        v = W @ ((C0s * rTE) @ self.fhtfilt.j0 + (C1s * rTE) @ self.fhtfilt.j1)
+        v = W @ ((C0s * rTE) @ self._fhtfilt.j0 + (C1s * rTE) @ self._fhtfilt.j1)
 
         return self._project_to_data(v)
 
@@ -162,12 +154,13 @@ class Simulation1DLayered(BaseEM1DSimulation):
                 i = 0
                 for i_src, src in enumerate(self.survey.source_list):
                     class_name = type(src).__name__
-                    is_wire_loop = class_name == "PiecewiseWireLoop"
+                    is_wire_loop = class_name == "LineCurrent"
 
                     h = h_vec[i_src]
                     if is_wire_loop:
+                        n_quad_points = src.n_segments * self.n_points_per_path
                         nD = sum(
-                            rx.locations.shape[0] * src.n_quad_points
+                            rx.locations.shape[0] * n_quad_points
                             for rx in src.receiver_list
                         )
                     else:
@@ -182,9 +175,9 @@ class Simulation1DLayered(BaseEM1DSimulation):
                 rTE = rTE_forward(frequencies, unique_lambs, sig, mu, self.thicknesses)
                 rTE = rTE[i_freq]
                 rTE = np.take_along_axis(rTE, inv_lambs, axis=1)
-                v_dh_temp = (C0s_dh * rTE) @ self.fhtfilt.j0 + (
+                v_dh_temp = (C0s_dh * rTE) @ self._fhtfilt.j0 + (
                     C1s_dh * rTE
-                ) @ self.fhtfilt.j1
+                ) @ self._fhtfilt.j1
                 v_dh_temp += W @ v_dh_temp
                 # need to re-arange v_dh as it's currently (n_data x 1)
                 # however it already contains all the relevant information...
@@ -194,10 +187,11 @@ class Simulation1DLayered(BaseEM1DSimulation):
                 i = 0
                 for i_src, src in enumerate(self.survey.source_list):
                     class_name = type(src).__name__
-                    is_circular_loop = class_name == "CircularLoop"
+                    is_wire_loop = class_name == "LineCurrent"
                     if is_wire_loop:
+                        n_quad_points = src.n_segments * self.n_points_per_path
                         nD = sum(
-                            rx.locations.shape[0] * src.n_quad_points
+                            rx.locations.shape[0] * n_quad_points
                             for rx in src.receiver_list
                         )
                     else:
@@ -221,8 +215,8 @@ class Simulation1DLayered(BaseEM1DSimulation):
                     rTE_ds = np.take_along_axis(rTE_ds, inv_lambs[None, ...], axis=-1)
                     v_ds = (
                         (
-                            (C0s * rTE_ds) @ self.fhtfilt.j0
-                            + (C1s * rTE_ds) @ self.fhtfilt.j1
+                            (C0s * rTE_ds) @ self._fhtfilt.j0
+                            + (C1s * rTE_ds) @ self._fhtfilt.j1
                         )
                         @ W.T
                     ).T
@@ -232,8 +226,8 @@ class Simulation1DLayered(BaseEM1DSimulation):
                     rTE_dmu = np.take_along_axis(rTE_dmu, inv_lambs[None, ...], axis=-1)
                     v_dmu = (
                         (
-                            (C0s * rTE_dmu) @ self.fhtfilt.j0
-                            + (C1s * rTE_dmu) @ self.fhtfilt.j1
+                            (C0s * rTE_dmu) @ self._fhtfilt.j0
+                            + (C1s * rTE_dmu) @ self._fhtfilt.j1
                         )
                         @ W.T
                     ).T
@@ -243,8 +237,8 @@ class Simulation1DLayered(BaseEM1DSimulation):
                     rTE_dh = np.take_along_axis(rTE_dh, inv_lambs[None, ...], axis=-1)
                     v_dthick = (
                         (
-                            (C0s * rTE_dh) @ self.fhtfilt.j0
-                            + (C1s * rTE_dh) @ self.fhtfilt.j1
+                            (C0s * rTE_dh) @ self._fhtfilt.j0
+                            + (C1s * rTE_dh) @ self._fhtfilt.j1
                         )
                         @ W.T
                     ).T
@@ -258,9 +252,9 @@ class Simulation1DLayered(BaseEM1DSimulation):
             out = np.zeros(self.survey.nD)
         else:
             out = np.zeros((self.survey.nD, v.shape[1]))
-        for i_src, src in enumerate(self.survey.source_list):
+        for src in self.survey.source_list:
             class_name = type(src).__name__
-            is_wire_loop = class_name == "PiecewiseWireLoop"
+            is_wire_loop = class_name == "LineCurrent"
             for i_rx, rx in enumerate(src.receiver_list):
                 i_dat_p1 = i_dat + rx.nD
                 i_v_p1 = i_v + rx.locations.shape[0]
@@ -270,7 +264,7 @@ class Simulation1DLayered(BaseEM1DSimulation):
                     if rx.data_type == "ppm":
                         if is_wire_loop:
                             raise NotImplementedError(
-                                "Primary field for PiecewiseWireLoop has not been implemented"
+                                "Primary field for LineCurrent has not been implemented"
                             )
                         if v_slice.ndim == 2:
                             v_slice /= src.hPrimary(self)[i_rx][:, None]
@@ -280,7 +274,7 @@ class Simulation1DLayered(BaseEM1DSimulation):
                 elif isinstance(rx, PointMagneticField):
                     if is_wire_loop:
                         raise NotImplementedError(
-                            "Primary field for PiecewiseWireLoop has not been implemented"
+                            "Primary field for LineCurrent has not been implemented"
                         )
                     if v_slice.ndim == 2:
                         pass

@@ -1,16 +1,13 @@
-from __future__ import print_function
 import unittest
+import pytest
+import warnings
 
 import discretize
-from scipy.constants import mu_0
-
-from SimPEG.electromagnetics import frequency_domain as fdem
-from geoana.em.static import MagneticDipoleWholeSpace
-
-# from SimPEG.electromagnetics.analytics.FDEM import MagneticDipoleWholeSpace
 import numpy as np
+from geoana.em.static import MagneticDipoleWholeSpace
+from scipy.constants import mu_0
 from SimPEG import maps, utils
-import warnings
+from SimPEG.electromagnetics import frequency_domain as fdem
 
 TOL = 0.5  # relative tolerance (to norm of soln)
 plotIt = False
@@ -38,11 +35,10 @@ class TestSimpleSourcePropertiesTensor(unittest.TestCase):
 
         loc = np.r_[0.0, 0.0, 0.0]
         self.location = utils.mkvc(
-            self.mesh.gridCC[utils.closestPoints(self.mesh, loc, "CC"), :]
+            self.mesh.gridCC[self.mesh.closest_points_index(loc, "CC"), :]
         )
 
     def test_MagDipole(self):
-
         print("\ntesting MagDipole assignments")
 
         for orient in ["x", "y", "z", "X", "Y", "Z"]:
@@ -72,7 +68,6 @@ class TestSimpleSourcePropertiesTensor(unittest.TestCase):
             assert np.all(src.orientation == orient_vec)
 
     def test_MagDipoleSimpleFail(self):
-
         print("\ntesting MagDipole error handling")
 
         with warnings.catch_warnings(record=True):
@@ -102,11 +97,6 @@ class TestSimpleSourcePropertiesTensor(unittest.TestCase):
                 mu=src.mu,
             ).magnetic_flux_density(XYZ)
 
-            # return np.hstack(MagneticDipoleWholeSpace(XYZ, src.location,
-            #     0.,0., moment=1., orientation=src.orientation,
-            #     mu=src.mu
-            # ))
-
         if probType in ["e", "b"]:
             # TODO: clean up how we call analytics
             bx = ana_sol(self.mesh.gridFx)[:, 0]
@@ -115,12 +105,12 @@ class TestSimpleSourcePropertiesTensor(unittest.TestCase):
 
             # remove the z faces right next to the source
             ignore_these = (
-                (-self.mesh.hx.min() + src.location[0] <= self.mesh.gridFz[:, 0])
-                & (self.mesh.gridFz[:, 0] <= self.mesh.hx.min() + src.location[0])
-                & (-self.mesh.hy.min() + src.location[1] <= self.mesh.gridFz[:, 1])
-                & (self.mesh.gridFz[:, 1] <= self.mesh.hy.min() + src.location[1])
-                & (-self.mesh.hz.min() + src.location[2] <= self.mesh.gridFz[:, 2])
-                & (self.mesh.gridFz[:, 2] <= self.mesh.hz.min() + src.location[2])
+                (-self.mesh.h[0].min() + src.location[0] <= self.mesh.gridFz[:, 0])
+                & (self.mesh.gridFz[:, 0] <= self.mesh.h[0].min() + src.location[0])
+                & (-self.mesh.h[1].min() + src.location[1] <= self.mesh.gridFz[:, 1])
+                & (self.mesh.gridFz[:, 1] <= self.mesh.h[1].min() + src.location[1])
+                & (-self.mesh.h[2].min() + src.location[2] <= self.mesh.gridFz[:, 2])
+                & (self.mesh.gridFz[:, 2] <= self.mesh.h[2].min() + src.location[2])
             )
 
             look_at_these = np.ones(self.mesh.nFx + self.mesh.nFy, dtype=bool)
@@ -133,12 +123,12 @@ class TestSimpleSourcePropertiesTensor(unittest.TestCase):
 
             # remove the z faces right next to the source
             ignore_these = (
-                (-self.mesh.hx.min() + src.location[0] <= self.mesh.gridEz[:, 0])
-                & (self.mesh.gridEz[:, 0] <= self.mesh.hx.min() + src.location[0])
-                & (-self.mesh.hy.min() + src.location[1] <= self.mesh.gridEz[:, 1])
-                & (self.mesh.gridEz[:, 1] <= self.mesh.hy.min() + src.location[1])
-                & (-self.mesh.hz.min() + src.location[2] <= self.mesh.gridEz[:, 2])
-                & (self.mesh.gridEz[:, 2] <= self.mesh.hz.min() + src.location[2])
+                (-self.mesh.h[0].min() + src.location[0] <= self.mesh.gridEz[:, 0])
+                & (self.mesh.gridEz[:, 0] <= self.mesh.h[0].min() + src.location[0])
+                & (-self.mesh.h[1].min() + src.location[1] <= self.mesh.gridEz[:, 1])
+                & (self.mesh.gridEz[:, 1] <= self.mesh.h[1].min() + src.location[1])
+                & (-self.mesh.h[2].min() + src.location[2] <= self.mesh.gridEz[:, 2])
+                & (self.mesh.gridEz[:, 2] <= self.mesh.h[2].min() + src.location[2])
             )
 
             look_at_these = np.ones(self.mesh.nEx + self.mesh.nEy, dtype=bool)
@@ -167,12 +157,11 @@ class TestSimpleSourcePropertiesTensor(unittest.TestCase):
         )
 
         if plotIt is True:
-
             print(self.mesh.vnF)
 
             fig, ax = plt.subplots(1, 2)
+            ax[0].semilogy(np.absolute(bPrimary_ana), linewidth=2.0)
             ax[0].semilogy(np.absolute(bPrimary))
-            ax[0].semilogy(np.absolute(bPrimary_ana))
             ax[0].legend(["|num|", "|ana|"])
             ax[0].set_ylim([tol, bPrimary.max() * 2])
 
@@ -183,6 +172,18 @@ class TestSimpleSourcePropertiesTensor(unittest.TestCase):
             plt.show()
 
         return passed
+
+    # ------------- GENERAL ------------------ #
+
+    def test_integrate_source_failure(self):
+        self.assertRaises(
+            TypeError,
+            fdem.sources.BaseFDEMSrc,
+            [],
+            frequency=self.frequency,
+            location=self.location,
+            integrate=4.0,
+        )
 
     # ------------- TEST MAG DIPOLE ------------------ #
 
@@ -439,5 +440,28 @@ class TestSimpleSourcePropertiesTensor(unittest.TestCase):
         assert self.bPrimaryTest(src, "j")
 
 
-if __name__ == "__main__":
-    unittest.main()
+def test_CircularLoop_test_N_assign():
+    """
+    Test depreciation of the N argument (now n_turns)
+    """
+    src = fdem.sources.CircularLoop(
+        [],
+        frequency=1e-3,
+        radius=np.sqrt(1 / np.pi),
+        location=[0, 0, 0],
+        orientation="Z",
+        mu=mu_0,
+        current=0.5,
+        N=2,
+    )
+    assert src.n_turns == 2
+
+
+def test_line_current_failures():
+    rx_locs = [[0.5, 0.5, 0]]
+    tx_locs = [[0, 0, 0], [0, 1, 0], [1, 1, 0], [1, 0, 0], [0, 0, 0]]
+    rx = fdem.receivers.PointMagneticFluxDensity(
+        rx_locs, orientation="z", use_source_receiver_offset=True
+    )
+    with pytest.raises(ValueError):
+        fdem.sources.LineCurrent([rx], 10, tx_locs)

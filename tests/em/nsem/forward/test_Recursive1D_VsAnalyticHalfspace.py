@@ -6,7 +6,6 @@ from scipy.constants import mu_0
 
 
 def create_survey(freq):
-
     receivers_list = [
         nsem.receivers.PointNaturalSource(component="real"),
         nsem.receivers.PointNaturalSource(component="imag"),
@@ -14,13 +13,12 @@ def create_survey(freq):
         nsem.receivers.PointNaturalSource(component="phase"),
     ]
 
-    source_list = [nsem.sources.Planewave(receivers_list, freq)]
+    source_list = [nsem.sources.Planewave(receivers_list, f) for f in freq]
 
     return nsem.survey.Survey(source_list)
 
 
 def true_solution(freq, sigma_half):
-
     # -ve sign can be removed if convention changes
     soln = np.r_[
         -np.sqrt(np.pi * freq * mu_0 / sigma_half),
@@ -33,7 +31,6 @@ def true_solution(freq, sigma_half):
 
 
 def compute_simulation(freq, sigma_half):
-
     layer_thicknesses = np.array([100.0])
     conductivity_model = sigma_half * np.ones(2)
     model_mapping = maps.IdentityMap()

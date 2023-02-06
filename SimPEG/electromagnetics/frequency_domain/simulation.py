@@ -1,12 +1,9 @@
 import numpy as np
 import scipy.sparse as sp
-from scipy.constants import mu_0
-import properties
 from discretize.utils import Zero
 
-from ... import props
 from ...data import Data
-from ...utils import mkvc
+from ...utils import mkvc, validate_type
 from ..base import BaseEMSimulation
 from ..utils import omega
 from .survey import Survey
@@ -20,15 +17,15 @@ from .fields import (
 
 
 class BaseFDEMSimulation(BaseEMSimulation):
-    """
+    r"""
     We start by looking at Maxwell's equations in the electric
-    field \\\(\\\mathbf{e}\\\) and the magnetic flux
-    density \\\(\\\mathbf{b}\\\)
+    field (:math:`\mathbf{e}`) and the magnetic flux
+    density (:math:`\mathbf{b}`)
 
     .. math ::
 
-        \mathbf{C} \mathbf{e} + i \omega \mathbf{b} = \mathbf{s_m} \\\\
-        {\mathbf{C}^{\\top} \mathbf{M_{\mu^{-1}}^f} \mathbf{b} -
+        \mathbf{C} \mathbf{e} + i \omega \mathbf{b} = \mathbf{s_m}
+        {\mathbf{C}^{\top} \mathbf{M_{\mu^{-1}}^f} \mathbf{b} -
         \mathbf{M_{\sigma}^e} \mathbf{e} = \mathbf{s_e}}
 
     if using the E-B formulation (:code:`Simulation3DElectricField`
@@ -36,12 +33,12 @@ class BaseFDEMSimulation(BaseEMSimulation):
     :math:`\mathbf{s_e}` is an integrated quantity.
 
     If we write Maxwell's equations in terms of
-    \\\(\\\mathbf{h}\\\) and current density \\\(\\\mathbf{j}\\\)
+    :math:`\mathbf{h}` and current density :math:`\mathbf{j}`.
 
     .. math ::
 
-        \mathbf{C}^{\\top} \mathbf{M_{\\rho}^f} \mathbf{j} +
-        i \omega \mathbf{M_{\mu}^e} \mathbf{h} = \mathbf{s_m} \\\\
+        \mathbf{C}^{\top} \mathbf{M_{\rho}^f} \mathbf{j} +
+        i \omega \mathbf{M_{\mu}^e} \mathbf{h} = \mathbf{s_m}
         \mathbf{C} \mathbf{h} - \mathbf{j} = \mathbf{s_e}
 
     if using the H-J formulation (:code:`Simulation3DCurrentDensity` or
@@ -49,25 +46,48 @@ class BaseFDEMSimulation(BaseEMSimulation):
     integrated quantity.
 
     The problem performs the elimination so that we are solving the system
-    for \\\(\\\mathbf{e},\\\mathbf{b},\\\mathbf{j} \\\) or
-    \\\(\\\mathbf{h}\\\)
+    for :math:`mathbf{e}`, :math:`mathbf{b}`, :math:`mathbf{j}` or
+    :math:`mathbf{h}`.
 
     """
 
     fieldsPair = FieldsFDEM
 
-    mu, muMap, muDeriv = props.Invertible("Magnetic Permeability (H/m)", default=mu_0)
+    def __init__(self, mesh, survey=None, forward_only=False, **kwargs):
+        super().__init__(mesh=mesh, survey=survey, **kwargs)
+        self.forward_only = forward_only
 
-    mui, muiMap, muiDeriv = props.Invertible("Inverse Magnetic Permeability (m/H)")
+    @property
+    def survey(self):
+        """The simulations survey.
 
-    props.Reciprocal(mu, mui)
+        Returns
+        -------
+        SimPEG.electromagnetics.frequency_domain.survey.Survey
+        """
+        if self._survey is None:
+            raise AttributeError("Simulation must have a survey set")
+        return self._survey
 
-    forward_only = properties.Boolean(
-        "If True, A-inverse not stored at each frequency in forward simulation",
-        default=False,
-    )
+    @survey.setter
+    def survey(self, value):
+        if value is not None:
+            value = validate_type("survey", value, Survey, cast=False)
+        self._survey = value
 
-    survey = properties.Instance("a survey object", Survey, required=True)
+    @property
+    def forward_only(self):
+        """If True, A-inverse not stored at each frequency in forward simulation.
+
+        Returns
+        -------
+        bool
+        """
+        return self._forward_only
+
+    @forward_only.setter
+    def forward_only(self, value):
+        self._forward_only = validate_type("forward_only", value, bool)
 
     # @profile
     def fields(self, m=None):
@@ -218,23 +238,23 @@ class BaseFDEMSimulation(BaseEMSimulation):
 
 
 class Simulation3DElectricField(BaseFDEMSimulation):
-    """
+    r"""
     By eliminating the magnetic flux density using
-
-        .. math ::
-
-            \mathbf{b} = \\frac{1}{i \omega}\\left(-\mathbf{C} \mathbf{e} +
-            \mathbf{s_m}\\right)
-
-
-    we can write Maxwell's equations as a second order system in
-    \\\(\\\mathbf{e}\\\) only:
 
     .. math ::
 
-        \\left(\mathbf{C}^{\\top} \mathbf{M_{\mu^{-1}}^f} \mathbf{C} +
-        i \omega \mathbf{M^e_{\sigma}} \\right)\mathbf{e} =
-        \mathbf{C}^{\\top} \mathbf{M_{\mu^{-1}}^f}\mathbf{s_m}
+        \mathbf{b} = \frac{1}{i \omega}\left(-\mathbf{C} \mathbf{e} +
+        \mathbf{s_m}\right)
+
+
+    we can write Maxwell's equations as a second order system in
+    :math:`mathbf{e}` only:
+
+    .. math ::
+
+        \left(\mathbf{C}^{\top} \mathbf{M_{\mu^{-1}}^f} \mathbf{C} +
+        i \omega \mathbf{M^e_{\sigma}} \right)\mathbf{e} =
+        \mathbf{C}^{\top} \mathbf{M_{\mu^{-1}}^f}\mathbf{s_m}
         - i\omega\mathbf{M^e}\mathbf{s_e}
 
     which we solve for :math:`\mathbf{e}`.
@@ -246,15 +266,13 @@ class Simulation3DElectricField(BaseFDEMSimulation):
     _formulation = "EB"
     fieldsPair = Fields3DElectricField
 
-    def __init__(self, mesh, **kwargs):
-        super(Simulation3DElectricField, self).__init__(mesh, **kwargs)
-
     def getA(self, freq):
-        """
+        r"""
         System matrix
 
         .. math ::
-            \mathbf{A} = \mathbf{C}^{\\top} \mathbf{M_{\mu^{-1}}^f} \mathbf{C}
+
+            \mathbf{A} = \mathbf{C}^{\top} \mathbf{M_{\mu^{-1}}^f} \mathbf{C}
             + i \omega \mathbf{M^e_{\sigma}}
 
         :param float freq: Frequency
@@ -264,18 +282,19 @@ class Simulation3DElectricField(BaseFDEMSimulation):
 
         MfMui = self.MfMui
         MeSigma = self.MeSigma
-        C = self.mesh.edgeCurl
+        C = self.mesh.edge_curl
 
         return C.T.tocsr() * MfMui * C + 1j * omega(freq) * MeSigma
 
     def getADeriv_sigma(self, freq, u, v, adjoint=False):
-        """
+        r"""
         Product of the derivative of our system matrix with respect to the
         conductivity model and a vector
 
         .. math ::
-            \\frac{\mathbf{A}(\mathbf{m}) \mathbf{v}}{d \mathbf{m}_{\\sigma}} =
-            i \omega \\frac{d \mathbf{M^e_{\sigma}}(\mathbf{u})\mathbf{v} }{d\mathbf{m}}
+
+            \frac{\mathbf{A}(\mathbf{m}) \mathbf{v}}{d \mathbf{m}_{\sigma}} =
+            i \omega \frac{d \mathbf{M^e_{\sigma}}(\mathbf{u})\mathbf{v} }{d\mathbf{m}}
 
         :param float freq: frequency
         :param numpy.ndarray u: solution vector (nE,)
@@ -291,17 +310,18 @@ class Simulation3DElectricField(BaseFDEMSimulation):
         return 1j * omega(freq) * dMe_dsig_v
 
     def getADeriv_mui(self, freq, u, v, adjoint=False):
-        """
+        r"""
         Product of the derivative of the system matrix with respect to the
         permeability model and a vector.
 
         .. math ::
-            \\frac{\mathbf{A}(\mathbf{m}) \mathbf{v}}{d \mathbf{m}_{\\mu^{-1}} =
-            \mathbf{C}^{\top} \\frac{d \mathbf{M^f_{\\mu^{-1}}}\mathbf{v}}{d\mathbf{m}}
+
+            \frac{\mathbf{A}(\mathbf{m}) \mathbf{v}}{d \mathbf{m}_{\mu^{-1}} =
+            \mathbf{C}^{\top} \frac{d \mathbf{M^f_{\mu^{-1}}}\mathbf{v}}{d\mathbf{m}}
 
         """
 
-        C = self.mesh.edgeCurl
+        C = self.mesh.edge_curl
 
         if adjoint:
             return self.MfMuiDeriv(C * u).T * (C * v)
@@ -309,17 +329,17 @@ class Simulation3DElectricField(BaseFDEMSimulation):
         return C.T * (self.MfMuiDeriv(C * u) * v)
 
     def getADeriv(self, freq, u, v, adjoint=False):
-
         return self.getADeriv_sigma(freq, u, v, adjoint) + self.getADeriv_mui(
             freq, u, v, adjoint
         )
 
     def getRHS(self, freq):
-        """
+        r"""
         Right hand side for the system
 
         .. math ::
-            \mathbf{RHS} = \mathbf{C}^{\\top}
+
+            \mathbf{RHS} = \mathbf{C}^{\top}
             \mathbf{M_{\mu^{-1}}^f}\mathbf{s_m} -
             i\omega\mathbf{M_e}\mathbf{s_e}
 
@@ -329,19 +349,18 @@ class Simulation3DElectricField(BaseFDEMSimulation):
         """
 
         s_m, s_e = self.getSourceTerm(freq)
-        C = self.mesh.edgeCurl
+        C = self.mesh.edge_curl
         MfMui = self.MfMui
 
         return C.T * (MfMui * s_m) - 1j * omega(freq) * s_e
 
     def getRHSDeriv(self, freq, src, v, adjoint=False):
-
         """
         Derivative of the Right-hand side with respect to the model. This
         includes calls to derivatives in the sources
         """
 
-        C = self.mesh.edgeCurl
+        C = self.mesh.edge_curl
         MfMui = self.MfMui
         s_m, s_e = self.getSourceTerm(freq)
         s_mDeriv, s_eDeriv = src.evalDeriv(self, adjoint=adjoint)
@@ -359,20 +378,20 @@ class Simulation3DElectricField(BaseFDEMSimulation):
 
 
 class Simulation3DMagneticFluxDensity(BaseFDEMSimulation):
-    """
+    r"""
     We eliminate :math:`\mathbf{e}` using
 
     .. math ::
 
-         \mathbf{e} = \mathbf{M^e_{\sigma}}^{-1} \\left(\mathbf{C}^{\\top}
-         \mathbf{M_{\mu^{-1}}^f} \mathbf{b} - \mathbf{s_e}\\right)
+         \mathbf{e} = \mathbf{M^e_{\sigma}}^{-1} \left(\mathbf{C}^{\top}
+         \mathbf{M_{\mu^{-1}}^f} \mathbf{b} - \mathbf{s_e}\right)
 
     and solve for :math:`\mathbf{b}` using:
 
     .. math ::
 
-        \\left(\mathbf{C} \mathbf{M^e_{\sigma}}^{-1} \mathbf{C}^{\\top}
-        \mathbf{M_{\mu^{-1}}^f}  + i \omega \\right)\mathbf{b} = \mathbf{s_m} +
+        \left(\mathbf{C} \mathbf{M^e_{\sigma}}^{-1} \mathbf{C}^{\top}
+        \mathbf{M_{\mu^{-1}}^f}  + i \omega \right)\mathbf{b} = \mathbf{s_m} +
         \mathbf{M^e_{\sigma}}^{-1}\mathbf{M^e}\mathbf{s_e}
 
     .. note ::
@@ -385,16 +404,14 @@ class Simulation3DMagneticFluxDensity(BaseFDEMSimulation):
     _formulation = "EB"
     fieldsPair = Fields3DMagneticFluxDensity
 
-    def __init__(self, mesh, **kwargs):
-        super(Simulation3DMagneticFluxDensity, self).__init__(mesh, **kwargs)
-
     def getA(self, freq):
-        """
+        r"""
         System matrix
 
         .. math ::
+
             \mathbf{A} = \mathbf{C} \mathbf{M^e_{\sigma}}^{-1}
-            \mathbf{C}^{\\top} \mathbf{M_{\mu^{-1}}^f}  + i \omega
+            \mathbf{C}^{\top} \mathbf{M_{\mu^{-1}}^f}  + i \omega
 
         :param float freq: Frequency
         :rtype: scipy.sparse.csr_matrix
@@ -403,7 +420,7 @@ class Simulation3DMagneticFluxDensity(BaseFDEMSimulation):
 
         MfMui = self.MfMui
         MeSigmaI = self.MeSigmaI
-        C = self.mesh.edgeCurl
+        C = self.mesh.edge_curl
         iomega = 1j * omega(freq) * sp.eye(self.mesh.nF)
 
         A = C * (MeSigmaI * (C.T.tocsr() * MfMui)) + iomega
@@ -413,14 +430,14 @@ class Simulation3DMagneticFluxDensity(BaseFDEMSimulation):
         return A
 
     def getADeriv_sigma(self, freq, u, v, adjoint=False):
-
-        """
+        r"""
         Product of the derivative of our system matrix with respect to the
         model and a vector
 
         .. math ::
-            \\frac{\mathbf{A}(\mathbf{m}) \mathbf{v}}{d \mathbf{m}} =
-            \mathbf{C} \\frac{\mathbf{M^e_{\sigma}} \mathbf{v}}{d\mathbf{m}}
+
+            \frac{\mathbf{A}(\mathbf{m}) \mathbf{v}}{d \mathbf{m}} =
+            \mathbf{C} \frac{\mathbf{M^e_{\sigma}} \mathbf{v}}{d\mathbf{m}}
 
         :param float freq: frequency
         :param numpy.ndarray u: solution vector (nF,)
@@ -433,7 +450,7 @@ class Simulation3DMagneticFluxDensity(BaseFDEMSimulation):
         """
 
         MfMui = self.MfMui
-        C = self.mesh.edgeCurl
+        C = self.mesh.edge_curl
         MeSigmaIDeriv = self.MeSigmaIDeriv
         vec = C.T * (MfMui * u)
 
@@ -446,11 +463,10 @@ class Simulation3DMagneticFluxDensity(BaseFDEMSimulation):
         # return C * (MeSigmaIDeriv * v)
 
     def getADeriv_mui(self, freq, u, v, adjoint=False):
-
         MfMui = self.MfMui
         MfMuiDeriv = self.MfMuiDeriv(u)
         MeSigmaI = self.MeSigmaI
-        C = self.mesh.edgeCurl
+        C = self.mesh.edge_curl
 
         if adjoint:
             return MfMuiDeriv.T * (C * (MeSigmaI.T * (C.T * v)))
@@ -470,10 +486,11 @@ class Simulation3DMagneticFluxDensity(BaseFDEMSimulation):
         return ADeriv
 
     def getRHS(self, freq):
-        """
+        r"""
         Right hand side for the system
 
         .. math ::
+
             \mathbf{RHS} = \mathbf{s_m} +
             \mathbf{M^e_{\sigma}}^{-1}\mathbf{s_e}
 
@@ -483,7 +500,7 @@ class Simulation3DMagneticFluxDensity(BaseFDEMSimulation):
         """
 
         s_m, s_e = self.getSourceTerm(freq)
-        C = self.mesh.edgeCurl
+        C = self.mesh.edge_curl
         MeSigmaI = self.MeSigmaI
 
         RHS = s_m + C * (MeSigmaI * s_e)
@@ -506,7 +523,7 @@ class Simulation3DMagneticFluxDensity(BaseFDEMSimulation):
         :return: product of rhs deriv with a vector
         """
 
-        C = self.mesh.edgeCurl
+        C = self.mesh.edge_curl
         s_m, s_e = src.eval(self)
         MfMui = self.MfMui
 
@@ -537,26 +554,27 @@ class Simulation3DMagneticFluxDensity(BaseFDEMSimulation):
 
 
 class Simulation3DCurrentDensity(BaseFDEMSimulation):
-    """
-    We eliminate \\\(\\\mathbf{h}\\\) using
+    r"""
+    We eliminate :math:`mathbf{h}` using
 
     .. math ::
 
-        \mathbf{h} = \\frac{1}{i \omega} \mathbf{M_{\mu}^e}^{-1}
-        \\left(-\mathbf{C}^{\\top} \mathbf{M_{\\rho}^f} \mathbf{j} +
-        \mathbf{M^e} \mathbf{s_m} \\right)
+        \mathbf{h} = \frac{1}{i \omega} \mathbf{M_{\mu}^e}^{-1}
+        \left(-\mathbf{C}^{\top} \mathbf{M_{\rho}^f} \mathbf{j} +
+        \mathbf{M^e} \mathbf{s_m} \right)
 
 
-    and solve for \\\(\\\mathbf{j}\\\) using
+    and solve for :math:`mathbf{j}` using
 
     .. math ::
 
-        \\left(\mathbf{C} \mathbf{M_{\mu}^e}^{-1} \mathbf{C}^{\\top}
-        \mathbf{M_{\\rho}^f} + i \omega\\right)\mathbf{j} =
+        \left(\mathbf{C} \mathbf{M_{\mu}^e}^{-1} \mathbf{C}^{\top}
+        \mathbf{M_{\rho}^f} + i \omega\right)\mathbf{j} =
         \mathbf{C} \mathbf{M_{\mu}^e}^{-1} \mathbf{M^e} \mathbf{s_m} -
         i\omega\mathbf{s_e}
 
     .. note::
+
         This implementation does not yet work with full anisotropy!!
 
     :param discretize.base.BaseMesh mesh: mesh
@@ -566,16 +584,14 @@ class Simulation3DCurrentDensity(BaseFDEMSimulation):
     _formulation = "HJ"
     fieldsPair = Fields3DCurrentDensity
 
-    def __init__(self, mesh, **kwargs):
-        super(Simulation3DCurrentDensity, self).__init__(mesh, **kwargs)
-
     def getA(self, freq):
-        """
+        r"""
         System matrix
 
         .. math ::
-                \\mathbf{A} = \\mathbf{C}  \\mathbf{M^e_{\\mu^{-1}}}
-                \\mathbf{C}^{\\top} \\mathbf{M^f_{\\sigma^{-1}}}  + i\\omega
+
+            \mathbf{A} = \mathbf{C}  \mathbf{M^e_{\mu^{-1}}}
+            \mathbf{C}^{\top} \mathbf{M^f_{\sigma^{-1}}}  + i\omega
 
         :param float freq: Frequency
         :rtype: scipy.sparse.csr_matrix
@@ -584,7 +600,7 @@ class Simulation3DCurrentDensity(BaseFDEMSimulation):
 
         MeMuI = self.MeMuI
         MfRho = self.MfRho
-        C = self.mesh.edgeCurl
+        C = self.mesh.edge_curl
         iomega = 1j * omega(freq) * sp.eye(self.mesh.nF)
 
         A = C * MeMuI * C.T.tocsr() * MfRho + iomega
@@ -594,7 +610,7 @@ class Simulation3DCurrentDensity(BaseFDEMSimulation):
         return A
 
     def getADeriv_rho(self, freq, u, v, adjoint=False):
-        """
+        r"""
         Product of the derivative of our system matrix with respect to the
         model and a vector
 
@@ -604,9 +620,9 @@ class Simulation3DCurrentDensity(BaseFDEMSimulation):
 
         .. math ::
 
-            \\frac{\mathbf{A(\sigma)} \mathbf{v}}{d \mathbf{m}} =
-            \mathbf{C} \mathbf{M^e_{mu^{-1}}} \mathbf{C^{\\top}}
-            \\frac{d \mathbf{M^f_{\sigma^{-1}}}\mathbf{v} }{d \mathbf{m}}
+            \frac{\mathbf{A(\sigma)} \mathbf{v}}{d \mathbf{m}} =
+            \mathbf{C} \mathbf{M^e_{mu^{-1}}} \mathbf{C^{\top}}
+            \frac{d \mathbf{M^f_{\sigma^{-1}}}\mathbf{v} }{d \mathbf{m}}
 
         :param float freq: frequency
         :param numpy.ndarray u: solution vector (nF,)
@@ -620,7 +636,7 @@ class Simulation3DCurrentDensity(BaseFDEMSimulation):
 
         MeMuI = self.MeMuI
         MfRho = self.MfRho
-        C = self.mesh.edgeCurl
+        C = self.mesh.edge_curl
 
         if adjoint:
             vec = C * (MeMuI.T * (C.T * v))
@@ -634,8 +650,7 @@ class Simulation3DCurrentDensity(BaseFDEMSimulation):
         # return C * (MeMuI * (C.T * (MfRhoDeriv * v)))
 
     def getADeriv_mu(self, freq, u, v, adjoint=False):
-
-        C = self.mesh.edgeCurl
+        C = self.mesh.edge_curl
         MfRho = self.MfRho
 
         MeMuIDeriv = self.MeMuIDeriv(C.T * (MfRho * u))
@@ -664,7 +679,7 @@ class Simulation3DCurrentDensity(BaseFDEMSimulation):
         return ADeriv
 
     def getRHS(self, freq):
-        """
+        r"""
         Right hand side for the system
 
         .. math ::
@@ -678,7 +693,7 @@ class Simulation3DCurrentDensity(BaseFDEMSimulation):
         """
 
         s_m, s_e = self.getSourceTerm(freq)
-        C = self.mesh.edgeCurl
+        C = self.mesh.edge_curl
         MeMuI = self.MeMuI
 
         RHS = C * (MeMuI * s_m) - 1j * omega(freq) * s_e
@@ -705,7 +720,7 @@ class Simulation3DCurrentDensity(BaseFDEMSimulation):
         #     MfRho = self.MfRho
         #     return MfRho.T*RHS
 
-        C = self.mesh.edgeCurl
+        C = self.mesh.edge_curl
         MeMuI = self.MeMuI
         MeMuIDeriv = self.MeMuIDeriv
         s_mDeriv, s_eDeriv = src.evalDeriv(self, adjoint=adjoint)
@@ -734,20 +749,20 @@ class Simulation3DCurrentDensity(BaseFDEMSimulation):
 
 
 class Simulation3DMagneticField(BaseFDEMSimulation):
-    """
-    We eliminate \\\(\\\mathbf{j}\\\) using
+    r"""
+    We eliminate :math:`mathbf{j}` using
 
     .. math ::
 
         \mathbf{j} = \mathbf{C} \mathbf{h} - \mathbf{s_e}
 
-    and solve for \\\(\\\mathbf{h}\\\) using
+    and solve for :math:`\mathbf{h}` using
 
     .. math ::
 
-        \\left(\mathbf{C}^{\\top} \mathbf{M_{\\rho}^f} \mathbf{C} +
-        i \omega \mathbf{M_{\mu}^e}\\right) \mathbf{h} = \mathbf{M^e}
-        \mathbf{s_m} + \mathbf{C}^{\\top} \mathbf{M_{\\rho}^f} \mathbf{s_e}
+        \left(\mathbf{C}^{\top} \mathbf{M_{\rho}^f} \mathbf{C} +
+        i \omega \mathbf{M_{\mu}^e}\right) \mathbf{h} = \mathbf{M^e}
+        \mathbf{s_m} + \mathbf{C}^{\top} \mathbf{M_{\rho}^f} \mathbf{s_e}
 
     :param discretize.base.BaseMesh mesh: mesh
     """
@@ -756,15 +771,13 @@ class Simulation3DMagneticField(BaseFDEMSimulation):
     _formulation = "HJ"
     fieldsPair = Fields3DMagneticField
 
-    def __init__(self, mesh, **kwargs):
-        super(Simulation3DMagneticField, self).__init__(mesh, **kwargs)
-
     def getA(self, freq):
-        """
+        r"""
         System matrix
 
         .. math::
-            \mathbf{A} = \mathbf{C}^{\\top} \mathbf{M_{\\rho}^f} \mathbf{C} +
+
+            \mathbf{A} = \mathbf{C}^{\top} \mathbf{M_{\rho}^f} \mathbf{C} +
             i \omega \mathbf{M_{\mu}^e}
 
 
@@ -776,18 +789,19 @@ class Simulation3DMagneticField(BaseFDEMSimulation):
 
         MeMu = self.MeMu
         MfRho = self.MfRho
-        C = self.mesh.edgeCurl
+        C = self.mesh.edge_curl
 
         return C.T.tocsr() * (MfRho * C) + 1j * omega(freq) * MeMu
 
     def getADeriv_rho(self, freq, u, v, adjoint=False):
-        """
+        r"""
         Product of the derivative of our system matrix with respect to the
         model and a vector
 
         .. math::
-            \\frac{\mathbf{A}(\mathbf{m}) \mathbf{v}}{d \mathbf{m}} =
-            \mathbf{C}^{\\top}\\frac{d \mathbf{M^f_{\\rho}}\mathbf{v}}
+
+            \frac{\mathbf{A}(\mathbf{m}) \mathbf{v}}{d \mathbf{m}} =
+            \mathbf{C}^{\top}\frac{d \mathbf{M^f_{\rho}}\mathbf{v}}
             {d\mathbf{m}}
 
         :param float freq: frequency
@@ -799,7 +813,7 @@ class Simulation3DMagneticField(BaseFDEMSimulation):
         :return: derivative of the system matrix times a vector (nP,) or
             adjoint (nD,)
         """
-        C = self.mesh.edgeCurl
+        C = self.mesh.edge_curl
         if adjoint:
             return self.MfRhoDeriv(C * u, C * v, adjoint)
         return C.T * self.MfRhoDeriv(C * u, v, adjoint)
@@ -818,13 +832,13 @@ class Simulation3DMagneticField(BaseFDEMSimulation):
         )
 
     def getRHS(self, freq):
-        """
+        r"""
         Right hand side for the system
 
         .. math ::
 
-            \mathbf{RHS} = \mathbf{M^e} \mathbf{s_m} + \mathbf{C}^{\\top}
-            \mathbf{M_{\\rho}^f} \mathbf{s_e}
+            \mathbf{RHS} = \mathbf{M^e} \mathbf{s_m} + \mathbf{C}^{\top}
+            \mathbf{M_{\rho}^f} \mathbf{s_e}
 
         :param float freq: Frequency
         :rtype: numpy.ndarray
@@ -833,7 +847,7 @@ class Simulation3DMagneticField(BaseFDEMSimulation):
         """
 
         s_m, s_e = self.getSourceTerm(freq)
-        C = self.mesh.edgeCurl
+        C = self.mesh.edge_curl
         MfRho = self.MfRho
 
         return s_m + C.T * (MfRho * s_e)
@@ -851,7 +865,7 @@ class Simulation3DMagneticField(BaseFDEMSimulation):
         """
 
         _, s_e = src.eval(self)
-        C = self.mesh.edgeCurl
+        C = self.mesh.edge_curl
         MfRho = self.MfRho
 
         # MfRhoDeriv = self.MfRhoDeriv(s_e)

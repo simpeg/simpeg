@@ -1,7 +1,3 @@
-from __future__ import print_function
-from __future__ import absolute_import
-from __future__ import division
-
 import numpy as np
 import unittest
 from SimPEG.electromagnetics import natural_source as nsem
@@ -20,7 +16,6 @@ addrandoms = True
 def JvecAdjointTest(
     inputSetup, comp="All", freq=False, testLocations=False, testSingle=False
 ):
-
     if testLocations:
         if testSingle:
             (
@@ -67,7 +62,6 @@ def JvecAdjointTest(
 
 
 class NSEM_3D_AdjointTests(unittest.TestCase):
-
     # Test the adjoint of Jvec and Jtvec
     def test_JvecAdjoint_zxx(self):
         self.assertTrue(

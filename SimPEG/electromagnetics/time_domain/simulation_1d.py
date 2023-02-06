@@ -1,4 +1,3 @@
-from ... import maps, utils
 from ..base_1d import BaseEM1DSimulation
 from .sources import StepOffWaveform
 from .receivers import (
@@ -7,7 +6,6 @@ from .receivers import (
     PointMagneticFluxTimeDerivative,
 )
 import numpy as np
-from scipy import sparse as sp
 
 from .survey import Survey
 from scipy.constants import mu_0
@@ -19,17 +17,7 @@ from empymod.transform import get_dlf_points
 
 from geoana.kernels.tranverse_electric_reflections import rTE_forward, rTE_gradient
 
-import properties
-
-try:
-    from multiprocessing import Pool
-    from sys import platform
-except ImportError:
-    print("multiprocessing is not available")
-    PARALLEL = False
-else:
-    PARALLEL = True
-    import multiprocessing
+from ...utils import validate_type, validate_string
 
 
 class Simulation1DLayered(BaseEM1DSimulation):
@@ -38,33 +26,46 @@ class Simulation1DLayered(BaseEM1DSimulation):
     for a single sounding.
     """
 
-    time_filter = "key_81_CosSin_2009"
-    survey = properties.Instance("a survey object", Survey, required=True)
+    def __init__(self, survey=None, time_filter="key_81_CosSin_2009", **kwargs):
+        super().__init__(survey=survey, **kwargs)
+        self._coefficients_set = False
+        self.time_filter = time_filter
 
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        if self.time_filter == "key_81_CosSin_2009":
-            self.fftfilt = filters.key_81_CosSin_2009()
-        elif self.time_filter == "key_201_CosSin_2012":
-            self.fftfilt = filters.key_201_CosSin_2012()
-        elif self.time_filter == "key_601_CosSin_2009":
-            self.fftfilt = filters.key_601_CosSin_2009()
-        else:
-            raise Exception()
+    @property
+    def survey(self):
+        """The survey for the simulation
+        Returns
+        -------
+        SimPEG.electromagnetics.time_domain.survey.Survey
+        """
+        if self._survey is None:
+            raise AttributeError("Simulation must have a survey set")
+        return self._survey
 
-        if self.topo is None:
-            self.topo = np.array([0, 0, 0], dtype=float)
+    @survey.setter
+    def survey(self, value):
+        if value is not None:
+            value = validate_type("survey", value, Survey, cast=False)
+        self._survey = value
 
-        for i_src, src in enumerate(self.survey.source_list):
-            if src.location[2] < self.topo[2]:
-                raise ValueError("Source must be located above the topography")
-            for i_rx, rx in enumerate(src.receiver_list):
-                if rx.use_source_receiver_offset:
-                    if np.any(src.location[2]+rx.locations[:, 2] < self.topo[2]):
-                        raise ValueError("Receiver must be located above the topography")
-                else:
-                    if np.any(rx.locations[:, 2] < self.topo[2]):
-                        raise ValueError("Receiver must be located above the topography")
+    @property
+    def time_filter(self):
+        return self._time_filter
+
+    @time_filter.setter
+    def time_filter(self, value):
+        self._time_filter = validate_string(
+            "time_filter",
+            value,
+            ["key_81_CosSin_2009", "key_201_CosSin_2012", "key_601_CosSin_2009"],
+        )
+
+        if self._time_filter == "key_81_CosSin_2009":
+            self._fftfilt = filters.key_81_CosSin_2009()
+        elif self._time_filter == "key_201_CosSin_2012":
+            self._fftfilt = filters.key_201_CosSin_2012()
+        elif self._time_filter == "key_601_CosSin_2009":
+            self._fftfilt = filters.key_601_CosSin_2009()
 
     def get_coefficients(self):
         if self._coefficients_set is False:
@@ -101,8 +102,8 @@ class Simulation1DLayered(BaseEM1DSimulation):
         x, w = roots_legendre(251)
         # loop through source and receiver lists to find the minimum and maximum
         # evaluation times for the step response
-        for i_src, src in enumerate(survey.source_list):
-            for i_rx, rx in enumerate(src.receiver_list):
+        for src in survey.source_list:
+            for rx in src.receiver_list:
                 wave = src.waveform
                 if isinstance(wave, StepOffWaveform):
                     times = rx.times[rx.times > 0]
@@ -122,15 +123,15 @@ class Simulation1DLayered(BaseEM1DSimulation):
                             f"Unsupported source waveform object of {src.waveform}"
                         )
 
-        omegas, t_spline_points = get_dlf_points(self.fftfilt, np.r_[t_min, t_max], -1)
+        omegas, t_spline_points = get_dlf_points(self._fftfilt, np.r_[t_min, t_max], -1)
         omegas = omegas.reshape(-1)
         n_omega = len(omegas)
         n_t = len(t_spline_points)
 
-        n_base = len(self.fftfilt.base)
+        n_base = len(self._fftfilt.base)
         A_dft = np.zeros((n_t, n_omega))
         for i in range(n_t):
-            A_dft[i, i : i + n_base] = self.fftfilt.cos * (-2.0 / np.pi)
+            A_dft[i, i : i + n_base] = self._fftfilt.cos * (-2.0 / np.pi)
         A_dft = A_dft[::-1]  # shuffle these back
 
         # Calculate the interpolating spline basis functions for each spline point
@@ -142,8 +143,8 @@ class Simulation1DLayered(BaseEM1DSimulation):
             splines.append(sp)
         # As will go from frequency to time domain
         As = []
-        for i_src, src in enumerate(survey.source_list):
-            for i_rx, rx in enumerate(src.receiver_list):
+        for src in survey.source_list:
+            for rx in src.receiver_list:
                 #######
                 # Fourier Transform coefficients
                 ######
@@ -178,7 +179,7 @@ class Simulation1DLayered(BaseEM1DSimulation):
                         a = np.maximum(a, 0.0)
                         quad_times = (b - a)[:, None] * (x + 1) / 2.0 + a[:, None]
                         quad_scale = (b - a) / 2
-                        wave_eval = wave.evalDeriv(rx.times[:, None] - quad_times)
+                        wave_eval = wave.eval_deriv(rx.times[:, None] - quad_times)
                         for i in range(n_t):
                             A[:, i] -= np.sum(
                                 quad_scale[:, None]
@@ -235,7 +236,7 @@ class Simulation1DLayered(BaseEM1DSimulation):
 
         rTE = rTE_forward(frequencies, unique_lambs, sig, mu, self.thicknesses)
         rTE = rTE[:, inv_lambs]
-        v = ((C0s * rTE) @ self.fhtfilt.j0 + (C1s * rTE) @ self.fhtfilt.j1) @ W.T
+        v = ((C0s * rTE) @ self._fhtfilt.j0 + (C1s * rTE) @ self._fhtfilt.j1) @ W.T
 
         return self._project_to_data(v.T)
 
@@ -275,9 +276,13 @@ class Simulation1DLayered(BaseEM1DSimulation):
 
                 rTE = rTE_forward(frequencies, unique_lambs, sig, mu, self.thicknesses)
                 rTE = rTE[:, inv_lambs]
-                v_dh_temp = W @ (
-                    (C0s_dh * rTE) @ self.fhtfilt.j0 + (C1s_dh * rTE) @ self.fhtfilt.j1
-                ).T
+                v_dh_temp = (
+                    W
+                    @ (
+                        (C0s_dh * rTE) @ self._fhtfilt.j0
+                        + (C1s_dh * rTE) @ self._fhtfilt.j1
+                    ).T
+                )
                 # need to re-arange v_dh as it's currently (n_data x n_freqs)
                 # however it already contains all the relevant information...
                 # just need to map it from the rx index to the source index associated..
@@ -304,8 +309,8 @@ class Simulation1DLayered(BaseEM1DSimulation):
                     rTE_ds = rTE_ds[..., inv_lambs]
                     v_ds = (
                         (
-                            (C0s * rTE_ds) @ self.fhtfilt.j0
-                            + (C1s * rTE_ds) @ self.fhtfilt.j1
+                            (C0s * rTE_ds) @ self._fhtfilt.j0
+                            + (C1s * rTE_ds) @ self._fhtfilt.j1
                         )
                         @ W.T
                     ).T
@@ -314,8 +319,8 @@ class Simulation1DLayered(BaseEM1DSimulation):
                     rTE_dmu = rTE_dmu[..., inv_lambs]
                     v_dmu = (
                         (
-                            (C0s * rTE_dmu) @ self.fhtfilt.j0
-                            + (C1s * rTE_dmu) @ self.fhtfilt.j1
+                            (C0s * rTE_dmu) @ self._fhtfilt.j0
+                            + (C1s * rTE_dmu) @ self._fhtfilt.j1
                         )
                         @ W.T
                     ).T
@@ -324,8 +329,8 @@ class Simulation1DLayered(BaseEM1DSimulation):
                     rTE_dh = rTE_dh[..., inv_lambs]
                     v_dthick = (
                         (
-                            (C0s * rTE_dh) @ self.fhtfilt.j0
-                            + (C1s * rTE_dh) @ self.fhtfilt.j1
+                            (C0s * rTE_dh) @ self._fhtfilt.j0
+                            + (C1s * rTE_dh) @ self._fhtfilt.j1
                         )
                         @ W.T
                     ).T
@@ -341,8 +346,8 @@ class Simulation1DLayered(BaseEM1DSimulation):
         i_dat = 0
         i_A = 0
         i = 0
-        for i_src, src in enumerate(self.survey.source_list):
-            for i_rx, rx in enumerate(src.receiver_list):
+        for src in self.survey.source_list:
+            for rx in src.receiver_list:
                 i_datp1 = i_dat + rx.nD
                 n_locs = rx.locations.shape[0]
                 i_p1 = i + n_locs

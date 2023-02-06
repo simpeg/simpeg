@@ -105,7 +105,7 @@ model_mapping = maps.ReciprocalMap()
 fig = plt.figure(figsize=(6, 5.5))
 
 ax1 = fig.add_axes([0.15, 0.15, 0.65, 0.75])
-mesh.plotImage(model, ax=ax1, grid=True, pcolorOpts={"cmap": "viridis"})
+mesh.plot_image(model, ax=ax1, grid=True, pcolor_opts={"cmap": "viridis"})
 ax1.set_xlabel("x (m)")
 ax1.set_ylabel("y (m)")
 ax1.plot(x, y_sources, "ro")  # source locations
@@ -166,7 +166,6 @@ ax.legend(obs_string, loc="upper right")
 #
 
 if save_file:
-
     dir_path = os.path.dirname(tomo.__file__).split(os.path.sep)[:-3]
     dir_path.extend(["tutorials", "seismic", "assets"])
     dir_path = os.path.sep.join(dir_path) + os.path.sep

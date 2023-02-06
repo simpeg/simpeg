@@ -1,4 +1,3 @@
-from __future__ import print_function
 import unittest
 import discretize
 from SimPEG import (
@@ -24,7 +23,6 @@ np.random.seed(38)
 
 class SIPProblemTestsCC(unittest.TestCase):
     def setUp(self):
-
         cs = 25.0
         hx = [(cs, 0, -1.3), (cs, 21), (cs, 0, 1.3)]
         hy = [(cs, 0, -1.3), (cs, 21), (cs, 0, 1.3)]
@@ -44,8 +42,12 @@ class SIPProblemTestsCC(unittest.TestCase):
         tau[blkind0] = 0.1
         tau[blkind1] = 0.01
 
-        x = mesh.vectorCCx[(mesh.vectorCCx > -155.0) & (mesh.vectorCCx < 155.0)]
-        y = mesh.vectorCCy[(mesh.vectorCCy > -155.0) & (mesh.vectorCCy < 155.0)]
+        x = mesh.cell_centers_x[
+            (mesh.cell_centers_x > -155.0) & (mesh.cell_centers_x < 155.0)
+        ]
+        y = mesh.cell_centers_y[
+            (mesh.cell_centers_y > -155.0) & (mesh.cell_centers_y < 155.0)
+        ]
         Aloc = np.r_[-200.0, 0.0, 0.0]
         Bloc = np.r_[200.0, 0.0, 0.0]
         M = utils.ndgrid(x - 25.0, y, np.r_[0.0])
@@ -75,7 +77,7 @@ class SIPProblemTestsCC(unittest.TestCase):
         dobs = problem.make_synthetic_data(mSynth, add_noise=True)
         # Now set up the problem to do some minimization
         dmis = data_misfit.L2DataMisfit(data=dobs, simulation=problem)
-        reg = regularization.Tikhonov(mesh)
+        reg = regularization.WeightedLeastSquares(mesh)
         opt = optimization.InexactGaussNewton(
             maxIterLS=20, maxIter=10, tolF=1e-6, tolX=1e-6, tolG=1e-6, maxIterCG=6
         )
@@ -92,7 +94,7 @@ class SIPProblemTestsCC(unittest.TestCase):
         self.dobs = dobs
 
     def test_misfit(self):
-        passed = tests.checkDerivative(
+        passed = tests.check_derivative(
             lambda m: [self.p.dpred(m), lambda mx: self.p.Jvec(self.m0, mx)],
             self.m0,
             plotIt=False,
@@ -112,7 +114,7 @@ class SIPProblemTestsCC(unittest.TestCase):
         self.assertTrue(passed)
 
     def test_dataObj(self):
-        passed = tests.checkDerivative(
+        passed = tests.check_derivative(
             lambda m: [self.dmis(m), self.dmis.deriv(m)], self.m0, plotIt=False, num=3
         )
         self.assertTrue(passed)
@@ -120,7 +122,6 @@ class SIPProblemTestsCC(unittest.TestCase):
 
 class SIPProblemTestsN(unittest.TestCase):
     def setUp(self):
-
         cs = 25.0
         hx = [(cs, 0, -1.3), (cs, 21), (cs, 0, 1.3)]
         hy = [(cs, 0, -1.3), (cs, 21), (cs, 0, 1.3)]
@@ -140,8 +141,12 @@ class SIPProblemTestsN(unittest.TestCase):
         tau[blkind0] = 0.1
         tau[blkind1] = 0.01
 
-        x = mesh.vectorCCx[(mesh.vectorCCx > -155.0) & (mesh.vectorCCx < 155.0)]
-        y = mesh.vectorCCy[(mesh.vectorCCy > -155.0) & (mesh.vectorCCy < 155.0)]
+        x = mesh.cell_centers_x[
+            (mesh.cell_centers_x > -155.0) & (mesh.cell_centers_x < 155.0)
+        ]
+        y = mesh.cell_centers_y[
+            (mesh.cell_centers_y > -155.0) & (mesh.cell_centers_y < 155.0)
+        ]
         Aloc = np.r_[-200.0, 0.0, 0.0]
         Bloc = np.r_[200.0, 0.0, 0.0]
         M = utils.ndgrid(x - 25.0, y, np.r_[0.0])
@@ -171,7 +176,7 @@ class SIPProblemTestsN(unittest.TestCase):
         print(survey.nD)
         # Now set up the problem to do some minimization
         dmis = data_misfit.L2DataMisfit(data=dobs, simulation=problem)
-        reg = regularization.Tikhonov(mesh)
+        reg = regularization.WeightedLeastSquares(mesh)
         opt = optimization.InexactGaussNewton(
             maxIterLS=20, maxIter=10, tolF=1e-6, tolX=1e-6, tolG=1e-6, maxIterCG=6
         )
@@ -188,7 +193,7 @@ class SIPProblemTestsN(unittest.TestCase):
         self.dobs = dobs
 
     def test_misfit(self):
-        passed = tests.checkDerivative(
+        passed = tests.check_derivative(
             lambda m: [self.p.dpred(m), lambda mx: self.p.Jvec(self.m0, mx)],
             self.m0,
             plotIt=False,
@@ -207,7 +212,7 @@ class SIPProblemTestsN(unittest.TestCase):
         self.assertTrue(passed)
 
     def test_dataObj(self):
-        passed = tests.checkDerivative(
+        passed = tests.check_derivative(
             lambda m: [self.dmis(m), self.dmis.deriv(m)], self.m0, plotIt=False, num=3
         )
         self.assertTrue(passed)
@@ -215,7 +220,6 @@ class SIPProblemTestsN(unittest.TestCase):
 
 class SIPProblemTestsN_air(unittest.TestCase):
     def setUp(self):
-
         cs = 25.0
         hx = [(cs, 0, -1.3), (cs, 21), (cs, 0, 1.3)]
         hy = [(cs, 0, -1.3), (cs, 21), (cs, 0, 1.3)]
@@ -243,8 +247,12 @@ class SIPProblemTestsN_air(unittest.TestCase):
         actmaptau = maps.InjectActiveCells(mesh, ~airind, 1.0)
         actmapc = maps.InjectActiveCells(mesh, ~airind, 1.0)
 
-        x = mesh.vectorCCx[(mesh.vectorCCx > -155.0) & (mesh.vectorCCx < 155.0)]
-        y = mesh.vectorCCy[(mesh.vectorCCy > -155.0) & (mesh.vectorCCy < 155.0)]
+        x = mesh.cell_centers_x[
+            (mesh.cell_centers_x > -155.0) & (mesh.cell_centers_x < 155.0)
+        ]
+        y = mesh.cell_centers_y[
+            (mesh.cell_centers_y > -155.0) & (mesh.cell_centers_y < 155.0)
+        ]
         Aloc = np.r_[-200.0, 0.0, 0.0]
         Bloc = np.r_[200.0, 0.0, 0.0]
         M = utils.ndgrid(x - 25.0, y, np.r_[0.0])
@@ -295,7 +303,7 @@ class SIPProblemTestsN_air(unittest.TestCase):
         self.dobs = dobs
 
     def test_misfit(self):
-        passed = tests.checkDerivative(
+        passed = tests.check_derivative(
             lambda m: [self.p.dpred(m), lambda mx: self.p.Jvec(self.m0, mx)],
             self.m0,
             plotIt=False,
@@ -314,7 +322,7 @@ class SIPProblemTestsN_air(unittest.TestCase):
         self.assertTrue(passed)
 
     def test_dataObj(self):
-        passed = tests.checkDerivative(
+        passed = tests.check_derivative(
             lambda m: [self.dmis(m), self.dmis.deriv(m)], self.m0, plotIt=False, num=3
         )
         self.assertTrue(passed)

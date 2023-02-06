@@ -5,8 +5,6 @@ from SimPEG.electromagnetics.utils import convolve_with_waveform
 from geoana.em.tdem import (
     vertical_magnetic_flux_horizontal_loop as b_loop,
     vertical_magnetic_flux_time_deriv_horizontal_loop as dbdt_loop,
-    magnetic_flux_vertical_magnetic_dipole as b_dipole,
-    magnetic_flux_time_deriv_magnetic_dipole as dbdt_dipole,
 )
 import numpy as np
 
@@ -100,7 +98,7 @@ class EM1D_TD_CircularLoop_FwdProblemTests(unittest.TestCase):
         np.testing.assert_allclose(dbdt, dbdt_analytic, atol=0.0, rtol=1e-2)
 
 
-class EM1D_TD_PiecewiseWireLoop_FwdProblemTests(unittest.TestCase):
+class EM1D_TD_LineCurrent_FwdProblemTests(unittest.TestCase):
     def setUp(self):
         # WalkTEM waveform
         # Low moment
@@ -196,11 +194,11 @@ class EM1D_TD_PiecewiseWireLoop_FwdProblemTests(unittest.TestCase):
             hm_waveform_times, hm_waveform_current
         )
 
-        source_lm = tdem.sources.PiecewiseWireLoop(
-            receiver_list_lm, wire_paths=wire_paths, waveform=lm_wave
+        source_lm = tdem.sources.LineCurrent(
+            receiver_list_lm, wire_paths, waveform=lm_wave
         )
-        source_hm = tdem.sources.PiecewiseWireLoop(
-            receiver_list_hm, wire_paths=wire_paths, waveform=hm_wave
+        source_hm = tdem.sources.LineCurrent(
+            receiver_list_hm, wire_paths, waveform=hm_wave
         )
         source_list.append(source_lm)
         source_list.append(source_hm)
@@ -227,7 +225,6 @@ class EM1D_TD_PiecewiseWireLoop_FwdProblemTests(unittest.TestCase):
         self.bzdt = simulation.dpred(model)
 
     def test_em1dtd_mag_dipole_bzdt(self):
-
         empymod_solution = np.array(
             [
                 9.34490123e-04,

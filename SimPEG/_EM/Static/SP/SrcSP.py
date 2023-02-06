@@ -1,14 +1,10 @@
 from SimPEG.EM.Static.DC import Src
-from SimPEG import Props
-from SimPEG.Utils import sdiag
 from SimPEG import Utils
 import scipy.sparse as sp
 import numpy as np
-from SimPEG.EM.Static.DC import Survey
 
 
 class StreamingCurrents(Src.BaseSrc):
-
     L = None
     mesh = None
     modelType = None
@@ -26,9 +22,9 @@ class StreamingCurrents(Src.BaseSrc):
 
             self.Grad = -sp.vstack(
                 (
-                    self.Pafx * self.mesh.faceDivx.T * self.V * self.Pac,
-                    self.Pafy * self.mesh.faceDivy.T * self.V * self.Pac,
-                    self.Pafz * self.mesh.faceDivz.T * self.V * self.Pac,
+                    self.Pafx * self.mesh.face_x_divergence.T * self.V * self.Pac,
+                    self.Pafy * self.mesh.face_y_divergence.T * self.V * self.Pac,
+                    self.Pafz * self.mesh.face_z_divergence.T * self.V * self.Pac,
                 )
             )
 
@@ -39,17 +35,16 @@ class StreamingCurrents(Src.BaseSrc):
         q = self.Grad.T * self.mesh.aveCCV2F * j
         return q
 
-    def eval(self, prob):
-        """
+    def eval(self, prob):  # noqa: A003
+        r"""
+        Computing source term using:
 
-            Computing source term using:
+        - Hydraulic head: h
+        - Cross coupling coefficient: L
 
-            - Hydraulic head: h
-            - Cross coupling coefficient: L
+        .. math::
 
-            .. math::
-
-                -\nabla \cdot \vec{j}^s = \nabla \cdot L \nabla \phi \\
+            -\nabla \cdot \vec{j}^s = \nabla \cdot L \nabla \phi
 
         """
         if prob._formulation == "HJ":
@@ -103,7 +98,7 @@ class StreamingCurrents(Src.BaseSrc):
         :code:`V`
         """
         if getattr(self, "_V", None) is None:
-            self._V = Utils.sdiag(self.mesh.vol)
+            self._V = Utils.sdiag(self.mesh.cell_volumes)
         return self._V
 
     @property
@@ -112,7 +107,7 @@ class StreamingCurrents(Src.BaseSrc):
         :code:`MfLi`
         """
         if getattr(self, "_MfLi", None) is None:
-            self._MfLi = self.mesh.getFaceInnerProduct(1.0 / self.L)
+            self._MfLi = self.mesh.get_face_inner_product(1.0 / self.L)
         return seself.lf._MfLi
 
     @property
@@ -121,7 +116,9 @@ class StreamingCurrents(Src.BaseSrc):
         Inverse of :code:`_MfLiI`
         """
         if getattr(self, "_MfLiI", None) is None:
-            self._MfLiI = self.mesh.getFaceInnerProduct(1.0 / self.L, invMat=True)
+            self._MfLiI = self.mesh.get_face_inner_product(
+                1.0 / self.L, invert_matrix=True
+            )
         return self._MfLiI
 
     @property

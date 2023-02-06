@@ -53,9 +53,9 @@ mesh = TensorMesh([nParam])
 
 # Creating the true model
 true_model = np.zeros(mesh.nC)
-true_model[mesh.vectorCCx > 0.3] = 1.0
-true_model[mesh.vectorCCx > 0.45] = -0.5
-true_model[mesh.vectorCCx > 0.6] = 0
+true_model[mesh.cell_centers_x > 0.3] = 1.0
+true_model[mesh.cell_centers_x > 0.45] = -0.5
+true_model[mesh.cell_centers_x > 0.6] = 0
 
 # Mapping from the model space to the row space of the linear operator
 model_map = maps.IdentityMap(mesh)
@@ -63,7 +63,7 @@ model_map = maps.IdentityMap(mesh)
 # Plotting the true model
 fig = plt.figure(figsize=(8, 5))
 ax = fig.add_subplot(111)
-ax.plot(mesh.vectorCCx, true_model, "b-")
+ax.plot(mesh.cell_centers_x, true_model, "b-")
 ax.set_ylim([-2, 2])
 
 #############################################
@@ -86,8 +86,8 @@ q = 0.25
 
 
 def g(k):
-    return np.exp(p * jk[k] * mesh.vectorCCx) * np.cos(
-        np.pi * q * jk[k] * mesh.vectorCCx
+    return np.exp(p * jk[k] * mesh.cell_centers_x) * np.cos(
+        np.pi * q * jk[k] * mesh.cell_centers_x
     )
 
 
@@ -148,7 +148,7 @@ data_obj = sim.make_synthetic_data(true_model, relative_error=std, add_noise=Tru
 dmis = data_misfit.L2DataMisfit(simulation=sim, data=data_obj)
 
 # Define the regularization (model objective function).
-reg = regularization.Tikhonov(mesh, alpha_s=1.0, alpha_x=1.0)
+reg = regularization.WeightedLeastSquares(mesh, alpha_s=1.0, alpha_x=1.0)
 
 # Define how the optimization problem is solved.
 opt = optimization.InexactGaussNewton(maxIter=50)
@@ -205,7 +205,7 @@ ax[0].plot(inv_prob.dpred, "r-")
 ax[0].legend(("Observed Data", "Predicted Data"))
 
 # True versus recovered model
-ax[1].plot(mesh.vectorCCx, true_model, "b-")
-ax[1].plot(mesh.vectorCCx, recovered_model, "r-")
+ax[1].plot(mesh.cell_centers_x, true_model, "b-")
+ax[1].plot(mesh.cell_centers_x, recovered_model, "r-")
 ax[1].legend(("True Model", "Recovered Model"))
 ax[1].set_ylim([-2, 2])

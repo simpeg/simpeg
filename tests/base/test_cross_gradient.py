@@ -13,7 +13,6 @@ np.random.seed(10)
 
 class CrossGradientTensor2D(unittest.TestCase):
     def setUp(self):
-
         dh = 1.0
         nx = 12
         ny = 12
@@ -78,15 +77,15 @@ class CrossGradientTensor2D(unittest.TestCase):
     def test_cross_grad_calc(self):
         mesh = self.mesh
         # get index of center point
-        midx = int(mesh.nCx / 2)
-        midy = int(mesh.nCy / 2)
+        midx = int(mesh.shape_cells[0] / 2)
+        midy = int(mesh.shape_cells[1] / 2)
 
         # create a model1
-        m1 = np.zeros((mesh.nCx, mesh.nCy))
+        m1 = np.zeros(mesh.shape_cells)
         m1[(midx - 3) : (midx + 3), (midy - 3) : (midy + 3)] = 1
 
         # create a model2
-        m2 = np.zeros((mesh.nCx, mesh.nCy))
+        m2 = np.zeros(mesh.shape_cells)
         m2[(midx - 5) : (midx + 1), (midy - 5) : (midy + 1)] = 1
 
         m1 = m1.reshape(-1, order="F")
@@ -104,7 +103,6 @@ class CrossGradientTensor2D(unittest.TestCase):
 
 class CrossGradientTensor3D(unittest.TestCase):
     def setUp(self):
-
         dh = 1.0
         nx = 12
         ny = 12
@@ -183,7 +181,6 @@ class CrossGradientTensor3D(unittest.TestCase):
 
 class CrossGradientTree2D(unittest.TestCase):
     def setUp(self):
-
         dh = 1.0
         nx = 16
         ny = 16
@@ -245,7 +242,6 @@ class CrossGradientTree2D(unittest.TestCase):
 
 class CrossGradientTree3D(unittest.TestCase):
     def setUp(self):
-
         dh = 1.0
         nx = 16
         ny = 16

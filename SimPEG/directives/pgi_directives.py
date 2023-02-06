@@ -4,36 +4,25 @@
 #                                                                             #
 ###############################################################################
 
-from __future__ import print_function
+import copy
 
 import numpy as np
-import matplotlib.pyplot as plt
-import copy
+
+from ..directives import InversionDirective, MultiTargetMisfits
 from ..regularization import (
-    SimpleSmall,
-    Small,
-    SparseSmall,
-    Simple,
-    Tikhonov,
-    Sparse,
-    PGIsmallness,
-    PGIwithNonlinearRelationshipsSmallness,
     PGI,
-    SmoothDeriv,
-    SimpleSmoothDeriv,
-    SparseDeriv,
+    PGIsmallness,
     PGIwithRelationships,
+    SmoothnessFirstOrder,
+    SparseSmoothness,
 )
 from ..utils import (
-    mkvc,
-    WeightedGaussianMixture,
-    GaussianMixtureWithPrior,
     GaussianMixtureWithNonlinearRelationships,
     GaussianMixtureWithNonlinearRelationshipsWithPrior,
-    Zero,
+    GaussianMixtureWithPrior,
+    WeightedGaussianMixture,
+    mkvc,
 )
-from ..directives import InversionDirective, MultiTargetMisfits
-from ..utils.code_utils import deprecate_property
 
 
 class PGI_UpdateParameters(InversionDirective):
@@ -63,33 +52,19 @@ class PGI_UpdateParameters(InversionDirective):
     keep_ref_fixed_in_Smooth = True  # keep mref fixed in the Smoothness
 
     def initialize(self):
-        if getattr(self.reg.objfcts[0], "objfcts", None) is not None:
-            pgi_reg = np.where(
-                np.r_[
-                    [
-                        isinstance(regpart, (PGI, PGIwithRelationships))
-                        for regpart in self.reg.objfcts
-                    ]
-                ]
-            )[0][0]
-            self.pgi_reg = self.reg.objfcts[pgi_reg]
-            self._regmode = 1
-
-        else:
-            self._regmode = 2
-            self.pgi_reg = self.reg
+        pgi_reg = self.reg.get_functions_of_type(PGIsmallness)
+        if len(pgi_reg) != 1:
+            raise UserWarning(
+                "'PGI_UpdateParameters' requires one 'PGIsmallness' regularization "
+                "in the objective function."
+            )
+        self.pgi_reg = pgi_reg[0]
 
     def endIter(self):
         if self.opt.iter > 0 and self.opt.iter % self.update_rate == 0:
             m = self.invProb.model
             modellist = self.pgi_reg.wiresmap * m
             model = np.c_[[a * b for a, b in zip(self.pgi_reg.maplist, modellist)]].T
-
-            if self.pgi_reg.mrefInSmooth and self.keep_ref_fixed_in_Smooth:
-                self.fixed_membership = np.c_[
-                    np.arange(len(self.pgi_reg.gmmref.cell_volumes)),
-                    self.pgi_reg.compute_quasi_geology_model(),
-                ]
 
             if self.update_gmm and isinstance(
                 self.pgi_reg.gmmref, GaussianMixtureWithNonlinearRelationships
@@ -151,9 +126,9 @@ class PGI_UpdateParameters(InversionDirective):
                 membership[self.fixed_membership[:, 0]] = self.fixed_membership[:, 1]
 
             mref = mkvc(self.pgi_reg.gmm.means_[membership])
-            self.pgi_reg.mref = mref
+            self.pgi_reg.reference_model = mref
             if getattr(self.fixed_membership, "shape", [0, 0])[0] < len(membership):
-                self.pgi_reg.objfcts[0]._r_second_deriv = None
+                self.pgi_reg._r_second_deriv = None
 
 
 class PGI_BetaAlphaSchedule(InversionDirective):
@@ -175,6 +150,7 @@ class PGI_BetaAlphaSchedule(InversionDirective):
     alphasmax = 1e10  # max alpha_s
     betamin = 1e-10  # minimum beta
     update_rate = 1  # update every `update_rate` iterations
+    pgi_reg = None
     ratio_in_cooling = (
         False  # add the ratio of geophysical misfit with their target in cooling
     )
@@ -219,28 +195,15 @@ class PGI_BetaAlphaSchedule(InversionDirective):
             self.updategaussianclass = self.inversion.directiveList.dList[
                 updategaussianclass
             ]
-
-        if getattr(self.reg.objfcts[0], "objfcts", None) is not None:
-            petrosmallness = np.where(
-                np.r_[
-                    [
-                        isinstance(regpart, (PGI, PGIwithRelationships))
-                        for regpart in self.reg.objfcts
-                    ]
-                ]
-            )[0][0]
-            self.petrosmallness = petrosmallness
-            self._regmode = 1
-        else:
-            self._regmode = 2
-
-        if self._regmode == 1:
-            self.pgi_reg = self.reg.objfcts[self.petrosmallness]
-        else:
-            self.pgi_reg = self.reg
+        pgi_reg = self.reg.get_functions_of_type(PGI)
+        if len(pgi_reg) != 1:
+            raise UserWarning(
+                "'PGI_UpdateParameters' requires one 'PGI' regularization "
+                "in the objective function."
+            )
+        self.pgi_reg = pgi_reg[0]
 
     def endIter(self):
-
         self.DM = self.inversion.directiveList.dList[self.targetclass].DM
         self.dmlist = self.inversion.directiveList.dList[self.targetclass].dmlist
         self.DMtarget = self.inversion.directiveList.dList[self.targetclass].DMtarget
@@ -285,9 +248,7 @@ class PGI_BetaAlphaSchedule(InversionDirective):
                     self.mode == 1,
                 ]
             ):
-
                 if np.all([self.invProb.beta > self.betamin]):
-
                     ratio = 1.0
                     indx = self.dmlist > (1.0 + self.tolerance) * self.DMtarget
                     if np.any(indx) and self.ratio_in_cooling:
@@ -298,16 +259,14 @@ class PGI_BetaAlphaSchedule(InversionDirective):
                         print("Decreasing beta to counter data misfit decrase plateau.")
 
             elif np.all([self.DM, self.mode == 2]):
-
-                if np.all([self.pgi_reg.alpha_s < self.alphasmax]):
-
+                if np.all([self.pgi_reg.alpha_pgi < self.alphasmax]):
                     ratio = np.median(self.DMtarget / self.dmlist)
-                    self.pgi_reg.alpha_s *= self.warmingFactor * ratio
+                    self.pgi_reg.alpha_pgi *= self.warmingFactor * ratio
 
                     if self.verbose:
                         print(
-                            "Warming alpha_s to favor clustering: ",
-                            self.pgi_reg.alpha_s,
+                            "Warming alpha_pgi to favor clustering: ",
+                            self.pgi_reg.alpha_pgi,
                         )
 
             elif np.all(
@@ -316,9 +275,7 @@ class PGI_BetaAlphaSchedule(InversionDirective):
                     self.mode == 2,
                 ]
             ):
-
                 if np.all([self.invProb.beta > self.betamin]):
-
                     ratio = 1.0
                     indx = self.dmlist > (1.0 + self.tolerance) * self.DMtarget
                     if np.any(indx) and self.ratio_in_cooling:
@@ -392,7 +349,7 @@ class PGI_AddMrefInSmooth(InversionDirective):
                             i,
                             j,
                             isinstance(
-                                regpart, (SmoothDeriv, SimpleSmoothDeriv, SparseDeriv)
+                                regpart, (SmoothnessFirstOrder, SparseSmoothness)
                             ),
                         ]
                     ]
@@ -410,7 +367,7 @@ class PGI_AddMrefInSmooth(InversionDirective):
             self.nbr = len(self.reg.objfcts)
             self.Smooth = np.r_[
                 [
-                    isinstance(regpart, (SmoothDeriv, SimpleSmoothDeriv, SparseDeriv))
+                    isinstance(regpart, (SmoothnessFirstOrder, SparseSmoothness))
                     for regpart in self.reg.objfcts
                 ]
             ]
@@ -458,13 +415,13 @@ class PGI_AddMrefInSmooth(InversionDirective):
         ) and (
             same_mref or not self.wait_till_stable or percent_diff <= self.tolerance
         ):
-            self.reg.mrefInSmooth = True
-            self.pgi_reg.mrefInSmooth = True
+            self.reg.reference_model_in_smooth = True
+            self.pgi_reg.reference_model_in_smooth = True
 
             if self._regmode == 2:
                 for i in range(self.nbr):
                     if self.Smooth[i]:
-                        self.reg.objfcts[i].mref = mkvc(
+                        self.reg.objfcts[i].reference_model = mkvc(
                             self.pgi_reg.gmm.means_[self.membership]
                         )
                 if self.verbose:
@@ -478,7 +435,7 @@ class PGI_AddMrefInSmooth(InversionDirective):
                 for i in range(self.nbr):
                     if self.Smooth[i, 2]:
                         idx = self.Smooth[i, :2]
-                        self.reg.objfcts[idx[0]].objfcts[idx[1]].mref = mkvc(
+                        self.reg.objfcts[idx[0]].objfcts[idx[1]].reference_model = mkvc(
                             self.pgi_reg.gmm.means_[self.membership]
                         )
                 if self.verbose:

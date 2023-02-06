@@ -43,7 +43,9 @@ def run_inversion(
         reg.alpha_y = alpha_y
         reg.alpha_z = alpha_z
     else:
-        reg = regularization.Tikhonov(mesh, indActive=actind, mapping=regmap)
+        reg = regularization.WeightedLeastSquares(
+            mesh, indActive=actind, mapping=regmap
+        )
         reg.alpha_s = alpha_s
         reg.alpha_x = alpha_x
         reg.alpha_y = alpha_y

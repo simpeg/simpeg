@@ -5,10 +5,10 @@ PF: Gravity: Tiled Inversion Linear
 Invert data in tiles.
 
 """
+import os
 import numpy as np
 import matplotlib.pyplot as plt
 
-from discretize import TensorMesh
 from SimPEG.potential_fields import gravity
 from SimPEG import (
     maps,
@@ -24,12 +24,9 @@ from discretize.utils import mesh_builder_xyz, refine_tree_xyz
 
 try:
     from SimPEG import utils
-    from SimPEG.utils import plot2Ddata
 except:
     from SimPEG import Utils as utils
-    from SimPEG.Utils.Plotutils import plot2Ddata
 
-import shutil
 
 ###############################################################################
 # Setup
@@ -48,7 +45,7 @@ yr = np.linspace(-30.0, 30.0, 20)
 X, Y = np.meshgrid(xr, yr)
 
 # Move the observation points 5m above the topo
-Z = -np.exp((X ** 2 + Y ** 2) / 75 ** 2)
+Z = -np.exp((X**2 + Y**2) / 75**2)
 
 # Create a topo array
 topo = np.c_[utils.mkvc(X.T), utils.mkvc(Y.T), utils.mkvc(Z.T)]
@@ -74,7 +71,6 @@ local_indices = [rxLoc[:, 0] <= 0, rxLoc[:, 0] > 0]
 local_surveys = []
 local_meshes = []
 for local_index in local_indices:
-
     receivers = gravity.receivers.Point(rxLoc[local_index, :])
     srcField = gravity.sources.SourceField([receivers])
     local_survey = gravity.survey.Survey(srcField)
@@ -145,7 +141,7 @@ survey = gravity.survey.Survey(srcField)
 
 # Create the forward simulation for the global dataset
 simulation = gravity.simulation.Simulation3DIntegral(
-    survey=survey, mesh=mesh, rhoMap=idenMap, actInd=activeCells
+    survey=survey, mesh=mesh, rhoMap=idenMap, ind_active=activeCells
 )
 
 # Compute linear forward operator and compute some data
@@ -164,7 +160,6 @@ wd = np.ones(len(synthetic_data)) * 1e-3  # Assign flat uncertainties
 #
 local_misfits = []
 for ii, local_survey in enumerate(local_surveys):
-
     tile_map = maps.TileMap(mesh, activeCells, local_meshes[ii])
 
     local_actives = tile_map.local_active
@@ -174,8 +169,8 @@ for ii, local_survey in enumerate(local_surveys):
         survey=local_survey,
         mesh=local_meshes[ii],
         rhoMap=tile_map,
-        actInd=local_actives,
-        sensitivity_path=f"Inversion\Tile{ii}.zarr",
+        ind_active=local_actives,
+        sensitivity_path=os.path.join("Inversion", f"Tile{ii}.zarr"),
     )
 
     data_object = data.Data(
@@ -195,14 +190,13 @@ global_misfit = local_misfits[0] + local_misfits[1]
 # Plot the model on different meshes
 fig = plt.figure(figsize=(12, 6))
 for ii, local_misfit in enumerate(local_misfits):
-
     local_mesh = local_misfit.simulation.mesh
     local_map = local_misfit.simulation.rhoMap
 
     inject_local = maps.InjectActiveCells(local_mesh, local_map.local_active, np.nan)
 
     ax = plt.subplot(2, 2, ii + 1)
-    local_mesh.plotSlice(
+    local_mesh.plot_slice(
         inject_local * (local_map * model), normal="Y", ax=ax, grid=True
     )
     ax.set_aspect("equal")
@@ -213,7 +207,7 @@ for ii, local_misfit in enumerate(local_misfits):
 inject_global = maps.InjectActiveCells(mesh, activeCells, np.nan)
 
 ax = plt.subplot(2, 1, 2)
-mesh.plotSlice(inject_global * model, normal="Y", ax=ax, grid=True)
+mesh.plot_slice(inject_global * model, normal="Y", ax=ax, grid=True)
 ax.set_title(f"Global Mesh. Active cells {activeCells.sum()}")
 ax.set_aspect("equal")
 plt.show()
@@ -231,7 +225,7 @@ plt.show()
 idenMap = maps.IdentityMap(nP=nC)
 
 # Create a regularization
-reg = regularization.Sparse(mesh, indActive=activeCells, mapping=idenMap)
+reg = regularization.Sparse(mesh, active_cells=activeCells, mapping=idenMap)
 
 m0 = np.ones(nC) * 1e-4  # Starting model
 
@@ -265,12 +259,12 @@ mrec = inv.run(m0)
 
 # Plot the result
 ax = plt.subplot(1, 2, 1)
-mesh.plotSlice(inject_global * model, normal="Y", ax=ax, grid=True)
+mesh.plot_slice(inject_global * model, normal="Y", ax=ax, grid=True)
 ax.set_title("True")
 ax.set_aspect("equal")
 
 ax = plt.subplot(1, 2, 2)
-mesh.plotSlice(inject_global * mrec, normal="Y", ax=ax, grid=True)
+mesh.plot_slice(inject_global * mrec, normal="Y", ax=ax, grid=True)
 ax.set_title("Recovered")
 ax.set_aspect("equal")
 plt.show()

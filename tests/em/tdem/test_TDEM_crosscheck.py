@@ -1,26 +1,22 @@
-from __future__ import division, print_function
 import unittest
 import discretize
-import properties
 
 from SimPEG import maps
 from SimPEG.electromagnetics import time_domain as tdem
 from SimPEG.electromagnetics import utils
 import numpy as np
 
-import warnings
 from pymatsolver import Pardiso as Solver
 
 TOL = 1e-4
 FLR = 1e-20
 
-# set a seed so that the same conductivity model is used for all runs
-np.random.seed(25)
-
 
 def setUp_TDEM(
     prbtype="MagneticFluxDensity", rxcomp="bz", waveform="stepoff", src_type=None
 ):
+    # set a seed so that the same conductivity model is used for all runs
+    np.random.seed(25)
     cs = 5.0
     ncx = 8
     ncy = 8
@@ -37,8 +33,10 @@ def setUp_TDEM(
         "CCC",
     )
 
-    active = mesh.vectorCCz < 0.0
-    activeMap = maps.InjectActiveCells(mesh, active, np.log(1e-8), nC=mesh.nCz)
+    active = mesh.cell_centers_z < 0.0
+    activeMap = maps.InjectActiveCells(
+        mesh, active, np.log(1e-8), nC=mesh.shape_cells[2]
+    )
     mapping = maps.ExpMap(mesh) * maps.SurjectVertical1D(mesh) * activeMap
 
     rxtimes = np.logspace(-4, -3, 20)
@@ -47,7 +45,7 @@ def setUp_TDEM(
         out = utils.VTEMFun(prb.times, 0.00595, 0.006, 100)
         wavefun = interp1d(prb.times, out)
         t0 = 0.006
-        waveform = tdem.Src.RawWaveform(offTime=t0, waveFct=wavefun)
+        waveform = tdem.Src.RawWaveform(off_time=t0, waveform_function=wavefun)
         time_steps = [(1e-3, 5), (1e-4, 5), (5e-5, 10), (5e-5, 10), (1e-4, 10)]
         rxtimes = t0 + rxtimes
 
@@ -90,7 +88,6 @@ def CrossCheck(
     waveform="stepoff",
     src_type=None,
 ):
-
     prb1, m1, mesh1 = setUp_TDEM(prbtype1, rxcomp, waveform, src_type)
     prb2, _, mesh2 = setUp_TDEM(prbtype2, rxcomp, waveform, src_type)
 
@@ -249,7 +246,7 @@ class TDEM_cross_check_EB(unittest.TestCase):
     def test_MagDipoleSimpleFail(self):
         print("\ntesting MagDipole error handling")
 
-        with self.assertRaises(properties.ValidationError):
+        with self.assertRaises(TypeError):
             tdem.Src.MagDipole(
                 ["a", 0, {"s": 1}],
                 location=np.r_[0.0, 0.0, 0.0],
@@ -257,7 +254,6 @@ class TDEM_cross_check_EB(unittest.TestCase):
             )
 
     def test_waveform_instantiation(self):
-
         rx_list = [
             tdem.receivers.PointMagneticFluxDensity(
                 locations=[np.r_[0.0, 0.0, 0.0]],
@@ -273,16 +269,12 @@ class TDEM_cross_check_EB(unittest.TestCase):
             current=1000.0,
         )
 
-        offTime = 1e-3
+        off_time = 1e-3
         src_loop.waveform = tdem.sources.QuarterSineRampOnWaveform(
-            ramp_on=np.r_[0.0, 5.0e-4], ramp_off=np.r_[offTime, offTime + 1e-4]
+            ramp_on=np.r_[0.0, 5.0e-4], ramp_off=np.r_[off_time, off_time + 1e-4]
         )
 
         self.assertIsInstance(src_loop.waveform, tdem.sources.QuarterSineRampOnWaveform)
 
-        with self.assertRaises(properties.ValidationError):
+        with self.assertRaises(TypeError):
             src_loop.waveform = (1, 5)
-
-
-if __name__ == "__main__":
-    unittest.main()

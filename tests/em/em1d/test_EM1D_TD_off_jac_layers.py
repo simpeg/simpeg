@@ -12,35 +12,36 @@ class EM1D_TD_Jacobian_Test_MagDipole(unittest.TestCase):
     # - Span many time channels
     # - Tests derivatives wrt sigma, mu and thicknesses
     def setUp(self):
-        
         # Layers and topography
         nearthick = np.logspace(-1, 1, 5)
         deepthick = np.logspace(1, 2, 10)
         thicknesses = np.r_[nearthick, deepthick]
         topo = np.r_[0.0, 0.0, 100.0]
-        
+
         # Survey Geometry
         height = 1e-5
         src_location = np.array([0.0, 0.0, 100.0 + height])
         rx_location = np.array([5.0, 5.0, 100.0 + height])
         times = np.logspace(-5, -2, 10)
-        orientations = ['x','y','z']
-        
+        orientations = ["x", "y", "z"]
+
         # Define sources and receivers
         source_list = []
         for tx_orientation in orientations:
-            
             receiver_list = []
-            
+
             for rx_orientation in orientations:
-                    
                 receiver_list.append(
-                    tdem.receivers.PointMagneticFluxDensity(rx_location, times, rx_orientation)
+                    tdem.receivers.PointMagneticFluxDensity(
+                        rx_location, times, rx_orientation
+                    )
                 )
                 receiver_list.append(
-                    tdem.receivers.PointMagneticFluxTimeDerivative(rx_location, times, rx_orientation)
+                    tdem.receivers.PointMagneticFluxTimeDerivative(
+                        rx_location, times, rx_orientation
+                    )
                 )
-            
+
             source_list.append(
                 tdem.sources.MagDipole(
                     receiver_list, location=src_location, orientation=tx_orientation
@@ -57,16 +58,16 @@ class EM1D_TD_Jacobian_Test_MagDipole(unittest.TestCase):
         self.times = times
         self.thicknesses = thicknesses
         self.nlayers = len(thicknesses) + 1
-        
+
         wire_map = maps.Wires(
             ("sigma", self.nlayers),
             ("mu", self.nlayers),
-            ("thicknesses", self.nlayers-1),
-            ("h", 1)
+            ("thicknesses", self.nlayers - 1),
+            ("h", 1),
         )
         self.sigma_map = maps.ExpMap(nP=self.nlayers) * wire_map.sigma
         self.mu_map = maps.ExpMap(nP=self.nlayers) * wire_map.mu
-        self.thicknesses_map = maps.ExpMap(nP=self.nlayers-1) * wire_map.thicknesses
+        self.thicknesses_map = maps.ExpMap(nP=self.nlayers - 1) * wire_map.thicknesses
         nP = len(source_list)
         surject_mesh = TensorMesh([np.ones(nP)])
         self.h_map = maps.SurjectFull(surject_mesh) * maps.ExpMap(nP=1) * wire_map.h
@@ -81,9 +82,8 @@ class EM1D_TD_Jacobian_Test_MagDipole(unittest.TestCase):
         )
 
         self.sim = sim
-        
-    def test_EM1DFDJvec_Layers(self):
 
+    def test_EM1DFDJvec_Layers(self):
         # Conductivity
         sigma_half = 0.01
         sigma_blk = 0.1
@@ -98,10 +98,7 @@ class EM1D_TD_Jacobian_Test_MagDipole(unittest.TestCase):
 
         # General model
         m_1D = np.r_[
-            np.log(sig),
-            np.log(mu),
-            np.log(self.thicknesses),
-            np.log(self.height)
+            np.log(sig), np.log(mu), np.log(self.thicknesses), np.log(self.height)
         ]
 
         def fwdfun(m):
@@ -115,7 +112,7 @@ class EM1D_TD_Jacobian_Test_MagDipole(unittest.TestCase):
 
         dm = m_1D * 0.5
         derChk = lambda m: [fwdfun(m), lambda mx: jacfun(m, mx)]
-        passed = tests.checkDerivative(
+        passed = tests.check_derivative(
             derChk, m_1D, num=4, dx=dm, plotIt=False, eps=1e-15
         )
         self.assertTrue(passed)
@@ -123,7 +120,6 @@ class EM1D_TD_Jacobian_Test_MagDipole(unittest.TestCase):
             print("EM1DTM MagDipole Jvec test works")
 
     def test_EM1DFDJtvec_Layers(self):
-
         # Conductivity
         sigma_half = 0.01
         sigma_blk = 0.1
@@ -138,19 +134,16 @@ class EM1D_TD_Jacobian_Test_MagDipole(unittest.TestCase):
 
         # General model
         m_true = np.r_[
-            np.log(sig),
-            np.log(mu),
-            np.log(self.thicknesses),
-            np.log(self.height)
+            np.log(sig), np.log(mu), np.log(self.thicknesses), np.log(self.height)
         ]
 
         dobs = self.sim.dpred(m_true)
 
         m_ini = np.r_[
             np.log(np.ones(self.nlayers) * sigma_half),
-            np.log(np.ones(self.nlayers) * 1.5*mu_half),
+            np.log(np.ones(self.nlayers) * 1.5 * mu_half),
             np.log(self.thicknesses) * 0.9,
-            np.log(self.height) * 0.5
+            np.log(self.height) * 0.5,
         ]
         resp_ini = self.sim.dpred(m_ini)
         dr = resp_ini - dobs
@@ -162,19 +155,18 @@ class EM1D_TD_Jacobian_Test_MagDipole(unittest.TestCase):
             return misfit, dmisfit
 
         derChk = lambda m: misfit(m, dobs)
-        passed = tests.checkDerivative(derChk, m_ini, num=4, plotIt=False, eps=1e-27)
+        passed = tests.check_derivative(derChk, m_ini, num=4, plotIt=False, eps=1e-27)
         self.assertTrue(passed)
         if passed:
             print("EM1DTM MagDipole Jtvec test works")
-            
-        
+
+
 class EM1D_TD_Jacobian_Test_CircularLoop(unittest.TestCase):
     # Tests 2nd order convergence of Jvec and Jtvec for circular loop sources.
     # - All rx orientations of h and dh/dt
     # - Span many time channels
     # - Tests derivatives wrt sigma, mu and thicknesses
     def setUp(self):
-
         nearthick = np.logspace(-1, 1, 5)
         deepthick = np.logspace(1, 2, 10)
         thicknesses = np.r_[nearthick, deepthick]
@@ -184,29 +176,30 @@ class EM1D_TD_Jacobian_Test_CircularLoop(unittest.TestCase):
         source_location = np.array([0.0, 0.0, 100.0 + 1e-5])
         rx_location = np.array([[0.0, 0.0, 100.0 + 1e-5]])
         radius = 20.0
-        waveform = tdem.sources.StepOffWaveform(offTime=0.0)
+        waveform = tdem.sources.StepOffWaveform(off_time=0.0)
         times = np.logspace(-5, -2, 10)
-        orientations = ['x','y','z']
-        
+        orientations = ["x", "y", "z"]
+
         # Define sources and receivers
         receiver_list = []
-        
+
         for rx_orientation in orientations:
-                
             receiver_list.append(
                 tdem.receivers.PointMagneticField(rx_location, times, rx_orientation)
             )
             receiver_list.append(
-                tdem.receivers.PointMagneticFieldTimeDerivative(rx_location, times, rx_orientation)
+                tdem.receivers.PointMagneticFieldTimeDerivative(
+                    rx_location, times, rx_orientation
+                )
             )
-        
+
         source_list = [
             tdem.sources.CircularLoop(
                 receiver_list,
                 location=source_location,
                 waveform=waveform,
                 radius=radius,
-                current=1.
+                current=1.0,
             )
         ]
 
@@ -221,16 +214,16 @@ class EM1D_TD_Jacobian_Test_CircularLoop(unittest.TestCase):
         self.nlayers = len(thicknesses) + 1
 
         nP = len(source_list)
-        
+
         wire_map = maps.Wires(
             ("sigma", self.nlayers),
             ("mu", self.nlayers),
-            ("thicknesses", self.nlayers-1),
-            ("h", 1)
+            ("thicknesses", self.nlayers - 1),
+            ("h", 1),
         )
         self.sigma_map = maps.ExpMap(nP=self.nlayers) * wire_map.sigma
         self.mu_map = maps.ExpMap(nP=self.nlayers) * wire_map.mu
-        self.thicknesses_map = maps.ExpMap(nP=self.nlayers-1) * wire_map.thicknesses
+        self.thicknesses_map = maps.ExpMap(nP=self.nlayers - 1) * wire_map.thicknesses
         surject_mesh = TensorMesh([np.ones(nP)])
         self.h_map = maps.SurjectFull(surject_mesh) * maps.ExpMap(nP=1) * wire_map.h
 
@@ -244,9 +237,8 @@ class EM1D_TD_Jacobian_Test_CircularLoop(unittest.TestCase):
         )
 
         self.sim = sim
-        
-    def test_EM1DFDJvec_Layers(self):
 
+    def test_EM1DFDJvec_Layers(self):
         # Conductivity
         sigma_half = 0.01
         sigma_blk = 0.1
@@ -261,10 +253,7 @@ class EM1D_TD_Jacobian_Test_CircularLoop(unittest.TestCase):
 
         # General model
         m_1D = np.r_[
-            np.log(sig),
-            np.log(mu),
-            np.log(self.thicknesses),
-            np.log(self.height)
+            np.log(sig), np.log(mu), np.log(self.thicknesses), np.log(self.height)
         ]
 
         def fwdfun(m):
@@ -278,7 +267,7 @@ class EM1D_TD_Jacobian_Test_CircularLoop(unittest.TestCase):
 
         dm = m_1D * 0.5
         derChk = lambda m: [fwdfun(m), lambda mx: jacfun(m, mx)]
-        passed = tests.checkDerivative(
+        passed = tests.check_derivative(
             derChk, m_1D, num=4, dx=dm, plotIt=False, eps=1e-15
         )
         self.assertTrue(passed)
@@ -286,7 +275,6 @@ class EM1D_TD_Jacobian_Test_CircularLoop(unittest.TestCase):
             print("EM1DTM Circular Loop Jvec test works")
 
     def test_EM1DFDJtvec_Layers(self):
-
         # Conductivity
         sigma_half = 0.01
         sigma_blk = 0.1
@@ -301,19 +289,16 @@ class EM1D_TD_Jacobian_Test_CircularLoop(unittest.TestCase):
 
         # General model
         m_true = np.r_[
-            np.log(sig),
-            np.log(mu),
-            np.log(self.thicknesses),
-            np.log(self.height)
+            np.log(sig), np.log(mu), np.log(self.thicknesses), np.log(self.height)
         ]
 
         dobs = self.sim.dpred(m_true)
 
         m_ini = np.r_[
             np.log(np.ones(self.nlayers) * sigma_half),
-            np.log(np.ones(self.nlayers) * 1.5*mu_half),
+            np.log(np.ones(self.nlayers) * 1.5 * mu_half),
             np.log(self.thicknesses) * 0.9,
-            np.log(0.5 * self.height)
+            np.log(0.5 * self.height),
         ]
         resp_ini = self.sim.dpred(m_ini)
         dr = resp_ini - dobs
@@ -325,11 +310,10 @@ class EM1D_TD_Jacobian_Test_CircularLoop(unittest.TestCase):
             return misfit, dmisfit
 
         derChk = lambda m: misfit(m, dobs)
-        passed = tests.checkDerivative(derChk, m_ini, num=4, plotIt=False, eps=1e-27)
+        passed = tests.check_derivative(derChk, m_ini, num=4, plotIt=False, eps=1e-27)
         self.assertTrue(passed)
         if passed:
             print("EM1DTM Circular Loop Jtvec test works")
-
 
 
 if __name__ == "__main__":

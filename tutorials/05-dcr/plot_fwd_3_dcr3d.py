@@ -76,7 +76,7 @@ write_output = False
 x_topo, y_topo = np.meshgrid(
     np.linspace(-2100, 2100, 141), np.linspace(-2000, 2000, 141)
 )
-s = np.sqrt(x_topo ** 2 + y_topo ** 2)
+s = np.sqrt(x_topo**2 + y_topo**2)
 z_topo = 10 + (1 / np.pi) * 140 * (-np.pi / 2 + np.arctan((s - 600.0) / 160.0))
 x_topo, y_topo, z_topo = mkvc(x_topo), mkvc(y_topo), mkvc(z_topo)
 topo_xyz = np.c_[x_topo, y_topo, z_topo]
@@ -207,11 +207,11 @@ plotting_map = maps.InjectActiveCells(mesh, ind_active, np.nan)
 log_mod = np.log10(conductivity_model)
 
 ax1 = fig.add_axes([0.15, 0.15, 0.68, 0.75])
-mesh.plotSlice(
+mesh.plot_slice(
     plotting_map * log_mod,
     ax=ax1,
     normal="Y",
-    ind=int(len(mesh.hy) / 2),
+    ind=int(len(mesh.h[1]) / 2),
     grid=True,
     clim=(np.log10(resistor_value), np.log10(conductor_value)),
     pcolor_opts={"cmap": mpl.cm.viridis},
@@ -306,7 +306,6 @@ p1, p2, p3 = (
 plane_points.append([p1, p2, p3])
 
 if has_plotly:
-
     fig = plot_3d_pseudosection(
         survey,
         apparent_conductivity,
@@ -338,7 +337,6 @@ else:
 #
 
 if write_output:
-
     dir_path = os.path.dirname(__file__).split(os.path.sep)
     dir_path.extend(["outputs"])
     dir_path = os.path.sep.join(dir_path) + os.path.sep

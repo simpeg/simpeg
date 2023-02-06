@@ -1,7 +1,7 @@
 import unittest
 import numpy as np
 import discretize
-from SimPEG import maps, SolverLU, tests
+from SimPEG import maps, tests
 from SimPEG.electromagnetics import time_domain as tdem
 from pymatsolver import Pardiso as Solver
 
@@ -12,10 +12,9 @@ testAdjoint = True
 
 TOL = 0.5
 
-np.random.seed(10)
-
 
 def setUp_TDEM(prbtype="ElectricField", rxcomp="ElectricFieldx", src_z=0.0):
+    np.random.seed(10)
     cs = 5.0
     ncx = 8
     ncy = 8
@@ -32,8 +31,10 @@ def setUp_TDEM(prbtype="ElectricField", rxcomp="ElectricFieldx", src_z=0.0):
         "CCC",
     )
 
-    active = mesh.vectorCCz < 0.0
-    activeMap = maps.InjectActiveCells(mesh, active, np.log(1e-8), nC=mesh.nCz)
+    active = mesh.cell_centers_z < 0.0
+    activeMap = maps.InjectActiveCells(
+        mesh, active, np.log(1e-8), nC=mesh.shape_cells[2]
+    )
     mapping = maps.ExpMap(mesh) * maps.SurjectVertical1D(mesh) * activeMap
 
     rxOffset = 0.0
@@ -66,7 +67,6 @@ def setUp_TDEM(prbtype="ElectricField", rxcomp="ElectricFieldx", src_z=0.0):
 
 
 class TDEM_DerivTests(unittest.TestCase):
-
     # ====== TEST Jvec ========== #
 
     if testDeriv:
@@ -78,7 +78,7 @@ class TDEM_DerivTests(unittest.TestCase):
                 return [prb.dpred(m), lambda mx: prb.Jvec(m, mx)]
 
             print("test_Jvec_{prbtype}_{rxcomp}".format(prbtype=prbtype, rxcomp=rxcomp))
-            tests.checkDerivative(derChk, m, plotIt=False, num=2, eps=1e-20)
+            tests.check_derivative(derChk, m, plotIt=False, num=2, eps=1e-20)
 
         def test_Jvec_e_dbzdt(self):
             self.JvecTest("ElectricField", "MagneticFluxTimeDerivativez")
@@ -105,7 +105,6 @@ class TDEM_DerivTests(unittest.TestCase):
         def JvecVsJtvecTest(
             self, prbtype="MagneticFluxDensity", rxcomp="bz", src_z=0.0
         ):
-
             print("\nAdjoint Testing Jvec, Jtvec prob {}, {}".format(prbtype, rxcomp))
 
             prb, m0, mesh = setUp_TDEM(prbtype, rxcomp, src_z)
@@ -145,7 +144,3 @@ class TDEM_DerivTests(unittest.TestCase):
 
         def test_Jvec_adjoint_j_ey(self):
             self.JvecVsJtvecTest("CurrentDensity", "ElectricFieldy", src_z=-2.5)
-
-
-if __name__ == "__main__":
-    unittest.main()

@@ -1,0 +1,46 @@
+name: simpeg-test
+channels:
+  - conda-forge
+dependencies:
+  - numpy>=1.20
+  - scipy>=1.8
+  - scikit-learn>=1.2
+  - pymatsolver>=0.2
+  - matplotlib
+  - discretize>=0.8
+  - geoana>=0.4.0
+  - empymod>=2.0.0
+  - pandas
+  - dask
+  - zarr
+  - fsspec
+  - jupyter
+  - h5py
+  - sphinx
+  - sphinx-gallery>=0.1.13
+  - sphinx-toolbox
+  - sphinxcontrib-apidoc
+  - pydata-sphinx-theme
+  - nbsphinx
+  - numpydoc
+  - pillow
+  - pylint
+  - sympy
+  - wheel
+  - pytest
+  - pytest-cov
+  - toolz
+  - twine
+  - memory_profiler
+  - plotly
+  - pyvista
+  - pip
+  - python-kaleido
+  # Linters and code style
+  - black==23.1.0
+  - flake8
+  - flake8-bugbear
+  - flake8-builtins
+  - flake8-mutable
+  - flake8-rst-docstrings
+  - flake8-docstrings

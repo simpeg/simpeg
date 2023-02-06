@@ -6,19 +6,19 @@ import numpy as np
 
 
 def MagSphereAnaFun(x, y, z, R, x0, y0, z0, mu1, mu2, H0, flag="total"):
-    """
-        test
-        Analytic function for Magnetics problem. The set up here is
-        magnetic sphere in whole-space assuming that the inducing field is oriented in the x-direction.
+    r"""
+    test
+    Analytic function for Magnetics problem. The set up here is
+    magnetic sphere in whole-space assuming that the inducing field is oriented
+    in the x-direction.
 
-        * (x0, y0, z0)
-        * (x0, y0, z0 ): is the center location of sphere
-        * r: is the radius of the sphere
+    * (x0, y0, z0)
+    * (x0, y0, z0 ): is the center location of sphere
+    * r: is the radius of the sphere
 
     .. math::
 
         \mathbf{H}_0 = H_0\hat{x}
-
 
     """
 
@@ -52,7 +52,7 @@ def MagSphereAnaFun(x, y, z, R, x0, y0, z0, mu1, mu2, H0, flag="total"):
             H0
             + H0
             / r[~ind] ** 5
-            * (R ** 3)
+            * (R**3)
             * rf1
             * (2 * (x[~ind] - x0) ** 2 - (y[~ind] - y0) ** 2 - (z[~ind] - z0) ** 2)
         )
@@ -60,16 +60,16 @@ def MagSphereAnaFun(x, y, z, R, x0, y0, z0, mu1, mu2, H0, flag="total"):
         Bx[~ind] = mu1 * (
             H0
             / r[~ind] ** 5
-            * (R ** 3)
+            * (R**3)
             * rf1
             * (2 * (x[~ind] - x0) ** 2 - (y[~ind] - y0) ** 2 - (z[~ind] - z0) ** 2)
         )
 
     By[~ind] = mu1 * (
-        H0 / r[~ind] ** 5 * (R ** 3) * rf1 * (3 * (x[~ind] - x0) * (y[~ind] - y0))
+        H0 / r[~ind] ** 5 * (R**3) * rf1 * (3 * (x[~ind] - x0) * (y[~ind] - y0))
     )
     Bz[~ind] = mu1 * (
-        H0 / r[~ind] ** 5 * (R ** 3) * rf1 * (3 * (x[~ind] - x0) * (z[~ind] - z0))
+        H0 / r[~ind] ** 5 * (R**3) * rf1 * (3 * (x[~ind] - x0) * (z[~ind] - z0))
     )
     return (
         np.reshape(Bx, x.shape, order="F"),
@@ -79,7 +79,9 @@ def MagSphereAnaFun(x, y, z, R, x0, y0, z0, mu1, mu2, H0, flag="total"):
 
 
 def CongruousMagBC(mesh, Bo, chi):
-    """Computing boundary condition using Congrous sphere method.
+    r"""
+    Computing boundary condition using Congrous sphere method.
+
     This is designed for secondary field formulation.
 
     >> Input
@@ -90,16 +92,23 @@ def CongruousMagBC(mesh, Bo, chi):
 
     .. math::
 
-        \\vec{B}(r) = \\frac{\mu_0}{4\pi} \\frac{m}{ \| \\vec{r} - \\vec{r}_0\|^3}[3\hat{m}\cdot\hat{r}-\hat{m}]
+        \vec{B}(r) =
+            \frac{\mu_0}{4\pi}
+            \frac{
+                m
+            }{
+                \| \vec{r} - \vec{r}_0 \|^3
+            }
+            [3\hat{m}\cdot\hat{r}-\hat{m}]
 
     """
 
     ind = chi > 0.0
-    V = mesh.vol[ind].sum()
+    V = mesh.cell_volumes[ind].sum()
 
-    gamma = 1 / V * (chi * mesh.vol).sum()  # like a mass!
+    gamma = 1 / V * (chi * mesh.cell_volumes).sum()  # like a mass!
 
-    Bot = np.sqrt(sum(Bo ** 2))
+    Bot = np.sqrt(sum(Bo**2))
     mx = Bo[0] / Bot
     my = Bo[1] / Bot
     mz = Bo[2] / Bot
@@ -109,7 +118,7 @@ def CongruousMagBC(mesh, Bo, chi):
     yc = sum(chi[ind] * mesh.gridCC[:, 1][ind]) / sum(chi[ind])
     zc = sum(chi[ind] * mesh.gridCC[:, 2][ind]) / sum(chi[ind])
 
-    indxd, indxu, indyd, indyu, indzd, indzu = mesh.faceBoundaryInd
+    indxd, indxu, indyd, indyu, indzd, indzu = mesh.face_boundary_indices
 
     const = mu_0 / (4 * np.pi) * mom
     rfun = lambda x: np.sqrt(
@@ -192,8 +201,11 @@ def CongruousMagBC(mesh, Bo, chi):
 
 
 def MagSphereAnaFunA(x, y, z, R, xc, yc, zc, chi, Bo, flag):
-    """Computing boundary condition using Congrous sphere method.
+    r"""
+    Computing boundary condition using Congrous sphere method.
+
     This is designed for secondary field formulation.
+
     >> Input
     mesh:   Mesh class
     Bo:     np.array([Box, Boy, Boz]): Primary magnetic flux
@@ -201,7 +213,14 @@ def MagSphereAnaFunA(x, y, z, R, xc, yc, zc, chi, Bo, flag):
 
     .. math::
 
-        \\vec{B}(r) = \\frac{\mu_0}{4\pi}\\frac{m}{\| \\vec{r}-\\vec{r}_0\|^3}[3\hat{m}\cdot\hat{r}-\hat{m}]
+        \vec{B}(r) =
+            \frac{\mu_0}{4\pi}
+            \frac{
+                m
+            }{
+                \| \vec{r}-\vec{r}_0 \|^3
+            }
+            [3\hat{m}\cdot\hat{r}-\hat{m}]
 
     """
     if ~np.size(x) == np.size(y) == np.size(z):
@@ -212,7 +231,7 @@ def MagSphereAnaFunA(x, y, z, R, xc, yc, zc, chi, Bo, flag):
     y = utils.mkvc(y)
     z = utils.mkvc(z)
 
-    Bot = np.sqrt(sum(Bo ** 2))
+    Bot = np.sqrt(sum(Bo**2))
     mx = Bo[0] / Bot
     my = Bo[1] / Bot
     mz = Bo[2] / Bot
@@ -235,7 +254,7 @@ def MagSphereAnaFunA(x, y, z, R, xc, yc, zc, chi, Bo, flag):
         Bz[ind] = Bo[2] * (rf2) - Bo[2]
 
     r = utils.mkvc(np.sqrt((x - xc) ** 2 + (y - yc) ** 2 + (z - zc) ** 2))
-    V = 4 * np.pi * R ** 3 / 3
+    V = 4 * np.pi * R**3 / 3
     mom = Bot / mu_0 * chi / (1 + chi / 3) * V
     const = mu_0 / (4 * np.pi) * mom
     mdotr = (
@@ -319,7 +338,7 @@ def MagSphereFreeSpace(x, y, z, R, xc, yc, zc, chi, Bo):
     bot = r * r * r * r * r
 
     M = np.empty_like(x)  # create a vector of "Ms" if the point is outide
-    M[r >= R] = R ** 3 * 4.0 / 3.0 * np.pi * chi  # outside points
+    M[r >= R] = R**3 * 4.0 / 3.0 * np.pi * chi  # outside points
     M[r < R] = r[r < R] ** 3 * 4.0 / 3.0 * np.pi * chi  # inside points
 
     g = unit_conv * (1.0 / bot) * M

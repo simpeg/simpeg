@@ -7,9 +7,8 @@ from ...utils import sub2ind
 from ... import props
 
 
-def lengthInCell(O, D, x, y, plotIt=False):
-
-    maxD = np.sqrt(np.sum(D ** 2))
+def _lengthInCell(O, D, x, y, plotIt=False):
+    maxD = np.sqrt(np.sum(D**2))
     D = D / maxD
 
     def dist(a):
@@ -54,19 +53,19 @@ def lengthInCell(O, D, x, y, plotIt=False):
         if plotIt:
             c = np.c_[dist(midAlp[0]), dist(midAlp[1])]
             plt.plot(c[0, :], c[1, :], "r", lw=2)
-        return np.sqrt(np.sum(vec ** 2))
+        return np.sqrt(np.sum(vec**2))
 
     return None
 
 
-def lineintegral(M, Tx, Rx):
+def _lineintegral(M, Tx, Rx):
     O, D = Tx, Rx - Tx
     I, J, V = [], [], []
-    for i in range(M.nCx):
-        for j in range(M.nCy):
-            x = M.vectorNx[[i, i + 1]]
-            y = M.vectorNy[[j, j + 1]]
-            v = lengthInCell(O, D, x, y)
+    for i in range(M.shape_cells[0]):
+        for j in range(M.shape_cells[1]):
+            x = M.nodes_x[[i, i + 1]]
+            y = M.nodes_y[[j, j + 1]]
+            v = _lengthInCell(O, D, x, y)
             if v is not None:
                 I += [i]
                 J += [j]
@@ -76,8 +75,14 @@ def lineintegral(M, Tx, Rx):
 
 
 class Simulation2DIntegral(LinearSimulation):
-
     slowness, slownessMap, slownessDeriv = props.Invertible("Slowness model (1/v)")
+
+    def __init__(
+        self, mesh=None, survey=None, slowness=None, slownessMap=None, **kwargs
+    ):
+        super().__init__(mesh=mesh, survey=survey, **kwargs)
+        self.slowness = slowness
+        self.slownessMap = slownessMap
 
     @property
     def A(self):
@@ -89,7 +94,7 @@ class Simulation2DIntegral(LinearSimulation):
         for src in self.survey.source_list:
             for rx in src.receiver_list:
                 for loc_i in range(rx.locations.shape[0]):
-                    inds, V = lineintegral(
+                    inds, V = _lineintegral(
                         self.mesh, src.location, rx.locations[loc_i, :]
                     )
                     self._A[inds * 0 + row, inds] = V

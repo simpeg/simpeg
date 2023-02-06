@@ -32,8 +32,7 @@ This example was updated for SimPEG 0.14.0 on January 31st, 2020 by Joseph Capri
 """
 import discretize
 from SimPEG import utils, maps, tests
-from SimPEG.electromagnetics import mu_0, frequency_domain as FDEM, analytics
-from SimPEG.electromagnetics.utils import omega
+from SimPEG.electromagnetics import frequency_domain as FDEM, mu_0
 from SimPEG.utils.io_utils import download
 
 # try:
@@ -61,7 +60,6 @@ rcParams["font.size"] = fontsize
 
 
 class PrimSecCasingExample(object):
-
     NAME = "PrimSec_5e6Casing_50Mu_05Hz_LargeCondBody"
 
     # -------------- SETUP MODEL PARAMS ---------------------------- #
@@ -172,16 +170,16 @@ class PrimSecCasingExample(object):
             # ------------- Assemble the Cyl Mesh ------------- #
             # pad nicely to second cell size
             npadx1 = np.floor(np.log(csx2 / csx1) / np.log(pfx1))
-            hx1a = utils.meshTensor([(csx1, ncx1)])
-            hx1b = utils.meshTensor([(csx1, npadx1, pfx1)])
+            hx1a = utils.unpack_widths([(csx1, ncx1)])
+            hx1b = utils.unpack_widths([(csx1, npadx1, pfx1)])
             dx1 = sum(hx1a) + sum(hx1b)
             dx1 = np.floor(dx1 / csx2)
             hx1b *= (dx1 * csx2 - sum(hx1a)) / sum(hx1b)
 
             # second chunk of mesh
             ncx2 = np.ceil((dx2 - dx1) / csx2)
-            hx2a = utils.meshTensor([(csx2, ncx2)])
-            hx2b = utils.meshTensor([(csx2, npadx2, pfx2)])
+            hx2a = utils.unpack_widths([(csx2, ncx2)])
+            hx2b = utils.unpack_widths([(csx2, npadx2, pfx2)])
             hx = np.hstack([hx1a, hx1b, hx2a, hx2b])
 
             # cell size, number of core cells, number of padding cells in the
@@ -190,18 +188,20 @@ class PrimSecCasingExample(object):
             npadzu, npadzd = 43, 43
 
             # vector of cell widths in the z-direction
-            hz = utils.meshTensor([(csz, npadzd, -pfz), (csz, ncz), (csz, npadzu, pfz)])
+            hz = utils.unpack_widths(
+                [(csz, npadzd, -pfz), (csz, ncz), (csz, npadzu, pfz)]
+            )
 
             # primary mesh
-            self._meshp = discretize.CylMesh(
+            self._meshp = discretize.CylindricalMesh(
                 [hx, 1.0, hz], [0.0, 0.0, -np.sum(hz[: npadzu + ncz - nza])]
             )
 
             print(
                 "Cyl Mesh Extent xmax: {},: zmin: {}, zmax: {}".format(
-                    self._meshp.vectorCCx.max(),
-                    self._meshp.vectorCCz.min(),
-                    self._meshp.vectorCCz.max(),
+                    self._meshp.cell_centers_x.max(),
+                    self._meshp.cell_centers_z.min(),
+                    self._meshp.cell_centers_z.max(),
                 )
             )
 
@@ -226,7 +226,6 @@ class PrimSecCasingExample(object):
         # injected during the construction of the primary model
 
         if getattr(self, "_primaryMapping", None) is None:
-
             print("Building primary mapping")
 
             # inject parameters we want to invert for into the full casing
@@ -359,7 +358,6 @@ class PrimSecCasingExample(object):
     @property
     def primarySurvey(self):
         if getattr(self, "_primarySurvey", None) is None:
-
             print("Setting up primary survey")
 
             def setupPrimarySource(plotIt=False):
@@ -376,7 +374,7 @@ class PrimSecCasingExample(object):
 
                 # vertically directed wire in borehole
                 # go through the center of the well
-                dgv_indx = meshp.gridFz[:, 0] < meshp.hx.min()
+                dgv_indx = meshp.gridFz[:, 0] < meshp.h[0].min()
                 dgv_indz = (meshp.gridFz[:, 2] >= src_a[2]) & (
                     meshp.gridFz[:, 2] <= src_b[2]
                 )
@@ -384,19 +382,19 @@ class PrimSecCasingExample(object):
                 dg_z[dgv_ind] = -1.0
 
                 # couple to the casing downhole - top part
-                dgh_indx = meshp.gridFx[:, 0] <= casing_a + meshp.hx.min() * 2
+                dgh_indx = meshp.gridFx[:, 0] <= casing_a + meshp.h[0].min() * 2
 
                 # couple to the casing downhole - bottom part
                 dgh_indz2 = (meshp.gridFx[:, 2] <= src_a[2]) & (
-                    meshp.gridFx[:, 2] > src_a[2] - meshp.hz.min()
+                    meshp.gridFx[:, 2] > src_a[2] - meshp.h[2].min()
                 )
                 dgh_ind2 = dgh_indx & dgh_indz2
                 dg_x[dgh_ind2] = 1.0
 
                 # horizontally directed wire
                 sgh_indx = meshp.gridFx[:, 0] <= src_b[0]
-                sgh_indz = (meshp.gridFx[:, 2] > meshp.hz.min()) & (
-                    meshp.gridFx[:, 2] < 2 * meshp.hz.min()
+                sgh_indz = (meshp.gridFx[:, 2] > meshp.h[2].min()) & (
+                    meshp.gridFx[:, 2] < 2 * meshp.h[2].min()
                 )
                 sgh_ind = sgh_indx & sgh_indz
                 dg_x[sgh_ind] = -1.0
@@ -405,22 +403,24 @@ class PrimSecCasingExample(object):
                 sgv_indx = (meshp.gridFz[:, 0] > src_b[0] * 0.9) & (
                     meshp.gridFz[:, 0] < src_b[0] * 1.1
                 )
-                sgv_indz = (meshp.gridFz[:, 2] >= -meshp.hz.min()) & (
-                    meshp.gridFz[:, 2] < 2 * meshp.hz.min()
+                sgv_indz = (meshp.gridFz[:, 2] >= -meshp.h[2].min()) & (
+                    meshp.gridFz[:, 2] < 2 * meshp.h[2].min()
                 )
                 sgv_ind = sgv_indx & sgv_indz
                 dg_z[sgv_ind] = 1.0
 
                 # assemble the source (downhole grounded primary)
                 dg = np.hstack([dg_x, dg_y, dg_z])
-                dg_p = [FDEM.Src.RawVec_e([], _, dg / meshp.area) for _ in self.freqs]
+                dg_p = [
+                    FDEM.Src.RawVec_e([], _, dg / meshp.face_areas) for _ in self.freqs
+                ]
 
                 # if plotIt:
                 #     # Plot the source to make sure the path is infact
                 #     # connected
 
                 #     fig, ax = plt.subplots(1, 1, figsize=(6, 4))
-                #     meshp.plotGrid(ax=ax)
+                #     meshp.plot_grid(ax=ax)
                 #     ax.plot(meshp.gridFz[dgv_ind, 0], meshp.gridFz[dgv_ind, 2], 'rd')
                 #     ax.plot(meshp.gridFx[dgh_ind2, 0], meshp.gridFx[dgh_ind2, 2], 'rd')
                 #     ax.plot(meshp.gridFz[sgv_ind, 0], meshp.gridFz[sgv_ind, 2], 'rd')
@@ -451,16 +451,16 @@ class PrimSecCasingExample(object):
 
     def plotPrimaryMesh(self):
         fig, ax = plt.subplots(1, 1, figsize=(6, 4))
-        self.meshp.plotGrid(ax=ax)
+        self.meshp.plot_grid(ax=ax)
         plt.title("Cyl Mesh")
         return ax
 
     def plotPrimaryProperties(self):
         fig, ax = plt.subplots(1, 2, figsize=(10, 4))
-        f = self.meshp.plotImage(
+        f = self.meshp.plot_image(
             self.muModel / mu_0,
             ax=ax[0],
-            pcolorOpts={"cmap": plt.get_cmap("viridis")},
+            pcolor_opts={"cmap": plt.get_cmap("viridis")},
             grid=False,
         )
         plt.colorbar(f[0], ax=ax[0])
@@ -468,10 +468,10 @@ class PrimSecCasingExample(object):
         ax[0].set_ylim([-1.5e3, 500])
         ax[0].set_title("mu_r")
 
-        f = self.meshp.plotImage(
+        f = self.meshp.plot_image(
             np.log10(self.primaryMapping * self.mtrue),
             ax=ax[1],
-            pcolorOpts={"cmap": plt.get_cmap("viridis")},
+            pcolor_opts={"cmap": plt.get_cmap("viridis")},
             grid=False,
         )
         plt.colorbar(f[0], ax=ax[1])
@@ -496,9 +496,9 @@ class PrimSecCasingExample(object):
             csz, ncz, npadz = 25, 40, 14
             pf = 1.5
 
-            hx = utils.meshTensor([(csx, npadx, -pf), (csx, ncx), (csx, npadx, pf)])
-            hy = utils.meshTensor([(csy, npady, -pf), (csy, ncy), (csy, npady, pf)])
-            hz = utils.meshTensor([(csz, npadz, -pf), (csz, ncz), (csz, npadz, pf)])
+            hx = utils.unpack_widths([(csx, npadx, -pf), (csx, ncx), (csx, npadx, pf)])
+            hy = utils.unpack_widths([(csy, npady, -pf), (csy, ncy), (csy, npady, pf)])
+            hz = utils.unpack_widths([(csz, npadz, -pf), (csz, ncz), (csz, npadz, pf)])
 
             x0 = np.r_[-hx.sum() / 2.0, -hy.sum() / 2.0, -hz[: npadz + ncz].sum()]
             self._meshs = discretize.TensorMesh([hx, hy, hz], x0=x0)
@@ -506,12 +506,12 @@ class PrimSecCasingExample(object):
             print("Secondary Mesh ... ")
             print(
                 " xmin, xmax, zmin, zmax: ",
-                self._meshs.vectorCCx.min(),
-                self._meshs.vectorCCx.max(),
-                self._meshs.vectorCCy.min(),
-                self._meshs.vectorCCy.max(),
-                self._meshs.vectorCCz.min(),
-                self._meshs.vectorCCz.max(),
+                self._meshs.cell_centers_x.min(),
+                self._meshs.cell_centers_x.max(),
+                self._meshs.cell_centers_y.min(),
+                self._meshs.cell_centers_y.max(),
+                self._meshs.cell_centers_z.min(),
+                self._meshs.cell_centers_z.max(),
             )
             print(" nC, vnC", self._meshs.nC, self._meshs.vnC)
 
@@ -577,7 +577,6 @@ class PrimSecCasingExample(object):
         return sec_problem
 
     def setupSecondarySurvey(self, primaryProblem, primarySurvey, map2meshSecondary):
-
         print("Setting up Secondary Survey")
 
         nx = 41
@@ -628,7 +627,6 @@ class PrimSecCasingExample(object):
     # ----------------------------------------------------------------- #
 
     def plotPrimaryFields(self, primaryFields, saveFig=False):
-
         # Interpolate onto a cartesian mesh with uniform cell sizes (better for
         # streamplots)
         cs = 5.0
@@ -642,12 +640,12 @@ class PrimSecCasingExample(object):
             [[(csx, ncx)], [(csx, 1)], [(csz, ncz)]], [0, -csx / 2.0, -zmax]
         )
 
-        projF = self.meshp.getInterpolationMatCartMesh(meshcart, "F")
+        projF = self.meshp.get_interpolation_matrix_cartesian_mesh(meshcart, "F")
 
         jcart = projF * primaryFields[:, "j"]
 
         fig, ax = plt.subplots(1, 1, figsize=(6, 7.75))
-        f = meshcart.plotSlice(
+        f = meshcart.plot_slice(
             jcart.real,
             normal="Y",
             v_type="F",
@@ -704,9 +702,9 @@ class PrimSecCasingExample(object):
         )
 
         # Construct interpolation matrices
-        Px = self.meshs.getInterpolationMat(meshs_plt.gridEx, locType="Ex")
-        Py = self.meshs.getInterpolationMat(meshs_plt.gridEy, locType="Ey")
-        Pz = self.meshs.getInterpolationMat(meshs_plt.gridEz, locType="Ez")
+        Px = self.meshs.get_interpolation_matrix(meshs_plt.gridEx, location_type="Ex")
+        Py = self.meshs.get_interpolation_matrix(meshs_plt.gridEy, location_type="Ey")
+        Pz = self.meshs.get_interpolation_matrix(meshs_plt.gridEz, location_type="Ez")
         P = sp.vstack([Px, Py, Pz])
 
         # for regions outside of the anomalous block, the source current
@@ -745,31 +743,31 @@ class PrimSecCasingExample(object):
 
         # re-assign zero for amplitude of the real current density
         s_e_abs_cc = s_e_stream_cc.reshape(meshs_plt.nC, 3, order="F")
-        s_e_abs_cc = np.sqrt((s_e_abs_cc ** 2.0).sum(axis=1))
+        s_e_abs_cc = np.sqrt((s_e_abs_cc**2.0).sum(axis=1))
         s_e_abs_cc[np.isnan(s_e_abs_cc)] = 0.0
         s_e_stream_cc = np.ma.masked_where(np.isnan(s_e_stream_cc), s_e_stream_cc)
 
         # plot
         fig, ax = plt.subplots(1, 1, figsize=(7.5, 6))
 
-        # f = meshs_plt.plotSlice(
+        # f = meshs_plt.plot_slice(
         #     np.ma.masked_where(maskme_e, s_e_plt.real),
         #     normal='Z',
-        #     vType='CCv',
+        #     v_type='CCv',
         #     view='abs',
-        #     pcolorOpts={'cmap':plt.get_cmap('viridis')}, ax=ax
+        #     pcolor_opts={'cmap':plt.get_cmap('viridis')}, ax=ax
         # )
 
         f = ax.pcolormesh(
-            meshs_plt.vectorCCx,
-            meshs_plt.vectorCCy,
+            meshs_plt.cell_centers_x,
+            meshs_plt.cell_centers_y,
             (s_e_abs_cc).reshape(meshs_plt.vnC[:2], order="F").T,
             cmap=plt.get_cmap("viridis"),
         )
 
         ax.streamplot(
-            meshs_plt.vectorCCx,
-            meshs_plt.vectorCCy,
+            meshs_plt.cell_centers_x,
+            meshs_plt.cell_centers_y,
             s_e_stream_cc[: meshs_plt.nC].reshape(meshs_plt.vnC[:2]),
             s_e_stream_cc[meshs_plt.nC : meshs_plt.nC * 2].reshape(meshs_plt.vnC[:2]),
             density=1.5,
@@ -909,7 +907,6 @@ class PrimSecCasingExample(object):
             norm=None,
             cblabel="",
         ):
-
             eps = 1e-3  # just so we don't get white-spaces in the colormap
             ax.axis("equal")
             vlim = np.absolute(Jv).max() * np.r_[-1.0, 1.0]
@@ -952,7 +949,7 @@ class PrimSecCasingExample(object):
             ax.set_ylabel(ylabel)
 
             if plotGrid:
-                self.meshs.plotSlice(
+                self.meshs.plot_slice(
                     np.nan * np.ones(mesh.nC), normal="Z", grid=True, ax=ax
                 )
 
@@ -1002,13 +999,13 @@ class PrimSecCasingExample(object):
         J_block_ex = J[2, :nrx].reshape(nx, ny, order="F")
         J_block_ey = J[2, nrx:].reshape(nx, ny, order="F")
 
-        clabelSigs = "Sensitivity (V/m / log($\sigma$))"
+        clabelSigs = r"Sensitivity (V/m / log($\sigma$))"
 
         fig, ax = plt.subplots(3, 2, figsize=(12, 15))
         ax[0][0] = plotJ(
             ax[0][0],
             J_back_ex,
-            "(a) Sensitivity of $E_x$ wrt log($\sigma_{back}$)",
+            r"(a) Sensitivity of $E_x$ wrt log($\sigma_{back}$)",
             plotGrid=plotGrid,
             xlim=xlim,
             ylim=ylim,
@@ -1020,7 +1017,7 @@ class PrimSecCasingExample(object):
         ax[0][1] = plotJ(
             ax[0][1],
             J_back_ey,
-            "(b) Sensitivity of $E_y$ wrt log($\sigma_{back}$)",
+            r"(b) Sensitivity of $E_y$ wrt log($\sigma_{back}$)",
             plotGrid=plotGrid,
             xlim=xlim,
             ylim=ylim,
@@ -1032,7 +1029,7 @@ class PrimSecCasingExample(object):
         ax[1][0] = plotJ(
             ax[1][0],
             J_layer_ex,
-            "(c) Sensitivity of $E_x$ wrt log($\sigma_{layer}$)",
+            r"(c) Sensitivity of $E_x$ wrt log($\sigma_{layer}$)",
             plotGrid=plotGrid,
             xlim=xlim,
             ylim=ylim,
@@ -1044,7 +1041,7 @@ class PrimSecCasingExample(object):
         ax[1][1] = plotJ(
             ax[1][1],
             J_layer_ey,
-            "(d) Sensitivity of $E_y$ wrt log($\sigma_{layer}$)",
+            r"(d) Sensitivity of $E_y$ wrt log($\sigma_{layer}$)",
             plotGrid=plotGrid,
             xlim=xlim,
             ylim=ylim,
@@ -1057,7 +1054,7 @@ class PrimSecCasingExample(object):
         ax[2][0] = plotJ(
             ax[2][0],
             J_block_ex,
-            "(e) Sensitivity of $E_x$ wrt log($\sigma_{block}$)",
+            r"(e) Sensitivity of $E_x$ wrt log($\sigma_{block}$)",
             plotGrid=plotGrid,
             xlim=xlim,
             ylim=ylim,
@@ -1070,7 +1067,7 @@ class PrimSecCasingExample(object):
         ax[2][1] = plotJ(
             ax[2][1],
             J_block_ey,
-            "(f) Sensitivity of $E_y$ wrt log($\sigma_{block}$)",
+            r"(f) Sensitivity of $E_y$ wrt log($\sigma_{block}$)",
             plotGrid=plotGrid,
             xlim=xlim,
             ylim=ylim,
@@ -1279,7 +1276,6 @@ class PrimSecCasingExample(object):
     def run(
         self, plotIt=False, runTests=False, verbose=True, saveFields=True, saveFig=False
     ):
-
         self.verbose = verbose
 
         if plotIt is True:  # Plot the Primary Model
@@ -1320,7 +1316,7 @@ class PrimSecCasingExample(object):
             def fun(x):
                 return [sec_problem.dpred(x), lambda x: sec_problem.Jvec(self.mtrue, x)]
 
-            tests.checkDerivative(fun, self.mtrue, num=2, plotIt=False)
+            tests.check_derivative(fun, self.mtrue, num=2, plotIt=False)
 
         # -------------- Calculate Fields --------------------------------- #
         # Background
@@ -1381,7 +1377,6 @@ class PrimSecCasingExample(object):
 
 
 class PrimSecCasingStoredResults(PrimSecCasingExample):
-
     url = "https://storage.googleapis.com/simpeg/papers/Heagyetal2016/"
 
     # cloudfiles = [
@@ -1407,7 +1402,6 @@ class PrimSecCasingStoredResults(PrimSecCasingExample):
         shutil.rmtree(self.filepath)
 
     def run(self, plotIt=False, runTests=False, saveFig=False):
-
         filepath = download(
             self.url + self.cloudfile, folder="~/Downloads/simpegtemp", overwrite=True
         )
@@ -1436,7 +1430,6 @@ class PrimSecCasingStoredResults(PrimSecCasingExample):
 
 
 def run(plotIt=True, runTests=False, reRun=False, saveFig=False):
-
     """
     EM Heagyetal2016 CasingFwd3DPrimSecSrc
     ======================================
@@ -1474,7 +1467,10 @@ def run(plotIt=True, runTests=False, reRun=False, saveFig=False):
 
     # remove the downloaded results
     if reRun is False:
-        casingExample.removeStoredResults()
+        try:
+            casingExample.removeStoredResults()
+        except PermissionError:
+            pass
 
 
 if __name__ == "__main__":

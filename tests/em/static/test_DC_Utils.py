@@ -1,5 +1,3 @@
-from __future__ import print_function
-
 # import matplotlib
 # matplotlib.use('Agg')
 import unittest
@@ -75,7 +73,7 @@ class DCUtilsTests_halfspace(unittest.TestCase):
             ],
         ):
             print("\n Testing {} ... ".format(survey_type))
-            survey = utils.gen_DCIPsurvey(
+            survey = utils.generate_dcip_survey(
                 self.xyz,
                 survey_type,
                 self.survey_a,
@@ -99,10 +97,10 @@ class DCUtilsTests_halfspace(unittest.TestCase):
 
             # Testing IO
             surveyfile = os.path.sep.join([self.basePath, test_file])
-            utils.writeUBC_DCobs(
-                surveyfile, dobs, survey_type=survey_type, dim=3, format_type="GENERAL"
+            io_utils.write_dcip3d_ubc(
+                surveyfile, dobs, "volt", "dobs", format_type="GENERAL"
             )
-            data2 = utils.readUBC_DC3Dobs(surveyfile)
+            data2 = io_utils.read_dcip3d_ubc(surveyfile, "volt")
             self.assertTrue(np.allclose(mkvc(data2), mkvc(dobs)))
 
             if self.plotIt:
@@ -117,13 +115,13 @@ class DCUtilsTests_halfspace(unittest.TestCase):
                     scale="log",
                     clim=None,
                     data_type="appResistivity",
-                    pcolorOpts={"cmap": "viridis"},
+                    pcolor_opts={"cmap": "viridis"},
                     data_location=True,
                 )
                 plt.show()
 
             # Test the utils functions electrode_separations,
-            # source_receiver_midpoints, geometric_factor,
+            # pseudo_locations, geometric_factor,
             # apparent_resistivity all at once
             rhoapp = utils.apparent_resistivity_from_voltage(
                 dobs.survey, dobs.dobs, space_type="half-space", eps=0.0
@@ -142,7 +140,6 @@ class DCUtilsTests_halfspace(unittest.TestCase):
 
 class DCUtilsTests_fullspace(unittest.TestCase):
     def setUp(self):
-
         url = "https://storage.googleapis.com/simpeg/tests/dc_utils/"
         cloudfiles = [
             "dPred_fullspace.txt",
@@ -161,12 +158,11 @@ class DCUtilsTests_fullspace(unittest.TestCase):
         )
 
         survey_file = os.path.sep.join([self.basePath, "dPred_fullspace.txt"])
-        data = utils.readUBC_DC3Dobs(survey_file)
+        data = io_utils.read_dcip3d_ubc(survey_file, "volt")
         self.survey = data.survey
         self.data = data
 
     def test_ElecSep(self):
-
         # Compute dipoles distances from survey
         elecSepDict = utils.electrode_separations(self.survey)
 
@@ -225,7 +221,6 @@ class DCUtilsTests_fullspace(unittest.TestCase):
 
 class DCUtilsTests_survey_from_ABMN(unittest.TestCase):
     def setUp(self):
-
         # Define the parameters for each survey line
         survey_type = ["dipole-dipole", "pole-pole", "pole-dipole", "dipole-pole"]
         data_type = "volt"
@@ -252,7 +247,6 @@ class DCUtilsTests_survey_from_ABMN(unittest.TestCase):
         self.survey = dc.survey.Survey(source_list)
 
     def test_generate_survey_from_abmn_locations(self):
-
         survey_new, sorting_index = utils.generate_survey_from_abmn_locations(
             locations_a=self.survey.locations_a,
             locations_b=self.survey.locations_b,
@@ -280,7 +274,6 @@ class DCUtilsTests_survey_from_ABMN(unittest.TestCase):
         self.assertTrue(passed)
 
     def test_get_source_locations(self):
-
         # Sources have pole and dipole which impacts unique return
         is_rx = np.all(
             np.isclose(self.survey.locations_m, self.survey.locations_n), axis=1
@@ -306,7 +299,6 @@ class DCUtilsTests_survey_from_ABMN(unittest.TestCase):
         self.assertTrue(passed)
 
     def test_convert_to_2d(self):
-
         # Only 1 line of 3D data along x direction starting from (-1000,0,0)
         lineID = np.ones(self.survey.nD, dtype=int)
         survey_2d, IND = utils.convert_survey_3d_to_2d_lines(

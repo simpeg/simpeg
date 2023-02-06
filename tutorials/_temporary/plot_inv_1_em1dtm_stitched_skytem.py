@@ -127,7 +127,6 @@ input_currents_LM = wave_LM.currents[-13:]
 source_list = []
 
 for ii in range(0, n_sounding):
-
     source_location = mkvc(source_locations[ii, :])
     receiver_location = mkvc(receiver_locations[ii, :])
     receiver_list = [
@@ -434,21 +433,20 @@ recovered_model = mkvc(np.fliplr(recovered_model))
 models_list = [true_model, l2_model, recovered_model]
 
 
-for ii, mod in enumerate(models_list):
-
+for mod in models_list:
     fig = plt.figure(figsize=(9, 3))
     ax1 = fig.add_axes([0.1, 0.12, 0.73, 0.78])
     log_mod = np.log10(mod)
 
-    mesh_plotting.plotImage(
+    mesh_plotting.plot_image(
         log_mod,
         ax=ax1,
         grid=False,
         clim=(np.log10(true_model.min()), np.log10(true_model.max())),
         #        clim=(np.log10(0.1), np.log10(1)),
-        pcolorOpts={"cmap": "viridis"},
+        pcolor_opts={"cmap": "viridis"},
     )
-    ax1.set_ylim(mesh_plotting.vectorNy.min(), mesh_plotting.vectorNy.max())
+    ax1.set_ylim(mesh_plotting.nodes_y.min(), mesh_plotting.nodes_y.max())
 
     ax1.set_title("Conductivity Model")
     ax1.set_xlabel("x (m)")

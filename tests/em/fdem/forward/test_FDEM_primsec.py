@@ -2,18 +2,11 @@
 # matplotlib.use('Agg')
 
 import discretize
-from scipy.constants import mu_0
 from SimPEG import maps, tests, utils
 from SimPEG.electromagnetics import frequency_domain as fdem
-from SimPEG.electromagnetics.utils import omega
 
-try:
-    from pymatsolver import Pardiso as Solver
-except ImportError:
-    from SimPEG import Solver as SolverLU
+from pymatsolver import Pardiso as Solver
 
-import time
-import os
 import numpy as np
 import unittest
 
@@ -69,7 +62,7 @@ pf = 1.5
 # primary mesh
 hx = [(csx, ncx), (csx, npadx, pf)]
 hz = [(csz, npadz, -pf), (csz, ncz), (csz, npadz, pf)]
-meshp = discretize.CylMesh([hx, 1.0, hz], x0="0CC")
+meshp = discretize.CylindricalMesh([hx, 1.0, hz], x0="0CC")
 
 # secondary mesh
 h = [(csz, npadz - 4, -pf), (csz, ncz), (csz, npadz - 4, pf)]
@@ -92,7 +85,6 @@ primaryMap2Meshs = (
 
 
 class PrimSecFDEMTest(object):
-
     # --------------------- Run some tests! --------------------- #
     def DataTest(self):
         print("\nTesting Data")
@@ -136,7 +128,7 @@ class PrimSecFDEMTest(object):
                 lambda x: self.secondarySimulation.Jvec(x0, x, f=self.fields_primsec),
             ]
 
-        return tests.checkDerivative(fun, x0, num=2, plotIt=False)
+        return tests.check_derivative(fun, x0, num=2, plotIt=False)
 
     def AdjointTest(self):
         print("\nTesting adjoint")
@@ -162,7 +154,6 @@ class PrimSecFDEMTest(object):
 class PrimSecFDEMSrcTest_Cyl2Cart_EB_EB(unittest.TestCase, PrimSecFDEMTest):
     @classmethod
     def setUpClass(self):
-
         print("\n------- Testing Primary Secondary Source EB -> EB --------\n")
         # receivers
         self.rxlist = []
@@ -230,7 +221,6 @@ class PrimSecFDEMSrcTest_Cyl2Cart_EB_EB(unittest.TestCase, PrimSecFDEMTest):
 class PrimSecFDEMSrcTest_Cyl2Cart_HJ_EB(unittest.TestCase, PrimSecFDEMTest):
     @classmethod
     def setUpClass(self):
-
         print("\n------- Testing Primary Secondary Source HJ -> EB --------\n")
         # receivers
         self.rxlist = []
@@ -248,10 +238,10 @@ class PrimSecFDEMSrcTest_Cyl2Cart_HJ_EB(unittest.TestCase, PrimSecFDEMTest):
         )
         self.primarySimulation.solver = Solver
         s_e = np.zeros(meshp.nF)
-        inds = meshp.nFx + utils.closestPoints(meshp, src_loc, gridLoc="Fz")
+        inds = meshp.nFx + meshp.closest_points_index(src_loc, grid_loc="Fz")
         s_e[inds] = 1.0 / csz
         primarySrc = fdem.Src.RawVec_e(
-            self.rxlist, frequency=freq, s_e=s_e / meshp.area
+            self.rxlist, frequency=freq, s_e=s_e / meshp.face_areas
         )
         self.primarySurvey = fdem.Survey([primarySrc])
 
@@ -275,7 +265,9 @@ class PrimSecFDEMSrcTest_Cyl2Cart_HJ_EB(unittest.TestCase, PrimSecFDEMTest):
         # Full 3D problem to compare with
 
         s_e3D = np.zeros(meshs.nE)
-        inds = meshs.nEx + meshs.nEy + utils.closestPoints(meshs, src_loc, gridLoc="Ez")
+        inds = (
+            meshs.nEx + meshs.nEy + meshs.closest_points_index(src_loc, grid_loc="Ez")
+        )
         s_e3D[inds] = [1.0 / (len(inds))] * len(inds)
 
         src3D = fdem.Src.RawVec_e(self.rxlist, frequency=freq, s_e=s_e3D)
@@ -308,7 +300,3 @@ class PrimSecFDEMSrcTest_Cyl2Cart_HJ_EB(unittest.TestCase, PrimSecFDEMTest):
 
     def test_Jadjoint_HJ(self):
         self.AdjointTest()
-
-
-if __name__ == "__main__":
-    unittest.main()

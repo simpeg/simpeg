@@ -1,4 +1,3 @@
-from __future__ import print_function
 import unittest
 import numpy as np
 from scipy.constants import mu_0
@@ -45,7 +44,6 @@ def adjointTest(fdemType, comp, src):
 
 
 class FDEM_AdjointTests(unittest.TestCase):
-
     if testJ:
 
         def test_Jtvec_adjointTest_j_Jform(self):
@@ -117,7 +115,3 @@ class FDEM_AdjointTests(unittest.TestCase):
                                 "h", ["MagneticFluxDensity", orientation, comp], src
                             )
                         )
-
-
-if __name__ == "__main__":
-    unittest.main()

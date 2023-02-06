@@ -1,6 +1,3 @@
-from __future__ import print_function
-from __future__ import division
-
 from matplotlib import pyplot as plt, colors, numpy as np
 
 
@@ -15,7 +12,6 @@ def plotIsoFreqNSimpedance(
     cLevel=True,
     contour=True,
 ):
-
     indUniFreq = np.where(freq == array["freq"])
 
     x, y = array["x"][indUniFreq], array["y"][indUniFreq]
@@ -84,7 +80,6 @@ def plotIsoFreqNSDiff(
     contourLine=True,
     useLog=False,
 ):
-
     indUniFreq0 = np.where(freq == arrayList[0]["freq"])
     indUniFreq1 = np.where(freq == arrayList[1]["freq"])
     seicmap = plt.get_cmap("RdYlBu")  # seismic')
@@ -187,7 +182,6 @@ def plotIsoFreqNStipper(
     cLevel=True,
     contour=True,
 ):
-
     indUniFreq = np.where(freq == array["freq"])
 
     x, y = array["x"][indUniFreq], array["y"][indUniFreq]
@@ -257,8 +251,7 @@ def plotIsoFreqNStipper(
 def plotIsoStaImpedance(
     ax, loc, array, flag, par="abs", pSym="s", pColor=None, addLabel="", zorder=1
 ):
-
-    appResFact = 1 / (8 * np.pi ** 2 * 10 ** (-7))
+    appResFact = 1 / (8 * np.pi**2 * 10 ** (-7))
     treshold = 1.0  # 1 meter
     indUniSta = (
         np.sqrt(np.sum((array[["x", "y"]].copy().view((float, 2)) - loc) ** 2, axis=1))
@@ -309,7 +302,6 @@ def plotPsudoSectNSimpedance(
     cLevel=None,
     contour=True,
 ):
-
     indSect = np.where(sectDict.values()[0] == array[sectDict.keys()[0]])
 
     # Define the plot axes
@@ -331,7 +323,7 @@ def plotPsudoSectNSimpedance(
 
     elif par == "ares":
         zPlot = np.abs(array[flag][indSect]) ** 2 / (
-            8 * np.pi ** 2 * 10 ** (-7) * array["freq"][indSect]
+            8 * np.pi**2 * 10 ** (-7) * array["freq"][indSect]
         )
         cmap = plt.get_cmap("RdYlBu")  # seismic)
         if cLevel:
@@ -479,7 +471,7 @@ def plotPsudoSectNSDiff(
             zPlot[maskInd] = mask
         cmap = plt.get_cmap("RdYlBu")  # seismic)
     elif par == "ares":
-        arF = 1 / (8 * np.pi ** 2 * 10 ** (-7))
+        arF = 1 / (8 * np.pi**2 * 10 ** (-7))
         if useLog:
             zPlot = (
                 np.log10((arF / arr0["freq"]) * np.abs(arr0[flag]) ** 2)

@@ -1,4 +1,3 @@
-from __future__ import print_function
 import unittest
 
 import numpy as np
@@ -16,7 +15,6 @@ except ImportError:
 
 class IPProblemAnalyticTests(unittest.TestCase):
     def setUp(self):
-
         cs = 12.5
         npad = 2
         hx = [(cs, npad, -1.3), (cs, 21), (cs, npad, 1.3)]
@@ -24,8 +22,12 @@ class IPProblemAnalyticTests(unittest.TestCase):
         hz = [(cs, npad, -1.3), (cs, 20)]
         mesh = discretize.TensorMesh([hx, hy, hz], x0="CCN")
 
-        x = mesh.vectorCCx[(mesh.vectorCCx > -80.0) & (mesh.vectorCCx < 80.0)]
-        y = mesh.vectorCCy[(mesh.vectorCCy > -80.0) & (mesh.vectorCCy < 80.0)]
+        x = mesh.cell_centers_x[
+            (mesh.cell_centers_x > -80.0) & (mesh.cell_centers_x < 80.0)
+        ]
+        y = mesh.cell_centers_y[
+            (mesh.cell_centers_y > -80.0) & (mesh.cell_centers_y < 80.0)
+        ]
         Aloc = np.r_[-100.0, 0.0, 0.0]
         Bloc = np.r_[100.0, 0.0, 0.0]
         M = utils.ndgrid(x - 12.5, y, np.r_[0.0])
@@ -50,7 +52,6 @@ class IPProblemAnalyticTests(unittest.TestCase):
         self.eta = eta
 
     def test_Simulation3DNodal(self):
-
         simulationdc = dc.simulation.Simulation3DNodal(
             mesh=self.mesh, survey=self.surveyDC, sigmaMap=maps.IdentityMap(self.mesh)
         )
@@ -80,7 +81,6 @@ class IPProblemAnalyticTests(unittest.TestCase):
         self.assertTrue(passed)
 
     def test_Simulation3DCellCentered(self):
-
         simulationdc = dc.simulation.Simulation3DCellCentered(
             mesh=self.mesh, survey=self.surveyDC, sigmaMap=maps.IdentityMap(self.mesh)
         )
@@ -112,7 +112,6 @@ class IPProblemAnalyticTests(unittest.TestCase):
 
 class ApparentChargeability3DTest(unittest.TestCase):
     def setUp(self):
-
         cs = 12.5
         npad = 2
         hx = [(cs, npad, -1.3), (cs, 21), (cs, npad, 1.3)]
@@ -120,8 +119,12 @@ class ApparentChargeability3DTest(unittest.TestCase):
         hz = [(cs, npad, -1.3), (cs, 20)]
         mesh = discretize.TensorMesh([hx, hy, hz], x0="CCN")
 
-        x = mesh.vectorCCx[(mesh.vectorCCx > -80.0) & (mesh.vectorCCx < 80.0)]
-        y = mesh.vectorCCy[(mesh.vectorCCy > -80.0) & (mesh.vectorCCy < 80.0)]
+        x = mesh.cell_centers_x[
+            (mesh.cell_centers_x > -80.0) & (mesh.cell_centers_x < 80.0)
+        ]
+        y = mesh.cell_centers_y[
+            (mesh.cell_centers_y > -80.0) & (mesh.cell_centers_y < 80.0)
+        ]
         Aloc = np.r_[-100.0, 0.0, 0.0]
         Bloc = np.r_[100.0, 0.0, 0.0]
         M = utils.ndgrid(x - 12.5, y, np.r_[0.0])
@@ -151,7 +154,6 @@ class ApparentChargeability3DTest(unittest.TestCase):
         self.eta = eta
 
     def test_Simulation3DNodal(self):
-
         simulationdc = dc.simulation.Simulation3DNodal(
             self.mesh,
             sigmaMap=maps.IdentityMap(self.mesh),
@@ -198,7 +200,6 @@ class ApparentChargeability3DTest(unittest.TestCase):
         self.assertLess(err, 0.05)
 
     def test_Simulation3DCellCentered(self):
-
         simulationdc = dc.simulation.Simulation3DCellCentered(
             self.mesh,
             sigmaMap=maps.IdentityMap(self.mesh),

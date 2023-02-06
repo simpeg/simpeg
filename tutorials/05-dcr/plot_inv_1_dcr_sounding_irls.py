@@ -102,7 +102,6 @@ k = np.r_[k, len(k) + 1]
 
 source_list = []
 for ii in range(0, n_sources):
-
     # MN electrode locations for receivers. Each is an (N, 3) numpy array
     M_locations = M_electrodes[k[ii] : k[ii + 1], :]
     N_locations = N_electrodes[k[ii] : k[ii + 1], :]
@@ -127,7 +126,7 @@ mpl.rcParams.update({"font.size": 14})
 ax1 = fig.add_axes([0.15, 0.1, 0.7, 0.85])
 ax1.semilogy(electrode_separations, dobs, "b")
 ax1.set_xlabel("AB/2 (m)")
-ax1.set_ylabel("Apparent Resistivity ($\Omega m$)")
+ax1.set_ylabel(r"Apparent Resistivity ($\Omega m$)")
 plt.show()
 
 ###############################################
@@ -226,10 +225,10 @@ dmis = data_misfit.L2DataMisfit(simulation=simulation, data=data_object)
 # the norm of the smallness term and 'q' defines the norm of the smoothness
 # term.
 reg = regularization.Sparse(mesh, mapping=model_map)
-reg.mref = starting_model
+reg.reference_model = starting_model
 p = 0
 q = 0
-reg.norms = np.c_[p, q]
+reg.norms = [p, q]
 
 # Define how the optimization problem is solved. Here we will use an inexact
 # Gauss-Newton approach that employs the conjugate gradient solver.

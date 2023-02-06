@@ -96,7 +96,6 @@ k = np.r_[k, len(dobs) + 1]
 
 source_list = []
 for ii in range(0, n_sources):
-
     # Receiver locations for source ii
     receiver_locations = xy_receivers[k[ii] : k[ii + 1], :]
     receiver_list = [tomo.Rx(receiver_locations)]
@@ -120,7 +119,6 @@ ax = fig.add_subplot(111)
 obs_string = []
 
 for ii in range(0, n_source):
-
     x_plotting = xy_receivers[k[ii] : k[ii + 1], 0]
     dobs_plotting = dobs[k[ii] : k[ii + 1]]
     ax.plot(x_plotting, dobs_plotting)
@@ -221,7 +219,7 @@ reg = regularization.Sparse(mesh, mapping=maps.IdentityMap(nP=mesh.nC))
 p = 0
 qx = 0.5
 qy = 0.5
-reg.norms = np.c_[p, qx, qy]
+reg.norms = [p, qx, qy]
 
 # Define how the optimization problem is solved.
 opt = optimization.ProjectedGNCG(
@@ -287,7 +285,7 @@ true_model = np.loadtxt(str(model_filename))
 fig = plt.figure(figsize=(6, 5.5))
 
 ax1 = fig.add_axes([0.15, 0.15, 0.65, 0.75])
-mesh.plotImage(true_model, ax=ax1, grid=True, pcolorOpts={"cmap": "viridis"})
+mesh.plot_image(true_model, ax=ax1, grid=True, pcolor_opts={"cmap": "viridis"})
 ax1.set_title("True Model")
 
 ax2 = fig.add_axes([0.82, 0.15, 0.05, 0.75])
@@ -303,7 +301,7 @@ plt.show()
 fig = plt.figure(figsize=(6, 5.5))
 
 ax1 = fig.add_axes([0.15, 0.15, 0.65, 0.75])
-mesh.plotImage(recovered_model, ax=ax1, grid=True, pcolorOpts={"cmap": "viridis"})
+mesh.plot_image(recovered_model, ax=ax1, grid=True, pcolor_opts={"cmap": "viridis"})
 ax1.set_title("Recovered Model")
 
 ax2 = fig.add_axes([0.82, 0.15, 0.05, 0.75])

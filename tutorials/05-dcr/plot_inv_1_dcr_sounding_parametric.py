@@ -103,7 +103,6 @@ k = np.r_[k, len(k) + 1]
 
 source_list = []
 for ii in range(0, n_sources):
-
     # MN electrode locations for receivers. Each is an (N, 3) numpy array
     M_locations = M_electrodes[k[ii] : k[ii + 1], :]
     N_locations = N_electrodes[k[ii] : k[ii + 1], :]
@@ -128,7 +127,7 @@ mpl.rcParams.update({"font.size": 14})
 ax1 = fig.add_axes([0.15, 0.1, 0.7, 0.85])
 ax1.semilogy(electrode_separations, dobs, "b")
 ax1.set_xlabel("AB/2 (m)")
-ax1.set_ylabel("Apparent Resistivity ($\Omega m$)")
+ax1.set_ylabel(r"Apparent Resistivity ($\Omega m$)")
 plt.show()
 
 ###############################################
@@ -219,12 +218,16 @@ simulation = dc.simulation_1d.Simulation1DLayers(
 dmis = data_misfit.L2DataMisfit(simulation=simulation, data=data_object)
 
 # Define the regularization on the parameters related to resistivity
-mesh_rho = TensorMesh([mesh.hx.size])
-reg_rho = regularization.Simple(mesh_rho, alpha_s=0.01, alpha_x=1, mapping=wire_map.rho)
+mesh_rho = TensorMesh([mesh.h[0].size])
+reg_rho = regularization.WeightedLeastSquares(
+    mesh_rho, alpha_s=0.01, alpha_x=1, mapping=wire_map.rho
+)
 
 # Define the regularization on the parameters related to layer thickness
-mesh_t = TensorMesh([mesh.hx.size - 1])
-reg_t = regularization.Simple(mesh_t, alpha_s=0.01, alpha_x=1, mapping=wire_map.t)
+mesh_t = TensorMesh([mesh.h[0].size - 1])
+reg_t = regularization.WeightedLeastSquares(
+    mesh_t, alpha_s=0.01, alpha_x=1, mapping=wire_map.t
+)
 
 # Combine to make regularization for the inversion problem
 reg = reg_rho + reg_t

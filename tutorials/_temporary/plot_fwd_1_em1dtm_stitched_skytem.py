@@ -17,7 +17,6 @@ import numpy as np
 import os
 import matplotlib as mpl
 from matplotlib import pyplot as plt
-from matplotlib.colors import LogNorm
 from discretize import TensorMesh
 from pymatsolver import PardisoSolver
 
@@ -25,7 +24,6 @@ from SimPEG import maps
 from SimPEG.utils import mkvc
 import SimPEG.electromagnetics.time_domain_1d as em1d
 from SimPEG.electromagnetics.utils.em1d_utils import (
-    plot_layer,
     get_vertical_discretization_time,
 )
 from SimPEG.electromagnetics.time_domain_1d.known_waveforms import (
@@ -87,7 +85,6 @@ receiver_orientation = "z"  # "x", "y" or "z"
 source_list = []
 
 for ii in range(0, n_sounding):
-
     source_location = mkvc(source_locations[ii, :])
     receiver_location = mkvc(receiver_locations[ii, :])
 
@@ -201,14 +198,14 @@ ax1 = fig.add_axes([0.1, 0.12, 0.73, 0.78])
 log_mod = np.log10(model)
 # log_mod = np.log10(temp_model)
 
-mesh2D.plotImage(
+mesh2D.plot_image(
     log_mod,
     ax=ax1,
     grid=True,
     clim=(np.log10(overburden_conductivity), np.log10(slope_conductivity)),
-    pcolorOpts={"cmap": "viridis"},
+    pcolor_opts={"cmap": "viridis"},
 )
-ax1.set_ylim(mesh2D.vectorNy.min(), mesh2D.vectorNy.max())
+ax1.set_ylim(mesh2D.nodes_y.min(), mesh2D.nodes_y.max())
 
 ax1.set_title("Conductivity Model")
 ax1.set_xlabel("x (m)")
@@ -229,14 +226,14 @@ ax1 = fig.add_axes([0.1, 0.12, 0.73, 0.78])
 log_mod_sounding = np.log10(sounding_models)
 sounding_models = np.log(sounding_models)
 
-mesh_soundings.plotImage(
+mesh_soundings.plot_image(
     log_mod_sounding,
     ax=ax1,
     grid=True,
     clim=(np.log10(overburden_conductivity), np.log10(slope_conductivity)),
-    pcolorOpts={"cmap": "viridis"},
+    pcolor_opts={"cmap": "viridis"},
 )
-ax1.set_ylim(mesh_soundings.vectorNy.min(), mesh_soundings.vectorNy.max())
+ax1.set_ylim(mesh_soundings.nodes_y.min(), mesh_soundings.nodes_y.max())
 
 ax1.set_title("Ordered Sounding Models")
 ax1.set_xlabel("hz (m)")
@@ -303,7 +300,6 @@ plt.show()
 
 
 if save_file == True:
-
     dir_path = os.path.dirname(em1d.__file__).split(os.path.sep)[:-3]
     dir_path.extend(["tutorials", "08-tdem", "em1dtm_stitched_skytem"])
     dir_path = os.path.sep.join(dir_path) + os.path.sep

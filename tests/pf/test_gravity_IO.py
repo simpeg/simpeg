@@ -1,11 +1,9 @@
-from __future__ import print_function
 import unittest
 import numpy as np
 
 # from SimPEG.potential_fields import gravity
 from SimPEG.utils.drivers import GravityDriver_Inv
 from SimPEG.utils import io_utils
-from scipy.constants import mu_0
 import shutil
 import os
 
@@ -27,7 +25,6 @@ class GravSensProblemTests(unittest.TestCase):
         )
 
     def test_gravity_inversion(self):
-
         inp_file = os.path.sep.join([self.basePath, "SimPEG_Grav_Input.inp"])
 
         driver = GravityDriver_Inv(inp_file)

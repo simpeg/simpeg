@@ -35,7 +35,6 @@ import matplotlib.pyplot as plt
 
 
 def make_example_mesh():
-
     dh = 5.0
     hx = [(dh, 5, -1.3), (dh, 20), (dh, 5, 1.3)]
     hy = [(dh, 5, -1.3), (dh, 20), (dh, 5, 1.3)]
@@ -71,9 +70,9 @@ model = halfspace_value * np.ones(ind_active.sum())
 # We can plot a slice of the model at Y=-2.5
 fig = plt.figure(figsize=(5, 5))
 ax = fig.add_subplot(111)
-ind_slice = int(mesh.nCy / 2)
-mesh.plotSlice(model_map * model, normal="Y", ax=ax, ind=ind_slice, grid=True)
-ax.set_title("Model slice at y = {} m".format(mesh.vectorCCy[ind_slice]))
+ind_slice = int(mesh.shape_cells[1] / 2)
+mesh.plot_slice(model_map * model, normal="Y", ax=ax, ind=ind_slice, grid=True)
+ax.set_title("Model slice at y = {} m".format(mesh.cell_centers_y[ind_slice]))
 plt.show()
 
 #############################################
@@ -93,8 +92,8 @@ block_value = 70.0
 
 # Define surface topography as an (N, 3) np.array. You could also load a file
 # containing the xyz points
-[xx, yy] = np.meshgrid(mesh.vectorNx, mesh.vectorNy)
-zz = -3 * np.exp((xx ** 2 + yy ** 2) / 75 ** 2) + 40.0
+[xx, yy] = np.meshgrid(mesh.nodes_x, mesh.nodes_y)
+zz = -3 * np.exp((xx**2 + yy**2) / 75**2) + 40.0
 topo = np.c_[mkvc(xx), mkvc(yy), mkvc(zz)]
 
 # Find cells below topography and define mapping
@@ -119,9 +118,9 @@ model[ind_block] = block_value
 # Plot
 fig = plt.figure(figsize=(5, 5))
 ax = fig.add_subplot(111)
-ind_slice = int(mesh.nCy / 2)
-mesh.plotSlice(model_map * model, normal="Y", ax=ax, ind=ind_slice, grid=True)
-ax.set_title("Model slice at y = {} m".format(mesh.vectorCCy[ind_slice]))
+ind_slice = int(mesh.shape_cells[1] / 2)
+mesh.plot_slice(model_map * model, normal="Y", ax=ax, ind=ind_slice, grid=True)
+ax.set_title("Model slice at y = {} m".format(mesh.cell_centers_y[ind_slice]))
 plt.show()
 
 
@@ -143,8 +142,8 @@ dyke_value = np.log(1.0 / 40.0)
 block_value = np.log(1.0 / 70.0)
 
 # Define surface topography
-[xx, yy] = np.meshgrid(mesh.vectorNx, mesh.vectorNy)
-zz = -3 * np.exp((xx ** 2 + yy ** 2) / 75 ** 2) + 40.0
+[xx, yy] = np.meshgrid(mesh.nodes_x, mesh.nodes_y)
+zz = -3 * np.exp((xx**2 + yy**2) / 75**2) + 40.0
 topo = np.c_[mkvc(xx), mkvc(yy), mkvc(zz)]
 
 # Find cells below topography
@@ -174,9 +173,9 @@ model_map = active_map * reciprocal_map * exponential_map
 # Plot
 fig = plt.figure(figsize=(5, 5))
 ax = fig.add_subplot(111)
-ind_slice = int(mesh.nCy / 2)
-mesh.plotSlice(model_map * model, normal="Y", ax=ax, ind=ind_slice, grid=True)
-ax.set_title("Model slice at y = {} m".format(mesh.vectorCCy[ind_slice]))
+ind_slice = int(mesh.shape_cells[1] / 2)
+mesh.plot_slice(model_map * model, normal="Y", ax=ax, ind=ind_slice, grid=True)
+ax.set_title("Model slice at y = {} m".format(mesh.cell_centers_y[ind_slice]))
 plt.show()
 
 
@@ -197,8 +196,8 @@ dyke_value = 40.0
 sphere_value = 70.0
 
 # Define surface topography
-[xx, yy] = np.meshgrid(mesh.vectorNx, mesh.vectorNy)
-zz = -3 * np.exp((xx ** 2 + yy ** 2) / 75 ** 2) + 40.0
+[xx, yy] = np.meshgrid(mesh.nodes_x, mesh.nodes_y)
+zz = -3 * np.exp((xx**2 + yy**2) / 75**2) + 40.0
 topo = np.c_[mkvc(xx), mkvc(yy), mkvc(zz)]
 
 # Set active cells and define unit values
@@ -219,16 +218,16 @@ xp = np.kron(np.ones((2)), [-10.0, 10.0, 45.0, 25.0])
 yp = np.kron([-1000.0, 1000.0], np.ones((4)))
 zp = np.kron(np.ones((2)), [-120.0, -120.0, 35.0, 35.0])
 xyz_pts = np.c_[mkvc(xp), mkvc(yp), mkvc(zp)]
-ind_polygon = model_builder.PolygonInd(mesh, xyz_pts)
+ind_polygon = model_builder.get_indices_polygon(mesh, xyz_pts)
 ind_polygon = ind_polygon[ind_active]  # So same size and order as model
 model[ind_polygon] = dyke_value
 
 # Plot
 fig = plt.figure(figsize=(5, 5))
 ax = fig.add_subplot(111)
-ind_slice = int(mesh.nCy / 2)
-mesh.plotSlice(model_map * model, normal="Y", ax=ax, ind=ind_slice, grid=True)
-ax.set_title("Model slice at y = {} m".format(mesh.vectorCCy[ind_slice]))
+ind_slice = int(mesh.shape_cells[1] / 2)
+mesh.plot_slice(model_map * model, normal="Y", ax=ax, ind=ind_slice, grid=True)
+ax.set_title("Model slice at y = {} m".format(mesh.cell_centers_y[ind_slice]))
 plt.show()
 
 
@@ -250,8 +249,8 @@ xc, yc, zc = -25.0, 0.0, -20.0  # center of block
 dx, dy, dz = 30.0, 40.0, 30.0  # dimensions in x,y,z
 
 # Define surface topography
-[xx, yy] = np.meshgrid(mesh.vectorNx, mesh.vectorNy)
-zz = -3 * np.exp((xx ** 2 + yy ** 2) / 75 ** 2) + 40.0
+[xx, yy] = np.meshgrid(mesh.nodes_x, mesh.nodes_y)
+zz = -3 * np.exp((xx**2 + yy**2) / 75**2) + 40.0
 topo = np.c_[mkvc(xx), mkvc(yy), mkvc(zz)]
 
 # Set active cells and define unit values
@@ -269,9 +268,9 @@ model_map = active_map * parametric_map
 # Plot
 fig = plt.figure(figsize=(5, 5))
 ax = fig.add_subplot(111)
-ind_slice = int(mesh.nCy / 2)
-mesh.plotSlice(model_map * model, normal="Y", ax=ax, ind=ind_slice, grid=True)
-ax.set_title("Model slice at y = {} m".format(mesh.vectorCCy[ind_slice]))
+ind_slice = int(mesh.shape_cells[1] / 2)
+mesh.plot_slice(model_map * model, normal="Y", ax=ax, ind=ind_slice, grid=True)
+ax.set_title("Model slice at y = {} m".format(mesh.cell_centers_y[ind_slice]))
 plt.show()
 
 
@@ -299,8 +298,8 @@ background_myu = 1.0
 sphere_mu = 1.25
 
 # Define surface topography
-[xx, yy] = np.meshgrid(mesh.vectorNx, mesh.vectorNy)
-zz = -3 * np.exp((xx ** 2 + yy ** 2) / 75 ** 2) + 40.0
+[xx, yy] = np.meshgrid(mesh.nodes_x, mesh.nodes_y)
+zz = -3 * np.exp((xx**2 + yy**2) / 75**2) + 40.0
 topo = np.c_[mkvc(xx), mkvc(yy), mkvc(zz)]
 
 # Set active cells
@@ -322,7 +321,7 @@ xp = np.kron(np.ones((2)), [-10.0, 10.0, 45.0, 25.0])
 yp = np.kron([-1000.0, 1000.0], np.ones((4)))
 zp = np.kron(np.ones((2)), [-120.0, -120.0, 35.0, 35.0])
 xyz_pts = np.c_[mkvc(xp), mkvc(yp), mkvc(zp)]
-ind_polygon = model_builder.PolygonInd(mesh, xyz_pts)
+ind_polygon = model_builder.get_indices_polygon(mesh, xyz_pts)
 ind_polygon = ind_polygon[ind_active]  # So same size and order as model
 model[ind_polygon, 0] = dyke_sigma
 
@@ -337,7 +336,7 @@ mu_map = active_map * wire_map.mu
 # Plot
 fig = plt.figure(figsize=(5, 5))
 ax = fig.add_subplot(111)
-ind_slice = int(mesh.nCy / 2)
-mesh.plotSlice(sigma_map * model, normal="Y", ax=ax, ind=ind_slice, grid=True)
-ax.set_title("Model slice at y = {} m".format(mesh.vectorCCy[ind_slice]))
+ind_slice = int(mesh.shape_cells[1] / 2)
+mesh.plot_slice(sigma_map * model, normal="Y", ax=ax, ind=ind_slice, grid=True)
+ax.set_title("Model slice at y = {} m".format(mesh.cell_centers_y[ind_slice]))
 plt.show()

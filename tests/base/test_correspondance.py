@@ -13,7 +13,6 @@ np.random.seed(10)
 
 class LinearCorrespondenceTest(unittest.TestCase):
     def setUp(self):
-
         dh = 1.0
         nx = 12
         ny = 12

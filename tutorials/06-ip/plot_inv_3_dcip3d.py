@@ -33,13 +33,12 @@ import matplotlib.pyplot as plt
 import tarfile
 
 from discretize import TreeMesh
-from discretize.utils import mkvc, refine_tree_xyz
+from discretize.utils import refine_tree_xyz
 
 from SimPEG.utils import surface2ind_topo, model_builder
 from SimPEG.utils.io_utils.io_utils_electromagnetics import read_dcip_xyz
 from SimPEG import (
     maps,
-    data,
     data_misfit,
     regularization,
     optimization,
@@ -147,7 +146,6 @@ apparent_conductivity = 1 / apparent_resistivity_from_voltage(
 )
 
 if has_plotly:
-
     # Plot DC Data
     fig = plot_3d_pseudosection(
         dc_data.survey, apparent_conductivity, scale="log", units="S/m"
@@ -180,7 +178,6 @@ else:
 #
 
 if has_plotly:
-
     # Plot IP Data
     fig = plot_3d_pseudosection(
         ip_data.survey,
@@ -349,13 +346,15 @@ dc_simulation = dc.Simulation3DNodal(
 dc_data_misfit = data_misfit.L2DataMisfit(data=dc_data, simulation=dc_simulation)
 
 # Define the regularization (model objective function)
-dc_regularization = regularization.Simple(
+dc_regularization = regularization.WeightedLeastSquares(
     mesh,
     indActive=ind_active,
-    mref=starting_conductivity_model,
+    reference_model=starting_conductivity_model,
 )
 
-dc_regularization.mrefInSmooth = True  # Include reference model in smoothness
+dc_regularization.reference_model_in_smooth = (
+    True  # Include reference model in smoothness
+)
 
 # Define how the optimization problem is solved.
 dc_optimization = optimization.InexactGaussNewton(maxIter=15, maxIterCG=30, tolCG=1e-2)
@@ -453,11 +452,11 @@ fig = plt.figure(figsize=(10, 4))
 plotting_map = maps.InjectActiveCells(mesh, ind_active, np.nan)
 
 ax1 = fig.add_axes([0.15, 0.15, 0.67, 0.75])
-mesh.plotSlice(
+mesh.plot_slice(
     plotting_map * true_conductivity_model_log10,
     ax=ax1,
     normal="Y",
-    ind=int(len(mesh.hy) / 2),
+    ind=int(len(mesh.h[1]) / 2),
     grid=False,
     clim=(true_conductivity_model_log10.min(), true_conductivity_model_log10.max()),
     pcolor_opts={"cmap": mpl.cm.viridis},
@@ -483,11 +482,11 @@ recovered_conductivity_model_log10 = np.log10(np.exp(recovered_conductivity_mode
 fig = plt.figure(figsize=(10, 4))
 
 ax1 = fig.add_axes([0.15, 0.15, 0.67, 0.75])
-mesh.plotSlice(
+mesh.plot_slice(
     plotting_map * recovered_conductivity_model_log10,
     ax=ax1,
     normal="Y",
-    ind=int(len(mesh.hy) / 2),
+    ind=int(len(mesh.h[1]) / 2),
     grid=False,
     clim=(true_conductivity_model_log10.min(), true_conductivity_model_log10.max()),
     pcolor_opts={"cmap": mpl.cm.viridis},
@@ -524,7 +523,6 @@ dpred_dc = dc_inverse_problem.dpred
 dc_normalized_misfit = (dc_data.dobs - dpred_dc) / dc_data.standard_deviation
 
 if has_plotly:
-
     # Plot IP Data
     fig = plot_3d_pseudosection(
         dc_data.survey,
@@ -608,7 +606,7 @@ ip_simulation = ip.Simulation3DNodal(
 ip_data_misfit = data_misfit.L2DataMisfit(data=ip_data, simulation=ip_simulation)
 
 # Define the regularization (model objective function)
-ip_regularization = regularization.Simple(
+ip_regularization = regularization.WeightedLeastSquares(
     mesh,
     indActive=ind_active,
     mapping=maps.IdentityMap(nP=nC),
@@ -691,11 +689,11 @@ fig = plt.figure(figsize=(10, 4))
 plotting_map = maps.InjectActiveCells(mesh, ind_active, np.nan)
 
 ax1 = fig.add_axes([0.15, 0.15, 0.67, 0.75])
-mesh.plotSlice(
+mesh.plot_slice(
     plotting_map * true_chargeability_model,
     ax=ax1,
     normal="Y",
-    ind=int(len(mesh.hy) / 2),
+    ind=int(len(mesh.h[1]) / 2),
     grid=False,
     clim=(true_chargeability_model.min(), true_chargeability_model.max()),
     pcolor_opts={"cmap": mpl.cm.plasma},
@@ -719,11 +717,11 @@ cbar.set_label("Intrinsic Chargeability [V/V]", rotation=270, labelpad=15, size=
 fig = plt.figure(figsize=(10, 4))
 
 ax1 = fig.add_axes([0.15, 0.15, 0.67, 0.75])
-mesh.plotSlice(
+mesh.plot_slice(
     plotting_map * recovered_chargeability_model,
     ax=ax1,
     normal="Y",
-    ind=int(len(mesh.hy) / 2),
+    ind=int(len(mesh.h[1]) / 2),
     grid=False,
     clim=(true_chargeability_model.min(), true_chargeability_model.max()),
     pcolor_opts={"cmap": mpl.cm.plasma},
@@ -756,7 +754,6 @@ dpred_ip = ip_inverse_problem.dpred
 ip_normalized_misfit = (ip_data.dobs - dpred_ip) / ip_data.standard_deviation
 
 if has_plotly:
-
     fig = plot_3d_pseudosection(
         ip_data.survey,
         ip_normalized_misfit,

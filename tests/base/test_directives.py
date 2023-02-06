@@ -1,5 +1,4 @@
 import unittest
-import warnings
 import pytest
 import numpy as np
 
@@ -74,11 +73,11 @@ class ValidationInInversion(unittest.TestCase):
 
         reg = regularization.Sparse(mesh)
         reg.mref = np.zeros(mesh.nC)
-        reg.norms = np.c_[0, 1, 1, 1]
+        reg.norms = [0, 1, 1, 1]
         reg.eps_p, reg.eps_q = 1e-3, 1e-3
 
         # Data misfit function
-        dmis = data_misfit.L2DataMisfit(data)
+        dmis = data_misfit.L2DataMisfit(data=data, simulation=sim)
         dmis.W = 1.0 / data.relative_error
 
         # Add directives to the inversion

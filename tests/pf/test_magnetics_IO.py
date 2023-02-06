@@ -1,4 +1,3 @@
-from __future__ import print_function
 import unittest
 import numpy as np
 
@@ -28,7 +27,6 @@ class MagSensProblemTests(unittest.TestCase):
         )
 
     def test_magnetics_inversion(self):
-
         inp_file = os.path.sep.join([self.basePath, "SimPEG_Mag_Input.inp"])
 
         driver = MagneticsDriver_Inv(inp_file)

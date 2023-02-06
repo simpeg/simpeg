@@ -84,12 +84,12 @@ waveform_times = np.linspace(-0.002, 0, 21)
 # For the trapezoidal waveform we define the ramp on interval, the
 # ramp-off interval and the off-time.
 waveform = tdem.sources.TrapezoidWaveform(
-    ramp_on=np.r_[-0.002, -0.001], ramp_off=np.r_[-0.001, 0.0], offTime=0.0
+    ramp_on=np.r_[-0.002, -0.001], ramp_off=np.r_[-0.001, 0.0], off_time=0.0
 )
 
 # Uncomment to try a quarter sine wave ramp on, followed by a linear ramp-off.
 # waveform = tdem.sources.QuarterSineRampOnWaveform(
-#     ramp_on=np.r_[-0.002, -0.001],  ramp_off=np.r_[-0.001, 0.], offTime=0.
+#     ramp_on=np.r_[-0.002, -0.001],  ramp_off=np.r_[-0.001, 0.], off_time=0.
 # )
 
 # Uncomment to try a custom waveform (just a linear ramp-off). This requires
@@ -97,7 +97,7 @@ waveform = tdem.sources.TrapezoidWaveform(
 # def wave_function(t):
 #     return - t/(np.max(waveform_times) - np.min(waveform_times))
 #
-# waveform = tdem.sources.RawWaveform(waveFct=wave_function, offTime=0.)
+# waveform = tdem.sources.RawWaveform(waveform_function=wave_function, off_time=0.)
 
 # Evaluate the waveform for each on time.
 waveform_value = [waveform.eval(t) for t in waveform_times]
@@ -144,7 +144,6 @@ source_list = []  # Create empty list to store sources
 
 # Each unique location defines a new transmitter
 for ii in range(ntx):
-
     # Here we define receivers that measure the h-field in A/m
     dbzdt_receiver = tdem.receivers.PointMagneticFluxTimeDerivative(
         receiver_locations[ii, :], time_channels, "z"
@@ -244,11 +243,11 @@ log_model = np.log10(model)
 plotting_map = maps.InjectActiveCells(mesh, ind_active, np.nan)
 
 ax1 = fig.add_axes([0.13, 0.1, 0.6, 0.85])
-mesh.plotSlice(
+mesh.plot_slice(
     plotting_map * log_model,
     normal="Y",
     ax=ax1,
-    ind=int(mesh.hx.size / 2),
+    ind=int(mesh.h[0].size / 2),
     grid=True,
     clim=(np.min(log_model), np.max(log_model)),
 )
@@ -300,7 +299,7 @@ simulation.time_steps = time_steps
 dpred = simulation.dpred(model)
 
 # Data were organized by location, then by time channel
-dpred_plotting = np.reshape(dpred, (n_tx ** 2, n_times))
+dpred_plotting = np.reshape(dpred, (n_tx**2, n_times))
 
 # Plot
 fig = plt.figure(figsize=(10, 4))
@@ -356,7 +355,6 @@ plt.show()
 #
 
 if save_file:
-
     dir_path = os.path.dirname(tdem.__file__).split(os.path.sep)[:-3]
     dir_path.extend(["tutorials", "assets", "tdem"])
     dir_path = os.path.sep.join(dir_path) + os.path.sep

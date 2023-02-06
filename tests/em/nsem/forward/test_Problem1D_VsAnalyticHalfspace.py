@@ -8,7 +8,6 @@ TOLp = 5e-1
 
 
 def appRes_psFieldNorm(sigmaHalf):
-
     # Make the survey
     survey, sigma, sigBG, mesh = nsem.utils.test_utils.setup1DSurvey(sigmaHalf, False)
     simulation = nsem.Simulation1DPrimarySecondary(
@@ -31,7 +30,6 @@ def appRes_psFieldNorm(sigmaHalf):
 
 
 def appPhs_psFieldNorm(sigmaHalf):
-
     # Make the survey
     survey, sigma, sigBG, mesh = nsem.utils.test_utils.setup1DSurvey(sigmaHalf, False)
     simulation = nsem.Simulation1DPrimarySecondary(

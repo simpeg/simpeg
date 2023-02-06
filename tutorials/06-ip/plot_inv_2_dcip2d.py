@@ -38,7 +38,6 @@ from discretize.utils import mkvc, refine_tree_xyz
 from SimPEG.utils import surface2ind_topo, model_builder
 from SimPEG import (
     maps,
-    data,
     data_misfit,
     regularization,
     optimization,
@@ -309,10 +308,10 @@ dc_simulation = dc.Simulation2DNodal(
 dc_data_misfit = data_misfit.L2DataMisfit(data=dc_data, simulation=dc_simulation)
 
 # Define the regularization (model objective function)
-dc_regularization = regularization.Simple(
+dc_regularization = regularization.WeightedLeastSquares(
     mesh,
     indActive=ind_active,
-    mref=starting_conductivity_model,
+    reference_model=starting_conductivity_model,
     alpha_s=0.01,
     alpha_x=1,
     alpha_y=1,
@@ -429,8 +428,8 @@ recovered_conductivity = conductivity_map * recovered_conductivity_model
 recovered_conductivity[~ind_active] = np.NaN
 
 ax1 = fig.add_axes([0.14, 0.17, 0.68, 0.7])
-mesh.plotImage(
-    recovered_conductivity, normal="Y", ax=ax1, grid=False, pcolorOpts={"norm": norm}
+mesh.plot_image(
+    recovered_conductivity, normal="Y", ax=ax1, grid=False, pcolor_opts={"norm": norm}
 )
 ax1.set_xlim(-600, 600)
 ax1.set_ylim(-600, 0)
@@ -468,7 +467,6 @@ cbar = 3 * [None]
 cplot = 3 * [None]
 
 for ii in range(0, 3):
-
     ax1[ii] = fig.add_axes([0.1, 0.70 - 0.33 * ii, 0.7, 0.23])
     cax1[ii] = fig.add_axes([0.83, 0.70 - 0.33 * ii, 0.05, 0.23])
     cplot[ii] = plot_pseudosection(
@@ -540,7 +538,7 @@ ip_simulation = ip.Simulation2DNodal(
 ip_data_misfit = data_misfit.L2DataMisfit(data=ip_data, simulation=ip_simulation)
 
 # Define the regularization (model objective function)
-ip_regularization = regularization.Simple(
+ip_regularization = regularization.WeightedLeastSquares(
     mesh,
     indActive=ind_active,
     mapping=maps.IdentityMap(nP=nC),
@@ -688,7 +686,6 @@ cbar = 3 * [None]
 cplot = 3 * [None]
 
 for ii in range(0, 3):
-
     ax1[ii] = fig.add_axes([0.15, 0.72 - 0.33 * ii, 0.65, 0.21])
     cax1[ii] = fig.add_axes([0.81, 0.72 - 0.33 * ii, 0.03, 0.21])
     cplot[ii] = plot_pseudosection(

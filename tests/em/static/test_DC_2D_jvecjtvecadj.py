@@ -1,4 +1,3 @@
-from __future__ import print_function
 import unittest
 import numpy as np
 import discretize
@@ -23,7 +22,6 @@ np.random.seed(41)
 
 
 class DCProblem_2DTests(unittest.TestCase):
-
     formulation = "Simulation2DCellCentered"
     bc_type = "Robin"
     storeJ = False
@@ -60,7 +58,7 @@ class DCProblem_2DTests(unittest.TestCase):
 
         # Now set up the problem to do some minimization
         dmis = data_misfit.L2DataMisfit(simulation=simulation, data=data)
-        reg = regularization.Tikhonov(mesh)
+        reg = regularization.WeightedLeastSquares(mesh)
         opt = optimization.InexactGaussNewton(
             maxIterLS=20, maxIter=10, tolF=1e-6, tolX=1e-6, tolG=1e-6, maxIterCG=6
         )
@@ -77,7 +75,7 @@ class DCProblem_2DTests(unittest.TestCase):
         self.data = data
 
     def test_misfit(self):
-        passed = tests.checkDerivative(
+        passed = tests.check_derivative(
             lambda m: (self.p.dpred(m), lambda mx: self.p.Jvec(self.m0, mx)),
             self.m0,
             plotIt=False,
@@ -97,14 +95,13 @@ class DCProblem_2DTests(unittest.TestCase):
         self.assertTrue(passed)
 
     def test_dataObj(self):
-        passed = tests.checkDerivative(
+        passed = tests.check_derivative(
             lambda m: [self.dmis(m), self.dmis.deriv(m)], self.m0, plotIt=False, num=3
         )
         self.assertTrue(passed)
 
 
 class DCProblemTestsN_Nuemann(DCProblem_2DTests):
-
     formulation = "Simulation2DNodal"
     storeJ = False
     adjoint_tol = 1e-8
@@ -112,7 +109,6 @@ class DCProblemTestsN_Nuemann(DCProblem_2DTests):
 
 
 class DCProblemTestsN_Robin(DCProblem_2DTests):
-
     formulation = "Simulation2DNodal"
     storeJ = False
     adjoint_tol = 1e-8
@@ -120,7 +116,6 @@ class DCProblemTestsN_Robin(DCProblem_2DTests):
 
 
 class DCProblem_2DTestsCC_storeJ(DCProblem_2DTests):
-
     formulation = "Simulation2DCellCentered"
     storeJ = True
     adjoint_tol = 1e-10
@@ -128,7 +123,6 @@ class DCProblem_2DTestsCC_storeJ(DCProblem_2DTests):
 
 
 class DCProblemTestsN_Nuemann_storeJ(DCProblem_2DTests):
-
     formulation = "Simulation2DNodal"
     storeJ = True
     adjoint_tol = 1e-8
@@ -136,7 +130,6 @@ class DCProblemTestsN_Nuemann_storeJ(DCProblem_2DTests):
 
 
 class DCProblemTestsN_Robin_storeJ(DCProblem_2DTests):
-
     formulation = "Simulation2DNodal"
     storeJ = True
     adjoint_tol = 1e-8

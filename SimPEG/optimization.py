@@ -1,10 +1,7 @@
-from __future__ import print_function
-
 import numpy as np
 import scipy.sparse as sp
-from six import string_types
 
-from .utils.solver_utils import SolverWrapI, Solver
+from .utils.solver_utils import SolverWrapI, Solver, SolverDiag
 from .utils import (
     callHooks,
     checkStoppers,
@@ -272,7 +269,6 @@ class Minimize(object):
     factor = 1.0
 
     def __init__(self, **kwargs):
-
         setKwargs(self, **kwargs)
 
         self.stoppersLS = [
@@ -741,14 +737,14 @@ class Remember(object):
     def _startupRemember(self, x0):
         self._rememberList = {}
         for param in self._rememberThese:
-            if isinstance(param, string_types):
+            if isinstance(param, str):
                 self._rememberList[param] = []
             elif isinstance(param, tuple):
                 self._rememberList[param[0]] = []
 
     def _doEndIterationRemember(self, *args):
         for param in self._rememberThese:
-            if isinstance(param, string_types):
+            if isinstance(param, str):
                 if self.debug:
                     print("Remember is remembering: " + param)
                 val = getattr(self, param, None)
@@ -1025,7 +1021,7 @@ class GaussNewton(Minimize, Remember):
 
 
 class InexactGaussNewton(BFGS, Minimize, Remember):
-    """
+    r"""
     Minimizes using CG as the inexact solver of
 
     .. math::
@@ -1091,7 +1087,7 @@ class SteepestDescent(Minimize, Remember):
 
 
 class NewtonRoot(object):
-    """
+    r"""
     Newton Method - Root Finding
 
     root = newtonRoot(fun,x);
@@ -1099,7 +1095,7 @@ class NewtonRoot(object):
     Where fun is the function that returns the function value as well as
     the gradient.
 
-    For iterative solving of dh = -J\\r, use O.solveTol = TOL. For direct
+    For iterative solving of dh = -J\r, use O.solveTol = TOL. For direct
     solves, use SOLVETOL = 0 (default)
 
     Rowan Cockett
@@ -1139,7 +1135,6 @@ class NewtonRoot(object):
 
         self.iter = 0
         while True:
-
             r, J = fun(x, return_g=True)
 
             Jinv = self.Solver(J, **self.solverOpts)
@@ -1264,7 +1259,6 @@ class ProjectedGNCG(BFGS, Minimize, Remember):
         count = 0
 
         while np.all([np.linalg.norm(r) > self.tolCG, count < self.maxIterCG]):
-
             count += 1
 
             q = (1 - Active) * (self.H * p)
@@ -1287,7 +1281,6 @@ class ProjectedGNCG(BFGS, Minimize, Remember):
 
         # Take a gradient step on the active cells if exist
         if temp != self.xc.size:
-
             rhs_a = (Active) * -self.g
 
             dm_i = max(abs(step))

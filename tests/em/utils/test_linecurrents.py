@@ -30,7 +30,6 @@ class LineCurrentTests(unittest.TestCase):
         np.testing.assert_allclose(s_true, s)
 
     def test_segmented_tensor(self):
-
         hx = np.ones(10) * 1.0
         hy = np.ones(10) * 2.0
         hz = np.ones(10) * 3.0
@@ -51,7 +50,6 @@ class LineCurrentTests(unittest.TestCase):
 
 class TreeMeshLineCurrentTest(unittest.TestCase):
     def test_segmented_tree(self):
-
         hx = np.ones(16) * 1.0
         hy = np.ones(16) * 2.0
         hz = np.ones(16) * 3.0
@@ -97,14 +95,14 @@ class LineCurrentFacesTest(unittest.TestCase):
             line_vertices = np.array(
                 [
                     [
-                        self.mesh.vectorCCx[points[0, 0]],
-                        self.mesh.vectorCCy[points[0, 1]],
-                        self.mesh.vectorCCz[points[0, 2]],
+                        self.mesh.cell_centers_x[points[0, 0]],
+                        self.mesh.cell_centers_y[points[0, 1]],
+                        self.mesh.cell_centers_z[points[0, 2]],
                     ],
                     [
-                        self.mesh.vectorCCx[points[1, 0]],
-                        self.mesh.vectorCCy[points[1, 1]],
-                        self.mesh.vectorCCz[points[1, 2]],
+                        self.mesh.cell_centers_x[points[1, 0]],
+                        self.mesh.cell_centers_y[points[1, 1]],
+                        self.mesh.cell_centers_z[points[1, 2]],
                     ],
                 ]
             )

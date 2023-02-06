@@ -1,18 +1,13 @@
-from SimPEG import Problem, Utils, Maps, Mesh
-from SimPEG.EM.Base import BaseEMProblem
+from SimPEG import Utils
 from SimPEG.EM.Static.DC.FieldsDC import FieldsDC, Fields3DCellCentered
 from SimPEG.EM.Static.DC import Survey, BaseDCProblem, Simulation3DCellCentered
-from SimPEG.Utils import sdiag
 import numpy as np
 import scipy.sparse as sp
 from SimPEG.Utils import Zero
-from SimPEG.EM.Static.DC import getxBCyBC_CC
 from SimPEG import Props
-import properties
 
 
 class BaseSPProblem(BaseDCProblem):
-
     h, hMap, hDeriv = Props.Invertible("Hydraulic Head (m)")
 
     q, qMap, qDeriv = Props.Invertible("Streaming current source (A/m^3)")
@@ -45,23 +40,22 @@ class BaseSPProblem(BaseDCProblem):
         return toDelete
 
     def evalq(self, Qv, vel):
-        MfQviI = self.mesh.getFaceInnerProduct(1.0 / Qv, invMat=True)
-        Mf = self.mesh.getFaceInnerProduct()
+        MfQviI = self.mesh.get_face_inner_product(1.0 / Qv, invert_matrix=True)
+        Mf = self.mesh.get_face_inner_product()
         return self.Div * (Mf * (MfQviI * vel))
 
 
 class Problem_CC(BaseSPProblem, Simulation3DCellCentered):
-
     _solutionType = "phiSolution"
     _formulation = "HJ"  # CC potentials means J is on faces
     fieldsPair = Fields3DCellCentered
     modelType = None
     bc_type = "Mixed"
-    coordinate_system = properties.StringChoice(
-        "Type of coordinate system we are regularizing in",
-        choices=["cartesian", "spherical"],
-        default="cartesian",
-    )
+    # coordinate_system = StringChoice(
+    #     "Type of coordinate system we are regularizing in",
+    #     choices=["cartesian", "spherical"],
+    #     default="cartesian",
+    # )
 
     def __init__(self, mesh, **kwargs):
         BaseSPProblem.__init__(self, mesh, **kwargs)
@@ -103,7 +97,6 @@ class Problem_CC_Jstore(Problem_CC):
         return self._G
 
     def getJ(self, m, f=None):
-
         if self.coordinate_system == "cartesian":
             return self.G
         else:
@@ -111,7 +104,6 @@ class Problem_CC_Jstore(Problem_CC):
             return self.G * self.S
 
     def Jvec(self, m, v, f=None):
-
         self.model = m
 
         if self.coordinate_system == "cartesian":
@@ -120,7 +112,6 @@ class Problem_CC_Jstore(Problem_CC):
             return np.dot(self.G, self.S.dot(v))
 
     def Jtvec(self, m, v, f=None):
-
         self.model = m
 
         if self.coordinate_system == "cartesian":
@@ -130,7 +121,6 @@ class Problem_CC_Jstore(Problem_CC):
 
     @Utils.count
     def fields(self, m):
-
         self.model = m
 
         if self.coordinate_system == "spherical":

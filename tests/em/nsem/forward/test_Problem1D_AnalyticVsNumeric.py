@@ -1,4 +1,3 @@
-from __future__ import print_function
 import unittest
 from SimPEG import mkvc
 from SimPEG.electromagnetics import natural_source as nsem
@@ -12,7 +11,7 @@ TOLp = 5e-2
 def getAppResPhs(nsemdata):
     # Make impedance
     def appResPhs(freq, z):
-        app_res = ((1.0 / (8e-7 * np.pi ** 2)) / freq) * np.abs(z) ** 2
+        app_res = ((1.0 / (8e-7 * np.pi**2)) / freq) * np.abs(z) ** 2
         app_phs = np.arctan2(z.imag, z.real) * (180 / np.pi)
         return app_res, app_phs
 
@@ -51,7 +50,6 @@ def calculateAnalyticSolution(source_list, mesh, model):
 
 
 def dataMis_AnalyticPrimarySecondary(sigmaHalf):
-
     # Make the survey
     # Primary secondary
     survey, sig, sigBG, mesh = nsem.utils.test_utils.setup1DSurvey(

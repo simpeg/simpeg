@@ -46,7 +46,7 @@ mesh = discretize.TensorMesh([hx, hy, hz], "CCC")
 topoCells = mesh.gridCC[:, 2] < 0.0  # Define topography
 
 xyzc = mesh.gridCC[topoCells, :]
-c = 2 * np.pi * 8 ** 2
+c = 2 * np.pi * 8**2
 pc = np.r_[4e-4, 4e-4, 4e-4, 6e-4, 8e-4, 6e-4, 8e-4, 8e-4]
 x_0 = np.r_[50.0, -50.0, -40.0, -20.0, -15.0, 20.0, -10.0, 25.0]
 y_0 = np.r_[0.0, 0.0, 40.0, 10.0, -20.0, 15.0, 0.0, 0.0]
@@ -86,9 +86,10 @@ loc = np.c_[mkvc(x), mkvc(y), mkvc(z)]  # Src and Rx Locations
 src_list_vrm = []
 
 for pp in range(0, loc.shape[0]):
-
     loc_pp = np.reshape(loc[pp, :], (1, 3))
-    rx_list_vrm = [VRM.Rx.Point(loc_pp, times=times, fieldType="dbdt", orientation="z")]
+    rx_list_vrm = [
+        VRM.Rx.Point(loc_pp, times=times, field_type="dbdt", orientation="z")
+    ]
 
     src_list_vrm.append(
         VRM.Src.MagDipole(rx_list_vrm, mkvc(loc[pp, :]), [0.0, 0.0, 0.01], waveform)
@@ -127,16 +128,16 @@ fields_vrm = np.reshape(fields_vrm, (n_loc, n_times))
 
 sig = 1e-1
 mu0 = 4 * np.pi * 1e-7
-fields_tem = -(sig ** 1.5) * mu0 ** 2.5 * times ** -2.5 / (20 * np.pi ** 1.5)
+fields_tem = -(sig**1.5) * mu0**2.5 * times**-2.5 / (20 * np.pi**1.5)
 fields_tem = np.kron(np.ones((n_loc, 1)), np.reshape(fields_tem, (1, n_times)))
 c = (
-    np.exp(-((loc[:, 0] - 10) ** 2) / (25 ** 2))
-    * np.exp(-((loc[:, 1] - 20) ** 2) / (35 ** 2))
-    + np.exp(-((loc[:, 0] + 20) ** 2) / (20 ** 2))
-    * np.exp(-((loc[:, 1] + 20) ** 2) / (40 ** 2))
+    np.exp(-((loc[:, 0] - 10) ** 2) / (25**2))
+    * np.exp(-((loc[:, 1] - 20) ** 2) / (35**2))
+    + np.exp(-((loc[:, 0] + 20) ** 2) / (20**2))
+    * np.exp(-((loc[:, 1] + 20) ** 2) / (40**2))
     + 1.5
-    * np.exp(-((loc[:, 0] - 25) ** 2) / (10 ** 2))
-    * np.exp(-((loc[:, 1] + 25) ** 2) / (10 ** 2))
+    * np.exp(-((loc[:, 0] - 25) ** 2) / (10**2))
+    * np.exp(-((loc[:, 1] + 25) ** 2) / (10**2))
     + 0.25
 )
 
@@ -163,13 +164,13 @@ param_3 = [-12, 0, 0]
 
 for qq in range(0, 3):
     ax1[qq] = Fig.add_axes([0.07 + qq * 0.29, 0.7, 0.23, 0.23])
-    cplot1[qq] = mesh.plotSlice(
+    cplot1[qq] = mesh.plot_slice(
         plotMap * xi_true,
         normal=view_str[qq],
         ind=int((param_1[qq] + 2 * npad) / 2 - param_2[qq]),
         ax=ax1[qq],
         grid=True,
-        pcolorOpts={"cmap": "gist_heat_r"},
+        pcolor_opts={"cmap": "gist_heat_r"},
     )
     cplot1[qq][0].set_clim((0.0, np.max(xi_true)))
     ax1[qq].set_xlabel("Y [m]", fontsize=font_size)
@@ -185,7 +186,7 @@ cbar14 = mpl.colorbar.ColorbarBase(
     ax1[3], cmap=mpl.cm.gist_heat_r, norm=norm, orientation="vertical"
 )
 cbar14.set_label(
-    "$\Delta \chi /$ln$(\lambda_2 / \lambda_1 )$ [SI]",
+    r"$\Delta \chi /$ln$(\lambda_2 / \lambda_1 )$ [SI]",
     rotation=270,
     labelpad=15,
     size=font_size,
@@ -197,7 +198,7 @@ ax2 = 2 * [None]
 n = x.shape[0]
 for qq in range(0, 2):
     ax2[qq] = Fig.add_axes([0.1 + 0.47 * qq, 0.335, 0.38, 0.29])
-    k = int((n ** 2 - 1) / 2 - 3 * n * (-1) ** qq)
+    k = int((n**2 - 1) / 2 - 3 * n * (-1) ** qq)
     di_vrm = mkvc(np.abs(fields_vrm[k, :]))
     di_tem = mkvc(np.abs(fields_tem[k, :]))
     ax2[qq].loglog(times, di_tem, "r.-")

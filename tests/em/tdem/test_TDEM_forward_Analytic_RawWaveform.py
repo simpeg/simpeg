@@ -1,5 +1,3 @@
-from __future__ import division, print_function
-
 import unittest
 
 import discretize
@@ -23,14 +21,13 @@ def halfSpaceProblemAnaDiff(
     plotIt=False,
     rxType="MagneticFluxDensityz",
 ):
-
     if bounds is None:
         bounds = [1e-5, 1e-3]
     if meshType == "CYL":
         cs, ncx, ncz, npad = 15.0, 30, 10, 15
         hx = [(cs, ncx), (cs, npad, 1.3)]
         hz = [(cs, npad, -1.3), (cs, ncz), (cs, npad, 1.3)]
-        mesh = discretize.CylMesh([hx, 1, hz], "00C")
+        mesh = discretize.CylindricalMesh([hx, 1, hz], "00C")
 
     elif meshType == "TENSOR":
         cs, nc, npad = 20.0, 20, 7
@@ -39,8 +36,8 @@ def halfSpaceProblemAnaDiff(
         hz = [(cs, npad, 1.5), (cs, nc), (cs, npad, 1.5)]
         mesh = discretize.TensorMesh([hx, hy, hz], "CCC")
 
-    active = mesh.vectorCCz < 0.0
-    actMap = maps.InjectActiveCells(mesh, active, np.log(1e-8), nC=mesh.nCz)
+    active = mesh.cell_centers_z < 0.0
+    actMap = maps.InjectActiveCells(mesh, active, np.log(1e-8), nC=mesh.shape_cells[2])
     mapping = maps.ExpMap(mesh) * maps.SurjectVertical1D(mesh) * actMap
 
     time_steps = [(1e-3, 5), (1e-4, 5), (5e-5, 10), (5e-5, 10), (1e-4, 10)]
@@ -53,7 +50,7 @@ def halfSpaceProblemAnaDiff(
     out = utils.VTEMFun(times, 0.00595, 0.006, 100)
     wavefun = interp1d(times, out)
     t0 = 0.006
-    waveform = tdem.Src.RawWaveform(offTime=t0, waveFct=wavefun)
+    waveform = tdem.Src.RawWaveform(off_time=t0, waveform_function=wavefun)
 
     rx = getattr(tdem.Rx, "Point{}".format(rxType[:-1]))(
         np.array([[rxOffset, 0.0, 0.0]]), np.logspace(-4, -3, 31) + t0, rxType[-1]
@@ -84,7 +81,7 @@ def halfSpaceProblemAnaDiff(
     )
     prb.solver = Solver
 
-    sigma = np.ones(mesh.nCz) * 1e-8
+    sigma = np.ones(mesh.shape_cells[2]) * 1e-8
     sigma[active] = sig_half
     sigma = np.log(sigma[active])
 
@@ -222,7 +219,3 @@ class TDEM_bTests(unittest.TestCase):
             )
             < 0.01
         )
-
-
-if __name__ == "__main__":
-    unittest.main()

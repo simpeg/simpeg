@@ -5,6 +5,7 @@ import numpy as np
 from scipy.constants import mu_0
 from geoana.em.fdem import (
     MagneticDipoleHalfSpace,
+    omega,
     vertical_magnetic_field_horizontal_loop as mag_field,
 )
 import empymod
@@ -12,78 +13,75 @@ import empymod
 
 class EM1D_FD_test_failures(unittest.TestCase):
     def setUp(self):
-        
         nearthick = np.logspace(-1, 1, 5)
         deepthick = np.logspace(1, 2, 10)
         thicknesses = np.r_[nearthick, deepthick]
         topo = np.r_[0.0, 0.0, 100.0]
-        
+
         self.topo = topo
         self.thicknesses = thicknesses
         self.nlayers = len(thicknesses) + 1
-    
+
     def test_height_failures(self):
-        
         frequencies = np.logspace(-1, 5, 6)
-        x_offset = 10.
-        z_tx = [-10., 1., 1.]
-        z_rx = [1., -10., -10.]
+        x_offset = 10.0
+        z_tx = [-10.0, 1.0, 1.0]
+        z_rx = [1.0, -10.0, -10.0]
         use_source_receiver_offset = [False, False, True]
         error_type = [ValueError, ValueError, ValueError]
         test_type_string = [
-            'NO SOURCE BELOW SURFACE',
-            'NO RX BELOW SURFACE (STANDARD)',
-            'NO RX BELOW SURFACE (OFFSET)'
+            "NO SOURCE BELOW SURFACE",
+            "NO RX BELOW SURFACE (STANDARD)",
+            "NO RX BELOW SURFACE (OFFSET)",
         ]
 
         for ii in range(0, len(error_type)):
             if use_source_receiver_offset[ii]:
                 rx_location = np.array([[x_offset, 0.0, z_rx[ii]]])
             else:
-                rx_location = np.array([[x_offset, 0.0, z_rx[ii]+self.topo[2]]])
-        
+                rx_location = np.array([[x_offset, 0.0, z_rx[ii] + self.topo[2]]])
+
             receiver_list = [
                 fdem.receivers.PointMagneticFieldSecondary(
-                    rx_location, orientation="z", component="both",
-                    use_source_receiver_offset=use_source_receiver_offset[ii]
+                    rx_location,
+                    orientation="z",
+                    component="both",
+                    use_source_receiver_offset=use_source_receiver_offset[ii],
                 )
             ]
-            
-            src_location = np.array([[0.0, 0.0, z_tx[ii]+self.topo[2]]])
-        
+
+            src_location = np.array([[0.0, 0.0, z_tx[ii] + self.topo[2]]])
+
             source_list = [
-                fdem.sources.MagDipole(
-                    receiver_list, f, src_location, orientation="z"
-                ) for f in frequencies
+                fdem.sources.MagDipole(receiver_list, f, src_location, orientation="z")
+                for f in frequencies
             ]
 
             survey = fdem.Survey(source_list)
-            
+
             self.assertRaises(
                 error_type[ii],
                 fdem.Simulation1DLayered,
                 survey=survey,
                 thicknesses=self.thicknesses,
-                topo=self.topo
+                topo=self.topo,
             )
-        
+
             print(test_type_string[ii] + " TEST PASSED")
-    
+
     def test_loop_orientation_failures(self):
-        
         src_location = np.array([0.0, 0.0, 1e-5])
         frequencies = np.logspace(-1, 5, 6)
         sigma_map = maps.ExpMap(nP=self.nlayers)
         m_1D = np.log(np.ones(self.nlayers) * 0.01)
-        
-        offsets = [10., 0.]
-        rx_orientation = ['z', 'z']
-        src_orientation = ['z', 'x']
-        test_type_string = ['NO TX-RX OFFSET', 'ONLY HORIZONTAL LOOP']
+
+        offsets = [10.0, 0.0]
+        rx_orientation = ["z", "z"]
+        src_orientation = ["z", "x"]
+        test_type_string = ["NO TX-RX OFFSET", "ONLY HORIZONTAL LOOP"]
         error_type = [ValueError, ValueError]
-        
+
         for ii in range(0, len(offsets)):
-        
             rx_location = np.array([[offsets[ii], 0.0, 1e-5]])
             receiver_list = [
                 fdem.receivers.PointMagneticFieldSecondary(
@@ -93,35 +91,34 @@ class EM1D_FD_test_failures(unittest.TestCase):
 
             source_list = [
                 fdem.sources.CircularLoop(
-                    receiver_list, f, src_location, radius=5.0, orientation=src_orientation[ii]
-                ) for f in frequencies
+                    receiver_list,
+                    f,
+                    src_location,
+                    radius=5.0,
+                    orientation=src_orientation[ii],
+                )
+                for f in frequencies
             ]
 
             survey = fdem.Survey(source_list)
-    
+
             sim = fdem.Simulation1DLayered(
                 survey=survey, thicknesses=self.thicknesses, sigmaMap=sigma_map
             )
-        
-            self.assertRaises(
-                error_type[ii],
-                sim.dpred,
-                m_1D
-            )
-            
+
+            self.assertRaises(error_type[ii], sim.dpred, m_1D)
+
             print(test_type_string[ii] + " TEST PASSED")
-            
-            
-        
+
+
 class EM1D_FD_FwdProblemTests(unittest.TestCase):
     def setUp(self):
-
         nearthick = np.logspace(-1, 1, 5)
         deepthick = np.logspace(1, 2, 10)
         thicknesses = np.r_[nearthick, deepthick]
         topo = np.r_[0.0, 0.0, 100.0]
 
-        offset = 10.
+        offset = 10.0
         src_location = np.array([[0.0, 0.0, 100.0 + 1e-5]])
         rx_location = np.array([[offset, 0.0, 0.0]])
         frequencies = np.logspace(-1, 5, 61)
@@ -130,27 +127,39 @@ class EM1D_FD_FwdProblemTests(unittest.TestCase):
         receiver_list = []
         receiver_list.append(
             fdem.receivers.PointMagneticFieldSecondary(
-                rx_location, orientation="z", component="real", use_source_receiver_offset=True
+                rx_location,
+                orientation="z",
+                component="real",
+                use_source_receiver_offset=True,
             )
         )
         receiver_list.append(
             fdem.receivers.PointMagneticFieldSecondary(
-                rx_location, orientation="z", component="imag", use_source_receiver_offset=True
+                rx_location,
+                orientation="z",
+                component="imag",
+                use_source_receiver_offset=True,
             )
         )
         receiver_list.append(
             fdem.receivers.PointMagneticFieldSecondary(
-                rx_location, orientation="x", component="real", use_source_receiver_offset=True
+                rx_location,
+                orientation="x",
+                component="real",
+                use_source_receiver_offset=True,
             )
         )
         receiver_list.append(
             fdem.receivers.PointMagneticFieldSecondary(
-                rx_location, orientation="x", component="imag", use_source_receiver_offset=True
+                rx_location,
+                orientation="x",
+                component="imag",
+                use_source_receiver_offset=True,
             )
         )
 
         source_list = []
-        for ii, frequency in enumerate(frequencies):
+        for frequency in frequencies:
             src = fdem.sources.MagDipole(
                 receiver_list, frequency, src_location, orientation="z"
             )
@@ -177,22 +186,20 @@ class EM1D_FD_FwdProblemTests(unittest.TestCase):
         self.frequencies = frequencies
         self.thicknesses = thicknesses
         self.nlayers = len(thicknesses) + 1
-        
+
     def test_basic_properties(self):
-        
         sim = fdem.Simulation1DLayered(
             survey=self.survey, thicknesses=self.thicknesses, topo=self.topo
         )
-        
+
         # Number of filters
-        self.assertEqual(sim.n_filter, sim.fhtfilt.base.size)
-        
+        self.assertEqual(sim.n_filter, sim._fhtfilt.base.size)
+
         # Layer depths
         depths = np.r_[0.0, -np.cumsum(self.thicknesses)]
-        self.assertTrue(np.all(depths==sim.depth))
+        self.assertTrue(np.all(depths == sim.depth))
 
     def test_EM1DFDfwd_VMD_Halfspace(self):
-
         sigma_map = maps.ExpMap(nP=1)
         sim = fdem.Simulation1DLayered(
             survey=self.survey, sigmaMap=sigma_map, topo=self.topo
@@ -205,7 +212,7 @@ class EM1D_FD_FwdProblemTests(unittest.TestCase):
             location=np.r_[0.0, 0.0, 0.0],
             orientation="z",
             frequency=self.frequencies,
-            sigma=self.sigma,
+            sigma=np.asarray(self.sigma),
             quasistatic=True,
         )
         H_analytic = np.squeeze(dip.magnetic_field(np.array([[self.offset, 0.0]])))
@@ -217,7 +224,6 @@ class EM1D_FD_FwdProblemTests(unittest.TestCase):
         self.assertLess(err, 1e-5)
 
     def test_EM1DFDfwd_VMD_RealCond(self):
-
         sigma_map = maps.ExpMap(nP=self.nlayers)
         sim = fdem.Simulation1DLayered(
             survey=self.survey,
@@ -233,7 +239,7 @@ class EM1D_FD_FwdProblemTests(unittest.TestCase):
             location=np.r_[0.0, 0.0, 0.0],
             orientation="z",
             frequency=self.frequencies,
-            sigma=self.sigma,
+            sigma=np.asarray(self.sigma),
             quasistatic=True,
         )
         H_analytic = np.squeeze(dip.magnetic_field(np.array([[self.offset, 0.0]])))
@@ -245,7 +251,6 @@ class EM1D_FD_FwdProblemTests(unittest.TestCase):
         self.assertLess(err, 1e-5)
 
     def test_EM1DFDfwd_VMD_ComplexCond(self):
-
         sigma_map = maps.IdentityMap(nP=self.nlayers)
         mu = mu_0 * np.ones(self.nlayers)
         tau = self.tau * np.ones(self.nlayers)
@@ -270,12 +275,15 @@ class EM1D_FD_FwdProblemTests(unittest.TestCase):
 
         H_analytic = []
         for sigma, frequency in zip(sigmas, self.frequencies):
+            sig = np.real(sigma)
+            eps = np.imag(sigma) / omega(frequency)
             dip = MagneticDipoleHalfSpace(
                 location=np.r_[0.0, 0.0, 0.0],
                 orientation="z",
                 frequency=[frequency],
-                sigma=sigma,
-                quasistatic=True,
+                sigma=sig,
+                epsilon=eps,
+                quasistatic=False,
             )
             hv = np.squeeze(dip.magnetic_field(np.array([[self.offset, 0.0]])))
             hx = hv[0]
@@ -286,7 +294,6 @@ class EM1D_FD_FwdProblemTests(unittest.TestCase):
         self.assertTrue(err < 1e-2)
 
     def test_EM1DFDfwd_HMD_RealCond(self):
-
         src_location = np.array([0.0, 0.0, 100.0 + 1e-5])
         rx_location = np.array([self.offset, 0.0, 100.0 + 1e-5])
         frequencies = np.logspace(-1, 5, 61)
@@ -305,7 +312,7 @@ class EM1D_FD_FwdProblemTests(unittest.TestCase):
         )
 
         source_list = []
-        for ii, frequency in enumerate(frequencies):
+        for frequency in frequencies:
             src = fdem.sources.MagDipole(
                 receiver_list, frequency, src_location, orientation="x"
             )
@@ -328,7 +335,7 @@ class EM1D_FD_FwdProblemTests(unittest.TestCase):
             location=np.r_[0.0, 0.0, 0.0],
             orientation="x",
             frequency=self.frequencies,
-            sigma=self.sigma,
+            sigma=np.asarray(self.sigma),
             quasistatic=True,
         )
         H_analytic = np.squeeze(dip.magnetic_field(np.array([[self.offset, 0.0]])))[
@@ -340,7 +347,6 @@ class EM1D_FD_FwdProblemTests(unittest.TestCase):
         self.assertLess(err, 1e-5)
 
     def test_EM1DFDfwd_CircularLoop_RealCond(self):
-
         src_location = np.array([0.0, 0.0, 100.0 + 1e-5])
         rx_location = np.array([0.0, 0.0, 100.0 + 1e-5])
         frequencies = np.logspace(-1, 5, 61)
@@ -359,7 +365,7 @@ class EM1D_FD_FwdProblemTests(unittest.TestCase):
         )
 
         source_list = []
-        for ii, frequency in enumerate(frequencies):
+        for frequency in frequencies:
             src = fdem.sources.CircularLoop(
                 receiver_list, frequency, src_location, radius=5.0
             )
@@ -385,7 +391,6 @@ class EM1D_FD_FwdProblemTests(unittest.TestCase):
         self.assertLess(err, 1e-5)
 
     def test_EM1DFDfwd_CircularLoop_ComplexCond(self):
-
         src_location = np.array([0.0, 0.0, 100.0 + 1e-5])
         rx_location = np.array([0.0, 0.0, 100.0 + 1e-5])
         frequencies = np.logspace(-1, 5, 61)
@@ -404,7 +409,7 @@ class EM1D_FD_FwdProblemTests(unittest.TestCase):
         )
 
         source_list = []
-        for ii, frequency in enumerate(frequencies):
+        for frequency in frequencies:
             src = fdem.sources.CircularLoop(
                 receiver_list, frequency, src_location, radius=5.0
             )
@@ -441,9 +446,8 @@ class EM1D_FD_FwdProblemTests(unittest.TestCase):
         self.assertLess(err, 1e-5)
 
 
-class EM1D_FD_PiecewiseWireLoopTest(unittest.TestCase):
+class EM1D_FD_LineCurrentTest(unittest.TestCase):
     def setUp(self):
-
         x_path = np.array([-2, -2, 2, 2, -2])
         y_path = np.array([-1, 1, 1, -1, -1])
         frequencies = np.logspace(0, 4)
@@ -463,9 +467,7 @@ class EM1D_FD_PiecewiseWireLoopTest(unittest.TestCase):
         )
 
         for freq in frequencies:
-            source = fdem.sources.PiecewiseWireLoop(
-                receiver_list, wire_paths=wire_paths, frequency=freq
-            )
+            source = fdem.sources.LineCurrent(receiver_list, freq, wire_paths)
             source_list.append(source)
 
         # Survey
@@ -482,7 +484,6 @@ class EM1D_FD_PiecewiseWireLoopTest(unittest.TestCase):
         self.thicknesses = thicknesses
 
     def test_with_empymod(self):
-
         sigma_map = maps.ExpMap(nP=1)
         sim = fdem.Simulation1DLayered(
             survey=self.survey,

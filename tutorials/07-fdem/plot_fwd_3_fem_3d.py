@@ -90,7 +90,6 @@ source_list = []  # Create empty list to store sources
 # Each unique location and frequency defines a new transmitter
 for ii in range(len(frequencies)):
     for jj in range(ntx):
-
         # Define receivers of different type at each location
         bzr_receiver = fdem.receivers.PointMagneticFluxDensitySecondary(
             receiver_locations[jj, :], "z", "real"
@@ -193,11 +192,11 @@ plotting_map = maps.InjectActiveCells(mesh, ind_active, np.nan)
 log_model = np.log10(model)
 
 ax1 = fig.add_axes([0.13, 0.1, 0.6, 0.85])
-mesh.plotSlice(
+mesh.plot_slice(
     plotting_map * log_model,
     normal="Y",
     ax=ax1,
-    ind=int(mesh.hx.size / 2),
+    ind=int(mesh.h[0].size / 2),
     grid=False,
     clim=(np.log10(background_conductivity), np.log10(block_conductivity)),
 )
@@ -303,7 +302,6 @@ plt.show()
 
 
 if save_file:
-
     dir_path = os.path.dirname(fdem.__file__).split(os.path.sep)[:-3]
     dir_path.extend(["tutorials", "assets", "fdem"])
     dir_path = os.path.sep.join(dir_path) + os.path.sep

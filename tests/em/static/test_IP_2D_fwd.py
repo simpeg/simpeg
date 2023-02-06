@@ -1,4 +1,3 @@
-from __future__ import print_function
 import unittest
 import discretize
 
@@ -15,7 +14,6 @@ except ImportError:
 
 class IPProblemAnalyticTests(unittest.TestCase):
     def setUp(self):
-
         cs = 12.5
         hx = [(cs, 7, -1.3), (cs, 61), (cs, 7, 1.3)]
         hy = [(cs, 7, -1.3), (cs, 20)]
@@ -56,7 +54,6 @@ class IPProblemAnalyticTests(unittest.TestCase):
         self.eta = eta
 
     def test_Simulation2DNodal(self):
-
         problemDC = dc.Simulation2DNodal(
             self.mesh, survey=self.surveyDC, sigmaMap=maps.IdentityMap(self.mesh)
         )
@@ -87,7 +84,6 @@ class IPProblemAnalyticTests(unittest.TestCase):
         self.assertTrue(passed)
 
     def test_Simulation2DCellCentered(self):
-
         problemDC = dc.Simulation2DCellCentered(
             self.mesh, survey=self.surveyDC, rhoMap=maps.IdentityMap(self.mesh)
         )
@@ -166,7 +162,6 @@ class ApparentChargeability2DTest(unittest.TestCase):
         self.eta = eta
 
     def test_Simulation2DNodal(self):
-
         simDC = dc.Simulation2DNodal(
             self.mesh,
             sigmaMap=maps.IdentityMap(self.mesh),
@@ -211,7 +206,6 @@ class ApparentChargeability2DTest(unittest.TestCase):
         self.assertLess(err, 0.05)
 
     def test_Simulation2DCellCentered(self):
-
         simDC = dc.Simulation2DCellCentered(
             self.mesh,
             sigmaMap=maps.IdentityMap(self.mesh),

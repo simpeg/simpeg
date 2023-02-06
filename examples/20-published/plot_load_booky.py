@@ -106,7 +106,7 @@ def run(plotIt=True, saveIt=False, saveFig=False, cleanup=True):
     header_skytem = lines[0].split()
     info_skytem = []
     data_skytem = []
-    for i, line in enumerate(lines[1:]):
+    for line in lines[1:]:
         if len(line.split()) != 65:
             info_skytem.append(np.array(line.split()[:16], dtype="O"))
             data_skytem.append(np.array(line.split()[16 : 16 + 24], dtype="float"))
@@ -130,7 +130,7 @@ def run(plotIt=True, saveIt=False, saveFig=False, cleanup=True):
     # Plot the data
     nskip = 40
     fig = plt.figure(figsize=(12 * 0.8, 6 * 0.8))
-    title = ["Resolve In-phase 400 Hz", "SkyTEM High moment 156 $\mu$s"]
+    title = ["Resolve In-phase 400 Hz", r"SkyTEM High moment 156 $\mu$s"]
     ax1 = plt.subplot(121)
     ax2 = plt.subplot(122)
     axs = [ax1, ax2]
@@ -197,8 +197,8 @@ def run(plotIt=True, saveIt=False, saveFig=False, cleanup=True):
     temp = np.logspace(np.log10(1.0), np.log10(12.0), 19)
     temp_pad = temp[-1] * 1.3 ** np.arange(npad)
     hz = np.r_[temp_pad[::-1], temp[::-1], temp, temp_pad]
-    mesh = discretize.CylMesh([hx, 1, hz], "00C")
-    active = mesh.vectorCCz < 0.0
+    mesh = discretize.CylindricalMesh([hx, 1, hz], "00C")
+    active = mesh.cell_centers_z < 0.0
 
     dobs_re = np.load(os.path.sep.join([directory, "dobs_re_final.npy"]))
     dpred_re = np.load(os.path.sep.join([directory, "dpred_re_final.npy"]))
@@ -218,7 +218,7 @@ def run(plotIt=True, saveIt=False, saveFig=False, cleanup=True):
         "dobs": dobs_re,
         "dpred": dpred_re,
         "mopt": mopt_re,
-        "z": mesh.vectorCCz[active],
+        "z": mesh.cell_centers_z[active],
         "frequency_cp": np.r_[382, 1822, 7970, 35920, 130100],
         "frequency_cx": np.r_[3258.0],
         "river_path": river_path,

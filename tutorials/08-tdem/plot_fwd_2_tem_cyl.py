@@ -26,7 +26,7 @@ simulate the fields at each time channel with sufficient accuracy.
 # --------------
 #
 
-from discretize import CylMesh
+from discretize import CylindricalMesh
 from discretize.utils import mkvc
 
 from SimPEG import maps
@@ -56,7 +56,7 @@ write_file = False
 # begins at t=0. Other waveforms are discuss in the OcTree simulation example.
 #
 
-waveform = tdem.sources.StepOffWaveform(offTime=0.0)
+waveform = tdem.sources.StepOffWaveform(off_time=0.0)
 
 
 #####################################################################
@@ -86,7 +86,6 @@ source_list = []  # Create empty list to store sources
 
 # Each unique location defines a new transmitter
 for ii in range(ntx):
-
     # Define receivers at each location.
     dbzdt_receiver = tdem.receivers.PointMagneticFluxTimeDerivative(
         receiver_locations[ii, :], time_channels, "z"
@@ -124,7 +123,7 @@ survey = tdem.Survey(source_list)
 hr = [(5.0, 40), (5.0, 15, 1.5)]
 hz = [(5.0, 15, -1.5), (5.0, 300), (5.0, 15, 1.5)]
 
-mesh = CylMesh([hr, 1, hz], x0="00C")
+mesh = CylindricalMesh([hr, 1, hz], x0="00C")
 
 ###############################################################
 # Create Conductivity/Resistivity Model and Mapping
@@ -166,7 +165,7 @@ plotting_map = maps.InjectActiveCells(mesh, ind_active, np.nan)
 log_model = np.log10(model)
 
 ax1 = fig.add_axes([0.20, 0.1, 0.54, 0.85])
-mesh.plotImage(
+mesh.plot_image(
     plotting_map * log_model,
     ax=ax1,
     grid=False,

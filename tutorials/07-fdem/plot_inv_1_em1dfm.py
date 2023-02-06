@@ -26,17 +26,12 @@ at a 10 m offset from the source in ppm.
 
 import os, tarfile
 import numpy as np
-import matplotlib as mpl
 import matplotlib.pyplot as plt
 
 from discretize import TensorMesh
 
 import SimPEG.electromagnetics.frequency_domain as fdem
-from SimPEG.electromagnetics.utils.em1d_utils import (
-    get_vertical_discretization_frequency,
-    plot_layer,
-)
-from SimPEG.utils import mkvc
+from SimPEG.utils import mkvc, plot_1d_layer_model
 from SimPEG import (
     maps,
     data,
@@ -245,9 +240,7 @@ reg = regularization.Sparse(mesh, mapping=reg_map, alpha_s=0.025, alpha_x=1.0)
 reg.mref = starting_model
 
 # Define sparse and blocky norms p, q
-p = 0
-q = 0
-reg.norms = np.c_[p, q]
+reg.norms = [0, 0]
 
 # Define how the optimization problem is solved. Here we will use an inexact
 # Gauss-Newton approach that employs the conjugate gradient solver.
@@ -318,8 +311,7 @@ recovered_model = inv.run(starting_model)
 
 # Load the true model and layer thicknesses
 true_model = np.array([0.1, 1.0, 0.1])
-hz = np.r_[20.0, 40.0, 160.0]
-true_layers = TensorMesh([hz])
+true_layers = np.r_[20.0, 40.0, 160.0]
 
 # Extract Least-Squares model
 l2_model = inv_prob.l2model
@@ -334,9 +326,13 @@ x_max = np.max(
 )
 
 ax1 = fig.add_axes([0.2, 0.15, 0.7, 0.7])
-plot_layer(true_model, true_layers, ax=ax1, showlayers=False, color="k")
-plot_layer(model_mapping * l2_model, mesh, ax=ax1, showlayers=False, color="b")
-plot_layer(model_mapping * recovered_model, mesh, ax=ax1, showlayers=False, color="r")
+plot_1d_layer_model(true_layers, true_model, ax=ax1, show_layers=False, color="k")
+plot_1d_layer_model(
+    mesh.h[0], model_mapping * l2_model, ax=ax1, show_layers=False, color="b"
+)
+plot_1d_layer_model(
+    mesh.h[0], model_mapping * recovered_model, ax=ax1, show_layers=False, color="r"
+)
 ax1.set_xlim(0.01, 10)
 ax1.set_title("True and Recovered Models")
 ax1.legend(["True Model", "L2-Model", "Sparse Model"])

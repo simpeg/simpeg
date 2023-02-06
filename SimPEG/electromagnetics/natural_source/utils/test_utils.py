@@ -1,12 +1,8 @@
-from __future__ import print_function
-from __future__ import absolute_import
-from __future__ import division
-
 import numpy as np
 
 import discretize
 from SimPEG import maps, mkvc, utils, Data
-from ....utils import meshTensor
+from ....utils import unpack_widths
 from ..receivers import (
     PointNaturalSource,
     Point3DTipper,
@@ -41,19 +37,21 @@ def getAppResPhs(NSEMdata, survey):
 
 
 def setup1DSurvey(sigmaHalf, tD=False, structure=False):
-
     # Frequency
     num_frequencies = 33
     freqs = np.logspace(3, -3, num_frequencies)
     # Make the mesh
     ct = 5
-    air = meshTensor([(ct, 25, 1.3)])
-    # coreT0 = meshTensor([(ct,15,1.2)])
-    # coreT1 = np.kron(meshTensor([(coreT0[-1],15,1.3)]),np.ones((7,)))
+    air = unpack_widths([(ct, 25, 1.3)])
+    # coreT0 = unpack_widths([(ct,15,1.2)])
+    # coreT1 = np.kron(unpack_widths([(coreT0[-1],15,1.3)]),np.ones((7,)))
     core = np.concatenate(
-        (np.kron(meshTensor([(ct, 15, -1.2)]), np.ones((10,))), meshTensor([(ct, 20)]))
+        (
+            np.kron(unpack_widths([(ct, 15, -1.2)]), np.ones((10,))),
+            unpack_widths([(ct, 20)]),
+        )
     )
-    bot = meshTensor([(core[0], 20, -1.3)])
+    bot = unpack_widths([(core[0], 20, -1.3)])
     x0 = -np.array([np.sum(np.concatenate((core, bot)))])
     m1d = discretize.TensorMesh([np.concatenate((bot, core, air))], x0=x0)
     # Make the model
@@ -68,7 +66,7 @@ def setup1DSurvey(sigmaHalf, tD=False, structure=False):
         sigma[deep] = 0.1
 
     receiver_list = []
-    for rxType in ["z1d", "z1d"]:
+    for _ in range(len(["z1d", "z1d"])):
         receiver_list.append(
             PointNaturalSource(mkvc(np.array([0.0]), 2).T, component="real")
         )
@@ -85,19 +83,21 @@ def setup1DSurvey(sigmaHalf, tD=False, structure=False):
 
 
 def setup1DSurveyElectricMagnetic(sigmaHalf, tD=False, structure=False):
-
     # Frequency
     nFreq = 33
     frequencies = np.logspace(3, -3, nFreq)
     # Make the mesh
     ct = 5
-    air = meshTensor([(ct, 25, 1.3)])
-    # coreT0 = meshTensor([(ct,15,1.2)])
-    # coreT1 = np.kron(meshTensor([(coreT0[-1],15,1.3)]),np.ones((7,)))
+    air = unpack_widths([(ct, 25, 1.3)])
+    # coreT0 = unpack_widths([(ct,15,1.2)])
+    # coreT1 = np.kron(unpack_widths([(coreT0[-1],15,1.3)]),np.ones((7,)))
     core = np.concatenate(
-        (np.kron(meshTensor([(ct, 15, -1.2)]), np.ones((10,))), meshTensor([(ct, 20)]))
+        (
+            np.kron(unpack_widths([(ct, 15, -1.2)]), np.ones((10,))),
+            unpack_widths([(ct, 20)]),
+        )
     )
-    bot = meshTensor([(core[0], 20, -1.3)])
+    bot = unpack_widths([(core[0], 20, -1.3)])
     x0 = -np.array([np.sum(np.concatenate((core, bot)))])
     m1d = discretize.TensorMesh([np.concatenate((bot, core, air))], x0=x0)
     # Make the model
@@ -112,7 +112,7 @@ def setup1DSurveyElectricMagnetic(sigmaHalf, tD=False, structure=False):
         sigma[deep] = 0.1
 
     rxList = []
-    for rxType in ["z1d", "z1d"]:
+    for _ in range(len(["z1d", "z1d"])):
         rxList.append(PointNaturalSource(mkvc(np.array([0.0]), 2).T, component="real"))
         rxList.append(PointNaturalSource(mkvc(np.array([0.0]), 2).T, component="imag"))
     # Source list
@@ -235,7 +235,7 @@ def setupSimpegNSEM_tests_location_assign_list(
     survey_ns.m_true = model_true
 
     # write out the true model
-    # discretize.TensorMesh.writeUBC(mesh,'Mesh-pre.msh', models={'Sigma-pre.dat': np.exp(model_true)})
+    # discretize.TensorMesh.write_UBC(mesh,'Mesh-pre.msh', models={'Sigma-pre.dat': np.exp(model_true)})
     # create background conductivity model
     sigma_back = 1e-2
     sigBG = np.zeros(mesh.nC) * sigma_back
@@ -360,7 +360,7 @@ def setupSimpegNSEM_PrimarySecondary(inputSetup, freqs, comp="Imp", singleFreq=F
     survey_ns.m_true = model_true
 
     # write out the true model
-    # discretize.TensorMesh.writeUBC(mesh,'Mesh-pre.msh', models={'Sigma-pre.dat': np.exp(model_true)})
+    # discretize.TensorMesh.write_UBC(mesh,'Mesh-pre.msh', models={'Sigma-pre.dat': np.exp(model_true)})
     # create background conductivity model
     sigma_back = 1e-2
     sigBG = np.zeros(mesh.nC) * sigma_back
@@ -410,7 +410,6 @@ def setupSimpegNSEM_PrimarySecondary(inputSetup, freqs, comp="Imp", singleFreq=F
 
 
 def setupSimpegNSEM_ePrimSec(inputSetup, comp="Imp", singleFreq=False, expMap=True):
-
     M, freqs, sig, sigBG, rx_loc = inputSetup
     # Make a receiver list
     receiver_list = []
@@ -455,7 +454,6 @@ def setupSimpegNSEM_ePrimSec(inputSetup, comp="Imp", singleFreq=False, expMap=Tr
     source_list = []
 
     if singleFreq:
-
         source_list.append(PlanewaveXYPrimary(receiver_list, singleFreq))
     else:
         for freq in freqs:
@@ -464,7 +462,7 @@ def setupSimpegNSEM_ePrimSec(inputSetup, comp="Imp", singleFreq=False, expMap=Tr
     survey = Survey(source_list)
 
     # Setup the problem object
-    sigma1d = M.r(sigBG, "CC", "CC", "M")[0, 0, :]
+    sigma1d = M.reshape(sigBG, "CC", "CC", "M")[0, 0, :]
 
     if expMap:
         problem = Simulation3DPrimarySecondary(

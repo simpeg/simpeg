@@ -1,7 +1,7 @@
 import unittest
 import numpy as np
 import discretize
-from SimPEG import simulation, survey, maps
+from SimPEG import maps, simulation
 
 
 class TestLinearSimulation(unittest.TestCase):
@@ -13,9 +13,9 @@ class TestLinearSimulation(unittest.TestCase):
         )
 
         mtrue = np.zeros(mesh.nC)
-        mtrue[mesh.vectorCCx > 0.3] = 1.0
-        mtrue[mesh.vectorCCx > 0.45] = -0.5
-        mtrue[mesh.vectorCCx > 0.6] = 0
+        mtrue[mesh.cell_centers_x > 0.3] = 1.0
+        mtrue[mesh.cell_centers_x > 0.45] = -0.5
+        mtrue[mesh.cell_centers_x > 0.6] = 0
 
         self.mtrue = mtrue
 

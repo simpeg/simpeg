@@ -1,8 +1,8 @@
 import numpy as np
 import scipy.sparse as sp
-import properties
 
 from .base import BaseSimilarityMeasure
+from ..utils import validate_type
 
 
 ###############################################################################
@@ -13,42 +13,40 @@ from .base import BaseSimilarityMeasure
 
 
 class CrossGradient(BaseSimilarityMeasure):
-    """
+    r"""
     The cross-gradient constraint for joint inversions.
 
     ..math::
-        \\phi_c(\\mathbf{m_1},\\mathbf{m_2}) = \\lambda \\sum_{i=1}^{M} \\|
-        \\nabla \\mathbf{m_1}_i \\times \\nabla \\mathbf{m_2}_i \\|^2
+        \phi_c(\mathbf{m_1},\mathbf{m_2}) = \lambda \sum_{i=1}^{M} \|
+        \nabla \mathbf{m_1}_i \times \nabla \mathbf{m_2}_i \|^2
 
     All methods assume that we are working with two models only.
 
     """
 
-    # reset this here to clear out the properties attribute
-    cell_weights = None
-
-    # These are not fully implemented yet
-    # grad_tol = properties.Float(
-    #     "tolerance for avoiding the exteremly small gradient amplitude", default=1e-10
-    # )
-    # normalized = properties.Bool(
-    #     "whether to implement normalized cross-gradient", default=False
-    # )
-
-    approx_hessian = properties.Bool(
-        "whether to use the semi-positive definate approximation for the hessian",
-        default=True,
-    )
-
-    def __init__(self, mesh, wire_map, **kwargs):
+    def __init__(self, mesh, wire_map, approx_hessian=True, **kwargs):
         super().__init__(mesh, wire_map=wire_map, **kwargs)
+        self.approx_hessian = approx_hessian
 
-        regmesh = self.regmesh
+        regmesh = self.regularization_mesh
 
         if regmesh.mesh.dim not in (2, 3):
             raise ValueError("Cross-Gradient is only defined for 2D or 3D")
         self._G = regmesh.cell_gradient
         self._Av = sp.diags(np.sqrt(regmesh.vol)) * regmesh.average_face_to_cell
+
+    @property
+    def approx_hessian(self):
+        """whether to use the semi-positive definate approximation for the hessian.
+        Returns
+        -------
+        bool
+        """
+        return self._approx_hessian
+
+    @approx_hessian.setter
+    def approx_hessian(self, value):
+        self._approx_hessian = validate_type("approx_hessian", value, bool)
 
     def _calculate_gradient(self, model, normalized=False, rtol=1e-6):
         """
@@ -66,7 +64,7 @@ class CrossGradient(BaseSimilarityMeasure):
                  and each column represents a component of the gradient.
 
         """
-        regmesh = self.regmesh
+        regmesh = self.regularization_mesh
         Avs = [regmesh.aveFx2CC, regmesh.aveFy2CC]
         if regmesh.dim == 3:
             Avs.append(regmesh.aveFz2CC)
@@ -109,13 +107,13 @@ class CrossGradient(BaseSimilarityMeasure):
 
         # for each model cell, compute the cross product of the gradient vectors.
         cross_prod = np.cross(grad_m1, grad_m2)
-        if self.regmesh.dim == 3:
+        if self.regularization_mesh.dim == 3:
             cross_prod = np.linalg.norm(cross_prod, axis=-1)
 
         return cross_prod
 
     def __call__(self, model):
-        """
+        r"""
         Computes the sum of all cross-gradient values at all cell centers.
 
         :param numpy.ndarray model: stacked array of individual models
@@ -128,15 +126,13 @@ class CrossGradient(BaseSimilarityMeasure):
 
         ..math::
 
-            \\phi_c(\\mathbf{m_1},\\mathbf{m_2})
+            \phi_c(\mathbf{m_1},\mathbf{m_2})
+            = \lambda \sum_{i=1}^{M} \|\nabla \mathbf{m_1}_i \times \nabla \mathbf{m_2}_i \|^2
+            = \sum_{i=1}^{M} \|\nabla \mathbf{m_1}_i\|^2 \ast \|\nabla \mathbf{m_2}_i\|^2
+                - (\nabla \mathbf{m_1}_i \cdot \nabla \mathbf{m_2}_i )^2
+            = \|\phi_{cx}\|^2 + \|\phi_{cy}\|^2 + \|\phi_{cz}\|^2
 
-            = \\lambda \\sum_{i=1}^{M} \\|\\nabla \\mathbf{m_1}_i \\times \\nabla \\mathbf{m_2}_i \\|^2
-
-            = \\sum_{i=1}^{M} \\|\\nabla \\mathbf{m_1}_i\\|^2 \\ast \\|\\nabla \\mathbf{m_2}_i\\|^2
-                - (\\nabla \\mathbf{m_1}_i \\cdot \\nabla \\mathbf{m_2}_i )^2
-
-            = \\|\\phi_{cx}\\|^2 + \\|\\phi_{cy}\\|^2 + \\|\\phi_{cz}\\|^2 (optional strategy, not used in this script)
-
+        (optional strategy, not used in this script)
 
         """
         m1, m2 = self.wire_map * model
@@ -145,7 +141,7 @@ class CrossGradient(BaseSimilarityMeasure):
         g_m1 = G @ m1
         g_m2 = G @ m2
         return 0.5 * np.sum(
-            (Av @ g_m1 ** 2) * (Av @ g_m2 ** 2) - (Av @ (g_m1 * g_m2)) ** 2
+            (Av @ g_m1**2) * (Av @ g_m2**2) - (Av @ (g_m1 * g_m2)) ** 2
         )
 
     def deriv(self, model):
@@ -166,9 +162,9 @@ class CrossGradient(BaseSimilarityMeasure):
         g_m2 = G @ m2
 
         return np.r_[
-            (((Av @ g_m2 ** 2) @ Av) * g_m1) @ G
+            (((Av @ g_m2**2) @ Av) * g_m1) @ G
             - (((Av @ (g_m1 * g_m2)) @ Av) * g_m2) @ G,
-            (((Av @ g_m1 ** 2) @ Av) * g_m2) @ G
+            (((Av @ g_m1**2) @ Av) * g_m2) @ G
             - (((Av @ (g_m1 * g_m2)) @ Av) * g_m1) @ G,
         ]
 
@@ -197,7 +193,7 @@ class CrossGradient(BaseSimilarityMeasure):
             A = (
                 G.T
                 @ (
-                    sp.diags(Av.T @ (Av @ g_m2 ** 2))
+                    sp.diags(Av.T @ (Av @ g_m2**2))
                     - sp.diags(g_m2) @ Av.T @ Av @ sp.diags(g_m2)
                 )
                 @ G
@@ -206,7 +202,7 @@ class CrossGradient(BaseSimilarityMeasure):
             C = (
                 G.T
                 @ (
-                    sp.diags(Av.T @ (Av @ g_m1 ** 2))
+                    sp.diags(Av.T @ (Av @ g_m1**2))
                     - sp.diags(g_m1) @ Av.T @ Av @ sp.diags(g_m1)
                 )
                 @ G
@@ -235,10 +231,10 @@ class CrossGradient(BaseSimilarityMeasure):
             Gv2 = G @ v2
 
             p1 = G.T @ (
-                (Av.T @ (Av @ g_m2 ** 2)) * Gv1 - g_m2 * (Av.T @ (Av @ (g_m2 * Gv1)))
+                (Av.T @ (Av @ g_m2**2)) * Gv1 - g_m2 * (Av.T @ (Av @ (g_m2 * Gv1)))
             )
             p2 = G.T @ (
-                (Av.T @ (Av @ g_m1 ** 2)) * Gv2 - g_m1 * (Av.T @ (Av @ (g_m1 * Gv2)))
+                (Av.T @ (Av @ g_m1**2)) * Gv2 - g_m1 * (Av.T @ (Av @ (g_m1 * Gv2)))
             )
 
             if not self.approx_hessian:

@@ -1,9 +1,9 @@
 import unittest
 
 # import SimPEG.dask as simpeg
-from SimPEG import maps, utils, data, tests
+from SimPEG import maps, tests
 import discretize
-from discretize.utils import mkvc, refine_tree_xyz
+from discretize.utils import mkvc
 from SimPEG.electromagnetics import natural_source as ns
 import numpy as np
 from pymatsolver import Pardiso as Solver
@@ -16,7 +16,6 @@ FLR = 1e-20
 
 class ComplexResistivityTest(unittest.TestCase):
     def setUp(self):
-
         csx = 2000.0
         csz = 2000.0
 
@@ -60,7 +59,6 @@ class ComplexResistivityTest(unittest.TestCase):
         self.active = active
 
     def create_simulation(self, rx_type="apparent_resistivity", rx_orientation="xy"):
-
         rx_x, rx_y = np.meshgrid(
             np.linspace(-5000, 5000, 10), np.linspace(-5000, 5000, 10)
         )
@@ -96,7 +94,6 @@ class ComplexResistivityTest(unittest.TestCase):
         return sim
 
     def create_simulation_rx(self, rx_type="apparent_resistivity", rx_orientation="xy"):
-
         rx_x, rx_y = np.meshgrid(
             np.linspace(-5000, 5000, 10), np.linspace(-5000, 5000, 10)
         )
@@ -141,7 +138,6 @@ class ComplexResistivityTest(unittest.TestCase):
     def create_simulation_1dprimary_assign_mesh1d(
         self, rx_type="apparent_resistivity", rx_orientation="xy"
     ):
-
         rx_x, rx_y = np.meshgrid(
             np.linspace(-5000, 5000, 10), np.linspace(-5000, 5000, 10)
         )
@@ -156,8 +152,8 @@ class ComplexResistivityTest(unittest.TestCase):
         # give background a value
         x0 = self.mesh.x0
         hs = [
-            [self.mesh.vectorNx[-1] - x0[0]],
-            [self.mesh.vectorNy[-1] - x0[1]],
+            [self.mesh.nodes_x[-1] - x0[0]],
+            [self.mesh.nodes_y[-1] - x0[1]],
             self.mesh.h[-1],
         ]
         mesh1d = discretize.TensorMesh(hs, x0=x0)
@@ -193,7 +189,6 @@ class ComplexResistivityTest(unittest.TestCase):
     def create_simulation_1dprimary_assign(
         self, rx_type="apparent_resistivity", rx_orientation="xy"
     ):
-
         rx_x, rx_y = np.meshgrid(
             np.linspace(-5000, 5000, 10), np.linspace(-5000, 5000, 10)
         )
@@ -234,7 +229,7 @@ class ComplexResistivityTest(unittest.TestCase):
         def fun(x):
             return sim.dpred(x), lambda x: sim.Jvec(self.model, x)
 
-        passed = tests.checkDerivative(fun, self.model, num=3, plotIt=False)
+        passed = tests.check_derivative(fun, self.model, num=3, plotIt=False)
         self.assertTrue(passed)
 
     def check_adjoint(self, sim):

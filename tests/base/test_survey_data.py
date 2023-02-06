@@ -67,12 +67,12 @@ class TestData(unittest.TestCase):
     def test_sourceIndex(self):
         mysurvey = self.D.survey
         srcs = mysurvey.source_list
-        assert mysurvey.getSourceIndex([srcs[1], srcs[0]]) == [1, 0]
-        assert mysurvey.getSourceIndex([srcs[1], srcs[2], srcs[2]]) == [1, 2, 2]
+        assert mysurvey.get_source_indices([srcs[1], srcs[0]]) == [1, 0]
+        assert mysurvey.get_source_indices([srcs[1], srcs[2], srcs[2]]) == [1, 2, 2]
         SrcNotThere = survey.BaseSrc(srcs[0].receiver_list, location=np.r_[0, 0, 0])
-        self.assertRaises(KeyError, mysurvey.getSourceIndex, [SrcNotThere])
+        self.assertRaises(KeyError, mysurvey.get_source_indices, [SrcNotThere])
         self.assertRaises(
-            KeyError, mysurvey.getSourceIndex, [srcs[1], srcs[2], SrcNotThere]
+            KeyError, mysurvey.get_source_indices, [srcs[1], srcs[2], SrcNotThere]
         )
 
 
