@@ -80,7 +80,7 @@ def requires(var):
     return requiresVar
 
 
-@requires('memory_profiler')
+@requires("memory_profiler")
 def create_wrapper_from_class(input_class, *fun_names):
     """Create wrapper class with memory profiler.
 
