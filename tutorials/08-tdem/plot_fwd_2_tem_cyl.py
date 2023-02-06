@@ -1,11 +1,10 @@
 """
-Forward Simulation for Transient Response on a Cylindrical Mesh
-===============================================================
+3D Forward Simulation for Transient Response on a Cylindrical Mesh
+==================================================================
 
 Here we use the module *SimPEG.electromagnetics.time_domain* to simulate the
-transient response for an airborne survey using a cylindrical mesh and a conductivity
-model. We simulate a single line of airborne data at many time channels for a vertical
-coplanar survey geometry. For this tutorial, we focus on the following:
+transient response for borehole survey using a cylindrical mesh and a 
+radially symmetric conductivity. For this tutorial, we focus on the following:
 
     - How to define the transmitters and receivers
     - How to define the transmitter waveform for a step-off
@@ -68,19 +67,19 @@ waveform = tdem.sources.StepOffWaveform(offTime=0.0)
 # simulations, we must define the geometry of the source and its waveform. For
 # the receivers, we define their geometry, the type of field they measure and the time
 # channels at which they measure the field. For this example,
-# the survey consists of a uniform grid of airborne measurements.
+# the survey consists of a borehold survey with a coincident loop geometry.
 #
 
 # Observation times for response (time channels)
 time_channels = np.logspace(-4, -2, 11)
 
 # Defining transmitter locations
-xtx, ytx, ztx = np.meshgrid(np.linspace(0, 200, 41), [0], [55])
+xtx, ytx, ztx = np.meshgrid([0], [0], np.linspace(0, -500, 26) - 2.5)
 source_locations = np.c_[mkvc(xtx), mkvc(ytx), mkvc(ztx)]
 ntx = np.size(xtx)
 
 # Define receiver locations
-xrx, yrx, zrx = np.meshgrid(np.linspace(0, 200, 41), [0], [50])
+xrx, yrx, zrx = np.meshgrid([0], [0], np.linspace(0, -500, 26) - 2.5)
 receiver_locations = np.c_[mkvc(xrx), mkvc(yrx), mkvc(zrx)]
 
 source_list = []  # Create empty list to store sources
@@ -98,12 +97,11 @@ for ii in range(ntx):
 
     # Must define the transmitter properties and associated receivers
     source_list.append(
-        tdem.sources.MagDipole(
+        tdem.sources.CircularLoop(
             receivers_list,
             location=source_locations[ii],
             waveform=waveform,
-            moment=1.0,
-            orientation="z",
+            radius=10.0,
         )
     )
 
@@ -123,8 +121,8 @@ survey = tdem.Survey(source_list)
 #
 #
 
-hr = [(10.0, 50), (10.0, 10, 1.5)]
-hz = [(10.0, 10, -1.5), (10.0, 100), (10.0, 10, 1.5)]
+hr = [(5.0, 40), (5.0, 15, 1.5)]
+hz = [(5.0, 15, -1.5), (5.0, 300), (5.0, 15, 1.5)]
 
 mesh = CylMesh([hr, 1, hz], x0="00C")
 
@@ -132,62 +130,58 @@ mesh = CylMesh([hr, 1, hz], x0="00C")
 # Create Conductivity/Resistivity Model and Mapping
 # -------------------------------------------------
 #
-# Here, we create the model that will be used to predict time domain
+# Here, we create the model that will be used to predict frequency domain
 # data and the mapping from the model to the mesh. The model
-# consists of a long vertical conductive pipe and a resistive
-# surface layer. For this example, we will have only flat topography.
+# consists of several layers. For this example, we will have only flat topography.
 #
 
 # Conductivity in S/m (or resistivity in Ohm m)
 air_conductivity = 1e-8
 background_conductivity = 1e-1
-layer_conductivity = 1e-2
-pipe_conductivity = 1e1
+layer_conductivity_1 = 1e0
+layer_conductivity_2 = 1e-2
 
 # Find cells that are active in the forward modeling (cells below surface)
-ind_active = mesh.gridCC[:, 2] < 0
+ind_active = mesh.cell_centers[:, 2] < 0
 
 # Define mapping from model to active cells
 model_map = maps.InjectActiveCells(mesh, ind_active, air_conductivity)
 
 # Define the model
 model = background_conductivity * np.ones(ind_active.sum())
-ind_layer = (mesh.gridCC[ind_active, 2] > -200.0) & (mesh.gridCC[ind_active, 2] < -0)
-model[ind_layer] = layer_conductivity
-ind_pipe = (
-    (mesh.gridCC[ind_active, 0] < 50.0)
-    & (mesh.gridCC[ind_active, 2] > -10000.0)
-    & (mesh.gridCC[ind_active, 2] < 0.0)
+ind = (mesh.cell_centers[ind_active, 2] > -200.0) & (
+    mesh.cell_centers[ind_active, 2] < -0
 )
-model[ind_pipe] = pipe_conductivity
+model[ind] = layer_conductivity_1
+ind = (mesh.cell_centers[ind_active, 2] > -400.0) & (
+    mesh.cell_centers[ind_active, 2] < -200
+)
+model[ind] = layer_conductivity_2
 
-
-# Plot Resistivity Model
-mpl.rcParams.update({"font.size": 12})
-fig = plt.figure(figsize=(4.5, 6))
+# Plot Conductivity Model
+mpl.rcParams.update({"font.size": 14})
+fig = plt.figure(figsize=(5, 6))
 
 plotting_map = maps.InjectActiveCells(mesh, ind_active, np.nan)
-log_model = np.log10(model)  # So scaling is log-scale
+log_model = np.log10(model)
 
-ax1 = fig.add_axes([0.14, 0.1, 0.6, 0.85])
+ax1 = fig.add_axes([0.20, 0.1, 0.54, 0.85])
 mesh.plotImage(
     plotting_map * log_model,
     ax=ax1,
     grid=False,
-    clim=(np.log10(layer_conductivity), np.log10(pipe_conductivity)),
+    clim=(np.log10(layer_conductivity_2), np.log10(layer_conductivity_1)),
 )
-ax1.set_title("Conductivity Model (Survey in red)")
-
-ax1.plot(receiver_locations[:, 0], receiver_locations[:, 2], "r.")
+ax1.set_title("Conductivity Model")
 
 ax2 = fig.add_axes([0.76, 0.1, 0.05, 0.85])
 norm = mpl.colors.Normalize(
-    vmin=np.log10(layer_conductivity), vmax=np.log10(pipe_conductivity)
+    vmin=np.log10(layer_conductivity_2), vmax=np.log10(layer_conductivity_1)
 )
 cbar = mpl.colorbar.ColorbarBase(
     ax2, norm=norm, orientation="vertical", format="$10^{%.1f}$"
 )
-cbar.set_label("Conductivity [$S/m$]", rotation=270, labelpad=15, size=12)
+cbar.set_label("Conductivity [S/m]", rotation=270, labelpad=15, size=12)
 
 ######################################################
 # Define the Time-Stepping
@@ -232,23 +226,22 @@ dpred = np.reshape(dpred, (ntx, len(time_channels)))
 
 # TDEM Profile
 fig = plt.figure(figsize=(5, 5))
-ax1 = fig.add_subplot(111)
+ax1 = fig.add_axes([0.15, 0.15, 0.8, 0.75])
 for ii in range(0, len(time_channels)):
-    ax1.plot(
-        receiver_locations[:, 0], -dpred[:, ii], "k", lw=2
+    ax1.semilogx(
+        -dpred[:, ii], receiver_locations[:, -1], "k", lw=2
     )  # -ve sign to plot -dBz/dt
-ax1.set_xlim((0, np.max(xtx)))
-ax1.set_xlabel("Easting [m]")
-ax1.set_ylabel("-dBz/dt [T/s]")
+ax1.set_xlabel("-dBz/dt [T/s]")
+ax1.set_ylabel("Elevation [m]")
 ax1.set_title("Airborne TDEM Profile")
 
-# Response over pipe for all time channels
+# Response for all time channels
 fig = plt.figure(figsize=(5, 5))
-ax1 = fig.add_subplot(111)
+ax1 = fig.add_axes([0.15, 0.15, 0.8, 0.75])
 ax1.loglog(time_channels, -dpred[0, :], "b", lw=2)
 ax1.loglog(time_channels, -dpred[-1, :], "r", lw=2)
 ax1.set_xlim((np.min(time_channels), np.max(time_channels)))
 ax1.set_xlabel("time [s]")
 ax1.set_ylabel("-dBz/dt [T/s]")
 ax1.set_title("Decay Curve")
-ax1.legend(["Over pipe", "Background"], loc="lower left")
+ax1.legend(["First Sounding", "Last Sounding"], loc="upper right")

@@ -1,15 +1,16 @@
-import numpy as np
-from scipy.constants import mu_0
-import properties
 import warnings
-from ...utils.code_utils import deprecate_property
 
-from geoana.em.static import MagneticDipoleWholeSpace, CircularLoopWholeSpace
+import numpy as np
+import properties
+from geoana.em.static import CircularLoopWholeSpace, MagneticDipoleWholeSpace
+from scipy.constants import mu_0
+from scipy.special import roots_legendre
 
-from ..base import BaseEMSrc
-from ..utils import segmented_line_current_source_term, line_through_faces
 from ...props import LocationVector
-from ...utils import setKwargs, sdiag, Zero
+from ...utils import Zero, sdiag, setKwargs
+from ...utils.code_utils import deprecate_property
+from ..base import BaseEMSrc
+from ..utils import line_through_faces, segmented_line_current_source_term
 
 ###############################################################################
 #                                                                             #
@@ -197,6 +198,20 @@ class RampOffWaveform(BaseWaveform):
         else:
             return 0.0
 
+    def evalDeriv(self, time):
+        t = np.asarray(time, dtype=float)
+        out = np.zeros_like(t)
+
+        out[(t < self.offTime) & (t >= self.eps)] = -1.0 / self.offTime
+
+        if out.ndim == 0:
+            out = out.item()
+        return out
+
+    @property
+    def time_nodes(self):
+        return np.r_[0.0, self.off_time]
+
 
 class RawWaveform(BaseWaveform):
     """
@@ -352,6 +367,29 @@ class VTEMWaveform(BaseWaveform):
         else:
             return 0.0
 
+    def evalDeriv(self, time):
+        t = np.asarray(time, dtype=float)
+        out = np.zeros_like(t)
+
+        p_1 = (t <= self.peakTime) & (t >= 0.0)
+        out[p_1] = (
+            self.a
+            / self.peakTime
+            * np.exp(-self.a * t[p_1] / self.peakTime)
+            / (1.0 - np.exp(-self.a))
+        )
+
+        p_2 = (t > self.peakTime) & (t < self.offTime)
+        out[p_2] = -1.0 / (self.offTime - self.peakTime)
+
+        if out.ndim == 0:
+            out = out.item()
+        return out
+
+    @property
+    def time_nodes(self):
+        return np.r_[0, self.peak_time, self.off_time]
+
     ##########################
     # Deprecated
     ##########################
@@ -475,6 +513,24 @@ class TrapezoidWaveform(BaseWaveform):
         else:
             return 0
 
+    def evalDeriv(self, time):
+        t = np.asarray(time, dtype=float)
+        out = np.zeros_like(t)
+
+        p_1 = (t >= self.ramp_on[0]) & (t <= self.ramp_on[1])
+        out[p_1] = 1.0 / (self.ramp_on[1] - self.ramp_on[0])
+
+        p_2 = (t >= self.ramp_off[0]) & (t <= self.ramp_off[1])
+        out[p_2] = -1.0 / (self.ramp_off[1] - self.ramp_off[0])
+
+        if out.ndim == 0:
+            out = out.item()
+        return out
+
+    @property
+    def time_nodes(self):
+        return np.unique(np.r_[self.ramp_on, self.ramp_off])
+
 
 class TriangularWaveform(TrapezoidWaveform):
     """
@@ -502,7 +558,18 @@ class TriangularWaveform(TrapezoidWaveform):
 
     """
 
-    def __init__(self, off_time=None, peak_time=None, **kwargs):
+    def __init__(self, start_time=None, off_time=None, peak_time=None, **kwargs):
+
+        if start_time is None:
+            start_time = kwargs.get("startTime")
+            if start_time is None:
+                raise Exception("start_time must be provided")
+            else:
+                warnings.warn(
+                    "startTime will be deprecated in 0.17.0. Please update your code to use peak_time instead",
+                    FutureWarning,
+                )
+
         if peak_time is None:
             peak_time = kwargs.get("peakTime")
             if peak_time is None:
@@ -523,7 +590,7 @@ class TriangularWaveform(TrapezoidWaveform):
                     FutureWarning,
                 )
 
-        ramp_on = np.r_[0.0, peak_time]
+        ramp_on = np.r_[start_time, peak_time]
         ramp_off = np.r_[peak_time, off_time]
 
         super(TriangularWaveform, self).__init__(
@@ -617,6 +684,30 @@ class QuarterSineRampOnWaveform(TrapezoidWaveform):
         else:
             return 0
 
+    def evalDeriv(self, time):
+        t = np.asarray(time, dtype=float)
+        out = np.zeros_like(t)
+
+        p_1 = (t >= self.ramp_on[0]) & (t < self.ramp_on[1])
+        out[p_1] = (
+            np.pi
+            / 2
+            / (self.ramp_on[1] - self.ramp_on[0])
+            * np.cos(
+                np.pi
+                / 2
+                * (t[p_1] - self.ramp_on[0])
+                / (self.ramp_on[1] - self.ramp_on[0])
+            )
+        )
+
+        p_2 = (t >= self.ramp_off[0]) & (t < self.ramp_off[1]) & (~p_1)
+        out[p_2] = -1.0 / (self.ramp_off[1] - self.ramp_off[0])
+
+        if out.ndim == 0:
+            out = out.item()
+        return out
+
 
 class HalfSineWaveform(TrapezoidWaveform):
     """
@@ -647,6 +738,125 @@ class HalfSineWaveform(TrapezoidWaveform):
             )
         else:
             return 0
+
+    def evalDeriv(self, time):
+        t = np.asarray(time, dtype=float)
+        out = np.zeros_like(t)
+
+        p_1 = (t >= self.ramp_on[0]) & (t < self.ramp_on[1])
+        out[p_1] = (
+            np.pi
+            / 2
+            / (self.ramp_on[1] - self.ramp_on[0])
+            * np.cos(
+                np.pi
+                / 2
+                * (t[p_1] - self.ramp_on[0])
+                / (self.ramp_on[1] - self.ramp_on[0])
+            )
+        )
+
+        p_2 = (t >= self.ramp_off[0]) & (t < self.ramp_off[1]) & (~p_1)
+        out[p_2] = (
+            -np.pi
+            / 2
+            / (self.ramp_off[1] - self.ramp_off[0])
+            * np.sin(
+                np.pi
+                / 2
+                * (t[p_2] - self.ramp_off[0])
+                / (self.ramp_off[1] - self.ramp_off[0])
+            )
+        )
+
+        if out.ndim == 0:
+            out = out.item()
+        return out
+
+    def evalDeriv(self, time):
+        t = np.asarray(time, dtype=float)
+        out = np.zeros_like(t)
+
+        p_1 = (t >= self.ramp_on[0]) & (t < self.ramp_on[1])
+        out[p_1] = (
+            np.pi
+            / 2
+            / (self.ramp_on[1] - self.ramp_on[0])
+            * np.cos(
+                np.pi
+                / 2
+                * (t[p_1] - self.ramp_on[0])
+                / (self.ramp_on[1] - self.ramp_on[0])
+            )
+        )
+
+        p_2 = (t >= self.ramp_off[0]) & (t < self.ramp_off[1]) & (~p_1)
+        out[p_2] = (
+            -np.pi
+            / 2
+            / (self.ramp_off[1] - self.ramp_off[0])
+            * np.sin(
+                np.pi
+                / 2
+                * (t[p_2] - self.ramp_off[0])
+                / (self.ramp_off[1] - self.ramp_off[0])
+            )
+        )
+
+        if out.ndim == 0:
+            out = out.item()
+        return out
+
+
+class PiecewiseLinearWaveform(BaseWaveform):
+
+    times = properties.Array("Time for input currents", dtype=float)
+
+    currents = properties.Array("Input currents", dtype=float)
+
+    def __init__(self, times, currents, **kwargs):
+        super().__init__(**kwargs)
+        times = np.asarray(times)
+        currents = np.asarray(currents)
+        if len(times) != len(currents):
+            raise ValueError("time array and current array must be the same length")
+        # ensure it is a sorted list...
+        ind_sort = np.argsort(times)
+        self.times = times[ind_sort]
+        self.currents = currents[ind_sort]
+
+    def eval(self, time):
+        times = self.times
+        currents = self.currents
+        if time <= times[0]:
+            return currents[0]
+        elif time >= times[-1]:
+            return currents[-1]
+        else:
+            i = np.searchsorted(times, time)
+            return (currents[i] - currents[i - 1]) * (time - times[i - 1]) / (
+                times[i] - times[i - 1]
+            ) + currents[i - 1]
+
+    def evalDeriv(self, time):
+        t = np.asarray(time, dtype=float)
+        out = np.zeros_like(t)
+
+        times = self.times
+        currents = self.currents
+        p_1 = (t > times[0]) & (t < times[-1])
+
+        i = np.searchsorted(times, t[p_1])
+
+        out[p_1] = (currents[i] - currents[i - 1]) / (times[i] - times[i - 1])
+
+        if out.ndim == 0:
+            out = out.item()
+        return out
+
+    @property
+    def time_nodes(self):
+        return self.times
 
 
 ###############################################################################
@@ -916,7 +1126,7 @@ class CircularLoop(MagDipole):
 
     @property
     def moment(self):
-        return np.pi * self.radius ** 2 * self.current * self.N
+        return np.pi * self.radius**2 * self.current * self.N
 
     def _srcFct(self, obsLoc, coordinates="cartesian"):
         # return MagneticLoopVectorPotential(
@@ -932,6 +1142,74 @@ class CircularLoop(MagDipole):
                 current=self.current,
             )
         return self._loop.vector_potential(obsLoc, coordinates)
+
+
+class PiecewiseWireLoop(BaseTDEMSrc):
+    """
+    Piecewise wire loop source (limited to 1D code at this point)
+
+    :param list receiver_list: receiver list
+    :param float freq: frequency
+    :param numpy.ndarray loc: wire path locations
+        (ie: :code:`np.array([[xloc1,yloc1,zloc1],[xloc2,yloc2,zloc2], ...])`)
+    """
+
+    wire_paths = properties.Array("wire path locations", shape=("*", 3))
+    current = properties.Float("current in the line", default=1.0)
+    n_points_per_path = properties.Integer(
+        "number of quadrature points per linear wire path", default=3
+    )
+
+    def __init__(self, receiver_list=None, wire_paths=None, **kwargs):
+        super(PiecewiseWireLoop, self).__init__(
+            receiver_list, wire_paths=wire_paths, **kwargs
+        )
+        self._get_electric_dipole_locations()
+
+    @property
+    def location(self):
+        self._location = self.wire_paths.mean(axis=0)
+        return self._location
+
+    @property
+    def n_quad_points(self):
+        self._n_quad_points = len(self._weights)
+        return self._n_quad_points
+
+    def rotate_points_xy(self, xy, theta, x0=np.array([0.0, 0.0])):
+        r = np.array(((np.cos(theta), -np.sin(theta)), (np.sin(theta), np.cos(theta))))
+        xy_rot = xy.dot(r.T)
+        xy_rot += x0
+        return xy_rot
+
+    def rotate_points_xy_var_theta(self, xy, thetas):
+        xy_rot = np.zeros_like(xy)
+        for i_theta, theta in enumerate(thetas):
+            xy_rot[i_theta, :] = self.rotate_points_xy(xy[i_theta, :], theta)
+        return xy_rot
+
+    def _get_electric_dipole_locations(self):
+        # calculate lateral dipole locations
+        x, w = roots_legendre(self.n_points_per_path)
+        xy_src_path = self.wire_paths[:, :2]
+        n_path = len(xy_src_path) - 1
+        xyks = []
+        thetas = []
+        weights = []
+        for i_path in range(n_path):
+            dx = xy_src_path[i_path + 1, 0] - xy_src_path[i_path, 0]
+            dy = xy_src_path[i_path + 1, 1] - xy_src_path[i_path, 1]
+            l = np.sqrt(dx**2 + dy**2)
+            theta = np.arctan2(dy, dx)
+            lk = np.c_[(x + 1) * l / 2, np.zeros(self.n_points_per_path)]
+            xyk = self.rotate_points_xy(lk, theta, x0=xy_src_path[i_path, :])
+            xyks.append(xyk)
+            thetas.append(theta * np.ones(xyk.shape[0]))
+            weights.append(w * l / 2)
+        # store these for future evalution of integrals
+        self._xyks = np.vstack(xyks)
+        self._weights = np.hstack(weights)
+        self._thetas = np.hstack(thetas)
 
 
 class LineCurrent(BaseTDEMSrc):
@@ -1032,11 +1310,10 @@ class LineCurrent(BaseTDEMSrc):
             return Zero()
 
     def jInitialDeriv(self, simulation, v=None, adjoint=False, f=None):
-        if simulation._formulation != "HJ":
-            raise NotImplementedError
-
         if self.waveform.has_initial_fields is False:
             return Zero()
+        elif simulation._formulation != "HJ":
+            raise NotImplementedError
 
         phi = self.phiInitial(simulation)
         Div = sdiag(simulation.mesh.vol) * simulation.mesh.faceDiv
@@ -1086,7 +1363,9 @@ class LineCurrent(BaseTDEMSrc):
         return Ainv * self.jInitialDeriv(simulation, v)
 
     def hInitial(self, simulation):
-        if simulation._formulation != "HJ":
+        if self.waveform.has_initial_fields is False:
+            return Zero()
+        elif simulation._formulation != "HJ":
             raise NotImplementedError
 
         if self.waveform.has_initial_fields is False:
@@ -1096,7 +1375,9 @@ class LineCurrent(BaseTDEMSrc):
         return simulation.MeMuI * b
 
     def hInitialDeriv(self, simulation, v, adjoint=False, f=None):
-        if simulation._formulation != "HJ":
+        if self.waveform.has_initial_fields is False:
+            return Zero()
+        elif simulation._formulation != "HJ":
             raise NotImplementedError
 
         if self.waveform.has_initial_fields is False:
@@ -1107,21 +1388,19 @@ class LineCurrent(BaseTDEMSrc):
         return simulation.MeMuI * self.bInitialDeriv(simulation, v)
 
     def bInitial(self, simulation):
-        if simulation._formulation != "HJ":
-            raise NotImplementedError
-
         if self.waveform.has_initial_fields is False:
             return Zero()
+        elif simulation._formulation != "HJ":
+            raise NotImplementedError
 
         a = self._aInitial(simulation)
         return simulation.mesh.edgeCurl.T * a
 
     def bInitialDeriv(self, simulation, v, adjoint=False, f=None):
-        if simulation._formulation != "HJ":
-            raise NotImplementedError
-
         if self.waveform.has_initial_fields is False:
             return Zero()
+        elif simulation._formulation != "HJ":
+            raise NotImplementedError
 
         if adjoint is True:
             return self._aInitialDeriv(

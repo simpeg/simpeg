@@ -314,7 +314,10 @@ class AmpProblemTest(unittest.TestCase):
     def tearDown(self):
         # Clean up the working directory
         if self.sim.store_sensitivities == "disk":
-            shutil.rmtree(self.sim.sensitivity_path)
+            try:
+                shutil.rmtree(self.sim.sensitivity_path)
+            except:
+                pass
 
 
 if __name__ == "__main__":

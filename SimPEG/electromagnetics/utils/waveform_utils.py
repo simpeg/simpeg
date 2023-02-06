@@ -1,5 +1,6 @@
 import numpy as np
 from scipy.constants import mu_0, epsilon_0
+from scipy import integrate
 
 # useful params
 def omega(freq):
@@ -73,4 +74,51 @@ def VTEMFun(time, ta, tb, a):
     out[(time > ta) & (time < tb)] = (
         -1 / (tb - ta) * (time[(time > ta) & (time < tb)] - tb)
     )
+    return out
+
+
+def convolve_with_waveform(func, waveform, times, fargs=[], fkwargs={}):
+    """convolves the function with the given waveform
+
+    This convolves the given function with the waveform and evaluates it at the given
+    times. This uses a high order Gaussian-Legendre quadrature to evaluate, and could
+    likely be slow.
+
+    Parameters
+    ----------
+    func : callable
+        function of `t` that should be convolved
+    waveform : SimPEG.electromagnetics.time_domain.waveforms.BaseWaveform
+    times : array_like
+    fargs : list
+        extra arguments given to `func`
+    fkwargs : dict
+        keyword arguments given to `func`
+
+    Returns
+    -------
+    np.ndarray
+        the convolution evaluate at the given times
+    """
+    try:
+        t_nodes = waveform.time_nodes
+    except AttributeError:
+        raise TypeError(f"Unsupported waveform type of {type(waveform)}")
+
+    n_int = len(t_nodes) - 1
+    out = np.zeros_like(times, dtype=float)
+    for it, t in enumerate(times):
+
+        def integral(quad_time):
+            wave_eval = waveform.evalDeriv(t - quad_time)
+            return wave_eval * func(quad_time, *fargs, **fkwargs)
+
+        for i in range(n_int):
+            b = t - t_nodes[i]
+            a = t - t_nodes[i + 1]
+            # just do not evaluate the integral at negative times...
+            a = np.maximum(a, 0.0)
+            b = np.maximum(b, 0.0)
+            val, _ = integrate.quadrature(integral, a, b, tol=0.0, maxiter=500)
+            out[it] -= val
     return out

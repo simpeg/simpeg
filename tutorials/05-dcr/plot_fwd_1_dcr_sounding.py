@@ -10,7 +10,6 @@ sounding data over a 1D layered Earth. In this tutorial, we focus on the followi
     - How to define the survey
     - How to predict voltage or apparent resistivity data
     - The units of the model and resulting data
-    - 1D simulation for DC resistivity
 
 For this tutorial, we will simulate sounding data over a layered Earth using
 a Wenner array. The end product is a sounding curve which tells us how the
@@ -90,7 +89,8 @@ survey = dc.Survey(source_list)
 # Here, we define the layer thicknesses and electrical resistivities for our
 # 1D simulation. If we have N layers, we define N electrical resistivity
 # values and N-1 layer thicknesses. The lowest layer is assumed to extend to
-# infinity.
+# infinity. In the case of a halfspace, the layer thicknesses would be
+# an empty array.
 #
 
 # Define layer thicknesses.

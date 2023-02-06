@@ -20,7 +20,17 @@ class BaseRx(survey.BaseRx):
         {
             "real": ["re", "in-phase", "in phase"],
             "imag": ["imaginary", "im", "out-of-phase", "out of phase"],
+            "both": ["re and im", "in-phase and out-of-phase"],
+            "complex": ["re + im"],
         },
+    )
+
+    data_type = properties.StringChoice(
+        "Data type", default="field", choices=["field", "ppm"]
+    )
+
+    use_source_receiver_offset = properties.Bool(
+        "Use source-receiver offset", default=False
     )
 
     def __init__(self, locations, orientation=None, component=None, **kwargs):
@@ -100,6 +110,13 @@ class BaseRx(survey.BaseRx):
 
             return df_duT, df_dmT
 
+    @property
+    def nD(self):
+        if self.component == "both":
+            return int(self.locations.shape[0] * 2)
+        else:
+            return self.locations.shape[0]
+
 
 class PointElectricField(BaseRx):
     """
@@ -159,6 +176,21 @@ class PointMagneticField(BaseRx):
     def __init__(self, locations, orientation="x", component="real"):
         self.projField = "h"
         super(PointMagneticField, self).__init__(locations, orientation, component)
+
+
+class PointMagneticFieldSecondary(BaseRx):
+    """
+    Magnetic flux FDEM receiver
+    :param numpy.ndarray locations: receiver locations (ie. :code:`np.r_[x,y,z]`)
+    :param string orientation: receiver orientation 'x', 'y' or 'z'
+    :param string component: real or imaginary component 'real' or 'imag'
+    """
+
+    def __init__(self, locations, orientation="x", component="real", **kwargs):
+        self.projField = "hSecondary"
+        super(PointMagneticFieldSecondary, self).__init__(
+            locations, orientation=orientation, component=component, **kwargs
+        )
 
 
 class PointCurrentDensity(BaseRx):

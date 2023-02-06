@@ -1,11 +1,10 @@
 """
-Forward Simulation on a Cylindrical Mesh
-========================================
+3D Forward Simulation on a Cylindrical Mesh
+===========================================
 
 Here we use the module *SimPEG.electromagnetics.frequency_domain* to simulate the
-FDEM response for an airborne survey using a cylindrical mesh and a conductivity
-model. We simulate a single line of airborne data at many frequencies for a vertical
-coplanar survey geometry. For this tutorial, we focus on the following:
+FDEM response for a borehole survey using a cylindrical mesh and radially symmetric
+conductivity model. For this tutorial, we focus on the following:
 
     - How to define the transmitters and receivers
     - How to define the survey
@@ -49,21 +48,21 @@ write_file = False
 # Create Airborne Survey
 # ----------------------
 #
-# Here we define an airborne survey that consists of a single line of EM data
-# measurements over a range of frequencies. The loop geometry is horizontal
-# coplanar.
+# Here we define a x-offset borehole survey that consists of a single vertical line
+# of source-receiver pairs which measred the secondary magnetic flux density
+#  over a range of frequencies.
 #
 
 # Frequencies being predicted (10 Hz to 10000 Hz)
 frequencies = np.logspace(1, 4, 16)
 
 # Defining transmitter locations
-xtx, ytx, ztx = np.meshgrid(np.linspace(0, 200, 41), [0], [55])
+xtx, ytx, ztx = np.meshgrid([0], [0], np.linspace(0, -500, 21))
 source_locations = np.c_[mkvc(xtx), mkvc(ytx), mkvc(ztx)]
 ntx = np.size(xtx)
 
 # Define receiver locations
-xrx, yrx, zrx = np.meshgrid(np.linspace(0, 200, 41), [0], [50])
+xrx, yrx, zrx = np.meshgrid([100], [0], np.linspace(0, -500, 21))
 receiver_locations = np.c_[mkvc(xrx), mkvc(yrx), mkvc(zrx)]
 
 source_list = []  # Create empty list to store sources
@@ -108,10 +107,10 @@ survey = fdem.Survey(source_list)
 #
 #
 
-hr = [(10.0, 50), (10.0, 10, 1.5)]  # discretization in the radial direction
+hr = [(10.0, 30), (10.0, 10, 1.5)]  # discretization in the radial direction
 hz = [
     (10.0, 10, -1.5),
-    (10.0, 100),
+    (10.0, 200),
     (10.0, 10, 1.5),
 ]  # discretization in vertical direction
 
@@ -123,32 +122,31 @@ mesh = CylMesh([hr, 1, hz], x0="00C")
 #
 # Here, we create the model that will be used to predict frequency domain
 # data and the mapping from the model to the mesh. The model
-# consists of a long vertical conductive pipe and a resistive
-# surface layer. For this example, we will have only flat topography.
+# consists of several layers. For this example, we will have only flat topography.
 #
 
 # Conductivity in S/m (or resistivity in Ohm m)
 air_conductivity = 1e-8
 background_conductivity = 1e-1
-layer_conductivity = 1e-2
-pipe_conductivity = 1e1
+layer_conductivity_1 = 1e0
+layer_conductivity_2 = 1e-2
 
 # Find cells that are active in the forward modeling (cells below surface)
-ind_active = mesh.gridCC[:, 2] < 0
+ind_active = mesh.cell_centers[:, 2] < 0
 
 # Define mapping from model to active cells
 model_map = maps.InjectActiveCells(mesh, ind_active, air_conductivity)
 
 # Define the model
 model = background_conductivity * np.ones(ind_active.sum())
-ind_layer = (mesh.gridCC[ind_active, 2] > -100.0) & (mesh.gridCC[ind_active, 2] < -0)
-model[ind_layer] = layer_conductivity
-ind_pipe = (
-    (mesh.gridCC[ind_active, 0] < 60.0)
-    & (mesh.gridCC[ind_active, 2] > -10000.0)
-    & (mesh.gridCC[ind_active, 2] < 0.0)
+ind = (mesh.cell_centers[ind_active, 2] > -200.0) & (
+    mesh.cell_centers[ind_active, 2] < -0
 )
-model[ind_pipe] = pipe_conductivity
+model[ind] = layer_conductivity_1
+ind = (mesh.cell_centers[ind_active, 2] > -400.0) & (
+    mesh.cell_centers[ind_active, 2] < -200
+)
+model[ind] = layer_conductivity_2
 
 # Plot Conductivity Model
 mpl.rcParams.update({"font.size": 14})
@@ -162,15 +160,13 @@ mesh.plotImage(
     plotting_map * log_model,
     ax=ax1,
     grid=False,
-    clim=(np.log10(layer_conductivity), np.log10(pipe_conductivity)),
+    clim=(np.log10(layer_conductivity_2), np.log10(layer_conductivity_1)),
 )
-ax1.set_title("Conductivity Model (Survey in red)")
-
-ax1.plot(receiver_locations[:, 0], receiver_locations[:, 2], "r.")
+ax1.set_title("Conductivity Model")
 
 ax2 = fig.add_axes([0.76, 0.1, 0.05, 0.85])
 norm = mpl.colors.Normalize(
-    vmin=np.log10(layer_conductivity), vmax=np.log10(pipe_conductivity)
+    vmin=np.log10(layer_conductivity_2), vmax=np.log10(layer_conductivity_1)
 )
 cbar = mpl.colorbar.ColorbarBase(
     ax2, norm=norm, orientation="vertical", format="$10^{%.1f}$"
@@ -213,26 +209,25 @@ bz_imag = dpred[1 : len(dpred) : 2]
 bz_real = np.reshape(bz_real, (ntx, len(frequencies)))
 bz_imag = np.reshape(bz_imag, (ntx, len(frequencies)))
 
-# Plot secondary field along the profile at f = 1 Hz
-fig = plt.figure(figsize=(7, 5))
-ax1 = fig.add_axes([0.15, 0.1, 0.8, 0.85])
+# Plot secondary field along the profile at f = 10000 Hz
+fig = plt.figure(figsize=(5, 5))
+ax1 = fig.add_axes([0.2, 0.15, 0.75, 0.75])
 frequencies_index = 0
-ax1.plot(receiver_locations[:, 0], bz_real[:, frequencies_index], "b", lw=3)
-ax1.plot(receiver_locations[:, 0], bz_imag[:, frequencies_index], "r", lw=3)
-ax1.set_xlim((0, np.max(xtx)))
-ax1.set_xlabel("Easting [m]")
-ax1.set_ylabel("Bz secondary [T]")
-ax1.set_title("Secondary Bz-field at 1 Hz")
-ax1.legend(["Real", "Imaginary"], loc="lower right")
+ax1.plot(bz_real[:, frequencies_index], receiver_locations[:, -1], "b-", lw=3)
+ax1.plot(bz_imag[:, frequencies_index], receiver_locations[:, -1], "b--", lw=3)
+ax1.set_xlabel("Bz secondary [T]")
+ax1.set_ylabel("Elevation [m]")
+ax1.set_title("Response at 10000 Hz")
+ax1.legend(["Real", "Imaginary"], loc="upper right")
 
-# Plot FEM sounding over the pipe
-fig = plt.figure(figsize=(7, 5))
-ax1 = fig.add_axes([0.15, 0.1, 0.8, 0.85])
+# Plot FEM response for all frequencies
+fig = plt.figure(figsize=(5, 5))
+ax1 = fig.add_axes([0.2, 0.15, 0.75, 0.75])
 location_index = 0
-ax1.semilogx(frequencies, bz_real[location_index, :], "b", lw=3)
-ax1.semilogx(frequencies, bz_imag[location_index, :], "r", lw=3)
+ax1.semilogx(frequencies, bz_real[location_index, :], "b-", lw=3)
+ax1.semilogx(frequencies, bz_imag[location_index, :], "b--", lw=3)
 ax1.set_xlim((np.min(frequencies), np.max(frequencies)))
 ax1.set_xlabel("Frequency [Hz]")
 ax1.set_ylabel("Bz secondary [T]")
-ax1.set_title("Secondary Bz-field over pipe")
-ax1.legend(["Real", "Imaginary"], loc="lower left")
+ax1.set_title("Response at Smallest Offset")
+ax1.legend(["Real", "Imaginary"], loc="upper left")

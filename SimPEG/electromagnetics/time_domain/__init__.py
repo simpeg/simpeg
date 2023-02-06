@@ -4,6 +4,7 @@ from .simulation import (
     Simulation3DMagneticField,
     Simulation3DCurrentDensity,
 )
+from .simulation_1d import Simulation1DLayered
 from .fields import (
     Fields3DMagneticFluxDensity,
     Fields3DElectricField,
