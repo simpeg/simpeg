@@ -468,9 +468,7 @@ class Report(ScoobyReport):
         core = [
             "SimPEG",
             "discretize",
-            "pymatsolver",  # TODO: Will be replaced by pydiso
-            "vectormath",
-            "properties",   # TODO: Will be removed eventually
+            "pymatsolver",
             "numpy",
             "scipy",
             "cython",
