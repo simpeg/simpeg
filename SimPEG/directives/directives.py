@@ -2357,7 +2357,6 @@ class CurrentBasedSensitivityWeights(InversionDirective):
         self.everyBeta = everyBeta
         self.startingBetaIter = startingBetaIter
         self.threshold = threshold
-        self.normalization = normalization
         self.n_hutchinson_samples = n_hutchinson_samples
 
     @property
@@ -2391,14 +2390,6 @@ class CurrentBasedSensitivityWeights(InversionDirective):
     @threshold.setter
     def threshold(self, value):
         self._threshold = value
-
-    @property
-    def normalization(self):
-        return self._normalization
-
-    @normalization.setter
-    def normalization(self, value):
-        self._normalization = value
 
     @property
     def n_hutchinson_samples(self):
