@@ -2347,8 +2347,8 @@ class CurrentBasedSensitivityWeights(InversionDirective):
         everyIter=False,
         everyBeta=True,
         startingBetaIter=1,
-        threshold=100.,
-        n_hutchinson_samples=40,
+        threshold=1000.,
+        n_hutchinson_samples=30,
         **kwargs
     ):
         
@@ -2359,6 +2359,54 @@ class CurrentBasedSensitivityWeights(InversionDirective):
         self.threshold = threshold
         self.normalization = normalization
         self.n_hutchinson_samples = n_hutchinson_samples
+
+    @property
+    def everyIter(self):
+        return self._everyIter
+
+    @everyIter.setter
+    def everyIter(self, value):
+        self._everyIter = value
+
+    @property
+    def everyBeta(self):
+        return self._everyBeta
+
+    @everyBeta.setter
+    def everyBeta(self, value):
+        self._everyBeta = value
+
+    @property
+    def startingBetaIter(self):
+        return self._startingBetaIter
+
+    @startingBetaIter.setter
+    def startingBetaIter(self, value):
+        self._startingBetaIter = value
+
+    @property
+    def threshold(self):
+        return self._threshold
+
+    @threshold.setter
+    def threshold(self, value):
+        self._threshold = value
+
+    @property
+    def normalization(self):
+        return self._normalization
+
+    @normalization.setter
+    def normalization(self, value):
+        self._normalization = value
+
+    @property
+    def n_hutchinson_samples(self):
+        return self._n_hutchinson_samples
+
+    @n_hutchinson_samples.setter
+    def n_hutchinson_samples(self, value):
+        self._n_hutchinson_samples = value
 
     def initialize(self):
         """
