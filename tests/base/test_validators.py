@@ -63,7 +63,6 @@ def test_string_validation():
 
 
 def test_integer_validation():
-
     # valid integer
     assert validate_integer("int_prop", -4) == -4
     # float to integer
@@ -86,7 +85,6 @@ def test_integer_validation():
 
 
 def test_float_validation():
-
     # These should pass
     assert validate_float("FloatProperty", -4.0) == -4.0  # float
     assert validate_float("FloatProperty", -4) == -4.0  # int converted to float
@@ -114,7 +112,6 @@ def test_float_validation():
 
 
 def test_list_validation():
-
     # Empty list should work
     assert validate_list_of_types("ListProperty", [], object) == []  # empty list
 
@@ -155,7 +152,6 @@ def test_list_validation():
 
 
 def test_location_validation():
-
     # simple valid location
     first_test = validate_location_property("LocationProperty", np.r_[1, 2, 3])
     # check return type is a float numpy array
@@ -203,7 +199,6 @@ def test_location_validation():
 
 
 def test_ndarray_validation():
-
     # should convert anything to an ndarray with None dtype
     # and no shape specified
     assert isinstance(
@@ -307,7 +302,6 @@ def test_ndarray_validation():
 
 
 def test_type_validation():
-
     # should try to cast to type
     assert type(validate_type("type_prop", 4.0, int)) == int
 

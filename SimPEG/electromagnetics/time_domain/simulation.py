@@ -249,7 +249,6 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
             Asubdiag = self.getAsubdiag(tInd)
 
             for i, src in enumerate(self.survey.source_list):
-
                 # here, we are lagging by a timestep, so filling in as we go
                 for projField in set([rx.projField for rx in src.receiver_list]):
                     df_dmFun = getattr(f, "_%sDeriv" % projField, None)
@@ -415,7 +414,6 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
                 Asubdiag = self.getAsubdiag(tInd + 1)
 
             for isrc, src in enumerate(self.survey.source_list):
-
                 # solve against df_duT_v
                 if tInd >= self.nT - 1:
                     # last timestep (first to be solved)
@@ -498,7 +496,6 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
         return ifields
 
     def getInitialFieldsDeriv(self, src, v, adjoint=False, f=None):
-
         ifieldsDeriv = mkvc(
             getattr(src, "{}InitialDeriv".format(self._fieldType), None)(
                 self, v, adjoint, f
@@ -882,7 +879,6 @@ class Simulation3DElectricField(BaseTDEMSimulation):
                 Asubdiag = self.getAsubdiag(tInd + 1)
 
             for isrc, src in enumerate(self.survey.source_list):
-
                 # solve against df_duT_v
                 if tInd >= self.nT - 1:
                     # last timestep (first to be solved)
@@ -918,7 +914,6 @@ class Simulation3DElectricField(BaseTDEMSimulation):
 
         for isrc, src in enumerate(self.survey.source_list):
             if src.srcType == "galvanic":
-
                 ATinv_df_duT_v[isrc, :] = Grad * (
                     self.Adcinv
                     * (
@@ -1122,7 +1117,6 @@ class Simulation3DMagneticField(BaseTDEMSimulation):
         return Zero()
 
     def getRHS(self, tInd):
-
         C = self.mesh.edge_curl
         MfRho = self.MfRho
         s_m, s_e = self.getSourceTerm(tInd)
@@ -1227,7 +1221,6 @@ class Simulation3DCurrentDensity(BaseTDEMSimulation):
         return Zero()
 
     def getRHS(self, tInd):
-
         if tInd == len(self.time_steps):
             tInd = tInd - 1
 

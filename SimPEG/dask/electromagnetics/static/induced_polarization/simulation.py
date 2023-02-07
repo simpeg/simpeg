@@ -10,7 +10,6 @@ def dask_getJtJdiag(self, m, W=None):
     Return the diagonal of JtJ
     """
     if getattr(self, "_gtgdiag", None) is None:
-
         # Need to check if multiplying weights makes sense
         if W is None:
             W = self._scale

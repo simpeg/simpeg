@@ -15,7 +15,6 @@ except ImportError:
 
 class IPProblemAnalyticTests(unittest.TestCase):
     def setUp(self):
-
         cs = 12.5
         npad = 2
         hx = [(cs, npad, -1.3), (cs, 21), (cs, npad, 1.3)]
@@ -53,7 +52,6 @@ class IPProblemAnalyticTests(unittest.TestCase):
         self.eta = eta
 
     def test_Simulation3DNodal(self):
-
         simulationdc = dc.simulation.Simulation3DNodal(
             mesh=self.mesh, survey=self.surveyDC, sigmaMap=maps.IdentityMap(self.mesh)
         )
@@ -83,7 +81,6 @@ class IPProblemAnalyticTests(unittest.TestCase):
         self.assertTrue(passed)
 
     def test_Simulation3DCellCentered(self):
-
         simulationdc = dc.simulation.Simulation3DCellCentered(
             mesh=self.mesh, survey=self.surveyDC, sigmaMap=maps.IdentityMap(self.mesh)
         )
@@ -115,7 +112,6 @@ class IPProblemAnalyticTests(unittest.TestCase):
 
 class ApparentChargeability3DTest(unittest.TestCase):
     def setUp(self):
-
         cs = 12.5
         npad = 2
         hx = [(cs, npad, -1.3), (cs, 21), (cs, npad, 1.3)]
@@ -158,7 +154,6 @@ class ApparentChargeability3DTest(unittest.TestCase):
         self.eta = eta
 
     def test_Simulation3DNodal(self):
-
         simulationdc = dc.simulation.Simulation3DNodal(
             self.mesh,
             sigmaMap=maps.IdentityMap(self.mesh),
@@ -205,7 +200,6 @@ class ApparentChargeability3DTest(unittest.TestCase):
         self.assertLess(err, 0.05)
 
     def test_Simulation3DCellCentered(self):
-
         simulationdc = dc.simulation.Simulation3DCellCentered(
             self.mesh,
             sigmaMap=maps.IdentityMap(self.mesh),

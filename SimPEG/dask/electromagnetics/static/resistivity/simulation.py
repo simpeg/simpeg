@@ -56,7 +56,7 @@ def dask_getJ(self, m, f=None):
                 m_size / np.ceil(m_size * n_col * 8 * 1e-6 / self.max_chunk_size)
             )
             ind = 0
-            for col in range(n_block_col):
+            for _ in range(n_block_col):
                 ATinvdf_duT = da.asarray(
                     self.Ainv * df_duT[:, ind : ind + n_col]
                 ).rechunk((nrows, n_col))
@@ -115,7 +115,6 @@ def dask_getJtJdiag(self, m, W=None):
     Return the diagonal of JtJ
     """
     if getattr(self, "_gtgdiag", None) is None:
-
         # Need to check if multiplying weights makes sense
         if W is None:
             self._gtgdiag = da.sum(self.getJ(m) ** 2, axis=0).compute()

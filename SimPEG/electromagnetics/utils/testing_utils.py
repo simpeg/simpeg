@@ -148,7 +148,6 @@ def crossCheckTest(
     TOL=1e-5,
     verbose=False,
 ):
-
     l2norm = lambda r: np.sqrt(r.dot(r))
 
     prb1 = getFDEMProblem(fdemType1, comp, SrcList, freq, useMu, verbose)

@@ -1,5 +1,5 @@
 import unittest
-import SimPEG.dask
+import SimPEG.dask  # noqa: F401
 from SimPEG import (
     directives,
     maps,
@@ -225,7 +225,6 @@ class MVIProblemTest(unittest.TestCase):
         )
 
     def test_mag_inverse(self):
-
         # Run the inversion
         mrec_MVI_S = self.inv.run(self.mstart)
 

@@ -22,8 +22,6 @@ import matplotlib.pyplot as plt
 
 from discretize import TensorMesh
 
-from SimPEG.simulation import LinearSimulation
-from SimPEG.data import Data
 from SimPEG import (
     simulation,
     maps,

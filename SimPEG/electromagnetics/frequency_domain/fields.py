@@ -1,7 +1,7 @@
 import numpy as np
 from scipy.constants import epsilon_0
 from ...fields import Fields
-from ...utils import mkvc, Zero, Identity, sdiag
+from ...utils import Identity, Zero, mkvc
 from ..utils import omega
 
 
@@ -856,7 +856,6 @@ class Fields3DMagneticFluxDensity(FieldsFDEM):
         # forgetting the source term here
 
     def _jDeriv_mui(self, src, v, adjoint=False):
-
         if adjoint:
             return self._MfMuiDeriv(
                 self[src, "b"], (self._edgeCurl * (self._MeI.T * v)), adjoint

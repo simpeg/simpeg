@@ -7,12 +7,11 @@ from SimPEG.utils import (
     WeightedGaussianMixture,
     GaussianMixtureWithPrior,
 )
-from scipy.stats import norm, multivariate_normal
+from scipy.stats import multivariate_normal
 
 
 class TestGMMs(unittest.TestCase):
     def setUp(self):
-
         np.random.seed(518936)
 
         # Create a cloud of  random points from a random gaussian mixture

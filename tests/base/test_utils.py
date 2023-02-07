@@ -69,9 +69,9 @@ class TestCounter(unittest.TestCase):
                 pass
 
         c = MyClass("blah")
-        for i in range(100):
+        for _ in range(100):
             c.MyMethod()
-        for i in range(300):
+        for _ in range(300):
             c.MySecondMethod()
         c.counter.summary()
         self.assertTrue(True)
@@ -278,7 +278,6 @@ class TestSequenceFunctions(unittest.TestCase):
             self.assertTrue(np.linalg.norm(Z.todense().ravel(), 2) < TOL)
 
     def test_as_array_n_by_dim(self):
-
         true = np.array([[1, 2, 3]])
 
         listArray = as_array_n_by_dim([1, 2, 3], 3)

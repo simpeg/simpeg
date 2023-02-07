@@ -32,8 +32,7 @@ This example was updated for SimPEG 0.14.0 on January 31st, 2020 by Joseph Capri
 """
 import discretize
 from SimPEG import utils, maps, tests
-from SimPEG.electromagnetics import mu_0, frequency_domain as FDEM, analytics
-from SimPEG.electromagnetics.utils import omega
+from SimPEG.electromagnetics import frequency_domain as FDEM, mu_0
 from SimPEG.utils.io_utils import download
 
 # try:
@@ -61,7 +60,6 @@ rcParams["font.size"] = fontsize
 
 
 class PrimSecCasingExample(object):
-
     NAME = "PrimSec_5e6Casing_50Mu_05Hz_LargeCondBody"
 
     # -------------- SETUP MODEL PARAMS ---------------------------- #
@@ -228,7 +226,6 @@ class PrimSecCasingExample(object):
         # injected during the construction of the primary model
 
         if getattr(self, "_primaryMapping", None) is None:
-
             print("Building primary mapping")
 
             # inject parameters we want to invert for into the full casing
@@ -361,7 +358,6 @@ class PrimSecCasingExample(object):
     @property
     def primarySurvey(self):
         if getattr(self, "_primarySurvey", None) is None:
-
             print("Setting up primary survey")
 
             def setupPrimarySource(plotIt=False):
@@ -581,7 +577,6 @@ class PrimSecCasingExample(object):
         return sec_problem
 
     def setupSecondarySurvey(self, primaryProblem, primarySurvey, map2meshSecondary):
-
         print("Setting up Secondary Survey")
 
         nx = 41
@@ -632,7 +627,6 @@ class PrimSecCasingExample(object):
     # ----------------------------------------------------------------- #
 
     def plotPrimaryFields(self, primaryFields, saveFig=False):
-
         # Interpolate onto a cartesian mesh with uniform cell sizes (better for
         # streamplots)
         cs = 5.0
@@ -749,7 +743,7 @@ class PrimSecCasingExample(object):
 
         # re-assign zero for amplitude of the real current density
         s_e_abs_cc = s_e_stream_cc.reshape(meshs_plt.nC, 3, order="F")
-        s_e_abs_cc = np.sqrt((s_e_abs_cc ** 2.0).sum(axis=1))
+        s_e_abs_cc = np.sqrt((s_e_abs_cc**2.0).sum(axis=1))
         s_e_abs_cc[np.isnan(s_e_abs_cc)] = 0.0
         s_e_stream_cc = np.ma.masked_where(np.isnan(s_e_stream_cc), s_e_stream_cc)
 
@@ -913,7 +907,6 @@ class PrimSecCasingExample(object):
             norm=None,
             cblabel="",
         ):
-
             eps = 1e-3  # just so we don't get white-spaces in the colormap
             ax.axis("equal")
             vlim = np.absolute(Jv).max() * np.r_[-1.0, 1.0]
@@ -1283,7 +1276,6 @@ class PrimSecCasingExample(object):
     def run(
         self, plotIt=False, runTests=False, verbose=True, saveFields=True, saveFig=False
     ):
-
         self.verbose = verbose
 
         if plotIt is True:  # Plot the Primary Model
@@ -1385,7 +1377,6 @@ class PrimSecCasingExample(object):
 
 
 class PrimSecCasingStoredResults(PrimSecCasingExample):
-
     url = "https://storage.googleapis.com/simpeg/papers/Heagyetal2016/"
 
     # cloudfiles = [
@@ -1411,7 +1402,6 @@ class PrimSecCasingStoredResults(PrimSecCasingExample):
         shutil.rmtree(self.filepath)
 
     def run(self, plotIt=False, runTests=False, saveFig=False):
-
         filepath = download(
             self.url + self.cloudfile, folder="~/Downloads/simpegtemp", overwrite=True
         )
@@ -1440,7 +1430,6 @@ class PrimSecCasingStoredResults(PrimSecCasingExample):
 
 
 def run(plotIt=True, runTests=False, reRun=False, saveFig=False):
-
     """
     EM Heagyetal2016 CasingFwd3DPrimSecSrc
     ======================================

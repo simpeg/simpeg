@@ -1,7 +1,6 @@
 import numpy as np
 from scipy.constants import mu_0
 import warnings
-from scipy.special import roots_legendre
 
 from geoana.em.static import MagneticDipoleWholeSpace, CircularLoopWholeSpace
 
@@ -41,7 +40,6 @@ class BaseFDEMSrc(BaseEMSrc):
     _jPrimary = None
 
     def __init__(self, receiver_list, frequency, location=None, **kwargs):
-
         super().__init__(receiver_list=receiver_list, location=location, **kwargs)
         self.frequency = frequency
 
@@ -836,7 +834,7 @@ class CircularLoop(MagDipole):
         float
             Dipole moment of the loop
         """
-        return np.pi * self.radius ** 2 * np.abs(self.current) * self.n_turns
+        return np.pi * self.radius**2 * np.abs(self.current) * self.n_turns
 
     @moment.setter
     def moment(self, value):
@@ -929,7 +927,6 @@ class PrimSecMappedSigma(BaseFDEMSrc):
         map2meshSecondary=None,
         **kwargs,
     ):
-
         self.primarySimulation = primarySimulation
         self.primarySurvey = primarySurvey
 
@@ -1078,7 +1075,6 @@ class PrimSecMappedSigma(BaseFDEMSrc):
         return mkvc(ep)
 
     def ePrimaryDeriv(self, simulation, v, adjoint=False, f=None):
-
         if f is None:
             f = self._primaryFields(simulation)
 
@@ -1159,7 +1155,6 @@ class PrimSecMappedSigma(BaseFDEMSrc):
         )
 
     def s_eDeriv(self, simulation, v, adjoint=False):
-
         sigmaPrimary = self.map2meshSecondary * simulation.model
         sigmaPrimaryDeriv = self.map2meshSecondary.deriv(simulation.model)
 
@@ -1231,7 +1226,6 @@ class LineCurrent(BaseFDEMSrc):
         mu=mu_0,
         **kwargs,
     ):
-
         super().__init__(
             receiver_list=receiver_list,
             frequency=frequency,

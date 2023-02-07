@@ -34,7 +34,6 @@ from discretize.utils import mkvc, refine_tree_xyz
 from SimPEG.utils import surface2ind_topo, model_builder
 from SimPEG import (
     maps,
-    data,
     data_misfit,
     regularization,
     optimization,
@@ -46,7 +45,6 @@ from SimPEG import (
 from SimPEG.electromagnetics.static import resistivity as dc
 from SimPEG.electromagnetics.static.utils.static_utils import (
     plot_pseudosection,
-    apparent_resistivity_from_voltage,
 )
 from SimPEG.utils.io_utils.io_utils_electromagnetics import read_dcip2d_ubc
 
@@ -449,7 +447,6 @@ cbar = 3 * [None]
 cplot = 3 * [None]
 
 for ii in range(0, 3):
-
     ax1[ii] = fig.add_axes([0.15, 0.72 - 0.33 * ii, 0.65, 0.21])
     cax1[ii] = fig.add_axes([0.81, 0.72 - 0.33 * ii, 0.03, 0.21])
     cplot[ii] = plot_pseudosection(

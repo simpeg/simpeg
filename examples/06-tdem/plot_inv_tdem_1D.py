@@ -21,7 +21,6 @@ import matplotlib.pyplot as plt
 
 
 def run(plotIt=True):
-
     cs, ncx, ncz, npad = 5.0, 25, 15, 15
     hx = [(cs, ncx), (cs, npad, 1.3)]
     hz = [(cs, npad, -1.3), (cs, ncz), (cs, npad, 1.3)]

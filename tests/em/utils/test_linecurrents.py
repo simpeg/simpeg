@@ -30,7 +30,6 @@ class LineCurrentTests(unittest.TestCase):
         np.testing.assert_allclose(s_true, s)
 
     def test_segmented_tensor(self):
-
         hx = np.ones(10) * 1.0
         hy = np.ones(10) * 2.0
         hz = np.ones(10) * 3.0
@@ -51,7 +50,6 @@ class LineCurrentTests(unittest.TestCase):
 
 class TreeMeshLineCurrentTest(unittest.TestCase):
     def test_segmented_tree(self):
-
         hx = np.ones(16) * 1.0
         hy = np.ones(16) * 2.0
         hz = np.ones(16) * 3.0

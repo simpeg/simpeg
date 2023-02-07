@@ -6,14 +6,11 @@ import uuid
 
 from .utils import Counter
 from .utils.code_utils import (
-    deprecate_property,
-    deprecate_method,
     validate_location_property,
     validate_ndarray_with_shape,
     validate_list_of_types,
     validate_type,
 )
-from .props import BaseSimPEG
 
 
 class BaseRx:
@@ -30,7 +27,6 @@ class BaseRx:
     _Ps = None
 
     def __init__(self, locations, storeProjections=False, **kwargs):
-
         self.locations = locations
 
         # Deprecated properties
@@ -294,7 +290,6 @@ class BaseSrc:
     """
 
     def __init__(self, receiver_list=None, location=None, **kwargs):
-
         if receiver_list is None:
             receiver_list = []
         self.receiver_list = receiver_list
@@ -429,7 +424,6 @@ class BaseSurvey:
     """
 
     def __init__(self, source_list, counter=None, **kwargs):
-
         # Source list
         if source_list is None:
             source_list = []

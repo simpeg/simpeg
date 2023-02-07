@@ -1,5 +1,5 @@
 import unittest
-import SimPEG.dask
+import SimPEG.dask  # noqa: F401
 from SimPEG import (
     directives,
     maps,
@@ -21,7 +21,6 @@ import numpy as np
 
 class MagInvLinProblemTest(unittest.TestCase):
     def setUp(self):
-
         np.random.seed(0)
 
         # First we need to define the direction of the inducing field
@@ -149,7 +148,6 @@ class MagInvLinProblemTest(unittest.TestCase):
         )
 
     def test_mag_inverse(self):
-
         # Run the inversion
         mrec = self.inv.run(self.model * 1e-4)
 

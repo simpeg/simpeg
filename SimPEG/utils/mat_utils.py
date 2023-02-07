@@ -1,6 +1,6 @@
 import numpy as np
-from .code_utils import deprecate_method, deprecate_function
-from discretize.utils import (
+from .code_utils import deprecate_function
+from discretize.utils import (  # noqa: F401
     Zero,
     Identity,
     mkvc,
@@ -21,16 +21,6 @@ from discretize.utils import (
     TensorType,
     make_property_tensor,
     inverse_property_tensor,
-)
-
-# deprecated imports
-from discretize.utils import (
-    sdInv,
-    getSubArray,
-    inv3X3BlockDiagonal,
-    inv2X2BlockDiagonal,
-    makePropertyTensor,
-    invPropertyTensor,
 )
 
 
@@ -184,7 +174,7 @@ def eigenvalue_by_power_iteration(
     # create Field for data misfit if necessary and not provided
     if fields_list is None:
         fields_list = []
-        for k, obj in enumerate(combo_objfct.objfcts):
+        for obj in combo_objfct.objfcts:
             if hasattr(obj, "simulation"):
                 fields_list += [obj.simulation.fields(model)]
             else:
@@ -196,7 +186,7 @@ def eigenvalue_by_power_iteration(
         fields_list = [fields_list]
 
     # Power iteration: estimate eigenvector
-    for i in range(n_pw_iter):
+    for _ in range(n_pw_iter):
         x1 = 0.0
         for j, (mult, obj) in enumerate(
             zip(combo_objfct.multipliers, combo_objfct.objfcts)
@@ -274,7 +264,7 @@ def cartesian2spherical(m):
     y = m[:, 1]
     z = m[:, 2]
 
-    a = (x ** 2.0 + y ** 2.0 + z ** 2.0) ** 0.5
+    a = (x**2.0 + y**2.0 + z**2.0) ** 0.5
 
     t = np.zeros_like(x)
     t[a > 0] = np.arcsin(z[a > 0] / a[a > 0])
@@ -449,5 +439,32 @@ def define_plane_from_points(xyz1, xyz2, xyz3):
 
 
 diagEst = deprecate_function(estimate_diagonal, "diagEst", removal_version="0.19.0")
-
 uniqueRows = deprecate_function(unique_rows, "uniqueRows", removal_version="0.19.0")
+sdInv = deprecate_function(sdinv, "sdInv", removal_version="0.19.0", future_warn=True)
+getSubArray = deprecate_function(
+    get_subarray, "getSubArray", removal_version="0.19.0", future_warn=True
+)
+inv3X3BlockDiagonal = deprecate_function(
+    inverse_3x3_block_diagonal,
+    "inv3X3BlockDiagonal",
+    removal_version="0.19.0",
+    future_warn=True,
+)
+inv2X2BlockDiagonal = deprecate_function(
+    inverse_2x2_block_diagonal,
+    "inv2X2BlockDiagonal",
+    removal_version="0.19.0",
+    future_warn=True,
+)
+makePropertyTensor = deprecate_function(
+    make_property_tensor,
+    "makePropertyTensor",
+    removal_version="0.19.0",
+    future_warn=True,
+)
+invPropertyTensor = deprecate_function(
+    inverse_property_tensor,
+    "invPropertyTensor",
+    removal_version="0.19.0",
+    future_warn=True,
+)

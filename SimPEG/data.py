@@ -251,7 +251,7 @@ class Data:
         if self.relative_error is not None:
             uncert += (self.relative_error * np.absolute(self.dobs)) ** 2
         if self.noise_floor is not None:
-            uncert += self.noise_floor ** 2
+            uncert += self.noise_floor**2
 
         return np.sqrt(uncert)
 
