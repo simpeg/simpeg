@@ -146,11 +146,13 @@ receiver_locations = np.c_[mkvc(xrx), mkvc(yrx), mkvc(zrx)]
 source_list = []  # Create empty list to store sources
 
 # Each unique location defines a new transmitter
-for ii in range(ntx):
-
+value_sortings = []
+rx_counter = 0
+for ii in range(1):
+    nrx = receiver_locations.shape[0]
     # Here we define receivers that measure the h-field in A/m
     dbzdt_receiver = tdem.receivers.PointMagneticFluxTimeDerivative(
-        receiver_locations[ii], time_channels, "z"
+        receiver_locations, time_channels, "z"
     )
     receivers_list = [
         dbzdt_receiver
@@ -158,15 +160,29 @@ for ii in range(ntx):
 
     # Must define the transmitter properties and associated receivers
     source_list.append(
-        tdem.sources.MagDipole(
+        # tdem.sources.MagDipole(
+        #     receivers_list,
+        #     location=source_locations[ii],
+        #     waveform=waveform,
+        #     moment=1.0,
+        #     orientation="z",
+        # )
+        tdem.sources.LineCurrent(
             receivers_list,
-            location=source_locations[ii],
+            location=np.r_[
+                np.c_[-100, -100, 30],
+                np.c_[-100, 100, 30],
+                np.c_[100, 100, 30],
+                np.c_[100, -100, 30],
+                np.c_[-100, -100, 30],
+            ],
             waveform=waveform,
-            moment=1.0,
-            orientation="z",
         )
     )
+    for ti in range(n_times):
+        value_sortings += [[ti, 0, ind] for ind in range(rx_counter, rx_counter + nrx)]
 
+value_sortings = np.vstack(value_sortings)
 survey = tdem.Survey(source_list)
 tem_survey = Curve.create(ws, vertices=receiver_locations, name="TEM Survey")
 ###############################################################
@@ -229,7 +245,7 @@ nC = int(ind_active.sum())
 model_map = maps.ExpMap() * maps.InjectActiveCells(mesh, ind_active, air_conductivity)
 
 # Define the model
-model = background_conductivity * np.ones(ind_active.sum())
+model = background_conductivity * np.ones(nC)
 # ind_block = (
 #     (mesh.gridCC[ind_active, 0] < 100.0)
 #     & (mesh.gridCC[ind_active, 0] > -100.0)
@@ -304,11 +320,15 @@ simulation.time_steps = time_steps
 # ---------------------
 #
 
+def reshape(values):
+    data = np.zeros((len(time_channels), 1, nrx))
+    data[value_sortings[:, 0], value_sortings[:, 1], value_sortings[:, 2]] = values
+    return data
+
 # Predict data for a given model
 dpred = simulation.dpred(model)
-floors = np.kron(
-    np.ones(ntx),
-    np.median(np.abs(dpred).reshape((-1, n_times)), axis=0)*0.75,
+floors = (
+    np.ones_like(reshape(np.abs(dpred))) * np.median(reshape(np.abs(dpred)), axis=2).flatten()[:, None, None]*0.75
 ) + 1e-16
 noise = np.random.randn(dpred.shape[0]) * ( #1e-15)
             np.abs(dpred) * 0.02
@@ -317,9 +337,9 @@ noise = np.random.randn(dpred.shape[0]) * ( #1e-15)
 data_object = data.Data(
     survey,
     dobs=dpred + noise,
-    noise_floor=floors,
+    noise_floor=floors.flatten(),
     # noise_floor=np.kron(
-    #     np.mean(np.abs(dpred).reshape((-1, n_times)), axis=1),
+    #     np.mean(np.abs(dpred).reshape), axis=1),
     #     np.ones(n_times),
     # )/6.
     # noise_floor=np.kron(
@@ -329,7 +349,7 @@ data_object = data.Data(
     # noise_floor=np.abs(dpred) * 0.1 + 1e-13
 )
 
-dmis = data_misfit.L2DataMisfit(simulation=simulation, data=data_object)
+dmis = data_misfit.L2DataMisfit(simulation=simulation, data=data_object, model_map=maps.IdentityMap(nP=nC))
 
 reg = regularization.Sparse(
     mesh, alpha_s=0.,
@@ -337,12 +357,12 @@ reg = regularization.Sparse(
     mapping=maps.IdentityMap(nP=nC),
     gradient_type="total"
 )
-m0 = np.log(2e-3) * np.ones(ind_active.sum())
-reg.mref = np.log(1e-3) * np.ones(ind_active.sum())
+m0 = np.log(2e-3) * np.ones(nC)
+reg.mref = np.log(1e-3) * np.ones(nC)
 reg.norms = [2, 0, 0, 0]
 
 opt = optimization.ProjectedGNCG(
-    maxIter=15, lower=-np.inf, upper=np.inf, maxIterLS=10, maxIterCG=20, tolCG=1e-4
+    maxIter=20, lower=-np.inf, upper=np.inf, maxIterLS=10, maxIterCG=40, tolCG=1e-4
 )
 
 inv_prob = inverse_problem.BaseInvProblem(dmis, reg, opt)
@@ -356,7 +376,7 @@ directive_list = [
         association="VERTEX"
     ),
     directives.Update_IRLS(
-        max_irls_iterations=10,
+        max_irls_iterations=2,
         coolingRate=2,
         coolEps_p=True,
         prctile=90,
@@ -425,23 +445,23 @@ if hasattr(inv_prob, "l2model"):
 
 plt.figure()
 axs = plt.subplot(2,1,2)
-plt.plot(dpred.reshape((-1, n_times)), "k")
-plt.plot(data_object.dobs.reshape((-1, n_times)), "b")
-plt.plot(np.r_[inv_prob.dpred].reshape((-1, n_times)), "r")
-plt.plot(data_object.standard_deviation.reshape((-1, n_times)), "k--")
-plt.plot(-data_object.standard_deviation.reshape((-1, n_times)), "k--")
-axs.set_yscale("symlog", linthresh=1e-16)
+plt.plot(reshape(dpred).squeeze().T, "k")
+plt.plot(reshape(data_object.dobs).squeeze().T, "b")
+plt.plot(reshape(np.r_[inv_prob.dpred]).squeeze().T, "r")
+plt.plot(reshape(data_object.standard_deviation).squeeze().T, "k--")
+plt.plot(reshape(-data_object.standard_deviation).squeeze().T, "k--")
+axs.set_yscale("symlog", linthresh=1e-11)
 axs.set_title("LP Predicted")
 axs.set_ylim([-1e-10, 0])
 
 if hasattr(inv_prob, "l2model"):
     axs = plt.subplot(2,1,1)
-    plt.plot(dpred.reshape((-1, n_times)), "k")
-    plt.plot(data_object.dobs.reshape((-1, n_times)), "b")
-    plt.plot(simulation.dpred(inv_prob.l2model).reshape((-1, n_times)), "r")
-    plt.plot(data_object.standard_deviation.reshape((-1, n_times)), "k--")
-    plt.plot(-data_object.standard_deviation.reshape((-1, n_times)), "k--")
-    axs.set_yscale("symlog", linthresh=1e-16)
+    plt.plot(reshape(dpred).squeeze().T, "k")
+    plt.plot(reshape(data_object.dobs).squeeze().T, "b")
+    plt.plot(reshape(simulation.dpred(inv_prob.l2model)).squeeze().T, "r")
+    plt.plot(reshape(data_object.standard_deviation).squeeze().T, "k--")
+    plt.plot(reshape(-data_object.standard_deviation).squeeze().T, "k--")
+    axs.set_yscale("symlog", linthresh=1e-11)
     axs.set_title("L2 Predicted")
     axs.set_ylim([-1e-10, 0])
     plt.show()
