@@ -601,14 +601,14 @@ class LinearMap(IdentityMap):
         self._b = value
 
     def _transform(self, m):
-        if self._b is None:
-            return self._A @ m
-        return self._A @ m + self._b
+        if self.b is None:
+            return self.A @ m
+        return self.A @ m + self.b
 
     def deriv(self, m, v=None):
         if v is None:
-            return self._A
-        return self._A @ v
+            return self.A
+        return self.A @ v
 
 
 class Projection(IdentityMap):
