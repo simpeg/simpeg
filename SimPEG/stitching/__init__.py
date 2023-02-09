@@ -1,1 +1,1 @@
-from .simulation import ComboSimulation
+from .simulation import MultiSimulation, SumMultiSimulation, RepeatedSimulation

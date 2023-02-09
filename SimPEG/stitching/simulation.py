@@ -3,7 +3,7 @@ import numpy as np
 from ..simulation import BaseSimulation
 from ..survey import BaseSurvey
 from ..maps import IdentityMap
-from ..utils import validate_list_of_types
+from ..utils import validate_list_of_types, validate_type
 from ..props import HasModel
 import itertools
 
@@ -48,7 +48,7 @@ class MultiSimulation(BaseSimulation):
                 raise ValueError("All mappings must have the same input length")
             map_out_shape = mapping.shape[0]
             for name in sim._act_map_names:
-                sim_mapping = getattr(self, name)
+                sim_mapping = getattr(sim, name)
                 sim_in_shape = sim_mapping.shape[1]
                 if (
                     map_out_shape != "*"
@@ -154,13 +154,10 @@ class MultiSimulation(BaseSimulation):
     ## x1**2 + x2**2 + x3**2
     @property
     def deleteTheseOnModelUpdate(self):
-        toDelete = super().deleteTheseOnModelUpdate
-        if self.fix_Jmatrix is False:
-            toDelete += ["_J", "_gtgdiag"]
-        return toDelete
+        return super().deleteTheseOnModelUpdate + ["_gtgdiag"]
 
 
-class SumMultiSimulation(ComboSimulation):
+class SumMultiSimulation(MultiSimulation):
     """An extension of the MultiSimulation that sums the data outputs.
 
     This class requires the model mappings have the same input length
@@ -177,7 +174,7 @@ class SumMultiSimulation(ComboSimulation):
         ]
         self.survey = survey
 
-    @ComboSimulation.simulations.setter
+    @MultiSimulation.simulations.setter
     def simulations(self, value):
         value = validate_list_of_types(
             "simulations", value, BaseSimulation, ensure_unique=True
@@ -266,7 +263,33 @@ class RepeatedSimulation(MultiSimulation):
 
     @simulation.setter
     def simulation(self, value):
-        self._simulation = validate_type(value, cast=False)
+        self._simulation = validate_type(
+            "simulation", value, BaseSimulation, cast=False
+        )
+
+    @MultiSimulation.model_mappings.setter
+    def model_mappings(self, value):
+        value = validate_list_of_types("model_mappings", value, IdentityMap)
+        model_len = value[0].shape[1]
+        sim = self.simulation
+        for i, mapping in enumerate(value):
+            if mapping.shape[1] != model_len:
+                raise ValueError("All mappings must have the same input length")
+            map_out_shape = mapping.shape[0]
+            for name in sim._act_map_names:
+                sim_mapping = getattr(sim, name)
+                sim_in_shape = sim_mapping.shape[1]
+                if (
+                    map_out_shape != "*"
+                    and sim_in_shape != "*"
+                    and sim_in_shape != map_out_shape
+                ):
+                    raise ValueError(
+                        f"Simulation and mapping at index {i} inconsistent. "
+                        f"Simulation mapping shape {sim_in_shape} incompatible with "
+                        f"input mapping shape {map_out_shape}."
+                    )
+        self._model_mappings = value
 
     @MultiSimulation.model.setter
     def model(self, value):
