@@ -83,7 +83,7 @@ class MultiSimulation(BaseSimulation):
     def model(self, value):
         updated = HasModel.model.fset(self, value)
         # Only send the model to the internal simulations if it was updated.
-        if updated and not self._is_repeat:
+        if updated:
             for mapping, sim in zip(self.model_mappings, self.simulations):
                 sim.model = mapping * self._model
 
