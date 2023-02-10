@@ -1,6 +1,9 @@
 import numpy as np
 import unittest
 import discretize
+import pytest
+import scipy.sparse as sp
+
 from SimPEG import maps, models, utils
 from discretize.utils import mesh_builder_xyz, refine_tree_xyz, active_from_xyz
 import inspect
@@ -23,6 +26,7 @@ MAPS_TO_EXCLUDE_2D = [
     "ActiveCells",
     "InjectActiveCells",
     "LogMap",
+    "LinearMap",
     "ReciprocalMap",
     "PolynomialPetroClusterMap",
     "Surject2Dto3D",
@@ -49,6 +53,7 @@ MAPS_TO_EXCLUDE_3D = [
     "ActiveCells",
     "InjectActiveCells",
     "LogMap",
+    "LinearMap",
     "ReciprocalMap",
     "PolynomialPetroClusterMap",
     "CircleMap",
@@ -573,6 +578,74 @@ class TestSCEMT(unittest.TestCase):
         )
         m = np.abs(np.random.rand(mesh.nC))
         mapping.test(m=m, dx=0.05 * np.ones(mesh.n_cells), num=3)
+
+
+@pytest.mark.parametrize(
+    "A, b",
+    [
+        (np.random.rand(20, 40), np.random.rand(20)),  # test with np.array
+        (np.random.rand(20, 40), None),  # Test without B
+        (sp.random(20, 40, density=0.1), np.random.rand(20)),  # test with sparse matrix
+        (
+            sp.csr_array(sp.random(20, 40, density=0.1)),
+            np.random.rand(20),
+        ),  # test with sparse array
+        (sp.linalg.aslinearoperator(np.random.rand(20, 40)), np.random.rand(20)),
+    ],
+)
+def test_LinearMap(A, b):
+    map1 = maps.LinearMap(A, b)
+    x = np.random.rand(map1.nP)
+    y1 = A @ x
+    if b is not None:
+        y1 += b
+    y2 = map1 * x
+    np.testing.assert_allclose(y1, y2)
+
+
+@pytest.mark.parametrize(
+    "A, b",
+    [
+        (np.random.rand(20, 40), np.random.rand(20)),  # test with np.array
+        (np.random.rand(20, 40), None),  # Test without B
+        (sp.random(20, 40, density=0.1), np.random.rand(20)),  # test with sparse matrix
+        (
+            sp.csr_array(sp.random(20, 40, density=0.1)),
+            np.random.rand(20),
+        ),  # test with sparse array
+        (sp.linalg.aslinearoperator(np.random.rand(20, 40)), np.random.rand(20)),
+    ],
+)
+def test_LinearMapDerivs(A, b):
+    mapping = maps.LinearMap(A, b)
+    # check passing v=None
+    m = np.random.rand(mapping.nP)
+    v = np.random.rand(mapping.nP)
+    y1 = mapping.deriv(m) @ v
+    y2 = mapping.deriv(m, v=v)
+    np.testing.assert_equal(y1, y2)
+    mapping.test()
+
+
+def test_LinearMap_errors():
+    # object with no matmul operator
+    with pytest.raises(TypeError):
+        maps.LinearMap("No Matmul")
+
+    # object with matmul and no shape
+    class IncompleteLinearOperator:
+        def __matmul__(self, other):
+            return other
+
+    incomplete_A = IncompleteLinearOperator()
+    with pytest.raises(TypeError):
+        maps.LinearMap(incomplete_A)
+
+    # poorly shaped b vector
+    A = np.random.rand(20, 40)
+    b = np.random.rand(40)
+    with pytest.raises(ValueError):
+        maps.LinearMap(A, b=b)
 
 
 if __name__ == "__main__":
