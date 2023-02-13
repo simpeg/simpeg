@@ -1,4 +1,5 @@
 import numpy as np
+import scipy.sparse as sp
 
 from ..simulation import BaseSimulation
 from ..survey import BaseSurvey
@@ -9,9 +10,9 @@ import itertools
 
 
 class MultiSimulation(BaseSimulation):
-    def __init__(self, simulations, model_mappings):
+    def __init__(self, simulations, mappings):
         self.simulations = simulations
-        self.model_mappings = model_mappings
+        self.mappings = mappings
         # give myself a BaseSurvey that has the number of data equal
         # to the sum of the sims' data.
         survey = BaseSurvey([])
@@ -32,15 +33,15 @@ class MultiSimulation(BaseSimulation):
         )
 
     @property
-    def model_mappings(self):
-        return self._model_mappings
+    def mappings(self):
+        return self._mappings
 
-    @model_mappings.setter
-    def model_mappings(self, value):
-        value = validate_list_of_types("model_mappings", value, IdentityMap)
+    @mappings.setter
+    def mappings(self, value):
+        value = validate_list_of_types("mappings", value, IdentityMap)
         if len(value) != len(self.simulations):
             raise ValueError(
-                "Must provide the same number of model_mappings and simulations."
+                "Must provide the same number of mappings and simulations."
             )
         model_len = value[0].shape[1]
         for i, (mapping, sim) in enumerate(zip(value, self.simulations)):
@@ -60,7 +61,7 @@ class MultiSimulation(BaseSimulation):
                         f"Simulation mapping shape {sim_in_shape} incompatible with "
                         f"input mapping shape {map_out_shape}."
                     )
-        self._model_mappings = value
+        self._mappings = value
 
     @property
     def _act_map_names(self):
@@ -71,9 +72,9 @@ class MultiSimulation(BaseSimulation):
 
     @property
     def _model_map(self):
-        # all of the model_mappings have the same input shape, so just return
+        # all of the mappings have the same input shape, so just return
         # the first one.
-        return self.model_mappings[0]
+        return self.mappings[0]
 
     @property
     def model(self):
@@ -84,15 +85,14 @@ class MultiSimulation(BaseSimulation):
         updated = HasModel.model.fset(self, value)
         # Only send the model to the internal simulations if it was updated.
         if updated:
-            for mapping, sim in zip(self.model_mappings, self.simulations):
+            for mapping, sim in zip(self.mappings, self.simulations):
                 sim.model = mapping * self._model
 
     def fields(self, m):
         self.model = m
         # The above should pass the model to all the internal simulations.
         f = []
-        for mapping, sim in zip(self.model_mappings, self.simulations):
-            sim.model = mapping * self.model
+        for mapping, sim in zip(self.mappings, self.simulations):
             f.append(sim.fields(m=sim.model))
         return f
 
@@ -102,7 +102,7 @@ class MultiSimulation(BaseSimulation):
                 m = self.model
             f = self.fields(m)
         d_pred = []
-        for mapping, sim, field in zip(self.model_mappings, self.simulations, f):
+        for sim, field in zip(self.simulations, f):
             d_pred.append(sim.dpred(m=sim.model, f=field))
         return np.concatenate(d_pred)
 
@@ -111,7 +111,7 @@ class MultiSimulation(BaseSimulation):
         if f is None:
             f = self.fields(m)
         j_vec = []
-        for mapping, sim, field in zip(self.model_mappings, self.simulations, f):
+        for mapping, sim, field in zip(self.mappings, self.simulations, f):
             sim_v = mapping.deriv(self.model) @ v
             j_vec.append(sim.Jvec(sim.model, sim_v, f=field))
         return np.concatenate(j_vec)
@@ -122,7 +122,7 @@ class MultiSimulation(BaseSimulation):
             f = self.fields(m)
         jt_vec = 0
         for i, (mapping, sim, field) in enumerate(
-            zip(self.model_mappings, self.simulations, f)
+            zip(self.mappings, self.simulations, f)
         ):
             sim_v = v[self._data_offsets[i] : self._data_offsets[i + 1]]
             jt_vec += mapping.deriv(self.model).T @ sim.Jtvec(sim.model, sim_v, f=field)
@@ -134,20 +134,21 @@ class MultiSimulation(BaseSimulation):
             if W is None:
                 W = np.ones(self.survey.nD)
             else:
-                W = W.diagonal() ** 2
+                W = W.diagonal()
             jtj_diag = 0.0
             # approximate the JtJ diag on the full model space as:
-            # sum((sqrt(jtj_diag) @ M_deriv))**2)
-            # Which is correct for mappings that uniquely match input parameters to only 1 output parameter.
+            # sum((diag(sqrt(jtj_diag)) @ M_deriv))**2)
+            # Which is correct for mappings that match input parameters to only 1 output parameter.
             # (i.e. projections, multipliers, etc.).
-            # It is usually close within a scaling factor for others.
-            for i, (mapping, sim) in enumerate(
-                zip(self.model_mappings, self.simulations)
-            ):
-                sim_w = W[self._data_offsets[i] : self._data_offsets[i + 1]]
-                sim_jtj = np.sqrt(sim.getJtJdiag(sim.model, sim_w))
+            # It is usually close within a scaling factor for others, whose accuracy is controlled
+            # by how diagonally dominant JtJ is.
+            for i, (mapping, sim) in enumerate(zip(self.mappings, self.simulations)):
+                sim_w = sp.diags(W[self._data_offsets[i] : self._data_offsets[i + 1]])
+                sim_jtj = sp.diags(np.sqrt(sim.getJtJdiag(sim.model, sim_w)))
                 m_deriv = mapping.deriv(self.model)
-                jtj_diag += (sim_jtj @ m_deriv) ** 2
+                jtj_diag += np.asarray(
+                    (sim_jtj @ m_deriv).power(2).sum(axis=0)
+                ).flatten()
 
         return self._jtjdiag
 
@@ -164,9 +165,9 @@ class SumMultiSimulation(MultiSimulation):
     and output data for each simulation to have the same number of data.
     """
 
-    def __init__(self, simulations, model_mappings):
+    def __init__(self, simulations, mappings):
         self.simulations = simulations
-        self.model_mappings = model_mappings
+        self.mappings = mappings
         # give myself a BaseSurvey
         survey = BaseSurvey([])
         survey._vnD = [
@@ -201,7 +202,7 @@ class SumMultiSimulation(MultiSimulation):
                 m = self.model
             f = self.fields(m)
         j_vec = 0
-        for mapping, sim, field in zip(self.model_mappings, self.simulations, f):
+        for mapping, sim, field in zip(self.mappings, self.simulations, f):
             # Every d_pred needs to be setup to grab the current model
             # if given m=None as an argument.
             sim_v = mapping.deriv(self.model) @ v
@@ -214,24 +215,20 @@ class SumMultiSimulation(MultiSimulation):
                 m = self.model
             f = self.fields(m)
         jt_vec = 0
-        for mapping, sim, field in zip(self.model_mappings, self.simulations, f):
+        for mapping, sim, field in zip(self.mappings, self.simulations, f):
             jt_vec += mapping.deriv(self.model).T @ sim.Jtvec(sim.model, v, f=field)
         return jt_vec
 
     def getJtJdiag(self, m, W=None, f=None):
         self.model = m
         if getattr(self, "_jtjdiag", None) is None:
-            if W is None:
-                W = np.ones(self.survey.nD)
-            else:
-                W = W.diagonal() ** 2
             jtj_diag = 0.0
-            for i, (mapping, sim) in enumerate(
-                zip(self.model_mappings, self.simulations)
-            ):
-                sim_jtj = np.sqrt(sim.getJtJdiag(sim.model, W))
+            for i, (mapping, sim) in enumerate(zip(self.mappings, self.simulations)):
+                sim_jtj = sp.diags(np.sqrt(sim.getJtJdiag(sim.model, W)))
                 m_deriv = mapping.deriv(self.model)
-                jtj_diag += (sim_jtj @ m_deriv) ** 2
+                jtj_diag += np.asarray(
+                    (sim_jtj @ m_deriv).power(2).sum(axis=0)
+                ).flatten()
 
         return self._jtjdiag
 
@@ -244,9 +241,9 @@ class RepeatedSimulation(MultiSimulation):
     to use the MultiSimulation class with multiple copies of the same simulation.
     """
 
-    def __init__(self, simulation, model_mappings):
+    def __init__(self, simulation, mappings):
         self.simulation = simulation
-        self.model_mappings = model_mappings
+        self.mappings = mappings
         survey = BaseSurvey([])
         vnD = [sim.survey.nD for sim in self.simulations]
         survey._vnD = vnD
@@ -255,7 +252,7 @@ class RepeatedSimulation(MultiSimulation):
 
     @property
     def simulations(self):
-        return itertools.repeat(self.simulation, len(self.model_mappings))
+        return itertools.repeat(self.simulation, len(self.mappings))
 
     @property
     def simulation(self):
@@ -267,9 +264,9 @@ class RepeatedSimulation(MultiSimulation):
             "simulation", value, BaseSimulation, cast=False
         )
 
-    @MultiSimulation.model_mappings.setter
-    def model_mappings(self, value):
-        value = validate_list_of_types("model_mappings", value, IdentityMap)
+    @MultiSimulation.mappings.setter
+    def mappings(self, value):
+        value = validate_list_of_types("mappings", value, IdentityMap)
         model_len = value[0].shape[1]
         sim = self.simulation
         for i, mapping in enumerate(value):
@@ -289,7 +286,7 @@ class RepeatedSimulation(MultiSimulation):
                         f"Simulation mapping shape {sim_in_shape} incompatible with "
                         f"input mapping shape {map_out_shape}."
                     )
-        self._model_mappings = value
+        self._mappings = value
 
     @MultiSimulation.model.setter
     def model(self, value):
@@ -299,7 +296,7 @@ class RepeatedSimulation(MultiSimulation):
         self.model = m
         f = []
         sim = self.simulation
-        for mapping in self.model_mappings:
+        for mapping in self.mappings:
             sim.model = mapping * self.model
             f.append(sim.fields(m=sim.model))
         return f
@@ -311,7 +308,7 @@ class RepeatedSimulation(MultiSimulation):
             f = self.fields(m)
         d_pred = []
         sim = self.simulation
-        for mapping, field in zip(self.model_mappings, f):
+        for mapping, field in zip(self.mappings, f):
             sim.model = mapping * self.model
             d_pred.append(sim.dpred(m=sim.model, f=field))
         return np.concatenate(d_pred)
@@ -322,7 +319,7 @@ class RepeatedSimulation(MultiSimulation):
             f = self.fields(m)
         j_vec = []
         sim = self.simulation
-        for mapping, field in zip(self.model_mappings, f):
+        for mapping, field in zip(self.mappings, f):
             sim_v = mapping.deriv(self.model) @ v
             sim.model = mapping * self.model
             j_vec.append(sim.Jvec(sim.model, sim_v, f=field))
@@ -334,7 +331,7 @@ class RepeatedSimulation(MultiSimulation):
             f = self.fields(m)
         jt_vec = 0
         sim = self.simulation
-        for i, (mapping, field) in enumerate(zip(self.model_mappings, f)):
+        for i, (mapping, field) in enumerate(zip(self.mappings, f)):
             sim.model = mapping * self.model
             sim_v = v[self._data_offsets[i] : self._data_offsets[i + 1]]
             jt_vec += mapping.deriv(self.model).T @ sim.Jtvec(sim.model, sim_v, f=field)
@@ -346,18 +343,15 @@ class RepeatedSimulation(MultiSimulation):
             if W is None:
                 W = np.ones(self.survey.nD)
             else:
-                W = W.diagonal() ** 2
+                W = W.diagonal()
             jtj_diag = 0.0
-            # approximate the JtJ diag on the full model space as:
-            # sum((sqrt(jtj_diag) @ M_deriv))**2)
-            # Which is correct for Linear mappings..
-            for i, (mapping, sim) in enumerate(
-                zip(self.model_mappings, self.simulations)
-            ):
+            for i, (mapping, sim) in enumerate(zip(self.mappings, self.simulations)):
                 sim.model = mapping * self.model
-                sim_w = W[self._data_offsets[i] : self._data_offsets[i + 1]]
-                sim_jtj = np.sqrt(sim.getJtJdiag(sim.model, sim_w))
+                sim_w = sp.diags(W[self._data_offsets[i] : self._data_offsets[i + 1]])
+                sim_jtj = sp.diags(np.sqrt(sim.getJtJdiag(sim.model, sim_w)))
                 m_deriv = mapping.deriv(self.model)
-                jtj_diag += (sim_jtj @ m_deriv) ** 2
+                jtj_diag += np.asarray(
+                    (sim_jtj @ m_deriv).power(2).sum(axis=0)
+                ).flatten()
 
         return self._jtjdiag
