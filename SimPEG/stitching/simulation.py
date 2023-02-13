@@ -134,20 +134,21 @@ class MultiSimulation(BaseSimulation):
             if W is None:
                 W = np.ones(self.survey.nD)
             else:
-                W = W.diagonal() ** 2
+                W = W.diagonal()
             jtj_diag = 0.0
             # approximate the JtJ diag on the full model space as:
-            # sum((sqrt(jtj_diag) @ M_deriv))**2)
-            # Which is correct for mappings that uniquely match input parameters to only 1 output parameter.
+            # sum((diag(sqrt(jtj_diag)) @ M_deriv))**2)
+            # Which is correct for mappings that match input parameters to only 1 output parameter.
             # (i.e. projections, multipliers, etc.).
-            # It is usually close within a scaling factor for others.
-            for i, (mapping, sim) in enumerate(
-                zip(self.model_mappings, self.simulations)
-            ):
-                sim_w = W[self._data_offsets[i] : self._data_offsets[i + 1]]
-                sim_jtj = np.sqrt(sim.getJtJdiag(sim.model, sim_w))
+            # It is usually close within a scaling factor for others, whose accuracy is controlled
+            # by how diagonally dominant JtJ is.
+            for i, (mapping, sim) in enumerate(zip(self.mappings, self.simulations)):
+                sim_w = sp.diags(W[self._data_offsets[i] : self._data_offsets[i + 1]])
+                sim_jtj = sp.diags(np.sqrt(sim.getJtJdiag(sim.model, sim_w)))
                 m_deriv = mapping.deriv(self.model)
-                jtj_diag += (sim_jtj @ m_deriv) ** 2
+                jtj_diag += np.asarray(
+                    (sim_jtj @ m_deriv).power(2).sum(axis=0)
+                ).flatten()
 
         return self._jtjdiag
 
@@ -214,24 +215,20 @@ class SumMultiSimulation(MultiSimulation):
                 m = self.model
             f = self.fields(m)
         jt_vec = 0
-        for mapping, sim, field in zip(self.model_mappings, self.simulations, f):
+        for mapping, sim, field in zip(self.mappings, self.simulations, f):
             jt_vec += mapping.deriv(self.model).T @ sim.Jtvec(sim.model, v, f=field)
         return jt_vec
 
     def getJtJdiag(self, m, W=None, f=None):
         self.model = m
         if getattr(self, "_jtjdiag", None) is None:
-            if W is None:
-                W = np.ones(self.survey.nD)
-            else:
-                W = W.diagonal() ** 2
             jtj_diag = 0.0
-            for i, (mapping, sim) in enumerate(
-                zip(self.model_mappings, self.simulations)
-            ):
-                sim_jtj = np.sqrt(sim.getJtJdiag(sim.model, W))
+            for i, (mapping, sim) in enumerate(zip(self.mappings, self.simulations)):
+                sim_jtj = sp.diags(np.sqrt(sim.getJtJdiag(sim.model, W)))
                 m_deriv = mapping.deriv(self.model)
-                jtj_diag += (sim_jtj @ m_deriv) ** 2
+                jtj_diag += np.asarray(
+                    (sim_jtj @ m_deriv).power(2).sum(axis=0)
+                ).flatten()
 
         return self._jtjdiag
 
@@ -346,18 +343,15 @@ class RepeatedSimulation(MultiSimulation):
             if W is None:
                 W = np.ones(self.survey.nD)
             else:
-                W = W.diagonal() ** 2
+                W = W.diagonal()
             jtj_diag = 0.0
-            # approximate the JtJ diag on the full model space as:
-            # sum((sqrt(jtj_diag) @ M_deriv))**2)
-            # Which is correct for Linear mappings..
-            for i, (mapping, sim) in enumerate(
-                zip(self.model_mappings, self.simulations)
-            ):
+            for i, (mapping, sim) in enumerate(zip(self.mappings, self.simulations)):
                 sim.model = mapping * self.model
-                sim_w = W[self._data_offsets[i] : self._data_offsets[i + 1]]
-                sim_jtj = np.sqrt(sim.getJtJdiag(sim.model, sim_w))
+                sim_w = sp.diags(W[self._data_offsets[i] : self._data_offsets[i + 1]])
+                sim_jtj = sp.diags(np.sqrt(sim.getJtJdiag(sim.model, sim_w)))
                 m_deriv = mapping.deriv(self.model)
-                jtj_diag += (sim_jtj @ m_deriv) ** 2
+                jtj_diag += np.asarray(
+                    (sim_jtj @ m_deriv).power(2).sum(axis=0)
+                ).flatten()
 
         return self._jtjdiag
