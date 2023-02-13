@@ -9,6 +9,7 @@ with a compact norm
 import matplotlib.pyplot as plt
 import numpy as np
 from discretize import TensorMesh
+from discretize.utils import active_from_xyz
 from SimPEG.potential_fields import magnetics
 from SimPEG import utils
 from SimPEG import (
@@ -48,7 +49,7 @@ def run(plotIt=True):
     topo = np.c_[utils.mkvc(xx), utils.mkvc(yy), utils.mkvc(zz)]
 
     # Go from topo to array of indices of active cells
-    actv = utils.surface2ind_topo(mesh, topo, "N")
+    actv = active_from_xyz(mesh, topo, "N")
     actv = np.where(actv)[0]
     nC = len(actv)
 

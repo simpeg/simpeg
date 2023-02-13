@@ -11,7 +11,7 @@ from SimPEG import (
     regularization,
 )
 
-from discretize.utils import mesh_utils
+from discretize.utils import mesh_utils, active_from_xyz
 
 import shutil
 
@@ -78,7 +78,7 @@ class MagInvLinProblemTest(unittest.TestCase):
         )
 
         # Define an active cells from topo
-        actv = utils.surface2ind_topo(self.mesh, topo)
+        actv = active_from_xyz(self.mesh, topo)
         nC = int(actv.sum())
 
         # We can now create a susceptibility model and generate data
