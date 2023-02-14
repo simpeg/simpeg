@@ -2457,7 +2457,7 @@ class CurrentBasedSensitivityWeights(InversionDirective):
 
         for sim, dmisfit in zip(self.simulation, self.dmisfit.objfcts):
             # jtj_diag += sim.getJtJdiag_currents(m, W=dmisfit.W)
-            if include_uncertainties:
+            if self.include_uncertainties:
                 jtj_diag_temp = sim.getJtJdiag_currents(m, W=dmisfit.W, n_hutchinson_samples=self.n_hutchinson_samples)
             else:
                 jtj_diag_temp = sim.getJtJdiag_currents(m, n_hutchinson_samples=self.n_hutchinson_samples)
