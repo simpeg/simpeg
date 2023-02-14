@@ -2359,6 +2359,7 @@ class CurrentBasedSensitivityWeights(InversionDirective):
         self.startingBetaIter = startingBetaIter
         self.threshold = threshold
         self.n_hutchinson_samples = n_hutchinson_samples
+        self.include_uncertainties = include_uncertainties
 
     @property
     def everyIter(self):
@@ -2399,6 +2400,14 @@ class CurrentBasedSensitivityWeights(InversionDirective):
     @n_hutchinson_samples.setter
     def n_hutchinson_samples(self, value):
         self._n_hutchinson_samples = value
+
+    @property
+    def include_uncertainties(self):
+        return self._include_uncertainties
+
+    @include_uncertainties.setter
+    def include_uncertainties(self, value):
+        self._include_uncertainties = value
 
     def initialize(self):
         """
