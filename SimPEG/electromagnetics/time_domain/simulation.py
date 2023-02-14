@@ -1236,7 +1236,7 @@ class Simulation3DElectricField(BaseTDEMSimulation):
                     sdiag(ui / w) * (
                         self.Jtvec(
                             m,
-                            self.Jvec(m, ui / w, f),
+                            W**2 * self.Jvec(m, ui / w, f),
                             f
                         )
                     )

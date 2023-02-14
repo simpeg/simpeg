@@ -2349,6 +2349,7 @@ class CurrentBasedSensitivityWeights(InversionDirective):
         startingBetaIter=1,
         threshold=1000.,
         n_hutchinson_samples=30,
+        include_uncertainties=True,
         **kwargs
     ):
         
@@ -2447,7 +2448,10 @@ class CurrentBasedSensitivityWeights(InversionDirective):
 
         for sim, dmisfit in zip(self.simulation, self.dmisfit.objfcts):
             # jtj_diag += sim.getJtJdiag_currents(m, W=dmisfit.W)
-            jtj_diag_temp = sim.getJtJdiag_currents(m, W=dmisfit.W, n_hutchinson_samples=self.n_hutchinson_samples)
+            if include_uncertainties:
+                jtj_diag_temp = sim.getJtJdiag_currents(m, W=dmisfit.W, n_hutchinson_samples=self.n_hutchinson_samples)
+            else:
+                jtj_diag_temp = sim.getJtJdiag_currents(m, n_hutchinson_samples=self.n_hutchinson_samples)
 
             # Enforce positivity
             if np.any(jtj_diag_temp < 0.):
