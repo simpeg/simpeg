@@ -9,42 +9,50 @@ import itertools
 from dask.distributed import Client
 from .simulation import MultiSimulation
 import scipy.sparse as sp
+from operator import add
 
 
-def _store_model(sim, mapping, model):
+def _store_model(map_sim, model):
+    mapping, sim = map_sim
     sim.model = mapping * model
 
 
-def _apply_mapping(mapping, model):
+def _apply_mapping(map_sim, model):
+    mapping, _ = map_sim
     return mapping * model
 
 
-def _calc_fields(sim, sim_model=None):
+def _calc_fields(map_sim, sim_model=None):
+    _, sim = map_sim
     if sim_model is None:
         sim_model = sim.model
     return sim.fields(m=sim_model)
 
 
-def _calc_dpred(sim, field, sim_model=None):
+def _calc_dpred(map_sim, field, sim_model=None):
+    _, sim = map_sim
     if sim_model is None:
         sim_model = sim.model
-    return sim.dpred(m=sim.model, f=field)
+    return sim.dpred(m=sim_model, f=field)
 
 
-def _j_vec_op(sim, mapping, model, field, v, sim_model=None):
+def _j_vec_op(map_sim, model, field, v, sim_model=None):
+    mapping, sim = map_sim
     if sim_model is None:
         sim_model = sim.model
     sim_v = mapping.deriv(model) @ v
     return sim.Jvec(sim_model, sim_v, f=field)
 
 
-def _jt_vec_op(sim, mapping, model, field, v, sim_model=None):
+def _jt_vec_op(map_sim, model, field, v, sim_model=None):
+    mapping, sim = map_sim
     if sim_model is None:
         sim_model = sim.model
     return mapping.deriv(model).T @ sim.Jtvec(sim_model, v, f=field)
 
 
-def _get_jtj_diag(sim, mapping, model, field, w, sim_model=None):
+def _get_jtj_diag(map_sim, model, field, w, sim_model=None):
+    mapping, sim = map_sim
     if sim_model is None:
         sim_model = sim.model
     w = sp.diags(w)
@@ -53,8 +61,8 @@ def _get_jtj_diag(sim, mapping, model, field, w, sim_model=None):
     return np.asarray((sim_jtj @ m_deriv).power(2).sum(axis=0)).flatten()
 
 
-def _sum_op(val1, val2):
-    return val1 + val2
+def _sum_op(x, y):
+    return x + y
 
 
 def _reduce(client, operation, items):
@@ -72,8 +80,20 @@ class DaskMultiSimulation(MultiSimulation):
             client = Client()
         self.client = client
         super().__init__(simulations, mappings)
-        self._scattered_mappings = self.client.scatter(self.mappings)
-        self._scattered_simulations = self.client.scatter(self.simulations)
+
+        # Scatter the mapping, simulation pairs to the workers
+        map_sims = []
+        for m, s in zip(self.mappings, self.simulations):
+            map_sims.append((m, s))
+        map_sims = client.scatter(map_sims)
+        who = client.who_has(map_sims)
+        # Then create a list of which worker recieved each pair
+        # This step is to force dask to use those specific workers
+        # for each subsequent operation.
+        items = []
+        for ms in map_sims:
+            items.append((ms, who[ms.key]))
+        self._scattered = items
 
     @property
     def client(self):
@@ -92,20 +112,24 @@ class DaskMultiSimulation(MultiSimulation):
         updated = HasModel.model.fset(self, value)
         # Only send the model to the internal simulations if it was updated.
         if updated:
-            [m_future] = self.client.scatter([self._model], broadcast=True)
-            self._m_as_future = m_future
+            [self._m_as_future] = self.client.scatter([self._model], broadcast=True)
             client = self.client
             futures = []
-            for mapping, sim in zip(
-                self._scattered_mappings, self._scattered_simulations
-            ):
-                futures.append(client.submit(_store_model, sim, mapping, m_future))
+            for map_sim, worker in self._scattered:
+                futures.append(
+                    client.submit(
+                        _store_model, map_sim, self._m_as_future, workers=worker
+                    )
+                )
             client.gather(futures)  # blocking call
 
     def fields(self, m):
         self.model = m
+        client = self.client
         # The above should pass the model to all the internal simulations.
-        f = self.client.map(_calc_fields, self._scattered_simulations)
+        f = []
+        for map_sim, worker in self._scattered:
+            f.append(client.submit(_calc_fields, map_sim, workers=worker))
         return f
 
     def dpred(self, m=None, f=None):
@@ -113,8 +137,11 @@ class DaskMultiSimulation(MultiSimulation):
             if m is None:
                 m = self.model
             f = self.fields(m)
-        d_pred = self.client.map(_calc_dpred, self._scattered_simulations, f)
-        return np.concatenate(self.client.gather(d_pred))
+        client = self.client
+        dpred = []
+        for (map_sim, worker), field in zip(self._scattered, f):
+            dpred.append(client.submit(_calc_dpred, map_sim, field, workers=worker))
+        return np.concatenate(self.client.gather(dpred))
 
     def Jvec(self, m, v, f=None):
         self.model = m
@@ -123,17 +150,15 @@ class DaskMultiSimulation(MultiSimulation):
         client = self.client
         [v_future] = client.scatter([v], broadcast=True)
         j_vec = []
-        for mapping, sim, field in zip(
-            self._scattered_mappings, self._scattered_simulations, f
-        ):
+        for (map_sim, worker), field in zip(self._scattered, f):
             j_vec.append(
                 client.submit(
                     _j_vec_op,
-                    sim,
-                    mapping,
+                    map_sim,
                     self._m_as_future,
                     field,
                     v_future,
+                    workers=worker,
                 )
             )
         return np.concatenate(self.client.gather(j_vec))
@@ -144,17 +169,15 @@ class DaskMultiSimulation(MultiSimulation):
             f = self.fields(m)
         jt_vec = []
         client = self.client
-        for i, (mapping, sim, field) in enumerate(
-            zip(self._scattered_mappings, self._scattered_simulations, f)
-        ):
+        for i, ((map_sim, worker), field) in enumerate(zip(self._scattered, f)):
             jt_vec.append(
                 client.submit(
                     _jt_vec_op,
-                    sim,
-                    mapping,
+                    map_sim,
                     self._m_as_future,
                     field,
                     v[self._data_offsets[i] : self._data_offsets[i + 1]],
+                    workers=worker,
                 )
             )
         # Do the sum by a reduction operation to avoid gathering a vector
@@ -170,14 +193,10 @@ class DaskMultiSimulation(MultiSimulation):
                 W = W.diagonal()
             jtj_diag = []
             client = self.client
-            for i, (mapping, sim) in enumerate(
-                zip(self._scattered_mappings, self._scattered_simulations)
-            ):
+            for i, map_sim in enumerate(self._scattered_items):
                 sim_w = W[self._data_offsets[i] : self._data_offsets[i + 1]]
                 jtj_diag.append(
-                    client.submit(
-                        _get_jtj_diag, sim, mapping, self._m_as_future, f, sim_w
-                    )
+                    client.submit(_get_jtj_diag, map_sim, self._m_as_future, f, sim_w)
                 )
             self._jtjdiag = _reduce(client, _sum_op, jtj_diag)
 
