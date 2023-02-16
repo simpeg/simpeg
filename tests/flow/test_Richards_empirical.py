@@ -99,7 +99,6 @@ class TestModels(unittest.TestCase):
             self.assertTrue(passed, True)
 
     def test_haverkamp_k_u(self):
-
         mesh = discretize.TensorMesh([5])
 
         hav = richards.empirical.Haverkamp_k(mesh)
@@ -110,7 +109,6 @@ class TestModels(unittest.TestCase):
         self.assertTrue(passed, True)
 
     def test_haverkamp_k_m(self):
-
         mesh = discretize.TensorMesh([5])
         expmap = maps.IdentityMap(nP=mesh.nC)
         wires2 = maps.Wires(("one", mesh.nC), ("two", mesh.nC))

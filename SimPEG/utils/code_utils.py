@@ -4,7 +4,7 @@ import numpy as np
 from functools import wraps
 import warnings
 
-from discretize.utils import asArray_N_x_Dim, as_array_n_by_dim  # noqa: F401
+from discretize.utils import as_array_n_by_dim  # noqa: F401
 
 # scooby is a soft dependency for SimPEG
 try:
@@ -285,7 +285,6 @@ def call_hooks(match, mainFirst=False):
     def callHooksWrap(f):
         @wraps(f)
         def wrapper(self, *args, **kwargs):
-
             if not mainFirst:
                 for method in [
                     posible for posible in dir(self) if ("_" + match) in posible
@@ -696,7 +695,14 @@ def deprecate_method(
     return new_method
 
 
-def deprecate_function(new_function, old_name, removal_version=None):
+def deprecate_function(
+    new_function,
+    old_name,
+    removal_version=None,
+    new_location=None,
+    future_warn=False,
+    error=False,
+):
     """Deprecate function
 
     Parameters
@@ -718,16 +724,24 @@ def deprecate_function(new_function, old_name, removal_version=None):
         The new function
     """
     new_name = new_function.__name__
-    if removal_version is not None:
-        tag = f" It will be removed in version {removal_version} of SimPEG."
+    if new_location is not None:
+        new_name = f"{new_location}.{new_name}"
+
+    message = f"{old_name} has been deprecated, please use {new_name}."
+    if error:
+        message = f"{old_name} has been removed, please use {new_name}."
+    elif removal_version is not None:
+        message += f" It will be removed in version {removal_version} of SimPEG."
     else:
-        tag = " It will be removed in a future version of SimPEG."
+        message += " It will be removed in a future version of SimPEG."
 
     def dep_function(*args, **kwargs):
-        warnings.warn(
-            f"{old_name} has been deprecated, please use {new_name}." + tag,
-            DeprecationWarning,
-        )
+        if future_warn:
+            warnings.warn(message, FutureWarning)
+        elif error:
+            raise NotImplementedError(message)
+        else:
+            warnings.warn(message, DeprecationWarning)
         return new_function(*args, **kwargs)
 
     doc = f"""
@@ -772,6 +786,7 @@ def validate_string(property_name, var, string_list=None, case_sensitive=False):
             return var
         if not case_sensitive:
             test_var = var.casefold()
+
             # also fold the string_list for comparison
             def fold_input(input_variable):
                 if isinstance(input_variable, (list, tuple)):
@@ -1212,4 +1227,7 @@ printDone = deprecate_function(print_done, "printDone", removal_version="0.18.0"
 callHooks = deprecate_function(call_hooks, "callHooks", removal_version="0.18.0")
 dependentProperty = deprecate_function(
     dependent_property, "dependentProperty", removal_version="0.18.0"
+)
+asArray_N_x_Dim = deprecate_function(
+    as_array_n_by_dim, "asArray_N_x_Dim", removal_version="0.19.0", future_warn=True
 )

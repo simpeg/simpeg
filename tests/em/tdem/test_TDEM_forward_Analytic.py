@@ -317,7 +317,6 @@ def analytic_halfspace_mag_dipole_comparison(
 
 
 class WholespaceTests(unittest.TestCase):
-
     # WORKING
     def test_cyl_Bform_MagDipole_Bfield_Z(self):
         assert (

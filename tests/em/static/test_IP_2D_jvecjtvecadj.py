@@ -19,7 +19,6 @@ np.random.seed(30)
 
 class IPProblemTestsCC(unittest.TestCase):
     def setUp(self):
-
         cs = 12.5
         hx = [(cs, 7, -1.3), (cs, 61), (cs, 7, 1.3)]
         hy = [(cs, 7, -1.3), (cs, 20)]
@@ -97,7 +96,6 @@ class IPProblemTestsCC(unittest.TestCase):
 
 class IPProblemTestsN(unittest.TestCase):
     def setUp(self):
-
         cs = 12.5
         hx = [(cs, 7, -1.3), (cs, 61), (cs, 7, 1.3)]
         hy = [(cs, 7, -1.3), (cs, 20)]

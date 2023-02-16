@@ -17,7 +17,8 @@ User is promoted to try different initial values of the parameterized model.
 """
 
 from SimPEG.electromagnetics.static import resistivity as DC, utils as DCutils
-import discretize
+from discretize import TensorMesh
+from discretize.utils import active_from_xyz
 from SimPEG import (
     maps,
     utils,
@@ -49,7 +50,6 @@ def run(
     block_y0=-10,
     block_dy=5,
 ):
-
     np.random.seed(1)
     # Initiate I/O class for DC
     IO = DC.IO()
@@ -75,7 +75,7 @@ def run(
     # Obtain 2D TensorMesh
     mesh, actind = IO.set_mesh()
     # Flat topography
-    actind = utils.surface2ind_topo(
+    actind = active_from_xyz(
         mesh, np.c_[mesh.cell_centers_x, mesh.cell_centers_x * 0.0]
     )
     survey.drape_electrodes_on_topography(mesh, actind, option="top")
@@ -173,7 +173,7 @@ def run(
     dmisfit.standard_deviation = uncert
 
     # Map for a regularization
-    mesh_1d = discretize.TensorMesh([parametric_block.nP])
+    mesh_1d = TensorMesh([parametric_block.nP])
     # Related to inversion
     reg = regularization.WeightedLeastSquares(mesh_1d, alpha_x=0.0)
     opt = optimization.InexactGaussNewton(maxIter=10)

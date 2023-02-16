@@ -6,7 +6,6 @@ from SimPEG.electromagnetics import time_domain as tdem
 
 
 def test_receiver_properties_validation():
-
     xyz = np.c_[0.0, 0.0, 0.0]
     projComp = "Fx"
     rx = fdem.receivers.BaseRx(xyz, projComp=projComp)
@@ -21,7 +20,6 @@ def test_receiver_properties_validation():
 
 
 def test_source_properties_validation():
-
     xyz = np.r_[0.0, 0.0, 0.0]
     frequency = 1.0
 

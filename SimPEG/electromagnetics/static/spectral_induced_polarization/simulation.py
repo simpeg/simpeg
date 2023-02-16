@@ -16,7 +16,6 @@ from .survey import Survey
 
 
 class BaseSIPSimulation(BaseIPSimulation):
-
     tau, tauMap, tauDeriv = props.Invertible("Time constant (s)")
     taui, tauiMap, tauiDeriv = props.Invertible("Inverse of time constant (1/s)")
     props.Reciprocal(tau, taui)
@@ -233,7 +232,6 @@ class BaseSIPSimulation(BaseIPSimulation):
             return self.get_multi_pulse_response(t, self.get_peta_eta_deriv_pulse_off)
 
     def PetaEtaDeriv(self, t, v, adjoint=False):
-
         etaDeriv = self.etaDeriv_store
 
         v = np.array(v, dtype=float)
@@ -427,7 +425,6 @@ class BaseSIPSimulation(BaseIPSimulation):
 
     # @profile
     def forward(self, m, f=None):
-
         if self.verbose:
             print(">> Compute predicted data")
 
@@ -454,7 +451,6 @@ class BaseSIPSimulation(BaseIPSimulation):
 
         # Do not store sensitivity matrix (memory-wise efficient)
         else:
-
             if f is None:
                 f = self.fields(m)
 
@@ -494,7 +490,6 @@ class BaseSIPSimulation(BaseIPSimulation):
         # return self.forward(m, f=f)
 
     def Jvec(self, m, v, f=None):
-
         self.model = m
 
         Jv = []
@@ -505,7 +500,6 @@ class BaseSIPSimulation(BaseIPSimulation):
             ntime = len(self.survey.unique_times)
 
             for tind in range(ntime):
-
                 t = self.survey.unique_times[tind]
                 v0 = self.PetaEtaDeriv(t, v)
                 v1 = self.PetaTauiDeriv(t, v)
@@ -517,12 +511,10 @@ class BaseSIPSimulation(BaseIPSimulation):
 
         # Do not store sensitivity matrix (memory-wise efficient)
         else:
-
             if f is None:
                 f = self.fields(m)
 
             for tind in range(len(self.survey.unique_times)):
-
                 t = self.survey.unique_times[tind]
                 v0 = self.PetaEtaDeriv(t, v)
                 v1 = self.PetaTauiDeriv(t, v)
@@ -544,7 +536,6 @@ class BaseSIPSimulation(BaseIPSimulation):
             return np.hstack(Jv)
 
     def Jtvec(self, m, v, f=None):
-
         self.model = m
 
         # When sensitivity matrix is stored
@@ -567,7 +558,6 @@ class BaseSIPSimulation(BaseIPSimulation):
 
         # Do not store sensitivity matrix (memory-wise efficient)
         else:
-
             if f is None:
                 f = self.fields(m)
 

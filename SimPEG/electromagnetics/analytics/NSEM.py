@@ -34,9 +34,9 @@ _Tinv = lambda h, k: np.array(
     [[np.exp(-1j * k * h), 0.0], [0.0, np.exp(1j * k * h)]],
 )
 
+
 # Propagate Up and Down component for a certain frequency & evaluate E and H field
 def _Propagate(f, thickness, sig, chg, taux, c, mu_r, eps_r, n):
-
     if isinstance(eps_r, float):
         epsmodel = np.ones_like(sig) * eps_r
     else:
@@ -68,7 +68,6 @@ def _Propagate(f, thickness, sig, chg, taux, c, mu_r, eps_r, n):
     UD[1, -1] = 1.0
 
     for i in range(-2, -(n + 2), -1):
-
         UD[:, i] = _Tinv(H[i + 1], K[i]) @ _Pinv(Z[i]) @ _P(Z[i + 1]) @ UD[:, i + 1]
         UD = UD / ((np.abs(UD[0, :] + UD[1, :])).max())
 
@@ -168,7 +167,6 @@ def MT_LayeredEarth(
 
 
 def _run():
-
     # nlayer=1
     F0 = 1.0
     H0 = None

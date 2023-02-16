@@ -48,7 +48,6 @@ from SimPEG.flow import richards
 
 
 def run(plotIt=True):
-
     M = discretize.TensorMesh([np.ones(40)], x0="N")
     M.set_cell_gradient_BC("dirichlet")
     # We will use the haverkamp empirical model with parameters from Celia1990

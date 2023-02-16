@@ -48,7 +48,6 @@ class Simulation3DIntegral(BasePFSimulation):
         else:
             W = W.diagonal() ** 2
         if getattr(self, "_gtg_diagonal", None) is None:
-
             diag = np.zeros(self.G.shape[1])
             for i in range(len(W)):
                 diag += W[i] * (self.G[i] * self.G[i])
@@ -93,7 +92,6 @@ class Simulation3DIntegral(BasePFSimulation):
         Diagonal of GtG
         """
         if getattr(self, "_gtg_diagonal", None) is None:
-
             return None
 
         return self._gtg_diagonal

@@ -6,7 +6,6 @@ from SimPEG.electromagnetics import viscous_remanent_magnetization as vrm
 
 class VRM_waveform_tests(unittest.TestCase):
     def test_discrete(self):
-
         """
         Test ensures that if all different waveform classes are used to
         construct the same waveform, the characteristic decay they
@@ -38,7 +37,6 @@ class VRM_waveform_tests(unittest.TestCase):
         self.assertTrue(err1 < 0.01 and err2 < 0.01 and err3 < 0.025 and err4 < 0.01)
 
     def test_loguniform(self):
-
         """
         Tests to make sure log uniform decay and characteristic decay
         match of the range in which the approximation is valid.

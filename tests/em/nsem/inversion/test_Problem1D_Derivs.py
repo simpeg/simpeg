@@ -11,7 +11,6 @@ MU = mu_0
 
 
 def DerivJvecTest_1D(halfspace_value, freq=False, expMap=True):
-
     # Frequencies being measured
     frequencies = np.logspace(0, 4, 21)
 
@@ -56,7 +55,6 @@ def DerivJvecTest_1D(halfspace_value, freq=False, expMap=True):
 
 
 def DerivJvecTest(halfspace_value, freq=False, expMap=True):
-
     survey, sig, sigBG, mesh = nsem.utils.test_utils.setup1DSurvey(
         halfspace_value, False, structure=True
     )
