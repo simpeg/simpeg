@@ -61,10 +61,6 @@ def _get_jtj_diag(map_sim, model, field, w, sim_model=None):
     return np.asarray((sim_jtj @ m_deriv).power(2).sum(axis=0)).flatten()
 
 
-def _sum_op(x, y):
-    return x + y
-
-
 def _reduce(client, operation, items):
     while len(items) > 1:
         new_reduce = client.map(operation, items[::2], items[1::2])
@@ -112,8 +108,8 @@ class DaskMultiSimulation(MultiSimulation):
         updated = HasModel.model.fset(self, value)
         # Only send the model to the internal simulations if it was updated.
         if updated:
-            [self._m_as_future] = self.client.scatter([self._model], broadcast=True)
             client = self.client
+            [self._m_as_future] = client.scatter([self._model], broadcast=True)
             futures = []
             for map_sim, worker in self._scattered:
                 futures.append(
@@ -121,7 +117,7 @@ class DaskMultiSimulation(MultiSimulation):
                         _store_model, map_sim, self._m_as_future, workers=worker
                     )
                 )
-            client.gather(futures)  # blocking call
+            self.client.gather(futures)  # blocking call
 
     def fields(self, m):
         self.model = m
@@ -141,7 +137,7 @@ class DaskMultiSimulation(MultiSimulation):
         dpred = []
         for (map_sim, worker), field in zip(self._scattered, f):
             dpred.append(client.submit(_calc_dpred, map_sim, field, workers=worker))
-        return np.concatenate(self.client.gather(dpred))
+        return np.concatenate(client.gather(dpred))
 
     def Jvec(self, m, v, f=None):
         self.model = m
@@ -182,7 +178,7 @@ class DaskMultiSimulation(MultiSimulation):
             )
         # Do the sum by a reduction operation to avoid gathering a vector
         # of size n_simulations by n_model parameters on the head.
-        return _reduce(client, _sum_op, jt_vec)
+        return _reduce(self.client, add, jt_vec)
 
     def getJtJdiag(self, m, W=None, f=None):
         self.model = m
@@ -198,7 +194,7 @@ class DaskMultiSimulation(MultiSimulation):
                 jtj_diag.append(
                     client.submit(_get_jtj_diag, map_sim, self._m_as_future, f, sim_w)
                 )
-            self._jtjdiag = _reduce(client, _sum_op, jtj_diag)
+            self._jtjdiag = _reduce(client, add, jtj_diag)
 
         return self._jtjdiag
 
