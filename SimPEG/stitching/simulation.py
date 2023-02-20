@@ -332,12 +332,10 @@ class SumMultiSimulation(MultiSimulation):
             if m is None:
                 m = self.model
             f = self.fields(m)
-        jt_vec = []
+        jt_vec = 0
         for mapping, sim, field in zip(self.mappings, self.simulations, f):
-            jt_vec.append(
-                mapping.deriv(self.model).T @ sim.Jtvec(sim.model, v, f=field)
-            )
-        return np.concatenate(jt_vec)
+            jt_vec += mapping.deriv(self.model).T @ sim.Jtvec(sim.model, v, f=field)
+        return jt_vec
 
     def getJtJdiag(self, m, W=None, f=None):
         self.model = m
