@@ -20,8 +20,8 @@ OcTree meshes. Some things we consider are:
 
 
 from discretize import TreeMesh
-from discretize.utils import refine_tree_xyz
-from SimPEG.utils import mkvc, model_builder, surface2ind_topo
+from discretize.utils import refine_tree_xyz, active_from_xyz
+from SimPEG.utils import mkvc, model_builder
 from SimPEG import maps
 import numpy as np
 import matplotlib.pyplot as plt
@@ -78,7 +78,7 @@ def refine_box(mesh):
 # ---------------------------------------
 #
 # In this example we create a model containing a block and a vertical dyke
-# that strikes along the y direction. The utility *surface2ind_topo* is used
+# that strikes along the y direction. The utility *active_from_xyz* is used
 # to find the cells which lie below a set of xyz points defining a surface.
 # The model consists of all cells which lie below the surface.
 #
@@ -100,7 +100,7 @@ topo = np.c_[mkvc(xx), mkvc(yy), mkvc(zz)]
 
 # Find cells below topography and define mapping
 air_value = 0.0
-ind_active = surface2ind_topo(mesh, topo)
+ind_active = active_from_xyz(mesh, topo)
 model_map = maps.InjectActiveCells(mesh, ind_active, air_value)
 
 # Define the model on subsurface cells
@@ -155,7 +155,7 @@ topo = np.c_[mkvc(xx), mkvc(yy), mkvc(zz)]
 
 # Find cells below topography
 air_value = 0.0
-ind_active = surface2ind_topo(mesh, topo)
+ind_active = active_from_xyz(mesh, topo)
 active_map = maps.InjectActiveCells(mesh, ind_active, air_value)
 
 # Define the model on subsurface cells
@@ -214,7 +214,7 @@ topo = np.c_[mkvc(xx), mkvc(yy), mkvc(zz)]
 
 # Set active cells and define unit values
 air_value = 0.0
-ind_active = surface2ind_topo(mesh, topo)
+ind_active = active_from_xyz(mesh, topo)
 model_map = maps.InjectActiveCells(mesh, ind_active, air_value)
 
 # Define model for cells under the surface topography
@@ -272,7 +272,7 @@ topo = np.c_[mkvc(xx), mkvc(yy), mkvc(zz)]
 
 # Set active cells and define unit values
 air_value = 0.0
-ind_active = surface2ind_topo(mesh, topo)
+ind_active = active_from_xyz(mesh, topo)
 active_map = maps.InjectActiveCells(mesh, ind_active, air_value)
 
 # Define the model on subsurface cells
@@ -326,7 +326,7 @@ topo = np.c_[mkvc(xx), mkvc(yy), mkvc(zz)]
 
 # Set active cells
 air_value = 0.0
-ind_active = surface2ind_topo(mesh, topo)
+ind_active = active_from_xyz(mesh, topo)
 active_map = maps.InjectActiveCells(mesh, ind_active, air_value)
 
 # Define model for cells under the surface topography
