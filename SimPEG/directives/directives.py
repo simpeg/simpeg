@@ -2503,13 +2503,14 @@ class CurrentBasedSensitivityWeights(InversionDirective):
         phi_m_new = self.invProb.reg(self.invProb.model)
         
         if hasattr(self.invProb.opt, 'iter') & (phi_m_new > 0.):
-            # print("CELL WEIGHTS UPDATED: {}".format(np.sqrt(phi_m_old / phi_m_new)))
-            # C = np.sqrt(phi_m_old / phi_m_new)
-            print("CELL WEIGHTS UPDATED: {}".format(phi_m_old / phi_m_new))
-            C = phi_m_old / phi_m_new
+            print("CELL WEIGHTS UPDATED: {}".format(np.sqrt(phi_m_old / phi_m_new)))
+            C = np.sqrt(phi_m_old / phi_m_new)
+            # print("CELL WEIGHTS UPDATED: {}".format(phi_m_old / phi_m_new))
+            # C = phi_m_old / phi_m_new
             for reg in self.reg.objfcts:
                 if not isinstance(reg, BaseSimilarityMeasure):
-                    reg.cell_weights = reg.mapping * (C * wr)
+                    # reg.cell_weights = reg.mapping * (C * wr)
+                    reg.cell_weights = reg.mapping * (C * wr)**2  # Erroneous sqrt when making W matrix in regularization
         else:
             print("CELL WEIGHTS UPDATED")
             
