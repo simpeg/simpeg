@@ -2179,12 +2179,12 @@ class Update_Wj(InversionDirective):
 
 class UpdateSensitivityWeights(InversionDirective):
     r"""
-    Sensitivity weighting for linear and non-linear problems.
+    Sensitivity weighting for linear and non-linear least-squares inverse problems.
 
     This directive computes the root-mean squared sensitivities for the
     forward simulation(s) attached to the inverse problem, then truncates
-    and scales the result to create cell weights
-    which are applied in the regularization.
+    and scales the result to create cell weights which are applied in the regularization.
+    The underlying theory is provided below in the `Notes` section.
 
     This directive **requires** that the map for the regularization function is either
     class:`SimPEG.maps.Wires` or class:`SimPEG.maps.Identity`. In other words, the
@@ -2192,34 +2192,40 @@ class UpdateSensitivityWeights(InversionDirective):
     the simulation(s) connected to the inverse problem **must** have a ``getJ`` or
     ``getJtJdiag`` method.
 
+    This directive's place in the :class:`DirectivesList` **must** be
+    before any directives which update the preconditioner for the inverse problem
+    (i.e. :class:`UpdatePreconditioner`), and **must** be before any directives that
+    estimate the starting trade-off parameter (i.e. :class:`EstimateBeta_ByEig`
+    and :class:`EstimateBetaMaxDerivative`).
+
     Parameters
     ----------
     every_iteration : bool
         When ``True``, update sensitivity weighting at every model update; non-linear problems.
         When ``False``, create sensitivity weights for starting model only; linear problems.
     threshold : float
-        Threshold value for smallest weighting value
-    threshold_method : {'global', 'percentile', 'amplitude'}
+        Threshold value for smallest weighting value.
+    threshold_method : {'amplitude', 'global', 'percentile'}
         Threshold method for how `threshold_value` is applied:
 
+            - amplitude:
+                the smallest root-mean squared sensitivity is a fractional percent of the largest value; must be between 0 and 1.
             - global:
                 `threshold_value` is added to the cell weights prior to normalization; must be greater than 0.
             - percentile:
-                the smallest root-mean squared sensitivity is set using percentile threshold; must be between 0 and 100
-            - amplitude:
-                the smallest root-mean squared sensitivity is a fractional percent of the largest value; must be between 0 and 1
+                the smallest root-mean squared sensitivity is set using percentile threshold; must be between 0 and 100.
 
     normalization_method : {None, 'min_value', 'maximum'}
         Normalization method applied to sensitivity weights.
 
         Options are:
 
-            - ``None``:
-                normalization is not applied
             - maximum:
                 sensitivity weights are normalized by the largest value such that the largest weight is equal to 1.
             - minimum:
                 sensitivity weights are normalized by the smallest value, after thresholding, such that the smallest weights are equal to 1.
+            - ``None``:
+                normalization is not applied.
 
     Notes
     -----

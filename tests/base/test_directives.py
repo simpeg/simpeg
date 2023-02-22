@@ -118,23 +118,7 @@ class ValidationInInversion(unittest.TestCase):
             inv = inversion.BaseInversion(invProb)
             inv.directiveList = [update_Jacobi, sensitivity_weights]
 
-    def test_sensitivity_weighting(self):
-        tests_list = [
-            {"everyIter": False, "threshold": 1e-12, "normalization": False},
-            {
-                "every_iteration": True,
-                "threshold_value": 1,
-                "threshold_method": "percentile",
-                "normalization": True,
-            },
-            {
-                "every_iteration": True,
-                "threshold_value": 1e-3,
-                "threshold_method": "amplitude",
-                "normalization_method": "minimum",
-            },
-        ]
-
+    def test_sensitivity_weighting_warnings(self):
         # Test setter warnings
         d_temp = directives.UpdateSensitivityWeights()
         d_temp.normalization_method = True
@@ -143,42 +127,115 @@ class ValidationInInversion(unittest.TestCase):
         d_temp.normalization_method = False
         self.assertTrue(d_temp.normalization_method is None)
 
-        # Compute test cell weights
+    def test_sensitivity_weighting_global(self):
+        test_inputs = {"everyIter": False, "threshold": 1e-12, "normalization": False}
+
+        # Compute test weights
         sqrt_diagJtJ = (
             np.sqrt(np.sum((self.dmis.W * self.sim.G) ** 2, axis=0))
             / self.mesh.cell_volumes
         )
+        test_weights = sqrt_diagJtJ + test_inputs["threshold"]
+        test_weights *= self.mesh.cell_volumes
 
-        w1 = sqrt_diagJtJ + tests_list[0]["threshold"]  # default global thresholding
-        w2 = np.clip(
+        # Test directive
+        reg = regularization.WeightedLeastSquares(self.mesh)
+        invProb = inverse_problem.BaseInvProblem(self.dmis, reg, self.opt)
+        invProb.model = self.model
+
+        test_directive = directives.UpdateSensitivityWeights(**test_inputs)
+        test_directive.inversion = inversion.BaseInversion(
+            invProb, directiveList=[test_directive]
+        )
+        test_directive.update()
+
+        for reg_i in reg.objfcts:
+            self.assertTrue(np.all(np.isclose(test_weights, reg_i.cell_weights)))
+            reg_i.remove_weights("sensitivity")
+
+        # self.test_sensitivity_weighting_subroutine(test_weights, test_directive)
+
+        print("GLOBAL SENSITIVITY WEIGHTING TEST PASSED")
+
+    def test_sensitivity_weighting_percentile_minimum(self):
+        test_inputs = {
+            "every_iteration": True,
+            "threshold_value": 1,
+            "threshold_method": "percentile",
+            "normalization": True,
+        }
+
+        # Compute test weights
+        sqrt_diagJtJ = (
+            np.sqrt(np.sum((self.dmis.W * self.sim.G) ** 2, axis=0))
+            / self.mesh.cell_volumes
+        )
+        test_weights = np.clip(
             sqrt_diagJtJ,
-            a_min=np.percentile(sqrt_diagJtJ, tests_list[1]["threshold_value"]),
+            a_min=np.percentile(sqrt_diagJtJ, test_inputs["threshold_value"]),
             a_max=np.inf,
         )
-        w2 /= w2.max()
-        w3 = np.clip(
+        test_weights /= test_weights.max()
+        test_weights *= self.mesh.cell_volumes
+
+        # Test directive
+        reg = regularization.WeightedLeastSquares(self.mesh)
+        invProb = inverse_problem.BaseInvProblem(self.dmis, reg, self.opt)
+        invProb.model = self.model
+
+        test_directive = directives.UpdateSensitivityWeights(**test_inputs)
+        test_directive.inversion = inversion.BaseInversion(
+            invProb, directiveList=[test_directive]
+        )
+        test_directive.update()
+
+        for reg_i in reg.objfcts:
+            self.assertTrue(np.all(np.isclose(test_weights, reg_i.cell_weights)))
+            reg_i.remove_weights("sensitivity")
+
+        # self.test_sensitivity_weighting_subroutine(test_weights, test_directive)
+
+        print("SENSITIVITY WEIGHTING BY PERCENTILE AND MIN VALUE TEST PASSED")
+
+    def test_sensitivity_weighting_amplitude_maximum(self):
+        test_inputs = {
+            "every_iteration": True,
+            "threshold_value": 1e-3,
+            "threshold_method": "amplitude",
+            "normalization_method": "maximum",
+        }
+
+        # Compute test weights
+        sqrt_diagJtJ = (
+            np.sqrt(np.sum((self.dmis.W * self.sim.G) ** 2, axis=0))
+            / self.mesh.cell_volumes
+        )
+        test_weights = np.clip(
             sqrt_diagJtJ,
-            a_min=tests_list[2]["threshold_value"] * sqrt_diagJtJ.max(),
+            a_min=test_inputs["threshold_value"] * sqrt_diagJtJ.max(),
             a_max=np.inf,
         )
-        w3 /= w3.min()
-        weights_list = [self.mesh.cell_volumes * w for w in [w1, w2, w3]]
+        test_weights /= test_weights.max()
+        test_weights *= self.mesh.cell_volumes
 
-        for ii, wi in enumerate(weights_list):
-            reg = regularization.WeightedLeastSquares(self.mesh)
-            invProb = inverse_problem.BaseInvProblem(self.dmis, reg, self.opt)
-            invProb.model = self.model
+        # Test directive
+        reg = regularization.WeightedLeastSquares(self.mesh)
+        invProb = inverse_problem.BaseInvProblem(self.dmis, reg, self.opt)
+        invProb.model = self.model
 
-            sensitivity_weights = directives.UpdateSensitivityWeights(**tests_list[ii])
-            sensitivity_weights.inversion = inversion.BaseInversion(
-                invProb, directiveList=[sensitivity_weights]
-            )
+        test_directive = directives.UpdateSensitivityWeights(**test_inputs)
+        test_directive.inversion = inversion.BaseInversion(
+            invProb, directiveList=[test_directive]
+        )
+        test_directive.update()
 
-            sensitivity_weights.update()
+        for reg_i in reg.objfcts:
+            self.assertTrue(np.all(np.isclose(test_weights, reg_i.cell_weights)))
+            reg_i.remove_weights("sensitivity")
 
-            for reg_i in reg.objfcts:
-                self.assertTrue(np.all(np.isclose(wi, reg_i.cell_weights)))
-                reg_i.remove_weights("sensitivity")
+        # self.test_sensitivity_weighting_subroutine(test_weights, test_directive)
+
+        print("SENSITIVITY WEIGHTING BY AMPLIUTDE AND MAX ALUE TEST PASSED")
 
     def tearDown(self):
         # Clean up the working directory
