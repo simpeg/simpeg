@@ -32,9 +32,9 @@ import matplotlib.pyplot as plt
 import tarfile
 
 from discretize import TreeMesh
-from discretize.utils import refine_tree_xyz
+from discretize.utils import refine_tree_xyz, active_from_xyz
 
-from SimPEG.utils import surface2ind_topo, model_builder
+from SimPEG.utils import model_builder
 from SimPEG.utils.io_utils.io_utils_electromagnetics import read_dcip_xyz
 from SimPEG import (
     maps,
@@ -230,7 +230,7 @@ mesh.finalize()
 #
 
 # Find cells that lie below surface topography
-ind_active = surface2ind_topo(mesh, topo_xyz)
+ind_active = active_from_xyz(mesh, topo_xyz)
 
 # Extract survey from data object
 dc_survey = dc_data.survey

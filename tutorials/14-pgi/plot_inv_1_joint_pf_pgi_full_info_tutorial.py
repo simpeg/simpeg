@@ -27,7 +27,8 @@ Volume 224, Issue 1, January 2021, Pages 40-68, DOI: `10.1093/gji/ggaa378
 # --------------
 #
 
-import discretize as ds
+from discretize import TreeMesh
+from discretize.utils import active_from_xyz
 import matplotlib.pyplot as plt
 import numpy as np
 import SimPEG.potential_fields as pf
@@ -55,7 +56,7 @@ np.random.seed(518936)
 mesh_file = io_utils.download(
     "https://storage.googleapis.com/simpeg/pgi_tutorial_assets/mesh_tutorial.ubc"
 )
-mesh = ds.TreeMesh.read_UBC(mesh_file)
+mesh = TreeMesh.read_UBC(mesh_file)
 
 # Load True geological model for comparison with inversion result
 true_geology_file = io_utils.download(
@@ -214,7 +215,7 @@ topo_file = io_utils.download(
 )
 topo = np.genfromtxt(topo_file, skip_header=1)
 # find the active cells
-actv = utils.surface2ind_topo(mesh, topo, gridLoc="CC")
+actv = active_from_xyz(mesh, topo, "CC")
 # Create active map to go from reduce set to full
 ndv = np.nan
 actvMap = maps.InjectActiveCells(mesh, actv, ndv)

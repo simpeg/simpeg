@@ -5,7 +5,7 @@ import pytest
 import scipy.sparse as sp
 
 from SimPEG import maps, models, utils
-from discretize.utils import mesh_builder_xyz, refine_tree_xyz
+from discretize.utils import mesh_builder_xyz, refine_tree_xyz, active_from_xyz
 import inspect
 
 TOL = 1e-14
@@ -525,7 +525,7 @@ class MapTests(unittest.TestCase):
         mesh.finalize()
 
         # Define an active cells from topo
-        activeCells = utils.surface2ind_topo(mesh, rxLocs)
+        activeCells = active_from_xyz(mesh, rxLocs)
 
         model = np.random.randn(int(activeCells.sum()))
         total_mass = (model * mesh.cell_volumes[activeCells]).sum()
