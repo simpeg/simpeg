@@ -2399,7 +2399,7 @@ class CurrentBasedSensitivityWeights(InversionDirective):
     def exponent(self):
         return self._exponent
 
-    @threshold.setter
+    @exponent.setter
     def exponent(self, value):
         self._exponent = value
 
