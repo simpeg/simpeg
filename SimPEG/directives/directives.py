@@ -40,7 +40,7 @@ from ..utils.code_utils import (
 
 
 class InversionDirective:
-    """Base inversion directive class
+    """Base inversion directive class.
 
     SimPEG directives initialize and update parameters used by the inversion algorithm;
     e.g. setting the initial beta or updating the regularization. ``InversionDirective``
@@ -50,13 +50,13 @@ class InversionDirective:
     Parameters
     ----------
     inversion : SimPEG.inversion.BaseInversion, None
-        An inversion object
+        An SimPEG inversion object; i.e. an instance of :class:`SimPEG.inversion.BaseInversion`.
     dmisfit : SimPEG.data_misfit.BaseDataMisfit, None
-        The data misfit
+        A data data misfit; i.e. an instance of :class:`SimPEG.data_misfit.BaseDataMisfit`.
     reg : SimPEG.regularization.BaseRegularization, None
-        The regularization, or model objective function
+        The regularization, or model objective function; i.e. an instance of :class:`SimPEG.regularization.BaseRegularization`.
     verbose : bool
-        Whether or not to print debugging information
+        Whether or not to print debugging information.
     """
 
     _REGISTRY = {}
@@ -93,12 +93,12 @@ class InversionDirective:
 
     @property
     def inversion(self):
-        """Inversion object associated with the directive
+        """Inversion object associated with the directive.
 
         Returns
         -------
         SimPEG.inversion.BaseInversion
-            The inversion associated with the directive
+            The inversion associated with the directive.
         """
         if not hasattr(self, "_inversion"):
             return None
@@ -116,34 +116,34 @@ class InversionDirective:
 
     @property
     def invProb(self):
-        """Inverse problem associated with the directive
+        """Inverse problem associated with the directive.
 
         Returns
         -------
         SimPEG.inverse_problem.BaseInvProblem
-            The inverse problem associated with the directive
+            The inverse problem associated with the directive.
         """
         return self.inversion.invProb
 
     @property
     def opt(self):
-        """Optimization algorithm associated with the directive
+        """Optimization algorithm associated with the directive.
 
         Returns
         -------
         SimPEG.optimization.Minimize
-            Optimization algorithm associated with the directive
+            Optimization algorithm associated with the directive.
         """
         return self.invProb.opt
 
     @property
     def reg(self):
-        """Regularization associated with the directive
+        """Regularization associated with the directive.
 
         Returns
         -------
         SimPEG.regularization.BaseRegularization
-            The regularization associated with the directive
+            The regularization associated with the directive.
         """
         if getattr(self, "_reg", None) is None:
             self.reg = self.invProb.reg  # go through the setter
@@ -162,12 +162,12 @@ class InversionDirective:
 
     @property
     def dmisfit(self):
-        """Data misfit associated with the directive
+        """Data misfit associated with the directive.
 
         Returns
         -------
         SimPEG.data_misfit.BaseDataMisfit
-            The data misfit associated with the directive
+            The data misfit associated with the directive.
         """
         if getattr(self, "_dmisfit", None) is None:
             self.dmisfit = self.invProb.dmisfit  # go through the setter
@@ -195,35 +195,35 @@ class InversionDirective:
         Returns
         -------
         list of SimPEG.survey.Survey
-            Survey for all data misfits
+            Survey for all data misfits.
         """
         return [objfcts.simulation.survey for objfcts in self.dmisfit.objfcts]
 
     @property
     def simulation(self):
-        """Return simulation for all data misfits
+        """Return simulation for all data misfits.
 
         Assuming that ``dmisfit`` is always a ``ComboObjectiveFunction``,
         return a list containing the simulation for each data misfit; i.e.
-        [sim1, sim2, ...]
+        [sim1, sim2, ...].
 
         Returns
         -------
         list of SimPEG.simulation.BaseSimulation
-            Simulation for all data misfits
+            Simulation for all data misfits.
         """
         return [objfcts.simulation for objfcts in self.dmisfit.objfcts]
 
     def initialize(self):
-        """Initialize inversion parameter(s) according to directive"""
+        """Initialize inversion parameter(s) according to directive."""
         pass
 
     def endIter(self):
-        """Update inversion parameter(s) according to directive at end of iteration"""
+        """Update inversion parameter(s) according to directive at end of iteration."""
         pass
 
     def finish(self):
-        """Update inversion parameter(s) according to directive at end of inversion"""
+        """Update inversion parameter(s) according to directive at end of inversion."""
         pass
 
     def validate(self, directiveList=None):
@@ -236,7 +236,7 @@ class InversionDirective:
         Parameters
         ----------
         directive_list : SimPEG.directives.DirectiveList
-            List of directives used in the inversion
+            List of directives used in the inversion.
 
         Returns
         -------
@@ -256,11 +256,11 @@ class DirectiveList(object):
     Parameters
     ----------
     directives : list of SimPEG.directives.InversionDirective
-        List of directives
+        List of directives.
     inversion : SimPEG.inversion.BaseInversion
-        The inversion associated with the directives list
+        The inversion associated with the directives list.
     debug : bool
-        Whether or not to print debugging information
+        Whether or not to print debugging information.
 
     """
 
@@ -293,12 +293,12 @@ class DirectiveList(object):
 
     @property
     def inversion(self):
-        """Inversion object associated with the directives list
+        """Inversion object associated with the directives list.
 
         Returns
         -------
         SimPEG.inversion.BaseInversion
-            The inversion associated with the directives list
+            The inversion associated with the directives list.
         """
         return getattr(self, "_inversion", None)
 
@@ -333,7 +333,7 @@ class DirectiveList(object):
 
 
 class BaseBetaEstimator(InversionDirective):
-    """Base class for estimating initial trade-off parameter (beta)
+    """Base class for estimating initial trade-off parameter (beta).
 
     This class has properties and methods inherited by directive classes which estimate
     the initial trade-off parameter (beta). This class is not used directly to create
@@ -342,9 +342,9 @@ class BaseBetaEstimator(InversionDirective):
     Parameters
     ----------
     beta0_ratio : float
-        Desired ratio between data misfit and model objective function at initial beta iteration
+        Desired ratio between data misfit and model objective function at initial beta iteration.
     seed : int, None
-        Seed used for random sampling
+        Seed used for random sampling.
 
     """
 
@@ -378,7 +378,7 @@ class BaseBetaEstimator(InversionDirective):
 
     @property
     def seed(self):
-        """Random seed to initialize with
+        """Random seed to initialize with.
 
         Returns
         -------
@@ -415,9 +415,9 @@ class BetaEstimateMaxDerivative(BaseBetaEstimator):
     Parameters
     ----------
     beta0_ratio: float
-        Desired ratio between data misfit and model objective function at initial beta iteration
+        Desired ratio between data misfit and model objective function at initial beta iteration.
     seed : int, None
-        Seed used for random sampling
+        Seed used for random sampling.
 
     Notes
     -----
@@ -484,11 +484,11 @@ class BetaEstimate_ByEig(BaseBetaEstimator):
     Parameters
     ----------
     beta0_ratio: float
-        Desired ratio between data misfit and model objective function at initial beta iteration
+        Desired ratio between data misfit and model objective function at initial beta iteration.
     n_pw_iter : int
-        Number of power iterations used to estimate largest eigenvalues
+        Number of power iterations used to estimate largest eigenvalues.
     seed : int, None
-        Seed used for random sampling
+        Seed used for random sampling.
 
     Notes
     -----
@@ -523,12 +523,12 @@ class BetaEstimate_ByEig(BaseBetaEstimator):
 
     @property
     def n_pw_iter(self):
-        """Number of power iterations for estimating largest eigenvalues
+        """Number of power iterations for estimating largest eigenvalues.
 
         Returns
         -------
         int
-            Number of power iterations for estimating largest eigenvalues
+            Number of power iterations for estimating largest eigenvalues.
         """
         return self._n_pw_iter
 
@@ -645,7 +645,7 @@ class AlphasSmoothEstimate_ByEig(InversionDirective):
 
     @property
     def alpha0_ratio(self):
-        """the estimated Alpha_smooth is multiplied by this ratio (int or array)
+        """the estimated Alpha_smooth is multiplied by this ratio (int or array).
 
         Returns
         -------
@@ -675,7 +675,7 @@ class AlphasSmoothEstimate_ByEig(InversionDirective):
 
     @property
     def seed(self):
-        """Random seed to initialize with
+        """Random seed to initialize with.
 
         Returns
         -------
