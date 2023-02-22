@@ -2348,7 +2348,8 @@ class CurrentBasedSensitivityWeights(InversionDirective):
         everyBeta=True,
         startingBetaIter=1,
         threshold=1000.,
-        n_hutchinson_samples=30,
+        exponent=1.,
+        n_hutchinson_samples=40,
         include_uncertainties=True,
         **kwargs
     ):
@@ -2357,6 +2358,7 @@ class CurrentBasedSensitivityWeights(InversionDirective):
         self.everyIter = everyIter
         self.everyBeta = everyBeta
         self.startingBetaIter = startingBetaIter
+        self.exponent = exponent
         self.threshold = threshold
         self.n_hutchinson_samples = n_hutchinson_samples
         self.include_uncertainties = include_uncertainties
@@ -2392,6 +2394,14 @@ class CurrentBasedSensitivityWeights(InversionDirective):
     @threshold.setter
     def threshold(self, value):
         self._threshold = value
+
+    @property
+    def exponent(self):
+        return self._exponent
+
+    @threshold.setter
+    def exponent(self, value):
+        self._exponent = value
 
     @property
     def n_hutchinson_samples(self):
@@ -2503,14 +2513,12 @@ class CurrentBasedSensitivityWeights(InversionDirective):
         phi_m_new = self.invProb.reg(self.invProb.model)
         
         if hasattr(self.invProb.opt, 'iter') & (phi_m_new > 0.):
-            print("CELL WEIGHTS UPDATED: {}".format(np.sqrt(phi_m_old / phi_m_new)))
-            C = np.sqrt(phi_m_old / phi_m_new)
-            # print("CELL WEIGHTS UPDATED: {}".format(phi_m_old / phi_m_new))
-            # C = phi_m_old / phi_m_new
+            print("CELL WEIGHTS UPDATED: {}".format(phi_m_old / phi_m_new))
+            C = phi_m_old / phi_m_new
             for reg in self.reg.objfcts:
                 if not isinstance(reg, BaseSimilarityMeasure):
                     # reg.cell_weights = reg.mapping * (C * wr)
-                    reg.cell_weights = reg.mapping * (C * wr)**2  # Erroneous sqrt when making W matrix in regularization
+                    reg.cell_weights = reg.mapping * C * wr**self.exponent
         else:
             print("CELL WEIGHTS UPDATED")
             
