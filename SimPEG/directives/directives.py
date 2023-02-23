@@ -2501,7 +2501,8 @@ class CurrentBasedSensitivityWeights(InversionDirective):
         # wr = gaussian_filter(wr, 0.25)
         # wr = np.reshape(wr, ncz*ncx)
 
-        wr = self.threshold * wr / wr.max()
+        # Threshold is on RMS sensitivities
+        wr = (self.threshold * wr / wr.max())**self.exponent
         wr[wr < 1.] = 1.
 
         # Set new weights
@@ -2517,8 +2518,7 @@ class CurrentBasedSensitivityWeights(InversionDirective):
             C = phi_m_old / phi_m_new
             for reg in self.reg.objfcts:
                 if not isinstance(reg, BaseSimilarityMeasure):
-                    # reg.cell_weights = reg.mapping * (C * wr)
-                    reg.cell_weights = reg.mapping * (C * wr**self.exponent)
+                    reg.cell_weights = reg.mapping * (C * wr)
         else:
             print("CELL WEIGHTS UPDATED")
             
