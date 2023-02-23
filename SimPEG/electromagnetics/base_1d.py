@@ -767,7 +767,7 @@ class BaseStitchedEM1DSimulation(BaseSimulation):
             output_type,
             self.invert_height,
             False,
-            self._coefficients[self.survey._sounding_types[i_sounding]],
+            self._coefficients[i_sounding],
         )
         return output
 

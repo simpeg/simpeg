@@ -494,16 +494,7 @@ class Simulation1DLayeredStitched(BaseStitchedEM1DSimulation):
     def get_coefficients(self):
         if self.verbose:
             print(">> Calculate coefficients")
-        # pool = Pool(self.n_cpu)
-        # self._coefficients = pool.map(
-        #     run_simulation,
-        #     [
-        #         self.input_args_for_coeff(i) for i in range(self.n_sounding)
-        #     ]
-        #  )
-        # self._coefficients_set = True
-        # pool.close()
-        # pool.join()
+
         self.get_uniq_soundings()
 
         run_simulation = run_simulation_time_domain
@@ -524,14 +515,32 @@ class Simulation1DLayeredStitched(BaseStitchedEM1DSimulation):
         if self.topo is None:
             self.set_null_topography()
 
-        if self._coefficients_set is False:
-            self.get_coefficients()
+        # TODO: Need to pull separate hankel coeffcients
+        #       and A matrix for convolution
+        #       hankel coefficients vary with variable height!
+
+        # if self._coefficients_set is False:
+        #     self.get_coefficients()
 
         run_simulation = run_simulation_time_domain
 
         if self.parallel:
             if self.verbose:
                 print ('parallel')
+
+            if self._coefficients_set is False:
+                if self.verbose:
+                    print(">> Calculate coefficients")
+                pool = Pool(self.n_cpu)
+                self._coefficients = pool.map(
+                    run_simulation,
+                    [
+                        self.input_args_for_coeff(i) for i in range(self.n_sounding)
+                    ]
+                 )
+                self._coefficients_set = True
+                pool.close()
+                pool.join()
 
             #This assumes the same # of layers for each of sounding
             # if self.n_sounding_for_chunk is None:
@@ -547,13 +556,13 @@ class Simulation1DLayeredStitched(BaseStitchedEM1DSimulation):
             pool.join()
         else:
             if self._coefficients_set is False:
-                self.get_uniq_soundings()
                 if self.verbose:
                     print(">> Calculate coefficients")
 
-                # self._coefficients = [
-                #     run_simulation(self.input_args_for_coeff(i)) for i in range(self.n_sounding)
-                # ]
+                self._coefficients = [
+                    run_simulation(self.input_args_for_coeff(i)) for i in range(self.n_sounding)
+                ]
+
             result = [
                 run_simulation(self.input_args(i, output_type='forward')) for i in range(self.n_sounding)
             ]
