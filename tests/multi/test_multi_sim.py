@@ -348,7 +348,7 @@ def test_repeat_errors():
 
     # split by chunks of sources
     mappings = []
-    for i in range(10):
+    for _i in range(10):
         mappings.append(maps.IdentityMap(mesh))
 
     # mappings have incompatible input lengths:
