@@ -2518,7 +2518,7 @@ class CurrentBasedSensitivityWeights(InversionDirective):
             for reg in self.reg.objfcts:
                 if not isinstance(reg, BaseSimilarityMeasure):
                     # reg.cell_weights = reg.mapping * (C * wr)
-                    reg.cell_weights = reg.mapping * C * wr**self.exponent
+                    reg.cell_weights = reg.mapping * (C * wr**self.exponent)
         else:
             print("CELL WEIGHTS UPDATED")
             
