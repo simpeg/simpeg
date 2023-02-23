@@ -249,6 +249,8 @@ class MultiSimulation(BaseSimulation):
             # (i.e. projections, multipliers, etc.).
             # It is usually close within a scaling factor for others, whose accuracy is controlled
             # by how diagonally dominant JtJ is.
+            if f is None:
+                f = self.fields(m)
             for i, (mapping, sim, field) in enumerate(
                 zip(self.mappings, self.simulations, f)
             ):
@@ -344,6 +346,8 @@ class SumMultiSimulation(MultiSimulation):
         self.model = m
         if getattr(self, "_jtjdiag", None) is None:
             jtj_diag = 0.0
+            if f is None:
+                f = self.fields(m)
             for mapping, sim, field in zip(self.mappings, self.simulations, f):
                 sim_jtj = sp.diags(np.sqrt(sim.getJtJdiag(sim.model, W, f=field)))
                 m_deriv = mapping.deriv(self.model)

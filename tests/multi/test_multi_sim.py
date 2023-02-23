@@ -80,6 +80,22 @@ def test_multi_sim_correctness():
 
     np.testing.assert_allclose(diag_full, diag_mult)
 
+    # test things also works without passing optional fields
+    multi_sim.model = m_test
+    d_mult2 = multi_sim.dpred()
+    np.testing.assert_allclose(d_mult, d_mult2)
+
+    jvec_mult2 = multi_sim.Jvec(m_test, u)
+    np.testing.assert_allclose(jvec_mult, jvec_mult2)
+
+    jtvec_mult2 = multi_sim.Jtvec(m_test, v)
+    np.testing.assert_allclose(jtvec_mult, jtvec_mult2)
+
+    # also pass a diagonal matrix here for testing.
+    W = sp.eye(multi_sim.survey.nD)
+    diag_mult2 = multi_sim.getJtJdiag(m_test, W=W)
+    np.testing.assert_allclose(diag_mult, diag_mult2)
+
 
 def test_sum_sim_correctness():
     mesh = TensorMesh([16, 16, 16], origin="CCN")
@@ -142,6 +158,20 @@ def test_sum_sim_correctness():
     diag_mult = sum_sim.getJtJdiag(m_test, f=f_mult)
 
     np.testing.assert_allclose(diag_full, diag_mult)
+
+    # test things also works without passing optional kwargs
+    sum_sim.model = m_test
+    d_mult2 = sum_sim.dpred()
+    np.testing.assert_allclose(d_mult, d_mult2)
+
+    jvec_mult2 = sum_sim.Jvec(m_test, u)
+    np.testing.assert_allclose(jvec_mult, jvec_mult2)
+
+    jtvec_mult2 = sum_sim.Jtvec(m_test, v)
+    np.testing.assert_allclose(jtvec_mult, jtvec_mult2)
+
+    diag_mult2 = sum_sim.getJtJdiag(m_test)
+    np.testing.assert_allclose(diag_mult, diag_mult2)
 
 
 def test_repeat_sim_correctness():
