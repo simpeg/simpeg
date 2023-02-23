@@ -21,6 +21,7 @@ from SimPEG.electromagnetics.static import resistivity as DC
 from SimPEG.electromagnetics.static import induced_polarization as IP
 from SimPEG.electromagnetics.static.utils import generate_dcip_survey, genTopography
 from SimPEG import maps, utils
+from discretize.utils import active_from_xyz
 import matplotlib.pyplot as plt
 from matplotlib import colors
 import numpy as np
@@ -59,7 +60,7 @@ def run(plotIt=True, survey_type="dipole-dipole"):
     # Obtain 2D TensorMesh
     mesh, actind = IO.set_mesh()
     topo, mesh1D = genTopography(mesh, -10, 0, its=100)
-    actind = utils.surface2ind_topo(mesh, np.c_[mesh1D.cell_centers_x, topo])
+    actind = active_from_xyz(mesh, np.c_[mesh1D.cell_centers_x, topo])
     survey_dc.drape_electrodes_on_topography(mesh, actind, option="top")
 
     # Build conductivity and chargeability model
