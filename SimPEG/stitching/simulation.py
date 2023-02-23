@@ -258,6 +258,7 @@ class MultiSimulation(BaseSimulation):
                 jtj_diag += np.asarray(
                     (sim_jtj @ m_deriv).power(2).sum(axis=0)
                 ).flatten()
+            self._jtjdiag = jtj_diag
 
         return self._jtjdiag
 
@@ -302,7 +303,7 @@ class SumMultiSimulation(MultiSimulation):
         for sim in value:
             if sim.survey.nD != nD:
                 raise ValueError("All simulations must have the same number of data.")
-        self._simulation = value
+        self._simulations = value
 
     def dpred(self, m=None, f=None):
         if f is None:
@@ -347,6 +348,7 @@ class SumMultiSimulation(MultiSimulation):
                 jtj_diag += np.asarray(
                     (sim_jtj @ m_deriv).power(2).sum(axis=0)
                 ).flatten()
+            self._jtjdiag = jtj_diag
 
         return self._jtjdiag
 
