@@ -249,11 +249,13 @@ class MultiSimulation(BaseSimulation):
             # (i.e. projections, multipliers, etc.).
             # It is usually close within a scaling factor for others, whose accuracy is controlled
             # by how diagonally dominant JtJ is.
-            for i, (mapping, sim) in enumerate(zip(self.mappings, self.simulations)):
+            for i, (mapping, sim, field) in enumerate(
+                zip(self.mappings, self.simulations, f)
+            ):
                 if self._repeat_sim:
                     sim.model = mapping * self.model
                 sim_w = sp.diags(W[self._data_offsets[i] : self._data_offsets[i + 1]])
-                sim_jtj = sp.diags(np.sqrt(sim.getJtJdiag(sim.model, sim_w)))
+                sim_jtj = sp.diags(np.sqrt(sim.getJtJdiag(sim.model, sim_w, f=field)))
                 m_deriv = mapping.deriv(self.model)
                 jtj_diag += np.asarray(
                     (sim_jtj @ m_deriv).power(2).sum(axis=0)
@@ -342,8 +344,8 @@ class SumMultiSimulation(MultiSimulation):
         self.model = m
         if getattr(self, "_jtjdiag", None) is None:
             jtj_diag = 0.0
-            for i, (mapping, sim) in enumerate(zip(self.mappings, self.simulations)):
-                sim_jtj = sp.diags(np.sqrt(sim.getJtJdiag(sim.model, W)))
+            for mapping, sim, field in zip(self.mappings, self.simulations, f):
+                sim_jtj = sp.diags(np.sqrt(sim.getJtJdiag(sim.model, W, f=field)))
                 m_deriv = mapping.deriv(self.model)
                 jtj_diag += np.asarray(
                     (sim_jtj @ m_deriv).power(2).sum(axis=0)
