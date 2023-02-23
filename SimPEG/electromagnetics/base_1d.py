@@ -48,11 +48,12 @@ class BaseEM1DSimulation(BaseSimulation):
 
     props.Reciprocal(sigma, rho)
 
-    eta = props.PhysicalProperty(
+    eta, etaMap, etaDeriv = props.Invertible(
         "Intrinsic chargeability (V/V), 0 <= eta < 1", default=0.0
     )
-    tau = props.PhysicalProperty("Time constant for Cole-Cole model (s)", default=1.0)
-    c = props.PhysicalProperty(
+    tau, tauMap, tauDeriv = props.Invertible("Time constant for Cole-Cole model (s)", default=1.0)
+
+    c, cMap, cDeriv = props.Invertible(
         "Frequency Dependency for Cole-Cole model, 0 < c < 1", default=0.5
     )
 
@@ -161,6 +162,22 @@ class BaseEM1DSimulation(BaseSimulation):
             return sigma_complex
 
     def compute_dcomplex_sigma_dsigma_inf(self, frequencies):
+        n_layer = self.n_layer
+        n_frequency = len(frequencies)
+
+        sigma = np.tile(self.sigma.reshape([-1, 1]), (1, n_frequency))
+
+        if np.isscalar(self.eta):
+            eta = self.eta
+            tau = self.tau
+            c = self.c
+        else:
+            eta = np.tile(self.eta.reshape([-1, 1]), (1, n_frequency))
+            tau = np.tile(self.tau.reshape([-1, 1]), (1, n_frequency))
+            c = np.tile(self.c.reshape([-1, 1]), (1, n_frequency))
+
+        w = np.tile(2 * np.pi * frequencies, (n_layer, 1))
+
         dsigma_dsigma_inf = np.empty(
             [n_layer, n_frequency], dtype=np.complex128, order="F"
         )
@@ -170,6 +187,22 @@ class BaseEM1DSimulation(BaseSimulation):
         return dsigma_dsigma_inf
 
     def compute_dcomplex_sigma_deta(self, frequencies):
+        n_layer = self.n_layer
+        n_frequency = len(frequencies)
+
+        sigma = np.tile(self.sigma.reshape([-1, 1]), (1, n_frequency))
+
+        if np.isscalar(self.eta):
+            eta = self.eta
+            tau = self.tau
+            c = self.c
+        else:
+            eta = np.tile(self.eta.reshape([-1, 1]), (1, n_frequency))
+            tau = np.tile(self.tau.reshape([-1, 1]), (1, n_frequency))
+            c = np.tile(self.c.reshape([-1, 1]), (1, n_frequency))
+
+        w = np.tile(2 * np.pi * frequencies, (n_layer, 1))
+
         dsigma_deta = np.empty(
             [n_layer, n_frequency], dtype=np.complex128, order="F"
         )
@@ -179,20 +212,54 @@ class BaseEM1DSimulation(BaseSimulation):
         return dsigma_deta
 
     def compute_dcomplex_sigma_dtau(self, frequencies):
+        n_layer = self.n_layer
+        n_frequency = len(frequencies)
+
+        sigma = np.tile(self.sigma.reshape([-1, 1]), (1, n_frequency))
+
+        if np.isscalar(self.eta):
+            eta = self.eta
+            tau = self.tau
+            c = self.c
+        else:
+            eta = np.tile(self.eta.reshape([-1, 1]), (1, n_frequency))
+            tau = np.tile(self.tau.reshape([-1, 1]), (1, n_frequency))
+            c = np.tile(self.c.reshape([-1, 1]), (1, n_frequency))
+
+        w = np.tile(2 * np.pi * frequencies, (n_layer, 1))
+
         dsigma_tau = np.empty(
             [n_layer, n_frequency], dtype=np.complex128, order="F"
         )
-        dsigma_tau[:, :] = - sigma / (
-            1 + (1j * w * tau) ** c
+        S = (1j * w * tau) ** c
+        dsigma_tau[:, :] = sigma*eta*c*S / (
+            tau*(S+1)**2
         )
         return dsigma_tau
 
     def compute_dcomplex_sigma_dc(self, frequencies):
+        n_layer = self.n_layer
+        n_frequency = len(frequencies)
+
+        sigma = np.tile(self.sigma.reshape([-1, 1]), (1, n_frequency))
+
+        if np.isscalar(self.eta):
+            eta = self.eta
+            tau = self.tau
+            c = self.c
+        else:
+            eta = np.tile(self.eta.reshape([-1, 1]), (1, n_frequency))
+            tau = np.tile(self.tau.reshape([-1, 1]), (1, n_frequency))
+            c = np.tile(self.c.reshape([-1, 1]), (1, n_frequency))
+
+        w = np.tile(2 * np.pi * frequencies, (n_layer, 1))
+
+        S = (1j * w * tau) ** c
         dsigma_c = np.empty(
             [n_layer, n_frequency], dtype=np.complex128, order="F"
         )
-        dsigma_c[:, :] = - sigma / (
-            1 + (1j * w * tau) ** c
+        dsigma_c[:, :] = sigma*eta*S*np.log(1j * w * tau) / (
+            (S+1)**2
         )
         return dsigma_c
 
@@ -257,10 +324,16 @@ class BaseEM1DSimulation(BaseSimulation):
             out = out + Js["dh"] @ (self.hDeriv @ v)
         if self.sigmaMap is not None:
             out = out + Js["ds"] @ (self.sigmaDeriv @ v)
+        if self.etaMap is not None:
+            out = out + Js["deta"] @ (self.etaDeriv @ v)
+        if self.tauMap is not None:
+            out = out + Js["dtau"] @ (self.tauDeriv @ v)
+        if self.cMap is not None:
+            out = out + Js["dc"] @ (self.cDeriv @ v)
         if self.muMap is not None:
             out = out + Js["dmu"] @ (self.muDeriv @ v)
         if self.thicknessesMap is not None:
-            out = out + Js["dthick"] @ (self.nthicknessesDeriv @ v)
+            out = out + Js["dthick"] @ (self.thicknessesDeriv @ v)
         return out
 
     def Jtvec(self, m, v, f=None):
@@ -270,6 +343,12 @@ class BaseEM1DSimulation(BaseSimulation):
             out = out + self.hDeriv.T @ (Js["dh"].T @ v)
         if self.sigmaMap is not None:
             out = out + self.sigmaDeriv.T @ (Js["ds"].T @ v)
+        if self.etaMap is not None:
+            out = out + self.etaDeriv.T @ (Js["deta"].T @ v)
+        if self.tauMap is not None:
+            out = out + self.tauDeriv.T @ (Js["dtau"].T @ v)
+        if self.cMap is not None:
+            out = out + self.cDeriv.T @ (Js["dc"].T @ v)
         if self.muMap is not None:
             out = out + self.muDeriv.T @ (Js["dmu"].T @ v)
         if self.thicknessesMap is not None:
