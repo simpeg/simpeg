@@ -92,6 +92,7 @@ def test_multi_sim_correctness():
     np.testing.assert_allclose(jtvec_mult, jtvec_mult2)
 
     # also pass a diagonal matrix here for testing.
+    multi_sim._jtjdiag = None
     W = sp.eye(multi_sim.survey.nD)
     diag_mult2 = multi_sim.getJtJdiag(m_test, W=W)
     np.testing.assert_allclose(diag_mult, diag_mult2)
@@ -170,6 +171,7 @@ def test_sum_sim_correctness():
     jtvec_mult2 = sum_sim.Jtvec(m_test, v)
     np.testing.assert_allclose(jtvec_mult, jtvec_mult2)
 
+    sum_sim._jtjdiag = None
     diag_mult2 = sum_sim.getJtJdiag(m_test)
     np.testing.assert_allclose(diag_mult, diag_mult2)
 

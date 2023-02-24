@@ -320,9 +320,8 @@ class SumMultiSimulation(MultiSimulation):
         return d_pred
 
     def Jvec(self, m, v, f=None):
+        self.model = m
         if f is None:
-            if m is None:
-                m = self.model
             f = self.fields(m)
         j_vec = 0
         for mapping, sim, field in zip(self.mappings, self.simulations, f):
@@ -333,9 +332,8 @@ class SumMultiSimulation(MultiSimulation):
         return j_vec
 
     def Jtvec(self, m, v, f=None):
+        self.model = m
         if f is None:
-            if m is None:
-                m = self.model
             f = self.fields(m)
         jt_vec = 0
         for mapping, sim, field in zip(self.mappings, self.simulations, f):
