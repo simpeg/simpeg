@@ -23,6 +23,7 @@ class BaseDataMisfit(L2ObjectiveFunction):
         self.simulation = simulation
         self.debug = debug
         self.count = counter
+
         self.model_map = model_map
 
     @property
@@ -34,6 +35,8 @@ class BaseDataMisfit(L2ObjectiveFunction):
         if value is None:
             value = Identity()
         self._model_map = value
+        self._has_fields = True
+
 
     @property
     def data(self):

@@ -32,13 +32,12 @@ import matplotlib.pyplot as plt
 import tarfile
 
 from discretize import TreeMesh
-from discretize.utils import mkvc, refine_tree_xyz
+from discretize.utils import refine_tree_xyz, active_from_xyz
 
-from SimPEG.utils import surface2ind_topo, model_builder
+from SimPEG.utils import model_builder
 from SimPEG.utils.io_utils.io_utils_electromagnetics import read_dcip_xyz
 from SimPEG import (
     maps,
-    data,
     data_misfit,
     regularization,
     optimization,
@@ -138,7 +137,6 @@ apparent_conductivity = 1 / apparent_resistivity_from_voltage(
 )
 
 if has_plotly:
-
     fig = plot_3d_pseudosection(
         dc_data.survey,
         apparent_conductivity,
@@ -232,7 +230,7 @@ mesh.finalize()
 #
 
 # Find cells that lie below surface topography
-ind_active = surface2ind_topo(mesh, topo_xyz)
+ind_active = active_from_xyz(mesh, topo_xyz)
 
 # Extract survey from data object
 dc_survey = dc_data.survey
@@ -485,7 +483,6 @@ dpred_dc = dc_inverse_problem.dpred
 dc_normalized_misfit = (dc_data.dobs - dpred_dc) / dc_data.standard_deviation
 
 if has_plotly:
-
     # Plot IP Data
     fig = plot_3d_pseudosection(
         dc_data.survey,

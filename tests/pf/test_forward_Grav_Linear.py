@@ -66,7 +66,7 @@ def test_ana_grav_forward(tmp_path):
         ind_active=active_cells,
         store_sensitivities="disk",
         sensitivity_path=str(tmp_path) + os.sep,
-        n_processes=4,
+        n_processes=1,
     )
 
     data = sim.dpred(model_reduced)

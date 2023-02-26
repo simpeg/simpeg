@@ -29,9 +29,9 @@ to simulate the fields at each time channel with sufficient accuracy.
 #
 
 from discretize import TreeMesh
-from discretize.utils import mkvc, refine_tree_xyz
+from discretize.utils import mkvc, refine_tree_xyz, active_from_xyz
 
-from SimPEG.utils import plot2Ddata, surface2ind_topo
+from SimPEG.utils import plot2Ddata
 from SimPEG import maps
 import SimPEG.electromagnetics.time_domain as tdem
 
@@ -144,7 +144,6 @@ source_list = []  # Create empty list to store sources
 
 # Each unique location defines a new transmitter
 for ii in range(ntx):
-
     # Here we define receivers that measure the h-field in A/m
     dbzdt_receiver = tdem.receivers.PointMagneticFluxTimeDerivative(
         receiver_locations[ii, :], time_channels, "z"
@@ -220,7 +219,7 @@ background_conductivity = 2e-3
 block_conductivity = 2e0
 
 # Active cells are cells below the surface.
-ind_active = surface2ind_topo(mesh, topo_xyz)
+ind_active = active_from_xyz(mesh, topo_xyz)
 model_map = maps.InjectActiveCells(mesh, ind_active, air_conductivity)
 
 # Define the model
@@ -300,7 +299,7 @@ simulation.time_steps = time_steps
 dpred = simulation.dpred(model)
 
 # Data were organized by location, then by time channel
-dpred_plotting = np.reshape(dpred, (n_tx ** 2, n_times))
+dpred_plotting = np.reshape(dpred, (n_tx**2, n_times))
 
 # Plot
 fig = plt.figure(figsize=(10, 4))
@@ -356,7 +355,6 @@ plt.show()
 #
 
 if save_file:
-
     dir_path = os.path.dirname(tdem.__file__).split(os.path.sep)[:-3]
     dir_path.extend(["tutorials", "assets", "tdem"])
     dir_path = os.path.sep.join(dir_path) + os.path.sep

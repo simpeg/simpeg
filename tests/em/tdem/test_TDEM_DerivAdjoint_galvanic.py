@@ -1,7 +1,7 @@
 import unittest
 import numpy as np
 import discretize
-from SimPEG import maps, SolverLU, tests
+from SimPEG import maps, tests
 from SimPEG.electromagnetics import time_domain as tdem
 from pymatsolver import Pardiso as Solver
 
@@ -67,7 +67,6 @@ def setUp_TDEM(prbtype="ElectricField", rxcomp="ElectricFieldx", src_z=0.0):
 
 
 class TDEM_DerivTests(unittest.TestCase):
-
     # ====== TEST Jvec ========== #
 
     if testDeriv:
@@ -106,7 +105,6 @@ class TDEM_DerivTests(unittest.TestCase):
         def JvecVsJtvecTest(
             self, prbtype="MagneticFluxDensity", rxcomp="bz", src_z=0.0
         ):
-
             print("\nAdjoint Testing Jvec, Jtvec prob {}, {}".format(prbtype, rxcomp))
 
             prb, m0, mesh = setUp_TDEM(prbtype, rxcomp, src_z)

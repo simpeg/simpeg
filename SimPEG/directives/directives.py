@@ -37,13 +37,31 @@ from ..utils.code_utils import (
     validate_float,
     validate_ndarray_with_shape,
 )
-from .. import optimization
+
 from geoh5py.workspace import Workspace
 from geoh5py.objects import ObjectBase
 from datetime import datetime
 
+
 class InversionDirective:
-    """InversionDirective"""
+    """Base inversion directive class.
+
+    SimPEG directives initialize and update parameters used by the inversion algorithm;
+    e.g. setting the initial beta or updating the regularization. ``InversionDirective``
+    is a parent class responsible for connecting directives to the data misfit, regularization
+    and optimization defining the inverse problem.
+
+    Parameters
+    ----------
+    inversion : SimPEG.inversion.BaseInversion, None
+        An SimPEG inversion object; i.e. an instance of :class:`SimPEG.inversion.BaseInversion`.
+    dmisfit : SimPEG.data_misfit.BaseDataMisfit, None
+        A data data misfit; i.e. an instance of :class:`SimPEG.data_misfit.BaseDataMisfit`.
+    reg : SimPEG.regularization.BaseRegularization, None
+        The regularization, or model objective function; i.e. an instance of :class:`SimPEG.regularization.BaseRegularization`.
+    verbose : bool
+        Whether or not to print debugging information.
+    """
 
     _REGISTRY = {}
 
@@ -63,7 +81,7 @@ class InversionDirective:
 
     @property
     def verbose(self):
-        """Whether to print debug information.
+        """Whether or not to print debugging information.
 
         Returns
         -------
@@ -79,7 +97,13 @@ class InversionDirective:
 
     @property
     def inversion(self):
-        """This is the inversion of the InversionDirective instance."""
+        """Inversion object associated with the directive.
+
+        Returns
+        -------
+        SimPEG.inversion.BaseInversion
+            The inversion associated with the directive.
+        """
         if not hasattr(self, "_inversion"):
             return None
         return self._inversion
@@ -96,14 +120,35 @@ class InversionDirective:
 
     @property
     def invProb(self):
+        """Inverse problem associated with the directive.
+
+        Returns
+        -------
+        SimPEG.inverse_problem.BaseInvProblem
+            The inverse problem associated with the directive.
+        """
         return self.inversion.invProb
 
     @property
     def opt(self):
+        """Optimization algorithm associated with the directive.
+
+        Returns
+        -------
+        SimPEG.optimization.Minimize
+            Optimization algorithm associated with the directive.
+        """
         return self.invProb.opt
 
     @property
     def reg(self):
+        """Regularization associated with the directive.
+
+        Returns
+        -------
+        SimPEG.regularization.BaseRegularization
+            The regularization associated with the directive.
+        """
         if getattr(self, "_reg", None) is None:
             self.reg = self.invProb.reg  # go through the setter
         return self._reg
@@ -121,6 +166,13 @@ class InversionDirective:
 
     @property
     def dmisfit(self):
+        """Data misfit associated with the directive.
+
+        Returns
+        -------
+        SimPEG.data_misfit.BaseDataMisfit
+            The data misfit associated with the directive.
+        """
         if getattr(self, "_dmisfit", None) is None:
             self.dmisfit = self.invProb.dmisfit  # go through the setter
         return self._dmisfit
@@ -128,7 +180,6 @@ class InversionDirective:
     @dmisfit.setter
     def dmisfit(self, value):
         if value is not None:
-
             assert any(
                 [isinstance(value, dmisfittype) for dmisfittype in self._dmisfitPair]
             ), "Misfit must be in {}, not {}".format(self._dmisfitPair, type(value))
@@ -139,34 +190,84 @@ class InversionDirective:
 
     @property
     def survey(self):
-        """
-        Assuming that dmisfit is always a ComboObjectiveFunction,
-        return a list of surveys for each dmisfit [survey1, survey2, ... ]
+        """Return survey for all data misfits
+
+        Assuming that ``dmisfit`` is always a ``ComboObjectiveFunction``,
+        return a list containing the survey for each data misfit; i.e.
+        [survey1, survey2, ...]
+
+        Returns
+        -------
+        list of SimPEG.survey.Survey
+            Survey for all data misfits.
         """
         return [objfcts.simulation.survey for objfcts in self.dmisfit.objfcts]
 
     @property
     def simulation(self):
-        """
-        Assuming that dmisfit is always a ComboObjectiveFunction,
-        return a list of problems for each dmisfit [prob1, prob2, ...]
+        """Return simulation for all data misfits.
+
+        Assuming that ``dmisfit`` is always a ``ComboObjectiveFunction``,
+        return a list containing the simulation for each data misfit; i.e.
+        [sim1, sim2, ...].
+
+        Returns
+        -------
+        list of SimPEG.simulation.BaseSimulation
+            Simulation for all data misfits.
         """
         return [objfcts.simulation for objfcts in self.dmisfit.objfcts]
 
     def initialize(self):
+        """Initialize inversion parameter(s) according to directive."""
         pass
 
     def endIter(self):
+        """Update inversion parameter(s) according to directive at end of iteration."""
         pass
 
     def finish(self):
+        """Update inversion parameter(s) according to directive at end of inversion."""
         pass
 
     def validate(self, directiveList=None):
+        """Validate directive.
+
+        The `validate` method returns ``True`` if the directive and its location within
+        the directives list does not encounter conflicts. Otherwise, an appropriate error
+        message is returned describing the conflict.
+
+        Parameters
+        ----------
+        directive_list : SimPEG.directives.DirectiveList
+            List of directives used in the inversion.
+
+        Returns
+        -------
+        bool
+            Returns ``True`` if validated, otherwise an approriate error is returned.
+        """
         return True
 
 
 class DirectiveList(object):
+    """Directives list
+
+    SimPEG directives initialize and update parameters used by the inversion algorithm;
+    e.g. setting the initial beta or updating the regularization. ``DirectiveList`` stores
+    the set of directives used in the inversion algorithm.
+
+    Parameters
+    ----------
+    directives : list of SimPEG.directives.InversionDirective
+        List of directives.
+    inversion : SimPEG.inversion.BaseInversion
+        The inversion associated with the directives list.
+    debug : bool
+        Whether or not to print debugging information.
+
+    """
+
     def __init__(self, *directives, inversion=None, debug=False, **kwargs):
         super().__init__(**kwargs)
         self.dList = []
@@ -175,12 +276,17 @@ class DirectiveList(object):
                 d, InversionDirective
             ), "All directives must be InversionDirectives not {}".format(type(d))
             self.dList.append(d)
-
         self.inversion = inversion
         self.verbose = debug
 
     @property
     def debug(self):
+        """Whether or not to print debugging information
+
+        Returns
+        -------
+        bool
+        """
         return getattr(self, "_debug", False)
 
     @debug.setter
@@ -191,7 +297,13 @@ class DirectiveList(object):
 
     @property
     def inversion(self):
-        """This is the inversion of the InversionDirective instance."""
+        """Inversion object associated with the directives list.
+
+        Returns
+        -------
+        SimPEG.inversion.BaseInversion
+            The inversion associated with the directives list.
+        """
         return getattr(self, "_inversion", None)
 
     @inversion.setter
@@ -224,20 +336,32 @@ class DirectiveList(object):
         return True
 
 
-class BetaEstimate_ByEig(InversionDirective):
-    """
-    Estimate the trade-off parameter beta between the data misfit(s) and the
-    regularization as a multiple of the ratio between the highest eigenvalue of the
-    data misfit term and the highest eigenvalue of the regularization.
-    The highest eigenvalues are estimated through power iterations and Rayleigh quotient.
+class BaseBetaEstimator(InversionDirective):
+    """Base class for estimating initial trade-off parameter (beta).
+
+    This class has properties and methods inherited by directive classes which estimate
+    the initial trade-off parameter (beta). This class is not used directly to create
+    directives for the inversion.
+
+    Parameters
+    ----------
+    beta0_ratio : float
+        Desired ratio between data misfit and model objective function at initial beta iteration.
+    seed : int, None
+        Seed used for random sampling.
 
     """
-
-    def __init__(self, beta0_ratio=1.0, n_pw_iter=4, seed=None, method="power_iteration", **kwargs):
+    def __init__(
+        self,
+        beta0_ratio=1.0,
+        n_pw_iter=4,
+        seed=None,
+        method="power_iteration",
+        **kwargs,
+    ):
         super().__init__(**kwargs)
         self.method = method
         self.beta0_ratio = beta0_ratio
-        self.n_pw_iter = n_pw_iter
         self.seed = seed
 
     @property
@@ -257,22 +381,8 @@ class BetaEstimate_ByEig(InversionDirective):
         )
 
     @property
-    def n_pw_iter(self):
-        """Number of power iterations for estimation.
-
-        Returns
-        -------
-        int
-        """
-        return self._n_pw_iter
-
-    @n_pw_iter.setter
-    def n_pw_iter(self, value):
-        self._n_pw_iter = validate_integer("n_pw_iter", value, min_val=1)
-
-    @property
     def seed(self):
-        """Random seed to initialize with
+        """Random seed to initialize with.
 
         Returns
         -------
@@ -286,37 +396,151 @@ class BetaEstimate_ByEig(InversionDirective):
             value = validate_integer("seed", value, min_val=1)
         self._seed = value
 
+    def validate(self, directive_list):
+        ind = [isinstance(d, BaseBetaEstimator) for d in directive_list.dList]
+        assert np.sum(ind) == 1, (
+            "Multiple directives for computing initial beta detected in directives list. "
+            "Only one directive can be used to set the initial beta."
+        )
+
+        return True
+
+
+class BetaEstimateMaxDerivative(BaseBetaEstimator):
+    r"""Estimate initial trade-off parameter (beta) using largest derivatives.
+
+    The initial trade-off parameter (beta) is estimated by scaling the ratio
+    between the largest derivatives in the gradient of the data misfit and
+    model objective function. The estimated trade-off parameter is used to
+    update the **beta** property in the associated :class:`SimPEG.inverse_problem.BaseInvProblem`
+    object prior to running the inversion. A separate directive is used for updating the
+    trade-off parameter at successive beta iterations; see :class:`BetaSchedule`.
+
+    Parameters
+    ----------
+    beta0_ratio: float
+        Desired ratio between data misfit and model objective function at initial beta iteration.
+    seed : int, None
+        Seed used for random sampling.
+
+    Notes
+    -----
+    Let :math:`\phi_d` represent the data misfit, :math:`\phi_m` represent the model
+    objective function and :math:`\mathbf{m_0}` represent the starting model. The first
+    model update is obtained by minimizing the a global objective function of the form:
+
+    .. math::
+        \phi (\mathbf{m_0}) = \phi_d (\mathbf{m_0}) + \beta_0 \phi_m (\mathbf{m_0})
+
+    where :math:`\beta_0` represents the initial trade-off parameter (beta).
+
+    We define :math:`\gamma` as the desired ratio between the data misfit and model objective
+    functions at the initial beta iteration (defined by the 'beta0_ratio' input argument).
+    Here, the initial trade-off parameter is computed according to:
+
+    .. math::
+        \beta_0 = \gamma \frac{| \nabla_m \phi_d (\mathbf{m_0}) |_{max}}{| \nabla_m \phi_m (\mathbf{m_0 + \delta m}) |_{max}}
+
+    where
+
+    .. math::
+        \delta \mathbf{m} = \frac{m_{max}}{\mu_{max}} \boldsymbol{\mu}
+
+    and :math:`\boldsymbol{\mu}` is a set of independent samples from the
+    continuous uniform distribution between 0 and 1.
+
+    """
+
+    def __init__(self, beta0_ratio=1.0, seed=None, **kwargs):
+        super().__init__(beta0_ratio, seed, **kwargs)
+
     def initialize(self):
-        r"""
-        The initial beta is calculated by comparing the estimated
-        eigenvalues of JtJ and WtW.
-        To estimate the eigenvector of **A**, we will use one iteration
-        of the *Power Method*:
+        if self.seed is not None:
+            np.random.seed(self.seed)
 
-        .. math::
-            \mathbf{x_1 = A x_0}
+        if self.verbose:
+            print("Calculating the beta0 parameter.")
 
-        Given this (very course) approximation of the eigenvector, we can
-        use the *Rayleigh quotient* to approximate the largest eigenvalue.
+        m = self.invProb.model
 
-        .. math::
-            \lambda_0 = \frac{\mathbf{x^\top A x}}{\mathbf{x^\top x}}
+        x0 = np.random.rand(*m.shape)
+        phi_d_deriv = np.abs(self.dmisfit.deriv(m)).max()
+        dm = x0 / x0.max() * m.max()
+        phi_m_deriv = np.abs(self.reg.deriv(m + dm)).max()
 
-        We will approximate the largest eigenvalue for both JtJ and WtW,
-        and use some ratio of the quotient to estimate beta0.
+        self.ratio = np.asarray(phi_d_deriv / phi_m_deriv)
+        self.beta0 = self.beta0_ratio * self.ratio
+        self.invProb.beta = self.beta0
 
-        .. math::
-            \beta_0 =
-                \gamma
-                \frac{
-                    \mathbf{x^\top J^\top J x}
-                }{
-                    \mathbf{x^\top W^\top W x}
-                }
 
-        :rtype: float
-        :return: beta0
+class BetaEstimate_ByEig(BaseBetaEstimator):
+    r"""Estimate initial trade-off parameter (beta) by power iteration.
+
+    The initial trade-off parameter (beta) is estimated by scaling the ratio
+    between the largest eigenvalue in the second derivative of the data
+    misfit and the model objective function. The largest eigenvalues are estimated
+    using the power iteration method; see :func:`SimPEG.utils.eigenvalue_by_power_iteration`.
+    The estimated trade-off parameter is used to update the **beta** property in the
+    associated :class:`SimPEG.inverse_problem.BaseInvProblem` object prior to running the inversion.
+    Note that a separate directive is used for updating the trade-off parameter at successive
+    beta iterations; see :class:`BetaSchedule`.
+
+    Parameters
+    ----------
+    beta0_ratio: float
+        Desired ratio between data misfit and model objective function at initial beta iteration.
+    n_pw_iter : int
+        Number of power iterations used to estimate largest eigenvalues.
+    seed : int, None
+        Seed used for random sampling.
+
+    Notes
+    -----
+    Let :math:`\phi_d` represent the data misfit, :math:`\phi_m` represent the model
+    objective function and :math:`\mathbf{m_0}` represent the starting model. The first
+    model update is obtained by minimizing the a global objective function of the form:
+
+    .. math::
+        \phi (\mathbf{m_0}) = \phi_d (\mathbf{m_0}) + \beta_0 \phi_m (\mathbf{m_0})
+
+    where :math:`\beta_0` represents the initial trade-off parameter (beta).
+    Let :math:`\gamma` define the desired ratio between the data misfit and model
+    objective functions at the initial beta iteration (defined by the 'beta0_ratio' input argument).
+    Using the power iteration approach, our initial trade-off parameter is given by:
+
+    .. math::
+        \beta_0 = \gamma \frac{\lambda_d}{\lambda_m}
+
+    where :math:`\lambda_d` as the largest eigenvalue of the Hessian of the data misfit, and
+    :math:`\lambda_m` as the largest eigenvalue of the Hessian of the model objective function.
+    For each Hessian, the largest eigenvalue is computed using power iteration. The input
+    parameter 'n_pw_iter' sets the number of power iterations used in the estimate.
+
+    For a description of the power iteration approach for estimating the larges eigenvalue,
+    see :func:`SimPEG.utils.eigenvalue_by_power_iteration`.
+
+    """
+
+    def __init__(self, beta0_ratio=1.0, n_pw_iter=4, seed=None, **kwargs):
+        super().__init__(beta0_ratio, seed, **kwargs)
+        self.n_pw_iter = n_pw_iter
+
+    @property
+    def n_pw_iter(self):
+        """Number of power iterations for estimating largest eigenvalues.
+
+        Returns
+        -------
+        int
+            Number of power iterations for estimating largest eigenvalues.
         """
+        return self._n_pw_iter
+
+    @n_pw_iter.setter
+    def n_pw_iter(self, value):
+        self._n_pw_iter = validate_integer("n_pw_iter", value, min_val=1)
+
+    def initialize(self):
         if self.seed is not None:
             np.random.seed(self.seed)
 
@@ -341,13 +565,34 @@ class BetaEstimate_ByEig(InversionDirective):
             b = np.dot(x0, reg)
             self.ratio = np.asarray(t / b)
 
-        self.beta0 = self.beta0_ratio * self.ratio
 
+        self.ratio = np.asarray(dm_eigenvalue / reg_eigenvalue)
+
+        self.beta0 = self.beta0_ratio * self.ratio
         self.invProb.beta = self.beta0
 
 
 class BetaSchedule(InversionDirective):
-    """BetaSchedule"""
+    """Reduce trade-off parameter (beta) at successive iterations using a cooling schedule.
+
+    Updates the **beta** property in the associated :class:`SimPEG.inverse_problem.BaseInvProblem`
+    while the inversion is running.
+    For linear least-squares problems, the optimization problem can be solved in a
+    single step and the cooling rate can be set to *1*. For non-linear optimization
+    problems, multiple steps are required obtain the minimizer for a fixed trade-off
+    parameter. In this case, the cooling rate should be larger than 1.
+
+    Parameters
+    ----------
+    coolingFactor : float
+        The factor by which the trade-off parameter is decreased when updated.
+        The preexisting value of the trade-off parameter is divided by the cooling factor.
+    coolingRate : int
+        Sets the number of successive iterations before the trade-off parameter is reduced.
+        Use *1* for linear least-squares optimization problems. Use *2* for weakly non-linear
+        optimization problems. Use *3* for general non-linear optimization problems.
+
+    """
 
     def __init__(self, coolingFactor=8.0, coolingRate=3, **kwargs):
         super().__init__(**kwargs)
@@ -411,7 +656,7 @@ class AlphasSmoothEstimate_ByEig(InversionDirective):
 
     @property
     def alpha0_ratio(self):
-        """the estimated Alpha_smooth is multiplied by this ratio (int or array)
+        """the estimated Alpha_smooth is multiplied by this ratio (int or array).
 
         Returns
         -------
@@ -441,7 +686,7 @@ class AlphasSmoothEstimate_ByEig(InversionDirective):
 
     @property
     def seed(self):
-        """Random seed to initialize with
+        """Random seed to initialize with.
 
         Returns
         -------
@@ -464,14 +709,12 @@ class AlphasSmoothEstimate_ByEig(InversionDirective):
         smallness = []
         parents = {}
         for regobjcts in self.reg.objfcts:
-
             if isinstance(regobjcts, ComboObjectiveFunction):
                 objfcts = regobjcts.objfcts
             else:
                 objfcts = [regobjcts]
 
             for obj in objfcts:
-
                 if isinstance(
                     obj,
                     (
@@ -609,7 +852,7 @@ class ScalingMultipleDataMisfits_ByEig(InversionDirective):
         m = self.invProb.model
 
         dm_eigenvalue_list = []
-        for j, dm in enumerate(self.dmisfit.objfcts):
+        for dm in self.dmisfit.objfcts:
             dm_eigenvalue_list += [eigenvalue_by_power_iteration(dm, m)]
 
         self.chi0 = self.chi0_ratio / np.r_[dm_eigenvalue_list]
@@ -711,7 +954,6 @@ class JointScalingSchedule(InversionDirective):
         self._update_rate = validate_integer("update_rate", value, min_val=1)
 
     def initialize(self):
-
         if (
             getattr(self.dmisfit, "objfcts", None) is None
             or len(self.dmisfit.objfcts) == 1
@@ -736,7 +978,6 @@ class JointScalingSchedule(InversionDirective):
             print("Initial data misfit scales: ", self.dmisfit.multipliers)
 
     def endIter(self):
-
         self.dmlist = self.inversion.directiveList.dList[self.targetclass].dmlist
 
         if np.any(self.dmlist < self.DMtarget):
@@ -745,13 +986,10 @@ class JointScalingSchedule(InversionDirective):
             self.mode = 1
 
         if self.opt.iter > 0 and self.opt.iter % self.update_rate == 0:
-
             if self.mode == 2:
-
                 if np.all(np.r_[self.dmisfit.multipliers] > self.chimin) and np.all(
                     np.r_[self.dmisfit.multipliers] < self.chimax
                 ):
-
                     indx = self.dmlist > self.DMtarget
                     if np.any(indx):
                         multipliers = self.warmingFactor * np.median(
@@ -1278,7 +1516,6 @@ class MultiTargetMisfits(InversionDirective):
         return maxdiff
 
     def endIter(self):
-
         self._DM = False
         self._CL = True
         self._DP = True
@@ -1455,7 +1692,6 @@ class SaveOutputEveryIteration(SaveEveryIteration):
         self.phi = []
 
     def endIter(self):
-
         phi_s, phi_x, phi_y, phi_z = 0, 0, 0, 0
 
         for reg in self.reg.objfcts:
@@ -1534,7 +1770,6 @@ class SaveOutputEveryIteration(SaveEveryIteration):
         plot_small=False,
         plot_smooth=False,
     ):
-
         self.target_misfit = self.invProb.dmisfit.simulation.survey.nD / 2.0
         self.i_target = None
 
@@ -1589,7 +1824,6 @@ class SaveOutputEveryIteration(SaveEveryIteration):
             fig.savefig(fname, dpi=dpi)
 
     def plot_tikhonov_curves(self, fname=None, dpi=200):
-
         self.target_misfit = self.invProb.dmisfit.simulation.survey.nD / 2.0
         self.i_target = None
 
@@ -1667,7 +1901,6 @@ class SaveOutputDictEveryIteration(SaveEveryIteration):
             )
 
     def endIter(self):
-
         # regCombo = ["phi_ms", "phi_msx"]
 
         # if self.simulation[0].mesh.dim >= 2:
@@ -1702,14 +1935,12 @@ class SaveOutputDictEveryIteration(SaveEveryIteration):
 
         # Save the file as a npz
         if self.saveOnDisk:
-
             np.savez("{:03d}-{:s}".format(self.opt.iter, self.fileName), iterDict)
 
         self.outDict[self.opt.iter] = iterDict
 
 
 class Update_IRLS(InversionDirective):
-
     f_old = 0
     f_min_change = 1e-2
     beta_tol = 1e-1
@@ -1850,7 +2081,6 @@ class Update_IRLS(InversionDirective):
                     self._start += survey.nD * 0.5 * self.chifact_start
 
             else:
-
                 self._start = self.survey.nD * 0.5 * self.chifact_start
         return self._start
 
@@ -1859,9 +2089,7 @@ class Update_IRLS(InversionDirective):
         self._start = val
 
     def initialize(self):
-
         if self.mode == 1:
-
             self.norms = []
             for reg in self.reg.objfcts:
                 self.norms.append(reg.norms)
@@ -1876,7 +2104,6 @@ class Update_IRLS(InversionDirective):
             self.angleScale()
 
     def endIter(self):
-
         if self.sphericalDomain:
             self.angleScale()
 
@@ -1957,12 +2184,10 @@ class Update_IRLS(InversionDirective):
         # Either use the supplied irls_threshold, or fix base on distribution of
         # model values
         for reg in self.reg.objfcts:
-
             if not isinstance(reg, Sparse):
                 continue
 
             for obj in reg.objfcts:
-
                 threshold = np.percentile(
                     np.abs(obj.mapping * obj._delta_m(self.invProb.model)), self.prctile
                 )
@@ -2007,8 +2232,6 @@ class Update_IRLS(InversionDirective):
                 )
 
     def validate(self, directiveList):
-        # check if a linear preconditioner is in the list, if not warn else
-        # assert that it is listed after the IRLS directive
         dList = directiveList.dList
         self_ind = dList.index(self)
         lin_precond_ind = [isinstance(d, UpdatePreconditioner) for d in dList]
@@ -2088,7 +2311,6 @@ class UpdatePreconditioner(InversionDirective):
         )
 
     def initialize(self):
-
         # Create the pre-conditioner
         regDiag = np.zeros_like(self.invProb.model)
         m = self.invProb.model
@@ -2101,7 +2323,6 @@ class UpdatePreconditioner(InversionDirective):
 
         JtJdiag = np.zeros_like(self.invProb.model)
         for sim, dmisfit in zip(self.simulation, self.dmisfit.objfcts):
-
             if getattr(sim, "getJtJdiag", None) is None:
                 assert getattr(sim, "getJ", None) is not None, (
                     "Simulation does not have a getJ attribute."
@@ -2132,7 +2353,6 @@ class UpdatePreconditioner(InversionDirective):
 
         JtJdiag = np.zeros_like(self.invProb.model)
         for sim, dmisfit in zip(self.simulation, self.dmisfit.objfcts):
-
             if getattr(sim, "getJtJdiag", None) is None:
                 assert getattr(sim, "getJ", None) is not None, (
                     "Simulation does not have a getJ attribute."
@@ -2193,15 +2413,12 @@ class Update_Wj(InversionDirective):
         self._itr = value
 
     def endIter(self):
-
         if self.itr is None or self.itr == self.opt.iter:
-
             m = self.invProb.model
             if self.k is None:
                 self.k = int(self.survey.nD / 10)
 
             def JtJv(v):
-
                 Jv = self.simulation.Jvec(m, v)
 
                 return self.simulation.Jtvec(m, Jv)
@@ -2322,7 +2539,7 @@ class UpdateSensitivityWeights(InversionDirective):
         for reg in self.reg.objfcts:
             if not isinstance(reg, BaseSimilarityMeasure):
                 wr += reg.mapping.deriv(self.invProb.model).T * (
-                    (reg.mapping * jtj_diag) / reg.regularization_mesh.vol ** 2.0
+                    (reg.mapping * jtj_diag) / reg.regularization_mesh.vol**2.0
                 )
         if self.normalization:
             wr /= wr.max()
@@ -2340,17 +2557,15 @@ class UpdateSensitivityWeights(InversionDirective):
                     sub_reg.set_weights(sensitivity=sub_reg.mapping * wr)
 
     def validate(self, directiveList):
-        # check if a beta estimator is in the list after setting the weights
         dList = directiveList.dList
         self_ind = dList.index(self)
 
-        beta_estimator_ind = [isinstance(d, BetaEstimate_ByEig) for d in dList]
-
+        beta_estimator_ind = [isinstance(d, BaseBetaEstimator) for d in dList]
         lin_precond_ind = [isinstance(d, UpdatePreconditioner) for d in dList]
 
         if any(beta_estimator_ind):
             assert beta_estimator_ind.index(True) > self_ind, (
-                "The directive 'BetaEstimate_ByEig' must be after UpdateSensitivityWeights "
+                "The directive for setting intial beta must be after UpdateSensitivityWeights "
                 "in the directiveList"
             )
 
@@ -2372,7 +2587,6 @@ class ProjectSphericalBounds(InversionDirective):
     """
 
     def initialize(self):
-
         x = self.invProb.model
         # Convert to cartesian than back to avoid over rotation
         nC = int(len(x) / 3)
@@ -2388,7 +2602,6 @@ class ProjectSphericalBounds(InversionDirective):
         self.opt.xc = m
 
     def endIter(self):
-
         x = self.invProb.model
         nC = int(len(x) / 3)
 

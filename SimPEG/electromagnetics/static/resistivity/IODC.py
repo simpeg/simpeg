@@ -6,13 +6,11 @@ import warnings
 
 from discretize import TensorMesh, TreeMesh
 from discretize.base import BaseMesh
-from discretize.utils import refine_tree_xyz, unpack_widths
+from discretize.utils import refine_tree_xyz, unpack_widths, active_from_xyz
 
-from ....data import Data
 from ....utils import (
     sdiag,
     uniqueRows,
-    surface2ind_topo,
     plot2Ddata,
     validate_type,
     validate_integer,
@@ -1023,7 +1021,6 @@ class IO:
 
             # For 3D mesh
             else:
-
                 ylocs = np.unique(self.electrode_locations[:, 1])
                 ymin, ymax = ylocs.min(), ylocs.max()
                 # 3 cells each for buffer in y-direction
@@ -1049,7 +1046,6 @@ class IO:
         elif mesh_type == "TREE":
             # Quadtree mesh
             if dimension == 2:
-
                 pad_length_x = np.sum(unpack_widths([(dx, npad_x, pad_rate_x)]))
                 pad_length_z = np.sum(unpack_widths([(dz, npad_z, pad_rate_z)]))
 
@@ -1118,7 +1114,7 @@ class IO:
                 "set_mesh currently generates TensorMesh or TreeMesh"
             )
 
-        actind = surface2ind_topo(mesh, locs, method=method, fill_value=np.nan)
+        actind = active_from_xyz(mesh, locs, method=method)
 
         return mesh, actind
 

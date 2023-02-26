@@ -1,5 +1,4 @@
 import unittest
-import warnings
 import pytest
 import numpy as np
 
@@ -36,6 +35,15 @@ class directivesValidation(unittest.TestCase):
         dList = [betaest, update_Jacobi, IRLS]
         directiveList = directives.DirectiveList(*dList)
 
+        with self.assertRaises(AssertionError):
+            self.assertTrue(directiveList.validate())
+
+    def test_validation_initial_beta_fail(self):
+        beta_1 = directives.BetaEstimateMaxDerivative()
+        beta_2 = directives.BetaEstimate_ByEig()
+
+        dList = [beta_1, beta_2]
+        directiveList = directives.DirectiveList(*dList)
         with self.assertRaises(AssertionError):
             self.assertTrue(directiveList.validate())
 

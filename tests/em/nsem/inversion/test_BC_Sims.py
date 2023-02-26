@@ -36,7 +36,6 @@ def check_adjoint(sim, test_mod):
 
 
 def create_simulation_1d(sim_type, deriv_type):
-
     cs = 100
     ncz = 200
     npad = 20

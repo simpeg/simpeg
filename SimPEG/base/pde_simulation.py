@@ -430,7 +430,6 @@ class BasePDESimulation(BaseSimulation):
 @with_property_mass_matrices("sigma")
 @with_property_mass_matrices("rho")
 class BaseElectricalPDESimulation(BasePDESimulation):
-
     sigma, sigmaMap, sigmaDeriv = props.Invertible("Electrical conductivity (S/m)")
     rho, rhoMap, rhoDeriv = props.Invertible("Electrical resistivity (Ohm m)")
     props.Reciprocal(sigma, rho)
@@ -467,7 +466,6 @@ class BaseElectricalPDESimulation(BasePDESimulation):
 @with_property_mass_matrices("mu")
 @with_property_mass_matrices("mui")
 class BaseMagneticPDESimulation(BasePDESimulation):
-
     mu, muMap, muDeriv = props.Invertible(
         "Magnetic Permeability (H/m)",
     )

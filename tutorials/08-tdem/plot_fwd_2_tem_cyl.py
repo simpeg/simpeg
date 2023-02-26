@@ -86,7 +86,6 @@ source_list = []  # Create empty list to store sources
 
 # Each unique location defines a new transmitter
 for ii in range(ntx):
-
     # Define receivers at each location.
     dbzdt_receiver = tdem.receivers.PointMagneticFluxTimeDerivative(
         receiver_locations[ii, :], time_channels, "z"

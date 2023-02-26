@@ -15,7 +15,6 @@ from ...utils import (
 )
 from ...props import NestedModeler
 
-from .survey import Survey
 from .empirical import BaseHydraulicConductivity
 from .empirical import BaseWaterRetention
 
@@ -187,7 +186,7 @@ class SimulationNDCellCentered(BaseTimeSimulation):
             bc = self.getBoundaryConditions(ii, u[ii])
             u[ii + 1] = self.root_finder.root(
                 lambda hn1m, return_g=True: self.getResidual(
-                    m, u[ii], hn1m, dt, bc, return_g=return_g
+                    m, u[ii], hn1m, dt, bc, return_g=return_g  # noqa: B023
                 ),
                 u[ii],
             )
@@ -338,7 +337,7 @@ class SimulationNDCellCentered(BaseTimeSimulation):
 
         J = dT / dt - DIV * utils.sdiag(aveK) * GRAD
         if self.do_newton:
-            DDharmAve = utils.sdiag(aveK ** 2) * AV * utils.sdiag(K ** (-2)) * dK
+            DDharmAve = utils.sdiag(aveK**2) * AV * utils.sdiag(K ** (-2)) * dK
             J = J - DIV * utils.sdiag(GRAD * h + BC * bc) * DDharmAve - Dz * DDharmAve
 
         return r, J
