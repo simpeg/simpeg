@@ -1,10 +1,10 @@
 import numpy as np
 
-from ..simulation import BaseSimulation
-from ..survey import BaseSurvey
-from ..maps import IdentityMap
-from ..utils import validate_list_of_types, validate_type
-from ..props import HasModel
+from SimPEG.simulation import BaseSimulation
+from SimPEG.survey import BaseSurvey
+from SimPEG.maps import IdentityMap
+from SimPEG.utils import validate_list_of_types, validate_type
+from SimPEG.props import HasModel
 import itertools
 from dask.distributed import Client
 from .simulation import MultiSimulation
