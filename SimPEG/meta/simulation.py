@@ -9,7 +9,7 @@ from ..props import HasModel
 import itertools
 
 
-class MultiSimulation(BaseSimulation):
+class MetaSimulation(BaseSimulation):
     """Combine multiple simulations into a single one.
 
     This class is used to combine multiple simulations into a
@@ -40,7 +40,7 @@ class MultiSimulation(BaseSimulation):
 
     >>> from SimPEG.simulation import ExponentialSinusoidSimulation
     >>> from SimPEG import maps
-    >>> from SimPEG.stitching import MultiSimulation
+    >>> from SimPEG.meta import MetaSimulation
     >>> from discretize import TensorMesh
     >>> import matplotlib.pyplot as plt
 
@@ -67,7 +67,7 @@ class MultiSimulation(BaseSimulation):
     ...         np.c_[np.full_like(ccs, time), ccs]
     ...     )
     ...     mappings.append(maps.LinearMap(p_ave))
-    >>> sim = MultiSimulation(sims, mappings)
+    >>> sim = MetaSimulation(sims, mappings)
 
     This simulation acts like a single simulation, which can be used for modeling
     and inversion. This model is a moving box car.
@@ -271,8 +271,8 @@ class MultiSimulation(BaseSimulation):
         return super().deleteTheseOnModelUpdate + ["_jtjdiag"]
 
 
-class SumMultiSimulation(MultiSimulation):
-    """An extension of the MultiSimulation that sums the data outputs.
+class SumMetaSimulation(MetaSimulation):
+    """An extension of the MetaSimulation that sums the data outputs.
 
     This class requires the mappings have the same input length
     and each simulation to have the same number of data.
@@ -298,7 +298,7 @@ class SumMultiSimulation(MultiSimulation):
         ]
         self.survey = survey
 
-    @MultiSimulation.simulations.setter
+    @MetaSimulation.simulations.setter
     def simulations(self, value):
         value = validate_list_of_types(
             "simulations", value, BaseSimulation, ensure_unique=True
@@ -357,12 +357,12 @@ class SumMultiSimulation(MultiSimulation):
         return self._jtjdiag
 
 
-class RepeatedSimulation(MultiSimulation):
-    """A MultiSimulation where a single simulation is used repeatedly.
+class RepeatedSimulation(MetaSimulation):
+    """A MetaSimulation where a single simulation is used repeatedly.
 
     This is most useful for linear simulations where a sensitivity matrix can be
     reused with different models. For non-linear simulations it will often be quicker
-    to use the MultiSimulation class with multiple copies of the same simulation.
+    to use the MetaSimulation class with multiple copies of the same simulation.
 
     Parameters
     ----------
@@ -402,7 +402,7 @@ class RepeatedSimulation(MultiSimulation):
             "simulation", value, BaseSimulation, cast=False
         )
 
-    @MultiSimulation.mappings.setter
+    @MetaSimulation.mappings.setter
     def mappings(self, value):
         value = validate_list_of_types("mappings", value, IdentityMap)
         model_len = value[0].shape[1]
@@ -426,6 +426,6 @@ class RepeatedSimulation(MultiSimulation):
                     )
         self._mappings = value
 
-    @MultiSimulation.model.setter
+    @MetaSimulation.model.setter
     def model(self, value):
         HasModel.model.fset(self, value)

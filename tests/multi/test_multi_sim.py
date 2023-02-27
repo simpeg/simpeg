@@ -6,7 +6,7 @@ from discretize import TensorMesh
 import scipy.sparse as sp
 import pytest
 
-from SimPEG.stitching import MultiSimulation, SumMultiSimulation, RepeatedSimulation
+from SimPEG.meta import MetaSimulation, SumMetaSimulation, RepeatedSimulation
 
 
 def test_multi_sim_correctness():
@@ -46,7 +46,7 @@ def test_multi_sim_correctness():
         )
         mappings.append(maps.IdentityMap())
 
-    multi_sim = MultiSimulation(sims, mappings)
+    multi_sim = MetaSimulation(sims, mappings)
 
     # test fields objects
     f_full = full_sim.fields(m_test)
@@ -126,7 +126,7 @@ def test_sum_sim_correctness():
         ),
     ]
 
-    sum_sim = SumMultiSimulation(sims, mappings)
+    sum_sim = SumMetaSimulation(sims, mappings)
 
     m_test = np.arange(mesh.n_cells) / mesh.n_cells + 0.1
 
@@ -215,7 +215,7 @@ def test_repeat_sim_correctness():
             )
         )
 
-    multi_sim = MultiSimulation(simulations, mappings)
+    multi_sim = MetaSimulation(simulations, mappings)
     repeat_sim = RepeatedSimulation(sim, mappings)
 
     model = np.random.rand(time_mesh.n_cells, mesh.n_cells).reshape(-1)
@@ -282,17 +282,17 @@ def test_multi_errors():
 
     # incompatible length of mappings and simulations lists
     with pytest.raises(ValueError):
-        MultiSimulation(sims[:-1], mappings)
+        MetaSimulation(sims[:-1], mappings)
 
     # mappings have incompatible input lengths:
     mappings[0] = maps.Projection(mesh.n_cells + 1, np.arange(mesh.n_cells) + 1)
     with pytest.raises(ValueError):
-        MultiSimulation(sims, mappings)
+        MetaSimulation(sims, mappings)
 
     # incompatible mapping and simulation
     mappings[0] = maps.Projection(mesh.n_cells, [0, 1, 3, 5, 10])
     with pytest.raises(ValueError):
-        MultiSimulation(sims, mappings)
+        MetaSimulation(sims, mappings)
 
 
 def test_sum_errors():
@@ -326,7 +326,7 @@ def test_sum_errors():
 
     # Test simulations with different numbers of data.
     with pytest.raises(ValueError):
-        SumMultiSimulation(sims, mappings)
+        SumMetaSimulation(sims, mappings)
 
 
 def test_repeat_errors():
