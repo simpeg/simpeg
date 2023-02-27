@@ -566,8 +566,6 @@ class BetaEstimate_ByEig(BaseBetaEstimator):
             self.ratio = np.asarray(t / b)
 
 
-        self.ratio = np.asarray(dm_eigenvalue / reg_eigenvalue)
-
         self.beta0 = self.beta0_ratio * self.ratio
         self.invProb.beta = self.beta0
 
