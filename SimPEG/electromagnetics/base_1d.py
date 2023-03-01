@@ -589,9 +589,9 @@ class BaseEM1DSimulation(BaseSimulation):
         delta = JtJdiag[active].min()
         return delta
 
-    def getJtJdiag(self, m, W=None):
+    def getJtJdiag(self, m, W=None, f=None):
         if getattr(self, "_gtgdiag", None) is None:
-            Js = self.getJ(m)
+            Js = self.getJ(m, f=f)
             if W is None:
                 W = np.ones(self.survey.nD)
             else:
