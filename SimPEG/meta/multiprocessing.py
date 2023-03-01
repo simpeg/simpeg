@@ -135,6 +135,26 @@ class _SimulationProcess(Process):
 
 
 class MultiprocessingMetaSimulation(MetaSimulation):
+    """Multiprocessing version of simulation of simulations.
+
+    This class makes use of the `multiprocessing` module to provide
+    concurrency, executing the internal simulations in parallel.
+
+    If using this class, please be conscious of your operating system's
+    default method of spawning new processes. On Windows systems this
+    means that the user must be sure that this code is only executed on
+    the main process. Usually this is solved in your main script by
+    protecting your function calls by checking if you are in `__main__`
+    with:
+
+    >>> from SimPEG.meta import MultiprocessingMetaSimulation
+    >>> if __name__ == '__main__':
+    ...     # Do processing here
+    ...     sim = MultiprocessingMetaSimulation(...)
+    ...     sim.dpred(model)
+
+    """
+
     def __init__(self, simulations, mappings, n_processes=None):
         super().__init__(simulations, mappings)
 
