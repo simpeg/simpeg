@@ -171,7 +171,7 @@ class ValidationInInversion(unittest.TestCase):
 
         print("GLOBAL SENSITIVITY WEIGHTING TEST PASSED")
 
-    def test_sensitivity_weighting_percentile_minimum(self):
+    def test_sensitivity_weighting_percentile_maximum(self):
         test_inputs = {
             "every_iteration": True,
             "threshold_value": 1,
@@ -211,12 +211,12 @@ class ValidationInInversion(unittest.TestCase):
 
         print("SENSITIVITY WEIGHTING BY PERCENTILE AND MIN VALUE TEST PASSED")
 
-    def test_sensitivity_weighting_amplitude_maximum(self):
+    def test_sensitivity_weighting_amplitude_minimum(self):
         test_inputs = {
             "every_iteration": True,
             "threshold_value": 1e-3,
             "threshold_method": "amplitude",
-            "normalization_method": "maximum",
+            "normalization_method": "minimum",
         }
 
         # Compute test weights
@@ -229,7 +229,7 @@ class ValidationInInversion(unittest.TestCase):
             a_min=test_inputs["threshold_value"] * sqrt_diagJtJ.max(),
             a_max=np.inf,
         )
-        test_weights /= test_weights.max()
+        test_weights /= test_weights.min()
         test_weights *= self.mesh.cell_volumes
 
         # Test directive
