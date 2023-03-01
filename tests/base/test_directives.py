@@ -128,7 +128,12 @@ class ValidationInInversion(unittest.TestCase):
         self.assertTrue(d_temp.normalization_method is None)
 
     def test_sensitivity_weighting_global(self):
-        test_inputs = {"everyIter": False, "threshold": 1e-12, "normalization": False}
+        test_inputs = {
+            "everyIter": False,
+            "threshold": 1e-12,
+            "threshold_method": "global",
+            "normalization": False,
+        }
 
         # Compute test weights
         sqrt_diagJtJ = (

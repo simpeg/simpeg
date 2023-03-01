@@ -2215,7 +2215,7 @@ class UpdateSensitivityWeights(InversionDirective):
             - percentile:
                 the smallest root-mean squared sensitivity is set using percentile threshold; must be between 0 and 100.
 
-    normalization_method : {None, 'min_value', 'maximum'}
+    normalization_method : {'maximum', 'min_value', None}
         Normalization method applied to sensitivity weights.
 
         Options are:
