@@ -82,6 +82,7 @@ class MagInvLinProblemTest(unittest.TestCase):
             chiMap=idenMap,
             ind_active=actv,
             store_sensitivities="disk",
+            n_processes=None,
         )
         self.sim = sim
 
