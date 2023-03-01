@@ -11,14 +11,19 @@ class SimpleFuture:
         self.t_queue = t_queue
         self.r_queue = r_queue
 
-    def result(self):
-        self.t_queue.put(("get_item", (self.item_id,)))
-        item = self.r_queue.get()
-        if isinstance(item, Exception):
-            raise item
-        return item
+    # This doesn't quite work well yet,
+    # Due to the fact that some fields objects from the PDE
+    # classes stash the simulation, so this requires serializing
+    # the simulation (something we explicitly want to avoid in all cases).
+    # def result(self):
+    #     self.t_queue.put(("get_item", (self.item_id,)))
+    #     item = self.r_queue.get()
+    #     if isinstance(item, Exception):
+    #         raise item
+    #     return item
 
     def __del__(self):
+        # Tell the child process that this object is no longer needed in its cache.
         self.t_queue.put(("del_item", (self.item_id,)))
 
 
@@ -46,76 +51,87 @@ class _SimulationProcess(Process):
         _cached_items = {}
 
         # The queues are shared between the head process and the worker processes
+        # We use them to communicate between the two.
         t_queue = self.task_queue
         r_queue = self.result_queue
         while True:
-            if not t_queue.empty():
-                # Get a task from the queue
-                task = t_queue.get()
-                if task is None:
-                    break
-                op, args = task
-                if op == "get_item":
-                    (key,) = args
-                    try:
-                        r_queue.put(_cached_items[key])
-                    except Exception as err:
-                        r_queue.put(err)
-                elif op == "del_item":
-                    (key,) = args
-                    _cached_items.pop(key, None)
-                else:
-                    if op == 0:
-                        # store_model
-                        (m,) = args
-                        sim.model = m
-                    elif op == 1:
-                        # create fields
-                        f_key = uuid.uuid4().hex
-                        r_queue.put(f_key)
-                        fields = sim.fields(sim.model)
-                        _cached_items[f_key] = fields
-                    elif op == 2:
-                        # do dpred
-                        (f_key,) = args
-                        fields = _cached_items[f_key]
-                        r_queue.put(sim.dpred(sim.model, fields))
-                    elif op == 3:
-                        # do jvec
-                        v, f_key = args
-                        fields = _cached_items[f_key]
-                        r_queue.put(sim.Jvec(sim.model, v, fields))
-                    elif op == 4:
-                        # do jtvec
-                        v, f_key = args
-                        fields = _cached_items[f_key]
-                        r_queue.put(sim.Jtvec(sim.model, v, fields))
-                    elif op == 5:
-                        # do jtj_diag
-                        f_key = args
-                        fields = _cached_items[f_key]
-                        r_queue.put(sim.getJtJdiag(sim.model, fields))
+            # Get a task from the queue
+            task = t_queue.get()
+            if task is None:
+                # None is a poison pill message to kill this loop.
+                break
+            op, args = task
+            if op == "get_item":
+                (key,) = args
+                try:
+                    r_queue.put(_cached_items[key])
+                except Exception as err:
+                    r_queue.put(err)
+            elif op == "del_item":
+                (key,) = args
+                _cached_items.pop(key, None)
+            else:
+                if op == 0:
+                    # store_model
+                    (m,) = args
+                    sim.model = m
+                elif op == 1:
+                    # create fields
+                    f_key = uuid.uuid4().hex
+                    r_queue.put(f_key)
+                    fields = sim.fields(sim.model)
+                    _cached_items[f_key] = fields
+                elif op == 2:
+                    # do dpred
+                    (f_key,) = args
+                    fields = _cached_items[f_key]
+                    r_queue.put(sim.dpred(sim.model, fields))
+                elif op == 3:
+                    # do jvec
+                    v, f_key = args
+                    fields = _cached_items[f_key]
+                    r_queue.put(sim.Jvec(sim.model, v, fields))
+                elif op == 4:
+                    # do jtvec
+                    v, f_key = args
+                    fields = _cached_items[f_key]
+                    r_queue.put(sim.Jtvec(sim.model, v, fields))
+                elif op == 5:
+                    # do jtj_diag
+                    f_key = args
+                    fields = _cached_items[f_key]
+                    r_queue.put(sim.getJtJdiag(sim.model, fields))
 
     def store_model(self, m):
+        self._check_closed()
         self.task_queue.put((0, (m,)))
 
     def get_fields(self):
+        self._check_closed()
         self.task_queue.put((1, None))
         key = self.result_queue.get()
         future = SimpleFuture(key, self.task_queue, self.result_queue)
         return future
 
     def start_dpred(self, f_future):
+        self._check_closed()
         self.task_queue.put((2, (f_future.item_id,)))
 
     def start_j_vec(self, v, f_future):
+        self._check_closed()
         self.task_queue.put((3, (v, f_future.item_id)))
 
     def start_jt_vec(self, v, f_future):
+        self._check_closed()
         self.task_queue.put((4, (v, f_future.item_id)))
 
     def start_jtj_diag(self, f_future):
-        self.task_queue.put((4, (f_future.item_id,)))
+        self._check_closed()
+        self.task_queue.put((5, (f_future.item_id,)))
+
+    def result(self):
+        self._check_closed()
+        return self.result_queue.get()
 
 
 class MultiprocessingMetaSimulation(MetaSimulation):
@@ -150,17 +166,9 @@ class MultiprocessingMetaSimulation(MetaSimulation):
 
         self._data_offsets = np.cumsum(np.r_[0, chunk_nd])
         self._sim_processes = processes
-        self._is_alive = True
-
-    def _check_alive(self):
-        if not self._is_alive:
-            raise RuntimeError(
-                "Child processes have already been killed. This simulation is now invalid."
-            )
 
     @MetaSimulation.model.setter
     def model(self, value):
-        self._check_alive()
         updated = HasModel.model.fset(self, value)
         # Only send the model to the internal simulations if it was updated.
         if updated:
@@ -168,7 +176,6 @@ class MultiprocessingMetaSimulation(MetaSimulation):
                 p.store_model(self._model)
 
     def fields(self, m):
-        self._check_alive()
         self.model = m
         # The above should pass the model to all the internal simulations.
         f = []
@@ -177,7 +184,6 @@ class MultiprocessingMetaSimulation(MetaSimulation):
         return f
 
     def dpred(self, m=None, f=None):
-        self._check_alive()
         if f is None:
             if m is None:
                 m = self.model
@@ -187,11 +193,10 @@ class MultiprocessingMetaSimulation(MetaSimulation):
 
         d_pred = []
         for p in self._sim_processes:
-            d_pred.append(p.result_queue.get())
+            d_pred.append(p.result())
         return np.concatenate(d_pred)
 
     def Jvec(self, m, v, f=None):
-        self._check_alive()
         self.model = m
         if f is None:
             f = self.fields(m)
@@ -199,11 +204,10 @@ class MultiprocessingMetaSimulation(MetaSimulation):
             p.start_j_vec(v, field)
         j_vec = []
         for p in self._sim_processes:
-            j_vec.append(p.result_queue.get())
+            j_vec.append(p.result())
         return np.concatenate(j_vec)
 
     def Jtvec(self, m, v, f=None):
-        self._check_alive()
         self.model = m
         if f is None:
             f = self.fields(m)
@@ -213,16 +217,15 @@ class MultiprocessingMetaSimulation(MetaSimulation):
 
         jt_vec = 0
         for p in self._sim_processes:
-            jt_vec += p.result_queue.get()
+            jt_vec += p.result()
         return jt_vec
 
-    def join(self):
-        self._is_alive = False
-        # kill the subprocesses
+    def close(self):
         for p in self._sim_processes:
             if p.is_alive():
                 p.task_queue.put(None)
                 p.join()
+                p.close()
 
     def __del__(self):
-        self.join()
+        self.close()
