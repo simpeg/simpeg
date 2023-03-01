@@ -3,7 +3,7 @@ from ....potential_fields.gravity import Simulation3DIntegral as Sim
 from ....utils import sdiag, mkvc
 
 
-def dask_getJtJdiag(self, m, W=None):
+def dask_getJtJdiag(self, m, W=None, f=None):
     """
     Return the diagonal of JtJ
     """

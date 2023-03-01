@@ -162,7 +162,7 @@ class AmpProblemTest(unittest.TestCase):
         invProb = inverse_problem.BaseInvProblem(dmis, reg, opt)
 
         # Specify how the initial beta is found
-        betaest = directives.BetaEstimate_ByEig(beta0_ratio=2)
+        betaest = directives.BetaEstimateMaxDerivative(beta0_ratio=2)
 
         # Target misfit to stop the inversion,
         # try to fit as much as possible of the signal, we don't want to lose anything
