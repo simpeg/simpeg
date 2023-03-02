@@ -177,8 +177,8 @@ def test_sum_sim_correctness():
 
 
 def test_repeat_sim_correctness():
-    # multi sim is tested for correctness
-    # so can test the repeat against the multi sim
+    # meta sim is tested for correctness
+    # so can test the repeat against the meta sim
     mesh = TensorMesh([8, 8, 8], origin="CCN")
 
     rx_locs = np.mgrid[-0.25:0.25:5j, -0.25:0.25:5j, 0:1:1j].reshape(3, -1).T
