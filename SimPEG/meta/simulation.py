@@ -130,7 +130,7 @@ class MetaSimulation(BaseSimulation):
     @mappings.setter
     def mappings(self, value):
         value = validate_list_of_types("mappings", value, IdentityMap)
-        if len(value) != len(self.simulations):
+        if not self._repeat_sim and len(value) != len(self.simulations):
             raise ValueError(
                 "Must provide the same number of mappings and simulations."
             )
@@ -175,7 +175,7 @@ class MetaSimulation(BaseSimulation):
     def model(self, value):
         updated = HasModel.model.fset(self, value)
         # Only send the model to the internal simulations if it was updated.
-        if updated:
+        if not self._repeat_sim and updated:
             for mapping, sim in zip(self.mappings, self.simulations):
                 sim.model = mapping * self._model
 
@@ -376,15 +376,14 @@ class RepeatedSimulation(MetaSimulation):
         self.simulation = simulation
         self.mappings = mappings
         survey = BaseSurvey([])
-        vnD = [sim.survey.nD for sim in self.simulations]
+        vnD = len(self.mappings) * [self.simulation.survey.nD]
         survey._vnD = vnD
         self.survey = survey
         self._data_offsets = np.cumsum(np.r_[0, vnD])
-        self._repeat_sim = True
 
     @property
     def simulations(self):
-        return itertools.repeat(self.simulation, len(self.mappings))
+        return itertools.repeat(self.simulation)
 
     @property
     def simulation(self):
@@ -401,31 +400,3 @@ class RepeatedSimulation(MetaSimulation):
         self._simulation = validate_type(
             "simulation", value, BaseSimulation, cast=False
         )
-
-    @MetaSimulation.mappings.setter
-    def mappings(self, value):
-        value = validate_list_of_types("mappings", value, IdentityMap)
-        model_len = value[0].shape[1]
-        sim = self.simulation
-        for i, mapping in enumerate(value):
-            if mapping.shape[1] != model_len:
-                raise ValueError("All mappings must have the same input length")
-            map_out_shape = mapping.shape[0]
-            for name in sim._act_map_names:
-                sim_mapping = getattr(sim, name)
-                sim_in_shape = sim_mapping.shape[1]
-                if (
-                    map_out_shape != "*"
-                    and sim_in_shape != "*"
-                    and sim_in_shape != map_out_shape
-                ):
-                    raise ValueError(
-                        f"Simulation and mapping at index {i} inconsistent. "
-                        f"Simulation mapping shape {sim_in_shape} incompatible with "
-                        f"input mapping shape {map_out_shape}."
-                    )
-        self._mappings = value
-
-    @MetaSimulation.model.setter
-    def model(self, value):
-        HasModel.model.fset(self, value)
