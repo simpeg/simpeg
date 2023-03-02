@@ -1,5 +1,4 @@
 from collections import namedtuple
-from collections.abc import Iterable
 import warnings
 import discretize
 import numpy as np
