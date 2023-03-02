@@ -1,6 +1,7 @@
 import unittest
 import numpy as np
 import discretize
+from discretize.utils import active_from_xyz
 import dask
 import SimPEG.dask  # noqa: F401
 from SimPEG import (
@@ -22,7 +23,6 @@ np.random.seed(43)
 
 class GravInvLinProblemTest(unittest.TestCase):
     def setUp(self):
-
         # Create a self.mesh
         dx = 5.0
 
@@ -38,11 +38,11 @@ class GravInvLinProblemTest(unittest.TestCase):
 
         # Lets create a simple Gaussian topo and set the active cells
         [xx, yy] = np.meshgrid(self.mesh.nodes_x, self.mesh.nodes_y)
-        zz = -np.exp((xx ** 2 + yy ** 2) / 75 ** 2) + self.mesh.nodes_z[-1]
+        zz = -np.exp((xx**2 + yy**2) / 75**2) + self.mesh.nodes_z[-1]
 
         # Go from topo to actv cells
         topo = np.c_[utils.mkvc(xx), utils.mkvc(yy), utils.mkvc(zz)]
-        actv = utils.surface2ind_topo(self.mesh, topo, "N")
+        actv = active_from_xyz(self.mesh, topo, "N")
 
         # Create active map to go from reduce space to full
         self.actvMap = maps.InjectActiveCells(self.mesh, actv, -100)
@@ -54,7 +54,7 @@ class GravInvLinProblemTest(unittest.TestCase):
         X, Y = np.meshgrid(xr, yr)
 
         # Move the observation points 5m above the topo
-        Z = -np.exp((X ** 2 + Y ** 2) / 75 ** 2) + self.mesh.nodes_z[-1] + 5.0
+        Z = -np.exp((X**2 + Y**2) / 75**2) + self.mesh.nodes_z[-1] + 5.0
 
         # Create a MAGsurvey
         locXYZ = np.c_[utils.mkvc(X.T), utils.mkvc(Y.T), utils.mkvc(Z.T)]

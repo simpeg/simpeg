@@ -109,7 +109,6 @@ dbdt_receivers = [
 source_list = []
 dipole_moment = [0.0, 0.0, 1]
 for pp in range(0, len(waveform_list)):
-
     # Define the transmitter-receiver pair for each waveform
     source_list.append(
         vrm.sources.MagDipole(

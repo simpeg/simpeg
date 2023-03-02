@@ -109,12 +109,10 @@ class GravityDriver_Inv(object):
         line = fid.readline()
         l_input = re.split(r"[!\s]", line)
         if l_input[0] == "VALUE":
-
             val = np.array(l_input[1:5])
             alphas = val.astype(np.float)
 
         elif l_input[0] == "DEFAULT":
-
             alphas = np.ones(4)
 
         # Line 9: Bounds
@@ -205,7 +203,6 @@ class GravityDriver_Inv(object):
     @property
     def staticCells(self):
         if getattr(self, "_staticCells", None) is None:
-
             # Cells with value 1 in active model are dynamic
             staticCells = self.activeModel[self._activeCells] == -1
 
@@ -217,7 +214,6 @@ class GravityDriver_Inv(object):
     @property
     def dynamicCells(self):
         if getattr(self, "_dynamicCells", None) is None:
-
             # Cells with value 1 in active model are dynamic
             dynamicCells = self.activeModel[self._activeCells] == 1
 
@@ -239,7 +235,6 @@ class GravityDriver_Inv(object):
             if isinstance(self.mstart, float):
                 self._m0 = np.ones(self.nC) * self.mstart
             else:
-
                 self._m0 = TensorMesh.read_model_UBC(
                     self.mesh, self.basePath + self.mstart
                 )

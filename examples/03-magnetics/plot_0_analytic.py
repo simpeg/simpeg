@@ -12,7 +12,6 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 
 def run(plotIt=True):
-
     xr = np.linspace(-300, 300, 41)
     yr = np.linspace(-300, 300, 41)
     X, Y = np.meshgrid(xr, yr)

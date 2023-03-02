@@ -37,7 +37,6 @@ def getAppResPhs(NSEMdata, survey):
 
 
 def setup1DSurvey(sigmaHalf, tD=False, structure=False):
-
     # Frequency
     num_frequencies = 33
     freqs = np.logspace(3, -3, num_frequencies)
@@ -84,7 +83,6 @@ def setup1DSurvey(sigmaHalf, tD=False, structure=False):
 
 
 def setup1DSurveyElectricMagnetic(sigmaHalf, tD=False, structure=False):
-
     # Frequency
     nFreq = 33
     frequencies = np.logspace(3, -3, nFreq)
@@ -412,7 +410,6 @@ def setupSimpegNSEM_PrimarySecondary(inputSetup, freqs, comp="Imp", singleFreq=F
 
 
 def setupSimpegNSEM_ePrimSec(inputSetup, comp="Imp", singleFreq=False, expMap=True):
-
     M, freqs, sig, sigBG, rx_loc = inputSetup
     # Make a receiver list
     receiver_list = []
@@ -457,7 +454,6 @@ def setupSimpegNSEM_ePrimSec(inputSetup, comp="Imp", singleFreq=False, expMap=Tr
     source_list = []
 
     if singleFreq:
-
         source_list.append(PlanewaveXYPrimary(receiver_list, singleFreq))
     else:
         for freq in freqs:

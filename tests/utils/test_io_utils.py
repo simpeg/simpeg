@@ -34,7 +34,6 @@ class TestIO_GRAV3D(unittest.TestCase):
     """
 
     def setUp(self):
-
         np.random.seed(8)
         x = np.random.uniform(0, 100, 5)
         y = np.random.uniform(0, 100, 5)
@@ -57,7 +56,6 @@ class TestIO_GRAV3D(unittest.TestCase):
         self.survey_bad = survey_bad
 
     def test_io_survey(self):
-
         data_object = Data(survey=self.survey)
         filename = "survey.grv"
 
@@ -75,7 +73,6 @@ class TestIO_GRAV3D(unittest.TestCase):
         print("SURVEY FILE IO FOR GRAV3D PASSED")
 
     def test_io_dpred(self):
-
         data_object = Data(survey=self.survey, dobs=self.dobs)
         filename = "dpred.grv"
 
@@ -94,7 +91,6 @@ class TestIO_GRAV3D(unittest.TestCase):
         print("PREDICTED DATA FILE IO FOR GRAV3D PASSED")
 
     def test_io_dobs(self):
-
         data_object = Data(
             survey=self.survey, dobs=self.dobs, standard_deviation=self.std
         )
@@ -119,7 +115,6 @@ class TestIO_GRAV3D(unittest.TestCase):
         print("OBSERVED DATA FILE IO FOR GRAV3D PASSED")
 
     def test_bad_write(self):
-
         data_object = Data(survey=self.survey_bad)
         with self.assertRaises(NotImplementedError):
             write_grav3d_ubc("survey.grv", data_object)
@@ -136,7 +131,6 @@ class TestIO_GG3D(unittest.TestCase):
     """
 
     def setUp(self):
-
         np.random.seed(8)
         x = np.random.uniform(0, 100, 5)
         y = np.random.uniform(0, 100, 5)
@@ -160,7 +154,6 @@ class TestIO_GG3D(unittest.TestCase):
         self.survey_bad = survey_bad
 
     def test_io_survey(self):
-
         data_object = Data(survey=self.survey)
         filename = "survey.gg"
 
@@ -178,7 +171,6 @@ class TestIO_GG3D(unittest.TestCase):
         print("SURVEY FILE IO FOR GG3D PASSED")
 
     def test_io_dpred(self):
-
         data_object = Data(survey=self.survey, dobs=self.dobs)
         filename = "dpred.gg"
 
@@ -199,7 +191,6 @@ class TestIO_GG3D(unittest.TestCase):
         print("PREDICTED DATA FILE IO FOR GG3D PASSED")
 
     def test_io_dobs(self):
-
         data_object = Data(
             survey=self.survey, dobs=self.dobs, standard_deviation=self.std
         )
@@ -225,7 +216,6 @@ class TestIO_GG3D(unittest.TestCase):
         print("OBSERVED DATA FILE IO FOR GG3D PASSED")
 
     def test_bad_write(self):
-
         data_object = Data(survey=self.survey_bad)
         with self.assertRaises(NotImplementedError):
             write_gg3d_ubc("survey.grv", data_object)
@@ -242,7 +232,6 @@ class TestIO_MAG3D(unittest.TestCase):
     """
 
     def setUp(self):
-
         np.random.seed(8)
         x = np.random.uniform(0, 100, 5)
         y = np.random.uniform(0, 100, 5)
@@ -269,7 +258,6 @@ class TestIO_MAG3D(unittest.TestCase):
         self.survey_bad = survey_bad
 
     def test_io_survey(self):
-
         data_object = Data(survey=self.survey)
         filename = "survey.mag"
 
@@ -295,7 +283,6 @@ class TestIO_MAG3D(unittest.TestCase):
         print("SURVEY FILE IO FOR MAG3D PASSED")
 
     def test_io_dpred(self):
-
         data_object = Data(survey=self.survey, dobs=self.dobs)
         filename = "dpred.mag"
 
@@ -322,7 +309,6 @@ class TestIO_MAG3D(unittest.TestCase):
         print("PREDICTED DATA FILE IO FOR MAG3D PASSED")
 
     def test_io_dobs(self):
-
         data_object = Data(
             survey=self.survey, dobs=self.dobs, standard_deviation=self.std
         )
@@ -355,7 +341,6 @@ class TestIO_MAG3D(unittest.TestCase):
         print("OBSERVED DATA FILE IO FOR MAG3D PASSED")
 
     def test_bad_write(self):
-
         data_object = Data(survey=self.survey_bad)
         with self.assertRaises(NotImplementedError):
             write_mag3d_ubc("survey.grv", data_object)
@@ -376,7 +361,6 @@ class TestIO_DCIP3D(unittest.TestCase):
     """
 
     def setUp(self):
-
         # Receiver locations
         np.random.seed(8)
         xm = np.array([40.0, 50.0, 60.0])
@@ -403,7 +387,6 @@ class TestIO_DCIP3D(unittest.TestCase):
         dpdp_sources = []
 
         for ii in range(0, n_src):
-
             pp_receivers = [dc.receivers.Pole(m_locs)]
             dpdp_receivers = [dc.receivers.Dipole(m_locs, n_locs)]
 
@@ -427,7 +410,6 @@ class TestIO_DCIP3D(unittest.TestCase):
         self.std = std
 
     def test_io_survey(self):
-
         pp_data = Data(survey=self.pp_survey)
         dpdp_data = Data(survey=self.dpdp_survey)
 
@@ -484,7 +466,6 @@ class TestIO_DCIP3D(unittest.TestCase):
         print("SURVEY FILE IO FOR DCIP3D PASSED")
 
     def test_io_dpred(self):
-
         pp_data = Data(survey=self.pp_survey, dobs=self.dobs)
         dpdp_data = Data(survey=self.dpdp_survey, dobs=self.dobs)
 
@@ -545,7 +526,6 @@ class TestIO_DCIP3D(unittest.TestCase):
         print("PREDICTED DATA FILE IO FOR DCIP3D PASSED")
 
     def test_io_dobs(self):
-
         pp_data = Data(
             survey=self.pp_survey, dobs=self.dobs, standard_deviation=self.std
         )

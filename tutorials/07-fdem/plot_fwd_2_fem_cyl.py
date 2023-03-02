@@ -69,7 +69,6 @@ source_list = []  # Create empty list to store sources
 
 # Each unique location and frequency defines a new transmitter
 for ii in range(ntx):
-
     # Define receivers of different types at each location. Real and imaginary
     # measurements require separate receivers. You can define the orientation of
     # the transmitters and receivers for different survey geometries.
@@ -82,7 +81,6 @@ for ii in range(ntx):
     receivers_list = [bzr_receiver, bzi_receiver]  # must be a list
 
     for jj in range(len(frequencies)):
-
         # Must define the transmitter properties and associated receivers
         source_list.append(
             fdem.sources.MagDipole(

@@ -73,6 +73,7 @@ Mappings
   maps.ComboMap
   maps.ComplexMap
   maps.ExpMap
+  maps.LinearMap
   maps.IdentityMap
   maps.InjectActiveCells
   maps.MuRelative

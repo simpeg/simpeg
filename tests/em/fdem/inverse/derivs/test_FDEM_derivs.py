@@ -28,7 +28,6 @@ SrcType = [
 
 
 def derivTest(fdemType, comp, src):
-
     prb = getFDEMProblem(fdemType, comp, SrcType, freq)
     # prb.solverOpts = dict(check_accuracy=True)
 
