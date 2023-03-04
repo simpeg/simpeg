@@ -609,7 +609,7 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
     def _mesh3d_geometric_factor(self, xyz_rx, comp, dh=None):
         
         if dh is None:
-            dh = 0.25*prod([np.min(h) for h in self.mesh.h])**(1/3)
+            dh = 0.25*np.prod([np.min(h) for h in self.mesh.h])**(1/3)
 
         dx = xyz_rx[0] - self.mesh.cell_centers[:, 0]
         dy = xyz_rx[1] - self.mesh.cell_centers[:, 1]
