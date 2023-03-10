@@ -33,9 +33,9 @@ import matplotlib.pyplot as plt
 import tarfile
 
 from discretize import TensorMesh
-
+from discretize.utils import active_from_xyz
 from SimPEG.potential_fields import magnetics
-from SimPEG.utils import plot2Ddata, surface2ind_topo, model_builder
+from SimPEG.utils import plot2Ddata, model_builder
 from SimPEG import (
     maps,
     data,
@@ -210,7 +210,7 @@ mesh = TensorMesh([hx, hy, hz], "CCN")
 background_susceptibility = 1e-4
 
 # Find the indecies of the active cells in forward model (ones below surface)
-active_cells = surface2ind_topo(mesh, topo_xyz)
+active_cells = active_from_xyz(mesh, topo_xyz)
 
 # Define mapping from model to active cells
 nC = int(active_cells.sum())
@@ -430,7 +430,6 @@ cplot = 3 * [None]
 v_lim = [np.max(np.abs(dobs)), np.max(np.abs(dobs)), np.max(np.abs(data_array[:, 2]))]
 
 for ii in range(0, 3):
-
     ax1[ii] = fig.add_axes([0.33 * ii + 0.03, 0.11, 0.25, 0.84])
     cplot[ii] = plot2Ddata(
         receiver_list[0].locations,

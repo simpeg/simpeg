@@ -192,7 +192,6 @@ class BaseInvProblem:
         solver = DefaultSolver
         set_default = True
         for objfct in self.dmisfit.objfcts:
-
             if (
                 isinstance(objfct, BaseDataMisfit)
                 and getattr(objfct.simulation, "solver", None) is not None
@@ -301,7 +300,6 @@ class BaseInvProblem:
 
         # Only works for WeightedLeastSquares regularization
         if self.opt.print_type == "ubc":
-
             self.phi_s = 0.0
             self.phi_x = 0.0
             self.phi_y = 0.0

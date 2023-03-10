@@ -85,7 +85,6 @@ receiver_orientation = "z"  # "x", "y" or "z"
 source_list = []
 
 for ii in range(0, n_sounding):
-
     source_location = mkvc(source_locations[ii, :])
     receiver_location = mkvc(receiver_locations[ii, :])
 
@@ -301,7 +300,6 @@ plt.show()
 
 
 if save_file:
-
     dir_path = os.path.dirname(em1d.__file__).split(os.path.sep)[:-3]
     dir_path.extend(["tutorials", "08-tdem", "em1dtm_stitched_skytem"])
     dir_path = os.path.sep.join(dir_path) + os.path.sep

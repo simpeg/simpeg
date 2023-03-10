@@ -153,7 +153,6 @@ class Simulation1DLayers(BaseSimulation):
         )
 
     def fields(self, m):
-
         if m is not None:
             self.model = m
 
@@ -171,31 +170,25 @@ class Simulation1DLayers(BaseSimulation):
             T1 = T0
         PJ = (T0, None, None)
         try:
-            voltage = (
-                dlf(
-                    PJ,
-                    self.lambd,
-                    self.offset,
-                    self._fhtfilt,
-                    self.hankel_pts_per_dec,
-                    factAng=None,
-                    ab=33,
-                ).real
-                / (2 * np.pi)
-            )
+            voltage = dlf(
+                PJ,
+                self.lambd,
+                self.offset,
+                self._fhtfilt,
+                self.hankel_pts_per_dec,
+                factAng=None,
+                ab=33,
+            ).real / (2 * np.pi)
         except TypeError:
-            voltage = (
-                dlf(
-                    PJ,
-                    self.lambd,
-                    self.offset,
-                    self._fhtfilt,
-                    self.hankel_pts_per_dec,
-                    ang_fact=None,
-                    ab=33,
-                ).real
-                / (2 * np.pi)
-            )
+            voltage = dlf(
+                PJ,
+                self.lambd,
+                self.offset,
+                self._fhtfilt,
+                self.hankel_pts_per_dec,
+                ang_fact=None,
+                ab=33,
+            ).real / (2 * np.pi)
 
         # Assume dipole-dipole
         V = voltage.reshape((self.survey.nD, 4), order="F")

@@ -292,7 +292,6 @@ class SolverDiag(object):
             warnings.warn(f"{kwarg} is not recognized and will be ignored")
 
     def __mul__(self, rhs):
-
         n = self.A.shape[0]
         assert rhs.size % n == 0, "Incorrect shape of rhs."
         nrhs = rhs.size // n

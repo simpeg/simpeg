@@ -31,7 +31,6 @@ class EDIimporter:
     _2out = None  # The projection operator
 
     def __init__(self, EDIfilesList, compList=None, outEPSG=None):
-
         # Set the fileList
         self.filesList = EDIfilesList
         # Set the components to import
@@ -56,7 +55,6 @@ class EDIimporter:
             self._outEPSG = outEPSG
 
     def __call__(self, comps=None):
-
         if comps is None:
             return self._data
 
@@ -81,7 +79,7 @@ class EDIimporter:
         # Make the outarray
         dtRI = [(compS.lower().replace(".", ""), float) for compS in tmpCompList]
         # Loop through all the files
-        for nrEDI, EDIfile in enumerate(self.filesList):
+        for EDIfile in self.filesList:
             # Read the file into a list of the lines
             with open(EDIfile, "r") as fid:
                 EDIlines = fid.readlines()

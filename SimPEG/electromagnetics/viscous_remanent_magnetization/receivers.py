@@ -30,7 +30,6 @@ class Point(BaseRx):
     def __init__(
         self, locations=None, times=None, field_type=None, orientation="z", **kwargs
     ):
-
         if kwargs.pop("fieldType", None):
             raise AttributeError(
                 "'fieldType' is a deprecated property. Please use 'field_type' instead."
@@ -180,7 +179,6 @@ class SquareLoop(Point):
         quadrature_order=3,
         **kwargs,
     ):
-
         if "nTurns" in kwargs:
             raise AttributeError(
                 "'nTurns' is a deprecated property. Please use 'n_turns' instead."

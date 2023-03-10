@@ -42,7 +42,6 @@ from SimPEG.flow import richards
 
 
 def run(plotIt=True):
-
     M = discretize.TensorMesh([np.ones(40)], x0="N")
     M.set_cell_gradient_BC("dirichlet")
     # We will use the haverkamp empirical model with parameters from Celia1990
@@ -119,7 +118,7 @@ def run(plotIt=True):
         plt.semilogx(np.exp(np.c_[mopt, mtrue]), M.gridCC)
         plt.xlabel("Saturated Hydraulic Conductivity, $K_s$")
         plt.ylabel("Depth, cm")
-        plt.semilogx([10 ** -3.9] * len(locs), locs, "ro")
+        plt.semilogx([10**-3.9] * len(locs), locs, "ro")
         plt.legend(("$m_{rec}$", "$m_{true}$", "Data locations"), loc=4)
 
         ax = plt.subplot(222)

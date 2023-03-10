@@ -11,7 +11,6 @@ from geoana.em.tdem import (
 
 class EM1D_TD_test_failures(unittest.TestCase):
     def setUp(self):
-
         nearthick = np.logspace(-1, 1, 5)
         deepthick = np.logspace(1, 2, 10)
         thicknesses = np.r_[nearthick, deepthick]
@@ -22,7 +21,6 @@ class EM1D_TD_test_failures(unittest.TestCase):
         self.nlayers = len(thicknesses) + 1
 
     def test_instantiation_failures(self):
-
         times = np.logspace(-5, -2, 31)
         waveform = tdem.sources.StepOffWaveform(off_time=0.0)
         x_offset = 10.0
@@ -118,7 +116,6 @@ class EM1D_TD_MagDipole_Tests(unittest.TestCase):
     # - Static conductivity
 
     def setUp(self):
-
         nearthick = np.logspace(-1, 1, 5)
         deepthick = np.logspace(1, 2, 10)
         thicknesses = np.r_[nearthick, deepthick]
@@ -162,7 +159,6 @@ class EM1D_TD_MagDipole_Tests(unittest.TestCase):
         # - static conductivity only
 
         for tx_orientation in self.orientations:
-
             rx_list = [
                 tdem.receivers.PointMagneticFluxDensity(
                     self.rx_location, self.times, ii
@@ -188,7 +184,6 @@ class EM1D_TD_MagDipole_Tests(unittest.TestCase):
             d_numeric = sim.dpred(m_1D).reshape(3, -1).T
 
             if tx_orientation == "z":
-
                 d_analytic = b_dipole(self.times, self.rx_location, sigma=self.sigma)[
                     :, 0, :
                 ]
@@ -200,7 +195,6 @@ class EM1D_TD_MagDipole_Tests(unittest.TestCase):
                 )
 
             else:
-
                 print(
                     (
                         "\n{}-dipole source analytic solution not available for accuracy test".format(
@@ -215,7 +209,6 @@ class EM1D_TD_MagDipole_Tests(unittest.TestCase):
         # - static conductivity only
 
         for tx_orientation in self.orientations:
-
             rx_list = [
                 tdem.receivers.PointMagneticFluxTimeDerivative(
                     self.rx_location, self.times, ii
@@ -241,7 +234,6 @@ class EM1D_TD_MagDipole_Tests(unittest.TestCase):
             d_numeric = sim.dpred(m_1D).reshape(3, -1).T
 
             if tx_orientation == "z":
-
                 d_analytic = dbdt_dipole(
                     self.times, self.rx_location, sigma=self.sigma
                 )[:, 0, :]
@@ -253,7 +245,6 @@ class EM1D_TD_MagDipole_Tests(unittest.TestCase):
                 )
 
             else:
-
                 print(
                     (
                         "\n{}-dipole source analytic solution not available for accuracy test".format(
@@ -268,7 +259,6 @@ class EM1D_TD_Loop_Center_Tests(unittest.TestCase):
     # - Dispersive magnetic properties
 
     def setUp(self):
-
         nearthick = np.logspace(-1, 1, 5)
         deepthick = np.logspace(1, 2, 10)
         thicknesses = np.r_[nearthick, deepthick]
@@ -374,7 +364,7 @@ class EM1D_TD_Loop_Center_Tests(unittest.TestCase):
         d_analytic = (
             (mu_0 / (2 * a))
             * (self.dchi / (2 + self.dchi))
-            * -self.times ** -1
+            * -self.times**-1
             / np.log(self.tau2 / self.tau1)
         )
 

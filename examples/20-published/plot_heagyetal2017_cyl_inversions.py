@@ -41,7 +41,6 @@ except ImportError:
 
 
 def run(plotIt=True, saveFig=False):
-
     # Set up cylindrically symmeric mesh
     cs, ncx, ncz, npad = 10.0, 15, 25, 13  # padded cyl mesh
     hx = [(cs, ncx), (cs, npad, 1.3)]

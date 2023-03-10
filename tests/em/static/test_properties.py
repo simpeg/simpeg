@@ -6,7 +6,6 @@ from SimPEG.electromagnetics.static import spectral_induced_polarization as sip
 
 
 def test_receiver_properties():
-
     xyz_1 = np.c_[0.0, 0.0, 0.0]
     xyz_2 = np.c_[10.0, 0.0, 0.0]
     times = np.logspace(-4, -2, 3)
@@ -44,7 +43,6 @@ def test_receiver_properties():
 
 
 def test_SIP_zero_current():
-
     xyz_1 = np.c_[0.0, 0.0, 0.0]
     xyz_2 = np.c_[10.0, 0.0, 0.0]
     times = np.logspace(-4, -2, 3)

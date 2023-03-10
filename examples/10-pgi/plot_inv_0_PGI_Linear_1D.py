@@ -58,7 +58,7 @@ mtrue[mesh.cell_centers_x > 0.2] = 1.0
 mtrue[mesh.cell_centers_x > 0.35] = 0.0
 t = (mesh.cell_centers_x - 0.65) / 0.25
 indx = np.abs(t) < 1
-mtrue[indx] = -(((1 - t ** 2.0) ** 2.0)[indx])
+mtrue[indx] = -(((1 - t**2.0) ** 2.0)[indx])
 
 mtrue = np.zeros(mesh.nC)
 mtrue[mesh.cell_centers_x > 0.3] = 1.0

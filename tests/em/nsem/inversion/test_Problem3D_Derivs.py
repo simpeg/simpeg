@@ -11,6 +11,7 @@ FLR = 1e-20  # "zero", so if residual below this --> pass regardless of order
 CONDUCTIVITY = 1e1
 MU = mu_0
 
+
 # Test the Jvec derivative
 def DerivJvecTest(inputSetup, comp="All", freq=False, expMap=True):
     m, simulation = nsem.utils.test_utils.setupSimpegNSEM_PrimarySecondary(
@@ -38,7 +39,6 @@ def DerivJvecTest(inputSetup, comp="All", freq=False, expMap=True):
 
 
 def DerivProjfieldsTest(inputSetup, comp="All", freq=False):
-
     survey, simulation = nsem.utils.test_utils.setupSimpegNSEM_ePrimSec(
         inputSetup, comp, freq
     )
