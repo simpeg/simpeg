@@ -95,7 +95,7 @@ class DCProblemTestsCC_storeJ(unittest.TestCase):
         # Clean up the working directory
         try:
             shutil.rmtree(self.p.sensitivity_path)
-        except:
+        except FileNotFoundError:
             pass
 
 
@@ -173,7 +173,7 @@ class DCProblemTestsN_storeJ(unittest.TestCase):
         # Clean up the working directory
         try:
             shutil.rmtree(self.p.sensitivity_path)
-        except:
+        except FileNotFoundError:
             pass
 
 

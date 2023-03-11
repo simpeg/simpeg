@@ -29,7 +29,7 @@ try:
     import plotly.graph_objects as grapho
 
     has_plotly = True
-except:
+except ImportError:
     has_plotly = False
 
 
