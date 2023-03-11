@@ -836,9 +836,7 @@ def validate_integer(property_name, var, min_val=-np.inf, max_val=np.inf):
     try:
         var = int(var)
     except (ValueError, TypeError) as err:
-        raise TypeError(
-            f"{property_name!r} must be a number, got {type(var)}"
-        ) from err
+        raise TypeError(f"{property_name!r} must be a number, got {type(var)}") from err
 
     if (var < min_val) | (var > max_val):
         raise ValueError(
@@ -967,7 +965,7 @@ def validate_location_property(property_name, var, dim=None):
     except (TypeError, ValueError) as err:
         raise TypeError(
             f"{property_name!r} must be 1D array_like, got {type(var)}"
-            ) from err
+        ) from err
 
     if len(var.shape) > 1:
         raise ValueError(
