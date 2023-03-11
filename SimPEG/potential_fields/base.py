@@ -42,11 +42,28 @@ class BasePFSimulation(LinearSimulation):
 
         - 'ram': sensitivities are stored in the computer's RAM
         - 'disk': sensitivities are written to a directory
-        - 'forward_only': you intend only do perform a forward simulation and sensitivities do no need to be stored
+        - 'forward_only': you intend only do perform a forward simulation and sensitivities do not need to be stored
 
     n_processes : None or int, optional
         The number of processes to use in the internal multiprocessing pool for forward
-        modeling.
+        modeling. The default value of 1 will not use multiprocessing. Any other setting
+        will. `None` implies setting by the number of cpus.
+
+    Notes
+    -----
+    If using multiprocessing by setting `n_processes` to a value other than 1, you must
+    be aware of the method your operating system uses to spawn the subprocesses. On
+    Windows the default method starts new processes that all import the main script.
+    Therefor you must protect the calls to this class by testing if you are in
+    the main process with:
+
+    >>> from SimPEG.potential_fields import gravity
+    >>> if __name__ == '__main__':
+    ...     # Do your processing here
+    ...     sim = gravity.Simulation3DIntegral(n_processes=4, ...)
+    ...     sim.dpred(m)
+
+    This usually does not affect jupyter notebook environments.
     """
 
     def __init__(
@@ -54,7 +71,7 @@ class BasePFSimulation(LinearSimulation):
         mesh,
         ind_active=None,
         store_sensitivities="ram",
-        n_processes=None,
+        n_processes=1,
         **kwargs,
     ):
         # If deprecated property set with kwargs

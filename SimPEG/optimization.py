@@ -491,7 +491,7 @@ class Minimize(object):
                     pad=pad,
                 )
                 print(self.print_target)
-            except:
+            except AttributeError:
                 printDone(
                     self,
                     self.printers,

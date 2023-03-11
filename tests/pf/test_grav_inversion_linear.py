@@ -79,6 +79,7 @@ class GravInvLinProblemTest(unittest.TestCase):
             rhoMap=idenMap,
             ind_active=actv,
             store_sensitivities="ram",
+            n_processes=None,
         )
 
         # Compute linear forward operator and compute some data
