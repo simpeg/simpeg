@@ -835,8 +835,10 @@ def validate_integer(property_name, var, min_val=-np.inf, max_val=np.inf):
     """
     try:
         var = int(var)
-    except (ValueError, TypeError):
-        raise TypeError(f"{property_name!r} must be a number, got {type(var)}")
+    except (ValueError, TypeError) as err:
+        raise TypeError(
+            f"{property_name!r} must be a number, got {type(var)}"
+        ) from err
 
     if (var < min_val) | (var > max_val):
         raise ValueError(
@@ -878,8 +880,10 @@ def validate_float(
     """
     try:
         var = float(var)
-    except (ValueError, TypeError):
-        raise TypeError(f"{property_name!r} must be int or float, got {type(var)}")
+    except (ValueError, TypeError) as err:
+        raise TypeError(
+            f"{property_name!r} must be int or float, got {type(var)}"
+        ) from err
 
     value_range_string = f"{min_val}, {max_val}"
     if inclusive_min:
