@@ -563,11 +563,7 @@ class LineCurrent(BaseSrcVRM):
                     | (k_pos)
                 )
 
-                ind = (
-                    (not k_pos)
-                    & (not k_neg)
-                    & (ref_flag_tt < refinement_factor + 1 - nn)
-                )
+                ind = (~k_pos) & (~k_neg) & (ref_flag_tt < refinement_factor + 1 - nn)
                 ref_flag_tt[ind] = refinement_factor - nn
 
             ref_flag = np.maximum(ref_flag, ref_flag_tt)

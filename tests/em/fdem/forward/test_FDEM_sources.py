@@ -133,9 +133,7 @@ class TestSimpleSourcePropertiesTensor(unittest.TestCase):
 
             look_at_these = np.ones(self.mesh.nEx + self.mesh.nEy, dtype=bool)
 
-        look_at_these = np.hstack(
-            [look_at_these, np.array(not ignore_these, dtype=bool)]
-        )
+        look_at_these = np.hstack([look_at_these, np.array(~ignore_these, dtype=bool)])
 
         bPrimary_ana = np.hstack([bx, by, bz])
 
