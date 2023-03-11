@@ -960,8 +960,8 @@ def validate_location_property(property_name, var, dim=None):
     """
     try:
         var = np.atleast_1d(var).astype(float).squeeze()
-    except TypeError:
-        raise TypeError(f"{property_name!r} must be 1D array_like, got {type(var)}")
+    except (TypeError, ValueError) as err:
+        raise TypeError(f"{property_name!r} must be 1D array_like, got {type(var)}") from err
 
     if len(var.shape) > 1:
         raise ValueError(
@@ -1011,13 +1011,14 @@ def validate_ndarray_with_shape(property_name, var, shape=None, dtype=float):
             var = np.asarray(var, dtype=dtype)
             bad_type = False
             break
-        except (TypeError, ValueError):
+        except (TypeError, ValueError) as err:
             bad_type = True
+            raised_err = err
 
     if bad_type:
         raise TypeError(
             f"{property_name!r} must be array_like with data type of {dtype}, got {type(var)}"
-        )
+        ) from raised_err
 
     if shape is None:
         return var
