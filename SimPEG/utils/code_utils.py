@@ -965,7 +965,9 @@ def validate_location_property(property_name, var, dim=None):
     try:
         var = np.atleast_1d(var).astype(float).squeeze()
     except (TypeError, ValueError) as err:
-        raise TypeError(f"{property_name!r} must be 1D array_like, got {type(var)}") from err
+        raise TypeError(
+            f"{property_name!r} must be 1D array_like, got {type(var)}"
+            ) from err
 
     if len(var.shape) > 1:
         raise ValueError(
