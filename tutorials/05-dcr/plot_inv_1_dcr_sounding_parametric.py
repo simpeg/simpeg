@@ -103,7 +103,6 @@ k = np.r_[k, len(k) + 1]
 
 source_list = []
 for ii in range(0, n_sources):
-
     # MN electrode locations for receivers. Each is an (N, 3) numpy array
     M_locations = M_electrodes[k[ii] : k[ii + 1], :]
     N_locations = N_electrodes[k[ii] : k[ii + 1], :]

@@ -127,7 +127,6 @@ input_currents_LM = wave_LM.currents[-13:]
 source_list = []
 
 for ii in range(0, n_sounding):
-
     source_location = mkvc(source_locations[ii, :])
     receiver_location = mkvc(receiver_locations[ii, :])
     receiver_list = [
@@ -435,7 +434,6 @@ models_list = [true_model, l2_model, recovered_model]
 
 
 for mod in models_list:
-
     fig = plt.figure(figsize=(9, 3))
     ax1 = fig.add_axes([0.1, 0.12, 0.73, 0.78])
     log_mod = np.log10(mod)

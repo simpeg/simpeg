@@ -50,7 +50,6 @@ def read_mag3d_ubc(obs_file):
 
     ii = 0
     while ii < ndat:
-
         temp = np.array(line.split(), dtype=float)
         if len(temp) > 0:
             locXYZ[ii, :] = temp[:3]
@@ -162,7 +161,6 @@ def read_grav3d_ubc(obs_file):
 
     ii = 0
     while ii < ndat:
-
         temp = np.array(line.split(), dtype=float)
         if len(temp) > 0:
             locXYZ[ii, :] = temp[:3]
@@ -257,7 +255,6 @@ def read_gg3d_ubc(obs_file):
     from ...data import Data
 
     with open(obs_file, "r") as fid:
-
         # First line has components. Extract components
         line = fid.readline()
         line = line.split("=")[1].split("!")[0].split("\n")[0]
@@ -286,18 +283,23 @@ def read_gg3d_ubc(obs_file):
 
         ii = 0
         while ii < ndat:
+            line = fid.readline()
+            if not line:
+                raise IOError(f"Found EOF at line {ii + 3} while reading '{obs_file}'.")
             try:
-                line = fid.readline()
                 temp = np.array(line.split(), dtype=float)
-                locXYZ[ii, :] = temp[:3]
-                if len(temp) == 3 + n_comp:
-                    d.append(factor * temp[3:])
-                elif len(temp) == 3 + n_comp * 2:
-                    d.append(factor * temp[3 : 3 + n_comp])
-                    wd.append(temp[3 + n_comp :])
-                ii += 1
-            except:
-                raise IOError(f"Unable to read data line {ii}: {line}")
+            except IOError:
+                raise IOError(
+                    f"Unable to parse line {ii + 3} of '{obs_file}' as a sequence of "
+                    + f"floats: '{line}'."
+                )
+            locXYZ[ii, :] = temp[:3]
+            if len(temp) == 3 + n_comp:
+                d.append(factor * temp[3:])
+            elif len(temp) == 3 + n_comp * 2:
+                d.append(factor * temp[3 : 3 + n_comp])
+                wd.append(temp[3 + n_comp :])
+            ii += 1
 
     # Turn into vector. For multiple components, SimPEG orders by rows
     if len(d) > 0:

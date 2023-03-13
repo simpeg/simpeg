@@ -10,6 +10,7 @@ from ....utils import (
     validate_type,
     validate_string,
     validate_integer,
+    validate_active_indices,
 )
 from ....base import BaseElectricalPDESimulation
 from ....data import Data
@@ -41,12 +42,14 @@ class BaseDCSimulation2D(BaseElectricalPDESimulation):
         miniaturize=False,
         do_trap=False,
         fix_Jmatrix=False,
+        surface_faces=None,
         **kwargs,
     ):
         super().__init__(mesh=mesh, survey=survey, **kwargs)
         self.nky = nky
         self.storeJ = storeJ
         self.fix_Jmatrix = fix_Jmatrix
+        self.surface_faces = surface_faces
 
         do_trap = validate_type("do_trap", do_trap, bool)
         if not do_trap:
@@ -56,7 +59,7 @@ class BaseDCSimulation2D(BaseElectricalPDESimulation):
 
                 def phi(k):
                     # use log10 transform to enforce positivity
-                    k = 10 ** k
+                    k = 10**k
                     A = r[:, None] * k0(r[:, None] * k)
                     v_i = A @ np.linalg.solve(A.T @ A, A.T @ e)
                     dv = (e - v_i) / len(r)
@@ -183,6 +186,27 @@ class BaseDCSimulation2D(BaseElectricalPDESimulation):
     @fix_Jmatrix.setter
     def fix_Jmatrix(self, value):
         self._fix_Jmatrix = validate_type("fix_Jmatrix", value, bool)
+
+    @property
+    def surface_faces(self):
+        """Array defining which faces to interpret as surfaces of Neumann boundary
+
+        DC problems will always enforce a Neumann boundary on surface interfaces.
+        The default (available on semi-structured grids) assumes the top interface
+        is the surface.
+
+        Returns
+        -------
+        None or numpy.ndarray of bool
+        """
+        return self._surface_faces
+
+    @surface_faces.setter
+    def surface_faces(self, value):
+        if value is not None:
+            n_bf = self.mesh.boundary_faces.shape[0]
+            value = validate_active_indices("surface_faces", value, n_bf)
+        self._surface_faces = value
 
     def fields(self, m=None):
         if self.verbose:
@@ -487,7 +511,7 @@ class Simulation2DCellCentered(BaseDCSimulation2D):
             G = G - self._MBC[ky]
         MfRhoI = self.MfRhoI
         # Get resistivity rho
-        A = D * MfRhoI * G + ky ** 2 * self.MccSigma
+        A = D * MfRhoI * G + ky**2 * self.MccSigma
         if self.bc_type == "Neumann":
             A[0, 0] = A[0, 0] + 1.0
         return A
@@ -500,11 +524,11 @@ class Simulation2DCellCentered(BaseDCSimulation2D):
         if adjoint:
             return self.MfRhoIDeriv(
                 G * u, D.T * v, adjoint=adjoint
-            ) + ky ** 2 * self.MccSigmaDeriv(u, v, adjoint=adjoint)
+            ) + ky**2 * self.MccSigmaDeriv(u, v, adjoint=adjoint)
         else:
             return D * self.MfRhoIDeriv(
                 G * u, v, adjoint=adjoint
-            ) + ky ** 2 * self.MccSigmaDeriv(u, v, adjoint=adjoint)
+            ) + ky**2 * self.MccSigmaDeriv(u, v, adjoint=adjoint)
 
     def getRHS(self, ky):
         """
@@ -555,17 +579,25 @@ class Simulation2DCellCentered(BaseDCSimulation2D):
             r_hat = r_vec / r[:, None]
             r_dot_n = np.einsum("ij,ij->i", r_hat, boundary_normals)
 
-            # determine faces that are on the sides and bottom of the mesh...
-            if mesh._meshType.lower() == "tree":
-                not_top = boundary_faces[:, -1] != top_v
+            if self.surface_faces is None:
+                # determine faces that are on the sides and bottom of the mesh...
+                if mesh._meshType.lower() == "tree":
+                    not_top = boundary_faces[:, -1] != top_v
+                elif mesh._meshType.lower() in ["tensor", "curv"]:
+                    # mesh faces are ordered, faces_x, faces_y, faces_z so...
+                    is_b = make_boundary_bool(mesh.shape_faces_y)
+                    is_t = np.zeros(mesh.shape_faces_y, dtype=bool, order="F")
+                    is_t[:, -1] = True
+                    is_t = is_t.reshape(-1, order="F")[is_b]
+                    not_top = np.ones(boundary_faces.shape[0], dtype=bool)
+                    not_top[-len(is_t) :] = ~is_t
+                else:
+                    raise NotImplementedError(
+                        f"Unable to infer surface boundaries for {type(mesh)}, please "
+                        f"set the `surface_faces` property."
+                    )
             else:
-                # mesh faces are ordered, faces_x, faces_y, faces_z so...
-                is_b = make_boundary_bool(mesh.shape_faces_y)
-                is_t = np.zeros(mesh.shape_faces_y, dtype=bool, order="F")
-                is_t[:, -1] = True
-                is_t = is_t.reshape(-1, order="F")[is_b]
-                not_top = np.zeros(boundary_faces.shape[0], dtype=bool)
-                not_top[-len(is_t) :] = ~is_t
+                not_top = ~self.surface_faces
 
             # use the exponentialy scaled modified bessel function of second kind,
             # (the division will cancel out the scaling)
@@ -629,7 +661,7 @@ class Simulation2DNodal(BaseDCSimulation2D):
         if self._gradT is None:
             self._gradT = Grad.T.tocsr()  # cache the .tocsr()
         GradT = self._gradT
-        A = GradT * MeSigma * Grad + ky ** 2 * MnSigma
+        A = GradT * MeSigma * Grad + ky**2 * MnSigma
 
         if self.bc_type != "Neumann":
             try:
@@ -645,17 +677,16 @@ class Simulation2DNodal(BaseDCSimulation2D):
         return A
 
     def getADeriv(self, ky, u, v, adjoint=False):
-
         Grad = self.mesh.nodal_gradient
 
         if adjoint:
             out = self.MeSigmaDeriv(
                 Grad * u, Grad * v, adjoint=adjoint
-            ) + ky ** 2 * self.MnSigmaDeriv(u, v, adjoint=adjoint)
+            ) + ky**2 * self.MnSigmaDeriv(u, v, adjoint=adjoint)
         else:
             out = Grad.T * self.MeSigmaDeriv(
                 Grad * u, v, adjoint=adjoint
-            ) + ky ** 2 * self.MnSigmaDeriv(u, v, adjoint=adjoint)
+            ) + ky**2 * self.MnSigmaDeriv(u, v, adjoint=adjoint)
         if self.bc_type != "Neumann" and self.sigmaMap is not None:
             if getattr(self, "_MBC_sigma", None) is None:
                 self._MBC_sigma = {}
@@ -724,17 +755,25 @@ class Simulation2DNodal(BaseDCSimulation2D):
             r_hat = r_vec / r[:, None]
             r_dot_n = np.einsum("ij,ij->i", r_hat, boundary_normals)
 
-            # determine faces that are on the sides and bottom of the mesh...
-            if mesh._meshType.lower() == "tree":
-                not_top = boundary_faces[:, -1] != top_v
+            if self.surface_faces is None:
+                # determine faces that are on the sides and bottom of the mesh...
+                if mesh._meshType.lower() == "tree":
+                    not_top = boundary_faces[:, -1] != top_v
+                elif mesh._meshType.lower() in ["tensor", "curv"]:
+                    # mesh faces are ordered, faces_x, faces_y, faces_z so...
+                    is_b = make_boundary_bool(mesh.shape_faces_y)
+                    is_t = np.zeros(mesh.shape_faces_y, dtype=bool, order="F")
+                    is_t[:, -1] = True
+                    is_t = is_t.reshape(-1, order="F")[is_b]
+                    not_top = np.ones(boundary_faces.shape[0], dtype=bool)
+                    not_top[-len(is_t) :] = ~is_t
+                else:
+                    raise NotImplementedError(
+                        f"Unable to infer surface boundaries for {type(mesh)}, please "
+                        f"set the `surface_faces` property."
+                    )
             else:
-                # mesh faces are ordered, faces_x, faces_y, faces_z so...
-                is_b = make_boundary_bool(mesh.shape_faces_y)
-                is_t = np.zeros(mesh.shape_faces_y, dtype=bool, order="F")
-                is_t[:, -1] = True
-                is_t = is_t.reshape(-1, order="F")[is_b]
-                not_top = np.zeros(boundary_faces.shape[0], dtype=bool)
-                not_top[-len(is_t) :] = ~is_t
+                not_top = ~self.surface_faces
 
             # use the exponentiall scaled modified bessel function of second kind,
             # (the division will cancel out the scaling)

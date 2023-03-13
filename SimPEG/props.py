@@ -76,7 +76,6 @@ class Mapping:
 
 
 class PhysicalProperty:
-
     reciprocal = None
 
     def __init__(
@@ -251,7 +250,6 @@ class NestedModeler:
 
 
 def Invertible(property_name):
-
     mapping = Mapping(f"Mapping of the inversion model to {property_name}.")
 
     physical_property = PhysicalProperty(
@@ -278,7 +276,6 @@ class BaseSimPEG:
 
 class PhysicalPropertyMetaclass(type):
     def __new__(mcs, name, bases, classdict):
-
         # set the phyiscal properties list.
 
         property_dict = {

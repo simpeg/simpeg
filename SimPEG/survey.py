@@ -27,7 +27,6 @@ class BaseRx:
     _Ps = None
 
     def __init__(self, locations, storeProjections=False, **kwargs):
-
         self.locations = locations
 
         # Deprecated properties
@@ -291,7 +290,6 @@ class BaseSrc:
     """
 
     def __init__(self, receiver_list=None, location=None, **kwargs):
-
         if receiver_list is None:
             receiver_list = []
         self.receiver_list = receiver_list
@@ -426,7 +424,6 @@ class BaseSurvey:
     """
 
     def __init__(self, source_list, counter=None, **kwargs):
-
         # Source list
         if source_list is None:
             source_list = []

@@ -5,7 +5,6 @@ from SimPEG import Report
 
 class TestReport(unittest.TestCase):
     def test_version_defaults(self):
-
         # Reporting is now done by the external package scooby.
         # We just ensure the shown packages do not change (core and optional).
         out1 = Report()

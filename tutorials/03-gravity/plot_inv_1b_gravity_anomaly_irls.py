@@ -32,8 +32,8 @@ import matplotlib.pyplot as plt
 import tarfile
 
 from discretize import TensorMesh
-
-from SimPEG.utils import plot2Ddata, surface2ind_topo, model_builder
+from discretize.utils import active_from_xyz
+from SimPEG.utils import plot2Ddata, model_builder
 from SimPEG.potential_fields import gravity
 from SimPEG import (
     maps,
@@ -191,7 +191,7 @@ mesh = TensorMesh([hx, hy, hz], "CCN")
 #
 
 # Find the indices of the active cells in forward model (ones below surface)
-ind_active = surface2ind_topo(mesh, xyz_topo)
+ind_active = active_from_xyz(mesh, xyz_topo)
 
 # Define mapping from model to active cells
 nC = int(ind_active.sum())
@@ -417,7 +417,6 @@ cplot = 3 * [None]
 v_lim = [np.max(np.abs(dobs)), np.max(np.abs(dobs)), np.max(np.abs(data_array[:, 2]))]
 
 for ii in range(0, 3):
-
     ax1[ii] = fig.add_axes([0.33 * ii + 0.03, 0.11, 0.23, 0.84])
     cplot[ii] = plot2Ddata(
         receiver_list[0].locations,

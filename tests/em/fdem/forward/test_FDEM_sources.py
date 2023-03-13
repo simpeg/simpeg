@@ -39,7 +39,6 @@ class TestSimpleSourcePropertiesTensor(unittest.TestCase):
         )
 
     def test_MagDipole(self):
-
         print("\ntesting MagDipole assignments")
 
         for orient in ["x", "y", "z", "X", "Y", "Z"]:
@@ -69,7 +68,6 @@ class TestSimpleSourcePropertiesTensor(unittest.TestCase):
             assert np.all(src.orientation == orient_vec)
 
     def test_MagDipoleSimpleFail(self):
-
         print("\ntesting MagDipole error handling")
 
         with warnings.catch_warnings(record=True):
@@ -135,9 +133,7 @@ class TestSimpleSourcePropertiesTensor(unittest.TestCase):
 
             look_at_these = np.ones(self.mesh.nEx + self.mesh.nEy, dtype=bool)
 
-        look_at_these = np.hstack(
-            [look_at_these, np.array(ignore_these == False, dtype=bool)]
-        )
+        look_at_these = np.hstack([look_at_these, np.array(~ignore_these, dtype=bool)])
 
         bPrimary_ana = np.hstack([bx, by, bz])
 
@@ -159,7 +155,6 @@ class TestSimpleSourcePropertiesTensor(unittest.TestCase):
         )
 
         if plotIt is True:
-
             print(self.mesh.vnF)
 
             fig, ax = plt.subplots(1, 2)
@@ -461,7 +456,6 @@ def test_CircularLoop_test_N_assign():
 
 
 def test_line_current_failures():
-
     rx_locs = [[0.5, 0.5, 0]]
     tx_locs = [[0, 0, 0], [0, 1, 0], [1, 1, 0], [1, 0, 0], [0, 0, 0]]
     rx = fdem.receivers.PointMagneticFluxDensity(

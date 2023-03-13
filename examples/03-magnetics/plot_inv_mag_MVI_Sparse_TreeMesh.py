@@ -31,7 +31,7 @@ from SimPEG import (
 from SimPEG import utils
 from SimPEG.utils import mkvc
 
-from discretize.utils import mesh_builder_xyz, refine_tree_xyz
+from discretize.utils import active_from_xyz, mesh_builder_xyz, refine_tree_xyz
 from SimPEG.potential_fields import magnetics
 import scipy as sp
 import numpy as np
@@ -114,7 +114,7 @@ mesh = refine_tree_xyz(
 
 
 # Define an active cells from topo
-actv = utils.surface2ind_topo(mesh, topo)
+actv = active_from_xyz(mesh, topo)
 nC = int(actv.sum())
 
 ###########################################################################
@@ -137,7 +137,6 @@ def plotVectorSectionsOctree(
     actvMap=None,
     fill=True,
 ):
-
     """
     Plot section through a 3D tensor model
     """
@@ -188,7 +187,7 @@ def plotVectorSectionsOctree(
     # Interpolate values from mesh.gridCC to grid2d
     ind_3d_to_2d = mesh._get_containing_cell_indexes(tm_gridboost)
     v2d = m[ind_3d_to_2d, :]
-    amp = np.sum(v2d ** 2.0, axis=1) ** 0.5
+    amp = np.sum(v2d**2.0, axis=1) ** 0.5
 
     if axs is None:
         axs = plt.subplot(111)

@@ -13,7 +13,6 @@ np.random.seed(10)
 
 class JTVTensor2D(unittest.TestCase):
     def setUp(self):
-
         dh = 1.0
         nx = 12
         ny = 12
@@ -62,7 +61,6 @@ class JTVTensor2D(unittest.TestCase):
 
 class JTVTensor3D(unittest.TestCase):
     def setUp(self):
-
         dh = 1.0
         nx = 12
         ny = 12
@@ -113,7 +111,6 @@ class JTVTensor3D(unittest.TestCase):
 
 class JTVTree2D(unittest.TestCase):
     def setUp(self):
-
         dh = 1.0
         nx = 16
         ny = 16
@@ -159,7 +156,6 @@ class JTVTree2D(unittest.TestCase):
 
 class JTVTree3D(unittest.TestCase):
     def setUp(self):
-
         dh = 1.0
         nx = 16
         ny = 16

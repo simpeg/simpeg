@@ -51,7 +51,6 @@ def get_prob(mesh, mapping, formulation, **kwargs):
 
 
 def get_survey(times, t0):
-
     out = utils.VTEMFun(times, 0.00595, 0.006, 100)
     wavefun = interp1d(times, out)
 
@@ -62,7 +61,6 @@ def get_survey(times, t0):
 
 
 class Base_DerivAdjoint_Test(unittest.TestCase):
-
     t0 = 0.006
 
     @classmethod
@@ -119,7 +117,6 @@ class Base_DerivAdjoint_Test(unittest.TestCase):
                 src.receiver_list = rxlist
 
     def JvecTest(self, rxcomp):
-
         np.random.seed(4)
         self.set_receiver_list(rxcomp)
 
@@ -159,7 +156,6 @@ class Base_DerivAdjoint_Test(unittest.TestCase):
 
 
 class DerivAdjoint_E(Base_DerivAdjoint_Test):
-
     formulation = "ElectricField"
 
     if testDeriv:
@@ -186,7 +182,6 @@ class DerivAdjoint_E(Base_DerivAdjoint_Test):
 
 
 class DerivAdjoint_B(Base_DerivAdjoint_Test):
-
     formulation = "MagneticFluxDensity"
 
     if testDeriv:
@@ -225,7 +220,6 @@ class DerivAdjoint_B(Base_DerivAdjoint_Test):
 
 
 class DerivAdjoint_H(Base_DerivAdjoint_Test):
-
     formulation = "MagneticField"
 
     if testDeriv:
@@ -261,7 +255,6 @@ class DerivAdjoint_H(Base_DerivAdjoint_Test):
 
 
 class DerivAdjoint_J(Base_DerivAdjoint_Test):
-
     formulation = "CurrentDensity"
 
     if testDeriv:

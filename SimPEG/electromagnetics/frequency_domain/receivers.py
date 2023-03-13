@@ -33,7 +33,6 @@ class BaseRx(survey.BaseRx):
         use_source_receiver_offset=False,
         **kwargs,
     ):
-
         proj = kwargs.pop("projComp", None)
         if proj is not None:
             warnings.warn(

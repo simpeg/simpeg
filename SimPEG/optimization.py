@@ -269,7 +269,6 @@ class Minimize(object):
     factor = 1.0
 
     def __init__(self, **kwargs):
-
         setKwargs(self, **kwargs)
 
         self.stoppersLS = [
@@ -492,7 +491,7 @@ class Minimize(object):
                     pad=pad,
                 )
                 print(self.print_target)
-            except:
+            except AttributeError:
                 printDone(
                     self,
                     self.printers,
@@ -1136,7 +1135,6 @@ class NewtonRoot(object):
 
         self.iter = 0
         while True:
-
             r, J = fun(x, return_g=True)
 
             Jinv = self.Solver(J, **self.solverOpts)
@@ -1261,7 +1259,6 @@ class ProjectedGNCG(BFGS, Minimize, Remember):
         count = 0
 
         while np.all([np.linalg.norm(r) > self.tolCG, count < self.maxIterCG]):
-
             count += 1
 
             q = (1 - Active) * (self.H * p)
@@ -1284,7 +1281,6 @@ class ProjectedGNCG(BFGS, Minimize, Remember):
 
         # Take a gradient step on the active cells if exist
         if temp != self.xc.size:
-
             rhs_a = (Active) * -self.g
 
             dm_i = max(abs(step))

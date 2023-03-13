@@ -77,7 +77,6 @@ class FDEM_analyticTests(unittest.TestCase):
         self.u = u
 
     def test_Transect(self, plotIt=plotIt):
-
         for src in self.prb.survey.source_list:
             print(" --- testing {} --- ".format(src.__class__.__name__))
             x = np.linspace(-55, 55, 12)

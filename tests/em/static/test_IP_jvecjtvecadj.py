@@ -19,7 +19,6 @@ np.random.seed(30)
 
 class IPProblemTestsCC(unittest.TestCase):
     def setUp(self):
-
         aSpacing = 2.5
         nElecs = 5
 
@@ -90,7 +89,6 @@ class IPProblemTestsCC(unittest.TestCase):
 
 class IPProblemTestsN(unittest.TestCase):
     def setUp(self):
-
         aSpacing = 2.5
         nElecs = 5
 
@@ -160,7 +158,6 @@ class IPProblemTestsN(unittest.TestCase):
 
 class IPProblemTestsCC_storeJ(unittest.TestCase):
     def setUp(self):
-
         aSpacing = 2.5
         nElecs = 5
 
@@ -241,7 +238,6 @@ class IPProblemTestsCC_storeJ(unittest.TestCase):
 
 class IPProblemTestsN_storeJ(unittest.TestCase):
     def setUp(self):
-
         aSpacing = 2.5
         nElecs = 5
 

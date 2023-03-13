@@ -16,7 +16,7 @@ import matplotlib.pyplot as plt
 
 try:
     from pymatsolver import Pardiso as Solver
-except:
+except ImportError:
     from SimPEG import Solver
 
 
@@ -124,7 +124,6 @@ def run(plotIt=True):
 
 
 if __name__ == "__main__":
-
     do_plots = True
     run(do_plots)
     if do_plots:
