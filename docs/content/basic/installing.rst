@@ -28,12 +28,14 @@ Installing SimPEG
 Conda Forge
 -----------
 
-You can install SimPEG using the `conda package manager <https://conda.io/>`_ that comes with the Anaconda distribution:
+You can install SimPEG using the `conda package manager <https://conda.io/>`_ that
+comes with the Anaconda distribution:
 
 .. code::
 
     conda install SimPEG --channel conda-forge
 
+Installing through `conda` is our recommended method of installation.
 
 PyPi
 ----
@@ -116,7 +118,10 @@ Lessons in Python
 Editing Python
 --------------
 
-There are numerous ways to edit and test Python (see `PythonWiki <http://wiki.python.org/moin/PythonEditors>`_ for an overview) and in our group at least the following options are being used:
+There are numerous ways to edit and test Python (see
+`PythonWiki <http://wiki.python.org/moin/PythonEditors>`_ for an overview) and
+in our group at least the following options are being used:
 
-* `Sublime <https://www.sublimetext.com/>`_
 * `Jupyter <http://jupyter.org/>`_
+* `Sublime <https://www.sublimetext.com/>`_
+* `PyCharm <https://www.jetbrains.com/pycharm/>`_

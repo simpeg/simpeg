@@ -103,13 +103,23 @@ If you are using the electromagnetics module of SimPEG, please cite:
         doi = "http://dx.doi.org/10.1016/j.cageo.2017.06.018"
     }
 
+Questions
+=========
+
+Please do not create an issue to ask a question. You will get a faster
+response by posting on our Discourse discussion forum:
+https://simpeg.discourse.group/. If you prefer real-time chat,
+you can join our slack group at http://slack.simpeg.xyz.
 
 
 Links
 =====
 
 Website:
-http://simpeg.xyz
+https://simpeg.xyz
+
+Forums:
+https://simpeg.discourse.group/
 
 
 Slack (real time chat):
@@ -117,7 +127,7 @@ http://slack.simpeg.xyz
 
 
 Documentation:
-http://docs.simpeg.xyz
+https://docs.simpeg.xyz
 
 
 Code:
@@ -125,8 +135,17 @@ https://github.com/simpeg/simpeg
 
 
 Tests:
-https://travis-ci.org/simpeg/simpeg
+https://dev.azure.com/simpeg/simpeg/_build
 
 
 Bugs & Issues:
 https://github.com/simpeg/simpeg/issues
+
+Contributing
+============
+
+We always welcome contributions towards SimPEG whether they are adding
+new code, suggesting improvements to existing codes, identifying bugs,
+providing examples, or anything that will improve SimPEG.
+Please checkout the `contributing guide <https://docs.simpeg.xyz/content/basic/contributing.html>`_
+for more information on how to contribute.

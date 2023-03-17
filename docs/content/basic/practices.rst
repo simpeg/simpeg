@@ -8,34 +8,30 @@ Practices
 
 Here we cover
 
-- :ref:`Testing <testing>`
-- :ref:`Style <style>`
-- :ref:`Licensing <licensing>`
+- `testing`_
+- style_
+- licensing_
 
 .. _testing:
 
 Testing
 -------
 
-.. image:: https://travis-ci.org/simpeg/simpeg.svg?branch=main
-    :target: https://travis-ci.org/simpeg/simpeg
+.. image:: https://dev.azure.com/simpeg/simpeg/_apis/build/status/simpeg.simpeg?branchName=main
+    :target: https://dev.azure.com/simpeg/simpeg/_build/latest?definitionId=2&branchName=main
+    :alt: Azure pipeline
 
 .. image:: https://codecov.io/gh/simpeg/simpeg/branch/main/graph/badge.svg
     :target: https://codecov.io/gh/simpeg/simpeg
     :alt: Coverage status
 
-.. image:: https://blog.travis-ci.com/images/travis-mascot-200px.png
-    :target: https://travis-ci.org/simpeg/simpeg
-    :align: right
-    :width: 80px
-
 On each update, SimPEG is tested using the continuous integration service
-`Travis CI <https://travis-ci.org/>`_. We use `Codecov <http://codecov.io>`_
-to check and provide stats on how much of the code base is covered by tests.
-This tells which lines of code have been run in the test suite. It does not
-tell you about the quality of the tests run! In order to assess that, have a
-look at the tests we are running - they tell you the assumptions that we do
-not want to break within the code base.
+`azure pipelines <https://azure.microsoft.com/en-us/products/devops/pipelines>`_.
+We use `Codecov <http://codecov.io>`_ to check and provide stats on how much
+of the code base is covered by tests. This tells which lines of code have been
+run in the test suite. It does not tell you about the quality of the tests run!
+In order to assess that, have a look at the tests we are running - they tell you
+the assumptions that we do not want to break within the code base.
 
 Within the repository, the tests are located in the top-level **tests**
 directory. Tests are organized similar to the structure of the repository.
@@ -44,59 +40,48 @@ but meant to provide a few places to look when you are developing and would
 like to check that the code you wrote satisfies the assumptions you think it
 should.
 
-All tests inherit from :code:`unittest` which is a part of core python.
-Checkout the docs on `unittest
-<https://docs.python.org/2.7/library/unittest.html>`_.
+Testing is performed with :code:`pytest` which is available through PyPI.
+Checkout the docs on `pytest <https://docs.pytest.org/>`_.
 
 
 Compare with known values
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
 In a simple case, you might know the exact value of what the output should be
-and you can :code:`assert` that this is in fact the case. For example, in
-`test_basemesh.py
-<https://github.com/simpeg/discretize/blob/main/tests/base/test_basemesh.py>`_,
+and you can :code:`assert` that this is in fact the case. For example,
 we setup a 3D :code:`BaseRectangularMesh` and assert that it has 3 dimensions.
 
 .. code:: python
 
-    import unittest
-    import sys
     from discretize.base import BaseRectangularMesh
     import numpy as np
 
-    class TestBaseMesh(unittest.TestCase):
+    mesh = BaseRectangularMesh([6, 2, 3])
 
-        def setUp(self):
-            self.mesh = BaseRectangularMesh([6, 2, 3])
+    def test_meshDimensions():
+        assert mesh.dim == 3
 
-        def test_meshDimensions(self):
-            self.assertTrue(self.mesh.dim, 3)
-
-The class inherits from :code:`unittest.TestCase`. When running the tests, the
-:code:`setUp` is run first, in this case we attach a mesh to the instance of
-this class, and then all functions with the naming convention :code:`test_XXX`
+All functions with the naming convention :code:`test_XXX`
 are run. Here we check that the dimensions are correct for the 3D mesh.
 
 If the value is not an integer, you can be subject to floating point errors,
-so :code:`assertTrue` might be too harsh. In this case, you will want to use a
-tolerance. For instance in `test_maps.py <https://github.com/simpeg/simpeg/blob/main/tests/base/test_maps.py>`_
-
+so :code:`assert ==` might be too harsh. In this case, you will want to use
+the ``numpy.testing`` module to check for approximate equals. For instance,
 
 .. code:: python
 
-    class MapTests(unittest.TestCase):
+    import numpy as np
+    import discretize
+    from SimPEG import maps
 
-        # method setUp is used to create meshes
-
-        def test_mapMultiplication(self):
-            M = discretize.TensorMesh([2,3])
-            expMap = maps.ExpMap(M)
-            vertMap = maps.SurjectVertical1D(M)
-            combo = expMap*vertMap
-            m = np.arange(3.0)
-            t_true = np.exp(np.r_[0,0,1,1,2,2.])
-            self.assertLess(np.linalg.norm((combo * m)-t_true,np.inf),TOL)
+    def test_mapMultiplication(self):
+        M = discretize.TensorMesh([2,3])
+        expMap = maps.ExpMap(M)
+        vertMap = maps.SurjectVertical1D(M)
+        combo = expMap*vertMap
+        m = np.arange(3.0)
+        t_true = np.exp(np.r_[0,0,1,1,2,2.])
+        np.testing.assert_allclose(combo * m, t_true)
 
 These are rather simple examples, more advanced tests might include `solving an
 electromagnetic problem numerically and comparing it to an analytical
@@ -117,7 +102,7 @@ curl operator in `test_operators.py <https://github.com/simpeg/discretize/blob/m
 
     import numpy as np
     import unittest
-    from SimPEG.tests import OrderTest
+    from discretize.tests import OrderTest
 
     class TestCurl2D(OrderTest):
         name = "Cell Grad 2D - Dirichlet"
@@ -177,7 +162,9 @@ Documentation
 -------------
 
 Documentation helps others use your code! Please document new contributions.
-SimPEG uses `sphinx <http://www.sphinx-doc.org/>`_ to build the documentation.
+SimPEG trys to follow the `numpydoc` style of docstrings, check out the
+`style guide <https://numpydoc.readthedocs.io/en/latest/format.html>`_.
+SimPEG then uses `sphinx <http://www.sphinx-doc.org/>`_ to build the documentation.
 When documenting a new class or function, please include a description
 (with math if it solves an equation), inputs, outputs and preferably a small example.
 
@@ -187,30 +174,51 @@ For example:
 
 
     class WeightedLeastSquares(BaseComboRegularization):
-        """
-        L2 WeightedLeastSquares regularization with both smallness and smoothness (first order
+        r"""Weighted least squares measure on model smallness and smoothness.
+
+        L2 regularization with both smallness and smoothness (first order
         derivative) contributions.
 
-        .. math::
-            \phi_m(\mathbf{m}) = \\alpha_s \| W_s (\mathbf{m} - \mathbf{m_{ref}} ) \|^2
-            + \\alpha_x \| W_x \\frac{\partial}{\partial x} (\mathbf{m} - \mathbf{m_{ref}} ) \|^2
-            + \\alpha_y \| W_y \\frac{\partial}{\partial y} (\mathbf{m} - \mathbf{m_{ref}} ) \|^2
-            + \\alpha_z \| W_z \\frac{\partial}{\partial z} (\mathbf{m} - \mathbf{m_{ref}} ) \|^2
+        Parameters
+        ----------
+        mesh : discretize.base.BaseMesh
+        active_cells : array_like of bool or int, optional
+            List of active cell indices, or a `mesh.n_cells` boolean array
+            describing active cells.
+        alpha_s : float, optional
+            Smallness weight
+        alpha_x, alpha_y, alpha_z : float or None, optional
+            First order smoothness weights for the respective dimensions.
+            `None` implies setting these weights using the `length_scale`
+            parameters.
+        alpha_xx, alpha_yy, alpha_zz : float, optional
+            Second order smoothness weights for the respective dimensions.
+        length_scale_x, length_scale_y, length_scale_z : float, optional
+            First order smoothness length scales for the respective dimensions.
+        mapping : SimPEG.maps.IdentityMap, optional
+            A mapping to apply to the model before regularization.
+        reference_model : array_like, optional
+        reference_model_in_smooth : bool, optional
+            Whether to include the reference model in the smoothness terms.
+        weights : None, array_like, or dict or array_like, optional
+            User defined weights. It is recommended to interact with weights using
+            the `get_weights`, `set_weights` functionality.
 
-        Note if the key word argument `mrefInSmooth` is False, then mref is not
+        Notes
+        -----
+        The function defined here approximates:
+
+        .. math::
+            \phi_m(\mathbf{m}) = \alpha_s \| W_s (\mathbf{m} - \mathbf{m_{ref}} ) \|^2
+            + \alpha_x \| W_x \frac{\partial}{\partial x} (\mathbf{m} - \mathbf{m_{ref}} ) \|^2
+            + \alpha_y \| W_y \frac{\partial}{\partial y} (\mathbf{m} - \mathbf{m_{ref}} ) \|^2
+            + \alpha_z \| W_z \frac{\partial}{\partial z} (\mathbf{m} - \mathbf{m_{ref}} ) \|^2
+
+        Note if the key word argument `reference_model_in_smooth` is False, then mref is not
         included in the smoothness contribution.
 
-        :param discretize.base.BaseMesh mesh: SimPEG mesh
-        :param IdentityMap mapping: regularization mapping, takes the model from model space to the thing you want to regularize
-        :param numpy.ndarray indActive: active cell indices for reducing the size of differential operators in the definition of a regularization mesh
-        :param bool mrefInSmooth: (default = False) put mref in the smoothness component?
-        :param float alpha_s: (default 1e-6) smallness weight
-        :param float alpha_x: (default 1) smoothness weight for first derivative in the x-direction
-        :param float alpha_y: (default 1) smoothness weight for first derivative in the y-direction
-        :param float alpha_z: (default 1) smoothness weight for first derivative in the z-direction
-        :param float alpha_xx: (default 1) smoothness weight for second derivative in the x-direction
-        :param float alpha_yy: (default 1) smoothness weight for second derivative in the y-direction
-        :param float alpha_zz: (default 1) smoothness weight for second derivative in the z-direction
+        If length scales are used to set the smoothness weights, alphas are respectively set internally using:
+        >>> alpha_x = (length_scale_x * min(mesh.edge_lengths)) ** 2
         """
 
 
@@ -220,11 +228,29 @@ For example:
 Style
 -----
 
-Consistency make code more readable and easier for collaborators to jump in.
+Consistency makes code more readable and easier for collaborators to jump in.
 `PEP 8 <https://www.python.org/dev/peps/pep-0008/>`_ provides conventions for
 coding in Python. SimPEG is currently not `PEP 8
 <https://www.python.org/dev/peps/pep-0008/>`_ compliant, but we are working
-towards it and would appreciate contributions that do too! If you have sublime text 3, the linter can be set up through sublime text 3's package manager. The step by step process is found :ref:`here <api_practices_linter_install>`.
+towards it and would appreciate contributions that do too!
+
+SimPEG uses `black <https://black.readthedocs.io/>`_ version 23.1.0 to autoformat
+the code base, and all additions to the code are tested to ensure that they are
+compliant with `black`. We recommend installing `pre-commit <https://pre-commit.com/>`_
+hooks that are run on every commit to automatically ensure compliance.
+
+We also actively update the code base to ensure pep8 compliance by checking with
+`flake8 <https://flake8.pycqa.org/>`_ This performs style checks that could lead
+towards bugs, performs checks on consistent documentation formatting, or just
+identify poor coding practices. This is an ongoing process where we are fixing one
+style warning at a time. The fixed style warnings are checked to ensure no new code
+goes against an already established style. This test can also be installed locally
+using pre-commit hooks, similar to `black` above.
+
+
+If you have sublime text 3, the linter can be set up through sublime text 3's package manager. The step by
+step process is found :ref:`here <api_practices_linter_install>`. Other IDE's
+will also generally warn the user on on pep8 compliance.
 
 Sublime has PEP 8 linter packages that you can use. I use `SublimeLinter-pep8 <https://github.com/SublimeLinter/SublimeLinter-pep8>`_.
 You can install it by going to your package manager (`cmd + shift + p`),
