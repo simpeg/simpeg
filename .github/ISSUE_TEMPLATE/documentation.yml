@@ -1,0 +1,20 @@
+name: Documentation
+description: Report an issue related to SimPEG's documentation.
+title: "DOC: <Please write a comprehensive title after the 'DOC: ' prefix>"
+labels: [Documentation]
+
+body:
+- type: textarea
+  attributes:
+    label: "Issue with current documentation:"
+    description: >
+      Please make sure to leave a reference to the document/code you're
+      referring to.
+
+- type: textarea
+  attributes:
+    label: "Idea or request for content:"
+    description: >
+      We would like to note that the SimPEG documentation is a work in progress.
+      But if there is a specific function you need documentation for, it might
+      help us to prioritize adding it.
