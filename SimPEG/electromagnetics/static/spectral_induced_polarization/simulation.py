@@ -402,7 +402,7 @@ class BaseSIPSimulation(BaseIPSimulation):
 
             return self._Jmatrix
 
-    def getJtJdiag(self, m, Wd):
+    def getJtJdiag(self, m, Wd, f=None):
         """
         Compute JtJ using adjoint problem. Still we never form
         JtJ
@@ -411,7 +411,7 @@ class BaseSIPSimulation(BaseIPSimulation):
             print(">> Compute trace(JtJ)")
         ntime = len(self.survey.unique_times)
         JtJdiag = np.zeros_like(m)
-        J = self.getJ(m, f=None)
+        J = self.getJ(m, f=f)
         wd = Wd.diagonal().reshape((self.survey.locations_n, ntime), order="F")
         for tind in range(ntime):
             t = self.survey.unique_times[tind]

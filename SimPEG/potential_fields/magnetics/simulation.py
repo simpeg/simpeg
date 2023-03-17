@@ -146,7 +146,7 @@ class Simulation3DIntegral(BasePFSimulation):
 
         return self._tmi_projection
 
-    def getJtJdiag(self, m, W=None):
+    def getJtJdiag(self, m, W=None, f=None):
         """
         Return the diagonal of JtJ
         """

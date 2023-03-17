@@ -850,8 +850,8 @@ def validate_integer(property_name, var, min_val=-np.inf, max_val=np.inf):
     """
     try:
         var = int(var)
-    except:
-        raise TypeError(f"{property_name!r} must be a number, got {type(var)}")
+    except (ValueError, TypeError) as err:
+        raise TypeError(f"{property_name!r} must be a number, got {type(var)}") from err
 
     if (var < min_val) | (var > max_val):
         raise ValueError(
@@ -893,8 +893,10 @@ def validate_float(
     """
     try:
         var = float(var)
-    except:
-        raise TypeError(f"{property_name!r} must be int or float, got {type(var)}")
+    except (ValueError, TypeError) as err:
+        raise TypeError(
+            f"{property_name!r} must be int or float, got {type(var)}"
+        ) from err
 
     value_range_string = f"{min_val}, {max_val}"
     if inclusive_min:
@@ -975,8 +977,10 @@ def validate_location_property(property_name, var, dim=None):
     """
     try:
         var = np.atleast_1d(var).astype(float).squeeze()
-    except:
-        raise TypeError(f"{property_name!r} must be 1D array_like, got {type(var)}")
+    except (TypeError, ValueError) as err:
+        raise TypeError(
+            f"{property_name!r} must be 1D array_like, got {type(var)}"
+        ) from err
 
     if len(var.shape) > 1:
         raise ValueError(
@@ -1026,13 +1030,14 @@ def validate_ndarray_with_shape(property_name, var, shape=None, dtype=float):
             var = np.asarray(var, dtype=dtype)
             bad_type = False
             break
-        except:
+        except (TypeError, ValueError) as err:
             bad_type = True
+            raised_err = err
 
     if bad_type:
         raise TypeError(
             f"{property_name!r} must be array_like with data type of {dtype}, got {type(var)}"
-        )
+        ) from raised_err
 
     if shape is None:
         return var
@@ -1099,11 +1104,11 @@ def validate_type(property_name, obj, obj_type, cast=True, strict=False):
     if cast:
         try:
             obj = obj_type(obj)
-        except:
+        except Exception as err:
             raise TypeError(
                 f"{type(obj).__name__} cannot be converted to type {obj_type.__name__} "
                 f"required for {property_name}."
-            )
+            ) from err
     if strict and type(obj) != obj_type:
         raise TypeError(
             f"Object must be exactly a {obj_type.__name__} for {property_name}"

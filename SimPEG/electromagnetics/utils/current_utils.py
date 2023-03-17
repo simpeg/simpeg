@@ -317,7 +317,7 @@ def _poly_line_source_tree(mesh, locs):
         # Find indices of all cells intersected by the wirepath
         srcCellIds = mesh.get_cells_along_line(A, B)
         levels = mesh.cell_levels_by_index(srcCellIds)
-        if np.any(levels != levels[0]):
+        if isinstance(levels, np.ndarray) and np.any(levels != levels[0]):
             warnings.warn("Warning! Line path crosses a cell level change.")
 
         # Starts at point A!

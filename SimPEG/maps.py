@@ -534,6 +534,83 @@ class ComboMap(IdentityMap):
         return len(self.maps)
 
 
+class LinearMap(IdentityMap):
+    """A generalized linear mapping.
+
+    A simple map that implements the linear mapping,
+
+    >>> y = A @ x + b
+
+    Parameters
+    ----------
+    A : (M, N) array_like, optional
+        The matrix operator, can be any object that implements `__matmul__`
+        and has a `shape` attribute.
+    b : (M) array_like, optional
+        Additive part of the linear operation.
+    """
+
+    def __init__(self, A, b=None, **kwargs):
+        mesh = kwargs.pop("mesh", None)
+        nP = kwargs.pop("nP", None)
+        super().__init__(**kwargs)
+        self.A = A
+        self.b = b
+
+    @property
+    def A(self):
+        """The linear operator matrix.
+
+        Returns
+        -------
+        LinearOperator
+            Must support matrix multiplication and have a shape attribute.
+        """
+        return self._A
+
+    @A.setter
+    def A(self, value):
+        if not hasattr(value, "__matmul__"):
+            raise TypeError(
+                f"{repr(value)} does not implement the matrix multiplication operator."
+            )
+        if not hasattr(value, "shape"):
+            raise TypeError(f"{repr(value)} does not have a shape attribute.")
+        self._A = value
+        self._nP = value.shape[1]
+        self._shape = value.shape
+
+    @property
+    def shape(self):
+        return self._shape
+
+    @property
+    def b(self):
+        """Added part of the linear operation.
+
+        Returns
+        -------
+        numpy.ndarray
+        """
+        return self._b
+
+    @b.setter
+    def b(self, value):
+        if value is not None:
+            value = validate_ndarray_with_shape("b", value, shape=(self.shape[0],))
+        self._b = value
+
+    def _transform(self, m):
+        if self.b is None:
+            return self.A @ m
+        return self.A @ m + self.b
+
+    def deriv(self, m, v=None):
+        if v is None:
+            return self.A
+        return self.A @ v
+
+
 class Projection(IdentityMap):
     r"""Projection mapping.
 
@@ -2942,16 +3019,21 @@ class Mesh2Mesh(IdentityMap):
     """
 
     def __init__(self, meshes, indActive=None, **kwargs):
+        # Sanity checks for the meshes parameter
         try:
             mesh, mesh2 = meshes
-        except:
-            raise TypeError("meshes must be a list of two meshes")
+        except TypeError:
+            raise TypeError("Couldn't unpack 'meshes' into two meshes.")
 
         super().__init__(mesh=mesh, **kwargs)
 
         self.mesh2 = mesh2
-        if self.mesh.dim != self.mesh2.dim:
-            raise ValueError("mesh and mesh2 must have the same dimension.")
+        # Check dimensions of both meshes
+        if mesh.dim != mesh2.dim:
+            raise ValueError(
+                f"Found meshes with dimensions '{mesh.dim}' and '{mesh2.dim}'. "
+                + "Both meshes must have the same dimension."
+            )
         self.indActive = indActive
 
     # reset to not accepted None for mesh
