@@ -471,21 +471,21 @@ class Report(ScoobyReport):
             "pymatsolver",
             "numpy",
             "scipy",
-            "cython",
+            "sklearn",
+            "matplotlib",
+            "empymod",
+            "geoana",
+            "pandas",
         ]
 
         # Optional packages.
         optional = [
-            "geoana",
+            "cython",
             "pydiso",
-            "empymod",
             "numba",
             "dask",
-            "sklearn",
             "sympy",
-            "pandas",
             "IPython",
-            "matplotlib",
             "ipywidgets",
             "plotly",
             "vtk",
