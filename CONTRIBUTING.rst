@@ -103,7 +103,7 @@ feel the pull request is ready for final review, you can convert the draft PR to
 an open PR by selecting the ``Ready for review`` button at the bottom of the page.
 
 Once a pull request is in ``open`` status and you are ready for review, please ping
-the simpeg developers in a github comment ``@simpeg-developers`` to request a
+the simpeg developers in a github comment ``@simpeg/simpeg-developers`` to request a
 review. At minimum for a PR to be eligible to merge, we look for
 
 - 100% (or as close as possible) difference testing. Meaning any new code is completely tested.
@@ -111,7 +111,7 @@ review. At minimum for a PR to be eligible to merge, we look for
 - All reviewer comments (if any) have been addressed.
 - A developer approves the PR.
 
-After all these steps are satisfied, a ``@simpeg-admin`` will merge your pull request into
+After all these steps are satisfied, a ``@simpeg/simpeg-admin`` will merge your pull request into
 the main branch (feel free to ping one of us on github).
 
 This being said, all simpeg developers and admins are essentially volunteers
