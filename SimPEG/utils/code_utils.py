@@ -20,6 +20,67 @@ except ImportError:
             )
 
 
+def requires(var):
+    """Wrap a function to require a specfic attribute.
+
+
+    Use the following syntax to wrap a funciton::
+
+        @requires('prob')
+        def dpred(self):
+            pass
+
+    This wrapper will ensure that a problem has been bound to the data.
+    If a problem is not bound an Exception will be raised, and an nice error message printed.
+
+    Parameters
+    ----------
+    var :
+        Input variable
+
+    Returns
+    -------
+    wrapper
+        The wrapper
+    """
+
+    def requiresVar(f):
+        if var == "prob":
+            extra = """
+
+        .. note::
+
+            To use survey.{0!s}(), SimPEG requires that a problem be bound to the survey.
+            If a problem has not been bound, an Exception will be raised.
+            To bind a problem to the Data object::
+
+                survey.pair(myProblem)
+
+            """.format(
+                f.__name__
+            )
+        else:
+            extra = """
+                To use *{0!s}* method, SimPEG requires that the {1!s} be specified.
+            """.format(
+                f.__name__, var
+            )
+
+        @wraps(f)
+        def requiresVarWrapper(self, *args, **kwargs):
+            if getattr(self, var, None) is None:
+                raise Exception(extra)
+            return f(self, *args, **kwargs)
+
+        doc = requiresVarWrapper.__doc__
+        requiresVarWrapper.__doc__ = ("" if doc is None else doc) + extra
+
+        return requiresVarWrapper
+
+    return requiresVar
+
+
+@requires("memory_profiler")
 def create_wrapper_from_class(input_class, *fun_names):
     """Create wrapper class with memory profiler.
 
@@ -357,66 +418,6 @@ def dependent_property(name, value, children, doc):
     return property(fget=fget, fset=fset, doc=doc)
 
 
-def requires(var):
-    """Wrap a function to require a specfic attribute.
-
-
-    Use the following syntax to wrap a funciton::
-
-        @requires('prob')
-        def dpred(self):
-            pass
-
-    This wrapper will ensure that a problem has been bound to the data.
-    If a problem is not bound an Exception will be raised, and an nice error message printed.
-
-    Parameters
-    ----------
-    var :
-        Input variable
-
-    Returns
-    -------
-    wrapper
-        The wrapper
-    """
-
-    def requiresVar(f):
-        if var == "prob":
-            extra = """
-
-        .. note::
-
-            To use survey.{0!s}(), SimPEG requires that a problem be bound to the survey.
-            If a problem has not been bound, an Exception will be raised.
-            To bind a problem to the Data object::
-
-                survey.pair(myProblem)
-
-            """.format(
-                f.__name__
-            )
-        else:
-            extra = """
-                To use *{0!s}* method, SimPEG requires that the {1!s} be specified.
-            """.format(
-                f.__name__, var
-            )
-
-        @wraps(f)
-        def requiresVarWrapper(self, *args, **kwargs):
-            if getattr(self, var, None) is None:
-                raise Exception(extra)
-            return f(self, *args, **kwargs)
-
-        doc = requiresVarWrapper.__doc__
-        requiresVarWrapper.__doc__ = ("" if doc is None else doc) + extra
-
-        return requiresVarWrapper
-
-    return requiresVar
-
-
 class Report(ScoobyReport):
     """Print date, time, and version information.
 
@@ -468,15 +469,29 @@ class Report(ScoobyReport):
             "SimPEG",
             "discretize",
             "pymatsolver",
-            "vectormath",
-            "properties",
             "numpy",
             "scipy",
-            "cython",
+            "sklearn",
+            "matplotlib",
+            "empymod",
+            "geoana",
+            "pandas",
         ]
 
         # Optional packages.
-        optional = ["IPython", "matplotlib", "ipywidgets"]
+        optional = [
+            "cython",
+            "pydiso",
+            "numba",
+            "dask",
+            "sympy",
+            "IPython",
+            "ipywidgets",
+            "plotly",
+            "vtk",
+            "utm",
+            "memory_profiler",
+        ]
 
         super().__init__(
             additional=add_pckg,
