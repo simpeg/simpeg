@@ -1,4 +1,3 @@
-from __future__ import division, print_function
 import unittest
 import numpy as np
 import time
@@ -16,7 +15,6 @@ testAdjoint = False
 
 TOL = 1e-4
 EPS = 1e-20
-np.random.seed(4)
 
 
 def get_mesh():
@@ -37,31 +35,32 @@ def get_mesh():
 
 
 def get_mapping(mesh):
-    active = mesh.vectorCCz < 0.0
-    activeMap = maps.InjectActiveCells(mesh, active, np.log(1e-8), nC=mesh.nCz)
+    active = mesh.cell_centers_z < 0.0
+    activeMap = maps.InjectActiveCells(
+        mesh, active, np.log(1e-8), nC=mesh.shape_cells[2]
+    )
     return maps.ExpMap(mesh) * maps.SurjectVertical1D(mesh) * activeMap
 
 
-def get_prob(mesh, mapping, formulation):
-    prb = getattr(tdem, "Simulation3D{}".format(formulation))(mesh, sigmaMap=mapping)
-    prb.timeSteps = [(1e-3, 5), (1e-4, 5), (5e-5, 10), (5e-5, 10), (1e-4, 10)]
-    prb.Solver = Solver
+def get_prob(mesh, mapping, formulation, **kwargs):
+    prb = getattr(tdem, "Simulation3D{}".format(formulation))(
+        mesh, sigmaMap=mapping, **kwargs
+    )
+    prb.solver = Solver
     return prb
 
 
-def get_survey(prob, t0):
+def get_survey(times, t0):
+    out = utils.VTEMFun(times, 0.00595, 0.006, 100)
+    wavefun = interp1d(times, out)
 
-    out = utils.VTEMFun(prob.times, 0.00595, 0.006, 100)
-    wavefun = interp1d(prob.times, out)
-
-    waveform = tdem.Src.RawWaveform(offTime=t0, waveFct=wavefun)
-    src = tdem.Src.MagDipole([], waveform=waveform, loc=np.array([0.0, 0.0, 0.0]))
+    waveform = tdem.Src.RawWaveform(off_time=t0, waveform_function=wavefun)
+    src = tdem.Src.MagDipole([], waveform=waveform, location=np.array([0.0, 0.0, 0.0]))
 
     return tdem.Survey([src])
 
 
 class Base_DerivAdjoint_Test(unittest.TestCase):
-
     t0 = 0.006
 
     @classmethod
@@ -69,10 +68,16 @@ class Base_DerivAdjoint_Test(unittest.TestCase):
         # create a prob where we will store the fields
         mesh = get_mesh()
         mapping = get_mapping(mesh)
-        self.prob = get_prob(mesh, mapping, self.formulation)
-        self.survey = get_survey(self.prob, self.t0)
+        time_steps = [(1e-3, 5), (1e-4, 5), (5e-5, 10), (5e-5, 10), (1e-4, 10)]
+        t_mesh = discretize.TensorMesh([time_steps])
+        times = t_mesh.nodes_x
+        self.survey = get_survey(times, self.t0)
+
+        self.prob = get_prob(
+            mesh, mapping, self.formulation, survey=self.survey, time_steps=time_steps
+        )
         self.m = np.log(1e-1) * np.ones(self.prob.sigmaMap.nP)
-        self.prob.pair(self.survey)
+
         print("Solving Fields for problem {}".format(self.formulation))
         t = time.time()
         self.fields = self.prob.fields(self.m)
@@ -82,9 +87,14 @@ class Base_DerivAdjoint_Test(unittest.TestCase):
         # iteration
         mesh = get_mesh()
         mapping = get_mapping(mesh)
-        self.probfwd = get_prob(mesh, mapping, self.formulation)
-        self.surveyfwd = get_survey(self.probfwd, self.t0)
-        self.probfwd.pair(self.surveyfwd)
+        self.surveyfwd = get_survey(times, self.t0)
+        self.probfwd = get_prob(
+            mesh,
+            mapping,
+            self.formulation,
+            survey=self.surveyfwd,
+            time_steps=time_steps,
+        )
 
     def get_rx(self, rxcomp):
         rxOffset = 15.0
@@ -94,20 +104,21 @@ class Base_DerivAdjoint_Test(unittest.TestCase):
             np.array([[rxOffset, 0.0, 0.0]]), timerx, rxcomp[-1]
         )
 
-    def set_rxList(self, rxcomp):
+    def set_receiver_list(self, rxcomp):
         # append the right rxlist to the surveys
         rx = [self.get_rx(rxcomp)]
         rxfwd = [self.get_rx(rxcomp)]
 
         # append to srclists
-        for srcList, rxlist in zip(
+        for source_list, rxlist in zip(
             [self.survey.source_list, self.surveyfwd.source_list], [rx, rxfwd]
         ):
-            for src in srcList:
+            for src in source_list:
                 src.receiver_list = rxlist
 
     def JvecTest(self, rxcomp):
-        self.set_rxList(rxcomp)
+        np.random.seed(4)
+        self.set_receiver_list(rxcomp)
 
         def derChk(m):
             return [
@@ -120,10 +131,11 @@ class Base_DerivAdjoint_Test(unittest.TestCase):
                 prbtype=self.formulation, rxcomp=rxcomp
             )
         )
-        tests.checkDerivative(derChk, self.m, plotIt=False, num=2, eps=1e-20)
+        tests.check_derivative(derChk, self.m, plotIt=False, num=2, eps=1e-20)
 
     def JvecVsJtvecTest(self, rxcomp):
-        self.set_rxList(rxcomp)
+        np.random.seed(4)
+        self.set_receiver_list(rxcomp)
         print(
             "\nAdjoint Testing Jvec, Jtvec prob {}, {}".format(self.formulation, rxcomp)
         )
@@ -144,7 +156,6 @@ class Base_DerivAdjoint_Test(unittest.TestCase):
 
 
 class DerivAdjoint_E(Base_DerivAdjoint_Test):
-
     formulation = "ElectricField"
 
     if testDeriv:
@@ -171,7 +182,6 @@ class DerivAdjoint_E(Base_DerivAdjoint_Test):
 
 
 class DerivAdjoint_B(Base_DerivAdjoint_Test):
-
     formulation = "MagneticFluxDensity"
 
     if testDeriv:
@@ -210,7 +220,6 @@ class DerivAdjoint_B(Base_DerivAdjoint_Test):
 
 
 class DerivAdjoint_H(Base_DerivAdjoint_Test):
-
     formulation = "MagneticField"
 
     if testDeriv:
@@ -246,7 +255,6 @@ class DerivAdjoint_H(Base_DerivAdjoint_Test):
 
 
 class DerivAdjoint_J(Base_DerivAdjoint_Test):
-
     formulation = "CurrentDensity"
 
     if testDeriv:
@@ -297,7 +305,7 @@ class DerivAdjoint_J(Base_DerivAdjoint_Test):
 #             return Av, ADeriv_dm
 
 #         print('\n Testing ADeriv {}'.format(prbtype))
-#         tests.checkDerivative(AderivFun, m0, plotIt=False, num=4, eps=EPS)
+#         tests.check_derivative(AderivFun, m0, plotIt=False, num=4, eps=EPS)
 
 #     def A_adjointTest(self, prbtype):
 #         prb, m0, mesh = setUp_TDEM(prbtype)
@@ -380,7 +388,3 @@ class DerivAdjoint_J(Base_DerivAdjoint_Test):
 #             )
 #         )
 #         self.assertTrue(passed)
-
-
-if __name__ == "__main__":
-    unittest.main()

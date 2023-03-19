@@ -27,11 +27,11 @@ tutorial have been developed for modeling both the inductive and VRM responses.
 #
 
 from SimPEG.electromagnetics import viscous_remanent_magnetization as vrm
-from SimPEG.utils import plot2Ddata, surface2ind_topo
+from SimPEG.utils import plot2Ddata
 from SimPEG import maps
 
 from discretize import TreeMesh
-from discretize.utils import mkvc, refine_tree_xyz
+from discretize.utils import mkvc, refine_tree_xyz, active_from_xyz
 
 import numpy as np
 from scipy.interpolate import LinearNDInterpolator
@@ -88,12 +88,11 @@ locations = np.c_[mkvc(x), y, z]
 # Define the source-receiver pairs
 source_list = []
 for pp in range(0, locations.shape[0]):
-
     # Define dbz/dt receiver
     loc_pp = np.reshape(locations[pp, :], (1, 3))
     receivers_list = [
         vrm.receivers.Point(
-            loc_pp, times=time_channels, fieldType="dbdt", orientation="z"
+            loc_pp, times=time_channels, field_type="dbdt", orientation="z"
         )
     ]
 
@@ -160,11 +159,11 @@ mesh.finalize()
 #
 
 # Find cells active in the forward simulation (cells below surface)
-ind_active = surface2ind_topo(mesh, xyz_topo)
+ind_active = active_from_xyz(mesh, xyz_topo)
 
 # Define 3D Gaussian distribution parameters
 xyzc = mesh.gridCC[ind_active, :]
-c = 3 * np.pi * 8 ** 2
+c = 3 * np.pi * 8**2
 pc = np.r_[4e-4, 4e-4, 4e-4, 6e-4, 8e-4, 6e-4, 8e-4, 8e-4]
 x_0 = np.r_[50.0, -50.0, -40.0, -20.0, -15.0, 20.0, -10.0, 25.0]
 y_0 = np.r_[0.0, 0.0, 40.0, 10.0, -20.0, 15.0, 0.0, 0.0]
@@ -189,14 +188,14 @@ fig = plt.figure(figsize=(7.5, 7))
 
 plotting_map = maps.InjectActiveCells(mesh, ind_active, np.nan)
 ax1 = fig.add_axes([0.09, 0.12, 0.72, 0.77])
-mesh.plotSlice(
+mesh.plot_slice(
     plotting_map * model,
     normal="Z",
     ax=ax1,
     ind=0,
     grid=True,
     clim=(np.min(model), np.max(model)),
-    pcolorOpts={"cmap": "magma_r"},
+    pcolor_opts={"cmap": "magma_r"},
 )
 ax1.set_title("Model slice at z = 0 m")
 ax1.set_xlabel("x (m)")

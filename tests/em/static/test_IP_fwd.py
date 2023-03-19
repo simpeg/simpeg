@@ -1,4 +1,3 @@
-from __future__ import print_function
 import unittest
 
 import numpy as np
@@ -16,7 +15,6 @@ except ImportError:
 
 class IPProblemAnalyticTests(unittest.TestCase):
     def setUp(self):
-
         cs = 12.5
         npad = 2
         hx = [(cs, npad, -1.3), (cs, 21), (cs, npad, 1.3)]
@@ -24,8 +22,12 @@ class IPProblemAnalyticTests(unittest.TestCase):
         hz = [(cs, npad, -1.3), (cs, 20)]
         mesh = discretize.TensorMesh([hx, hy, hz], x0="CCN")
 
-        x = mesh.vectorCCx[(mesh.vectorCCx > -80.0) & (mesh.vectorCCx < 80.0)]
-        y = mesh.vectorCCy[(mesh.vectorCCy > -80.0) & (mesh.vectorCCy < 80.0)]
+        x = mesh.cell_centers_x[
+            (mesh.cell_centers_x > -80.0) & (mesh.cell_centers_x < 80.0)
+        ]
+        y = mesh.cell_centers_y[
+            (mesh.cell_centers_y > -80.0) & (mesh.cell_centers_y < 80.0)
+        ]
         Aloc = np.r_[-100.0, 0.0, 0.0]
         Bloc = np.r_[100.0, 0.0, 0.0]
         M = utils.ndgrid(x - 12.5, y, np.r_[0.0])
@@ -50,11 +52,10 @@ class IPProblemAnalyticTests(unittest.TestCase):
         self.eta = eta
 
     def test_Simulation3DNodal(self):
-
         simulationdc = dc.simulation.Simulation3DNodal(
             mesh=self.mesh, survey=self.surveyDC, sigmaMap=maps.IdentityMap(self.mesh)
         )
-        simulationdc.Solver = Solver
+        simulationdc.solver = Solver
         data0 = simulationdc.dpred(self.sigma0)
         finf = simulationdc.fields(self.sigmaInf)
         datainf = simulationdc.dpred(self.sigmaInf, f=finf)
@@ -67,7 +68,7 @@ class IPProblemAnalyticTests(unittest.TestCase):
             Ainv=simulationdc.Ainv,
             _f=finf,
         )
-        simulationip.Solver = Solver
+        simulationip.solver = Solver
         data_full = data0 - datainf
         data = simulationip.dpred(self.eta)
         err = np.linalg.norm((data - data_full) / data_full) ** 2 / data_full.size
@@ -80,11 +81,10 @@ class IPProblemAnalyticTests(unittest.TestCase):
         self.assertTrue(passed)
 
     def test_Simulation3DCellCentered(self):
-
         simulationdc = dc.simulation.Simulation3DCellCentered(
             mesh=self.mesh, survey=self.surveyDC, sigmaMap=maps.IdentityMap(self.mesh)
         )
-        simulationdc.Solver = Solver
+        simulationdc.solver = Solver
         data0 = simulationdc.dpred(self.sigma0)
         finf = simulationdc.fields(self.sigmaInf)
         datainf = simulationdc.dpred(self.sigmaInf, f=finf)
@@ -97,7 +97,7 @@ class IPProblemAnalyticTests(unittest.TestCase):
             Ainv=simulationdc.Ainv,
             _f=finf,
         )
-        simulationip.Solver = Solver
+        simulationip.solver = Solver
         data_full = data0 - datainf
         data = simulationip.dpred(self.eta)
         err = np.linalg.norm((data - data_full) / data_full) ** 2 / data_full.size
@@ -112,7 +112,6 @@ class IPProblemAnalyticTests(unittest.TestCase):
 
 class ApparentChargeability3DTest(unittest.TestCase):
     def setUp(self):
-
         cs = 12.5
         npad = 2
         hx = [(cs, npad, -1.3), (cs, 21), (cs, npad, 1.3)]
@@ -120,8 +119,12 @@ class ApparentChargeability3DTest(unittest.TestCase):
         hz = [(cs, npad, -1.3), (cs, 20)]
         mesh = discretize.TensorMesh([hx, hy, hz], x0="CCN")
 
-        x = mesh.vectorCCx[(mesh.vectorCCx > -80.0) & (mesh.vectorCCx < 80.0)]
-        y = mesh.vectorCCy[(mesh.vectorCCy > -80.0) & (mesh.vectorCCy < 80.0)]
+        x = mesh.cell_centers_x[
+            (mesh.cell_centers_x > -80.0) & (mesh.cell_centers_x < 80.0)
+        ]
+        y = mesh.cell_centers_y[
+            (mesh.cell_centers_y > -80.0) & (mesh.cell_centers_y < 80.0)
+        ]
         Aloc = np.r_[-100.0, 0.0, 0.0]
         Bloc = np.r_[100.0, 0.0, 0.0]
         M = utils.ndgrid(x - 12.5, y, np.r_[0.0])
@@ -151,7 +154,6 @@ class ApparentChargeability3DTest(unittest.TestCase):
         self.eta = eta
 
     def test_Simulation3DNodal(self):
-
         simulationdc = dc.simulation.Simulation3DNodal(
             self.mesh,
             sigmaMap=maps.IdentityMap(self.mesh),
@@ -185,7 +187,7 @@ class ApparentChargeability3DTest(unittest.TestCase):
 
         np.testing.assert_allclose(data, data2)
 
-        np.testing.assert_allclose(simulationip._scale, simulationip._sign / datainf)
+        np.testing.assert_allclose(simulationip._scale, 1.0 / datainf)
 
         err = np.linalg.norm((data - data_full) / data_full) ** 2 / data_full.size
         if err > 0.05:
@@ -198,7 +200,6 @@ class ApparentChargeability3DTest(unittest.TestCase):
         self.assertLess(err, 0.05)
 
     def test_Simulation3DCellCentered(self):
-
         simulationdc = dc.simulation.Simulation3DCellCentered(
             self.mesh,
             sigmaMap=maps.IdentityMap(self.mesh),
@@ -219,7 +220,7 @@ class ApparentChargeability3DTest(unittest.TestCase):
         )
         data = simulationip.dpred(self.eta)
 
-        np.testing.assert_allclose(simulationip._scale, simulationip._sign / datainf)
+        np.testing.assert_allclose(simulationip._scale, 1.0 / datainf)
 
         err = np.linalg.norm((data - data_full) / data_full) ** 2 / data_full.size
         if err > 0.05:

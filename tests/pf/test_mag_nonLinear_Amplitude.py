@@ -1,4 +1,3 @@
-from __future__ import print_function
 import numpy as np
 from SimPEG import (
     data,
@@ -14,7 +13,7 @@ from SimPEG import (
 from SimPEG.potential_fields import magnetics
 from SimPEG import utils
 from SimPEG.utils import mkvc
-from discretize.utils import mesh_builder_xyz, refine_tree_xyz
+from discretize.utils import mesh_builder_xyz, refine_tree_xyz, active_from_xyz
 import unittest
 import shutil
 
@@ -46,8 +45,10 @@ class AmpProblemTest(unittest.TestCase):
 
         # Create a MAGsurvey
         rxLoc = np.c_[mkvc(X.T), mkvc(Y.T), mkvc(Z.T)]
-        rxList = magnetics.receivers.Point(rxLoc)
-        srcField = magnetics.sources.SourceField(receiver_list=[rxList], parameters=H0)
+        receiver_list = magnetics.receivers.Point(rxLoc)
+        srcField = magnetics.sources.SourceField(
+            receiver_list=[receiver_list], parameters=H0
+        )
         survey = magnetics.survey.Survey(srcField)
 
         ###############################################################################
@@ -65,7 +66,7 @@ class AmpProblemTest(unittest.TestCase):
         )
 
         # Define an active cells from topo
-        actv = utils.surface2ind_topo(mesh, topo)
+        actv = active_from_xyz(mesh, topo)
         nC = int(actv.sum())
 
         # Convert the inclination declination to vector in Cartesian
@@ -75,7 +76,9 @@ class AmpProblemTest(unittest.TestCase):
 
         # Get the indicies of the magnetized block
         ind = utils.model_builder.getIndicesBlock(
-            np.r_[-20, -20, -10], np.r_[20, 20, 25], mesh.gridCC,
+            np.r_[-20, -20, -10],
+            np.r_[20, 20, 25],
+            mesh.gridCC,
         )[0]
 
         # Assign magnetization value, inducing field strength will
@@ -94,7 +97,7 @@ class AmpProblemTest(unittest.TestCase):
             survey=survey,
             mesh=mesh,
             chiMap=idenMap,
-            actInd=actv,
+            ind_active=actv,
             store_sensitivities="forward_only",
         )
         simulation.M = M_xyz
@@ -131,7 +134,7 @@ class AmpProblemTest(unittest.TestCase):
             mesh=mesh,
             survey=survey,
             chiMap=idenMap,
-            actInd=surf,
+            ind_active=surf,
             store_sensitivities="ram",
         )
         simulation.model = mstart
@@ -159,7 +162,7 @@ class AmpProblemTest(unittest.TestCase):
         invProb = inverse_problem.BaseInvProblem(dmis, reg, opt)
 
         # Specify how the initial beta is found
-        betaest = directives.BetaEstimate_ByEig(beta0_ratio=2)
+        betaest = directives.BetaEstimateMaxDerivative(beta0_ratio=2)
 
         # Target misfit to stop the inversion,
         # try to fit as much as possible of the signal, we don't want to lose anything
@@ -184,15 +187,17 @@ class AmpProblemTest(unittest.TestCase):
         # components of the field and add them up: :math:`|B| = \sqrt{( Bx^2 + Bx^2 + Bx^2 )}`
         #
 
-        rxList = magnetics.receivers.Point(rxLoc, components=["bx", "by", "bz"])
-        srcField = magnetics.sources.SourceField(receiver_list=[rxList], parameters=H0)
+        receiver_list = magnetics.receivers.Point(rxLoc, components=["bx", "by", "bz"])
+        srcField = magnetics.sources.SourceField(
+            receiver_list=[receiver_list], parameters=H0
+        )
         surveyAmp = magnetics.survey.Survey(srcField)
 
         simulation = magnetics.simulation.Simulation3DIntegral(
             mesh=mesh,
             survey=surveyAmp,
             chiMap=idenMap,
-            actInd=surf,
+            ind_active=surf,
             is_amplitude_data=True,
             store_sensitivities="forward_only",
         )
@@ -221,7 +226,7 @@ class AmpProblemTest(unittest.TestCase):
             survey=surveyAmp,
             mesh=mesh,
             chiMap=idenMap,
-            actInd=actv,
+            ind_active=actv,
             is_amplitude_data=True,
         )
 
@@ -229,7 +234,7 @@ class AmpProblemTest(unittest.TestCase):
 
         # Create a sparse regularization
         reg = regularization.Sparse(mesh, indActive=actv, mapping=idenMap)
-        reg.norms = np.c_[1, 0, 0, 0]
+        reg.norms = [1, 0, 0, 0]
         reg.mref = np.zeros(nC)
 
         # Data misfit function
@@ -279,9 +284,9 @@ class AmpProblemTest(unittest.TestCase):
         # # Plot the amplitude model
         # plt.figure()
         # ax = plt.subplot(2, 1, 1)
-        # im = self.mesh.plotSlice(self.actvPlot*self.model,
+        # im = self.mesh.plot_slice(self.actvPlot*self.model,
         #  ax=ax, normal='Y', ind=66,
-        #     pcolorOpts={"vmin":0., "vmax":0.01}
+        #     pcolor_opts={"vmin":0., "vmax":0.01}
         # )
         # plt.colorbar(im[0])
         # ax.set_xlim([-200, 200])
@@ -291,8 +296,8 @@ class AmpProblemTest(unittest.TestCase):
         # plt.gca().set_aspect('equal', adjustable='box')
 
         # ax = plt.subplot(2, 1, 2)
-        # im = self.mesh.plotSlice(self.actvPlot*mrec_Amp, ax=ax, normal='Y', ind=66,
-        #     pcolorOpts={"vmin":0., "vmax":0.01}
+        # im = self.mesh.plot_slice(self.actvPlot*mrec_Amp, ax=ax, normal='Y', ind=66,
+        #     pcolor_opts={"vmin":0., "vmax":0.01}
         # )
         # plt.colorbar(im[0])
         # ax.set_xlim([-200, 200])

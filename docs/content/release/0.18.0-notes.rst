@@ -1,0 +1,121 @@
+.. _0.18.0_notes:
+
+===========================
+SimPEG 0.18.0 Release Notes
+===========================
+
+October 26th, 2022
+
+This minor release is a major step forward for SimPEG and includes many additions and
+improvements to the codebase.
+
+Highlights
+==========
+* Removal of properties
+* New website preliminaries
+* 1D electromagnetic simulation and inversions
+* Refactor of Regularizations
+* Potential field simulation speedups
+* Removed calls of deprecated discretize methods
+* Arbitrary FDEM and TDEM receiver orientations
+* Dedicated Equivalent source simulations for Potential fields
+* Multipole DC sources
+* Bug fixes!
+
+
+Removal of `properties` and the new API documentation website
+-------------------------------------------------------------
+The first thing you might've noticed is the new layout of the SimPEG documentation page.
+We are working towards improving many of the internal documentation strings for SimPEG's
+functions and classes. While you will be able to find links to all of SimPEG's items,
+the Survey, Source, and Receiver classes have all had their docstrings significantly
+improved. Also many utility functions should now have many more details. The rest of the
+classes will receive improved docstrings in the future, but for now are at least listed.
+This is always an area of suggested improvements for SimPEG and contributions are very
+welcome in this area.
+
+1D EM simulations
+-----------------
+There are now classes for 1D frequency and time domain simulations, that support airborne
+and surface simulations, this has been ported over from the legacy `simpegEM1D` package,
+and worked into a form that should be consistent with the rest of the `SimPEG` framework.
+
+Regularization refactor
+-----------------------
+We have deprecated the `Tikhonov` and `Simple` regularizers as it was confusing for the
+average user to choose one or the other. They were actually doing very much the same
+thing, unintentionally, just with slightly different ways of setting parameters for the
+weighting of the different regularization components. These have now been changed into
+a single ``SimPEG.regularization.WeightedLeastSquares`` class.
+
+As a part of this, we have also overhauled the internal workings of regularizations to
+give a more intuitive user experience to setting different weights for the model
+parameters, now support both cell-based and face-based weights.
+
+Potential Fields simulations
+----------------------------
+Internally, the integral formulations of the potentials fields have been overhauled to
+improved the speed of the simulations, expect roughly 10-20x speedups of sensitivity
+matrix creations.
+
+We have also implemented dedicated simulations for equivalent source simulations. They
+use two dimensional meshes where the tops and bottoms are defined for each cell.
+
+Discretize Deprecations
+-----------------------
+We have done a substantial pass to remove all calls to deprecated discretize functions.
+As such, your python scripts and jupyter notebooks should emit much fewer
+`FutureWarnings`.
+
+FDEM and TDEM improvements
+--------------------------
+Time domain and frequency domain receivers now support arbitrary orientations. There
+are now also new properties on `CircularLoop` sources enabling an `n_turns` attribute.
+
+DC Multipole sources
+--------------------
+The static module should now support multipole sources!
+
+Contributors
+============
+This is a combination of contributors and reviewers who've made contributions towards
+this release (in no particular order).
+
+* `@jcapriot <https://github.com/jcapriot>`__
+* `@domfournier <https://github.com/domfournier>`__
+* `@dccowan <https://github.com/dccowan>`__
+* `@sgkang <https://github.com/sgkang>`__
+* `@thibaut-kobold <https://github.com/thibaut-kobold>`__
+* `@lheagy <https://github.com/lheagy>`__
+* `@nwilliams-kobold <https://github.com/nwilliams-kobold>`__
+* `@ngodber <https://github.com/ngodber>`__
+* `@santisoler <https://github.com/santisoler>`__
+
+Pull requests
+=============
+
+* `#1007 <https://github.com/simpeg/simpeg/pull/1007>`__: Extend BaseScr to that Pole and Dipole DC are simply minor extensions…
+* `#1038 <https://github.com/simpeg/simpeg/pull/1038>`__: Issue-1037
+* `#1040 <https://github.com/simpeg/simpeg/pull/1040>`__: Refactor/regularization
+* `#1059 <https://github.com/simpeg/simpeg/pull/1059>`__: Bringing in simpegEM1D into SimPEG
+* `#1077 <https://github.com/simpeg/simpeg/pull/1077>`__: Exorcise properties preliminary
+* `#1080 <https://github.com/simpeg/simpeg/pull/1080>`__: Fix for broken TensorMesh
+* `#1082 <https://github.com/simpeg/simpeg/pull/1082>`__: Quadtree fix for potential fields simulation
+* `#1085 <https://github.com/simpeg/simpeg/pull/1085>`__: Add separate pf quadtree equivalent source simulation
+* `#1086 <https://github.com/simpeg/simpeg/pull/1086>`__: include the number of turns in the source initialization
+* `#1087 <https://github.com/simpeg/simpeg/pull/1087>`__: Em1d single sounding
+* `#1093 <https://github.com/simpeg/simpeg/pull/1093>`__: TDEM line current h-field update
+* `#1094 <https://github.com/simpeg/simpeg/pull/1094>`__: fix bracket error
+* `#1095 <https://github.com/simpeg/simpeg/pull/1095>`__: arbitrary orientation for tdem rx
+* `#1096 <https://github.com/simpeg/simpeg/pull/1096>`__: bug fix for inversion with only a single parameter
+* `#1097 <https://github.com/simpeg/simpeg/pull/1097>`__: Update geoapps 0.8.0
+* `#1100 <https://github.com/simpeg/simpeg/pull/1100>`__: add exception for B-field computation with EB formulation when the waveform starts at 0.
+* `#1107 <https://github.com/simpeg/simpeg/pull/1107>`__: Improve how path to sensitivity files are built
+* `#1111 <https://github.com/simpeg/simpeg/pull/1111>`__: Remove all properties
+* `#1114 <https://github.com/simpeg/simpeg/pull/1114>`__: Remove LineCurrent1D
+* `#1113 <https://github.com/simpeg/simpeg/pull/1113>`__: Pf update
+* `#1115 <https://github.com/simpeg/simpeg/pull/1115>`__: Discretize deprecation cleanup
+* `#1117 <https://github.com/simpeg/simpeg/pull/1117>`__: Make sparse regularization use the validator functions
+* `#1118 <https://github.com/simpeg/simpeg/pull/1118>`__: TDEM exponential waveform
+* `#1119 <https://github.com/simpeg/simpeg/pull/1119>`__: 0.18.0 Release Notes
+* `#1120 <https://github.com/simpeg/simpeg/pull/1120>`__: Single reg directive fix

@@ -1,15 +1,14 @@
-from __future__ import print_function
-from __future__ import absolute_import
-from __future__ import division
-
 import numpy as np
 
 import discretize
 from SimPEG import maps, mkvc, utils, Data
-from ....utils import meshTensor
-from ..receivers import Point1DImpedance, Point3DImpedance, Point3DTipper
+from ....utils import unpack_widths
+from ..receivers import (
+    PointNaturalSource,
+    Point3DTipper,
+)
 from ..survey import Survey
-from ..sources import Planewave_xy_1Dprimary, Planewave_xy_1DhomotD
+from ..sources import PlanewaveXYPrimary, Planewave
 from ..simulation import Simulation3DPrimarySecondary
 from .data_utils import appResPhs
 
@@ -24,7 +23,7 @@ def getAppResPhs(NSEMdata, survey):
     # Make impedance
     zList = []
     for src in survey.source_list:
-        zc = [src.freq]
+        zc = [src.frequency]
         for rx in src.receiver_list:
             if "imag" in rx.component:
                 m = 1j
@@ -38,19 +37,67 @@ def getAppResPhs(NSEMdata, survey):
 
 
 def setup1DSurvey(sigmaHalf, tD=False, structure=False):
-
     # Frequency
-    nFreq = 33
-    freqs = np.logspace(3, -3, nFreq)
+    num_frequencies = 33
+    freqs = np.logspace(3, -3, num_frequencies)
     # Make the mesh
     ct = 5
-    air = meshTensor([(ct, 25, 1.3)])
-    # coreT0 = meshTensor([(ct,15,1.2)])
-    # coreT1 = np.kron(meshTensor([(coreT0[-1],15,1.3)]),np.ones((7,)))
+    air = unpack_widths([(ct, 25, 1.3)])
+    # coreT0 = unpack_widths([(ct,15,1.2)])
+    # coreT1 = np.kron(unpack_widths([(coreT0[-1],15,1.3)]),np.ones((7,)))
     core = np.concatenate(
-        (np.kron(meshTensor([(ct, 15, -1.2)]), np.ones((10,))), meshTensor([(ct, 20)]))
+        (
+            np.kron(unpack_widths([(ct, 15, -1.2)]), np.ones((10,))),
+            unpack_widths([(ct, 20)]),
+        )
     )
-    bot = meshTensor([(core[0], 20, -1.3)])
+    bot = unpack_widths([(core[0], 20, -1.3)])
+    x0 = -np.array([np.sum(np.concatenate((core, bot)))])
+    m1d = discretize.TensorMesh([np.concatenate((bot, core, air))], x0=x0)
+    # Make the model
+    sigma = np.zeros(m1d.nC) + sigmaHalf
+    sigma[m1d.gridCC > 0] = 1e-8
+    sigmaBack = sigma.copy()
+    # Add structure
+    if structure:
+        shallow = (m1d.gridCC < -200) * (m1d.gridCC > -600)
+        deep = (m1d.gridCC < -3000) * (m1d.gridCC > -5000)
+        sigma[shallow] = 1
+        sigma[deep] = 0.1
+
+    receiver_list = []
+    for _ in range(len(["z1d", "z1d"])):
+        receiver_list.append(
+            PointNaturalSource(mkvc(np.array([0.0]), 2).T, component="real")
+        )
+        receiver_list.append(
+            PointNaturalSource(mkvc(np.array([0.0]), 2).T, component="imag")
+        )
+    # Source list
+    source_list = []
+    for freq in freqs:
+        source_list.append(PlanewaveXYPrimary(receiver_list, freq))
+
+    survey = Survey(source_list)
+    return (survey, sigma, sigmaBack, m1d)
+
+
+def setup1DSurveyElectricMagnetic(sigmaHalf, tD=False, structure=False):
+    # Frequency
+    nFreq = 33
+    frequencies = np.logspace(3, -3, nFreq)
+    # Make the mesh
+    ct = 5
+    air = unpack_widths([(ct, 25, 1.3)])
+    # coreT0 = unpack_widths([(ct,15,1.2)])
+    # coreT1 = np.kron(unpack_widths([(coreT0[-1],15,1.3)]),np.ones((7,)))
+    core = np.concatenate(
+        (
+            np.kron(unpack_widths([(ct, 15, -1.2)]), np.ones((10,))),
+            unpack_widths([(ct, 20)]),
+        )
+    )
+    bot = unpack_widths([(core[0], 20, -1.3)])
     x0 = -np.array([np.sum(np.concatenate((core, bot)))])
     m1d = discretize.TensorMesh([np.concatenate((bot, core, air))], x0=x0)
     # Make the model
@@ -65,26 +112,53 @@ def setup1DSurvey(sigmaHalf, tD=False, structure=False):
         sigma[deep] = 0.1
 
     rxList = []
-    for rxType in ["z1d", "z1d"]:
-        rxList.append(Point1DImpedance(mkvc(np.array([0.0]), 2).T, "real"))
-        rxList.append(Point1DImpedance(mkvc(np.array([0.0]), 2).T, "imag"))
+    for _ in range(len(["z1d", "z1d"])):
+        rxList.append(PointNaturalSource(mkvc(np.array([0.0]), 2).T, component="real"))
+        rxList.append(PointNaturalSource(mkvc(np.array([0.0]), 2).T, component="imag"))
     # Source list
-    srcList = []
-    if tD:
-        for freq in freqs:
-            srcList.append(Planewave_xy_1DhomotD(rxList, freq))
-    else:
-        for freq in freqs:
-            srcList.append(Planewave_xy_1Dprimary(rxList, freq))
+    # srcList = []
+    src_list = [Planewave([], frequency=f) for f in frequencies]
+    # if tD:
+    #     for freq in freqs:
+    #         srcList.append(Planewave_xy_1DhomotD(rxList, freq))
+    # else:
+    #     for freq in freqs:
+    #         srcList.append(PlanewaveXYPrimary(rxList, freq))
 
-    survey = Survey(srcList)
-    return (survey, sigma, sigmaBack, m1d)
+    survey = Survey(src_list)
+    return (survey, sigma, sigmaBack, m1d, frequencies)
 
 
-def setupSimpegNSEM_ePrimSec(inputSetup, comp="Imp", singleFreq=False, expMap=True):
+def setupSimpegNSEM_tests_location_assign_list(
+    inputSetup, freqs, comp="Imp", singleFreq=False, singleList=False
+):
+    rx_x, rx_y = np.meshgrid(np.linspace(-5000, 5000, 5), np.linspace(-5000, 5000, 5))
 
-    M, freqs, sig, sigBG, rx_loc = inputSetup
-    # Make a receiver list
+    rx_loc = np.hstack(
+        (mkvc(rx_x, 2), mkvc(rx_y, 2), np.zeros((np.prod(rx_x.shape), 1)))
+    )
+
+    csx = 2000.0
+    csz = 2000.0
+
+    mesh = discretize.TensorMesh(
+        [
+            [(csx, 1, -3), (csx, 6), (csx, 1, 3)],
+            [(csx, 1, -3), (csx, 6), (csx, 1, 3)],
+            [(csz, 1, -3), (csz, 6), (csz, 1, 3)],
+        ],
+        x0="CCC",
+    )
+
+    active = mesh.gridCC[:, 2] < 50
+    sig = np.ones(mesh.nC) * 0.01
+    sig[~active] = 1e-8
+    model_true = np.log(sig)
+
+    print(model_true.shape, mesh.nE * 2, active.sum())
+
+    rx_loc[:, 2] = -50
+
     rxList = []
     if comp == "All":
         rx_type_list = ["xx", "xy", "yx", "yy", "zx", "zy"]
@@ -92,46 +166,320 @@ def setupSimpegNSEM_ePrimSec(inputSetup, comp="Imp", singleFreq=False, expMap=Tr
         rx_type_list = ["xx", "xy", "yx", "yy"]
     elif comp == "Tip":
         rx_type_list = ["zx", "zy"]
+    elif comp == "Res":
+        rx_type_list = ["yx", "xy"]
     else:
         rx_type_list = [comp]
 
     for rx_type in rx_type_list:
         if rx_type in ["xx", "xy", "yx", "yy"]:
-            rxList.append(Point3DImpedance(rx_loc, rx_type, "real"))
-            rxList.append(Point3DImpedance(rx_loc, rx_type, "imag"))
+            if comp == "Res":
+                if singleList:
+                    rxList.append(
+                        PointNaturalSource(
+                            locations=[rx_loc],
+                            orientation=rx_type,
+                            component="apparent_resistivity",
+                        )
+                    )
+                    rxList.append(
+                        PointNaturalSource(
+                            locations=[rx_loc], orientation=rx_type, component="phase"
+                        )
+                    )
+                else:
+                    rxList.append(
+                        PointNaturalSource(
+                            locations=[rx_loc, rx_loc],
+                            orientation=rx_type,
+                            component="apparent_resistivity",
+                        )
+                    )
+                    rxList.append(
+                        PointNaturalSource(
+                            locations=[rx_loc, rx_loc],
+                            orientation=rx_type,
+                            component="phase",
+                        )
+                    )
+            else:
+                rxList.append(
+                    PointNaturalSource(
+                        orientation=rx_type, component="real", locations=[rx_loc]
+                    )
+                )
+                rxList.append(
+                    PointNaturalSource(
+                        orientation=rx_type, component="imag", locations=[rx_loc]
+                    )
+                )
+        if rx_type in ["zx", "zy"]:
+            rxList.append(
+                Point3DTipper(orientation=rx_type, component="real", locations=[rx_loc])
+            )
+            rxList.append(
+                Point3DTipper(orientation=rx_type, component="imag", locations=[rx_loc])
+            )
+
+    srcList = []
+    if singleFreq:
+        # srcList.append(PlanewaveXYPrimary(rxList, singleFreq, sigma_primary=sigBG))
+        srcList.append(PlanewaveXYPrimary(rxList, singleFreq))
+    else:
+        for freq in freqs:
+            # srcList.append(PlanewaveXYPrimary(rxList, freq, sigma_primary=sigBG))
+            srcList.append(PlanewaveXYPrimary(rxList, freq))
+
+    # Survey MT
+    survey_ns = Survey(srcList)
+    survey_ns.m_true = model_true
+
+    # write out the true model
+    # discretize.TensorMesh.write_UBC(mesh,'Mesh-pre.msh', models={'Sigma-pre.dat': np.exp(model_true)})
+    # create background conductivity model
+    sigma_back = 1e-2
+    sigBG = np.zeros(mesh.nC) * sigma_back
+    sigBG[~active] = 1e-8
+
+    # Set the mapping
+    actMap = maps.InjectActiveCells(
+        mesh=mesh, indActive=active, valInactive=np.log(1e-8)
+    )
+    mapping = maps.ExpMap(mesh) * actMap
+    # print(survey_ns.source_list)
+    # # Setup the problem object
+    sim = Simulation3DPrimarySecondary(
+        mesh, survey=survey_ns, sigmaPrimary=sigBG, sigmaMap=mapping
+    )
+
+    # create the test model
+    block = [csx * np.r_[-3, 3], csx * np.r_[-3, 3], csz * np.r_[-6, -1]]
+
+    block_sigma = 3e-1
+
+    block_inds = (
+        (mesh.gridCC[:, 0] >= block[0].min())
+        & (mesh.gridCC[:, 0] <= block[0].max())
+        & (mesh.gridCC[:, 1] >= block[1].min())
+        & (mesh.gridCC[:, 1] <= block[1].max())
+        & (mesh.gridCC[:, 2] >= block[2].min())
+        & (mesh.gridCC[:, 2] <= block[2].max())
+    )
+
+    m = model_true.copy()
+    m[block_inds] = np.log(block_sigma)
+    m = m[active]
+
+    # f = sim.fields(m)
+
+    # TOLr = 5e-2
+    # TOL = 1e-4
+    # FLR = 1e-20
+
+    # w = np.random.rand(len(m),)
+    # v = np.random.rand(sim.survey.nD,)
+    # vJw = v.ravel().dot(sim.Jvec(m, w, f))
+    # wJtv = w.ravel().dot(sim.Jtvec(m, v, f))
+
+    return (m, sim)
+
+
+def setupSimpegNSEM_PrimarySecondary(inputSetup, freqs, comp="Imp", singleFreq=False):
+    rx_x, rx_y = np.meshgrid(np.linspace(-5000, 5000, 5), np.linspace(-5000, 5000, 5))
+
+    rx_loc = np.hstack(
+        (mkvc(rx_x, 2), mkvc(rx_y, 2), np.zeros((np.prod(rx_x.shape), 1)))
+    )
+
+    csx = 2000.0
+    csz = 2000.0
+
+    mesh = discretize.TensorMesh(
+        [
+            [(csx, 1, -3), (csx, 6), (csx, 1, 3)],
+            [(csx, 1, -3), (csx, 6), (csx, 1, 3)],
+            [(csz, 1, -3), (csz, 6), (csz, 1, 3)],
+        ],
+        x0="CCC",
+    )
+
+    active = mesh.gridCC[:, 2] < 50
+    sig = np.ones(mesh.nC) * 0.01
+    sig[~active] = 1e-8
+    model_true = np.log(sig)
+
+    print(model_true.shape, mesh.nE * 2, active.sum())
+
+    rx_loc[:, 2] = -50
+
+    rxList = []
+    if comp == "All":
+        rx_type_list = ["xx", "xy", "yx", "yy", "zx", "zy"]
+    elif comp == "Imp":
+        rx_type_list = ["xx", "xy", "yx", "yy"]
+    elif comp == "Tip":
+        rx_type_list = ["zx", "zy"]
+    elif comp == "Res":
+        rx_type_list = ["yx", "xy"]
+    else:
+        rx_type_list = [comp]
+
+    for rx_type in rx_type_list:
+        if rx_type in ["xx", "xy", "yx", "yy"]:
+            if comp == "Res":
+                rxList.append(
+                    PointNaturalSource(
+                        locations=rx_loc,
+                        orientation=rx_type,
+                        component="apparent_resistivity",
+                    )
+                )
+                rxList.append(
+                    PointNaturalSource(
+                        locations=rx_loc, orientation=rx_type, component="phase"
+                    )
+                )
+            else:
+                rxList.append(PointNaturalSource(rx_loc, rx_type, "real"))
+                rxList.append(PointNaturalSource(rx_loc, rx_type, "imag"))
         if rx_type in ["zx", "zy"]:
             rxList.append(Point3DTipper(rx_loc, rx_type, "real"))
             rxList.append(Point3DTipper(rx_loc, rx_type, "imag"))
 
-    # Source list
     srcList = []
-
     if singleFreq:
-        srcList.append(Planewave_xy_1Dprimary(rxList, singleFreq))
+        # srcList.append(PlanewaveXYPrimary(rxList, singleFreq, sigma_primary=sigBG))
+        srcList.append(PlanewaveXYPrimary(rxList, singleFreq))
     else:
         for freq in freqs:
-            srcList.append(Planewave_xy_1Dprimary(rxList, freq))
+            # srcList.append(PlanewaveXYPrimary(rxList, freq, sigma_primary=sigBG))
+            srcList.append(PlanewaveXYPrimary(rxList, freq))
+
+    # Survey MT
+    survey_ns = Survey(srcList)
+    survey_ns.m_true = model_true
+
+    # write out the true model
+    # discretize.TensorMesh.write_UBC(mesh,'Mesh-pre.msh', models={'Sigma-pre.dat': np.exp(model_true)})
+    # create background conductivity model
+    sigma_back = 1e-2
+    sigBG = np.zeros(mesh.nC) * sigma_back
+    sigBG[~active] = 1e-8
+
+    # Set the mapping
+    actMap = maps.InjectActiveCells(
+        mesh=mesh, indActive=active, valInactive=np.log(1e-8)
+    )
+    mapping = maps.ExpMap(mesh) * actMap
+    # print(survey_ns.source_list)
+    # # Setup the problem object
+    sim = Simulation3DPrimarySecondary(
+        mesh, survey=survey_ns, sigmaPrimary=sigBG, sigmaMap=mapping
+    )
+
+    # create the test model
+    block = [csx * np.r_[-3, 3], csx * np.r_[-3, 3], csz * np.r_[-6, -1]]
+
+    block_sigma = 3e-1
+
+    block_inds = (
+        (mesh.gridCC[:, 0] >= block[0].min())
+        & (mesh.gridCC[:, 0] <= block[0].max())
+        & (mesh.gridCC[:, 1] >= block[1].min())
+        & (mesh.gridCC[:, 1] <= block[1].max())
+        & (mesh.gridCC[:, 2] >= block[2].min())
+        & (mesh.gridCC[:, 2] <= block[2].max())
+    )
+
+    m = model_true.copy()
+    m[block_inds] = np.log(block_sigma)
+    m = m[active]
+
+    # f = sim.fields(m)
+
+    # TOLr = 5e-2
+    # TOL = 1e-4
+    # FLR = 1e-20
+
+    # w = np.random.rand(len(m),)
+    # v = np.random.rand(sim.survey.nD,)
+    # vJw = v.ravel().dot(sim.Jvec(m, w, f))
+    # wJtv = w.ravel().dot(sim.Jtvec(m, v, f))
+
+    return (m, sim)
+
+
+def setupSimpegNSEM_ePrimSec(inputSetup, comp="Imp", singleFreq=False, expMap=True):
+    M, freqs, sig, sigBG, rx_loc = inputSetup
+    # Make a receiver list
+    receiver_list = []
+    if comp == "All":
+        rx_type_list = ["xx", "xy", "yx", "yy", "zx", "zy"]
+    elif comp == "Imp":
+        rx_type_list = ["xx", "xy", "yx", "yy"]
+    elif comp == "Tip":
+        rx_type_list = ["zx", "zy"]
+    elif comp == "Res":
+        rx_type_list = ["yx", "xy"]
+    else:
+        rx_type_list = [comp]
+
+    for rx_type in rx_type_list:
+        if rx_type in ["xx", "xy", "yx", "yy"]:
+            if comp == "Res":
+                receiver_list.append(
+                    PointNaturalSource(
+                        locations_e=rx_loc,
+                        locations_h=rx_loc,
+                        orientation=rx_type,
+                        component="apparent_resistivity",
+                    )
+                )
+                receiver_list.append(
+                    PointNaturalSource(
+                        locations_e=rx_loc,
+                        locations_h=rx_loc,
+                        orientation=rx_type,
+                        component="phase",
+                    )
+                )
+            else:
+                receiver_list.append(PointNaturalSource(rx_loc, rx_type, "real"))
+                receiver_list.append(PointNaturalSource(rx_loc, rx_type, "imag"))
+        if rx_type in ["zx", "zy"]:
+            receiver_list.append(Point3DTipper(rx_loc, rx_type, "real"))
+            receiver_list.append(Point3DTipper(rx_loc, rx_type, "imag"))
+
+    # Source list
+    source_list = []
+
+    if singleFreq:
+        source_list.append(PlanewaveXYPrimary(receiver_list, singleFreq))
+    else:
+        for freq in freqs:
+            source_list.append(PlanewaveXYPrimary(receiver_list, freq))
     # Survey NSEM
-    survey = Survey(srcList)
+    survey = Survey(source_list)
 
     # Setup the problem object
-    sigma1d = M.r(sigBG, "CC", "CC", "M")[0, 0, :]
+    sigma1d = M.reshape(sigBG, "CC", "CC", "M")[0, 0, :]
 
     if expMap:
-        problem = Simulation3DPrimarySecondary(M, sigmaPrimary=np.log(sigma1d))
-        problem.sigmaMap = maps.ExpMap(problem.mesh)
+        problem = Simulation3DPrimarySecondary(
+            M, survey=survey, sigmaPrimary=np.log(sigBG), sigmaMap=maps.ExpMap(M)
+        )
         problem.model = np.log(sig)
     else:
-        problem = Simulation3DPrimarySecondary(M, sigmaPrimary=sigma1d)
-        problem.sigmaMap = maps.IdentityMap(problem.mesh)
+        problem = Simulation3DPrimarySecondary(
+            M, survey=survey, sigmaPrimary=sigBG, sigmaMap=maps.IdentityMap(M)
+        )
         problem.model = sig
-    problem.pair(survey)
     problem.verbose = False
     try:
         from pymatsolver import Pardiso
 
         problem.solver = Pardiso
-    except:
+    except ImportError:
         pass
 
     return (survey, problem)
@@ -165,7 +513,7 @@ def getInputs():
 
 
 def random(conds):
-    """ Returns a random model based on the inputs"""
+    """Returns a random model based on the inputs"""
     M, freqs, rx_loc, elev = getInputs()
 
     # Backround
@@ -177,7 +525,7 @@ def random(conds):
 
 
 def halfSpace(conds):
-    """ Returns a halfspace model based on the inputs"""
+    """Returns a halfspace model based on the inputs"""
     M, freqs, rx_loc, elev = getInputs()
 
     # Model
@@ -194,7 +542,7 @@ def halfSpace(conds):
 
 
 def blockInhalfSpace(conds):
-    """ Returns a block in a halfspace model based on the inputs"""
+    """Returns a block in a halfspace model based on the inputs"""
     M, freqs, rx_loc, elev = getInputs()
 
     # Model
@@ -213,7 +561,7 @@ def blockInhalfSpace(conds):
 
 
 def twoLayer(conds):
-    """ Returns a 2 layer model based on the conductivity values given"""
+    """Returns a 2 layer model based on the conductivity values given"""
     M, freqs, rx_loc, elev = getInputs()
 
     # Model

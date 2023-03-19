@@ -1,7 +1,4 @@
-from __future__ import print_function
-import unittest
 import numpy as np
-import sys
 from scipy.constants import mu_0
 
 from discretize import TensorMesh
@@ -76,30 +73,34 @@ def getFDEMProblem(fdemType, comp, SrcList, freq, useMu=False, verbose=False):
                 S_m = np.zeros(mesh.nF)
                 S_e = np.zeros(mesh.nE)
                 S_m[
-                    utils.closestPoints(mesh, [0.0, 0.0, 0.0], "Fz")
+                    mesh.closest_points_index([0.0, 0.0, 0.0], "Fz")
                     + np.sum(mesh.vnF[:1])
                 ] = 1e-3
                 S_e[
-                    utils.closestPoints(mesh, [0.0, 0.0, 0.0], "Ez")
+                    mesh.closest_points_index([0.0, 0.0, 0.0], "Ez")
                     + np.sum(mesh.vnE[:1])
                 ] = 1e-3
                 Src.append(
-                    fdem.Src.RawVec([rx0], freq, S_m, mesh.getEdgeInnerProduct() * S_e)
+                    fdem.Src.RawVec(
+                        [rx0], freq, S_m, mesh.get_edge_inner_product() * S_e
+                    )
                 )
 
             elif fdemType == "h" or fdemType == "j":
                 S_m = np.zeros(mesh.nE)
                 S_e = np.zeros(mesh.nF)
                 S_m[
-                    utils.closestPoints(mesh, [0.0, 0.0, 0.0], "Ez")
+                    mesh.closest_points_index([0.0, 0.0, 0.0], "Ez")
                     + np.sum(mesh.vnE[:1])
                 ] = 1e-3
                 S_e[
-                    utils.closestPoints(mesh, [0.0, 0.0, 0.0], "Fz")
+                    mesh.closest_points_index([0.0, 0.0, 0.0], "Fz")
                     + np.sum(mesh.vnF[:1])
                 ] = 1e-3
                 Src.append(
-                    fdem.Src.RawVec([rx0], freq, mesh.getEdgeInnerProduct() * S_m, S_e)
+                    fdem.Src.RawVec(
+                        [rx0], freq, mesh.get_edge_inner_product() * S_m, S_e
+                    )
                 )
 
     if verbose:
@@ -107,23 +108,24 @@ def getFDEMProblem(fdemType, comp, SrcList, freq, useMu=False, verbose=False):
 
     if fdemType == "e":
         survey = fdem.Survey(Src)
-        prb = fdem.Simulation3DElectricField(mesh, sigmaMap=mapping)
+        prb = fdem.Simulation3DElectricField(mesh, survey=survey, sigmaMap=mapping)
 
     elif fdemType == "b":
         survey = fdem.Survey(Src)
-        prb = fdem.Simulation3DMagneticFluxDensity(mesh, sigmaMap=mapping)
+        prb = fdem.Simulation3DMagneticFluxDensity(
+            mesh, survey=survey, sigmaMap=mapping
+        )
 
     elif fdemType == "j":
         survey = fdem.Survey(Src)
-        prb = fdem.Simulation3DCurrentDensity(mesh, sigmaMap=mapping)
+        prb = fdem.Simulation3DCurrentDensity(mesh, survey=survey, sigmaMap=mapping)
 
     elif fdemType == "h":
         survey = fdem.Survey(Src)
-        prb = fdem.Simulation3DMagneticField(mesh, sigmaMap=mapping)
+        prb = fdem.Simulation3DMagneticField(mesh, survey=survey, sigmaMap=mapping)
 
     else:
         raise NotImplementedError()
-    prb.pair(survey)
 
     try:
         from pymatsolver import Pardiso
@@ -146,7 +148,6 @@ def crossCheckTest(
     TOL=1e-5,
     verbose=False,
 ):
-
     l2norm = lambda r: np.sqrt(r.dot(r))
 
     prb1 = getFDEMProblem(fdemType1, comp, SrcList, freq, useMu, verbose)

@@ -1,4 +1,3 @@
-from __future__ import print_function
 import unittest
 import numpy as np
 import discretize
@@ -25,7 +24,6 @@ FLR = 1e-20  # "zero", so if residual below this --> pass regardless of order
 
 class DCProblemTestsCC(unittest.TestCase):
     def setUp(self):
-
         aSpacing = 2.5
         nElecs = 5
 
@@ -41,8 +39,8 @@ class DCProblemTestsCC(unittest.TestCase):
             "CN",
         )
 
-        srcList = dc.utils.WennerSrcList(nElecs, aSpacing, in2D=True)
-        survey = dc.survey.Survey(srcList)
+        source_list = dc.utils.WennerSrcList(nElecs, aSpacing, in2D=True)
+        survey = dc.survey.Survey(source_list)
         simulation = dc.simulation.Simulation3DCellCentered(
             mesh=mesh, survey=survey, rhoMap=maps.IdentityMap(mesh)
         )
@@ -52,7 +50,7 @@ class DCProblemTestsCC(unittest.TestCase):
 
         # Now set up the problem to do some minimization
         dmis = data_misfit.L2DataMisfit(simulation=simulation, data=dobs)
-        reg = regularization.Tikhonov(mesh)
+        reg = regularization.WeightedLeastSquares(mesh)
         opt = optimization.InexactGaussNewton(
             maxIterLS=20, maxIter=10, tolF=1e-6, tolX=1e-6, tolG=1e-6, maxIterCG=6
         )
@@ -69,7 +67,7 @@ class DCProblemTestsCC(unittest.TestCase):
         self.dobs = dobs
 
     def test_misfit(self):
-        passed = tests.checkDerivative(
+        passed = tests.check_derivative(
             lambda m: [self.p.dpred(m), lambda mx: self.p.Jvec(self.m0, mx)],
             self.m0,
             plotIt=False,
@@ -89,7 +87,7 @@ class DCProblemTestsCC(unittest.TestCase):
         self.assertTrue(passed)
 
     def test_dataObj(self):
-        passed = tests.checkDerivative(
+        passed = tests.check_derivative(
             lambda m: [self.dmis(m), self.dmis.deriv(m)], self.m0, plotIt=False, num=6
         )
         self.assertTrue(passed)
@@ -100,7 +98,7 @@ class DCProblemTestsCC_fields(unittest.TestCase):
         cs = 10
         nc = 20
         npad = 10
-        mesh = discretize.CylMesh(
+        mesh = discretize.CylindricalMesh(
             [
                 [(cs, nc), (cs, npad, 1.3)],
                 np.r_[2 * np.pi],
@@ -108,7 +106,7 @@ class DCProblemTestsCC_fields(unittest.TestCase):
             ]
         )
 
-        mesh.x0 = np.r_[0.0, 0.0, -mesh.hz[: npad + nc].sum()]
+        mesh.x0 = np.r_[0.0, 0.0, -mesh.h[2][: npad + nc].sum()]
 
         # receivers
         rx_x = np.linspace(10, 200, 20)
@@ -120,7 +118,7 @@ class DCProblemTestsCC_fields(unittest.TestCase):
         src_a = np.r_[0.0, 0.0, -5.0]
         src_b = np.r_[55.0, 0.0, -5.0]
 
-        src_list = [dc.sources.Dipole(rx_list, locationA=src_a, locationB=src_b)]
+        src_list = [dc.sources.Dipole(rx_list, location_a=src_a, location_b=src_b)]
 
         self.mesh = mesh
         self.survey = dc.survey.Survey(src_list)
@@ -131,7 +129,7 @@ class DCProblemTestsCC_fields(unittest.TestCase):
             mesh=mesh,
             survey=self.survey,
             sigmaMap=self.sigma_map,
-            Solver=Pardiso,
+            solver=Pardiso,
             bc_type="Dirichlet",
         )
 
@@ -141,7 +139,7 @@ class DCProblemTestsCC_fields(unittest.TestCase):
         def fun(x):
             return self.prob.dpred(x), lambda x: self.prob.Jvec(x0, x)
 
-        return tests.checkDerivative(fun, x0, num=3, plotIt=False)
+        return tests.check_derivative(fun, x0, num=3, plotIt=False)
 
     def test_e_adjoint(self):
         print("Adjoint Test for e")
@@ -166,7 +164,6 @@ class DCProblemTestsCC_fields(unittest.TestCase):
 
 class DCProblemTestsN(unittest.TestCase):
     def setUp(self):
-
         aSpacing = 2.5
         nElecs = 10
 
@@ -182,8 +179,8 @@ class DCProblemTestsN(unittest.TestCase):
             "CN",
         )
 
-        srcList = dc.utils.WennerSrcList(nElecs, aSpacing, in2D=True)
-        survey = dc.survey.Survey(srcList)
+        source_list = dc.utils.WennerSrcList(nElecs, aSpacing, in2D=True)
+        survey = dc.survey.Survey(source_list)
         simulation = dc.simulation.Simulation3DNodal(
             mesh=mesh, survey=survey, rhoMap=maps.IdentityMap(mesh)
         )
@@ -193,7 +190,7 @@ class DCProblemTestsN(unittest.TestCase):
 
         # Now set up the problem to do some minimization
         dmis = data_misfit.L2DataMisfit(simulation=simulation, data=dobs)
-        reg = regularization.Tikhonov(mesh)
+        reg = regularization.WeightedLeastSquares(mesh)
         opt = optimization.InexactGaussNewton(
             maxIterLS=20, maxIter=10, tolF=1e-6, tolX=1e-6, tolG=1e-6, maxIterCG=6
         )
@@ -210,7 +207,7 @@ class DCProblemTestsN(unittest.TestCase):
         self.dobs = dobs
 
     def test_misfit(self):
-        passed = tests.checkDerivative(
+        passed = tests.check_derivative(
             lambda m: [self.p.dpred(m), lambda mx: self.p.Jvec(self.m0, mx)],
             self.m0,
             plotIt=False,
@@ -230,7 +227,7 @@ class DCProblemTestsN(unittest.TestCase):
         self.assertTrue(passed)
 
     def test_dataObj(self):
-        passed = tests.checkDerivative(
+        passed = tests.check_derivative(
             lambda m: [self.dmis(m), self.dmis.deriv(m)], self.m0, plotIt=False, num=3
         )
         self.assertTrue(passed)
@@ -238,7 +235,6 @@ class DCProblemTestsN(unittest.TestCase):
 
 class DCProblemTestsN_Robin(unittest.TestCase):
     def setUp(self):
-
         aSpacing = 2.5
         nElecs = 10
 
@@ -254,8 +250,8 @@ class DCProblemTestsN_Robin(unittest.TestCase):
             "CN",
         )
 
-        srcList = dc.utils.WennerSrcList(nElecs, aSpacing, in2D=True)
-        survey = dc.survey.Survey(srcList)
+        source_list = dc.utils.WennerSrcList(nElecs, aSpacing, in2D=True)
+        survey = dc.survey.Survey(source_list)
         simulation = dc.simulation.Simulation3DNodal(
             mesh=mesh, survey=survey, rhoMap=maps.IdentityMap(mesh), bc_type="Robin"
         )
@@ -265,7 +261,7 @@ class DCProblemTestsN_Robin(unittest.TestCase):
 
         # Now set up the problem to do some minimization
         dmis = data_misfit.L2DataMisfit(simulation=simulation, data=dobs)
-        reg = regularization.Tikhonov(mesh)
+        reg = regularization.WeightedLeastSquares(mesh)
         opt = optimization.InexactGaussNewton(
             maxIterLS=20, maxIter=10, tolF=1e-6, tolX=1e-6, tolG=1e-6, maxIterCG=6
         )
@@ -282,7 +278,7 @@ class DCProblemTestsN_Robin(unittest.TestCase):
         self.dobs = dobs
 
     def test_misfit(self):
-        passed = tests.checkDerivative(
+        passed = tests.check_derivative(
             lambda m: [self.p.dpred(m), lambda mx: self.p.Jvec(self.m0, mx)],
             self.m0,
             plotIt=False,
@@ -302,7 +298,7 @@ class DCProblemTestsN_Robin(unittest.TestCase):
         self.assertTrue(passed)
 
     def test_dataObj(self):
-        passed = tests.checkDerivative(
+        passed = tests.check_derivative(
             lambda m: [self.dmis(m), self.dmis.deriv(m)], self.m0, plotIt=False, num=3
         )
         self.assertTrue(passed)
@@ -310,7 +306,6 @@ class DCProblemTestsN_Robin(unittest.TestCase):
 
 class DCProblemTestsCC_storeJ(unittest.TestCase):
     def setUp(self):
-
         aSpacing = 2.5
         nElecs = 5
 
@@ -326,8 +321,8 @@ class DCProblemTestsCC_storeJ(unittest.TestCase):
             "CN",
         )
 
-        srcList = dc.utils.WennerSrcList(nElecs, aSpacing, in2D=True)
-        survey = dc.survey.Survey(srcList)
+        source_list = dc.utils.WennerSrcList(nElecs, aSpacing, in2D=True)
+        survey = dc.survey.Survey(source_list)
         simulation = dc.simulation.Simulation3DCellCentered(
             mesh=mesh, survey=survey, rhoMap=maps.IdentityMap(mesh), storeJ=True
         )
@@ -337,7 +332,7 @@ class DCProblemTestsCC_storeJ(unittest.TestCase):
 
         # Now set up the problem to do some minimization
         dmis = data_misfit.L2DataMisfit(simulation=simulation, data=dobs)
-        reg = regularization.Tikhonov(mesh)
+        reg = regularization.WeightedLeastSquares(mesh)
         opt = optimization.InexactGaussNewton(
             maxIterLS=20, maxIter=10, tolF=1e-6, tolX=1e-6, tolG=1e-6, maxIterCG=6
         )
@@ -354,7 +349,7 @@ class DCProblemTestsCC_storeJ(unittest.TestCase):
         self.dobs = dobs
 
     def test_misfit(self):
-        passed = tests.checkDerivative(
+        passed = tests.check_derivative(
             lambda m: [self.p.dpred(m), lambda mx: self.p.Jvec(self.m0, mx)],
             self.m0,
             plotIt=False,
@@ -374,7 +369,7 @@ class DCProblemTestsCC_storeJ(unittest.TestCase):
         self.assertTrue(passed)
 
     def test_dataObj(self):
-        passed = tests.checkDerivative(
+        passed = tests.check_derivative(
             lambda m: [self.dmis(m), self.dmis.deriv(m)], self.m0, plotIt=False, num=4
         )
         self.assertTrue(passed)
@@ -389,7 +384,6 @@ class DCProblemTestsCC_storeJ(unittest.TestCase):
 
 class DCProblemTestsN_storeJ(unittest.TestCase):
     def setUp(self):
-
         aSpacing = 2.5
         nElecs = 10
 
@@ -405,8 +399,8 @@ class DCProblemTestsN_storeJ(unittest.TestCase):
             "CN",
         )
 
-        srcList = dc.utils.WennerSrcList(nElecs, aSpacing, in2D=True)
-        survey = dc.survey.Survey(srcList)
+        source_list = dc.utils.WennerSrcList(nElecs, aSpacing, in2D=True)
+        survey = dc.survey.Survey(source_list)
         simulation = dc.simulation.Simulation3DNodal(
             mesh=mesh, survey=survey, rhoMap=maps.IdentityMap(mesh), storeJ=True
         )
@@ -416,7 +410,7 @@ class DCProblemTestsN_storeJ(unittest.TestCase):
 
         # Now set up the problem to do some minimization
         dmis = data_misfit.L2DataMisfit(simulation=simulation, data=dobs)
-        reg = regularization.Tikhonov(mesh)
+        reg = regularization.WeightedLeastSquares(mesh)
         opt = optimization.InexactGaussNewton(
             maxIterLS=20, maxIter=10, tolF=1e-6, tolX=1e-6, tolG=1e-6, maxIterCG=6
         )
@@ -433,7 +427,7 @@ class DCProblemTestsN_storeJ(unittest.TestCase):
         self.dobs = dobs
 
     def test_misfit(self):
-        passed = tests.checkDerivative(
+        passed = tests.check_derivative(
             lambda m: [self.p.dpred(m), lambda mx: self.p.Jvec(self.m0, mx)],
             self.m0,
             plotIt=False,
@@ -453,7 +447,7 @@ class DCProblemTestsN_storeJ(unittest.TestCase):
         self.assertTrue(passed)
 
     def test_dataObj(self):
-        passed = tests.checkDerivative(
+        passed = tests.check_derivative(
             lambda m: [self.dmis(m), self.dmis.deriv(m)], self.m0, plotIt=False, num=3
         )
         self.assertTrue(passed)
@@ -468,7 +462,6 @@ class DCProblemTestsN_storeJ(unittest.TestCase):
 
 class DCProblemTestsN_storeJ_Robin(unittest.TestCase):
     def setUp(self):
-
         aSpacing = 2.5
         nElecs = 10
 
@@ -484,8 +477,8 @@ class DCProblemTestsN_storeJ_Robin(unittest.TestCase):
             "CN",
         )
 
-        srcList = dc.utils.WennerSrcList(nElecs, aSpacing, in2D=True)
-        survey = dc.survey.Survey(srcList)
+        source_list = dc.utils.WennerSrcList(nElecs, aSpacing, in2D=True)
+        survey = dc.survey.Survey(source_list)
         simulation = dc.simulation.Simulation3DNodal(
             mesh=mesh,
             survey=survey,
@@ -499,7 +492,7 @@ class DCProblemTestsN_storeJ_Robin(unittest.TestCase):
 
         # Now set up the problem to do some minimization
         dmis = data_misfit.L2DataMisfit(simulation=simulation, data=dobs)
-        reg = regularization.Tikhonov(mesh)
+        reg = regularization.WeightedLeastSquares(mesh)
         opt = optimization.InexactGaussNewton(
             maxIterLS=20, maxIter=10, tolF=1e-6, tolX=1e-6, tolG=1e-6, maxIterCG=6
         )
@@ -516,7 +509,7 @@ class DCProblemTestsN_storeJ_Robin(unittest.TestCase):
         self.dobs = dobs
 
     def test_misfit(self):
-        passed = tests.checkDerivative(
+        passed = tests.check_derivative(
             lambda m: [self.p.dpred(m), lambda mx: self.p.Jvec(self.m0, mx)],
             self.m0,
             plotIt=False,
@@ -536,7 +529,7 @@ class DCProblemTestsN_storeJ_Robin(unittest.TestCase):
         self.assertTrue(passed)
 
     def test_dataObj(self):
-        passed = tests.checkDerivative(
+        passed = tests.check_derivative(
             lambda m: [self.dmis(m), self.dmis.deriv(m)], self.m0, plotIt=False, num=3
         )
         self.assertTrue(passed)

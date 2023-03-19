@@ -33,9 +33,9 @@ import matplotlib.pyplot as plt
 import tarfile
 
 from discretize import TensorMesh
-
+from discretize.utils import active_from_xyz
 from SimPEG.potential_fields import magnetics
-from SimPEG.utils import plot2Ddata, surface2ind_topo, model_builder
+from SimPEG.utils import plot2Ddata, model_builder
 from SimPEG import (
     maps,
     data,
@@ -210,10 +210,10 @@ mesh = TensorMesh([hx, hy, hz], "CCN")
 background_susceptibility = 1e-4
 
 # Find the indecies of the active cells in forward model (ones below surface)
-ind_active = surface2ind_topo(mesh, topo_xyz)
+active_cells = active_from_xyz(mesh, topo_xyz)
 
 # Define mapping from model to active cells
-nC = int(ind_active.sum())
+nC = int(active_cells.sum())
 model_map = maps.IdentityMap(nP=nC)  # model consists of a value for each cell
 
 # Define starting model
@@ -231,9 +231,9 @@ starting_model = background_susceptibility * np.ones(nC)
 simulation = magnetics.simulation.Simulation3DIntegral(
     survey=survey,
     mesh=mesh,
-    modelType="susceptibility",
+    model_type="scalar",
     chiMap=model_map,
-    actInd=ind_active,
+    ind_active=active_cells,
 )
 
 
@@ -257,23 +257,19 @@ dmis = data_misfit.L2DataMisfit(data=data_object, simulation=simulation)
 # Define the regularization (model objective function)
 reg = regularization.Sparse(
     mesh,
-    indActive=ind_active,
+    active_cells=active_cells,
     mapping=model_map,
-    mref=starting_model,
-    gradientType="total",
-    alpha_s=1,
-    alpha_x=1,
-    alpha_y=1,
-    alpha_z=1,
+    reference_model=starting_model,
+    gradient_type="total",
 )
 
 # Define sparse and blocky norms p, qx, qy, qz
-reg.norms = np.c_[0, 2, 2, 2]
+reg.norms = [0, 0, 0, 0]
 
 # Define how the optimization problem is solved. Here we will use a projected
 # Gauss-Newton approach that employs the conjugate gradient solver.
 opt = optimization.ProjectedGNCG(
-    maxIter=10, lower=0.0, upper=1.0, maxIterLS=20, maxIterCG=10, tolCG=1e-3
+    maxIter=20, lower=0.0, upper=1.0, maxIterLS=20, maxIterCG=10, tolCG=1e-3
 )
 
 # Here we define the inverse problem that is to be solved
@@ -283,7 +279,7 @@ inv_prob = inverse_problem.BaseInvProblem(dmis, reg, opt)
 # Define Inversion Directives
 # ---------------------------
 #
-# Here we define any directiveas that are carried out during the inversion. This
+# Here we define any directives that are carried out during the inversion. This
 # includes the cooling schedule for the trade-off parameter (beta), stopping
 # criteria for the inversion and saving inversion results at each iteration.
 #
@@ -298,10 +294,13 @@ save_iteration = directives.SaveOutputEveryIteration(save_txt=False)
 # Defines the directives for the IRLS regularization. This includes setting
 # the cooling schedule for the trade-off parameter.
 update_IRLS = directives.Update_IRLS(
-    f_min_change=1e-4, max_irls_iterations=30, coolEpsFact=1.5, beta_tol=1e-2,
+    f_min_change=1e-4,
+    max_irls_iterations=30,
+    coolEpsFact=1.5,
+    beta_tol=1e-2,
 )
 
-# Updating the preconditionner if it is model dependent.
+# Updating the preconditioner if it is model dependent.
 update_jacobi = directives.UpdatePreconditioner()
 
 # Setting a stopping criteria for the inversion.
@@ -349,7 +348,7 @@ true_model = background_susceptibility * np.ones(nC)
 ind_sphere = model_builder.getIndicesSphere(
     np.r_[0.0, 0.0, -45.0], 15.0, mesh.cell_centers
 )
-ind_sphere = ind_sphere[ind_active]
+ind_sphere = ind_sphere[active_cells]
 true_model[ind_sphere] = sphere_susceptibility
 
 
@@ -360,17 +359,17 @@ true_model[ind_sphere] = sphere_susceptibility
 
 # Plot True Model
 fig = plt.figure(figsize=(9, 4))
-plotting_map = maps.InjectActiveCells(mesh, ind_active, np.nan)
+plotting_map = maps.InjectActiveCells(mesh, active_cells, np.nan)
 
 ax1 = fig.add_axes([0.08, 0.1, 0.75, 0.8])
-mesh.plotSlice(
+mesh.plot_slice(
     plotting_map * true_model,
     normal="Y",
     ax=ax1,
-    ind=int(mesh.nCy / 2),
+    ind=int(mesh.shape_cells[1] / 2),
     grid=True,
     clim=(np.min(true_model), np.max(true_model)),
-    pcolorOpts={"cmap": "viridis"},
+    pcolor_opts={"cmap": "viridis"},
 )
 ax1.set_title("Model slice at y = 0 m")
 
@@ -385,17 +384,17 @@ plt.show()
 
 # Plot Recovered Model
 fig = plt.figure(figsize=(9, 4))
-plotting_map = maps.InjectActiveCells(mesh, ind_active, np.nan)
+plotting_map = maps.InjectActiveCells(mesh, active_cells, np.nan)
 
 ax1 = fig.add_axes([0.08, 0.1, 0.75, 0.8])
-mesh.plotSlice(
+mesh.plot_slice(
     plotting_map * recovered_model,
     normal="Y",
     ax=ax1,
-    ind=int(mesh.nCy / 2),
+    ind=int(mesh.shape_cells[1] / 2),
     grid=True,
     clim=(np.min(recovered_model), np.max(recovered_model)),
-    pcolorOpts={"cmap": "viridis"},
+    pcolor_opts={"cmap": "viridis"},
 )
 ax1.set_title("Model slice at y = 0 m")
 
@@ -431,7 +430,6 @@ cplot = 3 * [None]
 v_lim = [np.max(np.abs(dobs)), np.max(np.abs(dobs)), np.max(np.abs(data_array[:, 2]))]
 
 for ii in range(0, 3):
-
     ax1[ii] = fig.add_axes([0.33 * ii + 0.03, 0.11, 0.25, 0.84])
     cplot[ii] = plot2Ddata(
         receiver_list[0].locations,

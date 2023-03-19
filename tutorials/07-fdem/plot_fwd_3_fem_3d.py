@@ -1,6 +1,6 @@
 """
-Forward Simulation on a Tree Mesh
-=================================
+3D Forward Simulation on a Tree Mesh
+====================================
 
 Here we use the module *SimPEG.electromagnetics.frequency_domain* to simulate the
 FDEM response for an airborne survey using an OcTree mesh and a
@@ -29,9 +29,9 @@ sufficient accuracy.
 #
 
 from discretize import TreeMesh
-from discretize.utils import mkvc, refine_tree_xyz
+from discretize.utils import mkvc, refine_tree_xyz, active_from_xyz
 
-from SimPEG.utils import plot2Ddata, surface2ind_topo
+from SimPEG.utils import plot2Ddata
 from SimPEG import maps
 import SimPEG.electromagnetics.frequency_domain as fdem
 
@@ -90,7 +90,6 @@ source_list = []  # Create empty list to store sources
 # Each unique location and frequency defines a new transmitter
 for ii in range(len(frequencies)):
     for jj in range(ntx):
-
         # Define receivers of different type at each location
         bzr_receiver = fdem.receivers.PointMagneticFluxDensitySecondary(
             receiver_locations[jj, :], "z", "real"
@@ -168,7 +167,7 @@ background_conductivity = 1e-2
 block_conductivity = 1e1
 
 # Find cells that are active in the forward modeling (cells below surface)
-ind_active = surface2ind_topo(mesh, topo_xyz)
+ind_active = active_from_xyz(mesh, topo_xyz)
 
 # Define mapping from model to active cells
 model_map = maps.InjectActiveCells(mesh, ind_active, air_conductivity)
@@ -193,12 +192,12 @@ plotting_map = maps.InjectActiveCells(mesh, ind_active, np.nan)
 log_model = np.log10(model)
 
 ax1 = fig.add_axes([0.13, 0.1, 0.6, 0.85])
-mesh.plotSlice(
+mesh.plot_slice(
     plotting_map * log_model,
     normal="Y",
     ax=ax1,
-    ind=int(mesh.hx.size / 2),
-    grid=True,
+    ind=int(mesh.h[0].size / 2),
+    grid=False,
     clim=(np.log10(background_conductivity), np.log10(block_conductivity)),
 )
 ax1.set_title("Conductivity Model at Y = 0 m")
@@ -225,7 +224,7 @@ cbar.set_label("Conductivity [S/m]", rotation=270, labelpad=15, size=12)
 #
 
 simulation = fdem.simulation.Simulation3DMagneticFluxDensity(
-    mesh, survey=survey, sigmaMap=model_map, Solver=Solver
+    mesh, survey=survey, sigmaMap=model_map, solver=Solver
 )
 
 ######################################################
@@ -303,7 +302,6 @@ plt.show()
 
 
 if save_file:
-
     dir_path = os.path.dirname(fdem.__file__).split(os.path.sep)[:-3]
     dir_path.extend(["tutorials", "assets", "fdem"])
     dir_path = os.path.sep.join(dir_path) + os.path.sep

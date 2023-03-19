@@ -2,15 +2,12 @@ import discretize
 from SimPEG import maps, utils, tests
 from SimPEG.electromagnetics import frequency_domain as fdem
 import numpy as np
-from scipy.constants import mu_0
 
 import unittest
 
 MuMax = 50.0
 TOL = 1e-8
 EPS = 1e-10
-
-np.random.seed(105)
 
 
 def setupMeshModel():
@@ -20,7 +17,7 @@ def setupMeshModel():
     hx = [(cs, nc), (cs, npad, 1.3)]
     hz = [(cs, npad, -1.3), (cs, nc), (cs, npad, 1.3)]
 
-    mesh = discretize.CylMesh([hx, 1.0, hz], "0CC")
+    mesh = discretize.CylindricalMesh([hx, 1.0, hz], "0CC")
     muMod = 1 + MuMax * np.random.randn(mesh.nC)
     sigmaMod = np.random.randn(mesh.nC)
 
@@ -38,7 +35,7 @@ def setupProblem(
 ):
     rxcomp = ["real", "imag"]
 
-    loc = utils.ndgrid([mesh.vectorCCx, np.r_[0.0], mesh.vectorCCz])
+    loc = utils.ndgrid([mesh.cell_centers_x, np.r_[0.0], mesh.cell_centers_z])
 
     if prbtype in ["ElectricField", "MagneticFluxDensity"]:
         rxfields_y = ["ElectricField", "CurrentDensity"]
@@ -48,7 +45,7 @@ def setupProblem(
         rxfields_y = ["MagneticFluxDensity", "MagneticField"]
         rxfields_xz = ["ElectricField", "CurrentDensity"]
 
-    rxList_edge = [
+    receiver_list_edge = [
         getattr(fdem.receivers, "Point{f}".format(f=f))(
             loc, component=comp, orientation=orient
         )
@@ -57,7 +54,7 @@ def setupProblem(
         for orient in ["y"]
     ]
 
-    rxList_face = [
+    receiver_list_face = [
         getattr(fdem.receivers, "Point{f}".format(f=f))(
             loc, component=comp, orientation=orient
         )
@@ -66,26 +63,27 @@ def setupProblem(
         for orient in ["x", "z"]
     ]
 
-    rxList = rxList_edge + rxList_face
+    receiver_list = receiver_list_edge + receiver_list_face
 
     src_loc = np.r_[0.0, 0.0, 0.0]
 
     if prbtype in ["ElectricField", "MagneticFluxDensity"]:
         src = fdem.sources.MagDipole(
-            receiver_list=rxList, location=src_loc, frequency=freq
+            receiver_list=receiver_list, location=src_loc, frequency=freq
         )
 
     elif prbtype in ["MagneticField", "CurrentDensity"]:
-        ind = utils.closestPoints(mesh, src_loc, "Fz") + mesh.vnF[0]
+        ind = utils.closest_points_index(mesh, src_loc, "Fz") + mesh.vnF[0]
         vec = np.zeros(mesh.nF)
         vec[ind] = 1.0
 
-        src = fdem.sources.RawVec_e(receiver_list=rxList, frequency=freq, s_e=vec)
+        src = fdem.sources.RawVec_e(
+            receiver_list=receiver_list, frequency=freq, s_e=vec
+        )
 
     survey = fdem.Survey([src])
 
     if sigmaInInversion:
-
         wires = maps.Wires(("mu", mesh.nC), ("sigma", mesh.nC))
 
         muMap = maps.MuRelative(mesh) * wires.mu
@@ -147,6 +145,9 @@ class MuTests(unittest.TestCase):
         MfMuiI = self.simulation.MfMuiI
         MeMuDeriv = self.simulation.MeMuDeriv(u[:, "e"])
         MfMuiDeriv = self.simulation.MfMuiDeriv(u[:, "b"])
+        MfMuiDeriv_zero = self.simulation.MfMuiDeriv(utils.Zero())
+        MfMuiIDeriv_zero = self.simulation.MfMuiIDeriv(utils.Zero())
+        MeMuDeriv_zero = self.simulation.MeMuDeriv(utils.Zero())
 
         m1 = np.random.rand(self.mesh.nC)
         self.simulation.model = m1
@@ -157,6 +158,9 @@ class MuTests(unittest.TestCase):
         self.assertTrue(getattr(self, "_MfMuiI", None) is None)
         self.assertTrue(getattr(self, "_MfMuiDeriv", None) is None)
         self.assertTrue(getattr(self, "_MeMuDeriv", None) is None)
+        self.assertTrue(isinstance(MfMuiDeriv_zero, utils.Zero))
+        self.assertTrue(isinstance(MfMuiIDeriv_zero, utils.Zero))
+        self.assertTrue(isinstance(MeMuDeriv_zero, utils.Zero))
 
     def JvecTest(
         self, prbtype="ElectricField", sigmaInInversion=False, invertMui=False
@@ -164,13 +168,18 @@ class MuTests(unittest.TestCase):
         self.setUpProb(prbtype, sigmaInInversion, invertMui)
         print("Testing Jvec {}".format(prbtype))
 
+        np.random.seed(3321)
+        mod = self.m0
+
         def fun(x):
             return (
                 self.simulation.dpred(x),
-                lambda x: self.simulation.Jvec(self.m0, x),
+                lambda x: self.simulation.Jvec(mod, x),
             )
 
-        return tests.checkDerivative(fun, self.m0, num=3, plotIt=False)
+        dx = np.random.rand(*mod.shape) * (mod.max() - mod.min()) * 0.01
+
+        return tests.check_derivative(fun, mod, dx=dx, num=3, plotIt=False)
 
     def JtvecTest(
         self, prbtype="ElectricField", sigmaInInversion=False, invertMui=False
@@ -178,13 +187,14 @@ class MuTests(unittest.TestCase):
         self.setUpProb(prbtype, sigmaInInversion, invertMui)
         print("Testing Jvec {}".format(prbtype))
 
-        m = np.random.rand(self.simulation.muMap.nP)
+        np.random.seed(31345)
+        u = np.random.rand(self.simulation.muMap.nP)
         v = np.random.rand(self.survey.nD)
 
         self.simulation.model = self.m0
 
-        V1 = v.dot(self.simulation.Jvec(self.m0, m))
-        V2 = m.dot(self.simulation.Jtvec(self.m0, v))
+        V1 = v.dot(self.simulation.Jvec(self.m0, u))
+        V2 = u.dot(self.simulation.Jtvec(self.m0, v))
         diff = np.abs(V1 - V2)
         tol = TOL * (np.abs(V1) + np.abs(V2)) / 2.0
         passed = (diff < tol) | (diff < EPS)

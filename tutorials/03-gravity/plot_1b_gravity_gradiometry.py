@@ -25,8 +25,8 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 
 from discretize import TreeMesh
-from discretize.utils import mkvc, refine_tree_xyz
-from SimPEG.utils import plot2Ddata, model_builder, surface2ind_topo
+from discretize.utils import mkvc, refine_tree_xyz, active_from_xyz
+from SimPEG.utils import plot2Ddata, model_builder
 from SimPEG import maps
 from SimPEG.potential_fields import gravity
 
@@ -41,7 +41,7 @@ from SimPEG.potential_fields import gravity
 #
 
 [x_topo, y_topo] = np.meshgrid(np.linspace(-200, 200, 41), np.linspace(-200, 200, 41))
-z_topo = -15 * np.exp(-(x_topo ** 2 + y_topo ** 2) / 80 ** 2)
+z_topo = -15 * np.exp(-(x_topo**2 + y_topo**2) / 80**2)
 x_topo, y_topo, z_topo = mkvc(x_topo), mkvc(y_topo), mkvc(z_topo)
 xyz_topo = np.c_[x_topo, y_topo, z_topo]
 
@@ -137,7 +137,7 @@ block_density = -0.1
 sphere_density = 0.1
 
 # Find the indecies for the active mesh cells (e.g. cells below surface)
-ind_active = surface2ind_topo(mesh, xyz_topo)
+ind_active = active_from_xyz(mesh, xyz_topo)
 
 # Define mapping from model to active cells. The model consists of a value for
 # each cell below the Earth's surface.
@@ -169,14 +169,14 @@ fig = plt.figure(figsize=(9, 4))
 plotting_map = maps.InjectActiveCells(mesh, ind_active, np.nan)
 
 ax1 = fig.add_axes([0.1, 0.12, 0.73, 0.78])
-mesh.plotSlice(
+mesh.plot_slice(
     plotting_map * model,
     normal="Y",
     ax=ax1,
-    ind=int(mesh.hy.size / 2),
+    ind=int(mesh.h[1].size / 2),
     grid=True,
     clim=(np.min(model), np.max(model)),
-    pcolorOpts={"cmap": "viridis"},
+    pcolor_opts={"cmap": "viridis"},
 )
 ax1.set_title("Model slice at y = 0 m")
 ax1.set_xlabel("x (m)")
@@ -205,7 +205,7 @@ simulation = gravity.simulation.Simulation3DIntegral(
     survey=survey,
     mesh=mesh,
     rhoMap=model_map,
-    actInd=ind_active,
+    ind_active=ind_active,
     store_sensitivities="forward_only",
 )
 
@@ -228,7 +228,7 @@ cplot1 = plot2Ddata(
     contourOpts={"cmap": "bwr"},
 )
 cplot1[0].set_clim((-v_max, v_max))
-ax1.set_title("$\partial g /\partial x$")
+ax1.set_title(r"$\partial g /\partial x$")
 ax1.set_xlabel("x (m)")
 ax1.set_ylabel("y (m)")
 
@@ -242,7 +242,7 @@ cplot2 = plot2Ddata(
     contourOpts={"cmap": "bwr"},
 )
 cplot2[0].set_clim((-v_max, v_max))
-ax2.set_title("$\partial g /\partial y$")
+ax2.set_title(r"$\partial g /\partial y$")
 ax2.set_xlabel("x (m)")
 ax2.set_yticks([])
 
@@ -256,7 +256,7 @@ cplot3 = plot2Ddata(
     contourOpts={"cmap": "bwr"},
 )
 cplot3[0].set_clim((-v_max, v_max))
-ax3.set_title("$\partial g /\partial z$")
+ax3.set_title(r"$\partial g /\partial z$")
 ax3.set_xlabel("x (m)")
 ax3.set_yticks([])
 

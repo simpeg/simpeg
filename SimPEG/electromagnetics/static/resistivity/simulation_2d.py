@@ -1,11 +1,18 @@
 import numpy as np
 from scipy.optimize import minimize
 import warnings
-import properties
-from ....utils.code_utils import deprecate_class
 
-from ....utils import mkvc, sdiag, Zero
-from ...base import BaseEMSimulation
+
+from ....utils import (
+    mkvc,
+    sdiag,
+    Zero,
+    validate_type,
+    validate_string,
+    validate_integer,
+    validate_active_indices,
+)
+from ....base import BaseElectricalPDESimulation
 from ....data import Data
 
 from .survey import Survey
@@ -16,31 +23,35 @@ from scipy.special import k0e, k1e, k0
 from discretize.utils import make_boundary_bool
 
 
-class BaseDCSimulation2D(BaseEMSimulation):
+class BaseDCSimulation2D(BaseElectricalPDESimulation):
     """
     Base 2.5D DC problem
     """
 
-    survey = properties.Instance("a DC survey object", Survey, required=True)
-
-    storeJ = properties.Bool("store the sensitivity matrix?", default=False)
-
-    nky = properties.Integer(
-        "Number of kys to use in wavenumber space", required=False, default=11
-    )
-
     fieldsPair = Fields2D  # SimPEG.EM.Static.Fields_2D
     fieldsPair_fwd = FieldsDC
     # there's actually nT+1 fields, so we don't need to store the last one
-    _Jmatrix = None
-    fix_Jmatrix = False
     _mini_survey = None
 
-    def __init__(self, *args, **kwargs):
-        miniaturize = kwargs.pop("miniaturize", False)
-        do_trap = kwargs.pop("do_trap", False)
-        super().__init__(*args, **kwargs)
+    def __init__(
+        self,
+        mesh,
+        survey=None,
+        nky=11,
+        storeJ=False,
+        miniaturize=False,
+        do_trap=False,
+        fix_Jmatrix=False,
+        surface_faces=None,
+        **kwargs,
+    ):
+        super().__init__(mesh=mesh, survey=survey, **kwargs)
+        self.nky = nky
+        self.storeJ = storeJ
+        self.fix_Jmatrix = fix_Jmatrix
+        self.surface_faces = surface_faces
 
+        do_trap = validate_type("do_trap", do_trap, bool)
         if not do_trap:
             # try to find an optimal set of quadrature points and weights
             def get_phi(r):
@@ -48,7 +59,7 @@ class BaseDCSimulation2D(BaseEMSimulation):
 
                 def phi(k):
                     # use log10 transform to enforce positivity
-                    k = 10 ** k
+                    k = 10**k
                     A = r[:, None] * k0(r[:, None] * k)
                     v_i = A @ np.linalg.solve(A.T @ A, A.T @ e)
                     dv = (e - v_i) / len(r)
@@ -61,8 +72,10 @@ class BaseDCSimulation2D(BaseEMSimulation):
                 return phi, g
 
             # find the minimum cell spacing, and the maximum side of the mesh
-            min_r = min(*[np.min(h) for h in self.mesh.h])
-            max_r = max(*[np.sum(h) for h in self.mesh.h])
+            min_r = min(self.mesh.edge_lengths)
+            max_r = max(
+                np.max(self.mesh.nodes, axis=0) - np.min(self.mesh.nodes, axis=0)
+            )
             # generate test points log spaced between these two end members
             rs = np.logspace(np.log10(min_r / 4), np.log10(max_r * 4), 100)
 
@@ -110,10 +123,92 @@ class BaseDCSimulation2D(BaseEMSimulation):
 
         # Do stuff to simplify the forward and JTvec operation if number of dipole
         # sources is greater than the number of unique pole sources
+        miniaturize = validate_type("miniaturize", miniaturize, bool)
         if miniaturize:
             self._dipoles, self._invs, self._mini_survey = _mini_pole_pole(self.survey)
 
-    def fields(self, m):
+    @property
+    def survey(self):
+        """The DC survey object.
+
+        Returns
+        -------
+        SimPEG.electromagnetics.static.resistivity.survey.Survey
+        """
+        if self._survey is None:
+            raise AttributeError("Simulation must have a survey")
+        return self._survey
+
+    @survey.setter
+    def survey(self, value):
+        if value is not None:
+            value = validate_type("survey", value, Survey, cast=False)
+        self._survey = value
+
+    @property
+    def nky(self):
+        """Number of kys to use in wavenumber space.
+
+        Returns
+        -------
+        int
+        """
+        return self._nky
+
+    @nky.setter
+    def nky(self, value):
+        self._nky = validate_integer("nky", value, min_val=3)
+
+    @property
+    def storeJ(self):
+        """Whether to store the sensitivity matrix
+
+        Returns
+        -------
+        bool
+        """
+        return self._storeJ
+
+    @storeJ.setter
+    def storeJ(self, value):
+        self._storeJ = validate_type("storeJ", value, bool)
+
+    @property
+    def fix_Jmatrix(self):
+        """Whether to fix the sensitivity matrix between iterations.
+
+        Returns
+        -------
+        bool
+        """
+        return self._fix_Jmatrix
+
+    @fix_Jmatrix.setter
+    def fix_Jmatrix(self, value):
+        self._fix_Jmatrix = validate_type("fix_Jmatrix", value, bool)
+
+    @property
+    def surface_faces(self):
+        """Array defining which faces to interpret as surfaces of Neumann boundary
+
+        DC problems will always enforce a Neumann boundary on surface interfaces.
+        The default (available on semi-structured grids) assumes the top interface
+        is the surface.
+
+        Returns
+        -------
+        None or numpy.ndarray of bool
+        """
+        return self._surface_faces
+
+    @surface_faces.setter
+    def surface_faces(self, value):
+        if value is not None:
+            n_bf = self.mesh.boundary_faces.shape[0]
+            value = validate_active_indices("surface_faces", value, n_bf)
+        self._surface_faces = value
+
+    def fields(self, m=None):
         if self.verbose:
             print(">> Compute fields")
         if m is not None:
@@ -172,9 +267,7 @@ class BaseDCSimulation2D(BaseEMSimulation):
         """
         Generate Full sensitivity matrix
         """
-        if self._Jmatrix is not None:
-            return self._Jmatrix
-        else:
+        if getattr(self, "_Jmatrix", None) is None:
             if self.verbose:
                 print("Calculating J and storing")
             self.model = m
@@ -342,16 +435,10 @@ class BaseDCSimulation2D(BaseEMSimulation):
 
     @property
     def deleteTheseOnModelUpdate(self):
-        toDelete = super(BaseDCSimulation2D, self).deleteTheseOnModelUpdate
-        if self.sigmaMap is not None:
-            toDelete += ["_MnSigma", "_MnSigmaDerivMat", "_MccRhoi", "_MccRhoiDerivMat"]
-
+        toDelete = super().deleteTheseOnModelUpdate
         if self.fix_Jmatrix:
             return toDelete
-
-        if self._Jmatrix is not None:
-            toDelete += ["_Jmatrix"]
-        return toDelete
+        return toDelete + ["_Jmatrix"]
 
     def _mini_survey_data(self, d_mini):
         if self._mini_survey is not None:
@@ -377,101 +464,6 @@ class BaseDCSimulation2D(BaseEMSimulation):
             out = v
         return out
 
-    ####################################################
-    # Mass Matrices
-    ####################################################
-
-    @property
-    def MnSigma(self):
-        """
-        Node inner product matrix for \\(\\sigma\\). Used in the E-B
-        formulation
-        """
-        # TODO: only works isotropic sigma
-        if getattr(self, "_MnSigma", None) is None:
-            sigma = self.sigma
-            vol = self.mesh.vol
-            self._MnSigma = sdiag(self.mesh.aveN2CC.T * (vol * sigma))
-        return self._MnSigma
-
-    @property
-    def MnSigmaDerivMat(self):
-        """
-        Derivative of MnSigma with respect to the model
-        """
-        if getattr(self, "_MnSigmaDerivMat", None) is None:
-            vol = self.mesh.vol
-            self._MnSigmaDerivMat = self.mesh.aveN2CC.T * sdiag(vol) * self.sigmaDeriv
-        return self._MnSigmaDerivMat
-
-    def MnSigmaDeriv(self, u, v, adjoint=False):
-        """
-        Derivative of MnSigma with respect to the model times a vector (u)
-        """
-        if v.ndim > 1:
-            u = u[:, None]
-        if self.storeInnerProduct:
-            if adjoint:
-                return self.MnSigmaDerivMat.T * (u * v)
-            else:
-                return u * (self.MnSigmaDerivMat * v)
-        else:
-            vol = self.mesh.vol
-            if v.ndim > 1:
-                vol = vol[:, None]
-            if adjoint:
-                return self.sigmaDeriv.T * (vol * (self.mesh.aveN2CC * (u * v)))
-            else:
-                dsig_dm_v = self.sigmaDeriv * v
-                return u * (self.mesh.aveN2CC.T * (vol * dsig_dm_v))
-
-    @property
-    def MccRhoi(self):
-        """
-        Cell inner product matrix for \\(\\rho^{-1}\\). Used in the H-J
-        formulation
-        """
-        # TODO: only works isotropic rho
-        if getattr(self, "_MccRhoi", None) is None:
-            self._MccRhoi = sdiag(self.mesh.vol / self.rho)
-        return self._MccRhoi
-
-    @property
-    def MccRhoiDerivMat(self):
-        """
-        Derivative of MccRho with respect to the model
-        """
-        if getattr(self, "_MccRhoiDerivMat", None) is None:
-            rho = self.rho
-            vol = self.mesh.vol
-            self._MccRhoiDerivMat = sdiag(vol * (-1.0 / rho ** 2)) * self.rhoDeriv
-        return self._MccRhoiDerivMat
-
-    def MccRhoiDeriv(self, u, v, adjoint=False):
-        """
-        Derivative of :code:`MccRhoi` with respect to the model.
-        """
-        if self.rhoMap is None:
-            return Zero()
-
-        if len(self.rho.shape) > 1:
-            if self.rho.shape[1] > self.mesh.dim:
-                raise NotImplementedError(
-                    "Full anisotropy is not implemented for MccRhoiDeriv."
-                )
-        if self.storeInnerProduct:
-            if adjoint:
-                return self.MccRhoiDerivMat.T * (sdiag(u) * v)
-            else:
-                return sdiag(u) * (self.MccRhoiDerivMat * v)
-        else:
-            vol = self.mesh.vol
-            rho = self.rho
-            if adjoint:
-                return self.rhoDeriv.T * (sdiag(u * vol * (-1.0 / rho ** 2)) * v)
-            else:
-                return (sdiag(u * vol * (-1.0 / rho ** 2))) * (self.rhoDeriv * v)
-
 
 class Simulation2DCellCentered(BaseDCSimulation2D):
     """
@@ -483,18 +475,28 @@ class Simulation2DCellCentered(BaseDCSimulation2D):
     fieldsPair = Fields2DCellCentered
     fieldsPair_fwd = Fields3DCellCentered
 
-    bc_type = properties.StringChoice(
-        "Type of boundary condition to use for simulation. Note that Robin and Mixed "
-        "are equivalent.",
-        choices=["Dirichlet", "Neumann", "Robin", "Mixed"],
-        default="Robin",
-    )
-
-    def __init__(self, mesh, **kwargs):
-        BaseDCSimulation2D.__init__(self, mesh, **kwargs)
+    def __init__(self, mesh, survey=None, bc_type="Robin", **kwargs):
+        super().__init__(mesh, survey=survey, **kwargs)
         V = sdiag(self.mesh.cell_volumes)
         self.Div = V @ self.mesh.face_divergence
         self.Grad = self.Div.T
+        self.bc_type = bc_type
+
+    @property
+    def bc_type(self):
+        """Type of boundary condition to use for simulation.
+
+        Returns
+        -------
+        {"Dirichlet", "Neumann", "Robin"}
+        """
+        return self._bc_type
+
+    @bc_type.setter
+    def bc_type(self, value):
+        self._bc_type = validate_string(
+            "bc_type", value, ["Dirichlet", "Neumann", ("Robin", "Mixed")]
+        )
 
     def getA(self, ky):
         """
@@ -509,7 +511,7 @@ class Simulation2DCellCentered(BaseDCSimulation2D):
             G = G - self._MBC[ky]
         MfRhoI = self.MfRhoI
         # Get resistivity rho
-        A = D * MfRhoI * G + ky ** 2 * self.MccRhoi
+        A = D * MfRhoI * G + ky**2 * self.MccSigma
         if self.bc_type == "Neumann":
             A[0, 0] = A[0, 0] + 1.0
         return A
@@ -521,12 +523,12 @@ class Simulation2DCellCentered(BaseDCSimulation2D):
             G = G - self._MBC[ky]
         if adjoint:
             return self.MfRhoIDeriv(
-                G * u.flatten(), D.T * v, adjoint=adjoint
-            ) + ky ** 2 * self.MccRhoiDeriv(u.flatten(), v, adjoint=adjoint)
+                G * u, D.T * v, adjoint=adjoint
+            ) + ky**2 * self.MccSigmaDeriv(u, v, adjoint=adjoint)
         else:
             return D * self.MfRhoIDeriv(
-                G * u.flatten(), v, adjoint=adjoint
-            ) + ky ** 2 * self.MccRhoiDeriv(u.flatten(), v, adjoint=adjoint)
+                G * u, v, adjoint=adjoint
+            ) + ky**2 * self.MccSigmaDeriv(u, v, adjoint=adjoint)
 
     def getRHS(self, ky):
         """
@@ -577,17 +579,25 @@ class Simulation2DCellCentered(BaseDCSimulation2D):
             r_hat = r_vec / r[:, None]
             r_dot_n = np.einsum("ij,ij->i", r_hat, boundary_normals)
 
-            # determine faces that are on the sides and bottom of the mesh...
-            if mesh._meshType.lower() == "tree":
-                not_top = boundary_faces[:, -1] != top_v
+            if self.surface_faces is None:
+                # determine faces that are on the sides and bottom of the mesh...
+                if mesh._meshType.lower() == "tree":
+                    not_top = boundary_faces[:, -1] != top_v
+                elif mesh._meshType.lower() in ["tensor", "curv"]:
+                    # mesh faces are ordered, faces_x, faces_y, faces_z so...
+                    is_b = make_boundary_bool(mesh.shape_faces_y)
+                    is_t = np.zeros(mesh.shape_faces_y, dtype=bool, order="F")
+                    is_t[:, -1] = True
+                    is_t = is_t.reshape(-1, order="F")[is_b]
+                    not_top = np.ones(boundary_faces.shape[0], dtype=bool)
+                    not_top[-len(is_t) :] = ~is_t
+                else:
+                    raise NotImplementedError(
+                        f"Unable to infer surface boundaries for {type(mesh)}, please "
+                        f"set the `surface_faces` property."
+                    )
             else:
-                # mesh faces are ordered, faces_x, faces_y, faces_z so...
-                is_b = make_boundary_bool(mesh.shape_faces_y)
-                is_t = np.zeros(mesh.shape_faces_y, dtype=bool, order="F")
-                is_t[:, -1] = True
-                is_t = is_t.reshape(-1, order="F")[is_b]
-                not_top = np.zeros(boundary_faces.shape[0], dtype=bool)
-                not_top[-len(is_t) :] = ~is_t
+                not_top = ~self.surface_faces
 
             # use the exponentialy scaled modified bessel function of second kind,
             # (the division will cancel out the scaling)
@@ -611,17 +621,31 @@ class Simulation2DNodal(BaseDCSimulation2D):
     fieldsPair_fwd = Fields3DNodal
     _gradT = None
 
-    bc_type = properties.StringChoice(
-        "Type of boundary condition to use for simulation. Note that Robin and Mixed "
-        "are equivalent.",
-        choices=["Neumann", "Robin", "Mixed"],
-        default="Robin",
-    )
-
-    def __init__(self, mesh, **kwargs):
-        BaseDCSimulation2D.__init__(self, mesh, **kwargs)
+    def __init__(self, mesh, survey=None, bc_type="Robin", **kwargs):
+        super().__init__(mesh=mesh, survey=survey, **kwargs)
         self.solver_opts["is_symmetric"] = True
         self.solver_opts["is_positive_definite"] = True
+        self.bc_type = bc_type
+
+    @property
+    def bc_type(self):
+        """Type of boundary condition to use for simulation.
+
+        Returns
+        -------
+        {"Neumann", "Robin"}
+
+        Notes
+        -----
+        Robin and Mixed are equivalent.
+        """
+        return self._bc_type
+
+    @bc_type.setter
+    def bc_type(self, value):
+        self._bc_type = validate_string(
+            "bc_type", value, ["Neumann", ("Robin", "Mixed")]
+        )
 
     def getA(self, ky):
         """
@@ -633,11 +657,11 @@ class Simulation2DNodal(BaseDCSimulation2D):
 
         MeSigma = self.MeSigma
         MnSigma = self.MnSigma
-        Grad = self.mesh.nodalGrad
+        Grad = self.mesh.nodal_gradient
         if self._gradT is None:
             self._gradT = Grad.T.tocsr()  # cache the .tocsr()
         GradT = self._gradT
-        A = GradT * MeSigma * Grad + ky ** 2 * MnSigma
+        A = GradT * MeSigma * Grad + ky**2 * MnSigma
 
         if self.bc_type != "Neumann":
             try:
@@ -653,17 +677,16 @@ class Simulation2DNodal(BaseDCSimulation2D):
         return A
 
     def getADeriv(self, ky, u, v, adjoint=False):
-
-        Grad = self.mesh.nodalGrad
+        Grad = self.mesh.nodal_gradient
 
         if adjoint:
             out = self.MeSigmaDeriv(
-                Grad * u.flatten(), Grad * v, adjoint=adjoint
-            ) + ky ** 2 * self.MnSigmaDeriv(u.flatten(), v, adjoint=adjoint)
+                Grad * u, Grad * v, adjoint=adjoint
+            ) + ky**2 * self.MnSigmaDeriv(u, v, adjoint=adjoint)
         else:
             out = Grad.T * self.MeSigmaDeriv(
-                Grad * u.flatten(), v, adjoint=adjoint
-            ) + ky ** 2 * self.MnSigmaDeriv(u.flatten(), v, adjoint=adjoint)
+                Grad * u, v, adjoint=adjoint
+            ) + ky**2 * self.MnSigmaDeriv(u, v, adjoint=adjoint)
         if self.bc_type != "Neumann" and self.sigmaMap is not None:
             if getattr(self, "_MBC_sigma", None) is None:
                 self._MBC_sigma = {}
@@ -732,17 +755,25 @@ class Simulation2DNodal(BaseDCSimulation2D):
             r_hat = r_vec / r[:, None]
             r_dot_n = np.einsum("ij,ij->i", r_hat, boundary_normals)
 
-            # determine faces that are on the sides and bottom of the mesh...
-            if mesh._meshType.lower() == "tree":
-                not_top = boundary_faces[:, -1] != top_v
+            if self.surface_faces is None:
+                # determine faces that are on the sides and bottom of the mesh...
+                if mesh._meshType.lower() == "tree":
+                    not_top = boundary_faces[:, -1] != top_v
+                elif mesh._meshType.lower() in ["tensor", "curv"]:
+                    # mesh faces are ordered, faces_x, faces_y, faces_z so...
+                    is_b = make_boundary_bool(mesh.shape_faces_y)
+                    is_t = np.zeros(mesh.shape_faces_y, dtype=bool, order="F")
+                    is_t[:, -1] = True
+                    is_t = is_t.reshape(-1, order="F")[is_b]
+                    not_top = np.ones(boundary_faces.shape[0], dtype=bool)
+                    not_top[-len(is_t) :] = ~is_t
+                else:
+                    raise NotImplementedError(
+                        f"Unable to infer surface boundaries for {type(mesh)}, please "
+                        f"set the `surface_faces` property."
+                    )
             else:
-                # mesh faces are ordered, faces_x, faces_y, faces_z so...
-                is_b = make_boundary_bool(mesh.shape_faces_y)
-                is_t = np.zeros(mesh.shape_faces_y, dtype=bool, order="F")
-                is_t[:, -1] = True
-                is_t = is_t.reshape(-1, order="F")[is_b]
-                not_top = np.zeros(boundary_faces.shape[0], dtype=bool)
-                not_top[-len(is_t) :] = ~is_t
+                not_top = ~self.surface_faces
 
             # use the exponentiall scaled modified bessel function of second kind,
             # (the division will cancel out the scaling)
@@ -760,18 +791,3 @@ class Simulation2DNodal(BaseDCSimulation2D):
 
 
 Simulation2DCellCentred = Simulation2DCellCentered  # UK and US
-
-
-############
-# Deprecated
-############
-
-
-@deprecate_class(removal_version="0.16.0", future_warn=True)
-class Problem2D_N(Simulation2DNodal):
-    pass
-
-
-@deprecate_class(removal_version="0.16.0", future_warn=True)
-class Problem2D_CC(Simulation2DCellCentered):
-    pass

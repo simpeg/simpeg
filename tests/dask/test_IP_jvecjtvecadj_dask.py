@@ -1,9 +1,8 @@
-from __future__ import print_function
 import unittest
 import discretize
 import numpy as np
 
-import SimPEG.dask
+import SimPEG.dask  # noqa: F401
 from SimPEG import maps
 from SimPEG import data_misfit
 from SimPEG import regularization
@@ -21,7 +20,6 @@ np.random.seed(30)
 
 class IPProblemTestsCC(unittest.TestCase):
     def setUp(self):
-
         aSpacing = 2.5
         nElecs = 5
 
@@ -47,7 +45,7 @@ class IPProblemTestsCC(unittest.TestCase):
         dobs = simulation.make_synthetic_data(mSynth, add_noise=True)
         # Now set up the problem to do some minimization
         dmis = data_misfit.L2DataMisfit(data=dobs, simulation=simulation)
-        reg = regularization.Tikhonov(mesh)
+        reg = regularization.WeightedLeastSquares(mesh)
         opt = optimization.InexactGaussNewton(
             maxIterLS=20, maxIter=10, tolF=1e-6, tolX=1e-6, tolG=1e-6, maxIterCG=6
         )
@@ -64,7 +62,7 @@ class IPProblemTestsCC(unittest.TestCase):
         # self.dobe = dobs
 
     def test_misfit(self):
-        passed = tests.checkDerivative(
+        passed = tests.check_derivative(
             lambda m: [self.p.dpred(m), lambda mx: self.p.Jvec(self.m0, mx)],
             self.m0,
             plotIt=False,
@@ -84,7 +82,7 @@ class IPProblemTestsCC(unittest.TestCase):
         self.assertTrue(passed)
 
     def test_dataObj(self):
-        passed = tests.checkDerivative(
+        passed = tests.check_derivative(
             lambda m: [self.dmis(m), self.dmis.deriv(m)], self.m0, plotIt=False, num=3
         )
         self.assertTrue(passed)
@@ -92,7 +90,6 @@ class IPProblemTestsCC(unittest.TestCase):
 
 class IPProblemTestsN(unittest.TestCase):
     def setUp(self):
-
         aSpacing = 2.5
         nElecs = 5
 
@@ -118,7 +115,7 @@ class IPProblemTestsN(unittest.TestCase):
         dobs = simulation.make_synthetic_data(mSynth, add_noise=True)
         # Now set up the problem to do some minimization
         dmis = data_misfit.L2DataMisfit(data=dobs, simulation=simulation)
-        reg = regularization.Tikhonov(mesh)
+        reg = regularization.WeightedLeastSquares(mesh)
         opt = optimization.InexactGaussNewton(
             maxIterLS=20, maxIter=10, tolF=1e-6, tolX=1e-6, tolG=1e-6, maxIterCG=6
         )
@@ -134,7 +131,7 @@ class IPProblemTestsN(unittest.TestCase):
         self.dmis = dmis
 
     def test_misfit(self):
-        passed = tests.checkDerivative(
+        passed = tests.check_derivative(
             lambda m: [self.p.dpred(m), lambda mx: self.p.Jvec(self.m0, mx)],
             self.m0,
             plotIt=False,
@@ -154,7 +151,7 @@ class IPProblemTestsN(unittest.TestCase):
         self.assertTrue(passed)
 
     def test_dataObj(self):
-        passed = tests.checkDerivative(
+        passed = tests.check_derivative(
             lambda m: [self.dmis(m), self.dmis.deriv(m)], self.m0, plotIt=False, num=3
         )
         self.assertTrue(passed)
@@ -162,7 +159,6 @@ class IPProblemTestsN(unittest.TestCase):
 
 class IPProblemTestsCC_storeJ(unittest.TestCase):
     def setUp(self):
-
         aSpacing = 2.5
         nElecs = 5
 
@@ -192,7 +188,7 @@ class IPProblemTestsCC_storeJ(unittest.TestCase):
         dobs = simulation.make_synthetic_data(mSynth, add_noise=True)
         # Now set up the problem to do some minimization
         dmis = data_misfit.L2DataMisfit(data=dobs, simulation=simulation)
-        reg = regularization.Tikhonov(mesh)
+        reg = regularization.WeightedLeastSquares(mesh)
         opt = optimization.InexactGaussNewton(
             maxIterLS=20, maxIter=10, tolF=1e-6, tolX=1e-6, tolG=1e-6, maxIterCG=6
         )
@@ -208,7 +204,7 @@ class IPProblemTestsCC_storeJ(unittest.TestCase):
         self.dmis = dmis
 
     def test_misfit(self):
-        passed = tests.checkDerivative(
+        passed = tests.check_derivative(
             lambda m: [self.p.dpred(m), lambda mx: self.p.Jvec(self.m0, mx)],
             self.m0,
             plotIt=False,
@@ -228,7 +224,7 @@ class IPProblemTestsCC_storeJ(unittest.TestCase):
         self.assertTrue(passed)
 
     def test_dataObj(self):
-        passed = tests.checkDerivative(
+        passed = tests.check_derivative(
             lambda m: [self.dmis(m), self.dmis.deriv(m)], self.m0, plotIt=False, num=3
         )
         self.assertTrue(passed)
@@ -243,7 +239,6 @@ class IPProblemTestsCC_storeJ(unittest.TestCase):
 
 class IPProblemTestsN_storeJ(unittest.TestCase):
     def setUp(self):
-
         aSpacing = 2.5
         nElecs = 5
 
@@ -273,7 +268,7 @@ class IPProblemTestsN_storeJ(unittest.TestCase):
         dobs = simulation.make_synthetic_data(mSynth, add_noise=True)
         # Now set up the problem to do some minimization
         dmis = data_misfit.L2DataMisfit(data=dobs, simulation=simulation)
-        reg = regularization.Tikhonov(mesh)
+        reg = regularization.WeightedLeastSquares(mesh)
         opt = optimization.InexactGaussNewton(
             maxIterLS=20, maxIter=10, tolF=1e-6, tolX=1e-6, tolG=1e-6, maxIterCG=6
         )
@@ -289,7 +284,7 @@ class IPProblemTestsN_storeJ(unittest.TestCase):
         self.dmis = dmis
 
     def test_misfit(self):
-        passed = tests.checkDerivative(
+        passed = tests.check_derivative(
             lambda m: [self.p.dpred(m), lambda mx: self.p.Jvec(self.m0, mx)],
             self.m0,
             plotIt=False,
@@ -309,7 +304,7 @@ class IPProblemTestsN_storeJ(unittest.TestCase):
         self.assertTrue(passed)
 
     def test_dataObj(self):
-        passed = tests.checkDerivative(
+        passed = tests.check_derivative(
             lambda m: [self.dmis(m), self.dmis.deriv(m)], self.m0, plotIt=False, num=3
         )
         self.assertTrue(passed)

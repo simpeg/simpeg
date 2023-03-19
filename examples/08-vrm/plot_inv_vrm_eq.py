@@ -57,7 +57,7 @@ mesh = discretize.TensorMesh([hx, hy, hz], "CCC")
 topoCells = mesh.gridCC[:, 2] < 0.0  # define topography
 
 xyzc = mesh.gridCC[topoCells, :]
-c = 2 * np.pi * 8 ** 2
+c = 2 * np.pi * 8**2
 pc = np.r_[4e-4, 4e-4, 4e-4, 6e-4, 8e-4, 6e-4, 8e-4, 8e-4]
 x_0 = np.r_[50.0, -50.0, -40.0, -20.0, -15.0, 20.0, -10.0, 25.0]
 y_0 = np.r_[0.0, 0.0, 40.0, 10.0, -20.0, 15.0, 0.0, 0.0]
@@ -94,18 +94,21 @@ x, y = np.meshgrid(np.linspace(-30, 30, 21), np.linspace(-30, 30, 21))
 z = 0.5 * np.ones(x.shape)
 loc = np.c_[utils.mkvc(x), utils.mkvc(y), utils.mkvc(z)]  # Src and Rx Locations
 
-srcListVRM = []
+source_listVRM = []
 
 for pp in range(0, loc.shape[0]):
-
     loc_pp = np.reshape(loc[pp, :], (1, 3))
-    rxListVRM = [VRM.Rx.Point(loc_pp, times=times, fieldType="dbdt", orientation="z")]
+    receiver_listVRM = [
+        VRM.Rx.Point(loc_pp, times=times, field_type="dbdt", orientation="z")
+    ]
 
-    srcListVRM.append(
-        VRM.Src.MagDipole(rxListVRM, utils.mkvc(loc[pp, :]), [0.0, 0.0, 0.01], waveform)
+    source_listVRM.append(
+        VRM.Src.MagDipole(
+            receiver_listVRM, utils.mkvc(loc[pp, :]), [0.0, 0.0, 0.01], waveform
+        )
     )
 
-survey_vrm = VRM.Survey(srcListVRM)
+survey_vrm = VRM.Survey(source_listVRM)
 
 ##########################################################################
 # Forward Simulation
@@ -137,16 +140,16 @@ n_loc = loc.shape[0]
 
 sig = 1e-1
 mu0 = 4 * np.pi * 1e-7
-fields_tem = -(sig ** 1.5) * mu0 ** 2.5 * times ** -2.5 / (20 * np.pi ** 1.5)
+fields_tem = -(sig**1.5) * mu0**2.5 * times**-2.5 / (20 * np.pi**1.5)
 fields_tem = np.kron(np.ones(n_loc), fields_tem)
 c = (
-    np.exp(-((loc[:, 0] - 10) ** 2) / (25 ** 2))
-    * np.exp(-((loc[:, 1] - 20) ** 2) / (35 ** 2))
-    + np.exp(-((loc[:, 0] + 20) ** 2) / (20 ** 2))
-    * np.exp(-((loc[:, 1] + 20) ** 2) / (40 ** 2))
+    np.exp(-((loc[:, 0] - 10) ** 2) / (25**2))
+    * np.exp(-((loc[:, 1] - 20) ** 2) / (35**2))
+    + np.exp(-((loc[:, 0] + 20) ** 2) / (20**2))
+    * np.exp(-((loc[:, 1] + 20) ** 2) / (40**2))
     + 1.5
-    * np.exp(-((loc[:, 0] - 25) ** 2) / (10 ** 2))
-    * np.exp(-((loc[:, 1] + 25) ** 2) / (10 ** 2))
+    * np.exp(-((loc[:, 0] - 25) ** 2) / (10**2))
+    * np.exp(-((loc[:, 1] + 25) ** 2) / (10**2))
     + 0.25
 )
 
@@ -168,7 +171,7 @@ fields_tot = fields_tot + 0.05 * np.abs(fields_tot) * np.random.normal(
 #
 
 # Define problem
-# survey_inv = VRM.Survey(srcListVRM)
+# survey_inv = VRM.Survey(source_listVRM)
 actCells = (mesh.gridCC[:, 2] < 0.0) & (mesh.gridCC[:, 2] > -2.0)
 problem_inv = VRM.Simulation3DLinear(
     mesh,
@@ -193,7 +196,7 @@ w = utils.mkvc((np.sum(np.array(problem_inv.A) ** 2, axis=0))) ** 0.5
 w = w / np.max(w)
 w = w
 
-reg = regularization.SimpleSmall(mesh=mesh, indActive=actCells, cell_weights=w)
+reg = regularization.Smallness(mesh=mesh, indActive=actCells, cell_weights=w)
 opt = optimization.ProjectedGNCG(
     maxIter=20, lower=0.0, upper=1e-2, maxIterLS=20, tolCG=1e-4
 )
@@ -237,12 +240,12 @@ titlestr1 = ["True Model (z = 0 m)", "Equivalent Source Model"]
 
 for qq in range(0, 2):
     ax1[qq] = Fig.add_axes([0.15 + 0.35 * qq, 0.7, 0.25, 0.25])
-    cplot1[qq] = mesh.plotSlice(
+    cplot1[qq] = mesh.plot_slice(
         map_mod[qq] * xi_mod[qq],
         ind=int((ncz + 2 * npad) / 2 - 1),
         ax=ax1[qq],
         grid=True,
-        pcolorOpts={"cmap": "gist_heat_r"},
+        pcolor_opts={"cmap": "gist_heat_r"},
     )
     cplot1[qq][0].set_clim((0.0, max_val))
     ax1[qq].set_xlabel("X [m]", fontsize=font_size)
@@ -256,7 +259,7 @@ cbar14 = mpl.colorbar.ColorbarBase(
     ax1[2], cmap=mpl.cm.gist_heat_r, norm=norm, orientation="vertical"
 )
 cbar14.set_label(
-    "$\Delta \chi /$ln$(\lambda_2 / \lambda_1 )$ [SI]",
+    r"$\Delta \chi /$ln$(\lambda_2 / \lambda_1 )$ [SI]",
     rotation=270,
     labelpad=15,
     size=font_size,
@@ -267,7 +270,7 @@ N = x.shape[0]
 ax2 = 2 * [None]
 for qq in range(0, 2):
     ax2[qq] = Fig.add_axes([0.1 + 0.45 * qq, 0.36, 0.35, 0.26])
-    k = int((N ** 2 - 1) / 2 - 3 * N * (-1) ** qq)
+    k = int((N**2 - 1) / 2 - 3 * N * (-1) ** qq)
     di_tot = utils.mkvc(np.abs(fields_tot[k, :]))
     di_pre = utils.mkvc(np.abs(fields_vrm[k, :]))
     di_tem = utils.mkvc(np.abs(fields_tem[k, :]))

@@ -1,0 +1,65 @@
+.. _0.15.1_notes:
+
+===========================
+SimPEG 0.15.1 Release Notes
+===========================
+
+August 27th, 2021
+
+This patch release contains several small bug fixes and improvements to the code base.
+
+Updates
+=======
+We now have a simple depth weighting function that can be used as cell weights for
+inversions. It is based off of the common potential fields definition:
+
+.. code-block:: python
+
+    wz = 1/(z - z_0)**(q/2)
+
+The way SimPEG handles the definition of standard deviation calculated from the mix
+of relative error and noise levels is slightly changed to respect a more statistically
+accurate combination of the two components. It is now:
+
+.. code-block:: python
+
+    standard_deviation = sqrt(noise_level**2 + (relative_error * abs(d_obs))**2)
+
+In addition,
+
+* Removed a bit of dead code
+* Fixed some typos in documentation
+* Removed all references to old numpy matrix class and replaced with
+  appropriate array functions.
+* Added clarification to the gravity examples explaining why SimPEG's gravity module
+  looks backwards.
+* removed some internal references to deprecated properties
+
+
+Contributors
+============
+This is a combination of contributors and reviewers who've made contributions towards
+this release (in no particular order).
+
+* `@thast <https://github.com/thast>`__
+* `@jcapriot <https://github.com/jcapriot>`__
+* `@xiaolongw1223 <https://github.com/xiaolongw1223>`__
+* `@lheagy <https://github.com/lheagy>`__
+* `@domfournier <https://github.com/domfournier>`__
+* `@prisae <https://github.com/prisae>`__
+
+Pull requests
+=============
+
+* `#1004 <https://github.com/simpeg/simpeg/pull/1004>`__: Depth weighting function in "model_utils.py"
+* `#1009 <https://github.com/simpeg/simpeg/pull/1009>`__: Fix PGI gallery example
+* `#1016 <https://github.com/simpeg/simpeg/pull/1016>`__: Remove dead code
+* `#1019 <https://github.com/simpeg/simpeg/pull/1019>`__: Update receivers.py
+* `#1022 <https://github.com/simpeg/simpeg/pull/1022>`__: Change definition of standard deviation
+* `#1024 <https://github.com/simpeg/simpeg/pull/1024>`__: Add notes to gravity examples
+* `#1025 <https://github.com/simpeg/simpeg/pull/1025>`__: Updates to fix the test errors
+* `#1026 <https://github.com/simpeg/simpeg/pull/1026>`__: Replace np.matlib.repmat by np.tile
+* `#1027 <https://github.com/simpeg/simpeg/pull/1027>`__: Replace np.matrix by regular ndarrays
+* `#1029 <https://github.com/simpeg/simpeg/pull/1029>`__: Fix Typo in static_utils.py
+* `#1034 <https://github.com/simpeg/simpeg/pull/1034>`__: rename .freqs to frequencies
+* `#1035 <https://github.com/simpeg/simpeg/pull/1035>`__: 0.15.1 Release Notes

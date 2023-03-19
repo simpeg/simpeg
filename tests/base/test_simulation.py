@@ -1,20 +1,21 @@
 import unittest
 import numpy as np
 import discretize
-from SimPEG import simulation, survey, maps
+from SimPEG import maps, simulation
 
 
 class TestLinearSimulation(unittest.TestCase):
     def setUp(self):
         mesh = discretize.TensorMesh([100])
         self.sim = simulation.ExponentialSinusoidSimulation(
-            mesh=mesh, model_map=maps.IdentityMap(mesh),
+            mesh=mesh,
+            model_map=maps.IdentityMap(mesh),
         )
 
         mtrue = np.zeros(mesh.nC)
-        mtrue[mesh.vectorCCx > 0.3] = 1.0
-        mtrue[mesh.vectorCCx > 0.45] = -0.5
-        mtrue[mesh.vectorCCx > 0.6] = 0
+        mtrue[mesh.cell_centers_x > 0.3] = 1.0
+        mtrue[mesh.cell_centers_x > 0.45] = -0.5
+        mtrue[mesh.cell_centers_x > 0.6] = 0
 
         self.mtrue = mtrue
 

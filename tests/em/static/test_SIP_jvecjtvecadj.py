@@ -1,4 +1,3 @@
-from __future__ import print_function
 import unittest
 import discretize
 from SimPEG import (
@@ -24,7 +23,6 @@ np.random.seed(38)
 
 class SIPProblemTestsCC(unittest.TestCase):
     def setUp(self):
-
         cs = 25.0
         hx = [(cs, 0, -1.3), (cs, 21), (cs, 0, 1.3)]
         hy = [(cs, 0, -1.3), (cs, 21), (cs, 0, 1.3)]
@@ -44,8 +42,12 @@ class SIPProblemTestsCC(unittest.TestCase):
         tau[blkind0] = 0.1
         tau[blkind1] = 0.01
 
-        x = mesh.vectorCCx[(mesh.vectorCCx > -155.0) & (mesh.vectorCCx < 155.0)]
-        y = mesh.vectorCCy[(mesh.vectorCCy > -155.0) & (mesh.vectorCCy < 155.0)]
+        x = mesh.cell_centers_x[
+            (mesh.cell_centers_x > -155.0) & (mesh.cell_centers_x < 155.0)
+        ]
+        y = mesh.cell_centers_y[
+            (mesh.cell_centers_y > -155.0) & (mesh.cell_centers_y < 155.0)
+        ]
         Aloc = np.r_[-200.0, 0.0, 0.0]
         Bloc = np.r_[200.0, 0.0, 0.0]
         M = utils.ndgrid(x - 25.0, y, np.r_[0.0])
@@ -62,16 +64,20 @@ class SIPProblemTestsCC(unittest.TestCase):
 
         wires = maps.Wires(("eta", mesh.nC), ("taui", mesh.nC))
         problem = sip.Simulation3DCellCentered(
-            mesh, rho=1.0 / sigma, etaMap=wires.eta, tauiMap=wires.taui, storeJ=False
+            mesh,
+            survey=survey,
+            rho=1.0 / sigma,
+            etaMap=wires.eta,
+            tauiMap=wires.taui,
+            storeJ=False,
         )
-        problem.Solver = Solver
-        problem.pair(survey)
+        problem.solver = Solver
         mSynth = np.r_[eta, 1.0 / tau]
         problem.model = mSynth
         dobs = problem.make_synthetic_data(mSynth, add_noise=True)
         # Now set up the problem to do some minimization
         dmis = data_misfit.L2DataMisfit(data=dobs, simulation=problem)
-        reg = regularization.Tikhonov(mesh)
+        reg = regularization.WeightedLeastSquares(mesh)
         opt = optimization.InexactGaussNewton(
             maxIterLS=20, maxIter=10, tolF=1e-6, tolX=1e-6, tolG=1e-6, maxIterCG=6
         )
@@ -88,7 +94,7 @@ class SIPProblemTestsCC(unittest.TestCase):
         self.dobs = dobs
 
     def test_misfit(self):
-        passed = tests.checkDerivative(
+        passed = tests.check_derivative(
             lambda m: [self.p.dpred(m), lambda mx: self.p.Jvec(self.m0, mx)],
             self.m0,
             plotIt=False,
@@ -108,7 +114,7 @@ class SIPProblemTestsCC(unittest.TestCase):
         self.assertTrue(passed)
 
     def test_dataObj(self):
-        passed = tests.checkDerivative(
+        passed = tests.check_derivative(
             lambda m: [self.dmis(m), self.dmis.deriv(m)], self.m0, plotIt=False, num=3
         )
         self.assertTrue(passed)
@@ -116,7 +122,6 @@ class SIPProblemTestsCC(unittest.TestCase):
 
 class SIPProblemTestsN(unittest.TestCase):
     def setUp(self):
-
         cs = 25.0
         hx = [(cs, 0, -1.3), (cs, 21), (cs, 0, 1.3)]
         hy = [(cs, 0, -1.3), (cs, 21), (cs, 0, 1.3)]
@@ -136,8 +141,12 @@ class SIPProblemTestsN(unittest.TestCase):
         tau[blkind0] = 0.1
         tau[blkind1] = 0.01
 
-        x = mesh.vectorCCx[(mesh.vectorCCx > -155.0) & (mesh.vectorCCx < 155.0)]
-        y = mesh.vectorCCy[(mesh.vectorCCy > -155.0) & (mesh.vectorCCy < 155.0)]
+        x = mesh.cell_centers_x[
+            (mesh.cell_centers_x > -155.0) & (mesh.cell_centers_x < 155.0)
+        ]
+        y = mesh.cell_centers_y[
+            (mesh.cell_centers_y > -155.0) & (mesh.cell_centers_y < 155.0)
+        ]
         Aloc = np.r_[-200.0, 0.0, 0.0]
         Bloc = np.r_[200.0, 0.0, 0.0]
         M = utils.ndgrid(x - 25.0, y, np.r_[0.0])
@@ -152,18 +161,22 @@ class SIPProblemTestsN(unittest.TestCase):
         print("nodal2", survey.nD)
         wires = maps.Wires(("eta", mesh.nC), ("taui", mesh.nC))
         problem = sip.Simulation3DNodal(
-            mesh, sigma=sigma, etaMap=wires.eta, tauiMap=wires.taui, storeJ=False,
+            mesh,
+            survey=survey,
+            sigma=sigma,
+            etaMap=wires.eta,
+            tauiMap=wires.taui,
+            storeJ=False,
         )
         print(survey.nD)
-        problem.Solver = Solver
-        problem.pair(survey)
+        problem.solver = Solver
         mSynth = np.r_[eta, 1.0 / tau]
         print(survey.nD)
         dobs = problem.make_synthetic_data(mSynth, add_noise=True)
         print(survey.nD)
         # Now set up the problem to do some minimization
         dmis = data_misfit.L2DataMisfit(data=dobs, simulation=problem)
-        reg = regularization.Tikhonov(mesh)
+        reg = regularization.WeightedLeastSquares(mesh)
         opt = optimization.InexactGaussNewton(
             maxIterLS=20, maxIter=10, tolF=1e-6, tolX=1e-6, tolG=1e-6, maxIterCG=6
         )
@@ -180,7 +193,7 @@ class SIPProblemTestsN(unittest.TestCase):
         self.dobs = dobs
 
     def test_misfit(self):
-        passed = tests.checkDerivative(
+        passed = tests.check_derivative(
             lambda m: [self.p.dpred(m), lambda mx: self.p.Jvec(self.m0, mx)],
             self.m0,
             plotIt=False,
@@ -199,7 +212,7 @@ class SIPProblemTestsN(unittest.TestCase):
         self.assertTrue(passed)
 
     def test_dataObj(self):
-        passed = tests.checkDerivative(
+        passed = tests.check_derivative(
             lambda m: [self.dmis(m), self.dmis.deriv(m)], self.m0, plotIt=False, num=3
         )
         self.assertTrue(passed)
@@ -207,7 +220,6 @@ class SIPProblemTestsN(unittest.TestCase):
 
 class SIPProblemTestsN_air(unittest.TestCase):
     def setUp(self):
-
         cs = 25.0
         hx = [(cs, 0, -1.3), (cs, 21), (cs, 0, 1.3)]
         hy = [(cs, 0, -1.3), (cs, 21), (cs, 0, 1.3)]
@@ -235,8 +247,12 @@ class SIPProblemTestsN_air(unittest.TestCase):
         actmaptau = maps.InjectActiveCells(mesh, ~airind, 1.0)
         actmapc = maps.InjectActiveCells(mesh, ~airind, 1.0)
 
-        x = mesh.vectorCCx[(mesh.vectorCCx > -155.0) & (mesh.vectorCCx < 155.0)]
-        y = mesh.vectorCCy[(mesh.vectorCCy > -155.0) & (mesh.vectorCCy < 155.0)]
+        x = mesh.cell_centers_x[
+            (mesh.cell_centers_x > -155.0) & (mesh.cell_centers_x < 155.0)
+        ]
+        y = mesh.cell_centers_y[
+            (mesh.cell_centers_y > -155.0) & (mesh.cell_centers_y < 155.0)
+        ]
         Aloc = np.r_[-200.0, 0.0, 0.0]
         Bloc = np.r_[200.0, 0.0, 0.0]
         M = utils.ndgrid(x - 25.0, y, np.r_[0.0])
@@ -252,6 +268,7 @@ class SIPProblemTestsN_air(unittest.TestCase):
         )
         problem = sip.Simulation3DNodal(
             mesh,
+            survey=survey,
             sigma=sigma,
             etaMap=actmapeta * wires.eta,
             tauiMap=actmaptau * wires.taui,
@@ -261,8 +278,7 @@ class SIPProblemTestsN_air(unittest.TestCase):
             verbose=False,
         )
 
-        problem.Solver = Solver
-        problem.pair(survey)
+        problem.solver = Solver
         mSynth = np.r_[eta[~airind], 1.0 / tau[~airind], c[~airind]]
         dobs = problem.make_synthetic_data(mSynth, add_noise=True)
         # Now set up the problem to do some minimization
@@ -287,7 +303,7 @@ class SIPProblemTestsN_air(unittest.TestCase):
         self.dobs = dobs
 
     def test_misfit(self):
-        passed = tests.checkDerivative(
+        passed = tests.check_derivative(
             lambda m: [self.p.dpred(m), lambda mx: self.p.Jvec(self.m0, mx)],
             self.m0,
             plotIt=False,
@@ -306,7 +322,7 @@ class SIPProblemTestsN_air(unittest.TestCase):
         self.assertTrue(passed)
 
     def test_dataObj(self):
-        passed = tests.checkDerivative(
+        passed = tests.check_derivative(
             lambda m: [self.dmis(m), self.dmis.deriv(m)], self.m0, plotIt=False, num=3
         )
         self.assertTrue(passed)

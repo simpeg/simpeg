@@ -29,12 +29,11 @@ from matplotlib.colors import LogNorm
 import tarfile
 
 from discretize import TreeMesh
-from discretize.utils import mkvc, refine_tree_xyz
+from discretize.utils import mkvc, refine_tree_xyz, active_from_xyz
 
-from SimPEG.utils import surface2ind_topo, model_builder
+from SimPEG.utils import model_builder
 from SimPEG import (
     maps,
-    data,
     data_misfit,
     regularization,
     optimization,
@@ -232,7 +231,7 @@ mesh.finalize()
 topo_2d = np.unique(topo_xyz[:, [0, 2]], axis=0)
 
 # Find cells that lie below surface topography
-ind_active = surface2ind_topo(mesh, topo_2d)
+ind_active = active_from_xyz(mesh, topo_2d)
 
 # Extract survey from data object
 survey = dc_data.survey
@@ -275,7 +274,7 @@ starting_conductivity_model = background_conductivity * np.ones(nC)
 
 # Define the problem. Define the cells below topography and the mapping
 simulation = dc.simulation_2d.Simulation2DNodal(
-    mesh, survey=survey, sigmaMap=conductivity_map, Solver=Solver
+    mesh, survey=survey, sigmaMap=conductivity_map, solver=Solver, storeJ=True
 )
 
 #######################################################################
@@ -304,7 +303,7 @@ regmap = maps.IdentityMap(nP=int(ind_active.sum()))
 reg = regularization.Sparse(
     mesh,
     indActive=ind_active,
-    mref=starting_conductivity_model,
+    reference_model=starting_conductivity_model,
     mapping=regmap,
     gradientType="total",
     alpha_s=0.01,
@@ -312,12 +311,12 @@ reg = regularization.Sparse(
     alpha_y=1,
 )
 
-reg.mrefInSmooth = True  # Include reference model in smoothness
+reg.reference_model_in_smooth = True  # Include reference model in smoothness
 
 p = 0
 qx = 1
 qz = 1
-reg.norms = np.c_[p, qx, qz]
+reg.norms = [p, qx, qz]
 
 # Define how the optimization problem is solved. Here we will use an inexact
 # Gauss-Newton approach.
@@ -424,7 +423,6 @@ plotting_model = [
 ]
 
 for ii in range(0, 3):
-
     ax1[ii] = fig.add_axes([0.14, 0.75 - 0.3 * ii, 0.68, 0.2])
     mesh.plot_image(
         plotting_model[ii],
@@ -469,7 +467,6 @@ cbar = 3 * [None]
 cplot = 3 * [None]
 
 for ii in range(0, 3):
-
     ax1[ii] = fig.add_axes([0.15, 0.72 - 0.33 * ii, 0.65, 0.21])
     cax1[ii] = fig.add_axes([0.81, 0.72 - 0.33 * ii, 0.03, 0.21])
     cplot[ii] = plot_pseudosection(

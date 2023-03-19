@@ -10,7 +10,15 @@ matplotlib.use("Agg")
 
 dirname, filename = os.path.split(os.path.abspath(__file__))
 example_dir = dirname.split(os.path.sep)[:-2] + ["tutorials"]
-dirs_to_test = ["08-tdem", "09-nsem", "10-vrm", "11-flow", "12-seismic", "13-pgi"]
+dirs_to_test = [
+    "08-tdem",
+    "09-nsem",
+    "10-vrm",
+    "11-flow",
+    "12-seismic",
+    "13-joint_inversion",
+    "14-pgi",
+]
 
 
 class ExampleTest(unittest.TestCase):
@@ -32,8 +40,8 @@ def create_runner(script_path):
 
 
 # Programatically add tests to Examples
-for dir in dirs_to_test:
-    script_dir = os.path.sep.join(example_dir + [dir])
+for directory in dirs_to_test:
+    script_dir = os.path.sep.join(example_dir + [directory])
     os.chdir(script_dir)
     scripts = glob.glob(os.path.sep.join([script_dir] + ["*.py"]))
     scripts.sort()

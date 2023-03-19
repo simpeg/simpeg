@@ -32,8 +32,8 @@ import matplotlib.pyplot as plt
 import tarfile
 
 from discretize import TensorMesh
-
-from SimPEG.utils import plot2Ddata, surface2ind_topo, model_builder
+from discretize.utils import active_from_xyz
+from SimPEG.utils import plot2Ddata, model_builder
 from SimPEG.potential_fields import gravity
 from SimPEG import (
     maps,
@@ -187,23 +187,18 @@ mesh = TensorMesh([hx, hy, hz], "CCN")
 # Here, we create starting and/or reference models for the inversion as
 # well as the mapping from the model space to the active cells. Starting and
 # reference models can be a constant background value or contain a-priori
-# structures. Here, the background is 1e-6 g/cc.
+# structures.
 #
 
-# Define density contrast values for each unit in g/cc. Don't make this 0!
-# Otherwise the gradient for the 1st iteration is zero and the inversion will
-# not converge.
-background_density = 1e-6
-
-# Find the indecies of the active cells in forward model (ones below surface)
-ind_active = surface2ind_topo(mesh, xyz_topo)
+# Find the indices of the active cells in forward model (ones below surface)
+ind_active = active_from_xyz(mesh, xyz_topo)
 
 # Define mapping from model to active cells
 nC = int(ind_active.sum())
 model_map = maps.IdentityMap(nP=nC)  # model consists of a value for each active cell
 
 # Define and plot starting model
-starting_model = background_density * np.ones(nC)
+starting_model = np.zeros(nC)
 
 
 ##############################################
@@ -215,7 +210,7 @@ starting_model = background_density * np.ones(nC)
 #
 
 simulation = gravity.simulation.Simulation3DIntegral(
-    survey=survey, mesh=mesh, rhoMap=model_map, actInd=ind_active
+    survey=survey, mesh=mesh, rhoMap=model_map, ind_active=ind_active
 )
 
 
@@ -238,8 +233,8 @@ dmis = data_misfit.L2DataMisfit(data=data_object, simulation=simulation)
 dmis.W = utils.sdiag(1 / uncertainties)
 
 # Define the regularization (model objective function).
-reg = regularization.Sparse(mesh, indActive=ind_active, mapping=model_map)
-reg.norms = np.c_[0, 2, 2, 2]
+reg = regularization.Sparse(mesh, active_cells=ind_active, mapping=model_map)
+reg.norms = [0, 2, 2, 2]
 
 # Define how the optimization problem is solved. Here we will use a projected
 # Gauss-Newton approach that employs the conjugate gradient solver.
@@ -266,7 +261,10 @@ starting_beta = directives.BetaEstimate_ByEig(beta0_ratio=1e0)
 # Defines the directives for the IRLS regularization. This includes setting
 # the cooling schedule for the trade-off parameter.
 update_IRLS = directives.Update_IRLS(
-    f_min_change=1e-4, max_irls_iterations=30, coolEpsFact=1.5, beta_tol=1e-2,
+    f_min_change=1e-4,
+    max_irls_iterations=30,
+    coolEpsFact=1.5,
+    beta_tol=1e-2,
 )
 
 # Defining the fractional decrease in beta and the number of Gauss-Newton solves
@@ -348,14 +346,14 @@ fig = plt.figure(figsize=(9, 4))
 plotting_map = maps.InjectActiveCells(mesh, ind_active, np.nan)
 
 ax1 = fig.add_axes([0.1, 0.1, 0.73, 0.8])
-mesh.plotSlice(
+mesh.plot_slice(
     plotting_map * true_model,
     normal="Y",
     ax=ax1,
-    ind=int(mesh.nCy / 2),
+    ind=int(mesh.shape_cells[1] / 2),
     grid=True,
     clim=(np.min(true_model), np.max(true_model)),
-    pcolorOpts={"cmap": "viridis"},
+    pcolor_opts={"cmap": "viridis"},
 )
 ax1.set_title("Model slice at y = 0 m")
 
@@ -374,14 +372,14 @@ fig = plt.figure(figsize=(9, 4))
 plotting_map = maps.InjectActiveCells(mesh, ind_active, np.nan)
 
 ax1 = fig.add_axes([0.1, 0.1, 0.73, 0.8])
-mesh.plotSlice(
+mesh.plot_slice(
     plotting_map * recovered_model,
     normal="Y",
     ax=ax1,
-    ind=int(mesh.nCy / 2),
+    ind=int(mesh.shape_cells[1] / 2),
     grid=True,
     clim=(np.min(recovered_model), np.max(recovered_model)),
-    pcolorOpts={"cmap": "viridis"},
+    pcolor_opts={"cmap": "viridis"},
 )
 ax1.set_title("Model slice at y = 0 m")
 
@@ -400,6 +398,8 @@ plt.show()
 #
 
 # Predicted data with final recovered model
+# SimPEG uses right handed coordinate where Z is positive upward.
+# This causes gravity signals look "inconsistent" with density values in visualization.
 dpred = inv_prob.dpred
 
 # Observed data | Predicted data | Normalized data misfit
@@ -417,7 +417,6 @@ cplot = 3 * [None]
 v_lim = [np.max(np.abs(dobs)), np.max(np.abs(dobs)), np.max(np.abs(data_array[:, 2]))]
 
 for ii in range(0, 3):
-
     ax1[ii] = fig.add_axes([0.33 * ii + 0.03, 0.11, 0.23, 0.84])
     cplot[ii] = plot2Ddata(
         receiver_list[0].locations,

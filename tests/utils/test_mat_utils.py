@@ -1,12 +1,10 @@
-from __future__ import print_function
-
 import unittest
 import numpy as np
 from scipy.sparse.linalg import eigsh
 from discretize import TensorMesh
 from SimPEG import simulation, data_misfit
 from SimPEG.maps import IdentityMap
-from SimPEG.regularization import Tikhonov
+from SimPEG.regularization import WeightedLeastSquares
 from SimPEG.utils.mat_utils import eigenvalue_by_power_iteration
 
 
@@ -24,8 +22,8 @@ class TestEigenvalues(unittest.TestCase):
 
         # Physics
         def g(k):
-            return np.exp(p * jk[k] * mesh.vectorCCx) * np.cos(
-                np.pi * q * jk[k] * mesh.vectorCCx
+            return np.exp(p * jk[k] * mesh.cell_centers_x) * np.cos(
+                np.pi * q * jk[k] * mesh.cell_centers_x
             )
 
         G = np.empty((nk, mesh.nC))
@@ -36,9 +34,9 @@ class TestEigenvalues(unittest.TestCase):
 
         # Creating the true model
         true_model = np.zeros(mesh.nC)
-        true_model[mesh.vectorCCx > 0.3] = 1.0
-        true_model[mesh.vectorCCx > 0.45] = -0.5
-        true_model[mesh.vectorCCx > 0.6] = 0
+        true_model[mesh.cell_centers_x > 0.3] = 1.0
+        true_model[mesh.cell_centers_x > 0.45] = -0.5
+        true_model[mesh.cell_centers_x > 0.6] = 0
         self.true_model = true_model
 
         # Create a SimPEG simulation
@@ -63,12 +61,12 @@ class TestEigenvalues(unittest.TestCase):
         multipliers /= np.sum(multipliers)
         self.multipliers = multipliers
         dmiscombo = dmis
-        for i, mult in enumerate(multipliers):
+        for mult in multipliers:
             dmiscombo += mult * dmis
         self.dmiscombo = dmiscombo
 
         # Test for a regularization term
-        reg = Tikhonov(mesh=mesh)
+        reg = WeightedLeastSquares(mesh=mesh)
         self.reg = reg
 
         # Test a mix combo
@@ -77,7 +75,7 @@ class TestEigenvalues(unittest.TestCase):
 
     def test_dm_eigenvalue_by_power_iteration(self):
         # Test for a single data misfit
-        dmis_matrix = self.G.T.dot((self.dmis.W ** 2).dot(self.G))
+        dmis_matrix = self.G.T.dot((self.dmis.W**2).dot(self.G))
         field = self.dmis.simulation.fields(self.true_model)
         max_eigenvalue_numpy, _ = eigsh(dmis_matrix, k=1)
         max_eigenvalue_directive = eigenvalue_by_power_iteration(
@@ -89,10 +87,8 @@ class TestEigenvalues(unittest.TestCase):
 
         # Test for multiple data misfit
         WtW = 0.0
-        for i, (mult, dm) in enumerate(
-            zip(self.dmiscombo.multipliers, self.dmiscombo.objfcts)
-        ):
-            WtW += mult * dm.W ** 2
+        for mult, dm in zip(self.dmiscombo.multipliers, self.dmiscombo.objfcts):
+            WtW += mult * dm.W**2
         dmiscombo_matrix = self.G.T.dot(WtW.dot(self.G))
         max_eigenvalue_numpy, _ = eigsh(dmiscombo_matrix, k=1)
         max_eigenvalue_directive = eigenvalue_by_power_iteration(
@@ -114,7 +110,7 @@ class TestEigenvalues(unittest.TestCase):
 
     def test_combo_eigenvalue_by_power_iteration(self):
         reg_maxtrix = self.reg.deriv2(self.true_model)
-        dmis_matrix = self.G.T.dot((self.dmis.W ** 2).dot(self.G))
+        dmis_matrix = self.G.T.dot((self.dmis.W**2).dot(self.G))
         combo_matrix = dmis_matrix + self.beta * reg_maxtrix
         max_eigenvalue_numpy, _ = eigsh(combo_matrix, k=1)
         max_eigenvalue_directive = eigenvalue_by_power_iteration(

@@ -16,7 +16,7 @@ import matplotlib.pyplot as plt
 
 try:
     from pymatsolver import Pardiso as Solver
-except:
+except ImportError:
     from SimPEG import Solver
 
 
@@ -48,7 +48,7 @@ def run(plotIt=True):
     sigBG = np.zeros(M.nC) + conds[1]
     sigBG[M.gridCC[:, 2] > 0] = 1e-8
     if plotIt:
-        collect_obj = M.plotSlice(np.log10(sig), grid=True, normal="X")[0]
+        collect_obj = M.plot_slice(np.log10(sig), grid=True, normal="X")[0]
         color_bar = plt.colorbar(collect_obj)
 
     # Setup the the survey object
@@ -59,24 +59,30 @@ def run(plotIt=True):
     )
 
     # Make a receiver list
-    rxList = []
+    receiver_list = []
     for rx_orientation in ["xx", "xy", "yx", "yy"]:
-        rxList.append(NSEM.Rx.Point3DImpedance(rx_loc, rx_orientation, "real"))
-        rxList.append(NSEM.Rx.Point3DImpedance(rx_loc, rx_orientation, "imag"))
+        receiver_list.append(NSEM.Rx.PointNaturalSource(rx_loc, rx_orientation, "real"))
+        receiver_list.append(NSEM.Rx.PointNaturalSource(rx_loc, rx_orientation, "imag"))
     for rx_orientation in ["zx", "zy"]:
-        rxList.append(NSEM.Rx.Point3DTipper(rx_loc, rx_orientation, "real"))
-        rxList.append(NSEM.Rx.Point3DTipper(rx_loc, rx_orientation, "imag"))
+        receiver_list.append(NSEM.Rx.Point3DTipper(rx_loc, rx_orientation, "real"))
+        receiver_list.append(NSEM.Rx.Point3DTipper(rx_loc, rx_orientation, "imag"))
 
     # Source list
-    srcList = [
-        NSEM.Src.Planewave_xy_1Dprimary(rxList, freq) for freq in np.logspace(4, -2, 13)
+    source_list = [
+        NSEM.Src.PlanewaveXYPrimary(receiver_list, freq)
+        for freq in np.logspace(4, -2, 13)
     ]
     # Survey MT
-    survey = NSEM.Survey(srcList)
+    survey = NSEM.Survey(source_list)
 
     # Setup the problem object
     problem = NSEM.Simulation3DPrimarySecondary(
-        M, survey=survey, solver=Solver, sigma=sig, sigmaPrimary=sigBG
+        M,
+        survey=survey,
+        solver=Solver,
+        sigma=sig,
+        sigmaPrimary=sigBG,
+        forward_only=True,
     )
 
     # Calculate the data
@@ -118,7 +124,6 @@ def run(plotIt=True):
 
 
 if __name__ == "__main__":
-
     do_plots = True
     run(do_plots)
     if do_plots:

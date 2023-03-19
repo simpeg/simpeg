@@ -5,21 +5,20 @@ from .....electromagnetics.static.induced_polarization.simulation import (
 import dask.array as da
 
 
-def dask_getJtJdiag(self, m, W=None):
+def dask_getJtJdiag(self, m, W=None, f=None):
     """
     Return the diagonal of JtJ
     """
-    if self.gtgdiag is None:
-
+    if getattr(self, "_gtgdiag", None) is None:
         # Need to check if multiplying weights makes sense
         if W is None:
             W = self._scale
         else:
             W = self._scale * W.diagonal()
         w = da.from_array(W)[:, None]
-        self.gtgdiag = da.sum((w * self.getJ(m)) ** 2, axis=0).compute()
+        self._gtgdiag = da.sum((w * self.getJ(m, f=f)) ** 2, axis=0).compute()
 
-    return self.gtgdiag
+    return self._gtgdiag
 
 
 Sim.getJtJdiag = dask_getJtJdiag

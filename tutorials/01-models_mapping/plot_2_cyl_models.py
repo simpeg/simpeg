@@ -20,7 +20,7 @@ defined and mapped to cylindrical meshes. Some things we consider are:
 # --------------
 #
 
-from discretize import CylMesh
+from discretize import CylindricalMesh
 from SimPEG.utils import mkvc
 from SimPEG import maps
 import numpy as np
@@ -35,7 +35,6 @@ import matplotlib.pyplot as plt
 
 
 def make_example_mesh():
-
     ncr = 20  # number of mesh cells in r
     ncz = 20  # number of mesh cells in z
     dh = 5.0  # cell width
@@ -44,7 +43,7 @@ def make_example_mesh():
     hz = [(dh, 5, -1.3), (dh, ncz), (dh, 5, 1.3)]
 
     # Use flag of 1 to denote perfect rotational symmetry
-    mesh = CylMesh([hr, 1, hz], "0CC")
+    mesh = CylindricalMesh([hr, 1, hz], "0CC")
 
     return mesh
 
@@ -86,7 +85,7 @@ model[ind_pipe] = pipe_value
 # Plotting
 fig = plt.figure(figsize=(5, 5))
 ax = fig.add_subplot(111)
-mesh.plotImage(model_map * model, ax=ax, grid=True)
+mesh.plot_image(model_map * model, ax=ax, grid=True)
 ax.set_title("Cylindrically Symmetric Model")
 
 
@@ -132,7 +131,7 @@ model_map = active_map * reciprocal_map * exponential_map
 # Plotting
 fig = plt.figure(figsize=(5, 5))
 ax = fig.add_subplot(111)
-mesh.plotImage(model_map * model, ax=ax, grid=True)
+mesh.plot_image(model_map * model, ax=ax, grid=True)
 ax.set_title("Cylindrically Symmetric Model")
 
 
@@ -170,7 +169,7 @@ model_map = active_map * parametric_map
 # Plotting
 fig = plt.figure(figsize=(5, 5))
 ax = fig.add_subplot(111)
-mesh.plotImage(model_map * model, ax=ax, grid=True)
+mesh.plot_image(model_map * model, ax=ax, grid=True)
 ax.set_title("Cylindrically Symmetric Model")
 
 
@@ -229,5 +228,5 @@ mu_map = active_map * wire_map.mu
 # Plotting
 fig = plt.figure(figsize=(5, 5))
 ax = fig.add_subplot(111)
-mesh.plotImage(sigma_map * model, ax=ax, grid=True)
+mesh.plot_image(sigma_map * model, ax=ax, grid=True)
 ax.set_title("Cylindrically Symmetric Model")

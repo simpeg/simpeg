@@ -1,12 +1,9 @@
-from __future__ import print_function
-
 import unittest
 
 import numpy as np
-import scipy.sparse as sp
 import discretize
 
-from SimPEG import maps, utils
+from SimPEG import maps
 from SimPEG import data_misfit, simulation, survey
 
 np.random.seed(17)
@@ -30,10 +27,10 @@ class DataMisfitTest(unittest.TestCase):
         dobs = synthetic_data.dobs
 
         self.relative = 0.01
-        self.eps = 1e-8
+        self.noise_floor = 1e-8
 
         synthetic_data.relative_error = self.relative
-        synthetic_data.noise_floor = self.eps
+        synthetic_data.noise_floor = self.noise_floor
 
         dmis = data_misfit.L2DataMisfit(simulation=sim, data=synthetic_data)
 
@@ -42,16 +39,8 @@ class DataMisfitTest(unittest.TestCase):
         self.sim = sim
         self.survey = sim.survey
         # self.survey = survey
-        # self.prob = prob
         self.data = synthetic_data
         self.dmis = dmis
-
-    def test_Wd_depreciation(self):
-        with self.assertWarns(FutureWarning):
-            print(self.dmis.Wd)
-
-        with self.assertWarns(FutureWarning):
-            self.dmis.Wd = utils.Identity()
 
     def test_DataMisfit_nP(self):
         self.assertTrue(self.dmis.nP == self.mesh.nC)
@@ -64,7 +53,7 @@ class DataMisfitTest(unittest.TestCase):
 
     def test_setting_W(self):
         self.data.relative_error = self.relative
-        self.data.noise_floor = self.eps
+        self.data.noise_floor = self.noise_floor
         Worig = self.dmis.W
         v = np.random.rand(self.survey.nD)
 
@@ -79,7 +68,7 @@ class DataMisfitTest(unittest.TestCase):
 
     def test_DataMisfitOrder(self):
         self.data.relative_error = self.relative
-        self.data.noise_floor = self.eps
+        self.data.noise_floor = self.noise_floor
         self.dmis.test(x=self.model)
 
 

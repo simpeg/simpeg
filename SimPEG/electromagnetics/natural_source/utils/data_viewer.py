@@ -3,12 +3,11 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from .. import receivers as rx
-import properties
 
 from .plot_utils import ApparentResPhsStationPlot, TipperAmplitudeStationPlot
 
 
-class NSEM_data_viewer(properties.HasProperties):
+class NSEM_data_viewer:
     """
     An interactive SimPEG NSEM Data viewer.
 
@@ -72,7 +71,7 @@ class NSEM_data_viewer(properties.HasProperties):
                 ]
             )
         )
-        if rx.Point3DImpedance in unique_rx:
+        if rx.PointNaturalSource in unique_rx:
             self.station_figs.append(ApparentResPhsStationPlot())
         if rx.Point3DTipper in unique_rx:
             self.station_figs.append(TipperAmplitudeStationPlot())

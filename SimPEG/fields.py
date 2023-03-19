@@ -1,12 +1,10 @@
-from six import string_types
 import numpy as np
-import properties
 
 from .simulation import BaseSimulation, BaseTimeSimulation
-from .utils import mkvc
+from .utils import mkvc, validate_type
 
 
-class Fields(properties.HasProperties):
+class Fields:
     """Fancy Field Storage
     .. code::python
         fields = Fields(
@@ -16,46 +14,109 @@ class Fields(properties.HasProperties):
         print(fields[src0,'phi'])
     """
 
-    simulation = properties.Instance("a SimPEG simulation", BaseSimulation)
+    _dtype = float
+    _knownFields = {}
+    _aliasFields = {}
 
-    knownFields = properties.Dictionary(
-        """
-        a dictionary with the names of the know fields and their location on
-        a mesh e.g. {"e": "E", "phi": "CC"}
-        """,
-        required=True,
-    )
+    def __init__(
+        self, simulation, knownFields=None, aliasFields=None, dtype=None, **kwargs
+    ):
+        super().__init__(**kwargs)
+        self.simulation = simulation
 
-    aliasFields = properties.Dictionary(
-        """
-        a dictionary of the aliased fields with [alias, location, function],
-        e.g. {"b":["e","F",lambda(F,e,ind)]}
-        """,
-        default={},
-    )
-    #: dtype is the type of the storage matrix. This can be a dictionary.
-    dtype = float
+        if knownFields is not None:
+            knownFields = validate_type("knownFields", knownFields, dict, cast=False)
+            self._knownFields = knownFields
+        if aliasFields is not None:
+            aliasFields = validate_type("aliasFields", aliasFields, dict, cast=False)
+            self._aliasFields = aliasFields
+        if dtype is not None:
+            self._dtype = dtype
 
-    def __init__(self, simulation=None, **kwargs):
-        super(Fields, self).__init__(**kwargs)
-        if simulation is not None:
-            self.simulation = simulation
+        # check overlapping fields
+        if any(key in self.aliasFields for key in self.knownFields):
+            raise KeyError(
+                "Aliased fields and Known Fields have overlapping definitions."
+            )
+
         self._fields = {}
         self.startup()
 
-    @properties.validator("knownFields")
-    def _check_overlap_with_aliased(self, change):
-        allFields = [k for k in change["value"]] + [a for a in self.aliasFields]
-        assert len(allFields) == len(
-            set(allFields)
-        ), "Aliased fields and Known Fields have overlapping definitions."
+    @property
+    def simulation(self):
+        """The simulation object that created these fields
 
-    @properties.validator("aliasFields")
-    def _check_overlap_with_known(self, change):
-        allFields = [k for k in self.knownFields] + [a for a in change["value"]]
-        assert len(allFields) == len(
-            set(allFields)
-        ), "Aliased fields and Known Fields have overlapping definitions."
+        Returns
+        -------
+        SimPEG.simulation.BaseSimulation
+        """
+        return self._simulation
+
+    @simulation.setter
+    def simulation(self, value):
+        self._simulation = validate_type(
+            "simulation", value, BaseSimulation, cast=False
+        )
+
+    @property
+    def knownFields(self):
+        """The known fields of this object.
+
+        The dictionary representing the known fields and their locations on the simulation
+        mesh. The keys are the names of the fields, and the values are the location on
+        the mesh.
+
+        >>> fields.knownFields
+        {'e': 'E', 'phi': 'CC'}
+
+        Would represent that the `e` field and `phi` fields are known, and they are
+        located on the mesh edges and cell centers, respectively.
+
+        Returns
+        -------
+        dict
+            They keys are the field names and the values are the field locations.
+        """
+        return self._knownFields
+
+    @property
+    def aliasFields(self):
+        """The aliased fields of this object.
+
+        The dictionary representing the aliased fields that can be accessed on this
+        object. The keys are the names of the fields, and the values are a list of the
+        known field, the aliased field's location on the mesh, and a function that goes
+        from the known field to the aliased field.
+
+        >>> fields.aliasFields
+        {'b': ['e', 'F', '_e']}
+
+        Would represent that the `e` field and `phi` fields are known, and they are
+        located on the mesh edges and cell centers, respectively.
+
+        Returns
+        -------
+        dict of {str: list}
+            They keys are the field names and the values are list consiting of the
+            field's alias, it's location on the mesh, and the function (or the name of
+            it) to create it from the aliased field.
+        """
+        return self._aliasFields
+
+    @property
+    def dtype(self):
+        """The data type of the storage matrix
+
+        Returns
+        -------
+        dtype or dict of {str : dtype}
+        """
+        return self._dtype
+
+    @property
+    def knownFields(self):
+        """Fields known to this object."""
+        return self._knownFields
 
     @property
     def mesh(self):
@@ -74,11 +135,11 @@ class Fields(properties.HasProperties):
         sz = 0.0
         for f in self.knownFields:
             loc = self.knownFields[f]
-            sz += np.array(self._storageShape(loc)).prod() * 8.0 / (1024 ** 2)
+            sz += np.array(self._storageShape(loc)).prod() * 8.0 / (1024**2)
         return "{0:e} MB".format(sz)
 
     def _storageShape(self, loc):
-        nSrc = self.survey.nSrc
+        n_fields = self.survey._n_fields
 
         nP = {
             "CC": self.mesh.nC,
@@ -87,7 +148,7 @@ class Fields(properties.HasProperties):
             "E": self.mesh.nE,
         }[loc]
 
-        return (nP, nSrc)
+        return (nP, n_fields)
 
     def _initStore(self, name):
         if name in self._fields:
@@ -113,11 +174,10 @@ class Fields(properties.HasProperties):
         if type(srcTestList) is slice:
             ind = srcTestList
         else:
-            ind = self.survey.getSourceIndex(srcTestList)
+            ind = self.survey.get_source_indices(srcTestList)
         return ind
 
     def _nameIndex(self, name, accessType):
-
         if type(name) is slice:
             assert name == slice(
                 None, None, None
@@ -141,7 +201,7 @@ class Fields(properties.HasProperties):
             raise KeyError("Invalid field name ({0!s}) for getter".format(name))
         return name
 
-    def _indexAndNameFromKey(self, key, accessType):
+    def _index_name_srclist_from_key(self, key, accessType):
         if not isinstance(key, tuple):
             key = (key,)
         if len(key) == 1:
@@ -152,10 +212,12 @@ class Fields(properties.HasProperties):
         srcTestList, name = key
         name = self._nameIndex(name, accessType)
         ind = self._srcIndex(srcTestList)
-        return ind, name
+        if isinstance(srcTestList, slice):
+            srcTestList = self.survey.source_list[srcTestList]
+        return ind, name, srcTestList
 
     def __setitem__(self, key, value):
-        ind, name = self._indexAndNameFromKey(key, "set")
+        ind, name, src_list = self._index_name_srclist_from_key(key, "set")
         if name is None:
             assert isinstance(
                 value, dict
@@ -171,13 +233,13 @@ class Fields(properties.HasProperties):
             self._setField(field, newFields[name], name, ind)
 
     def __getitem__(self, key):
-        ind, name = self._indexAndNameFromKey(key, "get")
+        ind, name, src_list = self._index_name_srclist_from_key(key, "get")
         if name is None:
             out = {}
             for name in self._fields:
-                out[name] = self._getField(name, ind)
+                out[name] = self._getField(name, ind, src_list)
             return out
-        return self._getField(name, ind)
+        return self._getField(name, ind, src_list)
 
     def _setField(self, field, val, name, ind):
         if isinstance(val, np.ndarray) and (
@@ -186,25 +248,26 @@ class Fields(properties.HasProperties):
             val = mkvc(val, 2)
         field[:, ind] = val
 
-    def _getField(self, name, ind):
+    def _getField(self, name, ind, src_list):
+        # ind will always be an list, thus the output will always
+        # be (len(fields), n_inds)
         if name in self._fields:
             out = self._fields[name][:, ind]
         else:
             # Aliased fields
             alias, loc, func = self.aliasFields[name]
 
-            srcII = np.array(self.survey.source_list)[ind]
-            srcII = srcII.tolist()
-
-            if isinstance(func, string_types):
+            if isinstance(func, str):
                 assert hasattr(self, func), (
                     "The alias field function is a string, but it does not "
                     "exist in the Fields class."
                 )
                 func = getattr(self, func)
-            out = func(self._fields[alias][:, ind], srcII)
-        if out.shape[0] == out.size or out.ndim == 1:
-            out = mkvc(out, 2)
+            if not isinstance(src_list, list):
+                src_list = [src_list]
+            out = func(self._fields[alias][:, ind], src_list)
+        # if out.shape[0] == out.size or out.ndim == 1:
+        #     out = mkvc(out, 2)
         return out
 
     def __contains__(self, other):
@@ -222,10 +285,21 @@ class TimeFields(Fields):
         print(fields[src0,'phi'])
     """
 
-    simulation = properties.Instance("a SimPEG time simulation", BaseTimeSimulation)
+    @property
+    def simulation(self):
+        """The simulation object that created these fields
 
-    def __init__(self, simulation=None, **kwargs):
-        super(TimeFields, self).__init__(simulation=simulation, **kwargs)
+        Returns
+        -------
+        SimPEG.simulation.BaseTimeSimulation
+        """
+        return self._simulation
+
+    @simulation.setter
+    def simulation(self, value):
+        self._simulation = validate_type(
+            "simulation", value, BaseTimeSimulation, cast=False
+        )
 
     def _storageShape(self, loc):
         nP = {
@@ -238,7 +312,7 @@ class TimeFields(Fields):
         nT = self.simulation.nT + 1
         return (nP, nSrc, nT)
 
-    def _indexAndNameFromKey(self, key, accessType):
+    def _index_name_srclist_from_key(self, key, accessType):
         if not isinstance(key, tuple):
             key = (key,)
         if len(key) == 1:
@@ -252,8 +326,9 @@ class TimeFields(Fields):
 
         name = self._nameIndex(name, accessType)
         srcInd = self._srcIndex(srcTestList)
-
-        return (srcInd, timeInd), name
+        if isinstance(srcTestList, slice):
+            srcTestList = self.survey.source_list[srcTestList]
+        return (srcInd, timeInd), name, srcTestList
 
     def _correctShape(self, name, ind, deflate=False):
         srcInd, timeInd = ind
@@ -284,7 +359,7 @@ class TimeFields(Fields):
         correctShape = field[:, srcInd, timeInd].shape
         field[:, srcInd, timeInd] = val.reshape(correctShape, order="F")
 
-    def _getField(self, name, ind):
+    def _getField(self, name, ind, src_list):
         srcInd, timeInd = ind
 
         if name in self._fields:
@@ -292,7 +367,7 @@ class TimeFields(Fields):
         else:
             # Aliased fields
             alias, loc, func = self.aliasFields[name]
-            if isinstance(func, string_types):
+            if isinstance(func, str):
                 assert hasattr(self, func), (
                     "The alias field function is a string, but it does "
                     "not exist in the Fields class."
@@ -311,13 +386,13 @@ class TimeFields(Fields):
                     pass
 
             timeII = np.arange(self.simulation.nT + 1)[timeInd]
-            srcII = np.array(self.survey.source_list)[srcInd]
-            srcII = srcII.tolist()
+            if not isinstance(src_list, list):
+                src_list = [src_list]
 
             if timeII.size == 1:
                 pointerShapeDeflated = self._correctShape(alias, ind, deflate=True)
                 pointerFields = pointerFields.reshape(pointerShapeDeflated, order="F")
-                out = func(pointerFields, srcII, timeII)
+                out = func(pointerFields, src_list, timeII)
             else:  # loop over the time steps
                 nT = pointerShape[2]
                 out = list(range(nT))
@@ -325,7 +400,7 @@ class TimeFields(Fields):
                     fieldI = pointerFields[:, :, i]
                     if fieldI.shape[0] == fieldI.size:
                         fieldI = mkvc(fieldI, 2)
-                    out[i] = func(fieldI, srcII, TIND_i)
+                    out[i] = func(fieldI, src_list, TIND_i)
                     if out[i].ndim == 1:
                         out[i] = out[i][:, np.newaxis, np.newaxis]
                     elif out[i].ndim == 2:

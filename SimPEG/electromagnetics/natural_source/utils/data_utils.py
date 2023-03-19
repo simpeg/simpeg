@@ -1,21 +1,16 @@
-from __future__ import print_function
-from __future__ import absolute_import
-from __future__ import division
-
 import matplotlib.pyplot as plt
 import numpy as np
 import numpy.lib.recfunctions as recFunc
 from scipy.constants import mu_0
-from scipy import interpolate as sciint
 
 import SimPEG as simpeg
 from SimPEG.electromagnetics.natural_source.survey import Survey, Data
 from SimPEG.electromagnetics.natural_source.receivers import (
-    Point1DImpedance,
-    Point3DImpedance,
+    PointNaturalSource,
+    PointNaturalSource,
     Point3DTipper,
 )
-from SimPEG.electromagnetics.natural_source.sources import Planewave_xy_1Dprimary
+from SimPEG.electromagnetics.natural_source.sources import PlanewaveXYPrimary
 from SimPEG.electromagnetics.natural_source.utils import (
     analytic_1d,
     plot_data_types as pDt,
@@ -70,8 +65,8 @@ def extract_data_info(NSEMdata):
     for src in NSEMdata.survey.source_list:
         for rx in src.receiver_list:
             dL.append(NSEMdata[src, rx])
-            freqL.append(np.ones(rx.nD) * src.freq)
-            if isinstance(rx, Point3DImpedance):
+            freqL.append(np.ones(rx.nD) * src.frequency)
+            if isinstance(rx, PointNaturalSource):
                 rxTL.extend((("z" + rx.orientation + " ") * rx.nD).split())
             if isinstance(rx, Point3DTipper):
                 rxTL.extend((("t" + rx.orientation + " ") * rx.nD).split())
@@ -97,7 +92,7 @@ def resample_data(NSEMdata, locs="All", freqs="All", rxs="All", verbose=False):
     """
 
     # Initiate new objects
-    new_srcList = []
+    new_source_list = []
     data_list = []
     std_list = []
     floor_list = []
@@ -111,7 +106,7 @@ def resample_data(NSEMdata, locs="All", freqs="All", rxs="All", verbose=False):
         raise IOError("Incorrect input type for locs. \n" + "Can be 'All' or ndarray ")
     # Sort out input frequencies
     if freqs == "All":
-        frequencies = NSEMdata.survey.freqs
+        frequencies = NSEMdata.survey.frequencies
     elif isinstance(freqs, np.ndarray):
         frequencies = freqs
     elif isinstance(freqs, list):
@@ -127,7 +122,7 @@ def resample_data(NSEMdata, locs="All", freqs="All", rxs="All", verbose=False):
         rx_comp = []
         for rxT in rxs:
             if "z" in rxT[0]:
-                rxtype = Point3DImpedance
+                rxtype = PointNaturalSource
             elif "t" in rxT[0]:
                 rxtype = Point3DTipper
             else:
@@ -141,7 +136,7 @@ def resample_data(NSEMdata, locs="All", freqs="All", rxs="All", verbose=False):
     # Filter the data
     for src in NSEMdata.survey.source_list:
         if src.frequency in frequencies:
-            new_rxList = []
+            new_receiver_list = []
             for rx in src.receiver_list:
                 if rx_comp is True or np.any(
                     [
@@ -192,7 +187,9 @@ def resample_data(NSEMdata, locs="All", freqs="All", rxs="All", verbose=False):
                         )
                         new_locs = rx.locations[ind_loc, :]
                     new_rx = type(rx)
-                    new_rxList.append(new_rx(new_locs, rx.orientation, rx.component))
+                    new_receiver_list.append(
+                        new_rx(new_locs, rx.orientation, rx.component)
+                    )
                     data_list.append(NSEMdata[src, rx][ind_loc])
                     try:
                         std_list.append(NSEMdata.relative_error[src, rx][ind_loc])
@@ -202,9 +199,9 @@ def resample_data(NSEMdata, locs="All", freqs="All", rxs="All", verbose=False):
                             print("No standard deviation or floor assigned")
 
             new_src = type(src)
-            new_srcList.append(new_src(new_rxList, src.freq))
+            new_source_list.append(new_src(new_receiver_list, src.frequency))
 
-    survey = Survey(new_srcList)
+    survey = Survey(new_source_list)
     if std_list or floor_list:
         return Data(
             survey,
@@ -259,8 +256,8 @@ def convert3Dto1Dobject(NSEMdata, rxType3D="yx"):
     for loc in uniLocs:
         # Make the receiver list
         rx1DList = []
-        rx1DList.append(Point1DImpedance(simpeg.mkvc(loc, 2).T, "real"))
-        rx1DList.append(Point1DImpedance(simpeg.mkvc(loc, 2).T, "imag"))
+        rx1DList.append(PointNaturalSource(simpeg.mkvc(loc, 2).T, "real"))
+        rx1DList.append(PointNaturalSource(simpeg.mkvc(loc, 2).T, "imag"))
         # Source list
         locrecData = recData[
             np.sqrt(
@@ -273,7 +270,7 @@ def convert3Dto1Dobject(NSEMdata, rxType3D="yx"):
         dat1DList = []
         src1DList = []
         for freq in locrecData["freq"]:
-            src1DList.append(Planewave_xy_1Dprimary(rx1DList, freq))
+            src1DList.append(PlanewaveXYPrimary(rx1DList, freq))
             for comp in ["r", "i"]:
                 dat1DList.append(
                     corr * locrecData[rxType3D + comp][locrecData["freq"] == freq]
@@ -297,13 +294,13 @@ def convert3Dto1Dobject(NSEMdata, rxType3D="yx"):
 
 ### Other utils, that don't take NSEM as an input
 def appResPhs(freq, z):
-    app_res = ((1.0 / (8e-7 * np.pi ** 2)) / freq) * np.abs(z) ** 2
+    app_res = ((1.0 / (8e-7 * np.pi**2)) / freq) * np.abs(z) ** 2
     app_phs = np.arctan2(z.imag, z.real) * (180 / np.pi)
     return app_res, app_phs
 
 
 def skindepth(rho, freq):
-    """ Function to calculate the skindepth of EM waves"""
+    """Function to calculate the skindepth of EM waves"""
     return np.sqrt((rho * ((1 / (freq * mu_0 * np.pi)))))
 
 
@@ -322,7 +319,6 @@ def rec_to_ndarr(rec_arr, data_type=float):
 
 
 def makeAnalyticSolution(mesh, model, elev, freqs):
-
     data1D = []
     for freq in freqs:
         anaEd, anaEu, anaHd, anaHu = analytic_1d.getEHfields(mesh, model, freq, elev)
@@ -346,7 +342,6 @@ def makeAnalyticSolution(mesh, model, elev, freqs):
 
 
 def plotMT1DModelData(problem, models, symList=None):
-
     # Setup the figure
     fontSize = 15
 
@@ -397,7 +392,12 @@ def plotMT1DModelData(problem, models, symList=None):
         meshPts = np.concatenate(
             (problem.mesh.gridN[0:1], np.kron(problem.mesh.gridN[1::], np.ones(2))[:-1])
         )
-        modelPts = np.kron(1.0 / (problem.sigmaMap * model), np.ones(2,),)
+        modelPts = np.kron(
+            1.0 / (problem.sigmaMap * model),
+            np.ones(
+                2,
+            ),
+        )
         axM.semilogx(modelPts, meshPts, color=col)
 
         ## Data
@@ -406,10 +406,7 @@ def plotMT1DModelData(problem, models, symList=None):
         pDt.plotIsoStaImpedance(axR, loc, data1D, "zyx", "res", pColor=col)
         # Appphs
         pDt.plotIsoStaImpedance(axP, loc, data1D, "zyx", "phs", pColor=col)
-        try:
-            allData = np.concatenate((allData, simpeg.mkvc(data1D["zyx"], 2)), 1)
-        except:
-            allData = simpeg.mkvc(data1D["zyx"], 2)
+        allData = simpeg.mkvc(data1D["zyx"], 2)
     freq = simpeg.mkvc(data1D["freq"], 2)
     res, phs = appResPhs(freq, allData)
 
@@ -438,10 +435,13 @@ def plotMT1DModelData(problem, models, symList=None):
     return fig
 
 
-def plotImpAppRes(dataArrays, plotLoc, textStr=[]):
+def plotImpAppRes(dataArrays, plotLoc, textStr=None):
     """
     Plots amplitude impedance and phase
     """
+    # Define textStr as empty list if it's None
+    if textStr is None:
+        textStr = []
     # Make the figure and axes
     fig, axT = plt.subplots(2, 2, sharex=True)
     axes = axT.ravel()

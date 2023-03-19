@@ -24,15 +24,15 @@ can be used to invert other types of geophysical data.
 # --------------
 #
 
-import os, shutil
+import os
 import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 
 from discretize import TreeMesh
-from discretize.utils import refine_tree_xyz
+from discretize.utils import refine_tree_xyz, active_from_xyz
 
-from SimPEG.utils import plot2Ddata, surface2ind_topo, mkvc
+from SimPEG.utils import plot2Ddata, mkvc
 from SimPEG.electromagnetics import frequency_domain as fdem
 from SimPEG import (
     maps,
@@ -179,7 +179,6 @@ source_list = []  # Create empty list to store sources
 # Each unique location and frequency defines a new transmitter
 n_data = len(dobs_real)
 for ii in range(n_data):
-
     # Define receivers of different type at each location
     bzr_receiver = fdem.receivers.PointMagneticFluxDensitySecondary(
         receiver_locations[ii, :], "z", "imag"
@@ -270,7 +269,7 @@ air_conductivity = np.log(1e-8)
 background_conductivity = np.log(1e-2)
 
 # Find the indecies of the active cells in forward model (ones below surface)
-ind_active = surface2ind_topo(mesh, xyz_topo)
+ind_active = active_from_xyz(mesh, xyz_topo)
 
 active_map = maps.InjectActiveCells(mesh, ind_active, np.exp(air_conductivity))
 nC = int(ind_active.sum())
@@ -312,10 +311,10 @@ dmis = data_misfit.L2DataMisfit(data=data_object, simulation=simulation)
 dmis.W = utils.sdiag(1 / uncertainties)
 
 # Define the regularization (model objective function)
-reg = regularization.Simple(
+reg = regularization.WeightedLeastSquares(
     mesh,
     indActive=ind_active,
-    mref=starting_model,
+    reference_model=starting_model,
     alpha_s=1e-2,
     alpha_x=1,
     alpha_y=1,
@@ -388,14 +387,14 @@ fig = plt.figure(figsize=(9, 4))
 plotting_map = maps.InjectActiveCells(mesh, ind_active, np.nan)
 
 ax1 = fig.add_axes([0.1, 0.1, 0.73, 0.8])
-mesh.plotSlice(
+mesh.plot_slice(
     plotting_map * true_model,
     normal="Y",
     ax=ax1,
-    ind=int(mesh.hy.size / 2),
+    ind=int(mesh.h[1].size / 2),
     grid=True,
     clim=(np.min(true_model), np.max(true_model)),
-    pcolorOpts={"cmap": "jet"},
+    pcolor_opts={"cmap": "jet"},
 )
 ax1.set_title("Model slice at y = 0 m")
 
@@ -414,14 +413,14 @@ fig = plt.figure(figsize=(9, 4))
 plotting_map = maps.InjectActiveCells(mesh, ind_active, np.nan)
 
 ax1 = fig.add_axes([0.1, 0.1, 0.73, 0.8])
-mesh.plotSlice(
+mesh.plot_slice(
     plotting_map * recovered_model,
     normal="Z",
     ax=ax1,
-    ind=int(mesh.hz.size / 2 - 1),
+    ind=int(mesh.h[2].size / 2 - 1),
     grid=True,
     clim=(np.min(recovered_model), np.max(recovered_model)),
-    pcolorOpts={"cmap": "jet"},
+    pcolor_opts={"cmap": "jet"},
 )
 ax1.set_title("Model slice at y = 0 m")
 
@@ -468,7 +467,6 @@ v_lim = [
 ]
 
 for ii in range(0, 3):
-
     ax1[ii] = fig.add_axes([0.33 * ii + 0.03, 0.11, 0.23, 0.84])
     cplot[ii] = plot2Ddata(
         receiver_locations[k],

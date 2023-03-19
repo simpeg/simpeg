@@ -31,7 +31,7 @@ from SimPEG import (
 from SimPEG import utils
 from SimPEG.utils import mkvc
 
-from discretize.utils import mesh_builder_xyz, refine_tree_xyz
+from discretize.utils import active_from_xyz, mesh_builder_xyz, refine_tree_xyz
 from SimPEG.potential_fields import magnetics
 import scipy as sp
 import numpy as np
@@ -50,7 +50,7 @@ import matplotlib.pyplot as plt
 # As a simple case, we pick a vertical inducing field of magnitude 50,000 nT.
 #
 #
-sp.random.seed(1)
+np.random.seed(1)
 # We will assume a vertical inducing field
 H0 = (50000.0, 90.0, 0.0)
 
@@ -114,7 +114,7 @@ mesh = refine_tree_xyz(
 
 
 # Define an active cells from topo
-actv = utils.surface2ind_topo(mesh, topo)
+actv = active_from_xyz(mesh, topo)
 nC = int(actv.sum())
 
 ###########################################################################
@@ -137,7 +137,6 @@ def plotVectorSectionsOctree(
     actvMap=None,
     fill=True,
 ):
-
     """
     Plot section through a 3D tensor model
     """
@@ -188,13 +187,13 @@ def plotVectorSectionsOctree(
     # Interpolate values from mesh.gridCC to grid2d
     ind_3d_to_2d = mesh._get_containing_cell_indexes(tm_gridboost)
     v2d = m[ind_3d_to_2d, :]
-    amp = np.sum(v2d ** 2.0, axis=1) ** 0.5
+    amp = np.sum(v2d**2.0, axis=1) ** 0.5
 
     if axs is None:
         axs = plt.subplot(111)
 
     if fill:
-        temp_mesh.plotImage(amp, ax=axs, clim=[vmin, vmax], grid=True)
+        temp_mesh.plot_image(amp, ax=axs, clim=[vmin, vmax], grid=True)
 
     axs.quiver(
         temp_mesh.gridCC[:, 0],
@@ -228,7 +227,9 @@ M_xyz = utils.mat_utils.dip_azimuth2cartesian(M[0], M[1])
 
 # Get the indicies of the magnetized block
 ind = utils.model_builder.getIndicesBlock(
-    np.r_[-20, -20, -10], np.r_[20, 20, 25], mesh.gridCC,
+    np.r_[-20, -20, -10],
+    np.r_[20, 20, 25],
+    mesh.gridCC,
 )[0]
 
 # Assign magnetization values
@@ -245,7 +246,7 @@ idenMap = maps.IdentityMap(nP=nC * 3)
 
 # Create the simulation
 simulation = magnetics.simulation.Simulation3DIntegral(
-    survey=survey, mesh=mesh, chiMap=idenMap, actInd=actv, modelType="vector"
+    survey=survey, mesh=mesh, chiMap=idenMap, ind_active=actv, model_type="vector"
 )
 
 # Compute some data and add some random noise
@@ -314,17 +315,17 @@ m0 = np.ones(3 * nC) * 1e-4  # Starting model
 
 # Create three regularizations for the different components
 # of magnetization
-reg_p = regularization.Sparse(mesh, indActive=actv, mapping=wires.p)
-reg_p.mref = np.zeros(3 * nC)
+reg_p = regularization.Sparse(mesh, active_cells=actv, mapping=wires.p)
+reg_p.reference_model = np.zeros(3 * nC)
 
-reg_s = regularization.Sparse(mesh, indActive=actv, mapping=wires.s)
-reg_s.mref = np.zeros(3 * nC)
+reg_s = regularization.Sparse(mesh, active_cells=actv, mapping=wires.s)
+reg_s.reference_model = np.zeros(3 * nC)
 
-reg_t = regularization.Sparse(mesh, indActive=actv, mapping=wires.t)
-reg_t.mref = np.zeros(3 * nC)
+reg_t = regularization.Sparse(mesh, active_cells=actv, mapping=wires.t)
+reg_t.reference_model = np.zeros(3 * nC)
 
 reg = reg_p + reg_s + reg_t
-reg.mref = np.zeros(3 * nC)
+reg.reference_model = np.zeros(3 * nC)
 
 # Data misfit function
 dmis = data_misfit.L2DataMisfit(simulation=simulation, data=data_object)
@@ -378,24 +379,30 @@ wires = maps.Wires(("amp", nC), ("theta", nC), ("phi", nC))
 
 # Create a Combo Regularization
 # Regularize the amplitude of the vectors
-reg_a = regularization.Sparse(mesh, indActive=actv, mapping=wires.amp)
-reg_a.norms = np.c_[0.0, 0.0, 0.0, 0.0]  # Sparse on the model and its gradients
-reg_a.mref = np.zeros(3 * nC)
+reg_a = regularization.Sparse(
+    mesh, gradient_type="components", active_cells=actv, mapping=wires.amp
+)
+reg_a.norms = [0.0, 0.0, 0.0, 0.0]  # Sparse on the model and its gradients
+reg_a.reference_model = np.zeros(3 * nC)
 
 # Regularize the vertical angle of the vectors
-reg_t = regularization.Sparse(mesh, indActive=actv, mapping=wires.theta)
+reg_t = regularization.Sparse(
+    mesh, gradient_type="components", active_cells=actv, mapping=wires.theta
+)
 reg_t.alpha_s = 0.0  # No reference angle
-reg_t.space = "spherical"
-reg_t.norms = np.c_[0.0, 0.0, 0.0, 0.0]  # Only norm on gradients used
+reg_t.units = "radian"
+reg_t.norms = [0.0, 0.0, 0.0, 0.0]  # Only norm on gradients used
 
 # Regularize the horizontal angle of the vectors
-reg_p = regularization.Sparse(mesh, indActive=actv, mapping=wires.phi)
+reg_p = regularization.Sparse(
+    mesh, gradient_type="components", active_cells=actv, mapping=wires.phi
+)
 reg_p.alpha_s = 0.0  # No reference angle
-reg_p.space = "spherical"
-reg_p.norms = np.c_[0.0, 0.0, 0.0, 0.0]  # Only norm on gradients used
+reg_p.units = "radian"
+reg_p.norms = [0.0, 0.0, 0.0, 0.0]  # Only norm on gradients used
 
 reg = reg_a + reg_t + reg_p
-reg.mref = np.zeros(3 * nC)
+reg.reference_model = np.zeros(3 * nC)
 
 lower_bound = np.kron(np.asarray([0, -np.inf, -np.inf]), np.ones(nC))
 upper_bound = np.kron(np.asarray([10, np.inf, np.inf]), np.ones(nC))
@@ -460,7 +467,6 @@ plotVectorSectionsOctree(
     vmin=0.0,
     vmax=0.005,
 )
-
 ax.set_xlim([-200, 200])
 ax.set_ylim([-100, 75])
 ax.set_title("Smooth model (Cartesian)")

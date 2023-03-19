@@ -9,7 +9,6 @@ from pymatsolver import Pardiso
 
 class MagFwdProblemTests(unittest.TestCase):
     def setUp(self):
-
         Inc = 45.0
         Dec = 45.0
         Btot = 51000
@@ -46,13 +45,15 @@ class MagFwdProblemTests(unittest.TestCase):
         self.survey = mag.Survey(srcField)
 
         self.sim = mag.simulation.Simulation3DDifferential(
-            M, survey=self.survey, muMap=maps.ChiMap(M), solver=Pardiso,
+            M,
+            survey=self.survey,
+            muMap=maps.ChiMap(M),
+            solver=Pardiso,
         )
         self.M = M
         self.chi = chi
 
     def test_ana_forward(self):
-
         u = self.sim.fields(self.chi)
         dpred = self.sim.projectFields(u)
 

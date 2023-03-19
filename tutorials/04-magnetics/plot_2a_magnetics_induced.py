@@ -26,9 +26,9 @@ import matplotlib.pyplot as plt
 import os
 
 from discretize import TensorMesh
-from discretize.utils import mkvc
-from SimPEG.utils import plot2Ddata, model_builder, surface2ind_topo
-from SimPEG import maps, utils
+from discretize.utils import mkvc, active_from_xyz
+from SimPEG.utils import plot2Ddata, model_builder
+from SimPEG import maps
 from SimPEG.potential_fields import magnetics
 
 write_output = False
@@ -45,7 +45,7 @@ write_output = False
 #
 
 [x_topo, y_topo] = np.meshgrid(np.linspace(-200, 200, 41), np.linspace(-200, 200, 41))
-z_topo = -15 * np.exp(-(x_topo ** 2 + y_topo ** 2) / 80 ** 2)
+z_topo = -15 * np.exp(-(x_topo**2 + y_topo**2) / 80**2)
 x_topo, y_topo, z_topo = mkvc(x_topo), mkvc(y_topo), mkvc(z_topo)
 xyz_topo = np.c_[x_topo, y_topo, z_topo]
 
@@ -120,7 +120,7 @@ background_susceptibility = 0.0001
 sphere_susceptibility = 0.01
 
 # Find cells that are active in the forward modeling (cells below surface)
-ind_active = surface2ind_topo(mesh, xyz_topo)
+ind_active = active_from_xyz(mesh, xyz_topo)
 
 # Define mapping from model to active cells
 nC = int(ind_active.sum())
@@ -139,11 +139,11 @@ fig = plt.figure(figsize=(9, 4))
 
 plotting_map = maps.InjectActiveCells(mesh, ind_active, np.nan)
 ax1 = fig.add_axes([0.1, 0.12, 0.73, 0.78])
-mesh.plotSlice(
+mesh.plot_slice(
     plotting_map * model,
     normal="Y",
     ax=ax1,
-    ind=int(mesh.nCy / 2),
+    ind=int(mesh.shape_cells[1] / 2),
     grid=True,
     clim=(np.min(model), np.max(model)),
 )
@@ -172,9 +172,9 @@ plt.show()
 simulation = magnetics.simulation.Simulation3DIntegral(
     survey=survey,
     mesh=mesh,
-    modelType="susceptibility",
+    model_type="scalar",
     chiMap=model_map,
-    actInd=ind_active,
+    ind_active=ind_active,
     store_sensitivities="forward_only",
 )
 
@@ -216,7 +216,6 @@ plt.show()
 #
 
 if write_output:
-
     dir_path = os.path.dirname(__file__).split(os.path.sep)
     dir_path.extend(["outputs"])
     dir_path = os.path.sep.join(dir_path) + os.path.sep

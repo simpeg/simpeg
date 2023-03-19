@@ -13,7 +13,7 @@ User is promoted to try different suvey_type such as 'pole-dipole',
 """
 
 from SimPEG.electromagnetics.static import resistivity as DC
-from SimPEG.electromagnetics.static.utils import gen_DCIPsurvey, genTopography
+from SimPEG.electromagnetics.static.utils import generate_dcip_survey, genTopography
 from SimPEG import (
     maps,
     utils,
@@ -24,6 +24,7 @@ from SimPEG import (
     inverse_problem,
     directives,
 )
+from discretize.utils import active_from_xyz
 import matplotlib.pyplot as plt
 from matplotlib import colors
 import numpy as np
@@ -46,7 +47,9 @@ def run(plotIt=True, survey_type="dipole-dipole"):
     zmin, zmax = 0, 0
     endl = np.array([[xmin, ymin, zmin], [xmax, ymax, zmax]])
     # Generate DC survey object
-    survey = gen_DCIPsurvey(endl, survey_type=survey_type, dim=2, a=10, b=10, n=10)
+    survey = generate_dcip_survey(
+        endl, survey_type=survey_type, dim=2, a=10, b=10, n=10
+    )
     survey = IO.from_abmn_locations_to_survey(
         survey.locations_a,
         survey.locations_b,
@@ -59,7 +62,7 @@ def run(plotIt=True, survey_type="dipole-dipole"):
     # Obtain 2D TensorMesh
     mesh, actind = IO.set_mesh()
     topo, mesh1D = genTopography(mesh, -10, 0, its=100)
-    actind = utils.surface2ind_topo(mesh, np.c_[mesh1D.vectorCCx, topo])
+    actind = active_from_xyz(mesh, np.c_[mesh1D.cell_centers_x, topo])
     survey.drape_electrodes_on_topography(mesh, actind, option="top")
 
     # Build a conductivity model
@@ -82,13 +85,13 @@ def run(plotIt=True, survey_type="dipole-dipole"):
         ax = plt.subplot(111)
         temp = rho.copy()
         temp[~actind] = np.nan
-        out = mesh.plotImage(
+        out = mesh.plot_image(
             temp,
             grid=True,
             ax=ax,
-            gridOpts={"alpha": 0.2},
+            grid_opts={"alpha": 0.2},
             clim=(10, 1000),
-            pcolorOpts={"cmap": "viridis", "norm": colors.LogNorm()},
+            pcolor_opts={"cmap": "viridis", "norm": colors.LogNorm()},
         )
         ax.plot(
             survey.electrode_locations[:, 0], survey.electrode_locations[:, 1], "k."
@@ -131,7 +134,7 @@ def run(plotIt=True, survey_type="dipole-dipole"):
     if plotIt:
         fig = plt.figure()
         out = hist(data.dobs, bins=20)
-        plt.xlabel("Apparent Resisitivty ($\Omega$m)")
+        plt.xlabel(r"Apparent Resisitivty ($\Omega$m)")
         plt.show()
 
     # Set initial model based upon histogram
@@ -185,13 +188,13 @@ def run(plotIt=True, survey_type="dipole-dipole"):
         ax = plt.subplot(111)
         temp = rho.copy()
         temp[~actind] = np.nan
-        out = mesh.plotImage(
+        out = mesh.plot_image(
             jtj_cc,
             grid=True,
             ax=ax,
-            gridOpts={"alpha": 0.2},
+            grid_opts={"alpha": 0.2},
             clim=(0.005, 0.5),
-            pcolorOpts={"cmap": "viridis", "norm": colors.LogNorm()},
+            pcolor_opts={"cmap": "viridis", "norm": colors.LogNorm()},
         )
         ax.plot(
             survey.electrode_locations[:, 0], survey.electrode_locations[:, 1], "k."
@@ -215,16 +218,16 @@ def run(plotIt=True, survey_type="dipole-dipole"):
     if plotIt:
         vmin, vmax = rho.min(), rho.max()
         fig, ax = plt.subplots(2, 1, figsize=(20, 6))
-        out1 = mesh.plotImage(
+        out1 = mesh.plot_image(
             rho_true,
             clim=(10, 1000),
-            pcolorOpts={"cmap": "viridis", "norm": colors.LogNorm()},
+            pcolor_opts={"cmap": "viridis", "norm": colors.LogNorm()},
             ax=ax[0],
         )
-        out2 = mesh.plotImage(
+        out2 = mesh.plot_image(
             rho_est,
             clim=(10, 1000),
-            pcolorOpts={"cmap": "viridis", "norm": colors.LogNorm()},
+            pcolor_opts={"cmap": "viridis", "norm": colors.LogNorm()},
             ax=ax[1],
         )
         out = [out1, out2]
@@ -235,7 +238,7 @@ def run(plotIt=True, survey_type="dipole-dipole"):
             ax[i].set_xlim(IO.grids[:, 0].min(), IO.grids[:, 0].max())
             ax[i].set_ylim(-IO.grids[:, 1].max(), IO.grids[:, 1].min())
             cb = plt.colorbar(out[i][0], ax=ax[i])
-            cb.set_label("Resistivity ($\Omega$m)")
+            cb.set_label(r"Resistivity ($\Omega$m)")
             ax[i].set_xlabel("Northing (m)")
             ax[i].set_ylabel("Elevation (m)")
             ax[i].set_aspect("equal")

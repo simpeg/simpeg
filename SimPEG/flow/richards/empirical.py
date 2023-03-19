@@ -1,8 +1,3 @@
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-
 import numpy as np
 import scipy.sparse as sp
 from scipy import constants
@@ -21,7 +16,6 @@ def _get_projections(u):
 
 
 def _partition_args(mesh, Hcond, Theta, hcond_args, theta_args, **kwargs):
-
     hcond_params = {k: kwargs[k] for k in kwargs if k in hcond_args}
     theta_params = {k: kwargs[k] for k in kwargs if k in theta_args}
 
@@ -60,12 +54,10 @@ class BaseWaterRetention(NonLinearModel):
             plt.figure()
             ax = plt.subplot(111)
 
-        self.validate()
-
         h = -np.logspace(-2, 3, 1000)
         ax.semilogx(-h, self(h))
         ax.set_title("Water retention curve")
-        ax.set_xlabel("Soil water potential, $- \psi$")
+        ax.set_xlabel(r"Soil water potential, $-\psi$")
         ax.set_ylabel("Water content, $\\theta$")
 
 
@@ -77,28 +69,48 @@ class BaseHydraulicConductivity(NonLinearModel):
             plt.figure()
             ax = plt.subplot(111)
 
-        self.validate()
-
         h = -np.logspace(-2, 3, 1000)
         ax.loglog(-h, self(h))
         ax.set_title("Hydraulic conductivity function")
-        ax.set_xlabel("Soil water potential, $- \psi$")
+        ax.set_xlabel(r"Soil water potential, $-\psi$")
         ax.set_ylabel("Hydraulic conductivity, $K$")
 
 
 class Haverkamp_theta(BaseWaterRetention):
-
     theta_r, theta_rMap, theta_rDeriv = props.Invertible(
-        "residual water content [L3L-3]", default=0.075
+        "residual water content [L3L-3]"
     )
 
     theta_s, theta_sMap, theta_sDeriv = props.Invertible(
-        "saturated water content [L3L-3]", default=0.287
+        "saturated water content [L3L-3]"
     )
 
-    alpha, alphaMap, alphaDeriv = props.Invertible("", default=1.611e06)
+    alpha, alphaMap, alphaDeriv = props.Invertible("")
 
-    beta, betaMap, betaDeriv = props.Invertible("", default=3.96)
+    beta, betaMap, betaDeriv = props.Invertible("")
+
+    def __init__(
+        self,
+        mesh,
+        theta_r=0.075,
+        theta_rMap=None,
+        theta_s=0.287,
+        theta_sMap=None,
+        alpha=1.611e06,
+        alphaMap=None,
+        beta=3.96,
+        betaMap=None,
+        **kwargs
+    ):
+        super().__init__(mesh=mesh, **kwargs)
+        self.theta_r = theta_r
+        self.theta_rMap = theta_rMap
+        self.theta_s = theta_s
+        self.theta_sMap = theta_sMap
+        self.alpha = alpha
+        self.alphaMap = alphaMap
+        self.beta = beta
+        self.betaMap = betaMap
 
     def _get_params(self):
         return self.theta_r, self.theta_s, self.alpha, self.beta
@@ -197,14 +209,30 @@ class Haverkamp_theta(BaseWaterRetention):
 
 
 class Haverkamp_k(BaseHydraulicConductivity):
+    Ks, KsMap, KsDeriv = props.Invertible("Saturated hydraulic conductivity")
 
-    Ks, KsMap, KsDeriv = props.Invertible(
-        "Saturated hydraulic conductivity", default=9.44e-03
-    )
+    A, AMap, ADeriv = props.Invertible("fitting parameter")
 
-    A, AMap, ADeriv = props.Invertible("fitting parameter", default=1.175e06)
+    gamma, gammaMap, gammaDeriv = props.Invertible("fitting parameter")
 
-    gamma, gammaMap, gammaDeriv = props.Invertible("fitting parameter", default=4.74)
+    def __init__(
+        self,
+        mesh,
+        Ks=9.44e-03,
+        KsMap=None,
+        A=1.175e06,
+        AMap=None,
+        gamma=4.74,
+        gammaMap=None,
+        **kwargs
+    ):
+        super().__init__(mesh=mesh, **kwargs)
+        self.Ks = Ks
+        self.KsMap = KsMap
+        self.A = A
+        self.AMap = AMap
+        self.gamma = gamma
+        self.gammaMap = gammaMap
 
     def _get_params(self):
         return self.Ks, self.A, self.gamma
@@ -291,22 +319,42 @@ class HaverkampParams(object):
 
 
 class Vangenuchten_theta(BaseWaterRetention):
-
     theta_r, theta_rMap, theta_rDeriv = props.Invertible(
-        "residual water content [L3L-3]", default=0.078
+        "residual water content [L3L-3]"
     )
 
     theta_s, theta_sMap, theta_sDeriv = props.Invertible(
-        "saturated water content [L3L-3]", default=0.430
+        "saturated water content [L3L-3]"
     )
 
-    n, nMap, nDeriv = props.Invertible(
-        "measure of the pore-size distribution, >1", default=1.56
-    )
+    n, nMap, nDeriv = props.Invertible("measure of the pore-size distribution, >1")
 
     alpha, alphaMap, alphaDeriv = props.Invertible(
-        "related to the inverse of the air entry suction [L-1], >0", default=0.036
+        "related to the inverse of the air entry suction [L-1], >0"
     )
+
+    def __init__(
+        self,
+        mesh,
+        theta_r=0.078,
+        theta_rMap=None,
+        theta_s=0.430,
+        theta_sMap=None,
+        n=1.56,
+        nMap=None,
+        alpha=0.036,
+        alphaMap=None,
+        **kwargs
+    ):
+        super().__init__(mesh=mesh, **kwargs)
+        self.theta_r = theta_r
+        self.theta_rMap = theta_rMap
+        self.theta_s = theta_s
+        self.theta_sMap = theta_sMap
+        self.alpha = alpha
+        self.alphaMap = alphaMap
+        self.n = n
+        self.nMap = nMap
 
     def _get_params(self):
         return self.theta_r, self.theta_s, self.alpha, self.n
@@ -387,7 +435,7 @@ class Vangenuchten_theta(BaseWaterRetention):
                 * np.log(abs(alpha * u))
                 * abs(alpha * u) ** n
                 / (abs(alpha * u) ** n + 1.0)
-                - 1.0 * np.log(abs(alpha * u) ** n + 1.0) / n ** 2
+                - 1.0 * np.log(abs(alpha * u) ** n + 1.0) / n**2
             )
             * (abs(alpha * u) ** n + 1.0) ** (-1.0 + 1.0 / n)
         )
@@ -430,20 +478,38 @@ class Vangenuchten_theta(BaseWaterRetention):
 
 
 class Vangenuchten_k(BaseHydraulicConductivity):
+    Ks, KsMap, KsDeriv = props.Invertible("Saturated hydraulic conductivity")
 
-    Ks, KsMap, KsDeriv = props.Invertible(
-        "Saturated hydraulic conductivity", default=24.96
-    )
+    I, IMap, IDeriv = props.Invertible("")
 
-    I, IMap, IDeriv = props.Invertible("", default=0.5)
-
-    n, nMap, nDeriv = props.Invertible(
-        "measure of the pore-size distribution, >1", default=1.56
-    )
+    n, nMap, nDeriv = props.Invertible("measure of the pore-size distribution, >1")
 
     alpha, alphaMap, alphaDeriv = props.Invertible(
-        "related to the inverse of the air entry suction [L-1], >0", default=0.036
+        "related to the inverse of the air entry suction [L-1], >0"
     )
+
+    def __init__(
+        self,
+        mesh,
+        Ks=24.96,
+        KsMap=None,
+        I=0.5,
+        IMap=None,
+        n=1.56,
+        nMap=None,
+        alpha=0.036,
+        alphaMap=None,
+        **kwargs
+    ):
+        super().__init__(mesh=mesh, **kwargs)
+        self.Ks = Ks
+        self.KsMap = KsMap
+        self.I = I
+        self.IMap = IMap
+        self.n = n
+        self.nMap = nMap
+        self.alpha = alpha
+        self.alphaMap = alphaMap
 
     def _get_params(self):
         alpha = self.alpha
@@ -459,7 +525,7 @@ class Vangenuchten_k(BaseHydraulicConductivity):
         P_p, P_n = _get_projections(u)  # Compute the positive/negative domains
         theta_e = 1.0 / ((1.0 + abs(alpha * u) ** n) ** m)
         f_p = P_p * np.ones(len(u)) * Ks  # ensures scalar Ks works
-        f_n = P_n * Ks * theta_e ** I * ((1.0 - (1.0 - theta_e ** (1.0 / m)) ** m) ** 2)
+        f_n = P_n * Ks * theta_e**I * ((1.0 - (1.0 - theta_e ** (1.0 / m)) ** m) ** 2)
         return f_p + f_n
 
     def derivM(self, u):
@@ -505,7 +571,7 @@ class Vangenuchten_k(BaseHydraulicConductivity):
         dKs_dm_n = (
             P_n
             * utils.sdiag(
-                theta_e ** I * ((1.0 - (1.0 - theta_e ** (1.0 / m)) ** m) ** 2)
+                theta_e**I * ((1.0 - (1.0 - theta_e ** (1.0 / m)) ** m) ** 2)
             )
             * self.KsDeriv
         )
@@ -573,7 +639,7 @@ class Vangenuchten_k(BaseHydraulicConductivity):
             * np.log(abs(alpha * u))
             * abs(alpha * u) ** n
             / (abs(alpha * u) ** n + 1.0)
-            - 1.0 * np.log(abs(alpha * u) ** n + 1.0) / n ** 2
+            - 1.0 * np.log(abs(alpha * u) ** n + 1.0) / n**2
         ) * (
             -(
                 (
@@ -617,14 +683,14 @@ class Vangenuchten_k(BaseHydraulicConductivity):
                     * np.log(abs(alpha * u))
                     * abs(alpha * u) ** n
                     / (abs(alpha * u) ** n + 1.0)
-                    - 1.0 * np.log(abs(alpha * u) ** n + 1.0) / n ** 2
+                    - 1.0 * np.log(abs(alpha * u) ** n + 1.0) / n**2
                 )
                 * (abs(alpha * u) ** n + 1.0) ** (-1.0 + 1.0 / n)
                 * (abs(alpha * u) ** n + 1.0) ** (1.0 - 1.0 / n)
                 / (1.0 - 1.0 / n)
                 - 1.0
                 * np.log(1.0 * (abs(alpha * u) ** n + 1.0) ** (-1.0 + 1.0 / n))
-                / (n ** 2 * (1.0 - 1.0 / n) ** 2)
+                / (n**2 * (1.0 - 1.0 / n) ** 2)
             )
             / (
                 -(
@@ -641,7 +707,7 @@ class Vangenuchten_k(BaseHydraulicConductivity):
                 )
                 + 1.0
             )
-            / n ** 2
+            / n**2
         ) * (
             -(
                 (

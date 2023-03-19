@@ -1,4 +1,3 @@
-from __future__ import print_function
 import unittest
 from SimPEG import mkvc
 from SimPEG.electromagnetics import natural_source as nsem
@@ -12,13 +11,13 @@ TOLp = 5e-2
 def getAppResPhs(nsemdata):
     # Make impedance
     def appResPhs(freq, z):
-        app_res = ((1.0 / (8e-7 * np.pi ** 2)) / freq) * np.abs(z) ** 2
+        app_res = ((1.0 / (8e-7 * np.pi**2)) / freq) * np.abs(z) ** 2
         app_phs = np.arctan2(z.imag, z.real) * (180 / np.pi)
         return app_res, app_phs
 
     zList = []
     for src in nsemdata.survey.source_list:
-        zc = [src.freq]
+        zc = [src.frequency]
         for rx in src.receiver_list:
             if "i" in rx.rxType:
                 m = 1j
@@ -31,13 +30,13 @@ def getAppResPhs(nsemdata):
     ]
 
 
-def calculateAnalyticSolution(srcList, mesh, model):
-    surveyAna = nsem.Survey(srcList)
+def calculateAnalyticSolution(source_list, mesh, model):
+    surveyAna = nsem.Survey(source_list)
     data1D = nsem.Data(surveyAna)
     for src in surveyAna.source_list:
         elev = src.receiver_list[0].locations[0]
         anaEd, anaEu, anaHd, anaHu = nsem.utils.analytic_1d.getEHfields(
-            mesh, model, src.freq, elev
+            mesh, model, src.frequency, elev
         )
         anaE = anaEd + anaEu
         anaH = anaHd + anaHu
@@ -51,7 +50,6 @@ def calculateAnalyticSolution(srcList, mesh, model):
 
 
 def dataMis_AnalyticPrimarySecondary(sigmaHalf):
-
     # Make the survey
     # Primary secondary
     survey, sig, sigBG, mesh = nsem.utils.test_utils.setup1DSurvey(
@@ -61,7 +59,6 @@ def dataMis_AnalyticPrimarySecondary(sigmaHalf):
     simulation = nsem.Simulation1DPrimarySecondary(
         mesh, sigmaPrimary=sig, sigma=sig, survey=survey
     )
-    # simulation.pair(survey)
 
     dataAnaObj = calculateAnalyticSolution(survey.source_list, mesh, sig)
 

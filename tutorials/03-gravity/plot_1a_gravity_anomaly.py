@@ -26,9 +26,9 @@ import matplotlib.pyplot as plt
 import os
 
 from discretize import TensorMesh
-from discretize.utils import mkvc
+from discretize.utils import mkvc, active_from_xyz
 
-from SimPEG.utils import plot2Ddata, model_builder, surface2ind_topo
+from SimPEG.utils import plot2Ddata, model_builder
 from SimPEG import maps
 from SimPEG.potential_fields import gravity
 
@@ -45,7 +45,7 @@ save_output = False
 #
 
 [x_topo, y_topo] = np.meshgrid(np.linspace(-200, 200, 41), np.linspace(-200, 200, 41))
-z_topo = -15 * np.exp(-(x_topo ** 2 + y_topo ** 2) / 80 ** 2)
+z_topo = -15 * np.exp(-(x_topo**2 + y_topo**2) / 80**2)
 x_topo, y_topo, z_topo = mkvc(x_topo), mkvc(y_topo), mkvc(z_topo)
 topo_xyz = np.c_[x_topo, y_topo, z_topo]
 
@@ -115,7 +115,7 @@ block_density = -0.2
 sphere_density = 0.2
 
 # Find the indices for the active mesh cells (e.g. cells below surface)
-ind_active = surface2ind_topo(mesh, topo_xyz)
+ind_active = active_from_xyz(mesh, topo_xyz)
 
 # Define mapping from model to active cells. The model consists of a value for
 # each cell below the Earth's surface.
@@ -147,14 +147,14 @@ fig = plt.figure(figsize=(9, 4))
 plotting_map = maps.InjectActiveCells(mesh, ind_active, np.nan)
 
 ax1 = fig.add_axes([0.1, 0.12, 0.73, 0.78])
-mesh.plotSlice(
+mesh.plot_slice(
     plotting_map * model,
     normal="Y",
     ax=ax1,
-    ind=int(mesh.nCy / 2),
+    ind=int(mesh.shape_cells[1] / 2),
     grid=True,
     clim=(np.min(model), np.max(model)),
-    pcolorOpts={"cmap": "viridis"},
+    pcolor_opts={"cmap": "viridis"},
 )
 ax1.set_title("Model slice at y = 0 m")
 ax1.set_xlabel("x (m)")
@@ -184,11 +184,13 @@ simulation = gravity.simulation.Simulation3DIntegral(
     survey=survey,
     mesh=mesh,
     rhoMap=model_map,
-    actInd=ind_active,
+    ind_active=ind_active,
     store_sensitivities="forward_only",
 )
 
 # Compute predicted data for some model
+# SimPEG uses right handed coordinate where Z is positive upward.
+# This causes gravity signals look "inconsistent" with density values in visualization.
 dpred = simulation.dpred(model)
 
 # Plot
@@ -218,7 +220,6 @@ plt.show()
 #
 
 if save_output:
-
     dir_path = os.path.dirname(__file__).split(os.path.sep)
     dir_path.extend(["outputs"])
     dir_path = os.path.sep.join(dir_path) + os.path.sep

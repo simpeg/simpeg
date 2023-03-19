@@ -1,71 +1,166 @@
 import numpy as np
-import properties
-
 from .... import survey
-from ....utils import Zero, closestPoints
-from ....utils.code_utils import deprecate_property
-
-import warnings
+from ....utils import Zero, validate_ndarray_with_shape
 
 
 class BaseSrc(survey.BaseSrc):
-    """
-    Base DC source
-    """
+    """Base DC/IP source
 
-    current = properties.Float("amplitude of the source current", default=1.0)
+    Parameters
+    ----------
+    receiver_list : list of SimPEG.electromagnetics.static.resistivity.receivers.BaseRx
+        A list of DC/IP receivers
+    location : (n_source, dim) numpy.ndarray
+        Source locations
+    current : float or numpy.ndarray, default: 1.0
+        Current amplitude [A]
+    """
 
     _q = None
 
-    def __init__(self, receiver_list, **kwargs):
-        super(BaseSrc, self).__init__(receiver_list, **kwargs)
+    def __init__(self, receiver_list, location, current=1.0, **kwargs):
+        super().__init__(receiver_list=receiver_list, **kwargs)
+        self.location = location
+        self.current = current
 
-    def eval(self, sim):
-        raise NotImplementedError
+    @property
+    def location(self):
+        """locations of the source electrodes
+
+        Returns
+        -------
+        (n, dim) numpy.ndarray
+            Locations of the source electrodes
+        """
+        return self._location
+
+    @location.setter
+    def location(self, other):
+        self._location = validate_ndarray_with_shape(
+            "location", other, shape=("*", "*"), dtype=float
+        )
+
+    @property
+    def current(self):
+        """Amplitudes of the source currents
+
+        Returns
+        -------
+        (n_source) numpy.ndarray
+            Amplitudes of the source currents
+        """
+        return self._current
+
+    @current.setter
+    def current(self, other):
+        other = validate_ndarray_with_shape("current", other, shape=("*",), dtype=float)
+        if len(other) > 1 and len(other) != self.location.shape[0]:
+            raise ValueError(
+                "Current must be constant or equal to the number of specified source locations."
+                f" saw {len(other)} current sources and {self.location.shape[0]} locations."
+            )
+        self._current = other
+
+    def eval(self, sim):  # noqa: A003
+        """Discretize sources to mesh
+
+        Parameters
+        ----------
+        sim : SimPEG.base.BaseElectricalPDESimulation
+            The static electromagnetic simulation
+
+        Returns
+        -------
+        numpy.ndarray
+            The right-hand sides corresponding to the sources
+        """
+        if sim._formulation == "HJ":
+            inds = sim.mesh.closest_points_index(self.location, grid_loc="CC")
+            q = np.zeros(sim.mesh.nC)
+            q[inds] = self.current
+        elif sim._formulation == "EB":
+            loc = self.location
+            cur = self.current
+            interpolation_matrix = sim.mesh.get_interpolation_matrix(
+                loc, location_type="N"
+            ).toarray()
+            q = np.sum(cur[:, np.newaxis] * interpolation_matrix, axis=0)
+        return q
 
     def evalDeriv(self, sim):
+        """Returns the derivative of the source term with respect to the model.
+
+        This is zero.
+
+        Parameters
+        ----------
+        sim : SimPEG.base.BaseElectricalPDESimulation
+            The static electromagnetic simulation
+
+        Returns
+        -------
+        discretize.utils.Zero
+        """
         return Zero()
 
 
-class Dipole(BaseSrc):
+class Multipole(BaseSrc):
     """
-    Dipole source
+    Generic Multipole Source
     """
 
-    location = properties.List(
-        "location of the source electrodes",
-        survey.SourceLocationArray("location of electrode"),
-    )
-    loc = deprecate_property(
-        location, "loc", new_name="location", removal_version="0.16.0", future_warn=True
-    )
+    @property
+    def location_a(self):
+        """Locations of the A electrodes
+
+        Returns
+        -------
+        (n, dim) numpy.ndarray
+            Locations of the A electrodes
+        """
+        return self.location
+
+    @property
+    def location_b(self):
+        """Location of the B electrodes
+
+        Returns
+        -------
+        (n, dim) numpy.ndarray
+            Locations of the B electrodes
+        """
+        return np.full_like(self.location, np.nan)
+
+
+class Dipole(BaseSrc):
+    """Dipole source
+
+    Parameters
+    ----------
+    receiver_list : list of SimPEG.electromagnetics.static.resistivity.receivers.BaseRx
+        A list of DC/IP receivers
+    location_a : (n_source, dim) numpy.array_like
+        A electrode locations; remember to set 'location_b' keyword argument to define N electrode locations.
+    location_b : (n_source, dim) numpy.array_like
+        B electrode locations; remember to set 'location_a' keyword argument to define M electrode locations.
+    location : list or tuple of length 2 of numpy.array_like
+        A and B electrode locations. In this case, do not set the 'location_a' and 'location_b'
+        keyword arguments. And we supply a list or tuple of the form [location_a, location_b].
+    """
 
     def __init__(
         self,
-        receiver_list=[],
+        receiver_list,
         location_a=None,
         location_b=None,
         location=None,
         **kwargs,
     ):
-        # Check for old keywords
-        if "locationA" in kwargs.keys():
-            location_a = kwargs.pop("locationA")
-            warnings.warn(
-                "The locationA property has been deprecated. Please set the "
-                "location_a property instead. This will be removed in version"
-                " 0.16.0 of SimPEG",
-                FutureWarning,
-            )
-
-        if "locationB" in kwargs.keys():
-            location_b = kwargs.pop("locationB")
-            warnings.warn(
-                "The locationB property has been deprecated. Please set the "
-                "location_b property instead. This will be removed in version"
-                " 0.16.0 of SimPEG",
-                FutureWarning,
-            )
+        if "current" in kwargs.keys():
+            value = kwargs.pop("current")
+            current = [value, -value]
+        else:
+            current = [1.0, -1.0]
 
         # if location_a set, then use location_a, location_b
         if location_a is not None:
@@ -91,69 +186,75 @@ class Dipole(BaseSrc):
                     f"length {len(location)}"
                 )
 
-        if location[0].shape != location[1].shape:
-            raise ValueError(
-                f"m_location (shape: {location[0].shape}) and "
-                f"n_location (shape: {location[1].shape}) need to be "
-                f"the same size"
-            )
-
         # instantiate
-        super(Dipole, self).__init__(receiver_list, **kwargs)
-        self.location = location
+        super().__init__(
+            receiver_list=receiver_list, location=location, current=current, **kwargs
+        )
+
+    def __repr__(self):
+        return (
+            f"{self.__class__.__name__}(" f"a: {self.location_a}; b: {self.location_b})"
+        )
 
     @property
     def location_a(self):
-        """Location of the A-electrode"""
+        """Locations of the A-electrodes
+
+        Returns
+        -------
+        (n_source, dim) numpy.ndarray
+            Locations of the A-electrodes
+        """
         return self.location[0]
 
     @property
     def location_b(self):
-        """Location of the B-electrode"""
-        return self.location[1]
+        """Locations of the B-electrodes
 
-    def eval(self, sim):
-        if self._q is not None:
-            return self._q
-        else:
-            if sim._formulation == "HJ":
-                inds = closestPoints(sim.mesh, self.location, gridLoc="CC")
-                self._q = np.zeros(sim.mesh.nC)
-                self._q[inds] = self.current * np.r_[1.0, -1.0]
-            elif sim._formulation == "EB":
-                qa = sim.mesh.getInterpolationMat(
-                    self.location[0], locType="N"
-                ).toarray()
-                qb = -sim.mesh.getInterpolationMat(
-                    self.location[1], locType="N"
-                ).toarray()
-                self._q = self.current * (qa + qb)
-            return self._q
+        Returns
+        -------
+        (n_source, dim) numpy.ndarray
+            Locations of the B-electrodes
+        """
+        return self.location[1]
 
 
 class Pole(BaseSrc):
-    def __init__(self, receiver_list=[], location=None, **kwargs):
-        super(Pole, self).__init__(receiver_list, location=location, **kwargs)
+    """Pole source
 
-    def eval(self, sim):
-        if self._q is not None:
-            return self._q
-        else:
-            if sim._formulation == "HJ":
-                inds = closestPoints(sim.mesh, self.location)
-                self._q = np.zeros(sim.mesh.nC)
-                self._q[inds] = self.current * np.r_[1.0]
-            elif sim._formulation == "EB":
-                q = sim.mesh.getInterpolationMat(self.location, locType="N")
-                self._q = self.current * q.toarray()
-            return self._q
+    Parameters
+    ----------
+    receiver_list : list of SimPEG.electromagnetics.static.resistivity.receivers.BaseRx
+        A list of DC/IP receivers
+    location : (n_source, dim) numpy.ndarray
+        Electrode locations
+    """
+
+    def __init__(self, receiver_list, location=None, **kwargs):
+        super().__init__(receiver_list=receiver_list, location=location, **kwargs)
+        if len(self.location) != 1:
+            raise ValueError(
+                f"Pole sources only have a single location, not {len(self.location)}"
+            )
 
     @property
     def location_a(self):
-        """Locations of the A electrode"""
-        return self.location
+        """Locations of the A-electrodes
+
+        Returns
+        -------
+        (n_source, dim) numpy.ndarray
+            Locations of the A-electrodes
+        """
+        return self.location[0]
 
     @property
     def location_b(self):
-        """Location of the B electrode"""
-        return np.nan * np.ones_like(self.location)
+        """Locations of the B-electrodes
+
+        Returns
+        -------
+        (n_source, dim) numpy.ndarray of ``numpy.nan``
+            Locations of the B-electrodes
+        """
+        return np.full_like(self.location[0], np.nan)

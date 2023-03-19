@@ -14,7 +14,6 @@ class VRM_fwd_tests(unittest.TestCase):
     seed = 518936
 
     def test_predict_dipolar(self):
-
         np.random.seed(self.seed)
 
         h = [0.05, 0.05]
@@ -35,53 +34,52 @@ class VRM_fwd_tests(unittest.TestCase):
             R * np.c_[np.sin(phi) * np.cos(psi), np.sin(phi) * np.sin(psi), np.cos(phi)]
         )
 
-        rxList = [
-            vrm.receivers.Point(loc_rx, times=times, fieldType="dhdt", orientation="x")
+        receiver_list = [
+            vrm.receivers.Point(loc_rx, times=times, field_type="dhdt", orientation="x")
         ]
-        rxList.append(
-            vrm.receivers.Point(loc_rx, times=times, fieldType="dhdt", orientation="y")
+        receiver_list.append(
+            vrm.receivers.Point(loc_rx, times=times, field_type="dhdt", orientation="y")
         )
-        rxList.append(
-            vrm.receivers.Point(loc_rx, times=times, fieldType="dhdt", orientation="z")
+        receiver_list.append(
+            vrm.receivers.Point(loc_rx, times=times, field_type="dhdt", orientation="z")
         )
 
         alpha = np.random.uniform(0, np.pi)
         beta = np.random.uniform(-np.pi, np.pi)
         loc_tx = [0.0, 0.0, 0.0]
         Src = vrm.sources.CircLoop(
-            rxList, loc_tx, 25.0, np.r_[alpha, beta], 1.0, waveObj
+            receiver_list, loc_tx, 25.0, np.r_[alpha, beta], 1.0, waveObj
         )
         txList = [Src]
 
         Survey = vrm.Survey(txList)
-        Problem = vrm.Simulation3DLinear(meshObj, refinement_factor=0)
-        Problem.pair(Survey)
+        Problem = vrm.Simulation3DLinear(meshObj, survey=Survey, refinement_factor=0)
         Fields = Problem.fields(mod)
 
         H0 = Src.getH0(np.c_[0.0, 0.0, 0.0])
         dmdtx = (
             -H0[0, 0]
-            * 0.1 ** 3
+            * 0.1**3
             * (dchi / np.log(tau2 / tau1))
             * (1 / times[1] - 1 / (times[1] + 0.02))
         )
         dmdty = (
             -H0[0, 1]
-            * 0.1 ** 3
+            * 0.1**3
             * (dchi / np.log(tau2 / tau1))
             * (1 / times[1] - 1 / (times[1] + 0.02))
         )
         dmdtz = (
             -H0[0, 2]
-            * 0.1 ** 3
+            * 0.1**3
             * (dchi / np.log(tau2 / tau1))
             * (1 / times[1] - 1 / (times[1] + 0.02))
         )
         dmdot = np.dot(np.r_[dmdtx, dmdty, dmdtz], loc_rx.T)
 
-        fx = (1 / (4 * np.pi)) * (3 * loc_rx[0, 0] * dmdot / R ** 5 - dmdtx / R ** 3)
-        fy = (1 / (4 * np.pi)) * (3 * loc_rx[0, 1] * dmdot / R ** 5 - dmdty / R ** 3)
-        fz = (1 / (4 * np.pi)) * (3 * loc_rx[0, 2] * dmdot / R ** 5 - dmdtz / R ** 3)
+        fx = (1 / (4 * np.pi)) * (3 * loc_rx[0, 0] * dmdot / R**5 - dmdtx / R**3)
+        fy = (1 / (4 * np.pi)) * (3 * loc_rx[0, 1] * dmdot / R**5 - dmdty / R**3)
+        fz = (1 / (4 * np.pi)) * (3 * loc_rx[0, 2] * dmdot / R**5 - dmdtz / R**3)
 
         self.assertTrue(
             np.all(
@@ -118,14 +116,14 @@ class VRM_fwd_tests(unittest.TestCase):
             * np.c_[np.sin(phi) * np.cos(psi), np.sin(phi) * np.sin(psi), np.cos(phi)]
         )
 
-        rxList = [
-            vrm.receivers.Point(loc_rx, times=times, fieldType="dhdt", orientation="x")
+        receiver_list = [
+            vrm.receivers.Point(loc_rx, times=times, field_type="dhdt", orientation="x")
         ]
-        rxList.append(
-            vrm.receivers.Point(loc_rx, times=times, fieldType="dhdt", orientation="y")
+        receiver_list.append(
+            vrm.receivers.Point(loc_rx, times=times, field_type="dhdt", orientation="y")
         )
-        rxList.append(
-            vrm.receivers.Point(loc_rx, times=times, fieldType="dhdt", orientation="z")
+        receiver_list.append(
+            vrm.receivers.Point(loc_rx, times=times, field_type="dhdt", orientation="z")
         )
 
         alpha = np.random.uniform(0, np.pi)
@@ -140,20 +138,28 @@ class VRM_fwd_tests(unittest.TestCase):
             ]
         )
 
-        txList = [vrm.sources.MagDipole(rxList, loc_tx, [0.0, 0.0, 0.01], waveObj)]
+        txList = [
+            vrm.sources.MagDipole(receiver_list, loc_tx, [0.0, 0.0, 0.01], waveObj)
+        ]
         txList.append(
             vrm.sources.CircLoop(
-                rxList, loc_tx, np.sqrt(0.01 / np.pi), np.r_[0.0, 0.0], 1.0, waveObj
+                receiver_list,
+                loc_tx,
+                np.sqrt(0.01 / np.pi),
+                np.r_[0.0, 0.0],
+                1.0,
+                waveObj,
             )
         )
         px = loc_tx[0] + np.r_[-0.05, 0.05, 0.05, -0.05, -0.05]
         py = loc_tx[1] + np.r_[-0.05, -0.05, 0.05, 0.05, -0.05]
         pz = loc_tx[2] * np.ones(5)
-        txList.append(vrm.sources.LineCurrent(rxList, np.c_[px, py, pz], 1.0, waveObj))
+        txList.append(
+            vrm.sources.LineCurrent(receiver_list, np.c_[px, py, pz], 1.0, waveObj)
+        )
 
         Survey = vrm.Survey(txList)
-        Problem = vrm.Simulation3DLinear(meshObj, refinement_factor=1)
-        Problem.pair(Survey)
+        Problem = vrm.Simulation3DLinear(meshObj, survey=Survey, refinement_factor=1)
         Fields = Problem.fields(mod)
 
         err1 = np.all(
@@ -169,7 +175,6 @@ class VRM_fwd_tests(unittest.TestCase):
         self.assertTrue(err1 and err2 and err3)
 
     def test_convergence_vertical(self):
-
         """
         Test the convergence of the solution to analytic results from
         Cowan (2016) and test accuracy
@@ -189,27 +194,20 @@ class VRM_fwd_tests(unittest.TestCase):
         z = 0.5
         a = 0.1
         loc_rx = np.c_[0.0, 0.0, z]
-        rxList = [
-            vrm.receivers.Point(loc_rx, times=times, fieldType="dhdt", orientation="z")
+        receiver_list = [
+            vrm.receivers.Point(loc_rx, times=times, field_type="dhdt", orientation="z")
         ]
         txList = [
             vrm.sources.CircLoop(
-                rxList, np.r_[0.0, 0.0, z], a, np.r_[0.0, 0.0], 1.0, waveObj
+                receiver_list, np.r_[0.0, 0.0, z], a, np.r_[0.0, 0.0], 1.0, waveObj
             )
         ]
 
-        Survey2 = vrm.Survey(txList)
-        Survey3 = vrm.Survey(txList)
-        Survey4 = vrm.Survey(txList)
-        Survey5 = vrm.Survey(txList)
-        Problem2 = vrm.Simulation3DLinear(meshObj, refinement_factor=2)
-        Problem3 = vrm.Simulation3DLinear(meshObj, refinement_factor=3)
-        Problem4 = vrm.Simulation3DLinear(meshObj, refinement_factor=4)
-        Problem5 = vrm.Simulation3DLinear(meshObj, refinement_factor=5)
-        Problem2.pair(Survey2)
-        Problem3.pair(Survey3)
-        Problem4.pair(Survey4)
-        Problem5.pair(Survey5)
+        survey = vrm.Survey(txList)
+        Problem2 = vrm.Simulation3DLinear(meshObj, survey=survey, refinement_factor=2)
+        Problem3 = vrm.Simulation3DLinear(meshObj, survey=survey, refinement_factor=3)
+        Problem4 = vrm.Simulation3DLinear(meshObj, survey=survey, refinement_factor=4)
+        Problem5 = vrm.Simulation3DLinear(meshObj, survey=survey, refinement_factor=5)
         Fields2 = Problem2.fields(mod)
         Fields3 = Problem3.fields(mod)
         Fields4 = Problem4.fields(mod)
@@ -217,9 +215,9 @@ class VRM_fwd_tests(unittest.TestCase):
 
         F = -(1 / np.log(tau2 / tau1)) * (1 / times - 1 / (times + 0.02))
         Fields_true = (
-            (0.5 * np.pi * a ** 2 / np.pi)
+            (0.5 * np.pi * a**2 / np.pi)
             * (dchi / (2 + dchi))
-            * ((2 * z) ** 2 + a ** 2) ** -1.5
+            * ((2 * z) ** 2 + a**2) ** -1.5
             * F
         )
 
@@ -233,7 +231,6 @@ class VRM_fwd_tests(unittest.TestCase):
         self.assertTrue(Test1 and Test2)
 
     def test_convergence_radial(self):
-
         """
         Test the convergence of the solution to analytic results from
         Cowan (2016) and test accuracy
@@ -252,34 +249,27 @@ class VRM_fwd_tests(unittest.TestCase):
 
         z = 0.25
         a = 5
-        rxList = [
+        receiver_list = [
             vrm.receivers.Point(
-                np.c_[a, 0.0, z], times=times, fieldType="dhdt", orientation="x"
+                np.c_[a, 0.0, z], times=times, field_type="dhdt", orientation="x"
             )
         ]
-        rxList.append(
+        receiver_list.append(
             vrm.receivers.Point(
-                np.c_[0.0, a, z], times=times, fieldType="dhdt", orientation="y"
+                np.c_[0.0, a, z], times=times, field_type="dhdt", orientation="y"
             )
         )
         txList = [
             vrm.sources.CircLoop(
-                rxList, np.r_[0.0, 0.0, z], a, np.r_[0.0, 0.0], 1.0, waveObj
+                receiver_list, np.r_[0.0, 0.0, z], a, np.r_[0.0, 0.0], 1.0, waveObj
             )
         ]
 
-        Survey2 = vrm.Survey(txList)
-        Survey3 = vrm.Survey(txList)
-        Survey4 = vrm.Survey(txList)
-        Survey5 = vrm.Survey(txList)
-        Problem2 = vrm.Simulation3DLinear(meshObj, refinement_factor=2)
-        Problem3 = vrm.Simulation3DLinear(meshObj, refinement_factor=3)
-        Problem4 = vrm.Simulation3DLinear(meshObj, refinement_factor=4)
-        Problem5 = vrm.Simulation3DLinear(meshObj, refinement_factor=5)
-        Problem2.pair(Survey2)
-        Problem3.pair(Survey3)
-        Problem4.pair(Survey4)
-        Problem5.pair(Survey5)
+        survey = vrm.Survey(txList)
+        Problem2 = vrm.Simulation3DLinear(meshObj, survey=survey, refinement_factor=2)
+        Problem3 = vrm.Simulation3DLinear(meshObj, survey=survey, refinement_factor=3)
+        Problem4 = vrm.Simulation3DLinear(meshObj, survey=survey, refinement_factor=4)
+        Problem5 = vrm.Simulation3DLinear(meshObj, survey=survey, refinement_factor=5)
         Fields2 = Problem2.fields(mod)
         Fields3 = Problem3.fields(mod)
         Fields4 = Problem4.fields(mod)
@@ -306,7 +296,6 @@ class VRM_fwd_tests(unittest.TestCase):
         self.assertTrue(Testx1 and Testx2 and Testy1 and Testy2)
 
     def test_vs_mesh_vs_loguniform(self):
-
         """
         Test to make sure OcTree matches Tensor results and linear vs
         loguniform match
@@ -322,11 +311,11 @@ class VRM_fwd_tests(unittest.TestCase):
             np.c_[1.0, 3.0, 5.0, 7.0],
             np.c_[1.0, 3.0, 5.0, 7.0],
         )
-        x = x.reshape((4 ** 3, 1))
-        y = y.reshape((4 ** 3, 1))
-        z = z.reshape((4 ** 3, 1))
+        x = x.reshape((4**3, 1))
+        y = y.reshape((4**3, 1))
+        z = z.reshape((4**3, 1))
         loc_rx = np.c_[x, y, z]
-        meshObj_OcTree.insert_cells(loc_rx, 2 * np.ones((4 ** 3)), finalize=False)
+        meshObj_OcTree.insert_cells(loc_rx, 2 * np.ones((4**3)), finalize=False)
 
         x, y, z = np.meshgrid(
             np.c_[1.0, 3.0, 5.0, 7.0], np.c_[1.0, 3.0, 5.0, 7.0], np.c_[5.0, 7.0]
@@ -371,24 +360,25 @@ class VRM_fwd_tests(unittest.TestCase):
         waveObj = vrm.waveforms.SquarePulse(delt=0.02)
 
         loc_rx = np.c_[4.0, 4.0, 8.25]
-        rxList = [
-            vrm.receivers.Point(loc_rx, times=times, fieldType="dhdt", orientation="z")
+        receiver_list = [
+            vrm.receivers.Point(loc_rx, times=times, field_type="dhdt", orientation="z")
         ]
         txList = [
             vrm.sources.MagDipole(
-                rxList, np.r_[4.0, 4.0, 8.25], [0.0, 0.0, 1.0], waveObj
+                receiver_list, np.r_[4.0, 4.0, 8.25], [0.0, 0.0, 1.0], waveObj
             )
         ]
 
-        Survey1 = vrm.Survey(txList)
-        Survey2 = vrm.Survey(txList)
-        Survey3 = vrm.Survey(txList)
-        Survey4 = vrm.Survey(txList)
+        survey = vrm.Survey(txList)
         Problem1 = vrm.Simulation3DLinear(
-            meshObj_Tensor, refinement_factor=2, refinement_distance=[1.9, 3.6]
+            meshObj_Tensor,
+            survey=survey,
+            refinement_factor=2,
+            refinement_distance=[1.9, 3.6],
         )
         Problem2 = vrm.Simulation3DLogUniform(
             meshObj_Tensor,
+            survey=survey,
             refinement_factor=2,
             refinement_distance=[1.9, 3.6],
             chi0=mod_chi0_a,
@@ -396,19 +386,18 @@ class VRM_fwd_tests(unittest.TestCase):
             tau1=mod_tau1_a,
             tau2=mod_tau2_a,
         )
-        Problem3 = vrm.Simulation3DLinear(meshObj_OcTree, refinement_factor=0)
+        Problem3 = vrm.Simulation3DLinear(
+            meshObj_OcTree, survey=survey, refinement_factor=0
+        )
         Problem4 = vrm.Simulation3DLogUniform(
             meshObj_OcTree,
+            survey=survey,
             refinement_factor=0,
             chi0=mod_chi0_b,
             dchi=mod_dchi_b,
             tau1=mod_tau1_b,
             tau2=mod_tau2_b,
         )
-        Problem1.pair(Survey1)
-        Problem2.pair(Survey2)
-        Problem3.pair(Survey3)
-        Problem4.pair(Survey4)
         Fields1 = Problem1.fields(mod_a)
         Fields2 = Problem2.fields()
         Fields3 = Problem3.fields(mod_b)
@@ -463,62 +452,70 @@ class VRM_fwd_tests(unittest.TestCase):
             * np.r_[np.sin(phi) * np.cos(psi), np.sin(phi) * np.sin(psi), np.cos(phi)]
         )
 
-        rxList1 = [
-            vrm.receivers.Point(loc_rx, times=times, fieldType="dhdt", orientation="x")
+        receiver_list1 = [
+            vrm.receivers.Point(loc_rx, times=times, field_type="dhdt", orientation="x")
         ]
-        rxList1.append(
-            vrm.receivers.Point(loc_rx, times=times, fieldType="dhdt", orientation="y")
+        receiver_list1.append(
+            vrm.receivers.Point(loc_rx, times=times, field_type="dhdt", orientation="y")
         )
-        rxList1.append(
-            vrm.receivers.Point(loc_rx, times=times, fieldType="dhdt", orientation="z")
+        receiver_list1.append(
+            vrm.receivers.Point(loc_rx, times=times, field_type="dhdt", orientation="z")
         )
 
         w = 0.1
         N = 100
-        rxList2 = [
+        receiver_list2 = [
             vrm.receivers.SquareLoop(
                 loc_rx,
                 times=times,
                 width=w,
-                nTurns=N,
-                fieldType="dhdt",
+                n_turns=N,
+                field_type="dhdt",
                 orientation="x",
             )
         ]
-        rxList2.append(
+        receiver_list2.append(
             vrm.receivers.SquareLoop(
                 loc_rx,
                 times=times,
                 width=w,
-                nTurns=N,
-                fieldType="dhdt",
+                n_turns=N,
+                field_type="dhdt",
                 orientation="y",
             )
         )
-        rxList2.append(
+        receiver_list2.append(
             vrm.receivers.SquareLoop(
                 loc_rx,
                 times=times,
                 width=w,
-                nTurns=N,
-                fieldType="dhdt",
+                n_turns=N,
+                field_type="dhdt",
                 orientation="z",
             )
         )
 
-        txList1 = [vrm.sources.MagDipole(rxList1, loc_tx, [1.0, 1.0, 1.0], waveObj)]
-        txList2 = [vrm.sources.MagDipole(rxList2, loc_tx, [1.0, 1.0, 1.0], waveObj)]
+        txList1 = [
+            vrm.sources.MagDipole(receiver_list1, loc_tx, [1.0, 1.0, 1.0], waveObj)
+        ]
+        txList2 = [
+            vrm.sources.MagDipole(receiver_list2, loc_tx, [1.0, 1.0, 1.0], waveObj)
+        ]
 
         Survey1 = vrm.Survey(txList1)
         Survey2 = vrm.Survey(txList2)
         Problem1 = vrm.Simulation3DLinear(
-            meshObj_Tensor, refinement_factor=2, refinement_distance=[1.9, 3.6]
+            meshObj_Tensor,
+            survey=Survey1,
+            refinement_factor=2,
+            refinement_distance=[1.9, 3.6],
         )
         Problem2 = vrm.Simulation3DLinear(
-            meshObj_Tensor, refinement_factor=2, refinement_distance=[1.9, 3.6]
+            meshObj_Tensor,
+            survey=Survey2,
+            refinement_factor=2,
+            refinement_distance=[1.9, 3.6],
         )
-        Problem1.pair(Survey1)
-        Problem2.pair(Survey2)
         Fields1 = Problem1.fields(mod)
         Fields2 = Problem2.fields(mod)
 

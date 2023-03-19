@@ -97,7 +97,7 @@ def run(plotIt=True, saveFig=False, cleanup=True):
 
     # Plot both resolve and skytem data on 2D plane
     fig = plt.figure(figsize=(13, 6))
-    title = ["RESOLVE In-phase 400 Hz", "SkyTEM High moment 156 $\mu$s"]
+    title = ["RESOLVE In-phase 400 Hz", r"SkyTEM High moment 156 $\mu$s"]
     ax1 = plt.subplot(121)
     ax2 = plt.subplot(122)
     axs = [ax1, ax2]
@@ -165,19 +165,19 @@ def run(plotIt=True, saveFig=False, cleanup=True):
     temp = np.logspace(np.log10(1.0), np.log10(12.0), 19)
     temp_pad = temp[-1] * 1.3 ** np.arange(npad)
     hz = np.r_[temp_pad[::-1], temp[::-1], temp, temp_pad]
-    mesh = discretize.CylMesh([hx, 1, hz], "00C")
-    active = mesh.vectorCCz < 0.0
+    mesh = discretize.CylindricalMesh([hx, 1, hz], "00C")
+    active = mesh.cell_centers_z < 0.0
 
     # Step2: Set a SurjectVertical1D mapping
     # Note: this sets our inversion model as 1D log conductivity
     # below subsurface
 
-    active = mesh.vectorCCz < 0.0
-    actMap = maps.InjectActiveCells(mesh, active, np.log(1e-8), nC=mesh.nCz)
+    active = mesh.cell_centers_z < 0.0
+    actMap = maps.InjectActiveCells(mesh, active, np.log(1e-8), nC=mesh.shape_cells[2])
     mapping = maps.ExpMap(mesh) * maps.SurjectVertical1D(mesh) * actMap
     sig_half = 1e-1
     sig_air = 1e-8
-    sigma = np.ones(mesh.nCz) * sig_air
+    sigma = np.ones(mesh.shape_cells[2]) * sig_air
     sigma[active] = sig_half
 
     # Initial and reference model
@@ -208,19 +208,19 @@ def run(plotIt=True, saveFig=False, cleanup=True):
     frequency_cp = resolve["frequency_cp"][()]
     freqs = frequency_cp.copy()
     srcLoc = np.array([0.0, 0.0, src_height_resolve])
-    srcList = [
+    source_list = [
         FDEM.Src.MagDipole([bzr, bzi], freq, srcLoc, orientation="Z") for freq in freqs
     ]
 
     # Set FDEM survey (In-phase and Quadrature)
-    survey = FDEM.Survey(srcList)
-    prb = FDEM.Simulation3DMagneticFluxDensity(mesh, sigmaMap=mapping, Solver=Solver)
+    survey = FDEM.Survey(source_list)
+    prb = FDEM.Simulation3DMagneticFluxDensity(mesh, sigmaMap=mapping, solver=Solver)
     prb.survey = survey
 
     # ------------------ RESOLVE Inversion ------------------ #
 
     # Primary field
-    bp = -mu_0 / (4 * np.pi * rxOffset ** 3)
+    bp = -mu_0 / (4 * np.pi * rxOffset**3)
 
     # Observed data
     cpi_inds = [0, 2, 6, 8, 10]
@@ -244,8 +244,10 @@ def run(plotIt=True, saveFig=False, cleanup=True):
     dmisfit = data_misfit.L2DataMisfit(simulation=prb, data=data_resolve)
 
     # Regularization
-    regMesh = discretize.TensorMesh([mesh.hz[mapping.maps[-1].indActive]])
-    reg = regularization.Simple(regMesh, mapping=maps.IdentityMap(regMesh))
+    regMesh = discretize.TensorMesh([mesh.h[2][mapping.maps[-1].indActive]])
+    reg = regularization.WeightedLeastSquares(
+        regMesh, mapping=maps.IdentityMap(regMesh)
+    )
 
     # Optimization
     opt = optimization.InexactGaussNewton(maxIter=5)
@@ -283,44 +285,46 @@ def run(plotIt=True, saveFig=False, cleanup=True):
     t0 = skytem["t0"][()]
     times = skytem["times"][()]
     waveform_skytem = skytem["waveform"][()]
-    offTime = t0
+    off_time = t0
     times_off = times - t0
 
     # Note: we are Using theoretical VTEM waveform,
     # but effectively fits SkyTEM waveform
-    peakTime = 1.0000000e-02
+    peak_time = 1.0000000e-02
     a = 3.0
 
     dbdt_z = TDEM.Rx.PointMagneticFluxTimeDerivative(
-        locations=rxLoc, times=times_off[:-3] + offTime, orientation="z"
+        locations=rxLoc, times=times_off[:-3] + off_time, orientation="z"
     )  # vertical db_dt
 
-    rxList = [dbdt_z]  # list of receivers
-    srcList = [
+    receiver_list = [dbdt_z]  # list of receivers
+    source_list = [
         TDEM.Src.CircularLoop(
-            rxList,
-            loc=srcLoc,
+            receiver_list,
+            location=srcLoc,
             radius=radius,
             orientation="z",
-            waveform=TDEM.Src.VTEMWaveform(offTime=offTime, peakTime=peakTime, a=3.0),
+            waveform=TDEM.Src.VTEMWaveform(
+                off_time=off_time, peak_time=peak_time, ramp_on_rate=3.0
+            ),
         )
     ]
     # solve the problem at these times
     timeSteps = [
-        (peakTime / 5, 5),
-        ((offTime - peakTime) / 5, 5),
+        (peak_time / 5, 5),
+        ((off_time - peak_time) / 5, 5),
         (1e-5, 5),
         (5e-5, 5),
         (1e-4, 10),
         (5e-4, 15),
     ]
     prob = TDEM.Simulation3DElectricField(
-        mesh, time_steps=timeSteps, sigmaMap=mapping, Solver=Solver
+        mesh, time_steps=timeSteps, sigmaMap=mapping, solver=Solver
     )
-    survey = TDEM.Survey(srcList)
+    survey = TDEM.Survey(source_list)
     prob.survey = survey
 
-    src = srcList[0]
+    src = source_list[0]
     rx = src.receiver_list[0]
     wave = []
     for time in prob.times:
@@ -358,8 +362,10 @@ def run(plotIt=True, saveFig=False, cleanup=True):
     dmisfit = data_misfit.L2DataMisfit(simulation=prob, data=data_sky)
 
     # Regularization
-    regMesh = discretize.TensorMesh([mesh.hz[mapping.maps[-1].indActive]])
-    reg = regularization.Simple(regMesh, mapping=maps.IdentityMap(regMesh))
+    regMesh = discretize.TensorMesh([mesh.h[2][mapping.maps[-1].indActive]])
+    reg = regularization.WeightedLeastSquares(
+        regMesh, mapping=maps.IdentityMap(regMesh)
+    )
 
     # Optimization
     opt = optimization.InexactGaussNewton(maxIter=5)
@@ -394,8 +400,8 @@ def run(plotIt=True, saveFig=False, cleanup=True):
     # Recovered Models
     sigma_re = np.repeat(np.exp(mopt_re), 2, axis=0)
     sigma_sky = np.repeat(np.exp(mopt_sky), 2, axis=0)
-    z = np.repeat(mesh.vectorCCz[active][1:], 2, axis=0)
-    z = np.r_[mesh.vectorCCz[active][0], z, mesh.vectorCCz[active][-1]]
+    z = np.repeat(mesh.cell_centers_z[active][1:], 2, axis=0)
+    z = np.r_[mesh.cell_centers_z[active][0], z, mesh.cell_centers_z[active][-1]]
 
     ax0.semilogx(sigma_re, z, "k", lw=2, label="RESOLVE")
     ax0.semilogx(sigma_sky, z, "b", lw=2, label="SkyTEM")
@@ -453,7 +459,7 @@ def run(plotIt=True, saveFig=False, cleanup=True):
     )
     ax2.set_xlim(times_off.min() * 1e6 * 1.2, times_off.max() * 1e6 * 1.1)
 
-    ax2.set_xlabel("Time ($\mu s$)")
+    ax2.set_xlabel(r"Time ($\mu s$)")
     ax2.set_ylabel("dBz / dt (V/A-m$^4$)")
     ax2.set_title("(c) SkyTEM High-moment")
     ax2.grid(True)

@@ -1,10 +1,7 @@
-from __future__ import print_function
-
 import numpy as np
 import scipy.sparse as sp
-from six import string_types
 
-from .utils.solver_utils import SolverWrapI, Solver
+from .utils.solver_utils import SolverWrapI, Solver, SolverDiag
 from .utils import (
     callHooks,
     checkStoppers,
@@ -228,6 +225,13 @@ class IterationPrinters(object):
         "format": "%1.2e",
     }
 
+    iterationCG = {
+        "title": "iterCG",
+        "value": lambda M: M.cg_count,
+        "width": 10,
+        "format": "%3d",
+    }
+
 
 class Minimize(object):
     """
@@ -265,7 +269,6 @@ class Minimize(object):
     factor = 1.0
 
     def __init__(self, **kwargs):
-
         setKwargs(self, **kwargs)
 
         self.stoppersLS = [
@@ -483,12 +486,16 @@ class Minimize(object):
             try:
                 printLine(self, self.printers if not inLS else self.printersLS, pad=pad)
                 printDone(
-                    self, self.printers, pad=pad,
+                    self,
+                    self.printers,
+                    pad=pad,
                 )
                 print(self.print_target)
-            except:
+            except AttributeError:
                 printDone(
-                    self, self.printers, pad=pad,
+                    self,
+                    self.printers,
+                    pad=pad,
                 )
         else:
             printStoppers(self, stoppers, pad="", stop=stop, done=done)
@@ -730,14 +737,14 @@ class Remember(object):
     def _startupRemember(self, x0):
         self._rememberList = {}
         for param in self._rememberThese:
-            if isinstance(param, string_types):
+            if isinstance(param, str):
                 self._rememberList[param] = []
             elif isinstance(param, tuple):
                 self._rememberList[param[0]] = []
 
     def _doEndIterationRemember(self, *args):
         for param in self._rememberThese:
-            if isinstance(param, string_types):
+            if isinstance(param, str):
                 if self.debug:
                     print("Remember is remembering: " + param)
                 val = getattr(self, param, None)
@@ -969,7 +976,7 @@ class BFGS(Minimize, Remember):
         if k < 0:
             d = self.bfgsH0 * d  # Assume that bfgsH0 is a SimPEG.Solver
         else:
-            khat = 0 if nn is 0 else np.mod(n - nn + k, nn)
+            khat = 0 if nn == 0 else np.mod(n - nn + k, nn)
             gamma = np.vdot(S[:, khat], d) / np.vdot(Y[:, khat], S[:, khat])
             d = d - gamma * Y[:, khat]
             d = self.bfgsrec(k - 1, n, nn, S, Y, d)
@@ -984,7 +991,7 @@ class BFGS(Minimize, Remember):
         return self.bfgs(-self.g)
 
     def _doEndIteration_BFGS(self, xt):
-        if self.iter is 0:
+        if self.iter == 0:
             self.g_last = self.g
             return
 
@@ -1014,7 +1021,7 @@ class GaussNewton(Minimize, Remember):
 
 
 class InexactGaussNewton(BFGS, Minimize, Remember):
-    """
+    r"""
     Minimizes using CG as the inexact solver of
 
     .. math::
@@ -1080,7 +1087,7 @@ class SteepestDescent(Minimize, Remember):
 
 
 class NewtonRoot(object):
-    """
+    r"""
     Newton Method - Root Finding
 
     root = newtonRoot(fun,x);
@@ -1088,7 +1095,7 @@ class NewtonRoot(object):
     Where fun is the function that returns the function value as well as
     the gradient.
 
-    For iterative solving of dh = -J\\r, use O.solveTol = TOL. For direct
+    For iterative solving of dh = -J\r, use O.solveTol = TOL. For direct
     solves, use SOLVETOL = 0 (default)
 
     Rowan Cockett
@@ -1128,7 +1135,6 @@ class NewtonRoot(object):
 
         self.iter = 0
         while True:
-
             r, J = fun(x, return_g=True)
 
             Jinv = self.Solver(J, **self.solverOpts)
@@ -1237,7 +1243,7 @@ class ProjectedGNCG(BFGS, Minimize, Remember):
         findSearchDirection()
         Finds the search direction based on projected CG
         """
-
+        self.cg_count = 0
         Active = self.activeSet(self.xc)
         temp = sum((np.ones_like(self.xc.size) - Active))
 
@@ -1253,7 +1259,6 @@ class ProjectedGNCG(BFGS, Minimize, Remember):
         count = 0
 
         while np.all([np.linalg.norm(r) > self.tolCG, count < self.maxIterCG]):
-
             count += 1
 
             q = (1 - Active) * (self.H * p)
@@ -1276,7 +1281,6 @@ class ProjectedGNCG(BFGS, Minimize, Remember):
 
         # Take a gradient step on the active cells if exist
         if temp != self.xc.size:
-
             rhs_a = (Active) * -self.g
 
             dm_i = max(abs(step))

@@ -1,4 +1,3 @@
-from __future__ import print_function
 import unittest
 from SimPEG import (
     directives,
@@ -12,7 +11,7 @@ from SimPEG import (
 )
 
 
-from discretize.utils import mesh_builder_xyz, refine_tree_xyz
+from discretize.utils import mesh_builder_xyz, refine_tree_xyz, active_from_xyz
 import numpy as np
 from SimPEG.potential_fields import magnetics as mag
 import shutil
@@ -62,7 +61,7 @@ class MVIProblemTest(unittest.TestCase):
         )
         self.mesh = mesh
         # Define an active cells from topo
-        actv = utils.surface2ind_topo(mesh, topo)
+        actv = active_from_xyz(mesh, topo)
         nC = int(actv.sum())
 
         model = np.zeros((mesh.nC, 3))
@@ -72,7 +71,9 @@ class MVIProblemTest(unittest.TestCase):
 
         # Get the indicies of the magnetized block
         ind = utils.model_builder.getIndicesBlock(
-            np.r_[-20, -20, -10], np.r_[20, 20, 25], mesh.gridCC,
+            np.r_[-20, -20, -10],
+            np.r_[20, 20, 25],
+            mesh.gridCC,
         )[0]
 
         # Assign magnetization values
@@ -91,9 +92,9 @@ class MVIProblemTest(unittest.TestCase):
         sim = mag.Simulation3DIntegral(
             self.mesh,
             survey=survey,
-            modelType="vector",
+            model_type="vector",
             chiMap=idenMap,
-            actInd=actv,
+            ind_active=actv,
             store_sensitivities="disk",
         )
         self.sim = sim
@@ -109,17 +110,16 @@ class MVIProblemTest(unittest.TestCase):
 
         # Create three regularization for the different components
         # of magnetization
-        reg_p = regularization.Sparse(mesh, indActive=actv, mapping=wires.p)
-        reg_p.mref = np.zeros(3 * nC)
+        reg_p = regularization.Sparse(mesh, active_cells=actv, mapping=wires.p)
+        reg_p.reference_model = np.zeros(3 * nC)
 
-        reg_s = regularization.Sparse(mesh, indActive=actv, mapping=wires.s)
-        reg_s.mref = np.zeros(3 * nC)
+        reg_s = regularization.Sparse(mesh, active_cells=actv, mapping=wires.s)
+        reg_s.reference_model = np.zeros(3 * nC)
 
-        reg_t = regularization.Sparse(mesh, indActive=actv, mapping=wires.t)
-        reg_t.mref = np.zeros(3 * nC)
+        reg_t = regularization.Sparse(mesh, active_cells=actv, mapping=wires.t)
+        reg_t.reference_model = np.zeros(3 * nC)
 
         reg = reg_p + reg_s + reg_t
-        reg.mref = np.zeros(3 * nC)
 
         # Data misfit function
         dmis = data_misfit.L2DataMisfit(simulation=sim, data=data)
@@ -163,24 +163,23 @@ class MVIProblemTest(unittest.TestCase):
 
         # Create a Combo Regularization
         # Regularize the amplitude of the vectors
-        reg_a = regularization.Sparse(mesh, indActive=actv, mapping=wires.amp)
-        reg_a.norms = np.c_[0.0, 0.0, 0.0, 0.0]  # Sparse on the model and its gradients
-        reg_a.mref = np.zeros(3 * nC)
+        reg_a = regularization.Sparse(mesh, active_cells=actv, mapping=wires.amp)
+        reg_a.norms = [0.0, 0.0, 0.0, 0.0]  # Sparse on the model and its gradients
+        reg_a.reference_model = np.zeros(3 * nC)
 
         # Regularize the vertical angle of the vectors
-        reg_t = regularization.Sparse(mesh, indActive=actv, mapping=wires.theta)
+        reg_t = regularization.Sparse(mesh, active_cells=actv, mapping=wires.theta)
         reg_t.alpha_s = 0.0  # No reference angle
         reg_t.space = "spherical"
-        reg_t.norms = np.c_[2.0, 0.0, 0.0, 0.0]  # Only norm on gradients used
+        reg_t.norms = [2.0, 0.0, 0.0, 0.0]  # Only norm on gradients used
 
         # Regularize the horizontal angle of the vectors
-        reg_p = regularization.Sparse(mesh, indActive=actv, mapping=wires.phi)
+        reg_p = regularization.Sparse(mesh, active_cells=actv, mapping=wires.phi)
         reg_p.alpha_s = 0.0  # No reference angle
         reg_p.space = "spherical"
-        reg_p.norms = np.c_[2.0, 0.0, 0.0, 0.0]  # Only norm on gradients used
+        reg_p.norms = [2.0, 0.0, 0.0, 0.0]  # Only norm on gradients used
 
         reg = reg_a + reg_t + reg_p
-        reg.mref = np.zeros(3 * nC)
 
         Lbound = np.kron(np.asarray([0, -np.inf, -np.inf]), np.ones(nC))
         Ubound = np.kron(np.asarray([10, np.inf, np.inf]), np.ones(nC))
@@ -222,7 +221,6 @@ class MVIProblemTest(unittest.TestCase):
         )
 
     def test_mag_inverse(self):
-
         # Run the inversion
         mrec_MVI_S = self.inv.run(self.mstart)
 

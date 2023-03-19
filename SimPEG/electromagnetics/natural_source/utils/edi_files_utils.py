@@ -1,14 +1,13 @@
-from __future__ import print_function
-
 # Functions to import and export MT EDI files.
 from SimPEG import mkvc
-from scipy.constants import mu_0
 from numpy.lib import recfunctions as recFunc
 from .data_utils import rec_to_ndarr
 
 # Import modules
 import numpy as np
-import os, sys, re
+import os
+import re
+import utm
 
 
 class EDIimporter:
@@ -32,7 +31,6 @@ class EDIimporter:
     _2out = None  # The projection operator
 
     def __init__(self, EDIfilesList, compList=None, outEPSG=None):
-
         # Set the fileList
         self.filesList = EDIfilesList
         # Set the components to import
@@ -57,7 +55,6 @@ class EDIimporter:
             self._outEPSG = outEPSG
 
     def __call__(self, comps=None):
-
         if comps is None:
             return self._data
 
@@ -82,7 +79,7 @@ class EDIimporter:
         # Make the outarray
         dtRI = [(compS.lower().replace(".", ""), float) for compS in tmpCompList]
         # Loop through all the files
-        for nrEDI, EDIfile in enumerate(self.filesList):
+        for EDIfile in self.filesList:
             # Read the file into a list of the lines
             with open(EDIfile, "r") as fid:
                 EDIlines = fid.readlines()
@@ -136,30 +133,31 @@ class EDIimporter:
     # obj.data(nOutData+1:nOutData+length(TEMP.data),:) = TEMP.data;
     def _transfromPoints(self, longD, latD):
         # Import the coordinate projections
-        try:
-            import osr
-        except ImportError as e:
-            print(
-                (
-                    "Could not import osr, missing the gdal"
-                    + "package\nCan not project coordinates"
-                )
-            )
-            raise e
-        # Coordinates convertor
-        if self._2out is None:
-            src = osr.SpatialReference()
-            src.ImportFromEPSG(4326)
-            out = osr.SpatialReference()
-            if self._outEPSG is None:
-                # Find the UTM EPSG number
-                Nnr = 700 if latD < 0.0 else 600
-                utmZ = int(1 + (longD + 180.0) / 6.0)
-                self._outEPSG = 32000 + Nnr + utmZ
-            out.ImportFromEPSG(self._outEPSG)
-            self._2out = osr.CoordinateTransformation(src, out)
-        # Return the transfrom
-        return self._2out.TransformPoint(longD, latD)
+        # try:
+        #     import osr
+        # except ImportError as e:
+        #     print(
+        #         (
+        #             "Could not import osr, missing the gdal"
+        #             + "package\nCan not project coordinates"
+        #         )
+        #     )
+        #     raise e
+        # # Coordinates convertor
+        # if self._2out is None:
+        #     src = osr.SpatialReference()
+        #     src.ImportFromEPSG(4326)
+        #     out = osr.SpatialReference()
+        #     if self._outEPSG is None:
+        #         # Find the UTM EPSG number
+        #         Nnr = 700 if latD < 0.0 else 600
+        #         utmZ = int(1 + (longD + 180.0) / 6.0)
+        #         self._outEPSG = 32000 + Nnr + utmZ
+        #     out.ImportFromEPSG(self._outEPSG)
+        #     self._2out = osr.CoordinateTransformation(src, out)
+        # # Return the transfrom
+        # return self._2out.TransformPoint(longD, latD)
+        return utm.from_latlon(latD, longD)
 
 
 # Hidden functions
@@ -184,7 +182,7 @@ def _findLatLong(fileLines):
 
 
 def _findLine(comp, fileLines):
-    """ Find a line number in the file"""
+    """Find a line number in the file"""
     # Line counter
     c = 0
     # List of indices for found lines
@@ -211,7 +209,13 @@ def _findEDIcomp(comp, fileLines, dt=float):
         (st, nr) for nr, st in enumerate(fileLines) if re.search(comp, st)
     ][0]
     # Extract the data
-    nrVec = int(headLine.split("//")[-1])
+    if "NFREQ" in headLine:
+        breakup = headLine.split("=")
+        breakup2 = breakup[1].split()[0]
+        # print(breakup, breakup2)
+        nrVec = int(breakup2)
+    else:
+        nrVec = int(headLine.split("//")[-1])
     c = 0
     dataList = []
     while c < nrVec:

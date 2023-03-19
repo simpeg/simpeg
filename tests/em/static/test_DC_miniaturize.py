@@ -250,7 +250,7 @@ class DC3DMiniaturizeTest(unittest.TestCase):
         N = survey.locations_n
         # add some other receivers and sources to the mix
         # electrode_locations = np.unique(np.r_[A, B, M, N], axis=0)
-        electrode_locations = survey.electrode_locations
+        electrode_locations = survey.unique_electrode_locations
 
         rx_p = dc.receivers.Pole(electrode_locations[[2]])
         rx_d = dc.receivers.Dipole(electrode_locations[[2]], electrode_locations[[3]])

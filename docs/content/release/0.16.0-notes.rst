@@ -1,0 +1,54 @@
+.. _0.16.0_notes:
+
+===========================
+SimPEG 0.16.0 Release Notes
+===========================
+
+January 14th, 2022
+
+This minor release encompasses many different additions and improvements that have been
+made to SimPEG since the previous release!
+
+Highlights
+==========
+* More Joint Inversion
+* 0.14.0 deprecations changed to errors
+* Bug fixes!
+
+Joint Inversion
+===============
+There are now multiple new joint inversion regularization schemes implemented in SimPEG,
+namely, Cross-Gradient, Joint total variation, and a Linear correspondance. These are
+meant to be our first pass at implementing these joint inversion schemes in SimPEG. As
+such we are open modifying them as users experiment with them. We have currently a
+tutorial using cross gradient that can be extended to the other methodologies, but most
+we want feedback on their successes and failures, in order to further improve their
+useability.
+
+Removed Functions
+=================
+All functions that were marked as deprecated in the SimPEG 0.14.0, the "Simulation"
+release, have been removed consistent with the warnings. They now explicitly throw errors
+pointing the users to the new locations, forcing a necessary change.
+
+
+Contributors
+============
+This is a combination of contributors and reviewers who've made contributions towards
+this release (in no particular order).
+
+* `@jcapriot <https://github.com/jcapriot>`__
+* `@thast <https://github.com/thast>`__
+* `@xiaolongw1223 <https://github.com/xiaolongw1223>`__
+* `@dccowan <https://github.com/dccowan>`__
+* `@domfournier <https://github.com/domfournier>`__
+
+Pull requests
+=============
+
+* `#943 <https://github.com/simpeg/simpeg/pull/943>`__: Cross-gradient joint inversion
+* `#1057 <https://github.com/simpeg/simpeg/pull/1057>`__: Fix pgi tutorials accounting volume twice
+* `#1060 <https://github.com/simpeg/simpeg/pull/1060>`__: change 0.16.0 warns to errors
+* `#1061 <https://github.com/simpeg/simpeg/pull/1061>`__: fix standard deviation in make synthetic data
+* `#1062 <https://github.com/simpeg/simpeg/pull/1062>`__: Joint total variation
+* `#1064 <https://github.com/simpeg/simpeg/pull/1064>`__: 0.16.0 Release Notes

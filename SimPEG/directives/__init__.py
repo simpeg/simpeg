@@ -1,6 +1,7 @@
 from .directives import (
     InversionDirective,
     DirectiveList,
+    BetaEstimateMaxDerivative,
     BetaEstimate_ByEig,
     BetaSchedule,
     TargetMisfit,
@@ -23,4 +24,12 @@ from .pgi_directives import (
     PGI_UpdateParameters,
     PGI_BetaAlphaSchedule,
     PGI_AddMrefInSmooth,
+)
+
+from .sim_directives import (
+    SimilarityMeasureInversionDirective,
+    SimilarityMeasureSaveOutputEveryIteration,
+    PairedBetaEstimate_ByEig,
+    PairedBetaSchedule,
+    MovingAndMultiTargetStopping,
 )

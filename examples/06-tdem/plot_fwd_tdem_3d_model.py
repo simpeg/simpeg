@@ -11,7 +11,6 @@ except ImportError:
     from SimPEG import SolverLU as Solver
 
 import numpy as np
-import SimPEG
 from SimPEG import maps
 from SimPEG.electromagnetics import time_domain as TDEM
 import matplotlib.pyplot as plt
@@ -132,7 +131,7 @@ print(f"- Target     :: {diff_dist2.min():8.0f} / {diff_dist2.max():8.0f} m.")
 time_steps = [1e-1, (1e-2, 21), (3e-2, 23), (1e-1, 21), (3e-1, 23)]
 
 # Create mesh with time steps
-ts = discretize.TensorMesh([time_steps]).vectorNx
+ts = discretize.TensorMesh([time_steps]).nodes_x
 
 # Plot them
 plt.figure(figsize=(9, 1.5))
@@ -207,21 +206,21 @@ mesh
 # required to get the responses (cell centers in x, cell edges in y, z).
 
 print(
-    f"Rec-{{x;y;z}} :: {rec[0] in np.round(mesh.vectorCCx)!s:>5}; "
-    f"{rec[1] in np.round(mesh.vectorNy)!s:>5}; "
-    f"{rec[2] in np.round(mesh.vectorNz)!s:>5}"
+    f"Rec-{{x;y;z}} :: {rec[0] in np.round(mesh.cell_centers_x)!s:>5}; "
+    f"{rec[1] in np.round(mesh.nodes_y)!s:>5}; "
+    f"{rec[2] in np.round(mesh.nodes_z)!s:>5}"
 )
 print(
-    f"Src-x       :: {src[0] in np.round(mesh.vectorCCx)!s:>5}; "
-    f"{src[1] in np.round(mesh.vectorCCx)!s:>5}"
+    f"Src-x       :: {src[0] in np.round(mesh.cell_centers_x)!s:>5}; "
+    f"{src[1] in np.round(mesh.cell_centers_x)!s:>5}"
 )
 print(
-    f"Src-y       :: {src[2] in np.round(mesh.vectorNy)!s:>5}; "
-    f"{src[3] in np.round(mesh.vectorNy)!s:>5}"
+    f"Src-y       :: {src[2] in np.round(mesh.nodes_y)!s:>5}; "
+    f"{src[3] in np.round(mesh.nodes_y)!s:>5}"
 )
 print(
-    f"Src-z       :: {src[4] in np.round(mesh.vectorNz)!s:>5}; "
-    f"{src[5] in np.round(mesh.vectorNz)!s:>5}"
+    f"Src-z       :: {src[4] in np.round(mesh.nodes_z)!s:>5}; "
+    f"{src[5] in np.round(mesh.nodes_z)!s:>5}"
 )
 
 
@@ -287,14 +286,23 @@ epm_bg = empymod.bipole(**inp)
 # Set up the receiver list
 rec_list = [
     TDEM.Rx.PointElectricField(
-        orientation="x", times=times, locs=np.array([[*rec[:3]],]),
+        orientation="x",
+        times=times,
+        locations=np.array(
+            [
+                [*rec[:3]],
+            ]
+        ),
     ),
 ]
 
 
 # Set up the source list
 src_list = [
-    TDEM.Src.LineCurrent(rxList=rec_list, loc=np.array([[*src[::2]], [*src[1::2]]]),),
+    TDEM.Src.LineCurrent(
+        receiver_list=rec_list,
+        location=np.array([[*src[::2]], [*src[1::2]]]),
+    ),
 ]
 
 
@@ -307,8 +315,8 @@ prob = TDEM.Simulation3DElectricField(
     mesh,
     survey=survey,
     rhoMap=maps.IdentityMap(mesh),
-    Solver=Solver,
-    timeSteps=time_steps,
+    solver=Solver,
+    time_steps=time_steps,
 )
 
 

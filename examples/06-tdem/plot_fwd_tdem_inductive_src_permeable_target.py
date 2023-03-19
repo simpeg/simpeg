@@ -60,7 +60,7 @@ pfz = 1.4  # expansion factor for the padding to infinity in the z-direction
 ncz = int(target_l / csz)  # number of z cells in the core region
 
 # create the cyl mesh
-mesh = discretize.CylMesh(
+mesh = discretize.CylindricalMesh(
     [
         [(csx, int(domainx / csx)), (csx, npadx, pfx)],
         1,
@@ -69,10 +69,10 @@ mesh = discretize.CylMesh(
 )
 
 # put the origin at the top of the target
-mesh.x0 = [0, 0, -mesh.hz[: npadz + ncz].sum()]
+mesh.x0 = [0, 0, -mesh.h[2][: npadz + ncz].sum()]
 
 # plot the mesh
-mesh.plotGrid()
+mesh.plot_grid()
 
 
 ###############################################################################
@@ -99,10 +99,10 @@ fig, ax = plt.subplots(1, 1, figsize=(6, 5))
 
 # plot the permeability
 plt.colorbar(
-    mesh.plotImage(
+    mesh.plot_image(
         mur_model,
         ax=ax,
-        pcolorOpts={"norm": LogNorm()},  # plot on a log-scale
+        pcolor_opts={"norm": LogNorm()},  # plot on a log-scale
         mirror=True,
     )[0],
     ax=ax,
@@ -137,9 +137,9 @@ ramp = [
 time_mesh = discretize.TensorMesh([ramp])
 
 # define an off time past when we will simulate to keep the transmitter on
-offTime = 100
+off_time = 100
 quarter_sine = TDEM.Src.QuarterSineRampOnWaveform(
-    ramp_on=np.r_[0.0, 3], ramp_off=offTime - np.r_[1.0, 0]
+    ramp_on=np.r_[0.0, 3], ramp_off=off_time - np.r_[1.0, 0]
 )
 
 # evaluate the waveform at each time in the simulation
@@ -159,12 +159,19 @@ ax.set_title("quarter sine waveform")
 
 # For the magnetostatic simulation. The default waveform is a step-off
 src_magnetostatic = TDEM.Src.CircularLoop(
-    [], loc=np.r_[0.0, 0.0, 0.0], orientation="z", radius=100,
+    [],
+    location=np.r_[0.0, 0.0, 0.0],
+    orientation="z",
+    radius=100,
 )
 
 # For the long on-time simulation. We use the ramp-on waveform
 src_ramp_on = TDEM.Src.CircularLoop(
-    [], loc=np.r_[0.0, 0.0, 0.0], orientation="z", radius=100, waveform=quarter_sine
+    [],
+    location=np.r_[0.0, 0.0, 0.0],
+    orientation="z",
+    radius=100,
+    waveform=quarter_sine,
 )
 
 src_list_magnetostatic = [src_magnetostatic]
@@ -177,18 +184,23 @@ src_list_ramp_on = [src_ramp_on]
 # To simulate magnetic flux data, we use the b-formulation of Maxwell's
 # equations
 
-prob_magnetostatic = TDEM.Simulation3DMagneticFluxDensity(
-    mesh=mesh, sigmaMap=maps.IdentityMap(mesh), timeSteps=ramp, Solver=Solver
-)
-prob_ramp_on = TDEM.Simulation3DMagneticFluxDensity(
-    mesh=mesh, sigmaMap=maps.IdentityMap(mesh), timeSteps=ramp, Solver=Solver
-)
-
-survey_magnetostatic = TDEM.Survey(srcList=src_list_magnetostatic)
+survey_magnetostatic = TDEM.Survey(source_list=src_list_magnetostatic)
 survey_ramp_on = TDEM.Survey(src_list_ramp_on)
 
-prob_magnetostatic.pair(survey_magnetostatic)
-prob_ramp_on.pair(survey_ramp_on)
+prob_magnetostatic = TDEM.Simulation3DMagneticFluxDensity(
+    mesh=mesh,
+    survey=survey_magnetostatic,
+    sigmaMap=maps.IdentityMap(mesh),
+    time_steps=ramp,
+    solver=Solver,
+)
+prob_ramp_on = TDEM.Simulation3DMagneticFluxDensity(
+    mesh=mesh,
+    survey=survey_ramp_on,
+    sigmaMap=maps.IdentityMap(mesh),
+    time_steps=ramp,
+    solver=Solver,
+)
 
 ###############################################################################
 # Run the long on-time simulation
@@ -253,7 +265,7 @@ def plotBFieldResults(
         plotme = b_magnetostatic - b_ramp_on
 
     cb = plt.colorbar(
-        mesh.plotImage(
+        mesh.plot_image(
             plotme,
             view="vec",
             v_type="F",

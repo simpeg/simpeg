@@ -1,17 +1,28 @@
+"""
+Petrophysically guided inversion: Joint linear example with nonlinear relationships
+===================================================================================
+
+We do a comparison between the classic least-squares inversion
+and our formulation of a petrophysically guided inversion.
+We explore it through coupling two linear problems whose respective physical
+properties are linked by polynomial relationships that change between rock units.
+
+"""
+
 import discretize as Mesh
+import matplotlib.pyplot as plt
+import numpy as np
 from SimPEG import (
-    simulation,
-    maps,
     data_misfit,
     directives,
-    optimization,
-    regularization,
     inverse_problem,
     inversion,
+    maps,
+    optimization,
+    regularization,
+    simulation,
     utils,
 )
-import numpy as np
-import matplotlib.pyplot as plt
 
 # Random seed for reproductibility
 np.random.seed(1)
@@ -117,25 +128,28 @@ dmis = dmis1 + dmis2
 minit = np.zeros_like(m)
 
 # Distance weighting
-wr1 = np.sum(prob1.G ** 2.0, axis=0) ** 0.5
+wr1 = np.sum(prob1.G**2.0, axis=0) ** 0.5 / mesh.cell_volumes
 wr1 = wr1 / np.max(wr1)
-wr2 = np.sum(prob2.G ** 2.0, axis=0) ** 0.5
+wr2 = np.sum(prob2.G**2.0, axis=0) ** 0.5 / mesh.cell_volumes
 wr2 = wr2 / np.max(wr2)
-wr = np.r_[wr1, wr2]
-W = utils.sdiag(wr)
 
-reg_simple = utils.make_SimplePGIwithRelationships_regularization(
+reg_simple = regularization.PGI(
     mesh=mesh,
     gmmref=clfmapping,
     gmm=clfmapping,
     approx_gradient=True,
-    alpha_x=1.0,
     wiresmap=wires,
-    cell_weights_list=[wr1, wr2],
+    non_linear_relationships=True,
+    weights_list=[wr1, wr2],
 )
 
 opt = optimization.ProjectedGNCG(
-    maxIter=30, tolX=1e-6, maxIterCG=100, tolCG=1e-3, lower=-10, upper=10,
+    maxIter=50,
+    tolX=1e-6,
+    maxIterCG=100,
+    tolCG=1e-3,
+    lower=-10,
+    upper=10,
 )
 
 invProb = inverse_problem.BaseInvProblem(dmis, reg_simple, opt)
@@ -145,17 +159,15 @@ scales = directives.ScalingMultipleDataMisfits_ByEig(
     chi0_ratio=np.r_[1.0, 1.0], verbose=True, n_pw_iter=10
 )
 scaling_schedule = directives.JointScalingSchedule(verbose=True)
-alpha0_ratio = np.r_[
-    np.zeros(len(reg_simple.objfcts[0].objfcts)),
-    100.0 * np.ones(len(reg_simple.objfcts[1].objfcts)),
-    1.0 * np.ones(len(reg_simple.objfcts[2].objfcts)),
-]
+alpha0_ratio = np.r_[1e6, 1e4, 1, 1]
 alphas = directives.AlphasSmoothEstimate_ByEig(
     alpha0_ratio=alpha0_ratio, n_pw_iter=10, verbose=True
 )
 beta = directives.BetaEstimate_ByEig(beta0_ratio=1e-5, n_pw_iter=10)
 betaIt = directives.PGI_BetaAlphaSchedule(
-    verbose=True, coolingFactor=2.0, progress=0.2,
+    verbose=True,
+    coolingFactor=2.0,
+    progress=0.2,
 )
 targets = directives.MultiTargetMisfits(verbose=True)
 petrodir = directives.PGI_UpdateParameters(update_gmm=False)
@@ -169,20 +181,24 @@ inv = inversion.BaseInversion(
 mcluster_map = inv.run(minit)
 
 # Inversion with no nonlinear mapping
-reg_simple_no_map = utils.make_SimplePGI_regularization(
+reg_simple_no_map = regularization.PGI(
     mesh=mesh,
     gmmref=clfnomapping,
     gmm=clfnomapping,
     approx_gradient=True,
-    alpha_x=1.0,
     wiresmap=wires,
-    cell_weights_list=[wr1, wr2],
+    non_linear_relationships=False,
+    weights_list=[wr1, wr2],
 )
 
 opt = optimization.ProjectedGNCG(
-    maxIter=20, tolX=1e-6, maxIterCG=100, tolCG=1e-3, lower=-10, upper=10,
+    maxIter=50,
+    tolX=1e-6,
+    maxIterCG=100,
+    tolCG=1e-3,
+    lower=-10,
+    upper=10,
 )
-
 
 invProb = inverse_problem.BaseInvProblem(dmis, reg_simple_no_map, opt)
 
@@ -191,12 +207,15 @@ scales = directives.ScalingMultipleDataMisfits_ByEig(
     chi0_ratio=np.r_[1.0, 1.0], verbose=True, n_pw_iter=10
 )
 scaling_schedule = directives.JointScalingSchedule(verbose=True)
+alpha0_ratio = np.r_[100.0 * np.ones(2), 1, 1]
 alphas = directives.AlphasSmoothEstimate_ByEig(
     alpha0_ratio=alpha0_ratio, n_pw_iter=10, verbose=True
 )
 beta = directives.BetaEstimate_ByEig(beta0_ratio=1e-5, n_pw_iter=10)
 betaIt = directives.PGI_BetaAlphaSchedule(
-    verbose=True, coolingFactor=2.0, progress=0.2,
+    verbose=True,
+    coolingFactor=2.0,
+    progress=0.2,
 )
 targets = directives.MultiTargetMisfits(
     chiSmall=1.0, TriggerSmall=True, TriggerTheta=False, verbose=True
@@ -211,25 +230,31 @@ inv = inversion.BaseInversion(
 
 mcluster_no_map = inv.run(minit)
 
-# Tikhonov Inversion
+# WeightedLeastSquares Inversion
 
-reg1 = regularization.Tikhonov(mesh, alpha_s=1.0, alpha_x=1.0, mapping=wires.m1)
+reg1 = regularization.WeightedLeastSquares(
+    mesh, alpha_s=1.0, alpha_x=1.0, mapping=wires.m1
+)
 reg1.cell_weights = wr1
-reg2 = regularization.Tikhonov(mesh, alpha_s=1.0, alpha_x=1.0, mapping=wires.m2)
+reg2 = regularization.WeightedLeastSquares(
+    mesh, alpha_s=1.0, alpha_x=1.0, mapping=wires.m2
+)
 reg2.cell_weights = wr2
 reg = reg1 + reg2
 
 opt = optimization.ProjectedGNCG(
-    maxIter=30, tolX=1e-6, maxIterCG=100, tolCG=1e-3, lower=-10, upper=10,
+    maxIter=50,
+    tolX=1e-6,
+    maxIterCG=100,
+    tolCG=1e-3,
+    lower=-10,
+    upper=10,
 )
 
 invProb = inverse_problem.BaseInvProblem(dmis, reg, opt)
 
 # directives
-alpha0_ratio = np.r_[
-    100.0 * np.ones(len(reg.objfcts[0].objfcts)),
-    1.0 * np.ones(len(reg.objfcts[1].objfcts)),
-]
+alpha0_ratio = np.r_[1, 1, 1, 1]
 alphas = directives.AlphasSmoothEstimate_ByEig(
     alpha0_ratio=alpha0_ratio, n_pw_iter=10, verbose=True
 )
@@ -239,7 +264,10 @@ scales = directives.ScalingMultipleDataMisfits_ByEig(
 scaling_schedule = directives.JointScalingSchedule(verbose=True)
 beta = directives.BetaEstimate_ByEig(beta0_ratio=1e-5, n_pw_iter=10)
 beta_schedule = directives.BetaSchedule(coolingFactor=5.0, coolingRate=1)
-targets = directives.MultiTargetMisfits(TriggerSmall=False, verbose=True,)
+targets = directives.MultiTargetMisfits(
+    TriggerSmall=False,
+    verbose=True,
+)
 
 # Setup Inversion
 inv = inversion.BaseInversion(
@@ -303,13 +331,6 @@ axes[3].legend(["True Petrophysical Distribution", "Recovered model crossplot"])
 axes[3].set_xlabel("Property 1")
 axes[3].set_ylabel("Property 2")
 
-# fig.suptitle(
-#    'Doodling with Mapping: one mapping per identified rock unit\n' +
-#    'Joint inversion of 1D Linear Problems ' +
-#    'with nonlinear petrophysical relationships',
-#    fontsize=24
-# )
-
 axes[4].set_axis_off()
 axes[4].text(
     0.5 * (left + right),
@@ -323,8 +344,6 @@ axes[4].text(
 )
 
 axes[5].plot(mesh.cell_centers_x, wires.m1 * mcluster_no_map, "b.-", ms=5, marker="v")
-# axes[5].plot(mesh.cell_centers_x, wires.m1 * reg_simple_no_map.objfcts[0].mref, 'g--')
-
 axes[5].plot(mesh.cell_centers_x, wires.m1 * m, "k--")
 axes[5].set_title("Problem 1")
 axes[5].legend(["Recovered Model", "True Model"], loc=1)
@@ -332,8 +351,6 @@ axes[5].set_xlabel("X")
 axes[5].set_ylabel("Property 1")
 
 axes[6].plot(mesh.cell_centers_x, wires.m2 * mcluster_no_map, "r.-", ms=5, marker="v")
-# axes[6].plot(mesh.cell_centers_x, wires.m2 * reg_simple_no_map.objfcts[0].mref, 'g--')
-
 axes[6].plot(mesh.cell_centers_x, wires.m2 * m, "k--")
 axes[6].set_title("Problem 2")
 axes[6].legend(["Recovered Model", "True Model"], loc=1)
@@ -346,25 +363,25 @@ CSF = axes[7].contour(
     np.exp(clfmapping.score_samples(pos.reshape(-1, 2)).reshape(x.shape)),
     100,
     alpha=0.5,
-)  # , cmap='viridis')
+    label="True Petro. Distribution",
+)
 CS = axes[7].contour(
     x,
     y,
     np.exp(clfnomapping.score_samples(pos.reshape(-1, 2)).reshape(x.shape)),
     500,
     cmap="viridis",
+    linestyles="--",
+    label="Modeled Petro. Distribution",
 )
-axes[7].scatter(wires.m1 * mcluster_no_map, wires.m2 * mcluster_no_map, marker="v")
+axes[7].scatter(
+    wires.m1 * mcluster_no_map,
+    wires.m2 * mcluster_no_map,
+    marker="v",
+    label="Recovered model crossplot",
+)
 axes[7].set_title("Petrophysical Distribution")
-CSF.collections[0].set_label("")
-CS.collections[0].set_label("")
-axes[7].legend(
-    [
-        "True Petro. Distribution",
-        "Modeled Petro. Distribution",
-        "Recovered model crossplot",
-    ]
-)
+axes[7].legend()
 axes[7].set_xlabel("Property 1")
 axes[7].set_ylabel("Property 2")
 
@@ -374,7 +391,7 @@ axes[8].set_axis_off()
 axes[8].text(
     0.5 * (left + right),
     0.5 * (bottom + top),
-    ("Tikhonov\n~Using a single cluster"),
+    ("Least-Squares\n~Using a single cluster"),
     horizontalalignment="center",
     verticalalignment="center",
     fontsize=20,

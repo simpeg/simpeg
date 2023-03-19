@@ -1,7 +1,6 @@
 import numpy as np
 import scipy.sparse as sp
-import warnings
-import properties
+from SimPEG.utils.code_utils import deprecate_property, validate_active_indices
 
 from .. import props
 from .. import utils
@@ -19,211 +18,215 @@ class RegularizationMesh(props.BaseSimPEG):
 
     This contains the operators used in the regularization. Note that these
     are not necessarily true differential operators, but are constructed from
-    a SimPEG Mesh.
+    a `discretize` Mesh.
 
     :param discretize.base.BaseMesh mesh: problem mesh
-    :param numpy.ndarray indActive: bool array, size nC, that is True where we have active cells. Used to reduce the operators so we regularize only on active cells
+    :param numpy.ndarray active_cells: bool array, size nC, that is True where we have active cells. Used to reduce the operators so we regularize only on active cells
 
     """
 
-    regularization_type = None  # or 'Simple', 'Sparse' or 'Tikhonov'
+    regularization_type = None  # or 'Base'
+    _active_cells = None
 
-    def __init__(self, mesh, **kwargs):
+    def __init__(self, mesh, active_cells=None, **kwargs):
         self.mesh = mesh
+        self.active_cells = active_cells
         utils.setKwargs(self, **kwargs)
 
-    indActive = properties.Array("active indices in mesh", dtype=[bool, int])
+    @property
+    def active_cells(self) -> np.ndarray:
+        """A boolean array indicating whether a cell is active
 
-    @properties.validator("indActive")
-    def _cast_to_bool(self, change):
-        value = change["value"]
-        if value is not None:
-            if value.dtype != "bool":  # cast it to a bool otherwise
-                tmp = value
-                value = np.zeros(self.mesh.nC, dtype=bool)
-                value[tmp] = True
-                change["value"] = value
+        Notes
+        -----
+        If this is set with an array of integers, it interprets it as an array
+        listing the active cell indices.
+        """
+        return self._active_cells
+
+    @active_cells.setter
+    def active_cells(self, values: np.ndarray):
+        if getattr(self, "_active_cells", None) is not None and not all(
+            self._active_cells == values
+        ):
+            raise AttributeError(
+                "The RegulatizationMesh already has an 'active_cells' property set."
+            )
+        if values is not None:
+            values = validate_active_indices("values", values, self.mesh.nC)
+            # Ensure any cached operators created when
+            # active_cells was None are deleted
+            self._vol = None
+            self._Pac = None
+            self._Pafx = None
+            self._Pafy = None
+            self._Pafz = None
+            self._aveFx2CC = None
+            self._aveFy2CC = None
+            self._aveFz2CC = None
+            self._aveCC2Fx = None
+            self._aveCC2Fy = None
+            self._aveCC2Fz = None
+            self._cell_gradient_x = None
+            self._cell_gradient_y = None
+            self._cell_gradient_z = None
+            self._faceDiffx = None
+            self._faceDiffy = None
+            self._faceDiffz = None
+            self._cell_distances_x = None
+            self._cell_distances_y = None
+            self._cell_distances_z = None
+        self._active_cells = values
 
     @property
-    def vol(self):
+    def vol(self) -> np.ndarray:
         """
-        reduced volume vector
-
-        :rtype: numpy.ndarray
-        :return: reduced cell volume
+        Reduced volume vector.
         """
+        if self.active_cells is None:
+            return self.mesh.cell_volumes
         if getattr(self, "_vol", None) is None:
-            self._vol = self.Pac.T * self.mesh.cell_volumes
+            self._vol = self.mesh.cell_volumes[self.active_cells]
         return self._vol
 
     @property
-    def nC(self):
+    def nC(self) -> int:
         """
-        reduced number of cells
-
-        :rtype: int
-        :return: number of cells being regularized
+        Number of cells being regularized.
         """
-        if self.indActive is not None:
-            return int(self.indActive.sum())
+        if self.active_cells is not None:
+            return int(self.active_cells.sum())
         return self.mesh.nC
 
     @property
-    def dim(self):
+    def dim(self) -> int:
         """
-        dimension of regularization mesh (1D, 2D, 3D)
-
-        :rtype: int
-        :return: dimension
+        Dimension of regularization mesh (1D, 2D, 3D)
         """
-        if getattr(self, "_dim", None) is None:
-            self._dim = self.mesh.dim
-        return self._dim
+        return self.mesh.dim
 
     @property
-    def Pac(self):
+    def Pac(self) -> sp.csr_matrix:
         """
-        projection matrix that takes from the reduced space of active cells to
-        full modelling space (ie. nC x nindActive)
-
-        :rtype: scipy.sparse.csr_matrix
-        :return: active cell projection matrix
+        Projection matrix that takes from the reduced space of active cells to
+        full modelling space (ie. nC x nactive_cells).
         """
         if getattr(self, "_Pac", None) is None:
-            if self.indActive is None:
+            if self.active_cells is None:
                 self._Pac = utils.speye(self.mesh.nC)
             else:
-                self._Pac = utils.speye(self.mesh.nC)[:, self.indActive]
+                self._Pac = utils.speye(self.mesh.nC)[:, self.active_cells]
         return self._Pac
 
     @property
-    def Pafx(self):
+    def Pafx(self) -> sp.csr_matrix:
         """
-        projection matrix that takes from the reduced space of active x-faces
-        to full modelling space (ie. nFx x nindActive_Fx )
-
-        :rtype: scipy.sparse.csr_matrix
-        :return: active face-x projection matrix
+        Projection matrix that takes from the reduced space of active x-faces
+        to full modelling space (ie. nFx x nactive_cells_Fx )
         """
         if getattr(self, "_Pafx", None) is None:
-            if self.indActive is None:
-                self._Pafx = utils.speye(self.mesh.nFx)
+            if self.mesh._meshType == "TREE":
+                ind_active = self.active_cells
+                if ind_active is None:
+                    ind_active = np.ones(self.mesh.nC, dtype="bool")
+                active_cells_Fx = (
+                    self.mesh.average_cell_to_total_face_x() * ind_active
+                ) >= 1
+                self._Pafx = utils.speye(self.mesh.ntFx)[:, active_cells_Fx]
             else:
-                # if getattr(self.mesh, 'aveCC2Fx', None) is not None:
-                if self.mesh._meshType == "TREE":
-                    if self.regularization_type == "Tikhonov":
-                        indActive_Fx = (self.mesh.aveFx2CC.T * self.indActive) >= 1
-                        self._Pafx = utils.speye(self.mesh.nFx)[:, indActive_Fx]
-                    else:
-                        indActive_Fx = (
-                            self.mesh._aveCC2FxStencil() * self.indActive
-                        ) >= 1
-                        self._Pafx = utils.speye(self.mesh.ntFx)[:, indActive_Fx]
+                if self.active_cells is None:
+                    self._Pafx = utils.speye(self.mesh.nFx)
                 else:
-                    indActive_Fx = self.mesh.aveFx2CC.T * self.indActive >= 1
-
-                    self._Pafx = utils.speye(self.mesh.nFx)[:, indActive_Fx]
+                    active_cells_Fx = self.mesh.aveFx2CC.T * self.active_cells >= 1
+                    self._Pafx = utils.speye(self.mesh.nFx)[:, active_cells_Fx]
         return self._Pafx
 
     @property
-    def Pafy(self):
+    def Pafy(self) -> sp.csr_matrix:
         """
-        projection matrix that takes from the reduced space of active y-faces
-        to full modelling space (ie. nFy x nindActive_Fy )
-
-        :rtype: scipy.sparse.csr_matrix
-        :return: active face-y projection matrix
+        Projection matrix that takes from the reduced space of active y-faces
+        to full modelling space (ie. nFy x nactive_cells_Fy ).
         """
         if getattr(self, "_Pafy", None) is None:
-            if self.indActive is None:
-                self._Pafy = utils.speye(self.mesh.nFy)
+            if self.mesh._meshType == "TREE":
+                ind_active = self.active_cells
+                if ind_active is None:
+                    ind_active = np.ones(self.mesh.nC, dtype="bool")
+                active_cells_Fy = (
+                    self.mesh.average_cell_to_total_face_y() * ind_active
+                ) >= 1
+                self._Pafy = utils.speye(self.mesh.ntFy)[:, active_cells_Fy]
+            elif self.mesh._meshType == "CYL" and self.mesh.is_symmetric:
+                return sp.csr_matrix((0, 0))
             else:
-                # if getattr(self.mesh, 'aveCC2Fy', None) is not None:
-                if self.mesh._meshType == "TREE":
-                    if self.regularization_type == "Tikhonov":
-                        indActive_Fy = (self.mesh.aveFy2CC.T * self.indActive) >= 1
-                        self._Pafy = utils.speye(self.mesh.nFy)[:, indActive_Fy]
-                    else:
-                        indActive_Fy = (
-                            self.mesh._aveCC2FyStencil() * self.indActive
-                        ) >= 1
-                        self._Pafy = utils.speye(self.mesh.ntFy)[:, indActive_Fy]
+                if self.active_cells is None:
+                    self._Pafy = utils.speye(self.mesh.nFy)
                 else:
-                    indActive_Fy = (self.mesh.aveFy2CC.T * self.indActive) >= 1
-                    self._Pafy = utils.speye(self.mesh.nFy)[:, indActive_Fy]
+                    active_cells_Fy = (self.mesh.aveFy2CC.T * self.active_cells) >= 1
+                    self._Pafy = utils.speye(self.mesh.nFy)[:, active_cells_Fy]
         return self._Pafy
 
     @property
-    def Pafz(self):
+    def Pafz(self) -> sp.csr_matrix:
         """
-        projection matrix that takes from the reduced space of active z-faces
-        to full modelling space (ie. nFz x nindActive_Fz )
-
-        :rtype: scipy.sparse.csr_matrix
-        :return: active face-z projection matrix
+        Projection matrix that takes from the reduced space of active z-faces
+        to full modelling space (ie. nFz x nactive_cells_Fz ).
         """
         if getattr(self, "_Pafz", None) is None:
-            if self.indActive is None:
-                self._Pafz = utils.speye(self.mesh.nFz)
+            if self.mesh._meshType == "TREE":
+                ind_active = self.active_cells
+                if ind_active is None:
+                    ind_active = np.ones(self.mesh.nC, dtype="bool")
+                active_cells_Fz = (
+                    self.mesh.average_cell_to_total_face_z() * ind_active
+                ) >= 1
+                self._Pafz = utils.speye(self.mesh.ntFz)[:, active_cells_Fz]
             else:
-                # if getattr(self.mesh, 'aveCC2Fz', None) is not None:
-                if self.mesh._meshType == "TREE":
-                    if self.regularization_type == "Tikhonov":
-                        indActive_Fz = (self.mesh.aveFz2CC.T * self.indActive) >= 1
-                        self._Pafz = utils.speye(self.mesh.nFz)[:, indActive_Fz]
-                    else:
-                        indActive_Fz = (
-                            self.mesh._aveCC2FzStencil() * self.indActive
-                        ) >= 1
-                        self._Pafz = utils.speye(self.mesh.ntFz)[:, indActive_Fz]
+                if self.active_cells is None:
+                    self._Pafz = utils.speye(self.mesh.nFz)
                 else:
-                    indActive_Fz = (self.mesh.aveFz2CC.T * self.indActive) >= 1
-                    self._Pafz = utils.speye(self.mesh.nFz)[:, indActive_Fz]
+                    active_cells_Fz = (self.mesh.aveFz2CC.T * self.active_cells) >= 1
+                    self._Pafz = utils.speye(self.mesh.nFz)[:, active_cells_Fz]
         return self._Pafz
 
     @property
-    def aveFx2CC(self):
+    def average_face_to_cell(self) -> sp.csr_matrix:
         """
-        averaging from active cell centers to active x-faces
+        Vertically stacked matrix of cell averaging operators from active
+        cell centers to active faces along each dimension of the mesh.
+        """
+        if self.dim == 1:
+            return self.aveFx2CC
+        elif self.dim == 2:
+            return sp.hstack([self.aveFx2CC, self.aveFy2CC])
+        else:
+            return sp.hstack([self.aveFx2CC, self.aveFy2CC, self.aveFz2CC])
 
-        :rtype: scipy.sparse.csr_matrix
-        :return: averaging from active cell centers to active x-faces
+    @property
+    def aveFx2CC(self) -> sp.csr_matrix:
+        """
+        Averaging from active cell centers to active x-faces.
         """
         if getattr(self, "_aveFx2CC", None) is None:
             if self.mesh._meshType == "TREE":
-                if self.regularization_type == "Tikhonov":
-                    self._aveFx2CC = self.Pac.T * self.mesh.aveFx2CC * self.Pafx
-
-                else:
-                    nCinRow = utils.mkvc((self.aveCC2Fx.T).sum(1))
-                    nCinRow[nCinRow > 0] = 1.0 / nCinRow[nCinRow > 0]
-                    self._aveFx2CC = utils.sdiag(nCinRow) * self.aveCC2Fx.T
-
+                nCinRow = utils.mkvc((self.aveCC2Fx.T).sum(1))
+                nCinRow[nCinRow > 0] = 1.0 / nCinRow[nCinRow > 0]
+                self._aveFx2CC = utils.sdiag(nCinRow) * self.aveCC2Fx.T
             else:
                 self._aveFx2CC = self.Pac.T * self.mesh.aveFx2CC * self.Pafx
 
         return self._aveFx2CC
 
     @property
-    def aveCC2Fx(self):
+    def aveCC2Fx(self) -> sp.csr_matrix:
         """
-        averaging from active x-faces to active cell centers
-
-        :rtype: scipy.sparse.csr_matrix
-        :return: averaging matrix from active x-faces to active cell centers
+        Averaging from active x-faces to active cell centers.
         """
         if getattr(self, "_aveCC2Fx", None) is None:
-
-            # if getattr(self.mesh, 'aveCC2Fx', None) is not None:
             if self.mesh._meshType == "TREE":
-                if self.regularization_type == "Tikhonov":
-                    self._aveCC2Fx = (
-                        utils.sdiag(1.0 / (self.aveFx2CC.T).sum(1)) * self.aveFx2CC.T
-                    )
-                else:
-                    self._aveCC2Fx = (
-                        self.Pafx.T * self.mesh._aveCC2FxStencil() * self.Pac
-                    )
+                self._aveCC2Fx = (
+                    self.Pafx.T * self.mesh.average_cell_to_total_face_x() * self.Pac
+                )
             else:
                 self._aveCC2Fx = (
                     utils.sdiag(1.0 / (self.aveFx2CC.T).sum(1)) * self.aveFx2CC.T
@@ -231,47 +234,34 @@ class RegularizationMesh(props.BaseSimPEG):
         return self._aveCC2Fx
 
     @property
-    def aveFy2CC(self):
+    def aveFy2CC(self) -> sp.csr_matrix:
         """
-        averaging from active cell centers to active y-faces
-
-        :rtype: scipy.sparse.csr_matrix
-        :return: averaging from active cell centers to active y-faces
+        Averaging from active cell centers to active y-faces.
         """
         if getattr(self, "_aveFy2CC", None) is None:
             if self.mesh._meshType == "TREE":
-                if self.regularization_type == "Tikhonov":
-                    self._aveFy2CC = self.Pac.T * self.mesh.aveFy2CC * self.Pafy
-
-                else:
-                    nCinRow = utils.mkvc((self.aveCC2Fy.T).sum(1))
-                    nCinRow[nCinRow > 0] = 1.0 / nCinRow[nCinRow > 0]
-                    self._aveFy2CC = utils.sdiag(nCinRow) * self.aveCC2Fy.T
-
+                nCinRow = utils.mkvc((self.aveCC2Fy.T).sum(1))
+                nCinRow[nCinRow > 0] = 1.0 / nCinRow[nCinRow > 0]
+                self._aveFy2CC = utils.sdiag(nCinRow) * self.aveCC2Fy.T
+            elif self.mesh._meshType == "CYL" and self.mesh.is_symmetric:
+                return sp.csr_matrix((self.nC, 0))
             else:
                 self._aveFy2CC = self.Pac.T * self.mesh.aveFy2CC * self.Pafy
 
         return self._aveFy2CC
 
     @property
-    def aveCC2Fy(self):
+    def aveCC2Fy(self) -> sp.csr_matrix:
         """
-        averaging from active y-faces to active cell centers
-
-        :rtype: scipy.sparse.csr_matrix
-        :return: averaging matrix from active y-faces to active cell centers
+        Averaging matrix from active y-faces to active cell centers.
         """
         if getattr(self, "_aveCC2Fy", None) is None:
-            # if getattr(self.mesh, 'aveCC2Fy', None) is not None:
             if self.mesh._meshType == "TREE":
-                if self.regularization_type == "Tikhonov":
-                    self._aveCC2Fy = (
-                        utils.sdiag(1.0 / (self.aveFy2CC.T).sum(1)) * self.aveFy2CC.T
-                    )
-                else:
-                    self._aveCC2Fy = (
-                        self.Pafy.T * self.mesh._aveCC2FyStencil() * self.Pac
-                    )
+                self._aveCC2Fy = (
+                    self.Pafy.T * self.mesh.average_cell_to_total_face_y() * self.Pac
+                )
+            elif self.mesh._meshType == "CYL" and self.mesh.is_symmetric:
+                return sp.csr_matrix((0, self.nC))
             else:
                 self._aveCC2Fy = (
                     utils.sdiag(1.0 / (self.aveFy2CC.T).sum(1)) * self.aveFy2CC.T
@@ -279,47 +269,30 @@ class RegularizationMesh(props.BaseSimPEG):
         return self._aveCC2Fy
 
     @property
-    def aveFz2CC(self):
+    def aveFz2CC(self) -> sp.csr_matrix:
         """
-        averaging from active cell centers to active z-faces
-
-        :rtype: scipy.sparse.csr_matrix
-        :return: averaging from active cell centers to active z-faces
+        Averaging from active cell centers to active z-faces.
         """
         if getattr(self, "_aveFz2CC", None) is None:
             if self.mesh._meshType == "TREE":
-                if self.regularization_type == "Tikhonov":
-                    self._aveFz2CC = self.Pac.T * self.mesh.aveFz2CC * self.Pafz
-
-                else:
-                    nCinRow = utils.mkvc((self.aveCC2Fz.T).sum(1))
-                    nCinRow[nCinRow > 0] = 1.0 / nCinRow[nCinRow > 0]
-                    self._aveFz2CC = utils.sdiag(nCinRow) * self.aveCC2Fz.T
-
+                nCinRow = utils.mkvc((self.aveCC2Fz.T).sum(1))
+                nCinRow[nCinRow > 0] = 1.0 / nCinRow[nCinRow > 0]
+                self._aveFz2CC = utils.sdiag(nCinRow) * self.aveCC2Fz.T
             else:
                 self._aveFz2CC = self.Pac.T * self.mesh.aveFz2CC * self.Pafz
 
         return self._aveFz2CC
 
     @property
-    def aveCC2Fz(self):
+    def aveCC2Fz(self) -> sp.csr_matrix:
         """
-        averaging from active z-faces to active cell centers
-
-        :rtype: scipy.sparse.csr_matrix
-        :return: averaging matrix from active z-faces to active cell centers
+        Averaging matrix from active z-faces to active cell centers.
         """
         if getattr(self, "_aveCC2Fz", None) is None:
-            # if getattr(self.mesh, 'aveCC2Fz', None) is not None:
             if self.mesh._meshType == "TREE":
-                if self.regularization_type == "Tikhonov":
-                    self._aveCC2Fz = (
-                        utils.sdiag(1.0 / (self.aveFz2CC.T).sum(1)) * self.aveFz2CC.T
-                    )
-                else:
-                    self._aveCC2Fz = (
-                        self.Pafz.T * self.mesh._aveCC2FzStencil() * self.Pac
-                    )
+                self._aveCC2Fz = (
+                    self.Pafz.T * self.mesh.average_cell_to_total_face_z() * self.Pac
+                )
             else:
                 self._aveCC2Fz = (
                     utils.sdiag(1.0 / (self.aveFz2CC.T).sum(1)) * self.aveFz2CC.T
@@ -327,128 +300,147 @@ class RegularizationMesh(props.BaseSimPEG):
         return self._aveCC2Fz
 
     @property
-    def cellDiffx(self):
-        """
-        cell centered difference in the x-direction
-
-        :rtype: scipy.sparse.csr_matrix
-        :return: differencing matrix for active cells in the x-direction
-        """
-        if getattr(self, "_cellDiffx", None) is None:
-            self._cellDiffx = self.Pafx.T * self.mesh.cell_gradient_x * self.Pac
-        return self._cellDiffx
+    def base_length(self) -> float:
+        """The smallest core cell size."""
+        if getattr(self, "_base_length", None) is None:
+            self._base_length = self.mesh.edge_lengths.min()
+        return self._base_length
 
     @property
-    def cellDiffy(self):
+    def cell_gradient(self) -> sp.csr_matrix:
         """
-        cell centered difference in the y-direction
-
-        :rtype: scipy.sparse.csr_matrix
-        :return: differencing matrix for active cells in the y-direction
+        Vertically stacked matrix of cell gradients along each dimension of
+        the mesh.
         """
-        if getattr(self, "_cellDiffy", None) is None:
-            self._cellDiffy = self.Pafy.T * self.mesh.cellGrady * self.Pac
-        return self._cellDiffy
-
-    @property
-    def cellDiffz(self):
-        """
-        cell centered difference in the z-direction
-
-        :rtype: scipy.sparse.csr_matrix
-        :return: differencing matrix for active cells in the z-direction
-        """
-        if getattr(self, "_cellDiffz", None) is None:
-            self._cellDiffz = self.Pafz.T * self.mesh.cellGradz * self.Pac
-        return self._cellDiffz
-
-    @property
-    def faceDiffx(self):
-        """
-        x-face differences
-
-        :rtype: scipy.sparse.csr_matrix
-        :return: differencing matrix for active faces in the x-direction
-        """
-        if getattr(self, "_faceDiffx", None) is None:
-            self._faceDiffx = self.Pac.T * self.mesh.face_x_divergence * self.Pafx
-        return self._faceDiffx
-
-    @property
-    def faceDiffy(self):
-        """
-        y-face differences
-
-        :rtype: scipy.sparse.csr_matrix
-        :return: differencing matrix for active faces in the y-direction
-        """
-        if getattr(self, "_faceDiffy", None) is None:
-            self._faceDiffy = self.Pac.T * self.mesh.faceDivy * self.Pafy
-        return self._faceDiffy
-
-    @property
-    def faceDiffz(self):
-        """
-        z-face differences
-
-        :rtype: scipy.sparse.csr_matrix
-        :return: differencing matrix for active faces in the z-direction
-        """
-        if getattr(self, "_faceDiffz", None) is None:
-            self._faceDiffz = self.Pac.T * self.mesh.faceDivz * self.Pafz
-        return self._faceDiffz
-
-    @property
-    def cellDiffxStencil(self):
-        """
-        cell centered difference stencil (no cell lengths include) in the
-        x-direction
-
-        :rtype: scipy.sparse.csr_matrix
-        :return: differencing matrix for active cells in the x-direction
-        """
-        if getattr(self, "_cellDiffxStencil", None) is None:
-
-            self._cellDiffxStencil = (
-                self.Pafx.T * self.mesh._cellGradxStencil * self.Pac
+        if self.dim == 1:
+            return self.cell_gradient_x
+        elif self.dim == 2:
+            return sp.vstack([self.cell_gradient_x, self.cell_gradient_y])
+        else:
+            return sp.vstack(
+                [self.cell_gradient_x, self.cell_gradient_y, self.cell_gradient_z]
             )
-        return self._cellDiffxStencil
 
     @property
-    def cellDiffyStencil(self):
+    def cell_gradient_x(self) -> sp.csr_matrix:
         """
-        cell centered difference stencil (no cell lengths include) in the
-        y-direction
-
-        :rtype: scipy.sparse.csr_matrix
-        :return: differencing matrix for active cells in the y-direction
+        Cell centered gradient matrix for active cells in the x-direction.
         """
-        if self.dim < 2:
-            return None
-        if getattr(self, "_cellDiffyStencil", None) is None:
-
-            self._cellDiffyStencil = (
-                self.Pafy.T * self.mesh._cellGradyStencil * self.Pac
-            )
-        return self._cellDiffyStencil
+        if getattr(self, "_cell_gradient_x", None) is None:
+            if self.mesh._meshType == "TREE":
+                self._cell_gradient_x = (
+                    self.Pafx.T
+                    * utils.sdiag(
+                        self.mesh.average_cell_to_total_face_x()
+                        * (self.mesh.h_gridded[:, 0] ** -1)
+                    )
+                    * self.mesh.stencil_cell_gradient_x
+                    * self.Pac
+                )
+            else:
+                self._cell_gradient_x = (
+                    self.Pafx.T * self.mesh.cell_gradient_x * self.Pac
+                )
+        return self._cell_gradient_x
 
     @property
-    def cellDiffzStencil(self):
+    def cell_gradient_y(self) -> sp.csr_matrix:
         """
-        cell centered difference stencil (no cell lengths include) in the
-        y-direction
-
-        :rtype: scipy.sparse.csr_matrix
-        :return: differencing matrix for active cells in the y-direction
+        Cell centered gradient matrix for active cells in the y-direction.
         """
-        if self.dim < 3:
-            return None
-        if getattr(self, "_cellDiffzStencil", None) is None:
+        if getattr(self, "_cell_gradient_y", None) is None:
+            if self.mesh._meshType == "TREE":
+                self._cell_gradient_y = (
+                    self.Pafy.T
+                    * utils.sdiag(
+                        self.mesh.average_cell_to_total_face_y()
+                        * (self.mesh.h_gridded[:, 1] ** -1)
+                    )
+                    * self.mesh.stencil_cell_gradient_y
+                    * self.Pac
+                )
+            else:
+                self._cell_gradient_y = (
+                    self.Pafy.T * self.mesh.cell_gradient_y * self.Pac
+                )
+        return self._cell_gradient_y
 
-            self._cellDiffzStencil = (
-                self.Pafz.T * self.mesh._cellGradzStencil * self.Pac
-            )
-        return self._cellDiffzStencil
+    @property
+    def cell_gradient_z(self) -> sp.csr_matrix:
+        """
+        Cell centered gradient matrix for active cells in the z-direction.
+        """
+        if getattr(self, "_cell_gradient_z", None) is None:
+            if self.mesh._meshType == "TREE":
+                self._cell_gradient_z = (
+                    self.Pafz.T
+                    * utils.sdiag(
+                        self.mesh.average_cell_to_total_face_z()
+                        * (self.mesh.h_gridded[:, 2] ** -1)
+                    )
+                    * self.mesh.stencil_cell_gradient_z
+                    * self.Pac
+                )
+            else:
+                self._cell_gradient_z = (
+                    self.Pafz.T * self.mesh.cell_gradient_z * self.Pac
+                )
+        return self._cell_gradient_z
+
+    cellDiffx = deprecate_property(
+        cell_gradient_x,
+        "cellDiffx",
+        "cell_gradient_x",
+        "0.19.0",
+        error=False,
+        future_warn=True,
+    )
+    cellDiffy = deprecate_property(
+        cell_gradient_y,
+        "cellDiffy",
+        "cell_gradient_y",
+        "0.19.0",
+        error=False,
+        future_warn=True,
+    )
+    cellDiffz = deprecate_property(
+        cell_gradient_z,
+        "cellDiffz",
+        "cell_gradient_z",
+        "0.19.0",
+        error=False,
+        future_warn=True,
+    )
+
+    @property
+    def cell_distances_x(self) -> np.ndarray:
+        """
+        Cell center distance array along the x-direction.
+        """
+        if getattr(self, "_cell_distances_x", None) is None:
+            Ave = self.aveCC2Fx
+            self._cell_distances_x = Ave * (self.Pac.T * self.mesh.h_gridded[:, 0])
+        return self._cell_distances_x
+
+    @property
+    def cell_distances_y(self) -> np.ndarray:
+        """
+        Cell center distance array along the y-direction.
+        """
+        if getattr(self, "_cell_distances_y", None) is None:
+            Ave = self.aveCC2Fy
+            self._cell_distances_y = Ave * (self.Pac.T * self.mesh.h_gridded[:, 1])
+        return self._cell_distances_y
+
+    @property
+    def cell_distances_z(self) -> np.ndarray:
+        """
+        Cell center distance array along the z-direction.
+        """
+        if getattr(self, "_cell_distances_z", None) is None:
+            Ave = self.aveCC2Fz
+            self._cell_distances_z = Ave * (self.Pac.T * self.mesh.h_gridded[:, 2])
+        return self._cell_distances_z
 
 
 # Make it look like it's in the regularization module

@@ -1,6 +1,5 @@
 import unittest
-from scipy.constants import mu_0
-from SimPEG.electromagnetics.utils.testing_utils import getFDEMProblem, crossCheckTest
+from SimPEG.electromagnetics.utils.testing_utils import crossCheckTest
 
 testEJ = True
 testBH = True
@@ -351,7 +350,3 @@ class FDEM_CrossCheck(unittest.TestCase):
                     SrcList, "h", "b", ["MagneticField", "z", "i"], TOL=TOLEJHB
                 )
             )
-
-
-if __name__ == "__main__":
-    unittest.main()

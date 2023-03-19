@@ -10,7 +10,6 @@ sounding data over a 1D layered Earth. In this tutorial, we focus on the followi
     - How to define the survey
     - How to predict voltage or apparent resistivity data
     - The units of the model and resulting data
-    - 1D simulation for DC resistivity
 
 For this tutorial, we will simulate sounding data over a layered Earth using
 a Wenner array. The end product is a sounding curve which tells us how the
@@ -60,7 +59,6 @@ electrode_separations = np.linspace(a_min, a_max, n_stations)
 source_list = []  # create empty array for sources to live
 
 for ii in range(0, len(electrode_separations)):
-
     # Extract separation parameter for sources and receivers
     a = electrode_separations[ii]
 
@@ -90,7 +88,8 @@ survey = dc.Survey(source_list)
 # Here, we define the layer thicknesses and electrical resistivities for our
 # 1D simulation. If we have N layers, we define N electrical resistivity
 # values and N-1 layer thicknesses. The lowest layer is assumed to extend to
-# infinity.
+# infinity. In the case of a halfspace, the layer thicknesses would be
+# an empty array.
 #
 
 # Define layer thicknesses.
@@ -149,7 +148,6 @@ plt.show()
 #
 
 if write_output:
-
     dir_path = os.path.dirname(__file__).split(os.path.sep)
     dir_path.extend(["outputs"])
     dir_path = os.path.sep.join(dir_path) + os.path.sep

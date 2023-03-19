@@ -1,17 +1,13 @@
 import numpy as np
 import sys
 import gc
-import warnings
-from ....utils.code_utils import deprecate_class
-import properties
 
 from .... import props
-from .... import maps
 from .data import Data
-from ....utils import sdiag
+from ....utils import sdiag, validate_type, validate_active_indices
+import scipy.sparse as sp
 
-from ...base import BaseEMSimulation
-from ..resistivity.fields import FieldsDC, Fields3DCellCentered, Fields3DNodal
+from ..induced_polarization.simulation import BaseIPSimulation
 from ..induced_polarization import (
     Simulation3DCellCentered as BaseSimulation3DCellCentered,
 )
@@ -19,39 +15,133 @@ from ..induced_polarization import Simulation3DNodal as BaseSimulation3DNodal
 from .survey import Survey
 
 
-class BaseSIPSimulation(BaseEMSimulation):
-
-    sigma = props.PhysicalProperty("Electrical conductivity (S/m)")
-
-    rho = props.PhysicalProperty("Electrical resistivity (Ohm m)")
-
-    props.Reciprocal(sigma, rho)
-
-    eta, etaMap, etaDeriv = props.Invertible("Electrical Chargeability (V/V)")
-
-    tau, tauMap, tauDeriv = props.Invertible("Time constant (s)", default=0.1)
-
+class BaseSIPSimulation(BaseIPSimulation):
+    tau, tauMap, tauDeriv = props.Invertible("Time constant (s)")
     taui, tauiMap, tauiDeriv = props.Invertible("Inverse of time constant (1/s)")
-
-    c, cMap, cDeriv = props.Invertible("Frequency dependency", default=0.5)
-
     props.Reciprocal(tau, taui)
 
-    survey = properties.Instance("an SIP survey object", Survey, required=True)
+    c, cMap, cDeriv = props.Invertible("Frequency dependency")
 
-    fieldsPair = FieldsDC
     Ainv = None
     _f = None
-    actinds = None
-    storeJ = False
     _Jmatrix = None
-    actMap = None
-    n_pulse = 1
+    _dc_voltage_set = False
 
     _eta_store = None
     _taui_store = None
     _c_store = None
     _pred = None
+
+    def __init__(
+        self,
+        mesh,
+        survey=None,
+        tau=0.1,
+        tauMap=None,
+        taui=None,
+        tauiMap=None,
+        c=0.5,
+        cMap=None,
+        storeJ=False,
+        actinds=None,
+        storeInnerProduct=True,
+        **kwargs
+    ):
+        super().__init__(mesh=mesh, survey=survey, **kwargs)
+        self.tau = tau
+        self.taui = taui
+        self.tauMap = tauMap
+        self.tauiMap = tauiMap
+        self.c = c
+        self.cMap = cMap
+        self.storeJ = storeJ
+        self.storeInnerProduct = storeInnerProduct
+        self.actinds = actinds
+
+    @property
+    def survey(self):
+        """The SIP survey object.
+
+        Returns
+        -------
+        SimPEG.electromagnetics.static.spectral_induced_polarization.survey.Survey
+        """
+        if self._survey is None:
+            raise AttributeError("Simulation must have a survey")
+        return self._survey
+
+    @survey.setter
+    def survey(self, value):
+        if value is not None:
+            value = validate_type("survey", value, Survey, cast=False)
+        self._survey = value
+
+    @property
+    def actinds(self):
+        """Active indices when storing J.
+
+        Returns
+        -------
+        (mesh.n_cells) numpy.ndarray of bool
+        """
+        return self._actinds
+
+    @actinds.setter
+    def actinds(self, value):
+        if self.storeJ:
+            if value is None:
+                value = np.ones(self.mesh.n_cells, dtype=bool)
+            value = validate_active_indices("actinds", value, self.mesh.n_cells)
+            self._actinds = value
+            self._P = sp.eye(self.mesh.n_cells, format="csr")[:, value]
+
+    @property
+    def storeInnerProduct(self):
+        """Whether to store inner product matrices
+
+        Returns
+        -------
+        bool
+        """
+        return self._storeInnerProduct
+
+    @storeInnerProduct.setter
+    def storeInnerProduct(self, value):
+        self._storeInnerProduct = validate_type("storeInnerProduct", value, bool)
+
+    @property
+    def storeJ(self):
+        """Whether to store the sensitivity matrix
+
+        Returns
+        -------
+        bool
+        """
+        return self._storeJ
+
+    @storeJ.setter
+    def storeJ(self, value):
+        self._storeJ = validate_type("storeJ", value, bool)
+
+    @property
+    def n(self):
+        return self.mesh.n_nodes
+
+    @property
+    def sigmaDeriv(self):
+        if self.storeJ:
+            dsigma_dlogsigma = sdiag(self.sigma) * self._P
+        else:
+            dsigma_dlogsigma = sdiag(self.sigma)
+        return -dsigma_dlogsigma
+
+    @property
+    def rhoDeriv(self):
+        if self.storeJ:
+            drho_dlogrho = sdiag(self.rho) * self._P
+        else:
+            drho_dlogrho = sdiag(self.rho)
+        return drho_dlogrho
 
     @property
     def etaDeriv_store(self):
@@ -142,7 +232,6 @@ class BaseSIPSimulation(BaseEMSimulation):
             return self.get_multi_pulse_response(t, self.get_peta_eta_deriv_pulse_off)
 
     def PetaEtaDeriv(self, t, v, adjoint=False):
-
         etaDeriv = self.etaDeriv_store
 
         v = np.array(v, dtype=float)
@@ -152,7 +241,7 @@ class BaseSIPSimulation(BaseEMSimulation):
             if v.ndim == 1:
                 return etaDeriv.T * (dpetadeta * v)
             else:
-                return etaDeriv.T * (Utils.sdiag(dpetadeta) * v)
+                return etaDeriv.T * (sdiag(dpetadeta) * v)
         else:
             return dpetadeta * (etaDeriv * v)
 
@@ -192,7 +281,7 @@ class BaseSIPSimulation(BaseEMSimulation):
             if v.ndim == 1:
                 return tauiDeriv.T * (dpetadtaui * v)
             else:
-                return tauiDeriv.T * (Utils.sdiag(dpetadtaui) * v)
+                return tauiDeriv.T * (sdiag(dpetadtaui) * v)
         else:
             return dpetadtaui * (tauiDeriv * v)
 
@@ -233,36 +322,33 @@ class BaseSIPSimulation(BaseEMSimulation):
             if v.ndim == 1:
                 return cDeriv.T * (dpetadc * v)
             else:
-                return cDeriv.T * (Utils.sdiag(dpetadc) * v)
+                return cDeriv.T * (sdiag(dpetadc) * v)
         else:
             return dpetadc * (cDeriv * v)
 
     def fields(self, m):
-
+        if self.verbose:
+            print(">> Compute DC fields")
         if self._f is None:
+            # re-uses the DC simulation's fields method
+            # This grabs the class just above BasIPSimulation
+            self._f = super(BaseIPSimulation, self).fields(None)
 
-            if self.verbose:
-                print(">> Compute DC fields")
-
-            self._f = self.fieldsPair(self)
-
-            if self.Ainv is None:
-                A = self.getA()
-                self.Ainv = self.solver(A, **self.solver_opts)
-            RHS = self.getRHS()
-            u = self.Ainv * RHS
-            Srcs = self.survey.source_list
-            self._f[Srcs, self._solutionType] = u
-
-            # Compute DC voltage
-            if self.data_type == "apparent_chargeability":
-                if self.verbose is True:
-                    print(">> Data type is apparaent chargeability")
-                for src in self.survey.source_list:
-                    for rx in src.receiver_list:
-                        rx._dc_voltage = rx.eval(src, self.mesh, self._f)
-                        rx.data_type = self.data_type
-                        rx._Ps = {}
+        if not self._dc_voltage_set:
+            try:
+                f = self.fields_to_space(self._f)
+            except AttributeError:
+                f = self._f
+            # loop through receievers to check if they need to set the _dc_voltage
+            for src in self.survey.source_list:
+                for rx in src.receiver_list:
+                    if rx.data_type == "apparent_chargeability":
+                        rx.data_type = "volt"
+                        rx._dc_voltage = rx.eval(src, self.mesh, f)
+                        if rx.storeProjections:
+                            P = rx._Ps[self.mesh]
+                            rx._Ps[self.mesh] = sdiag(1.0 / rx.dc_voltage) * P
+                        rx.data_type = "apparent_chargeability"
 
         self._pred = self.forward(m, f=self._f)
 
@@ -283,7 +369,7 @@ class BaseSIPSimulation(BaseEMSimulation):
                 f = self.fields(m)
 
             Jt = np.zeros(
-                (self.actMap.nP, int(self.survey.nD / self.survey.unique_times.size)),
+                (self._P.shape[1], int(self.survey.nD / self.survey.unique_times.size)),
                 order="F",
             )
             istrt = int(0)
@@ -310,15 +396,13 @@ class BaseSIPSimulation(BaseEMSimulation):
             if self.verbose:
                 collected = gc.collect()
                 print("Garbage collector: collected %d objects." % (collected))
-            # clean field object
-            self._f = []
             # clean all factorization
             if self.Ainv is not None:
                 self.Ainv.clean()
 
             return self._Jmatrix
 
-    def getJtJdiag(self, m, Wd):
+    def getJtJdiag(self, m, Wd, f=None):
         """
         Compute JtJ using adjoint problem. Still we never form
         JtJ
@@ -327,11 +411,11 @@ class BaseSIPSimulation(BaseEMSimulation):
             print(">> Compute trace(JtJ)")
         ntime = len(self.survey.unique_times)
         JtJdiag = np.zeros_like(m)
-        J = self.getJ(m, f=None)
-        wd = (Wd.diagonal()).reshape((self.survey.locations_n, ntime), order="F")
+        J = self.getJ(m, f=f)
+        wd = Wd.diagonal().reshape((self.survey.locations_n, ntime), order="F")
         for tind in range(ntime):
             t = self.survey.unique_times[tind]
-            Jtv = self.actMap.P * J.T * Utils.sdiag(wd[:, tind])
+            Jtv = self._P * J.T * sdiag(wd[:, tind])
             JtJdiag += (
                 (self.PetaEtaDeriv(t, Jtv, adjoint=True) ** 2).sum(axis=1)
                 + (self.PetaTauiDeriv(t, Jtv, adjoint=True) ** 2).sum(axis=1)
@@ -341,7 +425,6 @@ class BaseSIPSimulation(BaseEMSimulation):
 
     # @profile
     def forward(self, m, f=None):
-
         if self.verbose:
             print(">> Compute predicted data")
 
@@ -362,15 +445,12 @@ class BaseSIPSimulation(BaseEMSimulation):
             self.model = m
             for tind in range(ntime):
                 Jv.append(
-                    J.dot(
-                        self.actMap.P.T * self.get_peta(self.survey.unique_times[tind])
-                    )
+                    J.dot(self._P.T * self.get_peta(self.survey.unique_times[tind]))
                 )
-            return self.sign * np.hstack(Jv)
+            return np.hstack(Jv)
 
         # Do not store sensitivity matrix (memory-wise efficient)
         else:
-
             if f is None:
                 f = self.fields(m)
 
@@ -393,15 +473,15 @@ class BaseSIPSimulation(BaseEMSimulation):
                             df_dm_v = df_dmFun(src, du_dm_v, v, adjoint=False)
                             Jv.append(rx.evalDeriv(src, self.mesh, f, df_dm_v))
 
-            return self.sign * np.hstack(Jv)
+            return np.hstack(Jv)
 
     def dpred(self, m, f=None):
-        """
+        r"""
         Predicted data.
 
         .. math::
 
-            d_\\text{pred} = Pf(m)
+            d_\text{pred} = Pf(m)
 
         """
         if f is None:
@@ -410,7 +490,6 @@ class BaseSIPSimulation(BaseEMSimulation):
         # return self.forward(m, f=f)
 
     def Jvec(self, m, v, f=None):
-
         self.model = m
 
         Jv = []
@@ -421,24 +500,21 @@ class BaseSIPSimulation(BaseEMSimulation):
             ntime = len(self.survey.unique_times)
 
             for tind in range(ntime):
-
                 t = self.survey.unique_times[tind]
                 v0 = self.PetaEtaDeriv(t, v)
                 v1 = self.PetaTauiDeriv(t, v)
                 v2 = self.PetaCDeriv(t, v)
-                PTv = self.actMap.P.T * (v0 + v1 + v2)
+                PTv = self._P.T * (v0 + v1 + v2)
                 Jv.append(J.dot(PTv))
 
-            return self.sign * np.hstack(Jv)
+            return np.hstack(Jv)
 
         # Do not store sensitivity matrix (memory-wise efficient)
         else:
-
             if f is None:
                 f = self.fields(m)
 
             for tind in range(len(self.survey.unique_times)):
-
                 t = self.survey.unique_times[tind]
                 v0 = self.PetaEtaDeriv(t, v)
                 v1 = self.PetaTauiDeriv(t, v)
@@ -457,10 +533,9 @@ class BaseSIPSimulation(BaseEMSimulation):
                         Jv_temp = rx.evalDeriv(src, self.mesh, f, du_dm_v)
                         Jv.append(Jv_temp)
 
-            return self.sign * np.hstack(Jv)
+            return np.hstack(Jv)
 
     def Jtvec(self, m, v, f=None):
-
         self.model = m
 
         # When sensitivity matrix is stored
@@ -472,18 +547,17 @@ class BaseSIPSimulation(BaseEMSimulation):
 
             for tind in range(ntime):
                 t = self.survey.unique_times[tind]
-                Jtv = self.actMap.P * J.T.dot(v[:, tind])
+                Jtv = self._P * J.T.dot(v[:, tind])
                 Jtvec += (
                     self.PetaEtaDeriv(t, Jtv, adjoint=True)
                     + self.PetaTauiDeriv(t, Jtv, adjoint=True)
                     + self.PetaCDeriv(t, Jtv, adjoint=True)
                 )
 
-            return self.sign * Jtvec
+            return Jtvec
 
         # Do not store sensitivity matrix (memory-wise efficient)
         else:
-
             if f is None:
                 f = self.fields(m)
 
@@ -534,34 +608,7 @@ class BaseSIPSimulation(BaseEMSimulation):
                         self.survey.unique_times[tind], du_dmT[:, tind], adjoint=True
                     )
                 )
-
-            return self.sign * Jtv
-
-    def getSourceTerm(self):
-        """
-        takes concept of source and turns it into a matrix
-        """
-        """
-        Evaluates the sources, and puts them in matrix form
-
-        :rtype: (numpy.ndarray, numpy.ndarray)
-        :return: q (nC or nN, nSrc)
-        """
-
-        Srcs = self.survey.source_list
-
-        if self._formulation == "EB":
-            n = self.mesh.nN
-            # return NotImplementedError
-
-        elif self._formulation == "HJ":
-            n = self.mesh.nC
-
-        q = np.zeros((n, len(Srcs)))
-
-        for i, src in enumerate(Srcs):
-            q[:, i] = src.eval(self)
-        return q
+            return Jtv
 
     @property
     def deleteTheseOnModelUpdate(self):
@@ -573,141 +620,17 @@ class BaseSIPSimulation(BaseEMSimulation):
         ]
         return toDelete
 
-    @property
-    def MfRhoDerivMat(self):
-        """
-        Derivative of MfRho with respect to the model
-        """
-        if getattr(self, "_MfRhoDerivMat", None) is None:
-            if self.storeJ:
-                drho_dlogrho = sdiag(self.rho) * self.actMap.P
-            else:
-                drho_dlogrho = sdiag(self.rho)
-            self._MfRhoDerivMat = (
-                self.mesh.getFaceInnerProductDeriv(np.ones(self.mesh.nC))(
-                    np.ones(self.mesh.nF)
-                )
-                * drho_dlogrho
-            )
-        return self._MfRhoDerivMat
-
-    def MfRhoIDeriv(self, u, v, adjoint=False):
-        """
-        Derivative of :code:`MfRhoI` with respect to the model.
-        """
-        dMfRhoI_dI = -self.MfRhoI ** 2
-
-        if self.storeInnerProduct:
-            if adjoint:
-                return self.MfRhoDerivMat.T * (sdiag(u) * (dMfRhoI_dI.T * v))
-            else:
-                return dMfRhoI_dI * (sdiag(u) * (self.MfRhoDerivMat * v))
-        else:
-            if self.storeJ:
-                drho_dlogrho = sdiag(self.rho) * self.actMap.P
-            else:
-                drho_dlogrho = sdiag(self.rho)
-            dMf_drho = self.mesh.getFaceInnerProductDeriv(self.rho)(u)
-            if adjoint:
-                return drho_dlogrho.T * (dMf_drho.T * (dMfRhoI_dI.T * v))
-            else:
-                return dMfRhoI_dI * (dMf_drho * (drho_dlogrho * v))
-
-    @property
-    def MeSigmaDerivMat(self):
-        """
-        Derivative of MeSigma with respect to the model
-        """
-        if getattr(self, "_MeSigmaDerivMat", None) is None:
-            if self.storeJ:
-                dsigma_dlogsigma = sdiag(self.sigma) * self.actMap.P
-            else:
-                dsigma_dlogsigma = sdiag(self.sigma)
-            self._MeSigmaDerivMat = (
-                self.mesh.getEdgeInnerProductDeriv(np.ones(self.mesh.nC))(
-                    np.ones(self.mesh.nE)
-                )
-                * dsigma_dlogsigma
-            )
-        return self._MeSigmaDerivMat
-
-    # TODO: This should take a vector
-    def MeSigmaDeriv(self, u, v, adjoint=False):
-        """
-        Derivative of MeSigma with respect to the model times a vector (u)
-        """
-        if self.storeInnerProduct:
-            if adjoint:
-                return self.MeSigmaDerivMat.T * (sdiag(u) * v)
-            else:
-                return sdiag(u) * (self.MeSigmaDerivMat * v)
-        else:
-            if self.storeJ:
-                dsigma_dlogsigma = sdiag(self.sigma) * self.actMap.P
-            else:
-                dsigma_dlogsigma = sdiag(self.sigma)
-            if adjoint:
-                return dsigma_dlogsigma.T * (
-                    self.mesh.getEdgeInnerProductDeriv(self.sigma)(u).T * v
-                )
-            else:
-                return self.mesh.getEdgeInnerProductDeriv(self.sigma)(u) * (
-                    dsigma_dlogsigma * v
-                )
-
 
 class Simulation3DCellCentered(BaseSIPSimulation, BaseSimulation3DCellCentered):
-
-    _solutionType = "phiSolution"
-    _formulation = "HJ"  # CC potentials means J is on faces
-    fieldsPair = Fields3DCellCentered
-    sign = 1.0
-
-    def __init__(self, mesh, **kwargs):
-        super().__init__(mesh, **kwargs)
-        self.n = self.mesh.nC
-        if self.storeJ:
-            if self.actinds is None:
-                print("You did not put Active indices")
-                print("So, set actMap = IdentityMap(mesh)")
-                self.actinds = np.ones(mesh.nC, dtype=bool)
-
-            self.actMap = maps.InjectActiveCells(mesh, self.actinds, 0.0)
+    """
+    3D cell centered Spectral IP problem
+    """
 
 
 class Simulation3DNodal(BaseSIPSimulation, BaseSimulation3DNodal):
-
-    _solutionType = "phiSolution"
-    _formulation = "EB"  # N potentials means B is on faces
-    fieldsPair = Fields3DNodal
-    sign = -1.0
-
-    def __init__(self, mesh, **kwargs):
-        super().__init__(mesh, **kwargs)
-        self.n = self.mesh.nN
-
-        if self.storeJ:
-            if self.actinds is None:
-                print("You did not put Active indices")
-                print("So, set actMap = IdentityMap(mesh)")
-                self.actinds = np.ones(mesh.nC, dtype=bool)
-
-            self.actMap = maps.InjectActiveCells(mesh, self.actinds, 0.0)
+    """
+    3D nodal Spectral IP problem
+    """
 
 
 Simulation3DCellCentred = Simulation3DCellCentered
-
-
-############
-# Deprecated
-############
-
-
-@deprecate_class(removal_version="0.16.0", future_warn=True)
-class Problem3D_N(Simulation3DNodal):
-    pass
-
-
-@deprecate_class(removal_version="0.16.0", future_warn=True)
-class Problem3D_CC(Simulation3DCellCentered):
-    pass

@@ -1,10 +1,8 @@
 import numpy as np
-import properties
-from .utils import Counter, sdiag, timeIt, Identity
+from .utils import Counter, sdiag, timeIt, Identity, validate_type
 from .data import Data
 from .simulation import BaseSimulation
 from .objective_function import L2ObjectiveFunction
-from .utils.code_utils import deprecate_class, deprecate_property
 
 __all__ = ["L2DataMisfit"]
 
@@ -18,36 +16,73 @@ class BaseDataMisfit(L2ObjectiveFunction):
         term.
     """
 
-    data = properties.Instance(
-        "A SimPEG data class containing the observed data", Data, required=True
-    )
+    def __init__(self, data, simulation, debug=False, counter=None, **kwargs):
+        super().__init__(**kwargs)
 
-    simulation = properties.Instance(
-        "A SimPEG simulation", BaseSimulation, required=True
-    )
+        self.data = data
+        self.simulation = simulation
+        self.debug = debug
+        self.count = counter
+        self._has_fields = True
 
-    debug = properties.Bool(
-        "Print debugging information", default=False, required=False
-    )
+    @property
+    def data(self):
+        """A SimPEG data class containing the observed data.
 
-    counter = properties.Instance(
-        "Set this to a SimPEG.utils.Counter() if you want to count things",
-        Counter,
-        required=False,
-    )
+        Returns
+        -------
+        SimPEG.data.Data
+        """
+        return self._data
 
-    _has_fields = properties.Bool(
-        "Data Misfits take fields, handy to store them", default=True
-    )
+    @data.setter
+    def data(self, value):
+        self._data = validate_type("data", value, Data, cast=False)
 
-    def __init__(self, data=None, simulation=None, **kwargs):
-        if simulation is not None:
-            kwargs["simulation"] = simulation
+    @property
+    def simulation(self):
+        """A SimPEG simulation.
 
-        super(BaseDataMisfit, self).__init__(**kwargs)
+        Returns
+        -------
+        SimPEG.simulation.BaseSimulation
+        """
+        return self._simulation
 
-        if data is not None:
-            self.data = data
+    @simulation.setter
+    def simulation(self, value):
+        self._simulation = validate_type(
+            "simulation", value, BaseSimulation, cast=False
+        )
+
+    @property
+    def debug(self):
+        """Print debugging information.
+
+        Returns
+        -------
+        bool
+        """
+        return self._debug
+
+    @debug.setter
+    def debug(self, value):
+        self._debug = validate_type("debug", value, bool)
+
+    @property
+    def counter(self):
+        """Set this to a ``SimPEG.utils.Counter`` if you want to count things.
+
+        Returns
+        -------
+        SimPEG.utils.Counter or None
+        """
+        return self._counter
+
+    @counter.setter
+    def counter(self, value):
+        if value is not None:
+            value = validate_type("counter", value, Counter, cast=False)
 
     @property
     def nP(self):
@@ -126,20 +161,18 @@ class BaseDataMisfit(L2ObjectiveFunction):
             raise Exception("data must be set before a residual can be calculated.")
         return self.simulation.residual(m, self.data.dobs, f=f)
 
-    Wd = deprecate_property(
-        W, "Wd", new_name="W", removal_version="0.16.0", future_warn=True
-    )
-
 
 class L2DataMisfit(BaseDataMisfit):
-    """
+    r"""
     The data misfit with an l_2 norm:
 
     .. math::
 
-        \mu_\\text{data} = {1\over 2}\left|
-        \mathbf{W}_d (\mathbf{d}_\\text{pred} -
-        \mathbf{d}_\\text{obs}) \\right|_2^2
+        \mu_\text{data} =
+            \frac{1}{2}
+            \left|
+                \mathbf{W}_d (\mathbf{d}_\text{pred} - \mathbf{d}_\text{obs})
+            \right|_2^2
     """
 
     @timeIt
@@ -151,8 +184,7 @@ class L2DataMisfit(BaseDataMisfit):
 
     @timeIt
     def deriv(self, m, f=None):
-        """
-        deriv(m, f=None)
+        r"""
         Derivative of the data misfit
 
         .. math::
@@ -173,8 +205,8 @@ class L2DataMisfit(BaseDataMisfit):
 
     @timeIt
     def deriv2(self, m, v, f=None):
-        """
-        deriv2(m, v, f=None)
+        r"""
+        Second derivative of the data misfit
 
         .. math::
 
@@ -191,61 +223,3 @@ class L2DataMisfit(BaseDataMisfit):
         return self.simulation.Jtvec_approx(
             m, self.W * (self.W * self.simulation.Jvec_approx(m, v, f=f)), f=f
         )
-
-
-@deprecate_class(removal_version="0.16.0", future_warn=True)
-class l2_DataMisfit(L2DataMisfit):
-    def __init__(self, survey):
-        try:
-            simulation = survey.simulation
-        except AttributeError:
-            raise Exception("Survey object must be paired to a problem")
-        self.survey = survey
-        try:
-            dobs = survey.dobs
-            rel_err = survey.std
-        except AttributeError:
-            raise Exception("Survey object must have been given a data object")
-        # create a Data object...
-        # Get the survey's simulation that was paired to it....
-        # simulation = survey.simulation
-
-        self.data = Data(survey, dobs, relative_error=rel_err)
-
-        eps_factor = 1e-5  #: factor to multiply by the norm of the data to create floor
-        if getattr(self.survey, "eps", None) is None:
-            print(
-                "SimPEG.DataMisfit.l2_DataMisfit assigning default eps "
-                "of 1e-5 * ||dobs||"
-            )
-            eps = np.linalg.norm(survey.dobs, 2) * eps_factor  # default
-        else:
-            eps = self.survey.eps
-
-        self.data.noise_floor = eps
-
-        super().__init__(self.data, simulation)
-
-    @property
-    def noise_floor(self):
-        return self.data.noise_floor
-
-    eps = deprecate_property(
-        noise_floor,
-        "eps",
-        new_name="data.noise_floor",
-        removal_version="0.16.0",
-        future_warn=True,
-    )
-
-    @property
-    def relative_error(self):
-        return self.data.relative_error
-
-    std = deprecate_property(
-        relative_error,
-        "std",
-        new_name="data.relative_error",
-        removal_version="0.16.0",
-        future_warn=True,
-    )

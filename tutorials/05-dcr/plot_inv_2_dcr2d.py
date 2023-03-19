@@ -29,12 +29,11 @@ from matplotlib.colors import LogNorm
 import tarfile
 
 from discretize import TreeMesh
-from discretize.utils import mkvc, refine_tree_xyz
+from discretize.utils import mkvc, refine_tree_xyz, active_from_xyz
 
-from SimPEG.utils import surface2ind_topo, model_builder
+from SimPEG.utils import model_builder
 from SimPEG import (
     maps,
-    data,
     data_misfit,
     regularization,
     optimization,
@@ -46,7 +45,6 @@ from SimPEG import (
 from SimPEG.electromagnetics.static import resistivity as dc
 from SimPEG.electromagnetics.static.utils.static_utils import (
     plot_pseudosection,
-    apparent_resistivity_from_voltage,
 )
 from SimPEG.utils.io_utils.io_utils_electromagnetics import read_dcip2d_ubc
 
@@ -227,7 +225,7 @@ mesh.finalize()
 topo_2d = np.unique(topo_xyz[:, [0, 2]], axis=0)
 
 # Find cells that lie below surface topography
-ind_active = surface2ind_topo(mesh, topo_2d)
+ind_active = active_from_xyz(mesh, topo_2d)
 
 # Extract survey from data object
 survey = dc_data.survey
@@ -270,7 +268,7 @@ starting_conductivity_model = background_conductivity * np.ones(nC)
 
 # Define the problem. Define the cells below topography and the mapping
 simulation = dc.simulation_2d.Simulation2DNodal(
-    mesh, survey=survey, sigmaMap=conductivity_map, Solver=Solver
+    mesh, survey=survey, sigmaMap=conductivity_map, solver=Solver, storeJ=True
 )
 
 #######################################################################
@@ -292,16 +290,13 @@ simulation = dc.simulation_2d.Simulation2DNodal(
 dmis = data_misfit.L2DataMisfit(data=dc_data, simulation=simulation)
 
 # Define the regularization (model objective function)
-reg = regularization.Simple(
+reg = regularization.WeightedLeastSquares(
     mesh,
-    indActive=ind_active,
-    mref=starting_conductivity_model,
-    alpha_s=0.01,
-    alpha_x=1,
-    alpha_y=1,
+    active_cells=ind_active,
+    reference_model=starting_conductivity_model,
 )
 
-reg.mrefInSmooth = True  # Reference model in smoothness term
+reg.reference_model_in_smooth = True  # Reference model in smoothness term
 
 # Define how the optimization problem is solved. Here we will use an
 # Inexact Gauss Newton approach.
@@ -415,7 +410,7 @@ recovered_conductivity[~ind_active] = np.NaN
 
 ax1 = fig.add_axes([0.14, 0.17, 0.68, 0.7])
 mesh.plot_image(
-    recovered_conductivity, normal="Y", ax=ax1, grid=False, pcolorOpts={"norm": norm}
+    recovered_conductivity, normal="Y", ax=ax1, grid=False, pcolor_opts={"norm": norm}
 )
 ax1.set_xlim(-600, 600)
 ax1.set_ylim(-600, 0)
@@ -452,7 +447,6 @@ cbar = 3 * [None]
 cplot = 3 * [None]
 
 for ii in range(0, 3):
-
     ax1[ii] = fig.add_axes([0.15, 0.72 - 0.33 * ii, 0.65, 0.21])
     cax1[ii] = fig.add_axes([0.81, 0.72 - 0.33 * ii, 0.03, 0.21])
     cplot[ii] = plot_pseudosection(

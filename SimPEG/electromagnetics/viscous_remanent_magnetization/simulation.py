@@ -1,12 +1,16 @@
+import discretize
 import numpy as np
 import scipy.sparse as sp
-import properties
-from ...utils.code_utils import deprecate_class, deprecate_property
 
 from ...simulation import BaseSimulation
 from ... import props
 from ... import maps
-from ...utils import mkvc
+from ...utils import (
+    mkvc,
+    validate_type,
+    validate_ndarray_with_shape,
+    validate_active_indices,
+)
 
 from .survey import SurveyVRM
 from .receivers import Point, SquareLoop
@@ -21,105 +25,103 @@ class BaseVRMSimulation(BaseSimulation):
     """"""
 
     _AisSet = False
-    refinement_factor = properties.Integer("Sensitivity refinement factor", min=0)
-    refinement_distance = properties.Array(
-        "Sensitivity refinement radii from sources", dtype=float
-    )
-    indActive = properties.Array("Topography active cells", dtype=bool)
 
-    ref_factor = deprecate_property(
-        refinement_factor,
-        "ref_factor",
-        new_name="refinement_factor",
-        removal_version="0.16.0",
-        future_warn=True,
-    )
-    ref_radius = deprecate_property(
-        refinement_distance,
-        "ref_radius",
-        new_name="refinement_distance",
-        removal_version="0.16.0",
-        future_warn=True,
-    )
+    def __init__(
+        self,
+        mesh,
+        survey=None,
+        refinement_factor=None,
+        refinement_distance=None,
+        indActive=None,
+        **kwargs,
+    ):
+        super().__init__(mesh=mesh, survey=survey, **kwargs)
 
-    def __init__(self, mesh=None, **kwargs):
-
-        refinement_factor = kwargs.pop("refinement_factor", None)
-        refinement_distance = kwargs.pop("refinement_distance", None)
-        indActive = kwargs.pop("indActive", None)
-
-        if len(mesh.h) != 3:
-            raise ValueError(
-                "Mesh must be 3D tensor or 3D tree. Current mesh is {}".format(
-                    len(mesh.h)
-                )
-            )
-
-        super(BaseVRMSimulation, self).__init__(mesh, **kwargs)
-
-        if refinement_factor is None and refinement_distance is None:
-            self.refinement_factor = 3
-            self.refinement_distance = list(
-                1.25
-                * np.mean(
-                    np.r_[np.min(mesh.h[0]), np.min(mesh.h[1]), np.min(mesh.h[2])]
-                )
-                * np.arange(1, 4)
-            )
-        elif refinement_factor is None and refinement_distance is not None:
-            self.refinement_factor = len(refinement_distance)
-            self.refinement_distance = refinement_distance
-        elif refinement_factor is not None and refinement_distance is None:
-            self.refinement_factor = refinement_factor
-            self.refinement_distance = list(
+        if refinement_distance is None:
+            if refinement_factor is None:
+                refinement_factor = 3
+            refinement_distance = (
                 1.25
                 * np.mean(
                     np.r_[np.min(mesh.h[0]), np.min(mesh.h[1]), np.min(mesh.h[2])]
                 )
                 * np.arange(1, refinement_factor + 1)
             )
-        else:
-            self.refinement_factor = refinement_factor
-            self.refinement_distance = refinement_distance
-
+        self.refinement_distance = refinement_distance
         if indActive is None:
-            self.indActive = np.ones(mesh.nC, dtype=bool)
-        else:
-            self.indActive = indActive
+            indActive = np.ones(self.mesh.n_cells, dtype=bool)
+        self.indActive = indActive
 
-    @properties.observer("refinement_factor")
-    def _refinement_factor_observer(self, change):
-        if change["value"] > 4:
-            print(
-                "Refinement factor larger than 4 may result in computations which exceed memory limits"
-            )
-        if self.refinement_distance is not None and change["value"] != len(
-            self.refinement_distance
-        ):
-            print(
-                "Number of refinement radii currently DOES NOT match refinement_factor"
-            )
-
-    @properties.observer("refinement_distance")
-    def _refinement_distance_validator(self, change):
-        if (
-            self.refinement_factor is not None
-            and len(change["value"]) != self.refinement_factor
-        ):
-            print("Number of refinement radii current DOES NOT match refinement_factor")
-
-    @properties.validator("indActive")
-    def _indActive_validator(self, change):
-
-        if len(change["value"]) != self.mesh.nC:
+    @BaseSimulation.mesh.setter
+    def mesh(self, value):
+        value = validate_type(
+            "mesh", value, (discretize.TensorMesh, discretize.TreeMesh), cast=False
+        )
+        if value.dim != 3:
             raise ValueError(
-                "Length of active topo cells array must equal number of mesh cells (nC = {})".format(
-                    self.mesh.nC
-                )
+                f"Mesh must be 3D tensor or 3D tree. Current mesh is {value.dim}"
             )
+        self._mesh = value
+
+    @property
+    def survey(self):
+        """The VRM survey.
+
+        Returns
+        -------
+        SimPEG.electromagnetics.viscous_temanent_magnetization.survey.Survey
+        """
+        if self._survey is None:
+            raise AttributeError("Simulation must have a survey.")
+        return self._survey
+
+    @survey.setter
+    def survey(self, value):
+        if value is not None:
+            value = validate_type("survey", value, SurveyVRM, cast=False)
+        self._survey = value
+
+    @property
+    def refinement_factor(self):
+        """The number of refinement distances.
+
+        Returns
+        -------
+        int
+        """
+        return len(self.refinement_distance)
+
+    @property
+    def refinement_distance(self):
+        """Sensitivity refinement radii from sources.
+
+        Returns
+        -------
+        numpy.ndarray
+        """
+        return self._refinement_distance
+
+    @refinement_distance.setter
+    def refinement_distance(self, value):
+        self._refinement_distance = validate_ndarray_with_shape(
+            "refinement_distance", value, shape=("*",)
+        )
+
+    @property
+    def indActive(self):
+        """Topography active cells.
+
+        Returns
+        -------
+        (mesh.n_cells) numpy.ndarray of bool
+        """
+        return self._indActive
+
+    @indActive.setter
+    def indActive(self, value):
+        self._indActive = validate_active_indices("indActive", value, self.mesh.n_cells)
 
     def _getH0matrix(self, xyz, pp):
-
         """
                 Creates sparse matrix containing inducing field components
                 for source pp
@@ -149,7 +151,6 @@ class BaseVRMSimulation(BaseSimulation):
         return h0
 
     def _getGeometryMatrix(self, xyzc, xyzh, pp):
-
         """
                 Creates the dense geometry matrix which maps from the magnetized voxel
                 cells to the receiver locations for source pp
@@ -171,7 +172,7 @@ class BaseVRMSimulation(BaseSimulation):
         srcObj = self.survey.source_list[pp]
 
         nC = np.shape(xyzc)[0]  # Number of cells
-        nRx = srcObj.nRx  # Number of receiver in all rxList
+        nRx = srcObj.nRx  # Number of receiver in all receiver_list
 
         ax = np.reshape(xyzc[:, 0] - xyzh[:, 0] / 2, (1, nC))
         bx = np.reshape(xyzc[:, 0] + xyzh[:, 0] / 2, (1, nC))
@@ -188,14 +189,12 @@ class BaseVRMSimulation(BaseSimulation):
         COUNT = 0
 
         for qq in range(0, len(srcObj.receiver_list)):
-
             rxObj = srcObj.receiver_list[qq]
             dComp = rxObj.orientation
             locs = rxObj.locations
             nLoc = np.shape(locs)[0]
 
             if isinstance(rxObj, Point) and not isinstance(rxObj, SquareLoop):
-
                 if dComp.lower() == "x":
                     for rr in range(0, nLoc):
                         u1 = locs[rr, 0] - ax
@@ -211,14 +210,14 @@ class BaseVRMSimulation(BaseSimulation):
                         w2 = locs[rr, 2] - bz
                         w2[np.abs(w2) < tol] = -np.min(xyzh[:, 2]) / tol2
 
-                        d111 = np.sqrt(u1 ** 2 + v1 ** 2 + w1 ** 2)
-                        d211 = np.sqrt(u2 ** 2 + v1 ** 2 + w1 ** 2)
-                        d221 = np.sqrt(u2 ** 2 + v2 ** 2 + w1 ** 2)
-                        d121 = np.sqrt(u1 ** 2 + v2 ** 2 + w1 ** 2)
-                        d122 = np.sqrt(u1 ** 2 + v2 ** 2 + w2 ** 2)
-                        d112 = np.sqrt(u1 ** 2 + v1 ** 2 + w2 ** 2)
-                        d212 = np.sqrt(u2 ** 2 + v1 ** 2 + w2 ** 2)
-                        d222 = np.sqrt(u2 ** 2 + v2 ** 2 + w2 ** 2)
+                        d111 = np.sqrt(u1**2 + v1**2 + w1**2)
+                        d211 = np.sqrt(u2**2 + v1**2 + w1**2)
+                        d221 = np.sqrt(u2**2 + v2**2 + w1**2)
+                        d121 = np.sqrt(u1**2 + v2**2 + w1**2)
+                        d122 = np.sqrt(u1**2 + v2**2 + w2**2)
+                        d112 = np.sqrt(u1**2 + v1**2 + w2**2)
+                        d212 = np.sqrt(u2**2 + v1**2 + w2**2)
+                        d222 = np.sqrt(u2**2 + v2**2 + w2**2)
 
                         Gxx = (
                             np.arctan((v1 * w1) / (u1 * d111 + tol))
@@ -271,14 +270,14 @@ class BaseVRMSimulation(BaseSimulation):
                         w2 = locs[rr, 2] - bz
                         w2[np.abs(w2) < tol] = -np.min(xyzh[:, 2]) / tol2
 
-                        d111 = np.sqrt(u1 ** 2 + v1 ** 2 + w1 ** 2)
-                        d211 = np.sqrt(u2 ** 2 + v1 ** 2 + w1 ** 2)
-                        d221 = np.sqrt(u2 ** 2 + v2 ** 2 + w1 ** 2)
-                        d121 = np.sqrt(u1 ** 2 + v2 ** 2 + w1 ** 2)
-                        d122 = np.sqrt(u1 ** 2 + v2 ** 2 + w2 ** 2)
-                        d112 = np.sqrt(u1 ** 2 + v1 ** 2 + w2 ** 2)
-                        d212 = np.sqrt(u2 ** 2 + v1 ** 2 + w2 ** 2)
-                        d222 = np.sqrt(u2 ** 2 + v2 ** 2 + w2 ** 2)
+                        d111 = np.sqrt(u1**2 + v1**2 + w1**2)
+                        d211 = np.sqrt(u2**2 + v1**2 + w1**2)
+                        d221 = np.sqrt(u2**2 + v2**2 + w1**2)
+                        d121 = np.sqrt(u1**2 + v2**2 + w1**2)
+                        d122 = np.sqrt(u1**2 + v2**2 + w2**2)
+                        d112 = np.sqrt(u1**2 + v1**2 + w2**2)
+                        d212 = np.sqrt(u2**2 + v1**2 + w2**2)
+                        d222 = np.sqrt(u2**2 + v2**2 + w2**2)
 
                         Gxy = (
                             np.log(d111 - w1)
@@ -331,14 +330,14 @@ class BaseVRMSimulation(BaseSimulation):
                         w2 = locs[rr, 2] - bz
                         w2[np.abs(w2) < tol] = -np.min(xyzh[:, 2]) / tol2
 
-                        d111 = np.sqrt(u1 ** 2 + v1 ** 2 + w1 ** 2)
-                        d211 = np.sqrt(u2 ** 2 + v1 ** 2 + w1 ** 2)
-                        d221 = np.sqrt(u2 ** 2 + v2 ** 2 + w1 ** 2)
-                        d121 = np.sqrt(u1 ** 2 + v2 ** 2 + w1 ** 2)
-                        d122 = np.sqrt(u1 ** 2 + v2 ** 2 + w2 ** 2)
-                        d112 = np.sqrt(u1 ** 2 + v1 ** 2 + w2 ** 2)
-                        d212 = np.sqrt(u2 ** 2 + v1 ** 2 + w2 ** 2)
-                        d222 = np.sqrt(u2 ** 2 + v2 ** 2 + w2 ** 2)
+                        d111 = np.sqrt(u1**2 + v1**2 + w1**2)
+                        d211 = np.sqrt(u2**2 + v1**2 + w1**2)
+                        d221 = np.sqrt(u2**2 + v2**2 + w1**2)
+                        d121 = np.sqrt(u1**2 + v2**2 + w1**2)
+                        d122 = np.sqrt(u1**2 + v2**2 + w2**2)
+                        d112 = np.sqrt(u1**2 + v1**2 + w2**2)
+                        d212 = np.sqrt(u2**2 + v1**2 + w2**2)
+                        d222 = np.sqrt(u2**2 + v2**2 + w2**2)
 
                         Gxz = (
                             np.log(d111 - v1)
@@ -389,7 +388,6 @@ class BaseVRMSimulation(BaseSimulation):
                         COUNT = COUNT + 1
 
             elif isinstance(rxObj, SquareLoop):
-
                 # Gaussian quadrature weights
                 wt = [
                     np.r_[2.0],
@@ -408,12 +406,12 @@ class BaseVRMSimulation(BaseSimulation):
                         0.129485,
                     ],
                 ]
-                wt = wt[rxObj.quadOrder - 1]
+                wt = wt[rxObj.quadrature_order - 1]
                 nw = len(wt)
                 wt = (
-                    rxObj.nTurns
+                    rxObj.n_turns
                     * (rxObj.width / 2) ** 2
-                    * np.reshape(np.outer(wt, wt), (1, nw ** 2))
+                    * np.reshape(np.outer(wt, wt), (1, nw**2))
                 )
 
                 # Gaussian quadrature locations on [-1,1]
@@ -441,51 +439,52 @@ class BaseVRMSimulation(BaseSimulation):
                     0.5
                     * rxObj.width
                     * np.reshape(
-                        np.kron(ds[rxObj.quadOrder - 1], np.ones(nw)), (nw ** 2, 1)
+                        np.kron(ds[rxObj.quadrature_order - 1], np.ones(nw)),
+                        (nw**2, 1),
                     )
                 )
                 s2 = (
                     0.5
                     * rxObj.width
                     * np.reshape(
-                        np.kron(np.ones(nw), ds[rxObj.quadOrder - 1]), (nw ** 2, 1)
+                        np.kron(np.ones(nw), ds[rxObj.quadrature_order - 1]),
+                        (nw**2, 1),
                     )
                 )
 
                 if dComp.lower() == "x":
                     for rr in range(0, nLoc):
-
-                        u1 = np.kron(np.ones((nw ** 2, 1)), locs[rr, 0] - ax)
+                        u1 = np.kron(np.ones((nw**2, 1)), locs[rr, 0] - ax)
                         u1[np.abs(u1) < tol] = np.min(xyzh[:, 0]) / tol2
-                        u2 = np.kron(np.ones((nw ** 2, 1)), locs[rr, 0] - bx)
+                        u2 = np.kron(np.ones((nw**2, 1)), locs[rr, 0] - bx)
                         u2[np.abs(u2) < tol] = -np.min(xyzh[:, 0]) / tol2
 
-                        v1 = np.kron(np.ones((nw ** 2, 1)), locs[rr, 1] - ay) + np.kron(
+                        v1 = np.kron(np.ones((nw**2, 1)), locs[rr, 1] - ay) + np.kron(
                             s1, np.ones((1, nC))
                         )
                         v1[np.abs(v1) < tol] = np.min(xyzh[:, 1]) / tol2
-                        v2 = np.kron(np.ones((nw ** 2, 1)), locs[rr, 1] - by) + np.kron(
+                        v2 = np.kron(np.ones((nw**2, 1)), locs[rr, 1] - by) + np.kron(
                             s1, np.ones((1, nC))
                         )
                         v2[np.abs(v2) < tol] = -np.min(xyzh[:, 1]) / tol2
 
-                        w1 = np.kron(np.ones((nw ** 2, 1)), locs[rr, 2] - az) + np.kron(
+                        w1 = np.kron(np.ones((nw**2, 1)), locs[rr, 2] - az) + np.kron(
                             s2, np.ones((1, nC))
                         )
                         w1[np.abs(w1) < tol] = np.min(xyzh[:, 2]) / tol2
-                        w2 = np.kron(np.ones((nw ** 2, 1)), locs[rr, 2] - bz) + np.kron(
+                        w2 = np.kron(np.ones((nw**2, 1)), locs[rr, 2] - bz) + np.kron(
                             s2, np.ones((1, nC))
                         )
                         w2[np.abs(w2) < tol] = -np.min(xyzh[:, 2]) / tol2
 
-                        d111 = np.sqrt(u1 ** 2 + v1 ** 2 + w1 ** 2)
-                        d211 = np.sqrt(u2 ** 2 + v1 ** 2 + w1 ** 2)
-                        d221 = np.sqrt(u2 ** 2 + v2 ** 2 + w1 ** 2)
-                        d121 = np.sqrt(u1 ** 2 + v2 ** 2 + w1 ** 2)
-                        d122 = np.sqrt(u1 ** 2 + v2 ** 2 + w2 ** 2)
-                        d112 = np.sqrt(u1 ** 2 + v1 ** 2 + w2 ** 2)
-                        d212 = np.sqrt(u2 ** 2 + v1 ** 2 + w2 ** 2)
-                        d222 = np.sqrt(u2 ** 2 + v2 ** 2 + w2 ** 2)
+                        d111 = np.sqrt(u1**2 + v1**2 + w1**2)
+                        d211 = np.sqrt(u2**2 + v1**2 + w1**2)
+                        d221 = np.sqrt(u2**2 + v2**2 + w1**2)
+                        d121 = np.sqrt(u1**2 + v2**2 + w1**2)
+                        d122 = np.sqrt(u1**2 + v2**2 + w2**2)
+                        d112 = np.sqrt(u1**2 + v1**2 + w2**2)
+                        d212 = np.sqrt(u2**2 + v1**2 + w2**2)
+                        d222 = np.sqrt(u2**2 + v2**2 + w2**2)
 
                         Gxx = (
                             np.arctan((v1 * w1) / (u1 * d111 + tol))
@@ -531,38 +530,37 @@ class BaseVRMSimulation(BaseSimulation):
 
                 elif dComp.lower() == "y":
                     for rr in range(0, nLoc):
-
-                        u1 = np.kron(np.ones((nw ** 2, 1)), locs[rr, 0] - ax) + np.kron(
+                        u1 = np.kron(np.ones((nw**2, 1)), locs[rr, 0] - ax) + np.kron(
                             s1, np.ones((1, nC))
                         )
                         u1[np.abs(u1) < tol] = np.min(xyzh[:, 0]) / tol2
-                        u2 = np.kron(np.ones((nw ** 2, 1)), locs[rr, 0] - bx) + np.kron(
+                        u2 = np.kron(np.ones((nw**2, 1)), locs[rr, 0] - bx) + np.kron(
                             s1, np.ones((1, nC))
                         )
                         u2[np.abs(u2) < tol] = -np.min(xyzh[:, 0]) / tol2
 
-                        v1 = np.kron(np.ones((nw ** 2, 1)), locs[rr, 1] - ay)
+                        v1 = np.kron(np.ones((nw**2, 1)), locs[rr, 1] - ay)
                         v1[np.abs(v1) < tol] = np.min(xyzh[:, 1]) / tol2
-                        v2 = np.kron(np.ones((nw ** 2, 1)), locs[rr, 1] - by)
+                        v2 = np.kron(np.ones((nw**2, 1)), locs[rr, 1] - by)
                         v2[np.abs(v2) < tol] = -np.min(xyzh[:, 1]) / tol2
 
-                        w1 = np.kron(np.ones((nw ** 2, 1)), locs[rr, 2] - az) + np.kron(
+                        w1 = np.kron(np.ones((nw**2, 1)), locs[rr, 2] - az) + np.kron(
                             s2, np.ones((1, nC))
                         )
                         w1[np.abs(w1) < tol] = np.min(xyzh[:, 2]) / tol2
-                        w2 = np.kron(np.ones((nw ** 2, 1)), locs[rr, 2] - bz) + np.kron(
+                        w2 = np.kron(np.ones((nw**2, 1)), locs[rr, 2] - bz) + np.kron(
                             s2, np.ones((1, nC))
                         )
                         w2[np.abs(w2) < tol] = -np.min(xyzh[:, 2]) / tol2
 
-                        d111 = np.sqrt(u1 ** 2 + v1 ** 2 + w1 ** 2)
-                        d211 = np.sqrt(u2 ** 2 + v1 ** 2 + w1 ** 2)
-                        d221 = np.sqrt(u2 ** 2 + v2 ** 2 + w1 ** 2)
-                        d121 = np.sqrt(u1 ** 2 + v2 ** 2 + w1 ** 2)
-                        d122 = np.sqrt(u1 ** 2 + v2 ** 2 + w2 ** 2)
-                        d112 = np.sqrt(u1 ** 2 + v1 ** 2 + w2 ** 2)
-                        d212 = np.sqrt(u2 ** 2 + v1 ** 2 + w2 ** 2)
-                        d222 = np.sqrt(u2 ** 2 + v2 ** 2 + w2 ** 2)
+                        d111 = np.sqrt(u1**2 + v1**2 + w1**2)
+                        d211 = np.sqrt(u2**2 + v1**2 + w1**2)
+                        d221 = np.sqrt(u2**2 + v2**2 + w1**2)
+                        d121 = np.sqrt(u1**2 + v2**2 + w1**2)
+                        d122 = np.sqrt(u1**2 + v2**2 + w2**2)
+                        d112 = np.sqrt(u1**2 + v1**2 + w2**2)
+                        d212 = np.sqrt(u2**2 + v1**2 + w2**2)
+                        d222 = np.sqrt(u2**2 + v2**2 + w2**2)
 
                         Gxy = (
                             np.log(d111 - w1)
@@ -608,38 +606,37 @@ class BaseVRMSimulation(BaseSimulation):
 
                 elif dComp.lower() == "z":
                     for rr in range(0, nLoc):
-
-                        u1 = np.kron(np.ones((nw ** 2, 1)), locs[rr, 0] - ax) + np.kron(
+                        u1 = np.kron(np.ones((nw**2, 1)), locs[rr, 0] - ax) + np.kron(
                             s1, np.ones((1, nC))
                         )
                         u1[np.abs(u1) < tol] = np.min(xyzh[:, 0]) / tol2
-                        u2 = np.kron(np.ones((nw ** 2, 1)), locs[rr, 0] - bx) + np.kron(
+                        u2 = np.kron(np.ones((nw**2, 1)), locs[rr, 0] - bx) + np.kron(
                             s1, np.ones((1, nC))
                         )
 
                         u2[np.abs(u2) < tol] = -np.min(xyzh[:, 0]) / tol2
-                        v1 = np.kron(np.ones((nw ** 2, 1)), locs[rr, 1] - ay) + np.kron(
+                        v1 = np.kron(np.ones((nw**2, 1)), locs[rr, 1] - ay) + np.kron(
                             s2, np.ones((1, nC))
                         )
                         v1[np.abs(v1) < tol] = np.min(xyzh[:, 1]) / tol2
-                        v2 = np.kron(np.ones((nw ** 2, 1)), locs[rr, 1] - by) + np.kron(
+                        v2 = np.kron(np.ones((nw**2, 1)), locs[rr, 1] - by) + np.kron(
                             s2, np.ones((1, nC))
                         )
                         v2[np.abs(v2) < tol] = -np.min(xyzh[:, 1]) / tol2
 
-                        w1 = np.kron(np.ones((nw ** 2, 1)), locs[rr, 2] - az)
+                        w1 = np.kron(np.ones((nw**2, 1)), locs[rr, 2] - az)
                         w1[np.abs(w1) < tol] = np.min(xyzh[:, 2]) / tol2
-                        w2 = np.kron(np.ones((nw ** 2, 1)), locs[rr, 2] - bz)
+                        w2 = np.kron(np.ones((nw**2, 1)), locs[rr, 2] - bz)
                         w2[np.abs(w2) < tol] = -np.min(xyzh[:, 2]) / tol2
 
-                        d111 = np.sqrt(u1 ** 2 + v1 ** 2 + w1 ** 2)
-                        d211 = np.sqrt(u2 ** 2 + v1 ** 2 + w1 ** 2)
-                        d221 = np.sqrt(u2 ** 2 + v2 ** 2 + w1 ** 2)
-                        d121 = np.sqrt(u1 ** 2 + v2 ** 2 + w1 ** 2)
-                        d122 = np.sqrt(u1 ** 2 + v2 ** 2 + w2 ** 2)
-                        d112 = np.sqrt(u1 ** 2 + v1 ** 2 + w2 ** 2)
-                        d212 = np.sqrt(u2 ** 2 + v1 ** 2 + w2 ** 2)
-                        d222 = np.sqrt(u2 ** 2 + v2 ** 2 + w2 ** 2)
+                        d111 = np.sqrt(u1**2 + v1**2 + w1**2)
+                        d211 = np.sqrt(u2**2 + v1**2 + w1**2)
+                        d221 = np.sqrt(u2**2 + v2**2 + w1**2)
+                        d121 = np.sqrt(u1**2 + v2**2 + w1**2)
+                        d122 = np.sqrt(u1**2 + v2**2 + w2**2)
+                        d112 = np.sqrt(u1**2 + v1**2 + w2**2)
+                        d212 = np.sqrt(u2**2 + v1**2 + w2**2)
+                        d222 = np.sqrt(u2**2 + v2**2 + w2**2)
 
                         Gxz = (
                             np.log(d111 - v1)
@@ -695,10 +692,9 @@ class BaseVRMSimulation(BaseSimulation):
                         G[COUNT, :] = c * np.c_[Gxz, Gyz, Gzz]
                         COUNT = COUNT + 1
 
-        return np.matrix(G)
+        return G
 
     def _getAMatricies(self):
-
         """Returns the full geometric operator"""
 
         indActive = self.indActive
@@ -711,7 +707,6 @@ class BaseVRMSimulation(BaseSimulation):
         # GET LIST OF A MATRICIES
         A = []
         for pp in range(0, self.survey.nSrc):
-
             # Create initial A matrix
             G = self._getGeometryMatrix(xyzc, xyzh, pp)
             H0 = self._getH0matrix(xyzc, pp)
@@ -722,7 +717,6 @@ class BaseVRMSimulation(BaseSimulation):
             refinement_distance = self.refinement_distance
 
             if refinement_factor > 0:
-
                 srcObj = self.survey.source_list[pp]
                 refFlag = srcObj._getRefineFlags(
                     xyzc, refinement_factor, refinement_distance
@@ -737,7 +731,6 @@ class BaseVRMSimulation(BaseSimulation):
         return A
 
     def _getSubsetAcolumns(self, xyzc, xyzh, pp, qq, refFlag):
-
         """
                 This method returns the refined sensitivities for columns that will be
                 replaced in the A matrix for source pp and refinement factor qq.
@@ -761,7 +754,7 @@ class BaseVRMSimulation(BaseSimulation):
         """
 
         # GET SUBMESH GRID
-        n = 2 ** qq
+        n = 2**qq
         [nx, ny, nz] = np.meshgrid(
             np.linspace(1, n, n) - 0.5,
             np.linspace(1, n, n) - 0.5,
@@ -775,10 +768,10 @@ class BaseVRMSimulation(BaseSimulation):
         )  # Get bottom southwest corners of cells to be refined
         m = np.shape(xyzc_sub)[0]
         xyzc_sub = np.kron(
-            xyzc_sub, np.ones((n ** 3, 1))
+            xyzc_sub, np.ones((n**3, 1))
         )  # Kron for n**3 refined cells
         xyzh_sub = np.kron(
-            xyzh_sub / n, np.ones((n ** 3, 1))
+            xyzh_sub / n, np.ones((n**3, 1))
         )  # Kron for n**3 refined cells with widths h/n
         nxyz_sub = np.kron(np.ones((m, 1)), nxyz_sub)  # Kron for n**3 refined cells
         xyzc_sub = xyzc_sub + xyzh_sub * nxyz_sub
@@ -786,12 +779,11 @@ class BaseVRMSimulation(BaseSimulation):
         # GET SUBMESH A MATRIX AND COLLAPSE TO COLUMNS
         G = self._getGeometryMatrix(xyzc_sub, xyzh_sub, pp)
         H0 = self._getH0matrix(xyzc_sub, pp)
-        Acols = (G * H0) * sp.kron(sp.diags(np.ones(m)), np.ones((n ** 3, 1)))
+        Acols = (G * H0) * sp.kron(sp.diags(np.ones(m)), np.ones((n**3, 1)))
 
         return Acols
 
     def dpred(self, m=None, f=None):
-
         """"""
         if f is None:
             f = self.fields(m)
@@ -805,7 +797,6 @@ class BaseVRMSimulation(BaseSimulation):
 
 
 class Simulation3DLinear(BaseVRMSimulation):
-
     """"""
 
     _A = None
@@ -813,15 +804,14 @@ class Simulation3DLinear(BaseVRMSimulation):
     _TisSet = False
     _xiMap = None
 
-    survey = properties.Instance("VRM Survey", SurveyVRM)
-
     xi, xiMap, xiDeriv = props.Invertible(
         "Amalgamated Viscous Remanent Magnetization Parameter xi = dchi/ln(tau2/tau1)"
     )
 
-    def __init__(self, mesh, **kwargs):
-
-        super(Simulation3DLinear, self).__init__(mesh, **kwargs)
+    def __init__(self, mesh, xi=None, xiMap=None, **kwargs):
+        super().__init__(mesh, **kwargs)
+        self.xi = xi
+        self.xiMap = xiMap
 
         nAct = list(self.indActive).count(True)
         if self.xiMap is None:
@@ -829,7 +819,6 @@ class Simulation3DLinear(BaseVRMSimulation):
 
     @property
     def A(self):
-
         """
         The geometric sensitivity matrix for the linear VRM problem. Accessing
         this property requires that the problem be paired with a survey object.
@@ -837,7 +826,6 @@ class Simulation3DLinear(BaseVRMSimulation):
         """
 
         if self._AisSet is False:
-
             if self.survey is None:
                 AssertionError("A survey must be set to generate A matrix")
 
@@ -854,12 +842,10 @@ class Simulation3DLinear(BaseVRMSimulation):
             return self._A
 
         elif self._AisSet is True:
-
             return self._A
 
     @property
     def T(self):
-
         """
         The characteristic decay matrix for the VRM problem. Accessing this
         property requires that the problem be paired with a survey object.
@@ -867,7 +853,6 @@ class Simulation3DLinear(BaseVRMSimulation):
         """
 
         if self._TisSet is False:
-
             if self.survey is None:
                 AssertionError("A survey must be set to generate A matrix")
 
@@ -877,24 +862,22 @@ class Simulation3DLinear(BaseVRMSimulation):
 
             print("CREATING T MATRIX")
 
-            srcList = self.survey.source_list
-            nSrc = len(srcList)
+            source_list = self.survey.source_list
+            nSrc = len(source_list)
             T = []
 
             for pp in range(0, nSrc):
-
-                rxList = srcList[pp].receiver_list
-                nRx = len(rxList)
-                waveObj = srcList[pp].waveform
+                receiver_list = source_list[pp].receiver_list
+                nRx = len(receiver_list)
+                waveObj = source_list[pp].waveform
 
                 for qq in range(0, nRx):
-
-                    times = rxList[qq].times
-                    nLoc = np.shape(rxList[qq].locations)[0]
+                    times = receiver_list[qq].times
+                    nLoc = np.shape(receiver_list[qq].locations)[0]
 
                     I = sp.diags(np.ones(nLoc))
-                    eta = waveObj.getCharDecay(rxList[qq].fieldType, times)
-                    eta = np.matrix(eta).T
+                    eta = waveObj.getCharDecay(receiver_list[qq].field_type, times)
+                    eta = np.atleast_2d(eta).T
 
                     T.append(sp.kron(I, eta))
 
@@ -904,11 +887,9 @@ class Simulation3DLinear(BaseVRMSimulation):
             return self._T
 
         elif self._TisSet is True:
-
             return self._T
 
     def fields(self, m):
-
         """Computes the fields d = T*A*m"""
 
         if self.survey is None:
@@ -917,14 +898,12 @@ class Simulation3DLinear(BaseVRMSimulation):
         self.model = m  # Initiates/updates model and initiates mapping
 
         # Project to active mesh cells
-        # m = np.matrix(self.xiMap * m).T
-        m = np.matrix(self.xiMap * m).T
+        m = self.xiMap * m
 
         # Must return as a numpy array
         return mkvc(sp.coo_matrix.dot(self.T, np.dot(self.A, m)))
 
     def Jvec(self, m, v, f=None):
-
         """Compute Pd*T*A*dxidm*v"""
 
         if self.survey is None:
@@ -934,10 +913,10 @@ class Simulation3DLinear(BaseVRMSimulation):
         dxidm = self.xiMap.deriv(m)
 
         # dxidm*v
-        v = np.matrix(dxidm * v).T
+        v = dxidm * v
 
         # Dot product with A
-        v = self.A * v
+        v = self.A @ v
 
         # Get active time rows of T
         T = self.T.tocsr()[self.survey.t_active, :]
@@ -946,14 +925,13 @@ class Simulation3DLinear(BaseVRMSimulation):
         return mkvc(sp.csr_matrix.dot(T, v))
 
     def Jtvec(self, m, v, f=None):
-
         """Compute (Pd*T*A*dxidm)^T * v"""
 
         if self.survey is None:
             AssertionError("A survey must be set to generate A matrix")
 
         # Define v as a column vector
-        v = np.matrix(v).T
+        v = np.atleast_2d(v).T
 
         # Get T'*Pd'*v
         T = self.T.tocsr()[self.survey.t_active, :]
@@ -970,7 +948,6 @@ class Simulation3DLinear(BaseVRMSimulation):
 
 
 class Simulation3DLogUniform(BaseVRMSimulation):
-
     """"""
 
     _A = None
@@ -983,13 +960,17 @@ class Simulation3DLogUniform(BaseVRMSimulation):
     tau1 = props.PhysicalProperty("Low bound time-relaxation constant")
     tau2 = props.PhysicalProperty("Upper bound time-relaxation constant")
 
-    def __init__(self, mesh, **kwargs):
-
-        super(Simulation3DLogUniform, self).__init__(mesh, **kwargs)
+    def __init__(
+        self, mesh, survey=None, chi0=None, dchi=None, tau1=None, tau2=None, **kwargs
+    ):
+        super(Simulation3DLogUniform, self).__init__(mesh=mesh, survey=survey, **kwargs)
+        self.chi0 = chi0
+        self.dchi = dchi
+        self.tau1 = tau1
+        self.tau2 = tau2
 
     @property
     def A(self):
-
         """
         The geometric sensitivity matrix for the linear VRM problem. Accessing
         this property requires that the problem be paired with a survey object.
@@ -997,7 +978,6 @@ class Simulation3DLogUniform(BaseVRMSimulation):
         """
 
         if self._AisSet is False:
-
             if self.survey is None:
                 AssertionError("A survey must be set to generate A matrix")
 
@@ -1014,32 +994,28 @@ class Simulation3DLogUniform(BaseVRMSimulation):
             return self._A
 
         elif self._AisSet is True:
-
             return self._A
 
     def fields(self, m=None):
-
         """Computes the fields at every time d(t) = G*M(t)"""
 
         if self.survey is None:
             AssertionError("A survey must be set to generate A matrix")
 
         # Fields from each source
-        srcList = self.survey.source_list
-        nSrc = len(srcList)
+        source_list = self.survey.source_list
+        nSrc = len(source_list)
         f = []
 
         for pp in range(0, nSrc):
-
-            rxList = srcList[pp].receiver_list
-            nRx = len(rxList)
-            waveObj = srcList[pp].waveform
+            receiver_list = source_list[pp].receiver_list
+            nRx = len(receiver_list)
+            waveObj = source_list[pp].waveform
 
             for qq in range(0, nRx):
-
-                times = rxList[qq].times
+                times = receiver_list[qq].times
                 eta = waveObj.getLogUniformDecay(
-                    rxList[qq].fieldType,
+                    receiver_list[qq].field_type,
                     times,
                     self.chi0,
                     self.dchi,
@@ -1047,21 +1023,6 @@ class Simulation3DLogUniform(BaseVRMSimulation):
                     self.tau2,
                 )
 
-                f.append(mkvc((self.A[qq] * np.matrix(eta)).T))
+                f.append(mkvc(self.A[qq] @ eta))
 
         return np.array(np.hstack(f))
-
-
-############
-# Deprecated
-############
-
-
-@deprecate_class(removal_version="0.16.0", future_warn=True)
-class Problem_Linear(Simulation3DLinear):
-    pass
-
-
-@deprecate_class(removal_version="0.16.0", future_warn=True)
-class Problem_LogUnifrom(Simulation3DLogUniform):
-    pass

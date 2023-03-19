@@ -1,31 +1,51 @@
+"""
+=========================================================================
+Magnetics Simulation (:mod:`SimPEG.potential_fields.magnetics`)
+=========================================================================
+.. currentmodule:: SimPEG.potential_fields.magnetics
+
+About ``magnetics``
+
+Simulations
+===========
+.. autosummary::
+  :toctree: generated/
+
+  Simulation3DIntegral
+  SimulationEquivalentSourceLayer
+  Simulation3DDifferential
+
+Survey, Source and Receiver Classes
+===================================
+
+.. autosummary::
+  :toctree: generated/
+
+  Point
+  UniformBackgroundField
+  Survey
+
+Analytics
+=========
+.. autosummary::
+  :toctree: generated/
+
+  analytics.IDTtoxyz
+  analytics.MagSphereAnaFun
+  analytics.MagSphereAnaFunA
+  analytics.MagSphereFreeSpace
+"""
 from . import survey
 from . import sources
 from . import receivers
 from . import analytics
 from . import simulation
 
-from .simulation import Simulation3DIntegral, Simulation3DDifferential
+from .simulation import (
+    Simulation3DIntegral,
+    SimulationEquivalentSourceLayer,
+    Simulation3DDifferential,
+)
 from .survey import Survey
-from .sources import SourceField
+from .sources import SourceField, UniformBackgroundField
 from .receivers import Point
-
-############
-# Deprecated
-############
-from ...utils.code_utils import deprecate_class
-from .simulation import MagneticIntegral, Problem3D_Diff
-from .survey import LinearSurvey
-from .receivers import RxObs
-from .sources import SrcField
-
-from ...maps import ChiMap, Weighting
-
-
-@deprecate_class(removal_version="0.16.0", future_warn=True, new_location="SimPEG.maps")
-class BaseMagMap(ChiMap):
-    pass
-
-
-@deprecate_class(removal_version="0.16.0", future_warn=True, new_location="SimPEG.maps")
-class WeightMap(Weighting):
-    pass

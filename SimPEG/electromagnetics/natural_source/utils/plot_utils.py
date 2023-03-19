@@ -1,14 +1,9 @@
-from __future__ import print_function
-from __future__ import absolute_import
-from __future__ import division
-
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy.constants import mu_0
 
-import properties
-
 from ...utils import omega
+from ....utils import validate_type, validate_list_of_types
 
 
 # Define the default component dictionaries
@@ -46,19 +41,49 @@ def _validate_kwargs(input_dict, compare_dict):
     return input_dict
 
 
-class BaseDataNSEMPlots(properties.HasProperties):
+class BaseDataNSEMPlots:
     """
     A class container of matplotlib panels for plotting
     NSEM data.
 
     """
 
-    fig = properties.Instance("Figure plotting", plt.Figure, required=False)
-    axes = properties.List(
-        "List of plot axes",
-        properties.Instance("Axes to plot the on", plt.Axes),
-        required=False,
-    )
+    def __init__(self, fig=None, axes=None, **kwargs):
+        super().__init__(**kwargs)
+        self.fig = fig
+        self.axes = axes
+
+    @property
+    def fig(self):
+        """Figure for plotting.
+
+        Returns
+        -------
+        matplotlib.figure.Figure
+        """
+        return self._fig
+
+    @fig.setter
+    def fig(self, value):
+        if value is not None:
+            value = validate_type("fig", value, plt.Figure, cast=False)
+        self._fig = value
+
+    @property
+    def axes(self):
+        """Figure for plotting.
+
+        Returns
+        -------
+        list of matplotlib.axes.Axes
+        """
+        return self._axes
+
+    @axes.setter
+    def axes(self, value):
+        if value is not None:
+            value = validate_list_of_types("axes", value, plt.Axes)
+        self._axes = value
 
     def setup(self):
         """
@@ -314,7 +339,7 @@ class DataNSEMPlotMethods(object):
     def plot_app_res(
         self,
         location,
-        components=["xy", "yx"],
+        components=("xy", "yx"),
         ax=None,
         errorbars=False,
         comp_plot_dict=DEFAULT_COMP_DICT,
@@ -363,7 +388,7 @@ class DataNSEMPlotMethods(object):
     def plot_app_phs(
         self,
         location,
-        components=["xy", "yx"],
+        components=("xy", "yx"),
         ax=None,
         errorbars=False,
         comp_plot_dict=DEFAULT_COMP_DICT,
@@ -410,7 +435,7 @@ class DataNSEMPlotMethods(object):
     def plot_imp_amp(
         self,
         location,
-        components=["xy", "yx"],
+        components=("xy", "yx"),
         ax=None,
         errorbars=False,
         comp_plot_dict=DEFAULT_COMP_DICT,
@@ -458,7 +483,7 @@ class DataNSEMPlotMethods(object):
     def plot_tip_amp(
         self,
         location,
-        components=["zx", "zy"],
+        components=("zx", "zy"),
         ax=None,
         errorbars=False,
         comp_plot_dict=DEFAULT_COMP_DICT,
@@ -647,15 +672,15 @@ def _get_map_data(data, frequency, orientation, component, plot_error=False):
             comp_data = real_data + 1j * imag_data
             plot_data = (1.0 / (mu_0 * omega(freqs))) * np.abs(comp_data) ** 2
             if plot_error:
-                res_uncert = (2.0 / (mu_0 * omega(freqs))) * (
-                    real_data * real_uncert + imag_data * imag_uncert
+                res_uncert = (2.0 / (mu_0 * omega(freqs))) * np.sqrt(
+                    (real_data * real_uncert) ** 2 + (imag_data * imag_uncert) ** 2
                 )
                 errorbars = [res_uncert, res_uncert]
         elif "phase" in component:
             plot_data = np.arctan2(imag_data, real_data) * (180.0 / np.pi)
             if plot_error:
-                phs_uncert = (
-                    (1.0 / (real_data ** 2 + imag_data ** 2))
+                phs_uncert = np.abs(
+                    (1.0 / (real_data**2 + imag_data**2))
                     * ((real_data * real_uncert - imag_data * imag_uncert))
                 ) * (180.0 / np.pi)
                 # Scale back the errorbars
@@ -670,7 +695,6 @@ def _get_map_data(data, frequency, orientation, component, plot_error=False):
                 )
                 errorbars = [amp_uncert, amp_uncert]  # [low_unsert, up_unsert]
     else:
-
         if plot_error:
             freqs, plot_data, std_data, floor_data = _extract_frequency_data(
                 data, frequency, orientation, component, return_uncert=error
@@ -685,7 +709,6 @@ def _get_map_data(data, frequency, orientation, component, plot_error=False):
 
 
 def _get_station_data(data, location, orientation, component, plot_error=False):
-
     # Get the components
     if component in ["app_res", "phase", "amplitude"]:
         real_tuple = _extract_location_data(
@@ -709,15 +732,15 @@ def _get_station_data(data, location, orientation, component, plot_error=False):
             comp_data = real_data + 1j * imag_data
             plot_data = (1.0 / (mu_0 * omega(freqs))) * np.abs(comp_data) ** 2
             if plot_error:
-                res_uncert = (2.0 / (mu_0 * omega(freqs))) * (
-                    real_data * real_uncert + imag_data * imag_uncert
+                res_uncert = (2.0 / (mu_0 * omega(freqs))) * np.sqrt(
+                    (real_data * real_uncert) ** 2 + (imag_data * imag_uncert) ** 2
                 )
                 errorbars = [res_uncert, res_uncert]
         elif "phase" in component:
             plot_data = np.arctan2(imag_data, real_data) * (180.0 / np.pi)
             if plot_error:
-                phs_uncert = (
-                    (1.0 / (real_data ** 2 + imag_data ** 2))
+                phs_uncert = np.abs(
+                    (1.0 / (real_data**2 + imag_data**2))
                     * ((real_data * real_uncert - imag_data * imag_uncert))
                 ) * (180.0 / np.pi)
                 # Scale back the errorbars
@@ -749,7 +772,6 @@ def _get_station_data(data, location, orientation, component, plot_error=False):
 
 
 def _get_plot_data(data, location, orientation, component):
-
     if "app_res" in component:
         freqs, dat_r = _extract_location_data(data, location, orientation, "real")
         freqs, dat_i = _extract_location_data(data, location, orientation, "imag")
@@ -830,7 +852,7 @@ def _extract_location_data(data, location, orientation, component, return_uncert
 
         ind_loc = np.sqrt(np.sum((rx.locations[:, :2] - location) ** 2, axis=1)) < 0.1
         if np.any(ind_loc):
-            freq_list.append(src.freq)
+            freq_list.append(src.frequency)
             data_list.append(data[src, rx][ind_loc])
 
             if return_uncert:

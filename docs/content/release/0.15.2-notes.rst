@@ -1,0 +1,62 @@
+.. _0.15.2_notes:
+
+===========================
+SimPEG 0.15.2 Release Notes
+===========================
+
+November 12th, 2021
+
+This patch release contains some improvements and bug fixes for the code base.
+
+Updates
+=======
+
+Regularization Cell Weights
+---------------------------
+Cell weights for all regularizations now are unified in their treatment. We do not
+assume that the cell weights have been multiplied by volumes ahead of time.
+
+Along with this new assumption, we have updated the sensitivity weighting directive to
+normalize the sensitivity of ``J.T * J`` by volume. This allows a more intuitive definition of
+new weighting functions. We do expect this to slightly change examples that were using
+the ``Simple`` and ``Sparse`` regularization classes. If you were using set weighting
+parameters (i.e. not starting with a beta estimator directive), you will likely need to
+choose new weighting parameters.
+
+PGI
+---
+There are several incremental improvements to the petrophysical guided inversion (PGI)
+regularizations and directives, along with a bug fix to support the latest version
+of scikit-learn.
+
+Others
+------
+We have added support for reading in falcon formatted UBC-GIF styled data gravity
+gradient data. We have also added a bug fix for reading in UBC-GIF IP data.
+
+We have fixed a bug with ``TreeMesh`` being used for the ``Simple`` regularization when
+not specifically specifying a active cells list.
+
+There is now a ``forward_only`` option for the frequency domain methods to discard any
+stored matrix factorizations upon completion.
+
+Contributors
+============
+This is a combination of contributors and reviewers who've made contributions towards
+this release (in no particular order).
+
+* `@thast <https://github.com/thast>`__
+* `@jcapriot <https://github.com/jcapriot>`__
+* `@dccowan <https://github.com/dccowan>`__
+* `@domfournier <https://github.com/domfournier>`__
+
+Pull requests
+=============
+
+* `#1038 <https://github.com/simpeg/simpeg/pull/1038>`__: Issue-1037
+* `#1044 <https://github.com/simpeg/simpeg/pull/1044>`__: Add forward only option to 3D FDEM
+* `#1045 <https://github.com/simpeg/simpeg/pull/1045>`__: No active cells bug in regularization mesh
+* `#1046 <https://github.com/simpeg/simpeg/pull/1046>`__: Fix bug in IO for DCIP3D data
+* `#1050 <https://github.com/simpeg/simpeg/pull/1050>`__: Fix for scikit-learn 1.0 (back compatible with scikit-learn 0.24.2)
+* `#1051 <https://github.com/simpeg/simpeg/pull/1051>`__: add Falcon Guv component to gg3d io_utils.
+* `#1053 <https://github.com/simpeg/simpeg/pull/1053>`__: PGI Regularization Refactor

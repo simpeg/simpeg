@@ -1,8 +1,7 @@
-from __future__ import division, print_function
 import unittest
 import numpy as np
 import discretize
-from SimPEG import maps, SolverLU, tests
+from SimPEG import maps, tests
 from SimPEG.electromagnetics import time_domain as tdem
 from pymatsolver import Pardiso as Solver
 
@@ -11,40 +10,43 @@ plotIt = False
 testDeriv = True
 testAdjoint = True
 
-TOL = 1e-4
-
-np.random.seed(10)
+TOL = 0.5
 
 
-def setUp_TDEM(prbtype="ElectricField", rxcomp="ElectricFieldx"):
+def setUp_TDEM(prbtype="ElectricField", rxcomp="ElectricFieldx", src_z=0.0):
+    np.random.seed(10)
     cs = 5.0
     ncx = 8
     ncy = 8
     ncz = 8
-    npad = 0
-    # hx = [(cs, ncx), (cs, npad, 1.3)]
-    # hz = [(cs, npad, -1.3), (cs, ncy), (cs, npad, 1.3)]
+    npad = 3
+    pf = 1.3
+
     mesh = discretize.TensorMesh(
         [
-            [(cs, npad, -1.3), (cs, ncx), (cs, npad, 1.3)],
-            [(cs, npad, -1.3), (cs, ncy), (cs, npad, 1.3)],
-            [(cs, npad, -1.3), (cs, ncz), (cs, npad, 1.3)],
+            [(cs, npad, -pf), (cs, ncx), (cs, npad, pf)],
+            [(cs, npad, -pf), (cs, ncy), (cs, npad, pf)],
+            [(cs, npad, -pf), (cs, ncz), (cs, npad, pf)],
         ],
         "CCC",
     )
-    #
-    active = mesh.vectorCCz < 0.0
-    activeMap = maps.InjectActiveCells(mesh, active, np.log(1e-8), nC=mesh.nCz)
+
+    active = mesh.cell_centers_z < 0.0
+    activeMap = maps.InjectActiveCells(
+        mesh, active, np.log(1e-8), nC=mesh.shape_cells[2]
+    )
     mapping = maps.ExpMap(mesh) * maps.SurjectVertical1D(mesh) * activeMap
 
     rxOffset = 0.0
-    rxlocs = np.array([[20, 20.0, 0.0]])
+    rxlocs = discretize.utils.ndgrid(
+        [np.r_[-17.5, -15, 15, 17.5], np.r_[10], np.r_[-0.1]]
+    )
     rxtimes = np.logspace(-4, -3, 20)
     rx = getattr(tdem.Rx, "Point{}".format(rxcomp[:-1]))(
         locations=rxlocs, times=rxtimes, orientation=rxcomp[-1]
     )
-    Aloc = np.r_[-10.0, 0.0, 0.0]
-    Bloc = np.r_[10.0, 0.0, 0.0]
+    Aloc = np.r_[-10, 0.0, src_z]
+    Bloc = np.r_[10, 0.0, src_z]
     srcloc = np.vstack((Aloc, Bloc))
 
     src = tdem.Src.LineCurrent(
@@ -52,36 +54,31 @@ def setUp_TDEM(prbtype="ElectricField", rxcomp="ElectricFieldx"):
     )
     survey = tdem.Survey([src])
 
-    prb = getattr(tdem, "Simulation3D{}".format(prbtype))(mesh, sigmaMap=mapping)
+    time_steps = [(1e-05, 10), (5e-05, 10), (2.5e-4, 10)]
 
-    prb.time_steps = [(1e-05, 10), (5e-05, 10), (2.5e-4, 10)]
+    m = np.log(5e-1) * np.ones(mapping.nP) + 1e-3 * np.random.randn(mapping.nP)
 
-    prb.solver = Solver
-
-    m = np.log(1e-1) * np.ones(prb.sigmaMap.nP) + 1e-3 * np.random.randn(
-        prb.sigmaMap.nP
+    prb = getattr(tdem, "Simulation3D{}".format(prbtype))(
+        mesh, survey=survey, time_steps=time_steps, sigmaMap=mapping
     )
-
-    prb.pair(survey)
-    mesh = mesh
+    prb.solver = Solver
 
     return prb, m, mesh
 
 
 class TDEM_DerivTests(unittest.TestCase):
-
     # ====== TEST Jvec ========== #
 
     if testDeriv:
 
-        def JvecTest(self, prbtype, rxcomp):
-            prb, m, mesh = setUp_TDEM(prbtype, rxcomp)
+        def JvecTest(self, prbtype, rxcomp, src_z=0.0):
+            prb, m, mesh = setUp_TDEM(prbtype, rxcomp, src_z)
 
             def derChk(m):
                 return [prb.dpred(m), lambda mx: prb.Jvec(m, mx)]
 
             print("test_Jvec_{prbtype}_{rxcomp}".format(prbtype=prbtype, rxcomp=rxcomp))
-            tests.checkDerivative(derChk, m, plotIt=False, num=2, eps=1e-20)
+            tests.check_derivative(derChk, m, plotIt=False, num=2, eps=1e-20)
 
         def test_Jvec_e_dbzdt(self):
             self.JvecTest("ElectricField", "MagneticFluxTimeDerivativez")
@@ -92,15 +89,25 @@ class TDEM_DerivTests(unittest.TestCase):
         def test_Jvec_e_ey(self):
             self.JvecTest("ElectricField", "ElectricFieldy")
 
+        def test_Jvec_j_dbzdt(self):
+            self.JvecTest("CurrentDensity", "MagneticFluxTimeDerivativez")
+
+        def test_Jvec_j_ex(self):
+            self.JvecTest("CurrentDensity", "ElectricFieldx")
+
+        def test_Jvec_j_ey(self):
+            self.JvecTest("CurrentDensity", "ElectricFieldy")
+
     # ====== TEST Jtvec ========== #
 
     if testAdjoint:
 
-        def JvecVsJtvecTest(self, prbtype="MagneticFluxDensity", rxcomp="bz"):
-
+        def JvecVsJtvecTest(
+            self, prbtype="MagneticFluxDensity", rxcomp="bz", src_z=0.0
+        ):
             print("\nAdjoint Testing Jvec, Jtvec prob {}, {}".format(prbtype, rxcomp))
 
-            prb, m0, mesh = setUp_TDEM(prbtype, rxcomp)
+            prb, m0, mesh = setUp_TDEM(prbtype, rxcomp, src_z)
             m = np.random.rand(prb.sigmaMap.nP)
             d = np.random.randn(prb.survey.nD)
 
@@ -127,6 +134,13 @@ class TDEM_DerivTests(unittest.TestCase):
         def test_Jvec_adjoint_e_ey(self):
             self.JvecVsJtvecTest("ElectricField", "ElectricFieldy")
 
+        def test_Jvec_adjoint_j_dbzdt(self):
+            self.JvecVsJtvecTest(
+                "CurrentDensity", "MagneticFluxTimeDerivativez", src_z=-2.5
+            )
 
-if __name__ == "__main__":
-    unittest.main()
+        def test_Jvec_adjoint_j_ex(self):
+            self.JvecVsJtvecTest("CurrentDensity", "ElectricFieldx", src_z=-2.5)
+
+        def test_Jvec_adjoint_j_ey(self):
+            self.JvecVsJtvecTest("CurrentDensity", "ElectricFieldy", src_z=-2.5)

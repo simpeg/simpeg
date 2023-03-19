@@ -1,0 +1,65 @@
+.. _0.17.0_notes:
+
+===========================
+SimPEG 0.17.0 Release Notes
+===========================
+
+April 15th, 2022
+
+This minor release contains new magnetotelluric simulations, improved electromagnetic
+sources, and efforts to unify some of the underlying PDE codes.
+
+Highlights
+==========
+* Natural Source Revamp
+* IP simplications
+* PDE internal
+* Line current source improvements for electromagnetics
+* More bug fixes!
+
+
+Natural Source
+--------------
+There is a significant revamp of the natural source module for magnetotelluric simulations.
+The underlying simulation for 3D has been unified to make use of the frequency domain
+simulations internally, which reduced the number of repeated code lines. The 3D
+simulations now are handled completely by using the `PlanewaveXY1D` source, which enables
+the primary-secondary formulation using both ``x`` and ``y`` polarizations of a 1D primary
+field. There are also new 1D simulations implemented using both an analytical layered solution,
+and another using simple boundary conditions. Finally we have also implemented 2D
+magnetotelluric simulations using boundary conditions of a 1D model on each side. These
+simulations all now use the same receiver class too.
+
+Internal PDE Simplifications
+----------------------------
+Internally the IP and SIP simulations have been significantly simplified due to our
+consolidated PDE mass matrices that have been unified into a base PDE class.
+
+Line Currents
+-------------
+Line currents are now able to be used for HJ formulations of the time domain and frequency
+domain simulations.
+
+Contributors
+============
+This is a combination of contributors and reviewers who've made contributions towards
+this release (in no particular order).
+
+* `@jcapriot <https://github.com/jcapriot>`__
+* `@lheagy <https://github.com/lheagy>`__
+* `@JKutt <https://github.com/JKutt>`__
+* `@dccowan <https://github.com/dccowan>`__
+* `@RichardScottOZ <https://github.com/RichardScottOZ>`__
+* `@prisae <https://github.com/prisae>`__
+
+Pull requests
+=============
+
+* `#946 <https://github.com/simpeg/simpeg/pull/946>`__: Simulation mt - Part1
+* `#1030 <https://github.com/simpeg/simpeg/pull/1030>`__: Line current for HJ formulation
+* `#1065 <https://github.com/simpeg/simpeg/pull/1065>`__: remove disqus from the footer
+* `#1066 <https://github.com/simpeg/simpeg/pull/1066>`__: Update plot_inv_grav_tiled.py
+* `#1069 <https://github.com/simpeg/simpeg/pull/1069>`__: MT 1D/2D with bounds
+* `#1070 <https://github.com/simpeg/simpeg/pull/1070>`__: Pde base
+* `#1074 <https://github.com/simpeg/simpeg/pull/1074>`__: Fix type (solver_opts, not solver_spts)
+* `#1079 <https://github.com/simpeg/simpeg/pull/1079>`__: 0.17.0 Release Staging

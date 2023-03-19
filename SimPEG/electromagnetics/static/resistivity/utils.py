@@ -7,19 +7,35 @@ from .survey import Survey
 from ..utils import *
 
 
-def WennerSrcList(nElecs, aSpacing, in2D=False, plotIt=False):
+def WennerSrcList(n_electrodes, a_spacing, in2D=False, plotIt=False):
     """
     Source list for a Wenner Array
+
+    Parameters
+    ----------
+    n_electrodes : int
+        Number of electrodes in the Wenner array
+    a_spacing : float
+        Wenner array spacing parameter *a*
+    in2D : bool, default=``False``
+        If ``True``, create 2D sources
+    plotIt : bool, default=``False``
+        If ``True``, plot the Wenner geometry
+
+    Returns
+    -------
+    list of SimPEG.electromagnetics.static.resistivity.sources.Dipole
+        List of sources and their associate receivers for the Wenner survey
     """
 
-    elocs = np.arange(0, aSpacing * nElecs, aSpacing)
-    elocs -= (nElecs * aSpacing - aSpacing) / 2
+    elocs = np.arange(0, a_spacing * n_electrodes, a_spacing)
+    elocs -= (n_electrodes * a_spacing - a_spacing) / 2
     space = 1
     WENNER = np.zeros((0,), dtype=int)
-    for ii in range(nElecs):
-        for jj in range(nElecs):
+    for _ in range(n_electrodes):
+        for jj in range(n_electrodes):
             test = np.r_[jj, jj + space, jj + space * 2, jj + space * 3]
-            if np.any(test >= nElecs):
+            if np.any(test >= n_electrodes):
                 break
             WENNER = np.r_[WENNER, test]
         space += 1
@@ -42,15 +58,15 @@ def WennerSrcList(nElecs, aSpacing, in2D=False, plotIt=False):
         def getLoc(ii, abmn):
             return np.r_[elocs[WENNER[ii, abmn]], 0, 0]
 
-    srcList = []
+    source_list = []
     for i in range(WENNER.shape[0]):
         rx = receivers.Dipole(
             getLoc(i, 1).reshape([1, -1]), getLoc(i, 2).reshape([1, -1])
         )
         src = sources.Dipole([rx], getLoc(i, 0), getLoc(i, 3))
-        srcList += [src]
+        source_list += [src]
 
-    return srcList
+    return source_list
 
 
 def _mini_pole_pole(survey, verbose=False):
