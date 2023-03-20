@@ -189,7 +189,8 @@ class Simulation1DLayers(BaseSimulation):
 
         # Assume dipole-dipole
         V = voltage.reshape((self.survey.nD, 4), order="F")
-        data = V[:, 0] + V[:, 1] - (V[:, 2] + V[:, 3])
+        # vs are AM, AN, BM, BN
+        data = (V[:, 0] - V[:, 1]) - (V[:, 2] - V[:, 3])
 
         if self.data_type == "apparent_resistivity":
             data /= self.geometric_factor
