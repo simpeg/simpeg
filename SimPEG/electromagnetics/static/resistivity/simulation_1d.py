@@ -303,23 +303,10 @@ class Simulation1DLayers(BaseSimulation):
         """
         # TODO: only works isotropic sigma
         if getattr(self, "_lambd", None) is None:
-            self._lambd = np.empty(
-                [self.offset.size, self._fhtfilt.base.size], order="F", dtype=complex
-            )
-            self.lambd[:, :], _ = get_dlf_points(
+            self._lambd, _ = get_dlf_points(
                 self._fhtfilt, self.offset, self.hankel_pts_per_dec
             )
         return self._lambd
-
-    # @property
-    # def t(self):
-    #     """
-    #         thickness of the layer
-    #     """
-    #     # TODO: only works isotropic sigma
-    #     if getattr(self, '_t', None) is None:
-    #         self._t = self.mesh.h[0][:-1]
-    #     return self._t
 
     @property
     def n_layer(self):
