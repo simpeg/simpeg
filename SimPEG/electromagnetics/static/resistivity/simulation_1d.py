@@ -7,7 +7,6 @@ from .... import props
 from .survey import Survey
 
 from empymod.transform import dlf
-from empymod import filters
 from empymod.transform import get_dlf_points
 from empymod.utils import check_hankel
 from ..utils import static_utils
