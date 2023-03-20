@@ -291,7 +291,7 @@ class Simulation1DLayers(BaseSimulation):
             r_AM = self.electrode_separations["AM"]
             r_AN = self.electrode_separations["AN"]
             r_BM = self.electrode_separations["BM"]
-            r_BN = self.electrode_separations["BM"]
+            r_BN = self.electrode_separations["BN"]
             self._offset = np.r_[r_AM, r_AN, r_BM, r_BN]
         return self._offset
 
@@ -328,7 +328,7 @@ class Simulation1DLayers(BaseSimulation):
             r_AM = self.electrode_separations["AM"]
             r_AN = self.electrode_separations["AN"]
             r_BM = self.electrode_separations["BM"]
-            r_BN = self.electrode_separations["BM"]
+            r_BN = self.electrode_separations["BN"]
             self._geometric_factor = (1 / r_AM - 1 / r_BM - 1 / r_AN + 1 / r_BN) / (
                 2 * np.pi
             )
