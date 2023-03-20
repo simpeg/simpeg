@@ -121,7 +121,7 @@ After all these steps are satisfied, a ``@simpeg/simpeg-admin`` will merge your 
 the main branch (feel free to ping one of us on github).
 
 This being said, all simpeg developers and admins are essentially volunteers
-providing there time for the benefit of the community. This does mean that
+providing their time for the benefit of the community. This does mean that
 it might take some time for us to get your PR.
 
 
