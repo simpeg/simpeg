@@ -21,20 +21,24 @@ a framework that exposes the details of the implementation to the geophysicist i
 based interrogation. This framework can be easily extended to encompass many geophysical problems and is built with the inverse problem
 as the fundamental goal.
 
-Inversion is the cornerstone of low-frequency and potential-field geophysical
-methods. There are geophysical methods where you can get a subsurface property
-directly from the measured data, an example being the calculation of velocity
-through the normal-moveout (NMO) calculation in seismic data. In low-frequency
-and potential-field methods this is, as of today, not possible. The way this
+There are some geophysical methods where you can make interpretations about
+the subsurface from (processed) data. For example, geologic contacts can be
+interpreted from seismic data. Similarly in potential fields data, filtering
+techniques are often applied to magnetic data and used to interpret geologic
+maps where rock exposure is limited. In many cases though, the geologic settings
+and governing physics are sufficiently complex and the data cannot be directly
+interpreted to construct a geologic model. This is where inversion techniques,
+which make use of the ability to simulate the governing equations, are a powerful
+tool for interpretation. The way this
 data is interpreted is by creating a geologically feasible starting model,
 calculating the response of that starting model, and comparing the calculated
 responses to the measured data. Depending on the differences between the two
 we update our model according to some defined rules, and repeat the whole
 process until a termination criterion is reached. This iterative modeling to
-generate a model which response matches the measured data as good as possible
-is what geophysicist call inversion of data. It is important to note that in
+generate a model whose response matches the measured data as good as possible
+is what geophysicists call inversion of data. It is important to note that in
 this process we only adjust our model of the subsurface and never touch the
-data, which is very distinct to data-processing methods such as migration.
+data, which is very distinct to data-processing methods.
 
 The future we see is a mix of tools that span our disciplines, and a framework that allows us to integrate many different types of
 geophysical data so that we can communicate effectively and experiment efficiently. A toolbox combined with a framework that allows you
