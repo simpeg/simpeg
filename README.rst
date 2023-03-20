@@ -108,7 +108,7 @@ Questions
 
 If you have a question regarding a specific use of SimPEG, the fastest way
 to get a response is by posting on our Discourse discussion forum:
-https://simpeg.discourse.group/. Alternatively, If you prefer real-time chat,
+https://simpeg.discourse.group/. Alternatively, if you prefer real-time chat,
 you can join our slack group at http://slack.simpeg.xyz.
 Please do not create an issue to ask a question.
 

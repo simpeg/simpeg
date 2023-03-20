@@ -10,7 +10,8 @@ Prerequisite: Installing Python
 ===============================
 
 We highly recommend installing python using
-`Anaconda <https://anaconda.com/download/>`_.
+`Anaconda <https://anaconda.com/download/>`_ (or the alternative
+`Mambaforge <https://mamba.readthedocs.io/en/latest/installation.html>`_).
 It installs `python <https://www.python.org/>`_,
 `Jupyter <http://jupyter.org/>`_ and other core
 python libraries for scientific computing.
@@ -36,7 +37,7 @@ distribution:
 
     conda install SimPEG --channel conda-forge
 
-Installing through `conda` is our recommended method of installation.
+Installing through `conda`/`mamba` is our recommended method of installation.
 
 .. note::
     If you find yourself wanting a faster package manager than ``conda``
