@@ -80,10 +80,20 @@ repository, have a look at the article: `A successful git branching model
 Setting up your environment
 ---------------------------
 
-To get started developing SimPEG we recommend setting up an environment with Anaconda_
-that mimics the testing environment used for continuous integration testing. This will
+To get started developing SimPEG we recommend setting up an environment using the ``conda``( or ``mamba``)
+package manager that mimics the testing environment used for continuous integration testing. Most of the
+packages that we use are available through the ``conda-forge`` project. This will
 ensure you have all of the necessary packages to both develop SimPEG and run tests
-locally. We provide an ``environment_test.yml`` in the base level directory.
+locally. We provide an ``environment_test.yml`` in the base level directory. ::
+
+    conda env create -f environment_test.yml
+
+.. note::
+    If you find yourself wanting a faster package manager than ``conda``
+    check out the ``mamba`` project at https://mamba.readthedocs.io/. It
+    usually is able to set up environments much quicker than ``conda`` and
+    can be used as a drop-in replacement (i.e. replace ``conda`` commands with
+    ``mamba``).
 
 There are many options to install SimPEG into this local environment, we recommend
 using `pip`. After ensuring that all necessary packages from `environment_test.yml`

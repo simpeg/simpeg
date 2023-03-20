@@ -106,10 +106,11 @@ If you are using the electromagnetics module of SimPEG, please cite:
 Questions
 =========
 
-Please do not create an issue to ask a question. You will get a faster
-response by posting on our Discourse discussion forum:
-https://simpeg.discourse.group/. If you prefer real-time chat,
+If you have a question regarding a specific use of SimPEG, the fastest way
+to get a response is by posting on our Discourse discussion forum:
+https://simpeg.discourse.group/. Alternatively, If you prefer real-time chat,
 you can join our slack group at http://slack.simpeg.xyz.
+Please do not create an issue to ask a question.
 
 
 Links

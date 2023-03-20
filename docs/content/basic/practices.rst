@@ -8,7 +8,7 @@ Practices
 
 Here we cover
 
-- `testing`_
+- testing_
 - style_
 - licensing_
 

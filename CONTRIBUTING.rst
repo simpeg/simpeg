@@ -15,15 +15,19 @@ These repositories are maintained on a volunteer basis.
 Issues
 ======
 
+Issues are a place for you to raise problems you are having with the
+package to the developers.
+
 .. _questions:
 
 Questions
 ---------
 
-Please do not create an issue to ask a question. You will get a faster
-response by posting on our Discourse discussion forum:
-https://simpeg.discourse.group/. If you prefer real-time chat,
+If you have a question regarding a specific use of SimPEG, the fastest way
+to get a response is by posting on our Discourse discussion forum:
+https://simpeg.discourse.group/. Alternatively, If you prefer real-time chat,
 you can join our slack group at http://slack.simpeg.xyz.
+Please do not create an issue to ask a question.
 
 .. _bugs:
 
@@ -56,6 +60,8 @@ and start a pull request!
 
 Pull Requests
 =============
+
+We welcome contributions to SimPEG in the form of pull requests (PR)
 
 .. _contributing_new_code:
 
@@ -120,10 +126,11 @@ it might take some time for us to get your PR.
 
 
 Licensing
-=============
+=========
 
-The contributed code will be licensed under SimPEG's license
-(https://github.com/simpeg/simpeg/blob/main/LICENSE). If you did not write
+The code contributed to SimPEG will be licensed under the `MIT license
+<https://github.com/simpeg/simpeg/blob/main/LICENSE>`_ which allows open
+and commercial use and extension of SimPEG. If you did not write
 the code yourself, it is your responsibility to ensure that the existing
 license is compatible and included in the contributed files or you can obtain
 permission from the original author to relicense the code.
