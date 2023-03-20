@@ -7,11 +7,8 @@ from .... import props
 from .survey import Survey
 
 from empymod.transform import dlf
-
-try:
-    from empymod.transform import get_spline_values as get_dlf_points
-except ImportError:
-    from empymod.transform import get_dlf_points
+from empymod import filters
+from empymod.transform import get_dlf_points
 from empymod.utils import check_hankel
 from ..utils import static_utils
 from ....utils import validate_type, validate_string
