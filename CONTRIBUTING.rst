@@ -15,19 +15,8 @@ These repositories are maintained on a volunteer basis.
 Issues
 ======
 
-Issues are a place for you to raise problems you are having with the
-package to the developers.
-
-.. _questions:
-
-Questions
----------
-
-If you have a question regarding a specific use of SimPEG, the fastest way
-to get a response is by posting on our Discourse discussion forum:
-https://simpeg.discourse.group/. Alternatively, if you prefer real-time chat,
-you can join our slack group at http://slack.simpeg.xyz.
-Please do not create an issue to ask a question.
+Issues are a place for you to suggest enhancements or raise problems you are
+having with the package to the developers.
 
 .. _bugs:
 
@@ -39,7 +28,7 @@ detail to reproduce the error. Whenever possible, if you can include a small
 example that produces the error, this will help us resolve issues faster.
 
 
-.. _suggesting_enhancements:
+.. _suggest enhancements:
 
 Suggesting enhancements
 -----------------------
@@ -55,6 +44,17 @@ We will use the issue as a place to discuss and provide feedback. Please
 remember that SimPEG is maintained on a volunteer basis. If you suggest an
 enhancement, we certainly appreciate if you are also willing to take action
 and start a pull request!
+
+.. _questions:
+
+Questions
+---------
+
+If you have a question regarding a specific use of SimPEG, the fastest way
+to get a response is by posting on our Discourse discussion forum:
+https://simpeg.discourse.group/. Alternatively, if you prefer real-time chat,
+you can join our slack group at http://slack.simpeg.xyz.
+Please do not create an issue to ask a question.
 
 .. _pull_requests:
 
@@ -79,7 +79,7 @@ Contributing new code
 .. _code style: https://docs.simpeg.xyz/content/basic/practices.html#style
 
 If you have an idea for how to improve SimPEG, please first create an issue
-and `suggesting_enhancements`_. We will use the
+and `suggest enhancements`_. We will use the
 issue as a place to discuss and make decisions on the suggestion. Once you are
 ready to take action and commit some code to SimPEG, please check out
 `getting started`_ for
@@ -128,7 +128,7 @@ it might take some time for us to get your PR.
 Licensing
 =========
 
-The code contributed to SimPEG will be licensed under the `MIT license
+All code contributed to SimPEG is licensed under the `MIT license
 <https://github.com/simpeg/simpeg/blob/main/LICENSE>`_ which allows open
 and commercial use and extension of SimPEG. If you did not write
 the code yourself, it is your responsibility to ensure that the existing

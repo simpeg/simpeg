@@ -26,7 +26,7 @@ Testing
     :alt: Coverage status
 
 On each update, SimPEG is tested using the continuous integration service
-`azure pipelines <https://azure.microsoft.com/en-us/products/devops/pipelines>`_.
+`Azure pipelines <https://azure.microsoft.com/en-us/products/devops/pipelines>`_.
 We use `Codecov <http://codecov.io>`_ to check and provide stats on how much
 of the code base is covered by tests. This tells which lines of code have been
 run in the test suite. It does not tell you about the quality of the tests run!
@@ -162,8 +162,8 @@ Documentation
 -------------
 
 Documentation helps others use your code! Please document new contributions.
-SimPEG trys to follow the `numpydoc` style of docstrings, check out the
-`style guide <https://numpydoc.readthedocs.io/en/latest/format.html>`_.
+SimPEG tries to follow the `numpydoc` style of docstrings (check out the
+`style guide <https://numpydoc.readthedocs.io/en/latest/format.html>`_).
 SimPEG then uses `sphinx <http://www.sphinx-doc.org/>`_ to build the documentation.
 When documenting a new class or function, please include a description
 (with math if it solves an equation), inputs, outputs and preferably a small example.
@@ -222,7 +222,6 @@ For example:
         """
 
 
-
 .. _style:
 
 Style
@@ -232,7 +231,8 @@ Consistency makes code more readable and easier for collaborators to jump in.
 `PEP 8 <https://www.python.org/dev/peps/pep-0008/>`_ provides conventions for
 coding in Python. SimPEG is currently not `PEP 8
 <https://www.python.org/dev/peps/pep-0008/>`_ compliant, but we are working
-towards it and would appreciate contributions that do too!
+towards it and would appreciate contributions that do too! Often, most python
+text editors can be configured to issue warnings for non-compliant styles.
 
 SimPEG uses `black <https://black.readthedocs.io/>`_ version 23.1.0 to autoformat
 the code base, and all additions to the code are tested to ensure that they are
@@ -246,111 +246,6 @@ identify poor coding practices. This is an ongoing process where we are fixing o
 style warning at a time. The fixed style warnings are checked to ensure no new code
 goes against an already established style. This test can also be installed locally
 using pre-commit hooks, similar to `black` above.
-
-
-If you have sublime text 3, the linter can be set up through sublime text 3's package manager. The step by
-step process is found :ref:`here <api_practices_linter_install>`. Other IDE's
-will also generally warn the user on on pep8 compliance.
-
-Sublime has PEP 8 linter packages that you can use. I use `SublimeLinter-pep8 <https://github.com/SublimeLinter/SublimeLinter-pep8>`_.
-You can install it by going to your package manager (`cmd + shift + p`),
-install package and search for SublimeLinter-pep8. Installation instructions are available at https://github.com/SublimeLinter/SublimeLinter-pep8.
-
-This highlights and gives you tips on how to correct the code.
-
-.. image:: ../../images/pep8sublime.png
-    :width: 95%
-
-
-Below is a sample user-settings configuration for the SublimeLinter (Sublime
-Text > Preferences > Package Settings > SublimeLinter > Settings-User)
-
-.. code:: json
-
-    {
-        "user": {
-            "debug": false,
-            "delay": 0.25,
-            "error_color": "D02000",
-            "gutter_theme": "Packages/SublimeLinter/gutter-themes/Default/Default.gutter-theme",
-            "gutter_theme_excludes": [],
-            "lint_mode": "background",
-            "linters": {
-                "pep8": {
-                    "@disable": false,
-                    "args": [],
-                    "excludes": [],
-                    "ignore": "",
-                    "max-line-length": null,
-                    "select": ""
-                },
-                "proselint": {
-                    "@disable": false,
-                    "args": [],
-                    "excludes": []
-                }
-            },
-            "mark_style": "solid underline",
-            "no_column_highlights_line": false,
-            "passive_warnings": false,
-            "paths": {
-                "linux": [],
-                "osx": [
-                    "/anaconda/bin"
-                ],
-                "windows": []
-            },
-            "python_paths": {
-                "linux": [],
-                "osx": [],
-                "windows": []
-            },
-            "rc_search_limit": 3,
-            "shell_timeout": 10,
-            "show_errors_on_save": false,
-            "show_marks_in_minimap": true,
-            "syntax_map": {
-                "html (django)": "html",
-                "html (rails)": "html",
-                "html 5": "html",
-                "javascript (babel)": "javascript",
-                "magicpython": "python",
-                "php": "html",
-                "python django": "python",
-                "pythonimproved": "python"
-            },
-            "warning_color": "DDB700",
-            "wrap_find": true
-        }
-    }
-
-
-Install PEP8 Linter Through Sublime Text 3
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-.. _api_practices_linter_install:
-
-Instructions for installing and activating the pep8 linter for Mac OS X/Linux/Windows are below. For this to work, you MUST have installed sublime text 3.
-
-**Step 1: Install Sublime Linter 3:**
-
-- Open sublime text 3
-- Open the Command Palette (cmd+shift+p on Mac OS X, ctrl+shift+p on Linux/Windows).
-- Type 'install' and select 'Package Control: Install Package' from the Command Palette. There will be a pause of a few seconds while Package Control finds the available packages.
-- When the list of available packages appears, type 'linter' and select 'SublimeLinter'. Note: The github repository name is “SublimeLinter3”, but the plugin name remains “SublimeLinter”.
-- After a few seconds SublimeLinter will be installed and loaded. Depending on your setup, you may see some prompts from SublimeLinter. For more information on SublimeLinter’s startup actions, see Startup actions. You will see an install message.
-- After reading the message, close Sublime Text 3
-
-**Step 2: Install pep8 Linter:**
-
-- Open sublime text 3
-- Open the Command Palette (cmd+shift+p on Mac OS X, ctrl+shift+p on Linux/Windows).
-- Type 'install' and select 'Package Control: Install Package' from the Command Palette. There will be a pause of a few seconds while Package Control finds the available packages.
-- When the list of available packages appears, type 'pep8' and select the appropriate option.
-- After a few seconds pep8 linter will be installed and loaded. Depending on your setup, you may see some prompts from SublimeLinter. For more information on SublimeLinter’s startup actions, see Startup actions. You will see an install message.
-- After reading the message, close Sublime Text 3
-
-The next time you open a .py file in sublime text 3, the linter should be activated.
 
 
 .. _licensing:

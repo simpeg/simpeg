@@ -39,36 +39,37 @@ Working with Git and GitHub
 To keep track of your code changes and contribute back to SimPEG, you will
 need a github_ account, then fork the `SimPEG repository <http://github.com/simpeg/simpeg>`_
 to your local account.
-(`How to fork a repo <https://docs.github.com/en/get-started/quickstart/fork-a-repo>`_). Software
+(`How to fork a repo <https://docs.github.com/en/get-started/quickstart/fork-a-repo>`_).
 
 
 .. _github: http://github.com
 
 Next, clone your fork to your computer so that you have a local copy. We recommend setting up a
 directory in your home directory to put your version-controlled repositories (e.g.  called :code:`git`).
-There are two ways you can clone a repository: (1)
-from a terminal (checkout: https://docs.github.com/en/get-started/quickstart/set-up-git for an tutorial)::
+There are two ways you can clone a repository:
 
-    git clone https://github.com/YOUR-USERNAME/SimPEG
+1. From a terminal (checkout: https://docs.github.com/en/get-started/quickstart/set-up-git for an tutorial) ::
 
-or (2) using a desktop client such as SourceTree_ or GitKraken_.
+       git clone https://github.com/YOUR-USERNAME/SimPEG
 
 .. _SourceTree: https://www.sourcetreeapp.com/
 
 .. _GitKraken: https://www.gitkraken.com/
 
-.. image:: ../../images/sourceTreeSimPEG.png
-    :align: center
-    :width: 400
-    :target: https://www.sourcetreeapp.com/
+2. Using a desktop client such as SourceTree_ or GitKraken_.
 
-If this is your first time managing a github_ repository through SourceTree_,
-it is also handy to set up the remote account so it remembers your github_
-user name and password
+   .. image:: ../../images/sourceTreeSimPEG.png
+       :align: center
+       :width: 400
+       :target: https://www.sourcetreeapp.com/
 
-.. image:: ../../images/sourceTreeRemote.png
-    :align: center
-    :width: 400
+   If this is your first time managing a github_ repository through SourceTree_,
+   it is also handy to set up the remote account so it remembers your github_
+   user name and password
+
+   .. image:: ../../images/sourceTreeRemote.png
+       :align: center
+       :width: 400
 
 For managing your copy of SimPEG and contributing back to the main
 repository, have a look at the article: `A successful git branching model
@@ -111,46 +112,9 @@ if so desired ::
 
     pip uninstall SimPEG
 
-We no longer recommend modifying your python path environment variable as a way
-to install SimPEG for developers.
-
-.. _getting_started_text_editors:
-
-Text Editors
-------------
-
-Sublime_ is a text editor used by many SimPEG developers.
-
-.. _Sublime: https://www.sublimetext.com/
-
-You can configure the Sublime so that you can use the sublime
-build (Tools / Build) to run Python_ code.
-
-Open your user settings
-
-.. image:: ../../images/sublimeSettings.png
-    :align: center
-    :width: 400
-
-and edit them to include some common configurations:
-
-.. code:: json
-
-    {
-    "ensure_newline_at_eof_on_save": true,
-    "font_size": 11,
-    "translate_tabs_to_spaces": true,
-    "trim_trailing_white_space_on_save": true,
-    "word_wrap": false
-    }
-
-There are a few things configured here. In particular you will want to
-ensure that :code:`"translate_tabs_to_spaces": true` is configured (Python_ is
-sensitive to tabs and spaces), that
-:code:`"trim_trailing_white_space_on_save": true` so that your git flow does
-not get cluttered with extra spaces that are not actually changes to code and
-that :code:`"ensure_newline_at_eof_on_save": true`, so that there is a blank
-line at the end of all saved documents. The rest are up to you.
+.. note::
+    We no longer recommend modifying your python path environment variable as a way
+    to install SimPEG for developers.
 
 .. _getting_started_jupyter_notebook:
 
