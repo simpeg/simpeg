@@ -7,11 +7,7 @@ from .... import props
 from .survey import Survey
 
 from empymod.transform import dlf
-
-try:
-    from empymod.transform import get_spline_values as get_dlf_points
-except ImportError:
-    from empymod.transform import get_dlf_points
+from empymod.transform import get_dlf_points
 from empymod.utils import check_hankel
 from ..utils import static_utils
 from ....utils import validate_type, validate_string
@@ -192,7 +188,8 @@ class Simulation1DLayers(BaseSimulation):
 
         # Assume dipole-dipole
         V = voltage.reshape((self.survey.nD, 4), order="F")
-        data = V[:, 0] + V[:, 1] - (V[:, 2] + V[:, 3])
+        # vs are AM, AN, BM, BN
+        data = (V[:, 0] - V[:, 1]) - (V[:, 2] - V[:, 3])
 
         if self.data_type == "apparent_resistivity":
             data /= self.geometric_factor
@@ -291,7 +288,7 @@ class Simulation1DLayers(BaseSimulation):
             r_AM = self.electrode_separations["AM"]
             r_AN = self.electrode_separations["AN"]
             r_BM = self.electrode_separations["BM"]
-            r_BN = self.electrode_separations["BM"]
+            r_BN = self.electrode_separations["BN"]
             self._offset = np.r_[r_AM, r_AN, r_BM, r_BN]
         return self._offset
 
@@ -303,23 +300,10 @@ class Simulation1DLayers(BaseSimulation):
         """
         # TODO: only works isotropic sigma
         if getattr(self, "_lambd", None) is None:
-            self._lambd = np.empty(
-                [self.offset.size, self._fhtfilt.base.size], order="F", dtype=complex
-            )
-            self.lambd[:, :], _ = get_dlf_points(
+            self._lambd, _ = get_dlf_points(
                 self._fhtfilt, self.offset, self.hankel_pts_per_dec
             )
         return self._lambd
-
-    # @property
-    # def t(self):
-    #     """
-    #         thickness of the layer
-    #     """
-    #     # TODO: only works isotropic sigma
-    #     if getattr(self, '_t', None) is None:
-    #         self._t = self.mesh.h[0][:-1]
-    #     return self._t
 
     @property
     def n_layer(self):
@@ -341,7 +325,7 @@ class Simulation1DLayers(BaseSimulation):
             r_AM = self.electrode_separations["AM"]
             r_AN = self.electrode_separations["AN"]
             r_BM = self.electrode_separations["BM"]
-            r_BN = self.electrode_separations["BM"]
+            r_BN = self.electrode_separations["BN"]
             self._geometric_factor = (1 / r_AM - 1 / r_BM - 1 / r_AN + 1 / r_BN) / (
                 2 * np.pi
             )
