@@ -6,7 +6,7 @@ body:
 - type: markdown
   attributes:
     value: >
-      If you'd like to request a new feature in SimPEG, or suggested changed the
+      If you'd like to request a new feature in SimPEG, or suggest changes in the
       functionality of certain functions, we recommend getting in touch with the
       developers on [slack](https://slack.simpeg.xyz), in addition to opening an
       issue or pull request here.
