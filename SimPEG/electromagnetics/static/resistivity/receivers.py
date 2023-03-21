@@ -35,6 +35,7 @@ class BaseRx(BaseSimPEGRx):
         self.orientation = orientation
         self.data_type = data_type
         self.projField = projField
+        self._geometric_factor = {}
 
     @property
     def orientation(self):
@@ -52,8 +53,6 @@ class BaseRx(BaseSimPEGRx):
         if var is not None:
             var = validate_string("orientation", var, ("x", "y", "z"))
         self._orientation = var
-
-    _geometric_factor = {}
 
     # @property
     # def projField(self):
