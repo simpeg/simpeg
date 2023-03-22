@@ -111,37 +111,36 @@ def depth_weighting(
 
     Parameters
     ----------
-    mesh : :class:`discretize.base.BaseMesh`
+    mesh : discretize.base.BaseMesh
         Discretized model space.
-    reference_locs : float or 2d-array
+    reference_locs : float or (n, ndim) numpy.ndarray
         Reference location for the depth weighting.
         It can be a ``float``, which value is the vertical component for
         the reference location.
         Or it can be a 2d array, with multiple reference locations, where each
         row should contain the coordinates of a single location point in the
-        following order: _x, _y, _z.
+        following order: _x_, _y_, _z_ (for 3D meshes) or _x_, _z_ (for 2D
+        meshes).
         The vertical coordinate of the reference location for each cell in the
         mesh will be obtained by the closest point in ``reference_locs`` using
         only their horizontal coordinates.
-    active_cells : :meth:`discretize.base.BaseMesh.n_cells`, array of bools, optional
+    active_cells : (mesh.n_cells) numpy.ndarray of bool, optional, optional
         Index vector for the active cells on the mesh.
         If ``None``, every cell will be assumed to be active.
-        Default ``None``.
     exponent : float, optional
         Exponent parameter for depth weighting.
         The exponent should match the natural decay power of the potential
         field. For example, for gravity acceleration, set it to 2; for magnetic
         fields, to 3.
-        Default ``2``.
     threshold : float or None, optional
         Threshold parameters used in the depth weighting.
         If ``None``, it will be set to half of the smallest cell width.
-        Default ``None``.
 
     Returns
     -------
-    wz : 1d-array
-        Normalized depth weights for the mesh at every active cell.
+    (n_active) numpy.ndarray
+        Normalized depth weights for the mesh at every active cell as
+        a 1d-array.
 
     Notes
     -----
