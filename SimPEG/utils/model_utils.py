@@ -124,7 +124,7 @@ def depth_weighting(
         The vertical coordinate of the reference location for each cell in the
         mesh will be obtained by the closest point in ``reference_locs`` using
         only their horizontal coordinates.
-    active_cells : (mesh.n_cells) numpy.ndarray of bool, optional, optional
+    active_cells : (mesh.n_cells) numpy.ndarray of bool, optional
         Index vector for the active cells on the mesh.
         If ``None``, every cell will be assumed to be active.
     exponent : float, optional
