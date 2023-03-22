@@ -151,10 +151,10 @@ def depth_weighting(
 
         w(z) = \frac{1}{(|z - z_0| + \epsilon) ^ {\nu / 2}}
 
-    where $z$ is the vertical coordinate of the mesh cell centers,
-    $z_0$ is the vertical coordinate of the reference location,
-    $\nu$ is the _exponent_,
-    and $\epsilon$ is a given _threshold_.
+    where :math:`z` is the vertical coordinate of the mesh cell centers,
+    :math:`z_0` is the vertical coordinate of the reference location,
+    :math:`\nu` is the _exponent_,
+    and :math:`\epsilon` is a given _threshold_.
 
     The depth weights array is finally normalized by dividing for its maximum
     value.
