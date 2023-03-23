@@ -99,9 +99,9 @@ contributions can be built upon by the SimPEG community.
 Stages of a pull request
 ------------------------
 
-When first creating a pull request, try to make your suggested changes as tightly
-scoped as possible. The fewer changes you make, the faster your branch will be
-merged!
+When first creating a pull request (PR), try to make your suggested changes as tightly
+scoped as possible (try to solve one problem at a time). The fewer changes you make, the faster
+your branch will be merged!
 
 If your pull request is not ready for final review, but you still want feedback
 on your current coding process please mark it as a draft pull request. Once you
