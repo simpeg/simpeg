@@ -13,7 +13,7 @@ class MetaSimulation(BaseSimulation):
     """Combine multiple simulations into a single one.
 
     This class is used to combine multiple simulations into a
-    single version of one. Each simulation and mapping pair will
+    single simulation. Each simulation and mapping pair will
     perform its own work, then concatenate the results together.
 
     For each mapping and simulation pair, given a model, this first
@@ -22,6 +22,11 @@ class MetaSimulation(BaseSimulation):
     With the proper mappings this can be useful for setting up time-lapse,
     tiled, stitched, or any other simulation that can be broken into many
     individual simulations.
+
+    .. warning::
+
+        This class is under construction and its functionality may change
+        in the future.
 
     Parameters
     ----------
@@ -186,7 +191,9 @@ class MetaSimulation(BaseSimulation):
 
         Returns
         -------
-        list
+        (n_sim) list
+            The type of each item of the list is determined by the internal
+            simulation that created it.
         """
         self.model = m
         # The above should pass the model to all the internal simulations.
