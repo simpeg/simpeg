@@ -20,7 +20,7 @@ class MetaSimulation(BaseSimulation):
     applies the mapping, then passes the resulting model to the simulation.
 
     With the proper mappings this can be useful for setting up time-lapse,
-    tilled, stitched, or any other simulation that can be broken into many
+    tiled, stitched, or any other simulation that can be broken into many
     individual simulations.
 
     Parameters
