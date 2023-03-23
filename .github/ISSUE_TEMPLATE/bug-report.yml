@@ -44,8 +44,8 @@ body:
   attributes:
     label: "Runtime information:"
     description: >
-      Please include the output from SimPEG.Report() to describe your system for us.
-      Output from `from SimPEG import Report; print(Report())`
+      Please include the output from `SimPEG.Report()` to describe your system for us.
+      Paste the output from `from SimPEG import Report; print(Report())` below.
   validations:
     required: true
 
