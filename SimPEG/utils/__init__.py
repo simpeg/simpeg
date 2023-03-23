@@ -116,6 +116,8 @@ Model Utility Functions
 .. autosummary::
   :toctree: generated/
 
+  depth_weighting
+  surface2ind_topo
   model_builder.add_block
   model_builder.create_2_layer_model
   model_builder.create_block_in_wholespace
