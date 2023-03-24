@@ -113,6 +113,17 @@ you can join our slack group at http://slack.simpeg.xyz.
 Please do not create an issue to ask a question.
 
 
+Meetings
+========
+
+SimPEG hosts weekly meetings for users to interact with each other,
+for developers to discuss upcoming changes to the code base, and for
+discussing topics related to geophysics in general.
+Currently our meetings are held every Wednesday, alternating between
+a mornings (10:30 am pacific time) and afternoons (3:00 pm pacific time)
+on even numbered Wednesdays. Find more info on our `slack <http://slack.simpeg.xyz>`_.
+
+
 Links
 =====
 
