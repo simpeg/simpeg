@@ -642,6 +642,8 @@ class WeightedLeastSquares(ComboObjectiveFunction):
     Parameters
     ----------
     mesh : discretize.base.BaseMesh
+        The mesh on which the model parameters are defined. This is used
+        for constructing difference operators for the smoothness terms.
     active_cells : array_like of bool or int, optional
         List of active cell indices, or a `mesh.n_cells` boolean array
         describing active cells.

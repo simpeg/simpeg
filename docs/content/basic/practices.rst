@@ -58,7 +58,7 @@ we setup a 3D :code:`BaseRectangularMesh` and assert that it has 3 dimensions.
 
     mesh = BaseRectangularMesh([6, 2, 3])
 
-    def test_meshDimensions():
+    def test_mesh_dimensions():
         assert mesh.dim == 3
 
 All functions with the naming convention :code:`test_XXX`
@@ -74,11 +74,11 @@ the ``numpy.testing`` module to check for approximate equals. For instance,
     import discretize
     from SimPEG import maps
 
-    def test_mapMultiplication(self):
-        M = discretize.TensorMesh([2,3])
-        expMap = maps.ExpMap(M)
-        vertMap = maps.SurjectVertical1D(M)
-        combo = expMap*vertMap
+    def test_map_multiplication(self):
+        mesh = discretize.TensorMesh([2,3])
+        exp_map = maps.ExpMap(mesh)
+        vert_map = maps.SurjectVertical1D(mesh)
+        combo = exp_map*vert_map
         m = np.arange(3.0)
         t_true = np.exp(np.r_[0,0,1,1,2,2.])
         np.testing.assert_allclose(combo * m, t_true)
@@ -148,12 +148,12 @@ DEM_derivs.py>`_
 
 .. code:: python
 
-    def derivTest(fdemType, comp):
+    def deriv_test(fdemType, comp):
 
-        # setup problem, survey
+        # setup simulation, survey
 
         def fun(x):
-            return survey.dpred(x), lambda x: prb.Jvec(x0, x)
+            return survey.dpred(x), lambda x: sim.Jvec(x0, x)
         return tests.check_derivative(fun, x0, num=2, plotIt=False, eps=FLR)
 
 .. _documentation:
