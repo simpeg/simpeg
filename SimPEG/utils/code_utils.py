@@ -179,7 +179,7 @@ def set_kwargs(obj, ignore=None, **kwargs):
             raise Exception("{0!s} attr is not recognized".format(attr))
 
     # hook(obj, hook, silent=True)
-    # hook(obj, setKwargs, silent=True)
+    # hook(obj, set_kwargs, silent=True)
 
 
 def print_done(obj, printers, name="Done", pad=""):

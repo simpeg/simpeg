@@ -6,7 +6,7 @@ from .utils import (
     call_hooks,
     checkStoppers,
     count,
-    setKwargs,
+    set_kwargs,
     timeIt,
     printTitles,
     printLine,
@@ -269,7 +269,7 @@ class Minimize(object):
     factor = 1.0
 
     def __init__(self, **kwargs):
-        setKwargs(self, **kwargs)
+        set_kwargs(self, **kwargs)
 
         self.stoppersLS = [
             StoppingCriteria.armijoGoldstein,
@@ -1116,7 +1116,7 @@ class NewtonRoot(object):
     solverOpts = {}
 
     def __init__(self, **kwargs):
-        setKwargs(self, **kwargs)
+        set_kwargs(self, **kwargs)
 
     def root(self, fun, x):
         """root(fun, x)

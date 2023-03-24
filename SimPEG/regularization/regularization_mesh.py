@@ -31,7 +31,7 @@ class RegularizationMesh(props.BaseSimPEG):
     def __init__(self, mesh, active_cells=None, **kwargs):
         self.mesh = mesh
         self.active_cells = active_cells
-        utils.setKwargs(self, **kwargs)
+        utils.set_kwargs(self, **kwargs)
 
     @property
     def active_cells(self) -> np.ndarray:
