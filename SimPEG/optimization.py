@@ -4,7 +4,7 @@ import scipy.sparse as sp
 from .utils.solver_utils import SolverWrapI, Solver, SolverDiag
 from .utils import (
     call_hooks,
-    checkStoppers,
+    check_stoppers,
     count,
     set_kwargs,
     timeIt,
@@ -516,7 +516,7 @@ class Minimize(object):
         if self.iter == 0:
             self.f0 = self.f
             self.g0 = self.g
-        return checkStoppers(self, self.stoppers if not inLS else self.stoppersLS)
+        return check_stoppers(self, self.stoppers if not inLS else self.stoppersLS)
 
     @timeIt
     @call_hooks("projection")

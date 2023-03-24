@@ -284,9 +284,9 @@ def check_stoppers(obj, stoppers):
             critical.append(l <= r)
 
     if obj.debug:
-        print("checkStoppers.optimal: ", optimal)
+        print("check_stoppers.optimal: ", optimal)
     if obj.debug:
-        print("checkStoppers.critical: ", critical)
+        print("check_stoppers.critical: ", critical)
 
     return (len(optimal) > 0 and all(optimal)) | (len(critical) > 0 and any(critical))
 
