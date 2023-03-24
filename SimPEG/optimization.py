@@ -9,7 +9,7 @@ from .utils import (
     set_kwargs,
     timeIt,
     print_titles,
-    printLine,
+    print_line,
     printStoppers,
     printDone,
 )
@@ -464,7 +464,7 @@ class Minimize(object):
 
         """
         pad = " " * 10 if inLS else ""
-        printLine(self, self.printers if not inLS else self.printersLS, pad=pad)
+        print_line(self, self.printers if not inLS else self.printersLS, pad=pad)
 
     def printDone(self, inLS=False):
         """
@@ -484,7 +484,9 @@ class Minimize(object):
 
         if self.print_type == "ubc":
             try:
-                printLine(self, self.printers if not inLS else self.printersLS, pad=pad)
+                print_line(
+                    self, self.printers if not inLS else self.printersLS, pad=pad
+                )
                 printDone(
                     self,
                     self.printers,
