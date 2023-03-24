@@ -10,6 +10,17 @@ This document is a set of guidelines for contributing to the repositories
 hosted in the `SimPEG <https://github.com/simpeg>`_ organization on GitHub.
 These repositories are maintained on a volunteer basis.
 
+.. _questions:
+
+Questions
+=========
+
+If you have a question regarding a specific use of SimPEG, the fastest way
+to get a response is by posting on our Discourse discussion forum:
+https://simpeg.discourse.group/. Alternatively, if you prefer real-time chat,
+you can join our slack group at http://slack.simpeg.xyz.
+Please do not create an issue to ask a question.
+
 .. _Issues:
 
 Issues
@@ -45,16 +56,6 @@ remember that SimPEG is maintained on a volunteer basis. If you suggest an
 enhancement, we certainly appreciate if you are also willing to take action
 and start a pull request!
 
-.. _questions:
-
-Questions
----------
-
-If you have a question regarding a specific use of SimPEG, the fastest way
-to get a response is by posting on our Discourse discussion forum:
-https://simpeg.discourse.group/. Alternatively, if you prefer real-time chat,
-you can join our slack group at http://slack.simpeg.xyz.
-Please do not create an issue to ask a question.
 
 .. _pull_requests:
 
