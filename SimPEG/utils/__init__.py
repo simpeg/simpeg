@@ -160,7 +160,7 @@ Many of the functions here are used internally to SimPEG and have minimal docume
   as_array_n_by_dim
   call_hooks
   check_stoppers
-  create_wrapper_from_class
+  mem_profile_class
   dependent_property
   deprecate_class
   deprecate_function
@@ -189,7 +189,7 @@ Many of the functions here are used internally to SimPEG and have minimal docume
 from discretize.utils.interpolation_utils import interpolation_matrix
 
 from .code_utils import (
-    create_wrapper_from_class,
+    mem_profile_class,
     hook,
     set_kwargs,
     print_titles,
