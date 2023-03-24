@@ -5,7 +5,7 @@ from discretize.tests import check_derivative
 
 from .maps import IdentityMap
 from .props import BaseSimPEG
-from .utils import setKwargs, timeIt, Zero, Identity
+from .utils import set_kwargs, timeIt, Zero, Identity
 
 __all__ = ["BaseObjectiveFunction", "ComboObjectiveFunction", "L2ObjectiveFunction"]
 
@@ -33,7 +33,7 @@ class BaseObjectiveFunction(BaseSimPEG):
     def __init__(self, nP=None, **kwargs):
         if nP is not None:
             self._nP = nP
-        setKwargs(self, **kwargs)
+        set_kwargs(self, **kwargs)
 
     def __call__(self, x, f=None):
         raise NotImplementedError(
