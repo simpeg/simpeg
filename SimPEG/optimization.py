@@ -10,7 +10,7 @@ from .utils import (
     timeIt,
     print_titles,
     print_line,
-    printStoppers,
+    print_stoppers,
     printDone,
 )
 
@@ -500,7 +500,7 @@ class Minimize(object):
                     pad=pad,
                 )
         else:
-            printStoppers(self, stoppers, pad="", stop=stop, done=done)
+            print_stoppers(self, stoppers, pad="", stop=stop, done=done)
 
     @call_hooks("finish")
     def finish(self):
