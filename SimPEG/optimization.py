@@ -11,7 +11,7 @@ from .utils import (
     print_titles,
     print_line,
     print_stoppers,
-    printDone,
+    print_done,
 )
 
 norm = np.linalg.norm
@@ -367,7 +367,7 @@ class Minimize(object):
                     if not caught: return xc
                 doEndIteration(xt)
 
-            printDone()
+            print_done()
             finish()
             return xc
         """
@@ -487,14 +487,14 @@ class Minimize(object):
                 print_line(
                     self, self.printers if not inLS else self.printersLS, pad=pad
                 )
-                printDone(
+                print_done(
                     self,
                     self.printers,
                     pad=pad,
                 )
                 print(self.print_target)
             except AttributeError:
-                printDone(
+                print_done(
                     self,
                     self.printers,
                     pad=pad,
