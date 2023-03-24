@@ -8,7 +8,7 @@ from .utils import (
     count,
     set_kwargs,
     timeIt,
-    printTitles,
+    print_titles,
     printLine,
     printStoppers,
     printDone,
@@ -452,7 +452,7 @@ class Minimize(object):
         """
         pad = " " * 10 if inLS else ""
         name = self.name if not inLS else self.nameLS
-        printTitles(self, self.printers if not inLS else self.printersLS, name, pad)
+        print_titles(self, self.printers if not inLS else self.printersLS, name, pad)
 
     @call_hooks("printIter")
     def printIter(self, inLS=False):
