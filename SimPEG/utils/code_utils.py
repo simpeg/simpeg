@@ -322,7 +322,7 @@ def call_hooks(match, mainFirst=False):
 
     Use the following syntax::
 
-        @callHooks('doEndIteration')
+        @call_hooks('doEndIteration')
         def doEndIteration(self):
             pass
 

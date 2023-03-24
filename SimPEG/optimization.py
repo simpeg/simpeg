@@ -3,7 +3,7 @@ import scipy.sparse as sp
 
 from .utils.solver_utils import SolverWrapI, Solver, SolverDiag
 from .utils import (
-    callHooks,
+    call_hooks,
     checkStoppers,
     count,
     setKwargs,
@@ -402,7 +402,7 @@ class Minimize(object):
 
         return self.xc
 
-    @callHooks("startup")
+    @call_hooks("startup")
     def startup(self, x0):
         """
         **startup** is called at the start of any new minimize call.
@@ -429,7 +429,7 @@ class Minimize(object):
         self.x_last = x0
 
     @count
-    @callHooks("doStartIteration")
+    @call_hooks("doStartIteration")
     def doStartIteration(self):
         """doStartIteration()
 
@@ -454,7 +454,7 @@ class Minimize(object):
         name = self.name if not inLS else self.nameLS
         printTitles(self, self.printers if not inLS else self.printersLS, name, pad)
 
-    @callHooks("printIter")
+    @call_hooks("printIter")
     def printIter(self, inLS=False):
         """
         **printIter** is called directly after function evaluations.
@@ -500,7 +500,7 @@ class Minimize(object):
         else:
             printStoppers(self, stoppers, pad="", stop=stop, done=done)
 
-    @callHooks("finish")
+    @call_hooks("finish")
     def finish(self):
         """finish()
 
@@ -519,7 +519,7 @@ class Minimize(object):
         return checkStoppers(self, self.stoppers if not inLS else self.stoppersLS)
 
     @timeIt
-    @callHooks("projection")
+    @call_hooks("projection")
     def projection(self, p):
         """projection(p)
 
@@ -664,7 +664,7 @@ class Minimize(object):
         return p, False
 
     @count
-    @callHooks("doEndIteration")
+    @call_hooks("doEndIteration")
     def doEndIteration(self, xt):
         """doEndIteration(xt)
 
