@@ -81,30 +81,30 @@ def requires(var):
 
 
 @requires("memory_profiler")
-def create_wrapper_from_class(input_class, *fun_names):
-    """Create wrapper class with memory profiler.
+def mem_profile_class(input_class, *args):
+    """Creates a new class from the target class with memory profiled methods.
 
     Using :meth:`memory_profiler.profile`, this function creates a wrapper class
-    from the input class and function names specified.
+    from the input class with the specified methods memory profiled.
 
     Parameters
     ----------
     input_class : class
         Input class being used to create the wrapper
-    fun_names : list of str
-        Names of the functions that will be wrapped to the wrapper class. These names must
+    *args : str
+        Method names that will be wrapped with a memory profiler. These names must
         correspond to methods of the input class.
 
     Returns
     -------
     class :
-        Wrapper class
+        Memory profiled class.
 
     Examples
     --------
 
-    >>> foo_mem = create_wrapper_from_class(foo,['my_func'])
-    >>> fooi = foo_mem()
+    >>> FooMem = mem_profile_class(Foo,'my_func')
+    >>> fooi = FooMem()
     >>> for i in range(5):
     >>>     fooi.my_func()
 
@@ -115,7 +115,7 @@ def create_wrapper_from_class(input_class, *fun_names):
     from memory_profiler import profile
 
     attrs = {}
-    for f in fun_names:
+    for f in args:
         if hasattr(input_class, f):
             attrs[f] = profile(getattr(input_class, f))
         else:
@@ -1232,7 +1232,7 @@ def validate_active_indices(property_name, index_arr, n_cells):
 #                      DEPRECATIONS
 ###############################################################
 memProfileWrapper = deprecate_function(
-    create_wrapper_from_class, "memProfileWrapper", removal_version="0.18.0"
+    mem_profile_class, "memProfileWrapper", removal_version="0.18.0"
 )
 setKwargs = deprecate_function(set_kwargs, "setKwargs", removal_version="0.18.0")
 printTitles = deprecate_function(print_titles, "printTitles", removal_version="0.18.0")

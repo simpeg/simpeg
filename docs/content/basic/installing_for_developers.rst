@@ -25,7 +25,6 @@ recommend checking out `Software Carpentry <http://software-carpentry.org/>`_.
 
 .. _Anaconda: https://www.anaconda.com/products/individual
 
-
 .. _getting_started_working_with_git_and_github:
 
 Working with Git and GitHub
@@ -38,35 +37,39 @@ Working with Git and GitHub
 
 
 To keep track of your code changes and contribute back to SimPEG, you will
-need a github_ account and fork the `SimPEG repository <http://github.com/simpeg/simpeg>`_
-(`How to fork a repo <https://docs.github.com/en/get-started/quickstart/fork-a-repo>`_). Software
+need a github_ account, then fork the `SimPEG repository <http://github.com/simpeg/simpeg>`_
+to your local account.
+(`How to fork a repo <https://docs.github.com/en/get-started/quickstart/fork-a-repo>`_).
 
 
 .. _github: http://github.com
 
-Next, clone your fork so that you have a local copy. We recommend setting up a
-directory called :code:`git` in your home directory to put your version-
-controlled repositories. There are two ways you can clone a repository: (1)
-from a terminal (checkout: https://docs.github.com/en/get-started/quickstart/set-up-git for an tutorial)::
+Next, clone your fork to your computer so that you have a local copy. We recommend setting up a
+directory in your home directory to put your version-controlled repositories (e.g.  called :code:`git`).
+There are two ways you can clone a repository:
 
-    git clone https://github.com/YOUR-USERNAME/SimPEG
+1. From a terminal (checkout: https://docs.github.com/en/get-started/quickstart/set-up-git for an tutorial) ::
 
-or (2) using a desktop client such as SourceTree_.
+       git clone https://github.com/YOUR-USERNAME/SimPEG
 
 .. _SourceTree: https://www.sourcetreeapp.com/
 
-.. image:: ../../images/sourceTreeSimPEG.png
-    :align: center
-    :width: 400
-    :target: https://www.sourcetreeapp.com/
+.. _GitKraken: https://www.gitkraken.com/
 
-If this is your first time managing a github_ repository through SourceTree_,
-it is also handy to set up the remote account so it remembers your github_
-user name and password
+2. Using a desktop client such as SourceTree_ or GitKraken_.
 
-.. image:: ../../images/sourceTreeRemote.png
-    :align: center
-    :width: 400
+   .. image:: ../../images/sourceTreeSimPEG.png
+       :align: center
+       :width: 400
+       :target: https://www.sourcetreeapp.com/
+
+   If this is your first time managing a github_ repository through SourceTree_,
+   it is also handy to set up the remote account so it remembers your github_
+   user name and password
+
+   .. image:: ../../images/sourceTreeRemote.png
+       :align: center
+       :width: 400
 
 For managing your copy of SimPEG and contributing back to the main
 repository, have a look at the article: `A successful git branching model
@@ -78,88 +81,40 @@ repository, have a look at the article: `A successful git branching model
 Setting up your environment
 ---------------------------
 
-So that you can access SimPEG from anywhere on your computer, you need to add
-it to your path. This can be done using symlinks. In your :code:`git` directory,
-create a directory called :code:`python_symlinks`.
+To get started developing SimPEG we recommend setting up an environment using the ``conda``( or ``mamba``)
+package manager that mimics the testing environment used for continuous integration testing. Most of the
+packages that we use are available through the ``conda-forge`` project. This will
+ensure you have all of the necessary packages to both develop SimPEG and run tests
+locally. We provide an ``environment_test.yml`` in the base level directory. ::
 
-.. image:: ../../images/gitfolders.png
-    :align: center
-    :width: 40%
+    conda env create -f environment_test.yml
 
-Open a terminal in this directory and create a symlink for SimPEG ::
+.. note::
+    If you find yourself wanting a faster package manager than ``conda``
+    check out the ``mamba`` project at https://mamba.readthedocs.io/. It
+    usually is able to set up environments much quicker than ``conda`` and
+    can be used as a drop-in replacement (i.e. replace ``conda`` commands with
+    ``mamba``).
 
-    ln -s ../SimPEG/SimPEG .
+There are many options to install SimPEG into this local environment, we recommend
+using `pip`. After ensuring that all necessary packages from `environment_test.yml`
+are installed, the most robust command you can use, executed from the base level directory
+would be ::
 
-Then, in your shell, you need to add a :code:`PYTHONPATH` variable. For Mac and
-Linux, if you are using Z shell (`Oh My Zsh <http://ohmyz.sh/>`_ is used by a
-lot of SimPEG developers) or bash open the config in a text editor, ie::
+    pip install --no-deps -e .
 
-    nano ~/.zshrc
+This is called an editable mode install (`-e`). This will make a symbolic link for you to
+the working simpeg directory for that python environment to use and you can then
+make use of any changes you have made to the repository without re-installing it. This
+command (`--no-deps`) also ensures pip won't unintentionally re-install a package that
+was previously installed with conda. This practice also allows you to uninstall SimPEG
+if so desired ::
 
-or::
+    pip uninstall SimPEG
 
-    nano ~/.bash_profile
-
-and add a :code:`PYTHONPATH` variable::
-
-    export PYTHONPATH="$PYTHONPATH:/Users/USER/git/python_symlinks"
-
-and save and close. If you then restart the terminal, and run::
-
-    echo $PYTHONPATH
-
-the output should be::
-
-    /Users/USER/git/python_symlinks
-
-
-.. _getting_started_text_editors:
-
-Text Editors
-------------
-
-Sublime_ is a text editor used by many SimPEG developers.
-
-.. _Sublime: https://www.sublimetext.com/
-
-You can configure the Sublime so that you can use the sublime
-build (Tools / Build) to run Python_ code.
-
-Open your user settings
-
-.. image:: ../../images/sublimeSettings.png
-    :align: center
-    :width: 400
-
-and edit them to include the path to your :code:`python_symlinks`::
-
-    {
-    "added_words":
-    [
-        "electromagnetics"
-    ],
-    "ensure_newline_at_eof_on_save": true,
-    "extra_paths":
-    [
-        "/Users/USER/git/python_symlinks/"
-    ],
-    "font_size": 11,
-    "ignored_packages":
-    [
-        "Vintage"
-    ],
-    "translate_tabs_to_spaces": true,
-    "trim_trailing_white_space_on_save": true,
-    "word_wrap": false
-    }
-
-There are a few other things configured here. In particular you will want to
-ensure that :code:`"translate_tabs_to_spaces": true` is configured (Python_ is
-sensitive to tabs and spaces), that
-:code:`"trim_trailing_white_space_on_save": true` so that your git flow does
-not get cluttered with extra spaces that are not actually changes to code and
-that :code:`"ensure_newline_at_eof_on_save": true`, so that there is a blank
-line at the end of all saved documents. The rest are up to you.
+.. note::
+    We no longer recommend modifying your python path environment variable as a way
+    to install SimPEG for developers.
 
 .. _getting_started_jupyter_notebook:
 
@@ -195,22 +150,20 @@ You are now set up to SimPEG!
 If all is not well ...
 ----------------------
 
-Submit an issue_
-
-.. and `change this file`_!
+Submit an issue_  and `change this file`_!
 
 .. _issue: https://github.com/simpeg/simpeg/issues
 
-..  .. _change this file: https://github.com/simpeg/simpeg/edit/main/docs/content/api_getting_started_developers.rst
+.. _change this file: https://github.com/simpeg/simpeg/edit/main/docs/content/api_getting_started_developers.rst
 
 
 Advanced: Installing Solvers
 ----------------------------
 
 Pardiso_ is a direct solvers that can be used for solving large(ish)
-linear systems of equations. To install, follow the instructions to download
-and install pymatsolver_.
-
+linear systems of equations. The provided testing environment should install
+the necessary solvers for you. pymatsolver_ If you wish to modify pymatsolver_ as well
+follow the instructions to download and install pymatsolver_.
 
 .. _Pardiso: https://www.pardiso-project.org
 

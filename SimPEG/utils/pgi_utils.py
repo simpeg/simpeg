@@ -109,7 +109,7 @@ class WeightedGaussianMixture(GaussianMixture):
             weights_init=weights_init,
             # **kwargs
         )
-        # setKwargs(self, **kwargs)
+        # set_kwargs(self, **kwargs)
 
     def compute_clusters_precisions(self):
         """Compute and set the precisions matrices and their Cholesky decomposition.
@@ -881,7 +881,7 @@ class GaussianMixtureWithPrior(WeightedGaussianMixture):
             weights_init=weights_init,
             # **kwargs
         )
-        # setKwargs(self, **kwargs)
+        # set_kwargs(self, **kwargs)
 
     def order_cluster(self, outputindex=False):
         """Order cluster

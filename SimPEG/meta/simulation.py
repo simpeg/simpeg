@@ -12,7 +12,7 @@ import itertools
 class MetaSimulation(BaseSimulation):
     """Combine multiple simulations into a single one.
 
-    This class is used to combine multiple simulations into a
+    This class is used to encapsulate multiple simulations into a
     single simulation. Each simulation and mapping pair will
     perform its own work, then concatenate the results together.
 
@@ -22,11 +22,6 @@ class MetaSimulation(BaseSimulation):
     With the proper mappings this can be useful for setting up time-lapse,
     tiled, stitched, or any other simulation that can be broken into many
     individual simulations.
-
-    .. warning::
-
-        This class is under construction and its functionality may change
-        in the future.
 
     Parameters
     ----------
@@ -243,6 +238,42 @@ class MetaSimulation(BaseSimulation):
         return jt_vec
 
     def getJtJdiag(self, m, W=None, f=None):
+        """Return the squared sum of columns of the Jacobian.
+
+        Evaluates the weighted squared norm of each column
+        of the Jacobian matrix. This is usually used to construct
+        sensitivity weighting matrices or for diagonal preconditioners
+        to iterative solvers.
+
+        Parameters
+        ----------
+        m : (n_m) numpy.ndarray
+            The model to evalute the Jacobian at.
+        W : (n_d, n_d) scipy.sparse.csr_matrix, optional
+            A diagonal data weighting matrix.
+        f : fields, optional
+            The fields object created from this class.
+
+        Returns
+        -------
+        (n_m) numpy.ndarray
+            Squared sum of columns of the Jacobian matrix
+
+        Notes
+        -----
+        Internally, this function evaluates the ``getJtJdiag`` method of each
+        simulation, then applies the model mapping to the output as:
+
+        >>> sq_sum = 0
+        >>> for i in range(n_sim):
+        ...    row = sim[i].getJtJdiag(model)
+        ...    sq_sum += W[i] * (sp.diag(sqrt(row)) @ mapping[i].deriv()).power(2).sum(axis=0)
+
+        This approach is correct for mapping that match input parameters to a
+        single output parameter, (i.e. the `mapping.deriv` has only 1 element in each column).
+        For other mappings, it is usually close within a scaling factor, whose accuracy is
+        then controlled by how diagonally dominant `J.T @ J` is.
+        """
         self.model = m
         if getattr(self, "_jtjdiag", None) is None:
             if W is None:
