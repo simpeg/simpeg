@@ -23,11 +23,6 @@ class MetaSimulation(BaseSimulation):
     tiled, stitched, or any other simulation that can be broken into many
     individual simulations.
 
-    .. warning::
-
-        This class is under active development and could change in the
-        future in backwards incompatible ways.
-
     Parameters
     ----------
     simulations : (n_sim) list of SimPEG.simulation.BaseSimulation
@@ -191,7 +186,9 @@ class MetaSimulation(BaseSimulation):
 
         Returns
         -------
-        list
+        (n_sim) list
+            The type of each item of the list is determined by the internal
+            simulation that created it.
         """
         self.model = m
         # The above should pass the model to all the internal simulations.
