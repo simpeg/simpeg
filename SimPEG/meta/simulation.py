@@ -275,7 +275,7 @@ class MetaSimulation(BaseSimulation):
         This approach is correct for mapping that match input parameters to a
         single output parameter, (i.e. the `mapping.deriv` has only 1 element in each column).
         For other mappings, it is usually close within a scaling factor, whose accuracy is
-        then controlled by how diagonally dominant `J.T @ J` is.
+        then controlled by how diagonally dominant ``J.T @ J`` is.
         """
         self.model = m
         if getattr(self, "_jtjdiag", None) is None:
