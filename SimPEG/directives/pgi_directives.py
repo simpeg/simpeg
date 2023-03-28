@@ -156,139 +156,150 @@ class PGI_BetaAlphaSchedule(InversionDirective):
     )
 
     def initialize(self):
-        targetclass = np.r_[
-            [
-                isinstance(dirpart, MultiTargetMisfits)
-                for dirpart in self.inversion.directiveList.dList
-            ]
-        ]
-        if ~np.any(targetclass):
-            raise Exception(
-                "You need to have a MultiTargetMisfits directives to use the PGI_BetaAlphaSchedule directive"
-            )
-        else:
-            self.targetclass = np.where(targetclass)[0][-1]
-            self.DMtarget = np.sum(
-                np.r_[self.dmisfit.multipliers]
-                * self.inversion.directiveList.dList[self.targetclass].DMtarget
-            )
-            self.previous_score = copy.deepcopy(
-                self.inversion.directiveList.dList[self.targetclass].phims()
-            )
-            self.previous_dmlist = self.inversion.directiveList.dList[
-                self.targetclass
-            ].dmlist
-            self.CLtarget = self.inversion.directiveList.dList[
-                self.targetclass
-            ].CLtarget
-
-        updategaussianclass = np.r_[
-            [
-                isinstance(dirpart, PGI_UpdateParameters)
-                for dirpart in self.inversion.directiveList.dList
-            ]
-        ]
-        if ~np.any(updategaussianclass):
-            self.DMtarget = None
-        else:
-            updategaussianclass = np.where(updategaussianclass)[0][-1]
-            self.updategaussianclass = self.inversion.directiveList.dList[
-                updategaussianclass
-            ]
-        pgi_reg = self.reg.get_functions_of_type(PGI)
-        if len(pgi_reg) != 1:
-            raise UserWarning(
-                "'PGI_UpdateParameters' requires one 'PGI' regularization "
-                "in the objective function."
-            )
-        self.pgi_reg = pgi_reg[0]
+        """
+        Initialize the directive
+        """
+        self.previous_score = copy.deepcopy(self.multi_target_misfits_directive.phims())
+        self.previous_dmlist = self.multi_target_misfits_directive.dmlist
 
     def endIter(self):
-        self.DM = self.inversion.directiveList.dList[self.targetclass].DM
-        self.dmlist = self.inversion.directiveList.dList[self.targetclass].dmlist
-        self.DMtarget = self.inversion.directiveList.dList[self.targetclass].DMtarget
-        self.TotalDMtarget = np.sum(
-            np.r_[self.dmisfit.multipliers]
-            * self.inversion.directiveList.dList[self.targetclass].DMtarget
-        )
-        self.score = self.inversion.directiveList.dList[self.targetclass].phims()
-        self.targetlist = self.inversion.directiveList.dList[
-            self.targetclass
-        ].targetlist
+        # Get some variables from the MultiTargetMisfits directive
+        data_misfits_achieved = self.multi_target_misfits_directive.DM
+        data_misfits_target = self.multi_target_misfits_directive.DMtarget
+        dmlist = self.multi_target_misfits_directive.dmlist
+        score = self.multi_target_misfits_directive.phims()
+        targetlist = self.multi_target_misfits_directive.targetlist
 
-        if self.DM:
+        if data_misfits_achieved:
             self.mode = 2
             self.mode2_iter += 1
 
         if self.opt.iter > 0 and self.opt.iter % self.update_rate == 0:
             if self.verbose:
-                print(
-                    "Beta cooling evaluation: progress:",
-                    np.round(self.dmlist, decimals=1),
-                    "; minimum progress targets:",
-                    np.round(
-                        np.maximum(
-                            (1.0 - self.progress) * self.previous_dmlist,
-                            (1.0 + self.tolerance) * self.DMtarget,
-                        ),
-                        decimals=1,
+                targets = np.round(
+                    np.maximum(
+                        (1.0 - self.progress) * self.previous_dmlist,
+                        (1.0 + self.tolerance) * data_misfits_target,
                     ),
+                    decimals=1,
                 )
-            if np.all(
-                [
-                    np.all(
-                        self.dmlist[~self.targetlist]
-                        > np.maximum(
-                            (1.0 - self.progress)
-                            * self.previous_dmlist[~self.targetlist],
-                            self.DMtarget[~self.targetlist],
-                        )
-                    ),
-                    not self.DM,
-                    self.mode == 1,
-                ]
+                data_misfits_achieved = np.round(dmlist, decimals=1)
+                print(
+                    f"Beta cooling evaluation: progress: {data_misfits_achieved}; "
+                    f"minimum progress targets: {targets}"
+                )
+            dm_bool = np.all(
+                dmlist[~targetlist]
+                > np.maximum(
+                    (1.0 - self.progress) * self.previous_dmlist[~targetlist],
+                    data_misfits_target[~targetlist],
+                )
+            )
+            if (
+                dm_bool
+                and not data_misfits_achieved
+                and self.mode == 1
+                and self.invProb.beta > self.betamin
             ):
-                if np.all([self.invProb.beta > self.betamin]):
-                    ratio = 1.0
-                    indx = self.dmlist > (1.0 + self.tolerance) * self.DMtarget
-                    if np.any(indx) and self.ratio_in_cooling:
-                        ratio = np.median([self.dmlist[indx] / self.DMtarget[indx]])
-                    self.invProb.beta /= self.coolingFactor * ratio
+                ratio = 1.0
+                indx = dmlist > (1.0 + self.tolerance) * data_misfits_target
+                if np.any(indx) and self.ratio_in_cooling:
+                    ratio = np.median([dmlist[indx] / data_misfits_target[indx]])
+                self.invProb.beta /= self.coolingFactor * ratio
 
-                    if self.verbose:
-                        print("Decreasing beta to counter data misfit decrase plateau.")
+                if self.verbose:
+                    print("Decreasing beta to counter data misfit decrase plateau.")
 
-            elif np.all([self.DM, self.mode == 2]):
-                if np.all([self.pgi_reg.alpha_pgi < self.alphasmax]):
-                    ratio = np.median(self.DMtarget / self.dmlist)
-                    self.pgi_reg.alpha_pgi *= self.warmingFactor * ratio
+            elif np.all([data_misfits_achieved, self.mode == 2]):
+                if np.all([self.pgi_regularization.alpha_pgi < self.alphasmax]):
+                    ratio = np.median(data_misfits_target / dmlist)
+                    self.pgi_regularization.alpha_pgi *= self.warmingFactor * ratio
 
                     if self.verbose:
                         print(
                             "Warming alpha_pgi to favor clustering: ",
-                            self.pgi_reg.alpha_pgi,
+                            self.pgi_regularization.alpha_pgi,
                         )
 
             elif np.all(
                 [
-                    np.any(self.dmlist > (1.0 + self.tolerance) * self.DMtarget),
+                    np.any(dmlist > (1.0 + self.tolerance) * data_misfits_target),
                     self.mode == 2,
                 ]
             ):
                 if np.all([self.invProb.beta > self.betamin]):
                     ratio = 1.0
-                    indx = self.dmlist > (1.0 + self.tolerance) * self.DMtarget
+                    indx = dmlist > (1.0 + self.tolerance) * data_misfits_target
                     if np.any(indx) and self.ratio_in_cooling:
-                        ratio = np.median([self.dmlist[indx] / self.DMtarget[indx]])
+                        ratio = np.median([dmlist[indx] / data_misfits_target[indx]])
                     self.invProb.beta /= self.coolingFactor * ratio
 
                     if self.verbose:
                         print("Decreasing beta to counter data misfit increase.")
 
-        self.previous_score = copy.deepcopy(self.score)
-        self.previous_dmlist = copy.deepcopy(
-            self.inversion.directiveList.dList[self.targetclass].dmlist
-        )
+        self.previous_score = copy.deepcopy(score)
+        self.previous_dmlist = copy.deepcopy(self.multi_target_misfits_directive.dmlist)
+
+    @property
+    def directives(self):
+        """
+        List of all the directives in the :class:`SimPEG.inverison.BaseInversion``
+        """
+        return self.inversion.directiveList.dList
+
+    @property
+    def multi_target_misfits_directive(self):
+        """
+        ``MultiTargetMisfit`` directive in the :class:`SimPEG.inverison.BaseInversion``
+        """
+        if not hasattr(self, "_mtm_directive"):
+            # Obtain multi target misfits directive from the directive list
+            multi_target_misfits_directive = [
+                directive
+                for directive in self.directives
+                if isinstance(directive, MultiTargetMisfits)
+            ]
+            if not multi_target_misfits_directive:
+                raise UserWarning(
+                    "No MultiTargetMisfits directive found in the current inversion. "
+                    "A MultiTargetMisfits directive is needed by the "
+                    "PGI_BetaAlphaSchedule directive."
+                )
+            (self._mtm_directive,) = multi_target_misfits_directive
+        return self._mtm_directive
+
+    @property
+    def pgi_update_params_directive(self):
+        """
+        ``PGI_UpdateParam``s directive in the :class:`SimPEG.inverison.BaseInversion``
+        """
+        if not hasattr(self, "_pgi_update_params"):
+            # Obtain PGI_UpdateParams directive from the directive list
+            pgi_update_params_directive = [
+                directive
+                for directive in self.directives
+                if isinstance(directive, PGI_UpdateParameters)
+            ]
+            if pgi_update_params_directive:
+                (self._pgi_update_params,) = pgi_update_params_directive
+            else:
+                self._pgi_update_params = None
+        return self._pgi_update_params
+
+    @property
+    def pgi_regularization(self):
+        """
+        PGI regularization in the :class:`SimPEG.inverse_problem.BaseInvProblem``
+        """
+        if not hasattr(self, "_pgi_regularization"):
+            pgi_regularization = self.reg.get_functions_of_type(PGI)
+            if len(pgi_regularization) != 1:
+                raise UserWarning(
+                    "'PGI_UpdateParameters' requires one 'PGI' regularization "
+                    "in the objective function."
+                )
+            self._pgi_regularization = pgi_regularization[0]
+        return self._pgi_regularization
 
 
 class PGI_AddMrefInSmooth(InversionDirective):
