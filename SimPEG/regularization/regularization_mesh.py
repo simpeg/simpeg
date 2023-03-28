@@ -100,9 +100,7 @@ class RegularizationMesh(props.BaseSimPEG):
             return int(self.active_cells.sum())
         return self.mesh.n_cells
 
-    nC = deprecate_property(
-        n_cells, old_name="nC", new_name="n_cells", removal_version="0.19.0"
-    )
+    nC = n_cells
 
     @property
     def dim(self) -> int:
