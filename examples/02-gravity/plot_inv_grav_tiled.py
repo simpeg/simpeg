@@ -22,11 +22,7 @@ from SimPEG import (
 )
 from discretize.utils import mesh_builder_xyz, refine_tree_xyz, active_from_xyz
 
-try:
-    from SimPEG import utils
-except:
-    from SimPEG import Utils as utils
-
+from SimPEG import utils
 
 ###############################################################################
 # Setup

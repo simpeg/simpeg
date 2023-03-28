@@ -16,7 +16,7 @@ import matplotlib.pyplot as plt
 
 try:
     from pymatsolver import Pardiso as Solver
-except:
+except ImportError:
     from SimPEG import Solver
 
 

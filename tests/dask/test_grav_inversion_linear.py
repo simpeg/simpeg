@@ -132,7 +132,7 @@ class GravInvLinProblemTest(unittest.TestCase):
             # Clean up the working directory
             try:
                 shutil.rmtree(self.sim.sensitivity_path)
-            except:
+            except FileNotFoundError:
                 pass
 
 
