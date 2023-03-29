@@ -156,8 +156,8 @@ class PGI_BetaAlphaSchedule(InversionDirective):
 
     def initialize(self):
         """Initialize the directive."""
-        self.previous_score = copy.deepcopy(self.multi_target_misfits_directive.phims())
-        self.previous_dmlist = self.multi_target_misfits_directive.dmlist
+        self.update_previous_score()
+        self.update_previous_dmlist()
 
     def endIter(self):
         """Run after the end of each iteration in the inversion."""
@@ -165,7 +165,6 @@ class PGI_BetaAlphaSchedule(InversionDirective):
         data_misfits_achieved = self.multi_target_misfits_directive.DM
         data_misfits_target = self.multi_target_misfits_directive.DMtarget
         dmlist = self.multi_target_misfits_directive.dmlist
-        score = self.multi_target_misfits_directive.phims()
         targetlist = self.multi_target_misfits_directive.targetlist
 
         if data_misfits_achieved:
@@ -234,7 +233,25 @@ class PGI_BetaAlphaSchedule(InversionDirective):
                     if self.verbose:
                         print("Decreasing beta to counter data misfit increase.")
 
-        self.previous_score = copy.deepcopy(score)
+        self.update_previous_score()
+        self.update_previous_dmlist()
+
+    def update_previous_score(self):
+        """
+        Update the value of the ``previous_score`` attribute.
+
+        Update it with the current value of the petrophysical misfit, obtained
+        from the :meth:`MultiTargetMisfit.phims()` method.
+        """
+        self.previous_score = copy.deepcopy(self.multi_target_misfits_directive.phims())
+
+    def update_previous_dmlist(self):
+        """
+        Update the value of the ``previous_dmlist`` attribute.
+
+        Update it with the current value of the data misfits, obtained
+        from the :meth:`MultiTargetMisfit.dmlist` attribute.
+        """
         self.previous_dmlist = copy.deepcopy(self.multi_target_misfits_directive.dmlist)
 
     @property
