@@ -146,7 +146,6 @@ class PGI_BetaAlphaSchedule(InversionDirective):
     warmingFactor = 1.0  # when warmed, alpha_s is multiplied by the ratio of the
     # geophysical target with their current misfit, times this factor
     mode = 1  # mode 1: start with nothing fitted. Mode 2: warmstart with fitted geophysical data
-    mode2_iter = 0  # counts how many iteration after the fit of the geophysical data
     alphasmax = 1e10  # max alpha_s
     betamin = 1e-10  # minimum beta
     update_rate = 1  # update every `update_rate` iterations
@@ -171,7 +170,6 @@ class PGI_BetaAlphaSchedule(InversionDirective):
 
         if data_misfits_achieved:
             self.mode = 2
-            self.mode2_iter += 1
 
         if self.opt.iter > 0 and self.opt.iter % self.update_rate == 0:
             if self.verbose:
