@@ -156,13 +156,12 @@ class PGI_BetaAlphaSchedule(InversionDirective):
     )
 
     def initialize(self):
-        """
-        Initialize the directive
-        """
+        """Initialize the directive."""
         self.previous_score = copy.deepcopy(self.multi_target_misfits_directive.phims())
         self.previous_dmlist = self.multi_target_misfits_directive.dmlist
 
     def endIter(self):
+        """Run after the end of each iteration in the inversion."""
         # Get some variables from the MultiTargetMisfits directive
         data_misfits_achieved = self.multi_target_misfits_directive.DM
         data_misfits_target = self.multi_target_misfits_directive.DMtarget
@@ -242,16 +241,12 @@ class PGI_BetaAlphaSchedule(InversionDirective):
 
     @property
     def directives(self):
-        """
-        List of all the directives in the :class:`SimPEG.inverison.BaseInversion``
-        """
+        """List of all the directives in the :class:`SimPEG.inverison.BaseInversion``."""
         return self.inversion.directiveList.dList
 
     @property
     def multi_target_misfits_directive(self):
-        """
-        ``MultiTargetMisfit`` directive in the :class:`SimPEG.inverison.BaseInversion``
-        """
+        """``MultiTargetMisfit`` directive in the :class:`SimPEG.inverison.BaseInversion``."""
         if not hasattr(self, "_mtm_directive"):
             # Obtain multi target misfits directive from the directive list
             multi_target_misfits_directive = [
@@ -270,9 +265,7 @@ class PGI_BetaAlphaSchedule(InversionDirective):
 
     @property
     def pgi_update_params_directive(self):
-        """
-        ``PGI_UpdateParam``s directive in the :class:`SimPEG.inverison.BaseInversion``
-        """
+        """``PGI_UpdateParam``s directive in the :class:`SimPEG.inverison.BaseInversion``."""
         if not hasattr(self, "_pgi_update_params"):
             # Obtain PGI_UpdateParams directive from the directive list
             pgi_update_params_directive = [
@@ -288,9 +281,7 @@ class PGI_BetaAlphaSchedule(InversionDirective):
 
     @property
     def pgi_regularization(self):
-        """
-        PGI regularization in the :class:`SimPEG.inverse_problem.BaseInvProblem``
-        """
+        """PGI regularization in the :class:`SimPEG.inverse_problem.BaseInvProblem``."""
         if not hasattr(self, "_pgi_regularization"):
             pgi_regularization = self.reg.get_functions_of_type(PGI)
             if len(pgi_regularization) != 1:
