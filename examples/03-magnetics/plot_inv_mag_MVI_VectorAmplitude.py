@@ -337,10 +337,10 @@ reg_amp = regularization.VectorAmplitude(
     mesh, wires, active_cells=actv,
     reference_model_in_smooth=True,
 )
-reg_amp.norms = [0.0, 0, 0, 0]
+reg_amp.norms = [0.0, 1.0, 1.0, 1.0]
 # reg_amp.alpha_s = 0.0
 reg_amp.gradient_type = "total"
-reg_amp.reference_model = mkvc(model)
+reg_amp.reference_model = mkvc(m0)
 
 # Create three regularizations for the different components
 # of magnetization
