@@ -180,9 +180,9 @@ class PGI_BetaAlphaSchedule(InversionDirective):
                     ),
                     decimals=1,
                 )
-                data_misfits_achieved = np.round(dmlist, decimals=1)
+                dmlist_rounded = np.round(dmlist, decimals=1)
                 print(
-                    f"Beta cooling evaluation: progress: {data_misfits_achieved}; "
+                    f"Beta cooling evaluation: progress: {dmlist_rounded}; "
                     f"minimum progress targets: {targets}"
                 )
             dm_bool = np.all(
