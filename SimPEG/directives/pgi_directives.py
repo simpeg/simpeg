@@ -207,7 +207,7 @@ class PGI_BetaAlphaSchedule(InversionDirective):
                 if self.verbose:
                     print("Decreasing beta to counter data misfit decrase plateau.")
 
-            elif np.all([data_misfits_achieved, self.mode == 2]):
+            elif data_misfits_achieved and self.mode == 2:
                 if np.all([self.pgi_regularization.alpha_pgi < self.alphasmax]):
                     ratio = np.median(data_misfits_target / dmlist)
                     self.pgi_regularization.alpha_pgi *= self.warmingFactor * ratio
