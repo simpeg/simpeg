@@ -27,6 +27,7 @@ IGNORE_ME = [
     "CrossGradient",
     "LinearCorrespondence",
     "JointTotalVariation",
+    "SmoothnessFullGradient",
 ]
 
 

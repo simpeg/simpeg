@@ -52,13 +52,13 @@ class SmoothnessFullGradient(BaseRegularization):
 
     We can also rotate the axis in which we want to preferentially smooth. Say we want to
     smooth twice as much along the +x1,+x2 diagonal as we do along the -x1,+x2 diagonal,
-    effectively rotating our smoothing 45 degrees. Note that we must provide orthonormal
-    vectors, and the columns of the matrix represent the vectors (not the rows).
+    effectively rotating our smoothing 45 degrees. Note and the columns of the matrix
+    represent the directional vectors (not the rows).
     >>> sqrt2 = np.sqrt(2)
-    >>> reg_dirs = [
+    >>> reg_dirs = np.array([
     ...     [sqrt2, -sqrt2],
     ...     [sqrt2, sqrt2],
-    ... ]
+    ... ])
     >>> reg = SmoothnessFullGradient(mesh, alphas, reg_dirs=reg_dirs)
 
     Notes
@@ -74,8 +74,8 @@ class SmoothnessFullGradient(BaseRegularization):
     ..math:
       \mathbf{a} = \mathbf{Q}\mathbf{L}\mathbf{Q}^{-1}
 
-    `Q` is then the regularization directions `reg_dirs`, and `L` is the represents the weighting
-    along each direction, with `alphas` along its diagonal. These are multiplied to form the
+    `Q` is then the regularization directions ``reg_dirs``, and `L` is represents the weighting
+    along each direction, with ``alphas`` along its diagonal. These are multiplied to form the
     anisotropic alpha used for rotated gradients.
     """
 
@@ -140,7 +140,7 @@ class SmoothnessFullGradient(BaseRegularization):
                 for i, M in enumerate(reg_dirs):
                     if not np.allclose(eye, M @ M.T):
                         raise ValueError(f"Matrix {i} is not orthonormal")
-            # create a stack of matrices of dir.T @ alphas @ dir
+            # create a stack of matrices of dir @ alphas @ dir.T
             anis_alpha = np.einsum("ink,ik,imk->inm", reg_dirs, anis_alpha, reg_dirs)
             # Then select the upper diagonal components for input to discretize
             if mesh.dim == 2:
