@@ -15,23 +15,46 @@ class JointTotalVariation(BaseSimilarityMeasure):
     r"""
     The joint total variation constraint for joint inversions.
 
-    ..math::
+    ..math ::
         \phi_sim(\mathbf{m_1},\mathbf{m_2}) = \lambda \sum_{i=1}^{M} V_i\sqrt{|
         \nabla \mathbf{m_1}_i|^2 +|\nabla \mathbf{m_2}_i|^2}
     """
 
-    # reset this here to clear out the properties attribute
-    cell_weights = None
-
-    eps = 1e-8
-
-    def __init__(self, mesh, wire_map, **kwargs):
+    def __init__(self, mesh, wire_map, eps=1e-8, **kwargs):
         super().__init__(mesh, wire_map=wire_map, **kwargs)
+        self.set_weights(volume=self.regularization_mesh.vol)
+        self.eps = eps
 
-        regmesh = self.regularization_mesh
-        self._G = regmesh.cell_gradient
-        vsq = regmesh.vol**2
-        self._Av = sp.diags(vsq) * regmesh.average_face_to_cell
+        self._G = self.regularization_mesh.cell_gradient
+
+    @property
+    def W(self):
+        """
+        Weighting matrix
+        """
+        if getattr(self, "_W", None) is None:
+            weights = np.prod(list(self._weights.values()), axis=0)
+            self._W = (
+                sp.diags(weights**2) * self.regularization_mesh.average_face_to_cell
+            )
+        return self._W
+
+    @property
+    def wire_map(self):
+        return self._wire_map
+
+    @wire_map.setter
+    def wire_map(self, wires):
+        n = None
+        maps = wires.maps
+        for _, mapping in maps:
+            map_n = mapping.shape[0]
+            if n is not None and n != map_n:
+                raise ValueError(
+                    f"All mapping outputs must be the same size! Got {n} and {map_n}"
+                )
+            n = map_n
+        self._wire_map = wires
 
     def __call__(self, model):
         """
@@ -45,18 +68,18 @@ class JointTotalVariation(BaseSimilarityMeasure):
         Returns
         -------
         float
-            Tthe computed value of the joint total variation term.
+            The computed value of the joint total variation term.
         """
         m1, m2 = self.wire_map * model
-        Av = self._Av
+        W = self.W
         G = self._G
         v2 = self.regularization_mesh.vol**2
-        g_m1 = G @ m1
-        g_m2 = G @ m2
-
-        g2 = g_m1**2 + g_m2**2
-        Av_g = Av @ g2
-        sq = np.sqrt(Av_g + self.eps * v2)
+        g2 = 0
+        for m in self.wire_map * model:
+            g_m = G @ m
+            g2 += g_m**2
+        W_g = W @ g2
+        sq = np.sqrt(W_g + self.eps * v2)
         return np.sum(sq)
 
     def deriv(self, model):
@@ -71,21 +94,24 @@ class JointTotalVariation(BaseSimilarityMeasure):
         Returns
         -------
         numpy.ndarray
-            The gradient of joint total variatio  with respect to the model
+            The gradient of joint total variation  with respect to the model
         """
-        m1, m2 = self.wire_map * model
-        Av = self._Av
+        W = self.W
         G = self._G
+        g2 = 0
+        gs = []
         v2 = self.regularization_mesh.vol**2
-        g_m1 = G @ m1
-        g_m2 = G @ m2
-
-        g2 = g_m1**2 + g_m2**2
-        Av_g = Av @ g2
-        sq = np.sqrt(Av_g + self.eps * v2)
-        mid = Av.T @ (1 / sq)
-
-        return np.r_[G.T @ (mid * g_m1), G.T @ (mid * g_m2)]
+        for m in self.wire_map * model:
+            g_mi = G @ m
+            g2 += g_mi**2
+            gs.append(g_mi)
+        W_g = W @ g2
+        sq = np.sqrt(W_g + self.eps * v2)
+        mid = W.T @ (1 / sq)
+        ps = []
+        for g_mi in gs:
+            ps.append(G.T @ (mid * g_mi))
+        return np.concatenate(ps)
 
     def deriv2(self, model, v=None):
         """
@@ -104,65 +130,39 @@ class JointTotalVariation(BaseSimilarityMeasure):
             The Hessian of joint total variation with respect to the model times a
             vector or the full Hessian if `v` is `None`.
         """
-        m1, m2 = self.wire_map * model
-        Av = self._Av
+        W = self.W
         G = self._G
         v2 = self.regularization_mesh.vol**2
-        g_m1 = G @ m1
-        g_m2 = G @ m2
+        gs = []
+        g2 = 0
+        for m in self.wire_map * model:
+            g_m = G @ m
+            g2 += g_m**2
+            gs.append(g_m)
 
-        g2 = g_m1**2 + g_m2**2
-        Av_g = Av @ g2
-        sq = np.sqrt(Av_g + self.eps * v2)
-        mid = Av.T @ (1 / sq)
+        W_g = W @ g2
+        sq = np.sqrt(W_g + self.eps * v2)
+        mid = W.T @ (1 / sq)
 
         if v is not None:
-            v1, v2 = self.wire_map * v
-            g_v1 = G @ v1
-            g_v2 = G @ v2
-
-            p1 = G.T @ (mid * g_v1 - g_m1 * (Av.T @ ((Av @ (g_m1 * g_v1)) / sq**3)))
-            p2 = G.T @ (mid * g_v2 - g_m2 * (Av.T @ ((Av @ (g_m2 * g_v2)) / sq**3)))
-
-            p1 -= G.T @ (g_m1 * (Av.T @ ((Av @ (g_m2 * g_v2)) / sq**3)))
-            p2 -= G.T @ (g_m2 * (Av.T @ ((Av @ (g_m1 * g_v1)) / sq**3)))
-
-            return np.r_[p1, p2]
+            g_vs = []
+            tmp_sum = 0
+            for vi, g_i in zip(self.wire_map * v, gs):
+                g_vi = G @ vi
+                tmp_sum += W.T @ ((W @ (g_i * g_vi)) / sq**3)
+                g_vs.append(g_vi)
+            ps = []
+            for g_vi, g_i in zip(g_vs, gs):
+                ps.append(G.T @ (mid * g_vi - g_i * tmp_sum))
+            return np.concatenate(ps)
         else:
-            A = (
-                G.T
-                @ (
-                    sp.diags(mid)
-                    - sp.diags(g_m1)
-                    @ Av.T
-                    @ sp.diags(1 / (sq**3))
-                    @ Av
-                    @ sp.diags(g_m1)
-                )
-                @ G
-            )
-            C = (
-                G.T
-                @ (
-                    sp.diags(mid)
-                    - sp.diags(g_m2)
-                    @ Av.T
-                    @ sp.diags(1 / (sq**3))
-                    @ Av
-                    @ sp.diags(g_m2)
-                )
-                @ G
-            )
-
-            B = (
-                -G.T
-                @ sp.diags(g_m1)
-                @ Av.T
-                @ sp.diags(1 / (sq**3))
-                @ Av
-                @ sp.diags(g_m2)
-                @ G
-            )
-            BT = B.T
-
-            return sp.bmat([[A, B], [BT, C]], format="csr")
+            Pieces = []
+            Diags = []
+            SQ = sp.diags(sq**-1.5)
+            diag_block = G.T @ sp.diags(mid) @ G
+            for g_mi in gs:
+                Pieces.append(SQ @ W @ sp.diags(g_mi) @ G)
+                Diags.append(diag_block)
+            Row = sp.hstack(Pieces, format="csr")
+            Diag = sp.block_diag(Diags, format="csr")
+            return Diag - Row.T @ Row
