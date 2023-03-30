@@ -484,7 +484,6 @@ class EM1D_FD_LineCurrentTest(unittest.TestCase):
         self.thicknesses = thicknesses
 
     def test_with_empymod(self):
-        sigma_map = maps.ExpMap(nP=1)
         sim = fdem.Simulation1DLayered(
             survey=self.survey,
             sigmaMap=maps.IdentityMap(nP=3),

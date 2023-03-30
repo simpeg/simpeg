@@ -1647,7 +1647,6 @@ class GaussianMixtureWithNonlinearRelationshipsWithPrior(GaussianMixtureWithPrio
 
         elif covariance_type == "diag" or covariance_type == "spherical":
             log_prob = np.empty((n_samples, n_components))
-            precisions = precisions_chol**2
             for k, (mu, prec_chol, mapping) in enumerate(
                 zip(means, precisions_chol, cluster_mapping)
             ):
