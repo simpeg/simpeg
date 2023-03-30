@@ -463,7 +463,6 @@ class Simulation3DMagneticFluxDensity(BaseFDEMSimulation):
         # return C * (MeSigmaIDeriv * v)
 
     def getADeriv_mui(self, freq, u, v, adjoint=False):
-        MfMui = self.MfMui
         MfMuiDeriv = self.MfMuiDeriv(u)
         MeSigmaI = self.MeSigmaI
         C = self.mesh.edge_curl
