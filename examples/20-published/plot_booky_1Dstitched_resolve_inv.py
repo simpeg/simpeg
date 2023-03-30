@@ -191,11 +191,10 @@ def run(runIt=False, plotIt=True, saveIt=False, saveFig=False, cleanup=True):
 
     # survey parameters
     rxOffset = 7.86  # tx-rx separation
-    bp = -mu_0 / (4 * np.pi * rxOffset ** 3)  # primary magnetic field
+    bp = -mu_0 / (4 * np.pi * rxOffset**3)  # primary magnetic field
 
     # re-run the inversion
     if runIt:
-
         # set up the mappings - we are inverting for 1D log conductivity
         # below the earth's surface.
         actMap = maps.InjectActiveCells(
@@ -223,7 +222,6 @@ def run(runIt=False, plotIt=True, saveIt=False, saveFig=False, cleanup=True):
 
         # loop over the soundings and invert each
         for rxind in range(nSounding):
-
             # convert data from ppm to magnetic field (A/m^2)
             dobs = (
                 np.c_[

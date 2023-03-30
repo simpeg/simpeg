@@ -104,7 +104,7 @@ class Data(BaseData, DataNSEMPlotMethods):
                 for rx in src.receiver_list
             ]
             # Insert the values to the temp array
-            for nr, (k, c, val) in enumerate(typeList):
+            for k, c, val in typeList:
                 zt_type = "t" if "z" in k else "z"
                 key = zt_type + k + c[0]
                 tArrRec[key] = mkvc(val, 2)

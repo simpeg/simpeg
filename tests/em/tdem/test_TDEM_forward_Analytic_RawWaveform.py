@@ -21,7 +21,6 @@ def halfSpaceProblemAnaDiff(
     plotIt=False,
     rxType="MagneticFluxDensityz",
 ):
-
     if bounds is None:
         bounds = [1e-5, 1e-3]
     if meshType == "CYL":

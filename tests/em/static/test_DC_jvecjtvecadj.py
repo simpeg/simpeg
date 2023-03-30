@@ -24,7 +24,6 @@ FLR = 1e-20  # "zero", so if residual below this --> pass regardless of order
 
 class DCProblemTestsCC(unittest.TestCase):
     def setUp(self):
-
         aSpacing = 2.5
         nElecs = 5
 
@@ -165,7 +164,6 @@ class DCProblemTestsCC_fields(unittest.TestCase):
 
 class DCProblemTestsN(unittest.TestCase):
     def setUp(self):
-
         aSpacing = 2.5
         nElecs = 10
 
@@ -237,7 +235,6 @@ class DCProblemTestsN(unittest.TestCase):
 
 class DCProblemTestsN_Robin(unittest.TestCase):
     def setUp(self):
-
         aSpacing = 2.5
         nElecs = 10
 
@@ -309,7 +306,6 @@ class DCProblemTestsN_Robin(unittest.TestCase):
 
 class DCProblemTestsCC_storeJ(unittest.TestCase):
     def setUp(self):
-
         aSpacing = 2.5
         nElecs = 5
 
@@ -388,7 +384,6 @@ class DCProblemTestsCC_storeJ(unittest.TestCase):
 
 class DCProblemTestsN_storeJ(unittest.TestCase):
     def setUp(self):
-
         aSpacing = 2.5
         nElecs = 10
 
@@ -467,7 +462,6 @@ class DCProblemTestsN_storeJ(unittest.TestCase):
 
 class DCProblemTestsN_storeJ_Robin(unittest.TestCase):
     def setUp(self):
-
         aSpacing = 2.5
         nElecs = 10
 

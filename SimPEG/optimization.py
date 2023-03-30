@@ -3,15 +3,15 @@ import scipy.sparse as sp
 
 from .utils.solver_utils import SolverWrapI, Solver, SolverDiag
 from .utils import (
-    callHooks,
-    checkStoppers,
+    call_hooks,
+    check_stoppers,
     count,
-    setKwargs,
+    set_kwargs,
     timeIt,
-    printTitles,
-    printLine,
-    printStoppers,
-    printDone,
+    print_titles,
+    print_line,
+    print_stoppers,
+    print_done,
 )
 
 norm = np.linalg.norm
@@ -269,8 +269,7 @@ class Minimize(object):
     factor = 1.0
 
     def __init__(self, **kwargs):
-
-        setKwargs(self, **kwargs)
+        set_kwargs(self, **kwargs)
 
         self.stoppersLS = [
             StoppingCriteria.armijoGoldstein,
@@ -368,7 +367,7 @@ class Minimize(object):
                     if not caught: return xc
                 doEndIteration(xt)
 
-            printDone()
+            print_done()
             finish()
             return xc
         """
@@ -403,7 +402,7 @@ class Minimize(object):
 
         return self.xc
 
-    @callHooks("startup")
+    @call_hooks("startup")
     def startup(self, x0):
         """
         **startup** is called at the start of any new minimize call.
@@ -430,7 +429,7 @@ class Minimize(object):
         self.x_last = x0
 
     @count
-    @callHooks("doStartIteration")
+    @call_hooks("doStartIteration")
     def doStartIteration(self):
         """doStartIteration()
 
@@ -453,9 +452,9 @@ class Minimize(object):
         """
         pad = " " * 10 if inLS else ""
         name = self.name if not inLS else self.nameLS
-        printTitles(self, self.printers if not inLS else self.printersLS, name, pad)
+        print_titles(self, self.printers if not inLS else self.printersLS, name, pad)
 
-    @callHooks("printIter")
+    @call_hooks("printIter")
     def printIter(self, inLS=False):
         """
         **printIter** is called directly after function evaluations.
@@ -465,7 +464,7 @@ class Minimize(object):
 
         """
         pad = " " * 10 if inLS else ""
-        printLine(self, self.printers if not inLS else self.printersLS, pad=pad)
+        print_line(self, self.printers if not inLS else self.printersLS, pad=pad)
 
     def printDone(self, inLS=False):
         """
@@ -485,23 +484,25 @@ class Minimize(object):
 
         if self.print_type == "ubc":
             try:
-                printLine(self, self.printers if not inLS else self.printersLS, pad=pad)
-                printDone(
+                print_line(
+                    self, self.printers if not inLS else self.printersLS, pad=pad
+                )
+                print_done(
                     self,
                     self.printers,
                     pad=pad,
                 )
                 print(self.print_target)
-            except:
-                printDone(
+            except AttributeError:
+                print_done(
                     self,
                     self.printers,
                     pad=pad,
                 )
         else:
-            printStoppers(self, stoppers, pad="", stop=stop, done=done)
+            print_stoppers(self, stoppers, pad="", stop=stop, done=done)
 
-    @callHooks("finish")
+    @call_hooks("finish")
     def finish(self):
         """finish()
 
@@ -517,10 +518,10 @@ class Minimize(object):
         if self.iter == 0:
             self.f0 = self.f
             self.g0 = self.g
-        return checkStoppers(self, self.stoppers if not inLS else self.stoppersLS)
+        return check_stoppers(self, self.stoppers if not inLS else self.stoppersLS)
 
     @timeIt
-    @callHooks("projection")
+    @call_hooks("projection")
     def projection(self, p):
         """projection(p)
 
@@ -665,7 +666,7 @@ class Minimize(object):
         return p, False
 
     @count
-    @callHooks("doEndIteration")
+    @call_hooks("doEndIteration")
     def doEndIteration(self, xt):
         """doEndIteration(xt)
 
@@ -1116,7 +1117,7 @@ class NewtonRoot(object):
     solverOpts = {}
 
     def __init__(self, **kwargs):
-        setKwargs(self, **kwargs)
+        set_kwargs(self, **kwargs)
 
     def root(self, fun, x):
         """root(fun, x)
@@ -1135,7 +1136,6 @@ class NewtonRoot(object):
 
         self.iter = 0
         while True:
-
             r, J = fun(x, return_g=True)
 
             Jinv = self.Solver(J, **self.solverOpts)
@@ -1260,7 +1260,6 @@ class ProjectedGNCG(BFGS, Minimize, Remember):
         count = 0
 
         while np.all([np.linalg.norm(r) > self.tolCG, count < self.maxIterCG]):
-
             count += 1
 
             q = (1 - Active) * (self.H * p)
@@ -1283,7 +1282,6 @@ class ProjectedGNCG(BFGS, Minimize, Remember):
 
         # Take a gradient step on the active cells if exist
         if temp != self.xc.size:
-
             rhs_a = (Active) * -self.g
 
             dm_i = max(abs(step))

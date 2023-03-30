@@ -23,7 +23,6 @@ np.random.seed(38)
 
 class SIPProblemTestsCC(unittest.TestCase):
     def setUp(self):
-
         cs = 25.0
         hx = [(cs, 0, -1.3), (cs, 21), (cs, 0, 1.3)]
         hy = [(cs, 0, -1.3), (cs, 21), (cs, 0, 1.3)]
@@ -123,7 +122,6 @@ class SIPProblemTestsCC(unittest.TestCase):
 
 class SIPProblemTestsN(unittest.TestCase):
     def setUp(self):
-
         cs = 25.0
         hx = [(cs, 0, -1.3), (cs, 21), (cs, 0, 1.3)]
         hy = [(cs, 0, -1.3), (cs, 21), (cs, 0, 1.3)]
@@ -221,7 +219,6 @@ class SIPProblemTestsN(unittest.TestCase):
 
 class SIPProblemTestsN_air(unittest.TestCase):
     def setUp(self):
-
         cs = 25.0
         hx = [(cs, 0, -1.3), (cs, 21), (cs, 0, 1.3)]
         hy = [(cs, 0, -1.3), (cs, 21), (cs, 0, 1.3)]

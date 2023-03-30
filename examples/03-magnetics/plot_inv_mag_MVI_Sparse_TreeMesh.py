@@ -31,7 +31,7 @@ from SimPEG import (
 from SimPEG import utils
 from SimPEG.utils import mkvc
 
-from discretize.utils import mesh_builder_xyz, refine_tree_xyz
+from discretize.utils import active_from_xyz, mesh_builder_xyz, refine_tree_xyz
 from SimPEG.potential_fields import magnetics
 import scipy as sp
 import numpy as np
@@ -50,7 +50,7 @@ import matplotlib.pyplot as plt
 # As a simple case, we pick a vertical inducing field of magnitude 50,000 nT.
 #
 #
-sp.random.seed(1)
+np.random.seed(1)
 # We will assume a vertical inducing field
 H0 = (50000.0, 90.0, 0.0)
 
@@ -114,7 +114,7 @@ mesh = refine_tree_xyz(
 
 
 # Define an active cells from topo
-actv = utils.surface2ind_topo(mesh, topo)
+actv = active_from_xyz(mesh, topo)
 nC = int(actv.sum())
 
 ###########################################################################
@@ -137,7 +137,6 @@ def plotVectorSectionsOctree(
     actvMap=None,
     fill=True,
 ):
-
     """
     Plot section through a 3D tensor model
     """
@@ -188,7 +187,7 @@ def plotVectorSectionsOctree(
     # Interpolate values from mesh.gridCC to grid2d
     ind_3d_to_2d = mesh._get_containing_cell_indexes(tm_gridboost)
     v2d = m[ind_3d_to_2d, :]
-    amp = np.sum(v2d ** 2.0, axis=1) ** 0.5
+    amp = np.sum(v2d**2.0, axis=1) ** 0.5
 
     if axs is None:
         axs = plt.subplot(111)
@@ -391,7 +390,7 @@ reg_t = regularization.Sparse(
     mesh, gradient_type="components", active_cells=actv, mapping=wires.theta
 )
 reg_t.alpha_s = 0.0  # No reference angle
-reg_t.space = "spherical"
+reg_t.units = "radian"
 reg_t.norms = [0.0, 0.0, 0.0, 0.0]  # Only norm on gradients used
 
 # Regularize the horizontal angle of the vectors
@@ -399,7 +398,7 @@ reg_p = regularization.Sparse(
     mesh, gradient_type="components", active_cells=actv, mapping=wires.phi
 )
 reg_p.alpha_s = 0.0  # No reference angle
-reg_p.space = "spherical"
+reg_p.units = "radian"
 reg_p.norms = [0.0, 0.0, 0.0, 0.0]  # Only norm on gradients used
 
 reg = reg_a + reg_t + reg_p

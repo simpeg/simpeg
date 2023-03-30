@@ -103,7 +103,6 @@ class Base_DerivAdjoint_Test(unittest.TestCase):
                 src.receiver_list = rxlist
 
     def JvecTest(self, rxcomp):
-
         np.random.seed(10)
         self.set_receiver_list(rxcomp)
 
@@ -143,7 +142,6 @@ class Base_DerivAdjoint_Test(unittest.TestCase):
 
 
 class TDEM_Fields_B_Pieces(Base_DerivAdjoint_Test):
-
     formulation = "MagneticFluxDensity"
 
     def test_eDeriv_m_adjoint(self):
@@ -180,7 +178,6 @@ class TDEM_Fields_B_Pieces(Base_DerivAdjoint_Test):
 
 
 class DerivAdjoint_E(Base_DerivAdjoint_Test):
-
     formulation = "ElectricField"
 
     if testDeriv:
@@ -225,7 +222,6 @@ class DerivAdjoint_E(Base_DerivAdjoint_Test):
 
 
 class DerivAdjoint_B(Base_DerivAdjoint_Test):
-
     formulation = "MagneticFluxDensity"
 
     if testDeriv:
@@ -294,7 +290,6 @@ class DerivAdjoint_B(Base_DerivAdjoint_Test):
 
 
 class DerivAdjoint_H(Base_DerivAdjoint_Test):
-
     formulation = "MagneticField"
 
     if testDeriv:
@@ -363,7 +358,6 @@ class DerivAdjoint_H(Base_DerivAdjoint_Test):
 
 
 class DerivAdjoint_J(Base_DerivAdjoint_Test):
-
     formulation = "CurrentDensity"
 
     if testDeriv:

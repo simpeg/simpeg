@@ -178,7 +178,6 @@ vrm_waveform = vrm.waveforms.StepOff(t0=0)
 
 vrm_source_list = []
 for pp in range(0, receiver_locations.shape[0]):
-
     # Define the receivers
     loc_pp = np.reshape(receiver_locations[pp, :], (1, 3))
     vrm_receivers_list = [

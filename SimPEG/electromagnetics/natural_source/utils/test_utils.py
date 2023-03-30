@@ -37,7 +37,6 @@ def getAppResPhs(NSEMdata, survey):
 
 
 def setup1DSurvey(sigmaHalf, tD=False, structure=False):
-
     # Frequency
     num_frequencies = 33
     freqs = np.logspace(3, -3, num_frequencies)
@@ -67,7 +66,7 @@ def setup1DSurvey(sigmaHalf, tD=False, structure=False):
         sigma[deep] = 0.1
 
     receiver_list = []
-    for rxType in ["z1d", "z1d"]:
+    for _ in range(len(["z1d", "z1d"])):
         receiver_list.append(
             PointNaturalSource(mkvc(np.array([0.0]), 2).T, component="real")
         )
@@ -84,7 +83,6 @@ def setup1DSurvey(sigmaHalf, tD=False, structure=False):
 
 
 def setup1DSurveyElectricMagnetic(sigmaHalf, tD=False, structure=False):
-
     # Frequency
     nFreq = 33
     frequencies = np.logspace(3, -3, nFreq)
@@ -114,7 +112,7 @@ def setup1DSurveyElectricMagnetic(sigmaHalf, tD=False, structure=False):
         sigma[deep] = 0.1
 
     rxList = []
-    for rxType in ["z1d", "z1d"]:
+    for _ in range(len(["z1d", "z1d"])):
         rxList.append(PointNaturalSource(mkvc(np.array([0.0]), 2).T, component="real"))
         rxList.append(PointNaturalSource(mkvc(np.array([0.0]), 2).T, component="imag"))
     # Source list
@@ -412,7 +410,6 @@ def setupSimpegNSEM_PrimarySecondary(inputSetup, freqs, comp="Imp", singleFreq=F
 
 
 def setupSimpegNSEM_ePrimSec(inputSetup, comp="Imp", singleFreq=False, expMap=True):
-
     M, freqs, sig, sigBG, rx_loc = inputSetup
     # Make a receiver list
     receiver_list = []
@@ -457,7 +454,6 @@ def setupSimpegNSEM_ePrimSec(inputSetup, comp="Imp", singleFreq=False, expMap=Tr
     source_list = []
 
     if singleFreq:
-
         source_list.append(PlanewaveXYPrimary(receiver_list, singleFreq))
     else:
         for freq in freqs:
@@ -481,7 +477,7 @@ def setupSimpegNSEM_ePrimSec(inputSetup, comp="Imp", singleFreq=False, expMap=Tr
         from pymatsolver import Pardiso
 
         problem.solver = Pardiso
-    except:
+    except ImportError:
         pass
 
     return (survey, problem)

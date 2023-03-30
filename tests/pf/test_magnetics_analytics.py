@@ -13,7 +13,6 @@ plotIt = False
 
 class TestBoundaryConditionAnalytics(unittest.TestCase):
     def test_ana_boundary_computation(self):
-
         hxind = [(0, 25, 1.3), (21, 12.5), (0, 25, 1.3)]
         hyind = [(0, 25, 1.3), (21, 12.5), (0, 25, 1.3)]
         hzind = [(0, 25, 1.3), (20, 12.5), (0, 25, 1.3)]

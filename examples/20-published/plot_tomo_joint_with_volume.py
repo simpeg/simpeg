@@ -84,7 +84,6 @@ class Volume(objective_function.BaseObjectiveFunction):
 
 
 def run(plotIt=True):
-
     nC = 40
     de = 1.0
     h = np.ones(nC) * de / nC
@@ -179,7 +178,6 @@ def run(plotIt=True):
     # plot results
 
     if plotIt:
-
         fig, ax = plt.subplots(1, 1)
         ax.plot(data.dobs)
         ax.plot(dpred)

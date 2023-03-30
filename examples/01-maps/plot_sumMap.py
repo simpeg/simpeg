@@ -12,7 +12,8 @@ model.
 
 
 """
-import discretize
+from discretize import TensorMesh
+from discretize.utils import active_from_xyz
 from SimPEG import (
     utils,
     maps,
@@ -29,7 +30,6 @@ import matplotlib.pyplot as plt
 
 
 def run(plotIt=True):
-
     H0 = (50000.0, 90.0, 0.0)
 
     # Create a mesh
@@ -39,17 +39,17 @@ def run(plotIt=True):
     hyind = [(dx, 5, -1.3), (dx, 10), (dx, 5, 1.3)]
     hzind = [(dx, 5, -1.3), (dx, 10)]
 
-    mesh = discretize.TensorMesh([hxind, hyind, hzind], "CCC")
+    mesh = TensorMesh([hxind, hyind, hzind], "CCC")
 
     # Lets create a simple Gaussian topo and set the active cells
     [xx, yy] = np.meshgrid(mesh.nodes_x, mesh.nodes_y)
-    zz = -np.exp((xx ** 2 + yy ** 2) / 75 ** 2) + mesh.nodes_z[-1]
+    zz = -np.exp((xx**2 + yy**2) / 75**2) + mesh.nodes_z[-1]
 
     # We would usually load a topofile
     topo = np.c_[utils.mkvc(xx), utils.mkvc(yy), utils.mkvc(zz)]
 
     # Go from topo to array of indices of active cells
-    actv = utils.surface2ind_topo(mesh, topo, "N")
+    actv = active_from_xyz(mesh, topo, "N")
     nC = int(actv.sum())
     # Create and array of observation points
     xr = np.linspace(-20.0, 20.0, 20)
@@ -57,7 +57,7 @@ def run(plotIt=True):
     X, Y = np.meshgrid(xr, yr)
 
     # Move the observation points 5m above the topo
-    Z = -np.exp((X ** 2 + Y ** 2) / 75 ** 2) + mesh.nodes_z[-1] + 5.0
+    Z = -np.exp((X**2 + Y**2) / 75**2) + mesh.nodes_z[-1] + 5.0
 
     # Create a MAGsurvey
     rxLoc = np.c_[utils.mkvc(X.T), utils.mkvc(Y.T), utils.mkvc(Z.T)]
@@ -126,11 +126,11 @@ def run(plotIt=True):
         homogMap.P.sum(axis=0).flatten()
     )
     wr[wires.hetero.index] /= np.max(wires.hetero * wr)
-    wr = wr ** 0.5
+    wr = wr**0.5
 
     ## Create a regularization
     # For the homogeneous model
-    regMesh = discretize.TensorMesh([len(domains)])
+    regMesh = TensorMesh([len(domains)])
 
     reg_m1 = regularization.Sparse(regMesh, mapping=wires.homo)
     reg_m1.cell_weights = wires.homo * wr
@@ -176,7 +176,6 @@ def run(plotIt=True):
     prob.model = m0
     mrecSum = inv.run(m0)
     if plotIt:
-
         mesh.plot_3d_slicer(
             actvMap * model,
             aspect="equal",

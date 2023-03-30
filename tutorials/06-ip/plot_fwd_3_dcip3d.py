@@ -35,10 +35,10 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 
 from discretize import TreeMesh
-from discretize.utils import mkvc, refine_tree_xyz
+from discretize.utils import mkvc, refine_tree_xyz, active_from_xyz
 
 from SimPEG import maps, data
-from SimPEG.utils import model_builder, surface2ind_topo
+from SimPEG.utils import model_builder
 from SimPEG.utils.io_utils.io_utils_electromagnetics import write_dcip_xyz
 from SimPEG.electromagnetics.static import resistivity as dc
 from SimPEG.electromagnetics.static import induced_polarization as ip
@@ -53,7 +53,7 @@ try:
     from SimPEG.electromagnetics.static.utils.static_utils import plot_3d_pseudosection
 
     has_plotly = True
-except:
+except ImportError:
     has_plotly = False
     pass
 
@@ -79,7 +79,7 @@ write_output = False
 x_topo, y_topo = np.meshgrid(
     np.linspace(-2100, 2100, 141), np.linspace(-2000, 2000, 141)
 )
-s = np.sqrt(x_topo ** 2 + y_topo ** 2)
+s = np.sqrt(x_topo**2 + y_topo**2)
 z_topo = (1 / np.pi) * 140 * (-np.pi / 2 + np.arctan((s - 600.0) / 80.0))
 x_topo, y_topo, z_topo = mkvc(x_topo), mkvc(y_topo), mkvc(z_topo)
 topo_xyz = np.c_[x_topo, y_topo, z_topo]
@@ -187,7 +187,7 @@ conductor_value = 1e-1
 resistor_value = 1e-3
 
 # Find active cells in forward modeling (cell below surface)
-ind_active = surface2ind_topo(mesh, topo_xyz)
+ind_active = active_from_xyz(mesh, topo_xyz)
 
 # Define mapping from model to active cells
 nC = int(ind_active.sum())
@@ -312,7 +312,6 @@ p1, p2, p3 = (
 plane_points.append([p1, p2, p3])
 
 if has_plotly:
-
     fig = plot_3d_pseudosection(
         dc_survey,
         apparent_conductivity,
@@ -459,7 +458,6 @@ dpred_ip = ip_simulation.dpred(chargeability_model)
 #
 
 if has_plotly:
-
     fig = plot_3d_pseudosection(
         ip_survey,
         dpred_ip,
@@ -493,7 +491,6 @@ else:
 
 
 if write_output:
-
     dir_path = os.path.dirname(__file__).split(os.path.sep)
     dir_path.extend(["outputs"])
     dir_path = os.path.sep.join(dir_path) + os.path.sep

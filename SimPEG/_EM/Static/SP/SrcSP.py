@@ -5,7 +5,6 @@ import numpy as np
 
 
 class StreamingCurrents(Src.BaseSrc):
-
     L = None
     mesh = None
     modelType = None

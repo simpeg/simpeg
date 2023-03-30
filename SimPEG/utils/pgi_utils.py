@@ -109,7 +109,7 @@ class WeightedGaussianMixture(GaussianMixture):
             weights_init=weights_init,
             # **kwargs
         )
-        # setKwargs(self, **kwargs)
+        # set_kwargs(self, **kwargs)
 
     def compute_clusters_precisions(self):
         """Compute and set the precisions matrices and their Cholesky decomposition.
@@ -129,7 +129,7 @@ class WeightedGaussianMixture(GaussianMixture):
                 self.precisions_cholesky_, self.precisions_cholesky_.T
             )
         else:
-            self.precisions_ = self.precisions_cholesky_ ** 2
+            self.precisions_ = self.precisions_cholesky_**2
 
     def compute_clusters_covariances(self):
         """Compute the precisions matrices and their Cholesky decomposition.
@@ -149,7 +149,7 @@ class WeightedGaussianMixture(GaussianMixture):
                 self.covariances_cholesky_, self.covariances_cholesky_.T
             )
         else:
-            self.covariances_ = self.covariances_cholesky_ ** 2
+            self.covariances_ = self.covariances_cholesky_**2
 
         self.precisions_cholesky_ = _compute_precision_cholesky(
             self.covariances_, self.covariance_type
@@ -618,9 +618,11 @@ class WeightedGaussianMixture(GaussianMixture):
         clfx = GaussianMixture(
             n_components=self.n_components,
             means_init=meansx,
+            # limit computation to minimum as we set the model parameter a posteriori
             n_init=1,
             max_iter=2,
-            tol=np.inf,
+            # put a high tolerance to avoid warning about low model fit
+            tol=1e256,
         )
         # random fit, we set values after.
         clfx.fit(np.random.randn(10, 1))
@@ -652,7 +654,6 @@ class WeightedGaussianMixture(GaussianMixture):
         ax[0].set_ylabel("Probability Density values")
 
         if flag2d:
-
             dy = padding * (
                 self.means_[:, y_component].max() - self.means_[:, y_component].min()
             )
@@ -668,9 +669,11 @@ class WeightedGaussianMixture(GaussianMixture):
             clfy = GaussianMixture(
                 n_components=self.n_components,
                 means_init=meansy,
+                # limit computation to minimum as we set the model parameter a posteriori
                 n_init=1,
                 max_iter=2,
-                tol=np.inf,
+                # put a high tolerance to avoid warning about low model fit
+                tol=1e256,
             )
             # random fit, we set values after.
             clfy.fit(np.random.randn(10, 1))
@@ -704,7 +707,7 @@ class WeightedGaussianMixture(GaussianMixture):
                 means_init=mean2d,
                 n_init=1,
                 max_iter=2,
-                tol=np.inf,
+                tol=1e256,
             )
             # random fit, we set values after.
             clf2d.fit(np.random.randn(10, 2))
@@ -878,7 +881,7 @@ class GaussianMixtureWithPrior(WeightedGaussianMixture):
             weights_init=weights_init,
             # **kwargs
         )
-        # setKwargs(self, **kwargs)
+        # set_kwargs(self, **kwargs)
 
     def order_cluster(self, outputindex=False):
         """Order cluster
@@ -1103,7 +1106,7 @@ class GaussianMixtureWithPrior(WeightedGaussianMixture):
                 f"but got n_components = {self.n_components}, "
                 f"n_samples = {X.shape[0]}"
             )
-        self._check_initial_parameters(X)
+        self._check_parameters(X)
 
         # if we enable warm_start, we will have a unique initialisation
         do_init = not (self.warm_start and hasattr(self, "converged_"))
@@ -1222,7 +1225,6 @@ class GaussianMixtureWithNonlinearRelationships(WeightedGaussianMixture):
         verbose_interval=10,
         cluster_mapping=None,
     ):
-
         if cluster_mapping is None:
             self.cluster_mapping = [IdentityMap() for i in range(n_components)]
         else:
@@ -1534,7 +1536,6 @@ class GaussianMixtureWithNonlinearRelationshipsWithPrior(GaussianMixtureWithPrio
         update_covariances=True,
         fixed_membership=None,
     ):
-
         if cluster_mapping is None:
             self.cluster_mapping = gmmref.cluster_mapping
         else:

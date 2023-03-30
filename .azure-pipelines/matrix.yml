@@ -1,6 +1,6 @@
 parameters:
   os : ['ubuntu-latest']
-  py_vers: ['3.7']
+  py_vers: ['3.8']
   test: ['tests/em',
          'tests/base tests/flow tests/seis tests/utils',
          'tests/docs',
@@ -46,10 +46,19 @@ jobs:
               source "${HOME}/conda/etc/profile.d/conda.sh"
               conda activate simpeg-test
               export KMP_WARNINGS=0
-              pytest ${{ test }} -v -s --cov-config=.coveragerc --cov=SimPEG --cov-report=xml --cov-report=html -W ignore::DeprecationWarning
+              pytest ${{ test }} --cov-config=.coveragerc --cov=SimPEG --cov-report=xml --cov-report=html -W ignore::DeprecationWarning
             displayName: 'Testing ${{ test }}'
 
           - script: |
-              bash <(curl -s https://codecov.io/bash)
+              curl -Os https://uploader.codecov.io/latest/linux/codecov
+              chmod +x codecov
+              ./codecov --sha $(system.pullRequest.sourceCommitId)
+            displayName: 'Upload PR coverage to codecov.io'
+            condition: and(eq(${{ py_vers }}, '3.8'), startsWith(variables['build.sourceBranch'], 'refs/pull/'))
+
+          - script: |
+              curl -Os https://uploader.codecov.io/latest/linux/codecov
+              chmod +x codecov
+              ./codecov
             displayName: 'Upload coverage to codecov.io'
-            condition: eq(${{ py_vers }}, '3.7')
+            condition: and(eq(${{ py_vers }}, '3.8'), not(startsWith(variables['build.sourceBranch'], 'refs/pull/')))

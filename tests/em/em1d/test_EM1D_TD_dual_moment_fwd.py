@@ -11,7 +11,6 @@ import numpy as np
 
 class EM1D_TD_FwdProblemTests(unittest.TestCase):
     def setUp(self):
-
         source_location = np.array([0.0, 0.0, 0.0])
         source_radius = 10.0
 
@@ -83,7 +82,6 @@ class EM1D_TD_FwdProblemTests(unittest.TestCase):
         self.times_hm = times_hm
 
     def test_em1dtd_circular_loop_single_pulse(self):
-
         src = self.survey.source_list[0]
         rx = src.receiver_list[0]
         dbzdt = self.simulation.dpred(self.sigma_model)

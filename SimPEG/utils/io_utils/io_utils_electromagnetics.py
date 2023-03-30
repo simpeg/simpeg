@@ -269,7 +269,6 @@ def read_dcip2d_ubc(file_name, data_type, format_type):
     is_pole_rx = False
 
     if format_type == "simple":
-
         # Load numeric data into an array
         if data_type == "volt":
             data_array = np.loadtxt(file_name, comments="!", skiprows=start_index)
@@ -320,11 +319,9 @@ def read_dcip2d_ubc(file_name, data_type, format_type):
         )
 
     else:
-
         # Countdown for number of obs/tx
         count = 0
         for ii in range(obsfile.shape[0]):
-
             if not obsfile[ii]:
                 continue
 
@@ -484,7 +481,6 @@ def read_dcip3d_ubc(file_name, data_type):
     # Countdown for number of obs/tx
     count = 0
     for ii in range(obsfile.shape[0]):
-
         if not obsfile[ii]:
             continue
 
@@ -687,7 +683,6 @@ def write_dcip2d_ubc(
 
     # Write comments and IP type (if applicable)
     with open(file_name, "w") as fid:
-
         if format_type != "simple":
             fid.write("COMMON_CURRENT\n")
 
@@ -712,7 +707,6 @@ def write_dcip2d_ubc(
             fid.write("IPTYPE=2\n")
 
         if format_type.lower() == "simple":
-
             out_array = np.c_[
                 data_object.survey.locations_a[:, 0],
                 data_object.survey.locations_b[:, 0],
@@ -729,7 +723,6 @@ def write_dcip2d_ubc(
             np.savetxt(fid, out_array, fmt="%e", delimiter="    ")
 
         else:
-
             # Index deciding if z locations are written
             if format_type == "surface":
                 end_index = 1
@@ -739,7 +732,6 @@ def write_dcip2d_ubc(
             # Loop over all sources
             count = 0
             for src in data_object.survey.source_list:
-
                 # Write Source
                 nD = src.nD
 
@@ -754,7 +746,6 @@ def write_dcip2d_ubc(
 
                 # Write receivers
                 for rx in src.receiver_list:
-
                     if isinstance(rx, DipoleRx):
                         M = rx.locations[0][:, 0:end_index]
                         N = rx.locations[1][:, 0:end_index]
@@ -898,7 +889,6 @@ def write_dcip3d_ubc(
         # Loop over all sources
         count = 0
         for src in data_object.survey.source_list:
-
             # Write Source
             nD = src.nD
 
@@ -913,7 +903,6 @@ def write_dcip3d_ubc(
 
             # Write receivers
             for rx in src.receiver_list:
-
                 if isinstance(rx, DipoleRx):
                     M = rx.locations[0][:, 0:end_index]
                     N = rx.locations[1][:, 0:end_index]

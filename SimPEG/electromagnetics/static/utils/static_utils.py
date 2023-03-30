@@ -29,7 +29,7 @@ try:
     import plotly.graph_objects as grapho
 
     has_plotly = True
-except:
+except ImportError:
     has_plotly = False
 
 
@@ -210,7 +210,7 @@ def pseudo_locations(survey, wenner_tolerance=0.1, **kwargs):
     midpoints = []
     ds = []
 
-    for ii, source in enumerate(survey.source_list):
+    for source in survey.source_list:
         src_loc = source.location
         src_midpoint = np.mean(src_loc, axis=0)[None, :]
 
@@ -385,7 +385,6 @@ def convert_survey_3d_to_2d_lines(
     # For each unique lineID
     survey_list = []
     for ID in unique_lineID:
-
         source_list = []
 
         # Source locations for this line
@@ -424,8 +423,7 @@ def convert_survey_3d_to_2d_lines(
         ]
 
         # For each source in the line
-        for ii, ind in enumerate(ab_index):
-
+        for ind in ab_index:
             # Get source location
             src_loc_a = mkvc(a_locs_s[ind, :])
             src_loc_b = mkvc(b_locs_s[ind, :])
@@ -647,7 +645,7 @@ def plot_pseudosection(
                 levels = opts.get("levels", "auto")
                 locator = ticker.MaxNLocator(levels)
                 levels = locator.tick_values(np.log10(dobs.min()), np.log10(dobs.max()))
-                levels = 10 ** levels
+                levels = 10**levels
                 opts["levels"] = levels
             except TypeError:
                 pass
@@ -682,7 +680,6 @@ def plot_pseudosection(
     # for nearest electrode spacings
 
     if mask_topography:
-
         electrode_locations = np.unique(
             np.r_[
                 survey.locations_a,
@@ -856,7 +853,6 @@ if has_plotly:
 
         # 3D scatter plot
         if plane_points == None:
-
             marker["color"] = plot_vec
             scatter_data = [
                 grapho.Scatter3d(
@@ -877,13 +873,12 @@ if has_plotly:
                 plane_points = [plane_points]
 
             # Expand to list of only one plane distance for all planes
-            if isinstance(plane_distance, list) != True:
+            if not isinstance(plane_distance, list):
                 plane_distance = len(plane_points) * [plane_distance]
 
             # Pre-allocate index for points on plane(s)
             k = np.zeros(len(plot_vec), dtype=bool)
             for ii in range(0, len(plane_points)):
-
                 p1, p2, p3 = plane_points[ii]
                 a, b, c, d = define_plane_from_points(p1, p2, p3)
 
@@ -894,7 +889,7 @@ if has_plotly:
                         + c * locations[:, 2]
                         + d
                     )
-                    / np.sqrt(a ** 2 + b ** 2 + c ** 2)
+                    / np.sqrt(a**2 + b**2 + c**2)
                     < plane_distance[ii]
                 )
 
@@ -999,9 +994,9 @@ def generate_survey_from_abmn_locations(
     if locations_n is None:
         locations_n = locations_m
 
-    if (
+    if not (
         locations_a.shape == locations_b.shape == locations_m.shape == locations_n.shape
-    ) == False:
+    ):
         raise ValueError(
             "Arrays containing A, B, M and N electrode locations must be same shape."
         )
@@ -1017,8 +1012,7 @@ def generate_survey_from_abmn_locations(
 
     # Loop over all unique source locations
     source_list = []
-    for ii, ind in enumerate(ab_index):
-
+    for ind in ab_index:
         # Get source location
         src_loc_a = mkvc(locations_a[ind, :])
         src_loc_b = mkvc(locations_b[ind, :])
@@ -1077,7 +1071,6 @@ def generate_survey_from_abmn_locations(
 
 
 def generate_dcip_survey(endl, survey_type, a, b, n, dim=3, **kwargs):
-
     """
     Load in endpoints and survey specifications to generate Tx, Rx location
     stations.
@@ -1142,9 +1135,7 @@ def generate_dcip_survey(endl, survey_type, a, b, n, dim=3, **kwargs):
     SrcList = []
 
     if survey_type != "gradient":
-
         for ii in range(0, int(nstn) - 1):
-
             if survey_type.lower() in ["dipole-dipole", "dipole-pole"]:
                 tx = np.c_[M[ii, :], N[ii, :]]
                 # Current elctrode separation
@@ -1204,7 +1195,6 @@ def generate_dcip_survey(endl, survey_type, a, b, n, dim=3, **kwargs):
             SrcList.append(srcClass)
 
     elif survey_type.lower() == "gradient":
-
         # Gradient survey takes the "b" parameter to define the limits of a
         # square survey grid. The pole seperation within the receiver grid is
         # define the "a" parameter.
@@ -1234,7 +1224,6 @@ def generate_dcip_survey(endl, survey_type, a, b, n, dim=3, **kwargs):
 
         rx = np.zeros([npoles, 6])
         for ii in range(len(lind)):
-
             # Move station location to current survey line This is a
             # perpendicular move then line survey orientation, hence the y, x
             # switch
@@ -1327,7 +1316,6 @@ def generate_dcip_sources_line(
     x2 = end_points[1]
 
     if dimension_type == "3D":
-
         # Station locations
         y1 = end_points[2]
         y2 = end_points[3]
@@ -1347,7 +1335,6 @@ def generate_dcip_sources_line(
             P = np.c_[P, fun_interp(P)]
 
     else:
-
         # Station locations
         y1 = 0.0
         y2 = 0.0
@@ -1375,7 +1362,6 @@ def generate_dcip_sources_line(
         rx_shift = 2
 
     for ii in range(0, int(nstn - rx_shift)):
-
         if dimension_type == "3D":
             D = xy_2_r(stn_x[ii + rx_shift], x2, stn_y[ii + rx_shift], y2)
         else:
@@ -1438,9 +1424,7 @@ def xy_2_lineID(dc_survey):
     linenum = 0
 
     for ii in range(nstn):
-
         if ii == 0:
-
             A = dc_survey.source_list[ii].location[0]
             B = dc_survey.source_list[ii].location[1]
 
@@ -1473,7 +1457,6 @@ def xy_2_lineID(dc_survey):
         if ((ang1 < np.cos(np.pi / 4.0)) | (ang2 < np.cos(np.pi / 4.0))) & (
             np.all(np.r_[r1, r2, r3, r4] > 0)
         ):
-
             # Re-initiate start and mid-point location
             xy0 = A[:2]
             xym = xin
@@ -1547,9 +1530,7 @@ def gettopoCC(mesh, ind_active, option="top"):
         xy[z] topography
     """
     if mesh._meshType == "TENSOR":
-
         if mesh.dim == 3:
-
             mesh2D = discretize.TensorMesh([mesh.h[0], mesh.h[1]], mesh.x0[:2])
             zc = mesh.cell_centers[:, 2]
             ACTIND = ind_active.reshape(
@@ -1570,7 +1551,6 @@ def gettopoCC(mesh, ind_active, option="top"):
             return mesh2D, topoCC
 
         elif mesh.dim == 2:
-
             mesh1D = discretize.TensorMesh([mesh.h[0]], [mesh.x0[0]])
             yc = mesh.cell_centers[:, 1]
             ACTIND = ind_active.reshape((mesh.vnC[0], mesh.vnC[1]), order="F")
@@ -1588,7 +1568,6 @@ def gettopoCC(mesh, ind_active, option="top"):
             return mesh1D, topoCC
 
     elif mesh._meshType == "TREE":
-
         inds = mesh.get_boundary_cells(ind_active, direction="zu")[0]
 
         if option == "top":
@@ -1854,7 +1833,6 @@ def plot_pseudoSection(
     dobs=None,
     dim=2,
 ):
-
     raise TypeError(
         "The plot_pseudoSection method has been removed. Please use "
         "plot_pseudosection instead."
@@ -1869,7 +1847,6 @@ def apparent_resistivity(
     eps=1e-10,
     **kwargs,
 ):
-
     raise TypeError(
         "The apparent_resistivity method has been removed. Please use "
         "apparent_resistivity_from_voltage instead."
@@ -1971,7 +1948,6 @@ def writeUBC_DClocs(
 
 
 def readUBC_DC2Dpre(fileName):
-
     raise NotImplementedError(
         "The readUBC_DC2Dpre method has been deprecated. Please use "
         "read_dcip2d_ubc instead. This is imported "

@@ -44,7 +44,6 @@ def adjointTest(fdemType, comp, src):
 
 
 class FDEM_AdjointTests(unittest.TestCase):
-
     if testJ:
 
         def test_Jtvec_adjointTest_j_Jform(self):

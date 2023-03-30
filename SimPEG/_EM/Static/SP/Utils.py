@@ -12,7 +12,6 @@ def PolygonInd(mesh, pts):
 
 
 def readSeepageModel(fname, mesh=None, xsurf=None, ysurf=None):
-
     fluiddata = pd.read_csv(fname)
     xyz = np.c_[fluiddata["X (m)"].values, fluiddata["Y (m)"].values]
     h = fluiddata["Total Head (m)"].values

@@ -41,7 +41,6 @@ class Simulation3DIntegral(BasePFSimulation):
         is_amplitude_data=False,
         **kwargs
     ):
-
         self.model_type = model_type
         super().__init__(mesh, **kwargs)
         self.chi = chi
@@ -118,9 +117,7 @@ class Simulation3DIntegral(BasePFSimulation):
 
     @property
     def G(self):
-
         if getattr(self, "_G", None) is None:
-
             self._G = self.linear_operator()
 
         return self._G
@@ -140,9 +137,7 @@ class Simulation3DIntegral(BasePFSimulation):
 
     @property
     def tmi_projection(self):
-
         if getattr(self, "_tmi_projection", None) is None:
-
             # Convert from north to cartesian
             self._tmi_projection = mat_utils.dip_azimuth2cartesian(
                 self.survey.source_field.inclination,
@@ -151,7 +146,7 @@ class Simulation3DIntegral(BasePFSimulation):
 
         return self._tmi_projection
 
-    def getJtJdiag(self, m, W=None):
+    def getJtJdiag(self, m, W=None, f=None):
         """
         Return the diagonal of JtJ
         """
@@ -209,7 +204,6 @@ class Simulation3DIntegral(BasePFSimulation):
 
     @property
     def ampDeriv(self):
-
         if getattr(self, "_ampDeriv", None) is None:
             fields = np.asarray(self.G.dot(self.chi).astype(np.float32))
             self._ampDeriv = self.normalized_fields(fields)
@@ -691,7 +685,7 @@ class Simulation3DDifferential(BaseMagneticPDESimulation):
         B0 = self.getB0()
 
         MfMuIvec = 1 / self.MfMui.diagonal()
-        dMfMuI = sdiag(MfMuIvec ** 2) * self.mesh.aveF2CC.T * sdiag(vol * 1.0 / mu ** 2)
+        dMfMuI = sdiag(MfMuIvec**2) * self.mesh.aveF2CC.T * sdiag(vol * 1.0 / mu**2)
 
         # A = self._Div*self.MfMuI*self._Div.T
         # RHS = Div*MfMuI*MfMu0*B0 - Div*B0 + Mc*Dface*Pout.T*Bbc
@@ -774,7 +768,7 @@ class Simulation3DDifferential(BaseMagneticPDESimulation):
         B0 = self.getB0()
 
         MfMuIvec = 1 / self.MfMui.diagonal()
-        dMfMuI = sdiag(MfMuIvec ** 2) * self.mesh.aveF2CC.T * sdiag(vol * 1.0 / mu ** 2)
+        dMfMuI = sdiag(MfMuIvec**2) * self.mesh.aveF2CC.T * sdiag(vol * 1.0 / mu**2)
 
         # A = self._Div*self.MfMuI*self._Div.T
         # RHS = Div*MfMuI*MfMu0*B0 - Div*B0 + Mc*Dface*Pout.T*Bbc
@@ -928,7 +922,6 @@ class Simulation3DDifferential(BaseMagneticPDESimulation):
         return sp.vstack([fields[comp] for comp in components])
 
     def projectFieldsAsVector(self, B):
-
         bfx = self.Qfx * B
         bfy = self.Qfy * B
         bfz = self.Qfz * B
