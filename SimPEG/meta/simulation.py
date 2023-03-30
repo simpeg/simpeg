@@ -7,6 +7,7 @@ from ..maps import IdentityMap
 from ..utils import validate_list_of_types, validate_type
 from ..props import HasModel
 import itertools
+import warnings
 
 
 class MetaSimulation(BaseSimulation):
@@ -88,6 +89,10 @@ class MetaSimulation(BaseSimulation):
     _repeat_sim = False
 
     def __init__(self, simulations, mappings):
+        warnings.warn(
+            "The MetaSimulation class is a work in progress and might change in the future",
+            stacklevel=2,
+        )
         self.simulations = simulations
         self.mappings = mappings
         # give myself a BaseSurvey that has the number of data equal
@@ -327,6 +332,10 @@ class SumMetaSimulation(MetaSimulation):
     _repeat_sim = False
 
     def __init__(self, simulations, mappings):
+        warnings.warn(
+            "The SumMetaSimulation class is a work in progress and might change in the future",
+            stacklevel=2,
+        )
         self.simulations = simulations
         self.mappings = mappings
         # give myself a BaseSurvey
@@ -411,6 +420,10 @@ class RepeatedSimulation(MetaSimulation):
     _repeat_sim = True
 
     def __init__(self, simulation, mappings):
+        warnings.warn(
+            "The RepeatedSimulation class is a work in progress and might change in the future",
+            stacklevel=2,
+        )
         self.simulation = simulation
         self.mappings = mappings
         survey = BaseSurvey([])
