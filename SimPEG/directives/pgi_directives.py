@@ -167,74 +167,88 @@ class PGI_BetaAlphaSchedule(InversionDirective):
         dmlist = self.multi_target_misfits_directive.dmlist
         targetlist = self.multi_target_misfits_directive.targetlist
 
+        # Change mode if data misfit targets have been achieved
         if data_misfits_achieved:
             self.mode = 2
 
-        if self.opt.iter > 0 and self.opt.iter % self.update_rate == 0:
-            if self.verbose:
-                targets = np.round(
-                    np.maximum(
-                        (1.0 - self.progress) * self.previous_dmlist,
-                        (1.0 + self.tolerance) * data_misfits_target,
-                    ),
-                    decimals=1,
-                )
-                dmlist_rounded = np.round(dmlist, decimals=1)
-                print(
-                    f"Beta cooling evaluation: progress: {dmlist_rounded}; "
-                    f"minimum progress targets: {targets}"
-                )
-            dm_bool = np.all(
-                dmlist[~targetlist]
-                > np.maximum(
-                    (1.0 - self.progress) * self.previous_dmlist[~targetlist],
-                    data_misfits_target[~targetlist],
-                )
+        # Don't cool beta of warm alpha if we are in the first iteration or if
+        # the current iteration doesn't match the update rate
+        if self.opt.iter == 0 or self.opt.iter % self.update_rate != 0:
+            self.update_previous_score()
+            self.update_previous_dmlist()
+            return None
+
+        if self.verbose:
+            targets = np.round(
+                np.maximum(
+                    (1.0 - self.progress) * self.previous_dmlist,
+                    (1.0 + self.tolerance) * data_misfits_target,
+                ),
+                decimals=1,
             )
-            if (
-                dm_bool
-                and not data_misfits_achieved
-                and self.mode == 1
-                and self.invProb.beta > self.betamin
-            ):
-                ratio = 1.0
-                indx = dmlist > (1.0 + self.tolerance) * data_misfits_target
-                if np.any(indx) and self.ratio_in_cooling:
-                    ratio = np.median([dmlist[indx] / data_misfits_target[indx]])
-                self.invProb.beta /= self.coolingFactor * ratio
+            dmlist_rounded = np.round(dmlist, decimals=1)
+            print(
+                f"Beta cooling evaluation: progress: {dmlist_rounded}; "
+                f"minimum progress targets: {targets}"
+            )
 
-                if self.verbose:
-                    print("Decreasing beta to counter data misfit decrase plateau.")
+        # Decide if we should cool beta
+        threshold = np.maximum(
+            (1.0 - self.progress) * self.previous_dmlist[~targetlist],
+            data_misfits_target[~targetlist],
+        )
+        if (
+            (dmlist[~targetlist] > threshold).all()
+            and not data_misfits_achieved
+            and self.mode == 1
+            and self.invProb.beta > self.betamin
+        ):
+            self.cool_beta()
+            if self.verbose:
+                print("Decreasing beta to counter data misfit decrase plateau.")
 
-            elif data_misfits_achieved and self.mode == 2:
-                if np.all([self.pgi_regularization.alpha_pgi < self.alphasmax]):
-                    ratio = np.median(data_misfits_target / dmlist)
-                    self.pgi_regularization.alpha_pgi *= self.warmingFactor * ratio
+        # Decide if we should warm beta instead
+        elif (
+            data_misfits_achieved
+            and self.mode == 2
+            and np.all(self.pgi_regularization.alpha_pgi < self.alphasmax)
+        ):
+            if self.verbose:
+                print(
+                    "Warming alpha_pgi to favor clustering: ",
+                    self.pgi_regularization.alpha_pgi,
+                )
 
-                    if self.verbose:
-                        print(
-                            "Warming alpha_pgi to favor clustering: ",
-                            self.pgi_regularization.alpha_pgi,
-                        )
+        # Decide if we should cool beta (to counter data misfit increase)
+        elif (
+            np.any(dmlist > (1.0 + self.tolerance) * data_misfits_target)
+            and self.mode == 2
+            and self.invProb.beta > self.betamin
+        ):
+            self.cool_beta()
+            if self.verbose:
+                print("Decreasing beta to counter data misfit increase.")
 
-            elif np.all(
-                [
-                    np.any(dmlist > (1.0 + self.tolerance) * data_misfits_target),
-                    self.mode == 2,
-                ]
-            ):
-                if np.all([self.invProb.beta > self.betamin]):
-                    ratio = 1.0
-                    indx = dmlist > (1.0 + self.tolerance) * data_misfits_target
-                    if np.any(indx) and self.ratio_in_cooling:
-                        ratio = np.median([dmlist[indx] / data_misfits_target[indx]])
-                    self.invProb.beta /= self.coolingFactor * ratio
-
-                    if self.verbose:
-                        print("Decreasing beta to counter data misfit increase.")
-
+        # Update previous score and dmlist
         self.update_previous_score()
         self.update_previous_dmlist()
+
+    def cool_beta(self):
+        """Cool beta according to schedule."""
+        data_misfits_target = self.multi_target_misfits_directive.DMtarget
+        dmlist = self.multi_target_misfits_directive.dmlist
+        ratio = 1.0
+        indx = dmlist > (1.0 + self.tolerance) * data_misfits_target
+        if np.any(indx) and self.ratio_in_cooling:
+            ratio = np.median([dmlist[indx] / data_misfits_target[indx]])
+        self.invProb.beta /= self.coolingFactor * ratio
+
+    def warm_alpha(self):
+        """Warm alpha according to schedule."""
+        data_misfits_target = self.multi_target_misfits_directive.DMtarget
+        dmlist = self.multi_target_misfits_directive.dmlist
+        ratio = np.median(data_misfits_target / dmlist)
+        self.pgi_regularization.alpha_pgi *= self.warmingFactor * ratio
 
     def update_previous_score(self):
         """
