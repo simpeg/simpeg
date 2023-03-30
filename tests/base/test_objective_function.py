@@ -138,10 +138,10 @@ class TestBaseObjFct(unittest.TestCase):
         )
 
         with self.assertRaises(Exception):
-            phi = phi1 + phi2
+            phi1 + phi2
 
         with self.assertRaises(Exception):
-            phi = phi1 + 100 * phi2
+            phi1 + 100 * phi2
 
     def test_emptyObjFct(self):
         phi = Empty_ObjFct()
