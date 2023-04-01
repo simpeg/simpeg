@@ -45,15 +45,15 @@ class JointTotalVariation(BaseSimilarityMeasure):
 
     @wire_map.setter
     def wire_map(self, wires):
-        n = None
+        n = self.regularization_mesh.nC
         maps = wires.maps
         for _, mapping in maps:
             map_n = mapping.shape[0]
-            if n is not None and n != map_n:
+            if n != map_n:
                 raise ValueError(
-                    f"All mapping outputs must be the same size! Got {n} and {map_n}"
+                    f"All mapping outputs must match the number of cells in "
+                    f"the regularization mesh! Got {n} and {map_n}"
                 )
-            n = map_n
         self._wire_map = wires
 
     def __call__(self, model):
