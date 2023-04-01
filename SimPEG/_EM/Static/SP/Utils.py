@@ -13,7 +13,6 @@ def PolygonInd(mesh, pts):
 
 def readSeepageModel(fname, mesh=None, xsurf=None, ysurf=None):
     fluiddata = pd.read_csv(fname)
-    header = fluiddata.keys()
     xyz = np.c_[fluiddata["X (m)"].values, fluiddata["Y (m)"].values]
     h = fluiddata["Total Head (m)"].values
     Ux = fluiddata["X-Velocity Magnitude (m/sec)"].values
@@ -42,7 +41,6 @@ def readSeepageModel(fname, mesh=None, xsurf=None, ysurf=None):
         ysurf = np.r_[27.5, 27.5, 43.2, 43.2, 35, 35, 27.5, 27.5]
         yup = np.ones_like(ysurf) * 45
         actind = Utils.surface2ind_topo(mesh, np.c_[xsurf, ysurf])
-        waterheight = 40.0
         waterind = (np.logical_and(~actind, mesh.gridCC[:, 1] < 40.0)) & (
             mesh.gridCC[:, 0] < 90.0
         )

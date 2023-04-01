@@ -230,7 +230,6 @@ class EM1D_TD_LineCurrent_Jac_layers_ProblemTests(unittest.TestCase):
 
         # Layer thicknesses
         thicknesses = np.array([30.0])
-        n_layer = len(thicknesses) + 1
 
         self.survey = survey
         self.sigma = sigma

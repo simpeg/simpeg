@@ -107,7 +107,6 @@ def _getCasingHertzMagDipole2Deriv_z_z(
     dxyz = obsloc - np.c_[np.ones(nobs)] * np.r_[srcloc]
 
     r2 = _r2(dxyz[:, :2])
-    r = np.sqrt(r2)
     z = dxyz[:, 2]
     sqrtr2z2 = np.sqrt(r2 + z**2)
     k2 = k(freq, sigma[2], mu[2], eps)

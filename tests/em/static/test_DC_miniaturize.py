@@ -244,10 +244,6 @@ class DC3DMiniaturizeTest(unittest.TestCase):
         )
         survey = dc.survey.Survey(source_list)
 
-        A = survey.locations_a
-        B = survey.locations_b
-        M = survey.locations_m
-        N = survey.locations_n
         # add some other receivers and sources to the mix
         # electrode_locations = np.unique(np.r_[A, B, M, N], axis=0)
         electrode_locations = survey.unique_electrode_locations

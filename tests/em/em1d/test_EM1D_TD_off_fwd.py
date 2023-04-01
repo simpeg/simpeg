@@ -22,7 +22,6 @@ class EM1D_TD_test_failures(unittest.TestCase):
 
     def test_instantiation_failures(self):
         times = np.logspace(-5, -2, 31)
-        waveform = tdem.sources.StepOffWaveform(off_time=0.0)
         x_offset = 10.0
         z_tx = [-10.0, 1.0, 1.0, 1.0]
         z_rx = [1.0, -10.0, -10.0, 1.0]

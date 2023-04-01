@@ -551,8 +551,8 @@ class LinearMap(IdentityMap):
     """
 
     def __init__(self, A, b=None, **kwargs):
-        mesh = kwargs.pop("mesh", None)
-        nP = kwargs.pop("nP", None)
+        kwargs.pop("mesh", None)
+        kwargs.pop("nP", None)
         super().__init__(**kwargs)
         self.A = A
         self.b = b

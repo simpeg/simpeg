@@ -25,7 +25,6 @@ def MagSphereAnaFun(x, y, z, R, x0, y0, z0, mu1, mu2, H0, flag="total"):
     if ~np.size(x) == np.size(y) == np.size(z):
         print("Specify same size of x, y, z")
         return
-    dim = x.shape
     x = utils.mkvc(x)
     y = utils.mkvc(y)
     z = utils.mkvc(z)
@@ -226,7 +225,6 @@ def MagSphereAnaFunA(x, y, z, R, xc, yc, zc, chi, Bo, flag):
     if ~np.size(x) == np.size(y) == np.size(z):
         print("Specify same size of x, y, z")
         return
-    dim = x.shape
     x = utils.mkvc(x)
     y = utils.mkvc(y)
     z = utils.mkvc(z)
