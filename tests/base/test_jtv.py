@@ -25,7 +25,7 @@ class JTVTensor2D(unittest.TestCase):
         actv = np.ones(len(mesh), dtype=bool)
 
         # maps
-        wires = maps.Wires(("m1", mesh.nC), ("m2", mesh.nC))
+        wires = maps.Wires(("m1", mesh.nC), ("m2", mesh.nC), ("m3", mesh.nC))
 
         jtv = regularization.JointTotalVariation(
             mesh,
@@ -35,7 +35,7 @@ class JTVTensor2D(unittest.TestCase):
 
         self.mesh = mesh
         self.jtv = jtv
-        self.x0 = np.random.rand(len(mesh) * 2)
+        self.x0 = np.random.rand(len(mesh) * len(wires.maps))
 
     def test_order_full_hessian(self):
         """

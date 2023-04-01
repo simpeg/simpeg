@@ -70,7 +70,6 @@ class JointTotalVariation(BaseSimilarityMeasure):
         float
             The computed value of the joint total variation term.
         """
-        m1, m2 = self.wire_map * model
         W = self.W
         G = self._G
         v2 = self.regularization_mesh.vol**2
