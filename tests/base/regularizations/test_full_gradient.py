@@ -1,6 +1,4 @@
-from discretize import TensorMesh
 from discretize.tests import OrderTest
-import sympy as sym
 import numpy as np
 import matplotlib.pyplot as plt
 from SimPEG.regularization import SmoothnessFullGradient
