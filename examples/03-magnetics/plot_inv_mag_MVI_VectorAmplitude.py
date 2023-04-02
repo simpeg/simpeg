@@ -186,7 +186,7 @@ mesh.plot_slice(
     grid=True,
     quiver_opts={
         "pivot": "mid",
-        "scale": 0.1,
+        "scale": 5 * np.abs(model).max(),
         "scale_units": 'inches'
     },
 )
@@ -292,7 +292,7 @@ mesh.plot_slice(
     grid=True,
     quiver_opts={
         "pivot": "mid",
-        "scale": 4*np.abs(invProb.l2model).max(),
+        "scale": 5 * np.abs(invProb.l2model).max(),
         "scale_units": 'inches'
     },
 )
@@ -314,7 +314,7 @@ mesh.plot_slice(
     grid=True,
     quiver_opts={
         "pivot": "mid",
-        "scale": 4*np.abs(mrec_MVIC).max(),
+        "scale": 5 * np.abs(mrec_MVIC).max(),
         "scale_units": 'inches'
     },
 )
