@@ -2368,53 +2368,6 @@ class UpdateSensitivityWeights(InversionDirective):
         return True
 
 
-class UpdateReferenceVector(InversionDirective):
-    def __init__(self, regularization, mapping, component="direction"):
-        self._regularization = regularization
-        self._mapping = mapping
-        self._component = component
-
-        if component == "amplitude":
-            self._fixed_reference = self.unit_vector(regularization.objfcts[0].reference_model)
-        else:
-            self._fixed_reference = self.get_amplitude(regularization.objfcts[0].reference_model)
-
-    def initialize(self):
-        self.update_reference()
-
-    def endIter(self):
-        self.update_reference()
-
-    def update_reference(self):
-        n_comp = len(self._mapping.maps)
-
-        if self._component == "amplitude":
-            amplitude = self.get_amplitude(self.invProb.model)
-            reference_vector = sdiag(
-                np.kron(np.ones(n_comp), amplitude)
-            ) * self._fixed_reference
-        else:
-            reference_vector = sdiag(
-                np.kron(np.ones(n_comp), self._fixed_reference)
-            ) * self.unit_vector(self.invProb.model)
-
-        for objfct in self._regularization.objfcts:
-            objfct.reference_model = reference_vector
-
-    def get_amplitude(self, vector):
-        model = []
-        for _, mapping in self._mapping.maps:
-            model.append(mapping * vector)
-
-        return np.linalg.norm(np.vstack(model).T, axis=1)
-
-    def unit_vector(self, vector):
-        inv_amp = (self.get_amplitude(vector) + 1e-12)**-1
-        return sdiag(
-            np.kron(np.ones(len(self._mapping.maps)), inv_amp)
-        ) * vector
-
-
 class ProjectSphericalBounds(InversionDirective):
     r"""
     Trick for spherical coordinate system.
