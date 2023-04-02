@@ -2190,11 +2190,8 @@ class Update_IRLS(InversionDirective):
                 threshold = np.percentile(
                     np.abs(obj.f_m(self.invProb.model)), self.prctile
                 )
-                # threshold = np.percentile(
-                #     np.abs(obj.mapping * obj._delta_m(self.invProb.model)), self.prctile
-                # )
-                # if isinstance(obj, SmoothnessFirstOrder):
-                #     threshold /= reg.regularization_mesh.base_length
+                if isinstance(obj, SmoothnessFirstOrder):
+                    threshold /= reg.regularization_mesh.base_length
 
                 obj.irls_threshold = threshold
 
