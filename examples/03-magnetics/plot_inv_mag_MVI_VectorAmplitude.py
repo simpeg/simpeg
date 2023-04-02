@@ -121,95 +121,6 @@ nC = int(actv.sum())
 # Should eventually end up on discretize
 #
 
-
-def plotVectorSectionsOctree(
-    mesh,
-    m,
-    normal="X",
-    ind=0,
-    vmin=None,
-    vmax=None,
-    scale=1.0,
-    vec="k",
-    axs=None,
-    actvMap=None,
-    fill=True,
-):
-
-    """
-    Plot section through a 3D tensor model
-    """
-    # plot recovered model
-    normalInd = {"X": 0, "Y": 1, "Z": 2}[normal]
-    antiNormalInd = {"X": [1, 2], "Y": [0, 2], "Z": [0, 1]}[normal]
-
-    h2d = (mesh.h[antiNormalInd[0]], mesh.h[antiNormalInd[1]])
-    x2d = (mesh.x0[antiNormalInd[0]], mesh.x0[antiNormalInd[1]])
-
-    #: Size of the sliced dimension
-    szSliceDim = len(mesh.h[normalInd])
-    if ind is None:
-        ind = int(szSliceDim // 2)
-
-    cc_tensor = [None, None, None]
-    for i in range(3):
-        cc_tensor[i] = np.cumsum(np.r_[mesh.x0[i], mesh.h[i]])
-        cc_tensor[i] = (cc_tensor[i][1:] + cc_tensor[i][:-1]) * 0.5
-    slice_loc = cc_tensor[normalInd][ind]
-
-    # Create a temporary TreeMesh with the slice through
-    temp_mesh = TreeMesh(h2d, x2d)
-    level_diff = mesh.max_level - temp_mesh.max_level
-
-    XS = [None, None, None]
-    XS[antiNormalInd[0]], XS[antiNormalInd[1]] = np.meshgrid(
-        cc_tensor[antiNormalInd[0]], cc_tensor[antiNormalInd[1]]
-    )
-    XS[normalInd] = np.ones_like(XS[antiNormalInd[0]]) * slice_loc
-    loc_grid = np.c_[XS[0].reshape(-1), XS[1].reshape(-1), XS[2].reshape(-1)]
-    inds = np.unique(mesh._get_containing_cell_indexes(loc_grid))
-
-    grid2d = mesh.gridCC[inds][:, antiNormalInd]
-    levels = mesh._cell_levels_by_indexes(inds) - level_diff
-    temp_mesh.insert_cells(grid2d, levels)
-    tm_gridboost = np.empty((temp_mesh.nC, 3))
-    tm_gridboost[:, antiNormalInd] = temp_mesh.gridCC
-    tm_gridboost[:, normalInd] = slice_loc
-
-    # Interpolate values to mesh.gridCC if not 'CC'
-    mx = actvMap * m[:, 0]
-    my = actvMap * m[:, 1]
-    mz = actvMap * m[:, 2]
-
-    m = np.c_[mx, my, mz]
-
-    # Interpolate values from mesh.gridCC to grid2d
-    ind_3d_to_2d = mesh._get_containing_cell_indexes(tm_gridboost)
-    v2d = m[ind_3d_to_2d, :]
-    amp = np.sum(v2d ** 2.0, axis=1) ** 0.5
-    v2d = sdiag(1./amp) * v2d
-    if axs is None:
-        axs = plt.subplot(111)
-
-    if fill:
-        temp_mesh.plotImage(amp, ax=axs, clim=[vmin, vmax], grid=False)
-
-    axs.quiver(
-        temp_mesh.gridCC[:, 0],
-        temp_mesh.gridCC[:, 1],
-        v2d[:, antiNormalInd[0]],
-        v2d[:, antiNormalInd[1]],
-        pivot="mid",
-        scale_units="inches",
-        scale=scale,
-        linewidths=(1,),
-        edgecolors=(vec),
-        headaxislength=0.1,
-        headwidth=10,
-        headlength=30,
-    )
-
-
 ###########################################################################
 # Forward modeling data
 # ---------------------
@@ -217,28 +128,8 @@ def plotVectorSectionsOctree(
 # We can now create a magnetization model and generate data
 # Lets start with a block below topography
 #
-
-
 model_azm_dip = np.zeros((mesh.nC, 2))
 model_amp = np.ones(mesh.nC) * 1e-8
-# for ii, anomaly in enumerate(M):
-#     x_shift = 120.0**ii
-#     # Get the indicies of the magnetized block
-#     ind = utils.model_builder.getIndicesBlock(
-#         np.r_[-80 + x_shift, -20, -10],
-#         np.r_[-40 + x_shift, 20, 25],
-#         mesh.gridCC,
-#     )[0]
-#
-#     # Assign magnetization values
-#     # model_azm_dip[ind, :] = np.kron(np.ones((ind.shape[0], 1)), anomaly)
-#     model_amp[ind] = 0.05
-#
-# model_azm_dip[mesh.cell_centers[:, 0] < 0, 0] = M[0][0, 0]
-# model_azm_dip[mesh.cell_centers[:, 0] < 0, 1] = M[0][0, 1]
-# model_azm_dip[mesh.cell_centers[:, 0] >= 0, 0] = M[1][0, 0]
-# model_azm_dip[mesh.cell_centers[:, 0] >= 0, 1] = M[1][0, 1]
-
 ind = utils.model_builder.getIndicesBlock(
     np.r_[-30, -20, -10],
     np.r_[30, 20, 25],
@@ -254,6 +145,10 @@ model_amp = model_amp[actv]
 
 model = sdiag(model_amp) * utils.mat_utils.dip_azimuth2cartesian(
     model_azm_dip[:, 0], model_azm_dip[:, 1]
+)
+
+mref_false = sdiag(model_amp) * utils.mat_utils.dip_azimuth2cartesian(
+    model_azm_dip[:, 0], model_azm_dip[:, 1] * 3.
 )
 
 # Create active map to go from reduce set to full
@@ -280,33 +175,37 @@ data_object = data.Data(survey, dobs=synthetic_data, standard_deviation=wd)
 actv_plot = maps.InjectActiveCells(mesh, actv, np.nan)
 
 # Plot the model and data
-# plt.figure()
-# ax = plt.subplot(2, 1, 1)
-# im = utils.plot_utils.plot2Ddata(xyzLoc, synthetic_data, ax=ax)
-# plt.colorbar(im[0])
-# ax.set_title("Predicted data.")
-# plt.gca().set_aspect("equal", adjustable="box")
-#
-# # Plot the vector model
-# ax = plt.subplot(2, 1, 2)
-# plotVectorSectionsOctree(
-#     mesh,
-#     model,
-#     axs=ax,
-#     normal="Y",
-#     ind=66,
-#     actvMap=actv_plot,
-#     scale=10,
-#     vmin=0.0,
-#     vmax=0.025,
-# )
-# ax.set_xlim([-200, 200])
-# ax.set_ylim([-100, 75])
-# ax.set_xlabel("x")
-# ax.set_ylabel("y")
-# plt.gca().set_aspect("equal", adjustable="box")
-#
-# plt.show()
+plt.figure()
+ax = plt.subplot(2, 1, 1)
+im = utils.plot_utils.plot2Ddata(xyzLoc, synthetic_data, ax=ax)
+plt.colorbar(im[0])
+ax.set_title("Predicted data.")
+plt.gca().set_aspect("equal", adjustable="box")
+
+# Plot the vector model
+ax = plt.subplot(2, 1, 2)
+mesh.plot_slice(
+    actv_plot * mref_false.reshape((-1, 3), order="F"),
+    v_type="CCv",
+    view="vec",
+    ax=ax,
+    normal="Y",
+    ind=66,
+    grid=True,
+    quiver_opts={
+        "pivot": "mid",
+        "scale": 0.5,
+        "angles": 'xy',
+        "scale_units": 'height'
+    },
+)
+ax.set_xlim([-200, 200])
+ax.set_ylim([-100, 75])
+ax.set_xlabel("x")
+ax.set_ylabel("y")
+plt.gca().set_aspect("equal", adjustable="box")
+
+plt.show()
 
 
 ######################################################################
@@ -327,73 +226,20 @@ rxLoc = survey.source_field.receiver_list[0].locations
 # This Mapping connects the regularizations for the three-component
 # vector model
 wires = maps.Group(("p", nC), ("s", nC), ("t", nC))
-
-
 m0 = np.ones(3 * nC) * 1e-4 # Starting model
 
 # Create three regularizations for the different components
 # of magnetization
 reg_amp = regularization.VectorAmplitude(
-    mesh, wires, active_cells=actv,
+    mesh,
+    wires,
+    active_cells=actv,
     reference_model_in_smooth=True,
+    norms=[0.0, 1.0, 1.0, 1.0],
+    reference_model=m0
 )
-reg_amp.norms = [0.0, 1.0, 1.0, 1.0]
-# reg_amp.alpha_s = 0.0
-reg_amp.gradient_type = "total"
-reg_amp.reference_model = mkvc(m0)
 
-# Create three regularizations for the different components
-# of magnetization
-# reg_p = regularization.Sparse(
-#     mesh,
-#     active_cells=actv,
-#     mapping=wires.p,
-#     reference_model_in_smooth=False,
-#     norms=[0, 0, 0, 0],
-#     alpha_s=0
-# )
-# reg_s = regularization.Sparse(
-#     mesh,
-#     active_cells=actv,
-#     mapping=wires.s,
-#     reference_model_in_smooth=False,
-#     norms=[0, 0, 0, 0],
-#     alpha_s=0
-# )
-# reg_t = regularization.Sparse(
-#     mesh,
-#     active_cells=actv,
-#     mapping=wires.t,
-#     reference_model_in_smooth=False,
-#     norms=[0, 0, 0, 0],
-#     alpha_s=0
-# )
-# reg_components = reg_p + reg_s + reg_t
-
-# reg_x = regularization.Sparse(
-#     mesh,
-#     active_cells=actv,
-#     mapping=wires.p,
-#     reference_model_in_smooth=True,
-#     norms=[0, 0, 0, 0]
-# )
-# reg_y = regularization.Sparse(
-#     mesh,
-#     active_cells=actv,
-#     mapping=wires.s,
-#     reference_model_in_smooth=True,
-#     norms=[0, 0, 0, 0]
-# )
-# reg_z = regularization.Sparse(
-#     mesh,
-#     active_cells=actv,
-#     mapping=wires.t,
-#     reference_model_in_smooth=True,
-#     norms=[0, 0, 0, 0]
-# )
-# reg_amp = reg_x + reg_y + reg_z
-
-reg = reg_amp# + reg_components #+
+reg = reg_amp
 
 # Data misfit function
 dmis = data_misfit.L2DataMisfit(simulation=simulation, data=data_object)
@@ -407,7 +253,7 @@ opt = optimization.ProjectedGNCG(
 invProb = inverse_problem.BaseInvProblem(dmis, reg, opt)
 
 # A list of directive to control the inverson
-betaest = directives.BetaEstimate_ByEig(beta0_ratio=1e1)
+betaest = directives.BetaEstimate_ByEig(beta0_ratio=5e1)
 
 # Add sensitivity weights
 sensitivity_weights = directives.UpdateSensitivityWeights()
@@ -420,20 +266,10 @@ IRLS = directives.Update_IRLS(f_min_change=1e-3, max_irls_iterations=10, beta_to
 # Pre-conditioner
 update_Jacobi = directives.UpdatePreconditioner()
 
-# Update reference model
-# update_ref = directives.UpdateReferenceVector(
-#     reg_components, wires, component="amplitude"
-#     # reg_components, mkvc(utils.mat_utils.dip_azimuth2cartesian(model_azm_dip[:, 0], model_azm_dip[:, 1]))
-# )
 
-update_dir = directives.UpdateReferenceVector(
-    reg_amp, wires, component="direction"
-)
 inv = inversion.BaseInversion(
     invProb, directiveList=[
         sensitivity_weights,
-        # update_ref,
-        update_dir,
         IRLS,
         update_Jacobi,
         betaest
@@ -455,16 +291,20 @@ mrec_MVIC = inv.run(m0)
 
 plt.figure(figsize=(8, 8))
 ax = plt.subplot(2, 1, 1)
-plotVectorSectionsOctree(
-    mesh,
-    invProb.l2model.reshape((nC, 3), order="F"),
-    axs=ax,
+mesh.plot_slice(
+    actv_plot * invProb.l2model.reshape((-1, 3), order="F"),
+    v_type="CCv",
+    view="vec",
+    ax=ax,
     normal="Y",
-    ind=65,
-    actvMap=actv_plot,
-    scale=10,
-    vmin=0.0,
-    # vmax=0.01,
+    ind=66,
+    grid=True,
+    quiver_opts={
+        "pivot": "mid",
+        "scale": 0.5,
+        "angles": 'xy',
+        "scale_units": 'height'
+    },
 )
 ax.set_xlim([-200, 200])
 ax.set_ylim([-100, 75])
@@ -474,17 +314,20 @@ ax.set_ylabel("y")
 plt.gca().set_aspect("equal", adjustable="box")
 
 ax = plt.subplot(2, 1, 2)
-
-plotVectorSectionsOctree(
-    mesh,
-    mrec_MVIC.reshape((nC, 3), order="F"),
-    axs=ax,
+mesh.plot_slice(
+    actv_plot * mrec_MVIC.reshape((-1, 3), order="F"),
+    v_type="CCv",
+    view="vec",
+    ax=ax,
     normal="Y",
-    ind=65,
-    actvMap=actv_plot,
-    scale=10.0,
-    vmin=0.0,
-    # vmax=0.025,
+    ind=66,
+    grid=True,
+    quiver_opts={
+        "pivot": "mid",
+        "scale": 0.5,
+        "angles": 'xy',
+        "scale_units": 'height'
+    },
 )
 ax.set_xlim([-200, 200])
 ax.set_ylim([-100, 75])
