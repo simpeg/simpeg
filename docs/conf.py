@@ -144,7 +144,6 @@ link_github = True
 # You can build old with link_github = False
 
 if link_github:
-
     import inspect
     from os.path import relpath, dirname
 
@@ -198,7 +197,6 @@ if link_github:
             return None
 
         return f"https://github.com/simpeg/simpeg/blob/main/SimPEG/{fn}{linespec}"
-
 
 else:
     extensions.append("sphinx.ext.viewcode")

@@ -20,13 +20,9 @@ from SimPEG import (
     directives,
     inversion,
 )
-from discretize.utils import mesh_builder_xyz, refine_tree_xyz
+from discretize.utils import mesh_builder_xyz, refine_tree_xyz, active_from_xyz
 
-try:
-    from SimPEG import utils
-except:
-    from SimPEG import Utils as utils
-
+from SimPEG import utils
 
 ###############################################################################
 # Setup
@@ -45,7 +41,7 @@ yr = np.linspace(-30.0, 30.0, 20)
 X, Y = np.meshgrid(xr, yr)
 
 # Move the observation points 5m above the topo
-Z = -np.exp((X ** 2 + Y ** 2) / 75 ** 2)
+Z = -np.exp((X**2 + Y**2) / 75**2)
 
 # Create a topo array
 topo = np.c_[utils.mkvc(X.T), utils.mkvc(Y.T), utils.mkvc(Z.T)]
@@ -71,7 +67,6 @@ local_indices = [rxLoc[:, 0] <= 0, rxLoc[:, 0] > 0]
 local_surveys = []
 local_meshes = []
 for local_index in local_indices:
-
     receivers = gravity.receivers.Point(rxLoc[local_index, :])
     srcField = gravity.sources.SourceField([receivers])
     local_survey = gravity.survey.Survey(srcField)
@@ -113,7 +108,7 @@ for local_mesh in local_meshes:
 mesh.finalize()
 
 # Define an active cells from topo
-activeCells = utils.surface2ind_topo(mesh, topo)
+activeCells = active_from_xyz(mesh, topo)
 nC = int(activeCells.sum())
 
 # We can now create a density model and generate data
@@ -161,7 +156,6 @@ wd = np.ones(len(synthetic_data)) * 1e-3  # Assign flat uncertainties
 #
 local_misfits = []
 for ii, local_survey in enumerate(local_surveys):
-
     tile_map = maps.TileMap(mesh, activeCells, local_meshes[ii])
 
     local_actives = tile_map.local_active
@@ -192,7 +186,6 @@ global_misfit = local_misfits[0] + local_misfits[1]
 # Plot the model on different meshes
 fig = plt.figure(figsize=(12, 6))
 for ii, local_misfit in enumerate(local_misfits):
-
     local_mesh = local_misfit.simulation.mesh
     local_map = local_misfit.simulation.rhoMap
 

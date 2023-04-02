@@ -110,18 +110,17 @@ def dask_getJ(self, m, f=None):
 Sim.getJ = dask_getJ
 
 
-def dask_getJtJdiag(self, m, W=None):
+def dask_getJtJdiag(self, m, W=None, f=None):
     """
     Return the diagonal of JtJ
     """
     if getattr(self, "_gtgdiag", None) is None:
-
         # Need to check if multiplying weights makes sense
         if W is None:
-            self._gtgdiag = da.sum(self.getJ(m) ** 2, axis=0).compute()
+            self._gtgdiag = da.sum(self.getJ(m, f=f) ** 2, axis=0).compute()
         else:
             w = da.from_array(W.diagonal())[:, None]
-            self._gtgdiag = da.sum((w * self.getJ(m)) ** 2, axis=0).compute()
+            self._gtgdiag = da.sum((w * self.getJ(m, f=f)) ** 2, axis=0).compute()
 
     return self._gtgdiag
 

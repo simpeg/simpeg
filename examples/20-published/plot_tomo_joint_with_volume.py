@@ -84,7 +84,6 @@ class Volume(objective_function.BaseObjectiveFunction):
 
 
 def run(plotIt=True):
-
     nC = 40
     de = 1.0
     h = np.ones(nC) * de / nC
@@ -131,18 +130,12 @@ def run(plotIt=True):
     # scale the slowness so it is on a ~linear scale
     slownessMap = maps.LogMap(M) * sigmaMap
 
-    # set up the true sig model and log model dobs
-    sigtrue = sigmaMap * phitrue
-
-    # modt = Model.BaseModel(M);
-    slownesstrue = slownessMap * phitrue  # true model (m = log(sigma))
-
     # set up the problem and survey
     survey = tomo.Survey(source_list)
     problem = tomo.Simulation(M, survey=survey, slownessMap=slownessMap)
 
     if plotIt:
-        fig, ax = plt.subplots(1, 1)
+        _, ax = plt.subplots(1, 1)
         cb = plt.colorbar(M.plot_image(phitrue, ax=ax)[0], ax=ax)
         survey.plot(ax=ax)
         cb.set_label(r"$\varphi$")
@@ -185,7 +178,6 @@ def run(plotIt=True):
     # plot results
 
     if plotIt:
-
         fig, ax = plt.subplots(1, 1)
         ax.plot(data.dobs)
         ax.plot(dpred)

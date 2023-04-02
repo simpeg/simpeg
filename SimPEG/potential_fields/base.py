@@ -42,11 +42,28 @@ class BasePFSimulation(LinearSimulation):
 
         - 'ram': sensitivities are stored in the computer's RAM
         - 'disk': sensitivities are written to a directory
-        - 'forward_only': you intend only do perform a forward simulation and sensitivities do no need to be stored
+        - 'forward_only': you intend only do perform a forward simulation and sensitivities do not need to be stored
 
     n_processes : None or int, optional
         The number of processes to use in the internal multiprocessing pool for forward
-        modeling.
+        modeling. The default value of 1 will not use multiprocessing. Any other setting
+        will. `None` implies setting by the number of cpus.
+
+    Notes
+    -----
+    If using multiprocessing by setting `n_processes` to a value other than 1, you must
+    be aware of the method your operating system uses to spawn the subprocesses. On
+    Windows the default method starts new processes that all import the main script.
+    Therefor you must protect the calls to this class by testing if you are in
+    the main process with:
+
+    >>> from SimPEG.potential_fields import gravity
+    >>> if __name__ == '__main__':
+    ...     # Do your processing here
+    ...     sim = gravity.Simulation3DIntegral(n_processes=4, ...)
+    ...     sim.dpred(m)
+
+    This usually does not affect jupyter notebook environments.
     """
 
     def __init__(
@@ -54,10 +71,9 @@ class BasePFSimulation(LinearSimulation):
         mesh,
         ind_active=None,
         store_sensitivities="ram",
-        n_processes=None,
+        n_processes=1,
         **kwargs,
     ):
-
         # If deprecated property set with kwargs
         if "actInd" in kwargs:
             raise AttributeError(
@@ -188,11 +204,16 @@ class BasePFSimulation(LinearSimulation):
                     print(f"Found sensitivity file at {sens_name} with expected shape")
                     kernel = np.asarray(kernel)
                     return kernel
-        # multiprocessed
-        with Pool(processes=self.n_processes) as pool:
-            kernel = pool.starmap(
-                self.evaluate_integral, self.survey._location_component_iterator()
-            )
+        if self.n_processes == 1:
+            kernel = []
+            for args in self.survey._location_component_iterator():
+                kernel.append(self.evaluate_integral(*args))
+        else:
+            # multiprocessed
+            with Pool(processes=self.n_processes) as pool:
+                kernel = pool.starmap(
+                    self.evaluate_integral, self.survey._location_component_iterator()
+                )
         if self.store_sensitivities != "forward_only":
             kernel = np.vstack(kernel)
         else:
@@ -220,7 +241,6 @@ class BaseEquivalentSourceLayerSimulation(BasePFSimulation):
     """
 
     def __init__(self, mesh, cell_z_top, cell_z_bottom, **kwargs):
-
         if mesh.dim != 2:
             raise AttributeError("Mesh to equivalent source layer must be 2D.")
 
@@ -273,7 +293,6 @@ def progress(iteration, prog, final):
     arg = np.floor(float(iteration) / float(final) * 10.0)
 
     if arg > prog:
-
         print("Done " + str(arg * 10) + " %")
         prog = arg
 
@@ -341,7 +360,6 @@ def get_dist_wgt(mesh, receiver_locations, actv, R, R0):
     print("Begin calculation of distance weighting for R= " + str(R))
 
     for dd in range(ndata):
-
         nx1 = (Xm - hX * p - receiver_locations[dd, 0]) ** 2
         nx2 = (Xm + hX * p - receiver_locations[dd, 0]) ** 2
 

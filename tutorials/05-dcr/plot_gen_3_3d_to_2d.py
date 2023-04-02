@@ -45,7 +45,7 @@ try:
     from SimPEG.electromagnetics.static.utils.static_utils import plot_3d_pseudosection
 
     has_plotly = True
-except:
+except ImportError:
     has_plotly = False
     pass
 
@@ -128,7 +128,6 @@ apparent_conductivity_3d = 1 / apparent_resistivity_from_voltage(
 )
 
 if has_plotly:
-
     fig = plot_3d_pseudosection(
         survey_3d,
         apparent_conductivity_3d,
@@ -194,7 +193,6 @@ title_str = [
 
 # Plot apparent conductivity pseudo-section
 for ii in range(len(survey_2d_list)):
-
     vlim = [apparent_conductivity_3d.min(), apparent_conductivity_3d.max()]
 
     fig = plt.figure(figsize=(12, 5))

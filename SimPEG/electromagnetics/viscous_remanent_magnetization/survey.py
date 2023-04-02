@@ -23,7 +23,6 @@ class SurveyVRM(BaseSurvey):
     """
 
     def __init__(self, source_list, t_active=None, **kwargs):
-
         super(SurveyVRM, self).__init__(source_list=source_list, **kwargs)
 
         self._nD_all = self.vnD.sum()
@@ -66,12 +65,10 @@ class SurveyVRM(BaseSurvey):
         tActBool = np.array([])
 
         for pp in range(0, nSrc):
-
             receiver_list = source_list[pp].receiver_list
             nRx = len(receiver_list)
 
             for qq in range(0, nRx):
-
                 times = receiver_list[qq].times
                 nLoc = np.shape(receiver_list[qq].locations)[0]
                 tActBool = np.r_[tActBool, np.kron(np.ones(nLoc), times)]

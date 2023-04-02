@@ -61,14 +61,12 @@ class TestInductiveSourcesPermeability(unittest.TestCase):
         self.mesh = mesh
 
     def test_permeable_sources(self):
-
         target_mur = self.target_mur
         target_l = self.target_l
         target_r = self.target_r
         sigma_back = self.sigma_back
         model_names = self.model_names
         mesh = self.mesh
-        radius_loop = self.radius_loop
 
         # Assign physical properties on the mesh
         def populate_target(mur):

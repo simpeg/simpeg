@@ -452,7 +452,6 @@ class Fields3DMagneticField(FieldsTDEM):
     def _dhdtDeriv_m(self, tInd, src, v, adjoint=False):
         C = self._edgeCurl
         MeMuI = self._MeMuI
-        MfRho = self._MfRho
         MfRhoDeriv = self._MfRhoDeriv
 
         hSolution = self[[src], "hSolution", tInd].flatten()

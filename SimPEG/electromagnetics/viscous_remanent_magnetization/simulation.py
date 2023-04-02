@@ -122,7 +122,6 @@ class BaseVRMSimulation(BaseSimulation):
         self._indActive = validate_active_indices("indActive", value, self.mesh.n_cells)
 
     def _getH0matrix(self, xyz, pp):
-
         """
                 Creates sparse matrix containing inducing field components
                 for source pp
@@ -152,7 +151,6 @@ class BaseVRMSimulation(BaseSimulation):
         return h0
 
     def _getGeometryMatrix(self, xyzc, xyzh, pp):
-
         """
                 Creates the dense geometry matrix which maps from the magnetized voxel
                 cells to the receiver locations for source pp
@@ -191,14 +189,12 @@ class BaseVRMSimulation(BaseSimulation):
         COUNT = 0
 
         for qq in range(0, len(srcObj.receiver_list)):
-
             rxObj = srcObj.receiver_list[qq]
             dComp = rxObj.orientation
             locs = rxObj.locations
             nLoc = np.shape(locs)[0]
 
             if isinstance(rxObj, Point) and not isinstance(rxObj, SquareLoop):
-
                 if dComp.lower() == "x":
                     for rr in range(0, nLoc):
                         u1 = locs[rr, 0] - ax
@@ -214,14 +210,14 @@ class BaseVRMSimulation(BaseSimulation):
                         w2 = locs[rr, 2] - bz
                         w2[np.abs(w2) < tol] = -np.min(xyzh[:, 2]) / tol2
 
-                        d111 = np.sqrt(u1 ** 2 + v1 ** 2 + w1 ** 2)
-                        d211 = np.sqrt(u2 ** 2 + v1 ** 2 + w1 ** 2)
-                        d221 = np.sqrt(u2 ** 2 + v2 ** 2 + w1 ** 2)
-                        d121 = np.sqrt(u1 ** 2 + v2 ** 2 + w1 ** 2)
-                        d122 = np.sqrt(u1 ** 2 + v2 ** 2 + w2 ** 2)
-                        d112 = np.sqrt(u1 ** 2 + v1 ** 2 + w2 ** 2)
-                        d212 = np.sqrt(u2 ** 2 + v1 ** 2 + w2 ** 2)
-                        d222 = np.sqrt(u2 ** 2 + v2 ** 2 + w2 ** 2)
+                        d111 = np.sqrt(u1**2 + v1**2 + w1**2)
+                        d211 = np.sqrt(u2**2 + v1**2 + w1**2)
+                        d221 = np.sqrt(u2**2 + v2**2 + w1**2)
+                        d121 = np.sqrt(u1**2 + v2**2 + w1**2)
+                        d122 = np.sqrt(u1**2 + v2**2 + w2**2)
+                        d112 = np.sqrt(u1**2 + v1**2 + w2**2)
+                        d212 = np.sqrt(u2**2 + v1**2 + w2**2)
+                        d222 = np.sqrt(u2**2 + v2**2 + w2**2)
 
                         Gxx = (
                             np.arctan((v1 * w1) / (u1 * d111 + tol))
@@ -274,14 +270,14 @@ class BaseVRMSimulation(BaseSimulation):
                         w2 = locs[rr, 2] - bz
                         w2[np.abs(w2) < tol] = -np.min(xyzh[:, 2]) / tol2
 
-                        d111 = np.sqrt(u1 ** 2 + v1 ** 2 + w1 ** 2)
-                        d211 = np.sqrt(u2 ** 2 + v1 ** 2 + w1 ** 2)
-                        d221 = np.sqrt(u2 ** 2 + v2 ** 2 + w1 ** 2)
-                        d121 = np.sqrt(u1 ** 2 + v2 ** 2 + w1 ** 2)
-                        d122 = np.sqrt(u1 ** 2 + v2 ** 2 + w2 ** 2)
-                        d112 = np.sqrt(u1 ** 2 + v1 ** 2 + w2 ** 2)
-                        d212 = np.sqrt(u2 ** 2 + v1 ** 2 + w2 ** 2)
-                        d222 = np.sqrt(u2 ** 2 + v2 ** 2 + w2 ** 2)
+                        d111 = np.sqrt(u1**2 + v1**2 + w1**2)
+                        d211 = np.sqrt(u2**2 + v1**2 + w1**2)
+                        d221 = np.sqrt(u2**2 + v2**2 + w1**2)
+                        d121 = np.sqrt(u1**2 + v2**2 + w1**2)
+                        d122 = np.sqrt(u1**2 + v2**2 + w2**2)
+                        d112 = np.sqrt(u1**2 + v1**2 + w2**2)
+                        d212 = np.sqrt(u2**2 + v1**2 + w2**2)
+                        d222 = np.sqrt(u2**2 + v2**2 + w2**2)
 
                         Gxy = (
                             np.log(d111 - w1)
@@ -334,14 +330,14 @@ class BaseVRMSimulation(BaseSimulation):
                         w2 = locs[rr, 2] - bz
                         w2[np.abs(w2) < tol] = -np.min(xyzh[:, 2]) / tol2
 
-                        d111 = np.sqrt(u1 ** 2 + v1 ** 2 + w1 ** 2)
-                        d211 = np.sqrt(u2 ** 2 + v1 ** 2 + w1 ** 2)
-                        d221 = np.sqrt(u2 ** 2 + v2 ** 2 + w1 ** 2)
-                        d121 = np.sqrt(u1 ** 2 + v2 ** 2 + w1 ** 2)
-                        d122 = np.sqrt(u1 ** 2 + v2 ** 2 + w2 ** 2)
-                        d112 = np.sqrt(u1 ** 2 + v1 ** 2 + w2 ** 2)
-                        d212 = np.sqrt(u2 ** 2 + v1 ** 2 + w2 ** 2)
-                        d222 = np.sqrt(u2 ** 2 + v2 ** 2 + w2 ** 2)
+                        d111 = np.sqrt(u1**2 + v1**2 + w1**2)
+                        d211 = np.sqrt(u2**2 + v1**2 + w1**2)
+                        d221 = np.sqrt(u2**2 + v2**2 + w1**2)
+                        d121 = np.sqrt(u1**2 + v2**2 + w1**2)
+                        d122 = np.sqrt(u1**2 + v2**2 + w2**2)
+                        d112 = np.sqrt(u1**2 + v1**2 + w2**2)
+                        d212 = np.sqrt(u2**2 + v1**2 + w2**2)
+                        d222 = np.sqrt(u2**2 + v2**2 + w2**2)
 
                         Gxz = (
                             np.log(d111 - v1)
@@ -392,7 +388,6 @@ class BaseVRMSimulation(BaseSimulation):
                         COUNT = COUNT + 1
 
             elif isinstance(rxObj, SquareLoop):
-
                 # Gaussian quadrature weights
                 wt = [
                     np.r_[2.0],
@@ -416,7 +411,7 @@ class BaseVRMSimulation(BaseSimulation):
                 wt = (
                     rxObj.n_turns
                     * (rxObj.width / 2) ** 2
-                    * np.reshape(np.outer(wt, wt), (1, nw ** 2))
+                    * np.reshape(np.outer(wt, wt), (1, nw**2))
                 )
 
                 # Gaussian quadrature locations on [-1,1]
@@ -445,7 +440,7 @@ class BaseVRMSimulation(BaseSimulation):
                     * rxObj.width
                     * np.reshape(
                         np.kron(ds[rxObj.quadrature_order - 1], np.ones(nw)),
-                        (nw ** 2, 1),
+                        (nw**2, 1),
                     )
                 )
                 s2 = (
@@ -453,43 +448,43 @@ class BaseVRMSimulation(BaseSimulation):
                     * rxObj.width
                     * np.reshape(
                         np.kron(np.ones(nw), ds[rxObj.quadrature_order - 1]),
-                        (nw ** 2, 1),
+                        (nw**2, 1),
                     )
                 )
 
                 if dComp.lower() == "x":
                     for rr in range(0, nLoc):
-                        u1 = np.kron(np.ones((nw ** 2, 1)), locs[rr, 0] - ax)
+                        u1 = np.kron(np.ones((nw**2, 1)), locs[rr, 0] - ax)
                         u1[np.abs(u1) < tol] = np.min(xyzh[:, 0]) / tol2
-                        u2 = np.kron(np.ones((nw ** 2, 1)), locs[rr, 0] - bx)
+                        u2 = np.kron(np.ones((nw**2, 1)), locs[rr, 0] - bx)
                         u2[np.abs(u2) < tol] = -np.min(xyzh[:, 0]) / tol2
 
-                        v1 = np.kron(np.ones((nw ** 2, 1)), locs[rr, 1] - ay) + np.kron(
+                        v1 = np.kron(np.ones((nw**2, 1)), locs[rr, 1] - ay) + np.kron(
                             s1, np.ones((1, nC))
                         )
                         v1[np.abs(v1) < tol] = np.min(xyzh[:, 1]) / tol2
-                        v2 = np.kron(np.ones((nw ** 2, 1)), locs[rr, 1] - by) + np.kron(
+                        v2 = np.kron(np.ones((nw**2, 1)), locs[rr, 1] - by) + np.kron(
                             s1, np.ones((1, nC))
                         )
                         v2[np.abs(v2) < tol] = -np.min(xyzh[:, 1]) / tol2
 
-                        w1 = np.kron(np.ones((nw ** 2, 1)), locs[rr, 2] - az) + np.kron(
+                        w1 = np.kron(np.ones((nw**2, 1)), locs[rr, 2] - az) + np.kron(
                             s2, np.ones((1, nC))
                         )
                         w1[np.abs(w1) < tol] = np.min(xyzh[:, 2]) / tol2
-                        w2 = np.kron(np.ones((nw ** 2, 1)), locs[rr, 2] - bz) + np.kron(
+                        w2 = np.kron(np.ones((nw**2, 1)), locs[rr, 2] - bz) + np.kron(
                             s2, np.ones((1, nC))
                         )
                         w2[np.abs(w2) < tol] = -np.min(xyzh[:, 2]) / tol2
 
-                        d111 = np.sqrt(u1 ** 2 + v1 ** 2 + w1 ** 2)
-                        d211 = np.sqrt(u2 ** 2 + v1 ** 2 + w1 ** 2)
-                        d221 = np.sqrt(u2 ** 2 + v2 ** 2 + w1 ** 2)
-                        d121 = np.sqrt(u1 ** 2 + v2 ** 2 + w1 ** 2)
-                        d122 = np.sqrt(u1 ** 2 + v2 ** 2 + w2 ** 2)
-                        d112 = np.sqrt(u1 ** 2 + v1 ** 2 + w2 ** 2)
-                        d212 = np.sqrt(u2 ** 2 + v1 ** 2 + w2 ** 2)
-                        d222 = np.sqrt(u2 ** 2 + v2 ** 2 + w2 ** 2)
+                        d111 = np.sqrt(u1**2 + v1**2 + w1**2)
+                        d211 = np.sqrt(u2**2 + v1**2 + w1**2)
+                        d221 = np.sqrt(u2**2 + v2**2 + w1**2)
+                        d121 = np.sqrt(u1**2 + v2**2 + w1**2)
+                        d122 = np.sqrt(u1**2 + v2**2 + w2**2)
+                        d112 = np.sqrt(u1**2 + v1**2 + w2**2)
+                        d212 = np.sqrt(u2**2 + v1**2 + w2**2)
+                        d222 = np.sqrt(u2**2 + v2**2 + w2**2)
 
                         Gxx = (
                             np.arctan((v1 * w1) / (u1 * d111 + tol))
@@ -535,37 +530,37 @@ class BaseVRMSimulation(BaseSimulation):
 
                 elif dComp.lower() == "y":
                     for rr in range(0, nLoc):
-                        u1 = np.kron(np.ones((nw ** 2, 1)), locs[rr, 0] - ax) + np.kron(
+                        u1 = np.kron(np.ones((nw**2, 1)), locs[rr, 0] - ax) + np.kron(
                             s1, np.ones((1, nC))
                         )
                         u1[np.abs(u1) < tol] = np.min(xyzh[:, 0]) / tol2
-                        u2 = np.kron(np.ones((nw ** 2, 1)), locs[rr, 0] - bx) + np.kron(
+                        u2 = np.kron(np.ones((nw**2, 1)), locs[rr, 0] - bx) + np.kron(
                             s1, np.ones((1, nC))
                         )
                         u2[np.abs(u2) < tol] = -np.min(xyzh[:, 0]) / tol2
 
-                        v1 = np.kron(np.ones((nw ** 2, 1)), locs[rr, 1] - ay)
+                        v1 = np.kron(np.ones((nw**2, 1)), locs[rr, 1] - ay)
                         v1[np.abs(v1) < tol] = np.min(xyzh[:, 1]) / tol2
-                        v2 = np.kron(np.ones((nw ** 2, 1)), locs[rr, 1] - by)
+                        v2 = np.kron(np.ones((nw**2, 1)), locs[rr, 1] - by)
                         v2[np.abs(v2) < tol] = -np.min(xyzh[:, 1]) / tol2
 
-                        w1 = np.kron(np.ones((nw ** 2, 1)), locs[rr, 2] - az) + np.kron(
+                        w1 = np.kron(np.ones((nw**2, 1)), locs[rr, 2] - az) + np.kron(
                             s2, np.ones((1, nC))
                         )
                         w1[np.abs(w1) < tol] = np.min(xyzh[:, 2]) / tol2
-                        w2 = np.kron(np.ones((nw ** 2, 1)), locs[rr, 2] - bz) + np.kron(
+                        w2 = np.kron(np.ones((nw**2, 1)), locs[rr, 2] - bz) + np.kron(
                             s2, np.ones((1, nC))
                         )
                         w2[np.abs(w2) < tol] = -np.min(xyzh[:, 2]) / tol2
 
-                        d111 = np.sqrt(u1 ** 2 + v1 ** 2 + w1 ** 2)
-                        d211 = np.sqrt(u2 ** 2 + v1 ** 2 + w1 ** 2)
-                        d221 = np.sqrt(u2 ** 2 + v2 ** 2 + w1 ** 2)
-                        d121 = np.sqrt(u1 ** 2 + v2 ** 2 + w1 ** 2)
-                        d122 = np.sqrt(u1 ** 2 + v2 ** 2 + w2 ** 2)
-                        d112 = np.sqrt(u1 ** 2 + v1 ** 2 + w2 ** 2)
-                        d212 = np.sqrt(u2 ** 2 + v1 ** 2 + w2 ** 2)
-                        d222 = np.sqrt(u2 ** 2 + v2 ** 2 + w2 ** 2)
+                        d111 = np.sqrt(u1**2 + v1**2 + w1**2)
+                        d211 = np.sqrt(u2**2 + v1**2 + w1**2)
+                        d221 = np.sqrt(u2**2 + v2**2 + w1**2)
+                        d121 = np.sqrt(u1**2 + v2**2 + w1**2)
+                        d122 = np.sqrt(u1**2 + v2**2 + w2**2)
+                        d112 = np.sqrt(u1**2 + v1**2 + w2**2)
+                        d212 = np.sqrt(u2**2 + v1**2 + w2**2)
+                        d222 = np.sqrt(u2**2 + v2**2 + w2**2)
 
                         Gxy = (
                             np.log(d111 - w1)
@@ -611,37 +606,37 @@ class BaseVRMSimulation(BaseSimulation):
 
                 elif dComp.lower() == "z":
                     for rr in range(0, nLoc):
-                        u1 = np.kron(np.ones((nw ** 2, 1)), locs[rr, 0] - ax) + np.kron(
+                        u1 = np.kron(np.ones((nw**2, 1)), locs[rr, 0] - ax) + np.kron(
                             s1, np.ones((1, nC))
                         )
                         u1[np.abs(u1) < tol] = np.min(xyzh[:, 0]) / tol2
-                        u2 = np.kron(np.ones((nw ** 2, 1)), locs[rr, 0] - bx) + np.kron(
+                        u2 = np.kron(np.ones((nw**2, 1)), locs[rr, 0] - bx) + np.kron(
                             s1, np.ones((1, nC))
                         )
 
                         u2[np.abs(u2) < tol] = -np.min(xyzh[:, 0]) / tol2
-                        v1 = np.kron(np.ones((nw ** 2, 1)), locs[rr, 1] - ay) + np.kron(
+                        v1 = np.kron(np.ones((nw**2, 1)), locs[rr, 1] - ay) + np.kron(
                             s2, np.ones((1, nC))
                         )
                         v1[np.abs(v1) < tol] = np.min(xyzh[:, 1]) / tol2
-                        v2 = np.kron(np.ones((nw ** 2, 1)), locs[rr, 1] - by) + np.kron(
+                        v2 = np.kron(np.ones((nw**2, 1)), locs[rr, 1] - by) + np.kron(
                             s2, np.ones((1, nC))
                         )
                         v2[np.abs(v2) < tol] = -np.min(xyzh[:, 1]) / tol2
 
-                        w1 = np.kron(np.ones((nw ** 2, 1)), locs[rr, 2] - az)
+                        w1 = np.kron(np.ones((nw**2, 1)), locs[rr, 2] - az)
                         w1[np.abs(w1) < tol] = np.min(xyzh[:, 2]) / tol2
-                        w2 = np.kron(np.ones((nw ** 2, 1)), locs[rr, 2] - bz)
+                        w2 = np.kron(np.ones((nw**2, 1)), locs[rr, 2] - bz)
                         w2[np.abs(w2) < tol] = -np.min(xyzh[:, 2]) / tol2
 
-                        d111 = np.sqrt(u1 ** 2 + v1 ** 2 + w1 ** 2)
-                        d211 = np.sqrt(u2 ** 2 + v1 ** 2 + w1 ** 2)
-                        d221 = np.sqrt(u2 ** 2 + v2 ** 2 + w1 ** 2)
-                        d121 = np.sqrt(u1 ** 2 + v2 ** 2 + w1 ** 2)
-                        d122 = np.sqrt(u1 ** 2 + v2 ** 2 + w2 ** 2)
-                        d112 = np.sqrt(u1 ** 2 + v1 ** 2 + w2 ** 2)
-                        d212 = np.sqrt(u2 ** 2 + v1 ** 2 + w2 ** 2)
-                        d222 = np.sqrt(u2 ** 2 + v2 ** 2 + w2 ** 2)
+                        d111 = np.sqrt(u1**2 + v1**2 + w1**2)
+                        d211 = np.sqrt(u2**2 + v1**2 + w1**2)
+                        d221 = np.sqrt(u2**2 + v2**2 + w1**2)
+                        d121 = np.sqrt(u1**2 + v2**2 + w1**2)
+                        d122 = np.sqrt(u1**2 + v2**2 + w2**2)
+                        d112 = np.sqrt(u1**2 + v1**2 + w2**2)
+                        d212 = np.sqrt(u2**2 + v1**2 + w2**2)
+                        d222 = np.sqrt(u2**2 + v2**2 + w2**2)
 
                         Gxz = (
                             np.log(d111 - v1)
@@ -700,7 +695,6 @@ class BaseVRMSimulation(BaseSimulation):
         return G
 
     def _getAMatricies(self):
-
         """Returns the full geometric operator"""
 
         indActive = self.indActive
@@ -713,7 +707,6 @@ class BaseVRMSimulation(BaseSimulation):
         # GET LIST OF A MATRICIES
         A = []
         for pp in range(0, self.survey.nSrc):
-
             # Create initial A matrix
             G = self._getGeometryMatrix(xyzc, xyzh, pp)
             H0 = self._getH0matrix(xyzc, pp)
@@ -724,7 +717,6 @@ class BaseVRMSimulation(BaseSimulation):
             refinement_distance = self.refinement_distance
 
             if refinement_factor > 0:
-
                 srcObj = self.survey.source_list[pp]
                 refFlag = srcObj._getRefineFlags(
                     xyzc, refinement_factor, refinement_distance
@@ -739,7 +731,6 @@ class BaseVRMSimulation(BaseSimulation):
         return A
 
     def _getSubsetAcolumns(self, xyzc, xyzh, pp, qq, refFlag):
-
         """
                 This method returns the refined sensitivities for columns that will be
                 replaced in the A matrix for source pp and refinement factor qq.
@@ -763,7 +754,7 @@ class BaseVRMSimulation(BaseSimulation):
         """
 
         # GET SUBMESH GRID
-        n = 2 ** qq
+        n = 2**qq
         [nx, ny, nz] = np.meshgrid(
             np.linspace(1, n, n) - 0.5,
             np.linspace(1, n, n) - 0.5,
@@ -777,10 +768,10 @@ class BaseVRMSimulation(BaseSimulation):
         )  # Get bottom southwest corners of cells to be refined
         m = np.shape(xyzc_sub)[0]
         xyzc_sub = np.kron(
-            xyzc_sub, np.ones((n ** 3, 1))
+            xyzc_sub, np.ones((n**3, 1))
         )  # Kron for n**3 refined cells
         xyzh_sub = np.kron(
-            xyzh_sub / n, np.ones((n ** 3, 1))
+            xyzh_sub / n, np.ones((n**3, 1))
         )  # Kron for n**3 refined cells with widths h/n
         nxyz_sub = np.kron(np.ones((m, 1)), nxyz_sub)  # Kron for n**3 refined cells
         xyzc_sub = xyzc_sub + xyzh_sub * nxyz_sub
@@ -788,12 +779,11 @@ class BaseVRMSimulation(BaseSimulation):
         # GET SUBMESH A MATRIX AND COLLAPSE TO COLUMNS
         G = self._getGeometryMatrix(xyzc_sub, xyzh_sub, pp)
         H0 = self._getH0matrix(xyzc_sub, pp)
-        Acols = (G * H0) * sp.kron(sp.diags(np.ones(m)), np.ones((n ** 3, 1)))
+        Acols = (G * H0) * sp.kron(sp.diags(np.ones(m)), np.ones((n**3, 1)))
 
         return Acols
 
     def dpred(self, m=None, f=None):
-
         """"""
         if f is None:
             f = self.fields(m)
@@ -819,7 +809,6 @@ class Simulation3DLinear(BaseVRMSimulation):
     )
 
     def __init__(self, mesh, xi=None, xiMap=None, **kwargs):
-
         super().__init__(mesh, **kwargs)
         self.xi = xi
         self.xiMap = xiMap
@@ -830,7 +819,6 @@ class Simulation3DLinear(BaseVRMSimulation):
 
     @property
     def A(self):
-
         """
         The geometric sensitivity matrix for the linear VRM problem. Accessing
         this property requires that the problem be paired with a survey object.
@@ -838,7 +826,6 @@ class Simulation3DLinear(BaseVRMSimulation):
         """
 
         if self._AisSet is False:
-
             if self.survey is None:
                 AssertionError("A survey must be set to generate A matrix")
 
@@ -855,12 +842,10 @@ class Simulation3DLinear(BaseVRMSimulation):
             return self._A
 
         elif self._AisSet is True:
-
             return self._A
 
     @property
     def T(self):
-
         """
         The characteristic decay matrix for the VRM problem. Accessing this
         property requires that the problem be paired with a survey object.
@@ -868,7 +853,6 @@ class Simulation3DLinear(BaseVRMSimulation):
         """
 
         if self._TisSet is False:
-
             if self.survey is None:
                 AssertionError("A survey must be set to generate A matrix")
 
@@ -883,7 +867,6 @@ class Simulation3DLinear(BaseVRMSimulation):
             T = []
 
             for pp in range(0, nSrc):
-
                 receiver_list = source_list[pp].receiver_list
                 nRx = len(receiver_list)
                 waveObj = source_list[pp].waveform
@@ -904,11 +887,9 @@ class Simulation3DLinear(BaseVRMSimulation):
             return self._T
 
         elif self._TisSet is True:
-
             return self._T
 
     def fields(self, m):
-
         """Computes the fields d = T*A*m"""
 
         if self.survey is None:
@@ -923,7 +904,6 @@ class Simulation3DLinear(BaseVRMSimulation):
         return mkvc(sp.coo_matrix.dot(self.T, np.dot(self.A, m)))
 
     def Jvec(self, m, v, f=None):
-
         """Compute Pd*T*A*dxidm*v"""
 
         if self.survey is None:
@@ -945,7 +925,6 @@ class Simulation3DLinear(BaseVRMSimulation):
         return mkvc(sp.csr_matrix.dot(T, v))
 
     def Jtvec(self, m, v, f=None):
-
         """Compute (Pd*T*A*dxidm)^T * v"""
 
         if self.survey is None:
@@ -992,7 +971,6 @@ class Simulation3DLogUniform(BaseVRMSimulation):
 
     @property
     def A(self):
-
         """
         The geometric sensitivity matrix for the linear VRM problem. Accessing
         this property requires that the problem be paired with a survey object.
@@ -1000,7 +978,6 @@ class Simulation3DLogUniform(BaseVRMSimulation):
         """
 
         if self._AisSet is False:
-
             if self.survey is None:
                 AssertionError("A survey must be set to generate A matrix")
 
@@ -1017,11 +994,9 @@ class Simulation3DLogUniform(BaseVRMSimulation):
             return self._A
 
         elif self._AisSet is True:
-
             return self._A
 
     def fields(self, m=None):
-
         """Computes the fields at every time d(t) = G*M(t)"""
 
         if self.survey is None:
@@ -1033,7 +1008,6 @@ class Simulation3DLogUniform(BaseVRMSimulation):
         f = []
 
         for pp in range(0, nSrc):
-
             receiver_list = source_list[pp].receiver_list
             nRx = len(receiver_list)
             waveObj = source_list[pp].waveform

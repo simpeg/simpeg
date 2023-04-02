@@ -37,7 +37,6 @@ def setUp_TDEM(prbtype="ElectricField", rxcomp="ElectricFieldx", src_z=0.0):
     )
     mapping = maps.ExpMap(mesh) * maps.SurjectVertical1D(mesh) * activeMap
 
-    rxOffset = 0.0
     rxlocs = discretize.utils.ndgrid(
         [np.r_[-17.5, -15, 15, 17.5], np.r_[10], np.r_[-0.1]]
     )
@@ -67,7 +66,6 @@ def setUp_TDEM(prbtype="ElectricField", rxcomp="ElectricFieldx", src_z=0.0):
 
 
 class TDEM_DerivTests(unittest.TestCase):
-
     # ====== TEST Jvec ========== #
 
     if testDeriv:
@@ -106,7 +104,6 @@ class TDEM_DerivTests(unittest.TestCase):
         def JvecVsJtvecTest(
             self, prbtype="MagneticFluxDensity", rxcomp="bz", src_z=0.0
         ):
-
             print("\nAdjoint Testing Jvec, Jtvec prob {}, {}".format(prbtype, rxcomp))
 
             prb, m0, mesh = setUp_TDEM(prbtype, rxcomp, src_z)

@@ -3,10 +3,7 @@ import os
 from discretize import TensorMesh
 from discretize.utils import active_from_xyz
 
-try:
-    from SimPEG import utils
-except:
-    from SimPEG import Utils as utils
+from SimPEG import utils
 
 import numpy as np
 
@@ -121,12 +118,10 @@ class MagneticsDriver_Inv(object):
         line = fid.readline()
         l_input = re.split(r"[!\s]", line)
         if l_input[0] == "VALUE":
-
             val = np.array(l_input[1:5])
             alphas = val.astype(np.float)
 
         elif l_input[0] == "DEFAULT":
-
             alphas = np.ones(4)
 
         # Line 10: Bounds
@@ -219,7 +214,6 @@ class MagneticsDriver_Inv(object):
     @property
     def staticCells(self):
         if getattr(self, "_staticCells", None) is None:
-
             # Cells with value 1 in active model are dynamic
             staticCells = self.activeModel[self.activeCells] == -1
 
@@ -232,7 +226,6 @@ class MagneticsDriver_Inv(object):
     @property
     def dynamicCells(self):
         if getattr(self, "_dynamicCells", None) is None:
-
             # Cells with value 1 in active model are dynamic
             dynamicCells = self.activeModel[self.activeCells] == 1
 
@@ -296,14 +289,12 @@ class MagneticsDriver_Inv(object):
         """
 
         if getattr(self, "magfile", None) is None:
-
             M = utils.mat_utils.dip_azimuth2cartesian(
                 np.ones(self.nC) * self.survey.srcField.param[1],
                 np.ones(self.nC) * self.survey.srcField.param[2],
             )
 
         else:
-
             with open(self.basePath + self.magfile) as f:
                 magmodel = f.read()
 

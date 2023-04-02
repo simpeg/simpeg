@@ -65,6 +65,7 @@ ramp_on = np.r_[-0.02, -0.01]
 ramp_off = np.r_[-0.01, 0.0]
 qs_waveform = tdem.sources.QuarterSineRampOnWaveform(ramp_on=ramp_on, ramp_off=ramp_off)
 
+
 # General waveform. This is a fully general way to define the waveform.
 # The use simply provides times and the current.
 def custom_waveform(t, tmax):

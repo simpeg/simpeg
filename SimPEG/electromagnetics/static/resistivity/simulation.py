@@ -132,12 +132,12 @@ class BaseDCSimulation(BaseElectricalPDESimulation):
 
         return self._mini_survey_data(data)
 
-    def getJtJdiag(self, m, W=None):
+    def getJtJdiag(self, m, W=None, f=None):
         """
         Return the diagonal of JtJ
         """
         if getattr(self, "_gtgdiag", None) is None:
-            J = self.getJ(m)
+            J = self.getJ(m, f=f)
 
             if W is None:
                 W = np.ones(J.shape[0])
@@ -323,7 +323,6 @@ class Simulation3DCellCentered(BaseDCSimulation):
     fieldsPair = Fields3DCellCentered
 
     def __init__(self, mesh, survey=None, bc_type="Robin", **kwargs):
-
         super().__init__(mesh=mesh, survey=survey, **kwargs)
         self.bc_type = bc_type
         self.setBC()

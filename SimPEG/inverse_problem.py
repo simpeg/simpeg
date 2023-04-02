@@ -6,7 +6,7 @@ from .regularization import BaseRegularization, WeightedLeastSquares, Sparse
 from .objective_function import BaseObjectiveFunction, ComboObjectiveFunction
 from .optimization import Minimize
 from .utils import (
-    callHooks,
+    call_hooks,
     timeIt,
     Counter,
     validate_float,
@@ -165,7 +165,7 @@ class BaseInvProblem:
                 delattr(self, prop)
         self._model = value
 
-    @callHooks("startup")
+    @call_hooks("startup")
     def startup(self, m0):
         """startup(m0)
 
@@ -192,7 +192,6 @@ class BaseInvProblem:
         solver = DefaultSolver
         set_default = True
         for objfct in self.dmisfit.objfcts:
-
             if (
                 isinstance(objfct, BaseDataMisfit)
                 and getattr(objfct.simulation, "solver", None) is not None
@@ -301,7 +300,6 @@ class BaseInvProblem:
 
         # Only works for WeightedLeastSquares regularization
         if self.opt.print_type == "ubc":
-
             self.phi_s = 0.0
             self.phi_x = 0.0
             self.phi_y = 0.0
