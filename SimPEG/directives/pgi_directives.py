@@ -348,7 +348,9 @@ class PGI_AddMrefInSmooth(InversionDirective):
                         [
                             i,
                             j,
-                            isinstance(regpart, (SmoothnessFirstOrder, SparseSmoothness)),
+                            isinstance(
+                                regpart, (SmoothnessFirstOrder, SparseSmoothness)
+                            ),
                         ]
                     ]
             self.Smooth = np.r_[Smooth]

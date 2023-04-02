@@ -246,10 +246,14 @@ class Sparse(WeightedLeastSquares):
             ]
 
             if mesh.dim > 1:
-                objfcts.append(SparseSmoothness(mesh=self.regularization_mesh, orientation="y"))
+                objfcts.append(
+                    SparseSmoothness(mesh=self.regularization_mesh, orientation="y")
+                )
 
             if mesh.dim > 2:
-                objfcts.append(SparseSmoothness(mesh=self.regularization_mesh, orientation="z"))
+                objfcts.append(
+                    SparseSmoothness(mesh=self.regularization_mesh, orientation="z")
+                )
 
         gradientType = kwargs.pop("gradientType", None)
         super().__init__(

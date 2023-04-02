@@ -2722,11 +2722,11 @@ class UpdateSensitivityWeights(InversionDirective):
             if hasattr(reg.mapping, "maps"):
                 for _, wire in reg.mapping.maps:
                     wr += wire.deriv(self.invProb.model).T * (
-                            (wire * jtj_diag) / reg.regularization_mesh.vol ** 2.0
+                        (wire * jtj_diag) / reg.regularization_mesh.vol**2.0
                     )
             else:
                 wr += reg.mapping.deriv(self.invProb.model).T * (
-                        (reg.mapping * jtj_diag) / reg.regularization_mesh.vol ** 2.0
+                    (reg.mapping * jtj_diag) / reg.regularization_mesh.vol**2.0
                 )
 
         if self.normalization:
@@ -2757,7 +2757,6 @@ class UpdateSensitivityWeights(InversionDirective):
                 sub_regs = getattr(reg, "objfcts", [reg])
                 for sub_reg in sub_regs:
                     sub_reg.set_weights(sensitivity=sub_reg.mapping * wr)
-
 
     def validate(self, directiveList):
         """Validate directive against directives list.

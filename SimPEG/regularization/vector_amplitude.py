@@ -6,15 +6,8 @@ from typing import TYPE_CHECKING
 
 from discretize.base import BaseMesh
 from SimPEG import maps
-from .base import (
-    RegularizationMesh,
-    BaseRegularization
-)
-from .sparse import (
-    Sparse,
-    SparseSmallness,
-    SparseSmoothness
-)
+from .base import RegularizationMesh, BaseRegularization
+from .sparse import Sparse, SparseSmallness, SparseSmoothness
 from .. import utils
 from SimPEG.utils.code_utils import validate_ndarray_with_shape
 
@@ -26,6 +19,7 @@ class BaseAmplitude(BaseRegularization):
     """
     Base vector amplitude function.
     """
+
     _W = None
 
     def __init__(self, mesh, **kwargs):
@@ -71,36 +65,37 @@ class BaseAmplitude(BaseRegularization):
                 values = (values,) * len(self.mapping.maps)
 
             if len(values) != len(self.mapping.maps):
-                raise ValueError(f"Values provided for weight {key} must be of tuple of len({len(self.mapping.maps)})")
+                raise ValueError(
+                    f"Values provided for weight {key} must be of tuple of len({len(self.mapping.maps)})"
+                )
 
             self._weights[key] = {}
             for (name, _), value in zip(self.mapping.maps, values):
-                validate_ndarray_with_shape("weights", value, shape=self._weights_shapes, dtype=float)
+                validate_ndarray_with_shape(
+                    "weights", value, shape=self._weights_shapes, dtype=float
+                )
                 self._weights[key][name] = value
 
         self._W = None
 
     @utils.timeIt
     def __call__(self, m):
-        """
-        """
+        """ """
         r = self.W * self.f_m(m)
         return 0.5 * r.dot(r)
 
     @utils.timeIt
     def deriv(self, m) -> np.ndarray:
-        """
-        """
-        f_m_derivs = 0.
+        """ """
+        f_m_derivs = 0.0
         for f_m_deriv in self.f_m_deriv(m):
             f_m_derivs += f_m_deriv.T * ((self.W.T * self.W) * f_m_deriv * m)
         return f_m_derivs
 
     @utils.timeIt
     def deriv2(self, m, v=None) -> csr_matrix:
-        """
-        """
-        f_m_derivs = 0.
+        """ """
+        f_m_derivs = 0.0
         for f_m_deriv in self.f_m_deriv(m):
             if v is None:
                 f_m_derivs += f_m_deriv.T * ((self.W.T * self.W) * f_m_deriv)
@@ -215,10 +210,13 @@ class AmplitudeSmoothnessFirstOrder(SparseSmoothness, BaseAmplitude):
                     if self.units is not None and self.units.lower() == "radian":
                         Ave = getattr(self.regularization_mesh, f"aveCC2F{comp}")
                         length_scales = Ave * (
-                                self.regularization_mesh.Pac.T
-                                * self.regularization_mesh.mesh.h_gridded[:, ii]
+                            self.regularization_mesh.Pac.T
+                            * self.regularization_mesh.mesh.h_gridded[:, ii]
                         )
-                        dm = utils.mat_utils.coterminal(dm * length_scales) / length_scales
+                        dm = (
+                            utils.mat_utils.coterminal(dm * length_scales)
+                            / length_scales
+                        )
 
                     f_m += np.abs(
                         getattr(self.regularization_mesh, f"aveF{comp}2CC") * dm
@@ -260,14 +258,24 @@ class VectorAmplitude(Sparse):
 
         objfcts = [
             AmplitudeSmallness(mesh=self.regularization_mesh, mapping=wire_map),
-            AmplitudeSmoothnessFirstOrder(mesh=self.regularization_mesh, mapping=wire_map, orientation="x"),
+            AmplitudeSmoothnessFirstOrder(
+                mesh=self.regularization_mesh, mapping=wire_map, orientation="x"
+            ),
         ]
 
         if mesh.dim > 1:
-            objfcts.append(AmplitudeSmoothnessFirstOrder(mesh=self.regularization_mesh, mapping=wire_map, orientation="y"))
+            objfcts.append(
+                AmplitudeSmoothnessFirstOrder(
+                    mesh=self.regularization_mesh, mapping=wire_map, orientation="y"
+                )
+            )
 
         if mesh.dim > 2:
-            objfcts.append(AmplitudeSmoothnessFirstOrder(mesh=self.regularization_mesh, mapping=wire_map, orientation="z"))
+            objfcts.append(
+                AmplitudeSmoothnessFirstOrder(
+                    mesh=self.regularization_mesh, mapping=wire_map, orientation="z"
+                )
+            )
 
         super().__init__(
             self.regularization_mesh,
@@ -294,4 +302,3 @@ class VectorAmplitude(Sparse):
 
         for fct in self.objfcts:
             fct.mapping = wires
-
