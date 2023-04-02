@@ -142,17 +142,9 @@ model_azm_dip[ind, 1] = 90.
 # Remove air cells
 model_azm_dip = model_azm_dip[actv, :]
 model_amp = model_amp[actv]
-
 model = sdiag(model_amp) * utils.mat_utils.dip_azimuth2cartesian(
     model_azm_dip[:, 0], model_azm_dip[:, 1]
 )
-
-mref_false = sdiag(model_amp) * utils.mat_utils.dip_azimuth2cartesian(
-    model_azm_dip[:, 0], model_azm_dip[:, 1] * 3.
-)
-
-# Create active map to go from reduce set to full
-actvMap = maps.InjectActiveCells(mesh, actv, np.nan)
 
 # Creat reduced identity map
 idenMap = maps.IdentityMap(nP=nC * 3)
@@ -171,7 +163,7 @@ wd = np.ones(len(d)) * std
 # Assign data and uncertainties to the survey
 data_object = data.Data(survey, dobs=synthetic_data, standard_deviation=wd)
 
-# Create an projection matrix for plotting later
+# Create a projection matrix for plotting later
 actv_plot = maps.InjectActiveCells(mesh, actv, np.nan)
 
 # Plot the model and data
@@ -185,7 +177,7 @@ plt.gca().set_aspect("equal", adjustable="box")
 # Plot the vector model
 ax = plt.subplot(2, 1, 2)
 mesh.plot_slice(
-    actv_plot * mref_false.reshape((-1, 3), order="F"),
+    actv_plot * model.reshape((-1, 3), order="F"),
     v_type="CCv",
     view="vec",
     ax=ax,
@@ -194,9 +186,8 @@ mesh.plot_slice(
     grid=True,
     quiver_opts={
         "pivot": "mid",
-        "scale": 0.5,
-        "angles": 'xy',
-        "scale_units": 'height'
+        "scale": 0.1,
+        "scale_units": 'inches'
     },
 )
 ax.set_xlim([-200, 200])
@@ -301,9 +292,8 @@ mesh.plot_slice(
     grid=True,
     quiver_opts={
         "pivot": "mid",
-        "scale": 0.5,
-        "angles": 'xy',
-        "scale_units": 'height'
+        "scale": 4*np.abs(invProb.l2model).max(),
+        "scale_units": 'inches'
     },
 )
 ax.set_xlim([-200, 200])
@@ -324,9 +314,8 @@ mesh.plot_slice(
     grid=True,
     quiver_opts={
         "pivot": "mid",
-        "scale": 0.5,
-        "angles": 'xy',
-        "scale_units": 'height'
+        "scale": 4*np.abs(mrec_MVIC).max(),
+        "scale_units": 'inches'
     },
 )
 ax.set_xlim([-200, 200])
@@ -338,6 +327,7 @@ plt.gca().set_aspect("equal", adjustable="box")
 
 plt.show()
 
+print("END")
 # Plot the final predicted data and the residual
 # plt.figure()
 # ax = plt.subplot(1, 2, 1)
