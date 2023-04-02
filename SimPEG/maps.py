@@ -6196,6 +6196,7 @@ class Group(Wires, IdentityMap):
         super(Group, self).__init__(*args)
 
         # Remove wires that are not part of the group
+        self._mesh = None
         self._maps = ((name, wire) for (name, wire) in self.maps if name != "_")
         self._nP = int(np.sum([wire.shape[0] for (_, wire) in self.maps]))
 

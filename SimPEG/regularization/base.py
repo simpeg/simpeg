@@ -286,8 +286,8 @@ class BaseRegularization(BaseObjectiveFunction):
         nC = getattr(self.regularization_mesh, "nC", None)
         mapping = getattr(self, "_mapping", None)
 
-        if mapping is not None and mapping.nP != "*":
-            return self.mapping.nP
+        if mapping is not None and mapping.shape[1] != "*":
+            return self.mapping.shape[1]
 
         if nC != "*" and nC is not None:
             return self.regularization_mesh.nC
