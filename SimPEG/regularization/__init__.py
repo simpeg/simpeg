@@ -192,7 +192,7 @@ from .base import (
     SmoothnessSecondOrder,
 )
 from .regularization_mesh import RegularizationMesh
-from .sparse import BaseSparse, SparseSmallness, SparseSmoothnessFirstOrder, Sparse
+from .sparse import BaseSparse, SparseSmallness, SparseSmoothness, Sparse
 from .pgi import PGIsmallness, PGI
 from .cross_gradient import CrossGradient
 from .correspondence import LinearCorrespondence

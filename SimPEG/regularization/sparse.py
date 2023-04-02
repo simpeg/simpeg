@@ -124,7 +124,7 @@ class SparseSmallness(BaseSparse, Smallness):
         self.set_weights(irls=self.get_lp_weights(f_m))
 
 
-class SparseSmoothnessFirstOrder(BaseSparse, SmoothnessFirstOrder):
+class SparseSmoothness(BaseSparse, SmoothnessFirstOrder):
     """
     Base Class for sparse regularization on first spatial derivatives
     """
@@ -242,14 +242,14 @@ class Sparse(WeightedLeastSquares):
         if objfcts is None:
             objfcts = [
                 SparseSmallness(mesh=self.regularization_mesh),
-                SparseSmoothnessFirstOrder(mesh=self.regularization_mesh, orientation="x"),
+                SparseSmoothness(mesh=self.regularization_mesh, orientation="x"),
             ]
 
             if mesh.dim > 1:
-                objfcts.append(SparseSmoothnessFirstOrder(mesh=self.regularization_mesh, orientation="y"))
+                objfcts.append(SparseSmoothness(mesh=self.regularization_mesh, orientation="y"))
 
             if mesh.dim > 2:
-                objfcts.append(SparseSmoothnessFirstOrder(mesh=self.regularization_mesh, orientation="z"))
+                objfcts.append(SparseSmoothness(mesh=self.regularization_mesh, orientation="z"))
 
         gradientType = kwargs.pop("gradientType", None)
         super().__init__(

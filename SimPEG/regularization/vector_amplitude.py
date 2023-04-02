@@ -13,7 +13,7 @@ from .base import (
 from .sparse import (
     Sparse,
     SparseSmallness,
-    SparseSmoothnessFirstOrder
+    SparseSmoothness
 )
 from .. import utils
 from SimPEG.utils.code_utils import validate_ndarray_with_shape
@@ -149,7 +149,7 @@ class AmplitudeSmallness(SparseSmallness, BaseAmplitude):
         return self._W
 
 
-class AmplitudeSmoothnessFirstOrder(SparseSmoothnessFirstOrder, BaseAmplitude):
+class AmplitudeSmoothnessFirstOrder(SparseSmoothness, BaseAmplitude):
     """
     Base Class for sparse regularization on first spatial derivatives
     """
