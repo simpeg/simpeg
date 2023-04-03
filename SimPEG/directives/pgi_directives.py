@@ -207,7 +207,7 @@ class PGI_BetaAlphaSchedule(InversionDirective):
             if self.verbose:
                 print("Decreasing beta to counter data misfit decrase plateau.")
 
-        # Decide if we should warm beta instead
+        # Decide if we should warm alpha instead
         elif (
             data_misfits_achieved
             and self.mode == 2
