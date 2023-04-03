@@ -2419,66 +2419,255 @@ class Update_Wj(InversionDirective):
 
 
 class UpdateSensitivityWeights(InversionDirective):
-    """
-    Directive to take care of re-weighting
-    the non-linear problems. Assumes that the map of the regularization
-    function is either Wires or Identity.
-    Good for any problem where J is formed explicitly.
+    r"""
+    Sensitivity weighting for linear and non-linear least-squares inverse problems.
+
+    This directive computes the root-mean squared sensitivities for the
+    forward simulation(s) attached to the inverse problem, then truncates
+    and scales the result to create cell weights which are applied in the regularization.
+    The underlying theory is provided below in the `Notes` section.
+
+    This directive **requires** that the map for the regularization function is either
+    class:`SimPEG.maps.Wires` or class:`SimPEG.maps.Identity`. In other words, the
+    sensitivity weighting cannot be applied for parametric inversion. In addition,
+    the simulation(s) connected to the inverse problem **must** have a ``getJ`` or
+    ``getJtJdiag`` method.
+
+    This directive's place in the :class:`DirectivesList` **must** be
+    before any directives which update the preconditioner for the inverse problem
+    (i.e. :class:`UpdatePreconditioner`), and **must** be before any directives that
+    estimate the starting trade-off parameter (i.e. :class:`EstimateBeta_ByEig`
+    and :class:`EstimateBetaMaxDerivative`).
+
+    Parameters
+    ----------
+    every_iteration : bool
+        When ``True``, update sensitivity weighting at every model update; non-linear problems.
+        When ``False``, create sensitivity weights for starting model only; linear problems.
+    threshold : float
+        Threshold value for smallest weighting value.
+    threshold_method : {'amplitude', 'global', 'percentile'}
+        Threshold method for how `threshold_value` is applied:
+
+            - amplitude:
+                the smallest root-mean squared sensitivity is a fractional percent of the largest value; must be between 0 and 1.
+            - global:
+                `threshold_value` is added to the cell weights prior to normalization; must be greater than 0.
+            - percentile:
+                the smallest root-mean squared sensitivity is set using percentile threshold; must be between 0 and 100.
+
+    normalization_method : {'maximum', 'min_value', None}
+        Normalization method applied to sensitivity weights.
+
+        Options are:
+
+            - maximum:
+                sensitivity weights are normalized by the largest value such that the largest weight is equal to 1.
+            - minimum:
+                sensitivity weights are normalized by the smallest value, after thresholding, such that the smallest weights are equal to 1.
+            - ``None``:
+                normalization is not applied.
+
+    Notes
+    -----
+    Let :math:`\mathbf{J}` represent the Jacobian. To create sensitivity weights, root-mean squared (RMS) sensitivities
+    :math:`\mathbf{s}` are computed by summing the squares of the rows of the Jacobian:
+
+    .. math::
+        \mathbf{s} = \Bigg [ \sum_i \, \mathbf{J_{i, \centerdot }}^2 \, \Bigg ]^{1/2}
+
+    The dynamic range of RMS sensitivities can span many orders of magnitude. When computing sensitivity
+    weights, thresholding is generally applied to set a minimum value.
+
+    Thresholding
+    ^^^^^^^^^^^^
+
+    If **global** thresholding is applied, we add a constant :math:`\tau` to the RMS sensitivities:
+
+    .. math::
+        \mathbf{\tilde{s}} = \mathbf{s} + \tau
+
+    In the case of **percentile** thresholding, we let :math:`s_{\%}` represent a given percentile.
+    Thresholding to set a minimum value is applied as follows:
+
+    .. math::
+        \tilde{s}_j = \begin{cases}
+        s_j \;\; for \;\; s_j \geq s_{\%} \\
+        s_{\%} \;\; for \;\; s_j < s_{\%}
+        \end{cases}
+
+    If **absolute** thresholding is applied, we define :math:`\eta` as a fractional percent.
+    In this case, thresholding is applied as follows:
+
+    .. math::
+        \tilde{s}_j = \begin{cases}
+        s_j \;\; for \;\; s_j \geq \eta s_{max} \\
+        \eta s_{max} \;\; for \;\; s_j < \eta s_{max}
+        \end{cases}
     """
 
-    def __init__(self, everyIter=True, threshold=1e-12, normalization=True, **kwargs):
+    def __init__(
+        self,
+        every_iteration=False,
+        threshold_value=1e-12,
+        threshold_method="amplitude",
+        normalization_method="maximum",
+        **kwargs,
+    ):
+        if "everyIter" in kwargs.keys():
+            warnings.warn(
+                "'everyIter' property is deprecated and will be removed in SimPEG 0.20.0."
+                "Please use 'every_iteration'."
+            )
+            every_iteration = kwargs.pop("everyIter")
+
+        if "threshold" in kwargs.keys():
+            warnings.warn(
+                "'threshold' property is deprecated and will be removed in SimPEG 0.20.0."
+                "Please use 'threshold_value'."
+            )
+            threshold_value = kwargs.pop("threshold")
+
+        if "normalization" in kwargs.keys():
+            warnings.warn(
+                "'normalization' property is deprecated and will be removed in SimPEG 0.20.0."
+                "Please define normalization using 'normalization_method'."
+            )
+            normalization_method = kwargs.pop("normalization")
+            if normalization_method is True:
+                normalization_method = "maximum"
+            else:
+                normalization_method = None
+
         super().__init__(**kwargs)
-        self.everyIter = everyIter
-        self.threshold = threshold
-        self.normalization = normalization
+
+        self.every_iteration = every_iteration
+        self.threshold_value = threshold_value
+        self.threshold_method = threshold_method
+        self.normalization_method = normalization_method
 
     @property
-    def everyIter(self):
-        """Whether to update the sensitivity weights at every iteration.
+    def every_iteration(self):
+        """Update sensitivity weights when model is updated.
+
+        When ``True``, update sensitivity weighting at every model update; non-linear problems.
+        When ``False``, create sensitivity weights for starting model only; linear problems.
 
         Returns
         -------
         bool
         """
-        return self._everyIter
+        return self._every_iteration
 
-    @everyIter.setter
-    def everyIter(self, value):
-        self._everyIter = validate_type("everyIter", value, bool)
+    @every_iteration.setter
+    def every_iteration(self, value):
+        self._every_iteration = validate_type("every_iteration", value, bool)
+
+    everyIter = deprecate_property(
+        every_iteration, "everyIter", "every_iteration", removal_version="0.20.0"
+    )
 
     @property
-    def threshold(self):
-        """A small threshold added to the weights to represent a minimum weighting value.
+    def threshold_value(self):
+        """Threshold value used to set minimum weighting value.
+
+        The way thresholding is applied to the weighting model depends on the
+        `threshold_method` property. The choices for `threshold_method` are:
+
+            - global:
+                `threshold_value` is added to the cell weights prior to normalization; must be greater than 0.
+            - percentile:
+                `threshold_value` is a percentile cutoff; must be between 0 and 100
+            - amplitude:
+                `threshold_value` is the fractional percent of the largest value; must be between 0 and 1
+
 
         Returns
         -------
         float
         """
-        return self._threshold
+        return self._threshold_value
 
-    @threshold.setter
-    def threshold(self, value):
-        self._threshold = validate_float("threshold", value, min_val=0.0)
+    @threshold_value.setter
+    def threshold_value(self, value):
+        self._threshold_value = validate_float("threshold_value", value, min_val=0.0)
+
+    threshold = deprecate_property(
+        threshold_value, "threshold", "threshold_value", removal_version="0.20.0"
+    )
 
     @property
-    def normalization(self):
-        """Whether to normalize by the smallest sensitivity weight.
+    def threshold_method(self):
+        """Threshold method for how `threshold_value` is applied:
+
+            - global:
+                `threshold_value` is added to the cell weights prior to normalization; must be greater than 0.
+            - percentile:
+                the smallest root-mean squared sensitivity is set using percentile threshold; must be between 0 and 100
+            - amplitude:
+                the smallest root-mean squared sensitivity is a fractional percent of the largest value; must be between 0 and 1
+
 
         Returns
         -------
-        bool
+        str
         """
-        return self._normalization
+        return self._threshold_method
 
-    @normalization.setter
-    def normalization(self, value):
-        self._normalization = validate_type("normalization", value, bool)
+    @threshold_method.setter
+    def threshold_method(self, value):
+        self._threshold_method = validate_string(
+            "threshold_method", value, string_list=["global", "percentile", "amplitude"]
+        )
+
+    @property
+    def normalization_method(self):
+        """Normalization method applied to sensitivity weights.
+
+        Options are:
+
+            - ``None``
+                normalization is not applied
+            - maximum:
+                sensitivity weights are normalized by the largest value such that the largest weight is equal to 1.
+            - minimum:
+                sensitivity weights are normalized by the smallest value, after thresholding, such that the smallest weights are equal to 1.
+
+        Returns
+        -------
+        None, str
+        """
+        return self._normalization_method
+
+    @normalization_method.setter
+    def normalization_method(self, value):
+        if value is None:
+            self._normalization_method = value
+
+        elif isinstance(value, bool):
+            warnings.warn(
+                "Boolean type for 'normalization_method' is deprecated and will be removed in 0.20.0."
+                "Please use None, 'maximum' or 'minimum'."
+            )
+            if value:
+                self._normalization_method = "maximum"
+            else:
+                self._normalization_method = None
+
+        else:
+            self._normalization_method = validate_string(
+                "normalization_method", value, string_list=["minimum", "maximum"]
+            )
+
+    normalization = deprecate_property(
+        normalization_method,
+        "normalization",
+        "normalization_method",
+        removal_version="0.20.0",
+    )
 
     def initialize(self):
-        """
-        Calculate and update sensitivity
-        for optimization and regularization
-        """
+        """Compute sensitivity weights upon starting the inversion."""
         for reg in self.reg.objfcts:
             if not isinstance(reg.mapping, (IdentityMap, Wires)):
                 raise TypeError(
@@ -2489,17 +2678,14 @@ class UpdateSensitivityWeights(InversionDirective):
         self.update()
 
     def endIter(self):
-        """
-        Update inverse problem
-        """
-        if self.everyIter:
+        """Execute end of iteration."""
+
+        if self.every_iteration:
             self.update()
 
     def update(self):
-        """
-        Compute explicitly the main diagonal of JtJ
+        """Update sensitivity weights"""
 
-        """
         jtj_diag = np.zeros_like(self.invProb.model)
         m = self.invProb.model
 
@@ -2514,17 +2700,33 @@ class UpdateSensitivityWeights(InversionDirective):
             else:
                 jtj_diag += sim.getJtJdiag(m, W=dmisfit.W)
 
-        # Normalize and threshold weights
+        # Compute and sum root-mean squared sensitivities for all objective functions
         wr = np.zeros_like(self.invProb.model)
         for reg in self.reg.objfcts:
             if not isinstance(reg, BaseSimilarityMeasure):
                 wr += reg.mapping.deriv(self.invProb.model).T * (
                     (reg.mapping * jtj_diag) / reg.regularization_mesh.vol**2.0
                 )
-        if self.normalization:
-            wr /= wr.max()
-        wr += self.threshold
+
         wr **= 0.5
+
+        # Apply thresholding
+        if self.threshold_method == "global":
+            wr += self.threshold_value
+        elif self.threshold_method == "percentile":
+            wr = np.clip(
+                wr, a_min=np.percentile(wr, self.threshold_value), a_max=np.inf
+            )
+        else:
+            wr = np.clip(wr, a_min=self.threshold_value * wr.max(), a_max=np.inf)
+
+        # Apply normalization
+        if self.normalization_method == "maximum":
+            wr /= wr.max()
+        elif self.normalization_method == "minimum":
+            wr /= wr.min()
+
+        # Add sensitivity weighting to all model objective functions
         for reg in self.reg.objfcts:
             if not isinstance(reg, BaseSimilarityMeasure):
                 sub_regs = getattr(reg, "objfcts", [reg])
@@ -2532,6 +2734,22 @@ class UpdateSensitivityWeights(InversionDirective):
                     sub_reg.set_weights(sensitivity=sub_reg.mapping * wr)
 
     def validate(self, directiveList):
+        """Validate directive against directives list.
+
+        The ``UpdateSensitivityWeights`` directive impacts the regularization by applying
+        cell weights. As a result, its place in the :class:`DirectivesList` must be
+        before any directives which update the preconditioner for the inverse problem
+        (i.e. :class:`UpdatePreconditioner`), and must be before any directives that
+        estimate the starting trade-off parameter (i.e. :class:`EstimateBeta_ByEig`
+        and :class:`EstimateBetaMaxDerivative`).
+
+
+        Returns
+        -------
+        bool
+            Returns ``True`` if validation passes. Otherwise, an error is thrown.
+        """
+        # check if a beta estimator is in the list after setting the weights
         dList = directiveList.dList
         self_ind = dList.index(self)
 

@@ -59,11 +59,11 @@ def run_inversion(
     betaest = directives.BetaEstimate_ByEig(beta0_ratio=beta0_ratio)
     target = directives.TargetMisfit()
 
-    # Need to have basice saving function
+    # Need to have basic saving function
     if use_sensitivity_weight:
         updateSensW = directives.UpdateSensitivityWeights()
         update_Jacobi = directives.UpdatePreconditioner()
-        directiveList = [beta, betaest, target, update_Jacobi]
+        directiveList = [beta, betaest, target, updateSensW, update_Jacobi]
     else:
         directiveList = [beta, betaest, target]
     inv = inversion.BaseInversion(invProb, directiveList=directiveList)

@@ -1,0 +1,21 @@
+name: Feature request
+description: If you have a feature request, or an enhancement suggestion let us know.
+title: "ENH: <Please write a comprehensive title after the 'ENH: ' prefix>"
+
+body:
+- type: markdown
+  attributes:
+    value: >
+      If you'd like to request a new feature in SimPEG, or suggest changes in the
+      functionality of certain functions, we recommend getting in touch with the
+      developers on [slack](https://slack.simpeg.xyz), in addition to opening an
+      issue or pull request here.
+      You can also check out our
+      [Contributor Guide](https://docs.simpeg.xyz/content/basic/contributing.html)
+      if you need more information.
+
+- type: textarea
+  attributes:
+    label: "Proposed new feature or change:"
+  validations:
+    required: true

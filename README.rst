@@ -103,13 +103,35 @@ If you are using the electromagnetics module of SimPEG, please cite:
         doi = "http://dx.doi.org/10.1016/j.cageo.2017.06.018"
     }
 
+Questions
+=========
+
+If you have a question regarding a specific use of SimPEG, the fastest way
+to get a response is by posting on our Discourse discussion forum:
+https://simpeg.discourse.group/. Alternatively, if you prefer real-time chat,
+you can join our slack group at http://slack.simpeg.xyz.
+Please do not create an issue to ask a question.
+
+
+Meetings
+========
+
+SimPEG hosts weekly meetings for users to interact with each other,
+for developers to discuss upcoming changes to the code base, and for
+discussing topics related to geophysics in general.
+Currently our meetings are held every Wednesday, alternating between
+a mornings (10:30 am pacific time) and afternoons (3:00 pm pacific time)
+on even numbered Wednesdays. Find more info on our `slack <http://slack.simpeg.xyz>`_.
 
 
 Links
 =====
 
 Website:
-http://simpeg.xyz
+https://simpeg.xyz
+
+Forums:
+https://simpeg.discourse.group/
 
 
 Slack (real time chat):
@@ -117,7 +139,7 @@ http://slack.simpeg.xyz
 
 
 Documentation:
-http://docs.simpeg.xyz
+https://docs.simpeg.xyz
 
 
 Code:
@@ -125,8 +147,17 @@ https://github.com/simpeg/simpeg
 
 
 Tests:
-https://travis-ci.org/simpeg/simpeg
+https://dev.azure.com/simpeg/simpeg/_build
 
 
 Bugs & Issues:
 https://github.com/simpeg/simpeg/issues
+
+Contributing
+============
+
+We always welcome contributions towards SimPEG whether they are adding
+new code, suggesting improvements to existing codes, identifying bugs,
+providing examples, or anything that will improve SimPEG.
+Please checkout the `contributing guide <https://docs.simpeg.xyz/content/basic/contributing.html>`_
+for more information on how to contribute.
