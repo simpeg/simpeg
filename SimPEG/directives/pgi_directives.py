@@ -213,6 +213,7 @@ class PGI_BetaAlphaSchedule(InversionDirective):
             and self.mode == 2
             and np.all(self.pgi_regularization.alpha_pgi < self.alphasmax)
         ):
+            self.warm_alpha()
             if self.verbose:
                 print(
                     "Warming alpha_pgi to favor clustering: ",
