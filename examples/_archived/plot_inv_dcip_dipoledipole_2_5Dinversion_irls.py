@@ -80,7 +80,6 @@ def run(plotIt=True, survey_type="dipole-dipole", p=0.0, qx=2.0, qz=2.0):
     blk_inds_r = utils.model_builder.getIndicesSphere(
         np.r_[140.0, -25.0], 12.5, mesh.gridCC
     )
-    layer_inds = mesh.gridCC[:, 1] > -5.0
     sigma = np.ones(mesh.nC) * 1.0 / 100.0
     sigma[blk_inds_c] = 1.0 / 10.0
     sigma[blk_inds_r] = 1.0 / 1000.0
@@ -166,10 +165,7 @@ def run(plotIt=True, survey_type="dipole-dipole", p=0.0, qx=2.0, qz=2.0):
 
     opt = optimization.InexactGaussNewton(maxIter=40)
     invProb = inverse_problem.BaseInvProblem(dmisfit, reg, opt)
-    beta = directives.BetaSchedule(coolingFactor=5, coolingRate=2)
     betaest = directives.BetaEstimate_ByEig(beta0_ratio=1e0)
-    target = directives.TargetMisfit()
-    update_Jacobi = directives.UpdatePreconditioner()
     inv = inversion.BaseInversion(invProb, directiveList=[betaest, IRLS])
     prb.counter = opt.counter = utils.Counter()
     opt.LSshorten = 0.5
@@ -187,7 +183,6 @@ def run(plotIt=True, survey_type="dipole-dipole", p=0.0, qx=2.0, qz=2.0):
 
     # show recovered conductivity
     if plotIt:
-        vmin, vmax = rho.min(), rho.max()
         fig, ax = plt.subplots(3, 1, figsize=(20, 9))
         out1 = mesh.plot_image(
             rho_true,

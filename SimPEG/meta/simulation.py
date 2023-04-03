@@ -7,20 +7,21 @@ from ..maps import IdentityMap
 from ..utils import validate_list_of_types, validate_type
 from ..props import HasModel
 import itertools
+import warnings
 
 
 class MetaSimulation(BaseSimulation):
     """Combine multiple simulations into a single one.
 
-    This class is used to combine multiple simulations into a
-    single version of one. Each simulation and mapping pair will
+    This class is used to encapsulate multiple simulations into a
+    single simulation. Each simulation and mapping pair will
     perform its own work, then concatenate the results together.
 
     For each mapping and simulation pair, given a model, this first
     applies the mapping, then passes the resulting model to the simulation.
 
     With the proper mappings this can be useful for setting up time-lapse,
-    tilled, stitched, or any other simulation that can be broken into many
+    tiled, stitched, or any other simulation that can be broken into many
     individual simulations.
 
     Parameters
@@ -88,6 +89,10 @@ class MetaSimulation(BaseSimulation):
     _repeat_sim = False
 
     def __init__(self, simulations, mappings):
+        warnings.warn(
+            "The MetaSimulation class is a work in progress and might change in the future",
+            stacklevel=2,
+        )
         self.simulations = simulations
         self.mappings = mappings
         # give myself a BaseSurvey that has the number of data equal
@@ -130,7 +135,7 @@ class MetaSimulation(BaseSimulation):
     @mappings.setter
     def mappings(self, value):
         value = validate_list_of_types("mappings", value, IdentityMap)
-        if len(value) != len(self.simulations):
+        if not self._repeat_sim and len(value) != len(self.simulations):
             raise ValueError(
                 "Must provide the same number of mappings and simulations."
             )
@@ -175,7 +180,7 @@ class MetaSimulation(BaseSimulation):
     def model(self, value):
         updated = HasModel.model.fset(self, value)
         # Only send the model to the internal simulations if it was updated.
-        if updated:
+        if not self._repeat_sim and updated:
             for mapping, sim in zip(self.mappings, self.simulations):
                 sim.model = mapping * self._model
 
@@ -186,7 +191,9 @@ class MetaSimulation(BaseSimulation):
 
         Returns
         -------
-        list
+        (n_sim) list
+            The type of each item of the list is determined by the internal
+            simulation that created it.
         """
         self.model = m
         # The above should pass the model to all the internal simulations.
@@ -236,6 +243,42 @@ class MetaSimulation(BaseSimulation):
         return jt_vec
 
     def getJtJdiag(self, m, W=None, f=None):
+        """Return the squared sum of columns of the Jacobian.
+
+        Evaluates the weighted squared norm of each column
+        of the Jacobian matrix. This is usually used to construct
+        sensitivity weighting matrices or for diagonal preconditioners
+        to iterative solvers.
+
+        Parameters
+        ----------
+        m : (n_m) numpy.ndarray
+            The model to evalute the Jacobian at.
+        W : (n_d, n_d) scipy.sparse.csr_matrix, optional
+            A diagonal data weighting matrix.
+        f : fields, optional
+            The fields object created from this class.
+
+        Returns
+        -------
+        (n_m) numpy.ndarray
+            Squared sum of columns of the Jacobian matrix
+
+        Notes
+        -----
+        Internally, this function evaluates the ``getJtJdiag`` method of each
+        simulation, then applies the model mapping to the output as:
+
+        >>> sq_sum = 0
+        >>> for i in range(n_sim):
+        ...    row = sim[i].getJtJdiag(model)
+        ...    sq_sum += W[i] * (sp.diag(sqrt(row)) @ mapping[i].deriv()).power(2).sum(axis=0)
+
+        This approach is correct for mapping that match input parameters to a
+        single output parameter, (i.e. the `mapping.deriv` has only 1 element in each column).
+        For other mappings, it is usually close within a scaling factor, whose accuracy is
+        then controlled by how diagonally dominant ``J.T @ J`` is.
+        """
         self.model = m
         if getattr(self, "_jtjdiag", None) is None:
             if W is None:
@@ -289,6 +332,10 @@ class SumMetaSimulation(MetaSimulation):
     _repeat_sim = False
 
     def __init__(self, simulations, mappings):
+        warnings.warn(
+            "The SumMetaSimulation class is a work in progress and might change in the future",
+            stacklevel=2,
+        )
         self.simulations = simulations
         self.mappings = mappings
         # give myself a BaseSurvey
@@ -373,18 +420,21 @@ class RepeatedSimulation(MetaSimulation):
     _repeat_sim = True
 
     def __init__(self, simulation, mappings):
+        warnings.warn(
+            "The RepeatedSimulation class is a work in progress and might change in the future",
+            stacklevel=2,
+        )
         self.simulation = simulation
         self.mappings = mappings
         survey = BaseSurvey([])
-        vnD = [sim.survey.nD for sim in self.simulations]
+        vnD = len(self.mappings) * [self.simulation.survey.nD]
         survey._vnD = vnD
         self.survey = survey
         self._data_offsets = np.cumsum(np.r_[0, vnD])
-        self._repeat_sim = True
 
     @property
     def simulations(self):
-        return itertools.repeat(self.simulation, len(self.mappings))
+        return itertools.repeat(self.simulation)
 
     @property
     def simulation(self):
@@ -401,31 +451,3 @@ class RepeatedSimulation(MetaSimulation):
         self._simulation = validate_type(
             "simulation", value, BaseSimulation, cast=False
         )
-
-    @MetaSimulation.mappings.setter
-    def mappings(self, value):
-        value = validate_list_of_types("mappings", value, IdentityMap)
-        model_len = value[0].shape[1]
-        sim = self.simulation
-        for i, mapping in enumerate(value):
-            if mapping.shape[1] != model_len:
-                raise ValueError("All mappings must have the same input length")
-            map_out_shape = mapping.shape[0]
-            for name in sim._act_map_names:
-                sim_mapping = getattr(sim, name)
-                sim_in_shape = sim_mapping.shape[1]
-                if (
-                    map_out_shape != "*"
-                    and sim_in_shape != "*"
-                    and sim_in_shape != map_out_shape
-                ):
-                    raise ValueError(
-                        f"Simulation and mapping at index {i} inconsistent. "
-                        f"Simulation mapping shape {sim_in_shape} incompatible with "
-                        f"input mapping shape {map_out_shape}."
-                    )
-        self._mappings = value
-
-    @MetaSimulation.model.setter
-    def model(self, value):
-        HasModel.model.fset(self, value)

@@ -196,7 +196,7 @@ def resample_data(NSEMdata, locs="All", freqs="All", rxs="All", verbose=False):
                         floor_list.append(NSEMdata.floor[src, rx][ind_loc])
                     except Exception as e:
                         if verbose:
-                            print("No standard deviation or floor assigned")
+                            print("No standard deviation or floor assigned. " + str(e))
 
             new_src = type(src)
             new_source_list.append(new_src(new_receiver_list, src.frequency))
@@ -406,10 +406,7 @@ def plotMT1DModelData(problem, models, symList=None):
         pDt.plotIsoStaImpedance(axR, loc, data1D, "zyx", "res", pColor=col)
         # Appphs
         pDt.plotIsoStaImpedance(axP, loc, data1D, "zyx", "phs", pColor=col)
-        try:
-            allData = np.concatenate((allData, simpeg.mkvc(data1D["zyx"], 2)), 1)
-        except:
-            allData = simpeg.mkvc(data1D["zyx"], 2)
+        allData = simpeg.mkvc(data1D["zyx"], 2)
     freq = simpeg.mkvc(data1D["freq"], 2)
     res, phs = appResPhs(freq, allData)
 

@@ -109,7 +109,7 @@ class WeightedGaussianMixture(GaussianMixture):
             weights_init=weights_init,
             # **kwargs
         )
-        # setKwargs(self, **kwargs)
+        # set_kwargs(self, **kwargs)
 
     def compute_clusters_precisions(self):
         """Compute and set the precisions matrices and their Cholesky decomposition.
@@ -881,7 +881,7 @@ class GaussianMixtureWithPrior(WeightedGaussianMixture):
             weights_init=weights_init,
             # **kwargs
         )
-        # setKwargs(self, **kwargs)
+        # set_kwargs(self, **kwargs)
 
     def order_cluster(self, outputindex=False):
         """Order cluster
@@ -1647,7 +1647,6 @@ class GaussianMixtureWithNonlinearRelationshipsWithPrior(GaussianMixtureWithPrio
 
         elif covariance_type == "diag" or covariance_type == "spherical":
             log_prob = np.empty((n_samples, n_components))
-            precisions = precisions_chol**2
             for k, (mu, prec_chol, mapping) in enumerate(
                 zip(means, precisions_chol, cluster_mapping)
             ):

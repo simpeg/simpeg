@@ -71,6 +71,7 @@ def test_ana_mag_forward():
         chiMap=idenMap,
         ind_active=active_cells,
         store_sensitivities="forward_only",
+        n_processes=None,
     )
 
     data = sim.dpred(model_reduced)
@@ -164,6 +165,7 @@ def test_ana_mag_grad_forward():
         chiMap=idenMap,
         ind_active=active_cells,
         store_sensitivities="forward_only",
+        n_processes=None,
     )
 
     data = sim.dpred(model_reduced)
@@ -256,6 +258,7 @@ def test_ana_mag_vec_forward():
         ind_active=active_cells,
         store_sensitivities="forward_only",
         model_type="vector",
+        n_processes=None,
     )
 
     data = sim.dpred(model_reduced).reshape(-1, 4)
@@ -342,6 +345,7 @@ def test_ana_mag_amp_forward():
         store_sensitivities="forward_only",
         model_type="vector",
         is_amplitude_data=True,
+        n_processes=None,
     )
 
     data = sim.dpred(model_reduced)
