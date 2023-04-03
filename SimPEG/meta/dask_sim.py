@@ -7,52 +7,47 @@ from SimPEG.utils import validate_list_of_types, validate_type
 from SimPEG.props import HasModel
 import itertools
 from dask.distributed import Client
-from .simulation import MultiSimulation
+from dask.distributed import Future
+from .simulation import MetaSimulation, SumMetaSimulation
 import scipy.sparse as sp
 from operator import add
+import warnings
 
 
-def _store_model(map_sim, model):
-    mapping, sim = map_sim
+def _store_model(mapping, sim, model):
     sim.model = mapping * model
 
 
-def _apply_mapping(map_sim, model):
-    mapping, _ = map_sim
+def _apply_mapping(mapping, sim, model):
     return mapping * model
 
 
-def _calc_fields(map_sim, sim_model=None):
-    _, sim = map_sim
+def _calc_fields(sim, sim_model=None):
     if sim_model is None:
         sim_model = sim.model
     return sim.fields(m=sim_model)
 
 
-def _calc_dpred(map_sim, field, sim_model=None):
-    _, sim = map_sim
+def _calc_dpred(sim, field, sim_model=None):
     if sim_model is None:
         sim_model = sim.model
     return sim.dpred(m=sim_model, f=field)
 
 
-def _j_vec_op(map_sim, model, field, v, sim_model=None):
-    mapping, sim = map_sim
+def _j_vec_op(mapping, sim, model, field, v, sim_model=None):
     if sim_model is None:
         sim_model = sim.model
     sim_v = mapping.deriv(model) @ v
     return sim.Jvec(sim_model, sim_v, f=field)
 
 
-def _jt_vec_op(map_sim, model, field, v, sim_model=None):
-    mapping, sim = map_sim
+def _jt_vec_op(mapping, sim, model, field, v, sim_model=None):
     if sim_model is None:
         sim_model = sim.model
     return mapping.deriv(model).T @ sim.Jtvec(sim_model, v, f=field)
 
 
-def _get_jtj_diag(map_sim, model, field, w, sim_model=None):
-    mapping, sim = map_sim
+def _get_jtj_diag(mapping, sim, model, field, w, sim_model=None):
     if sim_model is None:
         sim_model = sim.model
     w = sp.diags(w)
@@ -70,26 +65,190 @@ def _reduce(client, operation, items):
     return client.gather(items[0])
 
 
-class DaskMultiSimulation(MultiSimulation):
+def _validate_type_or_future_of_type(
+    property_name,
+    objects,
+    obj_type,
+    client,
+    workers=None,
+    return_workers=False,
+):
+    try:
+        # validate as a list of things that need to be sent.
+        objects = validate_list_of_types(
+            property_name, objects, obj_type, ensure_unique=True
+        )
+        if workers is None:
+            objects = client.scatter(objects)
+        else:
+            tmp = []
+            for obj, worker in zip(objects, workers):
+                tmp.append(client.scatter([obj], workers=worker)[0])
+            objects = tmp
+    except TypeError:
+        pass
+    # ensure list of futures
+    objects = validate_list_of_types(
+        property_name,
+        objects,
+        Future,
+    )
+    # Figure out where everything lives
+    who = client.who_has(objects)
+    if workers is None:
+        workers = []
+        for obj in objects:
+            workers.append(who[obj.key])
+    else:
+        # Issue a warning if the future is not on the expected worker
+        for i, (obj, worker) in enumerate(zip(objects, workers)):
+            obj_owner = client.who_has(obj)[obj.key]
+            if obj_owner != worker:
+                warnings.warn(
+                    f"{property_name} {i} is not on the expected worker.", stacklevel=2
+                )
+
+    # Ensure this runs on the expected worker
+    futures = []
+    for obj, worker in zip(objects, workers):
+        futures.append(
+            client.submit(lambda v: not isinstance(v, obj_type), obj, workers=worker)
+        )
+    is_not_obj = np.array(client.gather(futures))
+    if np.any(is_not_obj):
+        raise TypeError(f"{property_name} futures must be an instance of {obj_type}")
+
+    if return_workers:
+        return objects, workers
+    else:
+        return objects
+
+
+class DaskMetaSimulation(MetaSimulation):
     def __init__(self, simulations, mappings, client=None):
         if client is None:
             client = Client()
         self.client = client
         super().__init__(simulations, mappings)
 
-        # Scatter the mapping, simulation pairs to the workers
-        map_sims = []
-        for m, s in zip(self.mappings, self.simulations):
-            map_sims.append((m, s))
-        map_sims = client.scatter(map_sims)
-        who = client.who_has(map_sims)
-        # Then create a list of which worker recieved each pair
-        # This step is to force dask to use those specific workers
-        # for each subsequent operation.
-        items = []
-        for ms in map_sims:
-            items.append((ms, who[ms.key]))
-        self._scattered = items
+    def _make_survey(self):
+        survey = BaseSurvey([])
+        vnD = []
+        client = self.client
+        for sim, worker in zip(self.simulations, self._workers):
+            vnD.append(client.submit(lambda s: s.survey.nD, sim, workers=worker))
+        vnD = client.gather(vnD)
+        survey._vnD = vnD
+        return survey
+
+    @property
+    def simulations(self):
+        """The future list of simulations.
+
+        Returns
+        -------
+        (n_sim) list of distributed.client.Future SimPEG.simulation.BaseSimulation
+        """
+        return self._simulations
+
+    @simulations.setter
+    def simulations(self, value):
+        client = self.client
+        simulations, workers = _validate_type_or_future_of_type(
+            "simulations", value, BaseSimulation, client, return_workers=True
+        )
+        self._simulations = simulations
+        self._workers = workers
+
+    @property
+    def mappings(self):
+        """The future mappings paired to each simulation.
+
+        Every mapping should accept the same length model, and output
+        a model that is consistent with the simulation.
+
+        Returns
+        -------
+        (n_sim) list of distributed.client.Future SimPEG.maps.IdentityMap
+        """
+        return self._mappings
+
+    @mappings.setter
+    def mappings(self, value):
+        client = self.client
+        if self._repeat_sim:
+            mappings, workers = _validate_type_or_future_of_type(
+                "mappings", value, IdentityMap, client, return_workers=True
+            )
+        else:
+            workers = self._workers
+            if len(value) != len(self.simulations):
+                raise ValueError(
+                    "Must provide the same number of mappings and simulations."
+                )
+            mappings = _validate_type_or_future_of_type(
+                "mappings", value, IdentityMap, client, workers=workers
+            )
+
+        # validate mapping shapes and simulation shapes
+        model_len = client.gather(
+            client.submit(lambda v: v.shape[1], mappings[0], workers=workers[0])
+        )
+
+        def check_mapping(mapping, sim, model_len):
+            if mapping.shape[1] != model_len:
+                # Bad mapping model length
+                return 1
+            map_out_shape = mapping.shape[0]
+            for name in sim._act_map_names:
+                sim_mapping = getattr(sim, name)
+                sim_in_shape = sim_mapping.shape[1]
+                if (
+                    map_out_shape != "*"
+                    and sim_in_shape != "*"
+                    and sim_in_shape != map_out_shape
+                ):
+                    # Inconsistent simulation input and mapping output
+                    return 2
+            # All good
+            return 0
+
+        error_checks = []
+        for mapping, sim, worker in zip(mappings, self.simulations, workers):
+            # if it was a repeat sim, this should cause the simulation to be transfered
+            # to each worker.
+            error_checks.append(
+                client.submit(check_mapping, mapping, sim, model_len, workers=worker)
+            )
+        error_checks = client.gather(error_checks)
+
+        if np.any(error_checks == 1):
+            raise ValueError("All mappings must have the same input length")
+        if np.any(error_checks == 2):
+            raise ValueError(
+                f"Simulations and mappings at indices {np.where(error_checks==2)}"
+                f" are inconsistent."
+            )
+
+        self._mappings = mappings
+        if self._repeat_sim:
+            self._workers = workers
+
+    @property
+    def _model_map(self):
+        # create a bland mapping that has the correct input shape
+        # to test against model inputs, avoids pulling the first
+        # mapping back to the main task.
+        if not hasattr(self, "__model_map"):
+            client = self.client
+            n_m = client.submit(
+                lambda v: v.shape[1],
+                self.mappings[0],
+                workers=self._workers[0],
+            )
+            n_m = client.gather(n_m)
+            self.__model_map = IdentityMap(nP=n_m)
+        return self.__model_map
 
     @property
     def client(self):
@@ -110,22 +269,34 @@ class DaskMultiSimulation(MultiSimulation):
         if updated:
             client = self.client
             [self._m_as_future] = client.scatter([self._model], broadcast=True)
-            futures = []
-            for map_sim, worker in self._scattered:
-                futures.append(
-                    client.submit(
-                        _store_model, map_sim, self._m_as_future, workers=worker
+            if not self._repeat_sim:
+                futures = []
+                for mapping, sim, worker in zip(
+                    self.mappings, self.simulations, self._workers
+                ):
+                    futures.append(
+                        client.submit(
+                            _store_model,
+                            mapping,
+                            sim,
+                            self._m_as_future,
+                            workers=worker,
+                        )
                     )
-                )
-            self.client.gather(futures)  # blocking call
+                self.client.gather(futures)  # blocking call
 
     def fields(self, m):
         self.model = m
+        sim_mod = None
         client = self.client
         # The above should pass the model to all the internal simulations.
         f = []
-        for map_sim, worker in self._scattered:
-            f.append(client.submit(_calc_fields, map_sim, workers=worker))
+        for mapping, sim, worker in zip(self.mappings, self.simulations, self._workers):
+            if self._repeat_sim:
+                sim_mod = client.submit(
+                    _apply_mapping, mapping, self._m_as_future, workers=worker
+                )
+            f.append(client.submit(_calc_fields, sim, sim_mod, workers=worker))
         return f
 
     def dpred(self, m=None, f=None):
@@ -134,26 +305,44 @@ class DaskMultiSimulation(MultiSimulation):
                 m = self.model
             f = self.fields(m)
         client = self.client
+        sim_mod = None
         dpred = []
-        for (map_sim, worker), field in zip(self._scattered, f):
-            dpred.append(client.submit(_calc_dpred, map_sim, field, workers=worker))
+        for mapping, sim, worker, field in zip(
+            self.mappings, self.simulations, self._workers, f
+        ):
+            if self._repeat_sim:
+                sim_mod = client.submit(
+                    _apply_mapping, mapping, self._m_as_future, workers=worker
+                )
+            dpred.append(
+                client.submit(_calc_dpred, sim, field, sim_mod, workers=worker)
+            )
         return np.concatenate(client.gather(dpred))
 
     def Jvec(self, m, v, f=None):
         self.model = m
         if f is None:
             f = self.fields(m)
+        sim_mod = None
         client = self.client
         [v_future] = client.scatter([v], broadcast=True)
         j_vec = []
-        for (map_sim, worker), field in zip(self._scattered, f):
+        for mapping, sim, worker, field in zip(
+            self.mappings, self._simulations, self._workers, f
+        ):
+            if self._repeat_sim:
+                sim_mod = client.submit(
+                    _apply_mapping, mapping, self._m_as_future, workers=worker
+                )
             j_vec.append(
                 client.submit(
                     _j_vec_op,
-                    map_sim,
+                    mapping,
+                    sim,
                     self._m_as_future,
                     field,
                     v_future,
+                    sim_mod,
                     workers=worker,
                 )
             )
@@ -163,22 +352,31 @@ class DaskMultiSimulation(MultiSimulation):
         self.model = m
         if f is None:
             f = self.fields(m)
+        sim_mod = None
         jt_vec = []
         client = self.client
-        for i, ((map_sim, worker), field) in enumerate(zip(self._scattered, f)):
+        for i, (mapping, sim, worker, field) in enumerate(
+            zip(self.mappings, self._simulations, self._workers, f)
+        ):
+            if self._repeat_sim:
+                sim_mod = client.submit(
+                    _apply_mapping, mapping, self._m_as_future, workers=worker
+                )
             jt_vec.append(
                 client.submit(
                     _jt_vec_op,
-                    map_sim,
+                    mapping,
+                    sim,
                     self._m_as_future,
                     field,
                     v[self._data_offsets[i] : self._data_offsets[i + 1]],
+                    sim_mod,
                     workers=worker,
                 )
             )
         # Do the sum by a reduction operation to avoid gathering a vector
         # of size n_simulations by n_model parameters on the head.
-        return _reduce(self.client, add, jt_vec)
+        return _reduce(client, add, jt_vec)
 
     def getJtJdiag(self, m, W=None, f=None):
         self.model = m
@@ -189,50 +387,82 @@ class DaskMultiSimulation(MultiSimulation):
                 W = W.diagonal()
             jtj_diag = []
             client = self.client
-            for i, map_sim in enumerate(self._scattered_items):
+            if f is None:
+                f = self.fields(m)
+            sim_mod = None
+            for i, (mapping, sim, worker, field) in enumerate(
+                zip(self.mappings, self._simulations, self._workers, f)
+            ):
+                if self._repeat_sim:
+                    sim_mod = client.submit(
+                        _apply_mapping, mapping, self._m_as_future, workers=worker
+                    )
                 sim_w = W[self._data_offsets[i] : self._data_offsets[i + 1]]
                 jtj_diag.append(
-                    client.submit(_get_jtj_diag, map_sim, self._m_as_future, f, sim_w)
+                    client.submit(
+                        _get_jtj_diag,
+                        mapping,
+                        sim,
+                        self._m_as_future,
+                        field,
+                        sim_w,
+                        sim_mod,
+                        workers=worker,
+                    )
                 )
             self._jtjdiag = _reduce(client, add, jtj_diag)
 
         return self._jtjdiag
 
 
-class DaskSumMultiSimulation(DaskMultiSimulation):
-    """An extension of the MultiSimulation that sums the data outputs.
+class DaskSumMetaSimulation(DaskMetaSimulation, SumMetaSimulation):
+    """An extension of the MetaSimulation that sums the data outputs.
 
     This class requires the model mappings have the same input length
     and output data for each simulation to have the same number of data.
     """
 
     def __init__(self, simulations, mappings, client=None):
-        super().__init__(simulations=simulations, mappings=mappings, client=client)
-        # give myself a BaseSurvey
-        survey = BaseSurvey([])
-        survey._vnD = [
-            self.simulations[0].survey.nD,
-        ]
-        self.survey = survey
+        super().__init__(simulations, mappings, client=client)
 
-    @DaskMultiSimulation.simulations.setter
-    def simulations(self, value):
-        value = validate_list_of_types(
-            "simulations", value, BaseSimulation, ensure_unique=True
+    def _make_survey(self):
+        survey = BaseSurvey([])
+        client = self.client
+        n_d = client.submit(
+            lambda s: s.survey.nD, self.simulations[0], workers=self._workers[0]
         )
-        nD = value[0].survey.nD
-        for sim in value:
-            if sim.survey.nD != nD:
-                raise ValueError("All simulations must have the same number of data.")
-        self._simulations = value
+        survey._vnD = [
+            client.gather(n_d),
+        ]
+        return survey
+
+    @DaskMetaSimulation.simulations.setter
+    def simulations(self, value):
+        client = self.client
+        simulations, workers = _validate_type_or_future_of_type(
+            "simulations", value, BaseSimulation, client, return_workers=True
+        )
+        n_d = client.submit(lambda s: s.survey.nD, simulations[0], workers=workers[0])
+        sim_check = []
+        for sim, worker in zip(simulations, workers):
+            sim_check.append(
+                client.submit(lambda s, n: s.survey.nD != n, sim, n_d, workers=worker)
+            )
+        if np.any(client.gather(sim_check)):
+            raise ValueError("All simulations must have the same number of data.")
+        self._simulations = simulations
+        self._workers = workers
 
     def dpred(self, m=None, f=None):
         if f is None:
             if m is None:
                 m = self.model
             f = self.fields(m)
-        d_pred = self.client.map(_calc_dpred, self._scattered_simulations, f)
-        return _reduce(self.client, _sum_op, d_pred)
+        client = self.client
+        dpred = []
+        for sim, worker, field in zip(self.simulations, self._workers, f):
+            dpred.append(client.submit(_calc_dpred, sim, field, workers=worker))
+        return _reduce(client, add, dpred)
 
     def Jvec(self, m, v, f=None):
         self.model = m
@@ -241,20 +471,21 @@ class DaskSumMultiSimulation(DaskMultiSimulation):
         client = self.client
         [v_future] = client.scatter([v], broadcast=True)
         j_vec = []
-        for i, (mapping, sim, field) in enumerate(
-            zip(self._scattered_mappings, self._scattered_simulations, f)
+        for mapping, sim, worker, field in zip(
+            self.mappings, self._simulations, self._workers, f
         ):
             j_vec.append(
                 client.submit(
                     _j_vec_op,
-                    sim,
                     mapping,
+                    sim,
                     self._m_as_future,
                     field,
                     v_future,
+                    workers=worker,
                 )
             )
-        return _reduce(client, _sum_op, j_vec)
+        return _reduce(client, add, j_vec)
 
     def Jtvec(self, m, v, f=None):
         self.model = m
@@ -262,23 +493,23 @@ class DaskSumMultiSimulation(DaskMultiSimulation):
             f = self.fields(m)
         jt_vec = []
         client = self.client
-        [v_future] = client.scatter([v], broadcast=True)
-        for i, (mapping, sim, field) in enumerate(
-            zip(self._scattered_mappings, self._scattered_simulations, f)
+        for i, (mapping, sim, worker, field) in enumerate(
+            zip(self.mappings, self._simulations, self._workers, f)
         ):
             jt_vec.append(
                 client.submit(
                     _jt_vec_op,
-                    sim,
                     mapping,
+                    sim,
                     self._m_as_future,
                     field,
-                    v_future,
+                    v,
+                    workers=worker,
                 )
             )
         # Do the sum by a reduction operation to avoid gathering a vector
         # of size n_simulations by n_model parameters on the head.
-        return _reduce(client, _sum_op, jt_vec)
+        return _reduce(client, add, jt_vec)
 
     def getJtJdiag(self, m, W=None, f=None):
         self.model = m
@@ -289,22 +520,29 @@ class DaskSumMultiSimulation(DaskMultiSimulation):
             else:
                 W = W.diagonal()
             client = self.client
-            [w_future] = client.scatter([W], broadcast=True)
-            for i, (mapping, sim) in enumerate(
-                zip(self._scattered_mappings, self._scattered_simulations)
+            if f is None:
+                f = self.fields(m)
+            for i, (mapping, sim, worker, field) in enumerate(
+                zip(self.mappings, self._simulations, self._workers, f)
             ):
                 jtj_diag.append(
                     client.submit(
-                        _get_jtj_diag, sim, mapping, self._m_as_future, f, w_future
+                        _get_jtj_diag,
+                        mapping,
+                        sim,
+                        self._m_as_future,
+                        field,
+                        W,
+                        workers=worker,
                     )
                 )
-            self._jtjdiag = _reduce(client, _sum_op, jtj_diag)
+            self._jtjdiag = _reduce(client, add, jtj_diag)
 
         return self._jtjdiag
 
 
-class DaskRepeatedSimulation(DaskMultiSimulation):
-    """A MultiSimulation where a single simulation is used repeatedly.
+class DaskRepeatedSimulation(DaskMetaSimulation):
+    """A MetaSimulation where a single simulation is used repeatedly.
 
     This is most useful for linear simulations where a sensitivity matrix can be
     reused with different models. For Non-linear simulations it will often be quicker
@@ -318,14 +556,15 @@ class DaskRepeatedSimulation(DaskMultiSimulation):
 
         self.simulation = simulation
         self.mappings = mappings
-        survey = BaseSurvey([])
-        vnD = [sim.survey.nD for sim in self.simulations]
-        survey._vnD = vnD
-        self.survey = survey
-        self._data_offsets = np.cumsum(np.r_[0, vnD])
 
-        self._scattered_mappings = self.client.scatter(self.mappings)
-        [self._sim_future] = self.client.scatter([self._simulation], broadcast=True)
+        self.survey = self._make_survey()
+        self._data_offsets = np.cumsum(np.r_[0, self.survey.vnD])
+
+    def _make_survey(self):
+        survey = BaseSurvey([])
+        vnD = len(self.mappings) * [self.simulation.survey.nD]
+        survey._vnD = vnD
+        return survey
 
     @property
     def simulations(self):
@@ -337,134 +576,18 @@ class DaskRepeatedSimulation(DaskMultiSimulation):
 
     @simulation.setter
     def simulation(self, value):
-        self._simulation = validate_type(
-            "simulation", value, BaseSimulation, cast=False
-        )
-
-    @MultiSimulation.mappings.setter
-    def mappings(self, value):
-        value = validate_list_of_types("mappings", value, IdentityMap)
-        model_len = value[0].shape[1]
-        sim = self.simulation
-        for i, mapping in enumerate(value):
-            if mapping.shape[1] != model_len:
-                raise ValueError("All mappings must have the same input length")
-            map_out_shape = mapping.shape[0]
-            for name in sim._act_map_names:
-                sim_mapping = getattr(sim, name)
-                sim_in_shape = sim_mapping.shape[1]
-                if (
-                    map_out_shape != "*"
-                    and sim_in_shape != "*"
-                    and sim_in_shape != map_out_shape
-                ):
-                    raise ValueError(
-                        f"Simulation and mapping at index {i} inconsistent. "
-                        f"Simulation mapping shape {sim_in_shape} incompatible with "
-                        f"input mapping shape {map_out_shape}."
-                    )
-        self._mappings = value
-
-    @MultiSimulation.model.setter
-    def model(self, value):
-        updated = HasModel.model.fset(self, value)
-        if updated:
-            [self._m_as_future] = self.client.scatter([self._model], broadcast=True)
-
-    def fields(self, m):
-        self.model = m
-        # The above should pass the model to all the internal simulations.
-        f = []
         client = self.client
-        for mapping in self._scattered_mappings:
-            model = client.submit(_apply_mapping, mapping, self._m_as_future)
-            f.append(client.submit(_calc_fields, self._sim_future, model))
-        return f
-
-    def dpred(self, m=None, f=None):
-        if m is not None:
-            self.model = m
-        if f is None:
-            f = self.fields(self.model)
-        d_pred = []
-        client = self.client
-        for mapping, field in zip(self._scattered_mappings, f):
-            model = client.submit(_apply_mapping, mapping, self._m_as_future)
-            d_pred.append(_calc_dpred, self._sim_future, field, sim_model=model)
-        return np.concatenate(self.client.gather(d_pred))
-
-    def Jvec(self, m, v, f=None):
-        self.model = m
-        if f is None:
-            f = self.fields(m)
-        client = self.client
-        [v_future] = client.scatter([v], broadcast=True)
-        j_vec = []
-        sim = self._sim_future
-        for mapping, field in zip(self._scattered_mappings, f):
-            model = client.submit(_apply_mapping, mapping, self._m_as_future)
-            j_vec.append(
-                client.submit(
-                    _j_vec_op,
-                    sim,
-                    mapping,
-                    self._m_as_future,
-                    field,
-                    v_future,
-                    sim_model=model,
-                )
+        if isinstance(value, BaseSimulation):
+            # Scatter sim to every client
+            [
+                value,
+            ] = client.scatter([value], broadcast=True)
+        if not (
+            isinstance(value, Future)
+            and client.submit(lambda s: isinstance(s, BaseSimulation), value).result()
+        ):
+            raise TypeError(
+                "simulation must be an instance of BaseSimulation or a Future that returns"
+                " a BaseSimulation"
             )
-        return np.concatenate(self.client.gather(j_vec))
-
-    def Jtvec(self, m, v, f=None):
-        self.model = m
-        if f is None:
-            f = self.fields(m)
-        jt_vec = []
-        client = self.client
-        sim = self._sim_future
-        for i, (mapping, field) in enumerate(zip(self._scattered_mappings, f)):
-            model = client.submit(_apply_mapping, mapping, self._m_as_future)
-            jt_vec.append(
-                client.submit(
-                    _jt_vec_op,
-                    sim,
-                    mapping,
-                    self._m_as_future,
-                    field,
-                    v[self._data_offsets[i] : self._data_offsets[i + 1]],
-                    sim_model=model,
-                )
-            )
-        # Do the sum by a reduction operation to avoid gathering a vector
-        # of size n_simulations by n_model parameters on the head.
-        return _reduce(client, _sum_op, jt_vec)
-
-    def getJtJdiag(self, m, W=None, f=None):
-        self.model = m
-        if getattr(self, "_jtjdiag", None) is None:
-            if W is None:
-                W = np.ones(self.survey.nD)
-            else:
-                W = W.diagonal()
-            jtj_diag = []
-            client = self.client
-            for i, (mapping, sim) in enumerate(
-                zip(self._scattered_mappings, self._scattered_simulations)
-            ):
-                model = client.submit(_apply_mapping, mapping, self._m_as_future)
-                sim_w = W[self._data_offsets[i] : self._data_offsets[i + 1]]
-                jtj_diag.append(
-                    client.submit(
-                        _get_jtj_diag,
-                        sim,
-                        mapping,
-                        self._m_as_future,
-                        f,
-                        sim_w,
-                        sim_model=model,
-                    )
-                )
-            self._jtjdiag = _reduce(client, _sum_op, jtj_diag)
-
-        return self._jtjdiag
+        self._simulation = value

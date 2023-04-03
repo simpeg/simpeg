@@ -97,11 +97,14 @@ class MetaSimulation(BaseSimulation):
         self.mappings = mappings
         # give myself a BaseSurvey that has the number of data equal
         # to the sum of the sims' data.
+        self.survey = self._make_survey()
+        self._data_offsets = np.cumsum(np.r_[0, self.survey.vnD])
+
+    def _make_survey(self):
         survey = BaseSurvey([])
         vnD = [sim.survey.nD for sim in self.simulations]
         survey._vnD = vnD
-        self.survey = survey
-        self._data_offsets = np.cumsum(np.r_[0, vnD])
+        return survey
 
     @property
     def simulations(self):
@@ -339,11 +342,14 @@ class SumMetaSimulation(MetaSimulation):
         self.simulations = simulations
         self.mappings = mappings
         # give myself a BaseSurvey
+        self.survey = self._make_survey()
+
+    def _make_survey(self):
         survey = BaseSurvey([])
         survey._vnD = [
             self.simulations[0].survey.nD,
         ]
-        self.survey = survey
+        return survey
 
     @MetaSimulation.simulations.setter
     def simulations(self, value):
@@ -426,11 +432,14 @@ class RepeatedSimulation(MetaSimulation):
         )
         self.simulation = simulation
         self.mappings = mappings
+        self.survey = self._make_survey()
+        self._data_offsets = np.cumsum(np.r_[0, self.survey.vnD])
+
+    def _make_survey(self):
         survey = BaseSurvey([])
         vnD = len(self.mappings) * [self.simulation.survey.nD]
         survey._vnD = vnD
-        self.survey = survey
-        self._data_offsets = np.cumsum(np.r_[0, vnD])
+        return survey
 
     @property
     def simulations(self):

@@ -44,7 +44,12 @@ Coming soon!
 
 Dask
 ----
-Coming soon!
+.. autosummary::
+  :toctree: generated/
+
+  DaskMetaSimulation
+  DaskSumMetaSimulation
+  DaskRepeatedSimulation
 
 MPI
 ---
@@ -57,3 +62,5 @@ Coming soon!
 """
 
 from .simulation import MetaSimulation, SumMetaSimulation, RepeatedSimulation
+
+from .dask_sim import DaskMetaSimulation, DaskSumMetaSimulation, DaskRepeatedSimulation
