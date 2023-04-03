@@ -827,9 +827,6 @@ class Fields3DMagneticFluxDensity(FieldsFDEM):
         :return: primary current density
         """
 
-        n = int(self._aveE2CCV.shape[0] / self._nC)  # number of components
-        # VI = sdiag(np.kron(np.ones(n), 1.0 / self.simulation.mesh.cell_volumes))
-
         j = self._edgeCurl.T * (self._MfMui * bSolution)
 
         for i, src in enumerate(source_list):

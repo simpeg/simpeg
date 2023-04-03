@@ -430,7 +430,6 @@ class VRM_fwd_tests(unittest.TestCase):
         h1 = [0.25, 0.25]
         meshObj_Tensor = discretize.TensorMesh((h1, h1, h1), x0="CCN")
 
-        chi0 = 0.0
         dchi = 0.01
         tau1 = 1e-8
         tau2 = 1e0

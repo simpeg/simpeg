@@ -32,9 +32,9 @@ def read_mag3d_ubc(obs_file):
     line = fid.readline()
     B = np.array(line.split()[:3], dtype=float)
 
-    # Second line has the magnetization orientation and a flag
+    # Second line has the magnetization orientation and a flag.
+    # We are going to ignore those values.
     line = fid.readline()
-    M = np.array(line.split()[:3], dtype=float)
 
     # Third line has the number of rows
     line = fid.readline()

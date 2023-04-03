@@ -41,3 +41,12 @@ Classes and functions for performing useful operations.
   :maxdepth: 2
 
   SimPEG.utils
+
+Meta
+----
+Classes for encapsulating many simulations.
+
+. toctree::
+  :maxdepth: 2
+
+  SimPEG.meta

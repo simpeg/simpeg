@@ -877,7 +877,6 @@ class ProjectedGradient(Minimize, Remember):
             self._itType = ".CG."
 
             iSet = self.inactiveSet(self.xc)  # The inactive set (free variables)
-            bSet = self.bindingSet(self.xc)
             shape = (self.xc.size, np.sum(iSet))
             v = np.ones(shape[1])
             i = np.where(iSet)[0]
