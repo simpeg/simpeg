@@ -17,7 +17,6 @@ import numpy as np
 import os
 import matplotlib as mpl
 from matplotlib import pyplot as plt
-from matplotlib.colors import LogNorm
 from discretize import TensorMesh
 from pymatsolver import PardisoSolver
 
@@ -25,7 +24,6 @@ from SimPEG import maps
 from SimPEG.utils import mkvc
 import SimPEG.electromagnetics.time_domain_1d as em1d
 from SimPEG.electromagnetics.utils.em1d_utils import (
-    plot_layer,
     get_vertical_discretization_time,
 )
 from SimPEG.electromagnetics.time_domain_1d.known_waveforms import (
@@ -87,7 +85,6 @@ receiver_orientation = "z"  # "x", "y" or "z"
 source_list = []
 
 for ii in range(0, n_sounding):
-
     source_location = mkvc(source_locations[ii, :])
     receiver_location = mkvc(receiver_locations[ii, :])
 
@@ -302,8 +299,7 @@ ax.set_ylabel("|dBdt| (T/s)")
 plt.show()
 
 
-if save_file == True:
-
+if save_file:
     dir_path = os.path.dirname(em1d.__file__).split(os.path.sep)[:-3]
     dir_path.extend(["tutorials", "08-tdem", "em1dtm_stitched_skytem"])
     dir_path = os.path.sep.join(dir_path) + os.path.sep

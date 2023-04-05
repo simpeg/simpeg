@@ -5,8 +5,6 @@ from SimPEG.electromagnetics.utils import convolve_with_waveform
 from geoana.em.tdem import (
     vertical_magnetic_flux_horizontal_loop as b_loop,
     vertical_magnetic_flux_time_deriv_horizontal_loop as dbdt_loop,
-    magnetic_flux_vertical_magnetic_dipole as b_dipole,
-    magnetic_flux_time_deriv_magnetic_dipole as dbdt_dipole,
 )
 import numpy as np
 
@@ -227,7 +225,6 @@ class EM1D_TD_LineCurrent_FwdProblemTests(unittest.TestCase):
         self.bzdt = simulation.dpred(model)
 
     def test_em1dtd_mag_dipole_bzdt(self):
-
         empymod_solution = np.array(
             [
                 9.34490123e-04,

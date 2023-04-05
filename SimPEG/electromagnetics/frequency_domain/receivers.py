@@ -33,7 +33,6 @@ class BaseRx(survey.BaseRx):
         use_source_receiver_offset=False,
         **kwargs,
     ):
-
         proj = kwargs.pop("projComp", None)
         if proj is not None:
             warnings.warn(
@@ -175,7 +174,7 @@ class BaseRx(survey.BaseRx):
             self._Ps[(mesh, projected_grid)] = P
         return P
 
-    def eval(self, src, mesh, f):
+    def eval(self, src, mesh, f):  # noqa: A003
         """Project fields from the mesh to the receiver(s).
 
         Parameters

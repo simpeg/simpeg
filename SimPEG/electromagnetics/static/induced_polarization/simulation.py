@@ -92,12 +92,12 @@ class BaseIPSimulation(BasePDESimulation):
         return self._f
 
     def dpred(self, m=None, f=None):
-        """
+        r"""
         Predicted data.
 
         .. math::
 
-            d_\\text{pred} = Pf(m)
+            d_\text{pred} = Pf(m)
 
         """
         # return self.Jvec(m, m, f=f)
@@ -106,11 +106,11 @@ class BaseIPSimulation(BasePDESimulation):
 
         return self._pred
 
-    def getJtJdiag(self, m, W=None):
+    def getJtJdiag(self, m, W=None, f=None):
         if getattr(self, "_gtgdiag", None) is None:
-            J = self.getJ(m)
+            J = self.getJ(m, f=f)
             if W is None:
-                W = self._scale ** 2
+                W = self._scale**2
             else:
                 W = (self._scale * W.diagonal()) ** 2
 

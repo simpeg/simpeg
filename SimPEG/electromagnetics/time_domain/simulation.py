@@ -1,6 +1,5 @@
 import numpy as np
 import scipy.sparse as sp
-import time
 
 from ...data import Data
 from ...simulation import BaseTimeSimulation
@@ -86,7 +85,6 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
         :return f: fields object
         """
 
-        tic = time.time()
         self.model = m
 
         f = self.fieldsPair(self)
@@ -140,21 +138,26 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
         return f
 
     def Jvec(self, m, v, f=None):
-        """
+        r"""
         Jvec computes the sensitivity times a vector
 
         .. math::
-            \mathbf{J} \mathbf{v} = \\frac{d\mathbf{P}}{d\mathbf{F}} \left(
-            \\frac{d\mathbf{F}}{d\mathbf{u}} \\frac{d\mathbf{u}}{d\mathbf{m}} +
-            \\frac{\partial\mathbf{F}}{\partial\mathbf{m}} \\right) \mathbf{v}
+            \mathbf{J} \mathbf{v} =
+                \frac{d\mathbf{P}}{d\mathbf{F}}
+                \left(
+                    \frac{d\mathbf{F}}{d\mathbf{u}} \frac{d\mathbf{u}}{d\mathbf{m}}
+                    + \frac{\partial\mathbf{F}}{\partial\mathbf{m}}
+                \right)
+                \mathbf{v}
 
         where
 
         .. math::
-            \mathbf{A} \\frac{d\mathbf{u}}{d\mathbf{m}} +
-            \\frac{\partial \mathbf{A}(\mathbf{u}, \mathbf{m})}
+            \mathbf{A} \frac{d\mathbf{u}}{d\mathbf{m}}
+            + \frac{\partial \mathbf{A} (\mathbf{u}, \mathbf{m})}
             {\partial\mathbf{m}} =
-            \\frac{d \mathbf{RHS}}{d \mathbf{m}}
+            \frac{d \mathbf{RHS}}{d \mathbf{m}}
+
         """
 
         if f is None:
@@ -201,7 +204,6 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
             Asubdiag = self.getAsubdiag(tInd)
 
             for i, src in enumerate(self.survey.source_list):
-
                 # here, we are lagging by a timestep, so filling in as we go
                 for projField in set([rx.projField for rx in src.receiver_list]):
                     df_dmFun = getattr(f, "_%sDeriv" % projField, None)
@@ -246,23 +248,27 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
         return np.hstack(Jv)
 
     def Jtvec(self, m, v, f=None):
-
-        """
+        r"""
         Jvec computes the adjoint of the sensitivity times a vector
 
         .. math::
-            \mathbf{J}^\\top \mathbf{v} =  \left(
-            \\frac{d\mathbf{u}}{d\mathbf{m}} ^ \\top
-            \\frac{d\mathbf{F}}{d\mathbf{u}} ^ \\top  +
-            \\frac{\partial\mathbf{F}}{\partial\mathbf{m}} ^ \\top \\right)
-            \\frac{d\mathbf{P}}{d\mathbf{F}} ^ \\top \mathbf{v}
+
+            \mathbf{J}^\top \mathbf{v} =
+                \left(
+                    \frac{d\mathbf{u}}{d\mathbf{m}} ^ \top
+                    \frac{d\mathbf{F}}{d\mathbf{u}} ^ \top
+                    + \frac{\partial\mathbf{F}}{\partial\mathbf{m}} ^ \top
+                \right)
+                \frac{d\mathbf{P}}{d\mathbf{F}} ^ \top
+                \mathbf{v}
 
         where
 
         .. math::
-            \\frac{d\mathbf{u}}{d\mathbf{m}} ^\\top \mathbf{A}^\\top  +
-            \\frac{d\mathbf{A}(\mathbf{u})}{d\mathbf{m}} ^ \\top =
-            \\frac{d \mathbf{RHS}}{d \mathbf{m}} ^ \\top
+
+            \frac{d\mathbf{u}}{d\mathbf{m}} ^\top \mathbf{A}^\top  +
+            \frac{d\mathbf{A}(\mathbf{u})}{d\mathbf{m}} ^ \top =
+            \frac{d \mathbf{RHS}}{d \mathbf{m}} ^ \top
         """
 
         if f is None:
@@ -348,7 +354,6 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
                 Asubdiag = self.getAsubdiag(tInd + 1)
 
             for isrc, src in enumerate(self.survey.source_list):
-
                 # solve against df_duT_v
                 if tInd >= self.nT - 1:
                     # last timestep (first to be solved)
@@ -431,7 +436,6 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
         return ifields
 
     def getInitialFieldsDeriv(self, src, v, adjoint=False, f=None):
-
         ifieldsDeriv = mkvc(
             getattr(src, "{}InitialDeriv".format(self._fieldType), None)(
                 self, v, adjoint, f
@@ -486,15 +490,15 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
 
 
 class Simulation3DMagneticFluxDensity(BaseTDEMSimulation):
-    """
+    r"""
     Starting from the quasi-static E-B formulation of Maxwell's equations
     (semi-discretized)
 
     .. math::
 
-        \mathbf{C} \mathbf{e} + \\frac{\partial \mathbf{b}}{\partial t} =
-        \mathbf{s_m} \\\\
-        \mathbf{C}^{\\top} \mathbf{M_{\mu^{-1}}^f} \mathbf{b} -
+        \mathbf{C} \mathbf{e} + \frac{\partial \mathbf{b}}{\partial t} =
+        \mathbf{s_m} \\
+        \mathbf{C}^{\top} \mathbf{M_{\mu^{-1}}^f} \mathbf{b} -
         \mathbf{M_{\sigma}^e} \mathbf{e} = \mathbf{s_e}
 
 
@@ -503,7 +507,7 @@ class Simulation3DMagneticFluxDensity(BaseTDEMSimulation):
 
     .. math::
 
-        \mathbf{e} = \mathbf{M_{\sigma}^e}^{-1} \mathbf{C}^{\\top}
+        \mathbf{e} = \mathbf{M_{\sigma}^e}^{-1} \mathbf{C}^{\top}
         \mathbf{M_{\mu^{-1}}^f} \mathbf{b} -
         \mathbf{M_{\sigma}^e}^{-1} \mathbf{s_e}
 
@@ -512,17 +516,17 @@ class Simulation3DMagneticFluxDensity(BaseTDEMSimulation):
 
     .. math::
 
-        \mathbf{C} \mathbf{M_{\sigma}^e}^{-1} \mathbf{C}^{\\top}
+        \mathbf{C} \mathbf{M_{\sigma}^e}^{-1} \mathbf{C}^{\top}
         \mathbf{M_{\mu^{-1}}^f} \mathbf{b}  +
-        \\frac{\partial \mathbf{b}}{\partial t} =
+        \frac{\partial \mathbf{b}}{\partial t} =
         \mathbf{C} \mathbf{M_{\sigma}^e}^{-1} \mathbf{s_e} + \mathbf{s_m}
 
 
     and moving everything except the time derivative to the rhs gives
 
     .. math::
-        \\frac{\partial \mathbf{b}}{\partial t} =
-        -\mathbf{C} \mathbf{M_{\sigma}^e}^{-1} \mathbf{C}^{\\top}
+        \frac{\partial \mathbf{b}}{\partial t} =
+        -\mathbf{C} \mathbf{M_{\sigma}^e}^{-1} \mathbf{C}^{\top}
         \mathbf{M_{\mu^{-1}}^f} \mathbf{b} +
         \mathbf{C} \mathbf{M_{\sigma}^e}^{-1} \mathbf{s_e} + \mathbf{s_m}
 
@@ -531,8 +535,8 @@ class Simulation3DMagneticFluxDensity(BaseTDEMSimulation):
 
     .. math::
 
-        \\frac{\mathbf{b}^{n+1} - \mathbf{b}^{n}}{\mathbf{dt}} =
-        -\mathbf{C} \mathbf{M_{\sigma}^e}^{-1} \mathbf{C}^{\\top}
+        \frac{\mathbf{b}^{n+1} - \mathbf{b}^{n}}{\mathbf{dt}} =
+        -\mathbf{C} \mathbf{M_{\sigma}^e}^{-1} \mathbf{C}^{\top}
         \mathbf{M_{\mu^{-1}}^f} \mathbf{b}^{n+1} +
         \mathbf{C} \mathbf{M_{\sigma}^e}^{-1} \mathbf{s_e}^{n+1} +
         \mathbf{s_m}^{n+1}
@@ -543,7 +547,7 @@ class Simulation3DMagneticFluxDensity(BaseTDEMSimulation):
     .. math::
 
         (\mathbf{I} + \mathbf{dt} \mathbf{C} \mathbf{M_{\sigma}^e}^{-1}
-         \mathbf{C}^{\\top} \mathbf{M_{\mu^{-1}}^f}) \mathbf{b}^{n+1} =
+         \mathbf{C}^{\top} \mathbf{M_{\mu^{-1}}^f}) \mathbf{b}^{n+1} =
          \mathbf{b}^{n} + \mathbf{dt}(\mathbf{C} \mathbf{M_{\sigma}^e}^{-1}
          \mathbf{s_e}^{n+1} + \mathbf{s_m}^{n+1})
 
@@ -555,12 +559,13 @@ class Simulation3DMagneticFluxDensity(BaseTDEMSimulation):
     Fields_Derivs = FieldsDerivativesEB
 
     def getAdiag(self, tInd):
-        """
+        r"""
         System matrix at a given time index
 
         .. math::
+
             (\mathbf{I} + \mathbf{dt} \mathbf{C} \mathbf{M_{\sigma}^e}^{-1}
-            \mathbf{C}^{\\top} \mathbf{M_{\mu^{-1}}^f})
+            \mathbf{C}^{\top} \mathbf{M_{\mu^{-1}}^f})
 
         """
         assert tInd >= 0 and tInd < self.nT
@@ -639,8 +644,6 @@ class Simulation3DMagneticFluxDensity(BaseTDEMSimulation):
         C = self.mesh.edge_curl
         MeSigmaI = self.MeSigmaI
 
-        MfMui = self.MfMui
-
         _, s_e = src.eval(self, self.times[tInd])
         s_mDeriv, s_eDeriv = src.evalDeriv(self, self.times[tInd], adjoint=adjoint)
 
@@ -670,37 +673,37 @@ class Simulation3DMagneticFluxDensity(BaseTDEMSimulation):
 
 # ------------------------------- Simulation3DElectricField ------------------------------- #
 class Simulation3DElectricField(BaseTDEMSimulation):
-    """
-        Solve the EB-formulation of Maxwell's equations for the electric field, e.
+    r"""
+    Solve the EB-formulation of Maxwell's equations for the electric field, e.
 
-        Starting with
+    Starting with
 
-        .. math::
+    .. math::
 
-            \\nabla \\times \\mathbf{e} + \\frac{\\partial \\mathbf{b}}{\\partial t} = \\mathbf{s_m} \\
-            \\nabla \\times \mu^{-1} \\mathbf{b} - \sigma \\mathbf{e} = \\mathbf{s_e}
-
-
-        we eliminate :math:`\\frac{\\partial b}{\\partial t}` using
-
-        .. math::
-
-            \\frac{\\partial \\mathbf{b}}{\\partial t} = - \\nabla \\times \\mathbf{e} + \\mathbf{s_m}
+        \nabla \times \mathbf{e} + \frac{\partial \mathbf{b}}{\partial t} = \mathbf{s_m} \
+        \nabla \times \mu^{-1} \mathbf{b} - \sigma \mathbf{e} = \mathbf{s_e}
 
 
-        taking the time-derivative of Ampere's law, we see
+    we eliminate :math:`\frac{\partial b}{\partial t}` using
 
-        .. math::
+    .. math::
 
-            \\frac{\\partial}{\\partial t}\left( \\nabla \\times \mu^{-1} \\mathbf{b} - \\sigma \\mathbf{e} \\right) = \\frac{\\partial \\mathbf{s_e}}{\\partial t} \\
-            \\nabla \\times \\mu^{-1} \\frac{\\partial \\mathbf{b}}{\\partial t} - \\sigma \\frac{\\partial\\mathbf{e}}{\\partial t} = \\frac{\\partial \\mathbf{s_e}}{\\partial t}
+        \frac{\partial \mathbf{b}}{\partial t} = - \nabla \times \mathbf{e} + \mathbf{s_m}
 
 
-        which gives us
+    taking the time-derivative of Ampere's law, we see
 
-        .. math::
+    .. math::
 
-            \\nabla \\times \\mu^{-1} \\nabla \\times \\mathbf{e} + \\sigma \\frac{\\partial\\mathbf{e}}{\\partial t} = \\nabla \\times \\mu^{-1} \\mathbf{s_m} + \\frac{\\partial \\mathbf{s_e}}{\\partial t}
+        \frac{\partial}{\partial t}\left( \nabla \times \mu^{-1} \mathbf{b} - \sigma \mathbf{e} \right) = \frac{\partial \mathbf{s_e}}{\partial t} \
+        \nabla \times \mu^{-1} \frac{\partial \mathbf{b}}{\partial t} - \sigma \frac{\partial\mathbf{e}}{\partial t} = \frac{\partial \mathbf{s_e}}{\partial t}
+
+
+    which gives us
+
+    .. math::
+
+        \nabla \times \mu^{-1} \nabla \times \mathbf{e} + \sigma \frac{\partial\mathbf{e}}{\partial t} = \nabla \times \mu^{-1} \mathbf{s_m} + \frac{\partial \mathbf{s_e}}{\partial t}
 
 
     """
@@ -712,7 +715,6 @@ class Simulation3DElectricField(BaseTDEMSimulation):
 
     # @profile
     def Jtvec(self, m, v, f=None):
-
         """
         Jvec computes the adjoint of the sensitivity times a vector
         """
@@ -802,7 +804,6 @@ class Simulation3DElectricField(BaseTDEMSimulation):
                 Asubdiag = self.getAsubdiag(tInd + 1)
 
             for isrc, src in enumerate(self.survey.source_list):
-
                 # solve against df_duT_v
                 if tInd >= self.nT - 1:
                     # last timestep (first to be solved)
@@ -838,7 +839,6 @@ class Simulation3DElectricField(BaseTDEMSimulation):
 
         for isrc, src in enumerate(self.survey.source_list):
             if src.srcType == "galvanic":
-
                 ATinv_df_duT_v[isrc, :] = Grad * (
                     self.Adcinv
                     * (
@@ -972,7 +972,7 @@ class Simulation3DElectricField(BaseTDEMSimulation):
 
 
 class Simulation3DMagneticField(BaseTDEMSimulation):
-    """
+    r"""
     Solve the H-J formulation of Maxwell's equations for the magnetic field h.
 
     We start with Maxwell's equations in terms of the magnetic field and
@@ -980,22 +980,23 @@ class Simulation3DMagneticField(BaseTDEMSimulation):
 
     .. math::
 
-        \\nabla \\times \\rho \\mathbf{j} + \\mu \\frac{\\partial h}{\\partial t} = \\mathbf{s_m} \\
-        \\nabla \\times \\mathbf{h} - \\mathbf{j} = \\mathbf{s_e}
+        \nabla \times \rho \mathbf{j} + \mu \frac{\partial h}{\partial t} = \mathbf{s_m} \
+        \nabla \times \mathbf{h} - \mathbf{j} = \mathbf{s_e}
 
 
-    and eliminate :math:`\\mathbf{j}` using
+    and eliminate :math:`\mathbf{j}` using
 
     .. math::
 
-        \\mathbf{j} = \\nabla \\times \\mathbf{h} - \\mathbf{s_e}
+        \mathbf{j} = \nabla \times \mathbf{h} - \mathbf{s_e}
 
 
     giving
 
     .. math::
 
-        \\nabla \\times \\rho \\nabla \\times \\mathbf{h} + \\mu \\frac{\\partial h}{\\partial t} =  \\nabla \\times \\rho \\mathbf{s_e} + \\mathbf{s_m}
+        \nabla \times \rho \nabla \times \mathbf{h} + \mu \frac{\partial h}{\partial t}
+            = \nabla \times \rho \mathbf{s_e} + \mathbf{s_m}
 
 
     """
@@ -1022,7 +1023,6 @@ class Simulation3DMagneticField(BaseTDEMSimulation):
     def getAdiagDeriv(self, tInd, u, v, adjoint=False):
         assert tInd >= 0 and tInd < self.nT
 
-        dt = self.time_steps[tInd]
         C = self.mesh.edge_curl
 
         if adjoint:
@@ -1041,7 +1041,6 @@ class Simulation3DMagneticField(BaseTDEMSimulation):
         return Zero()
 
     def getRHS(self, tInd):
-
         C = self.mesh.edge_curl
         MfRho = self.MfRho
         s_m, s_e = self.getSourceTerm(tInd)
@@ -1081,8 +1080,7 @@ class Simulation3DMagneticField(BaseTDEMSimulation):
 
 
 class Simulation3DCurrentDensity(BaseTDEMSimulation):
-
-    """
+    r"""
     Solve the H-J formulation for current density
 
     In this case, we eliminate :math:`\partial \mathbf{h} / \partial t` and
@@ -1118,7 +1116,6 @@ class Simulation3DCurrentDensity(BaseTDEMSimulation):
     def getAdiagDeriv(self, tInd, u, v, adjoint=False):
         assert tInd >= 0 and tInd < self.nT
 
-        dt = self.time_steps[tInd]
         C = self.mesh.edge_curl
         MfRho = self.MfRho
         MeMuI = self.MeMuI
@@ -1147,7 +1144,6 @@ class Simulation3DCurrentDensity(BaseTDEMSimulation):
         return Zero()
 
     def getRHS(self, tInd):
-
         if tInd == len(self.time_steps):
             tInd = tInd - 1
 

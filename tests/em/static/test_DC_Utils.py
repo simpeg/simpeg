@@ -140,7 +140,6 @@ class DCUtilsTests_halfspace(unittest.TestCase):
 
 class DCUtilsTests_fullspace(unittest.TestCase):
     def setUp(self):
-
         url = "https://storage.googleapis.com/simpeg/tests/dc_utils/"
         cloudfiles = [
             "dPred_fullspace.txt",
@@ -164,7 +163,6 @@ class DCUtilsTests_fullspace(unittest.TestCase):
         self.data = data
 
     def test_ElecSep(self):
-
         # Compute dipoles distances from survey
         elecSepDict = utils.electrode_separations(self.survey)
 
@@ -223,7 +221,6 @@ class DCUtilsTests_fullspace(unittest.TestCase):
 
 class DCUtilsTests_survey_from_ABMN(unittest.TestCase):
     def setUp(self):
-
         # Define the parameters for each survey line
         survey_type = ["dipole-dipole", "pole-pole", "pole-dipole", "dipole-pole"]
         data_type = "volt"
@@ -250,7 +247,6 @@ class DCUtilsTests_survey_from_ABMN(unittest.TestCase):
         self.survey = dc.survey.Survey(source_list)
 
     def test_generate_survey_from_abmn_locations(self):
-
         survey_new, sorting_index = utils.generate_survey_from_abmn_locations(
             locations_a=self.survey.locations_a,
             locations_b=self.survey.locations_b,
@@ -278,7 +274,6 @@ class DCUtilsTests_survey_from_ABMN(unittest.TestCase):
         self.assertTrue(passed)
 
     def test_get_source_locations(self):
-
         # Sources have pole and dipole which impacts unique return
         is_rx = np.all(
             np.isclose(self.survey.locations_m, self.survey.locations_n), axis=1
@@ -304,7 +299,6 @@ class DCUtilsTests_survey_from_ABMN(unittest.TestCase):
         self.assertTrue(passed)
 
     def test_convert_to_2d(self):
-
         # Only 1 line of 3D data along x direction starting from (-1000,0,0)
         lineID = np.ones(self.survey.nD, dtype=int)
         survey_2d, IND = utils.convert_survey_3d_to_2d_lines(

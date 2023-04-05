@@ -15,7 +15,6 @@ from ...utils import (
 )
 from ...props import NestedModeler
 
-from .survey import Survey
 from .empirical import BaseHydraulicConductivity
 from .empirical import BaseWaterRetention
 
@@ -187,7 +186,7 @@ class SimulationNDCellCentered(BaseTimeSimulation):
             bc = self.getBoundaryConditions(ii, u[ii])
             u[ii + 1] = self.root_finder.root(
                 lambda hn1m, return_g=True: self.getResidual(
-                    m, u[ii], hn1m, dt, bc, return_g=return_g
+                    m, u[ii], hn1m, dt, bc, return_g=return_g  # noqa: B023
                 ),
                 u[ii],
             )
@@ -205,13 +204,15 @@ class SimulationNDCellCentered(BaseTimeSimulation):
         return u
 
     def dpred(self, m, f=None):
-        """Create the projected data from a model.
+        r"""
+        Create the projected data from a model.
+
         The field, f, (if provided) will be used for the predicted data
         instead of recalculating the fields (which may be expensive!).
 
         .. math::
 
-            d_\\text{pred} = P(f(m), m)
+            d_\text{pred} = P(f(m), m)
 
         Where P is a projection of the fields onto the data space.
         """
@@ -247,6 +248,8 @@ class SimulationNDCellCentered(BaseTimeSimulation):
         """Diagonals and rhs of the jacobian system
 
         The matrix that we are computing has the form::
+
+        .. code::
 
             .-                                      -. .-  -.   .-  -.
             |  Adiag                                 | | h1 |   | b1 |
@@ -334,7 +337,7 @@ class SimulationNDCellCentered(BaseTimeSimulation):
 
         J = dT / dt - DIV * utils.sdiag(aveK) * GRAD
         if self.do_newton:
-            DDharmAve = utils.sdiag(aveK ** 2) * AV * utils.sdiag(K ** (-2)) * dK
+            DDharmAve = utils.sdiag(aveK**2) * AV * utils.sdiag(K ** (-2)) * dK
             J = J - DIV * utils.sdiag(GRAD * h + BC * bc) * DDharmAve - Dz * DDharmAve
 
         return r, J

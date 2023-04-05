@@ -146,7 +146,7 @@ def get_vertical_discretization_time(
 
 
 def ColeCole(f, sig_inf=1e-2, eta=0.1, tau=0.1, c=1):
-    """
+    r"""
     Computing Cole-Cole model in frequency domain
 
     Parameters
@@ -168,9 +168,10 @@ def ColeCole(f, sig_inf=1e-2, eta=0.1, tau=0.1, c=1):
     Defined as
 
     .. math ::
-        \\sigma (\\omega ) = \\sigma_{\\infty} \\Bigg [
-        1 - \\eta \\Bigg ( \\frac{1}{1 + (1-\\eta ) (1 + i\\omega \\tau)^c} \\Bigg )
-        \\Bigg ]
+
+        \sigma (\omega ) = \sigma_{\infty} \Bigg [
+        1 - \eta \Bigg ( \frac{1}{1 + (1-\eta ) (1 + i\omega \tau)^c} \Bigg )
+        \Bigg ]
 
     """
 
@@ -188,7 +189,7 @@ def ColeCole(f, sig_inf=1e-2, eta=0.1, tau=0.1, c=1):
 
 
 def LogUniform(f, chi_inf=0.05, del_chi=0.05, tau1=1e-5, tau2=1e-2):
-    """
+    r"""
     Computing relaxation model in the frequency domain for a log-uniform
     distribution of time-relaxation constants.
 
@@ -207,10 +208,11 @@ def LogUniform(f, chi_inf=0.05, del_chi=0.05, tau1=1e-5, tau2=1e-2):
     -----
 
     .. math::
-        \\chi (\\omega ) = \\chi_{\\infty} + \\Delta \\chi \\Bigg [
-        1 - \\Bigg ( \\frac{1}{ln (\\tau_2 / \\tau_1 )} \\Bigg )
-        ln \\Bigg ( \\frac{1 + i\\omega \\tau_2}{1 + i\\omega tau_1} ) \\Bigg )
-        \\Bigg ]
+
+        \chi (\omega ) = \chi_{\infty} + \Delta \chi \Bigg [
+        1 - \Bigg ( \frac{1}{ln (\tau_2 / \tau_1 )} \Bigg )
+        ln \Bigg ( \frac{1 + i\omega \tau_2}{1 + i\omega tau_1} ) \Bigg )
+        \Bigg ]
     """
 
     w = 2 * np.pi * f

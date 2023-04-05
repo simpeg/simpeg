@@ -16,7 +16,6 @@ import shutil
 import tarfile
 from SimPEG.potential_fields import gravity
 from SimPEG import (
-    data,
     data_misfit,
     maps,
     regularization,
@@ -25,7 +24,6 @@ from SimPEG import (
     directives,
     inversion,
 )
-from SimPEG import utils
 from SimPEG.utils import download, plot2Ddata
 
 import matplotlib.pyplot as plt
@@ -34,7 +32,6 @@ from SimPEG.utils.drivers.gravity_driver import GravityDriver_Inv
 
 
 def run(plotIt=True, cleanAfterRun=True):
-
     # Start by downloading files from the remote repository
     # directory where the downloaded files are
 
@@ -258,9 +255,9 @@ def run(plotIt=True, cleanAfterRun=True):
         plt.suptitle(
             "Compact Inversion: Depth weight = "
             + str(wgtexp)
-            + ": $\epsilon_p$ = "
+            + r": $\epsilon_p$ = "
             + str(round(reg.objfcts[0].irls_threshold, 1))
-            + ": $\epsilon_q$ = "
+            + r": $\epsilon_q$ = "
             + str(round(reg.objfcts[1].irls_threshold, 2))
         )
         ax = plt.subplot(221)

@@ -23,7 +23,6 @@ np.random.seed(38)
 
 class SIPProblemTestsCC(unittest.TestCase):
     def setUp(self):
-
         cs = 25.0
         hx = [(cs, 0, -1.3), (cs, 21), (cs, 0, 1.3)]
         hy = [(cs, 0, -1.3), (cs, 21), (cs, 0, 1.3)]
@@ -123,7 +122,6 @@ class SIPProblemTestsCC(unittest.TestCase):
 
 class SIPProblemTestsN(unittest.TestCase):
     def setUp(self):
-
         cs = 25.0
         hx = [(cs, 0, -1.3), (cs, 21), (cs, 0, 1.3)]
         hy = [(cs, 0, -1.3), (cs, 21), (cs, 0, 1.3)]
@@ -152,7 +150,6 @@ class SIPProblemTestsN(unittest.TestCase):
         Aloc = np.r_[-200.0, 0.0, 0.0]
         Bloc = np.r_[200.0, 0.0, 0.0]
         M = utils.ndgrid(x - 25.0, y, np.r_[0.0])
-        N = utils.ndgrid(x + 25.0, y, np.r_[0.0])
 
         times = np.arange(10) * 1e-3 + 1e-3
         rx = sip.receivers.Pole(M, times)
@@ -222,7 +219,6 @@ class SIPProblemTestsN(unittest.TestCase):
 
 class SIPProblemTestsN_air(unittest.TestCase):
     def setUp(self):
-
         cs = 25.0
         hx = [(cs, 0, -1.3), (cs, 21), (cs, 0, 1.3)]
         hy = [(cs, 0, -1.3), (cs, 21), (cs, 0, 1.3)]

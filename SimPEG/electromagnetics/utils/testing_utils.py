@@ -148,7 +148,6 @@ def crossCheckTest(
     TOL=1e-5,
     verbose=False,
 ):
-
     l2norm = lambda r: np.sqrt(r.dot(r))
 
     prb1 = getFDEMProblem(fdemType1, comp, SrcList, freq, useMu, verbose)
@@ -171,7 +170,6 @@ def crossCheckTest(
     else:
         m = logsig
 
-    survey1 = prb1.survey
     d1 = prb1.dpred(m)
 
     if verbose:
@@ -179,7 +177,6 @@ def crossCheckTest(
 
     prb2 = getFDEMProblem(fdemType2, comp, SrcList, freq, useMu, verbose)
 
-    survey2 = prb2.survey
     d2 = prb2.dpred(m)
 
     if verbose:

@@ -5,7 +5,6 @@ from SimPEG import Report
 
 class TestReport(unittest.TestCase):
     def test_version_defaults(self):
-
         # Reporting is now done by the external package scooby.
         # We just ensure the shown packages do not change (core and optional).
         out1 = Report()
@@ -14,14 +13,31 @@ class TestReport(unittest.TestCase):
                 "SimPEG",
                 "discretize",
                 "pymatsolver",
-                "vectormath",
-                "properties",
                 "numpy",
                 "scipy",
-                "cython",
+                "sklearn",
+                "matplotlib",
+                "empymod",
+                "geoana",
+                "pandas",
             ],
-            optional=["IPython", "matplotlib", "ipywidgets"],
-            ncol=4,
+            # Optional packages.
+            optional=[
+                "cython",
+                "pydiso",
+                "numba",
+                "dask",
+                "sympy",
+                "IPython",
+                "ipywidgets",
+                "plotly",
+                "vtk",
+                "utm",
+                "memory_profiler",
+            ],
+            ncol=3,
+            text_width=80,
+            sort=False,
         )
 
         # Ensure they're the same; exclude initial time to avoid errors due

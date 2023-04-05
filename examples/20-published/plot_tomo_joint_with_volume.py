@@ -32,14 +32,12 @@ from SimPEG import (
     inverse_problem,
     inversion,
     data_misfit,
-    directives,
     objective_function,
 )
 
 
 class Volume(objective_function.BaseObjectiveFunction):
-
-    """
+    r"""
     A regularization on the volume integral of the model
 
     .. math::
@@ -86,7 +84,6 @@ class Volume(objective_function.BaseObjectiveFunction):
 
 
 def run(plotIt=True):
-
     nC = 40
     de = 1.0
     h = np.ones(nC) * de / nC
@@ -125,29 +122,23 @@ def run(plotIt=True):
         sigetest = sigmaMapTest * testphis
         ax.semilogy(testphis, sigetest)
         ax.set_title("Model Transform")
-        ax.set_xlabel("$\\varphi$")
-        ax.set_ylabel("$\sigma$")
+        ax.set_xlabel(r"$\varphi$")
+        ax.set_ylabel(r"$\sigma$")
 
     sigmaMap = maps.SelfConsistentEffectiveMedium(M, sigma0=sigma0, sigma1=sigma1)
 
     # scale the slowness so it is on a ~linear scale
     slownessMap = maps.LogMap(M) * sigmaMap
 
-    # set up the true sig model and log model dobs
-    sigtrue = sigmaMap * phitrue
-
-    # modt = Model.BaseModel(M);
-    slownesstrue = slownessMap * phitrue  # true model (m = log(sigma))
-
     # set up the problem and survey
     survey = tomo.Survey(source_list)
     problem = tomo.Simulation(M, survey=survey, slownessMap=slownessMap)
 
     if plotIt:
-        fig, ax = plt.subplots(1, 1)
+        _, ax = plt.subplots(1, 1)
         cb = plt.colorbar(M.plot_image(phitrue, ax=ax)[0], ax=ax)
         survey.plot(ax=ax)
-        cb.set_label("$\\varphi$")
+        cb.set_label(r"$\varphi$")
 
     # get observed data
     data = problem.make_synthetic_data(phitrue, relative_error=0.03, add_noise=True)
@@ -187,7 +178,6 @@ def run(plotIt=True):
     # plot results
 
     if plotIt:
-
         fig, ax = plt.subplots(1, 1)
         ax.plot(data.dobs)
         ax.plot(dpred)

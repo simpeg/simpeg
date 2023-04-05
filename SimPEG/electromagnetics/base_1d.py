@@ -120,10 +120,10 @@ class BaseEM1DSimulation(BaseSimulation):
             topo = np.r_[0.0, 0.0, 0.0]
         self.topo = topo
 
-        for i_src, src in enumerate(self.survey.source_list):
+        for src in self.survey.source_list:
             if np.any(src.location[..., 2] < self.topo[2]):
                 raise ValueError("Source must be located above the topography")
-            for i_rx, rx in enumerate(src.receiver_list):
+            for rx in src.receiver_list:
                 if rx.use_source_receiver_offset:
                     if np.any(src.location[2] + rx.locations[:, 2] < self.topo[2]):
                         raise ValueError(
@@ -224,13 +224,14 @@ class BaseEM1DSimulation(BaseSimulation):
         self._n_points_per_path = validate_integer("n_points_per_path", val, min_val=1)
 
     def compute_complex_sigma(self, frequencies):
-        """
+        r"""
         Computes the complex conductivity matrix using Pelton's Cole-Cole model:
 
         .. math ::
-            \\sigma (\\omega ) = \\sigma \\Bigg [
-            1 - \\eta \\Bigg ( \\frac{1}{1 + (1-\\eta ) (1 + i\\omega \\tau)^c} \\Bigg )
-            \\Bigg ]
+
+            \sigma (\omega ) = \sigma \Bigg [
+                1 - \eta \Bigg ( \frac{1}{1 + (1-\eta ) (1 + i\omega \tau)^c} \Bigg )
+            \Bigg ]
 
         :param numpy.array frequencies: np.array(N,) containing frequencies
         :rtype: numpy.ndarray: np.array(n_layer, n_frequency)
@@ -249,7 +250,6 @@ class BaseEM1DSimulation(BaseSimulation):
 
         # IP effect
         else:
-
             if np.isscalar(self.eta):
                 eta = self.eta
                 tau = self.tau
@@ -271,15 +271,16 @@ class BaseEM1DSimulation(BaseSimulation):
             return sigma_complex
 
     def compute_complex_mu(self, frequencies):
-        """
+        r"""
         Computes the complex magnetic permeability matrix assuming a log-uniform
         distribution of time-relaxation constants:
 
         .. math::
-            \\chi (\\omega ) = \\chi + \\Delta \\chi \\Bigg [
-            1 - \\Bigg ( \\frac{1}{ln (\\tau_2 / \\tau_1 )} \\Bigg )
-            ln \\Bigg ( \\frac{1 + i\\omega \\tau_2}{1 + i\\omega tau_1} ) \\Bigg )
-            \\Bigg ]
+
+            \chi (\omega ) = \chi + \Delta \chi \Bigg [
+                1 - \Bigg ( \frac{1}{ln (\tau_2 / \tau_1 )} \Bigg )
+                ln \Bigg ( \frac{1 + i\omega \tau_2}{1 + i\omega tau_1} ) \Bigg )
+            \Bigg ]
 
         :param numpy.array frequencies: np.array(N,) containing frequencies
         :rtype: numpy.ndarray: np.array(n_layer, n_frequency)
@@ -299,12 +300,10 @@ class BaseEM1DSimulation(BaseSimulation):
 
         # No magnetic viscosity
         if np.all(self.dchi) == 0.0:
-
             return mu
 
         # Magnetic viscosity
         else:
-
             if np.isscalar(self.dchi):
                 dchi = self.dchi * np.ones_like(self.mu)
                 tau1 = self.tau1 * np.ones_like(self.mu)
@@ -358,7 +357,7 @@ class BaseEM1DSimulation(BaseSimulation):
         Is = []
         n_w_past = 0
         i_count = 0
-        for i_src, src in enumerate(survey.source_list):
+        for src in survey.source_list:
             # doing the check for source type by checking its name
             # to avoid importing and checking "isinstance"
             class_name = type(src).__name__
@@ -386,7 +385,7 @@ class BaseEM1DSimulation(BaseSimulation):
                 for i_path in range(src.n_segments):
                     dx = xy_src_path[i_path + 1, 0] - xy_src_path[i_path, 0]
                     dy = xy_src_path[i_path + 1, 1] - xy_src_path[i_path, 1]
-                    dl = np.sqrt(dx ** 2 + dy ** 2)
+                    dl = np.sqrt(dx**2 + dy**2)
                     theta = np.arctan2(dy, dx)
                     lk = np.c_[(x + 1) * dl / 2, np.zeros(self.n_points_per_path)]
 
@@ -401,7 +400,7 @@ class BaseEM1DSimulation(BaseSimulation):
                 weights = np.hstack(weights) * src.current
                 thetas = -np.hstack(thetas)
 
-            for i_rx, rx in enumerate(src.receiver_list):
+            for rx in src.receiver_list:
                 #######
                 # Hankel Transform coefficients
                 ######
@@ -449,13 +448,13 @@ class BaseEM1DSimulation(BaseSimulation):
                             C0 += (
                                 src_x
                                 * rx_x
-                                * (dxyz[:, 0] ** 2 / offsets ** 2)[:, None]
-                                * lambd ** 2
+                                * (dxyz[:, 0] ** 2 / offsets**2)[:, None]
+                                * lambd**2
                             )
                             C1 += (
                                 src_x
                                 * rx_x
-                                * (1 / offsets - 2 * dxyz[:, 0] ** 2 / offsets ** 3)[
+                                * (1 / offsets - 2 * dxyz[:, 0] ** 2 / offsets**3)[
                                     :, None
                                 ]
                                 * lambd
@@ -464,46 +463,46 @@ class BaseEM1DSimulation(BaseSimulation):
                             C0 += (
                                 src_x
                                 * rx_y
-                                * (dxyz[:, 0] * dxyz[:, 1] / offsets ** 2)[:, None]
-                                * lambd ** 2
+                                * (dxyz[:, 0] * dxyz[:, 1] / offsets**2)[:, None]
+                                * lambd**2
                             )
                             C1 -= (
                                 src_x
                                 * rx_y
-                                * (2 * dxyz[:, 0] * dxyz[:, 1] / offsets ** 3)[:, None]
+                                * (2 * dxyz[:, 0] * dxyz[:, 1] / offsets**3)[:, None]
                                 * lambd
                             )
                         if rx_z != 0.0:
                             # C0 += 0.0
                             C1 -= (src_x * rx_z * dxyz[:, 0] / offsets)[
                                 :, None
-                            ] * lambd ** 2
+                            ] * lambd**2
                     if src_y != 0.0:
                         if rx_x != 0.0:
                             C0 += (
                                 src_y
                                 * rx_x
                                 * rx_x
-                                * (dxyz[:, 0] * dxyz[:, 1] / offsets ** 2)[:, None]
-                                * lambd ** 2
+                                * (dxyz[:, 0] * dxyz[:, 1] / offsets**2)[:, None]
+                                * lambd**2
                             )
                             C1 -= (
                                 src_y
                                 * rx_x
-                                * (2 * dxyz[:, 0] * dxyz[:, 1] / offsets ** 3)[:, None]
+                                * (2 * dxyz[:, 0] * dxyz[:, 1] / offsets**3)[:, None]
                                 * lambd
                             )
                         if rx_y != 0.0:
                             C0 += (
                                 src_y
                                 * rx_y
-                                * (dxyz[:, 1] ** 2 / offsets ** 2)[:, None]
-                                * lambd ** 2
+                                * (dxyz[:, 1] ** 2 / offsets**2)[:, None]
+                                * lambd**2
                             )
                             C1 += (
                                 src_y
                                 * rx_y
-                                * (1 / offsets - 2 * dxyz[:, 1] ** 2 / offsets ** 3)[
+                                * (1 / offsets - 2 * dxyz[:, 1] ** 2 / offsets**3)[
                                     :, None
                                 ]
                                 * lambd
@@ -512,20 +511,20 @@ class BaseEM1DSimulation(BaseSimulation):
                             # C0 += 0.0
                             C1 -= (src_y * rx_z * dxyz[:, 1] / offsets)[
                                 :, None
-                            ] * lambd ** 2
+                            ] * lambd**2
                     if src_z != 0.0:
                         if rx_x != 0.0:
                             # C0 += 0.0
                             C1 += (src_z * rx_x * dxyz[:, 0] / offsets)[
                                 :, None
-                            ] * lambd ** 2
+                            ] * lambd**2
                         if rx_y != 0.0:
                             # C0 += 0.0
                             C1 += (src_z * rx_y * dxyz[:, 1] / offsets)[
                                 :, None
-                            ] * lambd ** 2
+                            ] * lambd**2
                         if rx_z != 0.0:
-                            C0 += src_z * rx_z * lambd ** 2
+                            C0 += src_z * rx_z * lambd**2
                 elif is_wire_loop:
                     R = np.stack(
                         [
@@ -590,9 +589,9 @@ class BaseEM1DSimulation(BaseSimulation):
         delta = JtJdiag[active].min()
         return delta
 
-    def getJtJdiag(self, m, W=None):
+    def getJtJdiag(self, m, W=None, f=None):
         if getattr(self, "_gtgdiag", None) is None:
-            Js = self.getJ(m)
+            Js = self.getJ(m, f=f)
             if W is None:
                 W = np.ones(self.survey.nD)
             else:

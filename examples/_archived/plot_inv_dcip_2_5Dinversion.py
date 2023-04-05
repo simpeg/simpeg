@@ -21,6 +21,7 @@ from SimPEG.electromagnetics.static import resistivity as DC
 from SimPEG.electromagnetics.static import induced_polarization as IP
 from SimPEG.electromagnetics.static.utils import generate_dcip_survey, genTopography
 from SimPEG import maps, utils
+from discretize.utils import active_from_xyz
 import matplotlib.pyplot as plt
 from matplotlib import colors
 import numpy as np
@@ -59,7 +60,7 @@ def run(plotIt=True, survey_type="dipole-dipole"):
     # Obtain 2D TensorMesh
     mesh, actind = IO.set_mesh()
     topo, mesh1D = genTopography(mesh, -10, 0, its=100)
-    actind = utils.surface2ind_topo(mesh, np.c_[mesh1D.cell_centers_x, topo])
+    actind = active_from_xyz(mesh, np.c_[mesh1D.cell_centers_x, topo])
     survey_dc.drape_electrodes_on_topography(mesh, actind, option="top")
 
     # Build conductivity and chargeability model
@@ -172,7 +173,7 @@ def run(plotIt=True, survey_type="dipole-dipole"):
         ax1.set_xlabel("log10 DC voltage (V)")
         ax2 = plt.subplot(122)
         out = hist(IO.apparent_resistivity, bins=20)
-        ax2.set_xlabel("Apparent Resistivity ($\Omega$m)")
+        ax2.set_xlabel(r"Apparent Resistivity ($\Omega$m)")
         plt.tight_layout()
         plt.show()
 
@@ -198,7 +199,6 @@ def run(plotIt=True, survey_type="dipole-dipole"):
 
     # show recovered conductivity
     if plotIt:
-        vmin, vmax = rho.min(), rho.max()
         fig, ax = plt.subplots(2, 1, figsize=(20, 6))
         out1 = mesh.plot_image(
             rho_true,
@@ -222,7 +222,7 @@ def run(plotIt=True, survey_type="dipole-dipole"):
             ax[i].set_xlim(IO.grids[:, 0].min(), IO.grids[:, 0].max())
             ax[i].set_ylim(-IO.grids[:, 1].max(), IO.grids[:, 1].min())
             cb = plt.colorbar(out[i][0], ax=ax[i])
-            cb.set_label("Resistivity ($\Omega$m)")
+            cb.set_label(r"Resistivity ($\Omega$m)")
             ax[i].set_xlabel("Northing (m)")
             ax[i].set_ylabel("Elevation (m)")
             ax[i].set_aspect("equal")
@@ -231,7 +231,7 @@ def run(plotIt=True, survey_type="dipole-dipole"):
 
     # Show apparent resisitivty histogram
     if plotIt:
-        fig = plt.figure(figsize=(10, 4))
+        plt.figure(figsize=(10, 4))
         ax1 = plt.subplot(121)
         out = hist(np.log10(abs(IO.voltages_ip)), bins=20)
         ax1.set_xlabel("log10 IP voltage (V)")
@@ -291,7 +291,7 @@ def run(plotIt=True, survey_type="dipole-dipole"):
             ax[i].set_xlim(IO.grids[:, 0].min(), IO.grids[:, 0].max())
             ax[i].set_ylim(-IO.grids[:, 1].max(), IO.grids[:, 1].min())
             cb = plt.colorbar(out[i][0], ax=ax[i])
-            cb.set_label("Resistivity ($\Omega$m)")
+            cb.set_label(r"Resistivity ($\Omega$m)")
             ax[i].set_xlabel("Northing (m)")
             ax[i].set_ylabel("Elevation (m)")
             ax[i].set_aspect("equal")

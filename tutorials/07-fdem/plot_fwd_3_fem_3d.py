@@ -29,9 +29,9 @@ sufficient accuracy.
 #
 
 from discretize import TreeMesh
-from discretize.utils import mkvc, refine_tree_xyz
+from discretize.utils import mkvc, refine_tree_xyz, active_from_xyz
 
-from SimPEG.utils import plot2Ddata, surface2ind_topo
+from SimPEG.utils import plot2Ddata
 from SimPEG import maps
 import SimPEG.electromagnetics.frequency_domain as fdem
 
@@ -90,7 +90,6 @@ source_list = []  # Create empty list to store sources
 # Each unique location and frequency defines a new transmitter
 for ii in range(len(frequencies)):
     for jj in range(ntx):
-
         # Define receivers of different type at each location
         bzr_receiver = fdem.receivers.PointMagneticFluxDensitySecondary(
             receiver_locations[jj, :], "z", "real"
@@ -168,7 +167,7 @@ background_conductivity = 1e-2
 block_conductivity = 1e1
 
 # Find cells that are active in the forward modeling (cells below surface)
-ind_active = surface2ind_topo(mesh, topo_xyz)
+ind_active = active_from_xyz(mesh, topo_xyz)
 
 # Define mapping from model to active cells
 model_map = maps.InjectActiveCells(mesh, ind_active, air_conductivity)
@@ -303,7 +302,6 @@ plt.show()
 
 
 if save_file:
-
     dir_path = os.path.dirname(fdem.__file__).split(os.path.sep)[:-3]
     dir_path.extend(["tutorials", "assets", "fdem"])
     dir_path = os.path.sep.join(dir_path) + os.path.sep

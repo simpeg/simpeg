@@ -8,26 +8,29 @@ from ..frequency_domain.survey import Survey
 
 
 class Simulation1DRecursive(BaseSimulation):
-    """
+    r"""
     Simulation class for the 1D MT problem using recursive solution.
 
-    This solution is defined with z +ve upward and a :math:`+i\\omega t`
+    This solution is defined with z +ve upward and a :math:`+i\omega t`
     Fourier convention. First, let:
 
     .. math::
-        \\alpha_i^2 = i\\omega\\mu_i\\sigma_i
+
+        \alpha_i^2 = i\omega\mu_i\sigma_i
 
     The complex impedance in layer :math:`i` is given by:
 
     .. math::
-        Z_i = \\dfrac{\\alpha_i}{\\sigma_i} \\Bigg [
-        \\dfrac{\\sigma_i Z_{i+1} - \\alpha_i tanh(\\alpha_i h_i)}
-        {\\alpha_i - \\sigma_i Z_{i+1}tanh(\\alpha_i h_i)} \\Bigg ]
+
+        Z_i = \dfrac{\alpha_i}{\sigma_i} \Bigg [
+        \dfrac{\sigma_i Z_{i+1} - \alpha_i tanh(\alpha_i h_i)}
+        {\alpha_i - \sigma_i Z_{i+1}tanh(\alpha_i h_i)} \Bigg ]
 
     where the complex impedance in the bottom half-space is given by:
 
     .. math::
-        Z_N = - \\frac{\\alpha_N}{\\sigma_N}
+
+        Z_N = - \frac{\alpha_N}{\sigma_N}
 
 
     """
@@ -193,10 +196,10 @@ class Simulation1DRecursive(BaseSimulation):
             gratios[ii] -= Zs[ii + 1] / ratios[ii] ** 2 * gtop
             gtanhs[ii] -= gtop
         gratios[-1] = -gZ
-        d_thick = (1 - tanhs ** 2) * alphas[:-1] * gtanhs
+        d_thick = (1 - tanhs**2) * alphas[:-1] * gtanhs
 
         galphas = gratios / sigmas[:, None]
-        galphas[:-1] += (1 - tanhs ** 2) * thicknesses[:, None] * gtanhs
+        galphas[:-1] += (1 - tanhs**2) * thicknesses[:, None] * gtanhs
 
         d_sigma = -ratios / sigmas[:, None] * gratios
         d_sigma += (0.5j * omega * mu_0) / alphas * galphas
@@ -287,7 +290,7 @@ class Simulation1DRecursive(BaseSimulation):
                     C = 180 / np.pi
                     real = np.real(Z[i_freq])
                     imag = np.imag(Z[i_freq])
-                    bot = real ** 2 + imag ** 2
+                    bot = real**2 + imag**2
                     d_real_dm = np.real(Js_row)
                     d_imag_dm = np.imag(Js_row)
                     Jrows = C * (-imag / bot * d_real_dm + real / bot * d_imag_dm)
@@ -305,9 +308,9 @@ class Simulation1DRecursive(BaseSimulation):
             self._Jmatrix["thick"] = J[:, start:end]
         return self._Jmatrix
 
-    def getJtJdiag(self, m, W=None):
+    def getJtJdiag(self, m, W=None, f=None):
         if getattr(self, "_gtgdiag", None) is None:
-            Js = self.getJ(m)
+            Js = self.getJ(m, f=f)
             if W is None:
                 W = np.ones(self.survey.nD)
             else:

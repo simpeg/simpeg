@@ -1,4 +1,3 @@
-from scipy.constants import mu_0
 from ...survey import BaseSurvey
 from .sources import BaseFDEMSrc
 from ...utils import validate_list_of_types
@@ -14,7 +13,6 @@ class Survey(BaseSurvey):
     """
 
     def __init__(self, source_list, **kwargs):
-
         super(Survey, self).__init__(source_list, **kwargs)
 
         _frequency_dict = {}

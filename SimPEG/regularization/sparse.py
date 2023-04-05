@@ -95,12 +95,12 @@ class BaseSparse(BaseRegularization):
             l2_max[self.norm < 1] = self.irls_threshold / np.sqrt(
                 1.0 - self.norm[self.norm < 1]
             )
-            lp_values = l2_max / (l2_max ** 2.0 + self.irls_threshold ** 2.0) ** (
+            lp_values = l2_max / (l2_max**2.0 + self.irls_threshold**2.0) ** (
                 1.0 - self.norm / 2.0
             )
             lp_scale[lp_values != 0] = np.abs(f_m).max() / lp_values[lp_values != 0]
 
-        return lp_scale / (f_m ** 2.0 + self.irls_threshold ** 2.0) ** (
+        return lp_scale / (f_m**2.0 + self.irls_threshold**2.0) ** (
             1.0 - self.norm / 2.0
         )
 
@@ -141,7 +141,6 @@ class SparseSmoothness(BaseSparse, SmoothnessFirstOrder):
         Compute and store the irls weights.
         """
         if self.gradient_type == "total":
-
             delta_m = self.mapping * self._delta_m(m)
             f_m = np.zeros_like(delta_m)
             for ii, comp in enumerate("xyz"):
@@ -192,29 +191,29 @@ class SparseSmoothness(BaseSparse, SmoothnessFirstOrder):
 
 
 class Sparse(WeightedLeastSquares):
-    """
+    r"""
     The regularization is:
 
     .. math::
 
-        R(m) = \\frac{1}{2}\\mathbf{(m-m_\\text{ref})^\\top W^\\top R^\\top R
-        W(m-m_\\text{ref})}
+        R(m) = \frac{1}{2}\mathbf{(m-m_\text{ref})^\top W^\top R^\top R
+        W(m-m_\text{ref})}
 
     where the IRLS weight
 
     .. math::
 
-        R = \\eta \\text{diag} \\left[\\mathbf{r}_s \\right]^{1/2} \\
-        r_{s_i} = {\\Big( {({m_i}^{(k-1)})}^{2} + \\epsilon^2 \\Big)}^{p_s/2 - 1}
+        R = \eta \text{diag} \left[\mathbf{r}_s \right]^{1/2} \
+        r_{s_i} = {\Big( {({m_i}^{(k-1)})}^{2} + \epsilon^2 \Big)}^{p_s/2 - 1}
 
     where k denotes the iteration number. So the derivative is straight forward:
 
     .. math::
 
-        R(m) = \\mathbf{W^\\top R^\\top R W (m-m_\\text{ref})}
+        R(m) = \mathbf{W^\top R^\top R W (m-m_\text{ref})}
 
     The IRLS weights are re-computed after each beta solves using
-    :obj:`~SimPEG.directives.Update_IRLS` within the inversion directives.
+    :class:`~SimPEG.directives.Update_IRLS` within the inversion directives.
     """
 
     def __init__(

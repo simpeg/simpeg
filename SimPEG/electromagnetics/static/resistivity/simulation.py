@@ -1,7 +1,13 @@
 import numpy as np
 import scipy.sparse as sp
 
-from ....utils import mkvc, Zero, validate_type, validate_string
+from ....utils import (
+    mkvc,
+    Zero,
+    validate_type,
+    validate_string,
+    validate_active_indices,
+)
 from ....data import Data
 from ....base import BaseElectricalPDESimulation
 from .survey import Survey
@@ -19,9 +25,18 @@ class BaseDCSimulation(BaseElectricalPDESimulation):
 
     Ainv = None
 
-    def __init__(self, mesh, survey=None, storeJ=False, miniaturize=False, **kwargs):
+    def __init__(
+        self,
+        mesh,
+        survey=None,
+        storeJ=False,
+        miniaturize=False,
+        surface_faces=None,
+        **kwargs,
+    ):
         super().__init__(mesh=mesh, survey=survey, **kwargs)
         self.storeJ = storeJ
+        self.surface_faces = surface_faces
         # Do stuff to simplify the forward and JTvec operation if number of dipole
         # sources is greater than the number of unique pole sources
         miniaturize = validate_type("miniaturize", miniaturize, bool)
@@ -60,6 +75,27 @@ class BaseDCSimulation(BaseElectricalPDESimulation):
     def storeJ(self, value):
         self._storeJ = validate_type("storeJ", value, bool)
 
+    @property
+    def surface_faces(self):
+        """Array defining which boundary faces to interpret as surfaces of Neumann boundary
+
+        DC problems will always enforce a Neumann boundary on surface interfaces.
+        The default (available on semi-structured grids) assumes the top interface
+        is the surface.
+
+        Returns
+        -------
+        None or (n_bf, ) numpy.ndarray of bool
+        """
+        return self._surface_faces
+
+    @surface_faces.setter
+    def surface_faces(self, value):
+        if value is not None:
+            n_bf = self.mesh.boundary_faces.shape[0]
+            value = validate_active_indices("surface_faces", value, n_bf)
+        self._surface_faces = value
+
     def fields(self, m=None, calcJ=True):
         if m is not None:
             self.model = m
@@ -96,12 +132,12 @@ class BaseDCSimulation(BaseElectricalPDESimulation):
 
         return self._mini_survey_data(data)
 
-    def getJtJdiag(self, m, W=None):
+    def getJtJdiag(self, m, W=None, f=None):
         """
         Return the diagonal of JtJ
         """
         if getattr(self, "_gtgdiag", None) is None:
-            J = self.getJ(m)
+            J = self.getJ(m, f=f)
 
             if W is None:
                 W = np.ones(J.shape[0])
@@ -287,7 +323,6 @@ class Simulation3DCellCentered(BaseDCSimulation):
     fieldsPair = Fields3DCellCentered
 
     def __init__(self, mesh, survey=None, bc_type="Robin", **kwargs):
-
         super().__init__(mesh=mesh, survey=survey, **kwargs)
         self.bc_type = bc_type
         self.setBC()
@@ -406,22 +441,31 @@ class Simulation3DCellCentered(BaseDCSimulation):
             r_hat = r_vec / r[:, None]
             r_dot_n = np.einsum("ij,ij->i", r_hat, boundary_normals)
 
-            # determine faces that are on the sides and bottom of the mesh...
-            if mesh._meshType.lower() == "tree":
-                not_top = boundary_faces[:, -1] != top_v
-            else:
-                # mesh faces are ordered, faces_x, faces_y, faces_z so...
-                if mesh.dim == 2:
-                    is_b = make_boundary_bool(mesh.shape_faces_y)
-                    is_t = np.zeros(mesh.shape_faces_y, dtype=bool, order="F")
-                    is_t[:, -1] = True
+            if self.surface_faces is None:
+                # determine faces that are on the sides and bottom of the mesh...
+                if mesh._meshType.lower() == "tree":
+                    not_top = boundary_faces[:, -1] != top_v
+                elif mesh._meshType.lower() in ["tensor", "curv"]:
+                    # mesh faces are ordered, faces_x, faces_y, faces_z so...
+                    if mesh.dim == 2:
+                        is_b = make_boundary_bool(mesh.shape_faces_y)
+                        is_t = np.zeros(mesh.shape_faces_y, dtype=bool, order="F")
+                        is_t[:, -1] = True
+                    else:
+                        is_b = make_boundary_bool(mesh.shape_faces_z)
+                        is_t = np.zeros(mesh.shape_faces_z, dtype=bool, order="F")
+                        is_t[:, :, -1] = True
+                    is_t = is_t.reshape(-1, order="F")[is_b]
+                    not_top = np.ones(boundary_faces.shape[0], dtype=bool)
+                    not_top[-len(is_t) :] = ~is_t
+                    self.surface_faces = ~not_top
                 else:
-                    is_b = make_boundary_bool(mesh.shape_faces_z)
-                    is_t = np.zeros(mesh.shape_faces_z, dtype=bool, order="F")
-                    is_t[:, :, -1] = True
-                is_t = is_t.reshape(-1, order="F")[is_b]
-                not_top = np.zeros(boundary_faces.shape[0], dtype=bool)
-                not_top[-len(is_t) :] = ~is_t
+                    raise NotImplementedError(
+                        f"Unable to infer surface boundaries for {type(mesh)}, please "
+                        f"set the `surface_faces` property."
+                    )
+            else:
+                not_top = ~self.surface_faces
             alpha[not_top] = (r_dot_n / r)[not_top]
 
         B, bc = mesh.cell_gradient_weak_form_robin(alpha, beta, gamma)
@@ -445,7 +489,7 @@ class Simulation3DNodal(BaseDCSimulation):
         if mesh._meshType == "TREE":
             mesh.nodal_gradient
         elif mesh._meshType == "CYL":
-            bc_type == "Neumann"
+            bc_type = "Neumann"
         self.bc_type = bc_type
         self.setBC()
 
@@ -565,21 +609,30 @@ class Simulation3DNodal(BaseDCSimulation):
             r_dot_n = np.einsum("ij,ij->i", r_hat, boundary_normals)
 
             # determine faces that are on the sides and bottom of the mesh...
-            if mesh._meshType.lower() == "tree":
-                not_top = boundary_faces[:, -1] != top_v
-            else:
-                # mesh faces are ordered, faces_x, faces_y, faces_z so...
-                if mesh.dim == 2:
-                    is_b = make_boundary_bool(mesh.shape_faces_y)
-                    is_t = np.zeros(mesh.shape_faces_y, dtype=bool, order="F")
-                    is_t[:, -1] = True
+            if self.surface_faces is None:
+                if mesh._meshType.lower() == "tree":
+                    not_top = boundary_faces[:, -1] != top_v
+                elif mesh._meshType.lower() in ["tensor", "curv"]:
+                    # mesh faces are ordered, faces_x, faces_y, faces_z so...
+                    if mesh.dim == 2:
+                        is_b = make_boundary_bool(mesh.shape_faces_y)
+                        is_t = np.zeros(mesh.shape_faces_y, dtype=bool, order="F")
+                        is_t[:, -1] = True
+                    else:
+                        is_b = make_boundary_bool(mesh.shape_faces_z)
+                        is_t = np.zeros(mesh.shape_faces_z, dtype=bool, order="F")
+                        is_t[:, :, -1] = True
+                    is_t = is_t.reshape(-1, order="F")[is_b]
+                    not_top = np.ones(boundary_faces.shape[0], dtype=bool)
+                    not_top[-len(is_t) :] = ~is_t
                 else:
-                    is_b = make_boundary_bool(mesh.shape_faces_z)
-                    is_t = np.zeros(mesh.shape_faces_z, dtype=bool, order="F")
-                    is_t[:, :, -1] = True
-                is_t = is_t.reshape(-1, order="F")[is_b]
-                not_top = np.zeros(boundary_faces.shape[0], dtype=bool)
-                not_top[-len(is_t) :] = ~is_t
+                    raise NotImplementedError(
+                        f"Unable to infer surface boundaries for {type(mesh)}, please "
+                        f"set the `surface_faces` property."
+                    )
+            else:
+                not_top = ~self.surface_faces
+
             alpha[not_top] = (r_dot_n / r)[not_top]
 
             P_bf = self.mesh.project_face_to_boundary_face

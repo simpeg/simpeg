@@ -102,11 +102,16 @@ k = np.r_[k, len(k) + 1]
 
 source_list = []
 for ii in range(0, n_sources):
-
     # MN electrode locations for receivers. Each is an (N, 3) numpy array
     M_locations = M_electrodes[k[ii] : k[ii + 1], :]
     N_locations = N_electrodes[k[ii] : k[ii + 1], :]
-    receiver_list = [dc.receivers.Dipole(M_locations, N_locations)]
+    receiver_list = [
+        dc.receivers.Dipole(
+            M_locations,
+            N_locations,
+            data_type="apparent_resistivity",
+        )
+    ]
 
     # AB electrode locations for source. Each is a (1, 3) numpy array
     A_location = A_electrodes[k[ii], :]
@@ -127,7 +132,7 @@ mpl.rcParams.update({"font.size": 14})
 ax1 = fig.add_axes([0.15, 0.1, 0.7, 0.85])
 ax1.semilogy(electrode_separations, dobs, "b")
 ax1.set_xlabel("AB/2 (m)")
-ax1.set_ylabel("Apparent Resistivity ($\Omega m$)")
+ax1.set_ylabel(r"Apparent Resistivity ($\Omega m$)")
 plt.show()
 
 ###############################################
@@ -200,7 +205,6 @@ simulation = dc.simulation_1d.Simulation1DLayers(
     survey=survey,
     rhoMap=model_map,
     thicknesses=layer_thicknesses,
-    data_type="apparent_resistivity",
 )
 
 

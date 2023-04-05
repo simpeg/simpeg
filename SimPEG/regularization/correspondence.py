@@ -7,12 +7,13 @@ from .base import BaseSimilarityMeasure
 
 
 class LinearCorrespondence(BaseSimilarityMeasure):
-    """
+    r"""
     The petrophysical linear constraint for joint inversions.
 
     ..math::
-        \\phi_c({\\mathbf m}_{\\mathbf1},{\\mathbf m}_{\\mathbf2})=\\lambda\\sum_{i=1}^M
-        (k_1*m_1 + k_2*m_2 + k_3)
+
+        \phi_c({\mathbf m}_{\mathbf1},{\mathbf m}_{\mathbf2})
+        = \lambda\sum_{i=1}^M (k_1*m_1 + k_2*m_2 + k_3)
 
     Assuming that we are working with two models only.
 
@@ -110,12 +111,12 @@ class LinearCorrespondence(BaseSimilarityMeasure):
         k1, k2, k3 = self.coefficients
         if v is not None:
             v1, v2 = self.wire_map * v
-            p1 = k1 ** 2 * v1 + k2 * k1 * v2
-            p2 = k2 * k1 * v1 + k2 ** 2 * v2
+            p1 = k1**2 * v1 + k2 * k1 * v2
+            p2 = k2 * k1 * v1 + k2**2 * v2
             return np.r_[p1, p2]
         else:
             n = self.regularization_mesh.nC
-            A = utils.sdiag(np.ones(n) * (k1 ** 2))
-            B = utils.sdiag(np.ones(n) * (k2 ** 2))
+            A = utils.sdiag(np.ones(n) * (k1**2))
+            B = utils.sdiag(np.ones(n) * (k2**2))
             C = utils.sdiag(np.ones(n) * (k1 * k2))
             return sp.bmat([[A, C], [C, B]], format="csr")

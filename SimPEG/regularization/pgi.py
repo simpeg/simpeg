@@ -92,7 +92,6 @@ class PGIsmallness(Smallness):
             self.set_weights(**weights)
 
     def set_weights(self, **weights):
-
         for key, values in weights.items():
             values = validate_ndarray_with_shape("weights", values, dtype=float)
 
@@ -190,7 +189,7 @@ class PGIsmallness(Smallness):
             )
 
         if isinstance(maplist, list) and not all(
-            isinstance(map, IdentityMap) for map in maplist
+            isinstance(m, IdentityMap) for m in maplist
         ):
             raise ValueError(
                 f"Attribute 'maplist' should be a list of maps or None.{type(maplist)} was given."
@@ -200,13 +199,12 @@ class PGIsmallness(Smallness):
 
     @timeIt
     def __call__(self, m, external_weights=True):
-
         if external_weights:
             W = self.W
         else:
             W = Identity()
 
-        if getattr(self, "mref", None) is None:
+        if getattr(self, "reference_model", None) is None:
             self.reference_model = mkvc(self.gmm.means_[self.membership(m)])
 
         if self.approx_eval:
@@ -278,8 +276,7 @@ class PGIsmallness(Smallness):
 
     @timeIt
     def deriv(self, m):
-
-        if getattr(self, "mref", None) is None:
+        if getattr(self, "reference_model", None) is None:
             self.reference_model = mkvc(self.gmm.means_[self.membership(m)])
 
         membership = self.compute_quasi_geology_model()
@@ -298,13 +295,11 @@ class PGIsmallness(Smallness):
             ].reshape(-1, 2)
 
         if self.approx_gradient:
-
             dmmref = np.c_[[a for a in mreflist]].T
             dm = dmmodel - dmmref
             r0 = (self.W * (mkvc(dm))).reshape(dm.shape, order="F")
 
             if self.gmm.covariance_type == "tied":
-
                 if self.non_linear_relationships:
                     raise Exception("Not implemented")
 
@@ -469,8 +464,7 @@ class PGIsmallness(Smallness):
 
     @timeIt
     def deriv2(self, m, v=None):
-
-        if getattr(self, "mref", None) is None:
+        if getattr(self, "reference_model", None) is None:
             self.reference_model = mkvc(self.gmm.means_[self.membership(m)])
 
         if self.approx_hessian:
@@ -498,7 +492,6 @@ class PGIsmallness(Smallness):
                             ]
                         ]
                     else:
-
                         r = self.gmm.precisions_[np.newaxis, :, :][
                             np.zeros_like(membership)
                         ]
@@ -618,7 +611,6 @@ class PGIsmallness(Smallness):
             )
             for k in range(self.gmm.n_components):
                 if self.gmm.covariance_type == "tied":
-
                     W.append(
                         [
                             np.diag(sensW[i]).dot(
@@ -737,7 +729,9 @@ class PGI(ComboObjectiveFunction):
         if not isinstance(weights_list, list):
             weights_list = [weights_list] * len(self.maplist)
 
-        for map, wire, weights in zip(self.maplist, self.wiresmap.maps, weights_list):
+        for model_map, wire, weights in zip(
+            self.maplist, self.wiresmap.maps, weights_list
+        ):
             objfcts += [
                 WeightedLeastSquares(
                     alpha_s=0.0,
@@ -748,7 +742,7 @@ class PGI(ComboObjectiveFunction):
                     alpha_yy=alpha_yy,
                     alpha_zz=alpha_zz,
                     mesh=self.regularization_mesh,
-                    mapping=map * wire[1],
+                    mapping=model_map * wire[1],
                     weights=weights,
                     **kwargs,
                 )
@@ -838,7 +832,6 @@ class PGI(ComboObjectiveFunction):
 
     @reference_model.setter
     def reference_model(self, values: np.ndarray | float):
-
         if isinstance(values, float):
             values = np.ones(self._nC_residual) * values
 
