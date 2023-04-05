@@ -560,8 +560,8 @@ class TestWires(unittest.TestCase):
 
         named_model = wires * model
 
-        named_model.sigma == model[: mesh.shape_cells[2]]
-        assert named_model.mu_casing == 10
+        np.testing.assert_equal(named_model.sigma, model[: mesh.shape_cells[2]])
+        np.testing.assert_equal(named_model.mu_casing, 10)
 
 
 class TestSCEMT(unittest.TestCase):
