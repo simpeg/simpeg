@@ -1921,7 +1921,7 @@ class SaveOutputDictEveryIteration(SaveEveryIteration):
                     if hasattr(reg_part, "orientation"):
                         reg_name = reg_part.orientation + " " + reg_name
                     iterDict[reg_name + ".irls_threshold"] = reg_part.irls_threshold
-                    iterDict[reg_name + ".norm"] = reg_part.norm
+                    iterDict[reg_name + ".norm"] = norm
 
         # Save the file as a npz
         if self.saveOnDisk:
