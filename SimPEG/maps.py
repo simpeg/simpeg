@@ -58,24 +58,25 @@ class IdentityMap:
     mesh : discretize.BaseMesh
         The number of parameters accepted by the mapping is set to equal the number
         of mesh cells.
-    nP : int
+    nP : int, or '*'
         Set the number of parameters accepted by the mapping directly. Used if the
         number of parameters is known. Used generally when the number of parameters
         is not equal to the number of cells in a mesh.
     """
 
     def __init__(self, mesh=None, nP=None, **kwargs):
-        if nP is not None:
-            if isinstance(nP, str):
-                assert nP == "*", "nP must be an integer or '*', not {}".format(nP)
-            assert isinstance(
-                nP, (int, np.integer)
-            ), "Number of parameters must be an integer. Not `{}`.".format(type(nP))
-            nP = int(nP)
-        elif mesh is not None:
-            nP = mesh.nC
+        if (isinstance(nP, str) and nP == "*") or nP is None:
+            if mesh is not None:
+                nP = mesh.n_cells
+            else:
+                nP = "*"
         else:
-            nP = "*"
+            try:
+                nP = int(nP)
+            except (TypeError, ValueError) as err:
+                raise TypeError(
+                    f"Unrecognized input of {repr(nP)} for number of parameters, must be an integer or '*'."
+                ) from err
         self.mesh = mesh
         self._nP = nP
 
