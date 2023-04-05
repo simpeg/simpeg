@@ -77,6 +77,27 @@ MAPS_TO_EXCLUDE_3D = [
 ] + REMOVED_IGNORE
 
 
+def test_IdentityMap_init():
+    m = maps.IdentityMap()
+    assert m.nP == "*"
+
+    m = maps.IdentityMap(nP="*")
+    assert m.nP == "*"
+
+    m = maps.IdentityMap(nP=3)
+    assert m.nP == 3
+
+    mesh = discretize.TensorMesh([3])
+    m = maps.IdentityMap(mesh)
+    assert m.nP == 3
+
+    m = maps.IdentityMap(mesh, nP="*")
+    assert m.nP == 3
+
+    with pytest.raises(TypeError):
+        maps.IdentityMap(nP="x")
+
+
 class MapTests(unittest.TestCase):
     def setUp(self):
         maps2test2D = [M for M in dir(maps) if M not in MAPS_TO_EXCLUDE_2D]
