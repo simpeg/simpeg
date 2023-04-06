@@ -18,19 +18,15 @@ def _store_model(mapping, sim, model):
     sim.model = mapping * model
 
 
-def _apply_mapping(mapping, model):
-    return mapping * model
-
-
-def _calc_fields(sim, sim_model=None):
-    if sim_model is not None:
-        sim.model = sim_model
+def _calc_fields(mapping, sim, model, apply_map=False):
+    if apply_map:
+        sim.model = mapping @ model
     return sim.fields(m=sim.model)
 
 
-def _calc_dpred(sim, field, sim_model=None):
-    if sim_model is not None:
-        sim.model = sim_model
+def _calc_dpred(mapping, sim, model, field, apply_map=False):
+    if apply_map:
+        sim.model = mapping @ model
     return sim.dpred(m=sim.model, f=field)
 
 
@@ -47,11 +43,11 @@ def _jt_vec_op(mapping, sim, model, field, v, apply_map=False):
     return mapping.deriv(model).T @ sim.Jtvec(sim.model, v, f=field)
 
 
-def _get_jtj_diag(mapping, sim, model, field, w, sim_model=None):
-    if sim_model is not None:
-        sim.model = sim_model
+def _get_jtj_diag(mapping, sim, model, field, w, apply_map=False):
+    if apply_map is not None:
+        sim.model = mapping @ model
     w = sp.diags(w)
-    sim_jtj = sp.diags(np.sqrt(sim.getJtJdiag(sim.model, w)))
+    sim_jtj = sp.diags(np.sqrt(sim.getJtJdiag(sim.model, w, f=field)))
     m_deriv = mapping.deriv(model)
     return np.asarray((sim_jtj @ m_deriv).power(2).sum(axis=0)).flatten()
 
@@ -289,20 +285,27 @@ class DaskMetaSimulation(MetaSimulation):
                             workers=worker,
                         )
                     )
-                self.client.gather(futures)  # blocking call
+                self.client.gather(
+                    futures
+                )  # blocking call to ensure all models were stored
 
     def fields(self, m):
         self.model = m
-        sim_mod = None
         client = self.client
+        m_future = self._m_as_future
         # The above should pass the model to all the internal simulations.
         f = []
         for mapping, sim, worker in zip(self.mappings, self.simulations, self._workers):
-            if self._repeat_sim:
-                sim_mod = client.submit(
-                    _apply_mapping, mapping, self._m_as_future, workers=worker
+            f.append(
+                client.submit(
+                    _calc_fields,
+                    mapping,
+                    sim,
+                    m_future,
+                    self._repeat_sim,
+                    workers=worker,
                 )
-            f.append(client.submit(_calc_fields, sim, sim_mod, workers=worker))
+            )
         return f
 
     def dpred(self, m=None, f=None):
@@ -311,22 +314,27 @@ class DaskMetaSimulation(MetaSimulation):
                 m = self.model
             f = self.fields(m)
         client = self.client
-        sim_mod = None
+        m_future = self._m_as_future
         dpred = []
         for mapping, sim, worker, field in zip(
             self.mappings, self.simulations, self._workers, f
         ):
-            if self._repeat_sim:
-                sim_mod = client.submit(
-                    _apply_mapping, mapping, self._m_as_future, workers=worker
-                )
             dpred.append(
-                client.submit(_calc_dpred, sim, field, sim_mod, workers=worker)
+                client.submit(
+                    _calc_dpred,
+                    mapping,
+                    sim,
+                    m_future,
+                    field,
+                    self._repeat_sim,
+                    workers=worker,
+                )
             )
         return np.concatenate(client.gather(dpred))
 
     def Jvec(self, m, v, f=None):
         self.model = m
+        m_future = self._m_as_future
         if f is None:
             f = self.fields(m)
         client = self.client
@@ -340,7 +348,7 @@ class DaskMetaSimulation(MetaSimulation):
                     _j_vec_op,
                     mapping,
                     sim,
-                    self._m_as_future,
+                    m_future,
                     field,
                     v_future,
                     self._repeat_sim,
@@ -351,6 +359,7 @@ class DaskMetaSimulation(MetaSimulation):
 
     def Jtvec(self, m, v, f=None):
         self.model = m
+        m_future = self._m_as_future
         if f is None:
             f = self.fields(m)
         jt_vec = []
@@ -363,7 +372,7 @@ class DaskMetaSimulation(MetaSimulation):
                     _jt_vec_op,
                     mapping,
                     sim,
-                    self._m_as_future,
+                    m_future,
                     field,
                     v[self._data_offsets[i] : self._data_offsets[i + 1]],
                     self._repeat_sim,
@@ -376,6 +385,7 @@ class DaskMetaSimulation(MetaSimulation):
 
     def getJtJdiag(self, m, W=None, f=None):
         self.model = m
+        m_future = self._m_as_future
         if getattr(self, "_jtjdiag", None) is None:
             if W is None:
                 W = np.ones(self.survey.nD)
@@ -385,24 +395,19 @@ class DaskMetaSimulation(MetaSimulation):
             client = self.client
             if f is None:
                 f = self.fields(m)
-            sim_mod = None
             for i, (mapping, sim, worker, field) in enumerate(
                 zip(self.mappings, self.simulations, self._workers, f)
             ):
-                if self._repeat_sim:
-                    sim_mod = client.submit(
-                        _apply_mapping, mapping, self._m_as_future, workers=worker
-                    )
                 sim_w = W[self._data_offsets[i] : self._data_offsets[i + 1]]
                 jtj_diag.append(
                     client.submit(
                         _get_jtj_diag,
                         mapping,
                         sim,
-                        self._m_as_future,
+                        m_future,
                         field,
                         sim_w,
-                        sim_mod,
+                        self._repeat_sim,
                         workers=worker,
                     )
                 )
@@ -455,7 +460,9 @@ class DaskSumMetaSimulation(DaskMetaSimulation, SumMetaSimulation):
         client = self.client
         dpred = []
         for sim, worker, field in zip(self.simulations, self._workers, f):
-            dpred.append(client.submit(_calc_dpred, sim, field, workers=worker))
+            dpred.append(
+                client.submit(_calc_dpred, None, sim, None, field, workers=worker)
+            )
         return _reduce(client, add, dpred)
 
     def Jvec(self, m, v, f=None):
