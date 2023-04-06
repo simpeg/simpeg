@@ -329,7 +329,6 @@ class DaskMetaSimulation(MetaSimulation):
         self.model = m
         if f is None:
             f = self.fields(m)
-        sim_mod = None
         client = self.client
         [v_future] = client.scatter([v], broadcast=True)
         j_vec = []
@@ -354,7 +353,6 @@ class DaskMetaSimulation(MetaSimulation):
         self.model = m
         if f is None:
             f = self.fields(m)
-        sim_mod = None
         jt_vec = []
         client = self.client
         for i, (mapping, sim, worker, field) in enumerate(
@@ -489,8 +487,8 @@ class DaskSumMetaSimulation(DaskMetaSimulation, SumMetaSimulation):
             f = self.fields(m)
         jt_vec = []
         client = self.client
-        for i, (mapping, sim, worker, field) in enumerate(
-            zip(self.mappings, self._simulations, self._workers, f)
+        for mapping, sim, worker, field in zip(
+            self.mappings, self._simulations, self._workers, f
         ):
             jt_vec.append(
                 client.submit(
@@ -518,8 +516,8 @@ class DaskSumMetaSimulation(DaskMetaSimulation, SumMetaSimulation):
             client = self.client
             if f is None:
                 f = self.fields(m)
-            for i, (mapping, sim, worker, field) in enumerate(
-                zip(self.mappings, self._simulations, self._workers, f)
+            for mapping, sim, worker, field in zip(
+                self.mappings, self._simulations, self._workers, f
             ):
                 jtj_diag.append(
                     client.submit(
