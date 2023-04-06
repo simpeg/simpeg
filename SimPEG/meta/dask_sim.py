@@ -167,16 +167,6 @@ class DaskMetaSimulation(MetaSimulation):
         """
         return self._mappings
 
-    @property
-    def client(self):
-        """The distributed client that handles the internal tasks.
-
-        Returns
-        -------
-        distributed.Client
-        """
-        return self._client
-
     @mappings.setter
     def mappings(self, value):
         client = self.client
@@ -254,11 +244,13 @@ class DaskMetaSimulation(MetaSimulation):
 
     @property
     def client(self):
-        return self._client
+        """The distributed client that handles the internal tasks.
 
-    @client.setter
-    def client(self, value):
-        self._client = validate_type("client", value, Client, cast=False)
+        Returns
+        -------
+        distributed.Client
+        """
+        return self._client
 
     @property
     def model(self):
