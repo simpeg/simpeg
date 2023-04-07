@@ -289,26 +289,35 @@ wires = maps.Wires(("amp", nC), ("theta", nC), ("phi", nC))
 # Create a Combo Regularization
 # Regularize the amplitude of the vectors
 reg_a = regularization.Sparse(
-    mesh, gradient_type="components", active_cells=actv, mapping=wires.amp
+    mesh,
+    gradient_type="total",
+    active_cells=actv,
+    mapping=wires.amp,
+    norms=[0.0, 1.0, 1.0, 1.0], # Only norm on gradients used,
+    reference_model=np.zeros(3 * nC)
 )
-reg_a.norms = [0.0, 0.0, 0.0, 0.0]  # Sparse on the model and its gradients
-reg_a.reference_model = np.zeros(3 * nC)
 
 # Regularize the vertical angle of the vectors
 reg_t = regularization.Sparse(
-    mesh, gradient_type="components", active_cells=actv, mapping=wires.theta
+    mesh,
+    gradient_type="total",
+    active_cells=actv,
+    mapping=wires.theta,
+    alpha_s=0.0,  # No reference angle,
+    norms=[0.0, 1.0, 1.0, 1.0]  # Only norm on gradients used,
 )
-reg_t.alpha_s = 0.0  # No reference angle
 reg_t.units = "radian"
-reg_t.norms = [0.0, 0.0, 0.0, 0.0]  # Only norm on gradients used
 
 # Regularize the horizontal angle of the vectors
 reg_p = regularization.Sparse(
-    mesh, gradient_type="components", active_cells=actv, mapping=wires.phi
+    mesh,
+    gradient_type="total",
+    active_cells=actv,
+    mapping=wires.phi,
+    alpha_s=0.0,  # No reference angle,
+    norms=[0.0, 1.0, 1.0, 1.0]  # Only norm on gradients used,
 )
-reg_p.alpha_s = 0.0  # No reference angle
 reg_p.units = "radian"
-reg_p.norms = [0.0, 0.0, 0.0, 0.0]  # Only norm on gradients used
 
 reg = reg_a + reg_t + reg_p
 reg.reference_model = np.zeros(3 * nC)
@@ -366,7 +375,7 @@ mrec_MVI_S = inv.run(m_start)
 plt.figure(figsize=(8, 8))
 ax = plt.subplot(2, 1, 1)
 mesh.plot_slice(
-    mrec_MVIC.reshape((nC, 3), order="F"),
+    actv_plot * mrec_MVIC.reshape((nC, 3), order="F"),
     v_type="CCv",
     view="vec",
     ax=ax,
@@ -375,7 +384,7 @@ mesh.plot_slice(
     grid=True,
     quiver_opts={
         "pivot": "mid",
-        "scale": 5 * np.abs(invProb.l2model).max(),
+        "scale": 5 * np.abs(mrec_MVIC).max(),
         "scale_units": 'inches'
     },
 )
@@ -392,7 +401,7 @@ vec_xyz = utils.mat_utils.spherical2cartesian(
 ).reshape((nC, 3), order="F")
 
 mesh.plot_slice(
-    vec_xyz,
+    actv_plot * vec_xyz,
     v_type="CCv",
     view="vec",
     ax=ax,
@@ -401,7 +410,7 @@ mesh.plot_slice(
     grid=True,
     quiver_opts={
         "pivot": "mid",
-        "scale": 5 * np.abs(mrec_MVIC).max(),
+        "scale": 5 * np.abs(vec_xyz).max(),
         "scale_units": 'inches'
     },
 )
