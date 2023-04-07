@@ -10,7 +10,6 @@ regularization borrowed from ...
 
 """
 
-from discretize import TreeMesh
 from SimPEG import (
     dask,
     data,
@@ -216,7 +215,7 @@ rxLoc = survey.source_field.receiver_list[0].locations
 
 # This Mapping connects the regularizations for the three-component
 # vector model
-wires = maps.Group(("p", nC), ("s", nC), ("t", nC))
+wires = maps.Wires(("p", nC), ("s", nC), ("t", nC))
 m0 = np.ones(3 * nC) * 1e-4 # Starting model
 
 # Create three regularizations for the different components
@@ -244,7 +243,7 @@ opt = optimization.ProjectedGNCG(
 invProb = inverse_problem.BaseInvProblem(dmis, reg, opt)
 
 # A list of directive to control the inverson
-betaest = directives.BetaEstimate_ByEig(beta0_ratio=5e1)
+betaest = directives.BetaEstimate_ByEig(beta0_ratio=1e1)
 
 # Add sensitivity weights
 sensitivity_weights = directives.UpdateSensitivityWeights()

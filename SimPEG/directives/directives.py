@@ -2719,7 +2719,7 @@ class UpdateSensitivityWeights(InversionDirective):
             if isinstance(reg, BaseSimilarityMeasure):
                 continue
 
-            if hasattr(reg.mapping, "maps"):
+            if isinstance(reg.mapping, Wires):
                 for _, wire in reg.mapping.maps:
                     wr += wire.deriv(self.invProb.model).T * (
                         (wire * jtj_diag) / reg.regularization_mesh.vol**2.0
