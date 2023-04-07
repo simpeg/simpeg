@@ -26,7 +26,7 @@ from SimPEG import (
 from SimPEG import utils
 from SimPEG.utils import mkvc, sdiag
 
-from discretize.utils import mesh_builder_xyz, refine_tree_xyz
+from discretize.utils import mesh_builder_xyz, refine_tree_xyz, active_from_xyz
 from SimPEG.potential_fields import magnetics
 import scipy as sp
 import numpy as np
@@ -112,7 +112,7 @@ mesh = refine_tree_xyz(
 
 
 # Define an active cells from topo
-actv = utils.surface2ind_topo(mesh, topo)
+actv = active_from_xyz(mesh, topo)
 nC = int(actv.sum())
 
 ###########################################################################
