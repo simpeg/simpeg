@@ -104,6 +104,16 @@ class BaseAmplitude(BaseRegularization):
 
         return f_m_derivs
 
+    @property
+    def _nC_residual(self) -> int:
+        """
+        Shape of the residual
+        """
+        if self.mapping is None:
+            raise AttributeError("The regularization does not have a 'mapping' yet.")
+
+        return int(np.sum([wire.shape[0] for (_, wire) in self.mapping.maps]))
+
 
 class AmplitudeSmallness(SparseSmallness, BaseAmplitude):
     """
@@ -123,7 +133,11 @@ class AmplitudeSmallness(SparseSmallness, BaseAmplitude):
 
     def f_m_deriv(self, m) -> csr_matrix:
 
-        return self.mapping.deriv(self._delta_m(m))
+        deriv = []
+        dm = self._delta_m(m)
+        for name, wire in self.mapping.maps:
+            deriv += [wire.deriv(dm)]
+        return deriv
 
     @property
     def W(self):
@@ -157,8 +171,9 @@ class AmplitudeSmoothnessFirstOrder(SparseSmoothness, BaseAmplitude):
     def f_m_deriv(self, m) -> csr_matrix:
 
         deriv = []
-        for map_deriv in self.mapping.deriv(self._delta_m(m)):
-            deriv.append(self.cell_gradient * map_deriv)
+        dm = self._delta_m(m)
+        for name, wire in self.mapping.maps:
+            deriv += [self.cell_gradient * wire.deriv(dm)]
 
         return deriv
 
