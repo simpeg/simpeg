@@ -102,7 +102,6 @@ class BaseAmplitude(BaseRegularization):
         deriv = 0.0
 
         for f_m_deriv in self.f_m_deriv(m):
-
             if v is None:
                 deriv += f_m_deriv.T * ((self.W.T * self.W) * f_m_deriv)
             else:
@@ -138,7 +137,6 @@ class AmplitudeSmallness(SparseSmallness, BaseAmplitude):
         return np.linalg.norm(self.mapping * self._delta_m(m), axis=0)
 
     def f_m_deriv(self, m) -> csr_matrix:
-
         deriv = []
         dm = self._delta_m(m)
         for name, wire in self.mapping.maps:
@@ -157,7 +155,6 @@ class AmplitudeSmoothnessFirstOrder(SparseSmoothness, BaseAmplitude):
         return self.cell_gradient @ a
 
     def f_m_deriv(self, m) -> csr_matrix:
-
         deriv = []
         dm = self._delta_m(m)
         for name, wire in self.mapping.maps:
