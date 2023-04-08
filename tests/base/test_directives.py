@@ -11,6 +11,7 @@ from SimPEG import (
     optimization,
     inversion,
     inverse_problem,
+    simulation,
 )
 from SimPEG.potential_fields import magnetics as mag
 import shutil
@@ -257,6 +258,44 @@ class ValidationInInversion(unittest.TestCase):
             shutil.rmtree(self.sim.sensitivity_path)
         except FileNotFoundError:
             pass
+
+
+@pytest.mark.parametrize(
+    "RegClass", [regularization.Sparse, regularization.WeightedLeastSquares]
+)
+def test_save_output_dict(RegClass):
+    mesh = discretize.TensorMesh([30])
+    sim = simulation.ExponentialSinusoidSimulation(
+        mesh=mesh, model_map=maps.IdentityMap()
+    )
+    data = sim.make_synthetic_data(np.ones(mesh.n_cells), add_noise=True)
+    dmis = data_misfit.L2DataMisfit(data, sim)
+
+    opt = optimization.InexactGaussNewton(maxIter=1)
+
+    m_ref = np.zeros(mesh.n_cells)
+    reg = RegClass(mesh, reference_model=m_ref)
+
+    inv_prob = inverse_problem.BaseInvProblem(dmis, reg, opt, beta=1)
+
+    save_direct = directives.SaveOutputDictEveryIteration()
+    inv = inversion.BaseInversion(inv_prob, directiveList=[save_direct])
+
+    inv.run(np.zeros(mesh.n_cells))
+
+    out_dict = save_direct.outDict[1]
+    assert "iter" in out_dict
+    assert "beta" in out_dict
+    assert "phi_d" in out_dict
+    assert "phi_m" in out_dict
+    assert "f" in out_dict
+    assert "m" in out_dict
+    assert "dpred" in out_dict
+    if RegClass is regularization.Sparse:
+        assert "SparseSmallness.irls_threshold" in out_dict
+        assert "SparseSmallness.norm" in out_dict
+        assert "x SparseSmoothness.irls_threshold" in out_dict
+        assert "x SparseSmoothness.norm" in out_dict
 
 
 if __name__ == "__main__":

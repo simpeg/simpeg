@@ -489,7 +489,7 @@ class Simulation3DNodal(BaseDCSimulation):
         if mesh._meshType == "TREE":
             mesh.nodal_gradient
         elif mesh._meshType == "CYL":
-            bc_type == "Neumann"
+            bc_type = "Neumann"
         self.bc_type = bc_type
         self.setBC()
 

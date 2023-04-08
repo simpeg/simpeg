@@ -575,5 +575,20 @@ class RegularizationTests(unittest.TestCase):
 
 
 
+def test_WeightedLeastSquares():
+    mesh = discretize.TensorMesh([3, 4, 5])
+
+    reg = regularization.WeightedLeastSquares(mesh)
+
+    reg.length_scale_x = 0.5
+    np.testing.assert_allclose(reg.length_scale_x, 0.5)
+
+    reg.length_scale_y = 0.3
+    np.testing.assert_allclose(reg.length_scale_y, 0.3)
+
+    reg.length_scale_z = 0.8
+    np.testing.assert_allclose(reg.length_scale_z, 0.8)
+
+
 if __name__ == "__main__":
     unittest.main()
