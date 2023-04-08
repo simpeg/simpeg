@@ -27,6 +27,7 @@ IGNORE_ME = [
     "CrossGradient",
     "LinearCorrespondence",
     "JointTotalVariation",
+    "VectorAmplitude",
 ]
 
 
@@ -548,6 +549,30 @@ class RegularizationTests(unittest.TestCase):
                 reg.irls_scaled = -1
 
             assert reg.gradient_type == "total"  # Check default
+
+    def test_vector_amplitude(self):
+        n_comp = 4
+        mesh = discretize.TensorMesh([8, 7])
+        model = np.random.randn(mesh.nC, n_comp)
+
+        with pytest.raises(TypeError, match="'regularization_mesh' must be of type"):
+            regularization.VectorAmplitude("abc")
+
+        with pytest.raises(TypeError, match="A 'mapping' of type"):
+            regularization.VectorAmplitude(
+                mesh, maps.IdentityMap(mesh)
+            )
+
+        wires = ((f"wire{ind}", mesh.nC) for ind in range(n_comp))
+        mapping = maps.Wires(*wires)
+
+        reg = regularization.VectorAmplitude(mesh, mapping)
+
+        np.testing.assert_almost_equal(
+            reg.objfcts[0].f_m(model.flatten(order='F')),
+            np.linalg.norm(model, axis=1)
+        )
+
 
 
 if __name__ == "__main__":

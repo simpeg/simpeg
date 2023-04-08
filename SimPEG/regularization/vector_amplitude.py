@@ -30,9 +30,12 @@ class BaseAmplitude(BaseRegularization):
         return self._mapping
 
     @mapping.setter
-    def mapping(self, wires):
-        if not isinstance(wires, maps.Wires):
-            raise ValueError(f"A 'mapping' of type {maps.Wires} must be provided.")
+    def mapping(self, wires: maps.Wires | None):
+        if isinstance(wires, type(None)):
+            wires = maps.Wires(("model", self.regularization_mesh.nC))
+
+        elif not isinstance(wires, maps.Wires):
+            raise TypeError(f"A 'mapping' of type {maps.Wires} must be provided.")
 
         for wire in wires.maps:
             if wire[1].shape[0] != self.regularization_mesh.nC:
@@ -214,48 +217,49 @@ class VectorAmplitude(Sparse):
     def __init__(
         self,
         mesh,
-        wire_map,
+        mapping=None,
         active_cells=None,
         **kwargs,
     ):
-        if not isinstance(mesh, RegularizationMesh):
-            mesh = RegularizationMesh(mesh)
-
-        if not isinstance(mesh, RegularizationMesh):
-            TypeError(
+        if not isinstance(mesh, (BaseMesh, RegularizationMesh)):
+            raise TypeError(
                 f"'regularization_mesh' must be of type {RegularizationMesh} or {BaseMesh}. "
                 f"Value of type {type(mesh)} provided."
             )
+
+        if not isinstance(mesh, RegularizationMesh):
+            mesh = RegularizationMesh(mesh)
+
         self._regularization_mesh = mesh
 
         if active_cells is not None:
             self._regularization_mesh.active_cells = active_cells
 
         objfcts = [
-            AmplitudeSmallness(mesh=self.regularization_mesh, mapping=wire_map),
+            AmplitudeSmallness(mesh=self.regularization_mesh, mapping=mapping),
             AmplitudeSmoothnessFirstOrder(
-                mesh=self.regularization_mesh, mapping=wire_map, orientation="x"
+                mesh=self.regularization_mesh, orientation="x", mapping=mapping
             ),
         ]
 
         if mesh.dim > 1:
             objfcts.append(
                 AmplitudeSmoothnessFirstOrder(
-                    mesh=self.regularization_mesh, mapping=wire_map, orientation="y"
+                    mesh=self.regularization_mesh, orientation="y", mapping=mapping
                 )
             )
 
         if mesh.dim > 2:
             objfcts.append(
                 AmplitudeSmoothnessFirstOrder(
-                    mesh=self.regularization_mesh, mapping=wire_map, orientation="z"
+                    mesh=self.regularization_mesh, orientation="z", mapping=mapping
                 )
             )
 
         super().__init__(
             self.regularization_mesh,
             objfcts=objfcts,
-            mapping=wire_map,
+            mapping=mapping,
             **kwargs,
         )
 
@@ -266,7 +270,7 @@ class VectorAmplitude(Sparse):
     @mapping.setter
     def mapping(self, wires):
         if not isinstance(wires, maps.Wires):
-            raise ValueError(f"A 'mapping' of type {maps.Wires} must be provided.")
+            raise TypeError(f"A 'mapping' of type {maps.Wires} must be provided.")
 
         for wire in wires.maps:
             if wire[1].shape[0] != self.regularization_mesh.nC:
