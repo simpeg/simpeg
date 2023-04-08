@@ -89,7 +89,7 @@ class BaseAmplitude(BaseRegularization):
         """ """
         d_m = self._delta_m(m)
 
-        deriv = 0.
+        deriv = 0.0
 
         for f_m_deriv in self.f_m_deriv(d_m):
             deriv += f_m_deriv.T * ((self.W.T * self.W) * f_m_deriv * d_m)
@@ -99,7 +99,7 @@ class BaseAmplitude(BaseRegularization):
     @utils.timeIt
     def deriv2(self, m, v=None) -> csr_matrix:
         """ """
-        deriv = 0.
+        deriv = 0.0
 
         for f_m_deriv in self.f_m_deriv(m):
 
