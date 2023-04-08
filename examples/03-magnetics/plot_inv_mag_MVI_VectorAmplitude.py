@@ -48,19 +48,12 @@ np.random.seed(1)
 # We will assume a vertical inducing field
 H0 = (50000.0, 90.0, 0.0)
 
-# The magnetization is set along a different direction (induced + remanence)
-M = [
-    np.c_[45.0, 270.0],
-    np.c_[45.0, 90.0],
-]
-
 # Create grid of points for topography
 # Lets create a simple Gaussian topo and set the active cells
 [xx, yy] = np.meshgrid(np.linspace(-200, 200, 50), np.linspace(-200, 200, 50))
 b = 100
 A = 50
 zz = A * np.exp(-0.5 * ((xx / b) ** 2.0 + (yy / b) ** 2.0))
-
 topo = np.c_[utils.mkvc(xx), utils.mkvc(yy), utils.mkvc(zz)]
 
 # Create an array of observation points
@@ -75,27 +68,11 @@ rxLoc = magnetics.receivers.Point(xyzLoc)
 srcField = magnetics.sources.SourceField(receiver_list=[rxLoc], parameters=H0)
 survey = magnetics.survey.Survey(srcField)
 
-# Here how the topography looks with a quick interpolation, just a Gaussian...
-tri = sp.spatial.Delaunay(topo)
-# fig = plt.figure()
-# ax = fig.add_subplot(1, 1, 1, projection="3d")
-# ax.plot_trisurf(
-#     topo[:, 0], topo[:, 1], topo[:, 2], triangles=tri.simplices, cmap=plt.cm.Spectral
-# )
-# ax.scatter3D(xyzLoc[:, 0], xyzLoc[:, 1], xyzLoc[:, 2], c="k")
-# plt.show()
-
 ###############################################################################
 # Inversion Mesh
 # --------------
 #
-# Here, we create a TreeMesh with base cell size of 5 m. We created a small
-# utility function to center the mesh around points and to figure out the
-# outermost dimension for adequate padding distance.
-# The second stage allows us to refine the mesh around points or surfaces
-# (point assumed to follow some horizontal trend)
-# The refinement process is repeated twice to allow for a finer level around
-# the survey locations.
+# Here, we create a TreeMesh with base cell size of 5 m.
 #
 
 # Create a mesh
@@ -115,17 +92,10 @@ actv = active_from_xyz(mesh, topo)
 nC = int(actv.sum())
 
 ###########################################################################
-# A simple function to plot vectors in TreeMesh
-#
-# Should eventually end up on discretize
-#
-
-###########################################################################
 # Forward modeling data
 # ---------------------
 #
-# We can now create a magnetization model and generate data
-# Lets start with a block below topography
+# We can now create a magnetization model and generate data.
 #
 model_azm_dip = np.zeros((mesh.nC, 2))
 model_amp = np.ones(mesh.nC) * 1e-8
@@ -145,7 +115,7 @@ model = sdiag(model_amp) * utils.mat_utils.dip_azimuth2cartesian(
     model_azm_dip[:, 0], model_azm_dip[:, 1]
 )
 
-# Creat reduced identity map
+# Create reduced identity map
 idenMap = maps.IdentityMap(nP=nC * 3)
 
 # Create the simulation
@@ -165,49 +135,12 @@ data_object = data.Data(survey, dobs=synthetic_data, standard_deviation=wd)
 # Create a projection matrix for plotting later
 actv_plot = maps.InjectActiveCells(mesh, actv, np.nan)
 
-# Plot the model and data
-plt.figure()
-ax = plt.subplot(2, 1, 1)
-im = utils.plot_utils.plot2Ddata(xyzLoc, synthetic_data, ax=ax)
-plt.colorbar(im[0])
-ax.set_title("Predicted data.")
-plt.gca().set_aspect("equal", adjustable="box")
-
-# Plot the vector model
-ax = plt.subplot(2, 1, 2)
-mesh.plot_slice(
-    actv_plot * model.reshape((-1, 3), order="F"),
-    v_type="CCv",
-    view="vec",
-    ax=ax,
-    normal="Y",
-    ind=66,
-    grid=True,
-    quiver_opts={
-        "pivot": "mid",
-        "scale": 5 * np.abs(model).max(),
-        "scale_units": 'inches'
-    },
-)
-ax.set_xlim([-200, 200])
-ax.set_ylim([-100, 75])
-ax.set_xlabel("x")
-ax.set_ylabel("y")
-plt.gca().set_aspect("equal", adjustable="box")
-
-plt.show()
-
 
 ######################################################################
 # Inversion
 # ---------
 #
-# We can now attempt the inverse calculations. We put great care
-# into designing an inversion methology that would yield a geologically
-# reasonable solution for the non-induced problem.
-# The inversion is done in two stages. First we compute a smooth
-# solution using a Cartesian coordinate system, then a sparse
-# inversion in the Spherical domain.
+# We can now attempt the inverse calculations.
 #
 
 # Create sensitivity weights from our linear forward operator
@@ -218,39 +151,34 @@ rxLoc = survey.source_field.receiver_list[0].locations
 wires = maps.Wires(("p", nC), ("s", nC), ("t", nC))
 m0 = np.ones(3 * nC) * 1e-4 # Starting model
 
-# Create three regularizations for the different components
-# of magnetization
-reg_amp = regularization.VectorAmplitude(
+# Create the regularization on the amplitude of magnetization
+reg = regularization.VectorAmplitude(
     mesh,
     wires,
     active_cells=actv,
     reference_model_in_smooth=True,
-    norms=[0.0, 1.0, 1.0, 1.0],
-    reference_model=m0
+    norms=[1.0, 0.0, 0.0, 0.0],
 )
-
-reg = reg_amp
 
 # Data misfit function
 dmis = data_misfit.L2DataMisfit(simulation=simulation, data=data_object)
 dmis.W = 1.0 / data_object.standard_deviation
 
-# Add directives to the inversion
+# The optimization scheme
 opt = optimization.ProjectedGNCG(
     maxIter=20, lower=-10, upper=10.0, maxIterLS=20, maxIterCG=20, tolCG=1e-4
 )
 
+# The inverse problem
 invProb = inverse_problem.BaseInvProblem(dmis, reg, opt)
 
-# A list of directive to control the inverson
+# Estimate the initial beta factor
 betaest = directives.BetaEstimate_ByEig(beta0_ratio=1e1)
 
 # Add sensitivity weights
 sensitivity_weights = directives.UpdateSensitivityWeights()
 
 # Here is where the norms are applied
-# Use a threshold parameter empirically based on the distribution of
-#  model parameters
 IRLS = directives.Update_IRLS(f_min_change=1e-3, max_irls_iterations=10, beta_tol=5e-1)
 
 # Pre-conditioner
@@ -267,7 +195,7 @@ inv = inversion.BaseInversion(
 )
 
 # Run the inversion
-mrec_MVIC = inv.run(m0)
+mrec = inv.run(m0)
 
 
 #############################################################
@@ -279,50 +207,38 @@ mrec_MVIC = inv.run(m0)
 #
 #
 
-plt.figure(figsize=(8, 8))
-ax = plt.subplot(2, 1, 1)
-mesh.plot_slice(
-    actv_plot * invProb.l2model.reshape((-1, 3), order="F"),
-    v_type="CCv",
-    view="vec",
-    ax=ax,
-    normal="Y",
-    ind=66,
-    grid=True,
-    quiver_opts={
-        "pivot": "mid",
-        "scale": 5 * np.abs(invProb.l2model).max(),
-        "scale_units": 'inches'
-    },
-)
-ax.set_xlim([-200, 200])
-ax.set_ylim([-100, 75])
-ax.set_title("Smooth model (Cartesian)")
-ax.set_xlabel("x")
-ax.set_ylabel("y")
+plt.figure(figsize=(12, 6))
+ax = plt.subplot(2, 2, 1)
+im = utils.plot_utils.plot2Ddata(xyzLoc, synthetic_data, ax=ax)
+plt.colorbar(im[0])
+ax.set_title("Predicted data.")
 plt.gca().set_aspect("equal", adjustable="box")
 
-ax = plt.subplot(2, 1, 2)
-mesh.plot_slice(
-    actv_plot * mrec_MVIC.reshape((-1, 3), order="F"),
-    v_type="CCv",
-    view="vec",
-    ax=ax,
-    normal="Y",
-    ind=66,
-    grid=True,
-    quiver_opts={
-        "pivot": "mid",
-        "scale": 5 * np.abs(mrec_MVIC).max(),
-        "scale_units": 'inches'
-    },
-)
-ax.set_xlim([-200, 200])
-ax.set_ylim([-100, 75])
-ax.set_title("Sparse model (L0L2)")
-ax.set_xlabel("x")
-ax.set_ylabel("y")
-plt.gca().set_aspect("equal", adjustable="box")
+for ii, (title, mvec) in enumerate([
+    ("True model", model),
+    ("Smooth model", invProb.l2model),
+    ("Sparse model", mrec)
+]):
+    ax = plt.subplot(2, 2, ii + 2)
+    mesh.plot_slice(
+        actv_plot * mvec.reshape((-1, 3), order="F"),
+        v_type="CCv",
+        view="vec",
+        ax=ax,
+        normal="Y",
+        grid=True,
+        quiver_opts={
+            "pivot": "mid",
+            "scale": 8 * np.abs(mvec).max(),
+            "scale_units": 'inches'
+        },
+    )
+    ax.set_xlim([-200, 200])
+    ax.set_ylim([-100, 75])
+    ax.set_title(title)
+    ax.set_xlabel("x")
+    ax.set_ylabel("z")
+    plt.gca().set_aspect("equal", adjustable="box")
 
 plt.show()
 
