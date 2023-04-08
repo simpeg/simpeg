@@ -61,48 +61,51 @@ class BaseAmplitude(BaseRegularization):
         array([1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1.])
         """
         for key, values in weights.items():
-            if not isinstance(values, tuple):
-                values = (values,) * len(self.mapping.maps)
+            if isinstance(values, tuple):
+                if len(values) != len(self.mapping.maps):
+                    raise ValueError(
+                        f"Values provided for weight {key} must be of tuple of len({len(self.mapping.maps)})"
+                    )
 
-            if len(values) != len(self.mapping.maps):
-                raise ValueError(
-                    f"Values provided for weight {key} must be of tuple of len({len(self.mapping.maps)})"
-                )
+                for value in values:
+                    validate_ndarray_with_shape(
+                        "weights", value, shape=self._weights_shapes, dtype=float
+                    )
 
-            self._weights[key] = {}
-            for (name, _), value in zip(self.mapping.maps, values):
+                self._weights[key] = np.linalg.norm(np.vstack(values), axis=0)
+            else:
                 validate_ndarray_with_shape(
-                    "weights", value, shape=self._weights_shapes, dtype=float
+                    "weights", values, shape=self._weights_shapes, dtype=float
                 )
-                self._weights[key][name] = value
+                self._weights[key] = values
 
         self._W = None
 
     @utils.timeIt
-    def __call__(self, m):
-        """ """
-        r = self.W * self.f_m(m)
-        return 0.5 * r.dot(r)
-
-    @utils.timeIt
     def deriv(self, m) -> np.ndarray:
         """ """
-        f_m_derivs = 0.0
-        for f_m_deriv in self.f_m_deriv(m):
-            f_m_derivs += f_m_deriv.T * ((self.W.T * self.W) * f_m_deriv * m)
-        return f_m_derivs
+        d_m = self._delta_m(m)
+
+        deriv = 0.
+
+        for f_m_deriv in self.f_m_deriv(d_m):
+            deriv += f_m_deriv.T * ((self.W.T * self.W) * f_m_deriv * d_m)
+
+        return deriv
 
     @utils.timeIt
     def deriv2(self, m, v=None) -> csr_matrix:
         """ """
-        f_m_derivs = 0.0
-        for f_m_deriv in self.f_m_deriv(m):
-            if v is None:
-                f_m_derivs += f_m_deriv.T * ((self.W.T * self.W) * f_m_deriv)
-            else:
-                f_m_derivs += f_m_deriv.T * (self.W.T * (self.W * (f_m_deriv * v)))
+        deriv = 0.
 
-        return f_m_derivs
+        for f_m_deriv in self.f_m_deriv(m):
+
+            if v is None:
+                deriv += f_m_deriv.T * ((self.W.T * self.W) * f_m_deriv)
+            else:
+                deriv += f_m_deriv.T * ((self.W.T * self.W) * f_m_deriv * v)
+
+        return deriv
 
     @property
     def _nC_residual(self) -> int:
@@ -139,24 +142,6 @@ class AmplitudeSmallness(SparseSmallness, BaseAmplitude):
             deriv += [wire.deriv(dm)]
         return deriv
 
-    @property
-    def W(self):
-        """
-        Weighting matrix
-        """
-        if getattr(self, "_W", None) is None:
-            weights = []
-
-            for name, _ in self.mapping.maps:
-                weights.append(1.0)
-                for weight in self._weights.values():
-                    weights[-1] *= weight[name]
-
-                weights[-1] = utils.sdiag(weights[-1] ** 0.5)
-
-            self._W = sp.vstack(weights)
-        return self._W
-
 
 class AmplitudeSmoothnessFirstOrder(SparseSmoothness, BaseAmplitude):
     """
@@ -177,35 +162,6 @@ class AmplitudeSmoothnessFirstOrder(SparseSmoothness, BaseAmplitude):
 
         return deriv
 
-    @property
-    def W(self):
-        """
-        Weighting matrix that takes the volumes, free weights, fixed weights and
-        length scales of the difference operator (normalized optional).
-        """
-        if getattr(self, "_W", None) is None:
-            average_cell_2_face = getattr(
-                self.regularization_mesh, "aveCC2F{}".format(self.orientation)
-            )
-            weights = []
-
-            for name, _ in self.mapping.maps:
-
-                weights.append(1.0)
-
-                for weight in self._weights.values():
-                    values = weight[name]
-                    if values.shape[0] == self.regularization_mesh.nC:
-                        values = average_cell_2_face * values
-
-                    weights[-1] *= values
-
-                weights[-1] = utils.sdiag(weights[-1] ** 0.5)
-
-            self._W = sp.vstack(weights)
-
-        return self._W
-
     def update_weights(self, m):
         """
         Compute and store the irls weights.
@@ -221,18 +177,6 @@ class AmplitudeSmoothnessFirstOrder(SparseSmoothness, BaseAmplitude):
                         getattr(self.regularization_mesh, f"cell_gradient_{comp}")
                         * delta_m
                     )
-
-                    if self.units is not None and self.units.lower() == "radian":
-                        Ave = getattr(self.regularization_mesh, f"aveCC2F{comp}")
-                        length_scales = Ave * (
-                            self.regularization_mesh.Pac.T
-                            * self.regularization_mesh.mesh.h_gridded[:, ii]
-                        )
-                        dm = (
-                            utils.mat_utils.coterminal(dm * length_scales)
-                            / length_scales
-                        )
-
                     f_m += np.abs(
                         getattr(self.regularization_mesh, f"aveF{comp}2CC") * dm
                     )
