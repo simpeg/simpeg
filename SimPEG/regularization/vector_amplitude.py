@@ -16,7 +16,8 @@ if TYPE_CHECKING:
 
 class BaseAmplitude(BaseRegularization):
     """
-    Base vector amplitude function.
+    Base vector amplitude class.
+    Requires a mesh and a :obj:`SimPEG.maps.Wires` mapping.
     """
 
     _W = None
@@ -122,10 +123,6 @@ class BaseAmplitude(BaseRegularization):
 class AmplitudeSmallness(SparseSmallness, BaseAmplitude):
     """
     Sparse smallness regularization on vector amplitude.
-
-    **Inputs**
-
-    :param int norm: norm on the smallness
     """
 
     def f_m(self, m):
@@ -145,7 +142,7 @@ class AmplitudeSmallness(SparseSmallness, BaseAmplitude):
 
 class AmplitudeSmoothnessFirstOrder(SparseSmoothness, BaseAmplitude):
     """
-    Base Class for sparse regularization on first spatial derivatives
+    Sparse first spatial derivatives of amplitude.
     """
 
     def f_m(self, m):
@@ -156,7 +153,7 @@ class AmplitudeSmoothnessFirstOrder(SparseSmoothness, BaseAmplitude):
     def f_m_deriv(self, m) -> csr_matrix:
         deriv = []
         dm = self._delta_m(m)
-        for name, wire in self.mapping.maps:
+        for _, wire in self.mapping.maps:
             deriv += [self.cell_gradient * wire.deriv(dm)]
 
         return deriv
