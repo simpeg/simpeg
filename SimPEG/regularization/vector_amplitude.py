@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import numpy as np
-import scipy.sparse as sp
 from typing import TYPE_CHECKING
 
 from discretize.base import BaseMesh
@@ -190,21 +189,23 @@ class AmplitudeSmoothnessFirstOrder(SparseSmoothness, BaseAmplitude):
 
 
 class VectorAmplitude(Sparse):
-    """
+    r"""
     The regularization is:
 
     The function defined here approximates:
 
     .. math::
-        \phi_m(\mathbf{m}) = \alpha_s \| \mathbf{W}_s \; \mathbf{a}(\mathbf{m} - \mathbf{m_{ref}) \|_p \\
-        + \alpha_x \| \mathbf{W}_x \; \frac{\partial}{\partial x} \mathbf{a}(\mathbf{m} - \mathbf{m_{ref}) \|_p \\
-        + \alpha_y \| \mathbf{W}_y \; \frac{\partial}{\partial y} \mathbf{a}(\mathbf{m} - \mathbf{m_{ref}) \|_p \\
-        + \alpha_z \| \mathbf{W}_z \; \frac{\partial}{\partial z} \mathbf{a}(\mathbf{m} - \mathbf{m_{ref}) \|_p \\
+
+        \phi_m(\mathbf{m}) = \alpha_s \| \mathbf{W}_s \; \mathbf{a}(\mathbf{m} - \mathbf{m_{ref}) \|_p
+        + \alpha_x \| \mathbf{W}_x \; \frac{\partial}{\partial x} \mathbf{a}(\mathbf{m} - \mathbf{m_{ref}) \|_p
+        + \alpha_y \| \mathbf{W}_y \; \frac{\partial}{\partial y} \mathbf{a}(\mathbf{m} - \mathbf{m_{ref}) \|_p
+        + \alpha_z \| \mathbf{W}_z \; \frac{\partial}{\partial z} \mathbf{a}(\mathbf{m} - \mathbf{m_{ref}) \|_p
 
     where $\mathbf{a}(\mathbf{m} - \mathbf{m_{ref})$ is the vector amplitude of the difference between
     the model and the reference model.
 
     .. math::
+
         \mathbf{a}(\mathbf{m} - \mathbf{m_{ref}) = [\sum_{i}^{N}(\mathbf{P}_i\;(\mathbf{m} - \mathbf{m_{ref}}))^{2}]^{1/2}
 
     where :math:`\mathbf{P}_i` is the projection of i-th component of the vector model with N-dimensions.
