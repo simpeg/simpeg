@@ -105,8 +105,8 @@ ind = utils.model_builder.getIndicesBlock(
     mesh.gridCC,
 )[0]
 model_amp[ind] = 0.05
-model_azm_dip[ind, 0] = 45.
-model_azm_dip[ind, 1] = 90.
+model_azm_dip[ind, 0] = 45.0
+model_azm_dip[ind, 1] = 90.0
 
 # Remove air cells
 model_azm_dip = model_azm_dip[actv, :]
@@ -149,7 +149,7 @@ rxLoc = survey.source_field.receiver_list[0].locations
 # This Mapping connects the regularizations for the three-component
 # vector model
 wires = maps.Wires(("p", nC), ("s", nC), ("t", nC))
-m0 = np.ones(3 * nC) * 1e-4 # Starting model
+m0 = np.ones(3 * nC) * 1e-4  # Starting model
 
 # Create the regularization on the amplitude of magnetization
 reg = regularization.VectorAmplitude(
@@ -186,12 +186,7 @@ update_Jacobi = directives.UpdatePreconditioner()
 
 
 inv = inversion.BaseInversion(
-    invProb, directiveList=[
-        sensitivity_weights,
-        IRLS,
-        update_Jacobi,
-        betaest
-    ]
+    invProb, directiveList=[sensitivity_weights, IRLS, update_Jacobi, betaest]
 )
 
 # Run the inversion
@@ -214,11 +209,9 @@ plt.colorbar(im[0])
 ax.set_title("Predicted data.")
 plt.gca().set_aspect("equal", adjustable="box")
 
-for ii, (title, mvec) in enumerate([
-    ("True model", model),
-    ("Smooth model", invProb.l2model),
-    ("Sparse model", mrec)
-]):
+for ii, (title, mvec) in enumerate(
+    [("True model", model), ("Smooth model", invProb.l2model), ("Sparse model", mrec)]
+):
     ax = plt.subplot(2, 2, ii + 2)
     mesh.plot_slice(
         actv_plot * mvec.reshape((-1, 3), order="F"),
@@ -230,7 +223,7 @@ for ii, (title, mvec) in enumerate([
         quiver_opts={
             "pivot": "mid",
             "scale": 8 * np.abs(mvec).max(),
-            "scale_units": 'inches'
+            "scale_units": "inches",
         },
     )
     ax.set_xlim([-200, 200])

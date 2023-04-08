@@ -188,7 +188,7 @@ mesh.plot_slice(
     quiver_opts={
         "pivot": "mid",
         "scale": 5 * np.abs(model).max(),
-        "scale_units": 'inches'
+        "scale_units": "inches",
     },
 )
 ax.set_xlim([-200, 200])
@@ -293,8 +293,8 @@ reg_a = regularization.Sparse(
     gradient_type="total",
     active_cells=actv,
     mapping=wires.amp,
-    norms=[0.0, 1.0, 1.0, 1.0], # Only norm on gradients used,
-    reference_model=np.zeros(3 * nC)
+    norms=[0.0, 1.0, 1.0, 1.0],  # Only norm on gradients used,
+    reference_model=np.zeros(3 * nC),
 )
 
 # Regularize the vertical angle of the vectors
@@ -304,7 +304,7 @@ reg_t = regularization.Sparse(
     active_cells=actv,
     mapping=wires.theta,
     alpha_s=0.0,  # No reference angle,
-    norms=[0.0, 1.0, 1.0, 1.0]  # Only norm on gradients used,
+    norms=[0.0, 1.0, 1.0, 1.0],  # Only norm on gradients used,
 )
 reg_t.units = "radian"
 
@@ -315,7 +315,7 @@ reg_p = regularization.Sparse(
     active_cells=actv,
     mapping=wires.phi,
     alpha_s=0.0,  # No reference angle,
-    norms=[0.0, 1.0, 1.0, 1.0]  # Only norm on gradients used,
+    norms=[0.0, 1.0, 1.0, 1.0],  # Only norm on gradients used,
 )
 reg_p.units = "radian"
 
@@ -385,7 +385,7 @@ mesh.plot_slice(
     quiver_opts={
         "pivot": "mid",
         "scale": 5 * np.abs(mrec_MVIC).max(),
-        "scale_units": 'inches'
+        "scale_units": "inches",
     },
 )
 ax.set_xlim([-200, 200])
@@ -411,7 +411,7 @@ mesh.plot_slice(
     quiver_opts={
         "pivot": "mid",
         "scale": 5 * np.abs(vec_xyz).max(),
-        "scale_units": 'inches'
+        "scale_units": "inches",
     },
 )
 ax.set_xlim([-200, 200])
