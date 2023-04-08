@@ -11,7 +11,6 @@ regularization borrowed from ...
 """
 
 from SimPEG import (
-    dask,
     data,
     data_misfit,
     directives,
@@ -27,7 +26,6 @@ from SimPEG.utils import mkvc, sdiag
 
 from discretize.utils import mesh_builder_xyz, refine_tree_xyz, active_from_xyz
 from SimPEG.potential_fields import magnetics
-import scipy as sp
 import numpy as np
 import matplotlib.pyplot as plt
 

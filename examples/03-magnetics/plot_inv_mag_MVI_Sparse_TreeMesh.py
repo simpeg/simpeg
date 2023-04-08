@@ -16,7 +16,6 @@ that
 
 """
 
-from discretize import TreeMesh
 from SimPEG import (
     data,
     data_misfit,

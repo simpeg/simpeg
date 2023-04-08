@@ -138,7 +138,7 @@ class AmplitudeSmallness(SparseSmallness, BaseAmplitude):
     def f_m_deriv(self, m) -> csr_matrix:
         deriv = []
         dm = self._delta_m(m)
-        for name, wire in self.mapping.maps:
+        for _, wire in self.mapping.maps:
             deriv += [wire.deriv(dm)]
         return deriv
 
