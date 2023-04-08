@@ -12,9 +12,9 @@ from ..directives import InversionDirective, MultiTargetMisfits
 from ..regularization import (
     PGI,
     PGIsmallness,
+    PGIwithRelationships,
     SmoothnessFirstOrder,
     SparseSmoothness,
-    PGIwithRelationships,
 )
 from ..utils import (
     GaussianMixtureWithNonlinearRelationships,
