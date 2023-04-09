@@ -155,8 +155,8 @@ reg = regularization.VectorAmplitude(
     wires,
     active_cells=actv,
     reference_model_in_smooth=True,
-    norms=[0.0, 0.0, 0.0, 0.0],
-    gradient_type="components",
+    norms=[0.0, 2.0, 2.0, 2.0],
+    gradient_type="total",
 )
 
 # Data misfit function
