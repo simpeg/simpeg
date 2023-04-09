@@ -565,7 +565,7 @@ class RegularizationTests(unittest.TestCase):
         assert len(reg.objfcts[0].mapping.maps) == 1
 
         with pytest.raises(ValueError, match="All models must be the same size!"):
-            wires = ((f"wire{ind}", mesh.nC+ind) for ind in range(n_comp))
+            wires = ((f"wire{ind}", mesh.nC + ind) for ind in range(n_comp))
             regularization.VectorAmplitude(mesh, maps.Wires(*wires))
 
         wires = ((f"wire{ind}", mesh.nC) for ind in range(n_comp))
