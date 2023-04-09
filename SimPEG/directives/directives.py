@@ -2730,10 +2730,6 @@ class UpdateSensitivityWeights(InversionDirective):
                     (reg.mapping * jtj_diag) / reg.regularization_mesh.vol**2.0
                 )
 
-        if self.normalization:
-            wr /= wr.max()
-
-        wr += self.threshold
         wr **= 0.5
 
         # Apply thresholding

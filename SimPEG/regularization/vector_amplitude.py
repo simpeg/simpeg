@@ -206,7 +206,7 @@ class VectorAmplitude(Sparse):
         \mathbf{a}(\mathbf{m} - \mathbf{m_{ref}) = [\sum_{i}^{N}(\mathbf{P}_i\;(\mathbf{m} - \mathbf{m_{ref}}))^{2}]^{1/2}
 
     where :math:`\mathbf{P}_i` is the projection of i-th component of the vector model with N-dimensions.
-    ...
+
     """
 
     def __init__(
