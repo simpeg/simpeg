@@ -572,7 +572,7 @@ class RegularizationTests(unittest.TestCase):
 
         reg = regularization.VectorAmplitude(mesh, maps.Wires(*wires))
 
-        with pytest.raises(ValueError, match=f"must be a tuple of len\({n_comp}\)"):
+        with pytest.raises(ValueError, match=f"must be a tuple of len\({n_comp}\)"):  # noqa: W605
             reg.set_weights(abc=(1.0, 1.0))
 
         np.testing.assert_almost_equal(
