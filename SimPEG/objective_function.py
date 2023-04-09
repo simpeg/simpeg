@@ -27,7 +27,7 @@ class BaseObjectiveFunction(BaseSimPEG):
     mapPair = IdentityMap  #: Base class of expected maps
     _mapping = None  #: An IdentityMap instance.
     _has_fields = False  #: should we have the option to store fields
-
+    _parent = None  #: parent objective function
     _nP = None  #: number of parameters
 
     def __init__(self, nP=None, **kwargs):
@@ -264,6 +264,8 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
                         )
                     else:
                         self._nP = fct.nP
+
+                fct.parent = self
 
         validate_list(objfcts, multipliers)
 

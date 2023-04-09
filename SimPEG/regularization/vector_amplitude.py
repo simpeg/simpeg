@@ -67,7 +67,7 @@ class BaseAmplitude(BaseRegularization):
             if isinstance(values, tuple):
                 if len(values) != len(self.mapping.maps):
                     raise ValueError(
-                        f"Values provided for weight {key} must be of tuple of len({len(self.mapping.maps)})"
+                        f"Values provided for weight {key} must be a tuple of len({len(self.mapping.maps)})"
                     )
 
                 for value in values:
@@ -158,32 +158,6 @@ class AmplitudeSmoothnessFirstOrder(SparseSmoothness, BaseAmplitude):
 
         return deriv
 
-    def update_weights(self, m):
-        """
-        Compute and store the irls weights.
-        """
-        if self.gradient_type == "total":
-            delta_m = self.mapping * self._delta_m(m)
-            delta_m = np.linalg.norm(delta_m, axis=0)
-            f_m = np.zeros_like(delta_m)
-
-            for ii, comp in enumerate("xyz"):
-                if self.regularization_mesh.dim > ii:
-                    dm = (
-                        getattr(self.regularization_mesh, f"cell_gradient_{comp}")
-                        * delta_m
-                    )
-                    f_m += np.abs(
-                        getattr(self.regularization_mesh, f"aveF{comp}2CC") * dm
-                    )
-
-            f_m = getattr(self.regularization_mesh, f"aveCC2F{self.orientation}") * f_m
-
-        else:
-            f_m = self.f_m(m)
-
-        self.set_weights(irls=self.get_lp_weights(f_m))
-
 
 class VectorAmplitude(Sparse):
     r"""
@@ -263,8 +237,11 @@ class VectorAmplitude(Sparse):
         return self._mapping
 
     @mapping.setter
-    def mapping(self, wires):
-        if not isinstance(wires, maps.Wires):
+    def mapping(self, wires: maps.Wires | None):
+        if isinstance(wires, type(None)):
+            wires = maps.Wires(("model", self.regularization_mesh.nC))
+
+        elif not isinstance(wires, maps.Wires):
             raise TypeError(f"A 'mapping' of type {maps.Wires} must be provided.")
 
         for wire in wires.maps:
