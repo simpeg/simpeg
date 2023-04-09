@@ -561,10 +561,19 @@ class RegularizationTests(unittest.TestCase):
         with pytest.raises(TypeError, match="A 'mapping' of type"):
             regularization.VectorAmplitude(mesh, maps.IdentityMap(mesh))
 
-        wires = ((f"wire{ind}", mesh.nC) for ind in range(n_comp))
-        mapping = maps.Wires(*wires)
+        reg = regularization.VectorAmplitude(mesh)
+        assert len(reg.objfcts[0].mapping.maps) == 1
 
-        reg = regularization.VectorAmplitude(mesh, mapping)
+        with pytest.raises(ValueError, match="All models must be the same size!"):
+            wires = ((f"wire{ind}", mesh.nC+ind) for ind in range(n_comp))
+            regularization.VectorAmplitude(mesh, maps.Wires(*wires))
+
+        wires = ((f"wire{ind}", mesh.nC) for ind in range(n_comp))
+
+        reg = regularization.VectorAmplitude(mesh, maps.Wires(*wires))
+
+        with pytest.raises(ValueError, match=f"must be a tuple of len\({n_comp}\)"):
+            reg.set_weights(abc=(1.0, 1.0))
 
         np.testing.assert_almost_equal(
             reg.objfcts[0].f_m(model.flatten(order="F")), np.linalg.norm(model, axis=1)
