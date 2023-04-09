@@ -514,14 +514,14 @@ class QuadTreeLinProblemTest(unittest.TestCase):
         # Run the inversion from a zero starting model
         mrec = self.mag_inv_active.run(np.zeros(int(self.active_cells.sum())))
 
-        import matplotlib.pyplot as plt
-
-        fig = plt.figure()
-        ax = plt.subplot()
-        m_out = np.zeros(self.mesh.nC) * np.nan
-        m_out[self.active_cells] = mrec
-        im = self.mesh.plot_image(m_out, ax=ax)
-        fig.savefig(r"C:\Users\dominiquef\Desktop\mrec.png")
+        # import matplotlib.pyplot as plt
+        #
+        # fig = plt.figure()
+        # ax = plt.subplot()
+        # m_out = np.zeros(self.mesh.nC) * np.nan
+        # m_out[self.active_cells] = mrec
+        # self.mesh.plot_image(m_out, ax=ax)
+        # fig.savefig("mrec.png")
 
         # Compute predicted data
         dpred = self.mag_sim_active.dpred(self.mag_model[self.active_cells])
