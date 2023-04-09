@@ -325,7 +325,7 @@ class QuadTreeLinProblemTest(unittest.TestCase):
             np.zeros(self.mesh.nC, dtype=bool),
             np.r_[-40, -40],
             np.r_[40, 40],
-            True
+            True,
         )
 
         # Set only non-zero cells as active. Some tests use all cells
@@ -515,6 +515,7 @@ class QuadTreeLinProblemTest(unittest.TestCase):
         mrec = self.mag_inv_active.run(np.zeros(int(self.active_cells.sum())))
 
         import matplotlib.pyplot as plt
+
         fig = plt.figure()
         ax = plt.subplot()
         m_out = np.zeros(self.mesh.nC) * np.nan
