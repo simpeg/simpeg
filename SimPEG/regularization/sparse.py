@@ -141,7 +141,6 @@ class SparseSmoothness(BaseSparse, SmoothnessFirstOrder):
         Compute and store the irls weights.
         """
         if self.gradient_type == "total" and self.parent is not None:
-
             f_m = np.zeros(self.regularization_mesh.nC)
             for obj in self.parent.objfcts:
                 if isinstance(obj, SparseSmoothness):
