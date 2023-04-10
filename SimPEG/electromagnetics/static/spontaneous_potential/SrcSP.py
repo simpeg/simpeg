@@ -14,7 +14,9 @@ class StreamingCurrents(Src.BaseSrc):
         Src.BaseSrc.__init__(self, receiver_list, **kwargs)
         if self.modelType == "Head":
             if self.L is None:
-                raise Exception("SP source requires cross coupling coefficient L")
+                raise Exception(
+                    "spontaneous_potential source requires cross coupling coefficient L"
+                )
         elif self.modelType == "CurrentDensity":
             if self.indActive is None:
                 self.indActive = np.ones(self.mesh.nC, dtype=bool)
@@ -29,7 +31,7 @@ class StreamingCurrents(Src.BaseSrc):
             )
 
         if self.mesh is None:
-            raise Exception("SP source requires mesh")
+            raise Exception("spontaneous_potential source requires mesh")
 
     def getq_from_j(self, j):
         q = self.Grad.T * self.mesh.aveCCV2F * j
