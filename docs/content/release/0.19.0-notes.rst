@@ -4,7 +4,7 @@
 SimPEG 0.19.0 Release Notes
 ===========================
 
-April 6th, 2023
+April 10th, 2023
 
 This minor release contains many bugfixes and improvements to the code base, including the
 start of a new experimental approach to parallelism in `SimPEG`.
@@ -12,17 +12,8 @@ start of a new experimental approach to parallelism in `SimPEG`.
 .. contents:: Highlights
     :depth: 2
 
-* Updated Getting Started guides
-* Many code style improvements
-* ``MetaSimulation``
-* DC Improvements
-* Github Issue forms
-* Directive updates
-* JointTotalVariation extensions
-* Many, many, bug fixes!
-
-Code updates
-============
+Updates
+=======
 
 Getting started guides
 ----------------------
@@ -53,7 +44,6 @@ The 1D DC resistivity simulation now supports arbitrary combinations of pole and
 and receivers. The 2D and 3D simulations are now slightly more flexible in there mesh requirements.
 The robin boundary conditions are now implemented for Triangular and Tetrahedral meshes on the nodal
 formulation.
-
 
 Github forms
 ------------
@@ -166,3 +156,5 @@ Pull requests
 * `#1205 <https://github.com/simpeg/simpeg/pull/1205>`__: Patch/identity map init
 * `#1206 <https://github.com/simpeg/simpeg/pull/1206>`__: Patch/fix save sparse dict
 * `#1207 <https://github.com/simpeg/simpeg/pull/1207>`__: Fix length scale getters
+* `#1208 <https://github.com/simpeg/simpeg/pull/1208>`__: Add PR template file
+* `#1209 <https://github.com/simpeg/simpeg/pull/1209>`__: 0.19.0 Staging
