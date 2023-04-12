@@ -1,7 +1,29 @@
-from SimPEG.EM.Static.DC import Src
+from SimPEG.electromagnetics.static.resistivity import sources as dc_sources
 from SimPEG import Utils
 import scipy.sparse as sp
 import numpy as np
+
+
+class BaseSP(dc_sources.BaseSrc):
+    def __init__(self, receiver_list, **kwargs):
+        super().__init__(receiver_list=receiver_list, **kwargs)
+
+
+class StreamingCurrentDensity(BaseSP):
+    pass
+
+
+class StreamingCurrentSource(BaseSP):
+    pass
+
+
+class HydraulicHead(BaseSP):
+    def eval(self, sim):
+        mesh = sim.mesh
+        grad = sim.grad
+        q = sim.Grad.T * self.MfLiI * prob.Grad * prob.h
+
+    pass
 
 
 class StreamingCurrents(Src.BaseSrc):

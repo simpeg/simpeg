@@ -6,28 +6,14 @@ import scipy.sparse as sp
 from SimPEG.Utils import Zero
 from SimPEG import Props
 
+from .... import props, maps
+from ....base import BasePDESimulation
+from ..resistivity import Simulation3DCellCentered as DC_3D_CC
 
-class BaseSPProblem(BaseDCProblem):
-    h, hMap, hDeriv = Props.Invertible("Hydraulic Head (m)")
 
-    q, qMap, qDeriv = Props.Invertible("Streaming current source (A/m^3)")
-
-    jsx, jsxMap, jsxDeriv = Props.Invertible(
-        "Streaming current density in x-direction (A/m^2)"
-    )
-
-    jsy, jsyMap, jsyDeriv = Props.Invertible(
-        "Streaming current density in y-direction (A/m^2)"
-    )
-
-    jsz, jszMap, jszDeriv = Props.Invertible(
-        "Streaming current density in z-direction (A/m^2)"
-    )
-
+class BaseSPProblem(BasePDESimulation):
     sigma = Props.PhysicalProperty("Electrical conductivity (S/m)")
-
     rho = Props.PhysicalProperty("Electrical resistivity (Ohm m)")
-
     Props.Reciprocal(sigma, rho)
 
     modelType = None
@@ -43,6 +29,27 @@ class BaseSPProblem(BaseDCProblem):
         MfQviI = self.mesh.get_face_inner_product(1.0 / Qv, invert_matrix=True)
         Mf = self.mesh.get_face_inner_product()
         return self.Div * (Mf * (MfQviI * vel))
+
+
+class BaseCurrentDensity(BaseSPProblem):
+    js, jsMap, jsDeriv = Props.Invertible(
+        "Streaming current density vector (A/m^2) "
+        "(this is a vector model defined at cell centers."
+    )
+
+
+class BaseCurrentSource(BaseSPProblem):
+    q, qMap, qDeriv = Props.Invertible("Streaming current source (A/m^3)")
+
+
+class BaseHydraulicHead(BaseSPProblem):
+    h, hMap, hDeriv = Props.Invertible("Hydraulic Head (m)")
+
+    L = props.PhysicalProperty("L")
+    Li = props.PhysicalProperty("Li")
+    props.Reciprocal(L, Li)
+
+    pass
 
 
 class Problem_CC(BaseSPProblem, Simulation3DCellCentered):
