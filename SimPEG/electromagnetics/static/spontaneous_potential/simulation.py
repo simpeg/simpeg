@@ -1,4 +1,3 @@
-import numpy as np
 import scipy.sparse as sp
 
 from .... import maps, props
@@ -68,7 +67,7 @@ class CurrentDensityMap(maps.LinearMap):
 
 
 class HydraulicHeadMap(maps.LinearMap):
-    """Maps hydraulic head to charge density accumulation rate.
+    r"""Maps hydraulic head to charge density accumulation rate.
 
     Parameters
     ----------
