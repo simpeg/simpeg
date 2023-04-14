@@ -76,7 +76,7 @@ class HydraulicHeadMap(maps.LinearMap):
     ----------
     mesh : discretize.base.BaseMesh
     L : array_like
-        Cross coupling property model (units????)
+        Cross coupling property model (A/m^2)
 
     Notes
     -----
