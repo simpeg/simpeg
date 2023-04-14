@@ -12,6 +12,9 @@ class Simulation3DCellCentered(Simulation3DCellCentered):
     def __init__(
         self, mesh, survey=None, sigma=None, rho=None, q=None, qMap=None, **kwargs
     ):
+        # These below checks can be commented out, correspondingly do
+        # not set sigmaMap and rhoMap to None on the super call, to enable
+        # derivatives with respect to resistivity/conductivity.
         if sigma is None:
             if rho is None:
                 raise ValueError("Must set either conductivity or resistivity.")
@@ -42,10 +45,10 @@ class Simulation3DCellCentered(Simulation3DCellCentered):
 
     @property
     def deleteTheseOnModelUpdate(self):
-        if self.rhoMap is None:
-            return []
-        else:
-            return super().deleteTheseOnModelUpdate
+        # When enabling resistivity derivatives, uncomment these lines
+        # if self.rhoMap is not None:
+        #     return super().deleteTheseOnModelUpdate
+        return []
 
 
 class CurrentDensityMap(maps.LinearMap):
