@@ -7,7 +7,7 @@ from .sources import StreamingCurrents
 
 
 class Simulation3DCellCentered(dc.Simulation3DCellCentered):
-    """A Spontaneous potential simulation.
+    r"""A Spontaneous potential simulation.
 
     Parameters
     ----------
