@@ -26,7 +26,7 @@ def getEHfields(m1d, sigma, freq, zd, scaleUD=True, scaleValue=1):
     # Add the halfspace value to the property
     sig = np.concatenate((np.array([sigma[0]]), sigma))
     # Calculate the wave number
-    k = np.sqrt(eps * mu * w ** 2 - 1j * mu * sig * w)
+    k = np.sqrt(eps * mu * w**2 - 1j * mu * sig * w)
 
     # Initiate the propagation matrix, in the order down up.
     UDp = np.zeros((2, m1d.nC + 1), dtype=complex)
@@ -76,10 +76,9 @@ def getEHfields(m1d, sigma, freq, zd, scaleUD=True, scaleValue=1):
     Eu[dind] = UDp[0, 0] * np.exp(1j * k[0] * (dup - zd[dind]))
     Hd[dind] = (k[0] / (w * mu[0])) * UDp[1, 0] * np.exp(-1j * k[0] * (dup - zd[dind]))
     Hu[dind] = -(k[0] / (w * mu[0])) * UDp[0, 0] * np.exp(1j * k[0] * (dup - zd[dind]))
-    for ki, mui, epsi, dlow, dup, Up, Dp in zip(
+    for ki, mui, dlow, dup, Up, Dp in zip(
         k[1::],
         mu[1::],
-        eps[1::],
         m1d.nodes_x[:-1],
         m1d.nodes_x[1::],
         UDp[0, 1::],
@@ -120,7 +119,7 @@ def getImpedance(m1d, sigma, freq):
         for nr, hi in enumerate(h):
             # Calculate the wave number
             # print(nr,sigma[nr])
-            k = np.sqrt(mu_0 * eps_0 * om ** 2 - 1j * mu_0 * sigma[nr] * om)
+            k = np.sqrt(mu_0 * eps_0 * om**2 - 1j * mu_0 * sigma[nr] * om)
             Z = (mu_0 * om) / k
 
             Zall[nr + 1] = Z * (

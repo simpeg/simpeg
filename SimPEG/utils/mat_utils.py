@@ -1,6 +1,6 @@
 import numpy as np
-from .code_utils import deprecate_method, deprecate_function
-from discretize.utils import (
+from .code_utils import deprecate_function
+from discretize.utils import (  # noqa: F401
     Zero,
     Identity,
     mkvc,
@@ -21,16 +21,6 @@ from discretize.utils import (
     TensorType,
     make_property_tensor,
     inverse_property_tensor,
-)
-
-# deprecated imports
-from discretize.utils import (
-    sdInv,
-    getSubArray,
-    inv3X3BlockDiagonal,
-    inv2X2BlockDiagonal,
-    makePropertyTensor,
-    invPropertyTensor,
 )
 
 
@@ -141,10 +131,10 @@ def unique_rows(M):
 def eigenvalue_by_power_iteration(
     combo_objfct, model, n_pw_iter=4, fields_list=None, seed=None
 ):
-    """Estimate highest eigenvalue of one or a combo of objective functions using power iterations and the Rayleigh quotient.
+    r"""Estimate largest eigenvalue in absolute value using power iteration.
 
-    Using power iterations and the Rayleigh quotient, this function estimates the largest
-    eigenvalue for a single :class:`SimPEG.BaseObjectiveFunction` or a combination of
+    Uses the power iteration approach to estimate the largest eigenvalue in absolute
+    value for a single :class:`SimPEG.BaseObjectiveFunction` or a combination of
     objective functions stored in a :class:`SimPEG.ComboObjectiveFunction`.
 
     Parameters
@@ -166,7 +156,24 @@ def eigenvalue_by_power_iteration(
     Returns
     -------
     float
-        Estimated value of the highest eigenvalue
+        Estimated value of the highest eigenvalue in absolute value
+
+    Notes
+    -----
+    After *k* power iterations, the largest eigenvalue in absolute value is
+    approximated by the Rayleigh quotient:
+
+    .. math::
+        \lambda_k = \frac{\mathbf{x_k^T A x_k}}{\mathbf{x_k^T x_k}}
+
+    where :math:`\mathfb{A}` is our matrix and :math:`\mathfb{x_k}` is computed
+    recursively according to:
+
+    .. math::
+        \mathbf{x_{k+1}} = \frac{\mathbf{A x_k}}{\| \mathbf{Ax_k} \|}
+
+    The elements of the initial vector :math:`\mathbf{x_0}` are randomly
+    selected from a uniform distribution.
 
     """
 
@@ -184,7 +191,7 @@ def eigenvalue_by_power_iteration(
     # create Field for data misfit if necessary and not provided
     if fields_list is None:
         fields_list = []
-        for k, obj in enumerate(combo_objfct.objfcts):
+        for obj in combo_objfct.objfcts:
             if hasattr(obj, "simulation"):
                 fields_list += [obj.simulation.fields(model)]
             else:
@@ -196,7 +203,7 @@ def eigenvalue_by_power_iteration(
         fields_list = [fields_list]
 
     # Power iteration: estimate eigenvector
-    for i in range(n_pw_iter):
+    for _ in range(n_pw_iter):
         x1 = 0.0
         for j, (mult, obj) in enumerate(
             zip(combo_objfct.multipliers, combo_objfct.objfcts)
@@ -230,7 +237,8 @@ def eigenvalue_by_power_iteration(
 
 
 def cartesian2spherical(m):
-    """Converts a set of 3D vectors from Cartesian to spherical coordinates.
+    r"""
+    Converts a set of 3D vectors from Cartesian to spherical coordinates.
 
     Parameters
     ----------
@@ -250,12 +258,14 @@ def cartesian2spherical(m):
     In Cartesian space, the components of each vector are defined as
 
     .. math::
-        \\mathbf{v} = (v_x, v_y, v_z)
+
+        \mathbf{v} = (v_x, v_y, v_z)
 
     In spherical coordinates, vectors are is defined as:
 
     .. math::
-        \\mathbf{v^\\prime} = (a, t, p)
+
+        \mathbf{v^\prime} = (a, t, p)
 
     where
 
@@ -271,7 +281,7 @@ def cartesian2spherical(m):
     y = m[:, 1]
     z = m[:, 2]
 
-    a = (x ** 2.0 + y ** 2.0 + z ** 2.0) ** 0.5
+    a = (x**2.0 + y**2.0 + z**2.0) ** 0.5
 
     t = np.zeros_like(x)
     t[a > 0] = np.arcsin(z[a > 0] / a[a > 0])
@@ -285,7 +295,8 @@ def cartesian2spherical(m):
 
 
 def spherical2cartesian(m):
-    """Converts a set of 3D vectors from spherical to Catesian coordinates.
+    r"""
+    Converts a set of 3D vectors from spherical to Catesian coordinates.
 
     Parameters
     ----------
@@ -305,12 +316,14 @@ def spherical2cartesian(m):
     In Cartesian space, the components of each vector are defined as
 
     .. math::
-        \\mathbf{v} = (v_x, v_y, v_z)
+
+        \mathbf{v} = (v_x, v_y, v_z)
 
     In spherical coordinates, vectors are is defined as:
 
     .. math::
-        \\mathbf{v^\\prime} = (a, t, p)
+
+        \mathbf{v^\prime} = (a, t, p)
 
     where
 
@@ -372,16 +385,18 @@ def dip_azimuth2cartesian(dip, azm):
 
 
 def coterminal(theta):
-    """Compute coterminal angle
+    r"""
+    Compute coterminal angle
 
     For a set of angles defined in radians, this function outputs their coterminal angles.
-    That is, for an angle :math:`\\theta` where:
+    That is, for an angle :math:`\theta` where:
 
     .. math::
-        \\theta = 2\\pi N + \\gamma
 
-    and *N* is an integer, the function returns the value of :math:`\\gamma`.
-    The coterminal angle :math:`\\gamma` is within the range :math:`[-\\pi , \\pi]`.
+        \theta = 2\pi N + \gamma
+
+    and *N* is an integer, the function returns the value of :math:`\gamma`.
+    The coterminal angle :math:`\gamma` is within the range :math:`[-\pi , \pi]`.
 
     Parameters
     ----------
@@ -441,5 +456,32 @@ def define_plane_from_points(xyz1, xyz2, xyz3):
 
 
 diagEst = deprecate_function(estimate_diagonal, "diagEst", removal_version="0.19.0")
-
 uniqueRows = deprecate_function(unique_rows, "uniqueRows", removal_version="0.19.0")
+sdInv = deprecate_function(sdinv, "sdInv", removal_version="0.19.0", future_warn=True)
+getSubArray = deprecate_function(
+    get_subarray, "getSubArray", removal_version="0.19.0", future_warn=True
+)
+inv3X3BlockDiagonal = deprecate_function(
+    inverse_3x3_block_diagonal,
+    "inv3X3BlockDiagonal",
+    removal_version="0.19.0",
+    future_warn=True,
+)
+inv2X2BlockDiagonal = deprecate_function(
+    inverse_2x2_block_diagonal,
+    "inv2X2BlockDiagonal",
+    removal_version="0.19.0",
+    future_warn=True,
+)
+makePropertyTensor = deprecate_function(
+    make_property_tensor,
+    "makePropertyTensor",
+    removal_version="0.19.0",
+    future_warn=True,
+)
+invPropertyTensor = deprecate_function(
+    inverse_property_tensor,
+    "invPropertyTensor",
+    removal_version="0.19.0",
+    future_warn=True,
+)

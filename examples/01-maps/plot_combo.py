@@ -33,7 +33,6 @@ import matplotlib.pyplot as plt
 
 
 def run(plotIt=True):
-
     M = discretize.TensorMesh([7, 5])
     v1dMap = maps.SurjectVertical1D(M)
     expMap = maps.ExpMap(M)
@@ -56,7 +55,7 @@ def run(plotIt=True):
     )
     axs[1].set_title("Physical Property")
     axs[1].set_ylabel("Depth, y")
-    clbar.set_label("$\sigma = \exp(\mathbf{P}m)$")
+    clbar.set_label(r"$\sigma = \exp(\mathbf{P}m)$")
     plt.tight_layout()
 
 

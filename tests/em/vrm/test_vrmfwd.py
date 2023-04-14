@@ -14,7 +14,6 @@ class VRM_fwd_tests(unittest.TestCase):
     seed = 518936
 
     def test_predict_dipolar(self):
-
         np.random.seed(self.seed)
 
         h = [0.05, 0.05]
@@ -60,27 +59,27 @@ class VRM_fwd_tests(unittest.TestCase):
         H0 = Src.getH0(np.c_[0.0, 0.0, 0.0])
         dmdtx = (
             -H0[0, 0]
-            * 0.1 ** 3
+            * 0.1**3
             * (dchi / np.log(tau2 / tau1))
             * (1 / times[1] - 1 / (times[1] + 0.02))
         )
         dmdty = (
             -H0[0, 1]
-            * 0.1 ** 3
+            * 0.1**3
             * (dchi / np.log(tau2 / tau1))
             * (1 / times[1] - 1 / (times[1] + 0.02))
         )
         dmdtz = (
             -H0[0, 2]
-            * 0.1 ** 3
+            * 0.1**3
             * (dchi / np.log(tau2 / tau1))
             * (1 / times[1] - 1 / (times[1] + 0.02))
         )
         dmdot = np.dot(np.r_[dmdtx, dmdty, dmdtz], loc_rx.T)
 
-        fx = (1 / (4 * np.pi)) * (3 * loc_rx[0, 0] * dmdot / R ** 5 - dmdtx / R ** 3)
-        fy = (1 / (4 * np.pi)) * (3 * loc_rx[0, 1] * dmdot / R ** 5 - dmdty / R ** 3)
-        fz = (1 / (4 * np.pi)) * (3 * loc_rx[0, 2] * dmdot / R ** 5 - dmdtz / R ** 3)
+        fx = (1 / (4 * np.pi)) * (3 * loc_rx[0, 0] * dmdot / R**5 - dmdtx / R**3)
+        fy = (1 / (4 * np.pi)) * (3 * loc_rx[0, 1] * dmdot / R**5 - dmdty / R**3)
+        fz = (1 / (4 * np.pi)) * (3 * loc_rx[0, 2] * dmdot / R**5 - dmdtz / R**3)
 
         self.assertTrue(
             np.all(
@@ -176,7 +175,6 @@ class VRM_fwd_tests(unittest.TestCase):
         self.assertTrue(err1 and err2 and err3)
 
     def test_convergence_vertical(self):
-
         """
         Test the convergence of the solution to analytic results from
         Cowan (2016) and test accuracy
@@ -217,9 +215,9 @@ class VRM_fwd_tests(unittest.TestCase):
 
         F = -(1 / np.log(tau2 / tau1)) * (1 / times - 1 / (times + 0.02))
         Fields_true = (
-            (0.5 * np.pi * a ** 2 / np.pi)
+            (0.5 * np.pi * a**2 / np.pi)
             * (dchi / (2 + dchi))
-            * ((2 * z) ** 2 + a ** 2) ** -1.5
+            * ((2 * z) ** 2 + a**2) ** -1.5
             * F
         )
 
@@ -233,7 +231,6 @@ class VRM_fwd_tests(unittest.TestCase):
         self.assertTrue(Test1 and Test2)
 
     def test_convergence_radial(self):
-
         """
         Test the convergence of the solution to analytic results from
         Cowan (2016) and test accuracy
@@ -299,7 +296,6 @@ class VRM_fwd_tests(unittest.TestCase):
         self.assertTrue(Testx1 and Testx2 and Testy1 and Testy2)
 
     def test_vs_mesh_vs_loguniform(self):
-
         """
         Test to make sure OcTree matches Tensor results and linear vs
         loguniform match
@@ -315,11 +311,11 @@ class VRM_fwd_tests(unittest.TestCase):
             np.c_[1.0, 3.0, 5.0, 7.0],
             np.c_[1.0, 3.0, 5.0, 7.0],
         )
-        x = x.reshape((4 ** 3, 1))
-        y = y.reshape((4 ** 3, 1))
-        z = z.reshape((4 ** 3, 1))
+        x = x.reshape((4**3, 1))
+        y = y.reshape((4**3, 1))
+        z = z.reshape((4**3, 1))
         loc_rx = np.c_[x, y, z]
-        meshObj_OcTree.insert_cells(loc_rx, 2 * np.ones((4 ** 3)), finalize=False)
+        meshObj_OcTree.insert_cells(loc_rx, 2 * np.ones((4**3)), finalize=False)
 
         x, y, z = np.meshgrid(
             np.c_[1.0, 3.0, 5.0, 7.0], np.c_[1.0, 3.0, 5.0, 7.0], np.c_[5.0, 7.0]
@@ -434,7 +430,6 @@ class VRM_fwd_tests(unittest.TestCase):
         h1 = [0.25, 0.25]
         meshObj_Tensor = discretize.TensorMesh((h1, h1, h1), x0="CCN")
 
-        chi0 = 0.0
         dchi = 0.01
         tau1 = 1e-8
         tau2 = 1e0

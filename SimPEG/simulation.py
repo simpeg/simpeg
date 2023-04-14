@@ -1,3 +1,6 @@
+"""
+Define simulation classes
+"""
 import os
 import inspect
 import numpy as np
@@ -169,7 +172,7 @@ class BaseSimulation(props.HasModel):
         survey=None,
         solver=None,
         solver_opts=None,
-        sensitivity_path=os.path.join(".", "sensitivity"),
+        sensitivity_path=None,
         counter=None,
         verbose=False,
         **kwargs,
@@ -182,6 +185,8 @@ class BaseSimulation(props.HasModel):
         if solver_opts is None:
             solver_opts = {}
         self.solver_opts = solver_opts
+        if sensitivity_path is None:
+            sensitivity_path = os.path.join(".", "sensitivity")
         self.sensitivity_path = sensitivity_path
         self.counter = counter
         self.verbose = verbose
@@ -202,7 +207,7 @@ class BaseSimulation(props.HasModel):
         raise NotImplementedError("fields has not been implemented for this ")
 
     def dpred(self, m=None, f=None):
-        """
+        r"""
         dpred(m, f=None)
         Create the projected data from a model.
         The fields, f, (if provided) will be used for the predicted data
@@ -210,7 +215,7 @@ class BaseSimulation(props.HasModel):
 
         .. math::
 
-            d_\\text{pred} = P(f(m))
+            d_\text{pred} = P(f(m))
 
         Where P is a projection of the fields onto the data space.
         """
@@ -285,7 +290,7 @@ class BaseSimulation(props.HasModel):
 
     @count
     def residual(self, m, dobs, f=None):
-        """residual(m, dobs, f=None)
+        r"""
         The data residual:
 
         .. math::
@@ -322,7 +327,7 @@ class BaseSimulation(props.HasModel):
         dclean = self.dpred(m, f=f)
 
         if add_noise is True:
-            std = np.sqrt((relative_error * np.abs(dclean)) ** 2 + noise_floor ** 2)
+            std = np.sqrt((relative_error * np.abs(dclean)) ** 2 + noise_floor**2)
             noise = std * np.random.randn(*dclean.shape)
             dobs = dclean + noise
         else:
@@ -420,7 +425,7 @@ class BaseTimeSimulation(BaseSimulation):
         return self.time_mesh.nodes_x
 
     def dpred(self, m=None, f=None):
-        """
+        r"""
         dpred(m, f=None)
         Create the projected data from a model.
         The fields, f, (if provided) will be used for the predicted data
@@ -428,7 +433,7 @@ class BaseTimeSimulation(BaseSimulation):
 
         .. math::
 
-            d_\\text{pred} = P(f(m))
+            d_\text{pred} = P(f(m))
 
         Where P is a projection of the fields onto the data space.
         """
@@ -530,13 +535,13 @@ class LinearSimulation(BaseSimulation):
 
 
 class ExponentialSinusoidSimulation(LinearSimulation):
-    """
+    r"""
     This is the simulation class for the linear problem consisting of
     exponentially decaying sinusoids. The rows of the G matrix are
 
     .. math::
 
-        \\int_x e^{p j_k x} \\cos(\\pi q j_k x) \\quad, j_k \\in [j_0, ..., j_n]
+        \int_x e^{p j_k x} \cos(\pi q j_k x) \quad, j_k \in [j_0, ..., j_n]
     """
 
     @property

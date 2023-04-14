@@ -1,14 +1,10 @@
 from SimPEG.EM.Static.DC import Src
-from SimPEG import Props
-from SimPEG.Utils import sdiag
 from SimPEG import Utils
 import scipy.sparse as sp
 import numpy as np
-from SimPEG.EM.Static.DC import Survey
 
 
 class StreamingCurrents(Src.BaseSrc):
-
     L = None
     mesh = None
     modelType = None
@@ -39,17 +35,16 @@ class StreamingCurrents(Src.BaseSrc):
         q = self.Grad.T * self.mesh.aveCCV2F * j
         return q
 
-    def eval(self, prob):
-        """
+    def eval(self, prob):  # noqa: A003
+        r"""
+        Computing source term using:
 
-            Computing source term using:
+        - Hydraulic head: h
+        - Cross coupling coefficient: L
 
-            - Hydraulic head: h
-            - Cross coupling coefficient: L
+        .. math::
 
-            .. math::
-
-                -\nabla \cdot \vec{j}^s = \nabla \cdot L \nabla \phi \\
+            -\nabla \cdot \vec{j}^s = \nabla \cdot L \nabla \phi
 
         """
         if prob._formulation == "HJ":

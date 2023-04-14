@@ -1,5 +1,5 @@
 import unittest
-import SimPEG.dask
+import SimPEG.dask  # noqa: F401
 from SimPEG import (
     directives,
     maps,
@@ -11,7 +11,7 @@ from SimPEG import (
     regularization,
 )
 
-from discretize.utils import mesh_utils
+from discretize.utils import mesh_utils, active_from_xyz
 
 import shutil
 
@@ -21,7 +21,6 @@ import numpy as np
 
 class MagInvLinProblemTest(unittest.TestCase):
     def setUp(self):
-
         np.random.seed(0)
 
         # First we need to define the direction of the inducing field
@@ -79,7 +78,7 @@ class MagInvLinProblemTest(unittest.TestCase):
         )
 
         # Define an active cells from topo
-        actv = utils.surface2ind_topo(self.mesh, topo)
+        actv = active_from_xyz(self.mesh, topo)
         nC = int(actv.sum())
 
         # We can now create a susceptibility model and generate data
@@ -149,7 +148,6 @@ class MagInvLinProblemTest(unittest.TestCase):
         )
 
     def test_mag_inverse(self):
-
         # Run the inversion
         mrec = self.inv.run(self.model * 1e-4)
 
@@ -169,7 +167,7 @@ class MagInvLinProblemTest(unittest.TestCase):
         if self.sim.store_sensitivities == "disk":
             try:
                 shutil.rmtree(self.sim.sensitivity_path)
-            except:
+            except FileNotFoundError:
                 pass
 
 

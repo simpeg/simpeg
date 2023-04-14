@@ -97,7 +97,7 @@ def run(plotIt=True, saveFig=False, cleanup=True):
 
     # Plot both resolve and skytem data on 2D plane
     fig = plt.figure(figsize=(13, 6))
-    title = ["RESOLVE In-phase 400 Hz", "SkyTEM High moment 156 $\mu$s"]
+    title = ["RESOLVE In-phase 400 Hz", r"SkyTEM High moment 156 $\mu$s"]
     ax1 = plt.subplot(121)
     ax2 = plt.subplot(122)
     axs = [ax1, ax2]
@@ -159,7 +159,7 @@ def run(plotIt=True, saveFig=False, cleanup=True):
 
     # ------------------ Mesh ------------------ #
     # Step1: Set 2D cylindrical mesh
-    cs, ncx, ncz, npad = 1.0, 10.0, 10.0, 20
+    cs, ncx, npad = 1.0, 10.0, 20
     hx = [(cs, ncx), (cs, npad, 1.3)]
     npad = 12
     temp = np.logspace(np.log10(1.0), np.log10(12.0), 19)
@@ -220,7 +220,7 @@ def run(plotIt=True, saveFig=False, cleanup=True):
     # ------------------ RESOLVE Inversion ------------------ #
 
     # Primary field
-    bp = -mu_0 / (4 * np.pi * rxOffset ** 3)
+    bp = -mu_0 / (4 * np.pi * rxOffset**3)
 
     # Observed data
     cpi_inds = [0, 2, 6, 8, 10]
@@ -291,7 +291,6 @@ def run(plotIt=True, saveFig=False, cleanup=True):
     # Note: we are Using theoretical VTEM waveform,
     # but effectively fits SkyTEM waveform
     peak_time = 1.0000000e-02
-    a = 3.0
 
     dbdt_z = TDEM.Rx.PointMagneticFluxTimeDerivative(
         locations=rxLoc, times=times_off[:-3] + off_time, orientation="z"
@@ -330,7 +329,6 @@ def run(plotIt=True, saveFig=False, cleanup=True):
     for time in prob.times:
         wave.append(src.waveform.eval(time))
     wave = np.hstack(wave)
-    out = prob.dpred(m0)
 
     # plot the waveform
     fig = plt.figure(figsize=(5, 3))
@@ -459,7 +457,7 @@ def run(plotIt=True, saveFig=False, cleanup=True):
     )
     ax2.set_xlim(times_off.min() * 1e6 * 1.2, times_off.max() * 1e6 * 1.1)
 
-    ax2.set_xlabel("Time ($\mu s$)")
+    ax2.set_xlabel(r"Time ($\mu s$)")
     ax2.set_ylabel("dBz / dt (V/A-m$^4$)")
     ax2.set_title("(c) SkyTEM High-moment")
     ax2.grid(True)

@@ -27,7 +27,8 @@ Volume 224, Issue 1, January 2021, Pages 40-68, DOI: `10.1093/gji/ggaa378
 # --------------
 #
 
-import discretize as ds
+from discretize import TreeMesh
+from discretize.utils import active_from_xyz
 import matplotlib.pyplot as plt
 import numpy as np
 import SimPEG.potential_fields as pf
@@ -55,7 +56,7 @@ np.random.seed(518936)
 mesh_file = io_utils.download(
     "https://storage.googleapis.com/simpeg/pgi_tutorial_assets/mesh_tutorial.ubc"
 )
-mesh = ds.TreeMesh.read_UBC(mesh_file)
+mesh = TreeMesh.read_UBC(mesh_file)
 
 # Load True geological model for comparison with inversion result
 true_geology_file = io_utils.download(
@@ -214,7 +215,7 @@ topo_file = io_utils.download(
 )
 topo = np.genfromtxt(topo_file, skip_header=1)
 # find the active cells
-actv = utils.surface2ind_topo(mesh, topo, gridLoc="CC")
+actv = active_from_xyz(mesh, topo, "CC")
 # Create active map to go from reduce set to full
 ndv = np.nan
 actvMap = maps.InjectActiveCells(mesh, actv, ndv)
@@ -312,10 +313,10 @@ plt.show()
 #
 
 # Sensitivity weighting
-wr_grav = np.sum(simulation_grav.G ** 2.0, axis=0) ** 0.5 / (mesh.cell_volumes[actv])
+wr_grav = np.sum(simulation_grav.G**2.0, axis=0) ** 0.5 / (mesh.cell_volumes[actv])
 wr_grav = wr_grav / np.max(wr_grav)
 
-wr_mag = np.sum(simulation_mag.G ** 2.0, axis=0) ** 0.5 / (mesh.cell_volumes[actv])
+wr_mag = np.sum(simulation_mag.G**2.0, axis=0) ** 0.5 / (mesh.cell_volumes[actv])
 wr_mag = wr_mag / np.max(wr_mag)
 
 # create joint PGI regularization with smoothness
@@ -325,7 +326,7 @@ reg = regularization.PGI(
     wiresmap=wires,
     maplist=[idenMap, idenMap],
     active_cells=actv,
-    alpha_s=1.0,
+    alpha_pgi=1.0,
     alpha_x=1.0,
     alpha_y=1.0,
     alpha_z=1.0,
@@ -354,7 +355,7 @@ alpha0_ratio = np.r_[
     1e-4 * 100.0 * np.ones(len(reg.objfcts[2].objfcts[1:])),
 ]
 Alphas = directives.AlphasSmoothEstimate_ByEig(alpha0_ratio=alpha0_ratio, verbose=True)
-# initialize beta and beta/alpha_s schedule
+# initialize beta and beta/alpha_pgi schedule
 beta = directives.BetaEstimate_ByEig(beta0_ratio=1e-2)
 betaIt = directives.PGI_BetaAlphaSchedule(
     verbose=True,

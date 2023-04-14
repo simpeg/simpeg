@@ -41,7 +41,6 @@ class Simulation3DIntegral(BasePFSimulation):
         is_amplitude_data=False,
         **kwargs
     ):
-
         self.model_type = model_type
         super().__init__(mesh, **kwargs)
         self.chi = chi
@@ -118,9 +117,7 @@ class Simulation3DIntegral(BasePFSimulation):
 
     @property
     def G(self):
-
         if getattr(self, "_G", None) is None:
-
             self._G = self.linear_operator()
 
         return self._G
@@ -140,9 +137,7 @@ class Simulation3DIntegral(BasePFSimulation):
 
     @property
     def tmi_projection(self):
-
         if getattr(self, "_tmi_projection", None) is None:
-
             # Convert from north to cartesian
             self._tmi_projection = mat_utils.dip_azimuth2cartesian(
                 self.survey.source_field.inclination,
@@ -151,7 +146,7 @@ class Simulation3DIntegral(BasePFSimulation):
 
         return self._tmi_projection
 
-    def getJtJdiag(self, m, W=None):
+    def getJtJdiag(self, m, W=None, f=None):
         """
         Return the diagonal of JtJ
         """
@@ -209,7 +204,6 @@ class Simulation3DIntegral(BasePFSimulation):
 
     @property
     def ampDeriv(self):
-
         if getattr(self, "_ampDeriv", None) is None:
             fields = np.asarray(self.G.dot(self.chi).astype(np.float32))
             self._ampDeriv = self.normalized_fields(fields)
@@ -523,11 +517,14 @@ class Simulation3DDifferential(BaseMagneticPDESimulation):
         return B0
 
     def getRHS(self, m):
-        """
+        r"""
 
         .. math ::
 
-            \\mathbf{rhs} = \\Div(\\MfMui)^{-1}\\mathbf{M}^f_{\\mu_0^{-1}}\\mathbf{B}_0 - \\Div\\mathbf{B}_0+\\diag(v)\\mathbf{D} \\mathbf{P}_{out}^T \\mathbf{B}_{sBC}
+            \mathbf{rhs} =
+                \Div(\MfMui)^{-1}\mathbf{M}^f_{\mu_0^{-1}}\mathbf{B}_0
+                - \Div\mathbf{B}_0
+                +\diag(v)\mathbf{D} \mathbf{P}_{out}^T \mathbf{B}_{sBC}
 
         """
         B0 = self.getB0()
@@ -544,21 +541,22 @@ class Simulation3DDifferential(BaseMagneticPDESimulation):
         return self._Div * self.MfMuI * self.MfMu0 * B0 - self._Div * B0
 
     def getA(self, m):
-        """
+        r"""
         GetA creates and returns the A matrix for the Magnetics problem
 
         The A matrix has the form:
 
         .. math ::
 
-            \\mathbf{A} =  \\Div(\\MfMui)^{-1}\\Div^{T}
+            \mathbf{A} =  \Div(\MfMui)^{-1}\Div^{T}
 
         """
         return self._Div * self.MfMuI * self._Div.T.tocsr()
 
     def fields(self, m):
-        """
+        r"""
         Return magnetic potential (u) and flux (B)
+
         u: defined on the cell center [nC x 1]
         B: defined on the cell center [nG x 1]
 
@@ -566,7 +564,10 @@ class Simulation3DDifferential(BaseMagneticPDESimulation):
 
         .. math ::
 
-            \\mathbf{B}_s = (\\MfMui)^{-1}\\mathbf{M}^f_{\\mu_0^{-1}}\\mathbf{B}_0-\\mathbf{B}_0 -(\\MfMui)^{-1}\\Div^T \\mathbf{u}
+            \mathbf{B}_s =
+                (\MfMui)^{-1}\mathbf{M}^f_{\mu_0^{-1}}\mathbf{B}_0
+                - \mathbf{B}_0
+                - (\MfMui)^{-1}\Div^T \mathbf{u}
 
         """
         self.makeMassMatrices(m)
@@ -582,76 +583,92 @@ class Simulation3DDifferential(BaseMagneticPDESimulation):
 
     @utils.timeIt
     def Jvec(self, m, v, u=None):
-        """
-            Computing Jacobian multiplied by vector
+        r"""
+        Computing Jacobian multiplied by vector
 
-            By setting our problem as
+        By setting our problem as
 
-            .. math ::
+        .. math ::
 
-                \mathbf{C}(\mathbf{m}, \mathbf{u}) = \mathbf{A}\mathbf{u} - \mathbf{rhs} = 0
+            \mathbf{C}(\mathbf{m}, \mathbf{u}) = \mathbf{A}\mathbf{u} - \mathbf{rhs} = 0
 
-            And taking derivative w.r.t m
+        And taking derivative w.r.t m
 
-            .. math ::
+        .. math ::
 
-                \\nabla \mathbf{C}(\mathbf{m}, \mathbf{u}) = \\nabla_m \mathbf{C}(\mathbf{m}) \delta \mathbf{m} +
-                                                             \\nabla_u \mathbf{C}(\mathbf{u}) \delta \mathbf{u} = 0
+            \nabla \mathbf{C}(\mathbf{m}, \mathbf{u}) =
+                \nabla_m \mathbf{C}(\mathbf{m}) \delta \mathbf{m} +
+                \nabla_u \mathbf{C}(\mathbf{u}) \delta \mathbf{u} = 0
 
-                \\frac{\delta \mathbf{u}}{\delta \mathbf{m}} = - [\\nabla_u \mathbf{C}(\mathbf{u})]^{-1}\\nabla_m \mathbf{C}(\mathbf{m})
+            \frac{\delta \mathbf{u}}{\delta \mathbf{m}} =
+                - [\nabla_u \mathbf{C}(\mathbf{u})]^{-1}\nabla_m \mathbf{C}(\mathbf{m})
 
-            With some linear algebra we can have
+        With some linear algebra we can have
 
-            .. math ::
+        .. math ::
 
-                \\nabla_u \mathbf{C}(\mathbf{u}) = \mathbf{A}
+            \nabla_u \mathbf{C}(\mathbf{u}) = \mathbf{A}
 
-                \\nabla_m \mathbf{C}(\mathbf{m}) =
-                \\frac{\partial \mathbf{A}}{\partial \mathbf{m}}(\mathbf{m})\mathbf{u} - \\frac{\partial \mathbf{rhs}(\mathbf{m})}{\partial \mathbf{m}}
+            \nabla_m \mathbf{C}(\mathbf{m}) =
+                \frac{\partial \mathbf{A}} {\partial \mathbf{m}} (\mathbf{m}) \mathbf{u}
+                - \frac{\partial \mathbf{rhs}(\mathbf{m})}{\partial \mathbf{m}}
 
-            .. math ::
+        .. math ::
 
-                \\frac{\partial \mathbf{A}}{\partial \mathbf{m}}(\mathbf{m})\mathbf{u} =
-                \\frac{\partial \mathbf{\mu}}{\partial \mathbf{m}} \left[\Div \diag (\Div^T \mathbf{u}) \dMfMuI \\right]
+            \frac{\partial \mathbf{A}}{\partial \mathbf{m}}(\mathbf{m})\mathbf{u} =
+                \frac{\partial \mathbf{\mu}}{\partial \mathbf{m}}
+                \left[\Div \diag (\Div^T \mathbf{u}) \dMfMuI \right]
 
-                \dMfMuI = \diag(\MfMui)^{-1}_{vec} \mathbf{Av}_{F2CC}^T\diag(\mathbf{v})\diag(\\frac{1}{\mu^2})
+            \dMfMuI =
+                \diag(\MfMui)^{-1}_{vec}
+                \mathbf{Av}_{F2CC}^T\diag(\mathbf{v})\diag(\frac{1}{\mu^2})
 
-                \\frac{\partial \mathbf{rhs}(\mathbf{m})}{\partial \mathbf{m}} =  \\frac{\partial \mathbf{\mu}}{\partial \mathbf{m}} \left[
-                \Div \diag(\M^f_{\mu_{0}^{-1}}\mathbf{B}_0) \dMfMuI \\right] - \diag(\mathbf{v})\mathbf{D} \mathbf{P}_{out}^T\\frac{\partial B_{sBC}}{\partial \mathbf{m}}
-
-            In the end,
-
-            .. math ::
-
-                \\frac{\delta \mathbf{u}}{\delta \mathbf{m}} =
-                - [ \mathbf{A} ]^{-1}\left[ \\frac{\partial \mathbf{A}}{\partial \mathbf{m}}(\mathbf{m})\mathbf{u}
-                - \\frac{\partial \mathbf{rhs}(\mathbf{m})}{\partial \mathbf{m}} \\right]
-
-            A little tricky point here is we are not interested in potential (u), but interested in magnetic flux (B).
-            Thus, we need sensitivity for B. Now we take derivative of B w.r.t m and have
-
-            .. math ::
-
-                \\frac{\delta \mathbf{B}} {\delta \mathbf{m}} = \\frac{\partial \mathbf{\mu} } {\partial \mathbf{m} }
+            \frac{\partial \mathbf{rhs}(\mathbf{m})}{\partial \mathbf{m}} =
+                \frac{\partial \mathbf{\mu}}{\partial \mathbf{m}}
                 \left[
-                \diag(\M^f_{\mu_{0}^{-1} } \mathbf{B}_0) \dMfMuI  \\
-                 -  \diag (\Div^T\mathbf{u})\dMfMuI
-                \\right ]
+                    \Div \diag(\M^f_{\mu_{0}^{-1}}\mathbf{B}_0) \dMfMuI
+                \right]
+                - \diag(\mathbf{v}) \mathbf{D} \mathbf{P}_{out}^T
+                    \frac{\partial B_{sBC}}{\partial \mathbf{m}}
 
-                 -  (\MfMui)^{-1}\Div^T\\frac{\delta\mathbf{u}}{\delta \mathbf{m}}
+        In the end,
 
-            Finally we evaluate the above, but we should remember that
+        .. math ::
 
-            .. note ::
+            \frac{\delta \mathbf{u}}{\delta \mathbf{m}} =
+            - [ \mathbf{A} ]^{-1}
+            \left[
+                \frac{\partial \mathbf{A}}{\partial \mathbf{m}}(\mathbf{m})\mathbf{u}
+                - \frac{\partial \mathbf{rhs}(\mathbf{m})}{\partial \mathbf{m}}
+            \right]
 
-                We only want to evalute
+        A little tricky point here is we are not interested in potential (u), but interested in magnetic flux (B).
+        Thus, we need sensitivity for B. Now we take derivative of B w.r.t m and have
 
-                .. math ::
+        .. math ::
 
-                    \mathbf{J}\mathbf{v} = \\frac{\delta \mathbf{P}\mathbf{B}} {\delta \mathbf{m}}\mathbf{v}
+            \frac{\delta \mathbf{B}} {\delta \mathbf{m}} =
+            \frac{\partial \mathbf{\mu} } {\partial \mathbf{m} }
+            \left[
+                \diag(\M^f_{\mu_{0}^{-1} } \mathbf{B}_0) \dMfMuI  \
+                 - \diag (\Div^T\mathbf{u})\dMfMuI
+            \right ]
 
-                Since forming sensitivity matrix is very expensive in that this monster is "big" and "dense" matrix!!
+             -  (\MfMui)^{-1}\Div^T\frac{\delta\mathbf{u}}{\delta \mathbf{m}}
 
+        Finally we evaluate the above, but we should remember that
+
+        .. note ::
+
+            We only want to evaluate
+
+            .. math ::
+
+                \mathbf{J}\mathbf{v} =
+                    \frac{\delta \mathbf{P}\mathbf{B}} {\delta \mathbf{m}}\mathbf{v}
+
+            Since forming sensitivity matrix is very expensive in that this
+            monster is "big" and "dense" matrix!!
 
         """
         if u is None:
@@ -668,7 +685,7 @@ class Simulation3DDifferential(BaseMagneticPDESimulation):
         B0 = self.getB0()
 
         MfMuIvec = 1 / self.MfMui.diagonal()
-        dMfMuI = sdiag(MfMuIvec ** 2) * self.mesh.aveF2CC.T * sdiag(vol * 1.0 / mu ** 2)
+        dMfMuI = sdiag(MfMuIvec**2) * self.mesh.aveF2CC.T * sdiag(vol * 1.0 / mu**2)
 
         # A = self._Div*self.MfMuI*self._Div.T
         # RHS = Div*MfMuI*MfMu0*B0 - Div*B0 + Mc*Dface*Pout.T*Bbc
@@ -702,24 +719,30 @@ class Simulation3DDifferential(BaseMagneticPDESimulation):
 
     @utils.timeIt
     def Jtvec(self, m, v, u=None):
-        """
-            Computing Jacobian^T multiplied by vector.
+        r"""
+        Computing Jacobian^T multiplied by vector.
 
         .. math ::
 
-            (\\frac{\delta \mathbf{P}\mathbf{B}} {\delta \mathbf{m}})^{T} = \left[ \mathbf{P}_{deriv}\\frac{\partial \mathbf{\mu} } {\partial \mathbf{m} }
-            \left[
-            \diag(\M^f_{\mu_{0}^{-1} } \mathbf{B}_0) \dMfMuI  \\
-             -  \diag (\Div^T\mathbf{u})\dMfMuI
-            \\right ]\\right]^{T}
-
-             -  \left[\mathbf{P}_{deriv}(\MfMui)^{-1}\Div^T\\frac{\delta\mathbf{u}}{\delta \mathbf{m}} \\right]^{T}
+            (\frac{\delta \mathbf{P}\mathbf{B}} {\delta \mathbf{m}})^{T} =
+                \left[
+                    \mathbf{P}_{deriv}\frac{\partial \mathbf{\mu} } {\partial \mathbf{m} }
+                    \left[
+                        \diag(\M^f_{\mu_{0}^{-1} } \mathbf{B}_0) \dMfMuI
+                         - \diag (\Div^T\mathbf{u})\dMfMuI
+                    \right ]
+                \right]^{T}
+                 -
+                 \left[
+                     \mathbf{P}_{deriv}(\MfMui)^{-1} \Div^T
+                     \frac{\delta\mathbf{u}}{\delta \mathbf{m}}
+                 \right]^{T}
 
         where
 
         .. math ::
 
-            \mathbf{P}_{derv} = \\frac{\partial \mathbf{P}}{\partial\mathbf{B}}
+            \mathbf{P}_{derv} = \frac{\partial \mathbf{P}}{\partial\mathbf{B}}
 
         .. note ::
 
@@ -727,7 +750,8 @@ class Simulation3DDifferential(BaseMagneticPDESimulation):
 
             .. math ::
 
-                \mathbf{J}^{T}\mathbf{v} = (\\frac{\delta \mathbf{P}\mathbf{B}} {\delta \mathbf{m}})^{T} \mathbf{v}
+                \mathbf{J}^{T}\mathbf{v} =
+                (\frac{\delta \mathbf{P}\mathbf{B}} {\delta \mathbf{m}})^{T} \mathbf{v}
 
         """
         if u is None:
@@ -740,12 +764,11 @@ class Simulation3DDifferential(BaseMagneticPDESimulation):
 
         vol = self.mesh.cell_volumes
         Div = self._Div
-        Dface = self.mesh.face_divergence
         P = self.survey.projectFieldsDeriv(B)  # Projection matrix
         B0 = self.getB0()
 
         MfMuIvec = 1 / self.MfMui.diagonal()
-        dMfMuI = sdiag(MfMuIvec ** 2) * self.mesh.aveF2CC.T * sdiag(vol * 1.0 / mu ** 2)
+        dMfMuI = sdiag(MfMuIvec**2) * self.mesh.aveF2CC.T * sdiag(vol * 1.0 / mu**2)
 
         # A = self._Div*self.MfMuI*self._Div.T
         # RHS = Div*MfMuI*MfMu0*B0 - Div*B0 + Mc*Dface*Pout.T*Bbc
@@ -820,7 +843,7 @@ class Simulation3DDifferential(BaseMagneticPDESimulation):
         return self._Qfz
 
     def projectFields(self, u):
-        """
+        r"""
         This function projects the fields onto the data space.
         Especially, here for we use total magnetic intensity (TMI) data,
         which is common in practice.
@@ -834,7 +857,7 @@ class Simulation3DDifferential(BaseMagneticPDESimulation):
 
         .. math ::
 
-            \\text{TMI} = \\vec{B}_s \cdot \hat{B}_0
+            \text{TMI} = \vec{B}_s \cdot \hat{B}_0
 
         """
         # TODO: There can be some different tyes of data like |B| or B
@@ -864,12 +887,12 @@ class Simulation3DDifferential(BaseMagneticPDESimulation):
 
     @utils.count
     def projectFieldsDeriv(self, B):
-        """
+        r"""
         This function projects the fields onto the data space.
 
         .. math::
 
-            \\frac{\partial d_\\text{pred}}{\partial \mathbf{B}} = \mathbf{P}
+            \frac{\partial d_\text{pred}}{\partial \mathbf{B}} = \mathbf{P}
 
         Especially, this function is for TMI data type
         """
@@ -899,7 +922,6 @@ class Simulation3DDifferential(BaseMagneticPDESimulation):
         return sp.vstack([fields[comp] for comp in components])
 
     def projectFieldsAsVector(self, B):
-
         bfx = self.Qfx * B
         bfy = self.Qfy * B
         bfz = self.Qfz * B

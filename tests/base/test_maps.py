@@ -1,8 +1,11 @@
 import numpy as np
 import unittest
 import discretize
+import pytest
+import scipy.sparse as sp
+
 from SimPEG import maps, models, utils
-from discretize.utils import mesh_builder_xyz, refine_tree_xyz
+from discretize.utils import mesh_builder_xyz, refine_tree_xyz, active_from_xyz
 import inspect
 
 TOL = 1e-14
@@ -23,6 +26,7 @@ MAPS_TO_EXCLUDE_2D = [
     "ActiveCells",
     "InjectActiveCells",
     "LogMap",
+    "LinearMap",
     "ReciprocalMap",
     "PolynomialPetroClusterMap",
     "Surject2Dto3D",
@@ -49,6 +53,7 @@ MAPS_TO_EXCLUDE_3D = [
     "ActiveCells",
     "InjectActiveCells",
     "LogMap",
+    "LinearMap",
     "ReciprocalMap",
     "PolynomialPetroClusterMap",
     "CircleMap",
@@ -72,9 +77,29 @@ MAPS_TO_EXCLUDE_3D = [
 ] + REMOVED_IGNORE
 
 
+def test_IdentityMap_init():
+    m = maps.IdentityMap()
+    assert m.nP == "*"
+
+    m = maps.IdentityMap(nP="*")
+    assert m.nP == "*"
+
+    m = maps.IdentityMap(nP=3)
+    assert m.nP == 3
+
+    mesh = discretize.TensorMesh([3])
+    m = maps.IdentityMap(mesh)
+    assert m.nP == 3
+
+    m = maps.IdentityMap(mesh, nP="*")
+    assert m.nP == 3
+
+    with pytest.raises(TypeError):
+        maps.IdentityMap(nP="x")
+
+
 class MapTests(unittest.TestCase):
     def setUp(self):
-
         maps2test2D = [M for M in dir(maps) if M not in MAPS_TO_EXCLUDE_2D]
         maps2test3D = [M for M in dir(maps) if M not in MAPS_TO_EXCLUDE_3D]
 
@@ -169,7 +194,6 @@ class MapTests(unittest.TestCase):
         self.assertTrue(mapping.test(m))
 
     def test_transforms_logMap_reciprocalMap(self):
-
         # Note that log/reciprocal maps can be kinda finicky, so we are being
         # explicit about the random seed.
 
@@ -262,7 +286,6 @@ class MapTests(unittest.TestCase):
         for actMap in [
             maps.InjectActiveCells(M, M.cell_centers_y <= 0, 10, nC=M.shape_cells[1]),
         ]:
-
             vertMap = maps.SurjectVertical1D(M)
             combo = vertMap * actMap
             m = np.r_[1.0, 2.0]
@@ -310,7 +333,6 @@ class MapTests(unittest.TestCase):
         for m2to3 in [
             maps.Surject2Dto3D(M3, normal="X"),
         ]:
-
             # m2to3 = maps.Surject2Dto3D(M3, normal='X')
             m = np.arange(m2to3.nP)
             self.assertTrue(m2to3.test())
@@ -341,7 +363,6 @@ class MapTests(unittest.TestCase):
         for m2to3 in [
             maps.Surject2Dto3D(M3, normal="Z"),
         ]:
-
             # m2to3 = maps.Surject2Dto3D(M3, normal='Z')
             m = np.arange(m2to3.nP)
             self.assertTrue(m2to3.test())
@@ -500,7 +521,6 @@ class MapTests(unittest.TestCase):
         local_meshes = []
 
         for ii in range(rxLocs.shape[0]):
-
             local_mesh = mesh_builder_xyz(
                 rxLocs, h, padding_distance=padDist, mesh_type="tree"
             )
@@ -526,13 +546,12 @@ class MapTests(unittest.TestCase):
         mesh.finalize()
 
         # Define an active cells from topo
-        activeCells = utils.surface2ind_topo(mesh, rxLocs)
+        activeCells = active_from_xyz(mesh, rxLocs)
 
         model = np.random.randn(int(activeCells.sum()))
         total_mass = (model * mesh.cell_volumes[activeCells]).sum()
 
         for local_mesh in local_meshes:
-
             tile_map = maps.TileMap(
                 mesh,
                 activeCells,
@@ -562,8 +581,8 @@ class TestWires(unittest.TestCase):
 
         named_model = wires * model
 
-        named_model.sigma == model[: mesh.shape_cells[2]]
-        assert named_model.mu_casing == 10
+        np.testing.assert_equal(named_model.sigma, model[: mesh.shape_cells[2]])
+        np.testing.assert_equal(named_model.mu_casing, 10)
 
 
 class TestSCEMT(unittest.TestCase):
@@ -580,6 +599,74 @@ class TestSCEMT(unittest.TestCase):
         )
         m = np.abs(np.random.rand(mesh.nC))
         mapping.test(m=m, dx=0.05 * np.ones(mesh.n_cells), num=3)
+
+
+@pytest.mark.parametrize(
+    "A, b",
+    [
+        (np.random.rand(20, 40), np.random.rand(20)),  # test with np.array
+        (np.random.rand(20, 40), None),  # Test without B
+        (sp.random(20, 40, density=0.1), np.random.rand(20)),  # test with sparse matrix
+        (
+            sp.csr_array(sp.random(20, 40, density=0.1)),
+            np.random.rand(20),
+        ),  # test with sparse array
+        (sp.linalg.aslinearoperator(np.random.rand(20, 40)), np.random.rand(20)),
+    ],
+)
+def test_LinearMap(A, b):
+    map1 = maps.LinearMap(A, b)
+    x = np.random.rand(map1.nP)
+    y1 = A @ x
+    if b is not None:
+        y1 += b
+    y2 = map1 * x
+    np.testing.assert_allclose(y1, y2)
+
+
+@pytest.mark.parametrize(
+    "A, b",
+    [
+        (np.random.rand(20, 40), np.random.rand(20)),  # test with np.array
+        (np.random.rand(20, 40), None),  # Test without B
+        (sp.random(20, 40, density=0.1), np.random.rand(20)),  # test with sparse matrix
+        (
+            sp.csr_array(sp.random(20, 40, density=0.1)),
+            np.random.rand(20),
+        ),  # test with sparse array
+        (sp.linalg.aslinearoperator(np.random.rand(20, 40)), np.random.rand(20)),
+    ],
+)
+def test_LinearMapDerivs(A, b):
+    mapping = maps.LinearMap(A, b)
+    # check passing v=None
+    m = np.random.rand(mapping.nP)
+    v = np.random.rand(mapping.nP)
+    y1 = mapping.deriv(m) @ v
+    y2 = mapping.deriv(m, v=v)
+    np.testing.assert_equal(y1, y2)
+    mapping.test()
+
+
+def test_LinearMap_errors():
+    # object with no matmul operator
+    with pytest.raises(TypeError):
+        maps.LinearMap("No Matmul")
+
+    # object with matmul and no shape
+    class IncompleteLinearOperator:
+        def __matmul__(self, other):
+            return other
+
+    incomplete_A = IncompleteLinearOperator()
+    with pytest.raises(TypeError):
+        maps.LinearMap(incomplete_A)
+
+    # poorly shaped b vector
+    A = np.random.rand(20, 40)
+    b = np.random.rand(40)
+    with pytest.raises(ValueError):
+        maps.LinearMap(A, b=b)
 
 
 if __name__ == "__main__":

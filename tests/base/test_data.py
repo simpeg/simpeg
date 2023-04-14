@@ -1,11 +1,10 @@
 import unittest
 
 import numpy as np
-import scipy.sparse as sp
 import discretize
 
-from SimPEG import maps, utils
-from SimPEG import data_misfit, simulation, survey
+from SimPEG import maps
+from SimPEG import simulation, survey
 from SimPEG import Data
 
 
@@ -51,7 +50,7 @@ class DataTest(unittest.TestCase):
             data.standard_deviation,
             np.sqrt(
                 (relative * np.abs(self.dobs)) ** 2
-                + floor ** 2 * np.ones(len(self.dobs)),
+                + floor**2 * np.ones(len(self.dobs)),
             ),
         )
 

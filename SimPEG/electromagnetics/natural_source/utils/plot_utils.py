@@ -158,9 +158,6 @@ class TipperAmplitudeStationPlot(BaseDataNSEMPlots):
 
         axes = self.axes
 
-        # Set keyword arguments
-        st_kwargs = {"marker": "_", "ls": "None"}
-        eb_kwargs = {"ls": "None"}
         # Pop the data from the list
         data = data_list[0]
 
@@ -254,9 +251,6 @@ class ApparentResPhsStationPlot(BaseDataNSEMPlots):
 
         axes = self.axes
 
-        # Set keyword arguments
-        st_kwargs = {"marker": "_", "ls": "None"}
-        eb_kwargs = {"ls": "None"}
         # Pop the data from the list
         data = data_list[0]
 
@@ -339,7 +333,7 @@ class DataNSEMPlotMethods(object):
     def plot_app_res(
         self,
         location,
-        components=["xy", "yx"],
+        components=("xy", "yx"),
         ax=None,
         errorbars=False,
         comp_plot_dict=DEFAULT_COMP_DICT,
@@ -370,7 +364,7 @@ class DataNSEMPlotMethods(object):
             ax.set_xlabel("Frequency [Hz]")
             ax.set_ylabel("Apperent resistivity [Ohm m]")
         else:
-            fig = ax.get_figure()
+            ax.get_figure()
 
         for comp in components:
             st_kwargs = _validate_kwargs(comp_plot_dict[comp], DEFAULT_COMP_DICT[comp])
@@ -388,7 +382,7 @@ class DataNSEMPlotMethods(object):
     def plot_app_phs(
         self,
         location,
-        components=["xy", "yx"],
+        components=("xy", "yx"),
         ax=None,
         errorbars=False,
         comp_plot_dict=DEFAULT_COMP_DICT,
@@ -417,7 +411,7 @@ class DataNSEMPlotMethods(object):
             ax.set_xlabel("Frequency [Hz]")
             ax.set_ylabel("Phase angle [Degrees]")
         else:
-            fig = ax.get_figure()
+            ax.get_figure()
 
         for comp in components:
             st_kwargs = _validate_kwargs(comp_plot_dict[comp], DEFAULT_COMP_DICT[comp])
@@ -435,7 +429,7 @@ class DataNSEMPlotMethods(object):
     def plot_imp_amp(
         self,
         location,
-        components=["xy", "yx"],
+        components=("xy", "yx"),
         ax=None,
         errorbars=False,
         comp_plot_dict=DEFAULT_COMP_DICT,
@@ -465,7 +459,7 @@ class DataNSEMPlotMethods(object):
             ax.set_xlabel("Frequency [Hz]")
             ax.set_ylabel("Impedance amplitude [V/A]")
         else:
-            fig = ax.get_figure()
+            ax.get_figure()
 
         for comp in components:
             st_kwargs = _validate_kwargs(comp_plot_dict[comp], DEFAULT_COMP_DICT[comp])
@@ -483,7 +477,7 @@ class DataNSEMPlotMethods(object):
     def plot_tip_amp(
         self,
         location,
-        components=["zx", "zy"],
+        components=("zx", "zy"),
         ax=None,
         errorbars=False,
         comp_plot_dict=DEFAULT_COMP_DICT,
@@ -513,7 +507,7 @@ class DataNSEMPlotMethods(object):
             ax.set_xlabel("Frequency [Hz]")
             ax.set_ylabel("Tipper magnitude [unitless]")
         else:
-            fig = ax.get_figure()
+            ax.get_figure()
 
         for comp in components:
             st_kwargs = _validate_kwargs(comp_plot_dict[comp], DEFAULT_COMP_DICT[comp])
@@ -672,15 +666,15 @@ def _get_map_data(data, frequency, orientation, component, plot_error=False):
             comp_data = real_data + 1j * imag_data
             plot_data = (1.0 / (mu_0 * omega(freqs))) * np.abs(comp_data) ** 2
             if plot_error:
-                res_uncert = (2.0 / (mu_0 * omega(freqs))) * (
-                    real_data * real_uncert + imag_data * imag_uncert
+                res_uncert = (2.0 / (mu_0 * omega(freqs))) * np.sqrt(
+                    (real_data * real_uncert) ** 2 + (imag_data * imag_uncert) ** 2
                 )
                 errorbars = [res_uncert, res_uncert]
         elif "phase" in component:
             plot_data = np.arctan2(imag_data, real_data) * (180.0 / np.pi)
             if plot_error:
-                phs_uncert = (
-                    (1.0 / (real_data ** 2 + imag_data ** 2))
+                phs_uncert = np.abs(
+                    (1.0 / (real_data**2 + imag_data**2))
                     * ((real_data * real_uncert - imag_data * imag_uncert))
                 ) * (180.0 / np.pi)
                 # Scale back the errorbars
@@ -695,7 +689,6 @@ def _get_map_data(data, frequency, orientation, component, plot_error=False):
                 )
                 errorbars = [amp_uncert, amp_uncert]  # [low_unsert, up_unsert]
     else:
-
         if plot_error:
             freqs, plot_data, std_data, floor_data = _extract_frequency_data(
                 data, frequency, orientation, component, return_uncert=error
@@ -710,7 +703,6 @@ def _get_map_data(data, frequency, orientation, component, plot_error=False):
 
 
 def _get_station_data(data, location, orientation, component, plot_error=False):
-
     # Get the components
     if component in ["app_res", "phase", "amplitude"]:
         real_tuple = _extract_location_data(
@@ -734,15 +726,15 @@ def _get_station_data(data, location, orientation, component, plot_error=False):
             comp_data = real_data + 1j * imag_data
             plot_data = (1.0 / (mu_0 * omega(freqs))) * np.abs(comp_data) ** 2
             if plot_error:
-                res_uncert = (2.0 / (mu_0 * omega(freqs))) * (
-                    real_data * real_uncert + imag_data * imag_uncert
+                res_uncert = (2.0 / (mu_0 * omega(freqs))) * np.sqrt(
+                    (real_data * real_uncert) ** 2 + (imag_data * imag_uncert) ** 2
                 )
                 errorbars = [res_uncert, res_uncert]
         elif "phase" in component:
             plot_data = np.arctan2(imag_data, real_data) * (180.0 / np.pi)
             if plot_error:
-                phs_uncert = (
-                    (1.0 / (real_data ** 2 + imag_data ** 2))
+                phs_uncert = np.abs(
+                    (1.0 / (real_data**2 + imag_data**2))
                     * ((real_data * real_uncert - imag_data * imag_uncert))
                 ) * (180.0 / np.pi)
                 # Scale back the errorbars
@@ -774,7 +766,6 @@ def _get_station_data(data, location, orientation, component, plot_error=False):
 
 
 def _get_plot_data(data, location, orientation, component):
-
     if "app_res" in component:
         freqs, dat_r = _extract_location_data(data, location, orientation, "real")
         freqs, dat_i = _extract_location_data(data, location, orientation, "imag")

@@ -1,5 +1,6 @@
 import unittest
 import discretize
+from discretize.utils import active_from_xyz
 from SimPEG import (
     utils,
     maps,
@@ -15,12 +16,10 @@ import numpy as np
 # import SimPEG.PF as PF
 from SimPEG.potential_fields import magnetics as mag
 import shutil
-import matplotlib.pyplot as plt
 
 
 class MagInvLinProblemTest(unittest.TestCase):
     def setUp(self):
-
         np.random.seed(0)
 
         # Define the inducing field parameter
@@ -39,11 +38,11 @@ class MagInvLinProblemTest(unittest.TestCase):
 
         # Lets create a simple Gaussian topo and set the active cells
         [xx, yy] = np.meshgrid(self.mesh.nodes_x, self.mesh.nodes_y)
-        zz = -np.exp((xx ** 2 + yy ** 2) / 75 ** 2) + self.mesh.nodes_z[-1]
+        zz = -np.exp((xx**2 + yy**2) / 75**2) + self.mesh.nodes_z[-1]
 
         # Go from topo to actv cells
         topo = np.c_[utils.mkvc(xx), utils.mkvc(yy), utils.mkvc(zz)]
-        actv = utils.surface2ind_topo(self.mesh, topo, "N")
+        actv = active_from_xyz(self.mesh, topo, "N")
 
         # Create active map to go from reduce space to full
         self.actvMap = maps.InjectActiveCells(self.mesh, actv, -100)
@@ -55,7 +54,7 @@ class MagInvLinProblemTest(unittest.TestCase):
         X, Y = np.meshgrid(xr, yr)
 
         # Move the observation points 5m above the topo
-        Z = -np.exp((X ** 2 + Y ** 2) / 75 ** 2) + self.mesh.nodes_z[-1] + 5.0
+        Z = -np.exp((X**2 + Y**2) / 75**2) + self.mesh.nodes_z[-1] + 5.0
 
         # Create a MAGsurvey
         rxLoc = np.c_[utils.mkvc(X.T), utils.mkvc(Y.T), utils.mkvc(Z.T)]
@@ -83,6 +82,7 @@ class MagInvLinProblemTest(unittest.TestCase):
             chiMap=idenMap,
             ind_active=actv,
             store_sensitivities="disk",
+            n_processes=None,
         )
         self.sim = sim
 
@@ -116,7 +116,6 @@ class MagInvLinProblemTest(unittest.TestCase):
         )
 
     def test_mag_inverse(self):
-
         # Run the inversion
         mrec = self.inv.run(self.model)
         residual = np.linalg.norm(mrec - self.model) / np.linalg.norm(self.model)

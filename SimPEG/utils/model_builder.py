@@ -201,7 +201,7 @@ def create_ellipse_in_wholespace(
     for i in range(dim):
         G[:, i] = G[:, i] / anisotropy[i] * 2.0
 
-    D = np.sqrt(np.sum(G ** 2, axis=1))
+    D = np.sqrt(np.sum(G**2, axis=1))
     return -np.arctan((D - 1) * slope) * (2.0 / np.pi) / 2.0 + 0.5
 
 
@@ -475,7 +475,7 @@ def create_random_model(shape, seed=1000, anisotropy=None, its=100, bounds=None)
 
     smth = smth / smth.sum()  # normalize
     mi = mr
-    for i in range(its):
+    for _ in range(its):
         mi = ndi.convolve(mi, smth)
 
     # scale the model to live between the bounds.

@@ -160,7 +160,6 @@ class SimilarityMeasureSaveOutputEveryIteration(SaveEveryIteration):
         self.phi_sim = []
 
     def endIter(self):
-
         self.betas.append(["{:.2e}".format(elem) for elem in self.invProb.betas])
         self.phi_d.append(["{:.3e}".format(elem) for elem in self.invProb.phi_d_list])
         self.phi_m.append(["{:.3e}".format(elem) for elem in self.invProb.phi_m_list])
@@ -219,24 +218,30 @@ class PairedBetaEstimate_ByEig(InversionDirective):
     seed = None  #: Random seed for the directive
 
     def initialize(self):
-        """
+        r"""
         The initial beta is calculated by comparing the estimated
-        eigenvalues of JtJ and WtW.
+        eigenvalues of :math:`J^T J` and :math:`W^T W`.
         To estimate the eigenvector of **A**, we will use one iteration
         of the *Power Method*:
 
         .. math::
-            \\mathbf{x_1 = A x_0}
+
+            \mathbf{x_1 = A x_0}
+
         Given this (very course) approximation of the eigenvector, we can
         use the *Rayleigh quotient* to approximate the largest eigenvalue.
 
         .. math::
-            \\lambda_0 = \\frac{\\mathbf{x^\\top A x}}{\\mathbf{x^\\top x}}
+
+            \lambda_0 = \frac{\mathbf{x^\top A x}}{\mathbf{x^\top x}}
+
         We will approximate the largest eigenvalue for both JtJ and WtW,
         and use some ratio of the quotient to estimate beta0.
 
         .. math::
-            \\beta_0 = \\gamma \\frac{\\mathbf{x^\\top J^\\top J x}}{\\mathbf{x^\\top W^\\top W x}}
+
+            \beta_0 = \gamma \frac{\mathbf{x^\top J^\top J x}}{\mathbf{x^\top W^\top W x}}
+
         :rtype: float
         :return: beta0
         """
@@ -312,7 +317,6 @@ class PairedBetaSchedule(InversionDirective):
         self.dmis_met = np.zeros_like(self.invProb.betas, dtype=bool)
 
     def endIter(self):
-
         # Check if target misfit has been reached, if so, set dmis_met to True
         for i, phi_d in enumerate(self.invProb.phi_d_list):
             self.dmis_met[i] = phi_d < self.target[i]

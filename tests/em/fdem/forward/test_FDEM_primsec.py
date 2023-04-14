@@ -2,18 +2,11 @@
 # matplotlib.use('Agg')
 
 import discretize
-from scipy.constants import mu_0
 from SimPEG import maps, tests, utils
 from SimPEG.electromagnetics import frequency_domain as fdem
-from SimPEG.electromagnetics.utils import omega
 
-try:
-    from pymatsolver import Pardiso as Solver
-except ImportError:
-    from SimPEG import Solver as SolverLU
+from pymatsolver import Pardiso as Solver
 
-import time
-import os
 import numpy as np
 import unittest
 
@@ -92,7 +85,6 @@ primaryMap2Meshs = (
 
 
 class PrimSecFDEMTest(object):
-
     # --------------------- Run some tests! --------------------- #
     def DataTest(self):
         print("\nTesting Data")
@@ -162,7 +154,6 @@ class PrimSecFDEMTest(object):
 class PrimSecFDEMSrcTest_Cyl2Cart_EB_EB(unittest.TestCase, PrimSecFDEMTest):
     @classmethod
     def setUpClass(self):
-
         print("\n------- Testing Primary Secondary Source EB -> EB --------\n")
         # receivers
         self.rxlist = []
@@ -230,7 +221,6 @@ class PrimSecFDEMSrcTest_Cyl2Cart_EB_EB(unittest.TestCase, PrimSecFDEMTest):
 class PrimSecFDEMSrcTest_Cyl2Cart_HJ_EB(unittest.TestCase, PrimSecFDEMTest):
     @classmethod
     def setUpClass(self):
-
         print("\n------- Testing Primary Secondary Source HJ -> EB --------\n")
         # receivers
         self.rxlist = []

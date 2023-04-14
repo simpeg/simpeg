@@ -13,12 +13,12 @@ from ..utils import validate_type
 
 
 class CrossGradient(BaseSimilarityMeasure):
-    """
+    r"""
     The cross-gradient constraint for joint inversions.
 
     ..math::
-        \\phi_c(\\mathbf{m_1},\\mathbf{m_2}) = \\lambda \\sum_{i=1}^{M} \\|
-        \\nabla \\mathbf{m_1}_i \\times \\nabla \\mathbf{m_2}_i \\|^2
+        \phi_c(\mathbf{m_1},\mathbf{m_2}) = \lambda \sum_{i=1}^{M} \|
+        \nabla \mathbf{m_1}_i \times \nabla \mathbf{m_2}_i \|^2
 
     All methods assume that we are working with two models only.
 
@@ -113,7 +113,7 @@ class CrossGradient(BaseSimilarityMeasure):
         return cross_prod
 
     def __call__(self, model):
-        """
+        r"""
         Computes the sum of all cross-gradient values at all cell centers.
 
         :param numpy.ndarray model: stacked array of individual models
@@ -126,15 +126,13 @@ class CrossGradient(BaseSimilarityMeasure):
 
         ..math::
 
-            \\phi_c(\\mathbf{m_1},\\mathbf{m_2})
+            \phi_c(\mathbf{m_1},\mathbf{m_2})
+            = \lambda \sum_{i=1}^{M} \|\nabla \mathbf{m_1}_i \times \nabla \mathbf{m_2}_i \|^2
+            = \sum_{i=1}^{M} \|\nabla \mathbf{m_1}_i\|^2 \ast \|\nabla \mathbf{m_2}_i\|^2
+                - (\nabla \mathbf{m_1}_i \cdot \nabla \mathbf{m_2}_i )^2
+            = \|\phi_{cx}\|^2 + \|\phi_{cy}\|^2 + \|\phi_{cz}\|^2
 
-            = \\lambda \\sum_{i=1}^{M} \\|\\nabla \\mathbf{m_1}_i \\times \\nabla \\mathbf{m_2}_i \\|^2
-
-            = \\sum_{i=1}^{M} \\|\\nabla \\mathbf{m_1}_i\\|^2 \\ast \\|\\nabla \\mathbf{m_2}_i\\|^2
-                - (\\nabla \\mathbf{m_1}_i \\cdot \\nabla \\mathbf{m_2}_i )^2
-
-            = \\|\\phi_{cx}\\|^2 + \\|\\phi_{cy}\\|^2 + \\|\\phi_{cz}\\|^2 (optional strategy, not used in this script)
-
+        (optional strategy, not used in this script)
 
         """
         m1, m2 = self.wire_map * model
@@ -143,7 +141,7 @@ class CrossGradient(BaseSimilarityMeasure):
         g_m1 = G @ m1
         g_m2 = G @ m2
         return 0.5 * np.sum(
-            (Av @ g_m1 ** 2) * (Av @ g_m2 ** 2) - (Av @ (g_m1 * g_m2)) ** 2
+            (Av @ g_m1**2) * (Av @ g_m2**2) - (Av @ (g_m1 * g_m2)) ** 2
         )
 
     def deriv(self, model):
@@ -164,9 +162,9 @@ class CrossGradient(BaseSimilarityMeasure):
         g_m2 = G @ m2
 
         return np.r_[
-            (((Av @ g_m2 ** 2) @ Av) * g_m1) @ G
+            (((Av @ g_m2**2) @ Av) * g_m1) @ G
             - (((Av @ (g_m1 * g_m2)) @ Av) * g_m2) @ G,
-            (((Av @ g_m1 ** 2) @ Av) * g_m2) @ G
+            (((Av @ g_m1**2) @ Av) * g_m2) @ G
             - (((Av @ (g_m1 * g_m2)) @ Av) * g_m1) @ G,
         ]
 
@@ -195,7 +193,7 @@ class CrossGradient(BaseSimilarityMeasure):
             A = (
                 G.T
                 @ (
-                    sp.diags(Av.T @ (Av @ g_m2 ** 2))
+                    sp.diags(Av.T @ (Av @ g_m2**2))
                     - sp.diags(g_m2) @ Av.T @ Av @ sp.diags(g_m2)
                 )
                 @ G
@@ -204,7 +202,7 @@ class CrossGradient(BaseSimilarityMeasure):
             C = (
                 G.T
                 @ (
-                    sp.diags(Av.T @ (Av @ g_m1 ** 2))
+                    sp.diags(Av.T @ (Av @ g_m1**2))
                     - sp.diags(g_m1) @ Av.T @ Av @ sp.diags(g_m1)
                 )
                 @ G
@@ -233,10 +231,10 @@ class CrossGradient(BaseSimilarityMeasure):
             Gv2 = G @ v2
 
             p1 = G.T @ (
-                (Av.T @ (Av @ g_m2 ** 2)) * Gv1 - g_m2 * (Av.T @ (Av @ (g_m2 * Gv1)))
+                (Av.T @ (Av @ g_m2**2)) * Gv1 - g_m2 * (Av.T @ (Av @ (g_m2 * Gv1)))
             )
             p2 = G.T @ (
-                (Av.T @ (Av @ g_m1 ** 2)) * Gv2 - g_m1 * (Av.T @ (Av @ (g_m1 * Gv2)))
+                (Av.T @ (Av @ g_m1**2)) * Gv2 - g_m1 * (Av.T @ (Av @ (g_m1 * Gv2)))
             )
 
             if not self.approx_hessian:

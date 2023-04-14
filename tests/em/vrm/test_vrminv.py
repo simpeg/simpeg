@@ -17,7 +17,6 @@ from SimPEG.electromagnetics import viscous_remanent_magnetization as vrm
 
 class VRM_inversion_tests(unittest.TestCase):
     def test_basic_inversion(self):
-
         """
         Test to see if inversion recovers model
         """
@@ -65,7 +64,7 @@ class VRM_inversion_tests(unittest.TestCase):
         dmis = data_misfit.L2DataMisfit(data=dobs, simulation=Problem)
         W = (
             mkvc(
-                (np.sum(np.array(Problem.A) ** 2, axis=0)) / meshObj.cell_volumes ** 2.0
+                (np.sum(np.array(Problem.A) ** 2, axis=0)) / meshObj.cell_volumes**2.0
             )
             ** 0.25
         )

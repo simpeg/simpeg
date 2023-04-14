@@ -81,5 +81,5 @@ from .static_utils import (
 # Import if user has plotly
 try:
     from .static_utils import plot_3d_pseudosection
-except:
+except ImportError:
     pass

@@ -148,6 +148,7 @@ def test_ana_gg_forward():
         rhoMap=idenMap,
         ind_active=active_cells,
         store_sensitivities="forward_only",
+        n_processes=None,
     )
 
     data = sim.dpred(model_reduced)

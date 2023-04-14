@@ -10,7 +10,6 @@ from SimPEG.electromagnetics import analytics
 
 class DCProblemAnalyticTests_DPDP(unittest.TestCase):
     def setUp(self):
-
         npad = 10
         cs = 12.5
         hx = [(cs, npad, -1.4), (cs, 61), (cs, npad, 1.4)]
@@ -52,7 +51,6 @@ class DCProblemAnalyticTests_DPDP(unittest.TestCase):
             self.solver = SolverLU
 
     def test_Simulation2DNodal(self, tolerance=0.05):
-
         simulation = dc.simulation_2d.Simulation2DNodal(
             self.mesh,
             survey=self.survey,
@@ -69,7 +67,6 @@ class DCProblemAnalyticTests_DPDP(unittest.TestCase):
         self.assertLess(err, tolerance)
 
     def test_Simulation2DCellCentered(self, tolerance=0.05):
-
         simulation = dc.simulation_2d.Simulation2DCellCentered(
             self.mesh,
             survey=self.survey,
@@ -88,7 +85,6 @@ class DCProblemAnalyticTests_DPDP(unittest.TestCase):
 
 class DCProblemAnalyticTests_PDP(unittest.TestCase):
     def setUp(self):
-
         npad = 10
         cs = 12.5
         hx = [(cs, npad, -1.4), (cs, 61), (cs, npad, 1.4)]
@@ -126,7 +122,6 @@ class DCProblemAnalyticTests_PDP(unittest.TestCase):
             self.solver = SolverLU
 
     def test_Simulation2DNodal(self, tolerance=0.05):
-
         simulation = dc.simulation_2d.Simulation2DNodal(
             self.mesh,
             survey=self.survey,
@@ -161,7 +156,6 @@ class DCProblemAnalyticTests_PDP(unittest.TestCase):
 
 class DCProblemAnalyticTests_DPP(unittest.TestCase):
     def setUp(self):
-
         npad = 10
         cs = 12.5
         hx = [(cs, npad, -1.4), (cs, 61), (cs, npad, 1.4)]
@@ -173,7 +167,6 @@ class DCProblemAnalyticTests_DPP(unittest.TestCase):
             np.logical_and(mesh.cell_centers_x > -150, mesh.cell_centers_x < 250)
         ]
         M = utils.ndgrid(x, np.r_[0.0])
-        N = utils.ndgrid(x + 12.5 * 4, np.r_[0.0])
         A0loc = np.r_[-200, 0.0]
         A1loc = np.r_[-250, 0.0]
         rxloc = np.c_[M, np.zeros(x.size)]
@@ -202,7 +195,6 @@ class DCProblemAnalyticTests_DPP(unittest.TestCase):
             self.solver = SolverLU
 
     def test_Simulation2DNodal(self, tolerance=0.05):
-
         simulation = dc.simulation_2d.Simulation2DNodal(
             self.mesh,
             survey=self.survey,
@@ -309,7 +301,6 @@ class DCProblemAnalyticTests_PP(unittest.TestCase):
 
 class DCProblemAnalyticTests_DPField(unittest.TestCase):
     def setUp(self):
-
         cs = 12.5
         hx = [(cs, 7, -1.3), (cs, 61), (cs, 7, 1.3)]
         hy = [(cs, 7, -1.3), (cs, 20)]
@@ -397,7 +388,6 @@ class DCProblemAnalyticTests_DPField(unittest.TestCase):
         print("got fields CC")
 
     def test_Simulation2DNodal(self, tolerance=0.05):
-
         simulation = dc.simulation_2d.Simulation2DNodal(
             self.mesh,
             survey=self.survey,
@@ -423,7 +413,6 @@ class DCProblemAnalyticTests_DPField(unittest.TestCase):
 
 class DCSimulationAppResTests(unittest.TestCase):
     def setUp(self):
-
         npad = 10
         cs = 12.5
         hx = [(cs, npad, -1.4), (cs, 61), (cs, npad, 1.4)]
@@ -456,7 +445,6 @@ class DCSimulationAppResTests(unittest.TestCase):
             self.solver = SolverLU
 
     def test_Simulation2DNodal(self, tolerance=0.05):
-
         simulation = dc.simulation_2d.Simulation2DNodal(
             self.mesh,
             survey=self.survey,
@@ -476,7 +464,6 @@ class DCSimulationAppResTests(unittest.TestCase):
         self.assertLess(err, tolerance)
 
     def test_Simulation2DCellCentered(self, tolerance=0.05):
-
         simulation = dc.simulation_2d.Simulation2DCellCentered(
             self.mesh,
             survey=self.survey,

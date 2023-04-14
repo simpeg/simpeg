@@ -166,7 +166,7 @@ m_true[inversion_mesh.gridCC[:, 1] > interface_depth] = np.log(sigma_surface)
 
 fig, ax = plt.subplots(1, 1)
 cb = plt.colorbar(inversion_mesh.plot_image(m_true, ax=ax, grid=True)[0], ax=ax)
-cb.set_label("$\log(\sigma)$")
+cb.set_label(r"$\log(\sigma)$")
 ax.set_title("true model")
 ax.set_xlim([-10, 10])
 ax.set_ylim([-2, 0])
@@ -333,7 +333,7 @@ cb = plt.colorbar(
     ax=ax[0],
 )
 ax[0].set_title("recovered model")
-cb.set_label("$\log(\sigma)$")
+cb.set_label(r"$\log(\sigma)$")
 
 # true model
 cb = plt.colorbar(
@@ -341,7 +341,7 @@ cb = plt.colorbar(
     ax=ax[1],
 )
 ax[1].set_title("true model")
-cb.set_label("$\log(\sigma)$")
+cb.set_label(r"$\log(\sigma)$")
 
 # # uncomment to plot the true interface
 # x = np.linspace(-10, 10, 50)

@@ -128,7 +128,7 @@ class Fields3DCellCentered(FieldsDC):
         return Zero()
 
     def _j(self, phiSolution, source_list):
-        """
+        r"""
         .. math::
 
             \mathbf{j} = \mathbf{M}^{f \ -1}_{\rho} \mathbf{G} \phi
@@ -146,7 +146,7 @@ class Fields3DCellCentered(FieldsDC):
         return self._MfRhoIDeriv(self._Grad * v)
 
     def _e(self, phiSolution, source_list):
-        """
+        r"""
         .. math::
 
             \vec{e} = \rho \vec{j}
@@ -164,7 +164,7 @@ class Fields3DCellCentered(FieldsDC):
         return Zero()
 
     def _charge(self, phiSolution, source_list):
-        """
+        r"""
         .. math::
 
             \int \nabla \codt \vec{e} =  \int \frac{\rho_v }{\epsillon_0}
@@ -174,7 +174,7 @@ class Fields3DCellCentered(FieldsDC):
         )
 
     def _charge_density(self, phiSolution, source_list):
-        """
+        r"""
         .. math::
 
             \frac{1}{V}\int \nabla \codt \vec{e} =
@@ -216,9 +216,11 @@ class Fields3DNodal(FieldsDC):
         return Zero()
 
     def _j(self, phiSolution, source_list):
-        """
+        r"""
         In EB formulation j is not well-defined!!
+
         .. math::
+
             \mathbf{j} = - \mathbf{M}^{e}_{\sigma} \mathbf{G} \phi
         """
         return (
@@ -228,16 +230,19 @@ class Fields3DNodal(FieldsDC):
         )
 
     def _e(self, phiSolution, source_list):
-        """
+        r"""
         In HJ formulation e is not well-defined!!
+
         .. math::
+
             \vec{e} = -\nabla \phi
         """
         return -self.mesh.nodal_gradient * phiSolution
 
     def _charge(self, phiSolution, source_list):
-        """
+        r"""
         .. math::
+
             \int \nabla \codt \vec{e} =  \int \frac{\rho_v }{\epsillon_0}
         """
         return -epsilon_0 * (

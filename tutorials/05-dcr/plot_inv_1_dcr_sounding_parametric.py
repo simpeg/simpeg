@@ -103,11 +103,16 @@ k = np.r_[k, len(k) + 1]
 
 source_list = []
 for ii in range(0, n_sources):
-
     # MN electrode locations for receivers. Each is an (N, 3) numpy array
     M_locations = M_electrodes[k[ii] : k[ii + 1], :]
     N_locations = N_electrodes[k[ii] : k[ii + 1], :]
-    receiver_list = [dc.receivers.Dipole(M_locations, N_locations)]
+    receiver_list = [
+        dc.receivers.Dipole(
+            M_locations,
+            N_locations,
+            data_type="apparent_resistivity",
+        )
+    ]
 
     # AB electrode locations for source. Each is a (1, 3) numpy array
     A_location = A_electrodes[k[ii], :]
@@ -128,7 +133,7 @@ mpl.rcParams.update({"font.size": 14})
 ax1 = fig.add_axes([0.15, 0.1, 0.7, 0.85])
 ax1.semilogy(electrode_separations, dobs, "b")
 ax1.set_xlabel("AB/2 (m)")
-ax1.set_ylabel("Apparent Resistivity ($\Omega m$)")
+ax1.set_ylabel(r"Apparent Resistivity ($\Omega m$)")
 plt.show()
 
 ###############################################
@@ -197,7 +202,6 @@ simulation = dc.simulation_1d.Simulation1DLayers(
     survey=survey,
     rhoMap=resistivity_map,
     thicknessesMap=layer_map,
-    data_type="apparent_resistivity",
 )
 
 #######################################################################
@@ -249,9 +253,6 @@ inv_prob = inverse_problem.BaseInvProblem(dmis, reg, opt)
 # criteria for the inversion and saving inversion results at each iteration.
 #
 
-# Apply and update sensitivity weighting as the model updates
-update_sensitivity_weights = directives.UpdateSensitivityWeights()
-
 # Defining a starting value for the trade-off parameter (beta) between the data
 # misfit and the regularization.
 starting_beta = directives.BetaEstimate_ByEig(beta0_ratio=1e1)
@@ -269,7 +270,6 @@ target_misfit = directives.TargetMisfit(chifact=0.1)
 
 # The directives are defined in a list
 directives_list = [
-    update_sensitivity_weights,
     starting_beta,
     beta_schedule,
     target_misfit,

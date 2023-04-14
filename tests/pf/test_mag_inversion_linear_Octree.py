@@ -2,7 +2,7 @@ import shutil
 import unittest
 import numpy as np
 
-from discretize.utils import meshutils
+from discretize.utils import meshutils, active_from_xyz
 from SimPEG import (
     directives,
     maps,
@@ -18,7 +18,6 @@ from SimPEG.potential_fields import magnetics as mag
 
 class MagInvLinProblemTest(unittest.TestCase):
     def setUp(self):
-
         np.random.seed(0)
 
         # First we need to define the direction of the inducing field
@@ -77,7 +76,7 @@ class MagInvLinProblemTest(unittest.TestCase):
         )
 
         # Define an active cells from topo
-        actv = utils.surface2ind_topo(self.mesh, topo)
+        actv = active_from_xyz(self.mesh, topo)
         nC = int(actv.sum())
 
         # We can now create a susceptibility model and generate data
@@ -103,6 +102,7 @@ class MagInvLinProblemTest(unittest.TestCase):
             chiMap=idenMap,
             ind_active=actv,
             store_sensitivities="ram",
+            n_processes=None,
         )
         self.sim = sim
         data = sim.make_synthetic_data(

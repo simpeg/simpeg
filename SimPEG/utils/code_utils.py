@@ -1,11 +1,10 @@
 from __future__ import annotations
 import types
-from typing import TYPE_CHECKING
 import numpy as np
 from functools import wraps
 import warnings
 
-from discretize.utils import asArray_N_x_Dim, as_array_n_by_dim
+from discretize.utils import as_array_n_by_dim  # noqa: F401
 
 # scooby is a soft dependency for SimPEG
 try:
@@ -21,30 +20,91 @@ except ImportError:
             )
 
 
-def create_wrapper_from_class(input_class, *fun_names):
-    """Create wrapper class with memory profiler.
+def requires(var):
+    """Wrap a function to require a specfic attribute.
+
+
+    Use the following syntax to wrap a funciton::
+
+        @requires('prob')
+        def dpred(self):
+            pass
+
+    This wrapper will ensure that a problem has been bound to the data.
+    If a problem is not bound an Exception will be raised, and an nice error message printed.
+
+    Parameters
+    ----------
+    var :
+        Input variable
+
+    Returns
+    -------
+    wrapper
+        The wrapper
+    """
+
+    def requiresVar(f):
+        if var == "prob":
+            extra = """
+
+        .. note::
+
+            To use survey.{0!s}(), SimPEG requires that a problem be bound to the survey.
+            If a problem has not been bound, an Exception will be raised.
+            To bind a problem to the Data object::
+
+                survey.pair(myProblem)
+
+            """.format(
+                f.__name__
+            )
+        else:
+            extra = """
+                To use *{0!s}* method, SimPEG requires that the {1!s} be specified.
+            """.format(
+                f.__name__, var
+            )
+
+        @wraps(f)
+        def requiresVarWrapper(self, *args, **kwargs):
+            if getattr(self, var, None) is None:
+                raise Exception(extra)
+            return f(self, *args, **kwargs)
+
+        doc = requiresVarWrapper.__doc__
+        requiresVarWrapper.__doc__ = ("" if doc is None else doc) + extra
+
+        return requiresVarWrapper
+
+    return requiresVar
+
+
+@requires("memory_profiler")
+def mem_profile_class(input_class, *args):
+    """Creates a new class from the target class with memory profiled methods.
 
     Using :meth:`memory_profiler.profile`, this function creates a wrapper class
-    from the input class and function names specified.
+    from the input class with the specified methods memory profiled.
 
     Parameters
     ----------
     input_class : class
         Input class being used to create the wrapper
-    fun_names : list of str
-        Names of the functions that will be wrapped to the wrapper class. These names must
+    *args : str
+        Method names that will be wrapped with a memory profiler. These names must
         correspond to methods of the input class.
 
     Returns
     -------
     class :
-        Wrapper class
+        Memory profiled class.
 
     Examples
     --------
 
-    >>> foo_mem = create_wrapper_from_class(foo,['my_func'])
-    >>> fooi = foo_mem()
+    >>> FooMem = mem_profile_class(Foo,'my_func')
+    >>> fooi = FooMem()
     >>> for i in range(5):
     >>>     fooi.my_func()
 
@@ -55,7 +115,7 @@ def create_wrapper_from_class(input_class, *fun_names):
     from memory_profiler import profile
 
     attrs = {}
-    for f in fun_names:
+    for f in args:
         if hasattr(input_class, f):
             attrs[f] = profile(getattr(input_class, f))
         else:
@@ -286,7 +346,6 @@ def call_hooks(match, mainFirst=False):
     def callHooksWrap(f):
         @wraps(f)
         def wrapper(self, *args, **kwargs):
-
             if not mainFirst:
                 for method in [
                     posible for posible in dir(self) if ("_" + match) in posible
@@ -359,66 +418,6 @@ def dependent_property(name, value, children, doc):
     return property(fget=fget, fset=fset, doc=doc)
 
 
-def requires(var):
-    """Wrap a function to require a specfic attribute.
-
-
-    Use the following syntax to wrap a funciton::
-
-        @requires('prob')
-        def dpred(self):
-            pass
-
-    This wrapper will ensure that a problem has been bound to the data.
-    If a problem is not bound an Exception will be raised, and an nice error message printed.
-
-    Parameters
-    ----------
-    var :
-        Input variable
-
-    Returns
-    -------
-    wrapper
-        The wrapper
-    """
-
-    def requiresVar(f):
-        if var == "prob":
-            extra = """
-
-        .. note::
-
-            To use survey.{0!s}(), SimPEG requires that a problem be bound to the survey.
-            If a problem has not been bound, an Exception will be raised.
-            To bind a problem to the Data object::
-
-                survey.pair(myProblem)
-
-            """.format(
-                f.__name__
-            )
-        else:
-            extra = """
-                To use *{0!s}* method, SimPEG requires that the {1!s} be specified.
-            """.format(
-                f.__name__, var
-            )
-
-        @wraps(f)
-        def requiresVarWrapper(self, *args, **kwargs):
-            if getattr(self, var, None) is None:
-                raise Exception(extra)
-            return f(self, *args, **kwargs)
-
-        doc = requiresVarWrapper.__doc__
-        requiresVarWrapper.__doc__ = ("" if doc is None else doc) + extra
-
-        return requiresVarWrapper
-
-    return requiresVar
-
-
 class Report(ScoobyReport):
     """Print date, time, and version information.
 
@@ -470,15 +469,29 @@ class Report(ScoobyReport):
             "SimPEG",
             "discretize",
             "pymatsolver",
-            "vectormath",
-            "properties",
             "numpy",
             "scipy",
-            "cython",
+            "sklearn",
+            "matplotlib",
+            "empymod",
+            "geoana",
+            "pandas",
         ]
 
         # Optional packages.
-        optional = ["IPython", "matplotlib", "ipywidgets"]
+        optional = [
+            "cython",
+            "pydiso",
+            "numba",
+            "dask",
+            "sympy",
+            "IPython",
+            "ipywidgets",
+            "plotly",
+            "vtk",
+            "utm",
+            "memory_profiler",
+        ]
 
         super().__init__(
             additional=add_pckg,
@@ -697,7 +710,14 @@ def deprecate_method(
     return new_method
 
 
-def deprecate_function(new_function, old_name, removal_version=None):
+def deprecate_function(
+    new_function,
+    old_name,
+    removal_version=None,
+    new_location=None,
+    future_warn=False,
+    error=False,
+):
     """Deprecate function
 
     Parameters
@@ -719,16 +739,24 @@ def deprecate_function(new_function, old_name, removal_version=None):
         The new function
     """
     new_name = new_function.__name__
-    if removal_version is not None:
-        tag = f" It will be removed in version {removal_version} of SimPEG."
+    if new_location is not None:
+        new_name = f"{new_location}.{new_name}"
+
+    message = f"{old_name} has been deprecated, please use {new_name}."
+    if error:
+        message = f"{old_name} has been removed, please use {new_name}."
+    elif removal_version is not None:
+        message += f" It will be removed in version {removal_version} of SimPEG."
     else:
-        tag = " It will be removed in a future version of SimPEG."
+        message += " It will be removed in a future version of SimPEG."
 
     def dep_function(*args, **kwargs):
-        warnings.warn(
-            f"{old_name} has been deprecated, please use {new_name}." + tag,
-            DeprecationWarning,
-        )
+        if future_warn:
+            warnings.warn(message, FutureWarning)
+        elif error:
+            raise NotImplementedError(message)
+        else:
+            warnings.warn(message, DeprecationWarning)
         return new_function(*args, **kwargs)
 
     doc = f"""
@@ -773,11 +801,12 @@ def validate_string(property_name, var, string_list=None, case_sensitive=False):
             return var
         if not case_sensitive:
             test_var = var.casefold()
+
             # also fold the string_list for comparison
-            def fold_input(input):
-                if isinstance(input, (list, tuple)):
-                    return [fold_input(x) for x in input]
-                return input.casefold()
+            def fold_input(input_variable):
+                if isinstance(input_variable, (list, tuple)):
+                    return [fold_input(x) for x in input_variable]
+                return input_variable.casefold()
 
             test_string_list = fold_input(string_list)
         else:
@@ -790,9 +819,9 @@ def validate_string(property_name, var, string_list=None, case_sensitive=False):
                     return item[0]
             if test_var == test:
                 return item
-        raise ValueError(f"'{property_name}' must be in '{string_list}'. Got '{var}'")
+        raise ValueError(f"{property_name!r} must be in {string_list!r}. Got {var!r}")
     else:
-        raise TypeError(f"'{property_name}' must be a str. Got '{type(var)}'")
+        raise TypeError(f"{property_name!r} must be a str. Got {type(var)}")
 
 
 def validate_integer(property_name, var, min_val=-np.inf, max_val=np.inf):
@@ -821,12 +850,12 @@ def validate_integer(property_name, var, min_val=-np.inf, max_val=np.inf):
     """
     try:
         var = int(var)
-    except:
-        raise TypeError(f"'{property_name}' must be a number, got '{type(var)}'")
+    except (ValueError, TypeError) as err:
+        raise TypeError(f"{property_name!r} must be a number, got {type(var)}") from err
 
     if (var < min_val) | (var > max_val):
         raise ValueError(
-            f"'{property_name}' must be a value between {min_val} and {max_val}"
+            f"{property_name!r} must be a value between {min_val} and {max_val}"
         )
     else:
         return var
@@ -864,8 +893,10 @@ def validate_float(
     """
     try:
         var = float(var)
-    except:
-        raise TypeError(f"'{property_name}' must be int or float, got '{type(var)}'")
+    except (ValueError, TypeError) as err:
+        raise TypeError(
+            f"{property_name!r} must be int or float, got {type(var)}"
+        ) from err
 
     value_range_string = f"{min_val}, {max_val}"
     if inclusive_min:
@@ -884,7 +915,7 @@ def validate_float(
         or (not inclusive_max and var >= max_val)
     ):
         raise ValueError(
-            f"'{property_name}' must be a value in the range " + value_range_string
+            f"{property_name!r} must be a value in the range " + value_range_string
         )
     else:
         return var
@@ -914,17 +945,17 @@ def validate_list_of_types(property_name, var, class_type, ensure_unique=False):
     elif isinstance(var, class_type):
         var = [var]
     else:
-        raise TypeError(f"'{property_name}' must be a list of '{class_type}'")
+        raise TypeError(f"{property_name!r} must be a list of {class_type}")
 
     is_true = [isinstance(x, class_type) for x in var]
     if np.all(is_true):
         if ensure_unique and len(set(var)) != len(var):
             raise ValueError(
-                f"The '{property_name}' list must be unique. Cannot re-use items"
+                f"The {property_name!r} list must be unique. Cannot re-use items"
             )
         return var
     else:
-        raise TypeError(f"'{property_name}' must be a list of '{class_type}'")
+        raise TypeError(f"{property_name!r} must be a list of {class_type}")
 
 
 def validate_location_property(property_name, var, dim=None):
@@ -946,12 +977,14 @@ def validate_location_property(property_name, var, dim=None):
     """
     try:
         var = np.atleast_1d(var).astype(float).squeeze()
-    except:
-        raise TypeError(f"'{property_name}' must be 1D array_like, got {type(var)}")
+    except (TypeError, ValueError) as err:
+        raise TypeError(
+            f"{property_name!r} must be 1D array_like, got {type(var)}"
+        ) from err
 
     if len(var.shape) > 1:
         raise ValueError(
-            f"'{property_name}' must be 1D array_like, got {len(var.shape)}D"
+            f"{property_name!r} must be 1D array_like, got {len(var.shape)}D"
         )
 
     if dim is None:
@@ -961,7 +994,7 @@ def validate_location_property(property_name, var, dim=None):
             return var
         else:
             raise ValueError(
-                f"'{property_name}' must be array_like with shape '{dim}', got '{len(var)}'"
+                f"{property_name!r} must be array_like with shape ({dim}, ), got ({len(var)},)"
             )
 
 
@@ -997,13 +1030,14 @@ def validate_ndarray_with_shape(property_name, var, shape=None, dtype=float):
             var = np.asarray(var, dtype=dtype)
             bad_type = False
             break
-        except:
+        except (TypeError, ValueError) as err:
             bad_type = True
+            raised_err = err
 
     if bad_type:
         raise TypeError(
-            f"'{property_name}' must be array_like with data type of {dtype}, got {type(var)}"
-        )
+            f"{property_name!r} must be array_like with data type of {dtype}, got {type(var)}"
+        ) from raised_err
 
     if shape is None:
         return var
@@ -1040,10 +1074,10 @@ def validate_ndarray_with_shape(property_name, var, shape=None, dtype=float):
     if shape_error:
         if isinstance(shape, list):
             raise ValueError(
-                f"'{property_name}' must be one of {shape}, got {np.shape(var)}"
+                f"{property_name!r} must be one of {shape}, got {np.shape(var)}"
             )
         else:
-            raise ValueError(f"'{property_name}' must be {shape}, got {np.shape(var)}")
+            raise ValueError(f"{property_name!r} must be {shape}, got {np.shape(var)}")
 
 
 def validate_type(property_name, obj, obj_type, cast=True, strict=False):
@@ -1070,11 +1104,11 @@ def validate_type(property_name, obj, obj_type, cast=True, strict=False):
     if cast:
         try:
             obj = obj_type(obj)
-        except:
+        except Exception as err:
             raise TypeError(
                 f"{type(obj).__name__} cannot be converted to type {obj_type.__name__} "
                 f"required for {property_name}."
-            )
+            ) from err
     if strict and type(obj) != obj_type:
         raise TypeError(
             f"Object must be exactly a {obj_type.__name__} for {property_name}"
@@ -1198,7 +1232,7 @@ def validate_active_indices(property_name, index_arr, n_cells):
 #                      DEPRECATIONS
 ###############################################################
 memProfileWrapper = deprecate_function(
-    create_wrapper_from_class, "memProfileWrapper", removal_version="0.18.0"
+    mem_profile_class, "memProfileWrapper", removal_version="0.18.0"
 )
 setKwargs = deprecate_function(set_kwargs, "setKwargs", removal_version="0.18.0")
 printTitles = deprecate_function(print_titles, "printTitles", removal_version="0.18.0")
@@ -1213,4 +1247,7 @@ printDone = deprecate_function(print_done, "printDone", removal_version="0.18.0"
 callHooks = deprecate_function(call_hooks, "callHooks", removal_version="0.18.0")
 dependentProperty = deprecate_function(
     dependent_property, "dependentProperty", removal_version="0.18.0"
+)
+asArray_N_x_Dim = deprecate_function(
+    as_array_n_by_dim, "asArray_N_x_Dim", removal_version="0.19.0", future_warn=True
 )

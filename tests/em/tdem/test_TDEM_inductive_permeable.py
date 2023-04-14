@@ -3,15 +3,13 @@ import unittest
 import discretize
 from discretize import utils
 import numpy as np
-import scipy.sparse as sp
 import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
-from scipy.constants import mu_0, inch, foot
+from scipy.constants import mu_0
 import time
 
 from SimPEG.electromagnetics import time_domain as tdem
 from SimPEG import utils, maps
-from SimPEG.utils import Zero
 
 from pymatsolver import Pardiso
 
@@ -63,14 +61,12 @@ class TestInductiveSourcesPermeability(unittest.TestCase):
         self.mesh = mesh
 
     def test_permeable_sources(self):
-
         target_mur = self.target_mur
         target_l = self.target_l
         target_r = self.target_r
         sigma_back = self.sigma_back
         model_names = self.model_names
         mesh = self.mesh
-        radius_loop = self.radius_loop
 
         # Assign physical properties on the mesh
         def populate_target(mur):

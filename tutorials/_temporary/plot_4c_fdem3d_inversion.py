@@ -24,15 +24,15 @@ can be used to invert other types of geophysical data.
 # --------------
 #
 
-import os, shutil
+import os
 import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 
 from discretize import TreeMesh
-from discretize.utils import refine_tree_xyz
+from discretize.utils import refine_tree_xyz, active_from_xyz
 
-from SimPEG.utils import plot2Ddata, surface2ind_topo, mkvc
+from SimPEG.utils import plot2Ddata, mkvc
 from SimPEG.electromagnetics import frequency_domain as fdem
 from SimPEG import (
     maps,
@@ -179,7 +179,6 @@ source_list = []  # Create empty list to store sources
 # Each unique location and frequency defines a new transmitter
 n_data = len(dobs_real)
 for ii in range(n_data):
-
     # Define receivers of different type at each location
     bzr_receiver = fdem.receivers.PointMagneticFluxDensitySecondary(
         receiver_locations[ii, :], "z", "imag"
@@ -270,7 +269,7 @@ air_conductivity = np.log(1e-8)
 background_conductivity = np.log(1e-2)
 
 # Find the indecies of the active cells in forward model (ones below surface)
-ind_active = surface2ind_topo(mesh, xyz_topo)
+ind_active = active_from_xyz(mesh, xyz_topo)
 
 active_map = maps.InjectActiveCells(mesh, ind_active, np.exp(air_conductivity))
 nC = int(ind_active.sum())
@@ -468,7 +467,6 @@ v_lim = [
 ]
 
 for ii in range(0, 3):
-
     ax1[ii] = fig.add_axes([0.33 * ii + 0.03, 0.11, 0.23, 0.84])
     cplot[ii] = plot2Ddata(
         receiver_locations[k],

@@ -59,7 +59,6 @@ electrode_separations = np.linspace(a_min, a_max, n_stations)
 source_list = []  # create empty array for sources to live
 
 for ii in range(0, len(electrode_separations)):
-
     # Extract separation parameter for sources and receivers
     a = electrode_separations[ii]
 
@@ -72,7 +71,9 @@ for ii in range(0, len(electrode_separations)):
     N_location = np.r_[0.5 * a, 0.0, 0.0]
 
     # Create receivers list. Define as pole or dipole.
-    receiver_list = dc.receivers.Dipole(M_location, N_location)
+    receiver_list = dc.receivers.Dipole(
+        M_location, N_location, data_type="apparent_resistivity"
+    )
     receiver_list = [receiver_list]
 
     # Define the source properties and associated receivers
@@ -126,7 +127,6 @@ simulation = dc.simulation_1d.Simulation1DLayers(
     survey=survey,
     rhoMap=model_map,
     thicknesses=layer_thicknesses,
-    data_type="apparent_resistivity",
 )
 
 # Predict data for a given model
@@ -149,7 +149,6 @@ plt.show()
 #
 
 if write_output:
-
     dir_path = os.path.dirname(__file__).split(os.path.sep)
     dir_path.extend(["outputs"])
     dir_path = os.path.sep.join(dir_path) + os.path.sep

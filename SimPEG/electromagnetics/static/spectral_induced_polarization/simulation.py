@@ -16,7 +16,6 @@ from .survey import Survey
 
 
 class BaseSIPSimulation(BaseIPSimulation):
-
     tau, tauMap, tauDeriv = props.Invertible("Time constant (s)")
     taui, tauiMap, tauiDeriv = props.Invertible("Inverse of time constant (1/s)")
     props.Reciprocal(tau, taui)
@@ -233,7 +232,6 @@ class BaseSIPSimulation(BaseIPSimulation):
             return self.get_multi_pulse_response(t, self.get_peta_eta_deriv_pulse_off)
 
     def PetaEtaDeriv(self, t, v, adjoint=False):
-
         etaDeriv = self.etaDeriv_store
 
         v = np.array(v, dtype=float)
@@ -404,7 +402,7 @@ class BaseSIPSimulation(BaseIPSimulation):
 
             return self._Jmatrix
 
-    def getJtJdiag(self, m, Wd):
+    def getJtJdiag(self, m, Wd, f=None):
         """
         Compute JtJ using adjoint problem. Still we never form
         JtJ
@@ -413,7 +411,7 @@ class BaseSIPSimulation(BaseIPSimulation):
             print(">> Compute trace(JtJ)")
         ntime = len(self.survey.unique_times)
         JtJdiag = np.zeros_like(m)
-        J = self.getJ(m, f=None)
+        J = self.getJ(m, f=f)
         wd = Wd.diagonal().reshape((self.survey.locations_n, ntime), order="F")
         for tind in range(ntime):
             t = self.survey.unique_times[tind]
@@ -427,7 +425,6 @@ class BaseSIPSimulation(BaseIPSimulation):
 
     # @profile
     def forward(self, m, f=None):
-
         if self.verbose:
             print(">> Compute predicted data")
 
@@ -454,7 +451,6 @@ class BaseSIPSimulation(BaseIPSimulation):
 
         # Do not store sensitivity matrix (memory-wise efficient)
         else:
-
             if f is None:
                 f = self.fields(m)
 
@@ -480,12 +476,12 @@ class BaseSIPSimulation(BaseIPSimulation):
             return np.hstack(Jv)
 
     def dpred(self, m, f=None):
-        """
+        r"""
         Predicted data.
 
         .. math::
 
-            d_\\text{pred} = Pf(m)
+            d_\text{pred} = Pf(m)
 
         """
         if f is None:
@@ -494,7 +490,6 @@ class BaseSIPSimulation(BaseIPSimulation):
         # return self.forward(m, f=f)
 
     def Jvec(self, m, v, f=None):
-
         self.model = m
 
         Jv = []
@@ -505,7 +500,6 @@ class BaseSIPSimulation(BaseIPSimulation):
             ntime = len(self.survey.unique_times)
 
             for tind in range(ntime):
-
                 t = self.survey.unique_times[tind]
                 v0 = self.PetaEtaDeriv(t, v)
                 v1 = self.PetaTauiDeriv(t, v)
@@ -517,12 +511,10 @@ class BaseSIPSimulation(BaseIPSimulation):
 
         # Do not store sensitivity matrix (memory-wise efficient)
         else:
-
             if f is None:
                 f = self.fields(m)
 
             for tind in range(len(self.survey.unique_times)):
-
                 t = self.survey.unique_times[tind]
                 v0 = self.PetaEtaDeriv(t, v)
                 v1 = self.PetaTauiDeriv(t, v)
@@ -544,7 +536,6 @@ class BaseSIPSimulation(BaseIPSimulation):
             return np.hstack(Jv)
 
     def Jtvec(self, m, v, f=None):
-
         self.model = m
 
         # When sensitivity matrix is stored
@@ -567,7 +558,6 @@ class BaseSIPSimulation(BaseIPSimulation):
 
         # Do not store sensitivity matrix (memory-wise efficient)
         else:
-
             if f is None:
                 f = self.fields(m)
 
@@ -595,14 +585,6 @@ class BaseSIPSimulation(BaseIPSimulation):
                         df_duTFun = getattr(f, "_{0!s}Deriv".format(rx.projField), None)
                         df_duT, _ = df_duTFun(src, None, PTv, adjoint=True)
                         ATinvdf_duT = self.Ainv * df_duT
-                        dA_dmT = self.getADeriv(u_src, ATinvdf_duT, adjoint=True)
-                        # Unecessary at the moment
-
-                        # dRHS_dmT = self.getRHSDeriv(
-                        #     src, ATinvdf_duT, adjoint=True
-                        # )
-                        # du_dmT[:, tind] = -dA_dmT + dRHS_dmT
-
                         du_dmT[:, tind] += -self.getADeriv(
                             u_src, ATinvdf_duT, adjoint=True
                         )

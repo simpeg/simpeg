@@ -61,7 +61,6 @@ class Simulation1DElectricField(BaseFDEMSimulation):
     fieldsPair = Fields1DElectricField
 
     def __init__(self, mesh, **kwargs):
-
         if mesh.dim > 1:
             raise ValueError(
                 f"The mesh must be a 1D mesh. The provided mesh has dimension {mesh.dim}"
@@ -72,12 +71,14 @@ class Simulation1DElectricField(BaseFDEMSimulation):
         self._rhs = mesh.boundary_node_vector_integral * [0 + 0j, 1 + 0j]
 
     def getA(self, freq):
-        """
+        r"""
         System matrix
 
         .. math::
 
-        \mathbf{A} = \mathbf{G}^\top \mathbf{M}^e_{\mu^{-1}} \mathbf{G} + 1\omega \mathbf{M}^f_\sigma
+            \mathbf{A} =
+                \mathbf{G}^\top \mathbf{M}^e_{\mu^{-1}} \mathbf{G}
+                + 1\omega \mathbf{M}^f_\sigma
         """
 
         G = self.mesh.nodal_gradient
@@ -173,22 +174,30 @@ class Simulation1DMagneticField(BaseFDEMSimulation):
 
 
 class Simulation1DPrimarySecondary(Simulation1DElectricField):
-    """
-    A NSEM problem soving a e formulation and primary/secondary fields decomposion.
+    r"""
+    A NSEM problem solving a e formulation and primary/secondary fields decomposition.
 
     By eliminating the magnetic flux density using
 
-        .. math ::
+    .. math ::
 
-            \mathbf{b} = \\frac{1}{i \omega}\\left(-\mathbf{C} \mathbf{e} \\right)
+        \mathbf{b} = \frac{1}{i \omega} \left(-\mathbf{C} \mathbf{e} \right)
 
 
-    we can write Maxwell's equations as a second order system in \\\(\\\mathbf{e}\\\) only:
+    we can write Maxwell's equations as a second order system in
+    :math:`\mathbf{e}` only:
 
     .. math ::
-        \\left[ \mathbf{C}^{\\top} \mathbf{M_{\mu^{-1}}^e } \mathbf{C} + i \omega \mathbf{M_{\sigma}^f} \\right] \mathbf{e}_{s} = i \omega \mathbf{M_{\sigma_{s}}^f } \mathbf{e}_{p}
 
-    which we solve for :math:`\\mathbf{e_s}`. The total field :math:`\mathbf{e} = \mathbf{e_p} + \mathbf{e_s}`.
+        \left[
+            \mathbf{C}^{\top} \mathbf{M_{\mu^{-1}}^e } \mathbf{C}
+            + i \omega \mathbf{M_{\sigma}^f}
+        \right]
+        \mathbf{e}_{s}
+        = i \omega \mathbf{M_{\sigma_{s}}^f } \mathbf{e}_{p}
+
+    which we solve for :math:`\mathbf{e_s}`.
+    The total field :math:`\mathbf{e} = \mathbf{e_p} + \mathbf{e_s}`.
 
     The primary field is estimated from a background model (commonly half space ).
     """
@@ -255,7 +264,6 @@ class Simulation2DElectricField(BaseFDEMSimulation):
     fieldsPair = Fields2DElectricField
 
     def __init__(self, mesh, h_bc=None, **kwargs):
-
         if mesh.dim != 2:
             raise ValueError(
                 f"The mesh must be a 2D mesh. The provided mesh has dimension {mesh.dim}"
@@ -358,12 +366,15 @@ class Simulation2DElectricField(BaseFDEMSimulation):
         self._M_bc = mesh.boundary_edge_vector_integral
 
     def getA(self, freq):
-        """
+        r"""
         System matrix
 
         .. math::
 
-        \mathbf{A} = \mathbf{C}^\top \mathbf{M}^{cc}_{\mu} \mathbf{C} + 1\omega \mathbf{M}^e_\sigma
+            \mathbf{A} =
+                \mathbf{C}^\top \mathbf{M}^{cc}_{\mu} \mathbf{C}
+                + 1\omega \mathbf{M}^e_\sigma
+
         """
         C = self.mesh.edge_curl
         Mcc_mui = self.MccMui
@@ -479,7 +490,6 @@ class Simulation2DMagneticField(BaseFDEMSimulation):
     fieldsPair = Fields2DMagneticField
 
     def __init__(self, mesh, e_bc=None, **kwargs):
-
         if mesh.dim != 2:
             raise ValueError(
                 f"The mesh must be a 2D mesh. The provided mesh has dimension {mesh.dim}"
@@ -581,12 +591,14 @@ class Simulation2DMagneticField(BaseFDEMSimulation):
         self._M_bc = mesh.boundary_edge_vector_integral
 
     def getA(self, freq):
-        """
+        r"""
         System matrix
 
         .. math::
 
-        \mathbf{A} = \mathbf{C}^\top \mathbf{M}^{cc}_{\rho} \mathbf{C} + 1\omega \mathbf{M}^e_\mu
+            \mathbf{A} =
+                \mathbf{C}^\top \mathbf{M}^{cc}_{\rho} \mathbf{C}
+                + 1\omega \mathbf{M}^e_\mu
         """
         C = self.mesh.edge_curl
         Mcc_rho = self.MccRho
@@ -696,26 +708,32 @@ class Simulation2DMagneticField(BaseFDEMSimulation):
 
 
 class Simulation3DPrimarySecondary(Simulation3DElectricField):
-    """
-    A NSEM problem solving a e formulation and a primary/secondary fields decompostion.
+    r"""
+    A NSEM problem solving a e formulation and a primary/secondary fields decomposition.
 
     By eliminating the magnetic flux density using
 
-        .. math ::
+    .. math ::
 
-            \mathbf{b} = \\frac{1}{i \omega}\\left(-\mathbf{C} \mathbf{e} \\right)
+        \mathbf{b} = \frac{1}{i \omega} \left(-\mathbf{C} \mathbf{e} \right)
 
 
-    we can write Maxwell's equations as a second order system in :math:`\mathbf{e}` only:
+    we can write Maxwell's equations as a second order system in
+    :math:`\mathbf{e}` only:
 
     .. math ::
 
-        \\left[\mathbf{C}^{\\top} \mathbf{M_{\mu^{-1}}^f} \mathbf{C} + i \omega \mathbf{M_{\sigma}^e} \\right] \mathbf{e}_{s} = i \omega \mathbf{M_{\sigma_{p}}^e} \mathbf{e}_{p}
+        \left[
+            \mathbf{C}^{\top} \mathbf{M_{\mu^{-1}}^f} \mathbf{C}
+            + i \omega \mathbf{M_{\sigma}^e}
+        \right]
+        \mathbf{e}_{s}
+        = i \omega \mathbf{M_{\sigma_{p}}^e} \mathbf{e}_{p}
 
-    which we solve for :math:`\mathbf{e_s}`. The total field :math:`\mathbf{e} = \mathbf{e_p} + \mathbf{e_s}`.
+    which we solve for :math:`\mathbf{e_s}`.
+    The total field :math:`\mathbf{e} = \mathbf{e_p} + \mathbf{e_s}`.
 
     The primary field is estimated from a background model (commonly as a 1D model).
-
     """
 
     def __init__(self, mesh, survey=None, sigmaPrimary=None, **kwargs):
