@@ -5,7 +5,14 @@ from SimPEG.utils import validate_list_of_types
 
 
 class StreamingCurrents(survey.BaseSrc):
-    # A class that uses dc receivers (pole / dipole)
+    """A streaming current source.
+
+    Parameters
+    ----------
+    receiver_list : list of resistivity.receivers.BaseRx
+        The list of Pole and Dipole receivers that listen
+        to this source.
+    """
 
     def __init__(self, receiver_list, **kwargs):
         location = [np.nan, np.nan, np.nan]
@@ -13,6 +20,12 @@ class StreamingCurrents(survey.BaseSrc):
 
     @property
     def receiver_list(self):
+        """The list of receivers.
+
+        Returns
+        -------
+        list of resistivity.receivers.BaseRx
+        """
         return self._receiver_list
 
     @receiver_list.setter
