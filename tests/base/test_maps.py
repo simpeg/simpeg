@@ -717,6 +717,7 @@ def test_linearity():
         maps.ParametricEllipsoid(mesh3),
         maps.ParametricCasingAndLayer(mesh_cyl),
         maps.ParametricBlockInLayer(mesh3),
+        maps.PolynomialPetroClusterMap(),
         maps.IdentityMap() + maps.ExpMap(),  # A simple SumMap
         maps.ChiMap() * maps.ExpMap(),  # A simple ComboMap
     ]
