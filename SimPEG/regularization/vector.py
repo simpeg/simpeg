@@ -11,7 +11,7 @@ class BaseVectorRegularization(BaseRegularization):
     """The regularizers work on models where each value is a vector."""
 
     @property
-    def _weights_shapes(self) -> tuple[int] | str:
+    def _weights_shapes(self) -> list[tuple[int]]:
         """Acceptable lengths for the weights
 
         Returns
