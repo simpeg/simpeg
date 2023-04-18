@@ -284,7 +284,10 @@ class MetaSimulation(BaseSimulation):
             if W is None:
                 W = np.ones(self.survey.nD)
             else:
-                W = W.diagonal()
+                try:
+                    W = W.diagonal()
+                except (AttributeError, TypeError, ValueError):
+                    pass
             jtj_diag = 0.0
             # approximate the JtJ diag on the full model space as:
             # sum((diag(sqrt(jtj_diag)) @ M_deriv))**2)

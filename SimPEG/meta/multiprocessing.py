@@ -98,9 +98,9 @@ class _SimulationProcess(Process):
                     r_queue.put(sim.Jtvec(sim.model, v, fields))
                 elif op == 5:
                     # do jtj_diag
-                    f_key = args
+                    w, f_key = args
                     fields = _cached_items[f_key]
-                    r_queue.put(sim.getJtJdiag(sim.model, fields))
+                    r_queue.put(sim.getJtJdiag(sim.model, w, fields))
 
     def store_model(self, m):
         self._check_closed()
@@ -125,9 +125,17 @@ class _SimulationProcess(Process):
         self._check_closed()
         self.task_queue.put((4, (v, f_future.item_id)))
 
-    def start_jtj_diag(self, f_future):
+    def start_jtj_diag(self, w, f_future):
         self._check_closed()
-        self.task_queue.put((5, (f_future.item_id,)))
+        self.task_queue.put(
+            (
+                5,
+                (
+                    w,
+                    f_future.item_id,
+                ),
+            )
+        )
 
     def result(self):
         self._check_closed()
@@ -239,6 +247,24 @@ class MultiprocessingMetaSimulation(MetaSimulation):
         for p in self._sim_processes:
             jt_vec += p.result()
         return jt_vec
+
+    def getJtJdiag(self, m, v, f=None):
+        self.model = m
+        if getattr(self, "_jtjdiag", None) is None:
+            if W is None:
+                W = np.ones(self.survey.nD)
+            else:
+                W = W.diagonal()
+            if f is None:
+                f = self.fields(m)
+            for i, (p, field) in enumerate(zip(self._sim_processes, f)):
+                chunk_w = W[self._data_offsets[i] : self._data_offsets[i + 1]]
+                p.start_jtj_diag(chunk_w, field)
+            jtj_diag = 0.0
+            for p in self._sim_processes:
+                jtj_diag += p.result()
+            self._jtjdiag = jtj_diag
+        return self._jtjdiag
 
     def close(self):
         for p in self._sim_processes:
