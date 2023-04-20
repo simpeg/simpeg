@@ -18,7 +18,6 @@ from ..regularization import (
     SmoothnessFirstOrder,
     SparseSmoothness,
     BaseSimilarityMeasure,
-    BaseVectorRegularization,
 )
 from ..utils import (
     mkvc,
