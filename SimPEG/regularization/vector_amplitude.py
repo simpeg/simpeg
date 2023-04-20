@@ -91,7 +91,7 @@ class BaseAmplitude(BaseRegularization):
 
         deriv = 0.0
 
-        for f_m_deriv in self.f_m_deriv(d_m):
+        for f_m_deriv in self.f_m_deriv(m):
             deriv += f_m_deriv.T * ((self.W.T * self.W) * f_m_deriv * d_m)
 
         return deriv
@@ -134,9 +134,8 @@ class AmplitudeSmallness(SparseSmallness, BaseAmplitude):
 
     def f_m_deriv(self, m) -> csr_matrix:
         deriv = []
-        dm = self._delta_m(m)
         for _, wire in self.mapping.maps:
-            deriv += [wire.deriv(dm)]
+            deriv += [wire.deriv(m)]
         return deriv
 
 
@@ -152,9 +151,8 @@ class AmplitudeSmoothnessFirstOrder(SparseSmoothness, BaseAmplitude):
 
     def f_m_deriv(self, m) -> csr_matrix:
         deriv = []
-        dm = self._delta_m(m)
         for _, wire in self.mapping.maps:
-            deriv += [self.cell_gradient * wire.deriv(dm)]
+            deriv += [self.cell_gradient * wire.deriv(m)]
 
         return deriv
 
