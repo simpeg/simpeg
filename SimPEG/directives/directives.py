@@ -2707,15 +2707,15 @@ class UpdateSensitivityWeights(InversionDirective):
         for reg in self.reg.objfcts:
             if not isinstance(reg, BaseSimilarityMeasure):
                 mesh = reg.regularization_mesh
+                n_cells = mesh.nC
+
                 mapped_jtj_diag = reg.mapping * jtj_diag
-                if mapped_jtj_diag.size // mesh.dim > 1:
-                    mapped_jtj_diag = mapped_jtj_diag.reshape((mesh.nC, -1), order="F")
-                    wr_temp = (
-                        mapped_jtj_diag / reg.regularization_mesh.vol[:, None] ** 2.0
-                    )
-                    wr_temp = wr_temp.reshape(-1, order="F")
-                else:
-                    wr_temp = mapped_jtj_diag / reg.regularization_mesh.vol**2
+                # reshape the mapped, so you can divide by volume
+                # (let's say it was a vector or anisotropic model)
+                mapped_jtj_diag = mapped_jtj_diag.reshape((n_cells, -1), order="F")
+                wr_temp = mapped_jtj_diag / reg.regularization_mesh.vol[:, None] ** 2.0
+                wr_temp = wr_temp.reshape(-1, order="F")
+
                 wr += reg.mapping.deriv(self.invProb.model).T * wr_temp
         wr **= 0.5
 
