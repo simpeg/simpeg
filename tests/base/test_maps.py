@@ -669,5 +669,62 @@ def test_LinearMap_errors():
         maps.LinearMap(A, b=b)
 
 
+def test_linearity():
+    mesh1 = discretize.TensorMesh([3])
+    mesh2 = discretize.TensorMesh([3, 4])
+    mesh3 = discretize.TensorMesh([3, 4, 5])
+    mesh_cyl = discretize.CylindricalMesh([5, 1, 5])
+    mesh_tree = discretize.TreeMesh([8, 8, 8])
+    mesh_tree.refine(-1)
+    # make a list of linear maps
+    linear_maps = [
+        maps.IdentityMap(mesh3),
+        maps.LinearMap(np.eye(3)),
+        maps.Projection(2, np.array([1, 0, 1, 0], dtype=int)),
+        maps.SurjectUnits([[True, False, True], [False, True, False]], nP=3),
+        maps.ChiMap(),
+        maps.MuRelative(),
+        maps.Weighting(nP=mesh1.n_cells),
+        maps.ComplexMap(mesh3),
+        maps.SurjectFull(mesh3),
+        maps.SurjectVertical1D(mesh2),
+        maps.Surject2Dto3D(mesh3),
+        maps.Mesh2Mesh((mesh3, mesh3)),
+        maps.InjectActiveCells(
+            mesh3,
+            mesh3.cell_centers[:, -1] < 0.75,
+        ),
+        maps.TileMap(
+            mesh_tree,
+            mesh_tree.cell_centers[:, -1] < 0.75,
+            mesh_tree,
+        ),
+        maps.IdentityMap() + maps.IdentityMap(),  # A simple SumMap
+        maps.ChiMap() * maps.MuRelative(),  # A simple ComboMap
+    ]
+    non_linear_maps = [
+        maps.SphericalSystem(mesh2),
+        maps.SelfConsistentEffectiveMedium(mesh2, sigma0=1, sigma1=2),
+        maps.ExpMap(),
+        maps.ReciprocalMap(),
+        maps.LogMap(),
+        maps.ParametricCircleMap(mesh2),
+        maps.ParametricPolyMap(mesh2, 4),
+        maps.ParametricSplineMap(mesh2, np.r_[0.25, 0.35]),
+        maps.BaseParametric(mesh3),
+        maps.ParametricLayer(mesh3),
+        maps.ParametricBlock(mesh3),
+        maps.ParametricEllipsoid(mesh3),
+        maps.ParametricCasingAndLayer(mesh_cyl),
+        maps.ParametricBlockInLayer(mesh3),
+        maps.PolynomialPetroClusterMap(),
+        maps.IdentityMap() + maps.ExpMap(),  # A simple SumMap
+        maps.ChiMap() * maps.ExpMap(),  # A simple ComboMap
+    ]
+
+    assert all(m.is_linear for m in linear_maps)
+    assert all(not m.is_linear for m in non_linear_maps)
+
+
 if __name__ == "__main__":
     unittest.main()
