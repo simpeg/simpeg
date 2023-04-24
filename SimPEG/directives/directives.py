@@ -2159,8 +2159,8 @@ class Update_IRLS(InversionDirective):
             for reg in self.reg.objfcts:
                 if not isinstance(reg, Sparse):
                     continue
-                if isinstance(reg, (Sparse, BaseSparse)):
-                    reg.update_weights(reg.model)
+
+                reg.update_weights(reg.model)
 
             self.update_beta = True
             self.invProb.phi_m_last = self.reg(self.invProb.model)
@@ -2717,19 +2717,20 @@ class UpdateSensitivityWeights(InversionDirective):
         # Compute and sum root-mean squared sensitivities for all objective functions
         wr = np.zeros_like(self.invProb.model)
         for reg in self.reg.objfcts:
+
             if isinstance(reg, BaseSimilarityMeasure):
                 continue
 
-            if isinstance(reg.mapping, Wires):
-                for _, wire in reg.mapping.maps:
-                    wr += wire.deriv(self.invProb.model).T * (
-                        (wire * jtj_diag) / reg.regularization_mesh.vol**2.0
-                    )
-            else:
-                wr += reg.mapping.deriv(self.invProb.model).T * (
-                    (reg.mapping * jtj_diag) / reg.regularization_mesh.vol**2.0
-                )
+            mesh = reg.regularization_mesh
+            n_cells = mesh.nC
+            mapped_jtj_diag = reg.mapping * jtj_diag
+            # reshape the mapped, so you can divide by volume
+            # (let's say it was a vector or anisotropic model)
+            mapped_jtj_diag = mapped_jtj_diag.reshape((n_cells, -1), order="F")
+            wr_temp = mapped_jtj_diag / reg.regularization_mesh.vol[:, None] ** 2.0
+            wr_temp = wr_temp.reshape(-1, order="F")
 
+            wr += reg.mapping.deriv(self.invProb.model).T * wr_temp
         wr **= 0.5
 
         # Apply thresholding
