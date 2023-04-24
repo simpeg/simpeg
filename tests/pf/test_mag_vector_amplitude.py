@@ -104,10 +104,9 @@ class MVIProblemTest(unittest.TestCase):
             utils.mkvc(self.model), relative_error=0.0, noise_floor=5.0, add_noise=True
         )
 
-        wires = maps.Wires(("p", nC), ("s", nC), ("t", nC))
         reg = regularization.VectorAmplitude(
             mesh,
-            wires,
+            mapping=idenMap,
             active_cells=actv,
             reference_model_in_smooth=True,
             norms=[0.0, 0.0, 0.0, 0.0],
