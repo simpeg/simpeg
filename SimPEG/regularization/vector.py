@@ -120,29 +120,35 @@ class BaseAmplitude(BaseVectorRegularization):
     Base vector amplitude class.
     Requires a mesh and a :obj:`SimPEG.maps.Wires` mapping.
     """
+
     def amplitude(self, m):
         return np.linalg.norm(
-            (
-                self.mapping * self._delta_m(m)
-            ).reshape(
+            (self.mapping * self._delta_m(m)).reshape(
                 (self.regularization_mesh.nC, self.n_comp), order="F"
-            ), axis=1
+            ),
+            axis=1,
         )
 
     def deriv(self, m) -> np.ndarray:
         """ """
         d_m = self._delta_m(m)
 
-        return self.f_m_deriv(m).T * (sp.block_diag([self.W.T * self.W] * self.n_comp) * self.f_m_deriv(m) * d_m)
+        return self.f_m_deriv(m).T * (
+            sp.block_diag([self.W.T * self.W] * self.n_comp) * self.f_m_deriv(m) * d_m
+        )
 
     def deriv2(self, m, v=None) -> csr_matrix:
         """ """
         f_m_deriv = self.f_m_deriv(m)
 
         if v is None:
-            return f_m_deriv.T * (sp.block_diag([self.W.T * self.W] * self.n_comp) * f_m_deriv)
+            return f_m_deriv.T * (
+                sp.block_diag([self.W.T * self.W] * self.n_comp) * f_m_deriv
+            )
 
-        return f_m_deriv.T * (sp.block_diag([self.W.T * self.W] * self.n_comp) * f_m_deriv * v)
+        return f_m_deriv.T * (
+            sp.block_diag([self.W.T * self.W] * self.n_comp) * f_m_deriv * v
+        )
 
 
 class AmplitudeSmallness(SparseSmallness, BaseAmplitude):
@@ -197,7 +203,14 @@ class AmplitudeSmoothnessFirstOrder(SparseSmoothness, BaseAmplitude):
         nF = getattr(
             self.regularization_mesh, "aveCC2F{}".format(self.orientation)
         ).shape[0]
-        return [(nF,), (self.n_comp * nF,), (nF, self.n_comp), (nC,), (self.n_comp * nC,), (nC, self.n_comp)]
+        return [
+            (nF,),
+            (self.n_comp * nF,),
+            (nF, self.n_comp),
+            (nC,),
+            (self.n_comp * nC,),
+            (nC, self.n_comp),
+        ]
 
     def f_m(self, m):
         a = self.amplitude(m)
@@ -206,7 +219,9 @@ class AmplitudeSmoothnessFirstOrder(SparseSmoothness, BaseAmplitude):
 
     def f_m_deriv(self, m) -> csr_matrix:
         """"""
-        return sp.block_diag([self.cell_gradient] * self.n_comp) @ self.mapping.deriv(self._delta_m(m))
+        return sp.block_diag([self.cell_gradient] * self.n_comp) @ self.mapping.deriv(
+            self._delta_m(m)
+        )
 
     @property
     def W(self):

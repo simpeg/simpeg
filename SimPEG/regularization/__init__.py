@@ -206,7 +206,11 @@ from .pgi import PGIsmallness, PGI
 from .cross_gradient import CrossGradient
 from .correspondence import LinearCorrespondence
 from .jtv import JointTotalVariation
-from .vector import BaseVectorRegularization, CrossReferenceRegularization, VectorAmplitude
+from .vector import (
+    BaseVectorRegularization,
+    CrossReferenceRegularization,
+    VectorAmplitude,
+)
 
 
 @deprecate_class(removal_version="0.19.0", future_warn=True)
