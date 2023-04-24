@@ -152,7 +152,7 @@ m0 = np.ones(3 * nC) * 1e-4  # Starting model
 # Create the regularization on the amplitude of magnetization
 reg = regularization.VectorAmplitude(
     mesh,
-    wires,
+    mapping=idenMap,
     active_cells=actv,
     reference_model_in_smooth=True,
     norms=[0.0, 2.0, 2.0, 2.0],

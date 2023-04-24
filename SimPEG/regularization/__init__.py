@@ -158,6 +158,14 @@ We have also implemented several sparse regularizations with a variable norm.
   SparseSmallness
   SparseSmoothness
 
+Vector Regularizations
+----------------------
+The regularizations are meant for models of vectors.
+
+.. autosummary::
+  :toctree: generated/
+  CrossReferenceRegularization
+
 Joint Regularizations
 ---------------------
 There are several joint inversion regularizers available
@@ -180,6 +188,7 @@ Base Regularization classes
   BaseRegularization
   BaseSimilarityMeasure
   BaseSparse
+  BaseVectorRegularization
 
 """
 from ..utils.code_utils import deprecate_class
@@ -197,7 +206,7 @@ from .pgi import PGIsmallness, PGI
 from .cross_gradient import CrossGradient
 from .correspondence import LinearCorrespondence
 from .jtv import JointTotalVariation
-from .vector_amplitude import VectorAmplitude
+from .vector import BaseVectorRegularization, CrossReferenceRegularization, VectorAmplitude
 
 
 @deprecate_class(removal_version="0.19.0", future_warn=True)

@@ -33,6 +33,7 @@ class BaseRegularization(BaseObjectiveFunction):
 
     _model = None
     _parent = None
+    _W = None
 
     def __init__(
         self,
