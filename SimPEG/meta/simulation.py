@@ -205,7 +205,7 @@ class MetaSimulation(BaseSimulation):
         for mapping, sim in zip(self.mappings, self.simulations):
             if self._repeat_sim and self.model is not None:
                 sim.model = mapping * self.model
-            f.append(sim.fields(m=sim.model))
+            f.append(sim.fields(sim.model))
         return f
 
     def dpred(self, m=None, f=None):
