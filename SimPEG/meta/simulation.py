@@ -95,6 +95,7 @@ class MetaSimulation(BaseSimulation):
         )
         self.simulations = simulations
         self.mappings = mappings
+        self.model = None
         # give myself a BaseSurvey that has the number of data equal
         # to the sum of the sims' data.
         survey = BaseSurvey([])
@@ -182,7 +183,10 @@ class MetaSimulation(BaseSimulation):
         # Only send the model to the internal simulations if it was updated.
         if not self._repeat_sim and updated:
             for mapping, sim in zip(self.mappings, self.simulations):
-                sim.model = mapping * self._model
+                if value is not None:
+                    sim.model = mapping * self._model
+                else:
+                    sim.model = value
 
     def fields(self, m):
         """Create fields for every simulation.
@@ -199,7 +203,7 @@ class MetaSimulation(BaseSimulation):
         # The above should pass the model to all the internal simulations.
         f = []
         for mapping, sim in zip(self.mappings, self.simulations):
-            if self._repeat_sim:
+            if self._repeat_sim and self.model is not None:
                 sim.model = mapping * self.model
             f.append(sim.fields(m=sim.model))
         return f
@@ -338,6 +342,7 @@ class SumMetaSimulation(MetaSimulation):
         )
         self.simulations = simulations
         self.mappings = mappings
+        self.model = None
         # give myself a BaseSurvey
         survey = BaseSurvey([])
         survey._vnD = [
@@ -426,6 +431,7 @@ class RepeatedSimulation(MetaSimulation):
         )
         self.simulation = simulation
         self.mappings = mappings
+        self.model = None
         survey = BaseSurvey([])
         vnD = len(self.mappings) * [self.simulation.survey.nD]
         survey._vnD = vnD
