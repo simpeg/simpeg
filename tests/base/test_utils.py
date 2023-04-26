@@ -278,7 +278,6 @@ class TestSequenceFunctions(unittest.TestCase):
             self.assertTrue(np.linalg.norm(Z.todense().ravel(), 2) < TOL)
 
     def test_as_array_n_by_dim(self):
-
         true = np.array([[1, 2, 3]])
 
         listArray = as_array_n_by_dim([1, 2, 3], 3)
@@ -309,6 +308,9 @@ class TestSequenceFunctions(unittest.TestCase):
             [[(500.0, 24)], [(500.0, 20)], [(10.0, 30)]], x0="CCC"
         )
 
+        # To keep consistent with result from deprecated function
+        vancouver_topo[:, 2] = vancouver_topo[:, 2] + 1e-8
+
         indtopoCC = surface2ind_topo(
             mesh_topo, vancouver_topo, gridLoc="CC", method="nearest"
         )
@@ -316,8 +318,8 @@ class TestSequenceFunctions(unittest.TestCase):
             mesh_topo, vancouver_topo, gridLoc="N", method="nearest"
         )
 
-        assert len(np.where(indtopoCC)[0]) == 8729
-        assert len(np.where(indtopoN)[0]) == 8212
+        assert len(np.where(indtopoCC)[0]) == 8728
+        assert len(np.where(indtopoN)[0]) == 8211
 
 
 class TestDiagEst(unittest.TestCase):

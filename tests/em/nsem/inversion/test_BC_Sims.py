@@ -36,7 +36,6 @@ def check_adjoint(sim, test_mod):
 
 
 def create_simulation_1d(sim_type, deriv_type):
-
     cs = 100
     ncz = 200
     npad = 20
@@ -160,7 +159,6 @@ def create_simulation_2d(sim_type, deriv_type, mesh_type, fixed_boundary=False):
 
             b_e = mesh.boundary_edges
             top = np.where(b_e[:, 1] == mesh.nodes_y[-1])
-            bot = np.where(b_e[:, 1] == mesh.nodes_y[0])
             left = np.where(b_e[:, 0] == mesh.nodes_x[0])
             right = np.where(b_e[:, 0] == mesh.nodes_x[-1])
             h_bc = {}

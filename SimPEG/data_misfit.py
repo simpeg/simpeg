@@ -23,6 +23,7 @@ class BaseDataMisfit(L2ObjectiveFunction):
         self.simulation = simulation
         self.debug = debug
         self.count = counter
+        self._has_fields = True
 
     @property
     def data(self):

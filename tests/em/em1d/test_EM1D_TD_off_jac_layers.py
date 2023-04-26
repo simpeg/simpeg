@@ -12,7 +12,6 @@ class EM1D_TD_Jacobian_Test_MagDipole(unittest.TestCase):
     # - Span many time channels
     # - Tests derivatives wrt sigma, mu and thicknesses
     def setUp(self):
-
         # Layers and topography
         nearthick = np.logspace(-1, 1, 5)
         deepthick = np.logspace(1, 2, 10)
@@ -29,11 +28,9 @@ class EM1D_TD_Jacobian_Test_MagDipole(unittest.TestCase):
         # Define sources and receivers
         source_list = []
         for tx_orientation in orientations:
-
             receiver_list = []
 
             for rx_orientation in orientations:
-
                 receiver_list.append(
                     tdem.receivers.PointMagneticFluxDensity(
                         rx_location, times, rx_orientation
@@ -87,7 +84,6 @@ class EM1D_TD_Jacobian_Test_MagDipole(unittest.TestCase):
         self.sim = sim
 
     def test_EM1DFDJvec_Layers(self):
-
         # Conductivity
         sigma_half = 0.01
         sigma_blk = 0.1
@@ -124,7 +120,6 @@ class EM1D_TD_Jacobian_Test_MagDipole(unittest.TestCase):
             print("EM1DTM MagDipole Jvec test works")
 
     def test_EM1DFDJtvec_Layers(self):
-
         # Conductivity
         sigma_half = 0.01
         sigma_blk = 0.1
@@ -172,7 +167,6 @@ class EM1D_TD_Jacobian_Test_CircularLoop(unittest.TestCase):
     # - Span many time channels
     # - Tests derivatives wrt sigma, mu and thicknesses
     def setUp(self):
-
         nearthick = np.logspace(-1, 1, 5)
         deepthick = np.logspace(1, 2, 10)
         thicknesses = np.r_[nearthick, deepthick]
@@ -190,7 +184,6 @@ class EM1D_TD_Jacobian_Test_CircularLoop(unittest.TestCase):
         receiver_list = []
 
         for rx_orientation in orientations:
-
             receiver_list.append(
                 tdem.receivers.PointMagneticField(rx_location, times, rx_orientation)
             )
@@ -246,7 +239,6 @@ class EM1D_TD_Jacobian_Test_CircularLoop(unittest.TestCase):
         self.sim = sim
 
     def test_EM1DFDJvec_Layers(self):
-
         # Conductivity
         sigma_half = 0.01
         sigma_blk = 0.1
@@ -283,7 +275,6 @@ class EM1D_TD_Jacobian_Test_CircularLoop(unittest.TestCase):
             print("EM1DTM Circular Loop Jvec test works")
 
     def test_EM1DFDJtvec_Layers(self):
-
         # Conductivity
         sigma_half = 0.01
         sigma_blk = 0.1

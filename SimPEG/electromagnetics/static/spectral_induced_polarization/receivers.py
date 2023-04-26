@@ -222,7 +222,6 @@ class Dipole(BaseRx):
     def __init__(
         self, locations_m=None, locations_n=None, times=None, locations=None, **kwargs
     ):
-
         # if locations_m set, then use locations_m, locations_n
         if locations_m is not None:
             if locations_n is None:

@@ -13,7 +13,7 @@ from SimPEG import (
 from SimPEG.potential_fields import magnetics
 from SimPEG import utils
 from SimPEG.utils import mkvc
-from discretize.utils import mesh_builder_xyz, refine_tree_xyz
+from discretize.utils import mesh_builder_xyz, refine_tree_xyz, active_from_xyz
 import unittest
 import shutil
 
@@ -66,7 +66,7 @@ class AmpProblemTest(unittest.TestCase):
         )
 
         # Define an active cells from topo
-        actv = utils.surface2ind_topo(mesh, topo)
+        actv = active_from_xyz(mesh, topo)
         nC = int(actv.sum())
 
         # Convert the inclination declination to vector in Cartesian
@@ -123,9 +123,6 @@ class AmpProblemTest(unittest.TestCase):
         nC = np.count_nonzero(surf)  # Number of active cells
         mstart = np.ones(nC) * 1e-4
 
-        # Create active map to go from reduce set to full
-        surfMap = maps.InjectActiveCells(mesh, surf, np.nan)
-
         # Create identity map
         idenMap = maps.IdentityMap(nP=nC)
 
@@ -162,7 +159,7 @@ class AmpProblemTest(unittest.TestCase):
         invProb = inverse_problem.BaseInvProblem(dmis, reg, opt)
 
         # Specify how the initial beta is found
-        betaest = directives.BetaEstimate_ByEig(beta0_ratio=2)
+        betaest = directives.BetaEstimateMaxDerivative(beta0_ratio=2)
 
         # Target misfit to stop the inversion,
         # try to fit as much as possible of the signal, we don't want to lose anything
@@ -212,8 +209,6 @@ class AmpProblemTest(unittest.TestCase):
         # susceptibility. This is a non-linear inversion.
         #
 
-        # Create active map to go from reduce space to full
-        actvMap = maps.InjectActiveCells(mesh, actv, -100)
         nC = int(actv.sum())
 
         # Create identity map

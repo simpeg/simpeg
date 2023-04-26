@@ -60,7 +60,6 @@ rcParams["font.size"] = fontsize
 
 
 class PrimSecCasingExample(object):
-
     NAME = "PrimSec_5e6Casing_50Mu_05Hz_LargeCondBody"
 
     # -------------- SETUP MODEL PARAMS ---------------------------- #
@@ -227,7 +226,6 @@ class PrimSecCasingExample(object):
         # injected during the construction of the primary model
 
         if getattr(self, "_primaryMapping", None) is None:
-
             print("Building primary mapping")
 
             # inject parameters we want to invert for into the full casing
@@ -360,7 +358,6 @@ class PrimSecCasingExample(object):
     @property
     def primarySurvey(self):
         if getattr(self, "_primarySurvey", None) is None:
-
             print("Setting up primary survey")
 
             def setupPrimarySource(plotIt=False):
@@ -580,7 +577,6 @@ class PrimSecCasingExample(object):
         return sec_problem
 
     def setupSecondarySurvey(self, primaryProblem, primarySurvey, map2meshSecondary):
-
         print("Setting up Secondary Survey")
 
         nx = 41
@@ -631,7 +627,6 @@ class PrimSecCasingExample(object):
     # ----------------------------------------------------------------- #
 
     def plotPrimaryFields(self, primaryFields, saveFig=False):
-
         # Interpolate onto a cartesian mesh with uniform cell sizes (better for
         # streamplots)
         cs = 5.0
@@ -748,7 +743,7 @@ class PrimSecCasingExample(object):
 
         # re-assign zero for amplitude of the real current density
         s_e_abs_cc = s_e_stream_cc.reshape(meshs_plt.nC, 3, order="F")
-        s_e_abs_cc = np.sqrt((s_e_abs_cc ** 2.0).sum(axis=1))
+        s_e_abs_cc = np.sqrt((s_e_abs_cc**2.0).sum(axis=1))
         s_e_abs_cc[np.isnan(s_e_abs_cc)] = 0.0
         s_e_stream_cc = np.ma.masked_where(np.isnan(s_e_stream_cc), s_e_stream_cc)
 
@@ -912,8 +907,6 @@ class PrimSecCasingExample(object):
             norm=None,
             cblabel="",
         ):
-
-            eps = 1e-3  # just so we don't get white-spaces in the colormap
             ax.axis("equal")
             vlim = np.absolute(Jv).max() * np.r_[-1.0, 1.0]
 
@@ -1092,7 +1085,6 @@ class PrimSecCasingExample(object):
         fig, ax = plt.subplots(2, 2, figsize=(12, 10))
         # ax = utils.mkvc(ax)
 
-        useaxlim = True
         xlim = np.r_[-1500.0, 1500.0]
         ylim = np.r_[-1500.0, 1500.0]
 
@@ -1161,7 +1153,6 @@ class PrimSecCasingExample(object):
         # Block Geometry
         fig, ax = plt.subplots(4, 2, figsize=(12, 20))
 
-        useaxlim = True
         xlim = np.r_[-1500.0, 1500.0]
         ylim = np.r_[-1500.0, 1500.0]
 
@@ -1236,7 +1227,7 @@ class PrimSecCasingExample(object):
 
         ax[2][1] = plotJ(
             ax[2][1],
-            J_dy_ex,
+            J_dx_ey,
             "(p) Sensitivity of $E_y$ wrt block $d_x$",
             plotGrid=plotGrid,
             xlim=xlim,
@@ -1282,7 +1273,6 @@ class PrimSecCasingExample(object):
     def run(
         self, plotIt=False, runTests=False, verbose=True, saveFields=True, saveFig=False
     ):
-
         self.verbose = verbose
 
         if plotIt is True:  # Plot the Primary Model
@@ -1317,8 +1307,6 @@ class PrimSecCasingExample(object):
 
         # -------------- Test the sensitivity ----------------------------- #
         if runTests:
-            x0 = self.mtrue
-
             # Test Block Model
             def fun(x):
                 return [sec_problem.dpred(x), lambda x: sec_problem.Jvec(self.mtrue, x)]
@@ -1384,7 +1372,6 @@ class PrimSecCasingExample(object):
 
 
 class PrimSecCasingStoredResults(PrimSecCasingExample):
-
     url = "https://storage.googleapis.com/simpeg/papers/Heagyetal2016/"
 
     # cloudfiles = [
@@ -1410,7 +1397,6 @@ class PrimSecCasingStoredResults(PrimSecCasingExample):
         shutil.rmtree(self.filepath)
 
     def run(self, plotIt=False, runTests=False, saveFig=False):
-
         filepath = download(
             self.url + self.cloudfile, folder="~/Downloads/simpegtemp", overwrite=True
         )
@@ -1439,7 +1425,6 @@ class PrimSecCasingStoredResults(PrimSecCasingExample):
 
 
 def run(plotIt=True, runTests=False, reRun=False, saveFig=False):
-
     """
     EM Heagyetal2016 CasingFwd3DPrimSecSrc
     ======================================

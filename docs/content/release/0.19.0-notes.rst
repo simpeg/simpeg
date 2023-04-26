@@ -1,0 +1,160 @@
+.. _0.19.0_notes:
+
+===========================
+SimPEG 0.19.0 Release Notes
+===========================
+
+April 10th, 2023
+
+This minor release contains many bugfixes and improvements to the code base, including the
+start of a new experimental approach to parallelism in `SimPEG`.
+
+.. contents:: Highlights
+    :depth: 2
+
+Updates
+=======
+
+Getting started guides
+----------------------
+We have updated the getting started guides for users and developers pointing to our current
+recommended paths of installation. We also codified some of our expected path of contributing
+codes and improvements to `SimPEG`.
+
+
+Code style improvements
+-----------------------
+The internal code style of `SimPEG` has undergone many improvements in style checking. We now
+actively test new Pull Requests against `black` version 23.1. We also run linters to check for
+common style conventions and catch common errors. These tests are run prior to the full test
+sweet on the continuous integration service.
+
+``MetaSimulation``
+------------------
+`SimPEG` contains a new simulation class called ``SimPEG.meta.MetaSimulation``. This experimental
+simulation essentially wraps together many simulations into a single simulation. Several common
+problems can fit into this simulation of simulations model, including tiled (domain decomposition)
+simulations, time-lapse simulations, or laterally constrained simulations. This approach also is
+embarrassingly parallel, which we will use this class to extend different parallelism strategies
+to every `SimPEG` simulation.
+
+DC improvements
+---------------
+The 1D DC resistivity simulation now supports arbitrary combinations of pole and dipole sources
+and receivers. The 2D and 3D simulations are now slightly more flexible in there mesh requirements.
+The robin boundary conditions are now implemented for Triangular and Tetrahedral meshes on the nodal
+formulation.
+
+Github forms
+------------
+New issues submitted to `SimPEG` on github now follow fillable forms to give users a guide on
+creating better issue forms. They also now quickly point users to the slack and discourse channels
+for communicating with the developers.
+
+New pull requests are also opened with a default template now to, highlighting the steps
+of a pull request that you should follow.
+
+
+Directive updates
+-----------------
+There are a few new options for determining an initial trade-off parameter for the
+regularization functions in inversions. You can now use ``SimPEG.directives.BetaEstimateMaxDerivative``
+
+There are also a few more nobs to turn on ``SimPEG.directives.UpdateSensitivityWeights``,
+controlling how the weights are thresholded and normalized.
+
+JointTotalVariation extension
+-----------------------------
+``SimPEG.regularization.JointTotalVariation`` now supports an arbitrary number of physical
+properties models (instead of just two).
+
+Many bug fixes
+--------------
+In addition to the new features, there were many, many bugfixes along the way. Including:
+
+* Changing the default ``n_processes`` to 1 on potential fields simulations to avoid
+  multiprocessing unexpectedly crashing users' computers.
+* A fix for using apparent resistivity as a data type on DC simulations.
+* Initializing `IdentityMaps` with `nP="*"`
+* Re-defaulting to caching of fields objects in `DataMisfit` functions
+* Fixing the 1D DC resistivity class to be actually correct for non-symmetric arrays.
+* Fix saving the state of inversions in a dictionary for `Sparse` regularization.
+* Enabling inactive cells in an equivalent source model.
+* updates for PGI with new versions of scikit-learn.
+* update requirements to be consistent with modern versions of numpy/scipy/etc.
+* Fixing the length scale getters on the `WeightedLeastSquares` regularizer.
+* And many more.
+
+Contributors
+============
+This is a combination of contributors and reviewers who've made contributions towards
+this release (in no particular order).
+
+* `@jcapriot <https://github.com/jcapriot>`__
+* `@santisoler <https://github.com/santisoler>`__
+* `@domfournier <https://github.com/domfournier>`__
+* `@dccowan <https://github.com/dccowan>`__
+* `@thibaut-kobold <https://github.com/thibaut-kobold>`__
+* `@prisae <https://github.com/prisae>`__
+* `@nwilliams-kobold <https://github.com/nwilliams-kobold>`__
+
+Pull requests
+=============
+
+* `#729 <https://github.com/simpeg/simpeg/pull/729>`__: Addition regarding inversion to big_picture
+* `#1104 <https://github.com/simpeg/simpeg/pull/1104>`__: Update SimPEG.Report()
+* `#1130 <https://github.com/simpeg/simpeg/pull/1130>`__: Fix broken math in regularization docs
+* `#1132 <https://github.com/simpeg/simpeg/pull/1132>`__: Remove unused imports across SimPEG
+* `#1133 <https://github.com/simpeg/simpeg/pull/1133>`__: Fix (and test) the pgi tutorials.
+* `#1134 <https://github.com/simpeg/simpeg/pull/1134>`__: Run style checks in Azure Pipelines
+* `#1135 <https://github.com/simpeg/simpeg/pull/1135>`__: Add property to control number of processes created.
+* `#1136 <https://github.com/simpeg/simpeg/pull/1136>`__: Use r-strings on strings and docstrings that contain backslashes
+* `#1137 <https://github.com/simpeg/simpeg/pull/1137>`__: Rename variables to avoid shadowing builtins
+* `#1138 <https://github.com/simpeg/simpeg/pull/1138>`__: Remove unused loop variables
+* `#1139 <https://github.com/simpeg/simpeg/pull/1139>`__: Avoid using getattr with fixed constant strings
+* `#1140 <https://github.com/simpeg/simpeg/pull/1140>`__: Avoid using bare excepts that catch every possible exception
+* `#1141 <https://github.com/simpeg/simpeg/pull/1141>`__: Run flake8 in CI against a selection of rules
+* `#1142 <https://github.com/simpeg/simpeg/pull/1142>`__: Avoid using mutables as default parameters
+* `#1143 <https://github.com/simpeg/simpeg/pull/1143>`__: Avoid calling functions in default arguments
+* `#1145 <https://github.com/simpeg/simpeg/pull/1145>`__: Avoid using variables not binded in function definition
+* `#1147 <https://github.com/simpeg/simpeg/pull/1147>`__: Enable use of inactive cells in equivalent source models
+* `#1149 <https://github.com/simpeg/simpeg/pull/1149>`__: Ignore flake warning over empty docstrings
+* `#1150 <https://github.com/simpeg/simpeg/pull/1150>`__: Separate flake 8 ignores by line breaks
+* `#1155 <https://github.com/simpeg/simpeg/pull/1155>`__: Ignore b028
+* `#1156 <https://github.com/simpeg/simpeg/pull/1156>`__: fix gmm.plot_pdf new error from sklearn >=1.2
+* `#1157 <https://github.com/simpeg/simpeg/pull/1157>`__: fix mref depreciation in regularization/pgi.py
+* `#1159 <https://github.com/simpeg/simpeg/pull/1159>`__: Fix plot_inv_mag_MVI_Sparse_TreeMesh.py
+* `#1160 <https://github.com/simpeg/simpeg/pull/1160>`__: Avoid comparing bool variables to True or False
+* `#1161 <https://github.com/simpeg/simpeg/pull/1161>`__: Start removing unused variables
+* `#1163 <https://github.com/simpeg/simpeg/pull/1163>`__: Add option for amplitude threshold on UpdateSens directive
+* `#1166 <https://github.com/simpeg/simpeg/pull/1166>`__: Update current_utils.py
+* `#1168 <https://github.com/simpeg/simpeg/pull/1168>`__: Flexible dc boundary
+* `#1170 <https://github.com/simpeg/simpeg/pull/1170>`__: Do not use multiprocessing on single thread.
+* `#1171 <https://github.com/simpeg/simpeg/pull/1171>`__: Use discretize.utils.active_from_xyz to get active topography cells
+* `#1173 <https://github.com/simpeg/simpeg/pull/1173>`__: Mira review beta estimator
+* `#1174 <https://github.com/simpeg/simpeg/pull/1174>`__: Black 23.1
+* `#1175 <https://github.com/simpeg/simpeg/pull/1175>`__: Fix for _has_fields
+* `#1176 <https://github.com/simpeg/simpeg/pull/1176>`__: Do not import deprecated discretize utilities
+* `#1177 <https://github.com/simpeg/simpeg/pull/1177>`__: Linear mapping
+* `#1178 <https://github.com/simpeg/simpeg/pull/1178>`__: update codecov script
+* `#1179 <https://github.com/simpeg/simpeg/pull/1179>`__: Update minimum versions
+* `#1181 <https://github.com/simpeg/simpeg/pull/1181>`__: Add B028 to flake8 ignore
+* `#1182 <https://github.com/simpeg/simpeg/pull/1182>`__: Add possibility to pass fields to getJtJdiag
+* `#1183 <https://github.com/simpeg/simpeg/pull/1183>`__: Simulation of Simulations
+* `#1186 <https://github.com/simpeg/simpeg/pull/1186>`__: Change default n_processes for potential fields
+* `#1188 <https://github.com/simpeg/simpeg/pull/1188>`__: Update getting started guides
+* `#1189 <https://github.com/simpeg/simpeg/pull/1189>`__: Add issue forms for github
+* `#1190 <https://github.com/simpeg/simpeg/pull/1190>`__: Do not store real lambdas as complex
+* `#1191 <https://github.com/simpeg/simpeg/pull/1191>`__: Update DC1D for flexibility and speed
+* `#1192 <https://github.com/simpeg/simpeg/pull/1192>`__: Improve docstring of depth_weighting
+* `#1194 <https://github.com/simpeg/simpeg/pull/1194>`__: Update deprecation usage in optimization module
+* `#1196 <https://github.com/simpeg/simpeg/pull/1196>`__: Fix check for reference_model in PGI regularization
+* `#1197 <https://github.com/simpeg/simpeg/pull/1197>`__: update JTV to work for an arbitrary number of models
+* `#1200 <https://github.com/simpeg/simpeg/pull/1200>`__: Fix flake8 B015 errors: solve unused comparisons
+* `#1202 <https://github.com/simpeg/simpeg/pull/1202>`__: Fix flake E401 error: multiple imports in one line
+* `#1203 <https://github.com/simpeg/simpeg/pull/1203>`__: Remove flake errors that were already solved
+* `#1205 <https://github.com/simpeg/simpeg/pull/1205>`__: Patch/identity map init
+* `#1206 <https://github.com/simpeg/simpeg/pull/1206>`__: Patch/fix save sparse dict
+* `#1207 <https://github.com/simpeg/simpeg/pull/1207>`__: Fix length scale getters
+* `#1208 <https://github.com/simpeg/simpeg/pull/1208>`__: Add PR template file
+* `#1209 <https://github.com/simpeg/simpeg/pull/1209>`__: 0.19.0 Staging

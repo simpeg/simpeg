@@ -29,9 +29,9 @@ from matplotlib.colors import LogNorm
 import tarfile
 
 from discretize import TreeMesh
-from discretize.utils import mkvc, refine_tree_xyz
+from discretize.utils import mkvc, refine_tree_xyz, active_from_xyz
 
-from SimPEG.utils import surface2ind_topo, model_builder
+from SimPEG.utils import model_builder
 from SimPEG import (
     maps,
     data_misfit,
@@ -225,7 +225,7 @@ mesh.finalize()
 topo_2d = np.unique(topo_xyz[:, [0, 2]], axis=0)
 
 # Find cells that lie below surface topography
-ind_active = surface2ind_topo(mesh, topo_2d)
+ind_active = active_from_xyz(mesh, topo_2d)
 
 # Extract survey from data object
 survey = dc_data.survey
@@ -447,7 +447,6 @@ cbar = 3 * [None]
 cplot = 3 * [None]
 
 for ii in range(0, 3):
-
     ax1[ii] = fig.add_axes([0.15, 0.72 - 0.33 * ii, 0.65, 0.21])
     cax1[ii] = fig.add_axes([0.81, 0.72 - 0.33 * ii, 0.03, 0.21])
     cplot[ii] = plot_pseudosection(

@@ -13,7 +13,6 @@ class Survey(BaseSurvey):
     """
 
     def __init__(self, source_list, **kwargs):
-
         super(Survey, self).__init__(source_list, **kwargs)
 
         _frequency_dict = {}
