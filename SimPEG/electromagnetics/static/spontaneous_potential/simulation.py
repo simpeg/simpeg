@@ -22,7 +22,7 @@ class Simulation3DCellCentered(dc.Simulation3DCellCentered):
         The mapping used to go from the simulation model to `q`. Set this
         to invert for `q`.
     **kwargs
-        arguments passed on to :class:`resistivity.Simulation3DCellCentered`
+        arguments passed on to :class:`.resistivity.Simulation3DCellCentered`
 
     Notes
     -----
@@ -147,7 +147,7 @@ class Survey(dc.Survey):
 
     Parameters
     ----------
-    source_list : list of spontaneous_potential.sources.StreamingCurrents
+    source_list : list of sources.StreamingCurrents
     """
 
     @property
@@ -156,7 +156,7 @@ class Survey(dc.Survey):
 
         Returns
         -------
-        list of spontaneous_potential.sources.StreamingCurrents
+        list of sources.StreamingCurrents
         """
         return self._source_list
 

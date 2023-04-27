@@ -9,7 +9,7 @@ class StreamingCurrents(survey.BaseSrc):
 
     Parameters
     ----------
-    receiver_list : list of resistivity.receivers.BaseRx
+    receiver_list : list of .resistivity.receivers.BaseRx
         The list of Pole and Dipole receivers that listen
         to this source.
     """
@@ -24,7 +24,7 @@ class StreamingCurrents(survey.BaseSrc):
 
         Returns
         -------
-        list of resistivity.receivers.BaseRx
+        list of .resistivity.receivers.BaseRx
         """
         return self._receiver_list
 
