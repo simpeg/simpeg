@@ -151,7 +151,7 @@ class BaseDataMisfit(L2ObjectiveFunction):
         assert value.shape == (
             self.data.nD,
             self.data.nD,
-        ), "W must have shape ({nD},{nD}), not ({val0}, val{1})".format(
+        ), "W must have shape ({nD},{nD}), not ({val0}, {val1})".format(
             nD=self.data.nD, val0=value.shape[0], val1=value.shape[1]
         )
         self._W = value
