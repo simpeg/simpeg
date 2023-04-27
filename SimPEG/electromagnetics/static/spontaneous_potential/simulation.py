@@ -1,7 +1,8 @@
 import scipy.sparse as sp
+import numpy as np
 
 from .... import maps, props
-from ....utils import validate_list_of_types
+from ....utils import validate_list_of_types, validate_active_indices
 from .. import resistivity as dc
 from .sources import StreamingCurrents
 
@@ -93,6 +94,9 @@ class CurrentDensityMap(maps.LinearMap):
     Parameters
     ----------
     mesh : discretize.base.BaseMesh
+    active_cells : index_array, optional
+        Defaults to all cells being active. This is used to apply a
+        0 Nuemann boundary condition at topographic faces.
 
     Notes
     -----
@@ -105,8 +109,24 @@ class CurrentDensityMap(maps.LinearMap):
         q = -\nabla \cdot \vec{j}_s
     """
 
-    def __init__(self, mesh):
-        A = -mesh.face_divergence @ mesh.average_cell_vector_to_face
+    def __init__(self, mesh, active_cells=None):
+        cv_to_f = mesh.average_cell_vector_to_face
+        if active_cells is not None:
+            active_cells = validate_active_indices(
+                "active_cells", active_cells, mesh.n_cells
+            )
+            active_cell_comps = np.concatenate(mesh.dim * [active_cells])
+            # need to repeat above for each vector component for cells
+            # Test which faces are on the boundary of the active domain
+            boundary_faces = (mesh.face_divergence.T @ active_cells) != 0
+            # use to set the value of j on the boundaries to zero
+            # do not need to worry about the faces that are interior to
+            # the inactive cells because the values on each side of a
+            # face are already set to zero from the projection from active
+            # to full space.
+            face_weights = sp.diags(1.0 * (~boundary_faces))
+            cv_to_f = face_weights @ cv_to_f[:, active_cell_comps]
+        A = -mesh.face_divergence @ cv_to_f
         super().__init__(A)
 
 
