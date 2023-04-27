@@ -82,9 +82,8 @@ class Simulation3DCellCentered(dc.Simulation3DCellCentered):
         # When enabling resistivity derivatives, uncomment these lines
         # if self.rhoMap is not None:
         #     return super().deleteTheseOnModelUpdate
-        # Need some way to determine if the `qMap` was linear...
-        # if it was non-linear, we would need to re-compute a
-        # stored jacobian matrix.
+        if self.storeJ and self.qMap is not None and not self.qMap.is_linear:
+            return ["_Jmatrix", "_gtgdiag"]
         return []
 
 
