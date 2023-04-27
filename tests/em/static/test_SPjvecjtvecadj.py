@@ -54,6 +54,7 @@ def test_forward():
     [
         maps.IdentityMap(mesh),
         sp.CurrentDensityMap(mesh),
+        sp.CurrentDensityMap(mesh, active_cells=mesh.cell_centers[:, -1] < 0.85),
         sp.HydraulicHeadMap(mesh, L=1.0),
     ],
 )
