@@ -106,6 +106,19 @@ def test_errors():
         sp.Simulation3DCellCentered(mesh=mesh, survey=survey, sigma=1.0, rho=1.0)
 
 
+def test_clears():
+    # set qMap as a non-linear map to make sure it adds the correct
+    # items to be cleared on model update
+    sim.qMap = maps.IdentityMap()
+    assert sim.deleteTheseOnModelUpdate == []
+    assert sim.clean_on_model_update == []
+
+    sim.storeJ = True
+    sim.qMap = maps.ExpMap()
+    assert sim.deleteTheseOnModelUpdate == ["_Jmatrix", "_gtgdiag"]
+    assert sim.clean_on_model_update == []
+
+
 # class SPProblemTestsCC_CurrentSource(unittest.TestCase):
 #
 #     def setUp(self):
