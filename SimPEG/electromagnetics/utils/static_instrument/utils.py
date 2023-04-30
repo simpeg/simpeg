@@ -34,6 +34,13 @@ import scipy.stats
 
 
 def make_2layer(xdist, dtb, layers, res_upper=30, res_lower=300, x=None, y=None):
+    """Make a synthetic model with two layers of differing resistivity (in addition to the air above).
+    
+    xdist is an array of shape (N,) of positions along the cross section (given as distances from the start of the line)
+    dtb is an array of shape (N,) of depth to the second layer at each position.
+    layers is an array of shape (M,) of depths to layer boundaries. Should include the top of the topmost layer (0), and bottom of the bottom most layer (inf).
+    x, y are arrays of shape (N,) of x and y positions for each cross section point. Will default to xdist and 0 respectively.
+    """
     gxdist, gz = np.meshgrid(xdist, layers)
     gdtb, dummy = np.meshgrid(dtb, layers)
     
@@ -62,14 +69,22 @@ def make_2layer(xdist, dtb, layers, res_upper=30, res_lower=300, x=None, y=None)
     return xyz
 
 def add_noise(xyz, rel_uncertainty=0.01):
+    """Add artificial random noise to a (synthetic) model.
+    """
     dpred = xyz.dbdt_ch1gt.values.flatten()
     noise = rel_uncertainty*np.abs(dpred)*np.random.rand(len(dpred))
     xyz.layer_data["dbdt_ch1gt"] += noise.reshape(xyz.dbdt_ch1gt.shape)
 
 def add_uncertainty_normal(xyz, rel_uncertainty):
+    """Add artificial random uncertainty to a (synthetic) model, as if a set of measurements
+    had been stacked for each sounding, and the stddev measured.
+    """
     xyz.layer_data["dbdt_std_ch1gt"] = np.abs(rel_uncertainty
                                               * xyz.layer_data["dbdt_ch1gt"]
                                               * np.random.randn(*xyz.layer_data["dbdt_ch1gt"].shape))
 
 def add_uncertainty(xyz, rel_uncertainty):
+    """Add artificial static uncertainty to a (synthetic) model, as if a set of measurements
+    had been stacked for each sounding, and the stddev measured and found to all be the same as a fraction of the measurement.
+    """
     xyz.layer_data["dbdt_std_ch1gt"] = rel_uncertainty*np.abs(xyz.dbdt_ch1gt)
