@@ -46,7 +46,7 @@ Meta
 ----
 Classes for encapsulating many simulations.
 
-. toctree::
+.. toctree::
   :maxdepth: 2
 
   SimPEG.meta
