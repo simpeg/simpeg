@@ -1080,7 +1080,7 @@ class WeightedLeastSquares(ComboObjectiveFunction):
     @property
     def length_scale_x(self):
         """Constant multiplier of the base length scale on model gradients along x."""
-        return np.sqrt(self.alpha_x / self.regularization_mesh.base_length)
+        return np.sqrt(self.alpha_x) / self.regularization_mesh.base_length
 
     @length_scale_x.setter
     def length_scale_x(self, value: float):
@@ -1097,7 +1097,7 @@ class WeightedLeastSquares(ComboObjectiveFunction):
     @property
     def length_scale_y(self):
         """Constant multiplier of the base length scale on model gradients along y."""
-        return np.sqrt(self.alpha_y / self.regularization_mesh.base_length)
+        return np.sqrt(self.alpha_y) / self.regularization_mesh.base_length
 
     @length_scale_y.setter
     def length_scale_y(self, value: float):
@@ -1114,7 +1114,7 @@ class WeightedLeastSquares(ComboObjectiveFunction):
     @property
     def length_scale_z(self):
         """Constant multiplier of the base length scale on model gradients along z."""
-        return np.sqrt(self.alpha_z / self.regularization_mesh.base_length)
+        return np.sqrt(self.alpha_z) / self.regularization_mesh.base_length
 
     @length_scale_z.setter
     def length_scale_z(self, value: float):

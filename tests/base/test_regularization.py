@@ -309,7 +309,6 @@ class RegularizationTests(unittest.TestCase):
 
     def test_update_of_sparse_norms(self):
         mesh = discretize.TensorMesh([8, 7, 6])
-        m = np.random.rand(mesh.nC)
         v = np.random.rand(mesh.nC)
 
         cell_weights = np.random.rand(mesh.nC)
@@ -407,28 +406,28 @@ class RegularizationTests(unittest.TestCase):
         mesh = discretize.TensorMesh([8, 7, 6])
         reg = regularization.WeightedLeastSquares(mesh)
         for comp in ["s", "x", "y", "z", "xx", "yy", "zz"]:
-            with pytest.raises(TypeError) as error:
+            with pytest.raises(TypeError):
                 setattr(reg, f"alpha_{comp}", "abc")
 
-            with pytest.raises(ValueError) as error:
+            with pytest.raises(ValueError):
                 setattr(reg, f"alpha_{comp}", -1)
 
             if comp in ["x", "y", "z"]:
-                with pytest.raises(TypeError) as error:
+                with pytest.raises(TypeError):
                     setattr(reg, f"length_scale_{comp}", "abc")
 
-        with pytest.raises(ValueError) as error:
+        with pytest.raises(ValueError):
             reg = regularization.WeightedLeastSquares(mesh, alpha_x=1, length_scale_x=1)
 
-        with pytest.raises(ValueError) as error:
+        with pytest.raises(ValueError):
             reg = regularization.WeightedLeastSquares(mesh, alpha_y=1, length_scale_y=1)
 
-        with pytest.raises(ValueError) as error:
+        with pytest.raises(ValueError):
             reg = regularization.WeightedLeastSquares(mesh, alpha_z=1, length_scale_z=1)
 
     def test_nC_residual(self):
         # x-direction
-        cs, ncx, ncz, npad = 1.0, 10.0, 10.0, 20
+        cs, ncx, npad = 1.0, 10.0, 20
         hx = [(cs, ncx), (cs, npad, 1.3)]
 
         # z direction
@@ -453,7 +452,7 @@ class RegularizationTests(unittest.TestCase):
 
     def test_active_cells_nc_residual(self):
         # x-direction
-        cs, ncx, ncz, npad = 1.0, 10.0, 10.0, 20
+        cs, ncx, npad = 1.0, 10.0, 20
         hx = [(cs, ncx), (cs, npad, 1.3)]
 
         # z direction
@@ -506,19 +505,19 @@ class RegularizationTests(unittest.TestCase):
         mesh = discretize.TensorMesh([8, 7])
 
         with pytest.raises(ValueError) as error:
-            reg = regularization.SmoothnessFirstOrder(mesh, orientation="w")
+            regularization.SmoothnessFirstOrder(mesh, orientation="w")
 
         assert "Orientation must be 'x', 'y' or 'z'" in str(error)
 
         with pytest.raises(ValueError) as error:
-            reg = regularization.SmoothnessFirstOrder(mesh, orientation="z")
+            regularization.SmoothnessFirstOrder(mesh, orientation="z")
 
         assert "Mesh must have at least 3 dimensions" in str(error)
 
         mesh = discretize.TensorMesh([2])
 
         with pytest.raises(ValueError) as error:
-            reg = regularization.SmoothnessFirstOrder(mesh, orientation="y")
+            regularization.SmoothnessFirstOrder(mesh, orientation="y")
 
         assert "Mesh must have at least 2 dimensions" in str(error)
 
@@ -540,15 +539,30 @@ class RegularizationTests(unittest.TestCase):
             reg = reg_fun(mesh)
             assert reg.irls_threshold == 1e-8  # Default
 
-            with pytest.raises(ValueError) as error:
+            with pytest.raises(ValueError):
                 reg.irls_threshold = -1
 
             assert reg.irls_scaled  # Default
 
-            with pytest.raises(TypeError) as error:
+            with pytest.raises(TypeError):
                 reg.irls_scaled = -1
 
             assert reg.gradient_type == "total"  # Check default
+
+
+def test_WeightedLeastSquares():
+    mesh = discretize.TensorMesh([3, 4, 5])
+
+    reg = regularization.WeightedLeastSquares(mesh)
+
+    reg.length_scale_x = 0.5
+    np.testing.assert_allclose(reg.length_scale_x, 0.5)
+
+    reg.length_scale_y = 0.3
+    np.testing.assert_allclose(reg.length_scale_y, 0.3)
+
+    reg.length_scale_z = 0.8
+    np.testing.assert_allclose(reg.length_scale_z, 0.8)
 
 
 if __name__ == "__main__":

@@ -1914,13 +1914,14 @@ class SaveOutputDictEveryIteration(SaveEveryIteration):
         iterDict["m"] = self.invProb.model
         iterDict["dpred"] = self.invProb.dpred
 
-        if hasattr(self.reg.objfcts[0], "eps_p") is True:
-            iterDict["eps_p"] = self.reg.objfcts[0].eps_p
-            iterDict["eps_q"] = self.reg.objfcts[0].eps_q
-
-        if hasattr(self.reg.objfcts[0], "norms") is True:
-            iterDict["lps"] = self.reg.objfcts[0].norms[0][0]
-            iterDict["lpx"] = self.reg.objfcts[0].norms[0][1]
+        for reg in self.reg.objfcts:
+            if isinstance(reg, Sparse):
+                for reg_part, norm in zip(reg.objfcts, reg.norms):
+                    reg_name = f"{type(reg_part).__name__}"
+                    if hasattr(reg_part, "orientation"):
+                        reg_name = reg_part.orientation + " " + reg_name
+                    iterDict[reg_name + ".irls_threshold"] = reg_part.irls_threshold
+                    iterDict[reg_name + ".norm"] = norm
 
         # Save the file as a npz
         if self.saveOnDisk:

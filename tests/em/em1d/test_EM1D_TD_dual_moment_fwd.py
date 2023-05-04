@@ -12,10 +12,7 @@ import numpy as np
 class EM1D_TD_FwdProblemTests(unittest.TestCase):
     def setUp(self):
         source_location = np.array([0.0, 0.0, 0.0])
-        source_orientation = "z"  # "x", "y" or "z"
-        source_current = 1.0
         source_radius = 10.0
-        moment_amplitude = 1.0
 
         receiver_locations = np.array([[0.0, 0.0, 0.0]])
         receiver_orientation = "z"  # "x", "y" or "z"

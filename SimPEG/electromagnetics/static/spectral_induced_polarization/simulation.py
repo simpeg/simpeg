@@ -585,14 +585,6 @@ class BaseSIPSimulation(BaseIPSimulation):
                         df_duTFun = getattr(f, "_{0!s}Deriv".format(rx.projField), None)
                         df_duT, _ = df_duTFun(src, None, PTv, adjoint=True)
                         ATinvdf_duT = self.Ainv * df_duT
-                        dA_dmT = self.getADeriv(u_src, ATinvdf_duT, adjoint=True)
-                        # Unecessary at the moment
-
-                        # dRHS_dmT = self.getRHSDeriv(
-                        #     src, ATinvdf_duT, adjoint=True
-                        # )
-                        # du_dmT[:, tind] = -dA_dmT + dRHS_dmT
-
                         du_dmT[:, tind] += -self.getADeriv(
                             u_src, ATinvdf_duT, adjoint=True
                         )
