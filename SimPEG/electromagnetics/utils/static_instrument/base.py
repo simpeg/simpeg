@@ -115,6 +115,12 @@ class XYZSystem(object):
                 in zip(self.times_full, self.times_filter)]
 
     @property
+    def n_layer_used(self):
+        if "resistivity" in self.xyz.layer_data:
+            return self.xyz.resistivity.shape[1]
+        return n_layer
+    
+    @property
     def data_array_nan(self):
         return self.xyz.dbdt_ch1gt.values.flatten()
 
@@ -145,14 +151,14 @@ class XYZSystem(object):
     def make_thicknesses(self):
         if self.thicknesses_type == "geometric":
             return SimPEG.electromagnetics.utils.em1d_utils.get_vertical_discretization(
-                self.n_layer-1, self.thicknesses_minimum_dz, self.thicknesses_geomtric_factor)
+                self.n_layer_used-1, self.thicknesses_minimum_dz, self.thicknesses_geomtric_factor)
         else:
             if "dep_top" in self.xyz.layer_params:
                 return np.diff(self.xyz.layer_params["dep_top"].values)
             return SimPEG.electromagnetics.utils.em1d_utils.get_vertical_discretization_time(
                 np.sort(np.concatenate(self.times)),
                 sigma_background=self.thicknesses_sigma_background,
-                n_layer=self.n_layer-1
+                n_layer=self.n_layer_used-1
             )
 
     def make_survey(self):
@@ -180,7 +186,7 @@ class XYZSystem(object):
             sigmaMap=maps.ExpMap(nP=self.n_param(thicknesses)), 
             parallel=self.parallel,
             n_cpu=self.n_cpu,
-            n_layer=self.n_layer)
+            n_layer=self.n_layer_used)
     
     def make_data(self, survey):
         return data.Data(
