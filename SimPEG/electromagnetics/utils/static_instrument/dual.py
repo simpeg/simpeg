@@ -109,31 +109,24 @@ class DualMomentTEMXYZSystem(base.XYZSystem):
         return np.hstack((self.lm_data, self.hm_data)).flatten()
 
     @property
-    def data_array(self):
-        dobs = self.data_array_nan
-        return np.where(np.isnan(dobs), 9999., dobs)
-    
-    uncertainties_floor = 1e-13
-    uncertainties_data = 0.05 # If None, use data std:s
-    @property
-    def uncert_array(self):
-        if self.uncertainties_data is None:
-            uncertainties = np.hstack((self.lm_std, self.hm_std)).flatten()
-        else:
-            uncertainties = self.uncertainties_data
-        uncertainties = uncertainties * np.abs(self.data_array) + self.uncertainties_floor
-        return np.where(np.isnan(self.data_array_nan), np.Inf, uncertainties)
+    def data_uncert_array(self):
+        return np.hstack((self.lm_std, self.hm_std)).flatten()
 
     @property
     def times_full(self):
         return (np.array(self.gex.gate_times('Channel1')[:,0]),
                 np.array(self.gex.gate_times('Channel2')[:,0]))    
+
+    @property
+    def times_filter(self):
+        return [np.arange(self.gate_start_lm, self.gate_end_lm),
+                np.arange(self.gate_start_hm, self.gate_end_hm)]
     
     @property
     def times(self):
-        lmtimes, hmtimes = self.times_full        
-        return (lmtimes[self.gate_start_lm:self.gate_end_lm],
-                hmtimes[self.gate_start_hm:self.gate_end_hm])    
+        return [times_full[times_filter]
+                for times_full, times_filter
+                in zip(self.times_full, self.times_filter)]
     
     def make_waveforms(self):
         time_input_currents_hm = self.waveform_hm[:,0]
@@ -168,53 +161,10 @@ class DualMomentTEMXYZSystem(base.XYZSystem):
                 waveform=waveform_hm,
                 orientation=self.tx_orientation,
                 i_sounding=idx)]
-    
-    thicknesses_type = "geometric"
-    thicknesses_minimum_dz = 3
-    thicknesses_geomtric_factor = 1.07
-    thicknesses_sigma_background = 0.1
-    def make_thicknesses(self):
-        if self.thicknesses_type == "geometric":
-            return SimPEG.electromagnetics.utils.em1d_utils.get_vertical_discretization(
-                self.n_layer-1, self.thicknesses_minimum_dz, self.thicknesses_geomtric_factor)
-        else:
-            if "dep_top" in self.xyz.layer_params:
-                return np.diff(self.xyz.layer_params["dep_top"].values)
-            return SimPEG.electromagnetics.utils.em1d_utils.get_vertical_discretization_time(
-                np.sort(np.concatenate(self.times)),
-                sigma_background=self.thicknesses_sigma_background,
-                n_layer=self.n_layer-1
-            )
 
-    def make_misfit_weights(self, thicknesses):
-        return 1./self.uncert_array
+    @property
+    def gate_filters(self):
+        return [(self.gate_end_lm, self.gate_start_lm),
+                (self.gate_end_hm, self.gate_start_hm)]
 
-    def forward_data_to_xyz(self, resp):
-        times_lm, times_hm = self.times_full
-        
-        xyzresp = libaarhusxyz.XYZ()
-        xyzresp.model_info.update(self.xyz.model_info)
-        xyzresp.flightlines = self.xyz.flightlines
-
-        lm = np.full((len(xyzresp.flightlines), len(times_lm)), np.nan)
-        hm = np.full((len(xyzresp.flightlines), len(times_hm)), np.nan)
-
-        gate_count_lm = self.gate_end_lm-self.gate_start_lm
-        gate_count_hm = self.gate_end_hm-self.gate_start_hm
-        lm[:,self.gate_start_lm:self.gate_end_lm] = resp[:,:gate_count_lm]
-        hm[:,self.gate_start_hm:self.gate_end_hm] = resp[:,gate_count_lm:]
-        
-        lm /= self.xyz.model_info.get("scalefactor", 1)
-        hm /= self.xyz.model_info.get("scalefactor", 1)
-
-        xyzresp.layer_data = {
-            "dbdt_ch1gt": pd.DataFrame(lm),
-            "dbdt_ch2gt": pd.DataFrame(hm),
-        }
-
-        # XYZ assumes all receivers have the same times
-        xyzresp.model_info["gate times for channel 1"] = list(times_lm)
-        xyzresp.model_info["gate times for channel 2"] = list(times_hm)
-
-        return xyzresp
     

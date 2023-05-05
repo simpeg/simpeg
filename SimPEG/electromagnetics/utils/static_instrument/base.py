@@ -31,7 +31,7 @@ from SimPEG.electromagnetics.utils.em1d_utils import get_2d_mesh,plot_layer, get
 from SimPEG.regularization import LaterallyConstrained, RegularizationMesh
 
 import scipy.stats
-
+import copy
 
 class XYZSystem(object):
     """This is a base class for system descriptions for moving EM
@@ -101,26 +101,60 @@ class XYZSystem(object):
         raise NotImplementedError("You must subclass XYZInversion and override make_system() with your own method!")
 
     @property
-    def times(self):
-        return np.array(self.xyz.model_info['gate times for channel 1'])
+    def times_full(self):
+        return [np.array(self.xyz.model_info['gate times for channel 1'])]
 
     @property
-    def data_array(self):
+    def times_filter(self):
+        return [np.arange(len(times)) for times in self.times_full]
+    
+    @property
+    def times(self):
+        return [times_full if times_filter is None else times_full[times_filter]
+                for times_full, times_filter
+                in zip(self.times_full, self.times_filter)]
+
+    @property
+    def data_array_nan(self):
         return self.xyz.dbdt_ch1gt.values.flatten()
 
     @property
-    def uncert_array(self):
+    def data_array(self):
+        dobs = self.data_array_nan
+        return np.where(np.isnan(dobs), 9999., dobs)
+    
+    @property
+    def data_uncert_array(self):
         return self.xyz.dbdt_std_ch1gt.values.flatten()
 
+    uncertainties_floor = 1e-13
+    uncertainties_data = 0.05 # If None, use data std:s
+    @property
+    def uncert_array(self):
+        if self.uncertainties_data is None:
+            uncertainties = self.data_uncert_array
+        else:
+            uncertainties = self.uncertainties_data
+        uncertainties = uncertainties * np.abs(self.data_array) + self.uncertainties_floor
+        return np.where(np.isnan(self.data_array_nan), np.Inf, uncertainties)
+
+    thicknesses_type = "times"
+    thicknesses_minimum_dz = 3
+    thicknesses_geomtric_factor = 1.07
+    thicknesses_sigma_background = 0.1
     def make_thicknesses(self):
-        if "dep_top" in self.xyz.layer_params:
-            return np.diff(self.xyz.layer_params["dep_top"].values)
-        return get_vertical_discretization_time(
-            self.times,
-            sigma_background=0.1,
-            n_layer=self.n_layer-1
-        )
-        
+        if self.thicknesses_type == "geometric":
+            return SimPEG.electromagnetics.utils.em1d_utils.get_vertical_discretization(
+                self.n_layer-1, self.thicknesses_minimum_dz, self.thicknesses_geomtric_factor)
+        else:
+            if "dep_top" in self.xyz.layer_params:
+                return np.diff(self.xyz.layer_params["dep_top"].values)
+            return SimPEG.electromagnetics.utils.em1d_utils.get_vertical_discretization_time(
+                np.sort(np.concatenate(self.times)),
+                sigma_background=self.thicknesses_sigma_background,
+                n_layer=self.n_layer-1
+            )
+
     def make_survey(self):
         times = self.times
         systems = [
@@ -276,17 +310,54 @@ class XYZSystem(object):
         
         return self.sparse, self.l2
 
+    def split_moments(self, resp):
+        moments = []
+        pos = 0
+        for times in self.times:
+            moments.append(resp[:,pos:pos+len(times)])
+            pos += len(times)
+        return moments
+
+    def pad_times(self, xyz, times, positions):
+        """Pad data in xyz with NaN:s, to have the list of gate times be
+        times. times must be a superset of the times already present
+        for each moment. positions must be the positions in times
+        where the existing times in xyz are located.
+
+        """
+        
+        new_xyz = copy.deepcopy(xyz)
+
+        for idx, (moment_new_times, pos) in enumerate(zip(times, positions)):
+            idx += 1
+            times = xyz.info['gate times for channel %s' % idx]
+            new_xyz.info['gate times for channel %s' % idx] = moment_new_times
+
+            for col in xyz.layer_data.keys():
+                if col.endswith("_ch%sgt" % idx):
+                    new_xyz.layer_data[col] = pd.DataFrame(
+                        index = new_xyz.flightlines.index,
+                        columns=np.arange(len(moment_new_times)))
+                    new_xyz.layer_data[col].loc[:,pos] = xyz.layer_data[col]
+
+        return new_xyz
+
+    
     def forward_data_to_xyz(self, resp):
         xyzresp = libaarhusxyz.XYZ()
+        xyzresp.model_info.update(self.xyz.model_info)
         xyzresp.flightlines = self.xyz.flightlines
+
         xyzresp.layer_data = {
-            "dbdt_ch1gt": pd.DataFrame(resp)
+            "dbdt_ch%sgt" % (idx + 1): moment / self.xyz.model_info.get("scalefactor", 1)
+            for idx, moment in enumerate(resp)
         }
 
         # XYZ assumes all receivers have the same times
-        xyzresp.model_info["gate times for channel 1"] = list(self.times)
+        for idx, t in enumerate(self.times):
+            xyzresp.model_info["gate times for channel %s" % (idx + 1)] = list(t)
 
-        return xyzresp
+        return self.pad_times(xyzresp, self.times_full, self.times_filter)
     
     def forward(self):
         """Does a forward modelling of the model in the XYZ file using
@@ -298,4 +369,5 @@ class XYZSystem(object):
         resp = self.sim.dpred(model_cond.flatten())
 
         resp = resp.reshape((len(self.xyz.flightlines), len(resp) // len(self.xyz.flightlines)))
-        return self.forward_data_to_xyz(resp)
+
+        return self.forward_data_to_xyz(self.split_moments(resp))
