@@ -11,7 +11,6 @@ import numpy as np
 from ..directives import InversionDirective, MultiTargetMisfits
 from ..regularization import (
     PGI,
-    PGIsmallness,
     PGIwithRelationships,
     SmoothnessFirstOrder,
     SparseSmoothness,
@@ -27,108 +26,141 @@ from ..utils import (
 
 class PGI_UpdateParameters(InversionDirective):
     """
-    This directive is to be used with regularization from regularization.pgi.
-    It updates:
-        - the reference model and weights in the smallness (L2-approximation of PGI)
-        - the GMM as a MAP estimate between the prior and the current model
-    For more details, please consult:
+    Directive to use with :class:`SimPEG.regularization.PGI`
+
+    This directive updates the reference model and its weights in the smallness
+    PGI regularization, along with the Gaussian Mixture as a map estimate
+    between the prior and the current model.
+
+    Parameters
+    ----------
+    update_gmm : bool, optional
+        If True, updates the parameters of the Gaussian Mixture (mean,
+        covariances, proportions). If False, the parameters of the are fixed
+        throughout the inversion.
+    zeta : float, optional
+        Confidence in the prior proportions. Ignored if ``update_gmm`` is
+        False.
+    nu : float, optional
+        Confidence in the prior covariances. Ignored if ``update_gmm`` is
+        False.
+    kappa : float, optional
+        Confidence in the prior means. Ignored if ``update_gmm`` is False.
+    update_rate : int, optional
+        The Gaussian Mixture will be updated after this many iterations.
+        Ignored if ``update_gmm`` is False.
+    update_covariances : bool, optional
+        Weather to update the covariances or the precisions. If True, update
+        the covariances. If False, update the precisions. Ignored if
+        ``update_gmm`` is False.
+    fixed_membership : None or array_like, optional
+        Keep the membership of specific cells fixed.
+    verbose : bool, optional
+        If True, messages will be printed to stdout during each iteration.
+
+    References
+    ----------
      - https://doi.org/10.1093/gji/ggz389
     """
 
-    verbose = False  # print info.  about the GMM at each iteration
-    update_rate = 1  # updates at each `update_rate` iterations
-    update_gmm = False  # update the GMM
-    zeta = (
-        1e10  # confidence in the prior proportions; default: high value, keep GMM fixed
-    )
-    nu = (
-        1e10  # confidence in the prior covariances; default: high value, keep GMM fixed
-    )
-    kappa = 1e10  # confidence in the prior means;default: high value, keep GMM fixed
-    update_covariances = (
-        True  # Average the covariances, If false: average the precisions
-    )
-    fixed_membership = None  # keep the membership of specific cells fixed
-    keep_ref_fixed_in_Smooth = True  # keep mref fixed in the Smoothness
-
-    def initialize(self):
-        pgi_reg = self.reg.get_functions_of_type(PGIsmallness)
-        if len(pgi_reg) != 1:
-            raise UserWarning(
-                "'PGI_UpdateParameters' requires one 'PGIsmallness' regularization "
-                "in the objective function."
-            )
-        self.pgi_reg = pgi_reg[0]
+    def __init__(
+        self,
+        update_gmm=False,
+        zeta=1e10,
+        nu=1e10,
+        kappa=1e10,
+        update_rate=1,
+        update_covariances=True,
+        fixed_membership=None,
+        verbose=False,
+    ):
+        super().__init__(self)
+        self.update_gmm = update_gmm
+        self.update_rate = update_rate
+        self.zeta = zeta
+        self.nu = nu
+        self.kappa = kappa
+        self.update_covariances = update_covariances
+        self.fixed_membership = fixed_membership
+        self.verbose = verbose
 
     def endIter(self):
-        if self.opt.iter > 0 and self.opt.iter % self.update_rate == 0:
-            m = self.invProb.model
-            modellist = self.pgi_reg.wiresmap * m
-            model = np.c_[[a * b for a, b in zip(self.pgi_reg.maplist, modellist)]].T
+        """Run after the end of each iteration in the inversion."""
+        # Don't update the model if we are in the first iteration or if the
+        # current iteration doesn't match the update rate
+        if self.opt.iter == 0 or self.opt.iter % self.update_rate != 0:
+            return None
 
-            if self.update_gmm and isinstance(
-                self.pgi_reg.gmmref, GaussianMixtureWithNonlinearRelationships
-            ):
-                clfupdate = GaussianMixtureWithNonlinearRelationshipsWithPrior(
-                    gmmref=self.pgi_reg.gmmref,
-                    zeta=self.zeta,
-                    kappa=self.kappa,
-                    nu=self.nu,
-                    verbose=self.verbose,
-                    prior_type="semi",
-                    update_covariances=self.update_covariances,
-                    max_iter=self.pgi_reg.gmm.max_iter,
-                    n_init=self.pgi_reg.gmm.n_init,
-                    reg_covar=self.pgi_reg.gmm.reg_covar,
-                    weights_init=self.pgi_reg.gmm.weights_,
-                    means_init=self.pgi_reg.gmm.means_,
-                    precisions_init=self.pgi_reg.gmm.precisions_,
-                    random_state=self.pgi_reg.gmm.random_state,
-                    tol=self.pgi_reg.gmm.tol,
-                    verbose_interval=self.pgi_reg.gmm.verbose_interval,
-                    warm_start=self.pgi_reg.gmm.warm_start,
-                    fixed_membership=self.fixed_membership,
-                )
-                clfupdate = clfupdate.fit(model)
+        # Get current model
+        m = self.invProb.model
+        modellist = self.pgi_regularization.wiresmap * m
+        model = np.c_[
+            [a * b for a, b in zip(self.pgi_regularization.maplist, modellist)]
+        ].T
 
-            elif self.update_gmm and isinstance(
-                self.pgi_reg.gmmref, WeightedGaussianMixture
-            ):
-                clfupdate = GaussianMixtureWithPrior(
-                    gmmref=self.pgi_reg.gmmref,
-                    zeta=self.zeta,
-                    kappa=self.kappa,
-                    nu=self.nu,
-                    verbose=self.verbose,
-                    prior_type="semi",
-                    update_covariances=self.update_covariances,
-                    max_iter=self.pgi_reg.gmm.max_iter,
-                    n_init=self.pgi_reg.gmm.n_init,
-                    reg_covar=self.pgi_reg.gmm.reg_covar,
-                    weights_init=self.pgi_reg.gmm.weights_,
-                    means_init=self.pgi_reg.gmm.means_,
-                    precisions_init=self.pgi_reg.gmm.precisions_,
-                    random_state=self.pgi_reg.gmm.random_state,
-                    tol=self.pgi_reg.gmm.tol,
-                    verbose_interval=self.pgi_reg.gmm.verbose_interval,
-                    warm_start=self.pgi_reg.gmm.warm_start,
-                    fixed_membership=self.fixed_membership,
-                )
-                clfupdate = clfupdate.fit(model)
-
+        # Update the GMM parameters if required
+        gmmref = self.pgi_regularization.gmmref
+        if self.update_gmm:
+            # Determine the class of the new gmm
+            if isinstance(gmmref, GaussianMixtureWithNonlinearRelationships):
+                new_gmm_class = GaussianMixtureWithNonlinearRelationshipsWithPrior
+            elif isinstance(gmmref, WeightedGaussianMixture):
+                new_gmm_class = GaussianMixtureWithPrior
             else:
-                clfupdate = copy.deepcopy(self.pgi_reg.gmmref)
+                raise ValueError(
+                    f"Invalid class '{gmmref.__class__}' for the Gaussian Mixture"
+                    " in the PGI regularization."
+                )
+            new_gmm = new_gmm_class(
+                gmmref=gmmref,
+                zeta=self.zeta,
+                kappa=self.kappa,
+                nu=self.nu,
+                verbose=self.verbose,
+                prior_type="semi",
+                update_covariances=self.update_covariances,
+                max_iter=self.pgi_regularization.gmm.max_iter,
+                n_init=self.pgi_regularization.gmm.n_init,
+                reg_covar=self.pgi_regularization.gmm.reg_covar,
+                weights_init=self.pgi_regularization.gmm.weights_,
+                means_init=self.pgi_regularization.gmm.means_,
+                precisions_init=self.pgi_regularization.gmm.precisions_,
+                random_state=self.pgi_regularization.gmm.random_state,
+                tol=self.pgi_regularization.gmm.tol,
+                verbose_interval=self.pgi_regularization.gmm.verbose_interval,
+                warm_start=self.pgi_regularization.gmm.warm_start,
+                fixed_membership=self.fixed_membership,
+            )
+            new_gmm = new_gmm.fit(model)
+        else:
+            new_gmm = copy.deepcopy(gmmref)
 
-            self.pgi_reg.gmm = clfupdate
-            membership = self.pgi_reg.gmm.predict(model)
+        # Update the GMM in the PGI regularization
+        self.pgi_regularization.gmm = new_gmm
+        # Compute membership of the current model
+        membership = self.pgi_regularization.gmm.predict(model)
+        # Override the membership if some cells have fixed membership
+        if self.fixed_membership is not None:
+            membership[self.fixed_membership[:, 0]] = self.fixed_membership[:, 1]
+        # Get the new reference model
+        mref = mkvc(self.pgi_regularization.gmm.means_[membership])
+        # Update the reference model in the PGI regularization
+        self.pgi_regularization.reference_model = mref
+        if getattr(self.fixed_membership, "shape", [0, 0])[0] < len(membership):
+            self.pgi_regularization._r_second_deriv = None
 
-            if self.fixed_membership is not None:
-                membership[self.fixed_membership[:, 0]] = self.fixed_membership[:, 1]
-
-            mref = mkvc(self.pgi_reg.gmm.means_[membership])
-            self.pgi_reg.reference_model = mref
-            if getattr(self.fixed_membership, "shape", [0, 0])[0] < len(membership):
-                self.pgi_reg._r_second_deriv = None
+    @property
+    def pgi_regularization(self):
+        """PGI regularization in the :class:`SimPEG.inverse_problem.BaseInvProblem``."""
+        if not hasattr(self, "_pgi_regularization"):
+            pgi_regularization = self.reg.get_functions_of_type(PGI)
+            if len(pgi_regularization) != 1:
+                raise UserWarning(
+                    "'PGI_UpdateParameters' requires one 'PGI' regularization "
+                    "in the objective function."
+                )
+            self._pgi_regularization = pgi_regularization[0]
+        return self._pgi_regularization
 
 
 class PGI_BetaAlphaSchedule(InversionDirective):
@@ -316,7 +348,7 @@ class PGI_BetaAlphaSchedule(InversionDirective):
             pgi_regularization = self.reg.get_functions_of_type(PGI)
             if len(pgi_regularization) != 1:
                 raise UserWarning(
-                    "'PGI_UpdateParameters' requires one 'PGI' regularization "
+                    "'PGI_BetaAlphaSchedule' requires one 'PGI' regularization "
                     "in the objective function."
                 )
             self._pgi_regularization = pgi_regularization[0]
