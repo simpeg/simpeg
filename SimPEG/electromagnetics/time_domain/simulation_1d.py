@@ -511,23 +511,45 @@ class Simulation1DLayeredStitched(BaseStitchedEM1DSimulation):
             print(">> Time-domain")
         return self._run_simulation(args)
 
-    def get_uniq_soundings(self):
-            self._sounding_types_uniq, self._ind_sounding_uniq = np.unique(
-                self.survey._sounding_types, return_index=True
-            )
-    def get_coefficients(self):
-        if self.verbose:
-            print(">> Calculate coefficients")
+    # def get_uniq_soundings(self):
+    #         self._sounding_types_uniq, self._ind_sounding_uniq = np.unique(
+    #             self.survey._sounding_types, return_index=True
+    #         )
+    # def get_coefficients(self):
+    #     if self.verbose:
+    #         print(">> Calculate coefficients")
 
-        self.get_uniq_soundings()
+    #     self.get_uniq_soundings()
+
+    #     run_simulation = run_simulation_time_domain
+
+    #     self._coefficients = {}
+    #     for kk, ii in enumerate(self._ind_sounding_uniq):
+    #         name = self._sounding_types_uniq[kk]
+    #         self._coefficients[name] = run_simulation(self.input_args_for_coeff(ii))
+    #     self._coefficients_set = True
+
+    def get_coefficients(self):
 
         run_simulation = run_simulation_time_domain
 
-        self._coefficients = {}
-        for kk, ii in enumerate(self._ind_sounding_uniq):
-            name = self._sounding_types_uniq[kk]
-            self._coefficients[name] = run_simulation(self.input_args_for_coeff(ii))
-        self._coefficients_set = True
+        if self.verbose:
+            print(">> Calculate coefficients")
+        if self.parallel:
+            pool = Pool(self.n_cpu)
+            self._coefficients = pool.map(
+                run_simulation,
+                [
+                    self.input_args_for_coeff(i) for i in range(self.n_sounding)
+                ]
+             )
+            self._coefficients_set = True
+            pool.close()
+            pool.join()
+        else:
+            self._coefficients = [
+                run_simulation(self.input_args_for_coeff(i)) for i in range(self.n_sounding)
+            ]
 
     def forward(self, m):
         self.model = m
@@ -543,29 +565,14 @@ class Simulation1DLayeredStitched(BaseStitchedEM1DSimulation):
         #       and A matrix for convolution
         #       hankel coefficients vary with variable height!
 
-        # if self._coefficients_set is False:
-        #     self.get_coefficients()
+        if self._coefficients_set is False:
+            self.get_coefficients()
 
         run_simulation = run_simulation_time_domain
 
         if self.parallel:
             if self.verbose:
                 print ('parallel')
-
-            if self._coefficients_set is False:
-                if self.verbose:
-                    print(">> Calculate coefficients")
-                pool = Pool(self.n_cpu)
-                self._coefficients = pool.map(
-                    run_simulation,
-                    [
-                        self.input_args_for_coeff(i) for i in range(self.n_sounding)
-                    ]
-                 )
-                self._coefficients_set = True
-                pool.close()
-                pool.join()
-
             #This assumes the same # of layers for each of sounding
             # if self.n_sounding_for_chunk is None:
             pool = Pool(self.n_cpu)
@@ -579,17 +586,11 @@ class Simulation1DLayeredStitched(BaseStitchedEM1DSimulation):
             pool.close()
             pool.join()
         else:
-            if self._coefficients_set is False:
-                if self.verbose:
-                    print(">> Calculate coefficients")
-
-                self._coefficients = [
-                    run_simulation(self.input_args_for_coeff(i)) for i in range(self.n_sounding)
-                ]
 
             result = [
                 run_simulation(self.input_args(i, output_type='forward')) for i in range(self.n_sounding)
             ]
+
         return np.hstack(result)
 
     def getJ_sigma(self, m):
