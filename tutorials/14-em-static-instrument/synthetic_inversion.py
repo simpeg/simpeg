@@ -1,15 +1,40 @@
 #!/usr/bin/env python
 # coding: utf-8
 
+"""1d stitched inversion of time domain EM synthetic data using the static instrument framework
+=============================================================================================
+
+
+This tutorial shows how to use the static instrument framework for
+inversion and forward modelling of synthetic time domain EM data.
+
+The static instrument framework assumes that the instrument setup does
+not change between sounding positions, and can therefore be described
+separately from the data.
+
+The framework uses a python class to describe the system, which is
+then instantiated with the loaded data to perform an inversion, or
+with a model to perform forward modelling. Note that the same system
+description is used for both use cases!
+"""
+
+
+#########################################################################
+# Import modules
+# --------------
+
 import matplotlib.pyplot as plt
 import libaarhusxyz
 import SimPEG.electromagnetics.utils.static_instrument
 import SimPEG
 
 
-# Right handed coordinate system. x is forward, y to the right, z down
-
-#### Load the data from disk ####
+#########################################################################
+# Load the data from disk
+# ------------------------
+#
+# Load the data from disk and plot it. The data is in a right handed
+# coordinate system: x is forward, y to the right, z down
 
 xyz = libaarhusxyz.XYZ("em1d_data.xyz")
 
@@ -18,7 +43,15 @@ xyz.plot_line(0, ax=plt.gca())
 plt.show()
 
 
-#### Define the instrument ####
+#########################################################################
+# Define the instrument
+# ----------------------
+#
+# Here we only override a few default parameters, but any part of the
+# system description could be overridden, including the construction
+# of the `Survey` and `Simulation` objects, or the transmitter or
+# receiver objects. For details, see the output of
+# `help(SimPEG.electromagnetics.utils.static_instrument.SingleMomentTEMXYZSystem)`.
 
 class MySystem(SimPEG.electromagnetics.utils.static_instrument.SingleMomentTEMXYZSystem):
     area=340
@@ -28,14 +61,20 @@ class MySystem(SimPEG.electromagnetics.utils.static_instrument.SingleMomentTEMXY
     alpha_z = 1.
 
 
-#### Do the inversion ####
+#########################################################################
+# Do the inversion
+# -----------------
+#
+# Here we combine the system description with the loaded data and
+# perform an inversion.
 
 inv = MySystem(xyz)
 xyzsparse, xyzl2 = inv.invert()
 
 
-#### Plot the results ####
-
+#########################################################################
+# Plot the results
+# -----------------
 
 fig = plt.figure(figsize=(12, 8))
 ax=plt.gca()
@@ -43,11 +82,23 @@ xyzsparse.plot_line(0, ax=ax, cmap="jet")
 fig.colorbar(mappable=ax.collections[0])
 ax.set_ylim(-200, 0)
 
-
-#### Forward modelling and comparison to original data ####
+#########################################################################
+# Forward modelling and comparison to original data
+# -----------------
+#
+# Forward modelling is similar to inversion in that we combine a
+# resistivity model with the same system description to form an object
+# we can run the forward operator on.
+#
+# However, we also need to provide the gate times we want to model. To
+# be able to compare the forward modelled data fromt this to the
+# original data loaded above, we use the same times extracted from it.
+#
+# For now, xyzl2 is None due to IRLS being disabled by default. You
+# can override `make_directives` in `MySystem` to change this.
 
 #xyzl2fwd = MySystem(xyzl2, times=inv.times).forward()
-xyzsparsefwd = MySystem(xyzsparse, times=invtimes).forward()
+xyzsparsefwd = MySystem(xyzsparse, times=inv.times).forward()
 
 
 fig = plt.figure(figsize=(12, 8))
