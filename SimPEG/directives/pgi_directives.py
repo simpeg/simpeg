@@ -54,7 +54,8 @@ class PGI_UpdateParameters(InversionDirective):
         the covariances. If False, update the precisions. Ignored if
         ``update_gmm`` is False.
     fixed_membership : None or array_like, optional
-        Keep the membership of specific cells fixed.
+        Array with the indices and membership of cells. Use when the membership
+        of some cells is intended to be fixed.
     verbose : bool, optional
         If True, messages will be printed to stdout during each iteration.
 
