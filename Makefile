@@ -10,8 +10,6 @@ STYLE_CHECK_FILES = SimPEG examples tutorials tests
 # included in the list so we keep ignoring them while running the
 # flake-permissive target.
 FLAKE8_IGNORE = "E121,E123,E126,E226,E24,E704,W503,W504,\
-	B001,\
-	B015,\
 	B017,\
 	B028,\
 	D100,\
@@ -37,14 +35,8 @@ FLAKE8_IGNORE = "E121,E123,E126,E226,E24,E704,W503,W504,\
 	D412,\
 	D414,\
 	D419,\
-	E301,\
-	E302,\
-	E306,\
-	E401,\
 	E402,\
 	E711,\
-	E712,\
-	E722,\
 	E731,\
 	F403,\
 	F405,\
@@ -54,7 +46,6 @@ FLAKE8_IGNORE = "E121,E123,E126,E226,E24,E704,W503,W504,\
 	F541,\
 	F811,\
 	F821,\
-	F841,\
 	RST201,\
 	RST203,\
 	RST206,\

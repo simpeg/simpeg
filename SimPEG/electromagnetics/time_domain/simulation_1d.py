@@ -224,7 +224,6 @@ class Simulation1DLayered(BaseEM1DSimulation):
 
         C0s = self._C0s
         C1s = self._C1s
-        lambs = self._lambs
 
         frequencies = self._frequencies
         unique_lambs = self._unique_lambs

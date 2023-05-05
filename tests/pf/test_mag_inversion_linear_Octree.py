@@ -102,6 +102,7 @@ class MagInvLinProblemTest(unittest.TestCase):
             chiMap=idenMap,
             ind_active=actv,
             store_sensitivities="ram",
+            n_processes=None,
         )
         self.sim = sim
         data = sim.make_synthetic_data(

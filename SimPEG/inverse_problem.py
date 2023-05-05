@@ -6,7 +6,7 @@ from .regularization import BaseRegularization, WeightedLeastSquares, Sparse
 from .objective_function import BaseObjectiveFunction, ComboObjectiveFunction
 from .optimization import Minimize
 from .utils import (
-    callHooks,
+    call_hooks,
     timeIt,
     Counter,
     validate_float,
@@ -165,7 +165,7 @@ class BaseInvProblem:
                 delattr(self, prop)
         self._model = value
 
-    @callHooks("startup")
+    @call_hooks("startup")
     def startup(self, m0):
         """startup(m0)
 

@@ -110,7 +110,6 @@ class Simulation1DLayered(BaseEM1DSimulation):
 
         C0s = self._C0s
         C1s = self._C1s
-        lambs = self._lambs
         W = self._W
 
         frequencies = np.array(self.survey.frequencies)
