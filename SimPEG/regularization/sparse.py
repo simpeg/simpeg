@@ -21,8 +21,35 @@ from ..utils import (
 
 
 class BaseSparse(BaseRegularization):
-    """
-    Base class for building up the components of the Sparse Regularization
+    """Base class for sparse-norm regularization.
+
+    The ``BaseSparse`` class defines properties and methods inherited by sparse-norm
+    regularization classes. Sparse-norm regularization in SimPEG is implemented using
+    an iteratively re-weighted least squares approach. It is not directly used to constrain the inversions.
+
+    Parameters
+    ----------
+    mesh : SimPEG.regularization.RegularizationMesh, discretize.base.BaseMesh
+        Mesh on which the regularization is defined. This is not necessarily the same as the mesh on which the simulation is defined.
+    norm : float
+        The norm used in the regularization function.
+    irls_scaled : bool
+        If ``True``, scale the IRLS weights to preserve magnitude of the regularization function. If ``False``, do not scale.
+    irls_threshold : float
+        Constant added to IRLS weights to ensures stability in the algorithm.
+    active_cells : None, numpy.ndarray of bool
+        Array of bool defining the set of :py:class:`~SimPEG.regularization.RegularizationMesh` cells that are active in the inversion.
+        If ``None``, all cells are active.
+    mapping : None, SimPEG.maps.BaseMap
+        The mapping from the model parameters to the quantity defined in the regularization. If ``None``, the mapping is the identity map.
+    reference_model : None, (n_param, ) numpy.ndarray
+        Reference model values used to constrain the inversion. If ``None``, the reference model is equal to the starting model for the inversion.
+    units : None, str
+        Units for the model parameters. Some regularization classes behave differently depending on the units; e.g. 'radian'.
+    weights : None, dict
+        Weight multipliers to customize the least-squares function. Each key points to a (n_cells, ) numpy.ndarray that is defined on
+        the :py:class:`~SimPEG.regularization.RegularizationMesh`.
+
     """
 
     def __init__(self, mesh, norm=2.0, irls_scaled=True, irls_threshold=1e-8, **kwargs):

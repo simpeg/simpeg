@@ -23,10 +23,11 @@ class BaseRegularization(BaseObjectiveFunction):
 
     Parameters
     ----------
-    mesh : discretize.base.BaseMesh
+    mesh : SimPEG.regularization.RegularizationMesh, discretize.base.BaseMesh
         Mesh on which the regularization is defined. This is not necessarily the same as the mesh on which the simulation is defined.
     active_cells : None, numpy.ndarray of bool
-        Array of bool defining the set of regularization mesh cells that are active in the inversion. If ``None``, all cells are active.
+        Array of bool defining the set of :py:class:`~SimPEG.regularization.RegularizationMesh` cells that are active in the inversion.
+        If ``None``, all cells are active.
     mapping : None, SimPEG.maps.BaseMap
         The mapping from the model parameters to the quantity defined in the regularization. If ``None``, the mapping is the identity map.
     reference_model : None, (n_param, ) numpy.ndarray
@@ -35,9 +36,8 @@ class BaseRegularization(BaseObjectiveFunction):
         Units for the model parameters. Some regularization classes behave differently depending on the units; e.g. 'radian'.
     weights : None, dict
         Weight multipliers to customize the least-squares function. Each key points to a (n_cells, ) numpy.ndarray that is defined on
-        the regularization mesh.
+        the :py:class:`~SimPEG.regularization.RegularizationMesh`.
 
-    
     """
 
     _model = None
@@ -81,10 +81,11 @@ class BaseRegularization(BaseObjectiveFunction):
 
     @property
     def active_cells(self) -> np.ndarray:
-        """A boolean array of active cells, defined on the regularization mesh.
+        """Active cells defined on the regularization mesh.
 
-        Defines the cells in the regularization mesh that are active throughout the inversion.
-        Inactive cells remain fixed and are defined according to the starting model.
+        A boolean array defining the cells in the :py:class:`~SimPEG.regularization.RegularizationMesh`
+        that are active throughout the inversion. Inactive cells remain fixed and are defined according
+        to the starting model.
 
         Returns
         -------
@@ -92,8 +93,8 @@ class BaseRegularization(BaseObjectiveFunction):
 
         Notes
         -----
-        If this is set with an array of integers, it interprets it as an array
-        listing the active cell indices. When called, the quantity will have
+        If the property is set using an array of integers, the setter interprets the array as
+        representing the indices of the active cells. When called however, the quantity will have
         been converted to a boolean array.
         """
         return self.regularization_mesh.active_cells
@@ -147,7 +148,7 @@ class BaseRegularization(BaseObjectiveFunction):
         Returns
         -------
         SimPEG.maps.BaseMap
-            The mapping from the model parameters to the quantity defined in the regularization.
+            The mapping from the model parameters to the quantity defined on the :py:class:`~SimPEG.regularization.RegularizationMesh`.
         """
         return self._mapping
 
@@ -277,14 +278,31 @@ class BaseRegularization(BaseObjectiveFunction):
         self.set_weights(cell_weights=value)
 
     def get_weights(self, key) -> np.ndarray:
-        """Weights for a given key."""
+        """Cell weights for a given key.
+
+        Returns
+        -------
+        (n_cells, ) numpy.ndarray
+            Cell weights for a given key.
+
+        Examples
+        --------
+        >>> import discretize
+        >>> from SimPEG.regularization import Smallness
+        >>> mesh = discretize.TensorMesh([2, 3, 2])
+        >>> reg = Smallness(mesh)
+        >>> reg.set_weights(my_weight=np.ones(mesh.n_cells))
+        >>> reg.get_weights('my_weight')
+        array([1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1.])
+
+        """
         return self._weights[key]
 
     def set_weights(self, **weights):
         """Adds (or updates) the specified weights to the regularization
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         **kwargs : key, numpy.ndarray
             Each keyword argument is added to the weights used by the regularization.
             They can be accessed with their keyword argument.
@@ -298,6 +316,7 @@ class BaseRegularization(BaseObjectiveFunction):
         >>> reg.set_weights(my_weight=np.ones(mesh.n_cells))
         >>> reg.get_weights('my_weight')
         array([1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1.])
+
         """
         for key, values in weights.items():
             values = validate_ndarray_with_shape(
@@ -307,7 +326,24 @@ class BaseRegularization(BaseObjectiveFunction):
         self._W = None
 
     def remove_weights(self, key):
-        """Removes the weights with a given key"""
+        """Removes the weights for the key provided
+
+        Parameters
+        ----------
+        key : str
+            The key for the weights being removed from the cell weights dictionary.
+
+        Examples
+        --------
+        >>> import discretize
+        >>> from SimPEG.regularization import Smallness
+        >>> mesh = discretize.TensorMesh([2, 3, 2])
+        >>> reg = Smallness(mesh)
+        >>> reg.set_weights(my_weight=np.ones(mesh.n_cells))
+        >>> reg.get_weights('my_weight')
+        array([1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1.])
+        >>> reg.remove_weights('my_weight')
+        """
         try:
             self._weights.pop(key)
         except KeyError as error:
@@ -383,8 +419,8 @@ class BaseRegularization(BaseObjectiveFunction):
 
     @utils.timeIt
     def deriv(self, m) -> np.ndarray:
-        r"""Returns the gradient of the regularization function for the model provided.
-        
+        r"""Gradient of the regularization function for the model provided.
+
         Where :math:`\phi_m` represents the regularization function,
         this method returns the gradient:
 
@@ -409,8 +445,8 @@ class BaseRegularization(BaseObjectiveFunction):
 
     @utils.timeIt
     def deriv2(self, m, v=None) -> csr_matrix:
-        r"""Returns the second derivative of the regularization function.
-        
+        r"""Second derivative of the regularization function.
+
         Where :math:`\phi_m` represents the regularization function,
         this method returns either the second derivative evaluated at the model :math:`(\mathbf{m})` provided
 
@@ -447,26 +483,26 @@ class BaseRegularization(BaseObjectiveFunction):
 class Smallness(BaseRegularization):
     r"""Smallness least-squares regularization.
 
-    Smallness least-squares regularization is used to ensure recovered model
+    Smallness least-squares regularization is used to ensure recovered model parameter
     values are not overly large in amplitude. In continuous form, the ``Smallness``
     regularization function is given by:
 
     .. math::
-        r(m) = \frac{1}{2} \int_\Omega \, w(r) m(r)^2 \, dv 
+        r(m) = \frac{1}{2} \int_\Omega \, w(r) \, m(r)^2 \, dv
 
     where :math:`w(r)` is a user-defined weighting function.
     In discrete form, the ``Smallness`` regularization function is given by:
 
     .. math::
-        r(\mathbf{m}) = \frac{1}{2} \big ( \mathbf{m - m_{ref}})^T \mathbf{V_{\frac{1}{2}}^T}
-        \mathbf{W}^T \mathbf{W} \mathbf{V_{\frac{1}{2}}} (\mathbf{m} - \mathbf{m_{ref}})
+        r(\mathbf{m}) = \frac{1}{2} \big ( \mathbf{m - m_{ref}})^T \mathbf{V^T}
+        \mathbf{W}^T \mathbf{W} \mathbf{V} (\mathbf{m} - \mathbf{m_{ref}})
 
     where
 
         - :math:`\mathbf{m}` is the model,
         - :math:`\mathbf{m_{ref}}` is a reference model,
-        - :math:`\mathbf{V_{\frac{1}{2}}}` are square root of cell volumes and
-        - :math:`\mathbf{W}` is a weighting matrix (default Identity). If fixed or free weights are provided, then it is :code:`diag(np.sqrt(weights))`).
+        - :math:`\mathbf{V}` is a diagonal matrix containing the **square roots** of cell volumes and
+        - :math:`\mathbf{W}` is a weighting matrix (default Identity). If fixed or free weights are provided, then :math:`\mathbf{W}` contains the **square roots** of the weights provided.
 
 
     Parameters
@@ -483,7 +519,7 @@ class Smallness(BaseRegularization):
         Units for the model parameters. Some regularization classes behave differently depending on the units; e.g. 'radian'.
     weights : None, dict
         Weight multipliers to customize the least-squares function. Each key points to a (n_cells, ) numpy.ndarray that is defined on
-        the regularization mesh.
+        the :py:class:`~SimPEG.regularization.RegularizationMesh`.
 
     """
 
@@ -494,14 +530,87 @@ class Smallness(BaseRegularization):
         self.set_weights(volume=self.regularization_mesh.vol)
 
     def f_m(self, m) -> np.ndarray:
-        """
-        Model residual
+        r"""Evaluate least squares regularization kernel.
+
+        For ``Smallness`` regularization, the regularization kernel is given by:
+
+        .. math::
+            \mathbf{f_m}(\mathbf{m}) = \mathbf{m - m_{ref}}
+
+        For a more detailed, description, see the notes.
+
+        Parameters
+        ----------
+        m : numpy.ndarray
+            The model.
+
+        Returns
+        -------
+        numpy.ndarray
+            The regularization kernel.
+
+        Notes
+        -----
+        The discretized form of the smallness regularization function is expressed as:
+
+        .. math::
+            \begin{align}
+            \phi_m (\mathbf{m}) &= \frac{1}{2} \big ( \mathbf{m - m_{ref}} \big )^T \mathbf{W^T W} \big ( \mathbf{m - m_{ref}} \big ) \\
+            &= \frac{1}{2} \mathbf{f_m}^T \mathbf{W^T W} \, \mathbf{f_m}
+            \end{align}
+
+        where :math:`\mathbf{W}` is a weighting matrix that applies user-defined weights and accounts
+        for cell dimensions in the integration. The regularization kernel :math:`\mathbf{f_m}` is defined as:
+
+        .. math::
+            \mathbf{f_m}(\mathbf{m}) = \mathbf{m - m_{ref}}
+
+        where :math:`\mathbf{m_{ref}}` is a reference model.
         """
         return self.mapping * self._delta_m(m)
 
     def f_m_deriv(self, m) -> csr_matrix:
-        """
-        Derivative of the model residual
+        r"""Derivative of the least-squares regularization kernel.
+
+        For ``Smallness`` regularization, the regularization kernel is given by:
+
+        .. math::
+            \mathbf{f_m}(\mathbf{m}) = \mathbf{m - m_{ref}}
+
+        And thus, the derivative with respect to the model is the identity matrix :math:`\mathbf{I}`.
+        For a more detailed, description, see the notes.
+
+        Parameters
+        ----------
+        m : numpy.ndarray
+            The model.
+
+        Returns
+        -------
+        scipy.sparse.csr_matrix
+            The derivative of the least-squares regularization kernel.
+
+        Notes
+        -----
+        The discretized form of the smallness regularization function function is expressed as:
+
+        .. math::
+            \begin{align}
+            \phi_m (\mathbf{m}) &= \frac{1}{2} \big ( \mathbf{m - m_{ref}} \big )^T \mathbf{W^T W} \big ( \mathbf{m - m_{ref}} \big ) \\
+            &= \frac{1}{2} \mathbf{f_m}^T \mathbf{W^T W} \, \mathbf{f_m}
+            \end{align}
+
+        where :math:`\mathbf{W}` is a weighting matrix that applies user-defined weights and accounts
+        for cell dimensions in the integration. The regularization kernel :math:`\mathbf{f_m}` is defined as:
+
+        .. math::
+            \mathbf{f_m}(\mathbf{m}) = \mathbf{m - m_{ref}}
+
+        where :math:`\mathbf{m_{ref}}` is a reference model. Thus, the derivate with respect to the
+        model is:
+
+        .. math::
+            \frac{\partial \partial{f_m}}{\partial \mathbf{m}} = \mathbf{I}
         """
         return self.mapping.deriv(self._delta_m(m))
 
@@ -517,22 +626,22 @@ class SmoothnessFirstOrder(BaseRegularization):
     the continuous regularization function is given by:
 
     .. math::
-        r(m) = \frac{1}{2} \int_\Omega \, w (r) \bigg ( \frac{\partial m}{\partial x} \bigg )^2 \, dv 
+        r(m) = \frac{1}{2} \int_\Omega \, w (r) \bigg ( \frac{\partial m}{\partial x} \bigg )^2 \, dv
 
     where :math:`w(r)` is a user-defined weighting function.
     In discrete form, this regularization function is given by:
 
     .. math::
-        r(\mathbf{m}) = \frac{1}{2} \big ( \mathbf{m - m_{ref}})^T \mathbf{G_x^T V_{\frac{1}{2}}^T}
-        \mathbf{W}^T \mathbf{W} \mathbf{V_{\frac{1}{2}} G_x } (\mathbf{m} - \mathbf{m_{ref}})
+        r(\mathbf{m}) = \frac{1}{2} \big ( \mathbf{m - m_{ref}})^T \mathbf{G_x^T V}^T}
+        \mathbf{W}^T \mathbf{W} \mathbf{V} G_x } (\mathbf{m} - \mathbf{m_{ref}})
 
     where
 
         - :math:`\mathbf{m}` is the model,
         - :math:`\mathbf{m_{ref}}` is a reference model (optional),
         - :math:`\mathbf{G_x}` is the partial gradient operator along the x-direction (i.e. x-derivative),
-        - :math:`\mathbf{V_{\frac{1}{2}}}` are square root of cell volumes and
-        - :math:`\mathbf{W}` is a weighting matrix (default Identity). If fixed or free weights are provided, then it is :code:`diag(np.sqrt(weights))`).
+        - :math:`\mathbf{V}` is a diagonal matrix containing the **square roots** of cell volumes and
+        - :math:`\mathbf{W}` is a weighting matrix (default Identity). If fixed or free weights are provided, then :math:`\mathbf{W}` contains the **square roots** of the weights provided.
 
 
     Parameters
@@ -553,7 +662,7 @@ class SmoothnessFirstOrder(BaseRegularization):
         Units for the model parameters. Some regularization classes behave differently depending on the units; e.g. 'radian'.
     weights : None, dict
         Weight multipliers to customize the least-squares function. Each key points to a (n_cells, ) numpy.ndarray that is defined on
-        the regularization mesh.
+        the :py:class:`~SimPEG.regularization.RegularizationMesh`.
 
     """
 
@@ -582,7 +691,7 @@ class SmoothnessFirstOrder(BaseRegularization):
 
     @property
     def _weights_shapes(self):
-        """Acceptable lengths for the weights
+        """Acceptable lengths for the weights.
 
         Returns
         -------
@@ -596,7 +705,17 @@ class SmoothnessFirstOrder(BaseRegularization):
 
     @property
     def cell_gradient(self):
-        """Cell gradient operator"""
+        """Partial cell gradient operator.
+
+        Returns the partial gradient operator which takes the derivative along the orientation
+        where smoothness is being enforced. For smoothness along the x-direction, the resulting operator would
+        map from cell centers to x-faces.
+
+        Returns
+        -------
+        scipy.sparse.csr_matrix
+            Partial cell gradient operator defined on the :py:class:`~SimPEG.regularization.RegularizationMesh`.
+        """
         if getattr(self, "_cell_gradient", None) is None:
             self._cell_gradient = getattr(
                 self.regularization_mesh, "cell_gradient_{}".format(self.orientation)
@@ -629,8 +748,44 @@ class SmoothnessFirstOrder(BaseRegularization):
         return f"alpha_{self.orientation}"
 
     def f_m(self, m):
-        """
-        Model gradient
+        r"""Evaluate least squares regularization kernel.
+
+        For ``SmoothnessFirstOrder`` regularization in the x-direction, the regularization kernel is given by:
+
+        .. math::
+            \mathbf{f_m}(\mathbf{m}) = \mathbf{G_x} \big ( \mathbf{m - m_{ref}} \big )
+
+        where :math:`\mathbf{G_x}` is the discrete x-derivative operator.
+        For a more detailed, description, see the notes.
+
+        Parameters
+        ----------
+        m : numpy.ndarray
+            The model.
+
+        Returns
+        -------
+        numpy.ndarray
+            The regularization kernel.
+
+        Notes
+        -----
+        The discretized form of the smoothness regularization function in along the x-direction is expressed as:
+
+        .. math::
+            \begin{align}
+            \phi_m (\mathbf{m}) &= \frac{1}{2} \big ( \mathbf{m - m_{ref}} \big )^T \mathbf{G_x^T W^T W G_x} \big ( \mathbf{m - m_{ref}} \big ) \\
+            &= \frac{1}{2} \mathbf{f_m}^T \mathbf{W^T W} \, \mathbf{f_m}
+            \end{align}
+
+        where :math:`\mathbf{G_x}` is the discrete x-derivative operator.
+        :math:`\mathbf{W}` is a weighting matrix that applies user-defined weights and accounts
+        for cell dimensions in the integration. Thus the regularization kernel :math:`\mathbf{f_m}` is defined as:
+
+        .. math::
+            \mathbf{f_m}(\mathbf{m}) = \mathbf{G_x} \big ( \mathbf{m - m_{ref}} \big )
+
+        where :math:`\mathbf{m_{ref}}` is a reference model.
         """
         dfm_dl = self.cell_gradient @ (self.mapping * self._delta_m(m))
 
@@ -642,16 +797,64 @@ class SmoothnessFirstOrder(BaseRegularization):
         return dfm_dl
 
     def f_m_deriv(self, m) -> csr_matrix:
-        """
-        Derivative of the model gradient
+        r"""Derivative of the least-squares regularization kernel.
+
+        For ``SmoothnessFirstOrder`` regularization, the regularization kernel is given by:
+
+        .. math::
+            \mathbf{f_m}(\mathbf{m}) = \mathbf{G_x} \big ( \mathbf{m - m_{ref}} \big )
+
+        And thus, the derivative with respect to the model is the x-derivative operator :math:`\mathbf{G_x}`.
+        For a more detailed, description, see the notes.
+
+        Parameters
+        ----------
+        m : numpy.ndarray
+            The model.
+
+        Returns
+        -------
+        scipy.sparse.csr_matrix
+            The derivative of the least-squares regularization kernel.
+
+        Notes
+        -----
+        The discretized form of the smoothness regularization function in along the x-direction is expressed as:
+
+        .. math::
+            \begin{align}
+            \phi_m (\mathbf{m}) &= \frac{1}{2} \big ( \mathbf{m - m_{ref}} \big )^T \mathbf{G_x^T W^T W G_x} \big ( \mathbf{m - m_{ref}} \big ) \\
+            &= \frac{1}{2} \mathbf{f_m}^T \mathbf{W^T W} \, \mathbf{f_m}
+            \end{align}
+
+        where :math:`\mathbf{G_x}` is the discrete x-derivative operator.
+        :math:`\mathbf{W}` is a weighting matrix that applies user-defined weights and accounts
+        for cell dimensions in the integration. Thus the regularization kernel :math:`\mathbf{f_m}` is defined as:
+
+        .. math::
+            \mathbf{f_m}(\mathbf{m}) = \mathbf{G_x} \big ( \mathbf{m - m_{ref}} \big )
+
+        where :math:`\mathbf{m_{ref}}` is a reference model. Thus, the derivate with respect to the
+        model is:
+
+        .. math::
+            \frac{\partial \partial{f_m}}{\partial \mathbf{m}} = \mathbf{G_x}
         """
         return self.cell_gradient @ self.mapping.deriv(self._delta_m(m))
 
     @property
     def W(self):
-        """
-        Weighting matrix that takes the volumes, free weights, fixed weights and
-        length scales of the difference operator (normalized optional).
+        """Weighting matrix.
+
+        A sparse, diagonal weighting matrix for all weights associated with the
+        regularization object. This includes default weights that are set when the regularization object
+        is instantiated (e.g. cell volumes and length scales corresponding to the
+        difference operator), as well as any user-defined weights.
+
+        Returns
+        -------
+        scipy.sparse.csr_matrix
+            Weighting matrix.
         """
         if getattr(self, "_W", None) is None:
             average_cell_2_face = getattr(
@@ -674,6 +877,14 @@ class SmoothnessFirstOrder(BaseRegularization):
 
     @property
     def orientation(self):
+        """Direction along which smoothness is enforced.
+
+        Returns
+        -------
+        str {'x', 'y', 'z'}
+            The direction along which smoothness is enforced. Default = 'x'.
+
+        """
         return self._orientation
 
 
@@ -688,22 +899,22 @@ class SmoothnessSecondOrder(SmoothnessFirstOrder):
     the continuous regularization function is given by:
 
     .. math::
-        r(m) = \frac{1}{2} \int_\Omega \, w (r) \bigg ( \frac{\partial^2 m}{\partial x^2} \bigg )^2 \, dv 
+        r(m) = \frac{1}{2} \int_\Omega \, w (r) \bigg ( \frac{\partial^2 m}{\partial x^2} \bigg )^2 \, dv
 
     where :math:`w(r)` is a user-defined weighting function.
     In discrete form, this regularization function is given by:
 
     .. math::
-        r(\mathbf{m}) = \frac{1}{2} \big ( \mathbf{m - m_{ref}})^T \mathbf{L_x^T V_{\frac{1}{2}}^T}
-        \mathbf{W}^T \mathbf{W} \mathbf{V_{\frac{1}{2}} L_x } (\mathbf{m} - \mathbf{m_{ref}})
+        r(\mathbf{m}) = \frac{1}{2} \big ( \mathbf{m - m_{ref}})^T \mathbf{L_x^T V}^T}
+        \mathbf{W}^T \mathbf{W} \mathbf{V} L_x } (\mathbf{m} - \mathbf{m_{ref}})
 
     where
 
         - :math:`\mathbf{m}` is the model,
         - :math:`\mathbf{m_{ref}}` is a reference model (optional),
         - :math:`\mathbf{L_x}` is the second-order scalar derivative with respect to x,
-        - :math:`\mathbf{V_{\frac{1}{2}}}` are square root of cell volumes and
-        - :math:`\mathbf{W}` is a weighting matrix (default Identity). If fixed or free weights are provided, then it is :code:`diag(np.sqrt(weights))`).
+        - :math:`\mathbf{V}` is a diagonal matrix containing the **square roots** of cell volumes and
+        - :math:`\mathbf{W}` is a weighting matrix (default Identity). If fixed or free weights are provided, then :math:`\mathbf{W}` contains the **square roots** of the weights provided.
 
 
     Parameters
@@ -724,13 +935,49 @@ class SmoothnessSecondOrder(SmoothnessFirstOrder):
         Units for the model parameters. Some regularization classes behave differently depending on the units; e.g. 'radian'.
     weights : None, dict
         Weight multipliers to customize the least-squares function. Each key points to a (n_cells, ) numpy.ndarray that is defined on
-        the regularization mesh.
+        the :py:class:`~SimPEG.regularization.RegularizationMesh`.
 
     """
 
     def f_m(self, m):
-        """
-        Second model derivative
+        r"""Evaluate least squares regularization kernel.
+
+        For ``SmoothnessSecondOrder`` regularization in the x-direction, the regularization kernel is given by:
+
+        .. math::
+            \mathbf{f_m}(\mathbf{m}) = \mathbf{G_x^T} \mathbf{G_x} \big ( \mathbf{m - m_{ref}} \big )
+
+        where :math:`\mathbf{G_x}` is the discrete x-derivative operator.
+        For a more detailed, description, see the notes.
+
+        Parameters
+        ----------
+        m : numpy.ndarray
+            The model.
+
+        Returns
+        -------
+        numpy.ndarray
+            The regularization kernel.
+
+        Notes
+        -----
+        The discretized form of the smoothness regularization function in along the x-direction is expressed as:
+
+        .. math::
+            \begin{align}
+            \phi_m (\mathbf{m}) &= \frac{1}{2} \big ( \mathbf{m - m_{ref}} \big )^T \mathbf{G_x G_x^T W^T W G_x^T G_x} \big ( \mathbf{m - m_{ref}} \big ) \\
+            &= \frac{1}{2} \mathbf{f_m}^T \mathbf{W^T W} \, \mathbf{f_m}
+            \end{align}
+
+        where :math:`\mathbf{G_x}` is the discrete x-derivative operator.
+        :math:`\mathbf{W}` is a weighting matrix that applies user-defined weights and accounts
+        for cell dimensions in the integration. Thus the regularization kernel :math:`\mathbf{f_m}` is defined as:
+
+        .. math::
+            \mathbf{f_m}(\mathbf{m}) = \mathbf{G_x^T G_x} \big ( \mathbf{m - m_{ref}} \big )
+
+        where :math:`\mathbf{m_{ref}}` is a reference model.
         """
         dfm_dl = self.cell_gradient @ (self.mapping * self._delta_m(m))
 
@@ -745,8 +992,48 @@ class SmoothnessSecondOrder(SmoothnessFirstOrder):
         return dfm_dl2
 
     def f_m_deriv(self, m) -> csr_matrix:
-        """
-        Derivative of the second model residual
+        r"""Derivative of the least-squares regularization kernel.
+
+        For ``SmoothnessSecondOrder`` regularization, the regularization kernel is given by:
+
+        .. math::
+            \mathbf{f_m}(\mathbf{m}) = \mathbf{G_x^T G_x} \big ( \mathbf{m - m_{ref}} \big )
+
+        And thus, the derivative with respect to the model is :math:`\mathbf{G_x^T G_x}`.
+        For a more detailed, description, see the notes.
+
+        Parameters
+        ----------
+        m : numpy.ndarray
+            The model.
+
+        Returns
+        -------
+        scipy.sparse.csr_matrix
+            The derivative of the least-squares regularization kernel.
+
+        Notes
+        -----
+        The discretized form of the smoothness regularization function in along the x-direction is expressed as:
+
+        .. math::
+            \begin{align}
+            \phi_m (\mathbf{m}) &= \frac{1}{2} \big ( \mathbf{m - m_{ref}} \big )^T \mathbf{G_x G_x^T W^T W G_x^T G_x} \big ( \mathbf{m - m_{ref}} \big ) \\
+            &= \frac{1}{2} \mathbf{f_m}^T \mathbf{W^T W} \, \mathbf{f_m}
+            \end{align}
+
+        where :math:`\mathbf{G_x}` is the discrete x-derivative operator.
+        :math:`\mathbf{W}` is a weighting matrix that applies user-defined weights and accounts
+        for cell dimensions in the integration. Thus the regularization kernel :math:`\mathbf{f_m}` is defined as:
+
+        .. math::
+            \mathbf{f_m}(\mathbf{m}) = \mathbf{G_x} \big ( \mathbf{m - m_{ref}} \big )
+
+        where :math:`\mathbf{m_{ref}}` is a reference model. Thus, the derivate with respect to the
+        model is:
+
+        .. math::
+            \frac{\partial \partial{f_m}}{\partial \mathbf{m}} = \mathbf{G_x^T G_x}
         """
         return (
             self.cell_gradient.T
@@ -756,9 +1043,6 @@ class SmoothnessSecondOrder(SmoothnessFirstOrder):
 
     @property
     def W(self):
-        """
-        Weighting matrix
-        """
         if getattr(self, "_W", None) is None:
             weights = np.prod(list(self._weights.values()), axis=0)
             self._W = utils.sdiag(weights**0.5)
@@ -778,10 +1062,10 @@ class SmoothnessSecondOrder(SmoothnessFirstOrder):
 
 
 class WeightedLeastSquares(ComboObjectiveFunction):
-    r"""Weighted least squares measure on model smallness and smoothness.
+    r"""Weighted least squares smallness and smoothness regularization.
 
-    L2 regularization with both smallness and smoothness (first order
-    derivative) contributions.
+    Construct a regularization using a weighted sum of smallness and smoothness
+    least-squares regularization functions.
 
     Parameters
     ----------
@@ -797,7 +1081,7 @@ class WeightedLeastSquares(ComboObjectiveFunction):
         First order smoothness weights for the respective dimensions.
         `None` implies setting these weights using the `length_scale`
         parameters.
-    alpha_xx, alpha_yy, alpha_zz : float, optional
+    alpha_xx, alpha_yy, alpha_zz : 0, float
         Second order smoothness weights for the respective dimensions.
     length_scale_x, length_scale_y, length_scale_z : float, optional
         First order smoothness length scales for the respective dimensions.
@@ -813,15 +1097,19 @@ class WeightedLeastSquares(ComboObjectiveFunction):
 
     Notes
     -----
-    The function defined here approximates:
+    The regularization function approximates:
 
     .. math::
-        \phi_m(\mathbf{m}) = \alpha_s \| W_s (\mathbf{m} - \mathbf{m_{ref}} ) \|^2
-        + \alpha_x \| W_x \frac{\partial}{\partial x} (\mathbf{m} - \mathbf{m_{ref}} ) \|^2
+        \phi_m(\mathbf{m}) &= \alpha_s \| W_s (\mathbf{m} - \mathbf{m_{ref}} ) \|^2 \\
+        & + \alpha_x \| W_x \frac{\partial}{\partial x} (\mathbf{m} - \mathbf{m_{ref}} ) \|^2
         + \alpha_y \| W_y \frac{\partial}{\partial y} (\mathbf{m} - \mathbf{m_{ref}} ) \|^2
-        + \alpha_z \| W_z \frac{\partial}{\partial z} (\mathbf{m} - \mathbf{m_{ref}} ) \|^2
+        + \alpha_z \| W_z \frac{\partial}{\partial z} (\mathbf{m} - \mathbf{m_{ref}} ) \|^2 \\
+        & + \alpha_{xx} \| W_{xx} \frac{\partial^2}{\partial x^2} (\mathbf{m} - \mathbf{m_{ref}} ) \|^2
+        + \alpha_{yy} \| W_{yy} \frac{\partial^2}{\partial y^2} (\mathbf{m} - \mathbf{m_{ref}} ) \|^2
+        + \alpha_{zz} \| W_{zz} \frac{\partial^2}{\partial z^2} (\mathbf{m} - \mathbf{m_{ref}} ) \|^2
 
-    Note if the key word argument `reference_model_in_smooth` is False, then mref is not
+    By default, :math:`\alpha_{xx}=\alpha_{yy}=\alpha_{zz}=0`.
+    Note if the key word argument `reference_model_in_smooth` is False, then :math:`m_{ref}` is not
     included in the smoothness contribution.
 
     If length scales are used to set the smoothness weights, alphas are respectively set internally using:
@@ -939,12 +1227,47 @@ class WeightedLeastSquares(ComboObjectiveFunction):
             self.set_weights(**weights)
 
     def set_weights(self, **weights):
-        """Update weights in children objective functions"""
+        """Adds (or updates) the specified weights for all child regularization objects.
+
+        Parameters
+        ----------
+        **kwargs : key, numpy.ndarray
+            Each keyword argument is added to the weights used by all child regularization objects.
+            They can be accessed with their keyword argument.
+
+        Examples
+        --------
+        >>> import discretize
+        >>> from SimPEG.regularization import WeightedLeastSquares
+        >>> mesh = discretize.TensorMesh([2, 3, 2])
+        >>> reg = WeightedLeastSquares(mesh)
+        >>> reg.set_weights(my_weight=np.ones(mesh.n_cells))
+        >>> reg.get_weights('my_weight')
+        array([1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1.])
+
+        """
         for fct in self.objfcts:
             fct.set_weights(**weights)
 
     def remove_weights(self, key):
-        """removes weights in children objective functions"""
+        """Removes specified weights from all child regularization objects.
+
+        Parameters
+        ----------
+        key : str
+            The key for the weights being removed from all child regularization objects.
+
+        Examples
+        --------
+        >>> import discretize
+        >>> from SimPEG.regularization import WeightedLeastSquares
+        >>> mesh = discretize.TensorMesh([2, 3, 2])
+        >>> reg = WeightedLeastSquares(mesh)
+        >>> reg.set_weights(my_weight=np.ones(mesh.n_cells))
+        >>> reg.get_weights('my_weight')
+        array([1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1.])
+        >>> reg.remove_weights('my_weight')
+        """
         for fct in self.objfcts:
             fct.remove_weights(key)
 
@@ -966,7 +1289,13 @@ class WeightedLeastSquares(ComboObjectiveFunction):
 
     @property
     def alpha_s(self):
-        """smallness weight"""
+        """Weighting constant for smallness term.
+
+        Returns
+        -------
+        float
+            Weighting constant for smallness term.
+        """
         return self._alpha_s
 
     @alpha_s.setter
@@ -983,7 +1312,13 @@ class WeightedLeastSquares(ComboObjectiveFunction):
 
     @property
     def alpha_x(self):
-        """weight for the first x-derivative"""
+        """Weighting constant for first order x-derivative term.
+
+        Returns
+        -------
+        float
+            Weighting constant for first order x-derivative term.
+        """
         return self._alpha_x
 
     @alpha_x.setter
@@ -998,7 +1333,13 @@ class WeightedLeastSquares(ComboObjectiveFunction):
 
     @property
     def alpha_y(self):
-        """weight for the first y-derivative"""
+        """Weighting constant for first order y-derivative term.
+
+        Returns
+        -------
+        float
+            Weighting constant for first order y-derivative term.
+        """
         return self._alpha_y
 
     @alpha_y.setter
@@ -1013,7 +1354,13 @@ class WeightedLeastSquares(ComboObjectiveFunction):
 
     @property
     def alpha_z(self):
-        """weight for the first z-derivative"""
+        """Weighting constant for first order z-derivative term.
+
+        Returns
+        -------
+        float
+            Weighting constant for first order z-derivative term.
+        """
         return self._alpha_z
 
     @alpha_z.setter
@@ -1028,7 +1375,13 @@ class WeightedLeastSquares(ComboObjectiveFunction):
 
     @property
     def alpha_xx(self):
-        """weight for the second x-derivative"""
+        """Weighting constant for second order x-derivative term.
+
+        Returns
+        -------
+        float
+            Weighting constant for second order x-derivative term.
+        """
         return self._alpha_xx
 
     @alpha_xx.setter
@@ -1045,7 +1398,13 @@ class WeightedLeastSquares(ComboObjectiveFunction):
 
     @property
     def alpha_yy(self):
-        """weight for the second y-derivative"""
+        """Weighting constant for second order y-derivative term.
+
+        Returns
+        -------
+        float
+            Weighting constant for second order y-derivative term.
+        """
         return self._alpha_yy
 
     @alpha_yy.setter
@@ -1062,7 +1421,13 @@ class WeightedLeastSquares(ComboObjectiveFunction):
 
     @property
     def alpha_zz(self):
-        """weight for the second z-derivative"""
+        """Weighting constant for second order z-derivative term.
+
+        Returns
+        -------
+        float
+            Weighting constant for second order z-derivative term.
+        """
         return self._alpha_zz
 
     @alpha_zz.setter
@@ -1079,7 +1444,13 @@ class WeightedLeastSquares(ComboObjectiveFunction):
 
     @property
     def length_scale_x(self):
-        """Constant multiplier of the base length scale on model gradients along x."""
+        """Constant multiplier of the base length scale on model gradients along x.
+
+        Returns
+        -------
+        float
+            Constant multiplier of the base length scale on model gradients along x.
+        """
         return np.sqrt(self.alpha_x) / self.regularization_mesh.base_length
 
     @length_scale_x.setter
@@ -1096,7 +1467,13 @@ class WeightedLeastSquares(ComboObjectiveFunction):
 
     @property
     def length_scale_y(self):
-        """Constant multiplier of the base length scale on model gradients along y."""
+        """Constant multiplier of the base length scale on model gradients along y.
+
+        Returns
+        -------
+        float
+            Constant multiplier of the base length scale on model gradients along y.
+        """
         return np.sqrt(self.alpha_y) / self.regularization_mesh.base_length
 
     @length_scale_y.setter
@@ -1113,7 +1490,13 @@ class WeightedLeastSquares(ComboObjectiveFunction):
 
     @property
     def length_scale_z(self):
-        """Constant multiplier of the base length scale on model gradients along z."""
+        """Constant multiplier of the base length scale on model gradients along z.
+
+        Returns
+        -------
+        float
+            Constant multiplier of the base length scale on model gradients along z.
+        """
         return np.sqrt(self.alpha_z) / self.regularization_mesh.base_length
 
     @length_scale_z.setter
@@ -1130,8 +1513,12 @@ class WeightedLeastSquares(ComboObjectiveFunction):
 
     @property
     def reference_model_in_smooth(self) -> bool:
-        """
-        Use the reference model in the model gradient penalties.
+        """Whether to include the reference model in the smoothness terms.
+
+        Returns
+        -------
+        bool
+            Whether to include the reference model in the smoothness terms.
         """
         return self._reference_model_in_smooth
 
@@ -1150,8 +1537,12 @@ class WeightedLeastSquares(ComboObjectiveFunction):
     # Other properties and methods
     @property
     def nP(self):
-        """
-        number of model parameters
+        """Number of model parameters.
+
+        Returns
+        -------
+        int
+            Number of model parameters.
         """
         if getattr(self, "mapping", None) is not None and self.mapping.nP != "*":
             return self.mapping.nP
@@ -1186,15 +1577,33 @@ class WeightedLeastSquares(ComboObjectiveFunction):
 
     @property
     def multipliers(self):
-        """
-        Factors that multiply the objective functions that are summed together
-        to build to composite regularization
+        """Multipliers for weighted sum of objective functions.
+
+        Returns
+        -------
+        list of float
+            Multipliers for weighted sum of objective functions.
         """
         return [getattr(self, objfct._multiplier_pair) for objfct in self.objfcts]
 
     @property
     def active_cells(self) -> np.ndarray:
-        """Indices of active cells in the mesh"""
+        """Active cells defined on the regularization mesh.
+
+        A boolean array defining the cells in the :py:class:`~SimPEG.regularization.RegularizationMesh`
+        that are active throughout the inversion. Inactive cells remain fixed and are defined according
+        to the starting model.
+
+        Returns
+        -------
+        (n_cells, ) Array of bool
+
+        Notes
+        -----
+        If the property is set using an array of integers, the setter interprets the array as
+        representing the indices of the active cells. When called however, the quantity will have
+        been converted to a boolean array.
+        """
         return self.regularization_mesh.active_cells
 
     @active_cells.setter
@@ -1216,7 +1625,13 @@ class WeightedLeastSquares(ComboObjectiveFunction):
 
     @property
     def reference_model(self) -> np.ndarray:
-        """Reference physical property model"""
+        """Reference model values used to constrain the inversion.
+
+        Returns
+        -------
+        array_like
+            Reference model values used to constrain the inversion. If ``None``, the reference model is equal to the starting model for the inversion.
+        """
         return self._reference_model
 
     @reference_model.setter
@@ -1240,7 +1655,13 @@ class WeightedLeastSquares(ComboObjectiveFunction):
 
     @property
     def model(self) -> np.ndarray:
-        """Physical property model"""
+        """The model associated with regularization.
+
+        Returns
+        -------
+        (n_param, ) numpy.ndarray
+            The model parameters.
+        """
         return self._model
 
     @model.setter
@@ -1255,7 +1676,15 @@ class WeightedLeastSquares(ComboObjectiveFunction):
 
     @property
     def units(self) -> str:
-        """Specify the model units. Special care given to 'radian' values"""
+        """Units for the model parameters.
+
+        Some regularization classes behave differently depending on the units; e.g. 'radian'.
+
+        Returns
+        -------
+        str
+            Units for the model parameters.
+        """
         return self._units
 
     @units.setter
@@ -1271,12 +1700,26 @@ class WeightedLeastSquares(ComboObjectiveFunction):
 
     @property
     def regularization_mesh(self) -> RegularizationMesh:
-        """Regularization mesh"""
+        """Regularization mesh.
+
+        Mesh on which the regularization is defined. This is not the same as the mesh on which the simulation is defined.
+
+        Returns
+        -------
+        discretize.base.RegularizationMesh
+            Mesh on which the regularization is defined.
+        """
         return self._regularization_mesh
 
     @property
     def mapping(self) -> maps.IdentityMap:
-        """Mapping applied to the model values"""
+        """Mapping from the model to the regularization mesh.
+
+        Returns
+        -------
+        SimPEG.maps.BaseMap
+            The mapping from the model parameters to the quantity defined on the :py:class:`~SimPEG.regularization.RegularizationMesh`.
+        """
         return self._mapping
 
     @mapping.setter
@@ -1301,18 +1744,24 @@ class WeightedLeastSquares(ComboObjectiveFunction):
 #                                                                             #
 ###############################################################################
 class BaseSimilarityMeasure(BaseRegularization):
+    """Base class for the similarity term in joint inversions.
 
-    """
-    Base class for the similarity term in joint inversions. Inherit this for building
-    your own similarity term.  The BaseSimilarityMeasure assumes two different
-    geophysical models through one similarity term. However, if you wish
-    to combine more than two models, e.g., 3 models,
+    The ``BaseSimilarityMeasure`` assumes two different geophysical models through one similarity term.
+    Inherit this for building your own similarity term.
+    However, if you wish to combine more than two models, e.g., 3 models,
     you may want to add a total of three coupling terms:
 
     e.g., lambda1*(m1, m2) + lambda2*(m1, m3) + lambda3*(m2, m3)
 
     where, lambdas are weights for coupling terms. m1, m2 and m3 indicate
     three different models.
+
+    Parameters
+    ----------
+    mesh : SimPEG.regularization.RegularizationMesh
+        Mesh on which the regularization is defined. This is not necessarily the same as the mesh on which the simulation is defined.
+    mapping : SimPEG.maps.WireMap
+        Wire map connecting physical properties defined on the regularization mesh to the entire model.
     """
 
     def __init__(self, mesh, wire_map, **kwargs):
@@ -1321,6 +1770,13 @@ class BaseSimilarityMeasure(BaseRegularization):
 
     @property
     def wire_map(self):
+        """Wire map connecting physical properties to the entire model.
+
+        Returns
+        -------
+        SimPEG.maps.WireMap
+            Wire map connecting physical properties defined on the regularization mesh to the entire model.
+        """
         return self._wire_map
 
     @wire_map.setter
@@ -1338,17 +1794,30 @@ class BaseSimilarityMeasure(BaseRegularization):
 
     @property
     def nP(self):
-        """
-        number of model parameters
+        """Number of model parameters.
+
+        Returns
+        -------
+        int
+            Number of model parameters.
         """
         return self.wire_map.nP
 
     def deriv(self, model):
-        """
-        First derivative of the coupling term with respect to individual models.
-        Returns an array of dimensions [k*M,1],
-        k: number of models we are inverting for.
-        M: number of cells in each model.
+        """First derivative of the coupling term with respect to individual models.
+
+        Where :math:`k` is the number of models we are inverting for and :math:`M` is the number of cells in each model,
+        this method returns a vector of length :math:`kM`.
+
+        Parameters
+        ----------
+        model : numpy.ndarray
+            The model.
+
+        Returns
+        -------
+        numpy.ndarray
+            First derivative of the coupling term with respect to individual models.
 
         """
         raise NotImplementedError(
@@ -1358,12 +1827,24 @@ class BaseSimilarityMeasure(BaseRegularization):
         )
 
     def deriv2(self, model, v=None):
-        """
-        Second derivative of the coupling term with respect to individual models.
-        Returns either an array of dimensions [k*M,1] (v is not None), or
-        sparse matrix of dimensions [k*M, k*M] (v is None).
-        k: number of models we are inverting for.
-        M: number of cells in each model.
+        """Second derivative of the coupling term with respect to individual models.
+
+        Parameters
+        ----------
+        model : numpy.ndarray
+            The model.
+        v : numpy.ndarray, optional
+            A vector.
+
+        Returns
+        -------
+        numpy.ndarray or scipy.sparse.csr_matrix
+            Where :math:`k` is the number of models we are inverting for and :math:`M` is the number of cells in each model,
+            this method returns:
+
+                - an array of dimensions (k*M, ) when `v` is not ``None``.
+                - a sparse matrix of dimensions (k*M, k*M) when `v` is ``None``.
+
 
         """
         raise NotImplementedError(

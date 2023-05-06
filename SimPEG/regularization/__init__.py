@@ -21,7 +21,7 @@ The challenge is recovering a model which 1) reproduces the observed data, and 2
 the subsurface structures responsible for the observed geophysical response. To accomplish this,
 regularization functions are used to ensure the solution to the inverse problem is unique and is
 geologically plausible. The choice in regularization function(s) depends on user assumptions and
-a-prior information.
+a priori information.
 
 SimPEG uses a deterministic inversion approach to recover an appropriate model. The algorithm does this
 by finding the model (:math:`m`) which minimizes a global objective function (or penalty function) of the form:
@@ -47,24 +47,27 @@ For example, a combination of regularization functions that ensures the values i
 model are not too large and are spatially smooth in the x and y-directions can be expressed as:
 
 .. math::
-    \phi_m (m) = \int_\Omega \, \bigg [ \, 
-    \frac{\alpha_s}{2} \, m^2 + 
-    \frac{\alpha_x}{2} \bigg ( \frac{\partial m}{\partial x} \bigg )^2 +
-    \frac{\alpha_y}{2} \bigg ( \frac{\partial m}{\partial y} \bigg )^2
-    \bigg ] \, d v
+    \phi_m (m) = 
+    \alpha_s \! \int_\Omega \Bigg [ \frac{1}{2} w_s(r) \, m(r)^2 \Bigg ] \, dv +
+    \alpha_x \! \int_\Omega \Bigg [ \frac{1}{2} w_x(r) \bigg ( \frac{\partial m}{\partial x} \bigg )^2 \Bigg ] \, dv +
+    \alpha_y \! \int_\Omega \Bigg [ \frac{1}{2} w_y(r) \bigg ( \frac{\partial m}{\partial y} \bigg )^2 \Bigg ] \, dv
 
+where :math:`w_s(r), w_x(r), w_y(r)` are user-defined weighting functions.
 Discretized to a numerical grid (or mesh), the model becomes a discrete vector :math:`\mathbf{m}`.
-And the aforementioned expression is approximately by:
+And the aforementioned expression is approximated by:
 
 .. math::
-    \phi_m (\mathbf{m}) & \approx \frac{\alpha_s}{2} \mathbf{m^T V^T V m} +
-    \frac{\alpha_x}{2} \mathbf{m^T V^T G_x^T G_x V m} +
-    \frac{\alpha_y}{2} \mathbf{m^T V^T G_y^T G_y V m}
-    = \frac{1}{2} \mathbf{m^T R^T R m}
+    \begin{align}
+    \phi_m (\mathbf{m}) &\approx \frac{\alpha_s}{2} \mathbf{m^T W_s^T W_s m} +
+    \frac{\alpha_x}{2} \mathbf{m^T G_x^T W_x^T W_x G_x m} +
+    \frac{\alpha_y}{2} \mathbf{m^T G_y^T W_y^T W_y G_y m} \\
+    &\approx \frac{1}{2} \mathbf{m^T R^T R m}
+    \end{align}
 
-where :math:`\mathbf{G_x}` and :math:`\mathbf{G_y}` are partial gradients along the x and y-directions
-respectively, and :math:`\mathbf{V}` is a diagonal matrix containing the square-roots of the cell
-volumes. As is the case with multiple least-squares regularization functions, the terms can be amalgamated
+where :math:`\mathbf{G_x}` and :math:`\mathbf{G_y}` are partial gradients along the x and y-directions, respectively.
+:math:`\mathbf{W_s}`, :math:`\mathbf{W_x}` and :math:`\mathbf{W_y}` are weighting matrices that apply
+user-defined weights and account for cell dimensions in the integration.
+As is the case with multiple least-squares regularization functions, the terms can be amalgamated
 and used to define the model objective function using a single regularization operator :math:`\mathbf{R}`.
 
 
