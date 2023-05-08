@@ -5,6 +5,42 @@ from dask import delayed, array, config
 from dask.diagnostics import ProgressBar
 from ..utils import compute_chunk_sizes
 
+Sim._chunk_format = "row"
+
+
+@property
+def chunk_format(self):
+    "Apply memory chunks along rows of G, either 'equal', 'row', or 'auto'"
+    return self._chunk_format
+
+
+@chunk_format.setter
+def chunk_format(self, other):
+    if other not in ["equal", "row", "auto"]:
+        raise ValueError("Chunk format must be 'equal', 'row', or 'auto'")
+    self._chunk_format = other
+
+
+Sim.chunk_format = chunk_format
+
+
+def dask_dpred(self, m=None, f=None, compute_J=False):
+    if m is not None:
+        self.model = m
+    if f is not None:
+        return f
+    return self.fields(self.model)
+
+
+Sim.dpred = dask_dpred
+
+
+def dask_residual(self, m, dobs, f=None):
+    return self.dpred(m, f=f) - dobs
+
+
+Sim.residual = dask_residual
+
 
 def dask_linear_operator(self):
     forward_only = self.store_sensitivities == "forward_only"
