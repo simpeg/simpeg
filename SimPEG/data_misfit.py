@@ -1,5 +1,5 @@
 import numpy as np
-from .utils import Counter, sdiag, timeIt, Identity, validate_type
+from .utils import Counter, sdiag, timeIt, Identity, validate_type, mkvc
 from .data import Data
 from .simulation import BaseSimulation
 from .objective_function import L2ObjectiveFunction
@@ -236,3 +236,25 @@ class L2DataMisfit(BaseDataMisfit):
         return self.simulation.Jtvec_approx(
             m, self.W * (self.W * self.simulation.Jvec_approx(m, v, f=f)), f=f
         )
+
+    def getJtJdiag(self, m):
+        """
+        Evaluate the main diagonal of JtJ
+        """
+        if getattr(self.simulation, "getJtJdiag", None) is None:
+            raise AttributeError(
+                    "Simulation does not have a getJtJdiag attribute."
+                    + "Cannot form the sensitivity explicitly"
+            )
+
+        mapping_deriv = self.model_map.deriv(m)
+
+        if self.model_map is not None:
+            m = mapping_deriv @ m
+
+        jtjdiag = self.simulation.getJtJdiag(m, W=self.W)
+
+        if self.model_map is not None:
+            jtjdiag = mkvc((sdiag(np.sqrt(jtjdiag)) @ mapping_deriv).power(2).sum(axis=0))
+
+        return jtjdiag

@@ -15,7 +15,7 @@ def dask_getJtJdiag(self, m, W=None, f=None):
     else:
         W = W.diagonal()
     if getattr(self, "_gtg_diagonal", None) is None:
-        diag = ((W[:, None] * self.G) ** 2).sum(axis=0).compute()
+        diag = ((W[:, None] * self.Jmatrix) ** 2).sum(axis=0).compute()
         self._gtg_diagonal = diag
     else:
         diag = self._gtg_diagonal

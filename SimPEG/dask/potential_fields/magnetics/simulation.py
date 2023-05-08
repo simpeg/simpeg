@@ -16,13 +16,13 @@ def dask_getJtJdiag(self, m, W=None, f=None):
         W = W.diagonal()
     if getattr(self, "_gtg_diagonal", None) is None:
         if not self.is_amplitude_data:
-            diag = ((W[:, None] * self.G) ** 2).sum(axis=0).compute()
+            diag = ((W[:, None] * self.Jmatrix) ** 2).sum(axis=0).compute()
         else:
             ampDeriv = self.ampDeriv
             J = (
-                ampDeriv[0, :, None] * self.G[::3]
-                + ampDeriv[1, :, None] * self.G[1::3]
-                + ampDeriv[2, :, None] * self.G[2::3]
+                ampDeriv[0, :, None] * self.Jmatrix[::3]
+                + ampDeriv[1, :, None] * self.Jmatrix[1::3]
+                + ampDeriv[2, :, None] * self.Jmatrix[2::3]
             )
             diag = ((W[:, None] * J) ** 2).sum(axis=0).compute()
         self._gtg_diagonal = diag
