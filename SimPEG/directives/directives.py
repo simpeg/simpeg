@@ -5,7 +5,7 @@ import os
 import scipy.sparse as sp
 from ..data_misfit import BaseDataMisfit
 from ..objective_function import ComboObjectiveFunction
-from ..maps import IdentityMap, Wires
+from ..maps import IdentityMap, SphericalSystem, Wires
 from ..regularization import (
     WeightedLeastSquares,
     BaseRegularization,
@@ -3086,3 +3086,140 @@ class SaveIterationsGeoH5(InversionDirective):
             raise ValueError(f"'association must be one of 'CELL', 'VERTEX'. {value} provided")
 
         self._association = value.upper()
+
+
+class VectorInversion(InversionDirective):
+    """
+    Control a vector inversion from Cartesian to spherical coordinates
+    """
+
+    chifact_target = 1.0
+    mref = None
+    mode = "cartesian"
+    inversion_type = "mvis"
+    norms = []
+    alphas = []
+    cartesian_model = None
+    simulations = []
+    regularization = []
+
+    def __init__(self, simulations: list, regularizations: list, **kwargs):
+        if not isinstance(simulations, list):
+            simulations = [simulations]
+        self.simulations = simulations
+
+        if not isinstance(regularizations, list):
+            regularizations = [regularizations]
+        self.regularizations = regularizations
+
+        setKwargs(self, **kwargs)
+
+    @property
+    def target(self):
+        if getattr(self, "_target", None) is None:
+            nD = 0
+            for survey in self.survey:
+                nD += survey.nD
+
+            self._target = nD * 0.5 * self.chifact_target
+
+        return self._target
+
+    @target.setter
+    def target(self, val):
+        self._target = val
+
+    def initialize(self):
+
+        for reg in self.reg.objfcts:
+            reg.model = self.invProb.model
+
+        self.mref = reg.mref
+
+        for simulation in self.simulation:
+            if getattr(simulation, "coordinate_system", None) is not None:
+                simulation.coordinate_system = self.mode
+
+    def endIter(self):
+        if (
+            self.invProb.phi_d < self.target
+        ) and self.mode == "cartesian":  # and self.inversion_type == 'mvis':
+            print("Switching MVI to spherical coordinates")
+            self.mode = "spherical"
+            self.cartesian_model = self.invProb.model
+            mstart = cartesian2spherical(
+                self.invProb.model.reshape((-1, 3), order="F")
+            )
+            mref = cartesian2spherical(self.mref.reshape((-1, 3), order="F"))
+
+            self.invProb.model = mstart
+            self.invProb.beta *= 2
+            self.opt.xc = mstart
+
+            nC = mstart.reshape((-1, 3)).shape[0]
+            self.opt.lower = np.kron(np.asarray([0, -np.inf, -np.inf]), np.ones(nC))
+            self.opt.upper[nC:] = np.inf
+            self.reg.reference_model = mref
+            self.reg.model = mstart
+
+            for regularization in self.regularizations:
+                for ind, reg_fun in enumerate(regularization.objfcts):
+                    if ind > 0:
+                        reg_fun.alpha_s = 0
+                        reg_fun.eps_q = np.pi
+                        reg_fun.space = "spherical"
+
+            for simulation in self.simulations:
+                simulation.model_map = SphericalSystem() * simulation.model_map
+
+            # Add directives
+            directiveList = []
+            sens_w = UpdateSensitivityWeights()
+            irls = Update_IRLS()
+            jacobi = UpdatePreconditioner()
+            for directive in self.inversion.directiveList.dList:
+                if isinstance(directive, SaveIterationsGeoH5):
+                    for comp in directive.components:
+                        channels = []
+                        for channel in directive.channels:
+                            channels.append(channel + "_s")
+                            directive.data_type[comp][channel + "_s"] = directive.data_type[comp][
+                                channel
+                            ]
+
+                    directive.channels = channels
+
+                    if directive.attribute_type == "model":
+                        directive.transforms = (
+                            [spherical2cartesian] +
+                            directive.transforms
+                        )
+
+                    directiveList.append(directive)
+
+                elif isinstance(directive, Update_IRLS):
+                    directive.sphericalDomain = True
+                    directive.model = mstart
+                    directive.coolingFactor = 1.5
+                    irls = directive
+
+                elif isinstance(directive, UpdatePreconditioner):
+                    jacobi = directive
+                elif isinstance(directive, UpdateSensitivityWeights):
+                    sens_w = directive
+                    sens_w.everyIter = True
+                else:
+                    directiveList.append(directive)
+
+            directiveList = [
+                ProjectSphericalBounds(),
+                irls,
+                sens_w,
+                jacobi,
+            ] + directiveList
+
+            self.inversion.directiveList = directiveList
+
+            for directive in directiveList:
+                if not isinstance(directive, SaveIterationsGeoH5):
+                    directive.endIter()
