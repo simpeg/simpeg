@@ -1969,6 +1969,7 @@ class Update_IRLS(InversionDirective):
     def __init__(
         self,
         max_irls_iterations=20,
+        max_beta_iterations=20,
         update_beta=True,
         beta_search=False,
         coolingFactor=2.0,
@@ -1977,6 +1978,7 @@ class Update_IRLS(InversionDirective):
     ):
         super().__init__(**kwargs)
         self.max_irls_iterations = max_irls_iterations
+        self.max_beta_iterations = max_beta_iterations
         self.update_beta = update_beta
         self.beta_search = beta_search
         self.coolingFactor = coolingFactor
@@ -1996,6 +1998,22 @@ class Update_IRLS(InversionDirective):
     def max_irls_iterations(self, value):
         self._max_irls_iterations = validate_integer(
             "max_irls_iterations", value, min_val=0
+        )
+
+    @property
+    def max_beta_iterations(self):
+        """Maximum beta iterations.
+
+        Returns
+        -------
+        int
+        """
+        return self._max_beta_iterations
+
+    @max_beta_iterations.setter
+    def max_beta_iterations(self, value):
+        self._max_beta_iterations = validate_integer(
+            "max_beta_iterations", value, min_val=0
         )
 
     @property
@@ -2252,6 +2270,11 @@ class Update_IRLS(InversionDirective):
         """
         Check for stopping criteria of max_irls_iteration or minimum change.
         """
+        if self.opt.iter > self.max_beta_iterations:
+            print("Reached max beta iterations.")
+            self.opt.stopNextIteration = True
+            return
+
         phim_new = 0
         for reg in self.reg.objfcts:
             if isinstance(reg, (Sparse, BaseSparse)):
