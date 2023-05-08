@@ -387,8 +387,8 @@ class Simulation1DLayered(BaseEM1DSimulation):
 
 
 def run_simulation_time_domain(args):
-    from pyMKL import mkl_set_num_threads
-    mkl_set_num_threads(1)
+    # from pyMKL import mkl_set_num_threads
+    # mkl_set_num_threads(1)
     """
     This method simulates the EM response or computes the sensitivities for
     a single sounding. The method allows for parallelization of
