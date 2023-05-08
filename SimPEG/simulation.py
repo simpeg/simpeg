@@ -478,39 +478,43 @@ class LinearSimulation(BaseSimulation):
         "The model for a linear problem"
     )
 
-    def __init__(self, mesh=None, linear_model=None, model_map=None, G=None, **kwargs):
+    def __init__(self, mesh=None, linear_model=None, model_map=None, Jmatrix=None, **kwargs):
         super().__init__(mesh=mesh, **kwargs)
         self.linear_model = linear_model
         self.model_map = model_map
         self.solver = None
-        if G is not None:
-            self.G = G
+        self._Jmatrix = None
+        self._gtg_diagonal = None
+
+        if Jmatrix is not None:
+            self.Jmatrix = Jmatrix
 
         if self.survey is None:
             # Give it an empty survey
             self.survey = BaseSurvey([])
         if self.survey.nD == 0:
-            # try seting the number of data to G
-            if getattr(self, "G", None) is not None:
-                self.survey._vnD = np.r_[self.G.shape[0]]
+            # try seting the number of data to Jmatrix
+            if getattr(self, "Jmatrix", None) is not None:
+                self.survey._vnD = np.r_[self.Jmatrix.shape[0]]
 
     @property
-    def G(self):
-        if getattr(self, "_G", None) is not None:
-            return self._G
-        else:
-            warnings.warn("G has not been implemented for the simulation")
-        return None
+    def Jmatrix(self):
+        if self._Jmatrix is None:
+            if hasattr(self, "linear_operator"):
+                self._Jmatrix = self.linear_operator()
+            else:
+                warnings.warn("Jmatrix has not been implemented for the simulation")
+        return self._Jmatrix
 
-    @G.setter
-    def G(self, G):
-        # Allows setting G in a LinearSimulation
+    @Jmatrix.setter
+    def Jmatrix(self, Jmatrix):
+        # Allows setting Jmatrix in a LinearSimulation
         # TODO should be validated
-        self._G = G
+        self._Jmatrix = Jmatrix
 
     def fields(self, m):
         self.model = m
-        return self.G.dot(self.linear_model)
+        return self.Jmatrix.dot(self.linear_model)
 
     def dpred(self, m=None, f=None):
         if m is not None:
@@ -522,16 +526,16 @@ class LinearSimulation(BaseSimulation):
     def getJ(self, m, f=None):
         self.model = m
         # self.model_deriv is likely a sparse matrix
-        # and G is possibly dense, thus we need to do..
-        return (self.model_deriv.T.dot(self.G.T)).T
+        # and Jmatrix is possibly dense, thus we need to do..
+        return (self.model_deriv.T.dot(self.Jmatrix.T)).T
 
     def Jvec(self, m, v, f=None):
         self.model = m
-        return self.G.dot(self.model_deriv * v)
+        return self.Jmatrix.dot(self.model_deriv * v)
 
     def Jtvec(self, m, v, f=None):
         self.model = m
-        return self.model_deriv.T * self.G.T.dot(v)
+        return self.model_deriv.T * self.Jmatrix.T.dot(v)
 
 
 class ExponentialSinusoidSimulation(LinearSimulation):

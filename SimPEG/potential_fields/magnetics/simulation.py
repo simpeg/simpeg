@@ -45,10 +45,7 @@ class Simulation3DIntegral(BasePFSimulation):
         super().__init__(mesh, **kwargs)
         self.chi = chi
         self.chiMap = chiMap
-
-        self._G = None
         self._M = None
-        self._gtg_diagonal = None
         self.is_amplitude_data = is_amplitude_data
         self.modelMap = self.chiMap
 
@@ -108,19 +105,12 @@ class Simulation3DIntegral(BasePFSimulation):
         if self.store_sensitivities == "forward_only":
             fields = mkvc(self.linear_operator())
         else:
-            fields = np.asarray(self.G @ self.chi.astype(np.float32))
+            fields = np.asarray(self.Jmatrix @ self.chi.astype(np.float32))
 
         if self.is_amplitude_data:
             fields = self.compute_amplitude(fields)
 
         return fields
-
-    @property
-    def G(self):
-        if getattr(self, "_G", None) is None:
-            self._G = self.linear_operator()
-
-        return self._G
 
     modelType = deprecate_property(
         model_type, "modelType", "model_type", removal_version="0.18.0"
@@ -157,15 +147,15 @@ class Simulation3DIntegral(BasePFSimulation):
         else:
             W = W.diagonal() ** 2
         if getattr(self, "_gtg_diagonal", None) is None:
-            diag = np.zeros(self.G.shape[1])
+            diag = np.zeros(self.Jmatrix.shape[1])
             if not self.is_amplitude_data:
                 for i in range(len(W)):
-                    diag += W[i] * (self.G[i] * self.G[i])
+                    diag += W[i] * (self.Jmatrix[i] * self.Jmatrix[i])
             else:
                 ampDeriv = self.ampDeriv
-                Gx = self.G[::3]
-                Gy = self.G[1::3]
-                Gz = self.G[2::3]
+                Gx = self.Jmatrix[::3]
+                Gy = self.Jmatrix[1::3]
+                Gz = self.Jmatrix[2::3]
                 for i in range(len(W)):
                     row = (
                         ampDeriv[0, i] * Gx[i]
@@ -182,7 +172,7 @@ class Simulation3DIntegral(BasePFSimulation):
         self.model = m
         dmu_dm_v = self.chiDeriv @ v
 
-        Jvec = self.G @ dmu_dm_v.astype(np.float32)
+        Jvec = self.Jmatrix @ dmu_dm_v.astype(np.float32)
 
         if self.is_amplitude_data:
             # dask doesn't support an "order" argument to reshape...
@@ -199,13 +189,13 @@ class Simulation3DIntegral(BasePFSimulation):
             v = self.ampDeriv * v
             # dask doesn't support and "order" argument to reshape...
             v = v.T.reshape(-1)  # .reshape(-1, order="F")
-        Jtvec = self.G.T @ v.astype(np.float32)
+        Jtvec = self.Jmatrix.T @ v.astype(np.float32)
         return np.asarray(self.chiDeriv.T @ Jtvec)
 
     @property
     def ampDeriv(self):
         if getattr(self, "_ampDeriv", None) is None:
-            fields = np.asarray(self.G.dot(self.chi).astype(np.float32))
+            fields = np.asarray(self.Jmatrix.dot(self.chi).astype(np.float32))
             self._ampDeriv = self.normalized_fields(fields)
 
         return self._ampDeriv

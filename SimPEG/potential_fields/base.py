@@ -224,6 +224,16 @@ class BasePFSimulation(LinearSimulation):
             np.save(sens_name, kernel)
         return kernel
 
+    @property
+    def Jmatrix(self):
+        """
+        Gravity forward operator
+        """
+        if getattr(self, "_Jmatrix", None) is None:
+            self._Jmatrix = self.linear_operator()
+
+        return self._Jmatrix
+
 
 class BaseEquivalentSourceLayerSimulation(BasePFSimulation):
     """Base equivalent source layer simulation class.

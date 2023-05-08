@@ -22,18 +22,16 @@ class Simulation3DIntegral(BasePFSimulation):
         super().__init__(mesh, **kwargs)
         self.rho = rho
         self.rhoMap = rhoMap
-        self._G = None
-        self._gtg_diagonal = None
         self.modelMap = self.rhoMap
 
     def fields(self, m):
         self.model = m
 
         if self.store_sensitivities == "forward_only":
-            # Compute the linear operation without forming the full dense G
+            # Compute the linear operation without forming the full dense Jmatrix
             fields = mkvc(self.linear_operator())
         else:
-            fields = self.G @ (self.rho).astype(np.float32)
+            fields = self.Jmatrix @ (self.rho).astype(np.float32)
 
         return np.asarray(fields)
 
@@ -48,9 +46,9 @@ class Simulation3DIntegral(BasePFSimulation):
         else:
             W = W.diagonal() ** 2
         if getattr(self, "_gtg_diagonal", None) is None:
-            diag = np.zeros(self.G.shape[1])
+            diag = np.zeros(self.Jmatrix.shape[1])
             for i in range(len(W)):
-                diag += W[i] * (self.G[i] * self.G[i])
+                diag += W[i] * (self.Jmatrix[i] * self.Jmatrix[i])
             self._gtg_diagonal = diag
         else:
             diag = self._gtg_diagonal
@@ -60,31 +58,21 @@ class Simulation3DIntegral(BasePFSimulation):
         """
         Sensitivity matrix
         """
-        return self.G.dot(self.rhoDeriv)
+        return self.Jmatrix.dot(self.rhoDeriv)
 
     def Jvec(self, m, v, f=None):
         """
         Sensitivity times a vector
         """
         dmu_dm_v = self.rhoDeriv @ v
-        return self.G @ dmu_dm_v.astype(np.float32)
+        return self.Jmatrix @ dmu_dm_v.astype(np.float32)
 
     def Jtvec(self, m, v, f=None):
         """
         Sensitivity transposed times a vector
         """
-        Jtvec = self.G.T @ v.astype(np.float32)
+        Jtvec = self.Jmatrix.T @ v.astype(np.float32)
         return np.asarray(self.rhoDeriv.T @ Jtvec)
-
-    @property
-    def G(self):
-        """
-        Gravity forward operator
-        """
-        if getattr(self, "_G", None) is None:
-            self._G = self.linear_operator()
-
-        return self._G
 
     @property
     def gtg_diagonal(self):
