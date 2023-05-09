@@ -31,10 +31,10 @@ by finding the model (:math:`m`) which minimizes a global objective function (or
 
 The global objective function contains two terms: a data misfit term :math:`\phi_d` which
 ensures data predicted by the recovered model adequately reproduces the observed data, and the model
-objective function :math:`\phi_m` which is comprised of one or more regularization functions. I.e.:
+objective function :math:`\phi_m` which is comprised of one or more regularization functions :math:`\gamma_i (m)`. I.e.:
 
 .. math::
-    \phi_m (m) = \sum_i \alpha_i \, r_i (m)
+    \phi_m (m) = \sum_i \alpha_i \, \gamma_i (m)
 
 The model objective function imposes all of the desired constraints on the recovered model.
 Constants :math:`\alpha_i` weight the relative contributions of the regularization functions
@@ -77,7 +77,7 @@ The API
 Weighted Least Squares Regularization
 -------------------------------------
 Weighted least squares regularization functions are defined as weighted L2-norms on the model, its first-order
-directional derivative(s), or its second-order direction derivative(s).
+directional derivative(s), or its second-order directional derivative(s).
 
 .. autosummary::
   :toctree: generated/
