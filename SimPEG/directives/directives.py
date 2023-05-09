@@ -3112,7 +3112,7 @@ class VectorInversion(InversionDirective):
             regularizations = [regularizations]
         self.regularizations = regularizations
 
-        setKwargs(self, **kwargs)
+        set_kwargs(self, **kwargs)
 
     @property
     def target(self):
@@ -3170,7 +3170,8 @@ class VectorInversion(InversionDirective):
                         reg_fun.space = "spherical"
 
             for simulation in self.simulations:
-                simulation.model_map = SphericalSystem() * simulation.model_map
+                if getattr(simulation, "coordinate_system", None) is not None:
+                    simulation.chiMap = SphericalSystem() * simulation.chiMap
 
             # Add directives
             directiveList = []

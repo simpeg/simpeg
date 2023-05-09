@@ -18,6 +18,7 @@ from .directives import (
     JointScalingSchedule,
     UpdateSensitivityWeights,
     ProjectSphericalBounds,
+    VectorInversion,
     SaveIterationsGeoH5
 )
 

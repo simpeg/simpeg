@@ -299,6 +299,7 @@ def cartesian2amplitude_dip_azimuth(m):
     Convert from cartesian to amplitude, dip (positive down) and
     azimuth (clockwise for North), in degree.
     """
+    m = m.reshape((-1, 3), order='F')
     atp = cartesian2spherical(m).reshape((-1, 3), order='F')
     atp[:, 1] = np.rad2deg(-1.0 * atp[:, 1])
     atp[:, 2] = (450.0 - np.rad2deg(atp[:, 2])) % 360.0
