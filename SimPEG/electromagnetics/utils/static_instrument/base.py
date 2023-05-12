@@ -118,7 +118,7 @@ class XYZSystem(object):
     def n_layer_used(self):
         if "resistivity" in self.xyz.layer_data:
             return self.xyz.resistivity.shape[1]
-        return n_layer
+        return self.n_layer
     
     @property
     def data_array_nan(self):
