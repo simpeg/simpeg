@@ -3177,7 +3177,7 @@ class VectorInversion(InversionDirective):
 
             for simulation in self.simulations:
                 if getattr(simulation, "model_type", None) == "vector":
-                    simulation.model_map = SphericalSystem() * simulation.model_map
+                    simulation.chiMap = SphericalSystem() * simulation.chiMap
 
             # Add directives
             directiveList = []
