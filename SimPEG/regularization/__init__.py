@@ -53,8 +53,10 @@ model are not too large and are spatially smooth in the x and y-directions can b
     \alpha_y \! \int_\Omega \Bigg [ \frac{1}{2} w_y(r) \bigg ( \frac{\partial m}{\partial y} \bigg )^2 \Bigg ] \, dv
 
 where :math:`w_s(r), w_x(r), w_y(r)` are user-defined weighting functions.
-Discretized to a numerical grid (or mesh), the model becomes a discrete vector :math:`\mathbf{m}`.
-And the aforementioned expression is approximated by:
+For practical implementation within SimPEG, the regularization function and all its dependent
+variables are discretized to a numerical grid (or mesh). The model is therefore defined as a
+discrete set of model parameters :math:`\mathbf{m}`.
+And the regularization function is approximated by:
 
 .. math::
     \begin{align}

@@ -31,25 +31,31 @@ class BaseSparse(BaseRegularization):
     Parameters
     ----------
     mesh : SimPEG.regularization.RegularizationMesh, discretize.base.BaseMesh
-        Mesh on which the regularization is discretized. This is not necessarily the same as the mesh on which the simulation is defined.
+        Mesh on which the regularization is discretized. This is not necessarily
+        the same as the mesh on which the simulation is defined.
+    active_cells : None, numpy.ndarray of bool
+        Array of bool defining the set of :py:class:`~.regularization.RegularizationMesh`
+        cells that are active in the inversion. If ``None``, all cells are active.
+    mapping : None, SimPEG.maps.BaseMap
+        The mapping from the model parameters to the quantity defined in the
+        regularization. If ``None``, the mapping is the identity map.
+    reference_model : None, (n_param, ) numpy.ndarray
+        Reference model values used to constrain the inversion. If ``None``, the
+        reference model is equal to the starting model for the inversion.
+    units : None, str
+        Units for the model parameters. Some regularization classes behave
+        differently depending on the units; e.g. 'radian'.
+    weights : None, dict
+        Weight multipliers to customize the least-squares function. Each key points to a (n_cells, )
+        numpy.ndarray that is defined on the :py:class:`~.regularization.RegularizationMesh`.
     norm : float
         The norm used in the regularization function. Must be between within the interval [0, 2].
     irls_scaled : bool
-        If ``True``, scale the IRLS weights to preserve magnitude of the regularization function. If ``False``, do not scale.
+        If ``True``, scale the IRLS weights to preserve magnitude of the regularization function.
+        If ``False``, do not scale.
     irls_threshold : float
         Constant added to IRLS weights to ensures stability in the algorithm.
-    active_cells : None, numpy.ndarray of bool
-        Array of bool defining the set of :py:class:`~SimPEG.regularization.RegularizationMesh` cells that are active in the inversion.
-        If ``None``, all cells are active.
-    mapping : None, SimPEG.maps.BaseMap
-        The mapping from the model parameters to the quantity defined in the regularization. If ``None``, the mapping is the identity map.
-    reference_model : None, (n_param, ) numpy.ndarray
-        Reference model values used to constrain the inversion. If ``None``, the reference model is equal to the starting model for the inversion.
-    units : None, str
-        Units for the model parameters. Some regularization classes behave differently depending on the units; e.g. 'radian'.
-    weights : None, dict
-        Weight multipliers to customize the least-squares function. Each key points to a (n_cells, ) numpy.ndarray that is defined on
-        the :py:class:`~SimPEG.regularization.RegularizationMesh`.
+    
     """
 
     def __init__(self, mesh, norm=2.0, irls_scaled=True, irls_threshold=1e-8, **kwargs):
@@ -179,79 +185,142 @@ class SparseSmallness(BaseSparse, Smallness):
     r"""Sparse smallness (compactness) regularization.
 
     ``SparseSmallness`` is used to recover models comprised of compact structures.
-    The level of compactness is controlled by the `norm` within the regularization function;
-    with more compact structures being recovered when a smaller norm is used.
-    Optionally, the `weights` argument can be used to supply custom weights to control the degree of compactness being enforced
-    throughout different regions the model.
+    The level of compactness is controlled by the norm within the regularization
+    function; with more compact structures being recovered when a smaller norm is used.
+    Optionally, custom cell weights can be included to control the degree of compactness
+    being enforced throughout different regions the model.
 
-    See the *Notes* section below for a full mathematical description.
+    See the *Notes* section below for a comprehensive description.
 
     Parameters
     ----------
-    mesh : SimPEG.regularization.RegularizationMesh, discretize.base.BaseMesh
-        Mesh on which the regularization is discretized. This is not necessarily the same as the mesh on which the simulation is defined.
+    mesh : .regularization.RegularizationMesh
+        Mesh on which the regularization is discretized. Not the mesh used to
+        define the simulation.
     norm : float
-        The norm used in the regularization function. Must be within the interval [0, 2].
+        The norm used in the regularization function. Must be within theinterval [0, 2].
+    active_cells : None, numpy.ndarray of bool
+        Array of bool defining the set of :py:class:`.regularization.RegularizationMesh` cells
+        that are active in the inversion. If ``None``, all cells are active.
+    mapping : None, .maps.IdentityMap
+        The mapping from the model parameters to the quantity defined in the regularization.
+        If ``None``, the mapping is the :class:`.maps.IdentityMap`.
+    reference_model : None, (n_param, ) numpy.ndarray
+        Reference model values used to constrain the inversion. If ``None``, the starting
+        is set as the reference model by default.
+    units : None, str
+        Units for the model parameters. Some regularization classes behave
+        differently depending on the units; e.g. 'radian'.
+    weights : None, dict
+        Weight multipliers to customize the least-squares function. Each key points to
+        a (n_cells, ) numpy.ndarray that is defined on the
+        :py:class:`regularization.RegularizationMesh`.
     irls_scaled : bool
-        If ``True``, scale the IRLS weights to preserve magnitude of the regularization function. If ``False``, do not scale.
+        If ``True``, scale the IRLS weights to preserve magnitude of the regularization function.
+        If ``False``, do not scale.
     irls_threshold : float
         Constant added to IRLS weights to ensures stability in the algorithm.
-    active_cells : None, numpy.ndarray of bool
-        Array of bool defining the set of :py:class:`~SimPEG.regularization.RegularizationMesh` cells that are active in the inversion.
-        If ``None``, all cells are active.
-    mapping : None, SimPEG.maps.BaseMap
-        The mapping from the model parameters to the quantity defined in the regularization. If ``None``, the mapping is the identity map.
-    reference_model : None, (n_param, ) numpy.ndarray
-        Reference model values used to constrain the inversion. If ``None``, the reference model is equal to the starting model for the inversion.
-    units : None, str
-        Units for the model parameters. Some regularization classes behave differently depending on the units; e.g. 'radian'.
-    weights : None, dict
-        Weight multipliers to customize the least-squares function. Each key points to a (n_cells, ) numpy.ndarray that is defined on
-        the :py:class:`~SimPEG.regularization.RegularizationMesh`.
 
     Notes
     -----
     The regularization function for sparse smallness (compactness) is given by:
 
     .. math::
-        \gamma (m) = \frac{1}{2} \int_\Omega \, w(r) \, \big [ m(r) - m_{ref}(r) \big ]^p \, dv
+        \gamma (m) = \frac{1}{2} \int_\Omega \, w(r) \,
+        \Big | m(r) - m^{(ref)}(r) \Big |^p \, dv
 
-    where :math:`m(r)` is the model, :math:`m_{ref}(r)` is a reference model, and :math:`w(r)`
-    is a user-defined weighting function. By this definition, :math:`m(r)`, :math:`m_{ref}(r)`
-    and :math:`w(r)` are continuous variables as a function of location :math:`r`.
-    The parameter :math:`p \in [0,2]` is defined using the `norm` input argument,
-    where a smaller norm is used to recovery more compact structures.
+    where :math:`m(r)` is the model, :math:`m^{(ref)}(r)` is the reference model and :math:`w(r)`
+    is a user-defined weighting function.
     
-    For practical implementation, the regularization function and the aforementioned variables
-    are discretized onto a mesh. The discrete approximation to the regularization function is given by:
+    For implementation within SimPEG, the regularization function and its variables
+    are discretized onto a `mesh`. The general form of the discrete regularization
+    function is given by:
 
     .. math::
-        \gamma (\mathbf{m}) = \frac{1}{2} \big ( \mathbf{m - m_{ref}})^T \mathbf{W^T R^T R W} (\mathbf{m} - \mathbf{m_{ref}})
+        \gamma (\mathbf{m}) = \frac{1}{2} \sum_i
+        \tilde{w}_i \, \Big | m_i - m_i^{(ref)} \Big |^p
+
+    where :math:`m_i \in \mathbf{m}` are the discrete model parameters defined on the mesh and
+    :math:`\tilde{w}_i \in \mathbf{\tilde{w}}` are amalgamated weighting constants that accounts
+    for cell dimensions in the discretization and applies user-defined weighting.
+
+    It is impractical to work with the general form directly, as its derivatives with respect
+    to the model are non-linear and discontinuous. Instead, the iteratively re-weighted
+    least-squares (IRLS) approach is used to approximate the sparse norm by iteratively solving
+    a set of convex least-squares problems. For IRLS iteration :math:`k`, we define:
+
+    .. math::
+        \gamma \big (\mathbf{m}^{(k)} \big )
+        = \frac{1}{2} \sum_i \tilde{w}_i \, \Big | m_i^{(k)} - m_i^{(ref)} \Big |^p
+        \approx \frac{1}{2} \sum_i \tilde{w}_i \, r_i^{(k)} \Big [ m_i^{(k)} - m_i^{(ref)} \Big ]^p
+
+    where the IRLS weight :math:`r_i` for iteration :math:`k` is given by:
+
+    .. math::
+        r_i^{(k)} = \bigg [ \Big ( m_i^{(k-1)} - m_i^{(ref)} \Big )^2 +
+        \epsilon^2 \; \bigg ]^{p/2 - 1}
+
+    and :math:`\epsilon` is a small constant added for stability. For the set of model parameters
+    :math:`\mathbf{m}` defined at cell centers, the convex least-squares problem for IRLS
+    iteration :math:`k` can be expressed as follows:
+
+    .. math::
+        \gamma \big ( \mathbf{m}^{(k)} \big ) \approx \frac{1}{2} \bigg \| \,
+        \mathbf{W \, R} \, \Big [ \mathbf{m}^{(k)} - \mathbf{m}^{(ref)} \Big ] \bigg \|^2
 
     where
 
-        - :math:`\mathbf{m}` are the discrete model parameters,
-        - :math:`\mathbf{m_{ref}}` is a reference model (optional, set using `reference_model`),
-        - :math:`\mathbf{W}` is the weighting matrix, and
-        - :math:`\mathbf{R}` is a model-dependent re-weighting matrix that is updated at every IRLS iteration.
+        - :math:`\mathbf{m}^{(k)}` are the discrete model parameters at iteration :math:`k`,
+        - :math:`\mathbf{m}^{(ref)}` is a reference model (optional, set with `reference_model`),
+        - :math:`\mathbf{R}` is the IRLS re-weighting matrix, and
+        - :math:`\mathbf{W}` is the weighting matrix.
 
-    The weighting matrix is given by:
+    **IRLS weights and the re-weighting matrix:**
 
-    .. math::
-        \mathbf{W} = \textrm{diag} \bigg [ \bigg ( \mathbf{v} \odot \prod_i \mathbf{w_i} \bigg )^{1/2} \bigg ]
-
-    where :math:`\mathbf{w_1, \; w_2, \; w_3, \; ...}` represents a set of custom cell weights;
-    optionally set using `weights`. And :math:`\mathbf{\tilde{v}}` accounts for all cell volumes and dimensions
-    when the regularization function is discretized to the mesh.
-
-    The re-weighting matrix :math:`\mathbf{R}` is responsible for evaluating the proper norm in the regularization function.
-    :math:`\mathbf{R}` is a sparse diagonal matrix whose elements are recomputed at every IRLS iteration. For IRLS iteration :math:`k`, the
-    :math:`i^{th}` diagonal element is computed as follows: 
+    The IRLS weights are model-dependent and must be computed at every IRLS iteration.
+    For iteration :math:`k`, the IRLS weights :math:`\mathbf{w_r}` are updated internally
+    using the previous model via:
 
     .. math::
-        R_{ii}^{(k)} = \bigg [ \Big ( ( m_i^{(k-1)})^2 + \epsilon^2 \Big )^{p/2 - 1} \bigg ]^{1/2}
+        \mathbf{w_r} \big ( \mathbf{m}^{(k)} \big ) = \lambda \big ( \mathbf{m}^{(k-1)} \big )
+        \bigg [ \Big ( \mathbf{m}^{(k-1)} - \mathbf{m}^{(ref)} \Big )^2 + \epsilon^2 \bigg ]^{p/2 - 1}
 
-    where :math:`\epsilon` is a small constant added for stability of the algorithm (set using `irls_threshold`).
+    where :math:`\epsilon` is a small constant added for stability of the algorithm
+    (set using `irls_threshold`). :math:`\lambda (\mathbf{m})` is an optional scaling
+    constant (``bool`` set with `irls_scaled`). The scaling constant ensures the sparse
+    norm has roughly the same magnitude as the equivalent 2-norm for the same model.
+    The weights are then used to construct the IRLS re-weighting matrix :math:`\mathbf{R}`,
+    where
+
+    .. math::
+        \mathbf{R} = \textrm{diag} \Big ( \mathbf{w_r}^{1/2} \Big )
+
+    **Custom weights and the weighting matrix:**
+
+    Let :math:`\mathbf{w_1, \; w_2, \; w_3, \; ...}` each represent an optional set of
+    custom cell weights. The weighting applied within the discrete regularization function
+    is given by:
+
+    .. math::
+        \mathbf{\tilde{w}} = \mathbf{\tilde{v}} \odot \prod_k \mathbf{w_k}
+
+    where :math:`\mathbf{\tilde{v}}` are default weights that account for cell volumes
+    and dimensions when the regularization function is discretized to the mesh.
+    The weights are implemented using a weighting matrix given by:
+
+    .. math::
+        \mathbf{W} = \textrm{diag} \Big ( \, \mathbf{\tilde{w}}^{1/2} \Big )
+
+    Each set of custom cell weights is defined by a ``key`` and an (n_cells, )
+    ``numpy.ndarray`` within a ``dict``. The weights can be set all at
+    once during instantiation using the `weights` keyword argument:
+
+    >>> reg = SparseSmallness(mesh, weights={'weights_1': array_1, 'weights_2': array_2})
+
+    or set after instantiation using the `set_weights` method:
+
+    >>> reg.set_weights(weights_1=array_1, weights_2=array_2})
+
     """
 
     _multiplier_pair = "alpha_s"
@@ -259,8 +328,10 @@ class SparseSmallness(BaseSparse, Smallness):
     def update_weights(self, m):
         r"""Compute and update the IRLS weights.
 
-        The re-weighting matrix :math:`\mathbf{R}` ensure the specified norm is evaluated in the regularization function.
-        For a mathematically description of IRLS weights, see the *Notes* section in the :class:`SparseSmallness` class documentation.
+        The weights used to construct the re-weighting matrix :math:`\mathbf{R}` for
+        sparse-norm inversion are model-dependent and must be updated at every IRLS iteration.
+        This method recomputes and stores the weights. For a comprehensive description,
+        see the *Notes* section in the :class:`SparseSmallness` class documentation.
 
         Parameters
         ----------
@@ -275,87 +346,184 @@ class SparseSmoothness(BaseSparse, SmoothnessFirstOrder):
     r"""Sparse smoothness (blockiness) regularization.
 
     ``SparseSmoothness`` is used to recover models comprised of blocky structures.
-    The level of blockiness is controlled by the choice in `norm` within the regularization function;
+    The level of blockiness is controlled by the choice in norm within the regularization function;
     with more blocky structures being recovered when a smaller norm is used.
-    Optionally, the `weights` argument can be used to supplied custom weighting to control
-    the degree of blockiness being enforced throughout different regions the model.
+    Optionally, custom cell weights can be included to control the degree of blockiness being
+    enforced throughout different regions the model.
     
-    See the *Notes* section below for a full mathematical description.
+    See the *Notes* section below for a comprehensive description.
 
     Parameters
     ----------
-    mesh : SimPEG.regularization.RegularizationMesh, discretize.base.BaseMesh
-        Mesh on which the regularization is discretized. This is not necessarily the same as the mesh on which the simulation is defined.
-    orientation : str {'x','y','z'}
+    mesh : .regularization.RegularizationMesh
+        Mesh on which the regularization is discretized. Not the mesh used to
+        define the simulation.
+    orientation : {'x','y','z'}
         The direction along which sparse smoothness is applied.
-    gradient_type : str {"total", "component"}
-        Gradient measure used in the IRLS re-weighting. Whether to re-weight using the total gradient or components of the gradient.
     norm : float
-        The norm used in the regularization function. Must be within the interval [0, 2].
+        The norm used in the regularization function. Must be within theinterval [0, 2].
+    active_cells : None, numpy.ndarray of bool
+        Array of bool defining the set of :py:class:`~.regularization.RegularizationMesh`
+        cells that are active in the inversion. If ``None``, all cells are active.
+    mapping : None, .maps.IdentityMap
+        The mapping from the model parameters to the quantity defined in the regularization.
+        If ``None``, the mapping is the :class:`.maps.IdentityMap`.
+    reference_model : None, (n_param, ) numpy.ndarray
+        Reference model values used to constrain the inversion. If ``None``, the starting
+        is set as the reference model by default.
+    reference_model_in_smooth : bool, optional
+        Whether to include the reference model in the smoothness terms.
+    units : None, str
+        Units for the model parameters. Some regularization classes behave
+        differently depending on the units; e.g. 'radian'.
+    weights : None, dict
+        Weight multipliers to customize the least-squares function. Each key points to
+        a (n_cells, ) numpy.ndarray that is defined on the
+        :py:class:`regularization.RegularizationMesh`.
     irls_scaled : bool
-        If ``True``, scale the IRLS weights to preserve magnitude of the regularization function. If ``False``, do not scale.
+        If ``True``, scale the IRLS weights to preserve magnitude of the regularization function.
+        If ``False``, do not scale.
     irls_threshold : float
         Constant added to IRLS weights to ensures stability in the algorithm.
-    active_cells : None, numpy.ndarray of bool
-        Array of bool defining the set of :py:class:`~SimPEG.regularization.RegularizationMesh` cells that are active in the inversion.
-        If ``None``, all cells are active.
-    mapping : None, SimPEG.maps.BaseMap
-        The mapping from the model parameters to the quantity defined in the regularization. If ``None``, the mapping is the identity map.
-    reference_model : None, (n_param, ) numpy.ndarray
-        Reference model values used to constrain the inversion. If ``None``, the reference model is equal to the starting model for the inversion.
-    units : None, str
-        Units for the model parameters. Some regularization classes behave differently depending on the units; e.g. 'radian'.
-    weights : None, dict
-        Weight multipliers to customize the least-squares function. Each key points to a (n_cells, ) numpy.ndarray that is defined on
-        the :py:class:`~SimPEG.regularization.RegularizationMesh`.
+    gradient_type : {"total", "component"}
+        Gradient measure used in the IRLS re-weighting. Whether to re-weight using the total
+        gradient or components of the gradient.
 
     Notes
     -----
-    The regularization function for sparse smoothness (blockiness) is given by:
+    The regularization function for sparse smoothness (blockiness) along the x-direction
+    is given by:
 
     .. math::
-        \gamma (m) = \frac{1}{2} \int_\Omega \, w(r) \, \bigg ( \frac{\partial}{\partial x} \Big [ m(r) - m_{ref}(r) \Big ] \bigg)^p \, dv
+        \gamma (m) = \frac{1}{2} \int_\Omega \, w(r) \,
+        \bigg | \frac{\partial m}{\partial x} \bigg |^p \, dv
 
-    where :math:`m(r)` is the model, :math:`m_{ref}(r)` is a reference model, and :math:`w(r)`
-    is a user-defined weighting function. By this definition, :math:`m(r)`, :math:`m_{ref}(r)`
-    and :math:`w(r)` are continuous variables as a function of location :math:`r`.
-    The parameter :math:`p \in [0,2]` is defined using the `norm` input argument,
-    where a smaller norm is used to recovery more blocky structures.
+    where :math:`m(r)` is the model and :math:`w(r)` is a user-defined weighting function.
+    The parameter :math:`p \in [0,2]` defines the `norm`, where a smaller norm is used to
+    recovery structures with sharper boundaries.
     
-    For practical implementation within SimPEG, the regularization function and the aforementioned variables
-    are discretized onto a mesh. The discrete approximation of the regularization function is evaluated using a
-    weighted least-squares (IRLS) approach. For blockiness (sharp boundaries) along
-    the x-direction, the discrete regularization function is given by:
+    For implementation within SimPEG, the regularization function and its variables
+    are discretized onto a `mesh`. The general form of the discrete regularization
+    function is given by:
 
     .. math::
-        \gamma (\mathbf{m}) = \frac{1}{2} \big ( \mathbf{m - m_{ref}})^T \mathbf{G_x^T W^T R^T R W G_x} (\mathbf{m} - \mathbf{m_{ref}})
+        \gamma (\mathbf{m}) = \frac{1}{2} \sum_i
+        \tilde{w}_i \, \Bigg | \, \frac{\partial m_i}{\partial x} \, \Bigg |^p
+
+    where :math:`m_i \in \mathbf{m}` are discrete model parameter values defined on the mesh and
+    :math:`\tilde{w}_i \in \mathbf{\tilde{w}}` are amalgamated weighting constants that account
+    for cell dimensions in the discretization and apply user-defined weighting.
+
+    It is impractical to work with the general form directly, as its derivatives with respect
+    to the model are non-linear and discontinuous. Instead, the iteratively re-weighted
+    least-squares (IRLS) approach is used to approximate the sparse norm by iteratively solving
+    a set of convex least-squares problems. For IRLS iteration :math:`k`, we define:
+
+    .. math::
+        \gamma \big (\mathbf{m}^{(k)} \big )
+        = \frac{1}{2} \sum_i
+        \tilde{w}_i \, \Bigg | \, \frac{\partial m_i^{(k)}}{\partial x} \Bigg |^p
+        \approx \frac{1}{2} \sum_i \tilde{w}_i \, r_i^{(k)}
+        \Bigg ( \, \frac{\partial \tilde{m}_i^{(k)}}{\partial x} \Bigg )^2
+
+    where the IRLS weight :math:`r_i` for iteration :math:`k` is given by:
+
+    .. math::
+        r_i^{(k)} = \Bigg [ \Bigg ( \frac{\partial m_i^{(k-1)}}{\partial x} \Bigg )^2 +
+        \epsilon^2 \; \Bigg ]^{p/2 - 1}
+
+    and :math:`\epsilon` is a small constant added for stability. For the set of model parameters
+    :math:`\mathbf{m}` defined at cell centers, the convex least-squares problem for IRLS
+    iteration :math:`k` can be expressed as follows:
+
+    .. math::
+        \gamma \big ( \mathbf{m}^{(k)} \big ) \approx \frac{1}{2} \Big \| \,
+        \mathbf{W \, R \, G_x} \, \mathbf{m}^{(k)} \Big \|^2
 
     where
 
-        - :math:`\mathbf{m}` are the discrete model parameters,
-        - :math:`\mathbf{m_{ref}}` is a reference model (optional, and set using `reference_model`),
-        - :math:`\mathbf{G_x}` is partial cell gradient operator along the x-direction,
-        - :math:`\mathbf{W}` is the weighting matrix, and
-        - :math:`\mathbf{R}` is a model-dependent re-weighting matrix that is updated at every IRLS iteration.
+        - :math:`\mathbf{m}^{(k)}` are the discrete model parameters at iteration :math:`k`,
+        - :math:`\mathbf{G_x}` is the partial cell-gradient operator along x (x-derivative),
+        - :math:`\mathbf{R}` is the IRLS re-weighting matrix, and
+        - :math:`\mathbf{W}` is the weighting matrix.
 
-    The weighting matrix is given by:
+    Note that since :math:`\mathbf{G_x}` maps from cell centers to x-faces, :math:`\mathbf{R}` and
+    :math:`\mathbf{W}` are operators that act on variables living on x-faces.
 
-    .. math::
-        \mathbf{W} = \textrm{diag} \bigg [ \bigg ( \mathbf{\tilde{v}} \odot \prod_i \mathbf{w_i} \bigg )^{1/2} \bigg ]
+    **IRLS weights and the re-weighting matrix:**
 
-    where :math:`\mathbf{w_1, \; w_2, \; w_3, \; ...}` represents a set of custom cell weights;
-    optionally set using `weights`. :math:`\mathbf{A_{fc}}` averages from faces to cell centers
-    and :math:`\mathbf{\tilde{v}}` accounts for all cell volumes and dimensions
-    when the regularization function is discretized to the mesh.
-
-    The re-weighting matrix :math:`\mathbf{R}` is responsible for evaluating the proper norm in the regularization function.
-    :math:`\mathbf{R}` is a sparse diagonal matrix whose elements are recomputed at every IRLS iteration. For IRLS iteration :math:`k`, the
-    :math:`i^{th}` diagonal element is computed as follows: 
+    At every IRLS iteration, the IRLS weights :math:`\mathbf{w_r}` are recomputed internally
+    using the previous model via:
 
     .. math::
-        R_{ii}^{(k)} = \bigg [ \Big ( ( m_i^{(k-1)})^2 + \epsilon^2 \Big )^{p/2 - 1} \bigg ]^{1/2}
+        \mathbf{w_r} \big ( \mathbf{m}^{(k)} \big ) = \lambda \big ( \mathbf{m}^{(k-1)} \big )
+        \Bigg [ \bigg ( \mathbf{G_x \mathbf{m}^{(k-1)} - \mathbf{m}^{(ref)} \bigg )^2
+        + \epsilon^2 \bigg ]^{p/2 - 1}
 
-    where :math:`\epsilon` is a small constant added for stability of the algorithm (set using `irls_threshold`).
+    where :math:`\epsilon` is a small constant added for stability of the algorithm
+    (set using `irls_threshold`) and :math:`\lambda (\mathbf{m})` is an optional scaling constant
+    (``bool`` set with `irls_scaled`). The scaling constant ensures the sparse
+    norm has roughly the same magnitude as the equivalent 2-norm for the same model.
+    The weights are then used to construct the IRLS re-weighting matrix :math:`\mathbf{R}`, where
+
+    .. math::
+        \mathbf{R} = \textrm{diag} \Big ( \mathbf{w_r}^{1/2} \Big )
+
+    **Reference model in smoothness:**
+
+    Gradients/interfaces within a discrete reference model :math:`m^{(ref)}` can be preserved by
+    including the reference model the smoothness regularization function. In this case,
+    the regularization function is given by:
+
+    .. math::
+        \gamma (m) = \frac{1}{2} \int_\Omega \, w(r) \,
+        \bigg [ \frac{\partial}{\partial x} \Big ( m - m^{(ref)} \Big ) \bigg ]^p \, dv
+
+    When discretized onto a mesh, the regularization function is approximated by:
+    
+    .. math::
+        \gamma (\mathbf{m}) = \frac{1}{2} \bigg \| \mathbf{W R G_x}
+        \Big [ \mathbf{m}^{(k)} - \mathbf{m}^{(ref)} \Big ] \bigg \|^2
+
+    where the IRLS weights are given by:
+
+    .. math::
+        \mathbf{w_r} \big ( \mathbf{m}^{(k)} \big ) = \lambda \big ( \mathbf{m}^{(k-1)} \big )
+        \Bigg [ \bigg ( \mathbf{G_x} \Big [ \mathbf{m}^{(k-1)} - \mathbf{m}^{(ref)} \Big ] \bigg )^2
+        + \epsilon^2 \bigg ]^{p/2 - 1}
+
+    This functionality is used by setting :math:`\mathbf{m^{(ref)}}` with the
+    `reference_model` property, and by setting the `reference_model_in_smooth` parameter
+    to ``True``.
+
+    **Custom weights and the weighting matrix:**
+
+    Let :math:`\mathbf{w_1, \; w_2, \; w_3, \; ...}` each represent an optional set of
+    custom cell weights. The weighting applied within the discrete regularization function
+    is given by:
+
+    .. math::
+        \mathbf{\tilde{w}} = \mathbf{A_{cx}}
+        \bigg [ \mathbf{\tilde{v}} \odot \prod_k \mathbf{w_k} \bigg ]
+
+    where :math:`\mathbf{\tilde{v}}` are default weights that account for cell volumes
+    and dimensions when the regularization function is discretized to the mesh.
+    :math:`\mathbf{A_{cfx}}` projects cell variables to x-faces (where the x-derivative lives).
+    The weights are implemented using a weighting matrix given by:
+
+    .. math::
+        \mathbf{W} = \textrm{diag} \Big ( \, \mathbf{\tilde{w}}^{1/2} \Big )
+
+    Each set of custom cell weights is defined by a ``key`` and an (n_cells, )
+    ``numpy.ndarray`` within a ``dict``. The weights can be set all at
+    once during instantiation using the `weights` keyword argument:
+
+    >>> reg = SparseSmallness(mesh, weights={'weights_1': array_1, 'weights_2': array_2})
+
+    or set after instantiation using the `set_weights` method:
+
+    >>> reg.set_weights(weights_1=array_1, weights_2=array_2})
+
     """
 
     def __init__(self, mesh, orientation="x", gradient_type="total", **kwargs):
@@ -368,8 +536,10 @@ class SparseSmoothness(BaseSparse, SmoothnessFirstOrder):
     def update_weights(self, m):
         r"""Compute and update the IRLS weights.
 
-        The re-weighting matrix :math:`\mathbf{R}` ensure the specified norm is evaluated in the regularization function.
-        For a mathematically description of IRLS weights, see the *Notes* section in the :class:`SparseSmallness` class documentation.
+        The weights used to construct the re-weighting matrix :math:`\mathbf{R}` for
+        sparse-norm inversion are model-dependent and must be updated at every IRLS iteration.
+        This method recomputes and stores the weights. For a comprehensive description,
+        see the *Notes* section in the :class:`SparseSmoothness` class documentation.
 
         Parameters
         ----------
@@ -435,65 +605,101 @@ class Sparse(WeightedLeastSquares):
 
     Construct a regularization for recovering compact and/or blocky structures
     using a weighted sum of :class:`SparseSmallness` and :class:`SparseSmoothness`
-    regularization functions.
+    regularization functions. The level of compactness and blockiness is
+    controlled by the norms within the respective regularization functions;
+    with more sparse structures (compact and/or blocky) being recovered when smaller
+    norms are used. Optionally, custom cell weights can be applied to control
+    the degree of sparseness being enforced throughout different regions the model.
 
-    See the *Notes* section below for a full mathematical description of the regularization.
+    See the *Notes* section below for a comprehensive description.
 
     Parameters
     ----------
-    mesh : discretize.base.BaseMesh
-        Mesh on which the model parameters are defined.
-    gradient_type : str {"total", "component"}
-        Gradient measure used in the IRLS re-weighting. Whether to re-weight using the total gradient or components of the gradient.
-    norms : (dim+1, ) array_like
-        The respective norms used for the sparse smallness, x-smoothness, (y-smoothness and z-smoothness) regularization function.
-        Must all be within the interval [0, 2].
-    irls_scaled : bool
-        If ``True``, scale the IRLS weights to preserve magnitude of the regularization function. If ``False``, do not scale.
-    irls_threshold : float
-        Constant added to IRLS weights to ensures stability in the algorithm.
-    active_cells : array_like of bool or int, optional
-        List of active cell indices, or a `mesh.n_cells` boolean array
-        describing active cells.
-    alpha_s : float, optional
-        Smallness weight
-    alpha_x, alpha_y, alpha_z : float or None, optional
-        First order smoothness weights for the respective dimensions.
-        `None` implies setting these weights using the `length_scale`
-        parameters.
-    length_scale_x, length_scale_y, length_scale_z : float, optional
-        First order smoothness length scales for the respective dimensions.
-    mapping : SimPEG.maps.IdentityMap, optional
-        A mapping to apply to the model before regularization.
-    reference_model : array_like, optional
-        Reference model values used to constrain the inversion. If ``None``, the reference model is equal to the starting model for the inversion.
+    mesh : SimPEG.regularization.RegularizationMesh, discretize.base.BaseMesh
+        Mesh on which the regularization is discretized. This is not necessarily
+        the same as the mesh on which the simulation is defined.
+    active_cells : None, numpy.ndarray of bool
+        Array of bool defining the set of :py:class:`~.regularization.RegularizationMesh`
+        cells that are active in the inversion. If ``None``, all cells are active.
+    mapping : None, SimPEG.maps.BaseMap
+        The mapping from the model parameters to the quantity defined in the
+        regularization. If ``None``, the mapping is the identity map.
+    reference_model : None, (n_param, ) numpy.ndarray
+        Reference model values used to constrain the inversion. If ``None``, the
+        reference model is equal to the starting model for the inversion.
     reference_model_in_smooth : bool, optional
         Whether to include the reference model in the smoothness terms.
-    weights : None, array_like, or dict of array_like, optional
-        User defined weights. It is recommended to interact with weights using
-        the :py:meth:`~get_weights`, :py:meth:`~set_weights` methods.
+    units : None, str
+        Units for the model parameters. Some regularization classes behave
+        differently depending on the units; e.g. 'radian'.
+    weights : None, dict
+        Weight multipliers to customize the least-squares function. Each key points to a (n_cells, )
+        numpy.ndarray that is defined on the :py:class:`~.regularization.RegularizationMesh`.
+    alpha_s : float, optional
+        Scaling constant for the smallness regularization term.
+    alpha_x, alpha_y, alpha_z : float or None, optional
+        Scaling constants for the first order smoothness along x, y and z, respectively.
+        If set to ``None``, the scaling constant is set automatically according to the
+        value of the `length_scale` parameter.
+    length_scale_x, length_scale_y, length_scale_z : float, optional
+        First order smoothness length scales for the respective dimensions.
+    gradient_type : {"total", "component"}
+        Gradient measure used in the IRLS re-weighting. Whether to re-weight using the
+        total gradient or components of the gradient.
+    norms : (dim+1, ) numpy.ndarray
+        The respective norms used for the sparse smallness, x-smoothness, (y-smoothness
+        and z-smoothness) regularization function. Must all be within the interval [0, 2].
+        E.g. `np.r_[2, 1, 1, 1]` uses a 2-norm on the smallness term and a 1-norm on all
+        smoothness terms.
+    irls_scaled : bool
+        If ``True``, scale the IRLS weights to preserve magnitude of the regularization
+        function. If ``False``, do not scale.
+    irls_threshold : float
+        Constant added to IRLS weights to ensures stability in the algorithm.
 
     Notes
     -----
-    The model objective function :math:`\phi_m (m)` defined by the weighted sum of sparse smallness and smoothness
-    regularization functions is given by:
+    The model objective function :math:`\phi_m (m)` defined by a weighted sum of
+    :class:`SparseSmallness` and :class:`SparseSmoothness` regularization functions
+    is given by:
 
     .. math::
-        \phi_m (m) = \frac{\alpha_s}{2} \int_\Omega \, w(r) \Big [ m(r) - m_{ref}(r) \Big ]^{p_s} \, dv +
-        \sum_{i=x,y,z} \frac{\alpha_i}{2} \int_\Omega \, w(r) \Bigg ( \frac{\partial}{\partial \xi_i} \Big [ m(r) - m_{ref}(r) \Big ] \Bigg )^{p_i} \, dv
+        \phi_m (m) = \frac{\alpha_s}{2} \int_\Omega \, w(r)
+        \Big [ m(r) - m_{ref}(r) \Big ]^{p_s} \, dv
+        + \sum_{j=x,y,z} \frac{\alpha_j}{2} \int_\Omega \, w(r)
+        \bigg [ \frac{\partial m}{\partial \xi_j} \bigg ]^{q_j}
         
-    where :math:`m(r)` is the model, :math:`m_{ref}(r)` is a reference model that may or may not be
-    included in the smoothness terms, and :math:`w(r)` is a user-defined weighting function. :math:`\xi_i` is
-    the unit direction along :math:`i`. Constants :math:`\alpha_s` and :math:`\alpha_i` weight the respective
-    contributions of the smallness and first-order smoothness regularization functions. By our definition,
-    :math:`m(r)`, :math:`m_{ref}(r)` and :math:`w(r)` are continuous variables as a function of location :math:`r`.
-    
-    For practical implementation within SimPEG, the model objective function and the aforementioned variables
-    are discretized onto a mesh; set upon instantiation. The discrete approximation to the model objective function is given by:
+    where :math:`m(r)` is the model, :math:`m_{ref}(r)` is the reference model, and :math:`w(r)`
+    is a user-defined weighting function. :math:`\xi_j` is the unit direction along :math:`j`.
+    Constants :math:`\alpha_s` and :math:`\alpha_j`  weight the respective
+    contributions of the smallness and smoothness regularization functions.
+    :math:`p_s` is the norm for the smallness term and :math:`q_j` are the norms for the
+    smoothness terms.
+
+    For implementation within SimPEG, the regularization function and its variables
+    are discretized onto a `mesh`. For the smallness regularization term: 
 
     .. math::
-        \phi_m (\mathbf{m}) = \frac{\alpha_s}{2} \| \mathbf{R_s W_s} (\mathbf{m} - \mathbf{m_{ref}} ) \|^2
-        + \sum_{i=x,y,z} \frac{\alpha_i}{2} \| \mathbf{R_i W_i G_i} (\mathbf{m} - \mathbf{m_{ref}} ) \|^2
+        \gamma (\mathbf{m}) = \frac{1}{2} \sum_i
+        \tilde{w}_i \, \Big | m_i - m_i^{(ref)} \Big |^{p_s}
+
+    where :math:`m_i \in \mathbf{m}` are discrete model parameter values defined on the mesh and
+    :math:`\tilde{w}_i \in \mathbf{\tilde{w}_s}` are amalgamated weighting constants that account
+    for cell dimensions in the discretization and apply user-defined weighting.
+    Likewise for the smoothness terms.
+
+
+
+    
+    For practical implementation within SimPEG, the model objective function and the
+    aforementioned variables are discretized onto a mesh; set upon instantiation.
+    The discrete approximation to the model objective function is given by:
+
+    .. math::
+        \phi_m (\mathbf{m}) = \frac{\alpha_s}{2}
+        \Big \| \mathbf{W_s R_s} (\mathbf{m} - \mathbf{m_{ref}} ) \Big \|^2
+        + \sum_{i=x,y,z} \frac{\alpha_i}{2}
+        \Big \| \mathbf{W_i R_i G_i} [\mathbf{m} - \mathbf{m_{ref}} ] \Big \|^2
 
     where
 
@@ -503,8 +709,39 @@ class Sparse(WeightedLeastSquares):
         - :math:`\mathbf{W}` are weighting matrices, and
         - :math:`\mathbf{R}` are the IRLS re-weighting matrices
 
-    See the documentation for :class:`SparseSmallness` and :class:`SparseSmoothness`
-    for more details on how weighting matrices are constructed for each term.
+    **Custom weights and the weighting matrix:**
+
+    Let :math:`\mathbf{w_1, \; w_2, \; w_3, \; ...}` each represent an optional set of custom cell weights.
+    These weights are applied to every term in the sparse regularization. Each set of custom cell weights is
+    defined by a ``key`` and an (n_cells, ) ``numpy.ndarray`` within a ``dict``. The weights can be set all at
+    once during instantiation using the `weights` keyword argument:
+
+    >>> reg = Sparse(mesh, weights={'weights_1': w1, 'weights_2': w2})
+
+    or set after instantiation using the `set_weights` method:
+
+    >>> reg.set_weights({'weights_1': w1, 'weights_2': w2})
+
+    For more information on how custom weights are implemented in the regularization, see the documentation
+    for :class:`SparseSmallness` and :class:`SparseSmoothness`.
+
+    **IRLS weights and the re-weighting matrix:**
+
+    IRLS weights allow each term in the sparse regularization to be approximated by a weighted 2-norm.
+    The IRLS weights for each term are model-dependent and must be computed at every IRLS iteration.
+    For iteration :math:`k`, the IRLS weights :math:`\mathbf{w_r}` are updated internally
+    using the previous model via:
+
+    .. math::
+        \mathbf{w_r}(\mathbf{m}_k) =  \lambda (\mathbf{m}) \Big [ \mathbf{m}_{k-1}^2 + \epsilon^2 \Big ]^{p/2 - 1}
+
+    where :math:`\epsilon` is a small constant added for stability of the algorithm (set using `irls_threshold`).
+    :math:`\lambda (\mathbf{m})` is an optional scaling constant (``bool`` set with `irls_scaled`). The scaling constant
+    ensures the sparse norm has roughly the same magnitude as the equivalent 2-norm for the same model.
+    The weights are then used to construct the IRLS re-weighting matrix :math:`\mathbf{R}`, where
+
+    .. math::
+        \mathbf{R} = \textrm{diag} \Big ( \mathbf{A_{fx}} \mathbf{w_r}^{1/2} \Big )
     """
 
     def __init__(
@@ -565,8 +802,12 @@ class Sparse(WeightedLeastSquares):
 
     @property
     def gradient_type(self) -> str:
-        """
-        Choice of gradient measure used in the irls weights
+        """Choice of gradient measure for IRLS weights.
+
+        Returns
+        -------
+        {"total", "component"}
+            Choice of gradient measure for IRLS weights.
         """
         return self._gradient_type
 
@@ -584,8 +825,12 @@ class Sparse(WeightedLeastSquares):
 
     @property
     def norms(self):
-        """
-        Value of the norm
+        """Norms for each child regularization.
+        
+        Returns
+        -------
+        list of float or numpy.ndarray
+            Norms for each child regularization.
         """
         return self._norms
 
@@ -612,8 +857,12 @@ class Sparse(WeightedLeastSquares):
 
     @property
     def irls_scaled(self) -> bool:
-        """
-        Scale irls weights.
+        """Scale IRLS weights.
+
+        Returns
+        -------
+        bool
+            Scale the IRLS weights.
         """
         return self._irls_scaled
 
@@ -626,8 +875,15 @@ class Sparse(WeightedLeastSquares):
 
     @property
     def irls_threshold(self):
-        """
+        """IRLS stabilization constant.
+
         Constant added to the denominator of the IRLS weights for stability.
+        See documentation for the :class:`Sparse` class for a comprehensive description.
+
+        Returns
+        -------
+        float
+            IRLS stabilization constant.
         """
         return self._irls_threshold
 
@@ -641,8 +897,12 @@ class Sparse(WeightedLeastSquares):
         self._irls_threshold = value
 
     def update_weights(self, model):
-        """
-        Trigger irls update on all children
+        """Trigger IRLS update for all child regularization functions.
+
+        Parameters
+        ----------
+        model
+            The model.
         """
         for fct in self.objfcts:
             fct.update_weights(model)
