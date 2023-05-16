@@ -2807,14 +2807,15 @@ class UpdateSensitivityWeights(InversionDirective):
 
 
 class ProjectSphericalBounds(InversionDirective):
-    r"""
+    """
     Trick for spherical coordinate system.
-    Project :math:`\theta` and :math:`\phi` angles back to :math:`[-\pi,\pi]`
-    using back and forth conversion.
+    Project \theta and \phi angles back to [-\pi,\pi] using
+    back and forth conversion.
     spherical->cartesian->spherical
     """
 
     def initialize(self):
+
         x = self.invProb.model
         # Convert to cartesian than back to avoid over rotation
         nC = int(len(x) / 3)
@@ -2823,13 +2824,16 @@ class ProjectSphericalBounds(InversionDirective):
         m = cartesian2spherical(xyz.reshape((nC, 3), order="F"))
 
         self.invProb.model = m
-
-        for sim in self.simulation:
-            sim.model = m
-
         self.opt.xc = m
 
+        for misfit in self.dmisfit:
+            if getattr(misfit, "model_map", None) is not None:
+                misfit.simulation.model = misfit.model_map @ m
+            else:
+                misfit.simulation.model = m
+
     def endIter(self):
+
         x = self.invProb.model
         nC = int(len(x) / 3)
 
@@ -2845,11 +2849,13 @@ class ProjectSphericalBounds(InversionDirective):
             phi_m_last += [reg(self.invProb.model)]
 
         self.invProb.phi_m_last = phi_m_last
-
-        for sim in self.simulation:
-            sim.model = m
-
         self.opt.xc = m
+
+        for misfit in self.dmisfit.objfcts:
+            if getattr(misfit, "model_map", None) is not None:
+                misfit.simulation.model = misfit.model_map @ m
+            else:
+                misfit.simulation.model = m
 
 
 class SaveIterationsGeoH5(InversionDirective):

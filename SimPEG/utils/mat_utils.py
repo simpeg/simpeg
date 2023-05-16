@@ -356,7 +356,7 @@ def spherical2cartesian(m):
         - :math:`p` is the radial angle defined positive CCW from Easting
 
     """
-
+    m = m.reshape((-1, 3), order='F')
     a = m[:, 0] + 1e-8
     t = m[:, 1]
     p = m[:, 2]
