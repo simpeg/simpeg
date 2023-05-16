@@ -110,7 +110,7 @@ class InversionDirective:
 
     @inversion.setter
     def inversion(self, i):
-        if getattr(self, "_inversion", None) is not None:
+        if getattr(self, "_inversion", None) is not None and i is not self.inversion:
             warnings.warn(
                 "InversionDirective {0!s} has switched to a new inversion.".format(
                     self.__class__.__name__
@@ -2878,7 +2878,7 @@ class SaveIterationsGeoH5(InversionDirective):
         self.sorting = None
         self._reshape = None
         self.h5_object = h5_object
-        super().__init__(self, **kwargs)
+        super().__init__(inversion=None, dmisfit=None, reg=None, verbose=False, **kwargs)
 
     def initialize(self):
         self.save_components(0)
@@ -3100,7 +3100,7 @@ class VectorInversion(InversionDirective):
     """
 
     chifact_target = 1.0
-    mref = None
+    reference_model = None
     mode = "cartesian"
     inversion_type = "mvis"
     norms = []
@@ -3140,7 +3140,7 @@ class VectorInversion(InversionDirective):
         for reg in self.reg.objfcts:
             reg.model = self.invProb.model
 
-        self.mref = reg.mref
+        self.reference_model = reg.reference_model
 
         for simulation in self.simulation:
             if getattr(simulation, "coordinate_system", None) is not None:
@@ -3156,7 +3156,7 @@ class VectorInversion(InversionDirective):
             mstart = cartesian2spherical(
                 self.invProb.model.reshape((-1, 3), order="F")
             )
-            mref = cartesian2spherical(self.mref.reshape((-1, 3), order="F"))
+            reference_model = cartesian2spherical(self.reference_model.reshape((-1, 3), order="F"))
 
             self.invProb.model = mstart
             self.invProb.beta *= 2
@@ -3165,7 +3165,7 @@ class VectorInversion(InversionDirective):
             nC = mstart.reshape((-1, 3)).shape[0]
             self.opt.lower = np.kron(np.asarray([0, -np.inf, -np.inf]), np.ones(nC))
             self.opt.upper[nC:] = np.inf
-            self.reg.reference_model = mref
+            self.reg.reference_model = reference_model
             self.reg.model = mstart
 
             for regularization in self.regularizations:
