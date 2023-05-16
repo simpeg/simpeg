@@ -3167,11 +3167,11 @@ class VectorInversion(InversionDirective):
                     if ind > 0:
                         reg_fun.alpha_s = 0
                         reg_fun.eps_q = np.pi
-                        reg_fun.space = "spherical"
+                        reg_fun.units = "radian"
 
             for simulation in self.simulations:
-                if getattr(simulation, "coordinate_system", None) is not None:
-                    simulation.chiMap = SphericalSystem() * simulation.chiMap
+                if getattr(simulation, "model_type", None) == "vector":
+                    simulation.model_map = SphericalSystem() * simulation.model_map
 
             # Add directives
             directiveList = []

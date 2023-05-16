@@ -19,10 +19,9 @@ class Simulation3DIntegral(BasePFSimulation):
     rho, rhoMap, rhoDeriv = props.Invertible("Density")
 
     def __init__(self, mesh, rho=None, rhoMap=None, **kwargs):
-        super().__init__(mesh, **kwargs)
+        super().__init__(mesh, model_map=rhoMap, **kwargs)
         self.rho = rho
         self.rhoMap = rhoMap
-        self.modelMap = self.rhoMap
 
     def fields(self, m):
         self.model = m

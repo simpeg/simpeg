@@ -42,12 +42,11 @@ class Simulation3DIntegral(BasePFSimulation):
         **kwargs
     ):
         self.model_type = model_type
-        super().__init__(mesh, **kwargs)
+        super().__init__(mesh, model_map=chiMap, **kwargs)
         self.chi = chi
         self.chiMap = chiMap
         self._M = None
         self.is_amplitude_data = is_amplitude_data
-        self.modelMap = self.chiMap
 
     @property
     def model_type(self):
