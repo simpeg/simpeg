@@ -361,8 +361,9 @@ class BaseRegularization(BaseObjectiveFunction):
     def W(self) -> np.ndarray:
         r"""Weighting matrix.
 
-        Returns the weighting matrix for the discrete regularization function. For a comprehensive
-        description of the weighting matrix, the *Notes* section for the :class:`Smallness` class.
+        Returns the weighting matrix for the discrete regularization function. To see how the
+        weighting matrix is constructed, see the *Notes* section for the :class:`Smallness`
+        regularization class.
 
         Returns
         -------
@@ -519,26 +520,26 @@ class Smallness(BaseRegularization):
 
     Notes
     -----
-    The regularization function for smallness is defined as:
+    We define the regularization function for smallness as:
 
     .. math::
-        \gamma (m) = \frac{1}{2} \int_\Omega \, w(r) \, \Big [ m(r) - m^{(ref)}(r) \Big ]^2 \, dv
+        \gamma (m) = \frac{1}{2} \int_\Omega \, w( \mathscr{r}) \, \Big [ m(r) - m^{(ref)}(r) \Big ]^2 \, dv
 
     where :math:`m(r)` is the model, :math:`m^{(ref)}(r)` is the reference model and :math:`w(r)`
     is a user-defined weighting function.
 
     For implementation within SimPEG, the regularization function and its variables
-    are discretized onto a `mesh`. The general form of the discrete regularization
+    must be discretized onto a `mesh`. The discretized approximation for the regularization
     function is given by:
 
     .. math::
         \gamma (\mathbf{m}) = \frac{1}{2} \sum_i
         \tilde{w}_i \, \bigg | \, m_i - m_i^{(ref)} \, \bigg |^2
 
-    where :math:`m_i \in \mathbf{m}` are discrete model parameter values defined on the mesh and
-    :math:`\tilde{w}_i \in \mathbf{\tilde{w}}` are amalgamated weighting constants that account
-    for cell dimensions in the discretization and apply user-defined weighting. In terms of linear
-    operators, the discrete regularization function can be expressed as:
+    where :math:`m_i \in \mathbf{m}` are the discrete model parameter values defined on the mesh and
+    :math:`\tilde{w}_i \in \mathbf{\tilde{w}}` are amalgamated weighting constants that 1) account
+    for cell dimensions in the discretization and 2) apply any user-defined weighting. In terms of
+    linear operators, the discrete regularization function can be expressed as:
 
     .. math::
         \gamma (\mathbf{m}) = \frac{1}{2}
@@ -560,14 +561,14 @@ class Smallness(BaseRegularization):
 
     where :math:`\mathbf{\tilde{v}}` are default weights that account for cell volumes
     and dimensions when the regularization function is discretized to the mesh.
-    The weights are implemented using a weighting matrix given by:
+    The weighting matrix used to apply the weights is given by:
 
     .. math::
         \mathbf{W} = \textrm{diag} \Big ( \, \mathbf{\tilde{w}}^{1/2} \Big )
 
-    Each set of custom cell weights is defined by a ``key`` and an (n_cells, )
-    ``numpy.ndarray`` within a ``dict``. The weights can be set all at
-    once during instantiation using the `weights` keyword argument:
+    Each set of custom cell weights is stored within a ``dict`` as an (n_cells, )
+    ``numpy.ndarray``. The weights can be set all at once during instantiation
+    with the `weights` keyword argument as follows:
 
     >>> reg = SparseSmallness(mesh, weights={'weights_1': array_1, 'weights_2': array_2})
 
@@ -606,13 +607,14 @@ class Smallness(BaseRegularization):
 
         Notes
         -----
-        The discretized form of the smallness regularization function is expressed as:
+        The discretized approximation for the smallness regularization function is given by
+        (see documentation for the :class:`Smallness` class for further reading):
 
         .. math::
             \phi_m (\mathbf{m}) = \frac{1}{2}
             \Big \| \mathbf{W} \big [ \mathbf{m} - \mathbf{m}^{(ref)} \big ] \Big \|^2
 
-        where :math:`\mathbf{m}` are the discrete model parameters (model),
+        where :math:`\mathbf{m}` are the discrete model parameters defined on the mesh (model),
         :math:`\mathbf{m}^{(ref)}` is the reference model, and :math:`\mathbf{W}` is
         the weighting matrix. We define the least-squares regularization kernel
         :math:`\mathbf{f_m}` as:
@@ -625,8 +627,6 @@ class Smallness(BaseRegularization):
         .. math::
             \phi_m (\mathbf{m}) = \frac{1}{2} \Big \| \mathbf{W} \, \mathbf{f_m} \Big \|^2
 
-        For a more comprehensive description of the regularization function,
-        see the *Notes* section with documentation for the :class:`Smallness` class.
         """
         return self.mapping * self._delta_m(m)
 
@@ -640,7 +640,6 @@ class Smallness(BaseRegularization):
             \frac{\partial \mathbf{f_m}}{\partial \mathbf{m}} = \mathbf{I}
 
         where :math:`\mathbf{I}` is the identity matrix:
-        For a more detailed description, see the *Notes* section below.
 
         Parameters
         ----------
@@ -654,7 +653,8 @@ class Smallness(BaseRegularization):
 
         Notes
         -----
-        The discretized form of the smallness regularization function is expressed as:
+        The discretized approximation for the smallness regularization function is given by
+        (see documentation for the :class:`Smallness` class for further reading):
 
         .. math::
             \phi_m (\mathbf{m}) = \frac{1}{2}
@@ -678,9 +678,7 @@ class Smallness(BaseRegularization):
         .. math::
             \frac{\partial \mathbf{f_m}}{\partial \mathbf{m}} = \mathbf{I}
 
-        where :math:`\mathbf{I}` is the identity matrix. For a more comprehensive
-        description of the regularization function, see the *Notes* section
-        with documentation for the :class:`Smallness` class.
+        where :math:`\mathbf{I}` is the identity matrix.
         """
         return self.mapping.deriv(self._delta_m(m))
 
@@ -718,13 +716,16 @@ class SmoothnessFirstOrder(BaseRegularization):
         Units for the model parameters. Some regularization classes behave differently
         depending on the units; e.g. 'radian'.
     weights : None, dict
-        Weight multipliers to customize the least-squares function. Each key points to
-        a (n_cells, ) numpy.ndarray that is defined on the
-        :py:class:`regularization.RegularizationMesh`.
+        Custom weights for the least-squares function. Each ``key`` points to
+        a ``numpy.ndarray`` that is defined on the :py:class:`regularization.RegularizationMesh`.
+        A (n_cells, ) ``numpy.ndarray`` is used to define weights at cell centers, which are
+        averaged to the appropriate faces internally when weighting is applied.
+        A (n_faces, ) ``numpy.ndarray`` is used to define weights directly on the faces specified
+        by the `orientation` input argument.
 
     Notes
     -----
-    The regularization function for first-order smoothness along the x-direction is given by:
+    We define the regularization function for first-order smoothness along the x-direction as:
 
     .. math::
         \gamma (m) = \frac{1}{2} \int_\Omega \, w(r) \,
@@ -733,17 +734,17 @@ class SmoothnessFirstOrder(BaseRegularization):
     where :math:`m(r)` is the model and :math:`w(r)` is a user-defined weighting function.
     
     For implementation within SimPEG, the regularization function and its variables
-    are discretized onto a `mesh`. The general form of the discrete regularization
+    must be discretized onto a `mesh`. The discretized approximation for the regularization
     function is given by:
 
     .. math::
         \gamma (\mathbf{m}) = \frac{1}{2} \sum_i
         \tilde{w}_i \, \bigg | \, \frac{\partial m_i}{\partial x} \, \bigg |^2
 
-    where :math:`m_i \in \mathbf{m}` are discrete model parameter values defined on the mesh and
-    :math:`\tilde{w}_i \in \mathbf{\tilde{w}}` are amalgamated weighting constants that account
-    for cell dimensions in the discretization and apply user-defined weighting. In terms of linear
-    operators, the discrete regularization function can be expressed as:
+    where :math:`m_i \in \mathbf{m}` are the discrete model parameter values defined on the mesh and
+    :math:`\tilde{w}_i \in \mathbf{\tilde{w}}` are amalgamated weighting constants that 1) account
+    for cell dimensions in the discretization and 2) apply any user-defined weighting. In terms of
+    linear operators, the discrete regularization function can be expressed as:
 
     .. math::
         \gamma (\mathbf{m}) = \frac{1}{2} \Big \| \mathbf{W G_x m } \, \Big \|^2
@@ -758,9 +759,9 @@ class SmoothnessFirstOrder(BaseRegularization):
 
     **Reference model in smoothness:**
     
-    Gradients/interfaces within a discrete reference model :math:`m^{(ref)}` can be preserved by
-    including the reference model the smoothness regularization function. In this case,
-    the regularization function is given by:
+    Gradients/interfaces within a reference model :math:`m^{(ref)}` can be preserved by
+    including the reference model in the smoothness regularization function. In this case,
+    the regularization function is expressed as:
 
     .. math::
         \gamma (m) = \frac{1}{2} \int_\Omega \, w(r) \,
@@ -779,26 +780,34 @@ class SmoothnessFirstOrder(BaseRegularization):
     **Custom weights and the weighting matrix:**
 
     Let :math:`\mathbf{w_1, \; w_2, \; w_3, \; ...}` each represent an optional set of
-    custom cell weights. The weighting applied within the discrete regularization function
-    is given by:
+    custom weights defined on the faces specified by the `orientation` property; i.e. x-faces for
+    smoothness along the x-direction. Each set of weights were either defined directly on the
+    faces or have been averaged from cell centers.
+
+    The weighting applied within the discrete regularization function is given by:
 
     .. math::
-        \mathbf{\tilde{w}} = \mathbf{A_{cx}}
-        \bigg [ \mathbf{\tilde{v}} \odot \prod_k \mathbf{w_k} \bigg ]
+        \mathbf{\tilde{w}} = \mathbf{\tilde{v}} \odot \prod_k \mathbf{w_k}
 
     where :math:`\mathbf{\tilde{v}}` are default weights that account for cell volumes
-    and dimensions when the regularization function is discretized to the mesh.
-    :math:`\mathbf{A_{cfx}}` projects cell variables to x-faces (where the x-derivative lives).
-    The weights are implemented using a weighting matrix given by:
+    and dimensions when the regularization function is discretized onto the mesh.
+    The weighting matrix is given by:
 
     .. math::
         \mathbf{W} = \textrm{diag} \Big ( \, \mathbf{\tilde{w}}^{1/2} \Big )
 
-    Each set of custom cell weights is defined by a ``key`` and an (n_cells, )
-    ``numpy.ndarray`` within a ``dict``. The weights can be set all at
-    once during instantiation using the `weights` keyword argument:
+    Each set of custom weights is stored within a ``dict`` as an ``numpy.ndarray``.
+    A (n_cells, ) ``numpy.ndarray`` is used to define weights at cell centers, which are
+    averaged to the appropriate faces internally when weighting is applied.
+    A (n_faces, ) ``numpy.ndarray`` is used to define weights directly on the faces specified
+    by the `orientation` input argument. The weights can be set all at once during instantiation
+    with the `weights` keyword argument as follows:
 
-    >>> reg = SmoothnessFirstOrder(mesh, weights={'weights_1': array_1, 'weights_2': array_2})
+    >>> array_1 = np.ones(mesh.n_cells)  # weights at cell centers
+    >>> array_2 = np.ones(mesh.n_faces_x)  # weights directly on x-faces
+    >>> reg = SmoothnessFirstOrder(
+    >>>     mesh, orientation='x', weights={'weights_1': array_1, 'weights_2': array_2}
+    >>> )
 
     or set after instantiation using the `set_weights` method:
 
@@ -889,16 +898,16 @@ class SmoothnessFirstOrder(BaseRegularization):
     def f_m(self, m):
         r"""Evaluate least-squares regularization kernel.
 
-        For ``SmoothnessFirstOrder`` regularization in the x-direction,
+        For first-order smoothness regularization in the x-direction,
         the least-squares regularization kernel is given by:
 
         .. math::
-            \mathbf{f_m}(\mathbf{m}) = \mathbf{G_x} \big [ \mathbf{m} - \mathbf{m}^{(ref)}} \big ]
+            \mathbf{f_m}(\mathbf{m}) = \mathbf{G_x} \big [ \mathbf{m} - \mathbf{m}^{(ref)} \big ]
 
         where :math:`\mathbf{G_x}` is the partial cell gradient operator along the x-direction
-        (i.e. x-derivative), :math:`\mathbf{m}` are the descrite model parameters and
-        :math:`\mathbf{m}^{(ref)}` is the reference model. For a more detailed description
-        see the notes.
+        (i.e. x-derivative), :math:`\mathbf{m}` are the descrete model parameters defined on the
+        mesh and :math:`\mathbf{m}^{(ref)}` is the reference model. Similarly for smoothness
+        along y and z.
 
         Parameters
         ----------
@@ -912,8 +921,9 @@ class SmoothnessFirstOrder(BaseRegularization):
 
         Notes
         -----
-        The discretized form of the first order smoothness regularization function along
-        the x-direction is expressed as:
+        The discretized approximation of the regularization function for first-order smoothness
+        along the x-direction is given by (see documentation for the
+        :class:`SmoothnessFirstOrder` class for further reading):
 
         .. math::
             \phi_m (\mathbf{m}) = \frac{1}{2}
@@ -922,8 +932,9 @@ class SmoothnessFirstOrder(BaseRegularization):
         where :math:`\mathbf{m}` are the discrete model parameters (model),
         :math:`\mathbf{m}^{(ref)}` is the reference model, :math:`\mathbf{G_x}` is the partial
         cell gradient operator along the x-direction (i.e. x-derivative), and :math:`\mathbf{W}` is
-        the weighting matrix. We define the least-squares regularization kernel
-        :math:`\mathbf{f_m}` as:
+        the weighting matrix. Similar for smoothness along y and z.
+
+        We define the least-squares regularization kernel :math:`\mathbf{f_m}` as:
 
         .. math::
             \mathbf{f_m}(\mathbf{m}) = \mathbf{G_x} \big [ \mathbf{m} - \mathbf{m}^{(ref)} \big ]
@@ -931,10 +942,7 @@ class SmoothnessFirstOrder(BaseRegularization):
         such that
 
         .. math::
-            \phi_m (\mathbf{m}) = \frac{1}{2} \Big \| \mathbf{W G_x \, f_m} \Big \|^2
-
-        For a more comprehensive description of the regularization function, see the
-        *Notes* section of the documentation for the :class:`SmoothnessFirstOrder` class.
+            \phi_m (\mathbf{m}) = \frac{1}{2} \Big \| \mathbf{W \, f_m} \Big \|^2
         """
         dfm_dl = self.cell_gradient @ (self.mapping * self._delta_m(m))
 
@@ -948,14 +956,14 @@ class SmoothnessFirstOrder(BaseRegularization):
     def f_m_deriv(self, m) -> csr_matrix:
         r"""Derivative of the least-squares regularization kernel.
 
-        For ``SmoothnessFirstOrder`` regularization, the least-squares regularization kernel
-        is given by:
+        For first-order smoothness regularization in the x-direction, the derivative of the
+        least-squares regularization kernel with respect to the model is given by:
 
         .. math::
-            \mathbf{f_m}(\mathbf{m}) = \mathbf{G_x} \big [ \mathbf{m} - \mathbf{m}^{(ref)} \big ]
+            \frac{\partial \mathbf{f_m}}{\partial \mathbf{m}} = \mathbf{G_x}
 
-        And thus, the derivative with respect to the model is the x-derivative
-        operator :math:`\mathbf{G_x}`. For a more detailed, description, see the notes.
+        where :math:`\mathbf{G_x}` is the partial cell gradient operator along x
+        (i.e. the x-derivative). 
 
         Parameters
         ----------
@@ -969,8 +977,9 @@ class SmoothnessFirstOrder(BaseRegularization):
 
         Notes
         -----
-        The discretized form of the first order smoothness regularization function along
-        the x-direction is expressed as:
+        The discretized approximation of the regularization function for first-order smoothness
+        along the x-direction is given by (see documentation for the
+        :class:`SmoothnessFirstOrder` class for further reading):
 
         .. math::
             \phi_m (\mathbf{m}) = \frac{1}{2}
@@ -979,8 +988,9 @@ class SmoothnessFirstOrder(BaseRegularization):
         where :math:`\mathbf{m}` are the discrete model parameters (model),
         :math:`\mathbf{m}^{(ref)}` is the reference model, :math:`\mathbf{G_x}` is the partial
         cell gradient operator along the x-direction (i.e. x-derivative), and :math:`\mathbf{W}` is
-        the weighting matrix. We define the least-squares regularization kernel
-        :math:`\mathbf{f_m}` as:
+        the weighting matrix. Similar for smoothness along y and z.
+
+        We define the least-squares regularization kernel :math:`\mathbf{f_m}` as:
 
         .. math::
             \mathbf{f_m}(\mathbf{m}) = \mathbf{G_x} \big [ \mathbf{m} - \mathbf{m}^{(ref)} \big ]
@@ -988,16 +998,12 @@ class SmoothnessFirstOrder(BaseRegularization):
         such that
 
         .. math::
-            \phi_m (\mathbf{m}) = \frac{1}{2}
-            \Big \| \mathbf{W G_x} \, \mathbf{f_m} \Big \|^2
+            \phi_m (\mathbf{m}) = \frac{1}{2} \Big \| \mathbf{W \, f_m} \Big \|^2
 
         The derivate with respect to the model is therefore:
 
         .. math::
             \frac{\partial \mathbf{f_m}}{\partial \mathbf{m}} = \mathbf{G_x}
-
-        For a more comprehensive description of the regularization function, see the *Notes*
-        section of the documentation for the :class:`SmoothnessFirstOrder` class.
         """
         return self.cell_gradient @ self.mapping.deriv(self._delta_m(m))
 
@@ -1005,9 +1011,9 @@ class SmoothnessFirstOrder(BaseRegularization):
     def W(self):
         r"""Weighting matrix.
 
-        Returns the weighting matrix for the discrete regularization function. For a comprehensive
-        description of the weighting matrix, the *Notes* section for the
-        :class:`SmoothnessFirstOrder` class.
+        Returns the weighting matrix for the discrete regularization function. To see how the
+        weighting matrix is constructed, see the *Notes* section for the :class:`SmoothnessFirstOrder`
+        regularization class.
 
         Returns
         -------
@@ -1085,7 +1091,7 @@ class SmoothnessSecondOrder(SmoothnessFirstOrder):
 
     Notes
     -----
-    The regularization function for second-order smoothness along the x-direction is given by:
+    We define the regularization function for second-order smoothness along the x-direction as:
 
     .. math::
         \gamma (m) = \frac{1}{2} \int_\Omega \, w(r) \,
@@ -1094,17 +1100,17 @@ class SmoothnessSecondOrder(SmoothnessFirstOrder):
     where :math:`m(r)` is the model and :math:`w(r)` is a user-defined weighting function.
     
     For implementation within SimPEG, the regularization function and its variables
-    are discretized onto a `mesh`. The general form of the discrete regularization
+    must be discretized onto a `mesh`. The discretized approximation for the regularization
     function is given by:
 
     .. math::
         \gamma (\mathbf{m}) = \frac{1}{2} \sum_i
         \tilde{w}_i \, \bigg | \, \frac{\partial^2 m_i}{\partial x^2} \, \bigg |^2
 
-    where :math:`m_i \in \mathbf{m}` are discrete model parameter values defined on the mesh and
-    :math:`\tilde{w}_i \in \mathbf{\tilde{w}}` are amalgamated weighting constants that account
-    for cell dimensions in the discretization and apply user-defined weighting. In terms of linear
-    operators, the discrete regularization function can be expressed as:
+    where :math:`m_i \in \mathbf{m}` are the discrete model parameter values defined on the mesh and
+    :math:`\tilde{w}_i \in \mathbf{\tilde{w}}` are amalgamated weighting constants that 1) account
+    for cell dimensions in the discretization and 2) apply any user-defined weighting. In terms of
+    linear operators, the discrete regularization function can be expressed as:
 
     .. math::
         \gamma (\mathbf{m}) = \frac{1}{2} \big \| \mathbf{W \, L_x \, m } \, \big \|^2
@@ -1145,16 +1151,16 @@ class SmoothnessSecondOrder(SmoothnessFirstOrder):
 
     where :math:`\mathbf{\tilde{v}}` are default weights that account for cell volumes
     and dimensions when the regularization function is discretized to the mesh.
-    The weights are implemented using a weighting matrix given by:
+    The weighting matrix used to apply the weights is given by:
 
     .. math::
         \mathbf{W} = \textrm{diag} \Big ( \, \mathbf{\tilde{w}}^{1/2} \Big )
 
-    Each set of custom cell weights is defined by a ``key`` and an (n_cells, )
-    ``numpy.ndarray`` within a ``dict``. The weights can be set all at
-    once during instantiation using the `weights` keyword argument:
+    Each set of custom cell weights is stored within a ``dict`` as an (n_cells, )
+    ``numpy.ndarray``. The weights can be set all at once during instantiation
+    with the `weights` keyword argument as follows:
 
-    >>> reg = SparseSmallness(mesh, weights={'weights_1': array_1, 'weights_2': array_2})
+    >>> reg = SmoothnessSecondOrder(mesh, weights={'weights_1': array_1, 'weights_2': array_2})
 
     or set after instantiation using the `set_weights` method:
 
@@ -1165,14 +1171,13 @@ class SmoothnessSecondOrder(SmoothnessFirstOrder):
     def f_m(self, m):
         r"""Evaluate least-squares regularization kernel.
 
-        For ``SmoothnessSecondOrder`` regularization in the x-direction,
+        For second-order smoothness regularization in the x-direction,
         the least-squares regularization kernel is given by:
 
         .. math::
             \mathbf{f_m}(\mathbf{m}) = \mathbf{L_x} \big [ \mathbf{m} - \mathbf{m}^{(ref)} \big ]
 
         where :math:`\mathbf{L_x}` is the discrete second order x-derivative operator.
-        For a more detailed description, see the notes.
 
         Parameters
         ----------
@@ -1186,18 +1191,20 @@ class SmoothnessSecondOrder(SmoothnessFirstOrder):
 
         Notes
         -----
-        The discretized form of the second order smoothness regularization function along
-        the x-direction is expressed as:
+        The discretized approximation of the regularization function for second-order smoothness
+        along the x-direction is given by (see documentation for the
+        :class:`SmoothnessSecondOrder` class for further reading):
 
         .. math::
             \phi_m (\mathbf{m}) = \frac{1}{2}
             \Big \| \mathbf{W L_x} \big [ \mathbf{m} - \mathbf{m}^{(ref)} \big ] \Big \|^2
 
         where :math:`\mathbf{m}` are the discrete model parameters (model),
-        :math:`\mathbf{m}^{(ref)}` is the reference model, where :math:`\mathbf{L_x}` is the
-        discrete second order x-derivative operator, and :math:`\mathbf{W}` is
-        the weighting matrix. We define the least-squares regularization kernel
-        :math:`\mathbf{f_m}` as:
+        :math:`\mathbf{m}^{(ref)}` is the reference model, :math:`\mathbf{L_x}` is the second
+        order derivative operator with respect to x, and :math:`\mathbf{W}` is
+        the weighting matrix. Similar for smoothness along y and z.
+
+        We define the least-squares regularization kernel :math:`\mathbf{f_m}` as:
 
         .. math::
             \mathbf{f_m}(\mathbf{m}) = \mathbf{L_x} \big [ \mathbf{m} - \mathbf{m}^{(ref)} \big ]
@@ -1205,11 +1212,7 @@ class SmoothnessSecondOrder(SmoothnessFirstOrder):
         such that
 
         .. math::
-            \phi_m (\mathbf{m}) = \frac{1}{2}
-            \Big \| \mathbf{W L_x} \, \mathbf{f_m} \Big \|^2
-
-        For a more comprehensive description of the regularization function, see the *Notes*
-        section with documentation for the :class:`SmoothnessSecondOrder` class.
+            \phi_m (\mathbf{m}) = \frac{1}{2} \Big \| \mathbf{W \, f_m} \Big \|^2
         """
         dfm_dl = self.cell_gradient @ (self.mapping * self._delta_m(m))
 
@@ -1226,20 +1229,13 @@ class SmoothnessSecondOrder(SmoothnessFirstOrder):
     def f_m_deriv(self, m) -> csr_matrix:
         r"""Derivative of the least-squares regularization kernel.
 
-        For ``SmoothnessSecondOrder`` regularization, the least-squares regularization
-        kernel is given by:
-
-        .. math::
-            \mathbf{f_m}(\mathbf{m}) = \mathbf{L_x} \big [ \mathbf{m} - \mathbf{m}^{(ref)} \big ]
-
-        where :math:`\mathbf{L_x}` is the discrete second order x-derivative operator,
-        :math:`\mathbf{m}` are the dicrete model parameters, :math:`\mathbf{m}^{(ref)}`
-        is a reference model. And thus, the derivative with respect to the model is
+        For second-order smoothness regularization, the derivative of the least-squares regularization
+        kernel with respect to the model is given by:
 
         .. math::
             \frac{\partial \mathbf{f_m}}{\partial \mathbf{m}} = \mathbf{L_x}
         
-        For a more detailed, description, see the notes.
+        where :math:`\mathbf{L_x}` is the second-order derivative operator with respect to x.
 
         Parameters
         ----------
@@ -1253,18 +1249,20 @@ class SmoothnessSecondOrder(SmoothnessFirstOrder):
 
         Notes
         -----
-        The discretized form of the second order smoothness regularization function along
-        the x-direction is expressed as:
+        The discretized approximation of the regularization function for second-order smoothness
+        along the x-direction is given by (see documentation for the
+        :class:`SmoothnessSecondOrder` class for further reading):
 
         .. math::
             \phi_m (\mathbf{m}) = \frac{1}{2}
             \Big \| \mathbf{W L_x} \big [ \mathbf{m} - \mathbf{m}^{(ref)} \big ] \Big \|^2
 
         where :math:`\mathbf{m}` are the discrete model parameters (model),
-        :math:`\mathbf{m}^{(ref)}` is the reference model, where :math:`\mathbf{L_x}` is the
-        discrete second order x-derivative operator, and :math:`\mathbf{W}` is
-        the weighting matrix. We define the least-squares regularization kernel
-        :math:`\mathbf{f_m}` as:
+        :math:`\mathbf{m}^{(ref)}` is the reference model, :math:`\mathbf{L_x}` is the second
+        order derivative operator with respect to x, and :math:`\mathbf{W}` is
+        the weighting matrix. Similar for smoothness along y and z.
+
+        We define the least-squares regularization kernel :math:`\mathbf{f_m}` as:
 
         .. math::
             \mathbf{f_m}(\mathbf{m}) = \mathbf{L_x} \big [ \mathbf{m} - \mathbf{m}^{(ref)} \big ]
@@ -1272,16 +1270,12 @@ class SmoothnessSecondOrder(SmoothnessFirstOrder):
         such that
 
         .. math::
-            \phi_m (\mathbf{m}) = \frac{1}{2}
-            \Big \| \mathbf{W L_x} \, \mathbf{f_m} \Big \|^2
+            \phi_m (\mathbf{m}) = \frac{1}{2} \Big \| \mathbf{W \, f_m} \Big \|^2
 
-        The derivate with respect to the model is:
+        The derivate of the regularization kernel with respect to the model is:
 
         .. math::
             \frac{\partial \mathbf{f_m}}{\partial \mathbf{m}} = \mathbf{L_x}
-
-        For a more comprehensive description of the regularization function, see the
-        *Notes* section with documentation for the :class:`SmoothnessSecondOrder` class.
         """
         return (
             self.cell_gradient.T
@@ -1291,7 +1285,17 @@ class SmoothnessSecondOrder(SmoothnessFirstOrder):
 
     @property
     def W(self):
-        # Docstring inherited by BaseRegularization class.
+        r"""Weighting matrix.
+
+        Returns the weighting matrix for the discrete regularization function. To see how the
+        weighting matrix is constructed, see the *Notes* section for the :class:`SmoothnessSecondOrder`
+        regularization class.
+
+        Returns
+        -------
+        scipy.sparse.csr_matrix
+            The weighting matrix applied in the regularization.
+        """
         if getattr(self, "_W", None) is None:
             weights = np.prod(list(self._weights.values()), axis=0)
             self._W = utils.sdiag(weights**0.5)
@@ -1374,40 +1378,103 @@ class WeightedLeastSquares(ComboObjectiveFunction):
         \bigg [ \frac{\partial m}{\partial \xi_j} \bigg ]^2 \, dv \\
         &+ \sum_{j=x,y,z} \frac{\alpha_{jj}}{2} \int_\Omega \, w(r)
         \bigg [ \frac{\partial^2 m}{\partial \xi_j^2} \bigg ]^2 \, dv
-        \;\;\;\;\; ( \leftarrow \, optional )
+        \;\;\;\;\;\;\;\; \big ( \textrm{optional} \big )
 
     where :math:`m(r)` is the model, :math:`m^{(ref)}(r)` is the reference model, and :math:`w(r)`
     is a user-defined weighting function. :math:`\xi_j` is the unit direction along :math:`j`.
-    Constants :math:`\alpha_s`, :math:`\alpha_j` and :math:`\alpha_{jj}` weight the respective
-    contributions of the smallness and smoothness regularization functions.
+    Constants :math:`\alpha_s`, :math:`\alpha_j` and :math:`\alpha_{jj}` for :math:`j=x,y,z`
+    weight the respective contributions of the smallness and smoothness regularization functions.
 
     For implementation within SimPEG, regularization functions and their variables
-    are discretized onto a `mesh`. For a continuous variable :math:`x(r)` whose
-    discrete representation is given by :math:`\mathbf{x}`: 
+    must be discretized onto a `mesh`. For a continuous variable :math:`x(r)` whose
+    discrete representation on the mesh is given by :math:`\mathbf{x}`, we approximate
+    as follows:
 
     .. math::
-        \int_\Omega w(r) \big [ x(r) \big ]^2 \, dv = \sum_i \tilde{w}_i \, | x_i |^2
+        \int_\Omega w(r) \big [ x(r) \big ]^2 \, dv \approx \sum_i \tilde{w}_i \, | x_i |^2
 
-    :math:`\tilde{w}_i` are amalgamated weighting constants that account for cell dimensions in
-    the discretization and apply user-defined weighting.
-
-    For ``Sparse`` regularization, the discretized model objective function is given by:
+    where :math:`\tilde{w}_i` are amalgamated weighting constants that account for cell dimensions
+    in the discretization and apply user-defined weighting. Using the above approximation,
+    the discretized model objective function for ``WeightedLeastSquares`` regularization
+    can be expressed as:
 
     .. math::
         \phi_m (\mathbf{m}) =& \frac{\alpha_s}{2}
         \Big \| \mathbf{W_s} \big [ \mathbf{m} - \mathbf{m}^{(ref)} \big ] \Big \|^2 \\
         &+ \sum_{j=x,y,z} \frac{\alpha_j}{2} \Big \| \mathbf{W_j G_j \, m} \, \Big \|^2 \\
         &+ \sum_{j=x,y,z} \frac{\alpha_{jj}}{2} \Big \| \mathbf{W_{jj} L_j \, m} \, \Big \|^2
-        \;\;\;\;\; ( \leftarrow \, optional )
+        \;\;\;\;\;\;\;\; \big ( \textrm{optional} \big )
 
     where
 
-        - :math:`\mathbf{G_j}` are partial cell gradients operators along x, y and z,
-        - :math:`\mathbf{L_j}` are second-order derivative operators with respect to x, y and z,
-        - :math:`\mathbf{W}` are weighting matrices.
+        - :math:`\mathbf{m}` are the set of discrete model parameters (i.e. the model),
+        - :math:`\mathbf{m}^{(ref)}` is the reference model,
+        - :math:`\mathbf{G_x, \, G_y, \; G_z}` are partial cell gradients operators along x, y and z,
+        - :math:`\mathbf{L_x, \, L_y, \; L_z}` are second-order derivative operators with respect to x, y and z,
+        - :math:`\mathbf{W_s, \, W_x, \, W_y, \; W_z}` are weighting matrices.
 
-    **Alpha weighting parameters:**
+    **Alphas and length scales:**
 
+    The :math:`\alpha` parameters scale the relative contributions of the smallness and smoothness
+    terms in the model objective function. Each :math:`\alpha` parameter can be set directly as an
+    appropriate property of the ``WeightedLeastSquares`` class; e.g. :math:`\alpha_x` is set
+    using the `alpha_x` property. Note that unless the parameters are set manually, second-order
+    smoothness is not included in the model objective function. That is, the `alpha_xx`, `alpha_yy`
+    and `alpha_zz` parameters are set to 0 by default.
+
+    The model objective function has been formulated such that each term is
+    roughly the same size when the :math:`\alpha` parameters are equal; e.g. when
+    :math:`\alpha_s = \alpha_x = \alpha_y = \alpha_z` = ... This is accomplished by applying a default
+    weighting to each term which negates the effects of cell size/dimensions.
+
+    Smoothness parameters can also be set using length scales. For example, by setting the
+    `length_scale_x` property, the `alpha_x` and `alpha_xx` properties are set as:
+
+    >>> reg.alpha_x = (reg.length_scale_x * reg.regularization_mesh.base_length) ** 2.0
+
+    and
+
+    >>> reg.alpha_xx = (ref.length_scale_x * reg.regularization_mesh.base_length) ** 4.0
+
+    Likewise for y and z.
+
+    **Custom weights and weighting matrices:**
+
+    Let :math:`\mathbf{w_1, \; w_2, \; w_3, \; ...}` each represent an optional set of custom cell
+    weights that are applied to all regularization terms in the model objective function.
+    The general form for the weights applied to smallness and second-order smoothness terms
+    is given by:
+
+    .. math::
+        \mathbf{\tilde{w}} = \mathbf{\tilde{v}} \odot \prod_k \mathbf{w_k}
+
+    and weights applied to first-order smoothness terms are given by:
+
+    .. math::
+        \mathbf{\tilde{w}} = \mathbf{\tilde{v}} \odot \prod_k \mathbf{P \, w_k}
+
+    :math:`\mathbf{\tilde{v}}` is a placeholder for the default weights that account for cell volumes
+    and dimensions when regularization functions are discretized onto the mesh. These default
+    weights vary depending on the regularization term; e.g. smallness, first-order smoothness in
+    the y-direction. For first-order smoothness terms, a projection matrix :math:`\mathbf{P}` is
+    required to average weights at cell centers to the appropriate faces; i.e. where discrete
+    first-order derivatives live.
+
+    Weights for each regularization term are used to construct their respective weighting matrices
+    as follows:
+
+    .. math::
+        \mathbf{W} = \textrm{diag} \Big ( \, \mathbf{\tilde{w}}^{1/2} \Big )
+
+    Each set of custom cell weights is stored within a ``dict`` as an (n_cells, )
+    ``numpy.ndarray``. The weights can be set all at once during instantiation
+    with the `weights` keyword argument as follows:
+
+    >>> reg = WeightedLeastSquares(mesh, weights={'weights_1': array_1, 'weights_2': array_2})
+
+    or set after instantiation using the `set_weights` method:
+
+    >>> reg.set_weights(weights_1=array_1, weights_2=array_2})
 
     **Reference model in smoothness:**
     
@@ -1422,7 +1489,7 @@ class WeightedLeastSquares(ComboObjectiveFunction):
         \bigg [ \frac{\partial}{\partial \xi_j} \Big ( m(r) - m_{ref}(r) \Big ) \bigg ]^2 \\
         &+ \sum_{j=x,y,z} \frac{\alpha_{jj}}{2} \int_\Omega \, w(r)
         \bigg [ \frac{\partial^2}{\partial \xi_j^2} \Big ( m(r) - m_{ref}(r) \Big ) \bigg ]^2
-        \;\;\;\;\; ( \leftarrow \, optional )
+        \;\;\;\;\;\;\;\; \big ( \textrm{optional} \big )
 
     When discretized onto a mesh, the regularization function is approximated by:
     
@@ -1433,7 +1500,7 @@ class WeightedLeastSquares(ComboObjectiveFunction):
         \big [ \mathbf{m} - \mathbf{m}^{(ref)} \big ] \Big \|^2 \\
         &+ \sum_{j=x,y,z} \frac{\alpha_{jj}}{2} \Big \| \mathbf{W_{jj} L_j}
         \big [ \mathbf{m} - \mathbf{m}^{(ref)} \big ] \Big \|^2
-        \;\;\;\;\; ( \leftarrow \, optional )
+        \;\;\;\;\;\;\;\; \big ( \textrm{optional} \big )
 
     This functionality is used by setting :math:`\mathbf{m}^{(ref)}` with the
     `reference_model` property, and by setting the `reference_model_in_smooth` parameter
