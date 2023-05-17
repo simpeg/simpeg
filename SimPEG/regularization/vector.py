@@ -134,8 +134,10 @@ class BaseAmplitude(BaseVectorRegularization):
         d_m = self._delta_m(m)
 
         return self.f_m_deriv(m).T * (
-            self.W.T @ self.W @ (self.f_m_deriv(m) @ d_m).reshape((-1, self.n_comp), order='F')
-        ).flatten(order='F')
+            self.W.T
+            @ self.W
+            @ (self.f_m_deriv(m) @ d_m).reshape((-1, self.n_comp), order="F")
+        ).flatten(order="F")
 
     def deriv2(self, m, v=None) -> csr_matrix:
         """ """
@@ -147,8 +149,8 @@ class BaseAmplitude(BaseVectorRegularization):
             )
 
         return f_m_deriv.T * (
-            self.W.T @ self.W @ (f_m_deriv * v).reshape((-1, self.n_comp), order='F')
-        ).flatten(order='F')
+            self.W.T @ self.W @ (f_m_deriv * v).reshape((-1, self.n_comp), order="F")
+        ).flatten(order="F")
 
 
 class AmplitudeSmallness(SparseSmallness, BaseAmplitude):
