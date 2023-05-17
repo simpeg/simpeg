@@ -24,7 +24,7 @@ def dask_fields(self, m=None, return_Ainv=False):
     Ainv = self.solver(A, **self.solver_opts)
     RHS = self.getRHS()
 
-    f = self.fieldsPair(self, shape=RHS.shape)
+    f = self.fieldsPair(self)
     f[:, self._solutionType] = Ainv * RHS
 
     Ainv.clean()
