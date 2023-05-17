@@ -3240,7 +3240,11 @@ class InjectActiveCells(IdentityMap):
         return int(self.indActive.sum())
 
     def _transform(self, m):
-        return self.P * m + self.valInactive[:, None]
+
+        if m.ndim > 1:
+            return self.P * m + self.valInactive[:, None]
+
+        return self.P * m + self.valInactive
 
     def inverse(self, u):
         r"""Recover the model parameters (active cells) from a set of physical
