@@ -489,8 +489,8 @@ class Smallness(BaseRegularization):
 
     ``Smallness`` regularization is used to ensure that differences between the
     model values in the recovered model and the reference model are small;
-    i.e. it preserves structures in the reference model. If the reference model is
-    ``None``, the starting model will be set as the reference model in the
+    i.e. it preserves structures in the reference model. If a reference model is not
+    supplied, the starting model will be set as the reference model in the
     regularization by default. Optionally, custom cell weights can be included to
     control the degree of smallness being enforced throughout different regions the model.
 
@@ -508,15 +508,15 @@ class Smallness(BaseRegularization):
         The mapping from the model parameters to the quantity defined in the regularization.
         If ``None``, the mapping is the :class:`.maps.IdentityMap`.
     reference_model : None, (n_param, ) numpy.ndarray
-        Reference model values used to constrain the inversion. If ``None``, the starting
-        is set as the reference model by default.
+        Reference model values used to constrain the inversion. If ``None``, the starting model
+        is set as the reference model in the inversion.
     units : None, str
         Units for the model parameters. Some regularization classes behave
         differently depending on the units; e.g. 'radian'.
     weights : None, dict
         Weight multipliers to customize the least-squares function. Each key points to
         a (n_cells, ) numpy.ndarray that is defined on the
-        :py:class:`regularization.RegularizationMesh`.
+        :py:class:`regularization.RegularizationMesh` .
 
     Notes
     -----
@@ -561,7 +561,7 @@ class Smallness(BaseRegularization):
 
     where :math:`\mathbf{\tilde{v}}` are default weights that account for cell volumes
     and dimensions when the regularization function is discretized to the mesh.
-    The weighting matrix used to apply the weights is given by:
+    The weighting matrix used to apply the weights for smallness regularization is given by:
 
     .. math::
         \mathbf{W} = \textrm{diag} \Big ( \, \mathbf{\tilde{w}}^{1/2} \Big )
@@ -570,11 +570,15 @@ class Smallness(BaseRegularization):
     ``numpy.ndarray``. The weights can be set all at once during instantiation
     with the `weights` keyword argument as follows:
 
-    >>> reg = SparseSmallness(mesh, weights={'weights_1': array_1, 'weights_2': array_2})
+    >>> reg = Smallness(mesh, weights={'weights_1': array_1, 'weights_2': array_2})
 
     or set after instantiation using the `set_weights` method:
 
     >>> reg.set_weights(weights_1=array_1, weights_2=array_2})
+
+    The default weights that account for cell dimensions in the regularization are accessed via:
+
+    >>> reg.get_weights['volume']
 
     """
 
@@ -587,7 +591,7 @@ class Smallness(BaseRegularization):
     def f_m(self, m) -> np.ndarray:
         r"""Evaluate least-squares regularization kernel.
 
-        For ``Smallness`` regularization, the least-squares regularization kernel is given by:
+        For smallness regularization, the least-squares regularization kernel is given by:
 
         .. math::
             \mathbf{f_m}(\mathbf{m}) = \mathbf{m} - \mathbf{m}^{(ref)}
@@ -708,8 +712,9 @@ class SmoothnessFirstOrder(BaseRegularization):
         The mapping from the model parameters to the quantity defined in the regularization.
         If ``None``, the mapping is the :class:`.maps.IdentityMap`.
     reference_model : None, (n_param, ) numpy.ndarray
-        Reference model values used to constrain the inversion. If ``None``, the starting
-        is set as the reference model by default.
+        Reference model values used to constrain the inversion. If ``None``, the starting model
+        is set as the reference model by default. To include the reference model in the
+        regularization function, the `reference_model_in_smooth` property must be set to ``True``.
     reference_model_in_smooth : bool, optional
         Whether to include the reference model in the smoothness terms.
     units : None, str
@@ -759,21 +764,15 @@ class SmoothnessFirstOrder(BaseRegularization):
 
     **Reference model in smoothness:**
     
-    Gradients/interfaces within a reference model :math:`m^{(ref)}` can be preserved by
-    including the reference model in the smoothness regularization function. In this case,
-    the regularization function is expressed as:
-
-    .. math::
-        \gamma (m) = \frac{1}{2} \int_\Omega \, w(r) \,
-        \bigg [ \frac{\partial}{\partial x} \big ( m - m^{(ref)} \big ) \bigg ]^2 \, dv
-
-    When discretized onto a mesh, the regularization function is approximated by:
+    Gradients/interfaces within a discrete reference model :math:`\mathbf{m}^{(ref)}` can be
+    preserved by including the reference model the smoothness regularization function.
+    In this case, the discrete regularization function becomes:
     
     .. math::
         \gamma (\mathbf{m}) = \frac{1}{2} \Big \| \mathbf{W G_x}
         \big [ \mathbf{m} - \mathbf{m}^{(ref)} \big ] \Big \|^2
 
-    This functionality is used by setting :math:`\mathbf{m}^{(ref)}` with the
+    This functionality is used by setting a reference model with the
     `reference_model` property, and by setting the `reference_model_in_smooth` parameter
     to ``True``.
     
@@ -812,6 +811,10 @@ class SmoothnessFirstOrder(BaseRegularization):
     or set after instantiation using the `set_weights` method:
 
     >>> reg.set_weights(weights_1=array_1, weights_2=array_2)
+
+    The default weights that account for cell dimensions in the regularization are accessed via:
+
+    >>> reg.get_weights['volume']
 
     """
 
@@ -906,7 +909,7 @@ class SmoothnessFirstOrder(BaseRegularization):
 
         where :math:`\mathbf{G_x}` is the partial cell gradient operator along the x-direction
         (i.e. x-derivative), :math:`\mathbf{m}` are the descrete model parameters defined on the
-        mesh and :math:`\mathbf{m}^{(ref)}` is the reference model. Similarly for smoothness
+        mesh and :math:`\mathbf{m}^{(ref)}` is the reference model (optional). Similarly for smoothness
         along y and z.
 
         Parameters
@@ -1077,8 +1080,9 @@ class SmoothnessSecondOrder(SmoothnessFirstOrder):
         The mapping from the model parameters to the quantity defined in the regularization.
         If ``None``, the mapping is the :class:`.maps.IdentityMap`.
     reference_model : None, (n_param, ) numpy.ndarray
-        Reference model values used to constrain the inversion. If ``None``, the starting
-        is set as the reference model by default.
+        Reference model values used to constrain the inversion. If ``None``, the starting model
+        is set as the reference model by default. To include the reference model in the
+        regularization function, the `reference_model_in_smooth` property must be set to ``True``.
     reference_model_in_smooth : bool, optional
         Whether to include the reference model in the smoothness terms.
     units : None, str
@@ -1122,21 +1126,15 @@ class SmoothnessSecondOrder(SmoothnessFirstOrder):
 
     **Reference model in smoothness:**
     
-    Second-order derivatives within a reference model :math:`m^{(ref)}` can be preserved by
-    including the reference model the smoothness regularization function. In this case,
-    the regularization function is given by:
-
-    .. math::
-        \gamma (m) = \frac{1}{2} \int_\Omega \, w(r) \,
-        \bigg [ \frac{\partial^2}{\partial x^2} \Big ( m - m^{(ref)} \Big ) \bigg ]^2 \, dv
-
-    When discretized onto a mesh, the regularization function is approximated by:
+    Second-order smoothness within a discrete reference model :math:`\mathbf{m}^{(ref)}` can be
+    preserved by including the reference model the smoothness regularization function.
+    In this case, the discrete regularization function becomes:
     
     .. math::
         \gamma (\mathbf{m}) = \frac{1}{2} \Big \| \mathbf{W L_x}
         \big [ \mathbf{m} - \mathbf{m}^{(ref)} \big ] \Big \|^2
 
-    This functionality is used by setting :math:`\mathbf{m}^{(ref)}` with the
+    This functionality is used by setting a reference model with the
     `reference_model` property, and by setting the `reference_model_in_smooth` parameter
     to ``True``.
     
@@ -1177,7 +1175,9 @@ class SmoothnessSecondOrder(SmoothnessFirstOrder):
         .. math::
             \mathbf{f_m}(\mathbf{m}) = \mathbf{L_x} \big [ \mathbf{m} - \mathbf{m}^{(ref)} \big ]
 
-        where :math:`\mathbf{L_x}` is the discrete second order x-derivative operator.
+        where where :math:`\mathbf{m}` are the discrete model parameters (model),
+        :math:`\mathbf{m}^{(ref)}` is the reference model (optional), :math:`\mathbf{L_x}`
+        is the discrete second order x-derivative operator.
 
         Parameters
         ----------
@@ -1200,8 +1200,8 @@ class SmoothnessSecondOrder(SmoothnessFirstOrder):
             \Big \| \mathbf{W L_x} \big [ \mathbf{m} - \mathbf{m}^{(ref)} \big ] \Big \|^2
 
         where :math:`\mathbf{m}` are the discrete model parameters (model),
-        :math:`\mathbf{m}^{(ref)}` is the reference model, :math:`\mathbf{L_x}` is the second
-        order derivative operator with respect to x, and :math:`\mathbf{W}` is
+        :math:`\mathbf{m}^{(ref)}` is the reference model (optional), :math:`\mathbf{L_x}` is the
+        second order derivative operator with respect to x, and :math:`\mathbf{W}` is
         the weighting matrix. Similar for smoothness along y and z.
 
         We define the least-squares regularization kernel :math:`\mathbf{f_m}` as:
@@ -1413,6 +1413,24 @@ class WeightedLeastSquares(ComboObjectiveFunction):
         - :math:`\mathbf{L_x, \, L_y, \; L_z}` are second-order derivative operators with respect to x, y and z,
         - :math:`\mathbf{W_s, \, W_x, \, W_y, \; W_z}` are weighting matrices.
 
+    **Reference model in smoothness:**
+    
+    Gradients/interfaces within a discrete reference model :math:`\mathbf{m}^{(ref)}` can be
+    preserved by including the reference model the smoothness regularization functions.
+    In this case, the discrete regularization function becomes:
+    
+    .. math::
+        \phi_m (\mathbf{m}) =& \frac{\alpha_s}{2}
+        \Big \| \mathbf{W_s} \big [ \mathbf{m} - \mathbf{m}^{(ref)} \big ] \Big \|^2 \\
+        &+ \sum_{j=x,y,z} \frac{\alpha_j}{2} \Big \| \mathbf{W_j G_j}
+        \big [ \mathbf{m} - \mathbf{m}^{(ref)} \big ] \Big \|^2 \\
+        &+ \sum_{j=x,y,z} \frac{\alpha_{jj}}{2} \Big \| \mathbf{W_{jj} L_j}
+        \big [ \mathbf{m} - \mathbf{m}^{(ref)} \big ] \Big \|^2
+        \;\;\;\;\;\;\;\; \big ( \textrm{optional} \big )
+
+    This functionality is used by setting the `reference_model_in_smooth` parameter
+    to ``True``.
+
     **Alphas and length scales:**
 
     The :math:`\alpha` parameters scale the relative contributions of the smallness and smoothness
@@ -1475,36 +1493,6 @@ class WeightedLeastSquares(ComboObjectiveFunction):
     or set after instantiation using the `set_weights` method:
 
     >>> reg.set_weights(weights_1=array_1, weights_2=array_2})
-
-    **Reference model in smoothness:**
-    
-    Gradients/interfaces within a discrete reference model :math:`m^{(ref)}` can be preserved by
-    including the reference model the smoothness regularization functions. In this case,
-    the regularization function is given by:
-
-    .. math::
-        \phi_m (m) =& \frac{\alpha_s}{2} \int_\Omega \, w(r)
-        \Big [ m(r) - m_{ref}(r) \Big ]^2 \, dv \\
-        &+ \sum_{j=x,y,z} \frac{\alpha_j}{2} \int_\Omega \, w(r)
-        \bigg [ \frac{\partial}{\partial \xi_j} \Big ( m(r) - m_{ref}(r) \Big ) \bigg ]^2 \\
-        &+ \sum_{j=x,y,z} \frac{\alpha_{jj}}{2} \int_\Omega \, w(r)
-        \bigg [ \frac{\partial^2}{\partial \xi_j^2} \Big ( m(r) - m_{ref}(r) \Big ) \bigg ]^2
-        \;\;\;\;\;\;\;\; \big ( \textrm{optional} \big )
-
-    When discretized onto a mesh, the regularization function is approximated by:
-    
-    .. math::
-        \phi_m (\mathbf{m}) =& \frac{\alpha_s}{2}
-        \Big \| \mathbf{W_s} \big [ \mathbf{m} - \mathbf{m}^{(ref)} \big ] \Big \|^2 \\
-        &+ \sum_{j=x,y,z} \frac{\alpha_j}{2} \Big \| \mathbf{W_j G_j}
-        \big [ \mathbf{m} - \mathbf{m}^{(ref)} \big ] \Big \|^2 \\
-        &+ \sum_{j=x,y,z} \frac{\alpha_{jj}}{2} \Big \| \mathbf{W_{jj} L_j}
-        \big [ \mathbf{m} - \mathbf{m}^{(ref)} \big ] \Big \|^2
-        \;\;\;\;\;\;\;\; \big ( \textrm{optional} \big )
-
-    This functionality is used by setting :math:`\mathbf{m}^{(ref)}` with the
-    `reference_model` property, and by setting the `reference_model_in_smooth` parameter
-    to ``True``.
     """
 
     _model = None
@@ -2021,7 +2009,8 @@ class WeightedLeastSquares(ComboObjectiveFunction):
         Returns
         -------
         array_like
-            Reference model values used to constrain the inversion. If ``None``, the reference model is equal to the starting model for the inversion.
+            Reference model values used to constrain the inversion. If ``None``,
+            the reference model is equal to the starting model for the inversion.
         """
         return self._reference_model
 
@@ -2093,7 +2082,8 @@ class WeightedLeastSquares(ComboObjectiveFunction):
     def regularization_mesh(self) -> RegularizationMesh:
         """Regularization mesh.
 
-        Mesh on which the regularization is discretized. This is not the same as the mesh on which the simulation is defined.
+        Mesh on which the regularization is discretized. This is not the same as
+        the mesh on which the simulation is defined.
 
         Returns
         -------
@@ -2109,7 +2099,8 @@ class WeightedLeastSquares(ComboObjectiveFunction):
         Returns
         -------
         SimPEG.maps.BaseMap
-            The mapping from the model parameters to the quantity defined on the :py:class:`~SimPEG.regularization.RegularizationMesh`.
+            The mapping from the model parameters to the quantity defined on the
+            :py:class:`~SimPEG.regularization.RegularizationMesh`.
         """
         return self._mapping
 
@@ -2150,9 +2141,11 @@ class BaseSimilarityMeasure(BaseRegularization):
     Parameters
     ----------
     mesh : SimPEG.regularization.RegularizationMesh
-        Mesh on which the regularization is discretized. This is not necessarily the same as the mesh on which the simulation is defined.
+        Mesh on which the regularization is discretized. This is not necessarily the same as
+        the mesh on which the simulation is defined.
     mapping : SimPEG.maps.WireMap
-        Wire map connecting physical properties defined on the regularization mesh to the entire model.
+        Wire map connecting physical properties defined on the regularization mesh
+        to the entire model.
     """
 
     def __init__(self, mesh, wire_map, **kwargs):
@@ -2166,7 +2159,8 @@ class BaseSimilarityMeasure(BaseRegularization):
         Returns
         -------
         SimPEG.maps.WireMap
-            Wire map connecting physical properties defined on the regularization mesh to the entire model.
+            Wire map connecting physical properties defined on the regularization
+            mesh to the entire model.
         """
         return self._wire_map
 
@@ -2197,8 +2191,8 @@ class BaseSimilarityMeasure(BaseRegularization):
     def deriv(self, model):
         """First derivative of the coupling term with respect to individual models.
 
-        Where :math:`k` is the number of models we are inverting for and :math:`M` is the number of cells in each model,
-        this method returns a vector of length :math:`kM`.
+        Where :math:`k` is the number of models we are inverting for and :math:`M` is the number
+        of cells in each model, this method returns a vector of length :math:`kM`.
 
         Parameters
         ----------
@@ -2230,8 +2224,8 @@ class BaseSimilarityMeasure(BaseRegularization):
         Returns
         -------
         numpy.ndarray or scipy.sparse.csr_matrix
-            Where :math:`k` is the number of models we are inverting for and :math:`M` is the number of cells in each model,
-            this method returns:
+            Where :math:`k` is the number of models we are inverting for and :math:`M` is
+            the number of cells in each model, this method returns:
 
                 - an array of dimensions (k*M, ) when `v` is not ``None``.
                 - a sparse matrix of dimensions (k*M, k*M) when `v` is ``None``.
