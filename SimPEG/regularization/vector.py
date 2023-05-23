@@ -28,7 +28,7 @@ class BaseVectorRegularization(BaseRegularization):
 
 
 class CrossReferenceRegularization(Smallness, BaseVectorRegularization):
-    """Vector regularization with a reference direction.
+    r"""Vector regularization with a reference direction.
 
     This regularizer measures the magnitude of the cross product of the vector model
     with a reference vector model. This encourages the vectors in the model to point
