@@ -11,7 +11,7 @@ import zarr
 
 from tqdm import tqdm
 Sim.sensitivity_path = './sensitivity/'
-Sim.store_sensitivities = True
+Sim.store_sensitivities = "ram"
 
 Sim.getJtJdiag = dask_getJtJdiag
 Sim.Jvec = dask_Jvec

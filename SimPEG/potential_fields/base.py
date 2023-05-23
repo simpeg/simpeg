@@ -37,13 +37,6 @@ class BasePFSimulation(LinearSimulation):
         A 3D tensor or tree mesh.
     ind_active : np.ndarray of int or bool
         Indices array denoting the active topography cells.
-    store_sensitivities : {'ram', 'disk', 'forward_only'}
-        Options for storing sensitivities. There are 3 options
-
-        - 'ram': sensitivities are stored in the computer's RAM
-        - 'disk': sensitivities are written to a directory
-        - 'forward_only': you intend only do perform a forward simulation and sensitivities do not need to be stored
-
     n_processes : None or int, optional
         The number of processes to use in the internal multiprocessing pool for forward
         modeling. The default value of 1 will not use multiprocessing. Any other setting
@@ -82,11 +75,15 @@ class BasePFSimulation(LinearSimulation):
 
         if "forwardOnly" in kwargs:
             raise AttributeError(
-                "forwardOnly was removed in SimPEG 0.17.0, please set store_sensitivities='forward_only'"
+                "forwardOnly was removed in SimPEG 0.17.0, please set store_sensitivities=None"
             )
 
-        self.store_sensitivities = store_sensitivities
-        super().__init__(mesh, **kwargs)
+        if "forward_only" in kwargs:
+            raise AttributeError(
+                "forward_only was removed in SimPEG 0.x.0, please set store_sensitivities=None"
+            )
+
+        super().__init__(mesh, store_sensitivities=store_sensitivities, **kwargs)
         self.solver = None
         self.n_processes = n_processes
 
@@ -129,31 +126,6 @@ class BasePFSimulation(LinearSimulation):
         unique, unique_inv = np.unique(cell_nodes.T, return_inverse=True)
         self._nodes = nodes[unique]  # unique active nodes
         self._unique_inv = unique_inv.reshape(cell_nodes.T.shape)
-
-    @property
-    def store_sensitivities(self):
-        """Options for storing sensitivities.
-
-        There are 3 options:
-
-        - 'ram': sensitivity matrix stored in RAM
-        - 'disk': sensitivities written and stored to disk
-        - 'forward_only': sensitivities are not store (only use for forward simulation)
-
-        Returns
-        -------
-        {'disk', 'ram', 'forward_only'}
-            A string defining the model type for the simulation.
-        """
-        if self._store_sensitivities is None:
-            self._store_sensitivities = "ram"
-        return self._store_sensitivities
-
-    @store_sensitivities.setter
-    def store_sensitivities(self, value):
-        self._store_sensitivities = validate_string(
-            "store_sensitivities", value, ["disk", "ram", "forward_only"]
-        )
 
     @property
     def n_processes(self):
@@ -214,7 +186,7 @@ class BasePFSimulation(LinearSimulation):
                 kernel = pool.starmap(
                     self.evaluate_integral, self.survey._location_component_iterator()
                 )
-        if self.store_sensitivities != "forward_only":
+        if self.store_sensitivities is not None:
             kernel = np.vstack(kernel)
         else:
             kernel = np.concatenate(kernel)

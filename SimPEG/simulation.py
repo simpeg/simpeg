@@ -50,7 +50,6 @@ class BaseSimulation(props.HasModel):
     # Properties
 
     _REGISTRY = {}
-    _jtjdiag: np.ndarray | None = None
 
     @property
     def mesh(self):
@@ -174,10 +173,13 @@ class BaseSimulation(props.HasModel):
         solver=None,
         solver_opts=None,
         sensitivity_path=None,
+        store_sensitivities=None,
         counter=None,
         verbose=False,
         **kwargs,
     ):
+        self._jtjdiag: np.ndarray | None = None
+        self.store_sensitivities: str | None = store_sensitivities
         self.mesh = mesh
         self.survey = survey
         if solver is None:
@@ -341,6 +343,32 @@ class BaseSimulation(props.HasModel):
             relative_error=relative_error,
             noise_floor=noise_floor,
         )
+
+    @property
+    def store_sensitivities(self):
+        """Options for storing sensitivities.
+
+        There are 3 options:
+
+        - None: sensitivities are not stored
+        - 'ram': sensitivity matrix stored in RAM
+        - 'disk': sensitivities written and stored to disk
+
+        Returns
+        -------
+        {'disk', 'ram', None}
+            A string defining the model type for the simulation or None.
+        """
+        return self._store_sensitivities
+
+    @store_sensitivities.setter
+    def store_sensitivities(self, value: str | None):
+        if value is None:
+            self._store_sensitivities = None
+        else:
+            self._store_sensitivities = validate_string(
+                "store_sensitivities", value, ["disk", "ram"]
+            )
 
 
 class BaseTimeSimulation(BaseSimulation):

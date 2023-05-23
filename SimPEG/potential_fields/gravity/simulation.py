@@ -26,7 +26,7 @@ class Simulation3DIntegral(BasePFSimulation):
     def fields(self, m):
         self.model = m
 
-        if self.store_sensitivities == "forward_only":
+        if self.store_sensitivities is None:
             # Compute the linear operation without forming the full dense Jmatrix
             fields = mkvc(self.linear_operator())
         else:
@@ -160,7 +160,7 @@ class Simulation3DIntegral(BasePFSimulation):
                 # just need a little logic to find the containing cell
                 # cell_vals[inside_cell] += 4 * np.pi
                 pass
-            if self.store_sensitivities == "forward_only":
+            if self.store_sensitivities is None:
                 rows[component] = cell_vals @ self.rho
             else:
                 rows[component] = cell_vals

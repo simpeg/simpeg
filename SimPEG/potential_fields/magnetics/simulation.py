@@ -101,7 +101,7 @@ class Simulation3DIntegral(BasePFSimulation):
     def fields(self, model):
         self.model = model
         # model = self.chiMap * model
-        if self.store_sensitivities == "forward_only":
+        if self.store_sensitivities is None:
             fields = mkvc(self.linear_operator())
         else:
             fields = np.asarray(self.Jmatrix @ self.chi.astype(np.float32))
@@ -405,7 +405,7 @@ class Simulation3DIntegral(BasePFSimulation):
                     + cell_eval_z * M[:, 2]
                 )
 
-            if self.store_sensitivities == "forward_only":
+            if self.store_sensitivities is None:
                 rows[component] = cell_vals @ self.chi
             else:
                 rows[component] = cell_vals
