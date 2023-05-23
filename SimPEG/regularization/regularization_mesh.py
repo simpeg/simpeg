@@ -13,16 +13,19 @@ from .. import utils
 
 
 class RegularizationMesh(props.BaseSimPEG):
-    """
-    **Regularization Mesh**
+    """Regularization Mesh
 
-    This contains the operators used in the regularization. Note that these
-    are not necessarily true differential operators, but are constructed from
-    a `discretize` Mesh.
+    The ``RegularizationMesh`` class is used to construct discrete operators for
+    the objective function(s) defining the regularization. Discrete operators
+    only act on active cells in the inversion, thus reducing computational cost.
 
-    :param discretize.base.BaseMesh mesh: problem mesh
-    :param numpy.ndarray active_cells: bool array, size nC, that is True where we have active cells. Used to reduce the operators so we regularize only on active cells
-
+    Parameters
+    ----------
+    mesh : discretize.base.BaseMesh
+        Mesh on which the discrete set of model parameters are defined.
+    active_cells : None, (n_cells, ) numpy.ndarray of bool
+        Boolean array defining the set of mesh cells that are active in the inversion.
+        If ``None``, all cells are active.
     """
 
     regularization_type = None  # or 'Base'
@@ -35,12 +38,21 @@ class RegularizationMesh(props.BaseSimPEG):
 
     @property
     def active_cells(self) -> np.ndarray:
-        """A boolean array indicating whether a cell is active
+        """Active cells on the regularization mesh.
+
+        A boolean array defining the cells in the regularization mesh that are active
+        (i.e. updated) throughout the inversion. The values of inactive cells
+        remain equal to their starting model values.
+
+        Returns
+        -------
+        (n_cells, ) array of bool
 
         Notes
         -----
-        If this is set with an array of integers, it interprets it as an array
-        listing the active cell indices.
+        If the property is set using a ``numpy.ndarray`` of ``int``, the setter interprets the
+        array as representing the indices of the active cells. When called however, the quantity
+        will have been internally converted to a boolean array.
         """
         return self._active_cells
 
@@ -80,8 +92,12 @@ class RegularizationMesh(props.BaseSimPEG):
 
     @property
     def vol(self) -> np.ndarray:
-        """
-        Reduced volume vector.
+        """Volumes of active mesh cells.
+
+        Returns
+        -------
+        (n_active, ) numpy.ndarray of float
+            Volumes of active mesh cells.
         """
         if self.active_cells is None:
             return self.mesh.cell_volumes
@@ -91,8 +107,12 @@ class RegularizationMesh(props.BaseSimPEG):
 
     @property
     def nC(self) -> int:
-        """
-        Number of cells being regularized.
+        """Number of active cells.
+
+        Returns
+        -------
+        int
+            Number of active cells.
         """
         if self.active_cells is not None:
             return int(self.active_cells.sum())
@@ -100,16 +120,23 @@ class RegularizationMesh(props.BaseSimPEG):
 
     @property
     def dim(self) -> int:
-        """
-        Dimension of regularization mesh (1D, 2D, 3D)
+        """Dimension of regularization mesh.
+
+        Returns
+        -------
+        {1, 2, 3}
+            Dimension of the regularization mesh.
         """
         return self.mesh.dim
 
     @property
     def Pac(self) -> sp.csr_matrix:
-        """
-        Projection matrix that takes from the reduced space of active cells to
-        full modelling space (ie. nC x nactive_cells).
+        """Projection matrix from active cells to all mesh cells.
+
+        Returns
+        -------
+        (n_cells, n_active) scipy.sparse.csr_matrix
+            Projection matrix from active cells to all mesh cells.
         """
         if getattr(self, "_Pac", None) is None:
             if self.active_cells is None:
@@ -120,9 +147,12 @@ class RegularizationMesh(props.BaseSimPEG):
 
     @property
     def Pafx(self) -> sp.csr_matrix:
-        """
-        Projection matrix that takes from the reduced space of active x-faces
-        to full modelling space (ie. nFx x nactive_cells_Fx )
+        """Projection matrix from active x-faces to all x-faces in the mesh.
+
+        Returns
+        -------
+        (n_faces_x, n_active_x) scipy.sparse.csr_matrix
+            Projection matrix from active x-faces to all x-faces in the mesh
         """
         if getattr(self, "_Pafx", None) is None:
             if self.mesh._meshType == "TREE":

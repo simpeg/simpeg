@@ -5,72 +5,74 @@ Regularization (:mod:`SimPEG.regularization`)
 
 .. currentmodule:: SimPEG.regularization
 
-``Regularization`` classes are used to impose constraints on models recovered through geophysical inversion.
-Constraints may be straight forward, such as: setting upper and lower bounds for values in the recovered model,
-requiring the recovered model be spatially smooth, or using a reference model to add a-priori information.
-Constraints may also be more sophisticated; e.g. cross-validation and petrophysically-guided regularization.
-In SimPEG, constraints on the recovered model can be defined using a single ``Regularization`` object,
-or defined by combining multiple ``Regularization`` objects.
+``Regularization`` classes are used to impose constraints on models recovered through geophysical
+inversion. Constraints may be straight forward, such as: requiring the recovered model be
+spatially smooth, or using a reference model to add a-priori information. Constraints may also
+be more sophisticated; e.g. cross-validation and petrophysically-guided regularization.
+In SimPEG, constraints on the recovered model can be defined using a single ``Regularization``
+object, or defined as a weighted sum of ``Regularization`` objects.
 
 Basic Theory
 ------------
 
-Most geophysical inverse problems suffer from non-uniqueness; i.e. there is an infinite number of models
-(:math:`m`) capable of reproducing the observed data to within a specified degree of uncertainty.
-The challenge is recovering a model which 1) reproduces the observed data, and 2) reasonably approximates
-the subsurface structures responsible for the observed geophysical response. To accomplish this,
-regularization functions are used to ensure the solution to the inverse problem is unique and is
-geologically plausible. The choice in regularization function(s) depends on user assumptions and
-a priori information.
+Most geophysical inverse problems suffer from non-uniqueness; i.e. there is an infinite number
+of models (:math:`m`) capable of reproducing the observed data to within a specified
+degree of uncertainty. The challenge is recovering a model which 1) reproduces the observed data,
+and 2) reasonably approximates the subsurface structures responsible for the observed geophysical
+response. To accomplish this, regularization is used to ensure the solution to the inverse
+problem is unique and is geologically plausible. The regularization applied to solve the inverse
+problem depends on user assumptions and a priori information.
 
-SimPEG uses a deterministic inversion approach to recover an appropriate model. The algorithm does this
-by finding the model (:math:`m`) which minimizes a global objective function (or penalty function) of the form:
+SimPEG uses a deterministic inversion approach to recover an appropriate model.
+The algorithm does this by finding the model (:math:`m`) which minimizes a global objective
+function (or penalty function) of the form:
 
 .. math::
     \phi (m) = \phi_d (m) + \beta \, \phi_m (m)
 
 The global objective function contains two terms: a data misfit term :math:`\phi_d` which
-ensures data predicted by the recovered model adequately reproduces the observed data, and the model
-objective function :math:`\phi_m` which is comprised of one or more regularization functions :math:`\gamma_i (m)`. I.e.:
+ensures data predicted by the recovered model adequately reproduces the observed data,
+and the model objective function :math:`\phi_m` which is comprised of one or more 
+regularization functions :math:`\gamma_i (m)`. I.e.:
 
 .. math::
     \phi_m (m) = \sum_i \alpha_i \, \gamma_i (m)
 
 The model objective function imposes all of the desired constraints on the recovered model.
-Constants :math:`\alpha_i` weight the relative contributions of the regularization functions
-comprising the model objective function. The trade-off parameter :math:`\beta` balances the
-relative contribution of the data misfit and regularization functions on the global objective function.
+Constants :math:`\alpha_i` weight the relative contributions of the regularization
+functions comprising the model objective function. The trade-off parameter :math:`\beta`
+balances the relative contribution of the data misfit and regularization functions on the
+global objective function.
 
-Regularization classes within SimPEG correspond to different regularization functions that can be
-used individually or combined to define the model objective function :math:`\phi_m (\mathbf{m})`.
-For example, a combination of regularization functions that ensures the values in the recovered
-model are not too large and are spatially smooth in the x and y-directions can be expressed as:
+Regularization classes within SimPEG correspond to different regularization (objective)
+functions that can be used individually or combined to define the model objective function
+:math:`\phi_m (\mathbf{m})`. For example, a combination of regularization functions that ensures
+the values in the recovered model are not too large and are spatially smooth in the x and
+y-directions can be expressed as:
 
 .. math::
     \phi_m (m) = 
     \alpha_s \! \int_\Omega \Bigg [ \frac{1}{2} w_s(r) \, m(r)^2 \Bigg ] \, dv +
-    \alpha_x \! \int_\Omega \Bigg [ \frac{1}{2} w_x(r) \bigg ( \frac{\partial m}{\partial x} \bigg )^2 \Bigg ] \, dv +
-    \alpha_y \! \int_\Omega \Bigg [ \frac{1}{2} w_y(r) \bigg ( \frac{\partial m}{\partial y} \bigg )^2 \Bigg ] \, dv
+    \alpha_x \! \int_\Omega \Bigg [ \frac{1}{2} w_x(r)
+    \bigg ( \frac{\partial m}{\partial x} \bigg )^2 \Bigg ] \, dv +
+    \alpha_y \! \int_\Omega \Bigg [ \frac{1}{2} w_y(r)
+    \bigg ( \frac{\partial m}{\partial y} \bigg )^2 \Bigg ] \, dv
 
 where :math:`w_s(r), w_x(r), w_y(r)` are user-defined weighting functions.
 For practical implementation within SimPEG, the regularization function and all its dependent
 variables are discretized to a numerical grid (or mesh). The model is therefore defined as a
 discrete set of model parameters :math:`\mathbf{m}`.
-And the regularization function is approximated by:
+And the regularization is implemented using a weighted sum of objective functions:
 
 .. math::
-    \begin{align}
-    \phi_m (\mathbf{m}) &\approx \frac{\alpha_s}{2} \mathbf{m^T W_s^T W_s m} +
-    \frac{\alpha_x}{2} \mathbf{m^T G_x^T W_x^T W_x G_x m} +
-    \frac{\alpha_y}{2} \mathbf{m^T G_y^T W_y^T W_y G_y m} \\
-    &\approx \frac{1}{2} \mathbf{m^T R^T R m}
-    \end{align}
+    \phi_m (\mathbf{m}) \approx \frac{\alpha_s}{2} \big \| \mathbf{W_s m} \big \|^2 +
+    \frac{\alpha_x}{2} \big \| \mathbf{W_x G_x m} \big \|^2 +
+    \frac{\alpha_y}{2} \big \| \mathbf{W_y G_y m} \big \|^2
 
-where :math:`\mathbf{G_x}` and :math:`\mathbf{G_y}` are partial gradients along the x and y-directions, respectively.
-:math:`\mathbf{W_s}`, :math:`\mathbf{W_x}` and :math:`\mathbf{W_y}` are weighting matrices that apply
-user-defined weights and account for cell dimensions in the integration.
-As is the case with multiple least-squares regularization functions, the terms can be amalgamated
-and used to define the model objective function using a single regularization operator :math:`\mathbf{R}`.
+where :math:`\mathbf{G_x}` and :math:`\mathbf{G_y}` are partial gradient operators along the x and
+y-directions, respectively. :math:`\mathbf{W_s}`, :math:`\mathbf{W_x}` and :math:`\mathbf{W_y}`
+are weighting matrices that apply user-defined weights and account for cell dimensions
+in the discretization.
 
 
 The API
@@ -78,20 +80,20 @@ The API
 
 Weighted Least Squares Regularization
 -------------------------------------
-Weighted least squares regularization functions are defined as weighted L2-norms on the model, its first-order
-directional derivative(s), or its second-order directional derivative(s).
+Weighted least squares regularization functions are defined as weighted L2-norms on the model,
+its first-order directional derivative(s), or its second-order directional derivative(s).
 
 .. autosummary::
   :toctree: generated/
 
+  WeightedLeastSquares
   Smallness
   SmoothnessFirstOrder
   SmoothnessSecondOrder
-  WeightedLeastSquares
 
 Sparse Norm Regularization
 --------------------------
-Sparse norm regularization functions allow for the recovery of compact and/or blocky structures.
+Sparse norm regularization allows for the recovery of compact and/or blocky structures.
 An iteratively re-weighted least-squares approach allows smallness and smoothness
 regularization functions to be defined using norms between 0 and 2.
 
@@ -117,7 +119,8 @@ Regularization functions for joint inversion involving one or more physical prop
 
 Base Regularization Classes
 ---------------------------
-Base regularization classes. Inherited by other classes and not used directly to constrain inversions.
+Base regularization classes. Inherited by other classes and not used directly
+to constrain inversions.
 
 .. autosummary::
   :toctree: generated/
