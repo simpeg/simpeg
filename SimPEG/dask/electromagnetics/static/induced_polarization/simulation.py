@@ -1,24 +1,33 @@
+import numpy as np
+from dask import array
+
 from .....electromagnetics.static.induced_polarization.simulation import (
     BaseIPSimulation as Sim,
 )
+from SimPEG.dask.simulation import dask_Jvec, dask_Jtvec
 
-import dask.array as da
+Sim.Jvec = dask_Jvec
+Sim.Jtvec = dask_Jtvec
 
 
-def dask_getJtJdiag(self, m, W=None, f=None):
+def dask_getJtJdiag(self, W=None):
     """
     Return the diagonal of JtJ
     """
-    if getattr(self, "_gtgdiag", None) is None:
+    if getattr(self, "_jtjdiag", None) is None:
         # Need to check if multiplying weights makes sense
         if W is None:
-            W = self._scale
+            W = self._scale ** 2.
         else:
-            W = self._scale * W.diagonal()
-        w = da.from_array(W)[:, None]
-        self._gtgdiag = da.sum((w * self.getJ(m, f=f)) ** 2, axis=0).compute()
+            W = (self._scale * W.diagonal())**2.0
 
-    return self._gtgdiag
+        diag = array.einsum('i,ij,ij->j', W, self.Jmatrix, self.Jmatrix)
+
+        if isinstance(diag, array.Array):
+            diag = np.asarray(diag.compute())
+
+        self._jtjdiag = diag
+    return self._jtjdiag
 
 
 Sim.getJtJdiag = dask_getJtJdiag

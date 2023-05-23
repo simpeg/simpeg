@@ -1,8 +1,7 @@
-from SimPEG.dask.simulation import dask_dpred
+from SimPEG.dask.simulation import dask_dpred, dask_Jvec, dask_Jtvec, dask_getJtJdiag
 from .....electromagnetics.static.resistivity.simulation import BaseDCSimulation as Sim
 from .....utils import Zero
 import dask.array as da
-from dask.distributed import Future
 import numpy as np
 import scipy.sparse as sp
 import zarr
@@ -14,6 +13,10 @@ numcodecs.blosc.use_threads = False
 Sim.sensitivity_path = './sensitivity/'
 
 Sim.dpred = dask_dpred
+Sim.getJtJdiag = dask_getJtJdiag
+Sim.Jvec = dask_Jvec
+Sim.Jtvec = dask_Jtvec
+Sim.clean_on_model_update = ["_Jmatrix", "_jtjdiag"]
 
 
 def dask_fields(self, m=None, return_Ainv=False):
@@ -36,69 +39,6 @@ def dask_fields(self, m=None, return_Ainv=False):
 
 
 Sim.fields = dask_fields
-
-
-def dask_getJtJdiag(self, m, W=None):
-    """
-        Return the diagonal of JtJ
-    """
-    self.model = m
-    if self.gtgdiag is None:
-        if isinstance(self.Jmatrix, Future):
-            self.Jmatrix  # Wait to finish
-        # Need to check if multiplying weights makes sense
-
-        if W is None:
-            W = np.ones(self.nD)
-        else:
-            W = W.diagonal()**2.
-
-        diag = da.einsum('i,ij,ij->j', W, self.Jmatrix, self.Jmatrix)
-
-        if isinstance(diag, da.Array):
-            diag = np.asarray(diag.compute())
-
-        self.gtgdiag = diag
-
-    return self.gtgdiag
-
-
-Sim.getJtJdiag = dask_getJtJdiag
-
-
-def dask_Jvec(self, m, v, f=None):
-    """
-        Compute sensitivity matrix (J) and vector (v) product.
-    """
-    self.model = m
-
-    if isinstance(self.Jmatrix, np.ndarray):
-        return self.Jmatrix @ v.astype(np.float32)
-
-    if isinstance(self.Jmatrix, Future):
-        self.Jmatrix  # Wait to finish
-
-    return da.dot(self.Jmatrix, v).astype(np.float32)
-
-
-Sim.Jvec = dask_Jvec
-
-
-def dask_Jtvec(self, m, v, f=None):
-    """
-        Compute adjoint sensitivity matrix (J^T) and vector (v) product.
-    """
-    self.model = m
-
-    if isinstance(self.Jmatrix, np.ndarray):
-        return self.Jmatrix.T @ v.astype(np.float32)
-
-    if isinstance(self.Jmatrix, Future):
-        self.Jmatrix  # Wait to finish
-
-    return da.dot(v, self.Jmatrix).astype(np.float32)
-
-Sim.Jtvec = dask_Jtvec
 
 
 def compute_J(self, f=None, Ainv=None):

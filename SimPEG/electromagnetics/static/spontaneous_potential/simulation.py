@@ -83,7 +83,7 @@ class Simulation3DCellCentered(dc.Simulation3DCellCentered):
         # if self.rhoMap is not None:
         #     return super().deleteTheseOnModelUpdate
         if self.storeJ and self.qMap is not None and not self.qMap.is_linear:
-            return ["_Jmatrix", "_gtgdiag"]
+            return ["_Jmatrix", "_jtjdiag"]
         return []
 
 

@@ -50,6 +50,7 @@ class BaseSimulation(props.HasModel):
     # Properties
 
     _REGISTRY = {}
+    _jtjdiag: np.ndarray | None = None
 
     @property
     def mesh(self):

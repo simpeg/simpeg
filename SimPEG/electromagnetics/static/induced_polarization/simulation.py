@@ -107,16 +107,16 @@ class BaseIPSimulation(BasePDESimulation):
         return self._pred
 
     def getJtJdiag(self, m, W=None, f=None):
-        if getattr(self, "_gtgdiag", None) is None:
+        if getattr(self, "_jtjdiag", None) is None:
             J = self.getJ(m, f=f)
             if W is None:
                 W = self._scale**2
             else:
                 W = (self._scale * W.diagonal()) ** 2
 
-            self._gtgdiag = np.einsum("i,ij,ij->j", W, J, J)
+            self._jtjdiag = np.einsum("i,ij,ij->j", W, J, J)
 
-        return self._gtgdiag
+        return self._jtjdiag
 
     def Jvec(self, m, v, f=None):
         return self._scale * super().Jvec(m, v, f)

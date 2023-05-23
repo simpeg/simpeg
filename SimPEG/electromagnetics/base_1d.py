@@ -570,7 +570,7 @@ class BaseEM1DSimulation(BaseSimulation):
     def deleteTheseOnModelUpdate(self):
         toDelete = super().deleteTheseOnModelUpdate
         if self.fix_Jmatrix is False:
-            toDelete += ["_J", "_gtgdiag"]
+            toDelete += ["_J", "_jtjdiag"]
         return toDelete
 
     def depth_of_investigation_christiansen_2012(self, std, thres_hold=0.8):
@@ -590,7 +590,7 @@ class BaseEM1DSimulation(BaseSimulation):
         return delta
 
     def getJtJdiag(self, m, W=None, f=None):
-        if getattr(self, "_gtgdiag", None) is None:
+        if getattr(self, "_jtjdiag", None) is None:
             Js = self.getJ(m, f=f)
             if W is None:
                 W = np.ones(self.survey.nD)
@@ -609,5 +609,5 @@ class BaseEM1DSimulation(BaseSimulation):
             if self.thicknessesMap is not None:
                 J = Js["dthick"] @ self.thicknessesDeriv
                 out = out + np.einsum("i,ij,ij->j", W, J, J)
-            self._gtgdiag = out
-        return self._gtgdiag
+            self._jtjdiag = out
+        return self._jtjdiag

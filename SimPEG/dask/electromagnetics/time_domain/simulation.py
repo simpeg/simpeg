@@ -5,20 +5,18 @@ from ....electromagnetics.time_domain.simulation import BaseTDEMSimulation as Si
 from ....utils import Zero
 import numpy as np
 import scipy.sparse as sp
-from time import time
-from dask import array, compute, delayed
+from dask import array, delayed
 from SimPEG.dask.simulation import dask_Jvec, dask_Jtvec, dask_getJtJdiag
 import zarr
-from SimPEG.utils import mkvc
+
 from tqdm import tqdm
 Sim.sensitivity_path = './sensitivity/'
-Sim.gtgdiag = None
 Sim.store_sensitivities = True
 
 Sim.getJtJdiag = dask_getJtJdiag
 Sim.Jvec = dask_Jvec
 Sim.Jtvec = dask_Jtvec
-Sim.clean_on_model_update = ["_Jmatrix", "gtgdiag"]
+Sim.clean_on_model_update = ["_Jmatrix", "_jtjdiag"]
 
 
 def fields(self, m=None, return_Ainv=False):

@@ -137,7 +137,7 @@ def dask_Jvec(self, m, v):
     if isinstance(self.Jmatrix, Future):
         self.Jmatrix  # Wait to finish
 
-    return array.dot(self.Jmatrix, v)
+    return array.dot(self.Jmatrix, v).astype(np.float32)
 
 
 Sim.Jvec = dask_Jvec
@@ -155,7 +155,7 @@ def dask_Jtvec(self, m, v):
     if isinstance(self.Jmatrix, Future):
         self.Jmatrix  # Wait to finish
 
-    return array.dot(v, self.Jmatrix)
+    return array.dot(v, self.Jmatrix).astype(np.float32)
 
 
 Sim.Jtvec = dask_Jtvec
@@ -249,19 +249,20 @@ def dask_getJtJdiag(self, m, W=None):
         Return the diagonal of JtJ
     """
     self.model = m
-    if self.gtgdiag is None:
+    if getattr(self, "_jtjdiag", None) is None:
         if isinstance(self.Jmatrix, Future):
             self.Jmatrix  # Wait to finish
 
         if W is None:
             W = np.ones(self.nD)
         else:
-            W = W.diagonal()
+            W = W.diagonal() ** 2.0
 
         diag = array.einsum('i,ij,ij->j', W, self.Jmatrix, self.Jmatrix)
 
         if isinstance(diag, array.Array):
             diag = np.asarray(diag.compute())
 
-        self.gtgdiag = diag
-    return self.gtgdiag
+        self._jtjdiag = diag
+
+    return self._jtjdiag

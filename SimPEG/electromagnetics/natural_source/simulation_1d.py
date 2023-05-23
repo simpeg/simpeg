@@ -309,22 +309,22 @@ class Simulation1DRecursive(BaseSimulation):
         return self._Jmatrix
 
     def getJtJdiag(self, m, W=None, f=None):
-        if getattr(self, "_gtgdiag", None) is None:
+        if getattr(self, "_jtjdiag", None) is None:
             Js = self.getJ(m, f=f)
             if W is None:
                 W = np.ones(self.survey.nD)
             else:
                 W = W.diagonal() ** 2
 
-            gtgdiag = 0
+            jtjdiag = 0
             if self.sigmaMap is not None:
                 J = Js["sigma"] @ self.sigmaDeriv
-                gtgdiag += np.einsum("i,ij,ij->j", W, J, J)
+                jtjdiag += np.einsum("i,ij,ij->j", W, J, J)
             if self.thicknessesMap is not None:
                 J = Js["thick"] @ self.thicknessesDeriv
-                gtgdiag += np.einsum("i,ij,ij->j", W, J, J)
-            self._gtgdiag = gtgdiag
-        return self._gtgdiag
+                jtjdiag += np.einsum("i,ij,ij->j", W, J, J)
+            self._jtjdiag = jtjdiag
+        return self._jtjdiag
 
     def Jvec(self, m, v, f=None):
         J = self.getJ(m, f=None)
@@ -350,5 +350,5 @@ class Simulation1DRecursive(BaseSimulation):
         if self.fix_Jmatrix:
             return toDelete
         else:
-            toDelete = toDelete + ["_Jmatrix", "_gtgdiag"]
+            toDelete = toDelete + ["_Jmatrix", "_jtjdiag"]
         return toDelete

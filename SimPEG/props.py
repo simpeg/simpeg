@@ -440,7 +440,7 @@ class HasModel(BaseSimPEG, metaclass=PhysicalPropertyMetaclass):
             ):
                 # cached properties to delete
                 for prop in self.deleteTheseOnModelUpdate:
-                    if hasattr(self, prop):
+                    if getattr(self, prop, None) is not None:
                         delattr(self, prop)
 
                 # matrix factors to clear

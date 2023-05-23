@@ -136,7 +136,7 @@ class BaseDCSimulation(BaseElectricalPDESimulation):
         """
         Return the diagonal of JtJ
         """
-        if getattr(self, "_gtgdiag", None) is None:
+        if getattr(self, "_jtjdiag", None) is None:
             J = self.getJ(m, f=f)
 
             if W is None:
@@ -148,8 +148,8 @@ class BaseDCSimulation(BaseElectricalPDESimulation):
             for i in range(J.shape[0]):
                 diag += (W[i]) * (J[i] * J[i])
 
-            self._gtgdiag = diag
-        return self._gtgdiag
+            self._jtjdiag = diag
+        return self._jtjdiag
 
     def Jvec(self, m, v, f=None):
         """
@@ -286,7 +286,7 @@ class BaseDCSimulation(BaseElectricalPDESimulation):
     @property
     def deleteTheseOnModelUpdate(self):
         toDelete = super().deleteTheseOnModelUpdate
-        return toDelete + ["_Jmatrix", "_gtgdiag"]
+        return toDelete + ["_Jmatrix", "_jtjdiag"]
 
     def _mini_survey_data(self, d_mini):
         if self._mini_survey is not None:
