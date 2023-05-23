@@ -98,5 +98,9 @@ class CrossReferenceRegularization(Smallness, BaseVectorRegularization):
                         value.reshape((nC, mesh.dim), order="F"), axis=1
                     )
             weights = np.sqrt(weights)
-            self._W = sp.diags(np.r_[weights, weights, weights], format="csr")
+            if mesh.dim == 2:
+                diag = weights
+            else:
+                diag = np.r_[weights, weights, weights]
+            self._W = sp.diags(diag, format="csr")
         return self._W
