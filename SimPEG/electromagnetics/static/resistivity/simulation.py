@@ -374,14 +374,16 @@ class Simulation3DCellCentered(BaseDCSimulation):
         return A
 
     def getADeriv(self, u, v, adjoint=False):
-        D = self.Div
-        G = self.Grad
-        MfRhoIDeriv = self.MfRhoIDeriv
+        if self.rhoMap is not None:
+            D = self.Div
+            G = self.Grad
+            MfRhoIDeriv = self.MfRhoIDeriv
 
-        if adjoint:
-            return MfRhoIDeriv(G @ u, D.T @ v, adjoint)
+            if adjoint:
+                return MfRhoIDeriv(G @ u, D.T @ v, adjoint)
 
-        return D * (MfRhoIDeriv(G @ u, v, adjoint))
+            return D * (MfRhoIDeriv(G @ u, v, adjoint))
+        return Zero()
 
     def getRHS(self):
         """
