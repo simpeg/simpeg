@@ -35,7 +35,7 @@ def read_GOCAD_ts(tsfile):
     while re.match("VRTX", line):
         l_input = re.split(r"[\s*]", line)
         temp = np.array(l_input[2:5])
-        vrtx.append(temp.astype(np.float))
+        vrtx.append(temp.astype(float))
 
         # Read next line
         line = fid.readline()
@@ -53,7 +53,7 @@ def read_GOCAD_ts(tsfile):
     while re.match("TRGL", line):
         l_input = re.split(r"[\s*]", line)
         temp = np.array(l_input[1:4])
-        trgl.append(temp.astype(np.int))
+        trgl.append(temp.astype(int))
 
         # Read next line
         line = fid.readline()
