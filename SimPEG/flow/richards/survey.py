@@ -3,6 +3,7 @@ import numpy as np
 
 from ...survey import BaseSurvey, BaseRx
 from ...utils import validate_list_of_types
+from discretize.utils import Zero
 
 
 class Survey(BaseSurvey):
@@ -80,12 +81,14 @@ class Survey(BaseSurvey):
         numpy.ndarray
             Adjoint derivative with respect to model times a vector
         """
-        dd_du = list(range(len(self.receiver_list)))
-        dd_dm = list(range(len(self.receiver_list)))
+        dd_du = []
+        dd_dm = []
         cnt = 0
         for ii, rx in enumerate(self.receiver_list):
-            dd_du[ii], dd_dm[ii] = rx.deriv(
-                f, simulation, v=v[cnt : cnt + rx.nD], adjoint=True
-            )
+            du, dm = rx.deriv(f, simulation, v=v[cnt : cnt + rx.nD], adjoint=True)
+            if not isinstance(du, Zero):
+                dd_du.append(du)
+            if not isinstance(dm, Zero):
+                dd_dm.append(dm)
             cnt += rx.nD
         return np.sum(dd_du, axis=0), np.sum(dd_dm, axis=0)
