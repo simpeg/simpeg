@@ -3,7 +3,6 @@ import numpy as np
 
 from ...survey import BaseSurvey, BaseRx
 from ...utils import validate_list_of_types
-from discretize.utils import Zero
 
 
 class Survey(BaseSurvey):
