@@ -68,7 +68,12 @@ def compute_J(self, f=None, Ainv=None):
 
         for rx in source.receiver_list:
 
-            PTv = rx.getP(self.mesh, rx.projGLoc(f)).toarray().T
+            if rx.orientation is not None:
+                projected_grid = f._GLoc(rx.projField) + rx.orientation
+            else:
+                projected_grid = f._GLoc(rx.projField)
+
+            PTv = rx.getP(self.mesh, projected_grid).toarray().T
 
             for dd in range(int(np.ceil(PTv.shape[1] / row_chunks))):
                 start, end = dd*row_chunks, np.min([(dd+1)*row_chunks, PTv.shape[1]])
