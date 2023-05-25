@@ -268,10 +268,13 @@ class MultiprocessingMetaSimulation(MetaSimulation):
 
     def close(self):
         for p in self._sim_processes:
-            if p.is_alive():
-                p.task_queue.put(None)
-                p.join()
-                p.close()
+            try:
+                if p.is_alive():
+                    p.task_queue.put(None)
+                    p.close()
+                    p.join()
+            except ValueError:
+                pass
 
     def __del__(self):
         self.close()
