@@ -14,6 +14,7 @@ Sim.sensitivity_path = './sensitivity/'
 Sim.getJtJdiag = dask_getJtJdiag
 Sim.Jvec = dask_Jvec
 Sim.Jtvec = dask_Jtvec
+Sim.clean_on_model_update = ["_Jmatrix", "_jtjdiag"]
 
 
 def dask_fields(self, m=None, return_Ainv=False):
@@ -69,7 +70,13 @@ def compute_J(self, f=None, Ainv=None):
 
     for i_src, source in enumerate(self.survey.source_list):
         for rx in source.receiver_list:
-            PTv = rx.getP(self.mesh, rx.projGLoc(f)).toarray().T
+
+            if rx.orientation is not None:
+                projected_grid = f._GLoc(rx.projField) + rx.orientation
+            else:
+                projected_grid = f._GLoc(rx.projField)
+
+            PTv = rx.getP(self.mesh, projected_grid).toarray().T
 
             for dd in range(int(np.ceil(PTv.shape[1] / row_chunks))):
                 start, end = dd * row_chunks, np.min([(dd + 1) * row_chunks, PTv.shape[1]])
