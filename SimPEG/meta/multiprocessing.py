@@ -311,7 +311,7 @@ class MultiprocessingSumMetaSimulation(
         self.model = m
         if f is None:
             f = self.fields(m)
-        for i, (p, field) in enumerate(zip(self._sim_processes, f)):
+        for p, field in zip(self._sim_processes, f):
             p.start_jt_vec(v, field)
 
         jt_vec = 0
@@ -324,7 +324,7 @@ class MultiprocessingSumMetaSimulation(
         if getattr(self, "_jtjdiag", None) is None:
             if f is None:
                 f = self.fields(m)
-            for i, (p, field) in enumerate(zip(self._sim_processes, f)):
+            for p, field in zip(self._sim_processes, f):
                 p.start_jtj_diag(W, field)
             jtj_diag = 0.0
             for p in self._sim_processes:
