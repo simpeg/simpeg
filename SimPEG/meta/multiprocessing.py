@@ -248,7 +248,7 @@ class MultiprocessingMetaSimulation(MetaSimulation):
             jt_vec += p.result()
         return jt_vec
 
-    def getJtJdiag(self, m, v, f=None):
+    def getJtJdiag(self, m, W=None, f=None):
         self.model = m
         if getattr(self, "_jtjdiag", None) is None:
             if W is None:
