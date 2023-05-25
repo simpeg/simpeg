@@ -559,10 +559,9 @@ class Smallness(BaseRegularization):
     custom cell weights. The weighting applied within the objective function is given by:
 
     .. math::
-        \mathbf{\tilde{w}} = \mathbf{\tilde{v}} \odot \prod_j \mathbf{w_j}
+        \mathbf{\tilde{w}} = \mathbf{v} \odot \prod_j \mathbf{w_j}
 
-    where :math:`\mathbf{\tilde{v}}` are default weights that account for cell volumes
-    and dimensions when the regularization function is discretized to the mesh.
+    where :math:`\mathbf{v}` are the cell volumes.
     The weighting matrix used to apply the weights for smallness regularization is given by:
 
     .. math::
@@ -788,10 +787,9 @@ class SmoothnessFirstOrder(BaseRegularization):
     The weighting applied within the objective function is given by:
 
     .. math::
-        \mathbf{\tilde{w}} = \mathbf{\tilde{v}} \odot \prod_j \mathbf{w_j}
+        \mathbf{\tilde{w}} = \mathbf{v_x} \odot \prod_j \mathbf{w_j}
 
-    where :math:`\mathbf{\tilde{v}}` are default weights that account for cell volumes
-    and dimensions when the regularization function is discretized onto the mesh.
+    where :math:`\mathbf{v_x}` are cell volumes projected to x-faces.
     The weighting matrix is given by:
 
     .. math::
@@ -1147,10 +1145,9 @@ class SmoothnessSecondOrder(SmoothnessFirstOrder):
     is given by:
 
     .. math::
-        \mathbf{\tilde{w}} = \mathbf{\tilde{v}} \odot \prod_j \mathbf{w_j}
+        \mathbf{\tilde{w}} = \mathbf{v} \odot \prod_j \mathbf{w_j}
 
-    where :math:`\mathbf{\tilde{v}}` are default weights that account for cell volumes
-    and dimensions when the regularization function is discretized to the mesh.
+    where :math:`\mathbf{v}` are the cell volumes.
     The weighting matrix used to apply the weights is given by:
 
     .. math::
@@ -1444,13 +1441,12 @@ class WeightedLeastSquares(ComboObjectiveFunction):
     smoothness is not included in the model objective function. That is, the `alpha_xx`, `alpha_yy`
     and `alpha_zz` parameters are set to 0 by default.
 
-    The model objective function has been formulated such that each term is
-    roughly the same size when the :math:`\alpha` parameters are equal; e.g. when
-    :math:`\alpha_s = \alpha_x = \alpha_y = \alpha_z` = ... This is accomplished by applying a
-    default weighting to each term which negates the effects of cell size/dimensions.
-
-    Smoothness parameters can also be set using length scales. For example, by setting the
-    `length_scale_x` property, the `alpha_x` and `alpha_xx` properties are set as:
+    The relative contributions of smallness and smoothness terms on the recovered model can also
+    be set by leaving `alpha_s` as its default value of 1, and setting the smoothness scaling
+    constants based on length scales. The model objective function has been formulated such that
+    smallness and smoothness terms contribute equally when the length scales are equal; i.e. when
+    properties `length_scale_x = length_scale_y = length_scale_z`. When the `length_scale_x`
+    property is set, the `alpha_x` and `alpha_xx` properties are set internally as:
 
     >>> reg.alpha_x = (reg.length_scale_x * reg.regularization_mesh.base_length) ** 2.0
 
@@ -1468,18 +1464,15 @@ class WeightedLeastSquares(ComboObjectiveFunction):
     is given by:
 
     .. math::
-        \mathbf{\tilde{w}} = \mathbf{\tilde{v}} \odot \prod_j \mathbf{w_j}
+        \mathbf{\tilde{w}} = \mathbf{v} \odot \prod_j \mathbf{w_j}
 
     and weights applied to first-order smoothness terms are given by:
 
     .. math::
-        \mathbf{\tilde{w}} = \mathbf{\tilde{v}} \odot \prod_j \mathbf{P \, w_j}
+        \mathbf{\tilde{w}} = \big ( \mathbf{P \, v} \big ) \odot \prod_j \mathbf{P \, w_j}
 
-    :math:`\mathbf{\tilde{v}}` is a placeholder for the default weights that account for cell
-    volumes and dimensions when regularization functions are discretized onto the mesh.
-    These default weights vary depending on the regularization term; e.g. smallness, first-order
-    smoothness in the y-direction. For first-order smoothness terms, a projection matrix
-    :math:`\mathbf{P}` is required to average weights at cell centers to the appropriate faces;
+    :math:`\mathbf{v}` are the cell volumes, and :math:`\mathbf{P}` represents the
+    projection matrix from cell centers to the appropriate faces;
     i.e. where discrete first-order derivatives live.
 
     Weights for each term are used to construct their respective weighting matrices

@@ -315,10 +315,9 @@ class SparseSmallness(BaseSparse, Smallness):
     is given by:
 
     .. math::
-        \mathbf{w}^{(k)} = \mathbf{r_s}^{\!\! (k)} \odot \mathbf{\tilde{v}} \odot \prod_j \mathbf{w_j}
+        \mathbf{w}^{(k)} = \mathbf{r_s}^{\!\! (k)} \odot \mathbf{v} \odot \prod_j \mathbf{w_j}
 
-    where :math:`\mathbf{\tilde{v}}` are default weights that account for cell volumes
-    and dimensions when the regularization function is discretized to the mesh.
+    where :math:`\mathbf{v}` are the cell volumes.
     For a description of how IRLS weights are updated at every iteration, see the documentation
     for :py:meth:`update_weights`.
 
@@ -550,12 +549,11 @@ class SparseSmoothness(BaseSparse, SmoothnessFirstOrder):
     The net weighting applied within the objective function is given by:
 
     .. math::
-        \mathbf{w}^{(k)} = \mathbf{r_x}^{\!\! (k)} \odot \tilde{v} \odot \prod_j \mathbf{w_j}
+        \mathbf{w}^{(k)} = \mathbf{r_x}^{\!\! (k)} \odot \mathbf{v_x} \odot \prod_j \mathbf{w_j}
 
-    where :math:`\mathbf{\tilde{v}}` are default weights that account for cell volumes
-    and dimensions when the regularization function is discretized to the mesh.
-    For a description of how IRLS weights are updated at every iteration, see the documentation
-    for :py:meth:`update_weights`.
+    where :math:`\mathbf{v_x}` are cell volumes projected to x-faces; i.e. where the
+    x-derivative lives. For a description of how IRLS weights are updated at every iteration,
+    see the documentation for :py:meth:`update_weights`.
 
     The weighting matrix used to apply the weights is given by:
 
@@ -859,19 +857,18 @@ class Sparse(WeightedLeastSquares):
 
     .. math::
         \mathbf{w_s}^{\!\! (k)} = \mathbf{r_s}^{\!\! (k)} \odot
-        \mathbf{\tilde{v}_s} \odot \prod_j \mathbf{w_j}
+        \mathbf{v} \odot \prod_j \mathbf{w_j}
 
     And for sparse smoothness along x (likewise for y and z) is given by:
 
     .. math::
-        \mathbf{w_x}^{\!\! (k)} = \mathbf{r_x}^{\!\! (k)} \odot \mathbf{\tilde{v}_x}
+        \mathbf{w_x}^{\!\! (k)} = \mathbf{r_x}^{\!\! (k)} \odot \big ( \mathbf{P_x \, v} \big )
         \odot \prod_j \mathbf{P_x \, w_j}
 
     The IRLS weights at iteration :math:`k` are defined as :math:`\mathbf{r_\ast}^{\!\! (k)}`
-    for :math:`\ast = s,x,y,z`. The default weights that account for cell dimensions when the
-    regularization functions are discretized are defined as :math:`\mathbf{\tilde{v}_\ast}`
-    for :math:`\ast = s,x,y,z`. Operators :math:`\mathbf{P_\ast}` for :math:`\ast = x,y,z`
-    project the user-defined weighting to the appropriate faces.
+    for :math:`\ast = s,x,y,z`. :math:`\mathbf{v}` are the cell volumes.
+    Operators :math:`\mathbf{P_\ast}` for :math:`\ast = x,y,z`
+    project to the appropriate faces.
 
     Once the net weights for all objective functions are computed,
     their weighting matrices can be constructed via:
@@ -908,18 +905,17 @@ class Sparse(WeightedLeastSquares):
 
     The :math:`\alpha` parameters scale the relative contributions of the smallness and smoothness
     terms in the model objective function. Each :math:`\alpha` parameter can be set directly as an
-    appropriate property of the ``Sparse`` class; e.g. :math:`\alpha_x` is set
+    appropriate property of the ``WeightedLeastSquares`` class; e.g. :math:`\alpha_x` is set
     using the `alpha_x` property. Note that unless the parameters are set manually, second-order
     smoothness is not included in the model objective function. That is, the `alpha_xx`, `alpha_yy`
-    and `alpha_zz` properties are set to 0 by default.
+    and `alpha_zz` parameters are set to 0 by default.
 
-    The model objective function has been formulated such that each term is
-    roughly the same size when the :math:`\alpha` parameters are equal; e.g. when
-    :math:`\alpha_s = \alpha_x = \alpha_y = \alpha_z` = ... This is accomplished by applying
-    a default weighting to each term which negates the effects of cell size/dimensions.
-
-    Smoothness parameters can also be set using length scales. For example, by setting the
-    `length_scale_x` property, the `alpha_x` and `alpha_xx` properties are set as:
+    The relative contributions of smallness and smoothness terms on the recovered model can also
+    be set by leaving `alpha_s` as its default value of 1, and setting the smoothness scaling
+    constants based on length scales. The model objective function has been formulated such that
+    smallness and smoothness terms contribute equally when the length scales are equal; i.e. when
+    properties `length_scale_x = length_scale_y = length_scale_z`. When the `length_scale_x`
+    property is set, the `alpha_x` and `alpha_xx` properties are set internally as:
 
     >>> reg.alpha_x = (reg.length_scale_x * reg.regularization_mesh.base_length) ** 2.0
 
@@ -928,7 +924,6 @@ class Sparse(WeightedLeastSquares):
     >>> reg.alpha_xx = (ref.length_scale_x * reg.regularization_mesh.base_length) ** 4.0
 
     Likewise for y and z.
-
     """
 
     def __init__(
