@@ -140,7 +140,7 @@ class CrossReferenceRegularization(Smallness, BaseVectorRegularization):
             for value in self._weights.values():
                 if value.shape == (nC,):
                     weights *= value
-                elif value.size == (mesh.dim * nC,):
+                elif value.size == mesh.dim * nC:
                     weights *= np.linalg.norm(
                         value.reshape((nC, mesh.dim), order="F"), axis=1
                     )
