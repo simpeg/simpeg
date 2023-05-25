@@ -58,4 +58,8 @@ Coming soon!
 
 from .simulation import MetaSimulation, SumMetaSimulation, RepeatedSimulation
 
-from .multiprocessing import MultiprocessingMetaSimulation
+from .multiprocessing import (
+    MultiprocessingMetaSimulation,
+    MultiprocessingSumMetaSimulation,
+    MultiprocessingRepeatedSimulation,
+)

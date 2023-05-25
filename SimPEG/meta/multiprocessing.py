@@ -1,5 +1,5 @@
 from multiprocessing import Process, Queue, cpu_count
-from SimPEG.meta import MetaSimulation
+from SimPEG.meta import MetaSimulation, SumMetaSimulation, RepeatedSimulation
 from SimPEG.props import HasModel
 import uuid
 import numpy as np
@@ -45,7 +45,7 @@ class _SimulationProcess(Process):
     def run(self):
         # everything here is local to the process
         # this sim is actually local to the running process and will
-        # persist between calls to field, dprec, jvec,...
+        # persist between calls to field, dpred, jvec,...
         sim = self.sim_chunk
         # a place to cache the field items locally
         _cached_items = {}
@@ -278,3 +278,90 @@ class MultiprocessingMetaSimulation(MetaSimulation):
 
     def __del__(self):
         self.close()
+
+
+class MultiprocessingSumMetaSimulation(
+    MultiprocessingMetaSimulation, SumMetaSimulation
+):
+    def dpred(self, m=None, f=None):
+        if f is None:
+            if m is None:
+                m = self.model
+            f = self.fields(m)
+        for p, field in zip(self._sim_processes, f):
+            p.start_dpred(field)
+
+        d_pred = 0
+        for p in self._sim_processes:
+            d_pred += p.result()
+        return d_pred
+
+    def Jvec(self, m, v, f=None):
+        self.model = m
+        if f is None:
+            f = self.fields(m)
+        for p, field in zip(self._sim_processes, f):
+            p.start_j_vec(v, field)
+        j_vec = 0
+        for p in self._sim_processes:
+            j_vec += p.result()
+        return j_vec
+
+    def Jtvec(self, m, v, f=None):
+        self.model = m
+        if f is None:
+            f = self.fields(m)
+        for i, (p, field) in enumerate(zip(self._sim_processes, f)):
+            p.start_jt_vec(v, field)
+
+        jt_vec = 0
+        for p in self._sim_processes:
+            jt_vec += p.result()
+        return jt_vec
+
+    def getJtJdiag(self, m, W=None, f=None):
+        self.model = m
+        if getattr(self, "_jtjdiag", None) is None:
+            if f is None:
+                f = self.fields(m)
+            for i, (p, field) in enumerate(zip(self._sim_processes, f)):
+                p.start_jtj_diag(W, field)
+            jtj_diag = 0.0
+            for p in self._sim_processes:
+                jtj_diag += p.result()
+            self._jtjdiag = jtj_diag
+        return self._jtjdiag
+
+
+class MultiprocessingRepeatedSimulation(
+    MultiprocessingMetaSimulation, RepeatedSimulation
+):
+    def __init__(self, simulation, mappings, n_processes=None):
+        # do this to call the initializer of the Repeated Sim
+        super(MultiprocessingMetaSimulation, self).__init__(simulation, mappings)
+
+        if n_processes is None:
+            n_processes = cpu_count()
+
+        # split mappings up into chunks
+        # (Which are currently defined using MetaSimulations)
+        n_sim = len(mappings)
+        chunk_sizes = min(n_processes, n_sim) * [n_sim // n_processes]
+        for i in range(n_sim % n_processes):
+            chunk_sizes[i] += 1
+
+        processes = []
+        i_start = 0
+        for chunk in chunk_sizes:
+            if chunk == 0:
+                continue
+            i_end = i_start + chunk
+            sim_chunk = RepeatedSimulation(
+                self.simulation, self.mappings[i_start:i_end]
+            )
+            p = _SimulationProcess(sim_chunk)
+            processes.append(p)
+            p.start()
+            i_start = i_end
+
+        self._sim_processes = processes
