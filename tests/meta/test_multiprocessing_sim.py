@@ -5,7 +5,6 @@ from SimPEG.electromagnetics.static import resistivity as dc
 from SimPEG import maps
 from discretize import TensorMesh
 import scipy.sparse as sp
-import pytest
 
 from SimPEG.meta import (
     MetaSimulation,
@@ -206,7 +205,6 @@ def test_repeat_correctness():
     sim_ts = np.linspace(0, 1, 6)
 
     repeat_mappings = []
-    repeat_simulations = []
     eye = sp.eye(mesh.n_cells, mesh.n_cells)
     for t in sim_ts:
         ave_time = time_mesh.get_interpolation_matrix(
