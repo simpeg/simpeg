@@ -161,6 +161,11 @@ class MultiprocessingMetaSimulation(MetaSimulation):
     ...     sim = MultiprocessingMetaSimulation(...)
     ...     sim.dpred(model)
 
+    You must also be sure to call sim.close() before discarding
+    this worker to kill the subprocesses that are created, as you would with
+    any other multiprocessing queue.
+
+    >>> sim.close()
     """
 
     def __init__(self, simulations, mappings, n_processes=None):
@@ -268,16 +273,10 @@ class MultiprocessingMetaSimulation(MetaSimulation):
 
     def close(self):
         for p in self._sim_processes:
-            try:
-                if p.is_alive():
-                    p.task_queue.put(None)
-                    p.close()
-                    p.join()
-            except ValueError:
-                pass
-
-    def __del__(self):
-        self.close()
+            if p.is_alive():
+                p.task_queue.put(None)
+                p.join()
+                p.close()
 
 
 class MultiprocessingSumMetaSimulation(
