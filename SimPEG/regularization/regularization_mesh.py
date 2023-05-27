@@ -2,7 +2,6 @@ import numpy as np
 import scipy.sparse as sp
 from SimPEG.utils.code_utils import deprecate_property, validate_active_indices
 
-from .. import props
 from .. import utils
 
 ###############################################################################
@@ -12,7 +11,7 @@ from .. import utils
 ###############################################################################
 
 
-class RegularizationMesh(props.BaseSimPEG):
+class RegularizationMesh:
     """
     **Regularization Mesh**
 

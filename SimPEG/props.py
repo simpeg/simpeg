@@ -259,10 +259,6 @@ def Reciprocal(prop1, prop2):
     prop2.reciprocal = prop1
 
 
-class BaseSimPEG:
-    """"""
-
-
 class PhysicalPropertyMetaclass(type):
     def __new__(mcs, name, bases, classdict):
         # set the phyiscal properties list.
@@ -322,7 +318,7 @@ class PhysicalPropertyMetaclass(type):
         return newcls
 
 
-class HasModel(BaseSimPEG, metaclass=PhysicalPropertyMetaclass):
+class HasModel(metaclass=PhysicalPropertyMetaclass):
     def __init__(self, model=None, **kwargs):
         self.model = model
         super().__init__(**kwargs)
