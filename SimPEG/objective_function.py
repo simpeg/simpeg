@@ -132,7 +132,7 @@ class BaseObjectiveFunction(BaseSimPEG):
             num=num,
             expectedOrder=expectedOrder,
             plotIt=plotIt,
-            **kwargs
+            **kwargs,
         )
 
     def test(self, x=None, num=4, plotIt=False, **kwargs):
@@ -229,48 +229,16 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
         if multipliers is None:
             multipliers = len(objfcts) * [1]
 
-        self._nP = "*"
-
-        assert len(objfcts) == len(multipliers), (
-            "Must have the same number of Objective Functions and Multipliers "
-            "not {} and {}".format(len(objfcts), len(multipliers))
-        )
-
-        def validate_list(objfctlist, multipliers):
-            """
-            ensure that the number of parameters expected by each objective
-            function is the same, ensure that if multpliers are supplied, that
-            list matches the length of the objective function list
-            """
-            for fct, mult in zip(objfctlist, multipliers):
-                assert isinstance(fct, BaseObjectiveFunction), (
-                    "Unrecognized objective function type {} in objfcts. "
-                    "All entries in objfcts must inherit from "
-                    "ObjectiveFunction".format(fct.__class__.__name__)
-                )
-
-                assert type(mult) in self._multiplier_types, (
-                    "Objective Functions can only be multiplied by a "
-                    "float, or a properties.Float, not a {}, {}".format(
-                        type(mult), mult
-                    )
-                )
-
-                if fct.nP != "*":
-                    if self._nP != "*":
-                        assert self._nP == fct.nP, (
-                            "Objective Functions must all have the same "
-                            "nP={}, not {}".format(self.nP, [f.nP for f in objfcts])
-                        )
-                    else:
-                        self._nP = fct.nP
-
-        validate_list(objfcts, multipliers)
-
+        self._validate_objective_functions_and_multipliers(objfcts, multipliers)
         self.objfcts = objfcts
         self._multipliers = multipliers
 
-        super(ComboObjectiveFunction, self).__init__(**kwargs)
+        print("kwargs:", kwargs)
+        if "nP" not in kwargs:
+            number_of_parameters = [f.nP for f in objfcts if f.nP != "*"]
+            if number_of_parameters:
+                kwargs["nP"] = number_of_parameters[0]
+        super().__init__(**kwargs)
 
     def __len__(self):
         return len(self.multipliers)
@@ -389,6 +357,52 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
                     target += [fct]
 
         return [fun for fun in target if fun]
+
+    def _validate_objective_functions_and_multipliers(
+        self, objective_functions, multipliers
+    ):
+        """
+        Check objective functions and multipliers passed to the constructor
+
+        Check that the objective functions and the multipliers have the same
+        number of elements. Check if the objective functions and multipliers
+        have the right types. Check all objective functions have the same
+        number of parameters.
+        """
+        # Check len of objective functions and multipliers
+        if len(objective_functions) != len(multipliers):
+            raise ValueError(
+                "Inconsistent number of elements between objective functions "
+                f"('{len(objective_functions)}') and multipliers "
+                f"('{len(multipliers)}'). They must have the same number of parameters."
+            )
+        # Check types of objective functions
+        for function in objective_functions:
+            if not isinstance(function, BaseObjectiveFunction):
+                raise TypeError(
+                    "Unrecognized objective function type "
+                    f"{function.__class__.__name__} in 'objfcts'. "
+                    "All objective functions must inherit from BaseObjectiveFunction."
+                )
+        # Check if objective functions have the same number of parameters
+        number_of_parameters = [f.nP for f in objective_functions if f.nP != "*"]
+        if number_of_parameters:
+            all_equal = all(np.equal(number_of_parameters, number_of_parameters[0]))
+            if not all_equal:
+                np_list = [f.nP for f in objective_functions]
+                raise ValueError(
+                    f"Invalid number of parameters '{np_list}' found in "
+                    "objective functions. Except for the ones with '*', they all "
+                    "must have the same number of parameters."
+                )
+        # Check types of multipliers
+        for multiplier in multipliers:
+            if type(multiplier) not in self._multiplier_types:
+                valid_types = ", ".join(str(t) for t in self._multiplier_types)
+                raise TypeError(
+                    f"Invalid multiplier '{multiplier}' of type '{type(multiplier)}'. "
+                    "Objective functions can only be multiplied by " + valid_types
+                )
 
 
 class L2ObjectiveFunction(BaseObjectiveFunction):
