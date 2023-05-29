@@ -204,7 +204,8 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
         composite class. If ``None``, an empty list will be created.
     multipliers : list or None, optional
         List containing the multipliers for its respective objective function
-        in ``objfcts``.  If ``None``, an empty list will be created.
+        in ``objfcts``.  If ``None``, a list full of ones with the same length
+        as ``objfcts`` will be created.
 
     Examples
     --------
@@ -216,11 +217,16 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
     _multiplier_types = (float, None, Zero, np.float64, int, np.integer)
 
     def __init__(self, objfcts=None, multipliers=None):
+        # Define default lists if None
         if objfcts is None:
             objfcts = []
         if multipliers is None:
             multipliers = len(objfcts) * [1]
-        self._validate_objective_functions_and_multipliers(objfcts, multipliers)
+
+        # Validate inputs
+        self._check_length_objective_funcs_multipliers(objfcts, multipliers)
+        self._validate_objective_functions(objfcts)
+        self._validate_multipliers(multipliers)
 
         # Get number of parameters (nP) from objective functions
         number_of_parameters = [f.nP for f in objfcts if f.nP != "*"]
@@ -241,22 +247,18 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
 
     @property
     def multipliers(self):
+        """
+        Multipliers for each objective function
+        """
         return self._multipliers
 
     @multipliers.setter
     def multipliers(self, value):
-        for val in value:
-            assert (
-                type(val) in self._multiplier_types
-            ), "Multiplier must be in type {} not {}".format(
-                self._multiplier_types, type(val)
-            )
-
-        assert len(value) == len(self.objfcts), (
-            "the length of multipliers should be the same as the number of"
-            " objective functions ({}), not {}".format(len(self.objfcts), len(value))
-        )
-
+        """
+        Set multipliers attribute after checking if they are valid
+        """
+        self._validate_multipliers(value)
+        self._check_length_objective_funcs_multipliers(self.objfcts, value)
         self._multipliers = value
 
     def __call__(self, m, f=None):
@@ -351,25 +353,13 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
 
         return [fun for fun in target if fun]
 
-    def _validate_objective_functions_and_multipliers(
-        self, objective_functions, multipliers
-    ):
+    def _validate_objective_functions(self, objective_functions):
         """
-        Check objective functions and multipliers passed to the constructor
+        Validate objective functions
 
-        Check that the objective functions and the multipliers have the same
-        number of elements. Check if the objective functions and multipliers
-        have the right types. Check all objective functions have the same
-        number of parameters.
+        Check if the objective functions have the right types, and if
+        they all have the same number of parameters.
         """
-        # Check len of objective functions and multipliers
-        if len(objective_functions) != len(multipliers):
-            raise ValueError(
-                "Inconsistent number of elements between objective functions "
-                f"('{len(objective_functions)}') and multipliers "
-                f"('{len(multipliers)}'). They must have the same number of parameters."
-            )
-        # Check types of objective functions
         for function in objective_functions:
             if not isinstance(function, BaseObjectiveFunction):
                 raise TypeError(
@@ -377,7 +367,6 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
                     f"{function.__class__.__name__} in 'objfcts'. "
                     "All objective functions must inherit from BaseObjectiveFunction."
                 )
-        # Check if objective functions have the same number of parameters
         number_of_parameters = [f.nP for f in objective_functions if f.nP != "*"]
         if number_of_parameters:
             all_equal = all(np.equal(number_of_parameters, number_of_parameters[0]))
@@ -388,7 +377,13 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
                     "objective functions. Except for the ones with '*', they all "
                     "must have the same number of parameters."
                 )
-        # Check types of multipliers
+
+    def _validate_multipliers(self, multipliers):
+        """
+        Validate multipliers
+
+        Check if the multipliers have the right types.
+        """
         for multiplier in multipliers:
             if type(multiplier) not in self._multiplier_types:
                 valid_types = ", ".join(str(t) for t in self._multiplier_types)
@@ -396,6 +391,19 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
                     f"Invalid multiplier '{multiplier}' of type '{type(multiplier)}'. "
                     "Objective functions can only be multiplied by " + valid_types
                 )
+
+    def _check_length_objective_funcs_multipliers(
+        self, objective_functions, multipliers
+    ):
+        """
+        Check if objective functions and multipliers have the same length
+        """
+        if len(objective_functions) != len(multipliers):
+            raise ValueError(
+                "Inconsistent number of elements between objective functions "
+                f"('{len(objective_functions)}') and multipliers "
+                f"('{len(multipliers)}'). They must have the same number of parameters."
+            )
 
 
 class L2ObjectiveFunction(BaseObjectiveFunction):
