@@ -191,30 +191,26 @@ class BaseObjectiveFunction(BaseSimPEG):
 
 class ComboObjectiveFunction(BaseObjectiveFunction):
     """
-    A composite objective function that consists of multiple objective
-    functions. Objective functions are stored in a list, and multipliers
-    are stored in a parallel list.
+    Composite class for multiple objective functions
 
-    .. code::python
+    A composite class for multiple objective functions. Each objective function
+    is accompanied by a multiplier. Both objective functions and multipliers
+    are stored in a list.
 
-        import SimPEG.ObjectiveFunction
-        phi1 = ObjectiveFunction.L2ObjectiveFunction(nP=10)
-        phi2 = ObjectiveFunction.L2ObjectiveFunction(nP=10)
+    Parameters
+    ----------
+    objfcts : list or None, optional
+        List containing the objective functions that will live inside the
+        composite class. If ``None``, an empty list will be created.
+    multipliers : list or None, optional
+        List containing the multipliers for its respective objective function
+        in ``objfcts``.  If ``None``, an empty list will be created.
 
-        phi = 2*phi1 + 3*phi2
-
-    is equivalent to
-
-        .. code::python
-
-            import SimPEG.ObjectiveFunction
-            phi1 = ObjectiveFunction.L2ObjectiveFunction(nP=10)
-            phi2 = ObjectiveFunction.L2ObjectiveFunction(nP=10)
-
-            phi = ObjectiveFunction.ComboObjectiveFunction(
-                [phi1, phi2], [2, 3]
-            )
-
+    Examples
+    --------
+    >>> objective_fun_a = BaseObjectiveFunction(nP=3)
+    >>> objective_fun_b = BaseObjectiveFunction(nP=3)
+    >>> combo = ComboObjectiveFunction([objective_fun_a, objective_fun_b], [1, 0.5])
     """
 
     _multiplier_types = (float, None, Zero, np.float64, int, np.integer)
