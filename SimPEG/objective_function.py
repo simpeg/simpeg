@@ -28,11 +28,8 @@ class BaseObjectiveFunction(BaseSimPEG):
     _mapping = None  #: An IdentityMap instance.
     _has_fields = False  #: should we have the option to store fields
 
-    _nP = None  #: number of parameters
-
     def __init__(self, nP=None, **kwargs):
-        if nP is not None:
-            self._nP = nP
+        self._nP = nP
         set_kwargs(self, **kwargs)
 
     def __call__(self, x, f=None):
