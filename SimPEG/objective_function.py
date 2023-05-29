@@ -217,25 +217,25 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
 
     """
 
-    _multiplier_types = (float, None, Zero, np.float64, int, np.integer)  # Directive
-    _multipliers = None
+    _multiplier_types = (float, None, Zero, np.float64, int, np.integer)
 
-    def __init__(self, objfcts=None, multipliers=None, **kwargs):
+    def __init__(self, objfcts=None, multipliers=None):
         if objfcts is None:
             objfcts = []
         if multipliers is None:
             multipliers = len(objfcts) * [1]
-
         self._validate_objective_functions_and_multipliers(objfcts, multipliers)
+
+        # Get number of parameters (nP) from objective functions
+        number_of_parameters = [f.nP for f in objfcts if f.nP != "*"]
+        if number_of_parameters:
+            nP = number_of_parameters[0]
+        else:
+            nP = None
+
+        super().__init__(nP=nP)
         self.objfcts = objfcts
         self._multipliers = multipliers
-
-        print("kwargs:", kwargs)
-        if "nP" not in kwargs:
-            number_of_parameters = [f.nP for f in objfcts if f.nP != "*"]
-            if number_of_parameters:
-                kwargs["nP"] = number_of_parameters[0]
-        super().__init__(**kwargs)
 
     def __len__(self):
         return len(self.multipliers)
