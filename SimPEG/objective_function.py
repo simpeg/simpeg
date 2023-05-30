@@ -143,38 +143,35 @@ class BaseObjectiveFunction(BaseSimPEG):
 
     __numpy_ufunc__ = True
 
-    def __add__(self, objfct2):
-        if isinstance(objfct2, Zero):
+    def __add__(self, other):
+        if isinstance(other, Zero):
             return self
-
-        if not isinstance(objfct2, BaseObjectiveFunction):
-            raise Exception(
-                "Cannot add type {} to an objective function. Only "
-                "ObjectiveFunctions can be added together".format(
-                    objfct2.__class__.__name__
-                )
+        if not isinstance(other, BaseObjectiveFunction):
+            raise TypeError(
+                f"Cannot add type '{other.__class__.__name__}' to an objective "
+                "function. Only ObjectiveFunctions can be added together."
             )
+        objective_functions, multipliers = [], []
+        for instance in (self, other):
+            if instance.__class__.__name__ == "ComboObjectiveFunction":
+                # Don't use `isinstance(instance, ComboObjectiveFunction)`
+                # here. Any child of ComboObjectiveFunction should be added as
+                # a whole, not unpacked in the resulting Combo class.
+                objective_functions += instance.objfcts
+                multipliers += instance.multipliers
+            else:
+                objective_functions.append(instance)
+                multipliers.append(1)
+        combo = ComboObjectiveFunction(
+            objfcts=objective_functions, multipliers=multipliers
+        )
+        return combo
 
-        if (
-            self.__class__.__name__ != "ComboObjectiveFunction"
-        ):  # not isinstance(self, ComboObjectiveFunction):
-            self = 1 * self
-
-        if (
-            objfct2.__class__.__name__ != "ComboObjectiveFunction"
-        ):  # not isinstance(objfct2, ComboObjectiveFunction):
-            objfct2 = 1 * objfct2
-
-        objfctlist = self.objfcts + objfct2.objfcts
-        multipliers = self.multipliers + objfct2.multipliers
-
-        return ComboObjectiveFunction(objfcts=objfctlist, multipliers=multipliers)
-
-    def __radd__(self, objfct2):
-        return self + objfct2
+    def __radd__(self, other):
+        return self + other
 
     def __mul__(self, multiplier):
-        return ComboObjectiveFunction([self], [multiplier])
+        return ComboObjectiveFunction(objfcts=[self], multipliers=[multiplier])
 
     def __rmul__(self, multiplier):
         return self * multiplier
