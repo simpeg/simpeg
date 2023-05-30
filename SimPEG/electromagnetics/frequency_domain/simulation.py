@@ -1,8 +1,11 @@
 import numpy as np
 import scipy.sparse as sp
+from scipy.constants import epsilon_0
 from discretize.utils import Zero
 
+from ... import props
 from ...data import Data
+from ...base.pde_simulation import with_property_mass_matrices
 from ...utils import mkvc, validate_type
 from ..base import BaseEMSimulation
 from ..utils import omega
@@ -16,6 +19,7 @@ from .fields import (
 )
 
 
+@with_property_mass_matrices("permittivity")
 class BaseFDEMSimulation(BaseEMSimulation):
     r"""
     We start by looking at Maxwell's equations in the electric
@@ -53,9 +57,18 @@ class BaseFDEMSimulation(BaseEMSimulation):
 
     fieldsPair = FieldsFDEM
 
-    def __init__(self, mesh, survey=None, forward_only=False, **kwargs):
+    permittivity = props.PhysicalProperty("Dielectric permittivity (F/m)")
+
+    def __init__(
+        self, mesh, survey=None, forward_only=False, permittivity=None, **kwargs
+    ):
         super().__init__(mesh=mesh, survey=survey, **kwargs)
         self.forward_only = forward_only
+        if permittivity is not None:
+            self.permittivity = permittivity
+            self.quasistatic = False
+        else:
+            self.quasistatic = True
 
     @property
     def survey(self):
@@ -88,6 +101,25 @@ class BaseFDEMSimulation(BaseEMSimulation):
     @forward_only.setter
     def forward_only(self, value):
         self._forward_only = validate_type("forward_only", value, bool)
+
+    @property
+    def quasistatic(self):
+        """If True, we assume the quasistatic approximation to Maxwell's
+        equations and neglect the role of dielectric permittivity in the
+        simulation. The default is True.
+
+        Returns
+        -------
+        bool
+        """
+        return self._quasistatic
+
+    @quasistatic.setter
+    def quasistatic(self, value):
+        if value is False and self.permittivity is None:
+            print("Permittivity not set. Setting to default free-space value.")
+            self.permittivity = epsilon_0
+        self._quasistatic = validate_type("quasistatic", value, bool)
 
     # @profile
     def fields(self, m=None):
@@ -282,9 +314,13 @@ class Simulation3DElectricField(BaseFDEMSimulation):
 
         MfMui = self.MfMui
         MeSigma = self.MeSigma
+        MePermittivity = self.MePermittivity
         C = self.mesh.edge_curl
 
-        return C.T.tocsr() * MfMui * C + 1j * omega(freq) * MeSigma
+        A = C.T.tocsr() * MfMui * C + 1j * omega(freq) * MeSigma
+        if self.quasistatic is False:
+            A = A - omega(freq) ** 2 * MePermittivity
+        return A
 
     def getADeriv_sigma(self, freq, u, v, adjoint=False):
         r"""
@@ -328,9 +364,31 @@ class Simulation3DElectricField(BaseFDEMSimulation):
 
         return C.T * (self.MfMuiDeriv(C * u) * v)
 
+    def getADeriv_permittivity(self, freq, u, v, adjoint=False):
+        r"""
+        Product of the derivative of our system matrix with respect to the
+        permittivity model and a vector
+
+        :param float freq: frequency
+        :param numpy.ndarray u: solution vector (nE,)
+        :param numpy.ndarray v: vector to take prodct with (nP,) or (nD,) for
+            adjoint
+        :param bool adjoint: adjoint?
+        :rtype: numpy.ndarray
+        :return: derivative of the system matrix times a vector (nP,) or
+            adjoint (nD,)
+        """
+
+        if self.quasistatic is True:
+            return Zero()
+        dMe_dpermittivity_v = self.MePermittivityDeriv(u, v, adjoint)
+        return -omega(freq) ** 2 * dMe_dpermittivity_v
+
     def getADeriv(self, freq, u, v, adjoint=False):
-        return self.getADeriv_sigma(freq, u, v, adjoint) + self.getADeriv_mui(
-            freq, u, v, adjoint
+        return (
+            self.getADeriv_sigma(freq, u, v, adjoint)
+            + self.getADeriv_mui(freq, u, v, adjoint)
+            + self.getADeriv_permittivity(freq, u, v, adjoint)
         )
 
     def getRHS(self, freq):
