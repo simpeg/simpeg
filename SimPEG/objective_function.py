@@ -25,11 +25,11 @@ class BaseObjectiveFunction(BaseSimPEG):
     debug = False
 
     mapPair = IdentityMap  #: Base class of expected maps
-    _mapping = None  #: An IdentityMap instance.
     _has_fields = False  #: should we have the option to store fields
 
-    def __init__(self, nP=None, **kwargs):
+    def __init__(self, nP=None, mapping=None, **kwargs):
         self._nP = nP
+        self._mapping = mapping
         set_kwargs(self, **kwargs)
 
     def __call__(self, x, f=None):

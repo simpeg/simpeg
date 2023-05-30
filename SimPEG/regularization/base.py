@@ -58,10 +58,9 @@ class BaseRegularization(BaseObjectiveFunction):
         if active_cells is not None:
             self.active_cells = active_cells
 
-        self.mapping = mapping
+        super().__init__(nP=None, mapping=None, **kwargs)
 
-        super().__init__(**kwargs)
-
+        self.mapping = mapping  # Set mapping using the setter
         self.reference_model = reference_model
         self.units = units
 
