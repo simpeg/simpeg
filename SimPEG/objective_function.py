@@ -412,17 +412,22 @@ class L2ObjectiveFunction(BaseObjectiveFunction):
         \phi = \frac{1}{2}||\mathbf{W} \mathbf{m}||^2
     """
 
-    def __init__(self, W=None, **kwargs):
-        super(L2ObjectiveFunction, self).__init__(**kwargs)
-        if W is not None:
-            if self.nP == "*":
-                self._nP = W.shape[1]
+    def __init__(self, nP=None, mapping=None, W=None):
+        # Check if nP and shape of W are consistent
+        if W is not None and nP is not None and nP != W.shape[1]:
+            raise ValueError(
+                f"Number of parameters nP ('{nP}') doesn't match the number of "
+                f"rows ('{W.shape[1]}') of the weights matrix W."
+            )
+        super().__init__(nP=nP, mapping=mapping)
+        if W is not None and self.nP == "*":
+            self._nP = W.shape[1]
         self._W = W
 
     @property
     def W(self):
         """
-        Weighting matrix. The default if not sepcified is an identity.
+        Weighting matrix. The default if not specified is an identity.
         """
         if getattr(self, "_W", None) is None:
             if self._nC_residual != "*":

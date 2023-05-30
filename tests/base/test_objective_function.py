@@ -1,6 +1,7 @@
 import numpy as np
 import scipy.sparse as sp
 import unittest
+import pytest
 
 from SimPEG import utils, maps
 from SimPEG import objective_function
@@ -312,6 +313,15 @@ class TestBaseObjFct(unittest.TestCase):
 
         with self.assertRaises(Exception):
             phi3.multipliers = ["a", "b"]
+
+    def test_inconsistent_nparams_and_weights(self):
+        """
+        Test if L2ObjectiveFunction raises error after nP != columns in W
+        """
+        n_params = 9
+        weights = np.zeros((5, n_params + 1))
+        with pytest.raises(ValueError, match="Number of parameters nP"):
+            objective_function.L2ObjectiveFunction(nP=n_params, W=weights)
 
 
 if __name__ == "__main__":
