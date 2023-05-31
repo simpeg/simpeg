@@ -22,13 +22,21 @@ class BaseObjectiveFunction(BaseSimPEG):
     """
 
     map_class = IdentityMap  #: Base class of expected maps
-    _has_fields = False  #: should we have the option to store fields
 
-    def __init__(self, nP=None, mapping=None, counter=None, debug=False, **kwargs):
+    def __init__(
+        self,
+        nP=None,
+        mapping=None,
+        has_fields=False,
+        counter=None,
+        debug=False,
+        **kwargs,
+    ):
         self._nP = nP
         self._mapping = mapping
         self.counter = counter
         self.debug = debug
+        self.has_fields = has_fields
         set_kwargs(self, **kwargs)
 
     def __call__(self, x, f=None):
@@ -263,11 +271,11 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
             multiplier, objfct = phi
             if multiplier == 0.0:  # don't evaluate the fct
                 continue
+            if f is not None and objfct.has_fields:
+                objective_func_value = objfct(m, f=f[i])
             else:
-                if f is not None and objfct._has_fields:
-                    fct += multiplier * objfct(m, f=f[i])
-                else:
-                    fct += multiplier * objfct(m)
+                objective_func_value = objfct(m)
+            fct += multiplier * objective_func_value
         return fct
 
     def deriv(self, m, f=None):
@@ -284,15 +292,12 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
             multiplier, objfct = phi
             if multiplier == 0.0:  # don't evaluate the fct
                 continue
+            if f is not None and objfct.has_fields:
+                aux = objfct.deriv(m, f=f[i])
             else:
-                if f is not None and objfct._has_fields:
-                    aux = objfct.deriv(m, f=f[i])
-                    if not isinstance(aux, Zero):
-                        g += multiplier * aux
-                else:
-                    aux = objfct.deriv(m)
-                    if not isinstance(aux, Zero):
-                        g += multiplier * aux
+                aux = objfct.deriv(m)
+            if not isinstance(aux, Zero):
+                g += multiplier * aux
         return g
 
     def deriv2(self, m, v=None, f=None):
@@ -310,12 +315,11 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
             multiplier, objfct = phi
             if multiplier == 0.0:  # don't evaluate the fct
                 continue
+            if f is not None and objfct.has_fields:
+                objfct_H = objfct.deriv2(m, v, f=f[i])
             else:
-                if f is not None and objfct._has_fields:
-                    objfct_H = objfct.deriv2(m, v, f=f[i])
-                else:
-                    objfct_H = objfct.deriv2(m, v)
-                H = H + multiplier * objfct_H
+                objfct_H = objfct.deriv2(m, v)
+            H = H + multiplier * objfct_H
         return H
 
     # This assumes all objective functions have a W.
@@ -411,14 +415,24 @@ class L2ObjectiveFunction(BaseObjectiveFunction):
         \phi = \frac{1}{2}||\mathbf{W} \mathbf{m}||^2
     """
 
-    def __init__(self, nP=None, mapping=None, W=None):
+    def __init__(
+        self,
+        nP=None,
+        mapping=None,
+        W=None,
+        has_fields=False,
+        counter=None,
+        debug=False,
+    ):
         # Check if nP and shape of W are consistent
         if W is not None and nP is not None and nP != W.shape[1]:
             raise ValueError(
                 f"Number of parameters nP ('{nP}') doesn't match the number of "
                 f"rows ('{W.shape[1]}') of the weights matrix W."
             )
-        super().__init__(nP=nP, mapping=mapping)
+        super().__init__(
+            nP=nP, mapping=mapping, has_fields=has_fields, debug=debug, counter=counter
+        )
         if W is not None and self.nP == "*":
             self._nP = W.shape[1]
         self._W = W
