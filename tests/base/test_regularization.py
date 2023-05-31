@@ -20,6 +20,7 @@ IGNORE_ME = [
     "BaseSimilarityMeasure",
     "SimpleComboRegularization",
     "BaseSparse",
+    "BaseVectorRegularization",
     "PGI",
     "PGIwithRelationships",
     "PGIwithNonlinearRelationshipsSmallness",
@@ -28,6 +29,7 @@ IGNORE_ME = [
     "LinearCorrespondence",
     "JointTotalVariation",
     "VectorAmplitude",
+    "CrossReferenceRegularization",
 ]
 
 
@@ -595,6 +597,46 @@ def test_WeightedLeastSquares():
 
     reg.length_scale_z = 0.8
     np.testing.assert_allclose(reg.length_scale_z, 0.8)
+
+
+@pytest.mark.parametrize("dim", [2, 3])
+def test_cross_ref_reg(dim):
+    mesh = discretize.TensorMesh([3, 4, 5][:dim])
+    actives = mesh.cell_centers[:, -1] < 0.6
+    n_active = actives.sum()
+
+    ref_dir = dim * [1]
+
+    cross_reg = regularization.CrossReferenceRegularization(
+        mesh, ref_dir, active_cells=actives
+    )
+
+    assert cross_reg.ref_dir.shape == (n_active, dim)
+    assert cross_reg._nC_residual == dim * n_active
+
+    # give it some cell weights, and some cell vector weights to do something with
+    cell_weights = np.random.rand(n_active)
+    cell_vec_weights = np.random.rand(n_active, dim)
+    cross_reg.set_weights(cell_weights=cell_weights)
+    cross_reg.set_weights(vec_weights=cell_vec_weights)
+
+    if dim == 3:
+        assert cross_reg.W.shape == (3 * n_active, 3 * n_active)
+    else:
+        assert cross_reg.W.shape == (n_active, n_active)
+
+    m = np.random.rand(dim * n_active)
+    cross_reg.test(m)
+
+
+def test_cross_reg_reg_errors():
+    mesh = discretize.TensorMesh([3, 4, 5])
+
+    # bad ref_dir shape
+    ref_dir = np.random.rand(mesh.n_cells - 1, mesh.dim)
+
+    with pytest.raises(ValueError, match="ref_dir"):
+        regularization.CrossReferenceRegularization(mesh, ref_dir)
 
 
 if __name__ == "__main__":

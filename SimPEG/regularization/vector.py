@@ -1,5 +1,4 @@
 from __future__ import annotations
-
 from typing import TYPE_CHECKING
 
 import scipy.sparse as sp
@@ -12,16 +11,13 @@ from .sparse import Sparse, SparseSmallness, SparseSmoothness
 if TYPE_CHECKING:
     from scipy.sparse import csr_matrix
 
-# Regularizations for vector models.
-
-
 class BaseVectorRegularization(BaseRegularization):
-    """The regularizers work on models where each value is a vector."""
+    """Base regularizer for models where each value is a vector.
 
-    @property
-    def n_comp(self):
-        """Number of components in the model."""
-        return int(self.mapping.shape[0] / self.regularization_mesh.nC)
+    Used when your model has a multiple parameters for each cell. This can be helpful if
+    your model is made up of vector values in each cell or it is an anisotropic model.
+    """
+
 
     @property
     def _weights_shapes(self) -> list[tuple[int]]:
@@ -33,10 +29,47 @@ class BaseVectorRegularization(BaseRegularization):
             Each tuple represents accetable shapes for the weights
         """
         mesh = self.regularization_mesh
+        
         return [(mesh.nC,), (self.n_comp * mesh.nC,), (mesh.nC, self.n_comp)]
 
 
 class CrossReferenceRegularization(Smallness, BaseVectorRegularization):
+    r"""Vector regularization with a reference direction.
+
+    This regularizer measures the magnitude of the cross product of the vector model
+    with a reference vector model. This encourages the vectors in the model to point
+    in the reference direction. The cross product of two vectors is minimized when they
+    are parallel (or anti-parallel) to each other, and maximized when the vectors are
+    perpendicular to each other.
+
+    Parameters
+    ----------
+    mesh : discretize.base.BaseMesh, .RegularizationMesh
+        The mesh defining the model discretization.
+    ref_dir : (mesh.dim,) array_like or (mesh.dim, n_active) array_like
+        The reference direction model. This can be either a constant vector applied
+        to every model cell, or different for every active model cell.
+    active_cells : index_array, optional
+        Boolean array or an array of active indices indicating the active cells of the
+        inversion domain mesh.
+    mapping : SimPEG.maps.IdentityMap, optional
+        An optional linear mapping that would go from the model space to the space where
+        the cross-product is enforced.
+    weights : dict of [str: array_like], optional
+        Any cell based weights for the regularization. Note if given a weight that is
+        (n_cells, dim), meaning it is dependent on the vector component, it will compute
+        the geometric mean of the component weights per cell and use that as a weight.
+    **kwargs
+        Arguments passed on to the parent classes: :py:class`.Smallness` and
+        :py:class`.BaseVectorRegularization`.
+
+    Notes
+    -----
+    The continuous form of this regularization looks like:
+
+    .. math::
+        \phi_{cross}(m) = \int_{V} ||\vec{m} \times \vec{m}_{ref}||^2 dV
+    """
     def __init__(
         self, mesh, ref_dir, active_cells=None, mapping=None, weights=None, **kwargs
     ):
@@ -57,6 +90,12 @@ class CrossReferenceRegularization(Smallness, BaseVectorRegularization):
 
     @property
     def ref_dir(self):
+        """The reference direction model
+
+        Returns
+        -------
+        (n_active, dim) numpy.ndarray
+        """
         return self._ref_dir
 
     @ref_dir.setter
@@ -70,6 +109,7 @@ class CrossReferenceRegularization(Smallness, BaseVectorRegularization):
                 value = np.tile(value, (nC, 1))
             else:
                 raise ValueError(f"ref_dir must be shape {(nC, self.n_comp)}")
+
         self._ref_dir = value
 
         R0 = sp.diags(value[:, 0])
@@ -106,6 +146,7 @@ class CrossReferenceRegularization(Smallness, BaseVectorRegularization):
             for value in self._weights.values():
                 if value.shape == (nC,):
                     weights *= value
+           
                 elif value.size == (self.n_comp * nC,):
                     weights *= np.linalg.norm(
                         value.reshape((nC, self.n_comp), order="F"), axis=1
@@ -327,3 +368,4 @@ class VectorAmplitude(Sparse):
             mapping=mapping,
             **kwargs,
         )
+
