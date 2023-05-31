@@ -40,6 +40,9 @@ class BaseObjectiveFunction(BaseSimPEG):
         set_kwargs(self, **kwargs)
 
     def __call__(self, x, f=None):
+        """
+        Evaluate the objective functions for a given model
+        """
         raise NotImplementedError(
             "__call__ has not been implemented for {} yet".format(
                 self.__class__.__name__
@@ -266,6 +269,9 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
         self._multipliers = value
 
     def __call__(self, m, f=None):
+        """
+        Evaluate the objective functions for a given model
+        """
         fct = 0.0
         for i, phi in enumerate(self):
             multiplier, objfct = phi
@@ -450,6 +456,9 @@ class L2ObjectiveFunction(BaseObjectiveFunction):
         return self._W
 
     def __call__(self, m):
+        """
+        Evaluate the objective functions for a given model
+        """
         r = self.W * (self.mapping * m)
         return 0.5 * r.dot(r)
 
