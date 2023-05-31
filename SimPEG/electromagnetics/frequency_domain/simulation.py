@@ -18,8 +18,9 @@ from .fields import (
     Fields3DCurrentDensity,
 )
 
+import warnings
 
-@with_property_mass_matrices("permittivity")
+
 class BaseFDEMSimulation(BaseEMSimulation):
     r"""
     We start by looking at Maxwell's equations in the electric
@@ -57,18 +58,9 @@ class BaseFDEMSimulation(BaseEMSimulation):
 
     fieldsPair = FieldsFDEM
 
-    permittivity = props.PhysicalProperty("Dielectric permittivity (F/m)")
-
-    def __init__(
-        self, mesh, survey=None, forward_only=False, permittivity=None, **kwargs
-    ):
+    def __init__(self, mesh, survey=None, forward_only=False, **kwargs):
         super().__init__(mesh=mesh, survey=survey, **kwargs)
         self.forward_only = forward_only
-        if permittivity is not None:
-            self.permittivity = permittivity
-            self.quasistatic = False
-        else:
-            self.quasistatic = True
 
     @property
     def survey(self):
@@ -101,25 +93,6 @@ class BaseFDEMSimulation(BaseEMSimulation):
     @forward_only.setter
     def forward_only(self, value):
         self._forward_only = validate_type("forward_only", value, bool)
-
-    @property
-    def quasistatic(self):
-        """If True, we assume the quasistatic approximation to Maxwell's
-        equations and neglect the role of dielectric permittivity in the
-        simulation. The default is True.
-
-        Returns
-        -------
-        bool
-        """
-        return self._quasistatic
-
-    @quasistatic.setter
-    def quasistatic(self, value):
-        if value is False and self.permittivity is None:
-            print("Permittivity not set. Setting to default free-space value.")
-            self.permittivity = epsilon_0
-        self._quasistatic = validate_type("quasistatic", value, bool)
 
     # @profile
     def fields(self, m=None):
@@ -269,6 +242,7 @@ class BaseFDEMSimulation(BaseEMSimulation):
 ###############################################################################
 
 
+@with_property_mass_matrices("permittivity")
 class Simulation3DElectricField(BaseFDEMSimulation):
     r"""
     By eliminating the magnetic flux density using
@@ -298,6 +272,15 @@ class Simulation3DElectricField(BaseFDEMSimulation):
     _formulation = "EB"
     fieldsPair = Fields3DElectricField
 
+    permittivity = props.PhysicalProperty("Dielectric permittivity (F/m)")
+    # permittivity, permittivityMap, permittivityDeriv = props.Invertible("Dielectric permittivity (F/m)")
+
+    def __init__(
+        self, mesh, survey=None, forward_only=False, permittivity=None, **kwargs
+    ):
+        super().__init__(mesh=mesh, survey=survey, forward_only=forward_only, **kwargs)
+        self.permittivity = permittivity
+
     def getA(self, freq):
         r"""
         System matrix
@@ -314,11 +297,13 @@ class Simulation3DElectricField(BaseFDEMSimulation):
 
         MfMui = self.MfMui
         MeSigma = self.MeSigma
-        MePermittivity = self.MePermittivity
+
         C = self.mesh.edge_curl
 
         A = C.T.tocsr() * MfMui * C + 1j * omega(freq) * MeSigma
-        if self.quasistatic is False:
+
+        if getattr(self, "permittivity", None) is not None:
+            MePermittivity = self.MePermittivity
             A = A - omega(freq) ** 2 * MePermittivity
         return A
 
@@ -364,31 +349,31 @@ class Simulation3DElectricField(BaseFDEMSimulation):
 
         return C.T * (self.MfMuiDeriv(C * u) * v)
 
-    def getADeriv_permittivity(self, freq, u, v, adjoint=False):
-        r"""
-        Product of the derivative of our system matrix with respect to the
-        permittivity model and a vector
+    # def getADeriv_permittivity(self, freq, u, v, adjoint=False):
+    #     r"""
+    #     Product of the derivative of our system matrix with respect to the
+    #     permittivity model and a vector
 
-        :param float freq: frequency
-        :param numpy.ndarray u: solution vector (nE,)
-        :param numpy.ndarray v: vector to take prodct with (nP,) or (nD,) for
-            adjoint
-        :param bool adjoint: adjoint?
-        :rtype: numpy.ndarray
-        :return: derivative of the system matrix times a vector (nP,) or
-            adjoint (nD,)
-        """
+    #     :param float freq: frequency
+    #     :param numpy.ndarray u: solution vector (nE,)
+    #     :param numpy.ndarray v: vector to take prodct with (nP,) or (nD,) for
+    #         adjoint
+    #     :param bool adjoint: adjoint?
+    #     :rtype: numpy.ndarray
+    #     :return: derivative of the system matrix times a vector (nP,) or
+    #         adjoint (nD,)
+    #     """
 
-        if self.quasistatic is True:
-            return Zero()
-        dMe_dpermittivity_v = self.MePermittivityDeriv(u, v, adjoint)
-        return -omega(freq) ** 2 * dMe_dpermittivity_v
+    #     if getattr(self, "permittivityMap", None) is not None:
+    #         return Zero()
+    #     dMe_dpermittivity_v = self.MePermittivityDeriv(u, v, adjoint)
+    #     return -omega(freq) ** 2 * dMe_dpermittivity_v
 
     def getADeriv(self, freq, u, v, adjoint=False):
         return (
             self.getADeriv_sigma(freq, u, v, adjoint)
             + self.getADeriv_mui(freq, u, v, adjoint)
-            + self.getADeriv_permittivity(freq, u, v, adjoint)
+            # + self.getADeriv_permittivity(freq, u, v, adjoint)
         )
 
     def getRHS(self, freq):
@@ -610,6 +595,7 @@ class Simulation3DMagneticFluxDensity(BaseFDEMSimulation):
 ###############################################################################
 
 
+@with_property_mass_matrices("permittivity")
 class Simulation3DCurrentDensity(BaseFDEMSimulation):
     r"""
     We eliminate :math:`mathbf{h}` using
@@ -641,6 +627,27 @@ class Simulation3DCurrentDensity(BaseFDEMSimulation):
     _formulation = "HJ"
     fieldsPair = Fields3DCurrentDensity
 
+    permittivity = props.PhysicalProperty("Dielectric permittivity (F/m)")
+
+    def __init__(
+        self, mesh, survey=None, forward_only=False, permittivity=None, **kwargs
+    ):
+        super().__init__(mesh=mesh, survey=survey, forward_only=forward_only, **kwargs)
+        self.permittivity = permittivity
+
+    # def _clear_on_rho_update(self):
+    #     return (
+    #         super()._clear_on_rho_update + self._Mfrho_permittivity
+    #     )
+
+    @property
+    def _Mf_rho_permittivity(self):
+        """
+        Face inner product matrix with permittivity and resistivity
+        """
+        # todo: cache, but clear on update to rho
+        return self.mesh.get_face_inner_product(self.permittivity * self.rho)
+
     def getA(self, freq):
         r"""
         System matrix
@@ -661,6 +668,9 @@ class Simulation3DCurrentDensity(BaseFDEMSimulation):
         iomega = 1j * omega(freq) * sp.eye(self.mesh.nF)
 
         A = C * MeMuI * C.T.tocsr() * MfRho + iomega
+
+        if getattr(self, "permittivity", None) is not None:
+            A = A - omega(freq) ** 2 * self.MfI * self._Mf_rho_permittivity
 
         if self._makeASymmetric is True:
             return MfRho.T.tocsr() * A
@@ -716,6 +726,11 @@ class Simulation3DCurrentDensity(BaseFDEMSimulation):
         return Aderiv
 
     def getADeriv(self, freq, u, v, adjoint=False):
+        if getattr(self, "permittivity", None) is not None:
+            warnings.warn(
+                "Derivatives not yet implemented for simulations that include permittivity"
+            )
+
         if adjoint and self._makeASymmetric:
             v = self.MfRho * v
 
