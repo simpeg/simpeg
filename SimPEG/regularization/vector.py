@@ -11,13 +11,13 @@ from .sparse import Sparse, SparseSmallness, SparseSmoothness
 if TYPE_CHECKING:
     from scipy.sparse import csr_matrix
 
+
 class BaseVectorRegularization(BaseRegularization):
     """Base regularizer for models where each value is a vector.
 
     Used when your model has a multiple parameters for each cell. This can be helpful if
     your model is made up of vector values in each cell or it is an anisotropic model.
     """
-
 
     @property
     def _weights_shapes(self) -> list[tuple[int]]:
@@ -29,7 +29,7 @@ class BaseVectorRegularization(BaseRegularization):
             Each tuple represents accetable shapes for the weights
         """
         mesh = self.regularization_mesh
-        
+
         return [(mesh.nC,), (self.n_comp * mesh.nC,), (mesh.nC, self.n_comp)]
 
 
@@ -70,6 +70,7 @@ class CrossReferenceRegularization(Smallness, BaseVectorRegularization):
     .. math::
         \phi_{cross}(m) = \int_{V} ||\vec{m} \times \vec{m}_{ref}||^2 dV
     """
+
     def __init__(
         self, mesh, ref_dir, active_cells=None, mapping=None, weights=None, **kwargs
     ):
@@ -146,7 +147,7 @@ class CrossReferenceRegularization(Smallness, BaseVectorRegularization):
             for value in self._weights.values():
                 if value.shape == (nC,):
                     weights *= value
-           
+
                 elif value.size == (self.n_comp * nC,):
                     weights *= np.linalg.norm(
                         value.reshape((nC, self.n_comp), order="F"), axis=1
@@ -368,4 +369,3 @@ class VectorAmplitude(Sparse):
             mapping=mapping,
             **kwargs,
         )
-
