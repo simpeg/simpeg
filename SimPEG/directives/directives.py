@@ -2717,7 +2717,6 @@ class UpdateSensitivityWeights(InversionDirective):
         # Compute and sum root-mean squared sensitivities for all objective functions
         wr = np.zeros_like(self.invProb.model)
         for reg in self.reg.objfcts:
-
             if isinstance(reg, BaseSimilarityMeasure):
                 continue
 
