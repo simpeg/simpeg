@@ -21,15 +21,14 @@ class BaseObjectiveFunction(BaseSimPEG):
     for building a data misfit, see :class:`SimPEG.DataMisfit.BaseDataMisfit`.
     """
 
-    counter = None
-    debug = False
-
     map_class = IdentityMap  #: Base class of expected maps
     _has_fields = False  #: should we have the option to store fields
 
-    def __init__(self, nP=None, mapping=None, **kwargs):
+    def __init__(self, nP=None, mapping=None, counter=None, debug=False, **kwargs):
         self._nP = nP
         self._mapping = mapping
+        self.counter = counter
+        self.debug = debug
         set_kwargs(self, **kwargs)
 
     def __call__(self, x, f=None):
