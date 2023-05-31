@@ -24,7 +24,7 @@ class BaseObjectiveFunction(BaseSimPEG):
     counter = None
     debug = False
 
-    mapPair = IdentityMap  #: Base class of expected maps
+    map_class = IdentityMap  #: Base class of expected maps
     _has_fields = False  #: should we have the option to store fields
 
     def __init__(self, nP=None, mapping=None, **kwargs):
@@ -67,16 +67,16 @@ class BaseObjectiveFunction(BaseSimPEG):
         """
         if self._mapping is None:
             if self._nP is not None:
-                self._mapping = self.mapPair(nP=self.nP)
+                self._mapping = self.map_class(nP=self.nP)
             else:
-                self._mapping = self.mapPair()
+                self._mapping = self.map_class()
         return self._mapping
 
     @mapping.setter
     def mapping(self, value):
-        assert isinstance(value, self.mapPair), (
+        assert isinstance(value, self.map_class), (
             "mapping must be an instance of a {}, not a {}"
-        ).format(self.mapPair, value.__class__.__name__)
+        ).format(self.map_class, value.__class__.__name__)
         self._mapping = value
 
     @timeIt
