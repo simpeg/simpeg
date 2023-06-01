@@ -12,12 +12,115 @@ from .base import BaseSimilarityMeasure
 
 
 class JointTotalVariation(BaseSimilarityMeasure):
-    r"""
-    The joint total variation constraint for joint inversions.
+    r"""Joint total variation regularization for joint inversion.
 
-    ..math ::
-        \phi_sim(\mathbf{m_1},\mathbf{m_2}) = \lambda \sum_{i=1}^{M} V_i\sqrt{|
-        \nabla \mathbf{m_1}_i|^2 +|\nabla \mathbf{m_2}_i|^2}
+    ``JointTotalVariation`` regularization aims to ensure non-zero gradients in the recovered
+    model to occur at the same locations for all physical property distributions.
+    It assumes structures within each physical property distribution are sparse and
+    correlated with one another.
+
+    Parameters
+    ----------
+    mesh : SimPEG.regularization.RegularizationMesh, discretize.base.BaseMesh
+        Mesh on which the regularization is discretized. This is not necessarily
+        the same as the mesh on which the simulation is defined.
+    active_cells : None, (n_cells, ) numpy.ndarray of bool
+        Boolean array defining the set of :py:class:`~.regularization.RegularizationMesh`
+        cells that are active in the inversion. If ``None``, all cells are active.
+    wire_map : SimPEG.maps.WireMap
+        Wire map connecting physical properties defined on active cells of the
+        :class:`RegularizationMesh`` to the entire model.
+    reference_model : None, (n_param, ) numpy.ndarray
+        Reference model. If ``None``, the reference model in the inversion is set to
+        the starting model.
+    units : None, str
+        Units for the model parameters. Some regularization classes behave
+        differently depending on the units; e.g. 'radian'.
+    weights : None, dict
+        Weight multipliers to customize the least-squares function. Each key points to a (n_cells, )
+        numpy.ndarray that is defined on the :py:class:`~.regularization.RegularizationMesh`.
+    eps : float
+        Needs documentation!!!
+
+    Notes
+    -----
+    Consider the case where the model is comprised of two physical properties
+    :math:`m_1` and :math:`m_2`. Here, we define the regularization
+    function for joint total variation as
+    (`Haber and Gazit, 2013 <https://link.springer.com/article/10.1007/s10712-013-9232-4>`__):
+
+    .. math::
+        \gamma (m_1, m_2) = \frac{1}{2} \int_\Omega \, w(r) \,
+        \Big [ \, \big | \nabla m_1 \big |^2 \, + \, \big | \nabla m_2 \big |^2 \, \Big ]^{1/2} \, dv
+
+    where :math:`w(r)` is a user-defined weighting function.
+
+    For implementation within SimPEG, the regularization function and its variables
+    must be discretized onto a `mesh`. The discretized approximation for the regularization
+    function (objective function) is given by:
+
+    .. math::
+        \gamma (m_1, m_2) \approx \frac{1}{2} \sum_i \tilde{w}_i \, \bigg [ \,
+        \Big | (\nabla m_1)_i \Big |^2 \, + \, \Big | (\nabla m_2)_i \Big |^2 \, \bigg ]^{1/2}
+
+    where :math:`(\nabla m_1)_i` are the gradients of property :math:`m_1` defined on the mesh and
+    :math:`\tilde{w}_i \in \mathbf{\tilde{w}}` are amalgamated weighting constants that 1) account
+    for cell dimensions in the discretization and 2) apply any user-defined weighting.
+
+    In practice, we define the model :math:`\mathbf{m}` as a discrete
+    vector of the form:
+
+    .. math::
+        \mathbf{m} = \begin{bmatrix} \mathbf{m_1} \\ \mathbf{m_2} \end{bmatrix}
+
+    where :math:`\mathbf{m_1}` and :math:`\mathbf{m_2}` are the discrete representations
+    of the respective physical properties on the mesh. The discrete regularization function
+    is therefore equivalent to an objective function of the form:
+
+    .. math::
+        \gamma (\mathbf{m}) = \frac{1}{2} \, \mathbf{e}^T \Bigg ( \,
+        \mathbf{W \, A} \bigg [ \sum_k (\mathbf{G \, m_k})^2 \bigg ] \; + \; \epsilon \mathbf{v}^2
+        \, \Bigg )^{1/2}
+
+    where exponents are computed elementwise,
+
+        - :math:`\mathbf{e}` is a vector of 1s,
+        - :math:`\mathbf{W}` is the weighting matrix for joint total variation regularization,
+        - :math:`\mathbf{A}` averages vectors from faces to cell centers,
+        - :math:`\mathbf{G}` is the cell gradient operator (cell centers to faces),
+        - :math:`\mathbf{v}` are the cell volumes, and
+        - :math:`\epsilon` is a constant added for continuous differentiability (set with the `eps` property),        
+
+    **Custom weights and the weighting matrix:**
+
+    Let :math:`\mathbf{w_1, \; w_2, \; w_3, \; ...}` each represent an optional set of
+    custom cell weights. The weighting applied within the objective function is given by:
+
+    .. math::
+        \mathbf{\tilde{w}} = \mathbf{v} \odot \prod_j \mathbf{w_j}
+
+    where :math:`\mathbf{v}` are the cell volumes.
+    The weighting matrix used to apply weights within the regularization is given by:
+
+    .. math::
+        \boldsymbol{W} = \textrm{diag} \Big ( \, \mathbf{\tilde{w}}^2 \Big )
+
+    Each set of custom cell weights is stored within a ``dict`` as an (n_cells, )
+    ``numpy.ndarray``. The weights can be set all at once during instantiation
+    with the `weights` keyword argument as follows:
+
+    >>> reg = JointTotalVariation(
+    >>>     mesh, wire_map, weights={'weights_1': array_1, 'weights_2': array_2}
+    >>> )
+
+    or set after instantiation using the `set_weights` method:
+
+    >>> reg.set_weights(weights_1=array_1, weights_2=array_2})
+
+    The default weights that account for cell dimensions in the regularization are accessed via:
+
+    >>> reg.get_weights('volume')
+
     """
 
     def __init__(self, mesh, wire_map, eps=1e-8, **kwargs):
@@ -29,8 +132,16 @@ class JointTotalVariation(BaseSimilarityMeasure):
 
     @property
     def W(self):
-        """
-        Weighting matrix
+        r"""Weighting matrix for joint total variation regularization.
+
+        Returns the weighting matrix for the discrete regularization function. To see how the
+        weighting matrix is constructed, see the *Notes* section for the :class:`JointTotalVariation`
+        regularization class.
+
+        Returns
+        -------
+        scipy.sparse.csr_matrix
+            The weighting matrix applied in the regularization.
         """
         if getattr(self, "_W", None) is None:
             weights = np.prod(list(self._weights.values()), axis=0)
@@ -41,6 +152,7 @@ class JointTotalVariation(BaseSimilarityMeasure):
 
     @property
     def wire_map(self):
+        # Docs inherited from BaseSimilarityMeasure
         return self._wire_map
 
     @wire_map.setter
@@ -57,18 +169,20 @@ class JointTotalVariation(BaseSimilarityMeasure):
         self._wire_map = wires
 
     def __call__(self, model):
-        """
-        Computes the sum of all joint total variation values.
+        """Evaluate the joint total variation regularization function for the model provided.
+
+        See the *Notes* section of the documentation for the :class:`JointTotalVariation` class
+        for a full description of the regularization function.
 
         Parameters
         ----------
-        model : numpy.ndarray
-            stacked array of individual models np.r_[model1, model2,...]
+        m : (n_param, ) numpy.ndarray
+            The model for which the function is evaluated.
 
         Returns
         -------
         float
-            The computed value of the joint total variation term.
+            The regularization function evaluated for the model provided.
         """
         W = self.W
         G = self._G
@@ -82,18 +196,17 @@ class JointTotalVariation(BaseSimilarityMeasure):
         return np.sum(sq)
 
     def deriv(self, model):
-        """
-        Computes the derivative of the joint total variation.
+        """Jacobian of the regularization function evaluated for the model provided.
 
         Parameters
         ----------
-        model : numpy.ndarray
-            stacked array of individual models np.r_[model1, model2,...]
+        model : list of (n_param, ) numpy.ndarray
+            The models for which the gradient is evaluated.
 
         Returns
         -------
-        numpy.ndarray
-            The gradient of joint total variation  with respect to the model
+        (n_param, ) numpy.ndarray
+            Jacobian of the regularization function evaluated for the model provided.
         """
         W = self.W
         G = self._G
@@ -113,8 +226,7 @@ class JointTotalVariation(BaseSimilarityMeasure):
         return np.concatenate(ps)
 
     def deriv2(self, model, v=None):
-        """
-        Computes the Hessian of the joint total variation.
+        """Hessian of the regularization function evaluated for the model provided.
 
         Parameters
         ----------
@@ -126,6 +238,7 @@ class JointTotalVariation(BaseSimilarityMeasure):
         Returns
         -------
         numpy.ndarray or scipy.sparse.csr_matrix
+            Hessian of the regularization function evaluated for the model provided.
             The Hessian of joint total variation with respect to the model times a
             vector or the full Hessian if `v` is `None`.
         """

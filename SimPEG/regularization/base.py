@@ -19,8 +19,7 @@ class BaseRegularization(BaseObjectiveFunction):
     """Base regularization class.
 
     The ``BaseRegularization`` class defines properties and methods inherited by
-    SimPEG regularization classes. It is not directly used to constrain
-    the inversions.
+    SimPEG regularization classes. It is not directly used to constrain inversions.
 
     Parameters
     ----------
@@ -402,12 +401,17 @@ class BaseRegularization(BaseObjectiveFunction):
 
     @utils.timeIt
     def __call__(self, m):
-        r"""
-        We use a weighted 2-norm objective function
+        """Evaluate the regularization function for the model provided.
 
-        .. math::
+        Parameters
+        ----------
+        m : (n_param, ) numpy.ndarray
+            The model for which the function is evaluated.
 
-            \gamma (m) = \frac{1}{2} \| \mathbf{W} \mathbf{f(m)} \|_2^2
+        Returns
+        -------
+        float
+            The regularization function evaluated for the model provided.
         """
         r = self.W * self.f_m(m)
         return 0.5 * r.dot(r)
@@ -422,41 +426,40 @@ class BaseRegularization(BaseObjectiveFunction):
 
     @utils.timeIt
     def deriv(self, m) -> np.ndarray:
-        r"""Gradient of the regularization function evaluated for the model provided.
+        r"""Jacobian of the regularization function evaluated for the model provided.
 
-        Where :math:`\gamma (\mathbf{m})` represents the discrete regularization function,
-        this method returns the derivative with respect to the model parameters:
+        Where :math:`\gamma (\mathbf{m})` is the discrete regularization function,
+        this method returns the derivative (Jacobian) with respect to the model parameters:
 
         .. math::
-            \frac{\partial \gamma}{\partial \mathbf{m}} \bigg |_\mathbf{m}
+            \frac{\partial \gamma}{\partial \mathbf{m}} \, \bigg |_\mathbf{m}
 
         evaluated at the model :math:`\mathbf{m}` provided.
 
         Parameters
         ----------
         (n_param, ) numpy.ndarray
-            The model for which the gradient is evaluated.
+            The model for which the Jacobian is evaluated.
 
         Returns
         -------
         (n_param, ) numpy.ndarray
-            The gradient of the regularization function evaluated for the model provided.
-
+            The Jacobian of the regularization function evaluated for the model provided.
         """
         r = self.W * self.f_m(m)
         return self.f_m_deriv(m).T * (self.W.T * r)
 
     @utils.timeIt
     def deriv2(self, m, v=None) -> csr_matrix:
-        r"""Second derivative of the regularization function evaluated for the model provided.
+        r"""Hessian of the regularization function evaluated for the model provided.
 
-        Where :math:`\gamma (\mathbf{m})` represents the discrete regularization function,
+        Where :math:`\gamma (\mathbf{m})` is the discrete regularization function,
         this method returns the second derivative (Hessian) with respect to the model parameters:
 
         .. math::
             \frac{\partial^2 \gamma}{\partial \mathbf{m}^2} \bigg |_\mathbf{m}
 
-        or the second-derivative multiplied by a given vector :math:`(\mathbf{v})`
+        or the second-derivative (Hessian) multiplied by a given vector :math:`(\mathbf{v})`
 
         .. math::
             \bigg [ \frac{\partial^2 \gamma}{\partial \mathbf{m}^2}
@@ -466,16 +469,16 @@ class BaseRegularization(BaseObjectiveFunction):
         Parameters
         ----------
         m : (n_param, ) numpy.ndarray
-            The model for which the gradient is evaluated.
+            The model for which the Hessian is evaluated.
         v : None, (n_param, ) numpy.ndarray (optional)
-            A vector
+            A vector.
 
         Returns
         -------
         (n_param, n_param) scipy.sparse.csr_matrix | (n_param, ) numpy.ndarray
-            If the input argument *v* is ``None``, the second-derivative of the regularization
+            If the input argument *v* is ``None``, the Hessian of the regularization
             function for the model provided is returned. If *v* is not ``None``,
-            the second-derivative multiplied by the vector provided is returned.
+            the Hessian multiplied by the vector provided is returned.
 
         """
         f_m_deriv = self.f_m_deriv(m)
@@ -525,7 +528,7 @@ class Smallness(BaseRegularization):
     We define the regularization function for smallness as:
 
     .. math::
-        \gamma (m) = \frac{1}{2} \int_\Omega \, w( \mathscr{r}) \,
+        \gamma (m) = \frac{1}{2} \int_\Omega \, w(r) \,
         \Big [ m(r) - m^{(ref)}(r) \Big ]^2 \, dv
 
     where :math:`m(r)` is the model, :math:`m^{(ref)}(r)` is the reference model and :math:`w(r)`
@@ -717,7 +720,7 @@ class SmoothnessFirstOrder(BaseRegularization):
         the starting model. To include the reference model in the regularization, the
         `reference_model_in_smooth` property must be set to ``True``.
     reference_model_in_smooth : bool, optional
-        Whether to include the reference model in the smoothness terms.
+        Whether to include the reference model in the smoothness regularization.
     units : None, str
         Units for the model parameters. Some regularization classes behave differently
         depending on the units; e.g. 'radian'.
@@ -1048,8 +1051,8 @@ class SmoothnessFirstOrder(BaseRegularization):
 
         Returns
         -------
-        str
-            The direction along which smoothness is enforced. On of {'x','y','z'}
+        {'x','y','z'}
+            The direction along which smoothness is enforced.
 
         """
         return self._orientation
@@ -1084,7 +1087,7 @@ class SmoothnessSecondOrder(SmoothnessFirstOrder):
         the starting model. To include the reference model in the regularization, the
         `reference_model_in_smooth` property must be set to ``True``.
     reference_model_in_smooth : bool, optional
-        Whether to include the reference model in the smoothness terms.
+        Whether to include the reference model in the smoothness regularization.
     units : None, str
         Units for the model parameters. Some regularization classes behave differently
         depending on the units; e.g. 'radian'.
@@ -2153,26 +2156,20 @@ class WeightedLeastSquares(ComboObjectiveFunction):
 #                                                                             #
 ###############################################################################
 class BaseSimilarityMeasure(BaseRegularization):
-    """Base class for the similarity term in joint inversions.
+    """Base class for joint inversion regularization.
 
-    The ``BaseSimilarityMeasure`` assumes two different geophysical models through one similarity term.
-    Inherit this for building your own similarity term.
-    However, if you wish to combine more than two models, e.g., 3 models,
-    you may want to add a total of three coupling terms:
-
-    e.g., lambda1*(m1, m2) + lambda2*(m1, m3) + lambda3*(m2, m3)
-
-    where, lambdas are weights for coupling terms. m1, m2 and m3 indicate
-    three different models.
+    The ``BaseSimilarityMeasure`` class defines properties and methods used
+    by regularization classes for joint inversion. It is not directly used to
+    constrain inversions.
 
     Parameters
     ----------
     mesh : SimPEG.regularization.RegularizationMesh
         Mesh on which the regularization is discretized. This is not necessarily the same as
         the mesh on which the simulation is defined.
-    mapping : SimPEG.maps.WireMap
-        Wire map connecting physical properties defined on active cells of the regularization mesh
-        to the entire model.
+    wire_map : SimPEG.maps.WireMap
+        Wire map connecting physical properties defined on active cells of the
+        :class:`RegularizationMesh`` to the entire model.
     """
 
     def __init__(self, mesh, wire_map, **kwargs):
@@ -2181,13 +2178,12 @@ class BaseSimilarityMeasure(BaseRegularization):
 
     @property
     def wire_map(self):
-        """Wire map connecting physical properties to the entire model.
+        """Mapping from model to physical properties defined on the regularization mesh.
 
         Returns
         -------
         SimPEG.maps.WireMap
-            Wire map connecting physical properties defined on the regularization
-            mesh to the entire model.
+            Mapping from model to physical properties defined on the regularization mesh.
         """
         return self._wire_map
 
@@ -2216,22 +2212,7 @@ class BaseSimilarityMeasure(BaseRegularization):
         return self.wire_map.nP
 
     def deriv(self, model):
-        """First derivative of the coupling term with respect to individual models.
-
-        Where :math:`k` is the number of models we are inverting for and :math:`M` is the number
-        of cells in each model, this method returns a vector of length :math:`kM`.
-
-        Parameters
-        ----------
-        model : numpy.ndarray
-            The model.
-
-        Returns
-        -------
-        numpy.ndarray
-            First derivative of the coupling term with respect to individual models.
-
-        """
+        """Not implemented for ``BaseSimilarityMeasure`` class."""
         raise NotImplementedError(
             "The method deriv has not been implemented for {}".format(
                 self.__class__.__name__
@@ -2239,26 +2220,7 @@ class BaseSimilarityMeasure(BaseRegularization):
         )
 
     def deriv2(self, model, v=None):
-        """Second derivative of the coupling term with respect to individual models.
-
-        Parameters
-        ----------
-        model : numpy.ndarray
-            The model.
-        v : numpy.ndarray, optional
-            A vector.
-
-        Returns
-        -------
-        numpy.ndarray or scipy.sparse.csr_matrix
-            Where :math:`k` is the number of models we are inverting for and :math:`M` is
-            the number of cells in each model, this method returns:
-
-                - an array of dimensions (k*M, ) when `v` is not ``None``.
-                - a sparse matrix of dimensions (k*M, k*M) when `v` is ``None``.
-
-
-        """
+        """Not implemented for ``BaseSimilarityMeasure`` class."""
         raise NotImplementedError(
             "The method _deriv2 has not been implemented for {}".format(
                 self.__class__.__name__
@@ -2273,7 +2235,7 @@ class BaseSimilarityMeasure(BaseRegularization):
         return self.wire_map.nP
 
     def __call__(self, model):
-        """Returns the computed value of the coupling term."""
+        """Not implemented for ``BaseSimilarityMeasure`` class."""
         raise NotImplementedError(
             "The method __call__ has not been implemented for {}".format(
                 self.__class__.__name__

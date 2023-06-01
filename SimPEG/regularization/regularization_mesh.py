@@ -15,9 +15,14 @@ from .. import utils
 class RegularizationMesh(props.BaseSimPEG):
     """Regularization Mesh
 
-    The ``RegularizationMesh`` class is used to construct discrete operators for
-    the objective function(s) defining the regularization. Discrete operators
-    only act on active cells in the inversion, thus reducing computational cost.
+    The ``RegularizationMesh`` class is used to construct differencing and averaging operators
+    for the objective function(s) defining the regularization. In practice, these operators are
+    not constructed by creating instances of ``RegularizationMesh``. The operators are instead
+    constructed (and sometimes stored) when called as a property of the mesh.
+    The ``RegularizationMesh`` class is built using much of the functionality for the
+    (link to discretize DiffOperators) class.
+    However, operators constructed using the ``RegularizationMesh`` class have been modified to
+    act only on interior faces and active cells in the inversion, thus reducing computational cost.
 
     Parameters
     ----------
@@ -151,8 +156,8 @@ class RegularizationMesh(props.BaseSimPEG):
 
         Returns
         -------
-        (n_faces_x, n_active_x) scipy.sparse.csr_matrix
-            Projection matrix from active x-faces to all x-faces in the mesh
+        (n_faces_x, n_active_faces_x) scipy.sparse.csr_matrix
+            Projection matrix from active x-faces to all x-faces in the mesh.
         """
         if getattr(self, "_Pafx", None) is None:
             if self.mesh._meshType == "TREE":
@@ -173,9 +178,12 @@ class RegularizationMesh(props.BaseSimPEG):
 
     @property
     def Pafy(self) -> sp.csr_matrix:
-        """
-        Projection matrix that takes from the reduced space of active y-faces
-        to full modelling space (ie. nFy x nactive_cells_Fy ).
+        """Projection matrix from active y-faces to all y-faces in the mesh.
+
+        Returns
+        -------
+        (n_faces_y, n_active_faces_y) scipy.sparse.csr_matrix
+            Projection matrix from active y-faces to all y-faces in the mesh.
         """
         if getattr(self, "_Pafy", None) is None:
             if self.mesh._meshType == "TREE":
@@ -198,9 +206,12 @@ class RegularizationMesh(props.BaseSimPEG):
 
     @property
     def Pafz(self) -> sp.csr_matrix:
-        """
-        Projection matrix that takes from the reduced space of active z-faces
-        to full modelling space (ie. nFz x nactive_cells_Fz ).
+        """Projection matrix from active z-faces to all z-faces in the mesh.
+
+        Returns
+        -------
+        (n_faces_z, n_active_faces_z) scipy.sparse.csr_matrix
+            Projection matrix from active z-faces to all z-faces in the mesh.
         """
         if getattr(self, "_Pafz", None) is None:
             if self.mesh._meshType == "TREE":
@@ -221,9 +232,14 @@ class RegularizationMesh(props.BaseSimPEG):
 
     @property
     def average_face_to_cell(self) -> sp.csr_matrix:
-        """
-        Vertically stacked matrix of cell averaging operators from active
-        cell centers to active faces along each dimension of the mesh.
+        """Averaging operator from faces to cell centers.
+
+        Built from (link to discretize DiffOperators average face to cell).
+
+        Returns
+        -------
+        (n_cells, n_faces) scipy.sparse.csr_matrix
+            Averaging operator from faces to cell centers.
         """
         if self.dim == 1:
             return self.aveFx2CC
@@ -234,8 +250,16 @@ class RegularizationMesh(props.BaseSimPEG):
 
     @property
     def aveFx2CC(self) -> sp.csr_matrix:
-        """
-        Averaging from active cell centers to active x-faces.
+        """Averaging operator from active cell centers to active x-faces.
+
+        Modified from the transpose of
+        (link to discretize DiffOperators method);
+        an operator that projects from all x-faces to all cell centers.
+
+        Returns
+        -------
+        (n_active_cells, n_active_faces_x) scipy.sparse.csr_matrix
+            Averaging operator from active cell centers to active x-faces.
         """
         if getattr(self, "_aveFx2CC", None) is None:
             if self.mesh._meshType == "TREE":
@@ -249,8 +273,16 @@ class RegularizationMesh(props.BaseSimPEG):
 
     @property
     def aveCC2Fx(self) -> sp.csr_matrix:
-        """
-        Averaging from active x-faces to active cell centers.
+        """Averaging operator from active x-faces to active cell centers.
+
+        Modified from
+        (link to discretize DiffOperators method);
+        an operator that projects from all x-faces to all cell centers.
+
+        Returns
+        -------
+        (n_active_faces_x, n_active_cells) scipy.sparse.csr_matrix
+            Averaging operator from active x-faces to active cell centers.
         """
         if getattr(self, "_aveCC2Fx", None) is None:
             if self.mesh._meshType == "TREE":
@@ -265,8 +297,16 @@ class RegularizationMesh(props.BaseSimPEG):
 
     @property
     def aveFy2CC(self) -> sp.csr_matrix:
-        """
-        Averaging from active cell centers to active y-faces.
+        """Averaging operator from active cell centers to active y-faces.
+
+        Modified from the transpose of
+        (link to discretize DiffOperators method);
+        an operator that projects from y-faces to cell centers.
+
+        Returns
+        -------
+        (n_active_cells, n_active_faces_y) scipy.sparse.csr_matrix
+            Averaging operator from active cell centers to active y-faces.
         """
         if getattr(self, "_aveFy2CC", None) is None:
             if self.mesh._meshType == "TREE":
@@ -282,8 +322,16 @@ class RegularizationMesh(props.BaseSimPEG):
 
     @property
     def aveCC2Fy(self) -> sp.csr_matrix:
-        """
-        Averaging matrix from active y-faces to active cell centers.
+        """Averaging operator from active y-faces to active cell centers.
+
+        Modified from
+        (link to discretize DiffOperators method);
+        an operator that projects from all y-faces to all cell centers.
+
+        Returns
+        -------
+        (n_active_faces_y, n_active_cells) scipy.sparse.csr_matrix
+            Averaging operator from active y-faces to active cell centers.
         """
         if getattr(self, "_aveCC2Fy", None) is None:
             if self.mesh._meshType == "TREE":
@@ -300,8 +348,16 @@ class RegularizationMesh(props.BaseSimPEG):
 
     @property
     def aveFz2CC(self) -> sp.csr_matrix:
-        """
-        Averaging from active cell centers to active z-faces.
+        """Averaging operator from active cell centers to active z-faces.
+
+        Modified from the transpose of
+        (link to discretize DiffOperators method);
+        an operator that projects from z-faces to cell centers.
+
+        Returns
+        -------
+        (n_active_cells, n_active_faces_z) scipy.sparse.csr_matrix
+            Averaging operator from active cell centers to active z-faces.
         """
         if getattr(self, "_aveFz2CC", None) is None:
             if self.mesh._meshType == "TREE":
@@ -315,8 +371,16 @@ class RegularizationMesh(props.BaseSimPEG):
 
     @property
     def aveCC2Fz(self) -> sp.csr_matrix:
-        """
-        Averaging matrix from active z-faces to active cell centers.
+        """Averaging operator from active z-faces to active cell centers.
+
+        Modified from
+        (link to discretize DiffOperators method);
+        an operator that projects from all z-faces to all cell centers.
+
+        Returns
+        -------
+        (n_active_faces_z, n_active_cells) scipy.sparse.csr_matrix
+            Averaging operator from active z-faces to active cell centers.
         """
         if getattr(self, "_aveCC2Fz", None) is None:
             if self.mesh._meshType == "TREE":
@@ -331,16 +395,27 @@ class RegularizationMesh(props.BaseSimPEG):
 
     @property
     def base_length(self) -> float:
-        """The smallest core cell size."""
+        """Smallest dimension (i.e. edge length) for smallest cell in the mesh.
+
+        Returns
+        -------
+        float
+            Smallest dimension (i.e. edge length) for smallest cell in the mesh.
+        """
         if getattr(self, "_base_length", None) is None:
             self._base_length = self.mesh.edge_lengths.min()
         return self._base_length
 
     @property
     def cell_gradient(self) -> sp.csr_matrix:
-        """
-        Vertically stacked matrix of cell gradients along each dimension of
-        the mesh.
+        """Cell gradient operator (cell centers to faces).
+
+        Built from (link to discretize DiffOperators method).
+
+        Returns
+        -------
+        (n_faces, n_cells) scipy.sparse.csr_matrix
+            Cell gradient operator (cell centers to faces).
         """
         if self.dim == 1:
             return self.cell_gradient_x
@@ -353,8 +428,16 @@ class RegularizationMesh(props.BaseSimPEG):
 
     @property
     def cell_gradient_x(self) -> sp.csr_matrix:
-        """
-        Cell centered gradient matrix for active cells in the x-direction.
+        """Cell-centered x-derivative operator on active cells.
+
+        Cell centered x-derivative operator that maps from active cells
+        to active x-faces. Modified from
+        (link to discretize DiffOperators method)
+
+        Returns
+        -------
+        (n_active_faces_x, n_active_cells) scipy.sparse.csr_matrix
+            Cell-centered x-derivative operator on active cells.
         """
         if getattr(self, "_cell_gradient_x", None) is None:
             if self.mesh._meshType == "TREE":
@@ -375,8 +458,16 @@ class RegularizationMesh(props.BaseSimPEG):
 
     @property
     def cell_gradient_y(self) -> sp.csr_matrix:
-        """
-        Cell centered gradient matrix for active cells in the y-direction.
+        """Cell-centered y-derivative operator on active cells.
+
+        Cell centered y-derivative operator that maps from active cells
+        to active y-faces. Modified from
+        (link to discretize DiffOperators method)
+
+        Returns
+        -------
+        (n_active_faces_y, n_active_cells) scipy.sparse.csr_matrix
+            Cell-centered y-derivative operator on active cells.
         """
         if getattr(self, "_cell_gradient_y", None) is None:
             if self.mesh._meshType == "TREE":
@@ -397,8 +488,16 @@ class RegularizationMesh(props.BaseSimPEG):
 
     @property
     def cell_gradient_z(self) -> sp.csr_matrix:
-        """
-        Cell centered gradient matrix for active cells in the z-direction.
+        """Cell-centered z-derivative operator on active cells.
+
+        Cell centered z-derivative operator that maps from active cells
+        to active z-faces. Modified from
+        (link to discretize DiffOperators method)
+
+        Returns
+        -------
+        (n_active_faces_z, n_active_cells) scipy.sparse.csr_matrix
+            Cell-centered z-derivative operator on active cells.
         """
         if getattr(self, "_cell_gradient_z", None) is None:
             if self.mesh._meshType == "TREE":
@@ -444,8 +543,12 @@ class RegularizationMesh(props.BaseSimPEG):
 
     @property
     def cell_distances_x(self) -> np.ndarray:
-        """
-        Cell center distance array along the x-direction.
+        """Cell center distance array along the x-direction.
+
+        Returns
+        -------
+        (n_active_faces_x, ) numpy.ndarray
+            Cell center distance array along the x-direction.
         """
         if getattr(self, "_cell_distances_x", None) is None:
             Ave = self.aveCC2Fx
@@ -454,8 +557,12 @@ class RegularizationMesh(props.BaseSimPEG):
 
     @property
     def cell_distances_y(self) -> np.ndarray:
-        """
-        Cell center distance array along the y-direction.
+        """Cell center distance array along the y-direction.
+
+        Returns
+        -------
+        (n_active_faces_y, ) numpy.ndarray
+            Cell center distance array along the y-direction.
         """
         if getattr(self, "_cell_distances_y", None) is None:
             Ave = self.aveCC2Fy
@@ -464,8 +571,12 @@ class RegularizationMesh(props.BaseSimPEG):
 
     @property
     def cell_distances_z(self) -> np.ndarray:
-        """
-        Cell center distance array along the z-direction.
+        """Cell center distance array along the z-direction.
+
+        Returns
+        -------
+        (n_active_faces_z, ) numpy.ndarray
+            Cell center distance array along the z-direction.
         """
         if getattr(self, "_cell_distances_z", None) is None:
             Ave = self.aveCC2Fz
