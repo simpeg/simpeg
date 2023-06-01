@@ -101,7 +101,7 @@ def test_meta_correctness():
     except Exception as err:
         raise err
     finally:
-        parallel_sim.close()
+        parallel_sim.join()
 
 
 def test_sum_correctness():
@@ -182,7 +182,7 @@ def test_sum_correctness():
     except Exception as err:
         raise err
     finally:
-        parallel_sim.close()
+        parallel_sim.join()
 
 
 def test_repeat_correctness():
@@ -237,4 +237,4 @@ def test_repeat_correctness():
     except Exception as err:
         raise err
     finally:
-        parallel_sim.close()
+        parallel_sim.join()

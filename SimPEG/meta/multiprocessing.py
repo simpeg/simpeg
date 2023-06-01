@@ -71,36 +71,39 @@ class _SimulationProcess(Process):
                 (key,) = args
                 _cached_items.pop(key, None)
             else:
-                if op == 0:
-                    # store_model
-                    (m,) = args
-                    sim.model = m
-                elif op == 1:
-                    # create fields
-                    f_key = uuid.uuid4().hex
-                    r_queue.put(f_key)
-                    fields = sim.fields(sim.model)
-                    _cached_items[f_key] = fields
-                elif op == 2:
-                    # do dpred
-                    (f_key,) = args
-                    fields = _cached_items[f_key]
-                    r_queue.put(sim.dpred(sim.model, fields))
-                elif op == 3:
-                    # do jvec
-                    v, f_key = args
-                    fields = _cached_items[f_key]
-                    r_queue.put(sim.Jvec(sim.model, v, fields))
-                elif op == 4:
-                    # do jtvec
-                    v, f_key = args
-                    fields = _cached_items[f_key]
-                    r_queue.put(sim.Jtvec(sim.model, v, fields))
-                elif op == 5:
-                    # do jtj_diag
-                    w, f_key = args
-                    fields = _cached_items[f_key]
-                    r_queue.put(sim.getJtJdiag(sim.model, w, fields))
+                try:
+                    if op == 0:
+                        # store_model
+                        (m,) = args
+                        sim.model = m
+                    elif op == 1:
+                        # create fields
+                        f_key = uuid.uuid4().hex
+                        r_queue.put(f_key)
+                        fields = sim.fields(sim.model)
+                        _cached_items[f_key] = fields
+                    elif op == 2:
+                        # do dpred
+                        (f_key,) = args
+                        fields = _cached_items[f_key]
+                        r_queue.put(sim.dpred(sim.model, fields))
+                    elif op == 3:
+                        # do jvec
+                        v, f_key = args
+                        fields = _cached_items[f_key]
+                        r_queue.put(sim.Jvec(sim.model, v, fields))
+                    elif op == 4:
+                        # do jtvec
+                        v, f_key = args
+                        fields = _cached_items[f_key]
+                        r_queue.put(sim.Jtvec(sim.model, v, fields))
+                    elif op == 5:
+                        # do jtj_diag
+                        w, f_key = args
+                        fields = _cached_items[f_key]
+                        r_queue.put(sim.getJtJdiag(sim.model, w, fields))
+                except Exception as err:
+                    r_queue.put(err)
 
     def store_model(self, m):
         self._check_closed()
@@ -271,12 +274,11 @@ class MultiprocessingMetaSimulation(MetaSimulation):
             self._jtjdiag = jtj_diag
         return self._jtjdiag
 
-    def close(self):
+    def join(self):
         for p in self._sim_processes:
             if p.is_alive():
                 p.task_queue.put(None)
                 p.join()
-                p.close()
 
 
 class MultiprocessingSumMetaSimulation(
