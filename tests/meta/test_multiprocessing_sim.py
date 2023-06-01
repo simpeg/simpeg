@@ -194,24 +194,13 @@ def test_repeat_correctness():
         mesh, survey=survey, rhoMap=maps.IdentityMap(), n_processes=1
     )
 
-    time_mesh = TensorMesh(
-        [
-            8,
-        ],
-        origin=[
-            0,
-        ],
-    )
+    time_mesh = TensorMesh([8], origin=[0])
     sim_ts = np.linspace(0, 1, 6)
 
     repeat_mappings = []
     eye = sp.eye(mesh.n_cells, mesh.n_cells)
     for t in sim_ts:
-        ave_time = time_mesh.get_interpolation_matrix(
-            [
-                t,
-            ]
-        )
+        ave_time = time_mesh.get_interpolation_matrix([t])
         ave_full = sp.kron(ave_time, eye, format="csr")
         repeat_mappings.append(maps.LinearMap(ave_full))
 
