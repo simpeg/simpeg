@@ -354,7 +354,7 @@ class TestOperationsComboObjectiveFunctions:
             combo_1 = combo_2.objfcts[1]
             assert combo_1.multipliers == [2, 3]
 
-    def test_add_multiple_terms(self, unpack_on_add):
+    def test_add_multiple_terms(self):
         """Test addition of multiple BaseObjectiveFunctions"""
         n_params = 10
         phi1 = objective_function.L2ObjectiveFunction(nP=n_params)
