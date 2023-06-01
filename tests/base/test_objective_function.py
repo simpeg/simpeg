@@ -354,6 +354,17 @@ class TestOperationsComboObjectiveFunctions:
             combo_1 = combo_2.objfcts[1]
             assert combo_1.multipliers == [2, 3]
 
+    def test_add_multiple_terms(self, unpack_on_add):
+        """Test addition of multiple BaseObjectiveFunctions"""
+        n_params = 10
+        phi1 = objective_function.L2ObjectiveFunction(nP=n_params)
+        phi2 = objective_function.L2ObjectiveFunction(nP=n_params)
+        phi3 = objective_function.L2ObjectiveFunction(nP=n_params)
+        combo = 1.1 * phi1 + 1.2 * phi2 + 1.3 * phi3
+        assert len(combo) == 3
+        assert combo.multipliers == [1.1, 1.2, 1.3]
+        assert combo.objfcts == [phi1, phi2, phi3]
+
     @pytest.mark.parametrize("unpack_on_add", (True, False))
     def test_add_and_mul(self, unpack_on_add):
         """Test ComboObjectiveFunction addition with multiplication"""
