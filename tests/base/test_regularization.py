@@ -560,11 +560,11 @@ class RegularizationTests(unittest.TestCase):
         with pytest.raises(TypeError, match="'regularization_mesh' must be of type"):
             regularization.VectorAmplitude("abc")
 
-        reg = regularization.VectorAmplitude(mesh, maps.IdentityMap(nP=n_comp*mesh.nC))
+        reg = regularization.VectorAmplitude(
+            mesh, maps.IdentityMap(nP=n_comp * mesh.nC)
+        )
 
-        with pytest.raises(
-            ValueError, match=f"'weights' must be one of"  # noqa: W605
-        ):
+        with pytest.raises(ValueError, match=f"'weights' must be one of"):  # noqa: W605
             reg.set_weights(abc=(1.0, 1.0))
 
         np.testing.assert_almost_equal(
