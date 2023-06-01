@@ -367,7 +367,12 @@ class TestOperationsComboObjectiveFunctions:
 
     @pytest.mark.parametrize("unpack_on_add", (True, False))
     def test_add_and_mul(self, unpack_on_add):
-        """Test ComboObjectiveFunction addition with multiplication"""
+        """
+        Test ComboObjectiveFunction addition with multiplication
+
+        After multiplying a Combo with a scalar, the `__mul__` method creates
+        another Combo for it.
+        """
         n_params = 10
         phi1 = objective_function.L2ObjectiveFunction(nP=n_params)
         phi2 = objective_function.L2ObjectiveFunction(nP=n_params)
@@ -376,16 +381,9 @@ class TestOperationsComboObjectiveFunctions:
             [phi1, phi2], [2, 3], unpack_on_add=unpack_on_add
         )
         combo_2 = 5 * phi3 + 1.2 * combo_1
-        if unpack_on_add:
-            assert len(combo_2) == 3
-            assert combo_2.multipliers == [5, 1.2 * 2, 1.2 * 3]
-            assert combo_2.objfcts == [phi3, phi1, phi2]
-        else:
-            assert len(combo_2) == 2
-            assert combo_2.multipliers == [5, 1]
-            assert combo_2.objfcts == [phi3, combo_1]
-            combo_1 = combo_2.objfcts[1]
-            assert combo_1.multipliers == [1.2 * 2, 1.2 * 3]
+        assert len(combo_2) == 2
+        assert combo_2.multipliers == [5, 1.2]
+        assert combo_2.objfcts == [phi3, combo_1]
 
 
 if __name__ == "__main__":
