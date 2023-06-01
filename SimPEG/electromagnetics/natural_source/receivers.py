@@ -292,14 +292,14 @@ class PointNaturalSource(BaseRx):
                 v = -1j * v
 
             # Work backwards!
-            gtop_v = v / bot
-            gbot_v = -imp * v / bot
+            gtop_v = np.c_[v] / bot[:, None]
+            gbot_v = -imp[:, None] * np.c_[v] / bot[:, None]
 
             if mesh.dim == 3:
-                ghx_v = np.c_[hy[:, 1], -hy[:, 0]] * gbot_v[:, None]
-                ghy_v = np.c_[-hx[:, 1], hx[:, 0]] * gbot_v[:, None]
-                ge_v = np.c_[h[:, 1], -h[:, 0]] * gtop_v[:, None]
-                gh_v = np.c_[-e[:, 1], e[:, 0]] * gtop_v[:, None]
+                ghx_v = np.einsum('ij,ik->ijk', gbot_v, np.c_[hy[:, 1], -hy[:, 0]]).reshape((hy.shape[0], -1))
+                ghy_v = np.einsum('ij,ik->ijk', gbot_v, np.c_[-hx[:, 1], hx[:, 0]]).reshape((hx.shape[0], -1))
+                ge_v = np.einsum('ij,ik->ijk', gtop_v, np.c_[h[:, 1], -h[:, 0]]).reshape((h.shape[0], -1))
+                gh_v = np.einsum('ij,ik->ijk', gtop_v, np.c_[-e[:, 1], e[:, 0]]).reshape((e.shape[0], -1))
 
                 if self.orientation[1] == "x":
                     ghy_v += gh_v
