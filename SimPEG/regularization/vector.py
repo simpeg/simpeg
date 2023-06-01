@@ -20,6 +20,13 @@ class BaseVectorRegularization(BaseRegularization):
     """
 
     @property
+    def n_comp(self):
+        """Number of components in the model."""
+        if self.mapping.shape[0] == "*":
+            return self.regularization_mesh.dim
+        return int(self.mapping.shape[0] / self.regularization_mesh.nC)
+
+    @property
     def _weights_shapes(self) -> list[tuple[int]]:
         """Acceptable lengths for the weights
 
@@ -104,13 +111,12 @@ class CrossReferenceRegularization(Smallness, BaseVectorRegularization):
         mesh = self.regularization_mesh
         nC = mesh.nC
         value = np.asarray(value)
-        if value.shape != (nC, self.n_comp):
-            if value.shape == (self.n_comp,):
+        if value.shape != (nC, mesh.dim):
+            if value.shape == (mesh.dim,):
                 # expand it out for each mesh cell
                 value = np.tile(value, (nC, 1))
             else:
-                raise ValueError(f"ref_dir must be shape {(nC, self.n_comp)}")
-
+                raise ValueError(f"ref_dir must be shape {(nC, mesh.dim)}")
         self._ref_dir = value
 
         R0 = sp.diags(value[:, 0])
@@ -147,13 +153,16 @@ class CrossReferenceRegularization(Smallness, BaseVectorRegularization):
             for value in self._weights.values():
                 if value.shape == (nC,):
                     weights *= value
-
-                elif value.size == (self.n_comp * nC,):
+                elif value.size == mesh.dim * nC:
                     weights *= np.linalg.norm(
-                        value.reshape((nC, self.n_comp), order="F"), axis=1
+                        value.reshape((nC, mesh.dim), order="F"), axis=1
                     )
             weights = np.sqrt(weights)
-            self._W = sp.diags(np.r_[weights, weights, weights], format="csr")
+            if mesh.dim == 2:
+                diag = weights
+            else:
+                diag = np.r_[weights, weights, weights]
+            self._W = sp.diags(diag, format="csr")
         return self._W
 
 
