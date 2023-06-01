@@ -104,8 +104,17 @@ regularization functions to be defined using norms between 0 and 2.
   SparseSmallness
   SparseSmoothness
 
-Joint Regularization
---------------------
+Vector Regularizations
+----------------------
+Regularization functions for models defining vector properties.
+
+.. autosummary::
+  :toctree: generated/
+
+  CrossReferenceRegularization
+
+Joint Regularizations
+---------------------
 Regularization functions for joint inversion involving one or more physical properties.
 
 .. autosummary::
@@ -129,6 +138,7 @@ to constrain inversions.
   BaseRegularization
   BaseSimilarityMeasure
   BaseSparse
+  BaseVectorRegularization
 
 """
 from ..utils.code_utils import deprecate_class
@@ -146,6 +156,8 @@ from .pgi import PGIsmallness, PGI
 from .cross_gradient import CrossGradient
 from .correspondence import LinearCorrespondence
 from .jtv import JointTotalVariation
+
+from .vector import BaseVectorRegularization, CrossReferenceRegularization
 
 
 @deprecate_class(removal_version="0.19.0", future_warn=True)
