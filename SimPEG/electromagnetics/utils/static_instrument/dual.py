@@ -81,12 +81,20 @@ class DualMomentTEMXYZSystem(base.XYZSystem):
         return self.gex.General['WaveformLMPoint']
 
     @property
+    def correct_tilt_pitch_for1Dinv(self):
+        cos_roll = np.cos(self.xyz.flightlines.TxRoll/180*np.pi)
+        cos_pitch = np.cos(self.xyz.flightlines.TxPitch/180*np.pi)
+        return 1 / (cos_roll * cos_pitch)**2
+    
+    @property
     def lm_data(self):
         dbdt = self.xyz.dbdt_ch1gt.values
         dbdt = dbdt * self.xyz.model_info.get("scalefactor", 1)
         if "dbdt_inuse_ch1gt" in self.xyz.layer_data:
             dbdt = np.where(self.xyz.dbdt_inuse_ch1gt == 0, np.nan, dbdt)
-        return -(dbdt*self.gex.Channel1['GateFactor'])[:,self.gate_start_lm:self.gate_end_lm]
+        tiltcorrection = self.correct_tilt_pitch_for1Dinv
+        tiltcorrection = np.tile(tiltcorrection, (len(tiltcorrection), self.gate_end_lm - self.gate_start_lm))
+        return -(dbdt*self.gex.Channel1['GateFactor'])[:,self.gate_start_lm:self.gate_end_lm] * tiltcorrection
     
     @property
     def hm_data(self):
@@ -94,7 +102,9 @@ class DualMomentTEMXYZSystem(base.XYZSystem):
         dbdt = dbdt * self.xyz.model_info.get("scalefactor", 1)
         if "dbdt_inuse_ch1gt" in self.xyz.layer_data:
             dbdt = np.where(self.xyz.dbdt_inuse_ch2gt == 0, np.nan, dbdt)
-        return -(dbdt*self.gex.Channel2['GateFactor'])[:,self.gate_start_hm:self.gate_end_hm]
+        tiltcorrection = self.correct_tilt_pitch_for1Dinv
+        tiltcorrection = np.tile(tiltcorrection, (len(tiltcorrection), self.gate_end_lm - self.gate_start_lm))
+        return -(dbdt*self.gex.Channel2['GateFactor'])[:,self.gate_start_hm:self.gate_end_hm] * tiltcorrection
 
     # NOTE: dbdt_std is a fraction, not an actual standard deviation size!
     @property
