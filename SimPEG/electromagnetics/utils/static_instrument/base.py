@@ -134,13 +134,13 @@ class XYZSystem(object):
         return self.xyz.dbdt_std_ch1gt.values.flatten()
 
     uncertainties_floor = 1e-13
-    uncertainties_data = 0.05 # If None, use data std:s
+    uncertainties_std_data = 0.05 # If None, use data std:s
     @property
     def uncert_array(self):
-        if self.uncertainties_data is None:
+        if self.uncertainties_std_data is None:
             uncertainties = self.data_uncert_array
         else:
-            uncertainties = self.uncertainties_data
+            uncertainties = self.uncertainties_std_data
         uncertainties = uncertainties * np.abs(self.data_array) + self.uncertainties_floor
         return np.where(np.isnan(self.data_array_nan), np.Inf, uncertainties)
 

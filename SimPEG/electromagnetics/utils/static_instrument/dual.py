@@ -95,14 +95,15 @@ class DualMomentTEMXYZSystem(base.XYZSystem):
         if "dbdt_inuse_ch1gt" in self.xyz.layer_data:
             dbdt = np.where(self.xyz.dbdt_inuse_ch2gt == 0, np.nan, dbdt)
         return -(dbdt*self.gex.Channel2['GateFactor'])[:,self.gate_start_hm:self.gate_end_hm]
-    
+
+    # NOTE: dbdt_std is a fraction, not an actual standard deviation size!
     @property
     def lm_std(self):
-        return (self.xyz.dbdt_std_ch1gt.values*self.gex.Channel1['GateFactor'])[:,self.gate_start_lm:self.gate_end_lm]
+        return (self.xyz.dbdt_std_ch1gt.values)[:,self.gate_start_lm:self.gate_end_lm]
     
     @property
     def hm_std(self):
-        return (self.xyz.dbdt_std_ch2gt.values*self.gex.Channel2['GateFactor'])[:,self.gate_start_hm:self.gate_end_hm]
+        return (self.xyz.dbdt_std_ch2gt.values)[:,self.gate_start_hm:self.gate_end_hm]
 
     @property
     def data_array_nan(self):
@@ -112,6 +113,32 @@ class DualMomentTEMXYZSystem(base.XYZSystem):
     def data_uncert_array(self):
         return np.hstack((self.lm_std, self.hm_std)).flatten()
 
+    uncertainties_floor = 1e-13
+    uncertainties_std_data = 0.03
+    uncertainties_std_data_override = False
+    noise_level_1ms=3e-8
+    noise_exponent=-0.5
+    @property
+    def uncert_array(self):
+        times_lm, times_hm = self.times
+        n_sounding = self.lm_data.shape[0]
+        
+        # 1e3 to compensate for noise level being at 1 millisecond
+        noise = np.hstack((np.tile((times_lm*1e3)**self.noise_exponent
+                                   * (self.noise_level_1ms / self.gex.gex_dict['Channel1']['ApproxDipoleMoment']),
+                                   (n_sounding, 1)),
+                           np.tile((times_hm*1e3)**self.noise_exponent
+                                   * (self.noise_level_1ms / self.gex.gex_dict['Channel2']['ApproxDipoleMoment']),
+                                   (n_sounding, 1)))).flatten()
+
+        if not self.uncertainties_std_data_override:
+            stds = np.where(stds<self.uncertainties_std_data, self.uncertainties_std_data, self.data_uncert_array)
+            uncertainties = stds*np.abs(self.data_array_nan) + noise
+        else:
+            uncertainties = self.uncertainties_std_data*np.abs(self.data_array_nan) + noise
+        
+        return np.where(np.isnan(self.data_array_nan), np.Inf, uncertainties)
+    
     @property
     def times_full(self):
         return (np.array(self.gex.gate_times('Channel1')[:,0]),
