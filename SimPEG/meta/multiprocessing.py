@@ -61,49 +61,45 @@ class _SimulationProcess(Process):
                 # None is a poison pill message to kill this loop.
                 break
             op, args = task
-            if op == "get_item":
-                (key,) = args
-                try:
+            try:
+                if op == "get_item":
+                    (key,) = args
                     r_queue.put(_cached_items[key])
-                except Exception as err:
-                    r_queue.put(err)
-            elif op == "del_item":
-                (key,) = args
-                _cached_items.pop(key, None)
-            else:
-                try:
-                    if op == 0:
-                        # store_model
-                        (m,) = args
-                        sim.model = m
-                    elif op == 1:
-                        # create fields
-                        f_key = uuid.uuid4().hex
-                        r_queue.put(f_key)
-                        fields = sim.fields(sim.model)
-                        _cached_items[f_key] = fields
-                    elif op == 2:
-                        # do dpred
-                        (f_key,) = args
-                        fields = _cached_items[f_key]
-                        r_queue.put(sim.dpred(sim.model, fields))
-                    elif op == 3:
-                        # do jvec
-                        v, f_key = args
-                        fields = _cached_items[f_key]
-                        r_queue.put(sim.Jvec(sim.model, v, fields))
-                    elif op == 4:
-                        # do jtvec
-                        v, f_key = args
-                        fields = _cached_items[f_key]
-                        r_queue.put(sim.Jtvec(sim.model, v, fields))
-                    elif op == 5:
-                        # do jtj_diag
-                        w, f_key = args
-                        fields = _cached_items[f_key]
-                        r_queue.put(sim.getJtJdiag(sim.model, w, fields))
-                except Exception as err:
-                    r_queue.put(err)
+                elif op == "del_item":
+                    (key,) = args
+                    _cached_items.pop(key, None)
+                elif op == 0:
+                    # store_model
+                    (m,) = args
+                    sim.model = m
+                elif op == 1:
+                    # create fields
+                    f_key = uuid.uuid4().hex
+                    r_queue.put(f_key)
+                    fields = sim.fields(sim.model)
+                    _cached_items[f_key] = fields
+                elif op == 2:
+                    # do dpred
+                    (f_key,) = args
+                    fields = _cached_items[f_key]
+                    r_queue.put(sim.dpred(sim.model, fields))
+                elif op == 3:
+                    # do jvec
+                    v, f_key = args
+                    fields = _cached_items[f_key]
+                    r_queue.put(sim.Jvec(sim.model, v, fields))
+                elif op == 4:
+                    # do jtvec
+                    v, f_key = args
+                    fields = _cached_items[f_key]
+                    r_queue.put(sim.Jtvec(sim.model, v, fields))
+                elif op == 5:
+                    # do jtj_diag
+                    w, f_key = args
+                    fields = _cached_items[f_key]
+                    r_queue.put(sim.getJtJdiag(sim.model, w, fields))
+            except Exception as err:
+                r_queue.put(err)
 
     def store_model(self, m):
         self._check_closed()
