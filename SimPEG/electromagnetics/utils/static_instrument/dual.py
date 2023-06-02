@@ -116,19 +116,19 @@ class DualMomentTEMXYZSystem(base.XYZSystem):
     uncertainties_floor = 1e-13
     uncertainties_std_data = 0.03
     uncertainties_std_data_override = False
-    noise_level_1ms=3e-8
-    noise_exponent=-0.5
+    uncertainties_noise_level_1ms=3e-8
+    uncertainties_noise_exponent=-0.5
     @property
     def uncert_array(self):
         times_lm, times_hm = self.times
         n_sounding = self.lm_data.shape[0]
         
         # 1e3 to compensate for noise level being at 1 millisecond
-        noise = np.hstack((np.tile((times_lm*1e3)**self.noise_exponent
-                                   * (self.noise_level_1ms / self.gex.gex_dict['Channel1']['ApproxDipoleMoment']),
+        noise = np.hstack((np.tile((times_lm*1e3)**self.uncertainties_noise_exponent
+                                   * (self.uncertainties_noise_level_1ms / self.gex.gex_dict['Channel1']['ApproxDipoleMoment']),
                                    (n_sounding, 1)),
-                           np.tile((times_hm*1e3)**self.noise_exponent
-                                   * (self.noise_level_1ms / self.gex.gex_dict['Channel2']['ApproxDipoleMoment']),
+                           np.tile((times_hm*1e3)**self.uncertainties_noise_exponent
+                                   * (self.uncertainties_noise_level_1ms / self.gex.gex_dict['Channel2']['ApproxDipoleMoment']),
                                    (n_sounding, 1)))).flatten()
 
         if not self.uncertainties_std_data_override:
