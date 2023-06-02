@@ -32,6 +32,9 @@ from SimPEG.regularization import LaterallyConstrained, RegularizationMesh
 
 import scipy.stats
 import copy
+import re
+
+from . import xyzfilter
 
 class XYZSystem(object):
     """This is a base class for system descriptions for moving EM
@@ -78,14 +81,30 @@ class XYZSystem(object):
     n_cpu=3
     
     def __init__(self, xyz, **kw):
-        self.xyz = xyz
+        self._xyz = xyz
         self.options = kw
     
     def __getattribute__(self, name):
         options = object.__getattribute__(self, "options")
         if name in options: return options[name]
         return object.__getattribute__(self, name)
+
+
+    sounding_filter = slice(None, None, None)
+
+    @property
+    def gate_filter(self):
+        times = self.times_filter
+        filt = {}
+        for key in self._xyz.layer_data.keys():
+            channel = int(re.sub(r"^[^0-9]*([0-9]+).*", r"\1", key)) - 1
+            filt[key] = self.times_filter[channel]
+        return filt
         
+    @property
+    def xyz(self):
+        return xyzfilter.FilteredXYZ(self._xyz, self.sounding_filter, self.gate_filter)
+    
     def make_system(self, idx, location, times):
         """This method should return a list of instances of some
         SimPEG.survey.BaseSrc subclass, such as
@@ -106,7 +125,7 @@ class XYZSystem(object):
 
     @property
     def times_filter(self):
-        return [np.arange(len(times)) for times in self.times_full]
+        return [np.ones(len(times), dtype=bool) for times in self.times_full]
     
     @property
     def times(self):
@@ -294,7 +313,7 @@ class XYZSystem(object):
         xyzsparse.layer_data["dep_top"] = pd.DataFrame(np.meshgrid(dep_top, self.xyz.flightlines.index)[0])
         xyzsparse.layer_data["dep_bot"] = pd.DataFrame(np.meshgrid(dep_bot, self.xyz.flightlines.index)[0])
 
-        return xyzsparse
+        return self.xyz.unfilter(xyzsparse, layerfilter=False)
     
     def invert(self):
         """Invert the data from the XYZ file using this system description and
@@ -376,4 +395,4 @@ class XYZSystem(object):
 
         resp = resp.reshape((len(self.xyz.flightlines), len(resp) // len(self.xyz.flightlines)))
 
-        return self.forward_data_to_xyz(self.split_moments(resp))
+        return self.xyz.unfilter(self.forward_data_to_xyz(self.split_moments(resp)))

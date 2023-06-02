@@ -89,31 +89,29 @@ class DualMomentTEMXYZSystem(base.XYZSystem):
     @property
     def lm_data(self):
         dbdt = self.xyz.dbdt_ch1gt.values
-        dbdt = dbdt * self.xyz.model_info.get("scalefactor", 1)
         if "dbdt_inuse_ch1gt" in self.xyz.layer_data:
             dbdt = np.where(self.xyz.dbdt_inuse_ch1gt == 0, np.nan, dbdt)
         tiltcorrection = self.correct_tilt_pitch_for1Dinv
-        tiltcorrection = np.tile(tiltcorrection, (self.gate_end_lm - self.gate_start_lm, 1)).T
-        return -(dbdt*self.gex.Channel1['GateFactor'])[:,self.gate_start_lm:self.gate_end_lm] * tiltcorrection
+        tiltcorrection = np.tile(tiltcorrection, (dbdt.shape[1], 1)).T
+        return - dbdt * self.xyz.model_info.get("scalefactor", 1) * self.gex.Channel1['GateFactor'] * tiltcorrection
     
     @property
     def hm_data(self):
         dbdt = self.xyz.dbdt_ch2gt.values
-        dbdt = dbdt * self.xyz.model_info.get("scalefactor", 1)
         if "dbdt_inuse_ch1gt" in self.xyz.layer_data:
             dbdt = np.where(self.xyz.dbdt_inuse_ch2gt == 0, np.nan, dbdt)
         tiltcorrection = self.correct_tilt_pitch_for1Dinv
-        tiltcorrection = np.tile(tiltcorrection, (self.gate_end_hm - self.gate_start_hm, 1)).T
-        return -(dbdt*self.gex.Channel2['GateFactor'])[:,self.gate_start_hm:self.gate_end_hm] * tiltcorrection
+        tiltcorrection = np.tile(tiltcorrection, (dbdt.shape[1], 1)).T
+        return - dbdt * self.xyz.model_info.get("scalefactor", 1) * self.gex.Channel2['GateFactor'] * tiltcorrection
 
     # NOTE: dbdt_std is a fraction, not an actual standard deviation size!
     @property
     def lm_std(self):
-        return (self.xyz.dbdt_std_ch1gt.values)[:,self.gate_start_lm:self.gate_end_lm]
+        return self.xyz.dbdt_std_ch1gt.values
     
     @property
     def hm_std(self):
-        return (self.xyz.dbdt_std_ch2gt.values)[:,self.gate_start_hm:self.gate_end_hm]
+        return self.xyz.dbdt_std_ch2gt.values
 
     @property
     def data_array_nan(self):
@@ -157,16 +155,13 @@ class DualMomentTEMXYZSystem(base.XYZSystem):
                 np.array(self.gex.gate_times('Channel2')[:,0]))    
 
     @property
-    def times_filter(self):
-        return [np.arange(self.gate_start_lm, self.gate_end_lm),
-                np.arange(self.gate_start_hm, self.gate_end_hm)]
-    
-    @property
-    def times(self):
-        return [times_full[times_filter]
-                for times_full, times_filter
-                in zip(self.times_full, self.times_filter)]
-    
+    def times_filter(self):        
+        times = self.times_full
+        filts = [np.zeros(len(t), dtype=bool) for t in times]
+        filts[0][self.gate_start_lm:self.gate_end_lm] = True
+        filts[1][self.gate_start_hm:self.gate_end_hm] = True
+        return filts
+        
     def make_waveforms(self):
         time_input_currents_hm = self.waveform_hm[:,0]
         input_currents_hm = self.waveform_hm[:,1]
@@ -200,10 +195,5 @@ class DualMomentTEMXYZSystem(base.XYZSystem):
                 waveform=waveform_hm,
                 orientation=self.tx_orientation,
                 i_sounding=idx)]
-
-    @property
-    def gate_filters(self):
-        return [(self.gate_end_lm, self.gate_start_lm),
-                (self.gate_end_hm, self.gate_start_hm)]
 
     
