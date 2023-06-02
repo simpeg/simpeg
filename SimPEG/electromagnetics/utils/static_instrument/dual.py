@@ -82,8 +82,8 @@ class DualMomentTEMXYZSystem(base.XYZSystem):
 
     @property
     def correct_tilt_pitch_for1Dinv(self):
-        cos_roll = np.cos(self.xyz.flightlines.TxRoll/180*np.pi)
-        cos_pitch = np.cos(self.xyz.flightlines.TxPitch/180*np.pi)
+        cos_roll = np.cos(self.xyz.flightlines.tilt_x.values/180*np.pi)
+        cos_pitch = np.cos(self.xyz.flightlines.tilt_y.values/180*np.pi)
         return 1 / (cos_roll * cos_pitch)**2
     
     @property
@@ -93,7 +93,7 @@ class DualMomentTEMXYZSystem(base.XYZSystem):
         if "dbdt_inuse_ch1gt" in self.xyz.layer_data:
             dbdt = np.where(self.xyz.dbdt_inuse_ch1gt == 0, np.nan, dbdt)
         tiltcorrection = self.correct_tilt_pitch_for1Dinv
-        tiltcorrection = np.tile(tiltcorrection, (len(tiltcorrection), self.gate_end_lm - self.gate_start_lm))
+        tiltcorrection = np.tile(tiltcorrection, (self.gate_end_lm - self.gate_start_lm, 1)).T
         return -(dbdt*self.gex.Channel1['GateFactor'])[:,self.gate_start_lm:self.gate_end_lm] * tiltcorrection
     
     @property
@@ -103,7 +103,7 @@ class DualMomentTEMXYZSystem(base.XYZSystem):
         if "dbdt_inuse_ch1gt" in self.xyz.layer_data:
             dbdt = np.where(self.xyz.dbdt_inuse_ch2gt == 0, np.nan, dbdt)
         tiltcorrection = self.correct_tilt_pitch_for1Dinv
-        tiltcorrection = np.tile(tiltcorrection, (len(tiltcorrection), self.gate_end_lm - self.gate_start_lm))
+        tiltcorrection = np.tile(tiltcorrection, (self.gate_end_hm - self.gate_start_hm, 1)).T
         return -(dbdt*self.gex.Channel2['GateFactor'])[:,self.gate_start_hm:self.gate_end_hm] * tiltcorrection
 
     # NOTE: dbdt_std is a fraction, not an actual standard deviation size!
@@ -142,8 +142,10 @@ class DualMomentTEMXYZSystem(base.XYZSystem):
                                    (n_sounding, 1)))).flatten()
 
         if not self.uncertainties_std_data_override:
-            stds = np.where(stds<self.uncertainties_std_data, self.uncertainties_std_data, self.data_uncert_array)
-            uncertainties = stds*np.abs(self.data_array_nan) + noise
+            stds = np.where(self.data_uncert_array < self.uncertainties_std_data,
+                            self.uncertainties_std_data,
+                            self.data_uncert_array)
+            uncertainties = self.data_uncert_array * np.abs(self.data_array_nan) + noise
         else:
             uncertainties = self.uncertainties_std_data*np.abs(self.data_array_nan) + noise
         
