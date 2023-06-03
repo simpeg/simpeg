@@ -29,7 +29,7 @@ class CrossGradient(BaseSimilarityMeasure):
     active_cells : None, (n_cells, ) numpy.ndarray of bool
         Boolean array defining the set of :py:class:`~.regularization.RegularizationMesh`
         cells that are active in the inversion. If ``None``, all cells are active.
-    wire_map : SimPEG.maps.WireMap
+    wire_map : SimPEG.maps.Wires
         Wire map connecting physical properties defined on active cells of the
         :class:`RegularizationMesh`` to the entire model.
     reference_model : None, (n_param, ) numpy.ndarray
@@ -48,10 +48,11 @@ class CrossGradient(BaseSimilarityMeasure):
     -----
     Consider the case where the model is comprised of two physical properties
     :math:`m_1` and :math:`m_2`. Here, we define the regularization
-    function for cross-gradient as (`Haber and Gazit, 2013 <https://link.springer.com/article/10.1007/s10712-013-9232-4>`__):
+    function (objective function) for cross-gradient as
+    (`Haber and Gazit, 2013 <https://link.springer.com/article/10.1007/s10712-013-9232-4>`__):
 
     .. math::
-        \gamma (m_1, m_2) = \frac{1}{2} \int_\Omega \, w(r) \,
+        \phi (m_1, m_2) = \frac{1}{2} \int_\Omega \, w(r) \,
         \Big | \nabla m_1 \, \times \, \nabla m_2 \, \Big |^2 \, dv
 
     where :math:`w(r)` is a user-defined weighting function.
@@ -59,7 +60,7 @@ class CrossGradient(BaseSimilarityMeasure):
     the regularization function can be re-expressed as:
 
     .. math::
-        \gamma (m_1, m_2) = \frac{1}{2} \int_\Omega \, w(r) \, \Big [ \,
+        \phi (m_1, m_2) = \frac{1}{2} \int_\Omega \, w(r) \, \Big [ \,
         \big | \nabla m_1 \big |^2 \big | \nabla m_2 \big |^2 
         - \big ( \nabla m_1 \, \cdot \, \nabla m_2 \, \big )^2 \Big ] \, dv
 
@@ -68,7 +69,7 @@ class CrossGradient(BaseSimilarityMeasure):
     function (objective function) is given by:
 
     .. math::
-        \gamma (m_1, m_2) \approx \frac{1}{2} \sum_i \tilde{w}_i \, \bigg [
+        \phi (m_1, m_2) \approx \frac{1}{2} \sum_i \tilde{w}_i \, \bigg [
         \Big | (\nabla m_1)_i \Big |^2 \Big | (\nabla m_2)_i \Big |^2 
         - \Big [ (\nabla m_1)_i \, \cdot \, (\nabla m_2)_i \, \Big ]^2 \, \bigg ]
 
@@ -87,7 +88,7 @@ class CrossGradient(BaseSimilarityMeasure):
     is therefore equivalent to an objective function of the form:
 
     .. math::
-        \gamma (\mathbf{m}) =
+        \phi (\mathbf{m}) =
         \frac{1}{2} \Big [ \mathbf{W A} \big ( \mathbf{G \, m_1} \big )^2 \Big ]^T
         \Big [ \mathbf{W A} \big ( \mathbf{G \, m_2} \big )^2 \Big ]
         - \frac{1}{2} \bigg \| \mathbf{W A} \Big [ \big ( \mathbf{G \, m_1} \big )

@@ -33,10 +33,10 @@ function (or penalty function) of the form:
 The global objective function contains two terms: a data misfit term :math:`\phi_d` which
 ensures data predicted by the recovered model adequately reproduces the observed data,
 and the model objective function :math:`\phi_m` which is comprised of one or more 
-regularization functions :math:`\gamma_i (m)`. I.e.:
+regularization functions (objective functions) :math:`\phi_i (m)`. I.e.:
 
 .. math::
-    \phi_m (m) = \sum_i \alpha_i \, \gamma_i (m)
+    \phi_m (m) = \sum_i \alpha_i \, \phi_i (m)
 
 The model objective function imposes all of the desired constraints on the recovered model.
 Constants :math:`\alpha_i` weight the relative contributions of the regularization

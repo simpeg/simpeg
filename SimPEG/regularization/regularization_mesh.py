@@ -19,8 +19,8 @@ class RegularizationMesh(props.BaseSimPEG):
     for the objective function(s) defining the regularization. In practice, these operators are
     not constructed by creating instances of ``RegularizationMesh``. The operators are instead
     constructed (and sometimes stored) when called as a property of the mesh.
-    The ``RegularizationMesh`` class is built using much of the functionality for the
-    (link to discretize DiffOperators) class.
+    The ``RegularizationMesh`` class is built using much of the functionality from the
+    :py:class:`discretize.operators.differential_operators.DiffOperators` class.
     However, operators constructed using the ``RegularizationMesh`` class have been modified to
     act only on interior faces and active cells in the inversion, thus reducing computational cost.
 
@@ -234,7 +234,7 @@ class RegularizationMesh(props.BaseSimPEG):
     def average_face_to_cell(self) -> sp.csr_matrix:
         """Averaging operator from faces to cell centers.
 
-        Built from (link to discretize DiffOperators average face to cell).
+        Built from :py:attr:`discretize.operators.differential_operators.DiffOperators.average_face_to_cell`.
 
         Returns
         -------
@@ -253,7 +253,7 @@ class RegularizationMesh(props.BaseSimPEG):
         """Averaging operator from active cell centers to active x-faces.
 
         Modified from the transpose of
-        (link to discretize DiffOperators method);
+        :py:attr:`discretize.operators.differential_operators.DiffOperators.aveFx2CC`;
         an operator that projects from all x-faces to all cell centers.
 
         Returns
@@ -276,7 +276,7 @@ class RegularizationMesh(props.BaseSimPEG):
         """Averaging operator from active x-faces to active cell centers.
 
         Modified from
-        (link to discretize DiffOperators method);
+        :py:attr:`discretize.operators.differential_operators.DiffOperators.aveCC2Fx`;
         an operator that projects from all x-faces to all cell centers.
 
         Returns
@@ -300,7 +300,7 @@ class RegularizationMesh(props.BaseSimPEG):
         """Averaging operator from active cell centers to active y-faces.
 
         Modified from the transpose of
-        (link to discretize DiffOperators method);
+        :py:attr:`discretize.operators.differential_operators.DiffOperators.aveFy2CC`;
         an operator that projects from y-faces to cell centers.
 
         Returns
@@ -325,7 +325,7 @@ class RegularizationMesh(props.BaseSimPEG):
         """Averaging operator from active y-faces to active cell centers.
 
         Modified from
-        (link to discretize DiffOperators method);
+        :py:attr:`discretize.operators.differential_operators.DiffOperators.aveCC2Fy`;
         an operator that projects from all y-faces to all cell centers.
 
         Returns
@@ -351,7 +351,7 @@ class RegularizationMesh(props.BaseSimPEG):
         """Averaging operator from active cell centers to active z-faces.
 
         Modified from the transpose of
-        (link to discretize DiffOperators method);
+        :py:attr:`discretize.operators.differential_operators.DiffOperators.aveFz2CC`;
         an operator that projects from z-faces to cell centers.
 
         Returns
@@ -374,7 +374,7 @@ class RegularizationMesh(props.BaseSimPEG):
         """Averaging operator from active z-faces to active cell centers.
 
         Modified from
-        (link to discretize DiffOperators method);
+        :py:attr:`discretize.operators.differential_operators.DiffOperators.aveCC2Fz`;
         an operator that projects from all z-faces to all cell centers.
 
         Returns
@@ -410,7 +410,7 @@ class RegularizationMesh(props.BaseSimPEG):
     def cell_gradient(self) -> sp.csr_matrix:
         """Cell gradient operator (cell centers to faces).
 
-        Built from (link to discretize DiffOperators method).
+        Built from :py:attr:`discretize.operators.differential_operators.DiffOperators.cell_gradient`.
 
         Returns
         -------
@@ -432,7 +432,7 @@ class RegularizationMesh(props.BaseSimPEG):
 
         Cell centered x-derivative operator that maps from active cells
         to active x-faces. Modified from
-        (link to discretize DiffOperators method)
+        :py:attr:`discretize.operators.differential_operators.DiffOperators.cell_gradient_x`.
 
         Returns
         -------
@@ -462,7 +462,7 @@ class RegularizationMesh(props.BaseSimPEG):
 
         Cell centered y-derivative operator that maps from active cells
         to active y-faces. Modified from
-        (link to discretize DiffOperators method)
+        :py:attr:`discretize.operators.differential_operators.DiffOperators.cell_gradient_y`.
 
         Returns
         -------
@@ -492,7 +492,7 @@ class RegularizationMesh(props.BaseSimPEG):
 
         Cell centered z-derivative operator that maps from active cells
         to active z-faces. Modified from
-        (link to discretize DiffOperators method)
+        :py:attr:`discretize.operators.differential_operators.DiffOperators.cell_gradient_z`.
 
         Returns
         -------

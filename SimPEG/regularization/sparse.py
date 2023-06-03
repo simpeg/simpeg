@@ -137,7 +137,7 @@ class BaseSparse(BaseRegularization):
     def get_lp_weights(self, f_m):
         r"""Compute and return iteratively re-weighted least-squares (IRLS) weights.
 
-        For a least-squares regularization kernel function :math:`\mathbf{f_m}(\mathbf{m})`
+        For a regularization kernel function :math:`\mathbf{f_m}(\mathbf{m})`
         evaluated at model :math:`\mathbf{m}`, compute and return the IRLS weights.
         See :py:meth:`Smallness.f_m` and :py:meth:`SmoothnessFirstOrder.f_m` for examples of
         least-squares regularization kernels.
@@ -150,11 +150,11 @@ class BaseSparse(BaseRegularization):
         Parameters
         ----------
         f_m : numpy.ndarray
-            The least-squares regularization kernel evaluated at the current model.
+            The regularization kernel function evaluated at the current model.
 
         Notes
         -----
-        For a least-squares regularization kernel :math:`\mathbf{f_m}` evaluated at model
+        For a regularization kernel function :math:`\mathbf{f_m}` evaluated at model
         :math:`\mathbf{m}`, the IRLS weights are computed via:
 
         .. math::
@@ -252,10 +252,10 @@ class SparseSmallness(BaseSparse, Smallness):
 
     Notes
     -----
-    We define the regularization function for sparse smallness (compactness) as:
+    We define the regularization function (objective function) for sparse smallness (compactness) as:
 
     .. math::
-        \gamma (m) = \frac{1}{2} \int_\Omega \, w(r) \,
+        \phi (m) = \frac{1}{2} \int_\Omega \, w(r) \,
         \Big | m(r) - m^{(ref)}(r) \Big |^{p(r)} \, dv
 
     where :math:`m(r)` is the model, :math:`m^{(ref)}(r)` is the reference model, :math:`w(r)`
@@ -269,7 +269,7 @@ class SparseSmallness(BaseSparse, Smallness):
     function (objective function) is given by:
 
     .. math::
-        \gamma (\mathbf{m}) = \frac{1}{2} \sum_i
+        \phi (\mathbf{m}) = \frac{1}{2} \sum_i
         \tilde{w}_i \, \Big | m_i - m_i^{(ref)} \Big |^{p_i}
 
     where :math:`m_i \in \mathbf{m}` are the discrete model parameters defined on the mesh.
@@ -283,7 +283,7 @@ class SparseSmallness(BaseSparse, Smallness):
     a set of convex least-squares problems. For IRLS iteration :math:`k`, we define:
 
     .. math::
-        \gamma \big (\mathbf{m}^{(k)} \big )
+        \phi \big (\mathbf{m}^{(k)} \big )
         = \frac{1}{2} \sum_i \tilde{w}_i \, \Big | m_i^{(k)} - m_i^{(ref)} \Big |^{p_i}
         \approx \frac{1}{2} \sum_i \tilde{w}_i \, r_i^{(k)} \Big | m_i^{(k)} - m_i^{(ref)} \Big |^2
 
@@ -298,7 +298,7 @@ class SparseSmallness(BaseSparse, Smallness):
     function for IRLS iteration :math:`k` can be expressed as follows:
 
     .. math::
-        \gamma \big ( \mathbf{m}^{(k)} \big ) \approx \frac{1}{2} \Big \| \,
+        \phi \big ( \mathbf{m}^{(k)} \big ) \approx \frac{1}{2} \Big \| \,
         \mathbf{W}^{\! (k)} \big [ \mathbf{m}^{(k)} - \mathbf{m}^{(ref)} \big ] \Big \|^2
 
     where
@@ -350,7 +350,7 @@ class SparseSmallness(BaseSparse, Smallness):
 
         Notes
         -----
-        For the model :math:`\mathbf{m}` provided, the least-squares regularization kernel
+        For the model :math:`\mathbf{m}` provided, the regularization kernel function
         for sparse smallness is given by:
 
         .. math::
@@ -457,11 +457,11 @@ class SparseSmoothness(BaseSparse, SmoothnessFirstOrder):
 
     Notes
     -----
-    The regularization function for sparse smoothness (blockiness) along the x-direction
-    as:
+    The regularization function (objective function) for sparse smoothness (blockiness)
+    along the x-direction as:
 
     .. math::
-        \gamma (m) = \frac{1}{2} \int_\Omega \, w(r) \,
+        \phi (m) = \frac{1}{2} \int_\Omega \, w(r) \,
         \bigg | \frac{\partial m}{\partial x} \bigg |^{p(r)} \, dv
 
     where :math:`m(r)` is the model, :math:`w(r)`
@@ -475,7 +475,7 @@ class SparseSmoothness(BaseSparse, SmoothnessFirstOrder):
     function (objective function) is given by:
 
     .. math::
-        \gamma (\mathbf{m}) = \frac{1}{2} \sum_i
+        \phi (\mathbf{m}) = \frac{1}{2} \sum_i
         \tilde{w}_i \, \Bigg | \, \frac{\partial m_i}{\partial x} \, \Bigg |^{p_i}
 
     where :math:`m_i \in \mathbf{m}` are the discrete model parameters defined on the mesh.
@@ -489,7 +489,7 @@ class SparseSmoothness(BaseSparse, SmoothnessFirstOrder):
     a set of convex least-squares problems. For IRLS iteration :math:`k`, we define:
 
     .. math::
-        \gamma \big (\mathbf{m}^{(k)} \big )
+        \phi \big (\mathbf{m}^{(k)} \big )
         = \frac{1}{2} \sum_i
         \tilde{w}_i \, \Bigg | \, \frac{\partial m_i^{(k)}}{\partial x} \Bigg |^{p_i}
         \approx \frac{1}{2} \sum_i \tilde{w}_i \, r_i^{(k)}
@@ -506,7 +506,7 @@ class SparseSmoothness(BaseSparse, SmoothnessFirstOrder):
     function for IRLS iteration :math:`k` can be expressed as follows:
 
     .. math::
-        \gamma \big ( \mathbf{m}^{(k)} \big ) \approx \frac{1}{2} \Big \| \,
+        \phi \big ( \mathbf{m}^{(k)} \big ) \approx \frac{1}{2} \Big \| \,
         \mathbf{W \, R}^{\!\! (k)} \, \mathbf{G_x} \, \mathbf{m}^{(k)} \Big \|^2
 
     where
@@ -525,13 +525,13 @@ class SparseSmoothness(BaseSparse, SmoothnessFirstOrder):
     In this case, the objective function becomes:
     
     .. math::
-        \gamma (\mathbf{m}) = \frac{1}{2} \Big \| \mathbf{W \, R \, G_x}
+        \phi (\mathbf{m}) = \frac{1}{2} \Big \| \mathbf{W \, R \, G_x}
         \big [ \mathbf{m}^{(k)} - \mathbf{m}^{(ref)} \big ] \Big \|^2
 
     The least-squares problem for IRLS iteration :math:`k` becomes:
 
     .. math::
-        \gamma \big ( \mathbf{m}^{(k)} \big ) \approx \frac{1}{2} \Big \| \,
+        \phi \big ( \mathbf{m}^{(k)} \big ) \approx \frac{1}{2} \Big \| \,
         \mathbf{W}^{\! (k)} \mathbf{G_x}
         \big [ \mathbf{m}^{(k)} - \mathbf{m}^{(ref)} \big ] \Big \|^2
 
@@ -598,7 +598,7 @@ class SparseSmoothness(BaseSparse, SmoothnessFirstOrder):
         -----
         Let us consider the IRLS weights for sparse smoothness along the x-direction.
         When the class property `gradient_type`=`'components'`, IRLS weights are computed
-        using the least-squares regularization kernel and we define:
+        using the regularization kernel function and we define:
 
         .. math::
             \mathbf{f_m} = \mathbf{G_x} \big [ \mathbf{m} - \mathbf{m}^{(ref)} \big ]
@@ -607,7 +607,7 @@ class SparseSmoothness(BaseSparse, SmoothnessFirstOrder):
         gradient operator along x (i.e. x-derivative), and :math:`\mathbf{m}^{(ref)}` is a
         reference model (optional, activated using `reference_model_in_smooth`).
         See :py:meth:`SmoothnessFirstOrder.f_m` for a more comprehensive definition of the
-        least-squares regularization kernel.
+        regularization kernel function.
 
         However, when the class property `gradient_type`=`'total'`, IRLS weights are computed
         using the magnitude of the total gradient and we define:
@@ -803,8 +803,8 @@ class Sparse(WeightedLeastSquares):
     .. math::
         \int_\Omega w(r) \big [ f(r) \big ]^{p(r)} \, dv \approx \sum_i \tilde{w}_i \, | f_i |^{p_i}
 
-    where :math:`f_i \in \mathbf{f_m}` define the discrete least-squares regularization kernel
-    on the mesh. For example, the least-squares regularization kernel for smallness regularization
+    where :math:`f_i \in \mathbf{f_m}` define the discrete regularization kernel function
+    on the mesh. For example, the regularization kernel function for smallness regularization
     is:
 
     .. math::

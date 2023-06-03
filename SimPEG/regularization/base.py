@@ -31,7 +31,7 @@ class BaseRegularization(BaseObjectiveFunction):
         cells that are active in the inversion. If ``None``, all cells are active.
     mapping : None, SimPEG.maps.BaseMap
         The mapping from the model parameters to the active cells in the inversion.
-        If ``None``, the mapping is the identity map.
+        If ``None``, the mapping is set to :obj:`SimPEG.maps.IdentityMap`.
     reference_model : None, (n_param, ) numpy.ndarray
         Reference model. If ``None``, the reference model in the inversion is set to
         the starting model.
@@ -39,8 +39,8 @@ class BaseRegularization(BaseObjectiveFunction):
         Units for the model parameters. Some regularization classes behave
         differently depending on the units; e.g. 'radian'.
     weights : None, dict
-        Weight multipliers to customize the least-squares function. Each key points to a (n_cells, )
-        numpy.ndarray that is defined on the :py:class:`~.regularization.RegularizationMesh`.
+        Weight multipliers to customize the least-squares function.
+        Each value is a numpy.ndarray of shape(:py:property:`~.regularization.RegularizationMesh.n_cells`, ).
 
     """
 
@@ -287,6 +287,11 @@ class BaseRegularization(BaseObjectiveFunction):
     def get_weights(self, key) -> np.ndarray:
         """Cell weights for a given key.
 
+        Parameters
+        ------------
+        key: str
+            Name of the weights requested.
+
         Returns
         -------
         (n_cells, ) numpy.ndarray
@@ -428,11 +433,11 @@ class BaseRegularization(BaseObjectiveFunction):
     def deriv(self, m) -> np.ndarray:
         r"""Jacobian of the regularization function evaluated for the model provided.
 
-        Where :math:`\gamma (\mathbf{m})` is the discrete regularization function,
+        Where :math:`\phi (\mathbf{m})` is the discrete regularization function (objective function),
         this method returns the derivative (Jacobian) with respect to the model parameters:
 
         .. math::
-            \frac{\partial \gamma}{\partial \mathbf{m}} \, \bigg |_\mathbf{m}
+            \frac{\partial \phi}{\partial \mathbf{m}} \, \bigg |_\mathbf{m}
 
         evaluated at the model :math:`\mathbf{m}` provided.
 
@@ -453,16 +458,16 @@ class BaseRegularization(BaseObjectiveFunction):
     def deriv2(self, m, v=None) -> csr_matrix:
         r"""Hessian of the regularization function evaluated for the model provided.
 
-        Where :math:`\gamma (\mathbf{m})` is the discrete regularization function,
+        Where :math:`\phi (\mathbf{m})` is the discrete regularization function (objective function),
         this method returns the second derivative (Hessian) with respect to the model parameters:
 
         .. math::
-            \frac{\partial^2 \gamma}{\partial \mathbf{m}^2} \bigg |_\mathbf{m}
+            \frac{\partial^2 \phi}{\partial \mathbf{m}^2} \bigg |_\mathbf{m}
 
         or the second-derivative (Hessian) multiplied by a given vector :math:`(\mathbf{v})`
 
         .. math::
-            \bigg [ \frac{\partial^2 \gamma}{\partial \mathbf{m}^2}
+            \bigg [ \frac{\partial^2 \phi}{\partial \mathbf{m}^2}
             \bigg |_\mathbf{m} \bigg ] \mathbf{v}
 
 
@@ -528,7 +533,7 @@ class Smallness(BaseRegularization):
     We define the regularization function for smallness as:
 
     .. math::
-        \gamma (m) = \frac{1}{2} \int_\Omega \, w(r) \,
+        \phi (m) = \frac{1}{2} \int_\Omega \, w(r) \,
         \Big [ m(r) - m^{(ref)}(r) \Big ]^2 \, dv
 
     where :math:`m(r)` is the model, :math:`m^{(ref)}(r)` is the reference model and :math:`w(r)`
@@ -539,7 +544,7 @@ class Smallness(BaseRegularization):
     function (objective function) is given by:
 
     .. math::
-        \gamma (\mathbf{m}) = \frac{1}{2} \sum_i
+        \phi (\mathbf{m}) = \frac{1}{2} \sum_i
         \tilde{w}_i \, \bigg | \, m_i - m_i^{(ref)} \, \bigg |^2
 
     where :math:`m_i \in \mathbf{m}` are the discrete model parameter values defined on the mesh and
@@ -548,7 +553,7 @@ class Smallness(BaseRegularization):
     This is equivalent to an objective function of the form:
 
     .. math::
-        \gamma (\mathbf{m}) = \frac{1}{2}
+        \phi (\mathbf{m}) = \frac{1}{2}
         \Big \| \mathbf{W} \big [ \mathbf{m} - \mathbf{m}^{(ref)} \big ] \Big \|^2
 
     where
@@ -593,9 +598,9 @@ class Smallness(BaseRegularization):
         self.set_weights(volume=self.regularization_mesh.vol)
 
     def f_m(self, m) -> np.ndarray:
-        r"""Evaluate least-squares regularization kernel.
+        r"""Evaluate the regularization kernel function.
 
-        For smallness regularization, the least-squares regularization kernel is given by:
+        For smallness regularization, the regularization kernel function is given by:
 
         .. math::
             \mathbf{f_m}(\mathbf{m}) = \mathbf{m} - \mathbf{m}^{(ref)}
@@ -611,7 +616,7 @@ class Smallness(BaseRegularization):
         Returns
         -------
         numpy.ndarray
-            The least-squares regularization kernel.
+            The regularization kernel function evaluated for the model provided.
 
         Notes
         -----
@@ -625,7 +630,7 @@ class Smallness(BaseRegularization):
         :math:`\mathbf{m}^{(ref)}` is the reference model, and :math:`\mathbf{W}` is
         the weighting matrix. See the :class:`Smallness` class documentation for more detail.
 
-        We define the least-squares regularization kernel :math:`\mathbf{f_m}` as:
+        We define the regularization kernel function :math:`\mathbf{f_m}` as:
 
         .. math::
             \mathbf{f_m}(\mathbf{m}) = \mathbf{m} - \mathbf{m}^{(ref)}
@@ -639,10 +644,10 @@ class Smallness(BaseRegularization):
         return self.mapping * self._delta_m(m)
 
     def f_m_deriv(self, m) -> csr_matrix:
-        r"""Derivative of the least-squares regularization kernel.
+        r"""Derivative of the regularization kernel function.
 
-        For ``Smallness`` regularization, the derivative of the least-squares regularization
-        kernel with respect to the model is given by:
+        For ``Smallness`` regularization, the derivative of the regularization kernel function
+        with respect to the model is given by:
 
         .. math::
             \frac{\partial \mathbf{f_m}}{\partial \mathbf{m}} = \mathbf{I}
@@ -657,7 +662,7 @@ class Smallness(BaseRegularization):
         Returns
         -------
         scipy.sparse.csr_matrix
-            The derivative of the least-squares regularization kernel.
+            The derivative of the regularization kernel function.
 
         Notes
         -----
@@ -671,7 +676,7 @@ class Smallness(BaseRegularization):
         :math:`\mathbf{m}^{(ref)}` is the reference model, and :math:`\mathbf{W}` is
         the weighting matrix. See the :class:`Smallness` class documentation for more detail.
 
-        We define the least-squares regularization kernel :math:`\mathbf{f_m}` as:
+        We define the regularization kernel function :math:`\mathbf{f_m}` as:
 
         .. math::
             \mathbf{f_m}(\mathbf{m}) = \mathbf{m} - \mathbf{m}^{(ref)}
@@ -734,10 +739,11 @@ class SmoothnessFirstOrder(BaseRegularization):
 
     Notes
     -----
-    We define the regularization function for first-order smoothness along the x-direction as:
+    We define the regularization function (objective function) for first-order smoothness
+    along the x-direction as:
 
     .. math::
-        \gamma (m) = \frac{1}{2} \int_\Omega \, w(r) \,
+        \phi (m) = \frac{1}{2} \int_\Omega \, w(r) \,
         \bigg [ \frac{\partial m}{\partial x} \bigg ]^2 \, dv
 
     where :math:`m(r)` is the model and :math:`w(r)` is a user-defined weighting function.
@@ -747,7 +753,7 @@ class SmoothnessFirstOrder(BaseRegularization):
     function (objective function) is given by:
 
     .. math::
-        \gamma (\mathbf{m}) = \frac{1}{2} \sum_i
+        \phi (\mathbf{m}) = \frac{1}{2} \sum_i
         \tilde{w}_i \, \bigg | \, \frac{\partial m_i}{\partial x} \, \bigg |^2
 
     where :math:`m_i \in \mathbf{m}` are the discrete model parameter values defined on the mesh
@@ -756,7 +762,7 @@ class SmoothnessFirstOrder(BaseRegularization):
     This is equivalent to an objective function of the form:
 
     .. math::
-        \gamma (\mathbf{m}) = \frac{1}{2} \Big \| \mathbf{W \, G_x m } \, \Big \|^2
+        \phi (\mathbf{m}) = \frac{1}{2} \Big \| \mathbf{W \, G_x m } \, \Big \|^2
 
     where
 
@@ -773,7 +779,7 @@ class SmoothnessFirstOrder(BaseRegularization):
     In this case, the objective function becomes:
     
     .. math::
-        \gamma (\mathbf{m}) = \frac{1}{2} \Big \| \mathbf{W G_x}
+        \phi (\mathbf{m}) = \frac{1}{2} \Big \| \mathbf{W G_x}
         \big [ \mathbf{m} - \mathbf{m}^{(ref)} \big ] \Big \|^2
 
     This functionality is used by setting a reference model with the
@@ -902,10 +908,10 @@ class SmoothnessFirstOrder(BaseRegularization):
         return f"alpha_{self.orientation}"
 
     def f_m(self, m):
-        r"""Evaluate least-squares regularization kernel.
+        r"""Evaluate the regularization kernel function.
 
         For first-order smoothness regularization in the x-direction,
-        the least-squares regularization kernel is given by:
+        the regularization kernel function is given by:
 
         .. math::
             \mathbf{f_m}(\mathbf{m}) = \mathbf{G_x} \big [ \mathbf{m} - \mathbf{m}^{(ref)} \big ]
@@ -923,7 +929,7 @@ class SmoothnessFirstOrder(BaseRegularization):
         Returns
         -------
         numpy.ndarray
-            The least-squares regularization kernel.
+            The regularization kernel function.
 
         Notes
         -----
@@ -940,7 +946,7 @@ class SmoothnessFirstOrder(BaseRegularization):
         the weighting matrix. Similar for smoothness along y and z.
         See the :class:`SmoothnessFirstOrder` class documentation for more detail.
 
-        We define the least-squares regularization kernel :math:`\mathbf{f_m}` as:
+        We define the regularization kernel function :math:`\mathbf{f_m}` as:
 
         .. math::
             \mathbf{f_m}(\mathbf{m}) = \mathbf{G_x} \big [ \mathbf{m} - \mathbf{m}^{(ref)} \big ]
@@ -960,10 +966,10 @@ class SmoothnessFirstOrder(BaseRegularization):
         return dfm_dl
 
     def f_m_deriv(self, m) -> csr_matrix:
-        r"""Derivative of the least-squares regularization kernel.
+        r"""Derivative of the regularization kernel function.
 
         For first-order smoothness regularization in the x-direction, the derivative of the
-        least-squares regularization kernel with respect to the model is given by:
+        regularization kernel function with respect to the model is given by:
 
         .. math::
             \frac{\partial \mathbf{f_m}}{\partial \mathbf{m}} = \mathbf{G_x}
@@ -979,7 +985,7 @@ class SmoothnessFirstOrder(BaseRegularization):
         Returns
         -------
         scipy.sparse.csr_matrix
-            The derivative of the least-squares regularization kernel.
+            The derivative of the regularization kernel function.
 
         Notes
         -----
@@ -996,7 +1002,7 @@ class SmoothnessFirstOrder(BaseRegularization):
         the weighting matrix. Similar for smoothness along y and z.
         See the :class:`SmoothnessFirstOrder` class documentation for more detail.
 
-        We define the least-squares regularization kernel :math:`\mathbf{f_m}` as:
+        We define the regularization kernel function :math:`\mathbf{f_m}` as:
 
         .. math::
             \mathbf{f_m}(\mathbf{m}) = \mathbf{G_x} \big [ \mathbf{m} - \mathbf{m}^{(ref)} \big ]
@@ -1098,10 +1104,11 @@ class SmoothnessSecondOrder(SmoothnessFirstOrder):
 
     Notes
     -----
-    We define the regularization function for second-order smoothness along the x-direction as:
+    We define the regularization function (objective function) for second-order
+    smoothness along the x-direction as:
 
     .. math::
-        \gamma (m) = \frac{1}{2} \int_\Omega \, w(r) \,
+        \phi (m) = \frac{1}{2} \int_\Omega \, w(r) \,
         \bigg [ \frac{\partial^2 m}{\partial x^2} \bigg ]^2 \, dv
 
     where :math:`m(r)` is the model and :math:`w(r)` is a user-defined weighting function.
@@ -1111,7 +1118,7 @@ class SmoothnessSecondOrder(SmoothnessFirstOrder):
     function (objective function) is given by:
 
     .. math::
-        \gamma (\mathbf{m}) = \frac{1}{2} \sum_i
+        \phi (\mathbf{m}) = \frac{1}{2} \sum_i
         \tilde{w}_i \, \bigg | \, \frac{\partial^2 m_i}{\partial x^2} \, \bigg |^2
 
     where :math:`m_i \in \mathbf{m}` are the discrete model parameter values defined on the
@@ -1120,7 +1127,7 @@ class SmoothnessSecondOrder(SmoothnessFirstOrder):
     This is equivalent to an objective function of the form:
 
     .. math::
-        \gamma (\mathbf{m}) = \frac{1}{2} \big \| \mathbf{W \, L_x \, m } \, \big \|^2
+        \phi (\mathbf{m}) = \frac{1}{2} \big \| \mathbf{W \, L_x \, m } \, \big \|^2
 
     where
 
@@ -1134,7 +1141,7 @@ class SmoothnessSecondOrder(SmoothnessFirstOrder):
     In this case, the objective function becomes:
     
     .. math::
-        \gamma (\mathbf{m}) = \frac{1}{2} \Big \| \mathbf{W L_x}
+        \phi (\mathbf{m}) = \frac{1}{2} \Big \| \mathbf{W L_x}
         \big [ \mathbf{m} - \mathbf{m}^{(ref)} \big ] \Big \|^2
 
     This functionality is used by setting a reference model with the
@@ -1169,10 +1176,10 @@ class SmoothnessSecondOrder(SmoothnessFirstOrder):
     """
 
     def f_m(self, m):
-        r"""Evaluate least-squares regularization kernel.
+        r"""Evaluate the regularization kernel function.
 
         For second-order smoothness regularization in the x-direction,
-        the least-squares regularization kernel is given by:
+        the regularization kernel function is given by:
 
         .. math::
             \mathbf{f_m}(\mathbf{m}) = \mathbf{L_x} \big [ \mathbf{m} - \mathbf{m}^{(ref)} \big ]
@@ -1189,7 +1196,7 @@ class SmoothnessSecondOrder(SmoothnessFirstOrder):
         Returns
         -------
         numpy.ndarray
-            The least-squares regularization kernel.
+            The regularization kernel function.
 
         Notes
         -----
@@ -1206,7 +1213,7 @@ class SmoothnessSecondOrder(SmoothnessFirstOrder):
         the weighting matrix. Similar for smoothness along y and z.
         See the :class:`SmoothnessSecondOrder` class documentation for more detail.
 
-        We define the least-squares regularization kernel :math:`\mathbf{f_m}` as:
+        We define the regularization kernel function :math:`\mathbf{f_m}` as:
 
         .. math::
             \mathbf{f_m}(\mathbf{m}) = \mathbf{L_x} \big [ \mathbf{m} - \mathbf{m}^{(ref)} \big ]
@@ -1229,10 +1236,10 @@ class SmoothnessSecondOrder(SmoothnessFirstOrder):
         return dfm_dl2
 
     def f_m_deriv(self, m) -> csr_matrix:
-        r"""Derivative of the least-squares regularization kernel.
+        r"""Derivative of the regularization kernel function.
 
-        For second-order smoothness regularization, the derivative of the least-squares
-        regularization kernel with respect to the model is given by:
+        For second-order smoothness regularization, the derivative of the
+        regularization kernel function with respect to the model is given by:
 
         .. math::
             \frac{\partial \mathbf{f_m}}{\partial \mathbf{m}} = \mathbf{L_x}
@@ -1247,7 +1254,7 @@ class SmoothnessSecondOrder(SmoothnessFirstOrder):
         Returns
         -------
         scipy.sparse.csr_matrix
-            The derivative of the least-squares regularization kernel.
+            The derivative of the regularization kernel function.
 
         Notes
         -----
@@ -1264,7 +1271,7 @@ class SmoothnessSecondOrder(SmoothnessFirstOrder):
         the weighting matrix. Similar for smoothness along y and z.
         See the :class:`SmoothnessSecondOrder` class documentation for more detail.
 
-        We define the least-squares regularization kernel :math:`\mathbf{f_m}` as:
+        We define the regularization kernel function :math:`\mathbf{f_m}` as:
 
         .. math::
             \mathbf{f_m}(\mathbf{m}) = \mathbf{L_x} \big [ \mathbf{m} - \mathbf{m}^{(ref)} \big ]
@@ -1274,7 +1281,7 @@ class SmoothnessSecondOrder(SmoothnessFirstOrder):
         .. math::
             \phi_m (\mathbf{m}) = \frac{1}{2} \Big \| \mathbf{W \, f_m} \Big \|^2
 
-        The derivate of the regularization kernel with respect to the model is:
+        The derivate of the regularization kernel function with respect to the model is:
 
         .. math::
             \frac{\partial \mathbf{f_m}}{\partial \mathbf{m}} = \mathbf{L_x}
