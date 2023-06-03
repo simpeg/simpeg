@@ -177,7 +177,7 @@ class JointTotalVariation(BaseSimilarityMeasure):
         Parameters
         ----------
         m : (n_param, ) numpy.ndarray
-            The model for which the function is evaluated.
+            The model; a vector array containing all physical properties.
 
         Returns
         -------
@@ -196,12 +196,27 @@ class JointTotalVariation(BaseSimilarityMeasure):
         return np.sum(sq)
 
     def deriv(self, model):
-        """Jacobian of the regularization function evaluated for the model provided.
+        r"""Jacobian of the regularization function evaluated for the model provided.
+
+        Where :math:`\phi (\mathbf{m})` is the discrete regularization function (objective function),
+        this method evaluates and returns the derivative (Jacobian) with respect to the model parameters.
+        For a model :math:`\mathbf{m}` consisting of multiple physical properties
+        :math:`\mathbf{m_1}, \; \mathbf{m_2}, \; ...` such that:
+
+        .. math::
+            \mathbf{m} = \begin{bmatrix} \mathbf{m_1} \\ \mathbf{m_2} \\ \vdots \end{bmatrix}
+        
+        The Jacobian has the form:
+
+        .. math::
+            \frac{\partial \phi}{\partial \mathbf{m}} =
+            \begin{bmatrix} \dfrac{\partial \phi}{\partial \mathbf{m_1}} \\
+            \dfrac{\partial \phi}{\partial \mathbf{m_2}} \\ \vdots \end{bmatrix}
 
         Parameters
         ----------
-        model : list of (n_param, ) numpy.ndarray
-            The models for which the gradient is evaluated.
+        model : (n_param, ) numpy.ndarray
+            The model; a vector array containing all physical properties.
 
         Returns
         -------
@@ -226,12 +241,39 @@ class JointTotalVariation(BaseSimilarityMeasure):
         return np.concatenate(ps)
 
     def deriv2(self, model, v=None):
-        """Hessian of the regularization function evaluated for the model provided.
+        r"""Hessian of the regularization function evaluated for the model provided.
+
+        Where :math:`\phi (\mathbf{m})` is the discrete regularization function (objective function),
+        this method evalutate and returns the second derivative (Hessian) with respect to the model parameters.
+        For a model :math:`\mathbf{m}` consisting of multiple physical properties
+        :math:`\mathbf{m_1}, \; \mathbf{m_2}, \; ...` such that:
+
+        .. math::
+            \mathbf{m} = \begin{bmatrix} \mathbf{m_1} \\ \mathbf{m_2} \\ \vdots \end{bmatrix}
+        
+        The Hessian has the form:
+
+        .. math::
+            \frac{\partial^2 \phi}{\partial \mathbf{m}^2} =
+            \begin{bmatrix}
+            \dfrac{\partial \phi^2}{\partial \mathbf{m_1}^2} &
+            \dfrac{\partial \phi^2}{\partial \mathbf{m_1} \partial \mathbf{m_2}} &
+            \cdots \\
+            \dfrac{\partial \phi^2}{\partial \mathbf{m_2} \partial \mathbf{m_1}} &
+            \dfrac{\partial \phi^2}{\partial \mathbf{m_2}^2} & \; \\
+            \vdots & \; & \ddots
+            \end{bmatrix}
+
+        When a vector :math:`(\mathbf{v})` is supplied, the method returns the Hessian
+        times the vector:
+
+        .. math::
+            \frac{\partial^2 \phi}{\partial \mathbf{m}^2} \, \mathbf{v}
 
         Parameters
         ----------
-        model : numpy.ndarray
-            Stacked array of individual models
+        model : (n_param, ) numpy.ndarray
+            The model; a vector array containing all physical properties.
         v : numpy.ndarray, optional
             An array to multiply the Hessian by.
 

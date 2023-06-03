@@ -422,9 +422,11 @@ class BaseRegularization(BaseObjectiveFunction):
         return 0.5 * r.dot(r)
 
     def f_m(self, m) -> np.ndarray:
+        """Not implemented for ``BaseRegularization`` class."""
         raise AttributeError("Regularization class must have a 'f_m' implementation.")
 
     def f_m_deriv(self, m) -> csr_matrix:
+        """Not implemented for ``BaseRegularization`` class."""
         raise AttributeError(
             "Regularization class must have a 'f_m_deriv' implementation."
         )
@@ -434,12 +436,11 @@ class BaseRegularization(BaseObjectiveFunction):
         r"""Jacobian of the regularization function evaluated for the model provided.
 
         Where :math:`\phi (\mathbf{m})` is the discrete regularization function (objective function),
-        this method returns the derivative (Jacobian) with respect to the model parameters:
+        this method evaluates and returns the derivative (Jacobian) with respect to the model parameters.
+        I.e.:
 
         .. math::
-            \frac{\partial \phi}{\partial \mathbf{m}} \, \bigg |_\mathbf{m}
-
-        evaluated at the model :math:`\mathbf{m}` provided.
+            \frac{\partial \phi}{\partial \mathbf{m}}
 
         Parameters
         ----------
@@ -459,17 +460,15 @@ class BaseRegularization(BaseObjectiveFunction):
         r"""Hessian of the regularization function evaluated for the model provided.
 
         Where :math:`\phi (\mathbf{m})` is the discrete regularization function (objective function),
-        this method returns the second derivative (Hessian) with respect to the model parameters:
+        this method returns the second-derivative (Hessian) with respect to the model parameters:
 
         .. math::
-            \frac{\partial^2 \phi}{\partial \mathbf{m}^2} \bigg |_\mathbf{m}
+            \frac{\partial^2 \phi}{\partial \mathbf{m}^2}
 
-        or the second-derivative (Hessian) multiplied by a given vector :math:`(\mathbf{v})`
+        or the second-derivative (Hessian) multiplied by a vector :math:`(\mathbf{v})`:
 
         .. math::
-            \bigg [ \frac{\partial^2 \phi}{\partial \mathbf{m}^2}
-            \bigg |_\mathbf{m} \bigg ] \mathbf{v}
-
+            \frac{\partial^2 \phi}{\partial \mathbf{m}^2} \, \mathbf{v}
 
         Parameters
         ----------
@@ -530,7 +529,7 @@ class Smallness(BaseRegularization):
 
     Notes
     -----
-    We define the regularization function for smallness as:
+    We define the regularization function (objective function) for smallness as:
 
     .. math::
         \phi (m) = \frac{1}{2} \int_\Omega \, w(r) \,
@@ -652,7 +651,7 @@ class Smallness(BaseRegularization):
         .. math::
             \frac{\partial \mathbf{f_m}}{\partial \mathbf{m}} = \mathbf{I}
 
-        where :math:`\mathbf{I}` is the identity matrix:
+        where :math:`\mathbf{I}` is the identity matrix.
 
         Parameters
         ----------
@@ -2163,7 +2162,7 @@ class WeightedLeastSquares(ComboObjectiveFunction):
 #                                                                             #
 ###############################################################################
 class BaseSimilarityMeasure(BaseRegularization):
-    """Base class for joint inversion regularization.
+    """Base regularization class for joint inversion.
 
     The ``BaseSimilarityMeasure`` class defines properties and methods used
     by regularization classes for joint inversion. It is not directly used to

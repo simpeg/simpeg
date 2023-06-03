@@ -190,7 +190,15 @@ class CrossGradient(BaseSimilarityMeasure):
         return gradient
 
     def calculate_cross_gradient(self, model, normalized=False, rtol=1e-6):
-        r"""Calculates the norm of the cross-gradient vectors at cell centers.
+        r"""Calculates the magnitudes of the cross-gradient vectors at cell centers.
+
+        Computes and returns a discrete approximation to:
+
+        .. math::
+            \big | \, \nabla m_1 \, \times \, \nabla m_2 \, \big |
+
+        at all cell centers where :math:`m_1` and :math:`m_2` define the continuous
+        spacial distribution of physical properties 1 and 2.
 
         Parameters
         ----------
@@ -205,7 +213,7 @@ class CrossGradient(BaseSimilarityMeasure):
         Returns
         -------
         numpy.ndarray
-            Calculates the norm of the cross-gradient vectors at cell centers.
+            Magnitudes of the cross-gradient vectors at cell centers.
         """
         m1, m2 = self.wire_map * model
         # Compute the gradients and concatenate components.
@@ -228,7 +236,7 @@ class CrossGradient(BaseSimilarityMeasure):
         Parameters
         ----------
         m : (n_param, ) numpy.ndarray
-            The model for which the function is evaluated.
+            The model; a vector array containing all physical properties.
 
         Returns
         -------
@@ -246,12 +254,26 @@ class CrossGradient(BaseSimilarityMeasure):
         )
 
     def deriv(self, model):
-        """Jacobian of the regularization function evaluated for the model provided.
+        r"""Jacobian of the regularization function evaluated for the model provided.
+
+        Where :math:`\phi (\mathbf{m})` is the discrete regularization function (objective function),
+        this method evaluates and returns the derivative (Jacobian) with respect to the model parameters.
+        For a model :math:`\mathbf{m}` consisting of two physical properties such that:
+
+        .. math::
+            \mathbf{m} = \begin{bmatrix} \mathbf{m_1} \\ \mathbf{m_2} \end{bmatrix}
+        
+        The Jacobian has the form:
+
+        .. math::
+            \frac{\partial \phi}{\partial \mathbf{m}} =
+            \begin{bmatrix} \dfrac{\partial \phi}{\partial \mathbf{m_1}} \\
+            \dfrac{\partial \phi}{\partial \mathbf{m_2}} \end{bmatrix}
 
         Parameters
         ----------
-        model : list of (n_param, ) numpy.ndarray
-            The models for which the gradient is evaluated.
+        model : (n_param, ) numpy.ndarray
+            The model; a vector array containing all physical properties.
 
         Returns
         -------
@@ -273,14 +295,38 @@ class CrossGradient(BaseSimilarityMeasure):
         ]
 
     def deriv2(self, model, v=None):
-        """Hessian of the regularization function evaluated for the model provided.
+        r"""Hessian of the regularization function evaluated for the model provided.
+
+        Where :math:`\phi (\mathbf{m})` is the discrete regularization function (objective function),
+        this method evalutate and returns the second derivative (Hessian) with respect to the model parameters:
+        For a model :math:`\mathbf{m}` consisting of two physical properties such that:
+
+        .. math::
+            \mathbf{m} = \begin{bmatrix} \mathbf{m_1} \\ \mathbf{m_2} \end{bmatrix}
+        
+        The Hessian has the form:
+
+        .. math::
+            \frac{\partial^2 \phi}{\partial \mathbf{m}^2} =
+            \begin{bmatrix}
+            \dfrac{\partial \phi^2}{\partial \mathbf{m_1}^2} &
+            \dfrac{\partial \phi^2}{\partial \mathbf{m_1} \partial \mathbf{m_2}} \\
+            \dfrac{\partial \phi^2}{\partial \mathbf{m_2} \partial \mathbf{m_1}} &
+            \dfrac{\partial \phi^2}{\partial \mathbf{m_2}^2}
+            \end{bmatrix}
+
+        When a vector :math:`(\mathbf{v})` is supplied, the method returns the Hessian
+        times the vector:
+
+        .. math::
+            \frac{\partial^2 \phi}{\partial \mathbf{m}^2} \, \mathbf{v}
         
         Parameters
         ----------
-        model : list of (n_param, ) numpy.ndarray
-            The models for which the Hessian is evaluated.
+        model : (n_param, ) numpy.ndarray
+            The model; a vector array containing all physical properties.
         v : None, (n_param, ) numpy.ndarray (optional)
-            A vector
+            A numpy array to model the Hessian by.
 
         Returns
         -------
