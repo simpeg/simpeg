@@ -311,7 +311,7 @@ class BaseRegularization(BaseObjectiveFunction):
         return self._weights[key]
 
     def set_weights(self, **weights):
-        """Adds (or updates) the specified weights to the regularization
+        """Adds (or updates) the specified weights to the regularization.
 
         Parameters
         ----------
@@ -338,7 +338,7 @@ class BaseRegularization(BaseObjectiveFunction):
         self._W = None
 
     def remove_weights(self, key):
-        """Removes the weights for the key provided
+        """Removes the weights for the key provided.
 
         Parameters
         ----------
@@ -363,7 +363,7 @@ class BaseRegularization(BaseObjectiveFunction):
         self._W = None
 
     @property
-    def W(self) -> np.ndarray:
+    def W(self) -> csr_matrix:
         r"""Weighting matrix.
 
         Returns the weighting matrix for the discrete regularization function. To see how the
@@ -541,7 +541,7 @@ class Smallness(BaseRegularization):
 
     For implementation within SimPEG, the regularization function and its variables
     must be discretized onto a `mesh`. The discretized approximation for the regularization
-    function (objective function) is given by:
+    function (objective function) is expressed in linear form as:
 
     .. math::
         \phi (\mathbf{m}) = \frac{1}{2} \sum_i
@@ -605,7 +605,7 @@ class Smallness(BaseRegularization):
         .. math::
             \mathbf{f_m}(\mathbf{m}) = \mathbf{m} - \mathbf{m}^{(ref)}
 
-        where :math:`\mathbf{m}` are the descrete model parameters and :math:`\mathbf{m}^{(ref)}`
+        where :math:`\mathbf{m}` are the discrete model parameters and :math:`\mathbf{m}^{(ref)}`
         is a reference model. For a more detailed description, see the *Notes* section below.
 
         Parameters
@@ -686,7 +686,7 @@ class Smallness(BaseRegularization):
         .. math::
             \phi_m (\mathbf{m}) = \frac{1}{2} \Big \| \mathbf{W} \, \mathbf{f_m} \Big \|^2
 
-        Thus, the derivate with respect to the model is:
+        Thus, the derivative with respect to the model is:
 
         .. math::
             \frac{\partial \mathbf{f_m}}{\partial \mathbf{m}} = \mathbf{I}
@@ -750,7 +750,7 @@ class SmoothnessFirstOrder(BaseRegularization):
     
     For implementation within SimPEG, the regularization function and its variables
     must be discretized onto a `mesh`. The discretized approximation for the regularization
-    function (objective function) is given by:
+    function (objective function) is expressed in linear form as:
 
     .. math::
         \phi (\mathbf{m}) = \frac{1}{2} \sum_i
@@ -917,7 +917,7 @@ class SmoothnessFirstOrder(BaseRegularization):
             \mathbf{f_m}(\mathbf{m}) = \mathbf{G_x} \big [ \mathbf{m} - \mathbf{m}^{(ref)} \big ]
 
         where :math:`\mathbf{G_x}` is the partial cell gradient operator along the x-direction
-        (i.e. x-derivative), :math:`\mathbf{m}` are the descrete model parameters defined on the
+        (i.e. x-derivative), :math:`\mathbf{m}` are the discrete model parameters defined on the
         mesh and :math:`\mathbf{m}^{(ref)}` is the reference model (optional).
         Similarly for smoothness along y and z.
 
@@ -1012,7 +1012,7 @@ class SmoothnessFirstOrder(BaseRegularization):
         .. math::
             \phi_m (\mathbf{m}) = \frac{1}{2} \Big \| \mathbf{W \, f_m} \Big \|^2
 
-        The derivate with respect to the model is therefore:
+        The derivative with respect to the model is therefore:
 
         .. math::
             \frac{\partial \mathbf{f_m}}{\partial \mathbf{m}} = \mathbf{G_x}
@@ -1020,7 +1020,7 @@ class SmoothnessFirstOrder(BaseRegularization):
         return self.cell_gradient @ self.mapping.deriv(self._delta_m(m))
 
     @property
-    def W(self):
+    def W(self) -> csr_matrix:
         r"""Weighting matrix.
 
         Returns the weighting matrix for the objective function. To see how the
@@ -1115,7 +1115,7 @@ class SmoothnessSecondOrder(SmoothnessFirstOrder):
     
     For implementation within SimPEG, the regularization function and its variables
     must be discretized onto a `mesh`. The discretized approximation for the regularization
-    function (objective function) is given by:
+    function (objective function) is expressed in linear form as:
 
     .. math::
         \phi (\mathbf{m}) = \frac{1}{2} \sum_i
@@ -1281,7 +1281,7 @@ class SmoothnessSecondOrder(SmoothnessFirstOrder):
         .. math::
             \phi_m (\mathbf{m}) = \frac{1}{2} \Big \| \mathbf{W \, f_m} \Big \|^2
 
-        The derivate of the regularization kernel function with respect to the model is:
+        The derivative of the regularization kernel function with respect to the model is:
 
         .. math::
             \frac{\partial \mathbf{f_m}}{\partial \mathbf{m}} = \mathbf{L_x}
@@ -1293,7 +1293,7 @@ class SmoothnessSecondOrder(SmoothnessFirstOrder):
         )
 
     @property
-    def W(self):
+    def W(self) -> csr_matrix:
         r"""Weighting matrix.
 
         Returns the weighting matrix for the objective function. To see how the
@@ -1445,7 +1445,7 @@ class WeightedLeastSquares(ComboObjectiveFunction):
     **Alphas and length scales:**
 
     The :math:`\alpha` parameters scale the relative contributions of the smallness and smoothness
-    terms in the model objective function. Each :math:`\alpha` parameter can be set directly as an
+    terms in the model objective function. Each :math:`\alpha` parameter can be set directly as a
     appropriate property of the ``WeightedLeastSquares`` class; e.g. :math:`\alpha_x` is set
     using the `alpha_x` property. Note that unless the parameters are set manually, second-order
     smoothness is not included in the model objective function. That is, the `alpha_xx`, `alpha_yy`
@@ -1617,7 +1617,7 @@ class WeightedLeastSquares(ComboObjectiveFunction):
 
         Parameters
         ----------
-        **kwargs : key, numpy.ndarray
+        **weights : key, numpy.ndarray
             Each keyword argument is added to the weights used by all child regularization objects.
             They can be accessed with their keyword argument.
 
@@ -1641,7 +1641,7 @@ class WeightedLeastSquares(ComboObjectiveFunction):
         Parameters
         ----------
         key : str
-            The key for the weights being removed from all child regularization objects.
+            The name of the weights being removed from all child regularization objects.
 
         Examples
         --------

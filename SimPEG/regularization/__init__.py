@@ -38,7 +38,7 @@ regularization functions (objective functions) :math:`\phi_i (m)`. I.e.:
 .. math::
     \phi_m (m) = \sum_i \alpha_i \, \phi_i (m)
 
-The model objective function imposes all of the desired constraints on the recovered model.
+The model objective function imposes all the desired constraints on the recovered model.
 Constants :math:`\alpha_i` weight the relative contributions of the regularization
 functions comprising the model objective function. The trade-off parameter :math:`\beta`
 balances the relative contribution of the data misfit and regularization functions on the
@@ -72,7 +72,7 @@ And the regularization is implemented using a weighted sum of objective function
 where :math:`\mathbf{G_x}` and :math:`\mathbf{G_y}` are partial gradient operators along the x and
 y-directions, respectively. :math:`\mathbf{W_s}`, :math:`\mathbf{W_x}` and :math:`\mathbf{W_y}`
 are weighting matrices that apply user-defined weights and account for cell dimensions
-in the discretization.
+in the inversion mesh.
 
 
 The API

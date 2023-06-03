@@ -266,7 +266,7 @@ class SparseSmallness(BaseSparse, Smallness):
     
     For implementation within SimPEG, the regularization function and its variables
     must be discretized onto a `mesh`. The discretized approximation for the regularization
-    function (objective function) is given by:
+    function (objective function) is expressed in linear form as:
 
     .. math::
         \phi (\mathbf{m}) = \frac{1}{2} \sum_i
@@ -472,7 +472,7 @@ class SparseSmoothness(BaseSparse, SmoothnessFirstOrder):
     
     For implementation within SimPEG, the regularization function and its variables
     must be discretized onto a `mesh`. The discrete approximation for the regularization
-    function (objective function) is given by:
+    function (objective function) is expressed in linear form as:
 
     .. math::
         \phi (\mathbf{m}) = \frac{1}{2} \sum_i
