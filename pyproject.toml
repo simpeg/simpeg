@@ -38,16 +38,13 @@ exclude = ["tests*", "examples*", "tutorials*"]
 
 [tool.poetry.dependencies]
 discretize = ">=0.8.0"
-empymod = "*"
+empymod = ">=2.0.0"
 geoh5py = {version = "*", allow-prereleases = true}
 numpy = ">=1.20"
 pandas = "*"
-properties = ">=0.5.2"
-pymatsolver = ">=0.1.1"
+pymatsolver = ">=0.2"
 scikit-learn = ">=1.2"
 scipy = ">=1.8.0"
-utm = "*"
-vectormath = ">=0.2.0"
 
 dask = {version = "*", optional = true}
 fsspec = {version = ">=0.3.3", optional = true}
