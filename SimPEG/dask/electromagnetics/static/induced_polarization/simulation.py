@@ -1,6 +1,8 @@
-import dask.array as da
+from .....electromagnetics.static.induced_polarization.simulation import (
+    BaseIPSimulation as Sim,
+)
 
-from .....electromagnetics.static.induced_polarization.simulation import BaseIPSimulation as Sim
+import dask.array as da
 
 
 def dask_getJtJdiag(self, m, W=None, f=None):
