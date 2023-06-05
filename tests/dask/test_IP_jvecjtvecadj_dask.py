@@ -7,7 +7,16 @@ import discretize as ds
 import numpy as np
 
 import SimPEG.dask  # noqa: F401
-from SimPEG import data_misfit, inverse_problem, inversion, maps, optimization, regularization, tests, utils
+from SimPEG import (
+    data_misfit,
+    inverse_problem,
+    inversion,
+    maps,
+    optimization,
+    regularization,
+    tests,
+    utils,
+)
 from SimPEG.electromagnetics import induced_polarization as ip
 from SimPEG.electromagnetics import resistivity as dc
 from SimPEG.utils.io_utils.io_utils_electromagnetics import read_dcip2d_ubc
@@ -70,7 +79,10 @@ class IPProblemTests2DN(unittest.TestCase):
         conductivity_model = background_conductivity * np.ones(nC)
 
         simulation = ip.simulation.Simulation2DNodal(
-            mesh=mesh, survey=ip_data.survey, sigma=conductivity_model, etaMap=active_map
+            mesh=mesh,
+            survey=ip_data.survey,
+            sigma=conductivity_model,
+            etaMap=active_map,
         )
         mSynth = np.ones(mesh.nC) * 0.1
         # test without calling make_synthetic_data first to simulate real data case
@@ -78,7 +90,9 @@ class IPProblemTests2DN(unittest.TestCase):
         # Now set up the problem to do some minimization
         dmis = data_misfit.L2DataMisfit(data=dobs, simulation=simulation)
         reg = regularization.WeightedLeastSquares(mesh)
-        opt = optimization.InexactGaussNewton(maxIterLS=5, maxIter=1, tolF=1e-6, tolX=1e-6, tolG=1e-6, maxIterCG=5)
+        opt = optimization.InexactGaussNewton(
+            maxIterLS=5, maxIter=1, tolF=1e-6, tolX=1e-6, tolG=1e-6, maxIterCG=5
+        )
         invProb = inverse_problem.BaseInvProblem(dmis, reg, opt, beta=1e4)
         inv = inversion.BaseInversion(invProb)
 
@@ -111,7 +125,9 @@ class IPProblemTests2DN(unittest.TestCase):
         self.assertTrue(passed)
 
     def test_dataObj(self):
-        passed = tests.check_derivative(lambda m: [self.dmis(m), self.dmis.deriv(m)], self.m0, plotIt=False, num=3)
+        passed = tests.check_derivative(
+            lambda m: [self.dmis(m), self.dmis.deriv(m)], self.m0, plotIt=False, num=3
+        )
         self.assertTrue(passed)
 
 
