@@ -5978,12 +5978,13 @@ class TileMap(IdentityMap):
         self._global_active = validate_active_indices(
             "global_active", global_active, self.global_mesh.n_cells
         )
+        self._local_active = None
 
         self._tol = validate_float("tol", tol, min_val=0.0, inclusive_min=False)
         self._components = validate_integer("components", components, min_val=1)
         self.enforce_active = enforce_active
         # trigger creation of P
-        self.P
+        self._projection = None
 
     @property
     def global_mesh(self):
@@ -6024,6 +6025,9 @@ class TileMap(IdentityMap):
         -------
         (local_mesh.n_cells) numpy.ndarray of bool
         """
+        if self._local_active is None:
+            getattr(self, "projection")
+
         return self._local_active
 
     @property
@@ -6047,16 +6051,16 @@ class TileMap(IdentityMap):
         return self._components
 
     @property
-    def P(self):
+    def projection(self):
         """
         Set the projection matrix with partial volumes
         """
-        if getattr(self, "_P", None) is None:
+        if getattr(self, "_projection", None) is None:
             in_local = self.local_mesh._get_containing_cell_indexes(
                 self.global_mesh.cell_centers
             )
 
-            P = (
+            projection = (
                 sp.csr_matrix(
                     (
                         self.global_mesh.cell_volumes,
@@ -6067,7 +6071,7 @@ class TileMap(IdentityMap):
                 * speye(self.global_mesh.nC)[:, self.global_active]
             )
 
-            self._local_active = mkvc(np.sum(P, axis=1) > 0)
+            self._local_active = mkvc(np.sum(projection, axis=1) > 0)
 
             if self.enforce_active:
                 self.local_active[
@@ -6075,26 +6079,26 @@ class TileMap(IdentityMap):
                         self.global_mesh.cell_centers[self.global_active == False, :]
                     )
                 ] = False
-            P = P[self.local_active, :]
+            projection = projection[self.local_active, :]
 
-            self._P = sp.block_diag(
+            self._projection = sp.block_diag(
                 [
-                    sdiag(1.0 / np.sum(P, axis=1)) * P
+                    sdiag(1.0 / np.sum(projection, axis=1)) * projection
                     for ii in range(self.components)
                 ]
             )
 
-        return self._P
+        return self._projection
 
     def _transform(self, m):
-        return self.P * m
+        return self.projection * m
 
     @property
     def shape(self):
         """
         Shape of the matrix operation (number of indices x nP)
         """
-        return self.P.shape
+        return self.projection.shape
 
     def deriv(self, m, v=None):
         """
@@ -6103,8 +6107,8 @@ class TileMap(IdentityMap):
         :return: derivative of transformed model
         """
         if v is not None:
-            return self.P * v
-        return self.P
+            return self.projection * v
+        return self.projection
 
 
 ###############################################################################
