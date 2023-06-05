@@ -33,7 +33,7 @@ class FilteredXYZ(libaarhusxyz.XYZ):
     def get_layerfilter(self, layer):
         layerfilter = self.layerfilter
         if isinstance(layerfilter, dict):
-            layerfilter = layerfilter[layer]
+            layerfilter = layerfilter.get(layer, None)
         return layerfilter if layerfilter is not None else slice(None, None, None)
             
     def unfilter(self, xyz, soundingfilter=True, layerfilter=True):
