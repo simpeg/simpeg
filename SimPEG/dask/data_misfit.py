@@ -26,7 +26,7 @@ def dask_deriv(self, m, f=None):
     """
     Distributed :obj:`simpeg.data_misfit.L2DataMisfit.deriv`
     """
-
+    mapping_deriv = self.model_map.deriv(m)
     if getattr(self, "model_map", None) is not None:
         m = self.model_map @ m
 
@@ -34,9 +34,9 @@ def dask_deriv(self, m, f=None):
     Jtvec = compute(self, self.simulation.Jtvec(m, wtw_d))
 
     if getattr(self, "model_map", None) is not None:
-        Jtjvec_dmudm = delayed(csr.dot)(Jtvec, self.model_map.deriv(m))
+        Jtjvec_dmudm = delayed(csr.dot)(Jtvec, mapping_deriv)
         h_vec = da.from_delayed(
-            Jtjvec_dmudm, dtype=float, shape=[self.model_map.deriv(m).shape[1]]
+            Jtjvec_dmudm, dtype=float, shape=[mapping_deriv.shape[1]]
         )
         if not isinstance(h_vec, np.ndarray):
             return compute(self, h_vec)
