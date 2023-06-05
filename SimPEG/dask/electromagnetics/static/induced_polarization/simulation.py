@@ -16,7 +16,7 @@ def dask_getJtJdiag(self, m, W=None, f=None):
             W = self._scale
         else:
             W = self._scale * W.diagonal()
-        self._gtgdiag = da.einsum("i,ij,ij->j", W**2.0, J, axis=0).compute()
+        self._gtgdiag = da.einsum("i,ij,ij->j", W**2, J, J).compute()
 
     return self._gtgdiag
 
