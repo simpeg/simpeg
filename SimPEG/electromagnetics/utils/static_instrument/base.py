@@ -97,7 +97,9 @@ class XYZSystem(object):
         times = self.times_filter
         filt = {}
         for key in self._xyz.layer_data.keys():
-            channel = int(re.sub(r"^[^0-9]*([0-9]+).*", r"\1", key)) - 1
+            match = re.match(r"^[^0-9]*([0-9]+).*", key)
+            if match is None: continue
+            channel = int(match.groups()[0]) - 1
             filt[key] = self.times_filter[channel]
         return filt
         
