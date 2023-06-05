@@ -38,6 +38,14 @@ jobs:
 
           - script: |
               source "${HOME}/conda/etc/profile.d/conda.sh"
+              source "${HOME}/conda/etc/profile.d/mamba.sh"
+              conda activate simpeg-test
+              mamba install -c conda-forge cython
+              pip install git+https://github.com/simpeg/discretize
+            displayName: Install latest discretize
+
+          - script: |
+              source "${HOME}/conda/etc/profile.d/conda.sh"
               conda activate simpeg-test
               pip install -e .
             displayName: Build package
