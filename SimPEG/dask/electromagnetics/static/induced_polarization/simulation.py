@@ -4,6 +4,7 @@ from .....electromagnetics.static.induced_polarization.simulation import (
 
 import dask.array as da
 
+
 def dask_getJtJdiag(self, m, W=None, f=None):
     """
     Return the diagonal of JtJ
