@@ -83,7 +83,6 @@ class BaseIPSimulation(BasePDESimulation):
 
     _Jmatrix = None
     _pred = None
-    _scale = None
 
     def fields(self, m):
         if self.verbose:
