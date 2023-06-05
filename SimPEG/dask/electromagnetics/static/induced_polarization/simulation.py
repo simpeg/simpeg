@@ -97,7 +97,7 @@ def dask_getJtJdiag(self, m, W=None):
         Return the diagonal of JtJ
     """
     self.model = m
-    if self.gtgdiag is None:
+    if self._jtjdiag is None:
         if isinstance(self.Jmatrix, Future):
             self.Jmatrix  # Wait to finish
 
@@ -111,9 +111,9 @@ def dask_getJtJdiag(self, m, W=None):
         if isinstance(diag, da.Array):
             diag = np.asarray(diag.compute())
 
-        self.gtgdiag = diag
+        self._jtjdiag = diag
 
-    return self.gtgdiag
+    return self._jtjdiag
 
 
 Sim.getJtJdiag = dask_getJtJdiag

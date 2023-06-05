@@ -47,7 +47,7 @@ def dask_fields(self, m=None, return_Ainv=False):
         Ainv.clean()
 
     if self._scale is None:
-        scale = Data(self.survey, np.full(self.survey.nD, self._sign))
+        scale = Data(self.survey, np.ones(self.survey.nD))
         f_fwd = self.fields_to_space(f)
         # loop through receievers to check if they need to set the _dc_voltage
         for src in self.survey.source_list:
@@ -56,7 +56,7 @@ def dask_fields(self, m=None, return_Ainv=False):
                         rx.data_type == "apparent_chargeability"
                         or self._data_type == "apparent_chargeability"
                 ):
-                    scale[src, rx] = self._sign / rx.eval(src, self.mesh, f_fwd)
+                    scale[src, rx] = 1.0 / rx.eval(src, self.mesh, f_fwd)
         self._scale = scale.dobs
 
     if return_Ainv:
