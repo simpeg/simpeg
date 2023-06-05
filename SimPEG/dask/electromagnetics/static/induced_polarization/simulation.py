@@ -30,21 +30,21 @@ def dask_fields(self, m=None, return_Ainv=False):
     Ainv = self.solver(A, **self.solver_opts)
     RHS = self.getRHS()
 
-    f = self.fieldsPair(self, shape=RHS.shape)
+    f = self.fieldsPair(self)
     f[:, self._solutionType] = Ainv * RHS
 
     Ainv.clean()
 
     if self._scale is None:
-        scale = Data(self.survey, np.full(self.survey.nD, self._sign))
-        # loop through receievers to check if they need to set the _dc_voltage
+        scale = Data(self.survey, np.ones(self.survey.nD))
+        # loop through receivers to check if they need to set the _dc_voltage
         for src in self.survey.source_list:
             for rx in src.receiver_list:
                 if (
                         rx.data_type == "apparent_chargeability"
                         or self._data_type == "apparent_chargeability"
                 ):
-                    scale[src, rx] = self._sign / rx.eval(src, self.mesh, f)
+                    scale[src, rx] = 1.0 / rx.eval(src, self.mesh, f)
         self._scale = scale.dobs
 
     if return_Ainv:
