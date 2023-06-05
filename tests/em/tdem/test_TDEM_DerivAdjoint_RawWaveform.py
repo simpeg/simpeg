@@ -18,11 +18,11 @@ EPS = 1e-20
 
 
 def get_mesh():
-    cs = 5.0
-    ncx = 8
-    ncy = 8
-    ncz = 8
-    npad = 4
+    cs = 10.0
+    ncx = 4
+    ncy = 4
+    ncz = 4
+    npad = 2
 
     return discretize.TensorMesh(
         [
@@ -131,7 +131,7 @@ class Base_DerivAdjoint_Test(unittest.TestCase):
                 prbtype=self.formulation, rxcomp=rxcomp
             )
         )
-        tests.check_derivative(derChk, self.m, plotIt=False, num=2, eps=1e-20)
+        tests.check_derivative(derChk, self.m, plotIt=False, num=3, eps=1e-20)
 
     def JvecVsJtvecTest(self, rxcomp):
         np.random.seed(4)

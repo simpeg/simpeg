@@ -15,11 +15,11 @@ TOL = 0.5
 
 def setUp_TDEM(prbtype="ElectricField", rxcomp="ElectricFieldx", src_z=0.0):
     np.random.seed(10)
-    cs = 5.0
-    ncx = 8
-    ncy = 8
-    ncz = 8
-    npad = 3
+    cs = 10.0
+    ncx = 4
+    ncy = 4
+    ncz = 4
+    npad = 2
     pf = 1.3
 
     mesh = discretize.TensorMesh(
