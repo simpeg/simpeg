@@ -21,6 +21,7 @@ jobs:
           displayName: ${{ os }}_${{ py_vers }}_${{ test }}
           pool:
             vmImage: ${{ os }}
+          timeoutInMinutes: 120
           steps:
           - script: |
               wget -O Mambaforge.sh  "https://github.com/conda-forge/miniforge/releases/latest/download/Mambaforge-$(uname)-$(uname -m).sh"
