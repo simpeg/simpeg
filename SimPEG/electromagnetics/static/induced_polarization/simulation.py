@@ -87,6 +87,9 @@ class BaseIPSimulation(BasePDESimulation):
     def fields(self, m):
         if self.verbose:
             print(">> Compute DC fields")
+        if self._f is None:
+            # re-uses the DC simulation's fields method
+            self._f = super().fields(None)
 
         self._pred = self.forward(m, f=self._f)
 
