@@ -22,29 +22,6 @@ def dask_call(self, m, f=None):
 L2DataMisfit.__call__ = dask_call
 
 
-def getJtJdiag(self, m):
-    """
-    Evaluate the main diagonal of JtJ
-    """
-    if getattr(self.simulation, "getJtJdiag", None) is None:
-        raise AttributeError(
-            "Simulation does not have a getJtJdiag attribute."
-            + "Cannot form the sensitivity explicitly"
-        )
-
-    if self.model_map is not None:
-        m = self.model_map.deriv(m) @ m
-
-    jtjdiag = self.simulation.getJtJdiag(m, W=self.W)
-
-    if self.model_map is not None:
-        jtjdiag = mkvc((sdiag(np.sqrt(jtjdiag)) @ self.model_map.deriv(m)).power(2).sum(axis=0))
-
-    return jtjdiag
-
-L2DataMisfit.getJtJdiag = getJtJdiag
-
-
 def dask_deriv(self, m, f=None):
     """
     Distributed :obj:`simpeg.data_misfit.L2DataMisfit.deriv`
