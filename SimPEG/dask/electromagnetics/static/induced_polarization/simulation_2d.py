@@ -1,7 +1,7 @@
 import scipy.sparse as sp
 
 from .....electromagnetics.static.induced_polarization.simulation import (
-    BaseIPSimulation as Sim,
+    Simulation2DNodal as Sim,
 )
 from .....data import Data
 import numpy as np
@@ -15,6 +15,7 @@ from .simulation import (
     dask_getJtJdiag,
     dask_Jvec,
     dask_Jtvec,
+    dask_dpred
 )
 
 from ..resistivity.simulation_2d import compute_J, dask_getSourceTerm
@@ -24,6 +25,7 @@ Sim.getSourceTerm = dask_getSourceTerm
 Sim.getJtJdiag = dask_getJtJdiag
 Sim.Jvec = dask_Jvec
 Sim.Jtvec = dask_Jtvec
+Sim.dpred = dask_dpred
 
 
 def dask_fields(self, m=None, return_Ainv=False):
