@@ -25,6 +25,12 @@ np.random.seed(30)
 
 
 class IPProblemTests2DN(unittest.TestCase):
+    """
+    This test builds upon the 2D files used in the IP2D tutorial, with a much smaller mesh.
+
+    It tests IP 2D with dask without calling `make_synthetic_data` first to simulate a real data case.
+    """
+
     def setUp(self):
         # storage bucket where we have the data
         data_source = "https://storage.googleapis.com/simpeg/doc-assets/dcip2d.tar.gz"
