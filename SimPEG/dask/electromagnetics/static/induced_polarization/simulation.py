@@ -13,11 +13,10 @@ def dask_getJtJdiag(self, m, W=None, f=None):
         J = self.getJ(m, f=f)
         # Need to check if multiplying weights makes sense
         if W is None:
-            W = self.scale
+            W = self._scale
         else:
-            W = self.scale * W.diagonal()
-        w = da.from_array(W)[:, None]
-        self._gtgdiag = da.sum((w * J) ** 2, axis=0).compute()
+            W = self._scale * W.diagonal()
+        self._gtgdiag = da.einsum("i,ij,ij->j", W**2.0, J, axis=0).compute()
 
     return self._gtgdiag
 
