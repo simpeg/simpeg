@@ -1,14 +1,13 @@
 import numpy as np
 import scipy.sparse as sp
 
-from .... import props, maps
-from ....data import Data
+from .... import maps, props
 from ....base import BasePDESimulation
-
-from ..resistivity import Simulation3DCellCentered as DC_3D_CC
-from ..resistivity import Simulation3DNodal as DC_3D_N
+from ....data import Data
 from ..resistivity import Simulation2DCellCentered as DC_2D_CC
 from ..resistivity import Simulation2DNodal as DC_2D_N
+from ..resistivity import Simulation3DCellCentered as DC_3D_CC
+from ..resistivity import Simulation3DNodal as DC_3D_N
 
 
 class BaseIPSimulation(BasePDESimulation):
@@ -40,6 +39,25 @@ class BaseIPSimulation(BasePDESimulation):
     def rhoDeriv(self):
         return sp.diags(self.rho) @ self.etaDeriv
 
+    @property
+    def scale(self):
+        if getattr(self, "_scale", None) is None:
+            scale = Data(self.survey, np.ones(self.survey.nD))
+            if self._f is None:
+                # re-uses the DC simulation's fields method
+                self._f = super().fields(None)
+            try:
+                f = self.fields_to_space(self._f)
+            except AttributeError:
+                f = self._f
+            # loop through receievers to check if they need to set the _dc_voltage
+            for src in self.survey.source_list:
+                for rx in src.receiver_list:
+                    if rx.data_type == "apparent_chargeability":
+                        scale[src, rx] = 1.0 / rx.eval(src, self.mesh, f)
+            self._scale = scale.dobs
+        return self._scale
+
     eta, etaMap, etaDeriv = props.Invertible("Electrical Chargeability (V/V)")
 
     def __init__(
@@ -70,22 +88,6 @@ class BaseIPSimulation(BasePDESimulation):
     def fields(self, m):
         if self.verbose:
             print(">> Compute DC fields")
-        if self._f is None:
-            # re-uses the DC simulation's fields method
-            self._f = super().fields(None)
-
-        if self._scale is None:
-            scale = Data(self.survey, np.ones(self.survey.nD))
-            try:
-                f = self.fields_to_space(self._f)
-            except AttributeError:
-                f = self._f
-            # loop through receievers to check if they need to set the _dc_voltage
-            for src in self.survey.source_list:
-                for rx in src.receiver_list:
-                    if rx.data_type == "apparent_chargeability":
-                        scale[src, rx] = 1.0 / rx.eval(src, self.mesh, f)
-            self._scale = scale.dobs
 
         self._pred = self.forward(m, f=self._f)
 
@@ -110,22 +112,22 @@ class BaseIPSimulation(BasePDESimulation):
         if getattr(self, "_gtgdiag", None) is None:
             J = self.getJ(m, f=f)
             if W is None:
-                W = self._scale**2
+                W = self.scale**2
             else:
-                W = (self._scale * W.diagonal()) ** 2
+                W = (self.scale * W.diagonal()) ** 2
 
             self._gtgdiag = np.einsum("i,ij,ij->j", W, J, J)
 
         return self._gtgdiag
 
     def Jvec(self, m, v, f=None):
-        return self._scale * super().Jvec(m, v, f)
+        return self.scale * super().Jvec(m, v, f)
 
     def forward(self, m, f=None):
         return np.asarray(self.Jvec(m, m, f=f))
 
     def Jtvec(self, m, v, f=None):
-        return super().Jtvec(m, v * self._scale, f)
+        return super().Jtvec(m, v * self.scale, f)
 
     @property
     def deleteTheseOnModelUpdate(self):

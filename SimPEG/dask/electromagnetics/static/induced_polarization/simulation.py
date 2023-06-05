@@ -1,8 +1,8 @@
+import dask.array as da
+
 from .....electromagnetics.static.induced_polarization.simulation import (
     BaseIPSimulation as Sim,
 )
-
-import dask.array as da
 
 
 def dask_getJtJdiag(self, m, W=None, f=None):
@@ -13,9 +13,9 @@ def dask_getJtJdiag(self, m, W=None, f=None):
         J = self.getJ(m, f=f)
         # Need to check if multiplying weights makes sense
         if W is None:
-            W = self._scale
+            W = self.scale
         else:
-            W = self._scale * W.diagonal()
+            W = self.scale * W.diagonal()
         w = da.from_array(W)[:, None]
         self._gtgdiag = da.sum((w * J) ** 2, axis=0).compute()
 

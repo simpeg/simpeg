@@ -84,7 +84,7 @@ class IPProblemTests2DN(unittest.TestCase):
             sigma=conductivity_model,
             etaMap=active_map,
         )
-        mSynth = np.ones(mesh.nC) * 0.1
+        mSynth = np.ones(nC) * 0.1
         # test without calling make_synthetic_data first to simulate real data case
         dobs = read_dcip2d_ubc(ip_data_filename, "apparent_chargeability", "general")
         # Now set up the problem to do some minimization
@@ -116,8 +116,9 @@ class IPProblemTests2DN(unittest.TestCase):
 
     def test_adjoint(self):
         # Adjoint Test
-        v = np.random.rand(self.mesh.nC)
+        v = np.random.rand(len(self.m0))
         w = np.random.rand(self.survey.nD)
+        # J = self.p.getJ(self.m0)
         wtJv = w.dot(self.p.Jvec(self.m0, v))
         vtJtw = v.dot(self.p.Jtvec(self.m0, w))
         passed = np.abs(wtJv - vtJtw) < 1e-10
