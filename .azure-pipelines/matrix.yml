@@ -40,7 +40,7 @@ jobs:
               source "${HOME}/conda/etc/profile.d/conda.sh"
               source "${HOME}/conda/etc/profile.d/mamba.sh"
               conda activate simpeg-test
-              mamba install -c conda-forge cython
+              mamba install -y -c conda-forge cython
               pip install git+https://github.com/simpeg/discretize
             displayName: Install latest discretize
 
