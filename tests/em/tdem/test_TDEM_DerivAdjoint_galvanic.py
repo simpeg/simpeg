@@ -15,10 +15,10 @@ TOL = 0.5
 
 def setUp_TDEM(prbtype="ElectricField", rxcomp="ElectricFieldx", src_z=0.0):
     np.random.seed(10)
-    cs = 10.0
-    ncx = 4
-    ncy = 4
-    ncz = 4
+    cs = 5.0
+    ncx = 8
+    ncy = 8
+    ncz = 8
     npad = 3
     pf = 1.3
 
@@ -44,8 +44,8 @@ def setUp_TDEM(prbtype="ElectricField", rxcomp="ElectricFieldx", src_z=0.0):
     rx = getattr(tdem.Rx, "Point{}".format(rxcomp[:-1]))(
         locations=rxlocs, times=rxtimes, orientation=rxcomp[-1]
     )
-    Aloc = np.r_[-20, 0.0, src_z]
-    Bloc = np.r_[20, 0.0, src_z]
+    Aloc = np.r_[-10, 0.0, src_z]
+    Bloc = np.r_[10, 0.0, src_z]
     srcloc = np.vstack((Aloc, Bloc))
 
     src = tdem.Src.LineCurrent(
