@@ -21,7 +21,7 @@ Sources
 .. autosummary::
   :toctree: generated/
 
-  sources.StreamingPotential
+  sources.StreamingCurrents
 
 Surveys
 =======
