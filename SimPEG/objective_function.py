@@ -142,7 +142,7 @@ class BaseObjectiveFunction(BaseSimPEG):
             **kwargs,
         )
 
-    def test(self, x=None, num=4, plotIt=False, **kwargs):
+    def test(self, x=None, num=4, **kwargs):
         """
         Run a convergence test on both the first and second derivatives - they
         should be second order!
