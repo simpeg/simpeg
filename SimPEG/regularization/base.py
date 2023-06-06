@@ -781,7 +781,7 @@ class WeightedLeastSquares(ComboObjectiveFunction):
                 )
         else:
             objfcts = kwargs.pop("objfcts")
-        super().__init__(objfcts=objfcts, **kwargs)
+        super().__init__(objfcts=objfcts, unpack_on_add=False, **kwargs)
         self.mapping = mapping
         self.reference_model = reference_model
         self.reference_model_in_smooth = reference_model_in_smooth
