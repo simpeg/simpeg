@@ -47,7 +47,6 @@ extensions = [
     "sphinx.ext.extlinks",
     "sphinx.ext.intersphinx",
     "sphinx.ext.mathjax",
-    "sphinx_toolbox.collapse",
     "sphinx_gallery.gen_gallery",
     "sphinx.ext.todo",
     "sphinx.ext.linkcode",

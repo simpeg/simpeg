@@ -3,7 +3,7 @@ parameters:
   py_vers: ['3.8']
   test: ['tests/em',
          'tests/base tests/flow tests/seis tests/utils tests/meta',
-         'tests/docs',
+         'tests/docs -s -v',
          'tests/examples/test_examples_1.py',
          'tests/examples/test_examples_2.py',
          'tests/examples/test_examples_3.py',
@@ -21,6 +21,7 @@ jobs:
           displayName: ${{ os }}_${{ py_vers }}_${{ test }}
           pool:
             vmImage: ${{ os }}
+          timeoutInMinutes: 120
           steps:
           - script: |
               wget -O Mambaforge.sh  "https://github.com/conda-forge/miniforge/releases/latest/download/Mambaforge-$(uname)-$(uname -m).sh"

@@ -163,10 +163,6 @@ class BaseObjectiveFunction(BaseSimPEG):
             )
         objective_functions, multipliers = [], []
         for instance in (self, other):
-            if instance.__class__.__name__ == "ComboObjectiveFunction":
-                # Don't use `isinstance(instance, ComboObjectiveFunction)`
-                # here. Any child of ComboObjectiveFunction should be added as
-                # a whole, not unpacked in the resulting Combo class.
                 objective_functions += instance.objfcts
                 multipliers += instance.multipliers
             else:
@@ -187,18 +183,18 @@ class BaseObjectiveFunction(BaseSimPEG):
         return self * multiplier
 
     def __div__(self, denominator):
-        return self.__mul__(1.0 / denominator)
+        return self * (1.0 / denominator)
 
     def __truediv__(self, denominator):
-        return self.__mul__(1.0 / denominator)
+        return self * (1.0 / denominator)
 
     def __rdiv__(self, denominator):
-        return self.__mul__(1.0 / denominator)
+        return self * (1.0 / denominator)
 
 
 class ComboObjectiveFunction(BaseObjectiveFunction):
     """
-    Composite class for multiple objective functions
+    Composite for multiple objective functions
 
     A composite class for multiple objective functions. Each objective function
     is accompanied by a multiplier. Both objective functions and multipliers
@@ -213,6 +209,58 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
         List containing the multipliers for its respective objective function
         in ``objfcts``.  If ``None``, a list full of ones with the same length
         as ``objfcts`` will be created.
+    unpack_on_add : bool, optional
+        Weather to unpack the multiple objective functions when adding them to
+        another objective function, or to add them as a whole.
+
+    Examples
+    --------
+    Build a simple combo objective function:
+
+    >>> objective_fun_a = L2ObjectiveFunction(nP=3)
+    >>> objective_fun_b = L2ObjectiveFunction(nP=3)
+    >>> combo = ComboObjectiveFunction([objective_fun_a, objective_fun_b], [1, 0.5])
+    >>> print(len(combo))
+    2
+    >>> print(combo.multipliers)
+    [1, 0.5]
+
+    Combo objective functions are also created after adding two objective functions:
+
+    >>> combo = 2 * objective_fun_a + 3.5 * objective_fun_b
+    >>> print(len(combo))
+    2
+    >>> print(combo.multipliers)
+    [2, 3.5]
+
+    We could add two combo objective functions as well:
+
+    >>> objective_fun_c = L2ObjectiveFunction(nP=3)
+    >>> objective_fun_d = L2ObjectiveFunction(nP=3)
+    >>> combo_1 = 4.3 * objective_fun_a + 3 * objective_fun_b
+    >>> combo_2 = 1.5 * objective_fun_c + 0.5 * objective_fun_d
+    >>> combo = combo_1 + combo_2
+    >>> print(len(combo))
+    4
+    >>> print(combo.multipliers)
+    [4.3, 3, 1.5, 0.5]
+
+    We can choose to not unpack the objective functions when creating the
+    combo. For example:
+
+    >>> objective_fun_a = L2ObjectiveFunction(nP=3)
+    >>> objective_fun_b = L2ObjectiveFunction(nP=3)
+    >>> objective_fun_c = L2ObjectiveFunction(nP=3)
+    >>>
+    >>> # Create a ComboObjectiveFunction that won't unpack
+    >>> combo_1 = ComboObjectiveFunction(
+    ...     objfcts=[objective_fun_a, objective_fun_b],
+    ...     multipliers=[0.1, 1.2],
+    ...     unpack_on_add=False,
+    ... )
+    >>> combo_2 = combo_1 + objective_fun_c
+    >>> print(len(combo_2))
+    2
 
     Examples
     --------
@@ -223,7 +271,7 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
 
     _multiplier_types = (float, None, Zero, np.float64, int, np.integer)
 
-    def __init__(self, objfcts=None, multipliers=None):
+    def __init__(self, objfcts=None, multipliers=None, unpack_on_add=True, **kwargs):
         # Define default lists if None
         if objfcts is None:
             objfcts = []
@@ -245,6 +293,7 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
         super().__init__(nP=nP)
         self.objfcts = objfcts
         self._multipliers = multipliers
+        self._unpack_on_add = unpack_on_add
 
     def __len__(self):
         return len(self.multipliers)
