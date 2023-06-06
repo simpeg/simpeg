@@ -163,6 +163,7 @@ class BaseObjectiveFunction(BaseSimPEG):
             )
         objective_functions, multipliers = [], []
         for instance in (self, other):
+            if isinstance(instance, ComboObjectiveFunction) and instance._unpack_on_add:
                 objective_functions += instance.objfcts
                 multipliers += instance.multipliers
             else:
