@@ -262,12 +262,6 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
     >>> combo_2 = combo_1 + objective_fun_c
     >>> print(len(combo_2))
     2
-
-    Examples
-    --------
-    >>> objective_fun_a = BaseObjectiveFunction(nP=3)
-    >>> objective_fun_b = BaseObjectiveFunction(nP=3)
-    >>> combo = ComboObjectiveFunction([objective_fun_a, objective_fun_b], [1, 0.5])
     """
 
     _multiplier_types = (float, None, Zero, np.float64, int, np.integer)
