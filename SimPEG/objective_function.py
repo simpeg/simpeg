@@ -84,9 +84,11 @@ class BaseObjectiveFunction(BaseSimPEG):
 
     @mapping.setter
     def mapping(self, value):
-        assert isinstance(value, self.map_class), (
-            "mapping must be an instance of a {}, not a {}"
-        ).format(self.map_class, value.__class__.__name__)
+        if not isinstance(value, self.map_class):
+            raise TypeError(
+                f"Invalid mapping of class '{value.__class__.__name__}'. "
+                f"It must be an instance of {self.map_class.__name__}"
+            )
         self._mapping = value
 
     @timeIt
