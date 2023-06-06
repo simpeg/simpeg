@@ -266,7 +266,7 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
 
     _multiplier_types = (float, None, Zero, np.float64, int, np.integer)
 
-    def __init__(self, objfcts=None, multipliers=None, unpack_on_add=True, **kwargs):
+    def __init__(self, objfcts=None, multipliers=None, unpack_on_add=True):
         # Define default lists if None
         if objfcts is None:
             objfcts = []
