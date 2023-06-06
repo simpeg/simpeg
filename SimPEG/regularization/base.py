@@ -403,7 +403,7 @@ class Smallness(BaseRegularization):
     :math:`\mathbf{m_{ref}}` is a reference model,
     :math:`\mathbf{V}` are square root of cell volumes and
     :math:`\mathbf{W}` is a weighting matrix (default Identity). If fixed or
-        free weights are provided, then it is :code:`diag(np.sqrt(weights))`).
+    free weights are provided, then it is :code:`diag(np.sqrt(weights))`).
 
 
     **Optional Inputs**
