@@ -1,6 +1,8 @@
 """
 Define simulation classes
 """
+from __future__ import annotations
+
 import os
 import inspect
 import numpy as np
