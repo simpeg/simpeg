@@ -268,7 +268,7 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
 
     _multiplier_types = (float, None, Zero, np.float64, int, np.integer)
 
-    def __init__(self, objfcts=None, multipliers=None, unpack_on_add=True):
+    def __init__(self, objfcts=None, multipliers=None, unpack_on_add=True, **kwargs):
         # Define default lists if None
         if objfcts is None:
             objfcts = []
@@ -287,7 +287,7 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
         else:
             nP = None
 
-        super().__init__(nP=nP)
+        super().__init__(nP=nP, **kwargs)
         self.objfcts = objfcts
         self._multipliers = multipliers
         self._unpack_on_add = unpack_on_add
@@ -475,6 +475,7 @@ class L2ObjectiveFunction(BaseObjectiveFunction):
         has_fields=False,
         counter=None,
         debug=False,
+        **kwargs,
     ):
         # Check if nP and shape of W are consistent
         if W is not None and nP is not None and nP != W.shape[1]:
@@ -483,7 +484,12 @@ class L2ObjectiveFunction(BaseObjectiveFunction):
                 f"rows ('{W.shape[1]}') of the weights matrix W."
             )
         super().__init__(
-            nP=nP, mapping=mapping, has_fields=has_fields, debug=debug, counter=counter
+            nP=nP,
+            mapping=mapping,
+            has_fields=has_fields,
+            debug=debug,
+            counter=counter,
+            **kwargs,
         )
         if W is not None and self.nP == "*":
             self._nP = W.shape[1]
