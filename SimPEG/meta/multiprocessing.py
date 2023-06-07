@@ -341,7 +341,6 @@ class MultiprocessingRepeatedSimulation(
             n_processes = cpu_count()
 
         # split mappings up into chunks
-        # (Which are currently defined using MetaSimulations)
         n_sim = len(mappings)
         chunk_sizes = min(n_processes, n_sim) * [n_sim // n_processes]
         for i in range(n_sim % n_processes):
@@ -349,6 +348,7 @@ class MultiprocessingRepeatedSimulation(
 
         processes = []
         i_start = 0
+        chunk_nd = []
         for chunk in chunk_sizes:
             if chunk == 0:
                 continue
@@ -356,9 +356,11 @@ class MultiprocessingRepeatedSimulation(
             sim_chunk = RepeatedSimulation(
                 self.simulation, self.mappings[i_start:i_end]
             )
+            chunk_nd.append(sim_chunk.survey.nD)
             p = _SimulationProcess(sim_chunk)
             processes.append(p)
             p.start()
             i_start = i_end
 
+        self._data_offsets = np.cumsum(np.r_[0, chunk_nd])
         self._sim_processes = processes
