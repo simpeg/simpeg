@@ -9,25 +9,24 @@ def hzAnalyticDipoleF(r, freq, sigma, secondary=True, mu=mu_0):
     1988, and the example reproduces their Figure 4.2.
 
 
-    .. plot::
-
-        import numpy as np
-        import matplotlib.pyplot as plt
-        from SimPEG import electromagnetics as EM
-        freq = np.logspace(-1, 5, 301)
-        test = EM.analytics.h[2]AnalyticDipoleF(
-                100, freq, 0.01, secondary=False)
-        plt.loglog(freq, test.real, 'C0-', label='Real')
-        plt.loglog(freq, -test.real, 'C0--')
-        plt.loglog(freq, test.imag, 'C1-', label='Imaginary')
-        plt.loglog(freq, -test.imag, 'C1--')
-        plt.title('Response at $r=100$ m')
-        plt.xlim([1e-1, 1e5])
-        plt.ylim([1e-12, 1e-6])
-        plt.xlabel('Frequency (Hz)')
-        plt.ylabel('$H_z$ (A/m)')
-        plt.legend(loc=6)
-        plt.show()
+    Examples
+    --------
+    >>> import matplotlib.pyplot as plt
+    >>> from SimPEG import electromagnetics as em
+    >>> freq = np.logspace(-1, 5, 301)
+    >>> test = em.analytics.hzAnalyticDipoleF(
+    >>>        100, freq, 0.01, secondary=False)
+    >>> plt.loglog(freq, test.real, 'C0-', label='Real')
+    >>> plt.loglog(freq, -test.real, 'C0--')
+    >>> plt.loglog(freq, test.imag, 'C1-', label='Imaginary')
+    >>> plt.loglog(freq, -test.imag, 'C1--')
+    >>> plt.title('Response at $r=100$ m')
+    >>> plt.xlim([1e-1, 1e5])
+    >>> plt.ylim([1e-12, 1e-6])
+    >>> plt.xlabel('Frequency (Hz)')
+    >>> plt.ylabel('$H_z$ (A/m)')
+    >>> plt.legend(loc=6)
+    >>> plt.show()
 
 
     **Reference**

@@ -164,6 +164,7 @@ The regularizations are meant for models of vectors.
 
 .. autosummary::
   :toctree: generated/
+
   CrossReferenceRegularization
 
 Joint Regularizations
