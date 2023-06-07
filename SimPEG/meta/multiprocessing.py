@@ -247,10 +247,10 @@ class MultiprocessingMetaSimulation(MetaSimulation):
             chunk_v = v[self._data_offsets[i] : self._data_offsets[i + 1]]
             p.start_jt_vec(chunk_v, field)
 
-        jt_vec = 0
+        jt_vec = []
         for p in self._sim_processes:
-            jt_vec += p.result()
-        return jt_vec
+            jt_vec.append(p.result())
+        return np.sum(jt_vec, axis=0)
 
     def getJtJdiag(self, m, W=None, f=None):
         self.model = m
@@ -264,10 +264,10 @@ class MultiprocessingMetaSimulation(MetaSimulation):
             for i, (p, field) in enumerate(zip(self._sim_processes, f)):
                 chunk_w = W[self._data_offsets[i] : self._data_offsets[i + 1]]
                 p.start_jtj_diag(chunk_w, field)
-            jtj_diag = 0.0
+            jtj_diag = []
             for p in self._sim_processes:
-                jtj_diag += p.result()
-            self._jtjdiag = jtj_diag
+                jtj_diag.append(p.result())
+            self._jtjdiag = np.sum(jtj_diag, axis=0)
         return self._jtjdiag
 
     def join(self):
@@ -299,10 +299,10 @@ class MultiprocessingSumMetaSimulation(
             f = self.fields(m)
         for p, field in zip(self._sim_processes, f):
             p.start_j_vec(v, field)
-        j_vec = 0
+        j_vec = []
         for p in self._sim_processes:
-            j_vec += p.result()
-        return j_vec
+            j_vec.append(p.result())
+        return np.sum(j_vec, axis=0)
 
     def Jtvec(self, m, v, f=None):
         self.model = m
@@ -311,10 +311,10 @@ class MultiprocessingSumMetaSimulation(
         for p, field in zip(self._sim_processes, f):
             p.start_jt_vec(v, field)
 
-        jt_vec = 0
+        jt_vec = []
         for p in self._sim_processes:
-            jt_vec += p.result()
-        return jt_vec
+            jt_vec.append(p.result())
+        return np.sum(jt_vec, axis=0)
 
     def getJtJdiag(self, m, W=None, f=None):
         self.model = m
@@ -323,10 +323,10 @@ class MultiprocessingSumMetaSimulation(
                 f = self.fields(m)
             for p, field in zip(self._sim_processes, f):
                 p.start_jtj_diag(W, field)
-            jtj_diag = 0.0
+            jtj_diag = []
             for p in self._sim_processes:
-                jtj_diag += p.result()
-            self._jtjdiag = jtj_diag
+                jtj_diag.append(p.result())
+            self._jtjdiag = np.sum(jtj_diag, axis=0)
         return self._jtjdiag
 
 
