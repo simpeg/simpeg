@@ -1087,8 +1087,20 @@ class Fields3DCurrentDensity(FieldsFDEM):
         :return: secondary magnetic field
         """
 
-        h = self._edgeCurl.T * (self._MfRho * jSolution)
+        if getattr(self.simulation, "permittivity", None) is not None:
+            h = np.zeros((self.mesh.n_edges, len(source_list)), dtype=complex)
+        else:
+            h = self._edgeCurl.T * (self._MfRho * jSolution)
+
         for i, src in enumerate(source_list):
+            if getattr(self.simulation, "permittivity", None) is not None:
+                h[:, i] = self._edgeCurl.T * (
+                    self.simulation._get_face_admittivity_property_matrix(
+                        src.frequency, invert_model=True
+                    )
+                    * jSolution[:, i]
+                )
+
             h[:, i] *= -1.0 / (1j * omega(src.frequency))
             s_m = src.s_m(self.simulation)
             h[:, i] = h[:, i] + 1.0 / (1j * omega(src.frequency)) * (s_m)
@@ -1188,7 +1200,16 @@ class Fields3DCurrentDensity(FieldsFDEM):
         :rtype: numpy.ndarray
         :return: electric field
         """
+        # if getattr(self.simulation, "permittivity", None) is None:
         return self._MfI * (self._MfRho * self._j(jSolution, source_list))
+
+        # e = np.zeros((self.mesh.n_faces, len(source_list)), dtype=complex)
+        # for i, source in enumerate(source_list):
+        #     Mfyhati = self.simulation._get_face_admittivity_property_matrix(
+        #         source.frequency, invert_model=True
+        #     )
+        #     e[:, i] = Mfyhati * mkvc(self._j(jSolution, [source]))
+        # return self._MfI * e
 
     def _eDeriv_u(self, src, du_dm_v, adjoint=False):
         """

@@ -303,8 +303,7 @@ class Simulation3DElectricField(BaseFDEMSimulation):
         A = C.T.tocsr() * MfMui * C + 1j * omega(freq) * MeSigma
 
         if getattr(self, "permittivity", None) is not None:
-            MePermittivity = self.MePermittivity
-            A = A - omega(freq) ** 2 * MePermittivity
+            A = A - omega(freq) ** 2 * self.MePermittivity
         return A
 
     def getADeriv_sigma(self, freq, u, v, adjoint=False):
@@ -635,18 +634,19 @@ class Simulation3DCurrentDensity(BaseFDEMSimulation):
         super().__init__(mesh=mesh, survey=survey, forward_only=forward_only, **kwargs)
         self.permittivity = permittivity
 
-    # def _clear_on_rho_update(self):
-    #     return (
-    #         super()._clear_on_rho_update + self._Mfrho_permittivity
-    #     )
+    def _get_admittivity(self, freq):
+        return self.sigma + 1j * self.permittivity * omega(freq)
 
-    @property
-    def _Mf_rho_permittivity(self):
+    def _get_face_admittivity_property_matrix(
+        self, freq, invert_model=False, invert_matrix=False
+    ):
         """
         Face inner product matrix with permittivity and resistivity
         """
-        # todo: cache, but clear on update to rho
-        return self.mesh.get_face_inner_product(self.permittivity * self.rho)
+        yhat = self._get_admittivity(freq)
+        return self.mesh.get_face_inner_product(
+            yhat, invert_model=invert_model, invert_matrix=invert_matrix
+        )
 
     def getA(self, freq):
         r"""
@@ -667,10 +667,13 @@ class Simulation3DCurrentDensity(BaseFDEMSimulation):
         C = self.mesh.edge_curl
         iomega = 1j * omega(freq) * sp.eye(self.mesh.nF)
 
-        A = C * MeMuI * C.T.tocsr() * MfRho + iomega
-
         if getattr(self, "permittivity", None) is not None:
-            A = A - omega(freq) ** 2 * self.MfI * self._Mf_rho_permittivity
+            Mfyhati = self._get_face_admittivity_property_matrix(
+                freq, invert_model=True
+            )
+            A = C * MeMuI * C.T.tocsr() * Mfyhati + iomega
+        else:
+            A = C * MeMuI * C.T.tocsr() * MfRho + iomega
 
         if self._makeASymmetric is True:
             return MfRho.T.tocsr() * A
