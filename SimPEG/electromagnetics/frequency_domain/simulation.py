@@ -57,10 +57,19 @@ class BaseFDEMSimulation(BaseEMSimulation):
     """
 
     fieldsPair = FieldsFDEM
+    permittivity = props.PhysicalProperty("Dielectric permittivity (F/m)")
+    # permittivity, permittivityMap, permittivityDeriv = props.Invertible("Dielectric permittivity (F/m)")
 
-    def __init__(self, mesh, survey=None, forward_only=False, **kwargs):
+    def __init__(
+        self, mesh, survey=None, forward_only=False, permittivity=None, **kwargs
+    ):
         super().__init__(mesh=mesh, survey=survey, **kwargs)
         self.forward_only = forward_only
+        if permittivity is not None:
+            warnings.warn(
+                "Simulations using permittivity have not yet been thoroughly tested yet, and derivatives are not implemented. Contributions welcome!"
+            )
+            self.permittivity = permittivity
 
     @property
     def survey(self):
@@ -93,6 +102,34 @@ class BaseFDEMSimulation(BaseEMSimulation):
     @forward_only.setter
     def forward_only(self, value):
         self._forward_only = validate_type("forward_only", value, bool)
+
+    def _get_admittivity(self, freq):
+        if getattr(self, "permittivity", None) is not None:
+            return self.sigma + 1j * self.permittivity * omega(freq)
+        else:
+            return self.sigma
+
+    def _get_face_admittivity_property_matrix(
+        self, freq, invert_model=False, invert_matrix=False
+    ):
+        """
+        Face inner product matrix with permittivity and resistivity
+        """
+        yhat = self._get_admittivity(freq)
+        return self.mesh.get_face_inner_product(
+            yhat, invert_model=invert_model, invert_matrix=invert_matrix
+        )
+
+    def _get_edge_admittivity_property_matrix(
+        self, freq, invert_model=False, invert_matrix=False
+    ):
+        """
+        Face inner product matrix with permittivity and resistivity
+        """
+        yhat = self._get_admittivity(freq)
+        return self.mesh.get_edge_inner_product(
+            yhat, invert_model=invert_model, invert_matrix=invert_matrix
+        )
 
     # @profile
     def fields(self, m=None):
@@ -242,7 +279,6 @@ class BaseFDEMSimulation(BaseEMSimulation):
 ###############################################################################
 
 
-@with_property_mass_matrices("permittivity")
 class Simulation3DElectricField(BaseFDEMSimulation):
     r"""
     By eliminating the magnetic flux density using
@@ -272,14 +308,14 @@ class Simulation3DElectricField(BaseFDEMSimulation):
     _formulation = "EB"
     fieldsPair = Fields3DElectricField
 
-    permittivity = props.PhysicalProperty("Dielectric permittivity (F/m)")
-    # permittivity, permittivityMap, permittivityDeriv = props.Invertible("Dielectric permittivity (F/m)")
+    # permittivity = props.PhysicalProperty("Dielectric permittivity (F/m)")
+    # # permittivity, permittivityMap, permittivityDeriv = props.Invertible("Dielectric permittivity (F/m)")
 
-    def __init__(
-        self, mesh, survey=None, forward_only=False, permittivity=None, **kwargs
-    ):
-        super().__init__(mesh=mesh, survey=survey, forward_only=forward_only, **kwargs)
-        self.permittivity = permittivity
+    # def __init__(
+    #     self, mesh, survey=None, forward_only=False, permittivity=None, **kwargs
+    # ):
+    #     super().__init__(mesh=mesh, survey=survey, forward_only=forward_only, **kwargs)
+    #     self.permittivity = permittivity
 
     def getA(self, freq):
         r"""
@@ -296,14 +332,15 @@ class Simulation3DElectricField(BaseFDEMSimulation):
         """
 
         MfMui = self.MfMui
-        MeSigma = self.MeSigma
-
         C = self.mesh.edge_curl
 
-        A = C.T.tocsr() * MfMui * C + 1j * omega(freq) * MeSigma
+        if getattr(self, "permittivity", None) is None:
+            MeSigma = self.MeSigma
+            A = C.T.tocsr() * MfMui * C + 1j * omega(freq) * MeSigma
+        else:
+            Meyhat = self._get_edge_admittivity_property_matrix(freq)
+            A = C.T.tocsr() * MfMui * C + 1j * omega(freq) * Meyhat
 
-        if getattr(self, "permittivity", None) is not None:
-            A = A - omega(freq) ** 2 * self.MePermittivity
         return A
 
     def getADeriv_sigma(self, freq, u, v, adjoint=False):
@@ -461,11 +498,17 @@ class Simulation3DMagneticFluxDensity(BaseFDEMSimulation):
         """
 
         MfMui = self.MfMui
-        MeSigmaI = self.MeSigmaI
         C = self.mesh.edge_curl
         iomega = 1j * omega(freq) * sp.eye(self.mesh.nF)
 
-        A = C * (MeSigmaI * (C.T.tocsr() * MfMui)) + iomega
+        if getattr(self, "permittivity", None) is None:
+            MeSigmaI = self.MeSigmaI
+            A = C * (MeSigmaI * (C.T.tocsr() * MfMui)) + iomega
+        else:
+            MeyhatI = self._get_edge_admittivity_property_matrix(
+                freq, invert_matrix=True
+            )
+            A = C * (MeyhatI * (C.T.tocsr() * MfMui)) + iomega
 
         if self._makeASymmetric:
             return MfMui.T.tocsr() * A
@@ -542,9 +585,15 @@ class Simulation3DMagneticFluxDensity(BaseFDEMSimulation):
 
         s_m, s_e = self.getSourceTerm(freq)
         C = self.mesh.edge_curl
-        MeSigmaI = self.MeSigmaI
 
-        RHS = s_m + C * (MeSigmaI * s_e)
+        if getattr(self, "permittivity", None) is None:
+            MeSigmaI = self.MeSigmaI
+            RHS = s_m + C * (MeSigmaI * s_e)
+        else:
+            MeyhatI = self._get_edge_admittivity_property_matrix(
+                freq, invert_matrix=True
+            )
+            RHS = s_m + C * (MeyhatI * s_e)
 
         if self._makeASymmetric is True:
             MfMui = self.MfMui
@@ -634,20 +683,6 @@ class Simulation3DCurrentDensity(BaseFDEMSimulation):
         super().__init__(mesh=mesh, survey=survey, forward_only=forward_only, **kwargs)
         self.permittivity = permittivity
 
-    def _get_admittivity(self, freq):
-        return self.sigma + 1j * self.permittivity * omega(freq)
-
-    def _get_face_admittivity_property_matrix(
-        self, freq, invert_model=False, invert_matrix=False
-    ):
-        """
-        Face inner product matrix with permittivity and resistivity
-        """
-        yhat = self._get_admittivity(freq)
-        return self.mesh.get_face_inner_product(
-            yhat, invert_model=invert_model, invert_matrix=invert_matrix
-        )
-
     def getA(self, freq):
         r"""
         System matrix
@@ -729,11 +764,6 @@ class Simulation3DCurrentDensity(BaseFDEMSimulation):
         return Aderiv
 
     def getADeriv(self, freq, u, v, adjoint=False):
-        if getattr(self, "permittivity", None) is not None:
-            warnings.warn(
-                "Derivatives not yet implemented for simulations that include permittivity"
-            )
-
         if adjoint and self._makeASymmetric:
             v = self.MfRho * v
 
@@ -856,10 +886,16 @@ class Simulation3DMagneticField(BaseFDEMSimulation):
         """
 
         MeMu = self.MeMu
-        MfRho = self.MfRho
         C = self.mesh.edge_curl
 
-        return C.T.tocsr() * (MfRho * C) + 1j * omega(freq) * MeMu
+        if getattr(self, "permittivity", None) is None:
+            MfRho = self.MfRho
+            return C.T.tocsr() * (MfRho * C) + 1j * omega(freq) * MeMu
+        else:
+            Mfyhati = self._get_face_admittivity_property_matrix(
+                freq, invert_model=True
+            )
+            return C.T.tocsr() * (Mfyhati * C) + 1j * omega(freq) * MeMu
 
     def getADeriv_rho(self, freq, u, v, adjoint=False):
         r"""
@@ -916,9 +952,15 @@ class Simulation3DMagneticField(BaseFDEMSimulation):
 
         s_m, s_e = self.getSourceTerm(freq)
         C = self.mesh.edge_curl
-        MfRho = self.MfRho
 
-        return s_m + C.T * (MfRho * s_e)
+        if getattr(self, "permittivity", None) is None:
+            MfRho = self.MfRho
+            return s_m + C.T * (MfRho * s_e)
+        else:
+            Mfyhati = self._get_face_admittivity_property_matrix(
+                freq, invert_model=True
+            )
+            return s_m + C.T * (Mfyhati * s_e)
 
     def getRHSDeriv(self, freq, src, v, adjoint=False):
         """

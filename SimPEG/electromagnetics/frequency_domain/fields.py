@@ -763,7 +763,16 @@ class Fields3DMagneticFluxDensity(FieldsFDEM):
             s_e = src.s_e(self.simulation)
             e[:, i] = e[:, i] + -s_e
 
-        return self._MeSigmaI * e
+            if getattr(self.simulation, "permittivity", None) is not None:
+                MeyhatI = self.simulation._get_edge_admittivity_property_matrix(
+                    src.frequency, invert_matrix=True
+                )
+                e[:, i] = MeyhatI * e[:, i]
+
+        if getattr(self.simulation, "permittivity", None) is None:
+            return self._MeSigmaI * e
+        else:
+            return e
 
     def _eDeriv_u(self, src, du_dm_v, adjoint=False):
         """
@@ -827,13 +836,16 @@ class Fields3DMagneticFluxDensity(FieldsFDEM):
         :return: primary current density
         """
 
-        j = self._edgeCurl.T * (self._MfMui * bSolution)
+        if getattr(self.simulation, "permittivity", None) is None:
+            j = self._edgeCurl.T * (self._MfMui * bSolution)
 
-        for i, src in enumerate(source_list):
-            s_e = src.s_e(self.simulation)
-            j[:, i] = j[:, i] - s_e
+            for i, src in enumerate(source_list):
+                s_e = src.s_e(self.simulation)
+                j[:, i] = j[:, i] - s_e
 
-        return self._MeI * j
+            return self._MeI * j
+        else:
+            return self._MeI * self._MeSigma * self._e(bSolution, source_list)
 
     def _jDeriv_u(self, src, du_dm_v, adjoint=False):
         """
