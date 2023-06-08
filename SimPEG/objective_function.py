@@ -30,14 +30,12 @@ class BaseObjectiveFunction(BaseSimPEG):
         has_fields=False,
         counter=None,
         debug=False,
-        **kwargs,
     ):
         self._nP = nP
         self._mapping = mapping
         self.counter = counter
         self.debug = debug
         self.has_fields = has_fields
-        set_kwargs(self, **kwargs)
 
     def __call__(self, x, f=None):
         """
@@ -268,7 +266,7 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
 
     _multiplier_types = (float, None, Zero, np.float64, int, np.integer)
 
-    def __init__(self, objfcts=None, multipliers=None, unpack_on_add=True, **kwargs):
+    def __init__(self, objfcts=None, multipliers=None, unpack_on_add=True):
         # Define default lists if None
         if objfcts is None:
             objfcts = []
@@ -287,7 +285,7 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
         else:
             nP = None
 
-        super().__init__(nP=nP, **kwargs)
+        super().__init__(nP=nP)
         self.objfcts = objfcts
         self._multipliers = multipliers
         self._unpack_on_add = unpack_on_add
