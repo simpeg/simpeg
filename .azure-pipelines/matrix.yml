@@ -1,9 +1,7 @@
 parameters:
   os : ['ubuntu-latest']
   py_vers: ['3.8']
-  test: [
-      'tests/meta -s -v'
-      ]
+  test: ['tests/meta -s -v']
 
 jobs:
   - ${{ each os in parameters.os }}:
