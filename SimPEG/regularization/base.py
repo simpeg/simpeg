@@ -58,6 +58,19 @@ class BaseRegularization(BaseObjectiveFunction):
         self._regularization_mesh = mesh
         self._weights = {}
 
+        if (key := "indActive") in kwargs:
+            if active_cells is not None:
+                raise ValueError(
+                    f"Cannot simultanously pass 'active_cells' and '{key}'. "
+                    "Pass 'active_cells' only."
+                )
+            warnings.warn(
+                f"The '{key}' argument has been deprecated, please use 'active_cells'. "
+                "It will be removed in future versions of SimPEG.",
+                DeprecationWarning,
+            )
+            active_cells = kwargs.pop(key)
+
         if active_cells is not None:
             self.active_cells = active_cells
 
