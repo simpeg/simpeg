@@ -36,8 +36,8 @@ class _SimulationProcess(Process):
     returning them to the main processes, unless explicitly asked for...
     """
 
-    def __init__(self, sim_chunk):
-        self.sim_chunk = sim_chunk
+    def __init__(self):  # , sim_chunk):
+        # self.sim_chunk = sim_chunk
         self.task_queue = Queue()
         self.result_queue = Queue()
         super().__init__()
@@ -47,7 +47,7 @@ class _SimulationProcess(Process):
         # this sim is actually local to the running process and will
         # persist between calls to field, dpred, jvec,...
         print("started process")
-        sim = self.sim_chunk
+        # sim = self.sim_chunk
         print("got chunk")
         # a place to cache the field items locally
         _cached_items = {}
@@ -66,7 +66,12 @@ class _SimulationProcess(Process):
                 break
             op, args = task
             try:
-                if op == "get_item":
+                if op == "set_sim":
+                    (sim,) = args
+                    sim_key = uuid.uuid4().hex
+                    _cached_items[sim_key] = sim
+                    r_queue.put(sim_key)
+                elif op == "get_item":
                     (key,) = args
                     r_queue.put(_cached_items[key])
                 elif op == "del_item":
@@ -74,66 +79,88 @@ class _SimulationProcess(Process):
                     _cached_items.pop(key, None)
                 elif op == 0:
                     # store_model
-                    (m,) = args
+                    sim_key, m = args
+                    sim = _cached_items[sim_key]
                     sim.model = m
                 elif op == 1:
                     # create fields
+                    (sim_key,) = args
+                    sim = _cached_items[sim_key]
                     f_key = uuid.uuid4().hex
                     r_queue.put(f_key)
                     fields = sim.fields(sim.model)
                     _cached_items[f_key] = fields
                 elif op == 2:
                     # do dpred
-                    (f_key,) = args
+                    sim_key, f_key = args
+                    sim = _cached_items[sim_key]
                     fields = _cached_items[f_key]
                     r_queue.put(sim.dpred(sim.model, fields))
                 elif op == 3:
                     # do jvec
-                    v, f_key = args
+                    sim_key, v, f_key = args
+                    sim = _cached_items[sim_key]
                     fields = _cached_items[f_key]
                     r_queue.put(sim.Jvec(sim.model, v, fields))
                 elif op == 4:
                     # do jtvec
-                    v, f_key = args
+                    sim_key, v, f_key = args
+                    sim = _cached_items[sim_key]
                     fields = _cached_items[f_key]
                     r_queue.put(sim.Jtvec(sim.model, v, fields))
                 elif op == 5:
                     # do jtj_diag
-                    w, f_key = args
+                    sim_key, w, f_key = args
+                    sim = _cached_items[sim_key]
                     fields = _cached_items[f_key]
                     r_queue.put(sim.getJtJdiag(sim.model, w, fields))
             except Exception as err:
+                print(err)
                 r_queue.put(err)
+
+    def set_sim(self, sim):
+        self.task_queue.put(("set_sim", (sim,)))
+        key = self.result_queue.get()
+        future = SimpleFuture(key, self.task_queue, self.result_queue)
+        self._my_sim = future
+        return future
 
     def store_model(self, m):
         self._check_closed()
-        self.task_queue.put((0, (m,)))
+        sim = self._my_sim
+        self.task_queue.put((0, (sim.item_id, m)))
 
     def get_fields(self):
         self._check_closed()
-        self.task_queue.put((1, None))
+        sim = self._my_sim
+        self.task_queue.put((1, (sim.item_id,)))
         key = self.result_queue.get()
         future = SimpleFuture(key, self.task_queue, self.result_queue)
         return future
 
     def start_dpred(self, f_future):
         self._check_closed()
-        self.task_queue.put((2, (f_future.item_id,)))
+        sim = self._my_sim
+        self.task_queue.put((2, (sim.item_id, f_future.item_id)))
 
     def start_j_vec(self, v, f_future):
         self._check_closed()
-        self.task_queue.put((3, (v, f_future.item_id)))
+        sim = self._my_sim
+        self.task_queue.put((3, (sim.item_id, v, f_future.item_id)))
 
     def start_jt_vec(self, v, f_future):
         self._check_closed()
-        self.task_queue.put((4, (v, f_future.item_id)))
+        sim = self._my_sim
+        self.task_queue.put((4, (sim.item_id, v, f_future.item_id)))
 
     def start_jtj_diag(self, w, f_future):
         self._check_closed()
+        sim = self._my_sim
         self.task_queue.put(
             (
                 5,
                 (
+                    sim.item_id,
                     w,
                     f_future.item_id,
                 ),
@@ -191,6 +218,7 @@ class MultiprocessingMetaSimulation(MetaSimulation):
         processes = []
         i_start = 0
         chunk_nd = []
+        sim_futures = []
         for chunk in chunk_sizes:
             print(f"chunking {chunk}.")
             if chunk == 0:
@@ -201,10 +229,11 @@ class MultiprocessingMetaSimulation(MetaSimulation):
             )
             chunk_nd.append(sim_chunk.survey.nD)
             print("creating process")
-            p = _SimulationProcess(sim_chunk)
+            p = _SimulationProcess()
             processes.append(p)
             print("starting process")
             p.start()
+            p.set_sim(sim_chunk)
             print("started")
             i_start = i_end
 
@@ -373,9 +402,10 @@ class MultiprocessingRepeatedSimulation(
                 self.simulation, self.mappings[i_start:i_end]
             )
             chunk_nd.append(sim_chunk.survey.nD)
-            p = _SimulationProcess(sim_chunk)
+            p = _SimulationProcess()
             processes.append(p)
             p.start()
+            p.set_sim(sim_chunk)
             i_start = i_end
 
         self._data_offsets = np.cumsum(np.r_[0, chunk_nd])
