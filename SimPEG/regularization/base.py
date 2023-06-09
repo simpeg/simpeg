@@ -2175,7 +2175,7 @@ class BaseSimilarityMeasure(BaseRegularization):
         the mesh on which the simulation is defined.
     wire_map : SimPEG.maps.WireMap
         Wire map connecting physical properties defined on active cells of the
-        :class:`RegularizationMesh`` to the entire model.
+        :class:`RegularizationMesh` to the entire model.
     """
 
     def __init__(self, mesh, wire_map, **kwargs):

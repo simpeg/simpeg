@@ -29,13 +29,17 @@ class BaseVectorRegularization(BaseRegularization):
 
 
 class CrossReferenceRegularization(Smallness, BaseVectorRegularization):
-    r"""Cross reference regularization for inversion to recover vector quantities.
+    r"""Cross reference regularization for models representing vector quantities.
 
-    This regularizer measures the magnitude of the cross product of the vector model
-    with a reference vector model. This encourages the vectors in the model to point
-    in the reference direction. The cross product of two vectors is minimized when they
-    are parallel (or anti-parallel) to each other, and maximized when the vectors are
-    perpendicular to each other.
+    ``CrossReferenceRegularization`` encourages the vectors in the recovered model to
+    be oriented in the same directions as the vector in a reference vector model.
+    The regularization function (objective function) constrains the inversion by penalizing
+    the magnitude of the-cross product of the vector model with a reference vector model.
+    The cross product, and therefore the objective function, is minimized when vectors
+    in the model and reference vector model are parallel (or anti-parallel) to each other.
+    And it is maximized when the vectors are perpendicular to each other.
+    The reference vector model can be set using a single vector, or by defining a
+    vector for each mesh cell. 
 
     Parameters
     ----------
@@ -79,12 +83,11 @@ class CrossReferenceRegularization(Smallness, BaseVectorRegularization):
         \phi (\vec{m}) \approx \frac{1}{2} \sum_i \tilde{w}_i \, \cdot \,
         \Big [ \vec{m}_i \, \times \, \vec{m}_i^{(ref)} \Big ]^2
 
-    where :math:`\tilde{m}_i` are the model vectors at cell centers and
+    where :math:`\tilde{m}_i \in \mathbf{m}` are the model vectors at cell centers and
     :math:`\tilde{w}_i \in \mathbf{\tilde{w}}` are amalgamated weighting constants that 1) account
     for cell dimensions in the discretization and 2) apply any user-defined weighting.
 
-    In practice, we frequently define the model :math:`\mathbf{m}` as a discrete
-    vector of the form:
+    In practice, the model is a discrete vector of the form:
 
     .. math::
         \mathbf{m} = \begin{bmatrix} \mathbf{m_p} \\ \mathbf{m_s} \\ \mathbf{m_t} \end{bmatrix}
@@ -92,33 +95,30 @@ class CrossReferenceRegularization(Smallness, BaseVectorRegularization):
     where :math:`\mathbf{m_p}`, :math:`\mathbf{m_s}` and :math:`\mathbf{m_t}` represent vector
     components in the primary, secondary and tertiary directions at cell centers, respectively.
     The cross product between :math:`\mathbf{m}` and a similar reference vector
-    :math:`\mathbf{m^{ref}}` is a linear operation of the form:
+    :math:`\mathbf{m^{(ref)}}` (set with `ref_dir`) is a linear operation of the form:
 
     .. math::
-        \mathbf{m} \times \mathbf{m^{ref}} = \mathbf{X m}
+        \mathbf{m} \times \mathbf{m^{ref}} = \mathbf{X m} =
         \begin{bmatrix}
         \mathbf{0} & -\boldsymbol{\Lambda_s} & \boldsymbol{\Lambda_t} \\
         \boldsymbol{\Lambda_p} & \mathbf{0} & -\boldsymbol{\Lambda_t} \\
         -\boldsymbol{\Lambda_p} & \boldsymbol{\Lambda_s} & \mathbf{0}
-        \end{bmatrix}
+        \end{bmatrix} \!
         \begin{bmatrix} \mathbf{m_p} \\ \mathbf{m_s} \\ \mathbf{m_t} \end{bmatrix}
 
-    where
+    where :math:`\mathbf{X}` is a linear operator that applies the cross-product on :math:`\mathbf{m}`,
+    :math:`\mathbf{W}` is the weighting matrix, and:
 
-    .. math:
-        \boldsymbol{\Lambda_j} = \textrm{diag} \Big ( \mathbf{m_j^{(red)}} \Big )
+    .. math::
+        \boldsymbol{\Lambda_j} = \textrm{diag} \Big ( \mathbf{m_j^{(ref)}} \Big )
         \;\;\;\; \textrm{for} \; j=p,s,t
 
-    The discrete regularization function in linear form is given by:
+    The discrete regularization function in linear form can ultimately be expressed as:
 
     .. math::
         \phi (\mathbf{m}) = \frac{1}{2}
         \Big \| \mathbf{W X m} \, \Big \|^2
 
-    where
-
-        - :math:`\boldsymbol{\Lambda}` applies the cross-products, and
-        - :math:`\mathbf{W}` is the weighting matrix.
 
     **Custom weights and the weighting matrix:**
 
@@ -140,7 +140,7 @@ class CrossReferenceRegularization(Smallness, BaseVectorRegularization):
         - :math:`\otimes` is the Kronecker product, and
         - :math:`\mathbf{v}` are the cell volumes.
 
-    The weighting matrix used to apply the weights for smallness regularization is given by:
+    The weighting matrix used to apply the weights in the regularization function is given by:
 
     .. math::
         \mathbf{W} = \textrm{diag} \Big ( \, \mathbf{\tilde{w}}^{1/2} \Big )
@@ -149,9 +149,12 @@ class CrossReferenceRegularization(Smallness, BaseVectorRegularization):
     ``numpy.ndarray``. The weights can be set all at once during instantiation
     with the `weights` keyword argument as follows:
 
-    >>> reg = Smallness(mesh, weights={'weights_1': array_1, 'weights_2': array_2})
+    >>> reg = CrossReferenceRegularization(
+    >>>     mesh, weights={'weights_1': array_1, 'weights_2': array_2}
+    >>> )
 
-    or set after instantiation using the `set_weights` method:
+    where `array_1` and `array_2` are (n_cells, dim) ``numpy.ndarray``.
+    Weights can also be set after instantiation using the `set_weights` method:
 
     >>> reg.set_weights(weights_1=array_1, weights_2=array_2})
 

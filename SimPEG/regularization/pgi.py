@@ -31,18 +31,163 @@ from .base import RegularizationMesh, Smallness, WeightedLeastSquares
 
 
 class PGIsmallness(Smallness):
-    """
-    Smallness term for the petrophysically constrained regularization (PGI)
-    with cell_weights similar to the regularization.tikhonov.SimpleSmall class.
+    r"""Smallness regularization function for petrophysically guided inversion (PGI).
 
-    PARAMETERS
+    ``PGIsmallness`` is used to recover models in which the physical property values are
+    consistent with petrophysical information. ``PGIsmallness`` regularization assumes that
+    the statistical distribution of physical property values defining the model is characterized
+    by a Gaussian mixture model (GMM). That is, the physical property values for each specified
+    geological unit are characterized by a separate multivariate Gaussian distribution,
+    which are summed to define the GMM. ``PGIsmallness`` is generally combined with other
+    regularization classes to form a complete regularization for the inverse problem; see
+    :class:`PGI`.
+
+    ``PGIsmallness`` can be implemented to invert for a single physical property or multiple
+    physical properties, each of which are defined on a linear scale (e.g. density) or a log-scale
+    (e.g. electrical conductivity). If the statistical distribution(s) of physical property values
+    for each property type are known, the GMM can be constructed and left static throughout the
+    inversion. Otherwise, the recovered model at each iteration is used to update the GMM.
+    And the updated GMM is used to constrain the recovered model for the following iteration.
+
+    Parameters
     ----------
-    :param SimPEG.utils.WeightedGaussianMixture gmm: GMM to use
-    :param SimPEG.maps.Wires wiresmap: wires mapping to the various physical properties
-    :param list maplist: list of SimPEG.maps for each physical property.
-    :param discretize.BaseMesh mesh: tensor, QuadTree or Octree mesh
-    :param boolean approx_gradient: use the L2-approximation of the gradient, default is True
-    :param boolean approx_eval: use the L2-approximation evaluation of the smallness term
+    gmmref : SimPEG.utils.WeightedGaussianMixture
+        Reference Gaussian mixture model.
+    gmm : None, SimPEG.utils.WeightedGaussianMixture
+        Gaussian mixture model. If ``None``, the Gaussian mixture model is learned throughout the
+        inversion. If set, the Gaussian mixture model used to constrain the recovered model is
+        static throughout the inversion.
+    wiresmap : None, SimPEG.maps.Wires
+        Defines the mapping from the entire model to the parameters of each type.
+        If ``None``, we assume only a single physical property type in the inversion.
+    maplist : None, list of SimPEG.maps
+        List of mappings from model values to physical property values.
+        One for each physical property. If ``None``, we assume a single physical property type
+        in the regularization and an :class:`.maps.IdentityMap` from model values to physical
+        property values.
+    mesh : SimPEG.regularization.RegularizationMesh, discretize.base.BaseMesh
+        Mesh on which the regularization is discretized. Implemented for
+        `tensor`, `QuadTree` or `Octree` meshes.
+    approx_gradient : bool
+        If ``True``, use the L2-approximation of the gradient by assuming
+        physical property values of different types are uncorrelated.
+    approx_eval : bool
+        If ``True``, use the L2-approximation evaluation of the smallness term by assuming
+        physical property values of different types are uncorrelated.
+    approx_hessian : bool
+        Approximate the Hessian of the regularization function.
+    non_linear_relationship : bool
+        Elaborate.
+
+    Notes
+    -----
+    For one or more physical property types (e.g. conductivity, density, susceptibility),
+    the ``PGIsmallness`` regularization function (objective function) is derived by setting a
+    Gaussian mixture model (GMM) as the prior within a Baysian inversion scheme.
+    For a comprehensive description, see
+    (`Astic, et al 2019 <https://owncloud.eoas.ubc.ca/s/TMB3Jdr8ScqSPm7/download>`__;
+    `Astic et al 2020 <https://owncloud.eoas.ubc.ca/s/PAxpHQt7CGk6zT4/download>`__).
+
+    We let :math:`\Theta` store all of the means (:math:`\boldsymbol{\mu}`), covariances
+    (:math:`\boldsymbol{\Sigma}`) and proportion constants (:math:`\boldsymbol{\gamma}`)
+    defining the GMM. And let :math:`\mathbf{z}^\ast` define an indexing array that
+    extracts the GMM parameters for the most representative rock unit within each active cell
+    in the :class:`RegularizationMesh`. The regularization function (objective function) for
+    ``PGIsmallness`` is given by:
+
+    .. math::
+        \phi (\mathbf{m}) = \frac{1}{2}
+        \big [ \mathbf{m} - \mathbf{m_{ref}}(\Theta, \mathbf{z}^\ast ) \big ]^T
+        \mathbf{W} ( \Theta , \mathbf{z}^\ast ) \,
+        \big [ \mathbf{m} - \mathbf{m_{ref}}(\Theta, \mathbf{z}^\ast ) \big ]
+
+    where
+
+        - :math:`\mathbf{m}` is the model,
+        - :math:`\mathbf{m_{ref}}(\Theta, \mathbf{z}^\ast )` is the reference model, and
+        - :math:`\mathbf{W}(\Theta , \mathbf{z}^\ast )` is a weighting matrix.
+
+    ``PGIsmallness`` regularization can be used for models consisting of one or more physical
+    property types. The ordering of the physical property types within the model is defined
+    using the `wiresmap`. And the mapping from model parameter values to physical property
+    values is specified with `maplist`. For :math:`K` physical property types, the model is
+    an array vector of the form:
+
+    .. math::
+        \mathbf{m} = \begin{bmatrix} \mathbf{m}_1 \\ \mathbf{m}_2 \\ \vdots \\ \mathbf{m}_K \end{bmatrix}
+    
+    When the `approx_eval` property is ``True``, we assume the physical property types have
+    values that are uncorrelated. In this case, the weighting matrix is diagonal and the
+    regularization function (objective function) can be expressed as:
+
+    .. math::
+        \phi (\mathbf{m}) = \frac{1}{2} \Big \| \mathbf{W}_{\! 1/2}(\Theta, \mathbf{z}^\ast ) \,
+        \big [ \mathbf{m} - \mathbf{m_{ref}}(\Theta, \mathbf{z}^\ast ) \big ] \, \Big \|^2
+    
+    When the `approx_eval` property is ``True``, you may also set the `approx_gradient` property
+    to ``True`` so that the least-squares approximation is used to compute the gradient.
+
+    **Constructing the Reference Model and Weighting Matrix:**
+
+    The reference model used in the regularization function is constructed by extracting the means
+    :math:`\boldsymbol{\mu}` from the GMM using the indexing array :math:`\mathbf{z}^\ast`.
+    We represent this vector as:
+
+    .. math::
+        \mathbf{m_{ref}} (\Theta ,{\mathbf{z}^\ast}) = \boldsymbol{\mu}_{\mathbf{z}^\ast}
+    
+    To construct the weighting matrix, :math:`\mathbf{z}^\ast` is used to extract the covariances
+    :math:`\boldsymbol{\Sigma}` for each cell. And the weighting matrix is given by:
+
+    .. math::
+        \mathbf{W}(\Theta ,{\mathbf{z}^\ast } ) = \boldsymbol{\Sigma}_{\mathbf{z^\ast}}^{-1} \,
+        diag \big ( \mathbf{v \odot w} \big ) 
+    
+    where :math:`\mathbf{v}` are the volumes of the active cells, and :math:`\mathbf{w}`
+    are custom cell weights. When the `approx_eval` property is ``True``, the off-diagonal
+    covariances are zero and we can use a weighting matrix of the form:
+
+    .. math::
+        \mathbf{W}_{\! 1/2}(\Theta ,{\mathbf{z}^\ast } ) = diag \Big ( \big [ \mathbf{v \odot w}
+        \odot \boldsymbol{\sigma}_{\mathbf{z}^\ast}^{-2} \big ]^{1/2} \Big ) 
+    
+    where :math:`\boldsymbol{\sigma}_{\mathbf{z}^\ast}^2` are the variances extracted using the
+    indexing array :math:`\mathbf{z}^\ast`.
+
+    **Updating the Gaussian Mixture Model:**
+
+    When the GMM is set using the `gmm` property, the GMM remains static throughout the inversion.
+    When the `gmm` property set as ``None``, the GMM is learned and updated after every model update.
+    That is, we assume the GMM defined using the `gmmref` property is not completely representative
+    of the physical property distributions for each rock unit, and we update the all of the means
+    (:math:`\boldsymbol{\mu}`), covariances (:math:`\boldsymbol{\Sigma}`) and proportion constants
+    (:math:`\boldsymbol{\gamma}`) defining the GMM :math:`\Theta`. This is done by solving:
+
+    .. math::
+        \max_\Theta \; \mathcal{P}(\Theta | \mathbf{m})
+    
+    using a MAP variation of the expectation-maximization clustering algorithm introduced in
+    Dempster (et al. 1977).
+
+    **Updating the Indexing Array:**
+
+    As the model (and GMM) are updated throughout the inversion, the rock unit considered most
+    indicative of the geology within each cell is updated; which is represented by the indexing
+    array :math:`\mathbf{z}^\ast`. W. For the current GMM with means (:math:`\boldsymbol{\mu}`),
+    covariances (:math:`\boldsymbol{\Sigma}`) and proportion constants (:math:`\boldsymbol{\gamma}`),
+    we solve the following for each cell:
+
+    .. math::
+        z_i^\ast = \max_n \; \gamma_{i,n} \, \mathcal{N} (\mathbf{m}_i | \boldsymbol{\mu}_n , \boldsymbol{\Sigma}_n)
+    
+    where
+
+        - :math:`\mathbf{m_i}` are the model values for cell :math:`i`,
+        - :math:`\gamma_{i,n}` is the proportion for cell :math:`i` and rock unit :math:`n`
+        - :math:`\boldsymbol{\mu}_n` are the mean property values for unit :math:`n`,
+        - :math:`\boldsymbol{\Sigma}_n` are the covariances for unit :math:`n`, and
+        - :math:`\mathcal{N}` represent the multivariate Gaussian distribution.
+
     """
 
     _multiplier_pair = "alpha_pgi"
