@@ -233,8 +233,9 @@ class MultiprocessingMetaSimulation(MetaSimulation):
             processes.append(p)
             print("starting process")
             p.start()
-            p.set_sim(sim_chunk)
             print("started")
+            p.set_sim(sim_chunk)
+            print("sent sim")
             i_start = i_end
 
         self._data_offsets = np.cumsum(np.r_[0, chunk_nd])
