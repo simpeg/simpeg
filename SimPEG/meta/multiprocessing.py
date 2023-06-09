@@ -46,9 +46,6 @@ class _SimulationProcess(Process):
         # everything here is local to the process
         # this sim is actually local to the running process and will
         # persist between calls to field, dpred, jvec,...
-        print("started process")
-        # sim = self.sim_chunk
-        print("got chunk")
         # a place to cache the field items locally
         _cached_items = {}
 
@@ -56,9 +53,7 @@ class _SimulationProcess(Process):
         # We use them to communicate between the two.
         t_queue = self.task_queue
         r_queue = self.result_queue
-        print("got queues")
         while True:
-            print("in run loop")
             # Get a task from the queue
             task = t_queue.get()
             if task is None:
@@ -115,10 +110,10 @@ class _SimulationProcess(Process):
                     fields = _cached_items[f_key]
                     r_queue.put(sim.getJtJdiag(sim.model, w, fields))
             except Exception as err:
-                print(err)
                 r_queue.put(err)
 
     def set_sim(self, sim):
+        self._check_closed()
         self.task_queue.put(("set_sim", (sim,)))
         key = self.result_queue.get()
         future = SimpleFuture(key, self.task_queue, self.result_queue)
@@ -213,7 +208,7 @@ class MultiprocessingMetaSimulation(MetaSimulation):
         for i in range(n_sim % n_processes):
             chunk_sizes[i] += 1
 
-        print(chunk_sizes)
+        print("chunk sizes:")
 
         processes = []
         i_start = 0
