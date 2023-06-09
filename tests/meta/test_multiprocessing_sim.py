@@ -51,8 +51,9 @@ def test_meta_correctness():
         dc_mappings.append(maps.IdentityMap())
 
     serial_sim = MetaSimulation(dc_sims, dc_mappings)
+    print("created serial")
     parallel_sim = MultiprocessingMetaSimulation(dc_sims, dc_mappings)
-    print("In test multi sim")
+    print("created parallel")
 
     try:
         # create fields objects

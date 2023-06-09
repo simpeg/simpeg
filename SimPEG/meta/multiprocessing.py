@@ -172,6 +172,7 @@ class MultiprocessingMetaSimulation(MetaSimulation):
 
         if n_processes is None:
             n_processes = cpu_count()
+        print(f"starting with {n_processes} processes")
 
         # split simulation,mappings up into chunks
         # (Which are currently defined using MetaSimulations)
@@ -339,6 +340,10 @@ class MultiprocessingRepeatedSimulation(
 
         if n_processes is None:
             n_processes = cpu_count()
+
+        if n_processes is None:
+            n_processes = cpu_count()
+        print(f"starting with {n_processes} processes")
 
         # split mappings up into chunks
         n_sim = len(mappings)
