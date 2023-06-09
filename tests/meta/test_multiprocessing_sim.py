@@ -52,7 +52,7 @@ def test_meta_correctness():
 
     serial_sim = MetaSimulation(dc_sims, dc_mappings)
     print("created serial")
-    parallel_sim = MultiprocessingMetaSimulation(dc_sims, dc_mappings)
+    parallel_sim = MultiprocessingMetaSimulation(dc_sims, dc_mappings, n_processes=2)
     print("created parallel")
 
     try:
@@ -145,7 +145,7 @@ def test_sum_correctness():
     m_test = np.arange(mesh.n_cells) / mesh.n_cells + 0.1
 
     serial_sim = SumMetaSimulation(g_sims, g_mappings)
-    parallel_sim = MultiprocessingSumMetaSimulation(g_sims, g_mappings)
+    parallel_sim = MultiprocessingSumMetaSimulation(g_sims, g_mappings, n_processes=2)
     try:
         # test fields objects
         f_serial = serial_sim.fields(m_test)
@@ -219,7 +219,9 @@ def test_repeat_correctness():
         repeat_mappings.append(maps.LinearMap(ave_full))
 
     serial_sim = RepeatedSimulation(grav_sim, repeat_mappings)
-    parallel_sim = MultiprocessingRepeatedSimulation(grav_sim, repeat_mappings)
+    parallel_sim = MultiprocessingRepeatedSimulation(
+        grav_sim, repeat_mappings, n_processes=2
+    )
     t_model = np.random.rand(time_mesh.n_cells, mesh.n_cells).reshape(-1)
 
     try:
