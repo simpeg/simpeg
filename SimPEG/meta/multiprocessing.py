@@ -46,7 +46,9 @@ class _SimulationProcess(Process):
         # everything here is local to the process
         # this sim is actually local to the running process and will
         # persist between calls to field, dpred, jvec,...
+        print("started process")
         sim = self.sim_chunk
+        print("got chunk")
         # a place to cache the field items locally
         _cached_items = {}
 
@@ -54,7 +56,9 @@ class _SimulationProcess(Process):
         # We use them to communicate between the two.
         t_queue = self.task_queue
         r_queue = self.result_queue
+        print("got queues")
         while True:
+            print("in run loop")
             # Get a task from the queue
             task = t_queue.get()
             if task is None:
