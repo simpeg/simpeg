@@ -60,7 +60,8 @@ stages:
           displayName: "Run flake8"
 
 - stage: Testing
-  # dependsOn: StyleChecks
+  dependsOn: StyleChecks
+  condition: True
   jobs:
     - template: ./.azure-pipelines/matrix.yml
 
