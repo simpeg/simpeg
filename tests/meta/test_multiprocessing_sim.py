@@ -17,6 +17,7 @@ from SimPEG.meta import (
 
 
 def test_meta_correctness():
+    print("starting_meta_test_correct")
     mesh = TensorMesh([16, 16, 16], origin="CCN")
 
     rx_locs = np.mgrid[-0.25:0.25:5j, -0.25:0.25:5j, 0:1:1j]
@@ -115,6 +116,7 @@ def test_meta_correctness():
 
 
 def test_sum_correctness():
+    print("starting_meta_test_sum")
     mesh = TensorMesh([16, 16, 16], origin="CCN")
     # Create gravity sum sims
     rx_locs = np.mgrid[-0.25:0.25:5j, -0.25:0.25:5j, 0:1:1j].reshape(3, -1).T
@@ -196,6 +198,7 @@ def test_sum_correctness():
 
 
 def test_repeat_correctness():
+    print("starting_meta_test_repeat")
     mesh = TensorMesh([16, 16, 16], origin="CCN")
     rx_locs = np.mgrid[-0.25:0.25:5j, -0.25:0.25:5j, 0:1:1j].reshape(3, -1).T
     rx = gravity.Point(rx_locs, components=["gz"])
