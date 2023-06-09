@@ -459,7 +459,7 @@ class BaseRegularization(BaseObjectiveFunction):
 
         Parameters
         ----------
-        (n_param, ) numpy.ndarray
+        m : (n_param, ) numpy.ndarray
             The model for which the Jacobian is evaluated.
 
         Returns
@@ -498,7 +498,6 @@ class BaseRegularization(BaseObjectiveFunction):
             If the input argument *v* is ``None``, the Hessian of the regularization
             function for the model provided is returned. If *v* is not ``None``,
             the Hessian multiplied by the vector provided is returned.
-
         """
         f_m_deriv = self.f_m_deriv(m)
         if v is None:

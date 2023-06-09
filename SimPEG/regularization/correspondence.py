@@ -7,10 +7,12 @@ from .base import BaseSimilarityMeasure
 
 
 class LinearCorrespondence(BaseSimilarityMeasure):
-    r"""Linear correspondence regularization for joint inversions with two physical properties.
+    r"""Linear correspondence regularization for joint inversion with two physical properties.
 
-    ``Linear correspondence`` regularization is used to impose a constraint on the linear
-    combination of two physical properties.
+    ``LinearCorrespondence`` is used to recover a model where the differences between the model
+    parameter values for two physical property types are minimal. ``LinearCorrespondence``
+    can also be used to minimize the squared L2-norm of a linear combination of model parameters
+    for two physical property types.
 
     Parameters
     ----------
@@ -35,12 +37,17 @@ class LinearCorrespondence(BaseSimilarityMeasure):
     .. math::
         \mathbf{m} = \begin{bmatrix} \mathbf{m_1} \\ \mathbf{m_2} \end{bmatrix}
 
-    Where :math:`\{ \lambda_1 , \lambda_2 , \lambda_3 \}` define the coefficients for the linear
-    correspondence vector, the regularization function (objective function) is given by:
+    Where :math:`\{ \lambda_1 , \lambda_2 , \lambda_3 \}` define scalar coefficients for a
+    linear combination of vectors :math:`\mathbf{m_1}` and :math:`\mathbf{m_2}`, the regularization
+    function (objective function) is given by:
 
     .. math::
         \phi (\mathbf{m})
         = \frac{1}{2} \big \| \lambda_1 \mathbf{m_1} + \lambda_2 \mathbf{m_2} + \lambda_3 \big \|^2
+
+    Scalar coefficients :math:`\{ \lambda_1 , \lambda_2 , \lambda_3 \}` are set using the
+    `coefficients` property. For a true linear correspondence constraint, we set
+    :math:`\{ \lambda_1 , \lambda_2 , \lambda_3 \}` to :math:`\{ 1, -1, 0 \}`.
 
     """
 
@@ -68,14 +75,14 @@ class LinearCorrespondence(BaseSimilarityMeasure):
         )
 
     def relation(self, model):
-        r"""Computes the linear correspondence vector for the model provided.
+        r"""Computes the relation vector for the model provided.
 
         For a model consisting of two physical properties such that:
 
         .. math::
             \mathbf{m} = \begin{bmatrix} \mathbf{m_1} \\ \mathbf{m_2} \end{bmatrix}
 
-        this method computer the linear correspondence vector for coefficients
+        this method computer the relation vector for coefficients
         :math:`\{ \lambda_1 , \lambda_2 , \lambda_3 \}` as follows:
 
         .. math::
@@ -84,12 +91,12 @@ class LinearCorrespondence(BaseSimilarityMeasure):
         Parameters
         ----------
         model : (n_param, ) numpy.ndarray
-            The model for which the linear correspondence vector is evaluated.
+            The model for which the relation vector is evaluated.
 
         Returns
         -------
         float
-            The linear correspondence vector for the model provided.
+            The relation vector for the model provided.
         """
         m1, m2 = self.wire_map * model
         k1, k2, k3 = self.coefficients
