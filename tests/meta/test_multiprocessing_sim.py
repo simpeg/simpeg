@@ -39,6 +39,7 @@ def test_meta_correctness():
     # split by chunks of sources
     chunk_size = 3
     dc_sims = []
+    dc_sims2 = []
     dc_mappings = []
     for i in range(0, len(src_list) + 1, chunk_size):
         end = min(i + chunk_size, len(src_list))
@@ -48,11 +49,14 @@ def test_meta_correctness():
         dc_sims.append(
             dc.Simulation3DNodal(mesh, survey=survey_chunk, sigmaMap=maps.IdentityMap())
         )
+        dc_sims2.append(
+            dc.Simulation3DNodal(mesh, survey=survey_chunk, sigmaMap=maps.IdentityMap())
+        )
         dc_mappings.append(maps.IdentityMap())
 
     serial_sim = MetaSimulation(dc_sims, dc_mappings)
     print("created serial")
-    parallel_sim = MultiprocessingMetaSimulation(dc_sims, dc_mappings, n_processes=2)
+    parallel_sim = MultiprocessingMetaSimulation(dc_sims2, dc_mappings, n_processes=2)
     print("created parallel")
 
     try:
