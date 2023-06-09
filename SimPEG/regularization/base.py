@@ -45,6 +45,8 @@ class BaseRegularization(BaseObjectiveFunction):
     """
 
     _model = None
+    _parent = None
+    _W = None
 
     def __init__(
         self,
@@ -167,6 +169,19 @@ class BaseRegularization(BaseObjectiveFunction):
                 f"Value of type {type(mapping)} provided."
             )
         self._mapping = mapping
+
+    @property
+    def parent(self):
+        """
+        The parent objective function
+        """
+        return self._parent
+
+    @parent.setter
+    def parent(self, parent):
+        if not isinstance(parent, ComboObjectiveFunction):
+            raise TypeError("Parent must be a ComboObjectiveFunction")
+        self._parent = parent
 
     @property
     def units(self) -> str | None:
@@ -1599,7 +1614,7 @@ class WeightedLeastSquares(ComboObjectiveFunction):
                 )
         else:
             objfcts = kwargs.pop("objfcts")
-        super().__init__(objfcts=objfcts, **kwargs)
+        super().__init__(objfcts=objfcts, unpack_on_add=False, **kwargs)
         self.mapping = mapping
         self.reference_model = reference_model
         self.reference_model_in_smooth = reference_model_in_smooth

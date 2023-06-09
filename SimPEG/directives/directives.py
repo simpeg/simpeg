@@ -2082,12 +2082,17 @@ class Update_IRLS(InversionDirective):
         if self.mode == 1:
             self.norms = []
             for reg in self.reg.objfcts:
+                if not isinstance(reg, Sparse):
+                    continue
                 self.norms.append(reg.norms)
                 reg.norms = [2.0 for obj in reg.objfcts]
                 reg.model = self.invProb.model
 
         # Update the model used by the regularization
         for reg in self.reg.objfcts:
+            if not isinstance(reg, Sparse):
+                continue
+
             reg.model = self.invProb.model
 
         if self.sphericalDomain:
@@ -2140,6 +2145,9 @@ class Update_IRLS(InversionDirective):
 
             # Print to screen
             for reg in self.reg.objfcts:
+                if not isinstance(reg, Sparse):
+                    continue
+
                 for obj in reg.objfcts:
                     if isinstance(reg, (Sparse, BaseSparse)):
                         obj.irls_threshold = obj.irls_threshold / self.coolEpsFact
@@ -2149,8 +2157,10 @@ class Update_IRLS(InversionDirective):
             # Reset the regularization matrices so that it is
             # recalculated for current model. Do it to all levels of comboObj
             for reg in self.reg.objfcts:
-                if isinstance(reg, (Sparse, BaseSparse)):
-                    reg.update_weights(reg.model)
+                if not isinstance(reg, Sparse):
+                    continue
+
+                reg.update_weights(reg.model)
 
             self.update_beta = True
             self.invProb.phi_m_last = self.reg(self.invProb.model)
@@ -2181,7 +2191,6 @@ class Update_IRLS(InversionDirective):
                 threshold = np.percentile(
                     np.abs(obj.mapping * obj._delta_m(self.invProb.model)), self.prctile
                 )
-
                 if isinstance(obj, SmoothnessFirstOrder):
                     threshold /= reg.regularization_mesh.base_length
 
@@ -2189,6 +2198,8 @@ class Update_IRLS(InversionDirective):
 
         # Re-assign the norms supplied by user l2 -> lp
         for reg, norms in zip(self.reg.objfcts, self.norms):
+            if not isinstance(reg, Sparse):
+                continue
             reg.norms = norms
 
         # Save l2-model
@@ -2196,6 +2207,8 @@ class Update_IRLS(InversionDirective):
 
         # Print to screen
         for reg in self.reg.objfcts:
+            if not isinstance(reg, Sparse):
+                continue
             if not self.silent:
                 print("irls_threshold " + str(reg.objfcts[0].irls_threshold))
 
@@ -2704,18 +2717,20 @@ class UpdateSensitivityWeights(InversionDirective):
         # Compute and sum root-mean squared sensitivities for all objective functions
         wr = np.zeros_like(self.invProb.model)
         for reg in self.reg.objfcts:
-            if not isinstance(reg, BaseSimilarityMeasure):
-                mesh = reg.regularization_mesh
-                n_cells = mesh.nC
+            if isinstance(reg, BaseSimilarityMeasure):
+                continue
 
-                mapped_jtj_diag = reg.mapping * jtj_diag
-                # reshape the mapped, so you can divide by volume
-                # (let's say it was a vector or anisotropic model)
-                mapped_jtj_diag = mapped_jtj_diag.reshape((n_cells, -1), order="F")
-                wr_temp = mapped_jtj_diag / reg.regularization_mesh.vol[:, None] ** 2.0
-                wr_temp = wr_temp.reshape(-1, order="F")
+            mesh = reg.regularization_mesh
+            n_cells = mesh.nC
+            mapped_jtj_diag = reg.mapping * jtj_diag
+            # reshape the mapped, so you can divide by volume
+            # (let's say it was a vector or anisotropic model)
+            mapped_jtj_diag = mapped_jtj_diag.reshape((n_cells, -1), order="F")
+            wr_temp = mapped_jtj_diag / reg.regularization_mesh.vol[:, None] ** 2.0
+            wr_temp = wr_temp.reshape(-1, order="F")
 
-                wr += reg.mapping.deriv(self.invProb.model).T * wr_temp
+            wr += reg.mapping.deriv(self.invProb.model).T * wr_temp
+
         wr **= 0.5
 
         # Apply thresholding

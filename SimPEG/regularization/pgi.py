@@ -893,7 +893,7 @@ class PGI(ComboObjectiveFunction):
                 )
             ]
 
-        super().__init__(objfcts=objfcts)
+        super().__init__(objfcts=objfcts, unpack_on_add=False)
         self.reference_model_in_smooth = reference_model_in_smooth
         self.alpha_pgi = alpha_pgi
 

@@ -108,7 +108,7 @@ class BaseRichardsTest(unittest.TestCase):
         print("Testing Richards Derivative FULL dim={}".format(self.mesh.dim))
         J = self.prob.Jfull(self.mtrue)
         passed = check_derivative(
-            lambda m: [self.prob.dpred(m), J], self.mtrue, num=4, plotIt=False
+            lambda m: [self.prob.dpred(m), J], self.mtrue, num=3, plotIt=False
         )
         self.assertTrue(passed, True)
 

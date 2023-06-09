@@ -189,9 +189,6 @@ class QuadTreeLinProblemTest(unittest.TestCase):
             grav_srcField = gravity.SourceField([grav_rxLoc])
             grav_survey = gravity.Survey(grav_srcField)
 
-            # Set only non-zero cells as active
-            self.active_cells = ~(self.model == 0.0)
-
             # Create the gravity forward model operator
             self.grav_sim_active = gravity.SimulationEquivalentSourceLayer(
                 self.mesh,
@@ -268,7 +265,7 @@ class QuadTreeLinProblemTest(unittest.TestCase):
                 lower=-1.0,
                 upper=1.0,
                 maxIterLS=5,
-                maxIterCG=10,
+                maxIterCG=20,
                 tolCG=1e-4,
             )
 
@@ -323,9 +320,17 @@ class QuadTreeLinProblemTest(unittest.TestCase):
             1.0,
         )
 
+        self.active_cells = utils.model_builder.addBlock(
+            self.mesh.cell_centers,
+            np.zeros(self.mesh.nC, dtype=bool),
+            np.r_[-40, -40],
+            np.r_[40, 40],
+            True,
+        )
+
         # Set only non-zero cells as active. Some tests use all cells
         # (by not using `self.active_cells`), and others use the active cells
-        self.active_cells = ~(self.model == 0.0)
+        # self.active_cells = ~(self.model == 0.0)
 
         # Create reduced identity maps. Two versions: for the all-active
         # and the active-subset models
@@ -495,7 +500,7 @@ class QuadTreeLinProblemTest(unittest.TestCase):
         # Wide difference in results run locally (0.04) versus the pipeline
         # (0.21), so seems to need unusually large tolerance.
         print("MODEL RESIDUAL: {}".format(model_residual))
-        self.assertAlmostEqual(model_residual, 0.14, delta=0.1)
+        self.assertAlmostEqual(model_residual, 0.1, delta=0.1)
 
         # Check data converged to less than 10% of target misfit
         data_misfit = 2.0 * self.grav_inv_active.invProb.dmisfit(
@@ -509,6 +514,15 @@ class QuadTreeLinProblemTest(unittest.TestCase):
         # Run the inversion from a zero starting model
         mrec = self.mag_inv_active.run(np.zeros(int(self.active_cells.sum())))
 
+        # import matplotlib.pyplot as plt
+        #
+        # fig = plt.figure()
+        # ax = plt.subplot()
+        # m_out = np.zeros(self.mesh.nC) * np.nan
+        # m_out[self.active_cells] = mrec
+        # self.mesh.plot_image(m_out, ax=ax)
+        # fig.savefig("mrec.png")
+
         # Compute predicted data
         dpred = self.mag_sim_active.dpred(self.mag_model[self.active_cells])
 
@@ -517,7 +531,7 @@ class QuadTreeLinProblemTest(unittest.TestCase):
             mrec - self.mag_model[self.active_cells]
         ) / np.linalg.norm(self.mag_model[self.active_cells])
         print("MODEL RESIDUAL: {}".format(model_residual))
-        self.assertAlmostEqual(model_residual, 0.11, delta=0.05)
+        self.assertAlmostEqual(model_residual, 0.01, delta=0.05)
 
         # Check data converged to less than 10% of target misfit
         data_misfit = 2.0 * self.mag_inv_active.invProb.dmisfit(

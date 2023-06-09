@@ -28,6 +28,7 @@ IGNORE_ME = [
     "CrossGradient",
     "LinearCorrespondence",
     "JointTotalVariation",
+    "VectorAmplitude",
     "CrossReferenceRegularization",
 ]
 
@@ -550,6 +551,25 @@ class RegularizationTests(unittest.TestCase):
                 reg.irls_scaled = -1
 
             assert reg.gradient_type == "total"  # Check default
+
+    def test_vector_amplitude(self):
+        n_comp = 4
+        mesh = discretize.TensorMesh([8, 7])
+        model = np.random.randn(mesh.nC, n_comp)
+
+        with pytest.raises(TypeError, match="'regularization_mesh' must be of type"):
+            regularization.VectorAmplitude("abc")
+
+        reg = regularization.VectorAmplitude(
+            mesh, maps.IdentityMap(nP=n_comp * mesh.nC)
+        )
+
+        with pytest.raises(ValueError, match=f"'weights' must be one of"):  # noqa: W605
+            reg.set_weights(abc=(1.0, 1.0))
+
+        np.testing.assert_almost_equal(
+            reg.objfcts[0].f_m(model.flatten(order="F")), np.linalg.norm(model, axis=1)
+        )
 
 
 def test_WeightedLeastSquares():
