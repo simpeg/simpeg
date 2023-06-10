@@ -308,15 +308,6 @@ class Simulation3DElectricField(BaseFDEMSimulation):
     _formulation = "EB"
     fieldsPair = Fields3DElectricField
 
-    # permittivity = props.PhysicalProperty("Dielectric permittivity (F/m)")
-    # # permittivity, permittivityMap, permittivityDeriv = props.Invertible("Dielectric permittivity (F/m)")
-
-    # def __init__(
-    #     self, mesh, survey=None, forward_only=False, permittivity=None, **kwargs
-    # ):
-    #     super().__init__(mesh=mesh, survey=survey, forward_only=forward_only, **kwargs)
-    #     self.permittivity = permittivity
-
     def getA(self, freq):
         r"""
         System matrix
@@ -384,26 +375,6 @@ class Simulation3DElectricField(BaseFDEMSimulation):
             return self.MfMuiDeriv(C * u).T * (C * v)
 
         return C.T * (self.MfMuiDeriv(C * u) * v)
-
-    # def getADeriv_permittivity(self, freq, u, v, adjoint=False):
-    #     r"""
-    #     Product of the derivative of our system matrix with respect to the
-    #     permittivity model and a vector
-
-    #     :param float freq: frequency
-    #     :param numpy.ndarray u: solution vector (nE,)
-    #     :param numpy.ndarray v: vector to take prodct with (nP,) or (nD,) for
-    #         adjoint
-    #     :param bool adjoint: adjoint?
-    #     :rtype: numpy.ndarray
-    #     :return: derivative of the system matrix times a vector (nP,) or
-    #         adjoint (nD,)
-    #     """
-
-    #     if getattr(self, "permittivityMap", None) is not None:
-    #         return Zero()
-    #     dMe_dpermittivity_v = self.MePermittivityDeriv(u, v, adjoint)
-    #     return -omega(freq) ** 2 * dMe_dpermittivity_v
 
     def getADeriv(self, freq, u, v, adjoint=False):
         return (
