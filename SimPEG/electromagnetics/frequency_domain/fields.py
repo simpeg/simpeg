@@ -763,13 +763,13 @@ class Fields3DMagneticFluxDensity(FieldsFDEM):
             s_e = src.s_e(self.simulation)
             e[:, i] = e[:, i] + -s_e
 
-            if getattr(self.simulation, "permittivity", None) is not None:
+            if self.simulation.permittivity is not None:
                 MeyhatI = self.simulation._get_edge_admittivity_property_matrix(
                     src.frequency, invert_matrix=True
                 )
                 e[:, i] = MeyhatI * e[:, i]
 
-        if getattr(self.simulation, "permittivity", None) is None:
+        if self.simulation.permittivity is None:
             return self._MeSigmaI * e
         else:
             return e
@@ -836,7 +836,7 @@ class Fields3DMagneticFluxDensity(FieldsFDEM):
         :return: primary current density
         """
 
-        if getattr(self.simulation, "permittivity", None) is None:
+        if self.simulation.permittivity is None:
             j = self._edgeCurl.T * (self._MfMui * bSolution)
 
             for i, src in enumerate(source_list):
@@ -1099,13 +1099,13 @@ class Fields3DCurrentDensity(FieldsFDEM):
         :return: secondary magnetic field
         """
 
-        if getattr(self.simulation, "permittivity", None) is not None:
+        if self.simulation.permittivity is not None:
             h = np.zeros((self.mesh.n_edges, len(source_list)), dtype=complex)
         else:
             h = self._edgeCurl.T * (self._MfRho * jSolution)
 
         for i, src in enumerate(source_list):
-            if getattr(self.simulation, "permittivity", None) is not None:
+            if self.simulation.permittivity is not None:
                 h[:, i] = self._edgeCurl.T * (
                     self.simulation._get_face_admittivity_property_matrix(
                         src.frequency, invert_model=True
@@ -1212,7 +1212,7 @@ class Fields3DCurrentDensity(FieldsFDEM):
         :rtype: numpy.ndarray
         :return: electric field
         """
-        # if getattr(self.simulation, "permittivity", None) is None:
+        # if self.simulation.permittivity is None:
         return self._MfI * (self._MfRho * self._j(jSolution, source_list))
 
         # e = np.zeros((self.mesh.n_faces, len(source_list)), dtype=complex)

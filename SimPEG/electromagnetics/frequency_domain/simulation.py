@@ -69,7 +69,7 @@ class BaseFDEMSimulation(BaseEMSimulation):
             warnings.warn(
                 "Simulations using permittivity have not yet been thoroughly tested yet, and derivatives are not implemented. Contributions welcome!"
             )
-            self.permittivity = permittivity
+        self.permittivity = permittivity
 
     @property
     def survey(self):
@@ -104,7 +104,7 @@ class BaseFDEMSimulation(BaseEMSimulation):
         self._forward_only = validate_type("forward_only", value, bool)
 
     def _get_admittivity(self, freq):
-        if getattr(self, "permittivity", None) is not None:
+        if self.permittivity is not None:
             return self.sigma + 1j * self.permittivity * omega(freq)
         else:
             return self.sigma
@@ -334,7 +334,7 @@ class Simulation3DElectricField(BaseFDEMSimulation):
         MfMui = self.MfMui
         C = self.mesh.edge_curl
 
-        if getattr(self, "permittivity", None) is None:
+        if self.permittivity is None:
             MeSigma = self.MeSigma
             A = C.T.tocsr() * MfMui * C + 1j * omega(freq) * MeSigma
         else:
@@ -501,7 +501,7 @@ class Simulation3DMagneticFluxDensity(BaseFDEMSimulation):
         C = self.mesh.edge_curl
         iomega = 1j * omega(freq) * sp.eye(self.mesh.nF)
 
-        if getattr(self, "permittivity", None) is None:
+        if self.permittivity is None:
             MeSigmaI = self.MeSigmaI
             A = C * (MeSigmaI * (C.T.tocsr() * MfMui)) + iomega
         else:
@@ -586,7 +586,7 @@ class Simulation3DMagneticFluxDensity(BaseFDEMSimulation):
         s_m, s_e = self.getSourceTerm(freq)
         C = self.mesh.edge_curl
 
-        if getattr(self, "permittivity", None) is None:
+        if self.permittivity is None:
             MeSigmaI = self.MeSigmaI
             RHS = s_m + C * (MeSigmaI * s_e)
         else:
@@ -702,7 +702,7 @@ class Simulation3DCurrentDensity(BaseFDEMSimulation):
         C = self.mesh.edge_curl
         iomega = 1j * omega(freq) * sp.eye(self.mesh.nF)
 
-        if getattr(self, "permittivity", None) is not None:
+        if self.permittivity is not None:
             Mfyhati = self._get_face_admittivity_property_matrix(
                 freq, invert_model=True
             )
@@ -888,7 +888,7 @@ class Simulation3DMagneticField(BaseFDEMSimulation):
         MeMu = self.MeMu
         C = self.mesh.edge_curl
 
-        if getattr(self, "permittivity", None) is None:
+        if self.permittivity is None:
             MfRho = self.MfRho
             return C.T.tocsr() * (MfRho * C) + 1j * omega(freq) * MeMu
         else:
@@ -953,7 +953,7 @@ class Simulation3DMagneticField(BaseFDEMSimulation):
         s_m, s_e = self.getSourceTerm(freq)
         C = self.mesh.edge_curl
 
-        if getattr(self, "permittivity", None) is None:
+        if self.permittivity is None:
             MfRho = self.MfRho
             return s_m + C.T * (MfRho * s_e)
         else:
