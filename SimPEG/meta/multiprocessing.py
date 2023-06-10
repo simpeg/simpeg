@@ -54,7 +54,6 @@ class _SimulationProcess(Process):
             # Get a task from the queue
             task = t_queue.get()
             if task is None:
-                t_queue.task_done()
                 # None is a poison pill message to kill this loop.
                 break
             op, args = task
@@ -109,7 +108,6 @@ class _SimulationProcess(Process):
                     r_queue.put(sim.getJtJdiag(sim.model, w, fields))
             except Exception as err:
                 r_queue.put(err)
-            t_queue.task_done()
 
     def set_sim(self, sim):
         self._check_closed()
