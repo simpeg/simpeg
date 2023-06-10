@@ -49,7 +49,13 @@ def get_inds(val, x, z):
 
 
 def print_comparison(
-    numeric, analytic, x=np.r_[50, 100], z=np.r_[-100, 100], threshold=threshold
+    numeric,
+    analytic,
+    x=np.r_[50, 100],
+    z=np.r_[-100, 100],
+    threshold=threshold,
+    name1="numeric",
+    name2="analytic",
 ):
     inds = get_inds(numeric, x, z)
     results = []
@@ -61,9 +67,9 @@ def print_comparison(
                 getattr(analytic[inds], component) - getattr(numeric[inds], component)
             )
         )
-        print(f"{component} numeric    : {numeric_norm:1.4e}")
-        print(f"{component} analytic   : {analytic_norm:1.4e}")
-        print(f"{component} difference : {difference:1.4e}\n")
+        print(f"{component} {name1:12s} : {numeric_norm:1.4e}")
+        print(f"{component} {name2:12s}   : {analytic_norm:1.4e}")
+        print(f"{component} {'difference':12s} : {difference:1.4e}\n")
         results.append(difference / np.mean([numeric_norm, analytic_norm]) < threshold)
     print(results)
     return results
@@ -181,3 +187,191 @@ def test_e_dipole(epsilon, frequency, simulation):
         print(f"Testing E dipole: {f}")
         test = print_comparison(fields[:, f].squeeze(), analytic)
         assert np.all(test)
+
+
+@pytest.mark.parametrize("epsilon_r", epsilon_r_list)
+@pytest.mark.parametrize("frequency", frequency_list)
+def test_cross_check_e_dipole(epsilon_r, frequency):
+    tolerance = 1e-8
+
+    sigma_back = 1e-2
+    epsilon_r_back = 1
+
+    target_z = np.r_[-20, -40]
+    target_x = np.r_[0, 60]
+
+    frequencies = [frequency]
+
+    sigma = np.ones(mesh.n_cells) * sigma_back
+    rel_permittivity = np.ones(mesh.n_cells) * epsilon_r_back
+
+    target_inds = (
+        (mesh.cell_centers[:, 0] >= target_x.min())
+        & (mesh.cell_centers[:, 0] <= target_x.max())
+        & (mesh.cell_centers[:, 2] >= target_z.min())
+        & (mesh.cell_centers[:, 2] <= target_z.max())
+    )
+
+    rel_permittivity[target_inds] = epsilon_r
+
+    # J-Formulation
+    sources_j_target = [
+        fdem.sources.LineCurrent(
+            [], freq, location=np.array([[0, 0, 1], [0, 0, -1]]), current=1 / 2
+        )
+        for freq in frequencies
+    ]
+    survey_j_target = fdem.Survey(sources_j_target)
+    sim_j_target = fdem.Simulation3DCurrentDensity(
+        mesh,
+        survey=survey_j_target,
+        forward_only=True,
+        sigma=sigma,
+        permittivity=rel_permittivity * epsilon_0,
+        solver=Pardiso,
+    )
+
+    # H-formulation
+    sources_h_target = [
+        fdem.sources.LineCurrent(
+            [], freq, location=np.array([[0, 0, 1], [0, 0, -1]]), current=1 / 2
+        )
+        for freq in frequencies
+    ]
+    survey_h_target = fdem.Survey(sources_h_target)
+    sim_h_target = fdem.Simulation3DMagneticField(
+        mesh,
+        survey=survey_h_target,
+        forward_only=True,
+        sigma=sigma,
+        permittivity=rel_permittivity * epsilon_0,
+        solver=Pardiso,
+    )
+
+    # compute fields
+    fields_j_target = sim_j_target.fields()
+    fields_h_target = sim_h_target.fields()
+
+    j_comparison = print_comparison(
+        fields_j_target[:, "j"].squeeze(),
+        fields_h_target[:, "j"].squeeze(),
+        name1="J-formulation",
+        name2="H-formulation",
+    )
+    assert np.all(j_comparison)
+
+    h_comparison = print_comparison(
+        fields_j_target[:, "h"].squeeze(),
+        fields_h_target[:, "h"].squeeze(),
+        name1="J-formulation",
+        name2="H-formulation",
+    )
+    assert np.all(h_comparison)
+
+    e_comparison = print_comparison(
+        fields_j_target[:, "e"].squeeze(),
+        fields_h_target[:, "e"].squeeze(),
+        name1="J-formulation",
+        name2="H-formulation",
+    )
+    assert np.all(e_comparison)
+
+    b_comparison = print_comparison(
+        fields_j_target[:, "b"].squeeze(),
+        fields_h_target[:, "b"].squeeze(),
+        name1="J-formulation",
+        name2="H-formulation",
+    )
+    assert np.all(h_comparison)
+
+
+@pytest.mark.parametrize("epsilon_r", epsilon_r_list)
+@pytest.mark.parametrize("frequency", frequency_list)
+def test_cross_check_b_dipole(epsilon_r, frequency):
+    tolerance = 1e-8
+
+    sigma_back = 1e-2
+    epsilon_r_back = 1
+
+    target_z = np.r_[-20, -40]
+    target_x = np.r_[0, 60]
+
+    frequencies = [frequency]
+
+    sigma = np.ones(mesh.n_cells) * sigma_back
+    rel_permittivity = np.ones(mesh.n_cells) * epsilon_r_back
+
+    target_inds = (
+        (mesh.cell_centers[:, 0] >= target_x.min())
+        & (mesh.cell_centers[:, 0] <= target_x.max())
+        & (mesh.cell_centers[:, 2] >= target_z.min())
+        & (mesh.cell_centers[:, 2] <= target_z.max())
+    )
+
+    rel_permittivity[target_inds] = epsilon_r
+
+    # B-Formulation
+    sources_b_target = [
+        fdem.sources.MagDipole([], freq, location=np.r_[0, 0, 0])
+        for freq in frequencies
+    ]
+    survey_b_target = fdem.Survey(sources_b_target)
+    sim_b_target = fdem.Simulation3DMagneticFluxDensity(
+        mesh,
+        survey=survey_b_target,
+        forward_only=True,
+        sigma=sigma,
+        permittivity=rel_permittivity * epsilon_0,
+        solver=Pardiso,
+    )
+
+    # E-formulation
+    sources_e_target = [
+        fdem.sources.MagDipole([], freq, location=np.r_[0, 0, 0])
+        for freq in frequencies
+    ]
+    survey_e_target = fdem.Survey(sources_e_target)
+    sim_e_target = fdem.Simulation3DElectricField(
+        mesh,
+        survey=survey_e_target,
+        forward_only=True,
+        sigma=sigma,
+        permittivity=rel_permittivity * epsilon_0,
+        solver=Pardiso,
+    )
+
+    # compute fields
+    fields_b_target = sim_b_target.fields()
+    fields_e_target = sim_e_target.fields()
+
+    b_comparison = print_comparison(
+        fields_b_target[:, "b"].squeeze(),
+        fields_e_target[:, "b"].squeeze(),
+        name1="B-formulation",
+        name2="E-formulation",
+    )
+    assert np.all(b_comparison)
+
+    e_comparison = print_comparison(
+        fields_b_target[:, "e"].squeeze(),
+        fields_e_target[:, "e"].squeeze(),
+        name1="B-formulation",
+        name2="E-formulation",
+    )
+    assert np.all(e_comparison)
+
+    h_comparison = print_comparison(
+        fields_b_target[:, "h"].squeeze(),
+        fields_e_target[:, "h"].squeeze(),
+        name1="B-formulation",
+        name2="E-formulation",
+    )
+    assert np.all(h_comparison)
+
+    j_comparison = print_comparison(
+        fields_b_target[:, "j"].squeeze(),
+        fields_e_target[:, "j"].squeeze(),
+        name1="B-formulation",
+        name2="E-formulation",
+    )
+    assert np.all(e_comparison)
