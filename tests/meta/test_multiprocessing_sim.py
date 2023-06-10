@@ -56,7 +56,7 @@ def test_meta_correctness():
 
     serial_sim = MetaSimulation(dc_sims, dc_mappings)
     print("created serial")
-    parallel_sim = MultiprocessingMetaSimulation(dc_sims2, dc_mappings, n_processes=2)
+    parallel_sim = MultiprocessingMetaSimulation(dc_sims2, dc_mappings, n_processes=12)
     print("created parallel")
 
     try:

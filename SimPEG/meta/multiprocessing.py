@@ -36,17 +36,14 @@ class _SimulationProcess(Process):
     returning them to the main processes, unless explicitly asked for...
     """
 
-    def __init__(self):  # , sim_chunk):
-        # self.sim_chunk = sim_chunk
+    def __init__(self):
+        super().__init__()
         self.task_queue = Queue()
         self.result_queue = Queue()
-        super().__init__()
 
     def run(self):
         # everything here is local to the process
-        # this sim is actually local to the running process and will
-        # persist between calls to field, dpred, jvec,...
-        # a place to cache the field items locally
+        # a place to cache items locally
         _cached_items = {}
 
         # The queues are shared between the head process and the worker processes
@@ -57,6 +54,7 @@ class _SimulationProcess(Process):
             # Get a task from the queue
             task = t_queue.get()
             if task is None:
+                t_queue.task_done()
                 # None is a poison pill message to kill this loop.
                 break
             op, args = task
@@ -111,6 +109,7 @@ class _SimulationProcess(Process):
                     r_queue.put(sim.getJtJdiag(sim.model, w, fields))
             except Exception as err:
                 r_queue.put(err)
+            t_queue.task_done()
 
     def set_sim(self, sim):
         self._check_closed()
@@ -208,7 +207,7 @@ class MultiprocessingMetaSimulation(MetaSimulation):
         for i in range(n_sim % n_processes):
             chunk_sizes[i] += 1
 
-        print("chunk sizes:")
+        print("chunk sizes:", chunk_sizes)
 
         processes = []
         i_start = 0
