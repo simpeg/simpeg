@@ -3240,6 +3240,8 @@ class InjectActiveCells(IdentityMap):
         return int(self.indActive.sum())
 
     def _transform(self, m):
+        if m.ndim > 1:
+            return self.P * m + self.valInactive[:, None]
         return self.P * m + self.valInactive
 
     def inverse(self, u):
