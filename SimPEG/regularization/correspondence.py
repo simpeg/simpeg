@@ -12,7 +12,7 @@ class LinearCorrespondence(BaseSimilarityMeasure):
     ``LinearCorrespondence`` is used to recover a model where the differences between the model
     parameter values for two physical property types are minimal. ``LinearCorrespondence``
     can also be used to minimize the squared L2-norm of a linear combination of model parameters
-    for two physical property types.
+    for two physical property types. See the *Notes* section for a comprehensive description.
 
     Parameters
     ----------
@@ -59,11 +59,23 @@ class LinearCorrespondence(BaseSimilarityMeasure):
 
     @property
     def coefficients(self):
-        """Coefficients for the linear relationship between model parameters.
+        r"""Coefficients for the linear relationship between model parameters.
+
+        For a relation vector:
+
+        .. math::
+            \mathbf{f}(\mathbf{m}) = \lambda_1 \mathbf{m_1} + \lambda_2 \mathbf{m_2} + \lambda_3
+
+        where
+
+        .. math::
+            \mathbf{m} = \begin{bmatrix} \mathbf{m_1} \\ \mathbf{m_2} \end{bmatrix}
+
+        This property defines the coefficients :math:`\{ \lambda_1 , \lambda_2 , \lambda_3 \}`.
 
         Returns
         -------
-        (3) numpy.ndarray of float
+        (3, ) numpy.ndarray of float
             Coefficients for the linear relationship between model parameters.
         """
         return self._coefficients

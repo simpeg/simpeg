@@ -106,12 +106,16 @@ regularization functions to be defined using norms between 0 and 2.
 
 Vector Regularizations
 ----------------------
-Regularization functions for models defining vector properties.
+Vector regularization allows for the recovery of vector models; that is, a model
+where the parameters for each cell define directional components of a vector quantity.
 
 .. autosummary::
   :toctree: generated/
 
   CrossReferenceRegularization
+  VectorAmplitude
+  AmplitudeSmallness
+  AmplitudeSmoothnessFirstOrder
 
 Joint Regularizations
 ---------------------
@@ -139,6 +143,7 @@ to constrain inversions.
   BaseSimilarityMeasure
   BaseSparse
   BaseVectorRegularization
+  BaseAmplitude
 
 """
 from ..utils.code_utils import deprecate_class
@@ -160,9 +165,9 @@ from .vector import (
     BaseVectorRegularization,
     CrossReferenceRegularization,
     VectorAmplitude,
+    AmplitudeSmallness,
+    AmplitudeSmoothnessFirstOrder,
 )
-
-from .vector import BaseVectorRegularization, CrossReferenceRegularization
 
 
 @deprecate_class(removal_version="0.19.0", future_warn=True)

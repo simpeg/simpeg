@@ -256,7 +256,7 @@ class SparseSmallness(BaseSparse, Smallness):
 
     .. math::
         \phi (m) = \frac{1}{2} \int_\Omega \, w(r) \,
-        \Big | m(r) - m^{(ref)}(r) \Big |^{p(r)} \, dv
+        \Big | \, m(r) - m^{(ref)}(r) \, \Big |^{p(r)} \, dv
 
     where :math:`m(r)` is the model, :math:`m^{(ref)}(r)` is the reference model, :math:`w(r)`
     is a user-defined weighting function and :math:`p(r) \in [0,2]` is a parameter which imposes
@@ -462,7 +462,7 @@ class SparseSmoothness(BaseSparse, SmoothnessFirstOrder):
 
     .. math::
         \phi (m) = \frac{1}{2} \int_\Omega \, w(r) \,
-        \bigg | \frac{\partial m}{\partial x} \bigg |^{p(r)} \, dv
+        \Bigg | \, \frac{\partial m}{\partial x} \, \Bigg |^{p(r)} \, dv
 
     where :math:`m(r)` is the model, :math:`w(r)`
     is a user-defined weighting function and :math:`p(r) \in [0,2]` is a parameter which imposes
@@ -507,13 +507,13 @@ class SparseSmoothness(BaseSparse, SmoothnessFirstOrder):
 
     .. math::
         \phi \big ( \mathbf{m}^{(k)} \big ) \approx \frac{1}{2} \Big \| \,
-        \mathbf{W \, R}^{\!\! (k)} \, \mathbf{G_x} \, \mathbf{m}^{(k)} \Big \|^2
+        \mathbf{W}^{(k)} \, \mathbf{G_x} \, \mathbf{m}^{(k)} \Big \|^2
 
     where
 
         - :math:`\mathbf{m}^{(k)}` are the discrete model parameters at iteration :math:`k`,
         - :math:`\mathbf{G_x}` is the partial cell-gradient operator along x (x-derivative),
-        - :math:`\mathbf{W}^{(k)` is the weighting matrix for iteration :math:`k`. It applies the IRLS weights, user-defined weighting, and accounts for cell dimensions when the regularization function is discretized.
+        - :math:`\mathbf{W}^{(k)}` is the weighting matrix for iteration :math:`k`. It applies the IRLS weights, user-defined weighting, and accounts for cell dimensions when the regularization function is discretized.
 
     Note that since :math:`\mathbf{G_x}` maps from cell centers to x-faces, the weighting matrix
     acts on variables living on x-faces.
@@ -522,17 +522,11 @@ class SparseSmoothness(BaseSparse, SmoothnessFirstOrder):
 
     Gradients/interfaces within a discrete reference model :math:`\mathbf{m}^{(ref)}` can be
     preserved by including the reference model the smoothness regularization.
-    In this case, the objective function becomes:
-    
-    .. math::
-        \phi (\mathbf{m}) = \frac{1}{2} \Big \| \mathbf{W \, R \, G_x}
-        \big [ \mathbf{m}^{(k)} - \mathbf{m}^{(ref)} \big ] \Big \|^2
-
-    The least-squares problem for IRLS iteration :math:`k` becomes:
+    In this case, the least-squares problem for IRLS iteration :math:`k` becomes:
 
     .. math::
         \phi \big ( \mathbf{m}^{(k)} \big ) \approx \frac{1}{2} \Big \| \,
-        \mathbf{W}^{\! (k)} \mathbf{G_x}
+        \mathbf{W}^{(k)} \mathbf{G_x}
         \big [ \mathbf{m}^{(k)} - \mathbf{m}^{(ref)} \big ] \Big \|^2
 
     This functionality is used by setting :math:`\mathbf{m}^{(ref)}` with the
@@ -763,9 +757,9 @@ class Sparse(WeightedLeastSquares):
 
     .. math::
         \phi_m (m) = \frac{\alpha_s}{2} \int_\Omega \, w(r)
-        \Big [ m(r) - m^{(ref)}(r) \Big ]^{p_s(r)} \, dv
+        \Big | \, m(r) - m^{(ref)}(r) \, \Big |^{p_s(r)} \, dv
         + \sum_{j=x,y,z} \frac{\alpha_j}{2} \int_\Omega \, w(r)
-        \bigg [ \frac{\partial m}{\partial \xi_j} \bigg ]^{p_j(r)} \, dv
+        \Bigg | \, \frac{\partial m}{\partial \xi_j} \, \Bigg |^{p_j(r)} \, dv
         
     where :math:`m(r)` is the model, :math:`m^{(ref)}(r)` is the reference model, and :math:`w(r)`
     is a user-defined weighting function applied to all terms.

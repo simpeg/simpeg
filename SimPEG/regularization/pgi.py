@@ -1054,7 +1054,7 @@ class PGI(ComboObjectiveFunction):
         - :math:`\mathbf{G_x, \, G_y, \; G_z}` are partial cell gradients operators along x, y and z,
         - :math:`\mathbf{L_x, \, L_y, \; L_z}` are second-order derivative operators with respect to x, y and z,
         - :math:`\mathbf{W}(\Theta , \mathbf{z}^\ast )` is the weighting matrix for PGI smallness, and
-        - :math:`\mathbf{W_s, \, W_x, \, W_y, \; W_z}` are weighting matrices for smoothness terms.
+        - :math:`\mathbf{W_x, \, W_y, \; W_z}` are weighting matrices for smoothness terms.
 
     ``PGIsmallness`` regularization can be used for models consisting of one or more physical
     property types. The ordering of the physical property types within the model is defined
@@ -1070,8 +1070,8 @@ class PGI(ComboObjectiveFunction):
     regularization function (objective function) can be expressed as:
 
     .. math::
-        \phi (\mathbf{m}) &= \frac{1}{2} \Big \| \mathbf{W}_{\! 1/2}(\Theta, \mathbf{z}^\ast ) \,
-        \big [ \mathbf{m} - \mathbf{m_{ref}}(\Theta, \mathbf{z}^\ast ) \big ] \, \Big \|^2
+        \phi (\mathbf{m}) &= \frac{\alpha_{pgi}}{2} \Big \| \mathbf{W}_{\! 1/2}(\Theta, \mathbf{z}^\ast ) \,
+        \big [ \mathbf{m} - \mathbf{m_{ref}}(\Theta, \mathbf{z}^\ast ) \big ] \, \Big \|^2 \\
         &+ \sum_{j=x,y,z} \frac{\alpha_j}{2} \Big \| \mathbf{W_j G_j \, m} \, \Big \|^2 \\
         &+ \sum_{j=x,y,z} \frac{\alpha_{jj}}{2} \Big \| \mathbf{W_{jj} L_j \, m} \, \Big \|^2
         \;\;\;\;\;\;\;\; \big ( \textrm{optional} \big )
@@ -1290,7 +1290,7 @@ class PGI(ComboObjectiveFunction):
         `compute_quasi_geology_model` method computes:
 
         .. math::
-            g_i^ = \min_{\boldsymbol{\mu}_n} \big \| \mathbf{m}_i - \boldsymbol{\mu}_n \big \|^2
+            g_i = \min_{\boldsymbol{\mu}_n} \big \| \mathbf{m}_i - \boldsymbol{\mu}_n \big \|^2
 
         where :math:`\mathbf{m}_i` are the model parameter values for cell :math:`i` for the
         current model. The ordering of the output vector :math:`\mathbf{g}` is the same as the
