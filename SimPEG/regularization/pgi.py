@@ -115,7 +115,7 @@ class PGIsmallness(Smallness):
 
     .. math::
         \mathbf{m} = \begin{bmatrix} \mathbf{m}_1 \\ \mathbf{m}_2 \\ \vdots \\ \mathbf{m}_K \end{bmatrix}
-    
+
     When the `approx_eval` property is ``True``, we assume the physical property types have
     values that are uncorrelated. In this case, the weighting matrix is diagonal and the
     regularization function (objective function) can be expressed as:
@@ -123,7 +123,7 @@ class PGIsmallness(Smallness):
     .. math::
         \phi (\mathbf{m}) = \frac{1}{2} \Big \| \mathbf{W}_{\! 1/2}(\Theta, \mathbf{z}^\ast ) \,
         \big [ \mathbf{m} - \mathbf{m_{ref}}(\Theta, \mathbf{z}^\ast ) \big ] \, \Big \|^2
-    
+
     When the `approx_eval` property is ``True``, you may also set the `approx_gradient` property
     to ``True`` so that the least-squares approximation is used to compute the gradient.
 
@@ -135,22 +135,22 @@ class PGIsmallness(Smallness):
 
     .. math::
         \mathbf{m_{ref}} (\Theta ,{\mathbf{z}^\ast}) = \boldsymbol{\mu}_{\mathbf{z}^\ast}
-    
+
     To construct the weighting matrix, :math:`\mathbf{z}^\ast` is used to extract the covariances
     :math:`\boldsymbol{\Sigma}` for each cell. And the weighting matrix is given by:
 
     .. math::
         \mathbf{W}(\Theta ,{\mathbf{z}^\ast } ) = \boldsymbol{\Sigma}_{\mathbf{z^\ast}}^{-1} \,
-        diag \big ( \mathbf{v \odot w} \big ) 
-    
+        diag \big ( \mathbf{v \odot w} \big )
+
     where :math:`\mathbf{v}` are the volumes of the active cells, and :math:`\mathbf{w}`
     are custom cell weights. When the `approx_eval` property is ``True``, the off-diagonal
     covariances are zero and we can use a weighting matrix of the form:
 
     .. math::
         \mathbf{W}_{\! 1/2}(\Theta ,{\mathbf{z}^\ast } ) = diag \Big ( \big [ \mathbf{v \odot w}
-        \odot \boldsymbol{\sigma}_{\mathbf{z}^\ast}^{-2} \big ]^{1/2} \Big ) 
-    
+        \odot \boldsymbol{\sigma}_{\mathbf{z}^\ast}^{-2} \big ]^{1/2} \Big )
+
     where :math:`\boldsymbol{\sigma}_{\mathbf{z}^\ast}^2` are the variances extracted using the
     membership array :math:`\mathbf{z}^\ast`.
 
@@ -165,7 +165,7 @@ class PGIsmallness(Smallness):
 
     .. math::
         \max_\Theta \; \mathcal{P}(\Theta | \mathbf{m})
-    
+
     using a MAP variation of the expectation-maximization clustering algorithm introduced in
     Dempster (et al. 1977).
 
@@ -179,7 +179,7 @@ class PGIsmallness(Smallness):
 
     .. math::
         z_i^\ast = \max_n \; \gamma_{i,n} \, \mathcal{N} (\mathbf{m}_i | \boldsymbol{\mu}_n , \boldsymbol{\Sigma}_n)
-    
+
     where
 
         - :math:`\mathbf{m_i}` are the model values for cell :math:`i`,
@@ -297,11 +297,11 @@ class PGIsmallness(Smallness):
         For a Gaussian mixture model containing the means and covariances for model parameter
         types (physical property types) for all rock units, this method computes the membership
         array for the model `m` provided. For a description of the membership array, see the
-        *Notes*  section within the :class:`PGIsmallness` documentation. 
+        *Notes*  section within the :class:`PGIsmallness` documentation.
 
         Parameters
         ----------
-        m : (nP, ) numpy.ndarray of float
+        m : (n_param, ) numpy.ndarray of float
             The model.
 
         Returns
@@ -322,7 +322,7 @@ class PGIsmallness(Smallness):
 
         Returns
         -------
-        (nP, ) numpy.ndarray
+        (n_param, ) numpy.ndarray
             The quasi geology physical property model.
 
         Notes
@@ -523,11 +523,11 @@ class PGIsmallness(Smallness):
 
     @timeIt
     def deriv(self, m):
-        r"""Jacobian of the regularization function evaluated for the model provided.
+        r"""Gradient of the regularization function evaluated for the model provided.
 
         Where :math:`\phi (\mathbf{m})` is the discrete regularization function (objective function),
-        this method evaluates and returns the derivative (Jacobian) with respect to the model parameters.
-        I.e.:
+        this method evaluates and returns the derivative with respect to the model parameters;
+        i.e. the gradient:
 
         .. math::
             \frac{\partial \phi}{\partial \mathbf{m}}
@@ -535,12 +535,12 @@ class PGIsmallness(Smallness):
         Parameters
         ----------
         m : (n_param, ) numpy.ndarray
-            The model for which the Jacobian is evaluated.
+            The model for which the gradient is evaluated.
 
         Returns
         -------
         (n_param, ) numpy.ndarray
-            The Jacobian of the regularization function evaluated for the model provided.
+            Gradient of the regularization function evaluated for the model provided.
         """
         if getattr(self, "reference_model", None) is None:
             self.reference_model = mkvc(self.gmm.means_[self.membership(m)])
@@ -1064,7 +1064,7 @@ class PGI(ComboObjectiveFunction):
 
     .. math::
         \mathbf{m} = \begin{bmatrix} \mathbf{m}_1 \\ \mathbf{m}_2 \\ \vdots \\ \mathbf{m}_K \end{bmatrix}
-    
+
     When the `approx_eval` property is ``True``, we assume the physical property types have
     values that are uncorrelated. In this case, the weighting matrix is diagonal and the
     regularization function (objective function) can be expressed as:
@@ -1075,7 +1075,7 @@ class PGI(ComboObjectiveFunction):
         &+ \sum_{j=x,y,z} \frac{\alpha_j}{2} \Big \| \mathbf{W_j G_j \, m} \, \Big \|^2 \\
         &+ \sum_{j=x,y,z} \frac{\alpha_{jj}}{2} \Big \| \mathbf{W_{jj} L_j \, m} \, \Big \|^2
         \;\;\;\;\;\;\;\; \big ( \textrm{optional} \big )
-    
+
     When the `approx_eval` property is ``True``, you may also set the `approx_gradient` property
     to ``True`` so that the least-squares approximation is used to compute the gradient.
 
@@ -1087,22 +1087,22 @@ class PGI(ComboObjectiveFunction):
 
     .. math::
         \mathbf{m_{ref}} (\Theta ,{\mathbf{z}^\ast}) = \boldsymbol{\mu}_{\mathbf{z}^\ast}
-    
+
     To construct the weighting matrix, :math:`\mathbf{z}^\ast` is used to extract the covariances
     :math:`\boldsymbol{\Sigma}` for each cell. And the weighting matrix is given by:
 
     .. math::
         \mathbf{W}(\Theta ,{\mathbf{z}^\ast } ) = \boldsymbol{\Sigma}_{\mathbf{z^\ast}}^{-1} \,
-        diag \big ( \mathbf{v \odot w} \big ) 
-    
+        diag \big ( \mathbf{v \odot w} \big )
+
     where :math:`\mathbf{v}` are the volumes of the active cells, and :math:`\mathbf{w}`
     are custom cell weights. When the `approx_eval` property is ``True``, the off-diagonal
     covariances are zero and we can use a weighting matrix of the form:
 
     .. math::
         \mathbf{W}_{\! 1/2}(\Theta ,{\mathbf{z}^\ast } ) = diag \Big ( \big [ \mathbf{v \odot w}
-        \odot \boldsymbol{\sigma}_{\mathbf{z}^\ast}^{-2} \big ]^{1/2} \Big ) 
-    
+        \odot \boldsymbol{\sigma}_{\mathbf{z}^\ast}^{-2} \big ]^{1/2} \Big )
+
     where :math:`\boldsymbol{\sigma}_{\mathbf{z}^\ast}^2` are the variances extracted using the
     membership array :math:`\mathbf{z}^\ast`.
 
@@ -1117,7 +1117,7 @@ class PGI(ComboObjectiveFunction):
 
     .. math::
         \max_\Theta \; \mathcal{P}(\Theta | \mathbf{m})
-    
+
     using a MAP variation of the expectation-maximization clustering algorithm introduced in
     Dempster (et al. 1977).
 
@@ -1131,7 +1131,7 @@ class PGI(ComboObjectiveFunction):
 
     .. math::
         z_i^\ast = \max_n \; \gamma_{i,n} \, \mathcal{N} (\mathbf{m}_i | \boldsymbol{\mu}_n , \boldsymbol{\Sigma}_n)
-    
+
     where
 
         - :math:`\mathbf{m_i}` are the model values for cell :math:`i`,
@@ -1259,7 +1259,7 @@ class PGI(ComboObjectiveFunction):
 
         Parameters
         ----------
-        m : (nP, ) numpy.ndarray of float
+        m : (n_param ) numpy.ndarray of float
             The model.
 
         Returns
@@ -1278,7 +1278,7 @@ class PGI(ComboObjectiveFunction):
 
         Returns
         -------
-        (nP, ) numpy.ndarray
+        (n_param ) numpy.ndarray
             The quasi geology physical property model.
 
         Notes

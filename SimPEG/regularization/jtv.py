@@ -89,7 +89,7 @@ class JointTotalVariation(BaseSimilarityMeasure):
         - :math:`\mathbf{A}` averages vectors from faces to cell centers,
         - :math:`\mathbf{G}` is the cell gradient operator (cell centers to faces),
         - :math:`\mathbf{v}` are the cell volumes, and
-        - :math:`\epsilon` is a constant added for continuous differentiability (set with the `eps` property),        
+        - :math:`\epsilon` is a constant added for continuous differentiability (set with the `eps` property),
 
     **Custom weights and the weighting matrix:**
 
@@ -196,17 +196,17 @@ class JointTotalVariation(BaseSimilarityMeasure):
         return np.sum(sq)
 
     def deriv(self, model):
-        r"""Jacobian of the regularization function evaluated for the model provided.
+        r"""Gradient of the regularization function evaluated for the model provided.
 
         Where :math:`\phi (\mathbf{m})` is the discrete regularization function (objective function),
-        this method evaluates and returns the derivative (Jacobian) with respect to the model parameters.
-        For a model :math:`\mathbf{m}` consisting of multiple physical properties
+        this method evaluates and returns the derivative with respect to the model parameters;
+        i.e. the gradient. For a model :math:`\mathbf{m}` consisting of multiple physical properties
         :math:`\mathbf{m_1}, \; \mathbf{m_2}, \; ...` such that:
 
         .. math::
             \mathbf{m} = \begin{bmatrix} \mathbf{m_1} \\ \mathbf{m_2} \\ \vdots \end{bmatrix}
-        
-        The Jacobian has the form:
+
+        The gradient has the form:
 
         .. math::
             \frac{\partial \phi}{\partial \mathbf{m}} =
@@ -221,7 +221,7 @@ class JointTotalVariation(BaseSimilarityMeasure):
         Returns
         -------
         (n_param, ) numpy.ndarray
-            Jacobian of the regularization function evaluated for the model provided.
+            Gradient of the regularization function evaluated for the model provided.
         """
         W = self.W
         G = self._G
@@ -250,7 +250,7 @@ class JointTotalVariation(BaseSimilarityMeasure):
 
         .. math::
             \mathbf{m} = \begin{bmatrix} \mathbf{m_1} \\ \mathbf{m_2} \\ \vdots \end{bmatrix}
-        
+
         The Hessian has the form:
 
         .. math::

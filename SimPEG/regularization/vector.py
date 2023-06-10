@@ -52,7 +52,7 @@ class CrossReferenceRegularization(Smallness, BaseVectorRegularization):
     in the model and reference vector model are parallel (or anti-parallel) to each other.
     And it is maximized when the vectors are perpendicular to each other.
     The reference vector model can be set using a single vector, or by defining a
-    vector for each mesh cell. 
+    vector for each mesh cell.
 
     Parameters
     ----------
@@ -386,7 +386,7 @@ class BaseAmplitude(BaseVectorRegularization):
 
         Parameters
         ----------
-        m : (nP, ) numpy.ndarray
+        m : (n_param ) numpy.ndarray
             The model.
 
         Returns
@@ -402,11 +402,11 @@ class BaseAmplitude(BaseVectorRegularization):
         )
 
     def deriv(self, m) -> np.ndarray:
-        r"""Jacobian of the regularization function evaluated for the model provided.
+        r"""Gradient of the regularization function evaluated for the model provided.
 
         Where :math:`\phi (\mathbf{m})` is the discrete regularization function (objective function),
-        this method evaluates and returns the derivative (Jacobian) with respect to the model parameters.
-        I.e.:
+        this method evaluates and returns the derivative with respect to the model parameters;
+        i.e. the gradient:
 
         .. math::
             \frac{\partial \phi}{\partial \mathbf{m}}
@@ -414,12 +414,12 @@ class BaseAmplitude(BaseVectorRegularization):
         Parameters
         ----------
         m : (n_param, ) numpy.ndarray
-            The model for which the Jacobian is evaluated.
+            The model for which the gradient is evaluated.
 
         Returns
         -------
         (n_param, ) numpy.ndarray
-            The Jacobian of the regularization function evaluated for the model provided.
+            Gradient of the regularization function evaluated for the model provided.
         """
         d_m = self._delta_m(m)
 
@@ -527,7 +527,7 @@ class AmplitudeSmallness(SparseSmallness, BaseAmplitude):
     sparseness throughout the recovered model. More compact structures are recovered in regions
     where :math:`p` is small. If the same level of sparseness is being imposed everywhere,
     the exponent becomes a constant.
-    
+
     For implementation within SimPEG, the regularization function and its variables
     must be discretized onto a `mesh`. The discretized approximation for the regularization
     function (objective function) is expressed in linear form as:
@@ -560,7 +560,7 @@ class AmplitudeSmallness(SparseSmallness, BaseAmplitude):
         \epsilon^2 \; \bigg ]^{{p_i}/2 - 1}
 
     and :math:`\epsilon` is a small constant added for stability (set using `irls_threshold`).
-    
+
     The global set of model parameters :math:`\mathbf{m}` defined at cell centers is ordered according
     to its primary (:math:`p`), secondary (:math:`s`) and tertiary (:math:`t`) directions as follows:
 
@@ -570,9 +570,9 @@ class AmplitudeSmallness(SparseSmallness, BaseAmplitude):
     We define the amplitudes of the residual between the model and reference model for all cells as:
 
     .. math::
-        \mathbf{\bar{m}} = \bigg ( 
-        \Big [ \mathbf{m}_p - \mathbf{m}_p^{(ref)} \Big ]^2 + 
-        \Big [ \mathbf{m}_s - \mathbf{m}_s^{(ref)} \Big ]^2 + 
+        \mathbf{\bar{m}} = \bigg (
+        \Big [ \mathbf{m}_p - \mathbf{m}_p^{(ref)} \Big ]^2 +
+        \Big [ \mathbf{m}_s - \mathbf{m}_s^{(ref)} \Big ]^2 +
         \Big [ \mathbf{m}_t - \mathbf{m}_t^{(ref)} \Big ]^2 \bigg )^{1/2}
 
     The objective function for IRLS iteration :math:`k` is given by:
@@ -622,9 +622,9 @@ class AmplitudeSmallness(SparseSmallness, BaseAmplitude):
         For smallness vector amplitude regularization, the regularization kernel function is:
 
         .. math::
-            \mathbf{f_m}(\mathbf{m}) = \mathbf{\bar{m}} = \bigg ( 
-            \Big [ \mathbf{m}_p - \mathbf{m}_p^{(ref)} \Big ]^2 + 
-            \Big [ \mathbf{m}_s - \mathbf{m}_s^{(ref)} \Big ]^2 + 
+            \mathbf{f_m}(\mathbf{m}) = \mathbf{\bar{m}} = \bigg (
+            \Big [ \mathbf{m}_p - \mathbf{m}_p^{(ref)} \Big ]^2 +
+            \Big [ \mathbf{m}_s - \mathbf{m}_s^{(ref)} \Big ]^2 +
             \Big [ \mathbf{m}_t - \mathbf{m}_t^{(ref)} \Big ]^2 \bigg )^{1/2}
 
         where the global set of model parameters :math:`\mathbf{m}` defined at cell centers is
@@ -683,7 +683,7 @@ class AmplitudeSmoothnessFirstOrder(SparseSmoothness, BaseAmplitude):
     function; with more blocky structures being recovered when a smaller norm is used.
     Optionally, custom cell weights can be included to control the degree of blockiness
     being enforced throughout different regions the model.
-    
+
     See the *Notes* section below for a comprehensive description.
 
     Parameters
@@ -746,7 +746,7 @@ class AmplitudeSmoothnessFirstOrder(SparseSmoothness, BaseAmplitude):
     sparseness throughout the recovered model. Sharper boundaries are recovered in regions
     where :math:`p(r)` is small. If the same level of sparseness is being imposed everywhere,
     the exponent becomes a constant.
-    
+
     For implementation within SimPEG, the regularization function and its variables
     must be discretized onto a `mesh`. The discrete approximation for the regularization
     function (objective function) is expressed in linear form as:
@@ -817,11 +817,11 @@ class AmplitudeSmoothnessFirstOrder(SparseSmoothness, BaseAmplitude):
         \mathbf{W}^{(k)} \, \mathbf{G_x} \, \mathbf{\bar{m}}^{(k)} \Big \|^2
 
     where
-    
+
     .. math::
-        \mathbf{\bar{m}} = \bigg ( 
-        \Big [ \mathbf{m}_p - \mathbf{m}_p^{(ref)} \Big ]^2 + 
-        \Big [ \mathbf{m}_s - \mathbf{m}_s^{(ref)} \Big ]^2 + 
+        \mathbf{\bar{m}} = \bigg (
+        \Big [ \mathbf{m}_p - \mathbf{m}_p^{(ref)} \Big ]^2 +
+        \Big [ \mathbf{m}_s - \mathbf{m}_s^{(ref)} \Big ]^2 +
         \Big [ \mathbf{m}_t - \mathbf{m}_t^{(ref)} \Big ]^2 \bigg )^{1/2}
 
     This functionality is used by setting :math:`\mathbf{m}^{(ref)}` with the
@@ -892,9 +892,9 @@ class AmplitudeSmoothnessFirstOrder(SparseSmoothness, BaseAmplitude):
         (i.e. x-derivative), and
 
         .. math::
-            \mathbf{f_m}(\mathbf{m}) = \mathbf{\bar{m}} = \bigg ( 
-            \Big [ \mathbf{m}_p - \mathbf{m}_p^{(ref)} \Big ]^2 + 
-            \Big [ \mathbf{m}_s - \mathbf{m}_s^{(ref)} \Big ]^2 + 
+            \mathbf{f_m}(\mathbf{m}) = \mathbf{\bar{m}} = \bigg (
+            \Big [ \mathbf{m}_p - \mathbf{m}_p^{(ref)} \Big ]^2 +
+            \Big [ \mathbf{m}_s - \mathbf{m}_s^{(ref)} \Big ]^2 +
             \Big [ \mathbf{m}_t - \mathbf{m}_t^{(ref)} \Big ]^2 \bigg )^{1/2}
 
         The global set of model parameters :math:`\mathbf{m}` defined at cell centers is
@@ -928,11 +928,11 @@ class AmplitudeSmoothnessFirstOrder(SparseSmoothness, BaseAmplitude):
         regularization kernel function with respect to the model is given by:
 
         .. math::
-            \frac{\partial \mathbf{f_m}}{\partial \mathbf{m}} = 
+            \frac{\partial \mathbf{f_m}}{\partial \mathbf{m}} =
             \begin{bmatrix} \mathbf{G_x} & \mathbf{0} \\ \mathbf{0} & \mathbf{G_x} \end{bmatrix}
 
         where :math:`\mathbf{G_x}` is the partial cell gradient operator along x
-        (i.e. the x-derivative). 
+        (i.e. the x-derivative).
 
         Parameters
         ----------
@@ -1044,7 +1044,7 @@ class VectorAmplitude(Sparse):
         \Big | \, \vec{m}(r) - \vec{m}^{(ref)}(r) \, \Big |^{p_s(r)} \, dv
         + \sum_{j=x,y,z} \frac{\alpha_j}{2} \int_\Omega \, w(r)
         \Bigg | \, \frac{\partial |\vec{m}|}{\partial \xi_j} \, \bigg |^{p_j(r)} \, dv
-        
+
     where :math:`\vec{m}(r)` is the model, :math:`\vec{m}^{(ref)}(r)` is the reference model,
     and :math:`w(r)` is a user-defined weighting function applied to all terms.
     :math:`\xi_j` for :math:`j=x,y,z` are unit directions along :math:`j`.
@@ -1071,7 +1071,7 @@ class VectorAmplitude(Sparse):
         | \, \vec{m}_i \, | \;\;\;\;\;\;\; (no \; reference \; model)\\
         | \, \vec{m}_i - \vec{m}_i^{(ref)} \, | \;\;\;\; (reference \; model)
         \end{cases}
-    
+
     :math:`\tilde{w}_i \in \mathbf{\tilde{w}}` are amalgamated weighting constants that 1) account
     for cell dimensions in the discretization and 2) apply user-defined weighting.
     :math:`p_i \in \mathbf{p}` define the sparseness throughout the domain (set using `norm`).
@@ -1091,7 +1091,7 @@ class VectorAmplitude(Sparse):
         r_i^{(k)} = \bigg [ \Big ( f_i^{(k-1)} \Big )^2 + \epsilon^2 \; \bigg ]^{p_i/2 - 1}
 
     and :math:`\epsilon` is a small constant added for stability (set using `irls_threshold`).
-    
+
     The global set of model parameters :math:`\mathbf{m}` defined at cell centers is ordered according
     to its primary (:math:`p`), secondary (:math:`s`) and tertiary (:math:`t`) directions as follows:
 
@@ -1109,9 +1109,9 @@ class VectorAmplitude(Sparse):
     where
 
     .. math::
-        \Delta \mathbf{\bar{m}} = \bigg ( 
-        \Big [ \mathbf{m}_p - \mathbf{m}_p^{(ref)} \Big ]^2 + 
-        \Big [ \mathbf{m}_s - \mathbf{m}_s^{(ref)} \Big ]^2 + 
+        \Delta \mathbf{\bar{m}} = \bigg (
+        \Big [ \mathbf{m}_p - \mathbf{m}_p^{(ref)} \Big ]^2 +
+        \Big [ \mathbf{m}_s - \mathbf{m}_s^{(ref)} \Big ]^2 +
         \Big [ \mathbf{m}_t - \mathbf{m}_t^{(ref)} \Big ]^2 \bigg )^{1/2}
 
     and
@@ -1163,11 +1163,11 @@ class VectorAmplitude(Sparse):
     >>> reg.set_weights(weights_1=array_1, weights_2=array_2})
 
     **Reference model in smoothness:**
-    
+
     Gradients/interfaces within a discrete reference model can be preserved by including the
     reference model the smoothness regularization. In this case,
     the objective function becomes:
-    
+
     .. math::
         \phi_m (\mathbf{m}) = \frac{\alpha_s}{2}
         \Big \| \, \mathbf{W_s}^{\! (k)} \, \Delta \mathbf{\bar{m}} \, \Big \|^2

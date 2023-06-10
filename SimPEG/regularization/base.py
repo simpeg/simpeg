@@ -448,11 +448,11 @@ class BaseRegularization(BaseObjectiveFunction):
 
     @utils.timeIt
     def deriv(self, m) -> np.ndarray:
-        r"""Jacobian of the regularization function evaluated for the model provided.
+        r"""Gradient of the regularization function evaluated for the model provided.
 
         Where :math:`\phi (\mathbf{m})` is the discrete regularization function (objective function),
-        this method evaluates and returns the derivative (Jacobian) with respect to the model parameters.
-        I.e.:
+        this method evaluates and returns the derivative with respect to the model parameters; i.e.
+        the gradient:
 
         .. math::
             \frac{\partial \phi}{\partial \mathbf{m}}
@@ -460,12 +460,12 @@ class BaseRegularization(BaseObjectiveFunction):
         Parameters
         ----------
         m : (n_param, ) numpy.ndarray
-            The model for which the Jacobian is evaluated.
+            The model for which the gradient is evaluated.
 
         Returns
         -------
         (n_param, ) numpy.ndarray
-            The Jacobian of the regularization function evaluated for the model provided.
+            The Gradient of the regularization function evaluated for the model provided.
         """
         r = self.W * self.f_m(m)
         return self.f_m_deriv(m).T * (self.W.T * r)
@@ -518,7 +518,7 @@ class Smallness(BaseRegularization):
     regions the model.
 
     See the *Notes* section below for a comprehensive description.
-    
+
     Parameters
     ----------
     mesh : .regularization.RegularizationMesh
@@ -760,7 +760,7 @@ class SmoothnessFirstOrder(BaseRegularization):
         \bigg [ \frac{\partial m}{\partial x} \bigg ]^2 \, dv
 
     where :math:`m(r)` is the model and :math:`w(r)` is a user-defined weighting function.
-    
+
     For implementation within SimPEG, the regularization function and its variables
     must be discretized onto a `mesh`. The discretized approximation for the regularization
     function (objective function) is expressed in linear form as:
@@ -786,11 +786,11 @@ class SmoothnessFirstOrder(BaseRegularization):
     :math:`\mathbf{W}` is an operator that acts on variables living on x-faces.
 
     **Reference model in smoothness:**
-    
+
     Gradients/interfaces within a discrete reference model :math:`\mathbf{m}^{(ref)}` can be
     preserved by including the reference model the regularization.
     In this case, the objective function becomes:
-    
+
     .. math::
         \phi (\mathbf{m}) = \frac{1}{2} \Big \| \mathbf{W G_x}
         \big [ \mathbf{m} - \mathbf{m}^{(ref)} \big ] \Big \|^2
@@ -798,7 +798,7 @@ class SmoothnessFirstOrder(BaseRegularization):
     This functionality is used by setting a reference model with the
     `reference_model` property, and by setting the `reference_model_in_smooth` parameter
     to ``True``.
-    
+
     **Custom weights and the weighting matrix:**
 
     Let :math:`\mathbf{w_1, \; w_2, \; w_3, \; ...}` each represent an optional set of
@@ -988,7 +988,7 @@ class SmoothnessFirstOrder(BaseRegularization):
             \frac{\partial \mathbf{f_m}}{\partial \mathbf{m}} = \mathbf{G_x}
 
         where :math:`\mathbf{G_x}` is the partial cell gradient operator along x
-        (i.e. the x-derivative). 
+        (i.e. the x-derivative).
 
         Parameters
         ----------
@@ -1125,7 +1125,7 @@ class SmoothnessSecondOrder(SmoothnessFirstOrder):
         \bigg [ \frac{\partial^2 m}{\partial x^2} \bigg ]^2 \, dv
 
     where :math:`m(r)` is the model and :math:`w(r)` is a user-defined weighting function.
-    
+
     For implementation within SimPEG, the regularization function and its variables
     must be discretized onto a `mesh`. The discretized approximation for the regularization
     function (objective function) is expressed in linear form as:
@@ -1148,11 +1148,11 @@ class SmoothnessSecondOrder(SmoothnessFirstOrder):
         - :math:`\mathbf{W}` is the weighting matrix.
 
     **Reference model in smoothness:**
-    
+
     Second-order smoothness within a discrete reference model :math:`\mathbf{m}^{(ref)}` can be
     preserved by including the reference model the smoothness regularization function.
     In this case, the objective function becomes:
-    
+
     .. math::
         \phi (\mathbf{m}) = \frac{1}{2} \Big \| \mathbf{W L_x}
         \big [ \mathbf{m} - \mathbf{m}^{(ref)} \big ] \Big \|^2
@@ -1160,7 +1160,7 @@ class SmoothnessSecondOrder(SmoothnessFirstOrder):
     This functionality is used by setting a reference model with the
     `reference_model` property, and by setting the `reference_model_in_smooth` parameter
     to ``True``.
-    
+
     **Custom weights and the weighting matrix:**
 
     Let :math:`\mathbf{w_1, \; w_2, \; w_3, \; ...}` each represent an optional set of
@@ -1221,7 +1221,7 @@ class SmoothnessSecondOrder(SmoothnessFirstOrder):
             \Big \| \mathbf{W L_x} \big [ \mathbf{m} - \mathbf{m}^{(ref)} \big ] \Big \|^2
 
         where :math:`\mathbf{m}` are the discrete model parameters (model),
-        :math:`\mathbf{m}^{(ref)}` is the reference model, :math:`\mathbf{L_x}` is the 
+        :math:`\mathbf{m}^{(ref)}` is the reference model, :math:`\mathbf{L_x}` is the
         second-order x-derivative operator, and :math:`\mathbf{W}` is
         the weighting matrix. Similar for smoothness along y and z.
         See the :class:`SmoothnessSecondOrder` class documentation for more detail.
@@ -1256,7 +1256,7 @@ class SmoothnessSecondOrder(SmoothnessFirstOrder):
 
         .. math::
             \frac{\partial \mathbf{f_m}}{\partial \mathbf{m}} = \mathbf{L_x}
-        
+
         where :math:`\mathbf{L_x}` is the second-order derivative operator with respect to x.
 
         Parameters
@@ -1279,7 +1279,7 @@ class SmoothnessSecondOrder(SmoothnessFirstOrder):
             \Big \| \mathbf{W L_x} \big [ \mathbf{m} - \mathbf{m}^{(ref)} \big ] \Big \|^2
 
         where :math:`\mathbf{m}` are the discrete model parameters (model),
-        :math:`\mathbf{m}^{(ref)}` is the reference model, :math:`\mathbf{L_x}` is the 
+        :math:`\mathbf{m}^{(ref)}` is the reference model, :math:`\mathbf{L_x}` is the
         second-order x-derivative operator, and :math:`\mathbf{W}` is
         the weighting matrix. Similar for smoothness along y and z.
         See the :class:`SmoothnessSecondOrder` class documentation for more detail.
@@ -1438,11 +1438,11 @@ class WeightedLeastSquares(ComboObjectiveFunction):
         - :math:`\mathbf{W_s, \, W_x, \, W_y, \; W_z}` are weighting matrices.
 
     **Reference model in smoothness:**
-    
+
     Gradients/interfaces within a discrete reference model :math:`\mathbf{m}^{(ref)}` can be
     preserved by including the reference model the smoothness regularization.
     In this case, the objective function becomes:
-    
+
     .. math::
         \phi_m (\mathbf{m}) =& \frac{\alpha_s}{2}
         \Big \| \mathbf{W_s} \big [ \mathbf{m} - \mathbf{m}^{(ref)} \big ] \Big \|^2 \\

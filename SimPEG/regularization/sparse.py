@@ -55,7 +55,7 @@ class BaseSparse(BaseRegularization):
         If ``False``, do not scale.
     irls_threshold : float
         Constant added to IRLS weights to ensures stability in the algorithm.
-    
+
     """
 
     def __init__(self, mesh, norm=2.0, irls_scaled=True, irls_threshold=1e-8, **kwargs):
@@ -166,17 +166,17 @@ class BaseSparse(BaseRegularization):
         and :math:`\mathbf{p}` defines the `norm` at each cell.
 
         :math:`\boldsymbol{\lambda}` applies optional scaling to the IRLS weights
-        (when the `irls_scaled` property is ``True``). 
+        (when the `irls_scaled` property is ``True``).
         The scaling acts to preserve the balance between the data misfit and objective functions
         in the regularization, and improves convergence by ensuring the model does not deviate
         aggressively from the global 2-norm solution during the first few IRLS iterations.
-        
+
         To apply elementwise scaling, let
 
         .. math::
             f_{max} = \big \| \, \mathbf{f_m} \, \big \|_\infty
 
-        And define a vector array :math:`\mathbf{\tilde{f}_{\! max}}` such that: 
+        And define a vector array :math:`\mathbf{\tilde{f}_{\! max}}` such that:
 
         .. math::
             \tilde{f}_{\! i,max} = \begin{cases}
@@ -263,7 +263,7 @@ class SparseSmallness(BaseSparse, Smallness):
     sparseness throughout the recovered model. More compact structures are recovered in regions
     where :math:`p` is small. If the same level of sparseness is being imposed everywhere,
     the exponent becomes a constant.
-    
+
     For implementation within SimPEG, the regularization function and its variables
     must be discretized onto a `mesh`. The discretized approximation for the regularization
     function (objective function) is expressed in linear form as:
@@ -370,17 +370,17 @@ class SparseSmallness(BaseSparse, Smallness):
         and :math:`\mathbf{p}` defines the norm for each cell (defined using the `norm` property).
 
         :math:`\boldsymbol{\lambda}` applies optional scaling to the IRLS weights
-        (when the `irls_scaled` property is ``True``). 
+        (when the `irls_scaled` property is ``True``).
         The scaling acts to preserve the balance between the data misfit and objective functions
         in the regularization, and improves convergence by ensuring the model does not deviate
         aggressively from the global 2-norm solution during the first few IRLS iterations.
-        
+
         To compute the scaling, let
 
         .. math::
             f_{max} = \big \| \, \mathbf{f_m} \, \big \|_\infty
 
-        and define a vector array :math:`\mathbf{\tilde{f}_{\! max}}` such that: 
+        and define a vector array :math:`\mathbf{\tilde{f}_{\! max}}` such that:
 
         .. math::
             \tilde{f}_{\! i,max} = \begin{cases}
@@ -406,7 +406,7 @@ class SparseSmoothness(BaseSparse, SmoothnessFirstOrder):
     function; with more blocky structures being recovered when a smaller norm is used.
     Optionally, custom cell weights can be included to control the degree of blockiness being
     enforced throughout different regions the model.
-    
+
     See the *Notes* section below for a comprehensive description.
 
     Parameters
@@ -469,7 +469,7 @@ class SparseSmoothness(BaseSparse, SmoothnessFirstOrder):
     sparseness throughout the recovered model. Sharper boundaries are recovered in regions
     where :math:`p(r)` is small. If the same level of sparseness is being imposed everywhere,
     the exponent becomes a constant.
-    
+
     For implementation within SimPEG, the regularization function and its variables
     must be discretized onto a `mesh`. The discrete approximation for the regularization
     function (objective function) is expressed in linear form as:
@@ -625,17 +625,17 @@ class SparseSmoothness(BaseSparse, SmoothnessFirstOrder):
         and :math:`\mathbf{p}` defines the norm for each element (set using the `norm` property).
 
         :math:`\boldsymbol{\lambda}` applies optional scaling to the IRLS weights
-        (when the `irls_scaled` property is ``True``). 
+        (when the `irls_scaled` property is ``True``).
         The scaling acts to preserve the balance between the data misfit and objective functions
         in the regularization, and improves convergence by ensuring the model does not deviate
         aggressively from the global 2-norm solution during the first few IRLS iterations.
-        
+
         To apply the scaling, let
 
         .. math::
             f_{max} = \big \| \, \mathbf{f_m} \, \big \|_\infty
 
-        and define a vector array :math:`\mathbf{\tilde{f}_{\! max}}` such that: 
+        and define a vector array :math:`\mathbf{\tilde{f}_{\! max}}` such that:
 
         .. math::
             \tilde{f}_{\! i,max} = \begin{cases}
@@ -675,7 +675,7 @@ class SparseSmoothness(BaseSparse, SmoothnessFirstOrder):
         Returns
         -------
         str in {"total", "components"}
-            Whether to re-weight using the total gradient or partial gradients along 
+            Whether to re-weight using the total gradient or partial gradients along
             smoothing orientations.
         """
         return self._gradient_type
@@ -760,7 +760,7 @@ class Sparse(WeightedLeastSquares):
         \Big | \, m(r) - m^{(ref)}(r) \, \Big |^{p_s(r)} \, dv
         + \sum_{j=x,y,z} \frac{\alpha_j}{2} \int_\Omega \, w(r)
         \Bigg | \, \frac{\partial m}{\partial \xi_j} \, \Bigg |^{p_j(r)} \, dv
-        
+
     where :math:`m(r)` is the model, :math:`m^{(ref)}(r)` is the reference model, and :math:`w(r)`
     is a user-defined weighting function applied to all terms.
     :math:`\xi_j` for :math:`j=x,y,z` are unit directions along :math:`j`.
@@ -785,7 +785,7 @@ class Sparse(WeightedLeastSquares):
 
     .. math::
         \mathbf{f_m}(\mathbf{m}) = \mathbf{m - m}^{(ref)}
-    
+
     :math:`\tilde{w}_i \in \mathbf{\tilde{w}}` are amalgamated weighting constants that 1) account
     for cell dimensions in the discretization and 2) apply user-defined weighting.
     :math:`p_i \in \mathbf{p}` define the sparseness throughout the domain (set using `norm`).
@@ -863,11 +863,11 @@ class Sparse(WeightedLeastSquares):
     >>> reg.set_weights(weights_1=array_1, weights_2=array_2})
 
     **Reference model in smoothness:**
-    
+
     Gradients/interfaces within a discrete reference model can be preserved by including the
     reference model the smoothness regularization. In this case,
     the objective function becomes:
-    
+
     .. math::
         \phi_m (\mathbf{m}) = \frac{\alpha_s}{2}
         \Big \| \mathbf{W_s}^{\! (k)} \big [ \mathbf{m} - \mathbf{m}^{(ref)} \big ] \Big \|^2
@@ -972,7 +972,7 @@ class Sparse(WeightedLeastSquares):
         Returns
         -------
         str in {"total", "components"}
-            Whether to re-weight using the total gradient or partial gradients along 
+            Whether to re-weight using the total gradient or partial gradients along
             smoothing orientations.
         """
         return self._gradient_type
@@ -994,7 +994,7 @@ class Sparse(WeightedLeastSquares):
         """Norms for the child regularization classes.
 
         Norms for the smallness and all smoothness terms in the ``Sparse`` regularization.
-        
+
         Returns
         -------
         list of float or numpy.ndarray

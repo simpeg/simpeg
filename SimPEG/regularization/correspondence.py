@@ -29,7 +29,7 @@ class LinearCorrespondence(BaseSimilarityMeasure):
         Coefficients :math:`\{ \lambda_1, \lambda_2, \lambda_3 \}` for the linear relationship
         between model parameters. If ``None``, the coefficients are set to
         :math:`\{ 1, -1, 0 \}`.
-    
+
     Notes
     -----
     Let :math:`\mathbf{m}` be a discrete model consisting of two physical property types such that:
@@ -98,7 +98,7 @@ class LinearCorrespondence(BaseSimilarityMeasure):
         :math:`\{ \lambda_1 , \lambda_2 , \lambda_3 \}` as follows:
 
         .. math::
-            \mathbf{f}(\mathbf{m}) = \lambda_1 \mathbf{m_1} + \lambda_2 \mathbf{m_2} + \lambda_3 
+            \mathbf{f}(\mathbf{m}) = \lambda_1 \mathbf{m_1} + \lambda_2 \mathbf{m_2} + \lambda_3
 
         Parameters
         ----------
@@ -133,16 +133,17 @@ class LinearCorrespondence(BaseSimilarityMeasure):
         return 0.5 * result.T @ result
 
     def deriv(self, model):
-        r"""Jacobian of the regularization function evaluated for the model provided.
+        r"""Gradient of the regularization function evaluated for the model provided.
 
         Where :math:`\phi (\mathbf{m})` is the discrete regularization function (objective function),
-        this method evaluates and returns the derivative (Jacobian) with respect to the model parameters.
-        For a model :math:`\mathbf{m}` consisting of two physical properties such that:
+        this method evaluates and returns the derivative with respect to the model parameters;
+        i.e. the gradient. For a model :math:`\mathbf{m}` consisting of two physical properties
+        such that:
 
         .. math::
             \mathbf{m} = \begin{bmatrix} \mathbf{m_1} \\ \mathbf{m_2} \end{bmatrix}
-        
-        The Jacobian has the form:
+
+        The gradient has the form:
 
         .. math::
             \frac{\partial \phi}{\partial \mathbf{m}} =
@@ -157,7 +158,7 @@ class LinearCorrespondence(BaseSimilarityMeasure):
         Returns
         -------
         (n_param, ) numpy.ndarray
-            Jacobian of the regularization function evaluated for the model provided.
+            Gradient of the regularization function evaluated for the model provided.
         """
         k1, k2, k3 = self.coefficients
         r = self.relation(model)
@@ -172,12 +173,13 @@ class LinearCorrespondence(BaseSimilarityMeasure):
         r"""Hessian of the regularization function evaluated for the model provided.
 
         Where :math:`\phi (\mathbf{m})` is the discrete regularization function (objective function),
-        this method evalutate and returns the second derivative (Hessian) with respect to the model parameters:
-        For a model :math:`\mathbf{m}` consisting of two physical properties such that:
+        this method evalutate and returns the second derivative (Hessian) with respect to the
+        model parameters. For a model :math:`\mathbf{m}` consisting of two physical properties
+        such that:
 
         .. math::
             \mathbf{m} = \begin{bmatrix} \mathbf{m_1} \\ \mathbf{m_2} \end{bmatrix}
-        
+
         The Hessian has the form:
 
         .. math::
@@ -194,7 +196,7 @@ class LinearCorrespondence(BaseSimilarityMeasure):
 
         .. math::
             \frac{\partial^2 \phi}{\partial \mathbf{m}^2} \, \mathbf{v}
-        
+
         Parameters
         ----------
         model : (n_param, ) numpy.ndarray

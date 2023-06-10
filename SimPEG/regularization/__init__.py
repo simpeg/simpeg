@@ -32,7 +32,7 @@ function (or penalty function) of the form:
 
 The global objective function contains two terms: a data misfit term :math:`\phi_d` which
 ensures data predicted by the recovered model adequately reproduces the observed data,
-and the model objective function :math:`\phi_m` which is comprised of one or more 
+and the model objective function :math:`\phi_m` which is comprised of one or more
 regularization functions (objective functions) :math:`\phi_i (m)`. I.e.:
 
 .. math::
@@ -51,7 +51,7 @@ the values in the recovered model are not too large and are spatially smooth in 
 y-directions can be expressed as:
 
 .. math::
-    \phi_m (m) = 
+    \phi_m (m) =
     \alpha_s \! \int_\Omega \Bigg [ \frac{1}{2} w_s(r) \, m(r)^2 \Bigg ] \, dv +
     \alpha_x \! \int_\Omega \Bigg [ \frac{1}{2} w_x(r)
     \bigg ( \frac{\partial m}{\partial x} \bigg )^2 \Bigg ] \, dv +

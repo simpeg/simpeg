@@ -61,7 +61,7 @@ class CrossGradient(BaseSimilarityMeasure):
 
     .. math::
         \phi (m_1, m_2) = \frac{1}{2} \int_\Omega \, w(r) \, \Big [ \,
-        \big | \nabla m_1 \big |^2 \big | \nabla m_2 \big |^2 
+        \big | \nabla m_1 \big |^2 \big | \nabla m_2 \big |^2
         - \big ( \nabla m_1 \, \cdot \, \nabla m_2 \, \big )^2 \Big ] \, dv
 
     For implementation within SimPEG, the regularization function and its variables
@@ -70,7 +70,7 @@ class CrossGradient(BaseSimilarityMeasure):
 
     .. math::
         \phi (m_1, m_2) \approx \frac{1}{2} \sum_i \tilde{w}_i \, \bigg [
-        \Big | (\nabla m_1)_i \Big |^2 \Big | (\nabla m_2)_i \Big |^2 
+        \Big | (\nabla m_1)_i \Big |^2 \Big | (\nabla m_2)_i \Big |^2
         - \Big [ (\nabla m_1)_i \, \cdot \, (\nabla m_2)_i \, \Big ]^2 \, \bigg ]
 
     where :math:`(\nabla m_1)_i` are the gradients of property :math:`m_1` defined on the mesh and
@@ -254,16 +254,17 @@ class CrossGradient(BaseSimilarityMeasure):
         )
 
     def deriv(self, model):
-        r"""Jacobian of the regularization function evaluated for the model provided.
+        r"""Gradient of the regularization function evaluated for the model provided.
 
         Where :math:`\phi (\mathbf{m})` is the discrete regularization function (objective function),
-        this method evaluates and returns the derivative (Jacobian) with respect to the model parameters.
-        For a model :math:`\mathbf{m}` consisting of two physical properties such that:
+        this method evaluates and returns the derivative with respect to the model parameters;
+        i.e. the gradient. For a model :math:`\mathbf{m}` consisting of two physical properties
+        such that:
 
         .. math::
             \mathbf{m} = \begin{bmatrix} \mathbf{m_1} \\ \mathbf{m_2} \end{bmatrix}
-        
-        The Jacobian has the form:
+
+        The gradient has the form:
 
         .. math::
             \frac{\partial \phi}{\partial \mathbf{m}} =
@@ -278,7 +279,7 @@ class CrossGradient(BaseSimilarityMeasure):
         Returns
         -------
         (n_param, ) numpy.ndarray
-            Jacobian of the regularization function evaluated for the model provided.
+            Gradient of the regularization function evaluated for the model provided.
         """
         m1, m2 = self.wire_map * model
 
@@ -303,7 +304,7 @@ class CrossGradient(BaseSimilarityMeasure):
 
         .. math::
             \mathbf{m} = \begin{bmatrix} \mathbf{m_1} \\ \mathbf{m_2} \end{bmatrix}
-        
+
         The Hessian has the form:
 
         .. math::
@@ -320,7 +321,7 @@ class CrossGradient(BaseSimilarityMeasure):
 
         .. math::
             \frac{\partial^2 \phi}{\partial \mathbf{m}^2} \, \mathbf{v}
-        
+
         Parameters
         ----------
         model : (n_param, ) numpy.ndarray
