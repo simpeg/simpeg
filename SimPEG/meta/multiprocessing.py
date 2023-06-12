@@ -80,7 +80,9 @@ class _SimulationProcess(Process):
                     sim = _cached_items[sim_key]
                     f_key = uuid.uuid4().hex
                     r_queue.put(f_key)
+                    print("fields?")
                     fields = sim.fields(sim.model)
+                    print("fields!")
                     _cached_items[f_key] = fields
                 elif op == 2:
                     # do dpred
@@ -201,35 +203,18 @@ class MultiprocessingMetaSimulation(MetaSimulation):
 
         if n_processes is None:
             n_processes = cpu_count()
-        print(f"starting with {n_processes} processes")
 
         # split simulation,mappings up into chunks
         # (Which are currently defined using MetaSimulations)
         n_sim = len(simulations)
-        print(n_sim)
         chunk_sizes = min(n_processes, n_sim) * [n_sim // n_processes]
         for i in range(n_sim % n_processes):
             chunk_sizes[i] += 1
 
-        print("chunk sizes:", chunk_sizes)
-
-        self._sim_processes = []
         i_start = 0
         chunk_nd = []
-        sim_futures = []
-
-        for _ in range(len(chunk_sizes)):
-            print("creating process")
-            self._sim_processes.append(_SimulationProcess())
-        print("processes created")
-
-        for p in self._sim_processes:
-            print("starting process")
-            p.start()
-        print("processes started")
-
+        self._sim_processes = []
         for p, chunk in zip(self._sim_processes, chunk_sizes):
-            print(f"sending chunk {chunk}.")
             if chunk == 0:
                 continue
             i_end = i_start + chunk
@@ -237,9 +222,12 @@ class MultiprocessingMetaSimulation(MetaSimulation):
                 self.simulations[i_start:i_end], self.mappings[i_start:i_end]
             )
             chunk_nd.append(sim_chunk.survey.nD)
-            print("sending sim")
+
+            p = _SimulationProcess()
+            self._sim_processes.append(p)
+            p.start()
             p.set_sim(sim_chunk)
-            print("sent sim")
+
             i_start = i_end
 
         self._data_offsets = np.cumsum(np.r_[0, chunk_nd])
