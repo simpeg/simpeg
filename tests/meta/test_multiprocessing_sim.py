@@ -67,8 +67,11 @@ def test_meta_correctness():
         print("test B")
 
         # test data output
+        print("serial")
         d_full = serial_sim.dpred(m_test, f=f_serial)
+        print("done")
         d_mult = parallel_sim.dpred(m_test, f=f_parallel)
+        print("parallel done")
         np.testing.assert_allclose(d_full, d_mult)
         print("test C")
 
