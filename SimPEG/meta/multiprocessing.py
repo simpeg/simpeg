@@ -213,7 +213,7 @@ class MultiprocessingMetaSimulation(MetaSimulation):
 
         i_start = 0
         chunk_nd = []
-        self._sim_processes = []
+        processes = []
         for chunk in chunk_sizes:
             if chunk == 0:
                 continue
@@ -222,14 +222,13 @@ class MultiprocessingMetaSimulation(MetaSimulation):
                 self.simulations[i_start:i_end], self.mappings[i_start:i_end]
             )
             chunk_nd.append(sim_chunk.survey.nD)
-
             p = _SimulationProcess()
-            self._sim_processes.append(p)
+            processes.append(p)
             p.start()
             p.set_sim(sim_chunk)
-
             i_start = i_end
 
+        self._sim_processes = processes
         self._data_offsets = np.cumsum(np.r_[0, chunk_nd])
 
     @MetaSimulation.model.setter
