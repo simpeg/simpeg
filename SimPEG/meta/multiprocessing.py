@@ -81,6 +81,9 @@ class _SimulationProcess(Process):
                     f_key = uuid.uuid4().hex
                     r_queue.put(f_key)
                     print("fields?")
+                    print(sim_key)
+                    print(sim)
+                    print(sim.model)
                     fields = sim.fields(sim.model)
                     print("fields!")
                     _cached_items[f_key] = fields
@@ -302,11 +305,11 @@ class MultiprocessingMetaSimulation(MetaSimulation):
             self._jtjdiag = np.sum(jtj_diag, axis=0)
         return self._jtjdiag
 
-    def join(self):
+    def join(self, timeout=None):
         for p in self._sim_processes:
             if p.is_alive():
                 p.task_queue.put(None)
-                p.join()
+                p.join(timeout=timeout)
 
 
 class MultiprocessingSumMetaSimulation(
