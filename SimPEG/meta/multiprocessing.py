@@ -87,25 +87,31 @@ class _SimulationProcess(Process):
                     sim_key, f_key = args
                     sim = _cached_items[sim_key]
                     fields = _cached_items[f_key]
-                    r_queue.put(sim.dpred(sim.model, fields))
+                    print("dpred?")
+                    d_pred = sim.dpred(sim.model, fields)
+                    print("dpred!")
+                    r_queue.put(d_pred)
                 elif op == 3:
                     # do jvec
                     sim_key, v, f_key = args
                     sim = _cached_items[sim_key]
                     fields = _cached_items[f_key]
-                    r_queue.put(sim.Jvec(sim.model, v, fields))
+                    jvec = sim.Jvec(sim.model, v, fields)
+                    r_queue.put(jvec)
                 elif op == 4:
                     # do jtvec
                     sim_key, v, f_key = args
                     sim = _cached_items[sim_key]
                     fields = _cached_items[f_key]
-                    r_queue.put(sim.Jtvec(sim.model, v, fields))
+                    jtvec = sim.Jtvec(sim.model, v, fields)
+                    r_queue.put(jtvec)
                 elif op == 5:
                     # do jtj_diag
                     sim_key, w, f_key = args
                     sim = _cached_items[sim_key]
                     fields = _cached_items[f_key]
-                    r_queue.put(sim.getJtJdiag(sim.model, w, fields))
+                    jtj = sim.getJtJdiag(sim.model, w, fields)
+                    r_queue.put(jtj)
             except Exception as err:
                 r_queue.put(err)
 
