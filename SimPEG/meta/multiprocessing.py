@@ -214,7 +214,7 @@ class MultiprocessingMetaSimulation(MetaSimulation):
         i_start = 0
         chunk_nd = []
         self._sim_processes = []
-        for p, chunk in zip(self._sim_processes, chunk_sizes):
+        for chunk in chunk_sizes:
             if chunk == 0:
                 continue
             i_end = i_start + chunk
