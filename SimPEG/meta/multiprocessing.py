@@ -207,12 +207,23 @@ class MultiprocessingMetaSimulation(MetaSimulation):
 
         print("chunk sizes:", chunk_sizes)
 
-        processes = []
+        self._sim_processes = []
         i_start = 0
         chunk_nd = []
         sim_futures = []
-        for chunk in chunk_sizes:
-            print(f"chunking {chunk}.")
+
+        for _ in range(len(chunk_sizes)):
+            print("creating process")
+            self._sim_processes.append(_SimulationProcess())
+        print("processes created")
+
+        for p in self._sim_processes:
+            print("starting process")
+            p.start()
+        print("processes started")
+
+        for p, chunk in zip(self._sim_processes, chunk_sizes):
+            print(f"sending chunk {chunk}.")
             if chunk == 0:
                 continue
             i_end = i_start + chunk
@@ -220,18 +231,12 @@ class MultiprocessingMetaSimulation(MetaSimulation):
                 self.simulations[i_start:i_end], self.mappings[i_start:i_end]
             )
             chunk_nd.append(sim_chunk.survey.nD)
-            print("creating process")
-            p = _SimulationProcess()
-            processes.append(p)
-            print("starting process")
-            p.start()
-            print("started")
+            print("sending sim")
             p.set_sim(sim_chunk)
             print("sent sim")
             i_start = i_end
 
         self._data_offsets = np.cumsum(np.r_[0, chunk_nd])
-        self._sim_processes = processes
 
     @MetaSimulation.model.setter
     def model(self, value):
