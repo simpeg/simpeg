@@ -192,6 +192,15 @@ class MultiprocessingMetaSimulation(MetaSimulation):
     any other multiprocessing queue.
 
     >>> sim.close()
+
+    Notes
+    -----
+    On Unix systems with python version 3.8 the default `fork` method of starting the
+    processes has lead to program stalls in certain cases. If you encounter this
+    try setting the start method to `spawn'.
+
+    >>> import multiprocessing as mp
+    >>> mp.set_start_method("spawn")
     """
 
     def __init__(self, simulations, mappings, n_processes=None):
