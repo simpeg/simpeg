@@ -1,4 +1,6 @@
 import numpy as np
+import multiprocessing as mp
+import sys
 
 from SimPEG.potential_fields import gravity
 from SimPEG.electromagnetics.static import resistivity as dc
@@ -14,6 +16,9 @@ from SimPEG.meta import (
     MultiprocessingSumMetaSimulation,
     MultiprocessingRepeatedSimulation,
 )
+
+if sys.version[0] == 3 and sys.version_info[1] <= 8:
+    mp.set_start_method("spawn")
 
 
 def test_meta_correctness():
