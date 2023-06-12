@@ -80,21 +80,14 @@ class _SimulationProcess(Process):
                     sim = _cached_items[sim_key]
                     f_key = uuid.uuid4().hex
                     r_queue.put(f_key)
-                    print("fields?")
-                    print(sim_key)
-                    print(sim)
-                    print(sim.model)
                     fields = sim.fields(sim.model)
-                    print("fields!")
                     _cached_items[f_key] = fields
                 elif op == 2:
                     # do dpred
                     sim_key, f_key = args
                     sim = _cached_items[sim_key]
                     fields = _cached_items[f_key]
-                    print("dpred?")
                     d_pred = sim.dpred(sim.model, fields)
-                    print("dpred!")
                     r_queue.put(d_pred)
                 elif op == 3:
                     # do jvec
@@ -374,10 +367,6 @@ class MultiprocessingRepeatedSimulation(
 
         if n_processes is None:
             n_processes = cpu_count()
-
-        if n_processes is None:
-            n_processes = cpu_count()
-        print(f"starting with {n_processes} processes")
 
         # split mappings up into chunks
         n_sim = len(mappings)
