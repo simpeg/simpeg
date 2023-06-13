@@ -3008,13 +3008,25 @@ class SaveIterationsGeoH5(InversionDirective):
 
         with Workspace(self._h5_file) as w_s:
             h5_object = w_s.get_entity(self.h5_object)[0]
-            child_names = [k.name for k in h5_object.parent.children]
+            child_names = {k.name: k for k in h5_object.parent.children}
             if "SimPEG.out" in child_names:
-                file_entity = h5_object.parent.children[child_names.index("SimPEG.out")]
+                file_entity = child_names["SimPEG.out"]
             else:
                 file_entity = h5_object.parent.add_file(filepath)
 
             file_entity.values = raw_file
+
+            log_file = os.path.join(dirpath, "SimPEG.log")
+            if os.path.isfile(log_file):
+                with open(log_file, "rb") as f:
+                    raw_file = f.read()
+
+                if "SimPEG.log" in child_names:
+                    file_entity = child_names["SimPEG.log"]
+                else:
+                    file_entity = h5_object.parent.add_file(log_file)
+
+                file_entity.values = raw_file
 
     @property
     def joint_index(self):
