@@ -6,6 +6,8 @@ import numpy as np
 
 
 class SimpleFuture:
+    """Represents an object stored on a seperate simulation process."""
+
     def __init__(self, item_id, t_queue, r_queue):
         self.item_id = item_id
         self.t_queue = t_queue
@@ -172,7 +174,11 @@ class MultiprocessingMetaSimulation(MetaSimulation):
     """Multiprocessing version of simulation of simulations.
 
     This class makes use of the `multiprocessing` module to provide
-    concurrency, executing the internal simulations in parallel.
+    concurrency, executing the internal simulations in parallel. This class
+    is meant to be a (mostly) drop in replacement for :class:`.MetaSimulation`.
+    If you want to test your implementation, we recommend starting with a
+    small problem using `MetaSimulation`, then switching it to this class.
+    the serial version of this class is good for testing correctness.
 
     If using this class, please be conscious of your operating system's
     default method of spawning new processes. On Windows systems this
@@ -192,6 +198,20 @@ class MultiprocessingMetaSimulation(MetaSimulation):
     any other multiprocessing queue.
 
     >>> sim.close()
+
+    Parameters
+    ----------
+    simulations : (n_sim) list of SimPEG.simulation.BaseSimulation
+        The list of unique simulations that each handle a piece
+        of the problem.
+    mappings : (n_sim) list of SimPEG.maps.IdentityMap
+        The map for every simulation. Every map should accept the
+        same length model, and output a model appropriate for its
+        paired simulation.
+    n_processes : optional
+        The number of processes to spawn internally. This will default
+        to `multiprocessing.cpu_count()`. The number of processes spawned
+        will be the minimum of this number and the number of simulations.
 
     Notes
     -----
@@ -245,6 +265,20 @@ class MultiprocessingMetaSimulation(MetaSimulation):
                 p.store_model(self._model)
 
     def fields(self, m):
+        """Create fields for every simulation.
+
+        The returned list contains the field object from each simulation.
+
+        Parameters
+        ----------
+        m : array_like
+            The full model vector.
+
+        Returns
+        -------
+        (n_sim) list of SimpleFuture
+            The list of references to the fields stored on the separate processes.
+        """
         self.model = m
         # The above should pass the model to all the internal simulations.
         f = []
@@ -317,6 +351,26 @@ class MultiprocessingMetaSimulation(MetaSimulation):
 class MultiprocessingSumMetaSimulation(
     MultiprocessingMetaSimulation, SumMetaSimulation
 ):
+    """A multiprocessing version of :class:`.SumMetaSimulation`.
+
+    See the documentation of :class:`.MultiprocessingMetaSimulation` for
+    details on how to use multiprocessing for you operating system.
+
+    Parameters
+    ----------
+    simulations : (n_sim) list of SimPEG.simulation.BaseSimulation
+        The list of unique simulations that each handle a piece
+        of the problem.
+    mappings : (n_sim) list of SimPEG.maps.IdentityMap
+        The map for every simulation. Every map should accept the
+        same length model, and output a model appropriate for its
+        paired simulation.
+    n_processes : optional
+        The number of processes to spawn internally. This will default
+        to `multiprocessing.cpu_count()`. The number of processes spawned
+        will be the minimum of this number and the number of simulations.
+    """
+
     def dpred(self, m=None, f=None):
         if f is None:
             if m is None:
@@ -370,6 +424,27 @@ class MultiprocessingSumMetaSimulation(
 class MultiprocessingRepeatedSimulation(
     MultiprocessingMetaSimulation, RepeatedSimulation
 ):
+    """A multiprocessing version of the :class:`.RepeatedSimulation`.
+
+    This class makes use of a single simulation that is copied to each internal
+    process, but only once per process.
+
+    This simulation shares internals with the :class:`.MultiprocessingMetaSimulation`.
+    class, as such please see that documentation for details regarding how to properly
+    use multiprocessing on your operating system.
+
+    Parameters
+    ----------
+    simulation : SimPEG.simulation.BaseSimulation
+        The simulation to use repeatedly with different mappings.
+    mappings : (n_sim) list of SimPEG.maps.IdentityMap
+        The list of different mappings to use.
+    n_processes : optional
+        The number of processes to spawn internally. This will default
+        to `multiprocessing.cpu_count()`. The number of processes spawned
+        will be the minimum of this number and the number of simulations.
+    """
+
     def __init__(self, simulation, mappings, n_processes=None):
         # do this to call the initializer of the Repeated Sim
         super(MultiprocessingMetaSimulation, self).__init__(simulation, mappings)

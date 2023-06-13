@@ -40,7 +40,13 @@ requirements.
 
 Multiprocessing
 ---------------
-Coming soon!
+
+.. autosummary::
+  :toctree: generated/
+
+  MultiprocessingMetaSimulation
+  MultiprocessingSumMetaSimulation
+  MultiprocessingRepeatedSimulation
 
 Dask
 ----
