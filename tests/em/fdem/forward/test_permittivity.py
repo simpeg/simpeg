@@ -7,8 +7,6 @@ import geoana
 import discretize
 from discretize import utils
 from SimPEG.electromagnetics import frequency_domain as fdem
-from SimPEG.electromagnetics import resistivity as dc
-from SimPEG import utils, maps, Report
 from pymatsolver import Pardiso
 
 
@@ -282,14 +280,12 @@ def test_cross_check_e_dipole(epsilon_r, frequency):
         name1="J-formulation",
         name2="H-formulation",
     )
-    assert np.all(h_comparison)
+    assert np.all(b_comparison)
 
 
 @pytest.mark.parametrize("epsilon_r", epsilon_r_list)
 @pytest.mark.parametrize("frequency", frequency_list)
 def test_cross_check_b_dipole(epsilon_r, frequency):
-    tolerance = 1e-8
-
     sigma_back = 1e-2
     epsilon_r_back = 1
 
@@ -374,4 +370,4 @@ def test_cross_check_b_dipole(epsilon_r, frequency):
         name1="B-formulation",
         name2="E-formulation",
     )
-    assert np.all(e_comparison)
+    assert np.all(j_comparison)

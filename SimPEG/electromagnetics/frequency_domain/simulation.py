@@ -1,6 +1,5 @@
 import numpy as np
 import scipy.sparse as sp
-from scipy.constants import epsilon_0
 from discretize.utils import Zero
 
 from ... import props
