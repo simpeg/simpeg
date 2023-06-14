@@ -32,7 +32,6 @@ class StepOff(BaseVRMWaveform):
     """
 
     def __init__(self, t0=0.0):
-
         self.t0 = t0
 
     @property

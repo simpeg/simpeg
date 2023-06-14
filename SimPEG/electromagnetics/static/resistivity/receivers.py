@@ -1,9 +1,6 @@
-import numpy as np
-
 from ....utils import (
     sdiag,
     validate_string,
-    validate_float,
     validate_ndarray_with_shape,
 )
 from ....survey import BaseRx as BaseSimPEGRx
@@ -38,6 +35,7 @@ class BaseRx(BaseSimPEGRx):
         self.orientation = orientation
         self.data_type = data_type
         self.projField = projField
+        self._geometric_factor = {}
 
     @property
     def orientation(self):
@@ -55,8 +53,6 @@ class BaseRx(BaseSimPEGRx):
         if var is not None:
             var = validate_string("orientation", var, ("x", "y", "z"))
         self._orientation = var
-
-    _geometric_factor = {}
 
     # @property
     # def projField(self):
@@ -157,7 +153,7 @@ class BaseRx(BaseSimPEGRx):
     #         return f._GLoc(self.projField) + self.orientation
     #     return f._GLoc(self.projField)
 
-    def eval(self, src, mesh, f):
+    def eval(self, src, mesh, f):  # noqa: A003
         """Project fields from the mesh to the receiver(s).
 
         Parameters

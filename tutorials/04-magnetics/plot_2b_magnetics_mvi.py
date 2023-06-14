@@ -26,8 +26,8 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 
 from discretize import TreeMesh
-from discretize.utils import mkvc, refine_tree_xyz
-from SimPEG.utils import plot2Ddata, model_builder, surface2ind_topo, mat_utils
+from discretize.utils import mkvc, refine_tree_xyz, active_from_xyz
+from SimPEG.utils import plot2Ddata, model_builder, mat_utils
 from SimPEG import maps
 from SimPEG.potential_fields import magnetics
 
@@ -43,7 +43,7 @@ from SimPEG.potential_fields import magnetics
 #
 
 [x_topo, y_topo] = np.meshgrid(np.linspace(-200, 200, 41), np.linspace(-200, 200, 41))
-z_topo = -15 * np.exp(-(x_topo ** 2 + y_topo ** 2) / 80 ** 2)
+z_topo = -15 * np.exp(-(x_topo**2 + y_topo**2) / 80**2)
 x_topo, y_topo, z_topo = mkvc(x_topo), mkvc(y_topo), mkvc(z_topo)
 xyz_topo = np.c_[x_topo, y_topo, z_topo]
 
@@ -153,7 +153,7 @@ background_susceptibility = 0.0001
 sphere_susceptibility = 0.01
 
 # Find cells active in the forward modeling (cells below surface)
-ind_active = surface2ind_topo(mesh, xyz_topo)
+ind_active = active_from_xyz(mesh, xyz_topo)
 
 # Define mapping from model to active cells
 nC = int(ind_active.sum())

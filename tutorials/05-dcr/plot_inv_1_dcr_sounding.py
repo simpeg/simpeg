@@ -102,11 +102,16 @@ k = np.r_[k, len(k) + 1]
 
 source_list = []
 for ii in range(0, n_sources):
-
     # MN electrode locations for receivers. Each is an (N, 3) numpy array
     M_locations = M_electrodes[k[ii] : k[ii + 1], :]
     N_locations = N_electrodes[k[ii] : k[ii + 1], :]
-    receiver_list = [dc.receivers.Dipole(M_locations, N_locations)]
+    receiver_list = [
+        dc.receivers.Dipole(
+            M_locations,
+            N_locations,
+            data_type="apparent_resistivity",
+        )
+    ]
 
     # AB electrode locations for source. Each is a (1, 3) numpy array
     A_location = A_electrodes[k[ii], :]
@@ -200,7 +205,6 @@ simulation = dc.simulation_1d.Simulation1DLayers(
     survey=survey,
     rhoMap=model_map,
     thicknesses=layer_thicknesses,
-    data_type="apparent_resistivity",
 )
 
 

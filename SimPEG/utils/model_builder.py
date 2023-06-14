@@ -201,7 +201,7 @@ def create_ellipse_in_wholespace(
     for i in range(dim):
         G[:, i] = G[:, i] / anisotropy[i] * 2.0
 
-    D = np.sqrt(np.sum(G ** 2, axis=1))
+    D = np.sqrt(np.sum(G**2, axis=1))
     return -np.arctan((D - 1) * slope) * (2.0 / np.pi) / 2.0 + 0.5
 
 
@@ -475,7 +475,7 @@ def create_random_model(shape, seed=1000, anisotropy=None, its=100, bounds=None)
 
     smth = smth / smth.sum()  # normalize
     mi = mr
-    for i in range(its):
+    for _ in range(its):
         mi = ndi.convolve(mi, smth)
 
     # scale the model to live between the bounds.
@@ -517,40 +517,51 @@ def get_indices_polygon(mesh, pts):
 ################################################
 
 
-addBlock = deprecate_function(add_block, "addBlock", removal_version="0.19.0")
+addBlock = deprecate_function(
+    add_block, "addBlock", removal_version="0.19.0", future_warn=True
+)
 
 getIndicesBlock = deprecate_function(
-    get_indices_block, "getIndicesBlock", removal_version="0.19.0"
+    get_indices_block, "getIndicesBlock", removal_version="0.19.0", future_warn=True
 )
 
 defineBlock = deprecate_function(
-    create_block_in_wholespace, "defineBlock", removal_version="0.19.0"
+    create_block_in_wholespace,
+    "defineBlock",
+    removal_version="0.19.0",
+    future_warn=True,
 )
 
 defineEllipse = deprecate_function(
-    create_ellipse_in_wholespace, "defineEllipse", removal_version="0.19.0"
+    create_ellipse_in_wholespace,
+    "defineEllipse",
+    removal_version="0.19.0",
+    future_warn=True,
 )
 
 getIndicesSphere = deprecate_function(
-    get_indices_sphere, "getIndicesSphere", removal_version="0.19.0"
+    get_indices_sphere, "getIndicesSphere", removal_version="0.19.0", future_warn=True
 )
 
 defineTwoLayers = deprecate_function(
-    create_2_layer_model, "defineTwoLayers", removal_version="0.19.0"
+    create_2_layer_model, "defineTwoLayers", removal_version="0.19.0", future_warn=True
 )
 
 layeredModel = deprecate_function(
-    create_layers_model, "layeredModel", removal_version="0.19.0"
+    create_layers_model, "layeredModel", removal_version="0.19.0", future_warn=True
 )
 
 randomModel = deprecate_function(
-    create_random_model, "randomModel", removal_version="0.19.0"
+    create_random_model, "randomModel", removal_version="0.19.0", future_warn=True
 )
 
 polygonInd = deprecate_function(
-    get_indices_polygon, "polygonInd", removal_version="0.19.0"
+    get_indices_polygon, "polygonInd", removal_version="0.19.0", future_warn=True
 )
 
 scalarConductivity = deprecate_function(
-    create_from_function, "scalarConductivity", removal_version="0.19.0"
+    create_from_function,
+    "scalarConductivity",
+    removal_version="0.19.0",
+    future_warn=True,
 )

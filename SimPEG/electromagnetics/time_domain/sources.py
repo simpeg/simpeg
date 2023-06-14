@@ -109,7 +109,7 @@ class BaseWaveform:
     def epsilon(self, value):
         self._epsilon = validate_float("epsilon", value, min_val=0)
 
-    def eval(self, time):
+    def eval(self, time):  # noqa: A003
         """Evaluate current waveform at a given time
 
         Parameters
@@ -195,7 +195,7 @@ class StepOffWaveform(BaseWaveform):
     def __init__(self, off_time=0.0, **kwargs):
         super().__init__(off_time=off_time, has_initial_fields=True, **kwargs)
 
-    def eval(self, time):
+    def eval(self, time):  # noqa: A003
         if (abs(time - 0.0) < self.epsilon) or ((time - self.off_time) < self.epsilon):
             return 1.0
         else:
@@ -228,7 +228,7 @@ class RampOffWaveform(BaseWaveform):
     def __init__(self, off_time=0.0, **kwargs):
         super().__init__(off_time=off_time, has_initial_fields=True, **kwargs)
 
-    def eval(self, time):
+    def eval(self, time):  # noqa: A003
         if abs(time - 0.0) < self.epsilon:
             return 1.0
         elif time < self.off_time:
@@ -313,7 +313,7 @@ class RawWaveform(BaseWaveform):
     def waveform_function(self, value):
         self._waveform_function = validate_callable("waveform_function", value)
 
-    def eval(self, time):
+    def eval(self, time):  # noqa: A003
         return self.waveform_function(time)
 
     waveFct = deprecate_property(
@@ -395,7 +395,7 @@ class VTEMWaveform(BaseWaveform):
         value = validate_float("ramp_on_rate", value, min_val=0.0, inclusive_min=False)
         self._ramp_on_rate = value
 
-    def eval(self, time):
+    def eval(self, time):  # noqa: A003
         if time <= self.peak_time:
             return (1.0 - np.exp(-self.ramp_on_rate * time / self.peak_time)) / (
                 1.0 - np.exp(-self.ramp_on_rate)
@@ -522,7 +522,7 @@ class TrapezoidWaveform(BaseWaveform):
             "ramp_off", value, shape=(2,), dtype=float
         )
 
-    def eval(self, time):
+    def eval(self, time):  # noqa: A003
         if time < self.ramp_on[0]:
             return 0
         elif time >= self.ramp_on[0] and time <= self.ramp_on[1]:
@@ -583,7 +583,6 @@ class TriangularWaveform(TrapezoidWaveform):
     """
 
     def __init__(self, start_time, off_time, peak_time, **kwargs):
-
         if kwargs.get("startTime", None):
             AttributeError(
                 "startTime will be deprecated in 0.17.0. Please update your code to use start_time instead",
@@ -667,7 +666,7 @@ class QuarterSineRampOnWaveform(TrapezoidWaveform):
     def __init__(self, ramp_on, ramp_off, **kwargs):
         super().__init__(ramp_on=ramp_on, ramp_off=ramp_off, **kwargs)
 
-    def eval(self, time):
+    def eval(self, time):  # noqa: A003
         if time < self.ramp_on[0]:
             return 0
         elif time >= self.ramp_on[0] and time <= self.ramp_on[1]:
@@ -730,7 +729,7 @@ class HalfSineWaveform(TrapezoidWaveform):
     def __init__(self, ramp_on, ramp_off, **kwargs):
         super().__init__(ramp_on=ramp_on, ramp_off=ramp_off, **kwargs)
 
-    def eval(self, time):
+    def eval(self, time):  # noqa: A003
         if time < self.ramp_on[0]:
             return 0
         elif time >= self.ramp_on[0] and time <= self.ramp_on[1]:
@@ -843,7 +842,7 @@ class PiecewiseLinearWaveform(BaseWaveform):
             "currents", val, shape=("*",), dtype=float
         )
 
-    def eval(self, time):
+    def eval(self, time):  # noqa: A003
         times = self.times
         currents = self.currents
         if time <= times[0]:
@@ -975,7 +974,7 @@ class ExponentialWaveform(BaseWaveform):
         value = validate_float("ramp_on_tau", value, min_val=0.0, inclusive_min=False)
         self._ramp_on_tau = value
 
-    def eval(self, time):
+    def eval(self, time):  # noqa: A003
         if time <= self.start_time:
             return 0.0
         elif time <= self.peak_time:
@@ -1036,11 +1035,12 @@ class BaseTDEMSrc(BaseEMSrc):
         self,
         receiver_list=None,
         location=None,
-        waveform=StepOffWaveform(),
+        waveform=None,
         srcType=None,
         **kwargs,
     ):
-
+        if waveform is None:
+            waveform = StepOffWaveform()
         super(BaseTDEMSrc, self).__init__(
             receiver_list=receiver_list, location=location, **kwargs
         )
@@ -1122,7 +1122,7 @@ class BaseTDEMSrc(BaseEMSrc):
         """Returns :class:`Zero` for ``BaseTDEMSrc``"""
         return Zero()
 
-    def eval(self, simulation, time):
+    def eval(self, simulation, time):  # noqa: A003
         """Return magnetic and electric source terms at a given time
 
         Parameters
@@ -1502,7 +1502,6 @@ class MagDipole(BaseTDEMSrc):
                 return C.T * (MfMui * b) * self.waveform.eval(time)
 
         elif simulation._formulation == "HJ":
-
             h = 1.0 / self.mu * b
 
             if (
@@ -1627,7 +1626,7 @@ class CircularLoop(MagDipole):
         float
             Dipole moment of the loop
         """
-        return np.pi * self.radius ** 2 * self.current * self.n_turns
+        return np.pi * self.radius**2 * self.current * self.n_turns
 
     @moment.setter
     def moment(self, value):
@@ -1700,7 +1699,6 @@ class LineCurrent(BaseTDEMSrc):
         srcType=None,
         **kwargs,
     ):
-
         super().__init__(receiver_list=receiver_list, location=location, **kwargs)
         for rx in self.receiver_list:
             if getattr(rx, "use_source_receiver_offset", False):

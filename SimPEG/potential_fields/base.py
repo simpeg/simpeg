@@ -1,13 +1,14 @@
 import os
+from multiprocessing.pool import Pool
 
 import discretize
 import numpy as np
-import warnings
-from ..simulation import LinearSimulation
 from scipy.sparse import csr_matrix as csr
+
 from SimPEG.utils import mkvc
-from ..utils import validate_string, validate_active_indices, validate_integer
-from multiprocessing.pool import Pool
+
+from ..simulation import LinearSimulation
+from ..utils import validate_active_indices, validate_integer, validate_string
 
 ###############################################################################
 #                                                                             #
@@ -41,11 +42,28 @@ class BasePFSimulation(LinearSimulation):
 
         - 'ram': sensitivities are stored in the computer's RAM
         - 'disk': sensitivities are written to a directory
-        - 'forward_only': you intend only do perform a forward simulation and sensitivities do no need to be stored
+        - 'forward_only': you intend only do perform a forward simulation and sensitivities do not need to be stored
 
     n_processes : None or int, optional
         The number of processes to use in the internal multiprocessing pool for forward
-        modeling.
+        modeling. The default value of 1 will not use multiprocessing. Any other setting
+        will. `None` implies setting by the number of cpus.
+
+    Notes
+    -----
+    If using multiprocessing by setting `n_processes` to a value other than 1, you must
+    be aware of the method your operating system uses to spawn the subprocesses. On
+    Windows the default method starts new processes that all import the main script.
+    Therefor you must protect the calls to this class by testing if you are in
+    the main process with:
+
+    >>> from SimPEG.potential_fields import gravity
+    >>> if __name__ == '__main__':
+    ...     # Do your processing here
+    ...     sim = gravity.Simulation3DIntegral(n_processes=4, ...)
+    ...     sim.dpred(m)
+
+    This usually does not affect jupyter notebook environments.
     """
 
     def __init__(
@@ -53,10 +71,9 @@ class BasePFSimulation(LinearSimulation):
         mesh,
         ind_active=None,
         store_sensitivities="ram",
-        n_processes=None,
+        n_processes=1,
         **kwargs,
     ):
-
         # If deprecated property set with kwargs
         if "actInd" in kwargs:
             raise AttributeError(
@@ -74,13 +91,13 @@ class BasePFSimulation(LinearSimulation):
         self.n_processes = n_processes
 
         # Find non-zero cells indices
-        if ind_active is not None:
-            ind_active = validate_active_indices("ind_active", ind_active, mesh.n_cells)
-        else:
+        if ind_active is None:
             ind_active = np.ones(mesh.n_cells, dtype=bool)
+        else:
+            ind_active = validate_active_indices("ind_active", ind_active, mesh.n_cells)
         self._ind_active = ind_active
 
-        self.nC = sum(ind_active)
+        self.nC = int(sum(ind_active))
 
         if isinstance(mesh, discretize.TensorMesh):
             nodes = mesh.nodes
@@ -150,7 +167,7 @@ class BasePFSimulation(LinearSimulation):
 
     @property
     def ind_active(self):
-        """Active topography cells
+        """Active topography cells.
 
         Returns
         -------
@@ -168,7 +185,7 @@ class BasePFSimulation(LinearSimulation):
         )
 
     def linear_operator(self):
-        """Return linear operator
+        """Return linear operator.
 
         Returns
         -------
@@ -187,11 +204,16 @@ class BasePFSimulation(LinearSimulation):
                     print(f"Found sensitivity file at {sens_name} with expected shape")
                     kernel = np.asarray(kernel)
                     return kernel
-        # multiprocessed
-        with Pool(processes=self.n_processes) as pool:
-            kernel = pool.starmap(
-                self.evaluate_integral, self.survey._location_component_iterator()
-            )
+        if self.n_processes == 1:
+            kernel = []
+            for args in self.survey._location_component_iterator():
+                kernel.append(self.evaluate_integral(*args))
+        else:
+            # multiprocessed
+            with Pool(processes=self.n_processes) as pool:
+                kernel = pool.starmap(
+                    self.evaluate_integral, self.survey._location_component_iterator()
+                )
         if self.store_sensitivities != "forward_only":
             kernel = np.vstack(kernel)
         else:
@@ -204,35 +226,36 @@ class BasePFSimulation(LinearSimulation):
 
 
 class BaseEquivalentSourceLayerSimulation(BasePFSimulation):
-    """Base equivalent source layer simulation class
+    """Base equivalent source layer simulation class.
 
     Parameters
     ----------
     mesh : discretize.BaseMesh
         A 2D tensor or tree mesh defining discretization along the x and y directions
     cell_z_top : numpy.ndarray or float
-        Define the elevations for the top face of all cells in the layer
+        Define the elevations for the top face of all cells in the layer. If an array,
+        it should be the same size as the active cell set.
     cell_z_bottom : numpy.ndarray or float
-        Define the elevations for the bottom face of all cells in the layer
-
+        Define the elevations for the bottom face of all cells in the layer. If an array,
+        it should be the same size as the active cell set.
     """
 
     def __init__(self, mesh, cell_z_top, cell_z_bottom, **kwargs):
-
         if mesh.dim != 2:
             raise AttributeError("Mesh to equivalent source layer must be 2D.")
 
         super().__init__(mesh, **kwargs)
 
         if isinstance(cell_z_top, (int, float)):
-            cell_z_top = float(cell_z_top) * np.ones(mesh.nC)
+            cell_z_top = float(cell_z_top) * np.ones(self.nC)
 
         if isinstance(cell_z_bottom, (int, float)):
-            cell_z_bottom = float(cell_z_bottom) * np.ones(mesh.nC)
+            cell_z_bottom = float(cell_z_bottom) * np.ones(self.nC)
 
-        if (mesh.nC != len(cell_z_top)) | (mesh.nC != len(cell_z_bottom)):
+        if (self.nC != len(cell_z_top)) | (self.nC != len(cell_z_bottom)):
             raise AttributeError(
-                "'cell_z_top' and 'cell_z_bottom' must have length equal to number of cells."
+                "'cell_z_top' and 'cell_z_bottom' must have length equal to number of",
+                "cells, and match the number of active cells.",
             )
 
         all_nodes = self._nodes[self._unique_inv]
@@ -250,12 +273,12 @@ class BaseEquivalentSourceLayerSimulation(BasePFSimulation):
         self._unique_inv = None
 
 
-def progress(iter, prog, final):
-    """Progress (% complete) for constructing sensitivity matrix
+def progress(iteration, prog, final):
+    """Progress (% complete) for constructing sensitivity matrix.
 
     Parameters
     ----------
-    iter : int
+    iteration : int
         Current rows
     prog : float
         Progress
@@ -267,10 +290,9 @@ def progress(iter, prog, final):
     float
         % completed
     """
-    arg = np.floor(float(iter) / float(final) * 10.0)
+    arg = np.floor(float(iteration) / float(final) * 10.0)
 
     if arg > prog:
-
         print("Done " + str(arg * 10) + " %")
         prog = arg
 
@@ -278,7 +300,7 @@ def progress(iter, prog, final):
 
 
 def get_dist_wgt(mesh, receiver_locations, actv, R, R0):
-    """Compute distance weights for potential field simulations
+    """Compute distance weights for potential field simulations.
 
     Parameters
     ----------
@@ -298,7 +320,6 @@ def get_dist_wgt(mesh, receiver_locations, actv, R, R0):
     wr : (n_cell) numpy.ndarray
         Distance weighting model; 0 for all inactive cells
     """
-
     # Find non-zero cells
     if actv.dtype == "bool":
         inds = (
@@ -339,7 +360,6 @@ def get_dist_wgt(mesh, receiver_locations, actv, R, R0):
     print("Begin calculation of distance weighting for R= " + str(R))
 
     for dd in range(ndata):
-
         nx1 = (Xm - hX * p - receiver_locations[dd, 0]) ** 2
         nx2 = (Xm + hX * p - receiver_locations[dd, 0]) ** 2
 

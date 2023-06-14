@@ -16,7 +16,6 @@ addrandoms = True
 def JvecAdjointTest(
     inputSetup, comp="All", freq=False, testLocations=False, testSingle=False
 ):
-
     if testLocations:
         if testSingle:
             (
@@ -63,7 +62,6 @@ def JvecAdjointTest(
 
 
 class NSEM_3D_AdjointTests(unittest.TestCase):
-
     # Test the adjoint of Jvec and Jtvec
     def test_JvecAdjoint_zxx(self):
         self.assertTrue(

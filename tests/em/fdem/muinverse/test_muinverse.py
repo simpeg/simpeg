@@ -2,7 +2,6 @@ import discretize
 from SimPEG import maps, utils, tests
 from SimPEG.electromagnetics import frequency_domain as fdem
 import numpy as np
-from scipy.constants import mu_0
 
 import unittest
 
@@ -85,7 +84,6 @@ def setupProblem(
     survey = fdem.Survey([src])
 
     if sigmaInInversion:
-
         wires = maps.Wires(("mu", mesh.nC), ("sigma", mesh.nC))
 
         muMap = maps.MuRelative(mesh) * wires.mu
@@ -141,12 +139,12 @@ class MuTests(unittest.TestCase):
         self.setUpProb()
         u = self.simulation.fields(self.m0)
 
-        MeMu = self.simulation.MeMu
-        MeMuI = self.simulation.MeMuI
-        MfMui = self.simulation.MfMui
-        MfMuiI = self.simulation.MfMuiI
-        MeMuDeriv = self.simulation.MeMuDeriv(u[:, "e"])
-        MfMuiDeriv = self.simulation.MfMuiDeriv(u[:, "b"])
+        self.simulation.MeMu
+        self.simulation.MeMuI
+        self.simulation.MfMui
+        self.simulation.MfMuiI
+        self.simulation.MeMuDeriv(u[:, "e"])
+        self.simulation.MfMuiDeriv(u[:, "b"])
         MfMuiDeriv_zero = self.simulation.MfMuiDeriv(utils.Zero())
         MfMuiIDeriv_zero = self.simulation.MfMuiIDeriv(utils.Zero())
         MeMuDeriv_zero = self.simulation.MeMuDeriv(utils.Zero())

@@ -6,12 +6,13 @@ from .utils import mkvc, validate_type
 
 class Fields:
     """Fancy Field Storage
-    .. code::python
-        fields = Fields(
-            simulation=simulation, knownFields={"phi": "CC"}
-        )
-        fields[:,'phi'] = phi
-        print(fields[src0,'phi'])
+
+    Examples
+    --------
+    >>> fields = Fields(
+    ...     simulation=simulation, knownFields={"phi": "CC"}
+    ... )
+    >>> fields[:,'phi'] = phi
     """
 
     _dtype = float
@@ -135,7 +136,7 @@ class Fields:
         sz = 0.0
         for f in self.knownFields:
             loc = self.knownFields[f]
-            sz += np.array(self._storageShape(loc)).prod() * 8.0 / (1024 ** 2)
+            sz += np.array(self._storageShape(loc)).prod() * 8.0 / (1024**2)
         return "{0:e} MB".format(sz)
 
     def _storageShape(self, loc):
@@ -178,7 +179,6 @@ class Fields:
         return ind
 
     def _nameIndex(self, name, accessType):
-
         if type(name) is slice:
             assert name == slice(
                 None, None, None

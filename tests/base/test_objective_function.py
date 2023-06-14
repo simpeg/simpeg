@@ -1,5 +1,6 @@
 import numpy as np
 import scipy.sparse as sp
+import pytest
 import unittest
 
 from SimPEG import utils, maps
@@ -138,10 +139,10 @@ class TestBaseObjFct(unittest.TestCase):
         )
 
         with self.assertRaises(Exception):
-            phi = phi1 + phi2
+            phi1 + phi2
 
         with self.assertRaises(Exception):
-            phi = phi1 + 100 * phi2
+            phi1 + 100 * phi2
 
     def test_emptyObjFct(self):
         phi = Empty_ObjFct()
@@ -312,6 +313,77 @@ class TestBaseObjFct(unittest.TestCase):
 
         with self.assertRaises(Exception):
             phi3.multipliers = ["a", "b"]
+
+
+class TestOperationsComboObjectiveFunctions:
+    """Test arithmetic operations involving ComboObjectiveFunction"""
+
+    @pytest.mark.parametrize("unpack_on_add", (True, False))
+    def test_mul(self, unpack_on_add):
+        """Test if ComboObjectiveFunction multiplication works as expected"""
+        n_params = 10
+        phi1 = objective_function.L2ObjectiveFunction(nP=n_params)
+        phi2 = objective_function.L2ObjectiveFunction(nP=n_params)
+        combo = objective_function.ComboObjectiveFunction(
+            [phi1, phi2], [2, 3], unpack_on_add=unpack_on_add
+        )
+        combo_mul = 3.5 * combo
+        assert len(combo_mul) == 1
+        assert combo_mul.multipliers == [3.5]
+        assert combo_mul.objfcts == [combo]
+
+    @pytest.mark.parametrize("unpack_on_add", (True, False))
+    def test_add(self, unpack_on_add):
+        """Test if ComboObjectiveFunction addition works as expected"""
+        n_params = 10
+        phi1 = objective_function.L2ObjectiveFunction(nP=n_params)
+        phi2 = objective_function.L2ObjectiveFunction(nP=n_params)
+        phi3 = objective_function.L2ObjectiveFunction(nP=n_params)
+        combo_1 = objective_function.ComboObjectiveFunction(
+            [phi1, phi2], [2, 3], unpack_on_add=unpack_on_add
+        )
+        combo_2 = phi3 + combo_1
+        if unpack_on_add:
+            assert len(combo_2) == 3
+            assert combo_2.multipliers == [1, 2, 3]
+            assert combo_2.objfcts == [phi3, phi1, phi2]
+        else:
+            assert len(combo_2) == 2
+            assert combo_2.multipliers == [1, 1]
+            assert combo_2.objfcts == [phi3, combo_1]
+            combo_1 = combo_2.objfcts[1]
+            assert combo_1.multipliers == [2, 3]
+
+    def test_add_multiple_terms(self):
+        """Test addition of multiple BaseObjectiveFunctions"""
+        n_params = 10
+        phi1 = objective_function.L2ObjectiveFunction(nP=n_params)
+        phi2 = objective_function.L2ObjectiveFunction(nP=n_params)
+        phi3 = objective_function.L2ObjectiveFunction(nP=n_params)
+        combo = 1.1 * phi1 + 1.2 * phi2 + 1.3 * phi3
+        assert len(combo) == 3
+        assert combo.multipliers == [1.1, 1.2, 1.3]
+        assert combo.objfcts == [phi1, phi2, phi3]
+
+    @pytest.mark.parametrize("unpack_on_add", (True, False))
+    def test_add_and_mul(self, unpack_on_add):
+        """
+        Test ComboObjectiveFunction addition with multiplication
+
+        After multiplying a Combo with a scalar, the `__mul__` method creates
+        another Combo for it.
+        """
+        n_params = 10
+        phi1 = objective_function.L2ObjectiveFunction(nP=n_params)
+        phi2 = objective_function.L2ObjectiveFunction(nP=n_params)
+        phi3 = objective_function.L2ObjectiveFunction(nP=n_params)
+        combo_1 = objective_function.ComboObjectiveFunction(
+            [phi1, phi2], [2, 3], unpack_on_add=unpack_on_add
+        )
+        combo_2 = 5 * phi3 + 1.2 * combo_1
+        assert len(combo_2) == 2
+        assert combo_2.multipliers == [5, 1.2]
+        assert combo_2.objfcts == [phi3, combo_1]
 
 
 if __name__ == "__main__":

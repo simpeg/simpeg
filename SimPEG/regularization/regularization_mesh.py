@@ -1,6 +1,6 @@
 import numpy as np
 import scipy.sparse as sp
-from SimPEG.utils.code_utils import deprecate_property
+from SimPEG.utils.code_utils import deprecate_property, validate_active_indices
 
 from .. import props
 from .. import utils
@@ -31,7 +31,7 @@ class RegularizationMesh(props.BaseSimPEG):
     def __init__(self, mesh, active_cells=None, **kwargs):
         self.mesh = mesh
         self.active_cells = active_cells
-        utils.setKwargs(self, **kwargs)
+        utils.set_kwargs(self, **kwargs)
 
     @property
     def active_cells(self) -> np.ndarray:
@@ -53,34 +53,7 @@ class RegularizationMesh(props.BaseSimPEG):
                 "The RegulatizationMesh already has an 'active_cells' property set."
             )
         if values is not None:
-            try:
-                values = np.asarray(values)
-            except:
-                raise ValueError("Input 'active_cells' must be array_like.")
-
-            if values.dtype != bool:
-                try:
-                    tmp = np.zeros(self.mesh.nC, dtype=bool)
-                    tmp[values] = True
-                except:
-                    raise ValueError(
-                        "Values must be an array of integers or an array of bools "
-                        "indicating the active cells"
-                    )
-                if np.sum(tmp) != len(values):
-                    # This line should cause an error to be thrown if someone
-                    # accidentally passes a list of 0 & 1 integers instead of passing
-                    # it a list of booleans.
-                    raise ValueError(
-                        "Array was interpretted as a list of active indices and you "
-                        "attempted to set the same cell as active multiple times."
-                    )
-                values = tmp
-
-            if values.shape != (self.mesh.nC,):
-                raise ValueError(
-                    f"Input 'active_cells' must have shape {(self.mesh.nC,)}"
-                )
+            values = validate_active_indices("values", values, self.mesh.nC)
             # Ensure any cached operators created when
             # active_cells was None are deleted
             self._vol = None

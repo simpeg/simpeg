@@ -10,6 +10,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from discretize import TensorMesh
+from discretize.utils import active_from_xyz
 from SimPEG.potential_fields import gravity
 from SimPEG import (
     maps,
@@ -27,7 +28,6 @@ from SimPEG.utils import plot2Ddata
 
 
 def run(plotIt=True):
-
     # Create a mesh
     dx = 5.0
 
@@ -43,13 +43,13 @@ def run(plotIt=True):
 
     # Lets create a simple Gaussian topo and set the active cells
     [xx, yy] = np.meshgrid(mesh.nodes_x, mesh.nodes_y)
-    zz = -np.exp((xx ** 2 + yy ** 2) / 75 ** 2) + mesh.nodes_z[-1]
+    zz = -np.exp((xx**2 + yy**2) / 75**2) + mesh.nodes_z[-1]
 
     # We would usually load a topofile
     topo = np.c_[utils.mkvc(xx), utils.mkvc(yy), utils.mkvc(zz)]
 
     # Go from topo to array of indices of active cells
-    actv = utils.surface2ind_topo(mesh, topo, "N")
+    actv = active_from_xyz(mesh, topo, "N")
     actv = np.where(actv)[0]
     nC = len(actv)
 
@@ -59,7 +59,7 @@ def run(plotIt=True):
     X, Y = np.meshgrid(xr, yr)
 
     # Move the observation points 5m above the topo
-    Z = -np.exp((X ** 2 + Y ** 2) / 75 ** 2) + mesh.nodes_z[-1] + 0.1
+    Z = -np.exp((X**2 + Y**2) / 75**2) + mesh.nodes_z[-1] + 0.1
 
     # Create a GRAVsurvey
     rxLoc = np.c_[utils.mkvc(X.T), utils.mkvc(Y.T), utils.mkvc(Z.T)]
@@ -256,7 +256,8 @@ def run(plotIt=True):
         plt.gca().set_aspect("equal", adjustable="box")
 
         # Plot convergence curves
-        fig, axs = plt.figure(), plt.subplot()
+        plt.figure()
+        axs = plt.subplot()
         axs.plot(saveDict.phi_d, "k", lw=2)
         axs.plot(
             np.r_[update_IRLS.iterStart, update_IRLS.iterStart],

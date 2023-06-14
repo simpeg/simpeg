@@ -1,9 +1,7 @@
 import numpy as np
 import scipy.sparse as sp
-from scipy.constants import mu_0
 from discretize.utils import Zero
 
-from ... import props
 from ...data import Data
 from ...utils import mkvc, validate_type
 from ..base import BaseEMSimulation
@@ -331,7 +329,6 @@ class Simulation3DElectricField(BaseFDEMSimulation):
         return C.T * (self.MfMuiDeriv(C * u) * v)
 
     def getADeriv(self, freq, u, v, adjoint=False):
-
         return self.getADeriv_sigma(freq, u, v, adjoint) + self.getADeriv_mui(
             freq, u, v, adjoint
         )
@@ -358,7 +355,6 @@ class Simulation3DElectricField(BaseFDEMSimulation):
         return C.T * (MfMui * s_m) - 1j * omega(freq) * s_e
 
     def getRHSDeriv(self, freq, src, v, adjoint=False):
-
         """
         Derivative of the Right-hand side with respect to the model. This
         includes calls to derivatives in the sources
@@ -467,8 +463,6 @@ class Simulation3DMagneticFluxDensity(BaseFDEMSimulation):
         # return C * (MeSigmaIDeriv * v)
 
     def getADeriv_mui(self, freq, u, v, adjoint=False):
-
-        MfMui = self.MfMui
         MfMuiDeriv = self.MfMuiDeriv(u)
         MeSigmaI = self.MeSigmaI
         C = self.mesh.edge_curl
@@ -640,7 +634,6 @@ class Simulation3DCurrentDensity(BaseFDEMSimulation):
         """
 
         MeMuI = self.MeMuI
-        MfRho = self.MfRho
         C = self.mesh.edge_curl
 
         if adjoint:
@@ -648,14 +641,7 @@ class Simulation3DCurrentDensity(BaseFDEMSimulation):
             return self.MfRhoDeriv(u, vec, adjoint)
         return C * (MeMuI * (C.T * (self.MfRhoDeriv(u, v, adjoint))))
 
-        # MfRhoDeriv = self.MfRhoDeriv(u)
-        # if adjoint:
-        #     return MfRhoDeriv.T * (C * (MeMuI.T * (C.T * v)))
-
-        # return C * (MeMuI * (C.T * (MfRhoDeriv * v)))
-
     def getADeriv_mu(self, freq, u, v, adjoint=False):
-
         C = self.mesh.edge_curl
         MfRho = self.MfRho
 

@@ -2,7 +2,6 @@ import numpy as np
 from discretize import TensorMesh
 from SimPEG.electromagnetics import natural_source as nsem
 from SimPEG import maps
-import matplotlib.pyplot as plt
 from pymatsolver import Pardiso
 import unittest
 
@@ -13,7 +12,6 @@ TOL_PHASE = 5  # 3 degrees
 
 class FiniteVolume1DTest(unittest.TestCase):
     def setUp(self):
-
         # mesh
         csz = 100
         nc = 300
@@ -49,7 +47,6 @@ class FiniteVolume1DTest(unittest.TestCase):
         self.survey = nsem.survey.Survey(src_list)
 
     def get_simulation(self, formulation="e"):
-
         if formulation == "e":
             return nsem.simulation.Simulation1DElectricField(
                 mesh=self.mesh,

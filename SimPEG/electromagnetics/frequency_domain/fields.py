@@ -1,7 +1,7 @@
 import numpy as np
 from scipy.constants import epsilon_0
 from ...fields import Fields
-from ...utils import mkvc, Zero, Identity, sdiag
+from ...utils import Identity, Zero, mkvc
 from ..utils import omega
 
 
@@ -827,9 +827,6 @@ class Fields3DMagneticFluxDensity(FieldsFDEM):
         :return: primary current density
         """
 
-        n = int(self._aveE2CCV.shape[0] / self._nC)  # number of components
-        # VI = sdiag(np.kron(np.ones(n), 1.0 / self.simulation.mesh.cell_volumes))
-
         j = self._edgeCurl.T * (self._MfMui * bSolution)
 
         for i, src in enumerate(source_list):
@@ -856,7 +853,6 @@ class Fields3DMagneticFluxDensity(FieldsFDEM):
         # forgetting the source term here
 
     def _jDeriv_mui(self, src, v, adjoint=False):
-
         if adjoint:
             return self._MfMuiDeriv(
                 self[src, "b"], (self._edgeCurl * (self._MeI.T * v)), adjoint

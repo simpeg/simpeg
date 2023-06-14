@@ -1,7 +1,7 @@
 import unittest
 import numpy as np
-import pickle
 import inspect
+import pytest
 
 import discretize
 
@@ -11,7 +11,6 @@ from SimPEG import props
 
 
 class SimpleExample(props.HasModel):
-
     sigmaMap = props.Mapping("Mapping to the inversion model.")
 
     sigma = props.PhysicalProperty("Electrical conductivity (S/m)", mapping=sigmaMap)
@@ -27,7 +26,6 @@ class SimpleExample(props.HasModel):
 
 
 class ShortcutExample(props.HasModel):
-
     sigma, sigmaMap, sigmaDeriv = props.Invertible("Electrical conductivity (S/m)")
 
     def __init__(self, sigma=None, sigmaMap=None, **kwargs):
@@ -37,7 +35,6 @@ class ShortcutExample(props.HasModel):
 
 
 class ReciprocalMappingExample(props.HasModel):
-
     sigma, sigmaMap, sigmaDeriv = props.Invertible("Electrical conductivity (S/m)")
 
     rho, rhoMap, rhoDeriv = props.Invertible("Electrical resistivity (Ohm m)")
@@ -53,7 +50,6 @@ class ReciprocalMappingExample(props.HasModel):
 
 
 class ReciprocalExample(props.HasModel):
-
     sigma, sigmaMap, sigmaDeriv = props.Invertible("Electrical conductivity (S/m)")
 
     rho = props.PhysicalProperty("Electrical resistivity (Ohm m)")
@@ -68,7 +64,6 @@ class ReciprocalExample(props.HasModel):
 
 
 class ReciprocalPropExample(props.HasModel):
-
     sigma = props.PhysicalProperty("Electrical conductivity (S/m)")
 
     rho = props.PhysicalProperty("Electrical resistivity (Ohm m)")
@@ -82,7 +77,6 @@ class ReciprocalPropExample(props.HasModel):
 
 
 class ReciprocalPropExampleDefaults(props.HasModel):
-
     sigma = props.PhysicalProperty("Electrical conductivity (S/m)")
 
     rho = props.PhysicalProperty("Electrical resistivity (Ohm m)")
@@ -98,7 +92,6 @@ class ReciprocalPropExampleDefaults(props.HasModel):
 
 
 class ComplicatedInversion(props.HasModel):
-
     Ks, KsMap, KsDeriv = props.Invertible("Saturated hydraulic conductivity")
 
     A, AMap, ADeriv = props.Invertible("fitting parameter")
@@ -132,140 +125,157 @@ class NestedModels(props.HasModel):
         self.nest_model = nest_model
 
 
-class TestPropMaps(unittest.TestCase):
-    def setUp(self):
-        pass
+class OptionalInvertible(props.HasModel):
+    sigma, sigmaMap, sigmaDeriv = props.Invertible(
+        "Electrical conductivity (S/m)", optional=True
+    )
 
-    def test_basic(self):
-        expMap = maps.ExpMap(discretize.TensorMesh((3,)))
-        assert expMap.nP == 3
 
-        for Example in [SimpleExample, ShortcutExample]:
+@pytest.mark.parametrize("example", [SimpleExample, ShortcutExample])
+def test_basic(example):
+    expMap = maps.ExpMap(discretize.TensorMesh((3,)))
+    assert expMap.nP == 3
 
-            PM = Example(sigmaMap=expMap)
-            assert PM.sigmaMap is not None
-            assert PM.sigmaMap is expMap
+    PM = example(sigmaMap=expMap)
+    assert PM.sigmaMap is not None
+    assert PM.sigmaMap is expMap
 
-            # There is currently no model, so sigma, which is mapped, fails
-            self.assertRaises(AttributeError, getattr, PM, "sigma")
+    # There is currently no model, so sigma, which is mapped, fails
+    with pytest.raises(AttributeError):
+        PM.sigma
 
-            PM.model = np.r_[1.0, 2.0, 3.0]
-            assert np.all(PM.sigma == np.exp(np.r_[1.0, 2.0, 3.0]))
-            # PM = pickle.loads(pickle.dumps(PM))
-            # PM = maps.ExpMap.deserialize(PM.serialize())
+    PM.model = np.r_[1.0, 2.0, 3.0]
+    assert np.all(PM.sigma == np.exp(np.r_[1.0, 2.0, 3.0]))
+    # PM = pickle.loads(pickle.dumps(PM))
+    # PM = maps.ExpMap.deserialize(PM.serialize())
 
-            assert np.all(
-                PM.sigmaDeriv.todense()
-                == utils.sdiag(np.exp(np.r_[1.0, 2.0, 3.0])).todense()
-            )
+    assert np.all(
+        PM.sigmaDeriv.todense() == utils.sdiag(np.exp(np.r_[1.0, 2.0, 3.0])).todense()
+    )
 
-            # If we set sigma, we should delete the mapping
-            PM.sigma = np.r_[1.0, 2.0, 3.0]
-            assert np.all(PM.sigma == np.r_[1.0, 2.0, 3.0])
-            # PM = pickle.loads(pickle.dumps(PM))
-            assert PM.sigmaMap is None
-            assert PM.sigmaDeriv == 0
+    # If we set sigma, we should delete the mapping
+    PM.sigma = np.r_[1.0, 2.0, 3.0]
+    assert np.all(PM.sigma == np.r_[1.0, 2.0, 3.0])
+    # PM = pickle.loads(pickle.dumps(PM))
+    assert PM.sigmaMap is None
+    assert PM.sigmaDeriv == 0
 
-            del PM.model
-            # sigma is not changed
-            assert np.all(PM.sigma == np.r_[1.0, 2.0, 3.0])
+    del PM.model
+    # sigma is not changed
+    assert np.all(PM.sigma == np.r_[1.0, 2.0, 3.0])
 
-    def test_reciprocal(self):
-        expMap = maps.ExpMap(discretize.TensorMesh((3,)))
 
-        PM = ReciprocalMappingExample()
+def test_reciprocal():
+    expMap = maps.ExpMap(discretize.TensorMesh((3,)))
 
-        self.assertRaises(AttributeError, getattr, PM, "sigma")
-        PM.sigmaMap = expMap
-        PM.model = np.r_[1.0, 2.0, 3.0]
-        assert np.all(PM.sigma == np.exp(np.r_[1.0, 2.0, 3.0]))
-        assert np.all(PM.rho == 1.0 / np.exp(np.r_[1.0, 2.0, 3.0]))
+    PM = ReciprocalMappingExample()
 
-        PM.rho = np.r_[1.0, 2.0, 3.0]
-        assert PM.rhoMap is None
-        assert PM.sigmaMap is None
-        assert PM.rhoDeriv == 0
-        assert PM.sigmaDeriv == 0
-        assert np.all(PM.sigma == 1.0 / np.r_[1.0, 2.0, 3.0])
+    with pytest.raises(AttributeError):
+        PM.sigma
+    PM.sigmaMap = expMap
+    PM.model = np.r_[1.0, 2.0, 3.0]
+    assert np.all(PM.sigma == np.exp(np.r_[1.0, 2.0, 3.0]))
+    assert np.all(PM.rho == 1.0 / np.exp(np.r_[1.0, 2.0, 3.0]))
 
-        PM.sigmaMap = expMap
-        # change your mind?
-        # PM = pickle.loads(pickle.dumps(PM))
-        PM.rhoMap = expMap
-        assert PM._sigmaMap is None
-        assert len(PM.rhoMap) == 1
-        assert len(PM.sigmaMap) == 2
-        # PM = pickle.loads(pickle.dumps(PM))
-        assert np.all(PM.rho == np.exp(np.r_[1.0, 2.0, 3.0]))
-        assert np.all(PM.sigma == 1.0 / np.exp(np.r_[1.0, 2.0, 3.0]))
-        # PM = pickle.loads(pickle.dumps(PM))
-        assert isinstance(PM.sigmaDeriv.todense(), np.ndarray)
+    PM.rho = np.r_[1.0, 2.0, 3.0]
+    assert PM.rhoMap is None
+    assert PM.sigmaMap is None
+    assert PM.rhoDeriv == 0
+    assert PM.sigmaDeriv == 0
+    assert np.all(PM.sigma == 1.0 / np.r_[1.0, 2.0, 3.0])
 
-    def test_reciprocal_no_map(self):
-        expMap = maps.ExpMap(discretize.TensorMesh((3,)))
+    PM.sigmaMap = expMap
+    # change your mind?
+    # PM = pickle.loads(pickle.dumps(PM))
+    PM.rhoMap = expMap
+    assert PM._sigmaMap is None
+    assert len(PM.rhoMap) == 1
+    assert len(PM.sigmaMap) == 2
+    # PM = pickle.loads(pickle.dumps(PM))
+    assert np.all(PM.rho == np.exp(np.r_[1.0, 2.0, 3.0]))
+    assert np.all(PM.sigma == 1.0 / np.exp(np.r_[1.0, 2.0, 3.0]))
+    # PM = pickle.loads(pickle.dumps(PM))
+    assert isinstance(PM.sigmaDeriv.todense(), np.ndarray)
 
-        PM = ReciprocalExample()
-        self.assertRaises(AttributeError, getattr, PM, "sigma")
 
-        PM.sigmaMap = expMap
-        # PM = pickle.loads(pickle.dumps(PM))
-        PM.model = np.r_[1.0, 2.0, 3.0]
-        assert np.all(PM.sigma == np.exp(np.r_[1.0, 2.0, 3.0]))
-        assert np.all(PM.rho == 1.0 / np.exp(np.r_[1.0, 2.0, 3.0]))
+def test_reciprocal_no_map():
+    expMap = maps.ExpMap(discretize.TensorMesh((3,)))
 
-        PM.rho = np.r_[1.0, 2.0, 3.0]
-        assert PM.sigmaMap is None
-        assert PM.sigmaDeriv == 0
-        assert np.all(PM.sigma == 1.0 / np.r_[1.0, 2.0, 3.0])
+    PM = ReciprocalExample()
+    with pytest.raises(AttributeError):
+        PM.sigma
 
-        PM.sigmaMap = expMap
-        assert len(PM.sigmaMap) == 1
-        # PM = pickle.loads(pickle.dumps(PM))
-        assert np.all(PM.rho == 1.0 / np.exp(np.r_[1.0, 2.0, 3.0]))
-        assert np.all(PM.sigma == np.exp(np.r_[1.0, 2.0, 3.0]))
-        assert isinstance(PM.sigmaDeriv.todense(), np.ndarray)
+    PM.sigmaMap = expMap
+    # PM = pickle.loads(pickle.dumps(PM))
+    PM.model = np.r_[1.0, 2.0, 3.0]
+    assert np.all(PM.sigma == np.exp(np.r_[1.0, 2.0, 3.0]))
+    assert np.all(PM.rho == 1.0 / np.exp(np.r_[1.0, 2.0, 3.0]))
 
-    def test_reciprocal_no_maps(self):
+    PM.rho = np.r_[1.0, 2.0, 3.0]
+    assert PM.sigmaMap is None
+    assert PM.sigmaDeriv == 0
+    assert np.all(PM.sigma == 1.0 / np.r_[1.0, 2.0, 3.0])
 
-        PM = ReciprocalPropExample()
-        self.assertRaises(AttributeError, getattr, PM, "sigma")
+    PM.sigmaMap = expMap
+    assert len(PM.sigmaMap) == 1
+    # PM = pickle.loads(pickle.dumps(PM))
+    assert np.all(PM.rho == 1.0 / np.exp(np.r_[1.0, 2.0, 3.0]))
+    assert np.all(PM.sigma == np.exp(np.r_[1.0, 2.0, 3.0]))
+    assert isinstance(PM.sigmaDeriv.todense(), np.ndarray)
 
-        # PM = pickle.loads(pickle.dumps(PM))
-        PM.sigma = np.r_[1.0, 2.0, 3.0]
-        # PM = pickle.loads(pickle.dumps(PM))
 
-        assert np.all(PM.sigma == np.r_[1.0, 2.0, 3.0])
-        # PM = pickle.loads(pickle.dumps(PM))
-        assert np.all(PM.rho == 1.0 / np.r_[1.0, 2.0, 3.0])
+def test_reciprocal_no_maps():
+    PM = ReciprocalPropExample()
+    with pytest.raises(AttributeError):
+        PM.sigma
 
-        PM.rho = np.r_[1.0, 2.0, 3.0]
-        assert np.all(PM.sigma == 1.0 / np.r_[1.0, 2.0, 3.0])
+    # PM = pickle.loads(pickle.dumps(PM))
+    PM.sigma = np.r_[1.0, 2.0, 3.0]
+    # PM = pickle.loads(pickle.dumps(PM))
 
-    def test_reciprocal_defaults(self):
+    assert np.all(PM.sigma == np.r_[1.0, 2.0, 3.0])
+    # PM = pickle.loads(pickle.dumps(PM))
+    assert np.all(PM.rho == 1.0 / np.r_[1.0, 2.0, 3.0])
 
-        PM = ReciprocalPropExampleDefaults()
-        assert np.all(PM.sigma == np.r_[1.0, 2.0, 3.0])
-        assert np.all(PM.rho == 1.0 / np.r_[1.0, 2.0, 3.0])
+    PM.rho = np.r_[1.0, 2.0, 3.0]
+    assert np.all(PM.sigma == 1.0 / np.r_[1.0, 2.0, 3.0])
 
-        rho = np.r_[2.0, 4.0, 6.0]
-        PM.rho = rho
-        assert np.all(PM.rho == rho)
-        assert np.all(PM.sigma == 1.0 / rho)
 
-    def test_multi_parameter_inversion(self):
-        """The setup of the defaults should not invalidated the
-        mappings or other defaults.
-        """
-        PM = ComplicatedInversion()
-        params = inspect.signature(ComplicatedInversion).parameters
+def test_reciprocal_defaults():
+    PM = ReciprocalPropExampleDefaults()
+    assert np.all(PM.sigma == np.r_[1.0, 2.0, 3.0])
+    assert np.all(PM.rho == 1.0 / np.r_[1.0, 2.0, 3.0])
 
-        np.testing.assert_equal(PM.Ks, params["Ks"].default)
-        np.testing.assert_equal(PM.gamma, params["gamma"].default)
-        np.testing.assert_equal(PM.A, params["A"].default)
+    rho = np.r_[2.0, 4.0, 6.0]
+    PM.rho = rho
+    assert np.all(PM.rho == rho)
+    assert np.all(PM.sigma == 1.0 / rho)
 
-    def test_nested(self):
-        PM = NestedModels()
-        assert PM._has_nested_models is True
+
+def test_multi_parameter_inversion():
+    """The setup of the defaults should not invalidated the
+    mappings or other defaults.
+    """
+    PM = ComplicatedInversion()
+    params = inspect.signature(ComplicatedInversion).parameters
+
+    np.testing.assert_equal(PM.Ks, params["Ks"].default)
+    np.testing.assert_equal(PM.gamma, params["gamma"].default)
+    np.testing.assert_equal(PM.A, params["A"].default)
+
+
+def test_nested():
+    PM = NestedModels()
+    assert PM._has_nested_models is True
+
+
+def test_optional_inverted():
+    modeler = OptionalInvertible()
+    assert modeler.sigmaMap is None
+    assert modeler.sigma is None
+
+    modeler.sigma = 10
+    assert modeler.sigma == 10
 
 
 if __name__ == "__main__":

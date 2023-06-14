@@ -35,7 +35,6 @@ import matplotlib.pyplot as plt
 
 
 def make_example_mesh():
-
     ncr = 20  # number of mesh cells in r
     ncz = 20  # number of mesh cells in z
     dh = 5.0  # cell width

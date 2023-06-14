@@ -6,7 +6,6 @@ from SimPEG.electromagnetics import time_domain as tdem
 from SimPEG.electromagnetics import utils
 import numpy as np
 
-import warnings
 from pymatsolver import Pardiso as Solver
 
 TOL = 1e-4
@@ -18,11 +17,11 @@ def setUp_TDEM(
 ):
     # set a seed so that the same conductivity model is used for all runs
     np.random.seed(25)
-    cs = 5.0
-    ncx = 8
-    ncy = 8
-    ncz = 8
-    npad = 4
+    cs = 10.0
+    ncx = 4
+    ncy = 4
+    ncz = 4
+    npad = 2
     # hx = [(cs, ncx), (cs, npad, 1.3)]
     # hz = [(cs, npad, -1.3), (cs, ncy), (cs, npad, 1.3)]
     mesh = discretize.TensorMesh(
@@ -89,7 +88,6 @@ def CrossCheck(
     waveform="stepoff",
     src_type=None,
 ):
-
     prb1, m1, mesh1 = setUp_TDEM(prbtype1, rxcomp, waveform, src_type)
     prb2, _, mesh2 = setUp_TDEM(prbtype2, rxcomp, waveform, src_type)
 
@@ -256,7 +254,6 @@ class TDEM_cross_check_EB(unittest.TestCase):
             )
 
     def test_waveform_instantiation(self):
-
         rx_list = [
             tdem.receivers.PointMagneticFluxDensity(
                 locations=[np.r_[0.0, 0.0, 0.0]],

@@ -6,7 +6,6 @@
 
 import copy
 
-import matplotlib.pyplot as plt
 import numpy as np
 
 from ..directives import InversionDirective, MultiTargetMisfits
@@ -53,7 +52,6 @@ class PGI_UpdateParameters(InversionDirective):
     keep_ref_fixed_in_Smooth = True  # keep mref fixed in the Smoothness
 
     def initialize(self):
-
         pgi_reg = self.reg.get_functions_of_type(PGIsmallness)
         if len(pgi_reg) != 1:
             raise UserWarning(
@@ -148,7 +146,6 @@ class PGI_BetaAlphaSchedule(InversionDirective):
     warmingFactor = 1.0  # when warmed, alpha_s is multiplied by the ratio of the
     # geophysical target with their current misfit, times this factor
     mode = 1  # mode 1: start with nothing fitted. Mode 2: warmstart with fitted geophysical data
-    mode2_iter = 0  # counts how many iteration after the fit of the geophysical data
     alphasmax = 1e10  # max alpha_s
     betamin = 1e-10  # minimum beta
     update_rate = 1  # update every `update_rate` iterations
@@ -158,146 +155,172 @@ class PGI_BetaAlphaSchedule(InversionDirective):
     )
 
     def initialize(self):
-        targetclass = np.r_[
-            [
-                isinstance(dirpart, MultiTargetMisfits)
-                for dirpart in self.inversion.directiveList.dList
-            ]
-        ]
-        if ~np.any(targetclass):
-            raise Exception(
-                "You need to have a MultiTargetMisfits directives to use the PGI_BetaAlphaSchedule directive"
-            )
-        else:
-            self.targetclass = np.where(targetclass)[0][-1]
-            self.DMtarget = np.sum(
-                np.r_[self.dmisfit.multipliers]
-                * self.inversion.directiveList.dList[self.targetclass].DMtarget
-            )
-            self.previous_score = copy.deepcopy(
-                self.inversion.directiveList.dList[self.targetclass].phims()
-            )
-            self.previous_dmlist = self.inversion.directiveList.dList[
-                self.targetclass
-            ].dmlist
-            self.CLtarget = self.inversion.directiveList.dList[
-                self.targetclass
-            ].CLtarget
-
-        updategaussianclass = np.r_[
-            [
-                isinstance(dirpart, PGI_UpdateParameters)
-                for dirpart in self.inversion.directiveList.dList
-            ]
-        ]
-        if ~np.any(updategaussianclass):
-            self.DMtarget = None
-        else:
-            updategaussianclass = np.where(updategaussianclass)[0][-1]
-            self.updategaussianclass = self.inversion.directiveList.dList[
-                updategaussianclass
-            ]
-        pgi_reg = self.reg.get_functions_of_type(PGI)
-        if len(pgi_reg) != 1:
-            raise UserWarning(
-                "'PGI_UpdateParameters' requires one 'PGI' regularization "
-                "in the objective function."
-            )
-        self.pgi_reg = pgi_reg[0]
+        """Initialize the directive."""
+        self.update_previous_score()
+        self.update_previous_dmlist()
 
     def endIter(self):
+        """Run after the end of each iteration in the inversion."""
+        # Get some variables from the MultiTargetMisfits directive
+        data_misfits_achieved = self.multi_target_misfits_directive.DM
+        data_misfits_target = self.multi_target_misfits_directive.DMtarget
+        dmlist = self.multi_target_misfits_directive.dmlist
+        targetlist = self.multi_target_misfits_directive.targetlist
 
-        self.DM = self.inversion.directiveList.dList[self.targetclass].DM
-        self.dmlist = self.inversion.directiveList.dList[self.targetclass].dmlist
-        self.DMtarget = self.inversion.directiveList.dList[self.targetclass].DMtarget
-        self.TotalDMtarget = np.sum(
-            np.r_[self.dmisfit.multipliers]
-            * self.inversion.directiveList.dList[self.targetclass].DMtarget
-        )
-        self.score = self.inversion.directiveList.dList[self.targetclass].phims()
-        self.targetlist = self.inversion.directiveList.dList[
-            self.targetclass
-        ].targetlist
-
-        if self.DM:
+        # Change mode if data misfit targets have been achieved
+        if data_misfits_achieved:
             self.mode = 2
-            self.mode2_iter += 1
 
-        if self.opt.iter > 0 and self.opt.iter % self.update_rate == 0:
+        # Don't cool beta of warm alpha if we are in the first iteration or if
+        # the current iteration doesn't match the update rate
+        if self.opt.iter == 0 or self.opt.iter % self.update_rate != 0:
+            self.update_previous_score()
+            self.update_previous_dmlist()
+            return None
+
+        if self.verbose:
+            targets = np.round(
+                np.maximum(
+                    (1.0 - self.progress) * self.previous_dmlist,
+                    (1.0 + self.tolerance) * data_misfits_target,
+                ),
+                decimals=1,
+            )
+            dmlist_rounded = np.round(dmlist, decimals=1)
+            print(
+                f"Beta cooling evaluation: progress: {dmlist_rounded}; "
+                f"minimum progress targets: {targets}"
+            )
+
+        # Decide if we should cool beta
+        threshold = np.maximum(
+            (1.0 - self.progress) * self.previous_dmlist[~targetlist],
+            data_misfits_target[~targetlist],
+        )
+        if (
+            (dmlist[~targetlist] > threshold).all()
+            and not data_misfits_achieved
+            and self.mode == 1
+            and self.invProb.beta > self.betamin
+        ):
+            self.cool_beta()
+            if self.verbose:
+                print("Decreasing beta to counter data misfit decrase plateau.")
+
+        # Decide if we should warm alpha instead
+        elif (
+            data_misfits_achieved
+            and self.mode == 2
+            and np.all(self.pgi_regularization.alpha_pgi < self.alphasmax)
+        ):
+            self.warm_alpha()
             if self.verbose:
                 print(
-                    "Beta cooling evaluation: progress:",
-                    np.round(self.dmlist, decimals=1),
-                    "; minimum progress targets:",
-                    np.round(
-                        np.maximum(
-                            (1.0 - self.progress) * self.previous_dmlist,
-                            (1.0 + self.tolerance) * self.DMtarget,
-                        ),
-                        decimals=1,
-                    ),
+                    "Warming alpha_pgi to favor clustering: ",
+                    self.pgi_regularization.alpha_pgi,
                 )
-            if np.all(
-                [
-                    np.all(
-                        self.dmlist[~self.targetlist]
-                        > np.maximum(
-                            (1.0 - self.progress)
-                            * self.previous_dmlist[~self.targetlist],
-                            self.DMtarget[~self.targetlist],
-                        )
-                    ),
-                    not self.DM,
-                    self.mode == 1,
-                ]
-            ):
 
-                if np.all([self.invProb.beta > self.betamin]):
+        # Decide if we should cool beta (to counter data misfit increase)
+        elif (
+            np.any(dmlist > (1.0 + self.tolerance) * data_misfits_target)
+            and self.mode == 2
+            and self.invProb.beta > self.betamin
+        ):
+            self.cool_beta()
+            if self.verbose:
+                print("Decreasing beta to counter data misfit increase.")
 
-                    ratio = 1.0
-                    indx = self.dmlist > (1.0 + self.tolerance) * self.DMtarget
-                    if np.any(indx) and self.ratio_in_cooling:
-                        ratio = np.median([self.dmlist[indx] / self.DMtarget[indx]])
-                    self.invProb.beta /= self.coolingFactor * ratio
+        # Update previous score and dmlist
+        self.update_previous_score()
+        self.update_previous_dmlist()
 
-                    if self.verbose:
-                        print("Decreasing beta to counter data misfit decrase plateau.")
+    def cool_beta(self):
+        """Cool beta according to schedule."""
+        data_misfits_target = self.multi_target_misfits_directive.DMtarget
+        dmlist = self.multi_target_misfits_directive.dmlist
+        ratio = 1.0
+        indx = dmlist > (1.0 + self.tolerance) * data_misfits_target
+        if np.any(indx) and self.ratio_in_cooling:
+            ratio = np.median([dmlist[indx] / data_misfits_target[indx]])
+        self.invProb.beta /= self.coolingFactor * ratio
 
-            elif np.all([self.DM, self.mode == 2]):
+    def warm_alpha(self):
+        """Warm alpha according to schedule."""
+        data_misfits_target = self.multi_target_misfits_directive.DMtarget
+        dmlist = self.multi_target_misfits_directive.dmlist
+        ratio = np.median(data_misfits_target / dmlist)
+        self.pgi_regularization.alpha_pgi *= self.warmingFactor * ratio
 
-                if np.all([self.pgi_reg.alpha_pgi < self.alphasmax]):
+    def update_previous_score(self):
+        """
+        Update the value of the ``previous_score`` attribute.
 
-                    ratio = np.median(self.DMtarget / self.dmlist)
-                    self.pgi_reg.alpha_pgi *= self.warmingFactor * ratio
+        Update it with the current value of the petrophysical misfit, obtained
+        from the :meth:`MultiTargetMisfit.phims()` method.
+        """
+        self.previous_score = copy.deepcopy(self.multi_target_misfits_directive.phims())
 
-                    if self.verbose:
-                        print(
-                            "Warming alpha_pgi to favor clustering: ",
-                            self.pgi_reg.alpha_pgi,
-                        )
+    def update_previous_dmlist(self):
+        """
+        Update the value of the ``previous_dmlist`` attribute.
 
-            elif np.all(
-                [
-                    np.any(self.dmlist > (1.0 + self.tolerance) * self.DMtarget),
-                    self.mode == 2,
-                ]
-            ):
+        Update it with the current value of the data misfits, obtained
+        from the :meth:`MultiTargetMisfit.dmlist` attribute.
+        """
+        self.previous_dmlist = copy.deepcopy(self.multi_target_misfits_directive.dmlist)
 
-                if np.all([self.invProb.beta > self.betamin]):
+    @property
+    def directives(self):
+        """List of all the directives in the :class:`SimPEG.inverison.BaseInversion``."""
+        return self.inversion.directiveList.dList
 
-                    ratio = 1.0
-                    indx = self.dmlist > (1.0 + self.tolerance) * self.DMtarget
-                    if np.any(indx) and self.ratio_in_cooling:
-                        ratio = np.median([self.dmlist[indx] / self.DMtarget[indx]])
-                    self.invProb.beta /= self.coolingFactor * ratio
+    @property
+    def multi_target_misfits_directive(self):
+        """``MultiTargetMisfit`` directive in the :class:`SimPEG.inverison.BaseInversion``."""
+        if not hasattr(self, "_mtm_directive"):
+            # Obtain multi target misfits directive from the directive list
+            multi_target_misfits_directive = [
+                directive
+                for directive in self.directives
+                if isinstance(directive, MultiTargetMisfits)
+            ]
+            if not multi_target_misfits_directive:
+                raise UserWarning(
+                    "No MultiTargetMisfits directive found in the current inversion. "
+                    "A MultiTargetMisfits directive is needed by the "
+                    "PGI_BetaAlphaSchedule directive."
+                )
+            (self._mtm_directive,) = multi_target_misfits_directive
+        return self._mtm_directive
 
-                    if self.verbose:
-                        print("Decreasing beta to counter data misfit increase.")
+    @property
+    def pgi_update_params_directive(self):
+        """``PGI_UpdateParam``s directive in the :class:`SimPEG.inverison.BaseInversion``."""
+        if not hasattr(self, "_pgi_update_params"):
+            # Obtain PGI_UpdateParams directive from the directive list
+            pgi_update_params_directive = [
+                directive
+                for directive in self.directives
+                if isinstance(directive, PGI_UpdateParameters)
+            ]
+            if pgi_update_params_directive:
+                (self._pgi_update_params,) = pgi_update_params_directive
+            else:
+                self._pgi_update_params = None
+        return self._pgi_update_params
 
-        self.previous_score = copy.deepcopy(self.score)
-        self.previous_dmlist = copy.deepcopy(
-            self.inversion.directiveList.dList[self.targetclass].dmlist
-        )
+    @property
+    def pgi_regularization(self):
+        """PGI regularization in the :class:`SimPEG.inverse_problem.BaseInvProblem``."""
+        if not hasattr(self, "_pgi_regularization"):
+            pgi_regularization = self.reg.get_functions_of_type(PGI)
+            if len(pgi_regularization) != 1:
+                raise UserWarning(
+                    "'PGI_UpdateParameters' requires one 'PGI' regularization "
+                    "in the objective function."
+                )
+            self._pgi_regularization = pgi_regularization[0]
+        return self._pgi_regularization
 
 
 class PGI_AddMrefInSmooth(InversionDirective):

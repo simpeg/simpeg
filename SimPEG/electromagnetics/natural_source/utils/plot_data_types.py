@@ -12,7 +12,6 @@ def plotIsoFreqNSimpedance(
     cLevel=True,
     contour=True,
 ):
-
     indUniFreq = np.where(freq == array["freq"])
 
     x, y = array["x"][indUniFreq], array["y"][indUniFreq]
@@ -81,7 +80,6 @@ def plotIsoFreqNSDiff(
     contourLine=True,
     useLog=False,
 ):
-
     indUniFreq0 = np.where(freq == arrayList[0]["freq"])
     indUniFreq1 = np.where(freq == arrayList[1]["freq"])
     seicmap = plt.get_cmap("RdYlBu")  # seismic')
@@ -184,7 +182,6 @@ def plotIsoFreqNStipper(
     cLevel=True,
     contour=True,
 ):
-
     indUniFreq = np.where(freq == array["freq"])
 
     x, y = array["x"][indUniFreq], array["y"][indUniFreq]
@@ -254,8 +251,7 @@ def plotIsoFreqNStipper(
 def plotIsoStaImpedance(
     ax, loc, array, flag, par="abs", pSym="s", pColor=None, addLabel="", zorder=1
 ):
-
-    appResFact = 1 / (8 * np.pi ** 2 * 10 ** (-7))
+    appResFact = 1 / (8 * np.pi**2 * 10 ** (-7))
     treshold = 1.0  # 1 meter
     indUniSta = (
         np.sqrt(np.sum((array[["x", "y"]].copy().view((float, 2)) - loc) ** 2, axis=1))
@@ -278,16 +274,12 @@ def plotIsoStaImpedance(
 
     if not pColor:
         if "xx" in flag:
-            lab = "XX"
             pColor = "g"
         elif "xy" in flag:
-            lab = "XY"
             pColor = "r"
         elif "yx" in flag:
-            lab = "YX"
             pColor = "b"
         elif "yy" in flag:
-            lab = "YY"
             pColor = "y"
 
     ax.plot(
@@ -306,7 +298,6 @@ def plotPsudoSectNSimpedance(
     cLevel=None,
     contour=True,
 ):
-
     indSect = np.where(sectDict.values()[0] == array[sectDict.keys()[0]])
 
     # Define the plot axes
@@ -328,7 +319,7 @@ def plotPsudoSectNSimpedance(
 
     elif par == "ares":
         zPlot = np.abs(array[flag][indSect]) ** 2 / (
-            8 * np.pi ** 2 * 10 ** (-7) * array["freq"][indSect]
+            8 * np.pi**2 * 10 ** (-7) * array["freq"][indSect]
         )
         cmap = plt.get_cmap("RdYlBu")  # seismic)
         if cLevel:
@@ -454,12 +445,9 @@ def plotPsudoSectNSDiff(
     # Define the plot axes
     if "x" in sectDict.keys()[0]:
         x0 = arr0["y"]
-        x1 = arr1["y"]
     else:
         x0 = arr0["x"]
-        x1 = arr1["x"]
     y0 = arr0["freq"]
-    y1 = arr1["freq"]
 
     if par == "abs":
         if useLog:
@@ -476,7 +464,7 @@ def plotPsudoSectNSDiff(
             zPlot[maskInd] = mask
         cmap = plt.get_cmap("RdYlBu")  # seismic)
     elif par == "ares":
-        arF = 1 / (8 * np.pi ** 2 * 10 ** (-7))
+        arF = 1 / (8 * np.pi**2 * 10 ** (-7))
         if useLog:
             zPlot = (
                 np.log10((arF / arr0["freq"]) * np.abs(arr0[flag]) ** 2)

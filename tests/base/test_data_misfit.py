@@ -1,10 +1,9 @@
 import unittest
 
 import numpy as np
-import scipy.sparse as sp
 import discretize
 
-from SimPEG import maps, utils
+from SimPEG import maps
 from SimPEG import data_misfit, simulation, survey
 
 np.random.seed(17)
@@ -25,7 +24,6 @@ class DataMisfitTest(unittest.TestCase):
         )
 
         synthetic_data = sim.make_synthetic_data(model)
-        dobs = synthetic_data.dobs
 
         self.relative = 0.01
         self.noise_floor = 1e-8
@@ -50,7 +48,7 @@ class DataMisfitTest(unittest.TestCase):
         self.data.relative_error = 0.0
         self.data.noise_floor = 0.0
         with self.assertRaises(Exception):
-            Worig = self.dmis.W
+            self.dmis.W
 
     def test_setting_W(self):
         self.data.relative_error = self.relative

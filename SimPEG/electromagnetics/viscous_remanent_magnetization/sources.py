@@ -25,7 +25,6 @@ class BaseSrcVRM(BaseSrc):
     """
 
     def __init__(self, receiver_list, location=None, waveform=None, **kwargs):
-
         if not isinstance(waveform, BaseVRMWaveform):
             AttributeError(
                 "Waveform must be an instance of a VRM waveform class: StepOff, SquarePulse or Arbitrary"
@@ -80,7 +79,6 @@ class MagDipole(BaseSrcVRM):
     """
 
     def __init__(self, receiver_list, location, moment, waveform, **kwargs):
-
         if len(location) != 3:
             raise ValueError(
                 "Tx location (x,y,z) must be given as a column vector of length 3."
@@ -141,19 +139,18 @@ class MagDipole(BaseSrcVRM):
         )
 
         hx0 = (1 / (4 * np.pi)) * (
-            3 * (xyz[:, 0] - r0[0]) * mdotr / r ** 5 - m[0] / r ** 3
+            3 * (xyz[:, 0] - r0[0]) * mdotr / r**5 - m[0] / r**3
         )
         hy0 = (1 / (4 * np.pi)) * (
-            3 * (xyz[:, 1] - r0[1]) * mdotr / r ** 5 - m[1] / r ** 3
+            3 * (xyz[:, 1] - r0[1]) * mdotr / r**5 - m[1] / r**3
         )
         hz0 = (1 / (4 * np.pi)) * (
-            3 * (xyz[:, 2] - r0[2]) * mdotr / r ** 5 - m[2] / r ** 3
+            3 * (xyz[:, 2] - r0[2]) * mdotr / r**5 - m[2] / r**3
         )
 
         return np.c_[hx0, hy0, hz0]
 
     def _getRefineFlags(self, xyzc, refinement_factor, refinement_distance):
-
         """
         This function finds the refinement factor to be assigned to each cell
 
@@ -171,7 +168,7 @@ class MagDipole(BaseSrcVRM):
 
         """
 
-        refFlag = np.zeros(np.shape(xyzc)[0], dtype=np.int)
+        refFlag = np.zeros(np.shape(xyzc)[0], dtype=int)
 
         r = np.sqrt(
             (xyzc[:, 0] - self.location[0]) ** 2
@@ -180,7 +177,6 @@ class MagDipole(BaseSrcVRM):
         )
 
         for nn in range(0, refinement_factor):
-
             k = (r < refinement_distance[nn] + 1e-5) & (
                 refFlag < refinement_factor - nn + 1
             )
@@ -216,7 +212,6 @@ class CircLoop(BaseSrcVRM):
     def __init__(
         self, receiver_list, location, radius, orientation, Imax, waveform, **kwargs
     ):
-
         if len(location) != 3:
             raise ValueError(
                 "Tx location (x,y,z) must be given as a column vector of length 3."
@@ -283,29 +278,29 @@ class CircLoop(BaseSrcVRM):
             rot_mat[2, :].T,
         )
 
-        s = np.sqrt(x1p ** 2 + x2p ** 2) + 1e-10  # Radial distance
-        k = 4 * a * s / (x3p ** 2 + (a + s) ** 2)
+        s = np.sqrt(x1p**2 + x2p**2) + 1e-10  # Radial distance
+        k = 4 * a * s / (x3p**2 + (a + s) ** 2)
 
         hxp = (
             (x1p / s)
-            * (x3p * I / (2 * np.pi * s * np.sqrt(x3p ** 2 + (a + s) ** 2)))
+            * (x3p * I / (2 * np.pi * s * np.sqrt(x3p**2 + (a + s) ** 2)))
             * (
-                ((a ** 2 + x3p ** 2 + s ** 2) / (x3p ** 2 + (s - a) ** 2))
+                ((a**2 + x3p**2 + s**2) / (x3p**2 + (s - a) ** 2))
                 * spec.ellipe(k)
                 - spec.ellipk(k)
             )
         )
         hyp = (
             (x2p / s)
-            * (x3p * I / (2 * np.pi * s * np.sqrt(x3p ** 2 + (a + s) ** 2)))
+            * (x3p * I / (2 * np.pi * s * np.sqrt(x3p**2 + (a + s) ** 2)))
             * (
-                ((a ** 2 + x3p ** 2 + s ** 2) / (x3p ** 2 + (s - a) ** 2))
+                ((a**2 + x3p**2 + s**2) / (x3p**2 + (s - a) ** 2))
                 * spec.ellipe(k)
                 - spec.ellipk(k)
             )
         )
-        hzp = (I / (2 * np.pi * np.sqrt(x3p ** 2 + (a + s) ** 2))) * (
-            ((a ** 2 - x3p ** 2 - s ** 2) / (x3p ** 2 + (s - a) ** 2)) * spec.ellipe(k)
+        hzp = (I / (2 * np.pi * np.sqrt(x3p**2 + (a + s) ** 2))) * (
+            ((a**2 - x3p**2 - s**2) / (x3p**2 + (s - a) ** 2)) * spec.ellipe(k)
             + spec.ellipk(k)
         )
 
@@ -318,7 +313,6 @@ class CircLoop(BaseSrcVRM):
         return np.c_[hx0, hy0, hz0]
 
     def _getRefineFlags(self, xyzc, refinement_factor, refinement_distance):
-
         """
         This function finds the refinement factor to be assigned to each cell
 
@@ -336,7 +330,7 @@ class CircLoop(BaseSrcVRM):
 
         """
 
-        refFlag = np.zeros(np.shape(xyzc)[0], dtype=np.int)
+        refFlag = np.zeros(np.shape(xyzc)[0], dtype=int)
 
         r0 = self.location
         a = self.radius
@@ -370,12 +364,11 @@ class CircLoop(BaseSrcVRM):
             np.c_[xyzc[:, 0] - r0[0], xyzc[:, 1] - r0[1], xyzc[:, 2] - r0[2]],
             rot_mat[2, :].T,
         )
-        r = np.sqrt(x1p ** 2 + x2p ** 2 + x3p ** 2)
-        cosA = np.sqrt(x1p ** 2 + x2p ** 2) / r
-        d = np.sqrt(a ** 2 + r ** 2 - 2 * a * r * cosA)
+        r = np.sqrt(x1p**2 + x2p**2 + x3p**2)
+        cosA = np.sqrt(x1p**2 + x2p**2) / r
+        d = np.sqrt(a**2 + r**2 - 2 * a * r * cosA)
 
         for nn in range(0, refinement_factor):
-
             k = (d < refinement_distance[nn] + 1e-3) & (
                 refFlag < refinement_factor - nn + 1
             )
@@ -406,7 +399,6 @@ class LineCurrent(BaseSrcVRM):
     """
 
     def __init__(self, receiver_list, location, Imax, waveform, **kwargs):
-
         super(LineCurrent, self).__init__(receiver_list, location, waveform, **kwargs)
 
         self.Imax = validate_float("Imax", Imax)
@@ -457,7 +449,6 @@ class LineCurrent(BaseSrcVRM):
         hz0 = np.zeros(nLoc)
 
         for pp in range(0, nSeg):
-
             # Wire ends for transmitter wire pp
             x1a = x1tr[pp]
             x2a = x2tr[pp]
@@ -494,11 +485,11 @@ class LineCurrent(BaseSrcVRM):
                 + (x3a - xyz[:, 2]) * (x3b - x3a)
             )
 
-            rx1 = (x1a - xyz[:, 0]) - dot_temp * (x1b - x1a) / vab ** 2
-            rx2 = (x2a - xyz[:, 1]) - dot_temp * (x2b - x2a) / vab ** 2
-            rx3 = (x3a - xyz[:, 2]) - dot_temp * (x3b - x3a) / vab ** 2
+            rx1 = (x1a - xyz[:, 0]) - dot_temp * (x1b - x1a) / vab**2
+            rx2 = (x2a - xyz[:, 1]) - dot_temp * (x2b - x2a) / vab**2
+            rx3 = (x3a - xyz[:, 2]) - dot_temp * (x3b - x3a) / vab**2
 
-            r = np.sqrt(rx1 ** 2 + rx2 ** 2 + rx3 ** 2)
+            r = np.sqrt(rx1**2 + rx2**2 + rx3**2)
 
             phi = (cos_alpha + cos_beta) / r
 
@@ -515,7 +506,6 @@ class LineCurrent(BaseSrcVRM):
         return np.c_[hx0, hy0, hz0]
 
     def _getRefineFlags(self, xyzc, refinement_factor, refinement_distance):
-
         """
         This function finds the refinement factor to be assigned to each cell
 
@@ -533,13 +523,12 @@ class LineCurrent(BaseSrcVRM):
 
         """
 
-        ref_flag = np.zeros(np.shape(xyzc)[0], dtype=np.int)
+        ref_flag = np.zeros(np.shape(xyzc)[0], dtype=int)
 
         nSeg = np.shape(self.location)[0] - 1
 
         for tt in range(0, nSeg):
-
-            ref_flag_tt = np.zeros(np.shape(xyzc)[0], dtype=np.int)
+            ref_flag_tt = np.zeros(np.shape(xyzc)[0], dtype=int)
             tx0 = self.location[tt, :]
             tx1 = self.location[tt + 1, :]
             a = (tx1[0] - tx0[0]) ** 2 + (tx1[1] - tx0[1]) ** 2 + (tx1[2] - tx0[2]) ** 2
@@ -550,15 +539,14 @@ class LineCurrent(BaseSrcVRM):
             )
 
             for nn in range(0, refinement_factor):
-
                 d = refinement_distance[nn] + 1e-3
                 c = (
                     (tx0[0] - xyzc[:, 0]) ** 2
                     + (tx0[1] - xyzc[:, 1]) ** 2
                     + (tx0[2] - xyzc[:, 2]) ** 2
-                    - d ** 2
+                    - d**2
                 )
-                e = np.array(b ** 2 - 4 * a * c, dtype=np.complex)
+                e = np.array(b**2 - 4 * a * c, dtype=complex)
 
                 q_pos = (-b + np.sqrt(e)) / (2 * a)
                 q_neg = (-b - np.sqrt(e)) / (2 * a)
@@ -575,11 +563,7 @@ class LineCurrent(BaseSrcVRM):
                     | (k_pos)
                 )
 
-                ind = (
-                    (k_pos == False)
-                    & (k_neg == False)
-                    & (ref_flag_tt < refinement_factor + 1 - nn)
-                )
+                ind = (~k_pos) & (~k_neg) & (ref_flag_tt < refinement_factor + 1 - nn)
                 ref_flag_tt[ind] = refinement_factor - nn
 
             ref_flag = np.maximum(ref_flag, ref_flag_tt)

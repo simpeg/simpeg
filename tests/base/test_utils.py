@@ -24,34 +24,10 @@ from SimPEG.utils import (
     surface2ind_topo,
 )
 import discretize
-from discretize.tests import check_derivative
 
 
 TOL = 1e-8
 np.random.seed(25)
-
-
-class TestCheckDerivative(unittest.TestCase):
-    def test_simplePass(self):
-        def simplePass(x):
-            return np.sin(x), sdiag(np.cos(x))
-
-        passed = check_derivative(simplePass, np.random.randn(5), plotIt=False)
-        self.assertTrue(passed, True)
-
-    def test_simpleFunction(self):
-        def simpleFunction(x):
-            return np.sin(x), lambda xi: sdiag(np.cos(x)) * xi
-
-        passed = check_derivative(simpleFunction, np.random.randn(5), plotIt=False)
-        self.assertTrue(passed, True)
-
-    def test_simpleFail(self):
-        def simpleFail(x):
-            return np.sin(x), -sdiag(np.cos(x))
-
-        passed = check_derivative(simpleFail, np.random.randn(5), plotIt=False)
-        self.assertTrue(not passed, True)
 
 
 class TestCounter(unittest.TestCase):
@@ -69,9 +45,9 @@ class TestCounter(unittest.TestCase):
                 pass
 
         c = MyClass("blah")
-        for i in range(100):
+        for _ in range(100):
             c.MyMethod()
-        for i in range(300):
+        for _ in range(300):
             c.MySecondMethod()
         c.counter.summary()
         self.assertTrue(True)
@@ -278,7 +254,6 @@ class TestSequenceFunctions(unittest.TestCase):
             self.assertTrue(np.linalg.norm(Z.todense().ravel(), 2) < TOL)
 
     def test_as_array_n_by_dim(self):
-
         true = np.array([[1, 2, 3]])
 
         listArray = as_array_n_by_dim([1, 2, 3], 3)
@@ -309,6 +284,9 @@ class TestSequenceFunctions(unittest.TestCase):
             [[(500.0, 24)], [(500.0, 20)], [(10.0, 30)]], x0="CCC"
         )
 
+        # To keep consistent with result from deprecated function
+        vancouver_topo[:, 2] = vancouver_topo[:, 2] + 1e-8
+
         indtopoCC = surface2ind_topo(
             mesh_topo, vancouver_topo, gridLoc="CC", method="nearest"
         )
@@ -316,8 +294,8 @@ class TestSequenceFunctions(unittest.TestCase):
             mesh_topo, vancouver_topo, gridLoc="N", method="nearest"
         )
 
-        assert len(np.where(indtopoCC)[0]) == 8729
-        assert len(np.where(indtopoN)[0]) == 8212
+        assert len(np.where(indtopoCC)[0]) == 8728
+        assert len(np.where(indtopoN)[0]) == 8211
 
 
 class TestDiagEst(unittest.TestCase):

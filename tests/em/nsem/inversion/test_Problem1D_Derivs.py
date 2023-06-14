@@ -1,9 +1,8 @@
 import unittest
 import numpy as np
 from scipy.constants import mu_0
-from SimPEG import maps, mkvc, tests
+from SimPEG import maps, tests
 from SimPEG.electromagnetics import natural_source as nsem
-from discretize import TensorMesh
 
 TOL = 1e-4
 FLR = 1e-20  # "zero", so if residual below this --> pass regardless of order
@@ -12,7 +11,6 @@ MU = mu_0
 
 
 def DerivJvecTest_1D(halfspace_value, freq=False, expMap=True):
-
     # Frequencies being measured
     frequencies = np.logspace(0, 4, 21)
 
@@ -57,7 +55,6 @@ def DerivJvecTest_1D(halfspace_value, freq=False, expMap=True):
 
 
 def DerivJvecTest(halfspace_value, freq=False, expMap=True):
-
     survey, sig, sigBG, mesh = nsem.utils.test_utils.setup1DSurvey(
         halfspace_value, False, structure=True
     )

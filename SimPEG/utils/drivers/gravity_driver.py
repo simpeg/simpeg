@@ -3,10 +3,7 @@ import os
 from discretize import TensorMesh
 from discretize.utils import active_from_xyz
 
-try:
-    from SimPEG import utils
-except:
-    from SimPEG import Utils as utils
+from SimPEG import utils
 
 import numpy as np
 
@@ -112,12 +109,10 @@ class GravityDriver_Inv(object):
         line = fid.readline()
         l_input = re.split(r"[!\s]", line)
         if l_input[0] == "VALUE":
-
             val = np.array(l_input[1:5])
-            alphas = val.astype(np.float)
+            alphas = val.astype(float)
 
         elif l_input[0] == "DEFAULT":
-
             alphas = np.ones(4)
 
         # Line 9: Bounds
@@ -125,7 +120,7 @@ class GravityDriver_Inv(object):
         l_input = re.split(r"[!\s]", line)
         if l_input[0] == "VALUE":
             val = np.array(l_input[1:3])
-            bounds = val.astype(np.float)
+            bounds = val.astype(float)
 
         elif l_input[0] == "FILE":
             bounds = l_input[1].rstrip()
@@ -138,7 +133,7 @@ class GravityDriver_Inv(object):
         l_input = re.split(r"[!\s]", line)
         if l_input[0] == "VALUE":
             val = np.array(l_input[1:6])
-            lpnorms = val.astype(np.float)
+            lpnorms = val.astype(float)
 
         elif l_input[0] == "FILE":
             lpnorms = l_input[1].rstrip()
@@ -148,7 +143,7 @@ class GravityDriver_Inv(object):
         l_input = re.split(r"[!\s]", line)
         if l_input[0] == "VALUE":
             val = np.array(l_input[1:3])
-            eps = val.astype(np.float)
+            eps = val.astype(float)
 
         elif l_input[0] == "DEFAULT":
             eps = None
@@ -208,7 +203,6 @@ class GravityDriver_Inv(object):
     @property
     def staticCells(self):
         if getattr(self, "_staticCells", None) is None:
-
             # Cells with value 1 in active model are dynamic
             staticCells = self.activeModel[self._activeCells] == -1
 
@@ -220,7 +214,6 @@ class GravityDriver_Inv(object):
     @property
     def dynamicCells(self):
         if getattr(self, "_dynamicCells", None) is None:
-
             # Cells with value 1 in active model are dynamic
             dynamicCells = self.activeModel[self._activeCells] == 1
 
@@ -242,7 +235,6 @@ class GravityDriver_Inv(object):
             if isinstance(self.mstart, float):
                 self._m0 = np.ones(self.nC) * self.mstart
             else:
-
                 self._m0 = TensorMesh.read_model_UBC(
                     self.mesh, self.basePath + self.mstart
                 )
