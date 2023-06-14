@@ -397,4 +397,4 @@ class XYZSystem(object):
 
         resp = resp.reshape((len(self.xyz.flightlines), len(resp) // len(self.xyz.flightlines)))
 
-        return self.xyz.unfilter(self.forward_data_to_xyz(self.split_moments(resp)))
+        return self.xyz.unfilter(self.forward_data_to_xyz(self.split_moments(resp)), layerfilter=False)
