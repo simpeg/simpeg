@@ -43,11 +43,19 @@ class FilteredXYZ(libaarhusxyz.XYZ):
             unfilteredxyz.flightlines = copy.deepcopy(self.xyz.flightlines)
             for key in xyz.layer_data.keys():
                 old = unfilteredxyz.layer_data[key]
-                unfilteredxyz.layer_data[key] = pd.DataFrame(index=self.xyz.flightlines.index, columns=unfilteredxyz.layer_data[key].columns)
+                unfilteredxyz.layer_data[key] = pd.DataFrame(
+                    index=self.xyz.flightlines.index,
+                    columns=unfilteredxyz.layer_data[key].columns
+                ).astype(
+                    unfilteredxyz.layer_data[key].dtypes)
                 unfilteredxyz.layer_data[key].iloc[self.get_soundingfilter(),:] = old.values
         if layerfilter:
             for key in xyz.layer_data.keys():
                 old = unfilteredxyz.layer_data[key]
-                unfilteredxyz.layer_data[key] = pd.DataFrame(index=unfilteredxyz.flightlines.index, columns=self.xyz.layer_data[key].columns)
+                unfilteredxyz.layer_data[key] = pd.DataFrame(
+                    index=unfilteredxyz.flightlines.index,
+                    columns=self.xyz.layer_data[key].columns
+                ).astype(
+                    self.xyz.layer_data[key].dtypes)
                 unfilteredxyz.layer_data[key].iloc[:,self.get_layerfilter(key)] = old.values
         return unfilteredxyz
