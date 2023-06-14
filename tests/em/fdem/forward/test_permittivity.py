@@ -5,7 +5,6 @@ from scipy.constants import epsilon_0
 
 import geoana
 import discretize
-from discretize import utils
 from SimPEG.electromagnetics import frequency_domain as fdem
 from pymatsolver import Pardiso
 
@@ -190,8 +189,6 @@ def test_e_dipole(epsilon, frequency, simulation):
 @pytest.mark.parametrize("epsilon_r", epsilon_r_list)
 @pytest.mark.parametrize("frequency", frequency_list)
 def test_cross_check_e_dipole(epsilon_r, frequency):
-    tolerance = 1e-8
-
     sigma_back = 1e-2
     epsilon_r_back = 1
 
