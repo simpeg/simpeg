@@ -51,7 +51,7 @@ def __inner_mat_mul_op(M, u, v=None, adjoint=False):
                 v = np.squeeze(v)
             if adjoint:
                 return sum([prop_deriv.T @ (M.T @ v) for M in Mu])
-            v = prop_deriv @ v
+            pv = prop_deriv @ v
             return np.stack([M @ pv for M in Mu], axis=-1)
         else:
             Mu = M_func(u)
