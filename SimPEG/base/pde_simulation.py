@@ -50,15 +50,17 @@ def __inner_mat_mul_op(M, u, v=None, adjoint=False):
             elif v.ndim > 1:
                 v = np.squeeze(v)
             if adjoint:
-                return sum([prop_deriv.T @ (M.T @ v) for M in Mu])
-            v = prop_deriv @ v
+                return sum(
+                    [prop_deriv.T @ (Mu[i].T @ v[..., i]) for i in range(u.shape[1])]
+                )
+            pv = prop_deriv @ v
             return np.stack([M @ pv for M in Mu], axis=-1)
         else:
             Mu = M_func(u)
             if v is None:
                 Mu = Mu @ prop_deriv
                 if adjoint:
-                    Mu = M.T
+                    Mu = Mu.T
                 return Mu
             elif v.ndim > 1:
                 v = np.squeeze(v)
