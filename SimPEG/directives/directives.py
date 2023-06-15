@@ -3018,7 +3018,7 @@ class SaveIterationsGeoH5(InversionDirective):
             for file in ["SimPEG.out", "SimPEG.log"]:
                 filepath = dirpath / file
 
-                if not os.path.isfile(filepath):
+                if not filepath.is_file():
                     continue
 
                 with open(filepath, "rb") as f:
