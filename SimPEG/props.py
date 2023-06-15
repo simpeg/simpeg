@@ -68,16 +68,23 @@ class PhysicalProperty:
     reciprocal = None
 
     def __init__(
-        self, short_details, mapping=None, shape=None, default=None, dtype=None
+        self,
+        short_details,
+        mapping=None,
+        shape=None,
+        default=None,
+        dtype=None,
+        optional=False,
     ):
         self.short_details = short_details
         if mapping is not None:
             mapping.prop = self
 
         self._mapping = mapping
+        self.optional = optional
 
         self.shape = shape
-        self.dtype = None
+        self.dtype = dtype
 
     @property
     def name(self):
@@ -109,6 +116,8 @@ class PhysicalProperty:
             shape_str = ""
         else:
             shape_str = f"{scope.shape} "
+        if scope.optional:
+            shape_str = f"None or {shape_str}"
         dtype_str = f" of {scope.dtype}"
         if scope.dtype is None:
             dtype_str = ""
@@ -130,7 +139,7 @@ class PhysicalProperty:
                     return 1.0 / value
             # If I don't have a mapping
             if scope.mapping is None:
-                # I done have a reciprocal, or it doesn't have a mapping
+                # I dont have a reciprocal, or it doesn't have a mapping
                 if scope.reciprocal is None:
                     return None
                 if scope.reciprocal.mapping is None:
@@ -142,14 +151,16 @@ class PhysicalProperty:
                             )
                         )
                 # Set by mapped reciprocal
-                print("returning this thing?")
                 return 1.0 / getattr(self, scope.reciprocal.name)
 
             mapping = getattr(self, scope.mapping.name, None)
             if mapping is None:
-                raise AttributeError(
-                    f"Neither a value for `{scope.name}` or mapping for `{scope.mapping.name}` has not been set."
-                )
+                if scope.optional:
+                    return None
+                else:
+                    raise AttributeError(
+                        f"Neither a value for `{scope.name}` or mapping for `{scope.mapping.name}` has not been set."
+                    )
             if self.model is None:
                 raise AttributeError(
                     f"A `model` is required for physical property {scope.name}"
@@ -238,12 +249,13 @@ class NestedModeler:
         return property(fget=fget, fset=fset, fdel=fdel, doc=doc)
 
 
-def Invertible(property_name):
+def Invertible(property_name, optional=False):
     mapping = Mapping(f"Mapping of the inversion model to {property_name}.")
 
     physical_property = PhysicalProperty(
         f"{property_name.capitalize()} physical property model.",
         mapping=mapping,
+        optional=optional,
     )
 
     property_derivative = Derivative(

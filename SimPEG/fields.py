@@ -6,12 +6,13 @@ from .utils import mkvc, validate_type
 
 class Fields:
     """Fancy Field Storage
-    .. code::python
-        fields = Fields(
-            simulation=simulation, knownFields={"phi": "CC"}
-        )
-        fields[:,'phi'] = phi
-        print(fields[src0,'phi'])
+
+    Examples
+    --------
+    >>> fields = Fields(
+    ...     simulation=simulation, knownFields={"phi": "CC"}
+    ... )
+    >>> fields[:,'phi'] = phi
     """
 
     _dtype = float

@@ -11,15 +11,6 @@ Many of the utilities are imported from `discretize.utils`. See that package's
 documentation for many details on items.
 
 
-Coordinates Utility Functions
-=============================
-
-.. autosummary::
-  :toctree: generated/
-
-  rotation_matrix_from_normals
-  rotate_points_from_normals
-
 Counter Utility Functions
 =========================
 
@@ -29,17 +20,6 @@ Counter Utility Functions
   Counter
   count
   timeIt
-
-Curvilinear Utility Functions
-=============================
-
-.. autosummary::
-  :toctree: generated/
-
-  example_curvilinear_grid
-  face_info
-  index_cube
-  volume_tetrahedron
 
 
 IO Utility Functions
@@ -71,30 +51,12 @@ Matrix Utility Functions
 .. autosummary::
   :toctree: generated/
 
-  av
-  av_extrap
   cartesian2spherical
   coterminal
-  ddx
   define_plane_from_points
-  diagEst
   eigenvalue_by_power_iteration
   estimate_diagonal
-  get_subarray
-  kron3
-  ind2sub
-  inverse_2x2_block_diagonal
-  inverse_3x3_block_diagonal
-  inverse_property_tensor
-  make_property_tensor
-  mkvc
-  ndgrid
-  sdiag
-  sdinv
-  speye
   spherical2cartesian
-  spzeros
-  sub2ind
   unique_rows
 
 
@@ -104,9 +66,6 @@ Mesh Utility Functions
 .. autosummary::
   :toctree: generated/
 
-  closest_points_index
-  extract_core_mesh
-  unpack_widths
   surface2inds
 
 
@@ -157,7 +116,6 @@ Many of the functions here are used internally to SimPEG and have minimal docume
 .. autosummary::
   :toctree: generated/
 
-  as_array_n_by_dim
   call_hooks
   check_stoppers
   mem_profile_class
@@ -169,7 +127,6 @@ Many of the functions here are used internally to SimPEG and have minimal docume
   deprecate_property
   hook
   print_done
-  printDone
   print_line
   print_stoppers
   print_titles

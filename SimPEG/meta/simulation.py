@@ -196,6 +196,11 @@ class MetaSimulation(BaseSimulation):
 
         The returned list contains the field object from each simulation.
 
+        Parameters
+        ----------
+        m : array_like
+            The full model vector.
+
         Returns
         -------
         (n_sim) list
@@ -291,7 +296,10 @@ class MetaSimulation(BaseSimulation):
             if W is None:
                 W = np.ones(self.survey.nD)
             else:
-                W = W.diagonal()
+                try:
+                    W = W.diagonal()
+                except (AttributeError, TypeError, ValueError):
+                    pass
             jtj_diag = 0.0
             # approximate the JtJ diag on the full model space as:
             # sum((diag(sqrt(jtj_diag)) @ M_deriv))**2)
@@ -425,7 +433,9 @@ class RepeatedSimulation(MetaSimulation):
     Parameters
     ----------
     simulation : SimPEG.simulation.BaseSimulation
+        The simulation to use repeatedly with different mappings.
     mappings : (n_sim) list of SimPEG.maps.IdentityMap
+        The list of different mappings to use.
     """
 
     _repeat_sim = True
