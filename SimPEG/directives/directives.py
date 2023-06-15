@@ -2992,8 +2992,8 @@ class SaveIterationsGeoH5(InversionDirective):
         """
         Write update to file.
         """
-        dirpath = os.path.dirname(self._h5_file)
-        filepath = os.path.join(dirpath, "SimPEG.out")
+        dirpath = Path(self._h5_file).parent
+        filepath = dirpath / "SimPEG.out"
 
         if iteration == 0:
             with open(filepath, 'w') as f:
