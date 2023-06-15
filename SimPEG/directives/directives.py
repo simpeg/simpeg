@@ -1,3 +1,4 @@
+from pathlib import Path
 import numpy as np
 import matplotlib.pyplot as plt
 import warnings
@@ -2885,13 +2886,16 @@ class SaveIterationsGeoH5(InversionDirective):
         self.save_components(0)
 
         if self.save_objective_function:
-            self.save_log(0)
+            self.write_update(0)
+            self.save_log()
 
     def endIter(self):
         self.save_components(self.opt.iter)
 
         if self.save_objective_function:
-            self.save_log(self.opt.iter)
+            self.write_update(self.opt.iter)
+            self.save_log()
+
 
     def stack_channels(self, dpred: list):
         """
@@ -2984,13 +2988,12 @@ class SaveIterationsGeoH5(InversionDirective):
                             data, base_name
                         )
 
-    def save_log(self, iteration: int):
+    def write_update(self, iteration: int):
         """
-        Save iteration metrics to comments.
+        Write update to file.
         """
-
-        dirpath = os.path.dirname(self._h5_file)
-        filepath = os.path.join(dirpath, "SimPEG.out")
+        dirpath = Path(self._h5_file).parent
+        filepath = dirpath / "SimPEG.out"
 
         if iteration == 0:
             with open(filepath, 'w') as f:
@@ -3003,18 +3006,31 @@ class SaveIterationsGeoH5(InversionDirective):
                 f"{self.invProb.phi_m:.3e} {date_time}\n"
             )
 
-        with open(filepath, "rb") as f:
-            raw_file = f.read()
+    def save_log(self):
+        """
+        Save iteration metrics to comments.
+        """
+        dirpath = Path(self._h5_file).parent
 
         with Workspace(self._h5_file) as w_s:
             h5_object = w_s.get_entity(self.h5_object)[0]
-            child_names = [k.name for k in h5_object.parent.children]
-            if "SimPEG.out" in child_names:
-                file_entity = h5_object.parent.children[child_names.index("SimPEG.out")]
-            else:
-                file_entity = h5_object.parent.add_file(filepath)
 
-            file_entity.values = raw_file
+            for file in ["SimPEG.out", "SimPEG.log"]:
+                filepath = dirpath / file
+
+                if not filepath.is_file():
+                    continue
+
+                with open(filepath, "rb") as f:
+                    raw_file = f.read()
+
+                if h5_object.parent.get_entity(file):
+                    file_entity = h5_object.parent.get_entity(file)[0]
+                else:
+                    file_entity = h5_object.parent.add_file(filepath)
+
+                file_entity.values = raw_file
+
 
     @property
     def joint_index(self):
