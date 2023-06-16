@@ -32,6 +32,7 @@ from SimPEG.regularization import LaterallyConstrained, RegularizationMesh
 
 import scipy.stats
 from . import base
+import typing
 
 class DualMomentTEMXYZSystem(base.XYZSystem):
     """Dual moment system, suitable for describing e.g. the SkyTEM
@@ -54,8 +55,8 @@ class DualMomentTEMXYZSystem(base.XYZSystem):
     gate_start_hm=12
     gate_end_hm=26
 
-    rx_orientation = 'z'
-    tx_orientation = 'z'
+    rx_orientation : typing.Literal['x', 'y', 'z'] = 'z'
+    tx_orientation : typing.Literal['x', 'y', 'z'] = 'z'
     
     @classmethod
     def load_gex(cls, gex):
