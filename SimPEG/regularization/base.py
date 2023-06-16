@@ -32,6 +32,8 @@ class BaseRegularization(BaseObjectiveFunction):
     """
 
     _model = None
+    _parent = None
+    _W = None
 
     def __init__(
         self,
@@ -136,6 +138,19 @@ class BaseRegularization(BaseObjectiveFunction):
                 f"Value of type {type(mapping)} provided."
             )
         self._mapping = mapping
+
+    @property
+    def parent(self):
+        """
+        The parent objective function
+        """
+        return self._parent
+
+    @parent.setter
+    def parent(self, parent):
+        if not isinstance(parent, ComboObjectiveFunction):
+            raise TypeError("Parent must be a ComboObjectiveFunction")
+        self._parent = parent
 
     @property
     def units(self) -> str | None:
@@ -388,7 +403,7 @@ class Smallness(BaseRegularization):
     :math:`\mathbf{m_{ref}}` is a reference model,
     :math:`\mathbf{V}` are square root of cell volumes and
     :math:`\mathbf{W}` is a weighting matrix (default Identity). If fixed or
-        free weights are provided, then it is :code:`diag(np.sqrt(weights))`).
+    free weights are provided, then it is :code:`diag(np.sqrt(weights))`).
 
 
     **Optional Inputs**
@@ -781,7 +796,7 @@ class WeightedLeastSquares(ComboObjectiveFunction):
                 )
         else:
             objfcts = kwargs.pop("objfcts")
-        super().__init__(objfcts=objfcts, **kwargs)
+        super().__init__(objfcts=objfcts, unpack_on_add=False, **kwargs)
         self.mapping = mapping
         self.reference_model = reference_model
         self.reference_model_in_smooth = reference_model_in_smooth
@@ -935,7 +950,7 @@ class WeightedLeastSquares(ComboObjectiveFunction):
     @property
     def length_scale_x(self):
         """Constant multiplier of the base length scale on model gradients along x."""
-        return np.sqrt(self.alpha_x / self.regularization_mesh.base_length)
+        return np.sqrt(self.alpha_x) / self.regularization_mesh.base_length
 
     @length_scale_x.setter
     def length_scale_x(self, value: float):
@@ -952,7 +967,7 @@ class WeightedLeastSquares(ComboObjectiveFunction):
     @property
     def length_scale_y(self):
         """Constant multiplier of the base length scale on model gradients along y."""
-        return np.sqrt(self.alpha_y / self.regularization_mesh.base_length)
+        return np.sqrt(self.alpha_y) / self.regularization_mesh.base_length
 
     @length_scale_y.setter
     def length_scale_y(self, value: float):
@@ -969,7 +984,7 @@ class WeightedLeastSquares(ComboObjectiveFunction):
     @property
     def length_scale_z(self):
         """Constant multiplier of the base length scale on model gradients along z."""
-        return np.sqrt(self.alpha_z / self.regularization_mesh.base_length)
+        return np.sqrt(self.alpha_z) / self.regularization_mesh.base_length
 
     @length_scale_z.setter
     def length_scale_z(self, value: float):

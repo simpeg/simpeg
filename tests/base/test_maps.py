@@ -77,6 +77,27 @@ MAPS_TO_EXCLUDE_3D = [
 ] + REMOVED_IGNORE
 
 
+def test_IdentityMap_init():
+    m = maps.IdentityMap()
+    assert m.nP == "*"
+
+    m = maps.IdentityMap(nP="*")
+    assert m.nP == "*"
+
+    m = maps.IdentityMap(nP=3)
+    assert m.nP == 3
+
+    mesh = discretize.TensorMesh([3])
+    m = maps.IdentityMap(mesh)
+    assert m.nP == 3
+
+    m = maps.IdentityMap(mesh, nP="*")
+    assert m.nP == 3
+
+    with pytest.raises(TypeError):
+        maps.IdentityMap(nP="x")
+
+
 class MapTests(unittest.TestCase):
     def setUp(self):
         maps2test2D = [M for M in dir(maps) if M not in MAPS_TO_EXCLUDE_2D]
@@ -560,8 +581,8 @@ class TestWires(unittest.TestCase):
 
         named_model = wires * model
 
-        named_model.sigma == model[: mesh.shape_cells[2]]
-        assert named_model.mu_casing == 10
+        np.testing.assert_equal(named_model.sigma, model[: mesh.shape_cells[2]])
+        np.testing.assert_equal(named_model.mu_casing, 10)
 
 
 class TestSCEMT(unittest.TestCase):
@@ -646,6 +667,63 @@ def test_LinearMap_errors():
     b = np.random.rand(40)
     with pytest.raises(ValueError):
         maps.LinearMap(A, b=b)
+
+
+def test_linearity():
+    mesh1 = discretize.TensorMesh([3])
+    mesh2 = discretize.TensorMesh([3, 4])
+    mesh3 = discretize.TensorMesh([3, 4, 5])
+    mesh_cyl = discretize.CylindricalMesh([5, 1, 5])
+    mesh_tree = discretize.TreeMesh([8, 8, 8])
+    mesh_tree.refine(-1)
+    # make a list of linear maps
+    linear_maps = [
+        maps.IdentityMap(mesh3),
+        maps.LinearMap(np.eye(3)),
+        maps.Projection(2, np.array([1, 0, 1, 0], dtype=int)),
+        maps.SurjectUnits([[True, False, True], [False, True, False]], nP=3),
+        maps.ChiMap(),
+        maps.MuRelative(),
+        maps.Weighting(nP=mesh1.n_cells),
+        maps.ComplexMap(mesh3),
+        maps.SurjectFull(mesh3),
+        maps.SurjectVertical1D(mesh2),
+        maps.Surject2Dto3D(mesh3),
+        maps.Mesh2Mesh((mesh3, mesh3)),
+        maps.InjectActiveCells(
+            mesh3,
+            mesh3.cell_centers[:, -1] < 0.75,
+        ),
+        maps.TileMap(
+            mesh_tree,
+            mesh_tree.cell_centers[:, -1] < 0.75,
+            mesh_tree,
+        ),
+        maps.IdentityMap() + maps.IdentityMap(),  # A simple SumMap
+        maps.ChiMap() * maps.MuRelative(),  # A simple ComboMap
+    ]
+    non_linear_maps = [
+        maps.SphericalSystem(mesh2),
+        maps.SelfConsistentEffectiveMedium(mesh2, sigma0=1, sigma1=2),
+        maps.ExpMap(),
+        maps.ReciprocalMap(),
+        maps.LogMap(),
+        maps.ParametricCircleMap(mesh2),
+        maps.ParametricPolyMap(mesh2, 4),
+        maps.ParametricSplineMap(mesh2, np.r_[0.25, 0.35]),
+        maps.BaseParametric(mesh3),
+        maps.ParametricLayer(mesh3),
+        maps.ParametricBlock(mesh3),
+        maps.ParametricEllipsoid(mesh3),
+        maps.ParametricCasingAndLayer(mesh_cyl),
+        maps.ParametricBlockInLayer(mesh3),
+        maps.PolynomialPetroClusterMap(),
+        maps.IdentityMap() + maps.ExpMap(),  # A simple SumMap
+        maps.ChiMap() * maps.ExpMap(),  # A simple ComboMap
+    ]
+
+    assert all(m.is_linear for m in linear_maps)
+    assert all(not m.is_linear for m in non_linear_maps)
 
 
 if __name__ == "__main__":

@@ -16,7 +16,6 @@ that
 
 """
 
-from discretize import TreeMesh
 from SimPEG import (
     data,
     data_misfit,
@@ -118,100 +117,6 @@ actv = active_from_xyz(mesh, topo)
 nC = int(actv.sum())
 
 ###########################################################################
-# A simple function to plot vectors in TreeMesh
-#
-# Should eventually end up on discretize
-#
-
-
-def plotVectorSectionsOctree(
-    mesh,
-    m,
-    normal="X",
-    ind=0,
-    vmin=None,
-    vmax=None,
-    scale=1.0,
-    vec="k",
-    axs=None,
-    actvMap=None,
-    fill=True,
-):
-    """
-    Plot section through a 3D tensor model
-    """
-    # plot recovered model
-    normalInd = {"X": 0, "Y": 1, "Z": 2}[normal]
-    antiNormalInd = {"X": [1, 2], "Y": [0, 2], "Z": [0, 1]}[normal]
-
-    h2d = (mesh.h[antiNormalInd[0]], mesh.h[antiNormalInd[1]])
-    x2d = (mesh.x0[antiNormalInd[0]], mesh.x0[antiNormalInd[1]])
-
-    #: Size of the sliced dimension
-    szSliceDim = len(mesh.h[normalInd])
-    if ind is None:
-        ind = int(szSliceDim // 2)
-
-    cc_tensor = [None, None, None]
-    for i in range(3):
-        cc_tensor[i] = np.cumsum(np.r_[mesh.x0[i], mesh.h[i]])
-        cc_tensor[i] = (cc_tensor[i][1:] + cc_tensor[i][:-1]) * 0.5
-    slice_loc = cc_tensor[normalInd][ind]
-
-    # Create a temporary TreeMesh with the slice through
-    temp_mesh = TreeMesh(h2d, x2d)
-    level_diff = mesh.max_level - temp_mesh.max_level
-
-    XS = [None, None, None]
-    XS[antiNormalInd[0]], XS[antiNormalInd[1]] = np.meshgrid(
-        cc_tensor[antiNormalInd[0]], cc_tensor[antiNormalInd[1]]
-    )
-    XS[normalInd] = np.ones_like(XS[antiNormalInd[0]]) * slice_loc
-    loc_grid = np.c_[XS[0].reshape(-1), XS[1].reshape(-1), XS[2].reshape(-1)]
-    inds = np.unique(mesh._get_containing_cell_indexes(loc_grid))
-
-    grid2d = mesh.gridCC[inds][:, antiNormalInd]
-    levels = mesh._cell_levels_by_indexes(inds) - level_diff
-    temp_mesh.insert_cells(grid2d, levels)
-    tm_gridboost = np.empty((temp_mesh.nC, 3))
-    tm_gridboost[:, antiNormalInd] = temp_mesh.gridCC
-    tm_gridboost[:, normalInd] = slice_loc
-
-    # Interpolate values to mesh.gridCC if not 'CC'
-    mx = actvMap * m[:, 0]
-    my = actvMap * m[:, 1]
-    mz = actvMap * m[:, 2]
-
-    m = np.c_[mx, my, mz]
-
-    # Interpolate values from mesh.gridCC to grid2d
-    ind_3d_to_2d = mesh._get_containing_cell_indexes(tm_gridboost)
-    v2d = m[ind_3d_to_2d, :]
-    amp = np.sum(v2d**2.0, axis=1) ** 0.5
-
-    if axs is None:
-        axs = plt.subplot(111)
-
-    if fill:
-        temp_mesh.plot_image(amp, ax=axs, clim=[vmin, vmax], grid=True)
-
-    axs.quiver(
-        temp_mesh.gridCC[:, 0],
-        temp_mesh.gridCC[:, 1],
-        v2d[:, antiNormalInd[0]],
-        v2d[:, antiNormalInd[1]],
-        pivot="mid",
-        scale_units="inches",
-        scale=scale,
-        linewidths=(1,),
-        edgecolors=(vec),
-        headaxislength=0.1,
-        headwidth=10,
-        headlength=30,
-    )
-
-
-###########################################################################
 # Forward modeling data
 # ---------------------
 #
@@ -271,16 +176,19 @@ plt.gca().set_aspect("equal", adjustable="box")
 
 # Plot the vector model
 ax = plt.subplot(2, 1, 2)
-plotVectorSectionsOctree(
-    mesh,
-    model,
-    axs=ax,
+mesh.plot_slice(
+    actv_plot * model.reshape((-1, 3), order="F"),
+    v_type="CCv",
+    view="vec",
+    ax=ax,
     normal="Y",
     ind=66,
-    actvMap=actv_plot,
-    scale=0.5,
-    vmin=0.0,
-    vmax=0.025,
+    grid=True,
+    quiver_opts={
+        "pivot": "mid",
+        "scale": 5 * np.abs(model).max(),
+        "scale_units": "inches",
+    },
 )
 ax.set_xlim([-200, 200])
 ax.set_ylim([-100, 75])
@@ -380,26 +288,35 @@ wires = maps.Wires(("amp", nC), ("theta", nC), ("phi", nC))
 # Create a Combo Regularization
 # Regularize the amplitude of the vectors
 reg_a = regularization.Sparse(
-    mesh, gradient_type="components", active_cells=actv, mapping=wires.amp
+    mesh,
+    gradient_type="total",
+    active_cells=actv,
+    mapping=wires.amp,
+    norms=[0.0, 1.0, 1.0, 1.0],  # Only norm on gradients used,
+    reference_model=np.zeros(3 * nC),
 )
-reg_a.norms = [0.0, 0.0, 0.0, 0.0]  # Sparse on the model and its gradients
-reg_a.reference_model = np.zeros(3 * nC)
 
 # Regularize the vertical angle of the vectors
 reg_t = regularization.Sparse(
-    mesh, gradient_type="components", active_cells=actv, mapping=wires.theta
+    mesh,
+    gradient_type="total",
+    active_cells=actv,
+    mapping=wires.theta,
+    alpha_s=0.0,  # No reference angle,
+    norms=[0.0, 1.0, 1.0, 1.0],  # Only norm on gradients used,
 )
-reg_t.alpha_s = 0.0  # No reference angle
 reg_t.units = "radian"
-reg_t.norms = [0.0, 0.0, 0.0, 0.0]  # Only norm on gradients used
 
 # Regularize the horizontal angle of the vectors
 reg_p = regularization.Sparse(
-    mesh, gradient_type="components", active_cells=actv, mapping=wires.phi
+    mesh,
+    gradient_type="total",
+    active_cells=actv,
+    mapping=wires.phi,
+    alpha_s=0.0,  # No reference angle,
+    norms=[0.0, 1.0, 1.0, 1.0],  # Only norm on gradients used,
 )
-reg_p.alpha_s = 0.0  # No reference angle
 reg_p.units = "radian"
-reg_p.norms = [0.0, 0.0, 0.0, 0.0]  # Only norm on gradients used
 
 reg = reg_a + reg_t + reg_p
 reg.reference_model = np.zeros(3 * nC)
@@ -456,16 +373,19 @@ mrec_MVI_S = inv.run(m_start)
 
 plt.figure(figsize=(8, 8))
 ax = plt.subplot(2, 1, 1)
-plotVectorSectionsOctree(
-    mesh,
-    mrec_MVIC.reshape((nC, 3), order="F"),
-    axs=ax,
+mesh.plot_slice(
+    actv_plot * mrec_MVIC.reshape((nC, 3), order="F"),
+    v_type="CCv",
+    view="vec",
+    ax=ax,
     normal="Y",
-    ind=65,
-    actvMap=actv_plot,
-    scale=0.05,
-    vmin=0.0,
-    vmax=0.005,
+    ind=66,
+    grid=True,
+    quiver_opts={
+        "pivot": "mid",
+        "scale": 5 * np.abs(mrec_MVIC).max(),
+        "scale_units": "inches",
+    },
 )
 ax.set_xlim([-200, 200])
 ax.set_ylim([-100, 75])
@@ -476,23 +396,26 @@ plt.gca().set_aspect("equal", adjustable="box")
 
 ax = plt.subplot(2, 1, 2)
 vec_xyz = utils.mat_utils.spherical2cartesian(
-    invProb.model.reshape((nC, 3), order="F")
+    mrec_MVI_S.reshape((nC, 3), order="F")
 ).reshape((nC, 3), order="F")
 
-plotVectorSectionsOctree(
-    mesh,
-    vec_xyz,
-    axs=ax,
+mesh.plot_slice(
+    actv_plot * vec_xyz,
+    v_type="CCv",
+    view="vec",
+    ax=ax,
     normal="Y",
-    ind=65,
-    actvMap=actv_plot,
-    scale=0.4,
-    vmin=0.0,
-    vmax=0.025,
+    ind=66,
+    grid=True,
+    quiver_opts={
+        "pivot": "mid",
+        "scale": 5 * np.abs(vec_xyz).max(),
+        "scale_units": "inches",
+    },
 )
 ax.set_xlim([-200, 200])
 ax.set_ylim([-100, 75])
-ax.set_title("Sparse model (Spherical)")
+ax.set_title("Sparse model (L0L2)")
 ax.set_xlabel("x")
 ax.set_ylabel("y")
 plt.gca().set_aspect("equal", adjustable="box")

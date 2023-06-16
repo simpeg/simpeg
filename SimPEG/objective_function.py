@@ -27,7 +27,7 @@ class BaseObjectiveFunction(BaseSimPEG):
     mapPair = IdentityMap  #: Base class of expected maps
     _mapping = None  #: An IdentityMap instance.
     _has_fields = False  #: should we have the option to store fields
-
+    _parent = None  #: parent objective function
     _nP = None  #: number of parameters
 
     def __init__(self, nP=None, **kwargs):
@@ -132,7 +132,7 @@ class BaseObjectiveFunction(BaseSimPEG):
             num=num,
             expectedOrder=expectedOrder,
             plotIt=plotIt,
-            **kwargs
+            **kwargs,
         )
 
     def test(self, x=None, num=4, plotIt=False, **kwargs):
@@ -146,32 +146,26 @@ class BaseObjectiveFunction(BaseSimPEG):
 
     __numpy_ufunc__ = True
 
-    def __add__(self, objfct2):
-        if isinstance(objfct2, Zero):
+    def __add__(self, other):
+        if isinstance(other, Zero):
             return self
-
-        if not isinstance(objfct2, BaseObjectiveFunction):
-            raise Exception(
-                "Cannot add type {} to an objective function. Only "
-                "ObjectiveFunctions can be added together".format(
-                    objfct2.__class__.__name__
-                )
+        if not isinstance(other, BaseObjectiveFunction):
+            raise TypeError(
+                f"Cannot add type '{other.__class__.__name__}' to an objective "
+                "function. Only ObjectiveFunctions can be added together."
             )
-
-        if (
-            self.__class__.__name__ != "ComboObjectiveFunction"
-        ):  # not isinstance(self, ComboObjectiveFunction):
-            self = 1 * self
-
-        if (
-            objfct2.__class__.__name__ != "ComboObjectiveFunction"
-        ):  # not isinstance(objfct2, ComboObjectiveFunction):
-            objfct2 = 1 * objfct2
-
-        objfctlist = self.objfcts + objfct2.objfcts
-        multipliers = self.multipliers + objfct2.multipliers
-
-        return ComboObjectiveFunction(objfcts=objfctlist, multipliers=multipliers)
+        objective_functions, multipliers = [], []
+        for instance in (self, other):
+            if isinstance(instance, ComboObjectiveFunction) and instance._unpack_on_add:
+                objective_functions += instance.objfcts
+                multipliers += instance.multipliers
+            else:
+                objective_functions.append(instance)
+                multipliers.append(1)
+        combo = ComboObjectiveFunction(
+            objfcts=objective_functions, multipliers=multipliers
+        )
+        return combo
 
     def __radd__(self, objfct2):
         return self + objfct2
@@ -183,47 +177,91 @@ class BaseObjectiveFunction(BaseSimPEG):
         return self * multiplier
 
     def __div__(self, denominator):
-        return self.__mul__(1.0 / denominator)
+        return self * (1.0 / denominator)
 
     def __truediv__(self, denominator):
-        return self.__mul__(1.0 / denominator)
+        return self * (1.0 / denominator)
 
     def __rdiv__(self, denominator):
-        return self.__mul__(1.0 / denominator)
+        return self * (1.0 / denominator)
 
 
 class ComboObjectiveFunction(BaseObjectiveFunction):
     """
-    A composite objective function that consists of multiple objective
-    functions. Objective functions are stored in a list, and multipliers
-    are stored in a parallel list.
+    Composite for multiple objective functions
 
-    .. code::python
+    A composite class for multiple objective functions. Each objective function
+    is accompanied by a multiplier. Both objective functions and multipliers
+    are stored in a list.
 
-        import SimPEG.ObjectiveFunction
-        phi1 = ObjectiveFunction.L2ObjectiveFunction(nP=10)
-        phi2 = ObjectiveFunction.L2ObjectiveFunction(nP=10)
+    Parameters
+    ----------
+    objfcts : list or None, optional
+        List containing the objective functions that will live inside the
+        composite class. If ``None``, an empty list will be created.
+    multipliers : list or None, optional
+        List containing the multipliers for its respective objective function
+        in ``objfcts``.  If ``None``, a list full of ones with the same length
+        as ``objfcts`` will be created.
+    unpack_on_add : bool, optional
+        Weather to unpack the multiple objective functions when adding them to
+        another objective function, or to add them as a whole.
 
-        phi = 2*phi1 + 3*phi2
+    Examples
+    --------
+    Build a simple combo objective function:
 
-    is equivalent to
+    >>> objective_fun_a = L2ObjectiveFunction(nP=3)
+    >>> objective_fun_b = L2ObjectiveFunction(nP=3)
+    >>> combo = ComboObjectiveFunction([objective_fun_a, objective_fun_b], [1, 0.5])
+    >>> print(len(combo))
+    2
+    >>> print(combo.multipliers)
+    [1, 0.5]
 
-        .. code::python
+    Combo objective functions are also created after adding two objective functions:
 
-            import SimPEG.ObjectiveFunction
-            phi1 = ObjectiveFunction.L2ObjectiveFunction(nP=10)
-            phi2 = ObjectiveFunction.L2ObjectiveFunction(nP=10)
+    >>> combo = 2 * objective_fun_a + 3.5 * objective_fun_b
+    >>> print(len(combo))
+    2
+    >>> print(combo.multipliers)
+    [2, 3.5]
 
-            phi = ObjectiveFunction.ComboObjectiveFunction(
-                [phi1, phi2], [2, 3]
-            )
+    We could add two combo objective functions as well:
+
+    >>> objective_fun_c = L2ObjectiveFunction(nP=3)
+    >>> objective_fun_d = L2ObjectiveFunction(nP=3)
+    >>> combo_1 = 4.3 * objective_fun_a + 3 * objective_fun_b
+    >>> combo_2 = 1.5 * objective_fun_c + 0.5 * objective_fun_d
+    >>> combo = combo_1 + combo_2
+    >>> print(len(combo))
+    4
+    >>> print(combo.multipliers)
+    [4.3, 3, 1.5, 0.5]
+
+    We can choose to not unpack the objective functions when creating the
+    combo. For example:
+
+    >>> objective_fun_a = L2ObjectiveFunction(nP=3)
+    >>> objective_fun_b = L2ObjectiveFunction(nP=3)
+    >>> objective_fun_c = L2ObjectiveFunction(nP=3)
+    >>>
+    >>> # Create a ComboObjectiveFunction that won't unpack
+    >>> combo_1 = ComboObjectiveFunction(
+    ...     objfcts=[objective_fun_a, objective_fun_b],
+    ...     multipliers=[0.1, 1.2],
+    ...     unpack_on_add=False,
+    ... )
+    >>> combo_2 = combo_1 + objective_fun_c
+    >>> print(len(combo_2))
+    2
 
     """
 
     _multiplier_types = (float, None, Zero, np.float64, int, np.integer)  # Directive
     _multipliers = None
 
-    def __init__(self, objfcts=None, multipliers=None, **kwargs):
+    def __init__(self, objfcts=None, multipliers=None, unpack_on_add=True, **kwargs):
         if objfcts is None:
             objfcts = []
         if multipliers is None:
@@ -265,10 +303,13 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
                     else:
                         self._nP = fct.nP
 
+                fct.parent = self
+
         validate_list(objfcts, multipliers)
 
         self.objfcts = objfcts
         self._multipliers = multipliers
+        self._unpack_on_add = unpack_on_add
 
         super(ComboObjectiveFunction, self).__init__(**kwargs)
 

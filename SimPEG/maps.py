@@ -58,24 +58,25 @@ class IdentityMap:
     mesh : discretize.BaseMesh
         The number of parameters accepted by the mapping is set to equal the number
         of mesh cells.
-    nP : int
+    nP : int, or '*'
         Set the number of parameters accepted by the mapping directly. Used if the
         number of parameters is known. Used generally when the number of parameters
         is not equal to the number of cells in a mesh.
     """
 
     def __init__(self, mesh=None, nP=None, **kwargs):
-        if nP is not None:
-            if isinstance(nP, str):
-                assert nP == "*", "nP must be an integer or '*', not {}".format(nP)
-            assert isinstance(
-                nP, (int, np.integer)
-            ), "Number of parameters must be an integer. Not `{}`.".format(type(nP))
-            nP = int(nP)
-        elif mesh is not None:
-            nP = mesh.nC
+        if (isinstance(nP, str) and nP == "*") or nP is None:
+            if mesh is not None:
+                nP = mesh.n_cells
+            else:
+                nP = "*"
         else:
-            nP = "*"
+            try:
+                nP = int(nP)
+            except (TypeError, ValueError) as err:
+                raise TypeError(
+                    f"Unrecognized input of {repr(nP)} for number of parameters, must be an integer or '*'."
+                ) from err
         self.mesh = mesh
         self._nP = nP
 
@@ -345,6 +346,16 @@ class IdentityMap:
             value = validate_type("mesh", value, discretize.base.BaseMesh, cast=False)
         self._mesh = value
 
+    @property
+    def is_linear(self):
+        """Determine whether or not this mapping is a linear operation.
+
+        Returns
+        -------
+        bool
+        """
+        return True
+
 
 class ComboMap(IdentityMap):
     r"""Combination mapping constructed by joining a set of other mappings.
@@ -532,6 +543,10 @@ class ComboMap(IdentityMap):
 
     def __len__(self):
         return len(self.maps)
+
+    @property
+    def is_linear(self):
+        return all(m.is_linear for m in self.maps)
 
 
 class LinearMap(IdentityMap):
@@ -1221,6 +1236,10 @@ class SphericalSystem(IdentityMap):
             return self.sphericalDeriv(m) * v
         return self.sphericalDeriv(m)
 
+    @property
+    def is_linear(self):
+        return False
+
 
 class Wires(object):
     r"""Mapping class for organizing multiple parameter types into a single model.
@@ -1839,6 +1858,10 @@ class SelfConsistentEffectiveMedium(IdentityMap):
         """
         return self._sc2phaseEMTSpheroidsinversetransform(sige)
 
+    @property
+    def is_linear(self):
+        return False
+
 
 ###############################################################################
 #                                                                             #
@@ -1939,6 +1962,10 @@ class ExpMap(IdentityMap):
             return deriv * v
         return deriv
 
+    @property
+    def is_linear(self):
+        return False
+
 
 class ReciprocalMap(IdentityMap):
     r"""Mapping that computes the reciprocals of the model parameters.
@@ -2026,6 +2053,10 @@ class ReciprocalMap(IdentityMap):
         if v is not None:
             return deriv * v
         return deriv
+
+    @property
+    def is_linear(self):
+        return False
 
 
 class LogMap(IdentityMap):
@@ -2119,6 +2150,10 @@ class LogMap(IdentityMap):
             is the natural exponent.
         """
         return np.exp(mkvc(m))
+
+    @property
+    def is_linear(self):
+        return False
 
 
 class ChiMap(IdentityMap):
@@ -3205,6 +3240,8 @@ class InjectActiveCells(IdentityMap):
         return int(self.indActive.sum())
 
     def _transform(self, m):
+        if m.ndim > 1:
+            return self.P * m + self.valInactive[:, None]
         return self.P * m + self.valInactive
 
     def inverse(self, u):
@@ -3508,6 +3545,10 @@ class ParametricCircleMap(IdentityMap):
         if v is not None:
             return sp.csr_matrix(np.c_[g1, g2, g3, g4, g5]) * v
         return sp.csr_matrix(np.c_[g1, g2, g3, g4, g5])
+
+    @property
+    def is_linear(self):
+        return False
 
 
 class ParametricPolyMap(IdentityMap):
@@ -3914,6 +3955,10 @@ class ParametricPolyMap(IdentityMap):
             return sp.csr_matrix(np.c_[g1, g2, g3]) * v
         return sp.csr_matrix(np.c_[g1, g2, g3])
 
+    @property
+    def is_linear(self):
+        return False
+
 
 class ParametricSplineMap(IdentityMap):
     r"""Mapping to parameterize the boundary between two geological units using
@@ -4293,6 +4338,10 @@ class ParametricSplineMap(IdentityMap):
             return sp.csr_matrix(np.c_[g1, g2, g3]) * v
         return sp.csr_matrix(np.c_[g1, g2, g3])
 
+    @property
+    def is_linear(self):
+        return False
+
 
 class BaseParametric(IdentityMap):
     """Base class for parametric mappings from simple geological structures to meshes.
@@ -4431,6 +4480,10 @@ class BaseParametric(IdentityMap):
         x = slope * val
         dx = -slope
         return (1.0 / (1 + x**2)) / np.pi * dx
+
+    @property
+    def is_linear(self):
+        return False
 
 
 class ParametricLayer(BaseParametric):
@@ -6187,3 +6240,7 @@ class PolynomialPetroClusterMap(IdentityMap):
         else:
             out = np.dot(self._derivmatrix(m.reshape(-1, 2)), v.reshape(2, -1))
             return out
+
+    @property
+    def is_linear(self):
+        return False

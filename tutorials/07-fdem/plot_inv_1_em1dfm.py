@@ -24,7 +24,8 @@ at a 10 m offset from the source in ppm.
 # --------------
 #
 
-import os, tarfile
+import os
+import tarfile
 import numpy as np
 import matplotlib.pyplot as plt
 
