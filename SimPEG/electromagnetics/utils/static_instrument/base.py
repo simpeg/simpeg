@@ -88,8 +88,9 @@ class XYZSystem(object):
 
     validate = True
     def do_validate(self):
-        dbdt = -self._xyz.layer_data["dbdt_ch1gt"].values.flatten() * self._xyz.model_info.get("scalefactor", 1)
-        assert np.nanmean(dbdt) < 1e-3, "Unit for dbdt is probably wrong. Please set scalefactor."
+        if "dbdt_ch1gt" in self._xyz.layer_data:
+            dbdt = -self._xyz.layer_data["dbdt_ch1gt"].values.flatten() * self._xyz.model_info.get("scalefactor", 1)
+            assert np.nanmean(dbdt) < 1e-3, "Unit for dbdt is probably wrong. Please set scalefactor."
         
     def __getattribute__(self, name):
         options = object.__getattribute__(self, "options")
