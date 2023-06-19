@@ -5,7 +5,7 @@ Advanced: Installing Solvers
 
 Pardiso_ is a direct solver that can be used for solving large(ish)
 linear systems of equations. The provided testing environment should install
-the necessary solvers for you. pymatsolver_ If you wish to modify pymatsolver_ as well
+the necessary solvers for you. If you wish to modify pymatsolver_ as well
 follow the instructions to download and install pymatsolver_.
 
 .. _Pardiso: https://www.pardiso-project.org
