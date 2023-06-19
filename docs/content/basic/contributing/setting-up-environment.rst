@@ -46,6 +46,8 @@ recommend using `pip`. After ensuring that all necessary packages from
 `environment_test.yml` are installed, the most robust command you can use,
 executed from the base level directory would be ::
 
+.. code::
+
     pip install --no-deps -e .
 
 This is called an editable mode install (`-e`). This will make a symbolic link
