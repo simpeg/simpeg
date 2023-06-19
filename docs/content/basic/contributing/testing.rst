@@ -115,7 +115,7 @@ example, testing a 2D curl operator in `test_operators.py
         def test_order(self):
             self.orderTest()
 
-Derivative tests are a particular type or :ref:`order_test`, and since they
+Derivative tests are a particular type of :ref:`order_test`, and since they
 are used so extensively, SimPEG includes a :code:`check_derivative` method.
 
 In the case
