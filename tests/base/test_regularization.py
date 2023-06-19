@@ -627,5 +627,44 @@ def test_cross_reg_reg_errors():
         regularization.CrossReferenceRegularization(mesh, ref_dir)
 
 
+class TestIndActiveAndActiveCells:
+    """Test error after simultaneously passing indActive and active_cells."""
+
+    @pytest.fixture(params=["1D", "2D", "3D"])
+    def mesh(self, request):
+        """Sample mesh."""
+        if request.param == "1D":
+            hx = np.random.rand(10)
+            hx = hx / hx.sum()
+            h = [hx]
+        elif request.param == "2D":
+            hx, hy = np.random.rand(10), np.random.rand(9)
+            hx, hy = hx / hx.sum(), hy / hy.sum()
+            h = [hx, hy]
+        elif request.param == "3D":
+            hx, hy, hz = np.random.rand(10), np.random.rand(9), np.random.rand(8)
+            hx, hy, hz = hx / hx.sum(), hy / hy.sum(), hz / hz.sum()
+            h = [hx, hy, hz]
+        return discretize.TensorMesh(h)
+
+    def test_base_regularization(self, mesh):
+        """Test BaseRegularization."""
+        active_cells = np.ones(len(mesh), dtype=bool)
+        msg = "Cannot simultanously pass 'active_cells' and 'indActive'."
+        with pytest.raises(ValueError, match=msg):
+            regularization.BaseRegularization(
+                mesh, active_cells=active_cells, indActive=active_cells
+            )
+
+    def test_weighted_least_squares(self, mesh):
+        """Test WeightedLeastSquares."""
+        active_cells = np.ones(len(mesh), dtype=bool)
+        msg = "Cannot simultanously pass 'active_cells' and 'indActive'."
+        with pytest.raises(ValueError, match=msg):
+            regularization.WeightedLeastSquares(
+                mesh, active_cells=active_cells, indActive=active_cells
+            )
+
+
 if __name__ == "__main__":
     unittest.main()
