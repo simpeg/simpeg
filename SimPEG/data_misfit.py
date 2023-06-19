@@ -21,8 +21,6 @@ class BaseDataMisfit(L2ObjectiveFunction):
 
         self.data = data
         self.simulation = simulation
-        self.debug = debug
-        self.count = counter
 
     @property
     def data(self):
