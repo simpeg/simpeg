@@ -8,7 +8,7 @@ SimPEG uses Black_ to autoformat its codebase, and flake8_ to lint its code and
 enforce style rules. Black_ can automatically format SimPEG's codebase to
 ensure it complies with Black code style. flake8_ performs style checks, raises
 warnings on code that could lead towards bugs, performs checks on consistent
-documentation formatting, and identify poor coding practices.
+documentation formatting, and identifies poor coding practices.
 
 .. important::
 
