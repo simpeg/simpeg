@@ -5,7 +5,7 @@ from discretize.tests import check_derivative
 
 from .maps import IdentityMap
 from .props import BaseSimPEG
-from .utils import set_kwargs, timeIt, Zero, Identity
+from .utils import timeIt, Zero, Identity
 
 __all__ = ["BaseObjectiveFunction", "ComboObjectiveFunction", "L2ObjectiveFunction"]
 
