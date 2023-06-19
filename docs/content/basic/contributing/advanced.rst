@@ -14,6 +14,8 @@ follow the instructions to download and install pymatsolver_.
 
 If you open a `Jupyter notebook`_ and are able to run:
 
+.. code:: python
+
     from pymatsolver import Pardiso
 
 .. _Jupyter notebook: http://jupyter.org/
