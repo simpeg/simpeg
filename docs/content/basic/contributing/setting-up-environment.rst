@@ -44,7 +44,7 @@ Install SimPEG in developer mode
 There are many options to install SimPEG into this local environment, we
 recommend using `pip`. After ensuring that all necessary packages from
 `environment_test.yml` are installed, the most robust command you can use,
-executed from the base level directory would be ::
+executed from the base level directory would be:
 
 .. code::
 
