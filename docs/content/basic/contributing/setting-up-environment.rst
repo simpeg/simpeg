@@ -55,7 +55,9 @@ for you to the working ``simpeg`` directory for that Python environment to use
 and you can then make use of any changes you have made to the repository
 without re-installing it. This command (`--no-deps`) also ensures pip won't
 unintentionally re-install a package that was previously installed with conda.
-This practice also allows you to uninstall SimPEG if so desired ::
+This practice also allows you to uninstall SimPEG if so desired:
+
+.. code::
 
     pip uninstall SimPEG
 
