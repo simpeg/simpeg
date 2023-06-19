@@ -14,17 +14,22 @@ Create environment
 ------------------
 
 To get started developing SimPEG we recommend setting up an environment using
-the ``conda`` ( or ``mamba``) package manager that mimics the testing
+the ``conda`` (or ``mamba``) package manager that mimics the testing
 environment used for continuous integration testing. Most of the packages that
 we use are available through the ``conda-forge`` project. This will ensure you
 have all of the necessary packages to both develop SimPEG and run tests
 locally. We provide an ``environment_test.yml`` in the base level directory.
+
+To create the environment and install all packages needed to run and write code
+for SimPEG, navigate to the directory where you :ref:`cloned SimPEG's
+repository <working-with-github>` and run:
 
 .. code::
 
     conda env create -f environment_test.yml
 
 .. note::
+
     If you find yourself wanting a faster package manager than ``conda``
     check out the ``mamba`` project at https://mamba.readthedocs.io/. It
     usually is able to set up environments much quicker than ``conda`` and
@@ -73,7 +78,7 @@ Check your installation
 -----------------------
 
 You should be able to open a terminal within SimPEG/tutorials and run an
-example, ie.
+example, i.e.
 
 .. code::
 
