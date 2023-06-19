@@ -6,7 +6,7 @@ Contributing to SimPEG
 First of all, we are glad you are here! We welcome contributions and input
 from the community.
 
-In this pages we set some guidelines for contributing to the repositories
+In these pages we set some guidelines for contributing to the repositories
 hosted in the `SimPEG <https://github.com/simpeg>`_ organization on GitHub.
 These repositories are maintained on a volunteer basis.
 
