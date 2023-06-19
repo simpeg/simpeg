@@ -41,7 +41,7 @@ Bugs
 If you found a bug in SimPEG, please report it through a
 `new Issue <https://github.com/simpeg/simpeg/issues/new/choose>`_.
 Please be as descriptive as possible and provide sufficient detail to reproduce the error.
-Whenever possible, if you can include a small example that produces the error,
+Whenever possible, if you can include a small example that reproduces the error,
 this will help us resolve issues faster.
 
 .. _suggest-enhancements:
