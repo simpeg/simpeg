@@ -116,7 +116,7 @@ example, testing a 2D curl operator in `test_operators.py
             self.orderTest()
 
 Derivative tests are a particular type of :ref:`order_test`, and since they
-are used so extensively, SimPEG includes a :code:`check_derivative` method.
+are used so extensively, discretize includes a :code:`check_derivative` method.
 
 In the case
 of testing a derivative, we consider a Taylor expansion of a function about
