@@ -12,7 +12,7 @@ follow the instructions to download and install pymatsolver_.
 
 .. _pymatsolver: https://github.com/rowanc1/pymatsolver
 
-If you open a `Jupyter notebook`_ and are able to run::
+If you open a `Jupyter notebook`_ and are able to run:
 
     from pymatsolver import Pardiso
 
