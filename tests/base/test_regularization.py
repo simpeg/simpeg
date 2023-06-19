@@ -635,16 +635,13 @@ class TestIndActiveAndActiveCells:
         """Sample mesh."""
         if request.param == "1D":
             hx = np.random.rand(10)
-            hx = hx / hx.sum()
-            h = [hx]
+            h = [hx / hx.sum()]
         elif request.param == "2D":
             hx, hy = np.random.rand(10), np.random.rand(9)
-            hx, hy = hx / hx.sum(), hy / hy.sum()
-            h = [hx, hy]
+            h = [h_i / h_i.sum() for h_i in (hx, hy)]
         elif request.param == "3D":
             hx, hy, hz = np.random.rand(10), np.random.rand(9), np.random.rand(8)
-            hx, hy, hz = hx / hx.sum(), hy / hy.sum(), hz / hz.sum()
-            h = [hx, hy, hz]
+            h = [h_i / h_i.sum() for h_i in (hx, hy, hz)]
         return discretize.TensorMesh(h)
 
     def test_base_regularization(self, mesh):
