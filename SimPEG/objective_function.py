@@ -473,7 +473,6 @@ class L2ObjectiveFunction(BaseObjectiveFunction):
         has_fields=False,
         counter=None,
         debug=False,
-        **kwargs,
     ):
         # Check if nP and shape of W are consistent
         if W is not None and nP is not None and nP != W.shape[1]:
@@ -487,7 +486,6 @@ class L2ObjectiveFunction(BaseObjectiveFunction):
             has_fields=has_fields,
             debug=debug,
             counter=counter,
-            **kwargs,
         )
         if W is not None and self.nP == "*":
             self._nP = W.shape[1]
