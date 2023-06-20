@@ -1,10 +1,9 @@
 import numpy as np
+import matplotlib.pyplot as plt
 
 from . import receivers
 from . import sources
 from .survey import Survey
-
-from ..utils import *
 
 
 def WennerSrcList(n_electrodes, a_spacing, in2D=False, plotIt=False):
