@@ -100,8 +100,6 @@ ignore =
     F523,
     # '...'.format(...) is missing argument(s) for placeholder(s): %s
     F524,
-    # f-string is missing placeholders
-    F541,
     # redefinition of unused %r from line %r
     F811,
     # undefined name %r
