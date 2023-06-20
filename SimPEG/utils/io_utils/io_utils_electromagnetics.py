@@ -1031,7 +1031,7 @@ def write_dcip_xyz(
         out_columns = np.c_[out_columns, data_object.standard_deviation]
 
     # Append additional columns from dictionary
-    if out_dict != None:
+    if out_dict is not None:
         for k in list(out_dict.keys()):
             out_headers += "    " + k
             out_columns = np.c_[out_columns, out_dict[k]]
