@@ -8,7 +8,7 @@ help:
 	@echo "  check       run code style and quality checks (black and flake8)"
 	@echo "  black       checks code style with black"
 	@echo "  flake       checks code style with flake8"
-	@echo "  flake-all  checks code style with flake8 (full set of rules)"
+	@echo "  flake-all   checks code style with flake8 (full set of rules)"
 	@echo ""
 
 build:
