@@ -40,7 +40,13 @@ requirements.
 
 Multiprocessing
 ---------------
-Coming soon!
+
+.. autosummary::
+  :toctree: generated/
+
+  MultiprocessingMetaSimulation
+  MultiprocessingSumMetaSimulation
+  MultiprocessingRepeatedSimulation
 
 Dask
 ----
@@ -57,3 +63,9 @@ Coming soon!
 """
 
 from .simulation import MetaSimulation, SumMetaSimulation, RepeatedSimulation
+
+from .multiprocessing import (
+    MultiprocessingMetaSimulation,
+    MultiprocessingSumMetaSimulation,
+    MultiprocessingRepeatedSimulation,
+)
