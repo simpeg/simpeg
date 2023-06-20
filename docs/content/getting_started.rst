@@ -11,6 +11,4 @@ Here you'll find instructions on getting up and running with ``SimPEG``.
 
   basic/big_picture
   basic/installing
-  basic/installing_for_developers
-  basic/practices
-  basic/contributing
+  basic/contributing/index.rst
