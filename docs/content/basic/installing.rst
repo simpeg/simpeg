@@ -9,16 +9,28 @@ Getting Started with SimPEG
 Prerequisite: Installing Python
 ===============================
 
-We highly recommend installing python using
-`Anaconda <https://anaconda.com/download/>`_ (or the alternative
-`Mambaforge <https://mamba.readthedocs.io/en/latest/installation.html>`_).
-It installs `python <https://www.python.org/>`_,
+SimPEG is written in Python_!
+We highly recommend installing it using Anaconda_ (or the alternative Mambaforge_).
+It installs `Python <https://www.python.org/>`_,
 `Jupyter <http://jupyter.org/>`_ and other core
-python libraries for scientific computing.
+Python libraries for scientific computing.
+If you and Python_ are not yet acquainted, we highly
+recommend checking out `Software Carpentry <http://software-carpentry.org/>`_.
 
-As of version 0.11.0, we will no longer ensure compatibility with Python 2.7. Please use
-the latest version of Python 3 with SimPEG. For more information on the transition of the
-Python ecosystem to Python 3, please see the `Python 3 Statement <https://python3statement.org/>`_.
+.. note::
+
+   As of version 0.11.0, we will no longer ensure compatibility with Python 2.7. Please use
+   the latest version of Python 3 with SimPEG. For more information on the transition of the
+   Python ecosystem to Python 3, please see the `Python 3 Statement <https://python3statement.org/>`_.
+
+.. image:: https://upload.wikimedia.org/wikipedia/commons/thumb/c/c3/Python-logo-notext.svg/220px-Python-logo-notext.svg.png
+    :align: right
+    :width: 100
+    :target: https://www.python.org/
+
+.. _Python: https://www.python.org/
+.. _Anaconda: https://www.anaconda.com/products/individual
+.. _Mambaforge: https://www.anaconda.com/products/individual
 
 
 .. _installing_simpeg:

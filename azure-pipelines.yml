@@ -42,7 +42,7 @@ stages:
         - script: |
             pip install -r requirements_style.txt
           displayName: "Install dependencies to run the checks"
-        - script: make flake-permissive
+        - script: make flake
           displayName: "Run flake8"
 
     - job:
@@ -55,7 +55,7 @@ stages:
         - script: |
             pip install -r requirements_style.txt
           displayName: "Install dependencies to run the checks"
-        - script: FLAKE8_OPTS="--exit-zero" make flake
+        - script: FLAKE8_OPTS="--exit-zero" make flake-all
           displayName: "Run flake8"
 
 - stage: Testing
