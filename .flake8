@@ -22,8 +22,9 @@ exclude =
     .git,
     __pycache__,
     .ipynb_checkpoints,
-    setup.py
-    docs/conf.py
+    setup.py,
+    docs/conf.py,
+    docs/_build/,
 per-file-ignores =
     # disable unused-imports errors on __init__.py
     __init__.py: F401
