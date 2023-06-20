@@ -36,6 +36,7 @@ dependencies:
   - pip
   - python-kaleido
   # Linters and code style
+  - pre-commit
   - black==23.1.0
   - flake8
   - flake8-bugbear
