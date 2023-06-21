@@ -86,20 +86,10 @@ ignore =
     D419,
     # module level import not at top of file
     E402,
-    # comparison to None should be ‘if cond is None:’
-    E711,
-    # do not assign a lambda expression, use a def
-    E731,
     # 'from %s import *' used; unable to detect undefined names
     F403,
     # %r may be undefined, or defined from star imports: %s
     F405,
-    # '...'.format(...) has unused named argument(s): %s
-    F522,
-    # '...'.format(...) has unused arguments at position(s): %s
-    F523,
-    # '...'.format(...) is missing argument(s) for placeholder(s): %s
-    F524,
     # redefinition of unused %r from line %r
     F811,
     # undefined name %r

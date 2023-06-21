@@ -131,7 +131,7 @@ class DCUtilsTests_halfspace(unittest.TestCase):
             rhoA_GIF = np.loadtxt(rhoA_GIF_file)
             passed = np.allclose(rhoapp, rhoA_GIF)
             self.assertTrue(passed)
-            print("   ... ok \n".format(survey_type))
+            print(f"   ... ok ({survey_type})\n")
 
     def tearDown(self):
         # Clean up the working directory
