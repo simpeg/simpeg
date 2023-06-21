@@ -2,7 +2,11 @@ import numpy as np
 from scipy.constants import epsilon_0, mu_0
 from SimPEG import utils
 
-omega = lambda f: 2.0 * np.pi * f
+
+def omega(f):
+    return 2.0 * np.pi * f
+
+
 # TODO:
 # r = lambda dx, dy, dz: np.sqrt( dx**2. + dy**2. + dz**2.)
 # k = lambda f, mu, epsilon, sig: np.sqrt( omega(f)**2. *mu*epsilon -1j*omega(f)*mu*sig )
