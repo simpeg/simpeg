@@ -58,6 +58,7 @@ class BaseRegularization(BaseObjectiveFunction):
         self._regularization_mesh = mesh
         self._weights = {}
 
+        # Handle deprecated indActive argument
         if (key := "indActive") in kwargs:
             if active_cells is not None:
                 raise ValueError(
@@ -70,6 +71,20 @@ class BaseRegularization(BaseObjectiveFunction):
                 DeprecationWarning,
             )
             active_cells = kwargs.pop(key)
+
+        # Handle deprecated cell_weights argument
+        if (key := "cell_weights") in kwargs:
+            if weights is not None:
+                raise ValueError(
+                    f"Cannot simultanously pass 'weights' and '{key}'. "
+                    "Pass 'weights' only."
+                )
+            warnings.warn(
+                f"The '{key}' argument has been deprecated, please use 'weights'. "
+                "It will be removed in future versions of SimPEG.",
+                DeprecationWarning,
+            )
+            weights = kwargs.pop(key)
 
         if active_cells is not None:
             self.active_cells = active_cells
