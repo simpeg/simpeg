@@ -10,12 +10,12 @@ ensure it complies with Black code style. flake8_ performs style checks, raises
 warnings on code that could lead towards bugs, performs checks on consistent
 documentation formatting, and identifies poor coding practices.
 
-.. important::
+.. hint::
 
-   If you :ref:`configure-pre-commit`, pre-commit_ will automatically run
-   Black and flake8 on every commit.
+   If you :ref:`configure pre-commit <configure-pre-commit>`, it will
+   automatically run Black and flake8 on every commit.
 
-Alternatively, one could run them manually at anytime.
+One can manually run Black_ and flake8_ anytime.
 Run ``black`` on SimPEG directories that contain Python source files:
 
 .. code::
@@ -27,6 +27,15 @@ Run ``flake8`` on the whole project with:
 .. code::
 
    flake8
+
+.. important::
+
+   Following code style rules can be challenging for new contributors. These
+   rules are meant to ease the development process, not to generate an obstacle
+   to contribute. Please, don't hesistate to **ask for help** if your
+   contribution raises some flake8 errors. And **feel free to push** code that
+   **don't follow our code style 100%** in :ref:`pull-requests`. Other
+   developers will be there to help you solve them.
 
 .. note::
 
