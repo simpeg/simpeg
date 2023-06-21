@@ -233,11 +233,9 @@ class DerivAdjoint_H(Base_DerivAdjoint_Test):
         def test_Jvec_h_hz(self):
             self.JvecTest("MagneticFieldz")
 
-        @pytest.mark.xfail
         def test_Jvec_h_dhdtx(self):
             self.JvecTest("MagneticFieldTimeDerivativex")
 
-        @pytest.mark.xfail
         def test_Jvec_h_dhdtz(self):
             self.JvecTest("MagneticFieldTimeDerivativez")
 
