@@ -55,9 +55,6 @@ class BaseRegularization(BaseObjectiveFunction):
                 f"Value of type {type(mesh)} provided."
             )
 
-        self._regularization_mesh = mesh
-        self._weights = {}
-
         # Handle deprecated indActive argument
         if (key := "indActive") in kwargs:
             if active_cells is not None:
@@ -86,15 +83,14 @@ class BaseRegularization(BaseObjectiveFunction):
             )
             weights = kwargs.pop(key)
 
+        super().__init__(nP=None, mapping=None, **kwargs)
+        self._regularization_mesh = mesh
+        self._weights = {}
         if active_cells is not None:
             self.active_cells = active_cells
-
-        super().__init__(nP=None, mapping=None, **kwargs)
-
         self.mapping = mapping  # Set mapping using the setter
         self.reference_model = reference_model
         self.units = units
-
         if weights is not None:
             if not isinstance(weights, dict):
                 weights = {"user_weights": weights}
