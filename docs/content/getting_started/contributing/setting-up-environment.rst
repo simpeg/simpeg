@@ -96,7 +96,7 @@ You are now set up to SimPEG!
    If all is not well, please submit an issue_ and `change this file`_!
 
 .. _issue: https://github.com/simpeg/simpeg/issues
-.. _change this file: https://github.com/simpeg/simpeg/edit/main/docs/content/basic/contributing/setting-up-environment.rst
+.. _change this file: https://github.com/simpeg/simpeg/edit/main/docs/content/getting_started/contributing/setting-up-environment.rst
 
 
 .. _configure-pre-commit:
