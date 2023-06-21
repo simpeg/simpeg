@@ -86,8 +86,6 @@ ignore =
     D419,
     # module level import not at top of file
     E402,
-    # comparison to None should be ‘if cond is None:’
-    E711,
     # do not assign a lambda expression, use a def
     E731,
     # 'from %s import *' used; unable to detect undefined names
