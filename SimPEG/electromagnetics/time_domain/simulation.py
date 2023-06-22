@@ -1056,9 +1056,6 @@ class Simulation3DMagneticField(BaseTDEMSimulation):
         # assumes no source derivs
         return C.T * self.MfRhoDeriv(s_e, v, adjoint)
 
-    def getRHSDeriv(self, tInd, src, v, adjoint=False):
-        return Zero()  # assumes no derivs on sources
-
     def getAdc(self):
         D = sdiag(self.mesh.cell_volumes) * self.mesh.face_divergence
         G = D.T

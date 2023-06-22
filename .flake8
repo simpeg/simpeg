@@ -90,8 +90,6 @@ ignore =
     F403,
     # %r may be undefined, or defined from star imports: %s
     F405,
-    # f-string is missing placeholders
-    F541,
     # redefinition of unused %r from line %r
     F811,
     # undefined name %r

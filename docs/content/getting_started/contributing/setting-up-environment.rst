@@ -101,8 +101,8 @@ You are now set up to SimPEG!
 
 .. _configure-pre-commit:
 
-Configure pre-commit
---------------------
+Configure pre-commit (optional)
+-------------------------------
 
 We recommend using pre-commit_ to ensure that your new code follows the code
 style of SimPEG. pre-commit will run Black_ and flake8_ before any commit you
@@ -111,6 +111,29 @@ make. To configure it, you need to navigate to your cloned SimPEG repo and run:
 .. code::
 
    pre-commit install
+
+.. note::
+
+   Using ``pre-commit`` is recommended, but not necessary. You can still
+   manually run Black_ and flake8_. See our :ref:`code-style` page for more
+   details.
+
+If for some reason you want to stop using ``pre-commit`` on SimPEG, you can
+permanently configure it to stop running automatically with:
+
+.. code::
+
+   pre-commit uninstall
+
+Alternatively, you can temporarily bypass ``pre-commit`` when committing some changes by running:
+
+.. code::
+
+   git commit --no-verify
+
+This is specially useful if the checks run by ``pre-commit`` are failing, but
+you want to commit them nonetheless.
+
 
 .. _pre-commit: https://pre-commit.com/
 .. _Black: https://black.readthedocs.io
