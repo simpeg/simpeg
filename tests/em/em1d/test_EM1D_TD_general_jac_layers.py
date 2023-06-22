@@ -80,7 +80,10 @@ class EM1D_TD_general_Jac_layers_ProblemTests(unittest.TestCase):
             return Jvec
 
         dm = m_1D * 0.5
-        derChk = lambda m: [fwdfun(m), lambda mx: jacfun(m, mx)]
+
+        def derChk(m):
+            return [fwdfun(m), lambda mx: jacfun(m, mx)]
+
         passed = tests.check_derivative(
             derChk, m_1D, num=4, dx=dm, plotIt=False, eps=1e-15
         )
@@ -112,7 +115,9 @@ class EM1D_TD_general_Jac_layers_ProblemTests(unittest.TestCase):
             dmisfit = sim.Jtvec(m, dr)
             return misfit, dmisfit
 
-        derChk = lambda m: misfit(m, dobs)
+        def derChk(m):
+            return misfit(m, dobs)
+
         passed = tests.check_derivative(derChk, m_ini, num=4, plotIt=False, eps=1e-26)
         self.assertTrue(passed)
 
@@ -255,7 +260,10 @@ class EM1D_TD_LineCurrent_Jac_layers_ProblemTests(unittest.TestCase):
             return Jvec
 
         dm = m_1D * 0.5
-        derChk = lambda m: [fwdfun(m), lambda mx: jacfun(m, mx)]
+
+        def derChk(m):
+            return [fwdfun(m), lambda mx: jacfun(m, mx)]
+
         passed = tests.check_derivative(
             derChk, m_1D, num=4, dx=dm, plotIt=False, eps=1e-15
         )
@@ -286,7 +294,9 @@ class EM1D_TD_LineCurrent_Jac_layers_ProblemTests(unittest.TestCase):
             dmisfit = sim.Jtvec(m, dr)
             return misfit, dmisfit
 
-        derChk = lambda m: misfit(m, dobs)
+        def derChk(m):
+            return misfit(m, dobs)
+
         passed = tests.check_derivative(derChk, m_ini, num=4, plotIt=False, eps=1e-26)
         self.assertTrue(passed)
 

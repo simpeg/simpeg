@@ -1253,9 +1253,8 @@ class IO:
                 topo = tmp_topo[1:, :]
                 if topo.shape[0] != n_topo:
                     print(
-                        ">> # of points for the topography is not {0}, but {0}".format(
-                            n_topo, topo.shape[0]
-                        )
+                        ">> # of points for the topography is "
+                        f"not {n_topo}, but {topo.shape[0]}"
                     )
             tmp = np.loadtxt(filename, comments="!").astype(float)
             e = np.zeros(tmp.shape[0], dtype=float)

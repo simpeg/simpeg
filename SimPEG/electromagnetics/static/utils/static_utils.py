@@ -852,7 +852,7 @@ if has_plotly:
             marker = {key: marker_opts.get(key, marker[key]) for key in marker}
 
         # 3D scatter plot
-        if plane_points == None:
+        if plane_points is None:
             marker["color"] = plot_vec
             scatter_data = [
                 grapho.Scatter3d(

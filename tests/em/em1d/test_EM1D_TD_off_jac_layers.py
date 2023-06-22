@@ -111,7 +111,10 @@ class EM1D_TD_Jacobian_Test_MagDipole(unittest.TestCase):
             return Jvec
 
         dm = m_1D * 0.5
-        derChk = lambda m: [fwdfun(m), lambda mx: jacfun(m, mx)]
+
+        def derChk(m):
+            return [fwdfun(m), lambda mx: jacfun(m, mx)]
+
         passed = tests.check_derivative(
             derChk, m_1D, num=4, dx=dm, plotIt=False, eps=1e-15
         )
@@ -154,7 +157,9 @@ class EM1D_TD_Jacobian_Test_MagDipole(unittest.TestCase):
             dmisfit = self.sim.Jtvec(m, dr)
             return misfit, dmisfit
 
-        derChk = lambda m: misfit(m, dobs)
+        def derChk(m):
+            return misfit(m, dobs)
+
         passed = tests.check_derivative(derChk, m_ini, num=4, plotIt=False, eps=1e-27)
         self.assertTrue(passed)
         if passed:
@@ -266,7 +271,10 @@ class EM1D_TD_Jacobian_Test_CircularLoop(unittest.TestCase):
             return Jvec
 
         dm = m_1D * 0.5
-        derChk = lambda m: [fwdfun(m), lambda mx: jacfun(m, mx)]
+
+        def derChk(m):
+            return [fwdfun(m), lambda mx: jacfun(m, mx)]
+
         passed = tests.check_derivative(
             derChk, m_1D, num=4, dx=dm, plotIt=False, eps=1e-15
         )
@@ -309,7 +317,9 @@ class EM1D_TD_Jacobian_Test_CircularLoop(unittest.TestCase):
             dmisfit = self.sim.Jtvec(m, dr)
             return misfit, dmisfit
 
-        derChk = lambda m: misfit(m, dobs)
+        def derChk(m):
+            return misfit(m, dobs)
+
         passed = tests.check_derivative(derChk, m_ini, num=4, plotIt=False, eps=1e-27)
         self.assertTrue(passed)
         if passed:
