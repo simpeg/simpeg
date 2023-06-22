@@ -120,9 +120,9 @@ def CongruousMagBC(mesh, Bo, chi):
     indxd, indxu, indyd, indyu, indzd, indzu = mesh.face_boundary_indices
 
     const = mu_0 / (4 * np.pi) * mom
-    rfun = lambda x: np.sqrt(
-        (x[:, 0] - xc) ** 2 + (x[:, 1] - yc) ** 2 + (x[:, 2] - zc) ** 2
-    )
+
+    def rfun(x):
+        return np.sqrt((x[:, 0] - xc) ** 2 + (x[:, 1] - yc) ** 2 + (x[:, 2] - zc) ** 2)
 
     mdotrx = (
         mx
