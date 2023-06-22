@@ -261,7 +261,7 @@ class ComplexResistivityTest(unittest.TestCase):
         self.check_adjoint(sim3)
         self.check_deriv(sim4)
         self.check_adjoint(sim4)
-        print(f"... done")
+        print("... done")
 
     def test_apparent_resistivity_xx(self):
         self.check_deriv_adjoint("apparent_resistivity", "xx")
