@@ -7,32 +7,31 @@ __all__ = ["MT_LayeredEarth"]
 
 
 # Evaluate Impedance Z of a layer
-_ImpZ = lambda f, mu, k: omega(f) * mu / k
+def _ImpZ(f, mu, k):
+    return omega(f) * mu / k
+
 
 # Complex Cole-Cole Conductivity - EM utils
-_PCC = lambda siginf, m, t, c, f: siginf * (
-    1.0 - (m / (1.0 + (1j * omega(f) * t) ** c))
-)
+def _PCC(siginf, m, t, c, f):
+    return siginf * (1.0 - (m / (1.0 + (1j * omega(f) * t) ** c)))
+
 
 # matrix P relating Up and Down components with E and H fields
-_P = lambda z: np.array(
-    [
-        [
-            1.0,
-            1,
-        ],
-        [-1.0 / z, 1.0 / z],
-    ]
-)
-_Pinv = lambda z: np.array([[1.0, -z], [1.0, z]]) / 2.0
+def _P(z):
+    return np.array([[1.0, 1.0], [-1.0 / z, 1.0 / z]])
+
+
+def _Pinv(z):
+    return np.array([[1.0, -z], [1.0, z]]) / 2.0
+
 
 # matrix T for transition of Up and Down components accross a layer
-_T = lambda h, k: np.array(
-    [[np.exp(1j * k * h), 0.0], [0.0, np.exp(-1j * k * h)]],
-)
-_Tinv = lambda h, k: np.array(
-    [[np.exp(-1j * k * h), 0.0], [0.0, np.exp(1j * k * h)]],
-)
+def _T(h, k):
+    return np.array([[np.exp(1j * k * h), 0.0], [0.0, np.exp(-1j * k * h)]])
+
+
+def _Tinv(h, k):
+    return np.array([[np.exp(-1j * k * h), 0.0], [0.0, np.exp(1j * k * h)]])
 
 
 # Propagate Up and Down component for a certain frequency & evaluate E and H field
