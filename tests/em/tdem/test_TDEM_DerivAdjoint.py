@@ -278,7 +278,7 @@ class DerivAdjoint_B(Base_DerivAdjoint_Test):
         def test_Jvec_adjoint_b_dhdtz(self):
             self.JvecVsJtvecTest("MagneticFieldTimeDerivativez")
 
-        def test_Jvec_adjoint_b_ey(self):
+        def test_Jvec_adjoint_b_jy(self):
             self.JvecVsJtvecTest("CurrentDensityy")
 
 
