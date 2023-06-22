@@ -564,7 +564,7 @@ class RegularizationTests(unittest.TestCase):
             mesh, maps.IdentityMap(nP=n_comp * mesh.nC)
         )
 
-        with pytest.raises(ValueError, match=f"'weights' must be one of"):  # noqa: W605
+        with pytest.raises(ValueError, match="'weights' must be one of"):
             reg.set_weights(abc=(1.0, 1.0))
 
         np.testing.assert_almost_equal(

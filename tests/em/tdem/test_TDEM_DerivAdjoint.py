@@ -133,7 +133,7 @@ class Base_DerivAdjoint_Test(unittest.TestCase):
         tol = TOL * (np.abs(V1) + np.abs(V2)) / 2.0
         passed = np.abs(V1 - V2) < tol
 
-        print(f"{prbtype} {V1} {V2} {passed}")
+        print(f"{self.formulation} {V1} {V2} {passed}")
         self.assertTrue(passed)
 
 
