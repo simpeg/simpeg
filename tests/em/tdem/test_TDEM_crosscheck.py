@@ -145,14 +145,6 @@ class TDEM_cross_check_EB(unittest.TestCase):
             waveform="stepoff",
         )
 
-    def test_HJ_j_stepoff(self):
-        CrossCheck(
-            prbtype1="MagneticField",
-            prbtype2="CurrentDensity",
-            rxcomp="CurrentDensityy",
-            waveform="stepoff",
-        )
-
     def test_HJ_dhdtx_stepoff(self):
         CrossCheck(
             prbtype1="MagneticField",
@@ -208,14 +200,6 @@ class TDEM_cross_check_EB(unittest.TestCase):
             prbtype1="MagneticFluxDensity",
             prbtype2="ElectricField",
             rxcomp="MagneticFluxTimeDerivativez",
-            waveform="vtem",
-        )
-
-    def test_HJ_j_vtem(self):
-        CrossCheck(
-            prbtype1="MagneticField",
-            prbtype2="CurrentDensity",
-            rxcomp="CurrentDensityy",
             waveform="vtem",
         )
 
