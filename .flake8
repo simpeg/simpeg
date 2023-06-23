@@ -84,10 +84,6 @@ ignore =
     D419,
     # module level import not at top of file
     E402,
-    # 'from %s import *' used; unable to detect undefined names
-    F403,
-    # %r may be undefined, or defined from star imports: %s
-    F405,
     # undefined name %r
     F821,
     # Block quote ends without a blank line; unexpected unindent.
@@ -116,10 +112,6 @@ ignore =
     RST307,
     # Previously unseen severe error, not yet assigned a unique code.
     RST499,
-    # trailing whitespace
-    W291,
-    # blank line contains whitespace
-    W293,
 
 
 # Configure flake8-rst-docstrings

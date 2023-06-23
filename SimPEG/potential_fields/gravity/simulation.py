@@ -144,14 +144,17 @@ class Simulation3DIntegral(BasePFSimulation):
                 # (NN - EE) / 2
         inside_adjust = False
         if "gzz" in components:
-            if "gxx" not in node_evals or "gyy" not in node_evals:
-                node_evals["gzz"] = prism_fzz(dx, dy, dz)
-            else:
-                inside_adjust = True
-                # The below need to be adjusted for observation points within a cell.
-                # because `gxx + gyy + gzz = -4 * pi * G * rho`
-                # gzz = - gxx - gyy - 4 * np.pi * G * rho[in_cell]
-                node_evals["gzz"] = -node_evals["gxx"] - node_evals["gyy"]
+            node_evals["gzz"] = prism_fzz(dx, dy, dz)
+            # The below should be uncommented when we are able to give the index of a
+            # containing cell.
+            # if "gxx" not in node_evals or "gyy" not in node_evals:
+            #     node_evals["gzz"] = prism_fzz(dx, dy, dz)
+            # else:
+            #     inside_adjust = True
+            #     # The below need to be adjusted for observation points within a cell.
+            #     # because `gxx + gyy + gzz = -4 * pi * G * rho`
+            #     # gzz = - gxx - gyy - 4 * np.pi * G * rho[in_cell]
+            #     node_evals["gzz"] = -node_evals["gxx"] - node_evals["gyy"]
 
         rows = {}
         for component in set(components):
