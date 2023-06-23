@@ -193,6 +193,18 @@ class TestBaseObjFct(unittest.TestCase):
 
         self.assertTrue(phi(m) == phi1(m))
 
+    def test_invalid_mapping(self):
+        """Test if setting mapping of wrong type raises errors."""
+
+        class Dummy:
+            pass
+
+        phi = objective_function.L2ObjectiveFunction()
+        invalid_mapping = Dummy()
+        msg = "Invalid mapping of class 'Dummy'."
+        with pytest.raises(TypeError, match=msg):
+            phi.mapping = invalid_mapping
+
     def test_early_exits(self):
         nP = 10
 
