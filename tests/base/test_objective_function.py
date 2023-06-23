@@ -2,7 +2,6 @@ import numpy as np
 import scipy.sparse as sp
 import pytest
 import unittest
-import pytest
 
 from SimPEG import utils, maps
 from SimPEG import objective_function

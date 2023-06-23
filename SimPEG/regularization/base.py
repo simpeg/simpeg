@@ -3,7 +3,6 @@ import warnings
 
 import numpy as np
 from discretize.base import BaseMesh
-import warnings
 from typing import TYPE_CHECKING
 from .. import maps
 from ..objective_function import BaseObjectiveFunction, ComboObjectiveFunction
