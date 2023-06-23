@@ -1171,6 +1171,7 @@ class GaussianMixtureWithPrior(WeightedGaussianMixture):
                 "or increase max_iter, tol "
                 "or check for degenerate data." % (init + 1),
                 ConvergenceWarning,
+                stacklevel=2,
             )
 
         self._set_parameters(best_params)

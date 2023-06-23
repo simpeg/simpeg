@@ -76,7 +76,8 @@ class Data:
             if relative_error is not None or noise_floor is not None:
                 warnings.warn(
                     "Setting the standard_deviation overwrites the "
-                    "relative_error and noise_floor"
+                    "relative_error and noise_floor",
+                    stacklevel=2,
                 )
             self.standard_deviation = standard_deviation
 

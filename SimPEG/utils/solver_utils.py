@@ -15,7 +15,7 @@ def _checkAccuracy(A, b, X, accuracyTol):
             nrm, accuracyTol
         )
         print(msg)
-        warnings.warn(msg, RuntimeWarning)
+        warnings.warn(msg, RuntimeWarning, stacklevel=2)
 
 
 def SolverWrapD(fun, factorize=True, checkAccuracy=True, accuracyTol=1e-6, name=None):
@@ -87,7 +87,8 @@ def SolverWrapD(fun, factorize=True, checkAccuracy=True, accuracyTol=1e-6, name=
                     culled_args[item] = kwargs[item]
                 else:
                     warnings.warn(
-                        f"{item} is not a valid keyword for {fun.__name__} and will be ignored"
+                        f"{item} is not a valid keyword for {fun.__name__} and will be ignored",
+                        stacklevel=2,
                     )
             kwargs = culled_args
 
@@ -204,7 +205,8 @@ def SolverWrapI(fun, checkAccuracy=True, accuracyTol=1e-5, name=None):
                     culled_args[item] = kwargs[item]
                 else:
                     warnings.warn(
-                        f"{item} is not a valid keyword for {fun.__name__} and will be ignored"
+                        f"{item} is not a valid keyword for {fun.__name__} and will be ignored",
+                        stacklevel=2,
                     )
             kwargs = culled_args
 
@@ -289,7 +291,9 @@ class SolverDiag(object):
         self.A = A
         self._diagonal = A.diagonal()
         for kwarg in kwargs:
-            warnings.warn(f"{kwarg} is not recognized and will be ignored")
+            warnings.warn(
+                f"{kwarg} is not recognized and will be ignored", stacklevel=2
+            )
 
     def __mul__(self, rhs):
         n = self.A.shape[0]

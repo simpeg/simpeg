@@ -95,7 +95,10 @@ class IO:
         self.pad_rate_z = pad_rate_z
         self.ncell_per_dipole = ncell_per_dipole
         self.corezlength = corezlength
-        warnings.warn("code under construction - API might change in the future")
+        warnings.warn(
+            "code under construction - API might change in the future",
+            stacklevel=2,
+        )
 
     @property
     def survey_layout(self):
@@ -959,6 +962,7 @@ class IO:
                         "Because the x coordinates of some topo and electrodes are the same,"
                         " we excluded electrodes with the same coordinates.",
                         RuntimeWarning,
+                        stacklevel=2,
                     )
                 locs_tmp = np.vstack((topo, self.electrode_locations[~mask, :]))
                 row_idx = np.lexsort((locs_tmp[:, 0],))
@@ -973,6 +977,7 @@ class IO:
                         "Because the x and y coordinates of some topo and electrodes are the same,"
                         " we excluded electrodes with the same coordinates.",
                         RuntimeWarning,
+                        stacklevel=2,
                     )
                 locs_tmp = np.vstack((topo, self.electrode_locations[~mask, :]))
                 row_idx = np.lexsort((locs_tmp[:, 1], locs_tmp[:, 0]))

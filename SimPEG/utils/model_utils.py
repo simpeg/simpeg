@@ -39,6 +39,7 @@ def surface2ind_topo(mesh, topo, gridLoc="CC", method="nearest", fill_value=np.n
         "The surface2ind_topo function has been deprecated, please import "
         "discretize.utils.active_from_xyz. This will be removed in SimPEG 0.20.0",
         FutureWarning,
+        stacklevel=2,
     )
 
     active_cells = active_from_xyz(mesh, topo, gridLoc, method)
@@ -164,6 +165,7 @@ def depth_weighting(
             "The indActive keyword argument has been deprecated, please use active_cells. "
             "This will be removed in SimPEG 0.19.0",
             FutureWarning,
+            stacklevel=2,
         )
         active_cells = kwargs["indActive"]
 
