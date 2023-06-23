@@ -86,8 +86,6 @@ ignore =
     D419,
     # module level import not at top of file
     E402,
-    # redefinition of unused %r from line %r
-    F811,
     # undefined name %r
     F821,
     # Block quote ends without a blank line; unexpected unindent.

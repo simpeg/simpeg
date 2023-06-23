@@ -170,13 +170,13 @@ class DerivAdjoint_E(Base_DerivAdjoint_Test):
 
     if testAdjoint:
 
-        def test_Jvec_adjoint_e_ey(self):
+        def test_Jvec_adjoint_e_ey(self):  # noqa F811
             self.JvecVsJtvecTest("MagneticFluxTimeDerivativex")
 
-        def test_Jvec_adjoint_e_ey(self):
+        def test_Jvec_adjoint_e_ey(self):  # noqa F811
             self.JvecVsJtvecTest("MagneticFluxTimeDerivativez")
 
-        def test_Jvec_adjoint_e_ey(self):
+        def test_Jvec_adjoint_e_ey(self):  # noqa F811
             self.JvecVsJtvecTest("ElectricFieldy")
 
 
