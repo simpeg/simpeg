@@ -2,12 +2,6 @@ from .TDEM import hzAnalyticDipoleT, hzAnalyticCentLoopT
 from .FDEM import hzAnalyticDipoleF
 from .FDEMcasing import (
     getKc,
-    _r2,
-    _getCasingHertzMagDipole,
-    _getCasingHertzMagDipoleDeriv_r,
-    _getCasingHertzMagDipoleDeriv_z,
-    _getCasingHertzMagDipole2Deriv_z_r,
-    _getCasingHertzMagDipole2Deriv_z_z,
     getCasingEphiMagDipole,
     getCasingHrMagDipole,
     getCasingHzMagDipole,
