@@ -6,6 +6,7 @@ import inspect
 
 import discretize
 from SimPEG import maps, objective_function, regularization, utils
+from SimPEG.regularization import BaseRegularization, WeightedLeastSquares
 
 
 TOL = 1e-7
@@ -627,8 +628,16 @@ def test_cross_reg_reg_errors():
         regularization.CrossReferenceRegularization(mesh, ref_dir)
 
 
-class TestIndActiveAndActiveCells:
-    """Test error after simultaneously passing indActive and active_cells."""
+class TestDeprecatedArguments:
+    """
+    Test errors after simultaneously passing new and deprecated arguments.
+
+    Within these arguments are:
+
+    * ``indActive`` (replaced by ``active_cells``)
+    * ``cell_weights`` (replaced by ``weights``)
+
+    """
 
     @pytest.fixture(params=["1D", "2D", "3D"])
     def mesh(self, request):
@@ -644,23 +653,24 @@ class TestIndActiveAndActiveCells:
             h = [h_i / h_i.sum() for h_i in (hx, hy, hz)]
         return discretize.TensorMesh(h)
 
-    def test_base_regularization(self, mesh):
-        """Test BaseRegularization."""
+    @pytest.mark.parametrize(
+        "regularization_class", (BaseRegularization, WeightedLeastSquares)
+    )
+    def test_active_cells(self, mesh, regularization_class):
+        """Test indActive and active_cells arguments."""
         active_cells = np.ones(len(mesh), dtype=bool)
         msg = "Cannot simultanously pass 'active_cells' and 'indActive'."
         with pytest.raises(ValueError, match=msg):
-            regularization.BaseRegularization(
+            regularization_class(
                 mesh, active_cells=active_cells, indActive=active_cells
             )
 
-    def test_weighted_least_squares(self, mesh):
-        """Test WeightedLeastSquares."""
-        active_cells = np.ones(len(mesh), dtype=bool)
-        msg = "Cannot simultanously pass 'active_cells' and 'indActive'."
+    def test_weights(self, mesh):
+        """Test cell_weights and weights."""
+        weights = np.ones(len(mesh))
+        msg = "Cannot simultanously pass 'weights' and 'cell_weights'."
         with pytest.raises(ValueError, match=msg):
-            regularization.WeightedLeastSquares(
-                mesh, active_cells=active_cells, indActive=active_cells
-            )
+            BaseRegularization(mesh, weights=weights, cell_weights=weights)
 
 
 if __name__ == "__main__":
