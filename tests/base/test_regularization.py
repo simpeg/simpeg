@@ -628,6 +628,20 @@ def test_cross_reg_reg_errors():
         regularization.CrossReferenceRegularization(mesh, ref_dir)
 
 
+def test_invalid_parent():
+    """Test setting an invalid parent class to a BaseRegularization."""
+
+    class Dummy:
+        pass
+
+    mesh = discretize.TensorMesh([3, 4, 5])
+    reg = BaseRegularization(mesh)
+    invalid_parent = Dummy()
+    msg = "Invalid parent of type 'Dummy'."
+    with pytest.raises(TypeError, match=msg):
+        reg.parent = invalid_parent
+
+
 class TestDeprecatedArguments:
     """
     Test errors after simultaneously passing new and deprecated arguments.

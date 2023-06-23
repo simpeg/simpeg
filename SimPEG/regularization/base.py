@@ -171,8 +171,12 @@ class BaseRegularization(BaseObjectiveFunction):
 
     @parent.setter
     def parent(self, parent):
-        if not isinstance(parent, ComboObjectiveFunction):
-            raise TypeError("Parent must be a ComboObjectiveFunction")
+        combo_class = ComboObjectiveFunction
+        if not isinstance(parent, combo_class):
+            raise TypeError(
+                f"Invalid parent of type '{parent.__class__.__name__}'. "
+                f"Parent must be a {combo_class.__name__}."
+            )
         self._parent = parent
 
     @property
