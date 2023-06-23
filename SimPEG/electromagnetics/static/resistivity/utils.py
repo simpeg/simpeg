@@ -5,6 +5,10 @@ from . import receivers
 from . import sources
 from .survey import Survey
 
+# Import geometric_factor to make it available through
+# SimPEG.resistivity.utils.geometric_factor (to ensure backward compatibility)
+from ..utils import geometric_factor  # noqa: F401
+
 
 def WennerSrcList(n_electrodes, a_spacing, in2D=False, plotIt=False):
     """
