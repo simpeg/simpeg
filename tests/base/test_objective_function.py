@@ -407,5 +407,42 @@ class TestOperationsComboObjectiveFunctions:
         assert combo_2.objfcts == [phi3, combo_1]
 
 
+@pytest.mark.parametrize(
+    "objfcts, multipliers",
+    (
+        (None, None),
+        ([objective_function.L2ObjectiveFunction()], None),
+        ([objective_function.L2ObjectiveFunction()], [2.5]),
+    ),
+)
+def test_empty_combo(objfcts, multipliers):
+    """Test defining an empty ComboObjectiveFunction."""
+    combo = objective_function.ComboObjectiveFunction(
+        objfcts=objfcts, multipliers=multipliers
+    )
+    if objfcts is None and multipliers is None:
+        assert combo.objfcts == []
+        assert combo.multipliers == []
+    if objfcts is not None:
+        assert combo.objfcts == objfcts
+        if multipliers is None:
+            assert combo.multipliers == [1]
+        else:
+            assert combo.multipliers == [2.5]
+
+
+def test_invalid_objfcts_in_combo():
+    """Test invalid objective function class in ComboObjectiveFunction."""
+
+    class Dummy:
+        pass
+
+    phi = objective_function.L2ObjectiveFunction()
+    invalid_phi = Dummy()
+    msg = "Unrecognized objective function type Dummy in 'objfcts'."
+    with pytest.raises(TypeError, match=msg):
+        objective_function.ComboObjectiveFunction(objfcts=[phi, invalid_phi])
+
+
 if __name__ == "__main__":
     unittest.main()
