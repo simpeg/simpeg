@@ -114,10 +114,6 @@ ignore =
     RST307,
     # Previously unseen severe error, not yet assigned a unique code.
     RST499,
-    # trailing whitespace
-    W291,
-    # blank line contains whitespace
-    W293,
 
 
 # Configure flake8-rst-docstrings
