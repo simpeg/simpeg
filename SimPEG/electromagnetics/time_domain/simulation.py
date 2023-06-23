@@ -787,8 +787,6 @@ class Simulation3DMagneticFluxDensity(BaseTDEMSimulation):
         C = self.mesh.edge_curl
         MeSigmaI = self.MeSigmaI
 
-        # MfMui = self.MfMui
-
         _, s_e = src.eval(self, self.times[tInd])
         s_mDeriv, s_eDeriv = src.evalDeriv(self, self.times[tInd], adjoint=adjoint)
 
@@ -1319,7 +1317,6 @@ class Simulation3DMagneticField(BaseTDEMSimulation):
     def getAdiagDeriv(self, tInd, u, v, adjoint=False):
         assert tInd >= 0 and tInd < self.nT
 
-        # dt = self.time_steps[tInd]
         C = self.mesh.edge_curl
 
         if adjoint:
@@ -1352,9 +1349,6 @@ class Simulation3DMagneticField(BaseTDEMSimulation):
             return self.MfRhoDeriv(s_e, C * v, adjoint)
         # assumes no source derivs
         return C.T * self.MfRhoDeriv(s_e, v, adjoint)
-
-    def getRHSDeriv(self, tInd, src, v, adjoint=False):
-        return Zero()  # assumes no derivs on sources
 
     def getAdc(self):
         D = sdiag(self.mesh.cell_volumes) * self.mesh.face_divergence
@@ -1413,7 +1407,6 @@ class Simulation3DCurrentDensity(BaseTDEMSimulation):
     def getAdiagDeriv(self, tInd, u, v, adjoint=False):
         assert tInd >= 0 and tInd < self.nT
 
-        # dt = self.time_steps[tInd]
         C = self.mesh.edge_curl
         MfRho = self.MfRho
         MeMuI = self.MeMuI

@@ -32,9 +32,9 @@ def read_mag3d_ubc(obs_file):
     line = fid.readline()
     B = np.array(line.split()[:3], dtype=float)
 
-    # Second line has the magnetization orientation and a flag
+    # Second line has the magnetization orientation and a flag.
+    # We are going to ignore those values.
     line = fid.readline()
-    M = np.array(line.split()[:3], dtype=float)
 
     # Third line has the number of rows
     line = fid.readline()
@@ -283,18 +283,23 @@ def read_gg3d_ubc(obs_file):
 
         ii = 0
         while ii < ndat:
+            line = fid.readline()
+            if not line:
+                raise IOError(f"Found EOF at line {ii + 3} while reading '{obs_file}'.")
             try:
-                line = fid.readline()
                 temp = np.array(line.split(), dtype=float)
-                locXYZ[ii, :] = temp[:3]
-                if len(temp) == 3 + n_comp:
-                    d.append(factor * temp[3:])
-                elif len(temp) == 3 + n_comp * 2:
-                    d.append(factor * temp[3 : 3 + n_comp])
-                    wd.append(temp[3 + n_comp :])
-                ii += 1
-            except:
-                raise IOError(f"Unable to read data line {ii}: {line}")
+            except IOError:
+                raise IOError(
+                    f"Unable to parse line {ii + 3} of '{obs_file}' as a sequence of "
+                    + f"floats: '{line}'."
+                )
+            locXYZ[ii, :] = temp[:3]
+            if len(temp) == 3 + n_comp:
+                d.append(factor * temp[3:])
+            elif len(temp) == 3 + n_comp * 2:
+                d.append(factor * temp[3 : 3 + n_comp])
+                wd.append(temp[3 + n_comp :])
+            ii += 1
 
     # Turn into vector. For multiple components, SimPEG orders by rows
     if len(d) > 0:
@@ -382,14 +387,26 @@ def write_gg3d_ubc(filename, data_object):
 
 
 readUBCmagneticsObservations = deprecate_method(
-    read_mag3d_ubc, "readUBCmagneticsObservations", removal_version="0.14.4"
+    read_mag3d_ubc,
+    "readUBCmagneticsObservations",
+    removal_version="0.14.4",
+    future_warn=True,
 )
 writeUBCmagneticsObservations = deprecate_method(
-    write_mag3d_ubc, "writeUBCmagneticsObservations", removal_version="0.14.4"
+    write_mag3d_ubc,
+    "writeUBCmagneticsObservations",
+    removal_version="0.14.4",
+    future_warn=True,
 )
 readUBCgravityObservations = deprecate_method(
-    read_grav3d_ubc, "readUBCgravityObservations", removal_version="0.14.4"
+    read_grav3d_ubc,
+    "readUBCgravityObservations",
+    removal_version="0.14.4",
+    future_warn=True,
 )
 writeUBCgravityObservations = deprecate_method(
-    write_grav3d_ubc, "writeUBCgravityObservations", removal_version="0.14.4"
+    write_grav3d_ubc,
+    "writeUBCgravityObservations",
+    removal_version="0.14.4",
+    future_warn=True,
 )

@@ -2,7 +2,7 @@ import shutil
 import unittest
 import numpy as np
 
-from discretize.utils import meshutils, active_from_xyz
+from discretize.utils import mesh_builder_xyz, refine_tree_xyz, active_from_xyz
 from SimPEG import (
     directives,
     maps,
@@ -59,14 +59,14 @@ class MagInvLinProblemTest(unittest.TestCase):
         survey = mag.Survey(srcField)
 
         # self.mesh.finalize()
-        self.mesh = meshutils.mesh_builder_xyz(
+        self.mesh = mesh_builder_xyz(
             xyzLoc,
             h,
             padding_distance=padDist,
             mesh_type="TREE",
         )
 
-        self.mesh = meshutils.refine_tree_xyz(
+        self.mesh = refine_tree_xyz(
             self.mesh,
             topo,
             method="surface",
@@ -102,6 +102,7 @@ class MagInvLinProblemTest(unittest.TestCase):
             chiMap=idenMap,
             ind_active=actv,
             store_sensitivities="ram",
+            n_processes=None,
         )
         self.sim = sim
         data = sim.make_synthetic_data(

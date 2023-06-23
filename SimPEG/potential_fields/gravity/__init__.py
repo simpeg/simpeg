@@ -16,7 +16,7 @@ Simulations
   Simulation3DDifferential
 
 Survey, Sources and Receivers
-============================
+=============================
 
 .. autosummary::
   :toctree: generated/

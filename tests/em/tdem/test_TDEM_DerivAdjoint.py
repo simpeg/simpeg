@@ -155,6 +155,7 @@ class Base_DerivAdjoint_Test(unittest.TestCase):
         passed = np.abs(V1 - V2) < tol
 
         print("    {v1} {v2} {passed}".format(v1=V1, v2=V2, passed=passed))
+
         self.assertTrue(passed)
 
 
@@ -271,9 +272,6 @@ class DerivAdjoint_B(Base_DerivAdjoint_Test):
         def test_Jvec_b_dbdtz(self):
             self.JvecTest("MagneticFluxTimeDerivativez")
 
-        def test_Jvec_b_jy(self):
-            self.JvecTest("CurrentDensityy")
-
         def test_Jvec_b_hx(self):
             self.JvecTest("MagneticFieldx")
 
@@ -312,6 +310,11 @@ class DerivAdjoint_B(Base_DerivAdjoint_Test):
         def test_Jvec_adjoint_b_dhdtx(self):
             self.JvecVsJtvecTest("MagneticFieldTimeDerivativex")
 
+        def test_Jvec_adjoint_b_dhdtz(self):
+            self.JvecVsJtvecTest("MagneticFieldTimeDerivativez")
+
+        def test_Jvec_adjoint_b_jy(self):
+            self.JvecVsJtvecTest("CurrentDensityy")
 
 class DerivAdjoint_H(Base_DerivAdjoint_Test):
     formulation = "MagneticField"

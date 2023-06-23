@@ -29,7 +29,7 @@ try:
     import plotly.graph_objects as grapho
 
     has_plotly = True
-except:
+except ImportError:
     has_plotly = False
 
 
@@ -852,7 +852,7 @@ if has_plotly:
             marker = {key: marker_opts.get(key, marker[key]) for key in marker}
 
         # 3D scatter plot
-        if plane_points == None:
+        if plane_points is None:
             marker["color"] = plot_vec
             scatter_data = [
                 grapho.Scatter3d(
@@ -873,7 +873,7 @@ if has_plotly:
                 plane_points = [plane_points]
 
             # Expand to list of only one plane distance for all planes
-            if isinstance(plane_distance, list) != True:
+            if not isinstance(plane_distance, list):
                 plane_distance = len(plane_points) * [plane_distance]
 
             # Pre-allocate index for points on plane(s)
@@ -994,9 +994,9 @@ def generate_survey_from_abmn_locations(
     if locations_n is None:
         locations_n = locations_m
 
-    if (
+    if not (
         locations_a.shape == locations_b.shape == locations_m.shape == locations_n.shape
-    ) == False:
+    ):
         raise ValueError(
             "Arrays containing A, B, M and N electrode locations must be same shape."
         )
@@ -1422,7 +1422,6 @@ def xy_2_lineID(dc_survey):
     lineID = np.zeros(nstn)
 
     linenum = 0
-    indx = 0
 
     for ii in range(nstn):
         if ii == 0:
@@ -1467,7 +1466,6 @@ def xy_2_lineID(dc_survey):
                 xym[0] = xym[0] + 1e-3
 
             linenum += 1
-            indx = ii
 
         else:
             xym = np.mean([xy0, xin], axis=0)

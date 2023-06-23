@@ -17,11 +17,11 @@ def setUp_TDEM(
 ):
     # set a seed so that the same conductivity model is used for all runs
     np.random.seed(25)
-    cs = 5.0
-    ncx = 8
-    ncy = 8
-    ncz = 8
-    npad = 4
+    cs = 10.0
+    ncx = 4
+    ncy = 4
+    ncz = 4
+    npad = 2
     # hx = [(cs, ncx), (cs, npad, 1.3)]
     # hz = [(cs, npad, -1.3), (cs, ncy), (cs, npad, 1.3)]
     mesh = discretize.TensorMesh(
@@ -145,14 +145,6 @@ class TDEM_cross_check_EB(unittest.TestCase):
             waveform="stepoff",
         )
 
-    def test_HJ_j_stepoff(self):
-        CrossCheck(
-            prbtype1="MagneticField",
-            prbtype2="CurrentDensity",
-            rxcomp="CurrentDensityy",
-            waveform="stepoff",
-        )
-
     def test_HJ_dhdtx_stepoff(self):
         CrossCheck(
             prbtype1="MagneticField",
@@ -208,14 +200,6 @@ class TDEM_cross_check_EB(unittest.TestCase):
             prbtype1="MagneticFluxDensity",
             prbtype2="ElectricField",
             rxcomp="MagneticFluxTimeDerivativez",
-            waveform="vtem",
-        )
-
-    def test_HJ_j_vtem(self):
-        CrossCheck(
-            prbtype1="MagneticField",
-            prbtype2="CurrentDensity",
-            rxcomp="CurrentDensityy",
             waveform="vtem",
         )
 

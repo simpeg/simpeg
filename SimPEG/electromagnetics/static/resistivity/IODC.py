@@ -989,7 +989,6 @@ class IO:
         self.dz = dz
 
         zmax = locs[:, z_ind].max()
-        zmin = locs[:, z_ind].min()
 
         # 3 cells each for buffer
         corexlength = lineLength + dx * 6
@@ -1017,7 +1016,6 @@ class IO:
                 self.xyzlim = np.vstack(
                     (np.r_[x0, x0 + lineLength], np.r_[zmax - corezlength, zmax])
                 )
-                fill_value = "extrapolate"
 
             # For 3D mesh
             else:
@@ -1252,13 +1250,11 @@ class IO:
             if toponame is not None:
                 tmp_topo = np.loadtxt(toponame)
                 n_topo = tmp_topo[0, 0]
-                z_ref = tmp_topo[0, 1]
                 topo = tmp_topo[1:, :]
                 if topo.shape[0] != n_topo:
                     print(
-                        ">> # of points for the topography is not {0}, but {0}".format(
-                            n_topo, topo.shape[0]
-                        )
+                        ">> # of points for the topography is "
+                        f"not {n_topo}, but {topo.shape[0]}"
                     )
             tmp = np.loadtxt(filename, comments="!").astype(float)
             e = np.zeros(tmp.shape[0], dtype=float)

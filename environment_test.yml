@@ -18,7 +18,6 @@ dependencies:
   - h5py
   - sphinx
   - sphinx-gallery>=0.1.13
-  - sphinx-toolbox
   - sphinxcontrib-apidoc
   - pydata-sphinx-theme
   - nbsphinx
@@ -37,6 +36,7 @@ dependencies:
   - pip
   - python-kaleido
   # Linters and code style
+  - pre-commit
   - black==23.1.0
   - flake8
   - flake8-bugbear

@@ -276,7 +276,7 @@ class PGIsmallness(Smallness):
 
     @timeIt
     def deriv(self, m):
-        if getattr(self, "mref", None) is None:
+        if getattr(self, "reference_model", None) is None:
             self.reference_model = mkvc(self.gmm.means_[self.membership(m)])
 
         membership = self.compute_quasi_geology_model()
@@ -464,7 +464,7 @@ class PGIsmallness(Smallness):
 
     @timeIt
     def deriv2(self, m, v=None):
-        if getattr(self, "mref", None) is None:
+        if getattr(self, "reference_model", None) is None:
             self.reference_model = mkvc(self.gmm.means_[self.membership(m)])
 
         if self.approx_hessian:
@@ -748,7 +748,7 @@ class PGI(ComboObjectiveFunction):
                 )
             ]
 
-        super().__init__(objfcts=objfcts)
+        super().__init__(objfcts=objfcts, unpack_on_add=False)
         self.reference_model_in_smooth = reference_model_in_smooth
         self.alpha_pgi = alpha_pgi
 

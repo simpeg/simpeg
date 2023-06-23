@@ -281,7 +281,8 @@ def run(plotIt=True):
         plt.gca().set_aspect("equal", adjustable="box")
 
         # Plot convergence curves
-        fig, axs = plt.figure(), plt.subplot()
+        plt.figure()
+        axs = plt.subplot()
         axs.plot(saveDict.phi_d, "k", lw=2)
         axs.plot(
             np.r_[IRLS.iterStart, IRLS.iterStart],

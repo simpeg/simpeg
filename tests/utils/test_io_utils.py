@@ -380,7 +380,6 @@ class TestIO_DCIP3D(unittest.TestCase):
         b_locs = np.c_[xb, ya, za]
 
         n_src = len(xa)
-        n_rx = len(xm)
 
         # Define survey
         pp_sources = []

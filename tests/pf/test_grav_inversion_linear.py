@@ -79,6 +79,7 @@ class GravInvLinProblemTest(unittest.TestCase):
             rhoMap=idenMap,
             ind_active=actv,
             store_sensitivities="ram",
+            n_processes=None,
         )
 
         # Compute linear forward operator and compute some data
@@ -98,14 +99,16 @@ class GravInvLinProblemTest(unittest.TestCase):
         opt = optimization.ProjectedGNCG(
             maxIter=100, lower=-1.0, upper=1.0, maxIterLS=20, maxIterCG=10, tolCG=1e-3
         )
-        invProb = inverse_problem.BaseInvProblem(dmis, reg, opt, beta=1e1)
+        invProb = inverse_problem.BaseInvProblem(dmis, reg, opt)
 
         # Here is where the norms are applied
+        starting_beta = directives.BetaEstimateMaxDerivative(10.0)
         IRLS = directives.Update_IRLS()
         update_Jacobi = directives.UpdatePreconditioner()
         sensitivity_weights = directives.UpdateSensitivityWeights(everyIter=False)
         self.inv = inversion.BaseInversion(
-            invProb, directiveList=[IRLS, sensitivity_weights, update_Jacobi]
+            invProb,
+            directiveList=[IRLS, sensitivity_weights, starting_beta, update_Jacobi],
         )
         self.sim = sim
 

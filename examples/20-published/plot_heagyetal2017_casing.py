@@ -184,7 +184,7 @@ class PrimSecCasingExample(object):
 
             # cell size, number of core cells, number of padding cells in the
             # x-direction
-            ncz = np.int(np.ceil(np.diff(self.casing_z)[0] / csz)) + 10
+            ncz = int(np.ceil(np.diff(self.casing_z)[0] / csz)) + 10
             npadzu, npadzd = 43, 43
 
             # vector of cell widths in the z-direction
@@ -907,7 +907,6 @@ class PrimSecCasingExample(object):
             norm=None,
             cblabel="",
         ):
-            eps = 1e-3  # just so we don't get white-spaces in the colormap
             ax.axis("equal")
             vlim = np.absolute(Jv).max() * np.r_[-1.0, 1.0]
 
@@ -1086,7 +1085,6 @@ class PrimSecCasingExample(object):
         fig, ax = plt.subplots(2, 2, figsize=(12, 10))
         # ax = utils.mkvc(ax)
 
-        useaxlim = True
         xlim = np.r_[-1500.0, 1500.0]
         ylim = np.r_[-1500.0, 1500.0]
 
@@ -1155,7 +1153,6 @@ class PrimSecCasingExample(object):
         # Block Geometry
         fig, ax = plt.subplots(4, 2, figsize=(12, 20))
 
-        useaxlim = True
         xlim = np.r_[-1500.0, 1500.0]
         ylim = np.r_[-1500.0, 1500.0]
 
@@ -1230,7 +1227,7 @@ class PrimSecCasingExample(object):
 
         ax[2][1] = plotJ(
             ax[2][1],
-            J_dy_ex,
+            J_dx_ey,
             "(p) Sensitivity of $E_y$ wrt block $d_x$",
             plotGrid=plotGrid,
             xlim=xlim,
@@ -1310,8 +1307,6 @@ class PrimSecCasingExample(object):
 
         # -------------- Test the sensitivity ----------------------------- #
         if runTests:
-            x0 = self.mtrue
-
             # Test Block Model
             def fun(x):
                 return [sec_problem.dpred(x), lambda x: sec_problem.Jvec(self.mtrue, x)]

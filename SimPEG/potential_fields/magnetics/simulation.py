@@ -146,7 +146,7 @@ class Simulation3DIntegral(BasePFSimulation):
 
         return self._tmi_projection
 
-    def getJtJdiag(self, m, W=None):
+    def getJtJdiag(self, m, W=None, f=None):
         """
         Return the diagonal of JtJ
         """
@@ -764,7 +764,6 @@ class Simulation3DDifferential(BaseMagneticPDESimulation):
 
         vol = self.mesh.cell_volumes
         Div = self._Div
-        Dface = self.mesh.face_divergence
         P = self.survey.projectFieldsDeriv(B)  # Projection matrix
         B0 = self.getB0()
 

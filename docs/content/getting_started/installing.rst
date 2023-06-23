@@ -9,15 +9,28 @@ Getting Started with SimPEG
 Prerequisite: Installing Python
 ===============================
 
-We highly recommend installing python using
-`Anaconda <https://anaconda.com/download/>`_.
-It installs `python <https://www.python.org/>`_,
+SimPEG is written in Python_!
+We highly recommend installing it using Anaconda_ (or the alternative Mambaforge_).
+It installs `Python <https://www.python.org/>`_,
 `Jupyter <http://jupyter.org/>`_ and other core
-python libraries for scientific computing.
+Python libraries for scientific computing.
+If you and Python_ are not yet acquainted, we highly
+recommend checking out `Software Carpentry <http://software-carpentry.org/>`_.
 
-As of version 0.11.0, we will no longer ensure compatibility with Python 2.7. Please use
-the latest version of Python 3 with SimPEG. For more information on the transition of the
-Python ecosystem to Python 3, please see the `Python 3 Statement <https://python3statement.org/>`_.
+.. note::
+
+   As of version 0.11.0, we will no longer ensure compatibility with Python 2.7. Please use
+   the latest version of Python 3 with SimPEG. For more information on the transition of the
+   Python ecosystem to Python 3, please see the `Python 3 Statement <https://python3statement.org/>`_.
+
+.. image:: https://upload.wikimedia.org/wikipedia/commons/thumb/c/c3/Python-logo-notext.svg/220px-Python-logo-notext.svg.png
+    :align: right
+    :width: 100
+    :target: https://www.python.org/
+
+.. _Python: https://www.python.org/
+.. _Anaconda: https://www.anaconda.com/products/individual
+.. _Mambaforge: https://www.anaconda.com/products/individual
 
 
 .. _installing_simpeg:
@@ -28,12 +41,22 @@ Installing SimPEG
 Conda Forge
 -----------
 
-You can install SimPEG using the `conda package manager <https://conda.io/>`_ that comes with the Anaconda distribution:
+SimPEG is available through `conda-forge` and you can install is using the
+`conda package manager <https://conda.io/>`_ that comes with the Anaconda
+distribution:
 
 .. code::
 
     conda install SimPEG --channel conda-forge
 
+Installing through `conda`/`mamba` is our recommended method of installation.
+
+.. note::
+    If you find yourself wanting a faster package manager than ``conda``
+    check out the ``mamba`` project at https://mamba.readthedocs.io/. It
+    usually is able to set up environments much quicker than ``conda`` and
+    can be used as a drop-in replacement (i.e. replace ``conda`` commands with
+    ``mamba``).
 
 PyPi
 ----
@@ -68,7 +91,7 @@ First (you need git)::
 
 Second (from the root of the SimPEG repository)::
 
-    python setup.py install
+    pip install .
 
 If you are interested in contributing to SimPEG, please check out the page on :ref:`Contributing <contributing>`
 
@@ -116,7 +139,10 @@ Lessons in Python
 Editing Python
 --------------
 
-There are numerous ways to edit and test Python (see `PythonWiki <http://wiki.python.org/moin/PythonEditors>`_ for an overview) and in our group at least the following options are being used:
+There are numerous ways to edit and test Python (see
+`PythonWiki <http://wiki.python.org/moin/PythonEditors>`_ for an overview) and
+in our group at least the following options are being used:
 
-* `Sublime <https://www.sublimetext.com/>`_
 * `Jupyter <http://jupyter.org/>`_
+* `Sublime <https://www.sublimetext.com/>`_
+* `PyCharm <https://www.jetbrains.com/pycharm/>`_

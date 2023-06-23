@@ -32,6 +32,8 @@ class BaseRegularization(BaseObjectiveFunction):
     """
 
     _model = None
+    _parent = None
+    _W = None
 
     def __init__(
         self,
@@ -136,6 +138,19 @@ class BaseRegularization(BaseObjectiveFunction):
                 f"Value of type {type(mapping)} provided."
             )
         self._mapping = mapping
+
+    @property
+    def parent(self):
+        """
+        The parent objective function
+        """
+        return self._parent
+
+    @parent.setter
+    def parent(self, parent):
+        if not isinstance(parent, ComboObjectiveFunction):
+            raise TypeError("Parent must be a ComboObjectiveFunction")
+        self._parent = parent
 
     @property
     def units(self) -> str | None:
@@ -388,7 +403,7 @@ class Smallness(BaseRegularization):
     :math:`\mathbf{m_{ref}}` is a reference model,
     :math:`\mathbf{V}` are square root of cell volumes and
     :math:`\mathbf{W}` is a weighting matrix (default Identity). If fixed or
-        free weights are provided, then it is :code:`diag(np.sqrt(weights))`).
+    free weights are provided, then it is :code:`diag(np.sqrt(weights))`).
 
 
     **Optional Inputs**
@@ -634,6 +649,55 @@ class SmoothnessSecondOrder(SmoothnessFirstOrder):
 
 
 class WeightedLeastSquares(ComboObjectiveFunction):
+    r"""Weighted least squares measure on model smallness and smoothness.
+
+    L2 regularization with both smallness and smoothness (first order
+    derivative) contributions.
+
+    Parameters
+    ----------
+    mesh : discretize.base.BaseMesh
+        The mesh on which the model parameters are defined. This is used
+        for constructing difference operators for the smoothness terms.
+    active_cells : array_like of bool or int, optional
+        List of active cell indices, or a `mesh.n_cells` boolean array
+        describing active cells.
+    alpha_s : float, optional
+        Smallness weight
+    alpha_x, alpha_y, alpha_z : float or None, optional
+        First order smoothness weights for the respective dimensions.
+        `None` implies setting these weights using the `length_scale`
+        parameters.
+    alpha_xx, alpha_yy, alpha_zz : float, optional
+        Second order smoothness weights for the respective dimensions.
+    length_scale_x, length_scale_y, length_scale_z : float, optional
+        First order smoothness length scales for the respective dimensions.
+    mapping : SimPEG.maps.IdentityMap, optional
+        A mapping to apply to the model before regularization.
+    reference_model : array_like, optional
+    reference_model_in_smooth : bool, optional
+        Whether to include the reference model in the smoothness terms.
+    weights : None, array_like, or dict or array_like, optional
+        User defined weights. It is recommended to interact with weights using
+        the `get_weights`, `set_weights` functionality.
+
+    Notes
+    -----
+    The function defined here approximates:
+
+    .. math::
+        \phi_m(\mathbf{m}) = \alpha_s \| W_s (\mathbf{m} - \mathbf{m_{ref}} ) \|^2
+        + \alpha_x \| W_x \frac{\partial}{\partial x} (\mathbf{m} - \mathbf{m_{ref}} ) \|^2
+        + \alpha_y \| W_y \frac{\partial}{\partial y} (\mathbf{m} - \mathbf{m_{ref}} ) \|^2
+        + \alpha_z \| W_z \frac{\partial}{\partial z} (\mathbf{m} - \mathbf{m_{ref}} ) \|^2
+
+    Note if the key word argument `reference_model_in_smooth` is False, then mref is not
+    included in the smoothness contribution.
+
+    If length scales are used to set the smoothness weights, alphas are respectively set internally using:
+    >>> alpha_x = (length_scale_x * min(mesh.edge_lengths)) ** 2
+    """
+
     _model = None
 
     def __init__(
@@ -732,7 +796,7 @@ class WeightedLeastSquares(ComboObjectiveFunction):
                 )
         else:
             objfcts = kwargs.pop("objfcts")
-        super().__init__(objfcts=objfcts, **kwargs)
+        super().__init__(objfcts=objfcts, unpack_on_add=False, **kwargs)
         self.mapping = mapping
         self.reference_model = reference_model
         self.reference_model_in_smooth = reference_model_in_smooth
@@ -886,7 +950,7 @@ class WeightedLeastSquares(ComboObjectiveFunction):
     @property
     def length_scale_x(self):
         """Constant multiplier of the base length scale on model gradients along x."""
-        return np.sqrt(self.alpha_x / self.regularization_mesh.base_length)
+        return np.sqrt(self.alpha_x) / self.regularization_mesh.base_length
 
     @length_scale_x.setter
     def length_scale_x(self, value: float):
@@ -903,7 +967,7 @@ class WeightedLeastSquares(ComboObjectiveFunction):
     @property
     def length_scale_y(self):
         """Constant multiplier of the base length scale on model gradients along y."""
-        return np.sqrt(self.alpha_y / self.regularization_mesh.base_length)
+        return np.sqrt(self.alpha_y) / self.regularization_mesh.base_length
 
     @length_scale_y.setter
     def length_scale_y(self, value: float):
@@ -920,7 +984,7 @@ class WeightedLeastSquares(ComboObjectiveFunction):
     @property
     def length_scale_z(self):
         """Constant multiplier of the base length scale on model gradients along z."""
-        return np.sqrt(self.alpha_z / self.regularization_mesh.base_length)
+        return np.sqrt(self.alpha_z) / self.regularization_mesh.base_length
 
     @length_scale_z.setter
     def length_scale_z(self, value: float):

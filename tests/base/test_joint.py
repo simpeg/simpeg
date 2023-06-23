@@ -90,7 +90,7 @@ class DataMisfitTest(unittest.TestCase):
         inv = inversion.BaseInversion(invProb, directiveList=directives_list)
         m0 = self.model.mean() * np.ones_like(self.model)
 
-        mrec = inv.run(m0)
+        inv.run(m0)
 
     def test_inv_mref_setting(self):
         reg1 = regularization.WeightedLeastSquares(self.mesh)
