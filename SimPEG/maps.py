@@ -1775,7 +1775,7 @@ class SelfConsistentEffectiveMedium(IdentityMap):
         """
 
         if not (np.all(0 <= phi1) and np.all(phi1 <= 1)):
-            warnings.warn("there are phis outside bounds of 0 and 1")
+            warnings.warn("there are phis outside bounds of 0 and 1", stacklevel=2)
             phi1 = np.median(np.c_[phi1 * 0, phi1, phi1 * 0 + 1.0])
 
         phi0 = 1.0 - phi1
@@ -1812,7 +1812,7 @@ class SelfConsistentEffectiveMedium(IdentityMap):
 
             sige1 = sige2
         # TODO: make this a proper warning, and output relevant info (sigma0, sigma1, phi, sigstart, and relerr)
-        warnings.warn("Maximum number of iterations reached")
+        warnings.warn("Maximum number of iterations reached", stacklevel=2)
 
         return sige2
 

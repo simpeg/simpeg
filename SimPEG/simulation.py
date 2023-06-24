@@ -499,7 +499,7 @@ class LinearSimulation(BaseSimulation):
         if getattr(self, "_G", None) is not None:
             return self._G
         else:
-            warnings.warn("G has not been implemented for the simulation")
+            warnings.warn("G has not been implemented for the simulation", stacklevel=2)
         return None
 
     @G.setter

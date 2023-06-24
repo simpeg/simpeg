@@ -40,7 +40,8 @@ class BaseRx:
         if projGLoc is not None:
             warnings.warn(
                 "'projGLoc' is no longer of property of the receiver class. It is set automatically "
-                "based on the receiver and simulation class. Will be remove in SimPEG 0.18.0"
+                "based on the receiver and simulation class. Will be remove in SimPEG 0.18.0",
+                stacklevel=2,
             )
         # ideally there shouldn't be any kwargs left to hit, but this will throw an
         # error if kwargs hasn't been emptied properly. This also will allow proper

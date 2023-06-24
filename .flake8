@@ -36,8 +36,6 @@ exclude-from-doctest =
 ignore =
     # assertRaises(Exception): should be considered evil
     B017,
-    # No explicit stacklevel argument found.
-    B028,
     # Missing docstring in public module
     D100,
     # Missing docstring in public class
