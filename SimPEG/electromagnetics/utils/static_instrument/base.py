@@ -235,9 +235,9 @@ class XYZSystem(object):
         dmis.W = self.make_misfit_weights(thicknesses)
         return dmis
     
-    alpha_s = 1e-10
-    alpha_r = 1.
-    alpha_z = 1.
+    regularization_alpha_s = 1e-10
+    regularization_alpha_r = 1.
+    regularization_alpha_z = 1.
     def make_regularization(self, thicknesses):
         if False:
             assert False, "LCI is currently broken"
@@ -245,9 +245,9 @@ class XYZSystem(object):
             reg = LaterallyConstrained(
                 get_2d_mesh(len(self.xyz.flightlines), hz),
                 mapping=maps.IdentityMap(nP=self.n_param(thicknesses)),
-                alpha_s = 0.01,
-                alpha_r = 1.,
-                alpha_z = 1.)
+                alpha_s = self.regularization_alpha_s,
+                alpha_r = self.regularization_alpha_r,
+                alpha_z = self.regularization_alpha_z)
             # reg.get_grad_horizontal(self.xyz.flightlines[["x", "y"]], hz, dim=2, use_cell_weights=True)
             # ps, px, py = 0, 0, 0
             # reg.norms = np.c_[ps, px, py, 0]
@@ -275,11 +275,14 @@ class XYZSystem(object):
             )
             reg.mref = np.log(np.ones(self.n_param(thicknesses)) * 1/self.start_res)
             return reg
-            
+    
+    regularization_beta_cooling_factor=2 
+    regularization_beta_cooling_rate=1
     def make_directives(self):
         return [
             directives.BetaEstimate_ByEig(beta0_ratio=10),
-            SimPEG.directives.BetaSchedule(coolingFactor=2, coolingRate=1),
+            SimPEG.directives.BetaSchedule(coolingFactor=self.regularization_beta_cooling_factor, 
+                                           coolingRate=self.regularization_beta_cooling_rate),
             SimPEG.directives.TargetMisfit()
 
 #            directives.SaveOutputEveryIteration(save_txt=False),
