@@ -177,15 +177,15 @@ def dask_evalFunction(self, m, return_g=True, return_H=True):
     phi_d = np.asarray(phi_d)
     # print(self.dpred[0])
 
-
-    if isinstance(self.reg, ComboObjectiveFunction) and not isinstance(
-            self.reg, WeightedLeastSquares
-    ):
-        reg2Deriv = []
-        for fct in self.reg.objfcts:
-            reg2Deriv += [multi * obj.deriv2(m) for multi, obj in fct]
+    reg2Deriv = []
+    if isinstance(self.reg, ComboObjectiveFunction):
+        for objfct in self.reg.objfcts:
+            if isinstance(objfct, ComboObjectiveFunction):
+                reg2Deriv += [multi * obj.deriv2(m) for multi, obj in objfct]
+            else:
+                reg2Deriv += [objfct.deriv2(m)]
     else:
-        reg2Deriv = [multi * obj.deriv2(m) for multi, obj in self.reg]
+        reg2Deriv = [self.reg.deriv2(m)]
 
     self.reg2Deriv = np.sum(reg2Deriv)
 

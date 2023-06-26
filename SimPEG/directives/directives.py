@@ -2110,6 +2110,10 @@ class Update_IRLS(InversionDirective):
         if self.mode == 1:
             self.norms = []
             for reg in self.reg.objfcts:
+                if not hasattr(reg, "norms"):
+                    self.norms.append([None])
+                    continue
+
                 self.norms.append(reg.norms)
                 reg.norms = [2.0 for obj in reg.objfcts]
                 reg.model = self.invProb.model
@@ -2168,6 +2172,9 @@ class Update_IRLS(InversionDirective):
 
             # Print to screen
             for reg in self.reg.objfcts:
+                if not isinstance(reg, (Sparse, BaseSparse)):
+                    continue
+
                 for obj in reg.objfcts:
                     if isinstance(reg, (Sparse, BaseSparse)):
                         obj.irls_threshold = obj.irls_threshold / self.coolEpsFact
@@ -2217,15 +2224,15 @@ class Update_IRLS(InversionDirective):
 
         # Re-assign the norms supplied by user l2 -> lp
         for reg, norms in zip(self.reg.objfcts, self.norms):
+            if not hasattr(reg, "norms"):
+                continue
             reg.norms = norms
+
+            if not self.silent:
+                print("irls_threshold " + str(reg.objfcts[0].irls_threshold))
 
         # Save l2-model
         self.invProb.l2model = self.invProb.model.copy()
-
-        # Print to screen
-        for reg in self.reg.objfcts:
-            if not self.silent:
-                print("irls_threshold " + str(reg.objfcts[0].irls_threshold))
 
     def angleScale(self):
         """
