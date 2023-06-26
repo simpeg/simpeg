@@ -148,7 +148,8 @@ def read_dcip_xyz(
         warnings.warn(
             "Loaded data are in surface format. Elevations automatically set to 9999 m. "
             "Use the project_to_discretized_topography method of the survey to project "
-            "electrode locations to the discretized surface."
+            "electrode locations to the discretized surface.",
+            stacklevel=2,
         )
     else:
         locations_a = data_array[:, a_cols]
@@ -315,7 +316,8 @@ def read_dcip2d_ubc(file_name, data_type, format_type):
         warnings.warn(
             "Loaded data did not have elevations. Elevations automatically set to 9999 m. "
             "Use the project_to_discretized_topography method of the survey to project "
-            "electrode locations to the discretized surface."
+            "electrode locations to the discretized surface.",
+            stacklevel=2,
         )
 
     else:
@@ -410,7 +412,8 @@ def read_dcip2d_ubc(file_name, data_type, format_type):
             warnings.warn(
                 "Loaded data were in surface format. Elevations automatically set to 9999 m. "
                 "Use the project_to_discretized_topography method of the survey to project "
-                "electrode locations to the discretized surface."
+                "electrode locations to the discretized surface.",
+                stacklevel=2,
             )
 
     return data_out
@@ -569,7 +572,8 @@ def read_dcip3d_ubc(file_name, data_type):
         warnings.warn(
             "Loaded data were in surface format. Elevations automatically set to 9999 m. "
             "Use the project_to_discretized_topography method of the survey to project "
-            "electrode locations to the discretized surface."
+            "electrode locations to the discretized surface.",
+            stacklevel=2,
         )
 
     return data_out

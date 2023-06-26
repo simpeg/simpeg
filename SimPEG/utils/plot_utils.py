@@ -368,6 +368,7 @@ def plotLayer(
     warnings.warn(
         "plotLayer has been deprecated, please use plot_1d_layer_model",
         DeprecationWarning,
+        stacklevel=2,
     )
     thicknesses = np.diff(LocSigZ)
     z0 = LocSigZ[0]

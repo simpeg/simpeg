@@ -74,7 +74,9 @@ class PGIsmallness(Smallness):
 
         if "mapping" in kwargs:
             warnings.warn(
-                f"Property 'mapping' of class {type(self)} cannot be set. Defaults to IdentityMap."
+                f"Property 'mapping' of class {type(self)} cannot be set. "
+                "Defaults to IdentityMap.",
+                stacklevel=2,
             )
             kwargs.pop("mapping")
 

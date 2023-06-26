@@ -110,7 +110,8 @@ class InversionDirective:
             warnings.warn(
                 "InversionDirective {0!s} has switched to a new inversion.".format(
                     self.__class__.__name__
-                )
+                ),
+                stacklevel=2,
             )
         self._inversion = i
 
@@ -308,7 +309,10 @@ class DirectiveList(object):
             return
         if getattr(self, "_inversion", None) is not None:
             warnings.warn(
-                "{0!s} has switched to a new inversion.".format(self.__class__.__name__)
+                "{0!s} has switched to a new inversion.".format(
+                    self.__class__.__name__
+                ),
+                stacklevel=2,
             )
         for d in self.dList:
             d.inversion = i
@@ -1297,7 +1301,8 @@ class MultiTargetMisfits(InversionDirective):
             ]
             if smallness[smallness[:, 2] == 1][:, :2].size == 0:
                 warnings.warn(
-                    "There is no PGI regularization. Smallness target is turned off (TriggerSmall flag)"
+                    "There is no PGI regularization. Smallness target is turned off (TriggerSmall flag)",
+                    stacklevel=2,
                 )
                 self.smallness = -1
                 self.pgi_smallness = None
@@ -1340,7 +1345,8 @@ class MultiTargetMisfits(InversionDirective):
             if smallness[smallness[:, 1] == 1][:, :1].size == 0:
                 if self.TriggerSmall:
                     warnings.warn(
-                        "There is no PGI regularization. Smallness target is turned off (TriggerSmall flag)."
+                        "There is no PGI regularization. Smallness target is turned off (TriggerSmall flag).",
+                        stacklevel=2,
                     )
                     self.TriggerSmall = False
                 self.smallness = -1
@@ -2248,7 +2254,8 @@ class Update_IRLS(InversionDirective):
             warnings.warn(
                 "Without a Linear preconditioner, convergence may be slow. "
                 "Consider adding `Directives.UpdatePreconditioner` to your "
-                "directives list"
+                "directives list",
+                stacklevel=2,
             )
         return True
 
@@ -2531,21 +2538,24 @@ class UpdateSensitivityWeights(InversionDirective):
         if "everyIter" in kwargs.keys():
             warnings.warn(
                 "'everyIter' property is deprecated and will be removed in SimPEG 0.20.0."
-                "Please use 'every_iteration'."
+                "Please use 'every_iteration'.",
+                stacklevel=2,
             )
             every_iteration = kwargs.pop("everyIter")
 
         if "threshold" in kwargs.keys():
             warnings.warn(
                 "'threshold' property is deprecated and will be removed in SimPEG 0.20.0."
-                "Please use 'threshold_value'."
+                "Please use 'threshold_value'.",
+                stacklevel=2,
             )
             threshold_value = kwargs.pop("threshold")
 
         if "normalization" in kwargs.keys():
             warnings.warn(
                 "'normalization' property is deprecated and will be removed in SimPEG 0.20.0."
-                "Please define normalization using 'normalization_method'."
+                "Please define normalization using 'normalization_method'.",
+                stacklevel=2,
             )
             normalization_method = kwargs.pop("normalization")
             if normalization_method is True:
@@ -2661,7 +2671,8 @@ class UpdateSensitivityWeights(InversionDirective):
         elif isinstance(value, bool):
             warnings.warn(
                 "Boolean type for 'normalization_method' is deprecated and will be removed in 0.20.0."
-                "Please use None, 'maximum' or 'minimum'."
+                "Please use None, 'maximum' or 'minimum'.",
+                stacklevel=2,
             )
             if value:
                 self._normalization_method = "maximum"

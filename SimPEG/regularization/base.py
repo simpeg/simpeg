@@ -259,6 +259,7 @@ class BaseRegularization(BaseObjectiveFunction):
             "cell_weights are deprecated please access weights using the `set_weights`,"
             " `get_weights`, and `remove_weights` functionality. This will be removed in 0.19.0",
             FutureWarning,
+            stacklevel=2,
         )
         return np.prod(list(self._weights.values()), axis=0)
 
@@ -268,6 +269,7 @@ class BaseRegularization(BaseObjectiveFunction):
             "cell_weights are deprecated please access weights using the `set_weights`,"
             " `get_weights`, and `remove_weights` functionality. This will be removed in 0.19.0",
             FutureWarning,
+            stacklevel=2,
         )
         self.set_weights(cell_weights=value)
 
@@ -872,6 +874,7 @@ class WeightedLeastSquares(ComboObjectiveFunction):
             "cell_weights are deprecated please access weights using the `set_weights`,"
             " `get_weights`, and `remove_weights` functionality. This will be removed in 0.19.0",
             FutureWarning,
+            stacklevel=2,
         )
         self.set_weights(cell_weights=value)
 
