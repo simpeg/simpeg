@@ -325,12 +325,14 @@ class XYZSystem(object):
 
         return self.xyz.unfilter(xyzsparse, layerfilter=False)
     
-    def invert(self):
+    def invert(self, **kw):
         """Invert the data from the XYZ file using this system description and
         inversion parameters.
 
         Returns a sparse model and an l2 (smooth model), both in xyz format.
         """
+
+        self.options.update(kw)
         
         self.inv = self.make_inversion()
         
@@ -394,10 +396,13 @@ class XYZSystem(object):
 
         return self.pad_times(xyzresp, self.times_full, self.times_filter)
     
-    def forward(self):
+    def forward(self, **kw):
         """Does a forward modelling of the model in the XYZ file using
         this system description. Returns data in xyz format."""
         # self.inv.invProb.dmisfit.simulation
+
+        self.options.update(kw)
+
         self.sim = self.make_forward()
 
         model_cond=np.log(1/self.xyz.resistivity.values)
