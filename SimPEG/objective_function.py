@@ -32,7 +32,10 @@ class BaseObjectiveFunction(BaseSimPEG):
         debug=False,
     ):
         self._nP = nP
-        self.mapping = mapping
+        if mapping is None:
+            self._mapping = mapping
+        else:
+            self.mapping = mapping
         self.counter = counter
         self.debug = debug
         self.has_fields = has_fields
