@@ -16,7 +16,7 @@ import matplotlib as mpl
 from matplotlib import pyplot as plt
 from matplotlib.colors import LogNorm
 from discretize import TensorMesh, SimplexMesh
-#from pymatsolver import PardisoSolver
+from pymatsolver import PardisoSolver
 
 from SimPEG.utils import mkvc
 from SimPEG import (
@@ -292,9 +292,9 @@ class XYZSystem(object):
             # directives.UpdatePreconditioner()
 
         ]
-
+    optimizer_max_iter=40
     def make_optimizer(self):
-        return optimization.InexactGaussNewton(maxIter = 40, maxIterCG=20)
+        return optimization.InexactGaussNewton(maxIter = self.optimizer_max_iter, maxIterCG=20)
     
     def make_inversion(self):
         thicknesses = self.make_thicknesses()
