@@ -7,6 +7,7 @@ import inspect
 import discretize
 from SimPEG import maps, objective_function, regularization, utils
 from SimPEG.regularization import BaseRegularization, WeightedLeastSquares
+from SimPEG.objective_function import ComboObjectiveFunction
 
 
 TOL = 1e-7
@@ -628,18 +629,31 @@ def test_cross_reg_reg_errors():
         regularization.CrossReferenceRegularization(mesh, ref_dir)
 
 
-def test_invalid_parent():
-    """Test setting an invalid parent class to a BaseRegularization."""
+class TestParent:
+    """Test parent property of regularizations."""
 
-    class Dummy:
-        pass
+    @pytest.fixture
+    def regularization(self):
+        """Sample regularization instance."""
+        mesh = discretize.TensorMesh([3, 4, 5])
+        return BaseRegularization(mesh)
 
-    mesh = discretize.TensorMesh([3, 4, 5])
-    reg = BaseRegularization(mesh)
-    invalid_parent = Dummy()
-    msg = "Invalid parent of type 'Dummy'."
-    with pytest.raises(TypeError, match=msg):
-        reg.parent = invalid_parent
+    def test_parent(self, regularization):
+        """Test setting a parent class to a BaseRegularization."""
+        combo = ComboObjectiveFunction()
+        regularization.parent = combo
+        assert regularization.parent == combo
+
+    def test_invalid_parent(self, regularization):
+        """Test setting an invalid parent class to a BaseRegularization."""
+
+        class Dummy:
+            pass
+
+        invalid_parent = Dummy()
+        msg = "Invalid parent of type 'Dummy'."
+        with pytest.raises(TypeError, match=msg):
+            regularization.parent = invalid_parent
 
 
 class TestDeprecatedArguments:
