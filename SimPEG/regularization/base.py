@@ -65,6 +65,7 @@ class BaseRegularization(BaseObjectiveFunction):
                 f"The '{key}' argument has been deprecated, please use 'active_cells'. "
                 "It will be removed in future versions of SimPEG.",
                 DeprecationWarning,
+                stacklevel=2,
             )
             active_cells = kwargs.pop(key)
 
@@ -79,6 +80,7 @@ class BaseRegularization(BaseObjectiveFunction):
                 f"The '{key}' argument has been deprecated, please use 'weights'. "
                 "It will be removed in future versions of SimPEG.",
                 DeprecationWarning,
+                stacklevel=2,
             )
             weights = kwargs.pop(key)
 
@@ -769,6 +771,7 @@ class WeightedLeastSquares(ComboObjectiveFunction):
                 f"The '{key}' argument has been deprecated, please use 'active_cells'. "
                 "It will be removed in future versions of SimPEG.",
                 DeprecationWarning,
+                stacklevel=2,
             )
             active_cells = kwargs.pop(key)
 
