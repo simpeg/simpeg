@@ -54,9 +54,11 @@ class PGIsmallness(Smallness):
     gmmref : SimPEG.utils.WeightedGaussianMixture
         Reference Gaussian mixture model.
     gmm : None, SimPEG.utils.WeightedGaussianMixture
-        Gaussian mixture model. If ``None``, the Gaussian mixture model is learned throughout the
-        inversion. If set, the Gaussian mixture model used to constrain the recovered model is
-        static throughout the inversion.
+        Set the Gaussian mixture model used to constrain the recovered physical property model.
+        Can be left static throughout the inversion or updated using the
+        :class:`.directives.PGI_UpdateParameters` directive. If ``None``, the
+        :class:`.directives.PGI_UpdateParameters` directive must be used to ensure there
+        is a Gaussian mixture model for the inversion.
     wiresmap : None, SimPEG.maps.Wires
         Mapping from the model to the model parameters of each type.
         If ``None``, we assume only a single physical property type in the inversion.
@@ -67,7 +69,7 @@ class PGIsmallness(Smallness):
         property values.
     mesh : SimPEG.regularization.RegularizationMesh, discretize.base.BaseMesh
         Mesh on which the regularization is discretized. Implemented for
-        `tensor`, `QuadTree` or `Octree` meshes.
+        ``tensor``, ``QuadTree`` or ``Octree`` meshes.
     approx_gradient : bool
         If ``True``, use the L2-approximation of the gradient by assuming
         physical property values of different types are uncorrelated.
@@ -116,7 +118,7 @@ class PGIsmallness(Smallness):
     .. math::
         \mathbf{m} = \begin{bmatrix} \mathbf{m}_1 \\ \mathbf{m}_2 \\ \vdots \\ \mathbf{m}_K \end{bmatrix}
 
-    When the `approx_eval` property is ``True``, we assume the physical property types have
+    When the ``approx_eval`` property is ``True``, we assume the physical property types have
     values that are uncorrelated. In this case, the weighting matrix is diagonal and the
     regularization function (objective function) can be expressed as:
 
@@ -124,7 +126,7 @@ class PGIsmallness(Smallness):
         \phi (\mathbf{m}) = \frac{1}{2} \Big \| \mathbf{W}_{\! 1/2}(\Theta, \mathbf{z}^\ast ) \,
         \big [ \mathbf{m} - \mathbf{m_{ref}}(\Theta, \mathbf{z}^\ast ) \big ] \, \Big \|^2
 
-    When the `approx_eval` property is ``True``, you may also set the `approx_gradient` property
+    When the ``approx_eval`` property is ``True``, you may also set the ``approx_gradient`` property
     to ``True`` so that the least-squares approximation is used to compute the gradient.
 
     **Constructing the Reference Model and Weighting Matrix:**
@@ -144,7 +146,7 @@ class PGIsmallness(Smallness):
         diag \big ( \mathbf{v \odot w} \big )
 
     where :math:`\mathbf{v}` are the volumes of the active cells, and :math:`\mathbf{w}`
-    are custom cell weights. When the `approx_eval` property is ``True``, the off-diagonal
+    are custom cell weights. When the ``approx_eval`` property is ``True``, the off-diagonal
     covariances are zero and we can use a weighting matrix of the form:
 
     .. math::
@@ -156,9 +158,9 @@ class PGIsmallness(Smallness):
 
     **Updating the Gaussian Mixture Model:**
 
-    When the GMM is set using the `gmm` property, the GMM remains static throughout the inversion.
-    When the `gmm` property set as ``None``, the GMM is learned and updated after every model update.
-    That is, we assume the GMM defined using the `gmmref` property is not completely representative
+    When the GMM is set using the ``gmm`` property, the GMM remains static throughout the inversion.
+    When the ``gmm`` property set as ``None``, the GMM is learned and updated after every model update.
+    That is, we assume the GMM defined using the ``gmmref`` property is not completely representative
     of the physical property distributions for each rock unit, and we update the all of the means
     (:math:`\boldsymbol{\mu}`), covariances (:math:`\boldsymbol{\Sigma}`) and proportion constants
     (:math:`\boldsymbol{\gamma}`) defining the GMM :math:`\Theta`. This is done by solving:
@@ -265,12 +267,16 @@ class PGIsmallness(Smallness):
     def gmm(self):
         """Gaussian mixture model.
 
+        If set prior to inversion, the Gaussian mixture model can be left static throughout
+        the inversion, or updated using the :class:`.directives.PGI_UpdateParameters` directive.
+        If this property is not set prior to inversion, the
+        :class:`.directives.PGI_UpdateParameters` directive must be used to ensure there
+        is a Gaussian mixture model for the inversion.
+
         Returns
         -------
-        None, SimPEG.utils.WeightedGaussianMixture
-            Gaussian mixture model. If ``None``, the Gaussian mixture model is learned throughout the
-            inversion. If set, the Gaussian mixture model used to constrain the recovered model is
-            static throughout the inversion.
+        SimPEG.utils.WeightedGaussianMixture
+            Gaussian mixture model used to constrain the recovered physical property model.
         """
         if getattr(self, "_gmm", None) is None:
             self._gmm = copy.deepcopy(self.gmmref)
@@ -990,9 +996,11 @@ class PGI(ComboObjectiveFunction):
     gmmref : SimPEG.utils.WeightedGaussianMixture
         Reference Gaussian mixture model.
     gmm : None, SimPEG.utils.WeightedGaussianMixture
-        Gaussian mixture model. If ``None``, the Gaussian mixture model is learned throughout the
-        inversion. If set, the Gaussian mixture model used to constrain the recovered model is
-        static throughout the inversion.
+        Set the Gaussian mixture model used to constrain the recovered physical property model.
+        Can be left static throughout the inversion or updated using the
+        :class:`.directives.PGI_UpdateParameters` directive. If ``None``, the
+        :class:`.directives.PGI_UpdateParameters` directive must be used to ensure there
+        is a Gaussian mixture model for the inversion.
     alpha_pgi : float
         Scaling constant for the PGI smallness term.
     alpha_x, alpha_y, alpha_z : float or None, optional
@@ -1067,7 +1075,7 @@ class PGI(ComboObjectiveFunction):
     .. math::
         \mathbf{m} = \begin{bmatrix} \mathbf{m}_1 \\ \mathbf{m}_2 \\ \vdots \\ \mathbf{m}_K \end{bmatrix}
 
-    When the `approx_eval` property is ``True``, we assume the physical property types have
+    When the ``approx_eval`` property is ``True``, we assume the physical property types have
     values that are uncorrelated. In this case, the weighting matrix is diagonal and the
     regularization function (objective function) can be expressed as:
 
@@ -1078,7 +1086,7 @@ class PGI(ComboObjectiveFunction):
         &+ \sum_{j=x,y,z} \frac{\alpha_{jj}}{2} \Big \| \mathbf{W_{jj} L_j \, m} \, \Big \|^2
         \;\;\;\;\;\;\;\; \big ( \textrm{optional} \big )
 
-    When the `approx_eval` property is ``True``, you may also set the `approx_gradient` property
+    When the ``approx_eval`` property is ``True``, you may also set the ``approx_gradient`` property
     to ``True`` so that the least-squares approximation is used to compute the gradient.
 
     **Constructing the Reference Model and Weighting Matrix:**
@@ -1098,7 +1106,7 @@ class PGI(ComboObjectiveFunction):
         diag \big ( \mathbf{v \odot w} \big )
 
     where :math:`\mathbf{v}` are the volumes of the active cells, and :math:`\mathbf{w}`
-    are custom cell weights. When the `approx_eval` property is ``True``, the off-diagonal
+    are custom cell weights. When the ``approx_eval`` property is ``True``, the off-diagonal
     covariances are zero and we can use a weighting matrix of the form:
 
     .. math::
@@ -1110,9 +1118,9 @@ class PGI(ComboObjectiveFunction):
 
     **Updating the Gaussian Mixture Model:**
 
-    When the GMM is set using the `gmm` property, the GMM remains static throughout the inversion.
-    When the `gmm` property set as ``None``, the GMM is learned and updated after every model update.
-    That is, we assume the GMM defined using the `gmmref` property is not completely representative
+    When the GMM is set using the ``gmm`` property, the GMM remains static throughout the inversion.
+    When the ``gmm`` property set as ``None``, the GMM is learned and updated after every model update.
+    That is, we assume the GMM defined using the ``gmmref`` property is not completely representative
     of the physical property distributions for each rock unit, and we update the all of the means
     (:math:`\boldsymbol{\mu}`), covariances (:math:`\boldsymbol{\Sigma}`) and proportion constants
     (:math:`\boldsymbol{\gamma}`) defining the GMM :math:`\Theta`. This is done by solving:
@@ -1237,12 +1245,16 @@ class PGI(ComboObjectiveFunction):
     def gmm(self):
         """Gaussian mixture model.
 
+        If set prior to inversion, the Gaussian mixture model can be left static throughout
+        the inversion, or updated using the :class:`.directives.PGI_UpdateParameters` directive.
+        If this property is not set prior to inversion, the
+        :class:`.directives.PGI_UpdateParameters` directive must be used to ensure there
+        is a Gaussian mixture model for the inversion.
+
         Returns
         -------
         None, SimPEG.utils.WeightedGaussianMixture
-            Gaussian mixture model. If ``None``, the Gaussian mixture model is learned throughout the
-            inversion. If set, the Gaussian mixture model used to constrain the recovered model is
-            static throughout the inversion.
+            Gaussian mixture model.
         """
         return self.objfcts[0].gmm
 
