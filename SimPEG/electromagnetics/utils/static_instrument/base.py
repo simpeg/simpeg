@@ -16,7 +16,7 @@ import matplotlib as mpl
 from matplotlib import pyplot as plt
 from matplotlib.colors import LogNorm
 from discretize import TensorMesh, SimplexMesh
-#from pymatsolver import PardisoSolver
+from pymatsolver import PardisoSolver
 
 from SimPEG.utils import mkvc
 from SimPEG import (
@@ -236,9 +236,9 @@ class XYZSystem(object):
         dmis.W = self.make_misfit_weights(thicknesses)
         return dmis
     
-    alpha_s = 1e-10
-    alpha_r = 1.
-    alpha_z = 1.
+    regularization_alpha_s = 1e-10
+    regularization_alpha_r = 1.
+    regularization_alpha_z = 1.
     def make_regularization(self, thicknesses):
         if False:
             assert False, "LCI is currently broken"
@@ -246,9 +246,9 @@ class XYZSystem(object):
             reg = LaterallyConstrained(
                 get_2d_mesh(len(self.xyz.flightlines), hz),
                 mapping=maps.IdentityMap(nP=self.n_param(thicknesses)),
-                alpha_s = 0.01,
-                alpha_r = 1.,
-                alpha_z = 1.)
+                alpha_s = self.regularization_alpha_s,
+                alpha_r = self.regularization_alpha_r,
+                alpha_z = self.regularization_alpha_z)
             # reg.get_grad_horizontal(self.xyz.flightlines[["x", "y"]], hz, dim=2, use_cell_weights=True)
             # ps, px, py = 0, 0, 0
             # reg.norms = np.c_[ps, px, py, 0]
@@ -270,17 +270,20 @@ class XYZSystem(object):
             reg_map = SimPEG.maps.IdentityMap(nP=n_param)    # Mapping between the model and regularization
             reg = SimPEG.regularization.LaterallyConstrained(
                 mesh_reg, mapping=reg_map,
-                alpha_s = self.alpha_s,
-                alpha_r = self.alpha_r,
-                alpha_z = self.alpha_z,
+                alpha_s = self.regularization_alpha_s,
+                alpha_r = self.regularization_alpha_r,
+                alpha_z = self.regularization_alpha_z,
             )
             reg.mref = np.log(np.ones(self.n_param(thicknesses)) * 1/self.start_res)
             return reg
-            
+    
+    regularization_beta_cooling_factor=2 
+    regularization_beta_cooling_rate=1
     def make_directives(self):
         return [
             directives.BetaEstimate_ByEig(beta0_ratio=10),
-            SimPEG.directives.BetaSchedule(coolingFactor=2, coolingRate=1),
+            SimPEG.directives.BetaSchedule(coolingFactor=self.regularization_beta_cooling_factor, 
+                                           coolingRate=self.regularization_beta_cooling_rate),
             SimPEG.directives.TargetMisfit()
 
 #            directives.SaveOutputEveryIteration(save_txt=False),
@@ -293,9 +296,9 @@ class XYZSystem(object):
             # directives.UpdatePreconditioner()
 
         ]
-
+    optimizer_max_iter=40
     def make_optimizer(self):
-        return optimization.InexactGaussNewton(maxIter = 40, maxIterCG=20)
+        return optimization.InexactGaussNewton(maxIter = self.optimizer_max_iter, maxIterCG=20)
     
     def make_inversion(self):
         thicknesses = self.make_thicknesses()
