@@ -1,8 +1,8 @@
 from __future__ import annotations
+import warnings
 
 import numpy as np
 from discretize.base import BaseMesh
-import warnings
 from typing import TYPE_CHECKING
 from .. import maps
 from ..objective_function import BaseObjectiveFunction, ComboObjectiveFunction
@@ -54,19 +54,44 @@ class BaseRegularization(BaseObjectiveFunction):
                 f"Value of type {type(mesh)} provided."
             )
 
+        # Handle deprecated indActive argument
+        if (key := "indActive") in kwargs:
+            if active_cells is not None:
+                raise ValueError(
+                    f"Cannot simultanously pass 'active_cells' and '{key}'. "
+                    "Pass 'active_cells' only."
+                )
+            warnings.warn(
+                f"The '{key}' argument has been deprecated, please use 'active_cells'. "
+                "It will be removed in future versions of SimPEG.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            active_cells = kwargs.pop(key)
+
+        # Handle deprecated cell_weights argument
+        if (key := "cell_weights") in kwargs:
+            if weights is not None:
+                raise ValueError(
+                    f"Cannot simultanously pass 'weights' and '{key}'. "
+                    "Pass 'weights' only."
+                )
+            warnings.warn(
+                f"The '{key}' argument has been deprecated, please use 'weights'. "
+                "It will be removed in future versions of SimPEG.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            weights = kwargs.pop(key)
+
+        super().__init__(nP=None, mapping=None, **kwargs)
         self._regularization_mesh = mesh
         self._weights = {}
-
         if active_cells is not None:
             self.active_cells = active_cells
-
-        self.mapping = mapping
-
-        super().__init__(**kwargs)
-
+        self.mapping = mapping  # Set mapping using the setter
         self.reference_model = reference_model
         self.units = units
-
         if weights is not None:
             if not isinstance(weights, dict):
                 weights = {"user_weights": weights}
@@ -148,8 +173,12 @@ class BaseRegularization(BaseObjectiveFunction):
 
     @parent.setter
     def parent(self, parent):
-        if not isinstance(parent, ComboObjectiveFunction):
-            raise TypeError("Parent must be a ComboObjectiveFunction")
+        combo_class = ComboObjectiveFunction
+        if not isinstance(parent, combo_class):
+            raise TypeError(
+                f"Invalid parent of type '{parent.__class__.__name__}'. "
+                f"Parent must be a {combo_class.__name__}."
+            )
         self._parent = parent
 
     @property
@@ -731,8 +760,20 @@ class WeightedLeastSquares(ComboObjectiveFunction):
                 f"Value of type {type(mesh)} provided."
             )
         self._regularization_mesh = mesh
-        if active_cells is not None:
-            self._regularization_mesh.active_cells = active_cells
+
+        if (key := "indActive") in kwargs:
+            if active_cells is not None:
+                raise ValueError(
+                    f"Cannot simultanously pass 'active_cells' and '{key}'. "
+                    "Pass 'active_cells' only."
+                )
+            warnings.warn(
+                f"The '{key}' argument has been deprecated, please use 'active_cells'. "
+                "It will be removed in future versions of SimPEG.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            active_cells = kwargs.pop(key)
 
         self.alpha_s = alpha_s
         if alpha_x is not None:
@@ -798,7 +839,10 @@ class WeightedLeastSquares(ComboObjectiveFunction):
                 )
         else:
             objfcts = kwargs.pop("objfcts")
+
         super().__init__(objfcts=objfcts, unpack_on_add=False, **kwargs)
+        if active_cells is not None:
+            self.active_cells = active_cells
         self.mapping = mapping
         self.reference_model = reference_model
         self.reference_model_in_smooth = reference_model_in_smooth
@@ -1074,7 +1118,7 @@ class WeightedLeastSquares(ComboObjectiveFunction):
     def active_cells(self, values: np.ndarray):
         self.regularization_mesh.active_cells = values
         active_cells = self.regularization_mesh.active_cells
-        # notify the objtecive functions that the active_cells changed
+        # notify the objective functions that the active_cells changed
         for objfct in self.objfcts:
             objfct.active_cells = active_cells
 
