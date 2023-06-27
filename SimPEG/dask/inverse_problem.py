@@ -179,11 +179,11 @@ def dask_evalFunction(self, m, return_g=True, return_H=True):
 
     reg2Deriv = []
     if isinstance(self.reg, ComboObjectiveFunction):
-        for objfct in self.reg.objfcts:
+        for constant, objfct in self.reg:
             if isinstance(objfct, ComboObjectiveFunction):
-                reg2Deriv += [multi * obj.deriv2(m) for multi, obj in objfct]
+                reg2Deriv += [constant * multi * obj.deriv2(m) for multi, obj in objfct]
             else:
-                reg2Deriv += [objfct.deriv2(m)]
+                reg2Deriv += [constant * objfct.deriv2(m)]
     else:
         reg2Deriv = [self.reg.deriv2(m)]
 
