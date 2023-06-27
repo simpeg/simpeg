@@ -30,6 +30,8 @@ import SimPEG.electromagnetics.utils.em1d_utils
 from SimPEG.electromagnetics.utils.em1d_utils import get_2d_mesh,plot_layer, get_vertical_discretization_time
 from SimPEG.regularization import LaterallyConstrained, RegularizationMesh
 
+from pymatsolver import PardisoSolver
+
 import scipy.stats
 import copy
 import re
@@ -213,6 +215,7 @@ class XYZSystem(object):
             survey=survey,
             thicknesses=thicknesses,
             sigmaMap=maps.ExpMap(nP=self.n_param(thicknesses)), 
+            solver=PardisoSolver,
             parallel=self.parallel,
             n_cpu=self.n_cpu,
             n_layer=self.n_layer_used)
