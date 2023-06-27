@@ -1633,7 +1633,8 @@ class CircularLoop(MagDipole):
         if value is not None:
             warnings.warn(
                 "Moment is not set as a property. I is the product"
-                "of the loop radius and transmitter current"
+                "of the loop radius and transmitter current",
+                stacklevel=2,
             )
         pass
 

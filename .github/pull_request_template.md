@@ -3,7 +3,7 @@ Thanks for contributing a pull request to SimPEG!
 Remember to use a personal fork of SimPEG to propose changes.
 
 Check out the stages of a pull request at
-https://docs.simpeg.xyz/content/basic/contributing.html#pull-request
+https://docs.simpeg.xyz/content/getting_started/contributing.html#pull-request
 
 Note that we are a team of volunteers and we appreciate your
 patience during the review process.
@@ -18,10 +18,10 @@ Feel free to remove lines from this template that do not apply to you pull reque
 
 #### PR Checklist
 * [ ] If this is a work in progress PR, set as a Draft PR
-* [ ] Linted my code according to the [style guides](https://docs.simpeg.xyz/content/basic/practices.html#style).
-* [ ] Added [tests](https://docs.simpeg.xyz/content/basic/practices.html#testing) to verify changes to the code.
+* [ ] Linted my code according to the [style guides](https://docs.simpeg.xyz/content/getting_started/practices.html#style).
+* [ ] Added [tests](https://docs.simpeg.xyz/content/getting_started/practices.html#testing) to verify changes to the code.
 * [ ] Added necessary documentation to any new functions/classes following the
-      expect [style](https://docs.simpeg.xyz/content/basic/practices.html#documentation).
+      expect [style](https://docs.simpeg.xyz/content/getting_started/practices.html#documentation).
 * [ ] Added relevant method tags (i.e. `GRAV`, `EM`, etc.)
 * [ ] Marked as ready for review (ff this is was a draft PR), and converted 
       to a Pull Request
