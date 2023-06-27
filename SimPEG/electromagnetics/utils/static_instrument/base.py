@@ -194,14 +194,15 @@ class XYZSystem(object):
 
     def make_survey(self):
         times = self.times
+        xyz = self.xyz
         systems = [
             self.make_system(
                 idx,
-                self.xyz.flightlines.loc[
-                    idx, [self.xyz.x_column, self.xyz.y_column, self.xyz.alt_column]
+                xyz.flightlines.loc[
+                    idx, [xyz.x_column, xyz.y_column, xyz.alt_column]
                 ].astype(float).values,
                 times)
-            for idx in range(0, len(self.xyz.flightlines))]
+            for idx in range(0, len(xyz.flightlines))]
         return tdem.Survey([
             source
             for sources in systems
