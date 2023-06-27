@@ -16,7 +16,7 @@ import matplotlib as mpl
 from matplotlib import pyplot as plt
 from matplotlib.colors import LogNorm
 from discretize import TensorMesh, SimplexMesh
-from pymatsolver import PardisoSolver
+#from pymatsolver import PardisoSolver
 
 from SimPEG.utils import mkvc
 from SimPEG import (
@@ -173,20 +173,20 @@ class XYZSystem(object):
         uncertainties = uncertainties * np.abs(self.data_array) + self.uncertainties_floor
         return np.where(np.isnan(self.data_array_nan), np.Inf, uncertainties)
 
-    thicknesses_type = "times"
-    thicknesses_minimum_dz = 3
-    thicknesses_geomtric_factor = 1.07
-    thicknesses_sigma_background = 0.1
+    thicknesses__type = "times"
+    thicknesses__minimum_dz = 3
+    thicknesses__geomtric_factor = 1.07
+    thicknesses__sigma_background = 0.1
     def make_thicknesses(self):
-        if self.thicknesses_type == "geometric":
+        if self.thicknesses__type == "geometric":
             return SimPEG.electromagnetics.utils.em1d_utils.get_vertical_discretization(
-                self.n_layer_used-1, self.thicknesses_minimum_dz, self.thicknesses_geomtric_factor)
+                self.n_layer_used-1, self.thicknesses__minimum_dz, self.thicknesses__geomtric_factor)
         else:
             if "dep_top" in self.xyz.layer_params:
                 return np.diff(self.xyz.layer_params["dep_top"].values)
             return SimPEG.electromagnetics.utils.em1d_utils.get_vertical_discretization_time(
                 np.sort(np.concatenate(self.times)),
-                sigma_background=self.thicknesses_sigma_background,
+                sigma_background=self.thicknesses__sigma_background,
                 n_layer=self.n_layer_used-1
             )
 
