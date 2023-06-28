@@ -269,8 +269,7 @@ class XYZSystem(object):
         else:
             coords = self.xyz.flightlines[[self.xyz.x_column, self.xyz.y_column]].astype(float).values
             # FIXME: Triangulation fails if all coords are on a line, as in a typical synthetic case...
-            # Ideally, shouldn't this degrade gracefully to an LCI?
-            coords[:,1] += np.random.randn(len(coords)) * 5 #1e-10
+            coords[:,1] += np.random.randn(len(coords)) * 1e-5
             tri = Delaunay(coords)
             hz = np.r_[thicknesses, thicknesses[-1]]
 
