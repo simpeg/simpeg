@@ -277,9 +277,9 @@ class XYZSystem(object):
             reg_map = SimPEG.maps.IdentityMap(nP=n_param)    # Mapping between the model and regularization
             reg = SimPEG.regularization.LaterallyConstrained(
                 mesh_reg, mapping=reg_map,
-                alpha_s = self.regularization_alpha_s,
-                alpha_r = self.regularization_alpha_r,
-                alpha_z = self.regularization_alpha_z,
+                alpha_s = self.regularization__alpha_s,
+                alpha_r = self.regularization__alpha_r,
+                alpha_z = self.regularization__alpha_z,
             )
             reg.mref = np.log(np.ones(self.n_param(thicknesses)) * 1/self.start_res)
             return reg
