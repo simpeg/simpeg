@@ -243,6 +243,10 @@ class XYZSystem(object):
         dmis.W = self.make_misfit_weights(thicknesses)
         return dmis
     
+    def make_startmodel(self, thicknesses):
+        startmodel=np.log(np.ones(self.n_param(thicknesses)) * 1/self.start_res)
+        return startmodel
+    
     regularization__alpha_s = 1e-10
     regularization__alpha_r = 1.
     regularization__alpha_z = 1.
@@ -259,7 +263,7 @@ class XYZSystem(object):
             # reg.get_grad_horizontal(self.xyz.flightlines[["x", "y"]], hz, dim=2, use_cell_weights=True)
             # ps, px, py = 0, 0, 0
             # reg.norms = np.c_[ps, px, py, 0]
-            reg.mref = np.log(np.ones(self.n_param(thicknesses)) * 1/self.start_res)
+            # reg.mref = np.log(np.ones(self.n_param(thicknesses)) * 1/self.start_res)
             # reg.mrefInSmooth = False
             return reg
         else:
@@ -281,7 +285,7 @@ class XYZSystem(object):
                 alpha_r = self.regularization__alpha_r,
                 alpha_z = self.regularization__alpha_z,
             )
-            reg.mref = np.log(np.ones(self.n_param(thicknesses)) * 1/self.start_res)
+            # reg.mref = np.log(np.ones(self.n_param(thicknesses)) * 1/self.start_res)
             return reg
     
     directives__beta0_ratio=10
@@ -349,10 +353,10 @@ class XYZSystem(object):
         
         self.inv = self.make_inversion()
         
-        recovered_model = self.inv.run(self.inv.invProb.reg.mref)
-        
         thicknesses = self.inv.invProb.dmisfit.simulation.thicknesses
         
+        recovered_model = self.inv.run(self.make_startmodel(thicknesses))
+
         self.sparse = self.inverted_model_to_xyz(recovered_model, thicknesses)
         self.l2 = None
         if hasattr(self.inv.invProb, "l2model"):
