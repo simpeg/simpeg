@@ -263,7 +263,7 @@ class XYZSystem(object):
             # reg.get_grad_horizontal(self.xyz.flightlines[["x", "y"]], hz, dim=2, use_cell_weights=True)
             # ps, px, py = 0, 0, 0
             # reg.norms = np.c_[ps, px, py, 0]
-            # reg.mref = np.log(np.ones(self.n_param(thicknesses)) * 1/self.start_res)
+            reg.mref = self.make_startmodel(thicknesses)
             # reg.mrefInSmooth = False
             return reg
         else:
@@ -284,7 +284,7 @@ class XYZSystem(object):
                 alpha_r = self.regularization__alpha_r,
                 alpha_z = self.regularization__alpha_z,
             )
-            # reg.mref = np.log(np.ones(self.n_param(thicknesses)) * 1/self.start_res)
+            reg.mref = self.make_startmodel(thicknesses)
             return reg
     
     directives__beta0_ratio=10
