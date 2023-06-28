@@ -144,7 +144,7 @@ class DualMomentTEMXYZSystem(base.XYZSystem):
             stds = np.where(self.data_uncert_array < self.uncertainties_std_data,
                             self.uncertainties_std_data,
                             self.data_uncert_array)
-            uncertainties = self.data_uncert_array * np.abs(self.data_array_nan) + noise
+            uncertainties = stds * np.abs(self.data_array_nan) + noise
         else:
             uncertainties = self.uncertainties_std_data*np.abs(self.data_array_nan) + noise
         
