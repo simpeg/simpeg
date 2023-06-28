@@ -284,13 +284,14 @@ class XYZSystem(object):
             reg.mref = np.log(np.ones(self.n_param(thicknesses)) * 1/self.start_res)
             return reg
     
-    regularization_beta_cooling_factor=2 
-    regularization_beta_cooling_rate=1
+    regularization__beta0_ratio=10
+    regularization__beta_cooling_factor=2 
+    regularization__beta_cooling_rate=1
     def make_directives(self):
         return [
-            directives.BetaEstimate_ByEig(beta0_ratio=10),
-            SimPEG.directives.BetaSchedule(coolingFactor=self.regularization_beta_cooling_factor, 
-                                           coolingRate=self.regularization_beta_cooling_rate),
+            directives.BetaEstimate_ByEig(beta0_ratio=self.regularization__beta0_ratio),
+            SimPEG.directives.BetaSchedule(coolingFactor=self.regularization__beta_cooling_factor, 
+                                           coolingRate=self.regularization__beta_cooling_rate),
             SimPEG.directives.TargetMisfit()
 
 #            directives.SaveOutputEveryIteration(save_txt=False),
