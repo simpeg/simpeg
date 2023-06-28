@@ -168,15 +168,15 @@ class XYZSystem(object):
     def data_uncert_array(self):
         return self.xyz.dbdt_std_ch1gt.values.flatten()
 
-    uncertainties_floor = 1e-13
-    uncertainties_std_data = 0.05 # If None, use data std:s
+    uncertainties__floor = 1e-13
+    uncertainties__std_data = 0.05 # If None, use data std:s
     @property
     def uncert_array(self):
-        if self.uncertainties_std_data is None:
+        if self.uncertainties__std_data is None:
             uncertainties = self.data_uncert_array
         else:
-            uncertainties = self.uncertainties_std_data
-        uncertainties = uncertainties * np.abs(self.data_array) + self.uncertainties_floor
+            uncertainties = self.uncertainties__std_data
+        uncertainties = uncertainties * np.abs(self.data_array) + self.uncertainties__floor
         return np.where(np.isnan(self.data_array_nan), np.Inf, uncertainties)
 
     thicknesses__type = "times"
@@ -243,9 +243,9 @@ class XYZSystem(object):
         dmis.W = self.make_misfit_weights(thicknesses)
         return dmis
     
-    regularization_alpha_s = 1e-10
-    regularization_alpha_r = 1.
-    regularization_alpha_z = 1.
+    regularization__alpha_s = 1e-10
+    regularization__alpha_r = 1.
+    regularization__alpha_z = 1.
     def make_regularization(self, thicknesses):
         if False:
             assert False, "LCI is currently broken"
@@ -253,9 +253,9 @@ class XYZSystem(object):
             reg = LaterallyConstrained(
                 get_2d_mesh(len(self.xyz.flightlines), hz),
                 mapping=maps.IdentityMap(nP=self.n_param(thicknesses)),
-                alpha_s = self.regularization_alpha_s,
-                alpha_r = self.regularization_alpha_r,
-                alpha_z = self.regularization_alpha_z)
+                alpha_s = self.regularization__alpha_s,
+                alpha_r = self.regularization__alpha_r,
+                alpha_z = self.regularization__alpha_z)
             # reg.get_grad_horizontal(self.xyz.flightlines[["x", "y"]], hz, dim=2, use_cell_weights=True)
             # ps, px, py = 0, 0, 0
             # reg.norms = np.c_[ps, px, py, 0]
@@ -284,14 +284,14 @@ class XYZSystem(object):
             reg.mref = np.log(np.ones(self.n_param(thicknesses)) * 1/self.start_res)
             return reg
     
-    regularization__beta0_ratio=10
-    regularization__beta_cooling_factor=2 
-    regularization__beta_cooling_rate=1
+    directives__beta0_ratio=10
+    directives__beta_cooling_factor=2 
+    directives__beta_cooling_rate=1
     def make_directives(self):
         return [
-            directives.BetaEstimate_ByEig(beta0_ratio=self.regularization__beta0_ratio),
-            SimPEG.directives.BetaSchedule(coolingFactor=self.regularization__beta_cooling_factor, 
-                                           coolingRate=self.regularization__beta_cooling_rate),
+            directives.BetaEstimate_ByEig(beta0_ratio=self.directives__beta0_ratio),
+            SimPEG.directives.BetaSchedule(coolingFactor=self.directives__beta_cooling_factor, 
+                                           coolingRate=self.directives__beta_cooling_rate),
             SimPEG.directives.TargetMisfit()
 
 #            directives.SaveOutputEveryIteration(save_txt=False),
@@ -304,9 +304,10 @@ class XYZSystem(object):
             # directives.UpdatePreconditioner()
 
         ]
-    optimizer_max_iter=40
+    optimizer__max_iter=40
+    optimizer__max_iter_cg=20
     def make_optimizer(self):
-        return optimization.InexactGaussNewton(maxIter = self.optimizer_max_iter, maxIterCG=20)
+        return optimization.InexactGaussNewton(maxIter = self.optimizer__max_iter, maxIterCG=self.optimizer__max_iter_cg)
     
     def make_inversion(self):
         thicknesses = self.make_thicknesses()
