@@ -16,7 +16,6 @@ import matplotlib as mpl
 from matplotlib import pyplot as plt
 from matplotlib.colors import LogNorm
 from discretize import TensorMesh, SimplexMesh
-#from pymatsolver import PardisoSolver
 
 from SimPEG.utils import mkvc
 from SimPEG import (
@@ -29,9 +28,14 @@ import SimPEG.electromagnetics.time_domain as tdem
 import SimPEG.electromagnetics.utils.em1d_utils
 from SimPEG.electromagnetics.utils.em1d_utils import get_2d_mesh,plot_layer, get_vertical_discretization_time
 from SimPEG.regularization import LaterallyConstrained, RegularizationMesh
+import warnings
 
-from pymatsolver import PardisoSolver
-
+try:
+    from pymatsolver import PardisoSolver as Solver
+except:
+    warnings.warn("pymatsolver.PardisoSolver not available, this will make your inversion slower.")
+    Solver = None
+    
 import scipy.stats
 import copy
 import re
@@ -216,7 +220,7 @@ class XYZSystem(object):
             survey=survey,
             thicknesses=thicknesses,
             sigmaMap=maps.ExpMap(nP=self.n_param(thicknesses)), 
-            solver=PardisoSolver,
+            solver=Solver,
             parallel=self.parallel,
             n_cpu=self.n_cpu,
             n_layer=self.n_layer_used)
