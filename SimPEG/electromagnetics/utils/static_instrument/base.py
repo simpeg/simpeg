@@ -292,7 +292,7 @@ class XYZSystem(object):
     directives__beta_cooling_rate=1
     def make_directives(self):
         return [
-            directives.BetaEstimate_ByEig(beta0_ratio=self.directives__beta0_ratio),
+            directives.BetaEstimate_ByEig(beta0_ratio=self.directives__beta0_ratio, seed=1),
             SimPEG.directives.BetaSchedule(coolingFactor=self.directives__beta_cooling_factor, 
                                            coolingRate=self.directives__beta_cooling_rate),
             SimPEG.directives.TargetMisfit()
