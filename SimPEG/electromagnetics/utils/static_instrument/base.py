@@ -32,9 +32,9 @@ import warnings
 
 try:
     from pymatsolver import PardisoSolver as Solver
+    print("pymatsolver.PardisoSolver available for fwd modelling")
 except:
-    warnings.warn("pymatsolver.PardisoSolver not available, this will make your inversion slower.")
-    Solver = None
+    print("Could not import PardisoSolver, only default (spLU) available")
     
 import scipy.stats
 import copy
@@ -72,19 +72,14 @@ class XYZSystem(object):
     l2.dump("l2.xyz")
     ```
 
-    Not that any class level attribute, such as `n_layer`, can be
+    Not that any class level attribute, such as `startmodel__n_layer`, can be
     overridden by a parameter when instantiating the class, e.g. 
 
     ```
-    MySystem(libaarhusxyz.XYZ("measured.xyz"), n_layer=10)
+    MySystem(libaarhusxyz.XYZ("measured.xyz"), startmodel__n_layer=10)
     ```
     """
     
-    n_layer=30
-    start_res=100
-    
-    parallel = True
-    n_cpu=3
     
     def __init__(self, xyz, **kw):
         self._xyz = xyz
@@ -148,12 +143,13 @@ class XYZSystem(object):
         return [times_full if times_filter is None else times_full[times_filter]
                 for times_full, times_filter
                 in zip(self.times_full, self.times_filter)]
-
+    
+    startmodel__n_layer = 30
     @property
     def n_layer_used(self):
         if "resistivity" in self.xyz.layer_data:
             return self.xyz.resistivity.shape[1]
-        return self.n_layer
+        return self.startmodel__n_layer
     
     @property
     def data_array_nan(self):
@@ -179,20 +175,20 @@ class XYZSystem(object):
         uncertainties = uncertainties * np.abs(self.data_array) + self.uncertainties__floor
         return np.where(np.isnan(self.data_array_nan), np.Inf, uncertainties)
 
-    thicknesses__type = "times"
-    thicknesses__minimum_dz = 3
-    thicknesses__geomtric_factor = 1.07
-    thicknesses__sigma_background = 0.1
+    startmodel__thicknesses_type = "time"
+    startmodel__thicknesses_minimum_dz = 3
+    startmodel__thicknesses_geomtric_factor = 1.08
     def make_thicknesses(self):
-        if self.thicknesses__type == "geometric":
+        if self.startmodel__thicknesses_type == "geometric":
             return SimPEG.electromagnetics.utils.em1d_utils.get_vertical_discretization(
-                self.n_layer_used-1, self.thicknesses__minimum_dz, self.thicknesses__geomtric_factor)
+                self.n_layer_used-1, self.startmodel__thicknesses_minimum_dz, self.startmodel__thicknesses_geomtric_factor)
         else:
             if "dep_top" in self.xyz.layer_params:
                 return np.diff(self.xyz.layer_params["dep_top"].values)
+            # FIX ME: if model is given it should use the resistivities in the model, not self.startmodel__res
             return SimPEG.electromagnetics.utils.em1d_utils.get_vertical_discretization_time(
                 np.sort(np.concatenate(self.times)),
-                sigma_background=self.thicknesses__sigma_background,
+                sigma_background=1./self.startmodel__res,
                 n_layer=self.n_layer_used-1
             )
 
@@ -215,15 +211,30 @@ class XYZSystem(object):
     def n_param(self, thicknesses):
         return (len(thicknesses)+1)*len(self.xyz.flightlines)
     
+    simulation__solver = 'LU'
+    simulation__parallel = True
+    simulation__n_cpu = 3
     def make_simulation(self, survey, thicknesses):
-        return tdem.Simulation1DLayeredStitched(
-            survey=survey,
-            thicknesses=thicknesses,
-            sigmaMap=maps.ExpMap(nP=self.n_param(thicknesses)), 
-            solver=Solver,
-            parallel=self.parallel,
-            n_cpu=self.n_cpu,
-            n_layer=self.n_layer_used)
+        if 'pardiso' in self.simulation__solver.lower():
+            print('Using Pardiso solver')
+            return tdem.Simulation1DLayeredStitched(
+                survey=survey,
+                thicknesses=thicknesses,
+                sigmaMap=maps.ExpMap(nP=self.n_param(thicknesses)), 
+                solver=PardisoSolver,
+                parallel=self.simulation__parallel,
+                n_cpu=self.simulation__n_cpu,
+                n_layer=self.n_layer_used)
+        else:
+            print('Using default (spLU) solver')
+            return tdem.Simulation1DLayeredStitched(
+                survey=survey,
+                thicknesses=thicknesses,
+                sigmaMap=maps.ExpMap(nP=self.n_param(thicknesses)), 
+                parallel=self.simulation__parallel,
+                n_cpu=self.simulation__n_cpu,
+                n_layer=self.n_layer_used)
+
     
     def make_data(self, survey):
         return data.Data(
@@ -243,8 +254,9 @@ class XYZSystem(object):
         dmis.W = self.make_misfit_weights(thicknesses)
         return dmis
     
+    startmodel__res=100
     def make_startmodel(self, thicknesses):
-        startmodel=np.log(np.ones(self.n_param(thicknesses)) * 1/self.start_res)
+        startmodel=np.log(np.ones(self.n_param(thicknesses)) * 1/self.startmodel__res)
         return startmodel
     
     regularization__alpha_s = 1e-10
@@ -287,12 +299,19 @@ class XYZSystem(object):
             reg.mref = self.make_startmodel(thicknesses)
             return reg
     
+    directives__seed = None
     directives__beta0_ratio=10
     directives__beta_cooling_factor=2 
     directives__beta_cooling_rate=1
     def make_directives(self):
+        if self.directives__seed:
+            BetaEstimate = directives.BetaEstimate_ByEig(beta0_ratio=self.directives__beta0_ratio, 
+                                                         seed=self.directives__seed)
+            print('setting manual random seed for repeatabillity')
+        else:
+            BetaEstimate = directives.BetaEstimate_ByEig(beta0_ratio=self.directives__beta0_ratio)
         return [
-            directives.BetaEstimate_ByEig(beta0_ratio=self.directives__beta0_ratio, seed=1),
+            BetaEstimate,
             SimPEG.directives.BetaSchedule(coolingFactor=self.directives__beta_cooling_factor, 
                                            coolingRate=self.directives__beta_cooling_rate),
             SimPEG.directives.TargetMisfit()
@@ -306,7 +325,7 @@ class XYZSystem(object):
             #     coolingRate=1),
             # directives.UpdatePreconditioner()
 
-        ]
+              ]
     optimizer__max_iter=40
     optimizer__max_iter_cg=20
     def make_optimizer(self):
