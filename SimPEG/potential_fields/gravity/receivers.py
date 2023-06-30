@@ -11,6 +11,10 @@ class Point(survey.BaseRx):
 
     .. important::
 
+        Density model is assumed to be in g/cc.
+
+    .. important::
+
         Acceleration components ("gx", "gy", "gz") are returned in mgal
         (:math:`10^{-5} m/s^2`).
 
