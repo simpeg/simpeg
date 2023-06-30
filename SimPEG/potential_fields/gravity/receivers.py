@@ -42,6 +42,10 @@ class Point(survey.BaseRx):
         - "gyz"  --> z-derivative of the y-component (and visa versa)
         - "gzz"  --> z-derivative of the z-component
         - "guv"  --> UV component
+
+    See also
+    --------
+    SimPEG.potential_fields.gravity.Simulation3DIntegral
     """
 
     def __init__(self, locations, components="gz", **kwargs):
