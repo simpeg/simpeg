@@ -16,7 +16,6 @@ import matplotlib as mpl
 from matplotlib import pyplot as plt
 from matplotlib.colors import LogNorm
 from discretize import TensorMesh, SimplexMesh
-#from pymatsolver import PardisoSolver
 
 from SimPEG.utils import mkvc
 from SimPEG import (
