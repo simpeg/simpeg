@@ -280,8 +280,9 @@ class XYZSystem(object):
             return reg
         else:
             coords = self.xyz.flightlines[[self.xyz.x_column, self.xyz.y_column]].astype(float).values
-            # FIXME: Triangulation fails if all coords are on a line, as in a typical synthetic case...
-            coords[:,1] += np.random.randn(len(coords)) * 1e-6
+            if np.sum(np.abs(np.diff(coords[:,1]))) == 0:
+                print('y-coordinate seems to be constant (synthetic data?), adding a small random number')
+                coords[:,1] += np.random.randn(len(coords)) * 1e-6
             tri = Delaunay(coords)
             hz = np.r_[thicknesses, thicknesses[-1]]
 
