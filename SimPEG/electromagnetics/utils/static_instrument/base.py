@@ -242,7 +242,7 @@ class XYZSystem(object):
             dobs=self.data_array,
             standard_deviation=self.uncert_array)
     
-    def make_misfit_weights(self, thicknesses):
+    def make_misfit_weights(self):
         return 1./self.uncert_array
 
     def make_misfit(self, thicknesses):
@@ -251,7 +251,7 @@ class XYZSystem(object):
         dmis = data_misfit.L2DataMisfit(
             simulation=self.make_simulation(survey, thicknesses),
             data=self.make_data(survey))
-        dmis.W = self.make_misfit_weights(thicknesses)
+        dmis.W = self.make_misfit_weights()
         return dmis
     
     startmodel__res=100
