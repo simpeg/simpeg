@@ -17,13 +17,10 @@ class BaseDataMisfit(L2ObjectiveFunction):
     """
 
     def __init__(self, data, simulation, debug=False, counter=None, **kwargs):
-        super().__init__(**kwargs)
+        super().__init__(has_fields=True, debug=debug, counter=counter, **kwargs)
 
         self.data = data
         self.simulation = simulation
-        self.debug = debug
-        self.count = counter
-        self._has_fields = True
 
     @property
     def data(self):
