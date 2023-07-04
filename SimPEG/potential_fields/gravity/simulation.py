@@ -14,6 +14,19 @@ class Simulation3DIntegral(BasePFSimulation):
     """
     Gravity simulation in integral form.
 
+    .. important::
+
+        Density model is assumed to be in g/cc.
+
+    .. important::
+
+        Acceleration components ("gx", "gy", "gz") are returned in mgal
+        (:math:`10^{-5} m/s^2`).
+
+    .. important::
+
+        Gradient components ("gxx", "gyy", "gzz", "gxy", "gxz", "gyz") are
+        returned in Eotvos (:math:`10^{-9} s^{-2}`).
     """
 
     rho, rhoMap, rhoDeriv = props.Invertible("Density")
