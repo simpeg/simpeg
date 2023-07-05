@@ -845,7 +845,7 @@ class Fields3DMagneticFluxDensity(FieldsFDEM):
 
             return self._MeI * j
         else:
-            return self._MeI * self._MeSigma * self._e(bSolution, source_list)
+            return self._MeI * (self._MeSigma * self._e(bSolution, source_list))
 
     def _jDeriv_u(self, src, du_dm_v, adjoint=False):
         """
