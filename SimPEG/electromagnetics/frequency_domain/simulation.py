@@ -66,7 +66,7 @@ class BaseFDEMSimulation(BaseEMSimulation):
         self.forward_only = forward_only
         if permittivity is not None:
             warnings.warn(
-                "Simulations using permittivity have not yet been thoroughly tested yet, and derivatives are not implemented. Contributions welcome!"
+                "Simulations using permittivity have not yet been thoroughly tested, and derivatives are not implemented. Contributions welcome!"
             )
         self.permittivity = permittivity
 
