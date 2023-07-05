@@ -613,7 +613,6 @@ class Simulation3DMagneticFluxDensity(BaseFDEMSimulation):
 ###############################################################################
 
 
-@with_property_mass_matrices("permittivity")
 class Simulation3DCurrentDensity(BaseFDEMSimulation):
     r"""
     We eliminate :math:`mathbf{h}` using
