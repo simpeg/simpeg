@@ -4,7 +4,6 @@ from discretize.utils import Zero
 
 from ... import props
 from ...data import Data
-from ...base.pde_simulation import with_property_mass_matrices
 from ...utils import mkvc, validate_type
 from ..base import BaseEMSimulation
 from ..utils import omega
