@@ -37,15 +37,15 @@ def __inner_mat_mul_op(M, u, v=None, adjoint=False):
             if adjoint:
                 return UM.T
             return UM
-    else:
+    elif isinstance(M, tuple):
         # assume it was a tuple of M_func, prop_deriv
-        M_func, prop_deriv = M
+        M_deriv_func, prop_deriv = M
         if u.ndim > 1:
-            Mu = [M_func(u[:, i]) for i in range(u.shape[1])]
+            Mu = [M_deriv_func(u[:, i]) for i in range(u.shape[1])]
             if v is None:
                 Mu = sp.vstack([M @ prop_deriv for M in Mu])
                 if adjoint:
-                    Mu = Mu.T
+                    return Mu.T
                 return Mu
             elif v.ndim > 1:
                 v = np.squeeze(v)
@@ -56,11 +56,11 @@ def __inner_mat_mul_op(M, u, v=None, adjoint=False):
             pv = prop_deriv @ v
             return np.stack([M @ pv for M in Mu], axis=-1)
         else:
-            Mu = M_func(u)
+            Mu = M_deriv_func(u)
             if v is None:
                 Mu = Mu @ prop_deriv
                 if adjoint:
-                    Mu = Mu.T
+                    return Mu.T
                 return Mu
             elif v.ndim > 1:
                 v = np.squeeze(v)
@@ -266,17 +266,18 @@ def with_property_mass_matrices(property_name):
                 prop = getattr(self, arg.lower())
                 t_type = TensorType(self.mesh, prop)
 
-                M_func = self.mesh.get_face_inner_product_deriv(model=prop)
+                M_deriv_func = self.mesh.get_face_inner_product_deriv(model=prop)
                 prop_deriv = getattr(self, f"{arg.lower()}Deriv")
+                # t_type == 3 for full tensor model, t_type < 3 for scalar, isotropic, or axis-aligned anisotropy.
                 if t_type < 3 and self.mesh._meshType.lower() in (
                     "cyl",
                     "tensor",
                     "tree",
                 ):
-                    M_prop_deriv = M_func(np.ones(self.mesh.n_faces)) @ prop_deriv
+                    M_prop_deriv = M_deriv_func(np.ones(self.mesh.n_faces)) @ prop_deriv
                     setattr(self, stash_name, M_prop_deriv)
                 else:
-                    setattr(self, stash_name, (M_func, prop_deriv))
+                    setattr(self, stash_name, (M_deriv_func, prop_deriv))
 
             return __inner_mat_mul_op(
                 getattr(self, stash_name), u, v=v, adjoint=adjoint
@@ -297,17 +298,18 @@ def with_property_mass_matrices(property_name):
                 prop = getattr(self, arg.lower())
                 t_type = TensorType(self.mesh, prop)
 
-                M_func = self.mesh.get_edge_inner_product_deriv(model=prop)
+                M_deriv_func = self.mesh.get_edge_inner_product_deriv(model=prop)
                 prop_deriv = getattr(self, f"{arg.lower()}Deriv")
+                # t_type == 3 for full tensor model, t_type < 3 for scalar, isotropic, or axis-aligned anisotropy.
                 if t_type < 3 and self.mesh._meshType.lower() in (
                     "cyl",
                     "tensor",
                     "tree",
                 ):
-                    M_prop_deriv = M_func(np.ones(self.mesh.n_edges)) @ prop_deriv
+                    M_prop_deriv = M_deriv_func(np.ones(self.mesh.n_edges)) @ prop_deriv
                     setattr(self, stash_name, M_prop_deriv)
                 else:
-                    setattr(self, stash_name, (M_func, prop_deriv))
+                    setattr(self, stash_name, (M_deriv_func, prop_deriv))
             return __inner_mat_mul_op(
                 getattr(self, stash_name), u, v=v, adjoint=adjoint
             )
