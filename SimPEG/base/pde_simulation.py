@@ -67,6 +67,11 @@ def __inner_mat_mul_op(M, u, v=None, adjoint=False):
             if adjoint:
                 return prop_deriv.T @ (Mu.T @ v)
             return Mu @ (prop_deriv @ v)
+    else:
+        raise TypeError(
+            "The stashed property derivative is an unexpected type. Expected either a `tuple` or a "
+            f"sparse matrix. Received a {type(M)}."
+        )
 
 
 def with_property_mass_matrices(property_name):

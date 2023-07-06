@@ -6,6 +6,8 @@ import numpy as np
 from scipy.constants import mu_0
 from discretize.tests import check_derivative
 from discretize.utils import Zero
+import scipy.sparse as sp
+import pytest
 
 
 # define a very simple class...
@@ -783,3 +785,24 @@ class TestSim(unittest.TestCase):
         yJv = y @ sim.MfSigmaIDeriv(u, v)
         vJty = v @ sim.MfSigmaIDeriv(u, y, adjoint=True)
         np.testing.assert_allclose(yJv, vJty)
+
+
+def test_bad_derivative_stash():
+    mesh = discretize.TensorMesh([5, 6, 7])
+    sim = SimpleSim(mesh, sigmaMap=maps.ExpMap())
+    sim.model = np.random.rand(mesh.n_cells)
+
+    u = np.random.rand(mesh.n_edges)
+    v = np.random.rand(mesh.n_cells)
+
+    # This should work
+    sim.MeSigmaDeriv(u, v)
+    # stashed derivative operation is a sparse matrix
+    assert sp.issparse(sim._Me_Sigma_deriv)
+
+    # Let's set the stashed item as a bad value which would error
+    # The user shouldn't cause this to happen, but a developer might.
+    sim._Me_Sigma_deriv = [40, 10, 30]
+
+    with pytest.raises(TypeError):
+        sim.MeSigmaDeriv(u, v)
