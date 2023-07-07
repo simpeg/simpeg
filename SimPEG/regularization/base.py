@@ -11,8 +11,7 @@ from .regularization_mesh import RegularizationMesh
 
 from SimPEG.utils.code_utils import deprecate_property, validate_ndarray_with_shape
 
-if TYPE_CHECKING:
-    from scipy.sparse import csr_matrix
+import scipy.sparse as sp
 
 
 class BaseRegularization(BaseObjectiveFunction):
@@ -316,7 +315,7 @@ class BaseRegularization(BaseObjectiveFunction):
     def f_m(self, m) -> np.ndarray:
         raise AttributeError("Regularization class must have a 'f_m' implementation.")
 
-    def f_m_deriv(self, m) -> csr_matrix:
+    def f_m_deriv(self, m) -> sp.csr_matrix:
         raise AttributeError(
             "Regularization class must have a 'f_m_deriv' implementation."
         )
@@ -342,13 +341,13 @@ class BaseRegularization(BaseObjectiveFunction):
         return self.f_m_deriv(m).T * (self.W.T * r)
 
     @utils.timeIt
-    def deriv2(self, m, v=None) -> csr_matrix:
+    def deriv2(self, m, v=None) -> sp.csr_matrix:
         r"""
         Second derivative
 
         :param numpy.ndarray m: geophysical model
         :param numpy.ndarray v: vector to multiply
-        :rtype: scipy.sparse.csr_matrix
+        :rtype: scipy.sparse.sp.csr_matrix
         :return: WtW, or if v is supplied WtW*v (numpy.ndarray)
 
         The regularization is:
@@ -416,7 +415,7 @@ class Smallness(BaseRegularization):
         """
         return self.mapping * self._delta_m(m)
 
-    def f_m_deriv(self, m) -> csr_matrix:
+    def f_m_deriv(self, m) -> sp.csr_matrix:
         """
         Derivative of the model residual
         """
@@ -527,7 +526,7 @@ class SmoothnessFirstOrder(BaseRegularization):
             )
         return dfm_dl
 
-    def f_m_deriv(self, m) -> csr_matrix:
+    def f_m_deriv(self, m) -> sp.csr_matrix:
         """
         Derivative of the model gradient
         """
@@ -600,7 +599,7 @@ class SmoothnessSecondOrder(SmoothnessFirstOrder):
 
         return dfm_dl2
 
-    def f_m_deriv(self, m) -> csr_matrix:
+    def f_m_deriv(self, m) -> sp.csr_matrix:
         """
         Derivative of the second model residual
         """
@@ -1179,24 +1178,32 @@ class BaseSimilarityMeasure(BaseRegularization):
         return self._wire_map
 
     @wire_map.setter
-    def wire_map(self, wires):
+    def wire_map(self, wires: list[maps.IdentityMap]):
         try:
-            m1, m2 = wires.maps  # Assume a map has been passed for each model.
+            m1, m2 = wires  # Assume a map has been passed for each model.
         except ValueError:
             ValueError("Wire map must have two model mappings")
 
-        if m1[1].shape[0] != m2[1].shape[0]:
+        if m1.shape[0] != m2.shape[0]:
             raise ValueError(
-                f"All models must be the same size! Got {m1[1].shape[0]} and {m2[1].shape[0]}"
+                f"All models must be the same size! Got {m1.shape[0]} and {m2.shape[0]}"
             )
         self._wire_map = wires
+
+    @property
+    def wire_map_deriv(self):
+        if getattr(self, "_wire_map_deriv", None) is None:
+            self._wire_map_deriv = sp.vstack([
+                wire.P for wire in self.wire_map
+            ])
+        return self._wire_map_deriv
 
     @property
     def nP(self):
         """
         number of model parameters
         """
-        return self.wire_map.nP
+        return self.wire_map[0].nP
 
     def deriv(self, model):
         """
@@ -1232,7 +1239,7 @@ class BaseSimilarityMeasure(BaseRegularization):
         """
         Shape of the residual
         """
-        return self.wire_map.nP
+        return self.wire_map[0].nP
 
     def __call__(self, model):
         """Returns the computed value of the coupling term."""

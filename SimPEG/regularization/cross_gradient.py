@@ -100,7 +100,7 @@ class CrossGradient(BaseSimilarityMeasure):
         cross_grad : numpy.ndarray
             The norm of the cross gradient vector in each active cell.
         """
-        m1, m2 = self.wire_map * model
+        m1, m2 = (wire * model for wire in self.wire_map)
         # Compute the gradients and concatenate components.
         grad_m1 = self._calculate_gradient(m1, normalized=normalized, rtol=rtol)
         grad_m2 = self._calculate_gradient(m2, normalized=normalized, rtol=rtol)
@@ -135,7 +135,7 @@ class CrossGradient(BaseSimilarityMeasure):
         (optional strategy, not used in this script)
 
         """
-        m1, m2 = self.wire_map * model
+        m1, m2 = (wire * model for wire in self.wire_map)
         Av = self._Av
         G = self._G
         g_m1 = G @ m1
@@ -154,14 +154,14 @@ class CrossGradient(BaseSimilarityMeasure):
         :return: result: gradient of the cross-gradient with respect to model1, model2
 
         """
-        m1, m2 = self.wire_map * model
+        m1, m2 = (wire * model for wire in self.wire_map)
 
         Av = self._Av
         G = self._G
         g_m1 = G @ m1
         g_m2 = G @ m2
 
-        return np.r_[
+        return self.wire_map_deriv.T * np.r_[
             (((Av @ g_m2**2) @ Av) * g_m1) @ G
             - (((Av @ (g_m1 * g_m2)) @ Av) * g_m2) @ G,
             (((Av @ g_m1**2) @ Av) * g_m2) @ G
@@ -181,7 +181,7 @@ class CrossGradient(BaseSimilarityMeasure):
                 Hessian multiplied by vector if v is not No
 
         """
-        m1, m2 = self.wire_map * model
+        m1, m2 = (wire * model for wire in self.wire_map)
 
         Av = self._Av
         G = self._G
@@ -223,9 +223,9 @@ class CrossGradient(BaseSimilarityMeasure):
                 )
                 BT = B.T
 
-            return sp.bmat([[A, B], [BT, C]], format="csr")
+            return self.wire_map_deriv.T * sp.bmat([[A, B], [BT, C]], format="csr") * self.wire_map_deriv
         else:
-            v1, v2 = self.wire_map * v
+            v1, v2 = (wire * v for wire in self.wire_map)
 
             Gv1 = G @ v1
             Gv2 = G @ v2
@@ -249,4 +249,4 @@ class CrossGradient(BaseSimilarityMeasure):
                     - g_m1 * (Av.T @ (Av @ (g_m2 * Gv1)))
                     - (Av.T @ (Av @ (g_m2 * g_m1))) * Gv1
                 )
-            return np.r_[p1, p2]
+            return self.wire_map_deriv.T * np.r_[p1, p2]
