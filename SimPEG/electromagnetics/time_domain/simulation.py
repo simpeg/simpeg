@@ -4,11 +4,13 @@ import scipy.sparse as sp
 from ...data import Data
 from ...simulation import BaseTimeSimulation
 from ...utils import mkvc, sdiag, speye, Zero, validate_type, validate_float
+from ...base import BaseConductancePDESimulation
 from ..base import BaseEMSimulation
 from .survey import Survey
 from .fields import (
     Fields3DMagneticFluxDensity,
     Fields3DElectricField,
+    Fields3DElectricFieldConductance,
     Fields3DMagneticField,
     Fields3DCurrentDensity,
     FieldsDerivativesEB,
@@ -960,6 +962,96 @@ class Simulation3DElectricField(BaseTDEMSimulation):
     #     """
     #     if self.Adcinv is not None:
     #         self.Adcinv.clean()
+
+
+
+# ------------------------------- Simulation3DElectricField ------------------------------- #
+class Simulation3DElectricFieldConductance(Simulation3DElectricField, BaseConductancePDESimulation):
+
+    fieldsPair = Fields3DElectricFieldConductance
+
+    def __init__(self, mesh, survey=None, dt_threshold=1e-8, **kwargs):
+        super().__init__(mesh=mesh, survey=survey, **kwargs)
+
+        if self.sigmaMap is not None:
+            raise NotImplementedError(
+                "Conductivity (sigma) is not an invertible property for the "
+                "Simulation3DElectricFieldConductance class. The mapping for the "
+                "invertible property is 'tauMap'."
+            )
+
+        if self.kappaMap is not None:
+            raise NotImplementedError(
+                "Resistance per unit length (kappa) is not an invertible property, yet."
+            )
+
+
+
+    def getAdiag(self, tInd):
+        """
+        Diagonal of the system matrix at a given time index
+        """
+        assert tInd >= 0 and tInd < self.nT
+
+        dt = self.time_steps[tInd]
+        C = self.mesh.edge_curl
+        MfMui = self.MfMui
+        MeSigma = self.MeSigma + self._MeTau + self._MeKappa
+
+        return C.T.tocsr() * (MfMui * C) + 1.0 / dt * MeSigma
+
+    def getAdiagDeriv(self, tInd, u, v, adjoint=False):
+        """
+        Deriv of ADiag with respect to conductance
+        """
+        assert tInd >= 0 and tInd < self.nT
+
+        dt = self.time_steps[tInd]
+
+        if adjoint:
+            return 1.0 / dt * self._MeTauDeriv(u, v, adjoint)
+
+        return 1.0 / dt * self._MeTauDeriv(u, v, adjoint)
+
+    def getAsubdiag(self, tInd):
+        """
+        Matrix below the diagonal
+        """
+        assert tInd >= 0 and tInd < self.nT
+
+        dt = self.time_steps[tInd]
+
+        MeSigma = self.MeSigma + self._MeTau + self._MeKappa
+
+        return -1.0 / dt * MeSigma
+
+    def getAsubdiagDeriv(self, tInd, u, v, adjoint=False):
+        """
+        Derivative of the matrix below the diagonal with respect to conductance
+        """
+        dt = self.time_steps[tInd]
+
+        if adjoint:
+            return -1.0 / dt * self._MeTauDeriv(u, v, adjoint)
+
+        return -1.0 / dt * self._MeTauDeriv(u, v, adjoint)
+
+    def getAdc(self):
+        
+        MeSigma = self.MeSigma + self._MeTau + self._MeKappa
+
+        Grad = self.mesh.nodal_gradient
+        Adc = Grad.T.tocsr() * MeSigma * Grad
+        # Handling Null space of A
+        Adc[0, 0] = Adc[0, 0] + 1.0
+        return Adc
+
+    def getAdcDeriv(self, u, v, adjoint=False):
+        Grad = self.mesh.nodal_gradient
+        if not adjoint:
+            return Grad.T * self._MeTauDeriv(-u, v, adjoint)
+        else:
+            return self._MeTauDeriv(-u, Grad * v, adjoint)
 
 
 ###############################################################################

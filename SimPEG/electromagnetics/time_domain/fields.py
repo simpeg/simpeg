@@ -391,6 +391,61 @@ class Fields3DElectricField(FieldsTDEM):
         return self.simulation.MfI * (self._MfMui * self._dbdtDeriv_m(tInd, src, v))
 
 
+class Fields3DElectricFieldConductance(Fields3DElectricField):
+    """Fancy Field Storage for a TDEM simulation."""
+
+    def startup(self):
+        self._times = self.simulation.times
+        self._MeSigma = self.simulation.MeSigma
+        self._MeSigmaI = self.simulation.MeSigmaI
+        self._MeSigmaDeriv = self.simulation.MeSigmaDeriv
+        self._MeSigmaIDeriv = self.simulation.MeSigmaIDeriv
+        self._edgeCurl = self.simulation.mesh.edge_curl
+        self._MfMui = self.simulation.MfMui
+        self.__MeTau = self.simulation._MeTau
+        # self.__MeTauI = self.simulation._MeTauI
+        self.__MeTauDeriv = self.simulation._MeTauDeriv
+        # self.__MeTauIDeriv = self.simulation._MeTauIDeriv
+        self.__MeKappa = self.simulation._MeKappa
+        # self.__MeKappaI = self.simulation._MeKappaI
+
+    def _j(self, eSolution, source_list, tInd):
+        return self.simulation.MeI * (
+            (self._MeSigma + self.__MeTau + self.__MeKappa)
+            * self._e(eSolution, source_list, tInd)
+        )
+
+    def _jDeriv_u(self, tInd, src, dun_dm_v, adjoint=False):
+        if adjoint:
+            return self._eDeriv_u(
+                tInd,
+                src,
+                (self._MeSigma + self.__MeTau + self.__MeKappa).T
+                * (self.simulation.MeI.T * dun_dm_v),
+                adjoint=True,
+            )
+        return self.simulation.MeI * (
+            (self._MeSigma + self.__MeTau + self.__MeKappa)
+            * self._eDeriv_u(tInd, src, dun_dm_v)
+        )
+
+    def _jDeriv_m(self, tInd, src, v, adjoint=False):
+        e = self[src, "e", tInd]
+        if adjoint:
+            w = self.simulation.MeI.T * v
+            return self.__MeTauDeriv(e).T * w + self._eDeriv_m(
+                tInd,
+                src,
+                (self._MeSigma + self.__MeTau + self.__MeKappa).T * w,
+                adjoint=True,
+            )
+        return self.simulation.MeI * (
+            self._MeTauDeriv(e) * v
+            + (self._MeSigma + self.__MeTau + self.__MeKappa)
+            * self._eDeriv_m(tInd, src, v)
+        )
+
+
 class Fields3DMagneticField(FieldsTDEM):
     """Fancy Field Storage for a TDEM simulation."""
 

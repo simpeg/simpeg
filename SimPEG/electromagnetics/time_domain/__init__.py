@@ -92,6 +92,7 @@ Base Classes
 from .simulation import (
     Simulation3DMagneticFluxDensity,
     Simulation3DElectricField,
+    Simulation3DElectricFieldConductance,
     Simulation3DMagneticField,
     Simulation3DCurrentDensity,
 )
@@ -99,6 +100,7 @@ from .simulation_1d import Simulation1DLayered
 from .fields import (
     Fields3DMagneticFluxDensity,
     Fields3DElectricField,
+    Fields3DElectricFieldConductance,
     Fields3DMagneticField,
     Fields3DCurrentDensity,
 )

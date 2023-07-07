@@ -771,7 +771,7 @@ class BaseMagneticPDESimulation(BasePDESimulation):
 
 
 @with_surface_property_mass_matrices("tau")
-@with_line_property_mass_matrices("lambda")
+@with_line_property_mass_matrices("kappa")
 class BaseConductancePDESimulation(BasePDESimulation):
     tau, tauMap, tauDeriv = props.Invertible(
         "Electrical Conductance (S)",
@@ -781,7 +781,7 @@ class BaseConductancePDESimulation(BasePDESimulation):
     )
 
     def __init__(
-        self, mesh, tau=None, tauMap=None, kappa=None, kappaMap=None, **kwargs
+        self, mesh, tau=None, tauMap=None, kappa=0., kappaMap=None, **kwargs
     ):
         super().__init__(mesh=mesh, **kwargs)
         self.tau = tau
