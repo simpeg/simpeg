@@ -6,6 +6,8 @@ import inspect
 
 import discretize
 from SimPEG import maps, objective_function, regularization, utils
+from SimPEG.regularization import BaseRegularization, WeightedLeastSquares
+from SimPEG.objective_function import ComboObjectiveFunction
 
 
 TOL = 1e-7
@@ -565,7 +567,7 @@ class RegularizationTests(unittest.TestCase):
             mesh, maps.IdentityMap(nP=n_comp * mesh.nC)
         )
 
-        with pytest.raises(ValueError, match=f"'weights' must be one of"):  # noqa: W605
+        with pytest.raises(ValueError, match="'weights' must be one of"):
             reg.set_weights(abc=(1.0, 1.0))
 
         np.testing.assert_almost_equal(
@@ -626,6 +628,78 @@ def test_cross_reg_reg_errors():
 
     with pytest.raises(ValueError, match="ref_dir"):
         regularization.CrossReferenceRegularization(mesh, ref_dir)
+
+
+class TestParent:
+    """Test parent property of regularizations."""
+
+    @pytest.fixture
+    def regularization(self):
+        """Sample regularization instance."""
+        mesh = discretize.TensorMesh([3, 4, 5])
+        return BaseRegularization(mesh)
+
+    def test_parent(self, regularization):
+        """Test setting a parent class to a BaseRegularization."""
+        combo = ComboObjectiveFunction()
+        regularization.parent = combo
+        assert regularization.parent == combo
+
+    def test_invalid_parent(self, regularization):
+        """Test setting an invalid parent class to a BaseRegularization."""
+
+        class Dummy:
+            pass
+
+        invalid_parent = Dummy()
+        msg = "Invalid parent of type 'Dummy'."
+        with pytest.raises(TypeError, match=msg):
+            regularization.parent = invalid_parent
+
+
+class TestDeprecatedArguments:
+    """
+    Test errors after simultaneously passing new and deprecated arguments.
+
+    Within these arguments are:
+
+    * ``indActive`` (replaced by ``active_cells``)
+    * ``cell_weights`` (replaced by ``weights``)
+
+    """
+
+    @pytest.fixture(params=["1D", "2D", "3D"])
+    def mesh(self, request):
+        """Sample mesh."""
+        if request.param == "1D":
+            hx = np.random.rand(10)
+            h = [hx / hx.sum()]
+        elif request.param == "2D":
+            hx, hy = np.random.rand(10), np.random.rand(9)
+            h = [h_i / h_i.sum() for h_i in (hx, hy)]
+        elif request.param == "3D":
+            hx, hy, hz = np.random.rand(10), np.random.rand(9), np.random.rand(8)
+            h = [h_i / h_i.sum() for h_i in (hx, hy, hz)]
+        return discretize.TensorMesh(h)
+
+    @pytest.mark.parametrize(
+        "regularization_class", (BaseRegularization, WeightedLeastSquares)
+    )
+    def test_active_cells(self, mesh, regularization_class):
+        """Test indActive and active_cells arguments."""
+        active_cells = np.ones(len(mesh), dtype=bool)
+        msg = "Cannot simultanously pass 'active_cells' and 'indActive'."
+        with pytest.raises(ValueError, match=msg):
+            regularization_class(
+                mesh, active_cells=active_cells, indActive=active_cells
+            )
+
+    def test_weights(self, mesh):
+        """Test cell_weights and weights."""
+        weights = np.ones(len(mesh))
+        msg = "Cannot simultanously pass 'weights' and 'cell_weights'."
+        with pytest.raises(ValueError, match=msg):
+            BaseRegularization(mesh, weights=weights, cell_weights=weights)
 
 
 if __name__ == "__main__":

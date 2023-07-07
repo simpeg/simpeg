@@ -269,10 +269,15 @@ class Simulation3DIntegral(BasePFSimulation):
                 node_evals["gxz"] = prism_fzy(dy, dz, dx)
             if "gyz" not in node_evals:
                 node_evals["gyz"] = prism_fzy(dx, dy, dz)
-            if "gxx" not in node_evals or "gyy" not in node_evals:
-                node_evals["gzz"] = prism_fzz(dx, dy, dz)
-            else:
-                node_evals["gzz"] = -node_evals["gxx"] - node_evals["gyy"]
+            node_evals["gzz"] = prism_fzz(dx, dy, dz)
+            # the below will be uncommented when we give the containing cell index
+            # for interior observations.
+            # if "gxx" not in node_evals or "gyy" not in node_evals:
+            #     node_evals["gzz"] = prism_fzz(dx, dy, dz)
+            # else:
+            #     # This is the one that would need to be adjusted if the observation is
+            #     # inside an active cell.
+            #     node_evals["gzz"] = -node_evals["gxx"] - node_evals["gyy"]
 
         if "bxx" in components:
             node_evals["gxxx"] = prism_fzzz(dy, dz, dx)

@@ -265,6 +265,6 @@ norm = mpl.colors.Normalize(vmin=-v_max, vmax=v_max)
 cbar = mpl.colorbar.ColorbarBase(
     ax4, norm=norm, orientation="vertical", cmap=mpl.cm.bwr
 )
-cbar.set_label("$mgal/m$", rotation=270, labelpad=15, size=12)
+cbar.set_label("Eotvos", rotation=270, labelpad=15, size=12)
 
 plt.show()

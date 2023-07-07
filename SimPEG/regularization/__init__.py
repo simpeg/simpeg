@@ -214,8 +214,6 @@ from .vector import (
 )
 from .rotated import SmoothnessFullGradient
 
-from .vector import BaseVectorRegularization, CrossReferenceRegularization
-
 
 @deprecate_class(removal_version="0.19.0", future_warn=True)
 class SimpleSmall(Smallness):
