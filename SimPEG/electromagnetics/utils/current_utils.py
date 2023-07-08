@@ -318,7 +318,9 @@ def _poly_line_source_tree(mesh, locs):
         srcCellIds = mesh.get_cells_along_line(A, B)
         levels = mesh.cell_levels_by_index(srcCellIds)
         if isinstance(levels, np.ndarray) and np.any(levels != levels[0]):
-            warnings.warn("Warning! Line path crosses a cell level change.")
+            warnings.warn(
+                "Warning! Line path crosses a cell level change.", stacklevel=2
+            )
 
         # Starts at point A!
         p0 = A

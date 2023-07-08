@@ -115,11 +115,6 @@ class Fields:
         return self._dtype
 
     @property
-    def knownFields(self):
-        """Fields known to this object."""
-        return self._knownFields
-
-    @property
     def mesh(self):
         return self.simulation.mesh
 

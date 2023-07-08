@@ -9,6 +9,20 @@ class Point(survey.BaseRx):
     field that are simulated at each location. The length of the resulting data
     vector is *n_loc X n_comp*, and is organized by location then component.
 
+    .. important::
+
+        Density model is assumed to be in g/cc.
+
+    .. important::
+
+        Acceleration components ("gx", "gy", "gz") are returned in mgal
+        (:math:`10^{-5} m/s^2`).
+
+    .. important::
+
+        Gradient components ("gxx", "gyy", "gzz", "gxy", "gxz", "gyz") are
+        returned in Eotvos (:math:`10^{-9} s^{-2}`).
+
     Parameters
     ----------
     locations: (n_loc, 3) numpy.ndarray
@@ -28,6 +42,10 @@ class Point(survey.BaseRx):
         - "gyz"  --> z-derivative of the y-component (and visa versa)
         - "gzz"  --> z-derivative of the z-component
         - "guv"  --> UV component
+
+    See also
+    --------
+    SimPEG.potential_fields.gravity.Simulation3DIntegral
     """
 
     def __init__(self, locations, components="gz", **kwargs):
