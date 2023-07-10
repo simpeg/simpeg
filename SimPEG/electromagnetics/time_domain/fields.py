@@ -272,6 +272,163 @@ class Fields3DMagneticFluxDensity(FieldsTDEM):
         return self.simulation.MfI * (self._MfMui * self._dbdtDeriv_m(tInd, src, v))
 
 
+class Fields3DMagneticFluxDensityConductance(Fields3DMagneticFluxDensity):
+    """Field Storage for a TDEM simulation."""
+
+    knownFields = {"bSolution": "F"}
+    aliasFields = {
+        "b": ["bSolution", "F", "_b"],
+        "h": ["bSolution", "F", "_h"],
+        "e": ["bSolution", "E", "_e"],
+        "j": ["bSolution", "E", "_j"],
+        "dbdt": ["bSolution", "F", "_dbdt"],
+        "dhdt": ["bSolution", "F", "_dhdt"],
+    }
+
+    def startup(self):
+        self._times = self.simulation.times
+        self._MeSigma = self.simulation.MeSigma
+        self._MeSigmaI = self.simulation.MeSigmaI
+        self._MeSigmaDeriv = self.simulation.MeSigmaDeriv
+        self._MeSigmaIDeriv = self.simulation.MeSigmaIDeriv
+        self._edgeCurl = self.simulation.mesh.edge_curl
+        self._MfMui = self.simulation.MfMui
+        self._timeMesh = self.simulation.time_mesh
+
+    def _TLoc(self, fieldType):
+        return "N"
+
+    def _b(self, bSolution, source_list, tInd):
+        return bSolution
+
+    def _bDeriv_u(self, tInd, src, dun_dm_v, adjoint=False):
+        return dun_dm_v
+
+    def _bDeriv_m(self, tInd, src, v, adjoint=False):
+        return Zero()
+
+    def _dbdt(self, bSolution, source_list, tInd):
+        # self._timeMesh.face_divergence
+        dbdt = -self._edgeCurl * self._e(bSolution, source_list, tInd)
+        for i, src in enumerate(source_list):
+            s_m = src.s_m(self.simulation, self._times[tInd])
+            dbdt[:, i] = dbdt[:, i] + s_m
+        return dbdt
+
+    def _dbdtDeriv_u(self, tInd, src, dun_dm_v, adjoint=False):
+        if adjoint is True:
+            return -self._eDeriv_u(tInd, src, self._edgeCurl.T * dun_dm_v, adjoint)
+        return -(self._edgeCurl * self._eDeriv_u(tInd, src, dun_dm_v))
+
+    def _dbdtDeriv_m(self, tInd, src, v, adjoint=False):
+        if adjoint is True:
+            return -(self._eDeriv_m(tInd, src, self._edgeCurl.T * v, adjoint))
+        return -(
+            self._edgeCurl * self._eDeriv_m(tInd, src, v)
+        )  # + src.s_mDeriv() assuming src doesn't have deriv for now
+
+    def _e(self, bSolution, source_list, tInd):
+        e = self._MeSigmaI * (self._edgeCurl.T * (self._MfMui * bSolution))
+        for i, src in enumerate(source_list):
+            s_e = src.s_e(self.simulation, self._times[tInd])
+            e[:, i] = e[:, i] - self._MeSigmaI * s_e
+        return e
+
+    def _eDeriv_u(self, tInd, src, dun_dm_v, adjoint=False):
+        if adjoint is True:
+            return self._MfMui.T * (self._edgeCurl * (self._MeSigmaI.T * dun_dm_v))
+        return self._MeSigmaI * (self._edgeCurl.T * (self._MfMui * dun_dm_v))
+
+    def _eDeriv_m(self, tInd, src, v, adjoint=False):
+        _, s_e = src.eval(self.simulation, self._times[tInd])
+        bSolution = self[[src], "bSolution", tInd].flatten()
+
+        _, s_eDeriv = src.evalDeriv(self._times[tInd], self, adjoint=adjoint)
+
+        if adjoint is True:
+            return self._MeSigmaIDeriv(
+                -s_e + self._edgeCurl.T * (self._MfMui * bSolution), v, adjoint
+            ) - s_eDeriv(self._MeSigmaI.T * v)
+
+        return self._MeSigmaIDeriv(
+            -s_e + self._edgeCurl.T * (self._MfMui * bSolution), v, adjoint
+        ) - self._MeSigmaI * s_eDeriv(v)
+
+    def _j(self, hSolution, source_list, tInd):
+        return self.simulation.MeI * (
+            self._MeSigma * self._e(hSolution, source_list, tInd)
+        )
+
+    def _jDeriv_u(self, tInd, src, dun_dm_v, adjoint=False):
+        if adjoint:
+            return self._eDeriv_u(
+                tInd,
+                src,
+                self._MeSigma.T * (self.simulation.MeI.T * dun_dm_v),
+                adjoint=True,
+            )
+        return self.simulation.MeI * (
+            self._MeSigma * self._eDeriv_u(tInd, src, dun_dm_v)
+        )
+
+    def _jDeriv_m(self, tInd, src, v, adjoint=False):
+        e = self[src, "e", tInd]
+        if adjoint:
+            w = self.simulation.MeI.T * v
+            return self._MeSigmaDeriv(e).T * w + self._eDeriv_m(
+                tInd, src, self._MeSigma.T * w, adjoint=True
+            )
+        return self.simulation.MeI * (
+            self._MeSigmaDeriv(e) * v + self._MeSigma * self._eDeriv_m(tInd, src, v)
+        )
+
+    def _h(self, hSolution, source_list, tInd):
+        return self.simulation.MfI * (
+            self._MfMui * self._b(hSolution, source_list, tInd)
+        )
+
+    def _hDeriv_u(self, tInd, src, dun_dm_v, adjoint=False):
+        if adjoint:
+            return self._bDeriv_u(
+                tInd,
+                src,
+                self._MfMui.T * (self.simulation.MfI.T * dun_dm_v),
+                adjoint=True,
+            )
+        return self.simulation.MfI * (self._MfMui * self._bDeriv_u(tInd, src, dun_dm_v))
+
+    def _hDeriv_m(self, tInd, src, v, adjoint=False):
+        if adjoint:
+            return self._bDeriv_m(
+                tInd, src, self._MfMui.T * (self.simulation.MfI.T * v), adjoint=True
+            )
+        return self.simulation.MfI * (self._MfMui * self._bDeriv_m(tInd, src, v))
+
+    def _dhdt(self, hSolution, source_list, tInd):
+        return self.simulation.MfI * (
+            self._MfMui * self._dbdt(hSolution, source_list, tInd)
+        )
+
+    def _dhdtDeriv_u(self, tInd, src, dun_dm_v, adjoint=False):
+        if adjoint:
+            return self._dbdtDeriv_u(
+                tInd,
+                src,
+                self._MfMui.T * (self.simulation.MfI.T * dun_dm_v),
+                adjoint=True,
+            )
+        return self.simulation.MfI * (
+            self._MfMui * self._dbdtDeriv_u(tInd, src, dun_dm_v)
+        )
+
+    def _dhdtDeriv_m(self, tInd, src, v, adjoint=False):
+        if adjoint:
+            return self._dbdtDeriv_m(
+                tInd, src, self._MfMui.T * (self.simulation.MfI.T * v), adjoint=True
+            )
+        return self.simulation.MfI * (self._MfMui * self._dbdtDeriv_m(tInd, src, v))
+
+
 class Fields3DElectricField(FieldsTDEM):
     """Fancy Field Storage for a TDEM simulation."""
 

@@ -311,7 +311,7 @@ def analytic_halfspace_mag_dipole_comparison(
     return log10diff
 
 
-def analytic_layer_small_loop_conuductance_comparison(
+def analytic_layer_small_loop_conductance_comparison(
     mesh_type="CYL",
     rx_type="MagneticFluxTimeDerivative",
     orientation="Z",
@@ -321,6 +321,9 @@ def analytic_layer_small_loop_conuductance_comparison(
     # Some static parameters
     PHI = np.linspace(0, 2 * np.pi, 21)
     loop_radius = np.pi**-0.5
+    receiver_location = np.c_[40.0, 0.0, 1.0]
+    source_location = np.r_[0.0, 0.0, 1.0]
+
     if orientation == "X":
         source_nodes = np.c_[
             np.zeros_like(PHI),
@@ -331,7 +334,6 @@ def analytic_layer_small_loop_conuductance_comparison(
         source_nodes = np.c_[
             loop_radius * np.cos(PHI), loop_radius * np.sin(PHI), np.ones_like(PHI)
         ]
-    receiver_location = np.c_[40.0, 0.0, 1.0]
 
     layer_depth = 24.0
     layer_thickness = 0.1
@@ -379,38 +381,54 @@ def analytic_layer_small_loop_conuductance_comparison(
         receiver_location, times, orientation=orientation
     )
 
+    # 1D SURVEY AND SIMULATION
     src_1d = tdem.sources.MagDipole(
         [rx],
         location=np.r_[0.0, 0.0, 1.0],
         orientation=orientation,
         waveform=tdem.sources.StepOffWaveform(),
     )
-
-    if mesh_type == "CYL":
-        src_3d = tdem.sources.CircularLoop(
-            [rx],
-            radius=loop_radius,
-            location=np.c_[0.0, 0.0, 1.0],
-            waveform=tdem.sources.StepOffWaveform(),
-        )
-    else:
-        src_3d = tdem.sources.LineCurrent(
-            [rx], location=source_nodes, waveform=tdem.sources.StepOffWaveform()
-        )
-
     survey_1d = tdem.Survey([src_1d])
-    survey_3d = tdem.Survey([src_3d])
 
-    # DEFINE THE SIMULATIONS
     sim_1d = tdem.Simulation1DLayered(
         survey=survey_1d,
         thicknesses=thicknesses,
         sigmaMap=sigma_map_1d,
     )
 
-    sim_3d = tdem.simulation.Simulation3DElectricFieldConductance(
-        mesh=mesh, survey=survey_3d, sigma=sigma_3d, tauMap=tau_map
-    )
+    # 3D SURVEY AND SIMULATION
+    if mesh_type == "CYL":
+        src_3d = tdem.sources.CircularLoop(
+            [rx],
+            radius=loop_radius,
+            location=source_location,
+            waveform=tdem.sources.StepOffWaveform(),
+        )
+    else:
+        if rx_type == "MagneticFluxDensity":
+            src_3d = tdem.sources.MagDipole(
+                [rx],
+                location=source_location,
+                orientation=orientation,
+                waveform=tdem.sources.StepOffWaveform(),
+            )
+        else:
+            src_3d = tdem.sources.LineCurrent(
+                [rx], location=source_nodes, waveform=tdem.sources.StepOffWaveform()
+            )
+
+    survey_3d = tdem.Survey([src_3d])
+
+    # DEFINE THE SIMULATIONS
+    if rx_type == "MagneticFluxDensity":
+        sim_3d = tdem.simulation.Simulation3DMagneticFluxDensityConductance(
+            mesh=mesh, survey=survey_3d, sigma=sigma_3d, tauMap=tau_map
+        )
+    else:
+        sim_3d = tdem.simulation.Simulation3DElectricFieldConductance(
+            mesh=mesh, survey=survey_3d, sigma=sigma_3d, tauMap=tau_map
+        )
+
     sim_3d.time_steps = [
         (1e-06, 40),
         (5e-06, 40),
@@ -449,6 +467,7 @@ def analytic_layer_small_loop_conuductance_comparison(
             "r--",
         )
         plt.loglog(rx.times, abs(analytic_solution), "b*")
+        plt.title("{} Mesh, {}, {}-Component".format(mesh_type, rx_type, orientation))
         plt.show()
 
     return log10diff
@@ -751,9 +770,46 @@ class TDEM_bTests(unittest.TestCase):
 
 class LayerConductanceTests(unittest.TestCase):
     # WORKING
+
+    def test_tensor_magdipole_b_x(self):
+        assert (
+            analytic_layer_small_loop_conductance_comparison(
+                mesh_type="TENSOR",
+                rx_type="MagneticFluxDensity",
+                orientation="X",
+                bounds=None,
+                plotIt=False,
+            )
+            < 0.01
+        )
+
+    def test_tensor_magdipole_b_z(self):
+        assert (
+            analytic_layer_small_loop_conductance_comparison(
+                mesh_type="TENSOR",
+                rx_type="MagneticFluxDensity",
+                orientation="Z",
+                bounds=None,
+                plotIt=False,
+            )
+            < 0.01
+        )
+
+    def test_cyl_magdipole_b_z(self):
+        assert (
+            analytic_layer_small_loop_conductance_comparison(
+                mesh_type="CYL",
+                rx_type="MagneticFluxDensity",
+                orientation="Z",
+                bounds=None,
+                plotIt=False,
+            )
+            < 0.01
+        )
+
     def test_tensor_linecurrent_dbdt_x(self):
         assert (
-            analytic_layer_small_loop_conuductance_comparison(
+            analytic_layer_small_loop_conductance_comparison(
                 mesh_type="TENSOR",
                 rx_type="MagneticFluxTimeDerivative",
                 orientation="X",
@@ -765,7 +821,7 @@ class LayerConductanceTests(unittest.TestCase):
 
     def test_tensor_linecurrent_dbdt_z(self):
         assert (
-            analytic_layer_small_loop_conuductance_comparison(
+            analytic_layer_small_loop_conductance_comparison(
                 mesh_type="TENSOR",
                 rx_type="MagneticFluxTimeDerivative",
                 orientation="Z",
@@ -775,9 +831,9 @@ class LayerConductanceTests(unittest.TestCase):
             < 0.01
         )
 
-    def test_cyle_linecurrent_dbdt_z(self):
+    def test_cyl_circularloop_dbdt_z(self):
         assert (
-            analytic_layer_small_loop_conuductance_comparison(
+            analytic_layer_small_loop_conductance_comparison(
                 mesh_type="CYL",
                 rx_type="MagneticFluxTimeDerivative",
                 orientation="Z",

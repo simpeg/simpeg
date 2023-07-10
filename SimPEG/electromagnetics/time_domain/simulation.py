@@ -3,12 +3,13 @@ import scipy.sparse as sp
 
 from ...data import Data
 from ...simulation import BaseTimeSimulation
-from ...utils import mkvc, sdiag, speye, Zero, validate_type, validate_float
+from ...utils import mkvc, sdiag, sdinv, speye, Zero, validate_type, validate_float
 from ...base import BaseConductancePDESimulation
 from ..base import BaseEMSimulation
 from .survey import Survey
 from .fields import (
     Fields3DMagneticFluxDensity,
+    Fields3DMagneticFluxDensityConductance,
     Fields3DElectricField,
     Fields3DElectricFieldConductance,
     Fields3DMagneticField,
@@ -964,6 +965,207 @@ class Simulation3DElectricField(BaseTDEMSimulation):
     #         self.Adcinv.clean()
 
 
+# ------------------------------- Simulation3DElectricField ------------------------------- #
+class Simulation3DMagneticFluxDensityConductance(Simulation3DMagneticFluxDensity, BaseConductancePDESimulation):
+    r"""
+    Starting from the quasi-static E-B formulation of Maxwell's equations
+    (semi-discretized)
+
+    .. math::
+
+        \mathbf{C} \mathbf{e} + \frac{\partial \mathbf{b}}{\partial t} =
+        \mathbf{s_m} \\
+        \mathbf{C}^{\top} \mathbf{M_{\mu^{-1}}^f} \mathbf{b} -
+        \mathbf{M_{\sigma}^e} \mathbf{e} = \mathbf{s_e}
+
+
+    where :math:`\mathbf{s_e}` is an integrated quantity, we eliminate
+    :math:`\mathbf{e}` using
+
+    .. math::
+
+        \mathbf{e} = \mathbf{M_{\sigma}^e}^{-1} \mathbf{C}^{\top}
+        \mathbf{M_{\mu^{-1}}^f} \mathbf{b} -
+        \mathbf{M_{\sigma}^e}^{-1} \mathbf{s_e}
+
+
+    to obtain a second order semi-discretized system in :math:`\mathbf{b}`
+
+    .. math::
+
+        \mathbf{C} \mathbf{M_{\sigma}^e}^{-1} \mathbf{C}^{\top}
+        \mathbf{M_{\mu^{-1}}^f} \mathbf{b}  +
+        \frac{\partial \mathbf{b}}{\partial t} =
+        \mathbf{C} \mathbf{M_{\sigma}^e}^{-1} \mathbf{s_e} + \mathbf{s_m}
+
+
+    and moving everything except the time derivative to the rhs gives
+
+    .. math::
+        \frac{\partial \mathbf{b}}{\partial t} =
+        -\mathbf{C} \mathbf{M_{\sigma}^e}^{-1} \mathbf{C}^{\top}
+        \mathbf{M_{\mu^{-1}}^f} \mathbf{b} +
+        \mathbf{C} \mathbf{M_{\sigma}^e}^{-1} \mathbf{s_e} + \mathbf{s_m}
+
+    For the time discretization, we use backward euler. To solve for the
+    :math:`n+1` th time step, we have
+
+    .. math::
+
+        \frac{\mathbf{b}^{n+1} - \mathbf{b}^{n}}{\mathbf{dt}} =
+        -\mathbf{C} \mathbf{M_{\sigma}^e}^{-1} \mathbf{C}^{\top}
+        \mathbf{M_{\mu^{-1}}^f} \mathbf{b}^{n+1} +
+        \mathbf{C} \mathbf{M_{\sigma}^e}^{-1} \mathbf{s_e}^{n+1} +
+        \mathbf{s_m}^{n+1}
+
+
+    re-arranging to put :math:`\mathbf{b}^{n+1}` on the left hand side gives
+
+    .. math::
+
+        (\mathbf{I} + \mathbf{dt} \mathbf{C} \mathbf{M_{\sigma}^e}^{-1}
+         \mathbf{C}^{\top} \mathbf{M_{\mu^{-1}}^f}) \mathbf{b}^{n+1} =
+         \mathbf{b}^{n} + \mathbf{dt}(\mathbf{C} \mathbf{M_{\sigma}^e}^{-1}
+         \mathbf{s_e}^{n+1} + \mathbf{s_m}^{n+1})
+
+    """
+
+    fieldsPair = Fields3DMagneticFluxDensityConductance  #: A SimPEG.EM.TDEM.Fields3DMagneticFluxDensity object
+
+    def __init__(self, mesh, survey=None, dt_threshold=1e-8, **kwargs):
+        super().__init__(mesh=mesh, survey=survey, **kwargs)
+
+        if self.sigmaMap is not None or self.rhoMap is not None:
+            raise NotImplementedError(
+                "Conductivity (sigma) and resistivity (rho) are not invertible properties for the "
+                "Simulation3DMagneticFluxDensityConductance class. The mapping for the "
+                "invertible property is 'tauMap'."
+            )
+
+        if self.kappaMap is not None:
+            raise NotImplementedError(
+                "Conductance times length (kappa) is not an invertible property, yet."
+            )
+
+        if self.kappaiMap is not None:
+            raise NotImplementedError(
+                "Resistance per unit length (kappai) is not an invertible property, yet."
+            )
+
+    def getAdiag(self, tInd):
+        r"""
+        System matrix at a given time index
+
+        .. math::
+
+            (\mathbf{I} + \mathbf{dt} \mathbf{C} \mathbf{M_{\sigma}^e}^{-1}
+            \mathbf{C}^{\top} \mathbf{M_{\mu^{-1}}^f})
+
+        """
+        assert tInd >= 0 and tInd < self.nT
+
+        dt = self.time_steps[tInd]
+        C = self.mesh.edge_curl
+        # MeSigmaTauKappaI = sdinv(self.MeSigma + self._MeTau + self._MeKappa)
+        MeSigmaTauKappaI = self._MeSigmaTauKappaI
+        MfMui = self.MfMui
+        I = speye(self.mesh.n_faces)
+
+        A = 1.0 / dt * I + (C * (MeSigmaTauKappaI * (C.T.tocsr() * MfMui)))
+
+        if self._makeASymmetric is True:
+            return MfMui.T.tocsr() * A
+        return A
+
+    def getAdiagDeriv(self, tInd, u, v, adjoint=False):
+        """
+        Derivative of ADiag
+        """
+        C = self.mesh.edge_curl
+
+        # def MeSigmaIDeriv(x):
+        #     return self.MeSigmaIDeriv(x)
+
+        MfMui = self.MfMui
+
+        if adjoint:
+            if self._makeASymmetric is True:
+                v = MfMui * v
+            return self._MeSigmaTauKappaIDeriv(C.T * (MfMui * u), C.T * v, adjoint)
+
+        ADeriv = C * (self._MeSigmaTauKappaIDeriv(C.T * (MfMui * u), v, adjoint))
+
+        if self._makeASymmetric is True:
+            return MfMui.T * ADeriv
+        return ADeriv
+
+    def getAsubdiag(self, tInd):
+        """
+        Matrix below the diagonal
+        """
+
+        dt = self.time_steps[tInd]
+        MfMui = self.MfMui
+        Asubdiag = -1.0 / dt * sp.eye(self.mesh.n_faces)
+
+        if self._makeASymmetric is True:
+            return MfMui.T * Asubdiag
+
+        return Asubdiag
+
+    def getAsubdiagDeriv(self, tInd, u, v, adjoint=False):
+        return Zero() * v
+
+    def getRHS(self, tInd):
+        """
+        Assemble the RHS
+        """
+        C = self.mesh.edge_curl
+        # MeSigmaTauKappaI = sdinv(self.MeSigma + self._MeTau + self._MeKappa)
+        MeSigmaTauKappaI = self._MeSigmaTauKappaI
+        MfMui = self.MfMui
+
+        s_m, s_e = self.getSourceTerm(tInd)
+
+        rhs = C * (MeSigmaTauKappaI * s_e) + s_m
+        if self._makeASymmetric is True:
+            return MfMui.T * rhs
+        return rhs
+
+    def getRHSDeriv(self, tInd, src, v, adjoint=False):
+        """
+        Derivative of the RHS
+        """
+
+        C = self.mesh.edge_curl
+        MeSigmaTauKappaI = self._MeSigmaTauKappaI
+
+        _, s_e = src.eval(self, self.times[tInd])
+        s_mDeriv, s_eDeriv = src.evalDeriv(self, self.times[tInd], adjoint=adjoint)
+
+        if adjoint:
+            if self._makeASymmetric is True:
+                v = self.MfMui * v
+            if isinstance(s_e, Zero):
+                MeSigmaTauKappaIDerivT_v = Zero()
+            else:
+                MeSigmaTauKappaIDerivT_v = self._MeSigmaTauKappaIDeriv(s_e, C.T * v, adjoint)
+
+            RHSDeriv = MeSigmaTauKappaIDerivT_v + s_eDeriv(MeSigmaTauKappaI.T * (C.T * v)) + s_mDeriv(v)
+
+            return RHSDeriv
+
+        if isinstance(s_e, Zero):
+            MeSigmaTauKappaIDeriv_v = Zero()
+        else:
+            MeSigmaTauKappaIDeriv_v = self._MeSigmaTauKappaIDeriv(s_e, v, adjoint)
+
+        RHSDeriv = C * MeSigmaTauKappaIDeriv_v + C * MeSigmaTauKappaI * s_eDeriv(v) + s_mDeriv(v)
+
+        if self._makeASymmetric is True:
+            return self.MfMui.T * RHSDeriv
+        return RHSDeriv
+
 
 # ------------------------------- Simulation3DElectricField ------------------------------- #
 class Simulation3DElectricFieldConductance(Simulation3DElectricField, BaseConductancePDESimulation):
@@ -973,19 +1175,22 @@ class Simulation3DElectricFieldConductance(Simulation3DElectricField, BaseConduc
     def __init__(self, mesh, survey=None, dt_threshold=1e-8, **kwargs):
         super().__init__(mesh=mesh, survey=survey, **kwargs)
 
-        if self.sigmaMap is not None:
+        if self.sigmaMap is not None or self.rhoMap is not None:
             raise NotImplementedError(
-                "Conductivity (sigma) is not an invertible property for the "
+                "Conductivity (sigma) and resistivity (rho) are not invertible properties for the "
                 "Simulation3DElectricFieldConductance class. The mapping for the "
                 "invertible property is 'tauMap'."
             )
 
         if self.kappaMap is not None:
             raise NotImplementedError(
-                "Resistance per unit length (kappa) is not an invertible property, yet."
+                "Conductance times length (kappa) is not an invertible property, yet."
             )
 
-
+        if self.kappaiMap is not None:
+            raise NotImplementedError(
+                "Resistance per unit length (kappai) is not an invertible property, yet."
+            )
 
     def getAdiag(self, tInd):
         """
@@ -996,9 +1201,10 @@ class Simulation3DElectricFieldConductance(Simulation3DElectricField, BaseConduc
         dt = self.time_steps[tInd]
         C = self.mesh.edge_curl
         MfMui = self.MfMui
-        MeSigma = self.MeSigma + self._MeTau + self._MeKappa
+        # MeSigmaTauKappa = self.MeSigma + self._MeTau + self._MeKappa
+        MeSigmaTauKappa = self._MeSigmaTauKappa
 
-        return C.T.tocsr() * (MfMui * C) + 1.0 / dt * MeSigma
+        return C.T.tocsr() * (MfMui * C) + 1.0 / dt * MeSigmaTauKappa
 
     def getAdiagDeriv(self, tInd, u, v, adjoint=False):
         """
@@ -1009,9 +1215,9 @@ class Simulation3DElectricFieldConductance(Simulation3DElectricField, BaseConduc
         dt = self.time_steps[tInd]
 
         if adjoint:
-            return 1.0 / dt * self._MeTauDeriv(u, v, adjoint)
+            return 1.0 / dt * self._MeSigmaTauKappaDeriv(u, v, adjoint)
 
-        return 1.0 / dt * self._MeTauDeriv(u, v, adjoint)
+        return 1.0 / dt * self._MeSigmaTauKappaDeriv(u, v, adjoint)
 
     def getAsubdiag(self, tInd):
         """
@@ -1021,9 +1227,10 @@ class Simulation3DElectricFieldConductance(Simulation3DElectricField, BaseConduc
 
         dt = self.time_steps[tInd]
 
-        MeSigma = self.MeSigma + self._MeTau + self._MeKappa
+        # MeSigmaTauKappa = self.MeSigma + self._MeTau + self._MeKappa
+        MeSigmaTauKappa = self._MeSigmaTauKappa
 
-        return -1.0 / dt * MeSigma
+        return -1.0 / dt * MeSigmaTauKappa
 
     def getAsubdiagDeriv(self, tInd, u, v, adjoint=False):
         """
@@ -1032,16 +1239,17 @@ class Simulation3DElectricFieldConductance(Simulation3DElectricField, BaseConduc
         dt = self.time_steps[tInd]
 
         if adjoint:
-            return -1.0 / dt * self._MeTauDeriv(u, v, adjoint)
+            return -1.0 / dt * self._MeSigmaTauKappaDeriv(u, v, adjoint)
 
-        return -1.0 / dt * self._MeTauDeriv(u, v, adjoint)
+        return -1.0 / dt * self._MeSigmaTauKappaDeriv(u, v, adjoint)
 
     def getAdc(self):
         
-        MeSigma = self.MeSigma + self._MeTau + self._MeKappa
+        # MeSigmaTauKappa = self.MeSigma + self._MeTau + self._MeKappa
+        MeSigmaTauKappa = self._MeSigmaTauKappa
 
         Grad = self.mesh.nodal_gradient
-        Adc = Grad.T.tocsr() * MeSigma * Grad
+        Adc = Grad.T.tocsr() * MeSigmaTauKappa * Grad
         # Handling Null space of A
         Adc[0, 0] = Adc[0, 0] + 1.0
         return Adc
@@ -1049,9 +1257,9 @@ class Simulation3DElectricFieldConductance(Simulation3DElectricField, BaseConduc
     def getAdcDeriv(self, u, v, adjoint=False):
         Grad = self.mesh.nodal_gradient
         if not adjoint:
-            return Grad.T * self._MeTauDeriv(-u, v, adjoint)
+            return Grad.T * self._MeSigmaTauKappaDeriv(-u, v, adjoint)
         else:
-            return self._MeTauDeriv(-u, Grad * v, adjoint)
+            return self._MeSigmaTauKappaDeriv(-u, Grad * v, adjoint)
 
 
 ###############################################################################

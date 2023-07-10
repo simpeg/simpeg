@@ -40,11 +40,22 @@ def get_mapping(mesh):
     )
     return maps.ExpMap(mesh) * maps.SurjectVertical1D(mesh) * activeMap
 
+def get_face_mapping(mesh):
+    active = mesh.faces[:, -1] < 0.0
+    activeMap = maps.InjectActiveFaces(
+        mesh, active, 0.
+    )
+    return activeMap * maps.ExpMap(nP=np.sum(active))
 
 def get_prob(mesh, mapping, formulation, **kwargs):
-    prb = getattr(tdem, "Simulation3D{}".format(formulation))(
-        mesh, sigmaMap=mapping, **kwargs
-    )
+    if "Conductance" in formulation:
+        prb = getattr(tdem, "Simulation3D{}".format(formulation))(
+            mesh, tauMap=mapping, **kwargs
+        )
+    else:
+        prb = getattr(tdem, "Simulation3D{}".format(formulation))(
+            mesh, sigmaMap=mapping, **kwargs
+        )
     prb.time_steps = [(1e-05, 10), (5e-05, 10), (2.5e-4, 10)]
     prb.solver = Solver
     return prb
@@ -64,12 +75,23 @@ class Base_DerivAdjoint_Test(unittest.TestCase):
     def setUpClass(self):
         # create a prob where we will store the fields
         mesh = get_mesh()
-        mapping = get_mapping(mesh)
+
+        if "Conductance" in self.formulation:
+            mapping = get_face_mapping(mesh)
+        else:
+            mapping = get_mapping(mesh)
         self.survey = get_survey()
         self.prob = get_prob(mesh, mapping, self.formulation, survey=self.survey)
-        self.m = np.log(1e-1) * np.ones(self.prob.sigmaMap.nP) + 1e-3 * np.random.randn(
-            self.prob.sigmaMap.nP
-        )
+
+        if "Conductance" in self.formulation:
+            self.m = np.log(1e-1) * np.ones(self.prob.tauMap.nP) + 1e-3 * np.random.randn(
+                self.prob.tauMap.nP
+            )
+        else:
+            self.m = np.log(1e-1) * np.ones(self.prob.sigmaMap.nP) + 1e-3 * np.random.randn(
+                self.prob.sigmaMap.nP
+            )
+
         print("Solving Fields for problem {}".format(self.formulation))
         t = time.time()
         self.fields = self.prob.fields(self.m)
@@ -78,7 +100,10 @@ class Base_DerivAdjoint_Test(unittest.TestCase):
         # create a prob where will be re-computing fields at each jvec
         # iteration
         mesh = get_mesh()
-        mapping = get_mapping(mesh)
+        if "Conductance" in self.formulation:
+            mapping = get_face_mapping(mesh)
+        else:
+            mapping = get_mapping(mesh)
         self.surveyfwd = get_survey()
         self.probfwd = get_prob(mesh, mapping, self.formulation, survey=self.surveyfwd)
 
@@ -125,8 +150,11 @@ class Base_DerivAdjoint_Test(unittest.TestCase):
         print(
             "\nAdjoint Testing Jvec, Jtvec prob {}, {}".format(self.formulation, rxcomp)
         )
-
-        m = np.random.rand(self.prob.sigmaMap.nP)
+        
+        if "Conductance" in self.formulation:
+            m = np.random.rand(self.prob.tauMap.nP)
+        else:
+            m = np.random.rand(self.prob.sigmaMap.nP)
         d = np.random.randn(self.prob.survey.nD)
         V1 = d.dot(self.prob.Jvec(self.m, m, f=self.fields))
         V2 = m.dot(self.prob.Jtvec(self.m, d, f=self.fields))
@@ -216,6 +244,49 @@ class DerivAdjoint_E(Base_DerivAdjoint_Test):
         def test_Jvec_adjoint_e_jy(self):
             self.JvecVsJtvecTest("CurrentDensityy")
 
+class DerivAdjoint_E_Conductance(Base_DerivAdjoint_Test):
+    formulation = "ElectricFieldConductance"
+
+    if testDeriv:
+
+        def test_Jvec_e_dbxdt(self):
+            self.JvecTest("MagneticFluxTimeDerivativex")
+
+        def test_Jvec_e_dbzdt(self):
+            self.JvecTest("MagneticFluxTimeDerivativez")
+
+        def test_Jvec_e_ey(self):
+            self.JvecTest("ElectricFieldy")
+
+        def test_Jvec_e_dhxdt(self):
+            self.JvecTest("MagneticFieldTimeDerivativex")
+
+        def test_Jvec_e_dhzdt(self):
+            self.JvecTest("MagneticFieldTimeDerivativez")
+
+        # def test_Jvec_e_jy(self):
+        #     self.JvecTest("CurrentDensityy")
+
+    if testAdjoint:
+
+        def test_Jvec_adjoint_e_dbdtx(self):
+            self.JvecVsJtvecTest("MagneticFluxTimeDerivativex")
+
+        def test_Jvec_adjoint_e_dbdtz(self):
+            self.JvecVsJtvecTest("MagneticFluxTimeDerivativez")
+
+        def test_Jvec_adjoint_e_ey(self):
+            self.JvecVsJtvecTest("ElectricFieldy")
+
+        def test_Jvec_adjoint_e_dhdtx(self):
+            self.JvecVsJtvecTest("MagneticFieldTimeDerivativex")
+
+        def test_Jvec_adjoint_e_dhdtz(self):
+            self.JvecVsJtvecTest("MagneticFieldTimeDerivativez")
+
+        # def test_Jvec_adjoint_e_jy(self):
+        #     self.JvecVsJtvecTest("CurrentDensityy")
+
 
 class DerivAdjoint_B(Base_DerivAdjoint_Test):
     formulation = "MagneticFluxDensity"
@@ -280,6 +351,70 @@ class DerivAdjoint_B(Base_DerivAdjoint_Test):
 
         def test_Jvec_adjoint_b_jy(self):
             self.JvecVsJtvecTest("CurrentDensityy")
+
+class DerivAdjoint_B_Conductance(Base_DerivAdjoint_Test):
+    formulation = "MagneticFluxDensityConductance"
+
+    if testDeriv:
+
+        def test_Jvec_b_bx(self):
+            self.JvecTest("MagneticFluxDensityx")
+
+        def test_Jvec_b_bz(self):
+            self.JvecTest("MagneticFluxDensityz")
+
+        def test_Jvec_b_dbdtx(self):
+            self.JvecTest("MagneticFluxTimeDerivativex")
+
+        def test_Jvec_b_dbdtz(self):
+            self.JvecTest("MagneticFluxTimeDerivativez")
+
+        def test_Jvec_b_hx(self):
+            self.JvecTest("MagneticFieldx")
+
+        def test_Jvec_b_hz(self):
+            self.JvecTest("MagneticFieldz")
+
+        def test_Jvec_b_dhdtx(self):
+            self.JvecTest("MagneticFieldTimeDerivativex")
+
+        def test_Jvec_b_dhdtz(self):
+            self.JvecTest("MagneticFieldTimeDerivativez")
+
+        # def test_Jvec_b_jy(self):
+        #     self.JvecTest("CurrentDensityy")
+
+    if testAdjoint:
+
+        def test_Jvec_adjoint_b_bx(self):
+            self.JvecVsJtvecTest("MagneticFluxDensityx")
+
+        def test_Jvec_adjoint_b_bz(self):
+            self.JvecVsJtvecTest("MagneticFluxDensityz")
+
+        def test_Jvec_adjoint_b_dbdtx(self):
+            self.JvecVsJtvecTest("MagneticFluxTimeDerivativex")
+
+        def test_Jvec_adjoint_b_dbdtz(self):
+            self.JvecVsJtvecTest("MagneticFluxTimeDerivativez")
+
+        def test_Jvec_adjoint_b_ey(self):
+            self.JvecVsJtvecTest("ElectricFieldy")
+
+        def test_Jvec_adjoint_b_hx(self):
+            self.JvecVsJtvecTest("MagneticFieldx")
+
+        def test_Jvec_adjoint_b_hz(self):
+            self.JvecVsJtvecTest("MagneticFieldz")
+
+        def test_Jvec_adjoint_b_dhdtx(self):
+            self.JvecVsJtvecTest("MagneticFieldTimeDerivativex")
+
+        def test_Jvec_adjoint_b_dhdtz(self):
+            self.JvecVsJtvecTest("MagneticFieldTimeDerivativez")
+
+        # def test_Jvec_adjoint_b_jy(self):
+        #     self.JvecVsJtvecTest("CurrentDensityy")
 
 
 class DerivAdjoint_H(Base_DerivAdjoint_Test):
@@ -392,3 +527,7 @@ class DerivAdjoint_J(Base_DerivAdjoint_Test):
 
         def test_Jvec_adjoint_j_dbdtz(self):
             self.JvecVsJtvecTest("MagneticFluxTimeDerivativez")
+
+
+if __name__ == "__main__":
+    unittest.main()
