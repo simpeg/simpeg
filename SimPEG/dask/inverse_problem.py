@@ -170,9 +170,9 @@ def dask_evalFunction(self, m, return_g=True, return_H=True):
     self.dpred = self.get_dpred(m, compute_J=return_H)
 
     phi_d = 0
-    for objfct, pred in zip(self.dmisfit.objfcts, self.dpred):
+    for (mult, objfct), pred in zip(self.dmisfit, self.dpred):
         residual = objfct.W * (objfct.data.dobs - pred)
-        phi_d += 0.5 * np.vdot(residual, residual)
+        phi_d += 0.5 * mult * np.vdot(residual, residual)
 
     phi_d = np.asarray(phi_d)
     # print(self.dpred[0])

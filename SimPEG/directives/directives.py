@@ -2345,22 +2345,22 @@ class UpdatePreconditioner(InversionDirective):
         regDiag = np.zeros_like(self.invProb.model)
         m = self.invProb.model
 
-        for reg in self.reg.objfcts:
+        for multiplier, reg in self.reg:
             # Check if regularization has a projection
             rdg = reg.deriv2(m)
             if not isinstance(rdg, Zero):
-                regDiag += rdg.diagonal()
+                regDiag += multiplier * rdg.diagonal()
 
         JtJdiag = np.zeros_like(self.invProb.model)
-        for sim, dmisfit in zip(self.simulation, self.dmisfit.objfcts):
+        for sim, (multiplier, dmisfit) in zip(self.simulation, self.dmisfit):
             if getattr(sim, "getJtJdiag", None) is None:
                 assert getattr(sim, "getJ", None) is not None, (
                     "Simulation does not have a getJ attribute."
                     + "Cannot form the sensitivity explicitly"
                 )
-                JtJdiag += np.sum(np.power((dmisfit.W * sim.getJ(m)), 2), axis=0)
+                JtJdiag += multiplier * np.sum(np.power((dmisfit.W * sim.getJ(m)), 2), axis=0)
             else:
-                JtJdiag += dmisfit.getJtJdiag(m)
+                JtJdiag += multiplier * dmisfit.getJtJdiag(m)
 
         diagA = JtJdiag + self.invProb.beta * regDiag
         diagA[diagA != 0] = diagA[diagA != 0] ** -1.0
@@ -2377,20 +2377,20 @@ class UpdatePreconditioner(InversionDirective):
         regDiag = np.zeros_like(self.invProb.model)
         m = self.invProb.model
 
-        for reg in self.reg.objfcts:
-            # Check if he has wire
-            regDiag += reg.deriv2(m).diagonal()
+        for multiplier, reg in self.reg:
+            # Check if regularization has a projection
+            regDiag += multiplier * reg.deriv2(m).diagonal()
 
         JtJdiag = np.zeros_like(self.invProb.model)
-        for sim, dmisfit in zip(self.simulation, self.dmisfit.objfcts):
+        for sim, (multiplier, dmisfit) in zip(self.simulation, self.dmisfit):
             if getattr(sim, "getJtJdiag", None) is None:
                 assert getattr(sim, "getJ", None) is not None, (
                     "Simulation does not have a getJ attribute."
                     + "Cannot form the sensitivity explicitly"
                 )
-                JtJdiag += np.sum(np.power((dmisfit.W * sim.getJ(m)), 2), axis=0)
+                JtJdiag += multiplier * np.sum(np.power((dmisfit.W * sim.getJ(m)), 2), axis=0)
             else:
-                JtJdiag += dmisfit.getJtJdiag(m)
+                JtJdiag += multiplier * dmisfit.getJtJdiag(m)
 
         diagA = JtJdiag + self.invProb.beta * regDiag
         diagA[diagA != 0] = diagA[diagA != 0] ** -1.0
@@ -2731,16 +2731,16 @@ class UpdateSensitivityWeights(InversionDirective):
         jtj_diag = np.zeros_like(self.invProb.model)
         m = self.invProb.model
 
-        for sim, dmisfit in zip(self.simulation, self.dmisfit.objfcts):
+        for sim, (multiplier, dmisfit) in zip(self.simulation, self.dmisfit):
             if getattr(sim, "getJtJdiag", None) is None:
                 if getattr(sim, "getJ", None) is None:
                     raise AttributeError(
                         "Simulation does not have a getJ attribute."
                         + "Cannot form the sensitivity explicitly"
                     )
-                jtj_diag += mkvc(np.sum((dmisfit.W * sim.getJ(m)) ** 2.0, axis=0))
+                jtj_diag += multiplier * mkvc(np.sum((dmisfit.W * sim.getJ(m)) ** 2.0, axis=0))
             else:
-                jtj_diag += dmisfit.getJtJdiag(m)
+                jtj_diag += multiplier * dmisfit.getJtJdiag(m)
 
 
         # Compute and sum root-mean squared sensitivities for all objective functions
