@@ -3,7 +3,7 @@ import scipy.sparse as sp
 
 from .base import BaseSimilarityMeasure
 from ..utils import validate_type
-
+from ..utils.mat_utils import coterminal
 
 ###############################################################################
 #                                                                             #
@@ -24,10 +24,11 @@ class CrossGradient(BaseSimilarityMeasure):
 
     """
 
-    def __init__(self, mesh, wire_map, approx_hessian=True, **kwargs):
+    def __init__(self, mesh, wire_map, approx_hessian=True, normalize=False, **kwargs):
         super().__init__(mesh, wire_map=wire_map, **kwargs)
         self.approx_hessian = approx_hessian
-
+        self._units = ["metric", "metric"]
+        self.normalize = normalize
         regmesh = self.regularization_mesh
 
         if regmesh.mesh.dim not in (2, 3):
@@ -47,6 +48,31 @@ class CrossGradient(BaseSimilarityMeasure):
     @approx_hessian.setter
     def approx_hessian(self, value):
         self._approx_hessian = validate_type("approx_hessian", value, bool)
+
+    def _model_gradients(self, models):
+        """
+        Compute gradient on faces
+        """
+        gradients = []
+        for unit, wire in zip(self.units, self.wire_map):
+            model = wire * models
+            if unit == "radian":
+                gradient = []
+                components = "xyz" if self.regularization_mesh.dim == 3 else "xy"
+                for comp in components:
+                    distances = getattr(self.regularization_mesh, f"cell_distances_{comp}")
+                    cell_grad = getattr(
+                        self.regularization_mesh, f"cell_gradient_{comp}"
+                    )
+                    gradient.append(coterminal(cell_grad * model * distances) / distances)
+
+                gradient = np.hstack(gradient) / np.pi
+            else:
+                gradient = self._G @ model
+
+            gradients.append(gradient)
+
+        return gradients
 
     def _calculate_gradient(self, model, normalized=False, rtol=1e-6):
         """
@@ -69,17 +95,24 @@ class CrossGradient(BaseSimilarityMeasure):
         if regmesh.dim == 3:
             Avs.append(regmesh.aveFz2CC)
         Av = sp.block_diag(Avs)
-        gradient = (Av @ (self._G @ model)).reshape((-1, regmesh.dim), order="F")
 
-        if normalized:
-            norms = np.linalg.norm(gradient, axis=-1)
-            ind = norms <= norms.max() * rtol
-            norms[ind] = 1.0
-            gradient /= norms[:, None]
-            gradient[ind] = 0.0
-            # set gradient to 0 if amplitude of gradient is extremely small
+        # Compute the gradients and concatenate components.
+        grad_models = self._model_gradients(model)
 
-        return gradient
+        gradients = []
+        for gradient in grad_models:
+            gradient = (Av @ (gradient)).reshape((-1, regmesh.dim), order="F")
+
+            if normalized:
+                norms = np.linalg.norm(gradient, axis=-1)
+                ind = norms <= norms.max() * rtol
+                norms[ind] = 1.0
+                gradient /= norms[:, None]
+                gradient[ind] = 0.0
+                # set gradient to 0 if amplitude of gradient is extremely small
+            gradients.append(gradient)
+
+        return gradients
 
     def calculate_cross_gradient(self, model, normalized=False, rtol=1e-6):
         """
@@ -100,10 +133,8 @@ class CrossGradient(BaseSimilarityMeasure):
         cross_grad : numpy.ndarray
             The norm of the cross gradient vector in each active cell.
         """
-        m1, m2 = (wire * model for wire in self.wire_map)
         # Compute the gradients and concatenate components.
-        grad_m1 = self._calculate_gradient(m1, normalized=normalized, rtol=rtol)
-        grad_m2 = self._calculate_gradient(m2, normalized=normalized, rtol=rtol)
+        grad_m1, grad_m2 = self._calculate_gradient(model, normalized=normalized, rtol=rtol)
 
         # for each model cell, compute the cross product of the gradient vectors.
         cross_prod = np.cross(grad_m1, grad_m2)
@@ -135,11 +166,11 @@ class CrossGradient(BaseSimilarityMeasure):
         (optional strategy, not used in this script)
 
         """
-        m1, m2 = (wire * model for wire in self.wire_map)
+        # m1, m2 = (wire * model for wire in self.wire_map)
         Av = self._Av
         G = self._G
-        g_m1 = G @ m1
-        g_m2 = G @ m2
+        g_m1, g_m2 = self._model_gradients(model)
+
         return 0.5 * np.sum(
             (Av @ g_m1**2) * (Av @ g_m2**2) - (Av @ (g_m1 * g_m2)) ** 2
         )
@@ -154,12 +185,9 @@ class CrossGradient(BaseSimilarityMeasure):
         :return: result: gradient of the cross-gradient with respect to model1, model2
 
         """
-        m1, m2 = (wire * model for wire in self.wire_map)
-
         Av = self._Av
         G = self._G
-        g_m1 = G @ m1
-        g_m2 = G @ m2
+        g_m1, g_m2 = self._model_gradients(model)
 
         return self.wire_map_deriv.T * np.r_[
             (((Av @ g_m2**2) @ Av) * g_m1) @ G
@@ -181,13 +209,9 @@ class CrossGradient(BaseSimilarityMeasure):
                 Hessian multiplied by vector if v is not No
 
         """
-        m1, m2 = (wire * model for wire in self.wire_map)
-
         Av = self._Av
         G = self._G
-
-        g_m1 = G @ m1
-        g_m2 = G @ m2
+        g_m1, g_m2 = self._model_gradients(model)
 
         if v is None:
             A = (
