@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import warnings
 import os
 import scipy.sparse as sp
+
 from ..data_misfit import BaseDataMisfit
 from ..objective_function import ComboObjectiveFunction
 from ..maps import IdentityMap, SphericalSystem, Wires
@@ -29,8 +30,11 @@ from ..utils import (
     cartesian2spherical,
     Zero,
     eigenvalue_by_power_iteration,
-    validate_string,
+    validate_string
 )
+
+from SimPEG.utils.mat_utils import cartesian2amplitude_dip_azimuth
+
 from ..utils.code_utils import (
     deprecate_property,
     validate_type,
@@ -2240,20 +2244,14 @@ class Update_IRLS(InversionDirective):
         different block of models
         """
         # Currently implemented for MVI-S only
-        max_p = []
-        for reg in self.reg.objfcts[0].objfcts:
-            f_m = abs(reg.f_m(reg.model))
-            max_p += [np.max(f_m)]
+        for reg in self.reg.objfcts:
+            if hasattr(reg, "units") and reg.units == "amplitude":
+                max_amp = abs(reg.objfcts[0].f_m(self.invProb.model)).max()
 
-        max_p = np.asarray(max_p).max()
-
-        max_s = [np.pi, np.pi]
-
-        for reg, var in zip(self.reg.objfcts[1:], max_s):
-            for obj in reg.objfcts:
-                # TODO Need to make weights_shapes a public method
-                obj.set_weights(
-                    angle_scale=np.ones(obj._weights_shapes[0]) * max_p / var
+        for reg in self.reg.objfcts:
+            if hasattr(reg, "units") and reg.units == "radian":
+                reg.set_weights(
+                    angle_scale=np.ones(reg.mapping.shape[0]) * max_amp / np.pi
                 )
 
     def validate(self, directiveList):
@@ -2843,13 +2841,17 @@ class ProjectSphericalBounds(InversionDirective):
     def endIter(self):
 
         x = self.invProb.model
-        nC = int(len(x) / 3)
 
-        # Convert to cartesian than back to avoid over rotation
-        xyz = spherical2cartesian(x.reshape((nC, 3), order="F"))
-        m = cartesian2spherical(xyz.reshape((nC, 3), order="F"))
-
-        self.invProb.model = m
+        for misfit in self.dmisfit.objfcts:
+            if hasattr(misfit.simulation, "model_type") and misfit.simulation.model_type == "vector":
+                mapping = misfit.model_map.deriv(np.zeros(misfit.model_map.shape[1]))
+                indices = np.array(np.sum(mapping, axis=0)).flatten() > 0
+                nC = int(indices.sum() / 3)
+                vec = self.invProb.model[indices]
+                # Convert to cartesian than back to avoid over rotation
+                xyz = spherical2cartesian(vec.reshape((nC, 3), order="F"))
+                vec = cartesian2spherical(xyz.reshape((nC, 3), order="F"))
+                self.invProb.model[indices] = vec
 
         phi_m_last = []
         for reg in self.reg.objfcts:
@@ -2857,13 +2859,13 @@ class ProjectSphericalBounds(InversionDirective):
             phi_m_last += [reg(self.invProb.model)]
 
         self.invProb.phi_m_last = phi_m_last
-        self.opt.xc = m
+        self.opt.xc = self.invProb.model
 
         for misfit in self.dmisfit.objfcts:
             if getattr(misfit, "model_map", None) is not None:
-                misfit.simulation.model = misfit.model_map @ m
+                misfit.simulation.model = misfit.model_map @ self.invProb.model
             else:
-                misfit.simulation.model = m
+                misfit.simulation.model = self.invProb.model
 
 
 class SaveIterationsGeoH5(InversionDirective):
@@ -2903,7 +2905,6 @@ class SaveIterationsGeoH5(InversionDirective):
             self.write_update(self.opt.iter)
             self.save_log()
 
-
     def stack_channels(self, dpred: list):
         """
         Regroup channel values along rows.
@@ -2934,7 +2935,7 @@ class SaveIterationsGeoH5(InversionDirective):
                 if isinstance(directive, UpdateSensitivityWeights):
                     prop = self.reshape(np.sum(directive.JtJdiag, axis=0) ** 0.5)
         else:
-            prop = self.reshape(self.invProb.model)
+            prop = self.invProb.model
 
         # Apply transformations
         prop = prop.flatten()
@@ -3140,16 +3141,11 @@ class VectorInversion(InversionDirective):
     norms = []
     alphas = []
     cartesian_model = None
-    simulations = []
+    mappings = []
     regularization = []
 
-    def __init__(self, simulations: list, regularizations: list, **kwargs):
-        if not isinstance(simulations, list):
-            simulations = [simulations]
+    def __init__(self, simulations: list, regularizations: ComboObjectiveFunction, **kwargs):
         self.simulations = simulations
-
-        if not isinstance(regularizations, list):
-            regularizations = [regularizations]
         self.regularizations = regularizations
 
         set_kwargs(self, **kwargs)
@@ -3176,8 +3172,8 @@ class VectorInversion(InversionDirective):
 
         self.reference_model = reg.reference_model
 
-        for simulation in self.simulation:
-            if getattr(simulation, "coordinate_system", None) is not None:
+        for dmisfit in self.dmisfit.objfcts:
+            if getattr(dmisfit.simulation, "coordinate_system", None) is not None:
                 simulation.coordinate_system = self.mode
 
     def endIter(self):
@@ -3187,78 +3183,69 @@ class VectorInversion(InversionDirective):
             print("Switching MVI to spherical coordinates")
             self.mode = "spherical"
             self.cartesian_model = self.invProb.model
-            mstart = cartesian2spherical(
-                self.invProb.model.reshape((-1, 3), order="F")
+            model = self.invProb.model
+            vec_model = []
+            vec_ref = []
+            indices = []
+
+            for reg in self.regularizations.objfcts:
+                vec_model.append(reg.mapping * model)
+                vec_ref.append(reg.mapping * reg.reference_model)
+                mapping = reg.mapping.deriv(np.zeros(reg.mapping.shape[1]))
+                indices.append(np.where(np.sum(mapping, axis=0) > 0)[0])
+
+            indices = np.hstack(indices)
+            nC = mapping.shape[0]
+            vec_model = cartesian2spherical(
+                np.vstack(vec_model).T
             )
-            reference_model = cartesian2spherical(self.reference_model.reshape((-1, 3), order="F"))
+            vec_ref = cartesian2spherical(
+                np.vstack(vec_ref).T
+            ).flatten()
+            model[indices] = vec_model.flatten()
 
-            self.invProb.model = mstart
+            for ind, reg_fun in enumerate(self.regularizations.objfcts):
+                reg_fun.model = model
+                reg_fun.reference_model[indices] = vec_ref
+
+                if ind > 0:
+                    reg_fun.alpha_s = 0
+                    reg_fun.eps_q = np.pi
+                    reg_fun.units = "radian"
+                else:
+                    reg_fun.units = "amplitude"
+
+
             self.invProb.beta *= 2
-            self.opt.xc = mstart
-
-            nC = mstart.reshape((-1, 3)).shape[0]
-            self.opt.lower = np.kron(np.asarray([0, -np.inf, -np.inf]), np.ones(nC))
-            self.opt.upper[nC:] = np.inf
-            self.reg.reference_model = reference_model
-            self.reg.model = mstart
-
-            for regularization in self.regularizations:
-                for ind, reg_fun in enumerate(regularization.objfcts):
-                    if ind > 0:
-                        reg_fun.alpha_s = 0
-                        reg_fun.eps_q = np.pi
-                        reg_fun.units = "radian"
+            self.invProb.model = model
+            self.opt.xc = model
+            self.opt.lower[indices] = np.kron(np.asarray([0, -np.inf, -np.inf]), np.ones(nC))
+            self.opt.upper[indices[nC:]] = np.inf
 
             for simulation in self.simulations:
-                if getattr(simulation, "model_type", None) == "vector":
-                    simulation.chiMap = SphericalSystem() * simulation.chiMap
+                simulation.chiMap = SphericalSystem() * simulation.chiMap
 
-            # Add directives
-            directiveList = []
-            sens_w = UpdateSensitivityWeights()
-            irls = Update_IRLS()
-            jacobi = UpdatePreconditioner()
+            # Add and update directives
             for directive in self.inversion.directiveList.dList:
                 if isinstance(directive, SaveIterationsGeoH5):
-                    for comp in directive.components:
-                        channels = []
-                        for channel in directive.channels:
-                            channels.append(channel + "_s")
-                            directive.data_type[comp][channel + "_s"] = directive.data_type[comp][
-                                channel
-                            ]
-
-                    directive.channels = channels
-
-                    if directive.attribute_type == "model":
+                    if (
+                        directive.attribute_type == "model"
+                        and cartesian2amplitude_dip_azimuth in directive.transforms
+                    ):
                         directive.transforms = (
-                            [spherical2cartesian] +
-                            directive.transforms
+                            [directive.transforms[0], spherical2cartesian] +
+                            directive.transforms[1:]
                         )
-
-                    directiveList.append(directive)
 
                 elif isinstance(directive, Update_IRLS):
                     directive.sphericalDomain = True
-                    directive.model = mstart
+                    directive.model = model
                     directive.coolingFactor = 1.5
-                    irls = directive
 
-                elif isinstance(directive, UpdatePreconditioner):
-                    jacobi = directive
                 elif isinstance(directive, UpdateSensitivityWeights):
-                    sens_w = directive
-                    sens_w.everyIter = True
-                else:
-                    directiveList.append(directive)
+                    directive.everyIter = True
 
-            directiveList = [
-                ProjectSphericalBounds(),
-                irls,
-                sens_w,
-                jacobi,
-            ] + directiveList
-
+            directiveList = [ProjectSphericalBounds()] + self.inversion.directiveList.dList
             self.inversion.directiveList = directiveList
 
             for directive in directiveList:
