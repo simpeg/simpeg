@@ -20,6 +20,7 @@ from ..regularization import (
     SmoothnessFirstOrder,
     SparseSmoothness,
     BaseSimilarityMeasure,
+    CrossGradient
 )
 from ..utils import (
     mkvc,
@@ -2740,7 +2741,6 @@ class UpdateSensitivityWeights(InversionDirective):
             else:
                 jtj_diag += multiplier * dmisfit.getJtJdiag(m)
 
-
         # Compute and sum root-mean squared sensitivities for all objective functions
         wr = np.zeros_like(self.invProb.model)
         for reg in self.reg.objfcts:
@@ -2819,16 +2819,12 @@ class ProjectSphericalBounds(InversionDirective):
     back and forth conversion.
     spherical->cartesian->spherical
     """
-
     def initialize(self):
-
         x = self.invProb.model
         # Convert to cartesian than back to avoid over rotation
         nC = int(len(x) / 3)
-
         xyz = spherical2cartesian(x.reshape((nC, 3), order="F"))
         m = cartesian2spherical(xyz.reshape((nC, 3), order="F"))
-
         self.invProb.model = m
         self.opt.xc = m
 
@@ -2845,8 +2841,8 @@ class ProjectSphericalBounds(InversionDirective):
         for misfit in self.dmisfit.objfcts:
             if hasattr(misfit.simulation, "model_type") and misfit.simulation.model_type == "vector":
                 mapping = misfit.model_map.deriv(np.zeros(misfit.model_map.shape[1]))
-                indices = np.array(np.sum(mapping, axis=0)).flatten() > 0
-                nC = int(indices.sum() / 3)
+                indices = mapping.indices #np.array(np.sum(mapping, axis=0)).flatten() > 0
+                nC = int(len(indices) / 3)
                 vec = self.invProb.model[indices]
                 # Convert to cartesian than back to avoid over rotation
                 xyz = spherical2cartesian(vec.reshape((nC, 3), order="F"))
@@ -2874,7 +2870,6 @@ class SaveIterationsGeoH5(InversionDirective):
     """
 
     def __init__(self, h5_object, **kwargs):
-
         self.data_type = {}
         self._association = None
         self.attribute_type = "model"
@@ -3187,12 +3182,11 @@ class VectorInversion(InversionDirective):
             vec_model = []
             vec_ref = []
             indices = []
-
             for reg in self.regularizations.objfcts:
                 vec_model.append(reg.mapping * model)
                 vec_ref.append(reg.mapping * reg.reference_model)
                 mapping = reg.mapping.deriv(np.zeros(reg.mapping.shape[1]))
-                indices.append(np.where(np.sum(mapping, axis=0) > 0)[0])
+                indices.append(mapping.indices)
 
             indices = np.hstack(indices)
             nC = mapping.shape[0]
@@ -3204,6 +3198,7 @@ class VectorInversion(InversionDirective):
             ).flatten()
             model[indices] = vec_model.flatten()
 
+            angle_map = []
             for ind, reg_fun in enumerate(self.regularizations.objfcts):
                 reg_fun.model = model
                 reg_fun.reference_model[indices] = vec_ref
@@ -3212,10 +3207,23 @@ class VectorInversion(InversionDirective):
                     reg_fun.alpha_s = 0
                     reg_fun.eps_q = np.pi
                     reg_fun.units = "radian"
+                    angle_map.append(reg_fun.mapping)
                 else:
                     reg_fun.units = "amplitude"
 
 
+            # Turn of cross-gradient on angles
+            multipliers = []
+            for mult, reg in self.reg:
+
+                if isinstance(reg, CrossGradient):
+                    for wire in reg.wire_map:
+                        if wire in angle_map:
+                            mult = 0
+
+                multipliers.append(mult)
+
+            self.reg.multipliers = multipliers
             self.invProb.beta *= 2
             self.invProb.model = model
             self.opt.xc = model
@@ -3228,14 +3236,17 @@ class VectorInversion(InversionDirective):
             # Add and update directives
             for directive in self.inversion.directiveList.dList:
                 if isinstance(directive, SaveIterationsGeoH5):
+                    transforms = []
                     if (
                         directive.attribute_type == "model"
                         and cartesian2amplitude_dip_azimuth in directive.transforms
                     ):
-                        directive.transforms = (
-                            [directive.transforms[0], spherical2cartesian] +
-                            directive.transforms[1:]
-                        )
+                        for fun in directive.transforms:
+                            if fun is cartesian2amplitude_dip_azimuth:
+                                transforms += [spherical2cartesian]
+                            transforms += [fun]
+
+                        directive.transforms = transforms
 
                 elif isinstance(directive, Update_IRLS):
                     directive.sphericalDomain = True
@@ -3251,3 +3262,5 @@ class VectorInversion(InversionDirective):
             for directive in directiveList:
                 if not isinstance(directive, SaveIterationsGeoH5):
                     directive.endIter()
+
+
