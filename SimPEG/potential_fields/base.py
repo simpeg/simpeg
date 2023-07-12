@@ -239,7 +239,7 @@ class BasePFSimulation(LinearSimulation):
                 rows = self.evaluate_integral(*args)
                 n_c = rows.shape[0]
                 id1 = id0 + n_c
-                kernel[id0:id1] = rows.astype(dtype)
+                kernel[id0:id1] = rows.astype(dtype, copy=False)
                 id0 = id1
         else:
             # multiprocessed
@@ -250,7 +250,7 @@ class BasePFSimulation(LinearSimulation):
                 ):
                     n_c = rows.shape[0]
                     id1 = id0 + n_c
-                    kernel[id0:id1] = rows.astype(dtype)
+                    kernel[id0:id1] = rows.astype(dtype, copy=False)
                     id0 = id1
 
         # if self.store_sensitivities != "forward_only":
