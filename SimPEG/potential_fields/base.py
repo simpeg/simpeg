@@ -166,7 +166,7 @@ class BasePFSimulation(LinearSimulation):
         numpy.float32 or numpy.float64
             The dtype used to store the sensitivity matrix
         """
-        if self.forward_only:
+        if self.store_sensitivities == "forward_only":
             return np.float64
         return self._sensitivity_dtype
 
