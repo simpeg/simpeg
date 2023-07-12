@@ -46,7 +46,7 @@ class Simulation3DIntegral(BasePFSimulation):
             # Compute the linear operation without forming the full dense G
             fields = mkvc(self.linear_operator())
         else:
-            fields = self.G @ (self.rho).astype(np.float32)
+            fields = self.G @ (self.rho).astype(self.sensitivity_dtype)
 
         return np.asarray(fields)
 
@@ -80,13 +80,13 @@ class Simulation3DIntegral(BasePFSimulation):
         Sensitivity times a vector
         """
         dmu_dm_v = self.rhoDeriv @ v
-        return self.G @ dmu_dm_v.astype(np.float32)
+        return self.G @ dmu_dm_v.astype(self.sensitivity_dtype)
 
     def Jtvec(self, m, v, f=None):
         """
         Sensitivity transposed times a vector
         """
-        Jtvec = self.G.T @ v.astype(np.float32)
+        Jtvec = self.G.T @ v.astype(self.sensitivity_dtype)
         return np.asarray(self.rhoDeriv.T @ Jtvec)
 
     @property

@@ -108,7 +108,7 @@ class Simulation3DIntegral(BasePFSimulation):
         if self.store_sensitivities == "forward_only":
             fields = mkvc(self.linear_operator())
         else:
-            fields = np.asarray(self.G @ self.chi.astype(np.float32))
+            fields = np.asarray(self.G @ self.chi.astype(self.sensitivity_dtype))
 
         if self.is_amplitude_data:
             fields = self.compute_amplitude(fields)
@@ -182,7 +182,7 @@ class Simulation3DIntegral(BasePFSimulation):
         self.model = m
         dmu_dm_v = self.chiDeriv @ v
 
-        Jvec = self.G @ dmu_dm_v.astype(np.float32)
+        Jvec = self.G @ dmu_dm_v.astype(self.sensitivity_dtype)
 
         if self.is_amplitude_data:
             # dask doesn't support an "order" argument to reshape...
@@ -199,13 +199,13 @@ class Simulation3DIntegral(BasePFSimulation):
             v = self.ampDeriv * v
             # dask doesn't support and "order" argument to reshape...
             v = v.T.reshape(-1)  # .reshape(-1, order="F")
-        Jtvec = self.G.T @ v.astype(np.float32)
+        Jtvec = self.G.T @ v.astype(self.sensitivity_dtype)
         return np.asarray(self.chiDeriv.T @ Jtvec)
 
     @property
     def ampDeriv(self):
         if getattr(self, "_ampDeriv", None) is None:
-            fields = np.asarray(self.G.dot(self.chi).astype(np.float32))
+            fields = np.asarray(self.G.dot(self.chi).astype(self.sensitivity_dtype))
             self._ampDeriv = self.normalized_fields(fields)
 
         return self._ampDeriv

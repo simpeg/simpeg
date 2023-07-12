@@ -83,9 +83,10 @@ def test_ana_grav_forward(tmp_path):
         + prism_2.gravitational_field(locXyz)
         + prism_3.gravitational_field(locXyz)
     ) * 1e5  # convert to mGal from m/s^2
-    np.testing.assert_allclose(d_x, d[:, 0], rtol=1e-10, atol=1e-14)
-    np.testing.assert_allclose(d_y, d[:, 1], rtol=1e-10, atol=1e-14)
-    np.testing.assert_allclose(d_z, d[:, 2], rtol=1e-10, atol=1e-14)
+    d = d.astype(np.float32)
+    np.testing.assert_allclose(d_x, d[:, 0], rtol=1e-9, atol=1e-6)
+    np.testing.assert_allclose(d_y, d[:, 1], rtol=1e-9, atol=1e-6)
+    np.testing.assert_allclose(d_z, d[:, 2], rtol=1e-9, atol=1e-6)
 
 
 def test_ana_gg_forward():
