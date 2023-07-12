@@ -2922,7 +2922,7 @@ class SaveIterationsGeoH5(InversionDirective):
                 self.invProb.dpred = dpred
 
             if self.joint_index is not None:
-                dpred = self.invProb.dpred[self.joint_index]
+                dpred = [dpred[ind] for ind in self.joint_index]
 
             prop = self.stack_channels(dpred)
         elif self.attribute_type == "sensitivities":
@@ -3043,10 +3043,10 @@ class SaveIterationsGeoH5(InversionDirective):
         return self._joint_index
 
     @joint_index.setter
-    def joint_index(self, value: int):
+    def joint_index(self, value: list[int]):
 
-        if not isinstance(value, int):
-            raise TypeError("Input 'joint_index' should be of type int")
+        if not isinstance(value, list):
+            raise TypeError("Input 'joint_index' should be a list of int")
 
         self._joint_index = value
 
