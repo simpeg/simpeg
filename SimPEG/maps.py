@@ -6085,7 +6085,7 @@ class TileMap(IdentityMap):
                 [
                     sdiag(1.0 / np.sum(projection, axis=1)) * projection
                     for ii in range(self.components)
-                ]
+                ], format="csr"
             )
 
         return self._projection
