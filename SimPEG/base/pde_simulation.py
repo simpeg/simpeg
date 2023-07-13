@@ -821,12 +821,7 @@ class BaseConductancePDESimulation(BaseElectricalPDESimulation):
                 self._clear_on_tau_update +
                 self._clear_on_kappa_update +
                 self._clear_on_kappai_update +
-                [
-                    "__MeSigmaTauKappa",
-                    "__MeSigmaTauKappaI",
-                    "__MeSigmaTauKappaDeriv",
-                    # "__MeSigmaTauKappaIDeriv"
-                ]
+                ["__MeSigmaTauKappa", "__MeSigmaTauKappaI"]
             )
             for mat in mat_list:
                 if hasattr(self, mat):
@@ -850,17 +845,6 @@ class BaseConductancePDESimulation(BaseElectricalPDESimulation):
         """Only derivative wrt to tau at the moment"""
         return self._MeTauDeriv(u, v, adjoint)
 
-
-
-        # if getattr(self, "__MeSigmaTauKappaDeriv", None) is None:
-        #     M_prop_deriv = getattr(self, "__Me_tau_deriv")
-        #     setattr(
-        #         self, "__MeSigmaTauKappaDeriv", __inner_mat_mul_op(
-        #             M_prop_deriv, u, v=v, adjoint=adjoint
-        #         )
-        #     )
-        # return getattr(self, "__MeSigmaTauKappaDeriv")
-
     def _MeSigmaTauKappaIDeriv(self, u, v=None, adjoint=False):
         """Only derivative wrt to tau at the moment"""
         if getattr(self, "tauMap") is None:
@@ -871,10 +855,6 @@ class BaseConductancePDESimulation(BaseElectricalPDESimulation):
         MI_prop = self._MeSigmaTauKappaI
         u = MI_prop @ (MI_prop @ -u)
         return self._MeTauDeriv(u, v, adjoint)
-
-
-        # M_prop_deriv = getattr(self, "__Me_tau_deriv")
-        # return M_prop_deriv(u, v, adjoint=adjoint)
 
 
     @property
@@ -891,11 +871,6 @@ class BaseConductancePDESimulation(BaseElectricalPDESimulation):
                 self._clear_on_tau_update +
                 self._clear_on_kappa_update +
                 self._clear_on_kappai_update +
-                [
-                    "__MeSigmaTauKappa",
-                    "__MeSigmaTauKappaI",
-                    "__MeSigmaTauKappaDeriv",
-                    # "__MeSigmaTauKappaIDeriv"
-                ]
+                ["__MeSigmaTauKappa", "__MeSigmaTauKappaI"]
             )
         return toDelete
