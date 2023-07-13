@@ -2742,37 +2742,38 @@ class UpdateSensitivityWeights(InversionDirective):
                 jtj_diag += multiplier * dmisfit.getJtJdiag(m)
 
         # Compute and sum root-mean squared sensitivities for all objective functions
-        wr = np.zeros_like(self.invProb.model)
+        weights = np.zeros_like(self.invProb.model)
         for reg in self.reg.objfcts:
             if not isinstance(reg, BaseSimilarityMeasure):
-                wr += reg.mapping.deriv(self.invProb.model).T * (
+                wr = reg.mapping.deriv(self.invProb.model).T * (
                     (reg.mapping * jtj_diag) / reg.regularization_mesh.vol**2.0
-                )
+                ) ** 0.5
 
-        wr **= 0.5
+                # Apply thresholding
+                if self.threshold_method == "global":
+                    wr += self.threshold_value
+                elif self.threshold_method == "percentile":
+                    wr = np.clip(
+                        wr, a_min=np.percentile(wr, self.threshold_value), a_max=np.inf
+                    )
+                else:
+                    wr = np.clip(wr, a_min=self.threshold_value * wr.max(), a_max=np.inf)
 
-        # Apply thresholding
-        if self.threshold_method == "global":
-            wr += self.threshold_value
-        elif self.threshold_method == "percentile":
-            wr = np.clip(
-                wr, a_min=np.percentile(wr, self.threshold_value), a_max=np.inf
-            )
-        else:
-            wr = np.clip(wr, a_min=self.threshold_value * wr.max(), a_max=np.inf)
+                weights += wr ** 2.
 
+        weights **= 0.5
         # Apply normalization
         if self.normalization_method == "maximum":
-            wr /= wr.max()
+            weights /= weights.max()
         elif self.normalization_method == "minimum":
-            wr /= wr.min()
+            weights /= weights.min()
 
         # Add sensitivity weighting to all model objective functions
         for reg in self.reg.objfcts:
             if not isinstance(reg, BaseSimilarityMeasure):
                 sub_regs = getattr(reg, "objfcts", [reg])
                 for sub_reg in sub_regs:
-                    sub_reg.set_weights(sensitivity=sub_reg.mapping * wr)
+                    sub_reg.set_weights(sensitivity=sub_reg.mapping * weights)
 
     def validate(self, directiveList):
         """Validate directive against directives list.
