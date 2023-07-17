@@ -1,4 +1,5 @@
 import unittest
+import pytest
 import discretize
 from SimPEG import maps
 from SimPEG.potential_fields import gravity
@@ -68,6 +69,11 @@ def test_ana_grav_forward(tmp_path):
         sensitivity_path=str(tmp_path) + os.sep,
     )
 
+    with pytest.raises(TypeError):
+        sim.sensitivity_dtype = float
+
+    assert sim.sensitivity_dtype is np.float32
+
     data = sim.dpred(model_reduced)
     d_x = data[0::3]
     d_y = data[1::3]
@@ -83,9 +89,10 @@ def test_ana_grav_forward(tmp_path):
         + prism_2.gravitational_field(locXyz)
         + prism_3.gravitational_field(locXyz)
     ) * 1e5  # convert to mGal from m/s^2
-    np.testing.assert_allclose(d_x, d[:, 0], rtol=1e-10, atol=1e-14)
-    np.testing.assert_allclose(d_y, d[:, 1], rtol=1e-10, atol=1e-14)
-    np.testing.assert_allclose(d_z, d[:, 2], rtol=1e-10, atol=1e-14)
+    d = d.astype(sim.sensitivity_dtype)
+    np.testing.assert_allclose(d_x, d[:, 0], rtol=1e-9, atol=1e-6)
+    np.testing.assert_allclose(d_y, d[:, 1], rtol=1e-9, atol=1e-6)
+    np.testing.assert_allclose(d_z, d[:, 2], rtol=1e-9, atol=1e-6)
 
 
 def test_ana_gg_forward():
@@ -150,6 +157,9 @@ def test_ana_gg_forward():
         store_sensitivities="forward_only",
         n_processes=None,
     )
+
+    # forward only should default to np.float64
+    assert sim.sensitivity_dtype is np.float64
 
     data = sim.dpred(model_reduced)
     d_xx = data[0::6]

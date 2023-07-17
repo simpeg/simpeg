@@ -2,14 +2,20 @@
 from SimPEG import mkvc
 from numpy.lib import recfunctions as recFunc
 from .data_utils import rec_to_ndarr
+from discretize.utils import requires
 
 # Import modules
 import numpy as np
 import os
 import re
-import utm
+
+try:
+    import utm
+except ImportError:
+    utm = False
 
 
+@requires({"utm": utm})
 class EDIimporter:
     """
     A class to import EDIfiles.
@@ -86,7 +92,7 @@ class EDIimporter:
             # Find the location
             latD, longD, elevM = _findLatLong(EDIlines)
             # Transfrom coordinates
-            transCoord = self._transfromPoints(longD, latD)
+            transCoord = utm.from_latlon(latD, longD)
             # Extract the name of the file (station)
             EDIname = EDIfile.split(os.sep)[-1].split(".")[0]
             # Arrange the data
@@ -127,37 +133,6 @@ class EDIimporter:
 
         # Assign the data
         self._data = outTemp
-
-    # % Assign the data to the obj
-    # nOutData=length(obj.data);
-    # obj.data(nOutData+1:nOutData+length(TEMP.data),:) = TEMP.data;
-    def _transfromPoints(self, longD, latD):
-        # Import the coordinate projections
-        # try:
-        #     import osr
-        # except ImportError as e:
-        #     print(
-        #         (
-        #             "Could not import osr, missing the gdal"
-        #             + "package\nCan not project coordinates"
-        #         )
-        #     )
-        #     raise e
-        # # Coordinates convertor
-        # if self._2out is None:
-        #     src = osr.SpatialReference()
-        #     src.ImportFromEPSG(4326)
-        #     out = osr.SpatialReference()
-        #     if self._outEPSG is None:
-        #         # Find the UTM EPSG number
-        #         Nnr = 700 if latD < 0.0 else 600
-        #         utmZ = int(1 + (longD + 180.0) / 6.0)
-        #         self._outEPSG = 32000 + Nnr + utmZ
-        #     out.ImportFromEPSG(self._outEPSG)
-        #     self._2out = osr.CoordinateTransformation(src, out)
-        # # Return the transfrom
-        # return self._2out.TransformPoint(longD, latD)
-        return utm.from_latlon(latD, longD)
 
 
 # Hidden functions
