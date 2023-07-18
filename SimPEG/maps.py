@@ -3314,6 +3314,7 @@ class InjectActiveCells(IdentityMap):
             return self.P * v
         return self.P
 
+
 class InjectActiveFaces(IdentityMap):
     r"""Map active faces model to all faces of a mesh.
 

@@ -966,7 +966,9 @@ class Simulation3DElectricField(BaseTDEMSimulation):
 
 
 # ------------------------------- Simulation3DElectricField ------------------------------- #
-class Simulation3DMagneticFluxDensityConductance(Simulation3DMagneticFluxDensity, BaseConductancePDESimulation):
+class Simulation3DMagneticFluxDensityConductance(
+    Simulation3DMagneticFluxDensity, BaseConductancePDESimulation
+):
     r"""
     Starting from the quasi-static E-B formulation of Maxwell's equations
     (semi-discretized)
@@ -1149,9 +1151,15 @@ class Simulation3DMagneticFluxDensityConductance(Simulation3DMagneticFluxDensity
             if isinstance(s_e, Zero):
                 MeSigmaTauKappaIDerivT_v = Zero()
             else:
-                MeSigmaTauKappaIDerivT_v = self._MeSigmaTauKappaIDeriv(s_e, C.T * v, adjoint)
+                MeSigmaTauKappaIDerivT_v = self._MeSigmaTauKappaIDeriv(
+                    s_e, C.T * v, adjoint
+                )
 
-            RHSDeriv = MeSigmaTauKappaIDerivT_v + s_eDeriv(MeSigmaTauKappaI.T * (C.T * v)) + s_mDeriv(v)
+            RHSDeriv = (
+                MeSigmaTauKappaIDerivT_v
+                + s_eDeriv(MeSigmaTauKappaI.T * (C.T * v))
+                + s_mDeriv(v)
+            )
 
             return RHSDeriv
 
@@ -1160,7 +1168,11 @@ class Simulation3DMagneticFluxDensityConductance(Simulation3DMagneticFluxDensity
         else:
             MeSigmaTauKappaIDeriv_v = self._MeSigmaTauKappaIDeriv(s_e, v, adjoint)
 
-        RHSDeriv = C * MeSigmaTauKappaIDeriv_v + C * MeSigmaTauKappaI * s_eDeriv(v) + s_mDeriv(v)
+        RHSDeriv = (
+            C * MeSigmaTauKappaIDeriv_v
+            + C * MeSigmaTauKappaI * s_eDeriv(v)
+            + s_mDeriv(v)
+        )
 
         if self._makeASymmetric is True:
             return self.MfMui.T * RHSDeriv
@@ -1168,8 +1180,9 @@ class Simulation3DMagneticFluxDensityConductance(Simulation3DMagneticFluxDensity
 
 
 # ------------------------------- Simulation3DElectricField ------------------------------- #
-class Simulation3DElectricFieldConductance(Simulation3DElectricField, BaseConductancePDESimulation):
-
+class Simulation3DElectricFieldConductance(
+    Simulation3DElectricField, BaseConductancePDESimulation
+):
     fieldsPair = Fields3DElectricFieldConductance
 
     def __init__(self, mesh, survey=None, dt_threshold=1e-8, **kwargs):
@@ -1244,7 +1257,6 @@ class Simulation3DElectricFieldConductance(Simulation3DElectricField, BaseConduc
         return -1.0 / dt * self._MeSigmaTauKappaDeriv(u, v, adjoint)
 
     def getAdc(self):
-        
         # MeSigmaTauKappa = self.MeSigma + self._MeTau + self._MeKappa
         MeSigmaTauKappa = self._MeSigmaTauKappa
 

@@ -853,11 +853,11 @@ class BaseConductancePDESimulation(BaseElectricalPDESimulation):
         rhoMap=None,
         tau=None,
         tauMap=None,
-        kappa=0.,
+        kappa=0.0,
         kappaMap=None,
         kappai=None,
         kappaiMap=None,
-        **kwargs
+        **kwargs,
     ):
         super().__init__(mesh=mesh, **kwargs)
         self.sigma = sigma
@@ -875,12 +875,12 @@ class BaseConductancePDESimulation(BaseElectricalPDESimulation):
         super().__setattr__(name, value)
         if name in ["sigma", "rho", "tau", "kappa", "kappai"]:
             mat_list = (
-                self._clear_on_sigma_update +
-                self._clear_on_rho_update +
-                self._clear_on_tau_update +
-                self._clear_on_kappa_update +
-                self._clear_on_kappai_update +
-                ["__MeSigmaTauKappa", "__MeSigmaTauKappaI"]
+                self._clear_on_sigma_update
+                + self._clear_on_rho_update
+                + self._clear_on_tau_update
+                + self._clear_on_kappa_update
+                + self._clear_on_kappai_update
+                + ["__MeSigmaTauKappa", "__MeSigmaTauKappaI"]
             )
             for mat in mat_list:
                 if hasattr(self, mat):
@@ -915,21 +915,24 @@ class BaseConductancePDESimulation(BaseElectricalPDESimulation):
         u = MI_prop @ (MI_prop @ -u)
         return self._MeTauDeriv(u, v, adjoint)
 
-
     @property
     def deleteTheseOnModelUpdate(self):
         """
         items to be deleted if the model for conductance or resistance per meter is updated
         """
         toDelete = super().deleteTheseOnModelUpdate
-        if self.tauMap is not None or self.kappaMap is not None or self.kappaiMap is not None:
+        if (
+            self.tauMap is not None
+            or self.kappaMap is not None
+            or self.kappaiMap is not None
+        ):
             toDelete = (
-                toDelete +
-                self._clear_on_sigma_update +
-                self._clear_on_rho_update +
-                self._clear_on_tau_update +
-                self._clear_on_kappa_update +
-                self._clear_on_kappai_update +
-                ["__MeSigmaTauKappa", "__MeSigmaTauKappaI"]
+                toDelete
+                + self._clear_on_sigma_update
+                + self._clear_on_rho_update
+                + self._clear_on_tau_update
+                + self._clear_on_kappa_update
+                + self._clear_on_kappai_update
+                + ["__MeSigmaTauKappa", "__MeSigmaTauKappaI"]
             )
         return toDelete
