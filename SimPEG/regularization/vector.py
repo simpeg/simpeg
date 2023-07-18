@@ -94,7 +94,7 @@ class CrossReferenceRegularization(Smallness, BaseVectorRegularization):
 
     .. math::
         \phi (\vec{m}) \approx \frac{1}{2} \sum_i \tilde{w}_i \, \cdot \,
-        \Big [ \vec{m}_i \, \times \, \vec{m}_i^{(ref)} \Big ]^2
+        \Big | \vec{m}_i \, \times \, \vec{m}_i^{(ref)} \Big |^2
 
     where :math:`\tilde{m}_i \in \mathbf{m}` are the model vectors at cell centers and
     :math:`\tilde{w}_i \in \mathbf{\tilde{w}}` are amalgamated weighting constants that 1) account
