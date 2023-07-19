@@ -19,7 +19,7 @@ class BaseRegularization(BaseObjectiveFunction):
     """Base regularization class.
 
     The ``BaseRegularization`` class defines properties and methods inherited by
-    SimPEG regularization classes. It is not directly used to constrain inversions.
+    SimPEG regularization classes, and is not directly used to construct inversions.
 
     Parameters
     ----------
@@ -174,12 +174,12 @@ class BaseRegularization(BaseObjectiveFunction):
 
     @property
     def mapping(self) -> maps.IdentityMap:
-        """Mapping from the model to the regularization mesh.
+        """Mapping from the inversion model parameters to the regularization mesh.
 
         Returns
         -------
         SimPEG.maps.BaseMap
-            The mapping from the model parameters to the quantity defined on the
+            The mapping from the inversion model parameters to the quantity defined on the
             :py:class:`~.regularization.RegularizationMesh`.
         """
         return self._mapping

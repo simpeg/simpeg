@@ -293,7 +293,7 @@ class PGIsmallness(Smallness):
 
         Returns
         -------
-        int
+        tuple of int
             Number of model parameters.
         """
         return (self.wiresmap.nP,)

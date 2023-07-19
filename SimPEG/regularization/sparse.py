@@ -69,8 +69,9 @@ class BaseSparse(BaseRegularization):
         """Scale IRLS weights.
 
         When ``True``, scaling is applied when computing IRLS weights.
-        The scaling acts to preserve the balance between the data misfit and objective functions
-        in the regularization, and improves convergence by ensuring the model does not deviate
+        The scaling acts to preserve the balance between the data misfit and the components of
+        the regularization based on the derivative of the l2-norm measure. And it assists the
+        convergence by ensuring the model does not deviate
         aggressively from the global 2-norm solution during the first few IRLS iterations.
         For a comprehensive description, see the documentation for :py:meth:`get_lp_weights` .
 
@@ -167,8 +168,9 @@ class BaseSparse(BaseRegularization):
 
         :math:`\boldsymbol{\lambda}` applies optional scaling to the IRLS weights
         (when the `irls_scaled` property is ``True``).
-        The scaling acts to preserve the balance between the data misfit and objective functions
-        in the regularization, and improves convergence by ensuring the model does not deviate
+        The scaling acts to preserve the balance between the data misfit and the components of
+        the regularization based on the derivative of the l2-norm measure. And it assists the
+        convergence by ensuring the model does not deviate
         aggressively from the global 2-norm solution during the first few IRLS iterations.
 
         To apply elementwise scaling, let
@@ -371,8 +373,9 @@ class SparseSmallness(BaseSparse, Smallness):
 
         :math:`\boldsymbol{\lambda}` applies optional scaling to the IRLS weights
         (when the `irls_scaled` property is ``True``).
-        The scaling acts to preserve the balance between the data misfit and objective functions
-        in the regularization, and improves convergence by ensuring the model does not deviate
+        The scaling acts to preserve the balance between the data misfit and the components of
+        the regularization based on the derivative of the l2-norm measure. And it assists the
+        convergence by ensuring the model does not deviate
         aggressively from the global 2-norm solution during the first few IRLS iterations.
 
         To compute the scaling, let
@@ -626,8 +629,9 @@ class SparseSmoothness(BaseSparse, SmoothnessFirstOrder):
 
         :math:`\boldsymbol{\lambda}` applies optional scaling to the IRLS weights
         (when the `irls_scaled` property is ``True``).
-        The scaling acts to preserve the balance between the data misfit and objective functions
-        in the regularization, and improves convergence by ensuring the model does not deviate
+        The scaling acts to preserve the balance between the data misfit and the components of
+        the regularization based on the derivative of the l2-norm measure. And it assists the
+        convergence by ensuring the model does not deviate
         aggressively from the global 2-norm solution during the first few IRLS iterations.
 
         To apply the scaling, let
