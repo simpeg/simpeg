@@ -9,6 +9,6 @@ Here you'll find instructions on getting up and running with ``SimPEG``.
 .. toctree::
   :maxdepth: 2
 
-  basic/big_picture
-  basic/installing
-  basic/contributing/index.rst
+  big_picture
+  installing
+  contributing/index.rst

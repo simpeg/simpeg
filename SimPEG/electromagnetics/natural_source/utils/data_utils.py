@@ -7,7 +7,6 @@ import SimPEG as simpeg
 from SimPEG.electromagnetics.natural_source.survey import Survey, Data
 from SimPEG.electromagnetics.natural_source.receivers import (
     PointNaturalSource,
-    PointNaturalSource,
     Point3DTipper,
 )
 from SimPEG.electromagnetics.natural_source.sources import PlanewaveXYPrimary

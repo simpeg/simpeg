@@ -5,7 +5,7 @@
     :hidden:
     :titlesonly:
 
-    content/getting_started
+    content/getting_started/index
     content/user_guide
     content/api/index
     content/release/index

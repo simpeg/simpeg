@@ -267,10 +267,6 @@ update_IRLS = directives.Update_IRLS(
     beta_tol=1e-2,
 )
 
-# Defining the fractional decrease in beta and the number of Gauss-Newton solves
-# for each beta value.
-beta_schedule = directives.BetaSchedule(coolingFactor=5, coolingRate=1)
-
 # Options for outputting recovered models and predicted data for each beta.
 save_iteration = directives.SaveOutputEveryIteration(save_txt=False)
 
@@ -285,7 +281,6 @@ directives_list = [
     update_IRLS,
     sensitivity_weights,
     starting_beta,
-    beta_schedule,
     save_iteration,
     update_jacobi,
 ]

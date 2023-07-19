@@ -4,8 +4,8 @@ First of all, we are glad you are here! We welcome contributions and input
 from the community.
 
 You can find guidelines on how to contribute to SimPEG in the [Contributing to
-SimPEG](https://docs.simpeg.xyz/content/basic/contributing/index.html) section
-of our documentation.
+SimPEG](https://docs.simpeg.xyz/content/getting_started/contributing/index.html)
+section of our documentation.
 
 
 ## Licensing
