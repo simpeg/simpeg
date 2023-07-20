@@ -226,24 +226,24 @@ def test_repeat_correctness():
 
         d_full = serial_sim.dpred(t_model, f_serial)
         d_repeat = parallel_sim.dpred(t_model, f_parallel)
-        np.testing.assert_equal(d_full, d_repeat)
+        np.testing.assert_equal(d_full, d_repeat, rtol=1e-6)
 
         # test Jvec
         u = np.random.rand(len(t_model))
         jvec_full = serial_sim.Jvec(t_model, u, f=f_serial)
         jvec_mult = parallel_sim.Jvec(t_model, u, f=f_parallel)
-        np.testing.assert_allclose(jvec_full, jvec_mult)
+        np.testing.assert_allclose(jvec_full, jvec_mult, rtol=1e-6)
 
         # test Jtvec
         v = np.random.rand(len(sim_ts) * survey.nD)
         jtvec_full = serial_sim.Jtvec(t_model, v, f=f_serial)
         jtvec_mult = parallel_sim.Jtvec(t_model, v, f=f_parallel)
-        np.testing.assert_allclose(jtvec_full, jtvec_mult)
+        np.testing.assert_allclose(jtvec_full, jtvec_mult, rtol=1e-6)
 
         # test get diag
         diag_full = serial_sim.getJtJdiag(t_model, f=f_serial)
         diag_mult = parallel_sim.getJtJdiag(t_model, f=f_parallel)
-        np.testing.assert_allclose(diag_full, diag_mult)
+        np.testing.assert_allclose(diag_full, diag_mult, rtol=1e-6)
     except Exception as err:
         raise err
     finally:

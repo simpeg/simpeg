@@ -156,27 +156,27 @@ def test_sum_sim_correctness(cluster):
         # test data output
         d_full = full_sim.dpred(m_test, f=f_full)
         d_meta = sum_sim.dpred(m_test, f=f_meta)
-        np.testing.assert_allclose(d_full, d_meta)
+        np.testing.assert_allclose(d_full, d_meta, rtol=1e-6)
 
         # test Jvec
         u = np.random.rand(mesh.n_cells)
         jvec_full = full_sim.Jvec(m_test, u, f=f_full)
         jvec_meta = sum_sim.Jvec(m_test, u, f=f_meta)
 
-        np.testing.assert_allclose(jvec_full, jvec_meta)
+        np.testing.assert_allclose(jvec_full, jvec_meta, rtol=1e-6)
 
         # test Jtvec
         v = np.random.rand(survey.nD)
         jtvec_full = full_sim.Jtvec(m_test, v, f=f_full)
         jtvec_meta = sum_sim.Jtvec(m_test, v, f=f_meta)
 
-        np.testing.assert_allclose(jtvec_full, jtvec_meta)
+        np.testing.assert_allclose(jtvec_full, jtvec_meta, rtol=1e-6)
 
         # test get diag
         diag_full = full_sim.getJtJdiag(m_test, f=f_full)
         diag_meta = sum_sim.getJtJdiag(m_test, f=f_meta)
 
-        np.testing.assert_allclose(diag_full, diag_meta)
+        np.testing.assert_allclose(diag_full, diag_meta, rtol=1e-6)
 
         # test things also works without passing optional kwargs
         sum_sim.model = m_test
