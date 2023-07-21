@@ -8,6 +8,8 @@ import pytest
 
 from SimPEG.meta import (
     MetaSimulation,
+    SumMetaSimulation,
+    RepeatedSimulation,
     DaskMetaSimulation,
     DaskSumMetaSimulation,
     DaskRepeatedSimulation,
@@ -25,7 +27,7 @@ def cluster():
     dask_cluster.close()
 
 
-def test_dask_meta_correctness(cluster):
+def test_meta_correctness(cluster):
     with Client(cluster) as client:
         mesh = TensorMesh([16, 16, 16], origin="CCN")
 
@@ -59,11 +61,11 @@ def test_dask_meta_correctness(cluster):
             )
             mappings.append(maps.IdentityMap())
 
-        meta_sim = MetaSimulation(sims, mappings)
+        serial_sim = MetaSimulation(sims, mappings)
         dask_sim = DaskMetaSimulation(sims, mappings, client)
 
         # test fields objects
-        f_meta = meta_sim.fields(m_test)
+        f_meta = serial_sim.fields(m_test)
         f_dask = dask_sim.fields(m_test)
         # Can't serialize DC nodal fields here, so can't directly test them.
         # sol_meta = np.concatenate([f[:, "phiSolution"] for f in f_meta], axis=1)
@@ -71,26 +73,26 @@ def test_dask_meta_correctness(cluster):
         # np.testing.assert_allclose(sol_meta, sol_dask)
 
         # test data output
-        d_meta = meta_sim.dpred(m_test, f=f_meta)
+        d_meta = serial_sim.dpred(m_test, f=f_meta)
         d_dask = dask_sim.dpred(m_test, f=f_dask)
         np.testing.assert_allclose(d_dask, d_meta)
 
         # test Jvec
         u = np.random.rand(mesh.n_cells)
-        jvec_meta = meta_sim.Jvec(m_test, u, f=f_meta)
+        jvec_meta = serial_sim.Jvec(m_test, u, f=f_meta)
         jvec_dask = dask_sim.Jvec(m_test, u, f=f_dask)
 
         np.testing.assert_allclose(jvec_dask, jvec_meta)
 
         # test Jtvec
-        v = np.random.rand(meta_sim.survey.nD)
-        jtvec_meta = meta_sim.Jtvec(m_test, v, f=f_meta)
+        v = np.random.rand(serial_sim.survey.nD)
+        jtvec_meta = serial_sim.Jtvec(m_test, v, f=f_meta)
         jtvec_dask = dask_sim.Jtvec(m_test, v, f=f_dask)
 
         np.testing.assert_allclose(jtvec_dask, jtvec_meta)
 
         # test get diag
-        diag_meta = meta_sim.getJtJdiag(m_test, f=f_meta)
+        diag_meta = serial_sim.getJtJdiag(m_test, f=f_meta)
         diag_dask = dask_sim.getJtJdiag(m_test, f=f_dask)
 
         np.testing.assert_allclose(diag_dask, diag_meta)
@@ -116,24 +118,21 @@ def test_dask_meta_correctness(cluster):
 def test_sum_sim_correctness(cluster):
     with Client(cluster) as client:
         mesh = TensorMesh([16, 16, 16], origin="CCN")
-
+        # Create gravity sum sims
         rx_locs = np.mgrid[-0.25:0.25:5j, -0.25:0.25:5j, 0:1:1j].reshape(3, -1).T
         rx = gravity.Point(rx_locs, components=["gz"])
         survey = gravity.Survey(gravity.SourceField(rx))
-        full_sim = gravity.Simulation3DIntegral(
-            mesh, survey=survey, rhoMap=maps.IdentityMap(), n_processes=1
-        )
 
         mesh_bot = TensorMesh([mesh.h[0], mesh.h[1], mesh.h[2][:8]], origin=mesh.origin)
         mesh_top = TensorMesh(
             [mesh.h[0], mesh.h[1], mesh.h[2][8:]], origin=["C", "C", mesh.nodes_z[8]]
         )
 
-        mappings = [
+        g_mappings = [
             maps.Mesh2Mesh((mesh_bot, mesh)),
             maps.Mesh2Mesh((mesh_top, mesh)),
         ]
-        sims = [
+        g_sims = [
             gravity.Simulation3DIntegral(
                 mesh_bot, survey=survey, rhoMap=maps.IdentityMap(), n_processes=1
             ),
@@ -142,55 +141,56 @@ def test_sum_sim_correctness(cluster):
             ),
         ]
 
-        sum_sim = DaskSumMetaSimulation(sims, mappings, client)
+        serial_sim = SumMetaSimulation(g_sims, g_mappings)
+        parallel_sim = DaskSumMetaSimulation(g_sims, g_mappings, client)
 
         m_test = np.arange(mesh.n_cells) / mesh.n_cells + 0.1
 
         # test fields objects
-        f_full = full_sim.fields(m_test)
-        f_meta = sum_sim.fields(m_test)
+        f_full = serial_sim.fields(m_test)
+        f_meta = parallel_sim.fields(m_test)
         # Again don't serialize and collect the fields on the main
         # process directly.
         # np.testing.assert_allclose(f_full, sum(f_meta))
 
         # test data output
-        d_full = full_sim.dpred(m_test, f=f_full)
-        d_meta = sum_sim.dpred(m_test, f=f_meta)
+        d_full = serial_sim.dpred(m_test, f=f_full)
+        d_meta = parallel_sim.dpred(m_test, f=f_meta)
         np.testing.assert_allclose(d_full, d_meta, rtol=1e-6)
 
         # test Jvec
         u = np.random.rand(mesh.n_cells)
-        jvec_full = full_sim.Jvec(m_test, u, f=f_full)
-        jvec_meta = sum_sim.Jvec(m_test, u, f=f_meta)
+        jvec_full = serial_sim.Jvec(m_test, u, f=f_full)
+        jvec_meta = parallel_sim.Jvec(m_test, u, f=f_meta)
 
         np.testing.assert_allclose(jvec_full, jvec_meta, rtol=1e-6)
 
         # test Jtvec
         v = np.random.rand(survey.nD)
-        jtvec_full = full_sim.Jtvec(m_test, v, f=f_full)
-        jtvec_meta = sum_sim.Jtvec(m_test, v, f=f_meta)
+        jtvec_full = serial_sim.Jtvec(m_test, v, f=f_full)
+        jtvec_meta = parallel_sim.Jtvec(m_test, v, f=f_meta)
 
         np.testing.assert_allclose(jtvec_full, jtvec_meta, rtol=1e-6)
 
         # test get diag
-        diag_full = full_sim.getJtJdiag(m_test, f=f_full)
-        diag_meta = sum_sim.getJtJdiag(m_test, f=f_meta)
+        diag_full = serial_sim.getJtJdiag(m_test, f=f_full)
+        diag_meta = parallel_sim.getJtJdiag(m_test, f=f_meta)
 
         np.testing.assert_allclose(diag_full, diag_meta, rtol=1e-6)
 
         # test things also works without passing optional kwargs
-        sum_sim.model = m_test
-        d_meta2 = sum_sim.dpred()
+        parallel_sim.model = m_test
+        d_meta2 = parallel_sim.dpred()
         np.testing.assert_allclose(d_meta, d_meta2)
 
-        jvec_meta2 = sum_sim.Jvec(m_test, u)
+        jvec_meta2 = parallel_sim.Jvec(m_test, u)
         np.testing.assert_allclose(jvec_meta, jvec_meta2)
 
-        jtvec_meta2 = sum_sim.Jtvec(m_test, v)
+        jtvec_meta2 = parallel_sim.Jtvec(m_test, v)
         np.testing.assert_allclose(jtvec_meta, jtvec_meta2)
 
-        sum_sim._jtjdiag = None
-        diag_meta2 = sum_sim.getJtJdiag(m_test)
+        parallel_sim._jtjdiag = None
+        diag_meta2 = parallel_sim.getJtJdiag(m_test)
         np.testing.assert_allclose(diag_meta, diag_meta2)
 
 
@@ -199,70 +199,52 @@ def test_repeat_sim_correctness(cluster):
         # meta sim is tested for correctness
         # so can test the repeat against the meta sim
         mesh = TensorMesh([8, 8, 8], origin="CCN")
-
         rx_locs = np.mgrid[-0.25:0.25:5j, -0.25:0.25:5j, 0:1:1j].reshape(3, -1).T
         rx = gravity.Point(rx_locs, components=["gz"])
         survey = gravity.Survey(gravity.SourceField(rx))
-        sim = gravity.Simulation3DIntegral(
+        grav_sim = gravity.Simulation3DIntegral(
             mesh, survey=survey, rhoMap=maps.IdentityMap(), n_processes=1
         )
 
-        time_mesh = TensorMesh(
-            [
-                8,
-            ],
-            origin=[
-                0,
-            ],
-        )
+        time_mesh = TensorMesh([8], origin=[0])
         sim_ts = np.linspace(0, 1, 6)
 
-        mappings = []
-        simulations = []
+        repeat_mappings = []
         eye = sp.eye(mesh.n_cells, mesh.n_cells)
         for t in sim_ts:
-            ave_time = time_mesh.get_interpolation_matrix(
-                [
-                    t,
-                ]
-            )
+            ave_time = time_mesh.get_interpolation_matrix([t])
             ave_full = sp.kron(ave_time, eye, format="csr")
-            mappings.append(maps.LinearMap(ave_full))
-            simulations.append(
-                gravity.Simulation3DIntegral(
-                    mesh, survey=survey, rhoMap=maps.IdentityMap(), n_processes=1
-                )
-            )
+            repeat_mappings.append(maps.LinearMap(ave_full))
 
-        meta_sim = MetaSimulation(simulations, mappings)
-        repeat_sim = DaskRepeatedSimulation(sim, mappings, client)
+        serial_sim = RepeatedSimulation(grav_sim, repeat_mappings)
+        parallel_sim = DaskRepeatedSimulation(grav_sim, repeat_mappings, client)
 
         model = np.random.rand(time_mesh.n_cells, mesh.n_cells).reshape(-1)
 
         # test field things
-        f_full = meta_sim.fields(model)
-        f_meta = repeat_sim.fields(model)
+        f_full = serial_sim.fields(model)
+        f_meta = parallel_sim.fields(model)
         # np.testing.assert_equal(np.c_[f_full], np.c_[f_meta])
 
-        d_full = meta_sim.dpred(model, f_full)
-        d_repeat = repeat_sim.dpred(model, f_meta)
+        d_full = serial_sim.dpred(model, f_full)
+        d_repeat = parallel_sim.dpred(model, f_meta)
         np.testing.assert_equal(d_full, d_repeat)
 
         # test Jvec
         u = np.random.rand(len(model))
-        jvec_full = meta_sim.Jvec(model, u, f=f_full)
-        jvec_meta = repeat_sim.Jvec(model, u, f=f_meta)
+        jvec_full = serial_sim.Jvec(model, u, f=f_full)
+        jvec_meta = parallel_sim.Jvec(model, u, f=f_meta)
         np.testing.assert_allclose(jvec_full, jvec_meta)
 
         # test Jtvec
         v = np.random.rand(len(sim_ts) * survey.nD)
-        jtvec_full = meta_sim.Jtvec(model, v, f=f_full)
-        jtvec_meta = repeat_sim.Jtvec(model, v, f=f_meta)
+        jtvec_full = serial_sim.Jtvec(model, v, f=f_full)
+        jtvec_meta = parallel_sim.Jtvec(model, v, f=f_meta)
         np.testing.assert_allclose(jtvec_full, jtvec_meta)
 
         # test get diag
-        diag_full = meta_sim.getJtJdiag(model, f=f_full)
-        diag_meta = repeat_sim.getJtJdiag(model, f=f_meta)
+        diag_full = serial_sim.getJtJdiag(model, f=f_full)
+        diag_meta = parallel_sim.getJtJdiag(model, f=f_meta)
         np.testing.assert_allclose(diag_full, diag_meta)
 
 

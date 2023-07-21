@@ -19,35 +19,42 @@ def _store_model(mapping, sim, model):
 
 
 def _calc_fields(mapping, sim, model, apply_map=False):
-    if apply_map:
-        sim.model = mapping @ model
-    return sim.fields(m=sim.model)
+    if apply_map and model is not None:
+        return sim.fields(m=mapping @ model)
+    else:
+        return sim.fields(m=sim.model)
 
 
 def _calc_dpred(mapping, sim, model, field, apply_map=False):
-    if apply_map:
-        sim.model = mapping @ model
-    return sim.dpred(m=sim.model, f=field)
+    if apply_map and model is not None:
+        return sim.dpred(m=mapping @ model)
+    else:
+        return sim.dpred(m=sim.model, f=field)
 
 
 def _j_vec_op(mapping, sim, model, field, v, apply_map=False):
-    if apply_map is not None:
-        sim.model = mapping @ model
     sim_v = mapping.deriv(model) @ v
-    return sim.Jvec(sim.model, sim_v, f=field)
+    if apply_map:
+        return sim.Jvec(mapping @ model, sim_v, f=field)
+    else:
+        return sim.Jvec(sim.model, sim_v, f=field)
 
 
 def _jt_vec_op(mapping, sim, model, field, v, apply_map=False):
-    if apply_map is not None:
-        sim.model = mapping @ model
-    return mapping.deriv(model).T @ sim.Jtvec(sim.model, v, f=field)
+    if apply_map:
+        jtv = sim.Jtvec(mapping @ model, v, f=field)
+    else:
+        jtv = sim.Jtvec(sim.model, v, f=field)
+    return mapping.deriv(model).T @ jtv
 
 
 def _get_jtj_diag(mapping, sim, model, field, w, apply_map=False):
-    if apply_map is not None:
-        sim.model = mapping @ model
     w = sp.diags(w)
-    sim_jtj = sp.diags(np.sqrt(sim.getJtJdiag(sim.model, w, f=field)))
+    if apply_map:
+        jtj = sim.getJtJdiag(mapping @ model, w, f=field)
+    else:
+        jtj = sim.getJtJdiag(sim.model, w, f=field)
+    sim_jtj = sp.diags(np.sqrt(jtj))
     m_deriv = mapping.deriv(model)
     return np.asarray((sim_jtj @ m_deriv).power(2).sum(axis=0)).flatten()
 
