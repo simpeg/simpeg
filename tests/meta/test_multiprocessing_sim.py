@@ -226,7 +226,7 @@ def test_repeat_correctness():
 
         d_full = serial_sim.dpred(t_model, f_serial)
         d_repeat = parallel_sim.dpred(t_model, f_parallel)
-        np.testing.assert_equal(d_full, d_repeat, rtol=1e-6)
+        np.testing.assert_allclose(d_full, d_repeat, rtol=1e-6)
 
         # test Jvec
         u = np.random.rand(len(t_model))
