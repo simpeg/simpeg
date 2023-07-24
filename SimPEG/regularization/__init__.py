@@ -2,143 +2,87 @@ r"""
 =============================================
 Regularization (:mod:`SimPEG.regularization`)
 =============================================
+
 .. currentmodule:: SimPEG.regularization
 
-If there is one model that has a misfit that equals the desired tolerance,
-then there are infinitely many other models which can fit to the same degree.
-The challenge is to find that model which has the desired characteristics and
-is compatible with a priori information. A single model can be selected from
-an infinite ensemble by measuring the length, or norm, of each model. Then a
-smallest, or sometimes largest, member can be isolated. Our goal is to design
-a norm that embodies our prior knowledge and, when minimized, yields a
-realistic candidate for the solution of our problem. The norm can penalize
-variation from a reference model, spatial derivatives of the model, or some
-combination of these.
+``Regularization`` classes are used to impose constraints on models recovered through geophysical
+inversion. Constraints may be straight forward, such as: requiring the recovered model be
+spatially smooth, or using a reference model to add a-priori information. Constraints may also
+be more sophisticated; e.g. cross-validation and petrophysically-guided regularization.
+In SimPEG, constraints on the recovered model can be defined using a single ``Regularization``
+object, or defined as a weighted sum of ``Regularization`` objects.
 
-WeightedLeastSquares Regularization
-===================================
+Basic Theory
+------------
 
-Here we will define regularization of a model, m, in general however, this
-should be thought of as (m-m_ref) but otherwise it is exactly the same:
+Most geophysical inverse problems suffer from non-uniqueness; i.e. there is an infinite number
+of models (:math:`m`) capable of reproducing the observed data to within a specified
+degree of uncertainty. The challenge is recovering a model which 1) reproduces the observed data,
+and 2) reasonably approximates the subsurface structures responsible for the observed geophysical
+response. To accomplish this, regularization is used to ensure the solution to the inverse
+problem is unique and is geologically plausible. The regularization applied to solve the inverse
+problem depends on user assumptions and a priori information.
 
-.. math::
-
-    R(m) =
-        \int_\Omega
-        \frac{\alpha_x}{2}
-            \left( \frac{\partial m}{\partial x} \right)^2
-        + \frac{\alpha_y}{2}
-            \left( \frac{\partial m}{\partial y} \right)^2
-        \partial v
-
-Our discrete gradient operator works on cell centers and gives the derivative
-on the cell faces, which is not where we want to be evaluating this integral.
-We need to average the values back to the cell-centers before we integrate. To
-avoid null spaces, we square first and then average. In 2D with ij notation it
-looks like this:
+SimPEG uses a deterministic inversion approach to recover an appropriate model.
+The algorithm does this by finding the model (:math:`m`) which minimizes a global objective
+function (or penalty function) of the form:
 
 .. math::
+    \phi (m) = \phi_d (m) + \beta \, \phi_m (m)
 
-    R(m) \approx
-        \sum_{ij}
-        \left[
-            \frac{\alpha_x}{2} \left[
-                \left( \frac{m_{i+1,j} - m_{i,j}}{h} \right)^2
-                + \left( \frac{m_{i,j} - m_{i-1,j}}{h} \right)^2
-            \right] \\
-            + \frac{\alpha_y}{2} \left[
-                \left( \frac{m_{i,j+1} - m_{i,j}}{h} \right)^2
-                + \left( \frac{m_{i,j} - m_{i,j-1}}{h} \right)^2
-            \right]
-        \right] h^2
-
-If we let D_1 be the derivative matrix in the x direction
+The global objective function contains two terms: a data misfit term :math:`\phi_d` which
+ensures data predicted by the recovered model adequately reproduces the observed data,
+and the model objective function :math:`\phi_m` which is comprised of one or more
+regularization functions (objective functions) :math:`\phi_i (m)`. I.e.:
 
 .. math::
+    \phi_m (m) = \sum_i \alpha_i \, \phi_i (m)
 
-    \mathbf{D}_1 = \mathbf{I}_2\otimes\mathbf{d}_1
+The model objective function imposes all the desired constraints on the recovered model.
+Constants :math:`\alpha_i` weight the relative contributions of the regularization
+functions comprising the model objective function. The trade-off parameter :math:`\beta`
+balances the relative contribution of the data misfit and regularization functions on the
+global objective function.
 
-.. math::
-
-    \mathbf{D}_2 = \mathbf{d}_2\otimes\mathbf{I}_1
-
-Where d_1 is the one dimensional derivative:
-
-.. math::
-
-    \mathbf{d}_1 = \frac{1}{h} \left[ \begin{array}{cccc}
-    -1 & 1 & & \\
-     & \ddots & \ddots&\\
-     &  & -1 & 1\end{array} \right]
+Regularization classes within SimPEG correspond to different regularization (objective)
+functions that can be used individually or combined to define the model objective function
+:math:`\phi_m (\mathbf{m})`. For example, a combination of regularization functions that ensures
+the values in the recovered model are not too large and are spatially smooth in the x and
+y-directions can be expressed as:
 
 .. math::
+    \phi_m (m) =
+    \alpha_s \! \int_\Omega \Bigg [ \frac{1}{2} w_s(r) \, m(r)^2 \Bigg ] \, dv +
+    \alpha_x \! \int_\Omega \Bigg [ \frac{1}{2} w_x(r)
+    \bigg ( \frac{\partial m}{\partial x} \bigg )^2 \Bigg ] \, dv +
+    \alpha_y \! \int_\Omega \Bigg [ \frac{1}{2} w_y(r)
+    \bigg ( \frac{\partial m}{\partial y} \bigg )^2 \Bigg ] \, dv
 
-    R(m) \approx
-        \mathbf{v}^\top \left[
-            \frac{\alpha_x}{2} \mathbf{A}_1 (\mathbf{D}_1 m) \odot (\mathbf{D}_1 m)
-            + \frac{\alpha_y}{2} \mathbf{A}_2 (\mathbf{D}_2 m) \odot (\mathbf{D}_2 m)
-        \right]
-
-Recall that this is really a just point wise multiplication, or a diagonal
-matrix times a vector. When we multiply by something in a diagonal we can
-interchange and it gives the same results (i.e. it is point wise)
-
-.. math::
-
-    \mathbf{a\odot b}
-        = \text{diag}(\mathbf{a})\mathbf{b}
-        = \text{diag}(\mathbf{b})\mathbf{a}
-        = \mathbf{b\odot a}
-
-and the transpose also is true (but the sizes have to make sense...):
+where :math:`w_s(r), w_x(r), w_y(r)` are user-defined weighting functions.
+For practical implementation within SimPEG, the regularization function and all its dependent
+variables are discretized to a numerical grid (or mesh). The model is therefore defined as a
+discrete set of model parameters :math:`\mathbf{m}`.
+And the regularization is implemented using a weighted sum of objective functions:
 
 .. math::
+    \phi_m (\mathbf{m}) \approx \frac{\alpha_s}{2} \big \| \mathbf{W_s m} \big \|^2 +
+    \frac{\alpha_x}{2} \big \| \mathbf{W_x G_x m} \big \|^2 +
+    \frac{\alpha_y}{2} \big \| \mathbf{W_y G_y m} \big \|^2
 
-    \mathbf{a}^\top\text{diag}(\mathbf{b}) = \mathbf{b}^\top\text{diag}(\mathbf{a})
-
-So R(m) can simplify to:
-
-.. math::
-
-    R(m) \approx
-        \mathbf{m}^\top \left[
-            \frac{\alpha_x}{2} \mathbf{D}_1^\top
-            \text{diag} (\mathbf{A}_1^\top \mathbf{v}) \mathbf{D}_1
-            + \frac{\alpha_y}{2} \mathbf{D}_2^\top
-            \text{diag} (\mathbf{A}_2^\top \mathbf{v}) \mathbf{D}_2
-        \right]
-        \mathbf{m}
-
-We will define W_x as:
-
-.. math::
-
-    \mathbf{W}_x =
-        \sqrt{\alpha_x}
-        \text{diag} \left(\sqrt{\mathbf{A}_1^\top\mathbf{v}}\right) \mathbf{D}_1
-
-
-And then W as a tall matrix of all of the different regularization terms:
-
-.. math::
-
-    \mathbf{W} = \left[ \begin{array}{c}
-    \mathbf{W}_s\\
-    \mathbf{W}_x\\
-    \mathbf{W}_y\end{array} \right]
-
-Then we can write
-
-.. math::
-
-    R(m) \approx \frac{1}{2}\mathbf{m^\top W^\top W m}
+where :math:`\mathbf{G_x}` and :math:`\mathbf{G_y}` are partial gradient operators along the x and
+y-directions, respectively. :math:`\mathbf{W_s}`, :math:`\mathbf{W_x}` and :math:`\mathbf{W_y}`
+are weighting matrices that apply user-defined weights and account for cell dimensions
+in the inversion mesh.
 
 
 The API
 =======
 
-Least Squares Regularizations
------------------------------
+Weighted Least Squares Regularization
+-------------------------------------
+Weighted least squares regularization functions are defined as weighted L2-norms on the model,
+its first-order directional derivative(s), or its second-order directional derivative(s).
+
 .. autosummary::
   :toctree: generated/
 
@@ -147,9 +91,11 @@ Least Squares Regularizations
   SmoothnessFirstOrder
   SmoothnessSecondOrder
 
-Sparse Regularizations
-----------------------
-We have also implemented several sparse regularizations with a variable norm.
+Sparse Norm Regularization
+--------------------------
+Sparse norm regularization allows for the recovery of compact and/or blocky structures.
+An iteratively re-weighted least-squares approach allows smallness and smoothness
+regularization functions to be defined using norms between 0 and 2.
 
 .. autosummary::
   :toctree: generated/
@@ -160,16 +106,20 @@ We have also implemented several sparse regularizations with a variable norm.
 
 Vector Regularizations
 ----------------------
-The regularizations are meant for models of vectors.
+Vector regularization allows for the recovery of vector models; that is, a model
+where the parameters for each cell define directional components of a vector quantity.
 
 .. autosummary::
   :toctree: generated/
 
   CrossReferenceRegularization
+  VectorAmplitude
+  AmplitudeSmallness
+  AmplitudeSmoothnessFirstOrder
 
 Joint Regularizations
 ---------------------
-There are several joint inversion regularizers available
+Regularization functions for joint inversion involving one or more physical properties.
 
 .. autosummary::
   :toctree: generated/
@@ -180,8 +130,11 @@ There are several joint inversion regularizers available
   PGIsmallness
   LinearCorrespondence
 
-Base Regularization classes
+Base Regularization Classes
 ---------------------------
+Base regularization classes. Inherited by other classes and not used directly
+to constrain inversions.
+
 .. autosummary::
   :toctree: generated/
 
@@ -190,6 +143,7 @@ Base Regularization classes
   BaseSimilarityMeasure
   BaseSparse
   BaseVectorRegularization
+  BaseAmplitude
 
 """
 from ..utils.code_utils import deprecate_class
@@ -211,6 +165,8 @@ from .vector import (
     BaseVectorRegularization,
     CrossReferenceRegularization,
     VectorAmplitude,
+    AmplitudeSmallness,
+    AmplitudeSmoothnessFirstOrder,
 )
 from .rotated import SmoothnessFullGradient
 

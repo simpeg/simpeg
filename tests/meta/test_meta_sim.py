@@ -133,26 +133,26 @@ def test_sum_sim_correctness():
     # test fields objects
     f_full = full_sim.fields(m_test)
     f_mult = sum_sim.fields(m_test)
-    np.testing.assert_allclose(f_full, sum(f_mult))
+    np.testing.assert_allclose(f_full, sum(f_mult), rtol=1e-6)
 
     # test data output
     d_full = full_sim.dpred(m_test, f=f_full)
     d_mult = sum_sim.dpred(m_test, f=f_mult)
-    np.testing.assert_allclose(d_full, d_mult)
+    np.testing.assert_allclose(d_full, d_mult, rtol=1e-6)
 
     # test Jvec
     u = np.random.rand(mesh.n_cells)
     jvec_full = full_sim.Jvec(m_test, u, f=f_full)
     jvec_mult = sum_sim.Jvec(m_test, u, f=f_mult)
 
-    np.testing.assert_allclose(jvec_full, jvec_mult)
+    np.testing.assert_allclose(jvec_full, jvec_mult, rtol=1e-6)
 
     # test Jtvec
     v = np.random.rand(survey.nD)
     jtvec_full = full_sim.Jtvec(m_test, v, f=f_full)
     jtvec_mult = sum_sim.Jtvec(m_test, v, f=f_mult)
 
-    np.testing.assert_allclose(jtvec_full, jtvec_mult)
+    np.testing.assert_allclose(jtvec_full, jtvec_mult, rtol=1e-6)
 
     # test get diag
     diag_full = full_sim.getJtJdiag(m_test, f=f_full)

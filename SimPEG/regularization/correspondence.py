@@ -7,15 +7,47 @@ from .base import BaseSimilarityMeasure
 
 
 class LinearCorrespondence(BaseSimilarityMeasure):
-    r"""
-    The petrophysical linear constraint for joint inversions.
+    r"""Linear correspondence regularization for joint inversion with two physical properties.
 
-    ..math::
+    ``LinearCorrespondence`` is used to recover a model where the differences between the model
+    parameter values for two physical property types are minimal. ``LinearCorrespondence``
+    can also be used to minimize the squared L2-norm of a linear combination of model parameters
+    for two physical property types. See the *Notes* section for a comprehensive description.
 
-        \phi_c({\mathbf m}_{\mathbf1},{\mathbf m}_{\mathbf2})
-        = \lambda\sum_{i=1}^M (k_1*m_1 + k_2*m_2 + k_3)
+    Parameters
+    ----------
+    mesh : SimPEG.regularization.RegularizationMesh, discretize.base.BaseMesh
+        Mesh on which the regularization is discretized. This is not necessarily
+        the same as the mesh on which the simulation is defined.
+    active_cells : None, (n_cells, ) numpy.ndarray of bool
+        Boolean array defining the set of :py:class:`~.regularization.RegularizationMesh`
+        cells that are active in the inversion. If ``None``, all cells are active.
+    wire_map : SimPEG.maps.Wires
+        Wire map connecting physical properties defined on active cells of the
+        :class:`RegularizationMesh`` to the entire model.
+    coefficients : None, (3) numpy.ndarray of float
+        Coefficients :math:`\{ \lambda_1, \lambda_2, \lambda_3 \}` for the linear relationship
+        between model parameters. If ``None``, the coefficients are set to
+        :math:`\{ 1, -1, 0 \}`.
 
-    Assuming that we are working with two models only.
+    Notes
+    -----
+    Let :math:`\mathbf{m}` be a discrete model consisting of two physical property types such that:
+
+    .. math::
+        \mathbf{m} = \begin{bmatrix} \mathbf{m_1} \\ \mathbf{m_2} \end{bmatrix}
+
+    Where :math:`\{ \lambda_1 , \lambda_2 , \lambda_3 \}` define scalar coefficients for a
+    linear combination of vectors :math:`\mathbf{m_1}` and :math:`\mathbf{m_2}`, the regularization
+    function (objective function) is given by:
+
+    .. math::
+        \phi (\mathbf{m})
+        = \frac{1}{2} \big \| \lambda_1 \mathbf{m_1} + \lambda_2 \mathbf{m_2} + \lambda_3 \big \|^2
+
+    Scalar coefficients :math:`\{ \lambda_1 , \lambda_2 , \lambda_3 \}` are set using the
+    `coefficients` property. For a true linear correspondence constraint, we set
+    :math:`\{ \lambda_1 , \lambda_2 , \lambda_3 \}` to :math:`\{ 1, -1, 0 \}`.
 
     """
 
@@ -27,11 +59,24 @@ class LinearCorrespondence(BaseSimilarityMeasure):
 
     @property
     def coefficients(self):
-        """coefficients for the linear relationship between parameters.
+        r"""Coefficients for the linear relationship between model parameters.
+
+        For a relation vector:
+
+        .. math::
+            \mathbf{f}(\mathbf{m}) = \lambda_1 \mathbf{m_1} + \lambda_2 \mathbf{m_2} + \lambda_3
+
+        where
+
+        .. math::
+            \mathbf{m} = \begin{bmatrix} \mathbf{m_1} \\ \mathbf{m_2} \end{bmatrix}
+
+        This property defines the coefficients :math:`\{ \lambda_1 , \lambda_2 , \lambda_3 \}`.
 
         Returns
         -------
-        (3) numpy.ndarray of float
+        (3, ) numpy.ndarray of float
+            Coefficients for the linear relationship between model parameters.
         """
         return self._coefficients
 
@@ -42,21 +87,28 @@ class LinearCorrespondence(BaseSimilarityMeasure):
         )
 
     def relation(self, model):
-        """
-        Computes the values of petrophysical linear relationship between two different
-        geophysical models.
+        r"""Computes the relation vector for the model provided.
 
-        The linear relationship is defined as:
+        For a model consisting of two physical properties such that:
 
-        f(m1, m2)  = k1*m1 + k2*m2 + k3
+        .. math::
+            \mathbf{m} = \begin{bmatrix} \mathbf{m_1} \\ \mathbf{m_2} \end{bmatrix}
 
-        :param numpy.ndarray model: stacked array of individual models
-                                    np.c_[model1, model2,...]
+        this method computer the relation vector for coefficients
+        :math:`\{ \lambda_1 , \lambda_2 , \lambda_3 \}` as follows:
 
-        :rtype: float
-        :return: linearly related petrophysical values of two different models,
-                  dimension: M by 1, :M number of model parameters.
+        .. math::
+            \mathbf{f}(\mathbf{m}) = \lambda_1 \mathbf{m_1} + \lambda_2 \mathbf{m_2} + \lambda_3
 
+        Parameters
+        ----------
+        model : (n_param, ) numpy.ndarray
+            The model for which the relation vector is evaluated.
+
+        Returns
+        -------
+        float
+            The relation vector for the model provided.
         """
         m1, m2 = self.wire_map * model
         k1, k2, k3 = self.coefficients
@@ -64,28 +116,49 @@ class LinearCorrespondence(BaseSimilarityMeasure):
         return k1 * m1 + k2 * m2 + k3
 
     def __call__(self, model):
-        """
-        Computes the sum of values of petrophysical linear relationship
-        between two different geophysical models.
+        """Evaluate the regularization function for the model provided.
 
-        :param numpy.ndarray model: stacked array of individual models
-                                    np.c_[model1, model2,...]
+        Parameters
+        ----------
+        model : (n_param, ) numpy.ndarray
+            The model for which the function is evaluated.
 
-        :rtype: float
-        :return: a scalar value.
+        Returns
+        -------
+        float
+            The regularization function evaluated for the model provided.
         """
 
         result = self.relation(model)
         return 0.5 * result.T @ result
 
     def deriv(self, model):
-        """Computes the Jacobian of the coupling term.
+        r"""Gradient of the regularization function evaluated for the model provided.
 
-        :param list of numpy.ndarray ind_models: [model1, model2,...]
+        Where :math:`\phi (\mathbf{m})` is the discrete regularization function (objective function),
+        this method evaluates and returns the derivative with respect to the model parameters;
+        i.e. the gradient. For a model :math:`\mathbf{m}` consisting of two physical properties
+        such that:
 
-        :rtype: numpy.ndarray
-        :return: result: gradient of the coupling term with respect to model1, model2,
-                 :dimension 2M by 1, :M number of model parameters.
+        .. math::
+            \mathbf{m} = \begin{bmatrix} \mathbf{m_1} \\ \mathbf{m_2} \end{bmatrix}
+
+        The gradient has the form:
+
+        .. math::
+            \frac{\partial \phi}{\partial \mathbf{m}} =
+            \begin{bmatrix} \dfrac{\partial \phi}{\partial \mathbf{m_1}} \\
+            \dfrac{\partial \phi}{\partial \mathbf{m_2}} \end{bmatrix}
+
+        Parameters
+        ----------
+        model : (n_param, ) numpy.ndarray
+            The model; a vector array containing all physical properties.
+
+        Returns
+        -------
+        (n_param, ) numpy.ndarray
+            Gradient of the regularization function evaluated for the model provided.
         """
         k1, k2, k3 = self.coefficients
         r = self.relation(model)
@@ -97,15 +170,46 @@ class LinearCorrespondence(BaseSimilarityMeasure):
         return result
 
     def deriv2(self, model, v=None):
-        """Computes the Hessian of the linear coupling term.
+        r"""Hessian of the regularization function evaluated for the model provided.
 
-        :param list of numpy.ndarray ind_models: [model1, model2, ...]
-        :param numpy.ndarray v: vector to be multiplied by Hessian
-        :rtype: scipy.sparse.csr_matrix if v is None
-                numpy.ndarray if v is not None
-        :return Hessian matrix: | h11, h21 | :dimension 2M*2M.
-                                |          |
-                                | h12, h22 |
+        Where :math:`\phi (\mathbf{m})` is the discrete regularization function (objective function),
+        this method evalutate and returns the second derivative (Hessian) with respect to the
+        model parameters. For a model :math:`\mathbf{m}` consisting of two physical properties
+        such that:
+
+        .. math::
+            \mathbf{m} = \begin{bmatrix} \mathbf{m_1} \\ \mathbf{m_2} \end{bmatrix}
+
+        The Hessian has the form:
+
+        .. math::
+            \frac{\partial^2 \phi}{\partial \mathbf{m}^2} =
+            \begin{bmatrix}
+            \dfrac{\partial \phi^2}{\partial \mathbf{m_1}^2} &
+            \dfrac{\partial \phi^2}{\partial \mathbf{m_1} \partial \mathbf{m_2}} \\
+            \dfrac{\partial \phi^2}{\partial \mathbf{m_2} \partial \mathbf{m_1}} &
+            \dfrac{\partial \phi^2}{\partial \mathbf{m_2}^2}
+            \end{bmatrix}
+
+        When a vector :math:`(\mathbf{v})` is supplied, the method returns the Hessian
+        times the vector:
+
+        .. math::
+            \frac{\partial^2 \phi}{\partial \mathbf{m}^2} \, \mathbf{v}
+
+        Parameters
+        ----------
+        model : (n_param, ) numpy.ndarray
+            The model; a vector array containing all physical properties.
+        v : None, (n_param, ) numpy.ndarray (optional)
+            A numpy array to model the Hessian by.
+
+        Returns
+        -------
+        (n_param, n_param) scipy.sparse.csr_matrix | (n_param, ) numpy.ndarray
+            If the input argument *v* is ``None``, the Hessian
+            for the models provided is returned. If *v* is not ``None``,
+            the Hessian multiplied by the vector provided is returned.
         """
 
         k1, k2, k3 = self.coefficients
