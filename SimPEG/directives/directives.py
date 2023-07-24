@@ -1765,7 +1765,9 @@ class SaveOutputEveryIteration(SaveEveryIteration):
         plot_small=False,
         plot_smooth=False,
     ):
-        self.target_misfit = self.invProb.dmisfit.simulation.survey.nD / 2.0
+        self.target_misfit = (
+            np.sum([dmis.nD for dmis in self.invProb.dmisfit.objfcts]) / 2.0
+        )
         self.i_target = None
 
         if self.invProb.phi_d < self.target_misfit:

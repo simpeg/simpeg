@@ -13,14 +13,120 @@ from ..utils import validate_type
 
 
 class CrossGradient(BaseSimilarityMeasure):
-    r"""
-    The cross-gradient constraint for joint inversions.
+    r"""Cross-gradient regularization for joint inversion.
 
-    ..math::
-        \phi_c(\mathbf{m_1},\mathbf{m_2}) = \lambda \sum_{i=1}^{M} \|
-        \nabla \mathbf{m_1}_i \times \nabla \mathbf{m_2}_i \|^2
+    ``CrossGradient`` regularization is used to ensure the location and orientation of non-zero
+    gradients in the recovered model are consistent across two physical property distributions.
+    For joint inversion involving three or more physical properties, a separate instance of
+    ``CrossGradient`` must be created for each physical property pair and added to the total
+    regularization as a weighted sum.
 
-    All methods assume that we are working with two models only.
+    Parameters
+    ----------
+    mesh : SimPEG.regularization.RegularizationMesh, discretize.base.BaseMesh
+        Mesh on which the regularization is discretized. This is not necessarily
+        the same as the mesh on which the simulation is defined.
+    active_cells : None, (n_cells, ) numpy.ndarray of bool
+        Boolean array defining the set of :py:class:`~.regularization.RegularizationMesh`
+        cells that are active in the inversion. If ``None``, all cells are active.
+    wire_map : SimPEG.maps.Wires
+        Wire map connecting physical properties defined on active cells of the
+        :class:`RegularizationMesh`` to the entire model.
+    reference_model : None, (n_param, ) numpy.ndarray
+        Reference model. If ``None``, the reference model in the inversion is set to
+        the starting model.
+    units : None, str
+        Units for the model parameters. Some regularization classes behave
+        differently depending on the units; e.g. 'radian'.
+    weights : None, dict
+        Weight multipliers to customize the least-squares function. Each key points to a (n_cells, )
+        numpy.ndarray that is defined on the :py:class:`~.regularization.RegularizationMesh`.
+    approx_hessian : bool
+        Whether to use the semi-positive definate approximation for the Hessian.
+
+    Notes
+    -----
+    Consider the case where the model is comprised of two physical properties
+    :math:`m_1` and :math:`m_2`. Here, we define the regularization
+    function (objective function) for cross-gradient as
+    (`Haber and Gazit, 2013 <https://link.springer.com/article/10.1007/s10712-013-9232-4>`__):
+
+    .. math::
+        \phi (m_1, m_2) = \frac{1}{2} \int_\Omega \, w(r) \,
+        \Big | \nabla m_1 \, \times \, \nabla m_2 \, \Big |^2 \, dv
+
+    where :math:`w(r)` is a user-defined weighting function.
+    Using the identity :math:`| \vec{a} \times \vec{b} |^2 = | \vec{a} |^2 | \vec{b} |^2 - (\vec{a} \cdot \vec{b})^2`,
+    the regularization function can be re-expressed as:
+
+    .. math::
+        \phi (m_1, m_2) = \frac{1}{2} \int_\Omega \, w(r) \, \Big [ \,
+        \big | \nabla m_1 \big |^2 \big | \nabla m_2 \big |^2
+        - \big ( \nabla m_1 \, \cdot \, \nabla m_2 \, \big )^2 \Big ] \, dv
+
+    For implementation within SimPEG, the regularization function and its variables
+    must be discretized onto a `mesh`. The discretized approximation for the regularization
+    function (objective function) is given by:
+
+    .. math::
+        \phi (m_1, m_2) \approx \frac{1}{2} \sum_i \tilde{w}_i \, \bigg [
+        \Big | (\nabla m_1)_i \Big |^2 \Big | (\nabla m_2)_i \Big |^2
+        - \Big [ (\nabla m_1)_i \, \cdot \, (\nabla m_2)_i \, \Big ]^2 \, \bigg ]
+
+    where :math:`(\nabla m_1)_i` are the gradients of property :math:`m_1` defined on the mesh and
+    :math:`\tilde{w}_i \in \mathbf{\tilde{w}}` are amalgamated weighting constants that 1) account
+    for cell dimensions in the discretization and 2) apply any user-defined weighting.
+
+    In practice, we define the model :math:`\mathbf{m}` as a discrete
+    vector of the form:
+
+    .. math::
+        \mathbf{m} = \begin{bmatrix} \mathbf{m_1} \\ \mathbf{m_2} \end{bmatrix}
+
+    where :math:`\mathbf{m_1}` and :math:`\mathbf{m_2}` are the discrete representations
+    of the respective physical properties on the mesh. The discrete regularization function
+    is therefore equivalent to an objective function of the form:
+
+    .. math::
+        \phi (\mathbf{m}) =
+        \frac{1}{2} \Big [ \mathbf{W A} \big ( \mathbf{G \, m_1} \big )^2 \Big ]^T
+        \Big [ \mathbf{W A} \big ( \mathbf{G \, m_2} \big )^2 \Big ]
+        - \frac{1}{2} \bigg \| \mathbf{W A} \Big [ \big ( \mathbf{G \, m_1} \big )
+        \odot \big ( \mathbf{G \, m_2} \big ) \Big ] \bigg \|^2
+
+    where exponents are computed elementwise,
+
+        - :math:`\mathbf{G}` is the cell gradient operator (cell centers to faces),
+        - :math:`\mathbf{A}` averages vectors from faces to cell centers, and
+        - :math:`\mathbf{W}` is the weighting matrix.
+
+    **Custom weights and the weighting matrix:**
+
+    Let :math:`\mathbf{w_1, \; w_2, \; w_3, \; ...}` each represent an optional set of
+    custom cell weights. The weighting applied within the objective function is given by:
+
+    .. math::
+        \mathbf{\tilde{w}} = \mathbf{v} \odot \prod_j \mathbf{w_j}
+
+    where :math:`\mathbf{v}` are the cell volumes.
+    The weighting matrix used to apply weights within the regularization is given by:
+
+    .. math::
+        \mathbf{W} = \textrm{diag} \Big ( \, \mathbf{\tilde{w}}^{1/2} \Big )
+
+    Each set of custom cell weights is stored within a ``dict`` as an (n_cells, )
+    ``numpy.ndarray``. The weights can be set all at once during instantiation
+    with the `weights` keyword argument as follows:
+
+    >>> reg = CrossGradient(mesh, wire_map, weights={'weights_1': array_1, 'weights_2': array_2})
+
+    or set after instantiation using the `set_weights` method:
+
+    >>> reg.set_weights(weights_1=array_1, weights_2=array_2})
+
+    The default weights that account for cell dimensions in the regularization are accessed via:
+
+    >>> reg.get_weights('volume')
 
     """
 
@@ -37,10 +143,12 @@ class CrossGradient(BaseSimilarityMeasure):
 
     @property
     def approx_hessian(self):
-        """whether to use the semi-positive definate approximation for the hessian.
+        """Whether to use the semi-positive definate approximation for the Hessian.
+
         Returns
         -------
         bool
+            Whether to use the semi-positive definate approximation for the Hessian.
         """
         return self._approx_hessian
 
@@ -82,23 +190,30 @@ class CrossGradient(BaseSimilarityMeasure):
         return gradient
 
     def calculate_cross_gradient(self, model, normalized=False, rtol=1e-6):
-        """
-        Calculates the cross-gradients of the models at each cell center.
+        r"""Calculates the magnitudes of the cross-gradient vectors at cell centers.
+
+        Computes and returns a discrete approximation to:
+
+        .. math::
+            \big | \, \nabla m_1 \, \times \, \nabla m_2 \, \big |
+
+        at all cell centers where :math:`m_1` and :math:`m_2` define the continuous
+        spacial distribution of physical properties 1 and 2.
 
         Parameters
         ----------
         model : numpy.ndarray
             The input model, which will be automatically separated into the two
-            parameters internally
+            parameters internally.
         normalized : bool, optional
-            Whether to normalize the gradient
+            Whether to normalize the cross-gradients.
         rtol : float, optional
-            relative cuttoff for small gradients in the normalization
+            relative cuttoff for small gradients in the normalization.
 
         Returns
         -------
-        cross_grad : numpy.ndarray
-            The norm of the cross gradient vector in each active cell.
+        numpy.ndarray
+            Magnitudes of the cross-gradient vectors at cell centers.
         """
         m1, m2 = self.wire_map * model
         # Compute the gradients and concatenate components.
@@ -113,28 +228,22 @@ class CrossGradient(BaseSimilarityMeasure):
         return cross_prod
 
     def __call__(self, model):
-        r"""
-        Computes the sum of all cross-gradient values at all cell centers.
+        """Evaluate the cross-gradient regularization function for the model provided.
 
-        :param numpy.ndarray model: stacked array of individual models
-                                    np.c_[model1, model2,...]
-        :param bool normalized: returns value of normalized cross-gradient if True
+        See the *Notes* section of the documentation for the :class:`CrossGradient` class
+        for a full description of the regularization function.
 
-        :rtype: float
-        :returns: the computed value of the cross-gradient term.
+        Parameters
+        ----------
+        m : (n_param, ) numpy.ndarray
+            The model; a vector array containing all physical properties.
 
-
-        ..math::
-
-            \phi_c(\mathbf{m_1},\mathbf{m_2})
-            = \lambda \sum_{i=1}^{M} \|\nabla \mathbf{m_1}_i \times \nabla \mathbf{m_2}_i \|^2
-            = \sum_{i=1}^{M} \|\nabla \mathbf{m_1}_i\|^2 \ast \|\nabla \mathbf{m_2}_i\|^2
-                - (\nabla \mathbf{m_1}_i \cdot \nabla \mathbf{m_2}_i )^2
-            = \|\phi_{cx}\|^2 + \|\phi_{cy}\|^2 + \|\phi_{cz}\|^2
-
-        (optional strategy, not used in this script)
-
+        Returns
+        -------
+        float
+            The regularization function evaluated for the model provided.
         """
+
         m1, m2 = self.wire_map * model
         Av = self._Av
         G = self._G
@@ -145,14 +254,32 @@ class CrossGradient(BaseSimilarityMeasure):
         )
 
     def deriv(self, model):
-        """
-        Computes the Jacobian of the cross-gradient.
+        r"""Gradient of the regularization function evaluated for the model provided.
 
-        :param list of numpy.ndarray ind_models: [model1, model2,...]
+        Where :math:`\phi (\mathbf{m})` is the discrete regularization function (objective function),
+        this method evaluates and returns the derivative with respect to the model parameters;
+        i.e. the gradient. For a model :math:`\mathbf{m}` consisting of two physical properties
+        such that:
 
-        :rtype: numpy.ndarray
-        :return: result: gradient of the cross-gradient with respect to model1, model2
+        .. math::
+            \mathbf{m} = \begin{bmatrix} \mathbf{m_1} \\ \mathbf{m_2} \end{bmatrix}
 
+        The gradient has the form:
+
+        .. math::
+            \frac{\partial \phi}{\partial \mathbf{m}} =
+            \begin{bmatrix} \dfrac{\partial \phi}{\partial \mathbf{m_1}} \\
+            \dfrac{\partial \phi}{\partial \mathbf{m_2}} \end{bmatrix}
+
+        Parameters
+        ----------
+        model : (n_param, ) numpy.ndarray
+            The model; a vector array containing all physical properties.
+
+        Returns
+        -------
+        (n_param, ) numpy.ndarray
+            Gradient of the regularization function evaluated for the model provided.
         """
         m1, m2 = self.wire_map * model
 
@@ -169,17 +296,45 @@ class CrossGradient(BaseSimilarityMeasure):
         ]
 
     def deriv2(self, model, v=None):
-        """
-        Computes the Hessian of the cross-gradient.
+        r"""Hessian of the regularization function evaluated for the model provided.
 
-        :param list of numpy.ndarray ind_models: [model1, model2, ...]
-        :param numpy.ndarray v: vector to be multiplied by Hessian
+        Where :math:`\phi (\mathbf{m})` is the discrete regularization function (objective function),
+        this method evalutate and returns the second derivative (Hessian) with respect to the model parameters:
+        For a model :math:`\mathbf{m}` consisting of two physical properties such that:
 
-        :rtype: scipy.sparse.csr_matrix if v is None
-                numpy.ndarray if v is not None
-        :return Hessian matrix if v is None
-                Hessian multiplied by vector if v is not No
+        .. math::
+            \mathbf{m} = \begin{bmatrix} \mathbf{m_1} \\ \mathbf{m_2} \end{bmatrix}
 
+        The Hessian has the form:
+
+        .. math::
+            \frac{\partial^2 \phi}{\partial \mathbf{m}^2} =
+            \begin{bmatrix}
+            \dfrac{\partial \phi^2}{\partial \mathbf{m_1}^2} &
+            \dfrac{\partial \phi^2}{\partial \mathbf{m_1} \partial \mathbf{m_2}} \\
+            \dfrac{\partial \phi^2}{\partial \mathbf{m_2} \partial \mathbf{m_1}} &
+            \dfrac{\partial \phi^2}{\partial \mathbf{m_2}^2}
+            \end{bmatrix}
+
+        When a vector :math:`(\mathbf{v})` is supplied, the method returns the Hessian
+        times the vector:
+
+        .. math::
+            \frac{\partial^2 \phi}{\partial \mathbf{m}^2} \, \mathbf{v}
+
+        Parameters
+        ----------
+        model : (n_param, ) numpy.ndarray
+            The model; a vector array containing all physical properties.
+        v : None, (n_param, ) numpy.ndarray (optional)
+            A numpy array to model the Hessian by.
+
+        Returns
+        -------
+        (n_param, n_param) scipy.sparse.csr_matrix | (n_param, ) numpy.ndarray
+            If the input argument *v* is ``None``, the Hessian
+            for the models provided is returned. If *v* is not ``None``,
+            the Hessian multiplied by the vector provided is returned.
         """
         m1, m2 = self.wire_map * model
 
