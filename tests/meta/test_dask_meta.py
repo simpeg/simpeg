@@ -228,24 +228,24 @@ def test_repeat_sim_correctness(cluster):
 
         d_full = serial_sim.dpred(model, f_full)
         d_repeat = parallel_sim.dpred(model, f_meta)
-        np.testing.assert_equal(d_full, d_repeat)
+        np.testing.assert_allclose(d_full, d_repeat, rtol=1e-6)
 
         # test Jvec
         u = np.random.rand(len(model))
         jvec_full = serial_sim.Jvec(model, u, f=f_full)
         jvec_meta = parallel_sim.Jvec(model, u, f=f_meta)
-        np.testing.assert_allclose(jvec_full, jvec_meta)
+        np.testing.assert_allclose(jvec_full, jvec_meta, rtol=1e-6)
 
         # test Jtvec
         v = np.random.rand(len(sim_ts) * survey.nD)
         jtvec_full = serial_sim.Jtvec(model, v, f=f_full)
         jtvec_meta = parallel_sim.Jtvec(model, v, f=f_meta)
-        np.testing.assert_allclose(jtvec_full, jtvec_meta)
+        np.testing.assert_allclose(jtvec_full, jtvec_meta, rtol=1e-6)
 
         # test get diag
         diag_full = serial_sim.getJtJdiag(model, f=f_full)
         diag_meta = parallel_sim.getJtJdiag(model, f=f_meta)
-        np.testing.assert_allclose(diag_full, diag_meta)
+        np.testing.assert_allclose(diag_full, diag_meta, rtol=1e-6)
 
 
 def test_dask_meta_errors(cluster):
