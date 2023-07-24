@@ -16,7 +16,7 @@ def dask_linear_operator(self):
     rows = [
         array.from_delayed(
             row(receiver_location, components),
-            dtype=np.float32,
+            dtype=self.sensitivity_dtype,
             shape=(len(components),) if forward_only else (len(components), n_cells),
         )
         for receiver_location, components in self.survey._location_component_iterator()

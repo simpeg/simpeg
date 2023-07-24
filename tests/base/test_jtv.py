@@ -1,4 +1,5 @@
 import unittest
+import pytest
 
 import numpy as np
 
@@ -25,7 +26,7 @@ class JTVTensor2D(unittest.TestCase):
         actv = np.ones(len(mesh), dtype=bool)
 
         # maps
-        wires = maps.Wires(("m1", mesh.nC), ("m2", mesh.nC))
+        wires = maps.Wires(("m1", mesh.nC), ("m2", mesh.nC), ("m3", mesh.nC))
 
         jtv = regularization.JointTotalVariation(
             mesh,
@@ -35,7 +36,7 @@ class JTVTensor2D(unittest.TestCase):
 
         self.mesh = mesh
         self.jtv = jtv
-        self.x0 = np.random.rand(len(mesh) * 2)
+        self.x0 = np.random.rand(len(mesh) * len(wires.maps))
 
     def test_order_full_hessian(self):
         """
@@ -199,6 +200,29 @@ class JTVTree3D(unittest.TestCase):
         W = jtv.deriv2(m)
         Wv = jtv.deriv2(m, v)
         np.testing.assert_allclose(Wv, W @ v)
+
+
+def test_bad_wires():
+    dh = 1.0
+    nx = 12
+    ny = 12
+
+    hx = [(dh, nx)]
+    hy = [(dh, ny)]
+    mesh = TensorMesh([hx, hy], "CN")
+
+    # reg
+    actv = np.ones(len(mesh), dtype=bool)
+
+    # maps
+    wires = maps.Wires(("m1", mesh.nC), ("m2", mesh.nC - 2), ("m3", mesh.nC - 3))
+
+    with pytest.raises(ValueError):
+        regularization.JointTotalVariation(
+            mesh,
+            wire_map=wires,
+            indActive=actv,
+        )
 
 
 if __name__ == "__main__":

@@ -99,7 +99,8 @@ class BaseDCSimulation2D(BaseElectricalPDESimulation):
             if not out["success"]:
                 warnings.warn(
                     "Falling back to trapezoidal for integration. "
-                    "You may need to change nky."
+                    "You may need to change nky.",
+                    stacklevel=2,
                 )
                 do_trap = True
         if do_trap:

@@ -25,8 +25,8 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 
 from discretize import TreeMesh
-from discretize.utils import mkvc, refine_tree_xyz
-from SimPEG.utils import plot2Ddata, model_builder, surface2ind_topo
+from discretize.utils import mkvc, refine_tree_xyz, active_from_xyz
+from SimPEG.utils import plot2Ddata, model_builder
 from SimPEG import maps
 from SimPEG.potential_fields import gravity
 
@@ -137,7 +137,7 @@ block_density = -0.1
 sphere_density = 0.1
 
 # Find the indecies for the active mesh cells (e.g. cells below surface)
-ind_active = surface2ind_topo(mesh, xyz_topo)
+ind_active = active_from_xyz(mesh, xyz_topo)
 
 # Define mapping from model to active cells. The model consists of a value for
 # each cell below the Earth's surface.
@@ -265,6 +265,6 @@ norm = mpl.colors.Normalize(vmin=-v_max, vmax=v_max)
 cbar = mpl.colorbar.ColorbarBase(
     ax4, norm=norm, orientation="vertical", cmap=mpl.cm.bwr
 )
-cbar.set_label("$mgal/m$", rotation=270, labelpad=15, size=12)
+cbar.set_label("Eotvos", rotation=270, labelpad=15, size=12)
 
 plt.show()

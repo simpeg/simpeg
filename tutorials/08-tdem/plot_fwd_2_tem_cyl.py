@@ -3,7 +3,7 @@
 ==================================================================
 
 Here we use the module *SimPEG.electromagnetics.time_domain* to simulate the
-transient response for borehole survey using a cylindrical mesh and a 
+transient response for borehole survey using a cylindrical mesh and a
 radially symmetric conductivity. For this tutorial, we focus on the following:
 
     - How to define the transmitters and receivers

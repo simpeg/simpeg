@@ -6,7 +6,7 @@ For time-domain electromagnetic problems, the response depends strongly on the
 souce waveforms. In this tutorial, we construct a set of waveforms of different
 types and simulate the response for a halfspace. Many types of waveforms can
 be constructed within *SimPEG.electromagnetics.time_domain_1d*. These include:
-    
+
     - the unit step off waveform
     - a set of basic waveforms: rectangular, triangular, quarter sine, etc...
     - a set of system-specific waveforms: SkyTEM, VTEM, GeoTEM, etc...

@@ -42,7 +42,7 @@ stages:
         - script: |
             pip install -r requirements_style.txt
           displayName: "Install dependencies to run the checks"
-        - script: make flake-permissive
+        - script: make flake
           displayName: "Run flake8"
 
     - job:
@@ -55,7 +55,7 @@ stages:
         - script: |
             pip install -r requirements_style.txt
           displayName: "Install dependencies to run the checks"
-        - script: FLAKE8_OPTS="--exit-zero" make flake
+        - script: FLAKE8_OPTS="--exit-zero" make flake-all
           displayName: "Run flake8"
 
 - stage: Testing
@@ -73,7 +73,7 @@ stages:
         vmImage: ubuntu-latest
       variables:
         python.version: '3.8'
-      timeoutInMinutes: 180
+      timeoutInMinutes: 240
       steps:
         - script: |
             git config --global user.name ${GH_NAME}

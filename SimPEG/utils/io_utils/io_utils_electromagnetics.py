@@ -148,7 +148,8 @@ def read_dcip_xyz(
         warnings.warn(
             "Loaded data are in surface format. Elevations automatically set to 9999 m. "
             "Use the project_to_discretized_topography method of the survey to project "
-            "electrode locations to the discretized surface."
+            "electrode locations to the discretized surface.",
+            stacklevel=2,
         )
     else:
         locations_a = data_array[:, a_cols]
@@ -315,7 +316,8 @@ def read_dcip2d_ubc(file_name, data_type, format_type):
         warnings.warn(
             "Loaded data did not have elevations. Elevations automatically set to 9999 m. "
             "Use the project_to_discretized_topography method of the survey to project "
-            "electrode locations to the discretized surface."
+            "electrode locations to the discretized surface.",
+            stacklevel=2,
         )
 
     else:
@@ -410,7 +412,8 @@ def read_dcip2d_ubc(file_name, data_type, format_type):
             warnings.warn(
                 "Loaded data were in surface format. Elevations automatically set to 9999 m. "
                 "Use the project_to_discretized_topography method of the survey to project "
-                "electrode locations to the discretized surface."
+                "electrode locations to the discretized surface.",
+                stacklevel=2,
             )
 
     return data_out
@@ -569,7 +572,8 @@ def read_dcip3d_ubc(file_name, data_type):
         warnings.warn(
             "Loaded data were in surface format. Elevations automatically set to 9999 m. "
             "Use the project_to_discretized_topography method of the survey to project "
-            "electrode locations to the discretized surface."
+            "electrode locations to the discretized surface.",
+            stacklevel=2,
         )
 
     return data_out
@@ -1013,10 +1017,8 @@ def write_dcip_xyz(
 
     # Determine if 2D or 3D survey
     if np.shape(out_columns)[1] == 8:
-        dim = 2
         out_headers = "XA    ZA    XB    ZB    XM    ZM    XN    ZN"
     else:
-        dim = 3
         out_headers = (
             "XA    YA    ZA    XB    YB    ZB    XM    YM    ZM    XN    YN    ZN"
         )
@@ -1033,7 +1035,7 @@ def write_dcip_xyz(
         out_columns = np.c_[out_columns, data_object.standard_deviation]
 
     # Append additional columns from dictionary
-    if out_dict != None:
+    if out_dict is not None:
         for k in list(out_dict.keys()):
             out_headers += "    " + k
             out_columns = np.c_[out_columns, out_dict[k]]

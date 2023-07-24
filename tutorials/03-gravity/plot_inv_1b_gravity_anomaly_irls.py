@@ -32,8 +32,8 @@ import matplotlib.pyplot as plt
 import tarfile
 
 from discretize import TensorMesh
-
-from SimPEG.utils import plot2Ddata, surface2ind_topo, model_builder
+from discretize.utils import active_from_xyz
+from SimPEG.utils import plot2Ddata, model_builder
 from SimPEG.potential_fields import gravity
 from SimPEG import (
     maps,
@@ -191,7 +191,7 @@ mesh = TensorMesh([hx, hy, hz], "CCN")
 #
 
 # Find the indices of the active cells in forward model (ones below surface)
-ind_active = surface2ind_topo(mesh, xyz_topo)
+ind_active = active_from_xyz(mesh, xyz_topo)
 
 # Define mapping from model to active cells
 nC = int(ind_active.sum())
@@ -267,10 +267,6 @@ update_IRLS = directives.Update_IRLS(
     beta_tol=1e-2,
 )
 
-# Defining the fractional decrease in beta and the number of Gauss-Newton solves
-# for each beta value.
-beta_schedule = directives.BetaSchedule(coolingFactor=5, coolingRate=1)
-
 # Options for outputting recovered models and predicted data for each beta.
 save_iteration = directives.SaveOutputEveryIteration(save_txt=False)
 
@@ -285,7 +281,6 @@ directives_list = [
     update_IRLS,
     sensitivity_weights,
     starting_beta,
-    beta_schedule,
     save_iteration,
     update_jacobi,
 ]

@@ -132,12 +132,12 @@ class BaseDCSimulation(BaseElectricalPDESimulation):
 
         return self._mini_survey_data(data)
 
-    def getJtJdiag(self, m, W=None):
+    def getJtJdiag(self, m, W=None, f=None):
         """
         Return the diagonal of JtJ
         """
         if getattr(self, "_gtgdiag", None) is None:
-            J = self.getJ(m)
+            J = self.getJ(m, f=f)
 
             if W is None:
                 W = np.ones(J.shape[0])
@@ -374,14 +374,16 @@ class Simulation3DCellCentered(BaseDCSimulation):
         return A
 
     def getADeriv(self, u, v, adjoint=False):
-        D = self.Div
-        G = self.Grad
-        MfRhoIDeriv = self.MfRhoIDeriv
+        if self.rhoMap is not None:
+            D = self.Div
+            G = self.Grad
+            MfRhoIDeriv = self.MfRhoIDeriv
 
-        if adjoint:
-            return MfRhoIDeriv(G @ u, D.T @ v, adjoint)
+            if adjoint:
+                return MfRhoIDeriv(G @ u, D.T @ v, adjoint)
 
-        return D * (MfRhoIDeriv(G @ u, v, adjoint))
+            return D * (MfRhoIDeriv(G @ u, v, adjoint))
+        return Zero()
 
     def getRHS(self):
         """
@@ -489,7 +491,7 @@ class Simulation3DNodal(BaseDCSimulation):
         if mesh._meshType == "TREE":
             mesh.nodal_gradient
         elif mesh._meshType == "CYL":
-            bc_type == "Neumann"
+            bc_type = "Neumann"
         self.bc_type = bc_type
         self.setBC()
 

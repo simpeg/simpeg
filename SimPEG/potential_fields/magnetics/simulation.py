@@ -108,7 +108,9 @@ class Simulation3DIntegral(BasePFSimulation):
         if self.store_sensitivities == "forward_only":
             fields = mkvc(self.linear_operator())
         else:
-            fields = np.asarray(self.G @ self.chi.astype(np.float32))
+            fields = np.asarray(
+                self.G @ self.chi.astype(self.sensitivity_dtype, copy=False)
+            )
 
         if self.is_amplitude_data:
             fields = self.compute_amplitude(fields)
@@ -146,7 +148,7 @@ class Simulation3DIntegral(BasePFSimulation):
 
         return self._tmi_projection
 
-    def getJtJdiag(self, m, W=None):
+    def getJtJdiag(self, m, W=None, f=None):
         """
         Return the diagonal of JtJ
         """
@@ -182,7 +184,7 @@ class Simulation3DIntegral(BasePFSimulation):
         self.model = m
         dmu_dm_v = self.chiDeriv @ v
 
-        Jvec = self.G @ dmu_dm_v.astype(np.float32)
+        Jvec = self.G @ dmu_dm_v.astype(self.sensitivity_dtype, copy=False)
 
         if self.is_amplitude_data:
             # dask doesn't support an "order" argument to reshape...
@@ -199,13 +201,15 @@ class Simulation3DIntegral(BasePFSimulation):
             v = self.ampDeriv * v
             # dask doesn't support and "order" argument to reshape...
             v = v.T.reshape(-1)  # .reshape(-1, order="F")
-        Jtvec = self.G.T @ v.astype(np.float32)
+        Jtvec = self.G.T @ v.astype(self.sensitivity_dtype, copy=False)
         return np.asarray(self.chiDeriv.T @ Jtvec)
 
     @property
     def ampDeriv(self):
         if getattr(self, "_ampDeriv", None) is None:
-            fields = np.asarray(self.G.dot(self.chi).astype(np.float32))
+            fields = np.asarray(
+                self.G.dot(self.chi).astype(self.sensitivity_dtype, copy=False)
+            )
             self._ampDeriv = self.normalized_fields(fields)
 
         return self._ampDeriv
@@ -269,10 +273,15 @@ class Simulation3DIntegral(BasePFSimulation):
                 node_evals["gxz"] = prism_fzy(dy, dz, dx)
             if "gyz" not in node_evals:
                 node_evals["gyz"] = prism_fzy(dx, dy, dz)
-            if "gxx" not in node_evals or "gyy" not in node_evals:
-                node_evals["gzz"] = prism_fzz(dx, dy, dz)
-            else:
-                node_evals["gzz"] = -node_evals["gxx"] - node_evals["gyy"]
+            node_evals["gzz"] = prism_fzz(dx, dy, dz)
+            # the below will be uncommented when we give the containing cell index
+            # for interior observations.
+            # if "gxx" not in node_evals or "gyy" not in node_evals:
+            #     node_evals["gzz"] = prism_fzz(dx, dy, dz)
+            # else:
+            #     # This is the one that would need to be adjusted if the observation is
+            #     # inside an active cell.
+            #     node_evals["gzz"] = -node_evals["gxx"] - node_evals["gyy"]
 
         if "bxx" in components:
             node_evals["gxxx"] = prism_fzzz(dy, dz, dx)
@@ -423,7 +432,12 @@ class Simulation3DIntegral(BasePFSimulation):
 
             rows[component] /= 4 * np.pi
 
-        return np.stack([rows[component] for component in components])
+        return np.stack(
+            [
+                rows[component].astype(self.sensitivity_dtype, copy=False)
+                for component in components
+            ]
+        )
 
     @property
     def deleteTheseOnModelUpdate(self):
@@ -764,7 +778,6 @@ class Simulation3DDifferential(BaseMagneticPDESimulation):
 
         vol = self.mesh.cell_volumes
         Div = self._Div
-        Dface = self.mesh.face_divergence
         P = self.survey.projectFieldsDeriv(B)  # Projection matrix
         B0 = self.getB0()
 

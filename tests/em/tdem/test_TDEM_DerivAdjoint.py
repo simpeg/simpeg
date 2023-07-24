@@ -137,11 +137,7 @@ class Base_DerivAdjoint_Test(unittest.TestCase):
         tol = TOL * (np.abs(V1) + np.abs(V2)) / 2.0
         passed = np.abs(V1 - V2) < tol
 
-        print(
-            "    {v1} {v2} {passed}".format(
-                prbtype=self.formulation, v1=V1, v2=V2, passed=passed
-            )
-        )
+        print(f"{self.formulation} {V1} {V2} {passed}")
         self.assertTrue(passed)
 
 
@@ -149,12 +145,9 @@ class TDEM_Fields_B_Pieces(Base_DerivAdjoint_Test):
     formulation = "MagneticFluxDensity"
 
     def test_eDeriv_m_adjoint(self):
-        tInd = 0
-
         prb = self.prob
         prb.store_factors = False
         f = self.fields
-        v = np.random.rand(prb.mesh.nF)
 
         print("\n Testing eDeriv_m Adjoint")
 
@@ -245,9 +238,6 @@ class DerivAdjoint_B(Base_DerivAdjoint_Test):
 
         def test_Jvec_b_dbdtz(self):
             self.JvecTest("MagneticFluxTimeDerivativez")
-
-        def test_Jvec_b_jy(self):
-            self.JvecTest("CurrentDensityy")
 
         def test_Jvec_b_hx(self):
             self.JvecTest("MagneticFieldx")

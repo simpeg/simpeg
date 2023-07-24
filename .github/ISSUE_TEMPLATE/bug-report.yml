@@ -1,0 +1,61 @@
+name: Bug report
+description: Report a bug in SimPEG.
+title: "BUG: <Please write a comprehensive title after the 'BUG: ' prefix>"
+labels: [Bug]
+
+body:
+- type: markdown
+  attributes:
+    value: >
+      Thanks for your use of SimPEG and for taking the time to report a bug! Please
+      first double check that there is not already a bug report on this issue by
+      searching through the existing bugs.
+
+- type: textarea
+  attributes:
+    label: "Describe the issue:"
+  validations:
+    required: true
+
+- type: textarea
+  attributes:
+    label: "Reproducable code example:"
+    description: >
+      Please submit a small, but complete, code sample that reproduces the
+      bug or missing functionality. It should be able to be copy-pasted
+      into a Python interpreter and ran as-is.
+    placeholder: |
+      import SimPEG
+      << your code here >>
+    render: python
+  validations:
+    required: true
+
+- type: textarea
+  attributes:
+    label: "Error message:"
+    description: >
+      Please include full error message, if any.
+    placeholder: |
+      << Full traceback starting from `Traceback: ...` >>
+    render: shell
+
+- type: textarea
+  attributes:
+    label: "Runtime information:"
+    description: >
+      Please include the output from `SimPEG.Report()` to describe your system for us.
+      Paste the output from `from SimPEG import Report; print(Report())` below.
+  validations:
+    required: true
+
+- type: textarea
+  attributes:
+    label: "Context for the issue:"
+    description: |
+      If you would like to give a little context for the issue, let us know and
+      it will help us to prioritize the issue.
+    placeholder: |
+      << your explanation here >>
+  validations:
+    required: false

@@ -3,10 +3,7 @@ import os
 from discretize import TensorMesh
 from discretize.utils import active_from_xyz
 
-try:
-    from SimPEG import utils
-except:
-    from SimPEG import Utils as utils
+from SimPEG import utils
 
 import numpy as np
 
@@ -122,7 +119,7 @@ class MagneticsDriver_Inv(object):
         l_input = re.split(r"[!\s]", line)
         if l_input[0] == "VALUE":
             val = np.array(l_input[1:5])
-            alphas = val.astype(np.float)
+            alphas = val.astype(float)
 
         elif l_input[0] == "DEFAULT":
             alphas = np.ones(4)
@@ -132,7 +129,7 @@ class MagneticsDriver_Inv(object):
         l_input = re.split(r"[!\s]", line)
         if l_input[0] == "VALUE":
             val = np.array(l_input[1:3])
-            bounds = val.astype(np.float)
+            bounds = val.astype(float)
 
         elif l_input[0] == "FILE":
             bounds = l_input[1].rstrip()
@@ -145,7 +142,7 @@ class MagneticsDriver_Inv(object):
         l_input = re.split(r"[!\s]", line)
         if l_input[0] == "VALUE":
             val = np.array(l_input[1:6])
-            lpnorms = val.astype(np.float)
+            lpnorms = val.astype(float)
 
         elif l_input[0] == "FILE":
             lpnorms = l_input[1].rstrip()
@@ -155,7 +152,7 @@ class MagneticsDriver_Inv(object):
         l_input = re.split(r"[!\s]", line)
         if l_input[0] == "VALUE":
             val = np.array(l_input[1:3])
-            eps = val.astype(np.float)
+            eps = val.astype(float)
 
         elif l_input[0] == "DEFAULT":
             eps = None

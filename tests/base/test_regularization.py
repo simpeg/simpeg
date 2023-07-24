@@ -6,6 +6,8 @@ import inspect
 
 import discretize
 from SimPEG import maps, objective_function, regularization, utils
+from SimPEG.regularization import BaseRegularization, WeightedLeastSquares
+from SimPEG.objective_function import ComboObjectiveFunction
 
 
 TOL = 1e-7
@@ -20,6 +22,7 @@ IGNORE_ME = [
     "BaseSimilarityMeasure",
     "SimpleComboRegularization",
     "BaseSparse",
+    "BaseVectorRegularization",
     "PGI",
     "PGIwithRelationships",
     "PGIwithNonlinearRelationshipsSmallness",
@@ -27,6 +30,8 @@ IGNORE_ME = [
     "CrossGradient",
     "LinearCorrespondence",
     "JointTotalVariation",
+    "VectorAmplitude",
+    "CrossReferenceRegularization",
 ]
 
 
@@ -309,7 +314,6 @@ class RegularizationTests(unittest.TestCase):
 
     def test_update_of_sparse_norms(self):
         mesh = discretize.TensorMesh([8, 7, 6])
-        m = np.random.rand(mesh.nC)
         v = np.random.rand(mesh.nC)
 
         cell_weights = np.random.rand(mesh.nC)
@@ -407,28 +411,28 @@ class RegularizationTests(unittest.TestCase):
         mesh = discretize.TensorMesh([8, 7, 6])
         reg = regularization.WeightedLeastSquares(mesh)
         for comp in ["s", "x", "y", "z", "xx", "yy", "zz"]:
-            with pytest.raises(TypeError) as error:
+            with pytest.raises(TypeError):
                 setattr(reg, f"alpha_{comp}", "abc")
 
-            with pytest.raises(ValueError) as error:
+            with pytest.raises(ValueError):
                 setattr(reg, f"alpha_{comp}", -1)
 
             if comp in ["x", "y", "z"]:
-                with pytest.raises(TypeError) as error:
+                with pytest.raises(TypeError):
                     setattr(reg, f"length_scale_{comp}", "abc")
 
-        with pytest.raises(ValueError) as error:
+        with pytest.raises(ValueError):
             reg = regularization.WeightedLeastSquares(mesh, alpha_x=1, length_scale_x=1)
 
-        with pytest.raises(ValueError) as error:
+        with pytest.raises(ValueError):
             reg = regularization.WeightedLeastSquares(mesh, alpha_y=1, length_scale_y=1)
 
-        with pytest.raises(ValueError) as error:
+        with pytest.raises(ValueError):
             reg = regularization.WeightedLeastSquares(mesh, alpha_z=1, length_scale_z=1)
 
     def test_nC_residual(self):
         # x-direction
-        cs, ncx, ncz, npad = 1.0, 10.0, 10.0, 20
+        cs, ncx, npad = 1.0, 10.0, 20
         hx = [(cs, ncx), (cs, npad, 1.3)]
 
         # z direction
@@ -453,7 +457,7 @@ class RegularizationTests(unittest.TestCase):
 
     def test_active_cells_nc_residual(self):
         # x-direction
-        cs, ncx, ncz, npad = 1.0, 10.0, 10.0, 20
+        cs, ncx, npad = 1.0, 10.0, 20
         hx = [(cs, ncx), (cs, npad, 1.3)]
 
         # z direction
@@ -506,19 +510,19 @@ class RegularizationTests(unittest.TestCase):
         mesh = discretize.TensorMesh([8, 7])
 
         with pytest.raises(ValueError) as error:
-            reg = regularization.SmoothnessFirstOrder(mesh, orientation="w")
+            regularization.SmoothnessFirstOrder(mesh, orientation="w")
 
         assert "Orientation must be 'x', 'y' or 'z'" in str(error)
 
         with pytest.raises(ValueError) as error:
-            reg = regularization.SmoothnessFirstOrder(mesh, orientation="z")
+            regularization.SmoothnessFirstOrder(mesh, orientation="z")
 
         assert "Mesh must have at least 3 dimensions" in str(error)
 
         mesh = discretize.TensorMesh([2])
 
         with pytest.raises(ValueError) as error:
-            reg = regularization.SmoothnessFirstOrder(mesh, orientation="y")
+            regularization.SmoothnessFirstOrder(mesh, orientation="y")
 
         assert "Mesh must have at least 2 dimensions" in str(error)
 
@@ -540,15 +544,161 @@ class RegularizationTests(unittest.TestCase):
             reg = reg_fun(mesh)
             assert reg.irls_threshold == 1e-8  # Default
 
-            with pytest.raises(ValueError) as error:
+            with pytest.raises(ValueError):
                 reg.irls_threshold = -1
 
             assert reg.irls_scaled  # Default
 
-            with pytest.raises(TypeError) as error:
+            with pytest.raises(TypeError):
                 reg.irls_scaled = -1
 
             assert reg.gradient_type == "total"  # Check default
+
+    def test_vector_amplitude(self):
+        n_comp = 4
+        mesh = discretize.TensorMesh([8, 7])
+        model = np.random.randn(mesh.nC, n_comp)
+
+        with pytest.raises(TypeError, match="'regularization_mesh' must be of type"):
+            regularization.VectorAmplitude("abc")
+
+        reg = regularization.VectorAmplitude(
+            mesh, maps.IdentityMap(nP=n_comp * mesh.nC)
+        )
+
+        with pytest.raises(ValueError, match="'weights' must be one of"):
+            reg.set_weights(abc=(1.0, 1.0))
+
+        np.testing.assert_almost_equal(
+            reg.objfcts[0].f_m(model.flatten(order="F")), np.linalg.norm(model, axis=1)
+        )
+
+
+def test_WeightedLeastSquares():
+    mesh = discretize.TensorMesh([3, 4, 5])
+
+    reg = regularization.WeightedLeastSquares(mesh)
+
+    reg.length_scale_x = 0.5
+    np.testing.assert_allclose(reg.length_scale_x, 0.5)
+
+    reg.length_scale_y = 0.3
+    np.testing.assert_allclose(reg.length_scale_y, 0.3)
+
+    reg.length_scale_z = 0.8
+    np.testing.assert_allclose(reg.length_scale_z, 0.8)
+
+
+@pytest.mark.parametrize("dim", [2, 3])
+def test_cross_ref_reg(dim):
+    mesh = discretize.TensorMesh([3, 4, 5][:dim])
+    actives = mesh.cell_centers[:, -1] < 0.6
+    n_active = actives.sum()
+
+    ref_dir = dim * [1]
+
+    cross_reg = regularization.CrossReferenceRegularization(
+        mesh, ref_dir, active_cells=actives
+    )
+
+    assert cross_reg.ref_dir.shape == (n_active, dim)
+    assert cross_reg._nC_residual == dim * n_active
+
+    # give it some cell weights, and some cell vector weights to do something with
+    cell_weights = np.random.rand(n_active)
+    cell_vec_weights = np.random.rand(n_active, dim)
+    cross_reg.set_weights(cell_weights=cell_weights)
+    cross_reg.set_weights(vec_weights=cell_vec_weights)
+
+    if dim == 3:
+        assert cross_reg.W.shape == (3 * n_active, 3 * n_active)
+    else:
+        assert cross_reg.W.shape == (n_active, n_active)
+
+    m = np.random.rand(dim * n_active)
+    cross_reg.test(m)
+
+
+def test_cross_reg_reg_errors():
+    mesh = discretize.TensorMesh([3, 4, 5])
+
+    # bad ref_dir shape
+    ref_dir = np.random.rand(mesh.n_cells - 1, mesh.dim)
+
+    with pytest.raises(ValueError, match="ref_dir"):
+        regularization.CrossReferenceRegularization(mesh, ref_dir)
+
+
+class TestParent:
+    """Test parent property of regularizations."""
+
+    @pytest.fixture
+    def regularization(self):
+        """Sample regularization instance."""
+        mesh = discretize.TensorMesh([3, 4, 5])
+        return BaseRegularization(mesh)
+
+    def test_parent(self, regularization):
+        """Test setting a parent class to a BaseRegularization."""
+        combo = ComboObjectiveFunction()
+        regularization.parent = combo
+        assert regularization.parent == combo
+
+    def test_invalid_parent(self, regularization):
+        """Test setting an invalid parent class to a BaseRegularization."""
+
+        class Dummy:
+            pass
+
+        invalid_parent = Dummy()
+        msg = "Invalid parent of type 'Dummy'."
+        with pytest.raises(TypeError, match=msg):
+            regularization.parent = invalid_parent
+
+
+class TestDeprecatedArguments:
+    """
+    Test errors after simultaneously passing new and deprecated arguments.
+
+    Within these arguments are:
+
+    * ``indActive`` (replaced by ``active_cells``)
+    * ``cell_weights`` (replaced by ``weights``)
+
+    """
+
+    @pytest.fixture(params=["1D", "2D", "3D"])
+    def mesh(self, request):
+        """Sample mesh."""
+        if request.param == "1D":
+            hx = np.random.rand(10)
+            h = [hx / hx.sum()]
+        elif request.param == "2D":
+            hx, hy = np.random.rand(10), np.random.rand(9)
+            h = [h_i / h_i.sum() for h_i in (hx, hy)]
+        elif request.param == "3D":
+            hx, hy, hz = np.random.rand(10), np.random.rand(9), np.random.rand(8)
+            h = [h_i / h_i.sum() for h_i in (hx, hy, hz)]
+        return discretize.TensorMesh(h)
+
+    @pytest.mark.parametrize(
+        "regularization_class", (BaseRegularization, WeightedLeastSquares)
+    )
+    def test_active_cells(self, mesh, regularization_class):
+        """Test indActive and active_cells arguments."""
+        active_cells = np.ones(len(mesh), dtype=bool)
+        msg = "Cannot simultanously pass 'active_cells' and 'indActive'."
+        with pytest.raises(ValueError, match=msg):
+            regularization_class(
+                mesh, active_cells=active_cells, indActive=active_cells
+            )
+
+    def test_weights(self, mesh):
+        """Test cell_weights and weights."""
+        weights = np.ones(len(mesh))
+        msg = "Cannot simultanously pass 'weights' and 'cell_weights'."
+        with pytest.raises(ValueError, match=msg):
+            BaseRegularization(mesh, weights=weights, cell_weights=weights)
 
 
 if __name__ == "__main__":

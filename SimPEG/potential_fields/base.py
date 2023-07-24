@@ -42,11 +42,28 @@ class BasePFSimulation(LinearSimulation):
 
         - 'ram': sensitivities are stored in the computer's RAM
         - 'disk': sensitivities are written to a directory
-        - 'forward_only': you intend only do perform a forward simulation and sensitivities do no need to be stored
+        - 'forward_only': you intend only do perform a forward simulation and sensitivities do not need to be stored
 
     n_processes : None or int, optional
         The number of processes to use in the internal multiprocessing pool for forward
-        modeling.
+        modeling. The default value of 1 will not use multiprocessing. Any other setting
+        will. `None` implies setting by the number of cpus.
+
+    Notes
+    -----
+    If using multiprocessing by setting `n_processes` to a value other than 1, you must
+    be aware of the method your operating system uses to spawn the subprocesses. On
+    Windows the default method starts new processes that all import the main script.
+    Therefor you must protect the calls to this class by testing if you are in
+    the main process with:
+
+    >>> from SimPEG.potential_fields import gravity
+    >>> if __name__ == '__main__':
+    ...     # Do your processing here
+    ...     sim = gravity.Simulation3DIntegral(n_processes=4, ...)
+    ...     sim.dpred(m)
+
+    This usually does not affect jupyter notebook environments.
     """
 
     def __init__(
@@ -54,7 +71,8 @@ class BasePFSimulation(LinearSimulation):
         mesh,
         ind_active=None,
         store_sensitivities="ram",
-        n_processes=None,
+        n_processes=1,
+        sensitivity_dtype=np.float32,
         **kwargs,
     ):
         # If deprecated property set with kwargs
@@ -69,6 +87,7 @@ class BasePFSimulation(LinearSimulation):
             )
 
         self.store_sensitivities = store_sensitivities
+        self.sensitivity_dtype = sensitivity_dtype
         super().__init__(mesh, **kwargs)
         self.solver = None
         self.n_processes = n_processes
@@ -139,6 +158,27 @@ class BasePFSimulation(LinearSimulation):
         )
 
     @property
+    def sensitivity_dtype(self):
+        """dtype of the sensitivity matrix.
+
+        Returns
+        -------
+        numpy.float32 or numpy.float64
+            The dtype used to store the sensitivity matrix
+        """
+        if self.store_sensitivities == "forward_only":
+            return np.float64
+        return self._sensitivity_dtype
+
+    @sensitivity_dtype.setter
+    def sensitivity_dtype(self, value):
+        if value is not np.float32 and value is not np.float64:
+            raise TypeError(
+                "sensitivity_dtype must be either np.float32 or np.float64."
+            )
+        self._sensitivity_dtype = value
+
+    @property
     def n_processes(self):
         return self._n_processes
 
@@ -187,20 +227,36 @@ class BasePFSimulation(LinearSimulation):
                     print(f"Found sensitivity file at {sens_name} with expected shape")
                     kernel = np.asarray(kernel)
                     return kernel
+        if self.store_sensitivities == "forward_only":
+            kernel_shape = (self.survey.nD,)
+        else:
+            kernel_shape = (self.survey.nD, n_cells)
+        dtype = self.sensitivity_dtype
+        kernel = np.empty(kernel_shape, dtype=dtype)
         if self.n_processes == 1:
-            kernel = []
+            id0 = 0
             for args in self.survey._location_component_iterator():
-                kernel.append(self.evaluate_integral(*args))
+                rows = self.evaluate_integral(*args)
+                n_c = rows.shape[0]
+                id1 = id0 + n_c
+                kernel[id0:id1] = rows.astype(dtype, copy=False)
+                id0 = id1
         else:
             # multiprocessed
             with Pool(processes=self.n_processes) as pool:
-                kernel = pool.starmap(
+                id0 = 0
+                for rows in pool.starmap(
                     self.evaluate_integral, self.survey._location_component_iterator()
-                )
-        if self.store_sensitivities != "forward_only":
-            kernel = np.vstack(kernel)
-        else:
-            kernel = np.concatenate(kernel)
+                ):
+                    n_c = rows.shape[0]
+                    id1 = id0 + n_c
+                    kernel[id0:id1] = rows.astype(dtype, copy=False)
+                    id0 = id1
+
+        # if self.store_sensitivities != "forward_only":
+        #     kernel = np.vstack(kernel)
+        # else:
+        #     kernel = np.concatenate(kernel)
         if self.store_sensitivities == "disk":
             print(f"writing sensitivity to {sens_name}")
             os.makedirs(self.sensitivity_path, exist_ok=True)

@@ -1,20 +1,111 @@
 import numpy as np
 
-from ....utils import mkvc
 from ....simulation import BaseSimulation
 from .... import props
 
 from .survey import Survey
 
-from empymod.transform import dlf
-
-try:
-    from empymod.transform import get_spline_values as get_dlf_points
-except ImportError:
-    from empymod.transform import get_dlf_points
-from empymod.utils import check_hankel
-from ..utils import static_utils
+from empymod.transform import get_dlf_points
+from empymod import filters
 from ....utils import validate_type, validate_string
+from scipy.interpolate import InterpolatedUnivariateSpline as iuSpline
+
+
+HANKEL_FILTERS = [
+    "kong_61_2007",
+    "kong_241_2007",
+    "key_101_2009",
+    "key_201_2009",
+    "key_401_2009",
+    "anderson_801_1982",
+    "key_51_2012",
+    "key_101_2012",
+    "key_201_2012",
+    "wer_201_2018",
+]
+
+
+def _phi_tilde(rho, thicknesses, lambdas):
+    """Calculate potential in the hankel domain.
+
+    Parameters
+    ----------
+    rho : (n_layer) np.ndarray
+        Resistivity array (ohm m)
+    thicknesses : (n_layer - 1) np.ndarray
+        Array of layer thicknesses defined from the top down (m).
+    lambdas : (n_lambda) np.ndarray
+        Wavenumbers.
+
+    Returns
+    -------
+    (n_lambda) np.ndarray
+        Potential in wavenumber domain at sampled locations
+    """
+    n_layer = len(rho)
+    tanh = np.tanh(lambdas[None, :] * thicknesses[:, None])
+    t = rho[-1] * np.ones_like(lambdas)
+    for i in range(n_layer - 2, -1, -1):
+        t = (t + rho[i] * tanh[i]) / (1.0 + t * tanh[i] / rho[i])
+    return t
+
+
+def _dphi_tilde(rho, thicknesses, lambdas):
+    """Calculate derivative of potential in the hankel domain.
+
+    Parameters
+    ----------
+    rho : (n_layer) np.ndarray
+        Resistivity array (ohm m)
+    thicknesses : (n_layer - 1) np.ndarray
+        Array of layer thicknesses defined from the top down (m).
+    lambdas : (n_lambda) np.ndarray
+        Wavenumbers.
+
+    Returns
+    -------
+    J_rho : (n_lambda, n_layer) np.ndarray
+        Jacobian matrix of first derivatives of lambda w.r.t. resistivity.
+    J_h : (n_lambda, n_layer-1) np.ndarray
+        Jacobian matrix of first derivatives of lambda w.r.t. thicknesses.
+    """
+    n_layer = len(rho)
+    ts = np.empty((n_layer, len(lambdas)))
+    tanh = np.tanh(lambdas[None, :] * thicknesses[:, None])
+    tops = np.empty((n_layer, len(lambdas)))
+    bots = np.empty((n_layer, len(lambdas)))
+    ts[-1] = rho[-1]
+    for i in range(n_layer - 2, -1, -1):
+        ts[i] = ts[i + 1]
+        tops[i] = ts[i + 1] + rho[i] * tanh[i]
+        bots[i] = 1 + ts[i + 1] * tanh[i] / rho[i]
+        ts[i] = tops[i] / bots[i]
+    # return ts[0]
+    # ts0 = 1.0
+    g_ti = np.ones(len(lambdas))
+    J_rho = np.empty((n_layer, len(lambdas)))
+    J_h = np.empty((n_layer - 1, len(lambdas)))
+    for i in range(n_layer - 1):
+        # ts[i] = tops[i] / bots[i]
+        g_tops = g_ti / bots[i]
+        g_bots = -ts[i] / bots[i] * g_ti
+        # bots[i] = 1 + ts[i+1] * tanh[i] / rho0
+        g_tip1 = tanh[i] / rho[i] * g_bots
+        g_tanh = ts[i + 1] / rho[i] * g_bots
+        g_rho0 = -ts[i + 1] * tanh[i] / (rho[i] ** 2) * g_bots
+        # tops[i] = ts[i+1] + rho0 * tanh[i]
+        g_tip1 += g_tops
+        g_tanh += rho[i] * g_tops
+        g_rho0 += tanh[i] * g_tops
+        # tanh = tanh(thick * lambd)
+        g_thick = (1 - tanh[i] ** 2) * lambdas * g_tanh
+
+        J_rho[i] = g_rho0
+        J_h[i] = g_thick
+
+        g_ti = g_tip1
+    J_rho[-1] = g_ti
+    return J_rho.T, J_h.T
 
 
 class Simulation1DLayers(BaseSimulation):
@@ -39,13 +130,23 @@ class Simulation1DLayers(BaseSimulation):
         rhoMap=None,
         thicknesses=None,
         thicknessesMap=None,
-        storeJ=False,
-        data_type="volt",
-        hankel_pts_per_dec=None,
-        hankel_filter="key_51_2012",
+        hankel_filter="key_201_2012",
         fix_Jmatrix=False,
         **kwargs,
     ):
+        if kwargs.pop("storeJ", None) is not None:
+            raise TypeError(
+                "storeJ is no longer settable by the user for this simulation."
+            )
+        if kwargs.pop("hankel_pts_per_dec", None) is not None:
+            raise TypeError(
+                "hankel_pts_per_dec is no longer settable by the user for this simulation."
+            )
+        if kwargs.pop("data_type", None) is not None:
+            raise TypeError(
+                "data_type can no longer be set on the simulation, it must be set on each"
+                "receiver."
+            )
         super().__init__(survey=survey, **kwargs)
         self.sigma = sigma
         self.rho = rho
@@ -53,22 +154,10 @@ class Simulation1DLayers(BaseSimulation):
         self.sigmaMap = sigmaMap
         self.rhoMap = rhoMap
         self.thicknessesMap = thicknessesMap
-        self.storeJ = storeJ
-        self.data_type = data_type
         self.fix_Jmatrix = fix_Jmatrix
-        try:
-            ht, htarg = check_hankel("fht", [hankel_filter, hankel_pts_per_dec], 1)
-            self._fhtfilt = htarg[0]  # Store filter
-            self._hankel_pts_per_dec = htarg[1]  # Store pts_per_dec
-        except ValueError:
-            arg = {}
-            arg["dlf"] = hankel_filter
-            if hankel_pts_per_dec is not None:
-                arg["pts_per_dec"] = hankel_pts_per_dec
-            ht, htarg = check_hankel("dlf", arg, 1)
-            self._fhtfilt = htarg["dlf"]  # Store filter
-            self._hankel_pts_per_dec = htarg["pts_per_dec"]  # Store pts_per_dec
-        self._hankel_filter = self._fhtfilt.name
+        self.hankel_filter = hankel_filter  # Store filter
+        self._coefficients_set = False
+        self._storeJ = True
 
     @property
     def survey(self):
@@ -98,10 +187,6 @@ class Simulation1DLayers(BaseSimulation):
         """
         return self._storeJ
 
-    @storeJ.setter
-    def storeJ(self, value):
-        self._storeJ = validate_type("storeJ", value, bool)
-
     @property
     def hankel_filter(self):
         """The hankel filter key.
@@ -112,15 +197,14 @@ class Simulation1DLayers(BaseSimulation):
         """
         return self._hankel_filter
 
-    @property
-    def hankel_pts_per_dec(self):
-        """Number of hankel transform points per decade.
-
-        Returns
-        -------
-        int
-        """
-        return self._hankel_pts_per_dec
+    @hankel_filter.setter
+    def hankel_filter(self, value):
+        self._hankel_filter = validate_string(
+            "hankel_filter",
+            value,
+            HANKEL_FILTERS,
+        )
+        self._fhtfilt = getattr(filters, self._hankel_filter)()
 
     @property
     def fix_Jmatrix(self):
@@ -136,68 +220,81 @@ class Simulation1DLayers(BaseSimulation):
     def fix_Jmatrix(self, value):
         self._fix_Jmatrix = validate_type("fix_Jmatrix", value, bool)
 
-    @property
-    def data_type(self):
-        """The type of data observered by the receivers.
+    def _compute_hankel_coefficients(self):
+        if self._coefficients_set:
+            return
+        survey = self.survey
 
-        Returns
-        -------
-        {"volt", "apparent_resistivity"}
-        """
-        return self._data_type
+        r_min = np.infty
+        r_max = -np.infty
 
-    @data_type.setter
-    def data_type(self, value):
-        self._data_type = validate_string(
-            "data_type", value, ["volt", "apparent_resistivity"]
+        for src in survey.source_list:
+            src_loc = src.location
+            for rx in src.receiver_list:
+                rx_loc = rx.locations
+                if not isinstance(rx_loc, list):
+                    # is a pole receiver
+                    rx_loc = [rx_loc]
+                for loc in rx_loc:
+                    off = np.linalg.norm(src_loc[:, None, :] - loc[None, :, :], axis=-1)
+                    r_min = min(off.min(), r_min)
+                    r_max = max(off.max(), r_max)
+        self.survey.set_geometric_factor()
+
+        lambdas, r_spline_points = get_dlf_points(
+            self._fhtfilt, np.r_[r_min, r_max], -1
         )
+        lambdas = lambdas.reshape(-1)
+        n_lambda = len(lambdas)
+        n_r = len(r_spline_points)
+
+        n_base = len(self._fhtfilt.base)
+        A_dht = np.zeros((n_r, n_lambda))
+        for i in range(n_r):
+            A_dht[i, i : i + n_base] = self._fhtfilt.j0
+        A_dht = A_dht[::-1]  # shuffle these back
+
+        # A_dht goes from wavenumber to space at r_spline_points
+        # Then need to spline it from r_spline to all offsets
+        # Calculate the interpolating spline basis functions for each spline point
+        splines = []
+        for i in range(n_r):
+            e = np.zeros(n_r)
+            e[i] = 1.0
+            sp = iuSpline(np.log(r_spline_points[::-1]), e, k=5)
+            splines.append(sp)
+        # As will go from wavenumber to space domain
+        As = []
+        for src in survey.source_list:
+            src_loc = src.location
+            for rx in src.receiver_list:
+                rx_loc = rx.locations
+                A = np.zeros((rx.nD, n_r))
+                for current, tx_elec_loc in zip(src.current, src_loc):
+                    if not isinstance(rx_loc, list):
+                        # is a pole receiver
+                        m_off = np.linalg.norm(tx_elec_loc - rx_loc, axis=-1)
+                        n_off = None
+                    else:
+                        m_off = np.linalg.norm(tx_elec_loc - rx_loc[0], axis=-1)
+                        n_off = np.linalg.norm(tx_elec_loc - rx_loc[1], axis=-1)
+                    # This receiver has a bunch of data...
+                    # this A is the linear operation going from the splined offsets to the data offset
+                    for i in range(n_r):
+                        A[:, i] += current * splines[i](np.log(m_off)) / m_off
+                        if n_off is not None:
+                            A[:, i] -= current * splines[i](np.log(n_off)) / n_off
+                if rx.data_type == "apparent_resistivity":
+                    A /= rx.geometric_factor[src]
+                As.append(A @ A_dht / (2 * np.pi))
+        self._coefficients_set = True
+        self._As = np.vstack(As)
+        self._lambdas = lambdas
 
     def fields(self, m):
-        if m is not None:
-            self.model = m
-
-        if self.verbose:
-            print(">> Compute fields")
-
-        # TODO: this for loop can slow down the speed, cythonize below for loop
-        T1 = self.rho[self.n_layer - 1] * np.ones_like(self.lambd)
-        for ii in range(self.n_layer - 1, 0, -1):
-            rho0 = self.rho[ii - 1]
-            t0 = self.thicknesses[ii - 1]
-            T0 = (T1 + rho0 * np.tanh(self.lambd * t0)) / (
-                1.0 + (T1 * np.tanh(self.lambd * t0) / rho0)
-            )
-            T1 = T0
-        PJ = (T0, None, None)
-        try:
-            voltage = dlf(
-                PJ,
-                self.lambd,
-                self.offset,
-                self._fhtfilt,
-                self.hankel_pts_per_dec,
-                factAng=None,
-                ab=33,
-            ).real / (2 * np.pi)
-        except TypeError:
-            voltage = dlf(
-                PJ,
-                self.lambd,
-                self.offset,
-                self._fhtfilt,
-                self.hankel_pts_per_dec,
-                ang_fact=None,
-                ab=33,
-            ).real / (2 * np.pi)
-
-        # Assume dipole-dipole
-        V = voltage.reshape((self.survey.nD, 4), order="F")
-        data = V[:, 0] + V[:, 1] - (V[:, 2] + V[:, 3])
-
-        if self.data_type == "apparent_resistivity":
-            data /= self.geometric_factor
-
-        return data
+        self.model = m
+        self._compute_hankel_coefficients()
+        return _phi_tilde(self.rho, self.thicknesses, self._lambdas)
 
     def dpred(self, m=None, f=None):
         """
@@ -206,39 +303,33 @@ class Simulation1DLayers(BaseSimulation):
         :rtype: numpy.ndarray
         :return: data
         """
-
         if self.verbose:
             print("Calculating predicted data")
 
+        self._compute_hankel_coefficients()
         if f is None:
             if m is None:
                 m = self.model
             f = self.fields(m)
-
-        return f
+        return self._As @ f
 
     def getJ(self, m, f=None, factor=1e-2):
         """
         Generate Full sensitivity matrix using central difference
         """
+        self.model = m
         if getattr(self, "_Jmatrix", None) is None:
+            self._compute_hankel_coefficients()
             if self.verbose:
                 print("Calculating J and storing")
-            self.model = m
 
-            # TODO: this makes code quite slow derive analytic sensitivity
-            N = self.survey.nD
-            M = self.model.size
-            Jmatrix = np.zeros((N, M), dtype=float, order="F")
-            for ii in range(M):
-                m0 = m.copy()
-                dm = m[ii] * factor
-                m0[ii] = m[ii] - dm * 0.5
-                m1 = m.copy()
-                m1[ii] = m[ii] + dm * 0.5
-                d0 = self.fields(m0)
-                d1 = self.fields(m1)
-                Jmatrix[:, ii] = (d1 - d0) / (dm)
+            J_rho, J_h = _dphi_tilde(self.rho, self.thicknesses, self._lambdas)
+
+            Jmatrix = 0
+            if self.rhoMap is not None:
+                Jmatrix += (self._As @ J_rho) @ self.rhoDeriv
+            if self.thicknessesMap is not None:
+                Jmatrix += (self._As @ J_h) @ self.thicknessesDeriv
             self._Jmatrix = Jmatrix
         return self._Jmatrix
 
@@ -246,103 +337,17 @@ class Simulation1DLayers(BaseSimulation):
         """
         Compute sensitivity matrix (J) and vector (v) product.
         """
-
-        J = self.getJ(m, f=f)
-        Jv = mkvc(np.dot(J, v))
-
-        return mkvc(Jv)
+        return self.getJ(m, f=f) @ v
 
     def Jtvec(self, m, v, f=None):
         """
         Compute adjoint sensitivity matrix (J^T) and vector (v) product.
         """
-
-        J = self.getJ(m, f=f)
-        Jtv = mkvc(np.dot(J.T, v))
-
-        return Jtv
+        return self.getJ(m, f=f).T @ v
 
     @property
     def deleteTheseOnModelUpdate(self):
-        toDelete = super().deleteTheseOnModelUpdate
-        if self.fix_Jmatrix:
-            return toDelete
-        return toDelete + ["_Jmatrix"]
-
-    @property
-    def electrode_separations(self):
-        """
-        Electrode separations
-        """
-        # TODO: only works isotropic sigma
-        if getattr(self, "_electrode_separations", None) is None:
-            self._electrode_separations = static_utils.electrode_separations(
-                self.survey
-            )
-        return self._electrode_separations
-
-    @property
-    def offset(self):
-        """
-        Offset between a current electrode and a potential electrode
-        """
-        # TODO: only works isotropic sigma
-        if getattr(self, "_offset", None) is None:
-            r_AM = self.electrode_separations["AM"]
-            r_AN = self.electrode_separations["AN"]
-            r_BM = self.electrode_separations["BM"]
-            r_BN = self.electrode_separations["BM"]
-            self._offset = np.r_[r_AM, r_AN, r_BM, r_BN]
-        return self._offset
-
-    @property
-    def lambd(self):
-        """
-        Spatial frequency in Hankel domain
-        np.sqrt(kx*2 + ky**2) = lamda
-        """
-        # TODO: only works isotropic sigma
-        if getattr(self, "_lambd", None) is None:
-            self._lambd = np.empty(
-                [self.offset.size, self._fhtfilt.base.size], order="F", dtype=complex
-            )
-            self.lambd[:, :], _ = get_dlf_points(
-                self._fhtfilt, self.offset, self.hankel_pts_per_dec
-            )
-        return self._lambd
-
-    # @property
-    # def t(self):
-    #     """
-    #         thickness of the layer
-    #     """
-    #     # TODO: only works isotropic sigma
-    #     if getattr(self, '_t', None) is None:
-    #         self._t = self.mesh.h[0][:-1]
-    #     return self._t
-
-    @property
-    def n_layer(self):
-        """
-        number of layers
-        """
-        # TODO: only works isotropic sigma
-        if getattr(self, "_n_layer", None) is None:
-            self._n_layer = self.thicknesses.size + 1
-        return self._n_layer
-
-    @property
-    def geometric_factor(self):
-        """
-        number of layers
-        """
-        # TODO: only works isotropic sigma
-        if getattr(self, "_geometric_factor", None) is None:
-            r_AM = self.electrode_separations["AM"]
-            r_AN = self.electrode_separations["AN"]
-            r_BM = self.electrode_separations["BM"]
-            r_BN = self.electrode_separations["BM"]
-            self._geometric_factor = (1 / r_AM - 1 / r_BM - 1 / r_AN + 1 / r_BN) / (
-                2 * np.pi
-            )
-        return self._geometric_factor
+        to_delete = super().deleteTheseOnModelUpdate
+        if not self.fix_Jmatrix:
+            to_delete = to_delete + ["_Jmatrix"]
+        return to_delete

@@ -1,5 +1,4 @@
 import unittest
-import discretize
 import numpy as np
 from SimPEG import survey, utils, data
 
@@ -8,9 +7,6 @@ np.random.seed(100)
 
 class TestData(unittest.TestCase):
     def setUp(self):
-        mesh = discretize.TensorMesh(
-            [np.ones(n) * 5 for n in [10, 11, 12]], [0, 0, -30]
-        )
         x = np.linspace(5, 10, 3)
         XYZ = utils.ndgrid(x, x, np.r_[0.0])
         srcLoc = np.r_[0, 0, 0.0]

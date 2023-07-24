@@ -6,12 +6,11 @@ import warnings
 
 from discretize import TensorMesh, TreeMesh
 from discretize.base import BaseMesh
-from discretize.utils import refine_tree_xyz, unpack_widths
+from discretize.utils import refine_tree_xyz, unpack_widths, active_from_xyz
 
 from ....utils import (
     sdiag,
     uniqueRows,
-    surface2ind_topo,
     plot2Ddata,
     validate_type,
     validate_integer,
@@ -96,7 +95,10 @@ class IO:
         self.pad_rate_z = pad_rate_z
         self.ncell_per_dipole = ncell_per_dipole
         self.corezlength = corezlength
-        warnings.warn("code under construction - API might change in the future")
+        warnings.warn(
+            "code under construction - API might change in the future",
+            stacklevel=2,
+        )
 
     @property
     def survey_layout(self):
@@ -960,6 +962,7 @@ class IO:
                         "Because the x coordinates of some topo and electrodes are the same,"
                         " we excluded electrodes with the same coordinates.",
                         RuntimeWarning,
+                        stacklevel=2,
                     )
                 locs_tmp = np.vstack((topo, self.electrode_locations[~mask, :]))
                 row_idx = np.lexsort((locs_tmp[:, 0],))
@@ -974,6 +977,7 @@ class IO:
                         "Because the x and y coordinates of some topo and electrodes are the same,"
                         " we excluded electrodes with the same coordinates.",
                         RuntimeWarning,
+                        stacklevel=2,
                     )
                 locs_tmp = np.vstack((topo, self.electrode_locations[~mask, :]))
                 row_idx = np.lexsort((locs_tmp[:, 1], locs_tmp[:, 0]))
@@ -990,7 +994,6 @@ class IO:
         self.dz = dz
 
         zmax = locs[:, z_ind].max()
-        zmin = locs[:, z_ind].min()
 
         # 3 cells each for buffer
         corexlength = lineLength + dx * 6
@@ -1018,7 +1021,6 @@ class IO:
                 self.xyzlim = np.vstack(
                     (np.r_[x0, x0 + lineLength], np.r_[zmax - corezlength, zmax])
                 )
-                fill_value = "extrapolate"
 
             # For 3D mesh
             else:
@@ -1115,7 +1117,7 @@ class IO:
                 "set_mesh currently generates TensorMesh or TreeMesh"
             )
 
-        actind = surface2ind_topo(mesh, locs, method=method, fill_value=np.nan)
+        actind = active_from_xyz(mesh, locs, method=method)
 
         return mesh, actind
 
@@ -1253,13 +1255,11 @@ class IO:
             if toponame is not None:
                 tmp_topo = np.loadtxt(toponame)
                 n_topo = tmp_topo[0, 0]
-                z_ref = tmp_topo[0, 1]
                 topo = tmp_topo[1:, :]
                 if topo.shape[0] != n_topo:
                     print(
-                        ">> # of points for the topography is not {0}, but {0}".format(
-                            n_topo, topo.shape[0]
-                        )
+                        ">> # of points for the topography is "
+                        f"not {n_topo}, but {topo.shape[0]}"
                     )
             tmp = np.loadtxt(filename, comments="!").astype(float)
             e = np.zeros(tmp.shape[0], dtype=float)
