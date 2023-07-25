@@ -33,6 +33,7 @@ class PointNaturalSource(BaseRx):
         component="real",
         locations_e=None,
         locations_h=None,
+        storeProjections=False,
     ):
         self.orientation = orientation
         self.component = component
@@ -66,7 +67,7 @@ class PointNaturalSource(BaseRx):
                 raise Exception("locations need to be either a list or numpy array")
         else:
             locations = np.array([[0.0]])
-        super().__init__(locations)
+        super().__init__(locations, storeProjections=storeProjections)
 
     @property
     def component(self):
@@ -296,10 +297,18 @@ class PointNaturalSource(BaseRx):
             gbot_v = -imp[:, None] * np.c_[v] / bot[:, None]
 
             if mesh.dim == 3:
-                ghx_v = np.einsum('ij,ik->ijk', gbot_v, np.c_[hy[:, 1], -hy[:, 0]]).reshape((hy.shape[0], -1))
-                ghy_v = np.einsum('ij,ik->ijk', gbot_v, np.c_[-hx[:, 1], hx[:, 0]]).reshape((hx.shape[0], -1))
-                ge_v = np.einsum('ij,ik->ijk', gtop_v, np.c_[h[:, 1], -h[:, 0]]).reshape((h.shape[0], -1))
-                gh_v = np.einsum('ij,ik->ijk', gtop_v, np.c_[-e[:, 1], e[:, 0]]).reshape((e.shape[0], -1))
+                ghx_v = np.einsum(
+                    "ij,ik->ijk", gbot_v, np.c_[hy[:, 1], -hy[:, 0]]
+                ).reshape((hy.shape[0], -1))
+                ghy_v = np.einsum(
+                    "ij,ik->ijk", gbot_v, np.c_[-hx[:, 1], hx[:, 0]]
+                ).reshape((hx.shape[0], -1))
+                ge_v = np.einsum(
+                    "ij,ik->ijk", gtop_v, np.c_[h[:, 1], -h[:, 0]]
+                ).reshape((h.shape[0], -1))
+                gh_v = np.einsum(
+                    "ij,ik->ijk", gtop_v, np.c_[-e[:, 1], e[:, 0]]
+                ).reshape((e.shape[0], -1))
 
                 if self.orientation[1] == "x":
                     ghy_v += gh_v
@@ -450,6 +459,7 @@ class Point3DTipper(PointNaturalSource):
         component="real",
         locations_e=None,
         locations_h=None,
+        storeProjections=False,
     ):
         super().__init__(
             locations=locations,
@@ -457,6 +467,7 @@ class Point3DTipper(PointNaturalSource):
             component=component,
             locations_e=locations_e,
             locations_h=locations_h,
+            storeProjections=storeProjections,
         )
 
     @property
@@ -518,10 +529,18 @@ class Point3DTipper(PointNaturalSource):
             gtop_v = np.c_[v] / bot[:, None]
             gbot_v = -imp[:, None] * np.c_[v] / bot[:, None]
 
-            ghx_v = np.einsum('ij,ik->ijk', gbot_v, np.c_[hy[:, 1], -hy[:, 0]]).reshape((hy.shape[0], -1))
-            ghy_v = np.einsum('ij,ik->ijk', gbot_v, np.c_[-hx[:, 1], hx[:, 0]]).reshape((hx.shape[0], -1))
-            ghz_v = np.einsum('ij,ik->ijk', gtop_v, np.c_[-h[:, 1], h[:, 0]]).reshape((h.shape[0], -1))
-            gh_v = np.einsum('ij,ik->ijk', gtop_v, np.c_[hz[:, 1], -hz[:, 0]]).reshape((hz.shape[0], -1))
+            ghx_v = np.einsum("ij,ik->ijk", gbot_v, np.c_[hy[:, 1], -hy[:, 0]]).reshape(
+                (hy.shape[0], -1)
+            )
+            ghy_v = np.einsum("ij,ik->ijk", gbot_v, np.c_[-hx[:, 1], hx[:, 0]]).reshape(
+                (hx.shape[0], -1)
+            )
+            ghz_v = np.einsum("ij,ik->ijk", gtop_v, np.c_[-h[:, 1], h[:, 0]]).reshape(
+                (h.shape[0], -1)
+            )
+            gh_v = np.einsum("ij,ik->ijk", gtop_v, np.c_[hz[:, 1], -hz[:, 0]]).reshape(
+                (hz.shape[0], -1)
+            )
 
             if self.orientation[1] == "x":
                 ghy_v -= gh_v

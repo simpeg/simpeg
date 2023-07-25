@@ -29,7 +29,6 @@ def dask_getFields(self, m, store=False, deleteWarmstart=True):
 
     if f is None:
         if isinstance(self.dmisfit, BaseDataMisfit):
-
             if self.dmisfit.model_map is not None:
                 vec = self.dmisfit.model_map @ m
             else:
@@ -64,53 +63,22 @@ def dask_getFields(self, m, store=False, deleteWarmstart=True):
 BaseInvProblem.getFields = dask_getFields
 
 
-# def dask_formJ(self, m):
-#     j = None
-#
-#     try:
-#         client = get_client()
-#         jsub = lambda f, x, fields: client.compute(f(x), fields=None)
-#     except:
-#         jsub = lambda f, x: f(x)
-#
-#     if j is None:
-#         if isinstance(self.dmisfit, BaseDataMisfit):
-#             j = jsub(self.dmisfit.simulation.getJ, m)
-#
-#         elif isinstance(self.dmisfit, BaseObjectiveFunction):
-#             j = []
-#             for objfct in self.dmisfit.objfcts:
-#                 if hasattr(objfct, "simulation"):
-#                     j += [jsub(objfct.simulation.getJ, m, None)]
-#                 else:
-#                     j += []
-#
-#     if isinstance(j, Future) or isinstance(j[0], Future):
-#         j = client.gather(j)
-#
-#     return da.vstack(j).compute()
-
-
-# BaseInvProblem.formJ = dask_formJ
-
-
 def get_dpred(self, m, f=None, compute_J=False):
     dpreds = []
 
     if isinstance(self.dmisfit, BaseDataMisfit):
         return self.dmisfit.simulation.dpred(m)
     elif isinstance(self.dmisfit, BaseObjectiveFunction):
-
         for i, objfct in enumerate(self.dmisfit.objfcts):
-
             if hasattr(objfct, "simulation"):
-
                 if getattr(objfct, "model_map", None) is not None:
                     vec = objfct.model_map @ m
                 else:
                     vec = m
 
-                compute_sensitivities = compute_J and (objfct.simulation._Jmatrix is None)
+                compute_sensitivities = compute_J and (
+                    objfct.simulation._Jmatrix is None
+                )
 
                 if compute_sensitivities and i == 0:
                     print("Computing forward & sensitivities")
@@ -118,9 +86,8 @@ def get_dpred(self, m, f=None, compute_J=False):
                 if objfct.workers is not None:
                     client = get_client()
                     future = client.compute(
-                        objfct.simulation.dpred(
-                            vec, compute_J=compute_sensitivities
-                        ), workers=objfct.workers
+                        objfct.simulation.dpred(vec, compute_J=compute_sensitivities),
+                        workers=objfct.workers,
                     )
                 else:
                     # For locals, the future is now
@@ -136,7 +103,9 @@ def get_dpred(self, m, f=None, compute_J=False):
 
                         message = f"{i+1} of {total} in {timedelta(seconds=runtime)}. "
                         if (total - i - 1) > 0:
-                            message += f"ETA -> {timedelta(seconds=(total - i - 1) * runtime)}"
+                            message += (
+                                f"ETA -> {timedelta(seconds=(total - i - 1) * runtime)}"
+                            )
                         print(message)
 
                 dpreds += [future]
@@ -164,8 +133,7 @@ BaseInvProblem.get_dpred = get_dpred
 
 
 def dask_evalFunction(self, m, return_g=True, return_H=True):
-    """evalFunction(m, return_g=True, return_H=True)
-    """
+    """evalFunction(m, return_g=True, return_H=True)"""
     self.model = m
     self.dpred = self.get_dpred(m, compute_J=return_H)
 
@@ -199,7 +167,6 @@ def dask_evalFunction(self, m, return_g=True, return_H=True):
 
     # Only works for Tikhonov
     if self.opt.print_type == "ubc":
-
         self.phi_s = 0.0
         self.phi_x = 0.0
         self.phi_y = 0.0
