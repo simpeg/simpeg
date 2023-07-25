@@ -14,6 +14,7 @@ Sim.store_sensitivities = True
 Sim.getJtJdiag = dask_getJtJdiag
 Sim.Jvec = dask_Jvec
 Sim.Jtvec = dask_Jtvec
+Sim.clean_on_model_update = ["_Jmatrix", "_jtjdiag"]
 
 
 def fields(self, m=None, return_Ainv=False):
