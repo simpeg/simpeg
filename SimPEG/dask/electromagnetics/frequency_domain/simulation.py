@@ -7,7 +7,7 @@ from dask import array, compute, delayed
 from SimPEG.dask.simulation import dask_Jvec, dask_Jtvec, dask_getJtJdiag
 import zarr
 
-Sim.sensitivity_path = './sensitivity/'
+Sim.sensitivity_path = "./sensitivity/"
 Sim.gtgdiag = None
 Sim.store_sensitivities = True
 
@@ -36,7 +36,6 @@ def fields(self, m=None, return_Ainv=False):
         if return_Ainv:
             Ainv += [self.solver(sp.csr_matrix(A.T), **self.solver_opts)]
 
-
     if return_Ainv:
         return f, Ainv
     else:
@@ -47,69 +46,111 @@ Sim.fields = fields
 
 
 def compute_J(self, f=None, Ainv=None):
-
     if f is None:
         f, Ainv = self.fields(self.model, return_Ainv=True)
 
     m_size = self.model.size
-    row_chunks = int(np.ceil(
-        float(self.survey.nD) / np.ceil(float(m_size) * self.survey.nD * 8. * 1e-6 / self.max_chunk_size)
-    ))
+    row_chunks = int(
+        np.ceil(
+            float(self.survey.nD)
+            / np.ceil(float(m_size) * self.survey.nD * 8.0 * 1e-6 / self.max_chunk_size)
+        )
+    )
 
     if self.store_sensitivities == "disk":
         Jmatrix = zarr.open(
             self.sensitivity_path + f"J.zarr",
-            mode='w',
+            mode="w",
             shape=(self.survey.nD, m_size),
-            chunks=(row_chunks, m_size)
+            chunks=(row_chunks, m_size),
         )
     else:
         Jmatrix = np.zeros((self.survey.nD, m_size), dtype=np.float32)
 
     count = 0
     block_count = 0
-
+    col_chunks = None
     for A_i, freq in zip(Ainv, self.survey.frequencies):
+        sources = []
+        blocks_dfduT = []
+        blocks_dfdmT = []
+        block_count = 0
 
         for ss, src in enumerate(self.survey.get_sources_by_frequency(freq)):
-            df_duT, df_dmT = [], []
-            blocks_dfduT = []
-            blocks_dfdmT = []
             u_src = f[src, self._solutionType]
 
-            col_chunks = int(np.ceil(
-                float(self.survey.nD) / np.ceil(float(u_src.shape[0]) * self.survey.nD * 8. * 1e-6 / self.max_chunk_size)
-            ))
+            if col_chunks is None:
+                col_chunks = int(
+                    np.ceil(
+                        float(self.survey.nD)
+                        / np.ceil(
+                            float(u_src.shape[0])
+                            * self.survey.nD
+                            * 8.0
+                            * 1e-6
+                            / self.max_chunk_size
+                        )
+                    )
+                )
 
             for rx in src.receiver_list:
                 v = np.eye(rx.nD, dtype=float)
-                n_blocs = np.ceil(2 * rx.nD / col_chunks * self.n_cpu)
+                n_blocs = np.ceil(u_src.shape[1] * rx.nD / col_chunks * self.n_cpu)
 
                 for block in np.array_split(v, n_blocs, axis=1):
+                    if block.shape[1] == 0:
+                        continue
 
-                    block_count += block.shape[1] * 2
+                    block_count += block.shape[1] * u_src.shape[1]
                     blocks_dfduT.append(
                         array.from_delayed(
                             delayed(dfduT, pure=True)(src, rx, self.mesh, f, block),
                             dtype=np.float32,
-                            shape=(u_src.shape[0], block.shape[1]*2)
+                            shape=(u_src.shape[0], block.shape[1] * u_src.shape[1]),
                         )
                     )
                     blocks_dfdmT.append(
-                            delayed(dfdmT, pure=True)(src, rx, self.mesh, f, block),
+                        delayed(dfdmT, pure=True)(src, rx, self.mesh, f, block),
                     )
+                    sources.append(src)
 
                     if block_count >= (col_chunks * self.n_cpu):
-
-                        count = parallel_block_compute(self, A_i, Jmatrix, freq, u_src, src, blocks_dfduT, blocks_dfdmT, count, self.n_cpu, m_size)
+                        count = parallel_block_compute(
+                            self,
+                            A_i,
+                            Jmatrix,
+                            freq,
+                            f,
+                            sources,
+                            blocks_dfduT,
+                            blocks_dfdmT,
+                            count,
+                            self.n_cpu,
+                            m_size,
+                            u_src.shape,
+                            self._solutionType,
+                        )
                         blocks_dfduT = []
                         blocks_dfdmT = []
+                        sources = []
                         block_count = 0
 
-            if blocks_dfduT:
-                count = parallel_block_compute(
-                    self, A_i, Jmatrix, freq, u_src, src, blocks_dfduT, blocks_dfdmT, count, self.n_cpu, m_size)
-                block_count = 0
+        if blocks_dfduT:
+            count = parallel_block_compute(
+                self,
+                A_i,
+                Jmatrix,
+                freq,
+                f,
+                sources,
+                blocks_dfduT,
+                blocks_dfdmT,
+                count,
+                self.n_cpu,
+                m_size,
+                u_src.shape,
+                self._solutionType,
+            )
 
     for A in Ainv:
         A.clean()
@@ -125,17 +166,13 @@ Sim.compute_J = compute_J
 
 
 def dfduT(source, receiver, mesh, fields, block):
-    dfduT, _ = receiver.evalDeriv(
-        source, mesh, fields, v=block, adjoint=True
-    )
+    dfduT, _ = receiver.evalDeriv(source, mesh, fields, v=block, adjoint=True)
 
     return dfduT
 
 
 def dfdmT(source, receiver, mesh, fields, block):
-    _, dfdmT = receiver.evalDeriv(
-        source, mesh, fields, v=block, adjoint=True
-    )
+    _, dfdmT = receiver.evalDeriv(source, mesh, fields, v=block, adjoint=True)
 
     return dfdmT
 
@@ -152,50 +189,62 @@ def eval_block(simulation, Ainv_deriv_u, frequency, deriv_m, fields, source):
     if not isinstance(deriv_m, Zero):
         du_dmT += deriv_m
 
-    return np.array(du_dmT, dtype=complex).real.T
+    return np.array(du_dmT, dtype=complex).reshape((du_dmT.shape[0], -1)).real.T
 
 
-def parallel_block_compute(simulation, A_i, Jmatrix, freq, u_src, src, blocks_deriv_u, blocks_deriv_m, counter, sub_threads, m_size):
-
+def parallel_block_compute(
+    simulation,
+    A_i,
+    Jmatrix,
+    freq,
+    fields,
+    sources,
+    blocks_deriv_u,
+    blocks_deriv_m,
+    counter,
+    sub_threads,
+    m_size,
+    f_shape,
+    solution_type,
+):
     field_derivs = array.hstack(blocks_deriv_u).compute()
 
     # Direct-solver call
-
-    ATinvdf_duT = A_i * field_derivs
+    ATinvdf_duT = (A_i * field_derivs).reshape((f_shape[0], -1))
 
     # Even split
-
-    split = np.linspace(0, (ATinvdf_duT.shape[1]) / 2, sub_threads)[1:-1].astype(int) * 2
+    split = np.cumsum([block.shape[1] for block in blocks_deriv_u])[:-1]
     sub_blocks_deriv_u = np.array_split(ATinvdf_duT, split, axis=1)
 
     if isinstance(compute(blocks_deriv_m[0])[0], Zero):
         sub_blocks_dfdmt = [Zero()] * len(sub_blocks_deriv_u)
     else:
-        compute_blocks_deriv_m = array.hstack([
-            array.from_delayed(
-                dfdmT_block,
-                dtype=np.float32,
-                shape=(u_src.shape[0], dfdmT_block.shape[1] * 2))
-            for dfdmT_block in blocks_deriv_m
-        ]).compute()
+        compute_blocks_deriv_m = array.hstack(
+            [
+                array.from_delayed(
+                    dfdmT_block,
+                    dtype=np.float32,
+                    shape=(f_shape[0], dfdmT_block.shape[1] * f_shape[1]),
+                )
+                for dfdmT_block in blocks_deriv_m
+            ]
+        ).compute()
         sub_blocks_dfdmt = np.array_split(compute_blocks_deriv_m, split, axis=1)
 
     sub_process = []
 
-    for sub_block_dfduT, sub_block_dfdmT in zip(sub_blocks_deriv_u, sub_blocks_dfdmt):
-        row_size = int(sub_block_dfduT.shape[1] / 2)
+    for sub_block_dfduT, sub_block_dfdmT, src in zip(
+        sub_blocks_deriv_u, sub_blocks_dfdmt, sources
+    ):
+        u_src = fields[src, solution_type]
+        row_size = int(sub_block_dfduT.shape[1] / f_shape[1])
         sub_process.append(
             array.from_delayed(
                 delayed(eval_block, pure=True)(
-                    simulation,
-                    sub_block_dfduT,
-                    freq,
-                    sub_block_dfdmT,
-                    u_src,
-                    src
+                    simulation, sub_block_dfduT, freq, sub_block_dfdmT, u_src, src
                 ),
                 dtype=np.float32,
-                shape=(row_size, m_size)
+                shape=(row_size, m_size),
             )
         )
 
@@ -204,12 +253,10 @@ def parallel_block_compute(simulation, A_i, Jmatrix, freq, u_src, src, blocks_de
     if simulation.store_sensitivities == "disk":
         Jmatrix.set_orthogonal_selection(
             (np.arange(counter, counter + block.shape[0]), slice(None)),
-            block.astype(np.float32)
+            block.astype(np.float32),
         )
     else:
-        Jmatrix[counter: counter + block.shape[0], :] = (
-            block.astype(np.float32)
-        )
+        Jmatrix[counter : counter + block.shape[0], :] = block.astype(np.float32)
 
     counter += block.shape[0]
     return counter
