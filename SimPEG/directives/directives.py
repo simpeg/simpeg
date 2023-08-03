@@ -3027,7 +3027,7 @@ class SaveIterationsGeoH5(InversionDirective):
                 with open(filepath, "rb") as f:
                     raw_file = f.read()
 
-                if h5_object.parent.get_entity(file):
+                if h5_object.parent.get_entity(file)[0] is not None:
                     file_entity = h5_object.parent.get_entity(file)[0]
                 else:
                     file_entity = h5_object.parent.add_file(filepath)
