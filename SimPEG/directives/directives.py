@@ -2957,15 +2957,13 @@ class SaveIterationsGeoH5(InversionDirective):
 
                     if self.sorting is not None:
                         values = values[self.sorting]
-                    if not isinstance(channel, str):
-                        channel = f"{channel:.2e}"
 
                     base_name = f"Iteration_{iteration}"
                     if len(component) > 0:
                         base_name += f"_{component}"
 
                     channel_name = base_name
-                    if len(channel) > 0:
+                    if channel:
                         channel_name += f"_{channel}"
 
                     if self.label is not None:
@@ -2979,7 +2977,10 @@ class SaveIterationsGeoH5(InversionDirective):
                     )
                     if channel not in self.data_type[component].keys():
                         self.data_type[component][channel] = data.entity_type
-                        data.entity_type.name = f"{self.attribute_type}_" + channel
+                        type_name = f"{self.attribute_type}_{component}"
+                        if channel:
+                            type_name += f"_{channel}"
+                        data.entity_type.name = type_name
                     else:
                         data.entity_type = w_s.find_type(
                             self.data_type[component][channel].uid,
