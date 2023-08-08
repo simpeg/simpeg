@@ -5,8 +5,8 @@ SimPEG is a python package for simulation and gradient based
 parameter estimation in the context of geophysical applications.
 """
 
-from distutils.core import setup
-from setuptools import find_packages
+from setuptools import setup, find_packages
+import os
 
 CLASSIFIERS = [
     "Development Status :: 4 - Beta",
@@ -29,9 +29,11 @@ with open("README.rst") as f:
 
 setup(
     name="SimPEG",
-    version="0.19.0",
     packages=find_packages(exclude=["tests*", "examples*", "tutorials*"]),
     python_requires=">=3.8",
+    setup_requires=[
+        "setuptools_scm",
+    ],
     install_requires=[
         "numpy>=1.20",
         "scipy>=1.8",
@@ -54,4 +56,7 @@ setup(
     classifiers=CLASSIFIERS,
     platforms=["Windows", "Linux", "Solaris", "Mac OS-X", "Unix"],
     use_2to3=False,
+    use_scm_version={
+        "write_to": os.path.join("SimPEG", "version.py"),
+    },
 )

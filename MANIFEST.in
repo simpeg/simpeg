@@ -1,1 +1,10 @@
-include *.rst LICENSE
+prune .github
+prune .azure-pipelines
+prune docs
+prune examples
+prune tutorials
+prune tests
+exclude .coveragerc .flake8 .gitignore MANIFEST.in .pre-commit-config.yaml
+exclude azure-pipelines.yml .mailmap
+exclude environment_test.yml
+exclude requirements.txt requirements_dev.txt requirements_dask.txt requirements_style.txt
