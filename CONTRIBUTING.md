@@ -7,11 +7,12 @@ You can find guidelines on how to contribute to SimPEG in the [Contributing to
 SimPEG](https://docs.simpeg.xyz/content/getting_started/contributing/index.html)
 section of our documentation.
 
-**Important**
-Our contributing guidelines have been recently updated. Until we deploy the new
-documentation pages the previous link won't work. Please visit the [current
-one](https://docs.simpeg.xyz/content/basic/installing_for_developers.html)
-instead.
+> **Important**
+> Our contributing guidelines have been recently updated. Until we deploy the
+> new documentation pages the previous link won't work. Please visit the
+> [current
+> one](https://docs.simpeg.xyz/content/basic/installing_for_developers.html)
+> instead.
 
 
 ## Licensing
