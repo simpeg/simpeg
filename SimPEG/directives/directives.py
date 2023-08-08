@@ -1643,8 +1643,6 @@ class SaveModelEveryIteration(SaveEveryIteration):
 class SaveOutputEveryIteration(SaveEveryIteration):
     """SaveOutputEveryIteration"""
 
-    save_txt = True
-
     def __init__(self, save_txt=True, **kwargs):
         super().__init__(**kwargs)
 
