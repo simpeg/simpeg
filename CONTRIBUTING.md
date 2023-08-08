@@ -9,8 +9,8 @@ section of our documentation.
 
 > **Important**
 > Our contributing guidelines have been recently updated. Until we deploy the
-> new documentation pages the previous link won't work. Please visit the
-> [current
+> new documentation pages (for version v0.20.0), the previous link won't work.
+> Please visit the [current
 > one](https://docs.simpeg.xyz/content/basic/installing_for_developers.html)
 > instead.
 
