@@ -73,7 +73,8 @@ Building the documentation
 If you would like to see the documentation changes. 
 In the repo's root directory, enter the following in your terminal.
 
-.. code:: 
+.. code::
+
     make all
 
 Serving the documentation locally 
@@ -82,4 +83,5 @@ Serving the documentation locally
 Once the documentation is built. You can view it directly using the following command. This will automatically serve the docs and you can see them in your browser.
 
 .. code::
+
     make serve
