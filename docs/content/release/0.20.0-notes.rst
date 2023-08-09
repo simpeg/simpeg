@@ -121,3 +121,4 @@ Pull requests
 * `#1264 <https://github.com/simpeg/simpeg/pull/1264>`__: Fix sparse inversion example: remove beta schedule
 * `#1267 <https://github.com/simpeg/simpeg/pull/1267>`__: Add building docs and serving them to documentation
 * `#1274 <https://github.com/simpeg/simpeg/pull/1274>`__: use setuptools_scm to track version
+* `#1275 <https://github.com/simpeg/simpeg/pull/1275>`__: 0.20.0 staging
