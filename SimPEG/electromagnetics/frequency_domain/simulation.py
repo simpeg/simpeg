@@ -239,6 +239,85 @@ class BaseFDEMSimulation(BaseEMSimulation):
                 Jtv += np.real(df_dmT_sum)
 
         return mkvc(Jtv)
+    
+    def getJ(self, m, f=None):
+        """
+            Method to form full J given a model m
+        """
+        
+        if getattr(self, "_Jmatrix", None) is None:
+            if f is None:
+                f = self.fields(m)
+            self._Jmatrix = self.compute_J()
+        return self._Jmatrix
+    
+
+    def getJtJdiag(self, m, W=None, f=None):
+        """
+            Return the diagonal of JtJ
+        """
+
+        if getattr(self, "_gtgdiag", None) is None:
+            J = self.getJ(m, f=f)
+
+            if W is None:
+                W = np.ones(J.shape[0])
+            else:
+                W = W.diagonal() ** 2
+
+            diag = np.zeros(J.shape[1])
+            for i in range(J.shape[0]):
+                diag += (W[i]) * (J[i] * J[i])
+
+            self._gtgdiag = diag
+        
+        return self._gtgdiag
+    
+    def compute_J(self, f=None):
+        """
+            Computes the full J matrix
+        """
+
+        if f is None:
+            f = self.fields(self.model)
+
+        Ainv = self.Ainv
+        m_size = self.model.size
+
+        Jmatrix = np.zeros((self.survey.nD, m_size))
+
+        block_count = 0
+        for A_i, freq in zip(Ainv, self.survey.frequencies):
+
+            for src in self.survey.get_sources_by_frequency(freq):
+                
+                df_duT, df_dmT = [], []
+                u_src = f[src, self._solutionType]
+
+                for rx in src.receiver_list:
+                    
+                    v = np.ones(rx.nD, dtype=float)
+
+                    df_duT, df_dmT = rx.evalDeriv(
+                        src, self.mesh, f, v=v, adjoint=True
+                    )
+
+                    df_duT = np.vstack(df_duT)
+                    ATinvdf_duT = (A_i * df_duT)
+                    dA_dmT = self.getADeriv(freq, u_src, ATinvdf_duT, adjoint=True)
+                    dRHS_dmT = self.getRHSDeriv(freq, src, ATinvdf_duT, adjoint=True)
+                    du_dmT = -dA_dmT
+                    
+                    if not isinstance(dRHS_dmT, Zero):
+                        du_dmT += dRHS_dmT
+                    if not isinstance(df_dmT[0], Zero):
+                        du_dmT += np.hstack(df_dmT)
+
+                    block = np.array(du_dmT, dtype=complex).real.T
+                    Jmatrix[block_count:(block_count + rx.nD)] = block
+                    block_count += rx.nD
+
+        return Jmatrix
 
     # @profile
     def getSourceTerm(self, freq):
