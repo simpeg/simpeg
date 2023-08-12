@@ -9,7 +9,7 @@ import scipy.sparse as sp
 from dask import array, delayed
 from SimPEG.dask.simulation import dask_Jvec, dask_Jtvec, dask_getJtJdiag
 import zarr
-
+from time import time
 from tqdm import tqdm
 Sim.sensitivity_path = './sensitivity/'
 Sim.store_sensitivities = "ram"
@@ -116,12 +116,12 @@ def dask_dpred(self, m=None, f=None, compute_J=False):
             "data. Please set the survey for the simulation: "
             "simulation.survey = survey"
         )
-
+    ct = time()
     if f is None:
         if m is None:
             m = self.model
         f, Ainv = self.fields(m, return_Ainv=compute_J)
-
+    print(f"took {time() - ct} s to compute fields")
     def evaluate_receiver(source, receiver, mesh, time_mesh, fields):
         return receiver.eval(source, mesh, time_mesh, fields).flatten()
 
