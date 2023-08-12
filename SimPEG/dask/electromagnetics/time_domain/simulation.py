@@ -11,7 +11,8 @@ from SimPEG.dask.simulation import dask_Jvec, dask_Jtvec, dask_getJtJdiag
 import zarr
 from time import time
 from tqdm import tqdm
-Sim.sensitivity_path = './sensitivity/'
+
+Sim.sensitivity_path = "./sensitivity/"
 Sim.store_sensitivities = "ram"
 
 Sim.getJtJdiag = dask_getJtJdiag
@@ -32,7 +33,6 @@ def fields(self, m=None, return_Ainv=False):
     Ainv = {}
     ATinv = {}
     for tInd, dt in enumerate(self.time_steps):
-
         if dt not in Ainv:
             A = self.getAdiag(tInd)
             Ainv[dt] = self.solver(sp.csr_matrix(A), **self.solver_opts)
@@ -40,9 +40,12 @@ def fields(self, m=None, return_Ainv=False):
                 ATinv[dt] = self.solver(sp.csr_matrix(A.T), **self.solver_opts)
 
         Asubdiag = self.getAsubdiag(tInd)
-        rhs = - Asubdiag * f[:, (self._fieldType + "Solution"), tInd]
+        rhs = -Asubdiag * f[:, (self._fieldType + "Solution"), tInd]
 
-        if np.abs(self.survey.source_list[0].waveform.eval(self.times[tInd+1])) > 1e-8:
+        if (
+            np.abs(self.survey.source_list[0].waveform.eval(self.times[tInd + 1]))
+            > 1e-8
+        ):
             rhs += self.getRHS(tInd + 1)
 
         sol = Ainv[dt] * rhs
@@ -79,7 +82,9 @@ def dask_getSourceTerm(self, tInd):
 
     block_compute = []
     for block in source_block:
-        block_compute.append(delayed(source_evaluation, pure=True)(self, block, self.times[tInd]))
+        block_compute.append(
+            delayed(source_evaluation, pure=True)(self, block, self.times[tInd])
+        )
 
     eval = dask.compute(block_compute)[0]
 
@@ -93,6 +98,7 @@ def dask_getSourceTerm(self, tInd):
         return Zero(), np.vstack(s_e).T
 
     return np.vstack(s_m).T, np.vstack(s_e).T
+
 
 Sim.getSourceTerm = dask_getSourceTerm
 
@@ -116,12 +122,13 @@ def dask_dpred(self, m=None, f=None, compute_J=False):
             "data. Please set the survey for the simulation: "
             "simulation.survey = survey"
         )
-    ct = time()
+    # ct = time()
     if f is None:
         if m is None:
             m = self.model
         f, Ainv = self.fields(m, return_Ainv=compute_J)
-    print(f"took {time() - ct} s to compute fields")
+
+    # print(f"took {time() - ct} s to compute fields")
     def evaluate_receiver(source, receiver, mesh, time_mesh, fields):
         return receiver.eval(source, mesh, time_mesh, fields).flatten()
 
@@ -129,11 +136,13 @@ def dask_dpred(self, m=None, f=None, compute_J=False):
     rows = []
     for src in self.survey.source_list:
         for rx in src.receiver_list:
-            rows.append(array.from_delayed(
-                row(src, rx, self.mesh, self.time_mesh, f),
-                dtype=np.float32,
-                shape=(rx.nD,),
-            ))
+            rows.append(
+                array.from_delayed(
+                    row(src, rx, self.mesh, self.time_mesh, f),
+                    dtype=np.float32,
+                    shape=(rx.nD,),
+                )
+            )
 
     data = array.hstack(rows).compute()
 
@@ -147,29 +156,31 @@ def dask_dpred(self, m=None, f=None, compute_J=False):
 Sim.dpred = dask_dpred
 Sim.field_derivs = None
 
-def compute_J(self, f=None, Ainv=None):
 
+def compute_J(self, f=None, Ainv=None):
     if f is None:
         f, Ainv = self.fields(self.model, return_Ainv=True)
 
     m_size = self.model.size
-    row_chunks = int(np.ceil(
-        float(self.survey.nD) / np.ceil(float(m_size) * self.survey.nD * 8. * 1e-6 / self.max_chunk_size)
-    ))
+    row_chunks = int(
+        np.ceil(
+            float(self.survey.nD)
+            / np.ceil(float(m_size) * self.survey.nD * 8.0 * 1e-6 / self.max_chunk_size)
+        )
+    )
 
     if self.store_sensitivities == "disk":
         self.J_initializer = zarr.open(
             self.sensitivity_path + f"J_initializer.zarr",
-            mode='w',
+            mode="w",
             shape=(self.survey.nD, m_size),
-            chunks=(row_chunks, m_size)
+            chunks=(row_chunks, m_size),
         )
     else:
         self.J_initializer = np.zeros((self.survey.nD, m_size), dtype=np.float32)
     solution_type = self._fieldType + "Solution"  # the thing we solved for
 
     if self.field_derivs is None:
-
         # print("Start loop for field derivs")
         block_size = len(f[self.survey.source_list[0], solution_type, 0])
 
@@ -178,7 +189,9 @@ def compute_J(self, f=None, Ainv=None):
             d_count = 0
             df_duT_v = []
             for i_s, src in enumerate(self.survey.source_list):
-                src_field_derivs = delayed(block_deriv, pure=True)(self, src, tInd, f, block_size, d_count)
+                src_field_derivs = delayed(block_deriv, pure=True)(
+                    self, src, tInd, f, block_size, d_count
+                )
                 df_duT_v += [src_field_derivs]
                 d_count += np.sum([rx.nD for rx in src.receiver_list])
 
@@ -190,14 +203,19 @@ def compute_J(self, f=None, Ainv=None):
         # print(f"Done in {time() - tc} seconds")
 
     if self.store_sensitivities == "disk":
-        Jmatrix = zarr.open(
-            self.sensitivity_path + f"J.zarr",
-            mode='w',
-            shape=(self.survey.nD, m_size),
-            chunks=(row_chunks, m_size)
-        ) + self.J_initializer
+        Jmatrix = (
+            zarr.open(
+                self.sensitivity_path + f"J.zarr",
+                mode="w",
+                shape=(self.survey.nD, m_size),
+                chunks=(row_chunks, m_size),
+            )
+            + self.J_initializer
+        )
     else:
-        Jmatrix = dask.delayed(np.zeros((self.survey.nD, m_size), dtype=np.float32) + self.J_initializer)
+        Jmatrix = dask.delayed(
+            np.zeros((self.survey.nD, m_size), dtype=np.float32) + self.J_initializer
+        )
 
     # ATinv_df_duT_v = {}
     f = dask.delayed(f)
@@ -214,24 +232,34 @@ def compute_J(self, f=None, Ainv=None):
             source_blocks = []
             # for block in range(len(self.field_derivs[tInd][isrc])):
             if isrc not in field_derivs_t:
-                ATinv_df_duT_v = dask.delayed(AdiagTinv * self.field_derivs[tInd+1][isrc].toarray())
+                ATinv_df_duT_v = dask.delayed(
+                    AdiagTinv * self.field_derivs[tInd + 1][isrc].toarray()
+                )
             else:
                 ATinv_df_duT_v = dask.delayed(AdiagTinv * field_derivs_t[isrc])
 
-            n_data = self.field_derivs[tInd+1][isrc].shape[1]
-            n_blocks = int(np.ceil((m_size * n_data) * 8. * 1e-6 / 128.))
+            n_data = self.field_derivs[tInd + 1][isrc].shape[1]
+            n_blocks = int(np.ceil((m_size * n_data) * 8.0 * 1e-6 / 128.0))
             ind_col = np.array_split(np.arange(n_data), n_blocks)
 
             for col_block in ind_col:
                 source_blocks.append(
                     dask.array.from_delayed(
                         delayed(parallel_block_compute, pure=True)(
-                            self, f, src, ATinv_df_duT_v, d_count,
-                            col_block, tInd, solution_type, Jmatrix, Asubdiag,
-                            self.field_derivs[tInd][isrc]
+                            self,
+                            f,
+                            src,
+                            ATinv_df_duT_v,
+                            d_count,
+                            col_block,
+                            tInd,
+                            solution_type,
+                            Jmatrix,
+                            Asubdiag,
+                            self.field_derivs[tInd][isrc],
                         ),
-                        shape=self.field_derivs[tInd+1][isrc].shape,
-                        dtype=np.float32
+                        shape=self.field_derivs[tInd + 1][isrc].shape,
+                        dtype=np.float32,
                     )
                 )
                 # print(f"Appending block {isrc} in {time() - tc} seconds")
@@ -242,7 +270,9 @@ def compute_J(self, f=None, Ainv=None):
         # tc = time()
         # print(f"Compute field derivs for {tInd}")
         del field_derivs_t
-        field_derivs_t = {isrc: elem for isrc, elem in enumerate(dask.compute(row_blocks)[0])}
+        field_derivs_t = {
+            isrc: elem for isrc, elem in enumerate(dask.compute(row_blocks)[0])
+        }
         # print(f"Done in {time() - tc} seconds")
 
     for A in Ainv.values():
@@ -254,13 +284,13 @@ def compute_J(self, f=None, Ainv=None):
     else:
         return Jmatrix.compute()
 
+
 Sim.compute_J = compute_J
 
 
 def block_deriv(simulation, src, tInd, f, block_size, d_count):
     src_field_derivs = None
     for rx in src.receiver_list:
-
         v = sp.eye(rx.nD, dtype=float)
         PT_v = rx.evalDeriv(
             src, simulation.mesh, simulation.time_mesh, f, v, adjoint=True
@@ -271,12 +301,12 @@ def block_deriv(simulation, src, tInd, f, block_size, d_count):
             simulation.nT,
             src,
             None,
-            PT_v[tInd * block_size:(tInd + 1) * block_size, :],
+            PT_v[tInd * block_size : (tInd + 1) * block_size, :],
             adjoint=True,
         )
 
         if not isinstance(cur[1], Zero):
-            simulation.J_initializer[d_count:d_count + rx.nD, :] += cur[1].T
+            simulation.J_initializer[d_count : d_count + rx.nD, :] += cur[1].T
 
         if src_field_derivs is None:
             src_field_derivs = cur[0]
@@ -288,10 +318,22 @@ def block_deriv(simulation, src, tInd, f, block_size, d_count):
     # return [src_field_derivs[:, ind] for ind in ind_col]
     return src_field_derivs
 
-def parallel_block_compute(simulation, f, src, ATinv_df_duT_v, d_count, col_block, tInd, solution_type, Jmatrix, Asubdiag, field_derivs):
+
+def parallel_block_compute(
+    simulation,
+    f,
+    src,
+    ATinv_df_duT_v,
+    d_count,
+    col_block,
+    tInd,
+    solution_type,
+    Jmatrix,
+    Asubdiag,
+    field_derivs,
+):
     field_derivs_t = np.asarray(
-        field_derivs[:, col_block]
-        - Asubdiag.T * ATinv_df_duT_v[:, col_block]
+        field_derivs[:, col_block] - Asubdiag.T * ATinv_df_duT_v[:, col_block]
     )
 
     dAsubdiagT_dm_v = simulation.getAsubdiagDeriv(
@@ -305,6 +347,8 @@ def parallel_block_compute(simulation, f, src, ATinv_df_duT_v, d_count, col_bloc
     dAT_dm_v = simulation.getAdiagDeriv(
         tInd, un_src, ATinv_df_duT_v[:, col_block], adjoint=True
     )
-    Jmatrix[d_count:d_count + dAT_dm_v.shape[1], :] += (-dAT_dm_v - dAsubdiagT_dm_v + dRHST_dm_v).T
+    Jmatrix[d_count : d_count + dAT_dm_v.shape[1], :] += (
+        -dAT_dm_v - dAsubdiagT_dm_v + dRHST_dm_v
+    ).T
 
     return field_derivs_t
