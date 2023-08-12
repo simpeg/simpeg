@@ -3,6 +3,7 @@ import dask.array
 
 from ....electromagnetics.time_domain.simulation import BaseTDEMSimulation as Sim
 from ....utils import Zero
+from multiprocessing import cpu_count
 import numpy as np
 import scipy.sparse as sp
 from dask import array, delayed
@@ -38,9 +39,13 @@ def fields(self, m=None, return_Ainv=False):
             if return_Ainv:
                 ATinv[dt] = self.solver(sp.csr_matrix(A.T), **self.solver_opts)
 
-        rhs = self.getRHS(tInd + 1)
         Asubdiag = self.getAsubdiag(tInd)
-        sol = Ainv[dt] * (rhs - Asubdiag * f[:, (self._fieldType + "Solution"), tInd])
+        rhs = - Asubdiag * f[:, (self._fieldType + "Solution"), tInd]
+
+        if np.abs(self.survey.source_list[0].waveform.eval(self.times[tInd+1])) > 1e-8:
+            rhs += self.getRHS(tInd + 1)
+
+        sol = Ainv[dt] * rhs
         f[:, self._fieldType + "Solution", tInd + 1] = sol
 
     for A in Ainv.values():
@@ -53,6 +58,43 @@ def fields(self, m=None, return_Ainv=False):
 
 
 Sim.fields = fields
+
+
+def dask_getSourceTerm(self, tInd):
+    """
+    Assemble the source term. This ensures that the RHS is a vector / array
+    of the correct size
+    """
+    source_list = self.survey.source_list
+    source_block = np.array_split(source_list, cpu_count())
+
+    def source_evaluation(simulation, sources, time):
+        s_m, s_e = [], []
+        for source in sources:
+            sm, se = source.eval(simulation, time)
+            s_m.append(sm)
+            s_e.append(se)
+
+        return s_m, s_e
+
+    block_compute = []
+    for block in source_block:
+        block_compute.append(delayed(source_evaluation, pure=True)(self, block, self.times[tInd]))
+
+    eval = dask.compute(block_compute)[0]
+
+    s_m, s_e = [], []
+    for block in eval:
+        if block[0]:
+            s_m.append(block[0])
+            s_e.append(block[1])
+
+    if isinstance(s_m[0][0], Zero):
+        return Zero(), np.vstack(s_e).T
+
+    return np.vstack(s_m).T, np.vstack(s_e).T
+
+Sim.getSourceTerm = dask_getSourceTerm
 
 
 def dask_dpred(self, m=None, f=None, compute_J=False):

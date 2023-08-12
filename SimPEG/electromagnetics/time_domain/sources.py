@@ -1485,6 +1485,9 @@ class MagDipole(BaseTDEMSrc):
         numpy.ndarray
             Electric source term on mesh.
         """
+        if self.waveform.eval(time) == 0:
+            return np.zeros(simulation.mesh.nE)
+
         C = simulation.mesh.edge_curl
         b = self._bSrc(simulation)
 
