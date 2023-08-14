@@ -221,7 +221,7 @@ def compute_J(self, f=None, Ainv=None):
     f = dask.delayed(f)
     field_derivs_t = {}
 
-    d_block_size = np.ceil(128.0 / (m_size * 8.0 * 1e-6))
+    d_block_size = np.ceil(128.0 * cpu_count() / (m_size * 8.0 * 1e-6))
     for tInd, dt in tqdm(zip(reversed(range(self.nT)), reversed(self.time_steps))):
         AdiagTinv = Ainv[dt]
         Asubdiag = self.getAsubdiag(tInd)
