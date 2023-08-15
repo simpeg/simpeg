@@ -217,11 +217,14 @@ def compute_J(self, f=None, Ainv=None):
             np.zeros((self.survey.nD, m_size), dtype=np.float32) + self.J_initializer
         )
 
-    # ATinv_df_duT_v = {}
     f = dask.delayed(f)
     field_derivs_t = {}
-
     d_block_size = np.ceil(128.0 * cpu_count() / (m_size * 8.0 * 1e-6))
+
+    # Check which time steps we need to compute
+    simulation_times = np.r_[0, np.cumsum(self.time_steps)] + self.t0
+    data_times = self.survey.source_list[0].receiver_list[0].times
+
     for tInd, dt in tqdm(zip(reversed(range(self.nT)), reversed(self.time_steps))):
         AdiagTinv = Ainv[dt]
         Asubdiag = self.getAsubdiag(tInd)
@@ -230,6 +233,8 @@ def compute_J(self, f=None, Ainv=None):
         field_derivs = {}
         source_blocks = []
         d_count = 0
+
+        data_bool = data_times > simulation_times[tInd]
         # tc_loop = time()
         # print(f"Loop sources for {tInd}")
         for isrc, src in enumerate(self.survey.source_list):
@@ -256,6 +261,7 @@ def compute_J(self, f=None, Ainv=None):
                     Jmatrix,
                     Asubdiag,
                     source_blocks,
+                    data_bool,
                 )
                 field_derivs = {}
                 d_count = 0
@@ -274,6 +280,7 @@ def compute_J(self, f=None, Ainv=None):
                 Jmatrix,
                 Asubdiag,
                 source_blocks,
+                data_bool,
             )
 
         # print(f"Done in {time() - tc_loop} seconds")
@@ -311,9 +318,12 @@ def block_append(
     Jmatrix,
     Asubdiag,
     source_blocks,
+    data_bool,
 ):
-    solves = AdiagTinv * np.hstack(list(field_derivs.values()))
+    column_inds = np.kron(np.ones(len(field_derivs), dtype=bool), data_bool)
+    solves = AdiagTinv * np.hstack(list(field_derivs.values()))[:, column_inds]
     count = 0
+    n_rows = data_bool.sum()
     for (isrc, src), block in field_derivs.items():
         source_blocks.append(
             dask.array.from_delayed(
@@ -321,19 +331,20 @@ def block_append(
                     simulation,
                     fields,
                     src,
-                    solves[:, count : count + block.shape[1]],
+                    solves[:, count : count + n_rows],
                     row_count,
                     tInd,
                     solution_type,
                     Jmatrix,
                     Asubdiag,
                     simulation.field_derivs[tInd][isrc],
+                    data_bool,
                 ),
                 shape=simulation.field_derivs[tInd + 1][isrc].shape,
                 dtype=np.float32,
             )
         )
-        count += block.shape[1]
+        count += n_rows
         # print(f"Appending block {isrc} in {time() - tc} seconds")
         row_count += block.shape[1]
 
@@ -382,18 +393,18 @@ def parallel_block_compute(
     Jmatrix,
     Asubdiag,
     field_derivs,
+    data_bool,
 ):
-    field_derivs_t = np.asarray(field_derivs - Asubdiag.T * ATinv_df_duT_v)
+    rows = np.arange(row_count, row_count + len(data_bool))[data_bool]
+    field_derivs_t = np.asarray(field_derivs.todense())
+    field_derivs_t[:, data_bool] -= Asubdiag.T * ATinv_df_duT_v
 
     dAsubdiagT_dm_v = simulation.getAsubdiagDeriv(
         tInd, f[src, solution_type, tInd], ATinv_df_duT_v, adjoint=True
     )
-
     dRHST_dm_v = simulation.getRHSDeriv(tInd + 1, src, ATinv_df_duT_v, adjoint=True)
     un_src = f[src, solution_type, tInd + 1]
     dAT_dm_v = simulation.getAdiagDeriv(tInd, un_src, ATinv_df_duT_v, adjoint=True)
-    Jmatrix[row_count : row_count + dAT_dm_v.shape[1], :] += (
-        -dAT_dm_v - dAsubdiagT_dm_v + dRHST_dm_v
-    ).T
+    Jmatrix[rows, :] += (-dAT_dm_v - dAsubdiagT_dm_v + dRHST_dm_v).T
 
     return field_derivs_t
