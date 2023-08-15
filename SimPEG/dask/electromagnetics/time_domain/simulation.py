@@ -268,7 +268,7 @@ def compute_J(self, f=None, Ainv=None):
                     Jmatrix,
                     Asubdiag,
                     source_blocks,
-                    column_inds,
+                    data_bool,
                 )
                 field_derivs = {}
                 row_count = d_count
@@ -287,7 +287,7 @@ def compute_J(self, f=None, Ainv=None):
                 Jmatrix,
                 Asubdiag,
                 source_blocks,
-                column_inds,
+                data_bool,
             )
 
         # print(f"Done in {time() - tc_loop} seconds")
@@ -328,8 +328,12 @@ def block_append(
 ):
     solves = AdiagTinv * np.hstack(list(field_derivs.values()))
     count = 0
-    n_rows = data_bool.sum()
+
     for (isrc, src), block in field_derivs.items():
+        column_inds = np.kron(
+            np.ones(int(src.vnD / len(data_bool)), dtype=bool), data_bool
+        )
+        n_rows = column_inds.sum()
         source_blocks.append(
             dask.array.from_delayed(
                 delayed(parallel_block_compute, pure=True)(
@@ -343,7 +347,7 @@ def block_append(
                     Jmatrix,
                     Asubdiag,
                     simulation.field_derivs[tInd][isrc],
-                    data_bool,
+                    column_inds,
                 ),
                 shape=simulation.field_derivs[tInd + 1][isrc].shape,
                 dtype=np.float32,
@@ -351,7 +355,7 @@ def block_append(
         )
         count += n_rows
         # print(f"Appending block {isrc} in {time() - tc} seconds")
-        row_count += len(data_bool)
+        row_count += len(column_inds)
 
     return source_blocks
 
