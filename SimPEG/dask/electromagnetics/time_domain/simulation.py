@@ -26,12 +26,10 @@ def fields(self, m=None, return_Ainv=False):
         self.model = m
 
     f = self.fieldsPair(self)
-
-    # set initial fields
     f[:, self._fieldType + "Solution", 0] = self.getInitialFields()
-
     Ainv = {}
     ATinv = {}
+
     for tInd, dt in enumerate(self.time_steps):
         if dt not in Ainv:
             A = self.getAdiag(tInd)
@@ -224,6 +222,7 @@ def compute_J(self, f=None, Ainv=None):
     # Check which time steps we need to compute
     simulation_times = np.r_[0, np.cumsum(self.time_steps)] + self.t0
     data_times = self.survey.source_list[0].receiver_list[0].times
+    n_times = len(data_times)
 
     for tInd, dt in tqdm(zip(reversed(range(self.nT)), reversed(self.time_steps))):
         AdiagTinv = Ainv[dt]
@@ -235,52 +234,60 @@ def compute_J(self, f=None, Ainv=None):
         d_count = 0
 
         data_bool = data_times > simulation_times[tInd]
+
+        if data_bool.sum() == 0:
+            continue
+
         # tc_loop = time()
         # print(f"Loop sources for {tInd}")
         for isrc, src in enumerate(self.survey.source_list):
+            column_inds = np.kron(
+                np.ones(int(src.vnD / n_times), dtype=bool), data_bool
+            )
             # for block in range(len(self.field_derivs[tInd][isrc])):
             if isrc not in field_derivs_t:
-                field_derivs[(isrc, src)] = self.field_derivs[tInd + 1][isrc].toarray()
+                field_derivs[(isrc, src)] = self.field_derivs[tInd + 1][isrc].toarray()[
+                    :, column_inds
+                ]
             else:
-                field_derivs[(isrc, src)] = field_derivs_t[isrc]
+                field_derivs[(isrc, src)] = field_derivs_t[isrc][:, column_inds]
 
             n_data = self.field_derivs[tInd + 1][isrc].shape[1]
-            d_count += n_data
+            d_count += column_inds.sum()
 
             if d_count > d_block_size:
-                source_blocks, row_count = block_append(
+                source_blocks = block_append(
                     self,
                     f,
                     AdiagTinv,
                     field_derivs,
                     m_size,
-                    n_data,
                     row_count,
                     tInd,
                     solution_type,
                     Jmatrix,
                     Asubdiag,
                     source_blocks,
-                    data_bool,
+                    column_inds,
                 )
                 field_derivs = {}
+                row_count = d_count
                 d_count = 0
 
         if field_derivs:
-            source_blocks, row_count = block_append(
+            source_blocks = block_append(
                 self,
                 f,
                 AdiagTinv,
                 field_derivs,
                 m_size,
-                n_data,
                 row_count,
                 tInd,
                 solution_type,
                 Jmatrix,
                 Asubdiag,
                 source_blocks,
-                data_bool,
+                column_inds,
             )
 
         # print(f"Done in {time() - tc_loop} seconds")
@@ -311,7 +318,6 @@ def block_append(
     AdiagTinv,
     field_derivs,
     m_size,
-    n_data,
     row_count,
     tInd,
     solution_type,
@@ -320,8 +326,7 @@ def block_append(
     source_blocks,
     data_bool,
 ):
-    column_inds = np.kron(np.ones(len(field_derivs), dtype=bool), data_bool)
-    solves = AdiagTinv * np.hstack(list(field_derivs.values()))[:, column_inds]
+    solves = AdiagTinv * np.hstack(list(field_derivs.values()))
     count = 0
     n_rows = data_bool.sum()
     for (isrc, src), block in field_derivs.items():
@@ -346,9 +351,9 @@ def block_append(
         )
         count += n_rows
         # print(f"Appending block {isrc} in {time() - tc} seconds")
-        row_count += block.shape[1]
+        row_count += len(data_bool)
 
-    return source_blocks, row_count
+    return source_blocks
 
 
 def block_deriv(simulation, src, tInd, f, block_size, row_count):
