@@ -217,7 +217,7 @@ def compute_J(self, f=None, Ainv=None):
 
     f = dask.delayed(f)
     field_derivs_t = {}
-    d_block_size = np.ceil(128.0 * cpu_count() / 2.0 / (m_size * 8.0 * 1e-6))
+    d_block_size = np.ceil(128.0 / (m_size * 8.0 * 1e-6))
 
     # Check which time steps we need to compute
     simulation_times = np.r_[0, np.cumsum(self.time_steps)] + self.t0
