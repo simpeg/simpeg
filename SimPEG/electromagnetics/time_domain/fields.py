@@ -288,9 +288,9 @@ class Fields3DMagneticFluxDensityConductance(Fields3DMagneticFluxDensity):
     def startup(self):
         self._times = self.simulation.times
         self._MeSigma = self.simulation.MeSigma
-        self._MeSigmaI = self.simulation.MeSigmaI
+        # self._MeSigmaI = self.simulation.MeSigmaI
         self._MeSigmaDeriv = self.simulation.MeSigmaDeriv
-        self._MeSigmaIDeriv = self.simulation.MeSigmaIDeriv
+        # self._MeSigmaIDeriv = self.simulation.MeSigmaIDeriv
         self._edgeCurl = self.simulation.mesh.edge_curl
         self._MfMui = self.simulation.MfMui
         self._timeMesh = self.simulation.time_mesh
@@ -554,7 +554,7 @@ class Fields3DElectricFieldConductance(Fields3DElectricField):
     def startup(self):
         self._times = self.simulation.times
         self._MeSigma = self.simulation.MeSigma
-        self._MeSigmaI = self.simulation.MeSigmaI
+        # self._MeSigmaI = self.simulation.MeSigmaI
         self._MeSigmaDeriv = self.simulation.MeSigmaDeriv
         self._MeSigmaIDeriv = self.simulation.MeSigmaIDeriv
         self._edgeCurl = self.simulation.mesh.edge_curl

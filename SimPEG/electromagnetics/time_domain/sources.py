@@ -3,6 +3,7 @@ import warnings
 import numpy as np
 from geoana.em.static import CircularLoopWholeSpace, MagneticDipoleWholeSpace
 from scipy.constants import mu_0
+from discretize import SimplexMesh
 
 from ...utils import Zero, sdiag
 from ...utils.code_utils import (
@@ -1310,25 +1311,39 @@ class MagDipole(BaseTDEMSrc):
 
     def _aSrc(self, simulation):
         coordinates = "cartesian"
-        if simulation._formulation == "EB":
-            gridX = simulation.mesh.gridEx
-            gridY = simulation.mesh.gridEy
-            gridZ = simulation.mesh.gridEz
+        
+        if isinstance(simulation.mesh, SimplexMesh):
+            if simulation._formulation == "EB":
+                edges = simulation.mesh.edges
+                edge_tangents = simulation.mesh.edge_tangents
+                axyz = self._srcFct(edges, coordinates)
+                a = np.sum(axyz*edge_tangents, axis=1)
+            else:
+                faces = simulation.mesh.faces
+                face_normals = simulation.mesh.face_normals
+                axyz = self._srcFct(faces, coordinates)
+                a = np.sum(axyz*face_normals, axis=1)
 
-        elif simulation._formulation == "HJ":
-            gridX = simulation.mesh.gridFx
-            gridY = simulation.mesh.gridFy
-            gridZ = simulation.mesh.gridFz
-
-        if simulation.mesh._meshType == "CYL":
-            coordinates = "cylindrical"
-            if simulation.mesh.is_symmetric:
-                return self._srcFct(gridY)[:, 1]
-
-        ax = self._srcFct(gridX, coordinates)[:, 0]
-        ay = self._srcFct(gridY, coordinates)[:, 1]
-        az = self._srcFct(gridZ, coordinates)[:, 2]
-        a = np.concatenate((ax, ay, az))
+        else:
+            if simulation._formulation == "EB":
+                gridX = simulation.mesh.gridEx
+                gridY = simulation.mesh.gridEy
+                gridZ = simulation.mesh.gridEz
+    
+            elif simulation._formulation == "HJ":
+                gridX = simulation.mesh.gridFx
+                gridY = simulation.mesh.gridFy
+                gridZ = simulation.mesh.gridFz
+    
+            if simulation.mesh._meshType == "CYL":
+                coordinates = "cylindrical"
+                if simulation.mesh.is_symmetric:
+                    return self._srcFct(gridY)[:, 1]
+    
+            ax = self._srcFct(gridX, coordinates)[:, 0]
+            ay = self._srcFct(gridY, coordinates)[:, 1]
+            az = self._srcFct(gridZ, coordinates)[:, 2]
+            a = np.concatenate((ax, ay, az))
 
         return a
 

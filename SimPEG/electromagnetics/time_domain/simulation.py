@@ -1068,8 +1068,8 @@ class Simulation3DMagneticFluxDensityConductance(
 
         dt = self.time_steps[tInd]
         C = self.mesh.edge_curl
-        # MeSigmaTauKappaI = sdinv(self.MeSigma + self._MeTau + self._MeKappa)
-        MeSigmaTauKappaI = self._MeSigmaTauKappaI
+        MeSigmaTauKappaI = sdinv(self.MeSigma + self._MeTau + self._MeKappa)
+        # MeSigmaTauKappaI = self._MeSigmaTauKappaI
         MfMui = self.MfMui
         I = speye(self.mesh.n_faces)
 
@@ -1123,8 +1123,8 @@ class Simulation3DMagneticFluxDensityConductance(
         Assemble the RHS
         """
         C = self.mesh.edge_curl
-        # MeSigmaTauKappaI = sdinv(self.MeSigma + self._MeTau + self._MeKappa)
-        MeSigmaTauKappaI = self._MeSigmaTauKappaI
+        MeSigmaTauKappaI = sdinv(self.MeSigma + self._MeTau + self._MeKappa)
+        # MeSigmaTauKappaI = self._MeSigmaTauKappaI
         MfMui = self.MfMui
 
         s_m, s_e = self.getSourceTerm(tInd)
