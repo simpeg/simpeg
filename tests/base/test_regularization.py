@@ -30,6 +30,7 @@ IGNORE_ME = [
     "CrossGradient",
     "LinearCorrespondence",
     "JointTotalVariation",
+    "BaseAmplitude",
     "VectorAmplitude",
     "CrossReferenceRegularization",
 ]

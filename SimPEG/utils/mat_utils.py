@@ -455,8 +455,12 @@ def define_plane_from_points(xyz1, xyz2, xyz3):
 ################################################
 
 
-diagEst = deprecate_function(estimate_diagonal, "diagEst", removal_version="0.19.0")
-uniqueRows = deprecate_function(unique_rows, "uniqueRows", removal_version="0.19.0")
+diagEst = deprecate_function(
+    estimate_diagonal, "diagEst", removal_version="0.19.0", future_warn=True
+)
+uniqueRows = deprecate_function(
+    unique_rows, "uniqueRows", removal_version="0.19.0", future_warn=True
+)
 sdInv = deprecate_function(sdinv, "sdInv", removal_version="0.19.0", future_warn=True)
 getSubArray = deprecate_function(
     get_subarray, "getSubArray", removal_version="0.19.0", future_warn=True

@@ -390,23 +390,23 @@ readUBCmagneticsObservations = deprecate_method(
     read_mag3d_ubc,
     "readUBCmagneticsObservations",
     removal_version="0.14.4",
-    future_warn=True,
+    error=True,
 )
 writeUBCmagneticsObservations = deprecate_method(
     write_mag3d_ubc,
     "writeUBCmagneticsObservations",
     removal_version="0.14.4",
-    future_warn=True,
+    error=True,
 )
 readUBCgravityObservations = deprecate_method(
     read_grav3d_ubc,
     "readUBCgravityObservations",
     removal_version="0.14.4",
-    future_warn=True,
+    error=True,
 )
 writeUBCgravityObservations = deprecate_method(
     write_grav3d_ubc,
     "writeUBCgravityObservations",
     removal_version="0.14.4",
-    future_warn=True,
+    error=True,
 )
