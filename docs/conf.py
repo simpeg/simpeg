@@ -73,7 +73,7 @@ master_doc = "index"
 
 # General information about the project.
 project = "SimPEG"
-copyright = "2013 - 2023, SimPEG Team, http://simpeg.xyz"
+copyright = "2013 - 2023, SimPEG Team, https://simpeg.xyz"
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -418,9 +418,9 @@ intersphinx_mapping = {
     "python": ("https://docs.python.org/3/", None),
     "numpy": ("https://numpy.org/doc/stable/", None),
     "scipy": ("https://docs.scipy.org/doc/scipy/reference/", None),
-    "matplotlib": ("http://matplotlib.org/stable/", None),
+    "matplotlib": ("https://matplotlib.org/stable/", None),
     "properties": ("https://propertiespy.readthedocs.io/en/latest/", None),
-    "discretize": ("http://discretize.simpeg.xyz/en/main/", None),
+    "discretize": ("https://discretize.simpeg.xyz/en/main/", None),
 }
 numpydoc_xref_param_type = True
 

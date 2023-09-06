@@ -35,7 +35,7 @@ equivalent resistor network. The solver used to produce these results
 and achieve the CPU time of ~30s is Mumps, which was installed using
 pymatsolver_
 
-.. _pymatsolver: https://github.com/rowanc1/pymatsolver
+.. _pymatsolver: https://github.com/simpeg/pymatsolver
 
 This example is on figshare:
 https://dx.doi.org/10.6084/m9.figshare.3126961.v1
