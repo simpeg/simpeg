@@ -39,7 +39,7 @@ def estimate_diagonal(matrix_arg, n, k=None, approach="Probing"):
     and a vector.
 
     For background information on this method, see
-    `Bekas (et al., 2005) <http://www-users.cs.umn.edu/~saad/PDF/umsi-2005-082.pdf>`__
+    `Bekas (et al., 2005) <https://www-users.cs.umn.edu/~saad/PDF/umsi-2005-082.pdf>`__
     and `Selig (et al., 2012) <https://www.cita.utoronto.ca/~niels/diagonal.pdf>`__
 
     Parameters

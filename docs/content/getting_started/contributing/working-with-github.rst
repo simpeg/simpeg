@@ -6,12 +6,12 @@ Working with Git and GitHub
 .. image:: https://github.githubassets.com/images/modules/logos_page/Octocat.png
     :align: right
     :width: 100
-    :target: http://github.com
+    :target: https://github.com
 
 
 To keep track of your code changes and contribute back to SimPEG, you will
 need a Github_ account. Then fork the `SimPEG repository
-<http://github.com/simpeg/simpeg>`_ to your local account.
+<https://github.com/simpeg/simpeg>`_ to your local account.
 (`How to fork a repo <https://docs.github.com/en/get-started/quickstart/fork-a-repo>`_).
 
 
@@ -40,9 +40,9 @@ There are two ways you can clone a repository:
 
 For managing your copy of SimPEG and contributing back to the main
 repository, have a look at the article: `A successful git branching model
-<http://nvie.com/posts/a-successful-git-branching-model/>`_
+<https://nvie.com/posts/a-successful-git-branching-model/>`_
 
-.. _Github: http://github.com
+.. _Github: https://github.com
 .. _SourceTree: https://www.sourcetreeapp.com/
 .. _GitKraken: https://www.gitkraken.com/
 
