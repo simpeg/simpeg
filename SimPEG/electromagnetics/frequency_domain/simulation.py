@@ -259,7 +259,8 @@ class BaseFDEMSimulation(BaseEMSimulation):
 
             Jmatrix = np.zeros((self.survey.nD, m_size))
 
-            block_count = 0
+            data = Data(self.survey)
+
             for A_i, freq in zip(Ainv, self.survey.frequencies):
 
                 for src in self.survey.get_sources_by_frequency(freq):
@@ -287,8 +288,9 @@ class BaseFDEMSimulation(BaseEMSimulation):
                             du_dmT += np.hstack(df_dmT)
 
                         block = np.array(du_dmT, dtype=complex).real.T
-                        Jmatrix[block_count:(block_count + rx.nD)] = block
-                        block_count += rx.nD
+                        data_inds = data.index_dictionary[src][rx]
+                        Jmatrix[data_inds] = block
+                        # block_count += rx.nD
 
             self._Jmatrix = Jmatrix
         
