@@ -13,6 +13,18 @@ MU = mu_0
 
 
 # Test the Jvec derivative
+def JmatrixTest(inputSetup, comp="All", freq=False, expMap=True):
+    model, simulation = nsem.utils.test_utils.setupSimpegNSEM_PrimarySecondary(
+        inputSetup, [freq], comp=comp, singleFreq=True
+    )
+    # model = np.ones(model.shape)
+    J1 = simulation.getJ(model)
+    simulation._Jmatrix = None
+    J2 = simulation.getJ(model + 2)
+    return np.allclose(J1, J2)
+
+
+# Test the Jvec derivative
 def DerivJvecTest(inputSetup, comp="All", freq=False, expMap=True):
     m, simulation = nsem.utils.test_utils.setupSimpegNSEM_PrimarySecondary(
         inputSetup, [freq], comp=comp, singleFreq=False
@@ -106,6 +118,10 @@ class NSEM_DerivTests(unittest.TestCase):
 
     def test_derivJvec_tzyi(self):
         self.assertTrue(DerivJvecTest(nsem.utils.test_utils.halfSpace(1e-2), "zy", 0.1))
+
+    # Jmatrix
+    def test_jmatrix(self):
+        self.assertFalse(JmatrixTest(nsem.utils.test_utils.halfSpace(1e-2), freq=0.1))
 
 
 if __name__ == "__main__":
