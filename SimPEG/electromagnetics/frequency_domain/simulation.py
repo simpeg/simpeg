@@ -290,7 +290,6 @@ class BaseFDEMSimulation(BaseEMSimulation):
                         block = np.array(du_dmT, dtype=complex).real.T
                         data_inds = data.index_dictionary[src][rx]
                         Jmatrix[data_inds] = block
-                        # block_count += rx.nD
 
             self._Jmatrix = Jmatrix
         
