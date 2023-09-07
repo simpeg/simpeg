@@ -249,7 +249,7 @@ class BaseFDEMSimulation(BaseEMSimulation):
         :rtype: numpy.ndarray
         :return: J (ndata, nP)
         """
-        
+
         if getattr(self, "_Jmatrix", None) is None:
             if f is None:
                 f = self.fields(m)
@@ -262,14 +262,11 @@ class BaseFDEMSimulation(BaseEMSimulation):
             data = Data(self.survey)
 
             for A_i, freq in zip(Ainv, self.survey.frequencies):
-
                 for src in self.survey.get_sources_by_frequency(freq):
-                    
                     df_duT, df_dmT = [], []
                     u_src = f[src, self._solutionType]
 
                     for rx in src.receiver_list:
-                        
                         v = np.ones(rx.nD, dtype=float)
 
                         df_duT, df_dmT = rx.evalDeriv(
@@ -277,11 +274,13 @@ class BaseFDEMSimulation(BaseEMSimulation):
                         )
 
                         df_duT = np.vstack(df_duT)
-                        ATinvdf_duT = (A_i * df_duT)
+                        ATinvdf_duT = A_i * df_duT
                         dA_dmT = self.getADeriv(freq, u_src, ATinvdf_duT, adjoint=True)
-                        dRHS_dmT = self.getRHSDeriv(freq, src, ATinvdf_duT, adjoint=True)
+                        dRHS_dmT = self.getRHSDeriv(
+                            freq, src, ATinvdf_duT, adjoint=True
+                        )
                         du_dmT = -dA_dmT
-                        
+
                         if not isinstance(dRHS_dmT, Zero):
                             du_dmT += dRHS_dmT
                         if not isinstance(df_dmT[0], Zero):
@@ -292,9 +291,8 @@ class BaseFDEMSimulation(BaseEMSimulation):
                         Jmatrix[data_inds] = block
 
             self._Jmatrix = Jmatrix
-        
+
         return self._Jmatrix
-    
 
     def getJtJdiag(self, m, W=None, f=None):
         """
@@ -315,10 +313,10 @@ class BaseFDEMSimulation(BaseEMSimulation):
             else:
                 W = W.diagonal() ** 2
 
-            diag = np.einsum('i, ij->j', W, J)
+            diag = np.einsum("i, ij->j", W, J)
 
             self._gtgdiag = diag
-        
+
         return self._gtgdiag
 
     # @profile
