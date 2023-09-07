@@ -304,6 +304,12 @@ class XYZSystem(object):
     directives__beta0_ratio=10
     directives__beta_cooling_factor=2 
     directives__beta_cooling_rate=1
+    directives__irls = False
+    directives__max_iterations = 30
+    directives__minGNiter = 1
+    directives__fix_Jmatrix = True
+    directives__f_min_change = 1e-3
+    directives__coolingRate = 1
     def make_directives(self):
         if self.directives__seed:
             BetaEstimate = directives.BetaEstimate_ByEig(beta0_ratio=self.directives__beta0_ratio, 
@@ -311,22 +317,25 @@ class XYZSystem(object):
             print('setting manual random seed for repeatabillity')
         else:
             BetaEstimate = directives.BetaEstimate_ByEig(beta0_ratio=self.directives__beta0_ratio)
-        return [
+        dirs = [
             BetaEstimate,
             SimPEG.directives.BetaSchedule(coolingFactor=self.directives__beta_cooling_factor, 
                                            coolingRate=self.directives__beta_cooling_rate),
-            SimPEG.directives.TargetMisfit()
+            SimPEG.directives.TargetMisfit()]
 
-#            directives.SaveOutputEveryIteration(save_txt=False),
-            # directives.Update_IRLS(
-            #     max_irls_iterations=30,
-            #     minGNiter=1,
-            #     fix_Jmatrix=True,
-            #     f_min_change = 1e-3,
-            #     coolingRate=1),
-            # directives.UpdatePreconditioner()
+        #            directives.SaveOutputEveryIteration(save_txt=False),
+        if self.directives__irls:
+            dirs.append(
+                directives.Update_IRLS(
+                    max_irls_iterations = self.directives__max_iterations,
+                    minGNiter = self.directives__minGNiter,
+                    fix_Jmatrix = self.directives__fix_Jmatrix,
+                    f_min_change = self.directives__f_min_change,
+                    coolingRate = self.directives__coolingRate))
+            dirs.append(directives.UpdatePreconditioner())
 
-              ]
+        return dirs
+        
     optimizer__max_iter=40
     optimizer__max_iter_cg=20
     def make_optimizer(self):
@@ -374,12 +383,23 @@ class XYZSystem(object):
         
         thicknesses = self.inv.invProb.dmisfit.simulation.thicknesses
         
-        recovered_model = self.inv.run(self.make_startmodel(thicknesses))
+        self.inv.run(self.make_startmodel(thicknesses))
+        last_model = self.inverted_model_to_xyz(self.inv.invProb.model, thicknesses)
+        last_pred = self.forward_data_to_xyz(self.inv.invProb.dpred)
 
-        self.sparse = self.inverted_model_to_xyz(recovered_model, thicknesses)
-        self.l2 = None
+        self.corrected = self.forward_data_to_xyz(self.inv.invProb.dmisfit.data.dobs)
+
         if hasattr(self.inv.invProb, "l2model"):
+            self.sparse = last_model
+            self.sparsepred = last_pred
             self.l2 = self.inverted_model_to_xyz(self.inv.invProb.l2model, thicknesses)
+            self.l2pred = self.forward_data_to_xyz(self.inv.invProb.l2dpred)
+
+        else:
+            self.sparse = None
+            self.sparsepred = None
+            self.l2 = last_model
+            self.l2pred = last_pred
         
         return self.sparse, self.l2
 
@@ -416,16 +436,30 @@ class XYZSystem(object):
         return new_xyz
 
     
-    def forward_data_to_xyz(self, resp):
+    def forward_data_to_xyz(self, dpred, inversion=False):
+        def reshape(data):
+            return self.split_moments(
+                dpred.reshape((len(self.xyz.flightlines),
+                               len(dpred) // len(self.xyz.flightlines))))
+        
         xyzresp = libaarhusxyz.XYZ()
         xyzresp.model_info.update(self.xyz.model_info)
         xyzresp.flightlines = self.xyz.flightlines
 
+        resp = reshape(dpred / self.xyz.model_info.get("scalefactor", 1))
         xyzresp.layer_data = {
-            "dbdt_ch%sgt" % (idx + 1): moment / self.xyz.model_info.get("scalefactor", 1)
+            "dbdt_ch%sgt" % (idx + 1): moment
             for idx, moment in enumerate(resp)
         }
 
+        if inversion:
+            derr = reshape(np.sqrt((self.inv.invProb.dmisfit.data.dobs-dpred)**2 * self.inv.invProb.dmisfit.W.diagonal()**2))
+            std = np.abs(1 / self.inv.invProb.dmisfit.W.diagonal() / self.inv.invProb.dmisfit.data.dobs)
+            for idx, moment in enumerate(err):
+                xyzresp.layer_data["err_ch%sgt" % (idx + 1)] = moment
+            for idx, moment in enumerate(std):
+                xyzresp.layer_data["std_ch%sgt" % (idx + 1)] = moment
+            
         # XYZ assumes all receivers have the same times
         for idx, t in enumerate(self.times):
             xyzresp.model_info["gate times for channel %s" % (idx + 1)] = list(t)
@@ -444,6 +478,4 @@ class XYZSystem(object):
         model_cond=np.log(1/self.xyz.resistivity.values)
         resp = self.sim.dpred(model_cond.flatten())
 
-        resp = resp.reshape((len(self.xyz.flightlines), len(resp) // len(self.xyz.flightlines)))
-
-        return self.xyz.unfilter(self.forward_data_to_xyz(self.split_moments(resp)), layerfilter=False)
+        return self.xyz.unfilter(self.forward_data_to_xyz(resp), layerfilter=False)
