@@ -6,7 +6,7 @@ Documentation
 Documentation helps others use your code! Please document new contributions.
 SimPEG tries to follow the `numpydoc` style of docstrings (check out the
 `style guide <https://numpydoc.readthedocs.io/en/latest/format.html>`_).
-SimPEG then uses `sphinx <http://www.sphinx-doc.org/>`_ to build the documentation.
+SimPEG then uses `sphinx <https://www.sphinx-doc.org/>`_ to build the documentation.
 When documenting a new class or function, please include a description
 (with math if it solves an equation), inputs, outputs and preferably a small example.
 
