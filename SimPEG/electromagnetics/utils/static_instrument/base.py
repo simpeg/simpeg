@@ -384,12 +384,13 @@ class XYZSystem(object):
 
         self.options.update(kw)
         
-        self.inv = self.make_inversion()
-        
-        thicknesses = self.inv.invProb.dmisfit.simulation.thicknesses
-        
-        self.inv.run(self.make_startmodel(thicknesses))
-        last_model = self.inverted_model_to_xyz(self.inv.invProb.model, thicknesses, inversion=True)
+        self.inv = self.make_inversion()        
+        self.inv.run(self.make_startmodel(self.inv.invProb.dmisfit.simulation.thicknesses))
+        self.make_inversion_outputs()
+        return self.sparse, self.l2
+    
+    def make_inversion_outputs(self):
+        last_model = self.inverted_model_to_xyz(self.inv.invProb.model, self.inv.invProb.dmisfit.simulation.thicknesses)
         last_pred = self.forward_data_to_xyz(self.inv.invProb.dpred, inversion=True)
 
         self.corrected = self.forward_data_to_xyz(self.inv.invProb.dmisfit.data.dobs, inversion=True)
@@ -397,7 +398,7 @@ class XYZSystem(object):
         if hasattr(self.inv.invProb, "l2model"):
             self.sparse = last_model
             self.sparsepred = last_pred
-            self.l2 = self.inverted_model_to_xyz(self.inv.invProb.l2model, thicknesses)
+            self.l2 = self.inverted_model_to_xyz(self.inv.invProb.l2model, self.inv.invProb.dmisfit.simulation.thicknesses)
             self.l2pred = self.forward_data_to_xyz(self.inv.invProb.l2dpred, inversion=True)
 
         else:
@@ -405,8 +406,6 @@ class XYZSystem(object):
             self.sparsepred = None
             self.l2 = last_model
             self.l2pred = last_pred
-        
-        return self.sparse, self.l2
 
     def split_moments(self, resp):
         moments = []
