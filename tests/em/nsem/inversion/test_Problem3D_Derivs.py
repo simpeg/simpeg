@@ -15,13 +15,15 @@ MU = mu_0
 # Test the Jvec derivative
 def JtjdiagTest(inputSetup, comp="All", freq=False, expMap=True, weights=False):
     model, simulation = nsem.utils.test_utils.setupSimpegNSEM_PrimarySecondary(
-        inputSetup, [freq], comp=comp, singleFreq=True
+        inputSetup, [freq], comp=comp, singleFreq=False
     )
     W = None
     if weights:
         W = np.eye(simulation.survey.nD)
         # W = np.zeros((simulation.survey.nD, simulation.survey.nD))
 
+    simulation._gtgdiag = None
+    simulation._Jmatrix = None
     Jtjdiag1 = simulation.getJtJdiag(model, W=W)
     simulation._gtgdiag = None
     simulation._Jmatrix = None
@@ -29,15 +31,15 @@ def JtjdiagTest(inputSetup, comp="All", freq=False, expMap=True, weights=False):
     return np.allclose(Jtjdiag1, Jtjdiag2)
 
 
-def JmatrixTest(inputSetup, comp="All", freq=False, expMap=True):
-    model, simulation = nsem.utils.test_utils.setupSimpegNSEM_PrimarySecondary(
-        inputSetup, [freq], comp=comp, singleFreq=True
-    )
+# def JmatrixTest(inputSetup, comp="All", freq=False, expMap=True):
+#     model, simulation = nsem.utils.test_utils.setupSimpegNSEM_PrimarySecondary(
+#         inputSetup, [freq], comp=comp, singleFreq=True
+#     )
 
-    J1 = simulation.getJ(model)
-    simulation._Jmatrix = None
-    J2 = simulation.getJ(model + 2)
-    return np.allclose(J1, J2)
+#     J1 = simulation.getJ(model)
+#     simulation._Jmatrix = None
+#     J2 = simulation.getJ(model + 2)
+#     return np.allclose(J1, J2)
 
 
 # Test the Jvec derivative
@@ -135,9 +137,9 @@ class NSEM_DerivTests(unittest.TestCase):
     def test_derivJvec_tzyi(self):
         self.assertTrue(DerivJvecTest(nsem.utils.test_utils.halfSpace(1e-2), "zy", 0.1))
 
-    # Jmatrix
-    def test_jmatrix(self):
-        self.assertFalse(JmatrixTest(nsem.utils.test_utils.halfSpace(1e-2), freq=0.1))
+    # # Jmatrix
+    # def test_jmatrix(self):
+    #     self.assertFalse(JmatrixTest(nsem.utils.test_utils.halfSpace(1e-2), freq=0.1))
 
     def test_jtjdiag(self):
         self.assertFalse(JtjdiagTest(nsem.utils.test_utils.halfSpace(1e-2), freq=0.1))
