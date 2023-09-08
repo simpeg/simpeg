@@ -164,12 +164,17 @@ class XYZSystem(object):
     def data_uncert_array(self):
         return self.xyz.dbdt_std_ch1gt.values.flatten()
 
+    @property
+    def data_uncert_array_culled(self):
+        dobs = self.data_array_nan
+        return np.where(np.isnan(dobs), np.inf, self.data_uncert_array)
+        
     uncertainties__floor = 1e-13
     uncertainties__std_data = 0.05 # If None, use data std:s
     @property
     def uncert_array(self):
         if self.uncertainties__std_data is None:
-            uncertainties = self.data_uncert_array
+            uncertainties = self.data_uncert_array_culled
         else:
             uncertainties = self.uncertainties__std_data
         uncertainties = uncertainties * np.abs(self.data_array) + self.uncertainties__floor
@@ -384,16 +389,16 @@ class XYZSystem(object):
         thicknesses = self.inv.invProb.dmisfit.simulation.thicknesses
         
         self.inv.run(self.make_startmodel(thicknesses))
-        last_model = self.inverted_model_to_xyz(self.inv.invProb.model, thicknesses)
-        last_pred = self.forward_data_to_xyz(self.inv.invProb.dpred)
+        last_model = self.inverted_model_to_xyz(self.inv.invProb.model, thicknesses, inversion=True)
+        last_pred = self.forward_data_to_xyz(self.inv.invProb.dpred, inversion=True)
 
-        self.corrected = self.forward_data_to_xyz(self.inv.invProb.dmisfit.data.dobs)
+        self.corrected = self.forward_data_to_xyz(self.inv.invProb.dmisfit.data.dobs, inversion=True)
 
         if hasattr(self.inv.invProb, "l2model"):
             self.sparse = last_model
             self.sparsepred = last_pred
             self.l2 = self.inverted_model_to_xyz(self.inv.invProb.l2model, thicknesses)
-            self.l2pred = self.forward_data_to_xyz(self.inv.invProb.l2dpred)
+            self.l2pred = self.forward_data_to_xyz(self.inv.invProb.l2dpred, inversion=True)
 
         else:
             self.sparse = None
@@ -445,21 +450,33 @@ class XYZSystem(object):
         xyzresp = libaarhusxyz.XYZ()
         xyzresp.model_info.update(self.xyz.model_info)
         xyzresp.flightlines = self.xyz.flightlines
-
-        resp = reshape(dpred / self.xyz.model_info.get("scalefactor", 1))
-        xyzresp.layer_data = {
-            "dbdt_ch%sgt" % (idx + 1): moment
-            for idx, moment in enumerate(resp)
-        }
+        xyzresp.layer_data = {}
 
         if inversion:
-            derr = reshape(np.sqrt((self.inv.invProb.dmisfit.data.dobs-dpred)**2 * self.inv.invProb.dmisfit.W.diagonal()**2))
-            std = np.abs(1 / self.inv.invProb.dmisfit.W.diagonal() / self.inv.invProb.dmisfit.data.dobs)
-            for idx, moment in enumerate(err):
-                xyzresp.layer_data["err_ch%sgt" % (idx + 1)] = moment
-            for idx, moment in enumerate(std):
-                xyzresp.layer_data["std_ch%sgt" % (idx + 1)] = moment
+            uncertfilt = np.isinf(self.data_uncert_array_culled)
             
+            derr = np.sqrt((self.inv.invProb.dmisfit.data.dobs-dpred)**2 * self.inv.invProb.dmisfit.W.diagonal()**2)
+            std = np.abs(1 / self.inv.invProb.dmisfit.W.diagonal() / self.inv.invProb.dmisfit.data.dobs)
+
+            # dpred, dobs etc contain dummy values where uncertainty
+            # is inf. Don't let them through to the file or it will
+            # look funny when plotting.
+            dpred = np.where(uncertfilt, np.nan, dpred)
+            derr = np.where(uncertfilt, np.nan, derr)
+            std = np.where(uncertfilt, np.nan, std)
+            
+            for idx, moment in enumerate(reshape(derr)):
+                xyzresp.layer_data["dbdt_err_ch%sgt" % (idx + 1)] = moment
+            for idx, moment in enumerate(reshape(std)):
+                xyzresp.layer_data["dbdt_std_ch%sgt" % (idx + 1)] = moment
+
+        dpred = dpred / self.xyz.model_info.get("scalefactor", 1)
+        
+        xyzresp.layer_data = {
+            "dbdt_ch%sgt" % (idx + 1): moment
+            for idx, moment in enumerate(reshape(dpred))
+        }
+                            
         # XYZ assumes all receivers have the same times
         for idx, t in enumerate(self.times):
             xyzresp.model_info["gate times for channel %s" % (idx + 1)] = list(t)

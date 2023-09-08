@@ -140,9 +140,9 @@ class DualMomentTEMXYZSystem(base.XYZSystem):
                                    (n_sounding, 1)))).flatten()
 
         if not self.uncertainties__std_data_override:
-            stds = np.where(self.data_uncert_array < self.uncertainties__std_data,
+            stds = np.where(self.data_uncert_array_culled < self.uncertainties__std_data,
                             self.uncertainties__std_data,
-                            self.data_uncert_array)
+                            self.data_uncert_array_culled)
             uncertainties = stds * np.abs(self.data_array_nan) + noise
         else:
             uncertainties = self.uncertainties__std_data*np.abs(self.data_array_nan) + noise
