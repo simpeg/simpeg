@@ -143,7 +143,9 @@ class NSEM_DerivTests(unittest.TestCase):
         self.assertFalse(JtjdiagTest(nsem.utils.test_utils.halfSpace(1e-2), freq=0.1))
 
     def test_jtjdiag_weights(self):
-        self.assertFalse(JtjdiagTest(nsem.utils.test_utils.halfSpace(1e-2), freq=0.1, weights=True))
+        self.assertFalse(
+            JtjdiagTest(nsem.utils.test_utils.halfSpace(1e-2), freq=0.1, weights=True)
+        )
 
 
 if __name__ == "__main__":
