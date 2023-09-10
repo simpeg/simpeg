@@ -1,4 +1,4 @@
-STYLE_CHECK_FILES = SimPEG examples tutorials tests
+STYLE_CHECK_FILES = src/SimPEG examples tutorials tests
 
 .PHONY: help build coverage lint graphs tests docs check black flake
 
@@ -22,7 +22,7 @@ lint:
 	pylint --output-format=html SimPEG > pylint.html
 
 graphs:
-	pyreverse -my -A -o pdf -p SimPEG SimPEG/**.py SimPEG/**/**.py
+	pyreverse -my -A -o pdf -p src/SimPEG src/SimPEG/**.py src/SimPEG/**/**.py
 
 tests:
 	nosetests --logging-level=INFO
