@@ -1,4 +1,4 @@
 [run]
-source = SimPEG
+source = src/SimPEG
 omit =
     */setup.py
