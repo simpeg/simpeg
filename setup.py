@@ -29,7 +29,9 @@ with open("README.rst") as f:
 
 setup(
     name="SimPEG",
-    packages=find_packages(exclude=["tests*", "examples*", "tutorials*"]),
+    packages=find_packages(where="src"),
+    package_dir={"": "src"},
+    include_package_data=True,
     python_requires=">=3.8",
     setup_requires=[
         "setuptools_scm",
@@ -57,6 +59,6 @@ setup(
     platforms=["Windows", "Linux", "Solaris", "Mac OS-X", "Unix"],
     use_2to3=False,
     use_scm_version={
-        "write_to": os.path.join("SimPEG", "version.py"),
+        "write_to": os.path.join("src", "SimPEG", "version.py"),
     },
 )
