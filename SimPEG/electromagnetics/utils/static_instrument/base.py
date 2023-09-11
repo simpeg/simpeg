@@ -471,10 +471,8 @@ class XYZSystem(object):
 
         dpred = dpred / self.xyz.model_info.get("scalefactor", 1)
         
-        xyzresp.layer_data = {
-            "dbdt_ch%sgt" % (idx + 1): moment
-            for idx, moment in enumerate(reshape(dpred))
-        }
+        for idx, moment in enumerate(reshape(dpred)):
+            xyzresp.layer_data["dbdt_ch%sgt" % (idx + 1)] = moment
                             
         # XYZ assumes all receivers have the same times
         for idx, t in enumerate(self.times):
