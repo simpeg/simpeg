@@ -472,7 +472,7 @@ class XYZSystem(object):
                 xyzresp.layer_data["dbdt_std_ch%sgt" % (idx + 1)] = moment
 
             derrall = reshape_nosplit(derr)
-            xyzresp.flightlines['resdata'] = np.sqrt((derrall**2).sum(axis=1) / (derrall> 0 ).sum(axis=1))
+            xyzresp.flightlines['resdata'] = np.sqrt(np.nansum(derrall**2, axis=1) / (derrall > 0).sum(axis=1))
             
         dpred = dpred / self.xyz.model_info.get("scalefactor", 1)
         
