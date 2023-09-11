@@ -441,10 +441,11 @@ class XYZSystem(object):
 
     
     def forward_data_to_xyz(self, dpred, inversion=False):
+        def reshape_nosplit(data):
+            return data.reshape((len(self.xyz.flightlines),
+                                  len(data) // len(self.xyz.flightlines)))
         def reshape(data):
-            return self.split_moments(
-                dpred.reshape((len(self.xyz.flightlines),
-                               len(dpred) // len(self.xyz.flightlines))))
+            return self.split_moments(reshape_nosplit(data))
         
         xyzresp = libaarhusxyz.XYZ()
         xyzresp.model_info.update(self.xyz.model_info)
@@ -466,12 +467,13 @@ class XYZSystem(object):
             
             for idx, moment in enumerate(reshape(derr)):
                 xyzresp.layer_data["dbdt_err_ch%sgt" % (idx + 1)] = moment
+
             for idx, moment in enumerate(reshape(std)):
                 xyzresp.layer_data["dbdt_std_ch%sgt" % (idx + 1)] = moment
 
-            xyzresp.flightlines['resdata'] = np.sqrt((xyzresp.layer_data['err']**2).sum(axis=1) / (xyzresp.layer_data['err']> 0 ).sum(axis=1)) 
-
-                
+            derrall = reshape_nosplit(derr)
+            xyzresp.flightlines['resdata'] = np.sqrt((derrall**2).sum(axis=1) / (derrall> 0 ).sum(axis=1))
+            
         dpred = dpred / self.xyz.model_info.get("scalefactor", 1)
         
         for idx, moment in enumerate(reshape(dpred)):
