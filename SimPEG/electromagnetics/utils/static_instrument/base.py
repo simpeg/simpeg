@@ -454,7 +454,7 @@ class XYZSystem(object):
         if inversion:
             uncertfilt = np.isinf(self.data_uncert_array_culled)
             
-            derr = np.sqrt((self.inv.invProb.dmisfit.data.dobs-dpred)**2 * self.inv.invProb.dmisfit.W.diagonal()**2)
+            derr = (self.inv.invProb.dmisfit.data.dobs-dpred) * self.inv.invProb.dmisfit.W.diagonal()
             std = np.abs(1 / self.inv.invProb.dmisfit.W.diagonal() / self.inv.invProb.dmisfit.data.dobs)
 
             # dpred, dobs etc contain dummy values where uncertainty
@@ -469,6 +469,9 @@ class XYZSystem(object):
             for idx, moment in enumerate(reshape(std)):
                 xyzresp.layer_data["dbdt_std_ch%sgt" % (idx + 1)] = moment
 
+            xyzresp.flightlines['resdata'] = np.sqrt((xyzresp.layer_data['err']**2).sum(axis=1) / (xyzresp.layer_data['err']> 0 ).sum(axis=1)) 
+
+                
         dpred = dpred / self.xyz.model_info.get("scalefactor", 1)
         
         for idx, moment in enumerate(reshape(dpred)):
