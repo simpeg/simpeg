@@ -36,6 +36,8 @@ dependencies:
   - pyvista
   - pip
   - python-kaleido
+  # Optional dependencies
+  - choclo
   # Linters and code style
   - pre-commit
   - black==23.1.0
