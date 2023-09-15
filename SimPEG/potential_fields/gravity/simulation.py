@@ -656,6 +656,10 @@ class Simulation3DIntegral(BasePFSimulation):
 
     def _get_components_and_receivers(self):
         """Generator for receiver locations and their field components."""
+        if not hasattr(self.survey, "source_field"):
+            raise AttributeError(
+                f"The survey '{self.survey}' has no 'source_field' attribute."
+            )
         for receiver_object in self.survey.source_field.receiver_list:
             yield receiver_object.components, receiver_object.locations
 
