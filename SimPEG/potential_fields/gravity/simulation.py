@@ -189,18 +189,15 @@ def _fill_sensitivity_matrix(
             kernels[j] = kernel_func(dx, dy, dz, distance)
         # Compute sensitivity matrix elements from the kernel values
         for k in range(n_cells):
-            sensitivity_matrix[i, k] = np.float32(
-                constant_factor
-                * (
-                    -kernels[cell_nodes[k, 0]]
-                    + kernels[cell_nodes[k, 1]]
-                    + kernels[cell_nodes[k, 2]]
-                    - kernels[cell_nodes[k, 3]]
-                    + kernels[cell_nodes[k, 4]]
-                    - kernels[cell_nodes[k, 5]]
-                    - kernels[cell_nodes[k, 6]]
-                    + kernels[cell_nodes[k, 7]]
-                )
+            sensitivity_matrix[i, k] = constant_factor * (
+                -kernels[cell_nodes[k, 0]]
+                + kernels[cell_nodes[k, 1]]
+                + kernels[cell_nodes[k, 2]]
+                - kernels[cell_nodes[k, 3]]
+                + kernels[cell_nodes[k, 4]]
+                - kernels[cell_nodes[k, 5]]
+                - kernels[cell_nodes[k, 6]]
+                + kernels[cell_nodes[k, 7]]
             )
 
 
