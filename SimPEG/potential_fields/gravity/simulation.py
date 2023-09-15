@@ -58,6 +58,17 @@ def _forward_gravity(
     """
     Forward model the gravity field of active cells on receivers
 
+    This function should be used with a `numba.jit` decorator, for example:
+
+    ..code::
+
+        from numba import jit
+
+        jit_forward_gravity = jit(nopython=True, parallel=True)(_forward_gravity)
+        jit_forward_gravity(
+            receivers, nodes, densities, fields, cell_nodes, kernel_func, const_factor
+        )
+
     Parameters
     ----------
     receivers : (n_receivers, 3) array
@@ -78,6 +89,12 @@ def _forward_gravity(
     constant_factor : float
         Constant factor that will be used to multiply each element of the
         ``fields`` array.
+
+    Notes
+    -----
+    The conversion factor is applied here to each element of fields because
+    it's more efficient than doing it afterwards: it would require to
+    index the elements that corresponds to each component.
     """
     n_receivers = receivers.shape[0]
     n_nodes = nodes.shape[0]
@@ -120,6 +137,17 @@ def _fill_sensitivity_matrix(
 ):
     """
     Fill the sensitivity matrix
+
+    This function should be used with a `numba.jit` decorator, for example:
+
+    ..code::
+
+        from numba import jit
+
+        jit_sensitivity = jit(nopython=True, parallel=True)(_forward_sensitivity_matrix)
+        jit_sensitivity(
+            receivers, nodes, densities, fields, cell_nodes, kernel_func, const_factor
+        )
 
     Parameters
     ----------
@@ -576,7 +604,12 @@ class Simulation3DIntegral(BasePFSimulation):
         return cell_nodes
 
     def _get_tensormesh_cell_nodes(self):
-        """Dumb implementation of cell_nodes for a TensorMesh"""
+        """
+        Quick implmentation of ``cell_nodes`` for a ``TensorMesh``.
+
+        This method should be removed after ``TensorMesh.cell_nodes`` is added
+        in discretize.
+        """
         inds = np.arange(self.mesh.n_nodes).reshape(self.mesh.shape_nodes, order="F")
         cell_nodes = [
             inds[:-1, :-1, :-1].reshape(-1, order="F"),
