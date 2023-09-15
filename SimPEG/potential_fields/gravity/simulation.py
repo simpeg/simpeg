@@ -201,6 +201,17 @@ def _fill_sensitivity_matrix(
             )
 
 
+# Define decorated versions of these functions
+_fill_sensitivity_matrix_parallel = jit(nopython=True, parallel=True)(
+    _fill_sensitivity_matrix
+)
+_fill_sensitivity_matrix_serial = jit(nopython=True, parallel=False)(
+    _fill_sensitivity_matrix
+)
+_forward_gravity_parallel = jit(nopython=True, parallel=True)(_forward_gravity)
+_forward_gravity_serial = jit(nopython=True, parallel=False)(_forward_gravity)
+
+
 class Simulation3DIntegral(BasePFSimulation):
     """
     Gravity simulation in integral form.
@@ -275,12 +286,12 @@ class Simulation3DIntegral(BasePFSimulation):
         self._sanity_checks_engine(kwargs)
         # Define jit functions
         if self.engine == "choclo":
-            self._fill_sensitivity_matrix = jit(
-                nopython=True, parallel=choclo_parallel
-            )(_fill_sensitivity_matrix)
-            self._forward_gravity = jit(nopython=True, parallel=choclo_parallel)(
-                _forward_gravity
-            )
+            if choclo_parallel:
+                self._fill_sensitivity_matrix = _fill_sensitivity_matrix_parallel
+                self._forward_gravity = _forward_gravity_parallel
+            else:
+                self._fill_sensitivity_matrix = _fill_sensitivity_matrix_serial
+                self._forward_gravity = _forward_gravity_serial
 
     def _sanity_checks_engine(self, kwargs):
         """
