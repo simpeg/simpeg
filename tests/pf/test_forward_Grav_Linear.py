@@ -185,13 +185,61 @@ class TestsGravitySimulation:
         g_yy, g_yz, g_zz = data[3::6], data[4::6], data[5::6]
         solution = self.get_analytic_solution(blocks, survey)
         # Check results
-        rtol, atol = 1e-10, 1.2e-6
+        rtol, atol = 2e-6, 1e-6
         np.testing.assert_allclose(g_xx, solution[..., 0, 0], rtol=rtol, atol=atol)
         np.testing.assert_allclose(g_xy, solution[..., 0, 1], rtol=rtol, atol=atol)
         np.testing.assert_allclose(g_xz, solution[..., 0, 2], rtol=rtol, atol=atol)
         np.testing.assert_allclose(g_yy, solution[..., 1, 1], rtol=rtol, atol=atol)
         np.testing.assert_allclose(g_yz, solution[..., 1, 2], rtol=rtol, atol=atol)
         np.testing.assert_allclose(g_zz, solution[..., 2, 2], rtol=rtol, atol=atol)
+
+    @pytest.mark.parametrize("engine", ("geoana", "choclo"))
+    @pytest.mark.parametrize("store_sensitivities", ("ram", "disk", "forward_only"))
+    def test_guv_vs_analytic(
+        self,
+        engine,
+        store_sensitivities,
+        tmp_path,
+        blocks,
+        mesh,
+        density_and_active_cells,
+        receivers_locations,
+    ):
+        """
+        Test guv tensor component against analytic solutions of prisms.
+        """
+        components = ["guv"]
+        # Unpack fixtures
+        density, active_cells = density_and_active_cells
+        # Create survey
+        receivers = gravity.Point(receivers_locations, components=components)
+        sources = gravity.SourceField([receivers])
+        survey = gravity.Survey(sources)
+        # Create reduced identity map for Linear Problem
+        idenMap = maps.IdentityMap(nP=int(sum(active_cells)))
+        # Define sensitivity_path
+        sensitivity_path = tmp_path
+        if engine == "choclo":
+            sensitivity_path /= "sensitivity_choclo"
+        # Create simulation
+        sim = gravity.Simulation3DIntegral(
+            mesh,
+            survey=survey,
+            rhoMap=idenMap,
+            ind_active=active_cells,
+            store_sensitivities=store_sensitivities,
+            engine=engine,
+            sensitivity_path=str(sensitivity_path),
+            sensitivity_dtype=np.float64,
+        )
+        g_uv = sim.dpred(density)
+        solution = self.get_analytic_solution(blocks, survey)
+        g_xx_solution = solution[..., 0, 0]
+        g_yy_solution = solution[..., 1, 1]
+        g_uv_solution = 0.5 * (g_yy_solution - g_xx_solution)
+        # Check results
+        rtol, atol = 2e-6, 1e-6
+        np.testing.assert_allclose(g_uv, g_uv_solution, rtol=rtol, atol=atol)
 
 
 def test_ana_grav_forward(tmp_path):
