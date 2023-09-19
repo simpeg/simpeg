@@ -17,19 +17,25 @@ class TestsGravitySimulation:
     @pytest.fixture
     def blocks(self):
         """Synthetic blocks to build the sample model."""
-        block1 = np.array([[-1.5, 1.5], [-1.5, 1.5], [-1.5, 1.5]])
-        block2 = np.array([[-0.7, 0.7], [-0.7, 0.7], [-0.7, 0.7]])
+        block1 = np.array([[-1.6, 1.6], [-1.6, 1.6], [-1.6, 1.6]])
+        block2 = np.array([[-0.8, 0.8], [-0.8, 0.8], [-0.8, 0.8]])
         rho1 = 1.0
         rho2 = 2.0
         return (block1, block2), (rho1, rho2)
 
-    @pytest.fixture
-    def mesh(self):
+    @pytest.fixture(params=("tensormesh", "treemesh"))
+    def mesh(self, blocks, request):
         """Sample mesh."""
-        # Define a Tensor mesh
         cs = 0.2
-        hxind, hyind, hzind = tuple([(cs, 41)] for _ in range(3))
-        mesh = discretize.TensorMesh([hxind, hyind, hzind], "CCC")
+        (block1, _), _ = blocks
+        if request.param == "tensormesh":
+            hxind, hyind, hzind = tuple([(cs, 42)] for _ in range(3))
+            mesh = discretize.TensorMesh([hxind, hyind, hzind], "CCC")
+        else:
+            h = cs * np.ones(64)
+            mesh = discretize.TreeMesh([h, h, h], origin="CCC")
+            x0, x1 = block1[:, 0], block1[:, 1]
+            mesh.refine_box(x0, x1, levels=9)
         return mesh
 
     @pytest.fixture
