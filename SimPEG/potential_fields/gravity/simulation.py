@@ -212,6 +212,19 @@ _forward_gravity_parallel = jit(nopython=True, parallel=True)(_forward_gravity)
 _forward_gravity_serial = jit(nopython=True, parallel=False)(_forward_gravity)
 
 
+def _get_conversion_factor(component):
+    """
+    Return conversion factor for the given component
+    """
+    if component in ("gx", "gy", "gz"):
+        conversion_factor = 1e8
+    elif component in ("gxx", "gyy", "gzz", "gxy", "gxz", "gyz", "guv"):
+        conversion_factor = 1e12
+    else:
+        raise ValueError(f"Invalid component '{component}'.")
+    return conversion_factor
+
+
 class Simulation3DIntegral(BasePFSimulation):
     """
     Gravity simulation in integral form.
@@ -539,7 +552,7 @@ class Simulation3DIntegral(BasePFSimulation):
             n_elements = n_components * receivers.shape[0]
             for i, component in enumerate(components):
                 kernel_func = CHOCLO_KERNELS[component]
-                conversion_factor = self._get_conversion_factor(component)
+                conversion_factor = _get_conversion_factor(component)
                 vector_slice = slice(
                     index_offset + i, index_offset + n_elements, n_components
                 )
@@ -584,7 +597,7 @@ class Simulation3DIntegral(BasePFSimulation):
             n_rows = n_components * receivers.shape[0]
             for i, component in enumerate(components):
                 kernel_func = CHOCLO_KERNELS[component]
-                conversion_factor = self._get_conversion_factor(component)
+                conversion_factor = _get_conversion_factor(component)
                 matrix_slice = slice(
                     index_offset + i, index_offset + n_rows, n_components
                 )
@@ -670,18 +683,6 @@ class Simulation3DIntegral(BasePFSimulation):
             )
         for receiver_object in self.survey.source_field.receiver_list:
             yield receiver_object.components, receiver_object.locations
-
-    def _get_conversion_factor(self, component):
-        """
-        Return conversion factor for the given component
-        """
-        if component in ("gx", "gy", "gz"):
-            conversion_factor = 1e8
-        elif component in ("gxx", "gyy", "gzz", "gxy", "gxz", "gyz", "guv"):
-            conversion_factor = 1e12
-        else:
-            raise ValueError(f"Invalid component '{component}'.")
-        return conversion_factor
 
 
 class SimulationEquivalentSourceLayer(
