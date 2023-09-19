@@ -39,6 +39,11 @@ class TestsGravitySimulation:
         return mesh
 
     @pytest.fixture
+    def simple_mesh(self):
+        """Simpler sample mesh, just to use it as a placeholder in some tests."""
+        return discretize.TensorMesh([5, 5, 5], "CCC")
+
+    @pytest.fixture
     def density_and_active_cells(self, mesh, blocks):
         """Sample density and active_cells arrays for the sample mesh."""
         # create a model of two blocks, 1 inside the other
@@ -271,6 +276,70 @@ class TestsGravitySimulation:
         # Check results
         rtol, atol = 2e-6, 1e-6
         np.testing.assert_allclose(g_uv, g_uv_solution, rtol=rtol, atol=atol)
+
+    @pytest.mark.parametrize("engine", ("choclo", "geoana"))
+    @pytest.mark.parametrize("store_sensitivities", ("ram", "disk", "forward_only"))
+    def test_sensitivity_dtype(
+        self,
+        engine,
+        store_sensitivities,
+        simple_mesh,
+        receivers_locations,
+        tmp_path,
+    ):
+        """Test sensitivity_dtype."""
+        # Create survey
+        receivers = gravity.Point(receivers_locations, components="gz")
+        sources = gravity.SourceField([receivers])
+        survey = gravity.Survey(sources)
+        # Create reduced identity map for Linear Problem
+        active_cells = np.ones(simple_mesh.n_cells, dtype=bool)
+        idenMap = maps.IdentityMap(nP=simple_mesh.n_cells)
+        # Create simulation
+        sensitivity_path = tmp_path
+        if engine == "choclo":
+            sensitivity_path /= "dummy"
+        simulation = gravity.Simulation3DIntegral(
+            simple_mesh,
+            survey=survey,
+            rhoMap=idenMap,
+            ind_active=active_cells,
+            engine=engine,
+            store_sensitivities=store_sensitivities,
+            sensitivity_path=str(sensitivity_path),
+        )
+        # sensitivity_dtype should be float64 when running forward only,
+        # but float32 in other cases
+        if store_sensitivities == "forward_only":
+            assert simulation.sensitivity_dtype is np.float64
+        else:
+            assert simulation.sensitivity_dtype is np.float32
+
+    @pytest.mark.parametrize("invalid_dtype", (float, np.float16))
+    def test_invalid_sensitivity_dtype_assignment(
+        self, simple_mesh, receivers_locations, invalid_dtype
+    ):
+        """
+        Test invalid sensitivity_dtype assignment
+        """
+        # Create survey
+        receivers = gravity.Point(receivers_locations, components="gz")
+        sources = gravity.SourceField([receivers])
+        survey = gravity.Survey(sources)
+        # Create reduced identity map for Linear Problem
+        active_cells = np.ones(simple_mesh.n_cells, dtype=bool)
+        idenMap = maps.IdentityMap(nP=simple_mesh.n_cells)
+        # Create simulation
+        simulation = gravity.Simulation3DIntegral(
+            simple_mesh,
+            survey=survey,
+            rhoMap=idenMap,
+            ind_active=active_cells,
+        )
+        # Check if error is raised
+        msg = "sensitivity_dtype must be either np.float32 or np.float64."
+        with pytest.raises(TypeError, match=msg):
+            simulation.sensitivity_dtype = invalid_dtype
 
     def test_invalid_engine(self, mesh, receivers_locations):
         """Test if error is raised after invalid engine."""
