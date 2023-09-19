@@ -331,6 +331,7 @@ class Simulation3DIntegral(BasePFSimulation):
             warnings.warn(
                 "The 'n_processes' will be ignored when selecting 'choclo' as the "
                 "engine in the gravity simulation.",
+                UserWarning,
                 stacklevel=1,
             )
         # Sanity checks for sensitivity_path when using choclo and storing in disk
