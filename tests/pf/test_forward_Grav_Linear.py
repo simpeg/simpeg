@@ -272,16 +272,15 @@ class TestsGravitySimulation:
         rtol, atol = 2e-6, 1e-6
         np.testing.assert_allclose(g_uv, g_uv_solution, rtol=rtol, atol=atol)
 
-    def test_invalid_engine(self, mesh, density_and_active_cells, receivers_locations):
+    def test_invalid_engine(self, mesh, receivers_locations):
         """Test if error is raised after invalid engine."""
-        # Unpack fixtures
-        _, active_cells = density_and_active_cells
         # Create survey
         receivers = gravity.Point(receivers_locations, components="gz")
         sources = gravity.SourceField([receivers])
         survey = gravity.Survey(sources)
         # Create reduced identity map for Linear Problem
-        idenMap = maps.IdentityMap(nP=int(sum(active_cells)))
+        active_cells = np.ones(mesh.n_cells, dtype=bool)
+        idenMap = maps.IdentityMap(nP=mesh.n_cells)
         # Check if error is raised after an invalid engine is passed
         engine = "invalid engine"
         with pytest.raises(ValueError, match=f"Invalid engine '{engine}'"):
@@ -293,18 +292,15 @@ class TestsGravitySimulation:
                 engine=engine,
             )
 
-    def test_choclo_and_n_proceesses(
-        self, mesh, density_and_active_cells, receivers_locations
-    ):
+    def test_choclo_and_n_proceesses(self, mesh, receivers_locations):
         """Check if warning is raised after passing n_processes with choclo engine."""
-        # Unpack fixtures
-        _, active_cells = density_and_active_cells
         # Create survey
         receivers = gravity.Point(receivers_locations, components="gz")
         sources = gravity.SourceField([receivers])
         survey = gravity.Survey(sources)
         # Create reduced identity map for Linear Problem
-        idenMap = maps.IdentityMap(nP=int(sum(active_cells)))
+        active_cells = np.ones(mesh.n_cells, dtype=bool)
+        idenMap = maps.IdentityMap(nP=mesh.n_cells)
         # Check if warning is raised
         msg = "The 'n_processes' will be ignored when selecting 'choclo'"
         with pytest.warns(UserWarning, match=msg):
@@ -318,19 +314,18 @@ class TestsGravitySimulation:
             )
 
     def test_choclo_and_sensitivity_path_as_dir(
-        self, mesh, density_and_active_cells, receivers_locations, tmp_path
+        self, mesh, receivers_locations, tmp_path
     ):
         """
         Check if error is raised when sensitivity_path is a dir with choclo engine.
         """
-        # Unpack fixtures
-        _, active_cells = density_and_active_cells
         # Create survey
         receivers = gravity.Point(receivers_locations, components="gz")
         sources = gravity.SourceField([receivers])
         survey = gravity.Survey(sources)
         # Create reduced identity map for Linear Problem
-        idenMap = maps.IdentityMap(nP=int(sum(active_cells)))
+        active_cells = np.ones(mesh.n_cells, dtype=bool)
+        idenMap = maps.IdentityMap(nP=mesh.n_cells)
         # Create a sensitivity_path directory
         sensitivity_path = tmp_path / "sensitivity_dummy"
         sensitivity_path.mkdir()
@@ -348,18 +343,17 @@ class TestsGravitySimulation:
             )
 
     @patch("SimPEG.potential_fields.gravity.simulation.choclo", None)
-    def test_choclo_missing(self, mesh, density_and_active_cells, receivers_locations):
+    def test_choclo_missing(self, mesh, receivers_locations):
         """
         Check if error is raised when choclo is missing and chosen as engine.
         """
-        # Unpack fixtures
-        _, active_cells = density_and_active_cells
         # Create survey
         receivers = gravity.Point(receivers_locations, components="gz")
         sources = gravity.SourceField([receivers])
         survey = gravity.Survey(sources)
         # Create reduced identity map for Linear Problem
-        idenMap = maps.IdentityMap(nP=int(sum(active_cells)))
+        active_cells = np.ones(mesh.n_cells, dtype=bool)
+        idenMap = maps.IdentityMap(nP=mesh.n_cells)
         # Check if error is raised
         msg = "The choclo package couldn't be found."
         with pytest.raises(ImportError, match=msg):
