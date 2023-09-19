@@ -341,40 +341,40 @@ class TestsGravitySimulation:
         with pytest.raises(TypeError, match=msg):
             simulation.sensitivity_dtype = invalid_dtype
 
-    def test_invalid_engine(self, mesh, receivers_locations):
+    def test_invalid_engine(self, simple_mesh, receivers_locations):
         """Test if error is raised after invalid engine."""
         # Create survey
         receivers = gravity.Point(receivers_locations, components="gz")
         sources = gravity.SourceField([receivers])
         survey = gravity.Survey(sources)
         # Create reduced identity map for Linear Problem
-        active_cells = np.ones(mesh.n_cells, dtype=bool)
-        idenMap = maps.IdentityMap(nP=mesh.n_cells)
+        active_cells = np.ones(simple_mesh.n_cells, dtype=bool)
+        idenMap = maps.IdentityMap(nP=simple_mesh.n_cells)
         # Check if error is raised after an invalid engine is passed
         engine = "invalid engine"
         with pytest.raises(ValueError, match=f"Invalid engine '{engine}'"):
             gravity.Simulation3DIntegral(
-                mesh,
+                simple_mesh,
                 survey=survey,
                 rhoMap=idenMap,
                 ind_active=active_cells,
                 engine=engine,
             )
 
-    def test_choclo_and_n_proceesses(self, mesh, receivers_locations):
+    def test_choclo_and_n_proceesses(self, simple_mesh, receivers_locations):
         """Check if warning is raised after passing n_processes with choclo engine."""
         # Create survey
         receivers = gravity.Point(receivers_locations, components="gz")
         sources = gravity.SourceField([receivers])
         survey = gravity.Survey(sources)
         # Create reduced identity map for Linear Problem
-        active_cells = np.ones(mesh.n_cells, dtype=bool)
-        idenMap = maps.IdentityMap(nP=mesh.n_cells)
+        active_cells = np.ones(simple_mesh.n_cells, dtype=bool)
+        idenMap = maps.IdentityMap(nP=simple_mesh.n_cells)
         # Check if warning is raised
         msg = "The 'n_processes' will be ignored when selecting 'choclo'"
         with pytest.warns(UserWarning, match=msg):
             gravity.Simulation3DIntegral(
-                mesh,
+                simple_mesh,
                 survey=survey,
                 rhoMap=idenMap,
                 ind_active=active_cells,
@@ -383,7 +383,7 @@ class TestsGravitySimulation:
             )
 
     def test_choclo_and_sensitivity_path_as_dir(
-        self, mesh, receivers_locations, tmp_path
+        self, simple_mesh, receivers_locations, tmp_path
     ):
         """
         Check if error is raised when sensitivity_path is a dir with choclo engine.
@@ -393,8 +393,8 @@ class TestsGravitySimulation:
         sources = gravity.SourceField([receivers])
         survey = gravity.Survey(sources)
         # Create reduced identity map for Linear Problem
-        active_cells = np.ones(mesh.n_cells, dtype=bool)
-        idenMap = maps.IdentityMap(nP=mesh.n_cells)
+        active_cells = np.ones(simple_mesh.n_cells, dtype=bool)
+        idenMap = maps.IdentityMap(nP=simple_mesh.n_cells)
         # Create a sensitivity_path directory
         sensitivity_path = tmp_path / "sensitivity_dummy"
         sensitivity_path.mkdir()
@@ -402,7 +402,7 @@ class TestsGravitySimulation:
         msg = f"The passed sensitivity_path '{str(sensitivity_path)}' is a directory"
         with pytest.raises(ValueError, match=msg):
             gravity.Simulation3DIntegral(
-                mesh,
+                simple_mesh,
                 survey=survey,
                 rhoMap=idenMap,
                 ind_active=active_cells,
@@ -412,7 +412,7 @@ class TestsGravitySimulation:
             )
 
     @patch("SimPEG.potential_fields.gravity.simulation.choclo", None)
-    def test_choclo_missing(self, mesh, receivers_locations):
+    def test_choclo_missing(self, simple_mesh, receivers_locations):
         """
         Check if error is raised when choclo is missing and chosen as engine.
         """
@@ -421,13 +421,13 @@ class TestsGravitySimulation:
         sources = gravity.SourceField([receivers])
         survey = gravity.Survey(sources)
         # Create reduced identity map for Linear Problem
-        active_cells = np.ones(mesh.n_cells, dtype=bool)
-        idenMap = maps.IdentityMap(nP=mesh.n_cells)
+        active_cells = np.ones(simple_mesh.n_cells, dtype=bool)
+        idenMap = maps.IdentityMap(nP=simple_mesh.n_cells)
         # Check if error is raised
         msg = "The choclo package couldn't be found."
         with pytest.raises(ImportError, match=msg):
             gravity.Simulation3DIntegral(
-                mesh,
+                simple_mesh,
                 survey=survey,
                 rhoMap=idenMap,
                 ind_active=active_cells,
