@@ -1,4 +1,5 @@
 import unittest
+from unittest.mock import patch
 import pytest
 import discretize
 from SimPEG import maps
@@ -24,8 +25,8 @@ class TestsGravitySimulation:
 
     @pytest.fixture
     def mesh(self):
-        """Sample mesh and density array."""
-        # Define a mesh
+        """Sample mesh."""
+        # Define a Tensor mesh
         cs = 0.2
         hxind, hyind, hzind = tuple([(cs, 41)] for _ in range(3))
         mesh = discretize.TensorMesh([hxind, hyind, hzind], "CCC")
@@ -93,11 +94,16 @@ class TestsGravitySimulation:
             fields *= 1e9  # convert to Eotvos from 1/s^2
         return fields
 
-    @pytest.mark.parametrize("engine", ("geoana", "choclo"))
+    @pytest.mark.parametrize(
+        "engine, parallelism",
+        [("geoana", None), ("geoana", 1), ("choclo", False), ("choclo", True)],
+        ids=["geoana_serial", "geoana_parallel", "choclo_serial", "choclo_parallel"],
+    )
     @pytest.mark.parametrize("store_sensitivities", ("ram", "disk", "forward_only"))
     def test_accelerations_vs_analytic(
         self,
         engine,
+        parallelism,
         store_sensitivities,
         tmp_path,
         blocks,
@@ -117,11 +123,13 @@ class TestsGravitySimulation:
         survey = gravity.Survey(sources)
         # Create reduced identity map for Linear Problem
         idenMap = maps.IdentityMap(nP=int(sum(active_cells)))
-        # Define sensitivity_path
-        sensitivity_path = tmp_path
-        if engine == "choclo":
-            sensitivity_path /= "sensitivity_choclo"
         # Create simulation
+        if engine == "choclo":
+            sensitivity_path = tmp_path / "sensitivity_choclo"
+            kwargs = dict(choclo_parallel=parallelism)
+        else:
+            sensitivity_path = tmp_path
+            kwargs = dict(n_processes=parallelism)
         sim = gravity.Simulation3DIntegral(
             mesh,
             survey=survey,
@@ -131,6 +139,7 @@ class TestsGravitySimulation:
             engine=engine,
             sensitivity_path=str(sensitivity_path),
             sensitivity_dtype=np.float64,
+            **kwargs,
         )
         data = sim.dpred(density)
         g_x, g_y, g_z = data[0::3], data[1::3], data[2::3]
@@ -141,11 +150,16 @@ class TestsGravitySimulation:
         np.testing.assert_allclose(g_y, solution[:, 1], rtol=rtol, atol=atol)
         np.testing.assert_allclose(g_z, solution[:, 2], rtol=rtol, atol=atol)
 
-    @pytest.mark.parametrize("engine", ("geoana", "choclo"))
+    @pytest.mark.parametrize(
+        "engine, parallelism",
+        [("geoana", None), ("geoana", 1), ("choclo", False), ("choclo", True)],
+        ids=["geoana_serial", "geoana_parallel", "choclo_serial", "choclo_parallel"],
+    )
     @pytest.mark.parametrize("store_sensitivities", ("ram", "disk", "forward_only"))
     def test_tensor_vs_analytic(
         self,
         engine,
+        parallelism,
         store_sensitivities,
         tmp_path,
         blocks,
@@ -165,11 +179,13 @@ class TestsGravitySimulation:
         survey = gravity.Survey(sources)
         # Create reduced identity map for Linear Problem
         idenMap = maps.IdentityMap(nP=int(sum(active_cells)))
-        # Define sensitivity_path
-        sensitivity_path = tmp_path
-        if engine == "choclo":
-            sensitivity_path /= "sensitivity_choclo"
         # Create simulation
+        if engine == "choclo":
+            sensitivity_path = tmp_path / "sensitivity_choclo"
+            kwargs = dict(choclo_parallel=parallelism)
+        else:
+            sensitivity_path = tmp_path
+            kwargs = dict(n_processes=parallelism)
         sim = gravity.Simulation3DIntegral(
             mesh,
             survey=survey,
@@ -179,6 +195,7 @@ class TestsGravitySimulation:
             engine=engine,
             sensitivity_path=str(sensitivity_path),
             sensitivity_dtype=np.float64,
+            **kwargs,
         )
         data = sim.dpred(density)
         g_xx, g_xy, g_xz = data[0::6], data[1::6], data[2::6]
@@ -193,11 +210,16 @@ class TestsGravitySimulation:
         np.testing.assert_allclose(g_yz, solution[..., 1, 2], rtol=rtol, atol=atol)
         np.testing.assert_allclose(g_zz, solution[..., 2, 2], rtol=rtol, atol=atol)
 
-    @pytest.mark.parametrize("engine", ("geoana", "choclo"))
+    @pytest.mark.parametrize(
+        "engine, parallelism",
+        [("geoana", 1), ("geoana", None), ("choclo", False), ("choclo", True)],
+        ids=["geoana_serial", "geoana_parallel", "choclo_serial", "choclo_parallel"],
+    )
     @pytest.mark.parametrize("store_sensitivities", ("ram", "disk", "forward_only"))
     def test_guv_vs_analytic(
         self,
         engine,
+        parallelism,
         store_sensitivities,
         tmp_path,
         blocks,
@@ -217,11 +239,13 @@ class TestsGravitySimulation:
         survey = gravity.Survey(sources)
         # Create reduced identity map for Linear Problem
         idenMap = maps.IdentityMap(nP=int(sum(active_cells)))
-        # Define sensitivity_path
-        sensitivity_path = tmp_path
-        if engine == "choclo":
-            sensitivity_path /= "sensitivity_choclo"
         # Create simulation
+        if engine == "choclo":
+            sensitivity_path = tmp_path / "sensitivity_choclo"
+            kwargs = dict(choclo_parallel=parallelism)
+        else:
+            sensitivity_path = tmp_path
+            kwargs = dict(n_processes=parallelism)
         sim = gravity.Simulation3DIntegral(
             mesh,
             survey=survey,
@@ -231,6 +255,7 @@ class TestsGravitySimulation:
             engine=engine,
             sensitivity_path=str(sensitivity_path),
             sensitivity_dtype=np.float64,
+            **kwargs,
         )
         g_uv = sim.dpred(density)
         solution = self.get_analytic_solution(blocks, survey)
@@ -240,6 +265,131 @@ class TestsGravitySimulation:
         # Check results
         rtol, atol = 2e-6, 1e-6
         np.testing.assert_allclose(g_uv, g_uv_solution, rtol=rtol, atol=atol)
+
+    def test_invalid_engine(self, mesh, density_and_active_cells, receivers_locations):
+        """Test if error is raised after invalid engine."""
+        # Unpack fixtures
+        _, active_cells = density_and_active_cells
+        # Create survey
+        receivers = gravity.Point(receivers_locations, components="gz")
+        sources = gravity.SourceField([receivers])
+        survey = gravity.Survey(sources)
+        # Create reduced identity map for Linear Problem
+        idenMap = maps.IdentityMap(nP=int(sum(active_cells)))
+        # Check if error is raised after an invalid engine is passed
+        engine = "invalid engine"
+        with pytest.raises(ValueError, match=f"Invalid engine '{engine}'"):
+            gravity.Simulation3DIntegral(
+                mesh,
+                survey=survey,
+                rhoMap=idenMap,
+                ind_active=active_cells,
+                engine=engine,
+            )
+
+    def test_choclo_and_n_proceesses(
+        self, mesh, density_and_active_cells, receivers_locations
+    ):
+        """Check if warning is raised after passing n_processes with choclo engine."""
+        # Unpack fixtures
+        _, active_cells = density_and_active_cells
+        # Create survey
+        receivers = gravity.Point(receivers_locations, components="gz")
+        sources = gravity.SourceField([receivers])
+        survey = gravity.Survey(sources)
+        # Create reduced identity map for Linear Problem
+        idenMap = maps.IdentityMap(nP=int(sum(active_cells)))
+        # Check if warning is raised
+        msg = "The 'n_processes' will be ignored when selecting 'choclo'"
+        with pytest.warns(UserWarning, match=msg):
+            gravity.Simulation3DIntegral(
+                mesh,
+                survey=survey,
+                rhoMap=idenMap,
+                ind_active=active_cells,
+                engine="choclo",
+                n_processes=2,
+            )
+
+    def test_choclo_and_sensitivity_path_as_dir(
+        self, mesh, density_and_active_cells, receivers_locations, tmp_path
+    ):
+        """
+        Check if error is raised when sensitivity_path is a dir with choclo engine.
+        """
+        # Unpack fixtures
+        _, active_cells = density_and_active_cells
+        # Create survey
+        receivers = gravity.Point(receivers_locations, components="gz")
+        sources = gravity.SourceField([receivers])
+        survey = gravity.Survey(sources)
+        # Create reduced identity map for Linear Problem
+        idenMap = maps.IdentityMap(nP=int(sum(active_cells)))
+        # Create a sensitivity_path directory
+        sensitivity_path = tmp_path / "sensitivity_dummy"
+        sensitivity_path.mkdir()
+        # Check if error is raised
+        msg = f"The passed sensitivity_path '{str(sensitivity_path)}' is a directory"
+        with pytest.raises(ValueError, match=msg):
+            gravity.Simulation3DIntegral(
+                mesh,
+                survey=survey,
+                rhoMap=idenMap,
+                ind_active=active_cells,
+                store_sensitivities="disk",
+                sensitivity_path=str(sensitivity_path),
+                engine="choclo",
+            )
+
+    @patch("SimPEG.potential_fields.gravity.simulation.choclo", None)
+    def test_choclo_missing(self, mesh, density_and_active_cells, receivers_locations):
+        """
+        Check if error is raised when choclo is missing and chosen as engine.
+        """
+        # Unpack fixtures
+        _, active_cells = density_and_active_cells
+        # Create survey
+        receivers = gravity.Point(receivers_locations, components="gz")
+        sources = gravity.SourceField([receivers])
+        survey = gravity.Survey(sources)
+        # Create reduced identity map for Linear Problem
+        idenMap = maps.IdentityMap(nP=int(sum(active_cells)))
+        # Check if error is raised
+        msg = "The choclo package couldn't be found."
+        with pytest.raises(ImportError, match=msg):
+            gravity.Simulation3DIntegral(
+                mesh,
+                survey=survey,
+                rhoMap=idenMap,
+                ind_active=active_cells,
+                engine="choclo",
+            )
+
+
+class TestConversionFactor:
+    """Test _get_conversion_factor function."""
+
+    @pytest.mark.parametrize(
+        "component",
+        ("gx", "gy", "gz", "gxx", "gyy", "gzz", "gxy", "gxz", "gyz", "guv"),
+    )
+    def test_conversion_factor(self, component):
+        """
+        Test _get_conversion_factor function with valid components
+        """
+        conversion_factor = gravity.simulation._get_conversion_factor(component)
+        if len(component) == 2:
+            assert conversion_factor == 1e5 * 1e3  # SI to mGal and g/cc to kg/m3
+        else:
+            assert conversion_factor == 1e9 * 1e3  # SI to Eotvos and g/cc to kg/m3
+
+    def test_invalid_conversion_factor(self):
+        """
+        Test invalid conversion factor _get_conversion_factor function
+        """
+        component = "invalid-component"
+        with pytest.raises(ValueError, match=f"Invalid component '{component}'"):
+            gravity.simulation._get_conversion_factor(component)
 
 
 def test_ana_grav_forward(tmp_path):
