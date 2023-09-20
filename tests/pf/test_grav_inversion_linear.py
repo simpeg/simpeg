@@ -111,7 +111,6 @@ def test_gravity_inversion_linear(engine):
         invProb,
         directiveList=[IRLS, sensitivity_weights, starting_beta, update_Jacobi],
     )
-    sim = sim
 
     # Run the inversion
     mrec = inv.run(model)
