@@ -85,7 +85,7 @@ def test_gravity_inversion_linear(engine):
 
     # Compute linear forward operator and compute some data
     data = sim.make_synthetic_data(
-        model, relative_error=0.0, noise_floor=0.0005, add_noise=True
+        model, relative_error=0.0, noise_floor=0.0005, add_noise=True, random_seed=2
     )
 
     # Create a regularization
