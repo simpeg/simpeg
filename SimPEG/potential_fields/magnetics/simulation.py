@@ -1,27 +1,24 @@
 import numpy as np
 import scipy.sparse as sp
-from scipy.constants import mu_0
-
-from SimPEG import utils
-from ..base import BasePFSimulation, BaseEquivalentSourceLayerSimulation
-from ...base import BaseMagneticPDESimulation
-from .survey import Survey
-from .analytics import CongruousMagBC
-
-from SimPEG import Solver
-from SimPEG import props
-
-from SimPEG.utils import mkvc, mat_utils, sdiag
-from SimPEG.utils.code_utils import validate_string, deprecate_property, validate_type
 from geoana.kernels import (
-    prism_fzz,
-    prism_fzx,
-    prism_fzy,
-    prism_fzzz,
     prism_fxxy,
     prism_fxxz,
     prism_fxyz,
+    prism_fzx,
+    prism_fzy,
+    prism_fzz,
+    prism_fzzz,
 )
+from scipy.constants import mu_0
+
+from SimPEG import Solver, props, utils
+from SimPEG.utils import mat_utils, mkvc, sdiag
+from SimPEG.utils.code_utils import deprecate_property, validate_string, validate_type
+
+from ...base import BaseMagneticPDESimulation
+from ..base import BaseEquivalentSourceLayerSimulation, BasePFSimulation
+from .analytics import CongruousMagBC
+from .survey import Survey
 
 
 class Simulation3DIntegral(BasePFSimulation):
@@ -283,33 +280,33 @@ class Simulation3DIntegral(BasePFSimulation):
             #     # inside an active cell.
             #     node_evals["gzz"] = -node_evals["gxx"] - node_evals["gyy"]
 
-        if "bxx" in components:
+        if "bxx" in components or "tmi_x" in components:
             node_evals["gxxx"] = prism_fzzz(dy, dz, dx)
             node_evals["gxxy"] = prism_fxxy(dx, dy, dz)
             node_evals["gxxz"] = prism_fxxz(dx, dy, dz)
-        if "bxy" in components:
+        if any(s in components for s in ["bxy", "tmi_x", "tmi_y"]):
             if "gxxy" not in node_evals:
                 node_evals["gxxy"] = prism_fxxy(dx, dy, dz)
             node_evals["gyyx"] = prism_fxxz(dy, dz, dx)
             node_evals["gxyz"] = prism_fxyz(dx, dy, dz)
-        if "bxz" in components:
+        if any(s in components for s in ["bxz", "tmi_x", "tmi_z"]):
             if "gxxz" not in node_evals:
                 node_evals["gxxz"] = prism_fxxz(dx, dy, dz)
             if "gxyz" not in node_evals:
                 node_evals["gxyz"] = prism_fxyz(dx, dy, dz)
             node_evals["gzzx"] = prism_fxxy(dz, dx, dy)
-        if "byy" in components:
+        if any(s in components for s in ["byy", "tmi_y"]):
             if "gyyx" not in node_evals:
                 node_evals["gyyx"] = prism_fxxz(dy, dz, dx)
             node_evals["gyyy"] = prism_fzzz(dz, dx, dy)
             node_evals["gyyz"] = prism_fxxy(dy, dz, dx)
-        if "byz" in components:
+        if any(s in components for s in ["byz", "tmi_y", "tmi_z"]):
             if "gxyz" not in node_evals:
                 node_evals["gxyz"] = prism_fxyz(dx, dy, dz)
             if "gyyz" not in node_evals:
                 node_evals["gyyz"] = prism_fxxy(dy, dz, dx)
             node_evals["gzzy"] = prism_fxxz(dz, dx, dy)
-        if "bzz" in components:
+        if any(s in components for s in ["bzz", "tmi_z"]):
             if "gzzx" not in node_evals:
                 node_evals["gzzx"] = prism_fxxy(dz, dx, dy)
             if "gzzy" not in node_evals:
@@ -354,6 +351,57 @@ class Simulation3DIntegral(BasePFSimulation):
                     tmi[0] * node_evals["gxz"]
                     + tmi[1] * node_evals["gyz"]
                     + tmi[2] * node_evals["gzz"]
+                )
+            elif component == "tmi_x":
+                tmi = self.tmi_projection
+                vals_x = (
+                    tmi[0] * node_evals["gxxx"]
+                    + tmi[1] * node_evals["gxxy"]
+                    + tmi[2] * node_evals["gxxz"]
+                )
+                vals_y = (
+                    tmi[0] * node_evals["gxxy"]
+                    + tmi[1] * node_evals["gyyx"]
+                    + tmi[2] * node_evals["gxyz"]
+                )
+                vals_z = (
+                    tmi[0] * node_evals["gxxz"]
+                    + tmi[1] * node_evals["gxyz"]
+                    + tmi[2] * node_evals["gzzx"]
+                )
+            elif component == "tmi_y":
+                tmi = self.tmi_projection
+                vals_x = (
+                    tmi[0] * node_evals["gxxy"]
+                    + tmi[1] * node_evals["gyyx"]
+                    + tmi[2] * node_evals["gxyz"]
+                )
+                vals_y = (
+                    tmi[0] * node_evals["gyyx"]
+                    + tmi[1] * node_evals["gyyy"]
+                    + tmi[2] * node_evals["gyyz"]
+                )
+                vals_z = (
+                    tmi[0] * node_evals["gxyz"]
+                    + tmi[1] * node_evals["gyyz"]
+                    + tmi[2] * node_evals["gzzy"]
+                )
+            elif component == "tmi_z":
+                tmi = self.tmi_projection
+                vals_x = (
+                    tmi[0] * node_evals["gxxz"]
+                    + tmi[1] * node_evals["gxyz"]
+                    + tmi[2] * node_evals["gzzx"]
+                )
+                vals_y = (
+                    tmi[0] * node_evals["gxyz"]
+                    + tmi[1] * node_evals["gyyz"]
+                    + tmi[2] * node_evals["gzzy"]
+                )
+                vals_z = (
+                    tmi[0] * node_evals["gzzx"]
+                    + tmi[1] * node_evals["gzzy"]
+                    + tmi[2] * node_evals["gzzz"]
                 )
             elif component == "bxx":
                 vals_x = node_evals["gxxx"]
@@ -949,11 +997,11 @@ def MagneticsDiffSecondaryInv(mesh, model, data, **kwargs):
 
     """
     from SimPEG import (
+        directives,
+        inversion,
+        objective_function,
         optimization,
         regularization,
-        directives,
-        objective_function,
-        inversion,
     )
 
     prob = Simulation3DDifferential(mesh, survey=data, mu=model)
