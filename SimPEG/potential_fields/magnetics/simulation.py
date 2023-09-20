@@ -243,7 +243,7 @@ class Simulation3DIntegral(BasePFSimulation):
 
         components: list[str]
             List of magnetic components chosen from:
-            'bx', 'by', 'bz', 'bxx', 'bxy', 'bxz', 'byy', 'byz', 'bzz'
+            'tmi', 'bx', 'by', 'bz', 'bxx', 'bxy', 'bxz', 'byy', 'byz', 'bzz', 'tmi_x', 'tmi_y', 'tmi_z'
 
         OUTPUT:
         Tx = [Txx Txy Txz]
