@@ -305,14 +305,7 @@ class BaseSimulation(props.HasModel):
         return mkvc(self.dpred(m, f=f) - dobs)
 
     def make_synthetic_data(
-        self,
-        m,
-        relative_error=0.05,
-        noise_floor=0.0,
-        f=None,
-        add_noise=False,
-        random_seed=None,
-        **kwargs,
+        self, m, relative_error=0.05, noise_floor=0.0, f=None, add_noise=False, **kwargs
     ):
         """
         Make synthetic data given a model, and a standard deviation.
@@ -335,8 +328,7 @@ class BaseSimulation(props.HasModel):
 
         if add_noise is True:
             std = np.sqrt((relative_error * np.abs(dclean)) ** 2 + noise_floor**2)
-            random_num_generator = np.random.default_rng(seed=random_seed)
-            noise = random_num_generator.normal(loc=0, scale=std, size=dclean.shape)
+            noise = std * np.random.randn(*dclean.shape)
             dobs = dclean + noise
         else:
             dobs = dclean
