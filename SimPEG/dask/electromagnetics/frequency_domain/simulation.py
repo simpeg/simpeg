@@ -96,7 +96,7 @@ def compute_J(self, f=None, Ainv=None):
 
             for rx in src.receiver_list:
                 v = np.eye(rx.nD, dtype=float)
-                n_blocs = np.ceil(u_src.shape[1] * rx.nD / col_chunks * self.n_cpu)
+                n_blocs = np.ceil(u_src.shape[1] * rx.nD / col_chunks)
 
                 for block in np.array_split(v, n_blocs, axis=1):
                     if block.shape[1] == 0:
@@ -115,7 +115,7 @@ def compute_J(self, f=None, Ainv=None):
                     )
                     sources.append(src)
 
-                    if block_count >= (col_chunks * self.n_cpu):
+                    if block_count >= (col_chunks):
                         count = parallel_block_compute(
                             self,
                             A_i,
@@ -126,7 +126,6 @@ def compute_J(self, f=None, Ainv=None):
                             blocks_dfduT,
                             blocks_dfdmT,
                             count,
-                            self.n_cpu,
                             m_size,
                             u_src.shape,
                             self._solutionType,
@@ -147,7 +146,6 @@ def compute_J(self, f=None, Ainv=None):
                 blocks_dfduT,
                 blocks_dfdmT,
                 count,
-                self.n_cpu,
                 m_size,
                 u_src.shape,
                 self._solutionType,
@@ -203,7 +201,6 @@ def parallel_block_compute(
     blocks_deriv_u,
     blocks_deriv_m,
     counter,
-    sub_threads,
     m_size,
     f_shape,
     solution_type,
