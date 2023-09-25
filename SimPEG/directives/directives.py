@@ -20,7 +20,7 @@ from ..regularization import (
     SmoothnessFirstOrder,
     SparseSmoothness,
     BaseSimilarityMeasure,
-    CrossGradient
+    CrossGradient,
 )
 from ..utils import (
     mkvc,
@@ -31,7 +31,7 @@ from ..utils import (
     cartesian2spherical,
     Zero,
     eigenvalue_by_power_iteration,
-    validate_string
+    validate_string,
 )
 
 from SimPEG.utils.mat_utils import cartesian2amplitude_dip_azimuth
@@ -357,6 +357,7 @@ class BaseBetaEstimator(InversionDirective):
         Seed used for random sampling.
 
     """
+
     def __init__(
         self,
         beta0_ratio=1.0,
@@ -557,10 +558,14 @@ class BetaEstimate_ByEig(BaseBetaEstimator):
 
         if self.method == "power_iteration":
             dm_eigenvalue = eigenvalue_by_power_iteration(
-                self.dmisfit, m, n_pw_iter=self.n_pw_iter,
+                self.dmisfit,
+                m,
+                n_pw_iter=self.n_pw_iter,
             )
             reg_eigenvalue = eigenvalue_by_power_iteration(
-                self.reg, m, n_pw_iter=self.n_pw_iter,
+                self.reg,
+                m,
+                n_pw_iter=self.n_pw_iter,
             )
             self.ratio = np.asarray(dm_eigenvalue / reg_eigenvalue)
         else:
@@ -570,7 +575,6 @@ class BetaEstimate_ByEig(BaseBetaEstimator):
             reg = self.reg.deriv2(m, v=x0)
             b = np.dot(x0, reg)
             self.ratio = np.asarray(t / b)
-
 
         self.beta0 = self.beta0_ratio * self.ratio
         self.invProb.beta = self.beta0
@@ -2357,7 +2361,9 @@ class UpdatePreconditioner(InversionDirective):
                     "Simulation does not have a getJ attribute."
                     + "Cannot form the sensitivity explicitly"
                 )
-                JtJdiag += multiplier * np.sum(np.power((dmisfit.W * sim.getJ(m)), 2), axis=0)
+                JtJdiag += multiplier * np.sum(
+                    np.power((dmisfit.W * sim.getJ(m)), 2), axis=0
+                )
             else:
                 JtJdiag += multiplier * dmisfit.getJtJdiag(m)
 
@@ -2387,7 +2393,9 @@ class UpdatePreconditioner(InversionDirective):
                     "Simulation does not have a getJ attribute."
                     + "Cannot form the sensitivity explicitly"
                 )
-                JtJdiag += multiplier * np.sum(np.power((dmisfit.W * sim.getJ(m)), 2), axis=0)
+                JtJdiag += multiplier * np.sum(
+                    np.power((dmisfit.W * sim.getJ(m)), 2), axis=0
+                )
             else:
                 JtJdiag += multiplier * dmisfit.getJtJdiag(m)
 
@@ -2586,7 +2594,6 @@ class UpdateSensitivityWeights(InversionDirective):
         self.threshold_method = threshold_method
         self.normalization_method = normalization_method
 
-
     @property
     def every_iteration(self):
         """Update sensitivity weights when model is updated.
@@ -2737,7 +2744,9 @@ class UpdateSensitivityWeights(InversionDirective):
                         "Simulation does not have a getJ attribute."
                         + "Cannot form the sensitivity explicitly"
                     )
-                jtj_diag += multiplier * mkvc(np.sum((dmisfit.W * sim.getJ(m)) ** 2.0, axis=0))
+                jtj_diag += multiplier * mkvc(
+                    np.sum((dmisfit.W * sim.getJ(m)) ** 2.0, axis=0)
+                )
             else:
                 jtj_diag += multiplier * dmisfit.getJtJdiag(m)
 
@@ -2819,6 +2828,7 @@ class ProjectSphericalBounds(InversionDirective):
     back and forth conversion.
     spherical->cartesian->spherical
     """
+
     def initialize(self):
         x = self.invProb.model
         # Convert to cartesian than back to avoid over rotation
@@ -2835,13 +2845,17 @@ class ProjectSphericalBounds(InversionDirective):
                 misfit.simulation.model = m
 
     def endIter(self):
-
         x = self.invProb.model
 
         for misfit in self.dmisfit.objfcts:
-            if hasattr(misfit.simulation, "model_type") and misfit.simulation.model_type == "vector":
+            if (
+                hasattr(misfit.simulation, "model_type")
+                and misfit.simulation.model_type == "vector"
+            ):
                 mapping = misfit.model_map.deriv(np.zeros(misfit.model_map.shape[1]))
-                indices = mapping.indices #np.array(np.sum(mapping, axis=0)).flatten() > 0
+                indices = (
+                    mapping.indices
+                )  # np.array(np.sum(mapping, axis=0)).flatten() > 0
                 nC = int(len(indices) / 3)
                 vec = self.invProb.model[indices]
                 # Convert to cartesian than back to avoid over rotation
@@ -2884,7 +2898,9 @@ class SaveIterationsGeoH5(InversionDirective):
         self._reshape = None
         self.h5_object = h5_object
         self._joint_index = None
-        super().__init__(inversion=None, dmisfit=None, reg=None, verbose=False, **kwargs)
+        super().__init__(
+            inversion=None, dmisfit=None, reg=None, verbose=False, **kwargs
+        )
 
     def initialize(self):
         self.save_components(0)
@@ -2948,7 +2964,6 @@ class SaveIterationsGeoH5(InversionDirective):
         with Workspace(self._h5_file) as w_s:
             h5_object = w_s.get_entity(self.h5_object)[0]
             for cc, component in enumerate(self.components):
-
                 if component not in self.data_type.keys():
                     self.data_type[component] = {}
 
@@ -2972,7 +2987,10 @@ class SaveIterationsGeoH5(InversionDirective):
 
                     data = h5_object.add_data(
                         {
-                            channel_name: {"association": self.association, "values": values}
+                            channel_name: {
+                                "association": self.association,
+                                "values": values,
+                            }
                         }
                     )
                     if channel not in self.data_type[component].keys():
@@ -2984,13 +3002,11 @@ class SaveIterationsGeoH5(InversionDirective):
                     else:
                         data.entity_type = w_s.find_type(
                             self.data_type[component][channel].uid,
-                            type(self.data_type[component][channel])
+                            type(self.data_type[component][channel]),
                         )
 
                     if len(self.channels) > 1 and self.attribute_type == "predicted":
-                        h5_object.add_data_to_group(
-                            data, base_name
-                        )
+                        h5_object.add_data_to_group(data, base_name)
 
     def write_update(self, iteration: int):
         """
@@ -3000,10 +3016,10 @@ class SaveIterationsGeoH5(InversionDirective):
         filepath = dirpath / "SimPEG.out"
 
         if iteration == 0:
-            with open(filepath, 'w') as f:
+            with open(filepath, "w") as f:
                 f.write("iteration beta phi_d phi_m time\n")
 
-        with open(filepath, 'a') as f:
+        with open(filepath, "a") as f:
             date_time = datetime.now().strftime("%b-%d-%Y:%H:%M:%S")
             f.write(
                 f"{iteration} {self.invProb.beta:.3e} {self.invProb.phi_d:.3e} "
@@ -3035,7 +3051,6 @@ class SaveIterationsGeoH5(InversionDirective):
 
                 file_entity.values = raw_file
 
-
     @property
     def joint_index(self):
         """
@@ -3045,7 +3060,6 @@ class SaveIterationsGeoH5(InversionDirective):
 
     @joint_index.setter
     def joint_index(self, value: list[int]):
-
         if not isinstance(value, list):
             raise TypeError("Input 'joint_index' should be a list of int")
 
@@ -3067,7 +3081,9 @@ class SaveIterationsGeoH5(InversionDirective):
         Reshape function
         """
         if getattr(self, "_reshape", None) is None:
-            self._reshape = lambda x: x.reshape((len(self.channels), len(self.components), -1), order="F")
+            self._reshape = lambda x: x.reshape(
+                (len(self.channels), len(self.components), -1), order="F"
+            )
 
         return self._reshape
 
@@ -3085,10 +3101,9 @@ class SaveIterationsGeoH5(InversionDirective):
             funcs = [funcs]
 
         for fun in funcs:
-            if not any([
-                isinstance(fun, (IdentityMap, np.ndarray, float)),
-                callable(fun)
-            ]):
+            if not any(
+                [isinstance(fun, (IdentityMap, np.ndarray, float)), callable(fun)]
+            ):
                 raise TypeError(
                     "Input transformation must be of type"
                     + "SimPEG.maps, numpy.ndarray or callable function"
@@ -3103,7 +3118,9 @@ class SaveIterationsGeoH5(InversionDirective):
     @h5_object.setter
     def h5_object(self, entity: ObjectBase):
         if not isinstance(entity, ObjectBase):
-            raise TypeError(f"Input entity should be of type {ObjectBase}. {type(entity)} provided")
+            raise TypeError(
+                f"Input entity should be of type {ObjectBase}. {type(entity)} provided"
+            )
 
         self._h5_object = entity.uid
         self._h5_file = entity.workspace.h5file
@@ -3120,7 +3137,9 @@ class SaveIterationsGeoH5(InversionDirective):
     @association.setter
     def association(self, value):
         if not value.upper() in ["CELL", "VERTEX"]:
-            raise ValueError(f"'association must be one of 'CELL', 'VERTEX'. {value} provided")
+            raise ValueError(
+                f"'association must be one of 'CELL', 'VERTEX'. {value} provided"
+            )
 
         self._association = value.upper()
 
@@ -3140,7 +3159,9 @@ class VectorInversion(InversionDirective):
     mappings = []
     regularization = []
 
-    def __init__(self, simulations: list, regularizations: ComboObjectiveFunction, **kwargs):
+    def __init__(
+        self, simulations: list, regularizations: ComboObjectiveFunction, **kwargs
+    ):
         self.simulations = simulations
         self.regularizations = regularizations
 
@@ -3162,7 +3183,6 @@ class VectorInversion(InversionDirective):
         self._target = val
 
     def initialize(self):
-
         for reg in self.reg.objfcts:
             reg.model = self.invProb.model
 
@@ -3191,12 +3211,8 @@ class VectorInversion(InversionDirective):
 
             indices = np.hstack(indices)
             nC = mapping.shape[0]
-            vec_model = cartesian2spherical(
-                np.vstack(vec_model).T
-            )
-            vec_ref = cartesian2spherical(
-                np.vstack(vec_ref).T
-            ).flatten()
+            vec_model = cartesian2spherical(np.vstack(vec_model).T)
+            vec_ref = cartesian2spherical(np.vstack(vec_ref).T).flatten()
             model[indices] = vec_model.flatten()
 
             angle_map = []
@@ -3212,11 +3228,9 @@ class VectorInversion(InversionDirective):
                 else:
                     reg_fun.units = "amplitude"
 
-
             # Turn of cross-gradient on angles
             multipliers = []
             for mult, reg in self.reg:
-
                 if isinstance(reg, CrossGradient):
                     for wire in reg.wire_map:
                         if wire in angle_map:
@@ -3228,7 +3242,9 @@ class VectorInversion(InversionDirective):
             self.invProb.beta *= 2
             self.invProb.model = model
             self.opt.xc = model
-            self.opt.lower[indices] = np.kron(np.asarray([0, -np.inf, -np.inf]), np.ones(nC))
+            self.opt.lower[indices] = np.kron(
+                np.asarray([0, -np.inf, -np.inf]), np.ones(nC)
+            )
             self.opt.upper[indices[nC:]] = np.inf
 
             for simulation in self.simulations:
@@ -3255,13 +3271,13 @@ class VectorInversion(InversionDirective):
                     directive.coolingFactor = 1.5
 
                 elif isinstance(directive, UpdateSensitivityWeights):
-                    directive.everyIter = True
+                    directive.every_iteration = True
 
-            directiveList = [ProjectSphericalBounds()] + self.inversion.directiveList.dList
+            directiveList = [
+                ProjectSphericalBounds()
+            ] + self.inversion.directiveList.dList
             self.inversion.directiveList = directiveList
 
             for directive in directiveList:
                 if not isinstance(directive, SaveIterationsGeoH5):
                     directive.endIter()
-
-
