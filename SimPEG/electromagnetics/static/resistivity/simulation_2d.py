@@ -751,7 +751,7 @@ class Simulation2DNodal(BaseDCSimulation2D):
             source_point = np.r_[middle[:-1], top_v]
 
             r_vec = boundary_faces - source_point
-            r = np.linalg.norm(r_vec, axis=-1)
+            r = np.linalg.norm(r_vec, axis=-1) + 1e-16
             r_hat = r_vec / r[:, None]
             r_dot_n = np.einsum("ij,ij->i", r_hat, boundary_normals)
 
