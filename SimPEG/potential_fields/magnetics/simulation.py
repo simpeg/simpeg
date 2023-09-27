@@ -658,7 +658,7 @@ class Simulation3DIntegral(BasePFSimulation):
                 raise NotImplementedError(
                     "Other components besides 'tmi' aren't implemented yet."
                 )
-            conversion_factor = mu_0 / 4 / np.pi
+            conversion_factor = 1 / 4 / np.pi
             self._fill_sensitivity_tmi_scalar(
                 receivers,
                 active_nodes,
