@@ -88,7 +88,11 @@ class MagInvLinProblemTest(unittest.TestCase):
 
         # Compute linear forward operator and compute some data
         data = sim.make_synthetic_data(
-            self.model, relative_error=0.0, noise_floor=1.0, add_noise=True
+            self.model,
+            relative_error=0.0,
+            noise_floor=1.0,
+            add_noise=True,
+            random_seed=2,
         )
 
         # Create a regularization
