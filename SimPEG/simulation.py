@@ -328,7 +328,7 @@ class BaseSimulation(props.HasModel):
         f : array or None
             Fields for the given model (if pre-calculated).
         add_noise : bool
-            Wether to add gaussian noise to the synthetic data or not.
+            Whether to add gaussian noise to the synthetic data or not.
         random_seed : int or None
             Random seed to pass to `numpy.random.default_rng`.
 
