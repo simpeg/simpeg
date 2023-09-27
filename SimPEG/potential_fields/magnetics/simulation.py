@@ -58,7 +58,7 @@ def _fill_sensitivity_tmi_scalar(
             _fill_sensitivity_matrix_tmi_scalar
         )
         jit_sensitivity(
-            receivers, nodes, densities, fields, cell_nodes, bkg_field, const_factor
+            receivers, nodes, matrix, cell_nodes, regional_field, constant_factor
         )
 
     Parameters
