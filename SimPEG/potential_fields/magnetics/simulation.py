@@ -97,12 +97,10 @@ def _fill_sensitivity_tmi_scalar(
     # Evaluate kernel function on each node, for each receiver location
     for i in prange(n_receivers):
         # Allocate vectors for kernels evaluated on mesh nodes
-        kxx = np.empty(n_nodes)
-        kyy = np.empty(n_nodes)
-        kzz = np.empty(n_nodes)
-        kxy = np.empty(n_nodes)
-        kxz = np.empty(n_nodes)
-        kyz = np.empty(n_nodes)
+        kxx, kyy, kzz = np.empty(n_nodes), np.empty(n_nodes), np.empty(n_nodes)
+        kxy, kxz, kyz = np.empty(n_nodes), np.empty(n_nodes), np.empty(n_nodes)
+        # Allocate small vector for the nodes indices for a given cell
+        nodes_indices = np.empty(8, dtype=cell_nodes.dtype)
         for j in range(n_nodes):
             dx = nodes[j, 0] - receivers[i, 0]
             dy = nodes[j, 1] - receivers[i, 1]
@@ -116,74 +114,13 @@ def _fill_sensitivity_tmi_scalar(
             kyz[j] = choclo.prism.kernel_nu(dx, dy, dz, distance)
         # Compute sensitivity matrix elements from the kernel values
         for k in range(n_cells):
-            node_index_0 = cell_nodes[k, 0]
-            node_index_1 = cell_nodes[k, 1]
-            node_index_2 = cell_nodes[k, 2]
-            node_index_3 = cell_nodes[k, 3]
-            node_index_4 = cell_nodes[k, 4]
-            node_index_5 = cell_nodes[k, 5]
-            node_index_6 = cell_nodes[k, 6]
-            node_index_7 = cell_nodes[k, 7]
-            uxx = (
-                -kxx[node_index_0]
-                + kxx[node_index_1]
-                + kxx[node_index_2]
-                - kxx[node_index_3]
-                + kxx[node_index_4]
-                - kxx[node_index_5]
-                - kxx[node_index_6]
-                + kxx[node_index_7]
-            )
-            uyy = (
-                -kyy[node_index_0]
-                + kyy[node_index_1]
-                + kyy[node_index_2]
-                - kyy[node_index_3]
-                + kyy[node_index_4]
-                - kyy[node_index_5]
-                - kyy[node_index_6]
-                + kyy[node_index_7]
-            )
-            uzz = (
-                -kzz[node_index_0]
-                + kzz[node_index_1]
-                + kzz[node_index_2]
-                - kzz[node_index_3]
-                + kzz[node_index_4]
-                - kzz[node_index_5]
-                - kzz[node_index_6]
-                + kzz[node_index_7]
-            )
-            uxy = (
-                -kxy[node_index_0]
-                + kxy[node_index_1]
-                + kxy[node_index_2]
-                - kxy[node_index_3]
-                + kxy[node_index_4]
-                - kxy[node_index_5]
-                - kxy[node_index_6]
-                + kxy[node_index_7]
-            )
-            uxz = (
-                -kxz[node_index_0]
-                + kxz[node_index_1]
-                + kxz[node_index_2]
-                - kxz[node_index_3]
-                + kxz[node_index_4]
-                - kxz[node_index_5]
-                - kxz[node_index_6]
-                + kxz[node_index_7]
-            )
-            uyz = (
-                -kyz[node_index_0]
-                + kyz[node_index_1]
-                + kyz[node_index_2]
-                - kyz[node_index_3]
-                + kyz[node_index_4]
-                - kyz[node_index_5]
-                - kyz[node_index_6]
-                + kyz[node_index_7]
-            )
+            nodes_indices = cell_nodes[k, :]
+            uxx = _kernels_in_nodes_to_cell(kxx, nodes_indices)
+            uyy = _kernels_in_nodes_to_cell(kyy, nodes_indices)
+            uzz = _kernels_in_nodes_to_cell(kzz, nodes_indices)
+            uxy = _kernels_in_nodes_to_cell(kxy, nodes_indices)
+            uxz = _kernels_in_nodes_to_cell(kxz, nodes_indices)
+            uyz = _kernels_in_nodes_to_cell(kyz, nodes_indices)
             bx = uxx * fx + uxy * fy + uxz * fz
             by = uxy * fx + uyy * fy + uyz * fz
             bz = uxz * fx + uyz * fy + uzz * fz
@@ -192,6 +129,36 @@ def _fill_sensitivity_tmi_scalar(
                 * regional_field_amplitude
                 * (bx * fx + by * fy + bz * fz)
             )
+
+
+@jit(nopython=True)
+def _kernels_in_nodes_to_cell(kernels, nodes_indices):
+    """
+    Evaluate integral on a given cell from evaluation of kernels on nodes
+
+    Parameters
+    ----------
+    kernels : (n_active_nodes,) array
+        Array with kernel values on each one of the nodes in the mesh.
+    nodes_indices : (8,) array of int
+        Indices of the nodes for the current cell in "F" order (x changes
+        faster than y, and y faster than z).
+
+    Returns
+    -------
+    float
+    """
+    result = (
+        -kernels[nodes_indices[0]]
+        + kernels[nodes_indices[1]]
+        + kernels[nodes_indices[2]]
+        - kernels[nodes_indices[3]]
+        + kernels[nodes_indices[4]]
+        - kernels[nodes_indices[5]]
+        - kernels[nodes_indices[6]]
+        + kernels[nodes_indices[7]]
+    )
+    return result
 
 
 _fill_sensitivity_tmi_scalar_serial = jit(nopython=True, parallel=False)(
