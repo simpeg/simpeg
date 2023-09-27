@@ -316,10 +316,25 @@ class BaseSimulation(props.HasModel):
     ):
         """
         Make synthetic data given a model, and a standard deviation.
-        :param numpy.ndarray m: geophysical model
-        :param numpy.ndarray | float relative_error: standard deviation
-        :param numpy.ndarray | float noise_floor: noise floor
-        :param numpy.ndarray f: fields for the given model (if pre-calculated)
+
+        Parameters
+        ----------
+        m : array
+            Array containing with geophysical model.
+        relative_error : float
+            Standard deviation.
+        noise_floor : float
+            Noise floor.
+        f : array or None
+            Fields for the given model (if pre-calculated).
+        add_noise : bool
+            Whether to add gaussian noise to the synthetic data or not.
+        random_seed : int or None
+            Random seed to pass to `numpy.random.default_rng`.
+
+        Returns
+        -------
+        SyntheticData
         """
 
         std = kwargs.pop("std", None)
