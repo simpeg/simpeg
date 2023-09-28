@@ -5,6 +5,8 @@ from __future__ import absolute_import
 import discretize
 from discretize import tests
 
+from .utils import monkeypatches
+
 from .data import Data, SyntheticData
 from . import data_misfit
 from . import directives
