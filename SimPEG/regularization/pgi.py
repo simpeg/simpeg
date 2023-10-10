@@ -94,20 +94,34 @@ class PGIsmallness(Smallness):
     (:math:`\boldsymbol{\Sigma}`) and proportion constants (:math:`\boldsymbol{\gamma}`)
     defining the GMM. And let :math:`\mathbf{z}^\ast` define an membership array that
     extracts the GMM parameters for the most representative rock unit within each active cell
-    in the :class:`RegularizationMesh`. The regularization function (objective function) for
-    ``PGIsmallness`` is given by:
+    in the :class:`RegularizationMesh`.
+
+    When the ``approx_eval`` property is ``True``, we assume the physical property mean values of each geologic units
+    are distinct (no significant overlap of their respective physical properties distribution). The GMM probability
+    density value at any each point of the physical property space can then be approximated by the locally dominant
+    Gaussian distribution. In this case, the PGI regularization function (objective function) can be expressed as a
+    least-square:
 
     .. math::
-        \phi (\mathbf{m}) = \frac{1}{2}
-        \big [ \mathbf{m} - \mathbf{m_{ref}}(\Theta, \mathbf{z}^\ast ) \big ]^T
-        \mathbf{W} ( \Theta , \mathbf{z}^\ast ) \,
-        \big [ \mathbf{m} - \mathbf{m_{ref}}(\Theta, \mathbf{z}^\ast ) \big ]
+        \phi (\mathbf{m}) &= \frac{\alpha_{pgi}}{2}
+        \big | \mathbf{W} ( \Theta , \mathbf{z}^\ast ) \, (\mathbf{m} - \mathbf{m_{ref}}(\Theta, \mathbf{z}^\ast ) \, \Big \|^2
+        &+ \sum_{j=x,y,z} \frac{\alpha_j}{2} \Big \| \mathbf{W_j G_j \, m} \, \Big \|^2 \\
+        &+ \sum_{j=x,y,z} \frac{\alpha_{jj}}{2} \Big \| \mathbf{W_{jj} L_j \, m} \, \Big \|^2
+        \;\;\;\;\;\;\;\; \big ( \textrm{optional} \big )
 
     where
 
         - :math:`\mathbf{m}` is the model,
         - :math:`\mathbf{m_{ref}}(\Theta, \mathbf{z}^\ast )` is the reference model, and
         - :math:`\mathbf{W}(\Theta , \mathbf{z}^\ast )` is a weighting matrix.
+
+    For the full, non-approximated PGI regularization, please refer to
+    (`Astic, et al 2019 <https://owncloud.eoas.ubc.ca/s/TMB3Jdr8ScqSPm7/download>`__;
+    `Astic et al 2020 <https://owncloud.eoas.ubc.ca/s/PAxpHQt7CGk6zT4/download>`__).
+
+    When the ``approx_eval`` property is ``True``, you may also set the ``approx_gradient`` and ``approx_hessian``
+    properties to ``True`` so that the least-squares approximation is used to compute the gradient, as it is making the
+    same assumptions about the GMM.
 
     ``PGIsmallness`` regularization can be used for models consisting of one or more physical
     property types. The ordering of the physical property types within the model is defined
@@ -117,17 +131,6 @@ class PGIsmallness(Smallness):
 
     .. math::
         \mathbf{m} = \begin{bmatrix} \mathbf{m}_1 \\ \mathbf{m}_2 \\ \vdots \\ \mathbf{m}_K \end{bmatrix}
-
-    When the ``approx_eval`` property is ``True``, we assume the physical property types have
-    values that are uncorrelated. In this case, the weighting matrix is diagonal and the
-    regularization function (objective function) can be expressed as:
-
-    .. math::
-        \phi (\mathbf{m}) = \frac{1}{2} \Big \| \mathbf{W}_{\! 1/2}(\Theta, \mathbf{z}^\ast ) \,
-        \big [ \mathbf{m} - \mathbf{m_{ref}}(\Theta, \mathbf{z}^\ast ) \big ] \, \Big \|^2
-
-    When the ``approx_eval`` property is ``True``, you may also set the ``approx_gradient`` property
-    to ``True`` so that the least-squares approximation is used to compute the gradient.
 
     **Constructing the Reference Model and Weighting Matrix:**
 
@@ -142,19 +145,8 @@ class PGIsmallness(Smallness):
     :math:`\boldsymbol{\Sigma}` for each cell. And the weighting matrix is given by:
 
     .. math::
-        \mathbf{W}(\Theta ,{\mathbf{z}^\ast } ) = \boldsymbol{\Sigma}_{\mathbf{z^\ast}}^{-1} \,
-        diag \big ( \mathbf{v \odot w} \big )
-
-    where :math:`\mathbf{v}` are the volumes of the active cells, and :math:`\mathbf{w}`
-    are custom cell weights. When the ``approx_eval`` property is ``True``, the off-diagonal
-    covariances are zero and we can use a weighting matrix of the form:
-
-    .. math::
-        \mathbf{W}_{\! 1/2}(\Theta ,{\mathbf{z}^\ast } ) = diag \Big ( \big [ \mathbf{v \odot w}
-        \odot \boldsymbol{\sigma}_{\mathbf{z}^\ast}^{-2} \big ]^{1/2} \Big )
-
-    where :math:`\boldsymbol{\sigma}_{\mathbf{z}^\ast}^2` are the variances extracted using the
-    membership array :math:`\mathbf{z}^\ast`.
+        \mathbf{W}(\Theta ,{\mathbf{z}^\ast } ) = \boldsymbol{\Sigma}_{\mathbf{z^\ast}}^{\frac{-1}{2}} \,
+        diag \big ( \mathbf{w} \big )
 
     **Updating the Gaussian Mixture Model:**
 
