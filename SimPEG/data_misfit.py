@@ -100,7 +100,7 @@ class BaseDataMisfit(L2ObjectiveFunction):
 
     @property
     def shape(self):
-        """(:attr:`nD`, :attr:`nP`)"""
+        """(:attr:`nD`, :attr:`nP`)."""
         return (self.nD, self.nP)
 
     @property
@@ -154,6 +154,7 @@ class BaseDataMisfit(L2ObjectiveFunction):
         self._W = value
 
     def residual(self, m, f=None):
+        """Computes the data residual for a given model."""
         if self.data is None:
             raise Exception("data must be set before a residual can be calculated.")
         return self.simulation.residual(m, self.data.dobs, f=f)
@@ -174,7 +175,7 @@ class L2DataMisfit(BaseDataMisfit):
 
     @timeIt
     def __call__(self, m, f=None):
-        "__call__(m, f=None)"
+        """Evaluate the residual for a given model."""
 
         R = self.W * self.residual(m, f=f)
         return 0.5 * np.vdot(R, R)

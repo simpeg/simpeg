@@ -451,7 +451,8 @@ class L2ObjectiveFunction(BaseObjectiveFunction):
     .. math::
 
       \phi = \frac{1}{2}||\mathbf{W} f(\mathbf{m})||_2^2,
-      where :math:`f` is a map function (see :attr:`mapping`).
+
+    where :math:`f` is a map function (see :attr:`mapping`).
 
     """
 
