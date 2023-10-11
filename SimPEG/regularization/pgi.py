@@ -96,7 +96,7 @@ class PGIsmallness(Smallness):
     extracts the GMM parameters for the most representative rock unit within each active cell
     in the :class:`RegularizationMesh`.
 
-    When the ``approx_eval`` property is ``True``, we assume the physical property mean values of each geologic units
+    When the ``approx_eval`` property is ``True``, we assume the physical property distributions of each geologic units
     are distinct (no significant overlap of their respective physical properties distribution). The GMM probability
     density value at any each point of the physical property space can then be approximated by the locally dominant
     Gaussian distribution. In this case, the PGI regularization function (objective function) can be expressed as a
