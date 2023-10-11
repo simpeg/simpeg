@@ -8,12 +8,10 @@ __all__ = ["L2DataMisfit"]
 
 
 class BaseDataMisfit(L2ObjectiveFunction):
-    """
-    BaseDataMisfit
+    """Base class for creating data misfit functionals.
 
-    .. note::
-        You should inherit from this class to create your own data misfit
-        term.
+    All data misfit classes must inherit from this class.
+
     """
 
     def __init__(self, data, simulation, debug=False, counter=None, **kwargs):
@@ -29,6 +27,7 @@ class BaseDataMisfit(L2ObjectiveFunction):
         Returns
         -------
         SimPEG.data.Data
+
         """
         return self._data
 
@@ -43,6 +42,7 @@ class BaseDataMisfit(L2ObjectiveFunction):
         Returns
         -------
         SimPEG.simulation.BaseSimulation
+
         """
         return self._simulation
 
@@ -59,6 +59,7 @@ class BaseDataMisfit(L2ObjectiveFunction):
         Returns
         -------
         bool
+
         """
         return self._debug
 
@@ -73,6 +74,7 @@ class BaseDataMisfit(L2ObjectiveFunction):
         Returns
         -------
         SimPEG.utils.Counter or None
+
         """
         return self._counter
 
@@ -83,9 +85,7 @@ class BaseDataMisfit(L2ObjectiveFunction):
 
     @property
     def nP(self):
-        """
-        number of model parameters
-        """
+        """Number of model parameters."""
         if self._mapping is not None:
             return self.mapping.nP
         elif self.simulation.model is not None:
@@ -95,23 +95,23 @@ class BaseDataMisfit(L2ObjectiveFunction):
 
     @property
     def nD(self):
-        """
-        number of data
-        """
+        """Size of the data vector."""
         return self.data.nD
 
     @property
     def shape(self):
-        """"""
+        """(:attr:`nD`, :attr:`nP`)"""
         return (self.nD, self.nP)
 
     @property
     def W(self):
-        """W
-        The data weighting matrix.
+        """The data weighting matrix.
+
         The default is based on the norm of the data plus a noise floor.
+
         :rtype: scipy.sparse.csr_matrix
         :return: W
+
         """
 
         if getattr(self, "_W", None) is None:
@@ -160,16 +160,16 @@ class BaseDataMisfit(L2ObjectiveFunction):
 
 
 class L2DataMisfit(BaseDataMisfit):
-    r"""
-    The data misfit with an l_2 norm:
+    r"""The data misfit with an :math:`l_2` norm:
 
     .. math::
 
         \mu_\text{data} =
             \frac{1}{2}
-            \left|
+            \left\|
                 \mathbf{W}_d (\mathbf{d}_\text{pred} - \mathbf{d}_\text{obs})
-            \right|_2^2
+            \right\|_2^2
+
     """
 
     @timeIt
@@ -181,8 +181,7 @@ class L2DataMisfit(BaseDataMisfit):
 
     @timeIt
     def deriv(self, m, f=None):
-        r"""
-        Derivative of the data misfit
+        r"""Derivative of the data misfit.
 
         .. math::
 
@@ -191,6 +190,7 @@ class L2DataMisfit(BaseDataMisfit):
 
         :param numpy.ndarray m: model
         :param SimPEG.fields.Fields f: fields object
+
         """
 
         if f is None:
@@ -202,8 +202,7 @@ class L2DataMisfit(BaseDataMisfit):
 
     @timeIt
     def deriv2(self, m, v, f=None):
-        r"""
-        Second derivative of the data misfit
+        r"""Second derivative of the data misfit.
 
         .. math::
 
@@ -212,6 +211,7 @@ class L2DataMisfit(BaseDataMisfit):
         :param numpy.ndarray m: model
         :param numpy.ndarray v: vector
         :param SimPEG.fields.Fields f: fields object
+
         """
 
         if f is None:

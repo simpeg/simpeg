@@ -290,8 +290,7 @@ class BaseSimulation(props.HasModel):
 
     @count
     def residual(self, m, dobs, f=None):
-        r"""
-        The data residual:
+        r"""The data residual.
 
         .. math::
 
@@ -301,6 +300,7 @@ class BaseSimulation(props.HasModel):
         :param numpy.ndarray f: fields
         :rtype: numpy.ndarray
         :return: data residual
+
         """
         return mkvc(self.dpred(m, f=f) - dobs)
 
