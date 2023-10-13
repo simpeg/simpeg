@@ -311,6 +311,7 @@ class Simulation3DIntegral(BasePFSimulation):
         Sanity checks for the engine parameter.
 
         Needs the kwargs passed to the __init__ method to raise some warnings.
+        Will set n_processes to None if it's present in kwargs.
         """
         if self.engine not in ("choclo", "geoana"):
             raise ValueError(
@@ -334,6 +335,7 @@ class Simulation3DIntegral(BasePFSimulation):
                 UserWarning,
                 stacklevel=1,
             )
+            self.n_processes = None
         # Sanity checks for sensitivity_path when using choclo and storing in disk
         if self.engine == "choclo" and self.store_sensitivities == "disk":
             if os.path.isdir(self.sensitivity_path):

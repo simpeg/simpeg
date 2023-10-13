@@ -371,7 +371,7 @@ class TestsGravitySimulation:
         # Check if warning is raised
         msg = "The 'n_processes' will be ignored when selecting 'choclo'"
         with pytest.warns(UserWarning, match=msg):
-            gravity.Simulation3DIntegral(
+            simulation = gravity.Simulation3DIntegral(
                 simple_mesh,
                 survey=survey,
                 rhoMap=idenMap,
@@ -379,6 +379,8 @@ class TestsGravitySimulation:
                 engine="choclo",
                 n_processes=2,
             )
+        # Check if n_processes was overwritten and set to None
+        assert simulation.n_processes is None
 
     def test_choclo_and_sensitivity_path_as_dir(
         self, simple_mesh, receivers_locations, tmp_path
