@@ -743,8 +743,6 @@ class CircularLoop(MagDipole):
         Source location.
     moment : float
         Magnetic dipole moment amplitude
-    orientation : {'z', x', 'y'} or (dim) numpy.ndarray
-        Orientation of the dipole.
     mu : float
         Background magnetic permeability
     orientation : str, default: 'z'
