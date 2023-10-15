@@ -189,8 +189,12 @@ class L2DataMisfit(BaseDataMisfit):
             \mathbf{J}^{\top} \mathbf{W}^{\top} \mathbf{W}
             (\mathbf{d} - \mathbf{d}^{obs})
 
-        :param numpy.ndarray m: model
-        :param SimPEG.fields.Fields f: fields object
+        Parameters
+        ----------
+        m : numpy.ndarray
+            Current model to evaluate the derivative.
+        f : SimPEG.fields.Fields, optional
+            Fields object.
 
         """
 
@@ -209,9 +213,14 @@ class L2DataMisfit(BaseDataMisfit):
 
             \mathbf{J}^{\top} \mathbf{W}^{\top} \mathbf{W} \mathbf{J}
 
-        :param numpy.ndarray m: model
-        :param numpy.ndarray v: vector
-        :param SimPEG.fields.Fields f: fields object
+        Parameters
+        ----------
+        m : numpy.ndarray
+            Current modelfor computing the derivative.
+        v : numpy.ndarray
+            Hessian vector product.
+        f : SimPEG.fields.Fields, optional
+            Fields object.
 
         """
 

@@ -41,7 +41,16 @@ class BaseObjectiveFunction(BaseSimPEG):
         self.has_fields = has_fields
 
     def __call__(self, x, f=None):
-        """Evaluate the objective functions for a given model."""
+        """Evaluate the objective function for a given model.
+
+        Parameters
+        ----------
+        x : (nP) numpy.ndarray
+            A vector representing a set of model parameters.
+        f : SimPEG.fields.Fields, optional
+            Field object (if applicable).
+
+        """
         raise NotImplementedError(
             "__call__ has not been implemented for {} yet".format(
                 self.__class__.__name__
@@ -67,7 +76,7 @@ class BaseObjectiveFunction(BaseSimPEG):
 
     @property
     def mapping(self):
-        """A `SimPEG.Maps` instance."""
+        """A :class:`SimPEG.maps.Maps` instance."""
         if self._mapping is None:
             if self._nP is not None:
                 self._mapping = self.map_class(nP=self.nP)
@@ -86,7 +95,19 @@ class BaseObjectiveFunction(BaseSimPEG):
 
     @timeIt
     def deriv(self, x, **kwargs):
-        """First derivative of the objective function."""
+        """First derivative of the objective function.
+
+        Parameters
+        ----------
+        x : (nP) numpy.ndarray
+            Model at which to evaluate the derivative.
+
+        Returns
+        --------
+        (nP), numpy.ndarray
+            The gradient of the objective function w.r.t `x`.
+
+        """
         raise NotImplementedError(
             "The method deriv has not been implemented for {}".format(
                 self.__class__.__name__
@@ -95,7 +116,35 @@ class BaseObjectiveFunction(BaseSimPEG):
 
     @timeIt
     def deriv2(self, x, v=None, **kwargs):
-        """Second derivative of the objective function."""
+        r"""Hessian of the objective function evaluated at `x`.
+
+        Where :math:`\phi (\mathbf{x})` is the objective function,
+        this method returns the second-derivative :math:`H` (Hessian)
+        of :math:`\phi` w.r.t `x`:
+
+        .. math::
+            H = \frac{\partial^2 \phi}{\partial \mathbf{x}^2}
+
+        or the Hessian times a vector, :math:`H\mathbf{v}`:
+
+        .. math::
+            \frac{\partial^2 \phi}{\partial \mathbf{x}^2} \, \mathbf{v}
+
+        Parameters
+        -----------
+        x : (nP) numpy.ndarray
+            The model at which the Hessian should be evaluated.
+        v : None, (nP), numpy.ndarray, optional
+            If supplied, vector to be multiplied by the Hessian.
+
+        Returns
+        --------
+        (nP,nP), :class:`scipy.sparse.csr_matrix` | (nP), numpy.ndarray
+            If the input argument **v** is ``None``, returns the Hessian of the
+            objective function at `x`. If **v** is not ``None``, returns
+            the product :math:`H\mathbf{v}`.
+
+        """
         raise NotImplementedError(
             "The method _deriv2 has not been implemented for {}".format(
                 self.__class__.__name__
@@ -319,15 +368,6 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
         return fct
 
     def deriv(self, m, f=None):
-        """First derivative of the composite objective function.
-
-        It is the sum of the derivatives of each objective function in the list, weighted by their
-        respective multipliers.
-
-        :param numpy.ndarray m: model
-        :param SimPEG.Fields f: Fields object (if applicable)
-
-        """
         g = Zero()
         for i, phi in enumerate(self):
             multiplier, objfct = phi
@@ -342,16 +382,6 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
         return g
 
     def deriv2(self, m, v=None, f=None):
-        """Second derivative of the composite objective function.
-
-        It is the sum of the second derivatives of each objective
-        function in the list, weighted by their respective multipliers.
-
-        :param numpy.ndarray m: model
-        :param numpy.ndarray v: vector we are multiplying by
-        :param SimPEG.Fields f: Fields object (if applicable)
-
-        """
         H = Zero()
         for i, phi in enumerate(self):
             multiplier, objfct = phi
@@ -502,20 +532,9 @@ class L2ObjectiveFunction(BaseObjectiveFunction):
         return 0.5 * r.dot(r)
 
     def deriv(self, m):
-        """First derivative with respect to the model.
-
-        :param numpy.ndarray m: model
-
-        """
         return self.mapping.deriv(m).T * (self.W.T * (self.W * (self.mapping * m)))
 
     def deriv2(self, m, v=None):
-        """Second derivative with respect to the model.
-
-        :param numpy.ndarray m: model
-        :param numpy.ndarray v: vector to multiply by
-
-        """
         if v is not None:
             return self.mapping.deriv(m).T * (
                 self.W.T * (self.W * (self.mapping.deriv(m) * v))
