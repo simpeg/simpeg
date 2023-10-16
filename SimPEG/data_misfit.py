@@ -41,7 +41,7 @@ class BaseDataMisfit(L2ObjectiveFunction):
 
         Returns
         -------
-        SimPEG.simulation.BaseSimulation
+        SimPEG.simulation.BaseSimulation.
 
         """
         return self._simulation
@@ -73,7 +73,7 @@ class BaseDataMisfit(L2ObjectiveFunction):
 
         Returns
         -------
-        SimPEG.utils.Counter or None
+        SimPEG.utils.Counter or None.
 
         """
         return self._counter
@@ -109,8 +109,9 @@ class BaseDataMisfit(L2ObjectiveFunction):
 
         The default is based on the norm of the data plus a noise floor.
 
-        :rtype: scipy.sparse.csr_matrix
-        :return: W
+        Returns
+        -------
+        W : scipy.sparse.csr_matrix
 
         """
 
