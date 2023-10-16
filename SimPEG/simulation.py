@@ -591,7 +591,7 @@ class LinearSimulation(BaseSimulation):
         -------
         J : (nD, nP) numpy.ndarray
             :math:`J = G\frac{\partial f}{\partial\mathbf{m}}`.
-            Where :math:`f` is ::attr::model_map.
+            Where :math:`f` is :attr:`model_map`.
         """
         self.model = m
         # self.model_deriv is likely a sparse matrix
