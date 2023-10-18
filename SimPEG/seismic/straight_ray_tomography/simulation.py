@@ -74,7 +74,7 @@ def _lineintegral(M, Tx, Rx):
     return inds, V
 
 
-class Simulation2DIntegral(LinearSimulation):
+class SimulationIntegral(LinearSimulation):
     slowness, slownessMap, slownessDeriv = props.Invertible("Slowness model (1/v)")
 
     def __init__(
