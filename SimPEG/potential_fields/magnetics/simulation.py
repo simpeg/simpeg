@@ -131,6 +131,99 @@ def _fill_sensitivity_tmi_scalar(
             )
 
 
+def _fill_sensitivity_tmi_vector(
+    receivers,
+    nodes,
+    sensitivity_matrix,
+    cell_nodes,
+    regional_field,
+    constant_factor,
+):
+    """
+    Fill the sensitivity matrix for TMI and vector data (effective susceptibility)
+
+    This function should be used with a `numba.jit` decorator, for example:
+
+    ..code::
+
+        from numba import jit
+
+        jit_sensitivity = jit(nopython=True, parallel=True)(
+            _fill_sensitivity_matrix_tmi_vector
+        )
+        jit_sensitivity(
+            receivers, nodes, matrix, cell_nodes, regional_field, constant_factor
+        )
+
+    Parameters
+    ----------
+    receivers : (n_receivers, 3) array
+        Array with the locations of the receivers
+    nodes : (n_active_nodes, 3) array
+        Array with the location of the mesh nodes.
+    sensitivity_matrix : (n_receivers, 3 * n_active_nodes) array
+        Empty 2d array where the sensitivity matrix elements will be filled.
+        This could be a preallocated empty array or a slice of it.
+        The number of columns is three times the number of active nodes since
+        the vector model has ``3 * n_active_nodes`` elements: three components
+        for each active cell.
+    cell_nodes : (n_active_cells, 8) array
+        Array of integers, where each row contains the indices of the nodes for
+        each active cell in the mesh.
+    regional_field : (3,) array
+        Array containing the x, y and z components of the regional magnetic
+        field (uniform background field).
+    constant_factor : float
+        Constant factor that will be used to multiply each element of the
+        sensitivity matrix.
+
+    Notes
+    -----
+    The conversion factor is applied here to each row of the sensitivity matrix
+    because it's more efficient than doing it afterwards: it would require to
+    index the rows that corresponds to each component.
+    """
+    n_receivers = receivers.shape[0]
+    n_nodes = nodes.shape[0]
+    n_cells = cell_nodes.shape[0]
+    fx, fy, fz = regional_field
+    # Evaluate kernel function on each node, for each receiver location
+    for i in prange(n_receivers):
+        # Allocate vectors for kernels evaluated on mesh nodes
+        kxx, kyy, kzz = np.empty(n_nodes), np.empty(n_nodes), np.empty(n_nodes)
+        kxy, kxz, kyz = np.empty(n_nodes), np.empty(n_nodes), np.empty(n_nodes)
+        # Allocate small vector for the nodes indices for a given cell
+        nodes_indices = np.empty(8, dtype=cell_nodes.dtype)
+        for j in range(n_nodes):
+            dx = nodes[j, 0] - receivers[i, 0]
+            dy = nodes[j, 1] - receivers[i, 1]
+            dz = nodes[j, 2] - receivers[i, 2]
+            distance = np.sqrt(dx**2 + dy**2 + dz**2)
+            kxx[j] = choclo.prism.kernel_ee(dx, dy, dz, distance)
+            kyy[j] = choclo.prism.kernel_nn(dx, dy, dz, distance)
+            kzz[j] = choclo.prism.kernel_uu(dx, dy, dz, distance)
+            kxy[j] = choclo.prism.kernel_en(dx, dy, dz, distance)
+            kxz[j] = choclo.prism.kernel_eu(dx, dy, dz, distance)
+            kyz[j] = choclo.prism.kernel_nu(dx, dy, dz, distance)
+        # Compute sensitivity matrix elements from the kernel values
+        for k in range(n_cells):
+            nodes_indices = cell_nodes[k, :]
+            uxx = _kernels_in_nodes_to_cell(kxx, nodes_indices)
+            uyy = _kernels_in_nodes_to_cell(kyy, nodes_indices)
+            uzz = _kernels_in_nodes_to_cell(kzz, nodes_indices)
+            uxy = _kernels_in_nodes_to_cell(kxy, nodes_indices)
+            uxz = _kernels_in_nodes_to_cell(kxz, nodes_indices)
+            uyz = _kernels_in_nodes_to_cell(kyz, nodes_indices)
+            bx = uxx * fx + uxy * fy + uxz * fz
+            by = uxy * fx + uyy * fy + uyz * fz
+            bz = uxz * fx + uyz * fy + uzz * fz
+            # Fill the three consecutive elements in the sensitivity matrix
+            # that correspond to the current active cell
+            sensitivity_matrix[i, 3 * k] = constant_factor * bx
+            sensitivity_matrix[i, 3 * k + 1] = constant_factor * by
+            sensitivity_matrix[i, 3 * k + 2] = constant_factor * bz
+
+
 def _forward_tmi_scalar(
     receivers,
     nodes,
@@ -227,6 +320,100 @@ def _forward_tmi_scalar(
             )
 
 
+def _forward_tmi_vector(
+    receivers,
+    nodes,
+    effective_susceptibilities,
+    fields,
+    cell_nodes,
+    regional_field,
+    constant_factor,
+):
+    """
+    Forward model the TMI with vector data (effective susceptibility)
+
+    This function should be used with a `numba.jit` decorator, for example:
+
+    ..code::
+
+        from numba import jit
+
+        jit_forward = jit(nopython=True, parallel=True)(_forward_tmi_vector)
+        jit_forward(
+            receivers, nodes, effective_sus, fields, cell_nodes, regional_field, const_factor
+        )
+
+    Parameters
+    ----------
+    receivers : (n_receivers, 3) array
+        Array with the locations of the receivers
+    nodes : (n_active_nodes, 3) array
+        Array with the location of the mesh nodes.
+    effective_susceptibilities : (3 * n_active_cells)
+        Array with the effective susceptibility vector components of each
+        active cell in the mesh.
+        The three components of the effective susceptibility vector for each cell
+        should be adjacent.
+    fields : (n_receivers) array
+        Array full of zeros where the TMI on each receiver will be stored. This
+        could be a preallocated array or a slice of it.
+    cell_nodes : (n_active_cells, 8) array
+        Array of integers, where each row contains the indices of the nodes for
+        each active cell in the mesh.
+    regional_field : (3,) array
+        Array containing the x, y and z components of the regional magnetic
+        field (uniform background field).
+    constant_factor : float
+        Constant factor that will be used to multiply each element of the
+        sensitivity matrix.
+
+    Notes
+    -----
+    The conversion factor is applied here to each row of the sensitivity matrix
+    because it's more efficient than doing it afterwards: it would require to
+    index the rows that corresponds to each component.
+    """
+    n_receivers = receivers.shape[0]
+    n_nodes = nodes.shape[0]
+    n_cells = cell_nodes.shape[0]
+    fx, fy, fz = regional_field
+    # Evaluate kernel function on each node, for each receiver location
+    for i in prange(n_receivers):
+        # Allocate vectors for kernels evaluated on mesh nodes
+        kxx, kyy, kzz = np.empty(n_nodes), np.empty(n_nodes), np.empty(n_nodes)
+        kxy, kxz, kyz = np.empty(n_nodes), np.empty(n_nodes), np.empty(n_nodes)
+        # Allocate small vector for the nodes indices for a given cell
+        nodes_indices = np.empty(8, dtype=cell_nodes.dtype)
+        for j in range(n_nodes):
+            dx = nodes[j, 0] - receivers[i, 0]
+            dy = nodes[j, 1] - receivers[i, 1]
+            dz = nodes[j, 2] - receivers[i, 2]
+            distance = np.sqrt(dx**2 + dy**2 + dz**2)
+            kxx[j] = choclo.prism.kernel_ee(dx, dy, dz, distance)
+            kyy[j] = choclo.prism.kernel_nn(dx, dy, dz, distance)
+            kzz[j] = choclo.prism.kernel_uu(dx, dy, dz, distance)
+            kxy[j] = choclo.prism.kernel_en(dx, dy, dz, distance)
+            kxz[j] = choclo.prism.kernel_eu(dx, dy, dz, distance)
+            kyz[j] = choclo.prism.kernel_nu(dx, dy, dz, distance)
+        # Compute sensitivity matrix elements from the kernel values
+        for k in range(n_cells):
+            nodes_indices = cell_nodes[k, :]
+            uxx = _kernels_in_nodes_to_cell(kxx, nodes_indices)
+            uyy = _kernels_in_nodes_to_cell(kyy, nodes_indices)
+            uzz = _kernels_in_nodes_to_cell(kzz, nodes_indices)
+            uxy = _kernels_in_nodes_to_cell(kxy, nodes_indices)
+            uxz = _kernels_in_nodes_to_cell(kxz, nodes_indices)
+            uyz = _kernels_in_nodes_to_cell(kyz, nodes_indices)
+            bx = uxx * fx + uxy * fy + uxz * fz
+            by = uxy * fx + uyy * fy + uyz * fz
+            bz = uxz * fx + uyz * fy + uzz * fz
+            fields[i] += constant_factor * (
+                bx * effective_susceptibilities[3 * k]
+                + by * effective_susceptibilities[3 * k + 1]
+                + bz * effective_susceptibilities[3 * k + 2]
+            )
+
+
 @jit(nopython=True)
 def _kernels_in_nodes_to_cell(kernels, nodes_indices):
     """
@@ -263,8 +450,16 @@ _fill_sensitivity_tmi_scalar_serial = jit(nopython=True, parallel=False)(
 _fill_sensitivity_tmi_scalar_parallel = jit(nopython=True, parallel=True)(
     _fill_sensitivity_tmi_scalar
 )
+_fill_sensitivity_tmi_vector_serial = jit(nopython=True, parallel=False)(
+    _fill_sensitivity_tmi_vector
+)
+_fill_sensitivity_tmi_vector_parallel = jit(nopython=True, parallel=True)(
+    _fill_sensitivity_tmi_vector
+)
 _forward_tmi_scalar_serial = jit(nopython=True, parallel=False)(_forward_tmi_scalar)
 _forward_tmi_scalar_parallel = jit(nopython=True, parallel=True)(_forward_tmi_scalar)
+_forward_tmi_vector_serial = jit(nopython=True, parallel=False)(_forward_tmi_vector)
+_forward_tmi_vector_parallel = jit(nopython=True, parallel=True)(_forward_tmi_vector)
 
 
 class Simulation3DIntegral(BasePFSimulation):
@@ -302,10 +497,16 @@ class Simulation3DIntegral(BasePFSimulation):
                 self._fill_sensitivity_tmi_scalar = (
                     _fill_sensitivity_tmi_scalar_parallel
                 )
+                self._fill_sensitivity_tmi_vector = (
+                    _fill_sensitivity_tmi_vector_parallel
+                )
                 self._forward_tmi_scalar = _forward_tmi_scalar_parallel
+                self._forward_tmi_vector = _forward_tmi_vector_parallel
             else:
                 self._fill_sensitivity_tmi_scalar = _fill_sensitivity_tmi_scalar_serial
+                self._fill_sensitivity_tmi_vector = _fill_sensitivity_tmi_vector_serial
                 self._forward_tmi_scalar = _forward_tmi_scalar_serial
+                self._forward_tmi_vector = _forward_tmi_vector_serial
 
     @property
     def model_type(self):
@@ -713,9 +914,14 @@ class Simulation3DIntegral(BasePFSimulation):
 
         Parameters
         ----------
-        susceptibilities : (n_active_cells) array
-            Array containing the susceptibilities of the active cells in the
-            mesh, in SI units.
+        susceptibilities : (n_active_cells) or (3 * n_active_cells) array
+            Array containing the susceptibilities, or effective
+            susceptibilities of the active cells in the mesh, in SI units.
+            Susceptibilities are expected if ``model_type`` is ``"scalar"``,
+            and the array should have ``n_active_cells`` elements.
+            Effective susceptibilities are expected if ``model_type`` is
+            ``"vector"``, and the array should have ``3 * n_active_cells``
+            elements.
 
         Returns
         -------
@@ -735,15 +941,26 @@ class Simulation3DIntegral(BasePFSimulation):
                     "Other components besides 'tmi' aren't implemented yet."
                 )
             constant_factor = 1 / 4 / np.pi
-            self._forward_tmi_scalar(
-                receivers,
-                active_nodes,
-                susceptibilities,
-                fields,
-                active_cell_nodes,
-                regional_field,
-                constant_factor,
-            )
+            if self.model_type == "scalar":
+                self._forward_tmi_scalar(
+                    receivers,
+                    active_nodes,
+                    susceptibilities,
+                    fields,
+                    active_cell_nodes,
+                    regional_field,
+                    constant_factor,
+                )
+            else:
+                self._forward_tmi_vector(
+                    receivers,
+                    active_nodes,
+                    susceptibilities,
+                    fields,
+                    active_cell_nodes,
+                    regional_field,
+                    constant_factor,
+                )
         return fields
 
     def _sensitivity_matrix(self):
@@ -759,7 +976,10 @@ class Simulation3DIntegral(BasePFSimulation):
         # Get regional field
         regional_field = self.survey.source_field.b0
         # Allocate sensitivity matrix
-        shape = (self.survey.nD, self.nC)
+        if self.model_type == "scalar":
+            shape = (self.survey.nD, self.nC)
+        else:
+            shape = (self.survey.nD, 3 * self.nC)
         sensitivity_matrix = np.empty(shape, dtype=self.sensitivity_dtype)
         # Start filling the sensitivity matrix
         for components, receivers in self._get_components_and_receivers():
@@ -768,14 +988,24 @@ class Simulation3DIntegral(BasePFSimulation):
                     "Other components besides 'tmi' aren't implemented yet."
                 )
             conversion_factor = 1 / 4 / np.pi
-            self._fill_sensitivity_tmi_scalar(
-                receivers,
-                active_nodes,
-                sensitivity_matrix,
-                active_cell_nodes,
-                regional_field,
-                conversion_factor,
-            )
+            if self.model_type == "scalar":
+                self._fill_sensitivity_tmi_scalar(
+                    receivers,
+                    active_nodes,
+                    sensitivity_matrix,
+                    active_cell_nodes,
+                    regional_field,
+                    conversion_factor,
+                )
+            else:
+                self._fill_sensitivity_tmi_vector(
+                    receivers,
+                    active_nodes,
+                    sensitivity_matrix,
+                    active_cell_nodes,
+                    regional_field,
+                    conversion_factor,
+                )
         return sensitivity_matrix
 
     def _get_cell_nodes(self):
