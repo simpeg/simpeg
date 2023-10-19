@@ -31,14 +31,14 @@ except ImportError:
     choclo = None
 else:
     from ._numba_functions import (
-        _fill_sensitivity_tmi_scalar_parallel,
-        _fill_sensitivity_tmi_vector_parallel,
-        _fill_sensitivity_mag_scalar_parallel,
+        _sensitivity_tmi_scalar_parallel,
+        _sensitivity_tmi_vector_parallel,
+        _sensitivity_mag_scalar_parallel,
         _forward_tmi_scalar_parallel,
         _forward_tmi_vector_parallel,
-        _fill_sensitivity_tmi_scalar_serial,
-        _fill_sensitivity_tmi_vector_serial,
-        _fill_sensitivity_mag_scalar_serial,
+        _sensitivity_tmi_scalar_serial,
+        _sensitivity_tmi_vector_serial,
+        _sensitivity_mag_scalar_serial,
         _forward_tmi_scalar_serial,
         _forward_tmi_vector_serial,
     )
@@ -83,21 +83,15 @@ class Simulation3DIntegral(BasePFSimulation):
         self.engine = engine
         if self.engine == "choclo":
             if choclo_parallel:
-                self._fill_sensitivity_tmi_scalar = (
-                    _fill_sensitivity_tmi_scalar_parallel
-                )
-                self._fill_sensitivity_tmi_vector = (
-                    _fill_sensitivity_tmi_vector_parallel
-                )
-                self._fill_sensitivity_mag_scalar = (
-                    _fill_sensitivity_mag_scalar_parallel
-                )
+                self._sensitivity_tmi_scalar = _sensitivity_tmi_scalar_parallel
+                self._sensitivity_tmi_vector = _sensitivity_tmi_vector_parallel
+                self._sensitivity_mag_scalar = _sensitivity_mag_scalar_parallel
                 self._forward_tmi_scalar = _forward_tmi_scalar_parallel
                 self._forward_tmi_vector = _forward_tmi_vector_parallel
             else:
-                self._fill_sensitivity_tmi_scalar = _fill_sensitivity_tmi_scalar_serial
-                self._fill_sensitivity_tmi_vector = _fill_sensitivity_tmi_vector_serial
-                self._fill_sensitivity_mag_scalar = _fill_sensitivity_mag_scalar_serial
+                self._sensitivity_tmi_scalar = _sensitivity_tmi_scalar_serial
+                self._sensitivity_tmi_vector = _sensitivity_tmi_vector_serial
+                self._sensitivity_mag_scalar = _sensitivity_mag_scalar_serial
                 self._forward_tmi_scalar = _forward_tmi_scalar_serial
                 self._forward_tmi_vector = _forward_tmi_vector_serial
 
@@ -593,7 +587,7 @@ class Simulation3DIntegral(BasePFSimulation):
                 )
                 if self.model_type == "scalar":
                     if component == "tmi":
-                        self._fill_sensitivity_tmi_scalar(
+                        self._sensitivity_tmi_scalar(
                             receivers,
                             active_nodes,
                             sensitivity_matrix[matrix_slice, :],
@@ -603,7 +597,7 @@ class Simulation3DIntegral(BasePFSimulation):
                         )
                     else:
                         kernel_x, kernel_y, kernel_z = CHOCLO_KERNELS[component]
-                        self._fill_sensitivity_mag_scalar(
+                        self._sensitivity_mag_scalar(
                             receivers,
                             active_nodes,
                             sensitivity_matrix[matrix_slice, :],
@@ -617,7 +611,7 @@ class Simulation3DIntegral(BasePFSimulation):
                 else:
                     if component != "tmi":
                         raise NotImplementedError()
-                    self._fill_sensitivity_tmi_vector(
+                    self._sensitivity_tmi_vector(
                         receivers,
                         active_nodes,
                         sensitivity_matrix[matrix_slice, :],

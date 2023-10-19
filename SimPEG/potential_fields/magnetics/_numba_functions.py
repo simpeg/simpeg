@@ -15,7 +15,7 @@ else:
     from numba import jit, prange
 
 
-def _fill_sensitivity_mag_scalar(
+def _sensitivity_mag_scalar(
     receivers,
     nodes,
     sensitivity_matrix,
@@ -100,7 +100,7 @@ def _fill_sensitivity_mag_scalar(
             )
 
 
-def _fill_sensitivity_tmi_scalar(
+def _sensitivity_tmi_scalar(
     receivers,
     nodes,
     sensitivity_matrix,
@@ -484,22 +484,22 @@ def _kernels_in_nodes_to_cell(kernels, nodes_indices):
     return result
 
 
-_fill_sensitivity_tmi_scalar_serial = jit(nopython=True, parallel=False)(
-    _fill_sensitivity_tmi_scalar
+_sensitivity_tmi_scalar_serial = jit(nopython=True, parallel=False)(
+    _sensitivity_tmi_scalar
 )
-_fill_sensitivity_tmi_scalar_parallel = jit(nopython=True, parallel=True)(
-    _fill_sensitivity_tmi_scalar
+_sensitivity_tmi_scalar_parallel = jit(nopython=True, parallel=True)(
+    _sensitivity_tmi_scalar
 )
-_fill_sensitivity_mag_scalar_serial = jit(nopython=True, parallel=False)(
-    _fill_sensitivity_mag_scalar
+_sensitivity_mag_scalar_serial = jit(nopython=True, parallel=False)(
+    _sensitivity_mag_scalar
 )
-_fill_sensitivity_mag_scalar_parallel = jit(nopython=True, parallel=True)(
-    _fill_sensitivity_mag_scalar
+_sensitivity_mag_scalar_parallel = jit(nopython=True, parallel=True)(
+    _sensitivity_mag_scalar
 )
-_fill_sensitivity_tmi_vector_serial = jit(nopython=True, parallel=False)(
+_sensitivity_tmi_vector_serial = jit(nopython=True, parallel=False)(
     _fill_sensitivity_tmi_vector
 )
-_fill_sensitivity_tmi_vector_parallel = jit(nopython=True, parallel=True)(
+_sensitivity_tmi_vector_parallel = jit(nopython=True, parallel=True)(
     _fill_sensitivity_tmi_vector
 )
 _forward_tmi_scalar_serial = jit(nopython=True, parallel=False)(_forward_tmi_scalar)
