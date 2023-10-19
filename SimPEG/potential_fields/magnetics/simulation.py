@@ -217,11 +217,11 @@ def _fill_sensitivity_tmi_vector(
             bx = uxx * fx + uxy * fy + uxz * fz
             by = uxy * fx + uyy * fy + uyz * fz
             bz = uxz * fx + uyz * fy + uzz * fz
-            # Fill the three consecutive elements in the sensitivity matrix
-            # that correspond to the current active cell
-            sensitivity_matrix[i, 3 * k] = constant_factor * bx
-            sensitivity_matrix[i, 3 * k + 1] = constant_factor * by
-            sensitivity_matrix[i, 3 * k + 2] = constant_factor * bz
+            # Fill the sensitivity matrix elements that correspond to the
+            # current active cell
+            sensitivity_matrix[i, k] = constant_factor * bx
+            sensitivity_matrix[i, k + n_cells] = constant_factor * by
+            sensitivity_matrix[i, k + 2 * n_cells] = constant_factor * bz
 
 
 def _forward_tmi_scalar(
@@ -408,9 +408,9 @@ def _forward_tmi_vector(
             by = uxy * fx + uyy * fy + uyz * fz
             bz = uxz * fx + uyz * fy + uzz * fz
             fields[i] += constant_factor * (
-                bx * effective_susceptibilities[3 * k]
-                + by * effective_susceptibilities[3 * k + 1]
-                + bz * effective_susceptibilities[3 * k + 2]
+                bx * effective_susceptibilities[k]
+                + by * effective_susceptibilities[k + n_cells]
+                + bz * effective_susceptibilities[k + 2 * n_cells]
             )
 
 
