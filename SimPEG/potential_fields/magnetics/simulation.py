@@ -79,12 +79,6 @@ def _fill_sensitivity_tmi_scalar(
     constant_factor : float
         Constant factor that will be used to multiply each element of the
         sensitivity matrix.
-
-    Notes
-    -----
-    The conversion factor is applied here to each row of the sensitivity matrix
-    because it's more efficient than doing it afterwards: it would require to
-    index the rows that corresponds to each component.
     """
     n_receivers = receivers.shape[0]
     n_nodes = nodes.shape[0]
@@ -176,12 +170,6 @@ def _fill_sensitivity_tmi_vector(
     constant_factor : float
         Constant factor that will be used to multiply each element of the
         sensitivity matrix.
-
-    Notes
-    -----
-    The conversion factor is applied here to each row of the sensitivity matrix
-    because it's more efficient than doing it afterwards: it would require to
-    index the rows that corresponds to each component.
     """
     n_receivers = receivers.shape[0]
     n_nodes = nodes.shape[0]
@@ -267,12 +255,6 @@ def _forward_tmi_scalar(
     constant_factor : float
         Constant factor that will be used to multiply each element of the
         sensitivity matrix.
-
-    Notes
-    -----
-    The conversion factor is applied here to each row of the sensitivity matrix
-    because it's more efficient than doing it afterwards: it would require to
-    index the rows that corresponds to each component.
     """
     n_receivers = receivers.shape[0]
     n_nodes = nodes.shape[0]
@@ -367,12 +349,6 @@ def _forward_tmi_vector(
     constant_factor : float
         Constant factor that will be used to multiply each element of the
         sensitivity matrix.
-
-    Notes
-    -----
-    The conversion factor is applied here to each row of the sensitivity matrix
-    because it's more efficient than doing it afterwards: it would require to
-    index the rows that corresponds to each component.
     """
     n_receivers = receivers.shape[0]
     n_nodes = nodes.shape[0]
