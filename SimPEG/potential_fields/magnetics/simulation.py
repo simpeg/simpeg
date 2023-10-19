@@ -36,6 +36,98 @@ except ImportError:
 else:
     from numba import jit, prange
 
+    CHOCLO_SUPPORTED_COMPONENTS = {"tmi", "bx", "by", "bz"}
+    CHOCLO_KERNELS = {
+        "bx": (choclo.prism.kernel_ee, choclo.prism.kernel_en, choclo.prism.kernel_eu),
+        "by": (choclo.prism.kernel_en, choclo.prism.kernel_nn, choclo.prism.kernel_nu),
+        "bz": (choclo.prism.kernel_eu, choclo.prism.kernel_nu, choclo.prism.kernel_uu),
+    }
+
+
+def _fill_sensitivity_mag_scalar(
+    receivers,
+    nodes,
+    sensitivity_matrix,
+    cell_nodes,
+    regional_field,
+    kernel_x,
+    kernel_y,
+    kernel_z,
+    constant_factor,
+):
+    """
+    Fill the sensitivity matrix for single mag component and scalar data
+
+    This function should be used with a `numba.jit` decorator, for example:
+
+    ..code::
+
+        from numba import jit
+
+        jit_sensitivity = jit(nopython=True, parallel=True)(
+            _fill_sensitivity_matrix_scalar
+        )
+        jit_sensitivity(
+            receivers, nodes, matrix, cell_nodes, regional_field, constant_factor
+        )
+
+    Parameters
+    ----------
+    receivers : (n_receivers, 3) array
+        Array with the locations of the receivers
+    nodes : (n_active_nodes, 3) array
+        Array with the location of the mesh nodes.
+    sensitivity_matrix : (n_receivers, n_active_nodes) array
+        Empty 2d array where the sensitivity matrix elements will be filled.
+        This could be a preallocated empty array or a slice of it.
+    cell_nodes : (n_active_cells, 8) array
+        Array of integers, where each row contains the indices of the nodes for
+        each active cell in the mesh.
+    regional_field : (3,) array
+        Array containing the x, y and z components of the regional magnetic
+        field (uniform background field).
+    kernel_x, kernel_y, kernel_z : callable
+        Kernels used to compute the desired magnetic component. For example,
+        for computing bx we need to use ``kernel_x=kernel_ee``,
+        ``kernel_y=kernel_en``, ``kernel_z=kernel_eu``.
+    constant_factor : float
+        Constant factor that will be used to multiply each element of the
+        sensitivity matrix.
+    """
+    n_receivers = receivers.shape[0]
+    n_nodes = nodes.shape[0]
+    n_cells = cell_nodes.shape[0]
+    fx, fy, fz = regional_field
+    regional_field_amplitude = np.sqrt(fx**2 + fy**2 + fz**2)
+    fx /= regional_field_amplitude
+    fy /= regional_field_amplitude
+    fz /= regional_field_amplitude
+    # Evaluate kernel function on each node, for each receiver location
+    for i in prange(n_receivers):
+        # Allocate vectors for kernels evaluated on mesh nodes
+        kx, ky, kz = np.empty(n_nodes), np.empty(n_nodes), np.empty(n_nodes)
+        # Allocate small vector for the nodes indices for a given cell
+        nodes_indices = np.empty(8, dtype=cell_nodes.dtype)
+        for j in range(n_nodes):
+            dx = nodes[j, 0] - receivers[i, 0]
+            dy = nodes[j, 1] - receivers[i, 1]
+            dz = nodes[j, 2] - receivers[i, 2]
+            distance = np.sqrt(dx**2 + dy**2 + dz**2)
+            kx[j] = kernel_x(dx, dy, dz, distance)
+            ky[j] = kernel_y(dx, dy, dz, distance)
+            kz[j] = kernel_z(dx, dy, dz, distance)
+        # Compute sensitivity matrix elements from the kernel values
+        for k in range(n_cells):
+            nodes_indices = cell_nodes[k, :]
+            ux = _kernels_in_nodes_to_cell(kx, nodes_indices)
+            uy = _kernels_in_nodes_to_cell(ky, nodes_indices)
+            uz = _kernels_in_nodes_to_cell(kz, nodes_indices)
+            sensitivity_matrix[i, k] = (
+                constant_factor
+                * regional_field_amplitude
+                * (ux * fx + uy * fy + uz * fz)
+            )
+
 
 def _fill_sensitivity_tmi_scalar(
     receivers,
@@ -427,6 +519,12 @@ _fill_sensitivity_tmi_scalar_serial = jit(nopython=True, parallel=False)(
 _fill_sensitivity_tmi_scalar_parallel = jit(nopython=True, parallel=True)(
     _fill_sensitivity_tmi_scalar
 )
+_fill_sensitivity_mag_scalar_serial = jit(nopython=True, parallel=False)(
+    _fill_sensitivity_mag_scalar
+)
+_fill_sensitivity_mag_scalar_parallel = jit(nopython=True, parallel=True)(
+    _fill_sensitivity_mag_scalar
+)
 _fill_sensitivity_tmi_vector_serial = jit(nopython=True, parallel=False)(
     _fill_sensitivity_tmi_vector
 )
@@ -477,11 +575,15 @@ class Simulation3DIntegral(BasePFSimulation):
                 self._fill_sensitivity_tmi_vector = (
                     _fill_sensitivity_tmi_vector_parallel
                 )
+                self._fill_sensitivity_mag_scalar = (
+                    _fill_sensitivity_mag_scalar_parallel
+                )
                 self._forward_tmi_scalar = _forward_tmi_scalar_parallel
                 self._forward_tmi_vector = _forward_tmi_vector_parallel
             else:
                 self._fill_sensitivity_tmi_scalar = _fill_sensitivity_tmi_scalar_serial
                 self._fill_sensitivity_tmi_vector = _fill_sensitivity_tmi_vector_serial
+                self._fill_sensitivity_mag_scalar = _fill_sensitivity_mag_scalar_serial
                 self._forward_tmi_scalar = _forward_tmi_scalar_serial
                 self._forward_tmi_vector = _forward_tmi_vector_serial
 
@@ -959,31 +1061,57 @@ class Simulation3DIntegral(BasePFSimulation):
             n_columns = 3 * self.nC
         shape = (self.survey.nD, n_columns)
         sensitivity_matrix = np.empty(shape, dtype=self.sensitivity_dtype)
+        # Define the constant factor
+        constant_factor = 1 / 4 / np.pi
         # Start filling the sensitivity matrix
+        index_offset = 0
         for components, receivers in self._get_components_and_receivers():
-            if components != ["tmi"]:
+            if not CHOCLO_SUPPORTED_COMPONENTS.issuperset(components):
                 raise NotImplementedError(
-                    "Other components besides 'tmi' aren't implemented yet."
+                    f"Other components besides {CHOCLO_SUPPORTED_COMPONENTS} "
+                    "aren't implemented yet."
                 )
-            conversion_factor = 1 / 4 / np.pi
-            if self.model_type == "scalar":
-                self._fill_sensitivity_tmi_scalar(
-                    receivers,
-                    active_nodes,
-                    sensitivity_matrix,
-                    active_cell_nodes,
-                    regional_field,
-                    conversion_factor,
+            n_components = len(components)
+            n_rows = n_components * receivers.shape[0]
+            for i, component in enumerate(components):
+                matrix_slice = slice(
+                    index_offset + i, index_offset + n_rows, n_components
                 )
-            else:
-                self._fill_sensitivity_tmi_vector(
-                    receivers,
-                    active_nodes,
-                    sensitivity_matrix,
-                    active_cell_nodes,
-                    regional_field,
-                    conversion_factor,
-                )
+                if self.model_type == "scalar":
+                    if component == "tmi":
+                        self._fill_sensitivity_tmi_scalar(
+                            receivers,
+                            active_nodes,
+                            sensitivity_matrix[matrix_slice, :],
+                            active_cell_nodes,
+                            regional_field,
+                            constant_factor,
+                        )
+                    else:
+                        kernel_x, kernel_y, kernel_z = CHOCLO_KERNELS[component]
+                        self._fill_sensitivity_mag_scalar(
+                            receivers,
+                            active_nodes,
+                            sensitivity_matrix[matrix_slice, :],
+                            active_cell_nodes,
+                            regional_field,
+                            kernel_x,
+                            kernel_y,
+                            kernel_z,
+                            constant_factor,
+                        )
+                else:
+                    if component != "tmi":
+                        raise NotImplementedError()
+                    self._fill_sensitivity_tmi_vector(
+                        receivers,
+                        active_nodes,
+                        sensitivity_matrix[matrix_slice, :],
+                        active_cell_nodes,
+                        regional_field,
+                        constant_factor,
+                    )
+            index_offset += n_rows
         return sensitivity_matrix
 
     def _get_cell_nodes(self):
