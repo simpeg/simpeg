@@ -954,9 +954,10 @@ class Simulation3DIntegral(BasePFSimulation):
         regional_field = self.survey.source_field.b0
         # Allocate sensitivity matrix
         if self.model_type == "scalar":
-            shape = (self.survey.nD, self.nC)
+            n_columns = self.nC
         else:
-            shape = (self.survey.nD, 3 * self.nC)
+            n_columns = 3 * self.nC
+        shape = (self.survey.nD, n_columns)
         sensitivity_matrix = np.empty(shape, dtype=self.sensitivity_dtype)
         # Start filling the sensitivity matrix
         for components, receivers in self._get_components_and_receivers():
