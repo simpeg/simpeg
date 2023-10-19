@@ -352,8 +352,9 @@ def _forward_tmi_vector(
     effective_susceptibilities : (3 * n_active_cells)
         Array with the effective susceptibility vector components of each
         active cell in the mesh.
-        The three components of the effective susceptibility vector for each cell
-        should be adjacent.
+        The order of the components should be the following: all x components
+        for every cell, then all y components for every cell and then all
+        z components for every cell.
     fields : (n_receivers) array
         Array full of zeros where the TMI on each receiver will be stored. This
         could be a preallocated array or a slice of it.
