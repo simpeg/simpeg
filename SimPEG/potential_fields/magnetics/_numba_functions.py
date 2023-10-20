@@ -39,7 +39,7 @@ def _sensitivity_mag_scalar(
             _sensitivity_matrix_scalar
         )
         jit_sensitivity(
-            receivers, nodes, matrix, cell_nodes, regional_field, constant_factor
+            receivers, nodes, matrix, cell_nodes, regional_field, constant_factor, True
         )
 
     Parameters
