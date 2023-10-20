@@ -461,7 +461,7 @@ class SmoothnessFirstOrder(BaseRegularization):
                 "z-direction"
             )
         self._orientation = orientation
-
+        self.__cell_distances = None
         super().__init__(mesh=mesh, **kwargs)
         self.set_weights(volume=self.regularization_mesh.vol)
 
@@ -555,7 +555,10 @@ class SmoothnessFirstOrder(BaseRegularization):
         """
         Distances between cell centers for the cell center difference.
         """
-        return getattr(self.regularization_mesh, f"cell_distances_{self.orientation}")
+        if self.__cell_distances is None:
+            self.__cell_distances = 1.0 / np.max(self.cell_gradient, axis=1).data
+
+        return self.__cell_distances
 
     @property
     def orientation(self):
@@ -1193,9 +1196,7 @@ class BaseSimilarityMeasure(BaseRegularization):
     @property
     def wire_map_deriv(self):
         if getattr(self, "_wire_map_deriv", None) is None:
-            self._wire_map_deriv = sp.vstack([
-                wire.P for wire in self.wire_map
-            ])
+            self._wire_map_deriv = sp.vstack([wire.P for wire in self.wire_map])
         return self._wire_map_deriv
 
     @property
