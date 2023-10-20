@@ -200,9 +200,15 @@ def _sensitivity_tmi(
                     * (bx * fx + by * fy + bz * fz)
                 )
             else:
-                sensitivity_matrix[i, k] = constant_factor * bx
-                sensitivity_matrix[i, k + n_cells] = constant_factor * by
-                sensitivity_matrix[i, k + 2 * n_cells] = constant_factor * bz
+                sensitivity_matrix[i, k] = (
+                    constant_factor * regional_field_amplitude * bx
+                )
+                sensitivity_matrix[i, k + n_cells] = (
+                    constant_factor * regional_field_amplitude * by
+                )
+                sensitivity_matrix[i, k + 2 * n_cells] = (
+                    constant_factor * regional_field_amplitude * bz
+                )
 
 
 def _forward_tmi_scalar(
