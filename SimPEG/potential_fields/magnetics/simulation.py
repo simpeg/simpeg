@@ -33,12 +33,10 @@ else:
     from ._numba_functions import (
         _sensitivity_tmi_parallel,
         _sensitivity_tmi_serial,
+        _forward_tmi_parallel,
+        _forward_tmi_serial,
         _sensitivity_mag_scalar_parallel,
-        _forward_tmi_scalar_parallel,
-        _forward_tmi_vector_parallel,
         _sensitivity_mag_scalar_serial,
-        _forward_tmi_scalar_serial,
-        _forward_tmi_vector_serial,
     )
 
     CHOCLO_SUPPORTED_COMPONENTS = {"tmi", "bx", "by", "bz"}
@@ -82,14 +80,12 @@ class Simulation3DIntegral(BasePFSimulation):
         if self.engine == "choclo":
             if choclo_parallel:
                 self._sensitivity_tmi = _sensitivity_tmi_parallel
+                self._forward_tmi = _forward_tmi_parallel
                 self._sensitivity_mag_scalar = _sensitivity_mag_scalar_parallel
-                self._forward_tmi_scalar = _forward_tmi_scalar_parallel
-                self._forward_tmi_vector = _forward_tmi_vector_parallel
             else:
                 self._sensitivity_tmi = _sensitivity_tmi_serial
+                self._forward_tmi = _forward_tmi_serial
                 self._sensitivity_mag_scalar = _sensitivity_mag_scalar_serial
-                self._forward_tmi_scalar = _forward_tmi_scalar_serial
-                self._forward_tmi_vector = _forward_tmi_vector_serial
 
     @property
     def model_type(self):
@@ -524,26 +520,16 @@ class Simulation3DIntegral(BasePFSimulation):
                     "Other components besides 'tmi' aren't implemented yet."
                 )
             constant_factor = 1 / 4 / np.pi
-            if self.model_type == "scalar":
-                self._forward_tmi_scalar(
-                    receivers,
-                    active_nodes,
-                    susceptibilities,
-                    fields,
-                    active_cell_nodes,
-                    regional_field,
-                    constant_factor,
-                )
-            else:
-                self._forward_tmi_vector(
-                    receivers,
-                    active_nodes,
-                    susceptibilities,
-                    fields,
-                    active_cell_nodes,
-                    regional_field,
-                    constant_factor,
-                )
+            self._forward_tmi(
+                receivers,
+                active_nodes,
+                susceptibilities,
+                fields,
+                active_cell_nodes,
+                regional_field,
+                constant_factor,
+                scalar_model=(self.model_type == "scalar"),
+            )
         return fields
 
     def _sensitivity_matrix(self):
