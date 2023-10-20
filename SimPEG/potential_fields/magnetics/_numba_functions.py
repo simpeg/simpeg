@@ -36,7 +36,7 @@ def _sensitivity_mag_scalar(
         from numba import jit
 
         jit_sensitivity = jit(nopython=True, parallel=True)(
-            _fill_sensitivity_matrix_scalar
+            _sensitivity_matrix_scalar
         )
         jit_sensitivity(
             receivers, nodes, matrix, cell_nodes, regional_field, constant_factor
@@ -118,7 +118,7 @@ def _sensitivity_tmi_scalar(
         from numba import jit
 
         jit_sensitivity = jit(nopython=True, parallel=True)(
-            _fill_sensitivity_matrix_tmi_scalar
+            _sensitivity_matrix_tmi_scalar
         )
         jit_sensitivity(
             receivers, nodes, matrix, cell_nodes, regional_field, constant_factor
