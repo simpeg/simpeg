@@ -31,13 +31,11 @@ except ImportError:
     choclo = None
 else:
     from ._numba_functions import (
-        _sensitivity_tmi_scalar_parallel,
-        _sensitivity_tmi_vector_parallel,
+        _sensitivity_tmi_parallel,
+        _sensitivity_tmi_serial,
         _sensitivity_mag_scalar_parallel,
         _forward_tmi_scalar_parallel,
         _forward_tmi_vector_parallel,
-        _sensitivity_tmi_scalar_serial,
-        _sensitivity_tmi_vector_serial,
         _sensitivity_mag_scalar_serial,
         _forward_tmi_scalar_serial,
         _forward_tmi_vector_serial,
@@ -83,14 +81,12 @@ class Simulation3DIntegral(BasePFSimulation):
         self.engine = engine
         if self.engine == "choclo":
             if choclo_parallel:
-                self._sensitivity_tmi_scalar = _sensitivity_tmi_scalar_parallel
-                self._sensitivity_tmi_vector = _sensitivity_tmi_vector_parallel
+                self._sensitivity_tmi = _sensitivity_tmi_parallel
                 self._sensitivity_mag_scalar = _sensitivity_mag_scalar_parallel
                 self._forward_tmi_scalar = _forward_tmi_scalar_parallel
                 self._forward_tmi_vector = _forward_tmi_vector_parallel
             else:
-                self._sensitivity_tmi_scalar = _sensitivity_tmi_scalar_serial
-                self._sensitivity_tmi_vector = _sensitivity_tmi_vector_serial
+                self._sensitivity_tmi = _sensitivity_tmi_serial
                 self._sensitivity_mag_scalar = _sensitivity_mag_scalar_serial
                 self._forward_tmi_scalar = _forward_tmi_scalar_serial
                 self._forward_tmi_vector = _forward_tmi_vector_serial
@@ -582,41 +578,32 @@ class Simulation3DIntegral(BasePFSimulation):
             n_components = len(components)
             n_rows = n_components * receivers.shape[0]
             for i, component in enumerate(components):
+                if component != "tmi" and self.model_type == "vector":
+                    raise NotImplementedError()
                 matrix_slice = slice(
                     index_offset + i, index_offset + n_rows, n_components
                 )
-                if self.model_type == "scalar":
-                    if component == "tmi":
-                        self._sensitivity_tmi_scalar(
-                            receivers,
-                            active_nodes,
-                            sensitivity_matrix[matrix_slice, :],
-                            active_cell_nodes,
-                            regional_field,
-                            constant_factor,
-                        )
-                    else:
-                        kernel_x, kernel_y, kernel_z = CHOCLO_KERNELS[component]
-                        self._sensitivity_mag_scalar(
-                            receivers,
-                            active_nodes,
-                            sensitivity_matrix[matrix_slice, :],
-                            active_cell_nodes,
-                            regional_field,
-                            kernel_x,
-                            kernel_y,
-                            kernel_z,
-                            constant_factor,
-                        )
-                else:
-                    if component != "tmi":
-                        raise NotImplementedError()
-                    self._sensitivity_tmi_vector(
+                if component == "tmi":
+                    self._sensitivity_tmi(
                         receivers,
                         active_nodes,
                         sensitivity_matrix[matrix_slice, :],
                         active_cell_nodes,
                         regional_field,
+                        constant_factor,
+                        scalar_model=(self.model_type == "scalar"),
+                    )
+                else:
+                    kernel_x, kernel_y, kernel_z = CHOCLO_KERNELS[component]
+                    self._sensitivity_mag_scalar(
+                        receivers,
+                        active_nodes,
+                        sensitivity_matrix[matrix_slice, :],
+                        active_cell_nodes,
+                        regional_field,
+                        kernel_x,
+                        kernel_y,
+                        kernel_z,
                         constant_factor,
                     )
             index_offset += n_rows
