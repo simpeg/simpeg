@@ -487,15 +487,16 @@ class Simulation3DIntegral(BasePFSimulation):
             deletes = deletes + ["_gtg_diagonal", "_ampDeriv"]
         return deletes
 
-    def _forward(self, susceptibilities):
+    def _forward(self, model):
         """
         Forward model the fields of active cells in the mesh on receivers.
 
         Parameters
         ----------
-        susceptibilities : (n_active_cells) or (3 * n_active_cells) array
-            Array containing the susceptibilities, or effective
-            susceptibilities of the active cells in the mesh, in SI units.
+        model : (n_active_cells) or (3 * n_active_cells) array
+            Array containing the susceptibilities (scalar) or effective
+            susceptibilities (vector) of the active cells in the mesh, in SI
+            units.
             Susceptibilities are expected if ``model_type`` is ``"scalar"``,
             and the array should have ``n_active_cells`` elements.
             Effective susceptibilities are expected if ``model_type`` is
@@ -523,7 +524,7 @@ class Simulation3DIntegral(BasePFSimulation):
             self._forward_tmi(
                 receivers,
                 active_nodes,
-                susceptibilities,
+                model,
                 fields,
                 active_cell_nodes,
                 regional_field,
