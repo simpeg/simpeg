@@ -15,7 +15,7 @@ else:
     from numba import jit, prange
 
 
-def _sensitivity_mag_scalar(
+def _sensitivity_mag(
     receivers,
     nodes,
     sensitivity_matrix,
@@ -25,9 +25,10 @@ def _sensitivity_mag_scalar(
     kernel_y,
     kernel_z,
     constant_factor,
+    scalar_model,
 ):
     """
-    Fill the sensitivity matrix for single mag component and scalar data
+    Fill the sensitivity matrix for single mag component
 
     This function should be used with a `numba.jit` decorator, for example:
 
@@ -35,10 +36,10 @@ def _sensitivity_mag_scalar(
 
         from numba import jit
 
-        jit_sensitivity = jit(nopython=True, parallel=True)(
-            _sensitivity_matrix_scalar
+        jit_sensitivity_mag = jit(nopython=True, parallel=True)(
+            _sensitivity_mag
         )
-        jit_sensitivity(
+        jit_sensitivity_mag(
             receivers, nodes, matrix, cell_nodes, regional_field, constant_factor, True
         )
 
@@ -64,6 +65,11 @@ def _sensitivity_mag_scalar(
     constant_factor : float
         Constant factor that will be used to multiply each element of the
         sensitivity matrix.
+    scalar_model : bool
+        If True, the sensitivity matrix is build to work with scalar models
+        (susceptibilities).
+        If False, the sensitivity matrix is build to work with vector models
+        (effective susceptibilities).
     """
     n_receivers = receivers.shape[0]
     n_nodes = nodes.shape[0]
@@ -93,11 +99,22 @@ def _sensitivity_mag_scalar(
             ux = _kernels_in_nodes_to_cell(kx, nodes_indices)
             uy = _kernels_in_nodes_to_cell(ky, nodes_indices)
             uz = _kernels_in_nodes_to_cell(kz, nodes_indices)
-            sensitivity_matrix[i, k] = (
-                constant_factor
-                * regional_field_amplitude
-                * (ux * fx + uy * fy + uz * fz)
-            )
+            if scalar_model:
+                sensitivity_matrix[i, k] = (
+                    constant_factor
+                    * regional_field_amplitude
+                    * (ux * fx + uy * fy + uz * fz)
+                )
+            else:
+                sensitivity_matrix[i, k] = (
+                    constant_factor * regional_field_amplitude * ux
+                )
+                sensitivity_matrix[i, k + n_cells] = (
+                    constant_factor * regional_field_amplitude * uy
+                )
+                sensitivity_matrix[i, k + 2 * n_cells] = (
+                    constant_factor * regional_field_amplitude * uz
+                )
 
 
 def _sensitivity_tmi(
@@ -358,10 +375,5 @@ _sensitivity_tmi_serial = jit(nopython=True, parallel=False)(_sensitivity_tmi)
 _sensitivity_tmi_parallel = jit(nopython=True, parallel=True)(_sensitivity_tmi)
 _forward_tmi_serial = jit(nopython=True, parallel=False)(_forward_tmi)
 _forward_tmi_parallel = jit(nopython=True, parallel=True)(_forward_tmi)
-
-_sensitivity_mag_scalar_serial = jit(nopython=True, parallel=False)(
-    _sensitivity_mag_scalar
-)
-_sensitivity_mag_scalar_parallel = jit(nopython=True, parallel=True)(
-    _sensitivity_mag_scalar
-)
+_sensitivity_mag_serial = jit(nopython=True, parallel=False)(_sensitivity_mag)
+_sensitivity_mag_parallel = jit(nopython=True, parallel=True)(_sensitivity_mag)

@@ -35,8 +35,8 @@ else:
         _sensitivity_tmi_serial,
         _forward_tmi_parallel,
         _forward_tmi_serial,
-        _sensitivity_mag_scalar_parallel,
-        _sensitivity_mag_scalar_serial,
+        _sensitivity_mag_parallel,
+        _sensitivity_mag_serial,
     )
 
     CHOCLO_SUPPORTED_COMPONENTS = {"tmi", "bx", "by", "bz"}
@@ -81,11 +81,11 @@ class Simulation3DIntegral(BasePFSimulation):
             if choclo_parallel:
                 self._sensitivity_tmi = _sensitivity_tmi_parallel
                 self._forward_tmi = _forward_tmi_parallel
-                self._sensitivity_mag_scalar = _sensitivity_mag_scalar_parallel
+                self._sensitivity_mag = _sensitivity_mag_parallel
             else:
                 self._sensitivity_tmi = _sensitivity_tmi_serial
                 self._forward_tmi = _forward_tmi_serial
-                self._sensitivity_mag_scalar = _sensitivity_mag_scalar_serial
+                self._sensitivity_mag = _sensitivity_mag_serial
 
     @property
     def model_type(self):
@@ -556,6 +556,7 @@ class Simulation3DIntegral(BasePFSimulation):
         constant_factor = 1 / 4 / np.pi
         # Start filling the sensitivity matrix
         index_offset = 0
+        scalar_model = self.model_type == "scalar"
         for components, receivers in self._get_components_and_receivers():
             if not CHOCLO_SUPPORTED_COMPONENTS.issuperset(components):
                 raise NotImplementedError(
@@ -565,8 +566,6 @@ class Simulation3DIntegral(BasePFSimulation):
             n_components = len(components)
             n_rows = n_components * receivers.shape[0]
             for i, component in enumerate(components):
-                if component != "tmi" and self.model_type == "vector":
-                    raise NotImplementedError()
                 matrix_slice = slice(
                     index_offset + i, index_offset + n_rows, n_components
                 )
@@ -578,11 +577,11 @@ class Simulation3DIntegral(BasePFSimulation):
                         active_cell_nodes,
                         regional_field,
                         constant_factor,
-                        scalar_model=(self.model_type == "scalar"),
+                        scalar_model,
                     )
                 else:
                     kernel_x, kernel_y, kernel_z = CHOCLO_KERNELS[component]
-                    self._sensitivity_mag_scalar(
+                    self._sensitivity_mag(
                         receivers,
                         active_nodes,
                         sensitivity_matrix[matrix_slice, :],
@@ -592,6 +591,7 @@ class Simulation3DIntegral(BasePFSimulation):
                         kernel_y,
                         kernel_z,
                         constant_factor,
+                        scalar_model,
                     )
             index_offset += n_rows
         return sensitivity_matrix
