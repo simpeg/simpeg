@@ -36,12 +36,7 @@ def _sensitivity_mag(
 
         from numba import jit
 
-        jit_sensitivity_mag = jit(nopython=True, parallel=True)(
-            _sensitivity_mag
-        )
-        jit_sensitivity_mag(
-            receivers, nodes, matrix, cell_nodes, regional_field, constant_factor, True
-        )
+        jit_sensitivity_mag = jit(nopython=True, parallel=True)(_sensitivity_mag)
 
     Parameters
     ----------
@@ -135,12 +130,7 @@ def _sensitivity_tmi(
 
         from numba import jit
 
-        jit_sensitivity_tmi = jit(nopython=True, parallel=True)(
-            _sensitivity_tmi
-        )
-        jit_sensitivity_tmi(
-            receivers, nodes, matrix, cell_nodes, regional_field, constant_factor
-        )
+        jit_sensitivity_tmi = jit(nopython=True, parallel=True)(_sensitivity_tmi)
 
     Parameters
     ----------
@@ -355,9 +345,6 @@ def _forward_tmi(
         from numba import jit
 
         jit_forward = jit(nopython=True, parallel=True)(_forward_tmi)
-        jit_forward(
-            receivers, nodes, mag_sus, fields, cell_nodes, regional_field, const_factor, scalar_model=True
-        )
 
     Parameters
     ----------
