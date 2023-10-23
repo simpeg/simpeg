@@ -29,10 +29,12 @@ from ._numba_functions import (
     choclo,
     _sensitivity_tmi_parallel,
     _sensitivity_tmi_serial,
-    _forward_tmi_parallel,
-    _forward_tmi_serial,
     _sensitivity_mag_parallel,
     _sensitivity_mag_serial,
+    _forward_tmi_parallel,
+    _forward_tmi_serial,
+    _forward_mag_parallel,
+    _forward_mag_serial,
 )
 
 if choclo is not None:
@@ -77,12 +79,14 @@ class Simulation3DIntegral(BasePFSimulation):
         if self.engine == "choclo":
             if choclo_parallel:
                 self._sensitivity_tmi = _sensitivity_tmi_parallel
-                self._forward_tmi = _forward_tmi_parallel
                 self._sensitivity_mag = _sensitivity_mag_parallel
+                self._forward_tmi = _forward_tmi_parallel
+                self._forward_mag = _forward_mag_parallel
             else:
                 self._sensitivity_tmi = _sensitivity_tmi_serial
-                self._forward_tmi = _forward_tmi_serial
                 self._sensitivity_mag = _sensitivity_mag_serial
+                self._forward_tmi = _forward_tmi_serial
+                self._forward_mag = _forward_mag_serial
 
     @property
     def model_type(self):
@@ -511,23 +515,50 @@ class Simulation3DIntegral(BasePFSimulation):
         regional_field = self.survey.source_field.b0
         # Allocate fields array
         fields = np.zeros(self.survey.nD, dtype=self.sensitivity_dtype)
-        # Start filling the sensitivity matrix
+        # Define the constant factor
+        constant_factor = 1 / 4 / np.pi
+        # Start computing the fields
+        index_offset = 0
+        scalar_model = self.model_type == "scalar"
         for components, receivers in self._get_components_and_receivers():
-            if components != ["tmi"]:
+            if not CHOCLO_SUPPORTED_COMPONENTS.issuperset(components):
                 raise NotImplementedError(
-                    "Other components besides 'tmi' aren't implemented yet."
+                    f"Other components besides {CHOCLO_SUPPORTED_COMPONENTS} "
+                    "aren't implemented yet."
                 )
-            constant_factor = 1 / 4 / np.pi
-            self._forward_tmi(
-                receivers,
-                active_nodes,
-                model,
-                fields,
-                active_cell_nodes,
-                regional_field,
-                constant_factor,
-                scalar_model=(self.model_type == "scalar"),
-            )
+            n_components = len(components)
+            n_rows = n_components * receivers.shape[0]
+            for i, component in enumerate(components):
+                vector_slice = slice(
+                    index_offset + i, index_offset + n_rows, n_components
+                )
+                if component == "tmi":
+                    self._forward_tmi(
+                        receivers,
+                        active_nodes,
+                        model,
+                        fields[vector_slice],
+                        active_cell_nodes,
+                        regional_field,
+                        constant_factor,
+                        scalar_model,
+                    )
+                else:
+                    kernel_x, kernel_y, kernel_z = CHOCLO_KERNELS[component]
+                    self._forward_mag(
+                        receivers,
+                        active_nodes,
+                        model,
+                        fields[vector_slice],
+                        active_cell_nodes,
+                        regional_field,
+                        kernel_x,
+                        kernel_y,
+                        kernel_z,
+                        constant_factor,
+                        scalar_model,
+                    )
+                index_offset += n_rows
         return fields
 
     def _sensitivity_matrix(self):
