@@ -65,6 +65,31 @@ def _sensitivity_mag(
         (susceptibilities).
         If False, the sensitivity matrix is build to work with vector models
         (effective susceptibilities).
+
+    Notes
+    -----
+    For computing the ``bx`` component of the magnetic field we need to use the
+    following kernels:
+
+    .. code::
+
+        kernel_x=kernel_ee, kernel_y=kernel_en, kernel_z=kernel_eu
+
+
+    For computing the ``by`` component of the magnetic field we need to use the
+    following kernels:
+
+    .. code::
+
+        kernel_x=kernel_en, kernel_y=kernel_nn, kernel_z=kernel_nu
+
+    For computing the ``bz`` component of the magnetic field we need to use the
+    following kernels:
+
+    .. code::
+
+        kernel_x=kernel_eu, kernel_y=kernel_nu, kernel_z=kernel_uu
+
     """
     n_receivers = receivers.shape[0]
     n_nodes = nodes.shape[0]
@@ -277,6 +302,31 @@ def _forward_mag(
         susceptibilities (scalar model) for each active cell.
         If False, the forward will be computing assuming that the ``model`` has
         effective susceptibilities (vector model) for each active cell.
+
+    Notes
+    -----
+    For computing the ``bx`` component of the magnetic field we need to use the
+    following kernels:
+
+    .. code::
+
+        kernel_x=kernel_ee, kernel_y=kernel_en, kernel_z=kernel_eu
+
+
+    For computing the ``by`` component of the magnetic field we need to use the
+    following kernels:
+
+    .. code::
+
+        kernel_x=kernel_en, kernel_y=kernel_nn, kernel_z=kernel_nu
+
+    For computing the ``bz`` component of the magnetic field we need to use the
+    following kernels:
+
+    .. code::
+
+        kernel_x=kernel_eu, kernel_y=kernel_nu, kernel_z=kernel_uu
+
     """
     n_receivers = receivers.shape[0]
     n_nodes = nodes.shape[0]
