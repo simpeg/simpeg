@@ -25,20 +25,17 @@ from geoana.kernels import (
 
 import discretize
 
-try:
-    import choclo
-except ImportError:
-    choclo = None
-else:
-    from ._numba_functions import (
-        _sensitivity_tmi_parallel,
-        _sensitivity_tmi_serial,
-        _forward_tmi_parallel,
-        _forward_tmi_serial,
-        _sensitivity_mag_parallel,
-        _sensitivity_mag_serial,
-    )
+from ._numba_functions import (
+    choclo,
+    _sensitivity_tmi_parallel,
+    _sensitivity_tmi_serial,
+    _forward_tmi_parallel,
+    _forward_tmi_serial,
+    _sensitivity_mag_parallel,
+    _sensitivity_mag_serial,
+)
 
+if choclo is not None:
     CHOCLO_SUPPORTED_COMPONENTS = {"tmi", "bx", "by", "bz"}
     CHOCLO_KERNELS = {
         "bx": (choclo.prism.kernel_ee, choclo.prism.kernel_en, choclo.prism.kernel_eu),
