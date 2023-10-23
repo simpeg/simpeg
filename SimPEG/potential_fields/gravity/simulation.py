@@ -12,16 +12,16 @@ from SimPEG.utils import mkvc, sdiag
 from ...base import BasePDESimulation
 from ..base import BaseEquivalentSourceLayerSimulation, BasePFSimulation
 
-try:
-    import choclo
-except ImportError:
-    # Define dummy jit decorator
-    def jit(*args, **kwargs):
-        return lambda f: f
+from ._numba_functions import (
+    choclo,
+    _sensitivity_gravity_serial,
+    _sensitivity_gravity_parallel,
+    _forward_gravity_serial,
+    _forward_gravity_parallel,
+)
 
-    choclo = None
-else:
-    from numba import jit, prange
+if choclo is not None:
+    from numba import jit
 
     @jit(nopython=True)
     def kernel_uv(easting, northing, upward, radius):
@@ -44,172 +44,6 @@ else:
         "gyz": choclo.prism.kernel_nu,
         "guv": kernel_uv,
     }
-
-
-def _forward_gravity(
-    receivers,
-    nodes,
-    densities,
-    fields,
-    cell_nodes,
-    kernel_func,
-    constant_factor,
-):
-    """
-    Forward model the gravity field of active cells on receivers
-
-    This function should be used with a `numba.jit` decorator, for example:
-
-    ..code::
-
-        from numba import jit
-
-        jit_forward_gravity = jit(nopython=True, parallel=True)(_forward_gravity)
-        jit_forward_gravity(
-            receivers, nodes, densities, fields, cell_nodes, kernel_func, const_factor
-        )
-
-    Parameters
-    ----------
-    receivers : (n_receivers, 3) array
-        Array with the locations of the receivers
-    nodes : (n_active_nodes, 3) array
-        Array with the location of the mesh nodes.
-    densities : (n_active_cells)
-        Array with densities of each active cell in the mesh.
-    fields : (n_receivers) array
-        Array full of zeros where the gravity fields on each receiver will be
-        stored. This could be a preallocated array or a slice of it.
-    cell_nodes : (n_active_cells, 8) array
-        Array of integers, where each row contains the indices of the nodes for
-        each active cell in the mesh.
-    kernel_func : callable
-        Kernel function that will be evaluated on each node of the mesh. Choose
-        one of the kernel functions in ``choclo.prism``.
-    constant_factor : float
-        Constant factor that will be used to multiply each element of the
-        ``fields`` array.
-
-    Notes
-    -----
-    The conversion factor is applied here to each element of fields because
-    it's more efficient than doing it afterwards: it would require to
-    index the elements that corresponds to each component.
-    """
-    n_receivers = receivers.shape[0]
-    n_nodes = nodes.shape[0]
-    n_cells = cell_nodes.shape[0]
-    # Evaluate kernel function on each node, for each receiver location
-    for i in prange(n_receivers):
-        # Allocate vector for kernels evaluated on mesh nodes
-        kernels = np.empty(n_nodes)
-        for j in range(n_nodes):
-            dx = nodes[j, 0] - receivers[i, 0]
-            dy = nodes[j, 1] - receivers[i, 1]
-            dz = nodes[j, 2] - receivers[i, 2]
-            distance = np.sqrt(dx**2 + dy**2 + dz**2)
-            kernels[j] = kernel_func(dx, dy, dz, distance)
-        # Compute fields from the kernel values
-        for k in range(n_cells):
-            fields[i] += (
-                constant_factor
-                * densities[k]
-                * (
-                    -kernels[cell_nodes[k, 0]]
-                    + kernels[cell_nodes[k, 1]]
-                    + kernels[cell_nodes[k, 2]]
-                    - kernels[cell_nodes[k, 3]]
-                    + kernels[cell_nodes[k, 4]]
-                    - kernels[cell_nodes[k, 5]]
-                    - kernels[cell_nodes[k, 6]]
-                    + kernels[cell_nodes[k, 7]]
-                )
-            )
-
-
-def _fill_sensitivity_matrix(
-    receivers,
-    nodes,
-    sensitivity_matrix,
-    cell_nodes,
-    kernel_func,
-    constant_factor,
-):
-    """
-    Fill the sensitivity matrix
-
-    This function should be used with a `numba.jit` decorator, for example:
-
-    ..code::
-
-        from numba import jit
-
-        jit_sensitivity = jit(nopython=True, parallel=True)(_forward_sensitivity_matrix)
-        jit_sensitivity(
-            receivers, nodes, densities, fields, cell_nodes, kernel_func, const_factor
-        )
-
-    Parameters
-    ----------
-    receivers : (n_receivers, 3) array
-        Array with the locations of the receivers
-    nodes : (n_active_nodes, 3) array
-        Array with the location of the mesh nodes.
-    sensitivity_matrix : (n_receivers, n_active_nodes) array
-        Empty 2d array where the sensitivity matrix elements will be filled.
-        This could be a preallocated empty array or a slice of it.
-    cell_nodes : (n_active_cells, 8) array
-        Array of integers, where each row contains the indices of the nodes for
-        each active cell in the mesh.
-    kernel_func : callable
-        Kernel function that will be evaluated on each node of the mesh. Choose
-        one of the kernel functions in ``choclo.prism``.
-    constant_factor : float
-        Constant factor that will be used to multiply each element of the
-        sensitivity matrix.
-
-    Notes
-    -----
-    The conversion factor is applied here to each row of the sensitivity matrix
-    because it's more efficient than doing it afterwards: it would require to
-    index the rows that corresponds to each component.
-    """
-    n_receivers = receivers.shape[0]
-    n_nodes = nodes.shape[0]
-    n_cells = cell_nodes.shape[0]
-    # Evaluate kernel function on each node, for each receiver location
-    for i in prange(n_receivers):
-        # Allocate vector for kernels evaluated on mesh nodes
-        kernels = np.empty(n_nodes)
-        for j in range(n_nodes):
-            dx = nodes[j, 0] - receivers[i, 0]
-            dy = nodes[j, 1] - receivers[i, 1]
-            dz = nodes[j, 2] - receivers[i, 2]
-            distance = np.sqrt(dx**2 + dy**2 + dz**2)
-            kernels[j] = kernel_func(dx, dy, dz, distance)
-        # Compute sensitivity matrix elements from the kernel values
-        for k in range(n_cells):
-            sensitivity_matrix[i, k] = constant_factor * (
-                -kernels[cell_nodes[k, 0]]
-                + kernels[cell_nodes[k, 1]]
-                + kernels[cell_nodes[k, 2]]
-                - kernels[cell_nodes[k, 3]]
-                + kernels[cell_nodes[k, 4]]
-                - kernels[cell_nodes[k, 5]]
-                - kernels[cell_nodes[k, 6]]
-                + kernels[cell_nodes[k, 7]]
-            )
-
-
-# Define decorated versions of these functions
-_fill_sensitivity_matrix_parallel = jit(nopython=True, parallel=True)(
-    _fill_sensitivity_matrix
-)
-_fill_sensitivity_matrix_serial = jit(nopython=True, parallel=False)(
-    _fill_sensitivity_matrix
-)
-_forward_gravity_parallel = jit(nopython=True, parallel=True)(_forward_gravity)
-_forward_gravity_serial = jit(nopython=True, parallel=False)(_forward_gravity)
 
 
 def _get_conversion_factor(component):
@@ -300,10 +134,10 @@ class Simulation3DIntegral(BasePFSimulation):
         # Define jit functions
         if self.engine == "choclo":
             if choclo_parallel:
-                self._fill_sensitivity_matrix = _fill_sensitivity_matrix_parallel
+                self._sensitivity_gravity = _sensitivity_gravity_parallel
                 self._forward_gravity = _forward_gravity_parallel
             else:
-                self._fill_sensitivity_matrix = _fill_sensitivity_matrix_serial
+                self._sensitivity_gravity = _sensitivity_gravity_serial
                 self._forward_gravity = _forward_gravity_serial
 
     def _sanity_checks_engine(self, kwargs):
@@ -604,7 +438,7 @@ class Simulation3DIntegral(BasePFSimulation):
                 matrix_slice = slice(
                     index_offset + i, index_offset + n_rows, n_components
                 )
-                self._fill_sensitivity_matrix(
+                self._sensitivity_gravity(
                     receivers,
                     active_nodes,
                     sensitivity_matrix[matrix_slice, :],
@@ -629,7 +463,7 @@ class Simulation3DIntegral(BasePFSimulation):
 
     def _get_tensormesh_cell_nodes(self):
         """
-        Quick implmentation of ``cell_nodes`` for a ``TensorMesh``.
+        Quick implementation of ``cell_nodes`` for a ``TensorMesh``.
 
         This method should be removed after ``TensorMesh.cell_nodes`` is added
         in discretize.
