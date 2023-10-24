@@ -382,7 +382,7 @@ class Simulation3DIntegral(BasePFSimulation):
         active_nodes, active_cell_nodes = self._get_active_nodes()
         # Allocate fields array
         fields = np.zeros(self.survey.nD, dtype=self.sensitivity_dtype)
-        # Start filling the sensitivity matrix
+        # Compute fields
         index_offset = 0
         for components, receivers in self._get_components_and_receivers():
             n_components = len(components)
