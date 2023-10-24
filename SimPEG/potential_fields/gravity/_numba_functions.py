@@ -83,16 +83,7 @@ def _forward_gravity(
             fields[i] += (
                 constant_factor
                 * densities[k]
-                * (
-                    -kernels[cell_nodes[k, 0]]
-                    + kernels[cell_nodes[k, 1]]
-                    + kernels[cell_nodes[k, 2]]
-                    - kernels[cell_nodes[k, 3]]
-                    + kernels[cell_nodes[k, 4]]
-                    - kernels[cell_nodes[k, 5]]
-                    - kernels[cell_nodes[k, 6]]
-                    + kernels[cell_nodes[k, 7]]
-                )
+                * _kernels_in_nodes_to_cell(kernels, cell_nodes[k, :])
             )
 
 
@@ -158,16 +149,39 @@ def _sensitivity_gravity(
             kernels[j] = kernel_func(dx, dy, dz, distance)
         # Compute sensitivity matrix elements from the kernel values
         for k in range(n_cells):
-            sensitivity_matrix[i, k] = constant_factor * (
-                -kernels[cell_nodes[k, 0]]
-                + kernels[cell_nodes[k, 1]]
-                + kernels[cell_nodes[k, 2]]
-                - kernels[cell_nodes[k, 3]]
-                + kernels[cell_nodes[k, 4]]
-                - kernels[cell_nodes[k, 5]]
-                - kernels[cell_nodes[k, 6]]
-                + kernels[cell_nodes[k, 7]]
+            sensitivity_matrix[i, k] = constant_factor * _kernels_in_nodes_to_cell(
+                kernels, cell_nodes[k, :]
             )
+
+
+@jit(nopython=True)
+def _kernels_in_nodes_to_cell(kernels, nodes_indices):
+    """
+    Evaluate integral on a given cell from evaluation of kernels on nodes
+
+    Parameters
+    ----------
+    kernels : (n_active_nodes,) array
+        Array with kernel values on each one of the nodes in the mesh.
+    nodes_indices : (8,) array of int
+        Indices of the nodes for the current cell in "F" order (x changes
+        faster than y, and y faster than z).
+
+    Returns
+    -------
+    float
+    """
+    result = (
+        -kernels[nodes_indices[0]]
+        + kernels[nodes_indices[1]]
+        + kernels[nodes_indices[2]]
+        - kernels[nodes_indices[3]]
+        + kernels[nodes_indices[4]]
+        - kernels[nodes_indices[5]]
+        - kernels[nodes_indices[6]]
+        + kernels[nodes_indices[7]]
+    )
+    return result
 
 
 # Define decorated versions of these functions
