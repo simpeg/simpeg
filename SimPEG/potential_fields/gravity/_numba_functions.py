@@ -83,7 +83,17 @@ def _forward_gravity(
             fields[i] += (
                 constant_factor
                 * densities[k]
-                * _kernels_in_nodes_to_cell(kernels, cell_nodes[k, :])
+                * _kernels_in_nodes_to_cell(
+                    kernels,
+                    cell_nodes[k, 0],
+                    cell_nodes[k, 1],
+                    cell_nodes[k, 2],
+                    cell_nodes[k, 3],
+                    cell_nodes[k, 4],
+                    cell_nodes[k, 5],
+                    cell_nodes[k, 6],
+                    cell_nodes[k, 7],
+                )
             )
 
 
@@ -150,12 +160,30 @@ def _sensitivity_gravity(
         # Compute sensitivity matrix elements from the kernel values
         for k in range(n_cells):
             sensitivity_matrix[i, k] = constant_factor * _kernels_in_nodes_to_cell(
-                kernels, cell_nodes[k, :]
+                kernels,
+                cell_nodes[k, 0],
+                cell_nodes[k, 1],
+                cell_nodes[k, 2],
+                cell_nodes[k, 3],
+                cell_nodes[k, 4],
+                cell_nodes[k, 5],
+                cell_nodes[k, 6],
+                cell_nodes[k, 7],
             )
 
 
 @jit(nopython=True)
-def _kernels_in_nodes_to_cell(kernels, nodes_indices):
+def _kernels_in_nodes_to_cell(
+    kernels,
+    nodes_indices_0,
+    nodes_indices_1,
+    nodes_indices_2,
+    nodes_indices_3,
+    nodes_indices_4,
+    nodes_indices_5,
+    nodes_indices_6,
+    nodes_indices_7,
+):
     """
     Evaluate integral on a given cell from evaluation of kernels on nodes
 
@@ -163,7 +191,7 @@ def _kernels_in_nodes_to_cell(kernels, nodes_indices):
     ----------
     kernels : (n_active_nodes,) array
         Array with kernel values on each one of the nodes in the mesh.
-    nodes_indices : (8,) array of int
+    nodes_indices : ints
         Indices of the nodes for the current cell in "F" order (x changes
         faster than y, and y faster than z).
 
@@ -172,14 +200,14 @@ def _kernels_in_nodes_to_cell(kernels, nodes_indices):
     float
     """
     result = (
-        -kernels[nodes_indices[0]]
-        + kernels[nodes_indices[1]]
-        + kernels[nodes_indices[2]]
-        - kernels[nodes_indices[3]]
-        + kernels[nodes_indices[4]]
-        - kernels[nodes_indices[5]]
-        - kernels[nodes_indices[6]]
-        + kernels[nodes_indices[7]]
+        -kernels[nodes_indices_0]
+        + kernels[nodes_indices_1]
+        + kernels[nodes_indices_2]
+        - kernels[nodes_indices_3]
+        + kernels[nodes_indices_4]
+        - kernels[nodes_indices_5]
+        - kernels[nodes_indices_6]
+        + kernels[nodes_indices_7]
     )
     return result
 
