@@ -34,9 +34,6 @@ def _forward_gravity(
         from numba import jit
 
         jit_forward_gravity = jit(nopython=True, parallel=True)(_forward_gravity)
-        jit_forward_gravity(
-            receivers, nodes, densities, fields, cell_nodes, kernel_func, const_factor
-        )
 
     Parameters
     ----------
@@ -119,9 +116,6 @@ def _sensitivity_gravity(
         from numba import jit
 
         jit_sensitivity = jit(nopython=True, parallel=True)(_sensitivity_gravity)
-        jit_sensitivity(
-            receivers, nodes, densities, fields, cell_nodes, kernel_func, const_factor
-        )
 
     Parameters
     ----------
