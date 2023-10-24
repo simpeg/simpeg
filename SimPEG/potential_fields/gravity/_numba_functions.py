@@ -73,11 +73,15 @@ def _forward_gravity(
         # Allocate vector for kernels evaluated on mesh nodes
         kernels = np.empty(n_nodes)
         for j in range(n_nodes):
-            dx = nodes[j, 0] - receivers[i, 0]
-            dy = nodes[j, 1] - receivers[i, 1]
-            dz = nodes[j, 2] - receivers[i, 2]
-            distance = np.sqrt(dx**2 + dy**2 + dz**2)
-            kernels[j] = kernel_func(dx, dy, dz, distance)
+            kernels[j] = _evaluate_kernel(
+                receivers[i, 0],
+                receivers[i, 1],
+                receivers[i, 2],
+                nodes[j, 0],
+                nodes[j, 1],
+                nodes[j, 2],
+                kernel_func,
+            )
         # Compute fields from the kernel values
         for k in range(n_cells):
             fields[i] += (
@@ -152,11 +156,15 @@ def _sensitivity_gravity(
         # Allocate vector for kernels evaluated on mesh nodes
         kernels = np.empty(n_nodes)
         for j in range(n_nodes):
-            dx = nodes[j, 0] - receivers[i, 0]
-            dy = nodes[j, 1] - receivers[i, 1]
-            dz = nodes[j, 2] - receivers[i, 2]
-            distance = np.sqrt(dx**2 + dy**2 + dz**2)
-            kernels[j] = kernel_func(dx, dy, dz, distance)
+            kernels[j] = _evaluate_kernel(
+                receivers[i, 0],
+                receivers[i, 1],
+                receivers[i, 2],
+                nodes[j, 0],
+                nodes[j, 1],
+                nodes[j, 2],
+                kernel_func,
+            )
         # Compute sensitivity matrix elements from the kernel values
         for k in range(n_cells):
             sensitivity_matrix[i, k] = constant_factor * _kernels_in_nodes_to_cell(
@@ -170,6 +178,35 @@ def _sensitivity_gravity(
                 cell_nodes[k, 6],
                 cell_nodes[k, 7],
             )
+
+
+@jit(nopython=True)
+def _evaluate_kernel(
+    receiver_x, receiver_y, receiver_z, node_x, node_y, node_z, kernel_func
+):
+    """
+    Evaluate a kernel function for a single node and receiver
+
+    Parameters
+    ----------
+    receiver_x, receiver_y, receiver_z : floats
+        Coordinates of the receiver.
+    node_x, node_y, node_z : floats
+        Coordinates of the node.
+    kernel_func : callable
+        Kernel function that should be evaluated. For example, use one of the
+        kernel functions in ``choclo.prism``.
+
+    Returns
+    -------
+    float
+        Kernel evaluated on the given node and receiver.
+    """
+    dx = node_x - receiver_x
+    dy = node_y - receiver_y
+    dz = node_z - receiver_z
+    distance = np.sqrt(dx**2 + dy**2 + dz**2)
+    return kernel_func(dx, dy, dz, distance)
 
 
 @jit(nopython=True)
