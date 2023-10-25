@@ -77,6 +77,7 @@ Mappings
   maps.IdentityMap
   maps.InjectActiveCells
   maps.InjectActiveFaces
+  maps.InjectActiveEdges
   maps.MuRelative
   maps.LogMap
   maps.ParametricBlock
