@@ -622,7 +622,7 @@ class Fields3DElectricField(FieldsFDEM):
         ) / self.mesh.cell_volumes[:, None]
 
 
-class Fields3DElectricFieldEdgeFaceConductivity(Fields3DElectricField):
+class Fields3DElectricFieldFaceEdgeConductivity(Fields3DElectricField):
 
     def _j(self, eSolution, source_list):
         """
@@ -991,7 +991,7 @@ class Fields3DMagneticFluxDensity(FieldsFDEM):
         ) / self.mesh.cell_volumes[:, None]
 
 
-class Fields3DMagneticFluxDensityEdgeFaceConductivity(Fields3DMagneticFluxDensity):
+class Fields3DMagneticFluxDensityFaceEdgeConductivity(Fields3DMagneticFluxDensity):
     """
     Fields object for Simulation3DMagneticFluxDensity.
 
@@ -1003,14 +1003,12 @@ class Fields3DMagneticFluxDensityEdgeFaceConductivity(Fields3DMagneticFluxDensit
         self._edgeCurl = self.simulation.mesh.edge_curl
         self._MeSigma = self.simulation.MeSigma
         self._MeSigmaI = self.simulation.MeSigmaI
-        self.__MeTau = self._MeTau
-        self.__MeKappa = self._MeKappa
         self._MfMui = self.simulation.MfMui
         self._MfMuiDeriv = self.simulation.MfMuiDeriv
         self._MeSigmaDeriv = self.simulation.MeSigmaDeriv
         self._MeSigmaIDeriv = self.simulation.MeSigmaIDeriv
-        self.__MeSigmaTauKappa = self._MeSigmaTauKappa
-        self.__MeSigmaTauKappaI = self._MeSigmaTauKappaI
+        self.__MeSigmaTauKappa = self.simulation._MeSigmaTauKappa
+        self.__MeSigmaTauKappaI = self.simulation._MeSigmaTauKappaI
         self._Me = self.simulation.Me
         self._aveF2CCV = self.simulation.mesh.aveF2CCV
         self._aveE2CCV = self.simulation.mesh.aveE2CCV

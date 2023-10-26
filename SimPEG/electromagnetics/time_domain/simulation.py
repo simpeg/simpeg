@@ -969,73 +969,7 @@ class Simulation3DElectricField(BaseTDEMSimulation):
 class Simulation3DMagneticFluxDensityFaceEdgeConductivity(
     Simulation3DMagneticFluxDensity, BaseFaceEdgeElectricalPDESimulation
 ):
-    r"""
-    Starting from the quasi-static E-B formulation of Maxwell's equations
-    (semi-discretized)
-
-    .. math::
-
-        \mathbf{C} \mathbf{e} + \frac{\partial \mathbf{b}}{\partial t} =
-        \mathbf{s_m} \\
-        \mathbf{C}^{\top} \mathbf{M_{\mu^{-1}}^f} \mathbf{b} -
-        \mathbf{M_{\sigma}^e} \mathbf{e} = \mathbf{s_e}
-
-
-    where :math:`\mathbf{s_e}` is an integrated quantity, we eliminate
-    :math:`\mathbf{e}` using
-
-    .. math::
-
-        \mathbf{e} = \mathbf{M_{\sigma}^e}^{-1} \mathbf{C}^{\top}
-        \mathbf{M_{\mu^{-1}}^f} \mathbf{b} -
-        \mathbf{M_{\sigma}^e}^{-1} \mathbf{s_e}
-
-
-    to obtain a second order semi-discretized system in :math:`\mathbf{b}`
-
-    .. math::
-
-        \mathbf{C} \mathbf{M_{\sigma}^e}^{-1} \mathbf{C}^{\top}
-        \mathbf{M_{\mu^{-1}}^f} \mathbf{b}  +
-        \frac{\partial \mathbf{b}}{\partial t} =
-        \mathbf{C} \mathbf{M_{\sigma}^e}^{-1} \mathbf{s_e} + \mathbf{s_m}
-
-
-    and moving everything except the time derivative to the rhs gives
-
-    .. math::
-        \frac{\partial \mathbf{b}}{\partial t} =
-        -\mathbf{C} \mathbf{M_{\sigma}^e}^{-1} \mathbf{C}^{\top}
-        \mathbf{M_{\mu^{-1}}^f} \mathbf{b} +
-        \mathbf{C} \mathbf{M_{\sigma}^e}^{-1} \mathbf{s_e} + \mathbf{s_m}
-
-    For the time discretization, we use backward euler. To solve for the
-    :math:`n+1` th time step, we have
-
-    .. math::
-
-        \frac{\mathbf{b}^{n+1} - \mathbf{b}^{n}}{\mathbf{dt}} =
-        -\mathbf{C} \mathbf{M_{\sigma}^e}^{-1} \mathbf{C}^{\top}
-        \mathbf{M_{\mu^{-1}}^f} \mathbf{b}^{n+1} +
-        \mathbf{C} \mathbf{M_{\sigma}^e}^{-1} \mathbf{s_e}^{n+1} +
-        \mathbf{s_m}^{n+1}
-
-
-    re-arranging to put :math:`\mathbf{b}^{n+1}` on the left hand side gives
-
-    .. math::
-
-        (\mathbf{I} + \mathbf{dt} \mathbf{C} \mathbf{M_{\sigma}^e}^{-1}
-         \mathbf{C}^{\top} \mathbf{M_{\mu^{-1}}^f}) \mathbf{b}^{n+1} =
-         \mathbf{b}^{n} + \mathbf{dt}(\mathbf{C} \mathbf{M_{\sigma}^e}^{-1}
-         \mathbf{s_e}^{n+1} + \mathbf{s_m}^{n+1})
-
-    """
-
     fieldsPair = Fields3DMagneticFluxDensityFaceEdgeConductivity  #: A SimPEG.EM.TDEM.Fields3DMagneticFluxDensity object
-
-    def __init__(self, mesh, survey=None, dt_threshold=1e-8, **kwargs):
-        super().__init__(mesh=mesh, survey=survey, **kwargs)
 
     def getAdiag(self, tInd):
         r"""
@@ -1236,9 +1170,6 @@ class Simulation3DElectricFieldFaceEdgeConductivity(
     Simulation3DElectricField, BaseFaceEdgeElectricalPDESimulation
 ):
     fieldsPair = Fields3DElectricFieldFaceEdgeConductivity
-
-    def __init__(self, mesh, survey=None, dt_threshold=1e-8, **kwargs):
-        super().__init__(mesh=mesh, survey=survey, **kwargs)
 
     def getAdiag(self, tInd):
         """

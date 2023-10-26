@@ -937,7 +937,6 @@ class BaseFaceEdgeElectricalPDESimulation(BaseElectricalPDESimulation):
                 + self._clear_on_rho_update
                 + self._clear_on_tau_update
                 + self._clear_on_kappa_update
-                + self._clear_on_kappai_update
                 + ["__MeSigmaTauKappa", "__MeSigmaTauKappaI"]
             )
         return toDelete

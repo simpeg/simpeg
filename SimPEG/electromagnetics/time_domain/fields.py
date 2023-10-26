@@ -275,60 +275,27 @@ class Fields3DMagneticFluxDensity(FieldsTDEM):
 class Fields3DMagneticFluxDensityFaceEdgeConductivity(Fields3DMagneticFluxDensity):
     """Field Storage for a TDEM simulation."""
 
-    knownFields = {"bSolution": "F"}
-    aliasFields = {
-        "b": ["bSolution", "F", "_b"],
-        "h": ["bSolution", "F", "_h"],
-        "e": ["bSolution", "E", "_e"],
-        "j": ["bSolution", "E", "_j"],
-        "dbdt": ["bSolution", "F", "_dbdt"],
-        "dhdt": ["bSolution", "F", "_dhdt"],
-    }
+    # knownFields = {"bSolution": "F"}
+    # aliasFields = {
+    #     "b": ["bSolution", "F", "_b"],
+    #     "h": ["bSolution", "F", "_h"],
+    #     "e": ["bSolution", "E", "_e"],
+    #     "j": ["bSolution", "E", "_j"],
+    #     "dbdt": ["bSolution", "F", "_dbdt"],
+    #     "dhdt": ["bSolution", "F", "_dhdt"],
+    # }
 
     def startup(self):
         self._times = self.simulation.times
-        # self._MeSigma = self.simulation.MeSigma
-        # self._MeSigmaI = self.simulation.MeSigmaI
-        # self._MeSigmaDeriv = self.simulation.MeSigmaDeriv
-        # self._MeSigmaIDeriv = self.simulation.MeSigmaIDeriv
+        self._MeSigma = self.simulation.MeSigma
+        self._MeSigmaI = self.simulation.MeSigmaI
+        self._MeSigmaDeriv = self.simulation.MeSigmaDeriv
+        self._MeSigmaIDeriv = self.simulation.MeSigmaIDeriv
         self.__MeSigmaTauKappa = self.simulation._MeSigmaTauKappa
         self.__MeSigmaTauKappaI = self.simulation._MeSigmaTauKappaI
         self._edgeCurl = self.simulation.mesh.edge_curl
         self._MfMui = self.simulation.MfMui
         self._timeMesh = self.simulation.time_mesh
-
-    # Inherited
-    # def _TLoc(self, fieldType):
-    #     return "N"
-
-    # def _b(self, bSolution, source_list, tInd):
-    #     return bSolution
-
-    # def _bDeriv_u(self, tInd, src, dun_dm_v, adjoint=False):
-    #     return dun_dm_v
-
-    # def _bDeriv_m(self, tInd, src, v, adjoint=False):
-    #     return Zero()
-
-    # def _dbdt(self, bSolution, source_list, tInd):
-    #     # self._timeMesh.face_divergence
-    #     dbdt = -self._edgeCurl * self._e(bSolution, source_list, tInd)
-    #     for i, src in enumerate(source_list):
-    #         s_m = src.s_m(self.simulation, self._times[tInd])
-    #         dbdt[:, i] = dbdt[:, i] + s_m
-    #     return dbdt
-
-    # def _dbdtDeriv_u(self, tInd, src, dun_dm_v, adjoint=False):
-    #     if adjoint is True:
-    #         return -self._eDeriv_u(tInd, src, self._edgeCurl.T * dun_dm_v, adjoint)
-    #     return -(self._edgeCurl * self._eDeriv_u(tInd, src, dun_dm_v))
-
-    # def _dbdtDeriv_m(self, tInd, src, v, adjoint=False):
-    #     if adjoint is True:
-    #         return -(self._eDeriv_m(tInd, src, self._edgeCurl.T * v, adjoint))
-    #     return -(
-    #         self._edgeCurl * self._eDeriv_m(tInd, src, v)
-    #     )  # + src.s_mDeriv() assuming src doesn't have deriv for now
 
     def _e(self, bSolution, source_list, tInd):
         e = self.__MeSigmaTauKappaI * (self._edgeCurl.T * (self._MfMui * bSolution))
@@ -361,55 +328,13 @@ class Fields3DMagneticFluxDensityFaceEdgeConductivity(Fields3DMagneticFluxDensit
                 adjoint=True,
             )
         return self.simulation.MeI * (
-            self._MeSigmaTauKappaI * self._eDeriv_u(tInd, src, dun_dm_v)
+            self.__MeSigmaTauKappaI * self._eDeriv_u(tInd, src, dun_dm_v)
         )
 
     def _jDeriv_m(self, tInd, src, v, adjoint=False):
         raise NotImplementedError(
             "Derivative of current density wrt to model not implemented"
         )
-
-    # # Inherited methods
-    # def _h(self, hSolution, source_list, tInd):
-    #     return self.simulation.MfI * (
-    #         self._MfMui * self._b(hSolution, source_list, tInd)
-    #     )
-
-    # def _hDeriv_u(self, tInd, src, dun_dm_v, adjoint=False):
-    #     if adjoint:
-    #         return self._bDeriv_u(
-    #             tInd,
-    #             src,
-    #             self._MfMui.T * (self.simulation.MfI.T * dun_dm_v),
-    #             adjoint=True,
-    #         )
-    #     return self.simulation.MfI * (self._MfMui * self._bDeriv_u(tInd, src, dun_dm_v))
-
-    # def _hDeriv_m(self, tInd, src, v, adjoint=False):
-    #     if adjoint:
-    #         return self._bDeriv_m(
-    #             tInd, src, self._MfMui.T * (self.simulation.MfI.T * v), adjoint=True
-    #         )
-    #     return self.simulation.MfI * (self._MfMui * self._bDeriv_m(tInd, src, v))
-
-    # def _dhdtDeriv_u(self, tInd, src, dun_dm_v, adjoint=False):
-    #     if adjoint:
-    #         return self._dbdtDeriv_u(
-    #             tInd,
-    #             src,
-    #             self._MfMui.T * (self.simulation.MfI.T * dun_dm_v),
-    #             adjoint=True,
-    #         )
-    #     return self.simulation.MfI * (
-    #         self._MfMui * self._dbdtDeriv_u(tInd, src, dun_dm_v)
-    #     )
-
-    # def _dhdtDeriv_m(self, tInd, src, v, adjoint=False):
-    #     if adjoint:
-    #         return self._dbdtDeriv_m(
-    #             tInd, src, self._MfMui.T * (self.simulation.MfI.T * v), adjoint=True
-    #         )
-    #     return self.simulation.MfI * (self._MfMui * self._dbdtDeriv_m(tInd, src, v))
 
 
 class Fields3DElectricField(FieldsTDEM):

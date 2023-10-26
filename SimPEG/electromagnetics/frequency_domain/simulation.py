@@ -4,7 +4,7 @@ from discretize.utils import Zero
 
 from ... import props
 from ...data import Data
-from ...utils import mkvc, validate_type
+from ...utils import mkvc, validate_type, sdinv
 from ...base import BaseFaceEdgeElectricalPDESimulation
 from ..base import BaseEMSimulation
 from ..utils import omega
@@ -432,27 +432,10 @@ class Simulation3DElectricField(BaseFDEMSimulation):
 class Simulation3DElectricFieldFaceEdgeConductivity(
     Simulation3DElectricField, BaseFaceEdgeElectricalPDESimulation
 ):
+
+    _solutionType = "eSolution"
+    _formulation = "EB"
     fieldsPair = Fields3DElectricFieldFaceEdgeConductivity
-
-    def __init__(self, mesh, survey=None, **kwargs):
-        super().__init__(mesh=mesh, survey=survey, **kwargs)
-
-        if self.sigmaMap is not None or self.rhoMap is not None:
-            raise NotImplementedError(
-                "Conductivity (sigma) and resistivity (rho) are not invertible properties for the "
-                "Simulation3DElectricFieldFaceEdgeConductivity class. The mapping for the "
-                "invertible property is 'tauMap'."
-            )
-
-        if self.kappaMap is not None:
-            raise NotImplementedError(
-                "Conductance times length (kappa) is not an invertible property, yet."
-            )
-
-        if self.kappaiMap is not None:
-            raise NotImplementedError(
-                "Resistance per unit length (kappai) is not an invertible property, yet."
-            )
 
     def getA(self, freq):
 
@@ -463,11 +446,7 @@ class Simulation3DElectricFieldFaceEdgeConductivity(
             MeSigmaTauKappa = self._MeSigmaTauKappa
             A = C.T.tocsr() * MfMui * C + 1j * omega(freq) * MeSigmaTauKappa
         else:
-            Meyhat = (
-                self._get_edge_admittivity_property_matrix(freq) +
-                self._MeKappa +
-                self._MeTau
-            )
+            Meyhat = self._get_edge_admittivity_property_matrix(freq) + self._MeTau + self._MeKappa
             A = C.T.tocsr() * MfMui * C + 1j * omega(freq) * Meyhat
 
         return A
@@ -709,7 +688,7 @@ class Simulation3DMagneticFluxDensity(BaseFDEMSimulation):
 
         return RHSderiv + SrcDeriv
 
-class Simulation3DMagneticFluxDensity(
+class Simulation3DMagneticFluxDensityFaceEdgeConductivity(
     Simulation3DMagneticFluxDensity, BaseFaceEdgeElectricalPDESimulation
 ):
     fieldsPair = Fields3DMagneticFluxDensityFaceEdgeConductivity
@@ -819,10 +798,12 @@ class Simulation3DMagneticFluxDensity(
 
         if self.permittivity is None:
             MeSigmaTauKappaI = self._MeSigmaTauKappaI
-            RHS = s_m + C * (MeSigmaI * s_e)
+            RHS = s_m + C * (MeSigmaTauKappaI * s_e)
         else:
-            MeyhatI = self._get_edge_admittivity_property_matrix(
-                freq, invert_matrix=True
+            MeyhatI = sdinv(
+                self._get_edge_admittivity_property_matrix(
+                    freq, invert_matrix=False
+                ) + self._MeTau + self._MeKappa
             )
             RHS = s_m + C * (MeyhatI * s_e)
 
@@ -832,41 +813,41 @@ class Simulation3DMagneticFluxDensity(
 
         return RHS
 
-    def getRHSDeriv(self, freq, src, v, adjoint=False):
-        """
-        Derivative of the right hand side with respect to the model
+    # def getRHSDeriv(self, freq, src, v, adjoint=False):
+    #     """
+    #     Derivative of the right hand side with respect to the model
 
-        :param float freq: frequency
-        :param SimPEG.electromagnetics.frequency_domain.fields.FieldsFDEM src: FDEM source
-        :param numpy.ndarray v: vector to take product with
-        :param bool adjoint: adjoint?
-        :rtype: numpy.ndarray
-        :return: product of rhs deriv with a vector
-        """
+    #     :param float freq: frequency
+    #     :param SimPEG.electromagnetics.frequency_domain.fields.FieldsFDEM src: FDEM source
+    #     :param numpy.ndarray v: vector to take product with
+    #     :param bool adjoint: adjoint?
+    #     :rtype: numpy.ndarray
+    #     :return: product of rhs deriv with a vector
+    #     """
 
-        C = self.mesh.edge_curl
-        s_m, s_e = src.eval(self)
-        MfMui = self.MfMui
+    #     C = self.mesh.edge_curl
+    #     s_m, s_e = src.eval(self)
+    #     MfMui = self.MfMui
 
-        if self._makeASymmetric and adjoint:
-            v = self.MfMui * v
+    #     if self._makeASymmetric and adjoint:
+    #         v = self.MfMui * v
 
-        # MeSigmaIDeriv = self.MeSigmaIDeriv(s_e)
-        s_mDeriv, s_eDeriv = src.evalDeriv(self, adjoint=adjoint)
+    #     # MeSigmaIDeriv = self.MeSigmaIDeriv(s_e)
+    #     s_mDeriv, s_eDeriv = src.evalDeriv(self, adjoint=adjoint)
 
-        if not adjoint:
-            # RHSderiv = C * (MeSigmaIDeriv * v)
-            RHSderiv = C * self.MeSigmaIDeriv(s_e, v, adjoint)
-            SrcDeriv = s_mDeriv(v) + C * (self.MeSigmaI * s_eDeriv(v))
-        elif adjoint:
-            # RHSderiv = MeSigmaIDeriv.T * (C.T * v)
-            RHSderiv = self.MeSigmaIDeriv(s_e, C.T * v, adjoint)
-            SrcDeriv = s_mDeriv(v) + s_eDeriv(self.MeSigmaI.T * (C.T * v))
+    #     if not adjoint:
+    #         # RHSderiv = C * (MeSigmaIDeriv * v)
+    #         RHSderiv = C * self.MeSigmaIDeriv(s_e, v, adjoint)
+    #         SrcDeriv = s_mDeriv(v) + C * (self.MeSigmaI * s_eDeriv(v))
+    #     elif adjoint:
+    #         # RHSderiv = MeSigmaIDeriv.T * (C.T * v)
+    #         RHSderiv = self.MeSigmaIDeriv(s_e, C.T * v, adjoint)
+    #         SrcDeriv = s_mDeriv(v) + s_eDeriv(self.MeSigmaI.T * (C.T * v))
 
-        if self._makeASymmetric is True and not adjoint:
-            return MfMui.T * (SrcDeriv + RHSderiv)
+    #     if self._makeASymmetric is True and not adjoint:
+    #         return MfMui.T * (SrcDeriv + RHSderiv)
 
-        return RHSderiv + SrcDeriv
+    #     return RHSderiv + SrcDeriv
 
 
 ###############################################################################

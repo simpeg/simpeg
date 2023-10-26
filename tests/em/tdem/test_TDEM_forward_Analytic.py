@@ -311,7 +311,7 @@ def analytic_halfspace_mag_dipole_comparison(
     return log10diff
 
 
-def analytic_layer_small_loop_conductance_comparison(
+def analytic_layer_small_loop_face_conductivity_comparison(
     mesh_type="CYL",
     rx_type="MagneticFluxTimeDerivative",
     orientation="Z",
@@ -421,11 +421,11 @@ def analytic_layer_small_loop_conductance_comparison(
 
     # DEFINE THE SIMULATIONS
     if rx_type == "MagneticFluxDensity":
-        sim_3d = tdem.simulation.Simulation3DMagneticFluxDensityConductance(
+        sim_3d = tdem.simulation.Simulation3DMagneticFluxDensityFaceEdgeConductivity(
             mesh=mesh, survey=survey_3d, sigma=sigma_3d, tauMap=tau_map
         )
     else:
-        sim_3d = tdem.simulation.Simulation3DElectricFieldConductance(
+        sim_3d = tdem.simulation.Simulation3DElectricFieldFaceEdgeConductivity(
             mesh=mesh, survey=survey_3d, sigma=sigma_3d, tauMap=tau_map
         )
 
@@ -769,11 +769,12 @@ class TDEM_bTests(unittest.TestCase):
 
 
 class LayerConductanceTests(unittest.TestCase):
-    # WORKING
+    # Compares analytic 1D layered Earth solution to a plate of equivalent
+    # conductance.
 
     def test_tensor_magdipole_b_x(self):
         assert (
-            analytic_layer_small_loop_conductance_comparison(
+            analytic_layer_small_loop_face_conductivity_comparison(
                 mesh_type="TENSOR",
                 rx_type="MagneticFluxDensity",
                 orientation="X",
@@ -785,7 +786,7 @@ class LayerConductanceTests(unittest.TestCase):
 
     def test_tensor_magdipole_b_z(self):
         assert (
-            analytic_layer_small_loop_conductance_comparison(
+            analytic_layer_small_loop_face_conductivity_comparison(
                 mesh_type="TENSOR",
                 rx_type="MagneticFluxDensity",
                 orientation="Z",
@@ -797,7 +798,7 @@ class LayerConductanceTests(unittest.TestCase):
 
     def test_cyl_magdipole_b_z(self):
         assert (
-            analytic_layer_small_loop_conductance_comparison(
+            analytic_layer_small_loop_face_conductivity_comparison(
                 mesh_type="CYL",
                 rx_type="MagneticFluxDensity",
                 orientation="Z",
@@ -809,7 +810,7 @@ class LayerConductanceTests(unittest.TestCase):
 
     def test_tensor_linecurrent_dbdt_x(self):
         assert (
-            analytic_layer_small_loop_conductance_comparison(
+            analytic_layer_small_loop_face_conductivity_comparison(
                 mesh_type="TENSOR",
                 rx_type="MagneticFluxTimeDerivative",
                 orientation="X",
@@ -821,7 +822,7 @@ class LayerConductanceTests(unittest.TestCase):
 
     def test_tensor_linecurrent_dbdt_z(self):
         assert (
-            analytic_layer_small_loop_conductance_comparison(
+            analytic_layer_small_loop_face_conductivity_comparison(
                 mesh_type="TENSOR",
                 rx_type="MagneticFluxTimeDerivative",
                 orientation="Z",
@@ -833,7 +834,7 @@ class LayerConductanceTests(unittest.TestCase):
 
     def test_cyl_circularloop_dbdt_z(self):
         assert (
-            analytic_layer_small_loop_conductance_comparison(
+            analytic_layer_small_loop_face_conductivity_comparison(
                 mesh_type="CYL",
                 rx_type="MagneticFluxTimeDerivative",
                 orientation="Z",

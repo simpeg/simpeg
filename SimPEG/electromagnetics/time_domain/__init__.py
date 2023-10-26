@@ -13,9 +13,9 @@ Simulations
 
   Simulation1DLayered
   Simulation3DMagneticFluxDensity
-  Simulation3DMagneticFluxDensityConductance
+  Simulation3DMagneticFluxDensityFaceEdgeConductivity
   Simulation3DElectricField
-  Simulation3DElectricFieldConductance
+  Simulation3DElectricFieldFaceEdgeConductivity
   Simulation3DMagneticField
   Simulation3DCurrentDensity
 
@@ -95,18 +95,18 @@ Base Classes
 """
 from .simulation import (
     Simulation3DMagneticFluxDensity,
-    Simulation3DMagneticFluxDensityConductance,
+    Simulation3DMagneticFluxDensityFaceEdgeConductivity,
     Simulation3DElectricField,
-    Simulation3DElectricFieldConductance,
+    Simulation3DElectricFieldFaceEdgeConductivity,
     Simulation3DMagneticField,
     Simulation3DCurrentDensity,
 )
 from .simulation_1d import Simulation1DLayered
 from .fields import (
     Fields3DMagneticFluxDensity,
-    Fields3DMagneticFluxDensityConductance,
+    Fields3DMagneticFluxDensityFaceEdgeConductivity,
     Fields3DElectricField,
-    Fields3DElectricFieldConductance,
+    Fields3DElectricFieldFaceEdgeConductivity,
     Fields3DMagneticField,
     Fields3DCurrentDensity,
 )
