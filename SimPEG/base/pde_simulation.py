@@ -831,18 +831,13 @@ class BaseMagneticPDESimulation(BasePDESimulation):
 
 @with_surface_property_mass_matrices("tau")
 @with_line_property_mass_matrices("kappa")
-@with_line_property_mass_matrices("kappai")
-class BaseConductancePDESimulation(BaseElectricalPDESimulation):
+class BaseFaceEdgeElectricalPDESimulation(BaseElectricalPDESimulation):
     tau, tauMap, tauDeriv = props.Invertible(
-        "Electrical Conductance (S)",
+        "Electrical conductivity times thickness (S); i.e. conductance",
     )
     kappa, kappaMap, kappaDeriv = props.Invertible(
-        "Electrical Conductance integrated over length (Sm)",
+        "Electrical conductivity times cross-sectional area (Sm)",
     )
-    kappai, kappaiMap, kappaiDeriv = props.Invertible(
-        "Electrical Resistance per meter (Ohm/m)",
-    )
-    props.Reciprocal(kappa, kappai)
 
     def __init__(
         self,
@@ -851,12 +846,10 @@ class BaseConductancePDESimulation(BaseElectricalPDESimulation):
         sigmaMap=None,
         rho=None,
         rhoMap=None,
-        tau=None,
+        tau=0.,
         tauMap=None,
-        kappa=0.0,
+        kappa=0.,
         kappaMap=None,
-        kappai=None,
-        kappaiMap=None,
         **kwargs,
     ):
         super().__init__(mesh=mesh, **kwargs)
@@ -865,21 +858,18 @@ class BaseConductancePDESimulation(BaseElectricalPDESimulation):
         self.sigmaMap = sigmaMap
         self.rhoMap = rhoMap
         self.tau = tau
-        self.kappa = kappa
-        self.kappai = kappai
         self.tauMap = tauMap
+        self.kappa = kappa
         self.kappaMap = kappaMap
-        self.kappaiMap = kappaiMap
 
     def __setattr__(self, name, value):
         super().__setattr__(name, value)
-        if name in ["sigma", "rho", "tau", "kappa", "kappai"]:
+        if name in ["sigma", "rho", "tau", "kappa"]:
             mat_list = (
                 self._clear_on_sigma_update
                 + self._clear_on_rho_update
                 + self._clear_on_tau_update
                 + self._clear_on_kappa_update
-                + self._clear_on_kappai_update
                 + ["__MeSigmaTauKappa", "__MeSigmaTauKappaI"]
             )
             for mat in mat_list:
@@ -900,20 +890,35 @@ class BaseConductancePDESimulation(BaseElectricalPDESimulation):
             setattr(self, "__MeSigmaTauKappaI", M_prop)
         return getattr(self, "__MeSigmaTauKappaI")
 
-    def _MeSigmaTauKappaDeriv(self, u, v=None, adjoint=False):
-        """Only derivative wrt to tau at the moment"""
+    def _MeSigmaTauKappaDeriv_sigma(self, u, v=None, adjoint=False):
+        """Only derivative wrt to sigma"""
+        return self.MeSigmaDeriv(u, v, adjoint)
+
+    def _MeSigmaTauKappaDeriv_tau(self, u, v=None, adjoint=False):
+        """Only derivative wrt tau"""
         return self._MeTauDeriv(u, v, adjoint)
 
-    def _MeSigmaTauKappaIDeriv(self, u, v=None, adjoint=False):
-        """Only derivative wrt to tau at the moment"""
-        if getattr(self, "tauMap") is None:
-            return Zero()
-        if isinstance(u, Zero) or isinstance(v, Zero):
-            return Zero()
+    def _MeSigmaTauKappaDeriv_kappa(self, u, v=None, adjoint=False):
+        """Only derivative wrt to kappa"""
+        return self._MeKappaDeriv(u, v, adjoint)
 
+    def _MeSigmaTauKappaIDeriv_sigma(self, u, v=None, adjoint=False):
+        """Only derivative wrt to tau"""
+        MI_prop = self._MeSigmaTauKappaI
+        u = MI_prop @ (MI_prop @ -u)
+        return self.MeSigmaDeriv(u, v, adjoint)
+
+    def _MeSigmaTauKappaIDeriv_tau(self, u, v=None, adjoint=False):
+        """Only derivative wrt to tau"""
         MI_prop = self._MeSigmaTauKappaI
         u = MI_prop @ (MI_prop @ -u)
         return self._MeTauDeriv(u, v, adjoint)
+
+    def _MeSigmaTauKappaIDeriv_kappa(self, u, v=None, adjoint=False):
+        """Only derivative wrt to tau"""
+        MI_prop = self._MeSigmaTauKappaI
+        u = MI_prop @ (MI_prop @ -u)
+        return self._MeKappaDeriv(u, v, adjoint)
 
     @property
     def deleteTheseOnModelUpdate(self):
