@@ -995,6 +995,28 @@ class Simulation3DMagneticFluxDensityFaceEdgeConductivity(
             return MfMui.T.tocsr() * A
         return A
 
+    def getAdiagDeriv_sigma(self, tInd, u, v, adjoint=False):
+        """
+        Derivative of ADiag wrt tau
+        """
+        C = self.mesh.edge_curl
+
+        # def MeSigmaIDeriv(x):
+        #     return self.MeSigmaIDeriv(x)
+
+        MfMui = self.MfMui
+
+        if adjoint:
+            if self._makeASymmetric is True:
+                v = MfMui * v
+            return self._MeSigmaTauKappaIDeriv_sigma(C.T * (MfMui * u), C.T * v, adjoint)
+
+        ADeriv = C * (self._MeSigmaTauKappaIDeriv_sigma(C.T * (MfMui * u), v, adjoint))
+
+        if self._makeASymmetric is True:
+            return MfMui.T * ADeriv
+        return ADeriv
+
     def getAdiagDeriv_tau(self, tInd, u, v, adjoint=False):
         """
         Derivative of ADiag wrt tau
@@ -1012,6 +1034,45 @@ class Simulation3DMagneticFluxDensityFaceEdgeConductivity(
             return self._MeSigmaTauKappaIDeriv_tau(C.T * (MfMui * u), C.T * v, adjoint)
 
         ADeriv = C * (self._MeSigmaTauKappaIDeriv_tau(C.T * (MfMui * u), v, adjoint))
+
+        if self._makeASymmetric is True:
+            return MfMui.T * ADeriv
+        return ADeriv
+
+    def getAdiagDeriv_kappa(self, tInd, u, v, adjoint=False):
+        """
+        Derivative of ADiag wrt tau
+        """
+        C = self.mesh.edge_curl
+
+        # def MeSigmaIDeriv(x):
+        #     return self.MeSigmaIDeriv(x)
+
+        MfMui = self.MfMui
+
+        if adjoint:
+            if self._makeASymmetric is True:
+                v = MfMui * v
+            return self._MeSigmaTauKappaIDeriv_kappa(C.T * (MfMui * u), C.T * v, adjoint)
+
+        ADeriv = C * (self._MeSigmaTauKappaIDeriv_kappa(C.T * (MfMui * u), v, adjoint))
+
+        if self._makeASymmetric is True:
+            return MfMui.T * ADeriv
+        return ADeriv
+
+    def getAdiagDeriv(self, tInd, u, v, adjoint=False):
+        C = self.mesh.edge_curl
+        MfMui = self.MfMui
+        
+        u = C.T * (MfMui * u)
+
+        if adjoint:
+            if self._makeASymmetric is True:
+                v = MfMui * v
+            return self._MeSigmaTauKappaIDeriv(u, C.T * v, adjoint)
+        
+        ADeriv = C * self._MeSigmaTauKappaIDeriv(u, v, adjoint)
 
         if self._makeASymmetric is True:
             return MfMui.T * ADeriv
@@ -1223,6 +1284,13 @@ class Simulation3DElectricFieldFaceEdgeConductivity(
 
         return 1.0 / dt * self._MeSigmaTauKappaDeriv_kappa(u, v, adjoint)
 
+    def getAdiagDeriv(self, tInd, u, v, adjoint=False):
+        return (
+            self.getAdiagDeriv_sigma(tInd, u, v, adjoint)
+            + self.getAdiagDeriv_tau(tInd, u, v, adjoint)
+            + self.getAdiagDeriv_kappa(tInd, u, v, adjoint)
+        )
+
     def getAsubdiag(self, tInd):
         """
         Matrix below the diagonal
@@ -1298,6 +1366,13 @@ class Simulation3DElectricFieldFaceEdgeConductivity(
             return Grad.T * self._MeSigmaTauKappaDeriv_kappa(-u, v, adjoint)
         else:
             return self._MeSigmaTauKappaDeriv_kappa(-u, Grad * v, adjoint)
+    
+    def getAdcDeriv(self, u, v, adjoint=False):
+        return (
+            self.getAdcDeriv_sigma(self, u, v, adjoint=False) +
+            self.getAdcDeriv_tau(self, u, v, adjoint=False) +
+            self.getAdcDeriv_kappa(self, u, v, adjoint=False)
+        )
 
 
 ###############################################################################

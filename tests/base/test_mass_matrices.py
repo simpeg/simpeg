@@ -25,8 +25,8 @@ class SimpleSim(BasePDESimulation):
     rho, rhoMap, rhoDeriv = props.Invertible("Electrical conductivity (S/m)")
     props.Reciprocal(sigma, rho)
     mu, muMap, muDeriv = props.Invertible("Magnetic Permeability")
-    tau, tauMap, tauDeriv = props.Invertible("Conductance (S)")
-    kappa, kappaMap, kappaDeriv = props.Invertible("Resistance per meter (Ohm/m)")
+    tau, tauMap, tauDeriv = props.Invertible("Face conductivity, conductance (S)")
+    kappa, kappaMap, kappaDeriv = props.Invertible("Edge conductivity, conductivity times area (Sm)")
 
     def __init__(
         self,

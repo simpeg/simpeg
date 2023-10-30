@@ -3517,14 +3517,14 @@ class InjectActiveEdges(IdentityMap):
 
     """
 
-    def __init__(self, mesh, indActive=None, valInactive=0.0, nF=None):
+    def __init__(self, mesh, indActive=None, valInactive=0.0, nE=None):
         self.mesh = mesh
-        self.nF = nF or mesh.nF
+        self.nE = nE or mesh.nE
 
-        self._indActive = validate_active_indices("indActive", indActive, self.nF)
+        self._indActive = validate_active_indices("indActive", indActive, self.nE)
         self._nP = np.sum(self.indActive)
 
-        self.P = sp.eye(self.nF, format="csr")[:, self.indActive]
+        self.P = sp.eye(self.nE, format="csr")[:, self.indActive]
 
         self.valInactive = valInactive
 
@@ -3540,7 +3540,7 @@ class InjectActiveEdges(IdentityMap):
 
     @valInactive.setter
     def valInactive(self, value):
-        n_inactive = self.nF - self.nP
+        n_inactive = self.nE - self.nP
         try:
             value = validate_float("valInactive", value)
             value = np.full(n_inactive, value)
@@ -3548,7 +3548,7 @@ class InjectActiveEdges(IdentityMap):
             pass
         value = validate_ndarray_with_shape("valInactive", value, shape=(n_inactive,))
 
-        self._valInactive = np.zeros(self.nF, dtype=float)
+        self._valInactive = np.zeros(self.nE, dtype=float)
         self._valInactive[~self.indActive] = value
 
     @property
@@ -3573,7 +3573,7 @@ class InjectActiveEdges(IdentityMap):
             number of edges in the mesh, **shape** returns a
             tuple (*nE* , *nP*).
         """
-        return (self.nF, self.nP)
+        return (self.nE, self.nP)
 
     @property
     def nP(self):

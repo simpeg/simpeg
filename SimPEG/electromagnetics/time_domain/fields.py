@@ -287,12 +287,10 @@ class Fields3DMagneticFluxDensityFaceEdgeConductivity(Fields3DMagneticFluxDensit
 
     def startup(self):
         self._times = self.simulation.times
-        self._MeSigma = self.simulation.MeSigma
-        self._MeSigmaI = self.simulation.MeSigmaI
-        self._MeSigmaDeriv = self.simulation.MeSigmaDeriv
-        self._MeSigmaIDeriv = self.simulation.MeSigmaIDeriv
         self.__MeSigmaTauKappa = self.simulation._MeSigmaTauKappa
         self.__MeSigmaTauKappaI = self.simulation._MeSigmaTauKappaI
+        self.__MeSigmaTauKappaDeriv = self.simulation._MeSigmaTauKappaDeriv
+        self.__MeSigmaTauKappaIDeriv = self.simulation._MeSigmaTauKappaIDeriv
         self._edgeCurl = self.simulation.mesh.edge_curl
         self._MfMui = self.simulation.MfMui
         self._timeMesh = self.simulation.time_mesh
@@ -310,13 +308,23 @@ class Fields3DMagneticFluxDensityFaceEdgeConductivity(Fields3DMagneticFluxDensit
         return self.__MeSigmaTauKappaI * (self._edgeCurl.T * (self._MfMui * dun_dm_v))
 
     def _eDeriv_m(self, tInd, src, v, adjoint=False):
-        raise NotImplementedError(
-            "Derivative of e-field wrt to model not implemented"
-        )
+        _, s_e = src.eval(self.simulation, self._times[tInd])
+        bSolution = self[[src], "bSolution", tInd].flatten()
+
+        _, s_eDeriv = src.evalDeriv(self._times[tInd], self, adjoint=adjoint)
+
+        if adjoint is True:
+            return self.__MeSigmaTauKappaIDeriv(
+                -s_e + self._edgeCurl.T * (self._MfMui * bSolution), v, adjoint
+            ) - s_eDeriv(self.__MeSigmaTauKappaI.T * v)
+
+        return self.__MeSigmaTauKappaIDeriv(
+            -s_e + self._edgeCurl.T * (self._MfMui * bSolution), v, adjoint
+        ) - self.__MeSigmaTauKappaI * s_eDeriv(v)
 
     def _j(self, hSolution, source_list, tInd):
         return self.simulation.MeI * (
-            self.__MeSigmaKappaTau * self._e(hSolution, source_list, tInd)
+            self.__MeSigmaTauKappa * self._e(hSolution, source_list, tInd)
         )
 
     def _jDeriv_u(self, tInd, src, dun_dm_v, adjoint=False):
@@ -328,12 +336,18 @@ class Fields3DMagneticFluxDensityFaceEdgeConductivity(Fields3DMagneticFluxDensit
                 adjoint=True,
             )
         return self.simulation.MeI * (
-            self.__MeSigmaTauKappaI * self._eDeriv_u(tInd, src, dun_dm_v)
+            self.__MeSigmaTauKappa * self._eDeriv_u(tInd, src, dun_dm_v)
         )
 
     def _jDeriv_m(self, tInd, src, v, adjoint=False):
-        raise NotImplementedError(
-            "Derivative of current density wrt to model not implemented"
+        e = self[src, "e", tInd]
+        if adjoint:
+            w = self.simulation.MeI.T * v
+            return self.__MeSigmaTauKappaDeriv(e).T * w + self._eDeriv_m(
+                tInd, src, self.__MeSigmaTauKappa.T * w, adjoint=True
+            )
+        return self.simulation.MeI * (
+            self.__MeSigmaTauKappaDeriv(e) * v + self.__MeSigmaTauKappa * self._eDeriv_m(tInd, src, v)
         )
 
 
@@ -462,17 +476,9 @@ class Fields3DElectricFieldFaceEdgeConductivity(Fields3DElectricField):
     def startup(self):
         self._times = self.simulation.times
         self.__MeSigmaTauKappa = self.simulation._MeSigmaTauKappa
-        self.__MeSigmaTauKappaI = self.simulation._MeSigmaTauKappaI
-        # self._MeSigmaDeriv = self.simulation.MeSigmaDeriv
-        # self._MeSigmaIDeriv = self.simulation.MeSigmaIDeriv
+        self.__MeSigmaTauKappaDeriv = self.simulation._MeSigmaTauKappaDeriv
         self._edgeCurl = self.simulation.mesh.edge_curl
         self._MfMui = self.simulation.MfMui
-        # self.__MeTau = self.simulation._MeTau
-        # self.__MeTauI = self.simulation._MeTauI
-        # self.__MeTauDeriv = self.simulation._MeTauDeriv
-        # self.__MeTauIDeriv = self.simulation._MeTauIDeriv
-        # self.__MeKappa = self.simulation._MeKappa
-        # self.__MeKappaI = self.simulation._MeKappaI
 
     def _j(self, eSolution, source_list, tInd):
         return self.simulation.MeI * (
@@ -492,10 +498,15 @@ class Fields3DElectricFieldFaceEdgeConductivity(Fields3DElectricField):
             self.__MeSigmaTauKappa * self._eDeriv_u(tInd, src, dun_dm_v)
         )
 
-    # NEED TO THINK ABOUT THIS
     def _jDeriv_m(self, tInd, src, v, adjoint=False):
-        raise NotImplementedError(
-            "Derivative of current density wrt model not currently implemented."
+        e = self[src, "e", tInd]
+        if adjoint:
+            w = self.simulation.MeI.T * v
+            return self.__MeSigmaTauKappaDeriv(e).T * w + self._eDeriv_m(
+                tInd, src, self.__MeSigmaTauKappa.T * w, adjoint=True
+            )
+        return self.simulation.MeI * (
+            self.__MeSigmaTauKappaDeriv(e) * v + self.__MeSigmaTauKappa * self._eDeriv_m(tInd, src, v)
         )
 
 

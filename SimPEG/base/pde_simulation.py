@@ -902,6 +902,14 @@ class BaseFaceEdgeElectricalPDESimulation(BaseElectricalPDESimulation):
         """Only derivative wrt to kappa"""
         return self._MeKappaDeriv(u, v, adjoint)
 
+    def _MeSigmaTauKappaDeriv(self, u, v=None, adjoint=False):
+        """Only derivative wrt to kappa"""
+        return (
+            self.MeSigmaDeriv(u, v, adjoint)
+            + self._MeTauDeriv(u, v, adjoint)
+            + self._MeKappaDeriv(u, v, adjoint)
+        )
+
     def _MeSigmaTauKappaIDeriv_sigma(self, u, v=None, adjoint=False):
         """Only derivative wrt to tau"""
         MI_prop = self._MeSigmaTauKappaI
@@ -920,16 +928,27 @@ class BaseFaceEdgeElectricalPDESimulation(BaseElectricalPDESimulation):
         u = MI_prop @ (MI_prop @ -u)
         return self._MeKappaDeriv(u, v, adjoint)
 
+    def _MeSigmaTauKappaIDeriv(self, u, v=None, adjoint=False):
+        """Only derivative wrt to kappa"""
+        MI_prop = self._MeSigmaTauKappaI
+        u = MI_prop @ (MI_prop @ -u)
+        return (
+            self.MeSigmaDeriv(u, v, adjoint)
+            + self._MeTauDeriv(u, v, adjoint)
+            + self._MeKappaDeriv(u, v, adjoint)
+        )
+
     @property
     def deleteTheseOnModelUpdate(self):
         """
-        items to be deleted if the model for conductance or resistance per meter is updated
+        items to be deleted if the model for cell, face or edge conductivity is updated
         """
         toDelete = super().deleteTheseOnModelUpdate
         if (
-            self.tauMap is not None
+            self.sigmaMap is not None
+            or self.rhoMap is not None
+            or self.tauMap is not None
             or self.kappaMap is not None
-            or self.kappaiMap is not None
         ):
             toDelete = (
                 toDelete

@@ -106,7 +106,7 @@ class BaseRx(BaseTimeRx):
             if strength != 0.0:
                 P = P + strength * mesh.get_interpolation_matrix(
                     self.locations, field + comp
-                )
+                ) 
         return P
 
     def getTimeP(self, time_mesh, f):
