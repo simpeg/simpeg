@@ -995,72 +995,6 @@ class Simulation3DMagneticFluxDensityFaceEdgeConductivity(
             return MfMui.T.tocsr() * A
         return A
 
-    def getAdiagDeriv_sigma(self, tInd, u, v, adjoint=False):
-        """
-        Derivative of ADiag wrt tau
-        """
-        C = self.mesh.edge_curl
-
-        # def MeSigmaIDeriv(x):
-        #     return self.MeSigmaIDeriv(x)
-
-        MfMui = self.MfMui
-
-        if adjoint:
-            if self._makeASymmetric is True:
-                v = MfMui * v
-            return self._MeSigmaTauKappaIDeriv_sigma(C.T * (MfMui * u), C.T * v, adjoint)
-
-        ADeriv = C * (self._MeSigmaTauKappaIDeriv_sigma(C.T * (MfMui * u), v, adjoint))
-
-        if self._makeASymmetric is True:
-            return MfMui.T * ADeriv
-        return ADeriv
-
-    def getAdiagDeriv_tau(self, tInd, u, v, adjoint=False):
-        """
-        Derivative of ADiag wrt tau
-        """
-        C = self.mesh.edge_curl
-
-        # def MeSigmaIDeriv(x):
-        #     return self.MeSigmaIDeriv(x)
-
-        MfMui = self.MfMui
-
-        if adjoint:
-            if self._makeASymmetric is True:
-                v = MfMui * v
-            return self._MeSigmaTauKappaIDeriv_tau(C.T * (MfMui * u), C.T * v, adjoint)
-
-        ADeriv = C * (self._MeSigmaTauKappaIDeriv_tau(C.T * (MfMui * u), v, adjoint))
-
-        if self._makeASymmetric is True:
-            return MfMui.T * ADeriv
-        return ADeriv
-
-    def getAdiagDeriv_kappa(self, tInd, u, v, adjoint=False):
-        """
-        Derivative of ADiag wrt tau
-        """
-        C = self.mesh.edge_curl
-
-        # def MeSigmaIDeriv(x):
-        #     return self.MeSigmaIDeriv(x)
-
-        MfMui = self.MfMui
-
-        if adjoint:
-            if self._makeASymmetric is True:
-                v = MfMui * v
-            return self._MeSigmaTauKappaIDeriv_kappa(C.T * (MfMui * u), C.T * v, adjoint)
-
-        ADeriv = C * (self._MeSigmaTauKappaIDeriv_kappa(C.T * (MfMui * u), v, adjoint))
-
-        if self._makeASymmetric is True:
-            return MfMui.T * ADeriv
-        return ADeriv
-
     def getAdiagDeriv(self, tInd, u, v, adjoint=False):
         C = self.mesh.edge_curl
         MfMui = self.MfMui
@@ -1093,7 +1027,7 @@ class Simulation3DMagneticFluxDensityFaceEdgeConductivity(
             return MfMui.T * rhs
         return rhs
 
-    def getRHSDeriv_sigma(self, tInd, src, v, adjoint=False):
+    def getRHSDeriv(self, tInd, src, v, adjoint=False):
         """
         Derivative of the RHS
         """
@@ -1110,7 +1044,7 @@ class Simulation3DMagneticFluxDensityFaceEdgeConductivity(
             if isinstance(s_e, Zero):
                 MeSigmaTauKappaIDerivT_v = Zero()
             else:
-                MeSigmaTauKappaIDerivT_v = self._MeSigmaTauKappaIDeriv_sigma(
+                MeSigmaTauKappaIDerivT_v = self._MeSigmaTauKappaIDeriv(
                     s_e, C.T * v, adjoint
                 )
 
@@ -1125,95 +1059,7 @@ class Simulation3DMagneticFluxDensityFaceEdgeConductivity(
         if isinstance(s_e, Zero):
             MeSigmaTauKappaIDeriv_v = Zero()
         else:
-            MeSigmaTauKappaIDeriv_v = self._MeSigmaTauKappaIDeriv_sigma(s_e, v, adjoint)
-
-        RHSDeriv = (
-            C * MeSigmaTauKappaIDeriv_v
-            + C * MeSigmaTauKappaI * s_eDeriv(v)
-            + s_mDeriv(v)
-        )
-
-        if self._makeASymmetric is True:
-            return self.MfMui.T * RHSDeriv
-        return RHSDeriv
-
-    def getRHSDeriv_tau(self, tInd, src, v, adjoint=False):
-        """
-        Derivative of the RHS
-        """
-
-        C = self.mesh.edge_curl
-        MeSigmaTauKappaI = self._MeSigmaTauKappaI
-
-        _, s_e = src.eval(self, self.times[tInd])
-        s_mDeriv, s_eDeriv = src.evalDeriv(self, self.times[tInd], adjoint=adjoint)
-
-        if adjoint:
-            if self._makeASymmetric is True:
-                v = self.MfMui * v
-            if isinstance(s_e, Zero):
-                MeSigmaTauKappaIDerivT_v = Zero()
-            else:
-                MeSigmaTauKappaIDerivT_v = self._MeSigmaTauKappaIDeriv_tau(
-                    s_e, C.T * v, adjoint
-                )
-
-            RHSDeriv = (
-                MeSigmaTauKappaIDerivT_v
-                + s_eDeriv(MeSigmaTauKappaI.T * (C.T * v))
-                + s_mDeriv(v)
-            )
-
-            return RHSDeriv
-
-        if isinstance(s_e, Zero):
-            MeSigmaTauKappaIDeriv_v = Zero()
-        else:
-            MeSigmaTauKappaIDeriv_v = self._MeSigmaTauKappaIDeriv_tau(s_e, v, adjoint)
-
-        RHSDeriv = (
-            C * MeSigmaTauKappaIDeriv_v
-            + C * MeSigmaTauKappaI * s_eDeriv(v)
-            + s_mDeriv(v)
-        )
-
-        if self._makeASymmetric is True:
-            return self.MfMui.T * RHSDeriv
-        return RHSDeriv
-
-    def getRHSDeriv_kappa(self, tInd, src, v, adjoint=False):
-        """
-        Derivative of the RHS
-        """
-
-        C = self.mesh.edge_curl
-        MeSigmaTauKappaI = self._MeSigmaTauKappaI
-
-        _, s_e = src.eval(self, self.times[tInd])
-        s_mDeriv, s_eDeriv = src.evalDeriv(self, self.times[tInd], adjoint=adjoint)
-
-        if adjoint:
-            if self._makeASymmetric is True:
-                v = self.MfMui * v
-            if isinstance(s_e, Zero):
-                MeSigmaTauKappaIDerivT_v = Zero()
-            else:
-                MeSigmaTauKappaIDerivT_v = self._MeSigmaTauKappaIDeriv_kappa(
-                    s_e, C.T * v, adjoint
-                )
-
-            RHSDeriv = (
-                MeSigmaTauKappaIDerivT_v
-                + s_eDeriv(MeSigmaTauKappaI.T * (C.T * v))
-                + s_mDeriv(v)
-            )
-
-            return RHSDeriv
-
-        if isinstance(s_e, Zero):
-            MeSigmaTauKappaIDeriv_v = Zero()
-        else:
-            MeSigmaTauKappaIDeriv_v = self._MeSigmaTauKappaIDeriv_kappa(s_e, v, adjoint)
+            MeSigmaTauKappaIDeriv_v = self._MeSigmaTauKappaIDeriv(s_e, v, adjoint)
 
         RHSDeriv = (
             C * MeSigmaTauKappaIDeriv_v
@@ -1245,51 +1091,16 @@ class Simulation3DElectricFieldFaceEdgeConductivity(
 
         return C.T.tocsr() * (MfMui * C) + 1.0 / dt * MeSigmaTauKappa
 
-    def getAdiagDeriv_sigma(self, tInd, u, v, adjoint=False):
-        """
-        Deriv of ADiag with respect to conductance
-        """
-        assert tInd >= 0 and tInd < self.nT
-
-        dt = self.time_steps[tInd]
-
-        if adjoint:
-            return 1.0 / dt * self._MeSigmaTauKappaDeriv_sigma(u, v, adjoint)
-
-        return 1.0 / dt * self._MeSigmaTauKappaDeriv_sigma(u, v, adjoint)
-
-    def getAdiagDeriv_tau(self, tInd, u, v, adjoint=False):
-        """
-        Deriv of ADiag with respect to conductance
-        """
-        assert tInd >= 0 and tInd < self.nT
-
-        dt = self.time_steps[tInd]
-
-        if adjoint:
-            return 1.0 / dt * self._MeSigmaTauKappaDeriv_tau(u, v, adjoint)
-
-        return 1.0 / dt * self._MeSigmaTauKappaDeriv_tau(u, v, adjoint)
-
-    def getAdiagDeriv_kappa(self, tInd, u, v, adjoint=False):
-        """
-        Deriv of ADiag with respect to conductance
-        """
-        assert tInd >= 0 and tInd < self.nT
-
-        dt = self.time_steps[tInd]
-
-        if adjoint:
-            return 1.0 / dt * self._MeSigmaTauKappaDeriv_kappa(u, v, adjoint)
-
-        return 1.0 / dt * self._MeSigmaTauKappaDeriv_kappa(u, v, adjoint)
-
     def getAdiagDeriv(self, tInd, u, v, adjoint=False):
-        return (
-            self.getAdiagDeriv_sigma(tInd, u, v, adjoint)
-            + self.getAdiagDeriv_tau(tInd, u, v, adjoint)
-            + self.getAdiagDeriv_kappa(tInd, u, v, adjoint)
-        )
+        
+        assert tInd >= 0 and tInd < self.nT
+
+        dt = self.time_steps[tInd]
+
+        if adjoint:
+            return 1.0 / dt * self._MeSigmaTauKappaDeriv(u, v, adjoint)
+
+        return 1.0 / dt * self._MeSigmaTauKappaDeriv(u, v, adjoint)
 
     def getAsubdiag(self, tInd):
         """
@@ -1303,38 +1114,16 @@ class Simulation3DElectricFieldFaceEdgeConductivity(
 
         return -1.0 / dt * MeSigmaTauKappa
 
-    def getAsubdiagDeriv_sigma(self, tInd, u, v, adjoint=False):
+    def getAsubdiagDeriv(self, tInd, u, v, adjoint=False):
         """
         Derivative of the matrix below the diagonal with respect to conductance
         """
         dt = self.time_steps[tInd]
 
         if adjoint:
-            return -1.0 / dt * self._MeSigmaTauKappaDeriv_sigma(u, v, adjoint)
+            return -1.0 / dt * self._MeSigmaTauKappaDeriv(u, v, adjoint)
 
-        return -1.0 / dt * self._MeSigmaTauKappaDeriv_sigma(u, v, adjoint)
-
-    def getAsubdiagDeriv_tau(self, tInd, u, v, adjoint=False):
-        """
-        Derivative of the matrix below the diagonal with respect to conductance
-        """
-        dt = self.time_steps[tInd]
-
-        if adjoint:
-            return -1.0 / dt * self._MeSigmaTauKappaDeriv_tau(u, v, adjoint)
-
-        return -1.0 / dt * self._MeSigmaTauKappaDeriv_tau(u, v, adjoint)
-
-    def getAsubdiagDeriv_kappa(self, tInd, u, v, adjoint=False):
-        """
-        Derivative of the matrix below the diagonal with respect to conductance
-        """
-        dt = self.time_steps[tInd]
-
-        if adjoint:
-            return -1.0 / dt * self._MeSigmaTauKappaDeriv_kappa(u, v, adjoint)
-
-        return -1.0 / dt * self._MeSigmaTauKappaDeriv_kappa(u, v, adjoint)
+        return -1.0 / dt * self._MeSigmaTauKappaDeriv(u, v, adjoint)
 
     def getAdc(self):
         
@@ -1346,33 +1135,13 @@ class Simulation3DElectricFieldFaceEdgeConductivity(
         Adc[0, 0] = Adc[0, 0] + 1.0
         return Adc
 
-    def getAdcDeriv_sigma(self, u, v, adjoint=False):
-        Grad = self.mesh.nodal_gradient
-        if not adjoint:
-            return Grad.T * self._MeSigmaTauKappaDeriv_sigma(-u, v, adjoint)
-        else:
-            return self._MeSigmaTauKappaDeriv_sigma(-u, Grad * v, adjoint)
-
-    def getAdcDeriv_tau(self, u, v, adjoint=False):
-        Grad = self.mesh.nodal_gradient
-        if not adjoint:
-            return Grad.T * self._MeSigmaTauKappaDeriv_tau(-u, v, adjoint)
-        else:
-            return self._MeSigmaTauKappaDeriv_tau(-u, Grad * v, adjoint)
-
-    def getAdcDeriv_kappa(self, u, v, adjoint=False):
-        Grad = self.mesh.nodal_gradient
-        if not adjoint:
-            return Grad.T * self._MeSigmaTauKappaDeriv_kappa(-u, v, adjoint)
-        else:
-            return self._MeSigmaTauKappaDeriv_kappa(-u, Grad * v, adjoint)
-    
     def getAdcDeriv(self, u, v, adjoint=False):
-        return (
-            self.getAdcDeriv_sigma(self, u, v, adjoint=False) +
-            self.getAdcDeriv_tau(self, u, v, adjoint=False) +
-            self.getAdcDeriv_kappa(self, u, v, adjoint=False)
-        )
+        Grad = self.mesh.nodal_gradient
+        if not adjoint:
+            return Grad.T * self._MeSigmaTauKappaDeriv(-u, v, adjoint)
+        else:
+            return self._MeSigmaTauKappaDeriv(-u, Grad * v, adjoint)
+
 
 
 ###############################################################################
