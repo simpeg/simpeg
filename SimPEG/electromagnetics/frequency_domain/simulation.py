@@ -451,7 +451,7 @@ class Simulation3DElectricFieldFaceEdgeConductivity(
 
         return A
 
-    def getADeriv_tau(self, freq, u, v, adjoint=False):
+    def getADeriv_sigma(self, freq, u, v, adjoint=False):
         r"""
         Product of the derivative of our system matrix with respect to the
         conductivity model and a vector
@@ -471,37 +471,12 @@ class Simulation3DElectricFieldFaceEdgeConductivity(
             adjoint (nD,)
         """
 
-        dMe_dtau_v = self._MeTauDeriv(u, v, adjoint)
+        dMe_dtau_v = self._MeSigmaTauKappaDeriv(u, v, adjoint)
         return 1j * omega(freq) * dMe_dtau_v
-
-    def getADeriv_kappa(self, freq, u, v, adjoint=False):
-        r"""
-        Product of the derivative of our system matrix with respect to the
-        conductivity model and a vector
-
-        .. math ::
-
-            \frac{\mathbf{A}(\mathbf{m}) \mathbf{v}}{d \mathbf{m}_{\sigma}} =
-            i \omega \frac{d \mathbf{M^e_{\sigma}}(\mathbf{u})\mathbf{v} }{d\mathbf{m}}
-
-        :param float freq: frequency
-        :param numpy.ndarray u: solution vector (nE,)
-        :param numpy.ndarray v: vector to take prodct with (nP,) or (nD,) for
-            adjoint
-        :param bool adjoint: adjoint?
-        :rtype: numpy.ndarray
-        :return: derivative of the system matrix times a vector (nP,) or
-            adjoint (nD,)
-        """
-
-        dMe_dkappa_v = self._MeKappaDeriv(u, v, adjoint)
-        return 1j * omega(freq) * dMe_dkappa_v
 
     def getADeriv(self, freq, u, v, adjoint=False):
         return (
             self.getADeriv_sigma(freq, u, v, adjoint)
-            + self.getADeriv_tau(freq, u, v, adjoint)
-            + self.getADeriv_kappa(freq, u, v, adjoint)
             + self.getADeriv_mui(freq, u, v, adjoint)
             # + self.getADeriv_permittivity(freq, u, v, adjoint)
         )
@@ -724,7 +699,7 @@ class Simulation3DMagneticFluxDensityFaceEdgeConductivity(
             return MfMui.T.tocsr() * A
         return A
 
-    def getADeriv_tau(self, freq, u, v, adjoint=False):
+    def getADeriv_sigma(self, freq, u, v, adjoint=False):
         r"""
         Product of the derivative of our system matrix with respect to the
         model and a vector
@@ -752,10 +727,6 @@ class Simulation3DMagneticFluxDensityFaceEdgeConductivity(
         if adjoint:
             return MeSigmaTauKappaIDeriv(vec, C.T * v, adjoint)
         return C * MeSigmaTauKappaIDeriv(vec, v, adjoint)
-
-        # if adjoint:
-        #     return MeSigmaIDeriv.T * (C.T * v)
-        # return C * (MeSigmaIDeriv * v)
 
     def getADeriv_mui(self, freq, u, v, adjoint=False):
         MfMuiDeriv = self.MfMuiDeriv(u)
@@ -813,41 +784,41 @@ class Simulation3DMagneticFluxDensityFaceEdgeConductivity(
 
         return RHS
 
-    # def getRHSDeriv(self, freq, src, v, adjoint=False):
-    #     """
-    #     Derivative of the right hand side with respect to the model
+    def getRHSDeriv(self, freq, src, v, adjoint=False):
+        """
+        Derivative of the right hand side with respect to the model
 
-    #     :param float freq: frequency
-    #     :param SimPEG.electromagnetics.frequency_domain.fields.FieldsFDEM src: FDEM source
-    #     :param numpy.ndarray v: vector to take product with
-    #     :param bool adjoint: adjoint?
-    #     :rtype: numpy.ndarray
-    #     :return: product of rhs deriv with a vector
-    #     """
+        :param float freq: frequency
+        :param SimPEG.electromagnetics.frequency_domain.fields.FieldsFDEM src: FDEM source
+        :param numpy.ndarray v: vector to take product with
+        :param bool adjoint: adjoint?
+        :rtype: numpy.ndarray
+        :return: product of rhs deriv with a vector
+        """
 
-    #     C = self.mesh.edge_curl
-    #     s_m, s_e = src.eval(self)
-    #     MfMui = self.MfMui
+        C = self.mesh.edge_curl
+        s_m, s_e = src.eval(self)
+        MfMui = self.MfMui
 
-    #     if self._makeASymmetric and adjoint:
-    #         v = self.MfMui * v
+        if self._makeASymmetric and adjoint:
+            v = self.MfMui * v
 
-    #     # MeSigmaIDeriv = self.MeSigmaIDeriv(s_e)
-    #     s_mDeriv, s_eDeriv = src.evalDeriv(self, adjoint=adjoint)
+        # MeSigmaIDeriv = self.MeSigmaIDeriv(s_e)
+        s_mDeriv, s_eDeriv = src.evalDeriv(self, adjoint=adjoint)
 
-    #     if not adjoint:
-    #         # RHSderiv = C * (MeSigmaIDeriv * v)
-    #         RHSderiv = C * self.MeSigmaIDeriv(s_e, v, adjoint)
-    #         SrcDeriv = s_mDeriv(v) + C * (self.MeSigmaI * s_eDeriv(v))
-    #     elif adjoint:
-    #         # RHSderiv = MeSigmaIDeriv.T * (C.T * v)
-    #         RHSderiv = self.MeSigmaIDeriv(s_e, C.T * v, adjoint)
-    #         SrcDeriv = s_mDeriv(v) + s_eDeriv(self.MeSigmaI.T * (C.T * v))
+        if not adjoint:
+            # RHSderiv = C * (MeSigmaIDeriv * v)
+            RHSderiv = C * self._MeSigmaTauKappaIDeriv(s_e, v, adjoint)
+            SrcDeriv = s_mDeriv(v) + C * (self._MeSigmaTauKappaI * s_eDeriv(v))
+        elif adjoint:
+            # RHSderiv = MeSigmaIDeriv.T * (C.T * v)
+            RHSderiv = self._MeSigmaTauKappaIDeriv(s_e, C.T * v, adjoint)
+            SrcDeriv = s_mDeriv(v) + s_eDeriv(self._MeSigmaTauKappaI.T * (C.T * v))
 
-    #     if self._makeASymmetric is True and not adjoint:
-    #         return MfMui.T * (SrcDeriv + RHSderiv)
+        if self._makeASymmetric is True and not adjoint:
+            return MfMui.T * (SrcDeriv + RHSderiv)
 
-    #     return RHSderiv + SrcDeriv
+        return RHSderiv + SrcDeriv
 
 
 ###############################################################################
