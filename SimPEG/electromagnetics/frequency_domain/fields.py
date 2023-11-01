@@ -623,6 +623,18 @@ class Fields3DElectricField(FieldsFDEM):
 
 
 class Fields3DElectricFieldFaceEdgeConductivity(Fields3DElectricField):
+    
+    def startup(self):
+        self._edgeCurl = self.simulation.mesh.edge_curl
+        self._aveE2CCV = self.simulation.mesh.aveE2CCV
+        self._aveF2CCV = self.simulation.mesh.aveF2CCV
+        self._nC = self.simulation.mesh.nC
+        self.__MeSigmaTauKappa = self.simulation._MeSigmaTauKappa
+        self.__MeSigmaTauKappaDeriv = self.simulation._MeSigmaTauKappaDeriv
+        self._MfMui = self.simulation.MfMui
+        self._MfMuiDeriv = self.simulation.MfMuiDeriv
+        self._MeI = self.simulation.MeI
+        self._MfI = self.simulation.MfI
 
     def _j(self, eSolution, source_list):
         """
@@ -656,9 +668,21 @@ class Fields3DElectricFieldFaceEdgeConductivity(Fields3DElectricField):
         )
 
     def _jDeriv_m(self, src, v, adjoint=False):
-        raise NotImplementedError (
-            "derivative wrt to model not implemented."
-        )
+        
+        e = self[src, "e"]
+
+        if adjoint:
+            return (
+                self.__MeSigmaTauKappaDeriv(e, (self._MeI.T * v), adjoint=adjoint)
+                + self._eDeriv_m(src, (self._MeI.T * v), adjoint=adjoint)
+            ) + src.jPrimaryDeriv(self.simulation, v, adjoint)
+        return (
+            self._MeI
+            * (
+                self._eDeriv_m(src, v, adjoint=adjoint)
+                + self.__MeSigmaTauKappaDeriv(e, v, adjoint=adjoint)
+            )
+        ) + src.jPrimaryDeriv(self.simulation, v, adjoint)
 
 
 class Fields3DMagneticFluxDensity(FieldsFDEM):
@@ -1001,14 +1025,16 @@ class Fields3DMagneticFluxDensityFaceEdgeConductivity(Fields3DMagneticFluxDensit
 
     def startup(self):
         self._edgeCurl = self.simulation.mesh.edge_curl
-        self._MeSigma = self.simulation.MeSigma
-        self._MeSigmaI = self.simulation.MeSigmaI
+        # self._MeSigma = self.simulation.MeSigma
+        # self._MeSigmaI = self.simulation.MeSigmaI
         self._MfMui = self.simulation.MfMui
         self._MfMuiDeriv = self.simulation.MfMuiDeriv
-        self._MeSigmaDeriv = self.simulation.MeSigmaDeriv
-        self._MeSigmaIDeriv = self.simulation.MeSigmaIDeriv
+        # self._MeSigmaDeriv = self.simulation.MeSigmaDeriv
+        # self._MeSigmaIDeriv = self.simulation.MeSigmaIDeriv
         self.__MeSigmaTauKappa = self.simulation._MeSigmaTauKappa
         self.__MeSigmaTauKappaI = self.simulation._MeSigmaTauKappaI
+        self.__MeSigmaTauKappaDeriv = self.simulation._MeSigmaTauKappaDeriv
+        self.__MeSigmaTauKappaIDeriv = self.simulation._MeSigmaTauKappaIDeriv
         self._Me = self.simulation.Me
         self._aveF2CCV = self.simulation.mesh.aveF2CCV
         self._aveE2CCV = self.simulation.mesh.aveE2CCV
@@ -1041,7 +1067,7 @@ class Fields3DMagneticFluxDensityFaceEdgeConductivity(Fields3DMagneticFluxDensit
                 e[:, i] = MeyhatI * e[:, i]
 
         if self.simulation.permittivity is None:
-            return self._MeSigmaTauKappaI * e
+            return self.__MeSigmaTauKappaI * e
         else:
             return e
 
@@ -1062,10 +1088,28 @@ class Fields3DMagneticFluxDensityFaceEdgeConductivity(Fields3DMagneticFluxDensit
             return self.__MeSigmaTauKappaI * (self._edgeCurl.T * (self._MfMui * du_dm_v))
         return self._MfMui.T * (self._edgeCurl * (self.__MeSigmaTauKappaI.T * du_dm_v))
 
-    # NEED TO ADD THIS
     def _eDeriv_m(self, src, v, adjoint=False):
-        raise NotImplementedError (
-            "Derivative wrt model not implemented yet."
+        bSolution = mkvc(self[src, "bSolution"])
+        s_e = src.s_e(self.simulation)
+
+        w = -s_e + self._edgeCurl.T * (self._MfMui * bSolution)
+
+        if adjoint:
+            s_eDeriv = src.s_eDeriv(self.simulation, self.__MeSigmaTauKappaI.T * v, adjoint)
+            return (
+                self.__MeSigmaTauKappaIDeriv(w, v, adjoint)
+                + self._MfMuiDeriv(
+                    bSolution, self._edgeCurl * (self.__MeSigmaTauKappaI.T * v), adjoint
+                )
+                - s_eDeriv
+                + src.ePrimaryDeriv(self.simulation, v, adjoint)
+            )
+        s_eDeriv = src.s_eDeriv(self.simulation, v, adjoint)
+        return (
+            self.__MeSigmaTauKappaIDeriv(w, v)
+            + self.__MeSigmaTauKappaI * (self._edgeCurl.T * self._MfMuiDeriv(bSolution, v))
+            - self.__MeSigmaTauKappaI * s_eDeriv
+            + src.ePrimaryDeriv(self.simulation, v, adjoint)
         )
 
     def _j(self, bSolution, source_list):

@@ -471,8 +471,8 @@ class Simulation3DElectricFieldFaceEdgeConductivity(
             adjoint (nD,)
         """
 
-        dMe_dtau_v = self._MeSigmaTauKappaDeriv(u, v, adjoint)
-        return 1j * omega(freq) * dMe_dtau_v
+        dMe_dsigma_v = self._MeSigmaTauKappaDeriv(u, v, adjoint)
+        return 1j * omega(freq) * dMe_dsigma_v
 
     def getADeriv(self, freq, u, v, adjoint=False):
         return (
