@@ -846,9 +846,9 @@ class BaseFaceEdgeElectricalPDESimulation(BaseElectricalPDESimulation):
         sigmaMap=None,
         rho=None,
         rhoMap=None,
-        tau=0.,
+        tau=0.0,
         tauMap=None,
-        kappa=0.,
+        kappa=0.0,
         kappaMap=None,
         **kwargs,
     ):

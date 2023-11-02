@@ -1,12 +1,9 @@
 import unittest
 
 import discretize
-import matplotlib.pyplot as plt
 import numpy as np
-from pymatsolver import Pardiso as Solver
 from scipy.constants import mu_0
 from SimPEG import maps
-from SimPEG.electromagnetics import analytics
 from SimPEG.electromagnetics import frequency_domain as fdem
 
 
@@ -44,27 +41,32 @@ def analytic_layer_small_loop_face_conductivity_comparison(
     if mesh_type == "CYL":
         hr = [(2.0, 120), (2.0, 25, 1.3)]
         hz = [(2.0, 25, -1.3), (2.0, 200), (2.0, 25, 1.3)]
-        
+
         mesh = discretize.CylindricalMesh([hr, 1, hz], x0="00C")
-        
+
         ind = np.where(mesh.h[2] == np.min(mesh.h[2]))[0]
-        ind = ind[int(len(ind)/2)]
-        
-        mesh.origin = mesh.origin - np.r_[0., 0., mesh.nodes_z[ind]-24]
-    
+        ind = ind[int(len(ind) / 2)]
+
+        mesh.origin = mesh.origin - np.r_[0.0, 0.0, mesh.nodes_z[ind] - 24]
+
     elif mesh_type == "TREE":
         dh = 2.5  # base cell width
         dom_width = 8000.0  # domain width
-        nbc = 2 ** int(np.round(np.log(dom_width / dh) / np.log(2.0)))  # num. base cells
-        
+        nbc = 2 ** int(
+            np.round(np.log(dom_width / dh) / np.log(2.0))
+        )  # num. base cells
+
         h = [(dh, nbc)]
         mesh = discretize.TreeMesh([h, h, h], x0="CCC")
         mesh.refine_points(
-            np.reshape(source_location, (1, 3)), level=-1, padding_cells_by_level=[8, 4, 4, 4], finalize=False
+            np.reshape(source_location, (1, 3)),
+            level=-1,
+            padding_cells_by_level=[8, 4, 4, 4],
+            finalize=False,
         )
-        x0s = np.vstack([ii*np.c_[-60, -60, -60] for ii in range(1, 5)])
-        x1s = np.vstack([ii*np.c_[60, 60, 10] for ii in range(1, 5)])
-        
+        x0s = np.vstack([ii * np.c_[-60, -60, -60] for ii in range(1, 5)])
+        x1s = np.vstack([ii * np.c_[60, 60, 10] for ii in range(1, 5)])
+
         mesh.refine_box(x0s, x1s, levels=[-2, -3, -4, -5], finalize=False)
         mesh.finalize()
 
@@ -82,17 +84,15 @@ def analytic_layer_small_loop_face_conductivity_comparison(
         ),
         getattr(fdem.receivers, "Point{}Secondary".format(rx_type))(
             receiver_location, component="imag", orientation=orientation
-        )
+        ),
     ]
 
     # 1D SURVEY AND SIMULATION
     src_1d = [
         fdem.sources.MagDipole(
-            rx_list,
-            f,
-            location=np.r_[0.0, 0.0, 1.0],
-            orientation=orientation
-        ) for f in frequencies
+            rx_list, f, location=np.r_[0.0, 0.0, 1.0], orientation=orientation
+        )
+        for f in frequencies
     ]
     survey_1d = fdem.Survey(src_1d)
 
@@ -110,7 +110,8 @@ def analytic_layer_small_loop_face_conductivity_comparison(
                 f,
                 radius=loop_radius,
                 location=source_location,
-            ) for f in frequencies
+            )
+            for f in frequencies
         ]
     else:
         src_3d = [
@@ -119,7 +120,8 @@ def analytic_layer_small_loop_face_conductivity_comparison(
                 f,
                 location=source_location,
                 orientation=orientation,
-            ) for f in frequencies
+            )
+            for f in frequencies
         ]
 
     survey_3d = fdem.Survey(src_3d)
@@ -137,14 +139,13 @@ def analytic_layer_small_loop_face_conductivity_comparison(
     # COMPUTE SOLUTIONS
     analytic_solution = mu_0 * sim_1d.dpred(sigma_1d)  # ALWAYS RETURNS H-FIELD
     numeric_solution = sim_3d.dpred(tau_3d)
-    
+
     # print(analytic_solution)
     # print(numeric_solution)
 
-    diff = (
-        np.linalg.norm(np.abs(numeric_solution - analytic_solution)) /
-        np.linalg.norm(np.abs(analytic_solution))
-    )
+    diff = np.linalg.norm(
+        np.abs(numeric_solution - analytic_solution)
+    ) / np.linalg.norm(np.abs(analytic_solution))
 
     print(
         " |bz_ana| = {ana} |bz_num| = {num} |bz_ana-bz_num| = {diff}".format(
@@ -154,7 +155,7 @@ def analytic_layer_small_loop_face_conductivity_comparison(
         )
     )
     print("Difference: {}".format(diff))
-    
+
     return diff
 
 

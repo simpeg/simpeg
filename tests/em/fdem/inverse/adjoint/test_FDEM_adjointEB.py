@@ -1,7 +1,10 @@
 import unittest
 import numpy as np
 from scipy.constants import mu_0
-from SimPEG.electromagnetics.utils.testing_utils import getFDEMProblem, getFDEMProblem_FaceEdgeConductivity
+from SimPEG.electromagnetics.utils.testing_utils import (
+    getFDEMProblem,
+    getFDEMProblem_FaceEdgeConductivity,
+)
 
 testE = True
 testB = True
@@ -19,7 +22,6 @@ SrcList = ["RawVec", "MagDipole"]  # or 'MAgDipole_Bfield', 'CircularLoop', 'Raw
 
 
 def adjointTest(fdemType, comp, sigma_only=True):
-    
     if sigma_only:
         prb = getFDEMProblem(fdemType, comp, SrcList, freq)
     else:
@@ -27,7 +29,9 @@ def adjointTest(fdemType, comp, sigma_only=True):
     # prb.solverOpts = dict(check_accuracy=True)
     print("Adjoint {0!s} formulation - {1!s}".format(fdemType, comp))
 
-    m = np.log(np.ones(prb.sigmaMap.nP) * CONDUCTIVITY)  # works for sigma_only and sigma, tau, kappa
+    m = np.log(
+        np.ones(prb.sigmaMap.nP) * CONDUCTIVITY
+    )  # works for sigma_only and sigma, tau, kappa
     mu = np.ones(prb.mesh.nC) * MU
 
     if addrandoms is True:
@@ -51,7 +55,6 @@ def adjointTest(fdemType, comp, sigma_only=True):
 
 class FDEM_AdjointTests(unittest.TestCase):
     if testE:
-
         # SIGMA ONLY
         def test_Jtvec_adjointTest_exr_Eform(self):
             self.assertTrue(adjointTest("e", ["ElectricField", "x", "r"]))
@@ -124,7 +127,7 @@ class FDEM_AdjointTests(unittest.TestCase):
 
         def test_Jtvec_adjointTest_hzi_Eform(self):
             self.assertTrue(adjointTest("e", ["MagneticField", "z", "i"]))
-            
+
         # FACE EDGE CONDUCTIVITY
         def test_Jtvec_adjointTest_exr_Eform_FaceEdgeConductivity(self):
             self.assertTrue(adjointTest("e", ["ElectricField", "x", "r"], False))
@@ -271,7 +274,7 @@ class FDEM_AdjointTests(unittest.TestCase):
 
         def test_Jtvec_adjointTest_hzi_Bform(self):
             self.assertTrue(adjointTest("b", ["MagneticField", "z", "i"]))
-        
+
         # FACE EDGE CONDUCTIVITY
         def test_Jtvec_adjointTest_exr_Bform_FaceEdgeConductivity(self):
             self.assertTrue(adjointTest("b", ["ElectricField", "x", "r"], False))
@@ -344,6 +347,7 @@ class FDEM_AdjointTests(unittest.TestCase):
 
         def test_Jtvec_adjointTest_hzi_Bform_FaceEdgeConductivity(self):
             self.assertTrue(adjointTest("b", ["MagneticField", "z", "i"], False))
-            
+
+
 if __name__ == "__main__":
     unittest.main()

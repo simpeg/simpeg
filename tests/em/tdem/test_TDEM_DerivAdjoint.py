@@ -41,8 +41,8 @@ def get_sigma_mapping(mesh):
     )
     return maps.ExpMap(mesh) * maps.SurjectVertical1D(mesh) * activeMap
 
-def get_wire_mappings(mesh):
 
+def get_wire_mappings(mesh):
     # active cells, faces + edges
     active_cells = mesh.cell_centers[:, -1] < 0.0
     active_faces = mesh.faces[:, -1] < 0.0
@@ -50,25 +50,32 @@ def get_wire_mappings(mesh):
     n_active_cells = np.sum(active_cells)
     n_active_faces = np.sum(active_faces)
     n_active_edges = np.sum(active_edges)
-    
+
     # wire map
     wire_map = maps.Wires(
         ("log_sigma", n_active_cells),
         ("log_tau", n_active_faces),
-        ("log_kappa", n_active_edges)
+        ("log_kappa", n_active_edges),
     )
 
-    sigma_map = maps.InjectActiveCells(
-        mesh, active_cells, 1e-8
-    ) * maps.ExpMap(nP=n_active_cells) * wire_map.log_sigma
-    tau_map = maps.InjectActiveFaces(
-        mesh, active_faces, 0
-    ) * maps.ExpMap(nP=n_active_faces) * wire_map.log_tau
-    kappa_map = maps.InjectActiveEdges(
-        mesh, active_edges, 0
-    ) * maps.ExpMap(nP=n_active_edges) * wire_map.log_kappa
+    sigma_map = (
+        maps.InjectActiveCells(mesh, active_cells, 1e-8)
+        * maps.ExpMap(nP=n_active_cells)
+        * wire_map.log_sigma
+    )
+    tau_map = (
+        maps.InjectActiveFaces(mesh, active_faces, 0)
+        * maps.ExpMap(nP=n_active_faces)
+        * wire_map.log_tau
+    )
+    kappa_map = (
+        maps.InjectActiveEdges(mesh, active_edges, 0)
+        * maps.ExpMap(nP=n_active_edges)
+        * wire_map.log_kappa
+    )
 
     return sigma_map, tau_map, kappa_map
+
 
 def get_prob(mesh, formulation, sigma_map, **kwargs):
     prb = getattr(tdem, "Simulation3D{}".format(formulation))(
@@ -78,15 +85,17 @@ def get_prob(mesh, formulation, sigma_map, **kwargs):
     prb.solver = Solver
     return prb
 
-def get_face_edge_prob(mesh, formulation, sigma_map=None, tau_map=None, kappa_map=None, **kwargs):
+
+def get_face_edge_prob(
+    mesh, formulation, sigma_map=None, tau_map=None, kappa_map=None, **kwargs
+):
     prb = getattr(tdem, "Simulation3D{}".format(formulation))(
-        mesh,
-        sigmaMap=sigma_map, tauMap=tau_map, kappaMap=kappa_map,
-        **kwargs
+        mesh, sigmaMap=sigma_map, tauMap=tau_map, kappaMap=kappa_map, **kwargs
     )
     prb.time_steps = [(1e-05, 10), (5e-05, 10), (2.5e-4, 10)]
     prb.solver = Solver
     return prb
+
 
 def get_survey():
     src1 = tdem.Src.MagDipole([], location=np.array([0.0, 0.0, 0.0]))
@@ -108,25 +117,35 @@ class Base_DerivAdjoint_Test(unittest.TestCase):
             # sigma_map = get_sigma_mapping(mesh)
             # self.prob = get_face_edge_prob(mesh, self.formulation, sigma_map=sigma_map, survey=self.survey)
             # self.m = np.log(1e-1) * np.ones(self.prob.sigmaMap.nP) + 1e-3 * np.random.randn(self.prob.sigmaMap.nP)
-            
+
             active_cells = mesh.cell_centers[:, -1] < 0.0
             active_faces = mesh.faces[:, -1] < 0.0
             active_edges = mesh.edges[:, -1] < 0.0
-            
+
             sigma_map, tau_map, kappa_map = get_wire_mappings(mesh)
             self.prob = get_face_edge_prob(
-                mesh, self.formulation, sigma_map=sigma_map, tau_map=tau_map, kappa_map=kappa_map, survey=self.survey
+                mesh,
+                self.formulation,
+                sigma_map=sigma_map,
+                tau_map=tau_map,
+                kappa_map=kappa_map,
+                survey=self.survey,
             )
             self.m = np.r_[
-                np.log(1e-1) * np.ones(np.sum(active_cells)) + 1e-3 * np.random.randn(np.sum(active_cells)),
-                np.log(10*1e-1) * np.ones(np.sum(active_faces)) + 1e-3 * np.random.randn(np.sum(active_faces)),
-                np.log(100*1e-1) * np.ones(np.sum(active_edges)) + 1e-3 * np.random.randn(np.sum(active_edges))
+                np.log(1e-1) * np.ones(np.sum(active_cells))
+                + 1e-3 * np.random.randn(np.sum(active_cells)),
+                np.log(10 * 1e-1) * np.ones(np.sum(active_faces))
+                + 1e-3 * np.random.randn(np.sum(active_faces)),
+                np.log(100 * 1e-1) * np.ones(np.sum(active_edges))
+                + 1e-3 * np.random.randn(np.sum(active_edges)),
             ]
 
         else:
             sigma_map = get_sigma_mapping(mesh)
             self.prob = get_prob(mesh, self.formulation, sigma_map, survey=self.survey)
-            self.m = np.log(1e-1) * np.ones(self.prob.sigmaMap.nP) + 1e-3 * np.random.randn(self.prob.sigmaMap.nP)
+            self.m = np.log(1e-1) * np.ones(
+                self.prob.sigmaMap.nP
+            ) + 1e-3 * np.random.randn(self.prob.sigmaMap.nP)
 
         print("Solving Fields for problem {}".format(self.formulation))
         t = time.time()
@@ -140,14 +159,21 @@ class Base_DerivAdjoint_Test(unittest.TestCase):
         if "FaceEdgeConductivity" in self.formulation:
             # sigma_map = get_sigma_mapping(mesh)
             # self.probfwd = get_face_edge_prob(mesh, self.formulation, sigma_map=sigma_map, survey=self.surveyfwd)
-            
+
             sigma_map, tau_map, kappa_map = get_wire_mappings(mesh)
             self.probfwd = get_face_edge_prob(
-                mesh, self.formulation, sigma_map=sigma_map, tau_map=tau_map, kappa_map=kappa_map, survey=self.surveyfwd
+                mesh,
+                self.formulation,
+                sigma_map=sigma_map,
+                tau_map=tau_map,
+                kappa_map=kappa_map,
+                survey=self.surveyfwd,
             )
         else:
             sigma_map = get_sigma_mapping(mesh)
-            self.probfwd = get_prob(mesh, self.formulation, sigma_map, survey=self.surveyfwd)
+            self.probfwd = get_prob(
+                mesh, self.formulation, sigma_map, survey=self.surveyfwd
+            )
 
     def get_rx(self, rxcomp):
         rxOffset = 15.0
@@ -192,7 +218,7 @@ class Base_DerivAdjoint_Test(unittest.TestCase):
         print(
             "\nAdjoint Testing Jvec, Jtvec prob {}, {}".format(self.formulation, rxcomp)
         )
-        
+
         m = np.random.rand(self.prob.sigmaMap.nP)
         d = np.random.randn(self.prob.survey.nD)
         V1 = d.dot(self.prob.Jvec(self.m, m, f=self.fields))
@@ -282,7 +308,9 @@ class DerivAdjoint_E(Base_DerivAdjoint_Test):
 
         def test_Jvec_adjoint_e_jy(self):
             self.JvecVsJtvecTest("CurrentDensityy")
+
         pass
+
 
 class DerivAdjoint_E_FaceEdgeConductivity(Base_DerivAdjoint_Test):
     formulation = "ElectricFieldFaceEdgeConductivity"
@@ -392,6 +420,7 @@ class DerivAdjoint_B(Base_DerivAdjoint_Test):
         def test_Jvec_adjoint_b_jy(self):
             self.JvecVsJtvecTest("CurrentDensityy")
 
+
 class DerivAdjoint_B_FaceEdgeConductivity(Base_DerivAdjoint_Test):
     formulation = "MagneticFluxDensityFaceEdgeConductivity"
 
@@ -408,7 +437,7 @@ class DerivAdjoint_B_FaceEdgeConductivity(Base_DerivAdjoint_Test):
 
         def test_Jvec_b_dbdtz(self):
             self.JvecTest("MagneticFluxTimeDerivativez")
-        
+
         def test_Jvec_b_ey(self):
             self.JvecTest("ElectricFieldy")
 

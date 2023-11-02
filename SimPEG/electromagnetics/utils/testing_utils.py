@@ -138,7 +138,9 @@ def getFDEMProblem(fdemType, comp, SrcList, freq, useMu=False, verbose=False):
     return prb
 
 
-def getFDEMProblem_FaceEdgeConductivity(fdemType, comp, SrcList, freq, useMu=False, verbose=False):
+def getFDEMProblem_FaceEdgeConductivity(
+    fdemType, comp, SrcList, freq, useMu=False, verbose=False
+):
     cs = 10.0
     ncx, ncy, ncz = 0, 0, 0
     npad = 8
@@ -152,13 +154,11 @@ def getFDEMProblem_FaceEdgeConductivity(fdemType, comp, SrcList, freq, useMu=Fal
             ("log_sigma", mesh.nC),
             ("log_tau", mesh.nF),
             ("log_kappa", mesh.nE),
-            ("mu",  mesh.nC)
+            ("mu", mesh.nC),
         )
     else:
         wire_map = maps.Wires(
-            ("log_sigma", mesh.nC),
-            ("log_tau", mesh.nF),
-            ("log_kappa", mesh.nE)
+            ("log_sigma", mesh.nC), ("log_tau", mesh.nF), ("log_kappa", mesh.nE)
         )
 
     sigma_map = maps.ExpMap(nP=mesh.nC) * wire_map.log_sigma
@@ -214,17 +214,13 @@ def getFDEMProblem_FaceEdgeConductivity(fdemType, comp, SrcList, freq, useMu=Fal
             S_m = np.zeros(mesh.nF)
             S_e = np.zeros(mesh.nE)
             S_m[
-                mesh.closest_points_index([0.0, 0.0, 0.0], "Fz")
-                + np.sum(mesh.vnF[:1])
+                mesh.closest_points_index([0.0, 0.0, 0.0], "Fz") + np.sum(mesh.vnF[:1])
             ] = 1e-3
             S_e[
-                mesh.closest_points_index([0.0, 0.0, 0.0], "Ez")
-                + np.sum(mesh.vnE[:1])
+                mesh.closest_points_index([0.0, 0.0, 0.0], "Ez") + np.sum(mesh.vnE[:1])
             ] = 1e-3
             Src.append(
-                fdem.Src.RawVec(
-                    [rx0], freq, S_m, mesh.get_edge_inner_product() * S_e
-                )
+                fdem.Src.RawVec([rx0], freq, S_m, mesh.get_edge_inner_product() * S_e)
             )
 
     if verbose:
@@ -233,13 +229,23 @@ def getFDEMProblem_FaceEdgeConductivity(fdemType, comp, SrcList, freq, useMu=Fal
     if fdemType == "e":
         survey = fdem.Survey(Src)
         prb = fdem.Simulation3DElectricFieldFaceEdgeConductivity(
-            mesh, survey=survey, sigmaMap=sigma_map, tauMap=tau_map, kappaMap=kappa_map, muMap=mu_map
+            mesh,
+            survey=survey,
+            sigmaMap=sigma_map,
+            tauMap=tau_map,
+            kappaMap=kappa_map,
+            muMap=mu_map,
         )
 
     elif fdemType == "b":
         survey = fdem.Survey(Src)
         prb = fdem.Simulation3DMagneticFluxDensityFaceEdgeConductivity(
-            mesh, survey=survey, sigmaMap=sigma_map, tauMap=tau_map, kappaMap=kappa_map, muMap=mu_map
+            mesh,
+            survey=survey,
+            sigmaMap=sigma_map,
+            tauMap=tau_map,
+            kappaMap=kappa_map,
+            muMap=mu_map,
         )
 
     else:
@@ -265,7 +271,7 @@ def crossCheckTest(
     useMu=False,
     TOL=1e-5,
     verbose=False,
-    sigma_only=True
+    sigma_only=True,
 ):
     def l2norm(r):
         return np.sqrt(r.dot(r))
@@ -273,8 +279,10 @@ def crossCheckTest(
     if sigma_only:
         prb1 = getFDEMProblem(fdemType1, comp, SrcList, freq, useMu, verbose)
     else:
-        prb1 = getFDEMProblem_FaceEdgeConductivity(fdemType1, comp, SrcList, freq, useMu, verbose)
-    
+        prb1 = getFDEMProblem_FaceEdgeConductivity(
+            fdemType1, comp, SrcList, freq, useMu, verbose
+        )
+
     mesh = prb1.mesh
     print(
         "Cross Checking Forward: {0!s}, {1!s} formulations - {2!s}".format(
@@ -284,7 +292,7 @@ def crossCheckTest(
 
     logsig = np.log(np.ones(mesh.nC) * CONDUCTIVITY)
     logtau = np.log(np.ones(mesh.nF) * CONDUCTIVITY * np.min(mesh.h[0]))
-    logkappa = np.log(np.ones(mesh.nE) * CONDUCTIVITY * np.min(mesh.h[0])**2)
+    logkappa = np.log(np.ones(mesh.nE) * CONDUCTIVITY * np.min(mesh.h[0]) ** 2)
     mu = np.ones(mesh.nC) * MU
 
     if addrandoms is True:
@@ -312,7 +320,9 @@ def crossCheckTest(
     if sigma_only:
         prb2 = getFDEMProblem(fdemType2, comp, SrcList, freq, useMu, verbose)
     else:
-        prb2 = getFDEMProblem_FaceEdgeConductivity(fdemType2, comp, SrcList, freq, useMu, verbose)
+        prb2 = getFDEMProblem_FaceEdgeConductivity(
+            fdemType2, comp, SrcList, freq, useMu, verbose
+        )
 
     d2 = prb2.dpred(m)
 

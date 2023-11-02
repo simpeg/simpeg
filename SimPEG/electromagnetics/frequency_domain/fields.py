@@ -623,7 +623,6 @@ class Fields3DElectricField(FieldsFDEM):
 
 
 class Fields3DElectricFieldFaceEdgeConductivity(Fields3DElectricField):
-    
     def startup(self):
         self._edgeCurl = self.simulation.mesh.edge_curl
         self._aveE2CCV = self.simulation.mesh.aveE2CCV
@@ -668,7 +667,6 @@ class Fields3DElectricFieldFaceEdgeConductivity(Fields3DElectricField):
         )
 
     def _jDeriv_m(self, src, v, adjoint=False):
-        
         e = self[src, "e"]
 
         if adjoint:
@@ -1044,7 +1042,6 @@ class Fields3DMagneticFluxDensityFaceEdgeConductivity(Fields3DMagneticFluxDensit
         self._MeI = self.simulation.MeI
         self._MfI = self.simulation.MfI
 
-
     def _eSecondary(self, bSolution, source_list):
         """
         Secondary electric field from bSolution
@@ -1061,9 +1058,13 @@ class Fields3DMagneticFluxDensityFaceEdgeConductivity(Fields3DMagneticFluxDensit
             e[:, i] = e[:, i] + -s_e
 
             if self.simulation.permittivity is not None:
-                MeyhatI = self.simulation._get_edge_admittivity_property_matrix(
-                    src.frequency, invert_matrix=True
-                ) + self.__MeTau + self.__MeKappa
+                MeyhatI = (
+                    self.simulation._get_edge_admittivity_property_matrix(
+                        src.frequency, invert_matrix=True
+                    )
+                    + self.__MeTau
+                    + self.__MeKappa
+                )
                 e[:, i] = MeyhatI * e[:, i]
 
         if self.simulation.permittivity is None:
@@ -1085,7 +1086,9 @@ class Fields3DMagneticFluxDensityFaceEdgeConductivity(Fields3DMagneticFluxDensit
         """
 
         if not adjoint:
-            return self.__MeSigmaTauKappaI * (self._edgeCurl.T * (self._MfMui * du_dm_v))
+            return self.__MeSigmaTauKappaI * (
+                self._edgeCurl.T * (self._MfMui * du_dm_v)
+            )
         return self._MfMui.T * (self._edgeCurl * (self.__MeSigmaTauKappaI.T * du_dm_v))
 
     def _eDeriv_m(self, src, v, adjoint=False):
@@ -1095,7 +1098,9 @@ class Fields3DMagneticFluxDensityFaceEdgeConductivity(Fields3DMagneticFluxDensit
         w = -s_e + self._edgeCurl.T * (self._MfMui * bSolution)
 
         if adjoint:
-            s_eDeriv = src.s_eDeriv(self.simulation, self.__MeSigmaTauKappaI.T * v, adjoint)
+            s_eDeriv = src.s_eDeriv(
+                self.simulation, self.__MeSigmaTauKappaI.T * v, adjoint
+            )
             return (
                 self.__MeSigmaTauKappaIDeriv(w, v, adjoint)
                 + self._MfMuiDeriv(
@@ -1107,7 +1112,8 @@ class Fields3DMagneticFluxDensityFaceEdgeConductivity(Fields3DMagneticFluxDensit
         s_eDeriv = src.s_eDeriv(self.simulation, v, adjoint)
         return (
             self.__MeSigmaTauKappaIDeriv(w, v)
-            + self.__MeSigmaTauKappaI * (self._edgeCurl.T * self._MfMuiDeriv(bSolution, v))
+            + self.__MeSigmaTauKappaI
+            * (self._edgeCurl.T * self._MfMuiDeriv(bSolution, v))
             - self.__MeSigmaTauKappaI * s_eDeriv
             + src.ePrimaryDeriv(self.simulation, v, adjoint)
         )
@@ -1131,7 +1137,9 @@ class Fields3DMagneticFluxDensityFaceEdgeConductivity(Fields3DMagneticFluxDensit
 
             return self._MeI * j
         else:
-            return self._MeI * (self.__MeSigmaTauKappa * self._e(bSolution, source_list))
+            return self._MeI * (
+                self.__MeSigmaTauKappa * self._e(bSolution, source_list)
+            )
 
 
 class Fields3DCurrentDensity(FieldsFDEM):

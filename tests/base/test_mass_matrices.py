@@ -26,7 +26,9 @@ class SimpleSim(BasePDESimulation):
     props.Reciprocal(sigma, rho)
     mu, muMap, muDeriv = props.Invertible("Magnetic Permeability")
     tau, tauMap, tauDeriv = props.Invertible("Face conductivity, conductance (S)")
-    kappa, kappaMap, kappaDeriv = props.Invertible("Edge conductivity, conductivity times area (Sm)")
+    kappa, kappaMap, kappaDeriv = props.Invertible(
+        "Edge conductivity, conductivity times area (Sm)"
+    )
 
     def __init__(
         self,
@@ -1412,6 +1414,7 @@ class TestSimEdgeProperties(unittest.TestCase):
         vJty = v @ sim._MeKappaIDeriv(u, y, adjoint=True)
         np.testing.assert_allclose(yJv, vJty)
 
+
 def test_bad_derivative_stash():
     mesh = discretize.TensorMesh([5, 6, 7])
     sim = SimpleSim(mesh, sigmaMap=maps.ExpMap())
@@ -1431,6 +1434,7 @@ def test_bad_derivative_stash():
 
     with pytest.raises(TypeError):
         sim.MeSigmaDeriv(u, v)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -3,7 +3,7 @@ import scipy.sparse as sp
 
 from ...data import Data
 from ...simulation import BaseTimeSimulation
-from ...utils import mkvc, sdiag, sdinv, speye, Zero, validate_type, validate_float
+from ...utils import mkvc, sdiag, speye, Zero, validate_type, validate_float
 from ...base import BaseFaceEdgeElectricalPDESimulation
 from ..base import BaseEMSimulation
 from .survey import Survey
@@ -998,14 +998,14 @@ class Simulation3DMagneticFluxDensityFaceEdgeConductivity(
     def getAdiagDeriv(self, tInd, u, v, adjoint=False):
         C = self.mesh.edge_curl
         MfMui = self.MfMui
-        
+
         u = C.T * (MfMui * u)
 
         if adjoint:
             if self._makeASymmetric is True:
                 v = MfMui * v
             return self._MeSigmaTauKappaIDeriv(u, C.T * v, adjoint)
-        
+
         ADeriv = C * self._MeSigmaTauKappaIDeriv(u, v, adjoint)
 
         if self._makeASymmetric is True:
@@ -1092,7 +1092,6 @@ class Simulation3DElectricFieldFaceEdgeConductivity(
         return C.T.tocsr() * (MfMui * C) + 1.0 / dt * MeSigmaTauKappa
 
     def getAdiagDeriv(self, tInd, u, v, adjoint=False):
-        
         assert tInd >= 0 and tInd < self.nT
 
         dt = self.time_steps[tInd]
@@ -1126,7 +1125,6 @@ class Simulation3DElectricFieldFaceEdgeConductivity(
         return -1.0 / dt * self._MeSigmaTauKappaDeriv(u, v, adjoint)
 
     def getAdc(self):
-        
         MeSigmaTauKappa = self._MeSigmaTauKappa
 
         Grad = self.mesh.nodal_gradient
@@ -1141,7 +1139,6 @@ class Simulation3DElectricFieldFaceEdgeConductivity(
             return Grad.T * self._MeSigmaTauKappaDeriv(-u, v, adjoint)
         else:
             return self._MeSigmaTauKappaDeriv(-u, Grad * v, adjoint)
-
 
 
 ###############################################################################

@@ -3488,6 +3488,7 @@ class InjectActiveFaces(IdentityMap):
             return self.P * v
         return self.P
 
+
 class InjectActiveEdges(IdentityMap):
     r"""Map active edges model to all edges of a mesh.
 

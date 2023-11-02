@@ -432,13 +432,11 @@ class Simulation3DElectricField(BaseFDEMSimulation):
 class Simulation3DElectricFieldFaceEdgeConductivity(
     Simulation3DElectricField, BaseFaceEdgeElectricalPDESimulation
 ):
-
     _solutionType = "eSolution"
     _formulation = "EB"
     fieldsPair = Fields3DElectricFieldFaceEdgeConductivity
 
     def getA(self, freq):
-
         MfMui = self.MfMui
         C = self.mesh.edge_curl
 
@@ -446,7 +444,11 @@ class Simulation3DElectricFieldFaceEdgeConductivity(
             MeSigmaTauKappa = self._MeSigmaTauKappa
             A = C.T.tocsr() * MfMui * C + 1j * omega(freq) * MeSigmaTauKappa
         else:
-            Meyhat = self._get_edge_admittivity_property_matrix(freq) + self._MeTau + self._MeKappa
+            Meyhat = (
+                self._get_edge_admittivity_property_matrix(freq)
+                + self._MeTau
+                + self._MeKappa
+            )
             A = C.T.tocsr() * MfMui * C + 1j * omega(freq) * Meyhat
 
         return A
@@ -663,6 +665,7 @@ class Simulation3DMagneticFluxDensity(BaseFDEMSimulation):
 
         return RHSderiv + SrcDeriv
 
+
 class Simulation3DMagneticFluxDensityFaceEdgeConductivity(
     Simulation3DMagneticFluxDensity, BaseFaceEdgeElectricalPDESimulation
 ):
@@ -772,9 +775,9 @@ class Simulation3DMagneticFluxDensityFaceEdgeConductivity(
             RHS = s_m + C * (MeSigmaTauKappaI * s_e)
         else:
             MeyhatI = sdinv(
-                self._get_edge_admittivity_property_matrix(
-                    freq, invert_matrix=False
-                ) + self._MeTau + self._MeKappa
+                self._get_edge_admittivity_property_matrix(freq, invert_matrix=False)
+                + self._MeTau
+                + self._MeKappa
             )
             RHS = s_m + C * (MeyhatI * s_e)
 
