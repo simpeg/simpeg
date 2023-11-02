@@ -304,7 +304,9 @@ class Fields3DMagneticFluxDensityFaceEdgeConductivity(Fields3DMagneticFluxDensit
 
     def _eDeriv_u(self, tInd, src, dun_dm_v, adjoint=False):
         if adjoint is True:
-            return self._MfMui.T * (self._edgeCurl * (self.__MeSigmaTauKappaI.T * dun_dm_v))
+            return self._MfMui.T * (
+                self._edgeCurl * (self.__MeSigmaTauKappaI.T * dun_dm_v)
+            )
         return self.__MeSigmaTauKappaI * (self._edgeCurl.T * (self._MfMui * dun_dm_v))
 
     def _eDeriv_m(self, tInd, src, v, adjoint=False):
@@ -347,7 +349,8 @@ class Fields3DMagneticFluxDensityFaceEdgeConductivity(Fields3DMagneticFluxDensit
                 tInd, src, self.__MeSigmaTauKappa.T * w, adjoint=True
             )
         return self.simulation.MeI * (
-            self.__MeSigmaTauKappaDeriv(e) * v + self.__MeSigmaTauKappa * self._eDeriv_m(tInd, src, v)
+            self.__MeSigmaTauKappaDeriv(e) * v
+            + self.__MeSigmaTauKappa * self._eDeriv_m(tInd, src, v)
         )
 
 
@@ -490,8 +493,7 @@ class Fields3DElectricFieldFaceEdgeConductivity(Fields3DElectricField):
             return self._eDeriv_u(
                 tInd,
                 src,
-                (self.__MeSigmaTauKappa).T
-                * (self.simulation.MeI.T * dun_dm_v),
+                (self.__MeSigmaTauKappa).T * (self.simulation.MeI.T * dun_dm_v),
                 adjoint=True,
             )
         return self.simulation.MeI * (
@@ -506,7 +508,8 @@ class Fields3DElectricFieldFaceEdgeConductivity(Fields3DElectricField):
                 tInd, src, self.__MeSigmaTauKappa.T * w, adjoint=True
             )
         return self.simulation.MeI * (
-            self.__MeSigmaTauKappaDeriv(e) * v + self.__MeSigmaTauKappa * self._eDeriv_m(tInd, src, v)
+            self.__MeSigmaTauKappaDeriv(e) * v
+            + self.__MeSigmaTauKappa * self._eDeriv_m(tInd, src, v)
         )
 
 

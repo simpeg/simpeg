@@ -880,15 +880,15 @@ class BaseFaceEdgeElectricalPDESimulation(BaseElectricalPDESimulation):
     def _MeSigmaTauKappa(self):
         if getattr(self, "__MeSigmaTauKappa", None) is None:
             M_prop = self.MeSigma + self._MeTau + self._MeKappa
-            setattr(self, "__MeSigmaTauKappa", M_prop)
-        return getattr(self, "__MeSigmaTauKappa")
+            setattr(self, "__MeSigmaTauKappa", M_prop)  # B010
+        return getattr(self, "__MeSigmaTauKappa")  # B09
 
     @property
     def _MeSigmaTauKappaI(self):
         if getattr(self, "__MeSigmaTauKappaI", None) is None:
             M_prop = sdinv(self.MeSigma + self._MeTau + self._MeKappa)
-            setattr(self, "__MeSigmaTauKappaI", M_prop)
-        return getattr(self, "__MeSigmaTauKappaI")
+            setattr(self, "__MeSigmaTauKappaI", M_prop)  # B010
+        return getattr(self, "__MeSigmaTauKappaI")  # B009
 
     def _MeSigmaTauKappaDeriv_sigma(self, u, v=None, adjoint=False):
         """Only derivative wrt to sigma"""
