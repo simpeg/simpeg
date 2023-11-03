@@ -453,33 +453,9 @@ class Simulation3DIntegral(BasePFSimulation):
         """
         Return indices of nodes for each cell in the mesh.
         """
-        if isinstance(self.mesh, discretize.TreeMesh):
-            cell_nodes = self.mesh.cell_nodes
-        elif isinstance(self.mesh, discretize.TensorMesh):
-            cell_nodes = self._get_tensormesh_cell_nodes()
-        else:
+        if not isinstance(self.mesh, (discretize.TreeMesh, discretize.TensorMesh)):
             raise TypeError(f"Invalid mesh of type {self.mesh.__class__.__name__}.")
-        return cell_nodes
-
-    def _get_tensormesh_cell_nodes(self):
-        """
-        Quick implementation of ``cell_nodes`` for a ``TensorMesh``.
-
-        This method should be removed after ``TensorMesh.cell_nodes`` is added
-        in discretize.
-        """
-        inds = np.arange(self.mesh.n_nodes).reshape(self.mesh.shape_nodes, order="F")
-        cell_nodes = [
-            inds[:-1, :-1, :-1].reshape(-1, order="F"),
-            inds[1:, :-1, :-1].reshape(-1, order="F"),
-            inds[:-1, 1:, :-1].reshape(-1, order="F"),
-            inds[1:, 1:, :-1].reshape(-1, order="F"),
-            inds[:-1, :-1, 1:].reshape(-1, order="F"),
-            inds[1:, :-1, 1:].reshape(-1, order="F"),
-            inds[:-1, 1:, 1:].reshape(-1, order="F"),
-            inds[1:, 1:, 1:].reshape(-1, order="F"),
-        ]
-        cell_nodes = np.stack(cell_nodes, axis=-1)
+        cell_nodes = self.mesh.cell_nodes
         return cell_nodes
 
     def _get_active_nodes(self):
