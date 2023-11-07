@@ -156,6 +156,7 @@ from .base import (
     SmoothnessSecondOrder,
 )
 from .regularization_mesh import RegularizationMesh
+from .regularization_mesh_lateral import LCRegularizationMesh
 from .sparse import BaseSparse, SparseSmallness, SparseSmoothness, Sparse
 from .pgi import PGIsmallness, PGI
 from .cross_gradient import CrossGradient
