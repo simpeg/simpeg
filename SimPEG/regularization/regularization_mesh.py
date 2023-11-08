@@ -551,8 +551,8 @@ class RegularizationMesh(props.BaseSimPEG):
             Cell center distance array along the x-direction.
         """
         if getattr(self, "_cell_distances_x", None) is None:
-            Ave = self.aveCC2Fx
-            self._cell_distances_x = Ave * (self.Pac.T * self.mesh.h_gridded[:, 0])
+            self._cell_distances_x = np.max(self.cell_gradient_x, axis=1).data ** (-1.0)
+
         return self._cell_distances_x
 
     @property
@@ -565,8 +565,8 @@ class RegularizationMesh(props.BaseSimPEG):
             Cell center distance array along the y-direction.
         """
         if getattr(self, "_cell_distances_y", None) is None:
-            Ave = self.aveCC2Fy
-            self._cell_distances_y = Ave * (self.Pac.T * self.mesh.h_gridded[:, 1])
+            self._cell_distances_y = np.max(self.cell_gradient_y, axis=1).data ** (-1.0)
+
         return self._cell_distances_y
 
     @property
@@ -579,8 +579,8 @@ class RegularizationMesh(props.BaseSimPEG):
             Cell center distance array along the z-direction.
         """
         if getattr(self, "_cell_distances_z", None) is None:
-            Ave = self.aveCC2Fz
-            self._cell_distances_z = Ave * (self.Pac.T * self.mesh.h_gridded[:, 2])
+            self._cell_distances_z = np.max(self.cell_gradient_z, axis=1).data ** (-1.0)
+
         return self._cell_distances_z
 
 
