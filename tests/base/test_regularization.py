@@ -630,6 +630,16 @@ def test_cross_reg_reg_errors():
         regularization.CrossReferenceRegularization(mesh, ref_dir)
 
 
+def test_coterminal_angle():
+    mesh = discretize.TreeMesh([16, 16, 16])
+    mesh.insert_cells([100, 100, 100], mesh.max_level, finalize=True)
+
+    reg = regularization.SmoothnessFirstOrder(mesh, units="radian", orientation="y")
+    angles = np.ones(mesh.n_cells) * np.pi
+    angles[5] = -np.pi
+    assert np.all(reg.f_m(angles) == 0)
+
+
 class TestParent:
     """Test parent property of regularizations."""
 
