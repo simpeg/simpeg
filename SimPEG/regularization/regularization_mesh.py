@@ -551,7 +551,7 @@ class RegularizationMesh(props.BaseSimPEG):
             Cell center distance array along the x-direction.
         """
         if getattr(self, "_cell_distances_x", None) is None:
-            self._cell_distances_x = np.max(self.cell_gradient_x, axis=1).data ** (-1.0)
+            self._cell_distances_x = self.cell_gradient_x.max(axis=1).data ** (-1.0)
 
         return self._cell_distances_x
 
@@ -565,7 +565,7 @@ class RegularizationMesh(props.BaseSimPEG):
             Cell center distance array along the y-direction.
         """
         if getattr(self, "_cell_distances_y", None) is None:
-            self._cell_distances_y = np.max(self.cell_gradient_y, axis=1).data ** (-1.0)
+            self._cell_distances_y = self.cell_gradient_y.max(axis=1).data ** (-1.0)
 
         return self._cell_distances_y
 
@@ -579,7 +579,7 @@ class RegularizationMesh(props.BaseSimPEG):
             Cell center distance array along the z-direction.
         """
         if getattr(self, "_cell_distances_z", None) is None:
-            self._cell_distances_z = np.max(self.cell_gradient_z, axis=1).data ** (-1.0)
+            self._cell_distances_z = self.cell_gradient_z.max(axis=1).data ** (-1.0)
 
         return self._cell_distances_z
 
