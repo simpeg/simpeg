@@ -558,7 +558,7 @@ class Simulation3DIntegral(BasePFSimulation):
                         constant_factor,
                         scalar_model,
                     )
-                index_offset += n_rows
+            index_offset += n_rows
         return fields
 
     def _sensitivity_matrix(self):
