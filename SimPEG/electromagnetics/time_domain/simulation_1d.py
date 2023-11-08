@@ -11,6 +11,7 @@ from .survey import Survey
 from scipy.constants import mu_0
 from scipy.interpolate import InterpolatedUnivariateSpline as iuSpline
 from scipy.special import roots_legendre
+from scipy import signal
 
 from empymod import filters
 from empymod.transform import get_dlf_points
@@ -355,13 +356,25 @@ class Simulation1DLayered(BaseEM1DSimulation):
                 v_slice = v[np.arange(i, i_p1)]
                 # this should order it as location changing faster than time
                 # i.e. loc_1 t_1, loc_2 t_1, loc1 t2, loc2 t2
+
+                frequencies = self._frequencies
+                w = 2 * np.pi * frequencies
+                wc_lp = 2 * np.pi * rx.lp_cutoff_frequency                
+                h_lp = (1+1j*w/wc_lp)**(-rx.lp_power) # low pass filter
+                wc_bw = 2 * np.pi * rx.bw_cutoff_frequency
+                numer, denom = signal.butter(rx.bw_power, wc_bw, 'low', analog=True)
+                _, h_bw = signal.freqs(numer, denom, worN=w)
+                h = h_lp * h_bw
+                
                 if v.ndim == 3:
+                    v_slice *= h[None,:,None]
                     if isinstance(rx, (PointMagneticFluxDensity, PointMagneticField)):
                         d = np.einsum("ij,...jk->...ik", As[i_A], v_slice.imag)
                     else:
                         d = np.einsum("ij,...jk->...ik", As[i_A], v_slice.real)
                     out[i_dat:i_datp1] = d.reshape((-1, v.shape[-1]), order="F")
                 else:
+                    v_slice *= h[None,:]
                     if isinstance(rx, (PointMagneticFluxDensity, PointMagneticField)):
                         d = np.einsum("ij,...j->...i", As[i_A], v_slice.imag)
                     else:
