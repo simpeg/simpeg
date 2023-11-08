@@ -37,16 +37,16 @@ def _forward_gravity(
 
     Parameters
     ----------
-    receivers : (n_receivers, 3) array
+    receivers : (n_receivers, 3) numpy.ndarray
         Array with the locations of the receivers
-    nodes : (n_active_nodes, 3) array
+    nodes : (n_active_nodes, 3) numpy.ndarray
         Array with the location of the mesh nodes.
-    densities : (n_active_cells)
+    densities : (n_active_cells) numpy.ndarray
         Array with densities of each active cell in the mesh.
-    fields : (n_receivers) array
+    fields : (n_receivers) numpy.ndarray
         Array full of zeros where the gravity fields on each receiver will be
         stored. This could be a preallocated array or a slice of it.
-    cell_nodes : (n_active_cells, 8) array
+    cell_nodes : (n_active_cells, 8) numpy.ndarray
         Array of integers, where each row contains the indices of the nodes for
         each active cell in the mesh.
     kernel_func : callable
@@ -119,14 +119,14 @@ def _sensitivity_gravity(
 
     Parameters
     ----------
-    receivers : (n_receivers, 3) array
+    receivers : (n_receivers, 3) numpy.ndarray
         Array with the locations of the receivers
-    nodes : (n_active_nodes, 3) array
+    nodes : (n_active_nodes, 3) numpy.ndarray
         Array with the location of the mesh nodes.
     sensitivity_matrix : (n_receivers, n_active_nodes) array
         Empty 2d array where the sensitivity matrix elements will be filled.
         This could be a preallocated empty array or a slice of it.
-    cell_nodes : (n_active_cells, 8) array
+    cell_nodes : (n_active_cells, 8) numpy.ndarray
         Array of integers, where each row contains the indices of the nodes for
         each active cell in the mesh.
     kernel_func : callable
@@ -220,7 +220,7 @@ def _kernels_in_nodes_to_cell(
 
     Parameters
     ----------
-    kernels : (n_active_nodes,) array
+    kernels : (n_active_nodes,) numpy.ndarray
         Array with kernel values on each one of the nodes in the mesh.
     nodes_indices : ints
         Indices of the nodes for the current cell in "F" order (x changes
