@@ -45,15 +45,16 @@ def run_simulation_time_domain(args):
         tau2,
         h,
         output_type,
-        invert_height,
         return_projection,
         coefficients
     ) = args
 
     n_layer = len(thicknesses) + 1
+    n_src = len(source_list)
+
     local_survey = Survey(source_list)
     if output_type == "sensitivity":
-        wires = maps.Wires(("sigma", n_layer), ("h", 1))
+        wires = maps.Wires(("sigma", n_layer), ("h", n_src))
         sigma_map = wires.sigma
         h_map = wires.h
     elif output_type == "forward":
@@ -78,7 +79,9 @@ def run_simulation_time_domain(args):
     sim._set_coefficients(coefficients)
 
     if output_type == "sensitivity":
-        J = sim.getJ(np.r_[sigma, h])
+        J = sim.getJ(np.r_[sigma, h*np.ones(n_src)])
+        # we assumed the tx heights in a sounding is fixed
+        J['dh'] = J['dh'].sum(axis=1)        
         return J
     else:
         em_response = sim.dpred(sigma)
@@ -92,31 +95,6 @@ def run_simulation_time_domain(args):
 class Simulation1DLayeredStitched(BaseStitchedEM1DSimulation):
 
     _simulation_type = 'time'
-    # survey = properties.Instance("a survey object", Survey, required=True)
-    # def run_simulation(self, args):
-    #     if self.verbose:
-    #         print(">> Time-domain")
-    #     return self._run_simulation(args)
-
-    # TODO: need to think about if there are piecies that are height invariant. 
-    #     
-    # def get_uniq_soundings(self):
-    #         self._sounding_types_uniq, self._ind_sounding_uniq = np.unique(
-    #             self.survey._sounding_types, return_index=True
-    #         )
-    # def get_coefficients(self):
-    #     if self.verbose:
-    #         print(">> Calculate coefficients")
-
-    #     self.get_uniq_soundings()
-
-    #     run_simulation = run_simulation_time_domain
-
-    #     self._coefficients = {}
-    #     for kk, ii in enumerate(self._ind_sounding_uniq):
-    #         name = self._sounding_types_uniq[kk]
-    #         self._coefficients[name] = run_simulation(self.input_args_for_coeff(ii))
-    #     self._coefficients_set = True
 
     def get_coefficients(self):
 

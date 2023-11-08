@@ -318,7 +318,8 @@ class BaseStitchedEM1DSimulation(BaseSimulation):
     @property
     def H(self):
         if self.hMap is None:
-            return np.ones(self.n_sounding)
+            h = self.source_locations_for_sounding[:,2] - self.topo[:,2]
+            return h
         else:
             return self.h
 
@@ -360,7 +361,6 @@ class BaseStitchedEM1DSimulation(BaseSimulation):
             self.Tau2[i_sounding, :],
             self.H[i_sounding],
             output_type,
-            self.invert_height,
             False,
             self._coefficients[i_sounding],
         )
@@ -383,7 +383,6 @@ class BaseStitchedEM1DSimulation(BaseSimulation):
             self.Tau2[i_sounding, :],
             self.H[i_sounding],
             'forward',
-            self.invert_height,
             True,
             [],
         )
@@ -412,30 +411,34 @@ class BaseStitchedEM1DSimulation(BaseSimulation):
         return self._sounding_number
 
     @property
-    def sounding_number_chunks(self):
-        self._sounding_number_chunks = list(self.chunks(self.sounding_number, self.n_sounding_for_chunk))
-        return self._sounding_number_chunks
-
-    @property
     def n_chunk(self):
         self._n_chunk = len(self.sounding_number_chunks)
         return self._n_chunk
+    @property
+    def source_locations_for_sounding(self):
+        if getattr(self, '_source_locations_for_sounding', None) is None:
+            self._source_locations_for_sounding = np.vstack([self.survey._source_location_by_sounding_dict[ii][0] for ii in range(self.n_sounding)])
+        return self._source_locations_for_sounding
 
-    def chunks(self, lst, n):
-        """Yield successive n-sized chunks from lst."""
-        for i in range(0, len(lst), n):
-            yield lst[i:i + n]
+    # def chunks(self, lst, n):
+    #     """Yield successive n-sized chunks from lst."""
+    #     for i in range(0, len(lst), n):
+    #         yield lst[i:i + n]
 
-    def input_args_by_chunk(self, i_chunk, output_type):
-        args_by_chunks = []
-        for i_sounding in self.sounding_number_chunks[i_chunk]:
-            args_by_chunks.append(self.input_args(i_sounding, output_type))
-        return args_by_chunks
+    # @property
+    # def sounding_number_chunks(self):
+    #     self._sounding_number_chunks = list(self.chunks(self.sounding_number, self.n_sounding_for_chunk))
+    #     return self._sounding_number_chunks
+
+    # def input_args_by_chunk(self, i_chunk, output_type):
+    #     args_by_chunks = []
+    #     for i_sounding in self.sounding_number_chunks[i_chunk]:
+    #         args_by_chunks.append(self.input_args(i_sounding, output_type))
+    #     return args_by_chunks
 
     def set_null_topography(self):
-        self.topo = np.vstack(
-            [np.c_[src.location[0], src.location[1], 0.] for i, src in enumerate(self.survey.source_list)]
-        )
+        self.topo = self.source_locations_for_sounding.copy()
+        self.topo[:,2] = 0.
 
 
     def set_ij_n_layer(self, n_layer=None):
@@ -538,15 +541,3 @@ class BaseStitchedEM1DSimulation(BaseSimulation):
         if self.fix_Jmatrix is False:            
             toDelete += ['_Sigma', '_J', '_Jmatrix_sigma', '_Jmatrix_height', '_gtg_diag']
         return toDelete
-
-    # def _run_simulation_by_chunk(self, args_chunk):
-    #     """
-    #     This method simulates the EM response or computes the sensitivities for
-    #     a single sounding. The method allows for parallelization of
-    #     the stitched 1D problem.
-    #     """
-    #     n = len(args_chunk)
-    #     results = [
-    #                 self.run_simulation(args_chunk[i_sounding]) for i_sounding in range(n)
-    #     ]
-    #     return results

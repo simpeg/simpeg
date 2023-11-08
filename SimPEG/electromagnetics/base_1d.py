@@ -357,7 +357,11 @@ class BaseEM1DSimulation(BaseSimulation):
         Is = []
         n_w_past = 0
         i_count = 0
-        for src in survey.source_list:
+
+        if self.hMap is not None:
+            hvec = self.h  # source height above topo
+
+        for i_src, src in enumerate(survey.source_list):
             # doing the check for source type by checking its name
             # to avoid importing and checking "isinstance"
             class_name = type(src).__name__
@@ -370,7 +374,7 @@ class BaseEM1DSimulation(BaseSimulation):
                     raise ValueError("Can only simulate horizontal circular loops")
             # Note: this assumes a fixed height for all sources
             if self.hMap is not None:
-                h = self.h  # source height above topo
+                h = hvec[i_src]
             else:
                 h = src.location[2] - self.topo[-1]
 

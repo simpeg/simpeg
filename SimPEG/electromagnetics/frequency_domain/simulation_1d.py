@@ -181,7 +181,7 @@ class Simulation1DLayered(BaseEM1DSimulation):
                 # need to re-arange v_dh as it's currently (n_data x 1)
                 # however it already contains all the relevant information...
                 # just need to map it from the rx index to the source index associated..
-                v_dh = np.zeros((self.survey.nSrc, v_dh_temp.shape[0]))
+                v_dh = np.zeros((self.survey.nSrc, v_dh_temp.shape[0]), dtype=complex)
 
                 i = 0
                 for i_src, src in enumerate(self.survey.source_list):
