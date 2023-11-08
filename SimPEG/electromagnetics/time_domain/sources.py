@@ -1037,6 +1037,7 @@ class BaseTDEMSrc(BaseEMSrc):
         location=None,
         waveform=None,
         srcType=None,
+        i_sounding=0,
         **kwargs,
     ):
         if waveform is None:
@@ -1048,6 +1049,8 @@ class BaseTDEMSrc(BaseEMSrc):
         self.waveform = waveform
         if srcType is not None:
             self.srcType = srcType
+
+        self.i_sounding = i_sounding
 
     @property
     def waveform(self):
@@ -1078,6 +1081,20 @@ class BaseTDEMSrc(BaseEMSrc):
     @srcType.setter
     def srcType(self, var):
         self._srcType = validate_string("srcType", var, ["inductive", "galvanic"])
+
+    @property
+    def i_sounding(self):
+        """Sounding number for the source
+
+        Returns
+        -------
+        int
+        """
+        return self._i_sounding
+
+    @i_sounding.setter
+    def i_sounding(self, value):
+        self._i_sounding = validate_integer("i_sounding", value, min_val=0)
 
     def bInitial(self, simulation):
         """Return initial B-field (``Zero`` for ``BaseTDEMSrc`` class)

@@ -47,6 +47,7 @@ class LaterallyConstrained(Sparse):
         self,
         mesh,
         active_cells=None,
+        active_edges=None,
         alpha_r=None,
         length_scale_r=None,        
         norms=None,
@@ -67,6 +68,8 @@ class LaterallyConstrained(Sparse):
         self._regularization_mesh = mesh
         if active_cells is not None:
             self._regularization_mesh.active_cells = active_cells
+        if active_edges is not None:
+            self._regularization_mesh.active_edges = active_edges
 
         if alpha_r is not None:
             if length_scale_r is not None:

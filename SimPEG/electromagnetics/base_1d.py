@@ -368,8 +368,9 @@ class BaseEM1DSimulation(BaseSimulation):
             if is_circular_loop:
                 if np.any(src.orientation[:-1] != 0.0):
                     raise ValueError("Can only simulate horizontal circular loops")
+            # Note: this assumes a fixed height for all sources
             if self.hMap is not None:
-                h = 0  # source height above topo
+                h = self.h  # source height above topo
             else:
                 h = src.location[2] - self.topo[-1]
 
@@ -573,6 +574,7 @@ class BaseEM1DSimulation(BaseSimulation):
             toDelete += ["_J", "_gtgdiag"]
         return toDelete
 
+    # TODO: need to revisit this: 
     def depth_of_investigation_christiansen_2012(self, std, thres_hold=0.8):
         pred = self.survey._pred.copy()
         delta_d = std * np.log(abs(self.survey.dobs))

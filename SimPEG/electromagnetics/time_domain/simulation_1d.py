@@ -78,6 +78,7 @@ class Simulation1DLayered(BaseEM1DSimulation):
             self._inv_lambs,
             self._C0s,
             self._C1s,
+            self._W
         )
 
     def _set_coefficients(self, coefficients):
@@ -88,6 +89,7 @@ class Simulation1DLayered(BaseEM1DSimulation):
         self._inv_lambs = coefficients[4]
         self._C0s = coefficients[5]
         self._C1s = coefficients[6]
+        self._W = coefficients[7]
         self._coefficients_set = True
         return
 
@@ -285,7 +287,7 @@ class Simulation1DLayered(BaseEM1DSimulation):
                 # need to re-arange v_dh as it's currently (n_data x n_freqs)
                 # however it already contains all the relevant information...
                 # just need to map it from the rx index to the source index associated..
-                v_dh = np.zeros((self.survey.nSrc, *v_dh_temp.shape))
+                v_dh = np.zeros((self.survey.nSrc, *v_dh_temp.shape), dtype=complex)
 
                 i = 0
                 for i_src, src in enumerate(self.survey.source_list):
