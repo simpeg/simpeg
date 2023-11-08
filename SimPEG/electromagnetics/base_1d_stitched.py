@@ -139,7 +139,6 @@ class BaseStitchedEM1DSimulation(BaseSimulation):
         Returns
         -------
         numpy.ndarray of float
-        test
         """
         return self._topo
 
