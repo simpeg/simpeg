@@ -357,7 +357,7 @@ def _forward_mag(
             uy = _kernels_in_nodes_to_cell(ky, nodes_indices)
             uz = _kernels_in_nodes_to_cell(kz, nodes_indices)
             if scalar_model:
-                fields[i] = (
+                fields[i] += (
                     constant_factor
                     * model[k]
                     * regional_field_amplitude
