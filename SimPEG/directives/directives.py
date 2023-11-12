@@ -1428,8 +1428,9 @@ class Update_IRLS(InversionDirective):
         for reg, norms in zip(self.reg.objfcts, self.norms):
             reg.norms = norms
 
-        # Save l2-model
+        # Save l2-model and synthetic
         self.invProb.l2model = self.invProb.model.copy()
+        self.invProb.l2dpred = self.invProb.dpred.copy()
 
         # Print to screen
         for reg in self.reg.objfcts:

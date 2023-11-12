@@ -18,8 +18,10 @@ from .utils import Counter, timeIt, count, mkvc
 
 try:
     from pymatsolver import Pardiso as DefaultSolver
+    print("Using Pardiso solver as default if not otherwise defined")
 except ImportError:
     from .utils.solver_utils import SolverLU as DefaultSolver
+    print("Cannot import Pardiso, will use SolverLU")
 
 __all__ = ["LinearSimulation", "ExponentialSinusoidSimulation"]
 
