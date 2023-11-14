@@ -23,7 +23,7 @@ class EM1D_TD_general_Jac_layers_ProblemTests(unittest.TestCase):
             start_time=-0.01, peak_time=-0.005, off_time=0.0
         )
 
-        # Receiver list
+        # xceiver list
 
         # Define receivers at each location.
         b_receiver = tdem.receivers.PointMagneticFluxDensity(

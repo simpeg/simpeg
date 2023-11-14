@@ -221,9 +221,9 @@ class Simulation1DLayered(BaseEM1DSimulation):
         receiver and outputs it as a list. Used for computing response
         or sensitivities.
         """
-        self._compute_coefficients()
-
         self.model = m
+        
+        self._compute_coefficients()
 
         C0s = self._C0s
         C1s = self._C1s
