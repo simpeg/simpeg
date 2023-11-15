@@ -98,16 +98,22 @@ class STITCHED_EM1D_TD_Jacobian_Test_MagDipole(unittest.TestCase):
             )
             )
         survey = tdem.Survey(source_list)
+        wires = maps.Wires(('sigma', n_layer*n_sounding), ('h', n_sounding))
+        sigmaMap = maps.ExpMap(nP=n_layer*n_sounding) * wires.sigma
+        hMap = maps.ExpMap(nP=n_sounding) * wires.h
 
         simulation = tdem.Simulation1DLayeredStitched(
-            survey=survey, thicknesses=thicknesses, sigmaMap=sigma_map,
+            survey=survey, thicknesses=thicknesses, 
+            sigmaMap=sigmaMap,
+            hMap=hMap,
             topo=topo, parallel=False, n_cpu=2, verbose=False, solver=PardisoSolver
         )
 
         self.sim = simulation
         self.mesh = mesh
+    
 
-    def test_EM1DFDJvec_Layers(self):
+    def test_EM1TDJvec_Layers(self):
         # Conductivity
         inds = self.mesh.cell_centers[:, 1] < 25
         inds_1 = self.mesh.cell_centers[:, 1] < 50
@@ -115,7 +121,7 @@ class STITCHED_EM1D_TD_Jacobian_Test_MagDipole(unittest.TestCase):
         sigma[inds_1] = 1./10.
         sigma[inds] = 1./50.
         sigma_em1d = sigma.reshape(self.mesh.vnC, order='F').flatten()
-        m_stitched = np.log(sigma_em1d)
+        m_stitched = np.r_[np.log(sigma_em1d), np.ones(self.sim.n_sounding)*np.log(30.)]
 
         def fwdfun(m):
             resp = self.sim.dpred(m)
@@ -138,7 +144,7 @@ class STITCHED_EM1D_TD_Jacobian_Test_MagDipole(unittest.TestCase):
         if passed:
             print("STITCHED EM1DFM MagDipole Jvec test works")
 
-    def test_EM1DFDJtvec_Layers(self):
+    def test_EM1TDJtvec_Layers(self):
         # Conductivity
         inds = self.mesh.cell_centers[:, 1] < 25
         inds_1 = self.mesh.cell_centers[:, 1] < 50
@@ -146,11 +152,11 @@ class STITCHED_EM1D_TD_Jacobian_Test_MagDipole(unittest.TestCase):
         sigma[inds_1] = 1./10.
         sigma[inds] = 1./50.
         sigma_em1d = sigma.reshape(self.mesh.vnC, order='F').flatten()
-        m_stitched = np.log(sigma_em1d)
+        m_stitched = m_stitched = np.r_[np.log(sigma_em1d), np.ones(self.sim.n_sounding)*np.log(30.)]
 
         dobs = self.sim.dpred(m_stitched)
 
-        m_ini = np.log(1./100.) * np.ones(self.mesh.n_cells)
+        m_ini = np.r_[np.log(1./100.) * np.ones(self.mesh.n_cells), np.ones(self.sim.n_sounding)*np.log(30.)*1.5]
         resp_ini = self.sim.dpred(m_ini)
         dr = resp_ini - dobs
 

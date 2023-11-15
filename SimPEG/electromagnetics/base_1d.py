@@ -357,7 +357,8 @@ class BaseEM1DSimulation(BaseSimulation):
         Is = []
         n_w_past = 0
         i_count = 0
-
+        # Note: coefficients are needed to be updated if we are 
+        # inverting for the source height.
         if self.hMap is not None:
             hvec = self.h  # source height above topo
 
@@ -372,7 +373,7 @@ class BaseEM1DSimulation(BaseSimulation):
             if is_circular_loop:
                 if np.any(src.orientation[:-1] != 0.0):
                     raise ValueError("Can only simulate horizontal circular loops")
-            # Note: this assumes a fixed height for all sources
+            
             if self.hMap is not None:
                 h = hvec[i_src]
             else:

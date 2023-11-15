@@ -264,17 +264,23 @@ class Simulation1DLayered(BaseEM1DSimulation):
                 # Grab a copy
                 C0s_dh = C0s.copy()
                 C1s_dh = C1s.copy()
-                h_vec = self.h
-                i = 0
-                for i_src, src in enumerate(self.survey.source_list):
-                    h = h_vec[i_src]
-                    nD = sum(rx.locations.shape[0] for rx in src.receiver_list)
-                    ip1 = i + nD
-                    v = np.exp(-lambs[i:ip1] * h)
-                    C0s_dh[i:ip1] *= v * -lambs[i:ip1]
-                    C1s_dh[i:ip1] *= v * -lambs[i:ip1]
-                    i = ip1
-                    # J will be n_d * n_src (each source has it's own h)...
+                # h_vec = self.h
+                # i = 0
+                # for i_src, src in enumerate(self.survey.source_list):
+                #     rx = src.receiver_list[0]
+                #     h = h_vec[i_src]
+                #     # if rx.use_source_receiver_offset:
+                #     #     dz = rx.locations[:, 2]
+                #     # else:
+                #     #     dz = rx.locations[:, 2] - src.location[2]
+                #     nD = sum(rx.locations.shape[0] for rx in src.receiver_list)
+                #     ip1 = i + nD
+                #     C0s_dh[i:ip1] *= 2 * -lambs[i:ip1]
+                #     C1s_dh[i:ip1] *= 2 * -lambs[i:ip1]
+                #     i = ip1
+                #     # J will be n_d * n_src (each source has it's own h)...
+                C0s_dh *= 2 * -lambs
+                C1s_dh *= 2 * -lambs
 
                 rTE = rTE_forward(frequencies, unique_lambs, sig, mu, self.thicknesses)
                 rTE = rTE[:, inv_lambs]

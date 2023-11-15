@@ -58,9 +58,14 @@ class STITCHED_EM1D_FD_Jacobian_Test_MagDipole(unittest.TestCase):
                 source_list.append(src)
 
         survey = fdem.Survey(source_list)
+        wires = maps.Wires(('sigma', n_layer*n_sounding), ('h', n_sounding))
+        sigmaMap = maps.ExpMap(nP=n_layer*n_sounding) * wires.sigma
+        hMap = maps.ExpMap(nP=n_sounding) * wires.h
 
         simulation = fdem.Simulation1DLayeredStitched(
-            survey=survey, thicknesses=thicknesses, sigmaMap=sigma_map,
+            survey=survey, thicknesses=thicknesses, 
+            sigmaMap=sigmaMap,
+            hMap=hMap,
             topo=topo, parallel=parallel, n_cpu=2, verbose=False
         )
         self.sim = simulation
@@ -74,7 +79,7 @@ class STITCHED_EM1D_FD_Jacobian_Test_MagDipole(unittest.TestCase):
         sigma[inds_1] = 1./10.
         sigma[inds] = 1./50.
         sigma_em1d = sigma.reshape(self.mesh.vnC, order='F').flatten()
-        m_stitched = np.log(sigma_em1d)
+        m_stitched = np.r_[np.log(sigma_em1d), np.ones(self.sim.n_sounding)*np.log(30.)]
 
         def fwdfun(m):
             resp = self.sim.dpred(m)
@@ -105,11 +110,11 @@ class STITCHED_EM1D_FD_Jacobian_Test_MagDipole(unittest.TestCase):
         sigma[inds_1] = 1./10.
         sigma[inds] = 1./50.
         sigma_em1d = sigma.reshape(self.mesh.vnC, order='F').flatten()
-        m_stitched = np.log(sigma_em1d)
+        m_stitched = np.r_[np.log(sigma_em1d), np.ones(self.sim.n_sounding)*np.log(30.)]
 
         dobs = self.sim.dpred(m_stitched)
 
-        m_ini = np.log(1./100.) * np.ones(self.mesh.n_cells)
+        m_ini = np.r_[np.log(1./100.) * np.ones(self.mesh.n_cells), np.ones(self.sim.n_sounding)*np.log(30.)*1.5]
         resp_ini = self.sim.dpred(m_ini)
         dr = resp_ini - dobs
 

@@ -53,7 +53,7 @@ class LCRegularizationMesh(RegularizationMesh):
                 "The RegulatizationMesh already has an 'active_cells' property set."
             )
         if values is not None:
-            values = validate_active_indices("values", values, self.mesh.nC)
+            values = validate_active_indices("values", values, self.nC)
             # Ensure any cached operators created when
             # active_cells was None are deleted
             self._vol = None

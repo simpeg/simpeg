@@ -43,20 +43,14 @@ def run_simulation_frequency_domain(args):
         tau2,
         h,
         output_type,
-        return_projection,
-        coefficients
     ) = args
 
     n_layer = len(thicknesses) + 1
     local_survey = Survey(source_list)
     n_src = len(source_list)
-    if output_type == "sensitivity":
-        wires = maps.Wires(("sigma", n_layer), ("h", n_src))
-        sigma_map = wires.sigma
-        h_map = wires.h
-    elif output_type == "forward":
-        sigma_map = maps.IdentityMap(nP=n_layer)
-        h_map = None
+    wires = maps.Wires(("sigma", n_layer), ("h", n_src))
+    sigma_map = wires.sigma
+    h_map = wires.h
 
     sim = Simulation1DLayered(
         survey=local_survey,
@@ -70,17 +64,13 @@ def run_simulation_frequency_domain(args):
         hankel_filter="key_101_2009",
     )
 
-    if return_projection:
-        return sim.get_coefficients()
-
-    sim._set_coefficients(coefficients)
-
+    model = np.r_[sigma, h *  np.ones(n_src)]
     if output_type == "sensitivity":
-        J = sim.getJ(np.r_[sigma, h *  np.ones(n_src)])
+        J = sim.getJ(model)
         J['dh'] = J['dh'].sum(axis=1)
         return J
     else:
-        em_response = sim.dpred(sigma)
+        em_response = sim.dpred(model)
         return em_response
 
 
@@ -93,44 +83,11 @@ class Simulation1DLayeredStitched(BaseStitchedEM1DSimulation):
 
     _simulation_type = 'frequency'
 
-    def get_coefficients(self):
-
-        run_simulation = run_simulation_frequency_domain
-
-        if self.verbose:
-            print(">> Calculate coefficients")
-        if self.parallel:
-            pool = Pool(self.n_cpu)
-            self._coefficients = pool.map(
-                run_simulation,
-                [
-                    self.input_args_for_coeff(i) for i in range(self.n_sounding)
-                ]
-             )
-            self._coefficients_set = True
-            pool.close()
-            pool.join()
-        else:
-            self._coefficients = [
-                run_simulation(self.input_args_for_coeff(i)) for i in range(self.n_sounding)
-            ]
-
     def forward(self, m):
         self.model = m
 
         if self.verbose:
             print(">> Compute response")
-
-        # Set flat topo at zero
-        # if self.topo is None:
-            
-
-        # TODO: Need to pull separate hankel coeffcients
-        #       and A matrix for convolution
-        #       hankel coefficients vary with variable height!
-
-        if self._coefficients_set is False:
-            self.get_coefficients()
 
         run_simulation = run_simulation_frequency_domain
 
@@ -167,8 +124,8 @@ class Simulation1DLayeredStitched(BaseStitchedEM1DSimulation):
             if self.verbose:
                 print(">> Compute J")
 
-            if self._coefficients_set is False:
-                self.get_coefficients()
+            # if self._coefficients_set is False:
+            #     self.get_coefficients()
 
             run_simulation = run_simulation_frequency_domain
 

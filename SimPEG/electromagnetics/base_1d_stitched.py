@@ -24,8 +24,8 @@ class BaseStitchedEM1DSimulation(BaseSimulation):
     """
 
     _formulation = "1D"
-    _coefficients = []
-    _coefficients_set = False
+    # _coefficients = []
+    # _coefficients_set = False
 
     # _Jmatrix_sigma = None
     # _Jmatrix_height = None
@@ -361,32 +361,32 @@ class BaseStitchedEM1DSimulation(BaseSimulation):
             self.Tau2[i_sounding, :],
             self.H[i_sounding],
             output_type,
-            False,
-            self._coefficients[i_sounding],
+            # False,
+            # self._coefficients[i_sounding],
         )
         return output
 
     # This is the most expensive process, but required once
     # May need to find unique
-    def input_args_for_coeff(self, i_sounding):
-        output = (
-            self.survey.get_sources_by_sounding_number(i_sounding),
-            self.topo[i_sounding, :],
-            self.Thicknesses[i_sounding,:],
-            self.Sigma[i_sounding, :],
-            self.Eta[i_sounding, :],
-            self.Tau[i_sounding, :],
-            self.C[i_sounding, :],
-            self.Chi[i_sounding, :],
-            self.dChi[i_sounding, :],
-            self.Tau1[i_sounding, :],
-            self.Tau2[i_sounding, :],
-            self.H[i_sounding],
-            'forward',
-            True,
-            [],
-        )
-        return output
+    # def input_args_for_coeff(self, i_sounding):
+    #     output = (
+    #         self.survey.get_sources_by_sounding_number(i_sounding),
+    #         self.topo[i_sounding, :],
+    #         self.Thicknesses[i_sounding,:],
+    #         self.Sigma[i_sounding, :],
+    #         self.Eta[i_sounding, :],
+    #         self.Tau[i_sounding, :],
+    #         self.C[i_sounding, :],
+    #         self.Chi[i_sounding, :],
+    #         self.dChi[i_sounding, :],
+    #         self.Tau1[i_sounding, :],
+    #         self.Tau2[i_sounding, :],
+    #         self.H[i_sounding],
+    #         'forward',
+    #         True,
+    #         [],
+    #     )
+    #     return output
 
     def fields(self, m):
         if self.verbose:
@@ -455,7 +455,7 @@ class BaseStitchedEM1DSimulation(BaseSimulation):
             m = self.n_layer
         else:
             m = n_layer
-        source_location_by_sounding_dict = self.survey.source_location_by_sounding_dict
+
         for i_sounding in range(self.n_sounding):
             n = self.survey.vnD_by_sounding_dict[i_sounding]
             J_temp = np.tile(np.arange(m), (n, 1)) + shift_for_J
@@ -477,24 +477,13 @@ class BaseStitchedEM1DSimulation(BaseSimulation):
         This will be used in GlobalEM1DSimulation when after sensitivity matrix
         for each sounding is computed
         """
-        I = []
         J = []
-        shift_for_J = 0
-        shift_for_I = 0
         m = self.n_layer
+        I = np.arange(self.survey.nD)
         for i_sounding in range(self.n_sounding):
             n = self.survey.vnD_by_sounding_dict[i_sounding]
-            J_temp = np.tile(np.arange(m), (n, 1)) + shift_for_J
-            I_temp = (
-                np.tile(np.arange(n), (1, m)).reshape((n, m), order='F') +
-                shift_for_I
-            )
-            J.append(utils.mkvc(J_temp))
-            I.append(utils.mkvc(I_temp))
-            shift_for_J += m
-            shift_for_I = I_temp[-1, -1] + 1
+            J.append(np.ones(n)*i_sounding)
         J = np.hstack(J).astype(int)
-        I = np.hstack(I).astype(int)
         return (I, J)
 
     def Jvec(self, m, v, f=None):
@@ -507,12 +496,13 @@ class BaseStitchedEM1DSimulation(BaseSimulation):
 
     def Jtvec(self, m, v, f=None):
         J_sigma = self.getJ_sigma(m)        
-        Jtv = self.sigmaDeriv.T @ (J_sigma.T*v)
+        Jtv = self.sigmaDeriv.T @ (J_sigma.T@v)
         if self.hMap is not None:
             J_height = self.getJ_height(m)
-            Jtv += self.hDeriv.T*(J_height.T*v)
+            Jtv += self.hDeriv.T @ (J_height.T@v)
         return Jtv
 
+    # Revisit this
     def getJtJdiag(self, m, W=None, threshold=1e-8):
         """
         Compute diagonal component of JtJ or
