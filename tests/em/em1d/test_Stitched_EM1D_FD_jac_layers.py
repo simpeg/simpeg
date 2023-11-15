@@ -4,69 +4,68 @@ import numpy as np
 import SimPEG.electromagnetics.frequency_domain as fdem
 from SimPEG import *
 from discretize import TensorMesh
-from pymatsolver import PardisoSolver
 
 np.random.seed(41)
 
 
 class STITCHED_EM1D_FD_Jacobian_Test_MagDipole(unittest.TestCase):
-
     def setUp(self, parallel=False):
-
         dz = 1
         geometric_factor = 1.1
         n_layer = 20
-        thicknesses = dz * geometric_factor ** np.arange(n_layer-1)
+        thicknesses = dz * geometric_factor ** np.arange(n_layer - 1)
 
         frequencies = np.array([900, 7200, 56000], dtype=float)
         n_sounding = 50
-        dx = 20.
+        dx = 20.0
         hx = np.ones(n_sounding) * dx
         hz = np.r_[thicknesses, thicknesses[-1]]
 
-        mesh = TensorMesh([hx, hz], x0='00')
+        mesh = TensorMesh([hx, hz], x0="00")
 
         x = mesh.cell_centers_x
         y = np.zeros_like(x)
-        z = np.ones_like(x) * 30.
-        receiver_locations = np.c_[x+8., y, z]
+        z = np.ones_like(x) * 30.0
+        receiver_locations = np.c_[x + 8.0, y, z]
         source_locations = np.c_[x, y, z]
-        topo = np.c_[x, y, z-30.].astype(float)
-
-        sigma_map = maps.ExpMap(mesh)
+        topo = np.c_[x, y, z - 30.0].astype(float)
 
         source_list = []
 
         for i_sounding in range(0, n_sounding):
-
             source_location = mkvc(source_locations[i_sounding, :])
             receiver_location = mkvc(receiver_locations[i_sounding, :])
             receiver_list = []
             receiver_list.append(
                 fdem.receivers.PointMagneticFieldSecondary(
-                    receiver_location,
-                    orientation="z",
-                    component="both"
+                    receiver_location, orientation="z", component="both"
                 )
             )
 
             for i_freq, frequency in enumerate(frequencies):
                 src = fdem.sources.MagDipole(
-                    receiver_list, frequency, source_location,
-                    orientation="z", i_sounding=i_sounding
+                    receiver_list,
+                    frequency,
+                    source_location,
+                    orientation="z",
+                    i_sounding=i_sounding,
                 )
                 source_list.append(src)
 
         survey = fdem.Survey(source_list)
-        wires = maps.Wires(('sigma', n_layer*n_sounding), ('h', n_sounding))
-        sigmaMap = maps.ExpMap(nP=n_layer*n_sounding) * wires.sigma
+        wires = maps.Wires(("sigma", n_layer * n_sounding), ("h", n_sounding))
+        sigmaMap = maps.ExpMap(nP=n_layer * n_sounding) * wires.sigma
         hMap = maps.ExpMap(nP=n_sounding) * wires.h
 
         simulation = fdem.Simulation1DLayeredStitched(
-            survey=survey, thicknesses=thicknesses, 
+            survey=survey,
+            thicknesses=thicknesses,
             sigmaMap=sigmaMap,
             hMap=hMap,
-            topo=topo, parallel=parallel, n_cpu=2, verbose=False
+            topo=topo,
+            parallel=parallel,
+            n_cpu=2,
+            verbose=False,
         )
         self.sim = simulation
         self.mesh = mesh
@@ -75,11 +74,13 @@ class STITCHED_EM1D_FD_Jacobian_Test_MagDipole(unittest.TestCase):
         # Conductivity
         inds = self.mesh.cell_centers[:, 1] < 25
         inds_1 = self.mesh.cell_centers[:, 1] < 50
-        sigma = np.ones(self.mesh.n_cells) * 1./100.
-        sigma[inds_1] = 1./10.
-        sigma[inds] = 1./50.
-        sigma_em1d = sigma.reshape(self.mesh.vnC, order='F').flatten()
-        m_stitched = np.r_[np.log(sigma_em1d), np.ones(self.sim.n_sounding)*np.log(30.)]
+        sigma = np.ones(self.mesh.n_cells) * 1.0 / 100.0
+        sigma[inds_1] = 1.0 / 10.0
+        sigma[inds] = 1.0 / 50.0
+        sigma_em1d = sigma.reshape(self.mesh.vnC, order="F").flatten()
+        m_stitched = np.r_[
+            np.log(sigma_em1d), np.ones(self.sim.n_sounding) * np.log(30.0)
+        ]
 
         def fwdfun(m):
             resp = self.sim.dpred(m)
@@ -106,15 +107,20 @@ class STITCHED_EM1D_FD_Jacobian_Test_MagDipole(unittest.TestCase):
         # Conductivity
         inds = self.mesh.cell_centers[:, 1] < 25
         inds_1 = self.mesh.cell_centers[:, 1] < 50
-        sigma = np.ones(self.mesh.n_cells) * 1./100.
-        sigma[inds_1] = 1./10.
-        sigma[inds] = 1./50.
-        sigma_em1d = sigma.reshape(self.mesh.vnC, order='F').flatten()
-        m_stitched = np.r_[np.log(sigma_em1d), np.ones(self.sim.n_sounding)*np.log(30.)]
+        sigma = np.ones(self.mesh.n_cells) * 1.0 / 100.0
+        sigma[inds_1] = 1.0 / 10.0
+        sigma[inds] = 1.0 / 50.0
+        sigma_em1d = sigma.reshape(self.mesh.vnC, order="F").flatten()
+        m_stitched = np.r_[
+            np.log(sigma_em1d), np.ones(self.sim.n_sounding) * np.log(30.0)
+        ]
 
         dobs = self.sim.dpred(m_stitched)
 
-        m_ini = np.r_[np.log(1./100.) * np.ones(self.mesh.n_cells), np.ones(self.sim.n_sounding)*np.log(30.)*1.5]
+        m_ini = np.r_[
+            np.log(1.0 / 100.0) * np.ones(self.mesh.n_cells),
+            np.ones(self.sim.n_sounding) * np.log(30.0) * 1.5,
+        ]
         resp_ini = self.sim.dpred(m_ini)
         dr = resp_ini - dobs
 
@@ -132,5 +138,6 @@ class STITCHED_EM1D_FD_Jacobian_Test_MagDipole(unittest.TestCase):
         if passed:
             print("STITCHED EM1DFM MagDipole Jtvec test works")
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     unittest.main()

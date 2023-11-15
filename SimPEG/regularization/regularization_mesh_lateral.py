@@ -1,10 +1,10 @@
 import numpy as np
 import scipy.sparse as sp
-from SimPEG.utils.code_utils import deprecate_property, validate_active_indices
+from SimPEG.utils.code_utils import validate_active_indices
 
-from .. import props
 from .. import utils
 from .regularization_mesh import RegularizationMesh
+
 
 class LCRegularizationMesh(RegularizationMesh):
     """
@@ -15,8 +15,8 @@ class LCRegularizationMesh(RegularizationMesh):
     :param numpy.ndarray active_edges: bool array, size nE, that is True where we have active edges. Used to reduce the operators so we regularize only on active edges
 
     """
-    
-    _active_edges = None    
+
+    _active_edges = None
 
     def __init__(self, mesh, active_cells=None, active_edges=None, **kwargs):
         self.mesh_radial = mesh[0]
@@ -42,7 +42,7 @@ class LCRegularizationMesh(RegularizationMesh):
         array as representing the indices of the active cells. When called however, the quantity
         will have been internally converted to a boolean array.
         """
-        return self._active_cells        
+        return self._active_cells
 
     @active_cells.setter
     def active_cells(self, values: np.ndarray):
@@ -61,15 +61,15 @@ class LCRegularizationMesh(RegularizationMesh):
             self._Paer = None
             self._Pafz = None
             self._h_gridded_r = None
-            self._h_gridded_z = None            
+            self._h_gridded_z = None
             self._cell_gradient_z = None
             self._aveCC2Fz = None
             self._aveFz2CC = None
         self._active_cells = values
-    
+
     @property
     def active_edges(self) -> np.ndarray:
-        return self._active_edges        
+        return self._active_edges
 
     @active_edges.setter
     def active_edges(self, values: np.ndarray):
@@ -81,16 +81,18 @@ class LCRegularizationMesh(RegularizationMesh):
             )
         if values is not None:
             self._aveCC2Fr = None
-            self._cell_gradient_r = None            
-            self._aveFr2CC = None            
+            self._cell_gradient_r = None
+            self._aveFr2CC = None
 
         self._active_edges = values
-        
+
     @property
     def vol(self) -> np.ndarray:
         # Assume a unit area for the radial points)
         # We could use the average of cells to nodes
-        self._vol = (np.ones(self.n_nodes, dtype=float)[:, None] * self.mesh_vertical.h[0]).flatten()
+        self._vol = (
+            np.ones(self.n_nodes, dtype=float)[:, None] * self.mesh_vertical.h[0]
+        ).flatten()
         return self._vol[self.active_cells].flatten()
 
     @property
@@ -112,11 +114,9 @@ class LCRegularizationMesh(RegularizationMesh):
 
         """
         if getattr(self, "_h_gridded_z", None) is None:
-            self._h_gridded_z = np.tile(
-                self.mesh_vertical.h[0], self.n_nodes
-            ).flatten()
+            self._h_gridded_z = np.tile(self.mesh_vertical.h[0], self.n_nodes).flatten()
         return self._h_gridded_z
-    
+
     @property
     def base_length(self) -> float:
         """Smallest dimension (i.e. edge length) for smallest cell in the mesh.
@@ -140,7 +140,7 @@ class LCRegularizationMesh(RegularizationMesh):
             Dimension of the regularization mesh.
         """
         return 2
-    
+
     @property
     def cell_gradient(self) -> sp.csr_matrix:
         """Cell gradient operator (cell centers to faces).
@@ -156,11 +156,15 @@ class LCRegularizationMesh(RegularizationMesh):
 
     @property
     def nodal_gradient_stencil(self) -> sp.csr_matrix:
-        ind_ptr = 2 * np.arange(self.mesh_radial.n_edges+1)
+        ind_ptr = 2 * np.arange(self.mesh_radial.n_edges + 1)
         col_inds = self.mesh_radial._edges.reshape(-1)
-        Aijs = (np.ones(self.mesh_radial.n_edges, dtype=float)[:, None] * [-1, 1]).reshape(-1)
+        Aijs = (
+            np.ones(self.mesh_radial.n_edges, dtype=float)[:, None] * [-1, 1]
+        ).reshape(-1)
 
-        return sp.csr_matrix((Aijs, col_inds, ind_ptr), shape=(self.mesh_radial.n_edges, self.n_nodes))
+        return sp.csr_matrix(
+            (Aijs, col_inds, ind_ptr), shape=(self.mesh_radial.n_edges, self.n_nodes)
+        )
 
     @property
     def cell_gradient_r(self) -> sp.csr_matrix:
@@ -170,7 +174,9 @@ class LCRegularizationMesh(RegularizationMesh):
         """
         if getattr(self, "_cell_gradient_r", None) is None:
             grad = self.nodal_gradient_stencil
-            self._cell_gradient_r = self.Paer.T * sp.kron(grad, utils.speye(self.nz)) * self.Pac
+            self._cell_gradient_r = (
+                self.Paer.T * sp.kron(grad, utils.speye(self.nz)) * self.Pac
+            )
         return self._cell_gradient_r
 
     @property
@@ -206,7 +212,9 @@ class LCRegularizationMesh(RegularizationMesh):
         """
         if getattr(self, "_cell_gradient_z", None) is None:
             grad = self.mesh_vertical.stencil_cell_gradient
-            self._cell_gradient_z = self.Pafz.T * sp.kron(utils.speye(self.n_nodes), grad) * self.Pac
+            self._cell_gradient_z = (
+                self.Pafz.T * sp.kron(utils.speye(self.n_nodes), grad) * self.Pac
+            )
         return self._cell_gradient_z
 
     @property
@@ -217,7 +225,9 @@ class LCRegularizationMesh(RegularizationMesh):
         """
         if getattr(self, "_aveCC2Fz", None) is None:
             ave = self.mesh_vertical.average_cell_to_face
-            self._aveCC2Fz = self.Pafz.T * sp.kron(utils.speye(self.n_nodes), ave) * self.Pac
+            self._aveCC2Fz = (
+                self.Pafz.T * sp.kron(utils.speye(self.n_nodes), ave) * self.Pac
+            )
         return self._aveCC2Fz
 
     @property
@@ -232,7 +242,7 @@ class LCRegularizationMesh(RegularizationMesh):
         if getattr(self, "_cell_distances_z", None) is None:
             Ave = self.aveCC2Fr
             self._cell_distances_z = Ave * (self.Pac.T * self.h_gridded_z)
-        return self._cell_distances_z        
+        return self._cell_distances_z
 
     @property
     def nz(self) -> int:
@@ -321,9 +331,9 @@ class LCRegularizationMesh(RegularizationMesh):
         """
         if getattr(self, "_Pac", None) is None:
             if self.active_cells is None:
-                self._Pac = utils.speye(self.nz*self.n_nodes)
+                self._Pac = utils.speye(self.nz * self.n_nodes)
             else:
-                self._Pac = utils.speye(self.nz*self.n_nodes)[:, self.active_cells]
+                self._Pac = utils.speye(self.nz * self.n_nodes)[:, self.active_cells]
         return self._Pac
 
     @property
@@ -340,7 +350,6 @@ class LCRegularizationMesh(RegularizationMesh):
                 self._Paer = utils.speye(self.nE)
             else:
                 ave = self.mesh_vertical.average_face_to_cell
-                aveFz2CC = sp.kron(utils.speye(self.n_nodes), ave)
                 self._Paer = utils.speye(self.nE)[:, self.active_edges]
         return self._Paer
 
@@ -354,7 +363,9 @@ class LCRegularizationMesh(RegularizationMesh):
         """
         if getattr(self, "_aveFz2CC", None) is None:
             ave = self.mesh_vertical.average_face_to_cell
-            self._aveFz2CC = self.Pac.T * sp.kron(utils.speye(self.n_nodes), ave) * self.Pafz
+            self._aveFz2CC = (
+                self.Pac.T * sp.kron(utils.speye(self.n_nodes), ave) * self.Pafz
+            )
         return self._aveFz2CC
 
     @property
@@ -370,4 +381,6 @@ class LCRegularizationMesh(RegularizationMesh):
             ave = self.mesh_radial.average_node_to_edge.T
             self._aveFr2CC = self.Pac.T * sp.kron(ave, utils.speye(self.nz)) * self.Paer
         return self._aveFr2CC
+
+
 LCRegularizationMesh.__module__ = "SimPEG.regularization"

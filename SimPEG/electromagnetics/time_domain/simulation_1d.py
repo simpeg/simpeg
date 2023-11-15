@@ -79,7 +79,7 @@ class Simulation1DLayered(BaseEM1DSimulation):
             self._inv_lambs,
             self._C0s,
             self._C1s,
-            self._W
+            self._W,
         )
 
     def _set_coefficients(self, coefficients):
@@ -222,7 +222,7 @@ class Simulation1DLayered(BaseEM1DSimulation):
         or sensitivities.
         """
         self.model = m
-        
+
         self._compute_coefficients()
 
         C0s = self._C0s
@@ -365,22 +365,22 @@ class Simulation1DLayered(BaseEM1DSimulation):
 
                 frequencies = self._frequencies
                 w = 2 * np.pi * frequencies
-                wc_lp = 2 * np.pi * rx.lp_cutoff_frequency                
-                h_lp = (1+1j*w/wc_lp)**(-rx.lp_power) # low pass filter
+                wc_lp = 2 * np.pi * rx.lp_cutoff_frequency
+                h_lp = (1 + 1j * w / wc_lp) ** (-rx.lp_power)  # low pass filter
                 wc_bw = 2 * np.pi * rx.bw_cutoff_frequency
-                numer, denom = signal.butter(rx.bw_power, wc_bw, 'low', analog=True)
+                numer, denom = signal.butter(rx.bw_power, wc_bw, "low", analog=True)
                 _, h_bw = signal.freqs(numer, denom, worN=w)
                 h = h_lp * h_bw
-                
+
                 if v.ndim == 3:
-                    v_slice *= h[None,:,None]
+                    v_slice *= h[None, :, None]
                     if isinstance(rx, (PointMagneticFluxDensity, PointMagneticField)):
                         d = np.einsum("ij,...jk->...ik", As[i_A], v_slice.imag)
                     else:
                         d = np.einsum("ij,...jk->...ik", As[i_A], v_slice.real)
                     out[i_dat:i_datp1] = d.reshape((-1, v.shape[-1]), order="F")
                 else:
-                    v_slice *= h[None,:]
+                    v_slice *= h[None, :]
                     if isinstance(rx, (PointMagneticFluxDensity, PointMagneticField)):
                         d = np.einsum("ij,...j->...i", As[i_A], v_slice.imag)
                     else:

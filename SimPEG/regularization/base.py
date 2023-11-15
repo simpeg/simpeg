@@ -878,7 +878,7 @@ class SmoothnessFirstOrder(BaseRegularization):
         self.reference_model_in_smooth = reference_model_in_smooth
         if isinstance(mesh, LCRegularizationMesh):
             if orientation not in ["r", "z"]:
-                raise ValueError("Orientation must be 'r' or 'z'")            
+                raise ValueError("Orientation must be 'r' or 'z'")
         else:
             if orientation not in ["x", "y", "z"]:
                 raise ValueError("Orientation must be 'x', 'y' or 'z'")

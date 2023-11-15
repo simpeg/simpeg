@@ -105,7 +105,7 @@ class Simulation1DLayered(BaseEM1DSimulation):
         or sensitivities.
         """
         self.model = m
-        
+
         self._compute_coefficients()
 
         C0s = self._C0s
@@ -169,10 +169,11 @@ class Simulation1DLayered(BaseEM1DSimulation):
                 #     C0s_dh[i:ip1] *= - lambs[i:ip1]
                 #     C1s_dh[i:ip1] *= - lambs[i:ip1]
                 #     i = ip1
-                    # J will be n_d * n_src (each source has it's own h)...
+                # J will be n_d * n_src (each source has it's own h)...
 
-                C0s_dh *= - lambs
-                C1s_dh *= - lambs
+                # It seems to be the 2 * lambs to be multiplied, but had to drop factor of 2
+                C0s_dh *= -lambs
+                C1s_dh *= -lambs
                 rTE = rTE_forward(frequencies, unique_lambs, sig, mu, self.thicknesses)
                 rTE = rTE[i_freq]
                 rTE = np.take_along_axis(rTE, inv_lambs, axis=1)

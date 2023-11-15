@@ -1,13 +1,6 @@
-import scipy as sp
 import numpy as np
 from .sparse import SparseSmoothness, SparseSmallness, Sparse
-from .. import utils
-import properties
-from .. import props
 from .regularization_mesh_lateral import LCRegularizationMesh
-from typing import TYPE_CHECKING
-# if TYPE_CHECKING:
-from scipy.sparse import csr_matrix
 
 
 class LaterallyConstrainedSmallness(SparseSmallness):
@@ -15,12 +8,14 @@ class LaterallyConstrainedSmallness(SparseSmallness):
     Duplicate of SparseSmallness Class
     """
 
+
 class LaterallyConstrainedSmoothness(SparseSmoothness):
     """
     Modification of SparseSmoothness Class
     for addressing radial and vertical gradients of model parameters,
     which is a 1D vertical resistivity profile at each of lateral locations.
     """
+
     def __init__(self, mesh, orientation="r", gradient_type="total", **kwargs):
         if "gradientType" in kwargs:
             self.gradientType = kwargs.pop("gradientType")
@@ -49,7 +44,7 @@ class LaterallyConstrained(Sparse):
         active_cells=None,
         active_edges=None,
         alpha_r=None,
-        length_scale_r=None,        
+        length_scale_r=None,
         norms=None,
         gradient_type="total",
         irls_scaled=True,
@@ -85,10 +80,8 @@ class LaterallyConstrained(Sparse):
             objfcts = [
                 SparseSmallness(mesh=self.regularization_mesh),
                 SparseSmoothness(mesh=self.regularization_mesh, orientation="r"),
-                SparseSmoothness(mesh=self.regularization_mesh, orientation="z"),
-            ]
-        gradientType = kwargs.pop("gradientType", None)
-        
+                SparseSmoothness(mesh=self.regularization_mesh, orientation="z"),            ]
+
         super().__init__(
             self.regularization_mesh,
             objfcts=objfcts,
@@ -114,7 +107,7 @@ class LaterallyConstrained(Sparse):
             raise TypeError(f"alpha_r must be a real number, saw type{type(value)}")
         if value < 0:
             raise ValueError(f"alpha_r must be non-negative, not {value}")
-        self._alpha_r = value        
+        self._alpha_r = value
 
     @property
     def length_scale_r(self):
@@ -144,5 +137,5 @@ class LaterallyConstrained(Sparse):
             raise TypeError(
                 f"length_scale_r must be a real number, saw type{type(value)}"
             )
-        print ("Set alpha_s")
+        print("Set alpha_s")
         self.alpha_r = (value * self.regularization_mesh.base_length) ** 2

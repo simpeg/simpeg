@@ -72,7 +72,7 @@ class BaseFDEMSrc(BaseEMSrc):
 
     @i_sounding.setter
     def i_sounding(self, value):
-        self._i_sounding = validate_integer("i_sounding", value, min_val=0)        
+        self._i_sounding = validate_integer("i_sounding", value, min_val=0)
 
     def bPrimary(self, simulation):
         """Compute primary magnetic flux density

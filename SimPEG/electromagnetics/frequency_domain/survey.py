@@ -17,7 +17,7 @@ class Survey(BaseSurvey):
 
         _frequency_dict = {}
         _source_location_dict = {}
-        _source_location_by_sounding_dict = {}        
+        _source_location_by_sounding_dict = {}
         for src in self.source_list:
             if src.frequency not in _frequency_dict:
                 _frequency_dict[src.frequency] = []
@@ -27,7 +27,6 @@ class Survey(BaseSurvey):
                 _source_location_by_sounding_dict[src.i_sounding] = []
             _source_location_dict[src.i_sounding] += [src]
             _source_location_by_sounding_dict[src.i_sounding] += [src.location]
-
 
         self._frequency_dict = _frequency_dict
         self._frequencies = sorted([f for f in self._frequency_dict])
@@ -127,7 +126,6 @@ class Survey(BaseSurvey):
         ), "The requested sounding is not in this survey."
         return self._source_location_dict[i_sounding]
 
-
     @property
     def vnD_by_sounding_dict(self):
         if getattr(self, "_vnD_by_sounding_dict", None) is None:
@@ -138,4 +136,4 @@ class Survey(BaseSurvey):
                 for src in source_list:
                     nD += src.nD
                 self._vnD_by_sounding_dict[i_sounding] = nD
-        return self._vnD_by_sounding_dict        
+        return self._vnD_by_sounding_dict

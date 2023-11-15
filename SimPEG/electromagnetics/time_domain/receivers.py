@@ -26,9 +26,9 @@ class BaseRx(BaseTimeRx):
         orientation="z",
         use_source_receiver_offset=False,
         bw_cutoff_frequency=3e5,
-        bw_power=0.,
+        bw_power=0.0,
         lp_cutoff_frequency=2.1e5,
-        lp_power=0.,                
+        lp_power=0.0,
         **kwargs
     ):
         proj = kwargs.pop("projComp", None)
@@ -106,7 +106,9 @@ class BaseRx(BaseTimeRx):
 
     @bw_cutoff_frequency.setter
     def bw_cutoff_frequency(self, var):
-        self._bw_cutoff_frequency = validate_float("bw_cutoff_frequency", var, min_val=0.)        
+        self._bw_cutoff_frequency = validate_float(
+            "bw_cutoff_frequency", var, min_val=0.0
+        )
 
     @property
     def lp_cutoff_frequency(self):
@@ -121,8 +123,9 @@ class BaseRx(BaseTimeRx):
 
     @lp_cutoff_frequency.setter
     def lp_cutoff_frequency(self, var):
-        self._lp_cutoff_frequency = validate_float("lp_cutoff_frequency", var, min_val=0.)
-
+        self._lp_cutoff_frequency = validate_float(
+            "lp_cutoff_frequency", var, min_val=0.0
+        )
 
     @property
     def bw_power(self):
@@ -137,7 +140,7 @@ class BaseRx(BaseTimeRx):
 
     @bw_power.setter
     def bw_power(self, var):
-        self._bw_power = validate_float("bw_power", var, min_val=0., max_val=2)        
+        self._bw_power = validate_float("bw_power", var, min_val=0.0, max_val=2)
 
     @property
     def lp_power(self):
@@ -152,7 +155,7 @@ class BaseRx(BaseTimeRx):
 
     @lp_power.setter
     def lp_power(self, var):
-        self._lp_power = validate_float("lp_power", var, min_val=0., max_val=0.99999)
+        self._lp_power = validate_float("lp_power", var, min_val=0.0, max_val=0.99999)
 
     def getSpatialP(self, mesh, f):
         """Get spatial projection matrix from mesh to receivers.

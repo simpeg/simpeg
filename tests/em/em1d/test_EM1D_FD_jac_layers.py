@@ -18,7 +18,7 @@ class EM1D_FD_Jacobian_Test_MagDipole(unittest.TestCase):
         deepthick = np.logspace(1, 2, 10)
         thicknesses = np.r_[nearthick, deepthick]
         topo = np.r_[0.0, 0.0, 100.0]
- 
+
         # Survey Geometry
         height = 1e-5
         src_location = np.array([0.0, 0.0, 100.0 + height])
@@ -148,7 +148,7 @@ class EM1D_FD_Jacobian_Test_MagDipole(unittest.TestCase):
             np.log(np.ones(self.nlayers) * sigma_half),
             np.log(np.ones(self.nlayers) * 1.5 * mu_half),
             np.log(self.thicknesses) * 0.9,
-            np.log(self.height) *1.5,
+            np.log(self.height) * 1.5,
         ]
         resp_ini = self.sim.dpred(m_ini)
         dr = resp_ini - dobs
