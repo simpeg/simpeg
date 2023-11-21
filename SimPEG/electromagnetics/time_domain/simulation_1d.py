@@ -31,6 +31,11 @@ else:
     PARALLEL = True
     import multiprocessing
 
+try:
+    from pyMKL import mkl_set_num_threads
+except Exception as e:
+    print("No MKL support: ", e)
+    mkl_set_num_threads = None
 
 
 class Simulation1DLayered(BaseEM1DSimulation):
@@ -387,8 +392,6 @@ class Simulation1DLayered(BaseEM1DSimulation):
 
 
 def run_simulation_time_domain(args):
-    from pyMKL import mkl_set_num_threads
-    mkl_set_num_threads(1)
     """
     This method simulates the EM response or computes the sensitivities for
     a single sounding. The method allows for parallelization of
@@ -409,6 +412,9 @@ def run_simulation_time_domain(args):
     :param bool invert_height: boolean switch for inverting for source height
     :return: response or sensitivities
     """
+
+    if mkl_set_num_threads is not None:
+        mkl_set_num_threads(1)
 
     (
         source_list,
