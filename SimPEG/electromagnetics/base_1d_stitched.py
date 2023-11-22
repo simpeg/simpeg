@@ -25,12 +25,6 @@ class BaseStitchedEM1DSimulation(BaseSimulation):
     """
 
     _formulation = "1D"
-    # _coefficients = []
-    # _coefficients_set = False
-
-    # _Jmatrix_sigma = None
-    # _Jmatrix_height = None
-    # _J = None
 
     # Properties for electrical conductivity/resistivity
     sigma, sigmaMap, sigmaDeriv = props.Invertible(
