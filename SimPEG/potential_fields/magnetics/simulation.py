@@ -284,7 +284,7 @@ class Simulation3DIntegral(BasePFSimulation):
             node_evals["gxxx"] = prism_fzzz(dy, dz, dx)
             node_evals["gxxy"] = prism_fxxy(dx, dy, dz)
             node_evals["gxxz"] = prism_fxxz(dx, dy, dz)
-        if any(s in components for s in ["bxy", "tmi_x", "tmi_y"]):
+        if "bxy" in components or "tmi_x" in components or "tmi_y" in components:
             if "gxxy" not in node_evals:
                 node_evals["gxxy"] = prism_fxxy(dx, dy, dz)
             node_evals["gyyx"] = prism_fxxz(dy, dz, dx)
