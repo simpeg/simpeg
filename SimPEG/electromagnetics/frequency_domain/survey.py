@@ -127,7 +127,7 @@ class Survey(BaseSurvey):
         return self._source_location_dict[i_sounding]
 
     @property
-    def vnD_by_sounding_dict(self):
+    def vnD_by_sounding(self) -> dict:
         if getattr(self, "_vnD_by_sounding_dict", None) is None:
             self._vnD_by_sounding_dict = {}
             for i_sounding in self.source_location_by_sounding_dict:
