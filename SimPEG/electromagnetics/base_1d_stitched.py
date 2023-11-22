@@ -361,27 +361,6 @@ class BaseStitchedEM1DSimulation(BaseSimulation):
         )
         return output
 
-    # This is the most expensive process, but required once
-    # May need to find unique
-    # def input_args_for_coeff(self, i_sounding):
-    #     output = (
-    #         self.survey.get_sources_by_sounding_number(i_sounding),
-    #         self.topo[i_sounding, :],
-    #         self.Thicknesses[i_sounding,:],
-    #         self.Sigma[i_sounding, :],
-    #         self.Eta[i_sounding, :],
-    #         self.Tau[i_sounding, :],
-    #         self.C[i_sounding, :],
-    #         self.Chi[i_sounding, :],
-    #         self.dChi[i_sounding, :],
-    #         self.Tau1[i_sounding, :],
-    #         self.Tau2[i_sounding, :],
-    #         self.H[i_sounding],
-    #         'forward',
-    #         True,
-    #         [],
-    #     )
-    #     return output
 
     def fields(self, m):
         if self.verbose:
