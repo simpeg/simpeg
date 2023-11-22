@@ -106,8 +106,8 @@ def test_ana_mag_forward():
 
 
 def test_ana_mag_tmi_grad_forward():
-    nx = 41
-    ny = 41
+    nx = 61
+    ny = 61
 
     H0 = (50000.0, 60.0, 250.0)
     b0 = mag.analytics.IDTtoxyz(-H0[1], H0[2], H0[0])
