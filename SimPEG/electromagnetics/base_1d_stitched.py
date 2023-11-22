@@ -143,7 +143,8 @@ class BaseStitchedEM1DSimulation(BaseSimulation):
 
     @property
     def parallel(self):
-        """Parallel
+        """
+        Run the computation as a parallel process.
 
         Returns
         -------
