@@ -241,10 +241,11 @@ def compute_J(self, f=None, Ainv=None):
         # tc_loop = time()
         # print(f"Loop sources for {tInd}")
         for isrc, src in enumerate(self.survey.source_list):
-            column_inds = np.kron(
-                np.ones(int(src.vnD / n_times), dtype=bool), data_bool
-            )
-            # for block in range(len(self.field_derivs[tInd][isrc])):
+
+            column_inds = np.hstack([
+                np.kron(np.ones(rec.locations.shape[0], dtype=bool), data_bool
+            ) for rec in src.receiver_list])
+
             if isrc not in field_derivs_t:
                 field_derivs[(isrc, src)] = self.field_derivs[tInd + 1][isrc].toarray()[
                     :, column_inds
@@ -252,7 +253,6 @@ def compute_J(self, f=None, Ainv=None):
             else:
                 field_derivs[(isrc, src)] = field_derivs_t[isrc][:, column_inds]
 
-            n_data = self.field_derivs[tInd + 1][isrc].shape[1]
             d_count += column_inds.sum()
 
             if d_count > d_block_size:
@@ -330,9 +330,11 @@ def block_append(
     count = 0
 
     for (isrc, src), block in field_derivs.items():
-        column_inds = np.kron(
-            np.ones(int(src.vnD / len(data_bool)), dtype=bool), data_bool
-        )
+
+        column_inds = np.hstack([
+            np.kron(np.ones(rec.locations.shape[0], dtype=bool), data_bool
+        ) for rec in src.receiver_list])
+
         n_rows = column_inds.sum()
         source_blocks.append(
             dask.array.from_delayed(
@@ -373,21 +375,20 @@ def block_deriv(simulation, src, tInd, f, block_size, row_count):
             simulation.nT,
             src,
             None,
-            PT_v[tInd * block_size : (tInd + 1) * block_size, :],
+            PT_v[tInd * block_size: (tInd + 1) * block_size, :],
             adjoint=True,
         )
 
         if not isinstance(cur[1], Zero):
-            simulation.J_initializer[row_count : row_count + rx.nD, :] += cur[1].T
+            simulation.J_initializer[row_count: row_count + rx.nD, :] += cur[1].T
 
         if src_field_derivs is None:
             src_field_derivs = cur[0]
         else:
-            src_field_derivs += cur[0]
+            src_field_derivs = sp.hstack([src_field_derivs, cur[0]])
 
-    # n_blocks = int(np.ceil(np.prod(src_field_derivs.shape) * 8. * 1e-6 / 128.))
-    # ind_col = np.array_split(np.arange(src_field_derivs.shape[1]), col_blocks)
-    # return [src_field_derivs[:, ind] for ind in ind_col]
+        row_count += rx.nD
+
     return src_field_derivs
 
 
@@ -404,7 +405,7 @@ def parallel_block_compute(
     field_derivs,
     data_bool,
 ):
-    rows = np.arange(row_count, row_count + len(data_bool))[data_bool]
+    rows = row_count + np.where(data_bool)[0]
     field_derivs_t = np.asarray(field_derivs.todense())
     field_derivs_t[:, data_bool] -= Asubdiag.T * ATinv_df_duT_v
 
