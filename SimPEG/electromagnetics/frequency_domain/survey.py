@@ -108,7 +108,7 @@ class Survey(BaseSurvey):
         return self._frequency_dict[frequency]
 
     @property
-    def source_location_by_sounding_dict(self):
+    def source_location_by_sounding(self) -> dict:
         """
         Source locations in the survey as a dictionary
         """
