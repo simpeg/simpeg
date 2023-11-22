@@ -289,24 +289,24 @@ class Simulation3DIntegral(BasePFSimulation):
                 node_evals["gxxy"] = prism_fxxy(dx, dy, dz)
             node_evals["gyyx"] = prism_fxxz(dy, dz, dx)
             node_evals["gxyz"] = prism_fxyz(dx, dy, dz)
-        if any(s in components for s in ["bxz", "tmi_x", "tmi_z"]):
+        if "bxz" in components or "tmi_x" in components or "tmi_z" in components:
             if "gxxz" not in node_evals:
                 node_evals["gxxz"] = prism_fxxz(dx, dy, dz)
             if "gxyz" not in node_evals:
                 node_evals["gxyz"] = prism_fxyz(dx, dy, dz)
             node_evals["gzzx"] = prism_fxxy(dz, dx, dy)
-        if any(s in components for s in ["byy", "tmi_y"]):
+        if "byy" in components or "tmi_y" in components:
             if "gyyx" not in node_evals:
                 node_evals["gyyx"] = prism_fxxz(dy, dz, dx)
             node_evals["gyyy"] = prism_fzzz(dz, dx, dy)
             node_evals["gyyz"] = prism_fxxy(dy, dz, dx)
-        if any(s in components for s in ["byz", "tmi_y", "tmi_z"]):
+        if "byz" in components or "tmi_y" in components or "tmi_z" in components:
             if "gxyz" not in node_evals:
                 node_evals["gxyz"] = prism_fxyz(dx, dy, dz)
             if "gyyz" not in node_evals:
                 node_evals["gyyz"] = prism_fxxy(dy, dz, dx)
             node_evals["gzzy"] = prism_fxxz(dz, dx, dy)
-        if any(s in components for s in ["bzz", "tmi_z"]):
+        if "bzz" in components or "tmi_z" in components:
             if "gzzx" not in node_evals:
                 node_evals["gzzx"] = prism_fxxy(dz, dx, dy)
             if "gzzy" not in node_evals:
