@@ -370,9 +370,8 @@ class BaseEM1DSimulation(BaseSimulation):
             is_mag_dipole = class_name == "MagDipole"
             is_wire_loop = class_name == "LineCurrent"
 
-            if is_circular_loop:
-                if np.any(src.orientation[:-1] != 0.0):
-                    raise ValueError("Can only simulate horizontal circular loops")
+            if is_circular_loop and np.any(src.orientation[:-1] != 0.0):
+                raise ValueError("Can only simulate horizontal circular loops")
 
             if self.hMap is not None:
                 h = hvec[i_src]
