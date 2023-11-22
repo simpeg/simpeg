@@ -106,8 +106,8 @@ def test_ana_mag_forward():
 
 
 def test_ana_mag_tmi_grad_forward():
-    nx = 5
-    ny = 5
+    nx = 41
+    ny = 41
 
     H0 = (50000.0, 60.0, 250.0)
     b0 = mag.analytics.IDTtoxyz(-H0[1], H0[2], H0[0])
@@ -150,11 +150,13 @@ def test_ana_mag_tmi_grad_forward():
 
     # Create plane of observations
     xr = np.linspace(-20, 20, nx)
+    dxr = xr[1] - xr[0]
     yr = np.linspace(-20, 20, ny)
+    dyr = yr[1] - yr[0]
     X, Y = np.meshgrid(xr, yr)
     Z = np.ones_like(X) * 3.0
     locXyz = np.c_[X.reshape(-1), Y.reshape(-1), Z.reshape(-1)]
-    components = ["tmi_x", "tmi_y", "tmi_z"]
+    components = ["tmi", "tmi_x", "tmi_y", "tmi_z"]
 
     rxLoc = mag.Point(locXyz, components=components)
     srcField = mag.UniformBackgroundField(
@@ -175,9 +177,10 @@ def test_ana_mag_tmi_grad_forward():
     )
 
     data = sim.dpred(model_reduced)
-    d_x = data[0::3]
-    d_y = data[1::3]
-    d_z = data[2::3]
+    tmi = data[0::4]
+    d_x = data[1::4]
+    d_y = data[2::4]
+    d_z = data[3::4]
 
     # Compute analytical response from magnetic prism
     prism_1 = MagneticPrism(block1[:, 0], block1[:, 1], chi1 * b0 / mu_0)
@@ -195,6 +198,21 @@ def test_ana_mag_tmi_grad_forward():
     np.testing.assert_allclose(d_x, tmi_x, rtol=1e-10, atol=1e-12)
     np.testing.assert_allclose(d_y, tmi_y, rtol=1e-10, atol=1e-12)
     np.testing.assert_allclose(d_z, tmi_z, rtol=1e-10, atol=1e-12)
+
+    # finite difference test x-grad
+    np.testing.assert_allclose(
+        np.diff(tmi.reshape(nx, ny, order="F")[:, ::2], axis=1) / (2 * dyr),
+        tmi_y.reshape(nx, ny, order="F")[:, 1::2],
+        atol=1.0,
+        rtol=1e-1,
+    )
+    # finite difference test y-grad
+    np.testing.assert_allclose(
+        np.diff(tmi.reshape(nx, ny, order="F")[::2, :], axis=0) / (2 * dxr),
+        tmi_x.reshape(nx, ny, order="F")[1::2, :],
+        atol=1.0,
+        rtol=1e-1,
+    )
 
 
 def test_ana_mag_grad_forward():
