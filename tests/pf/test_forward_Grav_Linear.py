@@ -135,7 +135,7 @@ class TestsGravitySimulation:
         # Create simulation
         if engine == "choclo":
             sensitivity_path = tmp_path / "sensitivity_choclo"
-            kwargs = dict(choclo_parallel=parallelism)
+            kwargs = dict(numba_parallel=parallelism)
         else:
             sensitivity_path = tmp_path
             kwargs = dict(n_processes=parallelism)
@@ -191,7 +191,7 @@ class TestsGravitySimulation:
         # Create simulation
         if engine == "choclo":
             sensitivity_path = tmp_path / "sensitivity_choclo"
-            kwargs = dict(choclo_parallel=parallelism)
+            kwargs = dict(numba_parallel=parallelism)
         else:
             sensitivity_path = tmp_path
             kwargs = dict(n_processes=parallelism)
@@ -251,7 +251,7 @@ class TestsGravitySimulation:
         # Create simulation
         if engine == "choclo":
             sensitivity_path = tmp_path / "sensitivity_choclo"
-            kwargs = dict(choclo_parallel=parallelism)
+            kwargs = dict(numba_parallel=parallelism)
         else:
             sensitivity_path = tmp_path
             kwargs = dict(n_processes=parallelism)

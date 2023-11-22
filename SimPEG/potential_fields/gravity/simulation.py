@@ -105,7 +105,7 @@ class Simulation3DIntegral(BasePFSimulation):
     engine : str, optional
        Choose which engine should be used to run the forward model:
        ``"geoana"`` or "``choclo``".
-    choclo_parallel : bool, optional
+    numba_parallel : bool, optional
         If True, the simulation will run in parallel. If False, it will
         run in serial. If ``engine`` is not ``"choclo"`` this argument will be
         ignored.
@@ -119,7 +119,7 @@ class Simulation3DIntegral(BasePFSimulation):
         rho=None,
         rhoMap=None,
         engine="geoana",
-        choclo_parallel=True,
+        numba_parallel=True,
         **kwargs,
     ):
         super().__init__(mesh, **kwargs)
@@ -128,12 +128,12 @@ class Simulation3DIntegral(BasePFSimulation):
         self._G = None
         self._gtg_diagonal = None
         self.modelMap = self.rhoMap
-        self.choclo_parallel = choclo_parallel
+        self.numba_parallel = numba_parallel
         self.engine = engine
         self._sanity_checks_engine(kwargs)
         # Define jit functions
         if self.engine == "choclo":
-            if choclo_parallel:
+            if numba_parallel:
                 self._sensitivity_gravity = _sensitivity_gravity_parallel
                 self._forward_gravity = _forward_gravity_parallel
             else:
