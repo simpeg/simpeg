@@ -50,7 +50,7 @@ class BaseStitchedEM1DSimulation(BaseSimulation):
     )
 
     # Additional properties
-    h, hMap, hDeriv = props.Invertible("Receiver Height (m), h > 0")
+    height, heightMap, heightDeriv = props.Invertible("Receiver Height (m), h > 0")
 
     thicknesses, thicknessesMap, thicknessesDeriv = props.Invertible(
         "layer thicknesses (m)"
