@@ -199,14 +199,14 @@ def test_ana_mag_tmi_grad_forward():
     np.testing.assert_allclose(d_y, tmi_y, rtol=1e-10, atol=1e-12)
     np.testing.assert_allclose(d_z, tmi_z, rtol=1e-10, atol=1e-12)
 
-    # finite difference test x-grad
+    # finite difference test y-grad
     np.testing.assert_allclose(
         np.diff(tmi.reshape(nx, ny, order="F")[:, ::2], axis=1) / (2 * dyr),
         tmi_y.reshape(nx, ny, order="F")[:, 1::2],
         atol=1.0,
         rtol=1e-1,
     )
-    # finite difference test y-grad
+    # finite difference test x-grad
     np.testing.assert_allclose(
         np.diff(tmi.reshape(nx, ny, order="F")[::2, :], axis=0) / (2 * dxr),
         tmi_x.reshape(nx, ny, order="F")[1::2, :],
