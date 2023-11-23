@@ -359,7 +359,6 @@ class BaseStitchedEM1DSimulation(BaseSimulation):
         )
         return output
 
-
     def fields(self, m):
         if self.verbose:
             print("Compute fields")
@@ -399,7 +398,7 @@ class BaseStitchedEM1DSimulation(BaseSimulation):
                 ]
             )
         return self._source_locations_for_sounding
-    
+
     def set_null_topography(self):
         self.topo = self.source_locations_for_sounding.copy()
         self.topo[:, 2] = 0.0

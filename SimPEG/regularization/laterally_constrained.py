@@ -80,7 +80,8 @@ class LaterallyConstrained(Sparse):
             objfcts = [
                 SparseSmallness(mesh=self.regularization_mesh),
                 SparseSmoothness(mesh=self.regularization_mesh, orientation="r"),
-                SparseSmoothness(mesh=self.regularization_mesh, orientation="z"),            ]
+                SparseSmoothness(mesh=self.regularization_mesh, orientation="z"),
+            ]
 
         super().__init__(
             self.regularization_mesh,
