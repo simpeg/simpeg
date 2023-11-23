@@ -50,7 +50,7 @@ class BaseStitchedEM1DSimulation(BaseSimulation):
     )
 
     # Additional properties
-    height, heightMap, heightDeriv = props.Invertible("Receiver Height (m), h > 0")
+    h, hMap, hDeriv = props.Invertible("Receiver Height (m), h > 0")
 
     thicknesses, thicknessesMap, thicknessesDeriv = props.Invertible(
         "layer thicknesses (m)"
@@ -194,7 +194,7 @@ class BaseStitchedEM1DSimulation(BaseSimulation):
 
     @property
     def n_sounding(self):
-        return len(self.survey.source_location_by_sounding_dict)
+        return len(self.survey.source_location_by_sounding)
 
     @property
     def data_index(self):
@@ -202,107 +202,107 @@ class BaseStitchedEM1DSimulation(BaseSimulation):
 
     # ------------- For physical properties ------------- #
     @property
-    def Sigma(self):
-        if getattr(self, "_Sigma", None) is None:
+    def sigma_matrix(self):
+        if getattr(self, "_sigma_matrix", None) is None:
             # Ordering: first z then x
-            self._Sigma = self.sigma.reshape((self.n_sounding, self.n_layer))
-        return self._Sigma
+            self._sigma_matrix = self.sigma.reshape((self.n_sounding, self.n_layer))
+        return self._sigma_matrix
 
     @property
-    def Thicknesses(self):
-        if getattr(self, "_Thicknesses", None) is None:
+    def thickness_matrix(self):
+        if getattr(self, "_thickness_matrix", None) is None:
             # Ordering: first z then x
             if len(self.thicknesses) == int(self.n_sounding * (self.n_layer - 1)):
-                self._Thicknesses = self.thicknesses.reshape(
+                self._thickness_matrix = self.thicknesses.reshape(
                     (self.n_sounding, self.n_layer - 1)
                 )
             else:
-                self._Thicknesses = np.tile(self.thicknesses, (self.n_sounding, 1))
-        return self._Thicknesses
+                self._thickness_matrix = np.tile(self.thicknesses, (self.n_sounding, 1))
+        return self._thickness_matrix
 
     @property
-    def Eta(self):
-        if getattr(self, "_Eta", None) is None:
+    def eta_matrix(self):
+        if getattr(self, "_eta_matrix", None) is None:
             # Ordering: first z then x
             if self.eta is None:
-                self._Eta = np.zeros(
+                self._eta_matrix = np.zeros(
                     (self.n_sounding, self.n_layer), dtype=float, order="C"
                 )
             else:
-                self._Eta = self.eta.reshape((self.n_sounding, self.n_layer))
-        return self._Eta
+                self._eta_matrix = self.eta.reshape((self.n_sounding, self.n_layer))
+        return self._eta_matrix
 
     @property
-    def Tau(self):
-        if getattr(self, "_Tau", None) is None:
+    def tau_matrix(self):
+        if getattr(self, "_tau_matrix", None) is None:
             # Ordering: first z then x
             if self.tau is None:
-                self._Tau = 1e-3 * np.ones(
+                self._tau_matrix = 1e-3 * np.ones(
                     (self.n_sounding, self.n_layer), dtype=float, order="C"
                 )
             else:
-                self._Tau = self.tau.reshape((self.n_sounding, self.n_layer))
-        return self._Tau
+                self._tau_matrix = self.tau.reshape((self.n_sounding, self.n_layer))
+        return self._tau_matrix
 
     @property
-    def C(self):
-        if getattr(self, "_C", None) is None:
+    def c_matrix(self):
+        if getattr(self, "_c_matrix", None) is None:
             # Ordering: first z then x
             if self.c is None:
-                self._C = np.ones(
+                self._c_matrix = np.ones(
                     (self.n_sounding, self.n_layer), dtype=float, order="C"
                 )
             else:
-                self._C = self.c.reshape((self.n_sounding, self.n_layer))
-        return self._C
+                self._c_matrix = self.c.reshape((self.n_sounding, self.n_layer))
+        return self._c_matrix
 
     @property
-    def Chi(self):
-        if getattr(self, "_Chi", None) is None:
+    def chi_matrix(self):
+        if getattr(self, "_chi_matrix", None) is None:
             # Ordering: first z then x
             if self.chi is None:
-                self._Chi = np.zeros(
+                self._chi_matrix = np.zeros(
                     (self.n_sounding, self.n_layer), dtype=float, order="C"
                 )
             else:
-                self._Chi = self.chi.reshape((self.n_sounding, self.n_layer))
-        return self._Chi
+                self._chi_matrix = self.chi.reshape((self.n_sounding, self.n_layer))
+        return self._chi_matrix
 
     @property
-    def dChi(self):
-        if getattr(self, "_dChi", None) is None:
+    def dchi_matrix(self):
+        if getattr(self, "_dchi_matrix", None) is None:
             # Ordering: first z then x
             if self.dchi is None:
-                self._dChi = np.zeros(
+                self._dchi_matrix = np.zeros(
                     (self.n_sounding, self.n_layer), dtype=float, order="C"
                 )
             else:
-                self._dChi = self.dchi.reshape((self.n_sounding, self.n_layer))
-        return self._dChi
+                self._dchi_matrix = self.dchi.reshape((self.n_sounding, self.n_layer))
+        return self._dchi_matrix
 
     @property
-    def Tau1(self):
-        if getattr(self, "_Tau1", None) is None:
+    def tau1_matrix(self):
+        if getattr(self, "_tau1_matrix", None) is None:
             # Ordering: first z then x
             if self.tau1 is None:
-                self._Tau1 = 1e-10 * np.ones(
+                self._tau1_matrix = 1e-10 * np.ones(
                     (self.n_sounding, self.n_layer), dtype=float, order="C"
                 )
             else:
-                self._Tau1 = self.tau1.reshape((self.n_sounding, self.n_layer))
-        return self._Tau1
+                self._tau1_matrix = self.tau1.reshape((self.n_sounding, self.n_layer))
+        return self._tau1_matrix
 
     @property
-    def Tau2(self):
-        if getattr(self, "_Tau2", None) is None:
+    def tau2_matrix(self):
+        if getattr(self, "_tau2_matrix", None) is None:
             # Ordering: first z then x
             if self.tau2 is None:
-                self._Tau2 = 100.0 * np.ones(
+                self._tau2_matrix = 100.0 * np.ones(
                     (self.n_sounding, self.n_layer), dtype=float, order="C"
                 )
             else:
-                self._Tau2 = self.tau2.reshape((self.n_sounding, self.n_layer))
-        return self._Tau2
+                self._tau2_matrix = self.tau2.reshape((self.n_sounding, self.n_layer))
+        return self._tau2_matrix
 
     @property
     def JtJ_sigma(self):
@@ -312,7 +312,7 @@ class BaseStitchedEM1DSimulation(BaseSimulation):
         return self._JtJ_height
 
     @property
-    def H(self):
+    def h_vector(self):
         if self.hMap is None:
             h = self.source_locations_for_sounding[:, 2] - self.topo[:, 2]
             return h
@@ -345,19 +345,17 @@ class BaseStitchedEM1DSimulation(BaseSimulation):
         output = (
             self.survey.get_sources_by_sounding_number(i_sounding),
             self.topo[i_sounding, :],
-            self.Thicknesses[i_sounding, :],
-            self.Sigma[i_sounding, :],
-            self.Eta[i_sounding, :],
-            self.Tau[i_sounding, :],
-            self.C[i_sounding, :],
-            self.Chi[i_sounding, :],
-            self.dChi[i_sounding, :],
-            self.Tau1[i_sounding, :],
-            self.Tau2[i_sounding, :],
-            self.H[i_sounding],
+            self.thickness_matrix[i_sounding, :],
+            self.sigma_matrix[i_sounding, :],
+            self.eta_matrix[i_sounding, :],
+            self.tau_matrix[i_sounding, :],
+            self.c_matrix[i_sounding, :],
+            self.chi_matrix[i_sounding, :],
+            self.dchi_matrix[i_sounding, :],
+            self.tau1_matrix[i_sounding, :],
+            self.tau2_matrix[i_sounding, :],
+            self.h_vector[i_sounding],
             output_type,
-            # False,
-            # self._coefficients[i_sounding],
         )
         return output
 
@@ -382,7 +380,7 @@ class BaseStitchedEM1DSimulation(BaseSimulation):
     @property
     def sounding_number(self):
         self._sounding_number = [
-            key for key in self.survey.source_location_by_sounding_dict.keys()
+            key for key in self.survey.source_location_by_sounding.keys()
         ]
         return self._sounding_number
 
@@ -396,28 +394,12 @@ class BaseStitchedEM1DSimulation(BaseSimulation):
         if getattr(self, "_source_locations_for_sounding", None) is None:
             self._source_locations_for_sounding = np.vstack(
                 [
-                    self.survey._source_location_by_sounding_dict[ii][0]
+                    self.survey._source_location_by_sounding[ii][0]
                     for ii in range(self.n_sounding)
                 ]
             )
         return self._source_locations_for_sounding
-
-    # def chunks(self, lst, n):
-    #     """Yield successive n-sized chunks from lst."""
-    #     for i in range(0, len(lst), n):
-    #         yield lst[i:i + n]
-
-    # @property
-    # def sounding_number_chunks(self):
-    #     self._sounding_number_chunks = list(self.chunks(self.sounding_number, self.n_sounding_for_chunk))
-    #     return self._sounding_number_chunks
-
-    # def input_args_by_chunk(self, i_chunk, output_type):
-    #     args_by_chunks = []
-    #     for i_sounding in self.sounding_number_chunks[i_chunk]:
-    #         args_by_chunks.append(self.input_args(i_sounding, output_type))
-    #     return args_by_chunks
-
+    
     def set_null_topography(self):
         self.topo = self.source_locations_for_sounding.copy()
         self.topo[:, 2] = 0.0
@@ -438,7 +420,7 @@ class BaseStitchedEM1DSimulation(BaseSimulation):
             m = n_layer
 
         for i_sounding in range(self.n_sounding):
-            n = self.survey.vnD_by_sounding_dict[i_sounding]
+            n = self.survey.vnD_by_sounding[i_sounding]
             J_temp = np.tile(np.arange(m), (n, 1)) + shift_for_J
             I_temp = (
                 np.tile(np.arange(n), (1, m)).reshape((n, m), order="F") + shift_for_I
@@ -460,7 +442,7 @@ class BaseStitchedEM1DSimulation(BaseSimulation):
         J = []
         I = np.arange(self.survey.nD)
         for i_sounding in range(self.n_sounding):
-            n = self.survey.vnD_by_sounding_dict[i_sounding]
+            n = self.survey.vnD_by_sounding[i_sounding]
             J.append(np.ones(n) * i_sounding)
         J = np.hstack(J).astype(int)
         return (I, J)
@@ -509,7 +491,7 @@ class BaseStitchedEM1DSimulation(BaseSimulation):
         toDelete = super().deleteTheseOnModelUpdate
         if self.fix_Jmatrix is False:
             toDelete += [
-                "_Sigma",
+                "_sigma_matrix",
                 "_J",
                 "_Jmatrix_sigma",
                 "_Jmatrix_height",
