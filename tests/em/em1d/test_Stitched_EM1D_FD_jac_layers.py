@@ -2,7 +2,7 @@ from __future__ import print_function
 import unittest
 import numpy as np
 import SimPEG.electromagnetics.frequency_domain as fdem
-from SimPEG import *
+from SimPEG import maps, tests
 from discretize import TensorMesh
 
 np.random.seed(41)
@@ -42,7 +42,7 @@ class STITCHED_EM1D_FD_Jacobian_Test_MagDipole(unittest.TestCase):
                 )
             )
 
-            for i_freq, frequency in enumerate(frequencies):
+            for frequency in frequencies:
                 src = fdem.sources.MagDipole(
                     receiver_list,
                     frequency,
@@ -85,7 +85,6 @@ class STITCHED_EM1D_FD_Jacobian_Test_MagDipole(unittest.TestCase):
         def fwdfun(m):
             resp = self.sim.dpred(m)
             return resp
-            # return Hz
 
         def jacfun(m, dm):
             Jvec = self.sim.Jvec(m, dm)

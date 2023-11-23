@@ -2,7 +2,7 @@ from __future__ import print_function
 import unittest
 import numpy as np
 import SimPEG.electromagnetics.time_domain as tdem
-from SimPEG import *
+from SimPEG import maps, tests
 from discretize import TensorMesh
 from pymatsolver import PardisoSolver
 
@@ -38,15 +38,12 @@ class STITCHED_EM1D_TD_Jacobian_Test_MagDipole(unittest.TestCase):
         sigma = np.ones(mesh.nC) * 1.0 / 100.0
         sigma[inds_1] = 1.0 / 10.0
         sigma[inds] = 1.0 / 50.0
-        sigma_em1d = sigma.reshape(mesh.vnC, order="F").flatten()
 
         x = mesh.cell_centers_x
         y = np.zeros_like(x)
         z = np.ones_like(x) * 30.0
         source_locations = np.c_[x, y, z]
-        source_current = 1.0
         source_orientation = "z"
-        source_radius = 10.0
 
         receiver_offset_r = 13.25
         receiver_offset_z = 2.0
@@ -59,8 +56,6 @@ class STITCHED_EM1D_TD_Jacobian_Test_MagDipole(unittest.TestCase):
         receiver_orientation = "z"  # "x", "y" or "z"
 
         topo = np.c_[x, y, z - 30.0].astype(float)
-
-        sigma_map = maps.ExpMap(mesh)
 
         source_list = []
 
@@ -134,7 +129,6 @@ class STITCHED_EM1D_TD_Jacobian_Test_MagDipole(unittest.TestCase):
         def fwdfun(m):
             resp = self.sim.dpred(m)
             return resp
-            # return Hz
 
         def jacfun(m, dm):
             Jvec = self.sim.Jvec(m, dm)

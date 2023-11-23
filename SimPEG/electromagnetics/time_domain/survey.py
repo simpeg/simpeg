@@ -79,4 +79,4 @@ class Survey(BaseSurvey):
                 for src in source_list:
                     nD += src.nD
                 self._vnD_by_sounding[i_sounding] = nD
-        return self._vnD_by_sounding_dict
+        return self._vnD_by_sounding
