@@ -969,6 +969,70 @@ class Simulation3DElectricField(BaseTDEMSimulation):
 class Simulation3DMagneticFluxDensityFaceEdgeConductivity(
     Simulation3DMagneticFluxDensity, BaseFaceEdgeElectricalPDESimulation
 ):
+    r"""
+    Starting from the quasi-static E-B formulation of Maxwell's equations
+    (semi-discretized)
+
+    .. math::
+
+        \mathbf{C} \mathbf{e} + \frac{\partial \mathbf{b}}{\partial t} =
+        \mathbf{s_m} \\
+        \mathbf{C}^{\top} \mathbf{M_{\mu^{-1}}^f} \mathbf{b} -
+        \left ( \mathbf{M_{\sigma}^e + M_{\tau}^e + M_{\kappa}^e} \right )
+        \mathbf{e} = \mathbf{s_e}
+
+
+    where :math:`\mathbf{s_e}` is an integrated quantity, we eliminate
+    :math:`\mathbf{e}` using
+
+    .. math::
+
+        \mathbf{e} = \mathbf{M_{\sigma}^e}^{-1} \mathbf{C}^{\top}
+        \mathbf{M_{\mu^{-1}}^f} \mathbf{b} -
+        \left ( \mathbf{M_{\sigma}^e + M_{\tau}^e + M_{\kappa}^e} \right )^{-1} \mathbf{s_e}
+
+
+    to obtain a second order semi-discretized system in :math:`\mathbf{b}`
+
+    .. math::
+
+        \mathbf{C} \left ( \mathbf{M_{\sigma}^e + M_{\tau}^e + M_{\kappa}^e} \right )^{-1}
+        \mathbf{C}^{\top} \mathbf{M_{\mu^{-1}}^f} \mathbf{b}  +
+        \frac{\partial \mathbf{b}}{\partial t} = \mathbf{C}
+        \left ( \mathbf{M_{\sigma}^e + M_{\tau}^e + M_{\kappa}^e} \right )^{-1} \mathbf{s_e} + \mathbf{s_m}
+
+
+    and moving everything except the time derivative to the rhs gives
+
+    .. math::
+        \frac{\partial \mathbf{b}}{\partial t} =
+        -\mathbf{C} \left ( \mathbf{M_{\sigma}^e + M_{\tau}^e + M_{\kappa}^e} \right )^{-1} \mathbf{C}^{\top}
+        \mathbf{M_{\mu^{-1}}^f} \mathbf{b} +
+        \mathbf{C} \left ( \mathbf{M_{\sigma}^e + M_{\tau}^e + M_{\kappa}^e} \right )^{-1} \mathbf{s_e} + \mathbf{s_m}
+
+    For the time discretization, we use backward euler. To solve for the
+    :math:`n+1` th time step, we have
+
+    .. math::
+
+        \frac{\mathbf{b}^{n+1} - \mathbf{b}^{n}}{\mathbf{dt}} =
+        -\mathbf{C} \left ( \mathbf{M_{\sigma}^e + M_{\tau}^e + M_{\kappa}^e} \right )^{-1} \mathbf{C}^{\top}
+        \mathbf{M_{\mu^{-1}}^f} \mathbf{b}^{n+1} +
+        \mathbf{C} \left ( \mathbf{M_{\sigma}^e + M_{\tau}^e + M_{\kappa}^e} \right )^{-1} \mathbf{s_e}^{n+1} +
+        \mathbf{s_m}^{n+1}
+
+
+    re-arranging to put :math:`\mathbf{b}^{n+1}` on the left hand side gives
+
+    .. math::
+
+        (\mathbf{I} + \mathbf{dt} \mathbf{C} \left ( \mathbf{M_{\sigma}^e + M_{\tau}^e + M_{\kappa}^e} \right )^{-1}
+         \mathbf{C}^{\top} \mathbf{M_{\mu^{-1}}^f}) \mathbf{b}^{n+1} =
+         \mathbf{b}^{n} + \mathbf{dt}(\mathbf{C} \left ( \mathbf{M_{\sigma}^e + M_{\tau}^e + M_{\kappa}^e} \right )^{-1}
+         \mathbf{s_e}^{n+1} + \mathbf{s_m}^{n+1})
+
+    """
+
     fieldsPair = Fields3DMagneticFluxDensityFaceEdgeConductivity  #: A SimPEG.EM.TDEM.Fields3DMagneticFluxDensity object
 
     def getAdiag(self, tInd):
@@ -977,7 +1041,8 @@ class Simulation3DMagneticFluxDensityFaceEdgeConductivity(
 
         .. math::
 
-            (\mathbf{I} + \mathbf{dt} \mathbf{C} \mathbf{M_{\sigma}^e}^{-1}
+            (\mathbf{I} + \mathbf{dt} \mathbf{C} \left (
+            \mathbf{M_{\sigma}^e + M_{\tau}^e + M_{\kappa}^e} \right )^{-1}
             \mathbf{C}^{\top} \mathbf{M_{\mu^{-1}}^f})
 
         """
@@ -996,6 +1061,21 @@ class Simulation3DMagneticFluxDensityFaceEdgeConductivity(
         return A
 
     def getAdiagDeriv(self, tInd, u, v, adjoint=False):
+        r"""
+        Product of the derivative of our system matrix with respect to the
+        electrical properties within the model and a vector. This includes
+        derivatives for volume, face and/or edge conductivities depending on
+        whether ``sigmaMap``, ``tauMap`` and/or ``kappaMap`` are set.
+
+        :param float tInd: time step index
+        :param numpy.ndarray u: solution vector (nF,)
+        :param numpy.ndarray v: vector to take prodct with (nP,) or (nD,) for
+            adjoint
+        :param bool adjoint: adjoint?
+        :rtype: numpy.ndarray
+        :return: derivative of the system matrix times a vector (nP,) or
+            adjoint (nD,)
+        """
         C = self.mesh.edge_curl
         MfMui = self.MfMui
 
@@ -1029,7 +1109,9 @@ class Simulation3DMagneticFluxDensityFaceEdgeConductivity(
 
     def getRHSDeriv(self, tInd, src, v, adjoint=False):
         """
-        Derivative of the RHS
+        Derivative of the RHS. This includes
+        derivatives for volume, face and/or edge conductivities depending on
+        whether ``sigmaMap``, ``tauMap`` and/or ``kappaMap`` are set.
         """
 
         C = self.mesh.edge_curl
@@ -1076,11 +1158,48 @@ class Simulation3DMagneticFluxDensityFaceEdgeConductivity(
 class Simulation3DElectricFieldFaceEdgeConductivity(
     Simulation3DElectricField, BaseFaceEdgeElectricalPDESimulation
 ):
+    r"""
+    Solve the EB-formulation of Maxwell's equations for the electric field, e.
+    Takes into account volume, face and edge conductivities.
+
+    Starting with
+
+    .. math::
+
+        \nabla \times \mathbf{e} + \frac{\partial \mathbf{b}}{\partial t} = \mathbf{s_m} \
+        \nabla \times \mu^{-1} \mathbf{b} - \sigma \mathbf{e} = \mathbf{s_e}
+
+
+    we eliminate :math:`\frac{\partial b}{\partial t}` using
+
+    .. math::
+
+        \frac{\partial \mathbf{b}}{\partial t} = - \nabla \times \mathbf{e} + \mathbf{s_m}
+
+
+    taking the time-derivative of Ampere's law, we see
+
+    .. math::
+
+        \frac{\partial}{\partial t}\left( \nabla \times \mu^{-1} \mathbf{b} - \sigma \mathbf{e} \right) = \frac{\partial \mathbf{s_e}}{\partial t} \
+        \nabla \times \mu^{-1} \frac{\partial \mathbf{b}}{\partial t} - \sigma \frac{\partial\mathbf{e}}{\partial t} = \frac{\partial \mathbf{s_e}}{\partial t}
+
+
+    which gives us
+
+    .. math::
+
+        \nabla \times \mu^{-1} \nabla \times \mathbf{e} + \sigma \frac{\partial\mathbf{e}}{\partial t} = \nabla \times \mu^{-1} \mathbf{s_m} + \frac{\partial \mathbf{s_e}}{\partial t}
+
+
+    """
     fieldsPair = Fields3DElectricFieldFaceEdgeConductivity
 
     def getAdiag(self, tInd):
         """
-        Diagonal of the system matrix at a given time index
+        Diagonal of the system matrix at a given time index. This includes
+        derivatives for volume, face and/or edge conductivities depending on
+        whether ``sigmaMap``, ``tauMap`` and/or ``kappaMap`` are set.
         """
         assert tInd >= 0 and tInd < self.nT
 
@@ -1092,6 +1211,21 @@ class Simulation3DElectricFieldFaceEdgeConductivity(
         return C.T.tocsr() * (MfMui * C) + 1.0 / dt * MeSigmaTauKappa
 
     def getAdiagDeriv(self, tInd, u, v, adjoint=False):
+        r"""
+        Product of the derivative of diagonal system matrix with respect to the
+        electrical properties within the model and a vector. This includes
+        derivatives for volume, face and/or edge conductivities depending on
+        whether ``sigmaMap``, ``tauMap`` and/or ``kappaMap`` are set.
+
+        :param float tInd: time step index
+        :param numpy.ndarray u: solution vector (nF,)
+        :param numpy.ndarray v: vector to take prodct with (nP,) or (nD,) for
+            adjoint
+        :param bool adjoint: adjoint?
+        :rtype: numpy.ndarray
+        :return: derivative of the system matrix times a vector (nP,) or
+            adjoint (nD,)
+        """
         assert tInd >= 0 and tInd < self.nT
 
         dt = self.time_steps[tInd]
@@ -1114,8 +1248,20 @@ class Simulation3DElectricFieldFaceEdgeConductivity(
         return -1.0 / dt * MeSigmaTauKappa
 
     def getAsubdiagDeriv(self, tInd, u, v, adjoint=False):
-        """
-        Derivative of the matrix below the diagonal with respect to conductance
+        r"""
+        Product of the derivative of off-diagonal system matrix with respect to the
+        electrical properties within the model and a vector. This includes
+        derivatives for volume, face and/or edge conductivities depending on
+        whether ``sigmaMap``, ``tauMap`` and/or ``kappaMap`` are set.
+
+        :param float tInd: time step index
+        :param numpy.ndarray u: solution vector (nF,)
+        :param numpy.ndarray v: vector to take prodct with (nP,) or (nD,) for
+            adjoint
+        :param bool adjoint: adjoint?
+        :rtype: numpy.ndarray
+        :return: derivative of the system matrix times a vector (nP,) or
+            adjoint (nD,)
         """
         dt = self.time_steps[tInd]
 
@@ -1134,6 +1280,20 @@ class Simulation3DElectricFieldFaceEdgeConductivity(
         return Adc
 
     def getAdcDeriv(self, u, v, adjoint=False):
+        r"""
+        Product of the derivative of the DC system matrix with respect to the
+        electrical properties within the model and a vector. This includes
+        derivatives for volume, face and/or edge conductivities depending on
+        whether ``sigmaMap``, ``tauMap`` and/or ``kappaMap`` are set.
+
+        :param numpy.ndarray u: solution vector (nF,)
+        :param numpy.ndarray v: vector to take prodct with (nP,) or (nD,) for
+            adjoint
+        :param bool adjoint: adjoint?
+        :rtype: numpy.ndarray
+        :return: derivative of the system matrix times a vector (nP,) or
+            adjoint (nD,)
+        """
         Grad = self.mesh.nodal_gradient
         if not adjoint:
             return Grad.T * self._MeSigmaTauKappaDeriv(-u, v, adjoint)

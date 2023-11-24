@@ -432,11 +432,47 @@ class Simulation3DElectricField(BaseFDEMSimulation):
 class Simulation3DElectricFieldFaceEdgeConductivity(
     Simulation3DElectricField, BaseFaceEdgeElectricalPDESimulation
 ):
+    r"""
+    By eliminating the magnetic flux density using
+
+    .. math ::
+
+        \mathbf{b} = \frac{1}{i \omega}\left(-\mathbf{C} \mathbf{e} +
+        \mathbf{s_m}\right)
+
+
+    we can write Maxwell's equations as a second order system in
+    :math:`mathbf{e}` only:
+
+    .. math ::
+
+        \left(\mathbf{C}^{\top} \mathbf{M_{\mu^{-1}}^f} \mathbf{C} +
+        i \omega \left \mathbf{M^e_{\sigma} + M^e_\tau + M^e_\kappa} \right )
+        \right) \mathbf{e} = \mathbf{C}^{\top} \mathbf{M_{\mu^{-1}}^f}\mathbf{s_m}
+        - i\omega\mathbf{M^e}\mathbf{s_e}
+
+    which we solve for :math:`\mathbf{e}`.
+
+    :param discretize.base.BaseMesh mesh: mesh
+    """
     _solutionType = "eSolution"
     _formulation = "EB"
     fieldsPair = Fields3DElectricFieldFaceEdgeConductivity
 
     def getA(self, freq):
+        r"""
+        System matrix
+
+        .. math ::
+
+            \mathbf{A} = \mathbf{C}^{\top} \mathbf{M_{\mu^{-1}}^f} \mathbf{C}
+            + i \omega \left ( \mathbf{M^e_{\sigma}} + \mathbf{M^e_{\tau}}
+            + \mathbf{M^e_{\kappa}} \right)
+
+        :param float freq: Frequency
+        :rtype: scipy.sparse.csr_matrix
+        :return: A
+        """
         MfMui = self.MfMui
         C = self.mesh.edge_curl
 
@@ -456,12 +492,9 @@ class Simulation3DElectricFieldFaceEdgeConductivity(
     def getADeriv_sigma(self, freq, u, v, adjoint=False):
         r"""
         Product of the derivative of our system matrix with respect to the
-        conductivity model and a vector
-
-        .. math ::
-
-            \frac{\mathbf{A}(\mathbf{m}) \mathbf{v}}{d \mathbf{m}_{\sigma}} =
-            i \omega \frac{d \mathbf{M^e_{\sigma}}(\mathbf{u})\mathbf{v} }{d\mathbf{m}}
+        electrical properties within the model and a vector. This includes
+        derivatives for volume, face and/or edge conductivities depending on
+        whether ``sigmaMap``, ``tauMap`` and/or ``kappaMap`` are set.
 
         :param float freq: frequency
         :param numpy.ndarray u: solution vector (nE,)
@@ -477,6 +510,19 @@ class Simulation3DElectricFieldFaceEdgeConductivity(
         return 1j * omega(freq) * dMe_dsigma_v
 
     def getADeriv(self, freq, u, v, adjoint=False):
+        r"""
+        Product of the derivative of our system matrix with respect to the
+        model and a vector.
+
+        :param float freq: frequency
+        :param numpy.ndarray u: solution vector (nE,)
+        :param numpy.ndarray v: vector to take prodct with (nP,) or (nD,) for
+            adjoint
+        :param bool adjoint: adjoint?
+        :rtype: numpy.ndarray
+        :return: derivative of the system matrix times a vector (nP,) or
+            adjoint (nD,)
+        """
         return (
             self.getADeriv_sigma(freq, u, v, adjoint)
             + self.getADeriv_mui(freq, u, v, adjoint)
@@ -669,6 +715,31 @@ class Simulation3DMagneticFluxDensity(BaseFDEMSimulation):
 class Simulation3DMagneticFluxDensityFaceEdgeConductivity(
     Simulation3DMagneticFluxDensity, BaseFaceEdgeElectricalPDESimulation
 ):
+    r"""
+    We eliminate :math:`\mathbf{e}` using
+
+    .. math ::
+
+         \mathbf{e} = \left ( \mathbf{M^e_{\sigma}} + \mathbf{M^e_{\tau}} +
+         \mathbf{M^e_{\kappa}}\right )^{-1} \left(\mathbf{C}^{\top}
+         \mathbf{M_{\mu^{-1}}^f} \mathbf{b} - \mathbf{s_e}\right)
+
+    and solve for :math:`\mathbf{b}` using:
+
+    .. math ::
+
+        \left(\mathbf{C} \left ( \mathbf{M^e_{\sigma}} + \mathbf{M^e_{\tau}} +
+        \mathbf{M^e_{\kappa}}\right )^{-1} \mathbf{C}^{\top}
+        \mathbf{M_{\mu^{-1}}^f}  + i \omega \right)\mathbf{b} = \mathbf{s_m} +
+        \left ( \mathbf{M^e_{\sigma}} + \mathbf{M^e_{\tau}} +
+         \mathbf{M^e_{\kappa}}\right )^{-1} \mathbf{M^e}\mathbf{s_e}
+
+    .. note ::
+        The inverse problem will not work with full anisotropy
+
+    :param discretize.base.BaseMesh mesh: mesh
+    """
+
     fieldsPair = Fields3DMagneticFluxDensityFaceEdgeConductivity
 
     def getA(self, freq):
@@ -677,7 +748,8 @@ class Simulation3DMagneticFluxDensityFaceEdgeConductivity(
 
         .. math ::
 
-            \mathbf{A} = \mathbf{C} \mathbf{M^e_{\sigma}}^{-1}
+            \mathbf{A} = \mathbf{C} \left ( \mathbf{M^e_{\sigma}} +
+            \mathbf{M^e_{\tau}} + \mathbf{M^e_{\kappa}}\right )^{-1}
             \mathbf{C}^{\top} \mathbf{M_{\mu^{-1}}^f}  + i \omega
 
         :param float freq: Frequency
@@ -705,12 +777,10 @@ class Simulation3DMagneticFluxDensityFaceEdgeConductivity(
     def getADeriv_sigma(self, freq, u, v, adjoint=False):
         r"""
         Product of the derivative of our system matrix with respect to the
-        model and a vector
+        model and a vector.
 
-        .. math ::
-
-            \frac{\mathbf{A}(\mathbf{m}) \mathbf{v}}{d \mathbf{m}} =
-            \mathbf{C} \frac{\mathbf{M^e_{\sigma}} \mathbf{v}}{d\mathbf{m}}
+        This includes derivatives for volume, face and/or edge conductivities
+        depending on whether ``sigmaMap``, ``tauMap`` and/or ``kappaMap`` are set.
 
         :param float freq: frequency
         :param numpy.ndarray u: solution vector (nF,)

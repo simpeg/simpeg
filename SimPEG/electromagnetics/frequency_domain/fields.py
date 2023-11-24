@@ -623,6 +623,19 @@ class Fields3DElectricField(FieldsFDEM):
 
 
 class Fields3DElectricFieldFaceEdgeConductivity(Fields3DElectricField):
+    r"""
+    Fields object for Simulation3DElectricFieldFaceEdgeConductivity.
+
+    In this case, the discrete Ohm's law relationship accounts for volume, face
+    and edge currents. So:
+
+    .. math::
+        \mathbf{M_e \, J} = \left ( \mathbf{M_{e\sigma} + M_{e\tau}
+        + M_{e\kappa}} \right ) \mathbf{e}
+
+    :param discretize.base.BaseMesh mesh: mesh
+    :param SimPEG.electromagnetics.frequency_domain.SurveyFDEM.Survey survey: survey
+    """
     def startup(self):
         self._edgeCurl = self.simulation.mesh.edge_curl
         self._aveE2CCV = self.simulation.mesh.aveE2CCV
@@ -667,6 +680,19 @@ class Fields3DElectricFieldFaceEdgeConductivity(Fields3DElectricField):
         )
 
     def _jDeriv_m(self, src, v, adjoint=False):
+        """
+        Derivative of the current density with respect to the inversion model.
+
+        This includes derivatives for volume, face and/or edge conductivities
+        depending on whether ``sigmaMap``, ``tauMap`` and/or ``kappaMap`` are set.
+
+        :param SimPEG.electromagnetics.frequency_domain.sources.BaseFDEMSrc src: source
+        :param numpy.ndarray v: vector to take product with
+        :param bool adjoint: adjoint?
+        :rtype: numpy.ndarray
+        :return: product of the current density derivative with respect to the
+            inversion model with a vector
+        """
         e = self[src, "e"]
 
         if adjoint:
@@ -1014,8 +1040,15 @@ class Fields3DMagneticFluxDensity(FieldsFDEM):
 
 
 class Fields3DMagneticFluxDensityFaceEdgeConductivity(Fields3DMagneticFluxDensity):
-    """
-    Fields object for Simulation3DMagneticFluxDensity.
+    r"""
+    Fields object for Simulation3DMagneticFluxDensityFaceEdgeConductivity.
+
+    In this case, the discrete Ohm's law relationship accounts for volume, face
+    and edge currents. So:
+
+    .. math::
+        \mathbf{M_e \, J} = \left ( \mathbf{M_{e\sigma} + M_{e\tau}
+        + M_{e\kappa}} \right ) \mathbf{e}
 
     :param discretize.base.BaseMesh mesh: mesh
     :param SimPEG.electromagnetics.frequency_domain.SurveyFDEM.Survey survey: survey
@@ -1023,12 +1056,8 @@ class Fields3DMagneticFluxDensityFaceEdgeConductivity(Fields3DMagneticFluxDensit
 
     def startup(self):
         self._edgeCurl = self.simulation.mesh.edge_curl
-        # self._MeSigma = self.simulation.MeSigma
-        # self._MeSigmaI = self.simulation.MeSigmaI
         self._MfMui = self.simulation.MfMui
         self._MfMuiDeriv = self.simulation.MfMuiDeriv
-        # self._MeSigmaDeriv = self.simulation.MeSigmaDeriv
-        # self._MeSigmaIDeriv = self.simulation.MeSigmaIDeriv
         self.__MeSigmaTauKappa = self.simulation._MeSigmaTauKappa
         self.__MeSigmaTauKappaI = self.simulation._MeSigmaTauKappaI
         self.__MeSigmaTauKappaDeriv = self.simulation._MeSigmaTauKappaDeriv
