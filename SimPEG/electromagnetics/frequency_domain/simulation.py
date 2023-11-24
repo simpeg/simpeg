@@ -455,7 +455,7 @@ class Simulation3DElectricFieldFaceEdgeConductivity(
 
     :param discretize.base.BaseMesh mesh: mesh
     """
-    
+
     _solutionType = "eSolution"
     _formulation = "EB"
     fieldsPair = Fields3DElectricFieldFaceEdgeConductivity

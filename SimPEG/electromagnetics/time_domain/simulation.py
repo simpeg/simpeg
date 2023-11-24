@@ -1191,7 +1191,7 @@ class Simulation3DElectricFieldFaceEdgeConductivity(
         \nabla \times \mu^{-1} \nabla \times \mathbf{e} + \sigma \frac{\partial\mathbf{e}}{\partial t} = \nabla \times \mu^{-1} \mathbf{s_m} + \frac{\partial \mathbf{s_e}}{\partial t}
 
     """
-    
+
     fieldsPair = Fields3DElectricFieldFaceEdgeConductivity
 
     def getAdiag(self, tInd):
