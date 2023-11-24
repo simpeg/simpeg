@@ -223,7 +223,7 @@ class XYZSystem(object):
     def n_param(self, thicknesses):
         return (len(thicknesses)+1)*len(self.xyz.flightlines)
     
-    simulation__solver = 'LU'
+    simulation__solver : typing.Literal['LU', 'pardiso'] = 'LU'
     simulation__parallel = True
     simulation__n_cpu = 3
     def make_simulation(self, survey, thicknesses):
@@ -312,13 +312,13 @@ class XYZSystem(object):
             reg.mref = self.make_startmodel(thicknesses)
             return reg
 
-    directives__seed : int = None
+    directives__beta__seed : int = None
     "Random seed for beta (regularization) schedule estimator"
-    directives__beta0_ratio : float = 10.
+    directives__beta__beta0_ratio : float = 10.
     "Start ratio for the beta (regularization) schedule estimator"
-    directives__beta_cooling_factor=2
+    directives__beta__cooling_factor=2
     "Cooling factor for the beta (regularization) schedule"
-    directives__beta_cooling_rate=1
+    directives__beta__cooling_rate=1
     "Initial cooling rate for the beta (regularization) schedule"
     directives__irls__enable = False
     "IRLS is used to generate a sparse model in addition to and l2 model"
@@ -329,15 +329,15 @@ class XYZSystem(object):
     directives__irls__coolingRate = 1
     def make_directives(self):
         if self.directives__seed:
-            BetaEstimate = directives.BetaEstimate_ByEig(beta0_ratio=self.directives__beta0_ratio, 
-                                                         seed=self.directives__seed)
+            BetaEstimate = directives.BetaEstimate_ByEig(beta0_ratio=self.directives__beta__beta0_ratio, 
+                                                         seed=self.directives__beta__seed)
             print('setting manual random seed for repeatabillity')
         else:
-            BetaEstimate = directives.BetaEstimate_ByEig(beta0_ratio=self.directives__beta0_ratio)
+            BetaEstimate = directives.BetaEstimate_ByEig(beta0_ratio=self.directives__beta__beta0_ratio)
         dirs = [
             BetaEstimate,
-            SimPEG.directives.BetaSchedule(coolingFactor=self.directives__beta_cooling_factor, 
-                                           coolingRate=self.directives__beta_cooling_rate),
+            SimPEG.directives.BetaSchedule(coolingFactor=self.directives__beta__cooling_factor, 
+                                           coolingRate=self.directives__beta__cooling_rate),
             SimPEG.directives.TargetMisfit()]
 
         #            directives.SaveOutputEveryIteration(save_txt=False),

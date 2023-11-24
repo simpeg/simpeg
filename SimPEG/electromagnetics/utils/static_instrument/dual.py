@@ -49,10 +49,10 @@ class DualMomentTEMXYZSystem(base.XYZSystem):
 
     See the help for `XYZSystem` for more information on basic usage.
     """
-    gate_start_lm=5
-    gate_end_lm=11
-    gate_start_hm=12
-    gate_end_hm=26
+    gate_filter__start_lm=5
+    gate_filter__end_lm=11
+    gate_filter__start_hm=12
+    gate_filter__end_hm=26
 
     rx_orientation : typing.Literal['x', 'y', 'z'] = 'z'
     tx_orientation : typing.Literal['x', 'y', 'z'] = 'z'
@@ -158,8 +158,8 @@ class DualMomentTEMXYZSystem(base.XYZSystem):
     def times_filter(self):        
         times = self.times_full
         filts = [np.zeros(len(t), dtype=bool) for t in times]
-        filts[0][self.gate_start_lm:self.gate_end_lm] = True
-        filts[1][self.gate_start_hm:self.gate_end_hm] = True
+        filts[0][self.gate_filter__start_lm:self.gate_filter__end_lm] = True
+        filts[1][self.gate_filter__start_hm:self.gate_filter__end_hm] = True
         return filts
         
     def make_waveforms(self):
