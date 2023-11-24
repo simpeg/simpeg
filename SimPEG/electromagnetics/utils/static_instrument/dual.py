@@ -121,34 +121,11 @@ class DualMomentTEMXYZSystem(base.XYZSystem):
     def data_uncert_array(self):
         return np.hstack((self.lm_std, self.hm_std)).flatten()
 
-    uncertainties__floor = 1e-13
-    uncertainties__std_data = 0.03
-    uncertainties__std_data_override = False
-    uncertainties__noise_level_1ms=3e-8
-    uncertainties__noise_exponent=-0.5
     @property
-    def uncert_array(self):
-        times_lm, times_hm = self.times
-        n_sounding = self.lm_data.shape[0]
+    def dipole_moments(self):
+        return [self.gex.gex_dict['Channel1']['ApproxDipoleMoment'],
+                self.gex.gex_dict['Channel2']['ApproxDipoleMoment']]
         
-        # 1e3 to compensate for noise level being at 1 millisecond
-        noise = np.hstack((np.tile((times_lm*1e3)**self.uncertainties__noise_exponent
-                                   * (self.uncertainties__noise_level_1ms / self.gex.gex_dict['Channel1']['ApproxDipoleMoment']),
-                                   (n_sounding, 1)),
-                           np.tile((times_hm*1e3)**self.uncertainties__noise_exponent
-                                   * (self.uncertainties__noise_level_1ms / self.gex.gex_dict['Channel2']['ApproxDipoleMoment']),
-                                   (n_sounding, 1)))).flatten()
-
-        if not self.uncertainties__std_data_override:
-            stds = np.where(self.data_uncert_array_culled < self.uncertainties__std_data,
-                            self.uncertainties__std_data,
-                            self.data_uncert_array_culled)
-            uncertainties = stds * np.abs(self.data_array_nan) + noise
-        else:
-            uncertainties = self.uncertainties__std_data*np.abs(self.data_array_nan) + noise
-        
-        return np.where(np.isnan(self.data_array_nan), np.Inf, uncertainties)
-    
     @property
     def times_full(self):
         return (np.array(self.gex.gate_times('Channel1')[:,0]),

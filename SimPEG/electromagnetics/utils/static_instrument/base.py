@@ -170,18 +170,33 @@ class XYZSystem(object):
     def data_uncert_array_culled(self):
         dobs = self.data_array_nan
         return np.where(np.isnan(dobs), np.inf, self.data_uncert_array)
-        
-    uncertainties__floor = 1e-13
-    "Noise floor (constant uncertainty on top of fraction of data)"
-    uncertainties__std_data = 0.05
-    "Uncertainty as fraction of data. If None, use data std:s"
+
+    dipole_moments = [1]
+    
+    uncertainties__std_data = 0.03
+    "Noise as a factor of data"
+    uncertainties__std_data_override = False
+    "If set to true, use the std_data value instead of data std:s from stacking"
+    uncertainties__noise_level_1ms=3e-8
+    uncertainties__noise_exponent=-0.5
     @property
     def uncert_array(self):
-        if self.uncertainties__std_data is None:
-            uncertainties = self.data_uncert_array_culled
+        n_sounding = len(self.xyz.flightlines)
+        
+        # 1e3 to compensate for noise level being at 1 millisecond
+        noise = np.hstack([np.tile((times*1e3)**self.uncertainties__noise_exponent
+                                   * (self.uncertainties__noise_level_1ms / moment),
+                                   (n_sounding, 1))
+                           for times, moment in zip(self.times, self.dipole_moments)]).flatten()
+
+        if not self.uncertainties__std_data_override:
+            stds = np.where(self.data_uncert_array_culled < self.uncertainties__std_data,
+                            self.uncertainties__std_data,
+                            self.data_uncert_array_culled)
+            uncertainties = stds * np.abs(self.data_array_nan) + noise
         else:
-            uncertainties = self.uncertainties__std_data
-        uncertainties = uncertainties * np.abs(self.data_array) + self.uncertainties__floor
+            uncertainties = self.uncertainties__std_data*np.abs(self.data_array_nan) + noise
+        
         return np.where(np.isnan(self.data_array_nan), np.Inf, uncertainties)
 
     startmodel__thicknesses_type : typing.Literal['time', 'geometric'] = "time"

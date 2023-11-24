@@ -21,7 +21,11 @@ class SingleMomentTEMXYZSystem(base.XYZSystem):
     #alt = 30
 
     waveform = None
-    
+
+    @property
+    def dipole_moments(self):
+        return [self.aera * self.i_max]
+
     def make_waveforms(self):
         if self.waveform is None:
             return [tdem.sources.StepOffWaveform()]
