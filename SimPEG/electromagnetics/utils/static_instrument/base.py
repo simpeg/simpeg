@@ -147,6 +147,7 @@ class XYZSystem(object):
                 in zip(self.times_full, self.times_filter)]
     
     startmodel__n_layer = 30
+    "Number of layers in model discretization"
     @property
     def n_layer_used(self):
         if "resistivity" in self.xyz.layer_data:
@@ -239,8 +240,11 @@ class XYZSystem(object):
         return (len(thicknesses)+1)*len(self.xyz.flightlines)
     
     simulation__solver : typing.Literal['LU', 'pardiso'] = 'LU'
+    "Equation solver to use. Some solvers might require hardware support."
     simulation__parallel = True
+    "Use multiple computation threads in parallel. Useful to set to false in a notebook for debugging."
     simulation__n_cpu = 3
+    "Number of threads (roughly same as CPU cores) to use"
     def make_simulation(self, survey, thicknesses):
         if 'pardiso' in self.simulation__solver.lower():
             print('Using Pardiso solver')
@@ -281,7 +285,8 @@ class XYZSystem(object):
         dmis.W = self.make_misfit_weights()
         return dmis
     
-    startmodel__res=100
+    startmodel__res=100.
+    "Initial resistivity (ohmm)"
     def make_startmodel(self, thicknesses):
         startmodel=np.log(np.ones(self.n_param(thicknesses)) * 1/self.startmodel__res)
         return startmodel
@@ -338,6 +343,7 @@ class XYZSystem(object):
     directives__irls__enable = False
     "IRLS is used to generate a sparse model in addition to and l2 model"
     directives__irls__max_iterations = 30
+    "Maximum number of iterations (after l2 model has converged)"
     directives__irls__minGNiter = 1
     directives__irls__fix_Jmatrix = True
     directives__irls__f_min_change = 1e-3

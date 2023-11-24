@@ -50,12 +50,18 @@ class DualMomentTEMXYZSystem(base.XYZSystem):
     See the help for `XYZSystem` for more information on basic usage.
     """
     gate_filter__start_lm=5
+    "Lowest used gate (zero based)"
     gate_filter__end_lm=11
+    "First unused gate above used ones (zero based)"
     gate_filter__start_hm=12
+    "Lowest used gate (zero based)"
     gate_filter__end_hm=26
+    "First unused gate above used ones (zero based)"
 
     rx_orientation : typing.Literal['x', 'y', 'z'] = 'z'
+    "Receiver orientation"
     tx_orientation : typing.Literal['x', 'y', 'z'] = 'z'
+    "Transmitter orientation"
     
     @classmethod
     def load_gex(cls, gex):
