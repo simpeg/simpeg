@@ -156,157 +156,305 @@ Sim.field_derivs = None
 
 
 def compute_J(self, f=None, Ainv=None):
+# def Jtvec(self, m, v, f=None):
+    r"""
+    Jvec computes the adjoint of the sensitivity times a vector
+
+    .. math::
+
+        \mathbf{J}^\top \mathbf{v} =
+            \left(
+                \frac{d\mathbf{u}}{d\mathbf{m}} ^ \top
+                \frac{d\mathbf{F}}{d\mathbf{u}} ^ \top
+                + \frac{\partial\mathbf{F}}{\partial\mathbf{m}} ^ \top
+            \right)
+            \frac{d\mathbf{P}}{d\mathbf{F}} ^ \top
+            \mathbf{v}
+
+    where
+
+    .. math::
+
+        \frac{d\mathbf{u}}{d\mathbf{m}} ^\top \mathbf{A}^\top  +
+        \frac{d\mathbf{A}(\mathbf{u})}{d\mathbf{m}} ^ \top =
+        \frac{d \mathbf{RHS}}{d \mathbf{m}} ^ \top
+    """
+
     if f is None:
         f, Ainv = self.fields(self.model, return_Ainv=True)
 
+    ftype = self._fieldType + "Solution"  # the thing we solved for
+
+    # Ensure v is a data object.
+    # if not isinstance(v, Data):
+    #     v = Data(self.survey, v)
+
+    df_duT_v = {}
+    field_len = len(f[self.survey.source_list[0], ftype, 0])
+    # same size as fields at a single timestep
+    ATinv_df_duT_v = {}
+
     m_size = self.model.size
-    row_chunks = int(
-        np.ceil(
-            float(self.survey.nD)
-            / np.ceil(float(m_size) * self.survey.nD * 8.0 * 1e-6 / self.max_chunk_size)
-        )
-    )
+    Jmatrix = np.zeros((self.survey.nD, m_size), dtype=np.float32)
+    # Loop over sources and receivers to create a fields object:
+    # PT_v, df_duT_v, df_dmT_v
+    # initialize storage for PT_v (don't need to preserve over sources)
+    PT_v = self.Fields_Derivs(self)
+    rx_count = 0
+    for src in self.survey.source_list:
+        # Looping over initializing field class is appending memory!
+        # PT_v = Fields_Derivs(self.mesh) # initialize storage
+        # #for PT_v (don't need to preserve over sources)
+        # initialize size
+        df_duT_v[src] = {}
 
-    if self.store_sensitivities == "disk":
-        self.J_initializer = zarr.open(
-            self.sensitivity_path + f"J_initializer.zarr",
-            mode="w",
-            shape=(self.survey.nD, m_size),
-            chunks=(row_chunks, m_size),
-        )
-    else:
-        self.J_initializer = np.zeros((self.survey.nD, m_size), dtype=np.float32)
-    solution_type = self._fieldType + "Solution"  # the thing we solved for
+        for rx in src.receiver_list:
+            df_duT_v[src][rx] = {}
+            PTv = np.asarray(
+                rx.getP(self.mesh, self.time_mesh, f).todense().T
+            ).reshape((field_len, self.nT + 1, -1), order="F")
 
-    if self.field_derivs is None:
-        # print("Start loop for field derivs")
-        block_size = len(f[self.survey.source_list[0], solution_type, 0])
+            n_rec_comp = rx.locations.shape[0] * (self.nT + 1)
 
-        field_derivs = []
-        for tInd in range(self.nT + 1):
-            d_count = 0
-            df_duT_v = []
-            for i_s, src in enumerate(self.survey.source_list):
-                src_field_derivs = delayed(block_deriv, pure=True)(
-                    self, src, tInd, f, block_size, d_count
+            # PT_v[src, "{}Deriv".format(rx.projField), :] = rx.evalDeriv(
+            #     src, self.mesh, self.time_mesh, f, mkvc(v[src, rx]), adjoint=True
+            # )  # this is +=
+
+            # PT_v = np.reshape(curPT_v,(len(curPT_v)/self.time_mesh.nN,
+            # self.time_mesh.nN), order='F')
+            df_duTFun = getattr(f, "_{}Deriv".format(rx.projField), None)
+
+            rx_ind = np.arange(rx_count, rx_count + rx.nD).astype(int)
+            for tInd in range(self.nT + 1):
+                cur = df_duTFun(
+                    tInd,
+                    src,
+                    None,
+                    PTv[:, tInd, :],
+                    adjoint=True,
                 )
-                df_duT_v += [src_field_derivs]
-                d_count += np.sum([rx.nD for rx in src.receiver_list])
 
-            field_derivs += [df_duT_v]
-        # print("Dask loop field derivs")
-        # tc = time()
+                df_duT_v[src][rx][tInd] = cur[0]
+                Jmatrix[rx_ind, :] += cur[1].T
 
-        self.field_derivs = dask.compute(field_derivs)[0]
-        # print(f"Done in {time() - tc} seconds")
+            rx_count += rx.nD
 
-    if self.store_sensitivities == "disk":
-        Jmatrix = (
-            zarr.open(
-                self.sensitivity_path + f"J.zarr",
-                mode="w",
-                shape=(self.survey.nD, m_size),
-                chunks=(row_chunks, m_size),
-            )
-            + self.J_initializer
-        )
-    else:
-        Jmatrix = dask.delayed(
-            np.zeros((self.survey.nD, m_size), dtype=np.float32) + self.J_initializer
-        )
+    del PT_v  # no longer need this
 
-    f = dask.delayed(f)
-    field_derivs_t = {}
-    d_block_size = np.ceil(128.0 / (m_size * 8.0 * 1e-6))
+    AdiagTinv = None
 
-    # Check which time steps we need to compute
-    simulation_times = np.r_[0, np.cumsum(self.time_steps)] + self.t0
-    data_times = self.survey.source_list[0].receiver_list[0].times
-    n_times = len(data_times)
+    # Do the back-solve through time
+    # if the previous timestep is the same: no need to refactor the matrix
+    # for tInd, dt in zip(range(self.nT), self.time_steps):
 
     for tInd, dt in tqdm(zip(reversed(range(self.nT)), reversed(self.time_steps))):
+        # tInd = tIndP - 1
         AdiagTinv = Ainv[dt]
-        Asubdiag = self.getAsubdiag(tInd)
-        row_count = 0
-        row_blocks = []
-        field_derivs = {}
-        source_blocks = []
-        d_count = 0
+        # Asubdiag = self.getAsubdiag(tInd)
 
-        data_bool = data_times > simulation_times[tInd]
-
-        if data_bool.sum() == 0:
-            continue
-
-        # tc_loop = time()
-        # print(f"Loop sources for {tInd}")
+        if tInd < self.nT - 1:
+            Asubdiag = self.getAsubdiag(tInd + 1)
+        rx_count = 0
         for isrc, src in enumerate(self.survey.source_list):
 
-            column_inds = np.hstack([
-                np.kron(np.ones(rec.locations.shape[0], dtype=bool), data_bool
-            ) for rec in src.receiver_list])
+            if isrc not in ATinv_df_duT_v:
+                ATinv_df_duT_v[isrc] = {}
 
-            if isrc not in field_derivs_t:
-                field_derivs[(isrc, src)] = self.field_derivs[tInd + 1][isrc].toarray()[
-                    :, column_inds
-                ]
-            else:
-                field_derivs[(isrc, src)] = field_derivs_t[isrc][:, column_inds]
+            for rx in src.receiver_list:
+                if rx not in ATinv_df_duT_v[isrc]:
+                    ATinv_df_duT_v[isrc][rx] = {}
 
-            d_count += column_inds.sum()
+                rx_ind = np.arange(rx_count, rx_count + rx.nD).astype(int)
+                # solve against df_duT_v
+                if tInd >= self.nT - 1:
 
-            if d_count > d_block_size:
-                source_blocks = block_append(
-                    self,
-                    f,
-                    AdiagTinv,
-                    field_derivs,
-                    m_size,
-                    row_count,
-                    tInd,
-                    solution_type,
-                    Jmatrix,
-                    Asubdiag,
-                    source_blocks,
-                    data_bool,
+
+                    # last timestep (first to be solved)
+                    ATinv_df_duT_v[isrc][rx][tInd] = (
+                        AdiagTinv
+                        * df_duT_v[src][rx][tInd+1]
+                    )
+                elif tInd > -1:
+                    ATinv_df_duT_v[isrc][rx][tInd] = AdiagTinv * (
+                        df_duT_v[src][rx][tInd+1]
+                        - Asubdiag.T * ATinv_df_duT_v[isrc][rx][tInd+1]
+                    )
+
+                dAsubdiagT_dm_v = self.getAsubdiagDeriv(
+                    tInd, f[src, ftype, tInd], ATinv_df_duT_v[isrc][rx][tInd], adjoint=True
                 )
-                field_derivs = {}
-                row_count = d_count
-                d_count = 0
 
-        if field_derivs:
-            source_blocks = block_append(
-                self,
-                f,
-                AdiagTinv,
-                field_derivs,
-                m_size,
-                row_count,
-                tInd,
-                solution_type,
-                Jmatrix,
-                Asubdiag,
-                source_blocks,
-                data_bool,
-            )
+                dRHST_dm_v = self.getRHSDeriv(
+                    tInd + 1, src, ATinv_df_duT_v[isrc][rx][tInd], adjoint=True
+                )  # on nodes of time mesh
 
-        # print(f"Done in {time() - tc_loop} seconds")
-        # tc = time()
-        # print(f"Compute field derivs for {tInd}")
-        del field_derivs_t
-        field_derivs_t = {
-            isrc: elem for isrc, elem in enumerate(dask.compute(source_blocks)[0])
-        }
-        # print(f"Done in {time() - tc} seconds")
+                un_src = f[src, ftype, tInd + 1]
+                # cell centered on time mesh
+                dAT_dm_v = self.getAdiagDeriv(
+                    tInd, un_src, ATinv_df_duT_v[isrc][rx][tInd], adjoint=True
+                )
 
-    for A in Ainv.values():
-        A.clean()
+                Jmatrix[rx_ind, :] += (-dAT_dm_v - dAsubdiagT_dm_v + dRHST_dm_v).T
 
-    if self.store_sensitivities == "disk":
-        del Jmatrix
-        return array.from_zarr(self.sensitivity_path + f"J.zarr")
-    else:
-        return Jmatrix.compute()
+                rx_count += rx.nD
+    # Treat the initial condition
+
+    # del df_duT_v, ATinv_df_duT_v, A, Asubdiag
+    if AdiagTinv is not None:
+        AdiagTinv.clean()
+
+    return Jmatrix
+    # if f is None:
+    #     f, Ainv = self.fields(self.model, return_Ainv=True)
+    #
+    # m_size = self.model.size
+    # row_chunks = int(
+    #     np.ceil(
+    #         float(self.survey.nD)
+    #         / np.ceil(float(m_size) * self.survey.nD * 8.0 * 1e-6 / self.max_chunk_size)
+    #     )
+    # )
+    #
+    # if self.store_sensitivities == "disk":
+    #     self.J_initializer = zarr.open(
+    #         self.sensitivity_path + f"J_initializer.zarr",
+    #         mode="w",
+    #         shape=(self.survey.nD, m_size),
+    #         chunks=(row_chunks, m_size),
+    #     )
+    # else:
+    #     self.J_initializer = np.zeros((self.survey.nD, m_size), dtype=np.float32)
+    # solution_type = self._fieldType + "Solution"  # the thing we solved for
+    #
+    # if self.field_derivs is None:
+    #     # print("Start loop for field derivs")
+    #     block_size = len(f[self.survey.source_list[0], solution_type, 0])
+    #
+    #     field_derivs = []
+    #     for tInd in range(self.nT + 1):
+    #         d_count = 0
+    #         df_duT_v = []
+    #         for i_s, src in enumerate(self.survey.source_list):
+    #             src_field_derivs = delayed(block_deriv, pure=True)(
+    #                 self, src, tInd, f, block_size, d_count
+    #             )
+    #             df_duT_v += [src_field_derivs]
+    #             d_count += np.sum([rx.nD for rx in src.receiver_list])
+    #
+    #         field_derivs += [df_duT_v]
+    #     # print("Dask loop field derivs")
+    #     # tc = time()
+    #
+    #     self.field_derivs = dask.compute(field_derivs)[0]
+    #     # print(f"Done in {time() - tc} seconds")
+    #
+    # if self.store_sensitivities == "disk":
+    #     Jmatrix = (
+    #         zarr.open(
+    #             self.sensitivity_path + f"J.zarr",
+    #             mode="w",
+    #             shape=(self.survey.nD, m_size),
+    #             chunks=(row_chunks, m_size),
+    #         )
+    #         + self.J_initializer
+    #     )
+    # else:
+    #     Jmatrix = dask.delayed(
+    #         np.zeros((self.survey.nD, m_size), dtype=np.float32) + self.J_initializer
+    #     )
+    #
+    # f = dask.delayed(f)
+    # field_derivs_t = {}
+    # d_block_size = np.ceil(128.0 / (m_size * 8.0 * 1e-6))
+    #
+    # # Check which time steps we need to compute
+    # simulation_times = np.r_[0, np.cumsum(self.time_steps)] + self.t0
+    # data_times = self.survey.source_list[0].receiver_list[0].times
+    # n_times = len(data_times)
+    #
+    # for tInd, dt in tqdm(zip(reversed(range(self.nT)), reversed(self.time_steps))):
+    #     AdiagTinv = Ainv[dt]
+    #     Asubdiag = self.getAsubdiag(tInd)
+    #     row_count = 0
+    #     row_blocks = []
+    #     field_derivs = {}
+    #     source_blocks = []
+    #     d_count = 0
+    #
+    #     data_bool = data_times > simulation_times[tInd]
+    #
+    #     if data_bool.sum() == 0:
+    #         continue
+    #
+    #     # tc_loop = time()
+    #     # print(f"Loop sources for {tInd}")
+    #     for isrc, src in enumerate(self.survey.source_list):
+    #
+    #         column_inds = np.hstack([
+    #             np.kron(np.ones(rec.locations.shape[0], dtype=bool), data_bool
+    #         ) for rec in src.receiver_list])
+    #
+    #         if isrc not in field_derivs_t:
+    #             field_derivs[(isrc, src)] = self.field_derivs[tInd + 1][isrc].toarray()[
+    #                 :, column_inds
+    #             ]
+    #         else:
+    #             field_derivs[(isrc, src)] = field_derivs_t[isrc][:, column_inds]
+    #
+    #         d_count += column_inds.sum()
+    #
+    #         if d_count > d_block_size:
+    #             source_blocks = block_append(
+    #                 self,
+    #                 f,
+    #                 AdiagTinv,
+    #                 field_derivs,
+    #                 m_size,
+    #                 row_count,
+    #                 tInd,
+    #                 solution_type,
+    #                 Jmatrix,
+    #                 Asubdiag,
+    #                 source_blocks,
+    #                 data_bool,
+    #             )
+    #             field_derivs = {}
+    #             row_count = d_count
+    #             d_count = 0
+    #
+    #     if field_derivs:
+    #         source_blocks = block_append(
+    #             self,
+    #             f,
+    #             AdiagTinv,
+    #             field_derivs,
+    #             m_size,
+    #             row_count,
+    #             tInd,
+    #             solution_type,
+    #             Jmatrix,
+    #             Asubdiag,
+    #             source_blocks,
+    #             data_bool,
+    #         )
+    #
+    #     # print(f"Done in {time() - tc_loop} seconds")
+    #     # tc = time()
+    #     # print(f"Compute field derivs for {tInd}")
+    #     del field_derivs_t
+    #     field_derivs_t = {
+    #         isrc: elem for isrc, elem in enumerate(dask.compute(source_blocks)[0])
+    #     }
+    #     # print(f"Done in {time() - tc} seconds")
+    #
+    # for A in Ainv.values():
+    #     A.clean()
+    #
+    # if self.store_sensitivities == "disk":
+    #     del Jmatrix
+    #     return array.from_zarr(self.sensitivity_path + f"J.zarr")
+    # else:
+    #     return Jmatrix.compute()
 
 
 Sim.compute_J = compute_J
