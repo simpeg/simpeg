@@ -39,6 +39,7 @@ except:
 import scipy.stats
 import copy
 import re
+import typing
 
 from . import xyzfilter
 
@@ -88,6 +89,7 @@ class XYZSystem(object):
             self.do_validate()
 
     validate = True
+    "Validate input data scaling etc. prior to inversion"
     def do_validate(self):
         if "dbdt_ch1gt" in self._xyz.layer_data:
             dbdt = -self._xyz.layer_data["dbdt_ch1gt"].values.flatten() * self._xyz.model_info.get("scalefactor", 1)
@@ -170,7 +172,9 @@ class XYZSystem(object):
         return np.where(np.isnan(dobs), np.inf, self.data_uncert_array)
         
     uncertainties__floor = 1e-13
-    uncertainties__std_data = 0.05 # If None, use data std:s
+    "Noise floor (constant uncertainty on top of fraction of data)"
+    uncertainties__std_data = 0.05
+    "Uncertainty as fraction of data. If None, use data std:s"
     @property
     def uncert_array(self):
         if self.uncertainties__std_data is None:
@@ -180,9 +184,12 @@ class XYZSystem(object):
         uncertainties = uncertainties * np.abs(self.data_array) + self.uncertainties__floor
         return np.where(np.isnan(self.data_array_nan), np.Inf, uncertainties)
 
-    startmodel__thicknesses_type = "time"
+    startmodel__thicknesses_type : typing.Literal['time', 'geometric'] = "time"
+    "Type of model discretization"
     startmodel__thicknesses_minimum_dz = 3
+    "Thickness of thinnest layer if using geometric discretization"
     startmodel__thicknesses_geomtric_factor = 1.08
+    "Ratio of one layer to the next if using geometric discretization"
     def make_thicknesses(self):
         if self.startmodel__thicknesses_type == "geometric":
             return SimPEG.electromagnetics.utils.em1d_utils.get_vertical_discretization(
@@ -304,17 +311,22 @@ class XYZSystem(object):
             )
             reg.mref = self.make_startmodel(thicknesses)
             return reg
-    
-    directives__seed = None
-    directives__beta0_ratio=10
-    directives__beta_cooling_factor=2 
+
+    directives__seed : int = None
+    "Random seed for beta (regularization) schedule estimator"
+    directives__beta0_ratio : float = 10.
+    "Start ratio for the beta (regularization) schedule estimator"
+    directives__beta_cooling_factor=2
+    "Cooling factor for the beta (regularization) schedule"
     directives__beta_cooling_rate=1
-    directives__irls = False
-    directives__max_iterations = 30
-    directives__minGNiter = 1
-    directives__fix_Jmatrix = True
-    directives__f_min_change = 1e-3
-    directives__coolingRate = 1
+    "Initial cooling rate for the beta (regularization) schedule"
+    directives__irls__enable = False
+    "IRLS is used to generate a sparse model in addition to and l2 model"
+    directives__irls__max_iterations = 30
+    directives__irls__minGNiter = 1
+    directives__irls__fix_Jmatrix = True
+    directives__irls__f_min_change = 1e-3
+    directives__irls__coolingRate = 1
     def make_directives(self):
         if self.directives__seed:
             BetaEstimate = directives.BetaEstimate_ByEig(beta0_ratio=self.directives__beta0_ratio, 
@@ -329,19 +341,20 @@ class XYZSystem(object):
             SimPEG.directives.TargetMisfit()]
 
         #            directives.SaveOutputEveryIteration(save_txt=False),
-        if self.directives__irls:
+        if self.directives__irls__enable:
             dirs.append(
                 directives.Update_IRLS(
-                    max_irls_iterations = self.directives__max_iterations,
-                    minGNiter = self.directives__minGNiter,
-                    fix_Jmatrix = self.directives__fix_Jmatrix,
-                    f_min_change = self.directives__f_min_change,
-                    coolingRate = self.directives__coolingRate))
+                    max_irls_iterations = self.directives__irls__max_iterations,
+                    minGNiter = self.directives__irls__minGNiter,
+                    fix_Jmatrix = self.directives__irls__fix_Jmatrix,
+                    f_min_change = self.directives__irls__f_min_change,
+                    coolingRate = self.directives__irls__coolingRate))
             dirs.append(directives.UpdatePreconditioner())
 
         return dirs
         
     optimizer__max_iter=40
+    "Maximum number of gauss newton iterations"
     optimizer__max_iter_cg=20
     def make_optimizer(self):
         return optimization.InexactGaussNewton(maxIter = self.optimizer__max_iter, maxIterCG=self.optimizer__max_iter_cg)
