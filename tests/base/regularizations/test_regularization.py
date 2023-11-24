@@ -1,14 +1,13 @@
-import numpy as np
+import inspect
 import unittest
 
-import pytest
-import inspect
-
 import discretize
-from SimPEG import maps, objective_function, regularization, utils
-from SimPEG.regularization import BaseRegularization, WeightedLeastSquares
-from SimPEG.objective_function import ComboObjectiveFunction
+import numpy as np
+import pytest
 
+from SimPEG import maps, objective_function, regularization, utils
+from SimPEG.objective_function import ComboObjectiveFunction
+from SimPEG.regularization import BaseRegularization, WeightedLeastSquares
 
 TOL = 1e-7
 testReg = True
@@ -31,6 +30,7 @@ IGNORE_ME = [
     "LinearCorrespondence",
     "JointTotalVariation",
     "BaseAmplitude",
+    "SmoothnessFullGradient",
     "VectorAmplitude",
     "CrossReferenceRegularization",
 ]
@@ -163,7 +163,7 @@ class RegularizationTests(unittest.TestCase):
             active_cells = mesh.gridCC[:, 2] < 0.6
             reg = getattr(regularization, regType)(mesh, active_cells=active_cells)
 
-            self.assertTrue(reg.nP == reg.regularization_mesh.nC)
+            self.assertTrue(reg.nP == reg.regularization_mesh.n_cells)
 
             [
                 self.assertTrue(np.all(fct.active_cells == active_cells))

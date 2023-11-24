@@ -169,6 +169,7 @@ from .vector import (
     AmplitudeSmallness,
     AmplitudeSmoothnessFirstOrder,
 )
+from .rotated import SmoothnessFullGradient
 
 
 @deprecate_class(removal_version="0.19.0", future_warn=True)

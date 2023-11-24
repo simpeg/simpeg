@@ -111,7 +111,7 @@ class RegularizationMesh(props.BaseSimPEG):
         return self._vol
 
     @property
-    def nC(self) -> int:
+    def n_cells(self) -> int:
         """Number of active cells.
 
         Returns
@@ -121,7 +121,9 @@ class RegularizationMesh(props.BaseSimPEG):
         """
         if self.active_cells is not None:
             return int(self.active_cells.sum())
-        return self.mesh.nC
+        return self.mesh.n_cells
+
+    nC = n_cells
 
     @property
     def dim(self) -> int:
