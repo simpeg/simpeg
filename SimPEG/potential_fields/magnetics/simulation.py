@@ -23,6 +23,28 @@ from geoana.kernels import (
     prism_fxyz,
 )
 
+import discretize
+
+from ._numba_functions import (
+    choclo,
+    _sensitivity_tmi_parallel,
+    _sensitivity_tmi_serial,
+    _sensitivity_mag_parallel,
+    _sensitivity_mag_serial,
+    _forward_tmi_parallel,
+    _forward_tmi_serial,
+    _forward_mag_parallel,
+    _forward_mag_serial,
+)
+
+if choclo is not None:
+    CHOCLO_SUPPORTED_COMPONENTS = {"tmi", "bx", "by", "bz"}
+    CHOCLO_KERNELS = {
+        "bx": (choclo.prism.kernel_ee, choclo.prism.kernel_en, choclo.prism.kernel_eu),
+        "by": (choclo.prism.kernel_en, choclo.prism.kernel_nn, choclo.prism.kernel_nu),
+        "bz": (choclo.prism.kernel_eu, choclo.prism.kernel_nu, choclo.prism.kernel_uu),
+    }
+
 
 class Simulation3DIntegral(BasePFSimulation):
     """
@@ -39,7 +61,9 @@ class Simulation3DIntegral(BasePFSimulation):
         chiMap=None,
         model_type="scalar",
         is_amplitude_data=False,
-        **kwargs
+        engine="geoana",
+        choclo_parallel=True,
+        **kwargs,
     ):
         self.model_type = model_type
         super().__init__(mesh, **kwargs)
@@ -51,6 +75,18 @@ class Simulation3DIntegral(BasePFSimulation):
         self._gtg_diagonal = None
         self.is_amplitude_data = is_amplitude_data
         self.modelMap = self.chiMap
+        self.engine = engine
+        if self.engine == "choclo":
+            if choclo_parallel:
+                self._sensitivity_tmi = _sensitivity_tmi_parallel
+                self._sensitivity_mag = _sensitivity_mag_parallel
+                self._forward_tmi = _forward_tmi_parallel
+                self._forward_mag = _forward_mag_parallel
+            else:
+                self._sensitivity_tmi = _sensitivity_tmi_serial
+                self._sensitivity_mag = _sensitivity_mag_serial
+                self._forward_tmi = _forward_tmi_serial
+                self._forward_mag = _forward_mag_serial
 
     @property
     def model_type(self):
@@ -106,7 +142,10 @@ class Simulation3DIntegral(BasePFSimulation):
         self.model = model
         # model = self.chiMap * model
         if self.store_sensitivities == "forward_only":
-            fields = mkvc(self.linear_operator())
+            if self.engine == "choclo":
+                fields = self._forward(self.chi)
+            else:
+                fields = mkvc(self.linear_operator())
         else:
             fields = np.asarray(
                 self.G @ self.chi.astype(self.sensitivity_dtype, copy=False)
@@ -120,7 +159,10 @@ class Simulation3DIntegral(BasePFSimulation):
     @property
     def G(self):
         if getattr(self, "_G", None) is None:
-            self._G = self.linear_operator()
+            if self.engine == "choclo":
+                self._G = self._sensitivity_matrix()
+            else:
+                self._G = self.linear_operator()
 
         return self._G
 
@@ -445,6 +487,214 @@ class Simulation3DIntegral(BasePFSimulation):
         if self.is_amplitude_data:
             deletes = deletes + ["_gtg_diagonal", "_ampDeriv"]
         return deletes
+
+    def _forward(self, model):
+        """
+        Forward model the fields of active cells in the mesh on receivers.
+
+        Parameters
+        ----------
+        model : (n_active_cells) or (3 * n_active_cells) array
+            Array containing the susceptibilities (scalar) or effective
+            susceptibilities (vector) of the active cells in the mesh, in SI
+            units.
+            Susceptibilities are expected if ``model_type`` is ``"scalar"``,
+            and the array should have ``n_active_cells`` elements.
+            Effective susceptibilities are expected if ``model_type`` is
+            ``"vector"``, and the array should have ``3 * n_active_cells``
+            elements.
+
+        Returns
+        -------
+        (nD, ) array
+            Always return a ``np.float64`` array.
+        """
+        # Gather active nodes and the indices of the nodes for each active cell
+        active_nodes, active_cell_nodes = self._get_active_nodes()
+        # Get regional field
+        regional_field = self.survey.source_field.b0
+        # Allocate fields array
+        fields = np.zeros(self.survey.nD, dtype=self.sensitivity_dtype)
+        # Define the constant factor
+        constant_factor = 1 / 4 / np.pi
+        # Start computing the fields
+        index_offset = 0
+        scalar_model = self.model_type == "scalar"
+        for components, receivers in self._get_components_and_receivers():
+            if not CHOCLO_SUPPORTED_COMPONENTS.issuperset(components):
+                raise NotImplementedError(
+                    f"Other components besides {CHOCLO_SUPPORTED_COMPONENTS} "
+                    "aren't implemented yet."
+                )
+            n_components = len(components)
+            n_rows = n_components * receivers.shape[0]
+            for i, component in enumerate(components):
+                vector_slice = slice(
+                    index_offset + i, index_offset + n_rows, n_components
+                )
+                if component == "tmi":
+                    self._forward_tmi(
+                        receivers,
+                        active_nodes,
+                        model,
+                        fields[vector_slice],
+                        active_cell_nodes,
+                        regional_field,
+                        constant_factor,
+                        scalar_model,
+                    )
+                else:
+                    kernel_x, kernel_y, kernel_z = CHOCLO_KERNELS[component]
+                    self._forward_mag(
+                        receivers,
+                        active_nodes,
+                        model,
+                        fields[vector_slice],
+                        active_cell_nodes,
+                        regional_field,
+                        kernel_x,
+                        kernel_y,
+                        kernel_z,
+                        constant_factor,
+                        scalar_model,
+                    )
+            index_offset += n_rows
+        return fields
+
+    def _sensitivity_matrix(self):
+        """
+        Compute the sensitivity matrix G
+
+        Returns
+        -------
+        (nD, n_active_cells) array
+        """
+        # Gather active nodes and the indices of the nodes for each active cell
+        active_nodes, active_cell_nodes = self._get_active_nodes()
+        # Get regional field
+        regional_field = self.survey.source_field.b0
+        # Allocate sensitivity matrix
+        if self.model_type == "scalar":
+            n_columns = self.nC
+        else:
+            n_columns = 3 * self.nC
+        shape = (self.survey.nD, n_columns)
+        sensitivity_matrix = np.empty(shape, dtype=self.sensitivity_dtype)
+        # Define the constant factor
+        constant_factor = 1 / 4 / np.pi
+        # Start filling the sensitivity matrix
+        index_offset = 0
+        scalar_model = self.model_type == "scalar"
+        for components, receivers in self._get_components_and_receivers():
+            if not CHOCLO_SUPPORTED_COMPONENTS.issuperset(components):
+                raise NotImplementedError(
+                    f"Other components besides {CHOCLO_SUPPORTED_COMPONENTS} "
+                    "aren't implemented yet."
+                )
+            n_components = len(components)
+            n_rows = n_components * receivers.shape[0]
+            for i, component in enumerate(components):
+                matrix_slice = slice(
+                    index_offset + i, index_offset + n_rows, n_components
+                )
+                if component == "tmi":
+                    self._sensitivity_tmi(
+                        receivers,
+                        active_nodes,
+                        sensitivity_matrix[matrix_slice, :],
+                        active_cell_nodes,
+                        regional_field,
+                        constant_factor,
+                        scalar_model,
+                    )
+                else:
+                    kernel_x, kernel_y, kernel_z = CHOCLO_KERNELS[component]
+                    self._sensitivity_mag(
+                        receivers,
+                        active_nodes,
+                        sensitivity_matrix[matrix_slice, :],
+                        active_cell_nodes,
+                        regional_field,
+                        kernel_x,
+                        kernel_y,
+                        kernel_z,
+                        constant_factor,
+                        scalar_model,
+                    )
+            index_offset += n_rows
+        return sensitivity_matrix
+
+    def _get_cell_nodes(self):
+        """
+        Return indices of nodes for each cell in the mesh.
+        """
+        if isinstance(self.mesh, discretize.TreeMesh):
+            cell_nodes = self.mesh.cell_nodes
+        elif isinstance(self.mesh, discretize.TensorMesh):
+            cell_nodes = self._get_tensormesh_cell_nodes()
+        else:
+            raise TypeError(f"Invalid mesh of type {self.mesh.__class__.__name__}.")
+        return cell_nodes
+
+    def _get_tensormesh_cell_nodes(self):
+        """
+        Quick implmentation of ``cell_nodes`` for a ``TensorMesh``.
+
+        This method should be removed after ``TensorMesh.cell_nodes`` is added
+        in discretize.
+        """
+        inds = np.arange(self.mesh.n_nodes).reshape(self.mesh.shape_nodes, order="F")
+        cell_nodes = [
+            inds[:-1, :-1, :-1].reshape(-1, order="F"),
+            inds[1:, :-1, :-1].reshape(-1, order="F"),
+            inds[:-1, 1:, :-1].reshape(-1, order="F"),
+            inds[1:, 1:, :-1].reshape(-1, order="F"),
+            inds[:-1, :-1, 1:].reshape(-1, order="F"),
+            inds[1:, :-1, 1:].reshape(-1, order="F"),
+            inds[:-1, 1:, 1:].reshape(-1, order="F"),
+            inds[1:, 1:, 1:].reshape(-1, order="F"),
+        ]
+        cell_nodes = np.stack(cell_nodes, axis=-1)
+        return cell_nodes
+
+    def _get_active_nodes(self):
+        """
+        Return locations of nodes only for active cells
+
+        Also return an array containing the indices of the "active nodes" for
+        each active cell in the mesh
+        """
+        # Get all nodes in the mesh
+        if isinstance(self.mesh, discretize.TreeMesh):
+            nodes = self.mesh.total_nodes
+        elif isinstance(self.mesh, discretize.TensorMesh):
+            nodes = self.mesh.nodes
+        else:
+            raise TypeError(f"Invalid mesh of type {self.mesh.__class__.__name__}.")
+        # Get original cell_nodes but only for active cells
+        cell_nodes = self._get_cell_nodes()
+        # If all cells in the mesh are active, return nodes and cell_nodes
+        if self.nC == self.mesh.n_cells:
+            return nodes, cell_nodes
+        # Keep only the cell_nodes for active cells
+        cell_nodes = cell_nodes[self.ind_active]
+        # Get the unique indices of the nodes that belong to every active cell
+        # (these indices correspond to the original `nodes` array)
+        unique_nodes, active_cell_nodes = np.unique(cell_nodes, return_inverse=True)
+        # Select only the nodes that belong to the active cells (active nodes)
+        active_nodes = nodes[unique_nodes]
+        # Reshape indices of active cells for each active cell in the mesh
+        active_cell_nodes = active_cell_nodes.reshape(cell_nodes.shape)
+        return active_nodes, active_cell_nodes
+
+    def _get_components_and_receivers(self):
+        """Generator for receiver locations and their field components."""
+        if not hasattr(self.survey, "source_field"):
+            raise AttributeError(
+                f"The survey '{self.survey}' has no 'source_field' attribute."
+            )
+        for receiver_object in self.survey.source_field.receiver_list:
+            yield receiver_object.components, receiver_object.locations
 
 
 class SimulationEquivalentSourceLayer(
