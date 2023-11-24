@@ -636,7 +636,7 @@ class Fields3DElectricFieldFaceEdgeConductivity(Fields3DElectricField):
     :param discretize.base.BaseMesh mesh: mesh
     :param SimPEG.electromagnetics.frequency_domain.SurveyFDEM.Survey survey: survey
     """
-    
+
     def startup(self):
         self._edgeCurl = self.simulation.mesh.edge_curl
         self._aveE2CCV = self.simulation.mesh.aveE2CCV
