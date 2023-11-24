@@ -1,7 +1,10 @@
 import unittest
 import numpy as np
 from scipy.constants import mu_0
-from SimPEG.electromagnetics.utils.testing_utils import getFDEMProblem
+from SimPEG.electromagnetics.utils.testing_utils import (
+    getFDEMProblem,
+    getFDEMProblem_FaceEdgeConductivity,
+)
 
 testE = True
 testB = True
@@ -18,12 +21,17 @@ addrandoms = True
 SrcList = ["RawVec", "MagDipole"]  # or 'MAgDipole_Bfield', 'CircularLoop', 'RawVec'
 
 
-def adjointTest(fdemType, comp):
-    prb = getFDEMProblem(fdemType, comp, SrcList, freq)
+def adjointTest(fdemType, comp, sigma_only=True):
+    if sigma_only:
+        prb = getFDEMProblem(fdemType, comp, SrcList, freq)
+    else:
+        prb = getFDEMProblem_FaceEdgeConductivity(fdemType, comp, SrcList, freq)
     # prb.solverOpts = dict(check_accuracy=True)
     print("Adjoint {0!s} formulation - {1!s}".format(fdemType, comp))
 
-    m = np.log(np.ones(prb.sigmaMap.nP) * CONDUCTIVITY)
+    m = np.log(
+        np.ones(prb.sigmaMap.nP) * CONDUCTIVITY
+    )  # works for sigma_only and sigma, tau, kappa
     mu = np.ones(prb.mesh.nC) * MU
 
     if addrandoms is True:
@@ -36,7 +44,7 @@ def adjointTest(fdemType, comp):
     u = prb.fields(m)
 
     v = np.random.rand(survey.nD)
-    w = np.random.rand(prb.mesh.nC)
+    w = np.random.rand(prb.sigmaMap.nP)  # works for sigma_only and sigma, tau, kappa
 
     vJw = v.dot(prb.Jvec(m, w, u))
     wJtv = w.dot(prb.Jtvec(m, v, u))
@@ -47,7 +55,7 @@ def adjointTest(fdemType, comp):
 
 class FDEM_AdjointTests(unittest.TestCase):
     if testE:
-
+        # SIGMA ONLY
         def test_Jtvec_adjointTest_exr_Eform(self):
             self.assertTrue(adjointTest("e", ["ElectricField", "x", "r"]))
 
@@ -119,6 +127,79 @@ class FDEM_AdjointTests(unittest.TestCase):
 
         def test_Jtvec_adjointTest_hzi_Eform(self):
             self.assertTrue(adjointTest("e", ["MagneticField", "z", "i"]))
+
+        # FACE EDGE CONDUCTIVITY
+        def test_Jtvec_adjointTest_exr_Eform_FaceEdgeConductivity(self):
+            self.assertTrue(adjointTest("e", ["ElectricField", "x", "r"], False))
+
+        def test_Jtvec_adjointTest_eyr_Eform_FaceEdgeConductivity(self):
+            self.assertTrue(adjointTest("e", ["ElectricField", "y", "r"], False))
+
+        def test_Jtvec_adjointTest_ezr_Eform_FaceEdgeConductivity(self):
+            self.assertTrue(adjointTest("e", ["ElectricField", "z", "r"], False))
+
+        def test_Jtvec_adjointTest_exi_Eform_FaceEdgeConductivity(self):
+            self.assertTrue(adjointTest("e", ["ElectricField", "x", "i"], False))
+
+        def test_Jtvec_adjointTest_eyi_Eform_FaceEdgeConductivity(self):
+            self.assertTrue(adjointTest("e", ["ElectricField", "y", "i"], False))
+
+        def test_Jtvec_adjointTest_ezi_Eform_FaceEdgeConductivity(self):
+            self.assertTrue(adjointTest("e", ["ElectricField", "z", "i"], False))
+
+        def test_Jtvec_adjointTest_bxr_Eform_FaceEdgeConductivity(self):
+            self.assertTrue(adjointTest("e", ["MagneticFluxDensity", "x", "r"], False))
+
+        def test_Jtvec_adjointTest_byr_Eform_FaceEdgeConductivity(self):
+            self.assertTrue(adjointTest("e", ["MagneticFluxDensity", "y", "r"], False))
+
+        def test_Jtvec_adjointTest_bzr_Eform_FaceEdgeConductivity(self):
+            self.assertTrue(adjointTest("e", ["MagneticFluxDensity", "z", "r"], False))
+
+        def test_Jtvec_adjointTest_bxi_Eform_FaceEdgeConductivity(self):
+            self.assertTrue(adjointTest("e", ["MagneticFluxDensity", "x", "i"], False))
+
+        def test_Jtvec_adjointTest_byi_Eform_FaceEdgeConductivity(self):
+            self.assertTrue(adjointTest("e", ["MagneticFluxDensity", "y", "i"], False))
+
+        def test_Jtvec_adjointTest_bzi_Eform_FaceEdgeConductivity(self):
+            self.assertTrue(adjointTest("e", ["MagneticFluxDensity", "z", "i"], False))
+
+        def test_Jtvec_adjointTest_jxr_Eform_FaceEdgeConductivity(self):
+            self.assertTrue(adjointTest("e", ["CurrentDensity", "x", "r"], False))
+
+        def test_Jtvec_adjointTest_jyr_Eform_FaceEdgeConductivity(self):
+            self.assertTrue(adjointTest("e", ["CurrentDensity", "y", "r"], False))
+
+        def test_Jtvec_adjointTest_jzr_Eform_FaceEdgeConductivity(self):
+            self.assertTrue(adjointTest("e", ["CurrentDensity", "z", "r"], False))
+
+        def test_Jtvec_adjointTest_jxi_Eform_FaceEdgeConductivity(self):
+            self.assertTrue(adjointTest("e", ["CurrentDensity", "x", "i"], False))
+
+        def test_Jtvec_adjointTest_jyi_Eform_FaceEdgeConductivity(self):
+            self.assertTrue(adjointTest("e", ["CurrentDensity", "y", "i"], False))
+
+        def test_Jtvec_adjointTest_jzi_Eform_FaceEdgeConductivity(self):
+            self.assertTrue(adjointTest("e", ["CurrentDensity", "z", "i"], False))
+
+        def test_Jtvec_adjointTest_hxr_Eform_FaceEdgeConductivity(self):
+            self.assertTrue(adjointTest("e", ["MagneticField", "x", "r"], False))
+
+        def test_Jtvec_adjointTest_hyr_Eform_FaceEdgeConductivity(self):
+            self.assertTrue(adjointTest("e", ["MagneticField", "y", "r"], False))
+
+        def test_Jtvec_adjointTest_hzr_Eform_FaceEdgeConductivity(self):
+            self.assertTrue(adjointTest("e", ["MagneticField", "z", "r"], False))
+
+        def test_Jtvec_adjointTest_hxi_Eform_FaceEdgeConductivity(self):
+            self.assertTrue(adjointTest("e", ["MagneticField", "x", "i"], False))
+
+        def test_Jtvec_adjointTest_hyi_Eform_FaceEdgeConductivity(self):
+            self.assertTrue(adjointTest("e", ["MagneticField", "y", "i"], False))
+
+        def test_Jtvec_adjointTest_hzi_Eform_FaceEdgeConductivity(self):
+            self.assertTrue(adjointTest("e", ["MagneticField", "z", "i"], False))
 
     if testB:
 
@@ -193,3 +274,80 @@ class FDEM_AdjointTests(unittest.TestCase):
 
         def test_Jtvec_adjointTest_hzi_Bform(self):
             self.assertTrue(adjointTest("b", ["MagneticField", "z", "i"]))
+
+        # FACE EDGE CONDUCTIVITY
+        def test_Jtvec_adjointTest_exr_Bform_FaceEdgeConductivity(self):
+            self.assertTrue(adjointTest("b", ["ElectricField", "x", "r"], False))
+
+        def test_Jtvec_adjointTest_eyr_Bform_FaceEdgeConductivity(self):
+            self.assertTrue(adjointTest("b", ["ElectricField", "y", "r"], False))
+
+        def test_Jtvec_adjointTest_ezr_Bform_FaceEdgeConductivity(self):
+            self.assertTrue(adjointTest("b", ["ElectricField", "z", "r"], False))
+
+        def test_Jtvec_adjointTest_exi_Bform_FaceEdgeConductivity(self):
+            self.assertTrue(adjointTest("b", ["ElectricField", "x", "i"], False))
+
+        def test_Jtvec_adjointTest_eyi_Bform_FaceEdgeConductivity(self):
+            self.assertTrue(adjointTest("b", ["ElectricField", "y", "i"], False))
+
+        def test_Jtvec_adjointTest_ezi_Bform_FaceEdgeConductivity(self):
+            self.assertTrue(adjointTest("b", ["ElectricField", "z", "i"], False))
+
+        def test_Jtvec_adjointTest_bxr_Bform_FaceEdgeConductivity(self):
+            self.assertTrue(adjointTest("b", ["MagneticFluxDensity", "x", "r"], False))
+
+        def test_Jtvec_adjointTest_byr_Bform_FaceEdgeConductivity(self):
+            self.assertTrue(adjointTest("b", ["MagneticFluxDensity", "y", "r"], False))
+
+        def test_Jtvec_adjointTest_bzr_Bform_FaceEdgeConductivity(self):
+            self.assertTrue(adjointTest("b", ["MagneticFluxDensity", "z", "r"], False))
+
+        def test_Jtvec_adjointTest_bxi_Bform_FaceEdgeConductivity(self):
+            self.assertTrue(adjointTest("b", ["MagneticFluxDensity", "x", "i"], False))
+
+        def test_Jtvec_adjointTest_byi_Bform_FaceEdgeConductivity(self):
+            self.assertTrue(adjointTest("b", ["MagneticFluxDensity", "y", "i"], False))
+
+        def test_Jtvec_adjointTest_bzi_Bform_FaceEdgeConductivity(self):
+            self.assertTrue(adjointTest("b", ["MagneticFluxDensity", "z", "i"], False))
+
+        def test_Jtvec_adjointTest_jxr_Bform_FaceEdgeConductivity(self):
+            self.assertTrue(adjointTest("b", ["CurrentDensity", "x", "r"], False))
+
+        def test_Jtvec_adjointTest_jyr_Bform_FaceEdgeConductivity(self):
+            self.assertTrue(adjointTest("b", ["CurrentDensity", "y", "r"], False))
+
+        def test_Jtvec_adjointTest_jzr_Bform_FaceEdgeConductivity(self):
+            self.assertTrue(adjointTest("b", ["CurrentDensity", "z", "r"], False))
+
+        def test_Jtvec_adjointTest_jxi_Bform_FaceEdgeConductivity(self):
+            self.assertTrue(adjointTest("b", ["CurrentDensity", "x", "i"], False))
+
+        def test_Jtvec_adjointTest_jyi_Bform_FaceEdgeConductivity(self):
+            self.assertTrue(adjointTest("b", ["CurrentDensity", "y", "i"], False))
+
+        def test_Jtvec_adjointTest_jzi_Bform_FaceEdgeConductivity(self):
+            self.assertTrue(adjointTest("b", ["CurrentDensity", "z", "i"], False))
+
+        def test_Jtvec_adjointTest_hxr_Bform_FaceEdgeConductivity(self):
+            self.assertTrue(adjointTest("b", ["MagneticField", "x", "r"], False))
+
+        def test_Jtvec_adjointTest_hyr_Bform_FaceEdgeConductivity(self):
+            self.assertTrue(adjointTest("b", ["MagneticField", "y", "r"], False))
+
+        def test_Jtvec_adjointTest_hzr_Bform_FaceEdgeConductivity(self):
+            self.assertTrue(adjointTest("b", ["MagneticField", "z", "r"], False))
+
+        def test_Jtvec_adjointTest_hxi_Bform_FaceEdgeConductivity(self):
+            self.assertTrue(adjointTest("b", ["MagneticField", "x", "i"], False))
+
+        def test_Jtvec_adjointTest_hyi_Bform_FaceEdgeConductivity(self):
+            self.assertTrue(adjointTest("b", ["MagneticField", "y", "i"], False))
+
+        def test_Jtvec_adjointTest_hzi_Bform_FaceEdgeConductivity(self):
+            self.assertTrue(adjointTest("b", ["MagneticField", "z", "i"], False))
+
+
+if __name__ == "__main__":
+    unittest.main()

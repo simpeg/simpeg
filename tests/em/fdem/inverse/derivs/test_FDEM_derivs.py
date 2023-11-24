@@ -2,7 +2,10 @@ import unittest
 import numpy as np
 from SimPEG import tests
 from scipy.constants import mu_0
-from SimPEG.electromagnetics.utils.testing_utils import getFDEMProblem
+from SimPEG.electromagnetics.utils.testing_utils import (
+    getFDEMProblem,
+    getFDEMProblem_FaceEdgeConductivity,
+)
 
 testE = False
 testB = True
@@ -27,12 +30,16 @@ SrcType = [
 ]  # or 'MAgDipole_Bfield', 'CircularLoop', 'RawVec'
 
 
-def derivTest(fdemType, comp, src):
-    prb = getFDEMProblem(fdemType, comp, SrcType, freq)
+def derivTest(fdemType, comp, src, sigma_only=True):
+    if sigma_only:
+        prb = getFDEMProblem(fdemType, comp, SrcType, freq)
+    else:
+        prb = getFDEMProblem_FaceEdgeConductivity(fdemType, comp, SrcType, freq)
     # prb.solverOpts = dict(check_accuracy=True)
 
     print(f"{fdemType} formulation {src} - {comp}")
-    x0 = np.log(np.ones(prb.sigmaMap.nP) * CONDUCTIVITY)
+
+    x0 = np.log(np.ones(prb.sigmaMap.nP) * CONDUCTIVITY)  # should work
     # mu = np.log(np.ones(prb.mesh.nC)*MU)
 
     if addrandoms is True:
@@ -82,6 +89,58 @@ class FDEM_DerivTests(unittest.TestCase):
                             derivTest("e", ["MagneticField", orientation, comp], src)
                         )
 
+        def test_Jvec_e_Eform_FaceEdgeConductivity(self):
+            for src in SrcType:
+                for orientation in ["x", "y", "z"]:
+                    for comp in ["r", "i"]:
+                        self.assertTrue(
+                            derivTest(
+                                "e",
+                                ["ElectricField", orientation, comp],
+                                src,
+                                sigma_only=False,
+                            )
+                        )
+
+        def test_Jvec_b_Eform_FaceEdgeConductivity(self):
+            for src in SrcType:
+                for orientation in ["x", "y", "z"]:
+                    for comp in ["r", "i"]:
+                        self.assertTrue(
+                            derivTest(
+                                "e",
+                                ["MagneticFluxDensity", orientation, comp],
+                                src,
+                                sigma_only=False,
+                            )
+                        )
+
+        def test_Jvec_j_Eform_FaceEdgeConductivity(self):
+            for src in SrcType:
+                for orientation in ["x", "y", "z"]:
+                    for comp in ["r", "i"]:
+                        self.assertTrue(
+                            derivTest(
+                                "e",
+                                ["CurrentDensity", orientation, comp],
+                                src,
+                                sigma_only=False,
+                            )
+                        )
+
+        def test_Jvec_h_Eform_FaceEdgeConductivity(self):
+            for src in SrcType:
+                for orientation in ["x", "y", "z"]:
+                    for comp in ["r", "i"]:
+                        self.assertTrue(
+                            derivTest(
+                                "e",
+                                ["MagneticField", orientation, comp],
+                                src,
+                                sigma_only=False,
+                            )
+                        )
+
     if testB:
 
         def test_Jvec_e_Bform(self):
@@ -116,6 +175,58 @@ class FDEM_DerivTests(unittest.TestCase):
                     for comp in ["r", "i"]:
                         self.assertTrue(
                             derivTest("b", ["MagneticField", orientation, comp], src)
+                        )
+
+        def test_Jvec_e_Bform_FaceEdgeConductivity(self):
+            for src in SrcType:
+                for orientation in ["x", "y", "z"]:
+                    for comp in ["r", "i"]:
+                        self.assertTrue(
+                            derivTest(
+                                "b",
+                                ["ElectricField", orientation, comp],
+                                src,
+                                sigma_only=False,
+                            )
+                        )
+
+        def test_Jvec_b_Bform_FaceEdgeConductivity(self):
+            for src in SrcType:
+                for orientation in ["x", "y", "z"]:
+                    for comp in ["r", "i"]:
+                        self.assertTrue(
+                            derivTest(
+                                "b",
+                                ["MagneticFluxDensity", orientation, comp],
+                                src,
+                                sigma_only=False,
+                            )
+                        )
+
+        def test_Jvec_j_Bform_FaceEdgeConductivity(self):
+            for src in SrcType:
+                for orientation in ["x", "y", "z"]:
+                    for comp in ["r", "i"]:
+                        self.assertTrue(
+                            derivTest(
+                                "b",
+                                ["CurrentDensity", orientation, comp],
+                                src,
+                                sigma_only=False,
+                            )
+                        )
+
+        def test_Jvec_h_Bform_FaceEdgeConductivity(self):
+            for src in SrcType:
+                for orientation in ["x", "y", "z"]:
+                    for comp in ["r", "i"]:
+                        self.assertTrue(
+                            derivTest(
+                                "b",
+                                ["MagneticField", orientation, comp],
+                                src,
+                                sigma_only=False,
+                            )
                         )
 
     if testJ:
@@ -189,3 +300,7 @@ class FDEM_DerivTests(unittest.TestCase):
                         self.assertTrue(
                             derivTest("h", ["MagneticField", orientation, comp], src)
                         )
+
+
+if __name__ == "__main__":
+    unittest.main()

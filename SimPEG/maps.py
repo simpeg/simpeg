@@ -3315,6 +3315,354 @@ class InjectActiveCells(IdentityMap):
         return self.P
 
 
+class InjectActiveFaces(IdentityMap):
+    r"""Map active faces model to all faces of a mesh.
+
+    The ``InjectActiveFaces`` class is used to define the mapping when
+    the model consists of diagnostic property values defined on a set of active
+    mesh faces; e.g. faces below topography, z-faces only. For a discrete set of
+    model parameters :math:`\mathbf{m}` defined on a set of active
+    faces, the mapping :math:`\mathbf{u}(\mathbf{m})` is defined as:
+
+    .. math::
+        \mathbf{u}(\mathbf{m}) = \mathbf{Pm} + \mathbf{d}\, m_\perp
+
+    where :math:`\mathbf{P}` is a (*nF* , *nP*) projection matrix from
+    active faces to all mesh faces, and :math:`\mathbf{d}` is a
+    (*nF* , 1) matrix that projects the inactive faces value
+    :math:`m_\perp` to all mesh faces.
+
+    Parameters
+    ----------
+    mesh : discretize.BaseMesh
+        A discretize mesh
+    indActive : numpy.ndarray
+        Active faces array. Can be a boolean ``numpy.ndarray`` of length *mesh.nF*
+        or a ``numpy.ndarray`` of ``int`` containing the indices of the active faces.
+    valInactive : float or numpy.ndarray
+        The physical property value assigned to all inactive faces in the mesh
+
+    """
+
+    def __init__(self, mesh, indActive=None, valInactive=0.0, nF=None):
+        self.mesh = mesh
+        self.nF = nF or mesh.nF
+
+        self._indActive = validate_active_indices("indActive", indActive, self.nF)
+        self._nP = np.sum(self.indActive)
+
+        self.P = sp.eye(self.nF, format="csr")[:, self.indActive]
+
+        self.valInactive = valInactive
+
+    @property
+    def valInactive(self):
+        """The physical property value assigned to all inactive faces in the mesh.
+
+        Returns
+        -------
+        numpy.ndarray
+        """
+        return self._valInactive
+
+    @valInactive.setter
+    def valInactive(self, value):
+        n_inactive = self.nF - self.nP
+        try:
+            value = validate_float("valInactive", value)
+            value = np.full(n_inactive, value)
+        except Exception:
+            pass
+        value = validate_ndarray_with_shape("valInactive", value, shape=(n_inactive,))
+
+        self._valInactive = np.zeros(self.nF, dtype=float)
+        self._valInactive[~self.indActive] = value
+
+    @property
+    def indActive(self):
+        """
+
+        Returns
+        -------
+        numpy.ndarray of bool
+
+        """
+        return self._indActive
+
+    @property
+    def shape(self):
+        """Dimensions of the mapping
+
+        Returns
+        -------
+        tuple of int
+            Where *nP* is the number of active faces and *nF* is
+            number of faces in the mesh, **shape** returns a
+            tuple (*nF* , *nP*).
+        """
+        return (self.nF, self.nP)
+
+    @property
+    def nP(self):
+        """Number of parameters the model acts on.
+
+        Returns
+        -------
+        int
+            Number of parameters the model acts on; i.e. the number of active faces.
+        """
+        return int(self.indActive.sum())
+
+    def _transform(self, m):
+        if m.ndim > 1:
+            return self.P * m + self.valInactive[:, None]
+        return self.P * m + self.valInactive
+
+    def inverse(self, u):
+        r"""Recover the model parameters (active faces) from a set of physical
+        property values defined on the entire mesh.
+
+        For a discrete set of model parameters :math:`\mathbf{m}` defined
+        on a set of active faces, the mapping :math:`\mathbf{u}(\mathbf{m})`
+        is defined as:
+
+        .. math::
+            \mathbf{u}(\mathbf{m}) = \mathbf{Pm} + \mathbf{d} \,m_\perp
+
+        where :math:`\mathbf{P}` is a (*nF* , *nP*) projection matrix from
+        active faces to all mesh faces, and :math:`\mathbf{d}` is a
+        (*nR* , 1) matrix that projects the inactive face value
+        :math:`m_\perp` to all mesh faces.
+
+        The inverse mapping is given by:
+
+        .. math::
+            \mathbf{m}(\mathbf{u}) = \mathbf{P^T u}
+
+        Parameters
+        ----------
+        u : (mesh.nF) numpy.ndarray
+            A vector which contains physical property values for all
+            mesh faces.
+        """
+        return self.P.T * u
+
+    def deriv(self, m, v=None):
+        r"""Derivative of the mapping with respect to the input parameters.
+
+        For a discrete set of model parameters :math:`\mathbf{m}` defined
+        on a set of active faces, the mapping :math:`\mathbf{u}(\mathbf{m})`
+        is defined as:
+
+        .. math::
+            \mathbf{u}(\mathbf{m}) = \mathbf{Pm} + \mathbf{d} \, m_\perp
+
+        where :math:`\mathbf{P}` is a (*nF* , *nP*) projection matrix from
+        active faces to all mesh faces, and :math:`\mathbf{d}` is a
+        (*nF* , 1) matrix that projects the inactive face value
+        :math:`m_\perp` to all inactive mesh faces.
+
+        the **deriv** method returns the derivative of :math:`\mathbf{u}` with respect
+        to the model parameters; i.e.:
+
+        .. math::
+            \frac{\partial \mathbf{u}}{\partial \mathbf{m}} = \mathbf{P}
+
+        Note that in this case, **deriv** simply returns a sparse projection matrix.
+
+        Parameters
+        ----------
+        m : (nP) numpy.ndarray
+            A vector representing a set of model parameters.
+        v : (nP) numpy.ndarray
+            If not ``None``, the method returns the derivative times the vector *v*.
+
+        Returns
+        -------
+        scipy.sparse.csr_matrix
+            Derivative of the mapping with respect to the model parameters. If the
+            input argument *v* is not ``None``, the method returns the derivative times
+            the vector *v*.
+        """
+        if v is not None:
+            return self.P * v
+        return self.P
+
+
+class InjectActiveEdges(IdentityMap):
+    r"""Map active edges model to all edges of a mesh.
+
+    The ``InjectActiveEdges`` class is used to define the mapping when
+    the model consists of diagnostic property values defined on a set of active
+    mesh edges; e.g. edges below topography, z-edges only. For a discrete set of
+    model parameters :math:`\mathbf{m}` defined on a set of active
+    edges, the mapping :math:`\mathbf{u}(\mathbf{m})` is defined as:
+
+    .. math::
+        \mathbf{u}(\mathbf{m}) = \mathbf{Pm} + \mathbf{d}\, m_\perp
+
+    where :math:`\mathbf{P}` is a (*nE* , *nP*) projection matrix from
+    active edges to all mesh edges, and :math:`\mathbf{d}` is a
+    (*nE* , 1) matrix that projects the inactive edges value
+    :math:`m_\perp` to all mesh edges.
+
+    Parameters
+    ----------
+    mesh : discretize.BaseMesh
+        A discretize mesh
+    indActive : numpy.ndarray
+        Active edges array. Can be a boolean ``numpy.ndarray`` of length *mesh.nE*
+        or a ``numpy.ndarray`` of ``int`` containing the indices of the active edges.
+    valInactive : float or numpy.ndarray
+        The physical property value assigned to all inactive edges in the mesh.
+
+    """
+
+    def __init__(self, mesh, indActive=None, valInactive=0.0, nE=None):
+        self.mesh = mesh
+        self.nE = nE or mesh.nE
+
+        self._indActive = validate_active_indices("indActive", indActive, self.nE)
+        self._nP = np.sum(self.indActive)
+
+        self.P = sp.eye(self.nE, format="csr")[:, self.indActive]
+
+        self.valInactive = valInactive
+
+    @property
+    def valInactive(self):
+        """The physical property value assigned to all inactive edges in the mesh.
+
+        Returns
+        -------
+        numpy.ndarray
+        """
+        return self._valInactive
+
+    @valInactive.setter
+    def valInactive(self, value):
+        n_inactive = self.nE - self.nP
+        try:
+            value = validate_float("valInactive", value)
+            value = np.full(n_inactive, value)
+        except Exception:
+            pass
+        value = validate_ndarray_with_shape("valInactive", value, shape=(n_inactive,))
+
+        self._valInactive = np.zeros(self.nE, dtype=float)
+        self._valInactive[~self.indActive] = value
+
+    @property
+    def indActive(self):
+        """
+
+        Returns
+        -------
+        numpy.ndarray of bool.
+
+        """
+        return self._indActive
+
+    @property
+    def shape(self):
+        """Dimensions of the mapping
+
+        Returns
+        -------
+        tuple of int
+            Where *nP* is the number of active edges and *nE* is
+            number of edges in the mesh, **shape** returns a
+            tuple (*nE* , *nP*).
+        """
+        return (self.nE, self.nP)
+
+    @property
+    def nP(self):
+        """Number of parameters the model acts on.
+
+        Returns
+        -------
+        int
+            Number of parameters the model acts on; i.e. the number of active edges.
+        """
+        return int(self.indActive.sum())
+
+    def _transform(self, m):
+        if m.ndim > 1:
+            return self.P * m + self.valInactive[:, None]
+        return self.P * m + self.valInactive
+
+    def inverse(self, u):
+        r"""Recover the model parameters (active edges) from a set of physical
+        property values defined on the entire mesh.
+
+        For a discrete set of model parameters :math:`\mathbf{m}` defined
+        on a set of active edges, the mapping :math:`\mathbf{u}(\mathbf{m})`
+        is defined as:
+
+        .. math::
+            \mathbf{u}(\mathbf{m}) = \mathbf{Pm} + \mathbf{d} \,m_\perp
+
+        where :math:`\mathbf{P}` is a (*nE* , *nP*) projection matrix from
+        active edges to all mesh edges, and :math:`\mathbf{d}` is a
+        (*nE* , 1) matrix that projects the inactive edge value
+        :math:`m_\perp` to all mesh edges.
+
+        The inverse mapping is given by:
+
+        .. math::
+            \mathbf{m}(\mathbf{u}) = \mathbf{P^T u}
+
+        Parameters
+        ----------
+        u : (mesh.nE) numpy.ndarray
+            A vector which contains physical property values for all
+            mesh edges.
+        """
+        return self.P.T * u
+
+    def deriv(self, m, v=None):
+        r"""Derivative of the mapping with respect to the input parameters.
+
+        For a discrete set of model parameters :math:`\mathbf{m}` defined
+        on a set of active edges, the mapping :math:`\mathbf{u}(\mathbf{m})`
+        is defined as:
+
+        .. math::
+            \mathbf{u}(\mathbf{m}) = \mathbf{Pm} + \mathbf{d} \, m_\perp
+
+        where :math:`\mathbf{P}` is a (*nE* , *nP*) projection matrix from
+        active edges to all mesh edges, and :math:`\mathbf{d}` is a
+        (*nF* , 1) matrix that projects the inactive edge value
+        :math:`m_\perp` to all mesh edges.
+
+        the **deriv** method returns the derivative of :math:`\mathbf{u}` with respect
+        to the model parameters; i.e.:
+
+        .. math::
+            \frac{\partial \mathbf{u}}{\partial \mathbf{m}} = \mathbf{P}
+
+        Note that in this case, **deriv** simply returns a sparse projection matrix.
+
+        Parameters
+        ----------
+        m : (nP) numpy.ndarray
+            A vector representing a set of model parameters.
+        v : (nP) numpy.ndarray
+            If not ``None``, the method returns the derivative times the vector *v*.
+
+        Returns
+        -------
+        scipy.sparse.csr_matrix
+            Derivative of the mapping with respect to the model parameters. If the
+            input argument *v* is not ``None``, the method returns the derivative times
+            the vector *v*.
+        """
+        if v is not None:
+            return self.P * v
+        return self.P
+
+
 ###############################################################################
 #                                                                             #
 #                             Parametric Maps                                 #

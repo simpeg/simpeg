@@ -311,6 +311,168 @@ def analytic_halfspace_mag_dipole_comparison(
     return log10diff
 
 
+def analytic_layer_small_loop_face_conductivity_comparison(
+    mesh_type="CYL",
+    rx_type="MagneticFluxTimeDerivative",
+    orientation="Z",
+    bounds=None,
+    plotIt=False,
+):
+    # Some static parameters
+    PHI = np.linspace(0, 2 * np.pi, 21)
+    loop_radius = np.pi**-0.5
+    receiver_location = np.c_[40.0, 0.0, 1.0]
+    source_location = np.r_[0.0, 0.0, 1.0]
+
+    if orientation == "X":
+        source_nodes = np.c_[
+            np.zeros_like(PHI),
+            loop_radius * np.cos(PHI),
+            1.0 + loop_radius * np.sin(PHI),
+        ]
+    elif orientation == "Z":
+        source_nodes = np.c_[
+            loop_radius * np.cos(PHI), loop_radius * np.sin(PHI), np.ones_like(PHI)
+        ]
+
+    layer_depth = 24.0
+    layer_thickness = 0.1
+    layer_conductivity = 10.0
+    background_conductivity = 2.5e-3
+
+    tau = layer_thickness * layer_conductivity
+
+    if bounds is None:
+        bounds = [1e-5, 1e-3]
+
+    # 1D LAYER MODEL
+    thicknesses = np.array([layer_depth - layer_thickness / 2, layer_thickness])
+    n_layer = len(thicknesses) + 1
+
+    sigma_1d = background_conductivity * np.ones(n_layer)
+    sigma_1d[1] = layer_conductivity
+
+    sigma_map_1d = maps.IdentityMap(nP=n_layer)
+
+    # 3D LAYER MODEL
+    if mesh_type == "CYL":
+        cs, ncx, ncz, npad = 4.0, 40, 20, 20
+        hx = [(cs, ncx), (cs, npad, 1.3)]
+        hz = [(cs, npad, -1.3), (cs, ncz), (cs, npad, 1.3)]
+        mesh = discretize.CylindricalMesh([hx, 1, hz], "00C")
+
+    elif mesh_type == "TENSOR":
+        cs, nc, npad = 8.0, 14, 8
+        hx = [(cs, npad, -1.3), (cs, nc), (cs, npad, 1.3)]
+        hy = [(cs, npad, -1.3), (cs, nc), (cs, npad, 1.3)]
+        hz = [(cs, npad, -1.3), (cs, nc), (cs, npad, 1.3)]
+        mesh = discretize.TensorMesh([hx, hy, hz], "CCC")
+
+    sigma_3d = 1e-8 * np.ones(mesh.nC)
+    sigma_3d[mesh.cell_centers[:, -1] < 0.0] = background_conductivity
+
+    tau_3d = np.zeros(mesh.nF)
+    tau_3d[np.isclose(mesh.faces[:, -1], -layer_depth)] = tau
+    tau_map = maps.IdentityMap(nP=mesh.n_faces)
+
+    # DEFINE SURVEY
+    times = np.logspace(-5, -4, 21)
+    rx = getattr(tdem.receivers, "Point{}".format(rx_type))(
+        receiver_location, times, orientation=orientation
+    )
+
+    # 1D SURVEY AND SIMULATION
+    src_1d = tdem.sources.MagDipole(
+        [rx],
+        location=np.r_[0.0, 0.0, 1.0],
+        orientation=orientation,
+        waveform=tdem.sources.StepOffWaveform(),
+    )
+    survey_1d = tdem.Survey([src_1d])
+
+    sim_1d = tdem.Simulation1DLayered(
+        survey=survey_1d,
+        thicknesses=thicknesses,
+        sigmaMap=sigma_map_1d,
+    )
+
+    # 3D SURVEY AND SIMULATION
+    if mesh_type == "CYL":
+        src_3d = tdem.sources.CircularLoop(
+            [rx],
+            radius=loop_radius,
+            location=source_location,
+            waveform=tdem.sources.StepOffWaveform(),
+        )
+    else:
+        if rx_type == "MagneticFluxDensity":
+            src_3d = tdem.sources.MagDipole(
+                [rx],
+                location=source_location,
+                orientation=orientation,
+                waveform=tdem.sources.StepOffWaveform(),
+            )
+        else:
+            src_3d = tdem.sources.LineCurrent(
+                [rx], location=source_nodes, waveform=tdem.sources.StepOffWaveform()
+            )
+
+    survey_3d = tdem.Survey([src_3d])
+
+    # DEFINE THE SIMULATIONS
+    if rx_type == "MagneticFluxDensity":
+        sim_3d = tdem.simulation.Simulation3DMagneticFluxDensityFaceEdgeConductivity(
+            mesh=mesh, survey=survey_3d, sigma=sigma_3d, tauMap=tau_map
+        )
+    else:
+        sim_3d = tdem.simulation.Simulation3DElectricFieldFaceEdgeConductivity(
+            mesh=mesh, survey=survey_3d, sigma=sigma_3d, tauMap=tau_map
+        )
+
+    sim_3d.time_steps = [
+        (1e-06, 40),
+        (5e-06, 40),
+        (1e-05, 40),
+        (5e-05, 40),
+        (0.0001, 40),
+        (0.0005, 40),
+    ]
+
+    # COMPUTE SOLUTIONS
+    analytic_solution = sim_1d.dpred(sigma_1d)
+    numeric_solution = sim_3d.dpred(tau_3d)
+
+    ind = np.logical_and(rx.times > bounds[0], rx.times < bounds[1])
+    log10diff = np.linalg.norm(
+        np.log10(np.abs(numeric_solution[ind]))
+        - np.log10(np.abs(analytic_solution[ind]))
+    ) / np.linalg.norm(np.log10(np.abs(analytic_solution[ind])))
+
+    print(
+        " |bz_ana| = {ana} |bz_num| = {num} |bz_ana-bz_num| = {diff}".format(
+            ana=np.linalg.norm(analytic_solution),
+            num=np.linalg.norm(numeric_solution),
+            diff=np.linalg.norm(analytic_solution - numeric_solution),
+        )
+    )
+    print("Difference: {}".format(log10diff))
+
+    if plotIt is True:
+        plt.loglog(
+            rx.times[numeric_solution > 0],
+            numeric_solution[numeric_solution > 0],
+            "r",
+            rx.times[numeric_solution < 0],
+            -numeric_solution[numeric_solution < 0],
+            "r--",
+        )
+        plt.loglog(rx.times, abs(analytic_solution), "b*")
+        plt.title("{} Mesh, {}, {}-Component".format(mesh_type, rx_type, orientation))
+        plt.show()
+
+    return log10diff
+
+
 ###########################################################
 # ANALYTIC WHOLESPACE TESTS FOR MAG AND ELECTRIC DIPOLES
 ###########################################################
@@ -604,3 +766,84 @@ class TDEM_bTests(unittest.TestCase):
             )
             < 0.15
         )
+
+
+class LayerConductanceTests(unittest.TestCase):
+    # Compares analytic 1D layered Earth solution to a plate of equivalent
+    # conductance.
+
+    def test_tensor_magdipole_b_x(self):
+        assert (
+            analytic_layer_small_loop_face_conductivity_comparison(
+                mesh_type="TENSOR",
+                rx_type="MagneticFluxDensity",
+                orientation="X",
+                bounds=None,
+                plotIt=False,
+            )
+            < 0.01
+        )
+
+    def test_tensor_magdipole_b_z(self):
+        assert (
+            analytic_layer_small_loop_face_conductivity_comparison(
+                mesh_type="TENSOR",
+                rx_type="MagneticFluxDensity",
+                orientation="Z",
+                bounds=None,
+                plotIt=False,
+            )
+            < 0.01
+        )
+
+    def test_cyl_magdipole_b_z(self):
+        assert (
+            analytic_layer_small_loop_face_conductivity_comparison(
+                mesh_type="CYL",
+                rx_type="MagneticFluxDensity",
+                orientation="Z",
+                bounds=None,
+                plotIt=False,
+            )
+            < 0.01
+        )
+
+    def test_tensor_linecurrent_dbdt_x(self):
+        assert (
+            analytic_layer_small_loop_face_conductivity_comparison(
+                mesh_type="TENSOR",
+                rx_type="MagneticFluxTimeDerivative",
+                orientation="X",
+                bounds=None,
+                plotIt=False,
+            )
+            < 0.01
+        )
+
+    def test_tensor_linecurrent_dbdt_z(self):
+        assert (
+            analytic_layer_small_loop_face_conductivity_comparison(
+                mesh_type="TENSOR",
+                rx_type="MagneticFluxTimeDerivative",
+                orientation="Z",
+                bounds=None,
+                plotIt=False,
+            )
+            < 0.01
+        )
+
+    def test_cyl_circularloop_dbdt_z(self):
+        assert (
+            analytic_layer_small_loop_face_conductivity_comparison(
+                mesh_type="CYL",
+                rx_type="MagneticFluxTimeDerivative",
+                orientation="Z",
+                bounds=None,
+                plotIt=False,
+            )
+            < 0.01
+        )
+
+
+if __name__ == "__main__":
+    unittest.main()

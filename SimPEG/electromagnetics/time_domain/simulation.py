@@ -4,11 +4,14 @@ import scipy.sparse as sp
 from ...data import Data
 from ...simulation import BaseTimeSimulation
 from ...utils import mkvc, sdiag, speye, Zero, validate_type, validate_float
+from ...base import BaseFaceEdgeElectricalPDESimulation
 from ..base import BaseEMSimulation
 from .survey import Survey
 from .fields import (
     Fields3DMagneticFluxDensity,
+    Fields3DMagneticFluxDensityFaceEdgeConductivity,
     Fields3DElectricField,
+    Fields3DElectricFieldFaceEdgeConductivity,
     Fields3DMagneticField,
     Fields3DCurrentDensity,
     FieldsDerivativesEB,
@@ -960,6 +963,341 @@ class Simulation3DElectricField(BaseTDEMSimulation):
     #     """
     #     if self.Adcinv is not None:
     #         self.Adcinv.clean()
+
+
+# ------------------------------- Simulation3DElectricField ------------------------------- #
+class Simulation3DMagneticFluxDensityFaceEdgeConductivity(
+    Simulation3DMagneticFluxDensity, BaseFaceEdgeElectricalPDESimulation
+):
+    r"""
+    Starting from the quasi-static E-B formulation of Maxwell's equations
+    (semi-discretized)
+
+    .. math::
+
+        \mathbf{C} \mathbf{e} + \frac{\partial \mathbf{b}}{\partial t} =
+        \mathbf{s_m} \\
+        \mathbf{C}^{\top} \mathbf{M_{\mu^{-1}}^f} \mathbf{b} -
+        \left ( \mathbf{M_{\sigma}^e + M_{\tau}^e + M_{\kappa}^e} \right )
+        \mathbf{e} = \mathbf{s_e}
+
+
+    where :math:`\mathbf{s_e}` is an integrated quantity, we eliminate
+    :math:`\mathbf{e}` using
+
+    .. math::
+
+        \mathbf{e} = \mathbf{M_{\sigma}^e}^{-1} \mathbf{C}^{\top}
+        \mathbf{M_{\mu^{-1}}^f} \mathbf{b} -
+        \left ( \mathbf{M_{\sigma}^e + M_{\tau}^e + M_{\kappa}^e} \right )^{-1} \mathbf{s_e}
+
+
+    to obtain a second order semi-discretized system in :math:`\mathbf{b}`
+
+    .. math::
+
+        \mathbf{C} \left ( \mathbf{M_{\sigma}^e + M_{\tau}^e + M_{\kappa}^e} \right )^{-1}
+        \mathbf{C}^{\top} \mathbf{M_{\mu^{-1}}^f} \mathbf{b}  +
+        \frac{\partial \mathbf{b}}{\partial t} = \mathbf{C}
+        \left ( \mathbf{M_{\sigma}^e + M_{\tau}^e + M_{\kappa}^e} \right )^{-1} \mathbf{s_e} + \mathbf{s_m}
+
+
+    and moving everything except the time derivative to the rhs gives
+
+    .. math::
+        \frac{\partial \mathbf{b}}{\partial t} =
+        -\mathbf{C} \left ( \mathbf{M_{\sigma}^e + M_{\tau}^e + M_{\kappa}^e} \right )^{-1} \mathbf{C}^{\top}
+        \mathbf{M_{\mu^{-1}}^f} \mathbf{b} +
+        \mathbf{C} \left ( \mathbf{M_{\sigma}^e + M_{\tau}^e + M_{\kappa}^e} \right )^{-1} \mathbf{s_e} + \mathbf{s_m}
+
+    For the time discretization, we use backward euler. To solve for the
+    :math:`n+1` th time step, we have
+
+    .. math::
+
+        \frac{\mathbf{b}^{n+1} - \mathbf{b}^{n}}{\mathbf{dt}} =
+        -\mathbf{C} \left ( \mathbf{M_{\sigma}^e + M_{\tau}^e + M_{\kappa}^e} \right )^{-1} \mathbf{C}^{\top}
+        \mathbf{M_{\mu^{-1}}^f} \mathbf{b}^{n+1} +
+        \mathbf{C} \left ( \mathbf{M_{\sigma}^e + M_{\tau}^e + M_{\kappa}^e} \right )^{-1} \mathbf{s_e}^{n+1} +
+        \mathbf{s_m}^{n+1}
+
+
+    re-arranging to put :math:`\mathbf{b}^{n+1}` on the left hand side gives
+
+    .. math::
+
+        (\mathbf{I} + \mathbf{dt} \mathbf{C} \left ( \mathbf{M_{\sigma}^e + M_{\tau}^e + M_{\kappa}^e} \right )^{-1}
+         \mathbf{C}^{\top} \mathbf{M_{\mu^{-1}}^f}) \mathbf{b}^{n+1} =
+         \mathbf{b}^{n} + \mathbf{dt}(\mathbf{C} \left ( \mathbf{M_{\sigma}^e + M_{\tau}^e + M_{\kappa}^e} \right )^{-1}
+         \mathbf{s_e}^{n+1} + \mathbf{s_m}^{n+1})
+
+    """
+
+    fieldsPair = Fields3DMagneticFluxDensityFaceEdgeConductivity  #: A SimPEG.EM.TDEM.Fields3DMagneticFluxDensity object
+
+    def getAdiag(self, tInd):
+        r"""
+        System matrix at a given time index
+
+        .. math::
+
+            (\mathbf{I} + \mathbf{dt} \mathbf{C} \left (
+            \mathbf{M_{\sigma}^e + M_{\tau}^e + M_{\kappa}^e} \right )^{-1}
+            \mathbf{C}^{\top} \mathbf{M_{\mu^{-1}}^f})
+
+        """
+        assert tInd >= 0 and tInd < self.nT
+
+        dt = self.time_steps[tInd]
+        C = self.mesh.edge_curl
+        MeSigmaTauKappaI = self._MeSigmaTauKappaI
+        MfMui = self.MfMui
+        I = speye(self.mesh.n_faces)
+
+        A = 1.0 / dt * I + (C * (MeSigmaTauKappaI * (C.T.tocsr() * MfMui)))
+
+        if self._makeASymmetric is True:
+            return MfMui.T.tocsr() * A
+        return A
+
+    def getAdiagDeriv(self, tInd, u, v, adjoint=False):
+        r"""
+        Product of the derivative of our system matrix with respect to the
+        electrical properties within the model and a vector. This includes
+        derivatives for volume, face and/or edge conductivities depending on
+        whether ``sigmaMap``, ``tauMap`` and/or ``kappaMap`` are set.
+
+        :param float tInd: time step index
+        :param numpy.ndarray u: solution vector (nF,)
+        :param numpy.ndarray v: vector to take prodct with (nP,) or (nD,) for
+            adjoint
+        :param bool adjoint: adjoint?
+        :rtype: numpy.ndarray
+        :return: derivative of the system matrix times a vector (nP,) or
+            adjoint (nD,)
+        """
+        C = self.mesh.edge_curl
+        MfMui = self.MfMui
+
+        u = C.T * (MfMui * u)
+
+        if adjoint:
+            if self._makeASymmetric is True:
+                v = MfMui * v
+            return self._MeSigmaTauKappaIDeriv(u, C.T * v, adjoint)
+
+        ADeriv = C * self._MeSigmaTauKappaIDeriv(u, v, adjoint)
+
+        if self._makeASymmetric is True:
+            return MfMui.T * ADeriv
+        return ADeriv
+
+    def getRHS(self, tInd):
+        """
+        Assemble the RHS
+        """
+        C = self.mesh.edge_curl
+        MeSigmaTauKappaI = self._MeSigmaTauKappaI
+        MfMui = self.MfMui
+
+        s_m, s_e = self.getSourceTerm(tInd)
+
+        rhs = C * (MeSigmaTauKappaI * s_e) + s_m
+        if self._makeASymmetric is True:
+            return MfMui.T * rhs
+        return rhs
+
+    def getRHSDeriv(self, tInd, src, v, adjoint=False):
+        """
+        Derivative of the RHS. This includes
+        derivatives for volume, face and/or edge conductivities depending on
+        whether ``sigmaMap``, ``tauMap`` and/or ``kappaMap`` are set.
+        """
+
+        C = self.mesh.edge_curl
+        MeSigmaTauKappaI = self._MeSigmaTauKappaI
+
+        _, s_e = src.eval(self, self.times[tInd])
+        s_mDeriv, s_eDeriv = src.evalDeriv(self, self.times[tInd], adjoint=adjoint)
+
+        if adjoint:
+            if self._makeASymmetric is True:
+                v = self.MfMui * v
+            if isinstance(s_e, Zero):
+                MeSigmaTauKappaIDerivT_v = Zero()
+            else:
+                MeSigmaTauKappaIDerivT_v = self._MeSigmaTauKappaIDeriv(
+                    s_e, C.T * v, adjoint
+                )
+
+            RHSDeriv = (
+                MeSigmaTauKappaIDerivT_v
+                + s_eDeriv(MeSigmaTauKappaI.T * (C.T * v))
+                + s_mDeriv(v)
+            )
+
+            return RHSDeriv
+
+        if isinstance(s_e, Zero):
+            MeSigmaTauKappaIDeriv_v = Zero()
+        else:
+            MeSigmaTauKappaIDeriv_v = self._MeSigmaTauKappaIDeriv(s_e, v, adjoint)
+
+        RHSDeriv = (
+            C * MeSigmaTauKappaIDeriv_v
+            + C * MeSigmaTauKappaI * s_eDeriv(v)
+            + s_mDeriv(v)
+        )
+
+        if self._makeASymmetric is True:
+            return self.MfMui.T * RHSDeriv
+        return RHSDeriv
+
+
+# ------------------------------- Simulation3DElectricField ------------------------------- #
+class Simulation3DElectricFieldFaceEdgeConductivity(
+    Simulation3DElectricField, BaseFaceEdgeElectricalPDESimulation
+):
+    r"""
+    Solve the EB-formulation of Maxwell's equations for the electric field, e.
+    Takes into account volume, face and edge conductivities.
+
+    Starting with
+
+    .. math::
+
+        \nabla \times \mathbf{e} + \frac{\partial \mathbf{b}}{\partial t} = \mathbf{s_m} \
+        \nabla \times \mu^{-1} \mathbf{b} - \sigma \mathbf{e} = \mathbf{s_e}
+
+
+    we eliminate :math:`\frac{\partial b}{\partial t}` using
+
+    .. math::
+
+        \frac{\partial \mathbf{b}}{\partial t} = - \nabla \times \mathbf{e} + \mathbf{s_m}
+
+
+    taking the time-derivative of Ampere's law, we see
+
+    .. math::
+
+        \frac{\partial}{\partial t}\left( \nabla \times \mu^{-1} \mathbf{b} - \sigma \mathbf{e} \right) = \frac{\partial \mathbf{s_e}}{\partial t} \
+        \nabla \times \mu^{-1} \frac{\partial \mathbf{b}}{\partial t} - \sigma \frac{\partial\mathbf{e}}{\partial t} = \frac{\partial \mathbf{s_e}}{\partial t}
+
+
+    which gives us
+
+    .. math::
+        \nabla \times \mu^{-1} \nabla \times \mathbf{e} + \sigma \frac{\partial\mathbf{e}}{\partial t} = \nabla \times \mu^{-1} \mathbf{s_m} + \frac{\partial \mathbf{s_e}}{\partial t}
+
+    """
+
+    fieldsPair = Fields3DElectricFieldFaceEdgeConductivity
+
+    def getAdiag(self, tInd):
+        """
+        Diagonal of the system matrix at a given time index. This includes
+        derivatives for volume, face and/or edge conductivities depending on
+        whether ``sigmaMap``, ``tauMap`` and/or ``kappaMap`` are set.
+        """
+        assert tInd >= 0 and tInd < self.nT
+
+        dt = self.time_steps[tInd]
+        C = self.mesh.edge_curl
+        MfMui = self.MfMui
+        MeSigmaTauKappa = self._MeSigmaTauKappa
+
+        return C.T.tocsr() * (MfMui * C) + 1.0 / dt * MeSigmaTauKappa
+
+    def getAdiagDeriv(self, tInd, u, v, adjoint=False):
+        r"""
+        Product of the derivative of diagonal system matrix with respect to the
+        electrical properties within the model and a vector. This includes
+        derivatives for volume, face and/or edge conductivities depending on
+        whether ``sigmaMap``, ``tauMap`` and/or ``kappaMap`` are set.
+
+        :param float tInd: time step index
+        :param numpy.ndarray u: solution vector (nF,)
+        :param numpy.ndarray v: vector to take prodct with (nP,) or (nD,) for
+            adjoint
+        :param bool adjoint: adjoint?
+        :rtype: numpy.ndarray
+        :return: derivative of the system matrix times a vector (nP,) or
+            adjoint (nD,)
+        """
+        assert tInd >= 0 and tInd < self.nT
+
+        dt = self.time_steps[tInd]
+
+        if adjoint:
+            return 1.0 / dt * self._MeSigmaTauKappaDeriv(u, v, adjoint)
+
+        return 1.0 / dt * self._MeSigmaTauKappaDeriv(u, v, adjoint)
+
+    def getAsubdiag(self, tInd):
+        """
+        Matrix below the diagonal
+        """
+        assert tInd >= 0 and tInd < self.nT
+
+        dt = self.time_steps[tInd]
+
+        MeSigmaTauKappa = self._MeSigmaTauKappa
+
+        return -1.0 / dt * MeSigmaTauKappa
+
+    def getAsubdiagDeriv(self, tInd, u, v, adjoint=False):
+        r"""
+        Product of the derivative of off-diagonal system matrix with respect to the
+        electrical properties within the model and a vector. This includes
+        derivatives for volume, face and/or edge conductivities depending on
+        whether ``sigmaMap``, ``tauMap`` and/or ``kappaMap`` are set.
+
+        :param float tInd: time step index
+        :param numpy.ndarray u: solution vector (nF,)
+        :param numpy.ndarray v: vector to take prodct with (nP,) or (nD,) for
+            adjoint
+        :param bool adjoint: adjoint?
+        :rtype: numpy.ndarray
+        :return: derivative of the system matrix times a vector (nP,) or
+            adjoint (nD,)
+        """
+        dt = self.time_steps[tInd]
+
+        if adjoint:
+            return -1.0 / dt * self._MeSigmaTauKappaDeriv(u, v, adjoint)
+
+        return -1.0 / dt * self._MeSigmaTauKappaDeriv(u, v, adjoint)
+
+    def getAdc(self):
+        MeSigmaTauKappa = self._MeSigmaTauKappa
+
+        Grad = self.mesh.nodal_gradient
+        Adc = Grad.T.tocsr() * MeSigmaTauKappa * Grad
+        # Handling Null space of A
+        Adc[0, 0] = Adc[0, 0] + 1.0
+        return Adc
+
+    def getAdcDeriv(self, u, v, adjoint=False):
+        r"""
+        Product of the derivative of the DC system matrix with respect to the
+        electrical properties within the model and a vector. This includes
+        derivatives for volume, face and/or edge conductivities depending on
+        whether ``sigmaMap``, ``tauMap`` and/or ``kappaMap`` are set.
+
+        :param numpy.ndarray u: solution vector (nF,)
+        :param numpy.ndarray v: vector to take prodct with (nP,) or (nD,) for
+            adjoint
+        :param bool adjoint: adjoint?
+        :rtype: numpy.ndarray
+        :return: derivative of the system matrix times a vector (nP,) or
+            adjoint (nD,)
+        """
+        Grad = self.mesh.nodal_gradient
+        if not adjoint:
+            return Grad.T * self._MeSigmaTauKappaDeriv(-u, v, adjoint)
+        else:
+            return self._MeSigmaTauKappaDeriv(-u, Grad * v, adjoint)
 
 
 ###############################################################################

@@ -138,6 +138,130 @@ def getFDEMProblem(fdemType, comp, SrcList, freq, useMu=False, verbose=False):
     return prb
 
 
+def getFDEMProblem_FaceEdgeConductivity(
+    fdemType, comp, SrcList, freq, useMu=False, verbose=False
+):
+    cs = 10.0
+    ncx, ncy, ncz = 0, 0, 0
+    npad = 8
+    hx = [(cs, npad, -1.3), (cs, ncx), (cs, npad, 1.3)]
+    hy = [(cs, npad, -1.3), (cs, ncy), (cs, npad, 1.3)]
+    hz = [(cs, npad, -1.3), (cs, ncz), (cs, npad, 1.3)]
+    mesh = TensorMesh([hx, hy, hz], ["C", "C", "C"])
+
+    if useMu is True:
+        wire_map = maps.Wires(
+            ("log_sigma", mesh.nC),
+            ("log_tau", mesh.nF),
+            ("log_kappa", mesh.nE),
+            ("mu", mesh.nC),
+        )
+    else:
+        wire_map = maps.Wires(
+            ("log_sigma", mesh.nC), ("log_tau", mesh.nF), ("log_kappa", mesh.nE)
+        )
+
+    sigma_map = maps.ExpMap(nP=mesh.nC) * wire_map.log_sigma
+    tau_map = maps.ExpMap(nP=mesh.nF) * wire_map.log_tau
+    kappa_map = maps.ExpMap(nP=mesh.nE) * wire_map.log_kappa
+    if useMu:
+        mu_map = maps.IdentityMap(nP=mesh.nC) * wire_map.mu
+    else:
+        mu_map = None
+
+    x = (
+        np.array(
+            [np.linspace(-5.0 * cs, -2.0 * cs, 3), np.linspace(5.0 * cs, 2.0 * cs, 3)]
+        )
+        + cs / 4.0
+    )  # don't sample right by the source, slightly off alignment from either staggered grid
+    XYZ = utils.ndgrid(x, x, np.linspace(-2.0 * cs, 2.0 * cs, 5))
+    Rx0 = getattr(fdem.Rx, "Point" + comp[0])
+    if comp[-1] == "r":
+        real_or_imag = "real"
+    elif comp[-1] == "i":
+        real_or_imag = "imag"
+    rx0 = Rx0(XYZ, comp[1], real_or_imag)
+
+    Src = []
+
+    for SrcType in SrcList:
+        if SrcType == "MagDipole":
+            Src.append(
+                fdem.Src.MagDipole([rx0], frequency=freq, location=np.r_[0.0, 0.0, 0.0])
+            )
+        elif SrcType == "MagDipole_Bfield":
+            Src.append(
+                fdem.Src.MagDipole_Bfield(
+                    [rx0], frequency=freq, location=np.r_[0.0, 0.0, 0.0]
+                )
+            )
+        elif SrcType == "CircularLoop":
+            Src.append(
+                fdem.Src.CircularLoop(
+                    [rx0], frequency=freq, location=np.r_[0.0, 0.0, 0.0]
+                )
+            )
+        elif SrcType == "LineCurrent":
+            Src.append(
+                fdem.Src.LineCurrent(
+                    [rx0],
+                    frequency=freq,
+                    location=np.array([[0.0, 0.0, 0.0], [20.0, 0.0, 0.0]]),
+                )
+            )
+        elif SrcType == "RawVec":
+            S_m = np.zeros(mesh.nF)
+            S_e = np.zeros(mesh.nE)
+            S_m[
+                mesh.closest_points_index([0.0, 0.0, 0.0], "Fz") + np.sum(mesh.vnF[:1])
+            ] = 1e-3
+            S_e[
+                mesh.closest_points_index([0.0, 0.0, 0.0], "Ez") + np.sum(mesh.vnE[:1])
+            ] = 1e-3
+            Src.append(
+                fdem.Src.RawVec([rx0], freq, S_m, mesh.get_edge_inner_product() * S_e)
+            )
+
+    if verbose:
+        print("  Fetching {0!s} problem".format((fdemType)))
+
+    if fdemType == "e":
+        survey = fdem.Survey(Src)
+        prb = fdem.Simulation3DElectricFieldFaceEdgeConductivity(
+            mesh,
+            survey=survey,
+            sigmaMap=sigma_map,
+            tauMap=tau_map,
+            kappaMap=kappa_map,
+            muMap=mu_map,
+        )
+
+    elif fdemType == "b":
+        survey = fdem.Survey(Src)
+        prb = fdem.Simulation3DMagneticFluxDensityFaceEdgeConductivity(
+            mesh,
+            survey=survey,
+            sigmaMap=sigma_map,
+            tauMap=tau_map,
+            kappaMap=kappa_map,
+            muMap=mu_map,
+        )
+
+    else:
+        raise NotImplementedError("NO SIMULATION FOR H OR J FORMULATION")
+
+    try:
+        from pymatsolver import Pardiso
+
+        prb.solver = Pardiso
+    except ImportError:
+        prb.solver = SolverLU
+    # prb.solver_opts = dict(check_accuracy=True)
+
+    return prb
+
+
 def crossCheckTest(
     SrcList,
     fdemType1,
@@ -147,11 +271,18 @@ def crossCheckTest(
     useMu=False,
     TOL=1e-5,
     verbose=False,
+    sigma_only=True,
 ):
     def l2norm(r):
         return np.sqrt(r.dot(r))
 
-    prb1 = getFDEMProblem(fdemType1, comp, SrcList, freq, useMu, verbose)
+    if sigma_only:
+        prb1 = getFDEMProblem(fdemType1, comp, SrcList, freq, useMu, verbose)
+    else:
+        prb1 = getFDEMProblem_FaceEdgeConductivity(
+            fdemType1, comp, SrcList, freq, useMu, verbose
+        )
+
     mesh = prb1.mesh
     print(
         "Cross Checking Forward: {0!s}, {1!s} formulations - {2!s}".format(
@@ -160,23 +291,38 @@ def crossCheckTest(
     )
 
     logsig = np.log(np.ones(mesh.nC) * CONDUCTIVITY)
+    logtau = np.log(np.ones(mesh.nF) * CONDUCTIVITY * np.min(mesh.h[0]))
+    logkappa = np.log(np.ones(mesh.nE) * CONDUCTIVITY * np.min(mesh.h[0]) ** 2)
     mu = np.ones(mesh.nC) * MU
 
     if addrandoms is True:
         logsig += np.random.randn(mesh.nC) * np.log(CONDUCTIVITY) * 1e-1
+        logtau += np.random.randn(mesh.nF) * np.log(CONDUCTIVITY) * 1e-1
+        logkappa += np.random.randn(mesh.nE) * np.log(CONDUCTIVITY) * 1e-1
         mu += np.random.randn(mesh.nC) * MU * 1e-1
 
-    if useMu is True:
-        m = np.r_[logsig, mu]
+    if sigma_only:
+        if useMu:
+            m = np.r_[logsig, mu]
+        else:
+            m = logsig
     else:
-        m = logsig
+        if useMu:
+            m = np.r_[logsig, logtau, logkappa, mu]
+        else:
+            m = np.r_[logsig, logtau, logkappa]
 
     d1 = prb1.dpred(m)
 
     if verbose:
         print("  Problem 1 solved")
 
-    prb2 = getFDEMProblem(fdemType2, comp, SrcList, freq, useMu, verbose)
+    if sigma_only:
+        prb2 = getFDEMProblem(fdemType2, comp, SrcList, freq, useMu, verbose)
+    else:
+        prb2 = getFDEMProblem_FaceEdgeConductivity(
+            fdemType2, comp, SrcList, freq, useMu, verbose
+        )
 
     d2 = prb2.dpred(m)
 
