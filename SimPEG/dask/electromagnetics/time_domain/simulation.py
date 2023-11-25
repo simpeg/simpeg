@@ -155,8 +155,61 @@ Sim.dpred = dask_dpred
 Sim.field_derivs = None
 
 
+def block_deriv(time_index, field_type, source_list, mesh, time_mesh, fields, Jmatrix):
+    """Compute derivatives for sources and receivers in a block"""
+    field_len = len(fields[source_list[0], field_type, 0])
+    df_duT = {src: {} for src in source_list}
+
+    rx_count = 0
+    for src in source_list:
+        df_duT[src] = {rx: {} for rx in src.receiver_list}
+
+        for rx in src.receiver_list:
+            PTv = np.asarray(
+                rx.getP(mesh, time_mesh, fields).todense().T
+            ).reshape((field_len, time_mesh.n_faces, -1), order="F")
+            derivative_fun = getattr(fields, "_{}Deriv".format(rx.projField), None)
+            rx_ind = np.arange(rx_count, rx_count + rx.nD).astype(int)
+
+            cur = derivative_fun(
+                time_index,
+                src,
+                None,
+                sp.csr_matrix(PTv[:, time_index, :]),
+                adjoint=True,
+            )
+            df_duT[src][rx] = cur[0]
+            Jmatrix[rx_ind, :] += cur[1].T
+
+        rx_count += rx.nD
+
+    return df_duT
+
+
+def compute_field_derivs(simulation, Jmatrix, fields):
+    """
+    Compute the derivative of the fields
+    """
+
+    df_duT = []
+
+    for time_index in range(simulation.nT + 1):
+        df_duT.append(delayed(block_deriv, pure=True)(
+            time_index,
+            simulation._fieldType + "Solution",
+            simulation.survey.source_list,
+            simulation.mesh,
+            simulation.time_mesh,
+            fields,
+            Jmatrix
+        ))
+
+
+    df_duT = dask.compute(df_duT)[0]
+
+    return df_duT
+
 def compute_J(self, f=None, Ainv=None):
-# def Jtvec(self, m, v, f=None):
     r"""
     Jvec computes the adjoint of the sensitivity times a vector
 
@@ -183,74 +236,15 @@ def compute_J(self, f=None, Ainv=None):
     if f is None:
         f, Ainv = self.fields(self.model, return_Ainv=True)
 
-    ftype = self._fieldType + "Solution"  # the thing we solved for
+    ftype = self._fieldType + "Solution"
+    Jmatrix = np.zeros((self.survey.nD, self.model.size), dtype=np.float32)
 
-    # Ensure v is a data object.
-    # if not isinstance(v, Data):
-    #     v = Data(self.survey, v)
+    self.field_derivs = compute_field_derivs(self, Jmatrix, f)
 
-    df_duT_v = {}
-    field_len = len(f[self.survey.source_list[0], ftype, 0])
-    # same size as fields at a single timestep
     ATinv_df_duT_v = {}
-
-    m_size = self.model.size
-    Jmatrix = np.zeros((self.survey.nD, m_size), dtype=np.float32)
-    # Loop over sources and receivers to create a fields object:
-    # PT_v, df_duT_v, df_dmT_v
-    # initialize storage for PT_v (don't need to preserve over sources)
-    PT_v = self.Fields_Derivs(self)
-    rx_count = 0
-    for src in self.survey.source_list:
-        # Looping over initializing field class is appending memory!
-        # PT_v = Fields_Derivs(self.mesh) # initialize storage
-        # #for PT_v (don't need to preserve over sources)
-        # initialize size
-        df_duT_v[src] = {}
-
-        for rx in src.receiver_list:
-            df_duT_v[src][rx] = {}
-            PTv = np.asarray(
-                rx.getP(self.mesh, self.time_mesh, f).todense().T
-            ).reshape((field_len, self.nT + 1, -1), order="F")
-
-            n_rec_comp = rx.locations.shape[0] * (self.nT + 1)
-
-            # PT_v[src, "{}Deriv".format(rx.projField), :] = rx.evalDeriv(
-            #     src, self.mesh, self.time_mesh, f, mkvc(v[src, rx]), adjoint=True
-            # )  # this is +=
-
-            # PT_v = np.reshape(curPT_v,(len(curPT_v)/self.time_mesh.nN,
-            # self.time_mesh.nN), order='F')
-            df_duTFun = getattr(f, "_{}Deriv".format(rx.projField), None)
-
-            rx_ind = np.arange(rx_count, rx_count + rx.nD).astype(int)
-            for tInd in range(self.nT + 1):
-                cur = df_duTFun(
-                    tInd,
-                    src,
-                    None,
-                    PTv[:, tInd, :],
-                    adjoint=True,
-                )
-
-                df_duT_v[src][rx][tInd] = cur[0]
-                Jmatrix[rx_ind, :] += cur[1].T
-
-            rx_count += rx.nD
-
-    del PT_v  # no longer need this
-
-    AdiagTinv = None
-
-    # Do the back-solve through time
-    # if the previous timestep is the same: no need to refactor the matrix
-    # for tInd, dt in zip(range(self.nT), self.time_steps):
-
     for tInd, dt in tqdm(zip(reversed(range(self.nT)), reversed(self.time_steps))):
-        # tInd = tIndP - 1
+
         AdiagTinv = Ainv[dt]
-        # Asubdiag = self.getAsubdiag(tInd)
 
         if tInd < self.nT - 1:
             Asubdiag = self.getAsubdiag(tInd + 1)
@@ -267,43 +261,46 @@ def compute_J(self, f=None, Ainv=None):
                 rx_ind = np.arange(rx_count, rx_count + rx.nD).astype(int)
                 # solve against df_duT_v
                 if tInd >= self.nT - 1:
-
-
                     # last timestep (first to be solved)
-                    ATinv_df_duT_v[isrc][rx][tInd] = (
+                    ATinv_df_duT_v[isrc][rx] = (
                         AdiagTinv
-                        * df_duT_v[src][rx][tInd+1]
+                        * self.field_derivs[tInd+1][src][rx].toarray()
                     )
                 elif tInd > -1:
-                    ATinv_df_duT_v[isrc][rx][tInd] = AdiagTinv * (
-                        df_duT_v[src][rx][tInd+1]
-                        - Asubdiag.T * ATinv_df_duT_v[isrc][rx][tInd+1]
+                    ATinv_df_duT_v[isrc][rx] = AdiagTinv * np.asarray(
+                        self.field_derivs[tInd+1][src][rx]
+                        - Asubdiag.T * ATinv_df_duT_v[isrc][rx]
                     )
 
                 dAsubdiagT_dm_v = self.getAsubdiagDeriv(
-                    tInd, f[src, ftype, tInd], ATinv_df_duT_v[isrc][rx][tInd], adjoint=True
+                    tInd, f[src, ftype, tInd], ATinv_df_duT_v[isrc][rx], adjoint=True
                 )
 
                 dRHST_dm_v = self.getRHSDeriv(
-                    tInd + 1, src, ATinv_df_duT_v[isrc][rx][tInd], adjoint=True
+                    tInd + 1, src, ATinv_df_duT_v[isrc][rx], adjoint=True
                 )  # on nodes of time mesh
 
                 un_src = f[src, ftype, tInd + 1]
                 # cell centered on time mesh
                 dAT_dm_v = self.getAdiagDeriv(
-                    tInd, un_src, ATinv_df_duT_v[isrc][rx][tInd], adjoint=True
+                    tInd, un_src, ATinv_df_duT_v[isrc][rx], adjoint=True
                 )
 
                 Jmatrix[rx_ind, :] += (-dAT_dm_v - dAsubdiagT_dm_v + dRHST_dm_v).T
 
                 rx_count += rx.nD
-    # Treat the initial condition
 
-    # del df_duT_v, ATinv_df_duT_v, A, Asubdiag
-    if AdiagTinv is not None:
-        AdiagTinv.clean()
 
-    return Jmatrix
+    for A in Ainv.values():
+        A.clean()
+
+    if self.store_sensitivities == "disk":
+        del Jmatrix
+        return array.from_zarr(self.sensitivity_path + f"J.zarr")
+    else:
+        return Jmatrix
+
+
     # if f is None:
     #     f, Ainv = self.fields(self.model, return_Ainv=True)
     #
@@ -510,34 +507,34 @@ def block_append(
     return source_blocks
 
 
-def block_deriv(simulation, src, tInd, f, block_size, row_count):
-    src_field_derivs = None
-    for rx in src.receiver_list:
-        v = sp.eye(rx.nD, dtype=float)
-        PT_v = rx.evalDeriv(
-            src, simulation.mesh, simulation.time_mesh, f, v, adjoint=True
-        )
-        df_duTFun = getattr(f, "_{}Deriv".format(rx.projField), None)
-
-        cur = df_duTFun(
-            simulation.nT,
-            src,
-            None,
-            PT_v[tInd * block_size: (tInd + 1) * block_size, :],
-            adjoint=True,
-        )
-
-        if not isinstance(cur[1], Zero):
-            simulation.J_initializer[row_count: row_count + rx.nD, :] += cur[1].T
-
-        if src_field_derivs is None:
-            src_field_derivs = cur[0]
-        else:
-            src_field_derivs = sp.hstack([src_field_derivs, cur[0]])
-
-        row_count += rx.nD
-
-    return src_field_derivs
+# def block_deriv(simulation, src, tInd, f, block_size, row_count):
+#     src_field_derivs = None
+#     for rx in src.receiver_list:
+#         v = sp.eye(rx.nD, dtype=float)
+#         PT_v = rx.evalDeriv(
+#             src, simulation.mesh, simulation.time_mesh, f, v, adjoint=True
+#         )
+#         df_duTFun = getattr(f, "_{}Deriv".format(rx.projField), None)
+#
+#         cur = df_duTFun(
+#             simulation.nT,
+#             src,
+#             None,
+#             PT_v[tInd * block_size: (tInd + 1) * block_size, :],
+#             adjoint=True,
+#         )
+#
+#         if not isinstance(cur[1], Zero):
+#             simulation.J_initializer[row_count: row_count + rx.nD, :] += cur[1].T
+#
+#         if src_field_derivs is None:
+#             src_field_derivs = cur[0]
+#         else:
+#             src_field_derivs = sp.hstack([src_field_derivs, cur[0]])
+#
+#         row_count += rx.nD
+#
+#     return src_field_derivs
 
 
 def parallel_block_compute(
