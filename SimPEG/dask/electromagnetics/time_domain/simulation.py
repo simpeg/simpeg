@@ -209,28 +209,100 @@ def compute_field_derivs(simulation, Jmatrix, fields):
 
     return df_duT
 
+def get_parallel_blocks(source_list: list, m_size: int, max_chunk_size: int):
+    """
+    Get the blocks of sources and receivers to be computed in parallel.
+
+    Stored as a dictionary of source, receiver pairs index. The value is an array of indices
+    for the rows of the sensitivity matrix.
+    """
+    data_block_size = np.ceil(max_chunk_size / (m_size * 8.0 * 1e-6))
+    row_count = 0
+    row_index = 0
+    block_count = 0
+    blocks = {0: {}}
+    for src in source_list:
+        for rx in src.receiver_list:
+
+            indices = np.arange(rx.nD).astype(int)
+            chunks = np.split(indices, int(np.ceil(len(indices)/data_block_size)))
+
+            for ind, chunk in enumerate(chunks):
+                chunk_size = len(chunk)
+
+                # Condition to start a new block
+                if (row_count + chunk_size) > (data_block_size * cpu_count() / 2):
+                    row_count = 0
+                    block_count += 1
+                    blocks[block_count] = {}
+
+                blocks[block_count][(src, rx, ind)] = chunk, np.arange(row_index, row_index + chunk_size).astype(int)
+                row_index += chunk_size
+                row_count += chunk_size
+
+    return blocks
+
+
+def get_field_deriv_block(simulation, block: dict, tInd: int, AdiagTinv, ATinv_df_duT_v: dict):
+    """
+    Stack the blocks of field derivatives for a given timestep and call the direct solver.
+    """
+    stacked_blocks = []
+    indices = []
+    count = 0
+    for (src, rx, ind), (rx_ind, j_ind) in block.items():
+        indices.append(
+            np.arange(count, count + len(rx_ind))
+        )
+        count += len(rx_ind)
+        if (src, rx, ind) not in ATinv_df_duT_v:
+            # last timestep (first to be solved)
+            stacked_blocks.append(
+                simulation.field_derivs[tInd + 1][src][rx].toarray()[:, rx_ind]
+            )
+
+        else:
+            Asubdiag = simulation.getAsubdiag(tInd + 1)
+            stacked_blocks.append(
+                np.asarray(
+                    simulation.field_derivs[tInd + 1][src][rx][:, rx_ind]
+                    - Asubdiag.T * ATinv_df_duT_v[(src, rx, ind)]
+                )
+            )
+
+    solve = AdiagTinv * np.hstack(stacked_blocks)
+
+    for (src, rx, ind), columns in zip(block, indices):
+        ATinv_df_duT_v[(src, rx, ind)] = solve[:, columns]
+
+    return ATinv_df_duT_v
+
+
+def compute_rows(simulation, tInd, src, rx_ind, j_ind, ATinv_df_duT_v, f, Jmatrix, ftype):
+    """
+    Compute the rows of the sensitivity matrix for a given source and receiver.
+    """
+    dAsubdiagT_dm_v = simulation.getAsubdiagDeriv(
+        tInd, f[src, ftype, tInd], ATinv_df_duT_v, adjoint=True
+    )
+
+    dRHST_dm_v = simulation.getRHSDeriv(
+        tInd + 1, src, ATinv_df_duT_v, adjoint=True
+    )  # on nodes of time mesh
+
+    un_src = f[src, ftype, tInd + 1]
+    # cell centered on time mesh
+    dAT_dm_v = simulation.getAdiagDeriv(
+        tInd, un_src, ATinv_df_duT_v, adjoint=True
+    )
+
+    Jmatrix[j_ind, :] += (-dAT_dm_v - dAsubdiagT_dm_v + dRHST_dm_v).T
+
+
+
 def compute_J(self, f=None, Ainv=None):
-    r"""
-    Jvec computes the adjoint of the sensitivity times a vector
-
-    .. math::
-
-        \mathbf{J}^\top \mathbf{v} =
-            \left(
-                \frac{d\mathbf{u}}{d\mathbf{m}} ^ \top
-                \frac{d\mathbf{F}}{d\mathbf{u}} ^ \top
-                + \frac{\partial\mathbf{F}}{\partial\mathbf{m}} ^ \top
-            \right)
-            \frac{d\mathbf{P}}{d\mathbf{F}} ^ \top
-            \mathbf{v}
-
-    where
-
-    .. math::
-
-        \frac{d\mathbf{u}}{d\mathbf{m}} ^\top \mathbf{A}^\top  +
-        \frac{d\mathbf{A}(\mathbf{u})}{d\mathbf{m}} ^ \top =
-        \frac{d \mathbf{RHS}}{d \mathbf{m}} ^ \top
+    """
+    Compute the rows for the sensitivity matrix.
     """
 
     if f is None:
@@ -238,6 +310,7 @@ def compute_J(self, f=None, Ainv=None):
 
     ftype = self._fieldType + "Solution"
     Jmatrix = np.zeros((self.survey.nD, self.model.size), dtype=np.float32)
+    blocks = get_parallel_blocks(self.survey.source_list, self.model.shape[0], self.max_chunk_size)
 
     self.field_derivs = compute_field_derivs(self, Jmatrix, f)
 
@@ -246,49 +319,69 @@ def compute_J(self, f=None, Ainv=None):
 
         AdiagTinv = Ainv[dt]
 
-        if tInd < self.nT - 1:
-            Asubdiag = self.getAsubdiag(tInd + 1)
-        rx_count = 0
-        for isrc, src in enumerate(self.survey.source_list):
+        ATinv_df_duT_v = {}
+        j_row_updates = []
+        for block in blocks.values():
+            ATinv_df_duT_v = get_field_deriv_block(self, block, tInd, AdiagTinv, ATinv_df_duT_v)
 
-            if isrc not in ATinv_df_duT_v:
-                ATinv_df_duT_v[isrc] = {}
+            for (src, rx, ind), (rx_ind, j_ind) in block.items():
+                j_row_updates.append(delayed(compute_rows, pure=True)(
+                    self,
+                    tInd,
+                    src,
+                    rx_ind,
+                    j_ind,
+                    ATinv_df_duT_v[(src, rx, ind)],
+                    f,
+                    Jmatrix,
+                    ftype
+                ))
+            # for (src, rx, ind), (rx_ind, j_ind) in block.items():
 
-            for rx in src.receiver_list:
-                if rx not in ATinv_df_duT_v[isrc]:
-                    ATinv_df_duT_v[isrc][rx] = {}
 
-                rx_ind = np.arange(rx_count, rx_count + rx.nD).astype(int)
-                # solve against df_duT_v
-                if tInd >= self.nT - 1:
-                    # last timestep (first to be solved)
-                    ATinv_df_duT_v[isrc][rx] = (
-                        AdiagTinv
-                        * self.field_derivs[tInd+1][src][rx].toarray()
-                    )
-                elif tInd > -1:
-                    ATinv_df_duT_v[isrc][rx] = AdiagTinv * np.asarray(
-                        self.field_derivs[tInd+1][src][rx]
-                        - Asubdiag.T * ATinv_df_duT_v[isrc][rx]
-                    )
+        dask.compute(j_row_updates)
 
-                dAsubdiagT_dm_v = self.getAsubdiagDeriv(
-                    tInd, f[src, ftype, tInd], ATinv_df_duT_v[isrc][rx], adjoint=True
-                )
+        # rx_count = 0
+        # for isrc, src in enumerate(self.survey.source_list):
+        #
+        #     if isrc not in ATinv_df_duT_v:
+        #         ATinv_df_duT_v[isrc] = {}
+        #
+        #     for rx in src.receiver_list:
+        #         if rx not in ATinv_df_duT_v[isrc]:
+        #             ATinv_df_duT_v[isrc][rx] = {}
+        #
+        #         rx_ind = np.arange(rx_count, rx_count + rx.nD).astype(int)
+        #         # solve against df_duT_v
+        #         if tInd >= self.nT - 1:
+        #             # last timestep (first to be solved)
+        #             ATinv_df_duT_v[isrc][rx] = (
+        #                 AdiagTinv
+        #                 * self.field_derivs[tInd+1][src][rx].toarray()
+        #             )
+        #         elif tInd > -1:
+        #             ATinv_df_duT_v[isrc][rx] = AdiagTinv * np.asarray(
+        #                 self.field_derivs[tInd+1][src][rx]
+        #                 - Asubdiag.T * ATinv_df_duT_v[isrc][rx]
+        #             )
+        #
+        #         dAsubdiagT_dm_v = self.getAsubdiagDeriv(
+        #             tInd, f[src, ftype, tInd], ATinv_df_duT_v[isrc][rx], adjoint=True
+        #         )
+        #
+        #         dRHST_dm_v = self.getRHSDeriv(
+        #             tInd + 1, src, ATinv_df_duT_v[isrc][rx], adjoint=True
+        #         )  # on nodes of time mesh
+        #
+        #         un_src = f[src, ftype, tInd + 1]
+        #         # cell centered on time mesh
+        #         dAT_dm_v = self.getAdiagDeriv(
+        #             tInd, un_src, ATinv_df_duT_v[isrc][rx], adjoint=True
+        #         )
+        #
+        #         Jmatrix[rx_ind, :] += (-dAT_dm_v - dAsubdiagT_dm_v + dRHST_dm_v).T
 
-                dRHST_dm_v = self.getRHSDeriv(
-                    tInd + 1, src, ATinv_df_duT_v[isrc][rx], adjoint=True
-                )  # on nodes of time mesh
-
-                un_src = f[src, ftype, tInd + 1]
-                # cell centered on time mesh
-                dAT_dm_v = self.getAdiagDeriv(
-                    tInd, un_src, ATinv_df_duT_v[isrc][rx], adjoint=True
-                )
-
-                Jmatrix[rx_ind, :] += (-dAT_dm_v - dAsubdiagT_dm_v + dRHST_dm_v).T
-
-                rx_count += rx.nD
+                # rx_count += rx.nD
 
 
     for A in Ainv.values():
