@@ -316,11 +316,9 @@ def compute_J(self, f=None, Ainv=None):
 
     ATinv_df_duT_v = {}
     for tInd, dt in tqdm(zip(reversed(range(self.nT)), reversed(self.time_steps))):
-
         AdiagTinv = Ainv[dt]
-
-        ATinv_df_duT_v = {}
         j_row_updates = []
+
         for block in blocks.values():
             ATinv_df_duT_v = get_field_deriv_block(self, block, tInd, AdiagTinv, ATinv_df_duT_v)
 
