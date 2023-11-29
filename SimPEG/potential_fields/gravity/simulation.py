@@ -14,6 +14,19 @@ class Simulation3DIntegral(BasePFSimulation):
     """
     Gravity simulation in integral form.
 
+    .. important::
+
+        Density model is assumed to be in g/cc.
+
+    .. important::
+
+        Acceleration components ("gx", "gy", "gz") are returned in mgal
+        (:math:`10^{-5} m/s^2`).
+
+    .. important::
+
+        Gradient components ("gxx", "gyy", "gzz", "gxy", "gxz", "gyz") are
+        returned in Eotvos (:math:`10^{-9} s^{-2}`).
     """
 
     rho, rhoMap, rhoDeriv = props.Invertible("Density")
@@ -33,7 +46,7 @@ class Simulation3DIntegral(BasePFSimulation):
             # Compute the linear operation without forming the full dense G
             fields = mkvc(self.linear_operator())
         else:
-            fields = self.G @ (self.rho).astype(np.float32)
+            fields = self.G @ (self.rho).astype(self.sensitivity_dtype, copy=False)
 
         return np.asarray(fields)
 
@@ -67,13 +80,13 @@ class Simulation3DIntegral(BasePFSimulation):
         Sensitivity times a vector
         """
         dmu_dm_v = self.rhoDeriv @ v
-        return self.G @ dmu_dm_v.astype(np.float32)
+        return self.G @ dmu_dm_v.astype(self.sensitivity_dtype, copy=False)
 
     def Jtvec(self, m, v, f=None):
         """
         Sensitivity transposed times a vector
         """
-        Jtvec = self.G.T @ v.astype(np.float32)
+        Jtvec = self.G.T @ v.astype(self.sensitivity_dtype, copy=False)
         return np.asarray(self.rhoDeriv.T @ Jtvec)
 
     @property
@@ -144,14 +157,17 @@ class Simulation3DIntegral(BasePFSimulation):
                 # (NN - EE) / 2
         inside_adjust = False
         if "gzz" in components:
-            if "gxx" not in node_evals or "gyy" not in node_evals:
-                node_evals["gzz"] = prism_fzz(dx, dy, dz)
-            else:
-                inside_adjust = True
-                # The below need to be adjusted for observation points within a cell.
-                # because `gxx + gyy + gzz = -4 * pi * G * rho`
-                # gzz = - gxx - gyy - 4 * np.pi * G * rho[in_cell]
-                node_evals["gzz"] = -node_evals["gxx"] - node_evals["gyy"]
+            node_evals["gzz"] = prism_fzz(dx, dy, dz)
+            # The below should be uncommented when we are able to give the index of a
+            # containing cell.
+            # if "gxx" not in node_evals or "gyy" not in node_evals:
+            #     node_evals["gzz"] = prism_fzz(dx, dy, dz)
+            # else:
+            #     inside_adjust = True
+            #     # The below need to be adjusted for observation points within a cell.
+            #     # because `gxx + gyy + gzz = -4 * pi * G * rho`
+            #     # gzz = - gxx - gyy - 4 * np.pi * G * rho[in_cell]
+            #     node_evals["gzz"] = -node_evals["gxx"] - node_evals["gyy"]
 
         rows = {}
         for component in set(components):
@@ -182,7 +198,12 @@ class Simulation3DIntegral(BasePFSimulation):
             else:
                 rows[component] *= constants.G * 1e8  # conversion for mGal
 
-        return np.stack([rows[component] for component in components])
+        return np.stack(
+            [
+                rows[component].astype(self.sensitivity_dtype, copy=False)
+                for component in components
+            ]
+        )
 
 
 class SimulationEquivalentSourceLayer(

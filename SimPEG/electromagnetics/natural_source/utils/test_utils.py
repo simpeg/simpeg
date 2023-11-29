@@ -462,8 +462,6 @@ def setupSimpegNSEM_ePrimSec(inputSetup, comp="Imp", singleFreq=False, expMap=Tr
     survey = Survey(source_list)
 
     # Setup the problem object
-    sigma1d = M.reshape(sigBG, "CC", "CC", "M")[0, 0, :]
-
     if expMap:
         problem = Simulation3DPrimarySecondary(
             M, survey=survey, sigmaPrimary=np.log(sigBG), sigmaMap=maps.ExpMap(M)

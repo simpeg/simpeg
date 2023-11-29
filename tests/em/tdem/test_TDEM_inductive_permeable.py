@@ -1,7 +1,6 @@
 import unittest
 
 import discretize
-from discretize import utils
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
@@ -67,7 +66,6 @@ class TestInductiveSourcesPermeability(unittest.TestCase):
         sigma_back = self.sigma_back
         model_names = self.model_names
         mesh = self.mesh
-        radius_loop = self.radius_loop
 
         # Assign physical properties on the mesh
         def populate_target(mur):

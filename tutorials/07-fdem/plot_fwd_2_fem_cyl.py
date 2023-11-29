@@ -50,7 +50,7 @@ write_file = False
 #
 # Here we define a x-offset borehole survey that consists of a single vertical line
 # of source-receiver pairs which measred the secondary magnetic flux density
-#  over a range of frequencies.
+# over a range of frequencies.
 #
 
 # Frequencies being predicted (10 Hz to 10000 Hz)

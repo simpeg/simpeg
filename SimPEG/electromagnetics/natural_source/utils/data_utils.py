@@ -7,7 +7,6 @@ import SimPEG as simpeg
 from SimPEG.electromagnetics.natural_source.survey import Survey, Data
 from SimPEG.electromagnetics.natural_source.receivers import (
     PointNaturalSource,
-    PointNaturalSource,
     Point3DTipper,
 )
 from SimPEG.electromagnetics.natural_source.sources import PlanewaveXYPrimary
@@ -196,7 +195,7 @@ def resample_data(NSEMdata, locs="All", freqs="All", rxs="All", verbose=False):
                         floor_list.append(NSEMdata.floor[src, rx][ind_loc])
                     except Exception as e:
                         if verbose:
-                            print("No standard deviation or floor assigned")
+                            print("No standard deviation or floor assigned. " + str(e))
 
             new_src = type(src)
             new_source_list.append(new_src(new_receiver_list, src.frequency))

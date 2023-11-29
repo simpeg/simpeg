@@ -204,6 +204,7 @@ def pseudo_locations(survey, wenner_tolerance=0.1, **kwargs):
             "The keyword arguments of this function have been deprecated."
             " All of the necessary information is now in the DC survey class",
             DeprecationWarning,
+            stacklevel=2,
         )
 
     # Pre-allocate
@@ -562,7 +563,9 @@ def plot_pseudosection(
         if kwarg in kwargs:
             raise TypeError(r"The {kwarg} keyword has been removed.")
     if len(kwargs) > 0:
-        warnings.warn("plot_pseudosection unused kwargs: {list(kwargs.keys())}")
+        warnings.warn(
+            f"plot_pseudosection unused kwargs: {list(kwargs.keys())}", stacklevel=2
+        )
 
     if plot_type.lower() not in ["pcolor", "contourf", "scatter"]:
         raise ValueError(
@@ -852,7 +855,7 @@ if has_plotly:
             marker = {key: marker_opts.get(key, marker[key]) for key in marker}
 
         # 3D scatter plot
-        if plane_points == None:
+        if plane_points is None:
             marker["color"] = plot_vec
             scatter_data = [
                 grapho.Scatter3d(
@@ -1061,7 +1064,8 @@ def generate_survey_from_abmn_locations(
         warnings.warn(
             "Ordering of ABMN locations changed when generating survey. "
             "Associated data vectors will need sorting. Set output_sorting to "
-            "True for sorting indices."
+            "True for sorting indices.",
+            stacklevel=2,
         )
 
     if output_sorting:
@@ -1422,7 +1426,6 @@ def xy_2_lineID(dc_survey):
     lineID = np.zeros(nstn)
 
     linenum = 0
-    indx = 0
 
     for ii in range(nstn):
         if ii == 0:
@@ -1467,7 +1470,6 @@ def xy_2_lineID(dc_survey):
                 xym[0] = xym[0] + 1e-3
 
             linenum += 1
-            indx = ii
 
         else:
             xym = np.mean([xy0, xin], axis=0)

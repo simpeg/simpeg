@@ -81,30 +81,30 @@ def requires(var):
 
 
 @requires("memory_profiler")
-def create_wrapper_from_class(input_class, *fun_names):
-    """Create wrapper class with memory profiler.
+def mem_profile_class(input_class, *args):
+    """Creates a new class from the target class with memory profiled methods.
 
     Using :meth:`memory_profiler.profile`, this function creates a wrapper class
-    from the input class and function names specified.
+    from the input class with the specified methods memory profiled.
 
     Parameters
     ----------
     input_class : class
         Input class being used to create the wrapper
-    fun_names : list of str
-        Names of the functions that will be wrapped to the wrapper class. These names must
+    *args : str
+        Method names that will be wrapped with a memory profiler. These names must
         correspond to methods of the input class.
 
     Returns
     -------
     class :
-        Wrapper class
+        Memory profiled class.
 
     Examples
     --------
 
-    >>> foo_mem = create_wrapper_from_class(foo,['my_func'])
-    >>> fooi = foo_mem()
+    >>> FooMem = mem_profile_class(Foo,'my_func')
+    >>> fooi = FooMem()
     >>> for i in range(5):
     >>>     fooi.my_func()
 
@@ -115,7 +115,7 @@ def create_wrapper_from_class(input_class, *fun_names):
     from memory_profiler import profile
 
     attrs = {}
-    for f in fun_names:
+    for f in args:
         if hasattr(input_class, f):
             attrs[f] = profile(getattr(input_class, f))
         else:
@@ -546,11 +546,11 @@ def deprecate_class(
 
         def __init__(self, *args, **kwargs):
             if future_warn:
-                warnings.warn(message, FutureWarning)
+                warnings.warn(message, FutureWarning, stacklevel=2)
             elif error:
                 raise NotImplementedError(message)
             else:
-                warnings.warn(message, DeprecationWarning)
+                warnings.warn(message, DeprecationWarning, stacklevel=2)
             self._old__init__(*args, **kwargs)
 
         cls.__init__ = __init__
@@ -589,11 +589,11 @@ def deprecate_module(
         message += " It will be removed in a future version of SimPEG."
     message += " Please update your code accordingly."
     if future_warn:
-        warnings.warn(message, FutureWarning)
+        warnings.warn(message, FutureWarning, stacklevel=2)
     elif error:
         raise NotImplementedError(message)
     else:
-        warnings.warn(message, DeprecationWarning)
+        warnings.warn(message, DeprecationWarning, stacklevel=2)
 
 
 def deprecate_property(
@@ -639,20 +639,20 @@ def deprecate_property(
 
     def get_dep(self):
         if future_warn:
-            warnings.warn(message, FutureWarning)
+            warnings.warn(message, FutureWarning, stacklevel=2)
         elif error:
             raise NotImplementedError(message)
         else:
-            warnings.warn(message, DeprecationWarning)
+            warnings.warn(message, DeprecationWarning, stacklevel=2)
         return prop.fget(self)
 
     def set_dep(self, other):
         if future_warn:
-            warnings.warn(message, FutureWarning)
+            warnings.warn(message, FutureWarning, stacklevel=2)
         elif error:
             raise NotImplementedError(message)
         else:
-            warnings.warn(message, DeprecationWarning)
+            warnings.warn(message, DeprecationWarning, stacklevel=2)
         prop.fset(self, other)
 
     doc = f"`{old_name}` has been deprecated. See `{new_name}` for documentation"
@@ -698,11 +698,11 @@ def deprecate_method(
 
     def new_method(*args, **kwargs):
         if future_warn:
-            warnings.warn(message, FutureWarning)
+            warnings.warn(message, FutureWarning, stacklevel=2)
         elif error:
             raise NotImplementedError(message)
         else:
-            warnings.warn(message, DeprecationWarning)
+            warnings.warn(message, DeprecationWarning, stacklevel=2)
         return method(*args, **kwargs)
 
     doc = f"`{old_name}` has been deprecated. See `{new_name}` for documentation"
@@ -752,11 +752,11 @@ def deprecate_function(
 
     def dep_function(*args, **kwargs):
         if future_warn:
-            warnings.warn(message, FutureWarning)
+            warnings.warn(message, FutureWarning, stacklevel=2)
         elif error:
             raise NotImplementedError(message)
         else:
-            warnings.warn(message, DeprecationWarning)
+            warnings.warn(message, DeprecationWarning, stacklevel=2)
         return new_function(*args, **kwargs)
 
     doc = f"""
@@ -1109,7 +1109,7 @@ def validate_type(property_name, obj, obj_type, cast=True, strict=False):
                 f"{type(obj).__name__} cannot be converted to type {obj_type.__name__} "
                 f"required for {property_name}."
             ) from err
-    if strict and type(obj) != obj_type:
+    if strict and type(obj) is not obj_type:
         raise TypeError(
             f"Object must be exactly a {obj_type.__name__} for {property_name}"
         )
@@ -1232,21 +1232,31 @@ def validate_active_indices(property_name, index_arr, n_cells):
 #                      DEPRECATIONS
 ###############################################################
 memProfileWrapper = deprecate_function(
-    create_wrapper_from_class, "memProfileWrapper", removal_version="0.18.0"
+    mem_profile_class, "memProfileWrapper", removal_version="0.18.0", future_warn=True
 )
-setKwargs = deprecate_function(set_kwargs, "setKwargs", removal_version="0.18.0")
-printTitles = deprecate_function(print_titles, "printTitles", removal_version="0.18.0")
-printLine = deprecate_function(print_line, "printLine", removal_version="0.18.0")
+setKwargs = deprecate_function(
+    set_kwargs, "setKwargs", removal_version="0.18.0", future_warn=True
+)
+printTitles = deprecate_function(
+    print_titles, "printTitles", removal_version="0.18.0", future_warn=True
+)
+printLine = deprecate_function(
+    print_line, "printLine", removal_version="0.18.0", future_warn=True
+)
 printStoppers = deprecate_function(
-    print_stoppers, "printStoppers", removal_version="0.18.0"
+    print_stoppers, "printStoppers", removal_version="0.18.0", future_warn=True
 )
 checkStoppers = deprecate_function(
-    check_stoppers, "checkStoppers", removal_version="0.18.0"
+    check_stoppers, "checkStoppers", removal_version="0.18.0", future_warn=True
 )
-printDone = deprecate_function(print_done, "printDone", removal_version="0.18.0")
-callHooks = deprecate_function(call_hooks, "callHooks", removal_version="0.18.0")
+printDone = deprecate_function(
+    print_done, "printDone", removal_version="0.18.0", future_warn=True
+)
+callHooks = deprecate_function(
+    call_hooks, "callHooks", removal_version="0.18.0", future_warn=True
+)
 dependentProperty = deprecate_function(
-    dependent_property, "dependentProperty", removal_version="0.18.0"
+    dependent_property, "dependentProperty", removal_version="0.18.0", future_warn=True
 )
 asArray_N_x_Dim = deprecate_function(
     as_array_n_by_dim, "asArray_N_x_Dim", removal_version="0.19.0", future_warn=True

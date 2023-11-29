@@ -1,0 +1,124 @@
+.. _0.20.0_notes:
+
+===========================
+SimPEG 0.20.0 Release Notes
+===========================
+
+August 9th, 2023
+
+This minor release contains many bugfixes and additions to the code base, including improvements to
+documentation for regularization.
+
+.. contents:: Highlights
+    :depth: 2
+
+
+Updates
+=======
+
+Spontaneous Potential
+---------------------
+The spontaneous (self) potential module has finally been re-implemented into the
+simulation framework of simpeg 0.14.0. Check out the new module at
+:py:mod:`simpeg.electromagnetics.static.spontaneous_potential`.
+
+MVI inversions
+--------------
+There are now two new support regularization functions relevant to vector inversions in
+the cartesian domain. an amplitude based regularization, and a direction based regularization,
+which both support reference models.
+
+FDEM
+----
+The frequency domain simulations now support forward modeling with electrical permittivity as a property
+
+Flake8 improvements
+-------------------
+We continue to add improvements to the internal code structures to be more in line with
+flake8 practices.
+
+MetaSimulation
+--------------
+There is now a multiprocessing version of the `MetaSimulation` class for interested users
+to experiment with.
+
+Documentation
+-------------
+We've made substantial additions to the regularization documentation.
+
+We have also updated the getting started guides to represent current recommend
+practices for installing, developing with, and contributing to SimPEG.
+
+Others
+------
+We've added support for taking derivatives of anisotropic models, which also fixed derivatives of
+properties on tetrahedral and curvilinear meshes.
+
+Invertible properties may now be not required for certain simulations (e.g. permittivity in
+a FDEM simulation).
+
+Last but not least, there are of course many bugfixes!
+
+Contributors
+============
+This is a combination of contributors and reviewers who've made contributions towards
+this release (in no particular order).
+
+* `@jcapriot <https://github.com/jcapriot>`__
+* `@santisoler <https://github.com/santisoler>`__
+* `@domfournier <https://github.com/domfournier>`__
+* `@dccowan <https://github.com/dccowan>`__
+* `@thibaut-kobold <https://github.com/thibaut-kobold>`__
+* `@nwilliams-kobold <https://github.com/nwilliams-kobold>`__
+* `@lheagy <https://github.com/lheagy>`__
+* `@yanang007* <https://github.com/yanang007>`__
+* `@andieie* <https://github.com/andieie>`__
+
+Pull requests
+=============
+* `#1103 <https://github.com/simpeg/simpeg/pull/1103>`__: Amplitude regularization
+* `#1195 <https://github.com/simpeg/simpeg/pull/1195>`__: Refactor PGI_BetaAlphaSchedule directive
+* `#1201 <https://github.com/simpeg/simpeg/pull/1201>`__: Multiprocessing MetaSimulation
+* `#1211 <https://github.com/simpeg/simpeg/pull/1211>`__: Sp reimplement
+* `#1212 <https://github.com/simpeg/simpeg/pull/1212>`__: Add a linearity property to mappings
+* `#1213 <https://github.com/simpeg/simpeg/pull/1213>`__: Pydata sphinx theme updates
+* `#1214 <https://github.com/simpeg/simpeg/pull/1214>`__: Cross reference vector
+* `#1215 <https://github.com/simpeg/simpeg/pull/1215>`__: Meta/meta patches
+* `#1216 <https://github.com/simpeg/simpeg/pull/1216>`__: Tiny typo triggers error when displaying error output string
+* `#1217 <https://github.com/simpeg/simpeg/pull/1217>`__: Update index.rst
+* `#1224 <https://github.com/simpeg/simpeg/pull/1224>`__: Replace deprecated numpy type aliases with builtin types
+* `#1225 <https://github.com/simpeg/simpeg/pull/1225>`__: Regularization docstrings
+* `#1229 <https://github.com/simpeg/simpeg/pull/1229>`__: Generalize __add__  for any ComboObjectiveFunction
+* `#1230 <https://github.com/simpeg/simpeg/pull/1230>`__: Discretize 0.9.0updates
+* `#1231 <https://github.com/simpeg/simpeg/pull/1231>`__: Fix IP simulation / inversion with SimPEG.dask
+* `#1234 <https://github.com/simpeg/simpeg/pull/1234>`__: General Doc cleanup
+* `#1235 <https://github.com/simpeg/simpeg/pull/1235>`__: conditionally allow invertible property to also be optional
+* `#1236 <https://github.com/simpeg/simpeg/pull/1236>`__: FDEM permittivity
+* `#1237 <https://github.com/simpeg/simpeg/pull/1237>`__: Anisotropy derivative support
+* `#1238 <https://github.com/simpeg/simpeg/pull/1238>`__: Move flake8 ignored rules to `.flake8` and rename Makefile targets
+* `#1239 <https://github.com/simpeg/simpeg/pull/1239>`__: Add flake8 to pre-commit configuration
+* `#1240 <https://github.com/simpeg/simpeg/pull/1240>`__: Merge docs for developers into a Contributing section
+* `#1241 <https://github.com/simpeg/simpeg/pull/1241>`__: Refactor `BaseObjectiveFunction` and `ComboObjectiveFunction`
+* `#1242 <https://github.com/simpeg/simpeg/pull/1242>`__: Fix flake `E711` error: wrong comparison with None
+* `#1243 <https://github.com/simpeg/simpeg/pull/1243>`__: Fix flake `E731` error: assign lambda functions
+* `#1244 <https://github.com/simpeg/simpeg/pull/1244>`__: Fix flake `F403` and `F405` errors: don't use star imports
+* `#1245 <https://github.com/simpeg/simpeg/pull/1245>`__: Fix `F522`, `F523`, `F524` flake errors: format calls
+* `#1246 <https://github.com/simpeg/simpeg/pull/1246>`__: Fix `F541` flake error: f-string without placeholder
+* `#1247 <https://github.com/simpeg/simpeg/pull/1247>`__: Simplify CONTRIBUTING.md
+* `#1248 <https://github.com/simpeg/simpeg/pull/1248>`__: Fix F811 flake error: remove redefinitions
+* `#1249 <https://github.com/simpeg/simpeg/pull/1249>`__: Add more hints about pre-commit in documentation
+* `#1250 <https://github.com/simpeg/simpeg/pull/1250>`__: Rename "basic" directory in docs to "getting_started"
+* `#1251 <https://github.com/simpeg/simpeg/pull/1251>`__: Test patches
+* `#1252 <https://github.com/simpeg/simpeg/pull/1252>`__: Fix W291 and W293 flake errors: white spaces
+* `#1253 <https://github.com/simpeg/simpeg/pull/1253>`__: Always calculate gzz if needed
+* `#1254 <https://github.com/simpeg/simpeg/pull/1254>`__: Fix B028 flake error: non-explicit stacklevel
+* `#1256 <https://github.com/simpeg/simpeg/pull/1256>`__: Make units of gravity simulations more explicit
+* `#1257 <https://github.com/simpeg/simpeg/pull/1257>`__: unpack the data misfits for plotting tikhonov curves
+* `#1258 <https://github.com/simpeg/simpeg/pull/1258>`__: Update pull_request_template.md
+* `#1260 <https://github.com/simpeg/simpeg/pull/1260>`__: Optionally import utm
+* `#1261 <https://github.com/simpeg/simpeg/pull/1261>`__: Set storage type of pf sensitivity matrix
+* `#1262 <https://github.com/simpeg/simpeg/pull/1262>`__: final unresolved comments for PR #1225
+* `#1264 <https://github.com/simpeg/simpeg/pull/1264>`__: Fix sparse inversion example: remove beta schedule
+* `#1267 <https://github.com/simpeg/simpeg/pull/1267>`__: Add building docs and serving them to documentation
+* `#1274 <https://github.com/simpeg/simpeg/pull/1274>`__: use setuptools_scm to track version
+* `#1275 <https://github.com/simpeg/simpeg/pull/1275>`__: 0.20.0 staging

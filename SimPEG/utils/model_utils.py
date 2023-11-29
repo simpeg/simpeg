@@ -39,6 +39,7 @@ def surface2ind_topo(mesh, topo, gridLoc="CC", method="nearest", fill_value=np.n
         "The surface2ind_topo function has been deprecated, please import "
         "discretize.utils.active_from_xyz. This will be removed in SimPEG 0.20.0",
         FutureWarning,
+        stacklevel=2,
     )
 
     active_cells = active_from_xyz(mesh, topo, gridLoc, method)
@@ -100,42 +101,63 @@ def surface_layer_index(mesh, topo, index=0):
 def depth_weighting(
     mesh, reference_locs, active_cells=None, exponent=2.0, threshold=None, **kwargs
 ):
-    """A simple depth weighting function
+    r"""
+    Construct diagonal elements of a depth weighting matrix
 
-    This function is a simple form of depth weighting based off of the vertical distance
-    of mesh cell centers from the reference location(s).
-
-    This is commonly used to counteract the natural decay of potential field data at
-    depth.
+    Builds the model weights following the depth weighting strategy, a method
+    to generate weights based on the vertical distance between mesh cell
+    centers and some reference location(s).
+    Use these weights in regularizations to counteract the natural decay of
+    potential field data with depth.
 
     Parameters
     ----------
     mesh : discretize.base.BaseMesh
-        discretize model space.
-    reference_locs : float or (n, dim) numpy.ndarray
-        the reference values for top of the points
+        Discretized model space.
+    reference_locs : float or (n, ndim) numpy.ndarray
+        Reference location for the depth weighting.
+        It can be a ``float``, which value is the vertical component for
+        the reference location.
+        Or it can be a 2d array, with multiple reference locations, where each
+        row should contain the coordinates of a single location point in the
+        following order: _x_, _y_, _z_ (for 3D meshes) or _x_, _z_ (for 2D
+        meshes).
+        The vertical coordinate of the reference location for each cell in the
+        mesh will be obtained by the closest point in ``reference_locs`` using
+        only their horizontal coordinates.
     active_cells : (mesh.n_cells) numpy.ndarray of bool, optional
-        index vector for the active cells on the mesh.
-        A value of ``None`` implies every cell is active.
+        Index vector for the active cells on the mesh.
+        If ``None``, every cell will be assumed to be active.
     exponent : float, optional
-        exponent parameter for depth weighting.
-    threshold : float, optional
-        The default value is half of the smallest cell width.
+        Exponent parameter for depth weighting.
+        The exponent should match the natural decay power of the potential
+        field. For example, for gravity acceleration, set it to 2; for magnetic
+        fields, to 3.
+    threshold : float or None, optional
+        Threshold parameters used in the depth weighting.
+        If ``None``, it will be set to half of the smallest cell width.
 
     Returns
     -------
     (n_active) numpy.ndarray
-        Normalized depth weights for the mesh, at every active cell.
+        Normalized depth weights for the mesh at every active cell as
+        a 1d-array.
 
     Notes
     -----
-    When *reference_locs* is a single value the function is defined as,
+    Each diagonal term of the matrix is defined as:
 
-    >>> wz = (np.abs(mesh.cell_centers[:, -1] - reference_locs) + threshold) ** (-0.5 * exponent)
+    .. math::
 
-    When *reference_locs* is an array of values, the difference is between the
-    nearest point (of first two dimensions) in *reference_locs*.
-    'exponent' and 'threshold' are two adjustable parameters.
+        w(z) = \frac{1}{(|z - z_0| + \epsilon) ^ {\nu / 2}}
+
+    where :math:`z` is the vertical coordinate of the mesh cell centers,
+    :math:`z_0` is the vertical coordinate of the reference location,
+    :math:`\nu` is the _exponent_,
+    and :math:`\epsilon` is a given _threshold_.
+
+    The depth weights array is finally normalized by dividing for its maximum
+    value.
     """
 
     if "indActive" in kwargs:
@@ -143,6 +165,7 @@ def depth_weighting(
             "The indActive keyword argument has been deprecated, please use active_cells. "
             "This will be removed in SimPEG 0.19.0",
             FutureWarning,
+            stacklevel=2,
         )
         active_cells = kwargs["indActive"]
 

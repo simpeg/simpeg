@@ -17,6 +17,7 @@ develop-eggs
 .installed.cfg
 lib
 lib64
+.idea
 __pycache__
 
 # Installer logs
@@ -88,3 +89,6 @@ tutorials/13-joint_inversion/cross_gradient_data/*
 *.npy
 *.mod
 *.tar.gz
+
+# setuptools_scm
+SimPEG/version.py
