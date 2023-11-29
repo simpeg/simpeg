@@ -148,7 +148,7 @@ class EM1D_FD_Jacobian_Test_MagDipole(unittest.TestCase):
             np.log(np.ones(self.nlayers) * sigma_half),
             np.log(np.ones(self.nlayers) * 1.5 * mu_half),
             np.log(self.thicknesses) * 0.9,
-            np.log(0.5 * self.height),
+            np.log(self.height) * 1.5,
         ]
         resp_ini = self.sim.dpred(m_ini)
         dr = resp_ini - dobs
@@ -307,7 +307,7 @@ class EM1D_FD_Jacobian_Test_CircularLoop(unittest.TestCase):
             np.log(np.ones(self.nlayers) * sigma_half),
             np.log(np.ones(self.nlayers) * 1.5 * mu_half),
             np.log(self.thicknesses) * 0.9,
-            np.log(0.5 * self.height),
+            np.log(self.height) * 1.5,
         ]
         resp_ini = self.sim.dpred(m_ini)
         dr = resp_ini - dobs

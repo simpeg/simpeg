@@ -357,7 +357,12 @@ class BaseEM1DSimulation(BaseSimulation):
         Is = []
         n_w_past = 0
         i_count = 0
-        for src in survey.source_list:
+        # Note: coefficients are needed to be updated if we are
+        # inverting for the source height.
+        if self.hMap is not None:
+            hvec = self.h  # source height above topo
+
+        for i_src, src in enumerate(survey.source_list):
             # doing the check for source type by checking its name
             # to avoid importing and checking "isinstance"
             class_name = type(src).__name__
@@ -365,11 +370,11 @@ class BaseEM1DSimulation(BaseSimulation):
             is_mag_dipole = class_name == "MagDipole"
             is_wire_loop = class_name == "LineCurrent"
 
-            if is_circular_loop:
-                if np.any(src.orientation[:-1] != 0.0):
-                    raise ValueError("Can only simulate horizontal circular loops")
+            if is_circular_loop and np.any(src.orientation[:-1] != 0.0):
+                raise ValueError("Can only simulate horizontal circular loops")
+
             if self.hMap is not None:
-                h = 0  # source height above topo
+                h = hvec[i_src]
             else:
                 h = src.location[2] - self.topo[-1]
 
@@ -573,6 +578,7 @@ class BaseEM1DSimulation(BaseSimulation):
             toDelete += ["_J", "_gtgdiag"]
         return toDelete
 
+    # TODO: need to revisit this:
     def depth_of_investigation_christiansen_2012(self, std, thres_hold=0.8):
         pred = self.survey._pred.copy()
         delta_d = std * np.log(abs(self.survey.dobs))

@@ -1,6 +1,6 @@
 import scipy.sparse as sp
 
-from ...utils import mkvc, validate_type, validate_direction
+from ...utils import mkvc, validate_type, validate_direction, validate_float
 from discretize.utils import Zero
 from ...survey import BaseTimeRx
 import warnings
@@ -25,6 +25,10 @@ class BaseRx(BaseTimeRx):
         times,
         orientation="z",
         use_source_receiver_offset=False,
+        bw_cutoff_frequency=3e5,
+        bw_power=0.0,
+        lp_cutoff_frequency=2.1e5,
+        lp_power=0.0,
         **kwargs
     ):
         proj = kwargs.pop("projComp", None)
@@ -45,6 +49,11 @@ class BaseRx(BaseTimeRx):
 
         self.orientation = orientation
         self.use_source_receiver_offset = use_source_receiver_offset
+        self.bw_cutoff_frequency = bw_cutoff_frequency
+        self.bw_power = bw_power
+        self.lp_cutoff_frequency = lp_cutoff_frequency
+        self.lp_power = lp_power
+
         super().__init__(locations=locations, times=times, **kwargs)
 
     @property
@@ -83,6 +92,70 @@ class BaseRx(BaseTimeRx):
         self._use_source_receiver_offset = validate_type(
             "use_source_receiver_offset", val, bool
         )
+
+    @property
+    def bw_cutoff_frequency(self):
+        """Butter worth low pass filter
+
+        Returns
+        -------
+        numpy.ndarray
+            Butter worth low pass filter
+        """
+        return self._bw_cutoff_frequency
+
+    @bw_cutoff_frequency.setter
+    def bw_cutoff_frequency(self, var):
+        self._bw_cutoff_frequency = validate_float(
+            "bw_cutoff_frequency", var, min_val=0.0
+        )
+
+    @property
+    def lp_cutoff_frequency(self):
+        """Low pass filter
+
+        Returns
+        -------
+        numpy.ndarray
+            Low pass filter
+        """
+        return self._lp_cutoff_frequency
+
+    @lp_cutoff_frequency.setter
+    def lp_cutoff_frequency(self, var):
+        self._lp_cutoff_frequency = validate_float(
+            "lp_cutoff_frequency", var, min_val=0.0
+        )
+
+    @property
+    def bw_power(self):
+        """Butter worth low pass filter
+
+        Returns
+        -------
+        numpy.ndarray
+            Butter worth low pass filter
+        """
+        return self._bw_power
+
+    @bw_power.setter
+    def bw_power(self, var):
+        self._bw_power = validate_float("bw_power", var, min_val=0.0, max_val=2)
+
+    @property
+    def lp_power(self):
+        """Low pass filter
+
+        Returns
+        -------
+        numpy.ndarray
+            Low pass filter
+        """
+        return self._lp_power
+
+    @lp_power.setter
+    def lp_power(self, var):
+        self._lp_power = validate_float("lp_power", var, min_val=0.0, max_val=0.99999)
 
     def getSpatialP(self, mesh, f):
         """Get spatial projection matrix from mesh to receivers.
