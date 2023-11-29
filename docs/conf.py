@@ -45,7 +45,7 @@ extensions = [
     "sphinx.ext.extlinks",
     "sphinx.ext.intersphinx",
     "sphinx.ext.mathjax",
-    #    "sphinx_gallery.gen_gallery",
+    "sphinx_gallery.gen_gallery",
     "sphinx.ext.todo",
     "sphinx.ext.linkcode",
     "matplotlib.sphinxext.plot_directive",
