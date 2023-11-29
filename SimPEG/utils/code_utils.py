@@ -491,6 +491,7 @@ class Report(ScoobyReport):
             "vtk",
             "utm",
             "memory_profiler",
+            "choclo",
         ]
 
         super().__init__(
