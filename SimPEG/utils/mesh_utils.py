@@ -11,8 +11,8 @@ from discretize.utils import (  # noqa: F401
 def surface2inds(vrtx, trgl, mesh, boundaries=True, internal=True):
     """Takes a triangulated surface and determine which mesh cells it intersects.
 
-    Paramters
-    ---------
+    Parameters
+    ----------
     vrtx : (n_nodes, 3) numpy.ndarray of float
         The location of the vertices of the triangles
     trgl : (n_triang, 3) numpy.ndarray of int

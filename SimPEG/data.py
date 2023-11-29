@@ -115,7 +115,7 @@ class Data:
         numpy.ndarray
 
         Notes
-        --------
+        -----
         This array can also be modified by directly indexing the data object
         using the a tuple of the survey's sources and receivers.
 
