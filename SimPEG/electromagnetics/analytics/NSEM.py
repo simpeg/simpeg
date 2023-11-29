@@ -103,7 +103,7 @@ def MT_LayeredEarth(
     This code compute the analytic response of a n-layered Earth to a plane wave (Magnetotellurics).
     All physical properties arrays convention describes the layers parameters from the top layer to the bottom layer.
     The solution is first developed in Ward and Hohmann 1988.
-    See also http://em.geosci.xyz/content/maxwell3_fdem/natural_sources/MT_N_layered_Earth.html
+    See also https://em.geosci.xyz/content/maxwell3_fdem/natural_sources/MT_N_layered_Earth.html
 
     :param freq: the frequency at which we take the measurements
     :type freq: float or numpy.ndarray

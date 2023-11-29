@@ -28,7 +28,7 @@ SimPEG
    :target: https://doi.org/10.5281/zenodo.596373
 
 .. image:: https://img.shields.io/discourse/users?server=http%3A%2F%2Fsimpeg.discourse.group%2F
-    :target: http://simpeg.discourse.group/
+    :target: https://simpeg.discourse.group/
 
 .. image:: https://img.shields.io/badge/Slack-simpeg-4A154B.svg?logo=slack
     :target: http://slack.simpeg.xyz
@@ -46,7 +46,7 @@ The vision is to create a package for finite volume simulation with applications
 * supports 1D, 2D and 3D problems
 * designed for large-scale inversions
 
-You are welcome to join our forum and engage with people who use and develop SimPEG at: http://simpeg.discourse.group/.
+You are welcome to join our forum and engage with people who use and develop SimPEG at: https://simpeg.discourse.group/.
 
 Weekly meetings are open to all. They are generally held on Wednesdays at 10:30am PDT. Please see the calendar (`GCAL <https://calendar.google.com/calendar/b/0?cid=ZHVhamYzMWlibThycWdkZXM5NTdoYXV2MnNAZ3JvdXAuY2FsZW5kYXIuZ29vZ2xlLmNvbQ>`_, `ICAL <https://calendar.google.com/calendar/ical/duajf31ibm8rqgdes957hauv2s%40group.calendar.google.com/public/basic.ics>`_) for information on the next meeting.
 
@@ -159,5 +159,5 @@ Contributing
 We always welcome contributions towards SimPEG whether they are adding
 new code, suggesting improvements to existing codes, identifying bugs,
 providing examples, or anything that will improve SimPEG.
-Please checkout the `contributing guide <https://docs.simpeg.xyz/content/getting_started/contributing.html>`_
+Please checkout the `contributing guide <https://docs.simpeg.xyz/content/getting_started/contributing/index.html>`_
 for more information on how to contribute.

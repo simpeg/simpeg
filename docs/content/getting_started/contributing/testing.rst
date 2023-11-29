@@ -13,7 +13,7 @@ Testing
 
 On each update, SimPEG is tested using the continuous integration service
 `Azure pipelines <https://azure.microsoft.com/en-us/products/devops/pipelines>`_.
-We use `Codecov <http://codecov.io>`_ to check and provide stats on how much
+We use `Codecov <https://codecov.io>`_ to check and provide stats on how much
 of the code base is covered by tests. This tells which lines of code have been
 run in the test suite. It does not tell you about the quality of the tests run!
 In order to assess that, have a look at the tests we are running - they tell you

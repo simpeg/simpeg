@@ -6,7 +6,7 @@ Documentation
 Documentation helps others use your code! Please document new contributions.
 SimPEG tries to follow the `numpydoc` style of docstrings (check out the
 `style guide <https://numpydoc.readthedocs.io/en/latest/format.html>`_).
-SimPEG then uses `sphinx <http://www.sphinx-doc.org/>`_ to build the documentation.
+SimPEG then uses `sphinx <https://www.sphinx-doc.org/>`_ to build the documentation.
 When documenting a new class or function, please include a description
 (with math if it solves an equation), inputs, outputs and preferably a small example.
 
@@ -64,3 +64,24 @@ For example:
         If length scales are used to set the smoothness weights, alphas are respectively set internally using:
         >>> alpha_x = (length_scale_x * min(mesh.edge_lengths)) ** 2
         """
+
+
+
+Building the documentation
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+If you would like to see the documentation changes. 
+In the repo's root directory, enter the following in your terminal.
+
+.. code::
+
+    make all
+
+Serving the documentation locally 
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Once the documentation is built. You can view it directly using the following command. This will automatically serve the docs and you can see them in your browser.
+
+.. code::
+
+    make serve
