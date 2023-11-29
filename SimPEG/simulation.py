@@ -41,134 +41,37 @@ __all__ = ["LinearSimulation", "ExponentialSinusoidSimulation"]
 
 
 class BaseSimulation(props.HasModel):
-    """
-    BaseSimulation is the base class for all geophysical forward simulations in
-    SimPEG.
+    r"""Base class for all geophysical forward simulations in SimPEG.
 
-    """
+    The ``BaseSimulation`` class defines properties and methods inherited by
+    practical simulation classes in SimPEG. Instances of ``BaseSimulation``
+    are not used direction to perform forward simulations in SimPEG.
 
-    ###########################################################################
-    # Properties
+    Parameters
+    ----------
+    mesh : discretize.base.BaseMesh
+        Mesh on which the forward problem is discretized. This is not necessarily
+        the same as the mesh on which the simulation is defined.
+    survey : SimPEG.survey.BaseSurvey
+        The survey for the simulation.
+    solver : None, pymatsolver.base.Base
+        Numerical solver used to solve the forward problem. If ``None``,
+        an appropriate solver specific to the simulation class is set by default.
+    solver_opts : dict, optional
+        Solver-specific parameters. If ``None``, default parameters are used for
+        the solver set by ``solver``. Otherwise, the ``dict`` must contain appropriate
+        pairs of keyword arguments and parameter values for the solver. Please visit
+        `pymatsolver <https://pymatsolver.readthedocs.io/en/latest/>`__ to learn more
+        about solvers and their parameters.
+    sensitivity_path : str, optional
+        Path to directory where sensitivity file is stored.
+    counter : None, SimPEG.utils.Counter
+        SimPEG ``Counter`` object to store iterations and run-times.
+    verbose : bool, optional
+        Verbose progress printout.
+    """
 
     _REGISTRY = {}
-
-    @property
-    def mesh(self):
-        """Discretize mesh for the simulation.
-
-        Returns
-        -------
-        discretize.base.BaseMesh
-
-        """
-        return self._mesh
-
-    @mesh.setter
-    def mesh(self, value):
-        if value is not None:
-            value = validate_type("mesh", value, BaseMesh, cast=False)
-        self._mesh = value
-
-    @property
-    def survey(self):
-        """The survey for the simulation.
-
-        Returns
-        -------
-        SimPEG.survey.BaseSurvey
-        """
-        return self._survey
-
-    @survey.setter
-    def survey(self, value):
-        if value is not None:
-            value = validate_type("survey", value, BaseSurvey, cast=False)
-        self._survey = value
-
-    @property
-    def counter(self):
-        """The counter.
-
-        Returns
-        -------
-        None or SimPEG.utils.Counter
-
-        """
-        return self._counter
-
-    @counter.setter
-    def counter(self, value):
-        if value is not None:
-            value = validate_type("counter", value, Counter, cast=False)
-        self._counter = value
-
-    @property
-    def sensitivity_path(self):
-        """Path to store the sensitivity.
-
-        Returns
-        -------
-        str
-
-        """
-        return self._sensitivity_path
-
-    @sensitivity_path.setter
-    def sensitivity_path(self, value):
-        self._sensitivity_path = validate_string("sensitivity_path", value)
-
-    @property
-    def solver(self):
-        """Linear algebra solver (e.g. from pymatsolver).
-
-        Returns
-        -------
-        class
-            A solver class that, when instantiated allows a
-            multiplication with the returned object.
-        """
-        return self._solver
-
-    @solver.setter
-    def solver(self, cls):
-        if cls is not None:
-            if not inspect.isclass(cls):
-                raise TypeError(f"solver must be a class, not a {type(cls)}")
-            if not hasattr(cls, "__mul__"):
-                raise TypeError("solver must support the multiplication operator, `*`.")
-        self._solver = cls
-
-    @property
-    def solver_opts(self):
-        """Options passed to the `solver` class on initialization.
-
-        Returns
-        -------
-        dict
-            Passed as keyword arguments to the solver.
-        """
-        return self._solver_opts
-
-    @solver_opts.setter
-    def solver_opts(self, value):
-        self._solver_opts = validate_type("solver_opts", value, dict, cast=False)
-
-    @property
-    def verbose(self):
-        """Verbosity flag.
-
-        Returns
-        -------
-        bool
-        """
-        return self._verbose
-
-    @verbose.setter
-    def verbose(self, value):
-        self._verbose = validate_type("verbose", value, bool)
-
-    ###########################################################################
-    # Instantiation
 
     def __init__(
         self,
@@ -197,41 +100,175 @@ class BaseSimulation(props.HasModel):
 
         super().__init__(**kwargs)
 
-    ###########################################################################
-    # Methods
+    @property
+    def mesh(self):
+        """Mesh for the simulation.
 
-    def fields(self, m=None):
-        r"""Return the computed geophysical field for **m**.
-
-        Parameters
-        ----------
-        m : numpy.ndarray
+        For more on meshes, visit :py:class:`discretize.base.BaseMesh`.
 
         Returns
         -------
-        numpy.ndarray
-            :math:`\mathbf{u} = fields(m)`.
+        discretize.base.BaseMesh
+            Mesh on which the forward problem is discretized. This is not necessarily
+            the same as the mesh on which the simulation is defined.
+        """
+        return self._mesh
+
+    @mesh.setter
+    def mesh(self, value):
+        if value is not None:
+            value = validate_type("mesh", value, BaseMesh, cast=False)
+        self._mesh = value
+
+    @property
+    def survey(self):
+        """The survey for the simulation.
+
+        Returns
+        -------
+        SimPEG.survey.BaseSurvey
+            The survey for the simulation.
+        """
+        return self._survey
+
+    @survey.setter
+    def survey(self, value):
+        if value is not None:
+            value = validate_type("survey", value, BaseSurvey, cast=False)
+        self._survey = value
+
+    @property
+    def counter(self):
+        """SimPEG ``Counter`` object to store iterations and run-times.
+
+        Returns
+        -------
+        None, SimPEG.utils.Counter
+            SimPEG ``Counter`` object to store iterations and run-times.
+        """
+        return self._counter
+
+    @counter.setter
+    def counter(self, value):
+        if value is not None:
+            value = validate_type("counter", value, Counter, cast=False)
+        self._counter = value
+
+    @property
+    def sensitivity_path(self):
+        """Path to directory where sensitivity file is stored.
+
+        Returns
+        -------
+        str
+            Path to directory where sensitivity file is stored.
+        """
+        return self._sensitivity_path
+
+    @sensitivity_path.setter
+    def sensitivity_path(self, value):
+        self._sensitivity_path = validate_string("sensitivity_path", value)
+
+    @property
+    def solver(self):
+        r"""Numerical solver used in the forward simulation.
+
+        Many forward simulations in SimPEG require solutions to discrete linear
+        systems of the form:
+
+        .. math::
+            \mathbf{A}(\mathbf{m}) \, \mathbf{u} = \mathbf{q}
+
+        where :math:`\mathbf{A}` is an invertible matrix that depends on the
+        model :math:`\mathbf{m}`. The numerical solver can be set using the
+        ``solver`` property. In SimPEG, the
+        `pymatsolver <https://pymatsolver.readthedocs.io/en/latest/>`__ package
+        is used to create solver objects. Parameters specific to each solver
+        can be set manually using the ``solver_opts`` property.
+
+        Returns
+        -------
+        pymatsolver.base.Base
+            Numerical solver used to solve the forward problem.
+        """
+        return self._solver
+
+    @solver.setter
+    def solver(self, cls):
+        if cls is not None:
+            if not inspect.isclass(cls):
+                raise TypeError(f"solver must be a class, not a {type(cls)}")
+            if not hasattr(cls, "__mul__"):
+                raise TypeError("solver must support the multiplication operator, `*`.")
+        self._solver = cls
+
+    @property
+    def solver_opts(self):
+        """Solver-specific parameters.
+
+        The parameters specific to the solver set with the ``solver`` property are set
+        upon instantiation. The ``solver_opts`` property is used to set solver-specific properties.
+        This is done by providing a ``dict`` that contains appropriate pairs of keyword arguments
+        and parameter values. Please visit `pymatsolver <https://pymatsolver.readthedocs.io/en/latest/>`__
+        to learn more about solvers and their parameters.
+
+        Returns
+        -------
+        dict
+            keyword arguments and parameters passed to the solver.
+        """
+        return self._solver_opts
+
+    @solver_opts.setter
+    def solver_opts(self, value):
+        self._solver_opts = validate_type("solver_opts", value, dict, cast=False)
+
+    @property
+    def verbose(self):
+        """Verbose progress printout.
+
+        Returns
+        -------
+        bool
+            Verbose progress printout.
+        """
+        return self._verbose
+
+    @verbose.setter
+    def verbose(self, value):
+        self._verbose = validate_type("verbose", value, bool)
+
+    def fields(self, m=None):
+        r"""Return the computed geophysical fields for the model provided.
+
+        Parameters
+        ----------
+        m : (n_param,) numpy.ndarray
+            The model parameters.
+
+        Returns
+        -------
+        SimPEG.fields.Fields
+            Computed geophysical fields for the model provided
 
         """
         raise NotImplementedError("fields has not been implemented for this ")
 
     def dpred(self, m=None, f=None):
-        r"""Predicted data for **m**.
+        r"""Predicted data for the model provided.
 
         Parameters
         ----------
-        m : numpy.ndarray, optional
-            Particular model to predict the data.
-        f : SimPEG.fields.Fields
-            (if provided) will be used for the predicted data
-            instead of recalculating the fields (which may be expensive!).
+        m : (n_param,) numpy.ndarray
+            The model parameters.
+        f : SimPEG.fields.Fields, optional
+            If provided, will be used to compute the predicted data
+            without recalculating the fields.
 
-            .. math::
-
-                \mathbf{d}_{\text{pred}} = P(f(\mathbf{m}))
-
-            Where P is a projection of the fields onto the data space.
-
+        Returns
+        -------
+        (n_data, ) numpy.ndarray
+            The predicted data vector.
         """
         if self.survey is None:
             raise AttributeError(
@@ -254,83 +291,139 @@ class BaseSimulation(props.HasModel):
 
     @timeIt
     def Jvec(self, m, v, f=None):
-        r"""Jacobian at **m** times **v**.
+        r"""Compute the Jacobian times a vector for the model provided.
+
+        The Jacobian defines the derivative of the predicted data vector with respect to the
+        model parameters. For a data vector :math:`\mathbf{d}` predicted for a set of model parameters
+        :math:`\mathbf{m}`, the Jacobian is an (n_data, n_param) matrix whose elements
+        are given by:
+
+        .. math::
+            J_{ij} = \frac{\partial d_i}{\partial m_j}
+
+        For a model `m` and vector `v`, the ``Jvec`` method computes the matrix-vector product
+
+        .. math::
+            \mathbf{u} = \mathbf{J \, v}
 
         Parameters
         ----------
-        m : numpy.ndarray
-            Model vector.
-        v : numpy.ndarray
-            Vector to multiply.
+        m : (n_param, ) numpy.ndarray
+            The model parameters.
+        v : (n_param, ) numpy.ndarray
+            Vector we are multiplying.
+        f : SimPEG.field.Fields, optional
+            If provided, fields will not need to be recomputed for the
+            current model to compute `Jvec`.
 
         Returns
         -------
-        u : numpy.ndarray
-            :math:`\mathbf{u} = J(\mathbf{m})\mathbf{v}`.
-
+        (n_data, ) numpy.ndarray
+            The Jacobian times a vector for the model provided.
         """
         raise NotImplementedError("Jvec is not yet implemented.")
 
     @timeIt
     def Jtvec(self, m, v, f=None):
-        r"""Effect of transpose of J(**m**) on a vector **v**.
+        r"""Compute the Jacobian transpose times a vector for the model provided.
+
+        The Jacobian defines the derivative of the predicted data vector with respect to the
+        model parameters. For a data vector :math:`\mathbf{d}` predicted for a set of model parameters
+        :math:`\mathbf{m}`, the Jacobian is an (n_data, n_param) matrix whose elements
+        are given by:
+
+        .. math::
+            J_{ij} = \frac{\partial d_i}{\partial m_j}
+
+        For a model `m` and vector `v`, the ``Jtvec`` method computes the matrix-vector product
+
+        .. math::
+            \mathbf{u} = \mathbf{J^T \, v}
 
         Parameters
         ----------
-        m : numpy.ndarray
-            Model parameter.
-        v : numpy.ndarray
-            Vector to multiply.
-        f : SimPEG.fields.Fields, optional
-            Precomputed Field
+        m : (n_param, ) numpy.ndarray
+            The model parameters.
+        v : (n_data, ) numpy.ndarray
+            Vector we are multiplying.
+        f : SimPEG.field.Fields, optional
+            If provided, fields will not need to be recomputed for the
+            current model to compute `Jtvec`.
 
         Returns
         -------
-        u : numpy.ndarray
-            :math:`\mathbf{u} = J(\mathbf{m})^T\mathbf{v}`.
-
+        (n_param, ) numpy.ndarray
+            The Jacobian transpose times a vector for the model provided.
         """
         raise NotImplementedError("Jtvec is not yet implemented.")
 
     @timeIt
     def Jvec_approx(self, m, v, f=None):
-        r"""Approximate effect of J(**m**) on a vector **v**.
+        r"""Approximation of the Jacobian times a vector for the model provided.
+
+        The Jacobian defines the derivative of the predicted data vector with respect to the
+        model parameters. For a data vector :math:`\mathbf{d}` predicted for a set of model parameters
+        :math:`\mathbf{m}`, the Jacobian is an (n_data, n_param) matrix whose elements
+        are given by:
+
+        .. math::
+            J_{ij} = \frac{\partial d_i}{\partial m_j}
+
+        For a model `m` and vector `v`, the ``Jvec_approx`` method **approximates**
+        the matrix-vector product:
+
+        .. math::
+            \mathbf{u} = \mathbf{J \, v}
 
         Parameters
         ----------
-        m : numpy.ndarray
-            Model parameter
-        v : numpy.ndarray
-            Vector to multiply.
-        f : SimPEG.fields.Fields, optional
-            Precomputed field.
+        m : (n_param, ) numpy.ndarray
+            The model parameters.
+        v : (n_data, ) numpy.ndarray
+            Vector we are multiplying.
+        f : SimPEG.field.Fields, optional
+            If provided, fields will not need to be recomputed for the
+            current model to compute `Jtvec`.
 
         Returns
         -------
-        u : numpy.ndarray
-            :math:`\mathbf{u} = J(\mathbf{m})\mathbf{v}`.
-
+        (n_param, ) numpy.ndarray
+            Approximation of the Jacobian times a vector for the model provided.
         """
         return self.Jvec(m, v, f)
 
     @timeIt
     def Jtvec_approx(self, m, v, f=None):
-        r"""Approximate effect of transpose of J(**m**) on a vector **v**.
+        r"""Approximation of the Jacobian transpose times a vector for the model provided.
+
+        The Jacobian defines the derivative of the predicted data vector with respect to the
+        model parameters. For a data vector :math:`\mathbf{d}` predicted for a set of model parameters
+        :math:`\mathbf{m}`, the Jacobian is an (n_data, n_param) matrix whose elements
+        are given by:
+
+        .. math::
+            J_{ij} = \frac{\partial d_i}{\partial m_j}
+
+        For a model `m` and vector `v`, the ``Jtvec_approx`` method **approximates**
+        the matrix-vector product:
+
+        .. math::
+            \mathbf{u} = \mathbf{J^T \, v}
 
         Parameters
         ----------
-        m : numpy.ndarray
-            Model vector.
-        v : numpy.ndarray
-            Vector to multiply.
-        f : optional
-            Precomputed fields.
+        m : (n_param, ) numpy.ndarray
+            The model parameters.
+        v : (n_data, ) numpy.ndarray
+            Vector we are multiplying.
+        f : SimPEG.field.Fields, optional
+            If provided, fields will not need to be recomputed for the
+            current model to compute `Jtvec`.
 
         Returns
         -------
-        u : numpy.ndarray
-            :math:`\mathbf{u} = J(\mathbf{m})^T\mathbf{v}`.
-
+        (n_param, ) numpy.ndarray
+            Approximation of the Jacobian transpose times a vector for the model provided.
         """
         return self.Jtvec(m, v, f)
 
@@ -338,25 +431,27 @@ class BaseSimulation(props.HasModel):
     def residual(self, m, dobs, f=None):
         r"""The data residual.
 
-        The data residual is computed as
+        This method computes and returns the data residual for the model provided.
+        Where :math:`\mathbf{d}_{obs}` are the observed data values, and :math:`\mathbf{d}_pred`
+        are the predicted data values for model parameters :math:`\mathbf{m}`, the data
+        residual is given by:
 
         .. math::
-
-            \mu_{\text{data}} = \mathbf{d}_{\text{pred}} - \mathbf{d}_{\text{obs}}
+            \mathbf{r}(\mathbf{m}) = \mathbf{d}_{pred} - \mathbf{d}_{obs}
 
         Parameters
         ----------
-        m : numpy.ndarray
-            Model
-        dobs :
-            The measured data.
+        m : (n_param, ) numpy.ndarray
+            The model parameters.
+        dobs : (n_data, ) numpy.ndarray
+            The observed data values.
         f : SimPEG.fields.Fields, optional
-            Precomputed field.
+            If provided, fields will not need to be recomputed when solving the forward problem.
 
         Returns
         -------
-        r : numpy.ndarray
-            The residual as described above.
+        (n_data, ) numpy.ndarray
+            The data residual.
 
         """
         return mkvc(self.dpred(m, f=f) - dobs)
@@ -372,12 +467,12 @@ class BaseSimulation(props.HasModel):
         **kwargs,
     ):
         """
-        Make synthetic data given a model, and a standard deviation.
+        Make synthetic data for the model and noise level provided.
 
         Parameters
         ----------
-        m : array
-            Array containing with geophysical model.
+        m : (n_param, ) numpy.ndarray
+            The model parameters.
         relative_error : float
             Standard deviation.
         noise_floor : float
@@ -391,7 +486,8 @@ class BaseSimulation(props.HasModel):
 
         Returns
         -------
-        SyntheticData
+        SimPEG.data.Data
+            A SimPEG data object.
         """
 
         std = kwargs.pop("std", None)
