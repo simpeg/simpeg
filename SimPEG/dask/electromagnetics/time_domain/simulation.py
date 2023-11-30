@@ -223,7 +223,9 @@ def get_parallel_blocks(source_list: list, m_size: int, max_chunk_size: int):
     for s_id, src in enumerate(source_list):
         for r_id, rx in enumerate(src.receiver_list):
             indices = np.arange(rx.nD).astype(int)
-            chunks = np.split(indices, int(np.ceil(len(indices) / data_block_size)))
+            chunks = np.array_split(
+                indices, int(np.ceil(len(indices) / data_block_size))
+            )
 
             for ind, chunk in enumerate(chunks):
                 chunk_size = len(chunk)
