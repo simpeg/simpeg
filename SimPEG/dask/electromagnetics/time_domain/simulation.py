@@ -333,6 +333,8 @@ def get_field_deriv_block(
     if len(stacked_blocks) > 0:
         blocks = array.hstack(stacked_blocks).compute()
         solve = AdiagTinv * blocks
+    else:
+        solve = None
 
     update_list = []
     for address in block:
