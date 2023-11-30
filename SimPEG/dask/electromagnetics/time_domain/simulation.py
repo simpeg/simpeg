@@ -229,7 +229,7 @@ def get_parallel_blocks(source_list: list, m_size: int, max_chunk_size: int):
                 chunk_size = len(chunk)
 
                 # Condition to start a new block
-                if (row_count + chunk_size) > (data_block_size * cpu_count() / 2):
+                if (row_count + chunk_size) > (data_block_size * cpu_count()):
                     row_count = 0
                     block_count += 1
                     blocks[block_count] = {}
@@ -262,9 +262,17 @@ def deriv_block(
     return stacked_block
 
 
-def update_deriv_blocks(address, indices, derivatives, solve):
-    columns, local_ind = indices[address]
-    derivatives[address][:, local_ind] = solve[:, columns]
+def update_deriv_blocks(address, tInd, indices, derivatives, solve, shape):
+    if address not in derivatives:
+        deriv_array = np.zeros(shape)
+    else:
+        deriv_array = derivatives[address].compute()
+
+    if address in indices:
+        columns, local_ind = indices[address]
+        deriv_array[:, local_ind] = solve[:, columns]
+
+    derivatives[address] = delayed(deriv_array)
 
 
 def get_field_deriv_block(
@@ -298,44 +306,41 @@ def get_field_deriv_block(
             local_ind,
         )
         count += len(sub_ind)
-
-        stacked_blocks.append(
-            deriv_block(
-                s_id,
-                r_id,
-                b_id,
-                ATinv_df_duT_v,
-                Asubdiag,
-                local_ind,
-                sub_ind,
-                simulation,
-                tInd,
-            )
+        deriv_comp = deriv_block(
+            s_id,
+            r_id,
+            b_id,
+            ATinv_df_duT_v,
+            Asubdiag,
+            local_ind,
+            sub_ind,
+            simulation,
+            tInd,
         )
 
+        stacked_blocks.append(
+            array.from_delayed(
+                deriv_comp,
+                dtype=float,
+                shape=(
+                    simulation.field_derivs[tInd][s_id][r_id].shape[0],
+                    len(local_ind),
+                ),
+            )
+        )
     if len(stacked_blocks) > 0:
-        solve = AdiagTinv * np.hstack(dask.compute(stacked_blocks)[0])
+        blocks = array.hstack(stacked_blocks).compute()
+        solve = AdiagTinv * blocks
 
     update_list = []
-    for s_id, r_id, b_id in block:
-        if (s_id, r_id, b_id) not in ATinv_df_duT_v:
-            ATinv_df_duT_v[(s_id, r_id, b_id)] = np.zeros(
-                (
-                    simulation.field_derivs[tInd][s_id][r_id].shape[0],
-                    len(block[(s_id, r_id, b_id)][0]),
-                )
-            )
-
-        if (s_id, r_id, b_id) in indices:
-            update_list.append(
-                update_deriv_blocks(
-                    (s_id, r_id, b_id),
-                    indices,
-                    ATinv_df_duT_v,
-                    solve,
-                )
-            )
-
+    for address in block:
+        shape = (
+            simulation.field_derivs[tInd][address[0]][address[1]].shape[0],
+            len(block[address][0]),
+        )
+        update_list.append(
+            update_deriv_blocks(address, tInd, indices, ATinv_df_duT_v, solve, shape)
+        )
     dask.compute(update_list)
 
     return ATinv_df_duT_v
@@ -395,7 +400,7 @@ def compute_J(self, f=None, Ainv=None):
         f, Ainv = self.fields(self.model, return_Ainv=True)
 
     ftype = self._fieldType + "Solution"
-    Jmatrix = np.zeros((self.survey.nD, self.model.size), dtype=np.float32)
+    Jmatrix = delayed(np.zeros((self.survey.nD, self.model.size), dtype=np.float32))
     simulation_times = np.r_[0, np.cumsum(self.time_steps)] + self.t0
     data_times = self.survey.source_list[0].receiver_list[0].times
     blocks = get_parallel_blocks(
@@ -427,9 +432,7 @@ def compute_J(self, f=None, Ainv=None):
                         time_mask,
                     )
                 )
-
         dask.compute(j_row_updates)
-
     for A in Ainv.values():
         A.clean()
 
@@ -437,7 +440,7 @@ def compute_J(self, f=None, Ainv=None):
         del Jmatrix
         return array.from_zarr(self.sensitivity_path + f"J.zarr")
     else:
-        return Jmatrix
+        return Jmatrix.compute()
 
 
 Sim.compute_J = compute_J
