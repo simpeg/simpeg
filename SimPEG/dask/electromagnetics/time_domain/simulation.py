@@ -264,7 +264,7 @@ def deriv_block(
 
 def update_deriv_blocks(address, indices, derivatives, solve):
     columns, local_ind = indices[address]
-    derivatives[:, local_ind] = solve[:, columns]
+    derivatives[address][:, local_ind] = solve[:, columns]
 
 
 def get_field_deriv_block(
@@ -331,7 +331,7 @@ def get_field_deriv_block(
                 update_deriv_blocks(
                     (s_id, r_id, b_id),
                     indices,
-                    ATinv_df_duT_v[(s_id, r_id, b_id)],
+                    ATinv_df_duT_v,
                     solve,
                 )
             )
