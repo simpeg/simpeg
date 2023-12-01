@@ -2934,8 +2934,7 @@ class SaveIterationsGeoH5(InversionDirective):
         elif self.attribute_type == "predicted":
             dpred = getattr(self.invProb, "dpred", None)
             if dpred is None:
-                fields = self.invProb.dmisfit.objfcts[0].simulation.fields(self.invProb.model)
-                dpred = self.invProb.get_dpred(self.invProb.model, [fields])
+                dpred = self.invProb.get_dpred(self.invProb.model)
                 self.invProb.dpred = dpred
 
             if self.joint_index is not None:
