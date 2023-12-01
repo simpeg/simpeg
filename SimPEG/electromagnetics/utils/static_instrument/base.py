@@ -349,7 +349,7 @@ class XYZSystem(object):
     directives__irls__f_min_change = 1e-3
     directives__irls__coolingRate = 1
     def make_directives(self):
-        if self.directives__seed:
+        if self.directives__beta__seed:
             BetaEstimate = directives.BetaEstimate_ByEig(beta0_ratio=self.directives__beta__beta0_ratio, 
                                                          seed=self.directives__beta__seed)
             print('setting manual random seed for repeatabillity')
