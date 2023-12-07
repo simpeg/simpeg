@@ -255,7 +255,7 @@ class Minimize(object):
 
     stopNextIteration = False  #: Stops the optimization program nicely.
     use_WolfeCurvature = False  #: add the Wolfe Curvature criteria for line search
-
+    force_line_search = True
     debug = False  #: Print debugging information
     debugLS = False  #: Print debugging information for the line-search
 
@@ -389,10 +389,11 @@ class Minimize(object):
             )  #: Doing this saves memory, as it is not needed in the rest of the computations.
             p = self.scaleSearchDirection(self.searchDirection)
             xt, passLS = self.modifySearchDirection(p)
-            if not passLS:
+            if not passLS and not self.force_line_search:
                 xt, caught = self.modifySearchDirectionBreak(p)
                 if not caught:
                     return self.xc
+
             self.doEndIteration(xt)
             if self.stopNextIteration:
                 break
