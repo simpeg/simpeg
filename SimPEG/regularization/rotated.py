@@ -1,7 +1,9 @@
-from .base import BaseRegularization
 import numpy as np
 import scipy.sparse as sp
+from scipy.interpolate import NearestNDInterpolator
+
 from ..utils.code_utils import validate_ndarray_with_shape
+from .base import BaseRegularization
 
 
 class SmoothnessFullGradient(BaseRegularization):
@@ -231,7 +233,13 @@ class SmoothnessFullGradient(BaseRegularization):
             mesh = self.regularization_mesh.mesh
             cell_weights = np.ones(len(mesh))
             for values in self._weights.values():
-                cell_weights *= values
+                # project values to full mesh
+                # dirty fix of original PR
+                projection = NearestNDInterpolator(
+                    mesh.cell_centers[self.active_cells], values
+                )
+                proj_values = projection(mesh.cell_centers)
+                cell_weights *= proj_values
             reg_model = self._anis_alpha * cell_weights[:, None]
             # turn off measure in inactive cells
             if self.active_cells is not None:
