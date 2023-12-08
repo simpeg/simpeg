@@ -99,7 +99,7 @@ def surface_layer_index(mesh, topo, index=0):
 
 
 def depth_weighting(
-    mesh, reference_locs, active_cells=None, exponent=2.0, threshold=None, **kwargs
+    mesh, reference_locs, active_cells=None, exponent=2.0, threshold=None
 ):
     r"""
     Construct diagonal elements of a depth weighting matrix
@@ -159,15 +159,6 @@ def depth_weighting(
     The depth weights array is finally normalized by dividing for its maximum
     value.
     """
-
-    if "indActive" in kwargs:
-        warnings.warn(
-            "The indActive keyword argument has been deprecated, please use active_cells. "
-            "This will be removed in SimPEG 0.19.0",
-            FutureWarning,
-            stacklevel=2,
-        )
-        active_cells = kwargs["indActive"]
 
     # Default threshold value
     if threshold is None:
