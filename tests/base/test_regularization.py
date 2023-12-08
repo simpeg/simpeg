@@ -683,21 +683,25 @@ class TestDeprecatedArguments:
     @pytest.mark.parametrize(
         "regularization_class", (BaseRegularization, WeightedLeastSquares)
     )
-    def test_active_cells(self, mesh, regularization_class):
-        """Test indActive and active_cells arguments."""
+    def test_ind_active(self, mesh, regularization_class):
+        """Test indActive argument."""
         active_cells = np.ones(len(mesh), dtype=bool)
-        msg = "Cannot simultanously pass 'active_cells' and 'indActive'."
+        msg = (
+            "'indActive' argument has been deprecated. "
+            "Please use 'active_cells' instead."
+        )
         with pytest.raises(ValueError, match=msg):
-            regularization_class(
-                mesh, active_cells=active_cells, indActive=active_cells
-            )
+            regularization_class(mesh, indActive=active_cells)
 
-    def test_weights(self, mesh):
-        """Test cell_weights and weights."""
+    def test_cell_weights(self, mesh):
+        """Test cell_weights."""
         weights = np.ones(len(mesh))
-        msg = "Cannot simultanously pass 'weights' and 'cell_weights'."
+        msg = (
+            "'cell_weights' argument has been deprecated. "
+            "Please use 'weights' instead."
+        )
         with pytest.raises(ValueError, match=msg):
-            BaseRegularization(mesh, weights=weights, cell_weights=weights)
+            BaseRegularization(mesh, cell_weights=weights)
 
 
 if __name__ == "__main__":
