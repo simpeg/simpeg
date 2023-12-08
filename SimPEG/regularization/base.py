@@ -1,5 +1,4 @@
 from __future__ import annotations
-import warnings
 
 import numpy as np
 from discretize.base import BaseMesh
@@ -9,7 +8,7 @@ from ..objective_function import BaseObjectiveFunction, ComboObjectiveFunction
 from .. import utils
 from .regularization_mesh import RegularizationMesh
 
-from SimPEG.utils.code_utils import deprecate_property, validate_ndarray_with_shape
+from SimPEG.utils.code_utils import validate_ndarray_with_shape
 
 if TYPE_CHECKING:
     from scipy.sparse import csr_matrix
@@ -67,35 +66,18 @@ class BaseRegularization(BaseObjectiveFunction):
                 f"Value of type {type(mesh)} provided."
             )
 
-        # Handle deprecated indActive argument
+        # Raise errors on deprecated arguments: avoid old code that still uses
+        # them to silently fail
         if (key := "indActive") in kwargs:
-            if active_cells is not None:
-                raise ValueError(
-                    f"Cannot simultanously pass 'active_cells' and '{key}'. "
-                    "Pass 'active_cells' only."
-                )
-            warnings.warn(
-                f"The '{key}' argument has been deprecated, please use 'active_cells'. "
-                "It will be removed in future versions of SimPEG.",
-                DeprecationWarning,
-                stacklevel=2,
+            raise ValueError(
+                f"'{key}' argument has been deprecated. "
+                "Please use 'active_cells' instead."
             )
-            active_cells = kwargs.pop(key)
-
-        # Handle deprecated cell_weights argument
         if (key := "cell_weights") in kwargs:
-            if weights is not None:
-                raise ValueError(
-                    f"Cannot simultanously pass 'weights' and '{key}'. "
-                    "Pass 'weights' only."
-                )
-            warnings.warn(
-                f"The '{key}' argument has been deprecated, please use 'weights'. "
-                "It will be removed in future versions of SimPEG.",
-                DeprecationWarning,
-                stacklevel=2,
+            raise ValueError(
+                f"'{key}' argument has been deprecated. "
+                "Please use 'weights' instead."
             )
-            weights = kwargs.pop(key)
 
         super().__init__(nP=None, mapping=None, **kwargs)
         self._regularization_mesh = mesh
@@ -105,10 +87,9 @@ class BaseRegularization(BaseObjectiveFunction):
         self.mapping = mapping  # Set mapping using the setter
         self.reference_model = reference_model
         self.units = units
-        if weights is not None:
-            if not isinstance(weights, dict):
-                weights = {"user_weights": weights}
-            self.set_weights(**weights)
+        if not isinstance(weights, dict):
+            weights = {"user_weights": weights}
+        self.set_weights(**weights)
 
     @property
     def active_cells(self) -> np.ndarray:
@@ -140,15 +121,6 @@ class BaseRegularization(BaseObjectiveFunction):
             self._W = None
             if volume_term:
                 self.set_weights(volume=self.regularization_mesh.vol)
-
-    indActive = deprecate_property(
-        active_cells,
-        "indActive",
-        "active_cells",
-        "0.19.0",
-        future_warn=True,
-        error=False,
-    )
 
     @property
     def model(self) -> np.ndarray:
@@ -277,15 +249,6 @@ class BaseRegularization(BaseObjectiveFunction):
             )
         self._reference_model = values
 
-    mref = deprecate_property(
-        reference_model,
-        "mref",
-        "reference_model",
-        "0.19.0",
-        future_warn=True,
-        error=False,
-    )
-
     @property
     def regularization_mesh(self) -> RegularizationMesh:
         """Regularization mesh.
@@ -299,36 +262,6 @@ class BaseRegularization(BaseObjectiveFunction):
             Mesh on which the regularization is discretized.
         """
         return self._regularization_mesh
-
-    regmesh = deprecate_property(
-        regularization_mesh,
-        "regmesh",
-        "regularization_mesh",
-        "0.19.0",
-        future_warn=True,
-        error=False,
-    )
-
-    @property
-    def cell_weights(self) -> np.ndarray:
-        """Deprecated property for 'volume' and user defined weights."""
-        warnings.warn(
-            "cell_weights are deprecated please access weights using the `set_weights`,"
-            " `get_weights`, and `remove_weights` functionality. This will be removed in 0.19.0",
-            FutureWarning,
-            stacklevel=2,
-        )
-        return np.prod(list(self._weights.values()), axis=0)
-
-    @cell_weights.setter
-    def cell_weights(self, value):
-        warnings.warn(
-            "cell_weights are deprecated please access weights using the `set_weights`,"
-            " `get_weights`, and `remove_weights` functionality. This will be removed in 0.19.0",
-            FutureWarning,
-            stacklevel=2,
-        )
-        self.set_weights(cell_weights=value)
 
     def get_weights(self, key) -> np.ndarray:
         """Cell weights for a given key.
@@ -1578,20 +1511,6 @@ class WeightedLeastSquares(ComboObjectiveFunction):
             )
         self._regularization_mesh = mesh
 
-        if (key := "indActive") in kwargs:
-            if active_cells is not None:
-                raise ValueError(
-                    f"Cannot simultanously pass 'active_cells' and '{key}'. "
-                    "Pass 'active_cells' only."
-                )
-            warnings.warn(
-                f"The '{key}' argument has been deprecated, please use 'active_cells'. "
-                "It will be removed in future versions of SimPEG.",
-                DeprecationWarning,
-                stacklevel=2,
-            )
-            active_cells = kwargs.pop(key)
-
         self.alpha_s = alpha_s
         if alpha_x is not None:
             if length_scale_x is not None:
@@ -1658,18 +1577,16 @@ class WeightedLeastSquares(ComboObjectiveFunction):
             objfcts = kwargs.pop("objfcts")
 
         super().__init__(objfcts=objfcts, unpack_on_add=False, **kwargs)
-        if active_cells is not None:
-            self.active_cells = active_cells
+        self.active_cells = active_cells
         self.mapping = mapping
         self.reference_model = reference_model
         self.reference_model_in_smooth = reference_model_in_smooth
         self.alpha_xx = alpha_xx
         self.alpha_yy = alpha_yy
         self.alpha_zz = alpha_zz
-        if weights is not None:
-            if not isinstance(weights, dict):
-                weights = {"user_weights": weights}
-            self.set_weights(**weights)
+        if not isinstance(weights, dict):
+            weights = {"user_weights": weights}
+        self.set_weights(**weights)
 
     def set_weights(self, **weights):
         """Adds (or updates) the specified weights for all child regularization objects.
@@ -1715,23 +1632,6 @@ class WeightedLeastSquares(ComboObjectiveFunction):
         """
         for fct in self.objfcts:
             fct.remove_weights(key)
-
-    @property
-    def cell_weights(self):
-        # All of the objective functions should have the same weights,
-        # so just grab the one from smallness here, which should also
-        # trigger the deprecation warning
-        return self.objfcts[0].cell_weights
-
-    @cell_weights.setter
-    def cell_weights(self, value):
-        warnings.warn(
-            "cell_weights are deprecated please access weights using the `set_weights`,"
-            " `get_weights`, and `remove_weights` functionality. This will be removed in 0.19.0",
-            FutureWarning,
-            stacklevel=2,
-        )
-        self.set_weights(cell_weights=value)
 
     @property
     def alpha_s(self):
@@ -2090,15 +1990,6 @@ class WeightedLeastSquares(ComboObjectiveFunction):
         for objfct in self.objfcts:
             objfct.active_cells = active_cells
 
-    indActive = deprecate_property(
-        active_cells,
-        "indActive",
-        "active_cells",
-        "0.19.0",
-        error=False,
-        future_warn=True,
-    )
-
     @property
     def reference_model(self) -> np.ndarray:
         """Reference model.
@@ -2120,15 +2011,6 @@ class WeightedLeastSquares(ComboObjectiveFunction):
             fct.reference_model = values
 
         self._reference_model = values
-
-    mref = deprecate_property(
-        reference_model,
-        "mref",
-        "reference_model",
-        "0.19.0",
-        future_warn=True,
-        error=False,
-    )
 
     @property
     def model(self) -> np.ndarray:
