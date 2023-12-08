@@ -139,7 +139,7 @@ class AmpProblemTest(unittest.TestCase):
 
         # Create a regularization function, in this case l2l2
         reg = regularization.Sparse(
-            mesh, indActive=surf, mapping=maps.IdentityMap(nP=nC), alpha_z=0
+            mesh, active_cells=surf, mapping=maps.IdentityMap(nP=nC), alpha_z=0
         )
         reg.mref = np.zeros(nC)
 
