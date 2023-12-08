@@ -282,9 +282,9 @@ class SIPProblemTestsN_air(unittest.TestCase):
         dobs = problem.make_synthetic_data(mSynth, add_noise=True)
         # Now set up the problem to do some minimization
         dmis = data_misfit.L2DataMisfit(data=dobs, simulation=problem)
-        reg_eta = regularization.Sparse(mesh, mapping=wires.eta, indActive=~airind)
-        reg_taui = regularization.Sparse(mesh, mapping=wires.taui, indActive=~airind)
-        reg_c = regularization.Sparse(mesh, mapping=wires.c, indActive=~airind)
+        reg_eta = regularization.Sparse(mesh, mapping=wires.eta, active_cells=~airind)
+        reg_taui = regularization.Sparse(mesh, mapping=wires.taui, active_cells=~airind)
+        reg_c = regularization.Sparse(mesh, mapping=wires.c, active_cells=~airind)
         reg = reg_eta + reg_taui + reg_c
         opt = optimization.InexactGaussNewton(
             maxIterLS=20, maxIter=10, tolF=1e-6, tolX=1e-6, tolG=1e-6, maxIterCG=6

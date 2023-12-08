@@ -96,7 +96,7 @@ class MagInvLinProblemTest(unittest.TestCase):
         )
 
         # Create a regularization
-        reg = regularization.Sparse(self.mesh, indActive=actv, mapping=idenMap)
+        reg = regularization.Sparse(self.mesh, active_cells=actv, mapping=idenMap)
         reg.norms = [0, 0, 0, 0]
         reg.gradientType = "components"
 

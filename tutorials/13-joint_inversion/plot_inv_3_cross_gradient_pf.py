@@ -308,15 +308,15 @@ dmis_mag = data_misfit.L2DataMisfit(data=data_object_mag, simulation=simulation_
 
 # Define the regularization (model objective function).
 reg_grav = regularization.WeightedLeastSquares(
-    mesh, indActive=ind_active, mapping=wires.density
+    mesh, active_cells=ind_active, mapping=wires.density
 )
 reg_mag = regularization.WeightedLeastSquares(
-    mesh, indActive=ind_active, mapping=wires.susceptibility
+    mesh, active_cells=ind_active, mapping=wires.susceptibility
 )
 
 # Define the coupling term to connect two different physical property models
 lamda = 2e12  # weight for coupling term
-cross_grad = regularization.CrossGradient(mesh, wires, indActive=ind_active)
+cross_grad = regularization.CrossGradient(mesh, wires, active_cells=ind_active)
 
 # combo
 dmis = dmis_grav + dmis_mag

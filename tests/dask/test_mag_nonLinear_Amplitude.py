@@ -229,7 +229,7 @@ class AmpProblemTest(unittest.TestCase):
         data_obj = data.Data(survey, dobs=bAmp, noise_floor=wd)
 
         # Create a sparse regularization
-        reg = regularization.Sparse(mesh, indActive=actv, mapping=idenMap)
+        reg = regularization.Sparse(mesh, active_cells=actv, mapping=idenMap)
         reg.norms = [1, 0, 0, 0]
         reg.mref = np.zeros(nC)
 

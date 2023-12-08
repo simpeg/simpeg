@@ -112,13 +112,13 @@ class MVIProblemTest(unittest.TestCase):
 
         # Create three regularization for the different components
         # of magnetization
-        reg_p = regularization.Sparse(mesh, indActive=actv, mapping=wires.p)
+        reg_p = regularization.Sparse(mesh, active_cells=actv, mapping=wires.p)
         reg_p.mref = np.zeros(3 * nC)
 
-        reg_s = regularization.Sparse(mesh, indActive=actv, mapping=wires.s)
+        reg_s = regularization.Sparse(mesh, active_cells=actv, mapping=wires.s)
         reg_s.mref = np.zeros(3 * nC)
 
-        reg_t = regularization.Sparse(mesh, indActive=actv, mapping=wires.t)
+        reg_t = regularization.Sparse(mesh, active_cells=actv, mapping=wires.t)
         reg_t.mref = np.zeros(3 * nC)
 
         reg = reg_p + reg_s + reg_t
