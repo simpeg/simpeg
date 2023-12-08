@@ -74,7 +74,9 @@ Z = A * np.exp(-0.5 * ((X / b) ** 2.0 + (Y / b) ** 2.0)) + 5
 # Create a MAGsurvey
 xyzLoc = np.c_[mkvc(X.T), mkvc(Y.T), mkvc(Z.T)]
 rxLoc = magnetics.receivers.Point(xyzLoc)
-srcField = magnetics.sources.SourceField(receiver_list=[rxLoc], parameters=H0)
+srcField = magnetics.sources.UniformBackgroundField(
+    receiver_list=[rxLoc], parameters=H0
+)
 survey = magnetics.survey.Survey(srcField)
 
 # Here how the topography looks with a quick interpolation, just a Gaussian...

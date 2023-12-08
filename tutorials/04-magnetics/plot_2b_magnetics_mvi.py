@@ -83,7 +83,7 @@ field_declination = 30
 field_strength = 50000
 inducing_field = (field_strength, field_inclination, field_declination)
 
-source_field = magnetics.sources.SourceField(
+source_field = magnetics.sources.UniformBackgroundField(
     receiver_list=receiver_list, parameters=inducing_field
 )
 

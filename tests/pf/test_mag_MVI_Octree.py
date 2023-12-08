@@ -46,7 +46,7 @@ class MVIProblemTest(unittest.TestCase):
         # Create a MAGsurvey
         xyzLoc = np.c_[utils.mkvc(X.T), utils.mkvc(Y.T), utils.mkvc(Z.T)]
         rxLoc = mag.Point(xyzLoc)
-        srcField = mag.SourceField([rxLoc], parameters=H0)
+        srcField = mag.UniformBackgroundField([rxLoc], parameters=H0)
         survey = mag.Survey(srcField)
 
         # Create a mesh

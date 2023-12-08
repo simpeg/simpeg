@@ -59,7 +59,7 @@ class MagInvLinProblemTest(unittest.TestCase):
         # Create a MAGsurvey
         rxLoc = np.c_[utils.mkvc(X.T), utils.mkvc(Y.T), utils.mkvc(Z.T)]
         rxLoc = mag.Point(rxLoc)
-        srcField = mag.SourceField([rxLoc], parameters=H0)
+        srcField = mag.UniformBackgroundField([rxLoc], parameters=H0)
         survey = mag.Survey(srcField)
 
         # We can now create a susceptibility model and generate data

@@ -40,7 +40,7 @@ class MagFwdProblemTests(unittest.TestCase):
         self.yr = yr
         self.rxLoc = np.c_[utils.mkvc(X), utils.mkvc(Y), utils.mkvc(Z)]
         receivers = mag.Point(self.rxLoc, components=components)
-        srcField = mag.SourceField([receivers], parameters=H0)
+        srcField = mag.UniformBackgroundField([receivers], parameters=H0)
 
         self.survey = mag.Survey(srcField)
 

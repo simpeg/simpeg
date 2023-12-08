@@ -243,7 +243,7 @@ class TestIO_MAG3D(unittest.TestCase):
         rx = magnetics.receivers.Point(xyz, components="tmi")
 
         inducing_field = (50000.0, 60.0, 15.0)
-        source_field = magnetics.sources.SourceField(
+        source_field = magnetics.sources.UniformBackgroundField(
             receiver_list=rx, parameters=inducing_field
         )
         survey = magnetics.survey.Survey(source_field)
@@ -253,7 +253,7 @@ class TestIO_MAG3D(unittest.TestCase):
         self.std = std
 
         rx2 = magnetics.receivers.Point(xyz, components="tmi")
-        src_bad = magnetics.sources.SourceField([rx, rx2])
+        src_bad = magnetics.sources.UniformBackgroundField([rx, rx2])
         survey_bad = magnetics.survey.Survey(src_bad)
         self.survey_bad = survey_bad
 

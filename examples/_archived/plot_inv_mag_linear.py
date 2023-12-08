@@ -64,7 +64,9 @@ def run(plotIt=True):
     # Create a MAGsurvey
     rxLoc = np.c_[utils.mkvc(X.T), utils.mkvc(Y.T), utils.mkvc(Z.T)]
     rxLoc = magnetics.receivers.Point(rxLoc, components=["tmi"])
-    srcField = magnetics.sources.SourceField(receiver_list=[rxLoc], parameters=H0)
+    srcField = magnetics.sources.UniformBackgroundField(
+        receiver_list=[rxLoc], parameters=H0
+    )
     survey = magnetics.survey.Survey(srcField)
 
     # We can now create a susceptibility model and generate data

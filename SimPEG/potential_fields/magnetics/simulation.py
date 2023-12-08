@@ -12,7 +12,7 @@ from SimPEG import Solver
 from SimPEG import props
 
 from SimPEG.utils import mkvc, mat_utils, sdiag
-from SimPEG.utils.code_utils import validate_string, deprecate_property, validate_type
+from SimPEG.utils.code_utils import validate_string, validate_type
 from geoana.kernels import (
     prism_fzz,
     prism_fzx,
@@ -123,10 +123,6 @@ class Simulation3DIntegral(BasePFSimulation):
             self._G = self.linear_operator()
 
         return self._G
-
-    modelType = deprecate_property(
-        model_type, "modelType", "model_type", removal_version="0.18.0"
-    )
 
     @property
     def nD(self):

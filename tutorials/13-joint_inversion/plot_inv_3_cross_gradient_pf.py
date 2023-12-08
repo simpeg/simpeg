@@ -199,7 +199,7 @@ strength = 50000
 inducing_field = (strength, inclination, declination)
 
 # Define the source field and survey for gravity data
-source_field_mag = magnetics.sources.SourceField(
+source_field_mag = magnetics.sources.UniformBackgroundField(
     receiver_list=[receiver_mag], parameters=inducing_field
 )
 survey_mag = magnetics.survey.Survey(source_field_mag)

@@ -41,7 +41,7 @@
 #
 #         components = ['bx', 'by', 'bz']
 #         receivers = mag.Point(rxLoc, components=components)
-#         srcField = mag.SourceField([receivers], parameters=H0)
+#         srcField = mag.UniformBackgroundField([receivers], parameters=H0)
 #
 #         self.survey = mag.Survey(srcField)
 #

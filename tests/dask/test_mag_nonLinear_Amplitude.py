@@ -47,7 +47,7 @@ class AmpProblemTest(unittest.TestCase):
         # Create a MAGsurvey
         rxLoc = np.c_[mkvc(X.T), mkvc(Y.T), mkvc(Z.T)]
         receiver_list = magnetics.receivers.Point(rxLoc)
-        srcField = magnetics.sources.SourceField(
+        srcField = magnetics.sources.UniformBackgroundField(
             receiver_list=[receiver_list], parameters=H0
         )
         survey = magnetics.survey.Survey(srcField)
@@ -186,7 +186,7 @@ class AmpProblemTest(unittest.TestCase):
         #
 
         receiver_list = magnetics.receivers.Point(rxLoc, components=["bx", "by", "bz"])
-        srcField = magnetics.sources.SourceField(
+        srcField = magnetics.sources.UniformBackgroundField(
             receiver_list=[receiver_list], parameters=H0
         )
         surveyAmp = magnetics.survey.Survey(srcField)

@@ -59,7 +59,7 @@ def test_ana_mag_forward():
     components = ["bx", "by", "bz", "tmi"]
 
     rxLoc = mag.Point(locXyz, components=components)
-    srcField = mag.SourceField([rxLoc], parameters=H0)
+    srcField = mag.UniformBackgroundField([rxLoc], parameters=H0)
     survey = mag.Survey(srcField)
 
     # Creat reduced identity map for Linear Pproblem
@@ -153,7 +153,7 @@ def test_ana_mag_grad_forward():
     components = ["bxx", "bxy", "bxz", "byy", "byz", "bzz"]
 
     rxLoc = mag.Point(locXyz, components=components)
-    srcField = mag.SourceField([rxLoc], parameters=H0)
+    srcField = mag.UniformBackgroundField([rxLoc], parameters=H0)
     survey = mag.Survey(srcField)
 
     # Creat reduced identity map for Linear Pproblem
@@ -245,7 +245,7 @@ def test_ana_mag_vec_forward():
     components = ["bx", "by", "bz", "tmi"]
 
     rxLoc = mag.Point(locXyz, components=components)
-    srcField = mag.SourceField([rxLoc], parameters=H0)
+    srcField = mag.UniformBackgroundField([rxLoc], parameters=H0)
     survey = mag.Survey(srcField)
 
     # Create reduced identity map for Linear Pproblem
@@ -331,7 +331,7 @@ def test_ana_mag_amp_forward():
     components = ["bx", "by", "bz"]
 
     rxLoc = mag.Point(locXyz, components=components)
-    srcField = mag.SourceField([rxLoc], parameters=H0)
+    srcField = mag.UniformBackgroundField([rxLoc], parameters=H0)
     survey = mag.Survey(srcField)
 
     # Create reduced identity map for Linear Pproblem

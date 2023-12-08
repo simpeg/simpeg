@@ -106,7 +106,7 @@ class QuadTreeLinProblemTest(unittest.TestCase):
             # Create a magnetic survey
             H0 = (50000.0, 90.0, 0.0)
             mag_rxLoc = magnetics.Point(data_xyz_flat)
-            mag_srcField = magnetics.SourceField([mag_rxLoc], parameters=H0)
+            mag_srcField = magnetics.UniformBackgroundField([mag_rxLoc], parameters=H0)
             mag_survey = magnetics.Survey(mag_srcField)
 
             # Create the magnetics forward model operator
@@ -161,7 +161,7 @@ class QuadTreeLinProblemTest(unittest.TestCase):
             # Create a magnetic survey
             H0 = (50000.0, 90.0, 0.0)
             mag_rxLoc = magnetics.Point(data_xyz)
-            mag_srcField = magnetics.SourceField([mag_rxLoc], parameters=H0)
+            mag_srcField = magnetics.UniformBackgroundField([mag_rxLoc], parameters=H0)
             mag_survey = magnetics.Survey(mag_srcField)
 
             # Create the magnetics forward model operator
@@ -217,7 +217,7 @@ class QuadTreeLinProblemTest(unittest.TestCase):
             # Create a magnetic survey
             H0 = (50000.0, 90.0, 0.0)
             mag_rxLoc = magnetics.Point(data_xyz)
-            mag_srcField = magnetics.SourceField([mag_rxLoc], parameters=H0)
+            mag_srcField = magnetics.UniformBackgroundField([mag_rxLoc], parameters=H0)
             mag_survey = magnetics.Survey(mag_srcField)
 
             # Create the magnetics forward model operator
