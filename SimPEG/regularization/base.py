@@ -87,9 +87,10 @@ class BaseRegularization(BaseObjectiveFunction):
         self.mapping = mapping  # Set mapping using the setter
         self.reference_model = reference_model
         self.units = units
-        if not isinstance(weights, dict):
-            weights = {"user_weights": weights}
-        self.set_weights(**weights)
+        if weights is not None:
+            if not isinstance(weights, dict):
+                weights = {"user_weights": weights}
+            self.set_weights(**weights)
 
     @property
     def active_cells(self) -> np.ndarray:
@@ -1511,6 +1512,19 @@ class WeightedLeastSquares(ComboObjectiveFunction):
             )
         self._regularization_mesh = mesh
 
+        # Raise errors on deprecated arguments: avoid old code that still uses
+        # them to silently fail
+        if (key := "indActive") in kwargs:
+            raise ValueError(
+                f"'{key}' argument has been deprecated. "
+                "Please use 'active_cells' instead."
+            )
+        if (key := "cell_weights") in kwargs:
+            raise ValueError(
+                f"'{key}' argument has been deprecated. "
+                "Please use 'weights' instead."
+            )
+
         self.alpha_s = alpha_s
         if alpha_x is not None:
             if length_scale_x is not None:
@@ -1577,16 +1591,18 @@ class WeightedLeastSquares(ComboObjectiveFunction):
             objfcts = kwargs.pop("objfcts")
 
         super().__init__(objfcts=objfcts, unpack_on_add=False, **kwargs)
-        self.active_cells = active_cells
+        if active_cells is not None:
+            self.active_cells = active_cells
         self.mapping = mapping
         self.reference_model = reference_model
         self.reference_model_in_smooth = reference_model_in_smooth
         self.alpha_xx = alpha_xx
         self.alpha_yy = alpha_yy
         self.alpha_zz = alpha_zz
-        if not isinstance(weights, dict):
-            weights = {"user_weights": weights}
-        self.set_weights(**weights)
+        if weights is not None:
+            if not isinstance(weights, dict):
+                weights = {"user_weights": weights}
+            self.set_weights(**weights)
 
     def set_weights(self, **weights):
         """Adds (or updates) the specified weights for all child regularization objects.
