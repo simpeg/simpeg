@@ -176,7 +176,10 @@ def block_deriv(time_index, field_type, source_list, mesh, time_mesh, fields, Jm
                 adjoint=True,
             )
             sources_block.append(cur[0])
-            Jmatrix[rx_ind, :] += cur[1].T
+
+            if not isinstance(cur[1], Zero):
+                Jmatrix[rx_ind, :] += cur[1].T
+
             rx_count += rx.nD
 
         df_duT.append(sources_block)
