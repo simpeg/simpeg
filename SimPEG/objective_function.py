@@ -34,7 +34,7 @@ class BaseObjectiveFunction(BaseSimPEG):
     has_fields : bool
         If ``True``, predicted fields for a simulation and a given model can be
         used to evaluate the objective function quickly.
-    counter : None, SimPEG.utils.Counter
+    counter : None or SimPEG.utils.Counter
         Assign a SimPEG ``Counter`` object to store iterations and run-times.
     debug : bool
         Print debugging information.
@@ -170,12 +170,12 @@ class BaseObjectiveFunction(BaseSimPEG):
         ----------
         m : (n_param, ) numpy.ndarray
             The model for which the Hessian is evaluated.
-        v : None, (n_param, ) numpy.ndarray (optional)
+        v : None or (n_param, ) numpy.ndarray, optional
             A vector.
 
         Returns
         -------
-        (n_param, n_param) scipy.sparse.csr_matrix | (n_param, ) numpy.ndarray
+        (n_param, n_param) scipy.sparse.csr_matrix or (n_param, ) numpy.ndarray
             If the input argument *v* is ``None``, the Hessian of the objective
             function for the model provided is returned. If *v* is not ``None``,
             the Hessian multiplied by the vector provided is returned.
@@ -224,7 +224,7 @@ class BaseObjectiveFunction(BaseSimPEG):
 
         Parameters
         ----------
-        x : None, (n_param, ) numpy.ndarray (optional)
+        x : None or (n_param, ) numpy.ndarray, optional
             The evaluation point for the Taylor expansion.
         num : int
             The number of iterations in the convergence test.
@@ -391,13 +391,14 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
     def multipliers(self):
         r"""Multipliers for the objective functions.
 
-        For a composite objective function :math`\phi` that is a weighted sum of
+        For a composite objective function :math:`\phi`, that is, a weighted sum of
         objective functions :math:`\phi_i` with multipliers :math:`c_i` such that
 
         .. math::
-            \phi = \sum_{i = 1}^N c_i \phi_i
+            \phi = \sum_{i = 1}^N c_i \phi_i,
 
-        this method returns the multipliers :math:`c_i` in order.
+        this method returns the multipliers :math:`c_i` in
+        the same order of the ``objfcts``.
 
         Returns
         -------
@@ -583,13 +584,13 @@ class L2ObjectiveFunction(BaseObjectiveFunction):
     mapping : SimPEG.mapping.BaseMap
         A SimPEG mapping object that maps from the model space to the
         quantity evaluated in the objective function.
-    W : None, scipy.sparse.csr_matrix
+    W : None or scipy.sparse.csr_matrix
         The weighting matrix applied in the objective function. By default, this
         is set to the identity matrix.
     has_fields : bool
         If ``True``, predicted fields for a simulation and a given model can be
         used to evaluate the objective function quickly.
-    counter : None, SimPEG.utils.Counter
+    counter : None or SimPEG.utils.Counter
         Assign a SimPEG ``Counter`` object to store iterations and run-times.
     debug : bool
         Print debugging information.

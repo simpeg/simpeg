@@ -14,10 +14,14 @@ class BaseDataMisfit(L2ObjectiveFunction):
     class inherits the :py:class:`SimPEG.objective_function.L2ObjectiveFunction`.
     And as a result, it is limited to building data misfit functions of the form:
 
+    .. important::
+        This class is not meant to be instantiated. You should inherit from it to 
+        create your own data misfit class.
+
     .. math::
         \phi_d (\mathbf{m}) = \frac{1}{2} \| \mathbf{W} f(\mathbf{m}) \|_2^2
 
-    where :math:`\mathbf{m}` is the model vector, :math:`mathbf{W}` is a linear weighting
+    where :math:`\mathbf{m}` is the model vector, :math:`\mathbf{W}` is a linear weighting
     matrix, and :math:`f` is a mapping function that acts on the model.
 
     Parameters
@@ -28,7 +32,7 @@ class BaseDataMisfit(L2ObjectiveFunction):
         A SimPEG simulation object.
     debug : bool
         Print debugging information.
-    counter : None, SimPEG.utils.Counter
+    counter : None or SimPEG.utils.Counter
         Assign a SimPEG ``Counter`` object to store iterations and run-times.
     """
 
@@ -91,7 +95,7 @@ class BaseDataMisfit(L2ObjectiveFunction):
 
         Returns
         -------
-        None, SimPEG.utils.Counter
+        None or SimPEG.utils.Counter
             SimPEG ``Counter`` object to store iterations and run-times.
         """
         return self._counter
@@ -136,7 +140,7 @@ class BaseDataMisfit(L2ObjectiveFunction):
 
         Returns
         -------
-        list of int (n_data, n_param)
+        tuple of int (n_data, n_param)
             Shape of the Jacobian; i.e. number of data by the number of model parameters.
         """
         return (self.nD, self.nP)
@@ -150,7 +154,7 @@ class BaseDataMisfit(L2ObjectiveFunction):
         .. math::
             \phi_d (\mathbf{m}) = \frac{1}{2} \| \mathbf{W} \mathbf{f}(\mathbf{m}) \|_2^2
 
-        :math:`mathbf{W}` is a linear weighting matrix, :math:`\mathbf{m}` is the model vector,
+        :math:`\mathbf{W}` is a linear weighting matrix, :math:`\mathbf{m}` is the model vector,
         and :math:`\mathbf{f}` is a discrete mapping function that acts on the model vector.
 
         Returns
@@ -201,18 +205,18 @@ class BaseDataMisfit(L2ObjectiveFunction):
     def residual(self, m, f=None):
         r"""Computes the data residual vector for a given model.
 
-        Where :math:`\mathbf{d}_obs` is the observed data vector and :math:`\mathbf{d}_{pred}`
+        Where :math:`\mathbf{d}_\text{obs}` is the observed data vector and :math:`\mathbf{d}_\text{pred}`
         is the predicted data vector for a model vector :math:`\mathbf{m}`, this function
         computes the data residual:
 
         .. math::
-            \mathbf{r} = \mathbf{d}_{pred} - \mathbf{d}_{obs}
+            \mathbf{r} = \mathbf{d}_\text{pred} - \mathbf{d}_\text{obs}
 
         Parameters
         ----------
         m : (n_param, ) numpy.ndarray
             The model for which the function is evaluated.
-        f : None, SimPEG.fields.Fields (optional)
+        f : None or SimPEG.fields.Fields, optional
             A SimPEG fields object. Used when the fields for the model *m* have
             already been computed.
 
@@ -234,16 +238,16 @@ class L2DataMisfit(BaseDataMisfit):
 
     .. math::
         \phi_d (\mathbf{m}) = \frac{1}{2} \big \| \mathbf{W_d}
-        \big ( \mathbf{d}_{pred} - \mathbf{d}_{obs} \big ) \big \|_2^2
+        \big ( \mathbf{d}_\text{pred} - \mathbf{d}_\text{obs} \big ) \big \|_2^2
 
-    where :math:`\mathbf{d}_obs` is the observed data vector, :math:`\mathbf{d}_{pred}`
+    where :math:`\mathbf{d}_\text{obs}` is the observed data vector, :math:`\mathbf{d}_\text{pred}`
     is the predicted data vector for a model vector :math:`\mathbf{m}`, and
     :math:`\mathbf{W_d}` is the data weighting matrix. The diagonal elements of
     :math:`\mathbf{W_d}` are the reciprocals of the data uncertainties
     :math:`\boldsymbol{\varepsilon}`. Thus:
 
     .. math::
-        \mathbf{W_d} = diag \left ( \boldsymbol{\varepsilon}^{-1} \right )
+        \mathbf{W_d} = \text{diag} \left ( \boldsymbol{\varepsilon}^{-1} \right )
 
     Parameters
     ----------
@@ -253,7 +257,7 @@ class L2DataMisfit(BaseDataMisfit):
         A SimPEG simulation object.
     debug : bool
         Print debugging information.
-    counter : None, SimPEG.utils.Counter
+    counter : None or SimPEG.utils.Counter
         Assign a SimPEG ``Counter`` object to store iterations and run-times.
     """
 
@@ -312,12 +316,12 @@ class L2DataMisfit(BaseDataMisfit):
         ----------
         m : (n_param, ) numpy.ndarray
             The model for which the Hessian is evaluated.
-        v : None, (n_param, ) numpy.ndarray (optional)
+        v : None or (n_param, ) numpy.ndarray, optional
             A vector.
 
         Returns
         -------
-        (n_param, n_param) scipy.sparse.csr_matrix | (n_param, ) numpy.ndarray
+        (n_param, n_param) scipy.sparse.csr_matrix or (n_param, ) numpy.ndarray
             If the input argument *v* is ``None``, the Hessian of the data misfit
             function for the model provided is returned. If *v* is not ``None``,
             the Hessian multiplied by the vector provided is returned.
