@@ -8,6 +8,7 @@ import numpy as np
 import scipy.sparse as sp
 from dask import array, delayed
 from SimPEG.dask.simulation import dask_Jvec, dask_Jtvec, dask_getJtJdiag
+from SimPEG.dask.utils import get_parallel_blocks
 import zarr
 from time import time
 from tqdm import tqdm
@@ -209,43 +210,6 @@ def compute_field_derivs(simulation, Jmatrix, fields):
     df_duT = dask.compute(df_duT)[0]
 
     return df_duT
-
-
-def get_parallel_blocks(source_list: list, m_size: int, max_chunk_size: int):
-    """
-    Get the blocks of sources and receivers to be computed in parallel.
-
-    Stored as a dictionary of source, receiver pairs index. The value is an array of indices
-    for the rows of the sensitivity matrix.
-    """
-    data_block_size = np.ceil(max_chunk_size / (m_size * 8.0 * 1e-6))
-    row_count = 0
-    row_index = 0
-    block_count = 0
-    blocks = {0: {}}
-    for s_id, src in enumerate(source_list):
-        for r_id, rx in enumerate(src.receiver_list):
-            indices = np.arange(rx.nD).astype(int)
-            chunks = np.array_split(
-                indices, int(np.ceil(len(indices) / data_block_size))
-            )
-
-            for ind, chunk in enumerate(chunks):
-                chunk_size = len(chunk)
-
-                # Condition to start a new block
-                if (row_count + chunk_size) > (data_block_size * cpu_count()):
-                    row_count = 0
-                    block_count += 1
-                    blocks[block_count] = {}
-
-                blocks[block_count][(s_id, r_id, ind)] = chunk, np.arange(
-                    row_index, row_index + chunk_size
-                ).astype(int)
-                row_index += chunk_size
-                row_count += chunk_size
-
-    return blocks
 
 
 @delayed

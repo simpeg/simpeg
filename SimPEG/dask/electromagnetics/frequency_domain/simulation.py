@@ -5,6 +5,7 @@ import scipy.sparse as sp
 
 from dask import array, compute, delayed
 from SimPEG.dask.simulation import dask_Jvec, dask_Jtvec, dask_getJtJdiag
+from SimPEG.dask.utils import get_parallel_blocks
 import zarr
 
 Sim.sensitivity_path = "./sensitivity/"
@@ -51,23 +52,10 @@ def compute_J(self, f=None, Ainv=None):
         f, Ainv = self.fields(self.model, return_Ainv=True)
 
     m_size = self.model.size
-    row_chunks = int(
-        np.ceil(
-            float(self.survey.nD)
-            / np.ceil(float(m_size) * self.survey.nD * 8.0 * 1e-6 / self.max_chunk_size)
-        )
+    Jmatrix = np.zeros((self.survey.nD, self.model.size), dtype=np.float32)
+    blocks = get_parallel_blocks(
+        self.survey.source_list, self.model.shape[0], self.max_chunk_size
     )
-
-    if self.store_sensitivities == "disk":
-        Jmatrix = zarr.open(
-            self.sensitivity_path + f"J.zarr",
-            mode="w",
-            shape=(self.survey.nD, m_size),
-            chunks=(row_chunks, m_size),
-        )
-    else:
-        Jmatrix = np.zeros((self.survey.nD, m_size), dtype=np.float32)
-
     count = 0
     block_count = 0
     col_chunks = None
@@ -105,13 +93,13 @@ def compute_J(self, f=None, Ainv=None):
                     block_count += block.shape[1] * u_src.shape[1]
                     blocks_dfduT.append(
                         array.from_delayed(
-                            delayed(dfduT, pure=True)(src, rx, self.mesh, f, block),
+                            dfduT(src, rx, self.mesh, f, block),
                             dtype=np.float32,
                             shape=(u_src.shape[0], block.shape[1] * u_src.shape[1]),
                         )
                     )
                     blocks_dfdmT.append(
-                        delayed(dfdmT, pure=True)(src, rx, self.mesh, f, block),
+                        dfdmT(src, rx, self.mesh, f, block),
                     )
                     sources.append(src)
 
@@ -164,12 +152,14 @@ def compute_J(self, f=None, Ainv=None):
 Sim.compute_J = compute_J
 
 
+@delayed
 def dfduT(source, receiver, mesh, fields, block):
     dfduT, _ = receiver.evalDeriv(source, mesh, fields, v=block, adjoint=True)
 
     return dfduT
 
 
+@delayed
 def dfdmT(source, receiver, mesh, fields, block):
     _, dfdmT = receiver.evalDeriv(source, mesh, fields, v=block, adjoint=True)
 
