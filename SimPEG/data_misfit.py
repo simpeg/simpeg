@@ -15,7 +15,7 @@ class BaseDataMisfit(L2ObjectiveFunction):
     And as a result, it is limited to building data misfit functions of the form:
 
     .. important::
-        This class is not meant to be instantiated. You should inherit from it to 
+        This class is not meant to be instantiated. You should inherit from it to
         create your own data misfit class.
 
     .. math::
