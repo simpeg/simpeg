@@ -241,16 +241,16 @@ class Minimize(object):
     name = "General Optimization Algorithm"  #: The name of the optimization algorithm
 
     maxIter = 20  #: Maximum number of iterations
-    maxIterLS = 10  #: Maximum number of iterations for the line-search
+    maxIterLS = 20  #: Maximum number of iterations for the line-search
     maxStep = np.inf  #: Maximum step possible, used in scaling before the line-search.
     LSreduction = 1e-4  #: Expected decrease in the line-search
     LScurvature = (
         0.9  #: Expected decrease of the slope for line search Wolfe Curvature criteria
     )
     LSshorten = 0.5  #: Line-search step is shortened by this amount each time.
-    tolF = 1e-1  #: Tolerance on function value decrease
-    tolX = 1e-1  #: Tolerance on norm(x) movement
-    tolG = 1e-1  #: Tolerance on gradient norm
+    tolF = 1e-2  #: Tolerance on function value decrease
+    tolX = 1e-2  #: Tolerance on norm(x) movement
+    tolG = 1e-2  #: Tolerance on gradient norm
     eps = 1e-5  #: Small value
 
     stopNextIteration = False  #: Stops the optimization program nicely.
@@ -763,8 +763,8 @@ class Remember(object):
 class ProjectedGradient(Minimize, Remember):
     name = "Projected Gradient"
 
-    maxIterCG = 5
-    tolCG = 1e-1
+    maxIterCG = 100
+    tolCG = 1e-4
 
     lower = -np.inf
     upper = np.inf
@@ -1043,8 +1043,8 @@ class InexactGaussNewton(BFGS, Minimize, Remember):
 
     name = "Inexact Gauss Newton"
 
-    maxIterCG = 5
-    tolCG = 1e-1
+    maxIterCG = 100
+    tolCG = 1e-4
 
     @property
     def approxHinv(self):
@@ -1184,8 +1184,8 @@ class ProjectedGNCG(BFGS, Minimize, Remember):
 
     name = "Projected GNCG"
 
-    maxIterCG = 5
-    tolCG = 1e-1
+    maxIterCG = 100
+    tolCG = 1e-4
     cg_count = 0
     stepOffBoundsFact = 1e-2  # perturbation of the inactive set off the bounds
     stepActiveset = True
