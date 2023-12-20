@@ -207,7 +207,7 @@ def distance_weighting(
     reference_locs: np.ndarray,
     active_cells: np.ndarray | None = None,
     exponent: float = 2.0,
-    threshold: float = None,
+    threshold: float | None = None,
     engine: Literal["numpy", "numba"] = "numba",
 ):
     r"""
