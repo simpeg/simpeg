@@ -1,4 +1,5 @@
 import os
+import warnings
 from multiprocessing.pool import Pool
 
 import discretize
@@ -359,6 +360,12 @@ def get_dist_wgt(mesh, receiver_locations, actv, R, R0):
     wr : (n_cell) numpy.ndarray
         Distance weighting model; 0 for all inactive cells
     """
+    warnings.warn(
+        "The get_dist_wgt function has been deprecated, please import "
+        "SimPEG.utils.distance_weighting. This will be removed in SimPEG 0.22.0",
+        FutureWarning,
+        stacklevel=2,
+    )
     # Find non-zero cells
     if actv.dtype == "bool":
         inds = (
