@@ -1,9 +1,11 @@
 import warnings
+from typing import Literal
 
 import discretize
 import numpy as np
 import scipy.sparse as sp
 from discretize.utils import active_from_xyz
+from numba import njit
 from scipy.interpolate import griddata
 from scipy.spatial import cKDTree
 
@@ -206,6 +208,7 @@ def distance_weighting(
     active_cells: np.ndarray | None = None,
     exponent: float = 2.0,
     threshold: float = None,
+    engine: Literal["numpy", "numba"] = "numba",
 ):
     r"""
     Construct diagonal elements of a distance weighting matrix
@@ -240,6 +243,8 @@ def distance_weighting(
     threshold : float or None, optional
         Threshold parameters used in the distance weighting.
         If ``None``, it will be set to half of the smallest cell width.
+    engine: str, 'numpy' or 'numba': pick between a numpy vectorized computation (memory intensive) or parallelized
+        numba implementation. Default to 'numba'.
 
     Returns
     -------
@@ -258,17 +263,45 @@ def distance_weighting(
 
     reference_locs = np.asarray(reference_locs)
 
-    # Calculate distance from receiver locations
-    # reference_locs is a scalar
-    if reference_locs.ndim < 2:
-        distance = np.abs(mesh.cell_centers[:, -1] - reference_locs)
+    cell_centers = mesh.cell_centers[active_cells]
+    cell_volumes = mesh.cell_volumes[active_cells]
 
-    else:
-        cell_centers = mesh.cell_centers[active_cells]
-        cell_volumes = mesh.cell_volumes[active_cells]
+    # address 1D case
+    if mesh.dim == 1:
+        cell_centers = cell_centers.reshape(-1, 1)
+        reference_locs = reference_locs.reshape(-1, 1)
+
+    if engine == "numba":
+
+        @njit(parallel=True)
+        def distance_weighting_numba(
+            cell_centers: np.ndarray,
+            cell_volumes: np.ndarray,
+            reference_locs: np.ndarray,
+            threshold: float,
+            exponent: float = 2.0,
+        ):
+            distance_weights = np.zeros(len(cell_centers))
+            for _, rl in enumerate(reference_locs):
+                dst_wgt = (
+                    np.sqrt(((cell_centers - rl) ** 2).sum(axis=1)) + threshold
+                ) ** exponent
+                dst_wgt = (cell_volumes / dst_wgt) ** 2
+                distance_weights += dst_wgt
+
+            return distance_weights
+
+        dist_weights = distance_weighting_numba(
+            cell_centers,
+            cell_volumes,
+            reference_locs,
+            exponent=exponent,
+            threshold=threshold,
+        )
+
+    elif engine == "numpy":
         n, d = cell_centers.shape
         t, d1 = reference_locs.shape
-
         if not d == d1:
             raise Exception("vectors must have same number of columns")
 
@@ -279,14 +312,16 @@ def distance_weighting(
             - 2.0 * np.dot(cell_centers, reference_locs.T)
         ) ** 0.5
 
-    dist_weights = (
-        (
-            (
-                (cell_volumes.reshape(-1, 1) / ((distance + threshold) ** exponent))
-                ** 2
-            ).sum(axis=1)
+        dist_weights = (
+            (cell_volumes.reshape(-1, 1) / ((distance + threshold) ** exponent)) ** 2
+        ).sum(axis=1)
+
+    else:
+        raise ValueError(
+            f"engine should be either 'numpy' or 'numba', instead {engine=}"
         )
-        ** (0.5)
-    ) / cell_volumes
+
+    dist_weights = dist_weights**0.5
+    dist_weights /= cell_volumes
 
     return dist_weights / np.nanmax(dist_weights)
