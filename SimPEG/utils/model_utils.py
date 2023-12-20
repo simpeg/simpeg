@@ -201,7 +201,7 @@ def depth_weighting(
 
 
 def distance_weighting(
-    mesh: discretize.Base.BaseMesh,
+    mesh: discretize.base.BaseMesh,
     reference_locs: np.ndarray,
     active_cells: np.ndarray | None = None,
     exponent: float = 2.0,
