@@ -44,7 +44,7 @@ class BaseSimulation(props.HasModel):
     r"""Base class for all geophysical forward simulations in SimPEG.
 
     The ``BaseSimulation`` class defines properties and methods inherited by
-    practical simulation classes in SimPEG. 
+    practical simulation classes in SimPEG.
 
     .. important::
         This class is not meant to be instantiated. You should inherit from it to
@@ -112,7 +112,7 @@ class BaseSimulation(props.HasModel):
         Returns
         -------
         discretize.base.BaseMesh
-            Mesh on which the forward problem is discretized. 
+            Mesh on which the forward problem is discretized.
         """
         return self._mesh
 
