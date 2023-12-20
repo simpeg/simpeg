@@ -1,12 +1,9 @@
 import unittest
 
 import numpy as np
-
 from discretize import TensorMesh
 
-from SimPEG import (
-    utils,
-)
+from SimPEG import utils
 
 
 class DepthWeightingTest(unittest.TestCase):
