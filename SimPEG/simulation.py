@@ -76,6 +76,121 @@ class BaseSimulation(props.HasModel):
 
     _REGISTRY = {}
 
+    @property
+    def mesh(self):
+        """Discretize mesh for the simulation.
+
+        Returns
+        -------
+        discretize.base.BaseMesh
+        """
+        return self._mesh
+
+    @mesh.setter
+    def mesh(self, value):
+        if value is not None:
+            value = validate_type("mesh", value, BaseMesh, cast=False)
+        self._mesh = value
+
+    @property
+    def survey(self):
+        """The survey for the simulation.
+
+        Returns
+        -------
+        SimPEG.survey.BaseSurvey
+        """
+        return self._survey
+
+    @survey.setter
+    def survey(self, value):
+        if value is not None:
+            value = validate_type("survey", value, BaseSurvey, cast=False)
+        self._survey = value
+
+    @property
+    def counter(self):
+        """The counter.
+
+        Returns
+        -------
+        None or SimPEG.utils.Counter
+        """
+        return self._counter
+
+    @counter.setter
+    def counter(self, value):
+        if value is not None:
+            value = validate_type("counter", value, Counter, cast=False)
+        self._counter = value
+
+    @property
+    def sensitivity_path(self):
+        """Path to store the sensitivity.
+
+        Returns
+        -------
+        str
+        """
+        return self._sensitivity_path
+
+    @sensitivity_path.setter
+    def sensitivity_path(self, value):
+        self._sensitivity_path = validate_string("sensitivity_path", value)
+
+    @property
+    def solver(self):
+        """Linear algebra solver (e.g. from pymatsolver).
+
+        Returns
+        -------
+        class
+            A solver class that, when instantiated allows a multiplication with the
+            returned object.
+        """
+        return self._solver
+
+    @solver.setter
+    def solver(self, cls):
+        if cls is not None:
+            if not inspect.isclass(cls):
+                raise TypeError(f"solver must be a class, not a {type(cls)}")
+            if not hasattr(cls, "__mul__"):
+                raise TypeError("solver must support the multiplication operator, `*`.")
+        self._solver = cls
+
+    @property
+    def solver_opts(self):
+        """Options passed to the `solver` class on initialization.
+
+        Returns
+        -------
+        dict
+            Passed as keyword arguments to the solver.
+        """
+        return self._solver_opts
+
+    @solver_opts.setter
+    def solver_opts(self, value):
+        self._solver_opts = validate_type("solver_opts", value, dict, cast=False)
+
+    @property
+    def verbose(self):
+        """Verbosity flag.
+
+        Returns
+        -------
+        bool
+        """
+        return self._verbose
+
+    @verbose.setter
+    def verbose(self, value):
+        self._verbose = validate_type("verbose", value, bool)
+
+    ###########################################################################
+    # Instantiation
+
     def __init__(
         self,
         mesh=None,
