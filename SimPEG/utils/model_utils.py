@@ -289,7 +289,7 @@ def distance_weighting(
             ).sum(axis=1)
         )
         ** (0.5)
-    ) / np.sqrt(mesh.cell_volumes)
+    ) / mesh.cell_volumes
 
     if active_cells is not None:
         dist_weights = dist_weights[active_cells]
