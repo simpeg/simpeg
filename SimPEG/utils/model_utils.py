@@ -1,5 +1,6 @@
 import warnings
 
+import discretize
 import numpy as np
 import scipy.sparse as sp
 from discretize.utils import active_from_xyz
@@ -200,7 +201,11 @@ def depth_weighting(
 
 
 def distance_weighting(
-    mesh, reference_locs, active_cells=None, exponent=2.0, threshold=None, **kwargs
+    mesh: discretize.BaseMesh,
+    reference_locs: np.ndarray,
+    active_cells: np.ndarray | None = None,
+    exponent: float = 2.0,
+    threshold: float = None,
 ):
     r"""
     Construct diagonal elements of a distance weighting matrix
@@ -246,14 +251,6 @@ def distance_weighting(
     active_cells = (
         np.ones(mesh.n_cells, dtype=bool) if active_cells is None else active_cells
     )
-    if "indActive" in kwargs:
-        warnings.warn(
-            "The indActive keyword argument has been deprecated, please use active_cells. "
-            "This will be removed in SimPEG 0.19.0",
-            FutureWarning,
-            stacklevel=2,
-        )
-        active_cells = kwargs["indActive"]
 
     # Default threshold value
     if threshold is None:
