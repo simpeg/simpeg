@@ -320,7 +320,7 @@ reg_dist.norms = [0, 2, 2, 2]
 distance_weights = utils.distance_weighting(
     mesh, receiver_locations, active_cells=ind_active, exponent=2
 )
-reg_dist.set_weights(distance_weights=distance_weights**2)
+reg_dist.set_weights(distance_weights=distance_weights)
 
 # Define how the optimization problem is solved. Here we will use a projected
 # Gauss-Newton approach that employs the conjugate gradient solver.
