@@ -243,6 +243,9 @@ def distance_weighting(
         a 1d-array.
     """
 
+    active_cells = (
+        np.ones(mesh.n_cells, dtype=bool) if active_cells is None else active_cells
+    )
     if "indActive" in kwargs:
         warnings.warn(
             "The indActive keyword argument has been deprecated, please use active_cells. "
@@ -263,9 +266,10 @@ def distance_weighting(
     if reference_locs.ndim < 2:
         distance = np.abs(mesh.cell_centers[:, -1] - reference_locs)
 
-    # reference_locs is a 2d array
     else:
-        n, d = mesh.cell_centers.shape
+        cell_centers = mesh.cell_centers[active_cells]
+        cell_volumes = mesh.cell_volumes[active_cells]
+        n, d = cell_centers.shape
         t, d1 = reference_locs.shape
 
         if not d == d1:
@@ -273,25 +277,19 @@ def distance_weighting(
 
         # vectorized distance calculations
         distance = (
-            np.dot((mesh.cell_centers**2.0), np.ones([d, t]))
+            np.dot((cell_centers**2.0), np.ones([d, t]))
             + np.dot(np.ones([n, d]), (reference_locs**2.0).T)
-            - 2.0 * np.dot(mesh.cell_centers, reference_locs.T)
+            - 2.0 * np.dot(cell_centers, reference_locs.T)
         ) ** 0.5
 
     dist_weights = (
         (
             (
-                (
-                    mesh.cell_volumes.reshape(-1, 1)
-                    / ((distance + threshold) ** exponent)
-                )
+                (cell_volumes.reshape(-1, 1) / ((distance + threshold) ** exponent))
                 ** 2
             ).sum(axis=1)
         )
         ** (0.5)
-    ) / mesh.cell_volumes
-
-    if active_cells is not None:
-        dist_weights = dist_weights[active_cells]
+    ) / cell_volumes
 
     return dist_weights / np.nanmax(dist_weights)
