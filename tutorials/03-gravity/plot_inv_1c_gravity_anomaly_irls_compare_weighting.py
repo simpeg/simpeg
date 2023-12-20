@@ -103,7 +103,16 @@ mpl.rcParams.update({"font.size": 12})
 fig = plt.figure(figsize=(7, 5))
 
 ax1 = fig.add_axes([0.1, 0.1, 0.73, 0.85])
-plot2Ddata(receiver_locations, dobs, ax=ax1, contourOpts={"cmap": "bwr"})
+plot2Ddata(
+    receiver_locations,
+    dobs,
+    ax=ax1,
+    contourOpts={"cmap": "bwr"},
+    shade=True,
+    nx=20,
+    ny=20,
+    dataloc=True,
+)
 ax1.set_title("Gravity Anomaly")
 ax1.set_xlabel("x (m)")
 ax1.set_ylabel("y (m)")
@@ -113,7 +122,7 @@ norm = mpl.colors.Normalize(vmin=-np.max(np.abs(dobs)), vmax=np.max(np.abs(dobs)
 cbar = mpl.colorbar.ColorbarBase(
     ax2, norm=norm, orientation="vertical", cmap=mpl.cm.bwr, format="%.1e"
 )
-cbar.set_label("$mgal$", rotation=270, labelpad=15, size=12)
+cbar.set_label("$mGal$", rotation=270, labelpad=15, size=12)
 
 plt.show()
 
@@ -433,7 +442,8 @@ true_model[ind_sphere] = sphere_density
 #
 
 # Plot Models
-fig, ax = plt.subplots(4, 1, figsize=(9, 20), sharex=True, sharey=True)
+fig, ax = plt.subplots(2, 2, figsize=(20, 10), sharex=True, sharey=True)
+ax = ax.flatten()
 plotting_map = maps.InjectActiveCells(mesh, ind_active, np.nan)
 cmap = "coolwarm"
 slice_y_loc = 0.0
@@ -509,4 +519,56 @@ for axx in ax:
     )
     axx.set_aspect(1)
 
-plt.show()
+plt.tight_layout()
+
+############################################################
+# Visualize weights
+# -----------------
+#
+# Plot Weights
+fig, ax = plt.subplots(1, 3, figsize=(20, 4), sharex=True, sharey=True)
+plotting_map = maps.InjectActiveCells(mesh, ind_active, np.nan)
+cmap = "magma"
+slice_y_loc = 0.0
+
+# plot depth weights
+mm = mesh.plot_slice(
+    plotting_map * np.log10(depth_weights),
+    normal="Y",
+    ax=ax[0],
+    grid=False,
+    slice_loc=slice_y_loc,
+    pcolor_opts={"cmap": cmap},
+)
+ax[0].set_title(f"log10(depth weights) slice at y = {slice_y_loc} m")
+plt.colorbar(mm[0], label="log10(depth weights)", ax=ax[0])
+
+# plot distance weights
+mm = mesh.plot_slice(
+    plotting_map * np.log10(distance_weights),
+    normal="Y",
+    ax=ax[1],
+    grid=False,
+    slice_loc=slice_y_loc,
+    pcolor_opts={"cmap": cmap},
+)
+ax[1].set_title(f"log10(distance weights) slice at y = {slice_y_loc} m")
+plt.colorbar(mm[0], label="log10(distance weights)", ax=ax[1])
+
+# plot sensitivity weights
+mm = mesh.plot_slice(
+    plotting_map * np.log10(reg_sensw.objfcts[0].get_weights(key="sensitivity")),
+    normal="Y",
+    ax=ax[2],
+    grid=False,
+    slice_loc=slice_y_loc,
+    pcolor_opts={"cmap": cmap},
+)
+ax[2].set_title(f"log10(sensitivity weights) slice at y = {slice_y_loc} m")
+plt.colorbar(mm[0], label="log10(sensitivity weights)", ax=ax[2])
+
+# shared plotting
+for axx in ax:
+    axx.set_aspect(1)
+
+plt.tight_layout()
