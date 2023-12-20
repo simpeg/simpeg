@@ -44,8 +44,11 @@ class BaseSimulation(props.HasModel):
     r"""Base class for all geophysical forward simulations in SimPEG.
 
     The ``BaseSimulation`` class defines properties and methods inherited by
-    practical simulation classes in SimPEG. Instances of ``BaseSimulation``
-    are not used direction to perform forward simulations in SimPEG.
+    practical simulation classes in SimPEG. 
+
+    .. important::
+        This class is not meant to be instantiated. You should inherit from it to
+        create your own simulation class.
 
     Parameters
     ----------
@@ -54,7 +57,7 @@ class BaseSimulation(props.HasModel):
         the same as the mesh on which the simulation is defined.
     survey : SimPEG.survey.BaseSurvey
         The survey for the simulation.
-    solver : None, pymatsolver.base.Base
+    solver : None or pymatsolver.base.Base
         Numerical solver used to solve the forward problem. If ``None``,
         an appropriate solver specific to the simulation class is set by default.
     solver_opts : dict, optional
@@ -65,7 +68,7 @@ class BaseSimulation(props.HasModel):
         about solvers and their parameters.
     sensitivity_path : str, optional
         Path to directory where sensitivity file is stored.
-    counter : None, SimPEG.utils.Counter
+    counter : None or SimPEG.utils.Counter
         SimPEG ``Counter`` object to store iterations and run-times.
     verbose : bool, optional
         Verbose progress printout.
@@ -109,8 +112,7 @@ class BaseSimulation(props.HasModel):
         Returns
         -------
         discretize.base.BaseMesh
-            Mesh on which the forward problem is discretized. This is not necessarily
-            the same as the mesh on which the simulation is defined.
+            Mesh on which the forward problem is discretized. 
         """
         return self._mesh
 
@@ -143,7 +145,7 @@ class BaseSimulation(props.HasModel):
 
         Returns
         -------
-        None, SimPEG.utils.Counter
+        None or SimPEG.utils.Counter
             SimPEG ``Counter`` object to store iterations and run-times.
         """
         return self._counter
@@ -230,7 +232,7 @@ class BaseSimulation(props.HasModel):
         Returns
         -------
         bool
-            Verbose progress printout.
+            Verbose progress printout status.
         """
         return self._verbose
 
@@ -249,7 +251,7 @@ class BaseSimulation(props.HasModel):
         Returns
         -------
         SimPEG.fields.Fields
-            Computed geophysical fields for the model provided
+            Computed geophysical fields for the model provided.
 
         """
         raise NotImplementedError("fields has not been implemented for this ")
@@ -432,12 +434,12 @@ class BaseSimulation(props.HasModel):
         r"""The data residual.
 
         This method computes and returns the data residual for the model provided.
-        Where :math:`\mathbf{d}_{obs}` are the observed data values, and :math:`\mathbf{d}_pred`
+        Where :math:`\mathbf{d}_\text{obs}` are the observed data values, and :math:`\mathbf{d}_\text{pred}`
         are the predicted data values for model parameters :math:`\mathbf{m}`, the data
         residual is given by:
 
         .. math::
-            \mathbf{r}(\mathbf{m}) = \mathbf{d}_{pred} - \mathbf{d}_{obs}
+            \mathbf{r}(\mathbf{m}) = \mathbf{d}_\text{pred} - \mathbf{d}_\text{obs}
 
         Parameters
         ----------
@@ -479,7 +481,7 @@ class BaseSimulation(props.HasModel):
             Assign relative uncertainties to the data using relative error; sometimes
             referred to as percent uncertainties. For each datum, we assume the
             standard deviation of Gaussian noise is the relative error times the
-            absolute value of the datum; i.e. :math:`C_{err} \times |d|`.
+            absolute value of the datum; i.e. :math:`C_\text{err} \times |d|`.
         noise_floor : float, SimPEG.data.UncertaintyArray
             Assign floor/absolute uncertainties to the data. For each datum, we assume
             standard deviation of Gaussian noise is equal to `noise_floor`.
@@ -770,7 +772,7 @@ class LinearSimulation(BaseSimulation):
 
         Returns
         -------
-        (n_data, n_param) numpy.ndarray or scipy.sparse.csr_matrx
+        (n_data, n_param) numpy.ndarray or scipy.sparse.csr_matrix
             The linear operator. For a :py:attr:`model_map` that maps within the same vector space
             (e.g. the identity map), the dimension `n_param` equals the number of model parameters.
             If not, the dimension `n_param` of the linear operator will depend on the mapping.
