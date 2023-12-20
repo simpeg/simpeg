@@ -16,13 +16,16 @@ class BaseObjectiveFunction(BaseSimPEG):
     The ``BaseObjectiveFunction`` class defines properties and methods inherited by
     other classes in SimPEG that represent objective functions; e.g. regularization, data misfit.
     These include convenient methods for testing the order of convergence and ajoint operations.
-    Instances of ``BaseObjectiveFunction`` are not meant to be created when carrying out
-    inversions with SimPEG.
 
-    If building a regularization function within SimPEG, please inherit
-    :py:class:`SimPEG.regularization.BaseRegularization`, as this class
-    has additional functionality related to regularization. And if building a data misfit
-    function, please inherit :py:class:`SimPEG.data_misfit.BaseDataMisfit`.
+    .. important::
+        This class is not meant to be instantiated. You should inherit from it to
+        create your own objective function class.
+
+    .. important::
+        If building a regularization function within SimPEG, please inherit
+        :py:class:`SimPEG.regularization.BaseRegularization`, as this class
+        has additional functionality related to regularization. And if building a data misfit
+        function, please inherit :py:class:`SimPEG.data_misfit.BaseDataMisfit`.
 
     Parameters
     ----------
