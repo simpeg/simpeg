@@ -618,7 +618,7 @@ class PrimSecCasingExample(object):
         fields = sec_problem.fields(m)
         dpred = sec_problem.dpred(m, f=fields)
         t1 = time.time()
-        print(" ...done.   secondary time "), t1 - t0
+        print(f" ...done.   secondary time {t1 - t0}")
 
         return fields, dpred
 
