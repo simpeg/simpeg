@@ -1,10 +1,12 @@
-from .mat_utils import mkvc
+import warnings
+
 import numpy as np
-from scipy.interpolate import griddata
-from scipy.spatial import cKDTree
 import scipy.sparse as sp
 from discretize.utils import active_from_xyz
-import warnings
+from scipy.interpolate import griddata
+from scipy.spatial import cKDTree
+
+from .mat_utils import mkvc
 
 
 def surface2ind_topo(mesh, topo, gridLoc="CC", method="nearest", fill_value=np.nan):
@@ -195,3 +197,99 @@ def depth_weighting(
         wz = wz[active_cells]
 
     return wz / np.nanmax(wz)
+
+
+def distance_weighting(
+    mesh, reference_locs, active_cells=None, exponent=2.0, threshold=None, **kwargs
+):
+    r"""
+    Construct diagonal elements of a distance weighting matrix
+
+    Builds the model weights following the distance weighting strategy, a method
+    to generate weights based on the distance between mesh cell centers and some
+    reference location(s).
+    Use these weights in regularizations to counteract the natural decay of
+    potential field data with distance.
+
+    Parameters
+    ----------
+    mesh : discretize.base.BaseMesh
+        Discretized model space.
+    reference_locs : float or (n, ndim) numpy.ndarray
+        Reference location for the distance weighting.
+        It can be a ``float``, which value is the component for
+        the reference location.
+        Or it can be a 2d array, with multiple reference locations, where each
+        row should contain the coordinates of a single location point in the
+        following order: _x_, _y_, _z_ (for 3D meshes) or _x_, _z_ (for 2D
+        meshes).
+        The coordinate of the reference location, usually the receiver locations
+    active_cells : (mesh.n_cells) numpy.ndarray of bool, optional
+        Index vector for the active cells on the mesh.
+        If ``None``, every cell will be assumed to be active.
+    exponent : float, optional
+        Exponent parameter for distance weighting.
+        The exponent should match the natural decay power of the potential
+        field. For example, for gravity acceleration, set it to 2; for magnetic
+        fields, to 3.
+    threshold : float or None, optional
+        Threshold parameters used in the distance weighting.
+        If ``None``, it will be set to half of the smallest cell width.
+
+    Returns
+    -------
+    (n_active) numpy.ndarray
+        Normalized distance weights for the mesh at every active cell as
+        a 1d-array.
+    """
+
+    active_cells = (
+        np.ones(mesh.n_cells, dtype=bool) if active_cells is None else active_cells
+    )
+    if "indActive" in kwargs:
+        warnings.warn(
+            "The indActive keyword argument has been deprecated, please use active_cells. "
+            "This will be removed in SimPEG 0.19.0",
+            FutureWarning,
+            stacklevel=2,
+        )
+        active_cells = kwargs["indActive"]
+
+    # Default threshold value
+    if threshold is None:
+        threshold = 0.5 * mesh.h_gridded.min()
+
+    reference_locs = np.asarray(reference_locs)
+
+    # Calculate distance from receiver locations
+    # reference_locs is a scalar
+    if reference_locs.ndim < 2:
+        distance = np.abs(mesh.cell_centers[:, -1] - reference_locs)
+
+    else:
+        cell_centers = mesh.cell_centers[active_cells]
+        cell_volumes = mesh.cell_volumes[active_cells]
+        n, d = cell_centers.shape
+        t, d1 = reference_locs.shape
+
+        if not d == d1:
+            raise Exception("vectors must have same number of columns")
+
+        # vectorized distance calculations
+        distance = (
+            np.dot((cell_centers**2.0), np.ones([d, t]))
+            + np.dot(np.ones([n, d]), (reference_locs**2.0).T)
+            - 2.0 * np.dot(cell_centers, reference_locs.T)
+        ) ** 0.5
+
+    dist_weights = (
+        (
+            (
+                (cell_volumes.reshape(-1, 1) / ((distance + threshold) ** exponent))
+                ** 2
+            ).sum(axis=1)
+        )
+        ** (0.5)
+    ) / cell_volumes
+
+    return dist_weights / np.nanmax(dist_weights)
