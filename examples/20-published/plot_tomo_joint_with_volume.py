@@ -101,7 +101,7 @@ def run(plotIt=True):
     # phi model
     phi0 = 0
     phi1 = 0.65
-    phitrue = utils.model_builder.define_block(
+    phitrue = utils.model_builder.create_block_in_wholespace(
         M.gridCC, [0.4, 0.6], [0.6, 0.4], [phi1, phi0]
     )
 
