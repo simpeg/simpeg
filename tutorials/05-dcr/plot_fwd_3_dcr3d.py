@@ -190,12 +190,12 @@ conductivity_map = maps.InjectActiveCells(mesh, ind_active, air_value)
 # Define model
 conductivity_model = background_value * np.ones(nC)
 
-ind_conductor = model_builder.getIndicesSphere(
+ind_conductor = model_builder.get_indices_sphere(
     np.r_[-350.0, 0.0, -300.0], 160.0, mesh.cell_centers[ind_active, :]
 )
 conductivity_model[ind_conductor] = conductor_value
 
-ind_resistor = model_builder.getIndicesSphere(
+ind_resistor = model_builder.get_indices_sphere(
     np.r_[350.0, 0.0, -300.0], 160.0, mesh.cell_centers[ind_active, :]
 )
 conductivity_model[ind_resistor] = resistor_value

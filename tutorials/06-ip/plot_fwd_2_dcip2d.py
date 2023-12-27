@@ -195,11 +195,13 @@ conductivity_map = maps.InjectActiveCells(mesh, ind_active, air_conductivity)
 # Define model
 conductivity_model = background_conductivity * np.ones(nC)
 
-ind_conductor = model_builder.getIndicesSphere(np.r_[-120.0, -160.0], 60.0, mesh.gridCC)
+ind_conductor = model_builder.get_indices_sphere(
+    np.r_[-120.0, -160.0], 60.0, mesh.gridCC
+)
 ind_conductor = ind_conductor[ind_active]
 conductivity_model[ind_conductor] = conductor_conductivity
 
-ind_resistor = model_builder.getIndicesSphere(np.r_[120.0, -100.0], 60.0, mesh.gridCC)
+ind_resistor = model_builder.get_indices_sphere(np.r_[120.0, -100.0], 60.0, mesh.gridCC)
 ind_resistor = ind_resistor[ind_active]
 conductivity_model[ind_resistor] = resistor_conductivity
 
@@ -353,7 +355,7 @@ chargeability_map = maps.InjectActiveCells(mesh, ind_active, air_chargeability)
 # Define chargeability model
 chargeability_model = background_chargeability * np.ones(nC)
 
-ind_chargeable = model_builder.getIndicesSphere(
+ind_chargeable = model_builder.get_indices_sphere(
     np.r_[-120.0, -160.0], 60.0, mesh.gridCC
 )
 ind_chargeable = ind_chargeable[ind_active]

@@ -128,7 +128,7 @@ model_map = maps.IdentityMap(nP=nC)  # model is a vlue for each active cell
 
 # Define model. Models in SimPEG are vector arrays
 model = background_susceptibility * np.ones(ind_active.sum())
-ind_sphere = model_builder.getIndicesSphere(
+ind_sphere = model_builder.get_indices_sphere(
     np.r_[0.0, 0.0, -45.0], 15.0, mesh.cell_centers
 )
 ind_sphere = ind_sphere[ind_active]
