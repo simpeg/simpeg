@@ -421,12 +421,10 @@ class BaseAmplitude(BaseVectorRegularization):
         (n_param, ) numpy.ndarray
             Gradient of the regularization function evaluated for the model provided.
         """
-        d_m = self._delta_m(m)
+        d_m = self.mapping * self._delta_m(m)
 
         return self.f_m_deriv(m).T * (
-            self.W.T
-            @ self.W
-            @ (self.f_m_deriv(m) @ d_m).reshape((-1, self.n_comp), order="F")
+            self.W.T @ self.W @ d_m.reshape((-1, self.n_comp), order="F")
         ).flatten(order="F")
 
     def deriv2(self, m, v=None) -> csr_matrix:
@@ -924,33 +922,56 @@ class AmplitudeSmoothnessFirstOrder(SparseSmoothness, BaseAmplitude):
     def f_m_deriv(self, m) -> csr_matrix:
         r"""Derivative of the regularization kernel function.
 
-        For first-order smoothness regularization in the x-direction, the derivative of the
-        regularization kernel function with respect to the model is given by:
-
-        .. math::
-            \frac{\partial \mathbf{f_m}}{\partial \mathbf{m}} =
-            \begin{bmatrix} \mathbf{G_x} & \mathbf{0} \\ \mathbf{0} & \mathbf{G_x} \end{bmatrix}
-
-        where :math:`\mathbf{G_x}` is the partial cell gradient operator along x
-        (i.e. the x-derivative).
-
-        Parameters
-        ----------
-        m : numpy.ndarray
-            The model.
-
-        Returns
-        -------
-        scipy.sparse.csr_matrix
-            The derivative of the regularization kernel function.
+        See :func:`base.SmoothnessFirstOrder.f_m_deriv` for more information.
         """
-        return sp.block_diag([self.cell_gradient] * self.n_comp) @ self.mapping.deriv(
-            self._delta_m(m)
+        return self.cell_gradient
+
+    def deriv(self, m) -> np.ndarray:
+        r"""
+        Derivative of the regularization function evaluated for the model provided.
+
+        See :func:`base.BaseRegularization.deriv` for more information.
+        """
+        d_m = (self.mapping * self._delta_m(m)).reshape((-1, self.n_comp), order="F")
+        r = self.W @ self.cell_gradient @ d_m
+
+        return self.mapping.deriv(m) @ (self.f_m_deriv(m).T @ (self.W.T @ r)).flatten(
+            order="F"
         )
+
+    def deriv2(self, m, v=None) -> csr_matrix:
+        r"""Hessian of the regularization function evaluated for the model provided.
+
+        See :func:`base.BaseRegularization.deriv2` for more information.
+        """
+        f_m_deriv = self.f_m_deriv(m)
+
+        if v is None:
+            return (
+                self.mapping.deriv(m).T
+                @ (
+                    sp.block_diag(
+                        [f_m_deriv.T @ self.W.T @ self.W @ f_m_deriv] * self.n_comp
+                    )
+                )
+                @ self.mapping.deriv(m)
+            )
+
+        return self.mapping.deriv(m).T @ (
+            f_m_deriv.T
+            @ self.W.T
+            @ self.W
+            @ f_m_deriv
+            @ (self.mapping.deriv(m) @ v).reshape((-1, self.n_comp), order="F")
+        ).flatten(order="F")
 
     @property
     def W(self):
-        ### Inherited
+        r"""
+        Weighting matrix.
+
+        See :func:`base.SmoothnessFirstOrder.W` for more information.
+        """
         if getattr(self, "_W", None) is None:
             average_cell_2_face = getattr(
                 self.regularization_mesh, "aveCC2F{}".format(self.orientation)
