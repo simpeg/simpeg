@@ -125,7 +125,7 @@ class BaseEM1DSimulation(BaseSimulation):
         **kwargs,
     ):
         super().__init__(mesh=None, **kwargs)
-        self._hankel_coefficients = None
+        self._hankel_coefficients: HankelCoefficients | None = None
         self.sigma = sigma
         self.rho = rho
         self.sigmaMap = sigmaMap

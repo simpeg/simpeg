@@ -218,7 +218,7 @@ class Simulation1DLayered(BaseEM1DSimulation):
         v = (
             (self.hankel_coefficients.C0s * rTE) @ self._fhtfilt.j0
             + (self.hankel_coefficients.C1s * rTE) @ self._fhtfilt.j1
-        ) @ self.hankel_coefficients.W.T
+        ) @ self.hankel_coefficients.W.T.toarray()
 
         return self._project_to_data(v.T)
 
@@ -228,6 +228,7 @@ class Simulation1DLayered(BaseEM1DSimulation):
             self._J = {}
             sig = self.compute_complex_sigma(self.frequencies)
             mu = self.compute_complex_mu(self.frequencies)
+            W = self.hankel_coefficients.W.toarray()
 
             if self.hMap is not None:
                 # Grab a copy
@@ -246,7 +247,7 @@ class Simulation1DLayered(BaseEM1DSimulation):
                 )
                 rTE = rTE[:, self.hankel_coefficients.inv_lambs]
                 v_dh_temp = (
-                    self.hankel_coefficients.W
+                    W
                     @ (
                         (C0s_dh * rTE) @ self._fhtfilt.j0
                         + (C1s_dh * rTE) @ self._fhtfilt.j1
@@ -285,7 +286,7 @@ class Simulation1DLayered(BaseEM1DSimulation):
                             (self.hankel_coefficients.C0s * rTE_ds) @ self._fhtfilt.j0
                             + (self.hankel_coefficients.C1s * rTE_ds) @ self._fhtfilt.j1
                         )
-                        @ self.hankel_coefficients.W.T
+                        @ W.T
                     ).T
                     self._J["ds"] = self._project_to_data(v_ds)
                 if self.muMap is not None:
@@ -296,7 +297,7 @@ class Simulation1DLayered(BaseEM1DSimulation):
                             + (self.hankel_coefficients.C1s * rTE_dmu)
                             @ self._fhtfilt.j1
                         )
-                        @ self.hankel_coefficients.W.T
+                        @ W.T
                     ).T
                     self._J["dmu"] = self._project_to_data(v_dmu)
                 if self.thicknessesMap is not None:
@@ -306,7 +307,7 @@ class Simulation1DLayered(BaseEM1DSimulation):
                             (self.hankel_coefficients.C0s * rTE_dh) @ self._fhtfilt.j0
                             + (self.hankel_coefficients.C1s * rTE_dh) @ self._fhtfilt.j1
                         )
-                        @ self.hankel_coefficients.W.T
+                        @ W.T
                     ).T
                     self._J["dthick"] = self._project_to_data(v_dthick)
         return self._J
