@@ -3,12 +3,10 @@ import numpy as np
 from scipy import sparse as sp
 from scipy.special import roots_legendre
 from empymod.transform import get_dlf_points
-
+from enum import Enum
 from ..simulation import BaseSimulation
-
-# from .time_domain.sources import MagDipole as t_MagDipole, CircularLoop as t_CircularLoop
-# from .frequency_domain.sources import MagDipole as f_MagDipole, CircularLoop as f_CircularLoop
-
+from ..survey import BaseSurvey
+from .base import BaseEMSrc
 from .. import utils
 from ..utils import (
     validate_string,
@@ -17,9 +15,16 @@ from ..utils import (
     validate_integer,
 )
 from .. import props
+from ..maps import Wires
 from empymod.utils import check_hankel
 
-__all__ = ["BaseEM1DSimulation"]
+__all__ = ["BaseEM1DSimulation", "run_em1d_simulation", "OutputType"]
+
+
+class OutputType(Enum):
+    FORWARD = 1
+    SENSITIVITY = 2
+
 
 ###############################################################################
 #                                                                             #
@@ -617,3 +622,61 @@ class BaseEM1DSimulation(BaseSimulation):
                 out = out + np.einsum("i,ij,ij->j", W, J, J)
             self._gtgdiag = out
         return self._gtgdiag
+
+
+def run_em1d_simulation(
+    simulation_class: type(BaseEM1DSimulation),
+    survey_class: type(BaseSurvey),
+    source_list: list[BaseEMSrc],
+    topo: np.ndarray,
+    thicknesses: np.ndarray,
+    sigma: np.ndarray,
+    eta: np.ndarray,
+    tau: np.ndarray,
+    cole_cole: np.ndarray,
+    h: float,
+    output_type: OutputType,
+):
+    """
+    This method simulates the EM response or computes the sensitivities for
+    a single sounding. The method allows for parallelization of
+    the stitched 1D problem.
+    :param simulation_class: The simulation class type
+    :param survey_class: The survey class type
+    :param source_list: A list of EM1DFM source objects
+    :param topo: Topographic 3D coordinate locations, shape(, 3)
+    :param thicknesses: Layer thicknesses model, shape(n_cells-1,)
+    :param sigma: Conductivities layer model, shape(n_cells,)
+    :param eta: Intrinsic chargeability layer model, shape(n_cells,)
+    :param tau: Cole-Cole time constant layer model, shape(n_cells,)
+    :param cole_cole: Cole-Cole frequency distribution constant layer model, shape(n_cells,)
+    :param h: Source heights, shape(n_src,)
+    :param output_type: One of 'FORWARD' or 'SENSIVITITY'
+
+    :return: response or sensitivities
+    """
+    n_layer = len(thicknesses) + 1
+    local_survey = survey_class(source_list)
+    n_src = len(source_list)
+    wires = Wires(("sigma", n_layer), ("h", n_src))
+    sim = simulation_class(
+        survey=local_survey,
+        thicknesses=thicknesses,
+        sigmaMap=wires.sigma,
+        hMap=wires.h,
+        eta=eta,
+        tau=tau,
+        c=cole_cole,
+        topo=topo,
+        hankel_filter="key_101_2009",
+    )
+
+    model = np.r_[sigma, h * np.ones(n_src)]
+
+    if output_type is OutputType.FORWARD:
+        em_response = sim.dpred(model)
+        return em_response
+    else:
+        J = sim.getJ(model)
+        J["dh"] = J["dh"].sum(axis=1)
+        return J

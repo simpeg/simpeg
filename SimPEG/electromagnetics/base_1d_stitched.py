@@ -1,6 +1,6 @@
 from scipy.constants import mu_0
+import scipy.sparse as sp
 import numpy as np
-from ..simulation import BaseSimulation
 from .. import props
 from .. import utils
 from ..utils.code_utils import (
@@ -8,6 +8,13 @@ from ..utils.code_utils import (
     validate_ndarray_with_shape,
     validate_type,
 )
+
+from ..simulation import BaseSimulation
+from ..survey import BaseSurvey
+
+from multiprocessing import cpu_count, Pool
+from .base_1d import run_em1d_simulation, OutputType
+
 
 ###############################################################################
 #                                                                             #
@@ -25,6 +32,8 @@ class BaseStitchedEM1DSimulation(BaseSimulation):
     """
 
     _formulation = "1D"
+    _simulation_type: type(BaseSimulation)
+    _survey_type: type(BaseSurvey)
 
     # Properties for electrical conductivity/resistivity
     sigma, sigmaMap, sigmaDeriv = props.Invertible(
@@ -107,7 +116,7 @@ class BaseStitchedEM1DSimulation(BaseSimulation):
             if self.verbose:
                 print(">> Use multiprocessing for parallelization")
                 if self.n_cpu is None:
-                    self.n_cpu = multiprocessing.cpu_count()
+                    self.n_cpu = cpu_count()
                 print((">> n_cpu: %i") % (self.n_cpu))
         else:
             if self.verbose:
@@ -341,8 +350,10 @@ class BaseStitchedEM1DSimulation(BaseSimulation):
             self.survey._sounding_types, return_index=True
         )
 
-    def input_args(self, i_sounding, output_type="forward"):
+    def input_args(self, i_sounding, output_type=OutputType.FORWARD):
         output = (
+            self._simulation_type,
+            self._survey_type,
             self.survey.get_sources_by_sounding_number(i_sounding),
             self.topo[i_sounding, :],
             self.thickness_matrix[i_sounding, :],
@@ -350,22 +361,18 @@ class BaseStitchedEM1DSimulation(BaseSimulation):
             self.eta_matrix[i_sounding, :],
             self.tau_matrix[i_sounding, :],
             self.c_matrix[i_sounding, :],
-            self.chi_matrix[i_sounding, :],
-            self.dchi_matrix[i_sounding, :],
-            self.tau1_matrix[i_sounding, :],
-            self.tau2_matrix[i_sounding, :],
             self.h_vector[i_sounding],
             output_type,
         )
         return output
 
-    def fields(self, m):
+    def fields(self, m=None):
         if self.verbose:
             print("Compute fields")
 
         return self.forward(m)
 
-    def dpred(self, m, f=None):
+    def dpred(self, m=None, f=None):
         """
         Return predicted data.
         Predicted data, (`_pred`) are computed when
@@ -497,3 +504,96 @@ class BaseStitchedEM1DSimulation(BaseSimulation):
                 "_gtg_diag",
             ]
         return toDelete
+
+    def forward(self, m):
+        self.model = m
+
+        if self.verbose:
+            print(">> Compute response")
+
+        if self.parallel:
+            if self.verbose:
+                print("parallel")
+            # This assumes the same # of layers for each of sounding
+            # if self.n_sounding_for_chunk is None:
+            pool = Pool(self.n_cpu)
+            result = pool.map(
+                run_em1d_simulation,
+                [
+                    self.input_args(i, output_type=OutputType.FORWARD)
+                    for i in range(self.n_sounding)
+                ],
+            )
+
+            pool.close()
+            pool.join()
+        else:
+            result = [
+                run_em1d_simulation(*self.input_args(i, output_type=OutputType.FORWARD))
+                for i in range(self.n_sounding)
+            ]
+
+        return np.hstack(result)
+
+    def getJ(self, m):
+        """
+        Compute d F / d sigma
+        """
+        self.model = m
+        if getattr(self, "_J", None) is None:
+            if self.verbose:
+                print(">> Compute J")
+
+            if self.parallel:
+                if self.verbose:
+                    print(">> Start pooling")
+
+                pool = Pool(self.n_cpu)
+
+                # Deprecate this for now, but revisit later
+                # It is an idea of chunking for parallelization
+                # if self.n_sounding_for_chunk is None:
+                self._J = pool.map(
+                    run_em1d_simulation,
+                    [
+                        self.input_args(i, output_type=OutputType.SENSITIVITY)
+                        for i in range(self.n_sounding)
+                    ],
+                )
+
+                if self.verbose:
+                    print(">> End pooling and form J matrix")
+
+            else:
+                self._J = [
+                    run_em1d_simulation(
+                        *self.input_args(i, output_type=OutputType.SENSITIVITY)
+                    )
+                    for i in range(self.n_sounding)
+                ]
+        return self._J
+
+    def getJ_sigma(self, m):
+        """
+        Compute d F / d sigma
+        """
+        if getattr(self, "_Jmatrix_sigma", None) is None:
+            J = self.getJ(m)
+            self._Jmatrix_sigma = np.hstack(
+                [utils.mkvc(J[i]["ds"]) for i in range(self.n_sounding)]
+            )
+            self._Jmatrix_sigma = sp.coo_matrix(
+                (self._Jmatrix_sigma, self.IJLayers), dtype=float
+            ).tocsr()
+        return self._Jmatrix_sigma
+
+    def getJ_height(self, m):
+        if getattr(self, "_Jmatrix_height", None) is None:
+            J = self.getJ(m)
+            self._Jmatrix_height = np.hstack(
+                [utils.mkvc(J[i]["dh"]) for i in range(self.n_sounding)]
+            )
+            self._Jmatrix_height = sp.coo_matrix(
+                (self._Jmatrix_height, self.IJHeight), dtype=float
+            ).tocsr()
+        return self._Jmatrix_height
