@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from scipy.constants import mu_0
 import scipy.sparse as sp
 import numpy as np
