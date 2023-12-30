@@ -74,12 +74,13 @@ class BaseStitchedEM1DSimulation(BaseSimulation):
         self.muMap = muMap
         self.h = h
         self.hMap = hMap
+
         if thicknesses is None:
             thicknesses = np.array([])
+
         self.thicknesses = thicknesses
         self.thicknessesMap = thicknessesMap
         self.cole_cole_parameters = cole_cole_parameters
-
         self.fix_Jmatrix = fix_Jmatrix
         self.topo = topo
         if self.topo is None:

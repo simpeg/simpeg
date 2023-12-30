@@ -1,3 +1,4 @@
+import warnings
 import numpy as np
 from geoana.em.fdem.base import skin_depth
 from geoana.em.tdem import diffusion_distance
@@ -248,7 +249,7 @@ class Stitched1DModel:
         line=None,
         time_stamp=None,
         thicknesses=None,
-        **kwargs
+        **kwargs,
     ):
         super().__init__(**kwargs)
 
@@ -450,7 +451,7 @@ class Stitched1DModel:
         dx=20.0,
         invert_xaxis=False,
         alpha=0.7,
-        pcolorOpts={},
+        pcolorOpts=None,
     ):
         ind_line = self.line == self.unique_line[i_line]
         if physical_property is not None:
@@ -487,6 +488,7 @@ class Stitched1DModel:
             norm = None
 
         ind_line = np.arange(ind_line.size)[ind_line]
+        pcolorOpts = {} if pcolorOpts is None else pcolorOpts
 
         for i in ind_line:
             inds_temp = [i]
@@ -506,7 +508,7 @@ class Stitched1DModel:
                 vmax=vmax,
                 norm=norm,
                 shading="auto",
-                **pcolorOpts
+                **pcolorOpts,
             )
 
         if show_colorbar:
@@ -578,7 +580,8 @@ class Stitched1DModel:
 
         if nx * ny * nz > 1e6:
             warnings.warn(
-                ("Size of the mesh (%i) will greater than 1e6") % (nx * ny * nz)
+                f"Size of the mesh {int(nx * ny * nz)} will greater than 1e6",
+                stacklevel=2,
             )
         hx = [(dx, npad_x, -1.2), (dx, nx), (dx, npad_x, -1.2)]
         hy = [(dy, npad_y, -1.2), (dy, ny), (dy, npad_y, -1.2)]
