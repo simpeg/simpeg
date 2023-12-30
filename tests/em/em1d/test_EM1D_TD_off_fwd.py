@@ -2,6 +2,7 @@ import unittest
 import numpy as np
 from SimPEG import maps
 import SimPEG.electromagnetics.time_domain as tdem
+from SimPEG.electromagnetics.base_1d import ColeColeParameters
 from scipy.constants import mu_0
 from geoana.em.tdem import (
     magnetic_flux_vertical_magnetic_dipole as b_dipole,
@@ -350,9 +351,11 @@ class EM1D_TD_Loop_Center_Tests(unittest.TestCase):
             thicknesses=self.thicknesses,
             topo=self.topo,
             sigmaMap=sigma_map,
-            dchi=self.dchi,
-            tau1=self.tau1,
-            tau2=self.tau2,
+            cole_cole_parameters=ColeColeParameters(
+                chi=self.dchi,
+                tau1=self.tau1,
+                tau2=self.tau2,
+            ),
         )
 
         m_1D = 1e-10 * np.ones(self.nlayers)

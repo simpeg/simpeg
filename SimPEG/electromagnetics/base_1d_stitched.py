@@ -13,7 +13,7 @@ from ..simulation import BaseSimulation
 from ..survey import BaseSurvey
 
 from multiprocessing import cpu_count, Pool
-from .base_1d import run_em1d_simulation, OutputType
+from .base_1d import run_em1d_simulation, OutputType, ColeColeParameters
 
 
 ###############################################################################
@@ -39,28 +39,12 @@ class BaseStitchedEM1DSimulation(BaseSimulation):
     sigma, sigmaMap, sigmaDeriv = props.Invertible(
         "Electrical conductivity at infinite frequency (S/m)"
     )
-
-    eta = props.PhysicalProperty("Intrinsic chargeability (V/V), 0 <= eta < 1")
-    tau = props.PhysicalProperty("Time constant for Cole-Cole model (s)")
-    c = props.PhysicalProperty("Frequency Dependency for Cole-Cole model, 0 < c < 1")
-
     # Properties for magnetic susceptibility
     mu, muMap, muDeriv = props.Invertible(
         "Magnetic permeability at infinite frequency (SI)"
     )
-    chi = props.PhysicalProperty(
-        "DC magnetic susceptibility for viscous remanent magnetization contribution (SI)"
-    )
-    tau1 = props.PhysicalProperty(
-        "Lower bound for log-uniform distribution of time-relaxation constants for viscous remanent magnetization (s)"
-    )
-    tau2 = props.PhysicalProperty(
-        "Upper bound for log-uniform distribution of time-relaxation constants for viscous remanent magnetization (s)"
-    )
-
     # Additional properties
     h, hMap, hDeriv = props.Invertible("Receiver Height (m), h > 0")
-
     thicknesses, thicknessesMap, thicknessesDeriv = props.Invertible(
         "layer thicknesses (m)"
     )
@@ -75,12 +59,7 @@ class BaseStitchedEM1DSimulation(BaseSimulation):
         muMap=None,
         h=None,
         hMap=None,
-        eta=None,
-        tau=None,
-        c=None,
-        dchi=None,
-        tau1=None,
-        tau2=None,
+        cole_cole_parameters: ColeColeParameters | None = None,
         fix_Jmatrix=False,
         topo=None,
         parallel=False,
@@ -88,6 +67,7 @@ class BaseStitchedEM1DSimulation(BaseSimulation):
         **kwargs,
     ):
         super().__init__(mesh=None, **kwargs)
+        self._cole_cole_parameters: ColeColeParameters | None = None
         self.sigma = sigma
         self.sigmaMap = sigmaMap
         self.mu = mu
@@ -98,12 +78,8 @@ class BaseStitchedEM1DSimulation(BaseSimulation):
             thicknesses = np.array([])
         self.thicknesses = thicknesses
         self.thicknessesMap = thicknessesMap
-        self.eta = eta
-        self.tau = tau
-        self.c = c
-        self.dchi = dchi
-        self.tau1 = tau1
-        self.tau2 = tau2
+        self.cole_cole_parameters = cole_cole_parameters
+
         self.fix_Jmatrix = fix_Jmatrix
         self.topo = topo
         if self.topo is None:
@@ -121,6 +97,25 @@ class BaseStitchedEM1DSimulation(BaseSimulation):
         else:
             if self.verbose:
                 print(">> Serial version is used")
+
+    @property
+    def cole_cole_parameters(self) -> ColeColeParameters | None:
+        """
+        Physical properties defining the Cole-Cole model.
+        """
+        return self._cole_cole_parameters
+
+    @cole_cole_parameters.setter
+    def cole_cole_parameters(self, value):
+        if value is None:
+            value = ColeColeParameters()
+
+        if not isinstance(value, ColeColeParameters):
+            raise TypeError(
+                f"cole_cole_parameters must be of type ColeColeParameters, {type(value)} provided."
+            )
+
+        self._cole_cole_parameters = value
 
     @property
     def fix_Jmatrix(self):
@@ -215,6 +210,7 @@ class BaseStitchedEM1DSimulation(BaseSimulation):
         if getattr(self, "_sigma_matrix", None) is None:
             # Ordering: first z then x
             self._sigma_matrix = self.sigma.reshape((self.n_sounding, self.n_layer))
+
         return self._sigma_matrix
 
     @property
@@ -227,90 +223,97 @@ class BaseStitchedEM1DSimulation(BaseSimulation):
                 )
             else:
                 self._thickness_matrix = np.tile(self.thicknesses, (self.n_sounding, 1))
+
         return self._thickness_matrix
 
     @property
     def eta_matrix(self):
         if getattr(self, "_eta_matrix", None) is None:
             # Ordering: first z then x
-            if self.eta is None:
-                self._eta_matrix = np.zeros(
+            if isinstance(self.cole_cole_parameters.eta, float):
+                self._eta_matrix = self.cole_cole_parameters.eta * np.ones(
                     (self.n_sounding, self.n_layer), dtype=float, order="C"
                 )
             else:
-                self._eta_matrix = self.eta.reshape((self.n_sounding, self.n_layer))
+                self._eta_matrix = self.cole_cole_parameters.eta.reshape(
+                    (self.n_sounding, self.n_layer)
+                )
+
         return self._eta_matrix
 
     @property
     def tau_matrix(self):
         if getattr(self, "_tau_matrix", None) is None:
             # Ordering: first z then x
-            if self.tau is None:
-                self._tau_matrix = 1e-3 * np.ones(
+            if isinstance(self.cole_cole_parameters.tau, float):
+                self._tau_matrix = self.cole_cole_parameters.tau * np.ones(
                     (self.n_sounding, self.n_layer), dtype=float, order="C"
                 )
             else:
-                self._tau_matrix = self.tau.reshape((self.n_sounding, self.n_layer))
+                self._tau_matrix = self.cole_cole_parameters.tau.reshape(
+                    (self.n_sounding, self.n_layer)
+                )
+
         return self._tau_matrix
 
     @property
     def c_matrix(self):
         if getattr(self, "_c_matrix", None) is None:
             # Ordering: first z then x
-            if self.c is None:
-                self._c_matrix = np.ones(
+            if isinstance(self.cole_cole_parameters.c, float):
+                self._c_matrix = self.cole_cole_parameters.c * np.ones(
                     (self.n_sounding, self.n_layer), dtype=float, order="C"
                 )
             else:
-                self._c_matrix = self.c.reshape((self.n_sounding, self.n_layer))
+                self._c_matrix = self.cole_cole_parameters.c.reshape(
+                    (self.n_sounding, self.n_layer)
+                )
+
         return self._c_matrix
 
     @property
     def chi_matrix(self):
         if getattr(self, "_chi_matrix", None) is None:
             # Ordering: first z then x
-            if self.chi is None:
-                self._chi_matrix = np.zeros(
+            if isinstance(self.cole_cole_parameters.chi, float):
+                self._chi_matrix = self.cole_cole_parameters.chi * np.ones(
                     (self.n_sounding, self.n_layer), dtype=float, order="C"
                 )
             else:
-                self._chi_matrix = self.chi.reshape((self.n_sounding, self.n_layer))
-        return self._chi_matrix
+                self._chi_matrix = self.cole_cole_parameters.chi.reshape(
+                    (self.n_sounding, self.n_layer)
+                )
 
-    @property
-    def dchi_matrix(self):
-        if getattr(self, "_dchi_matrix", None) is None:
-            # Ordering: first z then x
-            if self.dchi is None:
-                self._dchi_matrix = np.zeros(
-                    (self.n_sounding, self.n_layer), dtype=float, order="C"
-                )
-            else:
-                self._dchi_matrix = self.dchi.reshape((self.n_sounding, self.n_layer))
-        return self._dchi_matrix
+        return self._chi_matrix
 
     @property
     def tau1_matrix(self):
         if getattr(self, "_tau1_matrix", None) is None:
             # Ordering: first z then x
-            if self.tau1 is None:
-                self._tau1_matrix = 1e-10 * np.ones(
+            if isinstance(self.cole_cole_parameters.tau1, float):
+                self._tau1_matrix = self.cole_cole_parameters.tau1 * np.ones(
                     (self.n_sounding, self.n_layer), dtype=float, order="C"
                 )
             else:
-                self._tau1_matrix = self.tau1.reshape((self.n_sounding, self.n_layer))
+                self._tau1_matrix = self.cole_cole_parameters.tau1.reshape(
+                    (self.n_sounding, self.n_layer)
+                )
+
         return self._tau1_matrix
 
     @property
     def tau2_matrix(self):
         if getattr(self, "_tau2_matrix", None) is None:
             # Ordering: first z then x
-            if self.tau2 is None:
-                self._tau2_matrix = 100.0 * np.ones(
+            if isinstance(self.cole_cole_parameters.tau2, float):
+                self._tau2_matrix = self.cole_cole_parameters.tau2 * np.ones(
                     (self.n_sounding, self.n_layer), dtype=float, order="C"
                 )
             else:
-                self._tau2_matrix = self.tau2.reshape((self.n_sounding, self.n_layer))
+                self._tau2_matrix = self.cole_cole_parameters.tau2.reshape(
+                    (self.n_sounding, self.n_layer)
+                )
+
         return self._tau2_matrix
 
     @property

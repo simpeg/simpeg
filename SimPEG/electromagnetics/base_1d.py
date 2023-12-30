@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from typing import Union
 from scipy.constants import mu_0
 import numpy as np
 from scipy import sparse as sp
@@ -19,7 +20,13 @@ from .. import props
 from ..maps import Wires
 from empymod.utils import check_hankel
 
-__all__ = ["BaseEM1DSimulation", "run_em1d_simulation", "OutputType"]
+__all__ = [
+    "BaseEM1DSimulation",
+    "run_em1d_simulation",
+    "OutputType",
+    "ColeColeParameters",
+    "HankelCoefficients",
+]
 
 
 class OutputType(Enum):
@@ -50,6 +57,27 @@ class HankelCoefficients:
     W: sp.csr_matrix
 
 
+@dataclass
+class ColeColeParameters:
+    """
+    Set of static physical properties provided as an array of fixed values.
+
+    :param eta: Intrinsic chargeability
+    :param tau: Cole-Cole time constant
+    :param c: Cole-Cole frequency dependency
+    :param chi: DC magnetic susceptibility
+    :param tau1: Lower bound for log-uniform distribution of time-relaxation constants
+    :param tau2: Upper bound for log-uniform distribution of time-relaxation constants
+    """
+
+    eta: Union[np.ndarray, float] = 0.0
+    tau: Union[np.ndarray, float] = 1.0
+    c: Union[np.ndarray, float] = 0.5
+    chi: Union[np.ndarray, float] = 0.0
+    tau1: Union[np.ndarray, float] = 1.0e-10
+    tau2: Union[np.ndarray, float] = 10.0
+
+
 ###############################################################################
 #                                                                             #
 #                             Base EM1D Simulation                            #
@@ -73,26 +101,11 @@ class BaseEM1DSimulation(BaseSimulation):
         "Electrical conductivity at infinite frequency (S/m)"
     )
     rho, rhoMap, rhoDeriv = props.Invertible("Electrical resistivity (Ohm m)")
-    props.Reciprocal(sigma, rho)
-
-    eta = props.PhysicalProperty("Intrinsic chargeability (V/V), 0 <= eta < 1")
-    tau = props.PhysicalProperty("Time constant for Cole-Cole model (s)")
-    c = props.PhysicalProperty("Frequency Dependency for Cole-Cole model, 0 < c < 1")
 
     # Properties for magnetic susceptibility
     mu, muMap, muDeriv = props.Invertible(
         "Magnetic permeability at infinite frequency (SI)"
     )
-    dchi = props.PhysicalProperty(
-        "DC magnetic susceptibility for viscous remanent magnetization contribution (SI)"
-    )
-    tau1 = props.PhysicalProperty(
-        "Lower bound for log-uniform distribution of time-relaxation constants for viscous remanent magnetization (s)"
-    )
-    tau2 = props.PhysicalProperty(
-        "Upper bound for log-uniform distribution of time-relaxation constants for viscous remanent magnetization (s)"
-    )
-
     # Additional properties
     h, hMap, hDeriv = props.Invertible("Receiver Height (m), h > 0")
 
@@ -112,12 +125,7 @@ class BaseEM1DSimulation(BaseSimulation):
         muMap=None,
         h=None,
         hMap=None,
-        eta=0.0,
-        tau=1.0,
-        c=0.5,
-        dchi=0.0,
-        tau1=1.0e-10,
-        tau2=10.0,
+        cole_cole_parameters: ColeColeParameters | None = None,
         hankel_filter="key_101_2009",
         fix_Jmatrix=False,
         topo=None,
@@ -126,6 +134,7 @@ class BaseEM1DSimulation(BaseSimulation):
     ):
         super().__init__(mesh=None, **kwargs)
         self._hankel_coefficients: HankelCoefficients | None = None
+        self._cole_cole_parameters: ColeColeParameters | None = None
         self.sigma = sigma
         self.rho = rho
         self.sigmaMap = sigmaMap
@@ -138,13 +147,8 @@ class BaseEM1DSimulation(BaseSimulation):
             thicknesses = np.array([])
         self.thicknesses = thicknesses
         self.thicknessesMap = thicknessesMap
-        self.eta = eta
-        self.tau = tau
-        self.c = c
-        self.dchi = dchi
-        self.tau1 = tau1
-        self.tau2 = tau2
         self.n_points_per_path = n_points_per_path
+        self.cole_cole_parameters = cole_cole_parameters
 
         if topo is None:
             topo = np.r_[0.0, 0.0, 0.0]
@@ -177,6 +181,25 @@ class BaseEM1DSimulation(BaseSimulation):
         # self.hankel_pts_per_dec = htarg["pts_per_dec"]  # Store pts_per_dec
         if self.verbose:
             print(">> Use " + self.hankel_filter + " filter for Hankel Transform")
+
+    @property
+    def cole_cole_parameters(self) -> ColeColeParameters | None:
+        """
+        Physical properties defining the Cole-Cole model.
+        """
+        return self._cole_cole_parameters
+
+    @cole_cole_parameters.setter
+    def cole_cole_parameters(self, value):
+        if value is None:
+            value = ColeColeParameters()
+
+        if not isinstance(value, ColeColeParameters):
+            raise TypeError(
+                f"cole_cole_parameters must be of type ColeColeParameters, {type(value)} provided."
+            )
+
+        self._cole_cole_parameters = value
 
     @property
     def hankel_filter(self):
@@ -283,19 +306,25 @@ class BaseEM1DSimulation(BaseSimulation):
         sigma = np.tile(self.sigma.reshape([-1, 1]), (1, n_frequency))
 
         # No IP effect
-        if np.all(self.eta) == 0.0:
+        if np.all(self.cole_cole_parameters.eta) == 0.0:
             return sigma
 
         # IP effect
         else:
-            if np.isscalar(self.eta):
-                eta = self.eta
-                tau = self.tau
-                c = self.c
+            if np.isscalar(self.cole_cole_parameters.eta):
+                eta = self.cole_cole_parameters.eta
+                tau = self.cole_cole_parameters.tau
+                c = self.cole_cole_parameters.c
             else:
-                eta = np.tile(self.eta.reshape([-1, 1]), (1, n_frequency))
-                tau = np.tile(self.tau.reshape([-1, 1]), (1, n_frequency))
-                c = np.tile(self.c.reshape([-1, 1]), (1, n_frequency))
+                eta = np.tile(
+                    self.cole_cole_parameters.eta.reshape([-1, 1]), (1, n_frequency)
+                )
+                tau = np.tile(
+                    self.cole_cole_parameters.tau.reshape([-1, 1]), (1, n_frequency)
+                )
+                c = np.tile(
+                    self.cole_cole_parameters.c.reshape([-1, 1]), (1, n_frequency)
+                )
 
             w = np.tile(2 * np.pi * frequencies, (n_layer, 1))
 
@@ -337,19 +366,25 @@ class BaseEM1DSimulation(BaseSimulation):
         mu = np.tile(mu.reshape([-1, 1]), (1, n_frequency))
 
         # No magnetic viscosity
-        if np.all(self.dchi) == 0.0:
+        if np.all(self.cole_cole_parameters.chi) == 0.0:
             return mu
 
         # Magnetic viscosity
         else:
-            if np.isscalar(self.dchi):
-                dchi = self.dchi * np.ones_like(self.mu)
-                tau1 = self.tau1 * np.ones_like(self.mu)
-                tau2 = self.tau2 * np.ones_like(self.mu)
+            if np.isscalar(self.cole_cole_parameters.chi):
+                dchi = self.cole_cole_parameters.chi * np.ones_like(self.mu)
+                tau1 = self.cole_cole_parameters.tau1 * np.ones_like(self.mu)
+                tau2 = self.cole_cole_parameters.tau2 * np.ones_like(self.mu)
             else:
-                dchi = np.tile(self.dchi.reshape([-1, 1]), (1, n_frequency))
-                tau1 = np.tile(self.tau1.reshape([-1, 1]), (1, n_frequency))
-                tau2 = np.tile(self.tau2.reshape([-1, 1]), (1, n_frequency))
+                dchi = np.tile(
+                    self.cole_cole_parameters.chi.reshape([-1, 1]), (1, n_frequency)
+                )
+                tau1 = np.tile(
+                    self.cole_cole_parameters.tau1.reshape([-1, 1]), (1, n_frequency)
+                )
+                tau2 = np.tile(
+                    self.cole_cole_parameters.tau2.reshape([-1, 1]), (1, n_frequency)
+                )
 
             w = np.tile(2 * np.pi * frequencies, (n_layer, 1))
 
@@ -673,7 +708,7 @@ def run_em1d_simulation(
     sigma: np.ndarray,
     eta: np.ndarray,
     tau: np.ndarray,
-    cole_cole: np.ndarray,
+    c: np.ndarray,
     h: float,
     output_type: OutputType,
 ):
@@ -689,7 +724,7 @@ def run_em1d_simulation(
     :param sigma: Conductivities layer model, shape(n_cells,)
     :param eta: Intrinsic chargeability layer model, shape(n_cells,)
     :param tau: Cole-Cole time constant layer model, shape(n_cells,)
-    :param cole_cole: Cole-Cole frequency distribution constant layer model, shape(n_cells,)
+    :param c: Cole-Cole frequency distribution constant layer model, shape(n_cells,)
     :param h: Source heights, shape(n_src,)
     :param output_type: One of 'FORWARD' or 'SENSIVITITY'
 
@@ -699,14 +734,13 @@ def run_em1d_simulation(
     local_survey = survey_class(source_list)
     n_src = len(source_list)
     wires = Wires(("sigma", n_layer), ("h", n_src))
+    cole_cole_parameters = ColeColeParameters(eta=eta, tau1=tau, c=c)
     sim = simulation_class(
         survey=local_survey,
         thicknesses=thicknesses,
         sigmaMap=wires.sigma,
         hMap=wires.h,
-        eta=eta,
-        tau=tau,
-        c=cole_cole,
+        cole_cole_parameters=cole_cole_parameters,
         topo=topo,
         hankel_filter="key_101_2009",
     )
