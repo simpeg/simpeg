@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from scipy.constants import mu_0
 import numpy as np
 from scipy import sparse as sp
@@ -26,6 +27,29 @@ class OutputType(Enum):
     SENSITIVITY = 2
 
 
+@dataclass
+class HankelCoefficients:
+    """
+    Set of Hankel coefficients for a single sounding,
+
+    Arrays of shape(n_coefficients, n_frequency)
+
+    :param C0s: Coefficients for the zeroth order Hankel transform,
+    :param C1s: Coefficients for the first order Hankel transform
+    :param lambs: Array of Hankel transform parameters
+    :param unique_lambs: Unique Hankel transform parameters
+    :param inv_lambs: Inverse map of unique Hankel transform parameters
+    :param W: Array of weights
+    """
+
+    C0s: np.ndarray
+    C1s: np.ndarray
+    lambs: np.ndarray
+    unique_lambs: np.ndarray
+    inv_lambs: np.ndarray
+    W: sp.csr_matrix
+
+
 ###############################################################################
 #                                                                             #
 #                             Base EM1D Simulation                            #
@@ -42,7 +66,7 @@ class BaseEM1DSimulation(BaseSimulation):
     """
 
     _formulation = "1D"
-    _coefficients_set = False
+    _hankel_pts_per_dec = 0  # Default: Standard DLF
 
     # Properties for electrical conductivity/resistivity
     sigma, sigmaMap, sigmaDeriv = props.Invertible(
@@ -101,6 +125,7 @@ class BaseEM1DSimulation(BaseSimulation):
         **kwargs,
     ):
         super().__init__(mesh=None, **kwargs)
+        self._hankel_coefficients = None
         self.sigma = sigma
         self.rho = rho
         self.sigmaMap = sigmaMap
@@ -167,7 +192,15 @@ class BaseEM1DSimulation(BaseSimulation):
     def hankel_filter(self, value):
         self._hankel_filter = validate_string("hankel_filter", value)
 
-    _hankel_pts_per_dec = 0  # Default: Standard DLF
+    @property
+    def hankel_coefficients(self) -> HankelCoefficients | None:
+        """
+        Hankel coefficients for the simulation.
+        """
+        if self._hankel_coefficients is None:
+            self._hankel_coefficients = self._compute_hankel_coefficients()
+
+        return self._hankel_coefficients
 
     @property
     def fix_Jmatrix(self):
@@ -563,18 +596,25 @@ class BaseEM1DSimulation(BaseSimulation):
                 i_count += 1
 
         # Store these on the simulation for faster future executions
-        self._lambs = np.vstack(lambs)
-        self._unique_lambs, inv_lambs = np.unique(self._lambs, return_inverse=True)
-        self._inv_lambs = inv_lambs.reshape(self._lambs.shape)
-        self._C0s = np.vstack(C0s)
-        self._C1s = np.vstack(C1s)
+        lambs = np.vstack(lambs)
+        unique_lambs, inv_lambs = np.unique(lambs, return_inverse=True)
+        inv_lambs = inv_lambs.reshape(lambs.shape)
         Is = np.hstack(Is)
         n_row = Is.size
         n_col = Is.max() + 1
         Js = np.arange(n_row)
         data = np.ones(n_row, dtype=int)
-        self._W = sp.coo_matrix((data, (Is, Js)), shape=(n_col, n_row))
-        self._W = self._W.tocsr()
+        W = sp.coo_matrix((data, (Is, Js)), shape=(n_col, n_row))
+        W = W.tocsr()
+
+        return HankelCoefficients(
+            np.vstack(C0s),
+            np.vstack(C1s),
+            lambs,
+            unique_lambs,
+            inv_lambs,
+            W,
+        )
 
     @property
     def deleteTheseOnModelUpdate(self):
