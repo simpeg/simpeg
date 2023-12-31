@@ -3,6 +3,7 @@ import unittest
 import numpy as np
 import SimPEG.electromagnetics.frequency_domain as fdem
 from SimPEG import maps, tests
+from SimPEG.utils import mkvc
 from discretize import TensorMesh
 
 np.random.seed(41)

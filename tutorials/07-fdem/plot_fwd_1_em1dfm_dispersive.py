@@ -28,6 +28,7 @@ from matplotlib import pyplot as plt
 
 from SimPEG import maps
 import SimPEG.electromagnetics.frequency_domain as fdem
+from SimPEG.electromagnetics.base_1d import ColeColeParameters
 from SimPEG.electromagnetics.utils.em1d_utils import ColeCole
 
 plt.rcParams.update({"font.size": 16})
@@ -185,9 +186,11 @@ simulation_chargeable = fdem.Simulation1DLayered(
     survey=survey,
     thicknesses=thicknesses,
     sigmaMap=model_mapping,
-    eta=eta,
-    tau=tau,
-    c=c,
+    cole_cole_parameters=ColeColeParameters(
+        eta=eta,
+        tau=tau,
+        c=c,
+    ),
 )
 
 dpred_chargeable = simulation_chargeable.dpred(sigma_model)

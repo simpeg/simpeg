@@ -691,7 +691,12 @@ class SparseSmoothness(BaseSparse, SmoothnessFirstOrder):
         )
 
     gradientType = utils.code_utils.deprecate_property(
-        gradient_type, "gradientType", "0.19.0", error=False, future_warn=True
+        gradient_type,
+        "gradientType",
+        new_name="gradient_type",
+        removal_version="0.19.0",
+        error=False,
+        future_warn=True,
     )
 
 

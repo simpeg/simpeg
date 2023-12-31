@@ -1,6 +1,8 @@
+from __future__ import annotations
+
 from scipy.constants import mu_0
+import scipy.sparse as sp
 import numpy as np
-from ..simulation import BaseSimulation
 from .. import props
 from .. import utils
 from ..utils.code_utils import (
@@ -8,6 +10,13 @@ from ..utils.code_utils import (
     validate_ndarray_with_shape,
     validate_type,
 )
+
+from ..simulation import BaseSimulation
+from ..survey import BaseSurvey
+
+from multiprocessing import cpu_count, Pool
+from .base_1d import run_em1d_simulation, OutputType, ColeColeParameters
+
 
 ###############################################################################
 #                                                                             #
@@ -25,33 +34,19 @@ class BaseStitchedEM1DSimulation(BaseSimulation):
     """
 
     _formulation = "1D"
+    _simulation_type: type(BaseSimulation)
+    _survey_type: type(BaseSurvey)
 
     # Properties for electrical conductivity/resistivity
     sigma, sigmaMap, sigmaDeriv = props.Invertible(
         "Electrical conductivity at infinite frequency (S/m)"
     )
-
-    eta = props.PhysicalProperty("Intrinsic chargeability (V/V), 0 <= eta < 1")
-    tau = props.PhysicalProperty("Time constant for Cole-Cole model (s)")
-    c = props.PhysicalProperty("Frequency Dependency for Cole-Cole model, 0 < c < 1")
-
     # Properties for magnetic susceptibility
     mu, muMap, muDeriv = props.Invertible(
         "Magnetic permeability at infinite frequency (SI)"
     )
-    chi = props.PhysicalProperty(
-        "DC magnetic susceptibility for viscous remanent magnetization contribution (SI)"
-    )
-    tau1 = props.PhysicalProperty(
-        "Lower bound for log-uniform distribution of time-relaxation constants for viscous remanent magnetization (s)"
-    )
-    tau2 = props.PhysicalProperty(
-        "Upper bound for log-uniform distribution of time-relaxation constants for viscous remanent magnetization (s)"
-    )
-
     # Additional properties
     h, hMap, hDeriv = props.Invertible("Receiver Height (m), h > 0")
-
     thicknesses, thicknessesMap, thicknessesDeriv = props.Invertible(
         "layer thicknesses (m)"
     )
@@ -66,12 +61,7 @@ class BaseStitchedEM1DSimulation(BaseSimulation):
         muMap=None,
         h=None,
         hMap=None,
-        eta=None,
-        tau=None,
-        c=None,
-        dchi=None,
-        tau1=None,
-        tau2=None,
+        cole_cole_parameters: ColeColeParameters | None = None,
         fix_Jmatrix=False,
         topo=None,
         parallel=False,
@@ -79,22 +69,20 @@ class BaseStitchedEM1DSimulation(BaseSimulation):
         **kwargs,
     ):
         super().__init__(mesh=None, **kwargs)
+        self._cole_cole_parameters: ColeColeParameters | None = None
         self.sigma = sigma
         self.sigmaMap = sigmaMap
         self.mu = mu
         self.muMap = muMap
         self.h = h
         self.hMap = hMap
+
         if thicknesses is None:
             thicknesses = np.array([])
+
         self.thicknesses = thicknesses
         self.thicknessesMap = thicknessesMap
-        self.eta = eta
-        self.tau = tau
-        self.c = c
-        self.dchi = dchi
-        self.tau1 = tau1
-        self.tau2 = tau2
+        self.cole_cole_parameters = cole_cole_parameters
         self.fix_Jmatrix = fix_Jmatrix
         self.topo = topo
         if self.topo is None:
@@ -107,11 +95,30 @@ class BaseStitchedEM1DSimulation(BaseSimulation):
             if self.verbose:
                 print(">> Use multiprocessing for parallelization")
                 if self.n_cpu is None:
-                    self.n_cpu = multiprocessing.cpu_count()
+                    self.n_cpu = cpu_count()
                 print((">> n_cpu: %i") % (self.n_cpu))
         else:
             if self.verbose:
                 print(">> Serial version is used")
+
+    @property
+    def cole_cole_parameters(self) -> ColeColeParameters | None:
+        """
+        Physical properties defining the Cole-Cole model.
+        """
+        return self._cole_cole_parameters
+
+    @cole_cole_parameters.setter
+    def cole_cole_parameters(self, value):
+        if value is None:
+            value = ColeColeParameters()
+
+        if not isinstance(value, ColeColeParameters):
+            raise TypeError(
+                f"cole_cole_parameters must be of type ColeColeParameters, {type(value)} provided."
+            )
+
+        self._cole_cole_parameters = value
 
     @property
     def fix_Jmatrix(self):
@@ -206,6 +213,7 @@ class BaseStitchedEM1DSimulation(BaseSimulation):
         if getattr(self, "_sigma_matrix", None) is None:
             # Ordering: first z then x
             self._sigma_matrix = self.sigma.reshape((self.n_sounding, self.n_layer))
+
         return self._sigma_matrix
 
     @property
@@ -218,90 +226,97 @@ class BaseStitchedEM1DSimulation(BaseSimulation):
                 )
             else:
                 self._thickness_matrix = np.tile(self.thicknesses, (self.n_sounding, 1))
+
         return self._thickness_matrix
 
     @property
     def eta_matrix(self):
         if getattr(self, "_eta_matrix", None) is None:
             # Ordering: first z then x
-            if self.eta is None:
-                self._eta_matrix = np.zeros(
+            if isinstance(self.cole_cole_parameters.eta, float):
+                self._eta_matrix = self.cole_cole_parameters.eta * np.ones(
                     (self.n_sounding, self.n_layer), dtype=float, order="C"
                 )
             else:
-                self._eta_matrix = self.eta.reshape((self.n_sounding, self.n_layer))
+                self._eta_matrix = self.cole_cole_parameters.eta.reshape(
+                    (self.n_sounding, self.n_layer)
+                )
+
         return self._eta_matrix
 
     @property
     def tau_matrix(self):
         if getattr(self, "_tau_matrix", None) is None:
             # Ordering: first z then x
-            if self.tau is None:
-                self._tau_matrix = 1e-3 * np.ones(
+            if isinstance(self.cole_cole_parameters.tau, float):
+                self._tau_matrix = self.cole_cole_parameters.tau * np.ones(
                     (self.n_sounding, self.n_layer), dtype=float, order="C"
                 )
             else:
-                self._tau_matrix = self.tau.reshape((self.n_sounding, self.n_layer))
+                self._tau_matrix = self.cole_cole_parameters.tau.reshape(
+                    (self.n_sounding, self.n_layer)
+                )
+
         return self._tau_matrix
 
     @property
     def c_matrix(self):
         if getattr(self, "_c_matrix", None) is None:
             # Ordering: first z then x
-            if self.c is None:
-                self._c_matrix = np.ones(
+            if isinstance(self.cole_cole_parameters.c, float):
+                self._c_matrix = self.cole_cole_parameters.c * np.ones(
                     (self.n_sounding, self.n_layer), dtype=float, order="C"
                 )
             else:
-                self._c_matrix = self.c.reshape((self.n_sounding, self.n_layer))
+                self._c_matrix = self.cole_cole_parameters.c.reshape(
+                    (self.n_sounding, self.n_layer)
+                )
+
         return self._c_matrix
 
     @property
     def chi_matrix(self):
         if getattr(self, "_chi_matrix", None) is None:
             # Ordering: first z then x
-            if self.chi is None:
-                self._chi_matrix = np.zeros(
+            if isinstance(self.cole_cole_parameters.chi, float):
+                self._chi_matrix = self.cole_cole_parameters.chi * np.ones(
                     (self.n_sounding, self.n_layer), dtype=float, order="C"
                 )
             else:
-                self._chi_matrix = self.chi.reshape((self.n_sounding, self.n_layer))
-        return self._chi_matrix
+                self._chi_matrix = self.cole_cole_parameters.chi.reshape(
+                    (self.n_sounding, self.n_layer)
+                )
 
-    @property
-    def dchi_matrix(self):
-        if getattr(self, "_dchi_matrix", None) is None:
-            # Ordering: first z then x
-            if self.dchi is None:
-                self._dchi_matrix = np.zeros(
-                    (self.n_sounding, self.n_layer), dtype=float, order="C"
-                )
-            else:
-                self._dchi_matrix = self.dchi.reshape((self.n_sounding, self.n_layer))
-        return self._dchi_matrix
+        return self._chi_matrix
 
     @property
     def tau1_matrix(self):
         if getattr(self, "_tau1_matrix", None) is None:
             # Ordering: first z then x
-            if self.tau1 is None:
-                self._tau1_matrix = 1e-10 * np.ones(
+            if isinstance(self.cole_cole_parameters.tau1, float):
+                self._tau1_matrix = self.cole_cole_parameters.tau1 * np.ones(
                     (self.n_sounding, self.n_layer), dtype=float, order="C"
                 )
             else:
-                self._tau1_matrix = self.tau1.reshape((self.n_sounding, self.n_layer))
+                self._tau1_matrix = self.cole_cole_parameters.tau1.reshape(
+                    (self.n_sounding, self.n_layer)
+                )
+
         return self._tau1_matrix
 
     @property
     def tau2_matrix(self):
         if getattr(self, "_tau2_matrix", None) is None:
             # Ordering: first z then x
-            if self.tau2 is None:
-                self._tau2_matrix = 100.0 * np.ones(
+            if isinstance(self.cole_cole_parameters.tau2, float):
+                self._tau2_matrix = self.cole_cole_parameters.tau2 * np.ones(
                     (self.n_sounding, self.n_layer), dtype=float, order="C"
                 )
             else:
-                self._tau2_matrix = self.tau2.reshape((self.n_sounding, self.n_layer))
+                self._tau2_matrix = self.cole_cole_parameters.tau2.reshape(
+                    (self.n_sounding, self.n_layer)
+                )
+
         return self._tau2_matrix
 
     @property
@@ -341,8 +356,10 @@ class BaseStitchedEM1DSimulation(BaseSimulation):
             self.survey._sounding_types, return_index=True
         )
 
-    def input_args(self, i_sounding, output_type="forward"):
+    def input_args(self, i_sounding, output_type=OutputType.FORWARD):
         output = (
+            self._simulation_type,
+            self._survey_type,
             self.survey.get_sources_by_sounding_number(i_sounding),
             self.topo[i_sounding, :],
             self.thickness_matrix[i_sounding, :],
@@ -350,22 +367,18 @@ class BaseStitchedEM1DSimulation(BaseSimulation):
             self.eta_matrix[i_sounding, :],
             self.tau_matrix[i_sounding, :],
             self.c_matrix[i_sounding, :],
-            self.chi_matrix[i_sounding, :],
-            self.dchi_matrix[i_sounding, :],
-            self.tau1_matrix[i_sounding, :],
-            self.tau2_matrix[i_sounding, :],
             self.h_vector[i_sounding],
             output_type,
         )
         return output
 
-    def fields(self, m):
+    def fields(self, m=None):
         if self.verbose:
             print("Compute fields")
 
         return self.forward(m)
 
-    def dpred(self, m, f=None):
+    def dpred(self, m=None, f=None):
         """
         Return predicted data.
         Predicted data, (`_pred`) are computed when
@@ -497,3 +510,96 @@ class BaseStitchedEM1DSimulation(BaseSimulation):
                 "_gtg_diag",
             ]
         return toDelete
+
+    def forward(self, m):
+        self.model = m
+
+        if self.verbose:
+            print(">> Compute response")
+
+        if self.parallel:
+            if self.verbose:
+                print("parallel")
+            # This assumes the same # of layers for each of sounding
+            # if self.n_sounding_for_chunk is None:
+            pool = Pool(self.n_cpu)
+            result = pool.map(
+                run_em1d_simulation,
+                [
+                    self.input_args(i, output_type=OutputType.FORWARD)
+                    for i in range(self.n_sounding)
+                ],
+            )
+
+            pool.close()
+            pool.join()
+        else:
+            result = [
+                run_em1d_simulation(*self.input_args(i, output_type=OutputType.FORWARD))
+                for i in range(self.n_sounding)
+            ]
+
+        return np.hstack(result)
+
+    def getJ(self, m):
+        """
+        Compute d F / d sigma
+        """
+        self.model = m
+        if getattr(self, "_J", None) is None:
+            if self.verbose:
+                print(">> Compute J")
+
+            if self.parallel:
+                if self.verbose:
+                    print(">> Start pooling")
+
+                pool = Pool(self.n_cpu)
+
+                # Deprecate this for now, but revisit later
+                # It is an idea of chunking for parallelization
+                # if self.n_sounding_for_chunk is None:
+                self._J = pool.map(
+                    run_em1d_simulation,
+                    [
+                        self.input_args(i, output_type=OutputType.SENSITIVITY)
+                        for i in range(self.n_sounding)
+                    ],
+                )
+
+                if self.verbose:
+                    print(">> End pooling and form J matrix")
+
+            else:
+                self._J = [
+                    run_em1d_simulation(
+                        *self.input_args(i, output_type=OutputType.SENSITIVITY)
+                    )
+                    for i in range(self.n_sounding)
+                ]
+        return self._J
+
+    def getJ_sigma(self, m):
+        """
+        Compute d F / d sigma
+        """
+        if getattr(self, "_Jmatrix_sigma", None) is None:
+            J = self.getJ(m)
+            self._Jmatrix_sigma = np.hstack(
+                [utils.mkvc(J[i]["ds"]) for i in range(self.n_sounding)]
+            )
+            self._Jmatrix_sigma = sp.coo_matrix(
+                (self._Jmatrix_sigma, self.IJLayers), dtype=float
+            ).tocsr()
+        return self._Jmatrix_sigma
+
+    def getJ_height(self, m):
+        if getattr(self, "_Jmatrix_height", None) is None:
+            J = self.getJ(m)
+            self._Jmatrix_height = np.hstack(
+                [utils.mkvc(J[i]["dh"]) for i in range(self.n_sounding)]
+            )
+            self._Jmatrix_height = sp.coo_matrix(
+                (self._Jmatrix_height, self.IJHeight), dtype=float
+            ).tocsr()
+        return self._Jmatrix_height

@@ -291,8 +291,12 @@ class BaseSrc:
     """
 
     def __init__(self, receiver_list=None, location=None, **kwargs):
+        self._location = None
+        self._receiver_list = None
+
         if receiver_list is None:
             receiver_list = []
+
         self.receiver_list = receiver_list
 
         if location is not None:

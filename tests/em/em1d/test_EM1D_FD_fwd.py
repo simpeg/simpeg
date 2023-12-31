@@ -1,8 +1,9 @@
 import unittest
 import SimPEG.electromagnetics.frequency_domain as fdem
+from SimPEG.electromagnetics.base_1d import ColeColeParameters
 from SimPEG import maps
 import numpy as np
-from scipy.constants import mu_0
+
 from geoana.em.fdem import (
     MagneticDipoleHalfSpace,
     omega,
@@ -168,20 +169,17 @@ class EM1D_FD_FwdProblemTests(unittest.TestCase):
         # Survey
         # survey = em1d.survey.EM1DSurveyFD(source_list)
         survey = fdem.Survey(source_list)
-
         sigma = 1.0
-        chi = 0.0
-        tau = 1e-3
-        eta = 2e-1
-        c = 1.0
-
+        cc_parameters = ColeColeParameters(
+            chi=0.0,
+            tau1=1e-3,
+            eta=2e-1,
+            c=1.0,
+        )
         self.topo = topo
         self.survey = survey
         self.sigma = sigma
-        self.tau = tau
-        self.eta = eta
-        self.c = c
-        self.chi = chi
+        self.cc_parameters = cc_parameters
         self.offset = offset
         self.frequencies = frequencies
         self.thicknesses = thicknesses
@@ -252,20 +250,12 @@ class EM1D_FD_FwdProblemTests(unittest.TestCase):
 
     def test_EM1DFDfwd_VMD_ComplexCond(self):
         sigma_map = maps.IdentityMap(nP=self.nlayers)
-        mu = mu_0 * np.ones(self.nlayers)
-        tau = self.tau * np.ones(self.nlayers)
-        c = self.c * np.ones(self.nlayers)
-        eta = self.eta * np.ones(self.nlayers)
-
         sim = fdem.Simulation1DLayered(
             survey=self.survey,
             thicknesses=self.thicknesses,
             topo=self.topo,
             sigmaMap=sigma_map,
-            eta=eta,
-            tau=tau,
-            c=c,
-            mu=mu,
+            cole_cole_parameters=self.cc_parameters,
         )
 
         m_1D = self.sigma * np.ones(self.nlayers)
@@ -418,20 +408,12 @@ class EM1D_FD_FwdProblemTests(unittest.TestCase):
         survey = fdem.Survey(source_list)
 
         sigma_map = maps.IdentityMap(nP=self.nlayers)
-        mu = mu_0 * np.ones(self.nlayers)
-        tau = self.tau * np.ones(self.nlayers)
-        c = self.c * np.ones(self.nlayers)
-        eta = self.eta * np.ones(self.nlayers)
-
         sim = fdem.Simulation1DLayered(
             survey=survey,
             thicknesses=self.thicknesses,
             topo=self.topo,
             sigmaMap=sigma_map,
-            eta=eta,
-            tau=tau,
-            c=c,
-            mu=mu,
+            cole_cole_parameters=self.cc_parameters,
         )
 
         m_1D = self.sigma * np.ones(self.nlayers)

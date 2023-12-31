@@ -1,6 +1,7 @@
 from ...utils import validate_type
 from ..base_1d import BaseEM1DSimulation
 from .receivers import PointMagneticFieldSecondary, PointMagneticField
+from .sources import LineCurrent
 from .survey import Survey
 import numpy as np
 
@@ -20,7 +21,7 @@ class Simulation1DLayered(BaseEM1DSimulation):
 
     def __init__(self, survey=None, **kwargs):
         super().__init__(survey=survey, **kwargs)
-        self._coefficients_set = False
+        self._frequency_map: np.ndarray | None = None
 
     @property
     def survey(self):
@@ -40,54 +41,31 @@ class Simulation1DLayered(BaseEM1DSimulation):
             value = validate_type("survey", value, Survey, cast=False)
         self._survey = value
 
-    def get_coefficients(self):
-        if self._coefficients_set is False:
-            self._compute_coefficients()
-        return (
-            self._i_freq,
-            self._lambs,
-            self._unique_lambs,
-            self._inv_lambs,
-            self._C0s,
-            self._C1s,
-            self._W,
-        )
+    @property
+    def frequency_map(self) -> np.ndarray:
+        """Map between the receivers and frequency indices."""
+        if self._frequency_map is None:
+            survey = self.survey
+            # loop through source and receiver lists to create offsets
+            # get unique source-receiver offsets
+            frequencies = np.array(survey.frequencies)
+            # Compute coefficients for Hankel transform
+            i_freq = []
+            for src in survey.source_list:
+                i_f = np.searchsorted(frequencies, src.frequency)
 
-    def _set_coefficients(self, coefficients):
-        self._i_freq = coefficients[0]
-        self._lambs = coefficients[1]
-        self._unique_lambs = coefficients[2]
-        self._inv_lambs = coefficients[3]
-        self._C0s = coefficients[4]
-        self._C1s = coefficients[5]
-        self._W = coefficients[6]
-        self._coefficients_set = True
+                for rx in src.receiver_list:
+                    if isinstance(src, LineCurrent):
+                        n_quad_points = src.n_segments * self.n_points_per_path
+                        i_freq.append([i_f] * rx.locations.shape[0] * n_quad_points)
+                    else:
+                        i_freq.append([i_f] * rx.locations.shape[0])
 
-    def _compute_coefficients(self):
-        if self._coefficients_set:
-            return
+            self._frequency_map = np.hstack(i_freq)
 
-        self._compute_hankel_coefficients()
-        survey = self.survey
-        # loop through source and receiver lists to create offsets
-        # get unique source-receiver offsets
-        frequencies = np.array(survey.frequencies)
-        # Compute coefficients for Hankel transform
-        i_freq = []
-        for src in survey.source_list:
-            class_name = type(src).__name__
-            is_wire_loop = class_name == "LineCurrent"
-            i_f = np.searchsorted(frequencies, src.frequency)
-            for rx in src.receiver_list:
-                if is_wire_loop:
-                    n_quad_points = src.n_segments * self.n_points_per_path
-                    i_freq.append([i_f] * rx.locations.shape[0] * n_quad_points)
-                else:
-                    i_freq.append([i_f] * rx.locations.shape[0])
-        self._i_freq = np.hstack(i_freq)
-        self._coefficients_set = True
+        return self._frequency_map
 
-    def dpred(self, m, f=None):
+    def dpred(self, m=None, f=None):
         """
         Return predicted data.
         Predicted data, (`_pred`) are computed when
@@ -98,32 +76,30 @@ class Simulation1DLayered(BaseEM1DSimulation):
 
         return f
 
-    def fields(self, m):
+    def fields(self, m=None):
         """
         This method evaluates the Hankel transform for each source and
         receiver and outputs it as a list. Used for computing response
         or sensitivities.
         """
         self.model = m
-
-        self._compute_coefficients()
-
-        C0s = self._C0s
-        C1s = self._C1s
-        W = self._W
-
         frequencies = np.array(self.survey.frequencies)
-        unique_lambs = self._unique_lambs
-        i_freq = self._i_freq
-        inv_lambs = self._inv_lambs
-
+        i_freq = self.frequency_map
         sig = self.compute_complex_sigma(frequencies)
         mu = self.compute_complex_mu(frequencies)
-
-        rTE = rTE_forward(frequencies, unique_lambs, sig, mu, self.thicknesses)
+        rTE = rTE_forward(
+            frequencies,
+            self.hankel_coefficients.unique_lambs,
+            sig,
+            mu,
+            self.thicknesses,
+        )
         rTE = rTE[i_freq]
-        rTE = np.take_along_axis(rTE, inv_lambs, axis=1)
-        v = W @ ((C0s * rTE) @ self._fhtfilt.j0 + (C1s * rTE) @ self._fhtfilt.j1)
+        rTE = np.take_along_axis(rTE, self.hankel_coefficients.inv_lambs, axis=1)
+        v = self.hankel_coefficients.W @ (
+            (self.hankel_coefficients.C0s * rTE) @ self._fhtfilt.j0
+            + (self.hankel_coefficients.C1s * rTE) @ self._fhtfilt.j1
+        )
 
         return self._project_to_data(v)
 
@@ -131,35 +107,30 @@ class Simulation1DLayered(BaseEM1DSimulation):
         self.model = m
         if getattr(self, "_J", None) is None:
             self._J = {}
-            self._compute_coefficients()
-
-            C0s = self._C0s
-            C1s = self._C1s
-            lambs = self._lambs
             frequencies = np.array(self.survey.frequencies)
-            unique_lambs = self._unique_lambs
-            i_freq = self._i_freq
-            inv_lambs = self._inv_lambs
-            W = self._W
-
+            i_freq = self.frequency_map
             sig = self.compute_complex_sigma(frequencies)
             mu = self.compute_complex_mu(frequencies)
 
             if self.hMap is not None:
-                # Grab a copy
-                C0s_dh = C0s.copy()
-                C1s_dh = C1s.copy()
-
                 # It seems to be the 2 * lambs to be multiplied, but had to drop factor of 2
-                C0s_dh *= -lambs
-                C1s_dh *= -lambs
-                rTE = rTE_forward(frequencies, unique_lambs, sig, mu, self.thicknesses)
+                C0s_dh = -self.hankel_coefficients.lambs * self.hankel_coefficients.C0s
+                C1s_dh = -self.hankel_coefficients.lambs * self.hankel_coefficients.C1s
+                rTE = rTE_forward(
+                    frequencies,
+                    self.hankel_coefficients.unique_lambs,
+                    sig,
+                    mu,
+                    self.thicknesses,
+                )
                 rTE = rTE[i_freq]
-                rTE = np.take_along_axis(rTE, inv_lambs, axis=1)
+                rTE = np.take_along_axis(
+                    rTE, self.hankel_coefficients.inv_lambs, axis=1
+                )
                 v_dh_temp = (C0s_dh * rTE) @ self._fhtfilt.j0 + (
                     C1s_dh * rTE
                 ) @ self._fhtfilt.j1
-                v_dh_temp += W @ v_dh_temp
+                v_dh_temp += self.hankel_coefficients.W @ v_dh_temp
                 # need to re-arange v_dh as it's currently (n_data x 1)
                 # however it already contains all the relevant information...
                 # just need to map it from the rx index to the source index associated..
@@ -189,39 +160,50 @@ class Simulation1DLayered(BaseEM1DSimulation):
                 or self.thicknessesMap is not None
             ):
                 rTE_ds, rTE_dh, rTE_dmu = rTE_gradient(
-                    frequencies, unique_lambs, sig, mu, self.thicknesses
+                    frequencies,
+                    self.hankel_coefficients.unique_lambs,
+                    sig,
+                    mu,
+                    self.thicknesses,
                 )
                 if self.sigmaMap is not None:
                     rTE_ds = rTE_ds[:, i_freq]
-                    rTE_ds = np.take_along_axis(rTE_ds, inv_lambs[None, ...], axis=-1)
+                    rTE_ds = np.take_along_axis(
+                        rTE_ds, self.hankel_coefficients.inv_lambs[None, ...], axis=-1
+                    )
                     v_ds = (
                         (
-                            (C0s * rTE_ds) @ self._fhtfilt.j0
-                            + (C1s * rTE_ds) @ self._fhtfilt.j1
+                            (self.hankel_coefficients.C0s * rTE_ds) @ self._fhtfilt.j0
+                            + (self.hankel_coefficients.C1s * rTE_ds) @ self._fhtfilt.j1
                         )
-                        @ W.T
+                        @ self.hankel_coefficients.W.T
                     ).T
                     self._J["ds"] = self._project_to_data(v_ds)
                 if self.muMap is not None:
                     rTE_dmu = rTE_dmu[:, i_freq]
-                    rTE_dmu = np.take_along_axis(rTE_dmu, inv_lambs[None, ...], axis=-1)
+                    rTE_dmu = np.take_along_axis(
+                        rTE_dmu, self.hankel_coefficients.inv_lambs[None, ...], axis=-1
+                    )
                     v_dmu = (
                         (
-                            (C0s * rTE_dmu) @ self._fhtfilt.j0
-                            + (C1s * rTE_dmu) @ self._fhtfilt.j1
+                            (self.hankel_coefficients.C0s * rTE_dmu) @ self._fhtfilt.j0
+                            + (self.hankel_coefficients.C1s * rTE_dmu)
+                            @ self._fhtfilt.j1
                         )
-                        @ W.T
+                        @ self.hankel_coefficients.W.T
                     ).T
                     self._J["dmu"] = self._project_to_data(v_dmu)
                 if self.thicknessesMap is not None:
                     rTE_dh = rTE_dh[:, i_freq]
-                    rTE_dh = np.take_along_axis(rTE_dh, inv_lambs[None, ...], axis=-1)
+                    rTE_dh = np.take_along_axis(
+                        rTE_dh, self.hankel_coefficients.inv_lambs[None, ...], axis=-1
+                    )
                     v_dthick = (
                         (
-                            (C0s * rTE_dh) @ self._fhtfilt.j0
-                            + (C1s * rTE_dh) @ self._fhtfilt.j1
+                            (self.hankel_coefficients.C0s * rTE_dh) @ self._fhtfilt.j0
+                            + (self.hankel_coefficients.C1s * rTE_dh) @ self._fhtfilt.j1
                         )
-                        @ W.T
+                        @ self.hankel_coefficients.W.T
                     ).T
                     self._J["dthick"] = self._project_to_data(v_dthick)
         return self._J

@@ -3,27 +3,6 @@ from .sparse import SparseSmoothness, SparseSmallness, Sparse
 from .regularization_mesh_lateral import LCRegularizationMesh
 
 
-class LaterallyConstrainedSmallness(SparseSmallness):
-    """
-    Duplicate of SparseSmallness Class
-    """
-
-
-class LaterallyConstrainedSmoothness(SparseSmoothness):
-    """
-    Modification of SparseSmoothness Class
-    for addressing radial and vertical gradients of model parameters,
-    which is a 1D vertical resistivity profile at each of lateral locations.
-    """
-
-    def __init__(self, mesh, orientation="r", gradient_type="total", **kwargs):
-        if "gradientType" in kwargs:
-            self.gradientType = kwargs.pop("gradientType")
-        else:
-            self.gradient_type = gradient_type
-        super().__init__(mesh=mesh, orientation=orientation, **kwargs)
-
-
 class LaterallyConstrained(Sparse):
     """
     This regularization function is designed to regularize model parameters
@@ -45,10 +24,6 @@ class LaterallyConstrained(Sparse):
         active_edges=None,
         alpha_r=None,
         length_scale_r=None,
-        norms=None,
-        gradient_type="total",
-        irls_scaled=True,
-        irls_threshold=1e-8,
         objfcts=None,
         **kwargs,
     ):

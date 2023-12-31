@@ -101,7 +101,7 @@ class BaseSimulation(props.HasModel):
 
     @property
     def sensitivity_path(self):
-        """Path to store the sensitivty.
+        """Path to store the sensitivity.
 
         Returns
         -------

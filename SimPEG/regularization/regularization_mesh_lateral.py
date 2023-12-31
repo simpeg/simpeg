@@ -349,7 +349,6 @@ class LCRegularizationMesh(RegularizationMesh):
             if self.active_edges is None:
                 self._Paer = utils.speye(self.nE)
             else:
-                ave = self.mesh_vertical.average_face_to_cell
                 self._Paer = utils.speye(self.nE)[:, self.active_edges]
         return self._Paer
 

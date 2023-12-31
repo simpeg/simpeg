@@ -34,6 +34,7 @@ class TestReport(unittest.TestCase):
                 "vtk",
                 "utm",
                 "memory_profiler",
+                "choclo",
             ],
             ncol=3,
             text_width=80,

@@ -28,6 +28,7 @@ from matplotlib import pyplot as plt
 
 from SimPEG import maps
 import SimPEG.electromagnetics.time_domain as tdem
+from SimPEG.electromagnetics.base_1d import ColeColeParameters
 from SimPEG.electromagnetics.utils.em1d_utils import ColeCole, LogUniform
 
 # sphinx_gallery_thumbnail_number = 3
@@ -203,9 +204,11 @@ simulation_chargeable = tdem.Simulation1DLayered(
     survey=survey,
     thicknesses=thicknesses,
     sigmaMap=model_mapping,
-    eta=eta,
-    tau=tau,
-    c=c,
+    cole_cole_parameters=ColeColeParameters(
+        eta=eta,
+        tau=tau,
+        c=c,
+    ),
 )
 
 dpred_chargeable = simulation_chargeable.dpred(sigma_model)
@@ -218,9 +221,11 @@ simulation_vrm = tdem.Simulation1DLayered(
     thicknesses=thicknesses,
     sigmaMap=model_mapping,
     mu=mu,
-    dchi=dchi,
-    tau1=tau1,
-    tau2=tau2,
+    cole_cole_parameters=ColeColeParameters(
+        chi=dchi,
+        tau1=tau1,
+        tau2=tau2,
+    ),
 )
 
 dpred_vrm = simulation_vrm.dpred(sigma_model)
