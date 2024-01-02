@@ -517,10 +517,6 @@ def get_indices_polygon(mesh, pts):
 ################################################
 
 
-layeredModel = deprecate_function(
-    create_layers_model, "layeredModel", removal_version="0.19.0", future_warn=True
-)
-
 randomModel = deprecate_function(
     create_random_model, "randomModel", removal_version="0.19.0", future_warn=True
 )
