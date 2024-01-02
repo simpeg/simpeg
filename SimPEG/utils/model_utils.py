@@ -1,5 +1,5 @@
 import warnings
-from typing import Literal
+from typing import Literal, Optional
 
 import discretize
 import numpy as np
@@ -280,9 +280,9 @@ def _distance_weighting_numba(
 def distance_weighting(
     mesh: discretize.base.BaseMesh,
     reference_locs: np.ndarray,
-    active_cells: np.ndarray | None = None,
+    active_cells: Optional[np.ndarray] = None,
     exponent: float = 2.0,
-    threshold: float | None = None,
+    threshold: Optional[float] = None,
     engine: Literal["loop", "vector"] = "loop",
 ):
     r"""
