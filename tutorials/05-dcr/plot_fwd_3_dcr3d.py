@@ -347,7 +347,7 @@ if write_output:
     # Add 5% Gaussian noise to each datum
     np.random.seed(433)
     std = 0.1 * np.abs(dpred)
-    noise = std * np.random.rand(len(dpred))
+    noise = std * np.random.randn(len(dpred))
     dobs = dpred + noise
 
     # Create dictionary that stores line IDs
