@@ -517,10 +517,6 @@ def get_indices_polygon(mesh, pts):
 ################################################
 
 
-defineTwoLayers = deprecate_function(
-    create_2_layer_model, "defineTwoLayers", removal_version="0.19.0", future_warn=True
-)
-
 layeredModel = deprecate_function(
     create_layers_model, "layeredModel", removal_version="0.19.0", future_warn=True
 )
