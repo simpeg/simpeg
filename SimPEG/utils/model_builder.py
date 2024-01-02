@@ -517,10 +517,6 @@ def get_indices_polygon(mesh, pts):
 ################################################
 
 
-polygonInd = deprecate_function(
-    get_indices_polygon, "polygonInd", removal_version="0.19.0", future_warn=True
-)
-
 scalarConductivity = deprecate_function(
     create_from_function,
     "scalarConductivity",
