@@ -517,10 +517,6 @@ def get_indices_polygon(mesh, pts):
 ################################################
 
 
-addBlock = deprecate_function(
-    add_block, "addBlock", removal_version="0.19.0", future_warn=True
-)
-
 getIndicesBlock = deprecate_function(
     get_indices_block, "getIndicesBlock", removal_version="0.19.0", future_warn=True
 )
