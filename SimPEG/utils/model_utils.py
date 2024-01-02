@@ -20,7 +20,11 @@ except ImportError:
     # Define dummy prange function
     prange = range
 
-    warnings.warn("numba is not installed. Some computations might be slower.")
+    warnings.warn(
+        "numba is not installed. Some computations might be slower.",
+        type=ImportWarning,
+        stacklevel=2,
+    )
 
 
 def surface2ind_topo(mesh, topo, gridLoc="CC", method="nearest", fill_value=np.nan):
