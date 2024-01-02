@@ -517,13 +517,6 @@ def get_indices_polygon(mesh, pts):
 ################################################
 
 
-defineEllipse = deprecate_function(
-    create_ellipse_in_wholespace,
-    "defineEllipse",
-    removal_version="0.19.0",
-    future_warn=True,
-)
-
 defineTwoLayers = deprecate_function(
     create_2_layer_model, "defineTwoLayers", removal_version="0.19.0", future_warn=True
 )
