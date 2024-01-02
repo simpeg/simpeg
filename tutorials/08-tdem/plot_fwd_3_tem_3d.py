@@ -364,7 +364,7 @@ if save_file:
 
     # Write data with 2% noise added
     fname = dir_path + "tdem_data.obs"
-    dpred = dpred + 0.02 * np.abs(dpred) * np.random.rand(len(dpred))
+    dpred = dpred + 0.02 * np.abs(dpred) * np.random.randn(len(dpred))
     t_vec = np.kron(np.ones(ntx), time_channels)
     receiver_locations = np.kron(receiver_locations, np.ones((len(time_channels), 1)))
 

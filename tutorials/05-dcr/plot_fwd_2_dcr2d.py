@@ -309,7 +309,7 @@ if write_output:
     # Add 10% Gaussian noise to each datum
     np.random.seed(225)
     std = 0.05 * np.abs(dpred)
-    dc_noise = std * np.random.rand(len(dpred))
+    dc_noise = std * np.random.randn(len(dpred))
     dobs = dpred + dc_noise
 
     # Create a survey with the original electrode locations

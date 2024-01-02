@@ -505,7 +505,7 @@ if write_output:
     # Add 10% Gaussian noise to each datum
     np.random.seed(433)
     std = 0.1 * np.abs(dpred_dc)
-    noise = std * np.random.rand(len(dpred_dc))
+    noise = std * np.random.randn(len(dpred_dc))
     dobs = dpred_dc + noise
 
     # Create dictionary that stores line IDs
@@ -543,7 +543,7 @@ if write_output:
     # Add Gaussian noise with a standard deviation of 5e-3 V/V
     np.random.seed(444)
     std = 5e-3 * np.ones_like(dpred_ip)
-    noise = std * np.random.rand(len(dpred_ip))
+    noise = std * np.random.randn(len(dpred_ip))
     dobs = dpred_ip + noise
 
     # Create a survey with the original electrode locations

@@ -228,6 +228,6 @@ if write_output:
 
     np.random.seed(211)
     maximum_anomaly = np.max(np.abs(dpred))
-    noise = 0.02 * maximum_anomaly * np.random.rand(len(dpred))
+    noise = 0.02 * maximum_anomaly * np.random.randn(len(dpred))
     fname = dir_path + "magnetics_data.obs"
     np.savetxt(fname, np.c_[receiver_locations, dpred + noise], fmt="%.4e")

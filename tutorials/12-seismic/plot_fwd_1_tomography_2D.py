@@ -170,7 +170,7 @@ if save_file:
     dir_path.extend(["tutorials", "seismic", "assets"])
     dir_path = os.path.sep.join(dir_path) + os.path.sep
 
-    noise = 0.05 * dpred * np.random.rand(len(dpred))
+    noise = 0.05 * dpred * np.random.randn(len(dpred))
 
     data_array = np.c_[
         np.kron(x, np.ones(n_receiver)),
