@@ -535,10 +535,6 @@ defineEllipse = deprecate_function(
     future_warn=True,
 )
 
-getIndicesSphere = deprecate_function(
-    get_indices_sphere, "getIndicesSphere", removal_version="0.19.0", future_warn=True
-)
-
 defineTwoLayers = deprecate_function(
     create_2_layer_model, "defineTwoLayers", removal_version="0.19.0", future_warn=True
 )
