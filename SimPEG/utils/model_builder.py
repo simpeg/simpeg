@@ -517,13 +517,6 @@ def get_indices_polygon(mesh, pts):
 ################################################
 
 
-defineBlock = deprecate_function(
-    create_block_in_wholespace,
-    "defineBlock",
-    removal_version="0.19.0",
-    future_warn=True,
-)
-
 defineEllipse = deprecate_function(
     create_ellipse_in_wholespace,
     "defineEllipse",
