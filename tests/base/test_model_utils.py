@@ -87,10 +87,10 @@ class DistancehWeightingTest(unittest.TestCase):
 
         # distance weighting
         wz_numpy = utils.distance_weighting(
-            mesh, reference_locs, active_cells=actv, exponent=3, engine="numpy"
+            mesh, reference_locs, active_cells=actv, exponent=3, engine="vector"
         )
         wz_numba = utils.distance_weighting(
-            mesh, reference_locs, active_cells=actv, exponent=3, engine="numba"
+            mesh, reference_locs, active_cells=actv, exponent=3, engine="loop"
         )
         np.testing.assert_allclose(wz_numpy, wz_numba)
 
@@ -115,10 +115,10 @@ class DistancehWeightingTest(unittest.TestCase):
 
         # distance weighting
         wz_numpy = utils.distance_weighting(
-            mesh, reference_locs, active_cells=actv, exponent=3, engine="numpy"
+            mesh, reference_locs, active_cells=actv, exponent=3, engine="vector"
         )
         wz_numba = utils.distance_weighting(
-            mesh, reference_locs, active_cells=actv, exponent=3, engine="numba"
+            mesh, reference_locs, active_cells=actv, exponent=3, engine="loop"
         )
         np.testing.assert_allclose(wz_numpy, wz_numba)
 
@@ -137,10 +137,10 @@ class DistancehWeightingTest(unittest.TestCase):
 
         # distance weighting
         wz_numpy = utils.distance_weighting(
-            mesh, reference_locs, active_cells=actv, exponent=3, engine="numpy"
+            mesh, reference_locs, active_cells=actv, exponent=3, engine="vector"
         )
         wz_numba = utils.distance_weighting(
-            mesh, reference_locs, active_cells=actv, exponent=3, engine="numba"
+            mesh, reference_locs, active_cells=actv, exponent=3, engine="loop"
         )
         np.testing.assert_allclose(wz_numpy, wz_numba)
 
