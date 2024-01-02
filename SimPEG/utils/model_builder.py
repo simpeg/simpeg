@@ -144,7 +144,7 @@ def create_block_in_wholespace(
         pass
 
     sigma = np.zeros(cell_centers.shape[0]) + background_value
-    ind = getIndicesBlock(p0, p1, cell_centers)
+    ind = get_indices_block(p0, p1, cell_centers)
 
     sigma[ind] = block_value
 
@@ -317,7 +317,7 @@ def create_2_layer_model(cell_centers, depth, top_value=1.0, bottom_value=0.0):
     # The depth is always defined on the last one.
     p1[len(p1) - 1] -= depth
 
-    ind = getIndicesBlock(p0, p1, cell_centers)
+    ind = get_indices_block(p0, p1, cell_centers)
 
     sigma[ind] = top_value
 
@@ -516,10 +516,6 @@ def get_indices_polygon(mesh, pts):
 #             DEPRECATED FUNCTIONS
 ################################################
 
-
-getIndicesBlock = deprecate_function(
-    get_indices_block, "getIndicesBlock", removal_version="0.19.0", future_warn=True
-)
 
 defineBlock = deprecate_function(
     create_block_in_wholespace,
