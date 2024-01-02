@@ -3,7 +3,6 @@ import scipy.ndimage as ndi
 import scipy.sparse as sp
 from .mat_utils import mkvc
 from scipy.spatial import Delaunay
-from .code_utils import deprecate_function
 from discretize.base import BaseMesh
 
 
@@ -510,16 +509,3 @@ def get_indices_polygon(mesh, pts):
     hull = Delaunay(pts)
     inds = hull.find_simplex(mesh.cell_centers) >= 0
     return inds
-
-
-################################################
-#             DEPRECATED FUNCTIONS
-################################################
-
-
-scalarConductivity = deprecate_function(
-    create_from_function,
-    "scalarConductivity",
-    removal_version="0.19.0",
-    future_warn=True,
-)
