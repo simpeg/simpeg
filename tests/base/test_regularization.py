@@ -662,7 +662,7 @@ class TestDeprecatedArguments:
     Within these arguments are:
 
     * ``indActive`` (replaced by ``active_cells``)
-    * ``cell_weights`` (replaced by ``weights``)
+    * ``cell_weights`` (replaced by ``get_weights``)
 
     """
 
