@@ -363,7 +363,7 @@ joint_inv_dir = directives.SimilarityMeasureInversionDirective()
 
 stopping = directives.MovingAndMultiTargetStopping(tol=1e-6)
 
-sensitivity_weights = directives.UpdateSensitivityWeights(everyIter=False)
+sensitivity_weights = directives.UpdateSensitivityWeights(every_iter=False)
 
 # Updating the preconditionner if it is model dependent.
 update_jacobi = directives.UpdatePreconditioner()

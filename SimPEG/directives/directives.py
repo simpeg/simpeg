@@ -30,7 +30,6 @@ from ..utils import (
     validate_string,
 )
 from ..utils.code_utils import (
-    deprecate_property,
     validate_type,
     validate_integer,
     validate_float,
@@ -64,14 +63,15 @@ class InversionDirective:
     _dmisfitPair = [BaseDataMisfit, ComboObjectiveFunction]
 
     def __init__(self, inversion=None, dmisfit=None, reg=None, verbose=False, **kwargs):
+        # Raise error on deprecated arguments
+        if (key := "debug") in kwargs.keys():
+            raise TypeError(
+                f"'{key}' property has been deprecated. Please use 'verbose'."
+            )
         self.inversion = inversion
         self.dmisfit = dmisfit
         self.reg = reg
-        debug = kwargs.pop("debug", None)
-        if debug is not None:
-            self.debug = debug
-        else:
-            self.verbose = verbose
+        self.verbose = verbose
         set_kwargs(self, **kwargs)
 
     @property
@@ -87,10 +87,6 @@ class InversionDirective:
     @verbose.setter
     def verbose(self, value):
         self._verbose = validate_type("verbose", value, bool)
-
-    debug = deprecate_property(
-        verbose, "debug", "verbose", removal_version="0.19.0", future_warn=True
-    )
 
     @property
     def inversion(self):
@@ -2523,33 +2519,22 @@ class UpdateSensitivityWeights(InversionDirective):
         normalization_method="maximum",
         **kwargs,
     ):
-        if "everyIter" in kwargs.keys():
-            warnings.warn(
-                "'everyIter' property is deprecated and will be removed in SimPEG 0.20.0."
+        # Raise errors on deprecated arguments
+        if (key := "everyIter") in kwargs.keys():
+            raise TypeError(
+                f"'{key}' property has been deprecated. "
                 "Please use 'every_iteration'.",
-                stacklevel=2,
             )
-            every_iteration = kwargs.pop("everyIter")
-
-        if "threshold" in kwargs.keys():
-            warnings.warn(
-                "'threshold' property is deprecated and will be removed in SimPEG 0.20.0."
+        if (key := "threshold") in kwargs.keys():
+            raise TypeError(
+                f"'{key}' property has been deprecated. "
                 "Please use 'threshold_value'.",
-                stacklevel=2,
             )
-            threshold_value = kwargs.pop("threshold")
-
-        if "normalization" in kwargs.keys():
-            warnings.warn(
-                "'normalization' property is deprecated and will be removed in SimPEG 0.20.0."
+        if (key := "normalization") in kwargs.keys():
+            raise TypeError(
+                f"'{key}' property has been deprecated. "
                 "Please define normalization using 'normalization_method'.",
-                stacklevel=2,
             )
-            normalization_method = kwargs.pop("normalization")
-            if normalization_method is True:
-                normalization_method = "maximum"
-            else:
-                normalization_method = None
 
         super().__init__(**kwargs)
 
@@ -2575,10 +2560,6 @@ class UpdateSensitivityWeights(InversionDirective):
     def every_iteration(self, value):
         self._every_iteration = validate_type("every_iteration", value, bool)
 
-    everyIter = deprecate_property(
-        every_iteration, "everyIter", "every_iteration", removal_version="0.20.0"
-    )
-
     @property
     def threshold_value(self):
         """Threshold value used to set minimum weighting value.
@@ -2603,10 +2584,6 @@ class UpdateSensitivityWeights(InversionDirective):
     @threshold_value.setter
     def threshold_value(self, value):
         self._threshold_value = validate_float("threshold_value", value, min_val=0.0)
-
-    threshold = deprecate_property(
-        threshold_value, "threshold", "threshold_value", removal_version="0.20.0"
-    )
 
     @property
     def threshold_method(self):
@@ -2655,29 +2632,10 @@ class UpdateSensitivityWeights(InversionDirective):
     def normalization_method(self, value):
         if value is None:
             self._normalization_method = value
-
-        elif isinstance(value, bool):
-            warnings.warn(
-                "Boolean type for 'normalization_method' is deprecated and will be removed in 0.20.0."
-                "Please use None, 'maximum' or 'minimum'.",
-                stacklevel=2,
-            )
-            if value:
-                self._normalization_method = "maximum"
-            else:
-                self._normalization_method = None
-
         else:
             self._normalization_method = validate_string(
                 "normalization_method", value, string_list=["minimum", "maximum"]
             )
-
-    normalization = deprecate_property(
-        normalization_method,
-        "normalization",
-        "normalization_method",
-        removal_version="0.20.0",
-    )
 
     def initialize(self):
         """Compute sensitivity weights upon starting the inversion."""

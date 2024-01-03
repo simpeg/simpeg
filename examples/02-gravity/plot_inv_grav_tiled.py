@@ -243,7 +243,7 @@ update_IRLS = directives.Update_IRLS(
 )
 saveDict = directives.SaveOutputEveryIteration(save_txt=False)
 update_Jacobi = directives.UpdatePreconditioner()
-sensitivity_weights = directives.UpdateSensitivityWeights(everyIter=False)
+sensitivity_weights = directives.UpdateSensitivityWeights(every_iter=False)
 inv = inversion.BaseInversion(
     invProb,
     directiveList=[update_IRLS, sensitivity_weights, betaest, update_Jacobi, saveDict],
