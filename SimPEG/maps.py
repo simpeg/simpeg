@@ -2249,6 +2249,34 @@ class ChiMap(IdentityMap):
         return m / mu_0 - 1
 
 
+class EffectiveSusMap(IdentityMap):
+    r"""Effective susceptibility Map
+
+    Convert Effective Susceptibility (SI) to magnetic polarization (nT).
+
+
+    .. math::
+
+        \mu_0 M = esus * ||B_0||
+
+    """
+
+    def __init__(self, mesh=None, nP=None, inducing_magnitude=None, **kwargs):
+        super(EffectiveSusMap, self).__init__(mesh=mesh, nP=nP, **kwargs)
+        self.inducing_magnitude = inducing_magnitude
+
+    def _transform(self, m):
+        return m * self.inducing_magnitude
+
+    def deriv(self, m, v=None):
+        if v is not None:
+            return self.inducing_magnitude * v
+        return self.inducing_magnitude * sp.eye(self.nP)
+
+    def inverse(self, m):
+        return m / self.inducing_magnitude
+
+
 class MuRelative(IdentityMap):
     r"""Mapping that computes the magnetic permeability given a set of relative permeabilities.
 
