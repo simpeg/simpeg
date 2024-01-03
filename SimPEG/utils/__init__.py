@@ -262,7 +262,3 @@ from .curv_utils import (
     indexCube,
     exampleLrmGrid,
 )
-from .coord_utils import (
-    rotatePointsFromNormals,
-    rotationMatrixFromNormals,
-)
