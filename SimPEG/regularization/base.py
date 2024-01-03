@@ -69,12 +69,12 @@ class BaseRegularization(BaseObjectiveFunction):
         # Raise errors on deprecated arguments: avoid old code that still uses
         # them to silently fail
         if (key := "indActive") in kwargs:
-            raise ValueError(
+            raise TypeError(
                 f"'{key}' argument has been deprecated. "
                 "Please use 'active_cells' instead."
             )
         if (key := "cell_weights") in kwargs:
-            raise ValueError(
+            raise TypeError(
                 f"'{key}' argument has been deprecated. "
                 "Please use 'weights' instead."
             )
