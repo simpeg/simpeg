@@ -30,7 +30,7 @@ class TomoTest(unittest.TestCase):
         self.survey = survey
 
     def test_deriv(self):
-        s = utils.mkvc(utils.model_builder.randomModel(self.M.vnC)) + 1.0
+        s = utils.mkvc(utils.model_builder.create_random_model(self.M.vnC)) + 1.0
 
         def fun(x):
             return self.problem.dpred(x), lambda x: self.problem.Jvec(s, x)

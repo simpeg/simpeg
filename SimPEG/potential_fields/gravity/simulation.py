@@ -1,4 +1,7 @@
+import os
+import warnings
 import numpy as np
+import discretize
 import scipy.constants as constants
 from geoana.kernels import prism_fz, prism_fzx, prism_fzy, prism_fzz
 from scipy.constants import G as NewtG
@@ -8,6 +11,52 @@ from SimPEG.utils import mkvc, sdiag
 
 from ...base import BasePDESimulation
 from ..base import BaseEquivalentSourceLayerSimulation, BasePFSimulation
+
+from ._numba_functions import (
+    choclo,
+    _sensitivity_gravity_serial,
+    _sensitivity_gravity_parallel,
+    _forward_gravity_serial,
+    _forward_gravity_parallel,
+)
+
+if choclo is not None:
+    from numba import jit
+
+    @jit(nopython=True)
+    def kernel_uv(easting, northing, upward, radius):
+        """Kernel for Guv gradiometry component."""
+        result = 0.5 * (
+            choclo.prism.kernel_nn(easting, northing, upward, radius)
+            - choclo.prism.kernel_ee(easting, northing, upward, radius)
+        )
+        return result
+
+    CHOCLO_KERNELS = {
+        "gx": choclo.prism.kernel_e,
+        "gy": choclo.prism.kernel_n,
+        "gz": choclo.prism.kernel_u,
+        "gxx": choclo.prism.kernel_ee,
+        "gyy": choclo.prism.kernel_nn,
+        "gzz": choclo.prism.kernel_uu,
+        "gxy": choclo.prism.kernel_en,
+        "gxz": choclo.prism.kernel_eu,
+        "gyz": choclo.prism.kernel_nu,
+        "guv": kernel_uv,
+    }
+
+
+def _get_conversion_factor(component):
+    """
+    Return conversion factor for the given component
+    """
+    if component in ("gx", "gy", "gz"):
+        conversion_factor = 1e8
+    elif component in ("gxx", "gyy", "gzz", "gxy", "gxz", "gyz", "guv"):
+        conversion_factor = 1e12
+    else:
+        raise ValueError(f"Invalid component '{component}'.")
+    return conversion_factor
 
 
 class Simulation3DIntegral(BasePFSimulation):
@@ -27,27 +76,134 @@ class Simulation3DIntegral(BasePFSimulation):
 
         Gradient components ("gxx", "gyy", "gzz", "gxy", "gxz", "gyz") are
         returned in Eotvos (:math:`10^{-9} s^{-2}`).
+
+    Parameters
+    ----------
+    mesh : discretize.TreeMesh or discretize.TensorMesh
+        Mesh use to run the gravity simulation.
+    survey : SimPEG.potential_fields.gravity.Survey
+        Gravity survey with information of the receivers.
+    ind_active : (n_cells) numpy.ndarray, optional
+        Array that indicates which cells in ``mesh`` are active cells.
+    rho : numpy.ndarray (optional)
+        Density array for the active cells in the mesh.
+    rhoMap : Mapping (optional)
+        Model mapping.
+    sensitivity_dtype : numpy.dtype, optional
+        Data type that will be used to build the sensitivity matrix.
+    store_sensitivities : str
+        Options for storing sensitivity matrix. There are 3 options
+
+        - 'ram': sensitivities are stored in the computer's RAM
+        - 'disk': sensitivities are written to a directory
+        - 'forward_only': you intend only do perform a forward simulation and
+          sensitivities do not need to be stored
+
+    sensitivity_path : str, optional
+        Path to store the sensitivity matrix if ``store_sensitivities`` is set
+        to ``"disk"``. Default to "./sensitivities".
+    engine : str, optional
+       Choose which engine should be used to run the forward model:
+       ``"geoana"`` or "``choclo``".
+    numba_parallel : bool, optional
+        If True, the simulation will run in parallel. If False, it will
+        run in serial. If ``engine`` is not ``"choclo"`` this argument will be
+        ignored.
     """
 
     rho, rhoMap, rhoDeriv = props.Invertible("Density")
 
-    def __init__(self, mesh, rho=None, rhoMap=None, **kwargs):
+    def __init__(
+        self,
+        mesh,
+        rho=None,
+        rhoMap=None,
+        engine="geoana",
+        numba_parallel=True,
+        **kwargs,
+    ):
         super().__init__(mesh, **kwargs)
         self.rho = rho
         self.rhoMap = rhoMap
         self._G = None
         self._gtg_diagonal = None
         self.modelMap = self.rhoMap
+        self.numba_parallel = numba_parallel
+        self.engine = engine
+        self._sanity_checks_engine(kwargs)
+        # Define jit functions
+        if self.engine == "choclo":
+            if numba_parallel:
+                self._sensitivity_gravity = _sensitivity_gravity_parallel
+                self._forward_gravity = _forward_gravity_parallel
+            else:
+                self._sensitivity_gravity = _sensitivity_gravity_serial
+                self._forward_gravity = _forward_gravity_serial
+
+    def _sanity_checks_engine(self, kwargs):
+        """
+        Sanity checks for the engine parameter.
+
+        Needs the kwargs passed to the __init__ method to raise some warnings.
+        Will set n_processes to None if it's present in kwargs.
+        """
+        if self.engine not in ("choclo", "geoana"):
+            raise ValueError(
+                f"Invalid engine '{self.engine}'. Choose from 'geoana' or 'choclo'."
+            )
+        if self.engine == "choclo" and choclo is None:
+            raise ImportError(
+                "The choclo package couldn't be found."
+                "Running a gravity simulation with 'engine=\"choclo\"' needs "
+                "choclo to be installed."
+                "\nTry installing choclo with:"
+                "\n    pip install choclo"
+                "\nor:"
+                "\n    conda install choclo"
+            )
+        # Warn if n_processes has been passed
+        if self.engine == "choclo" and "n_processes" in kwargs:
+            warnings.warn(
+                "The 'n_processes' will be ignored when selecting 'choclo' as the "
+                "engine in the gravity simulation.",
+                UserWarning,
+                stacklevel=1,
+            )
+            self.n_processes = None
+        # Sanity checks for sensitivity_path when using choclo and storing in disk
+        if self.engine == "choclo" and self.store_sensitivities == "disk":
+            if os.path.isdir(self.sensitivity_path):
+                raise ValueError(
+                    f"The passed sensitivity_path '{self.sensitivity_path}' is "
+                    "a directory. "
+                    "When using 'choclo' as the engine, 'senstivity_path' "
+                    "should be the path to a new or existing file."
+                )
 
     def fields(self, m):
-        self.model = m
+        """
+        Forward model the gravity field of the mesh on the receivers in the survey
 
+        Parameters
+        ----------
+        m : (n_active_cells,) numpy.ndarray
+            Array with values for the model.
+
+        Returns
+        -------
+        (nD,) numpy.ndarray
+            Gravity fields generated by the given model on every receiver
+            location.
+        """
+        self.model = m
         if self.store_sensitivities == "forward_only":
             # Compute the linear operation without forming the full dense G
-            fields = mkvc(self.linear_operator())
+            if self.engine == "choclo":
+                fields = self._forward(self.rho)
+            else:
+                fields = mkvc(self.linear_operator())
         else:
             fields = self.G @ (self.rho).astype(self.sensitivity_dtype, copy=False)
-
         return np.asarray(fields)
 
     def getJtJdiag(self, m, W=None, f=None):
@@ -95,8 +251,10 @@ class Simulation3DIntegral(BasePFSimulation):
         Gravity forward operator
         """
         if getattr(self, "_G", None) is None:
-            self._G = self.linear_operator()
-
+            if self.engine == "choclo":
+                self._G = self._sensitivity_matrix()
+            else:
+                self._G = self.linear_operator()
         return self._G
 
     @property
@@ -204,6 +362,140 @@ class Simulation3DIntegral(BasePFSimulation):
                 for component in components
             ]
         )
+
+    def _forward(self, densities):
+        """
+        Forward model the fields of active cells in the mesh on receivers.
+
+        Parameters
+        ----------
+        densities : (n_active_cells) numpy.ndarray
+            Array containing the densities of the active cells in the mesh, in
+            g/cc.
+
+        Returns
+        -------
+        (nD,) numpy.ndarray
+            Always return a ``np.float64`` array.
+        """
+        # Gather active nodes and the indices of the nodes for each active cell
+        active_nodes, active_cell_nodes = self._get_active_nodes()
+        # Allocate fields array
+        fields = np.zeros(self.survey.nD, dtype=self.sensitivity_dtype)
+        # Compute fields
+        index_offset = 0
+        for components, receivers in self._get_components_and_receivers():
+            n_components = len(components)
+            n_elements = n_components * receivers.shape[0]
+            for i, component in enumerate(components):
+                kernel_func = CHOCLO_KERNELS[component]
+                conversion_factor = _get_conversion_factor(component)
+                vector_slice = slice(
+                    index_offset + i, index_offset + n_elements, n_components
+                )
+                self._forward_gravity(
+                    receivers,
+                    active_nodes,
+                    densities,
+                    fields[vector_slice],
+                    active_cell_nodes,
+                    kernel_func,
+                    constants.G * conversion_factor,
+                )
+            index_offset += n_elements
+        return fields
+
+    def _sensitivity_matrix(self):
+        """
+        Compute the sensitivity matrix G
+
+        Returns
+        -------
+        (nD, n_active_cells) numpy.ndarray
+        """
+        # Gather active nodes and the indices of the nodes for each active cell
+        active_nodes, active_cell_nodes = self._get_active_nodes()
+        # Allocate sensitivity matrix
+        shape = (self.survey.nD, self.nC)
+        if self.store_sensitivities == "disk":
+            sensitivity_matrix = np.memmap(
+                self.sensitivity_path,
+                shape=shape,
+                dtype=self.sensitivity_dtype,
+                order="C",  # it's more efficient to write in row major
+                mode="w+",
+            )
+        else:
+            sensitivity_matrix = np.empty(shape, dtype=self.sensitivity_dtype)
+        # Start filling the sensitivity matrix
+        index_offset = 0
+        for components, receivers in self._get_components_and_receivers():
+            n_components = len(components)
+            n_rows = n_components * receivers.shape[0]
+            for i, component in enumerate(components):
+                kernel_func = CHOCLO_KERNELS[component]
+                conversion_factor = _get_conversion_factor(component)
+                matrix_slice = slice(
+                    index_offset + i, index_offset + n_rows, n_components
+                )
+                self._sensitivity_gravity(
+                    receivers,
+                    active_nodes,
+                    sensitivity_matrix[matrix_slice, :],
+                    active_cell_nodes,
+                    kernel_func,
+                    constants.G * conversion_factor,
+                )
+            index_offset += n_rows
+        return sensitivity_matrix
+
+    def _get_cell_nodes(self):
+        """
+        Return indices of nodes for each cell in the mesh.
+        """
+        if not isinstance(self.mesh, (discretize.TreeMesh, discretize.TensorMesh)):
+            raise TypeError(f"Invalid mesh of type {self.mesh.__class__.__name__}.")
+        cell_nodes = self.mesh.cell_nodes
+        return cell_nodes
+
+    def _get_active_nodes(self):
+        """
+        Return locations of nodes only for active cells
+
+        Also return an array containing the indices of the "active nodes" for
+        each active cell in the mesh
+        """
+        # Get all nodes in the mesh
+        if isinstance(self.mesh, discretize.TreeMesh):
+            nodes = self.mesh.total_nodes
+        elif isinstance(self.mesh, discretize.TensorMesh):
+            nodes = self.mesh.nodes
+        else:
+            raise TypeError(f"Invalid mesh of type {self.mesh.__class__.__name__}.")
+        # Get original cell_nodes but only for active cells
+        cell_nodes = self._get_cell_nodes()
+        # If all cells in the mesh are active, return nodes and cell_nodes
+        if self.nC == self.mesh.n_cells:
+            return nodes, cell_nodes
+        # Keep only the cell_nodes for active cells
+        cell_nodes = cell_nodes[self.ind_active]
+        # Get the unique indices of the nodes that belong to every active cell
+        # (these indices correspond to the original `nodes` array)
+        unique_nodes, active_cell_nodes = np.unique(cell_nodes, return_inverse=True)
+        # Select only the nodes that belong to the active cells (active nodes)
+        active_nodes = nodes[unique_nodes]
+        # Reshape indices of active cells for each active cell in the mesh
+        active_cell_nodes = active_cell_nodes.reshape(cell_nodes.shape)
+        return active_nodes, active_cell_nodes
+
+    def _get_components_and_receivers(self):
+        """Generator for receiver locations and their field components."""
+        if not hasattr(self.survey, "source_field"):
+            raise AttributeError(
+                f"The survey '{self.survey}' has no 'source_field' attribute."
+            )
+        for receiver_object in self.survey.source_field.receiver_list:
+            yield receiver_object.components, receiver_object.locations
 
 
 class SimulationEquivalentSourceLayer(
