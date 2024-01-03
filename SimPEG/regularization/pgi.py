@@ -10,7 +10,6 @@ from ..maps import IdentityMap, Wires
 from ..objective_function import ComboObjectiveFunction
 from ..utils import (
     Identity,
-    deprecate_property,
     mkvc,
     sdiag,
     timeIt,
@@ -1397,12 +1396,3 @@ class PGI(ComboObjectiveFunction):
 
         for fct in self.objfcts:
             fct.reference_model = values
-
-    mref = deprecate_property(
-        reference_model,
-        "mref",
-        "reference_model",
-        "0.19.0",
-        future_warn=True,
-        error=False,
-    )
