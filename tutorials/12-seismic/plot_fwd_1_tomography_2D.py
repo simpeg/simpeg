@@ -94,7 +94,7 @@ block_velocity = 1500.0
 # Define the model. Models in SimPEG are vector arrays.
 model = background_velocity * np.ones(mesh.nC)
 
-ind_block = model_builder.getIndicesBlock(np.r_[-50, 20], np.r_[50, -20], mesh.gridCC)
+ind_block = model_builder.get_indices_block(np.r_[-50, 20], np.r_[50, -20], mesh.gridCC)
 model[ind_block] = block_velocity
 
 # Define a mapping from the model (velocity) to the slowness. If your model
