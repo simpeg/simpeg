@@ -1,15 +1,27 @@
 import warnings
-from typing import Literal
+from typing import Literal, Optional
 
 import discretize
 import numpy as np
 import scipy.sparse as sp
 from discretize.utils import active_from_xyz
-from numba import njit
 from scipy.interpolate import griddata
 from scipy.spatial import cKDTree
 
 from .mat_utils import mkvc
+
+try:
+    import numba
+    from numba import njit, prange
+except ImportError:
+    numba = None
+
+    # Define dummy njit decorator
+    def njit(*args, **kwargs):
+        return lambda f: f
+
+    # Define dummy prange function
+    prange = range
 
 
 def surface2ind_topo(mesh, topo, gridLoc="CC", method="nearest", fill_value=np.nan):
@@ -202,13 +214,74 @@ def depth_weighting(
     return wz / np.nanmax(wz)
 
 
+@njit(parallel=True)
+def _distance_weighting_numba(
+    cell_centers: np.ndarray,
+    cell_volumes: np.ndarray,
+    reference_locs: np.ndarray,
+    threshold: float,
+    exponent: float = 2.0,
+) -> np.ndarray:
+    r"""
+    distance weighting kernel in numba.
+
+    If numba is not installed, this will work as a regular for loop.
+
+    Parameters
+    ----------
+    cell_centers : np.ndarray
+        cell centers of the mesh.
+    cell_volumes : np.ndarray
+        cell volumes of the mesh.
+    reference_locs : float or (n, ndim) numpy.ndarray
+        Reference location for the distance weighting.
+        It can be a ``float``, which value is the component for
+        the reference location.
+        Or it can be a 2d array, with multiple reference locations, where each
+        row should contain the coordinates of a single location point in the
+        following order: _x_, _y_, _z_ (for 3D meshes) or _x_, _z_ (for 2D
+        meshes).
+        The coordinate of the reference location, usually the receiver locations
+    exponent : float, optional
+        Exponent parameter for distance weighting.
+        The exponent should match the natural decay power of the potential
+        field. For example, for gravity acceleration, set it to 2; for magnetic
+        fields, to 3.
+    threshold : float or None, optional
+        Threshold parameters used in the distance weighting.
+        If ``None``, it will be set to half of the smallest cell width.
+
+    Returns
+    -------
+    (n_active) numpy.ndarray
+        Normalized distance weights for the mesh at every active cell as
+        a 1d-array.
+    """
+
+    distance_weights = np.zeros(len(cell_centers))
+    n_reference_locs = len(reference_locs)
+    for i in prange(n_reference_locs):
+        rl = reference_locs[i]
+        dst_wgt = (
+            np.sqrt(((cell_centers - rl) ** 2).sum(axis=1)) + threshold
+        ) ** exponent
+        dst_wgt = (cell_volumes / dst_wgt) ** 2
+        distance_weights += dst_wgt
+
+    distance_weights = distance_weights**0.5
+    distance_weights /= cell_volumes
+    distance_weights /= np.nanmax(distance_weights)
+
+    return distance_weights
+
+
 def distance_weighting(
     mesh: discretize.base.BaseMesh,
     reference_locs: np.ndarray,
-    active_cells: np.ndarray | None = None,
+    active_cells: Optional[np.ndarray] = None,
     exponent: float = 2.0,
-    threshold: float | None = None,
-    engine: Literal["numpy", "numba"] = "numba",
+    threshold: Optional[float] = None,
+    engine: Literal["loop", "vector"] = "loop",
 ):
     r"""
     Construct diagonal elements of a distance weighting matrix
@@ -243,8 +316,8 @@ def distance_weighting(
     threshold : float or None, optional
         Threshold parameters used in the distance weighting.
         If ``None``, it will be set to half of the smallest cell width.
-    engine: str, 'numpy' or 'numba': pick between a numpy vectorized computation (memory intensive) or parallelized
-        numba implementation. Default to 'numba'.
+    engine: str, 'loops' or 'vector': pick between a `vector` vectorized computation (memory intensive) or `for` loop
+        implementation, parallelized with numba if available. Default to 'loop'.
 
     Returns
     -------
@@ -271,27 +344,14 @@ def distance_weighting(
         cell_centers = cell_centers.reshape(-1, 1)
         reference_locs = reference_locs.reshape(-1, 1)
 
-    if engine == "numba":
+    if engine == "loop":
+        if numba is None:
+            warnings.warn(
+                "numba is not installed. 'loop' computations might be slower.",
+                stacklevel=2,
+            )
 
-        @njit(parallel=True)
-        def distance_weighting_numba(
-            cell_centers: np.ndarray,
-            cell_volumes: np.ndarray,
-            reference_locs: np.ndarray,
-            threshold: float,
-            exponent: float = 2.0,
-        ):
-            distance_weights = np.zeros(len(cell_centers))
-            for _, rl in enumerate(reference_locs):
-                dst_wgt = (
-                    np.sqrt(((cell_centers - rl) ** 2).sum(axis=1)) + threshold
-                ) ** exponent
-                dst_wgt = (cell_volumes / dst_wgt) ** 2
-                distance_weights += dst_wgt
-
-            return distance_weights
-
-        dist_weights = distance_weighting_numba(
+        distance_weights = _distance_weighting_numba(
             cell_centers,
             cell_volumes,
             reference_locs,
@@ -299,7 +359,13 @@ def distance_weighting(
             threshold=threshold,
         )
 
-    elif engine == "numpy":
+    elif engine == "vector":
+        warnings.warn(
+            "vectorized computations are memory intensive. Consider switching to `engine='loop'` if you run into memory"
+            " overflow issues",
+            stacklevel=2,
+        )
+
         n, d = cell_centers.shape
         t, d1 = reference_locs.shape
         if not d == d1:
@@ -312,16 +378,17 @@ def distance_weighting(
             - 2.0 * np.dot(cell_centers, reference_locs.T)
         ) ** 0.5
 
-        dist_weights = (
+        distance_weights = (
             (cell_volumes.reshape(-1, 1) / ((distance + threshold) ** exponent)) ** 2
         ).sum(axis=1)
 
+        distance_weights = distance_weights**0.5
+        distance_weights /= cell_volumes
+        distance_weights /= np.nanmax(distance_weights)
+
     else:
         raise ValueError(
-            f"engine should be either 'numpy' or 'numba', instead {engine=}"
+            f"engine should be either 'vector' or 'loop', instead {engine=}"
         )
 
-    dist_weights = dist_weights**0.5
-    dist_weights /= cell_volumes
-
-    return dist_weights / np.nanmax(dist_weights)
+    return distance_weights

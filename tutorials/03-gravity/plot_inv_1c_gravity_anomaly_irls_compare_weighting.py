@@ -431,7 +431,9 @@ ind_block = (
 true_model[ind_block] = block_density
 
 # You can also use SimPEG utilities to add structures to the model more concisely
-ind_sphere = model_builder.getIndicesSphere(np.r_[35.0, 0.0, -40.0], 15.0, mesh.gridCC)
+ind_sphere = model_builder.get_indices_sphere(
+    np.r_[35.0, 0.0, -40.0], 15.0, mesh.gridCC
+)
 ind_sphere = ind_sphere[ind_active]
 true_model[ind_sphere] = sphere_density
 

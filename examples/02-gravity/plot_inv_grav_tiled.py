@@ -115,7 +115,7 @@ nC = int(activeCells.sum())
 # Here a simple block in half-space
 # Get the indices of the magnetized block
 model = np.zeros(mesh.nC)
-ind = utils.model_builder.getIndicesBlock(
+ind = utils.model_builder.get_indices_block(
     np.r_[-10, -10, -30],
     np.r_[10, 10, -10],
     mesh.gridCC,

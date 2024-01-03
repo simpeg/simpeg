@@ -74,10 +74,10 @@ def run(plotIt=True, survey_type="dipole-dipole", p=0.0, qx=2.0, qz=2.0):
     survey.drape_electrodes_on_topography(mesh, actind, option="top")
 
     # Build a conductivity model
-    blk_inds_c = utils.model_builder.getIndicesSphere(
+    blk_inds_c = utils.model_builder.get_indices_sphere(
         np.r_[60.0, -25.0], 12.5, mesh.gridCC
     )
-    blk_inds_r = utils.model_builder.getIndicesSphere(
+    blk_inds_r = utils.model_builder.get_indices_sphere(
         np.r_[140.0, -25.0], 12.5, mesh.gridCC
     )
     sigma = np.ones(mesh.nC) * 1.0 / 100.0
