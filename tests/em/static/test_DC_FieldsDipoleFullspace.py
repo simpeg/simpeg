@@ -76,14 +76,14 @@ class DC_CC_DipoleFullspaceTests(unittest.TestCase):
 
         ROI_large_BNW = np.array([-75, 75, -75])
         ROI_large_TSE = np.array([75, -75, 75])
-        ROI_largeInds = utils.model_builder.getIndicesBlock(
+        ROI_largeInds = utils.model_builder.get_indices_block(
             ROI_large_BNW, ROI_large_TSE, faceGrid
         )[0]
         # print(ROI_largeInds.shape)
 
         ROI_small_BNW = np.array([-4, 4, -4])
         ROI_small_TSE = np.array([4, -4, 4])
-        ROI_smallInds = utils.model_builder.getIndicesBlock(
+        ROI_smallInds = utils.model_builder.get_indices_block(
             ROI_small_BNW, ROI_small_TSE, faceGrid
         )[0]
         # print(ROI_smallInds.shape)
@@ -249,14 +249,14 @@ class DC_N_DipoleFullspaceTests(unittest.TestCase):
 
         ROI_large_BNW = np.array([-75, 75, -75])
         ROI_large_TSE = np.array([75, -75, 75])
-        ROI_largeInds = utils.model_builder.getIndicesBlock(
+        ROI_largeInds = utils.model_builder.get_indices_block(
             ROI_large_BNW, ROI_large_TSE, edgeGrid
         )[0]
         # print(ROI_largeInds.shape)
 
         ROI_small_BNW = np.array([-4, 4, -4])
         ROI_small_TSE = np.array([4, -4, 4])
-        ROI_smallInds = utils.model_builder.getIndicesBlock(
+        ROI_smallInds = utils.model_builder.get_indices_block(
             ROI_small_BNW, ROI_small_TSE, edgeGrid
         )[0]
         # print(ROI_smallInds.shape)

@@ -40,7 +40,7 @@ def run(plotIt=True):
     )
     # Setup the model
     conds = [1, 1e-2]
-    sig = utils.model_builder.defineBlock(
+    sig = utils.model_builder.create_block_in_wholespace(
         M.gridCC, [-100, -100, -350], [100, 100, -150], conds
     )
     sig[M.gridCC[:, 2] > 0] = 1e-8

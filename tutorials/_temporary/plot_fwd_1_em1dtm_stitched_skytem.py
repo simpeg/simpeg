@@ -304,7 +304,7 @@ if save_file:
     dir_path.extend(["tutorials", "08-tdem", "em1dtm_stitched_skytem"])
     dir_path = os.path.sep.join(dir_path) + os.path.sep
 
-    noise = 0.1 * np.abs(dpred) * np.random.rand(len(dpred))
+    noise = 0.1 * np.abs(dpred) * np.random.randn(len(dpred))
     dpred += noise
     fname = dir_path + "em1dtm_stitched_skytem_data.obs"
 
