@@ -125,7 +125,7 @@ nC = int(actv.sum())
 M_xyz = utils.mat_utils.dip_azimuth2cartesian(np.ones(nC) * M[0], np.ones(nC) * M[1])
 
 # Get the indicies of the magnetized block
-ind = utils.model_builder.getIndicesBlock(
+ind = utils.model_builder.get_indices_block(
     np.r_[-20, -20, -10],
     np.r_[20, 20, 25],
     mesh.gridCC,
