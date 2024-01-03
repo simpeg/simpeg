@@ -541,7 +541,7 @@ class LCRegularizationMesh(RegularizationMesh):
 
         """
         if getattr(self, "_gradient_z", None) is None:
-            grad = self.mesh_vertical._cellGradStencil
+            grad = self.mesh_vertical.stencil_cell_gradient
             self._gradient_z = self.Pafz.T * sp.kron(utils.speye(self.n_nodes), grad) * self.Pac
         return self._gradient_z
 
