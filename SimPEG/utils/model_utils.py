@@ -325,11 +325,6 @@ def distance_weighting(
         Normalized distance weights for the mesh at every active cell as
         a 1d-array.
     """
-    if (numba is None) and (engine == "loop"):
-        warnings.warn(
-            "numba is not installed. 'For loops' computations might be slower.",
-            stacklevel=2,
-        )
 
     active_cells = (
         np.ones(mesh.n_cells, dtype=bool) if active_cells is None else active_cells
@@ -350,6 +345,12 @@ def distance_weighting(
         reference_locs = reference_locs.reshape(-1, 1)
 
     if engine == "loop":
+        if numba is None:
+            warnings.warn(
+                "numba is not installed. 'loop' computations might be slower.",
+                stacklevel=2,
+            )
+
         distance_weights = _distance_weighting_numba(
             cell_centers,
             cell_volumes,
@@ -359,6 +360,12 @@ def distance_weighting(
         )
 
     elif engine == "vector":
+        warnings.warn(
+            "vectorized computations are memory intensive. Consider switching to `engine='loop'` if you run into memory"
+            " overflow issues",
+            stacklevel=2,
+        )
+
         n, d = cell_centers.shape
         t, d1 = reference_locs.shape
         if not d == d1:
