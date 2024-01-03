@@ -241,18 +241,6 @@ interpmat = deprecate_function(
     interpolation_matrix, "interpmat", removal_version="0.19.0", future_warn=True
 )
 
-from .code_utils import (
-    memProfileWrapper,
-    setKwargs,
-    printTitles,
-    printLine,
-    checkStoppers,
-    printStoppers,
-    printDone,
-    callHooks,
-    dependentProperty,
-    asArray_N_x_Dim,
-)
 from .mat_utils import (
     sdInv,
     getSubArray,

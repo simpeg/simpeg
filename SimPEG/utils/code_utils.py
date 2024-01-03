@@ -322,7 +322,7 @@ def call_hooks(match, mainFirst=False):
 
     Use the following syntax::
 
-        @callHooks('doEndIteration')
+        @call_hooks('doEndIteration')
         def doEndIteration(self):
             pass
 
@@ -1227,38 +1227,3 @@ def validate_active_indices(property_name, index_arr, n_cells):
     if index_arr.shape != (n_cells,):
         raise ValueError(f"Input 'active_cells' must have shape {(n_cells,)}")
     return index_arr
-
-
-###############################################################
-#                      DEPRECATIONS
-###############################################################
-memProfileWrapper = deprecate_function(
-    mem_profile_class, "memProfileWrapper", removal_version="0.18.0", future_warn=True
-)
-setKwargs = deprecate_function(
-    set_kwargs, "setKwargs", removal_version="0.18.0", future_warn=True
-)
-printTitles = deprecate_function(
-    print_titles, "printTitles", removal_version="0.18.0", future_warn=True
-)
-printLine = deprecate_function(
-    print_line, "printLine", removal_version="0.18.0", future_warn=True
-)
-printStoppers = deprecate_function(
-    print_stoppers, "printStoppers", removal_version="0.18.0", future_warn=True
-)
-checkStoppers = deprecate_function(
-    check_stoppers, "checkStoppers", removal_version="0.18.0", future_warn=True
-)
-printDone = deprecate_function(
-    print_done, "printDone", removal_version="0.18.0", future_warn=True
-)
-callHooks = deprecate_function(
-    call_hooks, "callHooks", removal_version="0.18.0", future_warn=True
-)
-dependentProperty = deprecate_function(
-    dependent_property, "dependentProperty", removal_version="0.18.0", future_warn=True
-)
-asArray_N_x_Dim = deprecate_function(
-    as_array_n_by_dim, "asArray_N_x_Dim", removal_version="0.19.0", future_warn=True
-)
