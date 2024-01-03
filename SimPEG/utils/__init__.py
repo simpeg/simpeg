@@ -236,16 +236,6 @@ from .pgi_utils import (
     GaussianMixtureWithNonlinearRelationshipsWithPrior,
 )
 
-from .mat_utils import (
-    sdInv,
-    getSubArray,
-    inv3X3BlockDiagonal,
-    inv2X2BlockDiagonal,
-    makePropertyTensor,
-    invPropertyTensor,
-    diagEst,
-    uniqueRows,
-)
 from .mesh_utils import (
     meshTensor,
     closestPoints,
