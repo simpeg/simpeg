@@ -157,7 +157,7 @@ if write_output:
         os.mkdir(dir_path)
 
     np.random.seed(145)
-    noise = 0.025 * dpred * np.random.rand(len(dpred))
+    noise = 0.025 * dpred * np.random.randn(len(dpred))
 
     data_array = np.c_[
         survey.locations_a,

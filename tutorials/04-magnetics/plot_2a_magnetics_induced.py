@@ -128,7 +128,7 @@ model_map = maps.IdentityMap(nP=nC)  # model is a vlue for each active cell
 
 # Define model. Models in SimPEG are vector arrays
 model = background_susceptibility * np.ones(ind_active.sum())
-ind_sphere = model_builder.getIndicesSphere(
+ind_sphere = model_builder.get_indices_sphere(
     np.r_[0.0, 0.0, -45.0], 15.0, mesh.cell_centers
 )
 ind_sphere = ind_sphere[ind_active]
@@ -228,6 +228,6 @@ if write_output:
 
     np.random.seed(211)
     maximum_anomaly = np.max(np.abs(dpred))
-    noise = 0.02 * maximum_anomaly * np.random.rand(len(dpred))
+    noise = 0.02 * maximum_anomaly * np.random.randn(len(dpred))
     fname = dir_path + "magnetics_data.obs"
     np.savetxt(fname, np.c_[receiver_locations, dpred + noise], fmt="%.4e")

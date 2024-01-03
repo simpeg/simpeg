@@ -316,7 +316,7 @@ class QuadTreeLinProblemTest(unittest.TestCase):
 
         # Create a density model and generate data,
         # with a block in a half space
-        self.model = utils.model_builder.addBlock(
+        self.model = utils.model_builder.add_block(
             self.mesh.cell_centers,
             np.zeros(self.mesh.nC),
             np.r_[-20, -20],
@@ -324,7 +324,7 @@ class QuadTreeLinProblemTest(unittest.TestCase):
             1.0,
         )
 
-        self.active_cells = utils.model_builder.addBlock(
+        self.active_cells = utils.model_builder.add_block(
             self.mesh.cell_centers,
             np.zeros(self.mesh.nC, dtype=bool),
             np.r_[-40, -40],
