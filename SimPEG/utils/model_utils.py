@@ -11,20 +11,17 @@ from scipy.spatial import cKDTree
 from .mat_utils import mkvc
 
 try:
+    import numba
     from numba import njit, prange
 except ImportError:
+    numba = None
+
     # Define dummy njit decorator
     def njit(*args, **kwargs):
         return lambda f: f
 
     # Define dummy prange function
     prange = range
-
-    warnings.warn(
-        "numba is not installed. Some computations might be slower.",
-        type=ImportWarning,
-        stacklevel=2,
-    )
 
 
 def surface2ind_topo(mesh, topo, gridLoc="CC", method="nearest", fill_value=np.nan):
@@ -260,6 +257,7 @@ def _distance_weighting_numba(
         Normalized distance weights for the mesh at every active cell as
         a 1d-array.
     """
+
     distance_weights = np.zeros(len(cell_centers))
     n_reference_locs = len(reference_locs)
     for i in prange(n_reference_locs):
@@ -327,6 +325,11 @@ def distance_weighting(
         Normalized distance weights for the mesh at every active cell as
         a 1d-array.
     """
+    if (numba is None) and (engine == "loop"):
+        warnings.warn(
+            "numba is not installed. 'For loops' computations might be slower.",
+            stacklevel=2,
+        )
 
     active_cells = (
         np.ones(mesh.n_cells, dtype=bool) if active_cells is None else active_cells
