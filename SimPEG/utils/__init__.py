@@ -256,9 +256,3 @@ from .mesh_utils import (
     closestPoints,
     ExtractCoreMesh,
 )
-from .curv_utils import (
-    volTetra,
-    faceInfo,
-    indexCube,
-    exampleLrmGrid,
-)
