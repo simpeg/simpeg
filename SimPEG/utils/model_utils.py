@@ -7,6 +7,7 @@ import scipy.sparse as sp
 from discretize.utils import active_from_xyz
 from scipy.interpolate import griddata
 from scipy.spatial import cKDTree
+from scipy.spatial.distance import cdist
 
 from .mat_utils import mkvc
 
@@ -281,7 +282,8 @@ def distance_weighting(
     active_cells: Optional[np.ndarray] = None,
     exponent: float = 2.0,
     threshold: Optional[float] = None,
-    engine: Literal["loop", "vector"] = "loop",
+    engine: Literal["loop", "cdist"] = "loop",
+    cdist_opts: Optional[dict] = None,
 ):
     r"""
     Construct diagonal elements of a distance weighting matrix
@@ -316,8 +318,11 @@ def distance_weighting(
     threshold : float or None, optional
         Threshold parameters used in the distance weighting.
         If ``None``, it will be set to half of the smallest cell width.
-    engine: str, 'loops' or 'vector': pick between a `vector` vectorized computation (memory intensive) or `for` loop
-        implementation, parallelized with numba if available. Default to 'loop'.
+    engine: str, 'loop' or 'cdist'
+        pick between a `scipy.spatial.distance.cdist` computation (memory intensive) or `for` loop implementation,
+        parallelized with numba if available. Default to 'loop'.
+    cdist_opts: dct, optional
+        Only valid with `engine=='cdist'`. Options to pass to scipy.spatial.distance.cdist. Default to None.
 
     Returns
     -------
@@ -350,7 +355,11 @@ def distance_weighting(
                 "numba is not installed. 'loop' computations might be slower.",
                 stacklevel=2,
             )
-
+        if cdist_opts is not None:
+            warnings.warn(
+                f"`cdist_opts` is only valid with `engine=='cdist'`, currently {engine=}",
+                stacklevel=2,
+            )
         distance_weights = _distance_weighting_numba(
             cell_centers,
             cell_volumes,
@@ -359,24 +368,14 @@ def distance_weighting(
             threshold=threshold,
         )
 
-    elif engine == "vector":
+    elif engine == "cdist":
         warnings.warn(
-            "vectorized computations are memory intensive. Consider switching to `engine='loop'` if you run into memory"
-            " overflow issues",
+            "scipy.spatial.distance.cdist computations can be memory intensive. Consider switching to `engine='loop'` "
+            "if you run into memory overflow issues",
             stacklevel=2,
         )
-
-        n, d = cell_centers.shape
-        t, d1 = reference_locs.shape
-        if not d == d1:
-            raise Exception("vectors must have same number of columns")
-
-        # vectorized distance calculations
-        distance = (
-            np.dot((cell_centers**2.0), np.ones([d, t]))
-            + np.dot(np.ones([n, d]), (reference_locs**2.0).T)
-            - 2.0 * np.dot(cell_centers, reference_locs.T)
-        ) ** 0.5
+        cdist_opts = cdist_opts or dict()
+        distance = cdist(cell_centers, reference_locs, **cdist_opts)
 
         distance_weights = (
             (cell_volumes.reshape(-1, 1) / ((distance + threshold) ** exponent)) ** 2
@@ -388,7 +387,7 @@ def distance_weighting(
 
     else:
         raise ValueError(
-            f"engine should be either 'vector' or 'loop', instead {engine=}"
+            f"engine should be either 'cdist' or 'loop', instead {engine=}"
         )
 
     return distance_weights
