@@ -165,7 +165,9 @@ class ValidationInInversion(unittest.TestCase):
         test_directive.update()
 
         for reg_i in reg.objfcts:
-            self.assertTrue(np.all(np.isclose(test_weights, reg_i.weights)))
+            # Get weights as the products of every weights in the regularization
+            weights = np.prod(list(reg_i._weights.values()), axis=0)
+            self.assertTrue(np.all(np.isclose(test_weights, weights)))
             reg_i.remove_weights("sensitivity")
 
         # self.test_sensitivity_weighting_subroutine(test_weights, test_directive)
@@ -205,7 +207,9 @@ class ValidationInInversion(unittest.TestCase):
         test_directive.update()
 
         for reg_i in reg.objfcts:
-            self.assertTrue(np.all(np.isclose(test_weights, reg_i.weights)))
+            # Get weights as the products of every weights in the regularization
+            weights = np.prod(list(reg_i._weights.values()), axis=0)
+            self.assertTrue(np.all(np.isclose(test_weights, weights)))
             reg_i.remove_weights("sensitivity")
 
         # self.test_sensitivity_weighting_subroutine(test_weights, test_directive)
@@ -245,7 +249,9 @@ class ValidationInInversion(unittest.TestCase):
         test_directive.update()
 
         for reg_i in reg.objfcts:
-            self.assertTrue(np.all(np.isclose(test_weights, reg_i.weights)))
+            # Get weights as the products of every weights in the regularization
+            weights = np.prod(list(reg_i._weights.values()), axis=0)
+            self.assertTrue(np.all(np.isclose(test_weights, weights)))
             reg_i.remove_weights("sensitivity")
 
         # self.test_sensitivity_weighting_subroutine(test_weights, test_directive)
