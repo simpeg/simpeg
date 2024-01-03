@@ -87,7 +87,7 @@ class DistancehWeightingTest(unittest.TestCase):
 
         # distance weighting
         wz_numpy = utils.distance_weighting(
-            mesh, reference_locs, active_cells=actv, exponent=3, engine="vector"
+            mesh, reference_locs, active_cells=actv, exponent=3, engine="cdist"
         )
         wz_numba = utils.distance_weighting(
             mesh, reference_locs, active_cells=actv, exponent=3, engine="loop"
@@ -115,7 +115,7 @@ class DistancehWeightingTest(unittest.TestCase):
 
         # distance weighting
         wz_numpy = utils.distance_weighting(
-            mesh, reference_locs, active_cells=actv, exponent=3, engine="vector"
+            mesh, reference_locs, active_cells=actv, exponent=3, engine="cdist"
         )
         wz_numba = utils.distance_weighting(
             mesh, reference_locs, active_cells=actv, exponent=3, engine="loop"
@@ -137,7 +137,7 @@ class DistancehWeightingTest(unittest.TestCase):
 
         # distance weighting
         wz_numpy = utils.distance_weighting(
-            mesh, reference_locs, active_cells=actv, exponent=3, engine="vector"
+            mesh, reference_locs, active_cells=actv, exponent=3, engine="cdist"
         )
         wz_numba = utils.distance_weighting(
             mesh, reference_locs, active_cells=actv, exponent=3, engine="loop"
