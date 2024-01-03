@@ -6,7 +6,12 @@ import inspect
 
 import discretize
 from SimPEG import maps, objective_function, regularization, utils
-from SimPEG.regularization import BaseRegularization, WeightedLeastSquares
+from SimPEG.regularization import (
+    BaseRegularization,
+    WeightedLeastSquares,
+    Sparse,
+    SparseSmoothness,
+)
 from SimPEG.objective_function import ComboObjectiveFunction
 
 
@@ -663,6 +668,7 @@ class TestDeprecatedArguments:
 
     * ``indActive`` (replaced by ``active_cells``)
     * ``cell_weights`` (replaced by ``get_weights``)
+    * ``gradientType`` (replaced by ``gradient_type``)
 
     """
 
@@ -702,6 +708,16 @@ class TestDeprecatedArguments:
         )
         with pytest.raises(ValueError, match=msg):
             BaseRegularization(mesh, cell_weights=weights)
+
+    @pytest.mark.parametrize("regularization_class", (Sparse, SparseSmoothness))
+    def test_gradient_type(self, mesh, regularization_class):
+        """Test gradientType argument."""
+        msg = (
+            "'gradientType' argument has been deprecated. "
+            "Please use 'gradient_type' instead."
+        )
+        with pytest.raises(ValueError, match=msg):
+            regularization_class(mesh, gradientType="total")
 
 
 if __name__ == "__main__":
