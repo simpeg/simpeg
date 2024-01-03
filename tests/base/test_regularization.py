@@ -696,7 +696,7 @@ class TestDeprecatedArguments:
             "'indActive' argument has been deprecated. "
             "Please use 'active_cells' instead."
         )
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(TypeError, match=msg):
             regularization_class(mesh, indActive=active_cells)
 
     def test_cell_weights(self, mesh):
@@ -706,7 +706,7 @@ class TestDeprecatedArguments:
             "'cell_weights' argument has been deprecated. "
             "Please use 'weights' instead."
         )
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(TypeError, match=msg):
             BaseRegularization(mesh, cell_weights=weights)
 
     @pytest.mark.parametrize("regularization_class", (Sparse, SparseSmoothness))
@@ -716,7 +716,7 @@ class TestDeprecatedArguments:
             "'gradientType' argument has been deprecated. "
             "Please use 'gradient_type' instead."
         )
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(TypeError, match=msg):
             regularization_class(mesh, gradientType="total")
 
 
