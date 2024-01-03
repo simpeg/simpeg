@@ -236,11 +236,6 @@ from .pgi_utils import (
     GaussianMixtureWithNonlinearRelationshipsWithPrior,
 )
 
-# Deprecated imports
-interpmat = deprecate_function(
-    interpolation_matrix, "interpmat", removal_version="0.19.0", future_warn=True
-)
-
 from .mat_utils import (
     sdInv,
     getSubArray,
