@@ -345,7 +345,7 @@ background_susceptibility = 0.0001
 sphere_susceptibility = 0.01
 
 true_model = background_susceptibility * np.ones(nC)
-ind_sphere = model_builder.getIndicesSphere(
+ind_sphere = model_builder.get_indices_sphere(
     np.r_[0.0, 0.0, -45.0], 15.0, mesh.cell_centers
 )
 ind_sphere = ind_sphere[active_cells]

@@ -312,8 +312,8 @@ if save_file:
 
     # Write data with 2% noise added
     fname = dir_path + "fdem_data.obs"
-    bz_real = bz_real + 1e-14 * np.random.rand(len(bz_real))
-    bz_imag = bz_imag + 1e-14 * np.random.rand(len(bz_imag))
+    bz_real = bz_real + 1e-14 * np.random.randn(len(bz_real))
+    bz_imag = bz_imag + 1e-14 * np.random.randn(len(bz_imag))
     f_vec = np.kron(frequencies, np.ones(ntx))
     receiver_locations = np.kron(np.ones((len(frequencies), 1)), receiver_locations)
 

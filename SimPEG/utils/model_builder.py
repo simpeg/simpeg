@@ -3,7 +3,6 @@ import scipy.ndimage as ndi
 import scipy.sparse as sp
 from .mat_utils import mkvc
 from scipy.spatial import Delaunay
-from .code_utils import deprecate_function
 from discretize.base import BaseMesh
 
 
@@ -144,7 +143,7 @@ def create_block_in_wholespace(
         pass
 
     sigma = np.zeros(cell_centers.shape[0]) + background_value
-    ind = getIndicesBlock(p0, p1, cell_centers)
+    ind = get_indices_block(p0, p1, cell_centers)
 
     sigma[ind] = block_value
 
@@ -317,7 +316,7 @@ def create_2_layer_model(cell_centers, depth, top_value=1.0, bottom_value=0.0):
     # The depth is always defined on the last one.
     p1[len(p1) - 1] -= depth
 
-    ind = getIndicesBlock(p0, p1, cell_centers)
+    ind = get_indices_block(p0, p1, cell_centers)
 
     sigma[ind] = top_value
 
@@ -510,58 +509,3 @@ def get_indices_polygon(mesh, pts):
     hull = Delaunay(pts)
     inds = hull.find_simplex(mesh.cell_centers) >= 0
     return inds
-
-
-################################################
-#             DEPRECATED FUNCTIONS
-################################################
-
-
-addBlock = deprecate_function(
-    add_block, "addBlock", removal_version="0.19.0", future_warn=True
-)
-
-getIndicesBlock = deprecate_function(
-    get_indices_block, "getIndicesBlock", removal_version="0.19.0", future_warn=True
-)
-
-defineBlock = deprecate_function(
-    create_block_in_wholespace,
-    "defineBlock",
-    removal_version="0.19.0",
-    future_warn=True,
-)
-
-defineEllipse = deprecate_function(
-    create_ellipse_in_wholespace,
-    "defineEllipse",
-    removal_version="0.19.0",
-    future_warn=True,
-)
-
-getIndicesSphere = deprecate_function(
-    get_indices_sphere, "getIndicesSphere", removal_version="0.19.0", future_warn=True
-)
-
-defineTwoLayers = deprecate_function(
-    create_2_layer_model, "defineTwoLayers", removal_version="0.19.0", future_warn=True
-)
-
-layeredModel = deprecate_function(
-    create_layers_model, "layeredModel", removal_version="0.19.0", future_warn=True
-)
-
-randomModel = deprecate_function(
-    create_random_model, "randomModel", removal_version="0.19.0", future_warn=True
-)
-
-polygonInd = deprecate_function(
-    get_indices_polygon, "polygonInd", removal_version="0.19.0", future_warn=True
-)
-
-scalarConductivity = deprecate_function(
-    create_from_function,
-    "scalarConductivity",
-    removal_version="0.19.0",
-    future_warn=True,
-)
