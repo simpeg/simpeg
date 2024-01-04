@@ -221,6 +221,7 @@ class BaseFDEMSimulation(BaseEMSimulation):
                 df_duT_sum = 0
                 df_dmT_sum = 0
                 for rx in src.receiver_list:
+                    print(f"v shape: {v[src, rx].shape}")
                     df_duT, df_dmT = rx.evalDeriv(
                         src, self.mesh, f, v=v[src, rx], adjoint=True
                     )
@@ -263,18 +264,17 @@ class BaseFDEMSimulation(BaseEMSimulation):
 
             for A_i, freq in zip(Ainv, self.survey.frequencies):
                 for src in self.survey.get_sources_by_frequency(freq):
-                    df_duT, df_dmT = [], []
+
                     u_src = f[src, self._solutionType]
 
                     for rx in src.receiver_list:
-                        v = np.ones(rx.nD, dtype=float)
+                        v = np.eye(rx.nD, dtype=float)
 
                         df_duT, df_dmT = rx.evalDeriv(
                             src, self.mesh, f, v=v, adjoint=True
                         )
 
-                        df_duT = np.vstack(df_duT)
-                        ATinvdf_duT = A_i * df_duT
+                        ATinvdf_duT = (A_i * df_duT)
                         dA_dmT = self.getADeriv(freq, u_src, ATinvdf_duT, adjoint=True)
                         dRHS_dmT = self.getRHSDeriv(
                             freq, src, ATinvdf_duT, adjoint=True
