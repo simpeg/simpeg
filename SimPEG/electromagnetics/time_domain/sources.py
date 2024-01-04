@@ -1565,11 +1565,12 @@ class CircularLoop(MagDipole):
         if "moment" in kwargs:
             kwargs.pop("moment")
 
-        N = kwargs.pop("N", None)
-        if N is not None:
-            self.N = N
-        else:
-            self.n_turns = n_turns
+        # Raise error on deprecated arguments
+        if (key := "N") in kwargs.keys():
+            raise TypeError(
+                f"'{key}' property has been deprecated. Please use 'n_turns'."
+            )
+        self.n_turns = n_turns
 
         BaseTDEMSrc.__init__(
             self, receiver_list=receiver_list, location=location, moment=None, **kwargs
@@ -1666,8 +1667,6 @@ class CircularLoop(MagDipole):
                 current=self.current,
             )
         return self.n_turns * self._loop.vector_potential(obsLoc, coordinates)
-
-    N = deprecate_property(n_turns, "N", "n_turns", removal_version="0.19.0")
 
 
 class LineCurrent(BaseTDEMSrc):
