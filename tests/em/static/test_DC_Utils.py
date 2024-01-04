@@ -108,7 +108,7 @@ class DCUtilsTests_halfspace(unittest.TestCase):
 
                 # Test Pseudosections plotting
                 fig, ax = plt.subplots(1, 1, figsize=(15, 3))
-                ax = utils.plot_pseudoSection(
+                ax = utils.plot_pseudosection(
                     survey,
                     ax,
                     survey_type=survey_type,
