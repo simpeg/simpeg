@@ -579,9 +579,8 @@ class Fields3DElectricField(FieldsFDEM):
         # n = int(self._aveF2CCV.shape[0] / self._nC)  # Number of Components
         # VI = sdiag(np.kron(np.ones(n), 1./self.simulation.mesh.cell_volumes))
 
-        if adjoint is True:
+        if adjoint:
             return self._MfMuiDeriv(self[src, "b"], (self._MfI.T * v), adjoint)
-
         return self._MfI * (self._MfMuiDeriv(self[src, "b"], v))
 
     def _hDeriv_m(self, src, v, adjoint=False):
@@ -633,8 +632,10 @@ class Fields3DElectricFieldFaceEdgeConductivity(Fields3DElectricField):
         \mathbf{M_e \, J} = \left ( \mathbf{M_{e\sigma} + M_{e\tau}
         + M_{e\kappa}} \right ) \mathbf{e}
 
-    :param discretize.base.BaseMesh mesh: mesh
-    :param SimPEG.electromagnetics.frequency_domain.SurveyFDEM.Survey survey: survey
+    Parameters
+    ----------
+    mesh : discretize.base.BaseMesh
+    survey : SimPEG.electromagnetics.frequency_domain.SurveyFDEM.Survey
     """
 
     def startup(self):
@@ -650,28 +651,11 @@ class Fields3DElectricFieldFaceEdgeConductivity(Fields3DElectricField):
         self._MfI = self.simulation.MfI
 
     def _j(self, eSolution, source_list):
-        """
-        Current density from eSolution
-
-        :param numpy.ndarray eSolution: field we solved for
-        :param list source_list: list of sources
-        :rtype: numpy.ndarray
-        :return: current density
-        """
+        # Docstrings inherited from parent class.
         return self._MeI * (self.__MeSigmaTauKappa * self._e(eSolution, source_list))
 
     def _jDeriv_u(self, src, du_dm_v, adjoint=False):
-        """
-        Derivative of the current density with respect to the thing we solved
-        for
-
-        :param SimPEG.electromagnetics.frequency_domain.sources.BaseFDEMSrc src: source
-        :param numpy.ndarray du_dm_v: vector to take product with
-        :param bool adjoint: adjoint?
-        :rtype: numpy.ndarray
-        :return: product of the derivative of the current density with respect
-            to the field we solved for with a vector
-        """
+        # Docstrings inherited from parent class.
         if adjoint:
             return self._eDeriv_u(
                 src, self.__MeSigmaTauKappa.T * (self._MeI.T * du_dm_v), adjoint=adjoint
@@ -681,19 +665,7 @@ class Fields3DElectricFieldFaceEdgeConductivity(Fields3DElectricField):
         )
 
     def _jDeriv_m(self, src, v, adjoint=False):
-        """
-        Derivative of the current density with respect to the inversion model.
-
-        This includes derivatives for volume, face and/or edge conductivities
-        depending on whether ``sigmaMap``, ``tauMap`` and/or ``kappaMap`` are set.
-
-        :param SimPEG.electromagnetics.frequency_domain.sources.BaseFDEMSrc src: source
-        :param numpy.ndarray v: vector to take product with
-        :param bool adjoint: adjoint?
-        :rtype: numpy.ndarray
-        :return: product of the current density derivative with respect to the
-            inversion model with a vector
-        """
+        # Docstrings inherited from parent class.
         e = self[src, "e"]
 
         if adjoint:
@@ -849,13 +821,13 @@ class Fields3DMagneticFluxDensity(FieldsFDEM):
         e = self._edgeCurl.T * (self._MfMui * bSolution)
         for i, src in enumerate(source_list):
             s_e = src.s_e(self.simulation)
-            e[:, i] = e[:, i] + -s_e
+            e[:, i] -= s_e
 
             if self.simulation.permittivity is not None:
                 MeyhatI = self.simulation._get_edge_admittivity_property_matrix(
                     src.frequency, invert_matrix=True
                 )
-                e[:, i] = MeyhatI * e[:, i]
+                e[:, i] *= MeyhatI
 
         if self.simulation.permittivity is None:
             return self._MeSigmaI * e
@@ -929,7 +901,7 @@ class Fields3DMagneticFluxDensity(FieldsFDEM):
 
             for i, src in enumerate(source_list):
                 s_e = src.s_e(self.simulation)
-                j[:, i] = j[:, i] - s_e
+                j[:, i] -= s_e
 
             return self._MeI * j
         else:
@@ -1051,8 +1023,10 @@ class Fields3DMagneticFluxDensityFaceEdgeConductivity(Fields3DMagneticFluxDensit
         \mathbf{M_e \, J} = \left ( \mathbf{M_{e\sigma} + M_{e\tau}
         + M_{e\kappa}} \right ) \mathbf{e}
 
-    :param discretize.base.BaseMesh mesh: mesh
-    :param SimPEG.electromagnetics.frequency_domain.SurveyFDEM.Survey survey: survey
+    Parameters
+    ----------
+    mesh : discretize.base.BaseMesh
+    survey : SimPEG.electromagnetics.frequency_domain.SurveyFDEM.Survey
     """
 
     def startup(self):
@@ -1073,19 +1047,12 @@ class Fields3DMagneticFluxDensityFaceEdgeConductivity(Fields3DMagneticFluxDensit
         self._MfI = self.simulation.MfI
 
     def _eSecondary(self, bSolution, source_list):
-        """
-        Secondary electric field from bSolution
-
-        :param numpy.ndarray bSolution: field we solved for
-        :param list source_list: list of sources
-        :rtype: numpy.ndarray
-        :return: secondary electric field
-        """
+        # Docstrings inherited from parent class.
 
         e = self._edgeCurl.T * (self._MfMui * bSolution)
         for i, src in enumerate(source_list):
             s_e = src.s_e(self.simulation)
-            e[:, i] = e[:, i] + -s_e
+            e[:, i] -= s_e
 
             if self.simulation.permittivity is not None:
                 MeyhatI = (
@@ -1095,7 +1062,7 @@ class Fields3DMagneticFluxDensityFaceEdgeConductivity(Fields3DMagneticFluxDensit
                     + self.__MeTau
                     + self.__MeKappa
                 )
-                e[:, i] = MeyhatI * e[:, i]
+                e[:, i] *= MeyhatI
 
         if self.simulation.permittivity is None:
             return self.__MeSigmaTauKappaI * e
@@ -1103,17 +1070,7 @@ class Fields3DMagneticFluxDensityFaceEdgeConductivity(Fields3DMagneticFluxDensit
             return e
 
     def _eDeriv_u(self, src, du_dm_v, adjoint=False):
-        """
-        Derivative of the electric field with respect to the thing we solved
-        for
-
-        :param SimPEG.electromagnetics.frequency_domain.sources.BaseFDEMSrc src: source
-        :param numpy.ndarray v: vector to take product with
-        :param bool adjoint: adjoint?
-        :rtype: numpy.ndarray
-        :return: product of the derivative of the electric field with respect
-            to the field we solved for with a vector
-        """
+        # Docstrings inherited from parent class.
 
         if not adjoint:
             return self.__MeSigmaTauKappaI * (
@@ -1122,6 +1079,7 @@ class Fields3DMagneticFluxDensityFaceEdgeConductivity(Fields3DMagneticFluxDensit
         return self._MfMui.T * (self._edgeCurl * (self.__MeSigmaTauKappaI.T * du_dm_v))
 
     def _eDeriv_m(self, src, v, adjoint=False):
+        # Docstrings inherited from parent class.
         bSolution = mkvc(self[src, "bSolution"])
         s_e = src.s_e(self.simulation)
 
@@ -1149,21 +1107,14 @@ class Fields3DMagneticFluxDensityFaceEdgeConductivity(Fields3DMagneticFluxDensit
         )
 
     def _j(self, bSolution, source_list):
-        """
-        Secondary current density from bSolution
-
-        :param numpy.ndarray bSolution: field we solved for
-        :param list source_list: list of sources
-        :rtype: numpy.ndarray
-        :return: primary current density
-        """
+        # Docstrings inherited from parent class.
 
         if self.simulation.permittivity is None:
             j = self._edgeCurl.T * (self._MfMui * bSolution)
 
             for i, src in enumerate(source_list):
                 s_e = src.s_e(self.simulation)
-                j[:, i] = j[:, i] - s_e
+                j[:, i] -= s_e
 
             return self._MeI * j
         else:
@@ -1335,7 +1286,7 @@ class Fields3DCurrentDensity(FieldsFDEM):
 
             h[:, i] *= -1.0 / (1j * omega(src.frequency))
             s_m = src.s_m(self.simulation)
-            h[:, i] = h[:, i] + 1.0 / (1j * omega(src.frequency)) * (s_m)
+            h[:, i] += 1.0 / (1j * omega(src.frequency)) * (s_m)
         return self._MeMuI * h
 
     def _hDeriv_u(self, src, du_dm_v, adjoint=False):
@@ -1535,7 +1486,7 @@ class Fields3DCurrentDensity(FieldsFDEM):
             return src.s_mDeriv(self.simulation, v, adjoint=adjoint)
 
         if adjoint:
-            v = self._MeI.T * v
+            v *= self._MeI.T
             return 1.0 / (1j * omega(src.frequency)) * (
                 s_mDeriv(v) - self._MfRhoDeriv(jSolution, self._edgeCurl * v, adjoint)
             ) + src.bPrimaryDeriv(self.simulation, v, adjoint)
@@ -1621,7 +1572,7 @@ class Fields3DMagneticField(FieldsFDEM):
         hPrimary = np.zeros_like(hSolution, dtype=complex)
         for i, src in enumerate(source_list):
             hp = src.hPrimary(self.simulation)
-            hPrimary[:, i] = hPrimary[:, i] + hp
+            hPrimary[:, i] += hp
         return hPrimary
 
     def _hSecondary(self, hSolution, source_list):
@@ -1683,7 +1634,7 @@ class Fields3DMagneticField(FieldsFDEM):
         )
         for i, src in enumerate(source_list):
             jp = src.jPrimary(self.simulation)
-            jPrimary[:, i] = jPrimary[:, i] + jp
+            jPrimary[:, i] += jp
         return jPrimary
 
     def _jSecondary(self, hSolution, source_list):
@@ -1699,7 +1650,7 @@ class Fields3DMagneticField(FieldsFDEM):
         j = self._edgeCurl * hSolution
         for i, src in enumerate(source_list):
             s_e = src.s_e(self.simulation)
-            j[:, i] = j[:, i] + -s_e
+            j[:, i] -= s_e
         return j
 
     def _jDeriv_u(self, src, du_dm_v, adjoint=False):

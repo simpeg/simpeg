@@ -581,7 +581,7 @@ class Simulation3DMagneticFluxDensity(BaseTDEMSimulation):
 
         A = 1.0 / dt * I + (C * (MeSigmaI * (C.T.tocsr() * MfMui)))
 
-        if self._makeASymmetric is True:
+        if self._makeASymmetric:
             return MfMui.T.tocsr() * A
         return A
 
@@ -597,13 +597,13 @@ class Simulation3DMagneticFluxDensity(BaseTDEMSimulation):
         MfMui = self.MfMui
 
         if adjoint:
-            if self._makeASymmetric is True:
-                v = MfMui * v
+            if self._makeASymmetric:
+                v *= MfMui
             return self.MeSigmaIDeriv(C.T * (MfMui * u), C.T * v, adjoint)
 
         ADeriv = C * (self.MeSigmaIDeriv(C.T * (MfMui * u), v, adjoint))
 
-        if self._makeASymmetric is True:
+        if self._makeASymmetric:
             return MfMui.T * ADeriv
         return ADeriv
 
@@ -616,7 +616,7 @@ class Simulation3DMagneticFluxDensity(BaseTDEMSimulation):
         MfMui = self.MfMui
         Asubdiag = -1.0 / dt * sp.eye(self.mesh.n_faces)
 
-        if self._makeASymmetric is True:
+        if self._makeASymmetric:
             return MfMui.T * Asubdiag
 
         return Asubdiag
@@ -635,7 +635,7 @@ class Simulation3DMagneticFluxDensity(BaseTDEMSimulation):
         s_m, s_e = self.getSourceTerm(tInd)
 
         rhs = C * (MeSigmaI * s_e) + s_m
-        if self._makeASymmetric is True:
+        if self._makeASymmetric:
             return MfMui.T * rhs
         return rhs
 
@@ -651,8 +651,8 @@ class Simulation3DMagneticFluxDensity(BaseTDEMSimulation):
         s_mDeriv, s_eDeriv = src.evalDeriv(self, self.times[tInd], adjoint=adjoint)
 
         if adjoint:
-            if self._makeASymmetric is True:
-                v = self.MfMui * v
+            if self._makeASymmetric:
+                v *= self.MfMui
             if isinstance(s_e, Zero):
                 MeSigmaIDerivT_v = Zero()
             else:
@@ -669,7 +669,7 @@ class Simulation3DMagneticFluxDensity(BaseTDEMSimulation):
 
         RHSDeriv = C * MeSigmaIDeriv_v + C * MeSigmaI * s_eDeriv(v) + s_mDeriv(v)
 
-        if self._makeASymmetric is True:
+        if self._makeASymmetric:
             return self.MfMui.T * RHSDeriv
         return RHSDeriv
 
@@ -879,7 +879,8 @@ class Simulation3DElectricField(BaseTDEMSimulation):
         """
         Diagonal of the system matrix at a given time index
         """
-        assert tInd >= 0 and tInd < self.nT
+        if not 0 <= tInd < self.nT:
+            raise ValueError("Time step index must be within [0, nT]")
 
         dt = self.time_steps[tInd]
         C = self.mesh.edge_curl
@@ -892,13 +893,10 @@ class Simulation3DElectricField(BaseTDEMSimulation):
         """
         Deriv of ADiag with respect to electrical conductivity
         """
-        assert tInd >= 0 and tInd < self.nT
+        if not 0 <= tInd < self.nT:
+            raise ValueError("Time step index must be within [0, nT]")
 
         dt = self.time_steps[tInd]
-        # MeSigmaDeriv = self.MeSigmaDeriv(u)
-
-        if adjoint:
-            return 1.0 / dt * self.MeSigmaDeriv(u, v, adjoint)
 
         return 1.0 / dt * self.MeSigmaDeriv(u, v, adjoint)
 
@@ -906,7 +904,8 @@ class Simulation3DElectricField(BaseTDEMSimulation):
         """
         Matrix below the diagonal
         """
-        assert tInd >= 0 and tInd < self.nT
+        if not 0 <= tInd < self.nT:
+            raise ValueError("Time step index must be within [0, nT]")
 
         dt = self.time_steps[tInd]
 
@@ -917,10 +916,10 @@ class Simulation3DElectricField(BaseTDEMSimulation):
         Derivative of the matrix below the diagonal with respect to electrical
         conductivity
         """
-        dt = self.time_steps[tInd]
+        if not 0 <= tInd < self.nT:
+            raise ValueError("Time step index must be within [0, nT]")
 
-        if adjoint:
-            return -1.0 / dt * self.MeSigmaDeriv(u, v, adjoint)
+        dt = self.time_steps[tInd]
 
         return -1.0 / dt * self.MeSigmaDeriv(u, v, adjoint)
 
@@ -947,7 +946,7 @@ class Simulation3DElectricField(BaseTDEMSimulation):
         Grad = self.mesh.nodal_gradient
         Adc = Grad.T.tocsr() * MeSigma * Grad
         # Handling Null space of A
-        Adc[0, 0] = Adc[0, 0] + 1.0
+        Adc[0, 0] += 1.0
         return Adc
 
     def getAdcDeriv(self, u, v, adjoint=False):
@@ -1046,7 +1045,8 @@ class Simulation3DMagneticFluxDensityFaceEdgeConductivity(
             \mathbf{C}^{\top} \mathbf{M_{\mu^{-1}}^f})
 
         """
-        assert tInd >= 0 and tInd < self.nT
+        if not 0 <= tInd < self.nT:
+            raise ValueError("Time step index must be within [0, nT]")
 
         dt = self.time_steps[tInd]
         C = self.mesh.edge_curl
@@ -1056,7 +1056,7 @@ class Simulation3DMagneticFluxDensityFaceEdgeConductivity(
 
         A = 1.0 / dt * I + (C * (MeSigmaTauKappaI * (C.T.tocsr() * MfMui)))
 
-        if self._makeASymmetric is True:
+        if self._makeASymmetric:
             return MfMui.T.tocsr() * A
         return A
 
@@ -1082,13 +1082,13 @@ class Simulation3DMagneticFluxDensityFaceEdgeConductivity(
         u = C.T * (MfMui * u)
 
         if adjoint:
-            if self._makeASymmetric is True:
-                v = MfMui * v
+            if self._makeASymmetric:
+                v *= MfMui
             return self._MeSigmaTauKappaIDeriv(u, C.T * v, adjoint)
 
         ADeriv = C * self._MeSigmaTauKappaIDeriv(u, v, adjoint)
 
-        if self._makeASymmetric is True:
+        if self._makeASymmetric:
             return MfMui.T * ADeriv
         return ADeriv
 
@@ -1103,7 +1103,7 @@ class Simulation3DMagneticFluxDensityFaceEdgeConductivity(
         s_m, s_e = self.getSourceTerm(tInd)
 
         rhs = C * (MeSigmaTauKappaI * s_e) + s_m
-        if self._makeASymmetric is True:
+        if self._makeASymmetric:
             return MfMui.T * rhs
         return rhs
 
@@ -1121,8 +1121,8 @@ class Simulation3DMagneticFluxDensityFaceEdgeConductivity(
         s_mDeriv, s_eDeriv = src.evalDeriv(self, self.times[tInd], adjoint=adjoint)
 
         if adjoint:
-            if self._makeASymmetric is True:
-                v = self.MfMui * v
+            if self._makeASymmetric:
+                v *= self.MfMui
             if isinstance(s_e, Zero):
                 MeSigmaTauKappaIDerivT_v = Zero()
             else:
@@ -1149,7 +1149,7 @@ class Simulation3DMagneticFluxDensityFaceEdgeConductivity(
             + s_mDeriv(v)
         )
 
-        if self._makeASymmetric is True:
+        if self._makeASymmetric:
             return self.MfMui.T * RHSDeriv
         return RHSDeriv
 
@@ -1200,7 +1200,8 @@ class Simulation3DElectricFieldFaceEdgeConductivity(
         derivatives for volume, face and/or edge conductivities depending on
         whether ``sigmaMap``, ``tauMap`` and/or ``kappaMap`` are set.
         """
-        assert tInd >= 0 and tInd < self.nT
+        if not 0 <= tInd < self.nT:
+            raise ValueError("Time step index must be within [0, nT]")
 
         dt = self.time_steps[tInd]
         C = self.mesh.edge_curl
@@ -1225,12 +1226,10 @@ class Simulation3DElectricFieldFaceEdgeConductivity(
         :return: derivative of the system matrix times a vector (nP,) or
             adjoint (nD,)
         """
-        assert tInd >= 0 and tInd < self.nT
+        if not 0 <= tInd < self.nT:
+            raise ValueError("Time step index must be within [0, nT]")
 
         dt = self.time_steps[tInd]
-
-        if adjoint:
-            return 1.0 / dt * self._MeSigmaTauKappaDeriv(u, v, adjoint)
 
         return 1.0 / dt * self._MeSigmaTauKappaDeriv(u, v, adjoint)
 
@@ -1238,7 +1237,8 @@ class Simulation3DElectricFieldFaceEdgeConductivity(
         """
         Matrix below the diagonal
         """
-        assert tInd >= 0 and tInd < self.nT
+        if not 0 <= tInd < self.nT:
+            raise ValueError("Time step index must be within [0, nT]")
 
         dt = self.time_steps[tInd]
 
@@ -1262,10 +1262,10 @@ class Simulation3DElectricFieldFaceEdgeConductivity(
         :return: derivative of the system matrix times a vector (nP,) or
             adjoint (nD,)
         """
-        dt = self.time_steps[tInd]
+        if not 0 <= tInd < self.nT:
+            raise ValueError("Time step index must be within [0, nT]")
 
-        if adjoint:
-            return -1.0 / dt * self._MeSigmaTauKappaDeriv(u, v, adjoint)
+        dt = self.time_steps[tInd]
 
         return -1.0 / dt * self._MeSigmaTauKappaDeriv(u, v, adjoint)
 
@@ -1275,7 +1275,7 @@ class Simulation3DElectricFieldFaceEdgeConductivity(
         Grad = self.mesh.nodal_gradient
         Adc = Grad.T.tocsr() * MeSigmaTauKappa * Grad
         # Handling Null space of A
-        Adc[0, 0] = Adc[0, 0] + 1.0
+        Adc[0, 0] += 1.0
         return Adc
 
     def getAdcDeriv(self, u, v, adjoint=False):
@@ -1349,7 +1349,8 @@ class Simulation3DMagneticField(BaseTDEMSimulation):
         System matrix at a given time index
 
         """
-        assert tInd >= 0 and tInd < self.nT
+        if not 0 <= tInd < self.nT:
+            raise ValueError("Time step index must be within [0, nT]")
 
         dt = self.time_steps[tInd]
         C = self.mesh.edge_curl
@@ -1359,7 +1360,8 @@ class Simulation3DMagneticField(BaseTDEMSimulation):
         return C.T * (MfRho * C) + 1.0 / dt * MeMu
 
     def getAdiagDeriv(self, tInd, u, v, adjoint=False):
-        assert tInd >= 0 and tInd < self.nT
+        if not 0 <= tInd < self.nT:
+            raise ValueError("Time step index must be within [0, nT]")
 
         C = self.mesh.edge_curl
 
@@ -1369,7 +1371,8 @@ class Simulation3DMagneticField(BaseTDEMSimulation):
         return C.T * self.MfRhoDeriv(C * u, v, adjoint)
 
     def getAsubdiag(self, tInd):
-        assert tInd >= 0 and tInd < self.nT
+        if not 0 <= tInd < self.nT:
+            raise ValueError("Time step index must be within [0, nT]")
 
         dt = self.time_steps[tInd]
 
@@ -1389,7 +1392,7 @@ class Simulation3DMagneticField(BaseTDEMSimulation):
         C = self.mesh.edge_curl
         s_m, s_e = src.eval(self, self.times[tInd])
 
-        if adjoint is True:
+        if adjoint:
             return self.MfRhoDeriv(s_e, C * v, adjoint)
         # assumes no source derivs
         return C.T * self.MfRhoDeriv(s_e, v, adjoint)
@@ -1433,7 +1436,8 @@ class Simulation3DCurrentDensity(BaseTDEMSimulation):
         System matrix at a given time index
 
         """
-        assert tInd >= 0 and tInd < self.nT
+        if not 0 <= tInd < self.nT:
+            raise ValueError("Time step index must be within [0, nT]")
 
         dt = self.time_steps[tInd]
         C = self.mesh.edge_curl
@@ -1445,11 +1449,11 @@ class Simulation3DCurrentDensity(BaseTDEMSimulation):
 
         if self._makeASymmetric:
             return MfRho.T * A
-
         return A
 
     def getAdiagDeriv(self, tInd, u, v, adjoint=False):
-        assert tInd >= 0 and tInd < self.nT
+        if not 0 <= tInd < self.nT:
+            raise ValueError("Time step index must be within [0, nT]")
 
         C = self.mesh.edge_curl
         MfRho = self.MfRho
@@ -1457,7 +1461,7 @@ class Simulation3DCurrentDensity(BaseTDEMSimulation):
 
         if adjoint:
             if self._makeASymmetric:
-                v = MfRho * v
+                v *= MfRho
             return self.MfRhoDeriv(u, C * (MeMuI.T * (C.T * v)), adjoint)
 
         ADeriv = C * (MeMuI * (C.T * self.MfRhoDeriv(u, v, adjoint)))
@@ -1466,7 +1470,9 @@ class Simulation3DCurrentDensity(BaseTDEMSimulation):
         return ADeriv
 
     def getAsubdiag(self, tInd):
-        assert tInd >= 0 and tInd < self.nT
+        if not 0 <= tInd < self.nT:
+            raise ValueError("Time step index must be within [0, nT]")
+
         eye = sp.eye(self.mesh.n_faces)
 
         dt = self.time_steps[tInd]
