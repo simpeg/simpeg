@@ -144,7 +144,7 @@ class MVIProblemTest(unittest.TestCase):
 
         # Pre-conditioner
         update_Jacobi = directives.UpdatePreconditioner()
-        sensitivity_weights = directives.UpdateSensitivityWeights(every_iter=False)
+        sensitivity_weights = directives.UpdateSensitivityWeights(every_iteration=False)
         inv = inversion.BaseInversion(
             invProb, directiveList=[sensitivity_weights, IRLS, update_Jacobi, betaest]
         )

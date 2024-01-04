@@ -274,7 +274,7 @@ save_iteration = directives.SaveOutputEveryIteration(save_txt=False)
 update_jacobi = directives.UpdatePreconditioner()
 
 # Add sensitivity weights
-sensitivity_weights = directives.UpdateSensitivityWeights(every_iter=False)
+sensitivity_weights = directives.UpdateSensitivityWeights(every_iteration=False)
 
 # The directives are defined as a list.
 directives_list = [

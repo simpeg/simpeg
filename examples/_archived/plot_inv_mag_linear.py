@@ -128,7 +128,7 @@ def run(plotIt=True):
     saveDict = directives.SaveOutputEveryIteration(save_txt=False)
     update_Jacobi = directives.UpdatePreconditioner()
     # Add sensitivity weights
-    sensitivity_weights = directives.UpdateSensitivityWeights(every_iter=False)
+    sensitivity_weights = directives.UpdateSensitivityWeights(every_iteration=False)
 
     inv = inversion.BaseInversion(
         invProb,
