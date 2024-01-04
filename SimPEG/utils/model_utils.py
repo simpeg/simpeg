@@ -3,47 +3,6 @@ import numpy as np
 from scipy.interpolate import griddata
 from scipy.spatial import cKDTree
 import scipy.sparse as sp
-from discretize.utils import active_from_xyz
-import warnings
-
-
-def surface2ind_topo(mesh, topo, gridLoc="CC", method="nearest", fill_value=np.nan):
-    """Get indices of active cells from topography.
-
-    For a mesh and surface topography, this function returns the indices of cells
-    lying below the discretized surface topography.
-
-    Parameters
-    ----------
-    mesh : discretize.TensorMesh or discretize.TreeMesh
-        Mesh on which you want to identify active cells
-    topo : (n, 3) numpy.ndarray
-        Topography data as a ``numpyndarray`` with columns [x,y,z]; can use [x,z] for 2D meshes.
-        Topography data can be unstructured.
-    gridLoc : str {'CC', 'N'}
-        If 'CC', all cells whose centers are below the topography are active cells.
-        If 'N', then cells must lie entirely below the topography in order to be active cells.
-    method : str {'nearest','linear'}
-        Interpolation method for approximating topography at cell's horizontal position.
-        Default is 'nearest'.
-    fill_value : float
-        Defines the elevation for cells outside the horizontal extent of the topography data.
-        Default is :py:class:`numpy.nan`.
-
-    Returns
-    -------
-    (n_active) numpy.ndarray of int
-        Indices of active cells below xyz.
-    """
-    warnings.warn(
-        "The surface2ind_topo function has been deprecated, please import "
-        "discretize.utils.active_from_xyz. This will be removed in SimPEG 0.20.0",
-        FutureWarning,
-        stacklevel=2,
-    )
-
-    active_cells = active_from_xyz(mesh, topo, gridLoc, method)
-    return np.arange(mesh.n_cells)[active_cells]
 
 
 def surface_layer_index(mesh, topo, index=0):

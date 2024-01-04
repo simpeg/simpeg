@@ -5,12 +5,13 @@ import discretize
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 from matplotlib import ticker
+from discretize.utils import active_from_xyz
 import warnings
+
 from ..resistivity import sources, receivers
 from .. import resistivity as dc
 from ....utils import (
     mkvc,
-    surface2ind_topo,
     model_builder,
     define_plane_from_points,
 )
@@ -1627,7 +1628,7 @@ def drapeTopotoLoc(mesh, pts, ind_active=None, option="top", topo=None, **kwargs
         raise ValueError("Unsupported mesh dimension")
 
     if ind_active is None:
-        ind_active = surface2ind_topo(mesh, topo)
+        ind_active = active_from_xyz(mesh, topo)
 
     if mesh._meshType == "TENSOR":
         meshtemp, topoCC = gettopoCC(mesh, ind_active, option=option)
