@@ -453,10 +453,7 @@ class Simulation3DElectricFieldFaceEdgeConductivity(
 
     which we solve for :math:`\mathbf{e}`.
 
-    Parameters
-    ----------
-    mesh : discretize.base.BaseMesh
-        The mesh.
+    :param discretize.base.BaseMesh mesh: mesh
     """
 
     _solutionType = "eSolution"
@@ -473,15 +470,9 @@ class Simulation3DElectricFieldFaceEdgeConductivity(
             + i \omega \left ( \mathbf{M^e_{\sigma}} + \mathbf{M^e_{\tau}}
             + \mathbf{M^e_{\kappa}} \right)
 
-        Parameters
-        ----------
-        freq : float
-            Frequency in Hz.
-
-        Returns
-        -------
-        (nE, nE) scipy.sparse.csr_matrix
-            The system matrix.
+        :param float freq: Frequency
+        :rtype: scipy.sparse.csr_matrix
+        :return: A
         """
         MfMui = self.MfMui
         C = self.mesh.edge_curl
@@ -506,23 +497,16 @@ class Simulation3DElectricFieldFaceEdgeConductivity(
         derivatives for volume, face and/or edge conductivities depending on
         whether ``sigmaMap``, ``tauMap`` and/or ``kappaMap`` are set.
 
-        Parameters
-        ----------
-        freq : float
-            Frequency in Hz.
-        u : (nE,) numpy.ndarray
-            Solution vector for the fields.
-        v : numpy.ndarray
-            A vector to take prodct with. Either (nP,) or (nD,) for the adjoint.
-        adjoint : bool
-            Whether to perform the adjoint operation.
-
-        Returns
-        -------
-        numpy.ndarray
-            Derivative of the system matrix times a vector. Either (nP,) or
-            for the adjoint (nD,).
+        :param float freq: frequency
+        :param numpy.ndarray u: solution vector (nE,)
+        :param numpy.ndarray v: vector to take prodct with (nP,) or (nD,) for
+            adjoint
+        :param bool adjoint: adjoint?
+        :rtype: numpy.ndarray
+        :return: derivative of the system matrix times a vector (nP,) or
+            adjoint (nD,)
         """
+
         dMe_dsigma_v = self._MeSigmaTauKappaDeriv(u, v, adjoint)
         return 1j * omega(freq) * dMe_dsigma_v
 
@@ -531,22 +515,14 @@ class Simulation3DElectricFieldFaceEdgeConductivity(
         Product of the derivative of our system matrix with respect to the
         model and a vector.
 
-        Parameters
-        ----------
-        freq : float
-            Frequency in Hz.
-        u : (nE,) numpy.ndarray
-            Solution vector.
-        v : numpy.ndarray
-            A vector to take prodct with. Either (nP,) or (nD,) for the adjoint.
-        adjoint : bool
-            Whether to perform the adjoint operation.
-
-        Returns
-        -------
-        numpy.ndarray
-            Derivative of the system matrix times a vector. Either (nP,) or
-            for the adjoint (nD,).
+        :param float freq: frequency
+        :param numpy.ndarray u: solution vector (nE,)
+        :param numpy.ndarray v: vector to take prodct with (nP,) or (nD,) for
+            adjoint
+        :param bool adjoint: adjoint?
+        :rtype: numpy.ndarray
+        :return: derivative of the system matrix times a vector (nP,) or
+            adjoint (nD,)
         """
         return (
             self.getADeriv_sigma(freq, u, v, adjoint)
@@ -656,7 +632,7 @@ class Simulation3DMagneticFluxDensity(BaseFDEMSimulation):
         return C * (MeSigmaI * (C.T * (MfMuiDeriv * v)))
 
     def getADeriv(self, freq, u, v, adjoint=False):
-        if adjoint and self._makeASymmetric:
+        if adjoint is True and self._makeASymmetric:
             v = self.MfMui * v
 
         ADeriv = self.getADeriv_sigma(freq, u, v, adjoint) + self.getADeriv_mui(
@@ -762,10 +738,7 @@ class Simulation3DMagneticFluxDensityFaceEdgeConductivity(
     .. note ::
         The inverse problem will not work with full anisotropy
 
-    Parameters
-    ----------
-    mesh : discretize.base.BaseMesh mesh
-        The mesh.
+    :param discretize.base.BaseMesh mesh: mesh
     """
 
     fieldsPair = Fields3DMagneticFluxDensityFaceEdgeConductivity
@@ -780,15 +753,9 @@ class Simulation3DMagneticFluxDensityFaceEdgeConductivity(
             \mathbf{M^e_{\tau}} + \mathbf{M^e_{\kappa}}\right )^{-1}
             \mathbf{C}^{\top} \mathbf{M_{\mu^{-1}}^f}  + i \omega
 
-        Parameters
-        ----------
-        freq : float
-            Frequency in Hz.
-
-        Returns
-        -------
-        (nF, nF) scipy.sparse.csr_matrix
-            The system matrix.
+        :param float freq: Frequency
+        :rtype: scipy.sparse.csr_matrix
+        :return: A
         """
 
         MfMui = self.MfMui
@@ -816,22 +783,14 @@ class Simulation3DMagneticFluxDensityFaceEdgeConductivity(
         This includes derivatives for volume, face and/or edge conductivities
         depending on whether ``sigmaMap``, ``tauMap`` and/or ``kappaMap`` are set.
 
-        Parameters
-        ----------
-        freq : float
-            Frequency in Hz.
-        u : (nF,) numpy.ndarray
-            Solution vector for the fields.
-        v : numpy.ndarray
-            A vector to take prodct with. Either (nP,) or (nD,) for the adjoint.
-        adjoint : bool
-            Whether to perform the adjoint operation.
-
-        Returns
-        -------
-        numpy.ndarray
-            Derivative of the system matrix times a vector. Either (nP,) or
-            for the adjoint (nD,).
+        :param float freq: frequency
+        :param numpy.ndarray u: solution vector (nF,)
+        :param numpy.ndarray v: vector to take prodct with (nP,) or (nD,) for
+            adjoint
+        :param bool adjoint: adjoint?
+        :rtype: numpy.ndarray
+        :return: derivative of the system matrix times a vector (nP,) or
+            adjoint (nD,)
         """
 
         MfMui = self.MfMui
@@ -844,7 +803,6 @@ class Simulation3DMagneticFluxDensityFaceEdgeConductivity(
         return C * MeSigmaTauKappaIDeriv(vec, v, adjoint)
 
     def getADeriv_mui(self, freq, u, v, adjoint=False):
-        # Docstring inherited from parent class.
         MfMuiDeriv = self.MfMuiDeriv(u)
         MeSigmaTauKappaI = self._MeSigmaTauKappaI
         C = self.mesh.edge_curl
@@ -854,28 +812,7 @@ class Simulation3DMagneticFluxDensityFaceEdgeConductivity(
         return C * (MeSigmaTauKappaI * (C.T * (MfMuiDeriv * v)))
 
     def getADeriv(self, freq, u, v, adjoint=False):
-        r"""
-        Product of the derivative of our system matrix with respect to the
-        model and a vector.
-
-        Parameters
-        ----------
-        freq : float
-            Frequency in Hz.
-        u : (nF,) numpy.ndarray
-            Solution vector for the fields.
-        v : numpy.ndarray
-            A vector to take prodct with. Either (nP,) or (nD,) for the adjoint.
-        adjoint : bool
-            Whether to perform the adjoint operation.
-
-        Returns
-        -------
-        numpy.ndarray
-            Derivative of the system matrix times a vector. Either (nP,) or
-            for the adjoint (nD,).
-        """
-        if adjoint and self._makeASymmetric:
+        if adjoint is True and self._makeASymmetric:
             v = self.MfMui * v
 
         ADeriv = self.getADeriv_sigma(freq, u, v, adjoint) + self.getADeriv_mui(
@@ -894,17 +831,11 @@ class Simulation3DMagneticFluxDensityFaceEdgeConductivity(
         .. math ::
 
             \mathbf{RHS} = \mathbf{s_m} +
-            \mathbf{M^e_{\sigma} + M^e_{\tau} + M^e_{\kappa}}^{-1}\mathbf{s_e}
+            \mathbf{M^e_{\sigma}}^{-1}\mathbf{s_e}
 
-        Parameters
-        ----------
-        freq : float
-            Frequency in Hz.
-
-        Returns
-        -------
-        (nE, nSrc) numpy.ndarray
-            Sources array.
+        :param float freq: Frequency
+        :rtype: numpy.ndarray
+        :return: RHS (nE, nSrc)
         """
 
         s_m, s_e = self.getSourceTerm(freq)
@@ -931,21 +862,12 @@ class Simulation3DMagneticFluxDensityFaceEdgeConductivity(
         """
         Derivative of the right hand side with respect to the model
 
-        Parameters
-        ----------
-        freq : float
-            Frequency in Hz.
-        src : SimPEG.electromagnetics.frequency_domain.sources.BaseFDEMSrc
-            FDEM source.
-        v : numpy.ndarray
-            vector to take product with
-        adjoint : bool
-            Whether to perform the adjoint operation.
-
-        Returns
-        -------
-        numpy.ndarray
-            Product of rhs deriv with a vector
+        :param float freq: frequency
+        :param SimPEG.electromagnetics.frequency_domain.fields.FieldsFDEM src: FDEM source
+        :param numpy.ndarray v: vector to take product with
+        :param bool adjoint: adjoint?
+        :rtype: numpy.ndarray
+        :return: product of rhs deriv with a vector
         """
 
         C = self.mesh.edge_curl
@@ -1087,7 +1009,7 @@ class Simulation3DCurrentDensity(BaseFDEMSimulation):
 
         MeMuIDeriv = self.MeMuIDeriv(C.T * (MfRho * u))
 
-        if adjoint:
+        if adjoint is True:
             # if self._makeASymmetric:
             #     v = MfRho * v
             return MeMuIDeriv.T * (C.T * v)
@@ -1259,7 +1181,7 @@ class Simulation3DMagneticField(BaseFDEMSimulation):
     def getADeriv_mu(self, freq, u, v, adjoint=False):
         MeMuDeriv = self.MeMuDeriv(u)
 
-        if adjoint:
+        if adjoint is True:
             return 1j * omega(freq) * (MeMuDeriv.T * v)
 
         return 1j * omega(freq) * (MeMuDeriv * v)

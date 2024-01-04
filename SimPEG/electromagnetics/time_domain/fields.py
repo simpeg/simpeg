@@ -37,7 +37,7 @@ class FieldsTDEM(TimeFields):
         return self.aliasFields[fieldType][1]
 
     def _eDeriv(self, tInd, src, dun_dm_v, v, adjoint=False):
-        if adjoint:
+        if adjoint is True:
             return (
                 self._eDeriv_u(tInd, src, v, adjoint),
                 self._eDeriv_m(tInd, src, v, adjoint),
@@ -45,7 +45,7 @@ class FieldsTDEM(TimeFields):
         return self._eDeriv_u(tInd, src, dun_dm_v) + self._eDeriv_m(tInd, src, v)
 
     def _bDeriv(self, tInd, src, dun_dm_v, v, adjoint=False):
-        if adjoint:
+        if adjoint is True:
             return (
                 self._bDeriv_u(tInd, src, v, adjoint),
                 self._bDeriv_m(tInd, src, v, adjoint),
@@ -53,7 +53,7 @@ class FieldsTDEM(TimeFields):
         return self._bDeriv_u(tInd, src, dun_dm_v) + self._bDeriv_m(tInd, src, v)
 
     def _dbdtDeriv(self, tInd, src, dun_dm_v, v, adjoint=False):
-        if adjoint:
+        if adjoint is True:
             return (
                 self._dbdtDeriv_u(tInd, src, v, adjoint),
                 self._dbdtDeriv_m(tInd, src, v, adjoint),
@@ -61,7 +61,7 @@ class FieldsTDEM(TimeFields):
         return self._dbdtDeriv_u(tInd, src, dun_dm_v) + self._dbdtDeriv_m(tInd, src, v)
 
     def _hDeriv(self, tInd, src, dun_dm_v, v, adjoint=False):
-        if adjoint:
+        if adjoint is True:
             return (
                 self._hDeriv_u(tInd, src, v, adjoint),
                 self._hDeriv_m(tInd, src, v, adjoint),
@@ -69,7 +69,7 @@ class FieldsTDEM(TimeFields):
         return self._hDeriv_u(tInd, src, dun_dm_v) + self._hDeriv_m(tInd, src, v)
 
     def _dhdtDeriv(self, tInd, src, dun_dm_v, v, adjoint=False):
-        if adjoint:
+        if adjoint is True:
             return (
                 self._dhdtDeriv_u(tInd, src, v, adjoint),
                 self._dhdtDeriv_m(tInd, src, v, adjoint),
@@ -77,7 +77,7 @@ class FieldsTDEM(TimeFields):
         return self._dhdtDeriv_u(tInd, src, dun_dm_v) + self._dhdtDeriv_m(tInd, src, v)
 
     def _jDeriv(self, tInd, src, dun_dm_v, v, adjoint=False):
-        if adjoint:
+        if adjoint is True:
             return (
                 self._jDeriv_u(tInd, src, v, adjoint),
                 self._jDeriv_m(tInd, src, v, adjoint),
@@ -155,16 +155,16 @@ class Fields3DMagneticFluxDensity(FieldsTDEM):
         dbdt = -self._edgeCurl * self._e(bSolution, source_list, tInd)
         for i, src in enumerate(source_list):
             s_m = src.s_m(self.simulation, self._times[tInd])
-            dbdt[:, i] += s_m
+            dbdt[:, i] = dbdt[:, i] + s_m
         return dbdt
 
     def _dbdtDeriv_u(self, tInd, src, dun_dm_v, adjoint=False):
-        if adjoint:
+        if adjoint is True:
             return -self._eDeriv_u(tInd, src, self._edgeCurl.T * dun_dm_v, adjoint)
         return -(self._edgeCurl * self._eDeriv_u(tInd, src, dun_dm_v))
 
     def _dbdtDeriv_m(self, tInd, src, v, adjoint=False):
-        if adjoint:
+        if adjoint is True:
             return -(self._eDeriv_m(tInd, src, self._edgeCurl.T * v, adjoint))
         return -(
             self._edgeCurl * self._eDeriv_m(tInd, src, v)
@@ -174,11 +174,11 @@ class Fields3DMagneticFluxDensity(FieldsTDEM):
         e = self._MeSigmaI * (self._edgeCurl.T * (self._MfMui * bSolution))
         for i, src in enumerate(source_list):
             s_e = src.s_e(self.simulation, self._times[tInd])
-            e[:, i] -= self._MeSigmaI * s_e
+            e[:, i] = e[:, i] - self._MeSigmaI * s_e
         return e
 
     def _eDeriv_u(self, tInd, src, dun_dm_v, adjoint=False):
-        if adjoint:
+        if adjoint is True:
             return self._MfMui.T * (self._edgeCurl * (self._MeSigmaI.T * dun_dm_v))
         return self._MeSigmaI * (self._edgeCurl.T * (self._MfMui * dun_dm_v))
 
@@ -188,7 +188,7 @@ class Fields3DMagneticFluxDensity(FieldsTDEM):
 
         _, s_eDeriv = src.evalDeriv(self._times[tInd], self, adjoint=adjoint)
 
-        if adjoint:
+        if adjoint is True:
             return self._MeSigmaIDeriv(
                 -s_e + self._edgeCurl.T * (self._MfMui * bSolution), v, adjoint
             ) - s_eDeriv(self._MeSigmaI.T * v)
@@ -296,29 +296,26 @@ class Fields3DMagneticFluxDensityFaceEdgeConductivity(Fields3DMagneticFluxDensit
         self._timeMesh = self.simulation.time_mesh
 
     def _e(self, bSolution, source_list, tInd):
-        # Docstrings inherited from parent class.
         e = self.__MeSigmaTauKappaI * (self._edgeCurl.T * (self._MfMui * bSolution))
         for i, src in enumerate(source_list):
             s_e = src.s_e(self.simulation, self._times[tInd])
-            e[:, i] -= self.__MeSigmaTauKappaI * s_e
+            e[:, i] = e[:, i] - self.__MeSigmaTauKappaI * s_e
         return e
 
     def _eDeriv_u(self, tInd, src, dun_dm_v, adjoint=False):
-        # Docstrings inherited from parent class.
-        if adjoint:
+        if adjoint is True:
             return self._MfMui.T * (
                 self._edgeCurl * (self.__MeSigmaTauKappaI.T * dun_dm_v)
             )
         return self.__MeSigmaTauKappaI * (self._edgeCurl.T * (self._MfMui * dun_dm_v))
 
     def _eDeriv_m(self, tInd, src, v, adjoint=False):
-        # Docstrings inherited from parent class.
         _, s_e = src.eval(self.simulation, self._times[tInd])
         bSolution = self[[src], "bSolution", tInd].flatten()
 
         _, s_eDeriv = src.evalDeriv(self._times[tInd], self, adjoint=adjoint)
 
-        if adjoint:
+        if adjoint is True:
             return self.__MeSigmaTauKappaIDeriv(
                 -s_e + self._edgeCurl.T * (self._MfMui * bSolution), v, adjoint
             ) - s_eDeriv(self.__MeSigmaTauKappaI.T * v)
@@ -328,13 +325,11 @@ class Fields3DMagneticFluxDensityFaceEdgeConductivity(Fields3DMagneticFluxDensit
         ) - self.__MeSigmaTauKappaI * s_eDeriv(v)
 
     def _j(self, hSolution, source_list, tInd):
-        # Docstrings inherited from parent class.
         return self.simulation.MeI * (
             self.__MeSigmaTauKappa * self._e(hSolution, source_list, tInd)
         )
 
     def _jDeriv_u(self, tInd, src, dun_dm_v, adjoint=False):
-        # Docstrings inherited from parent class.
         if adjoint:
             return self._eDeriv_u(
                 tInd,
@@ -347,7 +342,6 @@ class Fields3DMagneticFluxDensityFaceEdgeConductivity(Fields3DMagneticFluxDensit
         )
 
     def _jDeriv_m(self, tInd, src, v, adjoint=False):
-        # Docstrings inherited from parent class.
         e = self[src, "e", tInd]
         if adjoint:
             w = self.simulation.MeI.T * v
@@ -398,7 +392,7 @@ class Fields3DElectricField(FieldsTDEM):
         s_m = np.zeros((self.mesh.nF, len(source_list)))
         for i, src in enumerate(source_list):
             s_m_src = src.s_m(self.simulation, self._times[tInd])
-            s_m[:, i] += s_m_src
+            s_m[:, i] = s_m[:, i] + s_m_src
         return s_m - self._edgeCurl * eSolution
 
     def _dbdtDeriv_u(self, tInd, src, dun_dm_v, adjoint=False):
@@ -490,13 +484,11 @@ class Fields3DElectricFieldFaceEdgeConductivity(Fields3DElectricField):
         self._MfMui = self.simulation.MfMui
 
     def _j(self, eSolution, source_list, tInd):
-        # Docstrings inherited from parent class.
         return self.simulation.MeI * (
             self.__MeSigmaTauKappa * self._e(eSolution, source_list, tInd)
         )
 
     def _jDeriv_u(self, tInd, src, dun_dm_v, adjoint=False):
-        # Docstrings inherited from parent class.
         if adjoint:
             return self._eDeriv_u(
                 tInd,
@@ -509,7 +501,6 @@ class Fields3DElectricFieldFaceEdgeConductivity(Fields3DElectricField):
         )
 
     def _jDeriv_m(self, tInd, src, v, adjoint=False):
-        # Docstrings inherited from parent class.
         e = self[src, "e", tInd]
         if adjoint:
             w = self.simulation.MeI.T * v
@@ -568,7 +559,7 @@ class Fields3DMagneticField(FieldsTDEM):
 
         for i, src in enumerate(source_list):
             s_m, s_e = src.eval(self.simulation, self._times[tInd])
-            dhdt[:, i] += MeMuI * (C.T * MfRho * s_e + s_m)
+            dhdt[:, i] = MeMuI * (C.T * MfRho * s_e + s_m) + dhdt[:, i]
         return dhdt
 
     def _dhdtDeriv_u(self, tInd, src, dun_dm_v, adjoint=False):
@@ -596,7 +587,7 @@ class Fields3DMagneticField(FieldsTDEM):
         s_e = np.zeros((self.mesh.nF, len(source_list)))
         for i, src in enumerate(source_list):
             s_e_src = src.s_e(self.simulation, self._times[tInd])
-            s_e[:, i] += s_e_src
+            s_e[:, i] = s_e[:, i] + s_e_src
 
         return self._edgeCurl * hSolution - s_e
 
@@ -669,7 +660,7 @@ class Fields3DMagneticField(FieldsTDEM):
 
     def _eDeriv_m(self, tInd, src, v, adjoint=False):
         j = mkvc(self[src, "j", tInd])
-        if adjoint:
+        if adjoint is True:
             return self._MfRhoDeriv(
                 j, self.simulation.MfI.T * v, adjoint
             ) + self._jDeriv_m(tInd, src, self._MfRho * v)
@@ -735,7 +726,7 @@ class Fields3DCurrentDensity(FieldsTDEM):
         dhdt = -MeMuI * (C.T * (MfRho * jSolution))
         for i, src in enumerate(source_list):
             s_m = src.s_m(self.simulation, self.simulation.times[tInd])
-            dhdt[:, i] += MeMuI * s_m
+            dhdt[:, i] = MeMuI * s_m + dhdt[:, i]
         return dhdt
 
     def _dhdtDeriv_u(self, tInd, src, dun_dm_v, adjoint=False):
@@ -743,7 +734,7 @@ class Fields3DCurrentDensity(FieldsTDEM):
         MfRho = self._MfRho
         MeMuI = self._MeMuI
 
-        if adjoint:
+        if adjoint is True:
             return -MfRho.T * (C * (MeMuI.T * dun_dm_v))
         return -MeMuI * (C.T * (MfRho * dun_dm_v))
 
@@ -752,7 +743,7 @@ class Fields3DCurrentDensity(FieldsTDEM):
         C = self._edgeCurl
         MeMuI = self._MeMuI
 
-        if adjoint:
+        if adjoint is True:
             return -self._MfRhoDeriv(jSolution, C * (MeMuI * v), adjoint)
         return -MeMuI * (C.T * (self._MfRhoDeriv(jSolution, v)))
 
@@ -762,7 +753,7 @@ class Fields3DCurrentDensity(FieldsTDEM):
         )
 
     def _eDeriv_u(self, tInd, src, dun_dm_v, adjoint=False):
-        if adjoint:
+        if adjoint is True:
             return self._MfRho.T * (self.simulation.MfI.T * dun_dm_v)
         return self.simulation.MfI * (self._MfRho * dun_dm_v)
 
