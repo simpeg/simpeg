@@ -155,7 +155,7 @@ class Fields3DMagneticFluxDensity(FieldsTDEM):
         dbdt = -self._edgeCurl * self._e(bSolution, source_list, tInd)
         for i, src in enumerate(source_list):
             s_m = src.s_m(self.simulation, self._times[tInd])
-            dbdt[:, i] += s_m
+            dbdt[:, i] = dbdt[:, i] + s_m
         return dbdt
 
     def _dbdtDeriv_u(self, tInd, src, dun_dm_v, adjoint=False):
@@ -174,7 +174,7 @@ class Fields3DMagneticFluxDensity(FieldsTDEM):
         e = self._MeSigmaI * (self._edgeCurl.T * (self._MfMui * bSolution))
         for i, src in enumerate(source_list):
             s_e = src.s_e(self.simulation, self._times[tInd])
-            e[:, i] -= self._MeSigmaI * s_e
+            e[:, i] = e[:, i] - self._MeSigmaI * s_e
         return e
 
     def _eDeriv_u(self, tInd, src, dun_dm_v, adjoint=False):
@@ -300,7 +300,7 @@ class Fields3DMagneticFluxDensityFaceEdgeConductivity(Fields3DMagneticFluxDensit
         e = self.__MeSigmaTauKappaI * (self._edgeCurl.T * (self._MfMui * bSolution))
         for i, src in enumerate(source_list):
             s_e = src.s_e(self.simulation, self._times[tInd])
-            e[:, i] -= self.__MeSigmaTauKappaI * s_e
+            e[:, i] = e[:, i] - self.__MeSigmaTauKappaI * s_e
         return e
 
     def _eDeriv_u(self, tInd, src, dun_dm_v, adjoint=False):
@@ -398,7 +398,7 @@ class Fields3DElectricField(FieldsTDEM):
         s_m = np.zeros((self.mesh.nF, len(source_list)))
         for i, src in enumerate(source_list):
             s_m_src = src.s_m(self.simulation, self._times[tInd])
-            s_m[:, i] += s_m_src
+            s_m[:, i] = s_m[:, i] + s_m_src
         return s_m - self._edgeCurl * eSolution
 
     def _dbdtDeriv_u(self, tInd, src, dun_dm_v, adjoint=False):
@@ -568,7 +568,7 @@ class Fields3DMagneticField(FieldsTDEM):
 
         for i, src in enumerate(source_list):
             s_m, s_e = src.eval(self.simulation, self._times[tInd])
-            dhdt[:, i] += MeMuI * (C.T * MfRho * s_e + s_m)
+            dhdt[:, i] = MeMuI * (C.T * MfRho * s_e + s_m) + dhdt[:, i]
         return dhdt
 
     def _dhdtDeriv_u(self, tInd, src, dun_dm_v, adjoint=False):
@@ -596,7 +596,7 @@ class Fields3DMagneticField(FieldsTDEM):
         s_e = np.zeros((self.mesh.nF, len(source_list)))
         for i, src in enumerate(source_list):
             s_e_src = src.s_e(self.simulation, self._times[tInd])
-            s_e[:, i] += s_e_src
+            s_e[:, i] = s_e[:, i] + s_e_src
 
         return self._edgeCurl * hSolution - s_e
 
@@ -735,7 +735,7 @@ class Fields3DCurrentDensity(FieldsTDEM):
         dhdt = -MeMuI * (C.T * (MfRho * jSolution))
         for i, src in enumerate(source_list):
             s_m = src.s_m(self.simulation, self.simulation.times[tInd])
-            dhdt[:, i] += MeMuI * s_m
+            dhdt[:, i] = dhdt[:, i] + MeMuI * s_m
         return dhdt
 
     def _dhdtDeriv_u(self, tInd, src, dun_dm_v, adjoint=False):

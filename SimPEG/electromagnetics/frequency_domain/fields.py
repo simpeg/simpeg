@@ -821,13 +821,13 @@ class Fields3DMagneticFluxDensity(FieldsFDEM):
         e = self._edgeCurl.T * (self._MfMui * bSolution)
         for i, src in enumerate(source_list):
             s_e = src.s_e(self.simulation)
-            e[:, i] -= s_e
+            e[:, i] = e[:, i] - s_e
 
             if self.simulation.permittivity is not None:
                 MeyhatI = self.simulation._get_edge_admittivity_property_matrix(
                     src.frequency, invert_matrix=True
                 )
-                e[:, i] *= MeyhatI
+                e[:, i] = MeyhatI * e[:, i]
 
         if self.simulation.permittivity is None:
             return self._MeSigmaI * e
@@ -901,7 +901,7 @@ class Fields3DMagneticFluxDensity(FieldsFDEM):
 
             for i, src in enumerate(source_list):
                 s_e = src.s_e(self.simulation)
-                j[:, i] -= s_e
+                j[:, i] = j[:, i] - s_e
 
             return self._MeI * j
         else:
@@ -1052,7 +1052,7 @@ class Fields3DMagneticFluxDensityFaceEdgeConductivity(Fields3DMagneticFluxDensit
         e = self._edgeCurl.T * (self._MfMui * bSolution)
         for i, src in enumerate(source_list):
             s_e = src.s_e(self.simulation)
-            e[:, i] -= s_e
+            e[:, i] = e[:, i] - s_e
 
             if self.simulation.permittivity is not None:
                 MeyhatI = (
@@ -1062,7 +1062,7 @@ class Fields3DMagneticFluxDensityFaceEdgeConductivity(Fields3DMagneticFluxDensit
                     + self.__MeTau
                     + self.__MeKappa
                 )
-                e[:, i] *= MeyhatI
+                e[:, i] = MeyhatI * e[:, i]
 
         if self.simulation.permittivity is None:
             return self.__MeSigmaTauKappaI * e
@@ -1114,7 +1114,7 @@ class Fields3DMagneticFluxDensityFaceEdgeConductivity(Fields3DMagneticFluxDensit
 
             for i, src in enumerate(source_list):
                 s_e = src.s_e(self.simulation)
-                j[:, i] -= s_e
+                j[:, i] = j[:, i] - s_e
 
             return self._MeI * j
         else:
@@ -1286,7 +1286,7 @@ class Fields3DCurrentDensity(FieldsFDEM):
 
             h[:, i] *= -1.0 / (1j * omega(src.frequency))
             s_m = src.s_m(self.simulation)
-            h[:, i] += 1.0 / (1j * omega(src.frequency)) * (s_m)
+            h[:, i] = h[:, i] + 1.0 / (1j * omega(src.frequency)) * (s_m)
         return self._MeMuI * h
 
     def _hDeriv_u(self, src, du_dm_v, adjoint=False):
@@ -1486,7 +1486,7 @@ class Fields3DCurrentDensity(FieldsFDEM):
             return src.s_mDeriv(self.simulation, v, adjoint=adjoint)
 
         if adjoint:
-            v *= self._MeI.T
+            v = self._MeI.T * v
             return 1.0 / (1j * omega(src.frequency)) * (
                 s_mDeriv(v) - self._MfRhoDeriv(jSolution, self._edgeCurl * v, adjoint)
             ) + src.bPrimaryDeriv(self.simulation, v, adjoint)
@@ -1572,7 +1572,7 @@ class Fields3DMagneticField(FieldsFDEM):
         hPrimary = np.zeros_like(hSolution, dtype=complex)
         for i, src in enumerate(source_list):
             hp = src.hPrimary(self.simulation)
-            hPrimary[:, i] += hp
+            hPrimary[:, i] = hPrimary[:, i] + hp
         return hPrimary
 
     def _hSecondary(self, hSolution, source_list):
@@ -1634,7 +1634,7 @@ class Fields3DMagneticField(FieldsFDEM):
         )
         for i, src in enumerate(source_list):
             jp = src.jPrimary(self.simulation)
-            jPrimary[:, i] += jp
+            jPrimary[:, i] = jPrimary[:, i] + jp
         return jPrimary
 
     def _jSecondary(self, hSolution, source_list):
@@ -1650,7 +1650,7 @@ class Fields3DMagneticField(FieldsFDEM):
         j = self._edgeCurl * hSolution
         for i, src in enumerate(source_list):
             s_e = src.s_e(self.simulation)
-            j[:, i] -= s_e
+            j[:, i] = j[:, i] - s_e
         return j
 
     def _jDeriv_u(self, src, du_dm_v, adjoint=False):
