@@ -101,7 +101,9 @@ def run(plotIt=True, survey_type="dipole-dipole", p=0.0, qx=2.0, qz=2.0):
             pcolor_opts={"cmap": "viridis", "norm": colors.LogNorm()},
         )
         ax.plot(
-            survey.electrode_locations[:, 0], survey.electrode_locations[:, 1], "k."
+            survey.unique_electrode_locations[:, 0],
+            survey.unique_electrode_locations[:, 1],
+            "k.",
         )
         ax.set_xlim(IO.grids[:, 0].min(), IO.grids[:, 0].max())
         ax.set_ylim(-IO.grids[:, 1].max(), IO.grids[:, 1].min())
@@ -207,7 +209,9 @@ def run(plotIt=True, survey_type="dipole-dipole", p=0.0, qx=2.0, qz=2.0):
         titles = ["True", "L2", ("L%d, Lx%d, Lz%d") % (p, qx, qz)]
         for i in range(3):
             ax[i].plot(
-                survey.electrode_locations[:, 0], survey.electrode_locations[:, 1], "kv"
+                survey.unique_electrode_locations[:, 0],
+                survey.unique_electrode_locations[:, 1],
+                "kv",
             )
             ax[i].set_xlim(IO.grids[:, 0].min(), IO.grids[:, 0].max())
             ax[i].set_ylim(-IO.grids[:, 1].max(), IO.grids[:, 1].min())

@@ -107,8 +107,8 @@ def run(plotIt=True, survey_type="dipole-dipole"):
         )
         for i in range(2):
             axs[i].plot(
-                survey_dc.electrode_locations[:, 0],
-                survey_dc.electrode_locations[:, 1],
+                survey_dc.unique_electrode_locations[:, 0],
+                survey_dc.unique_electrode_locations[:, 1],
                 "kv",
             )
             axs[i].set_xlim(IO.grids[:, 0].min(), IO.grids[:, 0].max())
@@ -215,8 +215,8 @@ def run(plotIt=True, survey_type="dipole-dipole"):
         out = [out1, out2]
         for i in range(2):
             ax[i].plot(
-                survey_dc.electrode_locations[:, 0],
-                survey_dc.electrode_locations[:, 1],
+                survey_dc.unique_electrode_locations[:, 0],
+                survey_dc.unique_electrode_locations[:, 1],
                 "kv",
             )
             ax[i].set_xlim(IO.grids[:, 0].min(), IO.grids[:, 0].max())
@@ -284,8 +284,8 @@ def run(plotIt=True, survey_type="dipole-dipole"):
         out = [out1, out2]
         for i in range(2):
             ax[i].plot(
-                survey_dc.electrode_locations[:, 0],
-                survey_dc.electrode_locations[:, 1],
+                survey_dc.unique_electrode_locations[:, 0],
+                survey_dc.unique_electrode_locations[:, 1],
                 "rv",
             )
             ax[i].set_xlim(IO.grids[:, 0].min(), IO.grids[:, 0].max())
