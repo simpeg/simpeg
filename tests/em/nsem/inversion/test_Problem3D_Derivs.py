@@ -36,10 +36,17 @@ def JmatrixTest(inputSetup, comp="All", freq=False, expMap=True):
         inputSetup, [freq], comp=comp, singleFreq=True
     )
 
+    # create random vector
+    vec = np.random.randn(simulation.survey.nD)
+
+    # create the J matrix
     J1 = simulation.getJ(model)
-    simulation._Jmatrix = None
-    J2 = simulation.getJ(model + 2)
-    return np.allclose(J1, J2)
+    Jmatrix_vec = J1.T @ vec
+
+    # create approximation JTvec
+    jtvec = simulation.Jtvec(model, v=vec)
+
+    return np.allclose(Jmatrix_vec, jtvec)
 
 
 # Test the Jvec derivative
@@ -139,15 +146,10 @@ class NSEM_DerivTests(unittest.TestCase):
 
     # Jmatrix
     def test_jmatrix(self):
-        self.assertFalse(JmatrixTest(nsem.utils.test_utils.halfSpace(1e-2), freq=0.1))
+        self.assertTrue(JmatrixTest(nsem.utils.test_utils.halfSpace(1e-2), freq=0.1))
 
     def test_jtjdiag(self):
         self.assertFalse(JtjdiagTest(nsem.utils.test_utils.halfSpace(1e-2), freq=0.1))
-
-    # def test_jtjdiag_weights(self):
-    #     self.assertFalse(
-    #         JtjdiagTest(nsem.utils.test_utils.halfSpace(1e-2), freq=0.1, weights=True)
-    #     )
 
 
 if __name__ == "__main__":
