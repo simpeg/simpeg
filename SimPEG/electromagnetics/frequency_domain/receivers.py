@@ -1,6 +1,5 @@
 from ... import survey
 from ...utils import validate_string, validate_type, validate_direction
-import warnings
 from discretize.utils import Zero
 
 
@@ -33,16 +32,9 @@ class BaseRx(survey.BaseRx):
         use_source_receiver_offset=False,
         **kwargs,
     ):
-        proj = kwargs.pop("projComp", None)
-        if proj is not None:
-            warnings.warn(
-                "'projComp' overrides the 'orientation' property which automatically"
-                " handles the projection from the mesh the receivers!!! "
-                "'projComp' is deprecated and will be removed in SimPEG 0.19.0.",
-                stacklevel=2,
-            )
-            self.projComp = proj
-
+        # Raise error on deprecated arguments
+        if (key := "projComp") in kwargs:
+            raise TypeError(f"'{key}' argument has been deprecated.")
         self.orientation = orientation
         self.component = component
         self.data_type = data_type

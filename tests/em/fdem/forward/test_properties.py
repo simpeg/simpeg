@@ -7,16 +7,19 @@ from SimPEG.electromagnetics import time_domain as tdem
 
 def test_receiver_properties_validation():
     xyz = np.c_[0.0, 0.0, 0.0]
-    projComp = "Fx"
-    rx = fdem.receivers.BaseRx(xyz, projComp=projComp)
-
-    assert rx.projComp == projComp
-
     with pytest.raises(ValueError):
         fdem.receivers.BaseRx(xyz, component="potato")
-
     with pytest.raises(TypeError):
         fdem.receivers.BaseRx(xyz, component=2.0)
+
+
+def test_base_receiver_error_on_invalid_arguments():
+    """
+    Test if BaseRx raises error on invalid arguments
+    """
+    xyz = np.c_[0.0, 0.0, 0.0]
+    with pytest.raises(TypeError):
+        fdem.receivers.BaseRx(xyz, projComp="Fx")
 
 
 def test_source_properties_validation():

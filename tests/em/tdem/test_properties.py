@@ -4,13 +4,14 @@ import pytest
 from SimPEG.electromagnetics import time_domain as tdem
 
 
-def test_receiver_properties():
+def test_base_receiver_error_on_invalid_arguments():
+    """
+    Test if BaseRx raises error on invalid arguments
+    """
     xyz = np.c_[0.0, 0.0, 0.0]
     times = np.logspace(-5, -2, 4)
-    projComp = "Fx"
-    rx = tdem.receivers.BaseRx(xyz, times, projComp=projComp)
-
-    assert rx.projComp == projComp
+    with pytest.raises(TypeError):
+        tdem.receivers.BaseRx(xyz, times, projComp="Fx")
 
 
 def test_source_properties():
