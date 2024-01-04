@@ -168,7 +168,7 @@ if write_output:
         os.mkdir(dir_path)
 
     np.random.seed(347)
-    noise = 0.05 * np.abs(dpred) * np.random.rand(len(dpred))
+    noise = 0.05 * np.abs(dpred) * np.random.randn(len(dpred))
     dpred += noise
     fname = dir_path + "em1dtm_data.txt"
     np.savetxt(fname, np.c_[times, dpred], fmt="%.4e", header="TIME BZ")

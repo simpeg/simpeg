@@ -97,7 +97,7 @@ nC = int(actv.sum())
 #
 model_azm_dip = np.zeros((mesh.nC, 2))
 model_amp = np.ones(mesh.nC) * 1e-8
-ind = utils.model_builder.getIndicesBlock(
+ind = utils.model_builder.get_indices_block(
     np.r_[-30, -20, -10],
     np.r_[30, 20, 25],
     mesh.gridCC,
