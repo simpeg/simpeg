@@ -1,3 +1,4 @@
+import pytest
 import unittest
 
 import numpy as np
@@ -540,3 +541,19 @@ def test_CircularLoop_test_N_assignment():
         N=2,
     )
     assert loop.n_turns == 2
+
+
+class TestDeprecatedArguments:
+    """
+    Test if classes raises errors upon deprecated arguments
+    """
+
+    @pytest.mark.parametrize("argument", ("startTime", "peakTime", "offTime"))
+    def test_triangular_waveform(self, argument):
+        """
+        Test if TriangularWaveform raises errors on deprecated arguments.
+        """
+        kwargs = {argument: None}
+        msg = f"'{argument}' is deprecated. Please use"
+        with pytest.raises(TypeError, match=msg):
+            TriangularWaveform(start_time=0, peak_time=4e-3, off_time=8e-3, **kwargs)

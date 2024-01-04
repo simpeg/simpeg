@@ -507,6 +507,8 @@ class TriangularWaveform(TrapezoidWaveform):
 
     Parameters
     ----------
+    start_time : float
+        time when the transmitter current starts being non-zero
     off_time : float
         time when the transmitter current returns to zero
     peak_time : float
@@ -527,18 +529,13 @@ class TriangularWaveform(TrapezoidWaveform):
     """
 
     def __init__(self, start_time, off_time, peak_time, **kwargs):
-        if kwargs.get("startTime", None):
-            AttributeError(
-                "startTime will be deprecated in 0.17.0. Please update your code to use start_time instead",
-            )
-        if kwargs.get("peak_time", None):
-            AttributeError(
-                "peak_time will be deprecated in 0.17.0. Please update your code to use peak_time instead",
-            )
-        if kwargs.get("offTime", None):
-            AttributeError(
-                "offTime will be deprecated in 0.17.0. Please update your code to use off_time instead",
-            )
+        # Raise errors on deprecated arguments
+        if (key := "startTime") in kwargs:
+            raise TypeError(f"'{key}' is deprecated. Please use 'start_time' instead")
+        if (key := "peakTime") in kwargs:
+            raise TypeError(f"'{key}' is deprecated. Please use 'peak_time' instead")
+        if (key := "offTime") in kwargs:
+            raise TypeError(f"'{key}' is deprecated. Please use 'off_time' instead")
 
         ramp_on = np.r_[start_time, peak_time]
         ramp_off = np.r_[peak_time, off_time]
