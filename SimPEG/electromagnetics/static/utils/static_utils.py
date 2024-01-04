@@ -1863,14 +1863,6 @@ source_receiver_midpoints = deprecate_method(
 )
 
 
-def plot_layer(rho, mesh, **kwargs):
-    raise NotImplementedError(
-        "The plot_layer method has been deprecated. Please use "
-        "plot_1d_layer_model instead. This will be removed in version"
-        " 0.17.0 of SimPEG",
-    )
-
-
 def convertObs_DC3D_to_2D(survey, lineID, flag="local"):
     raise TypeError(
         "The convertObs_DC3D_to_2D method has been removed. Please use "
