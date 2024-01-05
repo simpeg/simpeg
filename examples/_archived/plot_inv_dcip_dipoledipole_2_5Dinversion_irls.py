@@ -157,7 +157,7 @@ def run(plotIt=True, survey_type="dipole-dipole", p=0.0, qx=2.0, qz=2.0):
 
     # Related to inversion
     reg = regularization.Sparse(
-        mesh, indActive=actind, mapping=regmap, gradient_type="components"
+        mesh, active_cells=actind, mapping=regmap, gradient_type="components"
     )
     #     gradient_type = 'components'
     reg.norms = [p, qx, qz, 0.0]

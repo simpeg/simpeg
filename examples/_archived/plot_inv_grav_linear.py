@@ -102,7 +102,7 @@ def run(plotIt=True):
     rxLoc = survey.source_field.receiver_list[0].locations
 
     # Create a regularization
-    reg = regularization.Sparse(mesh, indActive=actv, mapping=idenMap)
+    reg = regularization.Sparse(mesh, active_cells=actv, mapping=idenMap)
     reg.norms = [0, 0, 0, 0]
 
     # Data misfit function

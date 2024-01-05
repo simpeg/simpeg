@@ -101,7 +101,7 @@ def run(plotIt=True):
     data_object = data.Data(survey, dobs=synthetic_data, noise_floor=wd)
 
     # Create a regularization
-    reg = regularization.Sparse(mesh, indActive=actv, mapping=idenMap)
+    reg = regularization.Sparse(mesh, active_cells=actv, mapping=idenMap)
     reg.mref = np.zeros(nC)
     reg.norms = [0, 0, 0, 0]
     # reg.eps_p, reg.eps_q = 1e-0, 1e-0
