@@ -1,5 +1,4 @@
 import unittest
-
 import discretize
 import numpy as np
 from scipy.constants import mu_0
@@ -12,8 +11,6 @@ def analytic_layer_small_loop_face_conductivity_comparison(
     formulation="ElectricField",
     rx_type="MagneticFluxDensity",
     orientation="Z",
-    bounds=None,
-    plotIt=False,
 ):
     # Some static parameters
     loop_radius = np.pi**-0.5
@@ -170,8 +167,6 @@ class LayerConductanceTests(unittest.TestCase):
                 formulation="MagneticFluxDensity",
                 rx_type="MagneticFluxDensity",
                 orientation="X",
-                bounds=None,
-                plotIt=False,
             )
             < 0.04
         )
@@ -183,8 +178,6 @@ class LayerConductanceTests(unittest.TestCase):
                 formulation="MagneticFluxDensity",
                 rx_type="MagneticFluxDensity",
                 orientation="Z",
-                bounds=None,
-                plotIt=False,
             )
             < 0.04
         )
@@ -196,8 +189,6 @@ class LayerConductanceTests(unittest.TestCase):
                 formulation="MagneticFluxDensity",
                 rx_type="MagneticFluxDensity",
                 orientation="Z",
-                bounds=None,
-                plotIt=False,
             )
             < 0.01
         )
@@ -209,8 +200,6 @@ class LayerConductanceTests(unittest.TestCase):
                 formulation="ElectricField",
                 rx_type="MagneticFluxDensity",
                 orientation="X",
-                bounds=None,
-                plotIt=False,
             )
             < 0.04
         )
@@ -222,8 +211,6 @@ class LayerConductanceTests(unittest.TestCase):
                 formulation="ElectricField",
                 rx_type="MagneticFluxDensity",
                 orientation="Z",
-                bounds=None,
-                plotIt=False,
             )
             < 0.04
         )
@@ -235,12 +222,6 @@ class LayerConductanceTests(unittest.TestCase):
                 formulation="ElectricField",
                 rx_type="MagneticFluxDensity",
                 orientation="Z",
-                bounds=None,
-                plotIt=False,
             )
             < 0.01
         )
-
-
-if __name__ == "__main__":
-    unittest.main()

@@ -954,7 +954,7 @@ class Simulation3DElectricField(BaseTDEMSimulation):
         if adjoint:
             return self.MeSigmaDeriv(-u, Grad * v, adjoint)
         return Grad.T * self.MeSigmaDeriv(-u, v, adjoint)
-        
+
     # def clean(self):
     #     """
     #     Clean factors

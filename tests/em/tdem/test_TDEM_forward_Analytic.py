@@ -1,7 +1,6 @@
 import unittest
 
 import discretize
-import matplotlib.pyplot as plt
 import numpy as np
 from pymatsolver import Pardiso as Solver
 from scipy.constants import mu_0
@@ -19,7 +18,6 @@ def analytic_wholespace_dipole_comparison(
     sigma=1e-2,
     rx_offset=None,
     bounds=None,
-    plotIt=False,
 ):
     if bounds is None:
         bounds = [1e-5, 1e-3]
@@ -189,19 +187,6 @@ def analytic_wholespace_dipole_comparison(
     )
     print("Difference: {}".format(log10diff))
 
-    if plotIt is True:
-        plt.loglog(
-            rx.times[numeric_solution > 0],
-            numeric_solution[numeric_solution > 0],
-            "r",
-            rx.times[numeric_solution < 0],
-            -numeric_solution[numeric_solution < 0],
-            "r--",
-        )
-        plt.loglog(rx.times, abs(analytic_solution), "b*")
-        plt.title(src_type + ", " + rx_type + ", " + f"{rx_orientation}" + "-component")
-        plt.show()
-
     return log10diff
 
 
@@ -211,7 +196,6 @@ def analytic_halfspace_mag_dipole_comparison(
     sig_half=1e-2,
     rxOffset=50.0,
     bounds=None,
-    plotIt=False,
     rx_type="MagneticFluxDensityz",
 ):
     if bounds is None:
@@ -295,19 +279,6 @@ def analytic_halfspace_mag_dipole_comparison(
     )
     print("Difference: {}".format(log10diff))
 
-    if plotIt is True:
-        plt.loglog(
-            rx.times[bz_calc > 0],
-            bz_calc[bz_calc > 0],
-            "r",
-            rx.times[bz_calc < 0],
-            -bz_calc[bz_calc < 0],
-            "r--",
-        )
-        plt.loglog(rx.times, abs(bz_ana), "b*")
-        plt.title("sig_half = {0:e}".format(sig_half))
-        plt.show()
-
     return log10diff
 
 
@@ -316,7 +287,6 @@ def analytic_layer_small_loop_face_conductivity_comparison(
     rx_type="MagneticFluxTimeDerivative",
     orientation="Z",
     bounds=None,
-    plotIt=False,
 ):
     # Some static parameters
     PHI = np.linspace(0, 2 * np.pi, 21)
@@ -456,19 +426,6 @@ def analytic_layer_small_loop_face_conductivity_comparison(
         )
     )
     print("Difference: {}".format(log10diff))
-
-    if plotIt is True:
-        plt.loglog(
-            rx.times[numeric_solution > 0],
-            numeric_solution[numeric_solution > 0],
-            "r",
-            rx.times[numeric_solution < 0],
-            -numeric_solution[numeric_solution < 0],
-            "r--",
-        )
-        plt.loglog(rx.times, abs(analytic_solution), "b*")
-        plt.title("{} Mesh, {}, {}-Component".format(mesh_type, rx_type, orientation))
-        plt.show()
 
     return log10diff
 
@@ -779,7 +736,6 @@ class LayerConductanceTests(unittest.TestCase):
                 rx_type="MagneticFluxDensity",
                 orientation="X",
                 bounds=None,
-                plotIt=False,
             )
             < 0.01
         )
@@ -791,7 +747,6 @@ class LayerConductanceTests(unittest.TestCase):
                 rx_type="MagneticFluxDensity",
                 orientation="Z",
                 bounds=None,
-                plotIt=False,
             )
             < 0.01
         )
@@ -803,7 +758,6 @@ class LayerConductanceTests(unittest.TestCase):
                 rx_type="MagneticFluxDensity",
                 orientation="Z",
                 bounds=None,
-                plotIt=False,
             )
             < 0.01
         )
@@ -815,7 +769,6 @@ class LayerConductanceTests(unittest.TestCase):
                 rx_type="MagneticFluxTimeDerivative",
                 orientation="X",
                 bounds=None,
-                plotIt=False,
             )
             < 0.01
         )
@@ -827,7 +780,6 @@ class LayerConductanceTests(unittest.TestCase):
                 rx_type="MagneticFluxTimeDerivative",
                 orientation="Z",
                 bounds=None,
-                plotIt=False,
             )
             < 0.01
         )
@@ -839,11 +791,6 @@ class LayerConductanceTests(unittest.TestCase):
                 rx_type="MagneticFluxTimeDerivative",
                 orientation="Z",
                 bounds=None,
-                plotIt=False,
             )
             < 0.01
         )
-
-
-if __name__ == "__main__":
-    unittest.main()

@@ -7,8 +7,6 @@ from SimPEG.electromagnetics import time_domain as tdem
 
 from pymatsolver import Pardiso as Solver
 
-plotIt = False
-
 testDeriv = True
 testAdjoint = True
 
@@ -114,10 +112,6 @@ class Base_DerivAdjoint_Test(unittest.TestCase):
         self.survey = get_survey()
 
         if "FaceEdgeConductivity" in self.formulation:
-            # sigma_map = get_sigma_mapping(mesh)
-            # self.prob = get_face_edge_prob(mesh, self.formulation, sigma_map=sigma_map, survey=self.survey)
-            # self.m = np.log(1e-1) * np.ones(self.prob.sigmaMap.nP) + 1e-3 * np.random.randn(self.prob.sigmaMap.nP)
-
             active_cells = mesh.cell_centers[:, -1] < 0.0
             active_faces = mesh.faces[:, -1] < 0.0
             active_edges = mesh.edges[:, -1] < 0.0
@@ -157,9 +151,6 @@ class Base_DerivAdjoint_Test(unittest.TestCase):
         mesh = get_mesh()
         self.surveyfwd = get_survey()
         if "FaceEdgeConductivity" in self.formulation:
-            # sigma_map = get_sigma_mapping(mesh)
-            # self.probfwd = get_face_edge_prob(mesh, self.formulation, sigma_map=sigma_map, survey=self.surveyfwd)
-
             sigma_map, tau_map, kappa_map = get_wire_mappings(mesh)
             self.probfwd = get_face_edge_prob(
                 mesh,

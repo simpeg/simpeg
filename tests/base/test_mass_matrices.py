@@ -974,7 +974,6 @@ class TestSimSurfaceProperties(unittest.TestCase):
         sim.model = self.start_mod
 
         n_f = self.mesh.n_faces
-        # n_c = self.mesh.n_cells
 
         u = np.random.rand(n_f)
         u2 = np.random.rand(n_f, 2)
@@ -1238,7 +1237,6 @@ class TestSimEdgeProperties(unittest.TestCase):
         sim.model = self.start_mod
 
         n_e = self.mesh.n_edges
-        # n_c = self.mesh.n_cells
 
         u = np.random.rand(n_e)
         v = np.random.randn(n_e)
@@ -1300,7 +1298,6 @@ class TestSimEdgeProperties(unittest.TestCase):
         sim.model = self.start_mod
 
         n_e = self.mesh.n_edges
-        # n_c = self.mesh.n_cells
 
         u = np.random.rand(n_e)
         u2 = np.random.rand(n_e, 2)
@@ -1434,7 +1431,3 @@ def test_bad_derivative_stash():
 
     with pytest.raises(TypeError):
         sim.MeSigmaDeriv(u, v)
-
-
-if __name__ == "__main__":
-    unittest.main()
