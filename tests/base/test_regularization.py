@@ -78,7 +78,7 @@ class RegularizationTests(unittest.TestCase):
                     else:
                         m = np.random.rand(mesh.nC)
                     mref = np.ones_like(m) * np.mean(m)
-                    reg.mref = mref
+                    reg.reference_model = mref
 
                     # test derivs
                     passed = reg.test(m, eps=TOL)

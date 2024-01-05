@@ -105,7 +105,7 @@ def run(plotIt=True):
 
     # Create a regularization
     reg = regularization.Sparse(mesh, active_cells=actv, mapping=idenMap)
-    reg.mref = np.zeros(nC)
+    reg.reference_model = np.zeros(nC)
     reg.norms = [0, 0, 0, 0]
     # reg.eps_p, reg.eps_q = 1e-0, 1e-0
 
