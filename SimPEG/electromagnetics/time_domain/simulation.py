@@ -951,11 +951,10 @@ class Simulation3DElectricField(BaseTDEMSimulation):
 
     def getAdcDeriv(self, u, v, adjoint=False):
         Grad = self.mesh.nodal_gradient
-        if not adjoint:
-            return Grad.T * self.MeSigmaDeriv(-u, v, adjoint)
-        else:
+        if adjoint:
             return self.MeSigmaDeriv(-u, Grad * v, adjoint)
-
+        return Grad.T * self.MeSigmaDeriv(-u, v, adjoint)
+        
     # def clean(self):
     #     """
     #     Clean factors
@@ -1294,10 +1293,9 @@ class Simulation3DElectricFieldFaceEdgeConductivity(
             adjoint (nD,)
         """
         Grad = self.mesh.nodal_gradient
-        if not adjoint:
-            return Grad.T * self._MeSigmaTauKappaDeriv(-u, v, adjoint)
-        else:
+        if adjoint:
             return self._MeSigmaTauKappaDeriv(-u, Grad * v, adjoint)
+        return Grad.T * self._MeSigmaTauKappaDeriv(-u, v, adjoint)
 
 
 ###############################################################################
