@@ -26,7 +26,7 @@ from SimPEG import (
 
 def run(plotIt=True):
     # Define the inducing field parameter
-    H0 = (50000, 90, 0)
+    h0_amplitude, h0_inclination, h0_declination = (50000, 90, 0)
 
     # Create a mesh
     dx = 5.0
@@ -65,7 +65,10 @@ def run(plotIt=True):
     rxLoc = np.c_[utils.mkvc(X.T), utils.mkvc(Y.T), utils.mkvc(Z.T)]
     rxLoc = magnetics.receivers.Point(rxLoc, components=["tmi"])
     srcField = magnetics.sources.UniformBackgroundField(
-        receiver_list=[rxLoc], parameters=H0
+        receiver_list=[rxLoc],
+        amplitude=h0_amplitude,
+        inclination=h0_inclination,
+        declination=h0_declination,
     )
     survey = magnetics.survey.Survey(srcField)
 

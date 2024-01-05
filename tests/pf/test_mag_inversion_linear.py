@@ -23,7 +23,7 @@ class MagInvLinProblemTest(unittest.TestCase):
         np.random.seed(0)
 
         # Define the inducing field parameter
-        H0 = (50000, 90, 0)
+        h0_amplitude, h0_inclination, h0_declination = (50000, 90, 0)
 
         # Create a mesh
         dx = 5.0
@@ -59,7 +59,12 @@ class MagInvLinProblemTest(unittest.TestCase):
         # Create a MAGsurvey
         rxLoc = np.c_[utils.mkvc(X.T), utils.mkvc(Y.T), utils.mkvc(Z.T)]
         rxLoc = mag.Point(rxLoc)
-        srcField = mag.UniformBackgroundField([rxLoc], parameters=H0)
+        srcField = mag.UniformBackgroundField(
+            receiver_list=[rxLoc],
+            amplitude=h0_amplitude,
+            inclination=h0_inclination,
+            declination=h0_declination,
+        )
         survey = mag.Survey(srcField)
 
         # We can now create a susceptibility model and generate data

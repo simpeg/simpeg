@@ -11,8 +11,8 @@ def test_ana_mag_forward():
     nx = 5
     ny = 5
 
-    H0 = (50000.0, 60.0, 250.0)
-    b0 = mag.analytics.IDTtoxyz(-H0[1], H0[2], H0[0])
+    h0_amplitude, h0_inclination, h0_declination = (50000.0, 60.0, 250.0)
+    b0 = mag.analytics.IDTtoxyz(-h0_inclination, h0_declination, h0_amplitude)
     chi1 = 0.01
     chi2 = 0.02
 
@@ -59,7 +59,12 @@ def test_ana_mag_forward():
     components = ["bx", "by", "bz", "tmi"]
 
     rxLoc = mag.Point(locXyz, components=components)
-    srcField = mag.UniformBackgroundField([rxLoc], parameters=H0)
+    srcField = mag.UniformBackgroundField(
+        receiver_list=[rxLoc],
+        amplitude=h0_amplitude,
+        inclination=h0_inclination,
+        declination=h0_declination,
+    )
     survey = mag.Survey(srcField)
 
     # Creat reduced identity map for Linear Pproblem
@@ -105,8 +110,8 @@ def test_ana_mag_grad_forward():
     nx = 5
     ny = 5
 
-    H0 = (50000.0, 60.0, 250.0)
-    b0 = mag.analytics.IDTtoxyz(-H0[1], H0[2], H0[0])
+    h0_amplitude, h0_inclination, h0_declination = (50000.0, 60.0, 250.0)
+    b0 = mag.analytics.IDTtoxyz(-h0_inclination, h0_declination, h0_amplitude)
     chi1 = 0.01
     chi2 = 0.02
 
@@ -153,7 +158,12 @@ def test_ana_mag_grad_forward():
     components = ["bxx", "bxy", "bxz", "byy", "byz", "bzz"]
 
     rxLoc = mag.Point(locXyz, components=components)
-    srcField = mag.UniformBackgroundField([rxLoc], parameters=H0)
+    srcField = mag.UniformBackgroundField(
+        [rxLoc],
+        amplitude=h0_amplitude,
+        inclination=h0_inclination,
+        declination=h0_declination,
+    )
     survey = mag.Survey(srcField)
 
     # Creat reduced identity map for Linear Pproblem
@@ -199,8 +209,8 @@ def test_ana_mag_vec_forward():
     nx = 5
     ny = 5
 
-    H0 = (50000.0, 60.0, 250.0)
-    b0 = mag.analytics.IDTtoxyz(-H0[1], H0[2], H0[0])
+    h0_amplitude, h0_inclination, h0_declination = (50000.0, 60.0, 250.0)
+    b0 = mag.analytics.IDTtoxyz(-h0_inclination, h0_declination, h0_amplitude)
 
     M1 = utils.mat_utils.dip_azimuth2cartesian(45, -40) * 0.05
     M2 = utils.mat_utils.dip_azimuth2cartesian(120, 32) * 0.1
@@ -245,7 +255,12 @@ def test_ana_mag_vec_forward():
     components = ["bx", "by", "bz", "tmi"]
 
     rxLoc = mag.Point(locXyz, components=components)
-    srcField = mag.UniformBackgroundField([rxLoc], parameters=H0)
+    srcField = mag.UniformBackgroundField(
+        receiver_list=[rxLoc],
+        amplitude=h0_amplitude,
+        inclination=h0_inclination,
+        declination=h0_declination,
+    )
     survey = mag.Survey(srcField)
 
     # Create reduced identity map for Linear Pproblem
@@ -285,8 +300,8 @@ def test_ana_mag_amp_forward():
     nx = 5
     ny = 5
 
-    H0 = (50000.0, 60.0, 250.0)
-    b0 = mag.analytics.IDTtoxyz(-H0[1], H0[2], H0[0])
+    h0_amplitude, h0_inclination, h0_declination = (50000.0, 60.0, 250.0)
+    b0 = mag.analytics.IDTtoxyz(-h0_inclination, h0_declination, h0_amplitude)
 
     M1 = utils.mat_utils.dip_azimuth2cartesian(45, -40) * 0.05
     M2 = utils.mat_utils.dip_azimuth2cartesian(120, 32) * 0.1
@@ -331,7 +346,12 @@ def test_ana_mag_amp_forward():
     components = ["bx", "by", "bz"]
 
     rxLoc = mag.Point(locXyz, components=components)
-    srcField = mag.UniformBackgroundField([rxLoc], parameters=H0)
+    srcField = mag.UniformBackgroundField(
+        receiver_list=[rxLoc],
+        amplitude=h0_amplitude,
+        inclination=h0_inclination,
+        declination=h0_declination,
+    )
     survey = mag.Survey(srcField)
 
     # Create reduced identity map for Linear Pproblem

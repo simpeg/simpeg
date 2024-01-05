@@ -196,11 +196,13 @@ receiver_mag = magnetics.receivers.Point(receiver_locations, components=componen
 inclination = 90
 declination = 0
 strength = 50000
-inducing_field = (strength, inclination, declination)
 
 # Define the source field and survey for gravity data
 source_field_mag = magnetics.sources.UniformBackgroundField(
-    receiver_list=[receiver_mag], parameters=inducing_field
+    receiver_list=[receiver_mag],
+    amplitude=strength,
+    inclination=inclination,
+    declination=declination,
 )
 survey_mag = magnetics.survey.Survey(source_field_mag)
 

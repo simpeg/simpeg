@@ -242,9 +242,12 @@ class TestIO_MAG3D(unittest.TestCase):
         xyz = np.c_[x, y, z]
         rx = magnetics.receivers.Point(xyz, components="tmi")
 
-        inducing_field = (50000.0, 60.0, 15.0)
+        h0_amplitude, h0_inclination, h0_declination = (50000.0, 60.0, 15.0)
         source_field = magnetics.sources.UniformBackgroundField(
-            receiver_list=rx, parameters=inducing_field
+            receiver_list=rx,
+            amplitude=h0_amplitude,
+            inclination=h0_inclination,
+            declination=h0_declination,
         )
         survey = magnetics.survey.Survey(source_field)
 
