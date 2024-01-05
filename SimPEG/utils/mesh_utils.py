@@ -1,5 +1,4 @@
 import numpy as np
-from .code_utils import deprecate_function
 
 from discretize.utils import (  # noqa: F401
     unpack_widths,
@@ -95,17 +94,3 @@ def surface2inds(vrtx, trgl, mesh, boundaries=True, internal=True):
 
     # Return the indexes inside
     return insideGrid
-
-
-################################################
-#             DEPRECATED FUNCTIONS
-################################################
-meshTensor = deprecate_function(
-    unpack_widths, "meshTensor", removal_version="0.19.0", future_warn=True
-)
-closestPoints = deprecate_function(
-    closest_points_index, "closestPoints", removal_version="0.19.0", future_warn=True
-)
-ExtractCoreMesh = deprecate_function(
-    extract_core_mesh, "ExtractCoreMesh", removal_version="0.19.0", future_warn=True
-)

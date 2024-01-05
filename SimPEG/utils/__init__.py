@@ -234,9 +234,3 @@ from .pgi_utils import (
     GaussianMixtureWithNonlinearRelationships,
     GaussianMixtureWithNonlinearRelationshipsWithPrior,
 )
-
-from .mesh_utils import (
-    meshTensor,
-    closestPoints,
-    ExtractCoreMesh,
-)
