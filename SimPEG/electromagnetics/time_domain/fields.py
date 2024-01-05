@@ -275,17 +275,8 @@ class Fields3DMagneticFluxDensity(FieldsTDEM):
 class Fields3DMagneticFluxDensityFaceEdgeConductivity(Fields3DMagneticFluxDensity):
     """Field Storage for a TDEM simulation."""
 
-    # knownFields = {"bSolution": "F"}
-    # aliasFields = {
-    #     "b": ["bSolution", "F", "_b"],
-    #     "h": ["bSolution", "F", "_h"],
-    #     "e": ["bSolution", "E", "_e"],
-    #     "j": ["bSolution", "E", "_j"],
-    #     "dbdt": ["bSolution", "F", "_dbdt"],
-    #     "dhdt": ["bSolution", "F", "_dhdt"],
-    # }
-
     def startup(self):
+        # Docstring inherited from parent class
         self._times = self.simulation.times
         self.__MeSigmaTauKappa = self.simulation._MeSigmaTauKappa
         self.__MeSigmaTauKappaI = self.simulation._MeSigmaTauKappaI

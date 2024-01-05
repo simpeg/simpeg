@@ -579,8 +579,9 @@ class Fields3DElectricField(FieldsFDEM):
         # n = int(self._aveF2CCV.shape[0] / self._nC)  # Number of Components
         # VI = sdiag(np.kron(np.ones(n), 1./self.simulation.mesh.cell_volumes))
 
-        if adjoint:
+        if adjoint is True:
             return self._MfMuiDeriv(self[src, "b"], (self._MfI.T * v), adjoint)
+
         return self._MfI * (self._MfMuiDeriv(self[src, "b"], v))
 
     def _hDeriv_m(self, src, v, adjoint=False):
@@ -651,11 +652,11 @@ class Fields3DElectricFieldFaceEdgeConductivity(Fields3DElectricField):
         self._MfI = self.simulation.MfI
 
     def _j(self, eSolution, source_list):
-        # Docstrings inherited from parent class.
+        # Docstring inherited from parent class
         return self._MeI * (self.__MeSigmaTauKappa * self._e(eSolution, source_list))
 
     def _jDeriv_u(self, src, du_dm_v, adjoint=False):
-        # Docstrings inherited from parent class.
+        # Docstring inherited from parent class
         if adjoint:
             return self._eDeriv_u(
                 src, self.__MeSigmaTauKappa.T * (self._MeI.T * du_dm_v), adjoint=adjoint
@@ -665,7 +666,7 @@ class Fields3DElectricFieldFaceEdgeConductivity(Fields3DElectricField):
         )
 
     def _jDeriv_m(self, src, v, adjoint=False):
-        # Docstrings inherited from parent class.
+        # Docstring inherited from parent class
         e = self[src, "e"]
 
         if adjoint:
@@ -827,7 +828,7 @@ class Fields3DMagneticFluxDensity(FieldsFDEM):
                 MeyhatI = self.simulation._get_edge_admittivity_property_matrix(
                     src.frequency, invert_matrix=True
                 )
-                e[:, i] = MeyhatI * e[:, i]
+                e[:, i] *= MeyhatI
 
         if self.simulation.permittivity is None:
             return self._MeSigmaI * e
@@ -1025,7 +1026,7 @@ class Fields3DMagneticFluxDensityFaceEdgeConductivity(Fields3DMagneticFluxDensit
 
     Parameters
     ----------
-    mesh : discretize.base.BaseMesh
+    mesh : discretize.base.BaseMesh mesh
     survey : SimPEG.electromagnetics.frequency_domain.SurveyFDEM.Survey
     """
 
@@ -1047,7 +1048,7 @@ class Fields3DMagneticFluxDensityFaceEdgeConductivity(Fields3DMagneticFluxDensit
         self._MfI = self.simulation.MfI
 
     def _eSecondary(self, bSolution, source_list):
-        # Docstrings inherited from parent class.
+        # Docstring inherited from parent class
 
         e = self._edgeCurl.T * (self._MfMui * bSolution)
         for i, src in enumerate(source_list):
@@ -1062,7 +1063,7 @@ class Fields3DMagneticFluxDensityFaceEdgeConductivity(Fields3DMagneticFluxDensit
                     + self.__MeTau
                     + self.__MeKappa
                 )
-                e[:, i] = MeyhatI * e[:, i]
+                e[:, i] *= MeyhatI
 
         if self.simulation.permittivity is None:
             return self.__MeSigmaTauKappaI * e
@@ -1070,7 +1071,7 @@ class Fields3DMagneticFluxDensityFaceEdgeConductivity(Fields3DMagneticFluxDensit
             return e
 
     def _eDeriv_u(self, src, du_dm_v, adjoint=False):
-        # Docstrings inherited from parent class.
+        # Docstring inherited from parent class
 
         if not adjoint:
             return self.__MeSigmaTauKappaI * (
@@ -1079,7 +1080,7 @@ class Fields3DMagneticFluxDensityFaceEdgeConductivity(Fields3DMagneticFluxDensit
         return self._MfMui.T * (self._edgeCurl * (self.__MeSigmaTauKappaI.T * du_dm_v))
 
     def _eDeriv_m(self, src, v, adjoint=False):
-        # Docstrings inherited from parent class.
+        # Docstring inherited from parent class
         bSolution = mkvc(self[src, "bSolution"])
         s_e = src.s_e(self.simulation)
 
@@ -1107,7 +1108,7 @@ class Fields3DMagneticFluxDensityFaceEdgeConductivity(Fields3DMagneticFluxDensit
         )
 
     def _j(self, bSolution, source_list):
-        # Docstrings inherited from parent class.
+        # Docstring inherited from parent class
 
         if self.simulation.permittivity is None:
             j = self._edgeCurl.T * (self._MfMui * bSolution)
@@ -1650,7 +1651,7 @@ class Fields3DMagneticField(FieldsFDEM):
         j = self._edgeCurl * hSolution
         for i, src in enumerate(source_list):
             s_e = src.s_e(self.simulation)
-            j[:, i] = j[:, i] - s_e
+            j[:, i] = j[:, i] + -s_e
         return j
 
     def _jDeriv_u(self, src, du_dm_v, adjoint=False):
