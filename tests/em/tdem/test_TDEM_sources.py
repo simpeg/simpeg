@@ -530,17 +530,18 @@ def test_simple_source():
 
 def test_CircularLoop_test_N_assignment():
     """
-    Test depreciation of the N property
+    Test if error is raise after passing the deprecated N to CircularLoop
     """
-    loop = CircularLoop(
-        [],
-        waveform=StepOffWaveform(),
-        location=np.array([0.0, 0.0, 0.0]),
-        radius=1.0,
-        current=0.5,
-        N=2,
-    )
-    assert loop.n_turns == 2
+    msg = "'N' property has been deprecated. Please use 'n_turns'."
+    with pytest.raises(TypeError, match=msg):
+        CircularLoop(
+            [],
+            waveform=StepOffWaveform(),
+            location=np.array([0.0, 0.0, 0.0]),
+            radius=1.0,
+            current=0.5,
+            N=2,
+        )
 
 
 class TestDeprecatedArguments:
