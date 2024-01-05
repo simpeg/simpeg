@@ -55,7 +55,7 @@ class BaseRegularization(BaseObjectiveFunction):
         mapping: maps.IdentityMap | None = None,
         reference_model: np.ndarray | None = None,
         units: str | None = None,
-        weights: dict | None = None,
+        weights: dict | np.ndarray | None = None,
         **kwargs,
     ):
         if isinstance(mesh, BaseMesh):
@@ -382,6 +382,13 @@ class BaseRegularization(BaseObjectiveFunction):
             )
             self._weights[key] = values
         self._W = None
+
+    @property
+    def weights_keys(self) -> list[str]:
+        """
+        Return the keys for the existing cell weights
+        """
+        return list(self._weights.keys())
 
     def remove_weights(self, key):
         """Removes the weights for the key provided.
