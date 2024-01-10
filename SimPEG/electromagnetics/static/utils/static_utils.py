@@ -1676,13 +1676,13 @@ def genTopography(mesh, zmin, zmax, seed=None, its=100, anisotropy=None):
         mesh2D = discretize.TensorMesh(
             [mesh.h[0], mesh.h[1]], x0=[mesh.x0[0], mesh.x0[1]]
         )
-        out = model_builder.randomModel(
+        out = model_builder.create_random_model(
             mesh.vnC[:2], bounds=[zmin, zmax], its=its, seed=seed, anisotropy=anisotropy
         )
         return out, mesh2D
     elif mesh.dim == 2:
         mesh1D = discretize.TensorMesh([mesh.h[0]], x0=[mesh.x0[0]])
-        out = model_builder.randomModel(
+        out = model_builder.create_random_model(
             mesh.vnC[:1], bounds=[zmin, zmax], its=its, seed=seed, anisotropy=anisotropy
         )
         return out, mesh1D

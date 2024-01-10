@@ -169,7 +169,13 @@ def create_mag_survey(
     """
 
     receivers = mag.Point(receiver_locations, components=components)
-    source_field = mag.UniformBackgroundField([receivers], *inducing_field_params)
+    strenght, inclination, declination = inducing_field_params
+    source_field = mag.UniformBackgroundField(
+        receiver_list=[receivers],
+        amplitude=strenght,
+        inclination=inclination,
+        declination=declination,
+    )
     return mag.Survey(source_field)
 
 
@@ -208,6 +214,7 @@ def test_ana_mag_forward(
         receiver_locations=receiver_locations,
         inducing_field_params=inducing_field_params,
     )
+
     sim = mag.Simulation3DIntegral(
         mag_mesh,
         survey=survey,
@@ -252,6 +259,116 @@ def test_ana_mag_forward(
     np.testing.assert_allclose(d_t, d @ tmi, rtol=rtol, atol=atol)
 
 
+def test_ana_mag_tmi_grad_forward():
+    nx = 61
+    ny = 61
+
+    H0 = (50000.0, 60.0, 250.0)
+    b0 = mag.analytics.IDTtoxyz(-H0[1], H0[2], H0[0])
+    chi1 = 0.01
+    chi2 = 0.02
+
+    # Define a mesh
+    cs = 0.2
+    hxind = [(cs, 41)]
+    hyind = [(cs, 41)]
+    hzind = [(cs, 41)]
+    mesh = discretize.TensorMesh([hxind, hyind, hzind], "CCC")
+
+    # create a model of two blocks, 1 inside the other
+    block1 = np.array([[-1.5, 1.5], [-1.5, 1.5], [-1.5, 1.5]])
+    block2 = np.array([[-0.7, 0.7], [-0.7, 0.7], [-0.7, 0.7]])
+
+    def get_block_inds(grid, block):
+        return np.where(
+            (grid[:, 0] > block[0, 0])
+            & (grid[:, 0] < block[0, 1])
+            & (grid[:, 1] > block[1, 0])
+            & (grid[:, 1] < block[1, 1])
+            & (grid[:, 2] > block[2, 0])
+            & (grid[:, 2] < block[2, 1])
+        )
+
+    block1_inds = get_block_inds(mesh.cell_centers, block1)
+    block2_inds = get_block_inds(mesh.cell_centers, block2)
+
+    model = np.zeros(mesh.n_cells)
+    model[block1_inds] = chi1
+    model[block2_inds] = chi2
+
+    active_cells = model != 0.0
+    model_reduced = model[active_cells]
+
+    # Create reduced identity map for Linear Problem
+    idenMap = maps.IdentityMap(nP=int(sum(active_cells)))
+
+    # Create plane of observations
+    xr = np.linspace(-20, 20, nx)
+    dxr = xr[1] - xr[0]
+    yr = np.linspace(-20, 20, ny)
+    dyr = yr[1] - yr[0]
+    X, Y = np.meshgrid(xr, yr)
+    Z = np.ones_like(X) * 3.0
+    locXyz = np.c_[X.reshape(-1), Y.reshape(-1), Z.reshape(-1)]
+    components = ["tmi", "tmi_x", "tmi_y", "tmi_z"]
+
+    rxLoc = mag.Point(locXyz, components=components)
+    srcField = mag.UniformBackgroundField(
+        [rxLoc], amplitude=H0[0], inclination=H0[1], declination=H0[2]
+    )
+    survey = mag.Survey(srcField)
+
+    # Creat reduced identity map for Linear Problem
+    idenMap = maps.IdentityMap(nP=int(sum(active_cells)))
+
+    sim = mag.Simulation3DIntegral(
+        mesh,
+        survey=survey,
+        chiMap=idenMap,
+        ind_active=active_cells,
+        store_sensitivities="forward_only",
+        n_processes=None,
+    )
+
+    data = sim.dpred(model_reduced)
+    tmi = data[0::4]
+    d_x = data[1::4]
+    d_y = data[2::4]
+    d_z = data[3::4]
+
+    # Compute analytical response from magnetic prism
+    prism_1 = MagneticPrism(block1[:, 0], block1[:, 1], chi1 * b0 / mu_0)
+    prism_2 = MagneticPrism(block2[:, 0], block2[:, 1], -chi1 * b0 / mu_0)
+    prism_3 = MagneticPrism(block2[:, 0], block2[:, 1], chi2 * b0 / mu_0)
+
+    d = (
+        prism_1.magnetic_field_gradient(locXyz)
+        + prism_2.magnetic_field_gradient(locXyz)
+        + prism_3.magnetic_field_gradient(locXyz)
+    ) * mu_0
+    tmi_x = (d[:, 0, 0] * b0[0] + d[:, 0, 1] * b0[1] + d[:, 0, 2] * b0[2]) / H0[0]
+    tmi_y = (d[:, 1, 0] * b0[0] + d[:, 1, 1] * b0[1] + d[:, 1, 2] * b0[2]) / H0[0]
+    tmi_z = (d[:, 2, 0] * b0[0] + d[:, 2, 1] * b0[1] + d[:, 2, 2] * b0[2]) / H0[0]
+    np.testing.assert_allclose(d_x, tmi_x, rtol=1e-10, atol=1e-12)
+    np.testing.assert_allclose(d_y, tmi_y, rtol=1e-10, atol=1e-12)
+    np.testing.assert_allclose(d_z, tmi_z, rtol=1e-10, atol=1e-12)
+
+    # finite difference test y-grad
+    np.testing.assert_allclose(
+        np.diff(tmi.reshape(nx, ny, order="F")[:, ::2], axis=1) / (2 * dyr),
+        tmi_y.reshape(nx, ny, order="F")[:, 1::2],
+        atol=1.0,
+        rtol=1e-1,
+    )
+    # finite difference test x-grad
+    np.testing.assert_allclose(
+        np.diff(tmi.reshape(nx, ny, order="F")[::2, :], axis=0) / (2 * dxr),
+        tmi_x.reshape(nx, ny, order="F")[1::2, :],
+        atol=1.0,
+        rtol=1e-1,
+    )
+
+
 @pytest.mark.parametrize(
     "engine, parallel_kwargs",
     [
@@ -274,7 +391,6 @@ def test_ana_mag_grad_forward(
     inducing_field,
 ):
     inducing_field_params, b0 = inducing_field
-
     chi1 = 0.01
     chi2 = 0.02
     model, active_cells = create_block_model(mag_mesh, two_blocks, [chi1, chi2])
