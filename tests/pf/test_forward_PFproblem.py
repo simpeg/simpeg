@@ -1,7 +1,7 @@
 import unittest
 import discretize
 from SimPEG import utils, maps
-from SimPEG.utils.model_builder import getIndicesSphere
+from SimPEG.utils.model_builder import get_indices_sphere
 from SimPEG.potential_fields import magnetics as mag
 import numpy as np
 from pymatsolver import Pardiso
@@ -28,7 +28,7 @@ class MagFwdProblemTests(unittest.TestCase):
 
         self.rad = 100
         self.sphere_center = [0.0, 0.0, 0.0]
-        sph_ind = getIndicesSphere(self.sphere_center, self.rad, M.gridCC)
+        sph_ind = get_indices_sphere(self.sphere_center, self.rad, M.gridCC)
         chi[sph_ind] = self.chiblk
 
         xr = np.linspace(-300, 300, 41)

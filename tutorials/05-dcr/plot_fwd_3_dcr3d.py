@@ -190,12 +190,12 @@ conductivity_map = maps.InjectActiveCells(mesh, ind_active, air_value)
 # Define model
 conductivity_model = background_value * np.ones(nC)
 
-ind_conductor = model_builder.getIndicesSphere(
+ind_conductor = model_builder.get_indices_sphere(
     np.r_[-350.0, 0.0, -300.0], 160.0, mesh.cell_centers[ind_active, :]
 )
 conductivity_model[ind_conductor] = conductor_value
 
-ind_resistor = model_builder.getIndicesSphere(
+ind_resistor = model_builder.get_indices_sphere(
     np.r_[350.0, 0.0, -300.0], 160.0, mesh.cell_centers[ind_active, :]
 )
 conductivity_model[ind_resistor] = resistor_value
@@ -347,7 +347,7 @@ if write_output:
     # Add 5% Gaussian noise to each datum
     np.random.seed(433)
     std = 0.1 * np.abs(dpred)
-    noise = std * np.random.rand(len(dpred))
+    noise = std * np.random.randn(len(dpred))
     dobs = dpred + noise
 
     # Create dictionary that stores line IDs
