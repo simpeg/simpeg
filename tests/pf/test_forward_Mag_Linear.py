@@ -37,7 +37,8 @@ def two_blocks() -> Tuple[np.ndarray, np.ndarray]:
     Returns
     -------
     Tuple[np.ndarray, np.ndarray]
-        Tuple of (3, 2) arrays of (xmin, xmax), (ymin, ymax), (zmin, zmax) dimensions of each block
+        Tuple of (3, 2) arrays of (xmin, xmax), (ymin, ymax), (zmin, zmax)
+        dimensions of each block.
     """
     block1 = np.array([[-1.5, 1.5], [-1.5, 1.5], [-1.5, 1.5]])
     block2 = np.array([[-0.7, 0.7], [-0.7, 0.7], [-0.7, 0.7]])
@@ -66,7 +67,9 @@ def receiver_locations() -> np.ndarray:
 @pytest.fixture
 def inducing_field() -> Tuple[Tuple[float, float, float], Tuple[float, float, float]]:
     """
-    inducing field two ways-- (amplitude, inclination , declination) and (b_x, b_y, b_z)
+    inducing field
+
+    Return inducing field as amplitude and angles and as vector components.
 
     Returns
     -------
@@ -87,7 +90,8 @@ def get_block_inds(grid: np.ndarray, block: np.ndarray) -> np.ndarray:
     grid : np.ndarray
         (n, 3) array of xyz locations
     block : np.ndarray
-        (3, 2) array of (xmin, xmax), (ymin, ymax), (zmin, zmax) dimensions of the block
+        (3, 2) array of (xmin, xmax), (ymin, ymax), (zmin, zmax) dimensions of
+        the block.
 
     Returns
     -------
@@ -118,10 +122,11 @@ def create_block_model(
     mesh : discretize.TensorMesh
         TensorMesh object to put the model on
     blocks : Tuple[np.ndarray, ...]
-        Tuple of block definitions (each element is (3, 2) array of (xmin, xmax), (ymin, ymax), (zmin, zmax)
-        dimensions of the block)
+        Tuple of block definitions (each element is (3, 2) array of
+        (xmin, xmax), (ymin, ymax), (zmin, zmax)> dimensions of the block)
     block_params : Tuple[np.ndarray, ...]
-        Tuple of parameters to assign for each block. Must be the same length as ``blocks``.
+        Tuple of parameters to assign for each block. Must be the same length
+        as ``blocks``.
 
     Returns
     -------
@@ -318,7 +323,7 @@ def test_ana_mag_tmi_grad_forward():
     )
     survey = mag.Survey(srcField)
 
-    # Creat reduced identity map for Linear Problem
+    # Create reduced identity map for Linear Problem
     idenMap = maps.IdentityMap(nP=int(sum(active_cells)))
 
     sim = mag.Simulation3DIntegral(
