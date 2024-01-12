@@ -71,7 +71,7 @@ class BaseRegularization(BaseObjectiveFunction):
         if (key := "indActive") in kwargs:
             if active_cells is not None:
                 raise ValueError(
-                    f"Cannot simultanously pass 'active_cells' and '{key}'. "
+                    f"Cannot simultaneously pass 'active_cells' and '{key}'. "
                     "Pass 'active_cells' only."
                 )
             warnings.warn(
@@ -86,7 +86,7 @@ class BaseRegularization(BaseObjectiveFunction):
         if (key := "cell_weights") in kwargs:
             if weights is not None:
                 raise ValueError(
-                    f"Cannot simultanously pass 'weights' and '{key}'. "
+                    f"Cannot simultaneously pass 'weights' and '{key}'. "
                     "Pass 'weights' only."
                 )
             warnings.warn(
@@ -1581,7 +1581,7 @@ class WeightedLeastSquares(ComboObjectiveFunction):
         if (key := "indActive") in kwargs:
             if active_cells is not None:
                 raise ValueError(
-                    f"Cannot simultanously pass 'active_cells' and '{key}'. "
+                    f"Cannot simultaneously pass 'active_cells' and '{key}'. "
                     "Pass 'active_cells' only."
                 )
             warnings.warn(
