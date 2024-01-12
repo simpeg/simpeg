@@ -55,7 +55,7 @@ class BaseRegularization(BaseObjectiveFunction):
         mapping: maps.IdentityMap | None = None,
         reference_model: np.ndarray | None = None,
         units: str | None = None,
-        weights: dict | np.ndarray | None = None,
+        weights: dict | None = None,
         **kwargs,
     ):
         if isinstance(mesh, BaseMesh):
