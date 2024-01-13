@@ -383,6 +383,13 @@ class BaseRegularization(BaseObjectiveFunction):
             self._weights[key] = values
         self._W = None
 
+    @property
+    def weights_keys(self) -> list[str]:
+        """
+        Return the keys for the existing cell weights
+        """
+        return list(self._weights.keys())
+
     def remove_weights(self, key):
         """Removes the weights for the key provided.
 

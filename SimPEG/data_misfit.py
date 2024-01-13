@@ -8,12 +8,32 @@ __all__ = ["L2DataMisfit"]
 
 
 class BaseDataMisfit(L2ObjectiveFunction):
-    """
-    BaseDataMisfit
+    r"""Base data misfit class.
 
-    .. note::
-        You should inherit from this class to create your own data misfit
-        term.
+    Inherit this class to build your own data misfit function. The ``BaseDataMisfit``
+    class inherits the :py:class:`SimPEG.objective_function.L2ObjectiveFunction`.
+    And as a result, it is limited to building data misfit functions of the form:
+
+    .. important::
+        This class is not meant to be instantiated. You should inherit from it to
+        create your own data misfit class.
+
+    .. math::
+        \phi_d (\mathbf{m}) = \frac{1}{2} \| \mathbf{W} f(\mathbf{m}) \|_2^2
+
+    where :math:`\mathbf{m}` is the model vector, :math:`\mathbf{W}` is a linear weighting
+    matrix, and :math:`f` is a mapping function that acts on the model.
+
+    Parameters
+    ----------
+    data : SimPEG.data.Data
+        A SimPEG data object.
+    simulation : SimPEG.simulation.BaseSimulation
+        A SimPEG simulation object.
+    debug : bool
+        Print debugging information.
+    counter : None or SimPEG.utils.Counter
+        Assign a SimPEG ``Counter`` object to store iterations and run-times.
     """
 
     def __init__(self, data, simulation, debug=False, counter=None, **kwargs):
@@ -24,11 +44,12 @@ class BaseDataMisfit(L2ObjectiveFunction):
 
     @property
     def data(self):
-        """A SimPEG data class containing the observed data.
+        """A SimPEG data object.
 
         Returns
         -------
         SimPEG.data.Data
+            A SimPEG data object.
         """
         return self._data
 
@@ -38,11 +59,12 @@ class BaseDataMisfit(L2ObjectiveFunction):
 
     @property
     def simulation(self):
-        """A SimPEG simulation.
+        """A SimPEG simulation object.
 
         Returns
         -------
         SimPEG.simulation.BaseSimulation
+            A SimPEG simulation object.
         """
         return self._simulation
 
@@ -59,6 +81,7 @@ class BaseDataMisfit(L2ObjectiveFunction):
         Returns
         -------
         bool
+            Print debugging information.
         """
         return self._debug
 
@@ -68,11 +91,12 @@ class BaseDataMisfit(L2ObjectiveFunction):
 
     @property
     def counter(self):
-        """Set this to a ``SimPEG.utils.Counter`` if you want to count things.
+        """SimPEG ``Counter`` object to store iterations and run-times.
 
         Returns
         -------
-        SimPEG.utils.Counter or None
+        None or SimPEG.utils.Counter
+            SimPEG ``Counter`` object to store iterations and run-times.
         """
         return self._counter
 
@@ -83,8 +107,12 @@ class BaseDataMisfit(L2ObjectiveFunction):
 
     @property
     def nP(self):
-        """
-        number of model parameters
+        """Number of model parameters.
+
+        Returns
+        -------
+        int
+            Number of model parameters.
         """
         if self._mapping is not None:
             return self.mapping.nP
@@ -95,23 +123,44 @@ class BaseDataMisfit(L2ObjectiveFunction):
 
     @property
     def nD(self):
-        """
-        number of data
+        """Number of data.
+
+        Returns
+        -------
+        int
+            Number of data.
         """
         return self.data.nD
 
     @property
     def shape(self):
-        """"""
+        """Shape of the Jacobian.
+
+        The number of data by the number of model parameters.
+
+        Returns
+        -------
+        tuple of int (n_data, n_param)
+            Shape of the Jacobian; i.e. number of data by the number of model parameters.
+        """
         return (self.nD, self.nP)
 
     @property
     def W(self):
-        """W
-        The data weighting matrix.
-        The default is based on the norm of the data plus a noise floor.
-        :rtype: scipy.sparse.csr_matrix
-        :return: W
+        r"""The data weighting matrix.
+
+        For a discrete least-squares data misfit function of the form:
+
+        .. math::
+            \phi_d (\mathbf{m}) = \frac{1}{2} \| \mathbf{W} \mathbf{f}(\mathbf{m}) \|_2^2
+
+        :math:`\mathbf{W}` is a linear weighting matrix, :math:`\mathbf{m}` is the model vector,
+        and :math:`\mathbf{f}` is a discrete mapping function that acts on the model vector.
+
+        Returns
+        -------
+        scipy.sparse.csr_matrix
+            The data weighting matrix.
         """
 
         if getattr(self, "_W", None) is None:
@@ -154,43 +203,91 @@ class BaseDataMisfit(L2ObjectiveFunction):
         self._W = value
 
     def residual(self, m, f=None):
+        r"""Computes the data residual vector for a given model.
+
+        Where :math:`\mathbf{d}_\text{obs}` is the observed data vector and :math:`\mathbf{d}_\text{pred}`
+        is the predicted data vector for a model vector :math:`\mathbf{m}`, this function
+        computes the data residual:
+
+        .. math::
+            \mathbf{r} = \mathbf{d}_\text{pred} - \mathbf{d}_\text{obs}
+
+        Parameters
+        ----------
+        m : (n_param, ) numpy.ndarray
+            The model for which the function is evaluated.
+        f : None or SimPEG.fields.Fields, optional
+            A SimPEG fields object. Used when the fields for the model *m* have
+            already been computed.
+
+        Returns
+        -------
+        (n_data, ) numpy.ndarray
+            The data residual vector.
+        """
         if self.data is None:
             raise Exception("data must be set before a residual can be calculated.")
         return self.simulation.residual(m, self.data.dobs, f=f)
 
 
 class L2DataMisfit(BaseDataMisfit):
-    r"""
-    The data misfit with an l_2 norm:
+    r"""Least-squares data misfit.
+
+    Define the data misfit as the L2-norm of the weighted residual between observed
+    data and predicted data for a given model. I.e.:
 
     .. math::
+        \phi_d (\mathbf{m}) = \frac{1}{2} \big \| \mathbf{W_d}
+        \big ( \mathbf{d}_\text{pred} - \mathbf{d}_\text{obs} \big ) \big \|_2^2
 
-        \mu_\text{data} =
-            \frac{1}{2}
-            \left|
-                \mathbf{W}_d (\mathbf{d}_\text{pred} - \mathbf{d}_\text{obs})
-            \right|_2^2
+    where :math:`\mathbf{d}_\text{obs}` is the observed data vector, :math:`\mathbf{d}_\text{pred}`
+    is the predicted data vector for a model vector :math:`\mathbf{m}`, and
+    :math:`\mathbf{W_d}` is the data weighting matrix. The diagonal elements of
+    :math:`\mathbf{W_d}` are the reciprocals of the data uncertainties
+    :math:`\boldsymbol{\varepsilon}`. Thus:
+
+    .. math::
+        \mathbf{W_d} = \text{diag} \left ( \boldsymbol{\varepsilon}^{-1} \right )
+
+    Parameters
+    ----------
+    data : SimPEG.data.Data
+        A SimPEG data object that has observed data and uncertainties.
+    simulation : SimPEG.simulation.BaseSimulation
+        A SimPEG simulation object.
+    debug : bool
+        Print debugging information.
+    counter : None or SimPEG.utils.Counter
+        Assign a SimPEG ``Counter`` object to store iterations and run-times.
     """
 
     @timeIt
     def __call__(self, m, f=None):
-        "__call__(m, f=None)"
+        """Evaluate the residual for a given model."""
 
         R = self.W * self.residual(m, f=f)
         return np.vdot(R, R)
 
     @timeIt
     def deriv(self, m, f=None):
-        r"""
-        Derivative of the data misfit
+        r"""Gradient of the data misfit function evaluated for the model provided.
+
+        Where :math:`\phi_d (\mathbf{m})` is the data misfit function,
+        this method evaluates and returns the derivative with respect to the model parameters; i.e.
+        the gradient:
 
         .. math::
+            \frac{\partial \phi_d}{\partial \mathbf{m}}
 
-            \mathbf{J}^{\top} \mathbf{W}^{\top} \mathbf{W}
-            (\mathbf{d} - \mathbf{d}^{obs})
+        Parameters
+        ----------
+        m : (n_param, ) numpy.ndarray
+            The model for which the gradient is evaluated.
 
-        :param numpy.ndarray m: model
-        :param SimPEG.fields.Fields f: fields object
+        Returns
+        -------
+        (n_param, ) numpy.ndarray
+            The gradient of the data misfit function evaluated for the model provided.
         """
 
         if f is None:
@@ -202,16 +299,32 @@ class L2DataMisfit(BaseDataMisfit):
 
     @timeIt
     def deriv2(self, m, v, f=None):
-        r"""
-        Second derivative of the data misfit
+        r"""Hessian of the data misfit function evaluated for the model provided.
+
+        Where :math:`\phi_d (\mathbf{m})` is the data misfit function,
+        this method returns the second-derivative (Hessian) with respect to the model parameters:
 
         .. math::
+            \frac{\partial^2 \phi_d}{\partial \mathbf{m}^2}
 
-            \mathbf{J}^{\top} \mathbf{W}^{\top} \mathbf{W} \mathbf{J}
+        or the second-derivative (Hessian) multiplied by a vector :math:`(\mathbf{v})`:
 
-        :param numpy.ndarray m: model
-        :param numpy.ndarray v: vector
-        :param SimPEG.fields.Fields f: fields object
+        .. math::
+            \frac{\partial^2 \phi_d}{\partial \mathbf{m}^2} \, \mathbf{v}
+
+        Parameters
+        ----------
+        m : (n_param, ) numpy.ndarray
+            The model for which the Hessian is evaluated.
+        v : None or (n_param, ) numpy.ndarray, optional
+            A vector.
+
+        Returns
+        -------
+        (n_param, n_param) scipy.sparse.csr_matrix or (n_param, ) numpy.ndarray
+            If the input argument *v* is ``None``, the Hessian of the data misfit
+            function for the model provided is returned. If *v* is not ``None``,
+            the Hessian multiplied by the vector provided is returned.
         """
 
         if f is None:

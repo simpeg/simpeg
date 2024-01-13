@@ -39,7 +39,7 @@ class IPProblemAnalyticTests(unittest.TestCase):
         surveyDC = dc.Survey([src0, src1])
 
         sigmaInf = np.ones(mesh.nC) * 1.0
-        blkind = utils.model_builder.getIndicesSphere(np.r_[0, -150], 40, mesh.gridCC)
+        blkind = utils.model_builder.get_indices_sphere(np.r_[0, -150], 40, mesh.gridCC)
 
         eta = np.zeros(mesh.nC)
         eta[blkind] = 0.1
@@ -148,7 +148,7 @@ class ApparentChargeability2DTest(unittest.TestCase):
         survey_ip = ip.Survey([src0_ip, src1_ip])
 
         sigmaInf = np.ones(mesh.nC) * 1.0
-        blkind = utils.model_builder.getIndicesSphere(np.r_[0, -150], 40, mesh.gridCC)
+        blkind = utils.model_builder.get_indices_sphere(np.r_[0, -150], 40, mesh.gridCC)
 
         eta = np.zeros(mesh.nC)
         eta[blkind] = 0.05
