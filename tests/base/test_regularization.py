@@ -11,6 +11,9 @@ from SimPEG.regularization import (
     WeightedLeastSquares,
     Sparse,
     SparseSmoothness,
+    Smallness,
+    SmoothnessFirstOrder,
+    SmoothnessSecondOrder,
 )
 from SimPEG.objective_function import ComboObjectiveFunction
 
@@ -658,6 +661,67 @@ class TestParent:
         msg = "Invalid parent of type 'Dummy'."
         with pytest.raises(TypeError, match=msg):
             regularization.parent = invalid_parent
+
+
+class TestWeightsKeys:
+    """
+    Test weights_keys property of regularizations
+    """
+
+    @pytest.fixture
+    def mesh(self):
+        """Sample mesh."""
+        return discretize.TensorMesh([8, 7, 6])
+
+    def test_empty_weights(self, mesh):
+        """
+        Test weights_keys when no weight is defined
+        """
+        reg = BaseRegularization(mesh)
+        assert reg.weights_keys == []
+
+    def test_user_defined_weights_as_dict(self, mesh):
+        """
+        Test weights_keys after user defined weights as dictionary
+        """
+        weights = dict(dummy_weight=np.ones(mesh.n_cells))
+        reg = BaseRegularization(mesh, weights=weights)
+        assert reg.weights_keys == ["dummy_weight"]
+
+    def test_user_defined_weights_as_array(self, mesh):
+        """
+        Test weights_keys after user defined weights as dictionary
+        """
+        weights = np.ones(mesh.n_cells)
+        reg = BaseRegularization(mesh, weights=weights)
+        assert reg.weights_keys == ["user_weights"]
+
+    @pytest.mark.parametrize(
+        "regularization_class", (Smallness, SmoothnessFirstOrder, SmoothnessSecondOrder)
+    )
+    def test_volume_weights(self, mesh, regularization_class):
+        """
+        Test weights_keys has "volume" by default on some regularizations
+        """
+        reg = regularization_class(mesh)
+        assert reg.weights_keys == ["volume"]
+
+    @pytest.mark.parametrize(
+        "regularization_class",
+        (BaseRegularization, Smallness, SmoothnessFirstOrder, SmoothnessSecondOrder),
+    )
+    def test_multiple_weights(self, mesh, regularization_class):
+        """
+        Test weights_keys has "volume" by default on some regularizations
+        """
+        weights = dict(
+            dummy_weight=np.ones(mesh.n_cells), other_weights=np.ones(mesh.n_cells)
+        )
+        reg = regularization_class(mesh, weights=weights)
+        if regularization_class == BaseRegularization:
+            assert reg.weights_keys == ["dummy_weight", "other_weights"]
+        else:
+            assert reg.weights_keys == ["dummy_weight", "other_weights", "volume"]
 
 
 class TestDeprecatedArguments:
