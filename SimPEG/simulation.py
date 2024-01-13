@@ -52,12 +52,12 @@ class BaseSimulation(props.HasModel):
 
     Parameters
     ----------
-    mesh : discretize.base.BaseMesh
+    mesh : discretize.base.BaseMesh, optional
         Mesh on which the forward problem is discretized. This is not necessarily
         the same as the mesh on which the simulation is defined.
-    survey : SimPEG.survey.BaseSurvey
+    survey : SimPEG.survey.BaseSurvey, optional
         The survey for the simulation.
-    solver : None or pymatsolver.base.Base
+    solver : None or pymatsolver.base.Base, optional
         Numerical solver used to solve the forward problem. If ``None``,
         an appropriate solver specific to the simulation class is set by default.
     solver_opts : dict, optional
@@ -446,7 +446,7 @@ class BaseSimulation(props.HasModel):
 
         The Jacobian defines the derivative of the predicted data vector with respect to the
         model parameters. For a data vector :math:`\mathbf{d}` predicted for a set of model parameters
-        :math:`\mathbf{m}`, the Jacobian is an (n_data, n_param) matrix whose elements
+        :math:`\mathbf{m}`, the Jacobian is an ``(n_data, n_param)`` matrix whose elements
         are given by:
 
         .. math::
@@ -480,7 +480,7 @@ class BaseSimulation(props.HasModel):
 
         The Jacobian defines the derivative of the predicted data vector with respect to the
         model parameters. For a data vector :math:`\mathbf{d}` predicted for a set of model parameters
-        :math:`\mathbf{m}`, the Jacobian is an (n_data, n_param) matrix whose elements
+        :math:`\mathbf{m}`, the Jacobian is an ``(n_data, n_param)`` matrix whose elements
         are given by:
 
         .. math::
@@ -751,7 +751,7 @@ class BaseTimeSimulation(BaseSimulation):
         :py:attr:`time_steps` properties using the :py:class:`discretize.TensorMesh` class.
         The ``time_mesh`` property allows for easy interpolation from fields computed at
         discrete time-steps, to an arbitrary set of observation
-        times within the continuous interval (:math:`t_0 , t_{end}`).
+        times within the continuous interval (:math:`t_0 , t_\text{end}`).
 
         Returns
         -------
@@ -835,7 +835,7 @@ class LinearSimulation(BaseSimulation):
     where :math:`\mathbf{m}` are the model parameters, :math:`\mathbf{f}` is a
     mapping operator (optional) from the model space to a user-defined parameter space,
     :math:`\mathbf{d}` is the predicted data vector, and :math:`\mathbf{G}` is an
-    (n_data, n_param) linear operator.
+    ``(n_data, n_param)`` linear operator.
 
     The ``LinearSimulation`` class is generally used as a base class that is inherited by
     other simulation classes within SimPEG. However, it can be used directly as a
@@ -857,8 +857,8 @@ class LinearSimulation(BaseSimulation):
         Mapping from the model parameters to vector that the linear operator acts on.
     G : (n_data, n_param) numpy.ndarray or scipy.sparse.csr_matrx
         The linear operator. For a ``model_map`` that maps within the same vector space
-        (e.g. the identity map), the dimension `n_param` equals the number of model parameters.
-        If not, the dimension `n_param` of the linear operator will depend on the mapping.
+        (e.g. the identity map), the dimension ``n_param`` equals the number of model parameters.
+        If not, the dimension ``n_param`` of the linear operator will depend on the mapping.
     """
 
     linear_model, model_map, model_deriv = props.Invertible(
@@ -889,8 +889,8 @@ class LinearSimulation(BaseSimulation):
         -------
         (n_data, n_param) numpy.ndarray or scipy.sparse.csr_matrix
             The linear operator. For a :py:attr:`model_map` that maps within the same vector space
-            (e.g. the identity map), the dimension `n_param` equals the number of model parameters.
-            If not, the dimension `n_param` of the linear operator will depend on the mapping.
+            (e.g. the identity map), the dimension ``n_param`` equals the number of model parameters.
+            If not, the dimension ``n_param`` of the linear operator will depend on the mapping.
         """
         if getattr(self, "_G", None) is not None:
             return self._G
@@ -983,7 +983,10 @@ class ExponentialSinusoidSimulation(LinearSimulation):
     decay of the kernel functions. :math:`q` defines the rate of oscillation of
     the kernel functions. And :math:`j_i \in [j_0, ... , j_n]` controls the spread
     of the kernel functions; the number of which is set using the ``n_kernels``
-    property. *Tip:* for proper scaling, we advise defining the 1D tensor mesh to
+    property. 
+    
+    .. Tip::
+        For proper scaling, we advise defining the 1D tensor mesh to
     discretize the interval [0, 1].
 
     Parameters
