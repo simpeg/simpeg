@@ -463,7 +463,7 @@ class QuadTreeLinProblemTest(unittest.TestCase):
         self.assertAlmostEqual(model_residual, 0.1, delta=0.1)
 
         # Check data converged to less than 10% of target misfit
-        data_misfit = 2.0 * self.grav_inv.invProb.dmisfit(self.grav_model)
+        data_misfit = self.grav_inv.invProb.dmisfit(self.grav_model)
         self.assertLess(data_misfit, dpred.shape[0] * 1.15)
 
     def test_quadtree_mag_inverse(self):
@@ -481,7 +481,7 @@ class QuadTreeLinProblemTest(unittest.TestCase):
         self.assertAlmostEqual(model_residual, 0.01, delta=0.05)
 
         # Check data converged to less than 10% of target misfit
-        data_misfit = 2.0 * self.mag_inv.invProb.dmisfit(self.mag_model)
+        data_misfit = self.mag_inv.invProb.dmisfit(self.mag_model)
         self.assertLess(data_misfit, dpred.shape[0] * 1.1)
 
     def test_quadtree_grav_inverse_activecells(self):
@@ -501,7 +501,7 @@ class QuadTreeLinProblemTest(unittest.TestCase):
         self.assertAlmostEqual(model_residual, 0.1, delta=0.1)
 
         # Check data converged to less than 10% of target misfit
-        data_misfit = 2.0 * self.grav_inv_active.invProb.dmisfit(
+        data_misfit = self.grav_inv_active.invProb.dmisfit(
             self.grav_model[self.active_cells]
         )
         self.assertLess(data_misfit, dpred.shape[0] * 1.1)
@@ -530,7 +530,7 @@ class QuadTreeLinProblemTest(unittest.TestCase):
         self.assertAlmostEqual(model_residual, 0.01, delta=0.05)
 
         # Check data converged to less than 10% of target misfit
-        data_misfit = 2.0 * self.mag_inv_active.invProb.dmisfit(
+        data_misfit = self.mag_inv_active.invProb.dmisfit(
             self.mag_model[self.active_cells]
         )
         self.assertLess(data_misfit, dpred.shape[0] * 1.1)
