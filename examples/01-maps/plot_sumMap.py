@@ -72,7 +72,7 @@ def run(plotIt=True):
     model[mesh.gridCC[:, 0] < 0] = 0.01
 
     # Add a block in half-space
-    model = utils.model_builder.addBlock(
+    model = utils.model_builder.add_block(
         mesh.gridCC, model, np.r_[-10, -10, 20], np.r_[10, 10, 40], 0.05
     )
 
