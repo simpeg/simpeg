@@ -138,7 +138,9 @@ ind_block = (
 model[ind_block] = block_density
 
 # You can also use SimPEG utilities to add structures to the model more concisely
-ind_sphere = model_builder.getIndicesSphere(np.r_[35.0, 0.0, -40.0], 15.0, mesh.gridCC)
+ind_sphere = model_builder.get_indices_sphere(
+    np.r_[35.0, 0.0, -40.0], 15.0, mesh.gridCC
+)
 ind_sphere = ind_sphere[ind_active]
 model[ind_sphere] = sphere_density
 
@@ -232,6 +234,6 @@ if save_output:
 
     np.random.seed(737)
     maximum_anomaly = np.max(np.abs(dpred))
-    noise = 0.01 * maximum_anomaly * np.random.rand(len(dpred))
+    noise = 0.01 * maximum_anomaly * np.random.randn(len(dpred))
     fname = dir_path + "gravity_data.obs"
     np.savetxt(fname, np.c_[receiver_locations, dpred + noise], fmt="%.4e")

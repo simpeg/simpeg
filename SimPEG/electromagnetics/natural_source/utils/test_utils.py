@@ -547,7 +547,7 @@ def blockInhalfSpace(conds):
     ccM = M.gridCC
     # conds = [1e-2]
     groundInd = ccM[:, 2] < elev
-    sig = utils.model_builder.defineBlock(
+    sig = utils.model_builder.create_block_in_wholespace(
         M.gridCC, np.array([-1000, -1000, -1500]), np.array([1000, 1000, -1000]), conds
     )
     sig[~groundInd] = 1e-8

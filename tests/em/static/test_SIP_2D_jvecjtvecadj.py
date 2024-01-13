@@ -28,10 +28,10 @@ class SIPProblemTestsCC(unittest.TestCase):
         hx = [(cs, 0, -1.3), (cs, 21), (cs, 0, 1.3)]
         hz = [(cs, 0, -1.3), (cs, 20)]
         mesh = discretize.TensorMesh([hx, hz], x0="CN")
-        blkind0 = utils.model_builder.getIndicesSphere(
+        blkind0 = utils.model_builder.get_indices_sphere(
             np.r_[-100.0, -200.0], 75.0, mesh.gridCC
         )
-        blkind1 = utils.model_builder.getIndicesSphere(
+        blkind1 = utils.model_builder.get_indices_sphere(
             np.r_[100.0, -200.0], 75.0, mesh.gridCC
         )
 
@@ -120,10 +120,10 @@ class SIPProblemTestsN(unittest.TestCase):
         hx = [(cs, 0, -1.3), (cs, 21), (cs, 0, 1.3)]
         hz = [(cs, 0, -1.3), (cs, 20)]
         mesh = discretize.TensorMesh([hx, hz], x0="CN")
-        blkind0 = utils.model_builder.getIndicesSphere(
+        blkind0 = utils.model_builder.get_indices_sphere(
             np.r_[-100.0, -200.0], 75.0, mesh.gridCC
         )
-        blkind1 = utils.model_builder.getIndicesSphere(
+        blkind1 = utils.model_builder.get_indices_sphere(
             np.r_[100.0, -200.0], 75.0, mesh.gridCC
         )
 
@@ -211,10 +211,10 @@ class SIPProblemTestsN_air(unittest.TestCase):
         hx = [(cs, 0, -1.3), (cs, 21), (cs, 0, 1.3)]
         hz = [(cs, 0, -1.3), (cs, 20)]
         mesh = discretize.TensorMesh([hx, hz], x0="CN")
-        blkind0 = utils.model_builder.getIndicesSphere(
+        blkind0 = utils.model_builder.get_indices_sphere(
             np.r_[-100.0, -200.0], 75.0, mesh.gridCC
         )
-        blkind1 = utils.model_builder.getIndicesSphere(
+        blkind1 = utils.model_builder.get_indices_sphere(
             np.r_[100.0, -200.0], 75.0, mesh.gridCC
         )
 
