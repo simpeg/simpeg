@@ -497,7 +497,7 @@ class PGIsmallness(Smallness):
                     ]
                 ]
 
-            return 0.5 * mkvc(r0).dot(mkvc(r1))
+            return mkvc(r0).dot(mkvc(r1))
 
         else:
             modellist = self.wiresmap * m
@@ -506,7 +506,7 @@ class PGIsmallness(Smallness):
             if self.non_linear_relationships:
                 score = self.gmm.score_samples(model)
                 score_vec = mkvc(np.r_[[score for maps in self.wiresmap.maps]])
-                return -np.sum((W.T * W) * score_vec) / len(self.wiresmap.maps)
+                return -2 * np.sum((W.T * W) * score_vec) / len(self.wiresmap.maps)
 
             else:
                 if external_weights and getattr(self.W, "diagonal", None) is not None:
@@ -519,7 +519,7 @@ class PGIsmallness(Smallness):
                 score = self.gmm.score_samples_with_sensW(model, sensW)
                 # score_vec = mkvc(np.r_[[score for maps in self.wiresmap.maps]])
                 # return -np.sum((W.T * W) * score_vec) / len(self.wiresmap.maps)
-                return -np.sum(score)
+                return -2 * np.sum(score)
 
     @timeIt
     def deriv(self, m):
@@ -616,7 +616,7 @@ class PGIsmallness(Smallness):
                             ]
                         ]
                     )
-            return mkvc(mD.T * (self.W.T * r))
+            return 2 * mkvc(mD.T * (self.W.T * r))
 
         else:
             if self.non_linear_relationships:
@@ -726,7 +726,7 @@ class PGIsmallness(Smallness):
             logP = np.vstack([logP for maps in self.wiresmap.maps])
             numer = (W * np.exp(logP)).sum(axis=1)
             r = numer / (np.exp(score_vec))
-            return mkvc(mD.T * r)
+            return 2 * mkvc(mD.T * r)
 
     @timeIt
     def deriv2(self, m, v=None):
@@ -875,7 +875,7 @@ class PGIsmallness(Smallness):
 
                 Hr = Hr.dot(self.W)
 
-                return (mD.T * mD) * (self.W * (Hr))
+                return 2 * (mD.T * mD) * (self.W * (Hr))
 
         else:
             if self.non_linear_relationships:
@@ -953,7 +953,7 @@ class PGIsmallness(Smallness):
                 for j in range(len(self.wiresmap.maps)):
                     Hc = sp.hstack([Hc, sdiag(hlist[i][j])])
                 Hr = sp.vstack([Hr, Hc])
-            Hr = (mD.T * mD) * Hr
+            Hr = 2 * (mD.T * mD) * Hr
 
             if v is not None:
                 return Hr.dot(v)

@@ -511,7 +511,7 @@ class L2ObjectiveFunction(BaseObjectiveFunction):
         Evaluate the objective functions for a given model
         """
         r = self.W * (self.mapping * m)
-        return 0.5 * r.dot(r)
+        return r.dot(r)
 
     def deriv(self, m):
         """
@@ -519,7 +519,7 @@ class L2ObjectiveFunction(BaseObjectiveFunction):
 
         :param numpy.ndarray m: model
         """
-        return self.mapping.deriv(m).T * (self.W.T * (self.W * (self.mapping * m)))
+        return 2 * self.mapping.deriv(m).T * (self.W.T * (self.W * (self.mapping * m)))
 
     def deriv2(self, m, v=None):
         """
@@ -529,8 +529,10 @@ class L2ObjectiveFunction(BaseObjectiveFunction):
         :param numpy.ndarray v: vector to multiply by
         """
         if v is not None:
-            return self.mapping.deriv(m).T * (
-                self.W.T * (self.W * (self.mapping.deriv(m) * v))
+            return (
+                2
+                * self.mapping.deriv(m).T
+                * (self.W.T * (self.W * (self.mapping.deriv(m) * v)))
             )
         W = self.W * self.mapping.deriv(m)
-        return W.T * W
+        return 2 * W.T * W

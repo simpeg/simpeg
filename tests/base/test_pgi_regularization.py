@@ -84,7 +84,7 @@ class TestPGI(unittest.TestCase):
         # check score value
         dm = self.model - mref
         score_approx0 = reg(self.model)
-        score_approx1 = 0.5 * dm.dot(reg.deriv2(self.model, dm))
+        score_approx1 = dm.dot(reg.deriv2(self.model, dm))
         passed_score_approx = np.allclose(score_approx0, score_approx1)
         self.assertTrue(passed_score_approx)
 
@@ -192,7 +192,7 @@ class TestPGI(unittest.TestCase):
         # check score value
         dm = self.model - mref
         score_approx0 = reg(self.model)
-        score_approx1 = 0.5 * dm.dot(reg.deriv2(self.model, dm))
+        score_approx1 = dm.dot(reg.deriv2(self.model, dm))
         passed_score_approx = np.allclose(score_approx0, score_approx1)
         self.assertTrue(passed_score_approx)
         reg.objfcts[0].approx_eval = False
@@ -296,7 +296,7 @@ class TestPGI(unittest.TestCase):
         # check score value
         dm = self.model - mref
         score_approx0 = reg(self.model)
-        score_approx1 = 0.5 * dm.dot(reg.deriv2(self.model, dm))
+        score_approx1 = dm.dot(reg.deriv2(self.model, dm))
         passed_score_approx = np.allclose(score_approx0, score_approx1)
         self.assertTrue(passed_score_approx)
         reg.objfcts[0].approx_eval = False
@@ -400,7 +400,7 @@ class TestPGI(unittest.TestCase):
         # check score value
         dm = self.model - mref
         score_approx0 = reg(self.model)
-        score_approx1 = 0.5 * dm.dot(reg.deriv2(self.model, dm))
+        score_approx1 = dm.dot(reg.deriv2(self.model, dm))
         passed_score_approx = np.allclose(score_approx0, score_approx1)
         self.assertTrue(passed_score_approx)
         reg.objfcts[0].approx_eval = False
