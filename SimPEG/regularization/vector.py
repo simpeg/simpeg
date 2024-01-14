@@ -917,9 +917,10 @@ class AmplitudeSmoothnessFirstOrder(SparseSmoothness, BaseAmplitude):
         numpy.ndarray
             The regularization kernel function evaluated for the model provided.
         """
-        fm = (sp.block_diag([self.cell_gradient] * self.n_comp) * (self.mapping * self._delta_m(m))).reshape(
-            (-1, self.n_comp), order="F"
-        )
+        fm = (
+            sp.block_diag([self.cell_gradient] * self.n_comp)
+            * (self.mapping * self._delta_m(m))
+        ).reshape((-1, self.n_comp), order="F")
 
         return np.linalg.norm(fm, axis=1)
 
