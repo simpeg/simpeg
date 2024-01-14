@@ -917,9 +917,11 @@ class AmplitudeSmoothnessFirstOrder(SparseSmoothness, BaseAmplitude):
         numpy.ndarray
             The regularization kernel function evaluated for the model provided.
         """
-        a = self.amplitude(m)
+        fm = (sp.block_diag([self.cell_gradient] * self.n_comp) * (self.mapping * self._delta_m(m))).reshape(
+            (-1, self.n_comp), order="F"
+        )
 
-        return self.cell_gradient @ a
+        return np.linalg.norm(fm, axis=1)
 
     def f_m_deriv(self, m) -> csr_matrix:
         r"""Derivative of the regularization kernel function.
