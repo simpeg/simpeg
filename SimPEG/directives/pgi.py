@@ -9,7 +9,7 @@ import copy
 import numpy as np
 
 from .base import InversionDirective
-from .optimization import MultiTargetMisfits
+from . import MultiTargetMisfits
 from ..regularization import (
     PGI,
     PGIsmallness,

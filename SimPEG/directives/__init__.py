@@ -1,17 +1,10 @@
 from .base import InversionDirective, DirectiveList
 from .maps import ProjectSphericalBounds
-from .misfit import (
-    ScalingMultipleDataMisfits_ByEig,
-    JointScalingSchedule,
-)
 from .optimization import (
-    TargetMisfit,
-    MultiTargetMisfits,
     UpdatePreconditioner,
-    MovingAndMultiTargetStopping,
     BetaSchedule,
-    PairedBetaSchedule,
 )
+from .misfit import TargetMisfit, MultiTargetMisfits
 from .pgi import (
     PGI_UpdateParameters,
     PGI_BetaAlphaSchedule,
@@ -20,6 +13,8 @@ from .pgi import (
 from .regularization import (
     AlphasSmoothEstimate_ByEig,
     Update_IRLS,
+    UpdateSensitivityWeights,
+    Update_Wj,
 )
 from .save import (
     SaveEveryIteration,
@@ -28,10 +23,12 @@ from .save import (
     SaveOutputDictEveryIteration,
     SimilarityMeasureSaveOutputEveryIteration,
 )
-from .simulation import (
+from .joint import (
     SimilarityMeasureInversionDirective,
-    Update_Wj,
-    UpdateSensitivityWeights,
+    MovingAndMultiTargetStopping,
+    PairedBetaSchedule,
+    JointScalingSchedule,
+    ScalingMultipleDataMisfits_ByEig,
 )
 from .tradeoff_estimator import (
     BetaEstimateMaxDerivative,
