@@ -37,7 +37,10 @@ import tarfile
 from discretize import TensorMesh
 from discretize.utils import active_from_xyz
 
+import SimPEG.directives.base
+import SimPEG.directives.joint
 import SimPEG.directives.optimization
+import SimPEG.directives.regularization
 import SimPEG.directives.save
 import SimPEG.directives.tradeoff_estimator
 from SimPEG.utils import plot2Ddata
@@ -360,7 +363,7 @@ starting_beta = SimPEG.directives.tradeoff_estimator.PairedBetaEstimate_ByEig(
 
 # Defining the fractional decrease in beta and the number of Gauss-Newton solves
 # for each beta value.
-beta_schedule = SimPEG.directives.optimization.PairedBetaSchedule(
+beta_schedule = SimPEG.directives.joint.PairedBetaSchedule(
     cooling_factor=5, cooling_rate=1
 )
 
@@ -371,9 +374,11 @@ save_iteration = SimPEG.directives.save.SimilarityMeasureSaveOutputEveryIteratio
 
 joint_inv_dir = directives.SimilarityMeasureInversionDirective()
 
-stopping = SimPEG.directives.optimization.MovingAndMultiTargetStopping(tol=1e-6)
+stopping = SimPEG.directives.joint.MovingAndMultiTargetStopping(tol=1e-6)
 
-sensitivity_weights = directives.UpdateSensitivityWeights(everyIter=False)
+sensitivity_weights = SimPEG.directives.regularization.UpdateSensitivityWeights(
+    everyIter=False
+)
 
 # Updating the preconditionner if it is model dependent.
 update_jacobi = directives.UpdatePreconditioner()

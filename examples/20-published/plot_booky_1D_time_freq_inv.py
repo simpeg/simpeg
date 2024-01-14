@@ -36,6 +36,8 @@ from scipy.constants import mu_0
 from pymatsolver import Pardiso as Solver
 
 import discretize
+
+import SimPEG.directives.misfit
 from SimPEG import (
     maps,
     utils,
@@ -44,7 +46,6 @@ from SimPEG import (
     optimization,
     inversion,
     inverse_problem,
-    directives,
     data,
 )
 from SimPEG.electromagnetics import frequency_domain as FDEM, time_domain as TDEM
@@ -256,7 +257,7 @@ def run(plotIt=True, saveFig=False, cleanup=True):
     invProb = inverse_problem.BaseInvProblem(dmisfit, reg, opt)
 
     # Inversion directives and parameters
-    target = directives.TargetMisfit()  # stop when we hit target misfit
+    target = SimPEG.directives.misfit.TargetMisfit()  # stop when we hit target misfit
     invProb.beta = 2.0
     inv = inversion.BaseInversion(invProb, directiveList=[target])
     reg.alpha_s = 1e-3
@@ -372,7 +373,7 @@ def run(plotIt=True, saveFig=False, cleanup=True):
     invProb = inverse_problem.BaseInvProblem(dmisfit, reg, opt)
 
     # Directives and Inversion Parameters
-    target = directives.TargetMisfit()
+    target = SimPEG.directives.misfit.TargetMisfit()
     invProb.beta = 20.0
     inv = inversion.BaseInversion(invProb, directiveList=[target])
     reg.alpha_s = 1e-1

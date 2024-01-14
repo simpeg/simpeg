@@ -12,6 +12,9 @@ properties are linked by polynomial relationships that change between rock units
 import discretize as Mesh
 import matplotlib.pyplot as plt
 import numpy as np
+
+import SimPEG.directives.joint
+import SimPEG.directives.misfit
 from SimPEG import (
     data_misfit,
     directives,
@@ -155,10 +158,10 @@ opt = optimization.ProjectedGNCG(
 invProb = inverse_problem.BaseInvProblem(dmis, reg_simple, opt)
 
 # directives
-scales = directives.ScalingMultipleDataMisfits_ByEig(
+scales = SimPEG.directives.joint.ScalingMultipleDataMisfits_ByEig(
     chi0_ratio=np.r_[1.0, 1.0], verbose=True, n_pw_iter=10
 )
-scaling_schedule = directives.JointScalingSchedule(verbose=True)
+scaling_schedule = SimPEG.directives.joint.JointScalingSchedule(verbose=True)
 alpha0_ratio = np.r_[1e6, 1e4, 1, 1]
 alphas = directives.AlphasSmoothEstimate_ByEig(
     alpha0_ratio=alpha0_ratio, n_pw_iter=10, verbose=True
@@ -169,7 +172,7 @@ betaIt = directives.PGI_BetaAlphaSchedule(
     coolingFactor=2.0,
     progress=0.2,
 )
-targets = directives.MultiTargetMisfits(verbose=True)
+targets = SimPEG.directives.misfit.MultiTargetMisfits(verbose=True)
 petrodir = directives.PGI_UpdateParameters(update_gmm=False)
 
 # Setup Inversion
@@ -203,10 +206,10 @@ opt = optimization.ProjectedGNCG(
 invProb = inverse_problem.BaseInvProblem(dmis, reg_simple_no_map, opt)
 
 # directives
-scales = directives.ScalingMultipleDataMisfits_ByEig(
+scales = SimPEG.directives.joint.ScalingMultipleDataMisfits_ByEig(
     chi0_ratio=np.r_[1.0, 1.0], verbose=True, n_pw_iter=10
 )
-scaling_schedule = directives.JointScalingSchedule(verbose=True)
+scaling_schedule = SimPEG.directives.joint.JointScalingSchedule(verbose=True)
 alpha0_ratio = np.r_[100.0 * np.ones(2), 1, 1]
 alphas = directives.AlphasSmoothEstimate_ByEig(
     alpha0_ratio=alpha0_ratio, n_pw_iter=10, verbose=True
@@ -217,7 +220,7 @@ betaIt = directives.PGI_BetaAlphaSchedule(
     coolingFactor=2.0,
     progress=0.2,
 )
-targets = directives.MultiTargetMisfits(
+targets = SimPEG.directives.misfit.MultiTargetMisfits(
     chiSmall=1.0, TriggerSmall=True, TriggerTheta=False, verbose=True
 )
 petrodir = directives.PGI_UpdateParameters(update_gmm=False)
@@ -258,13 +261,13 @@ alpha0_ratio = np.r_[1, 1, 1, 1]
 alphas = directives.AlphasSmoothEstimate_ByEig(
     alpha0_ratio=alpha0_ratio, n_pw_iter=10, verbose=True
 )
-scales = directives.ScalingMultipleDataMisfits_ByEig(
+scales = SimPEG.directives.joint.ScalingMultipleDataMisfits_ByEig(
     chi0_ratio=np.r_[1.0, 1.0], verbose=True, n_pw_iter=10
 )
-scaling_schedule = directives.JointScalingSchedule(verbose=True)
+scaling_schedule = SimPEG.directives.joint.JointScalingSchedule(verbose=True)
 beta = directives.BetaEstimate_ByEig(beta0_ratio=1e-5, n_pw_iter=10)
 beta_schedule = directives.BetaSchedule(coolingFactor=5.0, coolingRate=1)
-targets = directives.MultiTargetMisfits(
+targets = SimPEG.directives.misfit.MultiTargetMisfits(
     TriggerSmall=False,
     verbose=True,
 )

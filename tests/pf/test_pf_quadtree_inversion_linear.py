@@ -5,6 +5,8 @@ import numpy as np
 from discretize import TensorMesh
 from discretize.utils import mesh_builder_xyz, mkvc, refine_tree_xyz
 
+import SimPEG.directives.base
+import SimPEG.directives.regularization
 from SimPEG import (
     data_misfit,
     directives,
@@ -282,7 +284,9 @@ class QuadTreeLinProblemTest(unittest.TestCase):
                 beta_tol=1e-1,
                 beta_search=False,
             )
-            sensitivity_weights = directives.UpdateSensitivityWeights()
+            sensitivity_weights = (
+                SimPEG.directives.regularization.UpdateSensitivityWeights()
+            )
             update_Jacobi = directives.UpdatePreconditioner()
             inv = inversion.BaseInversion(
                 invProb, directiveList=[IRLS, sensitivity_weights, update_Jacobi]

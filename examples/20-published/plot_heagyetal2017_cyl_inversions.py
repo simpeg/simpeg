@@ -19,6 +19,8 @@ https://doi.org/10.6084/m9.figshare.5035175
 This example was updated for SimPEG 0.14.0 on January 31st, 2020 by Joseph Capriotti
 """
 import discretize
+
+import SimPEG.directives.misfit
 from SimPEG import (
     maps,
     utils,
@@ -109,7 +111,7 @@ def run(plotIt=True, saveFig=False):
     # Inversion Directives
     beta = directives.BetaSchedule(coolingFactor=4, coolingRate=3)
     betaest = directives.BetaEstimate_ByEig(beta0_ratio=1.0, seed=518936)
-    target = directives.TargetMisfit()
+    target = SimPEG.directives.misfit.TargetMisfit()
     directiveList = [beta, betaest, target]
 
     inv = inversion.BaseInversion(invProb, directiveList=directiveList)
@@ -155,7 +157,7 @@ def run(plotIt=True, saveFig=False):
     # directives
     beta = directives.BetaSchedule(coolingFactor=4, coolingRate=3)
     betaest = directives.BetaEstimate_ByEig(beta0_ratio=1.0, seed=518936)
-    target = directives.TargetMisfit()
+    target = SimPEG.directives.misfit.TargetMisfit()
     directiveList = [beta, betaest, target]
 
     inv = inversion.BaseInversion(invProb, directiveList=directiveList)

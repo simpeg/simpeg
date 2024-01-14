@@ -15,7 +15,8 @@ The inverse problem uses the :class:'SimPEG.regularization.Sparse'
 that
 
 """
-
+import SimPEG.directives.base
+import SimPEG.directives.regularization
 from SimPEG import (
     data,
     data_misfit,
@@ -250,7 +251,7 @@ invProb = inverse_problem.BaseInvProblem(dmis, reg, opt)
 betaest = directives.BetaEstimate_ByEig(beta0_ratio=1e1)
 
 # Add sensitivity weights
-sensitivity_weights = directives.UpdateSensitivityWeights()
+sensitivity_weights = SimPEG.directives.regularization.UpdateSensitivityWeights()
 
 # Here is where the norms are applied
 # Use a threshold parameter empirically based on the distribution of
@@ -352,7 +353,7 @@ irls = directives.Update_IRLS(
 # Special directive specific to the mag amplitude problem. The sensitivity
 # weights are updated between each iteration.
 spherical_projection = directives.ProjectSphericalBounds()
-sensitivity_weights = directives.UpdateSensitivityWeights()
+sensitivity_weights = SimPEG.directives.regularization.UpdateSensitivityWeights()
 update_Jacobi = directives.UpdatePreconditioner()
 
 inv = inversion.BaseInversion(

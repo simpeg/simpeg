@@ -1,4 +1,7 @@
 import numpy as np
+
+import SimPEG.directives.base
+import SimPEG.directives.regularization
 from SimPEG import (
     data,
     data_misfit,
@@ -256,7 +259,7 @@ class AmpProblemTest(unittest.TestCase):
 
         # Special directive specific to the mag amplitude problem. The sensitivity
         # weights are update between each iteration.
-        update_SensWeight = directives.UpdateSensitivityWeights()
+        update_SensWeight = SimPEG.directives.regularization.UpdateSensitivityWeights()
         update_Jacobi = directives.UpdatePreconditioner()
 
         # Put all together

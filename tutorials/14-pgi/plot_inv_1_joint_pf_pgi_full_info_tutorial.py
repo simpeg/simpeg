@@ -31,6 +31,9 @@ from discretize import TreeMesh
 from discretize.utils import active_from_xyz
 import matplotlib.pyplot as plt
 import numpy as np
+
+import SimPEG.directives.joint
+import SimPEG.directives.misfit
 import SimPEG.potential_fields as pf
 from SimPEG import (
     data_misfit,
@@ -364,7 +367,7 @@ betaIt = directives.PGI_BetaAlphaSchedule(
     progress=0.2,
 )
 # geophy. and petro. target misfits
-targets = directives.MultiTargetMisfits(
+targets = SimPEG.directives.misfit.MultiTargetMisfits(
     verbose=True,
 )
 # add learned mref in smooth once stable
@@ -379,8 +382,10 @@ update_smallness = directives.PGI_UpdateParameters(
 # pre-conditioner
 update_Jacobi = directives.UpdatePreconditioner()
 # iteratively balance the scaling of the data misfits
-scaling_init = directives.ScalingMultipleDataMisfits_ByEig(chi0_ratio=[1.0, 100.0])
-scale_schedule = directives.JointScalingSchedule(verbose=True)
+scaling_init = SimPEG.directives.joint.ScalingMultipleDataMisfits_ByEig(
+    chi0_ratio=[1.0, 100.0]
+)
+scale_schedule = SimPEG.directives.joint.JointScalingSchedule(verbose=True)
 
 # Create inverse problem
 # Optimization

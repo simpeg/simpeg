@@ -3,6 +3,9 @@ import pytest
 import numpy as np
 
 import discretize
+
+import SimPEG.directives.base
+import SimPEG.directives.regularization
 from SimPEG import (
     maps,
     directives,
@@ -107,7 +110,9 @@ class ValidationInInversion(unittest.TestCase):
         IRLS = directives.Update_IRLS(f_min_change=1e-4, minGNiter=3, beta_tol=1e-2)
 
         update_Jacobi = directives.UpdatePreconditioner()
-        sensitivity_weights = directives.UpdateSensitivityWeights()
+        sensitivity_weights = (
+            SimPEG.directives.regularization.UpdateSensitivityWeights()
+        )
         with self.assertRaises(AssertionError):
             # validation should happen and this will fail
             # (IRLS needs to be before update_Jacobi)
@@ -130,7 +135,7 @@ class ValidationInInversion(unittest.TestCase):
 
     def test_sensitivity_weighting_warnings(self):
         # Test setter warnings
-        d_temp = directives.UpdateSensitivityWeights()
+        d_temp = SimPEG.directives.regularization.UpdateSensitivityWeights()
         d_temp.normalization_method = True
         self.assertTrue(d_temp.normalization_method == "maximum")
 
@@ -158,7 +163,9 @@ class ValidationInInversion(unittest.TestCase):
         invProb = inverse_problem.BaseInvProblem(self.dmis, reg, self.opt)
         invProb.model = self.model
 
-        test_directive = directives.UpdateSensitivityWeights(**test_inputs)
+        test_directive = SimPEG.directives.regularization.UpdateSensitivityWeights(
+            **test_inputs
+        )
         test_directive.inversion = inversion.BaseInversion(
             invProb, directiveList=[test_directive]
         )
@@ -198,7 +205,9 @@ class ValidationInInversion(unittest.TestCase):
         invProb = inverse_problem.BaseInvProblem(self.dmis, reg, self.opt)
         invProb.model = self.model
 
-        test_directive = directives.UpdateSensitivityWeights(**test_inputs)
+        test_directive = SimPEG.directives.regularization.UpdateSensitivityWeights(
+            **test_inputs
+        )
         test_directive.inversion = inversion.BaseInversion(
             invProb, directiveList=[test_directive]
         )
@@ -238,7 +247,9 @@ class ValidationInInversion(unittest.TestCase):
         invProb = inverse_problem.BaseInvProblem(self.dmis, reg, self.opt)
         invProb.model = self.model
 
-        test_directive = directives.UpdateSensitivityWeights(**test_inputs)
+        test_directive = SimPEG.directives.regularization.UpdateSensitivityWeights(
+            **test_inputs
+        )
         test_directive.inversion = inversion.BaseInversion(
             invProb, directiveList=[test_directive]
         )

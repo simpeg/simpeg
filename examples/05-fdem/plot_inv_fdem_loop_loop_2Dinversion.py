@@ -16,6 +16,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import time
 
+import SimPEG.directives.misfit
+
 try:
     from pymatsolver import Pardiso as Solver
 except ImportError:
@@ -289,7 +291,7 @@ opt = optimization.InexactGaussNewton(maxIterCG=10, remember="xc")
 invProb = inverse_problem.BaseInvProblem(dmisfit, reg, opt)
 
 betaest = directives.BetaEstimate_ByEig(beta0_ratio=0.05, n_pw_iter=1, seed=1)
-target = directives.TargetMisfit()
+target = SimPEG.directives.misfit.TargetMisfit()
 
 directiveList = [betaest, target]
 inv = inversion.BaseInversion(invProb, directiveList=directiveList)

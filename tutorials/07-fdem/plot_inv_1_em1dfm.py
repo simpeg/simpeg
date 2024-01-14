@@ -31,6 +31,8 @@ import matplotlib.pyplot as plt
 
 from discretize import TensorMesh
 
+import SimPEG.directives.base
+import SimPEG.directives.regularization
 import SimPEG.electromagnetics.frequency_domain as fdem
 from SimPEG.utils import mkvc, plot_1d_layer_model
 from SimPEG import (
@@ -279,7 +281,7 @@ update_IRLS = directives.Update_IRLS(
 update_jacobi = directives.UpdatePreconditioner()
 
 # Add sensitivity weights
-sensitivity_weights = directives.UpdateSensitivityWeights()
+sensitivity_weights = SimPEG.directives.regularization.UpdateSensitivityWeights()
 
 # The directives are defined as a list.
 directives_list = [

@@ -35,6 +35,9 @@ import tarfile
 from discretize import TreeMesh
 from discretize.utils import mkvc, refine_tree_xyz, active_from_xyz
 
+import SimPEG.directives.base
+import SimPEG.directives.misfit
+import SimPEG.directives.regularization
 from SimPEG.utils import model_builder
 from SimPEG import (
     maps,
@@ -336,7 +339,9 @@ dc_inverse_problem = inverse_problem.BaseInvProblem(
 #
 
 # Apply and update sensitivity weighting as the model updates
-update_sensitivity_weighting = directives.UpdateSensitivityWeights()
+update_sensitivity_weighting = (
+    SimPEG.directives.regularization.UpdateSensitivityWeights()
+)
 
 # Defining a starting value for the trade-off parameter (beta) between the data
 # misfit and the regularization.
@@ -351,7 +356,7 @@ beta_schedule = directives.BetaSchedule(coolingFactor=3, coolingRate=2)
 save_iteration = directives.SaveOutputEveryIteration(save_txt=False)
 
 # Setting a stopping criteria for the inversion.
-target_misfit = directives.TargetMisfit(chifact=1)
+target_misfit = SimPEG.directives.misfit.TargetMisfit(chifact=1)
 
 # Update preconditioner
 update_jacobi = directives.UpdatePreconditioner()
@@ -567,11 +572,13 @@ ip_inverse_problem = inverse_problem.BaseInvProblem(
 # Here we define the directives in the same manner as the DC inverse problem.
 #
 
-update_sensitivity_weighting = directives.UpdateSensitivityWeights(threshold=1e-3)
+update_sensitivity_weighting = (
+    SimPEG.directives.regularization.UpdateSensitivityWeights(threshold=1e-3)
+)
 starting_beta = directives.BetaEstimate_ByEig(beta0_ratio=1e1)
 beta_schedule = directives.BetaSchedule(coolingFactor=2, coolingRate=1)
 save_iteration = directives.SaveOutputEveryIteration(save_txt=False)
-target_misfit = directives.TargetMisfit(chifact=1.0)
+target_misfit = SimPEG.directives.misfit.TargetMisfit(chifact=1.0)
 update_jacobi = directives.UpdatePreconditioner()
 
 directives_list = [

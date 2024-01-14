@@ -8,6 +8,8 @@ is zero, but have some on- and off-time.
 """
 import numpy as np
 import discretize
+
+import SimPEG.directives.misfit
 from SimPEG import (
     maps,
     data_misfit,
@@ -83,7 +85,7 @@ def run(plotIt=True):
     reg = regularization.WeightedLeastSquares(regMesh)
     opt = optimization.InexactGaussNewton(maxIter=5, LSshorten=0.5)
     invProb = inverse_problem.BaseInvProblem(dmisfit, reg, opt)
-    target = directives.TargetMisfit()
+    target = SimPEG.directives.misfit.TargetMisfit()
     # Create an inversion object
     beta = directives.BetaSchedule(coolingFactor=1.0, coolingRate=2.0)
     invProb.beta = 1e2

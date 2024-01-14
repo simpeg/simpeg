@@ -31,6 +31,7 @@ import tarfile
 
 from discretize import TensorMesh
 
+import SimPEG.directives.misfit
 from SimPEG import (
     maps,
     data,
@@ -266,7 +267,7 @@ beta_schedule = directives.BetaSchedule(coolingFactor=5.0, coolingRate=3.0)
 save_iteration = directives.SaveOutputEveryIteration(save_txt=False)
 
 # Setting a stopping criteria for the inversion.
-target_misfit = directives.TargetMisfit(chifact=0.1)
+target_misfit = SimPEG.directives.misfit.TargetMisfit(chifact=0.1)
 
 # The directives are defined in a list
 directives_list = [

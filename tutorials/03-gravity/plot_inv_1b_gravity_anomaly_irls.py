@@ -33,6 +33,9 @@ import tarfile
 
 from discretize import TensorMesh
 from discretize.utils import active_from_xyz
+
+import SimPEG.directives.base
+import SimPEG.directives.regularization
 from SimPEG.utils import plot2Ddata, model_builder
 from SimPEG.potential_fields import gravity
 from SimPEG import (
@@ -274,7 +277,9 @@ save_iteration = directives.SaveOutputEveryIteration(save_txt=False)
 update_jacobi = directives.UpdatePreconditioner()
 
 # Add sensitivity weights
-sensitivity_weights = directives.UpdateSensitivityWeights(everyIter=False)
+sensitivity_weights = SimPEG.directives.regularization.UpdateSensitivityWeights(
+    everyIter=False
+)
 
 # The directives are defined as a list.
 directives_list = [

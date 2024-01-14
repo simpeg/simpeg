@@ -14,6 +14,9 @@ Craig Miller
 import os
 import shutil
 import tarfile
+
+import SimPEG.directives.base
+import SimPEG.directives.regularization
 from SimPEG.potential_fields import gravity
 from SimPEG import (
     data_misfit,
@@ -131,7 +134,7 @@ def run(plotIt=True, cleanAfterRun=True):
 
     # Preconditioning refreshing for each IRLS iteration
     update_Jacobi = directives.UpdatePreconditioner()
-    sensitivity_weights = directives.UpdateSensitivityWeights()
+    sensitivity_weights = SimPEG.directives.regularization.UpdateSensitivityWeights()
 
     # Create combined the L2 and Lp problem
     inv = inversion.BaseInversion(
