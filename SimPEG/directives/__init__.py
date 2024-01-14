@@ -1,4 +1,4 @@
-from .directives import (
+from .base import (
     InversionDirective,
     DirectiveList,
     BetaEstimateMaxDerivative,
@@ -20,16 +20,15 @@ from .directives import (
     ProjectSphericalBounds,
 )
 
-from .pgi_directives import (
+from .pgi import (
     PGI_UpdateParameters,
     PGI_BetaAlphaSchedule,
     PGI_AddMrefInSmooth,
 )
 
-from .sim_directives import (
+from .simulation import (
     SimilarityMeasureInversionDirective,
-    SimilarityMeasureSaveOutputEveryIteration,
-    PairedBetaEstimate_ByEig,
-    PairedBetaSchedule,
-    MovingAndMultiTargetStopping,
 )
+from .save import SimilarityMeasureSaveOutputEveryIteration
+from .tradeoff_estimator import PairedBetaEstimate_ByEig
+from .optimization import MovingAndMultiTargetStopping, PairedBetaSchedule

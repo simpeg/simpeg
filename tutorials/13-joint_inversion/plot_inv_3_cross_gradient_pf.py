@@ -36,6 +36,10 @@ import tarfile
 
 from discretize import TensorMesh
 from discretize.utils import active_from_xyz
+
+import SimPEG.directives.optimization
+import SimPEG.directives.save
+import SimPEG.directives.tradeoff_estimator
 from SimPEG.utils import plot2Ddata
 from SimPEG.potential_fields import gravity, magnetics
 from SimPEG import (
@@ -349,19 +353,25 @@ inv_prob = inverse_problem.BaseInvProblem(dmis, reg, opt)
 
 # Defining a starting value for the trade-off parameter (beta) between the data
 # misfit and the regularization.
-starting_beta = directives.PairedBetaEstimate_ByEig(beta0_ratio=1e0)
+starting_beta = SimPEG.directives.tradeoff_estimator.PairedBetaEstimate_ByEig(
+    beta0_ratio=1e0
+)
 # starting_beta.n_pw_iter = 10
 
 # Defining the fractional decrease in beta and the number of Gauss-Newton solves
 # for each beta value.
-beta_schedule = directives.PairedBetaSchedule(cooling_factor=5, cooling_rate=1)
+beta_schedule = SimPEG.directives.optimization.PairedBetaSchedule(
+    cooling_factor=5, cooling_rate=1
+)
 
 # Options for outputting recovered models and predicted data for each beta.
-save_iteration = directives.SimilarityMeasureSaveOutputEveryIteration(save_txt=False)
+save_iteration = SimPEG.directives.save.SimilarityMeasureSaveOutputEveryIteration(
+    save_txt=False
+)
 
 joint_inv_dir = directives.SimilarityMeasureInversionDirective()
 
-stopping = directives.MovingAndMultiTargetStopping(tol=1e-6)
+stopping = SimPEG.directives.optimization.MovingAndMultiTargetStopping(tol=1e-6)
 
 sensitivity_weights = directives.UpdateSensitivityWeights(everyIter=False)
 

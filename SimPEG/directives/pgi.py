@@ -8,7 +8,8 @@ import copy
 
 import numpy as np
 
-from ..directives import InversionDirective, MultiTargetMisfits
+from .base import InversionDirective
+from .optimization import MultiTargetMisfits
 from ..regularization import (
     PGI,
     PGIsmallness,
