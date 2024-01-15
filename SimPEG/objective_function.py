@@ -575,7 +575,7 @@ class L2ObjectiveFunction(BaseObjectiveFunction):
     Weighting least-squares objective functions in SimPEG are defined as follows:
 
     .. math::
-        \phi = \frac{1}{2} \big \| \mathbf{W} f(\mathbf{m}) \big \|_2^2
+        \phi = \big \| \mathbf{W} f(\mathbf{m}) \big \|_2^2
 
     where :math:`\mathbf{m}` are the model parameters, :math:`f` is a mapping operator,
     and :math:`\mathbf{W}` is the weighting matrix.

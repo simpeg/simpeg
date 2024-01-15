@@ -152,7 +152,7 @@ class BaseDataMisfit(L2ObjectiveFunction):
         For a discrete least-squares data misfit function of the form:
 
         .. math::
-            \phi_d (\mathbf{m}) = \frac{1}{2} \| \mathbf{W} \mathbf{f}(\mathbf{m}) \|_2^2
+            \phi_d (\mathbf{m}) = \| \mathbf{W} \mathbf{f}(\mathbf{m}) \|_2^2
 
         :math:`\mathbf{W}` is a linear weighting matrix, :math:`\mathbf{m}` is the model vector,
         and :math:`\mathbf{f}` is a discrete mapping function that acts on the model vector.
@@ -237,7 +237,7 @@ class L2DataMisfit(BaseDataMisfit):
     data and predicted data for a given model. I.e.:
 
     .. math::
-        \phi_d (\mathbf{m}) = \frac{1}{2} \big \| \mathbf{W_d}
+        \phi_d (\mathbf{m}) = \big \| \mathbf{W_d}
         \big ( \mathbf{d}_\text{pred} - \mathbf{d}_\text{obs} \big ) \big \|_2^2
 
     where :math:`\mathbf{d}_\text{obs}` is the observed data vector, :math:`\mathbf{d}_\text{pred}`
