@@ -1433,11 +1433,11 @@ class WeightedLeastSquares(ComboObjectiveFunction):
     :math:`\phi_m (m)` of the form:
 
     .. math::
-        \phi_m (m) =& \frac{\alpha_s}{2} \int_\Omega \, w(r)
+        \phi_m (m) =& \alpha_s \int_\Omega \, w(r)
         \Big [ m(r) - m^{(ref)}(r) \Big ]^2 \, dv \\
-        &+ \sum_{j=x,y,z} \frac{\alpha_j}{2} \int_\Omega \, w(r)
+        &+ \sum_{j=x,y,z} \alpha_j \int_\Omega \, w(r)
         \bigg [ \frac{\partial m}{\partial \xi_j} \bigg ]^2 \, dv \\
-        &+ \sum_{j=x,y,z} \frac{\alpha_{jj}}{2} \int_\Omega \, w(r)
+        &+ \sum_{j=x,y,z} \alpha_{jj} \int_\Omega \, w(r)
         \bigg [ \frac{\partial^2 m}{\partial \xi_j^2} \bigg ]^2 \, dv
         \;\;\;\;\;\;\;\; \big ( \textrm{optional} \big )
 
@@ -1461,10 +1461,10 @@ class WeightedLeastSquares(ComboObjectiveFunction):
     objective functions of the form:
 
     .. math::
-        \phi_m (\mathbf{m}) =& \frac{\alpha_s}{2}
+        \phi_m (\mathbf{m}) =& \alpha_s
         \Big \| \mathbf{W_s} \big [ \mathbf{m} - \mathbf{m}^{(ref)} \big ] \Big \|^2 \\
-        &+ \sum_{j=x,y,z} \frac{\alpha_j}{2} \Big \| \mathbf{W_j G_j \, m} \, \Big \|^2 \\
-        &+ \sum_{j=x,y,z} \frac{\alpha_{jj}}{2} \Big \| \mathbf{W_{jj} L_j \, m} \, \Big \|^2
+        &+ \sum_{j=x,y,z} \alpha_j \Big \| \mathbf{W_j G_j \, m} \, \Big \|^2 \\
+        &+ \sum_{j=x,y,z} \alpha_{jj} \Big \| \mathbf{W_{jj} L_j \, m} \, \Big \|^2
         \;\;\;\;\;\;\;\; \big ( \textrm{optional} \big )
 
     where
@@ -1482,11 +1482,11 @@ class WeightedLeastSquares(ComboObjectiveFunction):
     In this case, the objective function becomes:
 
     .. math::
-        \phi_m (\mathbf{m}) =& \frac{\alpha_s}{2}
+        \phi_m (\mathbf{m}) =& \alpha_s
         \Big \| \mathbf{W_s} \big [ \mathbf{m} - \mathbf{m}^{(ref)} \big ] \Big \|^2 \\
-        &+ \sum_{j=x,y,z} \frac{\alpha_j}{2} \Big \| \mathbf{W_j G_j}
+        &+ \sum_{j=x,y,z} \alpha_j \Big \| \mathbf{W_j G_j}
         \big [ \mathbf{m} - \mathbf{m}^{(ref)} \big ] \Big \|^2 \\
-        &+ \sum_{j=x,y,z} \frac{\alpha_{jj}}{2} \Big \| \mathbf{W_{jj} L_j}
+        &+ \sum_{j=x,y,z} \alpha_{jj} \Big \| \mathbf{W_{jj} L_j}
         \big [ \mathbf{m} - \mathbf{m}^{(ref)} \big ] \Big \|^2
         \;\;\;\;\;\;\;\; \big ( \textrm{optional} \big )
 

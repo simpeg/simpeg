@@ -1052,9 +1052,9 @@ class VectorAmplitude(Sparse):
     :math:`\phi_m (m)` of the form:
 
     .. math::
-        \phi_m (m) = \frac{\alpha_s}{2} \int_\Omega \, w(r)
+        \phi_m (m) = \alpha_s \int_\Omega \, w(r)
         \Big | \, \vec{m}(r) - \vec{m}^{(ref)}(r) \, \Big |^{p_s(r)} \, dv
-        + \sum_{j=x,y,z} \frac{\alpha_j}{2} \int_\Omega \, w(r)
+        + \sum_{j=x,y,z} \alpha_j \int_\Omega \, w(r)
         \Bigg | \, \frac{\partial |\vec{m}|}{\partial \xi_j} \, \bigg |^{p_j(r)} \, dv
 
     where :math:`\vec{m}(r)` is the model, :math:`\vec{m}^{(ref)}(r)` is the reference model,
@@ -1114,9 +1114,9 @@ class VectorAmplitude(Sparse):
     objective functions of the form:
 
     .. math::
-        \phi_m (\mathbf{m}) = \frac{\alpha_s}{2}
+        \phi_m (\mathbf{m}) = \alpha_s
         \Big \| \, \mathbf{W_s}^{\! (k)} \, \Delta \mathbf{\bar{m}} \, \Big \|^2
-        + \sum_{j=x,y,z} \frac{\alpha_j}{2} \Big \| \, \mathbf{W_j}^{\! (k)} \mathbf{G_j \, \bar{m}} \, \Big \|^2
+        + \sum_{j=x,y,z} \alpha_j \Big \| \, \mathbf{W_j}^{\! (k)} \mathbf{G_j \, \bar{m}} \, \Big \|^2
 
     where
 
@@ -1181,9 +1181,9 @@ class VectorAmplitude(Sparse):
     the objective function becomes:
 
     .. math::
-        \phi_m (\mathbf{m}) = \frac{\alpha_s}{2}
+        \phi_m (\mathbf{m}) = \alpha_s
         \Big \| \, \mathbf{W_s}^{\! (k)} \, \Delta \mathbf{\bar{m}} \, \Big \|^2
-        + \sum_{j=x,y,z} \frac{\alpha_j}{2} \Big \| \, \mathbf{W_j}^{\! (k)} \mathbf{G_j \, \Delta \bar{m}} \, \Big \|^2
+        + \sum_{j=x,y,z} \alpha_j \Big \| \, \mathbf{W_j}^{\! (k)} \mathbf{G_j \, \Delta \bar{m}} \, \Big \|^2
 
     This functionality is used by setting the `reference_model_in_smooth` parameter
     to ``True``.

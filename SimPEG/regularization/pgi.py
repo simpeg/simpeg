@@ -103,10 +103,10 @@ class PGIsmallness(Smallness):
     least-square:
 
     .. math::
-        \phi (\mathbf{m}) &= \frac{\alpha_{pgi}}{2}
+        \phi (\mathbf{m}) &= \alpha_\text{pgi}
         \big | \mathbf{W} ( \Theta , \mathbf{z}^\ast ) \, (\mathbf{m} - \mathbf{m_{ref}}(\Theta, \mathbf{z}^\ast ) \, \Big \|^2
-        &+ \sum_{j=x,y,z} \frac{\alpha_j}{2} \Big \| \mathbf{W_j G_j \, m} \, \Big \|^2 \\
-        &+ \sum_{j=x,y,z} \frac{\alpha_{jj}}{2} \Big \| \mathbf{W_{jj} L_j \, m} \, \Big \|^2
+        &+ \sum_{j=x,y,z} \alpha_j \Big \| \mathbf{W_j G_j \, m} \, \Big \|^2 \\
+        &+ \sum_{j=x,y,z} \alpha_{jj} \Big \| \mathbf{W_{jj} L_j \, m} \, \Big \|^2
         \;\;\;\;\;\;\;\; \big ( \textrm{optional} \big )
 
     where
@@ -841,22 +841,12 @@ class PGIsmallness(Smallness):
                 mDv = self.wiresmap * (mD * v)
                 mDv = np.c_[mDv]
                 r0 = (self.W * (mkvc(mDv))).reshape(mDv.shape, order="F")
-                return mkvc(
-                    mD.T
-                    * (
-                        self.W
-                        * (
-                            mkvc(
-                                np.r_[
-                                    [
-                                        np.dot(self._r_second_deriv[i], r0[i])
-                                        for i in range(len(r0))
-                                    ]
-                                ]
-                            )
-                        )
-                    )
+                second_deriv_times_r0 = mkvc(
+                    np.r_[
+                        [np.dot(self._r_second_deriv[i], r0[i]) for i in range(len(r0))]
+                    ]
                 )
+                return 2 * mkvc(mD.T * (self.W * second_deriv_times_r0))
             else:
                 # Forming the Hessian by diagonal blocks
                 hlist = [
@@ -1041,12 +1031,12 @@ class PGI(ComboObjectiveFunction):
     ``PGI`` is given by:
 
     .. math::
-        \phi (\mathbf{m}) &= \frac{\alpha_{pgi}}{2}
+        \phi (\mathbf{m}) &= \alpha_\text{pgi}
         \big [ \mathbf{m} - \mathbf{m_{ref}}(\Theta, \mathbf{z}^\ast ) \big ]^T
         \mathbf{W} ( \Theta , \mathbf{z}^\ast ) \,
         \big [ \mathbf{m} - \mathbf{m_{ref}}(\Theta, \mathbf{z}^\ast ) \big ] \\
-        &+ \sum_{j=x,y,z} \frac{\alpha_j}{2} \Big \| \mathbf{W_j G_j \, m} \, \Big \|^2 \\
-        &+ \sum_{j=x,y,z} \frac{\alpha_{jj}}{2} \Big \| \mathbf{W_{jj} L_j \, m} \, \Big \|^2
+        &+ \sum_{j=x,y,z} \alpha_j \Big \| \mathbf{W_j G_j \, m} \, \Big \|^2 \\
+        &+ \sum_{j=x,y,z} \alpha_{jj} \Big \| \mathbf{W_{jj} L_j \, m} \, \Big \|^2
         \;\;\;\;\;\;\;\; \big ( \textrm{optional} \big )
 
     where
@@ -1072,10 +1062,10 @@ class PGI(ComboObjectiveFunction):
     regularization function (objective function) can be expressed as:
 
     .. math::
-        \phi (\mathbf{m}) &= \frac{\alpha_{pgi}}{2} \Big \| \mathbf{W}_{\! 1/2}(\Theta, \mathbf{z}^\ast ) \,
+        \phi (\mathbf{m}) &= \alpha_\text{pgi} \Big \| \mathbf{W}_{\! 1/2}(\Theta, \mathbf{z}^\ast ) \,
         \big [ \mathbf{m} - \mathbf{m_{ref}}(\Theta, \mathbf{z}^\ast ) \big ] \, \Big \|^2 \\
-        &+ \sum_{j=x,y,z} \frac{\alpha_j}{2} \Big \| \mathbf{W_j G_j \, m} \, \Big \|^2 \\
-        &+ \sum_{j=x,y,z} \frac{\alpha_{jj}}{2} \Big \| \mathbf{W_{jj} L_j \, m} \, \Big \|^2
+        &+ \sum_{j=x,y,z} \alpha_j \Big \| \mathbf{W_j G_j \, m} \, \Big \|^2 \\
+        &+ \sum_{j=x,y,z} \alpha_{jj} \Big \| \mathbf{W_{jj} L_j \, m} \, \Big \|^2
         \;\;\;\;\;\;\;\; \big ( \textrm{optional} \big )
 
     When the ``approx_eval`` property is ``True``, you may also set the ``approx_gradient`` property
