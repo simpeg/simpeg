@@ -19,7 +19,7 @@ class BaseDataMisfit(L2ObjectiveFunction):
         create your own data misfit class.
 
     .. math::
-        \phi_d (\mathbf{m}) = \frac{1}{2} \| \mathbf{W} f(\mathbf{m}) \|_2^2
+        \phi_d (\mathbf{m}) = \| \mathbf{W} f(\mathbf{m}) \|_2^2
 
     where :math:`\mathbf{m}` is the model vector, :math:`\mathbf{W}` is a linear weighting
     matrix, and :math:`f` is a mapping function that acts on the model.
