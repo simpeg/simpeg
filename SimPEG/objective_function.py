@@ -1,3 +1,4 @@
+from abc import ABC, abstractmethod, abstractproperty
 import numpy as np
 import scipy.sparse as sp
 
@@ -8,6 +9,63 @@ from .props import BaseSimPEG
 from .utils import timeIt, Zero, Identity
 
 __all__ = ["BaseObjectiveFunction", "ComboObjectiveFunction", "L2ObjectiveFunction"]
+
+
+class ObjectiveFunction(ABC):
+    @abstractmethod
+    def __init__(self):
+        pass
+
+    @abstractmethod
+    def __call__(self, x, f=None) -> float:
+        pass
+
+    @abstractproperty
+    def nP(self):
+        pass
+
+    @abstractproperty
+    def mapping(self):
+        pass
+
+    def __add__(self, other):
+        if isinstance(other, Zero):
+            return self
+        if not isinstance(other, BaseObjectiveFunction):
+            raise TypeError(
+                f"Cannot add type '{other.__class__.__name__}' to an objective "
+                "function. Only ObjectiveFunctions can be added together."
+            )
+        objective_functions, multipliers = [], []
+        for instance in (self, other):
+            if isinstance(instance, ComboObjectiveFunction) and instance._unpack_on_add:
+                objective_functions += instance.objfcts
+                multipliers += instance.multipliers
+            else:
+                objective_functions.append(instance)
+                multipliers.append(1)
+        combo = ComboObjectiveFunction(
+            objfcts=objective_functions, multipliers=multipliers
+        )
+        return combo
+
+    def __radd__(self, other):
+        return self + other
+
+    def __mul__(self, multiplier):
+        return ComboObjectiveFunction(objfcts=[self], multipliers=[multiplier])
+
+    def __rmul__(self, multiplier):
+        return self * multiplier
+
+    def __div__(self, denominator):
+        return self * (1.0 / denominator)
+
+    def __truediv__(self, denominator):
+        return self * (1.0 / denominator)
+
+    def __rdiv__(self, denominator):
+        return self * (1.0 / denominator)
 
 
 class BaseObjectiveFunction(BaseSimPEG):
