@@ -726,11 +726,10 @@ class TestWeightsKeys:
             assert reg.weights_keys == ["dummy_weight", "other_weights", "volume"]
 
 
-class TestDeprecatedArguments:
+class TestRemovedObjects:
     """
-    Test if errors are raised after passing deprecated arguments.
-
-    Within these arguments are:
+    Test if errors are raised after passing deprecated arguments or trying to
+    access removed properties.
 
     * ``indActive`` (replaced by ``active_cells``)
     * ``cell_weights`` (replaced by ``get_weights``)
@@ -765,12 +764,28 @@ class TestDeprecatedArguments:
         with pytest.raises(TypeError, match=msg):
             regularization_class(mesh, indActive=active_cells)
 
-    def test_cell_weights(self, mesh):
-        """Test cell_weights."""
+    def test_cell_weights_argument(self, mesh):
+        """Test cell_weights argument."""
         weights = np.ones(len(mesh))
         msg = "'cell_weights' argument has been removed. Please use 'weights' instead."
         with pytest.raises(TypeError, match=msg):
             BaseRegularization(mesh, cell_weights=weights)
+
+    @pytest.mark.parametrize(
+        "regularization_class", (BaseRegularization, WeightedLeastSquares)
+    )
+    def test_cell_weights_property(self, mesh, regularization_class):
+        """Test cell_weights property."""
+        weights = {"weights": np.ones(len(mesh))}
+        msg = "'cell_weights' argument has been removed. Please use 'weights' instead."
+        msg = (
+            "'cell_weights' has been removed. "
+            "Please access weights using the `set_weights`, `get_weights`, and "
+            "`remove_weights` methods."
+        )
+        reg = regularization_class(mesh, weights=weights)
+        with pytest.raises(AttributeError, match=msg):
+            reg.cell_weights
 
     @pytest.mark.parametrize("regularization_class", (Sparse, SparseSmoothness))
     def test_gradient_type(self, mesh, regularization_class):

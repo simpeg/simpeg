@@ -287,6 +287,23 @@ class BaseRegularization(BaseObjectiveFunction):
         error=True,
     )
 
+    @property
+    def cell_weights(self) -> np.ndarray:
+        """Deprecated property for 'volume' and user defined weights."""
+        raise AttributeError(
+            "'cell_weights' has been removed. "
+            "Please access weights using the `set_weights`, `get_weights`, and "
+            "`remove_weights` methods."
+        )
+
+    @cell_weights.setter
+    def cell_weights(self, value):
+        raise AttributeError(
+            "'cell_weights' has been removed. "
+            "Please access weights using the `set_weights`, `get_weights`, and "
+            "`remove_weights` methods."
+        )
+
     def get_weights(self, key) -> np.ndarray:
         """Cell weights for a given key.
 
@@ -1677,6 +1694,22 @@ class WeightedLeastSquares(ComboObjectiveFunction):
         """
         for fct in self.objfcts:
             fct.remove_weights(key)
+
+    @property
+    def cell_weights(self):
+        raise AttributeError(
+            "'cell_weights' has been removed. "
+            "Please access weights using the `set_weights`, `get_weights`, and "
+            "`remove_weights` methods."
+        )
+
+    @cell_weights.setter
+    def cell_weights(self, value):
+        raise AttributeError(
+            "'cell_weights' has been removed. "
+            "Please access weights using the `set_weights`, `get_weights`, and "
+            "`remove_weights` methods."
+        )
 
     @property
     def alpha_s(self):
