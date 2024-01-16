@@ -30,6 +30,7 @@ from ..utils import (
     validate_string,
 )
 from ..utils.code_utils import (
+    deprecate_property,
     validate_type,
     validate_integer,
     validate_float,
@@ -85,6 +86,10 @@ class InversionDirective:
     @verbose.setter
     def verbose(self, value):
         self._verbose = validate_type("verbose", value, bool)
+
+    debug = deprecate_property(
+        verbose, "debug", "verbose", removal_version="0.19.0", error=True
+    )
 
     @property
     def inversion(self):
@@ -2556,6 +2561,14 @@ class UpdateSensitivityWeights(InversionDirective):
     def every_iteration(self, value):
         self._every_iteration = validate_type("every_iteration", value, bool)
 
+    everyIter = deprecate_property(
+        every_iteration,
+        "everyIter",
+        "every_iteration",
+        removal_version="0.20.0",
+        error=True,
+    )
+
     @property
     def threshold_value(self):
         """Threshold value used to set minimum weighting value.
@@ -2580,6 +2593,14 @@ class UpdateSensitivityWeights(InversionDirective):
     @threshold_value.setter
     def threshold_value(self, value):
         self._threshold_value = validate_float("threshold_value", value, min_val=0.0)
+
+    threshold = deprecate_property(
+        threshold_value,
+        "threshold",
+        "threshold_value",
+        removal_version="0.20.0",
+        error=True,
+    )
 
     @property
     def threshold_method(self):
@@ -2632,6 +2653,14 @@ class UpdateSensitivityWeights(InversionDirective):
             self._normalization_method = validate_string(
                 "normalization_method", value, string_list=["minimum", "maximum"]
             )
+
+    normalization = deprecate_property(
+        normalization_method,
+        "normalization",
+        "normalization_method",
+        removal_version="0.20.0",
+        error=True,
+    )
 
     def initialize(self):
         """Compute sensitivity weights upon starting the inversion."""
