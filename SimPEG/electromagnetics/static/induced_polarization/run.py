@@ -47,7 +47,6 @@ def run_inversion(
             mesh,
             active_cells=actind,
             mapping=regmap,
-            weights=mesh.cell_volumes[actind],
         )
         reg.alpha_s = alpha_s
         reg.alpha_x = alpha_x
