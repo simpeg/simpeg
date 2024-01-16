@@ -309,7 +309,7 @@ class TestDeprecatedArguments:
         """
         Test if InversionDirective raises error after passing 'debug'.
         """
-        msg = "'debug' property has been deprecated. Please use 'verbose'."
+        msg = "'debug' property has been removed. Please use 'verbose'."
         with pytest.raises(TypeError, match=msg):
             directives.InversionDirective(debug=True)
 
@@ -317,7 +317,7 @@ class TestDeprecatedArguments:
         """
         Test if UpdateSensitivityWeights raises error after passing 'everyIter'.
         """
-        msg = "'everyIter' property has been deprecated. Please use 'every_iteration'."
+        msg = "'everyIter' property has been removed. Please use 'every_iteration'."
         with pytest.raises(TypeError, match=msg):
             directives.UpdateSensitivityWeights(everyIter=True)
 
@@ -325,7 +325,7 @@ class TestDeprecatedArguments:
         """
         Test if UpdateSensitivityWeights raises error after passing 'threshold'.
         """
-        msg = "'threshold' property has been deprecated. Please use 'threshold_value'."
+        msg = "'threshold' property has been removed. Please use 'threshold_value'."
         with pytest.raises(TypeError, match=msg):
             directives.UpdateSensitivityWeights(threshold=True)
 
@@ -334,7 +334,7 @@ class TestDeprecatedArguments:
         Test if UpdateSensitivityWeights raises error after passing 'normalization'.
         """
         msg = (
-            "'normalization' property has been deprecated. "
+            "'normalization' property has been removed. "
             "Please define normalization using 'normalization_method'."
         )
         with pytest.raises(TypeError, match=msg):

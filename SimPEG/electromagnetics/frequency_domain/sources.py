@@ -771,9 +771,7 @@ class CircularLoop(MagDipole):
         kwargs.pop("moment", None)
         # Raise error on deprecated arguments
         if (key := "N") in kwargs.keys():
-            raise TypeError(
-                f"'{key}' property has been deprecated. Please use 'n_turns'."
-            )
+            raise TypeError(f"'{key}' property has been removed. Please use 'n_turns'.")
         self.n_turns = n_turns
         super().__init__(
             receiver_list=receiver_list,

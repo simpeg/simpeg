@@ -34,7 +34,7 @@ class BaseRx(survey.BaseRx):
     ):
         # Raise error on deprecated arguments
         if (key := "projComp") in kwargs:
-            raise TypeError(f"'{key}' argument has been deprecated.")
+            raise TypeError(f"'{key}' argument has been removed.")
         self.orientation = orientation
         self.component = component
         self.data_type = data_type

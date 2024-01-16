@@ -11,7 +11,7 @@ def test_invalid_parameters_argument():
     """
     parameters = (1, 35, 60)
     msg = (
-        "'parameters' property has been deprecated."
+        "'parameters' property has been removed."
         "Please pass the amplitude, inclination and declination"
         " through their own arguments."
     )

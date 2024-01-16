@@ -37,7 +37,7 @@ class UniformBackgroundField(BaseSrc):
         #   so the class doesn't behave differently than expected.
         if (key := "parameters") in kwargs:
             raise TypeError(
-                f"'{key}' property has been deprecated."
+                f"'{key}' property has been removed."
                 "Please pass the amplitude, inclination and declination"
                 " through their own arguments."
             )

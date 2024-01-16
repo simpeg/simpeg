@@ -531,11 +531,13 @@ class TriangularWaveform(TrapezoidWaveform):
     def __init__(self, start_time, off_time, peak_time, **kwargs):
         # Raise errors on deprecated arguments
         if (key := "startTime") in kwargs:
-            raise TypeError(f"'{key}' is deprecated. Please use 'start_time' instead")
+            raise TypeError(
+                f"'{key}' has been removed. Please use 'start_time' instead"
+            )
         if (key := "peakTime") in kwargs:
-            raise TypeError(f"'{key}' is deprecated. Please use 'peak_time' instead")
+            raise TypeError(f"'{key}' has been removed. Please use 'peak_time' instead")
         if (key := "offTime") in kwargs:
-            raise TypeError(f"'{key}' is deprecated. Please use 'off_time' instead")
+            raise TypeError(f"'{key}' has been removed. Please use 'off_time' instead")
 
         ramp_on = np.r_[start_time, peak_time]
         ramp_off = np.r_[peak_time, off_time]
@@ -1496,9 +1498,7 @@ class CircularLoop(MagDipole):
 
         # Raise error on deprecated arguments
         if (key := "N") in kwargs.keys():
-            raise TypeError(
-                f"'{key}' property has been deprecated. Please use 'n_turns'."
-            )
+            raise TypeError(f"'{key}' property has been removed. Please use 'n_turns'.")
         self.n_turns = n_turns
 
         BaseTDEMSrc.__init__(

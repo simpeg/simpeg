@@ -65,9 +65,7 @@ class InversionDirective:
     def __init__(self, inversion=None, dmisfit=None, reg=None, verbose=False, **kwargs):
         # Raise error on deprecated arguments
         if (key := "debug") in kwargs.keys():
-            raise TypeError(
-                f"'{key}' property has been deprecated. Please use 'verbose'."
-            )
+            raise TypeError(f"'{key}' property has been removed. Please use 'verbose'.")
         self.inversion = inversion
         self.dmisfit = dmisfit
         self.reg = reg
@@ -2522,17 +2520,15 @@ class UpdateSensitivityWeights(InversionDirective):
         # Raise errors on deprecated arguments
         if (key := "everyIter") in kwargs.keys():
             raise TypeError(
-                f"'{key}' property has been deprecated. "
-                "Please use 'every_iteration'.",
+                f"'{key}' property has been removed. Please use 'every_iteration'.",
             )
         if (key := "threshold") in kwargs.keys():
             raise TypeError(
-                f"'{key}' property has been deprecated. "
-                "Please use 'threshold_value'.",
+                f"'{key}' property has been removed. Please use 'threshold_value'.",
             )
         if (key := "normalization") in kwargs.keys():
             raise TypeError(
-                f"'{key}' property has been deprecated. "
+                f"'{key}' property has been removed. "
                 "Please define normalization using 'normalization_method'.",
             )
 

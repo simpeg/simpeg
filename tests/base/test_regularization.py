@@ -757,7 +757,7 @@ class TestDeprecatedArguments:
         """Test indActive argument."""
         active_cells = np.ones(len(mesh), dtype=bool)
         msg = (
-            "'indActive' argument has been deprecated. "
+            "'indActive' argument has been removed. "
             "Please use 'active_cells' instead."
         )
         with pytest.raises(TypeError, match=msg):
@@ -766,10 +766,7 @@ class TestDeprecatedArguments:
     def test_cell_weights(self, mesh):
         """Test cell_weights."""
         weights = np.ones(len(mesh))
-        msg = (
-            "'cell_weights' argument has been deprecated. "
-            "Please use 'weights' instead."
-        )
+        msg = "'cell_weights' argument has been removed. Please use 'weights' instead."
         with pytest.raises(TypeError, match=msg):
             BaseRegularization(mesh, cell_weights=weights)
 
@@ -777,7 +774,7 @@ class TestDeprecatedArguments:
     def test_gradient_type(self, mesh, regularization_class):
         """Test gradientType argument."""
         msg = (
-            "'gradientType' argument has been deprecated. "
+            "'gradientType' argument has been removed. "
             "Please use 'gradient_type' instead."
         )
         with pytest.raises(TypeError, match=msg):

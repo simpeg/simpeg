@@ -532,7 +532,7 @@ def test_CircularLoop_test_N_assignment():
     """
     Test if error is raise after passing the deprecated N to CircularLoop
     """
-    msg = "'N' property has been deprecated. Please use 'n_turns'."
+    msg = "'N' property has been removed. Please use 'n_turns'."
     with pytest.raises(TypeError, match=msg):
         CircularLoop(
             [],
@@ -555,6 +555,6 @@ class TestDeprecatedArguments:
         Test if TriangularWaveform raises errors on deprecated arguments.
         """
         kwargs = {argument: None}
-        msg = f"'{argument}' is deprecated. Please use"
+        msg = f"'{argument}' has been removed. Please use"
         with pytest.raises(TypeError, match=msg):
             TriangularWaveform(start_time=0, peak_time=4e-3, off_time=8e-3, **kwargs)

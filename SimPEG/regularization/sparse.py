@@ -579,7 +579,7 @@ class SparseSmoothness(BaseSparse, SmoothnessFirstOrder):
         # Raise error if deprecated arguments are passed
         if (key := "gradientType") in kwargs:
             raise TypeError(
-                f"'{key}' argument has been deprecated. "
+                f"'{key}' argument has been removed. "
                 "Please use 'gradient_type' instead."
             )
         self.gradient_type = gradient_type
@@ -926,7 +926,7 @@ class Sparse(WeightedLeastSquares):
         # Raise error if deprecated arguments are passed
         if (key := "gradientType") in kwargs:
             raise TypeError(
-                f"'{key}' argument has been deprecated. "
+                f"'{key}' argument has been removed. "
                 "Please use 'gradient_type' instead."
             )
         self._regularization_mesh = mesh

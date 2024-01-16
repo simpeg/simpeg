@@ -28,7 +28,7 @@ class BaseRx(BaseTimeRx):
     ):
         # Raise error on deprecated arguments
         if (key := "projComp") in kwargs:
-            raise TypeError(f"'{key}' argument has been deprecated.")
+            raise TypeError(f"'{key}' argument has been removed.")
 
         if locations is None:
             raise AttributeError("'locations' are required. Cannot be 'None'")

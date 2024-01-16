@@ -70,13 +70,12 @@ class BaseRegularization(BaseObjectiveFunction):
         # them to silently fail
         if (key := "indActive") in kwargs:
             raise TypeError(
-                f"'{key}' argument has been deprecated. "
+                f"'{key}' argument has been removed. "
                 "Please use 'active_cells' instead."
             )
         if (key := "cell_weights") in kwargs:
             raise TypeError(
-                f"'{key}' argument has been deprecated. "
-                "Please use 'weights' instead."
+                f"'{key}' argument has been removed. Please use 'weights' instead."
             )
 
         super().__init__(nP=None, mapping=None, **kwargs)
@@ -1523,13 +1522,12 @@ class WeightedLeastSquares(ComboObjectiveFunction):
         # them to silently fail
         if (key := "indActive") in kwargs:
             raise TypeError(
-                f"'{key}' argument has been deprecated. "
+                f"'{key}' argument has been removed. "
                 "Please use 'active_cells' instead."
             )
         if (key := "cell_weights") in kwargs:
             raise TypeError(
-                f"'{key}' argument has been deprecated. "
-                "Please use 'weights' instead."
+                f"'{key}' argument has been removed. Please use 'weights' instead."
             )
 
         self.alpha_s = alpha_s
