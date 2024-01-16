@@ -13,7 +13,7 @@ from scipy.constants import mu_0
 
 from SimPEG import Solver, props, utils
 from SimPEG.utils import mat_utils, mkvc, sdiag
-from SimPEG.utils.code_utils import validate_string, validate_type
+from SimPEG.utils.code_utils import deprecate_property, validate_string, validate_type
 
 from ...base import BaseMagneticPDESimulation
 from ..base import BaseEquivalentSourceLayerSimulation, BasePFSimulation
@@ -120,6 +120,10 @@ class Simulation3DIntegral(BasePFSimulation):
             self._G = self.linear_operator()
 
         return self._G
+
+    modelType = deprecate_property(
+        model_type, "modelType", "model_type", removal_version="0.18.0", error=True
+    )
 
     @property
     def nD(self):
