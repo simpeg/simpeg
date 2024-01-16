@@ -11,6 +11,7 @@ from .base import (
     Smallness,
     SmoothnessFirstOrder,
 )
+from .. import utils
 from ..utils import (
     validate_ndarray_with_shape,
     validate_float,
@@ -692,6 +693,14 @@ class SparseSmoothness(BaseSparse, SmoothnessFirstOrder):
             "gradient_type", value, ["total", "components"]
         )
 
+    gradientType = utils.code_utils.deprecate_property(
+        gradient_type,
+        "gradientType",
+        new_name="gradient_type",
+        removal_version="0.19.0",
+        error=True,
+    )
+
 
 class Sparse(WeightedLeastSquares):
     r"""Sparse norm weighted least squares regularization.
@@ -985,6 +994,10 @@ class Sparse(WeightedLeastSquares):
                 fct.gradient_type = value
 
         self._gradient_type = value
+
+    gradientType = utils.code_utils.deprecate_property(
+        gradient_type, "gradientType", "0.19.0", error=True
+    )
 
     @property
     def norms(self):
