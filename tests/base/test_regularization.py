@@ -32,6 +32,8 @@ IGNORE_ME = [
     "BaseSparse",
     "BaseVectorRegularization",
     "PGI",
+    "PGIwithRelationships",
+    "PGIwithNonlinearRelationshipsSmallness",
     "PGIsmallness",
     "CrossGradient",
     "LinearCorrespondence",
