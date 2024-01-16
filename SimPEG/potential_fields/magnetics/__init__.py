@@ -47,5 +47,5 @@ from .simulation import (
     Simulation3DDifferential,
 )
 from .survey import Survey
-from .sources import UniformBackgroundField
+from .sources import SourceField, UniformBackgroundField
 from .receivers import Point
