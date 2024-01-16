@@ -14,6 +14,7 @@ from ...utils import (
     validate_direction,
     validate_integer,
 )
+from ...utils.code_utils import deprecate_property
 
 from ..utils import omega
 from ..utils import segmented_line_current_source_term, line_through_faces
@@ -868,6 +869,10 @@ class CircularLoop(MagDipole):
                 current=self.current,
             )
         return self.n_turns * self._loop.vector_potential(obsLoc, coordinates)
+
+    N = deprecate_property(
+        n_turns, "N", "n_turns", removal_version="0.19.0", error=True
+    )
 
 
 class PrimSecSigma(BaseFDEMSrc):
