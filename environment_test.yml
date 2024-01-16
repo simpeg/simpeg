@@ -41,9 +41,9 @@ dependencies:
   # Linters and code style
   - pre-commit
   - black==23.12.1
-  - flake8
-  - flake8-bugbear
-  - flake8-builtins
-  - flake8-mutable
-  - flake8-rst-docstrings
-  - flake8-docstrings
+  - flake8==7.0.0
+  - flake8-bugbear==23.12.2
+  - flake8-builtins==2.2.0
+  - flake8-mutable==1.2.0
+  - flake8-rst-docstrings==0.3.0
+  - flake8-docstrings==1.7.0
