@@ -923,6 +923,29 @@ class AmplitudeSmoothnessFirstOrder(SparseSmoothness, BaseAmplitude):
         return self.cell_gradient @ a
 
     def f_m_deriv(self, m):
+        r"""
+        Derivative of the regularization kernel function.
+
+        For first-order smoothness regularization in the x-direction, the derivative of the
+        regularization kernel function with respect to the model is given by:
+
+        .. math::
+            \frac{\partial \mathbf{f_m}}{\partial \mathbf{m}} = diag(\frac{(\mathbf{G_x} \mathbf{G_x} \mathbf{a})}{\mathbg{a}})
+
+        where :math:`\mathbf{a}` is the amplitude of the vector model.
+
+
+
+        Parameters
+        ----------
+        m : numpy.ndarray
+            The model.
+
+        Returns
+        -------
+        numpy.ndarray
+            The derivative of the first-order smoothness regularization.
+        """
         amplitude = self.amplitude(m) + 1e16
         f_m_deriv = sdiag(
             (
@@ -957,7 +980,7 @@ class AmplitudeSmoothnessFirstOrder(SparseSmoothness, BaseAmplitude):
 
         d_m = self.mapping * self._delta_m(m)
 
-        f_m_deriv = self.f_m_deriv(m)
+        f_m_deriv = self.f_m_deriv(d_m)
 
         return self.mapping.deriv(m).T * (
             f_m_deriv * d_m.reshape((-1, self.n_comp), order="F")
