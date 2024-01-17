@@ -946,15 +946,13 @@ class AmplitudeSmoothnessFirstOrder(SparseSmoothness, BaseAmplitude):
         numpy.ndarray
             The derivative of the first-order smoothness regularization.
         """
-        amplitude = self.amplitude(m) + 1e16
-        f_m_deriv = sdiag(
-            (
-                self.cell_gradient.T
-                @ (self.W.T @ (self.W @ (self.cell_gradient @ amplitude)))
-            )
-            / amplitude
-        )
-        return f_m_deriv
+        amplitude = self.amplitude(m) + 1e-16
+        f_m_deriv = (
+            self.cell_gradient.T
+            @ (self.W.T @ (self.W @ (self.cell_gradient @ amplitude)))
+        ) / amplitude
+
+        return sdiag(f_m_deriv)
 
     def deriv(self, m) -> np.ndarray:
         r"""Gradient of the regularization function evaluated for the model provided.
@@ -980,7 +978,7 @@ class AmplitudeSmoothnessFirstOrder(SparseSmoothness, BaseAmplitude):
 
         d_m = self.mapping * self._delta_m(m)
 
-        f_m_deriv = self.f_m_deriv(d_m)
+        f_m_deriv = self.f_m_deriv(self.model)
 
         return self.mapping.deriv(m).T * (
             f_m_deriv * d_m.reshape((-1, self.n_comp), order="F")
