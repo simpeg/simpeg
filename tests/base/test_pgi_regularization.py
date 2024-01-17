@@ -4,6 +4,7 @@ import discretize
 import numpy as np
 from pymatsolver import SolverLU
 from scipy.stats import multivariate_normal
+
 from SimPEG import regularization
 from SimPEG.maps import Wires
 from SimPEG.utils import WeightedGaussianMixture, mkvc
@@ -84,10 +85,8 @@ class TestPGI(unittest.TestCase):
         # check score value
         dm = self.model - mref
         score_approx0 = reg(self.model)
-        score_approx1 = dm.dot(reg.deriv2(self.model, dm))
-        passed_score_approx = np.allclose(score_approx0, score_approx1)
-        self.assertTrue(passed_score_approx)
-
+        score_approx1 = 0.5 * dm.dot(reg.deriv2(self.model, dm))
+        np.testing.assert_almost_equal(score_approx0, score_approx1)
         reg.objfcts[0].approx_eval = False
         score = reg(self.model) - reg(mref)
         passed_score = np.allclose(score_approx0, score, rtol=1e-4)
@@ -192,9 +191,8 @@ class TestPGI(unittest.TestCase):
         # check score value
         dm = self.model - mref
         score_approx0 = reg(self.model)
-        score_approx1 = dm.dot(reg.deriv2(self.model, dm))
-        passed_score_approx = np.allclose(score_approx0, score_approx1)
-        self.assertTrue(passed_score_approx)
+        score_approx1 = 0.5 * dm.dot(reg.deriv2(self.model, dm))
+        np.testing.assert_almost_equal(score_approx0, score_approx1)
         reg.objfcts[0].approx_eval = False
         score = reg(self.model) - reg(mref)
         passed_score = np.allclose(score_approx0, score, rtol=1e-4)
@@ -296,9 +294,8 @@ class TestPGI(unittest.TestCase):
         # check score value
         dm = self.model - mref
         score_approx0 = reg(self.model)
-        score_approx1 = dm.dot(reg.deriv2(self.model, dm))
-        passed_score_approx = np.allclose(score_approx0, score_approx1)
-        self.assertTrue(passed_score_approx)
+        score_approx1 = 0.5 * dm.dot(reg.deriv2(self.model, dm))
+        np.testing.assert_almost_equal(score_approx0, score_approx1)
         reg.objfcts[0].approx_eval = False
         score = reg(self.model) - reg(mref)
         passed_score = np.allclose(score_approx0, score, rtol=1e-4)
@@ -400,9 +397,8 @@ class TestPGI(unittest.TestCase):
         # check score value
         dm = self.model - mref
         score_approx0 = reg(self.model)
-        score_approx1 = dm.dot(reg.deriv2(self.model, dm))
-        passed_score_approx = np.allclose(score_approx0, score_approx1)
-        self.assertTrue(passed_score_approx)
+        score_approx1 = 0.5 * dm.dot(reg.deriv2(self.model, dm))
+        np.testing.assert_almost_equal(score_approx0, score_approx1)
         reg.objfcts[0].approx_eval = False
         score = reg(self.model) - reg(mref)
         passed_score = np.allclose(score_approx0, score, rtol=1e-4)
