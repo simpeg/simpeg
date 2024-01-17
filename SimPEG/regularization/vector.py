@@ -7,6 +7,7 @@ from .base import Smallness
 from discretize.base import BaseMesh
 from .base import RegularizationMesh, BaseRegularization
 from .sparse import Sparse, SparseSmallness, SparseSmoothness
+from ..utils import sdiag
 
 if TYPE_CHECKING:
     from scipy.sparse import csr_matrix
@@ -401,71 +402,6 @@ class BaseAmplitude(BaseVectorRegularization):
             axis=1,
         )
 
-    def deriv(self, m) -> np.ndarray:
-        r"""Gradient of the regularization function evaluated for the model provided.
-
-        Where :math:`\phi (\mathbf{m})` is the discrete regularization function (objective function),
-        this method evaluates and returns the derivative with respect to the model parameters;
-        i.e. the gradient:
-
-        .. math::
-            \frac{\partial \phi}{\partial \mathbf{m}}
-
-        Parameters
-        ----------
-        m : (n_param, ) numpy.ndarray
-            The model for which the gradient is evaluated.
-
-        Returns
-        -------
-        (n_param, ) numpy.ndarray
-            Gradient of the regularization function evaluated for the model provided.
-        """
-        d_m = self.mapping * self._delta_m(m)
-
-        return self.f_m_deriv(m).T * (
-            self.W.T @ self.W @ d_m.reshape((-1, self.n_comp), order="F")
-        ).flatten(order="F")
-
-    def deriv2(self, m, v=None) -> csr_matrix:
-        r"""Hessian of the regularization function evaluated for the model provided.
-
-        Where :math:`\phi (\mathbf{m})` is the discrete regularization function (objective function),
-        this method returns the second-derivative (Hessian) with respect to the model parameters:
-
-        .. math::
-            \frac{\partial^2 \phi}{\partial \mathbf{m}^2}
-
-        or the second-derivative (Hessian) multiplied by a vector :math:`(\mathbf{v})`:
-
-        .. math::
-            \frac{\partial^2 \phi}{\partial \mathbf{m}^2} \, \mathbf{v}
-
-        Parameters
-        ----------
-        m : (n_param, ) numpy.ndarray
-            The model for which the Hessian is evaluated.
-        v : None, (n_param, ) numpy.ndarray (optional)
-            A vector.
-
-        Returns
-        -------
-        (n_param, n_param) scipy.sparse.csr_matrix | (n_param, ) numpy.ndarray
-            If the input argument *v* is ``None``, the Hessian of the regularization
-            function for the model provided is returned. If *v* is not ``None``,
-            the Hessian multiplied by the vector provided is returned.
-        """
-        f_m_deriv = self.f_m_deriv(m)
-
-        if v is None:
-            return f_m_deriv.T * (
-                sp.block_diag([self.W.T * self.W] * self.n_comp) * f_m_deriv
-            )
-
-        return f_m_deriv.T * (
-            self.W.T @ self.W @ (f_m_deriv * v).reshape((-1, self.n_comp), order="F")
-        ).flatten(order="F")
-
 
 class AmplitudeSmallness(SparseSmallness, BaseAmplitude):
     r"""Sparse smallness regularization on vector amplitudes.
@@ -669,6 +605,73 @@ class AmplitudeSmallness(SparseSmallness, BaseAmplitude):
             self._W = sp.diags(np.sqrt(weights), format="csr")
 
         return self._W
+
+    def deriv(self, m) -> np.ndarray:
+        r"""Gradient of the regularization function evaluated for the model provided.
+
+        Where :math:`\phi (\mathbf{m})` is the discrete regularization function (objective function),
+        this method evaluates and returns the derivative with respect to the model parameters;
+        i.e. the gradient:
+
+        .. math::
+            \frac{\partial \phi}{\partial \mathbf{m}}
+
+        Parameters
+        ----------
+        m : (n_param, ) numpy.ndarray
+            The model for which the gradient is evaluated.
+
+        Returns
+        -------
+        (n_param, ) numpy.ndarray
+            Gradient of the regularization function evaluated for the model provided.
+        """
+        d_m = self._delta_m(m)
+
+        return self.f_m_deriv(m).T * (
+            self.W.T
+            @ self.W
+            @ (self.mapping * d_m).reshape((-1, self.n_comp), order="F")
+        ).flatten(order="F")
+
+    def deriv2(self, m, v=None) -> csr_matrix:
+        r"""Hessian of the regularization function evaluated for the model provided.
+
+        Where :math:`\phi (\mathbf{m})` is the discrete regularization function (objective function),
+        this method returns the second-derivative (Hessian) with respect to the model parameters:
+
+        .. math::
+            \frac{\partial^2 \phi}{\partial \mathbf{m}^2}
+
+        or the second-derivative (Hessian) multiplied by a vector :math:`(\mathbf{v})`:
+
+        .. math::
+            \frac{\partial^2 \phi}{\partial \mathbf{m}^2} \, \mathbf{v}
+
+        Parameters
+        ----------
+        m : (n_param, ) numpy.ndarray
+            The model for which the Hessian is evaluated.
+        v : None, (n_param, ) numpy.ndarray (optional)
+            A vector.
+
+        Returns
+        -------
+        (n_param, n_param) scipy.sparse.csr_matrix | (n_param, ) numpy.ndarray
+            If the input argument *v* is ``None``, the Hessian of the regularization
+            function for the model provided is returned. If *v* is not ``None``,
+            the Hessian multiplied by the vector provided is returned.
+        """
+        f_m_deriv = self.f_m_deriv(m)
+
+        if v is None:
+            return f_m_deriv.T * (
+                sp.block_diag([self.W.T * self.W] * self.n_comp) * f_m_deriv
+            )
+
+        return f_m_deriv.T * (
+            self.W.T @ self.W @ (f_m_deriv * v).reshape((-1, self.n_comp), order="F")
+        ).flatten(order="F")
 
 
 class AmplitudeSmoothnessFirstOrder(SparseSmoothness, BaseAmplitude):
@@ -919,50 +922,88 @@ class AmplitudeSmoothnessFirstOrder(SparseSmoothness, BaseAmplitude):
 
         return self.cell_gradient @ a
 
-    def f_m_deriv(self, m) -> csr_matrix:
-        r"""Derivative of the regularization kernel function.
-
-        See :func:`base.SmoothnessFirstOrder.f_m_deriv` for more information.
-        """
-        return self.cell_gradient
+    def f_m_deriv(self, m):
+        amplitude = self.amplitude(m) + 1e16
+        f_m_deriv = sdiag(
+            (
+                self.cell_gradient.T
+                @ (self.W.T @ (self.W @ (self.cell_gradient @ amplitude)))
+            )
+            / amplitude
+        )
+        return f_m_deriv
 
     def deriv(self, m) -> np.ndarray:
-        r"""
-        Derivative of the regularization function evaluated for the model provided.
+        r"""Gradient of the regularization function evaluated for the model provided.
 
-        See :func:`base.BaseRegularization.deriv` for more information.
+        Where :math:`\phi (\mathbf{m})` is the discrete regularization function (objective function),
+        this method evaluates and returns the derivative with respect to the model parameters;
+        i.e. the gradient:
+
+        .. math::
+            \frac{\partial \phi}{\partial \mathbf{m}}
+
+        Parameters
+        ----------
+        m : (n_param, ) numpy.ndarray
+            The model for which the gradient is evaluated.
+
+        Returns
+        -------
+        (n_param, ) numpy.ndarray
+            Gradient of the regularization function evaluated for the model provided.
         """
-        d_m = (self.mapping * self._delta_m(m)).reshape((-1, self.n_comp), order="F")
-        r = self.W @ self.cell_gradient @ d_m
+        self.model = m
 
-        return self.mapping.deriv(m) @ (self.f_m_deriv(m).T @ (self.W.T @ r)).flatten(
-            order="F"
-        )
+        d_m = self.mapping * self._delta_m(m)
+
+        f_m_deriv = self.f_m_deriv(m)
+
+        return self.mapping.deriv(m).T * (
+            f_m_deriv * d_m.reshape((-1, self.n_comp), order="F")
+        ).flatten(order="F")
 
     def deriv2(self, m, v=None) -> csr_matrix:
         r"""Hessian of the regularization function evaluated for the model provided.
 
-        See :func:`base.BaseRegularization.deriv2` for more information.
+        Where :math:`\phi (\mathbf{m})` is the discrete regularization function (objective function),
+        this method returns the second-derivative (Hessian) with respect to the model parameters:
+
+        .. math::
+            \frac{\partial^2 \phi}{\partial \mathbf{m}^2}
+
+        or the second-derivative (Hessian) multiplied by a vector :math:`(\mathbf{v})`:
+
+        .. math::
+            \frac{\partial^2 \phi}{\partial \mathbf{m}^2} \, \mathbf{v}
+
+        Parameters
+        ----------
+        m : (n_param, ) numpy.ndarray
+            The model for which the Hessian is evaluated.
+        v : None, (n_param, ) numpy.ndarray (optional)
+            A vector.
+
+        Returns
+        -------
+        (n_param, n_param) scipy.sparse.csr_matrix | (n_param, ) numpy.ndarray
+            If the input argument *v* is ``None``, the Hessian of the regularization
+            function for the model provided is returned. If *v* is not ``None``,
+            the Hessian multiplied by the vector provided is returned.
         """
-        f_m_deriv = self.f_m_deriv(m)
+        if self.model is None:
+            self.model = m
+
+        f_m_deriv = self.f_m_deriv(self.model)
 
         if v is None:
-            return (
-                self.mapping.deriv(m).T
-                @ (
-                    sp.block_diag(
-                        [f_m_deriv.T @ self.W.T @ self.W @ f_m_deriv] * self.n_comp
-                    )
-                )
-                @ self.mapping.deriv(m)
+            return self.mapping.deriv(m).T * (
+                sp.block_diag([f_m_deriv] * self.n_comp) * self.mapping.deriv(m)
             )
 
-        return self.mapping.deriv(m).T @ (
-            f_m_deriv.T
-            @ self.W.T
-            @ self.W
-            @ f_m_deriv
-            @ (self.mapping.deriv(m) @ v).reshape((-1, self.n_comp), order="F")
+        return self.mapping.deriv(m).T * (
+            f_m_deriv
+            * (self.mapping.deriv(m) * v).reshape((-1, self.n_comp), order="F")
         ).flatten(order="F")
 
     @property

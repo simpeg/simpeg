@@ -576,6 +576,7 @@ class RegularizationTests(unittest.TestCase):
         with pytest.raises(ValueError, match="'weights' must be one of"):
             reg.set_weights(abc=(1.0, 1.0))
 
+        reg.test(model.flatten(order="F"))
         np.testing.assert_almost_equal(
             reg.objfcts[0].f_m(model.flatten(order="F")), np.linalg.norm(model, axis=1)
         )
