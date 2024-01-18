@@ -61,9 +61,9 @@ def _sensitivity_mag(
         Constant factor that will be used to multiply each element of the
         sensitivity matrix.
     scalar_model : bool
-        If True, the sensitivity matrix is build to work with scalar models
+        If True, the sensitivity matrix is built to work with scalar models
         (susceptibilities).
-        If False, the sensitivity matrix is build to work with vector models
+        If False, the sensitivity matrix is built to work with vector models
         (effective susceptibilities).
 
     Notes
