@@ -638,11 +638,17 @@ def test_cross_reg_reg_errors():
         regularization.CrossReferenceRegularization(mesh, ref_dir)
 
 
-def test_coterminal_angle():
+@pytest.mark.parametrize("orientation", ("x", "y", "z"))
+def test_smoothness_first_order_coterminal_angle(orientation):
+    """
+    Test smoothness first order regularizations of angles on a treemesh
+    """
     mesh = discretize.TreeMesh([16, 16, 16])
     mesh.insert_cells([100, 100, 100], mesh.max_level, finalize=True)
 
-    reg = regularization.SmoothnessFirstOrder(mesh, units="radian", orientation="y")
+    reg = regularization.SmoothnessFirstOrder(
+        mesh, units="radian", orientation=orientation
+    )
     angles = np.ones(mesh.n_cells) * np.pi
     angles[5] = -np.pi
     assert np.all(reg.f_m(angles) == 0)
