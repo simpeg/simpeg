@@ -23,6 +23,9 @@ class Point(survey.BaseRx):
         - "byy"  --> y-derivative of the y-component
         - "byz"  --> z-derivative of the y-component (and visa versa)
         - "bzz"  --> z-derivative of the z-component
+        - "tmi_x"--> x-derivative of the total magnetic intensity data
+        - "tmi_y"--> y-derivative of the total magnetic intensity data
+        - "tmi_z"--> z-derivative of the total magnetic intensity data
 
     Notes
     -----
@@ -51,6 +54,9 @@ class Point(survey.BaseRx):
                     "by",
                     "bz",
                     "tmi",
+                    "tmi_x",
+                    "tmi_y",
+                    "tmi_z",
                 ],
             )
         self.components = components
