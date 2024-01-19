@@ -411,7 +411,7 @@ def coterminal(theta):
     """
 
     sub = theta[np.abs(theta) >= np.pi]
-    sub = -np.sign(sub) * (2 * np.pi - np.abs(sub))
+    sub = np.sign(sub) * (2 * np.pi - np.abs(sub))
 
     theta[np.abs(theta) >= np.pi] = sub
 
