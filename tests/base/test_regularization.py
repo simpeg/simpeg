@@ -580,6 +580,8 @@ class RegularizationTests(unittest.TestCase):
             reg.objfcts[0].f_m(model.flatten(order="F")), np.linalg.norm(model, axis=1)
         )
 
+        reg.test(model.flatten(order="F"))
+
 
 def test_WeightedLeastSquares():
     mesh = discretize.TensorMesh([3, 4, 5])
@@ -765,7 +767,7 @@ class TestDeprecatedArguments:
     def test_active_cells(self, mesh, regularization_class):
         """Test indActive and active_cells arguments."""
         active_cells = np.ones(len(mesh), dtype=bool)
-        msg = "Cannot simultanously pass 'active_cells' and 'indActive'."
+        msg = "Cannot simultaneously pass 'active_cells' and 'indActive'."
         with pytest.raises(ValueError, match=msg):
             regularization_class(
                 mesh, active_cells=active_cells, indActive=active_cells
@@ -774,7 +776,7 @@ class TestDeprecatedArguments:
     def test_weights(self, mesh):
         """Test cell_weights and weights."""
         weights = np.ones(len(mesh))
-        msg = "Cannot simultanously pass 'weights' and 'cell_weights'."
+        msg = "Cannot simultaneously pass 'weights' and 'cell_weights'."
         with pytest.raises(ValueError, match=msg):
             BaseRegularization(mesh, weights=weights, cell_weights=weights)
 
