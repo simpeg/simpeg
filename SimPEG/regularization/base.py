@@ -1007,14 +1007,14 @@ class SmoothnessFirstOrder(BaseRegularization):
         .. math::
             \phi_m (\mathbf{m}) = \frac{1}{2} \Big \| \mathbf{W \, f_m} \Big \|^2
         """
-        dfm_dl = self.cell_gradient @ (self.mapping * self._delta_m(m))
+        dfm_dl = self.mapping * self._delta_m(m)
 
         if self.units is not None and self.units.lower() == "radian":
             return (
-                utils.mat_utils.coterminal(dfm_dl * self._cell_distances)
+                utils.mat_utils.coterminal(self.cell_gradient.sign() @ dfm_dl)
                 / self._cell_distances
             )
-        return dfm_dl
+        return self.cell_gradient @ dfm_dl
 
     def f_m_deriv(self, m) -> csr_matrix:
         r"""Derivative of the regularization kernel function.
