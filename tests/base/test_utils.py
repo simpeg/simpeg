@@ -1,4 +1,5 @@
 import unittest
+import pytest
 import numpy as np
 import scipy.sparse as sp
 import os
@@ -22,6 +23,7 @@ from SimPEG.utils import (
     Counter,
     download,
     surface2ind_topo,
+    coterminal,
 )
 import discretize
 
@@ -340,6 +342,16 @@ class TestDownload(unittest.TestCase):
         # clean up
         shutil.rmtree(os.path.expanduser("./test_urls"))
         shutil.rmtree(os.path.expanduser("./test_url"))
+
+
+@pytest.mark.parametrize(
+    "angle", [np.pi, -np.pi, 3 * np.pi, 1.25 * np.pi, -1.25 * np.pi]
+)
+def test_coterminal(angle):
+    coangle = coterminal(angle)
+    assert np.abs(coangle) < np.pi
+    if coangle != 0:
+        assert np.sign(coterminal(angle)) == np.sign(angle)
 
 
 if __name__ == "__main__":
