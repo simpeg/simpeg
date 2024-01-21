@@ -409,8 +409,12 @@ def coterminal(theta):
         Coterminal angles
 
     """
-    coterminal = np.sign(theta) * (np.abs(theta) % np.pi)
-    return coterminal
+    sub = theta[np.abs(theta) >= np.pi]
+    sub = -np.sign(sub) * (2 * np.pi - np.abs(sub))
+
+    theta[np.abs(theta) >= np.pi] = sub
+
+    return theta
 
 
 def define_plane_from_points(xyz1, xyz2, xyz3):
