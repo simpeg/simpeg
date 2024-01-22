@@ -246,7 +246,7 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
         else:
             nP = None
 
-        super().__init__(nP=nP)
+        self._nP = nP
         self.objfcts = objfcts
         self._multipliers = multipliers
         self._unpack_on_add = unpack_on_add
@@ -256,6 +256,13 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
 
     def __getitem__(self, key):
         return self.multipliers[key], self.objfcts[key]
+
+    @property
+    def nP(self):
+        """
+        Number of parameters
+        """
+        return self._nP
 
     @property
     def multipliers(self):
