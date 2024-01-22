@@ -17,7 +17,21 @@ class ObjectiveFunction(ABC):
         pass
 
     @abstractmethod
-    def __call__(self, x, f=None) -> float:
+    def __call__(self, model, f=None) -> float:
+        pass
+
+    @abstractmethod
+    def deriv(self, model):
+        """
+        Gradient of the objective function evaluated on a given model.
+        """
+        pass
+
+    @abstractmethod
+    def deriv2(self, model):
+        """
+        Hessian of the objective function evaluated on a given model.
+        """
         pass
 
     @abstractproperty
@@ -62,6 +76,62 @@ class ObjectiveFunction(ABC):
 
     def __rdiv__(self, denominator):
         return self * (1.0 / denominator)
+
+    def _test_deriv(self, x=None, num=4, plotIt=False, **kwargs):
+        # TODO: get rid of kwargs and pass arguments
+        print("Testing {0!s} Deriv".format(self.__class__.__name__))
+        if x is None:
+            if self.nP == "*":
+                x = np.random.randn(np.random.randint(1e2, high=1e3))
+            else:
+                x = np.random.randn(self.nP)
+
+        return check_derivative(
+            lambda m: [self(m), self.deriv(m)], x, num=num, plotIt=plotIt, **kwargs
+        )
+
+    def _test_deriv2(self, x=None, num=4, plotIt=False, **kwargs):
+        # TODO: get rid of kwargs and pass arguments
+        print("Testing {0!s} Deriv2".format(self.__class__.__name__))
+        if x is None:
+            if self.nP == "*":
+                x = np.random.randn(np.random.randint(1e2, high=1e3))
+            else:
+                x = np.random.randn(self.nP)
+
+        v = x + 0.1 * np.random.rand(len(x))
+        expectedOrder = kwargs.pop("expectedOrder", 1)
+        return check_derivative(
+            lambda m: [self.deriv(m).dot(v), self.deriv2(m, v=v)],
+            x,
+            num=num,
+            expectedOrder=expectedOrder,
+            plotIt=plotIt,
+            **kwargs,
+        )
+
+    def test_derivatives(self, x=None, num=4, **kwargs):
+        # TODO: get rid of kwargs and pass arguments
+        """Run a convergence test on both the first and second derivatives.
+
+        They should be second order!
+
+        Parameters
+        ----------
+        x : None or (n_param, ) numpy.ndarray, optional
+            The evaluation point for the Taylor expansion.
+        num : int
+            The number of iterations in the convergence test.
+
+        Returns
+        -------
+        bool
+            ``True`` if both tests pass. ``False`` if either test fails.
+
+        """
+        deriv = self._test_deriv(x=x, num=num, **kwargs)
+        deriv2 = self._test_deriv2(x=x, num=num, plotIt=False, **kwargs)
+        return deriv & deriv2
 
 
 class BaseObjectiveFunction(BaseSimPEG):
