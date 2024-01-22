@@ -1,12 +1,9 @@
 from abc import ABC, abstractmethod, abstractproperty
 import numpy as np
-import scipy.sparse as sp
 
 from discretize.tests import check_derivative
 
-from .maps import IdentityMap
-from .props import BaseSimPEG
-from .utils import timeIt, Zero, Identity
+from .utils import Zero
 
 __all__ = ["BaseObjectiveFunction", "ComboObjectiveFunction"]
 
