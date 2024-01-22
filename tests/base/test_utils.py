@@ -344,14 +344,45 @@ class TestDownload(unittest.TestCase):
         shutil.rmtree(os.path.expanduser("./test_url"))
 
 
-@pytest.mark.parametrize(
-    "angle", [np.pi, -np.pi, 3 * np.pi, 1.25 * np.pi, -1.25 * np.pi]
-)
-def test_coterminal(angle):
-    coangle = coterminal(angle)
-    assert np.abs(coangle) < np.pi
-    if coangle != 0:
-        assert np.sign(coterminal(angle)) == np.sign(angle)
+class TestCoterminalAngle:
+    """
+    Tests for the coterminal function
+    """
+
+    @pytest.mark.parametrize(
+        "coterminal_angle",
+        (1 / 4 * np.pi, 3 / 4 * np.pi, -3 / 4 * np.pi, -1 / 4 * np.pi),
+        ids=("pi/4", "3/4 pi", "-3/4 pi", "-pi/4"),
+    )
+    def test_angles_in_quadrants(self, coterminal_angle):
+        """
+        Test coterminal for angles in each quadrant
+        """
+        angles = np.array([2 * n * np.pi + coterminal_angle for n in range(-3, 4)])
+        np.testing.assert_allclose(coterminal(angles), coterminal_angle)
+
+    @pytest.mark.parametrize(
+        "coterminal_angle",
+        (0, np.pi / 2, np.pi, -np.pi / 2),
+        ids=("0", "pi/2", "pi", "-pi/2"),
+    )
+    def test_right_angles(self, coterminal_angle):
+        """
+        Test coterminal for right angles
+        """
+        angles = np.array([2 * n * np.pi + coterminal_angle for n in range(-3, 4)])
+        np.testing.assert_allclose(coterminal(angles), coterminal_angle)
+
+    @pytest.mark.parametrize(
+        "angle",
+        [np.pi, -np.pi, 3 * np.pi, 1.25 * np.pi, -1.25 * np.pi],
+        ids=("pi", "-pi", "3 pi", "1.25 pi", "-1.25 pi"),
+    )
+    def test_sign_coterminal(self, angle):
+        coangle = coterminal(angle)
+        assert np.abs(coangle) < np.pi
+        if coangle != 0:
+            assert np.sign(coterminal(angle)) == np.sign(angle)
 
 
 if __name__ == "__main__":
