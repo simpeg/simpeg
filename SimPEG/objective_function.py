@@ -24,10 +24,6 @@ class ObjectiveFunction(ABC):
     def nP(self):
         pass
 
-    @abstractproperty
-    def mapping(self):
-        pass
-
     def __add__(self, other):
         if isinstance(other, Zero):
             return self
