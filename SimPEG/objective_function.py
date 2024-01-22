@@ -27,7 +27,7 @@ class ObjectiveFunction(ABC):
     def __add__(self, other):
         if isinstance(other, Zero):
             return self
-        if not isinstance(other, BaseObjectiveFunction):
+        if not isinstance(other, ObjectiveFunction):
             raise TypeError(
                 f"Cannot add type '{other.__class__.__name__}' to an objective "
                 "function. Only ObjectiveFunctions can be added together."
