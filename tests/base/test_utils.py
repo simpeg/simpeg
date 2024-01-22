@@ -363,8 +363,8 @@ class TestCoterminalAngle:
 
     @pytest.mark.parametrize(
         "coterminal_angle",
-        (0, np.pi / 2, np.pi, -np.pi / 2),
-        ids=("0", "pi/2", "pi", "-pi/2"),
+        (0, np.pi / 2, -np.pi, -np.pi / 2),
+        ids=("0", "pi/2", "-pi", "-pi/2"),
     )
     def test_right_angles(self, coterminal_angle):
         """
