@@ -584,39 +584,6 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
             H = H + multiplier * objfct_H
         return H
 
-    # This assumes all objective functions have a W.
-    # The base class currently does not.
-    @property
-    def W(self):
-        r"""Full weighting matrix for the combo objective function.
-
-        Consider a composite objective function :math`\phi` that is a weighted sum of
-        objective functions :math:`\phi_i` with multipliers :math:`c_i` such that
-
-        .. math::
-            \phi = \sum_{i = 1}^N c_i \phi_i = \sum_{i = 1}^N \frac{c_i}{2}
-            \big \| \mathbf{W}_i \, f_i (\mathbf{m}) \big \|^2_2
-
-        Where each objective function :math:`\phi_i` has a weighting matrix :math:`W_i`,
-        this method returns the full weighting matrix for the composite objective function:
-
-        .. math::
-            \mathbf{W} = \begin{bmatrix}
-            \sqrt{c_1} W_i \\ \vdots \\ \sqrt{c_N} W_N
-            \end{bmatrix}
-
-        Returns
-        -------
-        scipy.sparse.csr_matrix
-            Full weighting matrix for the combo objective function.
-        """
-        W = []
-        for mult, fct in self:
-            curW = np.sqrt(mult) * fct.W
-            if not isinstance(curW, Zero):
-                W.append(curW)
-        return sp.vstack(W)
-
     def get_functions_of_type(self, fun_class) -> list:
         """Return objective functions of a given type(s).
 
