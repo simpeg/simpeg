@@ -8,6 +8,15 @@ from .utils import Zero
 __all__ = ["BaseObjectiveFunction", "ComboObjectiveFunction"]
 
 
+def _need_to_pass_fields(objective_function) -> bool:
+    """
+    Determine if we need to pass fields to the given objective function
+    """
+    has_fields = getattr(objective_function, "has_fields", False)
+    is_combo = isinstance(objective_function, ComboObjectiveFunction)
+    return has_fields or is_combo
+
+
 class BaseObjectiveFunction(ABC):
     """
     Base class for creating objective functions.
@@ -295,7 +304,7 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
             multiplier, objfct = phi
             if multiplier == 0.0:  # don't evaluate the fct
                 continue
-            if f is not None and objfct.has_fields:
+            if f is not None and _need_to_pass_fields(objfct):
                 objective_func_value = objfct(m, f=f[i])
             else:
                 objective_func_value = objfct(m)
@@ -309,7 +318,7 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
             multiplier, objfct = phi
             if multiplier == 0.0:  # don't evaluate the fct
                 continue
-            if f is not None and objfct.has_fields:
+            if f is not None and _need_to_pass_fields(objfct):
                 aux = objfct.deriv(m, f=f[i])
             else:
                 aux = objfct.deriv(m)
@@ -324,7 +333,7 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
             multiplier, objfct = phi
             if multiplier == 0.0:  # don't evaluate the fct
                 continue
-            if f is not None and objfct.has_fields:
+            if f is not None and _need_to_pass_fields(objfct):
                 objfct_H = objfct.deriv2(m, v, f=f[i])
             else:
                 objfct_H = objfct.deriv2(m, v)
