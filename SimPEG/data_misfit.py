@@ -1,28 +1,16 @@
+from abc import abstractmethod
 import numpy as np
-from .utils import Counter, sdiag, timeIt, Identity, validate_type
+from .utils import sdiag, Identity, validate_type
 from .data import Data
 from .simulation import BaseSimulation
-from .objective_function import L2ObjectiveFunction
+from .objective_function import BaseObjectiveFunction
 
 __all__ = ["L2DataMisfit"]
 
 
-class BaseDataMisfit(L2ObjectiveFunction):
-    r"""Base data misfit class.
-
-    Inherit this class to build your own data misfit function. The ``BaseDataMisfit``
-    class inherits the :py:class:`SimPEG.objective_function.L2ObjectiveFunction`.
-    And as a result, it is limited to building data misfit functions of the form:
-
-    .. important::
-        This class is not meant to be instantiated. You should inherit from it to
-        create your own data misfit class.
-
-    .. math::
-        \phi_d (\mathbf{m}) = \frac{1}{2} \| \mathbf{W} f(\mathbf{m}) \|_2^2
-
-    where :math:`\mathbf{m}` is the model vector, :math:`\mathbf{W}` is a linear weighting
-    matrix, and :math:`f` is a mapping function that acts on the model.
+class BaseDataMisfit(BaseObjectiveFunction):
+    """
+    Base data misfit class.
 
     Parameters
     ----------
@@ -30,15 +18,9 @@ class BaseDataMisfit(L2ObjectiveFunction):
         A SimPEG data object.
     simulation : SimPEG.simulation.BaseSimulation
         A SimPEG simulation object.
-    debug : bool
-        Print debugging information.
-    counter : None or SimPEG.utils.Counter
-        Assign a SimPEG ``Counter`` object to store iterations and run-times.
     """
 
-    def __init__(self, data, simulation, debug=False, counter=None, **kwargs):
-        super().__init__(has_fields=True, debug=debug, counter=counter, **kwargs)
-
+    def __init__(self, data, simulation):
         self.data = data
         self.simulation = simulation
 
@@ -74,36 +56,26 @@ class BaseDataMisfit(L2ObjectiveFunction):
             "simulation", value, BaseSimulation, cast=False
         )
 
-    @property
-    def debug(self):
-        """Print debugging information.
-
-        Returns
-        -------
-        bool
-            Print debugging information.
+    @abstractmethod
+    def __call__(self, model, f=None) -> float:
         """
-        return self._debug
-
-    @debug.setter
-    def debug(self, value):
-        self._debug = validate_type("debug", value, bool)
-
-    @property
-    def counter(self):
-        """SimPEG ``Counter`` object to store iterations and run-times.
-
-        Returns
-        -------
-        None or SimPEG.utils.Counter
-            SimPEG ``Counter`` object to store iterations and run-times.
+        Evaluate the objective function for a given model.
         """
-        return self._counter
+        pass
 
-    @counter.setter
-    def counter(self, value):
-        if value is not None:
-            value = validate_type("counter", value, Counter, cast=False)
+    @abstractmethod
+    def deriv(self, model):
+        """
+        Gradient of the objective function evaluated on a given model.
+        """
+        pass
+
+    @abstractmethod
+    def deriv2(self, model):
+        """
+        Hessian of the objective function evaluated on a given model.
+        """
+        pass
 
     @property
     def nP(self):
@@ -114,9 +86,7 @@ class BaseDataMisfit(L2ObjectiveFunction):
         int
             Number of model parameters.
         """
-        if self._mapping is not None:
-            return self.mapping.nP
-        elif self.simulation.model is not None:
+        if self.simulation.model is not None:
             return len(self.simulation.model)
         else:
             return "*"
@@ -147,15 +117,8 @@ class BaseDataMisfit(L2ObjectiveFunction):
 
     @property
     def W(self):
-        r"""The data weighting matrix.
-
-        For a discrete least-squares data misfit function of the form:
-
-        .. math::
-            \phi_d (\mathbf{m}) = \frac{1}{2} \| \mathbf{W} \mathbf{f}(\mathbf{m}) \|_2^2
-
-        :math:`\mathbf{W}` is a linear weighting matrix, :math:`\mathbf{m}` is the model vector,
-        and :math:`\mathbf{f}` is a discrete mapping function that acts on the model vector.
+        """
+        The data weighting matrix.
 
         Returns
         -------
@@ -165,7 +128,7 @@ class BaseDataMisfit(L2ObjectiveFunction):
 
         if getattr(self, "_W", None) is None:
             if self.data is None:
-                raise Exception(
+                raise TypeError(
                     "data with standard deviations must be set before the data "
                     "misfit can be constructed. Please set the data: "
                     "dmis.data = Data(dobs=dobs, relative_error=rel"
@@ -173,14 +136,14 @@ class BaseDataMisfit(L2ObjectiveFunction):
                 )
             standard_deviation = self.data.standard_deviation
             if standard_deviation is None:
-                raise Exception(
+                raise TypeError(
                     "data standard deviations must be set before the data misfit "
                     "can be constructed (data.relative_error = 0.05, "
                     "data.noise_floor = 1e-5), alternatively, the W matrix "
                     "can be set directly (dmisfit.W = 1./standard_deviation)"
                 )
             if any(standard_deviation <= 0):
-                raise Exception(
+                raise ValueError(
                     "data.standard_deviation must be strictly positive to construct "
                     "the W matrix. Please set data.relative_error and or "
                     "data.noise_floor."
@@ -205,9 +168,9 @@ class BaseDataMisfit(L2ObjectiveFunction):
     def residual(self, m, f=None):
         r"""Computes the data residual vector for a given model.
 
-        Where :math:`\mathbf{d}_\text{obs}` is the observed data vector and :math:`\mathbf{d}_\text{pred}`
-        is the predicted data vector for a model vector :math:`\mathbf{m}`, this function
-        computes the data residual:
+        Where :math:`\mathbf{d}_\text{obs}` is the observed data vector and
+        :math:`\mathbf{d}_\text{pred}` is the predicted data vector for a model
+        vector :math:`\mathbf{m}`, this function computes the data residual:
 
         .. math::
             \mathbf{r} = \mathbf{d}_\text{pred} - \mathbf{d}_\text{obs}
@@ -255,20 +218,14 @@ class L2DataMisfit(BaseDataMisfit):
         A SimPEG data object that has observed data and uncertainties.
     simulation : SimPEG.simulation.BaseSimulation
         A SimPEG simulation object.
-    debug : bool
-        Print debugging information.
-    counter : None or SimPEG.utils.Counter
-        Assign a SimPEG ``Counter`` object to store iterations and run-times.
     """
 
-    @timeIt
     def __call__(self, m, f=None):
         """Evaluate the residual for a given model."""
 
         R = self.W * self.residual(m, f=f)
         return 0.5 * np.vdot(R, R)
 
-    @timeIt
     def deriv(self, m, f=None):
         r"""Gradient of the data misfit function evaluated for the model provided.
 
@@ -297,7 +254,6 @@ class L2DataMisfit(BaseDataMisfit):
             m, self.W.T * (self.W * self.residual(m, f=f)), f=f
         )
 
-    @timeIt
     def deriv2(self, m, v, f=None):
         r"""Hessian of the data misfit function evaluated for the model provided.
 
