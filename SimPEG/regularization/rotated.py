@@ -1,9 +1,16 @@
 import numpy as np
 import scipy.sparse as sp
+from discretize.base import BaseMesh
 from scipy.interpolate import NearestNDInterpolator
 
-from ..utils.code_utils import validate_ndarray_with_shape
-from .base import BaseRegularization
+from .. import utils
+from ..utils.code_utils import (
+    validate_float,
+    validate_ndarray_with_shape,
+    validate_type,
+)
+from .base import BaseRegularization, RegularizationMesh
+from .sparse import Sparse, SparseSmallness
 
 
 class SmoothnessFullGradient(BaseRegularization):
@@ -29,7 +36,7 @@ class SmoothnessFullGradient(BaseRegularization):
         Each matrix should be orthonormal. Default is Identity.
     ortho_check : bool, optional
         Whether to check `reg_dirs` for orthogonality.
-    **kwargs
+    kwargs :
         Keyword arguments passed to the parent class ``BaseRegularization``.
 
     Examples
@@ -81,10 +88,46 @@ class SmoothnessFullGradient(BaseRegularization):
     anisotropic alpha used for rotated gradients.
     """
 
-    def __init__(self, mesh, alphas=None, reg_dirs=None, ortho_check=True, **kwargs):
+    # TODO: move this to KoBold/SimPEG
+    _multiplier_pair = "alpha_x"
+
+    def __init__(
+        self,
+        mesh,
+        alphas=None,
+        reg_dirs=None,
+        ortho_check=True,
+        norm=2,
+        irls_scaled=True,
+        irls_threshold=1e-8,
+        reference_model_in_smooth=False,
+        **kwargs,
+    ):
+        """
+        _summary_
+
+        :param mesh: _description_
+        :param alphas: _description_, defaults to None
+        :param reg_dirs: _description_, defaults to None
+        :param ortho_check: _description_, defaults to True
+        :param norm: _description_, defaults to 2
+        :param irls_scaled: _description_, defaults to True
+        :param irls_threshold: _description_, defaults to 1e-8
+        :raises TypeError: _description_
+        :raises IndexError: _description_
+        :raises ValueError: _description_
+        :raises IndexError: _description_
+        :raises ValueError: _description_
+        """
+        self.reference_model_in_smooth = reference_model_in_smooth
+
         if mesh.dim < 2:
             raise TypeError("Mesh must have dimension higher than 1")
         super().__init__(mesh=mesh, **kwargs)
+
+        self.norm = norm
+        self.irls_threshold = irls_threshold
+        self.irls_scaled = irls_scaled
 
         if alphas is None:
             edge_length = np.min(mesh.edge_lengths)
@@ -107,7 +150,7 @@ class SmoothnessFullGradient(BaseRegularization):
             else:
                 raise IndexError(
                     f"`alphas` first dimension, {alphas.shape[0]}, must be either number "
-                    f"of active cells {n_cells}, or the number of mesh cells {mesh.n_cells}. "
+                    f"of active cells {mesh.n_cells}, or the number of mesh cells {mesh.n_cells}. "
                 )
         if np.any(alphas < 0):
             raise ValueError("`alpha` must be non-negative")
@@ -134,7 +177,7 @@ class SmoothnessFullGradient(BaseRegularization):
                 else:
                     raise IndexError(
                         f"`reg_dirs` first dimension, {reg_dirs.shape[0]}, must be either number "
-                        f"of active cells {n_cells}, or the number of mesh cells {mesh.n_cells}. "
+                        f"of active cells {mesh.n_cells}, or the number of mesh cells {mesh.n_cells}. "
                     )
             # check orthogonality?
             if ortho_check:
@@ -168,28 +211,109 @@ class SmoothnessFullGradient(BaseRegularization):
                 )
         self._anis_alpha = anis_alpha
 
+    @property
+    def reference_model_in_smooth(self) -> bool:
+        """
+        _summary_
+
+        :return: _description_
+        """
+        # Inherited from BaseRegularization class
+        return self._reference_model_in_smooth
+
+    @reference_model_in_smooth.setter
+    def reference_model_in_smooth(self, value: bool):
+        """
+        _summary_
+
+        :param value: _description_
+        :raises TypeError: _description_
+        """
+        if not isinstance(value, bool):
+            raise TypeError(
+                f"'reference_model_in_smooth must be of type 'bool'. Value of type {type(value)} provided."
+            )
+        self._reference_model_in_smooth = value
+
+    def _delta_m(self, m):
+        """
+        _summary_
+
+        :param m: _description_
+        :return: _description_
+        """
+        if self.reference_model is None or not self.reference_model_in_smooth:
+            return m
+        return m - self.reference_model
+
+    def f_m(self, m):
+        """
+        _summary_
+
+        :param m: _description_
+        :return: _description_
+        """
+        dfm_dl = self.cell_gradient @ (self.mapping * self._delta_m(m))
+
+        if self.units is not None and self.units.lower() == "radian":
+            cell_distances = np.r_[
+                self.regularization_mesh.mesh.average_cell_to_face_x
+                * self.regularization_mesh.mesh.h_gridded[:, 0],
+                self.regularization_mesh.mesh.average_cell_to_face_y
+                * self.regularization_mesh.mesh.h_gridded[:, 1],
+                self.regularization_mesh.mesh.average_cell_to_face_z
+                * self.regularization_mesh.mesh.h_gridded[:, 2],
+            ]
+            return utils.mat_utils.coterminal(dfm_dl * cell_distances) / cell_distances
+        return dfm_dl
+
+    def f_m_deriv(self, m):
+        """
+        _summary_
+
+        :param m: _description_
+        :return: _description_
+        """
+        return self.cell_gradient @ self.mapping.deriv(self._delta_m(m))
+
     # overwrite the call, deriv, and deriv2...
     def __call__(self, m):
-        G = self.cell_gradient
+        """
+        _summary_
+
+        :param m: _description_
+        :return: _description_
+        """
         M_f = self.W
-        r = G @ (self.mapping * (self._delta_m(m)))
+        r = self.f_m(m)
         return 0.5 * r @ M_f @ r
 
     def deriv(self, m):
-        m_d = self.mapping.deriv(self._delta_m(m))
-        G = self.cell_gradient
+        """
+        _summary_
+
+        :param m: _description_
+        :return: _description_
+        """
+        m_d = self.f_m_deriv(m)
         M_f = self.W
-        r = G @ (self.mapping * (self._delta_m(m)))
-        return m_d.T * (G.T @ (M_f @ r))
+        r = self.f_m(m)
+        return m_d.T @ (M_f @ r)
 
     def deriv2(self, m, v=None):
-        m_d = self.mapping.deriv(self._delta_m(m))
-        G = self.cell_gradient
+        """
+        _summary_
+
+        :param m: _description_
+        :param v: _description_, defaults to None
+        :return: _description_
+        """
+        m_d = self.f_m_deriv(m)
         M_f = self.W
         if v is None:
-            return m_d.T @ (G.T @ M_f @ G) @ m_d
+            return m_d.T @ (M_f @ m_d)
 
-        return m_d.T @ (G.T @ (M_f @ (G @ (m_d @ v))))
+        return m_d.T @ (M_f @ (m_d @ v))
 
     @property
     def cell_gradient(self):
@@ -247,3 +371,235 @@ class SmoothnessFullGradient(BaseRegularization):
 
             self._W = mesh.get_face_inner_product(reg_model)
         return self._W
+
+    def update_weights(self, m):
+        """
+        _summary_
+
+        :param m: _description_
+        """
+        f_m = self.f_m(m)
+        irls_weights = self.get_lp_weights(f_m)
+        irls_weights = self.regularization_mesh.mesh.average_face_to_cell @ irls_weights
+        self.set_weights(irls=irls_weights[self.active_cells])
+
+    def get_lp_weights(self, f_m):
+        """
+        _summary_
+
+        :param f_m: _description_
+        :return: _description_
+        """
+        lp_scale = np.ones_like(f_m)
+        if self.irls_scaled:
+            # Scale on l2-norm gradient: f_m.max()
+            l2_max = np.ones_like(f_m) * np.abs(f_m).max()
+            # Compute theoretical maximum gradients for p < 1
+            l2_max[self.norm < 1] = self.irls_threshold / np.sqrt(
+                1.0 - self.norm[self.norm < 1]
+            )
+            lp_values = l2_max / (l2_max**2.0 + self.irls_threshold**2.0) ** (
+                1.0 - self.norm / 2.0
+            )
+            lp_scale[lp_values != 0] = np.abs(f_m).max() / lp_values[lp_values != 0]
+
+        return lp_scale / (f_m**2.0 + self.irls_threshold**2.0) ** (
+            1.0 - self.norm / 2.0
+        )
+
+    @property
+    def irls_scaled(self) -> bool:
+        """Scale IRLS weights.
+
+        When ``True``, scaling is applied when computing IRLS weights.
+        The scaling acts to preserve the balance between the data misfit and the components of
+        the regularization based on the derivative of the l2-norm measure. And it assists the
+        convergence by ensuring the model does not deviate
+        aggressively from the global 2-norm solution during the first few IRLS iterations.
+        For a comprehensive description, see the documentation for :py:meth:`get_lp_weights` .
+
+        Returns
+        -------
+        bool
+            Whether to scale IRLS weights.
+        """
+        return self._irls_scaled
+
+    @irls_scaled.setter
+    def irls_scaled(self, value: bool):
+        """
+        _summary_
+
+        :param value: _description_
+        """
+        self._irls_scaled = validate_type("irls_scaled", value, bool, cast=False)
+
+    @property
+    def irls_threshold(self):
+        r"""Stability constant for computing IRLS weights.
+
+        Returns
+        -------
+        float
+            Stability constant for computing IRLS weights.
+        """
+        return self._irls_threshold
+
+    @irls_threshold.setter
+    def irls_threshold(self, value):
+        self._irls_threshold = validate_float(
+            "irls_threshold", value, min_val=0.0, inclusive_min=False
+        )
+
+    @property
+    def norm(self):
+        r"""Norm for the sparse regularization.
+
+        Returns
+        -------
+        None, float, (n_cells, ) numpy.ndarray
+            Norm for the sparse regularization. If ``None``, a 2-norm is used.
+            A float within the interval [0,2] represents a constant norm applied for all cells.
+            A ``numpy.ndarray`` object, where each entry is used to apply a different norm to each cell in the mesh.
+        """
+        return self._norm
+
+    @norm.setter
+    def norm(self, value: float | np.ndarray | None):
+        """
+        _summary_
+
+        :param value: _description_
+        :raises ValueError: _description_
+        """
+        if value is None:
+            value = np.ones(self.cell_gradient.shape[0]) * 2.0
+        else:
+            value = np.ones(self.cell_gradient.shape[0]) * value
+        if np.any(value < 0) or np.any(value > 2):
+            raise ValueError(
+                "Value provided for 'norm' should be in the interval [0, 2]"
+            )
+        self._norm = value
+
+    @property
+    def units(self) -> str | None:
+        """Units for the model parameters.
+
+        Some regularization classes behave differently depending on the units; e.g. 'radian'.
+
+        Returns
+        -------
+        str
+            Units for the model parameters.
+        """
+        return self._units
+
+    @units.setter
+    def units(self, units: str | None):
+        if units is not None and not isinstance(units, str):
+            raise TypeError(
+                f"'units' must be None or type str. Value of type {type(units)} provided."
+            )
+        self._units = units
+
+
+class RotatedSparse(Sparse):
+    def __init__(
+        self,
+        mesh,
+        reg_dirs,
+        alphas_rot,
+        active_cells=None,
+        norms=[2, 2],
+        gradient_type="total",
+        irls_scaled=True,
+        irls_threshold=1e-8,
+        objfcts=None,
+        **kwargs,
+    ):
+        """
+        Class to wrap rotated gradient into a ComboObjective Function
+
+        :param mesh: _description_
+        :param reg_dirs: _description_
+        :param alphas_rot: _description_
+        :param active_cells: _description_, defaults to None
+        :param norms: _description_, defaults to None
+        :param gradient_type: _description_, defaults to "total"
+        :param irls_scaled: _description_, defaults to True
+        :param irls_threshold: _description_, defaults to 1e-8
+        :param objfcts: _description_, defaults to None
+        """
+        if not isinstance(mesh, RegularizationMesh):
+            mesh = RegularizationMesh(mesh)
+
+        if not isinstance(mesh, RegularizationMesh):
+            TypeError(
+                f"'regularization_mesh' must be of type {RegularizationMesh} or {BaseMesh}. "
+                f"Value of type {type(mesh)} provided."
+            )
+        self._regularization_mesh = mesh
+        if active_cells is not None:
+            self._regularization_mesh.active_cells = active_cells
+
+        if objfcts is None:
+            objfcts = [
+                SparseSmallness(mesh=self.regularization_mesh),
+                SmoothnessFullGradient(
+                    mesh=self.regularization_mesh.mesh,
+                    active_cells=active_cells,
+                    reg_dirs=reg_dirs,
+                    alphas=alphas_rot,
+                    norm=norms[1],
+                    irls_scaled=irls_scaled,
+                    irls_threshold=irls_threshold,
+                    # **kwargs,
+                ),
+            ]
+
+        super().__init__(
+            self.regularization_mesh,
+            objfcts=objfcts,
+            active_cells=active_cells,
+            gradient_type=gradient_type,
+            norms=norms[:2],
+            irls_scaled=irls_scaled,
+            irls_threshold=irls_threshold,
+            **kwargs,
+        )
+
+    @property
+    def alpha_y(self):
+        """Multiplier constant for first-order smoothness along y.
+
+        Returns
+        -------
+        float
+            Multiplier constant for first-order smoothness along y.
+        """
+        return self._alpha_y
+
+    @alpha_y.setter
+    def alpha_y(self, value):
+        self._alpha_y = None
+
+    @property
+    def alpha_z(self):
+        """Multiplier constant for first-order smoothness along z.
+
+        Returns
+        -------
+        float
+            Multiplier constant for first-order smoothness along z.
+        """
+        return self._alpha_z
+
+    @alpha_z.setter
+    def alpha_z(self, value):
+        """
+        _summary_
+
+        :param value: _description_
+        """
+        self._alpha_z = None
