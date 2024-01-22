@@ -8,7 +8,7 @@ from .maps import IdentityMap
 from .props import BaseSimPEG
 from .utils import timeIt, Zero, Identity
 
-__all__ = ["BaseObjectiveFunction", "ComboObjectiveFunction", "L2ObjectiveFunction"]
+__all__ = ["BaseObjectiveFunction", "ComboObjectiveFunction"]
 
 
 class BaseObjectiveFunction(ABC):
