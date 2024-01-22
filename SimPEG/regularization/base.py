@@ -111,6 +111,19 @@ class BaseRegularization(BaseObjectiveFunction):
             self.set_weights(**weights)
 
     @property
+    def nP(self):
+        """Number of model parameters.
+
+        Returns
+        -------
+        int
+            Number of model parameters.
+        """
+        if getattr(self, "mapping", None) is not None:
+            return self.mapping.nP
+        return "*"
+
+    @property
     def active_cells(self) -> np.ndarray:
         """Active cells defined on the regularization mesh.
 
