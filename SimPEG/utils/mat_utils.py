@@ -409,7 +409,7 @@ def coterminal(theta):
         Coterminal angles
 
     """
-    coterminal = np.sign(theta) * (np.abs(theta) % np.pi)
+    coterminal = (theta + np.pi) % (2 * np.pi) - np.pi
     return coterminal
 
 
