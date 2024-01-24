@@ -1,16 +1,17 @@
 import numpy as np
 import scipy.sparse as sp
+from discretize import TensorMesh, TreeMesh
 from discretize.base import BaseMesh
 from scipy.interpolate import NearestNDInterpolator
 
-from .. import utils
-from ..utils.code_utils import (
+from SimPEG import utils
+from SimPEG.regularization import RegularizationMesh, Sparse, SparseSmallness
+from SimPEG.regularization.base import BaseRegularization
+from SimPEG.utils.code_utils import (
     validate_float,
     validate_ndarray_with_shape,
     validate_type,
 )
-from .base import BaseRegularization, RegularizationMesh
-from .sparse import Sparse, SparseSmallness
 
 
 class SmoothnessFullGradient(BaseRegularization):
@@ -256,15 +257,10 @@ class SmoothnessFullGradient(BaseRegularization):
         dfm_dl = self.cell_gradient @ (self.mapping * self._delta_m(m))
 
         if self.units is not None and self.units.lower() == "radian":
-            cell_distances = np.r_[
-                self.regularization_mesh.mesh.average_cell_to_face_x
-                * self.regularization_mesh.mesh.h_gridded[:, 0],
-                self.regularization_mesh.mesh.average_cell_to_face_y
-                * self.regularization_mesh.mesh.h_gridded[:, 1],
-                self.regularization_mesh.mesh.average_cell_to_face_z
-                * self.regularization_mesh.mesh.h_gridded[:, 2],
-            ]
-            return utils.mat_utils.coterminal(dfm_dl * cell_distances) / cell_distances
+            return (
+                utils.mat_utils.coterminal(dfm_dl * self.cell_distances)
+                / self.cell_distances
+            )
         return dfm_dl
 
     def f_m_deriv(self, m):
@@ -497,11 +493,43 @@ class SmoothnessFullGradient(BaseRegularization):
 
     @units.setter
     def units(self, units: str | None):
+        """
+        _summary_
+
+        :param units: _description_
+        :raises TypeError: _description_
+        """
         if units is not None and not isinstance(units, str):
             raise TypeError(
                 f"'units' must be None or type str. Value of type {type(units)} provided."
             )
         self._units = units
+
+    @property
+    def cell_distances(self):
+        """
+        _summary_
+
+        :return: _description_
+        """
+        mesh = self.regularization_mesh.mesh
+        if isinstance(mesh, TreeMesh):
+            average_cell_to_face_x = mesh.average_cell_to_face_x
+            average_cell_to_face_y = mesh.average_cell_to_face_y
+            average_cell_to_face_z = mesh.average_cell_to_face_z
+
+        elif isinstance(mesh, TensorMesh):
+            average_cell_to_face_x = mesh.average_cell_to_face[: mesh.nFx]
+            average_cell_to_face_y = mesh.average_cell_to_face[
+                mesh.nFx : (mesh.nFx + mesh.nFy)
+            ]
+            average_cell_to_face_z = mesh.average_cell_to_face[(mesh.nFx + mesh.nFy) :]
+
+        return np.r_[
+            average_cell_to_face_x * mesh.h_gridded[:, 0],
+            average_cell_to_face_y * mesh.h_gridded[:, 1],
+            average_cell_to_face_z * mesh.h_gridded[:, 2],
+        ]
 
 
 class RotatedSparse(Sparse):
