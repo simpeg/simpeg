@@ -396,7 +396,7 @@ def coterminal(theta):
         \theta = 2\pi N + \gamma
 
     and *N* is an integer, the function returns the value of :math:`\gamma`.
-    The coterminal angle :math:`\gamma` is within the range :math:`[-\pi , \pi]`.
+    The coterminal angle :math:`\gamma` is within the range :math:`[-\pi , \pi)`.
 
     Parameters
     ----------
