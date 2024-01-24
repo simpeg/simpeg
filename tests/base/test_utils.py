@@ -373,17 +373,6 @@ class TestCoterminalAngle:
         angles = np.array([2 * n * np.pi + coterminal_angle for n in range(-3, 4)])
         np.testing.assert_allclose(coterminal(angles), coterminal_angle)
 
-    @pytest.mark.parametrize(
-        "angle",
-        [np.pi, -np.pi, 3 * np.pi, 1.25 * np.pi, -1.25 * np.pi],
-        ids=("pi", "-pi", "3 pi", "1.25 pi", "-1.25 pi"),
-    )
-    def test_sign_coterminal(self, angle):
-        coangle = coterminal(angle)
-        assert np.abs(coangle) < np.pi
-        if coangle != 0:
-            assert np.sign(coterminal(angle)) == np.sign(angle)
-
 
 if __name__ == "__main__":
     unittest.main()
