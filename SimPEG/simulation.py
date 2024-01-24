@@ -567,6 +567,14 @@ class ExponentialSinusoidSimulation(LinearSimulation):
         \int_x e^{p j_k x} \cos(\pi q j_k x) \quad, j_k \in [j_0, ..., j_n]
     """
 
+    def __init__(self, n_kernels=20, p=-0.25, q=0.25, j0=0.0, jn=60.0, **kwargs):
+        self.n_kernels = n_kernels
+        self.p = p
+        self.q = q
+        self.j0 = j0
+        self.jn = jn
+        super(ExponentialSinusoidSimulation, self).__init__(**kwargs)
+
     @property
     def n_kernels(self):
         """The number of kernels for the linear problem
@@ -637,14 +645,6 @@ class ExponentialSinusoidSimulation(LinearSimulation):
     def jn(self, value):
         self._jn = validate_float("jn", value)
 
-    def __init__(self, n_kernels=20, p=-0.25, q=0.25, j0=0.0, jn=60.0, **kwargs):
-        self.n_kernels = n_kernels
-        self.p = p
-        self.q = q
-        self.j0 = j0
-        self.jn = jn
-        super(ExponentialSinusoidSimulation, self).__init__(**kwargs)
-
     @property
     def jk(self):
         """
@@ -658,8 +658,8 @@ class ExponentialSinusoidSimulation(LinearSimulation):
         """
         Kernel functions for the decaying oscillating exponential functions.
         """
-        return np.exp(self.p * self.jk[k] * self.mesh.cell_centers_x) * np.cos(
-            np.pi * self.q * self.jk[k] * self.mesh.cell_centers_x
+        return np.exp(self.p * self.jk[k] * self.mesh.nodes_x) * np.cos(
+            np.pi * self.q * self.jk[k] * self.mesh.nodes_x
         )
 
     @property
@@ -671,7 +671,9 @@ class ExponentialSinusoidSimulation(LinearSimulation):
             G = np.empty((self.n_kernels, self.mesh.nC))
 
             for i in range(self.n_kernels):
-                G[i, :] = self.g(i) * self.mesh.h[0]
+                G[i, :] = self.mesh.cell_volumes * (
+                    self.mesh.average_node_to_cell @ self.g(i)
+                )
 
             self._G = G
         return self._G
