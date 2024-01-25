@@ -396,7 +396,7 @@ def coterminal(theta):
         \theta = 2\pi N + \gamma
 
     and *N* is an integer, the function returns the value of :math:`\gamma`.
-    The coterminal angle :math:`\gamma` is within the range :math:`[-\pi , \pi]`.
+    The coterminal angle :math:`\gamma` is within the range :math:`[-\pi , \pi)`.
 
     Parameters
     ----------
@@ -409,12 +409,8 @@ def coterminal(theta):
         Coterminal angles
 
     """
-    sub = theta[np.abs(theta) >= np.pi]
-    sub = -np.sign(sub) * (2 * np.pi - np.abs(sub))
-
-    theta[np.abs(theta) >= np.pi] = sub
-
-    return theta
+    coterminal = (theta + np.pi) % (2 * np.pi) - np.pi
+    return coterminal
 
 
 def define_plane_from_points(xyz1, xyz2, xyz3):
