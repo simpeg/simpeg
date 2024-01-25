@@ -4,10 +4,11 @@ import unittest
 import discretize
 import numpy as np
 import pytest
-
 from SimPEG import maps, objective_function, regularization, utils
 from SimPEG.objective_function import ComboObjectiveFunction
-from SimPEG.regularization import BaseRegularization, WeightedLeastSquares
+from SimPEG.regularization import (BaseRegularization, Smallness,
+                                   SmoothnessFirstOrder, SmoothnessSecondOrder,
+                                   WeightedLeastSquares)
 
 TOL = 1e-7
 testReg = True
@@ -574,6 +575,8 @@ class RegularizationTests(unittest.TestCase):
             reg.objfcts[0].f_m(model.flatten(order="F")), np.linalg.norm(model, axis=1)
         )
 
+        reg.test(model.flatten(order="F"))
+
 
 def test_WeightedLeastSquares():
     mesh = discretize.TensorMesh([3, 4, 5])
@@ -667,6 +670,67 @@ class TestParent:
             regularization.parent = invalid_parent
 
 
+class TestWeightsKeys:
+    """
+    Test weights_keys property of regularizations
+    """
+
+    @pytest.fixture
+    def mesh(self):
+        """Sample mesh."""
+        return discretize.TensorMesh([8, 7, 6])
+
+    def test_empty_weights(self, mesh):
+        """
+        Test weights_keys when no weight is defined
+        """
+        reg = BaseRegularization(mesh)
+        assert reg.weights_keys == []
+
+    def test_user_defined_weights_as_dict(self, mesh):
+        """
+        Test weights_keys after user defined weights as dictionary
+        """
+        weights = dict(dummy_weight=np.ones(mesh.n_cells))
+        reg = BaseRegularization(mesh, weights=weights)
+        assert reg.weights_keys == ["dummy_weight"]
+
+    def test_user_defined_weights_as_array(self, mesh):
+        """
+        Test weights_keys after user defined weights as dictionary
+        """
+        weights = np.ones(mesh.n_cells)
+        reg = BaseRegularization(mesh, weights=weights)
+        assert reg.weights_keys == ["user_weights"]
+
+    @pytest.mark.parametrize(
+        "regularization_class", (Smallness, SmoothnessFirstOrder, SmoothnessSecondOrder)
+    )
+    def test_volume_weights(self, mesh, regularization_class):
+        """
+        Test weights_keys has "volume" by default on some regularizations
+        """
+        reg = regularization_class(mesh)
+        assert reg.weights_keys == ["volume"]
+
+    @pytest.mark.parametrize(
+        "regularization_class",
+        (BaseRegularization, Smallness, SmoothnessFirstOrder, SmoothnessSecondOrder),
+    )
+    def test_multiple_weights(self, mesh, regularization_class):
+        """
+        Test weights_keys has "volume" by default on some regularizations
+        """
+        weights = dict(
+            dummy_weight=np.ones(mesh.n_cells), other_weights=np.ones(mesh.n_cells)
+        )
+        reg = regularization_class(mesh, weights=weights)
+        if regularization_class == BaseRegularization:
+            assert reg.weights_keys == ["dummy_weight", "other_weights"]
+        else:
+            assert reg.weights_keys == ["dummy_weight", "other_weights", "volume"]
+
+
 class TestDeprecatedArguments:
     """
     Test errors after simultaneously passing new and deprecated arguments.
@@ -698,7 +762,7 @@ class TestDeprecatedArguments:
     def test_active_cells(self, mesh, regularization_class):
         """Test indActive and active_cells arguments."""
         active_cells = np.ones(len(mesh), dtype=bool)
-        msg = "Cannot simultanously pass 'active_cells' and 'indActive'."
+        msg = "Cannot simultaneously pass 'active_cells' and 'indActive'."
         with pytest.raises(ValueError, match=msg):
             regularization_class(
                 mesh, active_cells=active_cells, indActive=active_cells
@@ -707,7 +771,7 @@ class TestDeprecatedArguments:
     def test_weights(self, mesh):
         """Test cell_weights and weights."""
         weights = np.ones(len(mesh))
-        msg = "Cannot simultanously pass 'weights' and 'cell_weights'."
+        msg = "Cannot simultaneously pass 'weights' and 'cell_weights'."
         with pytest.raises(ValueError, match=msg):
             BaseRegularization(mesh, weights=weights, cell_weights=weights)
 
