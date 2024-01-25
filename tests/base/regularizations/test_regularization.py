@@ -1,20 +1,19 @@
-import numpy as np
+import inspect
 import unittest
 
-import pytest
-import inspect
-
 import discretize
+import numpy as np
+import pytest
+
 from SimPEG import maps, objective_function, regularization, utils
+from SimPEG.objective_function import ComboObjectiveFunction
 from SimPEG.regularization import (
     BaseRegularization,
-    WeightedLeastSquares,
     Smallness,
     SmoothnessFirstOrder,
     SmoothnessSecondOrder,
+    WeightedLeastSquares,
 )
-from SimPEG.objective_function import ComboObjectiveFunction
-
 
 TOL = 1e-7
 testReg = True
