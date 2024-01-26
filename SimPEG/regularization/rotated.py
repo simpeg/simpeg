@@ -1,5 +1,8 @@
+from typing import Literal
+
 import numpy as np
 import scipy.sparse as sp
+from discretize import TensorMesh, TreeMesh
 from discretize.base import BaseMesh
 from scipy.interpolate import NearestNDInterpolator
 
@@ -10,7 +13,6 @@ from ..utils.code_utils import (
 )
 from ..utils.mat_utils import coterminal
 from . import BaseRegularization, RegularizationMesh, Sparse, SparseSmallness
-from .base import BaseRegularization
 
 
 class SmoothnessFullGradient(BaseRegularization):
@@ -88,7 +90,6 @@ class SmoothnessFullGradient(BaseRegularization):
     anisotropic alpha used for rotated gradients.
     """
 
-    # TODO: move this to KoBold/SimPEG
     _multiplier_pair = "alpha_x"
 
     def __init__(
@@ -103,22 +104,6 @@ class SmoothnessFullGradient(BaseRegularization):
         reference_model_in_smooth=False,
         **kwargs,
     ):
-        """
-        _summary_
-
-        :param mesh: _description_
-        :param alphas: _description_, defaults to None
-        :param reg_dirs: _description_, defaults to None
-        :param ortho_check: _description_, defaults to True
-        :param norm: _description_, defaults to 2
-        :param irls_scaled: _description_, defaults to True
-        :param irls_threshold: _description_, defaults to 1e-8
-        :raises TypeError: _description_
-        :raises IndexError: _description_
-        :raises ValueError: _description_
-        :raises IndexError: _description_
-        :raises ValueError: _description_
-        """
         self.reference_model_in_smooth = reference_model_in_smooth
 
         if mesh.dim < 2:
@@ -214,21 +199,14 @@ class SmoothnessFullGradient(BaseRegularization):
     @property
     def reference_model_in_smooth(self) -> bool:
         """
-        _summary_
+        whether to include reference model in gradient or not
 
-        :return: _description_
+        :return: True or False
         """
-        # Inherited from BaseRegularization class
         return self._reference_model_in_smooth
 
     @reference_model_in_smooth.setter
     def reference_model_in_smooth(self, value: bool):
-        """
-        _summary_
-
-        :param value: _description_
-        :raises TypeError: _description_
-        """
         if not isinstance(value, bool):
             raise TypeError(
                 f"'reference_model_in_smooth must be of type 'bool'. Value of type {type(value)} provided."
@@ -236,23 +214,11 @@ class SmoothnessFullGradient(BaseRegularization):
         self._reference_model_in_smooth = value
 
     def _delta_m(self, m):
-        """
-        _summary_
-
-        :param m: _description_
-        :return: _description_
-        """
         if self.reference_model is None or not self.reference_model_in_smooth:
             return m
         return m - self.reference_model
 
     def f_m(self, m):
-        """
-        _summary_
-
-        :param m: _description_
-        :return: _description_
-        """
         dfm_dl = self.cell_gradient @ (self.mapping * self._delta_m(m))
 
         if self.units is not None and self.units.lower() == "radian":
@@ -260,46 +226,21 @@ class SmoothnessFullGradient(BaseRegularization):
         return dfm_dl
 
     def f_m_deriv(self, m):
-        """
-        _summary_
-
-        :param m: _description_
-        :return: _description_
-        """
         return self.cell_gradient @ self.mapping.deriv(self._delta_m(m))
 
     # overwrite the call, deriv, and deriv2...
     def __call__(self, m):
-        """
-        _summary_
-
-        :param m: _description_
-        :return: _description_
-        """
         M_f = self.W
         r = self.f_m(m)
         return 0.5 * r @ M_f @ r
 
     def deriv(self, m):
-        """
-        _summary_
-
-        :param m: _description_
-        :return: _description_
-        """
         m_d = self.f_m_deriv(m)
         M_f = self.W
         r = self.f_m(m)
         return m_d.T @ (M_f @ r)
 
     def deriv2(self, m, v=None):
-        """
-        _summary_
-
-        :param m: _description_
-        :param v: _description_, defaults to None
-        :return: _description_
-        """
         m_d = self.f_m_deriv(m)
         M_f = self.W
         if v is None:
@@ -365,23 +306,12 @@ class SmoothnessFullGradient(BaseRegularization):
         return self._W
 
     def update_weights(self, m):
-        """
-        _summary_
-
-        :param m: _description_
-        """
         f_m = self.f_m(m)
         irls_weights = self.get_lp_weights(f_m)
         irls_weights = self.regularization_mesh.mesh.average_face_to_cell @ irls_weights
         self.set_weights(irls=irls_weights[self.active_cells])
 
     def get_lp_weights(self, f_m):
-        """
-        _summary_
-
-        :param f_m: _description_
-        :return: _description_
-        """
         lp_scale = np.ones_like(f_m)
         if self.irls_scaled:
             # Scale on l2-norm gradient: f_m.max()
@@ -419,11 +349,6 @@ class SmoothnessFullGradient(BaseRegularization):
 
     @irls_scaled.setter
     def irls_scaled(self, value: bool):
-        """
-        _summary_
-
-        :param value: _description_
-        """
         self._irls_scaled = validate_type("irls_scaled", value, bool, cast=False)
 
     @property
@@ -458,12 +383,6 @@ class SmoothnessFullGradient(BaseRegularization):
 
     @norm.setter
     def norm(self, value: float | np.ndarray | None):
-        """
-        _summary_
-
-        :param value: _description_
-        :raises ValueError: _description_
-        """
         if value is None:
             value = np.ones(self.cell_gradient.shape[0]) * 2.0
         else:
@@ -489,12 +408,6 @@ class SmoothnessFullGradient(BaseRegularization):
 
     @units.setter
     def units(self, units: str | None):
-        """
-        _summary_
-
-        :param units: _description_
-        :raises TypeError: _description_
-        """
         if units is not None and not isinstance(units, str):
             raise TypeError(
                 f"'units' must be None or type str. Value of type {type(units)} provided."
@@ -502,7 +415,12 @@ class SmoothnessFullGradient(BaseRegularization):
         self._units = units
 
     @property
-    def _cell_distances(self):
+    def _cell_distances(self) -> np.ndarray:
+        """
+        cell size average on faces
+
+        :return: np.ndarray
+        """
         cell_distances = self.cell_gradient.max(axis=1).toarray().flatten()
         cell_distances[cell_distances == 0] = 1
         cell_distances = cell_distances ** (-1)
@@ -511,31 +429,35 @@ class SmoothnessFullGradient(BaseRegularization):
 
 
 class RotatedSparse(Sparse):
+    """
+    Class that wraps the rotated gradients in a ComboObjectiveFunction similar to Sparse.
+    """
+
     def __init__(
         self,
-        mesh,
-        reg_dirs,
-        alphas_rot,
-        active_cells=None,
-        norms=[2, 2],
-        gradient_type="total",
-        irls_scaled=True,
-        irls_threshold=1e-8,
-        objfcts=None,
+        mesh: TensorMesh | TreeMesh,
+        reg_dirs: np.ndarray,
+        alphas_rot: tuple[float, float, float],
+        active_cells: np.ndarray | None = None,
+        norms: list[float] = [2.0, 2.0],
+        gradient_type: Literal["components", "total"] = "total",
+        irls_scaled: bool = True,
+        irls_threshold: float = 1e-8,
+        objfcts: list[BaseRegularization] | None = None,
         **kwargs,
     ):
         """
         Class to wrap rotated gradient into a ComboObjective Function
 
-        :param mesh: _description_
-        :param reg_dirs: _description_
-        :param alphas_rot: _description_
-        :param active_cells: _description_, defaults to None
-        :param norms: _description_, defaults to None
-        :param gradient_type: _description_, defaults to "total"
-        :param irls_scaled: _description_, defaults to True
-        :param irls_threshold: _description_, defaults to 1e-8
-        :param objfcts: _description_, defaults to None
+        :param mesh: mesh
+        :param reg_dirs: rotation matrix
+        :param alphas_rot: alphas for rotated gradients
+        :param active_cells: active cells, defaults to None
+        :param norms: norms, defaults to [2, 2]
+        :param gradient_type: gradient_type, defaults to "total"
+        :param irls_scaled: irls_scaled, defaults to True
+        :param irls_threshold: irls_threshold, defaults to 1e-8
+        :param objfcts: objfcts, defaults to None
         """
         if not isinstance(mesh, RegularizationMesh):
             mesh = RegularizationMesh(mesh)
@@ -560,7 +482,6 @@ class RotatedSparse(Sparse):
                     norm=norms[1],
                     irls_scaled=irls_scaled,
                     irls_threshold=irls_threshold,
-                    # **kwargs,
                 ),
             ]
 
@@ -603,9 +524,4 @@ class RotatedSparse(Sparse):
 
     @alpha_z.setter
     def alpha_z(self, value):
-        """
-        _summary_
-
-        :param value: _description_
-        """
         self._alpha_z = None
