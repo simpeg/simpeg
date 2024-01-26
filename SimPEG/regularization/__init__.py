@@ -161,7 +161,6 @@ from .jtv import JointTotalVariation
 from .pgi import PGI, PGIsmallness
 from .regularization_mesh import RegularizationMesh
 from .regularization_mesh_lateral import LCRegularizationMesh
-from .rotated import RotatedSparse, SmoothnessFullGradient
 from .sparse import BaseSparse, Sparse, SparseSmallness, SparseSmoothness
 from .vector import (
     AmplitudeSmallness,
