@@ -421,7 +421,7 @@ class SmoothnessFullGradient(BaseRegularization):
 
         :return: np.ndarray
         """
-        cell_distances = self.cell_gradient.max(axis=1).toarray().flatten()
+        cell_distances = self.cell_gradient.max(axis=1).toarray().ravel()
         cell_distances[cell_distances == 0] = 1
         cell_distances = cell_distances ** (-1)
 
