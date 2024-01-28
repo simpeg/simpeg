@@ -11,47 +11,65 @@ from SimPEG.utils.code_utils import deprecate_property
 class Update_IRLS(InversionDirective):
     """
     Directive to control the IRLS iterations for regularization.Sparse.
+
+    Parameters
+    ----------
+
+    beta_search: Proceed with a beta search step if the target misfit is outside the tolerance.
+    beta_tol: Tolerance for the target misfit.
+    chifact_start: Starting chi factor for the IRLS iterations.
+    chifact_target: Target chi factor for the IRLS iterations.
+    cooling_factor: Factor to cool beta.
+    cooling_rate: Rate to cool beta.
+    epsilon_cooling_factor: Factor to cool the IRLS threshold epsilon.
+    max_irls_iterations: Maximum number of IRLS iterations.
+    prctile: Percentile to use to determine the initial IRLS threshold.
+    silent: Print information to the command line.
     """
 
     def __init__(
         self,
-        max_irls_iterations=20,
-        update_beta=True,
-        beta_search=False,
-        cooling_factor=2.0,
-        cooling_rate=1,
+        beta_search: bool = False,
+        beta_tol: float = 1e-1,
+        chifact_start: float = 1.0,
+        chifact_target: float = 1.0,
+        cooling_factor: float = 2.0,
+        cooling_rate: int = 1,
+        epsilon_cooling_factor: float = 1.2,
+        max_irls_iterations: int = 20,
+        prctile: float = 100,
+        silent: bool = False,
         **kwargs,
     ):
         self._input_norms: list[float] | None = None
         self._beta_schedule: BetaSchedule | None = None
         self._target: float | None = None
         self._start: float | None = None
-
-        self.f_old = 0
+        self._start_irls_iter = 0
+        self._f_old: float | None = None
+        self._update_beta = True
+        self._mode = 1
+        self._verbose: bool = True
         self.f_min_change = 1e-2
-        self.beta_tol = 1e-1
-
-        self.prctile = 100
-        self.chifact_start = 1.0
-        self.chifact_target = 1.0
+        self.epsilon_cooling_factor: float = epsilon_cooling_factor
+        self.beta_tol = beta_tol
 
         # Solving parameter for IRLS (mode:2)
-        self.irls_iteration = 0
+        self._irls_iteration_count = 0
         self.minGNiter = 1
-        self.iterStart = 0
+
         self.sphericalDomain = False
 
-        # Beta schedule
-        self.mode = 1
-        self.coolEpsFact = 1.2
-        self.silent = False
-
         super().__init__(**kwargs)
-        self.max_irls_iterations = max_irls_iterations
-        self.update_beta = update_beta
+
         self.beta_search = beta_search
+        self.chifact_start = chifact_start
+        self.chifact_target = chifact_target
         self.cooling_factor = cooling_factor
         self.cooling_rate = cooling_rate
+        self.max_irls_iterations = max_irls_iterations
+        self.prctile = prctile
+        self.verbose = not silent
 
     @property
     def max_irls_iterations(self):
@@ -111,6 +129,14 @@ class Update_IRLS(InversionDirective):
         cooling_rate,
         "coolingRate",
         "cooling_rate",
+        future_warn=True,
+        removal_version="0.22.0",
+    )
+
+    coolEpsFact = deprecate_property(
+        epsilon_cooling_factor,
+        "coolEpsFact",
+        "epsilon_cooling_factor",
         future_warn=True,
         removal_version="0.22.0",
     )
@@ -183,7 +209,7 @@ class Update_IRLS(InversionDirective):
         self._start = val
 
     def initialize(self):
-        if self.mode == 1:
+        if self._mode == 1:
             self._input_norms = []
             for reg in self.reg.objfcts:
                 if not isinstance(reg, Sparse):
@@ -201,7 +227,7 @@ class Update_IRLS(InversionDirective):
 
     def endIter(self):
         # After reaching target misfit with l2-norm, switch to IRLS (mode:2)
-        if self.mode == 1:
+        if self._mode == 1:
             if self.invProb.phi_d < self.start:
                 self.start_irls()
             else:
@@ -230,7 +256,7 @@ class Update_IRLS(InversionDirective):
                 return
 
         # Only update after GN iterations
-        if (self.opt.iter - self.iterStart) % self.minGNiter == 0:
+        if (self.opt.iter - self._start_irls_iter) % self.minGNiter == 0:
             if self.stopping_criteria():
                 self.opt.stopNextIteration = True
                 return
@@ -246,7 +272,7 @@ class Update_IRLS(InversionDirective):
                     if isinstance(reg, (Sparse, BaseSparse)):
                         obj.irls_threshold = obj.irls_threshold / self.coolEpsFact
 
-            self.irls_iteration += 1
+            self._irls_iteration_count += 1
 
             # Reset the regularization matrices so that it is
             # recalculated for current model. Do it to all levels of comboObj
@@ -266,12 +292,12 @@ class Update_IRLS(InversionDirective):
                 + " Start IRLS steps..."
             )
 
-        self.mode = 2
+        self._mode = 2
 
         if getattr(self.opt, "iter", None) is None:
-            self.iterStart = 0
+            self._start_irls_iter = 0
         else:
-            self.iterStart = self.opt.iter
+            self._start_irls_iter = self.opt.iter
 
         self.invProb.phi_m_last = self.reg(self.invProb.model)
 
@@ -355,6 +381,19 @@ class Update_IRLS(InversionDirective):
 
         return True
 
+    @property
+    def verbose(self):
+        """Whether to print information to the command line."""
+        return self._verbose
+
+    silent = deprecate_property(
+        verbose,
+        "silent",
+        "verbose",
+        future_warn=True,
+        removal_version="0.22.0",
+    )
+
     def stopping_criteria(self):
         """
         Check for stopping criteria of max_irls_iteration or minimum change.
@@ -366,7 +405,7 @@ class Update_IRLS(InversionDirective):
                 phim_new += reg(reg.model)
 
         # Check for maximum number of IRLS cycles1
-        if self.irls_iteration == self.max_irls_iterations:
+        if self._irls_iteration_count == self.max_irls_iterations:
             if not self.silent:
                 print(
                     "Reach maximum number of IRLS cycles:"
@@ -375,17 +414,17 @@ class Update_IRLS(InversionDirective):
             return True
 
         # Check if the function has changed enough
-        f_change = np.abs(self.f_old - phim_new) / (self.f_old + 1e-12)
+        f_change = np.abs(self._f_old - phim_new) / (self._f_old + 1e-12)
 
         if (
             f_change < self.f_min_change
-            and self.irls_iteration > 1
+            and self._irls_iteration_count > 1
             and np.abs(1.0 - self.invProb.phi_d / self.target) < self.beta_tol
         ):
             print("Minimum decrease in regularization." + "End of IRLS")
             return True
 
-        self.f_old = phim_new
+        self._f_old = phim_new
 
         return False
 
