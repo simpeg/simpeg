@@ -1,5 +1,6 @@
 import numpy as np
 import SimPEG.dask  # noqa: F401
+import SimPEG.directives._regularization
 from SimPEG import (
     data,
     data_misfit,
@@ -164,7 +165,7 @@ class AmpProblemTest(unittest.TestCase):
 
         # Target misfit to stop the inversion,
         # try to fit as much as possible of the signal, we don't want to lose anything
-        IRLS = directives.Update_IRLS(
+        IRLS = SimPEG.directives._regularization.Update_IRLS(
             f_min_change=1e-3, minGNiter=1, beta_tol=1e-1, max_irls_iterations=5
         )
         update_Jacobi = directives.UpdatePreconditioner()
@@ -247,7 +248,7 @@ class AmpProblemTest(unittest.TestCase):
         betaest = directives.BetaEstimate_ByEig(beta0_ratio=1)
 
         # Specify the sparse norms
-        IRLS = directives.Update_IRLS(
+        IRLS = SimPEG.directives._regularization.Update_IRLS(
             max_irls_iterations=5,
             f_min_change=1e-3,
             minGNiter=1,

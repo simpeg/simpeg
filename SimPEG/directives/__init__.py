@@ -9,7 +9,6 @@ from .directives import (
     SaveModelEveryIteration,
     SaveOutputEveryIteration,
     SaveOutputDictEveryIteration,
-    Update_IRLS,
     UpdatePreconditioner,
     Update_Wj,
     AlphasSmoothEstimate_ByEig,
@@ -19,6 +18,7 @@ from .directives import (
     UpdateSensitivityWeights,
     ProjectSphericalBounds,
 )
+from ._regularization import Update_IRLS
 
 from .pgi_directives import (
     PGI_UpdateParameters,

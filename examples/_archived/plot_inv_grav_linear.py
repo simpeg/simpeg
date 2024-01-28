@@ -11,6 +11,8 @@ import matplotlib.pyplot as plt
 
 from discretize import TensorMesh
 from discretize.utils import active_from_xyz
+
+import SimPEG.directives._regularization
 from SimPEG.potential_fields import gravity
 from SimPEG import (
     maps,
@@ -119,7 +121,7 @@ def run(plotIt=True):
     # Here is where the norms are applied
     # Use pick a threshold parameter empirically based on the distribution of
     # model parameters
-    update_IRLS = directives.Update_IRLS(
+    update_IRLS = SimPEG.directives._regularization.Update_IRLS(
         f_min_change=1e-4,
         max_irls_iterations=30,
         coolEpsFact=1.5,

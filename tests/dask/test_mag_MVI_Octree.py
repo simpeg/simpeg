@@ -1,5 +1,6 @@
 import unittest
 import SimPEG.dask  # noqa: F401
+import SimPEG.directives._regularization
 from SimPEG import (
     directives,
     maps,
@@ -141,7 +142,7 @@ class MVIProblemTest(unittest.TestCase):
         # Here is where the norms are applied
         # Use pick a treshold parameter empirically based on the distribution of
         #  model parameters
-        IRLS = directives.Update_IRLS(
+        IRLS = SimPEG.directives._regularization.Update_IRLS(
             f_min_change=1e-3, max_irls_iterations=0, beta_tol=5e-1
         )
 
@@ -203,7 +204,7 @@ class MVIProblemTest(unittest.TestCase):
         invProb = inverse_problem.BaseInvProblem(dmis, reg, opt, beta=beta)
 
         # Here is where the norms are applied
-        IRLS = directives.Update_IRLS(
+        IRLS = SimPEG.directives._regularization.Update_IRLS(
             f_min_change=1e-4,
             max_irls_iterations=5,
             minGNiter=1,

@@ -1,5 +1,6 @@
 import unittest
 import SimPEG.dask  # noqa: F401
+import SimPEG.directives._regularization
 from SimPEG import (
     directives,
     maps,
@@ -140,7 +141,7 @@ class MagInvLinProblemTest(unittest.TestCase):
         # Here is where the norms are applied
         # Use pick a treshold parameter empirically based on the distribution of
         #  model parameters
-        IRLS = directives.Update_IRLS()
+        IRLS = SimPEG.directives._regularization.Update_IRLS()
         update_Jacobi = directives.UpdatePreconditioner()
         sensitivity_weights = directives.UpdateSensitivityWeights()
         self.inv = inversion.BaseInversion(

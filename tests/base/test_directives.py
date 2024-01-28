@@ -3,6 +3,8 @@ import pytest
 import numpy as np
 
 import discretize
+
+import SimPEG.directives._regularization
 from SimPEG import (
     maps,
     directives,
@@ -21,7 +23,9 @@ class directivesValidation(unittest.TestCase):
     def test_validation_pass(self):
         betaest = directives.BetaEstimate_ByEig()
 
-        IRLS = directives.Update_IRLS(f_min_change=1e-4, minGNiter=3, beta_tol=1e-2)
+        IRLS = SimPEG.directives._regularization.Update_IRLS(
+            f_min_change=1e-4, minGNiter=3, beta_tol=1e-2
+        )
         update_Jacobi = directives.UpdatePreconditioner()
         dList = [betaest, IRLS, update_Jacobi]
         directiveList = directives.DirectiveList(*dList)
@@ -31,7 +35,9 @@ class directivesValidation(unittest.TestCase):
     def test_validation_fail(self):
         betaest = directives.BetaEstimate_ByEig()
 
-        IRLS = directives.Update_IRLS(f_min_change=1e-4, minGNiter=3, beta_tol=1e-2)
+        IRLS = SimPEG.directives._regularization.Update_IRLS(
+            f_min_change=1e-4, minGNiter=3, beta_tol=1e-2
+        )
         update_Jacobi = directives.UpdatePreconditioner()
         dList = [betaest, update_Jacobi, IRLS]
         directiveList = directives.DirectiveList(*dList)
@@ -51,7 +57,9 @@ class directivesValidation(unittest.TestCase):
     def test_validation_warning(self):
         betaest = directives.BetaEstimate_ByEig()
 
-        IRLS = directives.Update_IRLS(f_min_change=1e-4, minGNiter=3, beta_tol=1e-2)
+        IRLS = SimPEG.directives._regularization.Update_IRLS(
+            f_min_change=1e-4, minGNiter=3, beta_tol=1e-2
+        )
         dList = [betaest, IRLS]
         directiveList = directives.DirectiveList(*dList)
 
@@ -104,7 +112,9 @@ class ValidationInInversion(unittest.TestCase):
         betaest = directives.BetaEstimate_ByEig()
 
         # Here is where the norms are applied
-        IRLS = directives.Update_IRLS(f_min_change=1e-4, minGNiter=3, beta_tol=1e-2)
+        IRLS = SimPEG.directives._regularization.Update_IRLS(
+            f_min_change=1e-4, minGNiter=3, beta_tol=1e-2
+        )
 
         update_Jacobi = directives.UpdatePreconditioner()
         sensitivity_weights = directives.UpdateSensitivityWeights()

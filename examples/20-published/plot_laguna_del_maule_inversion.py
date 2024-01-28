@@ -14,6 +14,8 @@ Craig Miller
 import os
 import shutil
 import tarfile
+
+import SimPEG.directives._regularization
 from SimPEG.potential_fields import gravity
 from SimPEG import (
     data_misfit,
@@ -125,7 +127,7 @@ def run(plotIt=True, cleanAfterRun=True):
     # IRLS sets up the Lp inversion problem
     # Set the eps parameter parameter in Line 11 of the
     # input file based on the distribution of model (DEFAULT = 95th %ile)
-    IRLS = directives.Update_IRLS(
+    IRLS = SimPEG.directives._regularization.Update_IRLS(
         f_min_change=1e-4, max_irls_iterations=40, coolEpsFact=1.5, beta_tol=5e-1
     )
 

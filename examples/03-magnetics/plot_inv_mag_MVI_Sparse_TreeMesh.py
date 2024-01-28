@@ -15,7 +15,7 @@ The inverse problem uses the :class:'SimPEG.regularization.Sparse'
 that
 
 """
-
+import SimPEG.directives._regularization
 from SimPEG import (
     data,
     data_misfit,
@@ -255,7 +255,9 @@ sensitivity_weights = directives.UpdateSensitivityWeights()
 # Here is where the norms are applied
 # Use a threshold parameter empirically based on the distribution of
 #  model parameters
-IRLS = directives.Update_IRLS(f_min_change=1e-3, max_irls_iterations=2, beta_tol=5e-1)
+IRLS = SimPEG.directives._regularization.Update_IRLS(
+    f_min_change=1e-3, max_irls_iterations=2, beta_tol=5e-1
+)
 
 # Pre-conditioner
 update_Jacobi = directives.UpdatePreconditioner()
@@ -339,7 +341,7 @@ opt.approxHinv = None
 invProb = inverse_problem.BaseInvProblem(dmis, reg, opt, beta=beta)
 
 # Here is where the norms are applied
-irls = directives.Update_IRLS(
+irls = SimPEG.directives._regularization.Update_IRLS(
     f_min_change=1e-4,
     max_irls_iterations=20,
     minGNiter=1,
