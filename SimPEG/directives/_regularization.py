@@ -351,7 +351,7 @@ class Update_IRLS(InversionDirective):
                 "A `SphericalDomain` will be added to your directives list, please consider adding it yourself.",
                 stacklevel=2,
             )
-            directiveList.dList.append(SphericalDomain())
+            directiveList.dList = [SphericalDomain()] + directiveList.dList
 
         return True
 
@@ -415,19 +415,16 @@ class SphericalDomain(InversionDirective):
         # regularization controls the amplitude.
         max_p = []
         for reg in self.reg.objfcts[0].objfcts:
-            f_m = abs(reg.f_m(reg.model))
+            f_m = abs(reg.f_m(self.invProb.model))
             max_p += [np.max(f_m)]
 
         max_p = np.asarray(max_p).max()
 
-        max_s = [np.pi, np.pi]
-
-        for reg, var in zip(self.reg.objfcts, max_s):
-            if reg.units != "radian":
-                continue
-
+        for reg in self.reg.objfcts:
             for obj in reg.objfcts:
+                if obj.units != "radian":
+                    continue
                 # TODO Need to make weights_shapes a public method
                 obj.set_weights(
-                    angle_scale=np.ones(obj._weights_shapes[0]) * max_p / var
+                    angle_scale=np.ones(obj._weights_shapes[0]) * max_p / np.pi
                 )
