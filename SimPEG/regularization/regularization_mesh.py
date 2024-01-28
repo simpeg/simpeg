@@ -551,7 +551,7 @@ class RegularizationMesh(props.BaseSimPEG):
             Cell center distance array along the x-direction.
         """
         if getattr(self, "_cell_distances_x", None) is None:
-            self._cell_distances_x = self.cell_gradient_x.max(axis=1).data ** (-1.0)
+            self._cell_distances_x = self.cell_gradient_x.max(axis=1).toarray().flatten() ** (-1.0)
 
         return self._cell_distances_x
 
