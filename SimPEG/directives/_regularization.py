@@ -201,15 +201,18 @@ class Update_IRLS(InversionDirective):
 
     def endIter(self):
         # After reaching target misfit with l2-norm, switch to IRLS (mode:2)
-        if self.invProb.phi_d < self.start and self.mode == 1:
-            self.start_irls()
+        if self.mode == 1:
+            if self.invProb.phi_d < self.start:
+                self.start_irls()
+            else:
+                return
 
         # Check if misfit is within the tolerance, otherwise scale beta
         if (
             np.abs(1.0 - self.invProb.phi_d / self.target) > self.beta_tol
             and self.update_beta
         ):
-            ratio = self.target / self.invProb.phi_d
+            ratio = self.invProb.phi_d / self.target
 
             if ratio > 1:
                 ratio = np.mean([2.0, ratio])
@@ -227,9 +230,7 @@ class Update_IRLS(InversionDirective):
                 return
 
         # Only update after GN iterations
-        if (
-            (self.opt.iter - self.iterStart) % self.minGNiter == 0
-        ) and self.stopping_criteria():
+        if (self.opt.iter - self.iterStart) % self.minGNiter == 0:
             if self.stopping_criteria():
                 self.opt.stopNextIteration = True
                 return
