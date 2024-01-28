@@ -347,7 +347,6 @@ irls = SimPEG.directives._regularization.Update_IRLS(
     minGNiter=1,
     beta_tol=0.5,
     coolingRate=1,
-    coolEps_q=True,
     sphericalDomain=True,
 )
 

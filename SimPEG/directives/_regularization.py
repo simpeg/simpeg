@@ -400,12 +400,12 @@ class SphericalDomain(InversionDirective):
     """
 
     def initialize(self):
-        self.component_scaling()
+        self.update_scaling()
 
     def endIter(self):
-        self.component_scaling()
+        self.update_scaling()
 
-    def component_scaling(self):
+    def update_scaling(self):
         """
         Add an 'angle_scale' to the list of weights on the angle regularization for the
         different block of models to account for units of radian and SI.
