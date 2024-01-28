@@ -664,6 +664,11 @@ class TestParent:
         with pytest.raises(TypeError, match=msg):
             regularization.parent = invalid_parent
 
+    def test_default_parent(self, regularization):
+        """Test setting a default parent class to a BaseRegularization."""
+        parent = ComboObjectiveFunction(objfcts=[regularization])
+        assert regularization.parent is parent
+
 
 class TestWeightsKeys:
     """
