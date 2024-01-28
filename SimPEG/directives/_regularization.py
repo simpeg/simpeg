@@ -8,31 +8,9 @@ from SimPEG.utils import validate_integer, validate_float, validate_type
 
 
 class Update_IRLS(InversionDirective):
-    f_old = 0
-    f_min_change = 1e-2
-    beta_tol = 1e-1
-    beta_ratio_l2 = None
-    prctile = 100
-    chifact_start = 1.0
-    chifact_target = 1.0
-
-    # Solving parameter for IRLS (mode:2)
-    irls_iteration = 0
-    minGNiter = 1
-    iterStart = 0
-    sphericalDomain = False
-
-    # Beta schedule
-    ComboObjFun = False
-    mode = 1
-    coolEpsOptimized = True
-    coolEps_p = True
-    coolEps_q = True
-    floorEps_p = 1e-8
-    floorEps_q = 1e-8
-    coolEpsFact = 1.2
-    silent = False
-    fix_Jmatrix = False
+    """
+    Directive to control the IRLS iterations for regularization.Sparse.
+    """
 
     def __init__(
         self,
@@ -43,6 +21,25 @@ class Update_IRLS(InversionDirective):
         coolingRate=1,
         **kwargs,
     ):
+        self.f_old = 0
+        self.f_min_change = 1e-2
+        self.beta_tol = 1e-1
+
+        self.prctile = 100
+        self.chifact_start = 1.0
+        self.chifact_target = 1.0
+
+        # Solving parameter for IRLS (mode:2)
+        self.irls_iteration = 0
+        self.minGNiter = 1
+        self.iterStart = 0
+        self.sphericalDomain = False
+
+        # Beta schedule
+        self.mode = 1
+        self.coolEpsFact = 1.2
+        self.silent = False
+
         super().__init__(**kwargs)
         self.max_irls_iterations = max_irls_iterations
         self.update_beta = update_beta
