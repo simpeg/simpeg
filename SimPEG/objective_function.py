@@ -388,9 +388,6 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
 
         super().__init__(nP=nP)
 
-        for fct in objfcts:
-            fct.parent = self
-
         self.objfcts = objfcts
         self._multipliers = multipliers
         self._unpack_on_add = unpack_on_add
@@ -543,6 +540,8 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
                     f"{function.__class__.__name__} in 'objfcts'. "
                     "All objective functions must inherit from BaseObjectiveFunction."
                 )
+            function.parent = self
+
         number_of_parameters = [f.nP for f in objective_functions if f.nP != "*"]
         if number_of_parameters:
             all_equal = all(np.equal(number_of_parameters, number_of_parameters[0]))
