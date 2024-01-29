@@ -4,11 +4,16 @@ import unittest
 import discretize
 import numpy as np
 import pytest
+
 from SimPEG import maps, objective_function, regularization, utils
 from SimPEG.objective_function import ComboObjectiveFunction
-from SimPEG.regularization import (BaseRegularization, Smallness,
-                                   SmoothnessFirstOrder, SmoothnessSecondOrder,
-                                   WeightedLeastSquares)
+from SimPEG.regularization import (
+    BaseRegularization,
+    Smallness,
+    SmoothnessFirstOrder,
+    SmoothnessSecondOrder,
+    WeightedLeastSquares,
+)
 
 TOL = 1e-7
 testReg = True
@@ -31,7 +36,6 @@ IGNORE_ME = [
     "LinearCorrespondence",
     "JointTotalVariation",
     "BaseAmplitude",
-    "SmoothnessFullGradient",
     "VectorAmplitude",
     "CrossReferenceRegularization",
 ]
@@ -164,7 +168,7 @@ class RegularizationTests(unittest.TestCase):
             active_cells = mesh.gridCC[:, 2] < 0.6
             reg = getattr(regularization, regType)(mesh, active_cells=active_cells)
 
-            self.assertTrue(reg.nP == reg.regularization_mesh.n_cells)
+            self.assertTrue(reg.nP == reg.regularization_mesh.nC)
 
             [
                 self.assertTrue(np.all(fct.active_cells == active_cells))
@@ -633,11 +637,17 @@ def test_cross_reg_reg_errors():
         regularization.CrossReferenceRegularization(mesh, ref_dir)
 
 
-def test_coterminal_angle():
+@pytest.mark.parametrize("orientation", ("x", "y", "z"))
+def test_smoothness_first_order_coterminal_angle(orientation):
+    """
+    Test smoothness first order regularizations of angles on a treemesh
+    """
     mesh = discretize.TreeMesh([16, 16, 16])
     mesh.insert_cells([100, 100, 100], mesh.max_level, finalize=True)
 
-    reg = regularization.SmoothnessFirstOrder(mesh, units="radian", orientation="y")
+    reg = regularization.SmoothnessFirstOrder(
+        mesh, units="radian", orientation=orientation
+    )
     angles = np.ones(mesh.n_cells) * np.pi
     angles[5] = -np.pi
     assert np.all(reg.f_m(angles) == 0)
