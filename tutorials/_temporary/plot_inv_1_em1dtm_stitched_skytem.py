@@ -20,7 +20,7 @@ from matplotlib import pyplot as plt
 from discretize import TensorMesh
 from pymatsolver import PardisoSolver
 
-import SimPEG.directives._regularization
+import SimPEG.directives
 from SimPEG.utils import mkvc
 from SimPEG import (
     maps,
@@ -327,7 +327,7 @@ update_Jacobi = directives.UpdatePreconditioner()
 save_iteration = directives.SaveOutputEveryIteration(save_txt=False)
 
 
-update_IRLS = SimPEG.directives._regularization.Update_IRLS(
+update_IRLS = SimPEG.directives.Update_IRLS(
     max_irls_iterations=20,
     minGNiter=1,
     fix_Jmatrix=True,

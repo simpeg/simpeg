@@ -11,7 +11,7 @@ import numpy as np
 from discretize import TensorMesh
 from discretize.utils import active_from_xyz
 
-import SimPEG.directives._regularization
+import SimPEG.directives
 from SimPEG.potential_fields import magnetics
 from SimPEG import utils
 from SimPEG import (
@@ -124,9 +124,7 @@ def run(plotIt=True):
     # Here is where the norms are applied
     # Use pick a threshold parameter empirically based on the distribution of
     #  model parameters
-    IRLS = SimPEG.directives._regularization.Update_IRLS(
-        f_min_change=1e-3, max_irls_iterations=40
-    )
+    IRLS = SimPEG.directives.Update_IRLS(f_min_change=1e-3, max_irls_iterations=40)
     saveDict = directives.SaveOutputEveryIteration(save_txt=False)
     update_Jacobi = directives.UpdatePreconditioner()
     # Add sensitivity weights

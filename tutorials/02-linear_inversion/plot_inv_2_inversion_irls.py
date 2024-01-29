@@ -22,7 +22,7 @@ import matplotlib.pyplot as plt
 
 from discretize import TensorMesh
 
-import SimPEG.directives._regularization
+import SimPEG.directives
 from SimPEG import (
     simulation,
     maps,
@@ -176,7 +176,7 @@ inv_prob = inverse_problem.BaseInvProblem(dmis, reg, opt)
 sensitivity_weights = directives.UpdateSensitivityWeights(everyIter=False)
 
 # Reach target misfit for L2 solution, then use IRLS until model stops changing.
-IRLS = SimPEG.directives._regularization.Update_IRLS(
+IRLS = SimPEG.directives.Update_IRLS(
     max_irls_iterations=40, minGNiter=1, f_min_change=1e-4
 )
 

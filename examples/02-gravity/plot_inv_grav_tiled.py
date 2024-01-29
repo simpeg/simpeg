@@ -9,7 +9,7 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 
-import SimPEG.directives._regularization
+import SimPEG.directives
 from SimPEG.potential_fields import gravity
 from SimPEG import (
     maps,
@@ -236,7 +236,7 @@ betaest = directives.BetaEstimate_ByEig(beta0_ratio=1e-1)
 # Here is where the norms are applied
 # Use a threshold parameter empirically based on the distribution of
 # model parameters
-update_IRLS = SimPEG.directives._regularization.Update_IRLS(
+update_IRLS = SimPEG.directives.Update_IRLS(
     f_min_change=1e-4,
     max_irls_iterations=0,
     coolEpsFact=1.5,

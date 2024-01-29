@@ -63,10 +63,17 @@ class InversionDirective:
     _regPair = [WeightedLeastSquares, BaseRegularization, ComboObjectiveFunction]
     _dmisfitPair = [BaseDataMisfit, ComboObjectiveFunction]
 
-    def __init__(self, inversion=None, dmisfit=None, reg=None, verbose=False, **kwargs):
+    def __init__(
+        self,
+        inversion=None,
+        dmisfit=None,
+        reg: ComboObjectiveFunction | None = None,
+        verbose=False,
+        **kwargs,
+    ):
         self.inversion = inversion
         self.dmisfit = dmisfit
-        self.reg = reg
+        self.reg: ComboObjectiveFunction | None = reg
         debug = kwargs.pop("debug", None)
         if debug is not None:
             self.debug = debug

@@ -9,7 +9,7 @@ The inverse problem uses the :class:'SimPEG.regularization.VectorAmplitude'
 regularization borrowed from ...
 
 """
-import SimPEG.directives._regularization
+import SimPEG.directives
 from SimPEG import (
     data,
     data_misfit,
@@ -178,7 +178,7 @@ betaest = directives.BetaEstimate_ByEig(beta0_ratio=1e1)
 sensitivity_weights = directives.UpdateSensitivityWeights()
 
 # Here is where the norms are applied
-IRLS = SimPEG.directives._regularization.Update_IRLS(
+IRLS = SimPEG.directives.Update_IRLS(
     f_min_change=1e-3, max_irls_iterations=10, beta_tol=5e-1
 )
 

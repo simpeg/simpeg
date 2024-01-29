@@ -4,7 +4,7 @@ import numpy as np
 
 from discretize.utils import mesh_builder_xyz, refine_tree_xyz, active_from_xyz
 
-import SimPEG.directives._regularization
+import SimPEG.directives
 from SimPEG import (
     directives,
     maps,
@@ -131,7 +131,7 @@ class MagInvLinProblemTest(unittest.TestCase):
         )
 
         invProb = inverse_problem.BaseInvProblem(dmis, reg, opt, beta=1e6)
-        IRLS = SimPEG.directives._regularization.Update_IRLS()
+        IRLS = SimPEG.directives.Update_IRLS()
         update_Jacobi = directives.UpdatePreconditioner()
         sensitivity_weights = directives.UpdateSensitivityWeights()
         self.inv = inversion.BaseInversion(

@@ -31,7 +31,7 @@ import tarfile
 from discretize import TreeMesh
 from discretize.utils import mkvc, refine_tree_xyz, active_from_xyz
 
-import SimPEG.directives._regularization
+import SimPEG.directives
 from SimPEG.utils import model_builder
 from SimPEG import (
     maps,
@@ -339,7 +339,7 @@ inv_prob = inverse_problem.BaseInvProblem(dmis, reg, opt)
 update_sensitivity_weighting = directives.UpdateSensitivityWeights()
 
 # Reach target misfit for L2 solution, then use IRLS until model stops changing.
-update_IRLS = SimPEG.directives._regularization.Update_IRLS(
+update_IRLS = SimPEG.directives.Update_IRLS(
     max_irls_iterations=25, minGNiter=1, chifact_start=1.0
 )
 
