@@ -64,7 +64,7 @@ class UpdateIRLS(InversionDirective):
                 FutureWarning,
                 stacklevel=2,
             )
-            kwargs["verbose"] = not kwargs.pop("silent")
+            kwargs["verbose"] = not kwargs.pop("silent", False)
 
         cooling_factor = kwargs.pop("coolingFactor", 2.0)
         cooling_rate = kwargs.pop("coolingRate", 1)
@@ -220,7 +220,7 @@ class UpdateIRLS(InversionDirective):
     coolEpsFact = deprecate_property(
         epsilon_cooling_factor,
         "coolEpsFact",
-        "epsilon_cooling_factor",
+        "UpdateIRLS.epsilon_cooling_factor",
         future_warn=True,
         removal_version="0.22.0",
     )
@@ -228,7 +228,7 @@ class UpdateIRLS(InversionDirective):
     minGNiter = deprecate_property(
         cooling_rate,
         "minGNiter",
-        "cooling_rate",
+        "UpdateIRLS.cooling_rate",
         future_warn=True,
         removal_version="0.22.0",
     )
