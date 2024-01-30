@@ -286,10 +286,12 @@ class RegularizationTests(unittest.TestCase):
         v = np.random.rand(2 * mesh.nC)
 
         cell_weights = np.random.rand(mesh.nC)
-
+        
         wires = maps.Wires(("sigma", mesh.nC), ("mu", mesh.nC))
 
-        reg = regularization.Smallness(mesh, mapping=wires.sigma, weights=cell_weights)
+        reg = regularization.Smallness(mesh, mapping=wires.sigma)
+        reg.set_weights(cell_weights=cell_weights)
+        
 
         objfct = objective_function.L2ObjectiveFunction(
             W=utils.sdiag(np.sqrt(cell_weights * mesh.cell_volumes)),
@@ -323,9 +325,9 @@ class RegularizationTests(unittest.TestCase):
         mesh = discretize.TensorMesh([8, 7, 6])
         v = np.random.rand(mesh.nC)
 
-        cell_weights = np.random.rand(mesh.nC)
-
-        reg = regularization.Sparse(mesh, weights=cell_weights)
+        cell_weights = np.random.rand(mesh.nC) 
+        reg = regularization.Sparse(mesh)
+        reg.set_weights(cell_weights = cell_weights) 
 
         np.testing.assert_equal(reg.norms, [1, 1, 1, 1])
 
@@ -766,9 +768,10 @@ class TestDeprecatedArguments:
     def test_weights(self, mesh):
         """Test cell_weights and weights."""
         weights = np.ones(len(mesh))
+        weights_dict = {"weights": weights}  
         msg = "Cannot simultaneously pass 'weights' and 'cell_weights'."
         with pytest.raises(ValueError, match=msg):
-            BaseRegularization(mesh, weights=weights, cell_weights=weights)
+            BaseRegularization(mesh, weights=weights_dict.weights, cell_weights=weights_dict.weights)
 
 
 if __name__ == "__main__":
