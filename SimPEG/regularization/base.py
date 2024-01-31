@@ -632,7 +632,7 @@ class Smallness(BaseRegularization):
 
     or set after instantiation using the `set_weights` method:
 
-    >>> reg.set_weights(weights_1=array_1, weights_2=array_2})
+    >>> reg.set_weights(weights_1=array_1, weights_2=array_2)
 
     The default weights that account for cell dimensions in the regularization are accessed via:
 
