@@ -197,7 +197,7 @@ w = w / np.max(w)
 w = w
 
 reg = regularization.Smallness(mesh=mesh, indActive=actCells)
-reg.set_weights(cell_weights = w)
+reg.set_weights(cell_weights=w)
 opt = optimization.ProjectedGNCG(
     maxIter=20, lower=0.0, upper=1e-2, maxIterLS=20, tolCG=1e-4
 )
