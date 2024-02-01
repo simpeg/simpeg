@@ -179,11 +179,7 @@ class TestPGI(unittest.TestCase):
 
         # Define reg
         reg = regularization.PGI(
-            self.mesh,
-            clf,
-            approx_gradient=True,
-            alpha_x=0.0,
-            wiresmap=self.wires
+            self.mesh, clf, approx_gradient=True, alpha_x=0.0, wiresmap=self.wires
         )
         reg.set_weights = self.cell_weights_list
 
