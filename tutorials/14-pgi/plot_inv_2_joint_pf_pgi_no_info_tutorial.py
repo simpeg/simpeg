@@ -338,7 +338,7 @@ wr_grav = wr_grav / np.max(wr_grav)
 
 wr_mag = np.sum(simulation_mag.G**2.0, axis=0) ** 0.5 / (mesh.cell_volumes[actv])
 wr_mag = wr_mag / np.max(wr_mag)
-weights_dict = {"weights1": wr_grav,"weights2": wr_mag}
+weights_dict = {"weights1": wr_grav, "weights2": wr_mag}
 # create joint PGI regularization with smoothness
 reg = regularization.PGI(
     gmmref=gmmref,
