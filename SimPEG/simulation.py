@@ -8,7 +8,7 @@ import warnings
 
 from discretize.base import BaseMesh
 from discretize import TensorMesh
-from discretize.utils import unpack_widths
+from discretize.utils import unpack_widths, sdiag
 
 from . import props
 from .data import SyntheticData, Data
@@ -668,12 +668,12 @@ class ExponentialSinusoidSimulation(LinearSimulation):
         Matrix whose rows are the kernel functions
         """
         if getattr(self, "_G", None) is None:
-            G = np.empty((self.n_kernels, self.mesh.nC))
+            G = np.empty((self.mesh.nC, self.n_kernels))
 
             for i in range(self.n_kernels):
-                G[i, :] = self.mesh.cell_volumes * (
-                    self.mesh.average_node_to_cell @ self.g(i)
-                )
+                G[:, i] = self.g(i)
 
-            self._G = G
+            self._G = (
+                sdiag(self.mesh.cell_volumes) @ (self.mesh.average_node_to_cell @ G).T
+            )
         return self._G
