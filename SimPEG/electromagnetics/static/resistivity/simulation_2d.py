@@ -1,4 +1,5 @@
 import numpy as np
+from scipy import sparse as sp
 from scipy.optimize import minimize
 import warnings
 
@@ -24,8 +25,30 @@ from discretize.utils import make_boundary_bool
 
 
 class BaseDCSimulation2D(BaseElectricalPDESimulation):
-    """
-    Base 2.5D DC problem
+    r"""Base 2.5D DC resistivity simulation class.
+
+    Parameters
+    ----------
+    mesh : discretize.BaseMesh
+        The mesh.
+    survey : None, Survey
+        The DC resisitivity survey.
+    nkz : int
+        Number of evaluations of the 2D problem in the wave domain.
+    storeJ : bool
+        Whether to construct and store the sensitivity matrix.
+    miniaturize : bool
+        If ``True``, we compute the fields for each unique source electrode location.
+        We avoid computing the fields for repeated electrode locations and the
+        fields for dipole sources can be constructed using superposition.
+    do_trap : bool
+        Use trap method to find an optimum set of quadrature points and weights
+        for how many evaluations of the 2D problem are required in the wave domain.
+    fix_Jmatrix : bool
+        Whether to fix the sensitivity matrix during Newton iterations.
+    surface_faces : None, numpy.ndarray of bool
+        Array defining which faces to interpret as surfaces of the Neumann boundary.
+
     """
 
     fieldsPair = Fields2D  # SimPEG.EM.Static.Fields_2D
@@ -37,7 +60,7 @@ class BaseDCSimulation2D(BaseElectricalPDESimulation):
         self,
         mesh,
         survey=None,
-        nky=11,
+        nkz=11,
         storeJ=False,
         miniaturize=False,
         do_trap=False,
@@ -46,7 +69,12 @@ class BaseDCSimulation2D(BaseElectricalPDESimulation):
         **kwargs,
     ):
         super().__init__(mesh=mesh, survey=survey, **kwargs)
-        self.nky = nky
+        if 'nky' in kwargs:
+            nkz = kwargs.pop['nky']
+            warnings.warn(
+                'nky is going to be deprecated and replaced by nkz', DeprecationWarning
+            )
+        self.nkz = nkz
         self.storeJ = storeJ
         self.fix_Jmatrix = fix_Jmatrix
         self.surface_faces = surface_faces
@@ -82,7 +110,7 @@ class BaseDCSimulation2D(BaseElectricalPDESimulation):
             min_rinv = -np.log10(rs).max()
             max_rinv = -np.log10(rs).min()
             # a decent initial guess of the k_i's for the optimization = 1/rs
-            k_i = np.linspace(min_rinv, max_rinv, self.nky)
+            k_i = np.linspace(min_rinv, max_rinv, self.nkz)
 
             # these functions depend on r, so grab them
             func, g_func = get_phi(rs)
@@ -99,7 +127,7 @@ class BaseDCSimulation2D(BaseElectricalPDESimulation):
             if not out["success"]:
                 warnings.warn(
                     "Falling back to trapezoidal for integration. "
-                    "You may need to change nky.",
+                    "You may need to change nkz.",
                     stacklevel=2,
                 )
                 do_trap = True
@@ -108,7 +136,7 @@ class BaseDCSimulation2D(BaseElectricalPDESimulation):
                 print("doing trap")
             y = 0.0
 
-            points = np.logspace(-4, 1, self.nky)
+            points = np.logspace(-4, 1, self.nkz)
             dky = np.diff(points) / 2
             weights = np.r_[dky, 0] + np.r_[0, dky]
             weights *= np.cos(points * y)  # *(1.0/np.pi)
@@ -119,8 +147,8 @@ class BaseDCSimulation2D(BaseElectricalPDESimulation):
         self._quad_weights = weights
         self._quad_points = points
 
-        self.Ainv = [None for i in range(self.nky)]
-        self.nT = self.nky - 1  # Only for using TimeFields
+        self.Ainv = [None for i in range(self.nkz)]
+        self.nT = self.nkz - 1  # Only for using TimeFields
 
         # Do stuff to simplify the forward and JTvec operation if number of dipole
         # sources is greater than the number of unique pole sources
@@ -147,18 +175,18 @@ class BaseDCSimulation2D(BaseElectricalPDESimulation):
         self._survey = value
 
     @property
-    def nky(self):
-        """Number of kys to use in wavenumber space.
+    def nkz(self):
+        """Number of kzs to use in wavenumber space.
 
         Returns
         -------
         int
         """
-        return self._nky
+        return self._nkz
 
-    @nky.setter
-    def nky(self, value):
-        self._nky = validate_integer("nky", value, min_val=3)
+    @nkz.setter
+    def nkz(self, value):
+        self._nkz = validate_integer("nkz", value, min_val=3)
 
     @property
     def storeJ(self):
@@ -215,7 +243,7 @@ class BaseDCSimulation2D(BaseElectricalPDESimulation):
         if m is not None:
             self.model = m
         if self.Ainv[0] is not None:
-            for i in range(self.nky):
+            for i in range(self.nkz):
                 self.Ainv[i].clean()
         f = self.fieldsPair(self)
         kys = self._quad_points
@@ -493,6 +521,41 @@ class Simulation2DCellCentered(BaseDCSimulation2D):
         """
         return self._bc_type
 
+    @property
+    def MfRhoI2D(self):
+        """Inner product matrix on edges for 2D"""
+        if getattr(self, "_MfRhoI2D", None) is None:
+            if len(self.rho) == self.mesh.nC:
+                self._MfRhoI2D = self.MfRhoI
+            elif len(self.rho) == 3 * mesh.nC:
+                self._MfRhoI2D = self.mesh.self.mesh.get_face_inner_product(
+                    model=self.rho[:2*self.mesh.nC], invert_matrix=True
+                )
+            else:
+                raise NotImplementedError(
+                    "Only isotropic and linear isotropic resistivities implemented."
+                )
+
+        return self._MfRhoI2D
+
+    @property
+    def MccSigma2D(self):
+        """Inner product matrix on cell centers for 2D"""
+        if getattr(self, "_MccSigma2D", None) is None:
+            if len(self.sigma) == self.mesh.nC:
+                self._MccSigma2D = self.MccSigma
+            elif len(self.sigma) == 3 * mesh.nC:
+                vol = self.mesh.cell_volumes
+                self._MnSigma2D = sp.diags(
+                    vol * self.sigma[-self.mesh.nC:], format="csr"
+                )
+            else:
+                raise NotImplementedError(
+                    "Only isotropic and linear isotropic conductivities implemented."
+                )
+
+        return self._MccSigma2D
+
     @bc_type.setter
     def bc_type(self, value):
         self._bc_type = validate_string(
@@ -510,9 +573,9 @@ class Simulation2DCellCentered(BaseDCSimulation2D):
         G = self.Grad
         if self.bc_type != "Dirichlet":
             G = G - self._MBC[ky]
-        MfRhoI = self.MfRhoI
+        MfRhoI = self.MfRhoI2D
         # Get resistivity rho
-        A = D * MfRhoI * G + ky**2 * self.MccSigma
+        A = D * MfRhoI * G + ky**2 * self.MccSigma2D
         if self.bc_type == "Neumann":
             A[0, 0] = A[0, 0] + 1.0
         return A
@@ -612,8 +675,31 @@ class Simulation2DCellCentered(BaseDCSimulation2D):
 
 
 class Simulation2DNodal(BaseDCSimulation2D):
-    """
-    2.5D nodal DC problem
+    r"""2.5D DC resistivity simulation for potentials defined on nodes.
+
+    The governing equation for the DC resistivity problem is given by:
+
+    .. math::
+        \nabla \cdot \sigma \, \nabla \phi = - \nabla \cdot \vec{j}^{(s)}
+
+    Where x is the along-line coordinate and y is the elevation coordinate, the 2.5D problem
+    assumes the electrical conductivity is invariant along the z-direction; which is
+    defined as being out of the page. By taking the Fourier transform in the z-direction,
+    we obtain:
+
+    .. math::
+        \nabla_{xy} \cdot \sigma \, \nabla_{xy} \phi - k_z**2 \sigma \, \phi =
+        - \nabla_{xy} \cdot \vec{j}_{xy}^{(s)} + i\omega j_z^{(s)}
+
+    Parameters
+    ----------
+    mesh : discretize.BaseMesh
+        The mesh.
+    survey : None, Survey
+        The DC resistivity survey.
+    bc_type : str, {'Robin', 'Neumann', 'Mixed'}
+        Boundary conditions imposed on the numerical solution.
+
     """
 
     _solutionType = "phiSolution"
@@ -648,25 +734,61 @@ class Simulation2DNodal(BaseDCSimulation2D):
             "bc_type", value, ["Neumann", ("Robin", "Mixed")]
         )
 
-    def getA(self, ky):
+    @property
+    def MeSigma2D(self):
+        """Inner product matrix on edges for 2D"""
+        if getattr(self, "_MeSigma2D", None) is None:
+            if len(self.sigma) == self.mesh.nC:
+                self._MeSigma2D = self.MeSigma
+            elif len(self.sigma) == 3 * mesh.nC:
+                self._MeSigma2D = self.mesh.self.mesh.get_edge_inner_product(
+                    model=self.sigma[:2*self.mesh.nC]
+                )
+            else:
+                raise NotImplementedError(
+                    "Only isotropic and linear isotropic conductivities implemented."
+                )
+
+        return self._MeSigma2D
+
+    @property
+    def MnSigma2D(self):
+        """Inner product matrix on nodes for 2D"""
+        if getattr(self, "_MnSigma2D", None) is None:
+            if len(self.sigma) == self.mesh.nC:
+                self._MnSigma2D = self.MnSigma
+            elif len(self.sigma) == 3 * mesh.nC:
+                vol = self.mesh.cell_volumes
+                self._MnSigma2D = sp.diags(
+                    self.mesh.aveN2CC.T * (vol * self.sigma[-self.mesh.nC:]), format="csr"
+                )
+            else:
+                raise NotImplementedError(
+                    "Only isotropic and linear isotropic conductivities implemented."
+                )
+
+        return self._MnSigma2D
+    
+
+    def getA(self, kz):
         """
         Make the A matrix for the cell centered DC resistivity problem
         A = D MfRhoI G
         """
         # To handle Mixed boundary condition
-        self.setBC(ky=ky)
+        self.setBC(kz=kz)
 
-        MeSigma = self.MeSigma
-        MnSigma = self.MnSigma
+        MeSigma = self.MeSigma2D
+        MnSigma = self.MnSigma2D
         Grad = self.mesh.nodal_gradient
         if self._gradT is None:
             self._gradT = Grad.T.tocsr()  # cache the .tocsr()
         GradT = self._gradT
-        A = GradT * MeSigma * Grad + ky**2 * MnSigma
+        A = GradT * MeSigma * Grad + kz**2 * MnSigma
 
         if self.bc_type != "Neumann":
             try:
-                A = A + sdiag(self._AvgBC[ky] @ self.sigma)
+                A = A + sdiag(self._AvgBC[kz] @ self.sigma)
             except ValueError as err:
                 if len(self.sigma) != len(self.mesh):
                     raise NotImplementedError(
@@ -677,51 +799,51 @@ class Simulation2DNodal(BaseDCSimulation2D):
                     raise err
         return A
 
-    def getADeriv(self, ky, u, v, adjoint=False):
+    def getADeriv(self, kz, u, v, adjoint=False):
         Grad = self.mesh.nodal_gradient
 
         if adjoint:
             out = self.MeSigmaDeriv(
                 Grad * u, Grad * v, adjoint=adjoint
-            ) + ky**2 * self.MnSigmaDeriv(u, v, adjoint=adjoint)
+            ) + kz**2 * self.MnSigmaDeriv(u, v, adjoint=adjoint)
         else:
             out = Grad.T * self.MeSigmaDeriv(
                 Grad * u, v, adjoint=adjoint
-            ) + ky**2 * self.MnSigmaDeriv(u, v, adjoint=adjoint)
+            ) + kz**2 * self.MnSigmaDeriv(u, v, adjoint=adjoint)
         if self.bc_type != "Neumann" and self.sigmaMap is not None:
             if getattr(self, "_MBC_sigma", None) is None:
                 self._MBC_sigma = {}
-            if ky not in self._MBC_sigma:
-                self._MBC_sigma[ky] = self._AvgBC[ky] @ self.sigmaDeriv
+            if kz not in self._MBC_sigma:
+                self._MBC_sigma[kz] = self._AvgBC[kz] @ self.sigmaDeriv
             if not isinstance(u, Zero):
                 u = u.flatten()
                 if v.ndim > 1:
                     u = u[:, None]
                 if not adjoint:
-                    out += u * (self._MBC_sigma[ky] @ v)
+                    out += u * (self._MBC_sigma[kz] @ v)
                 else:
-                    out += self._MBC_sigma[ky].T @ (u * v)
+                    out += self._MBC_sigma[kz].T @ (u * v)
         return out
 
-    def getRHS(self, ky):
+    def getRHS(self, kz):
         """
         RHS for the DC problem
         q
         """
 
-        RHS = self.getSourceTerm(ky)
+        RHS = self.getSourceTerm(kz)
         return RHS
 
-    def getRHSDeriv(self, ky, src, v, adjoint=False):
+    def getRHSDeriv(self, kz, src, v, adjoint=False):
         """
         Derivative of the right hand side with respect to the model
         """
         # TODO: add qDeriv for RHS depending on m
-        # qDeriv = src.evalDeriv(self, ky, adjoint=adjoint)
+        # qDeriv = src.evalDeriv(self, kz, adjoint=adjoint)
         # return qDeriv
         return Zero()
 
-    def setBC(self, ky=None):
+    def setBC(self, kz=None):
         if self.bc_type == "Dirichlet":
             # do nothing
             raise ValueError(
@@ -736,7 +858,7 @@ class Simulation2DNodal(BaseDCSimulation2D):
         else:
             if getattr(self, "_AvgBC", None) is None:
                 self._AvgBC = {}
-            if ky in self._AvgBC:
+            if kz in self._AvgBC:
                 return
             mesh = self.mesh
             # calculate alpha, beta, gamma at the boundary faces
@@ -778,9 +900,9 @@ class Simulation2DNodal(BaseDCSimulation2D):
 
             # use the exponentiall scaled modified bessel function of second kind,
             # (the division will cancel out the scaling)
-            # This is more stable for large values of ky * r
+            # This is more stable for large values of kz * r
             # actual ratio is k1/k0...
-            alpha[not_top] = (ky * k1e(ky * r) / k0e(ky * r) * r_dot_n)[not_top]
+            alpha[not_top] = (kz * k1e(kz * r) / k0e(kz * r) * r_dot_n)[not_top]
 
             P_bf = self.mesh.project_face_to_boundary_face
 
@@ -788,7 +910,7 @@ class Simulation2DNodal(BaseDCSimulation2D):
             AvgCC2Fb = P_bf @ self.mesh.average_cell_to_face
 
             AvgCC2Fb = sdiag(alpha * (P_bf @ self.mesh.face_areas)) @ AvgCC2Fb
-            self._AvgBC[ky] = AvgN2Fb.T @ AvgCC2Fb
+            self._AvgBC[kz] = AvgN2Fb.T @ AvgCC2Fb
 
 
 Simulation2DCellCentred = Simulation2DCellCentered  # UK and US
