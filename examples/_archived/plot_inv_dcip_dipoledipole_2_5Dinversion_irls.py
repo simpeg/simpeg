@@ -19,6 +19,7 @@ But if you want share edges of the model, you can try:
 * qz=2 (smooth model, m in z-direction)
 
 """
+
 from SimPEG.electromagnetics.static import resistivity as DC
 from SimPEG.electromagnetics.static.utils import generate_dcip_survey, genTopography
 from SimPEG import (
