@@ -146,7 +146,7 @@ class InversionDirective:
         return self.invProb.opt
 
     @property
-    def reg(self):
+    def reg(self) -> ComboObjectiveFunction:
         """Regularization associated with the directive.
 
         Returns
@@ -170,7 +170,7 @@ class InversionDirective:
         self._reg = value
 
     @property
-    def dmisfit(self):
+    def dmisfit(self) -> ComboObjectiveFunction:
         """Data misfit associated with the directive.
 
         Returns

@@ -10,9 +10,9 @@ from SimPEG.utils.code_utils import deprecate_property
 
 
 @dataclass
-class AlgorithmMetrics:
+class IRLSMetrics:
     """
-    Data class to store algorithm metrics.
+    Data class to store metrics used by the IRLS algorithm.
 
     Parameters
     ----------
@@ -55,12 +55,12 @@ class UpdateIRLS(InversionDirective):
         self._max_irls_iterations: int = 20
         self._percentile: float = 100
 
-        self._metrics: AlgorithmMetrics | None = None
+        self._metrics: IRLSMetrics | None = None
 
         if "coolingFactor" in kwargs or "coolingRate" in kwargs:
             warnings.warn(
-                "The `coolingFactor` and `coolingRate` keywords arguments will be deprecated in future versions. "
-                "Directly add a BetaSchedule directive to your inversion.",
+                "The `coolingFactor` and `coolingRate` keywords arguments will be deprecated in future releases. "
+                "A 'BetaSchedule' directive will be added to your inversion.",
                 FutureWarning,
                 stacklevel=2,
             )
@@ -86,9 +86,9 @@ class UpdateIRLS(InversionDirective):
         super().__init__(**kwargs)
 
     @property
-    def metrics(self) -> AlgorithmMetrics:
+    def metrics(self) -> IRLSMetrics:
         if self._metrics is None:
-            self._metrics = AlgorithmMetrics(
+            self._metrics = IRLSMetrics(
                 input_norms=self.get_input_norms(),
             )
         return self._metrics
@@ -186,6 +186,12 @@ class UpdateIRLS(InversionDirective):
     def cooling_rate(self) -> int:
         """Cool after this number of iterations."""
         return self.beta_schedule.coolingRate
+
+    @cooling_rate.setter
+    def cooling_rate(self, value):
+        self.beta_schedule.coolingRate = validate_integer(
+            "cooling_rate", value, min_val=1
+        )
 
     coolingRate = deprecate_property(
         cooling_rate,
@@ -400,10 +406,11 @@ class UpdateIRLS(InversionDirective):
         """
         return self._beta_schedule
 
-    def validate(self, directiveList):
-        dList = directiveList.dList
-        self_ind = dList.index(self)
-        lin_precond_ind = [isinstance(d, UpdatePreconditioner) for d in dList]
+    def validate(self, directiveList=None):
+        directive_list = directiveList.dList
+        self_ind = directive_list.index(self)
+
+        lin_precond_ind = [isinstance(d, UpdatePreconditioner) for d in directive_list]
 
         if any(lin_precond_ind):
             assert lin_precond_ind.index(True) > self_ind, (
@@ -418,7 +425,8 @@ class UpdateIRLS(InversionDirective):
                 stacklevel=2,
             )
 
-        beta_schedule = [isinstance(d, BetaSchedule) for d in dList]
+        beta_schedule = [isinstance(d, BetaSchedule) for d in directive_list]
+
         if not any(beta_schedule):
             warnings.warn(
                 "Handling of the beta scheduling by the `Update_IRLS` directive will be deprecated "
@@ -426,7 +434,7 @@ class UpdateIRLS(InversionDirective):
                 "A `BetaSchedule` will be added to your directives list, please consider adding it yourself.",
                 stacklevel=2,
             )
-            directiveList.dList.append(self._beta_schedule)
+            directiveList.dList = directiveList.dList + [self.beta_schedule]
         else:
             self._beta_schedule = beta_schedule[0]
 
