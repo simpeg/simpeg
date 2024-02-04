@@ -682,7 +682,8 @@ class TestParent:
 
     def test_default_parent(self, regularization):
         """Test setting default parent class to a BaseRegularization."""
-        parent = ComboObjectiveFunction(objfcts=[regularization])
+        mesh = discretize.TensorMesh([3, 4, 5])
+        parent = WeightedLeastSquares(mesh, objfcts=[regularization])
         assert regularization.parent is parent
 
 

@@ -1665,8 +1665,13 @@ class WeightedLeastSquares(ComboObjectiveFunction):
             objfcts = kwargs.pop("objfcts")
 
         super().__init__(objfcts=objfcts, unpack_on_add=False, **kwargs)
+
+        for fun in objfcts:
+            fun.parent = self
+
         if active_cells is not None:
             self.active_cells = active_cells
+
         self.mapping = mapping
         self.reference_model = reference_model
         self.reference_model_in_smooth = reference_model_in_smooth

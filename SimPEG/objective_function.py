@@ -390,9 +390,6 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
 
         super().__init__(nP=nP)
 
-        for fun in objfcts:
-            fun.parent = self
-
         self.objfcts = objfcts
         self._multipliers = multipliers
         self._unpack_on_add = unpack_on_add
