@@ -21,7 +21,6 @@ import scipy as sp
 import numpy as np
 import matplotlib.pyplot as plt
 
-import SimPEG.directives
 from SimPEG import (
     data,
     data_misfit,
@@ -250,7 +249,7 @@ betaest = directives.BetaEstimate_ByEig(beta0_ratio=2)
 
 # Target misfit to stop the inversion,
 # try to fit as much as possible of the signal, we don't want to lose anything
-IRLS = SimPEG.directives.Update_IRLS(
+IRLS = directives.Update_IRLS(
     f_min_change=1e-3, minGNiter=1, beta_tol=1e-1, max_irls_iterations=5
 )
 update_Jacobi = directives.UpdatePreconditioner()
@@ -355,7 +354,7 @@ invProb = inverse_problem.BaseInvProblem(dmis, reg, opt)
 betaest = directives.BetaEstimate_ByEig(beta0_ratio=1)
 
 # Specify the sparse norms
-IRLS = SimPEG.directives.Update_IRLS(
+IRLS = directives.Update_IRLS(
     max_irls_iterations=10,
     f_min_change=1e-3,
     minGNiter=1,

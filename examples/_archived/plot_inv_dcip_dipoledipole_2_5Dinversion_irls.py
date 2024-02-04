@@ -19,7 +19,6 @@ But if you want share edges of the model, you can try:
 * qz=2 (smooth model, m in z-direction)
 
 """
-import SimPEG.directives
 from SimPEG.electromagnetics.static import resistivity as DC
 from SimPEG.electromagnetics.static.utils import generate_dcip_survey, genTopography
 from SimPEG import (
@@ -159,7 +158,7 @@ def run(plotIt=True, survey_type="dipole-dipole", p=0.0, qx=2.0, qz=2.0):
     )
     #     gradientType = 'components'
     reg.norms = [p, qx, qz, 0.0]
-    IRLS = SimPEG.directives.Update_IRLS(
+    IRLS = directives.Update_IRLS(
         max_irls_iterations=20, minGNiter=1, beta_search=False, fix_Jmatrix=True
     )
 
