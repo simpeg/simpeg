@@ -30,8 +30,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from discretize import TensorMesh
-
-import SimPEG.directives
 import SimPEG.electromagnetics.frequency_domain as fdem
 from SimPEG.utils import mkvc, plot_1d_layer_model
 from SimPEG import (
@@ -272,7 +270,7 @@ update_Jacobi = directives.UpdatePreconditioner()
 save_iteration = directives.SaveOutputEveryIteration(save_txt=False)
 
 # Directive for the IRLS
-update_IRLS = SimPEG.directives.Update_IRLS(
+update_IRLS = directives.Update_IRLS(
     max_irls_iterations=30, minGNiter=1, coolEpsFact=1.5, update_beta=True
 )
 

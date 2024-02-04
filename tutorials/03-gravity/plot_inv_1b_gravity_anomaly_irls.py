@@ -33,8 +33,6 @@ import tarfile
 
 from discretize import TensorMesh
 from discretize.utils import active_from_xyz
-
-import SimPEG.directives
 from SimPEG.utils import plot2Ddata, model_builder
 from SimPEG.potential_fields import gravity
 from SimPEG import (
@@ -262,7 +260,7 @@ starting_beta = directives.BetaEstimate_ByEig(beta0_ratio=1e0)
 
 # Defines the directives for the IRLS regularization. This includes setting
 # the cooling schedule for the trade-off parameter.
-update_IRLS = SimPEG.directives.Update_IRLS(
+update_IRLS = directives.Update_IRLS(
     f_min_change=1e-4,
     max_irls_iterations=30,
     coolEpsFact=1.5,

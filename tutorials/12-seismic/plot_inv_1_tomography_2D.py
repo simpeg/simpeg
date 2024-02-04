@@ -28,8 +28,6 @@ import matplotlib.pyplot as plt
 import tarfile
 
 from discretize import TensorMesh
-
-import SimPEG.directives
 from SimPEG import (
     data,
     maps,
@@ -241,7 +239,7 @@ inv_prob = inverse_problem.BaseInvProblem(dmis, reg, opt)
 #
 
 # Reach target misfit for L2 solution, then use IRLS until model stops changing.
-update_IRLS = SimPEG.directives.Update_IRLS(
+update_IRLS = directives.Update_IRLS(
     f_min_change=1e-4,
     max_irls_iterations=30,
     coolEpsFact=1.5,
