@@ -1,7 +1,6 @@
 import unittest
 import discretize
 from discretize.utils import active_from_xyz
-
 from SimPEG import (
     utils,
     maps,

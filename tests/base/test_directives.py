@@ -3,7 +3,6 @@ import pytest
 import numpy as np
 
 import discretize
-
 from SimPEG import (
     maps,
     directives,

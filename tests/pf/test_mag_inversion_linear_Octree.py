@@ -3,7 +3,6 @@ import unittest
 import numpy as np
 
 from discretize.utils import mesh_builder_xyz, refine_tree_xyz, active_from_xyz
-
 from SimPEG import (
     directives,
     maps,
