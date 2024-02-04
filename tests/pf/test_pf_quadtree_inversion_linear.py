@@ -5,7 +5,6 @@ import numpy as np
 from discretize import TensorMesh
 from discretize.utils import mesh_builder_xyz, mkvc, refine_tree_xyz
 
-import SimPEG.directives
 from SimPEG import (
     data_misfit,
     directives,
@@ -277,7 +276,7 @@ class QuadTreeLinProblemTest(unittest.TestCase):
             invProb = inverse_problem.BaseInvProblem(dmis, reg, opt, beta=beta)
 
             # Build directives
-            IRLS = SimPEG.directives.Update_IRLS(
+            IRLS = directives.Update_IRLS(
                 f_min_change=1e-3,
                 max_irls_iterations=30,
                 beta_tol=1e-1,

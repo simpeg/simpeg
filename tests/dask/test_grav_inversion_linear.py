@@ -4,7 +4,6 @@ import discretize
 from discretize.utils import active_from_xyz
 import dask
 import SimPEG.dask  # noqa: F401
-import SimPEG.directives
 from SimPEG import (
     utils,
     maps,
@@ -104,7 +103,7 @@ class GravInvLinProblemTest(unittest.TestCase):
         invProb = inverse_problem.BaseInvProblem(dmis, reg, opt, beta=1e2)
 
         # Here is where the norms are applied
-        IRLS = SimPEG.directives.Update_IRLS(max_irls_iterations=20, chifact_start=2.0)
+        IRLS = directives.Update_IRLS(max_irls_iterations=20, chifact_start=2.0)
         update_Jacobi = directives.UpdatePreconditioner()
         sensitivity_weights = directives.UpdateSensitivityWeights(everyIter=False)
         self.inv = inversion.BaseInversion(
