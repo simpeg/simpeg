@@ -9,6 +9,7 @@ The inverse problem uses the :class:'SimPEG.regularization.VectorAmplitude'
 regularization borrowed from ...
 
 """
+
 from SimPEG import (
     data,
     data_misfit,
