@@ -1,3 +1,4 @@
+import numbers
 import numpy as np
 import scipy.sparse as sp
 
@@ -8,6 +9,8 @@ from .props import BaseSimPEG
 from .utils import timeIt, Zero, Identity
 
 __all__ = ["BaseObjectiveFunction", "ComboObjectiveFunction", "L2ObjectiveFunction"]
+
+VALID_MULTIPLIERS = (numbers.Number, Zero)
 
 
 class BaseObjectiveFunction(BaseSimPEG):
@@ -358,8 +361,6 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
 
     """
 
-    _multiplier_types = (float, None, Zero, np.float64, int, np.integer)
-
     def __init__(self, objfcts=None, multipliers=None, unpack_on_add=True):
         # Define default lists if None
         if objfcts is None:
@@ -368,9 +369,10 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
             multipliers = len(objfcts) * [1]
 
         # Validate inputs
-        self._check_length_objective_funcs_multipliers(objfcts, multipliers)
-        self._validate_objective_functions(objfcts)
-        self._validate_multipliers(multipliers)
+        _check_length_objective_funcs_multipliers(objfcts, multipliers)
+        _validate_objective_functions(objfcts)
+        for multiplier in multipliers:
+            _validate_multiplier(multiplier)
 
         # Get number of parameters (nP) from objective functions
         number_of_parameters = [f.nP for f in objfcts if f.nP != "*"]
@@ -413,8 +415,9 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
     @multipliers.setter
     def multipliers(self, value):
         """Set multipliers attribute after checking if they are valid."""
-        self._validate_multipliers(value)
-        self._check_length_objective_funcs_multipliers(self.objfcts, value)
+        for multiplier in value:
+            _validate_multiplier(multiplier)
+        _check_length_objective_funcs_multipliers(self.objfcts, value)
         self._multipliers = value
 
     def __call__(self, m, f=None):
@@ -518,56 +521,6 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
 
         return [fun for fun in target if fun]
 
-    def _validate_objective_functions(self, objective_functions):
-        """Validate objective functions.
-
-        Check if the objective functions have the right types, and if
-        they all have the same number of parameters.
-
-        """
-        for function in objective_functions:
-            if not isinstance(function, BaseObjectiveFunction):
-                raise TypeError(
-                    "Unrecognized objective function type "
-                    f"{function.__class__.__name__} in 'objfcts'. "
-                    "All objective functions must inherit from BaseObjectiveFunction."
-                )
-        number_of_parameters = [f.nP for f in objective_functions if f.nP != "*"]
-        if number_of_parameters:
-            all_equal = all(np.equal(number_of_parameters, number_of_parameters[0]))
-            if not all_equal:
-                np_list = [f.nP for f in objective_functions]
-                raise ValueError(
-                    f"Invalid number of parameters '{np_list}' found in "
-                    "objective functions. Except for the ones with '*', they all "
-                    "must have the same number of parameters."
-                )
-
-    def _validate_multipliers(self, multipliers):
-        """Validate multipliers.
-
-        Check if the multipliers have the right types.
-
-        """
-        for multiplier in multipliers:
-            if type(multiplier) not in self._multiplier_types:
-                valid_types = ", ".join(str(t) for t in self._multiplier_types)
-                raise TypeError(
-                    f"Invalid multiplier '{multiplier}' of type '{type(multiplier)}'. "
-                    "Objective functions can only be multiplied by " + valid_types
-                )
-
-    def _check_length_objective_funcs_multipliers(
-        self, objective_functions, multipliers
-    ):
-        """Check if objective functions and multipliers have the same length."""
-        if len(objective_functions) != len(multipliers):
-            raise ValueError(
-                "Inconsistent number of elements between objective functions "
-                f"('{len(objective_functions)}') and multipliers "
-                f"('{len(multipliers)}'). They must have the same number of parameters."
-            )
-
 
 class L2ObjectiveFunction(BaseObjectiveFunction):
     r"""Weighted least-squares objective function class.
@@ -658,3 +611,54 @@ class L2ObjectiveFunction(BaseObjectiveFunction):
             )
         W = self.W * self.mapping.deriv(m)
         return W.T * W
+
+
+def _validate_objective_functions(objective_functions):
+    """
+    Validate objective functions.
+
+    Check if the objective functions have the right types, and if
+    they all have the same number of parameters.
+    """
+    for function in objective_functions:
+        if not isinstance(function, BaseObjectiveFunction):
+            raise TypeError(
+                "Unrecognized objective function type "
+                f"{function.__class__.__name__} in 'objfcts'. "
+                "All objective functions must inherit from BaseObjectiveFunction."
+            )
+    number_of_parameters = [f.nP for f in objective_functions if f.nP != "*"]
+    if number_of_parameters:
+        all_equal = all(np.equal(number_of_parameters, number_of_parameters[0]))
+        if not all_equal:
+            np_list = [f.nP for f in objective_functions]
+            raise ValueError(
+                f"Invalid number of parameters '{np_list}' found in "
+                "objective functions. Except for the ones with '*', they all "
+                "must have the same number of parameters."
+            )
+
+
+def _validate_multiplier(multiplier):
+    """
+    Validate multiplier.
+
+    Check if the multiplier is of a valid type.
+    """
+    if not isinstance(multiplier, VALID_MULTIPLIERS) or isinstance(multiplier, bool):
+        raise TypeError(
+            f"Invalid multiplier '{multiplier}' of type '{type(multiplier)}'. "
+            "Objective functions can only be multiplied by scalar numbers."
+        )
+
+
+def _check_length_objective_funcs_multipliers(objective_functions, multipliers):
+    """
+    Check if objective functions and multipliers have the same length.
+    """
+    if len(objective_functions) != len(multipliers):
+        raise ValueError(
+            "Inconsistent number of elements between objective functions "
+            f"('{len(objective_functions)}') and multipliers "
+            f"('{len(multipliers)}'). They must have the same number of parameters."
+        )
