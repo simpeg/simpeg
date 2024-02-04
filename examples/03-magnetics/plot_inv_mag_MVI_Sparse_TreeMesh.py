@@ -15,6 +15,7 @@ The inverse problem uses the :class:'SimPEG.regularization.Sparse'
 that
 
 """
+
 from SimPEG import (
     data,
     data_misfit,
