@@ -20,7 +20,6 @@ assumption in order to improve the recovery of a compact prism.
 import scipy as sp
 import numpy as np
 import matplotlib.pyplot as plt
-
 from SimPEG import (
     data,
     data_misfit,
