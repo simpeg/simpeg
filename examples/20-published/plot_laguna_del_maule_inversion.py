@@ -14,7 +14,6 @@ Craig Miller
 import os
 import shutil
 import tarfile
-
 from SimPEG.potential_fields import gravity
 from SimPEG import (
     data_misfit,
