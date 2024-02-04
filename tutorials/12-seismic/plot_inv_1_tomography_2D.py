@@ -28,6 +28,7 @@ import matplotlib.pyplot as plt
 import tarfile
 
 from discretize import TensorMesh
+
 from SimPEG import (
     data,
     maps,
