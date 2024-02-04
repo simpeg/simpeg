@@ -19,6 +19,7 @@ import matplotlib as mpl
 from matplotlib import pyplot as plt
 from discretize import TensorMesh
 from pymatsolver import PardisoSolver
+
 from SimPEG.utils import mkvc
 from SimPEG import (
     maps,
