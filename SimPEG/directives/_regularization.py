@@ -16,6 +16,12 @@ class IRLSMetrics:
 
     Parameters
     ----------
+
+    input_norms: List of norms temporarily stored during the initialization.
+    irls_iteration_count: Number of IRLS iterations.
+    start_irls_iter: Iteration number when the IRLS process started.
+    f_old: Previous value of the regularization function.
+    mode: Mode of the IRLS algorithm, 1 for l2-norm and 2 for lp-norm iterations.
     """
 
     input_norms: list[float]
