@@ -11,7 +11,6 @@ import matplotlib.pyplot as plt
 
 from discretize import TensorMesh
 from discretize.utils import active_from_xyz
-
 from SimPEG.potential_fields import gravity
 from SimPEG import (
     maps,
