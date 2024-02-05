@@ -484,7 +484,6 @@ plt.legend()
 
 ax1 = plt.subplot(122)
 ax1.scatter(m_dens_single, m_susc_single, s=4, c="black", alpha=0.1)
-ax1.axline(xy1=(0, intercept), slope=slope, color='r', label=f'$y = {slope}x {intercept:+}$')
 ax1.set_xlabel("Density", size=12)
 ax1.set_ylabel("Susceptibility", size=12)
 ax1.tick_params(labelsize=12)
