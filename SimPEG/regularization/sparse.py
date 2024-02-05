@@ -140,30 +140,12 @@ class SparseSmoothness(BaseSparse, SmoothnessFirstOrder):
         """
         Compute and store the irls weights.
         """
-        if self.gradient_type == "total":
-            delta_m = self.mapping * self._delta_m(m)
-            f_m = np.zeros_like(delta_m)
-            for ii, comp in enumerate("xyz"):
-                if self.regularization_mesh.dim > ii:
-                    dm = (
-                        getattr(self.regularization_mesh, f"cell_gradient_{comp}")
-                        * delta_m
-                    )
-
-                    if self.units is not None and self.units.lower() == "radian":
-                        Ave = getattr(self.regularization_mesh, f"aveCC2F{comp}")
-                        length_scales = Ave * (
-                            self.regularization_mesh.Pac.T
-                            * self.regularization_mesh.mesh.h_gridded[:, ii]
-                        )
-                        dm = (
-                            utils.mat_utils.coterminal(dm * length_scales)
-                            / length_scales
-                        )
-
-                    f_m += np.abs(
-                        getattr(self.regularization_mesh, f"aveF{comp}2CC") * dm
-                    )
+        if self.gradient_type == "total" and self.parent is not None:
+            f_m = np.zeros(self.regularization_mesh.nC)
+            for obj in self.parent.objfcts:
+                if isinstance(obj, SparseSmoothness):
+                    avg = getattr(self.regularization_mesh, f"aveF{obj.orientation}2CC")
+                    f_m += np.abs(avg * obj.f_m(m))
 
             f_m = getattr(self.regularization_mesh, f"aveCC2F{self.orientation}") * f_m
 

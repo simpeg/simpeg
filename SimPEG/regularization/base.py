@@ -30,8 +30,6 @@ class BaseRegularization(BaseObjectiveFunction):
     :param weights: Weight multipliers to customize the least-squares function.
     """
 
-    _model = None
-
     def __init__(
         self,
         mesh: RegularizationMesh | BaseMesh,
@@ -51,6 +49,8 @@ class BaseRegularization(BaseObjectiveFunction):
                 f"Value of type {type(mesh)} provided."
             )
 
+        self._model = None
+        self._parent = None
         self._regularization_mesh = mesh
         self._weights = {}
 
@@ -135,6 +135,23 @@ class BaseRegularization(BaseObjectiveFunction):
                 f"Value of type {type(mapping)} provided."
             )
         self._mapping = mapping
+
+    @property
+    def parent(self):
+        """
+        The parent objective function
+        """
+        return self._parent
+
+    @parent.setter
+    def parent(self, parent):
+        combo_class = ComboObjectiveFunction
+        if not isinstance(parent, combo_class):
+            raise TypeError(
+                f"Invalid parent of type '{parent.__class__.__name__}'. "
+                f"Parent must be a {combo_class.__name__}."
+            )
+        self._parent = parent
 
     @property
     def units(self) -> str | None:
@@ -555,10 +572,7 @@ class SmoothnessFirstOrder(BaseRegularization):
         """
         Distances between cell centers for the cell center difference.
         """
-        if self.__cell_distances is None:
-            self.__cell_distances = 1.0 / np.max(self.cell_gradient, axis=1).data
-
-        return self.__cell_distances
+        return getattr(self.regularization_mesh, f"cell_distances_{self.orientation}")
 
     @property
     def orientation(self):
@@ -784,6 +798,10 @@ class WeightedLeastSquares(ComboObjectiveFunction):
         else:
             objfcts = kwargs.pop("objfcts")
         super().__init__(objfcts=objfcts, **kwargs)
+
+        for fun in objfcts:
+            fun.parent = self
+
         self.mapping = mapping
         self.reference_model = reference_model
         self.reference_model_in_smooth = reference_model_in_smooth
