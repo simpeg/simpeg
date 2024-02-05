@@ -299,8 +299,8 @@ def cartesian2amplitude_dip_azimuth(m):
     Convert from cartesian to amplitude, dip (positive down) and
     azimuth (clockwise for North), in degree.
     """
-    m = m.reshape((-1, 3), order='F')
-    atp = cartesian2spherical(m).reshape((-1, 3), order='F')
+    m = m.reshape((-1, 3), order="F")
+    atp = cartesian2spherical(m).reshape((-1, 3), order="F")
     atp[:, 1] = np.rad2deg(-1.0 * atp[:, 1])
     atp[:, 2] = (450.0 - np.rad2deg(atp[:, 2])) % 360.0
 
@@ -308,8 +308,8 @@ def cartesian2amplitude_dip_azimuth(m):
 
 
 def spherical2cartesian(m):
-    """ Convert from spherical to cartesian """
-    m = m.reshape((-1, 3), order='F')
+    """Convert from spherical to cartesian"""
+    m = m.reshape((-1, 3), order="F")
     a = m[:, 0] + 1e-8
     t = m[:, 1]
     p = m[:, 2]
@@ -356,7 +356,7 @@ def spherical2cartesian(m):
         - :math:`p` is the radial angle defined positive CCW from Easting
 
     """
-    m = m.reshape((-1, 3), order='F')
+    m = m.reshape((-1, 3), order="F")
     a = m[:, 0] + 1e-8
     t = m[:, 1]
     p = m[:, 2]
@@ -433,13 +433,9 @@ def coterminal(theta):
         Coterminal angles
 
     """
+    coterminal = (theta + np.pi) % (2 * np.pi) - np.pi
 
-    sub = theta[np.abs(theta) >= np.pi]
-    sub = -np.sign(sub) * (2 * np.pi - np.abs(sub))
-
-    theta[np.abs(theta) >= np.pi] = sub
-
-    return theta
+    return coterminal
 
 
 def define_plane_from_points(xyz1, xyz2, xyz3):
