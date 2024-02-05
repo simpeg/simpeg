@@ -317,7 +317,8 @@ reg_mag = regularization.WeightedLeastSquares(
 
 # Define the coupling term to connect two different physical property models
 lamda = 3e+5 # weight for coupling term
-coefficients = np.array([0.25, -1., -0.001])
+coefficient_dens, coefficient_susc, intercept = 0.25, -1., -0.001
+coefficients = np.array([coefficient_dens, coefficient_susc, intercept])
 cross_grad = regularization.LinearCorrespondence(mesh, wires, indActive=ind_active, coefficients=coefficients)
 
 # combo
@@ -467,7 +468,6 @@ plt.show()
 # Normalized Cross Gradient of Separately Recovered Susceptibility and Density Models
 m_dens_single = np.loadtxt(dir_path + "single_model_dens.txt")
 m_susc_single = np.loadtxt(dir_path + "single_model_susc.txt")
-slope, intercept = 0.25, -0.001
 
 # Cross Plots Recovered Susceptibility and Density Models
 fig = plt.figure(figsize=(14, 5))
@@ -475,7 +475,10 @@ ax0 = plt.subplot(121)
 ax0.scatter(
     plotting_map * m_dens_joint, plotting_map * m_susc_joint, s=4, c="black", alpha=0.1
 )
-ax0.axline(xy1=(0, intercept), slope=slope, color='r', label=f'$y = {slope}x {intercept:+}$')
+ax0.axline(
+    xy1=(0, intercept), slope=coefficient_dens, color='r', 
+    label=f'$0 = {coefficient_dens}m_1 {coefficient_susc}m_2 {intercept}$'
+    )
 ax0.set_xlabel("Density", size=12)
 ax0.set_ylabel("Susceptibility", size=12)
 ax0.tick_params(labelsize=12)
