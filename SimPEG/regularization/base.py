@@ -517,14 +517,14 @@ class SmoothnessFirstOrder(BaseRegularization):
         """
         Model gradient
         """
-        dfm_dl = self.cell_gradient @ (self.mapping * self._delta_m(m))
+        dfm_dl = self.mapping * self._delta_m(m)
 
         if self.units is not None and self.units.lower() == "radian":
             return (
-                utils.mat_utils.coterminal(dfm_dl * self._cell_distances)
+                utils.mat_utils.coterminal(self.cell_gradient.sign() @ dfm_dl)
                 / self._cell_distances
             )
-        return dfm_dl
+        return self.cell_gradient @ dfm_dl
 
     def f_m_deriv(self, m) -> sp.csr_matrix:
         """
@@ -590,17 +590,17 @@ class SmoothnessSecondOrder(SmoothnessFirstOrder):
         """
         Second model derivative
         """
-        dfm_dl = self.cell_gradient @ (self.mapping * self._delta_m(m))
+        dfm_dl = self.mapping * self._delta_m(m)
 
         if self.units is not None and self.units.lower() == "radian":
-            dfm_dl = (
-                utils.mat_utils.coterminal(dfm_dl * self.length_scales)
+            return self.cell_gradient.T @ (
+                utils.mat_utils.coterminal(self.cell_gradient.sign() @ dfm_dl)
                 / self.length_scales
             )
 
-        dfm_dl2 = self.cell_gradient.T @ dfm_dl
+        dfm_dl2 = self.cell_gradient @ dfm_dl
 
-        return dfm_dl2
+        return self.cell_gradient.T @ dfm_dl2
 
     def f_m_deriv(self, m) -> sp.csr_matrix:
         """
