@@ -132,7 +132,7 @@ class SmoothnessFullGradient(BaseRegularization):
                 else:
                     raise IndexError(
                         f"`reg_dirs` first dimension, {reg_dirs.shape[0]}, must be either number "
-                        f"of active cells {n_cells}, or the number of mesh cells {mesh.n_cells}. "
+                        f"of active cells {n_active_cells}, or the number of mesh cells {mesh.n_cells}. "
                     )
             # check orthogonality?
             if ortho_check:
@@ -229,9 +229,15 @@ class SmoothnessFullGradient(BaseRegularization):
         """
         if getattr(self, "_W", None) is None:
             mesh = self.regularization_mesh.mesh
-            cell_weights = np.ones(len(mesh))
+            n_cells = self.regularization_mesh.n_cells
+            cell_weights = np.ones(n_cells)
             for values in self._weights.values():
                 cell_weights *= values
+            # optionally expand the cell weights if there are inactive cells
+            if n_cells != len(mesh) and self.active_cells is not None:
+                weights = np.zeros(mesh.n_cells)
+                weights[self.active_cells] = cell_weights
+                cell_weights = weights
             reg_model = self._anis_alpha * cell_weights[:, None]
             # turn off measure in inactive cells
             if self.active_cells is not None:
