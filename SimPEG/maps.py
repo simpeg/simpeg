@@ -2155,6 +2155,121 @@ class LogMap(IdentityMap):
     def is_linear(self):
         return False
 
+class LogisticSigmoidMap(IdentityMap):
+    r"""Mapping that computes the logistic sigmoid of the model parameters.
+
+    Where :math:`\mathbf{m}` is a set of model parameters, ``LogisticSigmoidMap`` creates
+    a mapping :math:`\mathbf{u}(\mathbf{m})` that computes the logistic sigmoid
+    of every element in :math:`\mathbf{m}`; i.e.:
+
+    .. math::
+        \mathbf{u}(\mathbf{m}) = sigmoid(\mathbf{m}) = \frac{1}{1+\exp{-\mathbf{m}}}
+
+    ``LogisticSigmoidMap`` transforms values onto the interval (0,1), but can optionally 
+    be scaled and transformed to the interval (a,b). This can be useful for inversion 
+    of data that varies over a log scale and bounded on some interval:
+
+    .. math::
+        sigmoid(\mathbf{m}) = a + (b - a) \cdot \frac{1}{1+\exp{-\mathbf{m}}}
+
+    Parameters
+    ----------
+    mesh : discretize.BaseMesh
+        The number of parameters accepted by the mapping is set to equal the number
+        of mesh cells.
+    nP : int
+        Set the number of parameters accepted by the mapping directly. Used if the
+        number of parameters is known. Used generally when the number of parameters
+        is not equal to the number of cells in a mesh.
+    lower_bound: float
+        lower bound (a) for the transform. Default 0. Defined \in \mathbf{u} space.
+    upper_bound: float
+        upper bound (b) for the transform. Default 1. Defined \in \mathbf{u} space.
+
+    """
+
+    def __init__(self, mesh=None, nP=None, lower_bound=0, upper_bound=1, **kwargs):
+        super().__init__(mesh=mesh, nP=nP, **kwargs)
+        assert(lower_bound !=  upper_bound)
+        if (upper_bound < lower_bound):
+            self.lower_bound = upper_bound
+            self.upper_bound = lower_bound
+        else:
+            self.lower_bound = lower_bound
+            self.upper_bound = upper_bound
+
+    def _transform(self, m):
+        return self.lower_bound + (self.upper_bound - self.lower_bound)*self._sigmoid(m)
+
+    def _sigmoid(self, m):
+        # non-bounded forward
+        return mkvc(1.0 / (1.0 + np.exp(-m)))
+
+    def _logit(self, D):
+        # non-bounded inverse
+        return np.log(mkvc(D / (1 - D)))
+    
+    def inverse(self, D):
+        r"""Apply the inverse of the mapping to an array.
+
+        For the logistic sigmoid mapping :math:`\mathbf{u}(\mathbf{m})`, the
+        inverse mapping on a variable :math:`\mathbf{x}` is performed by taking
+        the log-odds of elements, i.e.:
+
+        .. math::
+            \mathbf{m} = \mathbf{u}^{-1}(\mathbf{x}) = logit(\mathbf{x}) = \log \frac{\mathbf{x}}{1 - \mathbf{x}}
+        
+        or scaled and translated to interval (a,b):
+        .. math::
+            \mathbf{m} = logit(\frac{(\mathbf{x} - a)}{b-a})
+
+        Parameters
+        ----------
+        D : numpy.ndarray
+            A set of input values
+
+        Returns
+        -------
+        numpy.ndarray
+            A :class:`numpy.ndarray` containing result of applying the
+            inverse mapping to the elements in *D*; which in this case
+            is the log-odds function.
+        """
+        return self._logit((m - self.lower_bound) / (self.upper_bound - self.lower_bound))
+
+    def deriv(self, m, v=None):
+        r"""Derivative of mapping with respect to the input parameters.
+
+        For a mapping :math:`\mathbf{u}(\mathbf{m})` the derivative of the mapping with 
+        respect to the model is a diagonal matrix of the form:
+
+        .. math::
+            \frac{\partial \mathbf{u}}{\partial \mathbf{m}}
+            = \textrm{diag} \big ( (b-a)\cdot sigmoid(\mathbf{m})\cdot(1-sigmoid(\mathbf{m})) \big )
+
+        Parameters
+        ----------
+        m : (nP) numpy.ndarray
+            A vector representing a set of model parameters
+        v : (nP) numpy.ndarray
+            If not ``None``, the method returns the derivative times the vector *v*
+
+        Returns
+        -------
+        scipy.sparse.csr_matrix
+            Derivative of the mapping with respect to the model parameters. If the
+            input argument *v* is not ``None``, the method returns the derivative times
+            the vector *v*.
+        """
+        sigmoid = (self._sigmoid(m))
+        deriv = sdiag((self.upper_bound - self.lower_bound) * sigmoid * (1.0 - sigmoid))
+        if v is not None:
+            return deriv * v
+        return deriv
+
+    @property
+    def is_linear(self):
+        return False
 
 class ChiMap(IdentityMap):
     r"""Mapping that computes the magnetic permeability given a set of magnetic susceptibilities.
