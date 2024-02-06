@@ -229,10 +229,17 @@ class SmoothnessFullGradient(BaseRegularization):
         """
         if getattr(self, "_W", None) is None:
             mesh = self.regularization_mesh.mesh
+            n_faces = mesh.n_faces
             n_cells = self.regularization_mesh.n_cells
             cell_weights = np.ones(n_cells)
+            face_weights = np.ones(n_faces)
             for values in self._weights.values():
-                cell_weights *= values
+                if len(values) == n_cells:
+                    cell_weights *= values
+                elif len(values) == n_faces:
+                    face_weights *= values
+                else:
+                    raise ValueError("Weights must be either number of active cells, or number of total faces")
             # optionally expand the cell weights if there are inactive cells
             if n_cells != len(mesh) and self.active_cells is not None:
                 weights = np.zeros(mesh.n_cells)
@@ -243,5 +250,9 @@ class SmoothnessFullGradient(BaseRegularization):
             if self.active_cells is not None:
                 reg_model[~self.active_cells] = 0.0
 
-            self._W = mesh.get_face_inner_product(reg_model)
+            Wf = sp.diags(np.sqrt(face_weights))
+
+            W = mesh.get_face_inner_product(reg_model)
+
+            self._W = Wf @ (W @ Wf)
         return self._W
