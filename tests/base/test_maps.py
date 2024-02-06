@@ -706,6 +706,7 @@ def test_linearity():
         maps.SphericalSystem(mesh2),
         maps.SelfConsistentEffectiveMedium(mesh2, sigma0=1, sigma1=2),
         maps.ExpMap(),
+        maps.LogisticSigmoidMap(),
         maps.ReciprocalMap(),
         maps.LogMap(),
         maps.ParametricCircleMap(mesh2),
