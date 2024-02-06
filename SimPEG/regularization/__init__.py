@@ -164,6 +164,7 @@ from .jtv import JointTotalVariation
 from .vector import (
     BaseVectorRegularization,
     CrossReferenceRegularization,
+    BaseAmplitude,
     VectorAmplitude,
     AmplitudeSmallness,
     AmplitudeSmoothnessFirstOrder,

@@ -46,6 +46,33 @@ class BaseSimulation(props.HasModel):
     SimPEG.
     """
 
+    def __init__(
+        self,
+        mesh=None,
+        survey=None,
+        solver=None,
+        solver_opts=None,
+        sensitivity_path=None,
+        counter=None,
+        verbose=False,
+        **kwargs,
+    ):
+        self.mesh = mesh
+        self.survey = survey
+        if solver is None:
+            solver = DefaultSolver
+        self.solver = solver
+        if solver_opts is None:
+            solver_opts = {}
+        self.solver_opts = solver_opts
+        if sensitivity_path is None:
+            sensitivity_path = os.path.join(".", "sensitivity")
+        self.sensitivity_path = sensitivity_path
+        self.counter = counter
+        self.verbose = verbose
+
+        super().__init__(**kwargs)
+
     ###########################################################################
     # Properties
 
@@ -101,7 +128,7 @@ class BaseSimulation(props.HasModel):
 
     @property
     def sensitivity_path(self):
-        """Path to store the sensitivty.
+        """Path to store the sensitivity.
 
         Returns
         -------
@@ -162,36 +189,6 @@ class BaseSimulation(props.HasModel):
     @verbose.setter
     def verbose(self, value):
         self._verbose = validate_type("verbose", value, bool)
-
-    ###########################################################################
-    # Instantiation
-
-    def __init__(
-        self,
-        mesh=None,
-        survey=None,
-        solver=None,
-        solver_opts=None,
-        sensitivity_path=None,
-        counter=None,
-        verbose=False,
-        **kwargs,
-    ):
-        self.mesh = mesh
-        self.survey = survey
-        if solver is None:
-            solver = DefaultSolver
-        self.solver = solver
-        if solver_opts is None:
-            solver_opts = {}
-        self.solver_opts = solver_opts
-        if sensitivity_path is None:
-            sensitivity_path = os.path.join(".", "sensitivity")
-        self.sensitivity_path = sensitivity_path
-        self.counter = counter
-        self.verbose = verbose
-
-        super().__init__(**kwargs)
 
     ###########################################################################
     # Methods
@@ -290,8 +287,7 @@ class BaseSimulation(props.HasModel):
 
     @count
     def residual(self, m, dobs, f=None):
-        r"""
-        The data residual:
+        r"""The data residual.
 
         .. math::
 
@@ -301,18 +297,41 @@ class BaseSimulation(props.HasModel):
         :param numpy.ndarray f: fields
         :rtype: numpy.ndarray
         :return: data residual
+
         """
         return mkvc(self.dpred(m, f=f) - dobs)
 
     def make_synthetic_data(
-        self, m, relative_error=0.05, noise_floor=0.0, f=None, add_noise=False, **kwargs
+        self,
+        m,
+        relative_error=0.05,
+        noise_floor=0.0,
+        f=None,
+        add_noise=False,
+        random_seed=None,
+        **kwargs,
     ):
         """
         Make synthetic data given a model, and a standard deviation.
-        :param numpy.ndarray m: geophysical model
-        :param numpy.ndarray | float relative_error: standard deviation
-        :param numpy.ndarray | float noise_floor: noise floor
-        :param numpy.ndarray f: fields for the given model (if pre-calculated)
+
+        Parameters
+        ----------
+        m : array
+            Array containing with geophysical model.
+        relative_error : float
+            Standard deviation.
+        noise_floor : float
+            Noise floor.
+        f : array or None
+            Fields for the given model (if pre-calculated).
+        add_noise : bool
+            Whether to add gaussian noise to the synthetic data or not.
+        random_seed : int or None
+            Random seed to pass to `numpy.random.default_rng`.
+
+        Returns
+        -------
+        SyntheticData
         """
 
         std = kwargs.pop("std", None)
@@ -328,7 +347,8 @@ class BaseSimulation(props.HasModel):
 
         if add_noise is True:
             std = np.sqrt((relative_error * np.abs(dclean)) ** 2 + noise_floor**2)
-            noise = std * np.random.randn(*dclean.shape)
+            random_num_generator = np.random.default_rng(seed=random_seed)
+            noise = random_num_generator.normal(loc=0, scale=std, size=dclean.shape)
             dobs = dclean + noise
         else:
             dobs = dclean

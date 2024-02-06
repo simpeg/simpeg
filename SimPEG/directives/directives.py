@@ -89,7 +89,9 @@ class InversionDirective:
     def verbose(self, value):
         self._verbose = validate_type("verbose", value, bool)
 
-    debug = deprecate_property(verbose, "debug", "verbose", removal_version="0.19.0")
+    debug = deprecate_property(
+        verbose, "debug", "verbose", removal_version="0.19.0", future_warn=True
+    )
 
     @property
     def inversion(self):
@@ -1642,8 +1644,6 @@ class SaveModelEveryIteration(SaveEveryIteration):
 
 class SaveOutputEveryIteration(SaveEveryIteration):
     """SaveOutputEveryIteration"""
-
-    save_txt = True
 
     def __init__(self, save_txt=True, **kwargs):
         super().__init__(**kwargs)

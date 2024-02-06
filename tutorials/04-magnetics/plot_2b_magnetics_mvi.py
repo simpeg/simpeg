@@ -161,7 +161,7 @@ model_map = maps.IdentityMap(nP=3 * nC)  # model has 3 parameters for each cell
 
 # Define susceptibility for each cell
 susceptibility_model = background_susceptibility * np.ones(ind_active.sum())
-ind_sphere = model_builder.getIndicesSphere(np.r_[0.0, 0.0, -45.0], 15.0, mesh.gridCC)
+ind_sphere = model_builder.get_indices_sphere(np.r_[0.0, 0.0, -45.0], 15.0, mesh.gridCC)
 ind_sphere = ind_sphere[ind_active]
 susceptibility_model[ind_sphere] = sphere_susceptibility
 

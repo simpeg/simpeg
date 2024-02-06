@@ -17,8 +17,6 @@ from SimPEG import (
 )
 from SimPEG.potential_fields import gravity, magnetics
 
-np.random.seed(44)
-
 
 class QuadTreeLinProblemTest(unittest.TestCase):
     def setUp(self):
@@ -101,6 +99,7 @@ class QuadTreeLinProblemTest(unittest.TestCase):
                 relative_error=0.0,
                 noise_floor=noise_floor,
                 add_noise=True,
+                random_seed=44,
             )
 
         def create_magnetics_sim_flat(self, block_value=1.0, noise_floor=0.01):
@@ -128,6 +127,7 @@ class QuadTreeLinProblemTest(unittest.TestCase):
                 relative_error=0.0,
                 noise_floor=noise_floor,
                 add_noise=True,
+                random_seed=44,
             )
 
         def create_gravity_sim(self, block_value=1.0, noise_floor=0.01):
@@ -154,6 +154,7 @@ class QuadTreeLinProblemTest(unittest.TestCase):
                 relative_error=0.0,
                 noise_floor=noise_floor,
                 add_noise=True,
+                random_seed=1,
             )
 
         def create_magnetics_sim(self, block_value=1.0, noise_floor=0.01):
@@ -181,6 +182,7 @@ class QuadTreeLinProblemTest(unittest.TestCase):
                 relative_error=0.0,
                 noise_floor=noise_floor,
                 add_noise=True,
+                random_seed=1,
             )
 
         def create_gravity_sim_active(self, block_value=1.0, noise_floor=0.01):
@@ -208,6 +210,7 @@ class QuadTreeLinProblemTest(unittest.TestCase):
                 relative_error=0.0,
                 noise_floor=noise_floor,
                 add_noise=True,
+                random_seed=1,
             )
 
         def create_magnetics_sim_active(self, block_value=1.0, noise_floor=0.01):
@@ -236,6 +239,7 @@ class QuadTreeLinProblemTest(unittest.TestCase):
                 relative_error=0.0,
                 noise_floor=noise_floor,
                 add_noise=True,
+                random_seed=1,
             )
 
         def create_inversion(self, sim, data, beta=1e3, all_active=True):
@@ -312,7 +316,7 @@ class QuadTreeLinProblemTest(unittest.TestCase):
 
         # Create a density model and generate data,
         # with a block in a half space
-        self.model = utils.model_builder.addBlock(
+        self.model = utils.model_builder.add_block(
             self.mesh.cell_centers,
             np.zeros(self.mesh.nC),
             np.r_[-20, -20],
@@ -320,7 +324,7 @@ class QuadTreeLinProblemTest(unittest.TestCase):
             1.0,
         )
 
-        self.active_cells = utils.model_builder.addBlock(
+        self.active_cells = utils.model_builder.add_block(
             self.mesh.cell_centers,
             np.zeros(self.mesh.nC, dtype=bool),
             np.r_[-40, -40],
@@ -445,8 +449,6 @@ class QuadTreeLinProblemTest(unittest.TestCase):
         print("Z_TOP OR Z_BOTTOM LENGTH MATCHING NACTIVE-CELLS ERROR TEST PASSED.")
 
     def test_quadtree_grav_inverse(self):
-        np.random.seed(44)
-
         # Run the inversion from a zero starting model
         mrec = self.grav_inv.run(np.zeros(self.mesh.nC))
 
@@ -465,8 +467,6 @@ class QuadTreeLinProblemTest(unittest.TestCase):
         self.assertLess(data_misfit, dpred.shape[0] * 1.15)
 
     def test_quadtree_mag_inverse(self):
-        np.random.seed(44)
-
         # Run the inversion from a zero starting model
         mrec = self.mag_inv.run(np.zeros(self.mesh.nC))
 
@@ -485,8 +485,6 @@ class QuadTreeLinProblemTest(unittest.TestCase):
         self.assertLess(data_misfit, dpred.shape[0] * 1.1)
 
     def test_quadtree_grav_inverse_activecells(self):
-        np.random.seed(44)
-
         # Run the inversion from a zero starting model
         mrec = self.grav_inv_active.run(np.zeros(int(self.active_cells.sum())))
 
@@ -509,8 +507,6 @@ class QuadTreeLinProblemTest(unittest.TestCase):
         self.assertLess(data_misfit, dpred.shape[0] * 1.1)
 
     def test_quadtree_mag_inverse_activecells(self):
-        np.random.seed(44)
-
         # Run the inversion from a zero starting model
         mrec = self.mag_inv_active.run(np.zeros(int(self.active_cells.sum())))
 

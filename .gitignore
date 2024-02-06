@@ -89,3 +89,6 @@ tutorials/13-joint_inversion/cross_gradient_data/*
 *.npy
 *.mod
 *.tar.gz
+
+# setuptools_scm
+SimPEG/version.py
