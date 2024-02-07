@@ -98,14 +98,14 @@ class SmoothnessFullGradient(BaseRegularization):
             alphas = np.tile(alphas, (mesh.n_cells, 1))
         if alphas.shape[0] != mesh.n_cells:
             # check if I need to expand from active cells to all cells (needed for discretize)
-            if alphas.shape[0] == n_active_cells and self.active_cells is not None:
+            if self.active_cells is not None and alphas.shape[0] == n_active_cells:
                 alpha_temp = np.zeros((mesh.n_cells, mesh.dim))
                 alpha_temp[self.active_cells] = alphas
                 alphas = alpha_temp
             else:
                 raise IndexError(
                     f"`alphas` first dimension, {alphas.shape[0]}, must be either number "
-                    f"of active cells {n_cells}, or the number of mesh cells {mesh.n_cells}. "
+                    f"of active cells {n_active_cells}, or the number of mesh cells {mesh.n_cells}. "
                 )
         if np.any(alphas < 0):
             raise ValueError("`alpha` must be non-negative")
@@ -123,8 +123,8 @@ class SmoothnessFullGradient(BaseRegularization):
             if reg_dirs.shape[0] != mesh.n_cells:
                 # check if I need to expand from active cells to all cells (needed for discretize)
                 if (
-                    reg_dirs.shape[0] == n_active_cells
-                    and self.active_cells is not None
+                    self.active_cells is not None
+                    and reg_dirs.shape[0] == n_active_cells
                 ):
                     reg_dirs_temp = np.zeros((mesh.n_cells, mesh.dim, mesh.dim))
                     reg_dirs_temp[self.active_cells] = reg_dirs
@@ -220,6 +220,12 @@ class SmoothnessFullGradient(BaseRegularization):
         return self._cell_gradient
 
     @property
+    def _weights_shapes(self):
+        reg_mesh = self.regularization_mesh
+        mesh = reg_mesh.mesh
+        return [(mesh.n_faces,), (reg_mesh.n_cells,)]
+
+    @property
     def W(self):
         """The inner product operator using rotated coordinates
 
@@ -239,7 +245,9 @@ class SmoothnessFullGradient(BaseRegularization):
                 elif len(values) == n_faces:
                     face_weights *= values
                 else:
-                    raise ValueError("Weights must be either number of active cells, or number of total faces")
+                    raise ValueError(
+                        "Weights must be either number of active cells, or number of total faces"
+                    )
             # optionally expand the cell weights if there are inactive cells
             if n_cells != len(mesh) and self.active_cells is not None:
                 weights = np.zeros(mesh.n_cells)
