@@ -42,12 +42,42 @@ class BaseDCSimulation2D(BaseElectricalPDESimulation):
         We avoid computing the fields for repeated electrode locations and the
         fields for dipole sources can be constructed using superposition.
     do_trap : bool
-        Use trap method to find an optimum set of quadrature points and weights
-        for how many evaluations of the 2D problem are required in the wave domain.
+        Use trap method to find the optimum set of quadrature points and weights
+        in the wave domain for evaluating the set of 2D problems.
     fix_Jmatrix : bool
         Whether to fix the sensitivity matrix during Newton iterations.
     surface_faces : None, numpy.ndarray of bool
         Array defining which faces to interpret as surfaces of the Neumann boundary.
+
+    Notes
+    -----
+    The partial differential equation for the DC resistivity problem is given by:
+
+    .. math::
+        \nabla \cdot \sigma \, \nabla \phi = - \nabla \cdot \vec{j}_s
+
+    where :math:`\sigma` is the electrical conductivity, :math:`\vec{j}_s` is a
+    galvanic source current density, and :math:`\phi` is the electric potential
+    for which we want to solve. For current :math:`I` injected at point :math:`r_s`,
+    this expression becomes:
+
+    .. math::
+        \nabla \cdot \sigma \, \nabla \phi = - I \, \delta (r-r_s)
+
+    If we assume the electrical conductivity is invariant along the y-direction,
+    we can apply a Fourier transform such that:
+
+    .. math::
+        \nabla_{xz} \cdot \sigma \, \nabla_{xz} \Phi - k_y^2 \sigma \Phi =
+        - I \, \delta (x-x_s) \, \delta (z-z_s)
+
+    where :math:`k_y` is the wavenumber and :math:`\Phi` is the electric potential in the
+    wave domain. For an optimum set of wavenumbers :math:`k_i` and
+    coefficients :math:`\alpha_i`, we solve a set of 2D problem and use them to approximate
+    the 3D soluation as:
+
+    .. math::
+        \phi = \sum_{i=1}^{nk_y} \alpha_i \, \Phi (k_i)
 
     """
 
@@ -526,10 +556,11 @@ class Simulation2DCellCentered(BaseDCSimulation2D):
         """Inner product matrix on edges for 2D"""
         if getattr(self, "_MfRhoI2D", None) is None:
             if len(self.rho) == self.mesh.nC:
-                self._MfRhoI2D = self.MfRhoI
-            elif len(self.rho) == 3 * mesh.nC:
+                self._MfRhoI2D = super().MfRhoI
+            elif len(self.rho) == 3 * self.mesh.nC:
+                model = np.r_[self.rho[:self.mesh.nC], self.rho[2*self.mesh.nC:]]
                 self._MfRhoI2D = self.mesh.self.mesh.get_face_inner_product(
-                    model=self.rho[:2*self.mesh.nC], invert_matrix=True
+                    model=model, invert_matrix=True
                 )
             else:
                 raise NotImplementedError(
@@ -539,22 +570,22 @@ class Simulation2DCellCentered(BaseDCSimulation2D):
         return self._MfRhoI2D
 
     @property
-    def MccSigma2D(self):
+    def MccSigma(self):
         """Inner product matrix on cell centers for 2D"""
-        if getattr(self, "_MccSigma2D", None) is None:
+        if getattr(self, "_MccSigma", None) is None:
             if len(self.sigma) == self.mesh.nC:
-                self._MccSigma2D = self.MccSigma
+                self._MccSigma = self.MccSigma
             elif len(self.sigma) == 3 * mesh.nC:
                 vol = self.mesh.cell_volumes
-                self._MnSigma2D = sp.diags(
-                    vol * self.sigma[-self.mesh.nC:], format="csr"
+                self._MnSigma = sp.diags(
+                    vol * self.sigma[self.mesh.nC:2*self.mesh.nC], format="csr"
                 )
             else:
                 raise NotImplementedError(
                     "Only isotropic and linear isotropic conductivities implemented."
                 )
 
-        return self._MccSigma2D
+        return self._MccSigma
 
     @bc_type.setter
     def bc_type(self, value):
@@ -575,7 +606,7 @@ class Simulation2DCellCentered(BaseDCSimulation2D):
             G = G - self._MBC[ky]
         MfRhoI = self.MfRhoI2D
         # Get resistivity rho
-        A = D * MfRhoI * G + ky**2 * self.MccSigma2D
+        A = D * MfRhoI * G + ky**2 * self.MccSigma
         if self.bc_type == "Neumann":
             A[0, 0] = A[0, 0] + 1.0
         return A
@@ -735,39 +766,38 @@ class Simulation2DNodal(BaseDCSimulation2D):
         )
 
     @property
-    def MeSigma2D(self):
+    def MeSigma(self):
         """Inner product matrix on edges for 2D"""
-        if getattr(self, "_MeSigma2D", None) is None:
+        if getattr(self, "_MeSigma", None) is None:
             if len(self.sigma) == self.mesh.nC:
-                self._MeSigma2D = self.MeSigma
+                return super().MeSigma
             elif len(self.sigma) == 3 * mesh.nC:
-                self._MeSigma2D = self.mesh.self.mesh.get_edge_inner_product(
-                    model=self.sigma[:2*self.mesh.nC]
-                )
+                model = np.r_[self.sigma[:self.mesh.nC], self.sigma[2*self.mesh.nC:]]
+                self._MeSigma = self.mesh.self.mesh.get_edge_inner_product(model=model)
             else:
                 raise NotImplementedError(
                     "Only isotropic and linear isotropic conductivities implemented."
                 )
 
-        return self._MeSigma2D
+        return self._MeSigma
 
     @property
-    def MnSigma2D(self):
+    def MnSigma(self):
         """Inner product matrix on nodes for 2D"""
-        if getattr(self, "_MnSigma2D", None) is None:
+        if getattr(self, "_MnSigma", None) is None:
             if len(self.sigma) == self.mesh.nC:
-                self._MnSigma2D = self.MnSigma
+                self._MnSigma = self.MnSigma
             elif len(self.sigma) == 3 * mesh.nC:
                 vol = self.mesh.cell_volumes
-                self._MnSigma2D = sp.diags(
-                    self.mesh.aveN2CC.T * (vol * self.sigma[-self.mesh.nC:]), format="csr"
+                self._MnSigma = sp.diags(
+                    self.mesh.aveN2CC.T * (vol * self.sigma[self.mesh.nC:2*self.mesh.nC]), format="csr"
                 )
             else:
                 raise NotImplementedError(
                     "Only isotropic and linear isotropic conductivities implemented."
                 )
 
-        return self._MnSigma2D
+        return self._MnSigma
     
 
     def getA(self, ky):
@@ -778,8 +808,8 @@ class Simulation2DNodal(BaseDCSimulation2D):
         # To handle Mixed boundary condition
         self.setBC(ky=ky)
 
-        MeSigma = self.MeSigma2D
-        MnSigma = self.MnSigma2D
+        MeSigma = self.MeSigma
+        MnSigma = self.MnSigma
         Grad = self.mesh.nodal_gradient
         if self._gradT is None:
             self._gradT = Grad.T.tocsr()  # cache the .tocsr()
