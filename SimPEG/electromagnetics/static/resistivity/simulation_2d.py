@@ -554,36 +554,46 @@ class Simulation2DCellCentered(BaseDCSimulation2D):
     @property
     def MfRhoI(self):
         """Inner product matrix on edges for 2D"""
+
+        # Isotropic case
+        if self.rho.size == self.mesh.nC:
+            return super().MfRhoI
+
+        # Override in the case of anisotropy
         if getattr(self, "_MfRhoI", None) is None:
-            if len(self.rho) == self.mesh.nC:
-                return super().MfRhoI
-            elif len(self.rho) == 3 * self.mesh.nC:
+            if self.rho.size == 3 * self.mesh.nC:
                 model = np.r_[self.rho[:self.mesh.nC], self.rho[2*self.mesh.nC:]]
-                self._MfRhoI = self.mesh.self.mesh.get_face_inner_product(
+                self._MfRhoI = self.mesh.get_face_inner_product(
                     model=model, invert_matrix=True
                 )
-                return self._MfRhoI
             else:
                 raise NotImplementedError(
                     "Only isotropic and linear isotropic resistivities implemented."
                 )
 
+        return self._MfRhoI
+
     @property
     def MccSigma(self):
         """Inner product matrix on cell centers for 2D"""
+
+        # Isotropic case
+        if self.sigma.size == self.mesh.nC:
+            return super().MccSigma
+
+        # Override in the case of anisotropy
         if getattr(self, "_MccSigma", None) is None:
-            if len(self.sigma) == self.mesh.nC:
-                return self.MccSigma
-            elif len(self.sigma) == 3 * mesh.nC:
+            if self.sigma.size == 3 * self.mesh.nC:
                 vol = self.mesh.cell_volumes
-                self._MnSigma = sp.diags(
+                self._MccSigma = sp.diags(
                     vol * self.sigma[self.mesh.nC:2*self.mesh.nC], format="csr"
                 )
-                return self._MccSigma
             else:
                 raise NotImplementedError(
                     "Only isotropic and linear isotropic conductivities implemented."
                 )
+
+        return self._MccSigma
 
     @bc_type.setter
     def bc_type(self, value):
@@ -766,34 +776,44 @@ class Simulation2DNodal(BaseDCSimulation2D):
     @property
     def MeSigma(self):
         """Inner product matrix on edges for 2D"""
+
+        # Isotropic case
+        if self.sigma.size == self.mesh.nC:
+            return super().MeSigma
+
+        # Override for anisotropic case
         if getattr(self, "_MeSigma", None) is None:
-            if len(self.sigma) == self.mesh.nC:
-                return super().MeSigma
-            elif len(self.sigma) == 3 * mesh.nC:
+            if self.sigma.size == 3 * self.mesh.nC:
                 model = np.r_[self.sigma[:self.mesh.nC], self.sigma[2*self.mesh.nC:]]
-                self._MeSigma = self.mesh.self.mesh.get_edge_inner_product(model=model)
-                return self._MeSigma
+                self._MeSigma = self.mesh.get_edge_inner_product(model=model)
             else:
                 raise NotImplementedError(
                     "Only isotropic and linear isotropic conductivities implemented."
                 )
 
+        return self._MeSigma
+
     @property
     def MnSigma(self):
         """Inner product matrix on nodes for 2D"""
+
+        # Isotropic case
+        if self.sigma.size == self.mesh.nC:
+            return super().MnSigma
+        
+        # Override if anisotropic case
         if getattr(self, "_MnSigma", None) is None:
-            if len(self.sigma) == self.mesh.nC:
-                return self.MnSigma
-            elif len(self.sigma) == 3 * mesh.nC:
+            if self.sigma.size == 3 * self.mesh.nC:
                 vol = self.mesh.cell_volumes
                 self._MnSigma = sp.diags(
                     self.mesh.aveN2CC.T * (vol * self.sigma[self.mesh.nC:2*self.mesh.nC]), format="csr"
                 )
-                return self._MnSigma
             else:
                 raise NotImplementedError(
                     "Only isotropic and linear isotropic conductivities implemented."
                 )
+
+        return self._MnSigma
     
 
     def getA(self, ky):
