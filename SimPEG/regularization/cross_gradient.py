@@ -265,7 +265,7 @@ class CrossGradient(BaseSimilarityMeasure):
         The gradient has the form:
 
         .. math::
-            \frac{\partial \phi}{\partial \mathbf{m}} =
+            2 \frac{\partial \phi}{\partial \mathbf{m}} =
             \begin{bmatrix} \dfrac{\partial \phi}{\partial \mathbf{m_1}} \\
             \dfrac{\partial \phi}{\partial \mathbf{m_2}} \end{bmatrix}
 
@@ -294,7 +294,7 @@ class CrossGradient(BaseSimilarityMeasure):
                 (((Av @ g_m1**2) @ Av) * g_m2) @ G
                 - (((Av @ (g_m1 * g_m2)) @ Av) * g_m1) @ G,
             ]
-        )
+        )  # factor of 2 from derviative of | grad m1 x grad m2 | ^2
 
     def deriv2(self, model, v=None):
         r"""Hessian of the regularization function evaluated for the model provided.
@@ -379,7 +379,9 @@ class CrossGradient(BaseSimilarityMeasure):
                 )
                 BT = B.T
 
-            return 2 * sp.bmat([[A, B], [BT, C]], format="csr")
+            return 2 * sp.bmat(
+                [[A, B], [BT, C]], format="csr"
+            )  # factor of 2 from derviative of | grad m1 x grad m2 | ^2
         else:
             v1, v2 = self.wire_map * v
 
@@ -405,4 +407,6 @@ class CrossGradient(BaseSimilarityMeasure):
                     - g_m1 * (Av.T @ (Av @ (g_m2 * Gv1)))
                     - (Av.T @ (Av @ (g_m2 * g_m1))) * Gv1
                 )
-            return 2 * np.r_[p1, p2]
+            return (
+                2 * np.r_[p1, p2]
+            )  # factor of 2 from derviative of | grad m1 x grad m2 | ^2
