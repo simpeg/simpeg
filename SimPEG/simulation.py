@@ -46,6 +46,33 @@ class BaseSimulation(props.HasModel):
     SimPEG.
     """
 
+    def __init__(
+        self,
+        mesh=None,
+        survey=None,
+        solver=None,
+        solver_opts=None,
+        sensitivity_path=None,
+        counter=None,
+        verbose=False,
+        **kwargs,
+    ):
+        self.mesh = mesh
+        self.survey = survey
+        if solver is None:
+            solver = DefaultSolver
+        self.solver = solver
+        if solver_opts is None:
+            solver_opts = {}
+        self.solver_opts = solver_opts
+        if sensitivity_path is None:
+            sensitivity_path = os.path.join(".", "sensitivity")
+        self.sensitivity_path = sensitivity_path
+        self.counter = counter
+        self.verbose = verbose
+
+        super().__init__(**kwargs)
+
     ###########################################################################
     # Properties
 
@@ -162,36 +189,6 @@ class BaseSimulation(props.HasModel):
     @verbose.setter
     def verbose(self, value):
         self._verbose = validate_type("verbose", value, bool)
-
-    ###########################################################################
-    # Instantiation
-
-    def __init__(
-        self,
-        mesh=None,
-        survey=None,
-        solver=None,
-        solver_opts=None,
-        sensitivity_path=None,
-        counter=None,
-        verbose=False,
-        **kwargs,
-    ):
-        self.mesh = mesh
-        self.survey = survey
-        if solver is None:
-            solver = DefaultSolver
-        self.solver = solver
-        if solver_opts is None:
-            solver_opts = {}
-        self.solver_opts = solver_opts
-        if sensitivity_path is None:
-            sensitivity_path = os.path.join(".", "sensitivity")
-        self.sensitivity_path = sensitivity_path
-        self.counter = counter
-        self.verbose = verbose
-
-        super().__init__(**kwargs)
 
     ###########################################################################
     # Methods
