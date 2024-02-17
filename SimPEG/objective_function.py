@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import numbers
 import numpy as np
 import scipy.sparse as sp
@@ -361,7 +363,12 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
 
     """
 
-    def __init__(self, objfcts=None, multipliers=None, unpack_on_add=True):
+    def __init__(
+        self,
+        objfcts: list[BaseObjectiveFunction] | None = None,
+        multipliers=None,
+        unpack_on_add=True,
+    ):
         # Define default lists if None
         if objfcts is None:
             objfcts = []
@@ -382,6 +389,7 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
             nP = None
 
         super().__init__(nP=nP)
+
         self.objfcts = objfcts
         self._multipliers = multipliers
         self._unpack_on_add = unpack_on_add
