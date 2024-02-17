@@ -10,6 +10,7 @@ the same as in the forward modeling example. To remove the VRM signal we:
     2. use the recovered model to predict the VRM response at all times
     3. subtract the predicted VRM response from the observed data
 """
+import SimPEG.directives.misfit
 
 #########################################################################
 # Import modules
@@ -203,7 +204,7 @@ opt = optimization.ProjectedGNCG(
 invProb = inverse_problem.BaseInvProblem(dmis, reg, opt)
 directives = [
     directives.BetaSchedule(coolingFactor=2, coolingRate=1),
-    directives.TargetMisfit(),
+    SimPEG.directives.misfit.TargetMisfit(),
 ]
 inv = inversion.BaseInversion(invProb, directiveList=directives)
 

@@ -15,7 +15,7 @@ parameters:
 
 User is promoted to try different initial values of the parameterized model.
 """
-
+import SimPEG.directives.misfit
 from SimPEG.electromagnetics.static import resistivity as DC, utils as DCutils
 from discretize import TensorMesh
 from discretize.utils import active_from_xyz
@@ -27,7 +27,6 @@ from SimPEG import (
     optimization,
     inversion,
     inverse_problem,
-    directives,
 )
 import matplotlib.pyplot as plt
 from matplotlib import colors
@@ -177,7 +176,7 @@ def run(
     reg = regularization.WeightedLeastSquares(mesh_1d, alpha_x=0.0)
     opt = optimization.InexactGaussNewton(maxIter=10)
     invProb = inverse_problem.BaseInvProblem(dmisfit, reg, opt)
-    target = directives.TargetMisfit()
+    target = SimPEG.directives.misfit.TargetMisfit()
     invProb.beta = 0.0
     inv = inversion.BaseInversion(invProb, directiveList=[target])
     prb.counter = opt.counter = utils.Counter()

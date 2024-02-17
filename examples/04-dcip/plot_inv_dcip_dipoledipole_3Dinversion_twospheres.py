@@ -17,6 +17,8 @@ Following example will show you how user can implement a 3D DC inversion.
 """
 
 import discretize
+
+import SimPEG.directives.misfit
 from SimPEG import (
     maps,
     utils,
@@ -182,7 +184,7 @@ invProb = inverse_problem.BaseInvProblem(dmis, regT, opt)
 
 # Directives for Inversions
 beta = directives.BetaEstimate_ByEig(beta0_ratio=1.0)
-Target = directives.TargetMisfit()
+Target = SimPEG.directives.misfit.TargetMisfit()
 betaSched = directives.BetaSchedule(coolingFactor=5.0, coolingRate=2)
 
 inv = inversion.BaseInversion(invProb, directiveList=[beta, Target, betaSched])

@@ -3,6 +3,9 @@ import numpy as np
 
 import discretize
 from discretize.utils import active_from_xyz
+
+import SimPEG.directives.base
+import SimPEG.directives.regularization
 from SimPEG import (
     utils,
     maps,
@@ -106,7 +109,9 @@ def test_gravity_inversion_linear(engine):
     starting_beta = directives.BetaEstimateMaxDerivative(10.0)
     IRLS = directives.Update_IRLS()
     update_Jacobi = directives.UpdatePreconditioner()
-    sensitivity_weights = directives.UpdateSensitivityWeights(every_iteration=False)
+    sensitivity_weights = SimPEG.directives.regularization.UpdateSensitivityWeights(
+        every_iteration=False
+    )
     inv = inversion.BaseInversion(
         invProb,
         directiveList=[IRLS, sensitivity_weights, starting_beta, update_Jacobi],

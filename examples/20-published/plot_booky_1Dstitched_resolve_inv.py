@@ -32,6 +32,8 @@ from scipy.constants import mu_0
 from scipy.spatial import cKDTree
 
 import discretize
+
+import SimPEG.directives.misfit
 from SimPEG import (
     maps,
     utils,
@@ -40,7 +42,6 @@ from SimPEG import (
     optimization,
     inversion,
     inverse_problem,
-    directives,
     data,
 )
 from SimPEG.electromagnetics import frequency_domain as FDEM
@@ -136,7 +137,7 @@ def resolve_1Dinversions(
     invProb = inverse_problem.BaseInvProblem(dmisfit, reg, opt)
 
     # Inversion directives and parameters
-    target = directives.TargetMisfit()
+    target = SimPEG.directives.misfit.TargetMisfit()
     inv = inversion.BaseInversion(invProb, directiveList=[target])
 
     invProb.beta = 2.0  # Fix beta in the nonlinear iterations

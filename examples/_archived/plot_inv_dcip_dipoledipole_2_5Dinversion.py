@@ -11,7 +11,9 @@ than this is blanked.
 User is promoted to try different suvey_type such as 'pole-dipole',
 'dipole-pole', and 'pole-pole'.
 """
-
+import SimPEG.directives.base
+import SimPEG.directives.misfit
+import SimPEG.directives.regularization
 from SimPEG.electromagnetics.static import resistivity as DC
 from SimPEG.electromagnetics.static.utils import generate_dcip_survey, genTopography
 from SimPEG import (
@@ -151,8 +153,8 @@ def run(plotIt=True, survey_type="dipole-dipole"):
     invProb = inverse_problem.BaseInvProblem(dmisfit, reg, opt)
     beta = directives.BetaSchedule(coolingFactor=5, coolingRate=2)
     betaest = directives.BetaEstimate_ByEig(beta0_ratio=1e0)
-    target = directives.TargetMisfit()
-    updateSensW = directives.UpdateSensitivityWeights()
+    target = SimPEG.directives.misfit.TargetMisfit()
+    updateSensW = SimPEG.directives.regularization.UpdateSensitivityWeights()
     update_Jacobi = directives.UpdatePreconditioner()
     inv = inversion.BaseInversion(
         invProb, directiveList=[beta, target, updateSensW, betaest, update_Jacobi]

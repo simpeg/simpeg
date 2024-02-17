@@ -32,6 +32,7 @@ import matplotlib.pyplot as plt
 from discretize import TreeMesh
 from discretize.utils import refine_tree_xyz, active_from_xyz
 
+import SimPEG.directives.misfit
 from SimPEG.utils import plot2Ddata, mkvc
 from SimPEG.electromagnetics import frequency_domain as fdem
 from SimPEG import (
@@ -352,7 +353,7 @@ beta_schedule = directives.BetaSchedule(coolingFactor=10, coolingRate=3)
 save_iteration = directives.SaveOutputEveryIteration(save_txt=False)
 
 # Setting a stopping criteria for the inversion.
-target_misfit = directives.TargetMisfit(chifact=1)
+target_misfit = SimPEG.directives.misfit.TargetMisfit(chifact=1)
 
 # The directives are defined as a list.
 directives_list = [starting_beta, beta_schedule, save_iteration, target_misfit]

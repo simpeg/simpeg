@@ -10,6 +10,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 from discretize import TensorMesh
 from discretize.utils import active_from_xyz
+
+import SimPEG.directives.base
+import SimPEG.directives.regularization
 from SimPEG.potential_fields import magnetics
 from SimPEG import utils
 from SimPEG import (
@@ -126,7 +129,9 @@ def run(plotIt=True):
     saveDict = directives.SaveOutputEveryIteration(save_txt=False)
     update_Jacobi = directives.UpdatePreconditioner()
     # Add sensitivity weights
-    sensitivity_weights = directives.UpdateSensitivityWeights(everyIter=False)
+    sensitivity_weights = SimPEG.directives.regularization.UpdateSensitivityWeights(
+        everyIter=False
+    )
 
     inv = inversion.BaseInversion(
         invProb,

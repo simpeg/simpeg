@@ -1,5 +1,8 @@
 import numpy as np
 
+import SimPEG.directives.base
+import SimPEG.directives.misfit
+import SimPEG.directives.regularization
 from SimPEG import (
     maps,
     optimization,
@@ -55,11 +58,11 @@ def run_inversion(
     invProb = inverse_problem.BaseInvProblem(dmisfit, reg, opt)
     beta = directives.BetaSchedule(coolingFactor=coolingFactor, coolingRate=coolingRate)
     betaest = directives.BetaEstimate_ByEig(beta0_ratio=beta0_ratio)
-    target = directives.TargetMisfit()
+    target = SimPEG.directives.misfit.TargetMisfit()
     # Need to have basice saving function
     update_Jacobi = directives.UpdatePreconditioner()
     if use_sensitivity_weight:
-        updateSensW = directives.UpdateSensitivityWeights()
+        updateSensW = SimPEG.directives.regularization.UpdateSensitivityWeights()
         directiveList = [beta, target, updateSensW, update_Jacobi, betaest]
     else:
         directiveList = [beta, target, update_Jacobi, betaest]

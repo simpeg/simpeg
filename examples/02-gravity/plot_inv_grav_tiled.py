@@ -9,6 +9,8 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 
+import SimPEG.directives.base
+import SimPEG.directives.regularization
 from SimPEG.potential_fields import gravity
 from SimPEG import (
     maps,
@@ -243,7 +245,9 @@ update_IRLS = directives.Update_IRLS(
 )
 saveDict = directives.SaveOutputEveryIteration(save_txt=False)
 update_Jacobi = directives.UpdatePreconditioner()
-sensitivity_weights = directives.UpdateSensitivityWeights(everyIter=False)
+sensitivity_weights = SimPEG.directives.regularization.UpdateSensitivityWeights(
+    everyIter=False
+)
 inv = inversion.BaseInversion(
     invProb,
     directiveList=[update_IRLS, sensitivity_weights, betaest, update_Jacobi, saveDict],

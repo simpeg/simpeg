@@ -20,6 +20,9 @@ from matplotlib import pyplot as plt
 from discretize import TensorMesh
 from pymatsolver import PardisoSolver
 
+import SimPEG.directives.base
+import SimPEG.directives.misfit
+import SimPEG.directives.regularization
 from SimPEG.utils import mkvc
 from SimPEG import (
     maps,
@@ -338,12 +341,12 @@ update_IRLS = directives.Update_IRLS(
 update_jacobi = directives.UpdatePreconditioner()
 
 # Setting a stopping criteria for the inversion.
-target_misfit = directives.TargetMisfit(chifact=1)
+target_misfit = SimPEG.directives.misfit.TargetMisfit(chifact=1)
 
 # Add sensitivity weights
-sensitivity_weights = directives.UpdateSensitivityWeights()
+sensitivity_weights = SimPEG.directives.regularization.UpdateSensitivityWeights()
 
-target = directives.TargetMisfit()
+target = SimPEG.directives.misfit.TargetMisfit()
 
 # The directives are defined as a list.
 directives_list = [

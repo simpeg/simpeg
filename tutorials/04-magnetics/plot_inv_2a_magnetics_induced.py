@@ -34,6 +34,10 @@ import tarfile
 
 from discretize import TensorMesh
 from discretize.utils import active_from_xyz
+
+import SimPEG.directives.base
+import SimPEG.directives.misfit
+import SimPEG.directives.regularization
 from SimPEG.potential_fields import magnetics
 from SimPEG.utils import plot2Ddata, model_builder
 from SimPEG import (
@@ -304,10 +308,12 @@ update_IRLS = directives.Update_IRLS(
 update_jacobi = directives.UpdatePreconditioner()
 
 # Setting a stopping criteria for the inversion.
-target_misfit = directives.TargetMisfit(chifact=1)
+target_misfit = SimPEG.directives.misfit.TargetMisfit(chifact=1)
 
 # Add sensitivity weights
-sensitivity_weights = directives.UpdateSensitivityWeights(everyIter=False)
+sensitivity_weights = SimPEG.directives.regularization.UpdateSensitivityWeights(
+    everyIter=False
+)
 
 # The directives are defined as a list.
 directives_list = [

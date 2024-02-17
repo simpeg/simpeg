@@ -1,6 +1,9 @@
 import unittest
 import discretize
 from discretize.utils import active_from_xyz
+
+import SimPEG.directives.base
+import SimPEG.directives.regularization
 from SimPEG import (
     utils,
     maps,
@@ -114,7 +117,9 @@ class MagInvLinProblemTest(unittest.TestCase):
         # Here is where the norms are applied
         IRLS = directives.Update_IRLS(f_min_change=1e-4, minGNiter=1)
         update_Jacobi = directives.UpdatePreconditioner()
-        sensitivity_weights = directives.UpdateSensitivityWeights(everyIter=False)
+        sensitivity_weights = SimPEG.directives.regularization.UpdateSensitivityWeights(
+            everyIter=False
+        )
         self.inv = inversion.BaseInversion(
             invProb, directiveList=[IRLS, sensitivity_weights, betaest, update_Jacobi]
         )

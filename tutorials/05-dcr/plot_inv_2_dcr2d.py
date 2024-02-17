@@ -31,6 +31,9 @@ import tarfile
 from discretize import TreeMesh
 from discretize.utils import mkvc, refine_tree_xyz, active_from_xyz
 
+import SimPEG.directives.base
+import SimPEG.directives.misfit
+import SimPEG.directives.regularization
 from SimPEG.utils import model_builder
 from SimPEG import (
     maps,
@@ -315,7 +318,9 @@ inv_prob = inverse_problem.BaseInvProblem(dmis, reg, opt)
 #
 
 # Apply and update sensitivity weighting as the model updates
-update_sensitivity_weighting = directives.UpdateSensitivityWeights()
+update_sensitivity_weighting = (
+    SimPEG.directives.regularization.UpdateSensitivityWeights()
+)
 
 # Defining a starting value for the trade-off parameter (beta) between the data
 # misfit and the regularization.
@@ -330,7 +335,7 @@ beta_schedule = directives.BetaSchedule(coolingFactor=3, coolingRate=2)
 save_iteration = directives.SaveOutputEveryIteration(save_txt=False)
 
 # Setting a stopping criteria for the inversion.
-target_misfit = directives.TargetMisfit(chifact=1)
+target_misfit = SimPEG.directives.misfit.TargetMisfit(chifact=1)
 
 # Update preconditioner
 update_jacobi = directives.UpdatePreconditioner()

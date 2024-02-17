@@ -20,6 +20,9 @@ assumption in order to improve the recovery of a compact prism.
 import scipy as sp
 import numpy as np
 import matplotlib.pyplot as plt
+
+import SimPEG.directives.base
+import SimPEG.directives.regularization
 from SimPEG import (
     data,
     data_misfit,
@@ -363,7 +366,7 @@ IRLS = directives.Update_IRLS(
 
 # Special directive specific to the mag amplitude problem. The sensitivity
 # weights are updated between each iteration.
-update_SensWeight = directives.UpdateSensitivityWeights()
+update_SensWeight = SimPEG.directives.regularization.UpdateSensitivityWeights()
 update_Jacobi = directives.UpdatePreconditioner()
 
 # Put all together

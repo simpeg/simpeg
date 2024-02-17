@@ -1299,3 +1299,42 @@ class ProjectedGNCG(BFGS, Minimize, Remember):
         step[indx] = 0.0
 
         return step
+
+
+class SimilarityMeasureInversionPrinters:
+    betas = {
+        "title": "betas",
+        "value": lambda M: ["{:.2e}".format(elem) for elem in M.parent.betas],
+        "width": 26,
+        "format": "%s",
+    }
+    lambd = {
+        "title": "lambda",
+        "value": lambda M: M.parent.lambd,
+        "width": 10,
+        "format": "%1.2e",
+    }
+    phi_d_list = {
+        "title": "phi_d",
+        "value": lambda M: ["{:.2e}".format(elem) for elem in M.parent.phi_d_list],
+        "width": 26,
+        "format": "%s",
+    }
+    phi_m_list = {
+        "title": "phi_m",
+        "value": lambda M: ["{:.2e}".format(elem) for elem in M.parent.phi_m_list],
+        "width": 26,
+        "format": "%s",
+    }
+    phi_sim = {
+        "title": "phi_sim",
+        "value": lambda M: M.parent.phi_sim,
+        "width": 10,
+        "format": "%1.2e",
+    }
+    iterationCG = {
+        "title": "iterCG",
+        "value": lambda M: M.cg_count,
+        "width": 10,
+        "format": "%3d",
+    }

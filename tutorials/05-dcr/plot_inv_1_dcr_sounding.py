@@ -30,6 +30,9 @@ import tarfile
 
 from discretize import TensorMesh
 
+import SimPEG.directives.base
+import SimPEG.directives.misfit
+import SimPEG.directives.regularization
 from SimPEG import (
     maps,
     data,
@@ -257,13 +260,13 @@ starting_beta = directives.BetaEstimate_ByEig(beta0_ratio=1e0)
 beta_schedule = directives.BetaSchedule(coolingFactor=5.0, coolingRate=3.0)
 
 # Apply and update sensitivity weighting as the model updates
-update_sensitivity_weights = directives.UpdateSensitivityWeights()
+update_sensitivity_weights = SimPEG.directives.regularization.UpdateSensitivityWeights()
 
 # Options for outputting recovered models and predicted data for each beta.
 save_iteration = directives.SaveOutputEveryIteration(save_txt=False)
 
 # Setting a stopping criteria for the inversion.
-target_misfit = directives.TargetMisfit(chifact=1)
+target_misfit = SimPEG.directives.misfit.TargetMisfit(chifact=1)
 
 # The directives are defined as a list.
 directives_list = [

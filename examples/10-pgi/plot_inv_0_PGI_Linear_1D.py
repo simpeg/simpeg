@@ -15,6 +15,9 @@ We explore it through the UBC linear example.
 import discretize as Mesh
 import matplotlib.pyplot as plt
 import numpy as np
+
+import SimPEG.directives.joint
+import SimPEG.directives.misfit
 from SimPEG import (
     data_misfit,
     directives,
@@ -78,7 +81,7 @@ invProb = inverse_problem.BaseInvProblem(dmis, reg, opt)
 directiveslist = [
     directives.BetaEstimate_ByEig(beta0_ratio=1e-5),
     directives.BetaSchedule(coolingFactor=10.0, coolingRate=2),
-    directives.TargetMisfit(),
+    SimPEG.directives.misfit.TargetMisfit(),
 ]
 
 inv = inversion.BaseInversion(invProb, directiveList=directiveslist)
@@ -131,7 +134,7 @@ betaIt = directives.PGI_BetaAlphaSchedule(
     update_rate=1,
     progress=0.2,
 )
-targets = directives.MultiTargetMisfits(verbose=True)
+targets = SimPEG.directives.misfit.MultiTargetMisfits(verbose=True)
 petrodir = directives.PGI_UpdateParameters()
 addmref = directives.PGI_AddMrefInSmooth(verbose=True)
 

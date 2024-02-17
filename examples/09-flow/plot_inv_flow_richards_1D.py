@@ -30,6 +30,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 import discretize
+
+import SimPEG.directives.misfit
 from SimPEG import maps
 from SimPEG import regularization
 from SimPEG import data_misfit
@@ -103,7 +105,7 @@ def run(plotIt=True):
     invProb = inverse_problem.BaseInvProblem(dmis, reg, opt)
     beta = directives.BetaSchedule(coolingFactor=4)
     betaest = directives.BetaEstimate_ByEig(beta0_ratio=1e2)
-    target = directives.TargetMisfit()
+    target = SimPEG.directives.misfit.TargetMisfit()
     dir_list = [beta, betaest, target]
     inv = inversion.BaseInversion(invProb, directiveList=dir_list)
 

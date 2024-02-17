@@ -25,6 +25,7 @@ import matplotlib.pyplot as plt
 
 from discretize import TensorMesh
 
+import SimPEG.directives.misfit
 from SimPEG import (
     simulation,
     maps,
@@ -170,7 +171,7 @@ inv_prob = inverse_problem.BaseInvProblem(dmis, reg, opt)
 starting_beta = directives.BetaEstimate_ByEig(beta0_ratio=1e-4)
 
 # Setting a stopping criteria for the inversion.
-target_misfit = directives.TargetMisfit()
+target_misfit = SimPEG.directives.misfit.TargetMisfit()
 
 # The directives are defined as a list.
 directives_list = [starting_beta, target_misfit]

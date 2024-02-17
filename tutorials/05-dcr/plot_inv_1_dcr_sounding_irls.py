@@ -30,6 +30,8 @@ import tarfile
 
 from discretize import TensorMesh
 
+import SimPEG.directives.base
+import SimPEG.directives.regularization
 from SimPEG import (
     maps,
     data,
@@ -252,7 +254,7 @@ inv_prob = inverse_problem.BaseInvProblem(dmis, reg, opt)
 #
 
 # Apply and update sensitivity weighting as the model updates
-update_sensitivity_weights = directives.UpdateSensitivityWeights()
+update_sensitivity_weights = SimPEG.directives.regularization.UpdateSensitivityWeights()
 
 # Reach target misfit for L2 solution, then use IRLS until model stops changing.
 IRLS = directives.Update_IRLS(max_irls_iterations=40, minGNiter=1, f_min_change=1e-5)

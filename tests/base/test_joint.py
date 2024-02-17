@@ -3,6 +3,9 @@ import unittest
 import numpy as np
 
 import discretize
+
+import SimPEG.directives.joint
+import SimPEG.directives.misfit
 from SimPEG import (
     data_misfit,
     maps,
@@ -81,10 +84,10 @@ class DataMisfitTest(unittest.TestCase):
         opt = optimization.InexactGaussNewton(maxIter=10, use_WolfeCurvature=True)
         invProb = inverse_problem.BaseInvProblem(self.dmiscombo, reg, opt)
         directives_list = [
-            directives.ScalingMultipleDataMisfits_ByEig(verbose=True),
+            SimPEG.directives.joint.ScalingMultipleDataMisfits_ByEig(verbose=True),
             directives.AlphasSmoothEstimate_ByEig(verbose=True),
             directives.BetaEstimate_ByEig(beta0_ratio=1e-2),
-            directives.MultiTargetMisfits(TriggerSmall=False),
+            SimPEG.directives.misfit.MultiTargetMisfits(TriggerSmall=False),
             directives.BetaSchedule(),
         ]
         inv = inversion.BaseInversion(invProb, directiveList=directives_list)
@@ -101,12 +104,14 @@ class DataMisfitTest(unittest.TestCase):
         )
         invProb = inverse_problem.BaseInvProblem(self.dmiscombo, reg, opt)
         directives_list = [
-            directives.ScalingMultipleDataMisfits_ByEig(
+            SimPEG.directives.joint.ScalingMultipleDataMisfits_ByEig(
                 chi0_ratio=[0.01, 1.0], verbose=False
             ),
             directives.AlphasSmoothEstimate_ByEig(verbose=False),
             directives.BetaEstimate_ByEig(beta0_ratio=1e-2),
-            directives.MultiTargetMisfits(TriggerSmall=False, verbose=True),
+            SimPEG.directives.misfit.MultiTargetMisfits(
+                TriggerSmall=False, verbose=True
+            ),
             directives.BetaSchedule(),
         ]
         inv = inversion.BaseInversion(invProb, directiveList=directives_list)

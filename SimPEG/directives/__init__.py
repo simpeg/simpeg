@@ -1,35 +1,37 @@
-from .directives import (
-    InversionDirective,
-    DirectiveList,
-    BetaEstimateMaxDerivative,
-    BetaEstimate_ByEig,
-    BetaSchedule,
-    TargetMisfit,
-    SaveEveryIteration,
-    SaveModelEveryIteration,
-    SaveOutputEveryIteration,
-    SaveOutputDictEveryIteration,
-    Update_IRLS,
+from .base import InversionDirective, DirectiveList
+from .maps import ProjectSphericalBounds
+from .optimization import (
     UpdatePreconditioner,
-    Update_Wj,
-    AlphasSmoothEstimate_ByEig,
-    MultiTargetMisfits,
-    ScalingMultipleDataMisfits_ByEig,
-    JointScalingSchedule,
-    UpdateSensitivityWeights,
-    ProjectSphericalBounds,
+    BetaSchedule,
 )
-
-from .pgi_directives import (
+from .misfit import TargetMisfit, MultiTargetMisfits
+from .pgi import (
     PGI_UpdateParameters,
     PGI_BetaAlphaSchedule,
     PGI_AddMrefInSmooth,
 )
-
-from .sim_directives import (
-    SimilarityMeasureInversionDirective,
+from .regularization import (
+    AlphasSmoothEstimate_ByEig,
+    Update_IRLS,
+    UpdateSensitivityWeights,
+    Update_Wj,
+)
+from .save import (
+    SaveEveryIteration,
+    SaveModelEveryIteration,
+    SaveOutputEveryIteration,
+    SaveOutputDictEveryIteration,
     SimilarityMeasureSaveOutputEveryIteration,
-    PairedBetaEstimate_ByEig,
-    PairedBetaSchedule,
+)
+from .joint import (
+    SimilarityMeasureInversionDirective,
     MovingAndMultiTargetStopping,
+    PairedBetaSchedule,
+    JointScalingSchedule,
+    ScalingMultipleDataMisfits_ByEig,
+)
+from .tradeoff_estimator import (
+    BetaEstimateMaxDerivative,
+    BetaEstimate_ByEig,
+    PairedBetaEstimate_ByEig,
 )

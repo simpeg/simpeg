@@ -1,5 +1,7 @@
 import unittest
 import SimPEG.dask  # noqa: F401
+import SimPEG.directives.base
+import SimPEG.directives.regularization
 from SimPEG import (
     directives,
     maps,
@@ -147,7 +149,9 @@ class MVIProblemTest(unittest.TestCase):
 
         # Pre-conditioner
         update_Jacobi = directives.UpdatePreconditioner()
-        sensitivity_weights = directives.UpdateSensitivityWeights(everyIter=False)
+        sensitivity_weights = SimPEG.directives.regularization.UpdateSensitivityWeights(
+            everyIter=False
+        )
         inv = inversion.BaseInversion(
             invProb, directiveList=[sensitivity_weights, IRLS, update_Jacobi, betaest]
         )
@@ -216,7 +220,9 @@ class MVIProblemTest(unittest.TestCase):
         # Special directive specific to the mag amplitude problem. The sensitivity
         # weights are update between each iteration.
         ProjSpherical = directives.ProjectSphericalBounds()
-        sensitivity_weights = directives.UpdateSensitivityWeights()
+        sensitivity_weights = (
+            SimPEG.directives.regularization.UpdateSensitivityWeights()
+        )
         update_Jacobi = directives.UpdatePreconditioner()
 
         self.inv = inversion.BaseInversion(
