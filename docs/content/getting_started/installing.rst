@@ -12,10 +12,10 @@ Prerequisite: Installing Python
 SimPEG is written in Python_!
 We highly recommend installing it using Anaconda_ (or the alternative Mambaforge_).
 It installs `Python <https://www.python.org/>`_,
-`Jupyter <http://jupyter.org/>`_ and other core
+`Jupyter <https://jupyter.org/>`_ and other core
 Python libraries for scientific computing.
 If you and Python_ are not yet acquainted, we highly
-recommend checking out `Software Carpentry <http://software-carpentry.org/>`_.
+recommend checking out `Software Carpentry <https://software-carpentry.org/>`_.
 
 .. note::
 
@@ -100,7 +100,7 @@ Success?
 ========
 
 If you have been successful at downloading and installing SimPEG, you should
-be able to download and run any of the :ref:`examples and tutorials<sphx_glr_content_examples>`.
+be able to download and run any of the :ref:`examples and tutorials <sphx_glr_content_examples>`.
 
 If not, you can reach out to other people developing and using SimPEG on the
 `google forum <https://groups.google.com/forum/#!forum/simpeg>`_ or on
@@ -120,8 +120,8 @@ Python for scientific computing
 -------------------------------
 
 * `Python for Scientists <https://sites.google.com/site/pythonforscientists/>`_ Links to commonly used packages, Matlab to Python comparison
-* `Python Wiki <http://wiki.python.org/moin/NumericAndScientific>`_ Lists packages and resources for scientific computing in Python
-* `Jupyter <http://jupyter.org/>`_
+* `Python Wiki <https://wiki.python.org/moin/NumericAndScientific>`_ Lists packages and resources for scientific computing in Python
+* `Jupyter <https://jupyter.org/>`_
 
 Numpy and Matlab
 ----------------
@@ -140,9 +140,9 @@ Editing Python
 --------------
 
 There are numerous ways to edit and test Python (see
-`PythonWiki <http://wiki.python.org/moin/PythonEditors>`_ for an overview) and
+`PythonWiki <https://wiki.python.org/moin/PythonEditors>`_ for an overview) and
 in our group at least the following options are being used:
 
-* `Jupyter <http://jupyter.org/>`_
+* `Jupyter <https://jupyter.org/>`_
 * `Sublime <https://www.sublimetext.com/>`_
 * `PyCharm <https://www.jetbrains.com/pycharm/>`_

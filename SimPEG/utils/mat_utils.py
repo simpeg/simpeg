@@ -39,7 +39,7 @@ def estimate_diagonal(matrix_arg, n, k=None, approach="Probing"):
     and a vector.
 
     For background information on this method, see
-    `Bekas (et al., 2005) <http://www-users.cs.umn.edu/~saad/PDF/umsi-2005-082.pdf>`__
+    `Bekas (et al., 2005) <https://www-users.cs.umn.edu/~saad/PDF/umsi-2005-082.pdf>`__
     and `Selig (et al., 2012) <https://www.cita.utoronto.ca/~niels/diagonal.pdf>`__
 
     Parameters
@@ -396,7 +396,7 @@ def coterminal(theta):
         \theta = 2\pi N + \gamma
 
     and *N* is an integer, the function returns the value of :math:`\gamma`.
-    The coterminal angle :math:`\gamma` is within the range :math:`[-\pi , \pi]`.
+    The coterminal angle :math:`\gamma` is within the range :math:`[-\pi , \pi)`.
 
     Parameters
     ----------
@@ -409,13 +409,8 @@ def coterminal(theta):
         Coterminal angles
 
     """
-
-    sub = theta[np.abs(theta) >= np.pi]
-    sub = -np.sign(sub) * (2 * np.pi - np.abs(sub))
-
-    theta[np.abs(theta) >= np.pi] = sub
-
-    return theta
+    coterminal = (theta + np.pi) % (2 * np.pi) - np.pi
+    return coterminal
 
 
 def define_plane_from_points(xyz1, xyz2, xyz3):
@@ -455,8 +450,12 @@ def define_plane_from_points(xyz1, xyz2, xyz3):
 ################################################
 
 
-diagEst = deprecate_function(estimate_diagonal, "diagEst", removal_version="0.19.0")
-uniqueRows = deprecate_function(unique_rows, "uniqueRows", removal_version="0.19.0")
+diagEst = deprecate_function(
+    estimate_diagonal, "diagEst", removal_version="0.19.0", future_warn=True
+)
+uniqueRows = deprecate_function(
+    unique_rows, "uniqueRows", removal_version="0.19.0", future_warn=True
+)
 sdInv = deprecate_function(sdinv, "sdInv", removal_version="0.19.0", future_warn=True)
 getSubArray = deprecate_function(
     get_subarray, "getSubArray", removal_version="0.19.0", future_warn=True

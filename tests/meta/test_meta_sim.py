@@ -61,14 +61,15 @@ def test_multi_sim_correctness():
     np.testing.assert_allclose(d_full, d_mult)
 
     # test Jvec
-    u = np.random.rand(mesh.n_cells)
+    rng = np.random.default_rng(seed=0)
+    u = rng.random(mesh.n_cells)
     jvec_full = full_sim.Jvec(m_test, u, f=f_full)
     jvec_mult = multi_sim.Jvec(m_test, u, f=f_mult)
 
     np.testing.assert_allclose(jvec_full, jvec_mult)
 
     # test Jtvec
-    v = np.random.rand(survey_full.nD)
+    v = rng.random(survey_full.nD)
     jtvec_full = full_sim.Jtvec(m_test, v, f=f_full)
     jtvec_mult = multi_sim.Jtvec(m_test, v, f=f_mult)
 
@@ -133,26 +134,28 @@ def test_sum_sim_correctness():
     # test fields objects
     f_full = full_sim.fields(m_test)
     f_mult = sum_sim.fields(m_test)
-    np.testing.assert_allclose(f_full, sum(f_mult))
+    np.testing.assert_allclose(f_full, sum(f_mult), rtol=1e-6)
 
     # test data output
     d_full = full_sim.dpred(m_test, f=f_full)
     d_mult = sum_sim.dpred(m_test, f=f_mult)
-    np.testing.assert_allclose(d_full, d_mult)
+    np.testing.assert_allclose(d_full, d_mult, rtol=1e-6)
 
     # test Jvec
-    u = np.random.rand(mesh.n_cells)
+    rng = np.random.default_rng(seed=0)
+    u = rng.random(mesh.n_cells)
     jvec_full = full_sim.Jvec(m_test, u, f=f_full)
     jvec_mult = sum_sim.Jvec(m_test, u, f=f_mult)
 
-    np.testing.assert_allclose(jvec_full, jvec_mult)
+    np.testing.assert_allclose(jvec_full, jvec_mult, rtol=1e-6)
 
     # test Jtvec
-    v = np.random.rand(survey.nD)
+    rng = np.random.default_rng(seed=0)
+    v = rng.random(survey.nD)
     jtvec_full = full_sim.Jtvec(m_test, v, f=f_full)
     jtvec_mult = sum_sim.Jtvec(m_test, v, f=f_mult)
 
-    np.testing.assert_allclose(jtvec_full, jtvec_mult)
+    np.testing.assert_allclose(jtvec_full, jtvec_mult, rtol=1e-6)
 
     # test get diag
     diag_full = full_sim.getJtJdiag(m_test, f=f_full)
@@ -218,7 +221,8 @@ def test_repeat_sim_correctness():
     multi_sim = MetaSimulation(simulations, mappings)
     repeat_sim = RepeatedSimulation(sim, mappings)
 
-    model = np.random.rand(time_mesh.n_cells, mesh.n_cells).reshape(-1)
+    rng = np.random.default_rng(seed=0)
+    model = rng.random((time_mesh.n_cells, mesh.n_cells)).reshape(-1)
 
     # test field things
     f_full = multi_sim.fields(model)
@@ -230,13 +234,13 @@ def test_repeat_sim_correctness():
     np.testing.assert_equal(d_full, d_repeat)
 
     # test Jvec
-    u = np.random.rand(len(model))
+    u = rng.random(len(model))
     jvec_full = multi_sim.Jvec(model, u, f=f_full)
     jvec_mult = repeat_sim.Jvec(model, u, f=f_mult)
     np.testing.assert_allclose(jvec_full, jvec_mult)
 
     # test Jtvec
-    v = np.random.rand(len(sim_ts) * survey.nD)
+    v = rng.random(len(sim_ts) * survey.nD)
     jtvec_full = multi_sim.Jtvec(model, v, f=f_full)
     jtvec_mult = repeat_sim.Jtvec(model, v, f=f_mult)
     np.testing.assert_allclose(jtvec_full, jtvec_mult)

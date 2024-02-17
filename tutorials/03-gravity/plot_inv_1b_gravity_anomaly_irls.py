@@ -267,10 +267,6 @@ update_IRLS = directives.Update_IRLS(
     beta_tol=1e-2,
 )
 
-# Defining the fractional decrease in beta and the number of Gauss-Newton solves
-# for each beta value.
-beta_schedule = directives.BetaSchedule(coolingFactor=5, coolingRate=1)
-
 # Options for outputting recovered models and predicted data for each beta.
 save_iteration = directives.SaveOutputEveryIteration(save_txt=False)
 
@@ -285,7 +281,6 @@ directives_list = [
     update_IRLS,
     sensitivity_weights,
     starting_beta,
-    beta_schedule,
     save_iteration,
     update_jacobi,
 ]
@@ -331,7 +326,9 @@ ind_block = (
 true_model[ind_block] = block_density
 
 # You can also use SimPEG utilities to add structures to the model more concisely
-ind_sphere = model_builder.getIndicesSphere(np.r_[35.0, 0.0, -40.0], 15.0, mesh.gridCC)
+ind_sphere = model_builder.get_indices_sphere(
+    np.r_[35.0, 0.0, -40.0], 15.0, mesh.gridCC
+)
 ind_sphere = ind_sphere[ind_active]
 true_model[ind_sphere] = sphere_density
 

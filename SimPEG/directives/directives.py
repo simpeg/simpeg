@@ -89,7 +89,9 @@ class InversionDirective:
     def verbose(self, value):
         self._verbose = validate_type("verbose", value, bool)
 
-    debug = deprecate_property(verbose, "debug", "verbose", removal_version="0.19.0")
+    debug = deprecate_property(
+        verbose, "debug", "verbose", removal_version="0.19.0", future_warn=True
+    )
 
     @property
     def inversion(self):
@@ -1643,8 +1645,6 @@ class SaveModelEveryIteration(SaveEveryIteration):
 class SaveOutputEveryIteration(SaveEveryIteration):
     """SaveOutputEveryIteration"""
 
-    save_txt = True
-
     def __init__(self, save_txt=True, **kwargs):
         super().__init__(**kwargs)
 
@@ -1765,7 +1765,9 @@ class SaveOutputEveryIteration(SaveEveryIteration):
         plot_small=False,
         plot_smooth=False,
     ):
-        self.target_misfit = self.invProb.dmisfit.simulation.survey.nD / 2.0
+        self.target_misfit = (
+            np.sum([dmis.nD for dmis in self.invProb.dmisfit.objfcts]) / 2.0
+        )
         self.i_target = None
 
         if self.invProb.phi_d < self.target_misfit:

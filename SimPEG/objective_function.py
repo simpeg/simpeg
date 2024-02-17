@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+import numbers
 import numpy as np
 import scipy.sparse as sp
 
@@ -9,19 +12,43 @@ from .utils import timeIt, Zero, Identity
 
 __all__ = ["BaseObjectiveFunction", "ComboObjectiveFunction", "L2ObjectiveFunction"]
 
+VALID_MULTIPLIERS = (numbers.Number, Zero)
+
 
 class BaseObjectiveFunction(BaseSimPEG):
-    """
-    Base Objective Function
+    """Base class for creating objective functions.
 
-    Inherit this to build your own objective function. If building a
-    regularization, have a look at
-    :class:`SimPEG.regularization.BaseRegularization` as there are additional
-    methods and properties tailored to regularization of a model. Similarly,
-    for building a data misfit, see :class:`SimPEG.DataMisfit.BaseDataMisfit`.
+    The ``BaseObjectiveFunction`` class defines properties and methods inherited by
+    other classes in SimPEG that represent objective functions; e.g. regularization, data misfit.
+    These include convenient methods for testing the order of convergence and ajoint operations.
+
+    .. important::
+        This class is not meant to be instantiated. You should inherit from it to
+        create your own objective function class.
+
+    .. important::
+        If building a regularization function within SimPEG, please inherit
+        :py:class:`SimPEG.regularization.BaseRegularization`, as this class
+        has additional functionality related to regularization. And if building a data misfit
+        function, please inherit :py:class:`SimPEG.data_misfit.BaseDataMisfit`.
+
+    Parameters
+    ----------
+    nP : int
+        Number of model parameters.
+    mapping : SimPEG.mapping.BaseMap
+        A SimPEG mapping object that maps from the model space to the
+        quantity evaluated in the objective function.
+    has_fields : bool
+        If ``True``, predicted fields for a simulation and a given model can be
+        used to evaluate the objective function quickly.
+    counter : None or SimPEG.utils.Counter
+        Assign a SimPEG ``Counter`` object to store iterations and run-times.
+    debug : bool
+        Print debugging information.
     """
 
-    map_class = IdentityMap  #: Base class of expected maps
+    map_class = IdentityMap  #: Base class of expected maps.
 
     def __init__(
         self,
@@ -41,8 +68,15 @@ class BaseObjectiveFunction(BaseSimPEG):
         self.has_fields = has_fields
 
     def __call__(self, x, f=None):
-        """
-        Evaluate the objective functions for a given model
+        """Evaluate the objective function for a given model.
+
+        Parameters
+        ----------
+        x : (nP) numpy.ndarray
+            A vector representing a set of model parameters.
+        f : SimPEG.fields.Fields, optional
+            Field object (if applicable).
+
         """
         raise NotImplementedError(
             "__call__ has not been implemented for {} yet".format(
@@ -52,8 +86,12 @@ class BaseObjectiveFunction(BaseSimPEG):
 
     @property
     def nP(self):
-        """
-        Number of model parameters expected.
+        """Number of model parameters.
+
+        Returns
+        -------
+        int
+            Number of model parameters.
         """
         if self._nP is not None:
             return self._nP
@@ -63,9 +101,7 @@ class BaseObjectiveFunction(BaseSimPEG):
 
     @property
     def _nC_residual(self):
-        """
-        Shape of the residual
-        """
+        """Shape of the residual."""
         if getattr(self, "mapping", None) is not None:
             return self.mapping.shape[0]
         else:
@@ -73,8 +109,12 @@ class BaseObjectiveFunction(BaseSimPEG):
 
     @property
     def mapping(self):
-        """
-        A `SimPEG.Maps` instance
+        """Mapping from the model to the quantity evaluated in the object function.
+
+        Returns
+        -------
+        SimPEG.mapping.BaseMap
+            The mapping from the model to the quantity evaluated in the object function.
         """
         if self._mapping is None:
             if self._nP is not None:
@@ -93,9 +133,25 @@ class BaseObjectiveFunction(BaseSimPEG):
         self._mapping = value
 
     @timeIt
-    def deriv(self, x, **kwargs):
-        """
-        First derivative of the objective function with respect to the model
+    def deriv(self, m, **kwargs):
+        r"""Gradient of the objective function evaluated for the model provided.
+
+        Where :math:`\phi (\mathbf{m})` is the objective function,
+        this method evaluates and returns the derivative with respect to the model parameters; i.e.
+        the gradient:
+
+        .. math::
+            \frac{\partial \phi}{\partial \mathbf{m}}
+
+        Parameters
+        ----------
+        m : (n_param, ) numpy.ndarray
+            The model for which the gradient is evaluated.
+
+        Returns
+        -------
+        (n_param, ) numpy.ndarray
+            The gradient of the objective function evaluated for the model provided.
         """
         raise NotImplementedError(
             "The method deriv has not been implemented for {}".format(
@@ -104,9 +160,33 @@ class BaseObjectiveFunction(BaseSimPEG):
         )
 
     @timeIt
-    def deriv2(self, x, v=None, **kwargs):
-        """
-        Second derivative of the objective function with respect to the model
+    def deriv2(self, m, v=None, **kwargs):
+        r"""Hessian of the objective function evaluated for the model provided.
+
+        Where :math:`\phi (\mathbf{m})` is the objective function,
+        this method returns the second-derivative (Hessian) with respect to the model parameters:
+
+        .. math::
+            \frac{\partial^2 \phi}{\partial \mathbf{m}^2}
+
+        or the second-derivative (Hessian) multiplied by a vector :math:`(\mathbf{v})`:
+
+        .. math::
+            \frac{\partial^2 \phi}{\partial \mathbf{m}^2} \, \mathbf{v}
+
+        Parameters
+        ----------
+        m : (n_param, ) numpy.ndarray
+            The model for which the Hessian is evaluated.
+        v : None or (n_param, ) numpy.ndarray, optional
+            A vector.
+
+        Returns
+        -------
+        (n_param, n_param) scipy.sparse.csr_matrix or (n_param, ) numpy.ndarray
+            If the input argument *v* is ``None``, the Hessian of the objective
+            function for the model provided is returned. If *v* is not ``None``,
+            the Hessian multiplied by the vector provided is returned.
         """
         raise NotImplementedError(
             "The method _deriv2 has not been implemented for {}".format(
@@ -146,9 +226,22 @@ class BaseObjectiveFunction(BaseSimPEG):
         )
 
     def test(self, x=None, num=4, **kwargs):
-        """
-        Run a convergence test on both the first and second derivatives - they
-        should be second order!
+        """Run a convergence test on both the first and second derivatives.
+
+        They should be second order!
+
+        Parameters
+        ----------
+        x : None or (n_param, ) numpy.ndarray, optional
+            The evaluation point for the Taylor expansion.
+        num : int
+            The number of iterations in the convergence test.
+
+        Returns
+        -------
+        bool
+            ``True`` if both tests pass. ``False`` if either test fails.
+
         """
         deriv = self._test_deriv(x=x, num=num, **kwargs)
         deriv2 = self._test_deriv2(x=x, num=num, plotIt=False, **kwargs)
@@ -197,24 +290,26 @@ class BaseObjectiveFunction(BaseSimPEG):
 
 
 class ComboObjectiveFunction(BaseObjectiveFunction):
-    """
-    Composite for multiple objective functions
+    r"""Composite for multiple objective functions.
 
-    A composite class for multiple objective functions. Each objective function
-    is accompanied by a multiplier. Both objective functions and multipliers
-    are stored in a list.
+    This class allows the creation of an objective function :math:`\phi` which is the sum
+    of a list of other objective functions :math:`\phi_i`. Each objective function has associated with it
+    a multiplier :math:`c_i` such that
+
+    .. math::
+        \phi = \sum_{i = 1}^N c_i \phi_i
 
     Parameters
     ----------
-    objfcts : list or None, optional
+    objfcts : None or list of SimPEG.objective_function.BaseObjectiveFunction, optional
         List containing the objective functions that will live inside the
         composite class. If ``None``, an empty list will be created.
-    multipliers : list or None, optional
-        List containing the multipliers for its respective objective function
+    multipliers : None or list of int, optional
+        List containing the multipliers for each objective function
         in ``objfcts``.  If ``None``, a list full of ones with the same length
         as ``objfcts`` will be created.
-    unpack_on_add : bool, optional
-        Weather to unpack the multiple objective functions when adding them to
+    unpack_on_add : bool
+        Whether to unpack the multiple objective functions when adding them to
         another objective function, or to add them as a whole.
 
     Examples
@@ -265,11 +360,15 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
     >>> combo_2 = combo_1 + objective_fun_c
     >>> print(len(combo_2))
     2
+
     """
 
-    _multiplier_types = (float, None, Zero, np.float64, int, np.integer)
-
-    def __init__(self, objfcts=None, multipliers=None, unpack_on_add=True):
+    def __init__(
+        self,
+        objfcts: list[BaseObjectiveFunction] | None = None,
+        multipliers=None,
+        unpack_on_add=True,
+    ):
         # Define default lists if None
         if objfcts is None:
             objfcts = []
@@ -277,9 +376,10 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
             multipliers = len(objfcts) * [1]
 
         # Validate inputs
-        self._check_length_objective_funcs_multipliers(objfcts, multipliers)
-        self._validate_objective_functions(objfcts)
-        self._validate_multipliers(multipliers)
+        _check_length_objective_funcs_multipliers(objfcts, multipliers)
+        _validate_objective_functions(objfcts)
+        for multiplier in multipliers:
+            _validate_multiplier(multiplier)
 
         # Get number of parameters (nP) from objective functions
         number_of_parameters = [f.nP for f in objfcts if f.nP != "*"]
@@ -289,6 +389,7 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
             nP = None
 
         super().__init__(nP=nP)
+
         self.objfcts = objfcts
         self._multipliers = multipliers
         self._unpack_on_add = unpack_on_add
@@ -301,24 +402,34 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
 
     @property
     def multipliers(self):
-        """
-        Multipliers for each objective function
+        r"""Multipliers for the objective functions.
+
+        For a composite objective function :math:`\phi`, that is, a weighted sum of
+        objective functions :math:`\phi_i` with multipliers :math:`c_i` such that
+
+        .. math::
+            \phi = \sum_{i = 1}^N c_i \phi_i,
+
+        this method returns the multipliers :math:`c_i` in
+        the same order of the ``objfcts``.
+
+        Returns
+        -------
+        list of int
+            Multipliers for the objective functions.
         """
         return self._multipliers
 
     @multipliers.setter
     def multipliers(self, value):
-        """
-        Set multipliers attribute after checking if they are valid
-        """
-        self._validate_multipliers(value)
-        self._check_length_objective_funcs_multipliers(self.objfcts, value)
+        """Set multipliers attribute after checking if they are valid."""
+        for multiplier in value:
+            _validate_multiplier(multiplier)
+        _check_length_objective_funcs_multipliers(self.objfcts, value)
         self._multipliers = value
 
     def __call__(self, m, f=None):
-        """
-        Evaluate the objective functions for a given model
-        """
+        """Evaluate the objective functions for a given model."""
         fct = 0.0
         for i, phi in enumerate(self):
             multiplier, objfct = phi
@@ -332,14 +443,7 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
         return fct
 
     def deriv(self, m, f=None):
-        """
-        First derivative of the composite objective function is the sum of the
-        derivatives of each objective function in the list, weighted by their
-        respective multplier.
-
-        :param numpy.ndarray m: model
-        :param SimPEG.Fields f: Fields object (if applicable)
-        """
+        # Docstring inherited from BaseObjectiveFunction
         g = Zero()
         for i, phi in enumerate(self):
             multiplier, objfct = phi
@@ -354,15 +458,7 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
         return g
 
     def deriv2(self, m, v=None, f=None):
-        """
-        Second derivative of the composite objective function is the sum of the
-        second derivatives of each objective function in the list, weighted by
-        their respective multplier.
-
-        :param numpy.ndarray m: model
-        :param numpy.ndarray v: vector we are multiplying by
-        :param SimPEG.Fields f: Fields object (if applicable)
-        """
+        # Docstring inherited from BaseObjectiveFunction
         H = Zero()
         for i, phi in enumerate(self):
             multiplier, objfct = phi
@@ -379,9 +475,27 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
     # The base class currently does not.
     @property
     def W(self):
-        """
-        W matrix for the full objective function. Includes multiplying by the
-        square root of alpha.
+        r"""Full weighting matrix for the combo objective function.
+
+        Consider a composite objective function :math`\phi` that is a weighted sum of
+        objective functions :math:`\phi_i` with multipliers :math:`c_i` such that
+
+        .. math::
+            \phi = \sum_{i = 1}^N c_i \phi_i = \sum_{i = 1}^N \frac{c_i}{2}
+            \big \| \mathbf{W}_i \, f_i (\mathbf{m}) \big \|^2_2
+
+        Where each objective function :math:`\phi_i` has a weighting matrix :math:`W_i`,
+        this method returns the full weighting matrix for the composite objective function:
+
+        .. math::
+            \mathbf{W} = \begin{bmatrix}
+            \sqrt{c_1} W_i \\ \vdots \\ \sqrt{c_N} W_N
+            \end{bmatrix}
+
+        Returns
+        -------
+        scipy.sparse.csr_matrix
+            Full weighting matrix for the combo objective function.
         """
         W = []
         for mult, fct in self:
@@ -391,8 +505,17 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
         return sp.vstack(W)
 
     def get_functions_of_type(self, fun_class) -> list:
-        """
-        Find an objective function type from a ComboObjectiveFunction class.
+        """Return objective functions of a given type(s).
+
+        Parameters
+        ----------
+        fun_class : list or SimPEG.objective_function.BaseObjectiveFunction
+            Objective function class or list of objective function classes to return.
+
+        Returns
+        -------
+        list of SimPEG.objective_function.BaseObjectiveFunction
+            Objective functions of a given type(s).
         """
         target = []
         if isinstance(self, fun_class):
@@ -406,66 +529,35 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
 
         return [fun for fun in target if fun]
 
-    def _validate_objective_functions(self, objective_functions):
-        """
-        Validate objective functions
-
-        Check if the objective functions have the right types, and if
-        they all have the same number of parameters.
-        """
-        for function in objective_functions:
-            if not isinstance(function, BaseObjectiveFunction):
-                raise TypeError(
-                    "Unrecognized objective function type "
-                    f"{function.__class__.__name__} in 'objfcts'. "
-                    "All objective functions must inherit from BaseObjectiveFunction."
-                )
-        number_of_parameters = [f.nP for f in objective_functions if f.nP != "*"]
-        if number_of_parameters:
-            all_equal = all(np.equal(number_of_parameters, number_of_parameters[0]))
-            if not all_equal:
-                np_list = [f.nP for f in objective_functions]
-                raise ValueError(
-                    f"Invalid number of parameters '{np_list}' found in "
-                    "objective functions. Except for the ones with '*', they all "
-                    "must have the same number of parameters."
-                )
-
-    def _validate_multipliers(self, multipliers):
-        """
-        Validate multipliers
-
-        Check if the multipliers have the right types.
-        """
-        for multiplier in multipliers:
-            if type(multiplier) not in self._multiplier_types:
-                valid_types = ", ".join(str(t) for t in self._multiplier_types)
-                raise TypeError(
-                    f"Invalid multiplier '{multiplier}' of type '{type(multiplier)}'. "
-                    "Objective functions can only be multiplied by " + valid_types
-                )
-
-    def _check_length_objective_funcs_multipliers(
-        self, objective_functions, multipliers
-    ):
-        """
-        Check if objective functions and multipliers have the same length
-        """
-        if len(objective_functions) != len(multipliers):
-            raise ValueError(
-                "Inconsistent number of elements between objective functions "
-                f"('{len(objective_functions)}') and multipliers "
-                f"('{len(multipliers)}'). They must have the same number of parameters."
-            )
-
 
 class L2ObjectiveFunction(BaseObjectiveFunction):
-    r"""
-    An L2-Objective Function
+    r"""Weighted least-squares objective function class.
+
+    Weighting least-squares objective functions in SimPEG are defined as follows:
 
     .. math::
+        \phi = \frac{1}{2} \big \| \mathbf{W} f(\mathbf{m}) \big \|_2^2
 
-        \phi = \frac{1}{2}||\mathbf{W} \mathbf{m}||^2
+    where :math:`\mathbf{m}` are the model parameters, :math:`f` is a mapping operator,
+    and :math:`\mathbf{W}` is the weighting matrix.
+
+    Parameters
+    ----------
+    nP : int
+        Number of model parameters.
+    mapping : SimPEG.mapping.BaseMap
+        A SimPEG mapping object that maps from the model space to the
+        quantity evaluated in the objective function.
+    W : None or scipy.sparse.csr_matrix
+        The weighting matrix applied in the objective function. By default, this
+        is set to the identity matrix.
+    has_fields : bool
+        If ``True``, predicted fields for a simulation and a given model can be
+        used to evaluate the objective function quickly.
+    counter : None or SimPEG.utils.Counter
+        Assign a SimPEG ``Counter`` object to store iterations and run-times.
+    debug : bool
+        Print debugging information.
     """
 
     def __init__(
@@ -496,8 +588,12 @@ class L2ObjectiveFunction(BaseObjectiveFunction):
 
     @property
     def W(self):
-        """
-        Weighting matrix. The default if not specified is an identity.
+        """Weighting matrix applied in the objective function.
+
+        Returns
+        -------
+        scipy.sparse.csr_matrix
+            The weighting matrix applied in the objective function.
         """
         if getattr(self, "_W", None) is None:
             if self._nC_residual != "*":
@@ -507,30 +603,70 @@ class L2ObjectiveFunction(BaseObjectiveFunction):
         return self._W
 
     def __call__(self, m):
-        """
-        Evaluate the objective functions for a given model
-        """
+        """Evaluate the objective function for a given model."""
         r = self.W * (self.mapping * m)
         return 0.5 * r.dot(r)
 
     def deriv(self, m):
-        """
-        First derivative with respect to the model
-
-        :param numpy.ndarray m: model
-        """
+        # Docstring inherited from BaseObjectiveFunction
         return self.mapping.deriv(m).T * (self.W.T * (self.W * (self.mapping * m)))
 
     def deriv2(self, m, v=None):
-        """
-        Second derivative with respect to the model
-
-        :param numpy.ndarray m: model
-        :param numpy.ndarray v: vector to multiply by
-        """
+        # Docstring inherited from BaseObjectiveFunction
         if v is not None:
             return self.mapping.deriv(m).T * (
                 self.W.T * (self.W * (self.mapping.deriv(m) * v))
             )
         W = self.W * self.mapping.deriv(m)
         return W.T * W
+
+
+def _validate_objective_functions(objective_functions):
+    """
+    Validate objective functions.
+
+    Check if the objective functions have the right types, and if
+    they all have the same number of parameters.
+    """
+    for function in objective_functions:
+        if not isinstance(function, BaseObjectiveFunction):
+            raise TypeError(
+                "Unrecognized objective function type "
+                f"{function.__class__.__name__} in 'objfcts'. "
+                "All objective functions must inherit from BaseObjectiveFunction."
+            )
+    number_of_parameters = [f.nP for f in objective_functions if f.nP != "*"]
+    if number_of_parameters:
+        all_equal = all(np.equal(number_of_parameters, number_of_parameters[0]))
+        if not all_equal:
+            np_list = [f.nP for f in objective_functions]
+            raise ValueError(
+                f"Invalid number of parameters '{np_list}' found in "
+                "objective functions. Except for the ones with '*', they all "
+                "must have the same number of parameters."
+            )
+
+
+def _validate_multiplier(multiplier):
+    """
+    Validate multiplier.
+
+    Check if the multiplier is of a valid type.
+    """
+    if not isinstance(multiplier, VALID_MULTIPLIERS) or isinstance(multiplier, bool):
+        raise TypeError(
+            f"Invalid multiplier '{multiplier}' of type '{type(multiplier)}'. "
+            "Objective functions can only be multiplied by scalar numbers."
+        )
+
+
+def _check_length_objective_funcs_multipliers(objective_functions, multipliers):
+    """
+    Check if objective functions and multipliers have the same length.
+    """
+    if len(objective_functions) != len(multipliers):
+        raise ValueError(
+            "Inconsistent number of elements between objective functions "
+            f"('{len(objective_functions)}') and multipliers "
+            f"('{len(multipliers)}'). They must have the same number of parameters."
+        )

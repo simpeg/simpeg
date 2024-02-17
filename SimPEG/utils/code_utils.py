@@ -491,6 +491,7 @@ class Report(ScoobyReport):
             "vtk",
             "utm",
             "memory_profiler",
+            "choclo",
         ]
 
         super().__init__(
@@ -1109,7 +1110,7 @@ def validate_type(property_name, obj, obj_type, cast=True, strict=False):
                 f"{type(obj).__name__} cannot be converted to type {obj_type.__name__} "
                 f"required for {property_name}."
             ) from err
-    if strict and type(obj) != obj_type:
+    if strict and type(obj) is not obj_type:
         raise TypeError(
             f"Object must be exactly a {obj_type.__name__} for {property_name}"
         )
