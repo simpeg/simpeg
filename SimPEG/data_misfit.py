@@ -19,7 +19,7 @@ class BaseDataMisfit(L2ObjectiveFunction):
         create your own data misfit class.
 
     .. math::
-        \phi_d (\mathbf{m}) = \frac{1}{2} \| \mathbf{W} f(\mathbf{m}) \|_2^2
+        \phi_d (\mathbf{m}) = \| \mathbf{W} f(\mathbf{m}) \|_2^2
 
     where :math:`\mathbf{m}` is the model vector, :math:`\mathbf{W}` is a linear weighting
     matrix, and :math:`f` is a mapping function that acts on the model.
@@ -152,7 +152,7 @@ class BaseDataMisfit(L2ObjectiveFunction):
         For a discrete least-squares data misfit function of the form:
 
         .. math::
-            \phi_d (\mathbf{m}) = \frac{1}{2} \| \mathbf{W} \mathbf{f}(\mathbf{m}) \|_2^2
+            \phi_d (\mathbf{m}) = \| \mathbf{W} \mathbf{f}(\mathbf{m}) \|_2^2
 
         :math:`\mathbf{W}` is a linear weighting matrix, :math:`\mathbf{m}` is the model vector,
         and :math:`\mathbf{f}` is a discrete mapping function that acts on the model vector.
@@ -237,7 +237,7 @@ class L2DataMisfit(BaseDataMisfit):
     data and predicted data for a given model. I.e.:
 
     .. math::
-        \phi_d (\mathbf{m}) = \frac{1}{2} \big \| \mathbf{W_d}
+        \phi_d (\mathbf{m}) = \big \| \mathbf{W_d}
         \big ( \mathbf{d}_\text{pred} - \mathbf{d}_\text{obs} \big ) \big \|_2^2
 
     where :math:`\mathbf{d}_\text{obs}` is the observed data vector, :math:`\mathbf{d}_\text{pred}`
@@ -266,7 +266,7 @@ class L2DataMisfit(BaseDataMisfit):
         """Evaluate the residual for a given model."""
 
         R = self.W * self.residual(m, f=f)
-        return 0.5 * np.vdot(R, R)
+        return np.vdot(R, R)
 
     @timeIt
     def deriv(self, m, f=None):
@@ -293,7 +293,7 @@ class L2DataMisfit(BaseDataMisfit):
         if f is None:
             f = self.simulation.fields(m)
 
-        return self.simulation.Jtvec(
+        return 2 * self.simulation.Jtvec(
             m, self.W.T * (self.W * self.residual(m, f=f)), f=f
         )
 
@@ -330,6 +330,6 @@ class L2DataMisfit(BaseDataMisfit):
         if f is None:
             f = self.simulation.fields(m)
 
-        return self.simulation.Jtvec_approx(
+        return 2 * self.simulation.Jtvec_approx(
             m, self.W * (self.W * self.simulation.Jvec_approx(m, v, f=f)), f=f
         )

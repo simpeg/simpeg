@@ -1060,17 +1060,17 @@ class TargetMisfit(InversionDirective):
         -------
         float
         """
-        # the factor of 0.5 is because we do phid = 0.5*||dpred - dobs||^2
+        # phid = ||dpred - dobs||^2
         if self._phi_d_star is None:
             nD = 0
             for survey in self.survey:
                 nD += survey.nD
-            self._phi_d_star = 0.5 * nD
+            self._phi_d_star = nD
         return self._phi_d_star
 
     @phi_d_star.setter
     def phi_d_star(self, value):
-        # the factor of 0.5 is because we do phid = 0.5*||dpred - dobs||^2
+        # phid = ||dpred - dobs||^2
         if value is not None:
             value = validate_float(
                 "phi_d_star", value, min_val=0.0, inclusive_min=False
@@ -1166,13 +1166,13 @@ class MultiTargetMisfits(InversionDirective):
         -------
         float
         """
-        # the factor of 0.5 is because we do phid = 0.5*|| dpred - dobs||^2
+        # phid = || dpred - dobs||^2
         if getattr(self, "_phi_d_star", None) is None:
             # Check if it is a ComboObjective
             if isinstance(self.dmisfit, ComboObjectiveFunction):
-                value = np.r_[[0.5 * survey.nD for survey in self.survey]]
+                value = np.r_[[survey.nD for survey in self.survey]]
             else:
-                value = np.r_[[0.5 * self.survey.nD]]
+                value = np.r_[[self.survey.nD]]
             self._phi_d_star = value
             self._DMtarget = None
 
@@ -1180,7 +1180,7 @@ class MultiTargetMisfits(InversionDirective):
 
     @phi_d_star.setter
     def phi_d_star(self, value):
-        # the factor of 0.5 is because we do phid = 0.5*|| dpred - dobs||^2
+        # phid =|| dpred - dobs||^2
         if value is not None:
             value = validate_ndarray_with_shape("phi_d_star", value, shape=("*",))
         self._phi_d_star = value
@@ -1426,11 +1426,11 @@ class MultiTargetMisfits(InversionDirective):
             self._CLtarget = self.chiSmall * self.phi_ms_star
 
         elif getattr(self, "_CLtarget", None) is None:
-            # the factor of 0.5 is because we do phid = 0.5*|| dpred - dobs||^2
+            # phid = ||dpred - dobs||^2
             if self.phi_ms_star is None:
                 # Expected value is number of active cells * number of physical
                 # properties
-                self.phi_ms_star = 0.5 * len(self.invProb.model)
+                self.phi_ms_star = len(self.invProb.model)
 
             self._CLtarget = self.chiSmall * self.phi_ms_star
 
@@ -1747,7 +1747,7 @@ class SaveOutputEveryIteration(SaveEveryIteration):
 
         self.f = results[:, 7]
 
-        self.target_misfit = self.invProb.dmisfit.simulation.survey.nD / 2.0
+        self.target_misfit = self.invProb.dmisfit.simulation.survey.nD
         self.i_target = None
 
         if self.invProb.phi_d < self.target_misfit:
@@ -1765,9 +1765,7 @@ class SaveOutputEveryIteration(SaveEveryIteration):
         plot_small=False,
         plot_smooth=False,
     ):
-        self.target_misfit = (
-            np.sum([dmis.nD for dmis in self.invProb.dmisfit.objfcts]) / 2.0
-        )
+        self.target_misfit = np.sum([dmis.nD for dmis in self.invProb.dmisfit.objfcts])
         self.i_target = None
 
         if self.invProb.phi_d < self.target_misfit:
@@ -1821,7 +1819,7 @@ class SaveOutputEveryIteration(SaveEveryIteration):
             fig.savefig(fname, dpi=dpi)
 
     def plot_tikhonov_curves(self, fname=None, dpi=200):
-        self.target_misfit = self.invProb.dmisfit.simulation.survey.nD / 2.0
+        self.target_misfit = self.invProb.dmisfit.simulation.survey.nD
         self.i_target = None
 
         if self.invProb.phi_d < self.target_misfit:
@@ -2062,7 +2060,7 @@ class Update_IRLS(InversionDirective):
             for survey in self.survey:
                 nD += survey.nD
 
-            self._target = nD * 0.5 * self.chifact_target
+            self._target = nD * self.chifact_target
 
         return self._target
 
@@ -2076,10 +2074,10 @@ class Update_IRLS(InversionDirective):
             if isinstance(self.survey, list):
                 self._start = 0
                 for survey in self.survey:
-                    self._start += survey.nD * 0.5 * self.chifact_start
+                    self._start += survey.nD * self.chifact_start
 
             else:
-                self._start = self.survey.nD * 0.5 * self.chifact_start
+                self._start = self.survey.nD * self.chifact_start
         return self._start
 
     @start.setter
