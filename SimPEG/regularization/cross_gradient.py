@@ -310,10 +310,10 @@ class CrossGradient(BaseSimilarityMeasure):
         .. math::
             \frac{\partial^2 \phi}{\partial \mathbf{m}^2} =
             \begin{bmatrix}
-            \dfrac{\partial \phi^2}{\partial \mathbf{m_1}^2} &
-            \dfrac{\partial \phi^2}{\partial \mathbf{m_1} \partial \mathbf{m_2}} \\
-            \dfrac{\partial \phi^2}{\partial \mathbf{m_2} \partial \mathbf{m_1}} &
-            \dfrac{\partial \phi^2}{\partial \mathbf{m_2}^2}
+            \dfrac{\partial^2 \phi}{\partial \mathbf{m_1}^2} &
+            \dfrac{\partial^2 \phi}{\partial \mathbf{m_1} \partial \mathbf{m_2}} \\
+            \dfrac{\partial^2 \phi}{\partial \mathbf{m_2} \partial \mathbf{m_1}} &
+            \dfrac{\partial^2 \phi}{\partial \mathbf{m_2}^2}
             \end{bmatrix}
 
         When a vector :math:`(\mathbf{v})` is supplied, the method returns the Hessian
