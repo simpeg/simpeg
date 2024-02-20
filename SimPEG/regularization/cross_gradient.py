@@ -366,7 +366,7 @@ class CrossGradient(BaseSimilarityMeasure):
             D22 = G.T @ D22_mid @ G
 
             return 2 * sp.bmat(
-                [[D11, D12], [D12.T, D22]], format="csr", format="csr"
+                [[D11, D12], [D12.T, D22]], format="csr"
             )  # factor of 2 from derviative of | grad m1 x grad m2 | ^2
 
         else:
