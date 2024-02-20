@@ -25,7 +25,11 @@ from discretize.utils import make_boundary_bool
 
 
 class BaseDCSimulation2D(BaseElectricalPDESimulation):
-    r"""Base 2.5D DC resistivity simulation class.
+    r"""Base 2.5D static electromagnetic simulation class.
+
+    This is a base class that defines properties and methods inherited by 2.5D DC
+    resistivity simulation classes. See the *Notes* section for a description of
+    the problem geometry.
 
     Parameters
     ----------
@@ -51,34 +55,36 @@ class BaseDCSimulation2D(BaseElectricalPDESimulation):
 
     Notes
     -----
-    The partial differential equation for the DC resistivity problem is given by:
-
-    .. math::
-        \nabla \cdot \sigma \, \nabla \phi = - \nabla \cdot \vec{j}_s
-
-    where :math:`\sigma` is the electrical conductivity, :math:`\vec{j}_s` is a
-    galvanic source current density, and :math:`\phi` is the electric potential
-    for which we want to solve. For current :math:`I` injected at point :math:`r_s`,
-    this expression becomes:
+    For current :math:`I` injected at point :math:`r_s`, the DC resistivity
+    problem is expressed as:
 
     .. math::
         \nabla \cdot \sigma \, \nabla \phi = - I \, \delta (r-r_s)
 
-    If we assume the electrical conductivity is invariant along the y-direction,
-    we can apply a Fourier transform such that:
+    where :math:`\sigma` is the electrical conductivity, and we wish to solve for the
+    electric potential :math:`\phi`. The 2.5D geometry assumes that electrical
+    conductivity is invariant along the y-direction.
+    
+    Instead of discretizing and solving the problem in 3D, we consider the Fourier
+    transform with respect to the y-coordinate. In the wave domain, the solution for
+    the electric potential :math:`\Phi` becomes a 2D problem:
 
     .. math::
         \nabla_{xz} \cdot \sigma \, \nabla_{xz} \Phi - k_y^2 \sigma \Phi =
         - I \, \delta (x-x_s) \, \delta (z-z_s)
 
-    where :math:`k_y` is the wavenumber and :math:`\Phi` is the electric potential in the
-    wave domain. For an optimum set of wavenumbers :math:`k_i` and
-    coefficients :math:`\alpha_i`, we solve a set of 2D problem and use them to approximate
-    the 3D soluation as:
+    where :math:`\nabla_{xy}` applies partial gradients along the x and z directions
+    and :math:`k_y` is the wavenumber.
+
+    For an optimum set of wavenumbers :math:`k_i` and coefficients :math:`\alpha_i`,
+    2.5D simulation classes solve a set of 2D problems in the wave domain using
+    mimetic finite volume. And the 3D solution for a specified y-coordinate
+    location is computed according to:
 
     .. math::
         \phi = \sum_{i=1}^{nk_y} \alpha_i \, \Phi (k_i)
 
+    where :math:`nk_y` is the number of wavenumbers used to compute the solution.
     """
 
     fieldsPair = Fields2D  # SimPEG.EM.Static.Fields_2D
@@ -188,11 +194,12 @@ class BaseDCSimulation2D(BaseElectricalPDESimulation):
 
     @property
     def survey(self):
-        """The DC survey object.
+        """The survey object.
 
         Returns
         -------
         SimPEG.electromagnetics.static.resistivity.survey.Survey
+            The survey object.
         """
         if self._survey is None:
             raise AttributeError("Simulation must have a survey")
@@ -206,11 +213,12 @@ class BaseDCSimulation2D(BaseElectricalPDESimulation):
 
     @property
     def nky(self):
-        """Number of kys to use in wavenumber space.
+        """Number of wavenumbers :math:`k_y` used to solve the problem.
 
         Returns
         -------
         int
+            Number of wavenumbers :math:`k_y` used to solve the problem.
         """
         return self._nky
 
@@ -220,7 +228,7 @@ class BaseDCSimulation2D(BaseElectricalPDESimulation):
 
     @property
     def storeJ(self):
-        """Whether to store the sensitivity matrix
+        """Whether to store the sensitivity matrix.
 
         Returns
         -------
@@ -234,7 +242,7 @@ class BaseDCSimulation2D(BaseElectricalPDESimulation):
 
     @property
     def fix_Jmatrix(self):
-        """Whether to fix the sensitivity matrix between iterations.
+        """Whether to fix the sensitivity matrix during Gauss-Newton iterations.
 
         Returns
         -------
@@ -248,7 +256,7 @@ class BaseDCSimulation2D(BaseElectricalPDESimulation):
 
     @property
     def surface_faces(self):
-        """Array defining which faces to interpret as surfaces of Neumann boundary
+        """Array defining which faces to interpret as surfaces of Neumann boundary.
 
         DC problems will always enforce a Neumann boundary on surface interfaces.
         The default (available on semi-structured grids) assumes the top interface
@@ -268,6 +276,18 @@ class BaseDCSimulation2D(BaseElectricalPDESimulation):
         self._surface_faces = value
 
     def fields(self, m=None):
+        """Solve for the fields for all 2D problems in the wave domain.
+
+        Parameters
+        ----------
+        m : None, (nP,) numpy.ndarray
+            The model.
+
+        Returns
+        -------
+        SimPEG.electromagnetics.static.resistivity.fields_2d.Fields2D
+            The fields for all 2D problems in the wave domain.
+        """
         if self.verbose:
             print(">> Compute fields")
         if m is not None:
@@ -289,17 +309,39 @@ class BaseDCSimulation2D(BaseElectricalPDESimulation):
         return f
 
     def fields_to_space(self, f, y=0.0):
+        """Solve for the fields at the y-coordinate location specified.
+
+        Parameters
+        ----------
+        f : SimPEG.electromagnetics.static.resistivity.fields_2d.Fields2D
+            The fields for all 2D problems solved in the wave domain.
+        y : float
+            Y-coordinate location for which we want the 3D solution.
+
+        Returns
+        -------
+        SimPEG.electromagnetics.static.resistivity.fields.FieldsDC
+            The fields at the y-coordinate location specified.
+        """
         f_fwd = self.fieldsPair_fwd(self)
         phi = f[:, self._solutionType, :].dot(self._quad_weights)
         f_fwd[:, self._solutionType] = phi
         return f_fwd
 
     def dpred(self, m=None, f=None):
-        """
-        Project fields to receiver locations
-        :param Fields u: fields object
-        :rtype: numpy.ndarray
-        :return: data
+        """Predict the data for a given model.
+
+        Parameters
+        ----------
+        m : None, (nP,) numpy.ndarray
+            The model parameters.
+        f : None, SimPEG.electromagnetics.static.resistivity.fields_2d.Fields2D
+            The 2D fields solved in the wave domain.
+
+        Returns
+        -------
+        (nD,) numpy.ndarray
+            The predicted data array.
         """
         if f is None:
             if m is None:
@@ -323,8 +365,22 @@ class BaseDCSimulation2D(BaseElectricalPDESimulation):
         return self._mini_survey_data(temp)
 
     def getJ(self, m, f=None):
-        """
-        Generate Full sensitivity matrix
+        """Generate the full sensitivity matrix.
+
+        This method generates and stores the full sensitivity matrix for the
+        model provided.
+
+        Parameters
+        ----------
+        m : (nP,) numpy.ndarray
+            The model parameters
+        f : None, SimPEG.electromagnetics.static.resistivity.fields_2d.Fields2D
+            2D fields solved in the wave domain
+
+        Returns
+        -------
+        (nD, nP) numpy.ndarray
+            The full sensitivity matrix.
         """
         if getattr(self, "_Jmatrix", None) is None:
             if self.verbose:
@@ -336,8 +392,21 @@ class BaseDCSimulation2D(BaseElectricalPDESimulation):
         return self._Jmatrix
 
     def Jvec(self, m, v, f=None):
-        """
-        Compute sensitivity matrix (J) and vector (v) product.
+        """Compute the sensitivity matrix times a vector.
+
+        Parameters
+        ----------
+        m : (nP,) numpy.ndarray
+            The model parameters.
+        v : (nP,) numpy.ndarray
+            The vector.
+        f : None, SimPEG.electromagnetics.static.resistivity.fields_2d.Fields2D
+            2D fields solved in the wave domain.
+
+        Returns
+        -------
+        (nD,) numpy.ndarray
+            The sensitivity matrix times a vector.
         """
         if self.storeJ:
             J = self.getJ(m, f=f)
@@ -381,8 +450,21 @@ class BaseDCSimulation2D(BaseElectricalPDESimulation):
         return self._mini_survey_data(Jv)
 
     def Jtvec(self, m, v, f=None):
-        """
-        Compute adjoint sensitivity matrix (J^T) and vector (v) product.
+        """Compute the adjoint sensitivity matrix times a vector.
+
+        Parameters
+        ----------
+        m : (nP,) numpy.ndarray
+            The model parameters.
+        v : (nD,) numpy.ndarray
+            The vector.
+        f : None, SimPEG.electromagnetics.static.resistivity.fields_2d.Fields2D
+            2D fields solved in the wave domain
+
+        Returns
+        -------
+        (nP,) numpy.ndarray
+            The adjoint sensitivity matrix times a vector.
         """
         if self.storeJ:
             J = self.getJ(m, f=f)
@@ -465,13 +547,18 @@ class BaseDCSimulation2D(BaseElectricalPDESimulation):
             return (self._mini_survey_data(Jt.T)).T
 
     def getSourceTerm(self, ky):
-        """
-        takes concept of source and turns it into a matrix
-        """
-        """
-        Evaluates the sources, and puts them in matrix form
-        :rtype: (numpy.ndarray, numpy.ndarray)
-        :return: q (nC or nN, nSrc)
+        """Compute the source terms for the wavenumber provided.
+
+        Parameters
+        ----------
+        ky : float
+            The wavenumber.
+
+        Returns
+        -------
+        (nC or nN, nSrc) numpy.ndarray
+            The array containing the right-hand sides for all sources for
+            the wavenumber specified.
         """
 
         if self._mini_survey is not None:
@@ -494,6 +581,13 @@ class BaseDCSimulation2D(BaseElectricalPDESimulation):
 
     @property
     def deleteTheseOnModelUpdate(self):
+        """Returns properties to delete when model is updated.
+
+        Returns
+        -------
+        list of str
+            The properties to delete when model the is updated.
+        """
         toDelete = super().deleteTheseOnModelUpdate
         if self.fix_Jmatrix:
             return toDelete
@@ -525,8 +619,51 @@ class BaseDCSimulation2D(BaseElectricalPDESimulation):
 
 
 class Simulation2DCellCentered(BaseDCSimulation2D):
-    """
-    2.5D cell centered DC problem
+    r"""Cell centered 2.5D DC resistivity simulation.
+
+    
+
+    .. math::
+        \phi = \sum_{i=1}^{nk_y} \alpha_i \, \Phi (k_i)
+
+    To see how we arrived at this expression, see the *Notes* section of the documentation
+    for the :class:`BaseDCSimulation2D` class.
+
+    Using mimetic finite volume, the electric potential in the wave domain :math:`\Phi`
+    is solved for each wavenumber :math:`k_y` according to:
+
+    .. math::
+        \big [ \mathbf{D \, M_{f\rho}^{-1} \, G} + k_y**2 \, \mathbf{M_{c\sigma}} \big ]
+        \Phi = \mathbf{q}
+
+    where
+
+        - :math:`\mathbf{D}` is the 2D face-divergence operator with imposed boundary conditions
+        - :math:`G` is the 2D cell-gradient operator
+        - :math:`M_{f\rho}` is the resistivity inner-product matrix on cell faces, and
+        - :math:`M_{c\sigma}` is the conductivity inner-product matrix at cell centers
+
+    Parameters
+    ----------
+    mesh : discretize.BaseMesh
+        The mesh.
+    survey : None, Survey
+        The DC resisitivity survey.
+    nky : int
+        Number of evaluations of the 2D problem in the wave domain.
+    storeJ : bool
+        Whether to construct and store the sensitivity matrix.
+    miniaturize : bool
+        If ``True``, we compute the fields for each unique source electrode location.
+        We avoid computing the fields for repeated electrode locations and the
+        fields for dipole sources can be constructed using superposition.
+    do_trap : bool
+        Use trap method to find the optimum set of quadrature points and weights
+        in the wave domain for evaluating the set of 2D problems.
+    fix_Jmatrix : bool
+        Whether to fix the sensitivity matrix during Newton iterations.
+    surface_faces : None, numpy.ndarray of bool
+        Array defining which faces to interpret as surfaces of the Neumann boundary.
     """
 
     _solutionType = "phiSolution"
