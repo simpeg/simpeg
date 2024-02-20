@@ -19,7 +19,6 @@
 - Michael Mitchell, (`@micmitch <https://github.com/micmitch/>`_)
 - I-Kang Ding, (`@ikding <https://github.com/ikding/>`_)
 - Richard Scott, (`@bluetyson <https://github.com/bluetyson/>`_)
-- Joseph Capriotti, (`@jcapriot <https://github.com/jcapriot>`_)
 - Xiaolong Wei, (`@xiaolongw1223 <https://github.com/xiaolongw1223>`_)
 - Santiago Soler, (`@santisoler <https://github.com/santisoler>`_)
 - Neil Godber, (`@ngodber <https://github.com/ngodber>`_)
