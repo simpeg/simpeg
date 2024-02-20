@@ -8,8 +8,8 @@ class Survey(BaseSurvey):
 
     Parameters
     ----------
-    source_field : SimPEG.potential_fields.magnetics.sources.SourceField
-        A source object that defines the Earth's inducing field
+    source_field : SimPEG.potential_fields.gravity.sources.SourceField
+        A source object that defines receivers locations for gravity.
     """
 
     def __init__(self, source_field, **kwargs):
