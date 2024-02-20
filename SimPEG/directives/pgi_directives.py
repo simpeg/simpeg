@@ -413,7 +413,7 @@ class PGI_AddMrefInSmooth(InversionDirective):
     @property
     def DMtarget(self):
         if getattr(self, "_DMtarget", None) is None:
-            self.phi_d_target = 0.5 * self.invProb.dmisfit.survey.nD
+            self.phi_d_target = self.invProb.dmisfit.survey.nD
             self._DMtarget = self.chifact * self.phi_d_target
         return self._DMtarget
 

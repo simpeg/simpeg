@@ -536,7 +536,7 @@ class L2ObjectiveFunction(BaseObjectiveFunction):
     Weighting least-squares objective functions in SimPEG are defined as follows:
 
     .. math::
-        \phi = \frac{1}{2} \big \| \mathbf{W} f(\mathbf{m}) \big \|_2^2
+        \phi = \big \| \mathbf{W} f(\mathbf{m}) \big \|_2^2
 
     where :math:`\mathbf{m}` are the model parameters, :math:`f` is a mapping operator,
     and :math:`\mathbf{W}` is the weighting matrix.
@@ -605,20 +605,22 @@ class L2ObjectiveFunction(BaseObjectiveFunction):
     def __call__(self, m):
         """Evaluate the objective function for a given model."""
         r = self.W * (self.mapping * m)
-        return 0.5 * r.dot(r)
+        return r.dot(r)
 
     def deriv(self, m):
         # Docstring inherited from BaseObjectiveFunction
-        return self.mapping.deriv(m).T * (self.W.T * (self.W * (self.mapping * m)))
+        return 2 * self.mapping.deriv(m).T * (self.W.T * (self.W * (self.mapping * m)))
 
     def deriv2(self, m, v=None):
         # Docstring inherited from BaseObjectiveFunction
         if v is not None:
-            return self.mapping.deriv(m).T * (
-                self.W.T * (self.W * (self.mapping.deriv(m) * v))
+            return (
+                2
+                * self.mapping.deriv(m).T
+                * (self.W.T * (self.W * (self.mapping.deriv(m) * v)))
             )
         W = self.W * self.mapping.deriv(m)
-        return W.T * W
+        return 2 * W.T * W
 
 
 def _validate_objective_functions(objective_functions):

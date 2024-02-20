@@ -50,7 +50,7 @@ class JointTotalVariation(BaseSimilarityMeasure):
     (`Haber and Gazit, 2013 <https://link.springer.com/article/10.1007/s10712-013-9232-4>`__):
 
     .. math::
-        \phi (m_1, m_2) = \frac{1}{2} \int_\Omega \, w(r) \,
+        \phi (m_1, m_2) = \int_\Omega \, w(r) \,
         \Big [ \, \big | \nabla m_1 \big |^2 \, + \, \big | \nabla m_2 \big |^2 \, \Big ]^{1/2} \, dv
 
     where :math:`w(r)` is a user-defined weighting function.
@@ -60,7 +60,7 @@ class JointTotalVariation(BaseSimilarityMeasure):
     function (objective function) is given by:
 
     .. math::
-        \phi (m_1, m_2) \approx \frac{1}{2} \sum_i \tilde{w}_i \, \bigg [ \,
+        \phi (m_1, m_2) \approx \sum_i \tilde{w}_i \, \bigg [ \,
         \Big | (\nabla m_1)_i \Big |^2 \, + \, \Big | (\nabla m_2)_i \Big |^2 \, \bigg ]^{1/2}
 
     where :math:`(\nabla m_1)_i` are the gradients of property :math:`m_1` defined on the mesh and
@@ -78,7 +78,7 @@ class JointTotalVariation(BaseSimilarityMeasure):
     is therefore equivalent to an objective function of the form:
 
     .. math::
-        \phi (\mathbf{m}) = \frac{1}{2} \, \mathbf{e}^T \Bigg ( \,
+        \phi (\mathbf{m}) = \mathbf{e}^T \Bigg ( \,
         \mathbf{W \, A} \bigg [ \sum_k (\mathbf{G \, m_k})^2 \bigg ] \; + \; \epsilon \mathbf{v}^2
         \, \Bigg )^{1/2}
 
@@ -256,11 +256,11 @@ class JointTotalVariation(BaseSimilarityMeasure):
         .. math::
             \frac{\partial^2 \phi}{\partial \mathbf{m}^2} =
             \begin{bmatrix}
-            \dfrac{\partial \phi^2}{\partial \mathbf{m_1}^2} &
-            \dfrac{\partial \phi^2}{\partial \mathbf{m_1} \partial \mathbf{m_2}} &
+            \dfrac{\partial^2 \phi}{\partial \mathbf{m_1}^2} &
+            \dfrac{\partial^2 \phi}{\partial \mathbf{m_1} \partial \mathbf{m_2}} &
             \cdots \\
-            \dfrac{\partial \phi^2}{\partial \mathbf{m_2} \partial \mathbf{m_1}} &
-            \dfrac{\partial \phi^2}{\partial \mathbf{m_2}^2} & \; \\
+            \dfrac{\partial^2 \phi}{\partial \mathbf{m_2} \partial \mathbf{m_1}} &
+            \dfrac{\partial^2 \phi}{\partial \mathbf{m_2}^2} & \; \\
             \vdots & \; & \ddots
             \end{bmatrix}
 
