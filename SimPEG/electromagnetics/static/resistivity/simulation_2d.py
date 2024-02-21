@@ -8,6 +8,7 @@ from ....utils import (
     mkvc,
     sdiag,
     Zero,
+    TensorType,
     validate_type,
     validate_string,
     validate_integer,
@@ -64,7 +65,7 @@ class BaseDCSimulation2D(BaseElectricalPDESimulation):
     where :math:`\sigma` is the electrical conductivity, and we wish to solve for the
     electric potential :math:`\phi`. The 2.5D geometry assumes that electrical
     conductivity is invariant along the y-direction.
-    
+
     Instead of discretizing and solving the problem in 3D, we consider the Fourier
     transform with respect to the y-coordinate. In the wave domain, the solution for
     the electric potential :math:`\Phi` becomes a 2D problem:
@@ -105,10 +106,10 @@ class BaseDCSimulation2D(BaseElectricalPDESimulation):
         **kwargs,
     ):
         super().__init__(mesh=mesh, survey=survey, **kwargs)
-        if 'nky' in kwargs:
-            nky = kwargs.pop['nky']
+        if "nky" in kwargs:
+            nky = kwargs.pop["nky"]
             warnings.warn(
-                'nky is going to be deprecated and replaced by nky', DeprecationWarning
+                "nky is going to be deprecated and replaced by nky", DeprecationWarning
             )
         self.nky = nky
         self.storeJ = storeJ
@@ -621,7 +622,7 @@ class BaseDCSimulation2D(BaseElectricalPDESimulation):
 class Simulation2DCellCentered(BaseDCSimulation2D):
     r"""Cell centered 2.5D DC resistivity simulation.
 
-    
+
 
     .. math::
         \phi = \sum_{i=1}^{nk_y} \alpha_i \, \Phi (k_i)
@@ -699,7 +700,7 @@ class Simulation2DCellCentered(BaseDCSimulation2D):
         # Override in the case of anisotropy
         if getattr(self, "_MfRhoI", None) is None:
             if self.rho.size == 3 * self.mesh.nC:
-                model = np.r_[self.rho[:self.mesh.nC], self.rho[2*self.mesh.nC:]]
+                model = np.r_[self.rho[: self.mesh.nC], self.rho[2 * self.mesh.nC :]]
                 self._MfRhoI = self.mesh.get_face_inner_product(
                     model=model, invert_matrix=True
                 )
@@ -723,7 +724,7 @@ class Simulation2DCellCentered(BaseDCSimulation2D):
             if self.sigma.size == 3 * self.mesh.nC:
                 vol = self.mesh.cell_volumes
                 self._MccSigma = sp.diags(
-                    vol * self.sigma[self.mesh.nC:2*self.mesh.nC], format="csr"
+                    vol * self.sigma[self.mesh.nC : 2 * self.mesh.nC], format="csr"
                 )
             else:
                 raise NotImplementedError(
@@ -921,7 +922,9 @@ class Simulation2DNodal(BaseDCSimulation2D):
         # Override for anisotropic case
         if getattr(self, "_MeSigma", None) is None:
             if self.sigma.size == 3 * self.mesh.nC:
-                model = np.r_[self.sigma[:self.mesh.nC], self.sigma[2*self.mesh.nC:]]
+                model = np.r_[
+                    self.sigma[: self.mesh.nC], self.sigma[2 * self.mesh.nC :]
+                ]
                 self._MeSigma = self.mesh.get_edge_inner_product(model=model)
             else:
                 raise NotImplementedError(
@@ -930,6 +933,46 @@ class Simulation2DNodal(BaseDCSimulation2D):
 
         return self._MeSigma
 
+    def MeSigmaDeriv(self, u, v=None, adjoint=False):
+        """Derivative of inner product matrix on edges for 2D wrt model."""
+
+        # if getattr(self, "sigmaMap") is None:
+        #     return Zero()
+        # if isinstance(u, Zero) or isinstance(v, Zero):
+        #     return Zero()
+
+        # Isotropic case
+        if self.sigma.size == self.mesh.nC:
+            return super().MeSigmaDeriv(u, v, adjoint)
+
+        # Override for anisotropic case
+        if getattr(self, "_MeSigmaDeriv", None) is None:
+            if self.sigma.size == 3 * self.mesh.nC:
+
+                # Extract x and z sigmas
+                prop = np.r_[
+                    self.sigma[0:self.mesh.nC], self.sigma[2*self.mesh.nC:]
+                ]
+                t_type = TensorType(self.mesh, prop)
+
+                M_deriv_func = self.mesh.get_edge_inner_product_deriv(model=prop)
+                # t_type == 3 for full tensor model, t_type < 3 for scalar, isotropic, or axis-aligned anisotropy.
+                if t_type < 3 and self.mesh._meshType.lower() in (
+                    "cyl",
+                    "tensor",
+                    "tree",
+                ):
+                    # Derivative of property matrix is the identity, so...
+                    M_prop_deriv = M_deriv_func(np.ones(self.mesh.n_edges))
+                    setattr(self, "_MeSigmaDeriv", M_prop_deriv)
+                else:
+                    raise NotImplementedError(
+                        "Only isotropic and linear isotropic conductivities implemented."
+                    )
+                
+                return self._MeSigmaDeriv
+                
+
     @property
     def MnSigma(self):
         """Inner product matrix on nodes for 2D"""
@@ -937,13 +980,15 @@ class Simulation2DNodal(BaseDCSimulation2D):
         # Isotropic case
         if self.sigma.size == self.mesh.nC:
             return super().MnSigma
-        
+
         # Override if anisotropic case
         if getattr(self, "_MnSigma", None) is None:
             if self.sigma.size == 3 * self.mesh.nC:
                 vol = self.mesh.cell_volumes
                 self._MnSigma = sp.diags(
-                    self.mesh.aveN2CC.T * (vol * self.sigma[self.mesh.nC:2*self.mesh.nC]), format="csr"
+                    self.mesh.aveN2CC.T
+                    * (vol * self.sigma[self.mesh.nC : 2 * self.mesh.nC]),
+                    format="csr",
                 )
             else:
                 raise NotImplementedError(
@@ -951,7 +996,36 @@ class Simulation2DNodal(BaseDCSimulation2D):
                 )
 
         return self._MnSigma
-    
+
+    def MnSigmaDeriv(self, u, v=None, adjoint=False):
+        """Derivative of inner product matrix on nodes for 2D wrt model."""
+
+        # if getattr(self, "sigmaMap") is None:
+        #     return Zero()
+        # if isinstance(u, Zero) or isinstance(v, Zero):
+        #     return Zero()
+
+        # Isotropic case
+        if self.sigma.size == self.mesh.nC:
+            return super().MnSigmaDeriv(u, v, adjoint)
+
+        # Override if anisotropic case
+        if getattr(self, "_MnSigmaDeriv", None) is None:
+            if self.sigma.size == 3 * self.mesh.nC:
+
+                M_prop_deriv = (
+                    self.mesh.aveN2CC.T
+                    * sp.diags(self.mesh.cell_volumes)
+                    # * getattr(self, f"{arg.lower()}Deriv")  # should just be diagonal 1s
+                )
+                self._MnSigmaDeriv = M_prop_deriv
+                
+                return self._MnSigmaDeriv
+
+            else:
+                raise NotImplementedError(
+                    "Only isotropic and linear isotropic conductivities implemented."
+                )
 
     def getA(self, ky):
         """
@@ -986,13 +1060,38 @@ class Simulation2DNodal(BaseDCSimulation2D):
         Grad = self.mesh.nodal_gradient
 
         if adjoint:
-            out = self.MeSigmaDeriv(
-                Grad * u, Grad * v, adjoint=adjoint
-            ) + ky**2 * self.MnSigmaDeriv(u, v, adjoint=adjoint)
+            if self.sigma.size == self.mesh.nC:
+
+                out = self.MeSigmaDeriv(
+                    Grad * u, Grad * v, adjoint=adjoint
+                ) + ky**2 * self.MnSigmaDeriv(u, v, adjoint=adjoint)
+
+            else:
+
+                out = self.MeSigmaDeriv(
+                    Grad * u, Grad * v, adjoint=adjoint
+                ) + ky**2 * self.MnSigmaDeriv(u, v, adjoint=adjoint)
+
         else:
-            out = Grad.T * self.MeSigmaDeriv(
-                Grad * u, v, adjoint=adjoint
-            ) + ky**2 * self.MnSigmaDeriv(u, v, adjoint=adjoint)
+            if self.sigma.size == self.mesh.nC:
+
+                out = Grad.T * self.MeSigmaDeriv(
+                    Grad * u, v, adjoint=adjoint
+                ) + ky**2 * self.MnSigmaDeriv(u, v, adjoint=adjoint)
+
+            else:
+                
+                # Re-order [x, y, z] to [x, z, y]
+                P = sdiag(np.ones(self.mesh.nC))
+                P = sp.bmat(
+                    [[P, None, None], [None, None, P], [None, P, None]]
+                )
+                v = P * v
+
+                out = Grad.T * self.MeSigmaDeriv(
+                    Grad * u, v[:2*self.mesh.nC], adjoint=adjoint
+                ) + ky**2 * self.MnSigmaDeriv(u, v[2*self.mesh.nC:], adjoint=adjoint)
+
         if self.bc_type != "Neumann" and self.sigmaMap is not None:
             if getattr(self, "_MBC_sigma", None) is None:
                 self._MBC_sigma = {}
