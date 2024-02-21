@@ -57,7 +57,7 @@ class Simulation3DIntegral(BasePFSimulation):
         model_type="scalar",
         is_amplitude_data=False,
         engine="geoana",
-        choclo_parallel=True,
+        numba_parallel=True,
         **kwargs,
     ):
         self.model_type = model_type
@@ -72,7 +72,7 @@ class Simulation3DIntegral(BasePFSimulation):
         self.modelMap = self.chiMap
         self.engine = engine
         if self.engine == "choclo":
-            if choclo_parallel:
+            if numba_parallel:
                 self._sensitivity_tmi = _sensitivity_tmi_parallel
                 self._sensitivity_mag = _sensitivity_mag_parallel
                 self._forward_tmi = _forward_tmi_parallel

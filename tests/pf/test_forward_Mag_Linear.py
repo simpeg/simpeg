@@ -189,8 +189,8 @@ def create_mag_survey(
     [
         ("geoana", {"n_processes": None}),
         ("geoana", {"n_processes": 1}),
-        ("choclo", {"choclo_parallel": False}),
-        ("choclo", {"choclo_parallel": True}),
+        ("choclo", {"numba_parallel": False}),
+        ("choclo", {"numba_parallel": True}),
     ],
     ids=["geoana_serial", "geoana_parallel", "choclo_serial", "choclo_parallel"],
 )
@@ -379,8 +379,8 @@ def test_ana_mag_tmi_grad_forward():
     [
         ("geoana", {"n_processes": None}),
         ("geoana", {"n_processes": 1}),
-        ("choclo", {"choclo_parallel": False}),
-        ("choclo", {"choclo_parallel": True}),
+        ("choclo", {"numba_parallel": False}),
+        ("choclo", {"numba_parallel": True}),
     ],
     ids=["geoana_serial", "geoana_parallel", "choclo_serial", "choclo_parallel"],
 )
@@ -458,8 +458,8 @@ def test_ana_mag_grad_forward(
     [
         ("geoana", {"n_processes": None}),
         ("geoana", {"n_processes": 1}),
-        ("choclo", {"choclo_parallel": False}),
-        ("choclo", {"choclo_parallel": True}),
+        ("choclo", {"numba_parallel": False}),
+        ("choclo", {"numba_parallel": True}),
     ],
     ids=["geoana_serial", "geoana_parallel", "choclo_serial", "choclo_parallel"],
 )
@@ -529,8 +529,8 @@ def test_ana_mag_vec_forward(
     [
         ("geoana", {"n_processes": None}),
         ("geoana", {"n_processes": 1}),
-        ("choclo", {"choclo_parallel": False}),
-        ("choclo", {"choclo_parallel": True}),
+        ("choclo", {"numba_parallel": False}),
+        ("choclo", {"numba_parallel": True}),
     ],
     ids=["geoana_serial", "geoana_parallel", "choclo_serial", "choclo_parallel"],
 )
