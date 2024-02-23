@@ -681,6 +681,12 @@ class TestParent:
         with pytest.raises(TypeError, match=msg):
             regularization.parent = invalid_parent
 
+    def test_default_parent(self, regularization):
+        """Test setting default parent class to a BaseRegularization."""
+        mesh = discretize.TensorMesh([3, 4, 5])
+        parent = WeightedLeastSquares(mesh, objfcts=[regularization])
+        assert regularization.parent is parent
+
 
 class TestWeightsKeys:
     """
