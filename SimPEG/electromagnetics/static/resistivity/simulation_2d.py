@@ -8,7 +8,6 @@ from ....utils import (
     mkvc,
     sdiag,
     Zero,
-    TensorType,
     validate_type,
     validate_string,
     validate_integer,
@@ -27,17 +26,22 @@ from discretize.utils import make_boundary_bool
 
 
 class BaseDCSimulation2D(BaseElectricalPDESimulation):
-    r"""Base 2.5D static electromagnetic simulation class.
+    r"""Base simulation class for the 2D DC resistivity forward problem.
 
-    This is a base class that defines properties and methods inherited by 2.5D DC
-    resistivity simulation classes. See the *Notes* section for a description of
-    the problem geometry.
+    This class is used to define properties and methods necessary for solving the
+    DC resistivity problem, where the electrical conductivity :math:`\sigma` is
+    spatially invariant along the y-direction. 2D DC resistivity simulation classes
+    solve the full 3D DC resistivity problem efficiently by solving a set of 2D
+    problems in the wave domain of y.
+
+    For a full description of the mathematical formulation, see the *Notes* section
+    below.
 
     Parameters
     ----------
-    mesh : discretize.BaseMesh
+    mesh : discretize.base.BaseMesh
         The mesh.
-    survey : None, Survey
+    survey : None, SimPEG.electromagnetics.static.resistivity.survey.Survey
         The DC resisitivity survey.
     nky : int
         Number of evaluations of the 2D problem in the wave domain.
@@ -57,34 +61,35 @@ class BaseDCSimulation2D(BaseElectricalPDESimulation):
 
     Notes
     -----
-    For current :math:`I` injected at point :math:`r_s`, the DC resistivity
+    For current :math:`I` injected at point :math:`r_s`, the full DC resistivity
     problem is expressed as:
 
     .. math::
         \nabla \cdot \sigma \, \nabla \phi = - I \, \delta (r-r_s)
 
-    where :math:`\sigma` is the electrical conductivity, and we wish to solve for the
-    electric potential :math:`\phi`. The 2.5D geometry assumes that electrical
-    conductivity is invariant along the y-direction.
+    where :math:`\nabla = [\partial_x, \; \partial_y, \; \partial_z \, ]^T` is the
+    gradient operator, :math:`\sigma` is the electrical conductivity, and we wish
+    to solve for the electric potential :math:`\phi`.
 
-    Instead of discretizing and solving the problem in 3D, we consider the Fourier
-    transform with respect to the y-coordinate. In the wave domain, the solution for
-    the electric potential :math:`\Phi` becomes a 2D problem:
+    The the 2D simulation, we assume that electrical conductivity is invariant
+    along the y-direction. This allows us to take the Laplace transform along
+    the y-direction. In the wave domain of y, the solution for the electric potential
+    :math:`\Phi` for a wavenumber :math:`k_y` is a 2D problem of the form:
 
     .. math::
-        \nabla_{xz} \cdot \sigma \, \nabla_{xz} \Phi - k_y^2 \sigma \Phi =
-        - I \, \delta (x-x_s) \, \delta (z-z_s)
+        \nabla_{\! xz} \cdot \sigma \nabla_{\! xz} \Phi + k_y^2 \sigma \Phi
+        = - I \delta (x-x_s) \delta (z-z_s)
 
-    where :math:`\nabla_{xy}` applies partial gradients along the x and z directions
-    and :math:`k_y` is the wavenumber.
+    where :math:`\nabla_{\! xz} = [\partial_x, \; \partial_z \, ]^T` is a partial
+    gradient operator that acts along the x and z directions.
 
-    For an optimum set of wavenumbers :math:`k_i` and coefficients :math:`\alpha_i`,
-    2.5D simulation classes solve a set of 2D problems in the wave domain using
-    mimetic finite volume. And the 3D solution for a specified y-coordinate
+    For an optimum set of wavenumbers :math:`k_y^{(i)}` and coefficients :math:`\alpha^{(i)}`,
+    2D simulation classes solve a set of 2D problems in the wave domain using
+    mimetic finite volume. And the full 3D solution for a specified y-coordinate
     location is computed according to:
 
     .. math::
-        \phi = \sum_{i=1}^{nk_y} \alpha_i \, \Phi (k_i)
+        \phi = \sum_{i=1}^{nk_y} \alpha^{(i)} \, \Phi \! \left ( k_y^{(i)} \right )
 
     where :math:`nk_y` is the number of wavenumbers used to compute the solution.
     """
@@ -367,10 +372,15 @@ class BaseDCSimulation2D(BaseElectricalPDESimulation):
         return self._mini_survey_data(temp)
 
     def getJ(self, m, f=None):
-        """Generate the full sensitivity matrix.
+        r"""Generate the full sensitivity matrix.
 
         This method generates and stores the full sensitivity matrix for the
-        model provided.
+        model provided. I.e.:
+
+        .. math::
+            \mathbf{J} = \dfrac{\partial \mathbf{d}}{\partial \mathbf{m}}
+
+        where :math:`\mathbf{d}` are the data and :math:`\mathbf{m}` are the model parameters.
 
         Parameters
         ----------
@@ -394,7 +404,20 @@ class BaseDCSimulation2D(BaseElectricalPDESimulation):
         return self._Jmatrix
 
     def Jvec(self, m, v, f=None):
-        """Compute the sensitivity matrix times a vector.
+        r"""Compute the sensitivity matrix times a vector.
+
+        Where :math:`\mathbf{d}` are the data, :math:`\mathbf{m}` are the model parameters,
+        and the sensitivity matrix is defined as:
+
+        .. math::
+            \mathbf{J} = \dfrac{\partial \mathbf{d}}{\partial \mathbf{m}}
+
+        this method computes and returns the matrix-vector product:
+
+        .. math::
+            \mathbf{J v}
+
+        for a given vector :math:`v`.
 
         Parameters
         ----------
@@ -452,7 +475,20 @@ class BaseDCSimulation2D(BaseElectricalPDESimulation):
         return self._mini_survey_data(Jv)
 
     def Jtvec(self, m, v, f=None):
-        """Compute the adjoint sensitivity matrix times a vector.
+        r"""Compute the adjoint sensitivity matrix times a vector.
+
+        Where :math:`\mathbf{d}` are the data, :math:`\mathbf{m}` are the model parameters,
+        and the sensitivity matrix is defined as:
+
+        .. math::
+            \mathbf{J} = \dfrac{\partial \mathbf{d}}{\partial \mathbf{m}}
+
+        this method computes and returns the matrix-vector product:
+
+        .. math::
+            \mathbf{J^T v}
+
+        for a given vector :math:`v`.
 
         Parameters
         ----------
@@ -549,7 +585,7 @@ class BaseDCSimulation2D(BaseElectricalPDESimulation):
             return (self._mini_survey_data(Jt.T)).T
 
     def getSourceTerm(self, ky):
-        """Compute the source terms for the wavenumber provided.
+        """Compute the discrete source terms (right-hand sides) for the wavenumber provided.
 
         Parameters
         ----------
@@ -583,7 +619,7 @@ class BaseDCSimulation2D(BaseElectricalPDESimulation):
 
     @property
     def deleteTheseOnModelUpdate(self):
-        """Returns properties to delete when model is updated.
+        """Returns the properties to delete when model is updated.
 
         Returns
         -------
@@ -621,29 +657,11 @@ class BaseDCSimulation2D(BaseElectricalPDESimulation):
 
 
 class Simulation2DCellCentered(BaseDCSimulation2D):
-    r"""Cell centered 2.5D DC resistivity simulation.
+    r"""Cell centered 2D DC resistivity simulation.
 
-
-
-    .. math::
-        \phi = \sum_{i=1}^{nk_y} \alpha_i \, \Phi (k_i)
-
-    To see how we arrived at this expression, see the *Notes* section of the documentation
-    for the :class:`BaseDCSimulation2D` class.
-
-    Using mimetic finite volume, the electric potential in the wave domain :math:`\Phi`
-    is solved for each wavenumber :math:`k_y` according to:
-
-    .. math::
-        \big [ \mathbf{D \, M_{f\rho}^{-1} \, G} + k_y**2 \, \mathbf{M_{c\sigma}} \big ]
-        \Phi = \mathbf{q}
-
-    where
-
-        - :math:`\mathbf{D}` is the 2D face-divergence operator with imposed boundary conditions
-        - :math:`G` is the 2D cell-gradient operator
-        - :math:`M_{f\rho}` is the resistivity inner-product matrix on cell faces, and
-        - :math:`M_{c\sigma}` is the conductivity inner-product matrix at cell centers
+    Simulation class which solves the 2D DC resistivity problem for electric
+    potentials at cell centers. For a full description of the numerical approach,
+    see the *Notes* section below.
 
     Parameters
     ----------
@@ -666,6 +684,83 @@ class Simulation2DCellCentered(BaseDCSimulation2D):
         Whether to fix the sensitivity matrix during Newton iterations.
     surface_faces : None, numpy.ndarray of bool
         Array defining which faces to interpret as surfaces of the Neumann boundary.
+
+    Notes
+    -----
+    For current :math:`I` injected at point :math:`r_s`, the full DC resistivity
+    problem is expressed as:
+
+    .. math::
+        \nabla \cdot \sigma \, \nabla \phi = - I \, \delta (r-r_s)
+
+    where :math:`\nabla = [\partial_x, \; \partial_y, \; \partial_z \, ]^T` is the
+    gradient operator, :math:`\sigma` is the electrical conductivity, and we wish
+    to solve for the electric potential :math:`\phi`.
+
+    The the 2D simulation, we assume that electrical conductivity is invariant
+    along the y-direction. This allows us to take the Laplace transform along
+    the y-direction. In the wave domain of y, the solution for the electric potential
+    :math:`\Phi` for a wavenumber :math:`k_y` is a 2D problem of the form:
+
+    .. math::
+        \nabla_{\! xz} \cdot \sigma \nabla_{\! xz} \Phi + k_y^2 \sigma \Phi
+        = - I \delta (x-x_s) \delta (z-z_s)
+
+    where :math:`\nabla_{\! xz} = [\partial_x, \; \partial_z \, ]^T` is a partial
+    gradient operator that acts along the x and z directions.
+
+    Using mimetic finite volume, the 2D problem can be solved numerically by solving
+    the following linear system:
+
+    .. math::
+        \big [ \mathbf{D \, M_{f\rho}^{-1} \, G} + k_y^2 \, \mathbf{M_{c\sigma}} \big ]
+        \boldsymbol{\Phi} = \mathbf{q}
+
+    where
+
+        - :math:`\boldsymbol{\Phi}` are the discrete electric potentials defined at cell centers
+        - :math:`\mathbf{D}` is the 2D face-divergence operator with imposed boundary conditions
+        - :math:`G` is the 2D cell-gradient operator
+        - :math:`M_{f\rho}` is the resistivity inner-product matrix on cell faces; note :math:`\rho = 1/\sigma`
+        - :math:`M_{c\sigma}` is the conductivity inner-product matrix at cell centers
+
+    For an optimum set of wavenumbers :math:`k_y^{(i)}` and coefficients :math:`\alpha^{(i)}`,
+    we solve a set of discrete 2D problems in the wave domain. And the full 3D solution
+    for a specified y-coordinate location is computed according to:
+
+    .. math::
+        \boldsymbol{\phi} = \sum_{i=1}^{nk_y}
+        \alpha^{(i)} \, \boldsymbol{\Phi} \! \left ( k_y^{(i)} \right )
+
+    where :math:`nk_y` is the number of wavenumbers used to compute the solution.
+
+    **Axial Anisotropy:**
+
+    In this case, the DC resistivity problem is defined according to:
+
+    .. math::
+        \nabla \cdot \Sigma \, \nabla \phi = - I \, \delta (r-r_s)
+
+    where
+
+    .. math::
+        \Sigma = \begin{bmatrix}
+        \sigma_x & 0 & 0 \\ 0 & \sigma_y & 0 \\ 0 & 0 & \sigma_z
+        \end{bmatrix}
+
+    The discrete 2D problem solved in the wave domain of y still takes the form:
+
+    .. math::
+        \big [ \mathbf{D \, M_{f\rho}^{-1} \, G} + k_y^2 \, \mathbf{M_{c\sigma}} \big ]
+        \boldsymbol{\Phi} = \mathbf{q}
+
+    However,
+
+        - :math:`M_{f\rho}` is a resistivity inner-product matrix on cell faces
+        constructed using axial resistivities :math:`\rho_x = 1/\sigma_x` and
+        :math:`\rho_z = 1/\sigma_z`
+        - :math:`M_{c\sigma}` is the conductivity inner-product matrix at cell centers
+        constructed using axial conductivity :math:`\sigma_y`
     """
 
     _solutionType = "phiSolution"
@@ -684,6 +779,12 @@ class Simulation2DCellCentered(BaseDCSimulation2D):
     def bc_type(self):
         """Type of boundary condition to use for simulation.
 
+        The boundary conditions supported by the :class:`Simulation2DCellCentered` are:
+
+        - "Dirichlet":
+        - "Neumann": impose zero Neumann boundary conditions.
+        - "Robin": impose
+
         Returns
         -------
         {"Dirichlet", "Neumann", "Robin"}
@@ -692,7 +793,23 @@ class Simulation2DCellCentered(BaseDCSimulation2D):
 
     @property
     def MfRhoI(self):
-        """Inner product matrix on edges for 2D"""
+        r"""Inverse of the resistivity inner-product matrix on faces.
+
+        Where the inner-product between a vector :math:`\vec{u}` and the electrical
+        resistivity :math:`\rho` times a vector :math:`\vec{u}` can be approximated by a
+        discrete operation on cell faces:
+
+        .. math::
+            \langle \vec{u}, \, \rho \vec{v} \rangle \approx
+            \mathbf{u^T M_{f \rho} \, v}
+
+        this property returns the inverse of the inner-product matrix :math:`\mathbf{M_{f \rho}}`.
+
+        Returns
+        -------
+        (n_faces, n_faces) scipy.sparse.csr_matrix
+            The inverse of the inner-product matrix.
+        """
 
         # Isotropic case
         if self.rho.size == self.mesh.nC:
@@ -714,7 +831,23 @@ class Simulation2DCellCentered(BaseDCSimulation2D):
 
     @property
     def MccSigma(self):
-        """Inner product matrix on cell centers for 2D"""
+        r"""Conductivity inner-product matrix at cell centers.
+
+        Where the inner-product between a scalar :math:`\phi` and the electrical
+        conductivity :math:`\sigma` times a scalar :math:`\psi` can be approximated by a
+        discrete operation at cell centers:
+
+        .. math::
+            \langle \phi, \, \sigma \psi \rangle \approx
+            \mathbf{\phi^T M_{f \rho} \, \psi}
+
+        this property returns the inner-product matrix :math:`\mathbf{M_{c \sigma}}`.
+
+        Returns
+        -------
+        (n_cells, n_cells) scipy.sparse.csr_matrix
+            The the inner-product matrix.
+        """
 
         # Isotropic case
         if self.sigma.size == self.mesh.nC:
@@ -741,9 +874,36 @@ class Simulation2DCellCentered(BaseDCSimulation2D):
         )
 
     def getA(self, ky):
-        """
-        Make the A matrix for the cell centered DC resistivity problem
-        A = D MfRhoI G
+        r"""Compute the system matrix for the wavenumber provided.
+
+        The discrete solution to the 2D DC resistivity problem in the wave domain
+        is expressed as:
+
+        .. math::
+            \mathbf{A}\,\boldsymbol{\Phi} = \mathbf{q}
+
+        where :math:`\mathbf{A}` is the system matrix, :math:`\Phi` is the discrete solution,
+        and :math:`\mathbf{q}` is the source term. This method returns the system matrix
+        for the cell-centered formulation for the wavenumber :math:`k_y` provided, i.e.:
+
+        .. math::
+            \mathbf{A} = \mathbf{D \, M_{f\rho}^{-1} \, G} + k_y^2 \mathbf{M_{c\sigma}}
+
+        where :math:`\mathbf{D}` is the face divergence operator, :math:`\mathbf{G}` is the
+        cell gradient operator with imposed boundary conditions, :math:`\mathbf{M_{f\rho}}`
+        is the inner product matrix for resistivities projected to faces,
+        and :math:`\mathbf{M_{c\sigma}}` is the inner product matrix for conductivities
+        at cell centers.
+
+        Parameters
+        ----------
+        ky : float
+            The wavenumber.
+
+        Returns
+        -------
+        (n_cells, n_cells) scipy.sparse.csr_matrix
+            The sparse system matrix.
         """
         # To handle Mixed boundary condition
         self.setBC(ky=ky)
@@ -759,6 +919,41 @@ class Simulation2DCellCentered(BaseDCSimulation2D):
         return A
 
     def getADeriv(self, ky, u, v, adjoint=False):
+        r"""Derivative of system matrix times a vector.
+
+        The discrete solution to the 2D DC resistivity problem in the wave domain
+        is expressed as:
+
+        .. math::
+            \mathbf{A}\,\boldsymbol{\Phi} = \mathbf{q}
+
+        where :math:`\mathbf{A}` is the system matrix, :math:`\Phi` is the discrete solution,
+        and :math:`\mathbf{q}` is the source term. For a vector :math:`v`, this method assumes
+        the discrete solution is fixed and returns
+
+        .. math::
+            \frac{\partial (\mathbf{A \, \Phi})}{\partial \mathbf{m}} \, \mathbf{v}
+
+        Or when set to do so, the method returns the adjoint operation
+
+        .. math::
+            \frac{\partial (\mathbf{A \, \Phi})}{\partial \mathbf{m}}^T \, \mathbf{v}
+
+        Parameters
+        ----------
+        ky : float
+            The wavenumber.
+        u : (n_cells,) numpy.ndarray
+            The solution for the fields for the current model; i.e. electric potentials at cell centers.
+        v : numpy.ndarray
+            The vector. (nP,) for the standard operation. (n_cells,) for the adjoint operation.
+
+        Returns
+        -------
+        numpy.ndarray
+            Derivative of system matrix times a vector. (n_cells,) for the standard operation.
+            (nP,) for the adjoint operation.
+        """
         D = self.Div
         G = self.Grad
         if self.bc_type != "Dirichlet":
@@ -773,17 +968,63 @@ class Simulation2DCellCentered(BaseDCSimulation2D):
             ) + ky**2 * self.MccSigmaDeriv(u, v, adjoint=adjoint)
 
     def getRHS(self, ky):
-        """
-        RHS for the DC problem
-        q
+        """Compute the source terms for the wavenumber provided.
+
+        Parameters
+        ----------
+        ky : float
+            The wavenumber.
+
+        Returns
+        -------
+        (n_cells, nSrc) numpy.ndarray
+            The array containing the right-hand sides for all sources for
+            the wavenumber specified.
         """
 
         RHS = self.getSourceTerm(ky)
         return RHS
 
     def getRHSDeriv(self, ky, src, v, adjoint=False):
-        """
-        Derivative of the right hand side with respect to the model
+        r"""Derivative of the source term with respect to the model times a vector.
+
+        The discrete solution to the 2D DC resistivity problem in the wave domain
+        is expressed as:
+
+        .. math::
+            \mathbf{A}\,\boldsymbol{\Phi} = \mathbf{q}
+
+        where :math:`\mathbf{A}` is the system matrix, :math:`\Phi` is the discrete solution,
+        and :math:`\mathbf{q}` is the right-hand side. This method returns the derivative
+        of the right-hand side with respect to the model times a vector, i.e.:
+
+        .. math::
+            \frac{\partial \mathbf{q}}{\partial \mathbf{m}} \mathbf{v}
+
+        or the adjoint operation:
+
+        .. math::
+            \frac{\partial \mathbf{q}}{\partial \mathbf{m}}^T \mathbf{v}
+
+        Parameters
+        ----------
+        ky : float
+            The wavenumber.
+        src : SimPEG.electromagnetic.static.resistivity.sources.BaseSrc
+            The source object.
+        v : numpy.ndarray
+            The vector. Has shape (nP,) when performing the standard derivative operation.
+            Has shape (n_cells,) when performing the adjoint operation.
+        adjoint : bool
+            Whether to perform the adjoint operation.
+
+        Returns
+        -------
+        Zero or numpy.ndarray
+            Returns :py:class:`Zero` if the derivative with respect to the model is zero.
+            Returns (n_cells,) :class:`numpy.ndarray` when computing the standard
+            derivative operation. Returns (nP,) :class:`numpy.ndarray` when performing
+            the adjoint.
         """
         # TODO: add qDeriv for RHS depending on m
         # qDeriv = src.evalDeriv(self, ky, adjoint=adjoint)
@@ -791,6 +1032,17 @@ class Simulation2DCellCentered(BaseDCSimulation2D):
         return Zero()
 
     def setBC(self, ky=None):
+        """Set the boundary conditions on the cell gradient operator.
+
+        This method will set the boundary conditions on the cell gradient
+        operator based on the value of the :py:attr:`bc_type` property;
+        "Dirichlet", "Neumann" or ("Robin", "Mixed").
+
+        Parameters
+        ----------
+        ky : float (optional)
+            The wavenumber.
+        """
         if self.bc_type == "Dirichlet":
             return
         if getattr(self, "_MBC", None) is None:
@@ -853,31 +1105,108 @@ class Simulation2DCellCentered(BaseDCSimulation2D):
 
 
 class Simulation2DNodal(BaseDCSimulation2D):
-    r"""2.5D DC resistivity simulation for potentials defined on nodes.
+    r"""Nodal 2D DC resistivity simulation.
 
-    The governing equation for the DC resistivity problem is given by:
-
-    .. math::
-        \nabla \cdot \sigma \, \nabla \phi = - \nabla \cdot \vec{j}^{(s)}
-
-    Where x is the along-line coordinate and y is the elevation coordinate, the 2.5D problem
-    assumes the electrical conductivity is invariant along the z-direction; which is
-    defined as being out of the page. By taking the Fourier transform in the z-direction,
-    we obtain:
-
-    .. math::
-        \nabla_{xy} \cdot \sigma \, \nabla_{xy} \phi - k_z**2 \sigma \, \phi =
-        - \nabla_{xy} \cdot \vec{j}_{xy}^{(s)} + i\omega j_z^{(s)}
+    Simulation class which solves the 2D DC resistivity problem for electric
+    potentials on mesh nodes. For a full description of the numerical approach,
+    see the *Notes* section below.
 
     Parameters
     ----------
     mesh : discretize.BaseMesh
         The mesh.
     survey : None, Survey
-        The DC resistivity survey.
-    bc_type : str, {'Robin', 'Neumann', 'Mixed'}
-        Boundary conditions imposed on the numerical solution.
+        The DC resisitivity survey.
+    nky : int
+        Number of evaluations of the 2D problem in the wave domain.
+    storeJ : bool
+        Whether to construct and store the sensitivity matrix.
+    miniaturize : bool
+        If ``True``, we compute the fields for each unique source electrode location.
+        We avoid computing the fields for repeated electrode locations and the
+        fields for dipole sources can be constructed using superposition.
+    do_trap : bool
+        Use trap method to find the optimum set of quadrature points and weights
+        in the wave domain for evaluating the set of 2D problems.
+    fix_Jmatrix : bool
+        Whether to fix the sensitivity matrix during Newton iterations.
+    surface_faces : None, numpy.ndarray of bool
+        Array defining which faces to interpret as surfaces of the Neumann boundary.
 
+    Notes
+    -----
+    For current :math:`I` injected at point :math:`r_s`, the full DC resistivity
+    problem is expressed as:
+
+    .. math::
+        \nabla \cdot \sigma \, \nabla \phi = - I \, \delta (r-r_s)
+
+    where :math:`\nabla = [\partial_x, \; \partial_y, \; \partial_z \, ]^T` is the
+    gradient operator, :math:`\sigma` is the electrical conductivity, and we wish
+    to solve for the electric potential :math:`\phi`.
+
+    The the 2D simulation, we assume that electrical conductivity is invariant
+    along the y-direction. This allows us to take the Laplace transform along
+    the y-direction. In the wave domain of y, the solution for the electric potential
+    :math:`\Phi` for a wavenumber :math:`k_y` is a 2D problem of the form:
+
+    .. math::
+        \nabla_{\! xz} \cdot \sigma \nabla_{\! xz} \Phi + k_y^2 \sigma \Phi
+        = - I \delta (x-x_s) \delta (z-z_s)
+
+    where :math:`\nabla_{\! xz} = [\partial_x, \; \partial_z \, ]^T` is a partial
+    gradient operator that acts along the x and z directions.
+
+    Using mimetic finite volume, the 2D problem can be solved numerically by solving
+    the following linear system:
+
+    .. math::
+        \big [ \mathbf{G^T \, M_{e\sigma} \, G} + k_y^2 \, \mathbf{M_{n\sigma}} \big ]
+        \boldsymbol{\Phi} = \mathbf{q}
+
+    where
+
+        - :math:`\boldsymbol{\Phi}` are the discrete electric potentials defined on mesh nodes
+        - :math:`G` is the 2D nodal gradient operator
+        - :math:`M_{e\sigma}` is the conductivity inner-product matrix on mesh edges
+        - :math:`M_{n\sigma}` is the conductivity inner-product matrix on mesh nodes
+
+    For an optimum set of wavenumbers :math:`k_y^{(i)}` and coefficients :math:`\alpha^{(i)}`,
+    we solve a set of discrete 2D problems in the wave domain. And the full 3D solution
+    for a specified y-coordinate location is computed according to:
+
+    .. math::
+        \boldsymbol{\phi} = \sum_{i=1}^{nk_y}
+        \alpha^{(i)} \, \boldsymbol{\Phi} \! \left ( k_y^{(i)} \right )
+
+    where :math:`nk_y` is the number of wavenumbers used to compute the solution.
+
+    **Axial Anisotropy:**
+
+    In this case, the DC resistivity problem is defined according to:
+
+    .. math::
+        \nabla \cdot \Sigma \, \nabla \phi = - I \, \delta (r-r_s)
+
+    where
+
+    .. math::
+        \Sigma = \begin{bmatrix}
+        \sigma_x & 0 & 0 \\ 0 & \sigma_y & 0 \\ 0 & 0 & \sigma_z
+        \end{bmatrix}
+
+    The discrete 2D problem solved in the wave domain of y still takes the form:
+
+    .. math::
+        \big [ \mathbf{G^T \, M_{e\sigma} \, G} + k_y^2 \, \mathbf{M_{n\sigma}} \big ]
+        \boldsymbol{\Phi} = \mathbf{q}
+
+    However,
+
+        - :math:`M_{e\sigma}` is a conductivity inner-product matrix on cell edges
+        constructed using axial conductivities :math:`\sigma_x` and :math:`\sigma_z`
+        - :math:`M_{n\sigma}` is the conductivity inner-product matrix at mesh nodes
+        constructed using axial conductivity :math:`\sigma_y`
     """
 
     _solutionType = "phiSolution"
@@ -914,7 +1243,23 @@ class Simulation2DNodal(BaseDCSimulation2D):
 
     @property
     def MeSigma(self):
-        """Inner product matrix on edges for 2D"""
+        r"""Conductivity inner-product matrix on edges.
+
+        Where the inner product between a vector :math:`\vec{u}` and the electrical
+        conductivity :math:`\sigma` times a vector :math:`\vec{u}` can be approximated by a
+        discrete operation on cell edges:
+
+        .. math::
+            \langle \vec{u}, \sigma \vec{v} \rangle \approx
+            \mathbf{u^T M_{e \sigma} \, v}
+
+        this property returns the the inner-product matrix :math:`\mathbf{M_{e \sigma}}`.
+
+        Returns
+        -------
+        (n_edges, n_edges) scipy.sparse.csr_matrix
+            The the inner-product matrix.
+        """
 
         # Isotropic case
         if self.sigma.size == self.mesh.nC:
@@ -935,7 +1280,13 @@ class Simulation2DNodal(BaseDCSimulation2D):
         return self._MeSigma
 
     def MeSigmaDeriv(self, u, v=None, adjoint=False):
-        """Derivative of inner product matrix on edges for 2D wrt model."""
+        r"""Derivative of the conductivity inner-product matrix wrt the model.
+
+        Returns
+        -------
+        (n_edges, n_edges) scipy.sparse.csr_matrix
+            Derivative of the inner-product matrix wrt to the model, times a vector.
+        """
 
         # Isotropic case
         if self.sigma.size == self.mesh.nC:
@@ -949,29 +1300,28 @@ class Simulation2DNodal(BaseDCSimulation2D):
         stash_name = "_Me_sigma_deriv"
 
         if getattr(self, stash_name, None) is None:
-
-            sigma = getattr(self, 'sigma')
+            sigma = getattr(self, "sigma")
             nC = self.mesh.nC
 
             if sigma.size == 3 * nC:
-                
                 if self.mesh._meshType.lower() in (
                     "cyl",
                     "tensor",
                     "tree",
                 ):
-
                     # Reshape (nC, 3)
-                    sigma = np.reshape(sigma, (nC, 3), order='F')
+                    sigma = np.reshape(sigma, (nC, 3), order="F")
 
                     # Edge inner product derivative for x and z axial conductivitites
-                    M_deriv_func = self.mesh.get_edge_inner_product_deriv(model=sigma[:, 0::2])
-                    
+                    M_deriv_func = self.mesh.get_edge_inner_product_deriv(
+                        model=P * sigma[:, [0, 2]]
+                    )
+
                     # Derivative of sig_x and sig_z wrt model
                     P = sp.vstack(
                         [
-                            sp.diags(np.ones(nC), 0, shape=(nC, 3*nC)),
-                            sp.diags(np.ones(nC), 2*nC, shape=(nC, 3*nC))
+                            sp.diags(np.ones(nC), 0, shape=(nC, 3 * nC)),
+                            sp.diags(np.ones(nC), 2 * nC, shape=(nC, 3 * nC)),
                         ]
                     )
                     prop_deriv = P * getattr(self, "sigmaDeriv")
@@ -988,13 +1338,27 @@ class Simulation2DNodal(BaseDCSimulation2D):
                     "Only isotropic and axial anisotropic conductivities implemented."
                 )
 
-        return inner_mat_mul_op(
-            getattr(self, stash_name), u, v=v, adjoint=adjoint
-        )
+        return inner_mat_mul_op(getattr(self, stash_name), u, v=v, adjoint=adjoint)
 
     @property
     def MnSigma(self):
-        """Inner product matrix on nodes for 2D"""
+        r"""Conductivity inner-product matrix at mesh nodes.
+
+        Where the inner-product between a scalar :math:`\phi` and the electrical
+        conductivity :math:`\sigma` times a scalar :math:`\psi` can be approximated by a
+        discrete operation at mesh nodes:
+
+        .. math::
+            \langle \phi, \, \sigma \psi \rangle \approx
+            \mathbf{phi^T M_{n \sigma} \, \psi}
+
+        this property returns the inner-product matrix :math:`\mathbf{M_{n \sigma}}`.
+
+        Returns
+        -------
+        (n_nodes, n_nodes) scipy.sparse.csr_matrix
+            The the inner-product matrix.
+        """
 
         # Isotropic case
         if self.sigma.size == self.mesh.nC:
@@ -1029,24 +1393,26 @@ class Simulation2DNodal(BaseDCSimulation2D):
         if isinstance(u, Zero) or isinstance(v, Zero):
             return Zero()
         stash_name = "_Mn_sigma_deriv"
-        
+
         nC = self.mesh.nC
 
         if getattr(self, stash_name, None) is None:
-
-            sigma = getattr(self, 'sigma')
+            sigma = getattr(self, "sigma")
 
             if sigma.size == 3 * nC:
-
                 # Reshape (nC, 3)
-                sigma = np.reshape(sigma, (nC, 3), order='F')
+                sigma = np.reshape(sigma, (nC, 3), order="F")
 
                 # Extract y axial conductivitites
                 M_prop_deriv = (
                     self.mesh.aveN2CC.T
                     * sp.diags(self.mesh.cell_volumes)
-                    * sp.diags(np.ones(nC), nC, shape=(nC, 3*nC))  # Extract sig_y derivative
-                    * getattr(self, "sigmaDeriv")  # Derivative of sig x, y and z wrt model
+                    * sp.diags(
+                        np.ones(nC), nC, shape=(nC, 3 * nC)
+                    )  # Extract sig_y derivative
+                    * getattr(
+                        self, "sigmaDeriv"
+                    )  # Derivative of sig x, y and z wrt model
                 )
                 setattr(self, stash_name, M_prop_deriv)
 
@@ -1055,14 +1421,38 @@ class Simulation2DNodal(BaseDCSimulation2D):
                     "Only isotropic and axial anisotropic conductivities implemented."
                 )
 
-        return inner_mat_mul_op(
-            getattr(self, stash_name), u, v=v, adjoint=adjoint
-        )
+        return inner_mat_mul_op(getattr(self, stash_name), u, v=v, adjoint=adjoint)
 
     def getA(self, ky):
-        """
-        Make the A matrix for the cell centered DC resistivity problem
-        A = D MfRhoI G
+        r"""Compute the system matrix for the wavenumber provided.
+
+        The discrete solution to the 2D DC resistivity problem in the wave domain
+        is expressed as:
+
+        .. math::
+            \mathbf{A}\,\boldsymbol{\Phi} = \mathbf{q}
+
+        where :math:`\mathbf{A}` is the system matrix, :math:`\Phi` is the discrete solution,
+        and :math:`\mathbf{q}` is the source term. This method returns the system matrix
+        for the nodal formulation for the wavenumber :math:`k_y` provided, i.e.:
+
+        .. math::
+            \mathbf{A} = \mathbf{G^T \, M_{e\sigma} \, G} + k_y^2 \mathbf{M_{n\sigma}}
+
+        where :math:`\mathbf{G}` is the nodal gradient operator with imposed boundary conditions,
+        :math:`\mathbf{M_{e\sigma}}` is the inner product matrix for conductivities projected to edges,
+        and :math:`\mathbf{M_{n\sigma}}` is the inner product matrix for conductivities
+        at projected to nodes.
+
+        Parameters
+        ----------
+        ky : float
+            The wavenumber.
+
+        Returns
+        -------
+        (n_nodes, n_nodes) scipy.sparse.csr_matrix
+            The sparse system matrix.
         """
         # To handle Mixed boundary condition
         self.setBC(ky=ky)
@@ -1089,30 +1479,61 @@ class Simulation2DNodal(BaseDCSimulation2D):
         return A
 
     def getADeriv(self, ky, u, v, adjoint=False):
+        r"""Derivative of system matrix times a vector.
+
+        The discrete solution to the 2D DC resistivity problem in the wave domain
+        is expressed as:
+
+        .. math::
+            \mathbf{A}\,\boldsymbol{\Phi} = \mathbf{q}
+
+        where :math:`\mathbf{A}` is the system matrix, :math:`\Phi` is the discrete solution,
+        and :math:`\mathbf{q}` is the source term. For a vector :math:`v`, this method assumes
+        the discrete solution is fixed and returns
+
+        .. math::
+            \frac{\partial (\mathbf{A \, \Phi})}{\partial \mathbf{m}} \, \mathbf{v}
+
+        Or when set to do so, the method returns the adjoint operation
+
+        .. math::
+            \frac{\partial (\mathbf{A \, \Phi})}{\partial \mathbf{m}}^T \, \mathbf{v}
+
+        Parameters
+        ----------
+        ky : float
+            The wavenumber.
+        u : (n_nodes,) numpy.ndarray
+            The solution for the fields for the current model; i.e. electric potentials at cell nodes.
+        v : numpy.ndarray
+            The vector. (nP,) for the standard operation. (n_nodes,) for the adjoint operation.
+
+        Returns
+        -------
+        numpy.ndarray
+            Derivative of system matrix times a vector. (n_nodes,) for the standard operation.
+            (nP,) for the adjoint operation.
+        """
         Grad = self.mesh.nodal_gradient
 
         if adjoint:
             if self.sigma.size == self.mesh.nC:
-
                 out = self.MeSigmaDeriv(
                     Grad * u, Grad * v, adjoint=adjoint
                 ) + ky**2 * self.MnSigmaDeriv(u, v, adjoint=adjoint)
 
             else:
-
                 out = self.MeSigmaDeriv(
                     Grad * u, Grad * v, adjoint=adjoint
                 ) + ky**2 * self.MnSigmaDeriv(u, v, adjoint=adjoint)
 
         else:
             if self.sigma.size == self.mesh.nC:
-
                 out = Grad.T * self.MeSigmaDeriv(
                     Grad * u, v, adjoint=adjoint
                 ) + ky**2 * self.MnSigmaDeriv(u, v, adjoint=adjoint)
 
             else:
-                
                 # Re-order [x, y, z] to [x, z, y]
                 # P = sdiag(np.ones(self.mesh.nC))
                 # P = sp.bmat(
@@ -1140,17 +1561,63 @@ class Simulation2DNodal(BaseDCSimulation2D):
         return out
 
     def getRHS(self, ky):
-        """
-        RHS for the DC problem
-        q
+        """Compute the source terms for the wavenumber provided.
+
+        Parameters
+        ----------
+        ky : float
+            The wavenumber.
+
+        Returns
+        -------
+        (n_nodes, nSrc) numpy.ndarray
+            The array containing the right-hand sides for all sources for
+            the wavenumber specified.
         """
 
         RHS = self.getSourceTerm(ky)
         return RHS
 
     def getRHSDeriv(self, ky, src, v, adjoint=False):
-        """
-        Derivative of the right hand side with respect to the model
+        r"""Derivative of the source term with respect to the model times a vector.
+
+        The discrete solution to the 2D DC resistivity problem in the wave domain
+        is expressed as:
+
+        .. math::
+            \mathbf{A}\,\boldsymbol{\Phi} = \mathbf{q}
+
+        where :math:`\mathbf{A}` is the system matrix, :math:`\Phi` is the discrete solution,
+        and :math:`\mathbf{q}` is the right-hand side. This method returns the derivative
+        of the right-hand side with respect to the model times a vector, i.e.:
+
+        .. math::
+            \frac{\partial \mathbf{q}}{\partial \mathbf{m}} \mathbf{v}
+
+        or the adjoint operation:
+
+        .. math::
+            \frac{\partial \mathbf{q}}{\partial \mathbf{m}}^T \mathbf{v}
+
+        Parameters
+        ----------
+        ky : float
+            The wavenumber.
+        src : SimPEG.electromagnetic.static.resistivity.sources.BaseSrc
+            The source object.
+        v : numpy.ndarray
+            The vector. Has shape (nP,) when performing the standard derivative operation.
+            Has shape (n_nodes,) when performing the adjoint operation.
+        adjoint : bool
+            Whether to perform the adjoint operation.
+
+        Returns
+        -------
+        Zero or numpy.ndarray
+            Returns :py:class:`Zero` if the derivative with respect to the model is zero.
+            Returns (n_nodes,) :class:`numpy.ndarray` when computing the standard
+            derivative operation. Returns (nP,) :class:`numpy.ndarray` when performing
+            the adjoint.
         """
         # TODO: add qDeriv for RHS depending on m
         # qDeriv = src.evalDeriv(self, ky, adjoint=adjoint)
@@ -1158,6 +1625,17 @@ class Simulation2DNodal(BaseDCSimulation2D):
         return Zero()
 
     def setBC(self, ky=None):
+        """Set the boundary conditions on the nodal gradient operator.
+
+        This method will set the boundary conditions on the nodal gradient
+        operator based on the value of the :py:attr:`bc_type` property;
+        "Neumann" or ("Robin", "Mixed").
+
+        Parameters
+        ----------
+        ky : float (optional)
+            The wavenumber.
+        """
         if self.bc_type == "Dirichlet":
             # do nothing
             raise ValueError(
