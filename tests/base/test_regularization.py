@@ -787,7 +787,9 @@ class TestDeprecatedArguments:
         msg = "Cannot simultaneously pass 'weights' and 'cell_weights'."
         with pytest.raises(ValueError, match=msg):
             BaseRegularization(
-                mesh, weights=weights_dict["weights"], cell_weights=weights_dict["weights"]
+                mesh,
+                weights=weights_dict["weights"],
+                cell_weights=weights_dict["weights"],
             )
 
 
