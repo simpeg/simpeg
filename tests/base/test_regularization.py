@@ -717,7 +717,7 @@ class TestWeightsKeys:
         """
         Test weights_keys after user defined weights as dictionary
         """
-        weights = np.ones(mesh.n_cells)
+        weights = {"weights": np.ones(mesh.n_cells)}
         reg = BaseRegularization(mesh, weights=weights)
         assert reg.weights_keys == ["user_weights"]
 
