@@ -1195,7 +1195,7 @@ class PGI(ComboObjectiveFunction):
                     alpha_zz=alpha_zz,
                     mesh=self.regularization_mesh,
                     mapping=model_map * wire[1],
-                    weights=weights,
+                    weights={"user_weights":weights},
                     **kwargs,
                 )
             ]
