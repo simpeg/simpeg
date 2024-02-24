@@ -17,8 +17,36 @@ from discretize.utils import make_boundary_bool
 
 
 class BaseDCSimulation(BaseElectricalPDESimulation):
-    """
-    Base DC Problem
+    r"""Base simulation class for the 3D DC resistivity problem.
+
+    This class is used to define properties and methods necessary for solving the
+    3D DC resistivity problem. For current :math:`I` injected at point :math:`r_s`,
+    the 3D DC resistivity problem is expressed as:
+
+    .. math::
+        \nabla \cdot \sigma \, \nabla \phi = - I \, \delta (r-r_s)
+
+    where :math:`\nabla` is the gradient operator, :math:`\sigma` is the electrical
+    conductivity, and we wish to solve for the electric potential :math:`\phi`.
+    Child classes of ``BaseDCSimulation`` solve the above expression numerically
+    using mimetic finite volume.
+
+    Parameters
+    ----------
+    mesh : discretize.base.BaseMesh
+        The mesh.
+    survey : None, SimPEG.electromagnetics.static.resistivity.survey.Survey
+        The DC resisitivity survey.
+    storeJ : bool
+        Whether to construct and store the sensitivity matrix.
+    miniaturize : bool
+        If ``True``, we compute the fields for each unique source electrode location.
+        We avoid computing the fields for repeated electrode locations and the
+        fields for dipole sources can be constructed using superposition.
+    fix_Jmatrix : bool
+        Whether to fix the sensitivity matrix during Newton iterations.
+    surface_faces : None, numpy.ndarray of bool
+        Array defining which faces to interpret as surfaces of the Neumann boundary.
     """
 
     _mini_survey = None
@@ -50,6 +78,7 @@ class BaseDCSimulation(BaseElectricalPDESimulation):
         Returns
         -------
         SimPEG.electromagnetics.static.resistivity.survey.Survey
+            The DC survey object.
         """
         if self._survey is None:
             raise AttributeError("Simulation must have a survey")
@@ -63,7 +92,7 @@ class BaseDCSimulation(BaseElectricalPDESimulation):
 
     @property
     def storeJ(self):
-        """Whether to store the sensitivity matrix
+        """Whether to store the sensitivity matrix.
 
         Returns
         -------
@@ -97,6 +126,20 @@ class BaseDCSimulation(BaseElectricalPDESimulation):
         self._surface_faces = value
 
     def fields(self, m=None, calcJ=True):
+        """Solve for the fields for the model provided.
+
+        Parameters
+        ----------
+        m : None, (nP,) numpy.ndarray
+            The model.
+        calcJ : bool
+            Whether to calculate the sensitivities.
+
+        Returns
+        -------
+        SimPEG.electromagnetics.static.resistivity.fields.FieldsDC
+            The fields solved for all sources.
+        """
         if m is not None:
             self.model = m
 
@@ -112,6 +155,28 @@ class BaseDCSimulation(BaseElectricalPDESimulation):
         return f
 
     def getJ(self, m, f=None):
+        r"""Generate the full sensitivity matrix.
+
+        This method generates and stores the full sensitivity matrix for the
+        model provided. I.e.:
+
+        .. math::
+            \mathbf{J} = \dfrac{\partial \mathbf{d}}{\partial \mathbf{m}}
+
+        where :math:`\mathbf{d}` are the data and :math:`\mathbf{m}` are the model parameters.
+
+        Parameters
+        ----------
+        m : (nP,) numpy.ndarray
+            The model parameters.
+        f : None, SimPEG.electromagnetics.static.resistivity.fields.FieldsDC
+            Fields solved for all sources.
+
+        Returns
+        -------
+        (nD, nP) numpy.ndarray
+            The full sensitivity matrix.
+        """
         if getattr(self, "_Jmatrix", None) is None:
             if f is None:
                 f = self.fields(m)
@@ -119,6 +184,21 @@ class BaseDCSimulation(BaseElectricalPDESimulation):
         return self._Jmatrix
 
     def dpred(self, m=None, f=None):
+        """Predict the data for a given model.
+
+        Parameters
+        ----------
+        m : None, (nP,) numpy.ndarray
+            The model parameters.
+        f : None, SimPEG.electromagnetics.static.resistivity.fields.FieldsDC
+            The fields object containing solution to the DC resistivity problem
+            for all sources.
+
+        Returns
+        -------
+        (nD,) numpy.ndarray
+            The predicted data array.
+        """
         if self._mini_survey is not None:
             # Temporarily set self.survey to self._mini_survey
             survey = self.survey
@@ -133,8 +213,29 @@ class BaseDCSimulation(BaseElectricalPDESimulation):
         return self._mini_survey_data(data)
 
     def getJtJdiag(self, m, W=None, f=None):
-        """
-        Return the diagonal of JtJ
+        r"""Return the diagonal of the Gauss-Newton approximation of the Hessian.
+
+        Where 
+
+        This method generates and stores the full sensitivity matrix for the
+        model provided. I.e.:
+
+        .. math::
+            \mathbf{J} = \dfrac{\partial \mathbf{d}}{\partial \mathbf{m}}
+
+        where :math:`\mathbf{d}` are the data and :math:`\mathbf{m}` are the model parameters.
+
+        Parameters
+        ----------
+        m : (nP,) numpy.ndarray
+            The model parameters.
+        f : None, SimPEG.electromagnetics.static.resistivity.fields.FieldsDC
+            Fields solved for all sources.
+
+        Returns
+        -------
+        (nD, nP) numpy.ndarray
+            The full sensitivity matrix.
         """
         if getattr(self, "_gtgdiag", None) is None:
             J = self.getJ(m, f=f)

@@ -26,7 +26,7 @@ from discretize.utils import make_boundary_bool
 
 
 class BaseDCSimulation2D(BaseElectricalPDESimulation):
-    r"""Base simulation class for the 2D DC resistivity forward problem.
+    r"""Base simulation class for the 2D DC resistivity problem.
 
     This class is used to define properties and methods necessary for solving the
     DC resistivity problem, where the electrical conductivity :math:`\sigma` is
@@ -201,12 +201,12 @@ class BaseDCSimulation2D(BaseElectricalPDESimulation):
 
     @property
     def survey(self):
-        """The survey object.
+        """The DC survey object.
 
         Returns
         -------
         SimPEG.electromagnetics.static.resistivity.survey.Survey
-            The survey object.
+            The DC survey object.
         """
         if self._survey is None:
             raise AttributeError("Simulation must have a survey")
@@ -217,6 +217,36 @@ class BaseDCSimulation2D(BaseElectricalPDESimulation):
         if value is not None:
             value = validate_type("survey", value, Survey, cast=False)
         self._survey = value
+
+    @property
+    def _Pxz_from_xyz(self):
+        """Projection matrix to extract x and z conductivities from
+        axial anisotropy vector [sig_x, sig_y, sig_z].
+        """
+
+        if getattr(self, '__Pxz_from_xyz', None) is None:
+            
+            nC = self.mesh.nC
+            P = sp.vstack([
+                sp.diags(np.ones(nC), 0, shape=(nC, 3 * nC)),
+                sp.diags(np.ones(nC), 2 * nC, shape=(nC, 3 * nC)),
+            ])
+            setattr(self, '__Pxz_from_xyz', P)
+
+        return getattr(self, '__Pxz_from_xyz')
+
+    @property
+    def _Py_from_xyz(self):
+        """Projection matrix to extract y conductivities from
+        axial anisotropy vector [sig_x, sig_y, sig_z].
+        """
+
+        if getattr(self, '__Py_from_xyz', None) is None:
+            nC = self.mesh.nC
+            P = sp.diags(np.ones(nC), nC, shape=(nC, 3 * nC))
+            setattr(self, '__Py_from_xyz', P)
+
+        return getattr(self, '__Py_from_xyz')
 
     @property
     def nky(self):
@@ -271,7 +301,7 @@ class BaseDCSimulation2D(BaseElectricalPDESimulation):
 
         Returns
         -------
-        None or numpy.ndarray of bool
+        None or (n_bf, ) numpy.ndarray of bool
         """
         return self._surface_faces
 
@@ -818,7 +848,7 @@ class Simulation2DCellCentered(BaseDCSimulation2D):
         # Override in the case of anisotropy
         if getattr(self, "_MfRhoI", None) is None:
             if self.rho.size == 3 * self.mesh.nC:
-                model = np.r_[self.rho[: self.mesh.nC], self.rho[2 * self.mesh.nC :]]
+                model = self._Pxz_from_xyz * self.rho
                 self._MfRhoI = self.mesh.get_face_inner_product(
                     model=model, invert_matrix=True
                 )
@@ -839,7 +869,7 @@ class Simulation2DCellCentered(BaseDCSimulation2D):
 
         .. math::
             \langle \phi, \, \sigma \psi \rangle \approx
-            \mathbf{\phi^T M_{f \rho} \, \psi}
+            \mathbf{\phi^T M_{c \sigma} \, \psi}
 
         this property returns the inner-product matrix :math:`\mathbf{M_{c \sigma}}`.
 
@@ -858,7 +888,7 @@ class Simulation2DCellCentered(BaseDCSimulation2D):
             if self.sigma.size == 3 * self.mesh.nC:
                 vol = self.mesh.cell_volumes
                 self._MccSigma = sp.diags(
-                    vol * self.sigma[self.mesh.nC : 2 * self.mesh.nC], format="csr"
+                    vol * (self._Py_from_xyz * self.sigma), format="csr"
                 )
             else:
                 raise NotImplementedError(
@@ -1268,9 +1298,7 @@ class Simulation2DNodal(BaseDCSimulation2D):
         # Override for anisotropic case
         if getattr(self, "_MeSigma", None) is None:
             if self.sigma.size == 3 * self.mesh.nC:
-                model = np.r_[
-                    self.sigma[: self.mesh.nC], self.sigma[2 * self.mesh.nC :]
-                ]
+                model = self._Pxz_from_xyz * self.sigma
                 self._MeSigma = self.mesh.get_edge_inner_product(model=model)
             else:
                 raise NotImplementedError(
@@ -1300,6 +1328,7 @@ class Simulation2DNodal(BaseDCSimulation2D):
         stash_name = "_Me_sigma_deriv"
 
         if getattr(self, stash_name, None) is None:
+
             sigma = getattr(self, "sigma")
             nC = self.mesh.nC
 
@@ -1309,24 +1338,15 @@ class Simulation2DNodal(BaseDCSimulation2D):
                     "tensor",
                     "tree",
                 ):
-                    # Reshape (nC, 3)
-                    sigma = np.reshape(sigma, (nC, 3), order="F")
-
                     # Edge inner product derivative for x and z axial conductivitites
                     M_deriv_func = self.mesh.get_edge_inner_product_deriv(
-                        model=P * sigma[:, [0, 2]]
+                        model=self._Pxz_from_xyz*sigma
                     )
 
-                    # Derivative of sig_x and sig_z wrt model
-                    P = sp.vstack(
-                        [
-                            sp.diags(np.ones(nC), 0, shape=(nC, 3 * nC)),
-                            sp.diags(np.ones(nC), 2 * nC, shape=(nC, 3 * nC)),
-                        ]
-                    )
-                    prop_deriv = P * getattr(self, "sigmaDeriv")
+                    # Derivative wrt all axial conductivities
+                    prop_deriv = getattr(self, "sigmaDeriv")
 
-                    M_prop_deriv = M_deriv_func(np.ones(self.mesh.n_edges)) @ prop_deriv
+                    M_prop_deriv = M_deriv_func(np.ones(self.mesh.n_edges)) @ self._Pxz_from_xyz @ prop_deriv
                     setattr(self, stash_name, M_prop_deriv)
                 else:
                     raise NotImplementedError(
@@ -1370,7 +1390,7 @@ class Simulation2DNodal(BaseDCSimulation2D):
                 vol = self.mesh.cell_volumes
                 self._MnSigma = sp.diags(
                     self.mesh.aveN2CC.T
-                    * (vol * self.sigma[self.mesh.nC : 2 * self.mesh.nC]),
+                    * (vol * (self._Py_from_xyz * self.sigma)),
                     format="csr",
                 )
             else:
@@ -1394,25 +1414,19 @@ class Simulation2DNodal(BaseDCSimulation2D):
             return Zero()
         stash_name = "_Mn_sigma_deriv"
 
-        nC = self.mesh.nC
-
         if getattr(self, stash_name, None) is None:
+            
             sigma = getattr(self, "sigma")
+            nC = self.mesh.nC
 
             if sigma.size == 3 * nC:
-                # Reshape (nC, 3)
-                sigma = np.reshape(sigma, (nC, 3), order="F")
 
                 # Extract y axial conductivitites
                 M_prop_deriv = (
                     self.mesh.aveN2CC.T
                     * sp.diags(self.mesh.cell_volumes)
-                    * sp.diags(
-                        np.ones(nC), nC, shape=(nC, 3 * nC)
-                    )  # Extract sig_y derivative
-                    * getattr(
-                        self, "sigmaDeriv"
-                    )  # Derivative of sig x, y and z wrt model
+                    * self._Py_from_xyz
+                    * getattr(self, "sigmaDeriv")  # Derivative of sig x, y and z wrt model
                 )
                 setattr(self, stash_name, M_prop_deriv)
 
@@ -1534,12 +1548,6 @@ class Simulation2DNodal(BaseDCSimulation2D):
                 ) + ky**2 * self.MnSigmaDeriv(u, v, adjoint=adjoint)
 
             else:
-                # Re-order [x, y, z] to [x, z, y]
-                # P = sdiag(np.ones(self.mesh.nC))
-                # P = sp.bmat(
-                #     [[P, None, None], [None, None, P], [None, P, None]]
-                # )
-                # v = P * v
 
                 out = Grad.T * self.MeSigmaDeriv(
                     Grad * u, v, adjoint=adjoint
