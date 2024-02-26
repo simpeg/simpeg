@@ -94,8 +94,8 @@ class BaseDCSimulation2D(BaseElectricalPDESimulation):
     where :math:`nk_y` is the number of wavenumbers used to compute the solution.
     """
 
-    fieldsPair = Fields2D  # SimPEG.EM.Static.Fields_2D
-    fieldsPair_fwd = FieldsDC
+    fieldsPair = Fields2D  # SimPEG.EM.Static.Fields2D
+    fieldsPair_fwd = FieldsDC  # SimPEG.EM.Static.FieldsDC
     # there's actually nT+1 fields, so we don't need to store the last one
     _mini_survey = None
 
@@ -224,16 +224,17 @@ class BaseDCSimulation2D(BaseElectricalPDESimulation):
         axial anisotropy vector [sig_x, sig_y, sig_z].
         """
 
-        if getattr(self, '__Pxz_from_xyz', None) is None:
-            
+        if getattr(self, "__Pxz_from_xyz", None) is None:
             nC = self.mesh.nC
-            P = sp.vstack([
-                sp.diags(np.ones(nC), 0, shape=(nC, 3 * nC)),
-                sp.diags(np.ones(nC), 2 * nC, shape=(nC, 3 * nC)),
-            ])
-            setattr(self, '__Pxz_from_xyz', P)
+            P = sp.vstack(
+                [
+                    sp.diags(np.ones(nC), 0, shape=(nC, 3 * nC)),
+                    sp.diags(np.ones(nC), 2 * nC, shape=(nC, 3 * nC)),
+                ]
+            )
+            setattr(self, "__Pxz_from_xyz", P)
 
-        return getattr(self, '__Pxz_from_xyz')
+        return getattr(self, "__Pxz_from_xyz")
 
     @property
     def _Py_from_xyz(self):
@@ -241,12 +242,12 @@ class BaseDCSimulation2D(BaseElectricalPDESimulation):
         axial anisotropy vector [sig_x, sig_y, sig_z].
         """
 
-        if getattr(self, '__Py_from_xyz', None) is None:
+        if getattr(self, "__Py_from_xyz", None) is None:
             nC = self.mesh.nC
             P = sp.diags(np.ones(nC), nC, shape=(nC, 3 * nC))
-            setattr(self, '__Py_from_xyz', P)
+            setattr(self, "__Py_from_xyz", P)
 
-        return getattr(self, '__Py_from_xyz')
+        return getattr(self, "__Py_from_xyz")
 
     @property
     def nky(self):
@@ -748,11 +749,11 @@ class Simulation2DCellCentered(BaseDCSimulation2D):
 
     where
 
-        - :math:`\boldsymbol{\Phi}` are the discrete electric potentials defined at cell centers
-        - :math:`\mathbf{D}` is the 2D face-divergence operator with imposed boundary conditions
-        - :math:`G` is the 2D cell-gradient operator
-        - :math:`M_{f\rho}` is the resistivity inner-product matrix on cell faces; note :math:`\rho = 1/\sigma`
-        - :math:`M_{c\sigma}` is the conductivity inner-product matrix at cell centers
+    * :math:`\boldsymbol{\Phi}` are the discrete electric potentials defined at cell centers
+    * :math:`\mathbf{D}` is the 2D face-divergence operator with imposed boundary conditions
+    * :math:`G` is the 2D cell-gradient operator
+    * :math:`M_{f\rho}` is the resistivity inner-product matrix on cell faces; note :math:`\rho = 1/\sigma`
+    * :math:`M_{c\sigma}` is the conductivity inner-product matrix at cell centers
 
     For an optimum set of wavenumbers :math:`k_y^{(i)}` and coefficients :math:`\alpha^{(i)}`,
     we solve a set of discrete 2D problems in the wave domain. And the full 3D solution
@@ -786,11 +787,8 @@ class Simulation2DCellCentered(BaseDCSimulation2D):
 
     However,
 
-        - :math:`M_{f\rho}` is a resistivity inner-product matrix on cell faces
-        constructed using axial resistivities :math:`\rho_x = 1/\sigma_x` and
-        :math:`\rho_z = 1/\sigma_z`
-        - :math:`M_{c\sigma}` is the conductivity inner-product matrix at cell centers
-        constructed using axial conductivity :math:`\sigma_y`
+    * :math:`M_{f\rho}` is a resistivity inner-product matrix on cell faces constructed using axial resistivities :math:`\rho_x = 1/\sigma_x` and :math:`\rho_z = 1/\sigma_z`
+    * :math:`M_{c\sigma}` is the conductivity inner-product matrix at cell centers constructed using axial conductivity :math:`\sigma_y`
     """
 
     _solutionType = "phiSolution"
@@ -811,13 +809,13 @@ class Simulation2DCellCentered(BaseDCSimulation2D):
 
         The boundary conditions supported by the :class:`Simulation2DCellCentered` are:
 
-        - "Dirichlet":
-        - "Neumann": impose zero Neumann boundary conditions.
-        - "Robin": impose
+        * "Dirichlet": Zero Dirichlet on the boundary (natural boundary conditions)
+        * "Neumann": Zero Neumann on the boundary
+        * "Robin" or "Mixed": Mix of Robin and zero Neumann boundary conditions.
 
         Returns
         -------
-        {"Dirichlet", "Neumann", "Robin"}
+        {"Dirichlet", "Neumann", "Robin", "Mixed"}
         """
         return self._bc_type
 
@@ -962,12 +960,12 @@ class Simulation2DCellCentered(BaseDCSimulation2D):
         the discrete solution is fixed and returns
 
         .. math::
-            \frac{\partial (\mathbf{A \, \Phi})}{\partial \mathbf{m}} \, \mathbf{v}
+            \frac{\partial (\mathbf{A} \, \boldsymbol{\Phi})}{\partial \mathbf{m}} \, \mathbf{v}
 
         Or when set to do so, the method returns the adjoint operation
 
         .. math::
-            \frac{\partial (\mathbf{A \, \Phi})}{\partial \mathbf{m}}^T \, \mathbf{v}
+            \frac{\partial (\mathbf{A} \, \boldsymbol{\Phi})}{\partial \mathbf{m}}^T \, \mathbf{v}
 
         Parameters
         ----------
@@ -977,6 +975,8 @@ class Simulation2DCellCentered(BaseDCSimulation2D):
             The solution for the fields for the current model; i.e. electric potentials at cell centers.
         v : numpy.ndarray
             The vector. (nP,) for the standard operation. (n_cells,) for the adjoint operation.
+        adjoint : bool
+            Whether to perform the adjoint operation.
 
         Returns
         -------
@@ -998,7 +998,17 @@ class Simulation2DCellCentered(BaseDCSimulation2D):
             ) + ky**2 * self.MccSigmaDeriv(u, v, adjoint=adjoint)
 
     def getRHS(self, ky):
-        """Compute the source terms for the wavenumber provided.
+        r"""Compute the source terms for the wavenumber provided.
+
+        For a single source, the discrete solution to the 2D DC resistivity problem is expressed as:
+
+        .. math::
+            \mathbf{A}\,\boldsymbol{\phi} = \mathbf{q}
+
+        where :math:`\mathbf{A}` is the system matrix, :math:`\phi` is the discrete solution,
+        and :math:`\mathbf{q}` is the right-hand side corresponding to the source term.
+        This method computes and returns an array :math:`\mathbf{Q}`, whose columns are
+        the right-hand sides for all sources.
 
         Parameters
         ----------
@@ -1024,7 +1034,7 @@ class Simulation2DCellCentered(BaseDCSimulation2D):
         .. math::
             \mathbf{A}\,\boldsymbol{\Phi} = \mathbf{q}
 
-        where :math:`\mathbf{A}` is the system matrix, :math:`\Phi` is the discrete solution,
+        where :math:`\mathbf{A}` is the system matrix, :math:`\boldsymbol{\Phi}` is the discrete solution,
         and :math:`\mathbf{q}` is the right-hand side. This method returns the derivative
         of the right-hand side with respect to the model times a vector, i.e.:
 
@@ -1062,11 +1072,15 @@ class Simulation2DCellCentered(BaseDCSimulation2D):
         return Zero()
 
     def setBC(self, ky=None):
-        """Set the boundary conditions on the cell gradient operator.
+        """Sets the boundary conditions on the cell gradient operator.
 
         This method will set the boundary conditions on the cell gradient
-        operator based on the value of the :py:attr:`bc_type` property;
-        "Dirichlet", "Neumann" or ("Robin", "Mixed").
+        operator based on the value of the :py:attr:`bc_type` property.
+        The options are:
+
+        * "Dirichlet": Zero Dirichlet on the boundary (natural boundary conditions)
+        * "Neumann": Zero Neumann on the boundary
+        * "Robin" or "Mixed": Mix of zero Dirichlet and zero Neumann. Faces that use the Neumann boundary conditions are set using the :py:attr:`surface_faces` property.
 
         Parameters
         ----------
@@ -1196,10 +1210,10 @@ class Simulation2DNodal(BaseDCSimulation2D):
 
     where
 
-        - :math:`\boldsymbol{\Phi}` are the discrete electric potentials defined on mesh nodes
-        - :math:`G` is the 2D nodal gradient operator
-        - :math:`M_{e\sigma}` is the conductivity inner-product matrix on mesh edges
-        - :math:`M_{n\sigma}` is the conductivity inner-product matrix on mesh nodes
+    * :math:`\boldsymbol{\Phi}` are the discrete electric potentials defined on mesh nodes
+    * :math:`G` is the 2D nodal gradient operator
+    * :math:`M_{e\sigma}` is the conductivity inner-product matrix on mesh edges
+    * :math:`M_{n\sigma}` is the conductivity inner-product matrix on mesh nodes
 
     For an optimum set of wavenumbers :math:`k_y^{(i)}` and coefficients :math:`\alpha^{(i)}`,
     we solve a set of discrete 2D problems in the wave domain. And the full 3D solution
@@ -1233,10 +1247,8 @@ class Simulation2DNodal(BaseDCSimulation2D):
 
     However,
 
-        - :math:`M_{e\sigma}` is a conductivity inner-product matrix on cell edges
-        constructed using axial conductivities :math:`\sigma_x` and :math:`\sigma_z`
-        - :math:`M_{n\sigma}` is the conductivity inner-product matrix at mesh nodes
-        constructed using axial conductivity :math:`\sigma_y`
+    * :math:`M_{e\sigma}` is a conductivity inner-product matrix on cell edges constructed using axial conductivities :math:`\sigma_x` and :math:`\sigma_z`
+    * :math:`M_{n\sigma}` is the conductivity inner-product matrix at mesh nodes constructed using axial conductivity :math:`\sigma_y`
     """
 
     _solutionType = "phiSolution"
@@ -1255,13 +1267,18 @@ class Simulation2DNodal(BaseDCSimulation2D):
     def bc_type(self):
         """Type of boundary condition to use for simulation.
 
+        The boundary conditions supported by the :class:`Simulation2DNodal` are:
+
+        * "Neumann": Zero Neumann on the boundary
+        * "Robin" or "Mixed": Mix of zero Dirichlet and zero Neumann.
+
         Returns
         -------
-        {"Neumann", "Robin"}
+        {"Neumann", "Robin", "Mixed"}
 
         Notes
         -----
-        Robin and Mixed are equivalent.
+        "Robin" and "Mixed" are equivalent.
         """
         return self._bc_type
 
@@ -1328,7 +1345,6 @@ class Simulation2DNodal(BaseDCSimulation2D):
         stash_name = "_Me_sigma_deriv"
 
         if getattr(self, stash_name, None) is None:
-
             sigma = getattr(self, "sigma")
             nC = self.mesh.nC
 
@@ -1340,13 +1356,17 @@ class Simulation2DNodal(BaseDCSimulation2D):
                 ):
                     # Edge inner product derivative for x and z axial conductivitites
                     M_deriv_func = self.mesh.get_edge_inner_product_deriv(
-                        model=self._Pxz_from_xyz*sigma
+                        model=self._Pxz_from_xyz * sigma
                     )
 
                     # Derivative wrt all axial conductivities
                     prop_deriv = getattr(self, "sigmaDeriv")
 
-                    M_prop_deriv = M_deriv_func(np.ones(self.mesh.n_edges)) @ self._Pxz_from_xyz @ prop_deriv
+                    M_prop_deriv = (
+                        M_deriv_func(np.ones(self.mesh.n_edges))
+                        @ self._Pxz_from_xyz
+                        @ prop_deriv
+                    )
                     setattr(self, stash_name, M_prop_deriv)
                 else:
                     raise NotImplementedError(
@@ -1389,8 +1409,7 @@ class Simulation2DNodal(BaseDCSimulation2D):
             if self.sigma.size == 3 * self.mesh.nC:
                 vol = self.mesh.cell_volumes
                 self._MnSigma = sp.diags(
-                    self.mesh.aveN2CC.T
-                    * (vol * (self._Py_from_xyz * self.sigma)),
+                    self.mesh.aveN2CC.T * (vol * (self._Py_from_xyz * self.sigma)),
                     format="csr",
                 )
             else:
@@ -1415,18 +1434,18 @@ class Simulation2DNodal(BaseDCSimulation2D):
         stash_name = "_Mn_sigma_deriv"
 
         if getattr(self, stash_name, None) is None:
-            
             sigma = getattr(self, "sigma")
             nC = self.mesh.nC
 
             if sigma.size == 3 * nC:
-
                 # Extract y axial conductivitites
                 M_prop_deriv = (
                     self.mesh.aveN2CC.T
                     * sp.diags(self.mesh.cell_volumes)
                     * self._Py_from_xyz
-                    * getattr(self, "sigmaDeriv")  # Derivative of sig x, y and z wrt model
+                    * getattr(
+                        self, "sigmaDeriv"
+                    )  # Derivative of sig x, y and z wrt model
                 )
                 setattr(self, stash_name, M_prop_deriv)
 
@@ -1446,7 +1465,7 @@ class Simulation2DNodal(BaseDCSimulation2D):
         .. math::
             \mathbf{A}\,\boldsymbol{\Phi} = \mathbf{q}
 
-        where :math:`\mathbf{A}` is the system matrix, :math:`\Phi` is the discrete solution,
+        where :math:`\mathbf{A}` is the system matrix, :math:`\boldsymbol{\Phi}` is the discrete solution,
         and :math:`\mathbf{q}` is the source term. This method returns the system matrix
         for the nodal formulation for the wavenumber :math:`k_y` provided, i.e.:
 
@@ -1501,17 +1520,17 @@ class Simulation2DNodal(BaseDCSimulation2D):
         .. math::
             \mathbf{A}\,\boldsymbol{\Phi} = \mathbf{q}
 
-        where :math:`\mathbf{A}` is the system matrix, :math:`\Phi` is the discrete solution,
+        where :math:`\mathbf{A}` is the system matrix, :math:`\boldsymbol{\Phi}` is the discrete solution,
         and :math:`\mathbf{q}` is the source term. For a vector :math:`v`, this method assumes
         the discrete solution is fixed and returns
 
         .. math::
-            \frac{\partial (\mathbf{A \, \Phi})}{\partial \mathbf{m}} \, \mathbf{v}
+            \frac{\partial (\mathbf{A} \, \boldsymbol{\Phi})}{\partial \mathbf{m}} \, \mathbf{v}
 
         Or when set to do so, the method returns the adjoint operation
 
         .. math::
-            \frac{\partial (\mathbf{A \, \Phi})}{\partial \mathbf{m}}^T \, \mathbf{v}
+            \frac{\partial (\mathbf{A} \, \boldsymbol{\Phi})}{\partial \mathbf{m}}^T \, \mathbf{v}
 
         Parameters
         ----------
@@ -1521,6 +1540,8 @@ class Simulation2DNodal(BaseDCSimulation2D):
             The solution for the fields for the current model; i.e. electric potentials at cell nodes.
         v : numpy.ndarray
             The vector. (nP,) for the standard operation. (n_nodes,) for the adjoint operation.
+        adjoint : bool
+            Whether to perform the adjoint operation.
 
         Returns
         -------
@@ -1548,7 +1569,6 @@ class Simulation2DNodal(BaseDCSimulation2D):
                 ) + ky**2 * self.MnSigmaDeriv(u, v, adjoint=adjoint)
 
             else:
-
                 out = Grad.T * self.MeSigmaDeriv(
                     Grad * u, v, adjoint=adjoint
                 ) + ky**2 * self.MnSigmaDeriv(u, v, adjoint=adjoint)
@@ -1569,7 +1589,17 @@ class Simulation2DNodal(BaseDCSimulation2D):
         return out
 
     def getRHS(self, ky):
-        """Compute the source terms for the wavenumber provided.
+        r"""Compute the source terms for the wavenumber provided.
+
+        For a single source, the discrete solution to the 2D DC resistivity problem is expressed as:
+
+        .. math::
+            \mathbf{A}\,\boldsymbol{\phi} = \mathbf{q}
+
+        where :math:`\mathbf{A}` is the system matrix, :math:`\phi` is the discrete solution,
+        and :math:`\mathbf{q}` is the right-hand side corresponding to the source term.
+        This method computes and returns an array :math:`\mathbf{Q}`, whose columns are
+        the right-hand sides for all sources.
 
         Parameters
         ----------
@@ -1633,11 +1663,14 @@ class Simulation2DNodal(BaseDCSimulation2D):
         return Zero()
 
     def setBC(self, ky=None):
-        """Set the boundary conditions on the nodal gradient operator.
+        """Sets the boundary conditions on the nodal gradient operator.
 
         This method will set the boundary conditions on the nodal gradient
-        operator based on the value of the :py:attr:`bc_type` property;
-        "Neumann" or ("Robin", "Mixed").
+        operator based on the value of the :py:attr:`bc_type` property.
+        The options are:
+
+        * "Neumann": Zero Neumann on the boundary (natural boundary conditions).
+        * "Robin" or "Mixed": Mix of Robin and zero Neumann boundary conditions.
 
         Parameters
         ----------

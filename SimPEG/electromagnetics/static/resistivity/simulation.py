@@ -213,29 +213,32 @@ class BaseDCSimulation(BaseElectricalPDESimulation):
         return self._mini_survey_data(data)
 
     def getJtJdiag(self, m, W=None, f=None):
-        r"""Return the diagonal of the Gauss-Newton approximation of the Hessian.
+        r"""Return the diagonal of :math:`\mathbf{J^T J}`.
 
-        Where 
-
-        This method generates and stores the full sensitivity matrix for the
-        model provided. I.e.:
+        Where :math:`\mathbf{d}` are the data and :math:`\mathbf{m}` are the model parameters,
+        the sensitivity matrix :math:`\mathbf{J}` is defined as:
 
         .. math::
             \mathbf{J} = \dfrac{\partial \mathbf{d}}{\partial \mathbf{m}}
 
-        where :math:`\mathbf{d}` are the data and :math:`\mathbf{m}` are the model parameters.
+        This method returns the diagonals of :math:`\mathbf{J^T J}`. When the
+        *W* input argument is used to include a diagonal weighting matrix
+        :math:`\mathbf{W}`, this method returns the diagonal of
+        :math:`\mathbf{W^T J^T J W}`.
 
         Parameters
         ----------
         m : (nP,) numpy.ndarray
             The model parameters.
+        W : (nP, nP) scipy.sparse.csr_matrix
+            A diagonal weighting matrix.
         f : None, SimPEG.electromagnetics.static.resistivity.fields.FieldsDC
             Fields solved for all sources.
 
         Returns
         -------
-        (nD, nP) numpy.ndarray
-            The full sensitivity matrix.
+        (nP,) numpy.ndarray
+            The diagonals.
         """
         if getattr(self, "_gtgdiag", None) is None:
             J = self.getJ(m, f=f)
@@ -253,8 +256,34 @@ class BaseDCSimulation(BaseElectricalPDESimulation):
         return self._gtgdiag
 
     def Jvec(self, m, v, f=None):
-        """
-        Compute sensitivity matrix (J) and vector (v) product.
+        r"""Compute the sensitivity matrix times a vector.
+
+        Where :math:`\mathbf{d}` are the data, :math:`\mathbf{m}` are the model parameters,
+        and the sensitivity matrix is defined as:
+
+        .. math::
+            \mathbf{J} = \dfrac{\partial \mathbf{d}}{\partial \mathbf{m}}
+
+        this method computes and returns the matrix-vector product:
+
+        .. math::
+            \mathbf{J v}
+
+        for a given vector :math:`v`.
+
+        Parameters
+        ----------
+        m : (nP,) numpy.ndarray
+            The model parameters.
+        v : (nP,) numpy.ndarray
+            The vector.
+        f : None, SimPEG.electromagnetics.static.resistivity.fields_2d.Fields2D
+            2D fields solved in the wave domain.
+
+        Returns
+        -------
+        (nD,) numpy.ndarray
+            The sensitivity matrix times a vector.
         """
         if f is None:
             f = self.fields(m)
@@ -286,8 +315,34 @@ class BaseDCSimulation(BaseElectricalPDESimulation):
         return self._mini_survey_data(Jv)
 
     def Jtvec(self, m, v, f=None):
-        """
-        Compute adjoint sensitivity matrix (J^T) and vector (v) product.
+        r"""Compute the adjoint sensitivity matrix times a vector.
+
+        Where :math:`\mathbf{d}` are the data, :math:`\mathbf{m}` are the model parameters,
+        and the sensitivity matrix is defined as:
+
+        .. math::
+            \mathbf{J} = \dfrac{\partial \mathbf{d}}{\partial \mathbf{m}}
+
+        this method computes and returns the matrix-vector product:
+
+        .. math::
+            \mathbf{J^T v}
+
+        for a given vector :math:`v`.
+
+        Parameters
+        ----------
+        m : (nP,) numpy.ndarray
+            The model parameters.
+        v : (nD,) numpy.ndarray
+            The vector.
+        f : None, SimPEG.electromagnetics.static.resistivity.fields_2d.Fields2D
+            2D fields solved in the wave domain
+
+        Returns
+        -------
+        (nP,) numpy.ndarray
+            The adjoint sensitivity matrix times a vector.
         """
 
         if f is None:
@@ -359,10 +414,12 @@ class BaseDCSimulation(BaseElectricalPDESimulation):
             return (self._mini_survey_data(Jtv.T)).T
 
     def getSourceTerm(self):
-        """
-        Evaluates the sources, and puts them in matrix form
-        :rtype: tuple
-        :return: q (nC or nN, nSrc)
+        """Compute the discrete source terms (right-hand sides).
+
+        Returns
+        -------
+        (nC or nN, nSrc) numpy.ndarray
+            The array containing the right-hand sides for all sources.
         """
 
         if getattr(self, "_q", None) is None:
@@ -386,6 +443,13 @@ class BaseDCSimulation(BaseElectricalPDESimulation):
 
     @property
     def deleteTheseOnModelUpdate(self):
+        """Returns the properties to delete when model is updated.
+
+        Returns
+        -------
+        list of str
+            The properties to delete when model the is updated.
+        """
         toDelete = super().deleteTheseOnModelUpdate
         return toDelete + ["_Jmatrix", "_gtgdiag"]
 
@@ -415,8 +479,74 @@ class BaseDCSimulation(BaseElectricalPDESimulation):
 
 
 class Simulation3DCellCentered(BaseDCSimulation):
-    """
-    3D cell centered DC problem
+    r"""Cell centered 3D DC resistivity simulation.
+
+    Simulation class which solves the 3D DC resistivity problem for electric
+    potentials at cell centers. For a full description of the numerical approach,
+    see the *Notes* section below.
+
+    Parameters
+    ----------
+    mesh : discretize.BaseMesh
+        The mesh.
+    survey : None, Survey
+        The DC resisitivity survey.
+    storeJ : bool
+        Whether to construct and store the sensitivity matrix.
+    miniaturize : bool
+        If ``True``, we compute the fields for each unique source electrode location.
+        We avoid computing the fields for repeated electrode locations and the
+        fields for dipole sources can be constructed using superposition.
+    fix_Jmatrix : bool
+        Whether to fix the sensitivity matrix during Newton iterations.
+    surface_faces : None, numpy.ndarray of bool
+        Array defining which faces to interpret as surfaces of the Neumann boundary.
+
+    Notes
+    -----
+    For current :math:`I` injected at point :math:`r_s`, the 3D DC resistivity
+    problem is expressed as:
+
+    .. math::
+        \nabla \cdot \sigma \, \nabla \phi = - I \, \delta (r-r_s)
+
+    where :math:`\sigma` is the electrical conductivity, and we wish
+    to solve for the electric potential :math:`\phi`.
+
+    Using mimetic finite volume, the 3D problem can be solved numerically by solving
+    the following linear system:
+
+    .. math::
+        \mathbf{D \, M_{f\rho}^{-1} \, G} \, \boldsymbol{\phi} = \mathbf{q}
+
+    where
+
+    * :math:`\boldsymbol{\phi}` are the discrete electric potentials defined at cell centers
+    * :math:`\mathbf{D}` is the face-divergence operator with imposed boundary conditions
+    * :math:`G` is the cell-gradient operator
+    * :math:`M_{f\rho}` is the resistivity inner-product matrix on cell faces; note :math:`\rho = 1/\sigma`
+
+    **Axial Anisotropy:**
+
+    In this case, the DC resistivity problem is defined according to:
+
+    .. math::
+        \nabla \cdot \Sigma \, \nabla \phi = - I \, \delta (r-r_s)
+
+    where
+
+    .. math::
+        \Sigma = \begin{bmatrix}
+        \sigma_x & 0 & 0 \\ 0 & \sigma_y & 0 \\ 0 & 0 & \sigma_z
+        \end{bmatrix}
+
+    The discrete 3D problem still takes the form:
+
+    .. math::
+        \mathbf{D \, M_{f\Rho}^{-1} \, G} \, \boldsymbol{\phi} = \mathbf{q}
+
+    However :math:`M_{f\rho}` is a resistivity inner-product matrix on cell faces constructed using
+    axial resistivities :math:`\rho_x = 1/\sigma_x`, :math:`\rho_y = 1/\sigma_y` and :math:`\rho_z = 1/\sigma_z`
     """
 
     _solutionType = "phiSolution"
@@ -432,13 +562,15 @@ class Simulation3DCellCentered(BaseDCSimulation):
     def bc_type(self):
         """Type of boundary condition to use for simulation.
 
+        The boundary conditions supported by the :class:`Simulation2DCellCentered` are:
+
+        * "Dirichlet": Zero Dirichlet on the boundary (natural boundary conditions)
+        * "Neumann": Zero Neumann on the boundary
+        * "Robin" or "Mixed": Mix of zero Dirichlet and zero Neumann.
+
         Returns
         -------
         {"Dirichlet", "Neumann", "Robin", "Mixed"}
-
-        Notes
-        -----
-        Robin and Mixed are equivalent.
         """
         return self._bc_type
 
@@ -449,9 +581,33 @@ class Simulation3DCellCentered(BaseDCSimulation):
         )
 
     def getA(self, resistivity=None):
-        """
-        Make the A matrix for the cell centered DC resistivity problem
-        A = D MfRhoI G
+        r"""Compute the system matrix.
+
+        The discrete solution to the 3D DC resistivity problem is expressed as:
+
+        .. math::
+            \mathbf{A}\,\boldsymbol{\phi} = \mathbf{q}
+
+        where :math:`\mathbf{A}` is the system matrix, :math:`\phi` is the discrete solution,
+        and :math:`\mathbf{q}` is the source term. This method returns the system matrix
+        for the cell-centered formulation, i.e.:
+
+        .. math::
+            \mathbf{A} = \mathbf{D \, M_{f\rho}^{-1} \, G}
+
+        where :math:`\mathbf{D}` is the face divergence operator, :math:`\mathbf{G}` is the
+        cell gradient operator with imposed boundary conditions, and :math:`\mathbf{M_{f\rho}}`
+        is the inner product matrix for resistivities projected to faces.
+
+        Parameters
+        ----------
+        resistivity : None, (n_cells,) numpy.ndarray
+            The resistivities for all mesh cells (:math:`\Omega m`).
+
+        Returns
+        -------
+        (n_cells, n_cells) scipy.sparse.csr_matrix
+            The sparse system matrix.
         """
 
         D = self.Div
@@ -475,6 +631,40 @@ class Simulation3DCellCentered(BaseDCSimulation):
         return A
 
     def getADeriv(self, u, v, adjoint=False):
+        r"""Derivative of system matrix times a vector.
+
+        The discrete solution to the 3D DC resistivity problem is expressed as:
+
+        .. math::
+            \mathbf{A}\,\boldsymbol{\phi} = \mathbf{q}
+
+        where :math:`\mathbf{A}` is the system matrix, :math:`\phi` is the discrete solution,
+        and :math:`\mathbf{q}` is the source term. For a vector :math:`v`, this method assumes
+        the discrete solution is fixed and returns
+
+        .. math::
+            \frac{\partial (\mathbf{A} \, \boldsymbol{\phi})}{\partial \mathbf{m}} \, \mathbf{v}
+
+        Or when set to do so, the method returns the adjoint operation
+
+        .. math::
+            \frac{\partial (\mathbf{A} \, \boldsymbol{\Phi})}{\partial \mathbf{m}}^T \, \mathbf{v}
+
+        Parameters
+        ----------
+        u : (n_cells,) numpy.ndarray
+            The solution for the fields for the current model; i.e. electric potentials at cell centers.
+        v : numpy.ndarray
+            The vector. (nP,) for the standard operation. (n_cells,) for the adjoint operation.
+        adjoint : bool
+            Whether to perform the adjoint operation.
+
+        Returns
+        -------
+        numpy.ndarray
+            Derivative of system matrix times a vector. (n_cells,) for the standard operation.
+            (nP,) for the adjoint operation.
+        """
         if self.rhoMap is not None:
             D = self.Div
             G = self.Grad
@@ -487,9 +677,22 @@ class Simulation3DCellCentered(BaseDCSimulation):
         return Zero()
 
     def getRHS(self):
-        """
-        RHS for the DC problem
-        q
+        r"""Compute the source terms (right-hand sides).
+
+        For a single source, the discrete solution to the 3D DC resistivity problem is expressed as:
+
+        .. math::
+            \mathbf{A}\,\boldsymbol{\phi} = \mathbf{q}
+
+        where :math:`\mathbf{A}` is the system matrix, :math:`\phi` is the discrete solution,
+        and :math:`\mathbf{q}` is the right-hand side corresponding to the source term.
+        This method computes and returns an array :math:`\mathbf{Q}`, whose columns are
+        the right-hand sides for all sources.
+
+        Returns
+        -------
+        (n_cells, nSrc) numpy.ndarray
+            The array containing the right-hand sides for all sources.
         """
 
         RHS = self.getSourceTerm()
@@ -497,8 +700,43 @@ class Simulation3DCellCentered(BaseDCSimulation):
         return RHS
 
     def getRHSDeriv(self, source, v, adjoint=False):
-        """
-        Derivative of the right hand side with respect to the model
+        r"""Derivative of the source term with respect to the model times a vector.
+
+        The discrete solution to the 3D DC resistivity problem in the wave domain
+        is expressed as:
+
+        .. math::
+            \mathbf{A}\,\boldsymbol{\phi} = \mathbf{q}
+
+        where :math:`\mathbf{A}` is the system matrix, :math:`\boldsymbol{\phi}` is the discrete solution,
+        and :math:`\mathbf{q}` is the right-hand side. This method returns the derivative
+        of the right-hand side with respect to the model times a vector, i.e.:
+
+        .. math::
+            \frac{\partial \mathbf{q}}{\partial \mathbf{m}} \mathbf{v}
+
+        or the adjoint operation:
+
+        .. math::
+            \frac{\partial \mathbf{q}}{\partial \mathbf{m}}^T \mathbf{v}
+
+        Parameters
+        ----------
+        source : SimPEG.electromagnetic.static.resistivity.sources.BaseSrc
+            The source object.
+        v : numpy.ndarray
+            The vector. Has shape (nP,) when performing the standard derivative operation.
+            Has shape (n_cells,) when performing the adjoint operation.
+        adjoint : bool
+            Whether to perform the adjoint operation.
+
+        Returns
+        -------
+        Zero or numpy.ndarray
+            Returns :py:class:`Zero` if the derivative with respect to the model is zero.
+            Returns (n_cells,) :class:`numpy.ndarray` when computing the standard
+            derivative operation. Returns (nP,) :class:`numpy.ndarray` when performing
+            the adjoint.
         """
         # TODO: add qDeriv for RHS depending on m
         # qDeriv = source.evalDeriv(self, adjoint=adjoint)
@@ -506,6 +744,16 @@ class Simulation3DCellCentered(BaseDCSimulation):
         return Zero()
 
     def setBC(self):
+        """Sets the boundary conditions on the cell gradient operator.
+
+        This method will set the boundary conditions on the cell gradient
+        operator based on the value of the :py:attr:`bc_type` property.
+        The options are:
+
+        * "Dirichlet": Zero Dirichlet on the boundary (natural boundary conditions)
+        * "Neumann": Zero Neumann on the boundary
+        * "Robin" or "Mixed": Mix of zero Dirichlet and zero Neumann. Faces that use the Neumann boundary conditions are set using the :py:attr:`surface_faces` property.
+        """
         mesh = self.mesh
         V = sp.diags(mesh.cell_volumes)
         self.Div = V @ mesh.face_divergence
@@ -577,8 +825,73 @@ class Simulation3DCellCentered(BaseDCSimulation):
 
 
 class Simulation3DNodal(BaseDCSimulation):
-    """
-    3D nodal DC problem
+    r"""Nodal 3D DC resistivity simulation.
+
+    Simulation class which solves the 3D DC resistivity problem for electric
+    potentials on mesh nodes. For a full description of the numerical approach,
+    see the *Notes* section below.
+
+    Parameters
+    ----------
+    mesh : discretize.BaseMesh
+        The mesh.
+    survey : None, Survey
+        The DC resisitivity survey.
+    storeJ : bool
+        Whether to construct and store the sensitivity matrix.
+    miniaturize : bool
+        If ``True``, we compute the fields for each unique source electrode location.
+        We avoid computing the fields for repeated electrode locations and the
+        fields for dipole sources can be constructed using superposition.
+    fix_Jmatrix : bool
+        Whether to fix the sensitivity matrix during Newton iterations.
+    surface_faces : None, numpy.ndarray of bool
+        Array defining which faces to interpret as surfaces of the Neumann boundary.
+
+    Notes
+    -----
+    For current :math:`I` injected at point :math:`r_s`, the 3D DC resistivity
+    problem is expressed as:
+
+    .. math::
+        \nabla \cdot \sigma \, \nabla \phi = - I \, \delta (r-r_s)
+
+    where :math:`\sigma` is the electrical conductivity, and we wish
+    to solve for the electric potential :math:`\phi`.
+
+    Using mimetic finite volume, the 3D problem can be solved numerically by solving
+    the following linear system:
+
+    .. math::
+        \mathbf{G \, M_{e\sigma} \, G} \, \boldsymbol{\phi} = \mathbf{q}
+
+    where
+
+    * :math:`\boldsymbol{\phi}` are the discrete electric potentials defined on mesh nodes
+    * :math:`G` is the nodal gradient operator
+    * :math:`M_{e\sigma}` is the conductivity inner-product matrix on mesh edges
+
+    **Axial Anisotropy:**
+
+    In this case, the DC resistivity problem is defined according to:
+
+    .. math::
+        \nabla \cdot \Sigma \, \nabla \phi = - I \, \delta (r-r_s)
+
+    where
+
+    .. math::
+        \Sigma = \begin{bmatrix}
+        \sigma_x & 0 & 0 \\ 0 & \sigma_y & 0 \\ 0 & 0 & \sigma_z
+        \end{bmatrix}
+
+    The discrete 3D problem still takes the form:
+
+    .. math::
+        \mathbf{G^T \, M_{e\Sigma} \, G} \, \boldsymbol{\phi} = \mathbf{q}
+
+    However :math:`M_{e\Sigma}` is a conductivity inner-product matrix on edges constructed using
+    axial conductivities :math:`\sigma_x`, :math:`\sigma_y` and :math:`\sigma_z`.
     """
 
     _solutionType = "phiSolution"
@@ -600,13 +913,18 @@ class Simulation3DNodal(BaseDCSimulation):
     def bc_type(self):
         """Type of boundary condition to use for simulation.
 
+        The boundary conditions supported by the :class:`Simulation2DNodal` are:
+
+        * "Neumann": Zero Neumann on the boundary
+        * "Robin" or "Mixed": Mix of zero Dirichlet and zero Neumann.
+
         Returns
         -------
         {"Neumann", "Robin", "Mixed"}
 
         Notes
         -----
-        Robin and Mixed are equivalent.
+        "Robin" and "Mixed" are equivalent.
         """
         return self._bc_type
 
@@ -617,9 +935,32 @@ class Simulation3DNodal(BaseDCSimulation):
         )
 
     def getA(self, resistivity=None):
-        """
-        Make the A matrix for the cell centered DC resistivity problem
-        A = G.T MeSigma G
+        r"""Compute the system matrix.
+
+        The discrete solution to the 3D DC resistivity problem is expressed as:
+
+        .. math::
+            \mathbf{A}\,\boldsymbol{\phi} = \mathbf{q}
+
+        where :math:`\mathbf{A}` is the system matrix, :math:`\boldsymbol{\phi}` is the discrete solution,
+        and :math:`\mathbf{q}` is the source term. This method returns the system matrix
+        for the nodal formulation, i.e.:
+
+        .. math::
+            \mathbf{A} = \mathbf{G^T \, M_{e\sigma} \, G}
+
+        where :math:`\mathbf{G}` is the nodal gradient operator with imposed boundary conditions,
+        and :math:`\mathbf{M_{e\sigma}}` is the inner product matrix for conductivities projected to edges.
+
+        Parameters
+        ----------
+        resistivity : None, (n_cells,) numpy.ndarray
+            The electrical resistivities defined at cell centers (:math:`\Omega m`).
+
+        Returns
+        -------
+        (n_nodes, n_nodes) scipy.sparse.csr_matrix
+            The sparse system matrix.
         """
         if resistivity is None:
             MeSigma = self.MeSigma
@@ -651,9 +992,39 @@ class Simulation3DNodal(BaseDCSimulation):
         return A
 
     def getADeriv(self, u, v, adjoint=False):
-        """
-        Product of the derivative of our system matrix with respect to the
-        model and a vector
+        r"""Derivative of system matrix times a vector.
+
+        The discrete solution to the 3D DC resistivity problem is expressed as:
+
+        .. math::
+            \mathbf{A}\,\boldsymbol{\Phi} = \mathbf{q}
+
+        where :math:`\mathbf{A}` is the system matrix, :math:`\boldsymbol{\phi}` is the discrete solution,
+        and :math:`\mathbf{q}` is the source term. For a vector :math:`v`, this method assumes
+        the discrete solution is fixed and returns
+
+        .. math::
+            \frac{\partial (\mathbf{A} \, \boldsymbol{\phi})}{\partial \mathbf{m}} \, \mathbf{v}
+
+        Or when set to do so, the method returns the adjoint operation
+
+        .. math::
+            \frac{\partial (\mathbf{A} \, \boldsymbol{\phi})}{\partial \mathbf{m}}^T \, \mathbf{v}
+
+        Parameters
+        ----------
+        u : (n_nodes,) numpy.ndarray
+            The solution for the fields for the current model; i.e. electric potentials at cell nodes.
+        v : numpy.ndarray
+            The vector. (nP,) for the standard operation. (n_nodes,) for the adjoint operation.
+        adjoint : bool
+            Whether to perform the adjoint operation.
+
+        Returns
+        -------
+        numpy.ndarray
+            Derivative of system matrix times a vector. (n_nodes,) for the standard operation.
+            (nP,) for the adjoint operation.
         """
         Grad = self.mesh.nodal_gradient
         if not adjoint:
@@ -674,6 +1045,15 @@ class Simulation3DNodal(BaseDCSimulation):
         return out
 
     def setBC(self):
+        """Sets the boundary conditions on the nodal gradient operator.
+
+        This method will set the boundary conditions on the nodal gradient
+        operator based on the value of the :py:attr:`bc_type` property.
+        The options are:
+
+        * "Neumann": Zero Neumann on the boundary (natural boundary conditions).
+        * "Robin" or "Mixed": Mix of Robin and zero Neumann boundary conditions.
+        """
         if self.bc_type == "Dirichlet":
             # do nothing
             raise ValueError(
@@ -692,7 +1072,7 @@ class Simulation3DNodal(BaseDCSimulation):
             boundary_normals = mesh.boundary_face_outward_normals
             n_bf = len(boundary_faces)
 
-            # Top gets 0 Nuemann
+            # Top gets 0 Neumann
             alpha = np.zeros(n_bf)
             # beta = np.ones(n_bf) = 1.0
 
@@ -747,17 +1127,65 @@ class Simulation3DNodal(BaseDCSimulation):
             self._AvgBC = AvgN2Fb.T @ AvgCC2Fb
 
     def getRHS(self):
-        """
-        RHS for the DC problem
-        q
+        r"""Compute the source terms (right-hand sides).
+
+        For a single source, the discrete solution to the 3D DC resistivity problem is expressed as:
+
+        .. math::
+            \mathbf{A}\,\boldsymbol{\phi} = \mathbf{q}
+
+        where :math:`\mathbf{A}` is the system matrix, :math:`\phi` is the discrete solution,
+        and :math:`\mathbf{q}` is the right-hand side corresponding to the source term.
+        This method computes and returns an array :math:`\mathbf{Q}`, whose columns are
+        the right-hand sides for all sources.
+
+        Returns
+        -------
+        (n_nodes, nSrc) numpy.ndarray
+            The array containing the right-hand sides for all sources.
         """
 
         RHS = self.getSourceTerm()
         return RHS
 
     def getRHSDeriv(self, source, v, adjoint=False):
-        """
-        Derivative of the right hand side with respect to the model
+        r"""Derivative of the source term with respect to the model times a vector.
+
+        The discrete solution to the 3D DC resistivity problem in the wave domain
+        is expressed as:
+
+        .. math::
+            \mathbf{A}\,\boldsymbol{\phi} = \mathbf{q}
+
+        where :math:`\mathbf{A}` is the system matrix, :math:`\boldsymbol{\phi}` is the discrete solution,
+        and :math:`\mathbf{q}` is the right-hand side. This method returns the derivative
+        of the right-hand side with respect to the model times a vector, i.e.:
+
+        .. math::
+            \frac{\partial \mathbf{q}}{\partial \mathbf{m}} \mathbf{v}
+
+        or the adjoint operation:
+
+        .. math::
+            \frac{\partial \mathbf{q}}{\partial \mathbf{m}}^T \mathbf{v}
+
+        Parameters
+        ----------
+        source : SimPEG.electromagnetic.static.resistivity.sources.BaseSrc
+            The source object.
+        v : numpy.ndarray
+            The vector. Has shape (nP,) when performing the standard derivative operation.
+            Has shape (n_nodes,) when performing the adjoint operation.
+        adjoint : bool
+            Whether to perform the adjoint operation.
+
+        Returns
+        -------
+        Zero or numpy.ndarray
+            Returns :py:class:`Zero` if the derivative with respect to the model is zero.
+            Returns (n_nodes,) :class:`numpy.ndarray` when computing the standard
+            derivative operation. Returns (nP,) :class:`numpy.ndarray` when performing
+            the adjoint.
         """
         # TODO: add qDeriv for RHS depending on m
         # qDeriv = source.evalDeriv(self, adjoint=adjoint)
