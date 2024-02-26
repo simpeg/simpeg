@@ -169,7 +169,7 @@ class BaseDCSimulation(BaseElectricalPDESimulation):
         ----------
         m : (nP,) numpy.ndarray
             The model parameters.
-        f : None, SimPEG.electromagnetics.static.resistivity.fields.FieldsDC
+        f : SimPEG.electromagnetics.static.resistivity.fields.FieldsDC, optional
             Fields solved for all sources.
 
         Returns
@@ -188,11 +188,10 @@ class BaseDCSimulation(BaseElectricalPDESimulation):
 
         Parameters
         ----------
-        m : None, (nP,) numpy.ndarray
+        m : (nP,) numpy.ndarray, optional
             The model parameters.
-        f : None, SimPEG.electromagnetics.static.resistivity.fields.FieldsDC
-            The fields object containing solution to the DC resistivity problem
-            for all sources.
+        f : SimPEG.electromagnetics.static.resistivity.fields.FieldsDC, optional
+            Fields solved for all sources.
 
         Returns
         -------
@@ -232,7 +231,7 @@ class BaseDCSimulation(BaseElectricalPDESimulation):
             The model parameters.
         W : (nP, nP) scipy.sparse.csr_matrix
             A diagonal weighting matrix.
-        f : None, SimPEG.electromagnetics.static.resistivity.fields.FieldsDC
+        f : SimPEG.electromagnetics.static.resistivity.fields.FieldsDC, optional
             Fields solved for all sources.
 
         Returns
@@ -277,8 +276,8 @@ class BaseDCSimulation(BaseElectricalPDESimulation):
             The model parameters.
         v : (nP,) numpy.ndarray
             The vector.
-        f : None, SimPEG.electromagnetics.static.resistivity.fields_2d.Fields2D
-            2D fields solved in the wave domain.
+        f : SimPEG.electromagnetics.static.resistivity.fields.FieldsDC, optional
+            Fields solved for all sources.
 
         Returns
         -------
@@ -336,8 +335,8 @@ class BaseDCSimulation(BaseElectricalPDESimulation):
             The model parameters.
         v : (nD,) numpy.ndarray
             The vector.
-        f : None, SimPEG.electromagnetics.static.resistivity.fields_2d.Fields2D
-            2D fields solved in the wave domain
+        f : SimPEG.electromagnetics.static.resistivity.fields.FieldsDC, optional
+            Fields solved for all sources.
 
         Returns
         -------
@@ -562,7 +561,7 @@ class Simulation3DCellCentered(BaseDCSimulation):
     def bc_type(self):
         """Type of boundary condition to use for simulation.
 
-        The boundary conditions supported by the :class:`Simulation2DCellCentered` are:
+        The boundary conditions supported by the :class:`Simulation3DCellCentered` are:
 
         * "Dirichlet": Zero Dirichlet on the boundary (natural boundary conditions)
         * "Neumann": Zero Neumann on the boundary
@@ -913,7 +912,7 @@ class Simulation3DNodal(BaseDCSimulation):
     def bc_type(self):
         """Type of boundary condition to use for simulation.
 
-        The boundary conditions supported by the :class:`Simulation2DNodal` are:
+        The boundary conditions supported by the :class:`Simulation3DNodal` are:
 
         * "Neumann": Zero Neumann on the boundary
         * "Robin" or "Mixed": Mix of zero Dirichlet and zero Neumann.

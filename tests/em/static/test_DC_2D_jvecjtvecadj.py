@@ -160,13 +160,13 @@ class DCProblem_2DTests_Anisotropic(unittest.TestCase):
         survey.set_geometric_factor()
         simulation = getattr(dc, self.formulation)(
             mesh,
-            sigmaMap=maps.IdentityMap(nP=3*mesh.nC),
+            sigmaMap=maps.IdentityMap(nP=3 * mesh.nC),
             storeJ=self.storeJ,
             solver=Solver,
             survey=survey,
             bc_type=self.bc_type,
         )
-        mSynth = np.ones(3*mesh.nC) * 1.0
+        mSynth = np.ones(3 * mesh.nC) * 1.0
         data = simulation.make_synthetic_data(mSynth, add_noise=True)
 
         # Now set up the problem to do some minimization

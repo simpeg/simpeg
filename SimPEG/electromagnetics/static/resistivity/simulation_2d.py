@@ -371,9 +371,9 @@ class BaseDCSimulation2D(BaseElectricalPDESimulation):
 
         Parameters
         ----------
-        m : None, (nP,) numpy.ndarray
+        m : (nP,) numpy.ndarray, optional
             The model parameters.
-        f : None, SimPEG.electromagnetics.static.resistivity.fields_2d.Fields2D
+        f : SimPEG.electromagnetics.static.resistivity.fields_2d.Fields2D, optional
             The 2D fields solved in the wave domain.
 
         Returns
@@ -417,8 +417,8 @@ class BaseDCSimulation2D(BaseElectricalPDESimulation):
         ----------
         m : (nP,) numpy.ndarray
             The model parameters
-        f : None, SimPEG.electromagnetics.static.resistivity.fields_2d.Fields2D
-            2D fields solved in the wave domain
+        f : SimPEG.electromagnetics.static.resistivity.fields_2d.Fields2D, optional
+            2D fields solved in the wave domain.
 
         Returns
         -------
@@ -456,7 +456,7 @@ class BaseDCSimulation2D(BaseElectricalPDESimulation):
             The model parameters.
         v : (nP,) numpy.ndarray
             The vector.
-        f : None, SimPEG.electromagnetics.static.resistivity.fields_2d.Fields2D
+        f : SimPEG.electromagnetics.static.resistivity.fields_2d.Fields2D, optional
             2D fields solved in the wave domain.
 
         Returns
@@ -527,7 +527,7 @@ class BaseDCSimulation2D(BaseElectricalPDESimulation):
             The model parameters.
         v : (nD,) numpy.ndarray
             The vector.
-        f : None, SimPEG.electromagnetics.static.resistivity.fields_2d.Fields2D
+        f : SimPEG.electromagnetics.static.resistivity.fields_2d.Fields2D, optional
             2D fields solved in the wave domain
 
         Returns
