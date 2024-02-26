@@ -9,8 +9,9 @@ import numpy as np
 
 from discretize import TensorMesh
 from SimPEG import utils
-from SimPEG.maps import IdentityMap
+from SimPEG.maps import IdentityMap, Wires
 from SimPEG.electromagnetics import resistivity as dc
+from SimPEG.electromagnetics import spectral_induced_polarization as sip
 from SimPEG.electromagnetics.static.utils import generate_dcip_sources_line
 
 
