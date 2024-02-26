@@ -147,16 +147,16 @@ class TestSIPSimulations:
         Test model assignment on the ``getJ`` method of 3d simulations
         """
         wires = Wires(("eta", mesh_3d.nC), ("taui", mesh_3d.nC))
+        sigma = np.ones(mesh_3d.nC) * 1e-2
         simulation = sip.Simulation3DNodal(
             mesh_3d,
+            sigma=sigma,
             survey=survey_3d,
             etaMap=wires.eta,
             tauiMap=wires.taui,
         )
-        sigma_1 = np.ones(mesh_3d.nC) * 1e-2
-        sigma_2 = np.ones(mesh_3d.nC) * 1e-1
-        model_1 = np.r_[sigma_1, 1.0 / sigma_1]
-        model_2 = np.r_[sigma_2, 1.0 / sigma_2]
+        model_1 = np.r_[sigma, 1.0 / sigma]
+        model_2 = np.r_[sigma * 2, 1.0 / sigma]
         # Call `getJ` passing a model and check if it was correctly assigned
         j_1 = simulation.getJ(model_1)
         assert model_1 is simulation.model
