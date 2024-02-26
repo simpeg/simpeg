@@ -19,28 +19,26 @@ class TestDCSimulations:
     @pytest.fixture
     def mesh_3d(self):
         """Sample mesh."""
-        # TODO: Reduce number of cells so the tests run faster with less memory
-        # requirements
-        cs = 0.5
-        npad = 11
-        hx = [(cs, npad, -1.5), (cs, 15), (cs, npad, 1.5)]
-        hy = [(cs, npad, -1.5), (cs, 15), (cs, npad, 1.5)]
-        hz = [(cs, npad, -1.5), (cs, 15), (cs, npad, 1.5)]
+        cell_size = 0.5
+        npad = 2
+        hx = [(cell_size, npad, -1.5), (cell_size, 10), (cell_size, npad, 1.5)]
+        hy = [(cell_size, npad, -1.5), (cell_size, 10), (cell_size, npad, 1.5)]
+        hz = [(cell_size, npad, -1.5), (cell_size, 10), (cell_size, npad, 1.5)]
         mesh = TensorMesh([hx, hy, hz], x0="CCC")
         return mesh
 
     @pytest.fixture
     def survey_3d(self, mesh_3d):
         """Sample survey."""
-        # Set up survey parameters for numeric solution
-        x = mesh_3d.nodes_x[(mesh_3d.nodes_x > -75.0) & (mesh_3d.nodes_x < 75.0)]
-        y = mesh_3d.nodes_y[(mesh_3d.nodes_y > -75.0) & (mesh_3d.nodes_y < 75.0)]
+        xmin, xmax = mesh_3d.nodes_x.min(), mesh_3d.nodes_x.max()
+        ymin, ymax = mesh_3d.nodes_y.min(), mesh_3d.nodes_y.max()
+        x = mesh_3d.nodes_x[(mesh_3d.nodes_x > xmin) & (mesh_3d.nodes_x < xmax)]
+        y = mesh_3d.nodes_y[(mesh_3d.nodes_y > ymin) & (mesh_3d.nodes_y < ymax)]
 
         Aloc = np.r_[1.25, 0.0, 0.0]
         Bloc = np.r_[-1.25, 0.0, 0.0]
-        M = utils.ndgrid(x - 25.0, y, np.r_[0.0])
-        N = utils.ndgrid(x + 25.0, y, np.r_[0.0])
-
+        M = utils.ndgrid(x - 1.0, y, np.r_[0.0])
+        N = utils.ndgrid(x + 1.0, y, np.r_[0.0])
         rx = dc.receivers.Dipole(M, N)
         src = dc.sources.Dipole([rx], Aloc, Bloc)
         survey = dc.survey.Survey([src])
