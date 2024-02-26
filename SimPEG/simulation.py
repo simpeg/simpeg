@@ -665,12 +665,13 @@ class ExponentialSinusoidSimulation(LinearSimulation):
         Matrix whose rows are the kernel functions
         """
         if getattr(self, "_G", None) is None:
-            G = np.empty((self.mesh.nC, self.n_kernels))
+            G_nodes = np.empty((self.mesh.n_nodes, self.n_kernels))
 
             for i in range(self.n_kernels):
-                G[:, i] = self.g(i)
+                print(self.g(i).shape)
+                G_nodes[:, i] = self.g(i)
 
-            self._G = (
-                sdiag(self.mesh.cell_volumes) @ (self.mesh.average_node_to_cell @ G).T
+            self._G = (self.mesh.average_node_to_cell @ G_nodes).T @ sdiag(
+                self.mesh.cell_volumes
             )
         return self._G
