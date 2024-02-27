@@ -572,10 +572,9 @@ class DCProblemTestsN_Axial_Anisotropy(unittest.TestCase):
 
         # Now set up the problem to do some minimization
         dmis = data_misfit.L2DataMisfit(simulation=simulation, data=dobs)
-        reg = (
-            regularization.WeightedLeastSquares(mesh, mapping=wires_map.sigma_x) +
-            regularization.WeightedLeastSquares(mesh, mapping=wires_map.sigma_z)
-        )
+        reg = regularization.WeightedLeastSquares(
+            mesh, mapping=wires_map.sigma_x
+        ) + regularization.WeightedLeastSquares(mesh, mapping=wires_map.sigma_z)
         opt = optimization.InexactGaussNewton(
             maxIterLS=20, maxIter=10, tolF=1e-6, tolX=1e-6, tolG=1e-6, maxIterCG=6
         )
@@ -603,7 +602,7 @@ class DCProblemTestsN_Axial_Anisotropy(unittest.TestCase):
     def test_adjoint(self):
         # Adjoint Test
         # u = np.random.rand(self.mesh.nC*self.survey.nSrc)
-        v = np.random.rand(2*self.mesh.nC)
+        v = np.random.rand(2 * self.mesh.nC)
         w = np.random.rand(mkvc(self.dobs).shape[0])
         wtJv = w.dot(self.p.Jvec(self.m0, v))
         vtJtw = v.dot(self.p.Jtvec(self.m0, w))
@@ -649,10 +648,9 @@ class DCProblemTestsCC_Axial_Anisotropy(unittest.TestCase):
 
         # Now set up the problem to do some minimization
         dmis = data_misfit.L2DataMisfit(simulation=simulation, data=dobs)
-        reg = (
-            regularization.WeightedLeastSquares(mesh, mapping=wires_map.sigma_x) +
-            regularization.WeightedLeastSquares(mesh, mapping=wires_map.sigma_z)
-        )
+        reg = regularization.WeightedLeastSquares(
+            mesh, mapping=wires_map.sigma_x
+        ) + regularization.WeightedLeastSquares(mesh, mapping=wires_map.sigma_z)
         opt = optimization.InexactGaussNewton(
             maxIterLS=20, maxIter=10, tolF=1e-6, tolX=1e-6, tolG=1e-6, maxIterCG=6
         )
@@ -680,7 +678,7 @@ class DCProblemTestsCC_Axial_Anisotropy(unittest.TestCase):
     def test_adjoint(self):
         # Adjoint Test
         # u = np.random.rand(self.mesh.nC*self.survey.nSrc)
-        v = np.random.rand(2*self.mesh.nC)
+        v = np.random.rand(2 * self.mesh.nC)
         w = np.random.rand(mkvc(self.dobs).shape[0])
         wtJv = w.dot(self.p.Jvec(self.m0, v))
         vtJtw = v.dot(self.p.Jtvec(self.m0, w))

@@ -857,6 +857,63 @@ class Simulation2DCellCentered(BaseDCSimulation2D):
 
         return self._MfRhoI
 
+    def MfRhoDeriv(self, u, v=None, adjoint=False):
+        r"""Derivative of the the resistivity inner-product matrix wrt the model.
+
+        Returns
+        -------
+        (n_faces, n_faces) scipy.sparse.csr_matrix
+            Derivative of the inner-product matrix wrt to the model, times a vector.
+        """
+
+        # Isotropic case
+        if self.rho.size == self.mesh.nC:
+            return super().MfRhoDeriv(u, v, adjoint)
+
+        # Override for anisotropic case
+        if getattr(self, "rhoMap") is None:
+            return Zero()
+        if isinstance(u, Zero) or isinstance(v, Zero):
+            return Zero()
+
+        stash_name = "_Mf_rho_deriv"
+
+        if getattr(self, stash_name, None) is None:
+            rho = getattr(self, "rho")
+            nC = self.mesh.nC
+
+            if rho.size == 3 * nC:
+                if self.mesh._meshType.lower() in (
+                    "cyl",
+                    "tensor",
+                    "tree",
+                ):
+                    # Edge inner product derivative for x and z axial conductivitites
+                    M_deriv_func = self.mesh.get_face_inner_product_deriv(
+                        model=self._Pxz_from_xyz * rho
+                    )
+
+                    # Derivative wrt all axial conductivities
+                    prop_deriv = getattr(self, "rhoDeriv")
+
+                    M_prop_deriv = (
+                        M_deriv_func(np.ones(self.mesh.n_faces))
+                        @ self._Pxz_from_xyz
+                        @ prop_deriv
+                    )
+                    setattr(self, stash_name, M_prop_deriv)
+                else:
+                    raise NotImplementedError(
+                        "Only implemented for 'CylindricalMesh', 'TensorMesh' and 'TreeMesh'."
+                    )
+
+            else:
+                raise NotImplementedError(
+                    "Only isotropic and axial anisotropic conductivities implemented."
+                )
+
+        return inner_mat_mul_op(getattr(self, stash_name), u, v=v, adjoint=adjoint)
+
     @property
     def MccSigma(self):
         r"""Conductivity inner-product matrix at cell centers.
@@ -894,6 +951,39 @@ class Simulation2DCellCentered(BaseDCSimulation2D):
                 )
 
         return self._MccSigma
+
+    def MccSigmaDeriv(self, u, v=None, adjoint=False):
+        """Derivative of inner product matrix on cell centers for 2D wrt model."""
+
+        # Isotropic case
+        if self.sigma.size == self.mesh.nC:
+            return super().MnSigmaDeriv(u, v, adjoint)
+
+        # Override for anisotropic case
+        if getattr(self, "sigmaMap") is None:
+            return Zero()
+        if isinstance(u, Zero) or isinstance(v, Zero):
+            return Zero()
+
+        stash_name = "_Mcc_sigma_deriv"
+        if getattr(self, stash_name, None) is None:
+            sigma = getattr(self, "sigma")
+            nC = self.mesh.nC
+
+            if sigma.size == 3 * nC:
+                M_prop_deriv = (
+                    sp.diags(self.mesh.cell_volumes)
+                    * self._Py_from_xyz
+                    * getattr(self, "sigmaDeriv")
+                )
+                setattr(self, stash_name, M_prop_deriv)
+
+            else:
+                raise NotImplementedError(
+                    "Only isotropic and axial anisotropic conductivities implemented."
+                )
+
+        return inner_mat_mul_op(getattr(self, stash_name), u, v=v, adjoint=adjoint)
 
     @bc_type.setter
     def bc_type(self, value):
@@ -1431,21 +1521,18 @@ class Simulation2DNodal(BaseDCSimulation2D):
             return Zero()
         if isinstance(u, Zero) or isinstance(v, Zero):
             return Zero()
-        stash_name = "_Mn_sigma_deriv"
 
+        stash_name = "_Mn_sigma_deriv"
         if getattr(self, stash_name, None) is None:
             sigma = getattr(self, "sigma")
             nC = self.mesh.nC
 
             if sigma.size == 3 * nC:
-                # Extract y axial conductivitites
                 M_prop_deriv = (
                     self.mesh.aveN2CC.T
                     * sp.diags(self.mesh.cell_volumes)
                     * self._Py_from_xyz
-                    * getattr(
-                        self, "sigmaDeriv"
-                    )  # Derivative of sig x, y and z wrt model
+                    * getattr(self, "sigmaDeriv")
                 )
                 setattr(self, stash_name, M_prop_deriv)
 
@@ -1552,26 +1639,14 @@ class Simulation2DNodal(BaseDCSimulation2D):
         Grad = self.mesh.nodal_gradient
 
         if adjoint:
-            if self.sigma.size == self.mesh.nC:
-                out = self.MeSigmaDeriv(
-                    Grad * u, Grad * v, adjoint=adjoint
-                ) + ky**2 * self.MnSigmaDeriv(u, v, adjoint=adjoint)
-
-            else:
-                out = self.MeSigmaDeriv(
-                    Grad * u, Grad * v, adjoint=adjoint
-                ) + ky**2 * self.MnSigmaDeriv(u, v, adjoint=adjoint)
+            out = self.MeSigmaDeriv(
+                Grad * u, Grad * v, adjoint=adjoint
+            ) + ky**2 * self.MnSigmaDeriv(u, v, adjoint=adjoint)
 
         else:
-            if self.sigma.size == self.mesh.nC:
-                out = Grad.T * self.MeSigmaDeriv(
-                    Grad * u, v, adjoint=adjoint
-                ) + ky**2 * self.MnSigmaDeriv(u, v, adjoint=adjoint)
-
-            else:
-                out = Grad.T * self.MeSigmaDeriv(
-                    Grad * u, v, adjoint=adjoint
-                ) + ky**2 * self.MnSigmaDeriv(u, v, adjoint=adjoint)
+            out = Grad.T * self.MeSigmaDeriv(
+                Grad * u, v, adjoint=adjoint
+            ) + ky**2 * self.MnSigmaDeriv(u, v, adjoint=adjoint)
 
         if self.bc_type != "Neumann" and self.sigmaMap is not None:
             if getattr(self, "_MBC_sigma", None) is None:

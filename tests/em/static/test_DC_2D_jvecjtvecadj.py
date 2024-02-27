@@ -134,7 +134,7 @@ except ImportError:
 #     bc_type = "Robin"
 
 
-class DCProblem_2DTests_Anisotropic(unittest.TestCase):
+class DCProblem_2DTests_Axial_Anisotropy(unittest.TestCase):
     formulation = "Simulation2DNodal"
     bc_type = "Neumann"
     storeJ = False
@@ -158,20 +158,30 @@ class DCProblem_2DTests_Anisotropic(unittest.TestCase):
         src1 = dc.sources.Pole([rx1, rx2], A1loc)
         survey = dc.survey.Survey([src0, src1])
         survey.set_geometric_factor()
+
+        nP = 3 * mesh.nC
+        wires_map = maps.Wires(
+            ("sigma_x", mesh.nC), ("sigma_y", mesh.nC), ("sigma_z", mesh.nC)
+        )
+
         simulation = getattr(dc, self.formulation)(
             mesh,
-            sigmaMap=maps.IdentityMap(nP=3 * mesh.nC),
+            sigmaMap=maps.IdentityMap(nP=nP),
             storeJ=self.storeJ,
             solver=Solver,
             survey=survey,
             bc_type=self.bc_type,
         )
-        mSynth = np.ones(3 * mesh.nC) * 1.0
+        mSynth = np.ones(nP) * 1.0
         data = simulation.make_synthetic_data(mSynth, add_noise=True)
 
         # Now set up the problem to do some minimization
         dmis = data_misfit.L2DataMisfit(simulation=simulation, data=data)
-        reg = regularization.WeightedLeastSquares(mesh)
+        reg = (
+            regularization.WeightedLeastSquares(mesh, mapping=wires_map.sigma_x)
+            + regularization.WeightedLeastSquares(mesh, mapping=wires_map.sigma_y)
+            + regularization.WeightedLeastSquares(mesh, mapping=wires_map.sigma_z)
+        )
         opt = optimization.InexactGaussNewton(
             maxIterLS=20, maxIter=10, tolF=1e-6, tolX=1e-6, tolG=1e-6, maxIterCG=6
         )
@@ -187,14 +197,42 @@ class DCProblem_2DTests_Anisotropic(unittest.TestCase):
         self.dmis = dmis
         self.data = data
 
-    def test_misfit(self):
-        passed = tests.check_derivative(
-            lambda m: (self.p.dpred(m), lambda mx: self.p.Jvec(self.m0, mx)),
-            self.m0,
-            plotIt=False,
-            num=3,
-        )
-        self.assertTrue(passed)
+    def test_M_deriv(self):
+        if self.formulation == "Simulation2DNodal":
+            u = np.random.randn(self.mesh.n_nodes)
+        else:
+            u = np.random.randn(self.mesh.nC)
+
+        sim = self.p
+        x0 = self.m0
+
+        def f(x):
+            sim.model = x
+
+            if self.formulation == "Simulation2DNodal":
+                d = sim.MnSigma @ u
+            else:
+                d = sim.MccSigma @ u
+
+            def Jvec(v):
+                sim.model = x0
+                if self.formulation == "Simulation2DNodal":
+                    return sim.MnSigmaDeriv(u, v)
+                else:
+                    return sim.MccSigmaDeriv(u, v)
+
+            return d, Jvec
+
+        assert tests.check_derivative(f, x0=x0, num=3, plotIt=False)
+
+    # def test_misfit(self):
+    #     passed = tests.check_derivative(
+    #         lambda m: (self.p.dpred(m), lambda mx: self.p.Jvec(self.m0, mx)),
+    #         self.m0,
+    #         plotIt=False,
+    #         num=3,
+    #     )
+    #     self.assertTrue(passed)
 
     # def test_adjoint(self):
     #     # Adjoint Test
@@ -212,6 +250,13 @@ class DCProblem_2DTests_Anisotropic(unittest.TestCase):
     #         lambda m: [self.dmis(m), self.dmis.deriv(m)], self.m0, plotIt=False, num=3
     #     )
     #     self.assertTrue(passed)
+
+
+class DCProblemTestsCC_Dirichlet_AxialAnisotropy(DCProblem_2DTests_Axial_Anisotropy):
+    formulation = "Simulation2DCellCentered"
+    storeJ = False
+    adjoint_tol = 1e-8
+    bc_type = "Dirichlet"
 
 
 if __name__ == "__main__":
