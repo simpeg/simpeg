@@ -130,7 +130,7 @@ class BaseDCSimulation(BaseElectricalPDESimulation):
 
         Parameters
         ----------
-        m : None, (nP,) numpy.ndarray
+        m : None, (n_param,) numpy.ndarray
             The model.
         calcJ : bool
             Whether to calculate the sensitivities.
@@ -167,14 +167,14 @@ class BaseDCSimulation(BaseElectricalPDESimulation):
 
         Parameters
         ----------
-        m : (nP,) numpy.ndarray
+        m : (n_param,) numpy.ndarray
             The model parameters.
         f : SimPEG.electromagnetics.static.resistivity.fields.FieldsDC, optional
             Fields solved for all sources.
 
         Returns
         -------
-        (nD, nP) numpy.ndarray
+        (n_data, n_param) numpy.ndarray
             The full sensitivity matrix.
         """
         if getattr(self, "_Jmatrix", None) is None:
@@ -188,14 +188,14 @@ class BaseDCSimulation(BaseElectricalPDESimulation):
 
         Parameters
         ----------
-        m : (nP,) numpy.ndarray, optional
+        m : (n_param,) numpy.ndarray, optional
             The model parameters.
         f : SimPEG.electromagnetics.static.resistivity.fields.FieldsDC, optional
             Fields solved for all sources.
 
         Returns
         -------
-        (nD,) numpy.ndarray
+        (n_data,) numpy.ndarray
             The predicted data array.
         """
         if self._mini_survey is not None:
@@ -227,16 +227,16 @@ class BaseDCSimulation(BaseElectricalPDESimulation):
 
         Parameters
         ----------
-        m : (nP,) numpy.ndarray
+        m : (n_param,) numpy.ndarray
             The model parameters.
-        W : (nP, nP) scipy.sparse.csr_matrix
+        W : (n_param, n_param) scipy.sparse.csr_matrix
             A diagonal weighting matrix.
         f : SimPEG.electromagnetics.static.resistivity.fields.FieldsDC, optional
             Fields solved for all sources.
 
         Returns
         -------
-        (nP,) numpy.ndarray
+        (n_param,) numpy.ndarray
             The diagonals.
         """
         if getattr(self, "_gtgdiag", None) is None:
@@ -272,16 +272,16 @@ class BaseDCSimulation(BaseElectricalPDESimulation):
 
         Parameters
         ----------
-        m : (nP,) numpy.ndarray
+        m : (n_param,) numpy.ndarray
             The model parameters.
-        v : (nP,) numpy.ndarray
+        v : (n_param,) numpy.ndarray
             The vector.
         f : SimPEG.electromagnetics.static.resistivity.fields.FieldsDC, optional
             Fields solved for all sources.
 
         Returns
         -------
-        (nD,) numpy.ndarray
+        (n_data,) numpy.ndarray
             The sensitivity matrix times a vector.
         """
         if f is None:
@@ -331,16 +331,16 @@ class BaseDCSimulation(BaseElectricalPDESimulation):
 
         Parameters
         ----------
-        m : (nP,) numpy.ndarray
+        m : (n_param,) numpy.ndarray
             The model parameters.
-        v : (nD,) numpy.ndarray
+        v : (n_data,) numpy.ndarray
             The vector.
         f : SimPEG.electromagnetics.static.resistivity.fields.FieldsDC, optional
             Fields solved for all sources.
 
         Returns
         -------
-        (nP,) numpy.ndarray
+        (n_param,) numpy.ndarray
             The adjoint sensitivity matrix times a vector.
         """
 
@@ -630,31 +630,32 @@ class Simulation3DCellCentered(BaseDCSimulation):
         return A
 
     def getADeriv(self, u, v, adjoint=False):
-        r"""Derivative of system matrix times a vector.
+        r"""Derivative operation for the system matrix times a vector.
 
-        The discrete solution to the 3D DC resistivity problem is expressed as:
+        The discrete solution to the 3D DC resistivity problem in the wave domain
+        is expressed as:
 
         .. math::
-            \mathbf{A}\,\boldsymbol{\phi} = \mathbf{q}
+            \mathbf{A \, u} = \mathbf{q}
 
-        where :math:`\mathbf{A}` is the system matrix, :math:`\phi` is the discrete solution,
-        and :math:`\mathbf{q}` is the source term. For a vector :math:`v`, this method assumes
+        where :math:`\mathbf{A}` is the system matrix, :math:`\mathbf{u}` is the discrete solution,
+        and :math:`\mathbf{q}` is the source term. For a vector :math:`\mathbf{v}`, this method assumes
         the discrete solution is fixed and returns
 
         .. math::
-            \frac{\partial (\mathbf{A} \, \boldsymbol{\phi})}{\partial \mathbf{m}} \, \mathbf{v}
+            \frac{\partial (\mathbf{A \, u})}{\partial \mathbf{m}} \, \mathbf{v}
 
-        Or when set to do so, the method returns the adjoint operation
+        Or the adjoint operation
 
         .. math::
-            \frac{\partial (\mathbf{A} \, \boldsymbol{\Phi})}{\partial \mathbf{m}}^T \, \mathbf{v}
+            \frac{\partial (\mathbf{A \, u})}{\partial \mathbf{m}}^T \, \mathbf{v}
 
         Parameters
         ----------
         u : (n_cells,) numpy.ndarray
             The solution for the fields for the current model; i.e. electric potentials at cell centers.
         v : numpy.ndarray
-            The vector. (nP,) for the standard operation. (n_cells,) for the adjoint operation.
+            The vector. (n_param,) for the standard operation. (n_cells,) for the adjoint operation.
         adjoint : bool
             Whether to perform the adjoint operation.
 
@@ -662,7 +663,7 @@ class Simulation3DCellCentered(BaseDCSimulation):
         -------
         numpy.ndarray
             Derivative of system matrix times a vector. (n_cells,) for the standard operation.
-            (nP,) for the adjoint operation.
+            (n_param,) for the adjoint operation.
         """
         if self.rhoMap is not None:
             D = self.Div
@@ -724,7 +725,7 @@ class Simulation3DCellCentered(BaseDCSimulation):
         source : SimPEG.electromagnetic.static.resistivity.sources.BaseSrc
             The source object.
         v : numpy.ndarray
-            The vector. Has shape (nP,) when performing the standard derivative operation.
+            The vector. Has shape (n_param,) when performing the standard derivative operation.
             Has shape (n_cells,) when performing the adjoint operation.
         adjoint : bool
             Whether to perform the adjoint operation.
@@ -734,7 +735,7 @@ class Simulation3DCellCentered(BaseDCSimulation):
         Zero or numpy.ndarray
             Returns :py:class:`Zero` if the derivative with respect to the model is zero.
             Returns (n_cells,) :class:`numpy.ndarray` when computing the standard
-            derivative operation. Returns (nP,) :class:`numpy.ndarray` when performing
+            derivative operation. Returns (n_param,) :class:`numpy.ndarray` when performing
             the adjoint.
         """
         # TODO: add qDeriv for RHS depending on m
@@ -991,31 +992,32 @@ class Simulation3DNodal(BaseDCSimulation):
         return A
 
     def getADeriv(self, u, v, adjoint=False):
-        r"""Derivative of system matrix times a vector.
+        r"""Derivative operation for the system matrix times a vector.
 
-        The discrete solution to the 3D DC resistivity problem is expressed as:
+        The discrete solution to the 3D DC resistivity problem in the wave domain
+        is expressed as:
 
         .. math::
-            \mathbf{A}\,\boldsymbol{\Phi} = \mathbf{q}
+            \mathbf{A \, u} = \mathbf{q}
 
-        where :math:`\mathbf{A}` is the system matrix, :math:`\boldsymbol{\phi}` is the discrete solution,
-        and :math:`\mathbf{q}` is the source term. For a vector :math:`v`, this method assumes
+        where :math:`\mathbf{A}` is the system matrix, :math:`\mathbf{u}` is the discrete solution,
+        and :math:`\mathbf{q}` is the source term. For a vector :math:`\mathbf{v}`, this method assumes
         the discrete solution is fixed and returns
 
         .. math::
-            \frac{\partial (\mathbf{A} \, \boldsymbol{\phi})}{\partial \mathbf{m}} \, \mathbf{v}
+            \frac{\partial (\mathbf{A \, u})}{\partial \mathbf{m}} \, \mathbf{v}
 
-        Or when set to do so, the method returns the adjoint operation
+        Or the adjoint operation
 
         .. math::
-            \frac{\partial (\mathbf{A} \, \boldsymbol{\phi})}{\partial \mathbf{m}}^T \, \mathbf{v}
+            \frac{\partial (\mathbf{A \, u})}{\partial \mathbf{m}}^T \, \mathbf{v}
 
         Parameters
         ----------
         u : (n_nodes,) numpy.ndarray
             The solution for the fields for the current model; i.e. electric potentials at cell nodes.
         v : numpy.ndarray
-            The vector. (nP,) for the standard operation. (n_nodes,) for the adjoint operation.
+            The vector. (n_param,) for the standard operation. (n_nodes,) for the adjoint operation.
         adjoint : bool
             Whether to perform the adjoint operation.
 
@@ -1023,7 +1025,7 @@ class Simulation3DNodal(BaseDCSimulation):
         -------
         numpy.ndarray
             Derivative of system matrix times a vector. (n_nodes,) for the standard operation.
-            (nP,) for the adjoint operation.
+            (n_param,) for the adjoint operation.
         """
         Grad = self.mesh.nodal_gradient
         if not adjoint:
@@ -1173,7 +1175,7 @@ class Simulation3DNodal(BaseDCSimulation):
         source : SimPEG.electromagnetic.static.resistivity.sources.BaseSrc
             The source object.
         v : numpy.ndarray
-            The vector. Has shape (nP,) when performing the standard derivative operation.
+            The vector. Has shape (n_param,) when performing the standard derivative operation.
             Has shape (n_nodes,) when performing the adjoint operation.
         adjoint : bool
             Whether to perform the adjoint operation.
@@ -1183,7 +1185,7 @@ class Simulation3DNodal(BaseDCSimulation):
         Zero or numpy.ndarray
             Returns :py:class:`Zero` if the derivative with respect to the model is zero.
             Returns (n_nodes,) :class:`numpy.ndarray` when computing the standard
-            derivative operation. Returns (nP,) :class:`numpy.ndarray` when performing
+            derivative operation. Returns (n_param,) :class:`numpy.ndarray` when performing
             the adjoint.
         """
         # TODO: add qDeriv for RHS depending on m

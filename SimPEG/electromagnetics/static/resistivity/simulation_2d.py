@@ -313,7 +313,7 @@ class BaseDCSimulation2D(BaseElectricalPDESimulation):
 
         Parameters
         ----------
-        m : None, (nP,) numpy.ndarray
+        m : None, (n_param,) numpy.ndarray
             The model.
 
         Returns
@@ -366,14 +366,14 @@ class BaseDCSimulation2D(BaseElectricalPDESimulation):
 
         Parameters
         ----------
-        m : (nP,) numpy.ndarray, optional
+        m : (n_param,) numpy.ndarray, optional
             The model parameters.
         f : SimPEG.electromagnetics.static.resistivity.fields_2d.Fields2D, optional
             The 2D fields solved in the wave domain.
 
         Returns
         -------
-        (nD,) numpy.ndarray
+        (n_data,) numpy.ndarray
             The predicted data array.
         """
         if f is None:
@@ -410,14 +410,14 @@ class BaseDCSimulation2D(BaseElectricalPDESimulation):
 
         Parameters
         ----------
-        m : (nP,) numpy.ndarray
+        m : (n_param,) numpy.ndarray
             The model parameters
         f : SimPEG.electromagnetics.static.resistivity.fields_2d.Fields2D, optional
             2D fields solved in the wave domain.
 
         Returns
         -------
-        (nD, nP) numpy.ndarray
+        (n_data, n_param) numpy.ndarray
             The full sensitivity matrix.
         """
         if getattr(self, "_Jmatrix", None) is None:
@@ -447,16 +447,16 @@ class BaseDCSimulation2D(BaseElectricalPDESimulation):
 
         Parameters
         ----------
-        m : (nP,) numpy.ndarray
+        m : (n_param,) numpy.ndarray
             The model parameters.
-        v : (nP,) numpy.ndarray
+        v : (n_param,) numpy.ndarray
             The vector.
         f : SimPEG.electromagnetics.static.resistivity.fields_2d.Fields2D, optional
             2D fields solved in the wave domain.
 
         Returns
         -------
-        (nD,) numpy.ndarray
+        (n_data,) numpy.ndarray
             The sensitivity matrix times a vector.
         """
         if self.storeJ:
@@ -518,16 +518,16 @@ class BaseDCSimulation2D(BaseElectricalPDESimulation):
 
         Parameters
         ----------
-        m : (nP,) numpy.ndarray
+        m : (n_param,) numpy.ndarray
             The model parameters.
-        v : (nD,) numpy.ndarray
+        v : (n_data,) numpy.ndarray
             The vector.
         f : SimPEG.electromagnetics.static.resistivity.fields_2d.Fields2D, optional
             2D fields solved in the wave domain
 
         Returns
         -------
-        (nP,) numpy.ndarray
+        (n_param,) numpy.ndarray
             The adjoint sensitivity matrix times a vector.
         """
         if self.storeJ:
@@ -819,7 +819,7 @@ class Simulation2DCellCentered(BaseDCSimulation2D):
         r"""Inverse of the resistivity inner-product matrix on faces.
 
         Where the inner-product between a vector :math:`\vec{u}` and the electrical
-        resistivity :math:`\rho` times a vector :math:`\vec{u}` can be approximated by a
+        resistivity :math:`\rho` times a vector :math:`\vec{v}` can be approximated by a
         discrete operation on cell faces:
 
         .. math::
@@ -855,12 +855,36 @@ class Simulation2DCellCentered(BaseDCSimulation2D):
         return getattr(self, stash_name)
 
     def MfRhoDeriv(self, u, v=None, adjoint=False):
-        r"""Derivative of the the resistivity inner-product matrix wrt the model.
+        r"""Derivative operation for the inverse of the resistivity inner-product matrix.
+
+        Let :math:`\mathbf{M_{f\rho}}` represent the resistivity inner-product matrix on mesh faces.
+        Where :math:`\mathbf{u}` and :math:`\mathbf{v}` are vectors, this method returns
+
+        .. math::
+            \frac{\partial (\mathbf{M_{f\rho}^{-1} \, u} )}{\partial \mathbf{m}} \, \mathbf{v}
+
+        or the adjoint operation
+
+        .. math::
+            \left ( \frac{\partial (\mathbf{M_{f\rho}^{-1} \, u})}{\partial \mathbf{m}} \, \right )^T \mathbf{v}
+
+        If the input argument *v* is ``None``, the method will return a function handle that
+        acts on an input argument *v*.
+
+        Parameters
+        ----------
+        u : (n_cells,) numpy.ndarray
+            A vector.
+        v : numpy.ndarray, optional
+            A vector. (n_param,) for the standard operation. (n_faces,) for the adjoint operation.
+        adjoint : bool
+            Whether to perform the adjoint operation.
 
         Returns
         -------
-        (n_faces, n_faces) scipy.sparse.csr_matrix
-            Derivative of the inner-product matrix wrt to the model, times a vector.
+        numpy.ndarray
+            Derivative operation for the inverse of the resistivity inner-product matrix.
+            (n_faces,) for the standard operation. (n_param,) for the adjoint operation.
         """
 
         # Isotropic case
@@ -890,7 +914,7 @@ class Simulation2DCellCentered(BaseDCSimulation2D):
                     )
 
                     # Derivative wrt all axial conductivities
-                    prop_deriv = getattr(self, "rhoDeriv")
+                    prop_deriv = self.rhoDeriv
 
                     M_prop_deriv = (
                         M_deriv_func(np.ones(self.mesh.n_faces))
@@ -949,7 +973,37 @@ class Simulation2DCellCentered(BaseDCSimulation2D):
         return getattr(self, stash_name)
 
     def MccSigmaDeriv(self, u, v=None, adjoint=False):
-        """Derivative of inner product matrix on cell centers for 2D wrt model."""
+        r"""Derivative operation for the conductivity inner-product matrix at cell centers.
+
+        Let :math:`\mathbf{M_{c\sigma}}` represent the conductivity inner-product matrix at cell centers.
+        Where :math:`\mathbf{u}` and :math:`\mathbf{v}` are vectors, this method returns
+
+        .. math::
+            \frac{\partial (\mathbf{M_{c\sigma} \, u} )}{\partial \mathbf{m}} \, \mathbf{v}
+
+        or the adjoint operation
+
+        .. math::
+            \left ( \frac{\partial (\mathbf{M_{c\sigma} \, u})}{\partial \mathbf{m}} \, \right )^T \mathbf{v}
+
+        If the input argument *v* is ``None``, the method will return a function handle that
+        acts on an input argument *v*.
+
+        Parameters
+        ----------
+        u : (n_cells,) numpy.ndarray
+            A vector.
+        v : numpy.ndarray, optional
+            A vector. (n_param,) for the standard operation. (n_cells,) for the adjoint operation.
+        adjoint : bool
+            Whether to perform the adjoint operation.
+
+        Returns
+        -------
+        numpy.ndarray
+            Derivative operation for the conductivity inner-product matrix. (n_cells,) for the
+            standard operation. (n_param,) for the adjoint operation.
+        """
 
         # Isotropic case
         if self.sigma.size == self.mesh.nC:
@@ -1033,25 +1087,25 @@ class Simulation2DCellCentered(BaseDCSimulation2D):
         return A
 
     def getADeriv(self, ky, u, v, adjoint=False):
-        r"""Derivative of system matrix times a vector.
+        r"""Derivative operation for the system matrix times a vector.
 
         The discrete solution to the 2D DC resistivity problem in the wave domain
         is expressed as:
 
         .. math::
-            \mathbf{A}\,\boldsymbol{\Phi} = \mathbf{q}
+            \mathbf{A \, u} = \mathbf{q}
 
-        where :math:`\mathbf{A}` is the system matrix, :math:`\Phi` is the discrete solution,
-        and :math:`\mathbf{q}` is the source term. For a vector :math:`v`, this method assumes
+        where :math:`\mathbf{A}` is the system matrix, :math:`\mathbf{u}` is the discrete solution,
+        and :math:`\mathbf{q}` is the source term. For a vector :math:`\mathbf{v}`, this method assumes
         the discrete solution is fixed and returns
 
         .. math::
-            \frac{\partial (\mathbf{A} \, \boldsymbol{\Phi})}{\partial \mathbf{m}} \, \mathbf{v}
+            \frac{\partial (\mathbf{A \, u})}{\partial \mathbf{m}} \, \mathbf{v}
 
-        Or when set to do so, the method returns the adjoint operation
+        Or the adjoint operation
 
         .. math::
-            \frac{\partial (\mathbf{A} \, \boldsymbol{\Phi})}{\partial \mathbf{m}}^T \, \mathbf{v}
+            \frac{\partial (\mathbf{A \, u})}{\partial \mathbf{m}}^T \, \mathbf{v}
 
         Parameters
         ----------
@@ -1060,7 +1114,7 @@ class Simulation2DCellCentered(BaseDCSimulation2D):
         u : (n_cells,) numpy.ndarray
             The solution for the fields for the current model; i.e. electric potentials at cell centers.
         v : numpy.ndarray
-            The vector. (nP,) for the standard operation. (n_cells,) for the adjoint operation.
+            The vector. (n_param,) for the standard operation. (n_cells,) for the adjoint operation.
         adjoint : bool
             Whether to perform the adjoint operation.
 
@@ -1068,7 +1122,7 @@ class Simulation2DCellCentered(BaseDCSimulation2D):
         -------
         numpy.ndarray
             Derivative of system matrix times a vector. (n_cells,) for the standard operation.
-            (nP,) for the adjoint operation.
+            (n_param,) for the adjoint operation.
         """
         D = self.Div
         G = self.Grad
@@ -1139,7 +1193,7 @@ class Simulation2DCellCentered(BaseDCSimulation2D):
         src : SimPEG.electromagnetic.static.resistivity.sources.BaseSrc
             The source object.
         v : numpy.ndarray
-            The vector. Has shape (nP,) when performing the standard derivative operation.
+            The vector. Has shape (n_param,) when performing the standard derivative operation.
             Has shape (n_cells,) when performing the adjoint operation.
         adjoint : bool
             Whether to perform the adjoint operation.
@@ -1149,7 +1203,7 @@ class Simulation2DCellCentered(BaseDCSimulation2D):
         Zero or numpy.ndarray
             Returns :py:class:`Zero` if the derivative with respect to the model is zero.
             Returns (n_cells,) :class:`numpy.ndarray` when computing the standard
-            derivative operation. Returns (nP,) :class:`numpy.ndarray` when performing
+            derivative operation. Returns (n_param,) :class:`numpy.ndarray` when performing
             the adjoint.
         """
         # TODO: add qDeriv for RHS depending on m
@@ -1379,8 +1433,8 @@ class Simulation2DNodal(BaseDCSimulation2D):
         r"""Conductivity inner-product matrix on edges.
 
         Where the inner product between a vector :math:`\vec{u}` and the electrical
-        conductivity :math:`\sigma` times a vector :math:`\vec{u}` can be approximated by a
-        discrete operation on cell edges:
+        conductivity :math:`\sigma` times a vector :math:`\vec{v}` can be approximated by a
+        discrete operation on mesh edges:
 
         .. math::
             \langle \vec{u}, \sigma \vec{v} \rangle \approx
@@ -1413,12 +1467,36 @@ class Simulation2DNodal(BaseDCSimulation2D):
         return getattr(self, stash_name)
 
     def MeSigmaDeriv(self, u, v=None, adjoint=False):
-        r"""Derivative of the conductivity inner-product matrix wrt the model.
+        r"""Derivative operation for the conductivity inner-product matrix on edges.
+
+        Let :math:`\mathbf{M_{e\sigma}}` represent the conductivity inner-product matrix on mesh edges.
+        Where :math:`\mathbf{u}` and :math:`\mathbf{v}` are vectors, this method returns
+
+        .. math::
+            \frac{\partial (\mathbf{M_{e\sigma} \, u} )}{\partial \mathbf{m}} \, \mathbf{v}
+
+        or the adjoint operation
+
+        .. math::
+            \left ( \frac{\partial (\mathbf{M_{e\sigma} \, u})}{\partial \mathbf{m}} \, \right )^T \mathbf{v}
+
+        If the input argument *v* is ``None``, the method will return a function handle that
+        acts on an input argument *v*.
+
+        Parameters
+        ----------
+        u : (n_nodes,) numpy.ndarray
+            A vector.
+        v : numpy.ndarray, optional
+            A vector. (n_param,) for the standard operation. (n_edges,) for the adjoint operation.
+        adjoint : bool
+            Whether to perform the adjoint operation.
 
         Returns
         -------
-        (n_edges, n_edges) scipy.sparse.csr_matrix
-            Derivative of the inner-product matrix wrt to the model, times a vector.
+        numpy.ndarray
+            Derivative operation for the conductivity inner-product matrix. (n_edges,) for the
+            standard operation. (n_param,) for the adjoint operation.
         """
 
         # Isotropic case
@@ -1510,7 +1588,37 @@ class Simulation2DNodal(BaseDCSimulation2D):
         return getattr(self, stash_name)
 
     def MnSigmaDeriv(self, u, v=None, adjoint=False):
-        """Derivative of inner product matrix on nodes for 2D wrt model."""
+        r"""Derivative operation for the conductivity inner-product matrix on nodes.
+
+        Let :math:`\mathbf{M_{n\sigma}}` represent the conductivity inner-product matrix on mesh nodes.
+        Where :math:`\mathbf{u}` and :math:`\mathbf{v}` are vectors, this method returns
+
+        .. math::
+            \frac{\partial (\mathbf{M_{n\sigma} \, u} )}{\partial \mathbf{m}} \, \mathbf{v}
+
+        or the adjoint operation
+
+        .. math::
+            \left ( \frac{\partial (\mathbf{M_{n\sigma} \, u})}{\partial \mathbf{m}} \, \right )^T \mathbf{v}
+
+        If the input argument *v* is ``None``, the method will return a function handle that
+        acts on an input argument *v*.
+
+        Parameters
+        ----------
+        u : (n_nodes,) numpy.ndarray
+            A vector.
+        v : numpy.ndarray, optional
+            A vector. (n_param,) for the standard operation. (n_nodes,) for the adjoint operation.
+        adjoint : bool
+            Whether to perform the adjoint operation.
+
+        Returns
+        -------
+        numpy.ndarray
+            Derivative operation for the conductivity inner-product matrix. (n_nodes,) for the
+            standard operation. (n_param,) for the adjoint operation.
+        """
 
         # Isotropic case
         if self.sigma.size == self.mesh.nC:
@@ -1599,25 +1707,25 @@ class Simulation2DNodal(BaseDCSimulation2D):
         return A
 
     def getADeriv(self, ky, u, v, adjoint=False):
-        r"""Derivative of system matrix times a vector.
+        r"""Derivative operation for the system matrix times a vector.
 
         The discrete solution to the 2D DC resistivity problem in the wave domain
         is expressed as:
 
         .. math::
-            \mathbf{A}\,\boldsymbol{\Phi} = \mathbf{q}
+            \mathbf{A \, u} = \mathbf{q}
 
-        where :math:`\mathbf{A}` is the system matrix, :math:`\boldsymbol{\Phi}` is the discrete solution,
-        and :math:`\mathbf{q}` is the source term. For a vector :math:`v`, this method assumes
+        where :math:`\mathbf{A}` is the system matrix, :math:`\mathbf{u}` is the discrete solution,
+        and :math:`\mathbf{q}` is the source term. For a vector :math:`\mathbf{v}`, this method assumes
         the discrete solution is fixed and returns
 
         .. math::
-            \frac{\partial (\mathbf{A} \, \boldsymbol{\Phi})}{\partial \mathbf{m}} \, \mathbf{v}
+            \frac{\partial (\mathbf{A \, u})}{\partial \mathbf{m}} \, \mathbf{v}
 
-        Or when set to do so, the method returns the adjoint operation
+        Or the adjoint operation
 
         .. math::
-            \frac{\partial (\mathbf{A} \, \boldsymbol{\Phi})}{\partial \mathbf{m}}^T \, \mathbf{v}
+            \frac{\partial (\mathbf{A \, u})}{\partial \mathbf{m}}^T \, \mathbf{v}
 
         Parameters
         ----------
@@ -1626,7 +1734,7 @@ class Simulation2DNodal(BaseDCSimulation2D):
         u : (n_nodes,) numpy.ndarray
             The solution for the fields for the current model; i.e. electric potentials at cell nodes.
         v : numpy.ndarray
-            The vector. (nP,) for the standard operation. (n_nodes,) for the adjoint operation.
+            The vector. (n_param,) for the standard operation. (n_nodes,) for the adjoint operation.
         adjoint : bool
             Whether to perform the adjoint operation.
 
@@ -1634,7 +1742,7 @@ class Simulation2DNodal(BaseDCSimulation2D):
         -------
         numpy.ndarray
             Derivative of system matrix times a vector. (n_nodes,) for the standard operation.
-            (nP,) for the adjoint operation.
+            (n_param,) for the adjoint operation.
         """
         Grad = self.mesh.nodal_gradient
 
@@ -1719,7 +1827,7 @@ class Simulation2DNodal(BaseDCSimulation2D):
         src : SimPEG.electromagnetic.static.resistivity.sources.BaseSrc
             The source object.
         v : numpy.ndarray
-            The vector. Has shape (nP,) when performing the standard derivative operation.
+            The vector. Has shape (n_param,) when performing the standard derivative operation.
             Has shape (n_nodes,) when performing the adjoint operation.
         adjoint : bool
             Whether to perform the adjoint operation.
@@ -1729,7 +1837,7 @@ class Simulation2DNodal(BaseDCSimulation2D):
         Zero or numpy.ndarray
             Returns :py:class:`Zero` if the derivative with respect to the model is zero.
             Returns (n_nodes,) :class:`numpy.ndarray` when computing the standard
-            derivative operation. Returns (nP,) :class:`numpy.ndarray` when performing
+            derivative operation. Returns (n_param,) :class:`numpy.ndarray` when performing
             the adjoint.
         """
         # TODO: add qDeriv for RHS depending on m
