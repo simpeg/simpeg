@@ -1,3 +1,4 @@
+import warnings
 import numpy as np
 import scipy.sparse as sp
 from geoana.kernels import (
@@ -61,7 +62,7 @@ class Simulation3DIntegral(BasePFSimulation):
         **kwargs,
     ):
         self.model_type = model_type
-        super().__init__(mesh, **kwargs)
+        super().__init__(mesh, engine=engine, numba_parallel=numba_parallel, **kwargs)
         self.chi = chi
         self.chiMap = chiMap
 
@@ -70,9 +71,19 @@ class Simulation3DIntegral(BasePFSimulation):
         self._gtg_diagonal = None
         self.is_amplitude_data = is_amplitude_data
         self.modelMap = self.chiMap
-        self.engine = engine
+
+        # Warn if n_processes has been passed
+        if self.engine == "choclo" and "n_processes" in kwargs:
+            warnings.warn(
+                "The 'n_processes' will be ignored when selecting 'choclo' as the "
+                "engine in the gravity simulation.",
+                UserWarning,
+                stacklevel=1,
+            )
+            self.n_processes = None
+
         if self.engine == "choclo":
-            if numba_parallel:
+            if self.numba_parallel:
                 self._sensitivity_tmi = _sensitivity_tmi_parallel
                 self._sensitivity_mag = _sensitivity_mag_parallel
                 self._forward_tmi = _forward_tmi_parallel
