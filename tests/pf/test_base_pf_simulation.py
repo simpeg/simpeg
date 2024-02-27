@@ -5,6 +5,7 @@ import pytest
 import numpy as np
 from discretize import CylindricalMesh, TensorMesh, TreeMesh
 
+import SimPEG
 from SimPEG.potential_fields.base import BasePFSimulation
 from SimPEG.survey import BaseSurvey
 from SimPEG.potential_fields import gravity, magnetics
@@ -55,6 +56,50 @@ def mock_survey_class():
         pass
 
     return MockSurvey
+
+
+class TestEngine:
+    """
+    Test the engine property and some of its relations with other attributes
+    """
+
+    def test_invalid_engine(self, tensor_mesh, mock_simulation_class):
+        """
+        Test if error is raised after invalid engine
+        """
+        engine = "invalid engine"
+        msg = rf"'engine' must be in \('geoana', 'choclo'\). Got '{engine}'"
+        with pytest.raises(ValueError, match=msg):
+            mock_simulation_class(tensor_mesh, engine=engine)
+
+    def test_invalid_engine_without_choclo(
+        self, tensor_mesh, mock_simulation_class, monkeypatch
+    ):
+        """
+        Test error after choosing "choclo" as engine but not being installed
+        """
+        monkeypatch.setattr(SimPEG.potential_fields.base, "choclo", None)
+        engine = "choclo"
+        msg = "The choclo package couldn't be found."
+        with pytest.raises(ImportError, match=msg):
+            mock_simulation_class(tensor_mesh, engine=engine)
+
+    def test_sensitivy_path_as_dir(self, tensor_mesh, mock_simulation_class, tmpdir):
+        """
+        Test error if the sensitivity_path is a dir
+
+        Error should be raised if using ``engine=="choclo"`` and setting
+        ``store_sensitivities="disk"``.
+        """
+        sensitivity_path = str(tmpdir.mkdir("sensitivities"))
+        msg = f"The passed sensitivity_path '{sensitivity_path}' is a directory."
+        with pytest.raises(ValueError, match=msg):
+            mock_simulation_class(
+                tensor_mesh,
+                engine="choclo",
+                store_sensitivities="disk",
+                sensitivity_path=sensitivity_path,
+            )
 
 
 class TestGetActiveNodes:
