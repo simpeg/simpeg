@@ -1,4 +1,3 @@
-import os
 import warnings
 import numpy as np
 import scipy.constants as constants
@@ -121,45 +120,13 @@ class Simulation3DIntegral(BasePFSimulation):
         numba_parallel=True,
         **kwargs,
     ):
-        super().__init__(mesh, **kwargs)
+        super().__init__(mesh, engine=engine, numba_parallel=numba_parallel, **kwargs)
         self.rho = rho
         self.rhoMap = rhoMap
         self._G = None
         self._gtg_diagonal = None
         self.modelMap = self.rhoMap
-        self.numba_parallel = numba_parallel
-        self.engine = engine
-        self._sanity_checks_engine(kwargs)
-        # Define jit functions
-        if self.engine == "choclo":
-            if numba_parallel:
-                self._sensitivity_gravity = _sensitivity_gravity_parallel
-                self._forward_gravity = _forward_gravity_parallel
-            else:
-                self._sensitivity_gravity = _sensitivity_gravity_serial
-                self._forward_gravity = _forward_gravity_serial
 
-    def _sanity_checks_engine(self, kwargs):
-        """
-        Sanity checks for the engine parameter.
-
-        Needs the kwargs passed to the __init__ method to raise some warnings.
-        Will set n_processes to None if it's present in kwargs.
-        """
-        if self.engine not in ("choclo", "geoana"):
-            raise ValueError(
-                f"Invalid engine '{self.engine}'. Choose from 'geoana' or 'choclo'."
-            )
-        if self.engine == "choclo" and choclo is None:
-            raise ImportError(
-                "The choclo package couldn't be found."
-                "Running a gravity simulation with 'engine=\"choclo\"' needs "
-                "choclo to be installed."
-                "\nTry installing choclo with:"
-                "\n    pip install choclo"
-                "\nor:"
-                "\n    conda install choclo"
-            )
         # Warn if n_processes has been passed
         if self.engine == "choclo" and "n_processes" in kwargs:
             warnings.warn(
@@ -169,15 +136,15 @@ class Simulation3DIntegral(BasePFSimulation):
                 stacklevel=1,
             )
             self.n_processes = None
-        # Sanity checks for sensitivity_path when using choclo and storing in disk
-        if self.engine == "choclo" and self.store_sensitivities == "disk":
-            if os.path.isdir(self.sensitivity_path):
-                raise ValueError(
-                    f"The passed sensitivity_path '{self.sensitivity_path}' is "
-                    "a directory. "
-                    "When using 'choclo' as the engine, 'senstivity_path' "
-                    "should be the path to a new or existing file."
-                )
+
+        # Define jit functions
+        if self.engine == "choclo":
+            if self.numba_parallel:
+                self._sensitivity_gravity = _sensitivity_gravity_parallel
+                self._forward_gravity = _forward_gravity_parallel
+            else:
+                self._sensitivity_gravity = _sensitivity_gravity_serial
+                self._forward_gravity = _forward_gravity_serial
 
     def fields(self, m):
         """

@@ -350,7 +350,8 @@ class TestsGravitySimulation:
         idenMap = maps.IdentityMap(nP=simple_mesh.n_cells)
         # Check if error is raised after an invalid engine is passed
         engine = "invalid engine"
-        with pytest.raises(ValueError, match=f"Invalid engine '{engine}'"):
+        msg = rf"'engine' must be in \('geoana', 'choclo'\). Got '{engine}'"
+        with pytest.raises(ValueError, match=msg):
             gravity.Simulation3DIntegral(
                 simple_mesh,
                 survey=survey,
@@ -411,7 +412,7 @@ class TestsGravitySimulation:
                 engine="choclo",
             )
 
-    @patch("SimPEG.potential_fields.gravity.simulation.choclo", None)
+    @patch("SimPEG.potential_fields.base.choclo", None)
     def test_choclo_missing(self, simple_mesh, receivers_locations):
         """
         Check if error is raised when choclo is missing and chosen as engine.

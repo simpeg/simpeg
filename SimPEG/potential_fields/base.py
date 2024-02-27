@@ -10,6 +10,11 @@ from SimPEG.utils import mkvc
 from ..simulation import LinearSimulation
 from ..utils import validate_active_indices, validate_integer, validate_string
 
+try:
+    import choclo
+except ImportError:
+    choclo = None
+
 ###############################################################################
 #                                                                             #
 #                             Base Potential Fields Simulation                #
@@ -73,6 +78,8 @@ class BasePFSimulation(LinearSimulation):
         store_sensitivities="ram",
         n_processes=1,
         sensitivity_dtype=np.float32,
+        engine="geoana",
+        numba_parallel=True,
         **kwargs,
     ):
         # If deprecated property set with kwargs
@@ -88,9 +95,14 @@ class BasePFSimulation(LinearSimulation):
 
         self.store_sensitivities = store_sensitivities
         self.sensitivity_dtype = sensitivity_dtype
+        self.engine = engine
+        self.numba_parallel = numba_parallel
         super().__init__(mesh, **kwargs)
         self.solver = None
         self.n_processes = n_processes
+
+        # Check sensitivity_path when engine is "choclo"
+        self._check_engine_and_sensitivity_path()
 
         # Find non-zero cells indices
         if ind_active is None:
@@ -189,6 +201,54 @@ class BasePFSimulation(LinearSimulation):
         self._n_processes = value
 
     @property
+    def engine(self) -> str:
+        """
+        Engine that will be used to run the simulation.
+
+        It can be either ``"geoana"`` or "``choclo``".
+        """
+        return self._engine
+
+    @engine.setter
+    def engine(self, value: str):
+        validate_string(
+            "engine", value, string_list=("geoana", "choclo"), case_sensitive=True
+        )
+        if value == "choclo" and choclo is None:
+            raise ImportError(
+                "The choclo package couldn't be found."
+                "Running a gravity simulation with 'engine=\"choclo\"' needs "
+                "choclo to be installed."
+                "\nTry installing choclo with:"
+                "\n    pip install choclo"
+                "\nor:"
+                "\n    conda install choclo"
+            )
+        self._engine = value
+
+    @property
+    def numba_parallel(self) -> bool:
+        """
+        Run simulation in parallel or single-threaded when using Numba.
+
+        If True, the simulation will run in parallel. If False, it will
+        run in serial.
+
+        ..important::
+
+            If ``engine`` is not ``"choclo"`` this argument will be ignored.
+        """
+        return self._numba_parallel
+
+    @numba_parallel.setter
+    def numba_parallel(self, value: bool):
+        if not isinstance(value, bool):
+            raise TypeError(
+                f"Invalid 'numba_parallel' value of type {type(value)}. Must be a bool."
+            )
+        self._numba_parallel = value
+
+    @property
     def ind_active(self):
         """Active topography cells.
 
@@ -262,6 +322,22 @@ class BasePFSimulation(LinearSimulation):
             os.makedirs(self.sensitivity_path, exist_ok=True)
             np.save(sens_name, kernel)
         return kernel
+
+    def _check_engine_and_sensitivity_path(self):
+        """
+        Check if sensitivity_path is a file if engine is set to "choclo"
+        """
+        if (
+            self.engine == "choclo"
+            and self.store_sensitivities == "disk"
+            and os.path.isdir(self.sensitivity_path)
+        ):
+            raise ValueError(
+                f"The passed sensitivity_path '{self.sensitivity_path}' is "
+                "a directory. "
+                "When using 'choclo' as the engine, 'senstivity_path' "
+                "should be the path to a new or existing file."
+            )
 
     def _get_cell_nodes(self):
         """
