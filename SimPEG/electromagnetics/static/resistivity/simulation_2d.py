@@ -112,11 +112,6 @@ class BaseDCSimulation2D(BaseElectricalPDESimulation):
         **kwargs,
     ):
         super().__init__(mesh=mesh, survey=survey, **kwargs)
-        if "nky" in kwargs:
-            nky = kwargs.pop["nky"]
-            warnings.warn(
-                "nky is going to be deprecated and replaced by nky", DeprecationWarning
-            )
         self.nky = nky
         self.storeJ = storeJ
         self.fix_Jmatrix = fix_Jmatrix
@@ -232,9 +227,9 @@ class BaseDCSimulation2D(BaseElectricalPDESimulation):
                     sp.diags(np.ones(nC), 2 * nC, shape=(nC, 3 * nC)),
                 ]
             )
-            setattr(self, "__Pxz_from_xyz", P)
+            self.__Pxz_from_xyz = P
 
-        return getattr(self, "__Pxz_from_xyz")
+        return self.__Pxz_from_xyz
 
     @property
     def _Py_from_xyz(self):
@@ -245,9 +240,9 @@ class BaseDCSimulation2D(BaseElectricalPDESimulation):
         if getattr(self, "__Py_from_xyz", None) is None:
             nC = self.mesh.nC
             P = sp.diags(np.ones(nC), nC, shape=(nC, 3 * nC))
-            setattr(self, "__Py_from_xyz", P)
+            self.__Py_from_xyz = P
 
-        return getattr(self, "__Py_from_xyz")
+        return self.__Py_from_xyz
 
     @property
     def nky(self):
@@ -873,14 +868,14 @@ class Simulation2DCellCentered(BaseDCSimulation2D):
             return super().MfRhoDeriv(u, v, adjoint)
 
         # Override for anisotropic case
-        if getattr(self, "rhoMap") is None:
+        if self.rhoMap is None:
             return Zero()
         if isinstance(u, Zero) or isinstance(v, Zero):
             return Zero()
 
         stash_name = "_Mf_Rho_deriv"
         if getattr(self, stash_name, None) is None:
-            rho = getattr(self, "rho")
+            rho = self.rho
             nC = self.mesh.nC
 
             if rho.size == 3 * nC:
@@ -961,21 +956,21 @@ class Simulation2DCellCentered(BaseDCSimulation2D):
             return super().MnSigmaDeriv(u, v, adjoint)
 
         # Override for anisotropic case
-        if getattr(self, "sigmaMap") is None:
+        if self.sigmaMap is None:
             return Zero()
         if isinstance(u, Zero) or isinstance(v, Zero):
             return Zero()
 
         stash_name = "_Mcc_Sigma_deriv"
         if getattr(self, stash_name, None) is None:
-            sigma = getattr(self, "sigma")
+            sigma = self.sigma
             nC = self.mesh.nC
 
             if sigma.size == 3 * nC:
                 M_prop_deriv = (
                     sp.diags(self.mesh.cell_volumes)
                     * self._Py_from_xyz
-                    * getattr(self, "sigmaDeriv")
+                    * self.sigmaDeriv
                 )
                 setattr(self, stash_name, M_prop_deriv)
 
@@ -1431,14 +1426,14 @@ class Simulation2DNodal(BaseDCSimulation2D):
             return super().MeSigmaDeriv(u, v, adjoint)
 
         # Override for anisotropic case
-        if getattr(self, "sigmaMap") is None:
+        if self.sigmaMap is None:
             return Zero()
         if isinstance(u, Zero) or isinstance(v, Zero):
             return Zero()
         stash_name = "_Me_Sigma_deriv"
 
         if getattr(self, stash_name, None) is None:
-            sigma = getattr(self, "sigma")
+            sigma = self.sigma
             nC = self.mesh.nC
 
             if sigma.size == 3 * nC:
@@ -1453,7 +1448,7 @@ class Simulation2DNodal(BaseDCSimulation2D):
                     )
 
                     # Derivative wrt all axial conductivities
-                    prop_deriv = getattr(self, "sigmaDeriv")
+                    prop_deriv = self.sigmaDeriv
 
                     M_prop_deriv = (
                         M_deriv_func(np.ones(self.mesh.n_edges))
@@ -1522,14 +1517,14 @@ class Simulation2DNodal(BaseDCSimulation2D):
             return super().MnSigmaDeriv(u, v, adjoint)
 
         # Override for anisotropic case
-        if getattr(self, "sigmaMap") is None:
+        if self.sigmaMap is None:
             return Zero()
         if isinstance(u, Zero) or isinstance(v, Zero):
             return Zero()
 
         stash_name = "_Mn_Sigma_deriv"
         if getattr(self, stash_name, None) is None:
-            sigma = getattr(self, "sigma")
+            sigma = self.sigma
             nC = self.mesh.nC
 
             if sigma.size == 3 * nC:
@@ -1537,7 +1532,7 @@ class Simulation2DNodal(BaseDCSimulation2D):
                     self.mesh.aveN2CC.T
                     * sp.diags(self.mesh.cell_volumes)
                     * self._Py_from_xyz
-                    * getattr(self, "sigmaDeriv")
+                    * self.sigmaDeriv
                 )
                 setattr(self, stash_name, M_prop_deriv)
 
