@@ -55,7 +55,7 @@ class BaseDCSimulation2D(BaseElectricalPDESimulation):
         Use trap method to find the optimum set of quadrature points and weights
         in the wave domain for evaluating the set of 2D problems.
     fix_Jmatrix : bool
-        Whether to fix the sensitivity matrix during Newton iterations.
+        Permanently fix the sensitivity matrix once constructed.
     surface_faces : None, numpy.ndarray of bool
         Array defining which faces to interpret as surfaces of the Neumann boundary.
 
@@ -280,7 +280,7 @@ class BaseDCSimulation2D(BaseElectricalPDESimulation):
 
     @property
     def fix_Jmatrix(self):
-        """Whether to fix the sensitivity matrix during Gauss-Newton iterations.
+        """Permanently fix the sensitivity matrix once constructed.
 
         Returns
         -------
@@ -712,7 +712,7 @@ class Simulation2DCellCentered(BaseDCSimulation2D):
         Use trap method to find the optimum set of quadrature points and weights
         in the wave domain for evaluating the set of 2D problems.
     fix_Jmatrix : bool
-        Whether to fix the sensitivity matrix during Newton iterations.
+        Permanently fix the sensitivity matrix once constructed.
     surface_faces : None, numpy.ndarray of bool
         Array defining which faces to interpret as surfaces of the Neumann boundary.
 
@@ -1264,7 +1264,7 @@ class Simulation2DNodal(BaseDCSimulation2D):
         Use trap method to find the optimum set of quadrature points and weights
         in the wave domain for evaluating the set of 2D problems.
     fix_Jmatrix : bool
-        Whether to fix the sensitivity matrix during Newton iterations.
+        Permanently fix the sensitivity matrix once constructed.
     surface_faces : None, numpy.ndarray of bool
         Array defining which faces to interpret as surfaces of the Neumann boundary.
 

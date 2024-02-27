@@ -44,7 +44,7 @@ class BaseDCSimulation(BaseElectricalPDESimulation):
         We avoid computing the fields for repeated electrode locations and the
         fields for dipole sources can be constructed using superposition.
     fix_Jmatrix : bool
-        Whether to fix the sensitivity matrix during Newton iterations.
+        Permanently fix the sensitivity matrix once constructed.
     surface_faces : None, numpy.ndarray of bool
         Array defining which faces to interpret as surfaces of the Neumann boundary.
     """
@@ -497,7 +497,7 @@ class Simulation3DCellCentered(BaseDCSimulation):
         We avoid computing the fields for repeated electrode locations and the
         fields for dipole sources can be constructed using superposition.
     fix_Jmatrix : bool
-        Whether to fix the sensitivity matrix during Newton iterations.
+        Permanently fix the sensitivity matrix once constructed.
     surface_faces : None, numpy.ndarray of bool
         Array defining which faces to interpret as surfaces of the Neumann boundary.
 
@@ -843,7 +843,7 @@ class Simulation3DNodal(BaseDCSimulation):
         We avoid computing the fields for repeated electrode locations and the
         fields for dipole sources can be constructed using superposition.
     fix_Jmatrix : bool
-        Whether to fix the sensitivity matrix during Newton iterations.
+        Permanently fix the sensitivity matrix once constructed.
     surface_faces : None, numpy.ndarray of bool
         Array defining which faces to interpret as surfaces of the Neumann boundary.
 
