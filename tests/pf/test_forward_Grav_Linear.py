@@ -1,6 +1,6 @@
-from unittest.mock import patch
 import pytest
 import discretize
+import SimPEG
 from SimPEG import maps
 from SimPEG.potential_fields import gravity
 from geoana.gravity import Prism
@@ -412,8 +412,7 @@ class TestsGravitySimulation:
                 engine="choclo",
             )
 
-    @patch("SimPEG.potential_fields.base.choclo", None)
-    def test_choclo_missing(self, simple_mesh, receivers_locations):
+    def test_choclo_missing(self, simple_mesh, receivers_locations, monkeypatch):
         """
         Check if error is raised when choclo is missing and chosen as engine.
         """
@@ -424,6 +423,8 @@ class TestsGravitySimulation:
         # Create reduced identity map for Linear Problem
         active_cells = np.ones(simple_mesh.n_cells, dtype=bool)
         idenMap = maps.IdentityMap(nP=simple_mesh.n_cells)
+        # Monkeypatch choclo in SimPEG.potential_fields.base
+        monkeypatch.setattr(SimPEG.potential_fields.base, "choclo", None)
         # Check if error is raised
         msg = "The choclo package couldn't be found."
         with pytest.raises(ImportError, match=msg):
