@@ -1,4 +1,4 @@
-from typing import List, Tuple
+from typing import List, Tuple, Union
 
 import discretize
 import numpy as np
@@ -41,7 +41,7 @@ def get_block_inds(grid: np.ndarray, block: np.ndarray) -> np.ndarray:
 def create_block_model(
     mesh: discretize.TensorMesh,
     blocks: Tuple[np.ndarray, ...],
-    block_params: Tuple[float, ...] | Tuple[np.ndarray, ...],
+    block_params: Union[Tuple[float, ...], Tuple[np.ndarray, ...]],
 ) -> Tuple[np.ndarray, np.ndarray]:
     """
     Create a magnetic model from a sequence of blocks
