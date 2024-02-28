@@ -52,7 +52,7 @@ class CrossGradient(BaseSimilarityMeasure):
     (`Haber and Gazit, 2013 <https://link.springer.com/article/10.1007/s10712-013-9232-4>`__):
 
     .. math::
-        \phi (m_1, m_2) = \frac{1}{2} \int_\Omega \, w(r) \,
+        \phi (m_1, m_2) = \int_\Omega \, w(r) \,
         \Big | \nabla m_1 \, \times \, \nabla m_2 \, \Big |^2 \, dv
 
     where :math:`w(r)` is a user-defined weighting function.
@@ -60,7 +60,7 @@ class CrossGradient(BaseSimilarityMeasure):
     the regularization function can be re-expressed as:
 
     .. math::
-        \phi (m_1, m_2) = \frac{1}{2} \int_\Omega \, w(r) \, \Big [ \,
+        \phi (m_1, m_2) = \int_\Omega \, w(r) \, \Big [ \,
         \big | \nabla m_1 \big |^2 \big | \nabla m_2 \big |^2
         - \big ( \nabla m_1 \, \cdot \, \nabla m_2 \, \big )^2 \Big ] \, dv
 
@@ -69,7 +69,7 @@ class CrossGradient(BaseSimilarityMeasure):
     function (objective function) is given by:
 
     .. math::
-        \phi (m_1, m_2) \approx \frac{1}{2} \sum_i \tilde{w}_i \, \bigg [
+        \phi (m_1, m_2) \approx \sum_i \tilde{w}_i \, \bigg [
         \Big | (\nabla m_1)_i \Big |^2 \Big | (\nabla m_2)_i \Big |^2
         - \Big [ (\nabla m_1)_i \, \cdot \, (\nabla m_2)_i \, \Big ]^2 \, \bigg ]
 
@@ -89,9 +89,9 @@ class CrossGradient(BaseSimilarityMeasure):
 
     .. math::
         \phi (\mathbf{m}) =
-        \frac{1}{2} \Big [ \mathbf{W A} \big ( \mathbf{G \, m_1} \big )^2 \Big ]^T
+     \Big [ \mathbf{W A} \big ( \mathbf{G \, m_1} \big )^2 \Big ]^T
         \Big [ \mathbf{W A} \big ( \mathbf{G \, m_2} \big )^2 \Big ]
-        - \frac{1}{2} \bigg \| \mathbf{W A} \Big [ \big ( \mathbf{G \, m_1} \big )
+        - \bigg \| \mathbf{W A} \Big [ \big ( \mathbf{G \, m_1} \big )
         \odot \big ( \mathbf{G \, m_2} \big ) \Big ] \bigg \|^2
 
     where exponents are computed elementwise,
@@ -249,9 +249,7 @@ class CrossGradient(BaseSimilarityMeasure):
         G = self._G
         g_m1 = G @ m1
         g_m2 = G @ m2
-        return 0.5 * np.sum(
-            (Av @ g_m1**2) * (Av @ g_m2**2) - (Av @ (g_m1 * g_m2)) ** 2
-        )
+        return np.sum((Av @ g_m1**2) * (Av @ g_m2**2) - (Av @ (g_m1 * g_m2)) ** 2)
 
     def deriv(self, model):
         r"""Gradient of the regularization function evaluated for the model provided.
@@ -267,7 +265,7 @@ class CrossGradient(BaseSimilarityMeasure):
         The gradient has the form:
 
         .. math::
-            \frac{\partial \phi}{\partial \mathbf{m}} =
+            2 \frac{\partial \phi}{\partial \mathbf{m}} =
             \begin{bmatrix} \dfrac{\partial \phi}{\partial \mathbf{m_1}} \\
             \dfrac{\partial \phi}{\partial \mathbf{m_2}} \end{bmatrix}
 
@@ -288,12 +286,15 @@ class CrossGradient(BaseSimilarityMeasure):
         g_m1 = G @ m1
         g_m2 = G @ m2
 
-        return np.r_[
-            (((Av @ g_m2**2) @ Av) * g_m1) @ G
-            - (((Av @ (g_m1 * g_m2)) @ Av) * g_m2) @ G,
-            (((Av @ g_m1**2) @ Av) * g_m2) @ G
-            - (((Av @ (g_m1 * g_m2)) @ Av) * g_m1) @ G,
-        ]
+        return (
+            2
+            * np.r_[
+                (((Av @ g_m2**2) @ Av) * g_m1) @ G
+                - (((Av @ (g_m1 * g_m2)) @ Av) * g_m2) @ G,
+                (((Av @ g_m1**2) @ Av) * g_m2) @ G
+                - (((Av @ (g_m1 * g_m2)) @ Av) * g_m1) @ G,
+            ]
+        )  # factor of 2 from derviative of | grad m1 x grad m2 | ^2
 
     def deriv2(self, model, v=None):
         r"""Hessian of the regularization function evaluated for the model provided.
@@ -310,10 +311,10 @@ class CrossGradient(BaseSimilarityMeasure):
         .. math::
             \frac{\partial^2 \phi}{\partial \mathbf{m}^2} =
             \begin{bmatrix}
-            \dfrac{\partial \phi^2}{\partial \mathbf{m_1}^2} &
-            \dfrac{\partial \phi^2}{\partial \mathbf{m_1} \partial \mathbf{m_2}} \\
-            \dfrac{\partial \phi^2}{\partial \mathbf{m_2} \partial \mathbf{m_1}} &
-            \dfrac{\partial \phi^2}{\partial \mathbf{m_2}^2}
+            \dfrac{\partial^2 \phi}{\partial \mathbf{m_1}^2} &
+            \dfrac{\partial^2 \phi}{\partial \mathbf{m_1} \partial \mathbf{m_2}} \\
+            \dfrac{\partial^2 \phi}{\partial \mathbf{m_2} \partial \mathbf{m_1}} &
+            \dfrac{\partial^2 \phi}{\partial \mathbf{m_2}^2}
             \end{bmatrix}
 
         When a vector :math:`(\mathbf{v})` is supplied, the method returns the Hessian
@@ -344,64 +345,49 @@ class CrossGradient(BaseSimilarityMeasure):
         g_m1 = G @ m1
         g_m2 = G @ m2
 
+        d11_mid = Av.T @ (Av @ g_m2**2)
+        d12_mid = -(Av.T @ (Av @ (g_m1 * g_m2)))
+        d22_mid = Av.T @ (Av @ g_m1**2)
+
         if v is None:
-            A = (
-                G.T
-                @ (
-                    sp.diags(Av.T @ (Av @ g_m2**2))
-                    - sp.diags(g_m2) @ Av.T @ Av @ sp.diags(g_m2)
-                )
-                @ G
-            )
-
-            C = (
-                G.T
-                @ (
-                    sp.diags(Av.T @ (Av @ g_m1**2))
-                    - sp.diags(g_m1) @ Av.T @ Av @ sp.diags(g_m1)
-                )
-                @ G
-            )
-
-            B = None
-            BT = None
+            D11_mid = sp.diags(d11_mid)
+            D12_mid = sp.diags(d12_mid)
+            D22_mid = sp.diags(d22_mid)
             if not self.approx_hessian:
-                # d_m1_d_m2
-                B = (
-                    G.T
-                    @ (
-                        2 * sp.diags(g_m1) @ Av.T @ Av @ sp.diags(g_m2)
-                        - sp.diags(g_m2) @ Av.T @ Av @ sp.diags(g_m1)
-                        - sp.diags(Av.T @ Av @ (g_m1 * g_m2))
-                    )
-                    @ G
+                D11_mid = D11_mid - sp.diags(g_m2) @ Av.T @ Av @ sp.diags(g_m2)
+                D12_mid = (
+                    D12_mid
+                    + 2 * sp.diags(g_m1) @ Av.T @ Av @ sp.diags(g_m2)
+                    - sp.diags(g_m2) @ Av.T @ Av @ sp.diags(g_m1)
                 )
-                BT = B.T
+                D22_mid = D22_mid - sp.diags(g_m1) @ Av.T @ Av @ sp.diags(g_m1)
+            D11 = G.T @ D11_mid @ G
+            D12 = G.T @ D12_mid @ G
+            D22 = G.T @ D22_mid @ G
 
-            return sp.bmat([[A, B], [BT, C]], format="csr")
+            return 2 * sp.bmat(
+                [[D11, D12], [D12.T, D22]], format="csr"
+            )  # factor of 2 from derviative of | grad m1 x grad m2 | ^2
+
         else:
             v1, v2 = self.wire_map * v
 
             Gv1 = G @ v1
             Gv2 = G @ v2
-
-            p1 = G.T @ (
-                (Av.T @ (Av @ g_m2**2)) * Gv1 - g_m2 * (Av.T @ (Av @ (g_m2 * Gv1)))
-            )
-            p2 = G.T @ (
-                (Av.T @ (Av @ g_m1**2)) * Gv2 - g_m1 * (Av.T @ (Av @ (g_m1 * Gv2)))
-            )
-
+            p1 = G.T @ (d11_mid * Gv1 + d12_mid * Gv2)
+            p2 = G.T @ (d12_mid * Gv1 + d22_mid * Gv2)
             if not self.approx_hessian:
                 p1 += G.T @ (
-                    2 * g_m1 * (Av.T @ (Av @ (g_m2 * Gv2)))
-                    - g_m2 * (Av.T @ (Av @ (g_m1 * Gv2)))
-                    - (Av.T @ (Av @ (g_m1 * g_m2))) * Gv2
+                    -g_m2 * (Av.T @ (Av @ (g_m2 * Gv1)))  # d11*v1 full addition
+                    + 2 * g_m1 * (Av.T @ (Av @ (g_m2 * Gv2)))  # d12*v2 full addition
+                    - g_m2 * (Av.T @ (Av @ (g_m1 * Gv2)))  # d12*v2 continued
                 )
 
                 p2 += G.T @ (
-                    2 * g_m2 * (Av.T @ (Av @ (g_m1 * Gv1)))
-                    - g_m1 * (Av.T @ (Av @ (g_m2 * Gv1)))
-                    - (Av.T @ (Av @ (g_m2 * g_m1))) * Gv1
+                    -g_m1 * (Av.T @ (Av @ (g_m1 * Gv2)))  # d22*v2 full addition
+                    + 2 * g_m2 * (Av.T @ (Av @ (g_m1 * Gv1)))  # d12.T*v1 full addition
+                    - g_m1 * (Av.T @ (Av @ (g_m2 * Gv1)))  # d12.T*v1 fcontinued
                 )
-            return np.r_[p1, p2]
+            return (
+                2 * np.r_[p1, p2]
+            )  # factor of 2 from derviative of | grad m1 x grad m2 | ^2

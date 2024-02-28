@@ -484,7 +484,7 @@ class BaseRegularization(BaseObjectiveFunction):
             The regularization function evaluated for the model provided.
         """
         r = self.W * self.f_m(m)
-        return 0.5 * r.dot(r)
+        return r.dot(r)
 
     @abstractmethod
     def f_m(self, m) -> np.ndarray:
@@ -516,7 +516,7 @@ class BaseRegularization(BaseObjectiveFunction):
             The Gradient of the regularization function evaluated for the model provided.
         """
         r = self.W * self.f_m(m)
-        return self.f_m_deriv(m).T * (self.W.T * r)
+        return 2 * self.f_m_deriv(m).T * (self.W.T * r)
 
     def deriv2(self, m, v=None) -> csr_matrix:
         r"""Hessian of the regularization function evaluated for the model provided.
@@ -551,8 +551,8 @@ class BaseRegularization(BaseObjectiveFunction):
         """
         f_m_deriv = self.f_m_deriv(m)
         if v is None:
-            return f_m_deriv.T * ((self.W.T * self.W) * f_m_deriv)
-        return f_m_deriv.T * (self.W.T * (self.W * (f_m_deriv * v)))
+            return 2 * f_m_deriv.T * ((self.W.T * self.W) * f_m_deriv)
+        return 2 * f_m_deriv.T * (self.W.T * (self.W * (f_m_deriv * v)))
 
 
 class Smallness(BaseRegularization):
@@ -595,7 +595,7 @@ class Smallness(BaseRegularization):
     We define the regularization function (objective function) for smallness as:
 
     .. math::
-        \phi (m) = \frac{1}{2} \int_\Omega \, w(r) \,
+        \phi (m) = \int_\Omega \, w(r) \,
         \Big [ m(r) - m^{(ref)}(r) \Big ]^2 \, dv
 
     where :math:`m(r)` is the model, :math:`m^{(ref)}(r)` is the reference model and :math:`w(r)`
@@ -606,7 +606,7 @@ class Smallness(BaseRegularization):
     function (objective function) is expressed in linear form as:
 
     .. math::
-        \phi (\mathbf{m}) = \frac{1}{2} \sum_i
+        \phi (\mathbf{m}) = \sum_i
         \tilde{w}_i \, \bigg | \, m_i - m_i^{(ref)} \, \bigg |^2
 
     where :math:`m_i \in \mathbf{m}` are the discrete model parameter values defined on the mesh and
@@ -615,7 +615,7 @@ class Smallness(BaseRegularization):
     This is equivalent to an objective function of the form:
 
     .. math::
-        \phi (\mathbf{m}) = \frac{1}{2}
+        \phi (\mathbf{m}) =
         \Big \| \mathbf{W} \big [ \mathbf{m} - \mathbf{m}^{(ref)} \big ] \Big \|^2
 
     where
@@ -685,7 +685,7 @@ class Smallness(BaseRegularization):
         The objective function for smallness regularization is given by:
 
         .. math::
-            \phi_m (\mathbf{m}) = \frac{1}{2}
+            \phi_m (\mathbf{m}) =
             \Big \| \mathbf{W} \big [ \mathbf{m} - \mathbf{m}^{(ref)} \big ] \Big \|^2
 
         where :math:`\mathbf{m}` are the discrete model parameters defined on the mesh (model),
@@ -700,7 +700,7 @@ class Smallness(BaseRegularization):
         such that
 
         .. math::
-            \phi_m (\mathbf{m}) = \frac{1}{2} \Big \| \mathbf{W} \, \mathbf{f_m} \Big \|^2
+            \phi_m (\mathbf{m}) = \Big \| \mathbf{W} \, \mathbf{f_m} \Big \|^2
 
         """
         return self.mapping * self._delta_m(m)
@@ -731,7 +731,7 @@ class Smallness(BaseRegularization):
         The objective function for smallness regularization is given by:
 
         .. math::
-            \phi_m (\mathbf{m}) = \frac{1}{2}
+            \phi_m (\mathbf{m}) =
             \Big \| \mathbf{W} \big [ \mathbf{m} - \mathbf{m}^{(ref)} \big ] \Big \|^2
 
         where :math:`\mathbf{m}` are the discrete model parameters defined on the mesh (model),
@@ -746,7 +746,7 @@ class Smallness(BaseRegularization):
         such that
 
         .. math::
-            \phi_m (\mathbf{m}) = \frac{1}{2} \Big \| \mathbf{W} \, \mathbf{f_m} \Big \|^2
+            \phi_m (\mathbf{m}) = \Big \| \mathbf{W} \, \mathbf{f_m} \Big \|^2
 
         Thus, the derivative with respect to the model is:
 
@@ -805,7 +805,7 @@ class SmoothnessFirstOrder(BaseRegularization):
     along the x-direction as:
 
     .. math::
-        \phi (m) = \frac{1}{2} \int_\Omega \, w(r) \,
+        \phi (m) = \int_\Omega \, w(r) \,
         \bigg [ \frac{\partial m}{\partial x} \bigg ]^2 \, dv
 
     where :math:`m(r)` is the model and :math:`w(r)` is a user-defined weighting function.
@@ -815,7 +815,7 @@ class SmoothnessFirstOrder(BaseRegularization):
     function (objective function) is expressed in linear form as:
 
     .. math::
-        \phi (\mathbf{m}) = \frac{1}{2} \sum_i
+        \phi (\mathbf{m}) = \sum_i
         \tilde{w}_i \, \bigg | \, \frac{\partial m_i}{\partial x} \, \bigg |^2
 
     where :math:`m_i \in \mathbf{m}` are the discrete model parameter values defined on the mesh
@@ -824,7 +824,7 @@ class SmoothnessFirstOrder(BaseRegularization):
     This is equivalent to an objective function of the form:
 
     .. math::
-        \phi (\mathbf{m}) = \frac{1}{2} \Big \| \mathbf{W \, G_x m } \, \Big \|^2
+        \phi (\mathbf{m}) = \Big \| \mathbf{W \, G_x m } \, \Big \|^2
 
     where
 
@@ -841,7 +841,7 @@ class SmoothnessFirstOrder(BaseRegularization):
     In this case, the objective function becomes:
 
     .. math::
-        \phi (\mathbf{m}) = \frac{1}{2} \Big \| \mathbf{W G_x}
+        \phi (\mathbf{m}) = \Big \| \mathbf{W G_x}
         \big [ \mathbf{m} - \mathbf{m}^{(ref)} \big ] \Big \|^2
 
     This functionality is used by setting a reference model with the
@@ -999,7 +999,7 @@ class SmoothnessFirstOrder(BaseRegularization):
         is given by:
 
         .. math::
-            \phi_m (\mathbf{m}) = \frac{1}{2}
+            \phi_m (\mathbf{m}) =
             \Big \| \mathbf{W G_x} \big [ \mathbf{m} - \mathbf{m}^{(ref)} \big ] \Big \|^2
 
         where :math:`\mathbf{m}` are the discrete model parameters (model),
@@ -1016,16 +1016,16 @@ class SmoothnessFirstOrder(BaseRegularization):
         such that
 
         .. math::
-            \phi_m (\mathbf{m}) = \frac{1}{2} \Big \| \mathbf{W \, f_m} \Big \|^2
+            \phi_m (\mathbf{m}) = \Big \| \mathbf{W \, f_m} \Big \|^2
         """
-        dfm_dl = self.cell_gradient @ (self.mapping * self._delta_m(m))
+        dfm_dl = self.mapping * self._delta_m(m)
 
         if self.units is not None and self.units.lower() == "radian":
             return (
-                utils.mat_utils.coterminal(dfm_dl * self._cell_distances)
+                utils.mat_utils.coterminal(self.cell_gradient.sign() @ dfm_dl)
                 / self._cell_distances
             )
-        return dfm_dl
+        return self.cell_gradient @ dfm_dl
 
     def f_m_deriv(self, m) -> csr_matrix:
         r"""Derivative of the regularization kernel function.
@@ -1055,7 +1055,7 @@ class SmoothnessFirstOrder(BaseRegularization):
         is given by:
 
         .. math::
-            \phi_m (\mathbf{m}) = \frac{1}{2}
+            \phi_m (\mathbf{m}) =
             \Big \| \mathbf{W G_x} \big [ \mathbf{m} - \mathbf{m}^{(ref)} \big ] \Big \|^2
 
         where :math:`\mathbf{m}` are the discrete model parameters (model),
@@ -1072,7 +1072,7 @@ class SmoothnessFirstOrder(BaseRegularization):
         such that
 
         .. math::
-            \phi_m (\mathbf{m}) = \frac{1}{2} \Big \| \mathbf{W \, f_m} \Big \|^2
+            \phi_m (\mathbf{m}) = \Big \| \mathbf{W \, f_m} \Big \|^2
 
         The derivative with respect to the model is therefore:
 
@@ -1170,7 +1170,7 @@ class SmoothnessSecondOrder(SmoothnessFirstOrder):
     smoothness along the x-direction as:
 
     .. math::
-        \phi (m) = \frac{1}{2} \int_\Omega \, w(r) \,
+        \phi (m) = \int_\Omega \, w(r) \,
         \bigg [ \frac{\partial^2 m}{\partial x^2} \bigg ]^2 \, dv
 
     where :math:`m(r)` is the model and :math:`w(r)` is a user-defined weighting function.
@@ -1180,7 +1180,7 @@ class SmoothnessSecondOrder(SmoothnessFirstOrder):
     function (objective function) is expressed in linear form as:
 
     .. math::
-        \phi (\mathbf{m}) = \frac{1}{2} \sum_i
+        \phi (\mathbf{m}) = \sum_i
         \tilde{w}_i \, \bigg | \, \frac{\partial^2 m_i}{\partial x^2} \, \bigg |^2
 
     where :math:`m_i \in \mathbf{m}` are the discrete model parameter values defined on the
@@ -1189,7 +1189,7 @@ class SmoothnessSecondOrder(SmoothnessFirstOrder):
     This is equivalent to an objective function of the form:
 
     .. math::
-        \phi (\mathbf{m}) = \frac{1}{2} \big \| \mathbf{W \, L_x \, m } \, \big \|^2
+        \phi (\mathbf{m}) = \big \| \mathbf{W \, L_x \, m } \, \big \|^2
 
     where
 
@@ -1203,7 +1203,7 @@ class SmoothnessSecondOrder(SmoothnessFirstOrder):
     In this case, the objective function becomes:
 
     .. math::
-        \phi (\mathbf{m}) = \frac{1}{2} \Big \| \mathbf{W L_x}
+        \phi (\mathbf{m}) = \Big \| \mathbf{W L_x}
         \big [ \mathbf{m} - \mathbf{m}^{(ref)} \big ] \Big \|^2
 
     This functionality is used by setting a reference model with the
@@ -1266,7 +1266,7 @@ class SmoothnessSecondOrder(SmoothnessFirstOrder):
         is given by:
 
         .. math::
-            \phi_m (\mathbf{m}) = \frac{1}{2}
+            \phi_m (\mathbf{m}) =
             \Big \| \mathbf{W L_x} \big [ \mathbf{m} - \mathbf{m}^{(ref)} \big ] \Big \|^2
 
         where :math:`\mathbf{m}` are the discrete model parameters (model),
@@ -1283,19 +1283,19 @@ class SmoothnessSecondOrder(SmoothnessFirstOrder):
         such that
 
         .. math::
-            \phi_m (\mathbf{m}) = \frac{1}{2} \Big \| \mathbf{W \, f_m} \Big \|^2
+            \phi_m (\mathbf{m}) = \Big \| \mathbf{W \, f_m} \Big \|^2
         """
-        dfm_dl = self.cell_gradient @ (self.mapping * self._delta_m(m))
+        dfm_dl = self.mapping * self._delta_m(m)
 
         if self.units is not None and self.units.lower() == "radian":
-            dfm_dl = (
-                utils.mat_utils.coterminal(dfm_dl * self.length_scales)
+            return self.cell_gradient.T @ (
+                utils.mat_utils.coterminal(self.cell_gradient.sign() @ dfm_dl)
                 / self.length_scales
             )
 
-        dfm_dl2 = self.cell_gradient.T @ dfm_dl
+        dfm_dl2 = self.cell_gradient @ dfm_dl
 
-        return dfm_dl2
+        return self.cell_gradient.T @ dfm_dl2
 
     def f_m_deriv(self, m) -> csr_matrix:
         r"""Derivative of the regularization kernel function.
@@ -1324,7 +1324,7 @@ class SmoothnessSecondOrder(SmoothnessFirstOrder):
         is given by:
 
         .. math::
-            \phi_m (\mathbf{m}) = \frac{1}{2}
+            \phi_m (\mathbf{m}) =
             \Big \| \mathbf{W L_x} \big [ \mathbf{m} - \mathbf{m}^{(ref)} \big ] \Big \|^2
 
         where :math:`\mathbf{m}` are the discrete model parameters (model),
@@ -1341,7 +1341,7 @@ class SmoothnessSecondOrder(SmoothnessFirstOrder):
         such that
 
         .. math::
-            \phi_m (\mathbf{m}) = \frac{1}{2} \Big \| \mathbf{W \, f_m} \Big \|^2
+            \phi_m (\mathbf{m}) = \Big \| \mathbf{W \, f_m} \Big \|^2
 
         The derivative of the regularization kernel function with respect to the model is:
 
@@ -1444,11 +1444,11 @@ class WeightedLeastSquares(ComboObjectiveFunction):
     :math:`\phi_m (m)` of the form:
 
     .. math::
-        \phi_m (m) =& \frac{\alpha_s}{2} \int_\Omega \, w(r)
+        \phi_m (m) =& \alpha_s \int_\Omega \, w(r)
         \Big [ m(r) - m^{(ref)}(r) \Big ]^2 \, dv \\
-        &+ \sum_{j=x,y,z} \frac{\alpha_j}{2} \int_\Omega \, w(r)
+        &+ \sum_{j=x,y,z} \alpha_j \int_\Omega \, w(r)
         \bigg [ \frac{\partial m}{\partial \xi_j} \bigg ]^2 \, dv \\
-        &+ \sum_{j=x,y,z} \frac{\alpha_{jj}}{2} \int_\Omega \, w(r)
+        &+ \sum_{j=x,y,z} \alpha_{jj} \int_\Omega \, w(r)
         \bigg [ \frac{\partial^2 m}{\partial \xi_j^2} \bigg ]^2 \, dv
         \;\;\;\;\;\;\;\; \big ( \textrm{optional} \big )
 
@@ -1472,10 +1472,10 @@ class WeightedLeastSquares(ComboObjectiveFunction):
     objective functions of the form:
 
     .. math::
-        \phi_m (\mathbf{m}) =& \frac{\alpha_s}{2}
+        \phi_m (\mathbf{m}) =& \alpha_s
         \Big \| \mathbf{W_s} \big [ \mathbf{m} - \mathbf{m}^{(ref)} \big ] \Big \|^2 \\
-        &+ \sum_{j=x,y,z} \frac{\alpha_j}{2} \Big \| \mathbf{W_j G_j \, m} \, \Big \|^2 \\
-        &+ \sum_{j=x,y,z} \frac{\alpha_{jj}}{2} \Big \| \mathbf{W_{jj} L_j \, m} \, \Big \|^2
+        &+ \sum_{j=x,y,z} \alpha_j \Big \| \mathbf{W_j G_j \, m} \, \Big \|^2 \\
+        &+ \sum_{j=x,y,z} \alpha_{jj} \Big \| \mathbf{W_{jj} L_j \, m} \, \Big \|^2
         \;\;\;\;\;\;\;\; \big ( \textrm{optional} \big )
 
     where
@@ -1493,11 +1493,11 @@ class WeightedLeastSquares(ComboObjectiveFunction):
     In this case, the objective function becomes:
 
     .. math::
-        \phi_m (\mathbf{m}) =& \frac{\alpha_s}{2}
+        \phi_m (\mathbf{m}) =& \alpha_s
         \Big \| \mathbf{W_s} \big [ \mathbf{m} - \mathbf{m}^{(ref)} \big ] \Big \|^2 \\
-        &+ \sum_{j=x,y,z} \frac{\alpha_j}{2} \Big \| \mathbf{W_j G_j}
+        &+ \sum_{j=x,y,z} \alpha_j \Big \| \mathbf{W_j G_j}
         \big [ \mathbf{m} - \mathbf{m}^{(ref)} \big ] \Big \|^2 \\
-        &+ \sum_{j=x,y,z} \frac{\alpha_{jj}}{2} \Big \| \mathbf{W_{jj} L_j}
+        &+ \sum_{j=x,y,z} \alpha_{jj} \Big \| \mathbf{W_{jj} L_j}
         \big [ \mathbf{m} - \mathbf{m}^{(ref)} \big ] \Big \|^2
         \;\;\;\;\;\;\;\; \big ( \textrm{optional} \big )
 
@@ -1676,8 +1676,13 @@ class WeightedLeastSquares(ComboObjectiveFunction):
             objfcts = kwargs.pop("objfcts")
 
         super().__init__(objfcts=objfcts, unpack_on_add=False, **kwargs)
+
+        for fun in objfcts:
+            fun.parent = self
+
         if active_cells is not None:
             self.active_cells = active_cells
+
         self.mapping = mapping
         self.reference_model = reference_model
         self.reference_model_in_smooth = reference_model_in_smooth

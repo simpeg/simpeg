@@ -1,4 +1,5 @@
 import unittest
+import pytest
 import numpy as np
 import scipy.sparse as sp
 import os
@@ -22,6 +23,7 @@ from SimPEG.utils import (
     Counter,
     download,
     surface2ind_topo,
+    coterminal,
 )
 import discretize
 
@@ -340,6 +342,36 @@ class TestDownload(unittest.TestCase):
         # clean up
         shutil.rmtree(os.path.expanduser("./test_urls"))
         shutil.rmtree(os.path.expanduser("./test_url"))
+
+
+class TestCoterminalAngle:
+    """
+    Tests for the coterminal function
+    """
+
+    @pytest.mark.parametrize(
+        "coterminal_angle",
+        (1 / 4 * np.pi, 3 / 4 * np.pi, -3 / 4 * np.pi, -1 / 4 * np.pi),
+        ids=("pi/4", "3/4 pi", "-3/4 pi", "-pi/4"),
+    )
+    def test_angles_in_quadrants(self, coterminal_angle):
+        """
+        Test coterminal for angles in each quadrant
+        """
+        angles = np.array([2 * n * np.pi + coterminal_angle for n in range(-3, 4)])
+        np.testing.assert_allclose(coterminal(angles), coterminal_angle)
+
+    @pytest.mark.parametrize(
+        "coterminal_angle",
+        (0, np.pi / 2, -np.pi, -np.pi / 2),
+        ids=("0", "pi/2", "-pi", "-pi/2"),
+    )
+    def test_right_angles(self, coterminal_angle):
+        """
+        Test coterminal for right angles
+        """
+        angles = np.array([2 * n * np.pi + coterminal_angle for n in range(-3, 4)])
+        np.testing.assert_allclose(coterminal(angles), coterminal_angle)
 
 
 if __name__ == "__main__":
