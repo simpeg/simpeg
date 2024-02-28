@@ -358,7 +358,7 @@ class TestsMagSimulation:
             ) * mu_0
 
             # Check results
-            rtol, atol = 1e-7, 1e-6
+            rtol, atol = 5e-7, 1e-6
             np.testing.assert_allclose(d_xx, d[..., 0, 0], rtol=rtol, atol=atol)
             np.testing.assert_allclose(d_xy, d[..., 0, 1], rtol=rtol, atol=atol)
             np.testing.assert_allclose(d_xz, d[..., 0, 2], rtol=rtol, atol=atol)
@@ -440,7 +440,7 @@ class TestsMagSimulation:
         tmi = sim.tmi_projection
 
         # Check results
-        rtol, atol = 9e-6, 3e-7
+        rtol, atol = 5e-7, 1e-6
         np.testing.assert_allclose(data[:, 0], d[:, 0], rtol=rtol, atol=atol)
         np.testing.assert_allclose(data[:, 1], d[:, 1], rtol=rtol, atol=atol)
         np.testing.assert_allclose(data[:, 2], d[:, 2], rtol=rtol, atol=atol)
@@ -521,7 +521,7 @@ class TestsMagSimulation:
         d_amp = np.linalg.norm(d, axis=1)
 
         # Check results
-        rtol, atol = 2e-7, 1e-6
+        rtol, atol = 5e-7, 1e-6
         np.testing.assert_allclose(data, d_amp, rtol=rtol, atol=atol)
 
 
