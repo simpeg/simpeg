@@ -1007,7 +1007,7 @@ class Simulation2DCellCentered(BaseDCSimulation2D):
 
         # Isotropic case
         if self.sigma.size == self.mesh.nC:
-            return super().MnSigmaDeriv(u, v, adjoint)
+            return super().MccSigmaDeriv(u, v, adjoint)
 
         # Override for anisotropic case
         if self.sigmaMap is None:
