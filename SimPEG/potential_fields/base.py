@@ -236,7 +236,7 @@ class BasePFSimulation(LinearSimulation):
 
         ..important::
 
-            If ``engine`` is not ``"choclo"`` this argument will be ignored.
+            If ``engine`` is not ``"choclo"`` this property will be ignored.
         """
         return self._numba_parallel
 
