@@ -557,11 +557,20 @@ class LinearSimulation(BaseSimulation):
 class ExponentialSinusoidSimulation(LinearSimulation):
     r"""
     This is the simulation class for the linear problem consisting of
-    exponentially decaying sinusoids. The rows of the G matrix are
+    exponentially decaying sinusoids. The kernel functions take the form:
 
     .. math::
 
         \int_x e^{p j_k x} \cos(\pi q j_k x) \quad, j_k \in [j_0, ..., j_n]
+
+    The model is defined at cell centers while the kernel functions are defined on nodes.
+    The trapezoid rule is used to evaluate the integral
+
+    .. math::
+
+        d_j = \int g_j(x) m(x) dx
+
+    to define our data.
     """
 
     def __init__(self, n_kernels=20, p=-0.25, q=0.25, j0=0.0, jn=60.0, **kwargs):
