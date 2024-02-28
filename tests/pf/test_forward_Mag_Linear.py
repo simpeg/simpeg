@@ -187,6 +187,20 @@ class TestsMagSimulation:
         b0 = mag.analytics.IDTtoxyz(-H0[1], H0[2], H0[0])
         return H0, b0
 
+    def test_choclo_and_n_proceesses(self, mag_mesh):
+        """
+        Check if warning is raised after passing n_processes with choclo engine.
+        """
+        msg = "The 'n_processes' will be ignored when selecting 'choclo'"
+        with pytest.warns(UserWarning, match=msg):
+            simulation = mag.Simulation3DIntegral(
+                mag_mesh,
+                engine="choclo",
+                n_processes=2,
+            )
+        # Check if n_processes was overwritten and set to None
+        assert simulation.n_processes is None
+
     @pytest.mark.parametrize(
         "engine,parallel_kwargs",
         [
