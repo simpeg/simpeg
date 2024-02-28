@@ -305,6 +305,10 @@ def _forward_mag(
 
     Notes
     -----
+
+    About the kernel functions
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^
+
     For computing the ``bx`` component of the magnetic field we need to use the
     following kernels:
 
@@ -326,6 +330,24 @@ def _forward_mag(
     .. code::
 
         kernel_x=kernel_eu, kernel_y=kernel_nu, kernel_z=kernel_uu
+
+
+    About the model array
+    ^^^^^^^^^^^^^^^^^^^^^
+
+    The ``model`` must always be a 1d array:
+
+    * If ``scalar_model`` is ``True``, then ``model`` should be a 1d array with
+      the same number of elements as active cells in the mesh. It should store
+      the magnetic susceptibilities of each active cell in SI units.
+    * If ``scalar_model`` is ``False``, then ``model`` should be a 1d array
+      with a number of elements equal to three times the active cells in the
+      mesh. It should store the components of the magnetization vector of each
+      active cell in :math:`Am^{-1}`. The order in which the components should
+      be passed are:
+          * every _easting_ component of each active cell,
+          * then every _northing_ component of each active cell,
+          * and finally every _upward_ component of each active cell.
 
     """
     n_receivers = receivers.shape[0]
@@ -426,6 +448,23 @@ def _forward_tmi(
         (susceptibilities).
         If False, the sensitivity matrix is build to work with vector models
         (effective susceptibilities).
+
+    Notes
+    -----
+
+    The ``model`` must always be a 1d array:
+
+    * If ``scalar_model`` is ``True``, then ``model`` should be a 1d array with
+      the same number of elements as active cells in the mesh. It should store
+      the magnetic susceptibilities of each active cell in SI units.
+    * If ``scalar_model`` is ``False``, then ``model`` should be a 1d array
+      with a number of elements equal to three times the active cells in the
+      mesh. It should store the components of the magnetization vector of each
+      active cell in :math:`Am^{-1}`. The order in which the components should
+      be passed are:
+          * every _easting_ component of each active cell,
+          * then every _northing_ component of each active cell,
+          * and finally every _upward_ component of each active cell.
 
     """
     n_receivers = receivers.shape[0]
