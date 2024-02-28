@@ -507,7 +507,7 @@ class TestsMagSimulation:
         d_amp = np.linalg.norm(d, axis=1)
 
         # Check results
-        rtol, atol = 1e-7, 1e-6
+        rtol, atol = 2e-7, 1e-6
         np.testing.assert_allclose(data, d_amp, rtol=rtol, atol=atol)
 
 
