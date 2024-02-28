@@ -582,6 +582,8 @@ class RegularizationTests(unittest.TestCase):
             reg.objfcts[0].f_m(model.flatten(order="F")), np.linalg.norm(model, axis=1)
         )
 
+        reg.test(model.flatten(order="F"))
+
 
 def test_WeightedLeastSquares():
     mesh = discretize.TensorMesh([3, 4, 5])
@@ -638,6 +640,22 @@ def test_cross_reg_reg_errors():
         regularization.CrossReferenceRegularization(mesh, ref_dir)
 
 
+@pytest.mark.parametrize("orientation", ("x", "y", "z"))
+def test_smoothness_first_order_coterminal_angle(orientation):
+    """
+    Test smoothness first order regularizations of angles on a treemesh
+    """
+    mesh = discretize.TreeMesh([16, 16, 16])
+    mesh.insert_cells([100, 100, 100], mesh.max_level, finalize=True)
+
+    reg = regularization.SmoothnessFirstOrder(
+        mesh, units="radian", orientation=orientation
+    )
+    angles = np.ones(mesh.n_cells) * np.pi
+    angles[5] = -np.pi
+    assert np.all(reg.f_m(angles) == 0)
+
+
 class TestParent:
     """Test parent property of regularizations."""
 
@@ -663,6 +681,12 @@ class TestParent:
         msg = "Invalid parent of type 'Dummy'."
         with pytest.raises(TypeError, match=msg):
             regularization.parent = invalid_parent
+
+    def test_default_parent(self, regularization):
+        """Test setting default parent class to a BaseRegularization."""
+        mesh = discretize.TensorMesh([3, 4, 5])
+        parent = WeightedLeastSquares(mesh, objfcts=[regularization])
+        assert regularization.parent is parent
 
 
 class TestWeightsKeys:

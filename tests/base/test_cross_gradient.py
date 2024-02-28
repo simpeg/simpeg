@@ -96,7 +96,7 @@ class CrossGradientTensor2D(unittest.TestCase):
 
         cross_grad = self.cross_grad
 
-        v1 = 0.5 * np.sum(np.abs(cross_grad.calculate_cross_gradient(m)))
+        v1 = np.sum(np.abs(cross_grad.calculate_cross_gradient(m)))
         v2 = cross_grad(m)
         self.assertEqual(v1, v2)
 
