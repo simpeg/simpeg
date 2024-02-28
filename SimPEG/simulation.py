@@ -668,7 +668,6 @@ class ExponentialSinusoidSimulation(LinearSimulation):
             G_nodes = np.empty((self.mesh.n_nodes, self.n_kernels))
 
             for i in range(self.n_kernels):
-                print(self.g(i).shape)
                 G_nodes[:, i] = self.g(i)
 
             self._G = (self.mesh.average_node_to_cell @ G_nodes).T @ sdiag(
