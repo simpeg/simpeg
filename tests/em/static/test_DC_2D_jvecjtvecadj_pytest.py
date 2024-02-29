@@ -1,12 +1,7 @@
 import pytest
 import numpy as np
 from discretize import TensorMesh
-from SimPEG import (
-    maps,
-    data_misfit,
-    tests,
-    utils
-)
+from SimPEG import maps, data_misfit, tests, utils
 from SimPEG.electromagnetics import resistivity as dc
 from SimPEG.electromagnetics.static.resistivity.simulation_2d import (
     Simulation2DCellCentered,
