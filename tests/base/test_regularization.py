@@ -94,7 +94,7 @@ class RegularizationTests(unittest.TestCase):
                     reg.mref = mref
 
                     # test derivs
-                    passed = reg.test(m, eps=TOL)
+                    passed = reg.test_derivatives(m, eps=TOL)
                     self.assertTrue(passed)
 
         def test_regularization_ActiveCells(self):
@@ -142,7 +142,7 @@ class RegularizationTests(unittest.TestCase):
 
                     print("--- Checking {} ---\n".format(reg.__class__.__name__))
 
-                    passed = reg.test(m, eps=TOL)
+                    passed = reg.test_derivatives(m, eps=TOL)
                     self.assertTrue(passed)
 
     if testRegMesh:
@@ -244,17 +244,17 @@ class RegularizationTests(unittest.TestCase):
         reg_a = reg1 + reg2
         self.assertTrue(len(reg_a) == 2)
         self.assertTrue(reg1(m) + reg2(m) == reg_a(m))
-        reg_a.test(eps=TOL)
+        reg_a.test_derivatives(eps=TOL)
 
         reg_b = 2 * reg1 + reg2
         self.assertTrue(len(reg_b) == 2)
         self.assertTrue(2 * reg1(m) + reg2(m) == reg_b(m))
-        reg_b.test(eps=TOL)
+        reg_b.test_derivatives(eps=TOL)
 
         reg_c = reg1 + reg2 / 2
         self.assertTrue(len(reg_c) == 2)
         self.assertTrue(reg1(m) + 0.5 * reg2(m) == reg_c(m))
-        reg_c.test(eps=TOL)
+        reg_c.test_derivatives(eps=TOL)
 
     def test_mappings(self):
         mesh = discretize.TensorMesh([8, 7, 6])
@@ -273,9 +273,9 @@ class RegularizationTests(unittest.TestCase):
             self.assertTrue(reg3.nP == 2 * mesh.nC)
             self.assertTrue(reg3(m) == reg1(m) + reg2(m))
 
-            reg1.test(eps=TOL)
-            reg2.test(eps=TOL)
-            reg3.test(eps=TOL)
+            reg1.test_derivatives(eps=TOL)
+            reg2.test_derivatives(eps=TOL)
+            reg3.test_derivatives(eps=TOL)
 
     def test_mref_is_zero(self):
         mesh = discretize.TensorMesh([10, 5, 8])
@@ -590,7 +590,7 @@ class RegularizationTests(unittest.TestCase):
             reg.objfcts[0].f_m(model.flatten(order="F")), np.linalg.norm(model, axis=1)
         )
 
-        reg.test(model.flatten(order="F"))
+        reg.test_derivatives(model.flatten(order="F"))
 
 
 def test_WeightedLeastSquares():
@@ -635,7 +635,7 @@ def test_cross_ref_reg(dim):
         assert cross_reg.W.shape == (n_active, n_active)
 
     m = np.random.rand(dim * n_active)
-    cross_reg.test(m)
+    cross_reg.test_derivatives(m)
 
 
 def test_cross_reg_reg_errors():
