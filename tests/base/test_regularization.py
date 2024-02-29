@@ -42,6 +42,16 @@ IGNORE_ME = [
 ]
 
 
+class MockRegularization(BaseRegularization):
+    """Mock of a regularization class to run tests."""
+
+    def f_m(self, m):
+        raise NotImplementedError()
+
+    def f_m_deriv(self, m):
+        raise NotImplementedError()
+
+
 class RegularizationTests(unittest.TestCase):
     def setUp(self):
         hx, hy, hz = np.random.rand(10), np.random.rand(9), np.random.rand(8)
@@ -482,11 +492,11 @@ class RegularizationTests(unittest.TestCase):
         mesh = discretize.TensorMesh([8, 7, 6])
 
         with pytest.raises(TypeError) as error:
-            regularization.BaseRegularization(np.ones(1))
+            MockRegularization(np.ones(1))
 
         assert "'regularization_mesh' must be of type " in str(error)
 
-        reg = regularization.BaseRegularization(mesh)
+        reg = MockRegularization(mesh)
         with pytest.raises(TypeError) as error:
             reg.mapping = np.ones(1)
 
@@ -661,7 +671,7 @@ class TestParent:
     def regularization(self):
         """Sample regularization instance."""
         mesh = discretize.TensorMesh([3, 4, 5])
-        return BaseRegularization(mesh)
+        return MockRegularization(mesh)
 
     def test_parent(self, regularization):
         """Test setting a parent class to a BaseRegularization."""
@@ -701,7 +711,7 @@ class TestWeightsKeys:
         """
         Test weights_keys when no weight is defined
         """
-        reg = BaseRegularization(mesh)
+        reg = MockRegularization(mesh)
         assert reg.weights_keys == []
 
     def test_user_defined_weights_as_dict(self, mesh):
@@ -709,7 +719,7 @@ class TestWeightsKeys:
         Test weights_keys after user defined weights as dictionary
         """
         weights = dict(dummy_weight=np.ones(mesh.n_cells))
-        reg = BaseRegularization(mesh, weights=weights)
+        reg = MockRegularization(mesh, weights=weights)
         assert reg.weights_keys == ["dummy_weight"]
 
     def test_user_defined_weights_as_array(self, mesh):
@@ -717,7 +727,7 @@ class TestWeightsKeys:
         Test weights_keys after user defined weights as dictionary
         """
         weights = np.ones(mesh.n_cells)
-        reg = BaseRegularization(mesh, weights=weights)
+        reg = MockRegularization(mesh, weights=weights)
         assert reg.weights_keys == ["user_weights"]
 
     @pytest.mark.parametrize(
@@ -732,7 +742,7 @@ class TestWeightsKeys:
 
     @pytest.mark.parametrize(
         "regularization_class",
-        (BaseRegularization, Smallness, SmoothnessFirstOrder, SmoothnessSecondOrder),
+        (MockRegularization, Smallness, SmoothnessFirstOrder, SmoothnessSecondOrder),
     )
     def test_multiple_weights(self, mesh, regularization_class):
         """
@@ -742,7 +752,7 @@ class TestWeightsKeys:
             dummy_weight=np.ones(mesh.n_cells), other_weights=np.ones(mesh.n_cells)
         )
         reg = regularization_class(mesh, weights=weights)
-        if regularization_class == BaseRegularization:
+        if regularization_class == MockRegularization:
             assert reg.weights_keys == ["dummy_weight", "other_weights"]
         else:
             assert reg.weights_keys == ["dummy_weight", "other_weights", "volume"]
@@ -771,10 +781,12 @@ class TestDeprecatedArguments:
         elif request.param == "3D":
             hx, hy, hz = np.random.rand(10), np.random.rand(9), np.random.rand(8)
             h = [h_i / h_i.sum() for h_i in (hx, hy, hz)]
+        else:
+            raise ValueError("Invalid mesh dimensions")
         return discretize.TensorMesh(h)
 
     @pytest.mark.parametrize(
-        "regularization_class", (BaseRegularization, WeightedLeastSquares)
+        "regularization_class", (MockRegularization, WeightedLeastSquares)
     )
     def test_active_cells(self, mesh, regularization_class):
         """Test indActive and active_cells arguments."""
@@ -790,7 +802,7 @@ class TestDeprecatedArguments:
         weights = np.ones(len(mesh))
         msg = "Cannot simultaneously pass 'weights' and 'cell_weights'."
         with pytest.raises(ValueError, match=msg):
-            BaseRegularization(mesh, weights=weights, cell_weights=weights)
+            MockRegularization(mesh, weights=weights, cell_weights=weights)
 
 
 if __name__ == "__main__":
