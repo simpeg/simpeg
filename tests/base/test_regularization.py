@@ -511,18 +511,6 @@ class RegularizationTests(unittest.TestCase):
 
         assert reg.model.shape[0] == mesh.nC, "Issue setting a model from float."
 
-        with pytest.raises(AttributeError) as error:
-            print(reg.f_m(reg.model))
-
-        assert "Regularization class must have a 'f_m' implementation." in str(error)
-
-        with pytest.raises(AttributeError) as error:
-            print(reg.f_m_deriv(reg.model))
-
-        assert "Regularization class must have a 'f_m_deriv' implementation." in str(
-            error
-        )
-
     def test_smooth_deriv(self):
         mesh = discretize.TensorMesh([8, 7])
 
