@@ -82,10 +82,12 @@ receiver_list = [receiver_list]
 inclination = 90
 declination = 0
 strength = 50000
-inducing_field = (strength, inclination, declination)
 
-source_field = magnetics.sources.SourceField(
-    receiver_list=receiver_list, parameters=inducing_field
+source_field = magnetics.sources.UniformBackgroundField(
+    receiver_list=receiver_list,
+    amplitude=strength,
+    inclination=inclination,
+    declination=declination,
 )
 
 # Define the survey
