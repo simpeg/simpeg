@@ -5,6 +5,7 @@ from SimPEG import (
     maps,
     data_misfit,
     tests,
+    utils
 )
 from SimPEG.electromagnetics import resistivity as dc
 from SimPEG.electromagnetics.static.resistivity.simulation_2d import (
