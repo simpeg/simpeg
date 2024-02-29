@@ -8,7 +8,7 @@ import warnings
 
 from discretize.base import BaseMesh
 from discretize import TensorMesh
-from discretize.utils import unpack_widths
+from discretize.utils import unpack_widths, sdiag
 
 from . import props
 from .data import SyntheticData, Data
@@ -557,12 +557,29 @@ class LinearSimulation(BaseSimulation):
 class ExponentialSinusoidSimulation(LinearSimulation):
     r"""
     This is the simulation class for the linear problem consisting of
-    exponentially decaying sinusoids. The rows of the G matrix are
+    exponentially decaying sinusoids. The kernel functions take the form:
 
     .. math::
 
         \int_x e^{p j_k x} \cos(\pi q j_k x) \quad, j_k \in [j_0, ..., j_n]
+
+    The model is defined at cell centers while the kernel functions are defined on nodes.
+    The trapezoid rule is used to evaluate the integral
+
+    .. math::
+
+        d_j = \int g_j(x) m(x) dx
+
+    to define our data.
     """
+
+    def __init__(self, n_kernels=20, p=-0.25, q=0.25, j0=0.0, jn=60.0, **kwargs):
+        self.n_kernels = n_kernels
+        self.p = p
+        self.q = q
+        self.j0 = j0
+        self.jn = jn
+        super(ExponentialSinusoidSimulation, self).__init__(**kwargs)
 
     @property
     def n_kernels(self):
@@ -634,14 +651,6 @@ class ExponentialSinusoidSimulation(LinearSimulation):
     def jn(self, value):
         self._jn = validate_float("jn", value)
 
-    def __init__(self, n_kernels=20, p=-0.25, q=0.25, j0=0.0, jn=60.0, **kwargs):
-        self.n_kernels = n_kernels
-        self.p = p
-        self.q = q
-        self.j0 = j0
-        self.jn = jn
-        super(ExponentialSinusoidSimulation, self).__init__(**kwargs)
-
     @property
     def jk(self):
         """
@@ -655,8 +664,8 @@ class ExponentialSinusoidSimulation(LinearSimulation):
         """
         Kernel functions for the decaying oscillating exponential functions.
         """
-        return np.exp(self.p * self.jk[k] * self.mesh.cell_centers_x) * np.cos(
-            np.pi * self.q * self.jk[k] * self.mesh.cell_centers_x
+        return np.exp(self.p * self.jk[k] * self.mesh.nodes_x) * np.cos(
+            np.pi * self.q * self.jk[k] * self.mesh.nodes_x
         )
 
     @property
@@ -665,10 +674,12 @@ class ExponentialSinusoidSimulation(LinearSimulation):
         Matrix whose rows are the kernel functions
         """
         if getattr(self, "_G", None) is None:
-            G = np.empty((self.n_kernels, self.mesh.nC))
+            G_nodes = np.empty((self.mesh.n_nodes, self.n_kernels))
 
             for i in range(self.n_kernels):
-                G[i, :] = self.g(i) * self.mesh.h[0]
+                G_nodes[:, i] = self.g(i)
 
-            self._G = G
+            self._G = (self.mesh.average_node_to_cell @ G_nodes).T @ sdiag(
+                self.mesh.cell_volumes
+            )
         return self._G
