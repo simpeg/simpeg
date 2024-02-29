@@ -5,12 +5,33 @@ import unittest
 
 from SimPEG import utils, maps
 from SimPEG import objective_function
+from SimPEG.objective_function import BaseObjectiveFunction
 from SimPEG.objective_function import _validate_multiplier
 from SimPEG.utils import Zero
 
 np.random.seed(130)
 
 EPS = 1e-9
+
+
+class MockObjectiveFunction(BaseObjectiveFunction):
+    """Mock objective function class to run tests."""
+
+    def __init__(self, nP=None):
+        self._nP = nP
+
+    def __call__(self, model, f=None):
+        return 1.0
+
+    def deriv(self, model):
+        return 2.0
+
+    def deriv2(self, model):
+        return 3.0
+
+    @property
+    def nP(self):
+        return self._nP
 
 
 class Empty_ObjFct(objective_function.BaseObjectiveFunction):
@@ -343,8 +364,8 @@ class TestOperationsComboObjectiveFunctions:
     def test_mul(self, unpack_on_add):
         """Test if ComboObjectiveFunction multiplication works as expected"""
         n_params = 10
-        phi1 = objective_function.L2ObjectiveFunction(nP=n_params)
-        phi2 = objective_function.L2ObjectiveFunction(nP=n_params)
+        phi1 = MockObjectiveFunction(nP=n_params)
+        phi2 = MockObjectiveFunction(nP=n_params)
         combo = objective_function.ComboObjectiveFunction(
             [phi1, phi2], [2, 3], unpack_on_add=unpack_on_add
         )
@@ -357,9 +378,9 @@ class TestOperationsComboObjectiveFunctions:
     def test_add(self, unpack_on_add):
         """Test if ComboObjectiveFunction addition works as expected"""
         n_params = 10
-        phi1 = objective_function.L2ObjectiveFunction(nP=n_params)
-        phi2 = objective_function.L2ObjectiveFunction(nP=n_params)
-        phi3 = objective_function.L2ObjectiveFunction(nP=n_params)
+        phi1 = MockObjectiveFunction(nP=n_params)
+        phi2 = MockObjectiveFunction(nP=n_params)
+        phi3 = MockObjectiveFunction(nP=n_params)
         combo_1 = objective_function.ComboObjectiveFunction(
             [phi1, phi2], [2, 3], unpack_on_add=unpack_on_add
         )
@@ -378,9 +399,9 @@ class TestOperationsComboObjectiveFunctions:
     def test_add_multiple_terms(self):
         """Test addition of multiple BaseObjectiveFunctions"""
         n_params = 10
-        phi1 = objective_function.L2ObjectiveFunction(nP=n_params)
-        phi2 = objective_function.L2ObjectiveFunction(nP=n_params)
-        phi3 = objective_function.L2ObjectiveFunction(nP=n_params)
+        phi1 = MockObjectiveFunction(nP=n_params)
+        phi2 = MockObjectiveFunction(nP=n_params)
+        phi3 = MockObjectiveFunction(nP=n_params)
         combo = 1.1 * phi1 + 1.2 * phi2 + 1.3 * phi3
         assert len(combo) == 3
         assert combo.multipliers == [1.1, 1.2, 1.3]
@@ -395,9 +416,9 @@ class TestOperationsComboObjectiveFunctions:
         another Combo for it.
         """
         n_params = 10
-        phi1 = objective_function.L2ObjectiveFunction(nP=n_params)
-        phi2 = objective_function.L2ObjectiveFunction(nP=n_params)
-        phi3 = objective_function.L2ObjectiveFunction(nP=n_params)
+        phi1 = MockObjectiveFunction(nP=n_params)
+        phi2 = MockObjectiveFunction(nP=n_params)
+        phi3 = MockObjectiveFunction(nP=n_params)
         combo_1 = objective_function.ComboObjectiveFunction(
             [phi1, phi2], [2, 3], unpack_on_add=unpack_on_add
         )
@@ -411,8 +432,8 @@ class TestOperationsComboObjectiveFunctions:
     "objfcts, multipliers",
     (
         (None, None),
-        ([objective_function.L2ObjectiveFunction()], None),
-        ([objective_function.L2ObjectiveFunction()], [2.5]),
+        ([MockObjectiveFunction()], None),
+        ([MockObjectiveFunction()], [2.5]),
     ),
 )
 def test_empty_combo(objfcts, multipliers):
@@ -437,7 +458,7 @@ def test_invalid_objfcts_in_combo():
     class Dummy:
         pass
 
-    phi = objective_function.L2ObjectiveFunction()
+    phi = MockObjectiveFunction()
     invalid_phi = Dummy()
     msg = "Unrecognized objective function type Dummy in 'objfcts'."
     with pytest.raises(TypeError, match=msg):
