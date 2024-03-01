@@ -1,4 +1,5 @@
 import numpy as np
+from scipy import sparse
 import unittest
 
 import pytest
@@ -283,7 +284,6 @@ class RegularizationTests(unittest.TestCase):
     def test_mappings_and_cell_weights(self):
         mesh = discretize.TensorMesh([8, 7, 6])
         m = np.random.rand(2 * mesh.nC)
-        v = np.random.rand(2 * mesh.nC)
 
         cell_weights = np.random.rand(mesh.nC)
 
@@ -291,14 +291,17 @@ class RegularizationTests(unittest.TestCase):
 
         reg = regularization.Smallness(mesh, mapping=wires.sigma, weights=cell_weights)
 
-        objfct = objective_function.L2ObjectiveFunction(
-            W=utils.sdiag(np.sqrt(cell_weights * mesh.cell_volumes)),
-            mapping=wires.sigma,
-        )
+        # Compute expected outputs and compare with the outputs of Smallness
+        w = sparse.diags(np.sqrt(reg.get_weights("volume") * cell_weights))
+        sigma = m[: mesh.nC]
+        r = w * sigma
+        smallness = r.T @ r
+        deriv = np.hstack((2 * w.T @ w @ sigma, np.zeros_like(sigma)))
+        deriv2 = sparse.block_diag([2 * w.T @ w, sparse.diags(np.zeros(mesh.nC))])
 
-        self.assertTrue(reg(m) == objfct(m))
-        self.assertTrue(np.all(reg.deriv(m) == objfct.deriv(m)))
-        self.assertTrue(np.all(reg.deriv2(m, v=v) == objfct.deriv2(m, v=v)))
+        np.testing.assert_allclose(reg(m), smallness)
+        np.testing.assert_allclose(reg.deriv(m), deriv)
+        np.testing.assert_allclose(reg.deriv2(m).toarray(), deriv2.toarray())
 
         reg.set_weights(user_weights=cell_weights)
 
