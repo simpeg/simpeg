@@ -47,15 +47,59 @@ class BaseObjectiveFunction(ABC):
 
     @abstractmethod
     def deriv(self, model):
-        """
-        Gradient of the objective function evaluated on a given model.
+        r"""Gradient of the objective function evaluated for the model provided.
+
+        Where :math:`\phi (\mathbf{m})` is the objective function, this method
+        evaluates and returns the derivative with respect to the model
+        parameters; i.e. the gradient:
+
+        .. math::
+
+            \frac{\partial \phi}{\partial \mathbf{m}}
+
+        Parameters
+        ----------
+        m : (n_param, ) numpy.ndarray
+            The model for which the gradient is evaluated.
+
+        Returns
+        -------
+        (n_param, ) numpy.ndarray
+            The gradient of the objective function evaluated for the model provided.
         """
         pass
 
     @abstractmethod
-    def deriv2(self, model):
-        """
-        Hessian of the objective function evaluated on a given model.
+    def deriv2(self, model, v=None):
+        r"""Hessian of the objective function evaluated for the model provided.
+
+        Where :math:`\phi (\mathbf{m})` is the objective function, this method
+        returns the second-derivative (Hessian) with respect to the model
+        parameters:
+
+        .. math::
+
+            \frac{\partial^2 \phi}{\partial \mathbf{m}^2}
+
+        or the second-derivative (Hessian) multiplied by a vector :math:`(\mathbf{v})`:
+
+        .. math::
+
+            \frac{\partial^2 \phi}{\partial \mathbf{m}^2} \, \mathbf{v}
+
+        Parameters
+        ----------
+        m : (n_param, ) numpy.ndarray
+            The model for which the Hessian is evaluated.
+        v : None or (n_param, ) numpy.ndarray, optional
+            A vector.
+
+        Returns
+        -------
+        (n_param, n_param) scipy.sparse.csr_matrix or (n_param, ) numpy.ndarray
+            If the input argument *v* is ``None``, the Hessian of the objective
+            function for the model provided is returned. If *v* is not ``None``,
+            the Hessian multiplied by the vector provided is returned.
         """
         pass
 
