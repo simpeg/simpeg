@@ -1,5 +1,4 @@
 from __future__ import annotations
-from abc import abstractmethod
 import warnings
 
 import numpy as np
@@ -486,13 +485,15 @@ class BaseRegularization(BaseObjectiveFunction):
         r = self.W * self.f_m(m)
         return r.dot(r)
 
-    @abstractmethod
     def f_m(self, m) -> np.ndarray:
-        pass
+        """Not implemented for ``BaseRegularization`` class."""
+        raise AttributeError("Regularization class must have a 'f_m' implementation.")
 
-    @abstractmethod
     def f_m_deriv(self, m) -> csr_matrix:
-        pass
+        """Not implemented for ``BaseRegularization`` class."""
+        raise AttributeError(
+            "Regularization class must have a 'f_m_deriv' implementation."
+        )
 
     def deriv(self, m) -> np.ndarray:
         r"""Gradient of the regularization function evaluated for the model provided.
