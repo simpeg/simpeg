@@ -457,7 +457,7 @@ class RegularizationTests(unittest.TestCase):
         mapping = maps.ExpMap(mesh) * maps.SurjectVertical1D(mesh) * actMap
 
         regMesh = discretize.TensorMesh([mesh.h[2][mapping.maps[-1].indActive]])
-        reg = regularization.Simple(regMesh)
+        reg = regularization.WeightedLeastSquares(regMesh)
 
         self.assertTrue(reg._nC_residual == regMesh.nC)
         self.assertTrue(all([fct._nC_residual == regMesh.nC for fct in reg.objfcts]))
