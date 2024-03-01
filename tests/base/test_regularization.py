@@ -793,5 +793,28 @@ class TestDeprecatedArguments:
             BaseRegularization(mesh, weights=weights, cell_weights=weights)
 
 
+class TestRemovedRegularizations:
+    """
+    Test if errors are raised after creating removed regularization classes.
+    """
+
+    @pytest.mark.parametrize(
+        "regularization_class",
+        (
+            regularization.Tikhonov,
+            regularization.Small,
+            regularization.SmoothDeriv,
+            regularization.SmoothDeriv2,
+            regularization.PGIwithNonlinearRelationshipsSmallness,
+            regularization.PGIwithRelationships,
+        ),
+    )
+    def test_removed_class(self, regularization_class):
+        class_name = regularization_class.__name__
+        msg = f"{class_name} has been removed, please use."
+        with pytest.raises(NotImplementedError, match=msg):
+            regularization_class()
+
+
 if __name__ == "__main__":
     unittest.main()
