@@ -103,7 +103,7 @@ class UniformBackgroundField(BaseSrc):
         )
 
 
-@deprecate_class(removal_version="0.19.0", future_warn=True, error=True)
+@deprecate_class(removal_version="0.19.0", error=True)
 class SourceField(UniformBackgroundField):
     """Source field for magnetics integral formulation
 

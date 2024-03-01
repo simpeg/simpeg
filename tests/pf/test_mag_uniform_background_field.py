@@ -2,7 +2,7 @@
 Test the UniformBackgroundField class
 """
 import pytest
-from SimPEG.potential_fields.magnetics import UniformBackgroundField
+from SimPEG.potential_fields.magnetics import UniformBackgroundField, SourceField
 
 
 def test_invalid_parameters_argument():
@@ -17,3 +17,12 @@ def test_invalid_parameters_argument():
     )
     with pytest.raises(TypeError, match=msg):
         UniformBackgroundField(parameters=parameters)
+
+
+def test_deprecated_source_field():
+    """
+    Test if instantiating a magnetics.source.SourceField object raises an error
+    """
+    msg = "SourceField has been removed, please use UniformBackgroundField."
+    with pytest.raises(NotImplementedError, match=msg):
+        SourceField()
