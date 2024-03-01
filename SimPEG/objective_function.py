@@ -42,6 +42,13 @@ class BaseObjectiveFunction(ABC):
     def __call__(self, model, f=None) -> float:
         """
         Evaluate the objective function for a given model.
+
+        Parameters
+        ----------
+        x : (nP) numpy.ndarray
+            A vector representing a set of model parameters.
+        f : SimPEG.fields.Fields, optional
+            Field object (if applicable).
         """
         pass
 
