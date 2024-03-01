@@ -39,6 +39,16 @@ IGNORE_ME = [
     "BaseAmplitude",
     "VectorAmplitude",
     "CrossReferenceRegularization",
+    # Removed regularization classes that raise error on instantiation
+    "PGIwithNonlinearRelationshipsSmallness",
+    "PGIwithRelationships",
+    "Simple",
+    "SimpleSmall",
+    "SimpleSmoothDeriv",
+    "Small",
+    "SmoothDeriv",
+    "SmoothDeriv2",
+    "Tikhonov",
 ]
 
 
@@ -801,12 +811,15 @@ class TestRemovedRegularizations:
     @pytest.mark.parametrize(
         "regularization_class",
         (
-            regularization.Tikhonov,
+            regularization.PGIwithNonlinearRelationshipsSmallness,
+            regularization.PGIwithRelationships,
+            regularization.Simple,
+            regularization.SimpleSmall,
+            regularization.SimpleSmoothDeriv,
             regularization.Small,
             regularization.SmoothDeriv,
             regularization.SmoothDeriv2,
-            regularization.PGIwithNonlinearRelationshipsSmallness,
-            regularization.PGIwithRelationships,
+            regularization.Tikhonov,
         ),
     )
     def test_removed_class(self, regularization_class):
