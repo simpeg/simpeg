@@ -22,7 +22,9 @@ class DepthWeightingTest(unittest.TestCase):
 
         r_loc = 0.1
         # Depth weighting
-        wz = utils.depth_weighting(mesh, r_loc, indActive=actv, exponent=5, threshold=0)
+        wz = utils.depth_weighting(
+            mesh, r_loc, active_cells=actv, exponent=5, threshold=0
+        )
 
         reference_locs = (
             np.random.rand(1000, 3) * (mesh.nodes.max(axis=0) - mesh.nodes.min(axis=0))
@@ -31,14 +33,14 @@ class DepthWeightingTest(unittest.TestCase):
         reference_locs[:, -1] = r_loc
 
         wz2 = utils.depth_weighting(
-            mesh, reference_locs, indActive=actv, exponent=5, threshold=0
+            mesh, reference_locs, active_cells=actv, exponent=5, threshold=0
         )
         np.testing.assert_allclose(wz, wz2)
 
         # testing default params
         all_active = np.ones(mesh.n_cells, dtype=bool)
         wz = utils.depth_weighting(
-            mesh, r_loc, indActive=all_active, exponent=2, threshold=0.5 * dh
+            mesh, r_loc, active_cells=all_active, exponent=2, threshold=0.5 * dh
         )
         wz2 = utils.depth_weighting(mesh, r_loc)
 
@@ -58,7 +60,9 @@ class DepthWeightingTest(unittest.TestCase):
 
         r_loc = 0.1
         # Depth weighting
-        wz = utils.depth_weighting(mesh, r_loc, indActive=actv, exponent=5, threshold=0)
+        wz = utils.depth_weighting(
+            mesh, r_loc, active_cells=actv, exponent=5, threshold=0
+        )
 
         reference_locs = (
             np.random.rand(1000, 2) * (mesh.nodes.max(axis=0) - mesh.nodes.min(axis=0))
@@ -67,7 +71,7 @@ class DepthWeightingTest(unittest.TestCase):
         reference_locs[:, -1] = r_loc
 
         wz2 = utils.depth_weighting(
-            mesh, reference_locs, indActive=actv, exponent=5, threshold=0
+            mesh, reference_locs, active_cells=actv, exponent=5, threshold=0
         )
         np.testing.assert_allclose(wz, wz2)
 

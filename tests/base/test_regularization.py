@@ -754,8 +754,38 @@ class TestDeprecatedArguments:
 
     Within these arguments are:
 
-    * ``indActive`` (replaced by ``active_cells``)
     * ``cell_weights`` (replaced by ``weights``)
+
+    """
+
+    @pytest.fixture(params=["1D", "2D", "3D"])
+    def mesh(self, request):
+        """Sample mesh."""
+        if request.param == "1D":
+            hx = np.random.rand(10)
+            h = [hx / hx.sum()]
+        elif request.param == "2D":
+            hx, hy = np.random.rand(10), np.random.rand(9)
+            h = [h_i / h_i.sum() for h_i in (hx, hy)]
+        elif request.param == "3D":
+            hx, hy, hz = np.random.rand(10), np.random.rand(9), np.random.rand(8)
+            h = [h_i / h_i.sum() for h_i in (hx, hy, hz)]
+        return discretize.TensorMesh(h)
+
+    def test_weights(self, mesh):
+        """Test cell_weights and weights."""
+        weights = np.ones(len(mesh))
+        msg = "Cannot simultaneously pass 'weights' and 'cell_weights'."
+        with pytest.raises(ValueError, match=msg):
+            BaseRegularization(mesh, weights=weights, cell_weights=weights)
+
+
+class TestRemovedObjects:
+    """
+    Test if errors are raised after passing deprecated arguments or trying to
+    access removed properties.
+
+    * ``indActive`` (replaced by ``active_cells``)
 
     """
 
@@ -776,21 +806,15 @@ class TestDeprecatedArguments:
     @pytest.mark.parametrize(
         "regularization_class", (BaseRegularization, WeightedLeastSquares)
     )
-    def test_active_cells(self, mesh, regularization_class):
-        """Test indActive and active_cells arguments."""
+    def test_ind_active(self, mesh, regularization_class):
+        """Test indActive argument."""
         active_cells = np.ones(len(mesh), dtype=bool)
-        msg = "Cannot simultaneously pass 'active_cells' and 'indActive'."
-        with pytest.raises(ValueError, match=msg):
-            regularization_class(
-                mesh, active_cells=active_cells, indActive=active_cells
-            )
-
-    def test_weights(self, mesh):
-        """Test cell_weights and weights."""
-        weights = np.ones(len(mesh))
-        msg = "Cannot simultaneously pass 'weights' and 'cell_weights'."
-        with pytest.raises(ValueError, match=msg):
-            BaseRegularization(mesh, weights=weights, cell_weights=weights)
+        msg = (
+            "'indActive' argument has been removed. "
+            "Please use 'active_cells' instead."
+        )
+        with pytest.raises(TypeError, match=msg):
+            regularization_class(mesh, indActive=active_cells)
 
 
 if __name__ == "__main__":
