@@ -4,6 +4,17 @@ from .maps import IdentityMap, ReciprocalMap
 from .utils import Zero, validate_type, validate_ndarray_with_shape
 
 
+def _clean_mat(mat):
+    if isinstance(mat, dict):
+        for key in mat:
+            mat[key].clean()
+    elif isinstance(mat, list):
+        for item in mat:
+            item.clean()
+    else:
+        mat.clean()
+
+
 class Mapping:
     def __init__(self, short_details=None):
         self.short_details = short_details
@@ -454,7 +465,7 @@ class HasModel(BaseSimPEG, metaclass=PhysicalPropertyMetaclass):
                 # matrix factors to clear
                 for mat in self.clean_on_model_update:
                     if getattr(self, mat, None) is not None:
-                        getattr(self, mat).clean()  # clean factors
+                        _clean_mat(mat)  # clean factors
                         setattr(self, mat, None)  # set to none
                 updated = True
 
@@ -476,5 +487,5 @@ class HasModel(BaseSimPEG, metaclass=PhysicalPropertyMetaclass):
         # matrix factors to clear
         for mat in self.clean_on_model_update:
             if getattr(self, mat, None) is not None:
-                getattr(self, mat).clean()  # clean factors
+                _clean_mat(mat)  # clean factors
                 setattr(self, mat, None)  # set to none
