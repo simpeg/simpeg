@@ -8,7 +8,6 @@ import discretize
 from SimPEG import maps, objective_function, regularization, utils
 from SimPEG.regularization import (
     BaseRegularization,
-    BaseSimilarityMeasure,
     WeightedLeastSquares,
     Smallness,
     SmoothnessFirstOrder,
@@ -809,7 +808,7 @@ class TestRemovedObjects:
         (BaseRegularization, WeightedLeastSquares),
     )
     def test_ind_active(self, mesh, regularization_class):
-        """Test indActive argument."""
+        """Test if error is raised when passing the indActive argument."""
         active_cells = np.ones(len(mesh), dtype=bool)
         msg = (
             "'indActive' argument has been removed. "
@@ -820,18 +819,15 @@ class TestRemovedObjects:
 
     @pytest.mark.parametrize(
         "regularization_class",
-        (BaseRegularization, WeightedLeastSquares, BaseSimilarityMeasure),
+        (BaseRegularization, WeightedLeastSquares),
     )
-    def test_ind_active_on_base_similarity_measure(self, mesh, regularization_class):
-        """Test indActive argument on BaseSimilarityMeasure."""
+    def test_ind_active_property(self, mesh, regularization_class):
+        """Test if error is raised when trying to access the indActive property."""
         active_cells = np.ones(len(mesh), dtype=bool)
-        msg = (
-            "'indActive' argument has been removed. "
-            "Please use 'active_cells' instead."
-        )
-        wires = maps.Wires(("physprop", mesh.nC))
-        with pytest.raises(TypeError, match=msg):
-            BaseSimilarityMeasure(mesh, indActive=active_cells, wire_map=wires)
+        reg = regularization_class(mesh, active_cells=active_cells)
+        msg = "indActive has been removed, please use active_cells."
+        with pytest.raises(NotImplementedError, match=msg):
+            reg.indActive
 
 
 if __name__ == "__main__":
