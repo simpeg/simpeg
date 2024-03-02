@@ -1,3 +1,4 @@
+import pytest
 import unittest
 
 import numpy as np
@@ -74,6 +75,26 @@ class DepthWeightingTest(unittest.TestCase):
             mesh, reference_locs, active_cells=actv, exponent=5, threshold=0
         )
         np.testing.assert_allclose(wz, wz2)
+
+
+@pytest.fixture
+def mesh():
+    """Sample mesh."""
+    dh = 5.0
+    hx = [(dh, 5, -1.3), (dh, 40), (dh, 5, 1.3)]
+    hz = [(dh, 15)]
+    mesh = TensorMesh([hx, hz], "CN")
+    return mesh
+
+
+def test_removed_indactive(mesh):
+    """
+    Test if error is raised after passing removed indActive argument
+    """
+    active_cells = np.ones(mesh.nC, dtype=bool)
+    msg = "'indActive' argument has been removed. " "Please use 'active_cells' instead."
+    with pytest.raises(TypeError, match=msg):
+        utils.depth_weighting(mesh, 0, indActive=active_cells)
 
 
 if __name__ == "__main__":
