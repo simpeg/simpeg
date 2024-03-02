@@ -8,6 +8,7 @@ import discretize
 from SimPEG import maps, objective_function, regularization, utils
 from SimPEG.regularization import (
     BaseRegularization,
+    BaseSimilarityMeasure,
     WeightedLeastSquares,
     Smallness,
     SmoothnessFirstOrder,
@@ -804,7 +805,8 @@ class TestRemovedObjects:
         return discretize.TensorMesh(h)
 
     @pytest.mark.parametrize(
-        "regularization_class", (BaseRegularization, WeightedLeastSquares)
+        "regularization_class",
+        (BaseRegularization, WeightedLeastSquares),
     )
     def test_ind_active(self, mesh, regularization_class):
         """Test indActive argument."""
@@ -815,6 +817,21 @@ class TestRemovedObjects:
         )
         with pytest.raises(TypeError, match=msg):
             regularization_class(mesh, indActive=active_cells)
+
+    @pytest.mark.parametrize(
+        "regularization_class",
+        (BaseRegularization, WeightedLeastSquares, BaseSimilarityMeasure),
+    )
+    def test_ind_active_on_base_similarity_measure(self, mesh, regularization_class):
+        """Test indActive argument on BaseSimilarityMeasure."""
+        active_cells = np.ones(len(mesh), dtype=bool)
+        msg = (
+            "'indActive' argument has been removed. "
+            "Please use 'active_cells' instead."
+        )
+        wires = maps.Wires(("physprop", mesh.nC))
+        with pytest.raises(TypeError, match=msg):
+            BaseSimilarityMeasure(mesh, indActive=active_cells, wire_map=wires)
 
 
 if __name__ == "__main__":
