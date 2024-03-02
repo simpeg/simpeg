@@ -160,14 +160,14 @@ def depth_weighting(
     value.
     """
 
-    if "active_cells" in kwargs:
+    if "indActive" in kwargs:
         warnings.warn(
-            "The active_cells keyword argument has been deprecated, please use active_cells. "
+            "The indActive keyword argument has been deprecated, please use active_cells. "
             "This will be removed in SimPEG 0.19.0",
             FutureWarning,
             stacklevel=2,
         )
-        active_cells = kwargs["active_cells"]
+        active_cells = kwargs["indActive"]
 
     # Default threshold value
     if threshold is None:
