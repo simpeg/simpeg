@@ -228,7 +228,7 @@ wr = wr / np.max(np.abs(wr))
 
 # Create a regularization function, in this case l2l2
 reg = regularization.Sparse(
-    mesh, indActive=surf, mapping=maps.IdentityMap(nP=nC), alpha_z=0
+    mesh, active_cells=surf, mapping=maps.IdentityMap(nP=nC), alpha_z=0
 )
 reg.mref = np.zeros(nC)
 
@@ -335,7 +335,7 @@ simulation = magnetics.simulation.Simulation3DIntegral(
 data_obj = data.Data(survey, dobs=bAmp, noise_floor=wd)
 
 # Create a sparse regularization
-reg = regularization.Sparse(mesh, indActive=actv, mapping=idenMap)
+reg = regularization.Sparse(mesh, active_cells=actv, mapping=idenMap)
 reg.norms = [1, 0, 0, 0]
 reg.mref = np.zeros(nC)
 
