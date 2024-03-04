@@ -173,7 +173,7 @@ ind_active = np.ones(mesh.nC, dtype="bool")
 simulation = vrm.Simulation3DLinear(
     mesh,
     survey=survey,
-    active_cells=ind_active,
+    indActive=ind_active,
     refinement_factor=2,
     refinement_distance=[2.0, 4.0],
 )
