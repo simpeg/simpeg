@@ -39,6 +39,16 @@ IGNORE_ME = [
     "BaseAmplitude",
     "VectorAmplitude",
     "CrossReferenceRegularization",
+    # Removed regularization classes that raise error on instantiation
+    "PGIwithNonlinearRelationshipsSmallness",
+    "PGIwithRelationships",
+    "Simple",
+    "SimpleSmall",
+    "SimpleSmoothDeriv",
+    "Small",
+    "SmoothDeriv",
+    "SmoothDeriv2",
+    "Tikhonov",
 ]
 
 
@@ -457,7 +467,7 @@ class RegularizationTests(unittest.TestCase):
         mapping = maps.ExpMap(mesh) * maps.SurjectVertical1D(mesh) * actMap
 
         regMesh = discretize.TensorMesh([mesh.h[2][mapping.maps[-1].indActive]])
-        reg = regularization.Simple(regMesh)
+        reg = regularization.WeightedLeastSquares(regMesh)
 
         self.assertTrue(reg._nC_residual == regMesh.nC)
         self.assertTrue(all([fct._nC_residual == regMesh.nC for fct in reg.objfcts]))
@@ -828,6 +838,32 @@ class TestRemovedObjects:
         msg = "indActive has been removed, please use active_cells."
         with pytest.raises(NotImplementedError, match=msg):
             reg.indActive
+
+            
+class TestRemovedRegularizations:
+    """
+    Test if errors are raised after creating removed regularization classes.
+    """
+
+    @pytest.mark.parametrize(
+        "regularization_class",
+        (
+            regularization.PGIwithNonlinearRelationshipsSmallness,
+            regularization.PGIwithRelationships,
+            regularization.Simple,
+            regularization.SimpleSmall,
+            regularization.SimpleSmoothDeriv,
+            regularization.Small,
+            regularization.SmoothDeriv,
+            regularization.SmoothDeriv2,
+            regularization.Tikhonov,
+        ),
+    )
+    def test_removed_class(self, regularization_class):
+        class_name = regularization_class.__name__
+        msg = f"{class_name} has been removed, please use."
+        with pytest.raises(NotImplementedError, match=msg):
+            regularization_class()
 
 
 if __name__ == "__main__":
