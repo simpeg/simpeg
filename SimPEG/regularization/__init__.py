@@ -52,10 +52,10 @@ y-directions can be expressed as:
 
 .. math::
     \phi_m (m) =
-    \alpha_s \! \int_\Omega \Bigg [ \frac{1}{2} w_s(r) \, m(r)^2 \Bigg ] \, dv +
-    \alpha_x \! \int_\Omega \Bigg [ \frac{1}{2} w_x(r)
+    \alpha_s \! \int_\Omega \Bigg [ w_s(r) \, m(r)^2 \Bigg ] \, dv +
+    \alpha_x \! \int_\Omega \Bigg [ w_x(r)
     \bigg ( \frac{\partial m}{\partial x} \bigg )^2 \Bigg ] \, dv +
-    \alpha_y \! \int_\Omega \Bigg [ \frac{1}{2} w_y(r)
+    \alpha_y \! \int_\Omega \Bigg [ w_y(r)
     \bigg ( \frac{\partial m}{\partial y} \bigg )^2 \Bigg ] \, dv
 
 where :math:`w_s(r), w_x(r), w_y(r)` are user-defined weighting functions.
@@ -65,9 +65,9 @@ discrete set of model parameters :math:`\mathbf{m}`.
 And the regularization is implemented using a weighted sum of objective functions:
 
 .. math::
-    \phi_m (\mathbf{m}) \approx \frac{\alpha_s}{2} \big \| \mathbf{W_s m} \big \|^2 +
-    \frac{\alpha_x}{2} \big \| \mathbf{W_x G_x m} \big \|^2 +
-    \frac{\alpha_y}{2} \big \| \mathbf{W_y G_y m} \big \|^2
+    \phi_m (\mathbf{m}) \approx \alpha_s \big \| \mathbf{W_s m} \big \|^2 +
+    \alpha_x \big \| \mathbf{W_x G_x m} \big \|^2 +
+    \alpha_y \big \| \mathbf{W_y G_y m} \big \|^2
 
 where :math:`\mathbf{G_x}` and :math:`\mathbf{G_y}` are partial gradient operators along the x and
 y-directions, respectively. :math:`\mathbf{W_s}`, :math:`\mathbf{W_x}` and :math:`\mathbf{W_y}`

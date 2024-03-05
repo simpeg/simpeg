@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import numbers
 import numpy as np
 import scipy.sparse as sp
@@ -361,7 +363,12 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
 
     """
 
-    def __init__(self, objfcts=None, multipliers=None, unpack_on_add=True):
+    def __init__(
+        self,
+        objfcts: list[BaseObjectiveFunction] | None = None,
+        multipliers=None,
+        unpack_on_add=True,
+    ):
         # Define default lists if None
         if objfcts is None:
             objfcts = []
@@ -382,6 +389,7 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
             nP = None
 
         super().__init__(nP=nP)
+
         self.objfcts = objfcts
         self._multipliers = multipliers
         self._unpack_on_add = unpack_on_add
@@ -528,7 +536,7 @@ class L2ObjectiveFunction(BaseObjectiveFunction):
     Weighting least-squares objective functions in SimPEG are defined as follows:
 
     .. math::
-        \phi = \frac{1}{2} \big \| \mathbf{W} f(\mathbf{m}) \big \|_2^2
+        \phi = \big \| \mathbf{W} f(\mathbf{m}) \big \|_2^2
 
     where :math:`\mathbf{m}` are the model parameters, :math:`f` is a mapping operator,
     and :math:`\mathbf{W}` is the weighting matrix.
@@ -597,20 +605,22 @@ class L2ObjectiveFunction(BaseObjectiveFunction):
     def __call__(self, m):
         """Evaluate the objective function for a given model."""
         r = self.W * (self.mapping * m)
-        return 0.5 * r.dot(r)
+        return r.dot(r)
 
     def deriv(self, m):
         # Docstring inherited from BaseObjectiveFunction
-        return self.mapping.deriv(m).T * (self.W.T * (self.W * (self.mapping * m)))
+        return 2 * self.mapping.deriv(m).T * (self.W.T * (self.W * (self.mapping * m)))
 
     def deriv2(self, m, v=None):
         # Docstring inherited from BaseObjectiveFunction
         if v is not None:
-            return self.mapping.deriv(m).T * (
-                self.W.T * (self.W * (self.mapping.deriv(m) * v))
+            return (
+                2
+                * self.mapping.deriv(m).T
+                * (self.W.T * (self.W * (self.mapping.deriv(m) * v)))
             )
         W = self.W * self.mapping.deriv(m)
-        return W.T * W
+        return 2 * W.T * W
 
 
 def _validate_objective_functions(objective_functions):

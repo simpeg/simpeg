@@ -278,13 +278,11 @@ class TestBaseObjFct(unittest.TestCase):
         r1 = phi1.W * m
         r2 = phi2.W * m
 
-        print(phi(m), 0.5 * np.inner(r, r))
+        print(phi(m), np.inner(r, r))
 
-        self.assertTrue(np.allclose(phi(m), 0.5 * np.inner(r, r)))
+        self.assertTrue(np.allclose(phi(m), np.inner(r, r)))
         self.assertTrue(
-            np.allclose(
-                phi(m), 0.5 * (alpha1 * np.inner(r1, r1) + alpha2 * np.inner(r2, r2))
-            )
+            np.allclose(phi(m), (alpha1 * np.inner(r1, r1) + alpha2 * np.inner(r2, r2)))
         )
 
     def test_ComboConstruction(self):
