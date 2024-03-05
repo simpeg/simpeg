@@ -839,7 +839,7 @@ class TestRemovedObjects:
         with pytest.raises(NotImplementedError, match=msg):
             reg.indActive
 
-            
+
 class TestRemovedRegularizations:
     """
     Test if errors are raised after creating removed regularization classes.

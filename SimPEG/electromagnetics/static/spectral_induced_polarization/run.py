@@ -148,7 +148,9 @@ def run_inversion(
     reg_tau = regularization.WeightedLeastSquares(
         mesh, mapping=wires.tau, active_cells=actind
     )
-    reg_c = regularization.WeightedLeastSquares(mesh, mapping=wires.c, active_cells=actind)
+    reg_c = regularization.WeightedLeastSquares(
+        mesh, mapping=wires.c, active_cells=actind
+    )
 
     # Todo:
 
