@@ -14,7 +14,6 @@ from ..regularization import (
     Sparse,
     SparseSmallness,
     PGIsmallness,
-    PGIwithNonlinearRelationshipsSmallness,
     SmoothnessFirstOrder,
     SparseSmoothness,
     BaseSimilarityMeasure,
@@ -716,7 +715,6 @@ class AlphasSmoothEstimate_ByEig(InversionDirective):
                         Smallness,
                         SparseSmallness,
                         PGIsmallness,
-                        PGIwithNonlinearRelationshipsSmallness,
                     ),
                 ):
                     smallness += [obj]
@@ -1288,13 +1286,7 @@ class MultiTargetMisfits(InversionDirective):
                         np.r_[
                             i,
                             j,
-                            (
-                                isinstance(
-                                    regpart,
-                                    PGIwithNonlinearRelationshipsSmallness,
-                                )
-                                or isinstance(regpart, PGIsmallness)
-                            ),
+                            isinstance(regpart, PGIsmallness),
                         ]
                     )
                     for i, regobjcts in enumerate(self.invProb.reg.objfcts)
@@ -1332,13 +1324,7 @@ class MultiTargetMisfits(InversionDirective):
                     (
                         np.r_[
                             j,
-                            (
-                                isinstance(
-                                    regpart,
-                                    PGIwithNonlinearRelationshipsSmallness,
-                                )
-                                or isinstance(regpart, PGIsmallness)
-                            ),
+                            isinstance(regpart, PGIsmallness),
                         ]
                     )
                     for j, regpart in enumerate(self.invProb.reg.objfcts)
