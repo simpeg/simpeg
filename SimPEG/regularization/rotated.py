@@ -171,23 +171,23 @@ class SmoothnessFullGradient(BaseRegularization):
         G = self.cell_gradient
         M_f = self.W
         r = G @ (self.mapping * (self._delta_m(m)))
-        return 0.5 * r @ M_f @ r
+        return r @ M_f @ r
 
     def deriv(self, m):
         m_d = self.mapping.deriv(self._delta_m(m))
         G = self.cell_gradient
         M_f = self.W
         r = G @ (self.mapping * (self._delta_m(m)))
-        return m_d.T * (G.T @ (M_f @ r))
+        return 2 * m_d.T * (G.T @ (M_f @ r))
 
     def deriv2(self, m, v=None):
         m_d = self.mapping.deriv(self._delta_m(m))
         G = self.cell_gradient
         M_f = self.W
         if v is None:
-            return m_d.T @ (G.T @ M_f @ G) @ m_d
+            return 2 * m_d.T @ (G.T @ M_f @ G) @ m_d
 
-        return m_d.T @ (G.T @ (M_f @ (G @ (m_d @ v))))
+        return 2 * m_d.T @ (G.T @ (M_f @ (G @ (m_d @ v))))
 
     @property
     def cell_gradient(self):

@@ -22,25 +22,25 @@ dir_3d = dir_3d / np.linalg.norm(dir_3d, axis=0)
 # a list of argument tuples to pass to pytest parameterize
 # each is a tuple of (function, dim, true_value, alphas, reg_dirs)
 parameterized_args = [
-    (f_2d, 2, 15 * np.pi**2 / 2, [1, 1], None),  # assumes reg_dirs aligned with axes
+    (f_2d, 2, 15 * np.pi**2, [1, 1], None),  # assumes reg_dirs aligned with axes
     (
         f_2d,
         2,
-        15 * np.pi**2 / 2,
+        15 * np.pi**2,
         [1, 1],
         np.eye(2),
     ),  # test for explicitly aligned with axes
     (
         f_2d,
         2,
-        15 * np.pi**2 / 2,
+        15 * np.pi**2,
         [1, 1],
         dir_2d,
     ),  # circular regularization should be invariant to rotation
     (
         f_2d,
         2,
-        27 * np.pi**2 / 2,
+        27 * np.pi**2,
         [1, 2],
         None,
     ),  # elliptic regularization aligned with axes
@@ -48,32 +48,38 @@ parameterized_args = [
     (
         f_3d,
         3,
-        189 * np.pi**2 / 4,
+        189 * np.pi**2 / 2,
         [1, 1, 1],
         None,
     ),  # test for explicitly aligned with axes
     (
         f_3d,
         3,
-        189 * np.pi**2 / 4,
+        189 * np.pi**2 / 2,
         [1, 1, 1],
         np.eye(3),
     ),  # test for explicitly aligned with axes
     (
         f_3d,
         3,
-        189 * np.pi**2 / 4,
+        189 * np.pi**2 / 2,
         [1, 1, 1],
         dir_3d,
     ),  # circular regularization should be invariant to rotation
     (
         f_3d,
         3,
-        513 * np.pi**2 / 4,
+        513 * np.pi**2 / 2,
         [1, 2, 3],
         None,
     ),  # elliptic regularization aligned with axes
-    (f_3d, 3, 1065.91727531765, [1, 2, 3], dir_3d),  # rotated elliptic regularization
+    (
+        f_3d,
+        3,
+        1065.91727531765 * 2,
+        [1, 2, 3],
+        dir_3d,
+    ),  # rotated elliptic regularization
 ]
 
 
