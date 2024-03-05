@@ -26,7 +26,7 @@ from SimPEG import (
 
 def run(plotIt=True):
     # Define the inducing field parameter
-    H0 = (50000, 90, 0)
+    h0_amplitude, h0_inclination, h0_declination = (50000, 90, 0)
 
     # Create a mesh
     dx = 5.0
@@ -64,7 +64,12 @@ def run(plotIt=True):
     # Create a MAGsurvey
     rxLoc = np.c_[utils.mkvc(X.T), utils.mkvc(Y.T), utils.mkvc(Z.T)]
     rxLoc = magnetics.receivers.Point(rxLoc, components=["tmi"])
-    srcField = magnetics.sources.SourceField(receiver_list=[rxLoc], parameters=H0)
+    srcField = magnetics.sources.UniformBackgroundField(
+        receiver_list=[rxLoc],
+        amplitude=h0_amplitude,
+        inclination=h0_inclination,
+        declination=h0_declination,
+    )
     survey = magnetics.survey.Survey(srcField)
 
     # We can now create a susceptibility model and generate data

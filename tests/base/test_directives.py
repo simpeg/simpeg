@@ -64,11 +64,16 @@ class ValidationInInversion(unittest.TestCase):
         mesh = discretize.TensorMesh([4, 4, 4])
 
         # Magnetic inducing field parameter (A,I,D)
-        B = [50000, 90, 0]
+        h0_amplitude, h0_inclination, h0_declination = (50000, 90, 0)
 
         # Create a MAGsurvey
         rx = mag.Point(np.vstack([[0.25, 0.25, 0.25], [-0.25, -0.25, 0.25]]))
-        srcField = mag.UniformBackgroundField([rx], parameters=(B[0], B[1], B[2]))
+        srcField = mag.UniformBackgroundField(
+            receiver_list=[rx],
+            amplitude=h0_amplitude,
+            inclination=h0_inclination,
+            declination=h0_declination,
+        )
         survey = mag.Survey(srcField)
 
         # Create the forward model operator
