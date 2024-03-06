@@ -64,14 +64,13 @@ class InversionDirective:
     _dmisfitPair = [BaseDataMisfit, ComboObjectiveFunction]
 
     def __init__(self, inversion=None, dmisfit=None, reg=None, verbose=False, **kwargs):
+        # Raise error on deprecated arguments
+        if (key := "debug") in kwargs.keys():
+            raise TypeError(f"'{key}' property has been removed. Please use 'verbose'.")
         self.inversion = inversion
         self.dmisfit = dmisfit
         self.reg = reg
-        debug = kwargs.pop("debug", None)
-        if debug is not None:
-            self.debug = debug
-        else:
-            self.verbose = verbose
+        self.verbose = verbose
         set_kwargs(self, **kwargs)
 
     @property
@@ -89,7 +88,7 @@ class InversionDirective:
         self._verbose = validate_type("verbose", value, bool)
 
     debug = deprecate_property(
-        verbose, "debug", "verbose", removal_version="0.19.0", future_warn=True
+        verbose, "debug", "verbose", removal_version="0.19.0", error=True
     )
 
     @property

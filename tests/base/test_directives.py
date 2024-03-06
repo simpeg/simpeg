@@ -303,5 +303,19 @@ def test_save_output_dict(RegClass):
         assert "x SparseSmoothness.norm" in out_dict
 
 
+class TestDeprecatedArguments:
+    """
+    Test if directives raise errors after passing deprecated arguments.
+    """
+
+    def test_debug(self):
+        """
+        Test if InversionDirective raises error after passing 'debug'.
+        """
+        msg = "'debug' property has been removed. Please use 'verbose'."
+        with pytest.raises(TypeError, match=msg):
+            directives.InversionDirective(debug=True)
+
+
 if __name__ == "__main__":
     unittest.main()
