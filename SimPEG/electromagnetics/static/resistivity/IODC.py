@@ -728,12 +728,6 @@ class IO:
         G = geometric_factor(survey, space_type=self.space_type)
         return G
 
-    def from_ambn_locations_to_survey(self, *args, **kwargs):
-        raise NotImplementedError(
-            "from_ambn_locations_to_survey has been renamed to "
-            "from_abmn_locations_to_survey. It will be removed in a future version 0.17.0 of simpeg",
-        )
-
     def from_abmn_locations_to_survey(
         self,
         a_locations,
