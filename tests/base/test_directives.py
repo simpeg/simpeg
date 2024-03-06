@@ -133,21 +133,12 @@ class ValidationInInversion(unittest.TestCase):
             inv = inversion.BaseInversion(invProb)
             inv.directiveList = [update_Jacobi, sensitivity_weights]
 
-    def test_sensitivity_weighting_warnings(self):
-        # Test setter warnings
-        d_temp = directives.UpdateSensitivityWeights()
-        d_temp.normalization_method = True
-        self.assertTrue(d_temp.normalization_method == "maximum")
-
-        d_temp.normalization_method = False
-        self.assertTrue(d_temp.normalization_method is None)
-
     def test_sensitivity_weighting_global(self):
         test_inputs = {
-            "everyIter": False,
-            "threshold": 1e-12,
+            "every_iteration": False,
+            "threshold_value": 1e-12,
             "threshold_method": "global",
-            "normalization": False,
+            "normalization_method": None,
         }
 
         # Compute test weights
@@ -155,7 +146,7 @@ class ValidationInInversion(unittest.TestCase):
             np.sqrt(np.sum((self.dmis.W * self.sim.G) ** 2, axis=0))
             / self.mesh.cell_volumes
         )
-        test_weights = sqrt_diagJtJ + test_inputs["threshold"]
+        test_weights = sqrt_diagJtJ + test_inputs["threshold_value"]
         test_weights *= self.mesh.cell_volumes
 
         # Test directive
@@ -182,7 +173,7 @@ class ValidationInInversion(unittest.TestCase):
             "every_iteration": True,
             "threshold_value": 1,
             "threshold_method": "percentile",
-            "normalization": True,
+            "normalization_method": "maximum",
         }
 
         # Compute test weights
@@ -301,6 +292,83 @@ def test_save_output_dict(RegClass):
         assert "SparseSmallness.norm" in out_dict
         assert "x SparseSmoothness.irls_threshold" in out_dict
         assert "x SparseSmoothness.norm" in out_dict
+
+
+class TestUpdateSensitivityWeightsRemovedArgs:
+    """
+    Test if `UpdateSensitivityWeights` raises errors after passing removed arguments.
+    """
+
+    def test_every_iter(self):
+        """
+        Test if `UpdateSensitivityWeights` raises error after passing `everyIter`.
+        """
+        msg = "'everyIter' property has been removed. Please use 'every_iteration'."
+        with pytest.raises(TypeError, match=msg):
+            directives.UpdateSensitivityWeights(everyIter=True)
+
+    def test_threshold(self):
+        """
+        Test if `UpdateSensitivityWeights` raises error after passing `threshold`.
+        """
+        msg = "'threshold' property has been removed. Please use 'threshold_value'."
+        with pytest.raises(TypeError, match=msg):
+            directives.UpdateSensitivityWeights(threshold=True)
+
+    def test_normalization(self):
+        """
+        Test if `UpdateSensitivityWeights` raises error after passing `normalization`.
+        """
+        msg = (
+            "'normalization' property has been removed. "
+            "Please define normalization using 'normalization_method'."
+        )
+        with pytest.raises(TypeError, match=msg):
+            directives.UpdateSensitivityWeights(normalization=True)
+
+
+class TestUpdateSensitivityNormalization:
+    """
+    Test the `normalization` property and setter in `UpdateSensitivityWeights`
+    """
+
+    @pytest.mark.parametrize("normalization_method", (None, "maximum", "minimum"))
+    def test_normalization_method_setter_valid(self, normalization_method):
+        """
+        Test if the setter method for normalization_method in
+        `UpdateSensitivityWeights` works as expected on valid values.
+
+        The `normalization_method` must be a string or a None. This test was
+        included as part of the removal process of the old `normalization`
+        property.
+        """
+        d_temp = directives.UpdateSensitivityWeights()
+        # Use the setter method to assign a value to normalization_method
+        d_temp.normalization_method = normalization_method
+        assert d_temp.normalization_method == normalization_method
+
+    @pytest.mark.parametrize("normalization_method", (True, False, "an invalid method"))
+    def test_normalization_method_setter_invalid(self, normalization_method):
+        """
+        Test if the setter method for normalization_method in
+        `UpdateSensitivityWeights` raises error on invalid values.
+
+        The `normalization_method` must be a string or a None. This test was
+        included as part of the removal process of the old `normalization`
+        property.
+        """
+        d_temp = directives.UpdateSensitivityWeights()
+        if isinstance(normalization_method, bool):
+            error_type = TypeError
+            msg = "'normalization_method' must be a str. Got"
+        else:
+            error_type = ValueError
+            msg = (
+                r"'normalization_method' must be in \['minimum', 'maximum'\]. "
+                f"Got '{normalization_method}'"
+            )
+        with pytest.raises(error_type, match=msg):
+            d_temp.normalization_method = normalization_method
 
 
 if __name__ == "__main__":
