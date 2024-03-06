@@ -44,7 +44,7 @@ parameterized_args = [
         [1, 2],
         None,
     ),  # elliptic regularization aligned with axes
-    (f_2d, 2, 111.033049512255, [1, 2], dir_2d),  # rotated elliptic regularization
+    (f_2d, 2, 111.033049512255 * 2, [1, 2], dir_2d),  # rotated elliptic regularization
     (
         f_3d,
         3,
