@@ -84,7 +84,7 @@ class TestEngine:
         with pytest.raises(ImportError, match=msg):
             mock_simulation_class(tensor_mesh, engine=engine)
 
-    def test_sensitivy_path_as_dir(self, tensor_mesh, mock_simulation_class, tmpdir):
+    def test_sensitivity_path_as_dir(self, tensor_mesh, mock_simulation_class, tmpdir):
         """
         Test error if the sensitivity_path is a dir
 
