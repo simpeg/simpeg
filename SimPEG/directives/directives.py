@@ -22,7 +22,7 @@ from ..utils import (
     mkvc,
     set_kwargs,
     sdiag,
-    diagEst,
+    estimate_diagonal,
     spherical2cartesian,
     cartesian2spherical,
     Zero,
@@ -2419,7 +2419,7 @@ class Update_Wj(InversionDirective):
 
                 return self.simulation.Jtvec(m, Jv)
 
-            JtJdiag = diagEst(JtJv, len(m), k=self.k)
+            JtJdiag = estimate_diagonal(JtJv, len(m), k=self.k)
             JtJdiag = JtJdiag / max(JtJdiag)
 
             self.reg.wght = JtJdiag
