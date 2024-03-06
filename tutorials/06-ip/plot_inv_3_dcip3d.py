@@ -633,7 +633,7 @@ ip_inverse_problem = inverse_problem.BaseInvProblem(
 # Here we define the directives in the same manner as the DC inverse problem.
 #
 
-update_sensitivity_weighting = directives.UpdateSensitivityWeights(threshold=1e-3)
+update_sensitivity_weighting = directives.UpdateSensitivityWeights(threshold_value=1e-3)
 starting_beta = directives.BetaEstimate_ByEig(beta0_ratio=1e2)
 beta_schedule = directives.BetaSchedule(coolingFactor=2.5, coolingRate=1)
 save_iteration = directives.SaveOutputEveryIteration(save_txt=False)
