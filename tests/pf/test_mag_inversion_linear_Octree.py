@@ -26,7 +26,7 @@ class MagInvLinProblemTest(unittest.TestCase):
         # From old convention, field orientation is given as an
         # azimuth from North (positive clockwise)
         # and dip from the horizontal (positive downward).
-        H0 = (50000.0, 90.0, 0.0)
+        h0_amplitude, h0_inclination, h0_declination = (50000.0, 90.0, 0.0)
 
         # Create a mesh
         h = [5, 5, 5]
@@ -55,7 +55,12 @@ class MagInvLinProblemTest(unittest.TestCase):
         # Create a MAGsurvey
         xyzLoc = np.c_[utils.mkvc(X.T), utils.mkvc(Y.T), utils.mkvc(Z.T)]
         rxLoc = mag.Point(xyzLoc)
-        srcField = mag.SourceField([rxLoc], parameters=H0)
+        srcField = mag.UniformBackgroundField(
+            receiver_list=[rxLoc],
+            amplitude=h0_amplitude,
+            inclination=h0_inclination,
+            declination=h0_declination,
+        )
         survey = mag.Survey(srcField)
 
         # self.mesh.finalize()
@@ -81,7 +86,7 @@ class MagInvLinProblemTest(unittest.TestCase):
 
         # We can now create a susceptibility model and generate data
         # Lets start with a simple block in half-space
-        self.model = utils.model_builder.addBlock(
+        self.model = utils.model_builder.add_block(
             self.mesh.gridCC,
             np.zeros(self.mesh.nC),
             np.r_[-20, -20, -15],

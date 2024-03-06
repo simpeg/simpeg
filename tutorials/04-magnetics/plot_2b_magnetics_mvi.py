@@ -81,10 +81,12 @@ receiver_list = [receiver_list]
 field_inclination = 60
 field_declination = 30
 field_strength = 50000
-inducing_field = (field_strength, field_inclination, field_declination)
 
-source_field = magnetics.sources.SourceField(
-    receiver_list=receiver_list, parameters=inducing_field
+source_field = magnetics.sources.UniformBackgroundField(
+    receiver_list=receiver_list,
+    amplitude=field_strength,
+    inclination=field_inclination,
+    declination=field_declination,
 )
 
 # Define the survey
@@ -161,7 +163,7 @@ model_map = maps.IdentityMap(nP=3 * nC)  # model has 3 parameters for each cell
 
 # Define susceptibility for each cell
 susceptibility_model = background_susceptibility * np.ones(ind_active.sum())
-ind_sphere = model_builder.getIndicesSphere(np.r_[0.0, 0.0, -45.0], 15.0, mesh.gridCC)
+ind_sphere = model_builder.get_indices_sphere(np.r_[0.0, 0.0, -45.0], 15.0, mesh.gridCC)
 ind_sphere = ind_sphere[ind_active]
 susceptibility_model[ind_sphere] = sphere_susceptibility
 

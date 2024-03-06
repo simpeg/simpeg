@@ -12,7 +12,6 @@ from ..directives import InversionDirective, MultiTargetMisfits
 from ..regularization import (
     PGI,
     PGIsmallness,
-    PGIwithRelationships,
     SmoothnessFirstOrder,
     SparseSmoothness,
 )
@@ -363,12 +362,7 @@ class PGI_AddMrefInSmooth(InversionDirective):
         if getattr(self.reg.objfcts[0], "objfcts", None) is not None:
             # Find the petrosmallness terms in a two-levels combo-regularization.
             petrosmallness = np.where(
-                np.r_[
-                    [
-                        isinstance(regpart, (PGI, PGIwithRelationships))
-                        for regpart in self.reg.objfcts
-                    ]
-                ]
+                np.r_[[isinstance(regpart, PGI) for regpart in self.reg.objfcts]]
             )[0][0]
             self.petrosmallness = petrosmallness
 
@@ -413,7 +407,7 @@ class PGI_AddMrefInSmooth(InversionDirective):
     @property
     def DMtarget(self):
         if getattr(self, "_DMtarget", None) is None:
-            self.phi_d_target = 0.5 * self.invProb.dmisfit.survey.nD
+            self.phi_d_target = self.invProb.dmisfit.survey.nD
             self._DMtarget = self.chifact * self.phi_d_target
         return self._DMtarget
 

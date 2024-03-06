@@ -94,20 +94,34 @@ class PGIsmallness(Smallness):
     (:math:`\boldsymbol{\Sigma}`) and proportion constants (:math:`\boldsymbol{\gamma}`)
     defining the GMM. And let :math:`\mathbf{z}^\ast` define an membership array that
     extracts the GMM parameters for the most representative rock unit within each active cell
-    in the :class:`RegularizationMesh`. The regularization function (objective function) for
-    ``PGIsmallness`` is given by:
+    in the :class:`RegularizationMesh`.
+
+    When the ``approx_eval`` property is ``True``, we assume the physical property distributions of each geologic units
+    are distinct (no significant overlap of their respective physical properties distribution). The GMM probability
+    density value at any each point of the physical property space can then be approximated by the locally dominant
+    Gaussian distribution. In this case, the PGI regularization function (objective function) can be expressed as a
+    least-square:
 
     .. math::
-        \phi (\mathbf{m}) = \frac{1}{2}
-        \big [ \mathbf{m} - \mathbf{m_{ref}}(\Theta, \mathbf{z}^\ast ) \big ]^T
-        \mathbf{W} ( \Theta , \mathbf{z}^\ast ) \,
-        \big [ \mathbf{m} - \mathbf{m_{ref}}(\Theta, \mathbf{z}^\ast ) \big ]
+        \phi (\mathbf{m}) &= \alpha_\text{pgi}
+        \big | \mathbf{W} ( \Theta , \mathbf{z}^\ast ) \, (\mathbf{m} - \mathbf{m_{ref}}(\Theta, \mathbf{z}^\ast ) \, \Big \|^2
+        &+ \sum_{j=x,y,z} \alpha_j \Big \| \mathbf{W_j G_j \, m} \, \Big \|^2 \\
+        &+ \sum_{j=x,y,z} \alpha_{jj} \Big \| \mathbf{W_{jj} L_j \, m} \, \Big \|^2
+        \;\;\;\;\;\;\;\; \big ( \textrm{optional} \big )
 
     where
 
         - :math:`\mathbf{m}` is the model,
         - :math:`\mathbf{m_{ref}}(\Theta, \mathbf{z}^\ast )` is the reference model, and
         - :math:`\mathbf{W}(\Theta , \mathbf{z}^\ast )` is a weighting matrix.
+
+    For the full, non-approximated PGI regularization, please refer to
+    (`Astic, et al 2019 <https://owncloud.eoas.ubc.ca/s/TMB3Jdr8ScqSPm7/download>`__;
+    `Astic et al 2020 <https://owncloud.eoas.ubc.ca/s/PAxpHQt7CGk6zT4/download>`__).
+
+    When the ``approx_eval`` property is ``True``, you may also set the ``approx_gradient`` and ``approx_hessian``
+    properties to ``True`` so that the least-squares approximation is used to compute the gradient, as it is making the
+    same assumptions about the GMM.
 
     ``PGIsmallness`` regularization can be used for models consisting of one or more physical
     property types. The ordering of the physical property types within the model is defined
@@ -117,17 +131,6 @@ class PGIsmallness(Smallness):
 
     .. math::
         \mathbf{m} = \begin{bmatrix} \mathbf{m}_1 \\ \mathbf{m}_2 \\ \vdots \\ \mathbf{m}_K \end{bmatrix}
-
-    When the ``approx_eval`` property is ``True``, we assume the physical property types have
-    values that are uncorrelated. In this case, the weighting matrix is diagonal and the
-    regularization function (objective function) can be expressed as:
-
-    .. math::
-        \phi (\mathbf{m}) = \frac{1}{2} \Big \| \mathbf{W}_{\! 1/2}(\Theta, \mathbf{z}^\ast ) \,
-        \big [ \mathbf{m} - \mathbf{m_{ref}}(\Theta, \mathbf{z}^\ast ) \big ] \, \Big \|^2
-
-    When the ``approx_eval`` property is ``True``, you may also set the ``approx_gradient`` property
-    to ``True`` so that the least-squares approximation is used to compute the gradient.
 
     **Constructing the Reference Model and Weighting Matrix:**
 
@@ -142,19 +145,8 @@ class PGIsmallness(Smallness):
     :math:`\boldsymbol{\Sigma}` for each cell. And the weighting matrix is given by:
 
     .. math::
-        \mathbf{W}(\Theta ,{\mathbf{z}^\ast } ) = \boldsymbol{\Sigma}_{\mathbf{z^\ast}}^{-1} \,
-        diag \big ( \mathbf{v \odot w} \big )
-
-    where :math:`\mathbf{v}` are the volumes of the active cells, and :math:`\mathbf{w}`
-    are custom cell weights. When the ``approx_eval`` property is ``True``, the off-diagonal
-    covariances are zero and we can use a weighting matrix of the form:
-
-    .. math::
-        \mathbf{W}_{\! 1/2}(\Theta ,{\mathbf{z}^\ast } ) = diag \Big ( \big [ \mathbf{v \odot w}
-        \odot \boldsymbol{\sigma}_{\mathbf{z}^\ast}^{-2} \big ]^{1/2} \Big )
-
-    where :math:`\boldsymbol{\sigma}_{\mathbf{z}^\ast}^2` are the variances extracted using the
-    membership array :math:`\mathbf{z}^\ast`.
+        \mathbf{W}(\Theta ,{\mathbf{z}^\ast } ) = \boldsymbol{\Sigma}_{\mathbf{z^\ast}}^{\frac{-1}{2}} \,
+        diag \big ( \mathbf{w} \big )
 
     **Updating the Gaussian Mixture Model:**
 
@@ -505,7 +497,7 @@ class PGIsmallness(Smallness):
                     ]
                 ]
 
-            return 0.5 * mkvc(r0).dot(mkvc(r1))
+            return mkvc(r0).dot(mkvc(r1))
 
         else:
             modellist = self.wiresmap * m
@@ -514,7 +506,7 @@ class PGIsmallness(Smallness):
             if self.non_linear_relationships:
                 score = self.gmm.score_samples(model)
                 score_vec = mkvc(np.r_[[score for maps in self.wiresmap.maps]])
-                return -np.sum((W.T * W) * score_vec) / len(self.wiresmap.maps)
+                return -2 * np.sum((W.T * W) * score_vec) / len(self.wiresmap.maps)
 
             else:
                 if external_weights and getattr(self.W, "diagonal", None) is not None:
@@ -527,7 +519,7 @@ class PGIsmallness(Smallness):
                 score = self.gmm.score_samples_with_sensW(model, sensW)
                 # score_vec = mkvc(np.r_[[score for maps in self.wiresmap.maps]])
                 # return -np.sum((W.T * W) * score_vec) / len(self.wiresmap.maps)
-                return -np.sum(score)
+                return -2 * np.sum(score)
 
     @timeIt
     def deriv(self, m):
@@ -624,7 +616,7 @@ class PGIsmallness(Smallness):
                             ]
                         ]
                     )
-            return mkvc(mD.T * (self.W.T * r))
+            return 2 * mkvc(mD.T * (self.W.T * r))
 
         else:
             if self.non_linear_relationships:
@@ -734,7 +726,7 @@ class PGIsmallness(Smallness):
             logP = np.vstack([logP for maps in self.wiresmap.maps])
             numer = (W * np.exp(logP)).sum(axis=1)
             r = numer / (np.exp(score_vec))
-            return mkvc(mD.T * r)
+            return 2 * mkvc(mD.T * r)
 
     @timeIt
     def deriv2(self, m, v=None):
@@ -849,22 +841,12 @@ class PGIsmallness(Smallness):
                 mDv = self.wiresmap * (mD * v)
                 mDv = np.c_[mDv]
                 r0 = (self.W * (mkvc(mDv))).reshape(mDv.shape, order="F")
-                return mkvc(
-                    mD.T
-                    * (
-                        self.W
-                        * (
-                            mkvc(
-                                np.r_[
-                                    [
-                                        np.dot(self._r_second_deriv[i], r0[i])
-                                        for i in range(len(r0))
-                                    ]
-                                ]
-                            )
-                        )
-                    )
+                second_deriv_times_r0 = mkvc(
+                    np.r_[
+                        [np.dot(self._r_second_deriv[i], r0[i]) for i in range(len(r0))]
+                    ]
                 )
+                return 2 * mkvc(mD.T * (self.W * second_deriv_times_r0))
             else:
                 # Forming the Hessian by diagonal blocks
                 hlist = [
@@ -883,7 +865,7 @@ class PGIsmallness(Smallness):
 
                 Hr = Hr.dot(self.W)
 
-                return (mD.T * mD) * (self.W * (Hr))
+                return 2 * (mD.T * mD) * (self.W * (Hr))
 
         else:
             if self.non_linear_relationships:
@@ -961,7 +943,7 @@ class PGIsmallness(Smallness):
                 for j in range(len(self.wiresmap.maps)):
                     Hc = sp.hstack([Hc, sdiag(hlist[i][j])])
                 Hr = sp.vstack([Hr, Hc])
-            Hr = (mD.T * mD) * Hr
+            Hr = 2 * (mD.T * mD) * Hr
 
             if v is not None:
                 return Hr.dot(v)
@@ -1049,12 +1031,12 @@ class PGI(ComboObjectiveFunction):
     ``PGI`` is given by:
 
     .. math::
-        \phi (\mathbf{m}) &= \frac{\alpha_{pgi}}{2}
+        \phi (\mathbf{m}) &= \alpha_\text{pgi}
         \big [ \mathbf{m} - \mathbf{m_{ref}}(\Theta, \mathbf{z}^\ast ) \big ]^T
         \mathbf{W} ( \Theta , \mathbf{z}^\ast ) \,
         \big [ \mathbf{m} - \mathbf{m_{ref}}(\Theta, \mathbf{z}^\ast ) \big ] \\
-        &+ \sum_{j=x,y,z} \frac{\alpha_j}{2} \Big \| \mathbf{W_j G_j \, m} \, \Big \|^2 \\
-        &+ \sum_{j=x,y,z} \frac{\alpha_{jj}}{2} \Big \| \mathbf{W_{jj} L_j \, m} \, \Big \|^2
+        &+ \sum_{j=x,y,z} \alpha_j \Big \| \mathbf{W_j G_j \, m} \, \Big \|^2 \\
+        &+ \sum_{j=x,y,z} \alpha_{jj} \Big \| \mathbf{W_{jj} L_j \, m} \, \Big \|^2
         \;\;\;\;\;\;\;\; \big ( \textrm{optional} \big )
 
     where
@@ -1080,10 +1062,10 @@ class PGI(ComboObjectiveFunction):
     regularization function (objective function) can be expressed as:
 
     .. math::
-        \phi (\mathbf{m}) &= \frac{\alpha_{pgi}}{2} \Big \| \mathbf{W}_{\! 1/2}(\Theta, \mathbf{z}^\ast ) \,
+        \phi (\mathbf{m}) &= \alpha_\text{pgi} \Big \| \mathbf{W}_{\! 1/2}(\Theta, \mathbf{z}^\ast ) \,
         \big [ \mathbf{m} - \mathbf{m_{ref}}(\Theta, \mathbf{z}^\ast ) \big ] \, \Big \|^2 \\
-        &+ \sum_{j=x,y,z} \frac{\alpha_j}{2} \Big \| \mathbf{W_j G_j \, m} \, \Big \|^2 \\
-        &+ \sum_{j=x,y,z} \frac{\alpha_{jj}}{2} \Big \| \mathbf{W_{jj} L_j \, m} \, \Big \|^2
+        &+ \sum_{j=x,y,z} \alpha_j \Big \| \mathbf{W_j G_j \, m} \, \Big \|^2 \\
+        &+ \sum_{j=x,y,z} \alpha_{jj} \Big \| \mathbf{W_{jj} L_j \, m} \, \Big \|^2
         \;\;\;\;\;\;\;\; \big ( \textrm{optional} \big )
 
     When the ``approx_eval`` property is ``True``, you may also set the ``approx_gradient`` property

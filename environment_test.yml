@@ -7,9 +7,10 @@ dependencies:
   - scikit-learn>=1.2
   - pymatsolver>=0.2
   - matplotlib
-  - discretize>=0.8
+  - discretize>=0.10
   - geoana>=0.5.0
   - empymod>=2.0.0
+  - setuptools_scm
   - pandas
   - dask
   - zarr
@@ -35,12 +36,14 @@ dependencies:
   - pyvista
   - pip
   - python-kaleido
+  # Optional dependencies
+  - choclo
   # Linters and code style
   - pre-commit
-  - black==23.1.0
-  - flake8
-  - flake8-bugbear
-  - flake8-builtins
-  - flake8-mutable
-  - flake8-rst-docstrings
-  - flake8-docstrings
+  - black==23.12.1
+  - flake8==7.0.0
+  - flake8-bugbear==23.12.2
+  - flake8-builtins==2.2.0
+  - flake8-mutable==1.2.0
+  - flake8-rst-docstrings==0.3.0
+  - flake8-docstrings==1.7.0

@@ -8,7 +8,7 @@ import warnings
 
 from discretize.base import BaseMesh
 from discretize import TensorMesh
-from discretize.utils import unpack_widths
+from discretize.utils import unpack_widths, sdiag
 
 from . import props
 from .data import SyntheticData, Data
@@ -45,6 +45,33 @@ class BaseSimulation(props.HasModel):
     BaseSimulation is the base class for all geophysical forward simulations in
     SimPEG.
     """
+
+    def __init__(
+        self,
+        mesh=None,
+        survey=None,
+        solver=None,
+        solver_opts=None,
+        sensitivity_path=None,
+        counter=None,
+        verbose=False,
+        **kwargs,
+    ):
+        self.mesh = mesh
+        self.survey = survey
+        if solver is None:
+            solver = DefaultSolver
+        self.solver = solver
+        if solver_opts is None:
+            solver_opts = {}
+        self.solver_opts = solver_opts
+        if sensitivity_path is None:
+            sensitivity_path = os.path.join(".", "sensitivity")
+        self.sensitivity_path = sensitivity_path
+        self.counter = counter
+        self.verbose = verbose
+
+        super().__init__(**kwargs)
 
     ###########################################################################
     # Properties
@@ -101,7 +128,7 @@ class BaseSimulation(props.HasModel):
 
     @property
     def sensitivity_path(self):
-        """Path to store the sensitivty.
+        """Path to store the sensitivity.
 
         Returns
         -------
@@ -162,36 +189,6 @@ class BaseSimulation(props.HasModel):
     @verbose.setter
     def verbose(self, value):
         self._verbose = validate_type("verbose", value, bool)
-
-    ###########################################################################
-    # Instantiation
-
-    def __init__(
-        self,
-        mesh=None,
-        survey=None,
-        solver=None,
-        solver_opts=None,
-        sensitivity_path=None,
-        counter=None,
-        verbose=False,
-        **kwargs,
-    ):
-        self.mesh = mesh
-        self.survey = survey
-        if solver is None:
-            solver = DefaultSolver
-        self.solver = solver
-        if solver_opts is None:
-            solver_opts = {}
-        self.solver_opts = solver_opts
-        if sensitivity_path is None:
-            sensitivity_path = os.path.join(".", "sensitivity")
-        self.sensitivity_path = sensitivity_path
-        self.counter = counter
-        self.verbose = verbose
-
-        super().__init__(**kwargs)
 
     ###########################################################################
     # Methods
@@ -290,8 +287,7 @@ class BaseSimulation(props.HasModel):
 
     @count
     def residual(self, m, dobs, f=None):
-        r"""
-        The data residual:
+        r"""The data residual.
 
         .. math::
 
@@ -301,18 +297,41 @@ class BaseSimulation(props.HasModel):
         :param numpy.ndarray f: fields
         :rtype: numpy.ndarray
         :return: data residual
+
         """
         return mkvc(self.dpred(m, f=f) - dobs)
 
     def make_synthetic_data(
-        self, m, relative_error=0.05, noise_floor=0.0, f=None, add_noise=False, **kwargs
+        self,
+        m,
+        relative_error=0.05,
+        noise_floor=0.0,
+        f=None,
+        add_noise=False,
+        random_seed=None,
+        **kwargs,
     ):
         """
         Make synthetic data given a model, and a standard deviation.
-        :param numpy.ndarray m: geophysical model
-        :param numpy.ndarray | float relative_error: standard deviation
-        :param numpy.ndarray | float noise_floor: noise floor
-        :param numpy.ndarray f: fields for the given model (if pre-calculated)
+
+        Parameters
+        ----------
+        m : array
+            Array containing with geophysical model.
+        relative_error : float
+            Standard deviation.
+        noise_floor : float
+            Noise floor.
+        f : array or None
+            Fields for the given model (if pre-calculated).
+        add_noise : bool
+            Whether to add gaussian noise to the synthetic data or not.
+        random_seed : int or None
+            Random seed to pass to `numpy.random.default_rng`.
+
+        Returns
+        -------
+        SyntheticData
         """
 
         std = kwargs.pop("std", None)
@@ -328,7 +347,8 @@ class BaseSimulation(props.HasModel):
 
         if add_noise is True:
             std = np.sqrt((relative_error * np.abs(dclean)) ** 2 + noise_floor**2)
-            noise = std * np.random.randn(*dclean.shape)
+            random_num_generator = np.random.default_rng(seed=random_seed)
+            noise = random_num_generator.normal(loc=0, scale=std, size=dclean.shape)
             dobs = dclean + noise
         else:
             dobs = dclean
@@ -537,12 +557,29 @@ class LinearSimulation(BaseSimulation):
 class ExponentialSinusoidSimulation(LinearSimulation):
     r"""
     This is the simulation class for the linear problem consisting of
-    exponentially decaying sinusoids. The rows of the G matrix are
+    exponentially decaying sinusoids. The kernel functions take the form:
 
     .. math::
 
         \int_x e^{p j_k x} \cos(\pi q j_k x) \quad, j_k \in [j_0, ..., j_n]
+
+    The model is defined at cell centers while the kernel functions are defined on nodes.
+    The trapezoid rule is used to evaluate the integral
+
+    .. math::
+
+        d_j = \int g_j(x) m(x) dx
+
+    to define our data.
     """
+
+    def __init__(self, n_kernels=20, p=-0.25, q=0.25, j0=0.0, jn=60.0, **kwargs):
+        self.n_kernels = n_kernels
+        self.p = p
+        self.q = q
+        self.j0 = j0
+        self.jn = jn
+        super(ExponentialSinusoidSimulation, self).__init__(**kwargs)
 
     @property
     def n_kernels(self):
@@ -614,14 +651,6 @@ class ExponentialSinusoidSimulation(LinearSimulation):
     def jn(self, value):
         self._jn = validate_float("jn", value)
 
-    def __init__(self, n_kernels=20, p=-0.25, q=0.25, j0=0.0, jn=60.0, **kwargs):
-        self.n_kernels = n_kernels
-        self.p = p
-        self.q = q
-        self.j0 = j0
-        self.jn = jn
-        super(ExponentialSinusoidSimulation, self).__init__(**kwargs)
-
     @property
     def jk(self):
         """
@@ -635,8 +664,8 @@ class ExponentialSinusoidSimulation(LinearSimulation):
         """
         Kernel functions for the decaying oscillating exponential functions.
         """
-        return np.exp(self.p * self.jk[k] * self.mesh.cell_centers_x) * np.cos(
-            np.pi * self.q * self.jk[k] * self.mesh.cell_centers_x
+        return np.exp(self.p * self.jk[k] * self.mesh.nodes_x) * np.cos(
+            np.pi * self.q * self.jk[k] * self.mesh.nodes_x
         )
 
     @property
@@ -645,10 +674,12 @@ class ExponentialSinusoidSimulation(LinearSimulation):
         Matrix whose rows are the kernel functions
         """
         if getattr(self, "_G", None) is None:
-            G = np.empty((self.n_kernels, self.mesh.nC))
+            G_nodes = np.empty((self.mesh.n_nodes, self.n_kernels))
 
             for i in range(self.n_kernels):
-                G[i, :] = self.g(i) * self.mesh.h[0]
+                G_nodes[:, i] = self.g(i)
 
-            self._G = G
+            self._G = (self.mesh.average_node_to_cell @ G_nodes).T @ sdiag(
+                self.mesh.cell_volumes
+            )
         return self._G

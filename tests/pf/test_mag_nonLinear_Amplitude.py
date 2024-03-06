@@ -21,7 +21,7 @@ import shutil
 class AmpProblemTest(unittest.TestCase):
     def setUp(self):
         # We will assume a vertical inducing field
-        H0 = (50000.0, 90.0, 0.0)
+        h0_amplitude, h0_inclination, h0_declination = (50000.0, 90.0, 0.0)
 
         # The magnetization is set along a different direction (induced + remanence)
         M = np.array([45.0, 90.0])
@@ -46,8 +46,11 @@ class AmpProblemTest(unittest.TestCase):
         # Create a MAGsurvey
         rxLoc = np.c_[mkvc(X.T), mkvc(Y.T), mkvc(Z.T)]
         receiver_list = magnetics.receivers.Point(rxLoc)
-        srcField = magnetics.sources.SourceField(
-            receiver_list=[receiver_list], parameters=H0
+        srcField = magnetics.sources.UniformBackgroundField(
+            receiver_list=[receiver_list],
+            amplitude=h0_amplitude,
+            inclination=h0_inclination,
+            declination=h0_declination,
         )
         survey = magnetics.survey.Survey(srcField)
 
@@ -75,7 +78,7 @@ class AmpProblemTest(unittest.TestCase):
         )
 
         # Get the indicies of the magnetized block
-        ind = utils.model_builder.getIndicesBlock(
+        ind = utils.model_builder.get_indices_block(
             np.r_[-20, -20, -10],
             np.r_[20, 20, 25],
             mesh.gridCC,
@@ -185,8 +188,11 @@ class AmpProblemTest(unittest.TestCase):
         #
 
         receiver_list = magnetics.receivers.Point(rxLoc, components=["bx", "by", "bz"])
-        srcField = magnetics.sources.SourceField(
-            receiver_list=[receiver_list], parameters=H0
+        srcField = magnetics.sources.UniformBackgroundField(
+            receiver_list=[receiver_list],
+            amplitude=h0_amplitude,
+            inclination=h0_inclination,
+            declination=h0_declination,
         )
         surveyAmp = magnetics.survey.Survey(srcField)
 

@@ -87,7 +87,11 @@ class SimulationNDCellCentered(BaseTimeSimulation):
         )
 
     debug = deprecate_property(
-        BaseTimeSimulation.verbose, "debug", "verbose", removal_version="0.19.0"
+        BaseTimeSimulation.verbose,
+        "debug",
+        "verbose",
+        removal_version="0.19.0",
+        future_warn=True,
     )
 
     @property

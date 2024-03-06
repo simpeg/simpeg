@@ -30,7 +30,7 @@ import matplotlib.pyplot as plt
 
 
 def run(plotIt=True):
-    H0 = (50000.0, 90.0, 0.0)
+    h0_amplitude, h0_inclination, h0_declination = (50000.0, 90.0, 0.0)
 
     # Create a mesh
     dx = 5.0
@@ -62,7 +62,12 @@ def run(plotIt=True):
     # Create a MAGsurvey
     rxLoc = np.c_[utils.mkvc(X.T), utils.mkvc(Y.T), utils.mkvc(Z.T)]
     rxLoc = magnetics.Point(rxLoc)
-    srcField = magnetics.SourceField([rxLoc], parameters=H0)
+    srcField = magnetics.UniformBackgroundField(
+        receiver_list=[rxLoc],
+        amplitude=h0_amplitude,
+        inclination=h0_inclination,
+        declination=h0_declination,
+    )
     survey = magnetics.Survey(srcField)
 
     # We can now create a susceptibility model and generate data
@@ -72,7 +77,7 @@ def run(plotIt=True):
     model[mesh.gridCC[:, 0] < 0] = 0.01
 
     # Add a block in half-space
-    model = utils.model_builder.addBlock(
+    model = utils.model_builder.add_block(
         mesh.gridCC, model, np.r_[-10, -10, 20], np.r_[10, 10, 40], 0.05
     )
 

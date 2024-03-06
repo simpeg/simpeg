@@ -10,7 +10,7 @@ follow the instructions to download and install pymatsolver_.
 
 .. _Pardiso: https://www.pardiso-project.org
 
-.. _pymatsolver: https://github.com/rowanc1/pymatsolver
+.. _pymatsolver: https://github.com/simpeg/pymatsolver
 
 If you open a `Jupyter notebook`_ and are able to run:
 
@@ -18,8 +18,8 @@ If you open a `Jupyter notebook`_ and are able to run:
 
     from pymatsolver import Pardiso
 
-.. _Jupyter notebook: http://jupyter.org/
+.. _Jupyter notebook: https://jupyter.org/
 
 then you have succeeded! Otherwise, make an `issue in pymatsolver`_.
 
-.. _issue in pymatsolver: https://github.com/rowanc1/pymatsolver/issues
+.. _issue in pymatsolver: https://github.com/simpeg/pymatsolver/issues
