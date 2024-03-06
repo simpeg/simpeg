@@ -183,9 +183,9 @@ class TestsMagSimulation:
         Tuple[Tuple[float, float, float], Tuple[float, float, float]]
             (amplitude, inclination, declination), (b_x, b_y, b_z)
         """
-        H0 = (50000.0, 60.0, 250.0)
-        b0 = mag.analytics.IDTtoxyz(-H0[1], H0[2], H0[0])
-        return H0, b0
+        h0_amplitude, h0_inclination, h0_declination = (50000.0, 60.0, 250.0)
+        b0 = mag.analytics.IDTtoxyz(-h0_inclination, h0_declination, h0_amplitude)
+        return (h0_amplitude, h0_inclination, h0_declination), b0
 
     def test_choclo_and_n_proceesses(self, mag_mesh):
         """
@@ -532,8 +532,8 @@ def test_ana_mag_tmi_grad_forward():
     nx = 61
     ny = 61
 
-    H0 = (50000.0, 60.0, 250.0)
-    b0 = mag.analytics.IDTtoxyz(-H0[1], H0[2], H0[0])
+    h0_amplitude, h0_inclination, h0_declination = (50000.0, 60.0, 250.0)
+    b0 = mag.analytics.IDTtoxyz(-h0_inclination, h0_declination, h0_amplitude)
     chi1 = 0.01
     chi2 = 0.02
 
@@ -583,7 +583,10 @@ def test_ana_mag_tmi_grad_forward():
 
     rxLoc = mag.Point(locXyz, components=components)
     srcField = mag.UniformBackgroundField(
-        [rxLoc], amplitude=H0[0], inclination=H0[1], declination=H0[2]
+        receiver_list=[rxLoc],
+        amplitude=h0_amplitude,
+        inclination=h0_inclination,
+        declination=h0_declination,
     )
     survey = mag.Survey(srcField)
 
@@ -615,9 +618,15 @@ def test_ana_mag_tmi_grad_forward():
         + prism_2.magnetic_field_gradient(locXyz)
         + prism_3.magnetic_field_gradient(locXyz)
     ) * mu_0
-    tmi_x = (d[:, 0, 0] * b0[0] + d[:, 0, 1] * b0[1] + d[:, 0, 2] * b0[2]) / H0[0]
-    tmi_y = (d[:, 1, 0] * b0[0] + d[:, 1, 1] * b0[1] + d[:, 1, 2] * b0[2]) / H0[0]
-    tmi_z = (d[:, 2, 0] * b0[0] + d[:, 2, 1] * b0[1] + d[:, 2, 2] * b0[2]) / H0[0]
+    tmi_x = (
+        d[:, 0, 0] * b0[0] + d[:, 0, 1] * b0[1] + d[:, 0, 2] * b0[2]
+    ) / h0_amplitude
+    tmi_y = (
+        d[:, 1, 0] * b0[0] + d[:, 1, 1] * b0[1] + d[:, 1, 2] * b0[2]
+    ) / h0_amplitude
+    tmi_z = (
+        d[:, 2, 0] * b0[0] + d[:, 2, 1] * b0[1] + d[:, 2, 2] * b0[2]
+    ) / h0_amplitude
     np.testing.assert_allclose(d_x, tmi_x, rtol=1e-10, atol=1e-12)
     np.testing.assert_allclose(d_y, tmi_y, rtol=1e-10, atol=1e-12)
     np.testing.assert_allclose(d_z, tmi_z, rtol=1e-10, atol=1e-12)

@@ -44,7 +44,7 @@ import matplotlib.pyplot as plt
 #
 np.random.seed(1)
 # We will assume a vertical inducing field
-H0 = (50000.0, 90.0, 0.0)
+h0_amplitude, h0_inclination, h0_declination = (50000.0, 90.0, 0.0)
 
 # Create grid of points for topography
 # Lets create a simple Gaussian topo and set the active cells
@@ -63,7 +63,12 @@ Z = A * np.exp(-0.5 * ((X / b) ** 2.0 + (Y / b) ** 2.0)) + 5
 # Create a MAGsurvey
 xyzLoc = np.c_[mkvc(X.T), mkvc(Y.T), mkvc(Z.T)]
 rxLoc = magnetics.receivers.Point(xyzLoc)
-srcField = magnetics.sources.SourceField(receiver_list=[rxLoc], parameters=H0)
+srcField = magnetics.sources.UniformBackgroundField(
+    receiver_list=[rxLoc],
+    amplitude=h0_amplitude,
+    inclination=h0_inclination,
+    declination=h0_declination,
+)
 survey = magnetics.survey.Survey(srcField)
 
 ###############################################################################

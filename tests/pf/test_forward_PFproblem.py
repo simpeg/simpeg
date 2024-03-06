@@ -12,7 +12,6 @@ class MagFwdProblemTests(unittest.TestCase):
         Inc = 45.0
         Dec = 45.0
         Btot = 51000
-        H0 = (Btot, Inc, Dec)
 
         self.b0 = mag.analytics.IDTtoxyz(-Inc, Dec, Btot)
 
@@ -40,7 +39,12 @@ class MagFwdProblemTests(unittest.TestCase):
         self.yr = yr
         self.rxLoc = np.c_[utils.mkvc(X), utils.mkvc(Y), utils.mkvc(Z)]
         receivers = mag.Point(self.rxLoc, components=components)
-        srcField = mag.SourceField([receivers], parameters=H0)
+        srcField = mag.UniformBackgroundField(
+            receiver_list=[receivers],
+            amplitude=Btot,
+            inclination=Inc,
+            declination=Dec,
+        )
 
         self.survey = mag.Survey(srcField)
 
