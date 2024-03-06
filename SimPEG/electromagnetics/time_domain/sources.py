@@ -139,33 +139,6 @@ class BaseWaveform:
         """
         raise NotImplementedError  # needed for E-formulation
 
-    ##########################
-    # Deprecated
-    ##########################
-    hasInitialFields = deprecate_property(
-        has_initial_fields,
-        "hasInitialFields",
-        new_name="has_initial_fields",
-        removal_version="0.17.0",
-        error=True,
-    )
-
-    offTime = deprecate_property(
-        off_time,
-        "offTime",
-        new_name="off_time",
-        removal_version="0.17.0",
-        error=True,
-    )
-
-    eps = deprecate_property(
-        epsilon,
-        "eps",
-        new_name="epsilon",
-        removal_version="0.17.0",
-        error=True,
-    )
-
 
 class StepOffWaveform(BaseWaveform):
     """
@@ -316,14 +289,6 @@ class RawWaveform(BaseWaveform):
     def eval(self, time):  # noqa: A003
         return self.waveform_function(time)
 
-    waveFct = deprecate_property(
-        waveform_function,
-        "waveFct",
-        new_name="waveform_function",
-        removal_version="0.17.0",
-        error=True,
-    )
-
 
 class VTEMWaveform(BaseWaveform):
     """
@@ -427,26 +392,6 @@ class VTEMWaveform(BaseWaveform):
     @property
     def time_nodes(self):
         return np.r_[0, self.peak_time, self.off_time]
-
-    ##########################
-    # Deprecated
-    ##########################
-
-    peakTime = deprecate_property(
-        peak_time,
-        "peakTime",
-        new_name="peak_time",
-        removal_version="0.17.0",
-        error=True,
-    )
-
-    a = deprecate_property(
-        ramp_on_rate,
-        "a",
-        new_name="ramp_on_rate",
-        removal_version="0.17.0",
-        error=True,
-    )
 
 
 class TrapezoidWaveform(BaseWaveform):
@@ -624,18 +569,6 @@ class TriangularWaveform(TrapezoidWaveform):
         self._peak_time = value
         self._ramp_on = np.r_[self._ramp_on[0], value]
         self._ramp_off = np.r_[value, self._ramp_off[1]]
-
-    ##########################
-    # Deprecated
-    ##########################
-
-    peakTime = deprecate_property(
-        peak_time,
-        "peakTime",
-        new_name="peak_time",
-        removal_version="0.17.0",
-        error=True,
-    )
 
 
 class QuarterSineRampOnWaveform(TrapezoidWaveform):
