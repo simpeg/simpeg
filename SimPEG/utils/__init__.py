@@ -145,25 +145,29 @@ Many of the functions here are used internally to SimPEG and have minimal docume
 """
 from discretize.utils.interpolation_utils import interpolation_matrix
 
+from . import io_utils, model_builder, solver_utils
 from .code_utils import (
-    mem_profile_class,
-    hook,
-    set_kwargs,
-    print_titles,
-    print_line,
-    check_stoppers,
-    print_stoppers,
-    print_done,
-    call_hooks,
-    deprecate_property,
-    deprecate_module,
-    deprecate_method,
-    deprecate_function,
-    deprecate_class,
-    dependent_property,
-    as_array_n_by_dim,
-    requires,
     Report,
+    as_array_n_by_dim,
+    call_hooks,
+    check_stoppers,
+    dependent_property,
+    deprecate_class,
+    deprecate_function,
+    deprecate_method,
+    deprecate_module,
+    deprecate_property,
+    hook,
+    mem_profile_class,
+    print_done,
+    print_line,
+    print_stoppers,
+    print_titles,
+    requires,
+    set_kwargs,
+    validate_active_indices,
+    validate_callable,
+    validate_direction,
     validate_float,
     validate_integer,
     validate_list_of_types,
@@ -171,70 +175,60 @@ from .code_utils import (
     validate_ndarray_with_shape,
     validate_string,
     validate_type,
-    validate_callable,
-    validate_direction,
-    validate_active_indices,
 )
-
+from .coord_utils import rotate_points_from_normals, rotation_matrix_from_normals
+from .counter_utils import Counter, count, timeIt
+from .curv_utils import (
+    example_curvilinear_grid,
+    face_info,
+    index_cube,
+    volume_tetrahedron,
+)
+from .io_utils import download
 from .mat_utils import (
+    Identity,
+    TensorType,
+    Zero,
+    av,
+    av_extrap,
+    cartesian2spherical,
+    coterminal,
+    ddx,
+    define_plane_from_points,
+    eigenvalue_by_power_iteration,
+    estimate_diagonal,
+    get_subarray,
+    ind2sub,
+    inverse_2x2_block_diagonal,
+    inverse_3x3_block_diagonal,
+    inverse_property_tensor,
+    kron3,
+    make_property_tensor,
     mkvc,
+    ndgrid,
     sdiag,
     sdinv,
     speye,
-    kron3,
-    spzeros,
-    ddx,
-    av,
-    av_extrap,
-    ndgrid,
-    ind2sub,
-    sub2ind,
-    get_subarray,
-    inverse_3x3_block_diagonal,
-    inverse_2x2_block_diagonal,
-    TensorType,
-    make_property_tensor,
-    inverse_property_tensor,
-    estimate_diagonal,
-    Zero,
-    Identity,
-    unique_rows,
-    eigenvalue_by_power_iteration,
-    cartesian2spherical,
     spherical2cartesian,
-    coterminal,
-    define_plane_from_points,
+    spzeros,
+    sub2ind,
+    unique_rows,
 )
 from .mesh_utils import (
-    unpack_widths,
     closest_points_index,
     extract_core_mesh,
     surface2inds,
+    unpack_widths,
 )
-from .curv_utils import (
-    volume_tetrahedron,
-    index_cube,
-    face_info,
-    example_curvilinear_grid,
-)
-from .counter_utils import Counter, count, timeIt
-from . import model_builder
-from . import solver_utils
-from . import io_utils
-from .coord_utils import (
-    rotation_matrix_from_normals,
-    rotate_points_from_normals,
-)
-from .model_utils import surface2ind_topo, depth_weighting
-from .plot_utils import plot2Ddata, plotLayer, plot_1d_layer_model
-from .io_utils import download
+from .model_utils import depth_weighting, distance_weighting, surface2ind_topo
 from .pgi_utils import (
     GaussianMixture,
-    WeightedGaussianMixture,
-    GaussianMixtureWithPrior,
     GaussianMixtureWithNonlinearRelationships,
     GaussianMixtureWithNonlinearRelationshipsWithPrior,
+    GaussianMixtureWithPrior,
+    WeightedGaussianMixture,
 )
+from .plot_utils import plot2Ddata, plot_1d_layer_model, plotLayer
 
 # Deprecated imports
 interpmat = deprecate_function(
@@ -242,39 +236,27 @@ interpmat = deprecate_function(
 )
 
 from .code_utils import (
-    memProfileWrapper,
-    setKwargs,
-    printTitles,
-    printLine,
-    checkStoppers,
-    printStoppers,
-    printDone,
-    callHooks,
-    dependentProperty,
     asArray_N_x_Dim,
+    callHooks,
+    checkStoppers,
+    dependentProperty,
+    memProfileWrapper,
+    printDone,
+    printLine,
+    printStoppers,
+    printTitles,
+    setKwargs,
 )
+from .coord_utils import rotatePointsFromNormals, rotationMatrixFromNormals
+from .curv_utils import exampleLrmGrid, faceInfo, indexCube, volTetra
 from .mat_utils import (
-    sdInv,
-    getSubArray,
-    inv3X3BlockDiagonal,
-    inv2X2BlockDiagonal,
-    makePropertyTensor,
-    invPropertyTensor,
     diagEst,
+    getSubArray,
+    inv2X2BlockDiagonal,
+    inv3X3BlockDiagonal,
+    invPropertyTensor,
+    makePropertyTensor,
+    sdInv,
     uniqueRows,
 )
-from .mesh_utils import (
-    meshTensor,
-    closestPoints,
-    ExtractCoreMesh,
-)
-from .curv_utils import (
-    volTetra,
-    faceInfo,
-    indexCube,
-    exampleLrmGrid,
-)
-from .coord_utils import (
-    rotatePointsFromNormals,
-    rotationMatrixFromNormals,
-)
+from .mesh_utils import ExtractCoreMesh, closestPoints, meshTensor
