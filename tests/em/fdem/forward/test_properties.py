@@ -8,7 +8,7 @@ from SimPEG.electromagnetics import time_domain as tdem
 def test_removed_projcomp():
     """Test if passing the removed `projComp` argument raises an error."""
     xyz = np.c_[0.0, 0.0, 0.0]
-    msg = "'projcomp' property has been removed."
+    msg = "'projComp' property has been removed."
     with pytest.raises(TypeError, match=msg):
         fdem.receivers.BaseRx(xyz, projComp="foo")
 

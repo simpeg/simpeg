@@ -8,7 +8,7 @@ def test_removed_projcomp():
     """Test if passing the removed `projComp` argument raises an error."""
     xyz = np.c_[0.0, 0.0, 0.0]
     times = np.logspace(-5, -2, 4)
-    msg = "'projcomp' property has been removed."
+    msg = "'projComp' property has been removed."
     with pytest.raises(TypeError, match=msg):
         tdem.receivers.BaseRx(xyz, times, projComp="foo")
 
