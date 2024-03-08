@@ -20,10 +20,38 @@ from .fields import (
 
 
 class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
-    """
-    We start with the first order form of Maxwell's equations, eliminate and
-    solve the second order form. For the time discretization, we use backward
-    Euler.
+    r"""Base class for quasi-static TDEM simulation with finite volume.
+
+    This class is used to define properties and methods necessary for solving
+    3D time-domain problems. In the quasi-static regime, we ignore electric
+    displacement, and Maxwell's equations are expressed as:
+
+    .. math::
+        \begin{align}
+        &\nabla \times \vec{e} + \frac{\partial \vec{b}}{\partial t} = -\frac{\partial \vec{s}_m}{\partial t} \\
+        &\nabla \times \vec{h} - \vec{j} = \vec{s}_e
+
+    where the constitutive relations between fields and fluxes are given by:
+
+    * :math:`\vec{j} = \sigma \vec{e}`
+    * :math:`\vec{b} = \mu \vec{h}`
+
+    and magnetic and electric sources are defined as:
+
+    * :math:`\vec{s}_m` represents a magnetic source term
+    * :math:`\vec{s}_e` represents a current source term
+
+    Child classes of ``BaseTDEMSimulation`` solve the above expression numerically
+    for various cases using mimetic finite volume and backward Euler time-stepping.
+
+    Parameters
+    ----------
+    mesh : discretize.base.BaseMesh
+        The mesh.
+    survey : SimPEG.electromagnetics.time_domain.survey.Survey
+        The time-domain EM survey.
+    dt_threshold : float
+        Threshold used when determining the unique time-step lengths.
     """
 
     def __init__(self, mesh, survey=None, dt_threshold=1e-8, **kwargs):
@@ -37,10 +65,12 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
 
     @property
     def survey(self):
-        """The survey for the simulation
+        """The TDEM survey object.
+
         Returns
         -------
         SimPEG.electromagnetics.time_domain.survey.Survey
+            The TDEM survey object.
         """
         if self._survey is None:
             raise AttributeError("Simulation must have a survey set")
@@ -54,14 +84,17 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
 
     @property
     def dt_threshold(self):
-        """The threshold used to determine if a previous matrix factor can be reused.
-
-        If the difference in time steps falls below this threshold, the factored matrix
-        is re-used.
+        """Threshold used when determining the unique time-step lengths.
+        
+        The number of linear systems that must be factored to solve the forward
+        problem is equal to the number of unique time-step lengths. *dt_threshold*
+        effectively sets the round-off error when determining the unique time-step
+        lengths used by the simulation.
 
         Returns
         -------
         float
+            Threshold used when determining the unique time-step lengths.
         """
         return self._dt_threshold
 
@@ -80,12 +113,17 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
     #     """
 
     def fields(self, m):
-        """
-        Solve the forward problem for the fields.
+        """Compute and return the fields for the model provided.
 
-        :param numpy.ndarray m: inversion model (nP,)
-        :rtype: SimPEG.electromagnetics.time_domain.fields.FieldsTDEM
-        :return f: fields object
+        Parameters
+        ----------
+        m : None, (n_param,) numpy.ndarray
+            The model.
+
+        Returns
+        -------
+        SimPEG.electromagnetics.time_domain.fields.FieldsTDEM
+            The TDEM fields object.
         """
 
         self.model = m
@@ -141,26 +179,34 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
         return f
 
     def Jvec(self, m, v, f=None):
-        r"""
-        Jvec computes the sensitivity times a vector
+        r"""Compute the sensitivity matrix times a vector.
+
+        Where :math:`\mathbf{d}` are the data, :math:`\mathbf{m}` are the model parameters,
+        and the sensitivity matrix is defined as:
 
         .. math::
-            \mathbf{J} \mathbf{v} =
-                \frac{d\mathbf{P}}{d\mathbf{F}}
-                \left(
-                    \frac{d\mathbf{F}}{d\mathbf{u}} \frac{d\mathbf{u}}{d\mathbf{m}}
-                    + \frac{\partial\mathbf{F}}{\partial\mathbf{m}}
-                \right)
-                \mathbf{v}
+            \mathbf{J} = \dfrac{\partial \mathbf{d}}{\partial \mathbf{m}}
 
-        where
+        this method computes and returns the matrix-vector product:
 
         .. math::
-            \mathbf{A} \frac{d\mathbf{u}}{d\mathbf{m}}
-            + \frac{\partial \mathbf{A} (\mathbf{u}, \mathbf{m})}
-            {\partial\mathbf{m}} =
-            \frac{d \mathbf{RHS}}{d \mathbf{m}}
+            \mathbf{J v}
 
+        for a given vector :math:`v`.
+
+        Parameters
+        ----------
+        m : (n_param,) numpy.ndarray
+            The model parameters.
+        v : (n_param,) numpy.ndarray
+            The vector.
+        f : SimPEG.electromagnetics.time_domain.fields.FieldsTDEM, optional
+            Fields solved for all sources.
+
+        Returns
+        -------
+        (n_data,) numpy.ndarray
+            The sensitivity matrix times a vector.
         """
 
         if f is None:
@@ -251,27 +297,34 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
         return np.hstack(Jv)
 
     def Jtvec(self, m, v, f=None):
-        r"""
-        Jvec computes the adjoint of the sensitivity times a vector
+        r"""Compute the adjoint sensitivity matrix times a vector.
+
+        Where :math:`\mathbf{d}` are the data, :math:`\mathbf{m}` are the model parameters,
+        and the sensitivity matrix is defined as:
 
         .. math::
+            \mathbf{J} = \dfrac{\partial \mathbf{d}}{\partial \mathbf{m}}
 
-            \mathbf{J}^\top \mathbf{v} =
-                \left(
-                    \frac{d\mathbf{u}}{d\mathbf{m}} ^ \top
-                    \frac{d\mathbf{F}}{d\mathbf{u}} ^ \top
-                    + \frac{\partial\mathbf{F}}{\partial\mathbf{m}} ^ \top
-                \right)
-                \frac{d\mathbf{P}}{d\mathbf{F}} ^ \top
-                \mathbf{v}
-
-        where
+        this method computes and returns the matrix-vector product:
 
         .. math::
+            \mathbf{J^T v}
 
-            \frac{d\mathbf{u}}{d\mathbf{m}} ^\top \mathbf{A}^\top  +
-            \frac{d\mathbf{A}(\mathbf{u})}{d\mathbf{m}} ^ \top =
-            \frac{d \mathbf{RHS}}{d \mathbf{m}} ^ \top
+        for a given vector :math:`v`.
+
+        Parameters
+        ----------
+        m : (n_param,) numpy.ndarray
+            The model parameters.
+        v : (n_param,) numpy.ndarray
+            The vector.
+        f : SimPEG.electromagnetics.time_domain.fields.FieldsTDEM, optional
+            Fields solved for all sources.
+
+        Returns
+        -------
+        (n_param,) numpy.ndarray
+            The adjoint sensitivity matrix times a vector.
         """
 
         if f is None:
@@ -395,9 +448,26 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
         return mkvc(JTv).astype(float)
 
     def getSourceTerm(self, tInd):
-        """
-        Assemble the source term. This ensures that the RHS is a vector / array
-        of the correct size
+        """Return the discrete source terms for the time index provided.
+
+        This method computes and returns a ``tuple`` containing the discrete magnetic
+        and electric source terms for the time index provided. The exact shape and
+        implementation of source terms when solving for the fields at each time-step
+        is formulation dependent.
+        
+        Parameters
+        ----------
+        tInd : int
+            The time index. Value between [0, n_steps].
+
+        Returns
+        -------
+        tuple of numpy.ndarray
+            The source terms for the time index provided. The method returns
+            a ``tuple`` (s_m, s_e), where:
+
+            * s_m is a (n_faces, n_sources) numpy.ndarray and s_e is a (n_edges, n_sources) numpy.ndarray when the formulation defines electric fields on edges and magnetic flux densities on faces.
+            * s_m is a (n_edges, n_sources) numpy.ndarray and s_e is a (n_faces, n_sources) numpy.ndarray when the formulation defines magnetic fields on edges and current densities on faces.
         """
 
         Srcs = self.survey.source_list
