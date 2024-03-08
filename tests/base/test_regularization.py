@@ -626,7 +626,7 @@ def test_cross_ref_reg(dim):
     # give it some cell weights, and some cell vector weights to do something with
     cell_weights = np.random.rand(n_active)
     cell_vec_weights = np.random.rand(n_active, dim)
-    cross_reg.set_weights(cell_weights=cell_weights)
+    cross_reg.set_weights(weights=cell_weights)
     cross_reg.set_weights(vec_weights=cell_vec_weights)
 
     if dim == 3:
@@ -758,14 +758,12 @@ class TestWeightsKeys:
             assert reg.weights_keys == ["dummy_weight", "other_weights", "volume"]
 
 
-class TestDeprecatedArguments:
+class TestRemovedObjects:
     """
-    Test errors after simultaneously passing new and deprecated arguments.
+    Test if errors are raised after passing deprecated arguments or trying to
+    access removed properties.
 
-    Within these arguments are:
-
-    * ``indActive`` (replaced by ``active_cells``)
-    * ``cell_weights`` (replaced by ``weights``)
+    * ``cell_weights`` (replaced by ``get_weights``)
 
     """
 
@@ -783,50 +781,28 @@ class TestDeprecatedArguments:
             h = [h_i / h_i.sum() for h_i in (hx, hy, hz)]
         return discretize.TensorMesh(h)
 
+    def test_cell_weights_argument(self, mesh):
+        """Test cell_weights argument."""
+        weights = np.ones(len(mesh))
+        msg = "'cell_weights' argument has been removed. Please use 'weights' instead."
+        with pytest.raises(TypeError, match=msg):
+            BaseRegularization(mesh, cell_weights=weights)
+
     @pytest.mark.parametrize(
         "regularization_class", (BaseRegularization, WeightedLeastSquares)
     )
-    def test_active_cells(self, mesh, regularization_class):
-        """Test indActive and active_cells arguments."""
-        active_cells = np.ones(len(mesh), dtype=bool)
-        msg = "Cannot simultaneously pass 'active_cells' and 'indActive'."
-        with pytest.raises(ValueError, match=msg):
-            regularization_class(
-                mesh, active_cells=active_cells, indActive=active_cells
-            )
-
-    def test_weights(self, mesh):
-        """Test cell_weights and weights."""
-        weights = np.ones(len(mesh))
-        msg = "Cannot simultaneously pass 'weights' and 'cell_weights'."
-        with pytest.raises(ValueError, match=msg):
-            BaseRegularization(mesh, weights=weights, cell_weights=weights)
-
-
-class TestRemovedRegularizations:
-    """
-    Test if errors are raised after creating removed regularization classes.
-    """
-
-    @pytest.mark.parametrize(
-        "regularization_class",
-        (
-            regularization.PGIwithNonlinearRelationshipsSmallness,
-            regularization.PGIwithRelationships,
-            regularization.Simple,
-            regularization.SimpleSmall,
-            regularization.SimpleSmoothDeriv,
-            regularization.Small,
-            regularization.SmoothDeriv,
-            regularization.SmoothDeriv2,
-            regularization.Tikhonov,
-        ),
-    )
-    def test_removed_class(self, regularization_class):
-        class_name = regularization_class.__name__
-        msg = f"{class_name} has been removed, please use."
-        with pytest.raises(NotImplementedError, match=msg):
-            regularization_class()
+    def test_cell_weights_property(self, mesh, regularization_class):
+        """Test cell_weights property."""
+        weights = {"weights": np.ones(len(mesh))}
+        msg = "'cell_weights' argument has been removed. Please use 'weights' instead."
+        msg = (
+            "'cell_weights' has been removed. "
+            "Please access weights using the `set_weights`, `get_weights`, and "
+            "`remove_weights` methods."
+        )
+        reg = regularization_class(mesh, weights=weights)
+        with pytest.raises(AttributeError, match=msg):
+            reg.cell_weights
 
 
 if __name__ == "__main__":
