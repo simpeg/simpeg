@@ -792,7 +792,7 @@ class TestDeprecatedArguments:
 
 class TestRemovedObjects:
     """
-    Test if errors are raised after passing deprecated arguments or trying to
+    Test if errors are raised after passing removed arguments or trying to
     access removed properties.
 
     * ``indActive`` (replaced by ``active_cells``)
