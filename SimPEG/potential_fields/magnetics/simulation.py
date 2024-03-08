@@ -114,7 +114,7 @@ class Simulation3DIntegral(BasePFSimulation):
         if self.engine == "choclo" and "n_processes" in kwargs:
             warnings.warn(
                 "The 'n_processes' will be ignored when selecting 'choclo' as the "
-                "engine in the gravity simulation.",
+                "engine in the magnetic simulation.",
                 UserWarning,
                 stacklevel=1,
             )
