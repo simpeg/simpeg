@@ -52,7 +52,15 @@ class BasePFSimulation(LinearSimulation):
     n_processes : None or int, optional
         The number of processes to use in the internal multiprocessing pool for forward
         modeling. The default value of 1 will not use multiprocessing. Any other setting
-        will. `None` implies setting by the number of cpus.
+        will. `None` implies setting by the number of cpus. If engine is
+        ``"choclo"``, then this argument will be ignored.
+    engine : str, optional
+       Choose which engine should be used to run the forward model:
+       ``"geoana"`` or ``"choclo"``.
+    numba_parallel : bool, optional
+        If True, the simulation will run in parallel. If False, it will
+        run in serial. If ``engine`` is not ``"choclo"`` this argument will be
+        ignored.
 
     Notes
     -----
