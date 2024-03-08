@@ -83,9 +83,9 @@ class Simulation3DIntegral(BasePFSimulation):
         Gravity survey with information of the receivers.
     ind_active : (n_cells) numpy.ndarray, optional
         Array that indicates which cells in ``mesh`` are active cells.
-    rho : numpy.ndarray (optional)
+    rho : numpy.ndarray, optional
         Density array for the active cells in the mesh.
-    rhoMap : Mapping (optional)
+    rhoMap : Mapping, optional
         Model mapping.
     sensitivity_dtype : numpy.dtype, optional
         Data type that will be used to build the sensitivity matrix.
