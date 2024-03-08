@@ -44,8 +44,46 @@ if choclo is not None:
 
 class Simulation3DIntegral(BasePFSimulation):
     """
-    magnetic simulation in integral form.
+    Magnetic simulation in integral form.
 
+    Parameters
+    ----------
+    mesh : discretize.TreeMesh or discretize.TensorMesh
+        Mesh use to run the magnetic simulation.
+    survey : SimPEG.potential_fields.magnetics.Survey
+        Magnetic survey with information of the receivers.
+    ind_active : (n_cells) numpy.ndarray, optional
+        Array that indicates which cells in ``mesh`` are active cells.
+    chi : numpy.ndarray, optional
+        Susceptibility array for the active cells in the mesh.
+    chiMap : Mapping, optional
+        Model mapping.
+    model_type : str, optional
+        Whether the model are susceptibilities of the cells (``"scalar"``),
+        or effective susceptibilities (``"vector"``).
+    is_amplitude_data : bool, optional
+        If True, the returned fields will be the amplitude of the magnetic
+        field. If False, the fields will be returned unmodified.
+    sensitivity_dtype : numpy.dtype, optional
+        Data type that will be used to build the sensitivity matrix.
+    store_sensitivities : str
+        Options for storing sensitivity matrix. There are 3 options
+
+        - 'ram': sensitivities are stored in the computer's RAM
+        - 'disk': sensitivities are written to a directory
+        - 'forward_only': you intend only do perform a forward simulation and
+          sensitivities do not need to be stored
+
+    sensitivity_path : str, optional
+        Path to store the sensitivity matrix if ``store_sensitivities`` is set
+        to ``"disk"``. Default to "./sensitivities".
+    engine : str, optional
+       Choose which engine should be used to run the forward model:
+       ``"geoana"`` or "``choclo``".
+    numba_parallel : bool, optional
+        If True, the simulation will run in parallel. If False, it will
+        run in serial. If ``engine`` is not ``"choclo"`` this argument will be
+        ignored.
     """
 
     chi, chiMap, chiDeriv = props.Invertible("Magnetic Susceptibility (SI)")
