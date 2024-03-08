@@ -794,7 +794,6 @@ class TestRemovedObjects:
     def test_cell_weights_property(self, mesh, regularization_class):
         """Test cell_weights property."""
         weights = {"weights": np.ones(len(mesh))}
-        msg = "'cell_weights' argument has been removed. Please use 'weights' instead."
         msg = (
             "'cell_weights' has been removed. "
             "Please access weights using the `set_weights`, `get_weights`, and "
