@@ -9,6 +9,8 @@ from SimPEG import maps, objective_function, regularization, utils
 from SimPEG.regularization import (
     BaseRegularization,
     WeightedLeastSquares,
+    Sparse,
+    SparseSmoothness,
     Smallness,
     SmoothnessFirstOrder,
     SmoothnessSecondOrder,
@@ -91,7 +93,7 @@ class RegularizationTests(unittest.TestCase):
                     else:
                         m = np.random.rand(mesh.nC)
                     mref = np.ones_like(m) * np.mean(m)
-                    reg.mref = mref
+                    reg.reference_model = mref
 
                     # test derivs
                     passed = reg.test(m, eps=TOL)
@@ -801,6 +803,59 @@ class TestDeprecatedArguments:
         msg = "Cannot simultaneously pass 'weights' and 'cell_weights'."
         with pytest.raises(ValueError, match=msg):
             BaseRegularization(mesh, weights=weights, cell_weights=weights)
+
+
+class TestRemovedObjects:
+    """
+    Test if errors are raised after passing deprecated arguments or trying to
+    access removed properties.
+
+    * ``gradientType`` (replaced by ``gradient_type``)
+    * ``mref`` (replaced by ``reference_model``)
+    * ``regmesh`` (replaced by ``regularization_mesh``)
+
+    """
+
+    @pytest.fixture(params=["1D", "2D", "3D"])
+    def mesh(self, request):
+        """Sample mesh."""
+        if request.param == "1D":
+            hx = np.random.rand(10)
+            h = [hx / hx.sum()]
+        elif request.param == "2D":
+            hx, hy = np.random.rand(10), np.random.rand(9)
+            h = [h_i / h_i.sum() for h_i in (hx, hy)]
+        elif request.param == "3D":
+            hx, hy, hz = np.random.rand(10), np.random.rand(9), np.random.rand(8)
+            h = [h_i / h_i.sum() for h_i in (hx, hy, hz)]
+        return discretize.TensorMesh(h)
+
+    @pytest.mark.parametrize(
+        "regularization_class", (BaseRegularization, WeightedLeastSquares)
+    )
+    def test_mref_property(self, mesh, regularization_class):
+        """Test mref property."""
+        msg = "mref has been removed, please use reference_model."
+        reg = regularization_class(mesh)
+        with pytest.raises(NotImplementedError, match=msg):
+            reg.mref
+
+    def test_regmesh_property(self, mesh):
+        """Test regmesh property."""
+        msg = "regmesh has been removed, please use regularization_mesh."
+        reg = BaseRegularization(mesh)
+        with pytest.raises(NotImplementedError, match=msg):
+            reg.regmesh
+
+    @pytest.mark.parametrize("regularization_class", (Sparse, SparseSmoothness))
+    def test_gradient_type(self, mesh, regularization_class):
+        """Test gradientType argument."""
+        msg = (
+            "'gradientType' argument has been removed. "
+            "Please use 'gradient_type' instead."
+        )
+        with pytest.raises(TypeError, match=msg):
+            regularization_class(mesh, gradientType="total")
 
 
 class TestRemovedRegularizations:
