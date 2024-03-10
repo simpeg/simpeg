@@ -104,9 +104,9 @@ class Simulation1DLayered(BaseEM1DSimulation):
         receiver and outputs it as a list. Used for computing response
         or sensitivities.
         """
-        self._compute_coefficients()
-
         self.model = m
+
+        self._compute_coefficients()
 
         C0s = self._C0s
         C1s = self._C1s
@@ -149,28 +149,10 @@ class Simulation1DLayered(BaseEM1DSimulation):
                 # Grab a copy
                 C0s_dh = C0s.copy()
                 C1s_dh = C1s.copy()
-                h_vec = self.h
-                i = 0
-                for i_src, src in enumerate(self.survey.source_list):
-                    class_name = type(src).__name__
-                    is_wire_loop = class_name == "LineCurrent"
 
-                    h = h_vec[i_src]
-                    if is_wire_loop:
-                        n_quad_points = src.n_segments * self.n_points_per_path
-                        nD = sum(
-                            rx.locations.shape[0] * n_quad_points
-                            for rx in src.receiver_list
-                        )
-                    else:
-                        nD = sum(rx.locations.shape[0] for rx in src.receiver_list)
-                    ip1 = i + nD
-                    v = np.exp(-lambs[i:ip1] * h)
-                    C0s_dh[i:ip1] *= v * -lambs[i:ip1]
-                    C1s_dh[i:ip1] *= v * -lambs[i:ip1]
-                    i = ip1
-                    # J will be n_d * n_src (each source has it's own h)...
-
+                # It seems to be the 2 * lambs to be multiplied, but had to drop factor of 2
+                C0s_dh *= -lambs
+                C1s_dh *= -lambs
                 rTE = rTE_forward(frequencies, unique_lambs, sig, mu, self.thicknesses)
                 rTE = rTE[i_freq]
                 rTE = np.take_along_axis(rTE, inv_lambs, axis=1)
@@ -181,7 +163,7 @@ class Simulation1DLayered(BaseEM1DSimulation):
                 # need to re-arange v_dh as it's currently (n_data x 1)
                 # however it already contains all the relevant information...
                 # just need to map it from the rx index to the source index associated..
-                v_dh = np.zeros((self.survey.nSrc, v_dh_temp.shape[0]))
+                v_dh = np.zeros((self.survey.nSrc, v_dh_temp.shape[0]), dtype=complex)
 
                 i = 0
                 for i_src, src in enumerate(self.survey.source_list):

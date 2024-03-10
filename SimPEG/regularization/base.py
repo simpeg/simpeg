@@ -8,6 +8,7 @@ from .. import maps
 from ..objective_function import BaseObjectiveFunction, ComboObjectiveFunction
 from .. import utils
 from .regularization_mesh import RegularizationMesh
+from .regularization_mesh_lateral import LCRegularizationMesh
 
 from SimPEG.utils.code_utils import deprecate_property, validate_ndarray_with_shape
 
@@ -882,20 +883,24 @@ class SmoothnessFirstOrder(BaseRegularization):
         self, mesh, orientation="x", reference_model_in_smooth=False, **kwargs
     ):
         self.reference_model_in_smooth = reference_model_in_smooth
+        if isinstance(mesh, LCRegularizationMesh):
+            if orientation not in ["r", "z"]:
+                raise ValueError("Orientation must be 'r' or 'z'")
+        else:
+            if orientation not in ["x", "y", "z"]:
+                raise ValueError("Orientation must be 'x', 'y' or 'z'")
 
-        if orientation not in ["x", "y", "z"]:
-            raise ValueError("Orientation must be 'x', 'y' or 'z'")
+            if orientation == "y" and mesh.dim < 2:
+                raise ValueError(
+                    "Mesh must have at least 2 dimensions to regularize along the "
+                    "y-direction."
+                )
+            elif orientation == "z" and mesh.dim < 3:
+                raise ValueError(
+                    "Mesh must have at least 3 dimensions to regularize along the "
+                    "z-direction"
+                )
 
-        if orientation == "y" and mesh.dim < 2:
-            raise ValueError(
-                "Mesh must have at least 2 dimensions to regularize along the "
-                "y-direction."
-            )
-        elif orientation == "z" and mesh.dim < 3:
-            raise ValueError(
-                "Mesh must have at least 3 dimensions to regularize along the "
-                "z-direction"
-            )
         self._orientation = orientation
 
         super().__init__(mesh=mesh, **kwargs)

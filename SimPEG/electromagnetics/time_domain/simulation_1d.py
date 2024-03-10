@@ -11,6 +11,7 @@ from .survey import Survey
 from scipy.constants import mu_0
 from scipy.interpolate import InterpolatedUnivariateSpline as iuSpline
 from scipy.special import roots_legendre
+from scipy import signal
 
 from empymod import filters
 from empymod.transform import get_dlf_points
@@ -78,6 +79,7 @@ class Simulation1DLayered(BaseEM1DSimulation):
             self._inv_lambs,
             self._C0s,
             self._C1s,
+            self._W,
         )
 
     def _set_coefficients(self, coefficients):
@@ -88,6 +90,7 @@ class Simulation1DLayered(BaseEM1DSimulation):
         self._inv_lambs = coefficients[4]
         self._C0s = coefficients[5]
         self._C1s = coefficients[6]
+        self._W = coefficients[7]
         self._coefficients_set = True
         return
 
@@ -218,9 +221,9 @@ class Simulation1DLayered(BaseEM1DSimulation):
         receiver and outputs it as a list. Used for computing response
         or sensitivities.
         """
-        self._compute_coefficients()
-
         self.model = m
+
+        self._compute_coefficients()
 
         C0s = self._C0s
         C1s = self._C1s
@@ -261,17 +264,23 @@ class Simulation1DLayered(BaseEM1DSimulation):
                 # Grab a copy
                 C0s_dh = C0s.copy()
                 C1s_dh = C1s.copy()
-                h_vec = self.h
-                i = 0
-                for i_src, src in enumerate(self.survey.source_list):
-                    h = h_vec[i_src]
-                    nD = sum(rx.locations.shape[0] for rx in src.receiver_list)
-                    ip1 = i + nD
-                    v = np.exp(-lambs[i:ip1] * h)
-                    C0s_dh[i:ip1] *= v * -lambs[i:ip1]
-                    C1s_dh[i:ip1] *= v * -lambs[i:ip1]
-                    i = ip1
-                    # J will be n_d * n_src (each source has it's own h)...
+                # h_vec = self.h
+                # i = 0
+                # for i_src, src in enumerate(self.survey.source_list):
+                #     rx = src.receiver_list[0]
+                #     h = h_vec[i_src]
+                #     # if rx.use_source_receiver_offset:
+                #     #     dz = rx.locations[:, 2]
+                #     # else:
+                #     #     dz = rx.locations[:, 2] - src.location[2]
+                #     nD = sum(rx.locations.shape[0] for rx in src.receiver_list)
+                #     ip1 = i + nD
+                #     C0s_dh[i:ip1] *= 2 * -lambs[i:ip1]
+                #     C1s_dh[i:ip1] *= 2 * -lambs[i:ip1]
+                #     i = ip1
+                #     # J will be n_d * n_src (each source has it's own h)...
+                C0s_dh *= 2 * -lambs
+                C1s_dh *= 2 * -lambs
 
                 rTE = rTE_forward(frequencies, unique_lambs, sig, mu, self.thicknesses)
                 rTE = rTE[:, inv_lambs]
@@ -285,7 +294,7 @@ class Simulation1DLayered(BaseEM1DSimulation):
                 # need to re-arange v_dh as it's currently (n_data x n_freqs)
                 # however it already contains all the relevant information...
                 # just need to map it from the rx index to the source index associated..
-                v_dh = np.zeros((self.survey.nSrc, *v_dh_temp.shape))
+                v_dh = np.zeros((self.survey.nSrc, *v_dh_temp.shape), dtype=complex)
 
                 i = 0
                 for i_src, src in enumerate(self.survey.source_list):
@@ -353,13 +362,25 @@ class Simulation1DLayered(BaseEM1DSimulation):
                 v_slice = v[np.arange(i, i_p1)]
                 # this should order it as location changing faster than time
                 # i.e. loc_1 t_1, loc_2 t_1, loc1 t2, loc2 t2
+
+                frequencies = self._frequencies
+                w = 2 * np.pi * frequencies
+                wc_lp = 2 * np.pi * rx.lp_cutoff_frequency
+                h_lp = (1 + 1j * w / wc_lp) ** (-rx.lp_power)  # low pass filter
+                wc_bw = 2 * np.pi * rx.bw_cutoff_frequency
+                numer, denom = signal.butter(rx.bw_power, wc_bw, "low", analog=True)
+                _, h_bw = signal.freqs(numer, denom, worN=w)
+                h = h_lp * h_bw
+
                 if v.ndim == 3:
+                    v_slice *= h[None, :, None]
                     if isinstance(rx, (PointMagneticFluxDensity, PointMagneticField)):
                         d = np.einsum("ij,...jk->...ik", As[i_A], v_slice.imag)
                     else:
                         d = np.einsum("ij,...jk->...ik", As[i_A], v_slice.real)
                     out[i_dat:i_datp1] = d.reshape((-1, v.shape[-1]), order="F")
                 else:
+                    v_slice *= h[None, :]
                     if isinstance(rx, (PointMagneticFluxDensity, PointMagneticField)):
                         d = np.einsum("ij,...j->...i", As[i_A], v_slice.imag)
                     else:
