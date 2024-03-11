@@ -30,7 +30,7 @@ class LinearCorrespondenceTest(unittest.TestCase):
         corr = regularization.LinearCorrespondence(
             mesh,
             wire_map=wires,
-            indActive=actv,
+            active_cells=actv,
         )
 
         self.mesh = mesh
