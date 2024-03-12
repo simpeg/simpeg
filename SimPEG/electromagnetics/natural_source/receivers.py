@@ -294,27 +294,24 @@ class PointNaturalSource(BaseRx):
             # Work backwards!
             gtop_v = v / bot
             gbot_v = -imp * v / bot
+            n_d = self.nD
 
             if mesh.dim == 3:
-                gtop_v = np.c_[v] / bot[:, None]
-                gbot_v = -imp[:, None] * np.c_[v] / bot[:, None]
-                ghx_v = np.einsum(
-                    "ij,ik->ijk", gbot_v, np.c_[hy[:, 1], -hy[:, 0]]
-                ).reshape((hy.shape[0], -1))
-                ghy_v = np.einsum(
-                    "ij,ik->ijk", gbot_v, np.c_[-hx[:, 1], hx[:, 0]]
-                ).reshape((hx.shape[0], -1))
-                ge_v = np.einsum(
-                    "ij,ik->ijk", gtop_v, np.c_[h[:, 1], -h[:, 0]]
-                ).reshape((h.shape[0], -1))
-                gh_v = np.einsum(
-                    "ij,ik->ijk", gtop_v, np.c_[-e[:, 1], e[:, 0]]
-                ).reshape((e.shape[0], -1))
+                ghx_v = np.c_[hy[:, 1], -hy[:, 0]] * gbot_v[..., None]
+                ghy_v = np.c_[-hx[:, 1], hx[:, 0]] * gbot_v[..., None]
+                ge_v = np.c_[h[:, 1], -h[:, 0]] * gtop_v[..., None]
+                gh_v = np.c_[-e[:, 1], e[:, 0]] * gtop_v[..., None]
 
                 if self.orientation[1] == "x":
                     ghy_v += gh_v
                 else:
                     ghx_v -= gh_v
+
+                if v.ndim == 2:
+                    # collapse into a long list of n_d vectors
+                    ghx_v = ghx_v.reshape((n_d, -1))
+                    ghy_v = ghy_v.reshape((n_d, -1))
+                    ge_v = ge_v.reshape((n_d, -1))
 
                 gh_v = Phx.T @ ghx_v + Phy.T @ ghy_v
                 ge_v = Pe.T @ ge_v

@@ -16,6 +16,9 @@ def __inner_mat_mul_op(M, u, v=None, adjoint=False):
                 # u has multiple fields
                 if v.ndim == 1:
                     v = v[:, None]
+                if adjoint and v.shape[1] != u.shape[1] and v.shape[1] > 1:
+                    # make sure v is a good shape
+                    v = v.reshape(u.shape[0], -1, u.shape[1])
             else:
                 if v.ndim > 1:
                     u = u[:, None]
@@ -23,10 +26,6 @@ def __inner_mat_mul_op(M, u, v=None, adjoint=False):
                 u = u[:, None, :]
             if adjoint:
                 if u.ndim > 1 and u.shape[-1] > 1:
-                    if v.shape[-1] > 2:
-                        return M.T * (
-                            u[:, None, :] * v.reshape((u.shape[0], -1, u.shape[1]))
-                        ).sum(axis=2)
                     return M.T * (u * v).sum(axis=-1)
                 return M.T * (u * v)
             if u.ndim > 1 and u.shape[1] > 1:
