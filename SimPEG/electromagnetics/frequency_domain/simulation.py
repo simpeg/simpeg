@@ -249,6 +249,7 @@ class BaseFDEMSimulation(BaseEMSimulation):
         :rtype: numpy.ndarray
         :return: J (ndata, nP)
         """
+        self.model = m
 
         if getattr(self, "_Jmatrix", None) is None:
             if f is None:
