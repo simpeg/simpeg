@@ -22,12 +22,11 @@ def JtjdiagTest(inputSetup, comp="All", freq=False, expMap=True, weights=False):
         W = np.eye(simulation.survey.nD)
         # W = np.zeros((simulation.survey.nD, simulation.survey.nD))
 
-    simulation._gtgdiag = None
-    simulation._Jmatrix = None
     Jtjdiag1 = simulation.getJtJdiag(model, W=W)
-    simulation._gtgdiag = None
-    simulation._Jmatrix = None
-    Jtjdiag2 = simulation.getJtJdiag(model + 2, W=W)
+    simulation.model = model + 2
+    Jtjdiag2 = simulation.getJtJdiag(model + 0.001, W=W)
+    assert Jtjdiag1 is not Jtjdiag2
+
     return np.allclose(Jtjdiag1, Jtjdiag2)
 
 
@@ -43,7 +42,7 @@ def JmatrixTest(inputSetup, comp="All", freq=False, expMap=True):
     J1 = simulation.getJ(model)
     Jmatrix_vec = J1.T @ vec
 
-    # create approximation JTvec
+    # compare to JTvec function
     jtvec = simulation.Jtvec(model, v=vec)
 
     return np.allclose(Jmatrix_vec, jtvec)

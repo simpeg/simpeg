@@ -59,7 +59,13 @@ class BaseFDEMSimulation(BaseEMSimulation):
     # permittivity, permittivityMap, permittivityDeriv = props.Invertible("Dielectric permittivity (F/m)")
 
     def __init__(
-        self, mesh, survey=None, forward_only=False, permittivity=None, **kwargs
+        self,
+        mesh,
+        survey=None,
+        forward_only=False,
+        permittivity=None,
+        storeJ=False,
+        **kwargs
     ):
         super().__init__(mesh=mesh, survey=survey, **kwargs)
         self.forward_only = forward_only
@@ -69,6 +75,7 @@ class BaseFDEMSimulation(BaseEMSimulation):
                 stacklevel=2,
             )
         self.permittivity = permittivity
+        self.storeJ = storeJ
 
     @property
     def survey(self):
@@ -87,6 +94,21 @@ class BaseFDEMSimulation(BaseEMSimulation):
         if value is not None:
             value = validate_type("survey", value, Survey, cast=False)
         self._survey = value
+        self._survey = value
+
+    @property
+    def storeJ(self):
+        """Whether to store the sensitivity matrix
+
+        Returns
+        -------
+        bool
+        """
+        return self._storeJ
+
+    @storeJ.setter
+    def storeJ(self, value):
+        self._storeJ = validate_type("storeJ", value, bool)
 
     @property
     def forward_only(self):
@@ -304,6 +326,7 @@ class BaseFDEMSimulation(BaseEMSimulation):
         :rtype: numpy.ndarray
         :return: JtJ (nP,)
         """
+        self.model = m
 
         if getattr(self, "_gtgdiag", None) is None:
             J = self.getJ(m, f=f)
@@ -350,6 +373,11 @@ class BaseFDEMSimulation(BaseEMSimulation):
             s_e[:, i:ii] = s_e[:, i:ii] + sei
             i = ii
         return s_m, s_e
+
+    @property
+    def deleteTheseOnModelUpdate(self):
+        toDelete = super().deleteTheseOnModelUpdate
+        return toDelete + ["_Jmatrix", "_gtgdiag"]
 
 
 ###############################################################################
