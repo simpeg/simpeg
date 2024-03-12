@@ -82,6 +82,39 @@ class DCProblemAnalyticTests_DPDP(unittest.TestCase):
         print(f"DPDP N err: {err}")
         self.assertLess(err, tolerance)
 
+    def test_Simulation2DNodal_axial_anisotropy(self, tolerance=0.05):
+        print(self.sigma)
+        simulation = dc.simulation_2d.Simulation2DNodal(
+            self.mesh,
+            survey=self.survey,
+            sigma=np.tile(self.sigma, 3),
+            solver=self.solver,
+            bc_type="Neumann",
+        )
+        data = simulation.dpred()
+        err = np.sqrt(
+            np.linalg.norm((data - self.data_ana) / self.data_ana) ** 2
+            / self.data_ana.size
+        )
+        print(f"DPDP N err: {err}")
+        self.assertLess(err, tolerance)
+
+    def test_Simulation2DCellCentered_axial_anisotropy(self, tolerance=0.05):
+        simulation = dc.simulation_2d.Simulation2DCellCentered(
+            self.mesh,
+            survey=self.survey,
+            sigma=np.tile(self.sigma, 3),
+            solver=self.solver,
+            bc_type="Neumann",
+        )
+        data = simulation.dpred()
+        err = np.sqrt(
+            np.linalg.norm((data - self.data_ana) / self.data_ana) ** 2
+            / self.data_ana.size
+        )
+        print(f"DPDP N err: {err}")
+        self.assertLess(err, tolerance)
+
 
 class DCProblemAnalyticTests_PDP(unittest.TestCase):
     def setUp(self):
@@ -144,6 +177,38 @@ class DCProblemAnalyticTests_PDP(unittest.TestCase):
             sigma=self.sigma,
             solver=self.solver,
             bc_type="Robin",
+        )
+        data = simulation.dpred()
+        err = np.sqrt(
+            np.linalg.norm((data - self.data_ana) / self.data_ana) ** 2
+            / self.data_ana.size
+        )
+        print(f"PDP CC err: {err}")
+        self.assertLess(err, tolerance)
+
+    def test_Simulation2DNodal_axial_anisotropy(self, tolerance=0.05):
+        simulation = dc.simulation_2d.Simulation2DNodal(
+            self.mesh,
+            survey=self.survey,
+            sigma=np.tile(self.sigma, 3),
+            solver=self.solver,
+            bc_type="Neumann",
+        )
+        data = simulation.dpred()
+        err = np.sqrt(
+            np.linalg.norm((data - self.data_ana) / self.data_ana) ** 2
+            / self.data_ana.size
+        )
+        print(f"PDP N err: {err}")
+        self.assertLess(err, tolerance)
+
+    def test_Simulation2DCellCentered_axial_anisotropy(self, tolerance=0.05):
+        simulation = dc.simulation_2d.Simulation2DCellCentered(
+            self.mesh,
+            survey=self.survey,
+            sigma=np.tile(self.sigma, 3),
+            solver=self.solver,
+            bc_type="Neumann",
         )
         data = simulation.dpred()
         err = np.sqrt(
@@ -226,6 +291,38 @@ class DCProblemAnalyticTests_DPP(unittest.TestCase):
         print(f"DPP CC err: {err}")
         self.assertLess(err, tolerance)
 
+    def test_Simulation2DNodal_axial_anisotropy(self, tolerance=0.05):
+        simulation = dc.simulation_2d.Simulation2DNodal(
+            self.mesh,
+            survey=self.survey,
+            sigma=np.tile(self.sigma, 3),
+            solver=self.solver,
+            bc_type="Neumann",
+        )
+        data = simulation.dpred()
+        err = np.sqrt(
+            np.linalg.norm((data - self.data_ana) / self.data_ana) ** 2
+            / self.data_ana.size
+        )
+        print(f"DPP N err: {err}")
+        self.assertLess(err, tolerance)
+
+    def test_Simulation2DCellCentered_axial_anisotropy(self, tolerance=0.05):
+        simulation = dc.simulation_2d.Simulation2DCellCentered(
+            self.mesh,
+            survey=self.survey,
+            sigma=np.tile(self.sigma, 3),
+            solver=self.solver,
+            bc_type="Neumann",
+        )
+        data = simulation.dpred()
+        err = np.sqrt(
+            np.linalg.norm((data - self.data_ana) / self.data_ana) ** 2
+            / self.data_ana.size
+        )
+        print(f"DPP CC err: {err}")
+        self.assertLess(err, tolerance)
+
 
 class DCProblemAnalyticTests_PP(unittest.TestCase):
     def setUp(self):
@@ -297,6 +394,41 @@ class DCProblemAnalyticTests_PP(unittest.TestCase):
         )
         print(f"PP N err: {err}")
         self.assertLess(err, tolerance)
+
+    def test_Simulation2DCellCentered_axial_anisotropy(self, tolerance=0.05):
+        simulation = dc.simulation_2d.Simulation2DCellCentered(
+            self.mesh,
+            survey=self.survey,
+            sigma=np.tile(self.sigma, 3),
+            solver=self.solver,
+            bc_type="Neumann",
+        )
+        data = simulation.dpred()
+        err = np.sqrt(
+            np.linalg.norm((data - self.data_ana) / self.data_ana) ** 2
+            / self.data_ana.size
+        )
+        print(f"PP CC err: {err}")
+        self.assertLess(err, tolerance)
+
+    # THIS TEST WILL FAIL BECAUSE OF THE NEUMANN BOUNDARY CONDITIONS
+    # SAME ERROR IF NEUMANN USED ON ISOTROPIC TEST.
+    # def test_Simulation2DNodal_axial_anisotropy(self, tolerance=0.055):
+    #     simulation = dc.simulation_2d.Simulation2DNodal(
+    #         self.mesh,
+    #         survey=self.survey,
+    #         sigma=np.tile(self.sigma, 3),
+    #         solver=self.solver,
+    #         bc_type="Neumann",
+    #     )
+    #     data = simulation.dpred()
+    #     print(np.c_[data, self.data_ana])
+    #     err = np.sqrt(
+    #         np.linalg.norm((data - self.data_ana) / self.data_ana) ** 2
+    #         / self.data_ana.size
+    #     )
+    #     print(f"PP N err: {err}")
+    #     self.assertLess(err, tolerance)
 
 
 class DCProblemAnalyticTests_DPField(unittest.TestCase):

@@ -135,9 +135,9 @@ def from_dc_to_sip_survey(survey_dc, times):
             receiver_list_sip.append(rx_sip)
 
         if isinstance(src, dc.sources.Pole):
-            src_sip = sources.Pole(receiver_list_sip, src.loc)
+            src_sip = sources.Pole(receiver_list_sip, src.location_a)
         elif isinstance(src, dc.sources.Dipole):
-            src_sip = sources.Dipole(receiver_list_sip, src.loc[0], src.loc[1])
+            src_sip = sources.Dipole(receiver_list_sip, src.location_a, src.location_b)
         else:
             print(src)
             raise NotImplementedError()

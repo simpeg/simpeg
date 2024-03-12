@@ -132,6 +132,58 @@ class DCProblemAnalyticTests(unittest.TestCase):
             print(">> DC analytic test for Simulation3DCellCentered is failed")
         self.assertTrue(passed)
 
+    def test_Simulation3DNodal_Axial_Anisotropy(self, tolerance=0.05):
+        simulation = dc.simulation.Simulation3DNodal(
+            self.mesh,
+            survey=self.survey,
+            sigma=np.tile(self.sigma, 3),
+            solver=Solver,
+            bc_type="Neumann",
+        )
+        data = simulation.dpred()
+        err = np.sqrt(
+            (((data - self.data_ana) / self.data_ana) ** 2).sum() / self.survey.nD
+        )
+        if err < tolerance:
+            print(err)
+            passed = True
+            print(
+                ">> DC analytic test for Simulation3DNodal (axial anisotropy) is passed"
+            )
+        else:
+            print(err)
+            passed = False
+            print(
+                ">> DC analytic test for Simulation3DNodal (axial anisotropy) is failed"
+            )
+        self.assertTrue(passed)
+
+    def test_Simulation3DCellCentered_Neumann_Axial_Anisotropy(self, tolerance=0.05):
+        simulation = dc.simulation.Simulation3DCellCentered(
+            self.mesh,
+            survey=self.survey,
+            sigma=np.tile(self.sigma, 3),
+            bc_type="Neumann",
+            solver=Solver,
+        )
+        data = simulation.dpred()
+        err = np.sqrt(
+            (((data - self.data_ana) / self.data_ana) ** 2).sum() / self.survey.nD
+        )
+        if err < tolerance:
+            print(err)
+            passed = True
+            print(
+                ">> DC analytic test for Simulation3DCellCentered (axial anisotropy) is passed"
+            )
+        else:
+            print(err)
+            passed = False
+            print(
+                ">> DC analytic test for Simulation3DCellCentered (axial anisotropy) is failed"
+            )
+        self.assertTrue(passed)
+
 
 # This is for testing Dirichlet B.C.
 # for wholepsace Earth.
@@ -195,8 +247,35 @@ class DCProblemAnalyticTests_Dirichlet(unittest.TestCase):
             print(">> DC analytic test for Simulation3DCellCentered_Dirchlet is failed")
         self.assertTrue(passed)
 
+    def test_Simulation3DCellCentered_Dirichlet_Axial_Anisotropy(self, tolerance=0.05):
+        simulation = dc.simulation.Simulation3DCellCentered(
+            self.mesh,
+            survey=self.survey,
+            sigma=np.tile(self.sigma, 3),
+            bc_type="Dirichlet",
+            solver=Solver,
+        )
 
-# This is for Pole-Pole case
+        data = simulation.dpred()
+        err = np.sqrt(
+            (((data - self.data_ana) / self.data_ana) ** 2).sum() / self.survey.nD
+        )
+        if err < tolerance:
+            print(err)
+            passed = True
+            print(
+                ">> DC analytic test for Simulation3DCellCentered_Dirchlet (axial anisotropy) is passed"
+            )
+        else:
+            print(err)
+            passed = False
+            print(
+                ">> DC analytic test for Simulation3DCellCentered_Dirchlet (axial anisotropy) is failed"
+            )
+        self.assertTrue(passed)
+
+
+# # This is for Pole-Pole case
 class DCProblemAnalyticTests_Mixed(unittest.TestCase):
     def setUp(self):
         cs = 25.0
