@@ -302,7 +302,7 @@ regmap = maps.IdentityMap(nP=int(ind_active.sum()))
 
 reg = regularization.Sparse(
     mesh,
-    indActive=ind_active,
+    active_cells=ind_active,
     reference_model=starting_conductivity_model,
     mapping=regmap,
     gradientType="total",

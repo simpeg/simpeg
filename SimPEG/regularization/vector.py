@@ -82,7 +82,7 @@ class CrossReferenceRegularization(Smallness, BaseVectorRegularization):
     regularization is given by:
 
     .. math::
-        \phi (\vec{m}) = \frac{1}{2} \int_\Omega \, \vec{w}(r) \, \cdot \,
+        \phi (\vec{m}) = \int_\Omega \, \vec{w}(r) \, \cdot \,
         \Big [ \vec{m}(r) \, \times \, \vec{m}^{(ref)}(r) \Big ]^2 \, dv
 
     where :math:`\vec{m}^{(ref)}(r)` is the reference model vector and :math:`\vec{w}(r)`
@@ -93,7 +93,7 @@ class CrossReferenceRegularization(Smallness, BaseVectorRegularization):
     function (objective function) is given by:
 
     .. math::
-        \phi (\vec{m}) \approx \frac{1}{2} \sum_i \tilde{w}_i \, \cdot \,
+        \phi (\vec{m}) \approx \sum_i \tilde{w}_i \, \cdot \,
         \Big | \vec{m}_i \, \times \, \vec{m}_i^{(ref)} \Big |^2
 
     where :math:`\tilde{m}_i \in \mathbf{m}` are the model vectors at cell centers and
@@ -129,7 +129,7 @@ class CrossReferenceRegularization(Smallness, BaseVectorRegularization):
     The discrete regularization function in linear form can ultimately be expressed as:
 
     .. math::
-        \phi (\mathbf{m}) = \frac{1}{2}
+        \phi (\mathbf{m}) =
         \Big \| \mathbf{W X m} \, \Big \|^2
 
 
@@ -262,7 +262,7 @@ class CrossReferenceRegularization(Smallness, BaseVectorRegularization):
         The objective function for cross reference regularization is given by:
 
         .. math::
-            \phi_m (\mathbf{m}) = \frac{1}{2}
+            \phi_m (\mathbf{m}) =
             \Big \| \mathbf{W X m} \, \Big \|^2
 
         where :math:`\mathbf{m}` are the discrete vector model parameters defined on the mesh (model),
@@ -277,7 +277,7 @@ class CrossReferenceRegularization(Smallness, BaseVectorRegularization):
         such that
 
         .. math::
-            \phi_m (\mathbf{m}) = \frac{1}{2} \Big \| \mathbf{W} \, \mathbf{f_m} \Big \|^2
+            \phi_m (\mathbf{m}) = \Big \| \mathbf{W} \, \mathbf{f_m} \Big \|^2
 
         """
         return self._X @ (self.mapping * m)
@@ -309,7 +309,7 @@ class CrossReferenceRegularization(Smallness, BaseVectorRegularization):
         The objective function for cross reference regularization is given by:
 
         .. math::
-            \phi_m (\mathbf{m}) = \frac{1}{2}
+            \phi_m (\mathbf{m}) =
             \Big \| \mathbf{W X m} \, \Big \|^2
 
         where :math:`\mathbf{m}` are the discrete vector model parameters defined on the mesh (model),
@@ -324,7 +324,7 @@ class CrossReferenceRegularization(Smallness, BaseVectorRegularization):
         such that
 
         .. math::
-            \phi_m (\mathbf{m}) = \frac{1}{2} \Big \| \mathbf{W} \, \mathbf{f_m} \Big \|^2
+            \phi_m (\mathbf{m}) = \Big \| \mathbf{W} \, \mathbf{f_m} \Big \|^2
 
         Thus, the derivative with respect to the model is:
 
@@ -423,11 +423,15 @@ class BaseAmplitude(BaseVectorRegularization):
         """
         d_m = self._delta_m(m)
 
-        return self.f_m_deriv(m).T * (
-            self.W.T
-            @ self.W
-            @ (self.f_m_deriv(m) @ d_m).reshape((-1, self.n_comp), order="F")
-        ).flatten(order="F")
+        return (
+            2
+            * self.f_m_deriv(m).T
+            * (
+                self.W.T
+                @ self.W
+                @ (self.f_m_deriv(m) @ d_m).reshape((-1, self.n_comp), order="F")
+            ).flatten(order="F")
+        )
 
     def deriv2(self, m, v=None) -> csr_matrix:
         r"""Hessian of the regularization function evaluated for the model provided.
@@ -460,13 +464,21 @@ class BaseAmplitude(BaseVectorRegularization):
         f_m_deriv = self.f_m_deriv(m)
 
         if v is None:
-            return f_m_deriv.T * (
-                sp.block_diag([self.W.T * self.W] * self.n_comp) * f_m_deriv
+            return (
+                2
+                * f_m_deriv.T
+                * (sp.block_diag([self.W.T * self.W] * self.n_comp) * f_m_deriv)
             )
 
-        return f_m_deriv.T * (
-            self.W.T @ self.W @ (f_m_deriv * v).reshape((-1, self.n_comp), order="F")
-        ).flatten(order="F")
+        return (
+            2
+            * f_m_deriv.T
+            * (
+                self.W.T
+                @ self.W
+                @ (f_m_deriv * v).reshape((-1, self.n_comp), order="F")
+            ).flatten(order="F")
+        )
 
 
 class AmplitudeSmallness(SparseSmallness, BaseAmplitude):
@@ -519,7 +531,7 @@ class AmplitudeSmallness(SparseSmallness, BaseAmplitude):
     (compactness) as:
 
     .. math::
-        \phi (\vec{m}) = \frac{1}{2} \int_\Omega \, w(r) \,
+        \phi (\vec{m}) = \int_\Omega \, w(r) \,
         \Big | \, \vec{m}(r) - \vec{m}^{(ref)}(r) \, \Big |^{p(r)} \, dv
 
     where :math:`\vec{m}(r)` is the model, :math:`\vec{m}^{(ref)}(r)` is the reference model, :math:`w(r)`
@@ -533,7 +545,7 @@ class AmplitudeSmallness(SparseSmallness, BaseAmplitude):
     function (objective function) is expressed in linear form as:
 
     .. math::
-        \phi (\mathbf{m}) = \frac{1}{2} \sum_i
+        \phi (\mathbf{m}) = \sum_i
         \tilde{w}_i \, \Big | \vec{m}_i - \vec{m}_i^{(ref)} \Big |^{p_i}
 
     where :math:`\mathbf{m}` are the model parameters, :math:`\vec{m}_i` represents the vector
@@ -549,8 +561,8 @@ class AmplitudeSmallness(SparseSmallness, BaseAmplitude):
 
     .. math::
         \phi \big (\mathbf{m}^{(k)} \big )
-        = \frac{1}{2} \sum_i \tilde{w}_i \, \Big | \, \vec{m}_i^{(k)} - \vec{m}_i^{(ref)} \, \Big |^{p_i}
-        \approx \frac{1}{2} \sum_i \tilde{w}_i \, r_i^{(k)}
+        = \sum_i \tilde{w}_i \, \Big | \, \vec{m}_i^{(k)} - \vec{m}_i^{(ref)} \, \Big |^{p_i}
+        \approx \sum_i \tilde{w}_i \, r_i^{(k)}
         \Big | \, \vec{m}_i^{(k)} - \vec{m}_i^{(ref)} \, \Big |^2
 
     where the IRLS weight :math:`r_i` for iteration :math:`k` is given by:
@@ -578,7 +590,7 @@ class AmplitudeSmallness(SparseSmallness, BaseAmplitude):
     The objective function for IRLS iteration :math:`k` is given by:
 
     .. math::
-        \phi \big ( \mathbf{\bar{m}}^{(k)} \big ) \approx \frac{1}{2} \Big \| \,
+        \phi \big ( \mathbf{\bar{m}}^{(k)} \big ) \approx \Big \| \,
         \mathbf{W}^{(k)} \, \mathbf{\bar{m}}^{(k)} \; \Big \|^2
 
     where
@@ -738,7 +750,7 @@ class AmplitudeSmoothnessFirstOrder(SparseSmoothness, BaseAmplitude):
     along the x-direction as:
 
     .. math::
-        \phi (m) = \frac{1}{2} \int_\Omega \, w(r) \,
+        \phi (m) = \int_\Omega \, w(r) \,
         \Bigg | \, \frac{\partial |\vec{m}|}{\partial x} \, \Bigg |^{p(r)} \, dv
 
     where :math:`\vec{m}(r)` is the model, :math:`w(r)`
@@ -752,7 +764,7 @@ class AmplitudeSmoothnessFirstOrder(SparseSmoothness, BaseAmplitude):
     function (objective function) is expressed in linear form as:
 
     .. math::
-        \phi (\mathbf{m}) = \frac{1}{2} \sum_i
+        \phi (\mathbf{m}) = \sum_i
         \tilde{w}_i \, \Bigg | \, \frac{\partial |\vec{m}_i|}{\partial x} \, \Bigg |^{p_i}
 
     where :math:`\vec{m}_i` is the vector defined for mesh cell :math:`i`.
@@ -767,9 +779,9 @@ class AmplitudeSmoothnessFirstOrder(SparseSmoothness, BaseAmplitude):
 
     .. math::
         \phi \big (\mathbf{m}^{(k)} \big )
-        = \frac{1}{2} \sum_i
+        = \sum_i
         \tilde{w}_i \, \left | \, \frac{\partial \big | \vec{m}_i^{(k)} \big | }{\partial x} \right |^{p_i}
-        \approx \frac{1}{2} \sum_i \tilde{w}_i \, r_i^{(k)}
+        \approx \sum_i \tilde{w}_i \, r_i^{(k)}
         \left | \, \frac{\partial \big | \vec{m}_i^{(k)} \big | }{\partial x} \right |^2
 
     where the IRLS weight :math:`r_i` for iteration :math:`k` is given by:
@@ -794,7 +806,7 @@ class AmplitudeSmoothnessFirstOrder(SparseSmoothness, BaseAmplitude):
     The objective function for IRLS iteration :math:`k` is given by:
 
     .. math::
-        \phi \big ( \mathbf{m}^{(k)} \big ) \approx \frac{1}{2} \Big \| \,
+        \phi \big ( \mathbf{m}^{(k)} \big ) \approx \Big \| \,
         \mathbf{W}^{(k)} \, \mathbf{G_x} \, \mathbf{\bar{m}}^{(k)} \Big \|^2
 
     where
@@ -813,7 +825,7 @@ class AmplitudeSmoothnessFirstOrder(SparseSmoothness, BaseAmplitude):
     In this case, the least-squares problem for IRLS iteration :math:`k` becomes:
 
     .. math::
-        \phi \big ( \mathbf{m}^{(k)} \big ) \approx \frac{1}{2} \Big \| \,
+        \phi \big ( \mathbf{m}^{(k)} \big ) \approx \Big \| \,
         \mathbf{W}^{(k)} \, \mathbf{G_x} \, \mathbf{\bar{m}}^{(k)} \Big \|^2
 
     where
@@ -1042,9 +1054,9 @@ class VectorAmplitude(Sparse):
     :math:`\phi_m (m)` of the form:
 
     .. math::
-        \phi_m (m) = \frac{\alpha_s}{2} \int_\Omega \, w(r)
+        \phi_m (m) = \alpha_s \int_\Omega \, w(r)
         \Big | \, \vec{m}(r) - \vec{m}^{(ref)}(r) \, \Big |^{p_s(r)} \, dv
-        + \sum_{j=x,y,z} \frac{\alpha_j}{2} \int_\Omega \, w(r)
+        + \sum_{j=x,y,z} \alpha_j \int_\Omega \, w(r)
         \Bigg | \, \frac{\partial |\vec{m}|}{\partial \xi_j} \, \bigg |^{p_j(r)} \, dv
 
     where :math:`\vec{m}(r)` is the model, :math:`\vec{m}^{(ref)}(r)` is the reference model,
@@ -1104,9 +1116,9 @@ class VectorAmplitude(Sparse):
     objective functions of the form:
 
     .. math::
-        \phi_m (\mathbf{m}) = \frac{\alpha_s}{2}
+        \phi_m (\mathbf{m}) = \alpha_s
         \Big \| \, \mathbf{W_s}^{\! (k)} \, \Delta \mathbf{\bar{m}} \, \Big \|^2
-        + \sum_{j=x,y,z} \frac{\alpha_j}{2} \Big \| \, \mathbf{W_j}^{\! (k)} \mathbf{G_j \, \bar{m}} \, \Big \|^2
+        + \sum_{j=x,y,z} \alpha_j \Big \| \, \mathbf{W_j}^{\! (k)} \mathbf{G_j \, \bar{m}} \, \Big \|^2
 
     where
 
@@ -1171,9 +1183,9 @@ class VectorAmplitude(Sparse):
     the objective function becomes:
 
     .. math::
-        \phi_m (\mathbf{m}) = \frac{\alpha_s}{2}
+        \phi_m (\mathbf{m}) = \alpha_s
         \Big \| \, \mathbf{W_s}^{\! (k)} \, \Delta \mathbf{\bar{m}} \, \Big \|^2
-        + \sum_{j=x,y,z} \frac{\alpha_j}{2} \Big \| \, \mathbf{W_j}^{\! (k)} \mathbf{G_j \, \Delta \bar{m}} \, \Big \|^2
+        + \sum_{j=x,y,z} \alpha_j \Big \| \, \mathbf{W_j}^{\! (k)} \mathbf{G_j \, \Delta \bar{m}} \, \Big \|^2
 
     This functionality is used by setting the `reference_model_in_smooth` parameter
     to ``True``.

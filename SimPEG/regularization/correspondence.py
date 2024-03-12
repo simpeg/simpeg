@@ -43,7 +43,7 @@ class LinearCorrespondence(BaseSimilarityMeasure):
 
     .. math::
         \phi (\mathbf{m})
-        = \frac{1}{2} \big \| \lambda_1 \mathbf{m_1} + \lambda_2 \mathbf{m_2} + \lambda_3 \big \|^2
+        = \big \| \lambda_1 \mathbf{m_1} + \lambda_2 \mathbf{m_2} + \lambda_3 \big \|^2
 
     Scalar coefficients :math:`\{ \lambda_1 , \lambda_2 , \lambda_3 \}` are set using the
     `coefficients` property. For a true linear correspondence constraint, we set
@@ -130,7 +130,7 @@ class LinearCorrespondence(BaseSimilarityMeasure):
         """
 
         result = self.relation(model)
-        return 0.5 * result.T @ result
+        return result.T @ result
 
     def deriv(self, model):
         r"""Gradient of the regularization function evaluated for the model provided.
@@ -167,7 +167,7 @@ class LinearCorrespondence(BaseSimilarityMeasure):
 
         result = np.r_[dc_dm1, dc_dm2]
 
-        return result
+        return 2 * result
 
     def deriv2(self, model, v=None):
         r"""Hessian of the regularization function evaluated for the model provided.
@@ -185,10 +185,10 @@ class LinearCorrespondence(BaseSimilarityMeasure):
         .. math::
             \frac{\partial^2 \phi}{\partial \mathbf{m}^2} =
             \begin{bmatrix}
-            \dfrac{\partial \phi^2}{\partial \mathbf{m_1}^2} &
-            \dfrac{\partial \phi^2}{\partial \mathbf{m_1} \partial \mathbf{m_2}} \\
-            \dfrac{\partial \phi^2}{\partial \mathbf{m_2} \partial \mathbf{m_1}} &
-            \dfrac{\partial \phi^2}{\partial \mathbf{m_2}^2}
+            \dfrac{\partial^2 \phi}{\partial \mathbf{m_1}^2} &
+            \dfrac{\partial^2 \phi}{\partial \mathbf{m_1} \partial \mathbf{m_2}} \\
+            \dfrac{\partial^2 \phi}{\partial \mathbf{m_2} \partial \mathbf{m_1}} &
+            \dfrac{\partial^2 \phi}{\partial \mathbf{m_2}^2}
             \end{bmatrix}
 
         When a vector :math:`(\mathbf{v})` is supplied, the method returns the Hessian
@@ -217,10 +217,10 @@ class LinearCorrespondence(BaseSimilarityMeasure):
             v1, v2 = self.wire_map * v
             p1 = k1**2 * v1 + k2 * k1 * v2
             p2 = k2 * k1 * v1 + k2**2 * v2
-            return np.r_[p1, p2]
+            return 2 * np.r_[p1, p2]
         else:
             n = self.regularization_mesh.nC
             A = utils.sdiag(np.ones(n) * (k1**2))
             B = utils.sdiag(np.ones(n) * (k2**2))
             C = utils.sdiag(np.ones(n) * (k1 * k2))
-            return sp.bmat([[A, C], [C, B]], format="csr")
+            return 2 * sp.bmat([[A, C], [C, B]], format="csr")

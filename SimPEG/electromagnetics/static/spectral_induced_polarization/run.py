@@ -142,9 +142,15 @@ def run_inversion(
     m_lower = np.r_[eta_lower, tau_lower, c_lower]
 
     # Set up regularization
-    reg_eta = regularization.Simple(mesh, mapping=wires.eta, indActive=actind)
-    reg_tau = regularization.Simple(mesh, mapping=wires.tau, indActive=actind)
-    reg_c = regularization.Simple(mesh, mapping=wires.c, indActive=actind)
+    reg_eta = regularization.WeightedLeastSquares(
+        mesh, mapping=wires.eta, active_cells=actind
+    )
+    reg_tau = regularization.WeightedLeastSquares(
+        mesh, mapping=wires.tau, active_cells=actind
+    )
+    reg_c = regularization.WeightedLeastSquares(
+        mesh, mapping=wires.c, active_cells=actind
+    )
 
     # Todo:
 

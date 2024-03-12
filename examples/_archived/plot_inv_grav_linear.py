@@ -102,7 +102,7 @@ def run(plotIt=True):
     rxLoc = survey.source_field.receiver_list[0].locations
 
     # Create a regularization
-    reg = regularization.Sparse(mesh, indActive=actv, mapping=idenMap)
+    reg = regularization.Sparse(mesh, active_cells=actv, mapping=idenMap)
     reg.norms = [0, 0, 0, 0]
 
     # Data misfit function
@@ -127,7 +127,7 @@ def run(plotIt=True):
     )
     saveDict = directives.SaveOutputEveryIteration(save_txt=False)
     update_Jacobi = directives.UpdatePreconditioner()
-    sensitivity_weights = directives.UpdateSensitivityWeights(everyIter=False)
+    sensitivity_weights = directives.UpdateSensitivityWeights(every_iteration=False)
     inv = inversion.BaseInversion(
         invProb,
         directiveList=[
