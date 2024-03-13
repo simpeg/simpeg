@@ -515,7 +515,7 @@ class BaseSimulation(props.HasModel):
 
         The Jacobian defines the derivative of the predicted data vector with respect to the
         model parameters. For a data vector :math:`\mathbf{d}` predicted for a set of model parameters
-        :math:`\mathbf{m}`, the Jacobian is an (n_data, n_param) matrix whose elements
+        :math:`\mathbf{m}`, the Jacobian is an ``(n_data, n_param)`` matrix whose elements
         are given by:
 
         .. math::
