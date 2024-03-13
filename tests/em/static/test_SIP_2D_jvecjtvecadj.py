@@ -265,13 +265,13 @@ class SIPProblemTestsN_air(unittest.TestCase):
         # Now set up the problem to do some minimization
         dmis = data_misfit.L2DataMisfit(data=dobs, simulation=problem)
         reg_eta = regularization.WeightedLeastSquares(
-            mesh, mapping=wires.eta, indActive=~airind
+            mesh, mapping=wires.eta, active_cells=~airind
         )
         reg_taui = regularization.WeightedLeastSquares(
-            mesh, mapping=wires.taui, indActive=~airind
+            mesh, mapping=wires.taui, active_cells=~airind
         )
         reg_c = regularization.WeightedLeastSquares(
-            mesh, mapping=wires.c, indActive=~airind
+            mesh, mapping=wires.c, active_cells=~airind
         )
         reg = reg_eta + reg_taui + reg_c
         opt = optimization.InexactGaussNewton(
