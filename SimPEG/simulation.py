@@ -745,7 +745,7 @@ class BaseTimeSimulation(BaseSimulation):
 
     @property
     def time_mesh(self):
-        """Time mesh for easy interpolation to observation times.
+        r"""Time mesh for easy interpolation to observation times.
 
         The time mesh is constructed internally from the :py:attr:`t0` and
         :py:attr:`time_steps` properties using the :py:class:`discretize.TensorMesh` class.
@@ -983,11 +983,12 @@ class ExponentialSinusoidSimulation(LinearSimulation):
     decay of the kernel functions. :math:`q` defines the rate of oscillation of
     the kernel functions. And :math:`j_i \in [j_0, ... , j_n]` controls the spread
     of the kernel functions; the number of which is set using the ``n_kernels``
-    property. 
-    
-    .. Tip::
+    property.
+
+    .. tip::
+
         For proper scaling, we advise defining the 1D tensor mesh to
-    discretize the interval [0, 1].
+        discretize the interval [0, 1].
 
     Parameters
     ----------
