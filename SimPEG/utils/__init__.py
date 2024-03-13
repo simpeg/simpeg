@@ -237,7 +237,7 @@ from .pgi_utils import (
 
 # Deprecated imports
 interpmat = deprecate_function(
-    interpolation_matrix, "interpmat", removal_version="0.19.0", future_warn=True
+    interpolation_matrix, "interpmat", removal_version="0.19.0", error=True
 )
 
 from .code_utils import (

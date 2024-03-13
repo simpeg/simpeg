@@ -10,7 +10,7 @@ from discretize.utils import refine_tree_xyz, unpack_widths, active_from_xyz
 
 from ....utils import (
     sdiag,
-    uniqueRows,
+    unique_rows,
     plot2Ddata,
     validate_type,
     validate_integer,
@@ -728,12 +728,6 @@ class IO:
         G = geometric_factor(survey, space_type=self.space_type)
         return G
 
-    def from_ambn_locations_to_survey(self, *args, **kwargs):
-        raise NotImplementedError(
-            "from_ambn_locations_to_survey has been renamed to "
-            "from_abmn_locations_to_survey. It will be removed in a future version 0.17.0 of simpeg",
-        )
-
     def from_abmn_locations_to_survey(
         self,
         a_locations,
@@ -767,8 +761,8 @@ class IO:
         if times_ip is not None:
             self.times_ip = times_ip
 
-        uniqSrc = uniqueRows(np.c_[self.a_locations, self.b_locations])
-        uniqElec = uniqueRows(
+        uniqSrc = unique_rows(np.c_[self.a_locations, self.b_locations])
+        uniqElec = unique_rows(
             np.vstack(
                 (self.a_locations, self.b_locations, self.m_locations, self.n_locations)
             )

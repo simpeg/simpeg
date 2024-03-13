@@ -17,7 +17,7 @@ from SimPEG.utils import (
     ind2sub,
     as_array_n_by_dim,
     TensorType,
-    diagEst,
+    estimate_diagonal,
     count,
     timeIt,
     Counter,
@@ -276,14 +276,14 @@ class TestSequenceFunctions(unittest.TestCase):
         self.assertTrue(true.shape == listArray.shape)
 
 
-class TestDiagEst(unittest.TestCase):
+class TestEstimateDiagonal(unittest.TestCase):
     def setUp(self):
         self.n = 1000
         self.A = np.random.rand(self.n, self.n)
         self.Adiag = np.diagonal(self.A)
 
     def getTest(self, testType):
-        Adiagtest = diagEst(self.A, self.n, self.n, testType)
+        Adiagtest = estimate_diagonal(self.A, self.n, self.n, testType)
         r = np.abs(Adiagtest - self.Adiag)
         err = r.dot(r)
         return err

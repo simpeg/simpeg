@@ -1,4 +1,4 @@
-from ...utils.code_utils import deprecate_class, validate_string
+from ...utils.code_utils import validate_string
 
 import numpy as np
 from scipy.constants import mu_0
@@ -613,23 +613,3 @@ class Point3DTipper(PointNaturalSource):
         if adjoint:
             return imp_deriv
         return getattr(imp_deriv, self.component)
-
-
-############
-# Deprecated
-############
-
-
-@deprecate_class(removal_version="0.19.0", error=True)
-class Point_impedance1D(PointNaturalSource):
-    pass
-
-
-@deprecate_class(removal_version="0.19.0", error=True)
-class Point_impedance3D(PointNaturalSource):
-    pass
-
-
-@deprecate_class(removal_version="0.19.0", error=True)
-class Point_tipper3D(Point3DTipper):
-    pass
