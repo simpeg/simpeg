@@ -652,12 +652,12 @@ class BaseTimeSimulation(BaseSimulation):
 
     Parameters
     ----------
-    mesh : discretize.base.BaseMesh
+    mesh : discretize.base.BaseMesh, optional
         Mesh on which the forward problem is discretized. This is not necessarily
         the same as the mesh on which the simulation is defined.
-    t0 : float
+    t0 : float, optional
         Initial time, in seconds, for the time-dependent forward simulation.
-    time_steps : (n_steps, ) numpy.ndarray
+    time_steps : (n_steps, ) numpy.ndarray, optional
         The time step lengths, in seconds, for the time domain simulation.
         This property can be also be set using a compact form; see *Notes*.
 
