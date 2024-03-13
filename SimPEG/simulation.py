@@ -664,7 +664,7 @@ class BaseTimeSimulation(BaseSimulation):
     Notes
     -----
     There are two ways in which the user can set the ``time_steps`` property
-    for the forward simulation. The most basic approach is to use a (n_steps, )
+    for the forward simulation. The most basic approach is to use a ``(n_steps, )``
     :py:class:`numpy.ndarray` that explicitly defines the step lengths in order.
     I.e.:
 
