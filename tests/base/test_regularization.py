@@ -766,7 +766,6 @@ class TestDeprecatedArguments:
 
     Within these arguments are:
 
-    * ``indActive`` (replaced by ``active_cells``)
     * ``cell_weights`` (replaced by ``weights``)
 
     """
@@ -785,18 +784,6 @@ class TestDeprecatedArguments:
             h = [h_i / h_i.sum() for h_i in (hx, hy, hz)]
         return discretize.TensorMesh(h)
 
-    @pytest.mark.parametrize(
-        "regularization_class", (BaseRegularization, WeightedLeastSquares)
-    )
-    def test_active_cells(self, mesh, regularization_class):
-        """Test indActive and active_cells arguments."""
-        active_cells = np.ones(len(mesh), dtype=bool)
-        msg = "Cannot simultaneously pass 'active_cells' and 'indActive'."
-        with pytest.raises(ValueError, match=msg):
-            regularization_class(
-                mesh, active_cells=active_cells, indActive=active_cells
-            )
-
     def test_weights(self, mesh):
         """Test cell_weights and weights."""
         weights = np.ones(len(mesh))
@@ -810,6 +797,7 @@ class TestRemovedObjects:
     Test if errors are raised after passing removed arguments or trying to
     access removed properties.
 
+    * ``indActive`` (replaced by ``active_cells``)
     * ``gradientType`` (replaced by ``gradient_type``)
     * ``mref`` (replaced by ``reference_model``)
     * ``regmesh`` (replaced by ``regularization_mesh``)
@@ -856,6 +844,32 @@ class TestRemovedObjects:
         )
         with pytest.raises(TypeError, match=msg):
             regularization_class(mesh, gradientType="total")
+
+    @pytest.mark.parametrize(
+        "regularization_class",
+        (BaseRegularization, WeightedLeastSquares),
+    )
+    def test_ind_active(self, mesh, regularization_class):
+        """Test if error is raised when passing the indActive argument."""
+        active_cells = np.ones(len(mesh), dtype=bool)
+        msg = (
+            "'indActive' argument has been removed. "
+            "Please use 'active_cells' instead."
+        )
+        with pytest.raises(TypeError, match=msg):
+            regularization_class(mesh, indActive=active_cells)
+
+    @pytest.mark.parametrize(
+        "regularization_class",
+        (BaseRegularization, WeightedLeastSquares),
+    )
+    def test_ind_active_property(self, mesh, regularization_class):
+        """Test if error is raised when trying to access the indActive property."""
+        active_cells = np.ones(len(mesh), dtype=bool)
+        reg = regularization_class(mesh, active_cells=active_cells)
+        msg = "indActive has been removed, please use active_cells."
+        with pytest.raises(NotImplementedError, match=msg):
+            reg.indActive
 
 
 class TestRemovedRegularizations:
