@@ -708,7 +708,7 @@ class BaseTimeSimulation(BaseSimulation):
         >>> sim.time_steps = [(1e-6, 3), (1e-5, 2), (1e-4, 2)]
 
         When set however, the :py:func:`discretize.utils.unpack_widths` utility is
-        used to convert the ``list`` of ``tuple`` to its (n_steps, ) :py:class:`numpy.ndarray`
+        used to convert the ``list`` of ``tuple`` to its ``(n_steps, )`` :py:class:`numpy.ndarray`
         representation.
 
         Returns
