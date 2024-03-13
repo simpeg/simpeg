@@ -39,6 +39,16 @@ IGNORE_ME = [
     "BaseAmplitude",
     "VectorAmplitude",
     "CrossReferenceRegularization",
+    # Removed regularization classes that raise error on instantiation
+    "PGIwithNonlinearRelationshipsSmallness",
+    "PGIwithRelationships",
+    "Simple",
+    "SimpleSmall",
+    "SimpleSmoothDeriv",
+    "Small",
+    "SmoothDeriv",
+    "SmoothDeriv2",
+    "Tikhonov",
 ]
 
 
@@ -457,7 +467,7 @@ class RegularizationTests(unittest.TestCase):
         mapping = maps.ExpMap(mesh) * maps.SurjectVertical1D(mesh) * actMap
 
         regMesh = discretize.TensorMesh([mesh.h[2][mapping.maps[-1].indActive]])
-        reg = regularization.Simple(regMesh)
+        reg = regularization.WeightedLeastSquares(regMesh)
 
         self.assertTrue(reg._nC_residual == regMesh.nC)
         self.assertTrue(all([fct._nC_residual == regMesh.nC for fct in reg.objfcts]))
@@ -580,6 +590,8 @@ class RegularizationTests(unittest.TestCase):
             reg.objfcts[0].f_m(model.flatten(order="F")), np.linalg.norm(model, axis=1)
         )
 
+        reg.test(model.flatten(order="F"))
+
 
 def test_WeightedLeastSquares():
     mesh = discretize.TensorMesh([3, 4, 5])
@@ -636,6 +648,22 @@ def test_cross_reg_reg_errors():
         regularization.CrossReferenceRegularization(mesh, ref_dir)
 
 
+@pytest.mark.parametrize("orientation", ("x", "y", "z"))
+def test_smoothness_first_order_coterminal_angle(orientation):
+    """
+    Test smoothness first order regularizations of angles on a treemesh
+    """
+    mesh = discretize.TreeMesh([16, 16, 16])
+    mesh.insert_cells([100, 100, 100], mesh.max_level, finalize=True)
+
+    reg = regularization.SmoothnessFirstOrder(
+        mesh, units="radian", orientation=orientation
+    )
+    angles = np.ones(mesh.n_cells) * np.pi
+    angles[5] = -np.pi
+    assert np.all(reg.f_m(angles) == 0)
+
+
 class TestParent:
     """Test parent property of regularizations."""
 
@@ -661,6 +689,12 @@ class TestParent:
         msg = "Invalid parent of type 'Dummy'."
         with pytest.raises(TypeError, match=msg):
             regularization.parent = invalid_parent
+
+    def test_default_parent(self, regularization):
+        """Test setting default parent class to a BaseRegularization."""
+        mesh = discretize.TensorMesh([3, 4, 5])
+        parent = WeightedLeastSquares(mesh, objfcts=[regularization])
+        assert regularization.parent is parent
 
 
 class TestWeightsKeys:
@@ -730,7 +764,6 @@ class TestDeprecatedArguments:
 
     Within these arguments are:
 
-    * ``indActive`` (replaced by ``active_cells``)
     * ``cell_weights`` (replaced by ``weights``)
 
     """
@@ -749,24 +782,88 @@ class TestDeprecatedArguments:
             h = [h_i / h_i.sum() for h_i in (hx, hy, hz)]
         return discretize.TensorMesh(h)
 
-    @pytest.mark.parametrize(
-        "regularization_class", (BaseRegularization, WeightedLeastSquares)
-    )
-    def test_active_cells(self, mesh, regularization_class):
-        """Test indActive and active_cells arguments."""
-        active_cells = np.ones(len(mesh), dtype=bool)
-        msg = "Cannot simultanously pass 'active_cells' and 'indActive'."
-        with pytest.raises(ValueError, match=msg):
-            regularization_class(
-                mesh, active_cells=active_cells, indActive=active_cells
-            )
-
     def test_weights(self, mesh):
         """Test cell_weights and weights."""
         weights = np.ones(len(mesh))
-        msg = "Cannot simultanously pass 'weights' and 'cell_weights'."
+        msg = "Cannot simultaneously pass 'weights' and 'cell_weights'."
         with pytest.raises(ValueError, match=msg):
             BaseRegularization(mesh, weights=weights, cell_weights=weights)
+
+
+class TestRemovedObjects:
+    """
+    Test if errors are raised after passing removed arguments or trying to
+    access removed properties.
+
+    * ``indActive`` (replaced by ``active_cells``)
+
+    """
+
+    @pytest.fixture(params=["1D", "2D", "3D"])
+    def mesh(self, request):
+        """Sample mesh."""
+        if request.param == "1D":
+            hx = np.random.rand(10)
+            h = [hx / hx.sum()]
+        elif request.param == "2D":
+            hx, hy = np.random.rand(10), np.random.rand(9)
+            h = [h_i / h_i.sum() for h_i in (hx, hy)]
+        elif request.param == "3D":
+            hx, hy, hz = np.random.rand(10), np.random.rand(9), np.random.rand(8)
+            h = [h_i / h_i.sum() for h_i in (hx, hy, hz)]
+        return discretize.TensorMesh(h)
+
+    @pytest.mark.parametrize(
+        "regularization_class",
+        (BaseRegularization, WeightedLeastSquares),
+    )
+    def test_ind_active(self, mesh, regularization_class):
+        """Test if error is raised when passing the indActive argument."""
+        active_cells = np.ones(len(mesh), dtype=bool)
+        msg = (
+            "'indActive' argument has been removed. "
+            "Please use 'active_cells' instead."
+        )
+        with pytest.raises(TypeError, match=msg):
+            regularization_class(mesh, indActive=active_cells)
+
+    @pytest.mark.parametrize(
+        "regularization_class",
+        (BaseRegularization, WeightedLeastSquares),
+    )
+    def test_ind_active_property(self, mesh, regularization_class):
+        """Test if error is raised when trying to access the indActive property."""
+        active_cells = np.ones(len(mesh), dtype=bool)
+        reg = regularization_class(mesh, active_cells=active_cells)
+        msg = "indActive has been removed, please use active_cells."
+        with pytest.raises(NotImplementedError, match=msg):
+            reg.indActive
+
+
+class TestRemovedRegularizations:
+    """
+    Test if errors are raised after creating removed regularization classes.
+    """
+
+    @pytest.mark.parametrize(
+        "regularization_class",
+        (
+            regularization.PGIwithNonlinearRelationshipsSmallness,
+            regularization.PGIwithRelationships,
+            regularization.Simple,
+            regularization.SimpleSmall,
+            regularization.SimpleSmoothDeriv,
+            regularization.Small,
+            regularization.SmoothDeriv,
+            regularization.SmoothDeriv2,
+            regularization.Tikhonov,
+        ),
+    )
+    def test_removed_class(self, regularization_class):
+        class_name = regularization_class.__name__
+        msg = f"{class_name} has been removed, please use."
+        with pytest.raises(NotImplementedError, match=msg):
+            regularization_class()
 
 
 if __name__ == "__main__":

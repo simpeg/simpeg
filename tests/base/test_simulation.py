@@ -19,32 +19,6 @@ class TestLinearSimulation(unittest.TestCase):
 
         self.mtrue = mtrue
 
-    def test_forward(self):
-        data = np.r_[
-            7.50000000e-02,
-            5.34102961e-02,
-            5.26315566e-03,
-            -3.92235199e-02,
-            -4.22361894e-02,
-            -1.29419602e-02,
-            1.30060891e-02,
-            1.73572943e-02,
-            7.78056876e-03,
-            -1.49689823e-03,
-            -4.50212858e-03,
-            -3.14559131e-03,
-            -9.55761370e-04,
-            3.53963158e-04,
-            7.24902205e-04,
-            6.06022770e-04,
-            3.36635644e-04,
-            7.48637479e-05,
-            -1.10094573e-04,
-            -1.84905476e-04,
-        ]
-
-        assert np.allclose(data, self.sim.dpred(self.mtrue))
-
     def test_make_synthetic_data(self):
         dclean = self.sim.dpred(self.mtrue)
         data = self.sim.make_synthetic_data(self.mtrue)

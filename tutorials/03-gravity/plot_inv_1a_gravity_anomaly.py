@@ -230,7 +230,9 @@ simulation = gravity.simulation.Simulation3DIntegral(
 dmis = data_misfit.L2DataMisfit(data=data_object, simulation=simulation)
 
 # Define the regularization (model objective function).
-reg = regularization.WeightedLeastSquares(mesh, indActive=ind_active, mapping=model_map)
+reg = regularization.WeightedLeastSquares(
+    mesh, active_cells=ind_active, mapping=model_map
+)
 
 # Define how the optimization problem is solved. Here we will use a projected
 # Gauss-Newton approach that employs the conjugate gradient solver.
@@ -268,7 +270,7 @@ update_jacobi = directives.UpdatePreconditioner()
 target_misfit = directives.TargetMisfit(chifact=1)
 
 # Add sensitivity weights
-sensitivity_weights = directives.UpdateSensitivityWeights(everyIter=False)
+sensitivity_weights = directives.UpdateSensitivityWeights(every_iteration=False)
 
 # The directives are defined as a list.
 directives_list = [

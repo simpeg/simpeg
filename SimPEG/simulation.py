@@ -8,7 +8,7 @@ import warnings
 
 from discretize.base import BaseMesh
 from discretize import TensorMesh
-from discretize.utils import unpack_widths
+from discretize.utils import unpack_widths, sdiag
 
 from . import props
 from .data import SyntheticData, Data
@@ -75,121 +75,6 @@ class BaseSimulation(props.HasModel):
     """
 
     _REGISTRY = {}
-
-    @property
-    def mesh(self):
-        """Discretize mesh for the simulation.
-
-        Returns
-        -------
-        discretize.base.BaseMesh
-        """
-        return self._mesh
-
-    @mesh.setter
-    def mesh(self, value):
-        if value is not None:
-            value = validate_type("mesh", value, BaseMesh, cast=False)
-        self._mesh = value
-
-    @property
-    def survey(self):
-        """The survey for the simulation.
-
-        Returns
-        -------
-        SimPEG.survey.BaseSurvey
-        """
-        return self._survey
-
-    @survey.setter
-    def survey(self, value):
-        if value is not None:
-            value = validate_type("survey", value, BaseSurvey, cast=False)
-        self._survey = value
-
-    @property
-    def counter(self):
-        """The counter.
-
-        Returns
-        -------
-        None or SimPEG.utils.Counter
-        """
-        return self._counter
-
-    @counter.setter
-    def counter(self, value):
-        if value is not None:
-            value = validate_type("counter", value, Counter, cast=False)
-        self._counter = value
-
-    @property
-    def sensitivity_path(self):
-        """Path to store the sensitivity.
-
-        Returns
-        -------
-        str
-        """
-        return self._sensitivity_path
-
-    @sensitivity_path.setter
-    def sensitivity_path(self, value):
-        self._sensitivity_path = validate_string("sensitivity_path", value)
-
-    @property
-    def solver(self):
-        """Linear algebra solver (e.g. from pymatsolver).
-
-        Returns
-        -------
-        class
-            A solver class that, when instantiated allows a multiplication with the
-            returned object.
-        """
-        return self._solver
-
-    @solver.setter
-    def solver(self, cls):
-        if cls is not None:
-            if not inspect.isclass(cls):
-                raise TypeError(f"solver must be a class, not a {type(cls)}")
-            if not hasattr(cls, "__mul__"):
-                raise TypeError("solver must support the multiplication operator, `*`.")
-        self._solver = cls
-
-    @property
-    def solver_opts(self):
-        """Options passed to the `solver` class on initialization.
-
-        Returns
-        -------
-        dict
-            Passed as keyword arguments to the solver.
-        """
-        return self._solver_opts
-
-    @solver_opts.setter
-    def solver_opts(self, value):
-        self._solver_opts = validate_type("solver_opts", value, dict, cast=False)
-
-    @property
-    def verbose(self):
-        """Verbosity flag.
-
-        Returns
-        -------
-        bool
-        """
-        return self._verbose
-
-    @verbose.setter
-    def verbose(self, value):
-        self._verbose = validate_type("verbose", value, bool)
-
-    ###########################################################################
-    # Instantiation
 
     def __init__(
         self,
@@ -976,6 +861,7 @@ class ExponentialSinusoidSimulation(LinearSimulation):
     :math:`\mathbf{G}` are:
 
     .. math::
+
         G_{ik} = \int_\Omega e^{p \, j_i \, x_k} \cos(\pi \, q \, j_i \, x_k) \, dx
 
     The model is defined on a 1D :py:class:`discretize.TensorMesh`, and :math:`x_k`
@@ -989,6 +875,21 @@ class ExponentialSinusoidSimulation(LinearSimulation):
 
         For proper scaling, we advise defining the 1D tensor mesh to
         discretize the interval [0, 1].
+
+    The kernel functions take the form:
+
+    .. math::
+
+        \int_x e^{p j_k x} \cos(\pi q j_k x) \quad, j_k \in [j_0, ..., j_n]
+
+    The model is defined at cell centers while the kernel functions are defined on nodes.
+    The trapezoid rule is used to evaluate the integral
+
+    .. math::
+
+        d_j = \int g_j(x) m(x) dx
+
+    to define our data.
 
     Parameters
     ----------
@@ -1123,8 +1024,8 @@ class ExponentialSinusoidSimulation(LinearSimulation):
         (n_param, ) numpy.ndarray
             Kernel functions evaluated for kernel factor *k*.
         """
-        return np.exp(self.p * self.jk[k] * self.mesh.cell_centers_x) * np.cos(
-            np.pi * self.q * self.jk[k] * self.mesh.cell_centers_x
+        return np.exp(self.p * self.jk[k] * self.mesh.nodes_x) * np.cos(
+            np.pi * self.q * self.jk[k] * self.mesh.nodes_x
         )
 
     @property
@@ -1137,10 +1038,12 @@ class ExponentialSinusoidSimulation(LinearSimulation):
             The linear forward operator.
         """
         if getattr(self, "_G", None) is None:
-            G = np.empty((self.n_kernels, self.mesh.nC))
+            G_nodes = np.empty((self.mesh.n_nodes, self.n_kernels))
 
             for i in range(self.n_kernels):
-                G[i, :] = self.g(i) * self.mesh.h[0]
+                G_nodes[:, i] = self.g(i)
 
-            self._G = G
+            self._G = (self.mesh.average_node_to_cell @ G_nodes).T @ sdiag(
+                self.mesh.cell_volumes
+            )
         return self._G

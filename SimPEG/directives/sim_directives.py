@@ -248,7 +248,7 @@ class PairedBetaEstimate_ByEig(InversionDirective):
         if self.seed is not None:
             np.random.seed(self.seed)
 
-        if self.debug:
+        if self.verbose:
             print("Calculating the beta0 parameter.")
 
         m = self.invProb.model
@@ -305,7 +305,7 @@ class PairedBetaSchedule(InversionDirective):
         if getattr(self, "_target", None) is None:
             nD = np.array([survey.nD for survey in self.survey])
 
-            self._target = nD * 0.5 * self.chifact_target
+            self._target = nD * self.chifact_target
 
         return self._target
 
@@ -362,7 +362,7 @@ class MovingAndMultiTargetStopping(InversionDirective):
                 nD += [survey.nD]
             nD = np.array(nD)
 
-            self._target = nD * 0.5 * self.chifact_target
+            self._target = nD * self.chifact_target
 
         return self._target
 
