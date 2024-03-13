@@ -515,7 +515,7 @@ class BaseSimulation(props.HasModel):
 
         The Jacobian defines the derivative of the predicted data vector with respect to the
         model parameters. For a data vector :math:`\mathbf{d}` predicted for a set of model parameters
-        :math:`\mathbf{m}`, the Jacobian is an (n_data, n_param) matrix whose elements
+        :math:`\mathbf{m}`, the Jacobian is an ``(n_data, n_param)`` matrix whose elements
         are given by:
 
         .. math::
@@ -652,19 +652,19 @@ class BaseTimeSimulation(BaseSimulation):
 
     Parameters
     ----------
-    mesh : discretize.base.BaseMesh
+    mesh : discretize.base.BaseMesh, optional
         Mesh on which the forward problem is discretized. This is not necessarily
         the same as the mesh on which the simulation is defined.
-    t0 : float
+    t0 : float, optional
         Initial time, in seconds, for the time-dependent forward simulation.
-    time_steps : (n_steps, ) numpy.ndarray
+    time_steps : (n_steps, ) numpy.ndarray, optional
         The time step lengths, in seconds, for the time domain simulation.
         This property can be also be set using a compact form; see *Notes*.
 
     Notes
     -----
     There are two ways in which the user can set the ``time_steps`` property
-    for the forward simulation. The most basic approach is to use a (n_steps, )
+    for the forward simulation. The most basic approach is to use a ``(n_steps, )``
     :py:class:`numpy.ndarray` that explicitly defines the step lengths in order.
     I.e.:
 
@@ -693,7 +693,7 @@ class BaseTimeSimulation(BaseSimulation):
         """Time step lengths, in seconds, for the time domain simulation.
 
         There are two ways in which the user can set the ``time_steps`` property
-        for the forward simulation. The most basic approach is to use a (n_steps, )
+        for the forward simulation. The most basic approach is to use a ``(n_steps, )``
         :py:class:`numpy.ndarray` that explicitly defines the step lengths in order.
         I.e.:
 
@@ -708,7 +708,7 @@ class BaseTimeSimulation(BaseSimulation):
         >>> sim.time_steps = [(1e-6, 3), (1e-5, 2), (1e-4, 2)]
 
         When set however, the :py:func:`discretize.utils.unpack_widths` utility is
-        used to convert the ``list`` of ``tuple`` to its (n_steps, ) :py:class:`numpy.ndarray`
+        used to convert the ``list`` of ``tuple`` to its ``(n_steps, )`` :py:class:`numpy.ndarray`
         representation.
 
         Returns
