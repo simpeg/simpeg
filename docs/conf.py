@@ -55,9 +55,7 @@ extensions = [
 autosummary_generate = True
 
 numpydoc_attributes_as_param_list = False
-# This has to be set to false in order to make the doc build in a
-# reasonable amount of time.
-numpydoc_show_inherited_class_members = False
+numpydoc_show_inherited_class_members = True
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]
