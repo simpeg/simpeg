@@ -235,11 +235,11 @@ mcluster_no_map = inv.run(minit)
 reg1 = regularization.WeightedLeastSquares(
     mesh, alpha_s=1.0, alpha_x=1.0, mapping=wires.m1
 )
-reg1.set_weights(user_weights=wr1)
+reg1.set_weights(cell_weights=wr1)
 reg2 = regularization.WeightedLeastSquares(
     mesh, alpha_s=1.0, alpha_x=1.0, mapping=wires.m2
 )
-reg2.set_weights(user_weights=wr2)
+reg2.set_weights(cell_weights=wr2)
 reg = reg1 + reg2
 
 opt = optimization.ProjectedGNCG(
