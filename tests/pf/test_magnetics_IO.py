@@ -34,7 +34,7 @@ class MagSensProblemTests(unittest.TestCase):
         print(driver.mesh)
         print(driver.survey)
         print(driver.m0)
-        print(driver.mref)
+        print(driver.reference_model)
         print(driver.activeCells)
         print(driver.staticCells)
         print(driver.dynamicCells)

@@ -227,7 +227,7 @@ reg_map = maps.IdentityMap(nP=mesh.nC)
 reg = regularization.Sparse(mesh, mapping=reg_map, alpha_s=0.01, alpha_x=1.0)
 
 # set reference model
-reg.mref = starting_model
+reg.reference_model = starting_model
 
 # Define sparse and blocky norms p, q
 reg.norms = [1, 0]

@@ -826,7 +826,7 @@ class TestRemovedObjects:
         msg = "mref has been removed, please use reference_model."
         reg = regularization_class(mesh)
         with pytest.raises(NotImplementedError, match=msg):
-            reg.mref
+            reg.reference_model
 
     def test_regmesh_property(self, mesh):
         """Test regmesh property."""
