@@ -3,7 +3,6 @@ import numpy as np
 from scipy.interpolate import griddata
 from scipy.spatial import cKDTree
 import scipy.sparse as sp
-import warnings
 
 
 def surface_layer_index(mesh, topo, index=0):
