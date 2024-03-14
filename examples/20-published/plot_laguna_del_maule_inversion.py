@@ -96,7 +96,7 @@ def run(plotIt=True, cleanAfterRun=True):
 
     # %% Create inversion objects
     reg = regularization.Sparse(
-        mesh, active_cells=active, mapping=staticCells, gradientType="total"
+        mesh, active_cells=active, mapping=staticCells, gradient_type="total"
     )
     reg.reference_model = driver.mref[dynamic]
 
