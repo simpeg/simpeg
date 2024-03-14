@@ -274,6 +274,7 @@ try:
             },
         ],
         "use_edit_page_button": False,
+        "collapse_navigation": True,
     }
     html_logo = "images/simpeg-logo.png"
 
