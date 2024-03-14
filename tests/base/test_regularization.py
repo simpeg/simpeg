@@ -626,7 +626,7 @@ def test_cross_ref_reg(dim):
     # give it some cell weights, and some cell vector weights to do something with
     cell_weights = np.random.rand(n_active)
     cell_vec_weights = np.random.rand(n_active, dim)
-    cross_reg.set_weights(weights=cell_weights)
+    cross_reg.set_weights(cell_weights=cell_weights)
     cross_reg.set_weights(vec_weights=cell_vec_weights)
 
     if dim == 3:
