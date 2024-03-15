@@ -10,7 +10,6 @@ from ..resistivity import sources, receivers
 from .. import resistivity as dc
 from ....utils import (
     mkvc,
-    surface2ind_topo,
     model_builder,
     define_plane_from_points,
 )
@@ -1626,7 +1625,7 @@ def drapeTopotoLoc(mesh, pts, ind_active=None, option="top", topo=None, **kwargs
         raise ValueError("Unsupported mesh dimension")
 
     if ind_active is None:
-        ind_active = surface2ind_topo(mesh, topo)
+        ind_active = discretize.utils.active_from_xyz(mesh, topo)
 
     if mesh._meshType == "TENSOR":
         meshtemp, topoCC = gettopoCC(mesh, ind_active, option=option)

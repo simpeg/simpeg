@@ -180,19 +180,35 @@ plt.show()
 # formulation.
 #
 
-# Define the forward simulation. By setting the 'store_sensitivities' keyword
-# argument to "forward_only", we simulate the data without storing the sensitivities
+###############################################################################
+# Define the forward simulation. By setting the ``store_sensitivities`` keyword
+# argument to ``"forward_only"``, we simulate the data without storing the
+# sensitivities.
+#
+
 simulation = gravity.simulation.Simulation3DIntegral(
     survey=survey,
     mesh=mesh,
     rhoMap=model_map,
     ind_active=ind_active,
     store_sensitivities="forward_only",
+    engine="choclo",
 )
 
+###############################################################################
+# .. tip::
+#
+#    Since SimPEG v0.21.0 we can use `Choclo
+#    <https://www.fatiando.org/choclo>`_ as the engine for running the gravity
+#    simulations, which results in faster and more memory efficient runs. Just
+#    pass ``engine="choclo"`` when constructing the simulation.
+#
+
+###############################################################################
 # Compute predicted data for some model
 # SimPEG uses right handed coordinate where Z is positive upward.
 # This causes gravity signals look "inconsistent" with density values in visualization.
+
 dpred = simulation.dpred(model)
 
 # Plot
