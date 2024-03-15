@@ -396,14 +396,14 @@ class RegularizationTests(unittest.TestCase):
         ]
         [self.assertTrue(reg.mapping is fct.mapping) for fct in reg.objfcts]
 
-        D = reg.regularization_mesh.cellDiffx
+        D = reg.regularization_mesh.cell_gradient_x
         reg.regularization_mesh._cell_gradient_x = 4 * D
         v = np.random.rand(D.shape[1])
         [
             self.assertTrue(
                 np.all(
                     reg.regularization_mesh._cell_gradient_x * v
-                    == fct.regularization_mesh.cellDiffx * v
+                    == fct.regularization_mesh.cell_gradient_x * v
                 )
             )
             for fct in reg.objfcts

@@ -1,3 +1,4 @@
+import pytest
 import unittest
 
 import numpy as np
@@ -527,16 +528,17 @@ def test_simple_source():
     assert waveform.eval(0.0) == 1.0
 
 
-def test_CircularLoop_test_N_assignment():
+def test_removal_circular_loop_n():
     """
-    Test depreciation of the N property
+    Test if passing the N argument to CircularLoop raises an error
     """
-    loop = CircularLoop(
-        [],
-        waveform=StepOffWaveform(),
-        location=np.array([0.0, 0.0, 0.0]),
-        radius=1.0,
-        current=0.5,
-        N=2,
-    )
-    assert loop.n_turns == 2
+    msg = "'N' property has been removed. Please use 'n_turns'."
+    with pytest.raises(TypeError, match=msg):
+        CircularLoop(
+            [],
+            waveform=StepOffWaveform(),
+            location=np.array([0.0, 0.0, 0.0]),
+            radius=1.0,
+            current=0.5,
+            N=2,
+        )

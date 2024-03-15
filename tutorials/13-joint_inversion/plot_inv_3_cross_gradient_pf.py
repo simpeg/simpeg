@@ -275,9 +275,21 @@ starting_model = np.r_[background_dens * np.ones(nC), background_susc * np.ones(
 # Here, we define the physics of the gravity and magnetic problems by using the simulation
 # class.
 #
+# .. tip::
+#
+#    Since SimPEG v0.21.0 we can use `Choclo
+#    <https://www.fatiando.org/choclo>`_ as the engine for running the gravity
+#    simulations, which results in faster and more memory efficient runs. Just
+#    pass ``engine="choclo"`` when constructing the simulation.
+#
+
 
 simulation_grav = gravity.simulation.Simulation3DIntegral(
-    survey=survey_grav, mesh=mesh, rhoMap=wires.density, ind_active=ind_active
+    survey=survey_grav,
+    mesh=mesh,
+    rhoMap=wires.density,
+    ind_active=ind_active,
+    engine="choclo",
 )
 
 simulation_mag = magnetics.simulation.Simulation3DIntegral(
