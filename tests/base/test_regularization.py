@@ -808,18 +808,22 @@ class TestRemovedObjects:
         with pytest.raises(NotImplementedError, match=msg):
             reg.indActive
 
-    def test_cell_weights_argument(self, mesh):
-        """Test cell_weights argument."""
+    @pytest.mark.parametrize(
+        "regularization_class",
+        (BaseRegularization, WeightedLeastSquares),
+    )
+    def test_cell_weights_argument(self, mesh, regularization_class):
+        """Test if error is raised when passing the cell_weights argument."""
         weights = np.ones(len(mesh))
         msg = "'cell_weights' argument has been removed. Please use 'weights' instead."
         with pytest.raises(TypeError, match=msg):
-            BaseRegularization(mesh, cell_weights=weights)
+            regularization_class(mesh, cell_weights=weights)
 
     @pytest.mark.parametrize(
         "regularization_class", (BaseRegularization, WeightedLeastSquares)
     )
     def test_cell_weights_property(self, mesh, regularization_class):
-        """Test cell_weights property."""
+        """Test if error is raised when trying to access the cell_weights property."""
         weights = {"weights": np.ones(len(mesh))}
         msg = (
             "'cell_weights' has been removed. "
@@ -829,6 +833,20 @@ class TestRemovedObjects:
         reg = regularization_class(mesh, weights=weights)
         with pytest.raises(AttributeError, match=msg):
             reg.cell_weights
+
+    @pytest.mark.parametrize(
+        "regularization_class", (BaseRegularization, WeightedLeastSquares)
+    )
+    def test_cell_weights_setter(self, mesh, regularization_class):
+        """Test if error is raised when trying to set the cell_weights property."""
+        msg = (
+            "'cell_weights' has been removed. "
+            "Please access weights using the `set_weights`, `get_weights`, and "
+            "`remove_weights` methods."
+        )
+        reg = regularization_class(mesh)
+        with pytest.raises(AttributeError, match=msg):
+            reg.cell_weights = "dummy variable"
 
 
 class TestRemovedRegularizations:
