@@ -6,8 +6,4 @@
 
 .. currentmodule:: {{ module }}
 
-{% if objtype == 'property' %}
-property
-{% endif %}
-
 .. auto{{ objtype }}:: {{ objname }}
