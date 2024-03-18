@@ -88,7 +88,6 @@ class BaseRegularization(BaseObjectiveFunction):
             )
             weights = kwargs.pop(key)
 
-        super().__init__(nP=None, mapping=None, **kwargs)
         self._regularization_mesh = mesh
         self._weights = {}
         if active_cells is not None:
@@ -100,6 +99,19 @@ class BaseRegularization(BaseObjectiveFunction):
             if not isinstance(weights, dict):
                 weights = {"user_weights": weights}
             self.set_weights(**weights)
+
+    @property
+    def nP(self):
+        """Number of model parameters.
+
+        Returns
+        -------
+        int
+            Number of model parameters.
+        """
+        if getattr(self, "mapping", None) is not None:
+            return self.mapping.nP
+        return "*"
 
     @property
     def active_cells(self) -> np.ndarray:
@@ -447,7 +459,6 @@ class BaseRegularization(BaseObjectiveFunction):
             m - self.reference_model
         )  # in case self.reference_model is Zero, returns type m
 
-    @utils.timeIt
     def __call__(self, m):
         """Evaluate the regularization function for the model provided.
 
@@ -474,15 +485,15 @@ class BaseRegularization(BaseObjectiveFunction):
             "Regularization class must have a 'f_m_deriv' implementation."
         )
 
-    @utils.timeIt
     def deriv(self, m) -> np.ndarray:
         r"""Gradient of the regularization function evaluated for the model provided.
 
-        Where :math:`\phi (\mathbf{m})` is the discrete regularization function (objective function),
-        this method evaluates and returns the derivative with respect to the model parameters; i.e.
-        the gradient:
+        Where :math:`\phi (\mathbf{m})` is the discrete regularization function
+        (objective function), this method evaluates and returns the derivative
+        with respect to the model parameters; i.e. the gradient:
 
         .. math::
+
             \frac{\partial \phi}{\partial \mathbf{m}}
 
         Parameters
@@ -498,19 +509,21 @@ class BaseRegularization(BaseObjectiveFunction):
         r = self.W * self.f_m(m)
         return 2 * self.f_m_deriv(m).T * (self.W.T * r)
 
-    @utils.timeIt
     def deriv2(self, m, v=None) -> csr_matrix:
         r"""Hessian of the regularization function evaluated for the model provided.
 
-        Where :math:`\phi (\mathbf{m})` is the discrete regularization function (objective function),
-        this method returns the second-derivative (Hessian) with respect to the model parameters:
+        Where :math:`\phi (\mathbf{m})` is the discrete regularization function
+        (objective function), this method returns the second-derivative
+        (Hessian) with respect to the model parameters:
 
         .. math::
+
             \frac{\partial^2 \phi}{\partial \mathbf{m}^2}
 
         or the second-derivative (Hessian) multiplied by a vector :math:`(\mathbf{v})`:
 
         .. math::
+
             \frac{\partial^2 \phi}{\partial \mathbf{m}^2} \, \mathbf{v}
 
         Parameters
@@ -530,7 +543,6 @@ class BaseRegularization(BaseObjectiveFunction):
         f_m_deriv = self.f_m_deriv(m)
         if v is None:
             return 2 * f_m_deriv.T * ((self.W.T * self.W) * f_m_deriv)
-
         return 2 * f_m_deriv.T * (self.W.T * (self.W * (f_m_deriv * v)))
 
 

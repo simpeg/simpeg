@@ -59,6 +59,10 @@ class Volume(objective_function.BaseObjectiveFunction):
     def knownVolume(self, value):
         self._knownVolume = utils.validate_float("knownVolume", value, min_val=0.0)
 
+    @property
+    def nP(self):
+        return "*"
+
     def __call__(self, m):
         return (self.estVol(m) - self.knownVolume) ** 2
 

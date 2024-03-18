@@ -72,9 +72,9 @@ class DataMisfitTest(unittest.TestCase):
         self.dmiscombo = self.dmis0 + self.dmis1
 
     def test_multiDataMisfit(self):
-        self.dmis0.test()
-        self.dmis1.test()
-        self.dmiscombo.test(x=self.model)
+        self.dmis0.test_derivatives()
+        self.dmis1.test_derivatives()
+        self.dmiscombo.test_derivatives(x=self.model)
 
     def test_inv(self):
         reg = regularization.WeightedLeastSquares(self.mesh)

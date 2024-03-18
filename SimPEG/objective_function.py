@@ -1,74 +1,47 @@
 from __future__ import annotations
+from abc import ABC, abstractmethod, abstractproperty
 
 import numbers
 import numpy as np
-import scipy.sparse as sp
 
 from discretize.tests import check_derivative
 
-from .maps import IdentityMap
-from .props import BaseSimPEG
-from .utils import timeIt, Zero, Identity
+from .utils import Zero
 
-__all__ = ["BaseObjectiveFunction", "ComboObjectiveFunction", "L2ObjectiveFunction"]
+__all__ = ["BaseObjectiveFunction", "ComboObjectiveFunction"]
 
 VALID_MULTIPLIERS = (numbers.Number, Zero)
 
 
-class BaseObjectiveFunction(BaseSimPEG):
-    """Base class for creating objective functions.
+def _need_to_pass_fields(objective_function) -> bool:
+    """
+    Determine if we need to pass fields to the given objective function
+    """
+    has_fields = getattr(objective_function, "has_fields", False)
+    is_combo = isinstance(objective_function, ComboObjectiveFunction)
+    return has_fields or is_combo
 
-    The ``BaseObjectiveFunction`` class defines properties and methods inherited by
-    other classes in SimPEG that represent objective functions; e.g. regularization, data misfit.
-    These include convenient methods for testing the order of convergence and ajoint operations.
 
-    .. important::
-        This class is not meant to be instantiated. You should inherit from it to
-        create your own objective function class.
+class BaseObjectiveFunction(ABC):
+    """
+    Base class for creating objective functions.
 
     .. important::
         If building a regularization function within SimPEG, please inherit
-        :py:class:`SimPEG.regularization.BaseRegularization`, as this class
-        has additional functionality related to regularization. And if building a data misfit
-        function, please inherit :py:class:`SimPEG.data_misfit.BaseDataMisfit`.
-
-    Parameters
-    ----------
-    nP : int
-        Number of model parameters.
-    mapping : SimPEG.mapping.BaseMap
-        A SimPEG mapping object that maps from the model space to the
-        quantity evaluated in the objective function.
-    has_fields : bool
-        If ``True``, predicted fields for a simulation and a given model can be
-        used to evaluate the objective function quickly.
-    counter : None or SimPEG.utils.Counter
-        Assign a SimPEG ``Counter`` object to store iterations and run-times.
-    debug : bool
-        Print debugging information.
+        :py:class:`SimPEG.regularization.BaseRegularization`, as this class has
+        additional functionality related to regularization.
+        And if building a data misfit function, please inherit
+        :py:class:`SimPEG.data_misfit.BaseDataMisfit`.
     """
 
-    map_class = IdentityMap  #: Base class of expected maps.
+    @abstractmethod
+    def __init__(self):
+        pass
 
-    def __init__(
-        self,
-        nP=None,
-        mapping=None,
-        has_fields=False,
-        counter=None,
-        debug=False,
-    ):
-        self._nP = nP
-        if mapping is None:
-            self._mapping = mapping
-        else:
-            self.mapping = mapping
-        self.counter = counter
-        self.debug = debug
-        self.has_fields = has_fields
-
-    def __call__(self, x, f=None):
-        """Evaluate the objective function for a given model.
+    @abstractmethod
+    def __call__(self, model, f=None) -> float:
+        """
+        Evaluate the objective function for a given model.
 
         Parameters
         ----------
@@ -76,71 +49,19 @@ class BaseObjectiveFunction(BaseSimPEG):
             A vector representing a set of model parameters.
         f : SimPEG.fields.Fields, optional
             Field object (if applicable).
-
         """
-        raise NotImplementedError(
-            "__call__ has not been implemented for {} yet".format(
-                self.__class__.__name__
-            )
-        )
+        pass
 
-    @property
-    def nP(self):
-        """Number of model parameters.
-
-        Returns
-        -------
-        int
-            Number of model parameters.
-        """
-        if self._nP is not None:
-            return self._nP
-        if getattr(self, "mapping", None) is not None:
-            return self.mapping.nP
-        return "*"
-
-    @property
-    def _nC_residual(self):
-        """Shape of the residual."""
-        if getattr(self, "mapping", None) is not None:
-            return self.mapping.shape[0]
-        else:
-            return self.nP
-
-    @property
-    def mapping(self):
-        """Mapping from the model to the quantity evaluated in the object function.
-
-        Returns
-        -------
-        SimPEG.mapping.BaseMap
-            The mapping from the model to the quantity evaluated in the object function.
-        """
-        if self._mapping is None:
-            if self._nP is not None:
-                self._mapping = self.map_class(nP=self.nP)
-            else:
-                self._mapping = self.map_class()
-        return self._mapping
-
-    @mapping.setter
-    def mapping(self, value):
-        if not isinstance(value, self.map_class):
-            raise TypeError(
-                f"Invalid mapping of class '{value.__class__.__name__}'. "
-                f"It must be an instance of {self.map_class.__name__}"
-            )
-        self._mapping = value
-
-    @timeIt
-    def deriv(self, m, **kwargs):
+    @abstractmethod
+    def deriv(self, model):
         r"""Gradient of the objective function evaluated for the model provided.
 
-        Where :math:`\phi (\mathbf{m})` is the objective function,
-        this method evaluates and returns the derivative with respect to the model parameters; i.e.
-        the gradient:
+        Where :math:`\phi (\mathbf{m})` is the objective function, this method
+        evaluates and returns the derivative with respect to the model
+        parameters; i.e. the gradient:
 
         .. math::
+
             \frac{\partial \phi}{\partial \mathbf{m}}
 
         Parameters
@@ -153,25 +74,24 @@ class BaseObjectiveFunction(BaseSimPEG):
         (n_param, ) numpy.ndarray
             The gradient of the objective function evaluated for the model provided.
         """
-        raise NotImplementedError(
-            "The method deriv has not been implemented for {}".format(
-                self.__class__.__name__
-            )
-        )
+        pass
 
-    @timeIt
-    def deriv2(self, m, v=None, **kwargs):
+    @abstractmethod
+    def deriv2(self, model, v=None):
         r"""Hessian of the objective function evaluated for the model provided.
 
-        Where :math:`\phi (\mathbf{m})` is the objective function,
-        this method returns the second-derivative (Hessian) with respect to the model parameters:
+        Where :math:`\phi (\mathbf{m})` is the objective function, this method
+        returns the second-derivative (Hessian) with respect to the model
+        parameters:
 
         .. math::
+
             \frac{\partial^2 \phi}{\partial \mathbf{m}^2}
 
         or the second-derivative (Hessian) multiplied by a vector :math:`(\mathbf{v})`:
 
         .. math::
+
             \frac{\partial^2 \phi}{\partial \mathbf{m}^2} \, \mathbf{v}
 
         Parameters
@@ -188,66 +108,14 @@ class BaseObjectiveFunction(BaseSimPEG):
             function for the model provided is returned. If *v* is not ``None``,
             the Hessian multiplied by the vector provided is returned.
         """
-        raise NotImplementedError(
-            "The method _deriv2 has not been implemented for {}".format(
-                self.__class__.__name__
-            )
-        )
+        pass
 
-    def _test_deriv(self, x=None, num=4, plotIt=False, **kwargs):
-        print("Testing {0!s} Deriv".format(self.__class__.__name__))
-        if x is None:
-            if self.nP == "*":
-                x = np.random.randn(np.random.randint(1e2, high=1e3))
-            else:
-                x = np.random.randn(self.nP)
-
-        return check_derivative(
-            lambda m: [self(m), self.deriv(m)], x, num=num, plotIt=plotIt, **kwargs
-        )
-
-    def _test_deriv2(self, x=None, num=4, plotIt=False, **kwargs):
-        print("Testing {0!s} Deriv2".format(self.__class__.__name__))
-        if x is None:
-            if self.nP == "*":
-                x = np.random.randn(np.random.randint(1e2, high=1e3))
-            else:
-                x = np.random.randn(self.nP)
-
-        v = x + 0.1 * np.random.rand(len(x))
-        expectedOrder = kwargs.pop("expectedOrder", 1)
-        return check_derivative(
-            lambda m: [self.deriv(m).dot(v), self.deriv2(m, v=v)],
-            x,
-            num=num,
-            expectedOrder=expectedOrder,
-            plotIt=plotIt,
-            **kwargs,
-        )
-
-    def test(self, x=None, num=4, **kwargs):
-        """Run a convergence test on both the first and second derivatives.
-
-        They should be second order!
-
-        Parameters
-        ----------
-        x : None or (n_param, ) numpy.ndarray, optional
-            The evaluation point for the Taylor expansion.
-        num : int
-            The number of iterations in the convergence test.
-
-        Returns
-        -------
-        bool
-            ``True`` if both tests pass. ``False`` if either test fails.
-
+    @abstractproperty
+    def nP(self):
         """
-        deriv = self._test_deriv(x=x, num=num, **kwargs)
-        deriv2 = self._test_deriv2(x=x, num=num, plotIt=False, **kwargs)
-        return deriv & deriv2
-
-    __numpy_ufunc__ = True
+        Number of parameters expected in models.
+        """
+        pass
 
     def __add__(self, other):
         if isinstance(other, Zero):
@@ -255,7 +123,7 @@ class BaseObjectiveFunction(BaseSimPEG):
         if not isinstance(other, BaseObjectiveFunction):
             raise TypeError(
                 f"Cannot add type '{other.__class__.__name__}' to an objective "
-                "function. Only ObjectiveFunctions can be added together."
+                "function. Only BaseObjectiveFunctions can be added together."
             )
         objective_functions, multipliers = [], []
         for instance in (self, other):
@@ -287,6 +155,62 @@ class BaseObjectiveFunction(BaseSimPEG):
 
     def __rdiv__(self, denominator):
         return self * (1.0 / denominator)
+
+    def _test_deriv(self, x=None, num=4, plotIt=False, **kwargs):
+        # TODO: get rid of kwargs and pass arguments
+        print("Testing {0!s} Deriv".format(self.__class__.__name__))
+        if x is None:
+            if self.nP == "*":
+                x = np.random.randn(np.random.randint(1e2, high=1e3))
+            else:
+                x = np.random.randn(self.nP)
+
+        return check_derivative(
+            lambda m: [self(m), self.deriv(m)], x, num=num, plotIt=plotIt, **kwargs
+        )
+
+    def _test_deriv2(self, x=None, num=4, plotIt=False, **kwargs):
+        # TODO: get rid of kwargs and pass arguments
+        print("Testing {0!s} Deriv2".format(self.__class__.__name__))
+        if x is None:
+            if self.nP == "*":
+                x = np.random.randn(np.random.randint(1e2, high=1e3))
+            else:
+                x = np.random.randn(self.nP)
+
+        v = x + 0.1 * np.random.rand(len(x))
+        expectedOrder = kwargs.pop("expectedOrder", 1)
+        return check_derivative(
+            lambda m: [self.deriv(m).dot(v), self.deriv2(m, v=v)],
+            x,
+            num=num,
+            expectedOrder=expectedOrder,
+            plotIt=plotIt,
+            **kwargs,
+        )
+
+    def test_derivatives(self, x=None, num=4, **kwargs):
+        # TODO: get rid of kwargs and pass arguments
+        """Run a convergence test on both the first and second derivatives.
+
+        They should be second order!
+
+        Parameters
+        ----------
+        x : None or (n_param, ) numpy.ndarray, optional
+            The evaluation point for the Taylor expansion.
+        num : int
+            The number of iterations in the convergence test.
+
+        Returns
+        -------
+        bool
+            ``True`` if both tests pass. ``False`` if either test fails.
+
+        """
+        deriv = self._test_deriv(x=x, num=num, **kwargs)
+        deriv2 = self._test_deriv2(x=x, num=num, plotIt=False, **kwargs)
+        return deriv & deriv2
 
 
 class ComboObjectiveFunction(BaseObjectiveFunction):
@@ -388,8 +312,7 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
         else:
             nP = None
 
-        super().__init__(nP=nP)
-
+        self._nP = nP
         self.objfcts = objfcts
         self._multipliers = multipliers
         self._unpack_on_add = unpack_on_add
@@ -399,6 +322,13 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
 
     def __getitem__(self, key):
         return self.multipliers[key], self.objfcts[key]
+
+    @property
+    def nP(self):
+        """
+        Number of parameters
+        """
+        return self._nP
 
     @property
     def multipliers(self):
@@ -435,7 +365,7 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
             multiplier, objfct = phi
             if multiplier == 0.0:  # don't evaluate the fct
                 continue
-            if f is not None and objfct.has_fields:
+            if f is not None and _need_to_pass_fields(objfct):
                 objective_func_value = objfct(m, f=f[i])
             else:
                 objective_func_value = objfct(m)
@@ -449,7 +379,7 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
             multiplier, objfct = phi
             if multiplier == 0.0:  # don't evaluate the fct
                 continue
-            if f is not None and objfct.has_fields:
+            if f is not None and _need_to_pass_fields(objfct):
                 aux = objfct.deriv(m, f=f[i])
             else:
                 aux = objfct.deriv(m)
@@ -464,45 +394,12 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
             multiplier, objfct = phi
             if multiplier == 0.0:  # don't evaluate the fct
                 continue
-            if f is not None and objfct.has_fields:
+            if f is not None and _need_to_pass_fields(objfct):
                 objfct_H = objfct.deriv2(m, v, f=f[i])
             else:
                 objfct_H = objfct.deriv2(m, v)
             H = H + multiplier * objfct_H
         return H
-
-    # This assumes all objective functions have a W.
-    # The base class currently does not.
-    @property
-    def W(self):
-        r"""Full weighting matrix for the combo objective function.
-
-        Consider a composite objective function :math`\phi` that is a weighted sum of
-        objective functions :math:`\phi_i` with multipliers :math:`c_i` such that
-
-        .. math::
-            \phi = \sum_{i = 1}^N c_i \phi_i = \sum_{i = 1}^N \frac{c_i}{2}
-            \big \| \mathbf{W}_i \, f_i (\mathbf{m}) \big \|^2_2
-
-        Where each objective function :math:`\phi_i` has a weighting matrix :math:`W_i`,
-        this method returns the full weighting matrix for the composite objective function:
-
-        .. math::
-            \mathbf{W} = \begin{bmatrix}
-            \sqrt{c_1} W_i \\ \vdots \\ \sqrt{c_N} W_N
-            \end{bmatrix}
-
-        Returns
-        -------
-        scipy.sparse.csr_matrix
-            Full weighting matrix for the combo objective function.
-        """
-        W = []
-        for mult, fct in self:
-            curW = np.sqrt(mult) * fct.W
-            if not isinstance(curW, Zero):
-                W.append(curW)
-        return sp.vstack(W)
 
     def get_functions_of_type(self, fun_class) -> list:
         """Return objective functions of a given type(s).
@@ -528,99 +425,6 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
                     target += [fct]
 
         return [fun for fun in target if fun]
-
-
-class L2ObjectiveFunction(BaseObjectiveFunction):
-    r"""Weighted least-squares objective function class.
-
-    Weighting least-squares objective functions in SimPEG are defined as follows:
-
-    .. math::
-        \phi = \big \| \mathbf{W} f(\mathbf{m}) \big \|_2^2
-
-    where :math:`\mathbf{m}` are the model parameters, :math:`f` is a mapping operator,
-    and :math:`\mathbf{W}` is the weighting matrix.
-
-    Parameters
-    ----------
-    nP : int
-        Number of model parameters.
-    mapping : SimPEG.mapping.BaseMap
-        A SimPEG mapping object that maps from the model space to the
-        quantity evaluated in the objective function.
-    W : None or scipy.sparse.csr_matrix
-        The weighting matrix applied in the objective function. By default, this
-        is set to the identity matrix.
-    has_fields : bool
-        If ``True``, predicted fields for a simulation and a given model can be
-        used to evaluate the objective function quickly.
-    counter : None or SimPEG.utils.Counter
-        Assign a SimPEG ``Counter`` object to store iterations and run-times.
-    debug : bool
-        Print debugging information.
-    """
-
-    def __init__(
-        self,
-        nP=None,
-        mapping=None,
-        W=None,
-        has_fields=False,
-        counter=None,
-        debug=False,
-    ):
-        # Check if nP and shape of W are consistent
-        if W is not None and nP is not None and nP != W.shape[1]:
-            raise ValueError(
-                f"Number of parameters nP ('{nP}') doesn't match the number of "
-                f"rows ('{W.shape[1]}') of the weights matrix W."
-            )
-        super().__init__(
-            nP=nP,
-            mapping=mapping,
-            has_fields=has_fields,
-            debug=debug,
-            counter=counter,
-        )
-        if W is not None and self.nP == "*":
-            self._nP = W.shape[1]
-        self._W = W
-
-    @property
-    def W(self):
-        """Weighting matrix applied in the objective function.
-
-        Returns
-        -------
-        scipy.sparse.csr_matrix
-            The weighting matrix applied in the objective function.
-        """
-        if getattr(self, "_W", None) is None:
-            if self._nC_residual != "*":
-                self._W = sp.eye(self._nC_residual)
-            else:
-                self._W = Identity()
-        return self._W
-
-    def __call__(self, m):
-        """Evaluate the objective function for a given model."""
-        r = self.W * (self.mapping * m)
-        return r.dot(r)
-
-    def deriv(self, m):
-        # Docstring inherited from BaseObjectiveFunction
-        return 2 * self.mapping.deriv(m).T * (self.W.T * (self.W * (self.mapping * m)))
-
-    def deriv2(self, m, v=None):
-        # Docstring inherited from BaseObjectiveFunction
-        if v is not None:
-            return (
-                2
-                * self.mapping.deriv(m).T
-                * (self.W.T * (self.W * (self.mapping.deriv(m) * v)))
-            )
-        W = self.W * self.mapping.deriv(m)
-        return 2 * W.T * W
 
 
 def _validate_objective_functions(objective_functions):
