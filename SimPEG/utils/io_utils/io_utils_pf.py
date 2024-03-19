@@ -1,6 +1,5 @@
 import numpy as np
 from discretize.utils import mkvc
-from ...utils.code_utils import deprecate_method
 
 
 def read_mag3d_ubc(obs_file):
@@ -379,34 +378,3 @@ def write_gg3d_ubc(filename, data_object):
     )
 
     print("Observation file saved to: " + filename)
-
-
-# ======================================================
-# 				Depricated Methods
-# ======================================================
-
-
-readUBCmagneticsObservations = deprecate_method(
-    read_mag3d_ubc,
-    "readUBCmagneticsObservations",
-    removal_version="0.14.4",
-    error=True,
-)
-writeUBCmagneticsObservations = deprecate_method(
-    write_mag3d_ubc,
-    "writeUBCmagneticsObservations",
-    removal_version="0.14.4",
-    error=True,
-)
-readUBCgravityObservations = deprecate_method(
-    read_grav3d_ubc,
-    "readUBCgravityObservations",
-    removal_version="0.14.4",
-    error=True,
-)
-writeUBCgravityObservations = deprecate_method(
-    write_grav3d_ubc,
-    "writeUBCgravityObservations",
-    removal_version="0.14.4",
-    error=True,
-)

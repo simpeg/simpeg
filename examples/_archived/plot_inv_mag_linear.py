@@ -104,7 +104,7 @@ def run(plotIt=True):
     data_object = data.Data(survey, dobs=synthetic_data, noise_floor=wd)
 
     # Create a regularization
-    reg = regularization.Sparse(mesh, indActive=actv, mapping=idenMap)
+    reg = regularization.Sparse(mesh, active_cells=actv, mapping=idenMap)
     reg.mref = np.zeros(nC)
     reg.norms = [0, 0, 0, 0]
     # reg.eps_p, reg.eps_q = 1e-0, 1e-0
@@ -131,7 +131,7 @@ def run(plotIt=True):
     saveDict = directives.SaveOutputEveryIteration(save_txt=False)
     update_Jacobi = directives.UpdatePreconditioner()
     # Add sensitivity weights
-    sensitivity_weights = directives.UpdateSensitivityWeights(everyIter=False)
+    sensitivity_weights = directives.UpdateSensitivityWeights(every_iteration=False)
 
     inv = inversion.BaseInversion(
         invProb,
