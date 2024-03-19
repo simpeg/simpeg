@@ -78,7 +78,7 @@ class TestPGI(unittest.TestCase):
             alpha_x=0.0,
             wiresmap=self.wires,
         )
-        reg.set_weights(weights = self.cell_weights_list)
+        reg.set_weights(weights=self.cell_weights_list)
 
         mref = mkvc(clf.means_[clf.predict(self.samples)])
 
@@ -180,7 +180,7 @@ class TestPGI(unittest.TestCase):
         reg = regularization.PGI(
             self.mesh, clf, approx_gradient=True, alpha_x=0.0, wiresmap=self.wires
         )
-        reg.set_weights(weights = self.cell_weights_list)
+        reg.set_weights(weights=self.cell_weights_list)
 
         mref = mkvc(clf.means_[clf.predict(self.samples)])
 
@@ -283,7 +283,7 @@ class TestPGI(unittest.TestCase):
             alpha_x=0.0,
             wiresmap=self.wires,
         )
-        reg.set_weights(weights = self.cell_weights_list)
+        reg.set_weights(weights=self.cell_weights_list)
 
         mref = mkvc(clf.means_[clf.predict(self.samples)])
 
@@ -387,7 +387,7 @@ class TestPGI(unittest.TestCase):
             wiresmap=self.wires,
             # weights_list=self.cell_weights_list,
         )
-        reg.set_weights(weights = self.cell_weights_list)
+        reg.set_weights(weights=self.cell_weights_list)
 
         mref = mkvc(clf.means_[clf.predict(self.samples)])
 
