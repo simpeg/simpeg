@@ -233,6 +233,7 @@ simulation_grav = pf.gravity.simulation.Simulation3DIntegral(
     mesh=mesh,
     rhoMap=wires.den,
     ind_active=actv,
+    engine="choclo",
 )
 dmis_grav = data_misfit.L2DataMisfit(data=data_grav, simulation=simulation_grav)
 # Mag problem

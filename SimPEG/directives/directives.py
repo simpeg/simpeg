@@ -14,7 +14,6 @@ from ..regularization import (
     Sparse,
     SparseSmallness,
     PGIsmallness,
-    PGIwithNonlinearRelationshipsSmallness,
     SmoothnessFirstOrder,
     SparseSmoothness,
     BaseSimilarityMeasure,
@@ -23,7 +22,7 @@ from ..utils import (
     mkvc,
     set_kwargs,
     sdiag,
-    diagEst,
+    estimate_diagonal,
     spherical2cartesian,
     cartesian2spherical,
     Zero,
@@ -65,14 +64,13 @@ class InversionDirective:
     _dmisfitPair = [BaseDataMisfit, ComboObjectiveFunction]
 
     def __init__(self, inversion=None, dmisfit=None, reg=None, verbose=False, **kwargs):
+        # Raise error on deprecated arguments
+        if (key := "debug") in kwargs.keys():
+            raise TypeError(f"'{key}' property has been removed. Please use 'verbose'.")
         self.inversion = inversion
         self.dmisfit = dmisfit
         self.reg = reg
-        debug = kwargs.pop("debug", None)
-        if debug is not None:
-            self.debug = debug
-        else:
-            self.verbose = verbose
+        self.verbose = verbose
         set_kwargs(self, **kwargs)
 
     @property
@@ -90,7 +88,7 @@ class InversionDirective:
         self._verbose = validate_type("verbose", value, bool)
 
     debug = deprecate_property(
-        verbose, "debug", "verbose", removal_version="0.19.0", future_warn=True
+        verbose, "debug", "verbose", removal_version="0.19.0", error=True
     )
 
     @property
@@ -716,7 +714,6 @@ class AlphasSmoothEstimate_ByEig(InversionDirective):
                         Smallness,
                         SparseSmallness,
                         PGIsmallness,
-                        PGIwithNonlinearRelationshipsSmallness,
                     ),
                 ):
                     smallness += [obj]
@@ -1288,13 +1285,7 @@ class MultiTargetMisfits(InversionDirective):
                         np.r_[
                             i,
                             j,
-                            (
-                                isinstance(
-                                    regpart,
-                                    PGIwithNonlinearRelationshipsSmallness,
-                                )
-                                or isinstance(regpart, PGIsmallness)
-                            ),
+                            isinstance(regpart, PGIsmallness),
                         ]
                     )
                     for i, regobjcts in enumerate(self.invProb.reg.objfcts)
@@ -1332,13 +1323,7 @@ class MultiTargetMisfits(InversionDirective):
                     (
                         np.r_[
                             j,
-                            (
-                                isinstance(
-                                    regpart,
-                                    PGIwithNonlinearRelationshipsSmallness,
-                                )
-                                or isinstance(regpart, PGIsmallness)
-                            ),
+                            isinstance(regpart, PGIsmallness),
                         ]
                     )
                     for j, regpart in enumerate(self.invProb.reg.objfcts)
@@ -2433,7 +2418,7 @@ class Update_Wj(InversionDirective):
 
                 return self.simulation.Jtvec(m, Jv)
 
-            JtJdiag = diagEst(JtJv, len(m), k=self.k)
+            JtJdiag = estimate_diagonal(JtJv, len(m), k=self.k)
             JtJdiag = JtJdiag / max(JtJdiag)
 
             self.reg.wght = JtJdiag
@@ -2535,33 +2520,20 @@ class UpdateSensitivityWeights(InversionDirective):
         normalization_method="maximum",
         **kwargs,
     ):
-        if "everyIter" in kwargs.keys():
-            warnings.warn(
-                "'everyIter' property is deprecated and will be removed in SimPEG 0.20.0."
-                "Please use 'every_iteration'.",
-                stacklevel=2,
+        # Raise errors on deprecated arguments
+        if (key := "everyIter") in kwargs.keys():
+            raise TypeError(
+                f"'{key}' property has been removed. Please use 'every_iteration'.",
             )
-            every_iteration = kwargs.pop("everyIter")
-
-        if "threshold" in kwargs.keys():
-            warnings.warn(
-                "'threshold' property is deprecated and will be removed in SimPEG 0.20.0."
-                "Please use 'threshold_value'.",
-                stacklevel=2,
+        if (key := "threshold") in kwargs.keys():
+            raise TypeError(
+                f"'{key}' property has been removed. Please use 'threshold_value'.",
             )
-            threshold_value = kwargs.pop("threshold")
-
-        if "normalization" in kwargs.keys():
-            warnings.warn(
-                "'normalization' property is deprecated and will be removed in SimPEG 0.20.0."
+        if (key := "normalization") in kwargs.keys():
+            raise TypeError(
+                f"'{key}' property has been removed. "
                 "Please define normalization using 'normalization_method'.",
-                stacklevel=2,
             )
-            normalization_method = kwargs.pop("normalization")
-            if normalization_method is True:
-                normalization_method = "maximum"
-            else:
-                normalization_method = None
 
         super().__init__(**kwargs)
 
@@ -2588,7 +2560,11 @@ class UpdateSensitivityWeights(InversionDirective):
         self._every_iteration = validate_type("every_iteration", value, bool)
 
     everyIter = deprecate_property(
-        every_iteration, "everyIter", "every_iteration", removal_version="0.20.0"
+        every_iteration,
+        "everyIter",
+        "every_iteration",
+        removal_version="0.20.0",
+        error=True,
     )
 
     @property
@@ -2617,7 +2593,11 @@ class UpdateSensitivityWeights(InversionDirective):
         self._threshold_value = validate_float("threshold_value", value, min_val=0.0)
 
     threshold = deprecate_property(
-        threshold_value, "threshold", "threshold_value", removal_version="0.20.0"
+        threshold_value,
+        "threshold",
+        "threshold_value",
+        removal_version="0.20.0",
+        error=True,
     )
 
     @property
@@ -2667,18 +2647,6 @@ class UpdateSensitivityWeights(InversionDirective):
     def normalization_method(self, value):
         if value is None:
             self._normalization_method = value
-
-        elif isinstance(value, bool):
-            warnings.warn(
-                "Boolean type for 'normalization_method' is deprecated and will be removed in 0.20.0."
-                "Please use None, 'maximum' or 'minimum'.",
-                stacklevel=2,
-            )
-            if value:
-                self._normalization_method = "maximum"
-            else:
-                self._normalization_method = None
-
         else:
             self._normalization_method = validate_string(
                 "normalization_method", value, string_list=["minimum", "maximum"]
@@ -2689,6 +2657,7 @@ class UpdateSensitivityWeights(InversionDirective):
         "normalization",
         "normalization_method",
         removal_version="0.20.0",
+        error=True,
     )
 
     def initialize(self):

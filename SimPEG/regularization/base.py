@@ -67,22 +67,13 @@ class BaseRegularization(BaseObjectiveFunction):
                 f"Value of type {type(mesh)} provided."
             )
 
-        # Handle deprecated indActive argument
+        # Raise errors on deprecated arguments: avoid old code that still uses
+        # them to silently fail
         if (key := "indActive") in kwargs:
-            if active_cells is not None:
-                raise ValueError(
-                    f"Cannot simultaneously pass 'active_cells' and '{key}'. "
-                    "Pass 'active_cells' only."
-                )
-            warnings.warn(
-                f"The '{key}' argument has been deprecated, please use 'active_cells'. "
-                "It will be removed in future versions of SimPEG.",
-                DeprecationWarning,
-                stacklevel=2,
+            raise TypeError(
+                f"'{key}' argument has been removed. "
+                "Please use 'active_cells' instead."
             )
-            active_cells = kwargs.pop(key)
-
-        # Handle deprecated cell_weights argument
         if (key := "cell_weights") in kwargs:
             if weights is not None:
                 raise ValueError(
@@ -144,8 +135,7 @@ class BaseRegularization(BaseObjectiveFunction):
         "indActive",
         "active_cells",
         "0.19.0",
-        future_warn=True,
-        error=False,
+        error=True,
     )
 
     @property
@@ -1583,19 +1573,13 @@ class WeightedLeastSquares(ComboObjectiveFunction):
             )
         self._regularization_mesh = mesh
 
+        # Raise errors on deprecated arguments: avoid old code that still uses
+        # them to silently fail
         if (key := "indActive") in kwargs:
-            if active_cells is not None:
-                raise ValueError(
-                    f"Cannot simultaneously pass 'active_cells' and '{key}'. "
-                    "Pass 'active_cells' only."
-                )
-            warnings.warn(
-                f"The '{key}' argument has been deprecated, please use 'active_cells'. "
-                "It will be removed in future versions of SimPEG.",
-                DeprecationWarning,
-                stacklevel=2,
+            raise TypeError(
+                f"'{key}' argument has been removed. "
+                "Please use 'active_cells' instead."
             )
-            active_cells = kwargs.pop(key)
 
         self.alpha_s = alpha_s
         if alpha_x is not None:
@@ -2103,8 +2087,7 @@ class WeightedLeastSquares(ComboObjectiveFunction):
         "indActive",
         "active_cells",
         "0.19.0",
-        error=False,
-        future_warn=True,
+        error=True,
     )
 
     @property
