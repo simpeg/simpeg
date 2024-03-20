@@ -25,6 +25,7 @@ Receivers
 
   receivers.PointNaturalSource
   receivers.Point3DTipper
+  receivers.Point3DAdmittance
 
 Sources
 =======
