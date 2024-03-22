@@ -524,7 +524,7 @@ class TestsMagSimulation:
         rtol, atol = 5e-7, 1e-6
         np.testing.assert_allclose(data, d_amp, rtol=rtol, atol=atol)
 
-    def test_sensitivities_stores_on_disk(self, mag_mesh, receiver_locations, tmp_path):
+    def test_sensitivities_on_disk(self, mag_mesh, receiver_locations, tmp_path):
         """
         Test if sensitivity matrix is correctly being stored in disk when asked
         """
@@ -547,6 +547,27 @@ class TestsMagSimulation:
         # Check if sensitivity matrix was stored in disk and is a memmap
         assert sensitivities_path.is_file()
         assert type(simulation.G) is np.memmap
+
+    def test_sensitivities_on_ram(self, mag_mesh, receiver_locations, tmp_path):
+        """
+        Test if sensitivity matrix is correctly being allocated in memory when asked
+        """
+        # Build survey
+        survey = create_mag_survey(
+            components=["tmi"],
+            receiver_locations=receiver_locations,
+            inducing_field_params=(50000.0, 20.0, 45.0),
+        )
+        # Build simulation
+        simulation = mag.Simulation3DIntegral(
+            mesh=mag_mesh,
+            survey=survey,
+            store_sensitivities="ram",
+            engine="choclo",
+        )
+        simulation.G
+        # Check if sensitivity matrix is a Numpy array (stored in memory)
+        assert type(simulation.G) is np.ndarray
 
 
 def test_ana_mag_tmi_grad_forward():
