@@ -674,7 +674,16 @@ class Simulation3DIntegral(BasePFSimulation):
         else:
             n_columns = 3 * self.nC
         shape = (self.survey.nD, n_columns)
-        sensitivity_matrix = np.empty(shape, dtype=self.sensitivity_dtype)
+        if self.store_sensitivities == "disk":
+            sensitivity_matrix = np.memmap(
+                self.sensitivity_path,
+                shape=shape,
+                dtype=self.sensitivity_dtype,
+                order="C",  # it's more efficient to write in row major
+                mode="w+",
+            )
+        else:
+            sensitivity_matrix = np.empty(shape, dtype=self.sensitivity_dtype)
         # Define the constant factor
         constant_factor = 1 / 4 / np.pi
         # Start filling the sensitivity matrix
