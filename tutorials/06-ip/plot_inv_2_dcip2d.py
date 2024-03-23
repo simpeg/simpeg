@@ -310,7 +310,7 @@ dc_data_misfit = data_misfit.L2DataMisfit(data=dc_data, simulation=dc_simulation
 # Define the regularization (model objective function)
 dc_regularization = regularization.WeightedLeastSquares(
     mesh,
-    indActive=ind_active,
+    active_cells=ind_active,
     reference_model=starting_conductivity_model,
     alpha_s=0.01,
     alpha_x=1,
@@ -542,7 +542,7 @@ ip_data_misfit = data_misfit.L2DataMisfit(data=ip_data, simulation=ip_simulation
 # Define the regularization (model objective function)
 ip_regularization = regularization.WeightedLeastSquares(
     mesh,
-    indActive=ind_active,
+    active_cells=ind_active,
     mapping=maps.IdentityMap(nP=nC),
     alpha_s=0.01,
     alpha_x=1,

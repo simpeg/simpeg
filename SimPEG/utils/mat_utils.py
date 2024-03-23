@@ -451,36 +451,36 @@ def define_plane_from_points(xyz1, xyz2, xyz3):
 
 
 diagEst = deprecate_function(
-    estimate_diagonal, "diagEst", removal_version="0.19.0", future_warn=True
+    estimate_diagonal, "diagEst", removal_version="0.19.0", error=True
 )
 uniqueRows = deprecate_function(
-    unique_rows, "uniqueRows", removal_version="0.19.0", future_warn=True
+    unique_rows, "uniqueRows", removal_version="0.19.0", error=True
 )
-sdInv = deprecate_function(sdinv, "sdInv", removal_version="0.19.0", future_warn=True)
+sdInv = deprecate_function(sdinv, "sdInv", removal_version="0.19.0", error=True)
 getSubArray = deprecate_function(
-    get_subarray, "getSubArray", removal_version="0.19.0", future_warn=True
+    get_subarray, "getSubArray", removal_version="0.19.0", error=True
 )
 inv3X3BlockDiagonal = deprecate_function(
     inverse_3x3_block_diagonal,
     "inv3X3BlockDiagonal",
     removal_version="0.19.0",
-    future_warn=True,
+    error=True,
 )
 inv2X2BlockDiagonal = deprecate_function(
     inverse_2x2_block_diagonal,
     "inv2X2BlockDiagonal",
     removal_version="0.19.0",
-    future_warn=True,
+    error=True,
 )
 makePropertyTensor = deprecate_function(
     make_property_tensor,
     "makePropertyTensor",
     removal_version="0.19.0",
-    future_warn=True,
+    error=True,
 )
 invPropertyTensor = deprecate_function(
     inverse_property_tensor,
     "invPropertyTensor",
     removal_version="0.19.0",
-    future_warn=True,
+    error=True,
 )
