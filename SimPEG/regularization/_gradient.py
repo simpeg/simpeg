@@ -232,6 +232,11 @@ class SmoothnessFullGradient(BaseRegularization):
         Returns
         -------
         scipy.sparse.csr_matrix
+
+        Notes
+        -----
+        This matrix is equivalent to `W.T @ W` in most other regularizations. It uses
+        `discretize` inner product operators to form the matrix `W.T @ W` all at once.
         """
         if getattr(self, "_W", None) is None:
             mesh = self.regularization_mesh.mesh

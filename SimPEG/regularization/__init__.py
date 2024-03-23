@@ -90,6 +90,7 @@ its first-order directional derivative(s), or its second-order directional deriv
   Smallness
   SmoothnessFirstOrder
   SmoothnessSecondOrder
+  SmoothnessFullGradient
 
 Sparse Norm Regularization
 --------------------------
@@ -169,7 +170,7 @@ from .vector import (
     AmplitudeSmallness,
     AmplitudeSmoothnessFirstOrder,
 )
-from .rotated import SmoothnessFullGradient
+from ._gradient import SmoothnessFullGradient
 
 
 @deprecate_class(removal_version="0.19.0", error=True)
