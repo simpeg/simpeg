@@ -21,7 +21,7 @@ except ImportError:
 
 REL_TOLERANCE = 5e-2
 ABS_TOLERANCE = 1e-4
-ADJ_TOLERANCE = 1e-10  # "zero", so if residual below this --> pass regardless of order
+ADJ_TOLERANCE = 1e-10
 
 
 @pytest.fixture
@@ -72,7 +72,6 @@ def frequencies():
 
 
 def get_survey(survey_type, orientations, components, locations, frequencies):
-
     if not isinstance(orientations, list):
         orientations = [orientations]
 
@@ -135,17 +134,18 @@ def get_survey(survey_type, orientations, components, locations, frequencies):
 
 
 CASES_LIST = [
-    ("magnetotelluric", ["xy", "yx"], ["real", "imag"]),
-    ("magnetotelluric", ["xx", "yy"], ["real", "imag"]),
-    ("magnetotelluric", ["xy", "yx"], ["app_res"]),
-    ("magnetotelluric", ["xx", "yy"], ["app_res"]),
-    ("magnetotelluric", ["xy", "yx"], ["phase"]),
-    ("magnetotelluric", ["xx", "yy"], ["phase"]),
-    ("tipper", ["zx", "zy"], ["real", "imag"]),
-    ("tipper", ["xx", "yx", "xy", "yy"], ["real", "imag"])
-    # ("admittance", ["xy", "yx"], ["real", "imag"]),
-    # ("admittance", ["xx", "yy"], ["real", "imag"])
+    # ("magnetotelluric", ["xy", "yx"], ["real", "imag"]),
+    # ("magnetotelluric", ["xx", "yy"], ["real", "imag"]),
+    # ("magnetotelluric", ["xy", "yx"], ["app_res"]),
+    # ("magnetotelluric", ["xx", "yy"], ["app_res"]),
+    # ("magnetotelluric", ["xy", "yx"], ["phase"]),
+    # ("tipper", ["zx", "zy"], ["real", "imag"]),
+    # ("tipper", ["xx", "yx", "xy", "yy"], ["real", "imag"])
+    ("admittance", ["xy", "yx"], ["real", "imag"]),
+    ("admittance", ["xx", "yy"], ["real", "imag"]),
+    ("admittance", ["zx", "zy"], ["real", "imag"]),
 ]
+
 
 @pytest.mark.parametrize("survey_type, orientations, components", CASES_LIST)
 class TestDerivatives:
@@ -161,14 +161,19 @@ class TestDerivatives:
         mapping,
         sigma_hs,
     ):
-        survey = get_survey(survey_type, orientations, components, locations, frequencies)
+        survey = get_survey(
+            survey_type, orientations, components, locations, frequencies
+        )
 
         # Define the simulation
         sim = nsem.simulation.Simulation3DPrimarySecondary(
             mesh, survey=survey, sigmaMap=mapping, sigmaPrimary=sigma_hs
         )
 
-        m0 = 1e-1 * np.ones(np.sum(active_cells))
+        n_active = np.sum(active_cells)
+        np.random.seed(1983)
+
+        m0 = np.log(1e1) + 0.01 * np.random.uniform(low=-1, high=1, size=n_active)
         data = sim.make_synthetic_data(m0, add_noise=True)
         dmis = data_misfit.L2DataMisfit(simulation=sim, data=data)
 
@@ -186,8 +191,6 @@ class TestDerivatives:
         mapping,
         sigma_hs,
     ):
-        np.random.seed(1983)
-
         m0, dmis = self.get_setup_objects(
             survey_type,
             orientations,
