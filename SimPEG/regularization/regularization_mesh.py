@@ -523,24 +523,21 @@ class RegularizationMesh(props.BaseSimPEG):
         "cellDiffx",
         "cell_gradient_x",
         "0.19.0",
-        error=False,
-        future_warn=True,
+        error=True,
     )
     cellDiffy = deprecate_property(
         cell_gradient_y,
         "cellDiffy",
         "cell_gradient_y",
         "0.19.0",
-        error=False,
-        future_warn=True,
+        error=True,
     )
     cellDiffz = deprecate_property(
         cell_gradient_z,
         "cellDiffz",
         "cell_gradient_z",
         "0.19.0",
-        error=False,
-        future_warn=True,
+        error=True,
     )
 
     @property

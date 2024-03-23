@@ -101,11 +101,11 @@ def surface2inds(vrtx, trgl, mesh, boundaries=True, internal=True):
 #             DEPRECATED FUNCTIONS
 ################################################
 meshTensor = deprecate_function(
-    unpack_widths, "meshTensor", removal_version="0.19.0", future_warn=True
+    unpack_widths, "meshTensor", removal_version="0.19.0", error=True
 )
 closestPoints = deprecate_function(
-    closest_points_index, "closestPoints", removal_version="0.19.0", future_warn=True
+    closest_points_index, "closestPoints", removal_version="0.19.0", error=True
 )
 ExtractCoreMesh = deprecate_function(
-    extract_core_mesh, "ExtractCoreMesh", removal_version="0.19.0", future_warn=True
+    extract_core_mesh, "ExtractCoreMesh", removal_version="0.19.0", error=True
 )

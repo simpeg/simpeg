@@ -33,3 +33,22 @@ pull request into the main branch (feel free to ping one of us on Github).
 This being said, all SimPEG developers and admins are essentially volunteers
 providing their time for the benefit of the community. This does mean that
 it might take some time for us to get your PR.
+
+Merging a Pull Request
+----------------------
+
+The ``@simpeg/simpeg-admin`` will merge a Pull Request to the `main` branch
+using the `Squash and Merge
+<https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/incorporating-changes-from-a-pull-request/about-pull-request-merges#squash-and-merge-your-commits>`_
+strategy: all commits made to the PR branch will be _squashed_ to a single
+commit that will be added to `main`.
+
+SimPEG admins will ensure that the commit message is descriptive and
+comprehensive. Contributors can help by providing a descriptive and
+comprehensive PR description of the changes that were applied and the reasons
+behind them. This will be greatly appreciated.
+
+Admins will mention other authors that made significant contributions to
+the PR in the commit message, following GitHub's approach for `Creating
+co-authored commits
+<https://docs.github.com/en/pull-requests/committing-changes-to-your-project/creating-and-editing-commits/creating-a-commit-with-multiple-authors#creating-co-authored-commits-using-github-desktop>`_.
