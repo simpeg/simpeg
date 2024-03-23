@@ -128,6 +128,28 @@ def _validate_type_or_future_of_type(
 
 
 class DaskMetaSimulation(MetaSimulation):
+    """Dask Distributed version of simulation of simulations.
+
+    This class makes use of `dask.distributed` module to provide
+    concurrency, executing the internal simulations in parallel. This class
+    is meant to be a (mostly) drop in replacement for :class:`.MetaSimulation`.
+    If you want to test your implementation, we recommend starting with a
+    small problem using `MetaSimulation`, then switching it to this class.
+    the serial version of this class is good for testing correctness.
+
+    Parameters
+    ----------
+    simulations : (n_sim) list of SimPEG.simulation.BaseSimulation or list of dask.distributed.Future
+        The list of unique simulations (or futures that would return a simulation)
+        that each handle a piece of the problem.
+    mappings : (n_sim) list of SimPEG.maps.IdentityMap or list of dask.distributed.Future
+        The map for every simulation (or futures that would return a map). Every
+        map should accept the  same length model, and output a model appropriate
+        for its paired simulation.
+    client : dask.distributed.Client, optional
+        The dask client to use for communication.
+    """
+
     def __init__(self, simulations, mappings, client):
         self._client = validate_type("client", client, Client, cast=False)
         super().__init__(simulations, mappings)
@@ -148,7 +170,7 @@ class DaskMetaSimulation(MetaSimulation):
 
         Returns
         -------
-        (n_sim) list of distributed.client.Future SimPEG.simulation.BaseSimulation
+        (n_sim) list of distributed.Future SimPEG.simulation.BaseSimulation
         """
         return self._simulations
 
@@ -170,7 +192,7 @@ class DaskMetaSimulation(MetaSimulation):
 
         Returns
         -------
-        (n_sim) list of distributed.client.Future SimPEG.maps.IdentityMap
+        (n_sim) list of distributed.Future SimPEG.maps.IdentityMap
         """
         return self._mappings
 
@@ -416,10 +438,21 @@ class DaskMetaSimulation(MetaSimulation):
 
 
 class DaskSumMetaSimulation(DaskMetaSimulation, SumMetaSimulation):
-    """An extension of the MetaSimulation that sums the data outputs.
+    """A dask distributed version of :class:`.SumMetaSimulation`.
 
-    This class requires the model mappings have the same input length
-    and output data for each simulation to have the same number of data.
+    A meta simulation that sums the results of the many individual
+    simulations.
+
+    Parameters
+    ----------
+    simulations : (n_sim) list of SimPEG.simulation.BaseSimulation or list of dask.distributed.Future
+        The list of unique simulations that each handle a piece
+        of the problem.
+    mappings : (n_sim) list of SimPEG.maps.IdentityMap or list of dask.distributed.Future        The map for every simulation. Every map should accept the
+        same length model, and output a model appropriate for its
+        paired simulation.
+    client : dask.distributed.Client, optional
+        The dask client to use for communication.
     """
 
     def __init__(self, simulations, mappings, client):
@@ -542,11 +575,23 @@ class DaskSumMetaSimulation(DaskMetaSimulation, SumMetaSimulation):
 
 
 class DaskRepeatedSimulation(DaskMetaSimulation):
-    """A MetaSimulation where a single simulation is used repeatedly.
+    """A multiprocessing version of the :class:`.RepeatedSimulation`.
 
-    This is most useful for linear simulations where a sensitivity matrix can be
-    reused with different models. For Non-linear simulations it will often be quicker
-    to use the MultiSimulation class with multiple copies of the same simulation.
+    This class makes use of a single simulation that is copied to each internal
+    process, but only once per process.
+
+    This simulation shares internals with the :class:`.MultiprocessingMetaSimulation`.
+    class, as such please see that documentation for details regarding how to properly
+    use multiprocessing on your operating system.
+
+    Parameters
+    ----------
+    simulation : SimPEG.simulation.BaseSimulation or dask.distributed.Future
+        The simulation to use repeatedly with different mappings.
+    mappings : (n_sim) list of SimPEG.maps.IdentityMap or list of dask.distributed.Future
+        The list of different mappings to use (or futures that each return a mapping).
+    client : dask.distributed.Client, optional
+        The dask client to use for communication.
     """
 
     _repeat_sim = True
@@ -572,6 +617,12 @@ class DaskRepeatedSimulation(DaskMetaSimulation):
 
     @property
     def simulation(self):
+        """The internal simulation.
+
+        Returns
+        -------
+        distributed.Future of SimPEG.simulation.BaseSimulation
+        """
         return self._simulation
 
     @simulation.setter
