@@ -208,9 +208,20 @@ starting_model = np.zeros(nC)
 # Here, we define the physics of the gravity problem by using the simulation
 # class.
 #
+# .. tip::
+#
+#    Since SimPEG v0.21.0 we can use `Choclo
+#    <https://www.fatiando.org/choclo>`_ as the engine for running the gravity
+#    simulations, which results in faster and more memory efficient runs. Just
+#    pass ``engine="choclo"`` when constructing the simulation.
+#
 
 simulation = gravity.simulation.Simulation3DIntegral(
-    survey=survey, mesh=mesh, rhoMap=model_map, ind_active=ind_active
+    survey=survey,
+    mesh=mesh,
+    rhoMap=model_map,
+    ind_active=ind_active,
+    engine="choclo",
 )
 
 
@@ -274,7 +285,7 @@ save_iteration = directives.SaveOutputEveryIteration(save_txt=False)
 update_jacobi = directives.UpdatePreconditioner()
 
 # Add sensitivity weights
-sensitivity_weights = directives.UpdateSensitivityWeights(everyIter=False)
+sensitivity_weights = directives.UpdateSensitivityWeights(every_iteration=False)
 
 # The directives are defined as a list.
 directives_list = [

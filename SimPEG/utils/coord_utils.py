@@ -9,11 +9,11 @@ rotationMatrixFromNormals = deprecate_function(
     rotation_matrix_from_normals,
     "rotationMatrixFromNormals",
     removal_version="0.19.0",
-    future_warn=True,
+    error=True,
 )
 rotatePointsFromNormals = deprecate_function(
     rotate_points_from_normals,
     "rotatePointsFromNormals",
     removal_version="0.19.0",
-    future_warn=True,
+    error=True,
 )

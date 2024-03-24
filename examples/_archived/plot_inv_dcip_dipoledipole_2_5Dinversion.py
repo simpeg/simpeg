@@ -146,7 +146,7 @@ def run(plotIt=True, survey_type="dipole-dipole"):
     regmap = maps.IdentityMap(nP=int(actind.sum()))
 
     # Related to inversion
-    reg = regularization.Sparse(mesh, indActive=actind, mapping=regmap)
+    reg = regularization.Sparse(mesh, active_cells=actind, mapping=regmap)
     opt = optimization.InexactGaussNewton(maxIter=15)
     invProb = inverse_problem.BaseInvProblem(dmisfit, reg, opt)
     beta = directives.BetaSchedule(coolingFactor=5, coolingRate=2)

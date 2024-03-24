@@ -1,6 +1,6 @@
 import numpy as np
 
-from ....utils.code_utils import deprecate_property, validate_string
+from ....utils.code_utils import validate_string
 
 from ....survey import BaseSurvey
 from ..utils import drapeTopotoLoc
@@ -151,14 +151,6 @@ class Survey(BaseSurvey):
         loc_m = self.locations_m
         loc_n = self.locations_n
         return np.unique(np.vstack((loc_a, loc_b, loc_m, loc_n)), axis=0)
-
-    electrode_locations = deprecate_property(
-        unique_electrode_locations,
-        "electrode_locations",
-        new_name="unique_electrode_locations",
-        removal_version="0.17.0",
-        error=True,
-    )
 
     @property
     def source_locations(self):

@@ -9,7 +9,7 @@ class Survey(BaseSurvey):
 
     Parameters
     ----------
-    source_field : SimPEG.potential_fields.magnetics.sources.SourceField
+    source_field : SimPEG.potential_fields.magnetics.sources.UniformBackgroundField
         A source object that defines the Earth's inducing field
     """
 
