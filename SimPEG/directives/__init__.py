@@ -1,3 +1,4 @@
+from ..utils.code_utils import deprecate_class
 from .directives import (
     InversionDirective,
     DirectiveList,
@@ -9,7 +10,6 @@ from .directives import (
     SaveModelEveryIteration,
     SaveOutputEveryIteration,
     SaveOutputDictEveryIteration,
-    Update_IRLS,
     UpdatePreconditioner,
     Update_Wj,
     AlphasSmoothEstimate_ByEig,
@@ -19,6 +19,7 @@ from .directives import (
     UpdateSensitivityWeights,
     ProjectSphericalBounds,
 )
+from ._regularization import UpdateIRLS
 
 from .pgi_directives import (
     PGI_UpdateParameters,
@@ -33,3 +34,10 @@ from .sim_directives import (
     PairedBetaSchedule,
     MovingAndMultiTargetStopping,
 )
+
+
+@deprecate_class(removal_version="0.22.0", future_warn=True)
+class Update_IRLS(UpdateIRLS):
+    """Deprecated class, replaced by UpdateIRLS."""
+
+    pass
