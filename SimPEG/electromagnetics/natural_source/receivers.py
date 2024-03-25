@@ -522,26 +522,25 @@ class Point3DTipper(PointNaturalSource):
 
         if adjoint:
             # Work backwards!
-            gtop_v = np.c_[v] / bot[:, None]
-            gbot_v = -imp[:, None] * np.c_[v] / bot[:, None]
+            gtop_v = (v / bot)[..., None]
+            gbot_v = (-imp * v / bot)[..., None]
+            n_d = self.nD
 
-            ghx_v = np.einsum("ij,ik->ijk", gbot_v, np.c_[hy[:, 1], -hy[:, 0]]).reshape(
-                (hy.shape[0], -1)
-            )
-            ghy_v = np.einsum("ij,ik->ijk", gbot_v, np.c_[-hx[:, 1], hx[:, 0]]).reshape(
-                (hx.shape[0], -1)
-            )
-            ghz_v = np.einsum("ij,ik->ijk", gtop_v, np.c_[-h[:, 1], h[:, 0]]).reshape(
-                (h.shape[0], -1)
-            )
-            gh_v = np.einsum("ij,ik->ijk", gtop_v, np.c_[hz[:, 1], -hz[:, 0]]).reshape(
-                (hz.shape[0], -1)
-            )
+            ghx_v = np.c_[hy[:, 1], -hy[:, 0]] * gbot_v
+            ghy_v = np.c_[-hx[:, 1], hx[:, 0]] * gbot_v
+            ghz_v = np.c_[-h[:, 1], h[:, 0]] * gtop_v
+            gh_v = np.c_[hz[:, 1], -hz[:, 0]] * gtop_v
 
             if self.orientation[1] == "x":
                 ghy_v -= gh_v
             else:
                 ghx_v += gh_v
+
+            if v.ndim == 2:
+                # collapse into a long list of n_d vectors
+                ghx_v = ghx_v.reshape((n_d, -1))
+                ghy_v = ghy_v.reshape((n_d, -1))
+                ghz_v = ghz_v.reshape((n_d, -1))
 
             gh_v = Phx.T @ ghx_v + Phy.T @ ghy_v + Phz.T @ ghz_v
             return f._hDeriv(src, None, gh_v, adjoint=True)
