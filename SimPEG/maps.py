@@ -2197,7 +2197,7 @@ class LogisticSigmoidMap(IdentityMap):
         if self.nP != "*":
             # check if lower bound and upper bound broadcast to nP
             try:
-                np.broadcast_to(lower_bound.shape, (self.nP,))
+                np.broadcast_shapes(lower_bound.shape, (self.nP,))
             except ValueError as err:
                 raise ValueError(
                     f"Lower bound does not broadcast to the number of parameters. "
@@ -2205,7 +2205,7 @@ class LogisticSigmoidMap(IdentityMap):
                     f"{self.nP} parameters."
                 ) from err
             try:
-                np.broadcast_to(upper_bound.shape, (self.nP,))
+                np.broadcast_shapes(upper_bound.shape, (self.nP,))
             except ValueError as err:
                 raise ValueError(
                     f"Upper bound does not broadcast to the number of parameters. "
@@ -2214,7 +2214,7 @@ class LogisticSigmoidMap(IdentityMap):
                 ) from err
         # make sure lower and upper bound broadcast to each other...
         try:
-            np.broadcast_to(lower_bound.shape, upper_bound.shape)
+            np.broadcast_shapes(lower_bound.shape, upper_bound.shape)
         except ValueError as err:
             raise ValueError(
                 f"Upper bound does not broadcast to the lower bound. "
@@ -2224,7 +2224,7 @@ class LogisticSigmoidMap(IdentityMap):
 
         if np.any(lower_bound >= upper_bound):
             raise ValueError(
-                "A lower bound is greater than or equal to the upper bound"
+                "A lower bound is greater than or equal to the upper bound."
             )
 
         self._lower_bound = lower_bound
