@@ -1,4 +1,5 @@
 # Test functions
+import pytest
 import unittest
 import numpy as np
 from SimPEG import tests, mkvc
@@ -12,31 +13,47 @@ CONDUCTIVITY = 1e1
 MU = mu_0
 
 
-# Test the Jvec derivative
-def JtjdiagTest(inputSetup, comp="All", freq=False, expMap=True, weights=False):
-    model, simulation = nsem.utils.test_utils.setupSimpegNSEM_PrimarySecondary(
-        inputSetup, [freq], comp=comp, singleFreq=False
+@pytest.fixture()
+def model_simulation_tuple():
+    return nsem.utils.test_utils.setupSimpegNSEM_PrimarySecondary(
+        nsem.utils.test_utils.halfSpace(1e-2), [0.1], comp="All", singleFreq=False
     )
+
+
+# Test the Jvec derivative
+@pytest.mark.parametrize("weights", [True, False])
+def test_Jtjdiag(model_simulation_tuple, weights):
+    model, simulation = model_simulation_tuple
     W = None
     if weights:
         W = np.eye(simulation.survey.nD)
-        # W = np.zeros((simulation.survey.nD, simulation.survey.nD))
 
-    Jtjdiag1 = simulation.getJtJdiag(model, W=W)
-    simulation.model = model + 2
-    Jtjdiag2 = simulation.getJtJdiag(model + 0.001, W=W)
+    J = simulation.getJ(model)
+    if weights:
+        J = W @ J
+
+    Jtjdiag = simulation.getJtJdiag(model, W=W)
+    np.testing.assert_allclose(Jtjdiag, np.sum(J * J, axis=0))
+
+
+def test_Jtjdiag_clearing(model_simulation_tuple):
+    model, simulation = model_simulation_tuple
+    J1 = simulation.getJ(model)
+    Jtjdiag1 = simulation.getJtJdiag(model)
+
+    m2 = model + 2
+    J2 = simulation.getJ(m2)
+    Jtjdiag2 = simulation.getJtJdiag(m2)
+
+    assert J1 is not J2
     assert Jtjdiag1 is not Jtjdiag2
 
-    return np.allclose(Jtjdiag1, Jtjdiag2)
 
-
-def JmatrixTest(inputSetup, comp="All", freq=False, expMap=True):
-    model, simulation = nsem.utils.test_utils.setupSimpegNSEM_PrimarySecondary(
-        inputSetup, [freq], comp=comp, singleFreq=True
-    )
-
+def test_Jmatrix(model_simulation_tuple):
+    model, simulation = model_simulation_tuple
+    rng = np.random.default_rng(4421)
     # create random vector
-    vec = np.random.randn(simulation.survey.nD)
+    vec = rng.standard_normal(simulation.survey.nD)
 
     # create the J matrix
     J1 = simulation.getJ(model)
@@ -45,7 +62,7 @@ def JmatrixTest(inputSetup, comp="All", freq=False, expMap=True):
     # compare to JTvec function
     jtvec = simulation.Jtvec(model, v=vec)
 
-    return np.allclose(Jmatrix_vec, jtvec)
+    np.testing.assert_allclose(Jmatrix_vec, jtvec)
 
 
 # Test the Jvec derivative
@@ -142,13 +159,6 @@ class NSEM_DerivTests(unittest.TestCase):
 
     def test_derivJvec_tzyi(self):
         self.assertTrue(DerivJvecTest(nsem.utils.test_utils.halfSpace(1e-2), "zy", 0.1))
-
-    # Jmatrix
-    def test_jmatrix(self):
-        self.assertTrue(JmatrixTest(nsem.utils.test_utils.halfSpace(1e-2), freq=0.1))
-
-    def test_jtjdiag(self):
-        self.assertFalse(JtjdiagTest(nsem.utils.test_utils.halfSpace(1e-2), freq=0.1))
 
 
 if __name__ == "__main__":

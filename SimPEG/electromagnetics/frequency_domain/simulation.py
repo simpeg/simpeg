@@ -336,7 +336,7 @@ class BaseFDEMSimulation(BaseEMSimulation):
             else:
                 W = W.diagonal() ** 2
 
-            diag = np.einsum("i, ij->j", W, J)
+            diag = np.einsum("i,ij,ij->j", W, J, J)
 
             self._gtgdiag = diag
 
