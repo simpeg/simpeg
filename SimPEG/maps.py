@@ -8,6 +8,7 @@ from scipy.sparse.linalg import LinearOperator
 from scipy.interpolate import UnivariateSpline
 from scipy.constants import mu_0
 from scipy.sparse import csr_matrix as csr
+from scipy.special import expit, logit
 
 from discretize.tests import check_derivative
 from discretize import TensorMesh, CylindricalMesh
@@ -2155,6 +2156,7 @@ class LogMap(IdentityMap):
     def is_linear(self):
         return False
 
+
 class LogisticSigmoidMap(IdentityMap):
     r"""Mapping that computes the logistic sigmoid of the model parameters.
 
@@ -2165,12 +2167,12 @@ class LogisticSigmoidMap(IdentityMap):
     .. math::
         \mathbf{u}(\mathbf{m}) = sigmoid(\mathbf{m}) = \frac{1}{1+\exp{-\mathbf{m}}}
 
-    ``LogisticSigmoidMap`` transforms values onto the interval (0,1), but can optionally 
-    be scaled and transformed to the interval (a,b). This can be useful for inversion 
+    ``LogisticSigmoidMap`` transforms values onto the interval (0,1), but can optionally
+    be scaled and shifted to the interval (a,b). This can be useful for inversion
     of data that varies over a log scale and bounded on some interval:
 
     .. math::
-        sigmoid(\mathbf{m}) = a + (b - a) \cdot \frac{1}{1+\exp{-\mathbf{m}}}
+        \mathbf{u}(\mathbf{m}) = a + (b - a) \cdot sigmoid(\mathbf{m})
 
     Parameters
     ----------
@@ -2181,35 +2183,30 @@ class LogisticSigmoidMap(IdentityMap):
         Set the number of parameters accepted by the mapping directly. Used if the
         number of parameters is known. Used generally when the number of parameters
         is not equal to the number of cells in a mesh.
-    lower_bound: float
+    lower_bound: float or (nP) numpy.ndarray
         lower bound (a) for the transform. Default 0. Defined \in \mathbf{u} space.
-    upper_bound: float
+    upper_bound: float or (nP) numpy.ndarray
         upper bound (b) for the transform. Default 1. Defined \in \mathbf{u} space.
 
     """
 
     def __init__(self, mesh=None, nP=None, lower_bound=0, upper_bound=1, **kwargs):
         super().__init__(mesh=mesh, nP=nP, **kwargs)
-        assert(lower_bound !=  upper_bound)
-        if (upper_bound < lower_bound):
-            self.lower_bound = upper_bound
-            self.upper_bound = lower_bound
-        else:
-            self.lower_bound = lower_bound
-            self.upper_bound = upper_bound
+        if lower_bound >= upper_bound:
+            raise ValueError("Lower bound is greater than or equal to the upper bound")
+        if self.nP != "*":
+            # check if lower bound and upper bound broadcast to nP
+            lower_bound = np.atleast_1d(lower_bound)
+            np.broadcast_to(lower_bound.shape, (self.nP,))
+            np.broadcast_to(upper_bound.shape, (self.nP,))
+
+        self.lower_bound = lower_bound
+        self.upper_bound = upper_bound
 
     def _transform(self, m):
-        return self.lower_bound + (self.upper_bound - self.lower_bound)*self._sigmoid(m)
+        return self.lower_bound + (self.upper_bound - self.lower_bound) * expit(mkvc(m))
 
-    def _sigmoid(self, m):
-        # non-bounded forward
-        return mkvc(1.0 / (1.0 + np.exp(-m)))
-
-    def _logit(self, D):
-        # non-bounded inverse
-        return np.log(mkvc(D / (1 - D)))
-    
-    def inverse(self, D):
+    def inverse(self, m):
         r"""Apply the inverse of the mapping to an array.
 
         For the logistic sigmoid mapping :math:`\mathbf{u}(\mathbf{m})`, the
@@ -2218,14 +2215,14 @@ class LogisticSigmoidMap(IdentityMap):
 
         .. math::
             \mathbf{m} = \mathbf{u}^{-1}(\mathbf{x}) = logit(\mathbf{x}) = \log \frac{\mathbf{x}}{1 - \mathbf{x}}
-        
+
         or scaled and translated to interval (a,b):
         .. math::
             \mathbf{m} = logit(\frac{(\mathbf{x} - a)}{b-a})
 
         Parameters
         ----------
-        D : numpy.ndarray
+        m : numpy.ndarray
             A set of input values
 
         Returns
@@ -2235,12 +2232,14 @@ class LogisticSigmoidMap(IdentityMap):
             inverse mapping to the elements in *D*; which in this case
             is the log-odds function.
         """
-        return self._logit((m - self.lower_bound) / (self.upper_bound - self.lower_bound))
+        return logit(
+            (mkvc(m) - self.lower_bound) / (self.upper_bound - self.lower_bound)
+        )
 
     def deriv(self, m, v=None):
         r"""Derivative of mapping with respect to the input parameters.
 
-        For a mapping :math:`\mathbf{u}(\mathbf{m})` the derivative of the mapping with 
+        For a mapping :math:`\mathbf{u}(\mathbf{m})` the derivative of the mapping with
         respect to the model is a diagonal matrix of the form:
 
         .. math::
@@ -2256,20 +2255,21 @@ class LogisticSigmoidMap(IdentityMap):
 
         Returns
         -------
-        scipy.sparse.csr_matrix
+        numpy.ndarray or scipy.sparse.csr_matrix
             Derivative of the mapping with respect to the model parameters. If the
             input argument *v* is not ``None``, the method returns the derivative times
             the vector *v*.
         """
-        sigmoid = (self._sigmoid(m))
-        deriv = sdiag((self.upper_bound - self.lower_bound) * sigmoid * (1.0 - sigmoid))
+        sigmoid = expit(mkvc(m))
+        deriv = (self.upper_bound - self.lower_bound) * sigmoid * (1.0 - sigmoid)
         if v is not None:
             return deriv * v
-        return deriv
+        return sdiag(deriv)
 
     @property
     def is_linear(self):
         return False
+
 
 class ChiMap(IdentityMap):
     r"""Mapping that computes the magnetic permeability given a set of magnetic susceptibilities.
