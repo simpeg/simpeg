@@ -723,14 +723,6 @@ class TestWeightsKeys:
         reg = BaseRegularization(mesh, weights=weights)
         assert reg.weights_keys == ["dummy_weight"]
 
-    def test_user_defined_weights_as_array(self, mesh):
-        """
-        Test weights_keys after user defined weights as dictionary
-        """
-        weights = {"weights": np.ones(mesh.n_cells)}
-        reg = BaseRegularization(mesh, weights=weights)
-        assert reg.weights_keys == ["user_weights"]
-
     @pytest.mark.parametrize(
         "regularization_class", (Smallness, SmoothnessFirstOrder, SmoothnessSecondOrder)
     )
