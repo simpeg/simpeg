@@ -2192,16 +2192,63 @@ class LogisticSigmoidMap(IdentityMap):
 
     def __init__(self, mesh=None, nP=None, lower_bound=0, upper_bound=1, **kwargs):
         super().__init__(mesh=mesh, nP=nP, **kwargs)
-        if lower_bound >= upper_bound:
-            raise ValueError("Lower bound is greater than or equal to the upper bound")
+        lower_bound = np.atleast_1d(lower_bound)
+        upper_bound = np.atleast_1d(upper_bound)
         if self.nP != "*":
             # check if lower bound and upper bound broadcast to nP
-            lower_bound = np.atleast_1d(lower_bound)
-            np.broadcast_to(lower_bound.shape, (self.nP,))
-            np.broadcast_to(upper_bound.shape, (self.nP,))
+            try:
+                np.broadcast_to(lower_bound.shape, (self.nP,))
+            except ValueError as err:
+                raise ValueError(
+                    f"Lower bound does not broadcast to the number of parameters. "
+                    f"Lower bound shape is {lower_bound.shape} and tried against "
+                    f"{self.nP} parameters."
+                ) from err
+            try:
+                np.broadcast_to(upper_bound.shape, (self.nP,))
+            except ValueError as err:
+                raise ValueError(
+                    f"Upper bound does not broadcast to the number of parameters. "
+                    f"Upper bound shape is {upper_bound.shape} and tried against "
+                    f"{self.nP} parameters."
+                ) from err
+        # make sure lower and upper bound broadcast to each other...
+        try:
+            np.broadcast_to(lower_bound.shape, upper_bound.shape)
+        except ValueError as err:
+            raise ValueError(
+                f"Upper bound does not broadcast to the lower bound. "
+                f"Shapes {upper_bound.shape} and {lower_bound.shape} "
+                f"are incompatible with each other."
+            ) from err
 
-        self.lower_bound = lower_bound
-        self.upper_bound = upper_bound
+        if np.any(lower_bound >= upper_bound):
+            raise ValueError(
+                "A lower bound is greater than or equal to the upper bound"
+            )
+
+        self._lower_bound = lower_bound
+        self._upper_bound = upper_bound
+
+    @property
+    def lower_bound(self):
+        """The lower bound
+
+        Returns
+        -------
+        numpy.ndarray
+        """
+        return self._lower_bound
+
+    @property
+    def upper_bound(self):
+        """The upper bound
+
+        Returns
+        -------
+        numpy.ndarray
+        """
+        return self._upper_bound
 
     def _transform(self, m):
         return self.lower_bound + (self.upper_bound - self.lower_bound) * expit(mkvc(m))
@@ -2228,9 +2275,8 @@ class LogisticSigmoidMap(IdentityMap):
         Returns
         -------
         numpy.ndarray
-            A :class:`numpy.ndarray` containing result of applying the
-            inverse mapping to the elements in *D*; which in this case
-            is the log-odds function.
+            the inverse mapping to the elements in *m*; which in this case
+            is the log-odds function with scaled and shifted input.
         """
         return logit(
             (mkvc(m) - self.lower_bound) / (self.upper_bound - self.lower_bound)
