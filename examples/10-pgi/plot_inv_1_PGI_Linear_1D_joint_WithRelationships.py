@@ -237,7 +237,7 @@ reg1 = regularization.WeightedLeastSquares(
 )
 
 reg2 = regularization.WeightedLeastSquares(
-    mesh, alpha_s=1.0, alpha_x=1.0, mapping=wires.m2, weights={"cell_weights": wr1}
+    mesh, alpha_s=1.0, alpha_x=1.0, mapping=wires.m2, weights={"cell_weights": wr2}
 )
 
 reg = reg1 + reg2
