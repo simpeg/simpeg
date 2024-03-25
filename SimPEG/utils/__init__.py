@@ -76,7 +76,6 @@ Model Utility Functions
   :toctree: generated/
 
   depth_weighting
-  surface2ind_topo
   model_builder.add_block
   model_builder.create_2_layer_model
   model_builder.create_block_in_wholespace
@@ -225,7 +224,7 @@ from .coord_utils import (
     rotation_matrix_from_normals,
     rotate_points_from_normals,
 )
-from .model_utils import surface2ind_topo, depth_weighting
+from .model_utils import depth_weighting
 from .plot_utils import plot2Ddata, plotLayer, plot_1d_layer_model
 from .io_utils import download
 from .pgi_utils import (
@@ -238,7 +237,7 @@ from .pgi_utils import (
 
 # Deprecated imports
 interpmat = deprecate_function(
-    interpolation_matrix, "interpmat", removal_version="0.19.0", future_warn=True
+    interpolation_matrix, "interpmat", removal_version="0.19.0", error=True
 )
 
 from .code_utils import (

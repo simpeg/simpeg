@@ -14,7 +14,6 @@ from ..regularization import (
     Sparse,
     SparseSmallness,
     PGIsmallness,
-    PGIwithNonlinearRelationshipsSmallness,
     SmoothnessFirstOrder,
     SparseSmoothness,
     BaseSimilarityMeasure,
@@ -23,7 +22,7 @@ from ..utils import (
     mkvc,
     set_kwargs,
     sdiag,
-    diagEst,
+    estimate_diagonal,
     spherical2cartesian,
     cartesian2spherical,
     Zero,
@@ -65,14 +64,13 @@ class InversionDirective:
     _dmisfitPair = [BaseDataMisfit, ComboObjectiveFunction]
 
     def __init__(self, inversion=None, dmisfit=None, reg=None, verbose=False, **kwargs):
+        # Raise error on deprecated arguments
+        if (key := "debug") in kwargs.keys():
+            raise TypeError(f"'{key}' property has been removed. Please use 'verbose'.")
         self.inversion = inversion
         self.dmisfit = dmisfit
         self.reg = reg
-        debug = kwargs.pop("debug", None)
-        if debug is not None:
-            self.debug = debug
-        else:
-            self.verbose = verbose
+        self.verbose = verbose
         set_kwargs(self, **kwargs)
 
     @property
@@ -90,7 +88,7 @@ class InversionDirective:
         self._verbose = validate_type("verbose", value, bool)
 
     debug = deprecate_property(
-        verbose, "debug", "verbose", removal_version="0.19.0", future_warn=True
+        verbose, "debug", "verbose", removal_version="0.19.0", error=True
     )
 
     @property
@@ -716,7 +714,6 @@ class AlphasSmoothEstimate_ByEig(InversionDirective):
                         Smallness,
                         SparseSmallness,
                         PGIsmallness,
-                        PGIwithNonlinearRelationshipsSmallness,
                     ),
                 ):
                     smallness += [obj]
@@ -1060,17 +1057,17 @@ class TargetMisfit(InversionDirective):
         -------
         float
         """
-        # the factor of 0.5 is because we do phid = 0.5*||dpred - dobs||^2
+        # phid = ||dpred - dobs||^2
         if self._phi_d_star is None:
             nD = 0
             for survey in self.survey:
                 nD += survey.nD
-            self._phi_d_star = 0.5 * nD
+            self._phi_d_star = nD
         return self._phi_d_star
 
     @phi_d_star.setter
     def phi_d_star(self, value):
-        # the factor of 0.5 is because we do phid = 0.5*||dpred - dobs||^2
+        # phid = ||dpred - dobs||^2
         if value is not None:
             value = validate_float(
                 "phi_d_star", value, min_val=0.0, inclusive_min=False
@@ -1166,13 +1163,13 @@ class MultiTargetMisfits(InversionDirective):
         -------
         float
         """
-        # the factor of 0.5 is because we do phid = 0.5*|| dpred - dobs||^2
+        # phid = || dpred - dobs||^2
         if getattr(self, "_phi_d_star", None) is None:
             # Check if it is a ComboObjective
             if isinstance(self.dmisfit, ComboObjectiveFunction):
-                value = np.r_[[0.5 * survey.nD for survey in self.survey]]
+                value = np.r_[[survey.nD for survey in self.survey]]
             else:
-                value = np.r_[[0.5 * self.survey.nD]]
+                value = np.r_[[self.survey.nD]]
             self._phi_d_star = value
             self._DMtarget = None
 
@@ -1180,7 +1177,7 @@ class MultiTargetMisfits(InversionDirective):
 
     @phi_d_star.setter
     def phi_d_star(self, value):
-        # the factor of 0.5 is because we do phid = 0.5*|| dpred - dobs||^2
+        # phid =|| dpred - dobs||^2
         if value is not None:
             value = validate_ndarray_with_shape("phi_d_star", value, shape=("*",))
         self._phi_d_star = value
@@ -1288,13 +1285,7 @@ class MultiTargetMisfits(InversionDirective):
                         np.r_[
                             i,
                             j,
-                            (
-                                isinstance(
-                                    regpart,
-                                    PGIwithNonlinearRelationshipsSmallness,
-                                )
-                                or isinstance(regpart, PGIsmallness)
-                            ),
+                            isinstance(regpart, PGIsmallness),
                         ]
                     )
                     for i, regobjcts in enumerate(self.invProb.reg.objfcts)
@@ -1332,13 +1323,7 @@ class MultiTargetMisfits(InversionDirective):
                     (
                         np.r_[
                             j,
-                            (
-                                isinstance(
-                                    regpart,
-                                    PGIwithNonlinearRelationshipsSmallness,
-                                )
-                                or isinstance(regpart, PGIsmallness)
-                            ),
+                            isinstance(regpart, PGIsmallness),
                         ]
                     )
                     for j, regpart in enumerate(self.invProb.reg.objfcts)
@@ -1426,11 +1411,11 @@ class MultiTargetMisfits(InversionDirective):
             self._CLtarget = self.chiSmall * self.phi_ms_star
 
         elif getattr(self, "_CLtarget", None) is None:
-            # the factor of 0.5 is because we do phid = 0.5*|| dpred - dobs||^2
+            # phid = ||dpred - dobs||^2
             if self.phi_ms_star is None:
                 # Expected value is number of active cells * number of physical
                 # properties
-                self.phi_ms_star = 0.5 * len(self.invProb.model)
+                self.phi_ms_star = len(self.invProb.model)
 
             self._CLtarget = self.chiSmall * self.phi_ms_star
 
@@ -1747,7 +1732,7 @@ class SaveOutputEveryIteration(SaveEveryIteration):
 
         self.f = results[:, 7]
 
-        self.target_misfit = self.invProb.dmisfit.simulation.survey.nD / 2.0
+        self.target_misfit = self.invProb.dmisfit.simulation.survey.nD
         self.i_target = None
 
         if self.invProb.phi_d < self.target_misfit:
@@ -1765,9 +1750,7 @@ class SaveOutputEveryIteration(SaveEveryIteration):
         plot_small=False,
         plot_smooth=False,
     ):
-        self.target_misfit = (
-            np.sum([dmis.nD for dmis in self.invProb.dmisfit.objfcts]) / 2.0
-        )
+        self.target_misfit = np.sum([dmis.nD for dmis in self.invProb.dmisfit.objfcts])
         self.i_target = None
 
         if self.invProb.phi_d < self.target_misfit:
@@ -1821,7 +1804,7 @@ class SaveOutputEveryIteration(SaveEveryIteration):
             fig.savefig(fname, dpi=dpi)
 
     def plot_tikhonov_curves(self, fname=None, dpi=200):
-        self.target_misfit = self.invProb.dmisfit.simulation.survey.nD / 2.0
+        self.target_misfit = self.invProb.dmisfit.simulation.survey.nD
         self.i_target = None
 
         if self.invProb.phi_d < self.target_misfit:
@@ -2062,7 +2045,7 @@ class Update_IRLS(InversionDirective):
             for survey in self.survey:
                 nD += survey.nD
 
-            self._target = nD * 0.5 * self.chifact_target
+            self._target = nD * self.chifact_target
 
         return self._target
 
@@ -2076,10 +2059,10 @@ class Update_IRLS(InversionDirective):
             if isinstance(self.survey, list):
                 self._start = 0
                 for survey in self.survey:
-                    self._start += survey.nD * 0.5 * self.chifact_start
+                    self._start += survey.nD * self.chifact_start
 
             else:
-                self._start = self.survey.nD * 0.5 * self.chifact_start
+                self._start = self.survey.nD * self.chifact_start
         return self._start
 
     @start.setter
@@ -2435,7 +2418,7 @@ class Update_Wj(InversionDirective):
 
                 return self.simulation.Jtvec(m, Jv)
 
-            JtJdiag = diagEst(JtJv, len(m), k=self.k)
+            JtJdiag = estimate_diagonal(JtJv, len(m), k=self.k)
             JtJdiag = JtJdiag / max(JtJdiag)
 
             self.reg.wght = JtJdiag
@@ -2537,33 +2520,20 @@ class UpdateSensitivityWeights(InversionDirective):
         normalization_method="maximum",
         **kwargs,
     ):
-        if "everyIter" in kwargs.keys():
-            warnings.warn(
-                "'everyIter' property is deprecated and will be removed in SimPEG 0.20.0."
-                "Please use 'every_iteration'.",
-                stacklevel=2,
+        # Raise errors on deprecated arguments
+        if (key := "everyIter") in kwargs.keys():
+            raise TypeError(
+                f"'{key}' property has been removed. Please use 'every_iteration'.",
             )
-            every_iteration = kwargs.pop("everyIter")
-
-        if "threshold" in kwargs.keys():
-            warnings.warn(
-                "'threshold' property is deprecated and will be removed in SimPEG 0.20.0."
-                "Please use 'threshold_value'.",
-                stacklevel=2,
+        if (key := "threshold") in kwargs.keys():
+            raise TypeError(
+                f"'{key}' property has been removed. Please use 'threshold_value'.",
             )
-            threshold_value = kwargs.pop("threshold")
-
-        if "normalization" in kwargs.keys():
-            warnings.warn(
-                "'normalization' property is deprecated and will be removed in SimPEG 0.20.0."
+        if (key := "normalization") in kwargs.keys():
+            raise TypeError(
+                f"'{key}' property has been removed. "
                 "Please define normalization using 'normalization_method'.",
-                stacklevel=2,
             )
-            normalization_method = kwargs.pop("normalization")
-            if normalization_method is True:
-                normalization_method = "maximum"
-            else:
-                normalization_method = None
 
         super().__init__(**kwargs)
 
@@ -2590,7 +2560,11 @@ class UpdateSensitivityWeights(InversionDirective):
         self._every_iteration = validate_type("every_iteration", value, bool)
 
     everyIter = deprecate_property(
-        every_iteration, "everyIter", "every_iteration", removal_version="0.20.0"
+        every_iteration,
+        "everyIter",
+        "every_iteration",
+        removal_version="0.20.0",
+        error=True,
     )
 
     @property
@@ -2619,7 +2593,11 @@ class UpdateSensitivityWeights(InversionDirective):
         self._threshold_value = validate_float("threshold_value", value, min_val=0.0)
 
     threshold = deprecate_property(
-        threshold_value, "threshold", "threshold_value", removal_version="0.20.0"
+        threshold_value,
+        "threshold",
+        "threshold_value",
+        removal_version="0.20.0",
+        error=True,
     )
 
     @property
@@ -2669,18 +2647,6 @@ class UpdateSensitivityWeights(InversionDirective):
     def normalization_method(self, value):
         if value is None:
             self._normalization_method = value
-
-        elif isinstance(value, bool):
-            warnings.warn(
-                "Boolean type for 'normalization_method' is deprecated and will be removed in 0.20.0."
-                "Please use None, 'maximum' or 'minimum'.",
-                stacklevel=2,
-            )
-            if value:
-                self._normalization_method = "maximum"
-            else:
-                self._normalization_method = None
-
         else:
             self._normalization_method = validate_string(
                 "normalization_method", value, string_list=["minimum", "maximum"]
@@ -2691,6 +2657,7 @@ class UpdateSensitivityWeights(InversionDirective):
         "normalization",
         "normalization_method",
         removal_version="0.20.0",
+        error=True,
     )
 
     def initialize(self):

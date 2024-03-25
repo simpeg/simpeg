@@ -18,11 +18,3 @@ from .io_utils_electromagnetics import (
     write_dcipoctree_ubc,
     write_dcip_xyz,
 )
-
-# Deprecated
-from .io_utils_pf import (
-    readUBCmagneticsObservations,
-    writeUBCmagneticsObservations,
-    readUBCgravityObservations,
-    writeUBCgravityObservations,
-)

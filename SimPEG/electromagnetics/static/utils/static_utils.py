@@ -10,7 +10,6 @@ from ..resistivity import sources, receivers
 from .. import resistivity as dc
 from ....utils import (
     mkvc,
-    surface2ind_topo,
     model_builder,
     define_plane_from_points,
 )
@@ -23,7 +22,6 @@ from ....utils.io_utils import (  # noqa: F401
 
 from ....utils.plot_utils import plot_1d_layer_model  # noqa: F401
 
-from ....utils.code_utils import deprecate_method
 
 try:
     import plotly.graph_objects as grapho
@@ -1627,7 +1625,7 @@ def drapeTopotoLoc(mesh, pts, ind_active=None, option="top", topo=None, **kwargs
         raise ValueError("Unsupported mesh dimension")
 
     if ind_active is None:
-        ind_active = surface2ind_topo(mesh, topo)
+        ind_active = discretize.utils.active_from_xyz(mesh, topo)
 
     if mesh._meshType == "TENSOR":
         meshtemp, topoCC = gettopoCC(mesh, ind_active, option=option)
@@ -1816,170 +1814,3 @@ def gen_3d_survey_from_2d_lines(
         line_inds=line_inds,
     )
     return IO_3d, survey_3d
-
-
-############
-# Deprecated
-############
-
-
-def plot_pseudoSection(
-    data,
-    ax=None,
-    survey_type="dipole-dipole",
-    data_type="appConductivity",
-    space_type="half-space",
-    clim=None,
-    scale="linear",
-    sameratio=True,
-    pcolor_opts=None,
-    data_location=False,
-    dobs=None,
-    dim=2,
-):
-    raise TypeError(
-        "The plot_pseudoSection method has been removed. Please use "
-        "plot_pseudosection instead."
-    )
-
-
-def apparent_resistivity(
-    data_object,
-    survey_type=None,
-    space_type="half space",
-    dobs=None,
-    eps=1e-10,
-    **kwargs,
-):
-    raise TypeError(
-        "The apparent_resistivity method has been removed. Please use "
-        "apparent_resistivity_from_voltage instead."
-    )
-
-
-source_receiver_midpoints = deprecate_method(
-    pseudo_locations, "source_receiver_midpoints", "0.17.0", error=True
-)
-
-
-def plot_layer(rho, mesh, **kwargs):
-    raise NotImplementedError(
-        "The plot_layer method has been deprecated. Please use "
-        "plot_1d_layer_model instead. This will be removed in version"
-        " 0.17.0 of SimPEG",
-    )
-
-
-def convertObs_DC3D_to_2D(survey, lineID, flag="local"):
-    raise TypeError(
-        "The convertObs_DC3D_to_2D method has been removed. Please use "
-        "convert_3d_survey_to_2d."
-    )
-
-
-def getSrc_locs(survey):
-    raise NotImplementedError(
-        "The getSrc_locs method has been deprecated. Source "
-        "locations are now computed as a method of the survey "
-        "class. Please use Survey.source_locations(). This method "
-        " will be removed in version 0.17.0 of SimPEG",
-    )
-
-
-def writeUBC_DCobs(
-    fileName,
-    data,
-    dim,
-    format_type,
-    survey_type="dipole-dipole",
-    ip_type=0,
-    comment_lines="",
-):
-    # """
-    # Write UBC GIF DCIP 2D or 3D observation file
-
-    # Input:
-    # :param str fileName: including path where the file is written out
-    # :param SimPEG.Data data: DC data object
-    # :param int dim:  either 2 | 3
-    # :param str format_type:  either 'surface' | 'general' | 'simple'
-    # :param str survey_type: 'dipole-dipole' | 'pole-dipole' |
-    #     'dipole-pole' | 'pole-pole' | 'gradient'
-
-    # Output:
-    # :return: UBC2D-Data file
-    # :rtype: file
-    # """
-
-    raise NotImplementedError(
-        "The writeUBC_DCobs method has been deprecated. Please use "
-        "write_dcip2d_ubc or write_dcip3d_ubc instead. These are imported "
-        "from SimPEG.utils.io_utils. This function will be removed in version"
-        " 0.17.0 of SimPEG",
-    )
-
-
-def writeUBC_DClocs(
-    fileName,
-    dc_survey,
-    dim,
-    format_type,
-    survey_type="dipole-dipole",
-    ip_type=0,
-    comment_lines="",
-):
-    # """
-    # Write UBC GIF DCIP 2D or 3D locations file
-
-    # Input:
-    # :param str fileName: including path where the file is written out
-    # :param SimPEG.electromagnetics.static.resistivity.Survey dc_survey: DC survey object
-    # :param int dim:  either 2 | 3
-    # :param str survey_type:  either 'SURFACE' | 'GENERAL'
-
-    # Output:
-    # :rtype: file
-    # :return: UBC 2/3D-locations file
-    # """
-
-    raise NotImplementedError(
-        "The writeUBC_DClocs method has been deprecated. Please use "
-        "write_dcip2d_ubc or write_dcip3d_ubc instead. These are imported "
-        "from SimPEG.utils.io_utils. This function will be removed in version"
-        " 0.17.0 of SimPEG",
-        FutureWarning,
-    )
-
-
-def readUBC_DC2Dpre(fileName):
-    raise NotImplementedError(
-        "The readUBC_DC2Dpre method has been deprecated. Please use "
-        "read_dcip2d_ubc instead. This is imported "
-        "from SimPEG.utils.io_utils. This function will be removed in version"
-        " 0.17.0 of SimPEG",
-    )
-
-
-def readUBC_DC3Dobs(fileName, data_type="volt"):
-    raise NotImplementedError(
-        "The readUBC_DC3Dobs method has been deprecated. Please use "
-        "read_dcip3d_ubc instead. This is imported "
-        "from SimPEG.utils.io_utils. This function will be removed in version"
-        " 0.17.0 of SimPEG",
-    )
-
-
-gen_DCIPsurvey = deprecate_method(
-    generate_dcip_survey, "gen_DCIPsurvey", removal_version="0.17.0", error=True
-)
-
-
-def generate_dcip_survey_line(
-    survey_type, data_type, endl, topo, ds, dh, n, dim_flag="2.5D", sources_only=False
-):
-    raise NotImplementedError(
-        "The gen_dcip_survey_line method has been deprecated. Please use "
-        "generate_dcip_sources_line instead. This will be removed in version"
-        " 0.17.0 of SimPEG",
-        FutureWarning,
-    )
