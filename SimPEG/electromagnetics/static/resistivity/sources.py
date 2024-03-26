@@ -154,41 +154,46 @@ class Dipole(BaseSrc):
         location_a=None,
         location_b=None,
         location=None,
-        **kwargs,
+        current=(1.0, -1.0),
     ):
-        if "current" in kwargs.keys():
-            value = kwargs.pop("current")
-            current = [value, -value]
-        else:
-            current = [1.0, -1.0]
-
-        # if location_a set, then use location_a, location_b
-        if location_a is not None:
+        if location is None and location_a is None and location_b is None:
+            raise TypeError(
+                "Found 'location', 'location_a' and 'location_b' as None. "
+                "Please specify 'location', or 'location_a' and 'location_b' "
+                "when defining a dipole source."
+            )
+        if location is not None and (location_a is not None or location_b is not None):
+            raise TypeError(
+                "Found 'location_a' and/or 'location_b' as not None values. "
+                "When passing a not None value for 'location', 'location_a' and "
+                "'location_b' should be set to None."
+            )
+        if location is None:
+            if location_a is None:
+                raise TypeError(
+                    "Invalid 'location_a' set to None. When 'location' is None, "
+                    "both 'location_a' and 'location_b' should be set to "
+                    "a value different than None."
+                )
             if location_b is None:
-                raise ValueError(
-                    "For a dipole source both location_a and location_b " "must be set"
+                raise TypeError(
+                    "Invalid 'location_b' set to None. When 'location' is None, "
+                    "both 'location_a' and 'location_b' should be set to "
+                    "a value different than None."
                 )
-
-            if location is not None:
-                raise ValueError(
-                    "Cannot set both location and location_a, location_b. "
-                    "Please provide either location=(location_a, location_b) "
-                    "or both location_a=location_a, location_b=location_b"
-                )
-
             location = [location_a, location_b]
 
-        elif location is not None:
-            if len(location) != 2:
-                raise ValueError(
-                    "location must be a list or tuple of length 2: "
-                    "[location_a, location_b]. The input location has "
-                    f"length {len(location)}"
-                )
+        if len(location) != 2:
+            raise ValueError(
+                "location must be a list or tuple of length 2: "
+                "[location_a, location_b]. The input location has "
+                f"length {len(location)}"
+            )
 
-        # instantiate
         super().__init__(
-            receiver_list=receiver_list, location=location, current=current, **kwargs
+            receiver_list=receiver_list,
+            location=location,
+            current=current,
         )
 
     def __repr__(self):
