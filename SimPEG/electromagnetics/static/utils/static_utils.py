@@ -370,6 +370,21 @@ def convert_survey_3d_to_2d_lines(
         A list of indexing arrays that map from the original 3D data to each 2D
         survey line.
     """
+    # Check if the survey is 3D
+    if (ndims := survey.locations_a.shape[1]) != 3:
+        raise ValueError(f"Invalid {ndims}D 'survey'. It should be a 3D survey.")
+    # Checks on the passed lineID array
+    if (ndims := lineID.ndim) != 1:
+        raise ValueError(
+            f"Invalid 'lineID' array with '{ndims}' dimensions. "
+            "It should be a 1D array."
+        )
+    if (size := lineID.size) != survey.nD:
+        raise ValueError(
+            f"Invalid 'lineID' array with '{size}' elements. "
+            "It should have the same number of elements as data "
+            f"in the survey ('{survey.nD}')."
+        )
 
     # Find all unique line id
     unique_lineID = np.unique(lineID)
