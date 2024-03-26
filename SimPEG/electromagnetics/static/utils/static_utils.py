@@ -356,9 +356,11 @@ def convert_survey_3d_to_2d_lines(
         A DC (or IP) survey
     lineID : (n_data) numpy.ndarray
         Defines the corresponding line ID for each datum
-    data_type : {'volt', 'apparent_resistivity', 'apparent_conductivity', 'apparent_chargeability'}
+    data_type : str, optional
         Data type for the survey.
-    output_indexing : bool, default=``False``
+        It can be one of: 'volt', 'apparent_resistivity',
+        'apparent_conductivity', and 'apparent_chargeability'.
+    output_indexing : bool, default=``False``, optional
         If ``True`` output a list of indexing arrays that map from the original 3D
         data to each 2D survey line.
 
@@ -366,9 +368,10 @@ def convert_survey_3d_to_2d_lines(
     -------
     survey_list : list of SimPEG.electromagnetics.static.resistivity.Survey
         A list of 2D survey objects
-    out_indices_list : list of numpy.ndarray
+    out_indices_list : list of numpy.ndarray, optional
         A list of indexing arrays that map from the original 3D data to each 2D
-        survey line.
+        survey line. Will be returned only if ``output_indexing`` is set to
+        True.
     """
     # Check if the survey is 3D
     if (ndims := survey.locations_a.shape[1]) != 3:
