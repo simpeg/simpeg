@@ -139,13 +139,18 @@ class Dipole(BaseSrc):
     ----------
     receiver_list : list of SimPEG.electromagnetics.static.resistivity.receivers.BaseRx
         A list of DC/IP receivers
-    location_a : (n_source, dim) numpy.array_like
-        A electrode locations; remember to set 'location_b' keyword argument to define N electrode locations.
-    location_b : (n_source, dim) numpy.array_like
-        B electrode locations; remember to set 'location_a' keyword argument to define M electrode locations.
-    location : list or tuple of length 2 of numpy.array_like
+    location_a : (dim) numpy.array_like
+        A electrode locations; remember to set 'location_b' keyword argument to
+        define N electrode locations.
+    location_b : (dim) numpy.array_like
+        B electrode locations; remember to set 'location_a' keyword argument to
+        define M electrode locations. location : list or tuple of length 2 of
+        numpy.array_like
         A and B electrode locations. In this case, do not set the 'location_a' and 'location_b'
         keyword arguments. And we supply a list or tuple of the form [location_a, location_b].
+    current : tuple of floats, optional
+        Current amplitude in :math:`A` that goes through each electrode,
+        respectively.
     """
 
     def __init__(
