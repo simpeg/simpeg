@@ -66,7 +66,9 @@ class BaseRegularization(BaseObjectiveFunction):
                 f"'regularization_mesh' must be of type {RegularizationMesh} or {BaseMesh}. "
                 f"Value of type {type(mesh)} provided."
             )
-
+        if weights is not None and not isinstance(weights, dict):
+            raise TypeError("'weights' must be a dictionary.")
+        
         # Raise errors on deprecated arguments: avoid old code that still uses
         # them to silently fail
         if (key := "indActive") in kwargs:
@@ -1611,7 +1613,11 @@ class WeightedLeastSquares(ComboObjectiveFunction):
             self.alpha_z = alpha_z
         else:
             self.length_scale_z = length_scale_z
-
+            
+        # Check if weights is a dictionary, raise error if it's not
+        if weights is not None and not isinstance(weights, dict):
+            raise TypeError("Weights must be a dictionary.")
+        
         # do this to allow child classes to also pass a list of objfcts to this constructor
         if "objfcts" not in kwargs:
             objfcts = [

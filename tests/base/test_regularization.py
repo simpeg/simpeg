@@ -335,8 +335,7 @@ class RegularizationTests(unittest.TestCase):
         v = np.random.rand(mesh.nC)
 
         cell_weights = np.random.rand(mesh.nC)
-        reg = regularization.Sparse(mesh)
-        reg.set_weights(cell_weights=cell_weights)
+        reg = regularization.Sparse(mesh, weights={"cell_weights": cell_weights})
 
         np.testing.assert_equal(reg.norms, [1, 1, 1, 1])
 
@@ -783,8 +782,8 @@ class TestDeprecatedArguments:
         with pytest.raises(ValueError, match=msg):
             BaseRegularization(
                 mesh,
-                weights=weights_dict["weights"],
-                cell_weights=weights_dict["weights"],
+                weights=weights_dict,
+                cell_weights=weights_dict,
             )
 
 
