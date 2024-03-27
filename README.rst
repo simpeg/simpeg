@@ -30,8 +30,8 @@ SimPEG
 .. image:: https://img.shields.io/discourse/users?server=http%3A%2F%2Fsimpeg.discourse.group%2F
     :target: https://simpeg.discourse.group/
 
-.. image:: https://img.shields.io/badge/Slack-simpeg-4A154B.svg?logo=slack
-    :target: http://slack.simpeg.xyz
+.. image:: https://img.shields.io/badge/simpeg-purple?logo=mattermost&label=Mattermost
+    :target: https://mattermost.softwareunderground.org/simpeg
 
 .. image:: https://img.shields.io/badge/Youtube%20channel-GeoSci.xyz-FF0000.svg?logo=youtube
     :target: https://www.youtube.com/channel/UCBrC4M8_S4GXhyHht7FyQqw
@@ -109,7 +109,8 @@ Questions
 If you have a question regarding a specific use of SimPEG, the fastest way
 to get a response is by posting on our Discourse discussion forum:
 https://simpeg.discourse.group/. Alternatively, if you prefer real-time chat,
-you can join our slack group at http://slack.simpeg.xyz.
+you can join our Mattermost Team at
+https://mattermost.softwareunderground.org/simpeg.
 Please do not create an issue to ask a question.
 
 
@@ -121,7 +122,8 @@ for developers to discuss upcoming changes to the code base, and for
 discussing topics related to geophysics in general.
 Currently our meetings are held every Wednesday, alternating between
 a mornings (10:30 am pacific time) and afternoons (3:00 pm pacific time)
-on even numbered Wednesdays. Find more info on our `slack <http://slack.simpeg.xyz>`_.
+on even numbered Wednesdays. Find more info on our
+`Mattermost <https://mattermost.softwareunderground.org/simpeg>`_.
 
 
 Links
@@ -134,8 +136,8 @@ Forums:
 https://simpeg.discourse.group/
 
 
-Slack (real time chat):
-http://slack.simpeg.xyz
+Mattermost (real time chat):
+https://mattermost.softwareunderground.org/simpeg
 
 
 Documentation:
