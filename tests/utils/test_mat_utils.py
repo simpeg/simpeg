@@ -79,7 +79,7 @@ class TestEigenvalues(unittest.TestCase):
         field = self.dmis.simulation.fields(self.true_model)
         max_eigenvalue_numpy, _ = eigsh(dmis_matrix, k=1)
         max_eigenvalue_directive = eigenvalue_by_power_iteration(
-            self.dmis, self.true_model, fields_list=field, n_pw_iter=30
+            self.dmis, self.true_model, fields_list=field, n_pw_iter=30, seed=42
         )
         passed = np.isclose(max_eigenvalue_numpy, max_eigenvalue_directive, rtol=1e-2)
         self.assertTrue(passed, True)
@@ -92,7 +92,7 @@ class TestEigenvalues(unittest.TestCase):
         dmiscombo_matrix = 2 * self.G.T.dot(WtW.dot(self.G))
         max_eigenvalue_numpy, _ = eigsh(dmiscombo_matrix, k=1)
         max_eigenvalue_directive = eigenvalue_by_power_iteration(
-            self.dmiscombo, self.true_model, n_pw_iter=30
+            self.dmiscombo, self.true_model, n_pw_iter=30, seed=42
         )
         passed = np.isclose(max_eigenvalue_numpy, max_eigenvalue_directive, rtol=1e-2)
         self.assertTrue(passed, True)
@@ -102,7 +102,7 @@ class TestEigenvalues(unittest.TestCase):
         reg_maxtrix = self.reg.deriv2(self.true_model)
         max_eigenvalue_numpy, _ = eigsh(reg_maxtrix, k=1)
         max_eigenvalue_directive = eigenvalue_by_power_iteration(
-            self.reg, self.true_model, n_pw_iter=100
+            self.reg, self.true_model, n_pw_iter=100, seed=42
         )
         passed = np.isclose(max_eigenvalue_numpy, max_eigenvalue_directive, rtol=1e-2)
         self.assertTrue(passed, True)
@@ -114,7 +114,7 @@ class TestEigenvalues(unittest.TestCase):
         combo_matrix = dmis_matrix + self.beta * reg_maxtrix
         max_eigenvalue_numpy, _ = eigsh(combo_matrix, k=1)
         max_eigenvalue_directive = eigenvalue_by_power_iteration(
-            self.mixcombo, self.true_model, n_pw_iter=100
+            self.mixcombo, self.true_model, n_pw_iter=100, seed=42
         )
         passed = np.isclose(max_eigenvalue_numpy, max_eigenvalue_directive, rtol=1e-2)
         self.assertTrue(passed, True)
