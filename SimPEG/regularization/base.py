@@ -262,8 +262,7 @@ class BaseRegularization(BaseObjectiveFunction):
         "mref",
         "reference_model",
         "0.19.0",
-        future_warn=True,
-        error=False,
+        error=True,
     )
 
     @property
@@ -285,8 +284,7 @@ class BaseRegularization(BaseObjectiveFunction):
         "regmesh",
         "regularization_mesh",
         "0.19.0",
-        future_warn=True,
-        error=False,
+        error=True,
     )
 
     @property
@@ -2111,8 +2109,7 @@ class WeightedLeastSquares(ComboObjectiveFunction):
         "mref",
         "reference_model",
         "0.19.0",
-        future_warn=True,
-        error=False,
+        error=True,
     )
 
     @property
