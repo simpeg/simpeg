@@ -414,15 +414,24 @@ def create_layers_model(cell_centers, layer_tops, layer_values):
     return model
 
 
-def create_random_model(shape, seed=1000, anisotropy=None, its=100, bounds=None):
-    """Create random model by convolving a kernel with a uniformly distributed random model.
+def create_random_model(
+    shape,
+    seed: int | np.random.Generator | None = 1000,
+    anisotropy=None,
+    its=100,
+    bounds=None,
+):
+    """
+    Create random model by convolving a kernel with a uniformly distributed random model.
 
     Parameters
     ----------
     shape : int or tuple of int
         Shape of the model. Can define a vector of size (n_cells) or define the dimensions of a tensor
-    seed : int, optional
-        If not None, sets the seed for the random uniform model that is convolved with the kernel.
+    seed : int, numpy.random.Generator or None, optional
+        Random seed for random uniform model that is convolved with the kernel.
+        It can either be an int or a predefined Numpy random number generator
+        (see ``numpy.random.default_rng``).
     anisotropy : numpy.ndarray
         this is the (*3*, *n*) blurring kernel that is used.
     its : int
@@ -450,14 +459,11 @@ def create_random_model(shape, seed=1000, anisotropy=None, its=100, bounds=None)
     if bounds is None:
         bounds = [0, 1]
 
-    if seed is not None:
-        np.random.seed(seed)
-        print("Using a seed of: ", seed)
-
-    if isinstance(shape, (int, float)):
+    if isinstance(shape, int):
         shape = (shape,)  # make it a tuple for consistency
 
-    mr = np.random.rand(*shape)
+    rng = np.random.default_rng(seed=seed)
+    mr = rng.random(size=shape)
     if anisotropy is None:
         if len(shape) == 1:
             smth = np.array([1, 10.0, 1], dtype=float)
