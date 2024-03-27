@@ -129,7 +129,11 @@ def unique_rows(M):
 
 
 def eigenvalue_by_power_iteration(
-    combo_objfct, model, n_pw_iter=4, fields_list=None, seed=None
+    combo_objfct,
+    model,
+    n_pw_iter=4,
+    fields_list=None,
+    seed: int | np.random.Generator | None = None,
 ):
     r"""Estimate largest eigenvalue in absolute value using power iteration.
 
@@ -150,8 +154,10 @@ def eigenvalue_by_power_iteration(
         they will be evaluated within the function. If combo_objfct mixs data misfit and regularization
         terms, the list should contains SimPEG.fields for the data misfit terms and None for the
         regularization term.
-    seed : int
-        Random seed for the initial random guess of eigenvector.
+    seed : int, numpy.random.Generator or None, optional
+        Random seed for the initial random guess of eigenvector. It can either
+        be an int or a predefined Numpy random number generator (see
+        ``numpy.random.default_rng``).
 
     Returns
     -------
@@ -176,12 +182,10 @@ def eigenvalue_by_power_iteration(
     selected from a uniform distribution.
 
     """
-
-    if seed is not None:
-        np.random.seed(seed)
+    rng = np.random.default_rng(seed=seed)
 
     # Initial guess for eigen-vector
-    x0 = np.random.rand(*model.shape)
+    x0 = rng.random(size=model.shape)
     x0 = x0 / np.linalg.norm(x0)
 
     # transform to ComboObjectiveFunction if required
