@@ -760,38 +760,6 @@ class TestWeightsKeys:
             assert reg.weights_keys == ["dummy_weight", "other_weights", "volume"]
 
 
-class TestDeprecatedArguments:
-    """
-    Test errors after simultaneously passing new and deprecated arguments.
-
-    Within these arguments are:
-
-    * ``cell_weights`` (replaced by ``weights``)
-
-    """
-
-    @pytest.fixture(params=["1D", "2D", "3D"])
-    def mesh(self, request):
-        """Sample mesh."""
-        if request.param == "1D":
-            hx = np.random.rand(10)
-            h = [hx / hx.sum()]
-        elif request.param == "2D":
-            hx, hy = np.random.rand(10), np.random.rand(9)
-            h = [h_i / h_i.sum() for h_i in (hx, hy)]
-        elif request.param == "3D":
-            hx, hy, hz = np.random.rand(10), np.random.rand(9), np.random.rand(8)
-            h = [h_i / h_i.sum() for h_i in (hx, hy, hz)]
-        return discretize.TensorMesh(h)
-
-    def test_weights(self, mesh):
-        """Test cell_weights and weights."""
-        weights = np.ones(len(mesh))
-        msg = "Cannot simultaneously pass 'weights' and 'cell_weights'."
-        with pytest.raises(ValueError, match=msg):
-            BaseRegularization(mesh, weights=weights, cell_weights=weights)
-
-
 class TestRemovedObjects:
     """
     Test if errors are raised after passing removed arguments or trying to
@@ -801,6 +769,7 @@ class TestRemovedObjects:
     * ``gradientType`` (replaced by ``gradient_type``)
     * ``mref`` (replaced by ``reference_model``)
     * ``regmesh`` (replaced by ``regularization_mesh``)
+    * ``cell_weights`` (replaced by ``weights``)
 
     """
 
@@ -870,6 +839,46 @@ class TestRemovedObjects:
         msg = "indActive has been removed, please use active_cells."
         with pytest.raises(NotImplementedError, match=msg):
             reg.indActive
+
+    @pytest.mark.parametrize(
+        "regularization_class",
+        (BaseRegularization, WeightedLeastSquares),
+    )
+    def test_cell_weights_argument(self, mesh, regularization_class):
+        """Test if error is raised when passing the cell_weights argument."""
+        weights = np.ones(len(mesh))
+        msg = "'cell_weights' argument has been removed. Please use 'weights' instead."
+        with pytest.raises(TypeError, match=msg):
+            regularization_class(mesh, cell_weights=weights)
+
+    @pytest.mark.parametrize(
+        "regularization_class", (BaseRegularization, WeightedLeastSquares)
+    )
+    def test_cell_weights_property(self, mesh, regularization_class):
+        """Test if error is raised when trying to access the cell_weights property."""
+        weights = {"weights": np.ones(len(mesh))}
+        msg = (
+            "'cell_weights' has been removed. "
+            "Please access weights using the `set_weights`, `get_weights`, and "
+            "`remove_weights` methods."
+        )
+        reg = regularization_class(mesh, weights=weights)
+        with pytest.raises(AttributeError, match=msg):
+            reg.cell_weights
+
+    @pytest.mark.parametrize(
+        "regularization_class", (BaseRegularization, WeightedLeastSquares)
+    )
+    def test_cell_weights_setter(self, mesh, regularization_class):
+        """Test if error is raised when trying to set the cell_weights property."""
+        msg = (
+            "'cell_weights' has been removed. "
+            "Please access weights using the `set_weights`, `get_weights`, and "
+            "`remove_weights` methods."
+        )
+        reg = regularization_class(mesh)
+        with pytest.raises(AttributeError, match=msg):
+            reg.cell_weights = "dummy variable"
 
 
 class TestRemovedRegularizations:
