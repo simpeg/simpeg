@@ -130,3 +130,22 @@ class TestDipoleLocations:
         assert isinstance(source.location, np.ndarray)
         assert len(source.location) == 2
         np.testing.assert_allclose(source.location, [electrode_a, electrode_b])
+
+    @pytest.mark.parametrize("length", (0, 1, 3))
+    def test_location_invalid_num_elements(self, length, receiver):
+        """
+        Test error after passing location with invalid number of elements
+        """
+        if length == 0:
+            location = ()
+        elif length == 1:
+            location = (np.array([1.0, 0.0]),)
+        else:
+            location = (
+                np.array([1.0, 0.0]),
+                np.array([1.0, 0.0]),
+                np.array([1.0, 0.0]),
+            )
+        msg = "location must be a list or tuple of length 2"
+        with pytest.raises(ValueError, match=msg):
+            dc.sources.Dipole(receiver_list=[receiver], location=location)
