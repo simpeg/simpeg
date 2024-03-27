@@ -12,7 +12,6 @@ from ..sources import PlanewaveXYPrimary, Planewave
 from ..simulation import Simulation3DPrimarySecondary
 from .data_utils import appResPhs
 
-np.random.seed(1100)
 # Define the tolerances
 TOLr = 5e-2
 TOLp = 5e-2
