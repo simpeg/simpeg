@@ -80,6 +80,7 @@ Mappings
   maps.InjectActiveEdges
   maps.MuRelative
   maps.LogMap
+  maps.LogisticSigmoidMap
   maps.ParametricBlock
   maps.ParametricCircleMap
   maps.ParametricEllipsoid

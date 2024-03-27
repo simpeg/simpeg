@@ -62,7 +62,13 @@ class BaseFDEMSimulation(BaseEMSimulation):
     # permittivity, permittivityMap, permittivityDeriv = props.Invertible("Dielectric permittivity (F/m)")
 
     def __init__(
-        self, mesh, survey=None, forward_only=False, permittivity=None, **kwargs
+        self,
+        mesh,
+        survey=None,
+        forward_only=False,
+        permittivity=None,
+        storeJ=False,
+        **kwargs
     ):
         super().__init__(mesh=mesh, survey=survey, **kwargs)
         self.forward_only = forward_only
@@ -72,6 +78,7 @@ class BaseFDEMSimulation(BaseEMSimulation):
                 stacklevel=2,
             )
         self.permittivity = permittivity
+        self.storeJ = storeJ
 
     @property
     def survey(self):
@@ -90,6 +97,21 @@ class BaseFDEMSimulation(BaseEMSimulation):
         if value is not None:
             value = validate_type("survey", value, Survey, cast=False)
         self._survey = value
+        self._survey = value
+
+    @property
+    def storeJ(self):
+        """Whether to store the sensitivity matrix
+
+        Returns
+        -------
+        bool
+        """
+        return self._storeJ
+
+    @storeJ.setter
+    def storeJ(self, value):
+        self._storeJ = validate_type("storeJ", value, bool)
 
     @property
     def forward_only(self):
@@ -243,6 +265,86 @@ class BaseFDEMSimulation(BaseEMSimulation):
 
         return mkvc(Jtv)
 
+    def getJ(self, m, f=None):
+        """
+        Method to form full J given a model m
+
+        :param numpy.ndarray m: inversion model (nP,)
+        :param SimPEG.electromagnetics.frequency_domain.fields.FieldsFDEM u: fields object
+        :rtype: numpy.ndarray
+        :return: J (ndata, nP)
+        """
+        self.model = m
+
+        if getattr(self, "_Jmatrix", None) is None:
+            if f is None:
+                f = self.fields(m)
+
+            Ainv = self.Ainv
+            m_size = self.model.size
+
+            Jmatrix = np.zeros((self.survey.nD, m_size))
+
+            data = Data(self.survey)
+
+            for A_i, freq in zip(Ainv, self.survey.frequencies):
+                for src in self.survey.get_sources_by_frequency(freq):
+                    u_src = f[src, self._solutionType]
+
+                    for rx in src.receiver_list:
+                        v = np.eye(rx.nD, dtype=float)
+
+                        df_duT, df_dmT = rx.evalDeriv(
+                            src, self.mesh, f, v=v, adjoint=True
+                        )
+
+                        df_duT = np.hstack([df_duT])
+                        ATinvdf_duT = A_i * df_duT
+                        dA_dmT = self.getADeriv(freq, u_src, ATinvdf_duT, adjoint=True)
+                        dRHS_dmT = self.getRHSDeriv(
+                            freq, src, ATinvdf_duT, adjoint=True
+                        )
+                        du_dmT = -dA_dmT
+
+                        if not isinstance(dRHS_dmT, Zero):
+                            du_dmT += dRHS_dmT
+                        if not isinstance(df_dmT[0], Zero):
+                            du_dmT += np.hstack(df_dmT)
+
+                        block = np.array(du_dmT, dtype=complex).real.T
+                        data_inds = data.index_dictionary[src][rx]
+                        Jmatrix[data_inds] = block
+
+            self._Jmatrix = Jmatrix
+
+        return self._Jmatrix
+
+    def getJtJdiag(self, m, W=None, f=None):
+        """
+        Return the diagonal of JtJ
+
+        :param numpy.ndarray m: inversion model (nP,)
+        :param numpy.ndarray W: vector of weights (ndata,)
+        :param SimPEG.electromagnetics.frequency_domain.fields.FieldsFDEM u: fields object
+        :rtype: numpy.ndarray
+        :return: JtJ (nP,)
+        """
+        self.model = m
+
+        if getattr(self, "_gtgdiag", None) is None:
+            J = self.getJ(m, f=f)
+
+            if W is None:
+                W = np.ones(J.shape[0])
+            else:
+                W = W.diagonal() ** 2
+
+            diag = np.einsum("i,ij,ij->j", W, J, J)
+
+            self._gtgdiag = diag
+
+        return self._gtgdiag
+
     # @profile
     def getSourceTerm(self, freq):
         """
@@ -274,6 +376,11 @@ class BaseFDEMSimulation(BaseEMSimulation):
             s_e[:, i:ii] = s_e[:, i:ii] + sei
             i = ii
         return s_m, s_e
+
+    @property
+    def deleteTheseOnModelUpdate(self):
+        toDelete = super().deleteTheseOnModelUpdate
+        return toDelete + ["_Jmatrix", "_gtgdiag"]
 
 
 ###############################################################################

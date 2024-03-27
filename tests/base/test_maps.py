@@ -568,6 +568,51 @@ class MapTests(unittest.TestCase):
 
             self.assertTrue((local_mass - total_mass) / total_mass < 1e-8)
 
+    def test_logit_errors(self):
+        nP = 10
+        scalar_lower = -2
+        scalar_upper = 2
+        good_vector_lower = np.random.rand(nP) - 2
+        good_vector_upper = np.random.rand(nP) + 2
+
+        bad_vector_lower = np.random.rand(nP - 2) - 2
+        bad_vector_upper = np.random.rand(nP - 2) + 2
+
+        # test that lower is not equal to nP
+        with pytest.raises(
+            ValueError,
+            match="Lower bound does not broadcast to the number of parameters.*",
+        ):
+            maps.LogisticSigmoidMap(
+                nP=10, lower_bound=bad_vector_lower, upper_bound=scalar_upper
+            )
+
+        # test that bad is not equal to nP
+        with pytest.raises(
+            ValueError,
+            match="Upper bound does not broadcast to the number of parameters.*",
+        ):
+            maps.LogisticSigmoidMap(
+                nP=10, lower_bound=scalar_lower, upper_bound=bad_vector_upper
+            )
+
+        # test that two upper and lower arrays will not broadcast when not specifying the number of parameters
+        with pytest.raises(
+            ValueError, match="Upper bound does not broadcast to the lower bound.*"
+        ):
+            maps.LogisticSigmoidMap(
+                lower_bound=good_vector_lower, upper_bound=bad_vector_upper
+            )
+
+        # test that passing a lower bound higher than an upper bound)
+        with pytest.raises(
+            ValueError,
+            match="A lower bound is greater than or equal to the upper bound.",
+        ):
+            maps.LogisticSigmoidMap(
+                lower_bound=good_vector_upper, upper_bound=good_vector_lower
+            )
+
 
 class TestWires(unittest.TestCase):
     def test_basic(self):
@@ -718,6 +763,7 @@ def test_linearity():
         maps.SphericalSystem(mesh2),
         maps.SelfConsistentEffectiveMedium(mesh2, sigma0=1, sigma1=2),
         maps.ExpMap(),
+        maps.LogisticSigmoidMap(),
         maps.ReciprocalMap(),
         maps.LogMap(),
         maps.ParametricCircleMap(mesh2),
