@@ -308,7 +308,7 @@ class BaseSimulation(props.HasModel):
         noise_floor=0.0,
         f=None,
         add_noise=False,
-        random_seed=None,
+        random_seed: int | np.random.Generator | None = None,
         **kwargs,
     ):
         """
@@ -326,8 +326,10 @@ class BaseSimulation(props.HasModel):
             Fields for the given model (if pre-calculated).
         add_noise : bool
             Whether to add gaussian noise to the synthetic data or not.
-        random_seed : int or None
-            Random seed to pass to `numpy.random.default_rng`.
+        random_seed : int, numpy.random.Generator or None, optional
+            Random seed to pass to ``numpy.random.default_rng``. It can either be
+            an int or a predefined Numpy random number generator (see
+            ``numpy.random.default_rng``).
 
         Returns
         -------
@@ -346,8 +348,8 @@ class BaseSimulation(props.HasModel):
         dclean = self.dpred(m, f=f)
 
         if add_noise is True:
-            std = np.sqrt((relative_error * np.abs(dclean)) ** 2 + noise_floor**2)
             random_num_generator = np.random.default_rng(seed=random_seed)
+            std = np.sqrt((relative_error * np.abs(dclean)) ** 2 + noise_floor**2)
             noise = random_num_generator.normal(loc=0, scale=std, size=dclean.shape)
             dobs = dclean + noise
         else:
