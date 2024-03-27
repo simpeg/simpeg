@@ -509,14 +509,15 @@ def getInputs():
     return M, freqs, rx_loc, elev
 
 
-def random(conds):
+def random(conds, seed=42):
     """Returns a random model based on the inputs"""
+    rng = np.random.default_rng(seed=seed)
     M, freqs, rx_loc, elev = getInputs()
 
-    # Backround
+    # Background
     sigBG = np.ones(M.nC) * conds
     # Add randomness to the model (10% of the value).
-    sig = np.exp(np.log(sigBG) + np.random.randn(M.nC) * (conds) * 1e-1)
+    sig = np.exp(np.log(sigBG) + rng.random(size=M.nC) * (conds) * 1e-1)
 
     return (M, freqs, sig, sigBG, rx_loc)
 
