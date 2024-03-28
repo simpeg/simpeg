@@ -897,7 +897,7 @@ class ExponentialSinusoidSimulation(LinearSimulation):
         :math:`j_i \in [j_0, ... , j_n]`. This sets the number of rows
         in the linear forward operator.
     p : float
-        Rate of exponential decay of the kernel. For decay, set :math:`p \leq 0`.
+        Exponent specifying the decay (`p \leq 0`) or growth (`p \geq 0`) of the kernel. For decay, set :math:`p \leq 0`.
     q : float
         Rate of oscillation of the kernel.
     j0 : float
