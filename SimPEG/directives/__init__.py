@@ -17,20 +17,6 @@ inversion, we provide a set of useful directive classes that cover a wide range
 of applications:
 
 
-Base directive classes
-======================
-The ``InversionDirective`` class defines the basic class for all directives.
-Inherit from this class when writing your own directive. The ``DirectiveList``
-is used under the hood to handle the execution of all directives passed to the
-``SimPEG.inversion.BaseInversion``.
-
-.. autosummary::
-   :toctree: generated/
-
-   InversionDirective
-   DirectiveList
-
-
 General purpose directives
 ==========================
 
@@ -94,6 +80,20 @@ Directives related to joint inversions
     PairedBetaEstimate_ByEig
     PairedBetaSchedule
     MovingAndMultiTargetStopping
+
+
+Base directive classes
+======================
+The ``InversionDirective`` class defines the basic class for all directives.
+Inherit from this class when writing your own directive. The ``DirectiveList``
+is used under the hood to handle the execution of all directives passed to the
+``SimPEG.inversion.BaseInversion``.
+
+.. autosummary::
+   :toctree: generated/
+
+   InversionDirective
+   DirectiveList
 
 """
 from .directives import (
