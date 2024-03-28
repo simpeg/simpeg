@@ -16,11 +16,9 @@ Although you can write your own directive classes and plug them into your
 inversion, we provide a set of useful directive classes that cover a wide range
 of applications:
 
-The API
-=======
 
 Base directive classes
-----------------------
+======================
 The ``InversionDirective`` class defines the basic class for all directives.
 Inherit from this class when writing your own directive. The ``DirectiveList``
 is used under the hood to handle the execution of all directives passed to the
@@ -34,7 +32,7 @@ is used under the hood to handle the execution of all directives passed to the
 
 
 General purpose directives
---------------------------
+==========================
 
 .. autosummary::
    :toctree: generated/
@@ -54,7 +52,7 @@ General purpose directives
 
 
 Directives to save inversion results
-------------------------------------
+====================================
 
 .. autosummary::
    :toctree: generated/
@@ -66,7 +64,7 @@ Directives to save inversion results
 
 
 Directives related to sparse inversions
----------------------------------------
+=======================================
 
 .. autosummary::
    :toctree: generated/
@@ -75,7 +73,7 @@ Directives related to sparse inversions
 
 
 Directives related to PGI
--------------------------
+=========================
 
 .. autosummary::
    :toctree: generated/
@@ -86,7 +84,7 @@ Directives related to PGI
 
 
 Directives related to joint inversions
---------------------------------------
+======================================
 
 .. autosummary::
    :toctree: generated/
