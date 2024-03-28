@@ -436,3 +436,34 @@ class TestConversionFactor:
         component = "invalid-component"
         with pytest.raises(ValueError, match=f"Invalid component '{component}'"):
             gravity.simulation._get_conversion_factor(component)
+
+
+class TestInvalidMeshChoclo:
+    @pytest.fixture(params=("tensormesh", "treemesh"))
+    def mesh(self, request):
+        """Sample 2D mesh."""
+        hx, hy = [(0.1, 8)], [(0.1, 8)]
+        h = (hx, hy)
+        if request.param == "tensormesh":
+            mesh = discretize.TensorMesh(h, "CC")
+        else:
+            mesh = discretize.TreeMesh(h, origin="CC")
+            mesh.finalize()
+        return mesh
+
+    def test_invalid_mesh_with_choclo(self, mesh):
+        """
+        Test if simulation raises error when passing an invalid mesh and using choclo
+        """
+        # Build survey
+        receivers_locations = np.array([[0, 0, 0]])
+        receivers = gravity.Point(receivers_locations)
+        sources = gravity.SourceField([receivers])
+        survey = gravity.Survey(sources)
+        # Check if error is raised
+        msg = (
+            "Invalid mesh with 2 dimensions. "
+            "Only 3D meshes are supported when using 'choclo' as engine."
+        )
+        with pytest.raises(ValueError, match=msg):
+            gravity.Simulation3DIntegral(mesh, survey, engine="choclo")
