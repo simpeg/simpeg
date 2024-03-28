@@ -65,6 +65,8 @@ class BaseRegularization(BaseObjectiveFunction):
                 f"'regularization_mesh' must be of type {RegularizationMesh} or {BaseMesh}. "
                 f"Value of type {type(mesh)} provided."
             )
+        if weights is not None and not isinstance(weights, dict):
+            raise TypeError("'weights' must be a dictionary.")
 
         # Raise errors on deprecated arguments: avoid old code that still uses
         # them to silently fail
@@ -87,8 +89,6 @@ class BaseRegularization(BaseObjectiveFunction):
         self.reference_model = reference_model
         self.units = units
         if weights is not None:
-            if not isinstance(weights, dict):
-                weights = {"user_weights": weights}
             self.set_weights(**weights)
 
     @property
@@ -608,7 +608,7 @@ class Smallness(BaseRegularization):
 
     or set after instantiation using the `set_weights` method:
 
-    >>> reg.set_weights(weights_1=array_1, weights_2=array_2})
+    >>> reg.set_weights(weights_1=array_1, weights_2=array_2)
 
     The default weights that account for cell dimensions in the regularization are accessed via:
 
@@ -1603,6 +1603,10 @@ class WeightedLeastSquares(ComboObjectiveFunction):
         else:
             self.length_scale_z = length_scale_z
 
+        # Check if weights is a dictionary, raise error if it's not
+        if weights is not None and not isinstance(weights, dict):
+            raise TypeError("Weights must be a dictionary.")
+
         # do this to allow child classes to also pass a list of objfcts to this constructor
         if "objfcts" not in kwargs:
             objfcts = [
@@ -1652,8 +1656,6 @@ class WeightedLeastSquares(ComboObjectiveFunction):
         self.alpha_yy = alpha_yy
         self.alpha_zz = alpha_zz
         if weights is not None:
-            if not isinstance(weights, dict):
-                weights = {"user_weights": weights}
             self.set_weights(**weights)
 
     def set_weights(self, **weights):

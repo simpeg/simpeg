@@ -301,7 +301,8 @@ class RegularizationTests(unittest.TestCase):
 
         wires = maps.Wires(("sigma", mesh.nC), ("mu", mesh.nC))
 
-        reg = regularization.Smallness(mesh, mapping=wires.sigma, weights=cell_weights)
+        reg = regularization.Smallness(mesh, mapping=wires.sigma)
+        reg.set_weights(cell_weights=cell_weights)
 
         objfct = objective_function.L2ObjectiveFunction(
             W=utils.sdiag(np.sqrt(cell_weights * mesh.cell_volumes)),
@@ -336,8 +337,7 @@ class RegularizationTests(unittest.TestCase):
         v = np.random.rand(mesh.nC)
 
         cell_weights = np.random.rand(mesh.nC)
-
-        reg = regularization.Sparse(mesh, weights=cell_weights)
+        reg = regularization.Sparse(mesh, weights={"cell_weights": cell_weights})
 
         np.testing.assert_equal(reg.norms, [1, 1, 1, 1])
 
@@ -724,14 +724,6 @@ class TestWeightsKeys:
         reg = BaseRegularization(mesh, weights=weights)
         assert reg.weights_keys == ["dummy_weight"]
 
-    def test_user_defined_weights_as_array(self, mesh):
-        """
-        Test weights_keys after user defined weights as dictionary
-        """
-        weights = np.ones(mesh.n_cells)
-        reg = BaseRegularization(mesh, weights=weights)
-        assert reg.weights_keys == ["user_weights"]
-
     @pytest.mark.parametrize(
         "regularization_class", (Smallness, SmoothnessFirstOrder, SmoothnessSecondOrder)
     )
@@ -760,6 +752,43 @@ class TestWeightsKeys:
             assert reg.weights_keys == ["dummy_weight", "other_weights", "volume"]
 
 
+class TestDeprecatedArguments:
+    """
+    Test errors after simultaneously passing new and deprecated arguments.
+
+    Within these arguments are:
+
+    * ``cell_weights`` (replaced by ``weights``)
+
+    """
+
+    @pytest.fixture(params=["1D", "2D", "3D"])
+    def mesh(self, request):
+        """Sample mesh."""
+        if request.param == "1D":
+            hx = np.random.rand(10)
+            h = [hx / hx.sum()]
+        elif request.param == "2D":
+            hx, hy = np.random.rand(10), np.random.rand(9)
+            h = [h_i / h_i.sum() for h_i in (hx, hy)]
+        elif request.param == "3D":
+            hx, hy, hz = np.random.rand(10), np.random.rand(9), np.random.rand(8)
+            h = [h_i / h_i.sum() for h_i in (hx, hy, hz)]
+        return discretize.TensorMesh(h)
+
+    def test_weights(self, mesh):
+        """Test cell_weights and weights."""
+        weights = np.ones(len(mesh))
+        weights_dict = {"weights": weights}
+        msg = "Cannot simultaneously pass 'weights' and 'cell_weights'."
+        with pytest.raises(ValueError, match=msg):
+            BaseRegularization(
+                mesh,
+                weights=weights_dict,
+                cell_weights=weights_dict,
+            )
+
+            
 class TestRemovedObjects:
     """
     Test if errors are raised after passing removed arguments or trying to
