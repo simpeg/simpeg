@@ -1393,6 +1393,5 @@ class PGI(ComboObjectiveFunction):
         "mref",
         "reference_model",
         "0.19.0",
-        future_warn=True,
-        error=False,
+        error=True,
     )
