@@ -354,7 +354,7 @@ class BaseSimulation(props.HasModel):
         Returns
         -------
         (n_param, ) numpy.ndarray
-            The Jacobian transpose times a vector for the model provided.
+            The Jacobian transpose times a vector for the model and vector provided.
         """
         raise NotImplementedError("Jtvec is not yet implemented.")
 
