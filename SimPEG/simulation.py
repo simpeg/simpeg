@@ -1011,7 +1011,7 @@ class ExponentialSinusoidSimulation(LinearSimulation):
         """Kernel functions evaluated for kernel factor :math:`j_k`.
 
         This method computes the row of the linear forward operator for
-        the kernel functions for kernel factor :math:`j_k`.
+        the kernel functions for kernel factor :math:`j_k`, given :math:`k`
 
         Parameters
         ----------
