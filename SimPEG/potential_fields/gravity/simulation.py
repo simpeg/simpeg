@@ -455,15 +455,6 @@ class Simulation3DIntegral(BasePFSimulation):
             index_offset += n_rows
         return sensitivity_matrix
 
-    def _get_cell_nodes(self):
-        """
-        Return indices of nodes for each cell in the mesh.
-        """
-        if not isinstance(self.mesh, (discretize.TreeMesh, discretize.TensorMesh)):
-            raise TypeError(f"Invalid mesh of type {self.mesh.__class__.__name__}.")
-        cell_nodes = self.mesh.cell_nodes
-        return cell_nodes
-
     def _get_active_nodes(self):
         """
         Return locations of nodes only for active cells
@@ -479,7 +470,7 @@ class Simulation3DIntegral(BasePFSimulation):
         else:
             raise TypeError(f"Invalid mesh of type {self.mesh.__class__.__name__}.")
         # Get original cell_nodes but only for active cells
-        cell_nodes = self._get_cell_nodes()
+        cell_nodes = self.mesh.cell_nodes
         # If all cells in the mesh are active, return nodes and cell_nodes
         if self.nC == self.mesh.n_cells:
             return nodes, cell_nodes
@@ -490,7 +481,7 @@ class Simulation3DIntegral(BasePFSimulation):
         unique_nodes, active_cell_nodes = np.unique(cell_nodes, return_inverse=True)
         # Select only the nodes that belong to the active cells (active nodes)
         active_nodes = nodes[unique_nodes]
-        # Reshape indices of active cells for each active cell in the mesh
+        # Reshape indices of active cell nodes for each active cell in the mesh
         active_cell_nodes = active_cell_nodes.reshape(cell_nodes.shape)
         return active_nodes, active_cell_nodes
 

@@ -359,6 +359,47 @@ class TestsGravitySimulation:
                 engine="choclo",
             )
 
+    def test_sensitivities_on_disk(self, simple_mesh, receivers_locations, tmp_path):
+        """
+        Test if sensitivity matrix is correctly being stored in disk when asked
+        """
+        # Build survey
+        receivers = gravity.Point(receivers_locations, components="gz")
+        sources = gravity.SourceField([receivers])
+        survey = gravity.Survey(sources)
+        # Build simulation
+        sensitivities_path = tmp_path / "sensitivities"
+        simulation = gravity.Simulation3DIntegral(
+            mesh=simple_mesh,
+            survey=survey,
+            store_sensitivities="disk",
+            sensitivity_path=str(sensitivities_path),
+            engine="choclo",
+        )
+        simulation.G
+        # Check if sensitivity matrix was stored in disk and is a memmap
+        assert sensitivities_path.is_file()
+        assert type(simulation.G) is np.memmap
+
+    def test_sensitivities_on_ram(self, simple_mesh, receivers_locations, tmp_path):
+        """
+        Test if sensitivity matrix is correctly being allocated in memory when asked
+        """
+        # Build survey
+        receivers = gravity.Point(receivers_locations, components="gz")
+        sources = gravity.SourceField([receivers])
+        survey = gravity.Survey(sources)
+        # Build simulation
+        simulation = gravity.Simulation3DIntegral(
+            mesh=simple_mesh,
+            survey=survey,
+            store_sensitivities="ram",
+            engine="choclo",
+        )
+        simulation.G
+        # Check if sensitivity matrix is a Numpy array (stored in memory)
+        assert type(simulation.G) is np.ndarray
+
     def test_choclo_missing(self, simple_mesh, monkeypatch):
         """
         Check if error is raised when choclo is missing and chosen as engine.
