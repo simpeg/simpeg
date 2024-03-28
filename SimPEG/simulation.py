@@ -336,7 +336,7 @@ class BaseSimulation(props.HasModel):
         .. math::
             J_{ij} = \frac{\partial d_i}{\partial m_j}
 
-        For a model `m` and vector `v`, the ``Jtvec`` method computes the matrix-vector product
+        For a model `m` and vector `v`, the ``Jtvec`` method computes the matrix-vector product with the adjoint-sensitivity
 
         .. math::
             \mathbf{u} = \mathbf{J^T \, v}
