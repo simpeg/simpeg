@@ -788,7 +788,7 @@ class TestDeprecatedArguments:
                 cell_weights=weights_dict,
             )
 
-            
+
 class TestRemovedObjects:
     """
     Test if errors are raised after passing removed arguments or trying to
