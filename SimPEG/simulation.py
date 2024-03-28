@@ -53,8 +53,7 @@ class BaseSimulation(props.HasModel):
     Parameters
     ----------
     mesh : discretize.base.BaseMesh, optional
-        Mesh on which the forward problem is discretized. This is not necessarily
-        the same as the mesh on which the simulation is defined.
+        Mesh on which the forward problem is discretized.
     survey : SimPEG.survey.BaseSurvey, optional
         The survey for the simulation.
     solver : None or pymatsolver.base.Base, optional
