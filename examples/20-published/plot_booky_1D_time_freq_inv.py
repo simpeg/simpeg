@@ -261,7 +261,7 @@ def run(plotIt=True, saveFig=False, cleanup=True):
     inv = inversion.BaseInversion(invProb, directiveList=[target])
     reg.alpha_s = 1e-3
     reg.alpha_x = 1.0
-    reg.mref = m0.copy()
+    reg.reference_model = m0.copy()
     opt.LSshorten = 0.5
     opt.remember("xc")
     # run the inversion
@@ -379,7 +379,7 @@ def run(plotIt=True, saveFig=False, cleanup=True):
     reg.alpha_x = 1.0
     opt.LSshorten = 0.5
     opt.remember("xc")
-    reg.mref = mopt_re  # Use RESOLVE model as a reference model
+    reg.reference_model = mopt_re  # Use RESOLVE model as a reference model
 
     # run the inversion
     mopt_sky = inv.run(m0)
