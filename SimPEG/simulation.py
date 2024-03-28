@@ -320,7 +320,7 @@ class BaseSimulation(props.HasModel):
         Returns
         -------
         (n_data, ) numpy.ndarray
-            The Jacobian times a vector for the model provided.
+            The Jacobian times a vector for the model and vector provided.
         """
         raise NotImplementedError("Jvec is not yet implemented.")
 
