@@ -1,4 +1,5 @@
 # Test functions
+import pytest
 import unittest
 import numpy as np
 from SimPEG import tests, mkvc
@@ -10,6 +11,58 @@ TOL = 1e-4
 FLR = 1e-20  # "zero", so if residual below this --> pass regardless of order
 CONDUCTIVITY = 1e1
 MU = mu_0
+
+
+@pytest.fixture()
+def model_simulation_tuple():
+    return nsem.utils.test_utils.setupSimpegNSEM_PrimarySecondary(
+        nsem.utils.test_utils.halfSpace(1e-2), [0.1], comp="All", singleFreq=False
+    )
+
+
+# Test the Jvec derivative
+@pytest.mark.parametrize("weights", [True, False])
+def test_Jtjdiag(model_simulation_tuple, weights):
+    model, simulation = model_simulation_tuple
+    W = None
+    if weights:
+        W = np.eye(simulation.survey.nD)
+
+    J = simulation.getJ(model)
+    if weights:
+        J = W @ J
+
+    Jtjdiag = simulation.getJtJdiag(model, W=W)
+    np.testing.assert_allclose(Jtjdiag, np.sum(J * J, axis=0))
+
+
+def test_Jtjdiag_clearing(model_simulation_tuple):
+    model, simulation = model_simulation_tuple
+    J1 = simulation.getJ(model)
+    Jtjdiag1 = simulation.getJtJdiag(model)
+
+    m2 = model + 2
+    J2 = simulation.getJ(m2)
+    Jtjdiag2 = simulation.getJtJdiag(m2)
+
+    assert J1 is not J2
+    assert Jtjdiag1 is not Jtjdiag2
+
+
+def test_Jmatrix(model_simulation_tuple):
+    model, simulation = model_simulation_tuple
+    rng = np.random.default_rng(4421)
+    # create random vector
+    vec = rng.standard_normal(simulation.survey.nD)
+
+    # create the J matrix
+    J1 = simulation.getJ(model)
+    Jmatrix_vec = J1.T @ vec
+
+    # compare to JTvec function
+    jtvec = simulation.Jtvec(model, v=vec)
+
+    np.testing.assert_allclose(Jmatrix_vec, jtvec)
 
 
 # Test the Jvec derivative
