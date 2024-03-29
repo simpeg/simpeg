@@ -940,9 +940,12 @@ class TestRemovedRegularizations:
 def test_invalid_weights_type():
     """Test error after passing weights as invalid type."""
     mesh = discretize.TensorMesh([[(2, 2)]])
-    msg = "'weights' must be a dictionary."
-    with pytest.raises(TypeError, match=msg):
+    msg1 = "'weights' must be a dictionary."
+    with pytest.raises(TypeError, match=msg1):
         BaseRegularization(mesh, weights=np.array([1.0]))
+    msg2 = "Weights must be a dictionary."
+    with pytest.raises(TypeError, match=msg2):
+        WeightedLeastSquares(mesh, weights=np.array([1.0]))
 
 
 if __name__ == "__main__":
