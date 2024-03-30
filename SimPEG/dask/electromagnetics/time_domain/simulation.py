@@ -321,7 +321,7 @@ def get_field_deriv_block(
 def compute_rows(
     simulation,
     tInd,
-    address,  # (s_id, r_id, b_id)
+    addresses,  # (s_id, r_id, b_id)
     indices,  # (rx_ind, j_ind),
     ATinv_df_duT_v,
     fields,
@@ -332,34 +332,37 @@ def compute_rows(
     """
     Compute the rows of the sensitivity matrix for a given source and receiver.
     """
-    src = simulation.survey.source_list[address[0]]
-    rx = src.receiver_list[address[1]]
-    time_check = np.kron(time_mask, np.ones(rx.locations.shape[0], dtype=bool))[
-        indices[0]
-    ]
-    local_ind = np.arange(indices[0].shape[0])[time_check]
+    for address, ind_array in zip(addresses, indices):
+        src = simulation.survey.source_list[address[0]]
+        rx = src.receiver_list[address[1]]
+        time_check = np.kron(time_mask, np.ones(rx.locations.shape[0], dtype=bool))[
+            ind_array[0]
+        ]
+        local_ind = np.arange(ind_array[0].shape[0])[time_check]
 
-    if len(local_ind) < 1:
-        return
+        if len(local_ind) < 1:
+            return
 
-    dAsubdiagT_dm_v = simulation.getAsubdiagDeriv(
-        tInd,
-        fields[src, ftype, tInd],
-        ATinv_df_duT_v[address][:, local_ind],
-        adjoint=True,
-    )
+        dAsubdiagT_dm_v = simulation.getAsubdiagDeriv(
+            tInd,
+            fields[src, ftype, tInd],
+            ATinv_df_duT_v[address][:, local_ind],
+            adjoint=True,
+        )
 
-    dRHST_dm_v = simulation.getRHSDeriv(
-        tInd + 1, src, ATinv_df_duT_v[address][:, local_ind], adjoint=True
-    )  # on nodes of time mesh
+        dRHST_dm_v = simulation.getRHSDeriv(
+            tInd + 1, src, ATinv_df_duT_v[address][:, local_ind], adjoint=True
+        )  # on nodes of time mesh
 
-    un_src = fields[src, ftype, tInd + 1]
-    # cell centered on time mesh
-    dAT_dm_v = simulation.getAdiagDeriv(
-        tInd, un_src, ATinv_df_duT_v[address][:, local_ind], adjoint=True
-    )
+        un_src = fields[src, ftype, tInd + 1]
+        # cell centered on time mesh
+        dAT_dm_v = simulation.getAdiagDeriv(
+            tInd, un_src, ATinv_df_duT_v[address][:, local_ind], adjoint=True
+        )
 
-    Jmatrix[indices[1][time_check], :] += (-dAT_dm_v - dAsubdiagT_dm_v + dRHST_dm_v).T
+        Jmatrix[ind_array[1][time_check], :] += (
+            -dAT_dm_v - dAsubdiagT_dm_v + dRHST_dm_v
+        ).T
 
 
 def compute_J(self, f=None, Ainv=None):
@@ -388,14 +391,14 @@ def compute_J(self, f=None, Ainv=None):
             ATinv_df_duT_v = get_field_deriv_block(
                 self, block, tInd, AdiagTinv, ATinv_df_duT_v, time_mask
             )
-
-            for address, indices in block.items():
+            split_blocks = np.array_split(list(block.items()), cpu_count())
+            for arrays in split_blocks:
                 j_row_updates.append(
                     compute_rows(
                         self,
                         tInd,
-                        address,
-                        indices,
+                        arrays[:, 0],
+                        arrays[:, 1],
                         ATinv_df_duT_v,
                         f,
                         Jmatrix,
