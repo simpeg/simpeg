@@ -40,18 +40,20 @@ def compute(self, job):
         return job.compute()
 
 
-def get_parallel_blocks(source_list: list, m_size: int, max_chunk_size: int):
+def get_parallel_blocks(source_list: list, m_size: int, max_chunk_size: int) -> list:
     """
     Get the blocks of sources and receivers to be computed in parallel.
 
-    Stored as a dictionary of source, receiver pairs index. The value is an array of indices
+    Stored as a list of tuples for
+    (source, receiver, block index) and array of indices
     for the rows of the sensitivity matrix.
     """
     data_block_size = np.ceil(max_chunk_size / (m_size * 8.0 * 1e-6))
     row_count = 0
     row_index = 0
     block_count = 0
-    blocks = {0: {}}
+    blocks = [[]]
+
     for s_id, src in enumerate(source_list):
         for r_id, rx in enumerate(src.receiver_list):
             indices = np.arange(rx.nD).astype(int)
@@ -66,12 +68,27 @@ def get_parallel_blocks(source_list: list, m_size: int, max_chunk_size: int):
                 if (row_count + chunk_size) > (data_block_size * cpu_count()):
                     row_count = 0
                     block_count += 1
-                    blocks[block_count] = {}
+                    blocks.append = []
 
-                blocks[block_count][(s_id, r_id, ind)] = chunk, np.arange(
-                    row_index, row_index + chunk_size
-                ).astype(int)
+                blocks[block_count].append(
+                    (
+                        (s_id, r_id, ind),
+                        (
+                            chunk,
+                            np.arange(row_index, row_index + chunk_size).astype(int),
+                            rx.locations.shape[0],
+                        ),
+                    )
+                )
                 row_index += chunk_size
                 row_count += chunk_size
 
+    # Re-split over cpu_count if too few blocks
+    if len(blocks) < cpu_count():
+        flatten_blocks = []
+        for block in blocks:
+            flatten_blocks += block
+
+        chunks = np.array_split(np.arange(len(flatten_blocks)), cpu_count())
+        return [[flatten_blocks[i] for i in chunk] for chunk in chunks]
     return blocks

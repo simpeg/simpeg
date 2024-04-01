@@ -157,74 +157,127 @@ Sim.field_derivs = None
 
 
 @delayed
-def block_deriv(time_index, field_type, source_list, mesh, time_mesh, fields, Jmatrix):
+def delayed_block_deriv(
+    time_index, chunks, field_type, source_list, mesh, time_mesh, fields, shape
+):
     """Compute derivatives for sources and receivers in a block"""
     field_len = len(fields[source_list[0], field_type, 0])
     df_duT = []
-    rx_count = 0
-    for source in source_list:
-        sources_block = []
+    j_update = []
+    # rx_count = 0
+    for indices, arrays in chunks:
+        # for source in source_list:
+        source = source_list[indices[0]]
+        receiver = source.receiver_list[indices[1]]
+        PTv = receiver.getP(mesh, time_mesh, fields).tocsr()
+        derivative_fun = getattr(fields, "_{}Deriv".format(receiver.projField), None)
+        # rx_ind = np.arange(rx_count, rx_count + rx.nD).astype(int)
+        cur = derivative_fun(
+            time_index,
+            source,
+            None,
+            PTv[:, (time_index * field_len) : ((time_index + 1) * field_len)].T,
+            adjoint=True,
+        )
+        df_duT.append(cur[0])
 
-        for rx in source.receiver_list:
-            PTv = rx.getP(mesh, time_mesh, fields).tocsr()
-            derivative_fun = getattr(fields, "_{}Deriv".format(rx.projField), None)
-            rx_ind = np.arange(rx_count, rx_count + rx.nD).astype(int)
-            cur = derivative_fun(
-                time_index,
-                source,
-                None,
-                PTv[:, (time_index * field_len) : ((time_index + 1) * field_len)].T,
-                adjoint=True,
+        if isinstance(cur[1], Zero):
+            j_update.append(
+                sp.csc_matrix((arrays[0].shape[0], shape), dtype=np.float32)
             )
-            sources_block.append(cur[0])
+        else:
+            j_update.append(cur[1].T)
 
-            if not isinstance(cur[1], Zero):
-                Jmatrix[rx_ind, :] += cur[1].T
+        # rx_count += rx.nD
 
-            rx_count += rx.nD
+        # df_duT.append(sources_block)
 
-        df_duT.append(sources_block)
-
-    return df_duT
+    return df_duT, sp.vstack(j_update)
 
 
-def compute_field_derivs(simulation, Jmatrix, fields):
+@delayed
+def sens_update(delayed_chunks_tuple, shape):
+    arrays = []
+    for chunk in delayed_chunks_tuple:
+        if not isinstance(chunk[1], Zero):
+            arrays.append(chunk[1].T)
+        else:
+            arrays.append(
+                sp.csc_matrix((chunk[1][0].shape[0], shape), dtype=np.float32)
+            )
+
+    return np.vstack(arrays)
+
+
+@delayed
+def deriv_update(delayed_chunks_tuple):
+    arrays = []
+    for chunk in delayed_chunks_tuple:
+        arrays.append(chunk[0])
+
+    return arrays
+
+
+def compute_field_derivs(simulation, fields, blocks, Jmatrix):
     """
     Compute the derivative of the fields
     """
     df_duT = []
 
     for time_index in range(simulation.nT + 1):
-        df_duT.append(
-            block_deriv(
+        block_derivs = []
+        j_updates = []
+        delayed_chunks = []
+        for chunks in blocks:
+            if len(chunks) == 0:
+                continue
+
+            delayed_block = delayed_block_deriv(
                 time_index,
+                chunks,
                 simulation._fieldType + "Solution",
                 simulation.survey.source_list,
                 simulation.mesh,
                 simulation.time_mesh,
                 fields,
-                Jmatrix,
+                simulation.model.size,
             )
-        )
+            delayed_chunks.append(delayed_block)
 
-    df_duT = dask.compute(df_duT)[0]
+        block_derivs = dask.compute(delayed_chunks)[0]
+        j_updates = sp.vstack([item[1] for item in block_derivs], dtype=np.float32)
+        df_duT.append([item[0] for item in block_derivs])
+        # chunk_shape = np.sum(chunk[1][0].shape[0] for chunk in chunks), simulation.model.size
+        # j_updates.append(array.from_delayed(
+        #     sens_update(delayed_block, simulation.model.size),
+        #     shape=chunk_shape, dtype=np.float32
+        # ))
+        # block_derivs.append(deriv_update(delayed_block))
+        # delayed_chunks = dask.compute(delayed_chunks)[0]
+        # for delayed_chunk in delayed_chunks:
 
-    return df_duT
+        # df_duT.append(block_derivs)
+        #
+
+        # update = dask.compute(array.vstack(j_updates))[0]
+        Jmatrix = Jmatrix + j_updates
+
+    # df_duT = dask.compute(df_duT)[0]
+
+    return df_duT, Jmatrix
 
 
 @delayed
 def deriv_block(
-    s_id, r_id, b_id, ATinv_df_duT_v, Asubdiag, local_ind, sub_ind, simulation, tInd
+    s_id, r_id, b_id, ATinv_df_duT_v, Asubdiag, local_ind, sub_ind, field_derivs, tInd
 ):
     if (s_id, r_id, b_id) not in ATinv_df_duT_v:
         # last timestep (first to be solved)
-        stacked_block = simulation.field_derivs[tInd + 1][s_id][r_id].toarray()[
-            :, sub_ind
-        ]
+        stacked_block = field_derivs.toarray()[:, sub_ind]
 
     else:
         stacked_block = np.asarray(
-            simulation.field_derivs[tInd + 1][s_id][r_id][:, sub_ind]
+            field_derivs[:, sub_ind]
             - Asubdiag.T * ATinv_df_duT_v[(s_id, r_id, b_id)][:, local_ind]
         )
 
@@ -245,7 +298,13 @@ def update_deriv_blocks(address, tInd, indices, derivatives, solve, shape):
 
 
 def get_field_deriv_block(
-    simulation, block: dict, tInd: int, AdiagTinv, ATinv_df_duT_v: dict, time_mask
+    simulation,
+    block: list,
+    field_derivs: list,
+    tInd: int,
+    AdiagTinv,
+    ATinv_df_duT_v: dict,
+    time_mask,
 ):
     """
     Stack the blocks of field derivatives for a given timestep and call the direct solver.
@@ -258,12 +317,11 @@ def get_field_deriv_block(
     if tInd < simulation.nT - 1:
         Asubdiag = simulation.getAsubdiag(tInd + 1)
 
-    for (s_id, r_id, b_id), (rx_ind, j_ind) in block.items():
+    for ((s_id, r_id, b_id), (rx_ind, j_ind, shape)), field_deriv in zip(
+        block, field_derivs
+    ):
         # Cut out early data
-        rx = simulation.survey.source_list[s_id].receiver_list[r_id]
-        time_check = np.kron(time_mask, np.ones(rx.locations.shape[0], dtype=bool))[
-            rx_ind
-        ]
+        time_check = np.kron(time_mask, np.ones(shape, dtype=bool))[rx_ind]
         sub_ind = rx_ind[time_check]
         local_ind = np.arange(rx_ind.shape[0])[time_check]
 
@@ -283,7 +341,7 @@ def get_field_deriv_block(
             Asubdiag,
             local_ind,
             sub_ind,
-            simulation,
+            field_deriv,
             tInd,
         )
 
@@ -292,22 +350,22 @@ def get_field_deriv_block(
                 deriv_comp,
                 dtype=float,
                 shape=(
-                    simulation.field_derivs[tInd][s_id][r_id].shape[0],
+                    field_deriv.shape[0],
                     len(local_ind),
                 ),
             )
         )
     if len(stacked_blocks) > 0:
         blocks = array.hstack(stacked_blocks).compute()
-        solve = AdiagTinv * blocks
+        solve = (AdiagTinv * blocks).reshape(blocks.shape)
     else:
         solve = None
 
     update_list = []
-    for address in block:
+    for (address, arrays), field_deriv in zip(block, field_derivs):
         shape = (
-            simulation.field_derivs[tInd][address[0]][address[1]].shape[0],
-            len(block[address][0]),
+            field_deriv.shape[0],
+            len(arrays[0]),
         )
         update_list.append(
             update_deriv_blocks(address, tInd, indices, ATinv_df_duT_v, solve, shape)
@@ -321,31 +379,27 @@ def get_field_deriv_block(
 def compute_rows(
     simulation,
     tInd,
-    addresses,  # (s_id, r_id, b_id)
-    indices,  # (rx_ind, j_ind),
+    chunks,
     ATinv_df_duT_v,
     fields,
-    Jmatrix,
-    ftype,
     time_mask,
 ):
     """
     Compute the rows of the sensitivity matrix for a given source and receiver.
     """
-    for address, ind_array in zip(addresses, indices):
+    n_rows = np.sum(len(chunk[1][0]) for chunk in chunks)
+    rows = np.zeros((n_rows, simulation.model.size), dtype=np.float32)
+    for address, ind_array in chunks:
         src = simulation.survey.source_list[address[0]]
-        rx = src.receiver_list[address[1]]
-        time_check = np.kron(time_mask, np.ones(rx.locations.shape[0], dtype=bool))[
-            ind_array[0]
-        ]
-        local_ind = np.arange(ind_array[0].shape[0])[time_check]
+        time_check = np.kron(time_mask, np.ones(ind_array[2], dtype=bool))[ind_array[0]]
+        local_ind = np.arange(len(ind_array[0]))[time_check]
 
         if len(local_ind) < 1:
             return
 
         dAsubdiagT_dm_v = simulation.getAsubdiagDeriv(
             tInd,
-            fields[src, ftype, tInd],
+            fields[:, address[0], tInd],
             ATinv_df_duT_v[address][:, local_ind],
             adjoint=True,
         )
@@ -354,15 +408,15 @@ def compute_rows(
             tInd + 1, src, ATinv_df_duT_v[address][:, local_ind], adjoint=True
         )  # on nodes of time mesh
 
-        un_src = fields[src, ftype, tInd + 1]
+        un_src = fields[:, address[0], tInd + 1]
         # cell centered on time mesh
         dAT_dm_v = simulation.getAdiagDeriv(
             tInd, un_src, ATinv_df_duT_v[address][:, local_ind], adjoint=True
         )
 
-        Jmatrix[ind_array[1][time_check], :] += (
-            -dAT_dm_v - dAsubdiagT_dm_v + dRHST_dm_v
-        ).T
+        rows[time_check, :] = (-dAT_dm_v - dAsubdiagT_dm_v + dRHST_dm_v).T
+
+    return rows
 
 
 def compute_J(self, f=None, Ainv=None):
@@ -374,39 +428,46 @@ def compute_J(self, f=None, Ainv=None):
         f, Ainv = self.fields(self.model, return_Ainv=True)
 
     ftype = self._fieldType + "Solution"
-    Jmatrix = delayed(np.zeros((self.survey.nD, self.model.size), dtype=np.float32))
+    Jmatrix = np.zeros((self.survey.nD, self.model.size), dtype=np.float32)
     simulation_times = np.r_[0, np.cumsum(self.time_steps)] + self.t0
     data_times = self.survey.source_list[0].receiver_list[0].times
     blocks = get_parallel_blocks(
         self.survey.source_list, self.model.shape[0], self.max_chunk_size
     )
-    self.field_derivs = compute_field_derivs(self, Jmatrix, f)
+    times_field_derivs, Jmatrix = compute_field_derivs(self, f, blocks, Jmatrix)
+    fields_array = delayed(f[:, ftype, :])
     ATinv_df_duT_v = {}
     for tInd, dt in tqdm(zip(reversed(range(self.nT)), reversed(self.time_steps))):
         AdiagTinv = Ainv[dt]
         j_row_updates = []
         time_mask = data_times > simulation_times[tInd]
 
-        for block in blocks.values():
+        for block, field_deriv in zip(blocks, times_field_derivs[tInd + 1]):
             ATinv_df_duT_v = get_field_deriv_block(
-                self, block, tInd, AdiagTinv, ATinv_df_duT_v, time_mask
+                self, block, field_deriv, tInd, AdiagTinv, ATinv_df_duT_v, time_mask
             )
-            split_blocks = np.array_split(list(block.items()), cpu_count())
-            for arrays in split_blocks:
-                j_row_updates.append(
+
+            if len(block) == 0:
+                continue
+            n_rows = np.sum(len(chunk[1][0]) for chunk in block)
+            j_row_updates.append(
+                array.from_delayed(
                     compute_rows(
                         self,
                         tInd,
-                        arrays[:, 0],
-                        arrays[:, 1],
+                        block,
                         ATinv_df_duT_v,
-                        f,
-                        Jmatrix,
-                        ftype,
+                        fields_array,
                         time_mask,
-                    )
+                    ),
+                    dtype=np.float32,
+                    shape=(n_rows, self.model.size),
                 )
-        dask.compute(j_row_updates)
+            )
+
+        update = dask.compute(array.vstack(j_row_updates))[0]
+        Jmatrix += update
+
     for A in Ainv.values():
         A.clean()
 
@@ -414,7 +475,7 @@ def compute_J(self, f=None, Ainv=None):
         del Jmatrix
         return array.from_zarr(self.sensitivity_path + f"J.zarr")
     else:
-        return Jmatrix.compute()
+        return np.asarray(Jmatrix)
 
 
 Sim.compute_J = compute_J
