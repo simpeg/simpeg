@@ -476,12 +476,12 @@ class BaseSimulation(props.HasModel):
         ----------
         m : (n_param, ) numpy.ndarray
             The model parameters.
-        relative_error : float, SimPEG.data.UncertaintyArray
+        relative_error : float, numpy.ndarray
             Assign relative uncertainties to the data using relative error; sometimes
             referred to as percent uncertainties. For each datum, we assume the
             standard deviation of Gaussian noise is the relative error times the
             absolute value of the datum; i.e. :math:`C_\text{err} \times |d|`.
-        noise_floor : float, SimPEG.data.UncertaintyArray
+        noise_floor : float, numpy.ndarray
             Assign floor/absolute uncertainties to the data. For each datum, we assume
             standard deviation of Gaussian noise is equal to `noise_floor`.
         f : SimPEG.fields.Fields, optional
