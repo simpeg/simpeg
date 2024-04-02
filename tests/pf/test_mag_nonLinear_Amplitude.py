@@ -143,7 +143,7 @@ class AmpProblemTest(unittest.TestCase):
         reg = regularization.Sparse(
             mesh, active_cells=surf, mapping=maps.IdentityMap(nP=nC), alpha_z=0
         )
-        reg.mref = np.zeros(nC)
+        reg.reference_model = np.zeros(nC)
 
         # Specify how the optimization will proceed, set susceptibility bounds to inf
         opt = optimization.ProjectedGNCG(
@@ -236,7 +236,7 @@ class AmpProblemTest(unittest.TestCase):
         # Create a sparse regularization
         reg = regularization.Sparse(mesh, active_cells=actv, mapping=idenMap)
         reg.norms = [1, 0, 0, 0]
-        reg.mref = np.zeros(nC)
+        reg.reference_model = np.zeros(nC)
 
         # Data misfit function
         dmis = data_misfit.L2DataMisfit(simulation=simulation, data=data_obj)

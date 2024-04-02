@@ -3,7 +3,6 @@ import scipy.sparse as sp
 from ...utils import mkvc, validate_type, validate_direction
 from discretize.utils import Zero
 from ...survey import BaseTimeRx
-import warnings
 
 
 class BaseRx(BaseTimeRx):
@@ -25,17 +24,10 @@ class BaseRx(BaseTimeRx):
         times,
         orientation="z",
         use_source_receiver_offset=False,
-        **kwargs
+        **kwargs,
     ):
-        proj = kwargs.pop("projComp", None)
-        if proj is not None:
-            warnings.warn(
-                "'projComp' overrides the 'orientation' property which automatically"
-                " handles the projection from the mesh the receivers!!! "
-                "'projComp' is deprecated and will be removed in SimPEG 0.19.0.",
-                stacklevel=2,
-            )
-            self.projComp = proj
+        if (key := "projComp") in kwargs.keys():
+            raise TypeError(f"'{key}' property has been removed.")
 
         if locations is None:
             raise AttributeError("'locations' are required. Cannot be 'None'")
