@@ -746,7 +746,7 @@ class LinearSimulation(BaseSimulation):
     """
 
     linear_model, model_map, model_deriv = props.Invertible(
-        "the model for a linear problem"
+        "The model for a linear problem"
     )
 
     def __init__(self, mesh=None, linear_model=None, model_map=None, G=None, **kwargs):
