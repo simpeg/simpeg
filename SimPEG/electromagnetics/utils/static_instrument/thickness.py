@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 
 def build_log_spaced_layer_thick(first_thk=1, last_dep_top=400, numlay=30, output='thk'):
     '''
