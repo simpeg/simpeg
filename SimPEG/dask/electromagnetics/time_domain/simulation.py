@@ -7,6 +7,7 @@ from multiprocessing import cpu_count
 import numpy as np
 import scipy.sparse as sp
 from dask import array, delayed
+from dask.diagnostics import ProgressBar
 from SimPEG.dask.simulation import dask_Jvec, dask_Jtvec, dask_getJtJdiag
 from SimPEG.dask.utils import get_parallel_blocks
 import zarr
@@ -31,7 +32,7 @@ def fields(self, m=None, return_Ainv=False):
     Ainv = {}
     ATinv = {}
 
-    for tInd, dt in enumerate(self.time_steps):
+    for tInd, dt in tqdm(enumerate(self.time_steps)):
         if dt not in Ainv:
             A = self.getAdiag(tInd)
             Ainv[dt] = self.solver(sp.csr_matrix(A), **self.solver_opts)
@@ -133,7 +134,8 @@ def dask_dpred(self, m=None, f=None, compute_J=False):
 
     row = delayed(evaluate_receiver, pure=True)
     rows = []
-    for src in self.survey.source_list:
+
+    for src in tqdm(self.survey.source_list):
         for rx in src.receiver_list:
             rows.append(
                 array.from_delayed(
@@ -143,7 +145,8 @@ def dask_dpred(self, m=None, f=None, compute_J=False):
                 )
             )
 
-    data = array.hstack(rows).compute()
+    with ProgressBar():
+        data = array.hstack(rows).compute()
 
     if compute_J and self._Jmatrix is None:
         Jmatrix = self.compute_J(f=f, Ainv=Ainv)

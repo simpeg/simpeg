@@ -233,9 +233,9 @@ def dask_dpred(self, m=None, f=None, compute_J=False):
                     shape=(rx.nD,),
                 )
             )
-    print("Computing data")
+
     data = array.hstack(rows).compute()
-    print("Computing data done")
+
     if compute_J and self._Jmatrix is None:
         Jmatrix = self.compute_J(f=f, Ainv=Ainv)
         return data, Jmatrix
