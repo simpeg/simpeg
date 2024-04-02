@@ -30,6 +30,7 @@ https://doi.org/10.6084/m9.figshare.5036123
 
 This example was updated for SimPEG 0.14.0 on January 31st, 2020 by Joseph Capriotti
 """
+
 import discretize
 from SimPEG import utils, maps, tests
 from SimPEG.electromagnetics import frequency_domain as FDEM, mu_0
@@ -265,8 +266,8 @@ class PrimSecCasingExample(object):
                 expMapPrimary
                 * injActMapPrimary  # log(sigma) --> sigma
                 * paramMapPrimary  # log(sigma) below surface --> include air
-                * injectCasingParams  # parametric --> casing + layered earth
-                *  # parametric layered earth --> parametric
+                * injectCasingParams  # parametric --> casing + layered earth  # parametric layered earth --> parametric
+                *
                 # layered earth + casing
                 self.projectionMapPrimary  # grab relevant parameters from full
                 # model (eg. ignore block)

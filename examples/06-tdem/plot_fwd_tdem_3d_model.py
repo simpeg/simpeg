@@ -2,6 +2,7 @@
 Time-domain CSEM for a resistive cube in a deep marine setting
 ==============================================================
 """
+
 import empymod
 import discretize
 

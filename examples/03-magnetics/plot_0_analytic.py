@@ -5,6 +5,7 @@ PF: Magnetics: Analytics
 Comparing the magnetics field in Vancouver to Seoul
 
 """
+
 import numpy as np
 from SimPEG.potential_fields.magnetics import analytics
 import matplotlib.pyplot as plt

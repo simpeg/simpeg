@@ -147,6 +147,7 @@ to constrain inversions.
   BaseAmplitude
 
 """
+
 from ..utils.code_utils import deprecate_class
 from .base import (
     BaseRegularization,

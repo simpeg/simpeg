@@ -1697,9 +1697,7 @@ class SelfConsistentEffectiveMedium(IdentityMap):
         if alpha < 1.0:  # oblate spheroid
             chi = np.sqrt((1.0 / alpha**2.0) - 1)
             return (
-                1.0
-                / 2.0
-                * (1 + 1.0 / (alpha**2.0 - 1) * (1.0 - np.arctan(chi) / chi))
+                1.0 / 2.0 * (1 + 1.0 / (alpha**2.0 - 1) * (1.0 - np.arctan(chi) / chi))
             )
         elif alpha > 1.0:  # prolate spheroid
             chi = np.sqrt(1 - (1.0 / alpha**2.0))
@@ -3273,9 +3271,11 @@ class Mesh2Mesh(IdentityMap):
     def P(self):
         if getattr(self, "_P", None) is None:
             self._P = self.mesh2.get_interpolation_matrix(
-                self.mesh.cell_centers[self.indActive, :]
-                if self.indActive is not None
-                else self.mesh.cell_centers,
+                (
+                    self.mesh.cell_centers[self.indActive, :]
+                    if self.indActive is not None
+                    else self.mesh.cell_centers
+                ),
                 "CC",
                 zeros_outside=True,
             )
@@ -4581,15 +4581,19 @@ class BaseParametric(IdentityMap):
         if getattr(self, "_x", None) is None:
             if self.mesh.dim == 1:
                 self._x = [
-                    self.mesh.cell_centers
-                    if self.indActive is None
-                    else self.mesh.cell_centers[self.indActive]
+                    (
+                        self.mesh.cell_centers
+                        if self.indActive is None
+                        else self.mesh.cell_centers[self.indActive]
+                    )
                 ][0]
             else:
                 self._x = [
-                    self.mesh.cell_centers[:, 0]
-                    if self.indActive is None
-                    else self.mesh.cell_centers[self.indActive, 0]
+                    (
+                        self.mesh.cell_centers[:, 0]
+                        if self.indActive is None
+                        else self.mesh.cell_centers[self.indActive, 0]
+                    )
                 ][0]
         return self._x
 
@@ -4605,9 +4609,11 @@ class BaseParametric(IdentityMap):
         if getattr(self, "_y", None) is None:
             if self.mesh.dim > 1:
                 self._y = [
-                    self.mesh.cell_centers[:, 1]
-                    if self.indActive is None
-                    else self.mesh.cell_centers[self.indActive, 1]
+                    (
+                        self.mesh.cell_centers[:, 1]
+                        if self.indActive is None
+                        else self.mesh.cell_centers[self.indActive, 1]
+                    )
                 ][0]
             else:
                 self._y = None
@@ -4625,9 +4631,11 @@ class BaseParametric(IdentityMap):
         if getattr(self, "_z", None) is None:
             if self.mesh.dim > 2:
                 self._z = [
-                    self.mesh.cell_centers[:, 2]
-                    if self.indActive is None
-                    else self.mesh.cell_centers[self.indActive, 2]
+                    (
+                        self.mesh.cell_centers[:, 2]
+                        if self.indActive is None
+                        else self.mesh.cell_centers[self.indActive, 2]
+                    )
                 ][0]
             else:
                 self._z = None
@@ -5094,12 +5102,7 @@ class ParametricBlock(BaseParametric):
         return (val**2 + self.epsilon**2) ** (self.p / 2.0)
 
     def _ekblomDeriv(self, val):
-        return (
-            (self.p / 2)
-            * (val**2 + self.epsilon**2) ** ((self.p / 2) - 1)
-            * 2
-            * val
-        )
+        return (self.p / 2) * (val**2 + self.epsilon**2) ** ((self.p / 2) - 1) * 2 * val
 
     # def _rotation(self, mDict):
     #     if self.mesh.dim == 2:

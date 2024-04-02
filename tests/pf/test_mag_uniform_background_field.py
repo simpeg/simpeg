@@ -1,6 +1,7 @@
 """
 Test the UniformBackgroundField class
 """
+
 import pytest
 from SimPEG.potential_fields.magnetics import UniformBackgroundField, SourceField
 

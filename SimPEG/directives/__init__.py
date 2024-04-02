@@ -96,6 +96,7 @@ is used under the hood to handle the execution of all directives passed to the
    DirectiveList
 
 """
+
 from .directives import (
     InversionDirective,
     DirectiveList,

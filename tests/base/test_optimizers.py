@@ -49,10 +49,8 @@ class TestOptimizers(unittest.TestCase):
         self.assertTrue(np.linalg.norm(xopt - x_true, 2) < TOL, True)
 
     def test_NewtonRoot(self):
-        fun = (
-            lambda x, return_g=True: np.sin(x)
-            if not return_g
-            else (np.sin(x), sdiag(np.cos(x)))
+        fun = lambda x, return_g=True: (
+            np.sin(x) if not return_g else (np.sin(x), sdiag(np.cos(x)))
         )
         x = np.array([np.pi - 0.3, np.pi + 0.1, 0])
         xopt = optimization.NewtonRoot(comments=False).root(fun, x)

@@ -11,6 +11,7 @@ then applying an Lp norm to produce a compact model.
 
 Craig Miller
 """
+
 import os
 import shutil
 import tarfile

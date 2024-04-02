@@ -6,6 +6,7 @@ Create a synthetic block model and invert
 with a compact norm
 
 """
+
 import matplotlib.pyplot as plt
 import numpy as np
 from discretize import TensorMesh

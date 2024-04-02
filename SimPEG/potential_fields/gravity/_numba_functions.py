@@ -1,6 +1,7 @@
 """
 Numba functions for gravity simulation using Choclo.
 """
+
 import numpy as np
 
 try:
