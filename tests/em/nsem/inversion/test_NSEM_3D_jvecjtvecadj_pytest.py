@@ -134,13 +134,13 @@ def get_survey(survey_type, orientations, components, locations, frequencies):
 
 
 CASES_LIST = [
-    # ("magnetotelluric", ["xy", "yx"], ["real", "imag"]),
-    # ("magnetotelluric", ["xx", "yy"], ["real", "imag"]),
-    # ("magnetotelluric", ["xy", "yx"], ["app_res"]),
-    # ("magnetotelluric", ["xx", "yy"], ["app_res"]),
-    # ("magnetotelluric", ["xy", "yx"], ["phase"]),
-    # ("tipper", ["zx", "zy"], ["real", "imag"]),
-    # ("tipper", ["xx", "yx", "xy", "yy"], ["real", "imag"])
+    ("magnetotelluric", ["xy", "yx"], ["real", "imag"]),
+    ("magnetotelluric", ["xx", "yy"], ["real", "imag"]),
+    ("magnetotelluric", ["xy", "yx"], ["app_res"]),
+    ("magnetotelluric", ["xx", "yy"], ["app_res"]),
+    ("magnetotelluric", ["xy", "yx"], ["phase"]),
+    ("tipper", ["zx", "zy"], ["real", "imag"]),
+    ("tipper", ["xx", "yx", "xy", "yy"], ["real", "imag"])
     ("admittance", ["xy", "yx"], ["real", "imag"]),
     ("admittance", ["xx", "yy"], ["real", "imag"]),
     ("admittance", ["zx", "zy"], ["real", "imag"]),
