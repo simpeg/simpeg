@@ -1,6 +1,6 @@
 import dask
 import dask.array
-
+import os
 from ....electromagnetics.time_domain.simulation import BaseTDEMSimulation as Sim
 from ....utils import Zero
 from multiprocessing import cpu_count
@@ -138,7 +138,7 @@ def dask_dpred(self, m=None, f=None, compute_J=False):
             rows.append(
                 array.from_delayed(
                     row(src, rx, self.mesh, self.time_mesh, f),
-                    dtype=np.float32,
+                    dtype=np.float64,
                     shape=(rx.nD,),
                 )
             )
@@ -158,20 +158,18 @@ Sim.field_derivs = None
 
 @delayed
 def delayed_block_deriv(
-    time_index, chunks, field_type, source_list, mesh, time_mesh, fields, shape
+    time_index, chunks, field_type, source_list, mesh, time_mesh, fields, shape, Jmatrix
 ):
     """Compute derivatives for sources and receivers in a block"""
     field_len = len(fields[source_list[0], field_type, 0])
     df_duT = []
     j_update = []
-    # rx_count = 0
+
     for indices, arrays in chunks:
-        # for source in source_list:
         source = source_list[indices[0]]
         receiver = source.receiver_list[indices[1]]
         PTv = receiver.getP(mesh, time_mesh, fields).tocsr()
         derivative_fun = getattr(fields, "_{}Deriv".format(receiver.projField), None)
-        # rx_ind = np.arange(rx_count, rx_count + rx.nD).astype(int)
         cur = derivative_fun(
             time_index,
             source,
@@ -181,41 +179,14 @@ def delayed_block_deriv(
         )
         df_duT.append(cur[0])
 
-        if isinstance(cur[1], Zero):
-            j_update.append(
-                sp.csc_matrix((arrays[0].shape[0], shape), dtype=np.float32)
-            )
-        else:
+        if not isinstance(cur[1], Zero) and not len(cur[1].data) == 0:
             j_update.append(cur[1].T)
-
-        # rx_count += rx.nD
-
-        # df_duT.append(sources_block)
-
-    return df_duT, sp.vstack(j_update)
-
-
-@delayed
-def sens_update(delayed_chunks_tuple, shape):
-    arrays = []
-    for chunk in delayed_chunks_tuple:
-        if not isinstance(chunk[1], Zero):
-            arrays.append(chunk[1].T)
         else:
-            arrays.append(
-                sp.csc_matrix((chunk[1][0].shape[0], shape), dtype=np.float32)
+            j_update.append(
+                sp.csr_matrix((arrays[0].shape[0], Jmatrix.shape[1]), dtype=np.float32)
             )
 
-    return np.vstack(arrays)
-
-
-@delayed
-def deriv_update(delayed_chunks_tuple):
-    arrays = []
-    for chunk in delayed_chunks_tuple:
-        arrays.append(chunk[0])
-
-    return arrays
+    return df_duT, j_update
 
 
 def compute_field_derivs(simulation, fields, blocks, Jmatrix):
@@ -241,28 +212,23 @@ def compute_field_derivs(simulation, fields, blocks, Jmatrix):
                 simulation.time_mesh,
                 fields,
                 simulation.model.size,
+                Jmatrix,
             )
             delayed_chunks.append(delayed_block)
 
-        block_derivs = dask.compute(delayed_chunks)[0]
-        j_updates = sp.vstack([item[1] for item in block_derivs], dtype=np.float32)
-        df_duT.append([item[0] for item in block_derivs])
-        # chunk_shape = np.sum(chunk[1][0].shape[0] for chunk in chunks), simulation.model.size
-        # j_updates.append(array.from_delayed(
-        #     sens_update(delayed_block, simulation.model.size),
-        #     shape=chunk_shape, dtype=np.float32
-        # ))
-        # block_derivs.append(deriv_update(delayed_block))
-        # delayed_chunks = dask.compute(delayed_chunks)[0]
-        # for delayed_chunk in delayed_chunks:
+        for chunk in dask.compute(delayed_chunks)[0]:
+            block_derivs += chunk[0]
+            j_updates += chunk[1]
 
-        # df_duT.append(block_derivs)
-        #
+        Jmatrix += sp.vstack(j_updates)
+        if simulation.store_sensitivities == "disk":
+            sens_name = simulation.sensitivity_path[:-5] + f"_{time_index % 2}.zarr"
+            array.to_zarr(Jmatrix, sens_name, compute=True, overwrite=True)
+            Jmatrix = array.from_zarr(sens_name)
+        else:
+            dask.compute(Jmatrix)
 
-        # update = dask.compute(array.vstack(j_updates))[0]
-        Jmatrix = Jmatrix + j_updates
-
-    # df_duT = dask.compute(df_duT)[0]
+        df_duT.append(block_derivs)
 
     return df_duT, Jmatrix
 
@@ -388,7 +354,8 @@ def compute_rows(
     Compute the rows of the sensitivity matrix for a given source and receiver.
     """
     n_rows = np.sum(len(chunk[1][0]) for chunk in chunks)
-    rows = np.zeros((n_rows, simulation.model.size), dtype=np.float32)
+    rows = []
+
     for address, ind_array in chunks:
         src = simulation.survey.source_list[address[0]]
         time_check = np.kron(time_mask, np.ones(ind_array[2], dtype=bool))[ind_array[0]]
@@ -397,26 +364,35 @@ def compute_rows(
         if len(local_ind) < 1:
             return
 
+        field_derivs = ATinv_df_duT_v[address]
         dAsubdiagT_dm_v = simulation.getAsubdiagDeriv(
             tInd,
             fields[:, address[0], tInd],
-            ATinv_df_duT_v[address][:, local_ind],
+            field_derivs[:, local_ind],
             adjoint=True,
         )
 
         dRHST_dm_v = simulation.getRHSDeriv(
-            tInd + 1, src, ATinv_df_duT_v[address][:, local_ind], adjoint=True
+            tInd + 1, src, field_derivs[:, local_ind], adjoint=True
         )  # on nodes of time mesh
 
         un_src = fields[:, address[0], tInd + 1]
         # cell centered on time mesh
         dAT_dm_v = simulation.getAdiagDeriv(
-            tInd, un_src, ATinv_df_duT_v[address][:, local_ind], adjoint=True
+            tInd, un_src, field_derivs[:, local_ind], adjoint=True
         )
+        # if isinstance(Jmatrix, zarr.core.Array):
+        #     Jmatrix.oindex[ind_array[1][time_check].tolist(), :] += (-dAT_dm_v - dAsubdiagT_dm_v + dRHST_dm_v).T.astype(np.float64)
+        # else:
+        row_block = np.zeros(
+            (len(ind_array[1]), simulation.model.size), dtype=np.float32
+        )
+        row_block[time_check, :] = (-dAT_dm_v - dAsubdiagT_dm_v + dRHST_dm_v).T.astype(
+            np.float32
+        )
+        rows.append(row_block)
 
-        rows[time_check, :] = (-dAT_dm_v - dAsubdiagT_dm_v + dRHST_dm_v).T
-
-    return rows
+    return np.vstack(rows)
 
 
 def compute_J(self, f=None, Ainv=None):
@@ -428,7 +404,23 @@ def compute_J(self, f=None, Ainv=None):
         f, Ainv = self.fields(self.model, return_Ainv=True)
 
     ftype = self._fieldType + "Solution"
-    Jmatrix = np.zeros((self.survey.nD, self.model.size), dtype=np.float32)
+    sens_name = self.sensitivity_path[:-5]
+    if self.store_sensitivities == "disk":
+        rows = array.zeros(
+            (self.survey.nD, self.model.size),
+            chunks=(self.max_chunk_size, self.model.size),
+            dtype=np.float32,
+        )
+        Jmatrix = array.to_zarr(
+            rows,
+            os.path.join(sens_name + "_1.zarr"),
+            compute=True,
+            return_stored=True,
+            overwrite=True,
+        )
+    else:
+        Jmatrix = array.zeros((self.survey.nD, self.model.size), dtype=np.float64)
+
     simulation_times = np.r_[0, np.cumsum(self.time_steps)] + self.t0
     data_times = self.survey.source_list[0].receiver_list[0].times
     blocks = get_parallel_blocks(
@@ -449,7 +441,7 @@ def compute_J(self, f=None, Ainv=None):
 
             if len(block) == 0:
                 continue
-            n_rows = np.sum(len(chunk[1][0]) for chunk in block)
+
             j_row_updates.append(
                 array.from_delayed(
                     compute_rows(
@@ -461,21 +453,25 @@ def compute_J(self, f=None, Ainv=None):
                         time_mask,
                     ),
                     dtype=np.float32,
-                    shape=(n_rows, self.model.size),
+                    shape=(
+                        np.sum(len(chunk[1][0]) for chunk in block),
+                        self.model.size,
+                    ),
                 )
             )
 
-        update = dask.compute(array.vstack(j_row_updates))[0]
-        Jmatrix += update
+        Jmatrix += array.vstack(j_row_updates)
+        if self.store_sensitivities == "disk":
+            sens_name = self.sensitivity_path[:-5] + f"_{tInd % 2}.zarr"
+            array.to_zarr(Jmatrix, sens_name, compute=True, overwrite=True)
+            Jmatrix = array.from_zarr(sens_name)
+        else:
+            dask.compute(Jmatrix)
 
     for A in Ainv.values():
         A.clean()
 
-    if self.store_sensitivities == "disk":
-        del Jmatrix
-        return array.from_zarr(self.sensitivity_path + f"J.zarr")
-    else:
-        return np.asarray(Jmatrix)
+    return Jmatrix
 
 
 Sim.compute_J = compute_J
