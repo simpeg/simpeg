@@ -28,6 +28,9 @@ import SimPEG.electromagnetics.time_domain as tdem
 import SimPEG.electromagnetics.utils.em1d_utils
 from SimPEG.electromagnetics.utils.em1d_utils import get_2d_mesh,plot_layer, get_vertical_discretization_time
 from SimPEG.regularization import LaterallyConstrained, RegularizationMesh
+
+from .thickness import build_log_spaced_layer_thick
+
 import warnings
 
 try:
