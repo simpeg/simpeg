@@ -195,7 +195,7 @@ def compute_field_derivs(simulation, fields, blocks, Jmatrix):
     """
     df_duT = []
 
-    for time_index in range(simulation.nT + 1):
+    for time_index in tqdm(range(simulation.nT + 1)):
         block_derivs = []
         block_updates = []
         delayed_chunks = []
@@ -429,7 +429,9 @@ def compute_J(self, f=None, Ainv=None):
     blocks = get_parallel_blocks(
         self.survey.source_list, self.model.shape[0], self.max_chunk_size
     )
+    print("Computing field derivatives")
     times_field_derivs, Jmatrix = compute_field_derivs(self, f, blocks, Jmatrix)
+    print("Done")
     fields_array = delayed(f[:, ftype, :])
     ATinv_df_duT_v = {}
     for tInd, dt in tqdm(zip(reversed(range(self.nT)), reversed(self.time_steps))):

@@ -9,6 +9,7 @@ from .utils import compute
 
 Sim._max_ram = 16
 
+
 @property
 def max_ram(self):
     "Maximum ram in (Gb)"
@@ -62,7 +63,7 @@ Sim.n_cpu = n_cpu
 
 
 def make_synthetic_data(
-        self, m, relative_error=0.05, noise_floor=0.0, f=None, add_noise=False, **kwargs
+    self, m, relative_error=0.05, noise_floor=0.0, f=None, add_noise=False, **kwargs
 ):
     """
     Make synthetic data given a model, and a standard deviation.
@@ -106,12 +107,13 @@ def make_synthetic_data(
         noise_floor=noise_floor,
     )
 
+
 Sim.make_synthetic_data = make_synthetic_data
 
 
 @property
 def workers(self):
-    if getattr(self, '_workers', None) is None:
+    if getattr(self, "_workers", None) is None:
         self._workers = None
 
     return self._workers
@@ -127,7 +129,7 @@ Sim.workers = workers
 
 def dask_Jvec(self, m, v):
     """
-        Compute sensitivity matrix (J) and vector (v) product.
+    Compute sensitivity matrix (J) and vector (v) product.
     """
     self.model = m
 
@@ -145,7 +147,7 @@ Sim.Jvec = dask_Jvec
 
 def dask_Jtvec(self, m, v):
     """
-        Compute adjoint sensitivity matrix (J^T) and vector (v) product.
+    Compute adjoint sensitivity matrix (J^T) and vector (v) product.
     """
     self.model = m
 
@@ -174,13 +176,11 @@ def Jmatrix(self):
 
             if self.store_sensitivities == "ram":
                 self._Jmatrix = client.persist(
-                    delayed(self.compute_J)(),
-                    workers=self.workers
+                    delayed(self.compute_J)(), workers=self.workers
                 )
             else:
                 self._Jmatrix = client.compute(
-                    delayed(self.compute_J)(),
-                    workers=self.workers
+                    delayed(self.compute_J)(), workers=self.workers
                 )
 
     elif isinstance(self._Jmatrix, Future):
@@ -226,14 +226,16 @@ def dask_dpred(self, m=None, f=None, compute_J=False):
     rows = []
     for src in self.survey.source_list:
         for rx in src.receiver_list:
-            rows.append(array.from_delayed(
-                row(src, rx, self.mesh, f),
-                dtype=np.float32,
-                shape=(rx.nD,),
-            ))
-
+            rows.append(
+                array.from_delayed(
+                    row(src, rx, self.mesh, f),
+                    dtype=np.float32,
+                    shape=(rx.nD,),
+                )
+            )
+    print("Computing data")
     data = array.hstack(rows).compute()
-
+    print("Computing data done")
     if compute_J and self._Jmatrix is None:
         Jmatrix = self.compute_J(f=f, Ainv=Ainv)
         return data, Jmatrix
@@ -246,7 +248,7 @@ Sim.dpred = dask_dpred
 
 def dask_getJtJdiag(self, m, W=None):
     """
-        Return the diagonal of JtJ
+    Return the diagonal of JtJ
     """
     self.model = m
     if getattr(self, "_jtjdiag", None) is None:
@@ -258,7 +260,7 @@ def dask_getJtJdiag(self, m, W=None):
         else:
             W = W.diagonal() ** 2.0
 
-        diag = array.einsum('i,ij,ij->j', W, self.Jmatrix, self.Jmatrix)
+        diag = array.einsum("i,ij,ij->j", W, self.Jmatrix, self.Jmatrix)
 
         if isinstance(diag, array.Array):
             diag = np.asarray(diag.compute())
