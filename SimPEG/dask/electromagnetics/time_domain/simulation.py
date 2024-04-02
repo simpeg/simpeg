@@ -179,7 +179,7 @@ def delayed_block_deriv(
         )
         df_duT.append(cur[0])
 
-        if not isinstance(cur[1], Zero) and not len(cur[1].data) == 0:
+        if not isinstance(cur[1], Zero):
             j_update.append(cur[1].T)
         else:
             j_update.append(
@@ -197,7 +197,7 @@ def compute_field_derivs(simulation, fields, blocks, Jmatrix):
 
     for time_index in range(simulation.nT + 1):
         block_derivs = []
-        j_updates = []
+        block_updates = []
         delayed_chunks = []
         for chunks in blocks:
             if len(chunks) == 0:
@@ -217,16 +217,19 @@ def compute_field_derivs(simulation, fields, blocks, Jmatrix):
             delayed_chunks.append(delayed_block)
 
         for chunk in dask.compute(delayed_chunks)[0]:
-            block_derivs += chunk[0]
-            j_updates += chunk[1]
+            block_derivs.append(chunk[0])
+            block_updates += chunk[1]
 
-        Jmatrix += sp.vstack(j_updates)
-        if simulation.store_sensitivities == "disk":
-            sens_name = simulation.sensitivity_path[:-5] + f"_{time_index % 2}.zarr"
-            array.to_zarr(Jmatrix, sens_name, compute=True, overwrite=True)
-            Jmatrix = array.from_zarr(sens_name)
-        else:
-            dask.compute(Jmatrix)
+        j_updates = sp.vstack(block_updates)
+
+        if len(j_updates.data) > 0:
+            Jmatrix += sp.vstack(j_updates)
+            if simulation.store_sensitivities == "disk":
+                sens_name = simulation.sensitivity_path[:-5] + f"_{time_index % 2}.zarr"
+                array.to_zarr(Jmatrix, sens_name, compute=True, overwrite=True)
+                Jmatrix = array.from_zarr(sens_name)
+            else:
+                dask.compute(Jmatrix)
 
         df_duT.append(block_derivs)
 
