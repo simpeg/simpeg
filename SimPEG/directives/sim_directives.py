@@ -248,7 +248,7 @@ class PairedBetaEstimate_ByEig(InversionDirective):
         if self.seed is not None:
             np.random.seed(self.seed)
 
-        if self.debug:
+        if self.verbose:
             print("Calculating the beta0 parameter.")
 
         m = self.invProb.model

@@ -49,6 +49,7 @@ docs/content/api/generated/*
 docs/content/examples/*
 docs/content/tutorials/*
 docs/modules/*
+docs/sg_execution_times.rst
 .vscode/*
 
 # paths to where data are downloaded
