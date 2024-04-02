@@ -200,17 +200,27 @@ class XYZSystem(object):
         
         return np.where(np.isnan(self.data_array_nan), np.Inf, uncertainties)
 
-    startmodel__thicknesses_type : typing.Literal['time', 'geometric'] = "time"
+    startmodel__thicknesses_type: typing.Literal['logspaced', 'geometric', 'time'] = "logspaced"
     "Type of model discretization"
-    startmodel__thicknesses_minimum_dz = 3
-    "Thickness of thinnest layer if using geometric discretization"
-    startmodel__thicknesses_geomtric_factor = 1.08
+    startmodel__thicknesses_minimum_dz = 1
+    "Thickness of thinnest layer if using 'logspaced' or 'geometric' discretization"
+    startmodel__top_depth_last_layer = 400
+    "Depth to the top of the last layer if using logspaced discretization"
+    startmodel__thicknesses_geomtric_factor = 1.15309
     "Ratio of one layer to the next if using geometric discretization"
+
     def make_thicknesses(self):
-        if self.startmodel__thicknesses_type == "geometric":
-            return SimPEG.electromagnetics.utils.em1d_utils.get_vertical_discretization(
-                self.n_layer_used-1, self.startmodel__thicknesses_minimum_dz, self.startmodel__thicknesses_geomtric_factor)
-        else:
+        if self.startmodel__thicknesses_type == "logspaced":
+            thk = build_log_spaced_layer_thick(first_thk=self.startmodel__thicknesses_minimum_dz,
+                                               last_dep_top=self.startmodel__top_depth_last_layer,
+                                               numlay=self.n_layer_used)
+            # print(thk)
+            return thk
+        elif self.startmodel__thicknesses_type == "geometric":
+            return SimPEG.electromagnetics.utils.em1d_utils.get_vertical_discretization(self.n_layer_used - 1,
+                                                                                        self.startmodel__thicknesses_minimum_dz,
+                                                                                        self.startmodel__thicknesses_geomtric_factor)
+        elif self.startmodel__thicknesses_type == "time":
             if "dep_top" in self.xyz.layer_params:
                 return np.diff(self.xyz.layer_params["dep_top"].values)
             # FIX ME: if model is given it should use the resistivities in the model, not self.startmodel__res
@@ -219,6 +229,8 @@ class XYZSystem(object):
                 sigma_background=1./self.startmodel__res,
                 n_layer=self.n_layer_used-1
             )
+        else:
+            raise Exception("unknown thickness type")
 
     def make_survey(self):
         times = self.times
