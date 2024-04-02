@@ -422,7 +422,7 @@ def compute_J(self, f=None, Ainv=None):
             overwrite=True,
         )
     else:
-        Jmatrix = array.zeros((self.survey.nD, self.model.size), dtype=np.float64)
+        Jmatrix = np.zeros((self.survey.nD, self.model.size), dtype=np.float64)
 
     simulation_times = np.r_[0, np.cumsum(self.time_steps)] + self.t0
     data_times = self.survey.source_list[0].receiver_list[0].times
@@ -463,7 +463,7 @@ def compute_J(self, f=None, Ainv=None):
                 )
             )
 
-        Jmatrix += array.vstack(j_row_updates)
+        Jmatrix = Jmatrix + array.vstack(j_row_updates)
         if self.store_sensitivities == "disk":
             sens_name = self.sensitivity_path[:-5] + f"_{tInd % 2}.zarr"
             array.to_zarr(Jmatrix, sens_name, compute=True, overwrite=True)
@@ -473,6 +473,9 @@ def compute_J(self, f=None, Ainv=None):
 
     for A in Ainv.values():
         A.clean()
+
+    if self.store_sensitivities == "ram":
+        return Jmatrix.compute()
 
     return Jmatrix
 
