@@ -202,6 +202,7 @@ def compute_field_derivs(simulation, fields, blocks, Jmatrix):
         block_derivs = []
         block_updates = []
         delayed_chunks = []
+        print(len(blocks), len(blocks[0]))
         for chunks in blocks:
             if len(chunks) == 0:
                 continue
@@ -219,7 +220,10 @@ def compute_field_derivs(simulation, fields, blocks, Jmatrix):
             )
             delayed_chunks.append(delayed_block)
 
-        for chunk in dask.compute(delayed_chunks)[0]:
+        with ProgressBar():
+            result = dask.compute(delayed_chunks)
+
+        for chunk in result[0]:
             block_derivs.append(chunk[0])
             block_updates += chunk[1]
 
