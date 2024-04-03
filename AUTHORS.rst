@@ -21,7 +21,6 @@
 - Richard Scott, (`@bluetyson <https://github.com/bluetyson/>`_)
 - Xiaolong Wei, (`@xiaolongw1223 <https://github.com/xiaolongw1223>`_)
 - Santiago Soler, (`@santisoler <https://github.com/santisoler>`_)
-- Neil Godber, (`@ngodber <https://github.com/ngodber>`_)
 - Nick Williams, (`@nwilliams-kobold <https://github.com/nwilliams-kobold>`_)
 - John Weis, (`@johnweis0480 <https://github.com/johnweis0480>`_)
 - Kalen Martens, (`@kalen-sj <https://github.com/kalen-sj>`_)
