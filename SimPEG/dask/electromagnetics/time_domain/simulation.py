@@ -129,21 +129,30 @@ def dask_dpred(self, m=None, f=None, compute_J=False):
         f, Ainv = self.fields(m, return_Ainv=compute_J)
 
     # print(f"took {time() - ct} s to compute fields")
-    def evaluate_receiver(source, receiver, mesh, time_mesh, fields):
-        return receiver.eval(source, mesh, time_mesh, fields).flatten()
+    @delayed
+    def evaluate_receivers(source_list, indices, mesh, time_mesh, fields):
+        data = []
+        for ind in indices:
+            source = source_list[ind]
+            for receiver in source.receiver_list:
+                data.append(receiver.eval(source, mesh, time_mesh, fields).flatten())
 
-    row = delayed(evaluate_receiver, pure=True)
+        return np.hstack(data)
+
     rows = []
-
-    for src in tqdm(self.survey.source_list):
-        for rx in src.receiver_list:
-            rows.append(
-                array.from_delayed(
-                    row(src, rx, self.mesh, self.time_mesh, f),
-                    dtype=np.float64,
-                    shape=(rx.nD,),
-                )
+    fields = delayed(f)
+    indices = np.array_split(np.arange(len(self.survey.source_list)), cpu_count())
+    for block in indices:
+        n_data = np.sum(self.survey.source_list[ind].nD for ind in block)
+        rows.append(
+            array.from_delayed(
+                evaluate_receivers(
+                    self.survey.source_list, block, self.mesh, self.time_mesh, fields
+                ),
+                dtype=np.float64,
+                shape=(n_data,),
             )
+        )
 
     with ProgressBar():
         data = array.hstack(rows).compute()
@@ -488,10 +497,7 @@ def compute_J(self, f=None, Ainv=None):
             Jmatrix = array.from_zarr(sens_name)
         else:
             tc = time()
-            print("Computing J update")
             Jmatrix += array.vstack(j_row_updates).compute()
-            print(f"Done {time() - tc}")
-            print(type(Jmatrix))
 
     for A in Ainv.values():
         A.clean()
