@@ -161,7 +161,7 @@ Sim.field_derivs = None
 
 @delayed
 def delayed_block_deriv(
-    time_index, chunks, field_type, source_list, mesh, time_mesh, fields, shape, Jmatrix
+    time_index, chunks, field_type, source_list, mesh, time_mesh, fields, shape
 ):
     """Compute derivatives for sources and receivers in a block"""
     field_len = len(fields[source_list[0], field_type, 0])
@@ -186,7 +186,7 @@ def delayed_block_deriv(
             j_update.append(cur[1].T)
         else:
             j_update.append(
-                sp.csr_matrix((arrays[0].shape[0], Jmatrix.shape[1]), dtype=np.float32)
+                sp.csr_matrix((arrays[0].shape[0], shape), dtype=np.float32)
             )
 
     return df_duT, j_update
@@ -216,7 +216,6 @@ def compute_field_derivs(simulation, fields, blocks, Jmatrix):
                 simulation.time_mesh,
                 fields,
                 simulation.model.size,
-                Jmatrix,
             )
             delayed_chunks.append(delayed_block)
 
