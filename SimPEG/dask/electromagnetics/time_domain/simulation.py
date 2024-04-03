@@ -445,14 +445,12 @@ def compute_J(self, f=None, Ainv=None):
         AdiagTinv = Ainv[dt]
         j_row_updates = []
         time_mask = data_times > simulation_times[tInd]
-
+        tc = time()
+        print("Computing derivative block")
         for block, field_deriv in zip(blocks, times_field_derivs[tInd + 1]):
-            tc = time()
-            print("Computing derivative block")
             ATinv_df_duT_v = get_field_deriv_block(
                 self, block, field_deriv, tInd, AdiagTinv, ATinv_df_duT_v, time_mask
             )
-            print(f"Done {time() - tc}")
 
             if len(block) == 0:
                 continue
@@ -474,17 +472,23 @@ def compute_J(self, f=None, Ainv=None):
                     ),
                 )
             )
-
-        Jmatrix = Jmatrix + array.vstack(j_row_updates)
+        print(f"Done {time() - tc}")
+        # Jmatrix = Jmatrix + array.vstack(j_row_updates)
         if self.store_sensitivities == "disk":
             sens_name = self.sensitivity_path[:-5] + f"_{tInd % 2}.zarr"
-            array.to_zarr(Jmatrix, sens_name, compute=True, overwrite=True)
+            array.to_zarr(
+                Jmatrix + array.vstack(j_row_updates),
+                sens_name,
+                compute=True,
+                overwrite=True,
+            )
             Jmatrix = array.from_zarr(sens_name)
         else:
             tc = time()
             print("Computing J update")
-            dask.compute(Jmatrix)
+            Jmatrix += array.vstack(j_row_updates).compute()
             print(f"Done {time() - tc}")
+            print(type(Jmatrix))
 
     for A in Ainv.values():
         A.clean()
