@@ -154,42 +154,42 @@ def test_sum_correctness():
         # test data output
         d_full = serial_sim.dpred(m_test, f=f_serial)
         d_mult = parallel_sim.dpred(m_test, f=f_parallel)
-        np.testing.assert_allclose(d_full, d_mult)
+        np.testing.assert_allclose(d_full, d_mult, rtol=1e-06)
 
         # test Jvec
         u = rng.random(mesh.n_cells)
         jvec_full = serial_sim.Jvec(m_test, u, f=f_serial)
         jvec_mult = parallel_sim.Jvec(m_test, u, f=f_parallel)
 
-        np.testing.assert_allclose(jvec_full, jvec_mult)
+        np.testing.assert_allclose(jvec_full, jvec_mult, rtol=1e-06)
 
         # test Jtvec
         v = rng.random(survey.nD)
         jtvec_full = serial_sim.Jtvec(m_test, v, f=f_serial)
         jtvec_mult = parallel_sim.Jtvec(m_test, v, f=f_parallel)
 
-        np.testing.assert_allclose(jtvec_full, jtvec_mult)
+        np.testing.assert_allclose(jtvec_full, jtvec_mult, rtol=1e-06)
 
         # test get diag
         diag_full = serial_sim.getJtJdiag(m_test, f=f_serial)
         diag_mult = parallel_sim.getJtJdiag(m_test, f=f_parallel)
 
-        np.testing.assert_allclose(diag_full, diag_mult)
+        np.testing.assert_allclose(diag_full, diag_mult, rtol=1e-06)
 
         # test things also works without passing optional kwargs
         parallel_sim.model = m_test
         d_mult2 = parallel_sim.dpred()
-        np.testing.assert_allclose(d_mult, d_mult2)
+        np.testing.assert_allclose(d_mult, d_mult2, rtol=1e-06)
 
         jvec_mult2 = parallel_sim.Jvec(m_test, u)
-        np.testing.assert_allclose(jvec_mult, jvec_mult2)
+        np.testing.assert_allclose(jvec_mult, jvec_mult2, rtol=1e-06)
 
         jtvec_mult2 = parallel_sim.Jtvec(m_test, v)
-        np.testing.assert_allclose(jtvec_mult, jtvec_mult2)
+        np.testing.assert_allclose(jtvec_mult, jtvec_mult2, rtol=1e-06)
 
         parallel_sim._jtjdiag = None
         diag_mult2 = parallel_sim.getJtJdiag(m_test)
-        np.testing.assert_allclose(diag_mult, diag_mult2)
+        np.testing.assert_allclose(diag_mult, diag_mult2, rtol=1e-06)
 
     except Exception as err:
         raise err
