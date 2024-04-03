@@ -115,7 +115,7 @@ class Data:
         numpy.ndarray
 
         Notes
-        --------
+        -----
         This array can also be modified by directly indexing the data object
         using the a tuple of the survey's sources and receivers.
 
@@ -363,8 +363,10 @@ class Data:
 
 
 class SyntheticData(Data):
-    r"""
-    Class for creating synthetic data.
+    r"""Synthetic data class.
+
+    The ``SyntheticData`` class is a :py:class:`SimPEG.data.Data` class that allows the
+    user to keep track of both clean and noisy data.
 
     Parameters
     ----------
@@ -375,12 +377,12 @@ class SyntheticData(Data):
         Observed data.
     dclean : (nD) numpy.ndarray
         Noiseless data.
-    relative_error : SimPEG.data.UncertaintyArray
+    relative_error : float or np.ndarray
         Assign relative uncertainties to the data using relative error; sometimes
         referred to as percent uncertainties. For each datum, we assume the
         standard deviation of Gaussian noise is the relative error times the
         absolute value of the datum; i.e. :math:`C_{err} \times |d|`.
-    noise_floor : UncertaintyArray
+    noise_floor : float or np.ndarray
         Assign floor/absolute uncertainties to the data. For each datum, we assume
         standard deviation of Gaussian noise is equal to *noise_floor*.
     """
