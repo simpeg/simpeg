@@ -198,11 +198,11 @@ def compute_field_derivs(simulation, fields, blocks, Jmatrix):
     """
     df_duT = []
 
-    for time_index in tqdm(range(simulation.nT + 1)):
+    for time_index in range(simulation.nT + 1):
         block_derivs = []
         block_updates = []
         delayed_chunks = []
-        print(len(blocks), len(blocks[0]))
+
         for chunks in blocks:
             if len(chunks) == 0:
                 continue
@@ -220,8 +220,7 @@ def compute_field_derivs(simulation, fields, blocks, Jmatrix):
             )
             delayed_chunks.append(delayed_block)
 
-        with ProgressBar():
-            result = dask.compute(delayed_chunks)
+        result = dask.compute(delayed_chunks)
 
         for chunk in result[0]:
             block_derivs.append(chunk[0])
@@ -436,9 +435,10 @@ def compute_J(self, f=None, Ainv=None):
     blocks = get_parallel_blocks(
         self.survey.source_list, self.model.shape[0], self.max_chunk_size
     )
+    tc = time()
     print("Computing field derivatives")
     times_field_derivs, Jmatrix = compute_field_derivs(self, f, blocks, Jmatrix)
-    print("Done")
+    print(f"Done {time() -tc}")
     fields_array = delayed(f[:, ftype, :])
     ATinv_df_duT_v = {}
     for tInd, dt in tqdm(zip(reversed(range(self.nT)), reversed(self.time_steps))):
@@ -447,9 +447,12 @@ def compute_J(self, f=None, Ainv=None):
         time_mask = data_times > simulation_times[tInd]
 
         for block, field_deriv in zip(blocks, times_field_derivs[tInd + 1]):
+            tc = time()
+            print("Computing derivative block")
             ATinv_df_duT_v = get_field_deriv_block(
                 self, block, field_deriv, tInd, AdiagTinv, ATinv_df_duT_v, time_mask
             )
+            print(f"Done {time() - tc}")
 
             if len(block) == 0:
                 continue
@@ -478,7 +481,10 @@ def compute_J(self, f=None, Ainv=None):
             array.to_zarr(Jmatrix, sens_name, compute=True, overwrite=True)
             Jmatrix = array.from_zarr(sens_name)
         else:
+            tc = time()
+            print("Computing J update")
             dask.compute(Jmatrix)
+            print(f"Done {time() - tc}")
 
     for A in Ainv.values():
         A.clean()
