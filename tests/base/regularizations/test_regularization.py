@@ -302,7 +302,8 @@ class RegularizationTests(unittest.TestCase):
 
         wires = maps.Wires(("sigma", mesh.nC), ("mu", mesh.nC))
 
-        reg = regularization.Smallness(mesh, mapping=wires.sigma, weights=cell_weights)
+        reg = regularization.Smallness(mesh, mapping=wires.sigma)
+        reg.set_weights(cell_weights=cell_weights)
 
         objfct = objective_function.L2ObjectiveFunction(
             W=utils.sdiag(np.sqrt(cell_weights * mesh.cell_volumes)),
@@ -337,8 +338,7 @@ class RegularizationTests(unittest.TestCase):
         v = np.random.rand(mesh.nC)
 
         cell_weights = np.random.rand(mesh.nC)
-
-        reg = regularization.Sparse(mesh, weights=cell_weights)
+        reg = regularization.Sparse(mesh, weights={"cell_weights": cell_weights})
 
         np.testing.assert_equal(reg.norms, [1, 1, 1, 1])
 
@@ -725,14 +725,6 @@ class TestWeightsKeys:
         reg = BaseRegularization(mesh, weights=weights)
         assert reg.weights_keys == ["dummy_weight"]
 
-    def test_user_defined_weights_as_array(self, mesh):
-        """
-        Test weights_keys after user defined weights as dictionary
-        """
-        weights = np.ones(mesh.n_cells)
-        reg = BaseRegularization(mesh, weights=weights)
-        assert reg.weights_keys == ["user_weights"]
-
     @pytest.mark.parametrize(
         "regularization_class", (Smallness, SmoothnessFirstOrder, SmoothnessSecondOrder)
     )
@@ -906,6 +898,17 @@ class TestRemovedRegularizations:
         msg = f"{class_name} has been removed, please use."
         with pytest.raises(NotImplementedError, match=msg):
             regularization_class()
+
+
+@pytest.mark.parametrize(
+    "regularization_class", (BaseRegularization, WeightedLeastSquares)
+)
+def test_invalid_weights_type(regularization_class):
+    """Test error after passing weights as invalid type."""
+    mesh = discretize.TensorMesh([[(2, 2)]])
+    msg = "Invalid 'weights' of type '<class 'numpy.ndarray'>'"
+    with pytest.raises(TypeError, match=msg):
+        regularization_class(mesh, weights=np.array([1.0]))
 
 
 if __name__ == "__main__":

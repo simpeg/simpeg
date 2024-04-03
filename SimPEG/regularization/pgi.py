@@ -1184,6 +1184,7 @@ class PGI(ComboObjectiveFunction):
         for model_map, wire, weights in zip(
             self.maplist, self.wiresmap.maps, weights_list
         ):
+            weights_i = {"pgi-weights": weights} if weights is not None else None
             objfcts += [
                 WeightedLeastSquares(
                     alpha_s=0.0,
@@ -1195,7 +1196,7 @@ class PGI(ComboObjectiveFunction):
                     alpha_zz=alpha_zz,
                     mesh=self.regularization_mesh,
                     mapping=model_map * wire[1],
-                    weights=weights,
+                    weights=weights_i,
                     **kwargs,
                 )
             ]
