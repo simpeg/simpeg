@@ -268,11 +268,6 @@ try:
                 "url": "https://www.youtube.com/c/geoscixyz",
                 "icon": "fab fa-youtube",
             },
-            {
-                "name": "Twitter",
-                "url": "https://twitter.com/simpegpy",
-                "icon": "fab fa-twitter",
-            },
         ],
         "use_edit_page_button": False,
         "collapse_navigation": True,
