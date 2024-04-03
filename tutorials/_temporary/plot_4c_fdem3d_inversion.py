@@ -313,7 +313,7 @@ dmis.W = utils.sdiag(1 / uncertainties)
 # Define the regularization (model objective function)
 reg = regularization.WeightedLeastSquares(
     mesh,
-    indActive=ind_active,
+    active_cells=ind_active,
     reference_model=starting_model,
     alpha_s=1e-2,
     alpha_x=1,

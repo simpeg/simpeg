@@ -22,7 +22,7 @@ import shutil
 class AmpProblemTest(unittest.TestCase):
     def setUp(self):
         # We will assume a vertical inducing field
-        H0 = (50000.0, 90.0, 0.0)
+        h0_amplitude, h0_inclination, h0_declination = (50000.0, 90.0, 0.0)
 
         # The magnetization is set along a different direction (induced + remanence)
         M = np.array([45.0, 90.0])
@@ -47,8 +47,11 @@ class AmpProblemTest(unittest.TestCase):
         # Create a MAGsurvey
         rxLoc = np.c_[mkvc(X.T), mkvc(Y.T), mkvc(Z.T)]
         receiver_list = magnetics.receivers.Point(rxLoc)
-        srcField = magnetics.sources.SourceField(
-            receiver_list=[receiver_list], parameters=H0
+        srcField = magnetics.sources.UniformBackgroundField(
+            receiver_list=[receiver_list],
+            amplitude=h0_amplitude,
+            inclination=h0_inclination,
+            declination=h0_declination,
         )
         survey = magnetics.survey.Survey(srcField)
 
@@ -139,9 +142,9 @@ class AmpProblemTest(unittest.TestCase):
 
         # Create a regularization function, in this case l2l2
         reg = regularization.Sparse(
-            mesh, indActive=surf, mapping=maps.IdentityMap(nP=nC), alpha_z=0
+            mesh, active_cells=surf, mapping=maps.IdentityMap(nP=nC), alpha_z=0
         )
-        reg.mref = np.zeros(nC)
+        reg.reference_model = np.zeros(nC)
 
         # Specify how the optimization will proceed, set susceptibility bounds to inf
         opt = optimization.ProjectedGNCG(
@@ -186,8 +189,11 @@ class AmpProblemTest(unittest.TestCase):
         #
 
         receiver_list = magnetics.receivers.Point(rxLoc, components=["bx", "by", "bz"])
-        srcField = magnetics.sources.SourceField(
-            receiver_list=[receiver_list], parameters=H0
+        srcField = magnetics.sources.UniformBackgroundField(
+            receiver_list=[receiver_list],
+            amplitude=h0_amplitude,
+            inclination=h0_inclination,
+            declination=h0_declination,
         )
         surveyAmp = magnetics.survey.Survey(srcField)
 
@@ -229,9 +235,9 @@ class AmpProblemTest(unittest.TestCase):
         data_obj = data.Data(survey, dobs=bAmp, noise_floor=wd)
 
         # Create a sparse regularization
-        reg = regularization.Sparse(mesh, indActive=actv, mapping=idenMap)
+        reg = regularization.Sparse(mesh, active_cells=actv, mapping=idenMap)
         reg.norms = [1, 0, 0, 0]
-        reg.mref = np.zeros(nC)
+        reg.reference_model = np.zeros(nC)
 
         # Data misfit function
         dmis = data_misfit.L2DataMisfit(simulation=simulation, data=data_obj)

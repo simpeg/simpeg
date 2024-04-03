@@ -1,3 +1,4 @@
+import pytest
 import unittest
 
 import discretize
@@ -13,8 +14,8 @@ def test_ana_mag_forward():
     nx = 5
     ny = 5
 
-    H0 = (50000.0, 60.0, 250.0)
-    b0 = mag.analytics.IDTtoxyz(-H0[1], H0[2], H0[0])
+    h0_amplitude, h0_inclination, h0_declination = (50000.0, 60.0, 250.0)
+    b0 = mag.analytics.IDTtoxyz(-h0_inclination, h0_declination, h0_amplitude)
     chi1 = 0.01
     chi2 = 0.02
 
@@ -62,7 +63,10 @@ def test_ana_mag_forward():
 
     rxLoc = mag.Point(locXyz, components=components)
     srcField = mag.UniformBackgroundField(
-        [rxLoc], amplitude=H0[0], inclination=H0[1], declination=H0[2]
+        receiver_list=[rxLoc],
+        amplitude=h0_amplitude,
+        inclination=h0_inclination,
+        declination=h0_declination,
     )
     survey = mag.Survey(srcField)
 
@@ -219,8 +223,8 @@ def test_ana_mag_grad_forward():
     nx = 5
     ny = 5
 
-    H0 = (50000.0, 60.0, 250.0)
-    b0 = mag.analytics.IDTtoxyz(-H0[1], H0[2], H0[0])
+    h0_amplitude, h0_inclination, h0_declination = (50000.0, 60.0, 250.0)
+    b0 = mag.analytics.IDTtoxyz(-h0_inclination, h0_declination, h0_amplitude)
     chi1 = 0.01
     chi2 = 0.02
 
@@ -268,7 +272,10 @@ def test_ana_mag_grad_forward():
 
     rxLoc = mag.Point(locXyz, components=components)
     srcField = mag.UniformBackgroundField(
-        [rxLoc], amplitude=H0[0], inclination=H0[1], declination=H0[2]
+        [rxLoc],
+        amplitude=h0_amplitude,
+        inclination=h0_inclination,
+        declination=h0_declination,
     )
     survey = mag.Survey(srcField)
 
@@ -315,8 +322,8 @@ def test_ana_mag_vec_forward():
     nx = 5
     ny = 5
 
-    H0 = (50000.0, 60.0, 250.0)
-    b0 = mag.analytics.IDTtoxyz(-H0[1], H0[2], H0[0])
+    h0_amplitude, h0_inclination, h0_declination = (50000.0, 60.0, 250.0)
+    b0 = mag.analytics.IDTtoxyz(-h0_inclination, h0_declination, h0_amplitude)
 
     M1 = utils.mat_utils.dip_azimuth2cartesian(45, -40) * 0.05
     M2 = utils.mat_utils.dip_azimuth2cartesian(120, 32) * 0.1
@@ -362,7 +369,10 @@ def test_ana_mag_vec_forward():
 
     rxLoc = mag.Point(locXyz, components=components)
     srcField = mag.UniformBackgroundField(
-        [rxLoc], amplitude=H0[0], inclination=H0[1], declination=H0[2]
+        receiver_list=[rxLoc],
+        amplitude=h0_amplitude,
+        inclination=h0_inclination,
+        declination=h0_declination,
     )
     survey = mag.Survey(srcField)
 
@@ -403,8 +413,8 @@ def test_ana_mag_amp_forward():
     nx = 5
     ny = 5
 
-    H0 = (50000.0, 60.0, 250.0)
-    b0 = mag.analytics.IDTtoxyz(-H0[1], H0[2], H0[0])
+    h0_amplitude, h0_inclination, h0_declination = (50000.0, 60.0, 250.0)
+    b0 = mag.analytics.IDTtoxyz(-h0_inclination, h0_declination, h0_amplitude)
 
     M1 = utils.mat_utils.dip_azimuth2cartesian(45, -40) * 0.05
     M2 = utils.mat_utils.dip_azimuth2cartesian(120, 32) * 0.1
@@ -450,7 +460,10 @@ def test_ana_mag_amp_forward():
 
     rxLoc = mag.Point(locXyz, components=components)
     srcField = mag.UniformBackgroundField(
-        [rxLoc], amplitude=H0[0], inclination=H0[1], declination=H0[2]
+        receiver_list=[rxLoc],
+        amplitude=h0_amplitude,
+        inclination=h0_inclination,
+        declination=h0_declination,
     )
     survey = mag.Survey(srcField)
 
@@ -483,6 +496,21 @@ def test_ana_mag_amp_forward():
     d_amp = np.linalg.norm(d, axis=1)
 
     np.testing.assert_allclose(data, d_amp)
+
+
+def test_removed_modeltype():
+    """Test if accesing removed modelType property raises error."""
+    h = [[(2, 2)], [(2, 2)], [(2, 2)]]
+    mesh = discretize.TensorMesh(h)
+    receiver_location = np.array([[0, 0, 100]])
+    receiver = mag.Point(receiver_location, components="tmi")
+    background_field = mag.UniformBackgroundField(receiver_list=[receiver])
+    survey = mag.Survey(background_field)
+    mapping = maps.IdentityMap(mesh, nP=mesh.n_cells)
+    sim = mag.Simulation3DIntegral(mesh, survey=survey, chiMap=mapping)
+    message = "modelType has been removed, please use model_type."
+    with pytest.raises(NotImplementedError, match=message):
+        sim.modelType
 
 
 if __name__ == "__main__":

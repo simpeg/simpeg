@@ -1,5 +1,4 @@
 from __future__ import annotations
-import warnings
 
 import numpy as np
 from discretize.base import BaseMesh
@@ -66,36 +65,23 @@ class BaseRegularization(BaseObjectiveFunction):
                 f"'regularization_mesh' must be of type {RegularizationMesh} or {BaseMesh}. "
                 f"Value of type {type(mesh)} provided."
             )
+        if weights is not None and not isinstance(weights, dict):
+            raise TypeError(
+                f"Invalid 'weights' of type '{type(weights)}'. "
+                "It must be a dictionary with strings as keys and arrays as values."
+            )
 
-        # Handle deprecated indActive argument
+        # Raise errors on deprecated arguments: avoid old code that still uses
+        # them to silently fail
         if (key := "indActive") in kwargs:
-            if active_cells is not None:
-                raise ValueError(
-                    f"Cannot simultaneously pass 'active_cells' and '{key}'. "
-                    "Pass 'active_cells' only."
-                )
-            warnings.warn(
-                f"The '{key}' argument has been deprecated, please use 'active_cells'. "
-                "It will be removed in future versions of SimPEG.",
-                DeprecationWarning,
-                stacklevel=2,
+            raise TypeError(
+                f"'{key}' argument has been removed. "
+                "Please use 'active_cells' instead."
             )
-            active_cells = kwargs.pop(key)
-
-        # Handle deprecated cell_weights argument
         if (key := "cell_weights") in kwargs:
-            if weights is not None:
-                raise ValueError(
-                    f"Cannot simultaneously pass 'weights' and '{key}'. "
-                    "Pass 'weights' only."
-                )
-            warnings.warn(
-                f"The '{key}' argument has been deprecated, please use 'weights'. "
-                "It will be removed in future versions of SimPEG.",
-                DeprecationWarning,
-                stacklevel=2,
+            raise TypeError(
+                f"'{key}' argument has been removed. Please use 'weights' instead."
             )
-            weights = kwargs.pop(key)
 
         super().__init__(nP=None, mapping=None, **kwargs)
         self._regularization_mesh = mesh
@@ -106,8 +92,6 @@ class BaseRegularization(BaseObjectiveFunction):
         self.reference_model = reference_model
         self.units = units
         if weights is not None:
-            if not isinstance(weights, dict):
-                weights = {"user_weights": weights}
             self.set_weights(**weights)
 
     @property
@@ -146,8 +130,7 @@ class BaseRegularization(BaseObjectiveFunction):
         "indActive",
         "active_cells",
         "0.19.0",
-        future_warn=True,
-        error=False,
+        error=True,
     )
 
     @property
@@ -282,8 +265,7 @@ class BaseRegularization(BaseObjectiveFunction):
         "mref",
         "reference_model",
         "0.19.0",
-        future_warn=True,
-        error=False,
+        error=True,
     )
 
     @property
@@ -305,30 +287,25 @@ class BaseRegularization(BaseObjectiveFunction):
         "regmesh",
         "regularization_mesh",
         "0.19.0",
-        future_warn=True,
-        error=False,
+        error=True,
     )
 
     @property
     def cell_weights(self) -> np.ndarray:
         """Deprecated property for 'volume' and user defined weights."""
-        warnings.warn(
-            "cell_weights are deprecated please access weights using the `set_weights`,"
-            " `get_weights`, and `remove_weights` functionality. This will be removed in 0.19.0",
-            FutureWarning,
-            stacklevel=2,
+        raise AttributeError(
+            "'cell_weights' has been removed. "
+            "Please access weights using the `set_weights`, `get_weights`, and "
+            "`remove_weights` methods."
         )
-        return np.prod(list(self._weights.values()), axis=0)
 
     @cell_weights.setter
     def cell_weights(self, value):
-        warnings.warn(
-            "cell_weights are deprecated please access weights using the `set_weights`,"
-            " `get_weights`, and `remove_weights` functionality. This will be removed in 0.19.0",
-            FutureWarning,
-            stacklevel=2,
+        raise AttributeError(
+            "'cell_weights' has been removed. "
+            "Please access weights using the `set_weights`, `get_weights`, and "
+            "`remove_weights` methods."
         )
-        self.set_weights(cell_weights=value)
 
     def get_weights(self, key) -> np.ndarray:
         """Cell weights for a given key.
@@ -634,7 +611,7 @@ class Smallness(BaseRegularization):
 
     or set after instantiation using the `set_weights` method:
 
-    >>> reg.set_weights(weights_1=array_1, weights_2=array_2})
+    >>> reg.set_weights(weights_1=array_1, weights_2=array_2)
 
     The default weights that account for cell dimensions in the regularization are accessed via:
 
@@ -1585,19 +1562,18 @@ class WeightedLeastSquares(ComboObjectiveFunction):
             )
         self._regularization_mesh = mesh
 
+        # Raise errors on deprecated arguments: avoid old code that still uses
+        # them to silently fail
         if (key := "indActive") in kwargs:
-            if active_cells is not None:
-                raise ValueError(
-                    f"Cannot simultaneously pass 'active_cells' and '{key}'. "
-                    "Pass 'active_cells' only."
-                )
-            warnings.warn(
-                f"The '{key}' argument has been deprecated, please use 'active_cells'. "
-                "It will be removed in future versions of SimPEG.",
-                DeprecationWarning,
-                stacklevel=2,
+            raise TypeError(
+                f"'{key}' argument has been removed. "
+                "Please use 'active_cells' instead."
             )
-            active_cells = kwargs.pop(key)
+
+        if (key := "cell_weights") in kwargs:
+            raise TypeError(
+                f"'{key}' argument has been removed. Please use 'weights' instead."
+            )
 
         self.alpha_s = alpha_s
         if alpha_x is not None:
@@ -1629,6 +1605,13 @@ class WeightedLeastSquares(ComboObjectiveFunction):
             self.alpha_z = alpha_z
         else:
             self.length_scale_z = length_scale_z
+
+        # Check if weights is a dictionary, raise error if it's not
+        if weights is not None and not isinstance(weights, dict):
+            raise TypeError(
+                f"Invalid 'weights' of type '{type(weights)}'. "
+                "It must be a dictionary with strings as keys and arrays as values."
+            )
 
         # do this to allow child classes to also pass a list of objfcts to this constructor
         if "objfcts" not in kwargs:
@@ -1679,8 +1662,6 @@ class WeightedLeastSquares(ComboObjectiveFunction):
         self.alpha_yy = alpha_yy
         self.alpha_zz = alpha_zz
         if weights is not None:
-            if not isinstance(weights, dict):
-                weights = {"user_weights": weights}
             self.set_weights(**weights)
 
     def set_weights(self, **weights):
@@ -1730,20 +1711,19 @@ class WeightedLeastSquares(ComboObjectiveFunction):
 
     @property
     def cell_weights(self):
-        # All of the objective functions should have the same weights,
-        # so just grab the one from smallness here, which should also
-        # trigger the deprecation warning
-        return self.objfcts[0].cell_weights
+        raise AttributeError(
+            "'cell_weights' has been removed. "
+            "Please access weights using the `set_weights`, `get_weights`, and "
+            "`remove_weights` methods."
+        )
 
     @cell_weights.setter
     def cell_weights(self, value):
-        warnings.warn(
-            "cell_weights are deprecated please access weights using the `set_weights`,"
-            " `get_weights`, and `remove_weights` functionality. This will be removed in 0.19.0",
-            FutureWarning,
-            stacklevel=2,
+        raise AttributeError(
+            "'cell_weights' has been removed. "
+            "Please access weights using the `set_weights`, `get_weights`, and "
+            "`remove_weights` methods."
         )
-        self.set_weights(cell_weights=value)
 
     @property
     def alpha_s(self):
@@ -2107,8 +2087,7 @@ class WeightedLeastSquares(ComboObjectiveFunction):
         "indActive",
         "active_cells",
         "0.19.0",
-        error=False,
-        future_warn=True,
+        error=True,
     )
 
     @property
@@ -2138,8 +2117,7 @@ class WeightedLeastSquares(ComboObjectiveFunction):
         "mref",
         "reference_model",
         "0.19.0",
-        future_warn=True,
-        error=False,
+        error=True,
     )
 
     @property

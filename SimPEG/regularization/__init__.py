@@ -90,6 +90,7 @@ its first-order directional derivative(s), or its second-order directional deriv
   Smallness
   SmoothnessFirstOrder
   SmoothnessSecondOrder
+  SmoothnessFullGradient
 
 Sparse Norm Regularization
 --------------------------
@@ -169,23 +170,24 @@ from .vector import (
     AmplitudeSmallness,
     AmplitudeSmoothnessFirstOrder,
 )
+from ._gradient import SmoothnessFullGradient
 
 
-@deprecate_class(removal_version="0.19.0", future_warn=True)
+@deprecate_class(removal_version="0.19.0", error=True)
 class SimpleSmall(Smallness):
     """Deprecated class, replaced by Smallness."""
 
     pass
 
 
-@deprecate_class(removal_version="0.19.0", future_warn=True)
+@deprecate_class(removal_version="0.19.0", error=True)
 class SimpleSmoothDeriv(SmoothnessFirstOrder):
     """Deprecated class, replaced by SmoothnessFirstOrder."""
 
     pass
 
 
-@deprecate_class(removal_version="0.19.0", future_warn=True)
+@deprecate_class(removal_version="0.19.0", error=True)
 class Simple(WeightedLeastSquares):
     """Deprecated class, replaced by WeightedLeastSquares."""
 
@@ -201,7 +203,7 @@ class Simple(WeightedLeastSquares):
         )
 
 
-@deprecate_class(removal_version="0.19.0", future_warn=True)
+@deprecate_class(removal_version="0.19.0", error=True)
 class Tikhonov(WeightedLeastSquares):
     """Deprecated class, replaced by WeightedLeastSquares."""
 
@@ -218,28 +220,28 @@ class Tikhonov(WeightedLeastSquares):
         )
 
 
-@deprecate_class(removal_version="0.19.0", future_warn=True)
+@deprecate_class(removal_version="0.19.0", error=True)
 class Small(Smallness):
     """Deprecated class, replaced by Smallness."""
 
     pass
 
 
-@deprecate_class(removal_version="0.19.0", future_warn=True)
+@deprecate_class(removal_version="0.19.0", error=True)
 class SmoothDeriv(SmoothnessFirstOrder):
     """Deprecated class, replaced by SmoothnessFirstOrder."""
 
     pass
 
 
-@deprecate_class(removal_version="0.19.0", future_warn=True)
+@deprecate_class(removal_version="0.19.0", error=True)
 class SmoothDeriv2(SmoothnessSecondOrder):
     """Deprecated class, replaced by SmoothnessSecondOrder."""
 
     pass
 
 
-@deprecate_class(removal_version="0.19.0", future_warn=True)
+@deprecate_class(removal_version="0.19.0", error=True)
 class PGIwithNonlinearRelationshipsSmallness(PGIsmallness):
     """Deprecated class, replaced by PGIsmallness."""
 
@@ -247,7 +249,7 @@ class PGIwithNonlinearRelationshipsSmallness(PGIsmallness):
         super().__init__(gmm, non_linear_relationships=True, **kwargs)
 
 
-@deprecate_class(removal_version="0.19.0", future_warn=True)
+@deprecate_class(removal_version="0.19.0", error=True)
 class PGIwithRelationships(PGI):
     """Deprecated class, replaced by PGI."""
 
