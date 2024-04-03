@@ -78,14 +78,15 @@ def test_meta_correctness(cluster):
         np.testing.assert_allclose(d_dask, d_meta)
 
         # test Jvec
-        u = np.random.rand(mesh.n_cells)
+        rng = np.random.default_rng(seed=0)
+        u = rng.random(mesh.n_cells)
         jvec_meta = serial_sim.Jvec(m_test, u, f=f_meta)
         jvec_dask = dask_sim.Jvec(m_test, u, f=f_dask)
 
         np.testing.assert_allclose(jvec_dask, jvec_meta)
 
         # test Jtvec
-        v = np.random.rand(serial_sim.survey.nD)
+        v = rng.random(serial_sim.survey.nD)
         jtvec_meta = serial_sim.Jtvec(m_test, v, f=f_meta)
         jtvec_dask = dask_sim.Jtvec(m_test, v, f=f_dask)
 
@@ -158,15 +159,17 @@ def test_sum_sim_correctness(cluster):
         d_meta = parallel_sim.dpred(m_test, f=f_meta)
         np.testing.assert_allclose(d_full, d_meta, rtol=1e-6)
 
+        rng = np.random.default_rng(0)
+
         # test Jvec
-        u = np.random.rand(mesh.n_cells)
+        u = rng.random(mesh.n_cells)
         jvec_full = serial_sim.Jvec(m_test, u, f=f_full)
         jvec_meta = parallel_sim.Jvec(m_test, u, f=f_meta)
 
         np.testing.assert_allclose(jvec_full, jvec_meta, rtol=1e-6)
 
         # test Jtvec
-        v = np.random.rand(survey.nD)
+        v = rng.random(survey.nD)
         jtvec_full = serial_sim.Jtvec(m_test, v, f=f_full)
         jtvec_meta = parallel_sim.Jtvec(m_test, v, f=f_meta)
 
@@ -219,7 +222,8 @@ def test_repeat_sim_correctness(cluster):
         serial_sim = RepeatedSimulation(grav_sim, repeat_mappings)
         parallel_sim = DaskRepeatedSimulation(grav_sim, repeat_mappings, client)
 
-        model = np.random.rand(time_mesh.n_cells, mesh.n_cells).reshape(-1)
+        rng = np.random.default_rng(0)
+        model = rng.random((time_mesh.n_cells, mesh.n_cells)).reshape(-1)
 
         # test field things
         f_full = serial_sim.fields(model)
@@ -231,13 +235,13 @@ def test_repeat_sim_correctness(cluster):
         np.testing.assert_allclose(d_full, d_repeat, rtol=1e-6)
 
         # test Jvec
-        u = np.random.rand(len(model))
+        u = rng.random(len(model))
         jvec_full = serial_sim.Jvec(model, u, f=f_full)
         jvec_meta = parallel_sim.Jvec(model, u, f=f_meta)
         np.testing.assert_allclose(jvec_full, jvec_meta, rtol=1e-6)
 
         # test Jtvec
-        v = np.random.rand(len(sim_ts) * survey.nD)
+        v = rng.random(len(sim_ts) * survey.nD)
         jtvec_full = serial_sim.Jtvec(model, v, f=f_full)
         jtvec_meta = parallel_sim.Jtvec(model, v, f=f_meta)
         np.testing.assert_allclose(jtvec_full, jtvec_meta, rtol=1e-6)
