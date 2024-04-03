@@ -231,6 +231,12 @@ plot_rcparams = {
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
+external_links = [
+    dict(name="User Tutorials", url="https://simpeg.xyz/user-tutorials"),
+    dict(name="SimPEG", url="https://simpeg.xyz"),
+    dict(name="Contact", url="https://mattermost.softwareunderground.org/simpeg"),
+]
+
 try:
     import pydata_sphinx_theme
 
@@ -240,13 +246,7 @@ try:
     html_use_modindex = True
 
     html_theme_options = {
-        "external_links": [
-            {"name": "SimPEG", "url": "https://simpeg.xyz"},
-            {
-                "name": "Contact",
-                "url": "https://mattermost.softwareunderground.org/simpeg",
-            },
-        ],
+        "external_links": external_links,
         "icon_links": [
             {
                 "name": "GitHub",
@@ -428,6 +428,7 @@ intersphinx_mapping = {
     "matplotlib": ("https://matplotlib.org/stable/", None),
     "properties": ("https://propertiespy.readthedocs.io/en/latest/", None),
     "discretize": ("https://discretize.simpeg.xyz/en/main/", None),
+    "pymatsolver": ("https://pymatsolver.readthedocs.io/en/latest/", None),
 }
 numpydoc_xref_param_type = True
 

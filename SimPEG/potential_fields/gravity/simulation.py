@@ -131,8 +131,14 @@ class Simulation3DIntegral(BasePFSimulation):
         self.numba_parallel = numba_parallel
         self.engine = engine
         self._sanity_checks_engine(kwargs)
-        # Define jit functions
         if self.engine == "choclo":
+            # Check dimensions of the mesh
+            if self.mesh.dim != 3:
+                raise ValueError(
+                    f"Invalid mesh with {self.mesh.dim} dimensions. "
+                    "Only 3D meshes are supported when using 'choclo' as engine."
+                )
+            # Define jit functions
             if numba_parallel:
                 self._sensitivity_gravity = _sensitivity_gravity_parallel
                 self._forward_gravity = _forward_gravity_parallel
