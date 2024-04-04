@@ -142,6 +142,7 @@ Many of the functions here are used internally to SimPEG and have minimal docume
   validate_active_indices
 
 """
+
 from discretize.utils.interpolation_utils import interpolation_matrix
 
 from .code_utils import (

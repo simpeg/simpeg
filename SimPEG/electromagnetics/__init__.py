@@ -32,6 +32,7 @@ those functions directly from that package.
   analytics.getCasingBzMagDipole
 
 """
+
 from scipy.constants import mu_0, epsilon_0
 
 from . import time_domain

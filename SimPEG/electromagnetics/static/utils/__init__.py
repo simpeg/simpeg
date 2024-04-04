@@ -46,6 +46,7 @@ Mesh Utilities
   closestPointsGrid
 
 """
+
 from .static_utils import (
     electrode_separations,
     pseudo_locations,

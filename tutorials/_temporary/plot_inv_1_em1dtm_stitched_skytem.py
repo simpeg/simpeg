@@ -455,7 +455,7 @@ for mod in models_list:
     ax2 = fig.add_axes([0.85, 0.12, 0.05, 0.78])
     norm = mpl.colors.Normalize(
         vmin=np.log10(true_model.min()),
-        vmax=np.log10(true_model.max())
+        vmax=np.log10(true_model.max()),
         #        vmin=np.log10(0.1), vmax=np.log10(1)
     )
     cbar = mpl.colorbar.ColorbarBase(

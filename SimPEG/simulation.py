@@ -1,6 +1,7 @@
 """
 Define simulation classes.
 """
+
 import os
 import inspect
 import numpy as np

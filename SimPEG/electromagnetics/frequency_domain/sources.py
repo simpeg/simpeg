@@ -643,7 +643,6 @@ class MagDipole(BaseFDEMSrc):
 
 
 class MagDipole_Bfield(MagDipole):
-
     """
     Point magnetic dipole source calculated with the analytic solution for the
     fields from a magnetic dipole. No discrete curl is taken, so the magnetic

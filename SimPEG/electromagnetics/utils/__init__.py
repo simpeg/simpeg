@@ -30,6 +30,7 @@ Waveform Utilities
   convolve_with_waveform
 
 """
+
 from .waveform_utils import (
     omega,
     k,

@@ -10,6 +10,7 @@ For more information about the parameters used see:
 The RETC code for quantifying the hydraulic functions of unsaturated
 soils, Van Genuchten, M Th, Leij, F J, Yates, S R
 """
+
 import matplotlib.pyplot as plt
 
 import discretize

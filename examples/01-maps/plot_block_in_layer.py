@@ -21,6 +21,7 @@ The model is given by
     ]
 
 """
+
 import discretize
 from SimPEG import maps
 import numpy as np
