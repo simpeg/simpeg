@@ -50,7 +50,12 @@ Multiprocessing
 
 Dask
 ----
-Coming soon!
+.. autosummary::
+  :toctree: generated/
+
+  DaskMetaSimulation
+  DaskSumMetaSimulation
+  DaskRepeatedSimulation
 
 MPI
 ---
@@ -69,3 +74,5 @@ from .multiprocessing import (
     MultiprocessingSumMetaSimulation,
     MultiprocessingRepeatedSimulation,
 )
+
+from .dask_sim import DaskMetaSimulation, DaskSumMetaSimulation, DaskRepeatedSimulation

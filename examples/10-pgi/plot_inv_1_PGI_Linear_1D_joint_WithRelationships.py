@@ -233,13 +233,13 @@ mcluster_no_map = inv.run(minit)
 # WeightedLeastSquares Inversion
 
 reg1 = regularization.WeightedLeastSquares(
-    mesh, alpha_s=1.0, alpha_x=1.0, mapping=wires.m1
+    mesh, alpha_s=1.0, alpha_x=1.0, mapping=wires.m1, weights={"cell_weights": wr1}
 )
-reg1.cell_weights = wr1
+
 reg2 = regularization.WeightedLeastSquares(
-    mesh, alpha_s=1.0, alpha_x=1.0, mapping=wires.m2
+    mesh, alpha_s=1.0, alpha_x=1.0, mapping=wires.m2, weights={"cell_weights": wr2}
 )
-reg2.cell_weights = wr2
+
 reg = reg1 + reg2
 
 opt = optimization.ProjectedGNCG(

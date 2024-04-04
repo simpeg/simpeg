@@ -577,10 +577,13 @@ class SparseSmoothness(BaseSparse, SmoothnessFirstOrder):
     """
 
     def __init__(self, mesh, orientation="x", gradient_type="total", **kwargs):
-        if "gradientType" in kwargs:
-            self.gradientType = kwargs.pop("gradientType")
-        else:
-            self.gradient_type = gradient_type
+        # Raise error if removed arguments were passed
+        if (key := "gradientType") in kwargs:
+            raise TypeError(
+                f"'{key}' argument has been removed. "
+                "Please use 'gradient_type' instead."
+            )
+        self.gradient_type = gradient_type
         super().__init__(mesh=mesh, orientation=orientation, **kwargs)
 
     def update_weights(self, m):
@@ -695,8 +698,7 @@ class SparseSmoothness(BaseSparse, SmoothnessFirstOrder):
         "gradientType",
         new_name="gradient_type",
         removal_version="0.19.0",
-        error=False,
-        future_warn=True,
+        error=True,
     )
 
 
@@ -930,6 +932,14 @@ class Sparse(WeightedLeastSquares):
                 f"'regularization_mesh' must be of type {RegularizationMesh} or {BaseMesh}. "
                 f"Value of type {type(mesh)} provided."
             )
+
+        # Raise error if removed arguments were passed
+        if (key := "gradientType") in kwargs:
+            raise TypeError(
+                f"'{key}' argument has been removed. "
+                "Please use 'gradient_type' instead."
+            )
+
         self._regularization_mesh = mesh
         if active_cells is not None:
             self._regularization_mesh.active_cells = active_cells
@@ -950,7 +960,6 @@ class Sparse(WeightedLeastSquares):
                     SparseSmoothness(mesh=self.regularization_mesh, orientation="z")
                 )
 
-        gradientType = kwargs.pop("gradientType", None)
         super().__init__(
             self.regularization_mesh,
             objfcts=objfcts,
@@ -959,13 +968,7 @@ class Sparse(WeightedLeastSquares):
         if norms is None:
             norms = [1] * (mesh.dim + 1)
         self.norms = norms
-
-        if gradientType is not None:
-            # Trigger deprecation warning
-            self.gradientType = gradientType
-        else:
-            self.gradient_type = gradient_type
-
+        self.gradient_type = gradient_type
         self.irls_scaled = irls_scaled
         self.irls_threshold = irls_threshold
 
@@ -995,7 +998,7 @@ class Sparse(WeightedLeastSquares):
         self._gradient_type = value
 
     gradientType = utils.code_utils.deprecate_property(
-        gradient_type, "gradientType", "0.19.0", error=False, future_warn=True
+        gradient_type, "gradientType", "0.19.0", error=True
     )
 
     @property

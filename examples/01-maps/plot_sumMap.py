@@ -138,17 +138,19 @@ def run(plotIt=True):
     regMesh = TensorMesh([len(domains)])
 
     reg_m1 = regularization.Sparse(regMesh, mapping=wires.homo)
-    reg_m1.cell_weights = wires.homo * wr
+    reg_m1.set_weights(weights=wires.homo * wr)
+
     reg_m1.norms = [0, 2]
-    reg_m1.mref = np.zeros(sumMap.shape[1])
+    reg_m1.reference_model = np.zeros(sumMap.shape[1])
 
     # Regularization for the voxel model
     reg_m2 = regularization.Sparse(
         mesh, active_cells=actv, mapping=wires.hetero, gradient_type="components"
     )
-    reg_m2.cell_weights = wires.hetero * wr
+    reg_m2.set_weights(weights=wires.hetero * wr)
+
     reg_m2.norms = [0, 0, 0, 0]
-    reg_m2.mref = np.zeros(sumMap.shape[1])
+    reg_m2.reference_model = np.zeros(sumMap.shape[1])
 
     reg = reg_m1 + reg_m2
 
