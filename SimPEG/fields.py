@@ -5,14 +5,51 @@ from .utils import mkvc, validate_type
 
 
 class Fields:
-    """Fancy Field Storage
+    r"""Base class for storing fields.
+    
+    Fields objects store the discrete solution of the fields for forward simulations.
+    Only one field type is stored, but other field types may be computed rapidly.
+    The field type that is stored and the field types that can be rapidly computed depend
+    on the formulation used by the associated simulation class. Once instantiated, fields
+    can be extracted by providing the associated sources and field type.
 
-    Examples
-    --------
-    >>> fields = Fields(
-    ...     simulation=simulation, knownFields={"phi": "CC"}
-    ... )
-    >>> fields[:,'phi'] = phi
+    Parameters
+    ----------
+    simulation : SimPEG.simulation.BaseSimulation
+        The simulation object associated with the fields.
+    knownFields : dict of {key: str}, optional
+        Set the field type(s) that are accessible from the ``Fields`` object and where
+        on the mesh they are discretized. E.g. `{'eSolution': 'E', 'phiSolution': 'CC'}
+        would define the `eSolution` on edges and `phiSolution` at cell centers.
+        The ``str`` must be one of {'CC', 'N', 'E', 'F'}.
+    aliasFields : dict of {key: list}, optional
+        Set aliases for field names. E.g. {'e': 'E', 'b': ['B', 'b_field']} allows the 'e'
+        fields to be extracted using 'E', and allows the 'b' fields to be extracted using
+        either 'B' or 'b_field'.
+    dtype : dtype or dict of {str : dtype}, optional
+        Set the data type of the numerical values stored in the fields object.
+        E.g. ``float``, ``complex128``.
+
+    Example
+    -------
+    We want to access the fields for a discrete solution with :math:`\mathbf{e}` discretized
+    to edges and :math:`\mathbf{b}` discretized to faces. To extract the fields for all sources:
+
+    .. code-block:: python
+
+        f = simulation.fields(m)
+        e = f[:,'e']
+        b = f[:,'b']
+
+    The array ``e`` returned will have shape (`n_edges`, `n_sources`). And the array ``b``
+    returned will have shape (`n_faces`, `n_sources`). We can also extract the fields for
+    a subset of the source list used for the simulation as follows:
+
+    .. code-block:: python
+
+        f = simulation.fields(m)
+        e = f[source_list,'e']
+        b = f[source_list,'b']
     """
 
     _dtype = float

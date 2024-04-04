@@ -6,27 +6,35 @@ from ..utils import omega
 
 
 class FieldsFDEM(Fields):
-    r"""
-    Fancy Field Storage for a FDEM survey. Only one field type is stored for
-    each problem, the rest are computed. The fields object acts like an array
-    and is indexed by
+    r"""Base class for storing FDEM fields.
+    
+    This object stores the discrete solution of the fields for the FDEM simulation.
+    Only one field type (e.g. 'e', 'j', 'h', or 'b') is stored, but other field types
+    can be computed rapidly. The field type that is stored depends on the formulation
+    used by the associated simulation class. Once a field object has been created,
+    the individual fields can be accessed in the same manner as a :py:class:`numpy.ndarray`.
+
+    Example
+    -------
+    We want to access the fields for a discrete solution with :math:`\mathbf{e}` discretized
+    to edges and :math:`\mathbf{b}` discretized to faces. To extract the fields for all sources:
 
     .. code-block:: python
 
-        f = problem.fields(m)
-        e = f[source_list,'e']
-        b = f[source_list,'b']
-
-    If accessing all sources for a given field, use the :code:`:`
-
-    .. code-block:: python
-
-        f = problem.fields(m)
+        f = simulation.fields(m)
         e = f[:,'e']
         b = f[:,'b']
 
-    The array returned will be size (``nE`` or ``nF``, ``nSrcs`` :math:`\times`
-    ``nFrequencies``)
+    The array ``e`` returned will have shape (`n_edges`, `n_sources`). And the array ``b``
+    returned will have shape (`n_faces`, `n_sources`). We can also extract the fields for
+    a subset of the source list used for the simulation as follows:
+
+    .. code-block:: python
+
+        f = simulation.fields(m)
+        e = f[source_list,'e']
+        b = f[source_list,'b']
+
     """
 
     knownFields = {}
