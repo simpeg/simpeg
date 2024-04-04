@@ -103,6 +103,20 @@ def dask_getSourceTerm(self, tInd):
 Sim.getSourceTerm = dask_getSourceTerm
 
 
+@delayed
+def evaluate_receivers(block, mesh, time_mesh, fields, fields_array):
+    data = []
+    for source, ind, receiver in block:
+        # proj = receiver.getP(mesh, time_mesh, fields)
+        Ps = receiver.getSpatialP(mesh, fields)
+        Pt = receiver.getTimeP(time_mesh, fields)
+        vector = (Pt * (Ps * fields_array[:, ind, :]).T).flatten()
+
+        data.append(vector)
+
+    return np.hstack(data)
+
+
 def dask_dpred(self, m=None, f=None, compute_J=False):
     """
     dpred(m, f=None)
@@ -128,27 +142,27 @@ def dask_dpred(self, m=None, f=None, compute_J=False):
             m = self.model
         f, Ainv = self.fields(m, return_Ainv=compute_J)
 
-    # print(f"took {time() - ct} s to compute fields")
-    @delayed
-    def evaluate_receivers(source_list, indices, mesh, time_mesh, fields):
-        data = []
-        for ind in indices:
-            source = source_list[ind]
-            for receiver in source.receiver_list:
-                data.append(receiver.eval(source, mesh, time_mesh, fields).flatten())
-
-        return np.hstack(data)
-
     rows = []
     fields = delayed(f)
-    indices = np.array_split(np.arange(len(self.survey.source_list)), cpu_count())
-    for block in indices:
-        n_data = np.sum(self.survey.source_list[ind].nD for ind in block)
+    fields_array = delayed(
+        f[:, self.survey.source_list[0].receiver_list[0].projField, :]
+    )
+    mesh = delayed(self.mesh)
+    time_mesh = delayed(self.time_mesh)
+    all_receivers = []
+    for ind, src in enumerate(self.survey.source_list):
+        for rx in src.receiver_list:
+            all_receivers.append((src, ind, rx))
+
+    receiver_blocks = np.array_split(all_receivers, cpu_count())
+    for block in receiver_blocks:
+        n_data = np.sum(rec.nD for _, _, rec in block)
+        if n_data == 0:
+            continue
+
         rows.append(
             array.from_delayed(
-                evaluate_receivers(
-                    self.survey.source_list, block, self.mesh, self.time_mesh, fields
-                ),
+                evaluate_receivers(block, mesh, time_mesh, fields, fields_array),
                 dtype=np.float64,
                 shape=(n_data,),
             )
@@ -212,8 +226,6 @@ def compute_field_derivs(simulation, fields, blocks, Jmatrix):
         block_updates = []
         delayed_chunks = []
 
-        tc = time()
-        print("Prepping blocks")
         for chunks in blocks:
             if len(chunks) == 0:
                 continue
@@ -229,11 +241,9 @@ def compute_field_derivs(simulation, fields, blocks, Jmatrix):
                 simulation.model.size,
             )
             delayed_chunks.append(delayed_block)
-        print(f"Done {time() - tc}")
-        tc = time()
-        print("Computing blocks")
+
         result = dask.compute(delayed_chunks)
-        print(f"Done {time() - tc}")
+
         for chunk in result[0]:
             block_derivs.append(chunk[0])
             block_updates += chunk[1]
@@ -457,8 +467,7 @@ def compute_J(self, f=None, Ainv=None):
         AdiagTinv = Ainv[dt]
         j_row_updates = []
         time_mask = data_times > simulation_times[tInd]
-        tc = time()
-        print("Computing derivative block")
+
         for block, field_deriv in zip(blocks, times_field_derivs[tInd + 1]):
             ATinv_df_duT_v = get_field_deriv_block(
                 self, block, field_deriv, tInd, AdiagTinv, ATinv_df_duT_v, time_mask
@@ -484,7 +493,7 @@ def compute_J(self, f=None, Ainv=None):
                     ),
                 )
             )
-        print(f"Done {time() - tc}")
+
         # Jmatrix = Jmatrix + array.vstack(j_row_updates)
         if self.store_sensitivities == "disk":
             sens_name = self.sensitivity_path[:-5] + f"_{tInd % 2}.zarr"
@@ -496,14 +505,13 @@ def compute_J(self, f=None, Ainv=None):
             )
             Jmatrix = array.from_zarr(sens_name)
         else:
-            tc = time()
             Jmatrix += array.vstack(j_row_updates).compute()
 
     for A in Ainv.values():
         A.clean()
 
     if self.store_sensitivities == "ram":
-        return Jmatrix.compute()
+        return np.asarray(Jmatrix)
 
     return Jmatrix
 
