@@ -24,3 +24,5 @@
 - Nick Williams, (`@nwilliams-kobold <https://github.com/nwilliams-kobold>`_)
 - John Weis, (`@johnweis0480 <https://github.com/johnweis0480>`_)
 - Kalen Martens, (`@kalen-sj <https://github.com/kalen-sj>`_)
+- Williams A. Lima (`@ghwilliams <https://github.com/ghwilliams>`_)
+- Ying Hu, (`@YingHuuu <https://github.com/YingHuuu>`_)
