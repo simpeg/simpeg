@@ -276,6 +276,11 @@ try:
         ],
         "use_edit_page_button": False,
         "collapse_navigation": True,
+        "analytics": {
+            "plausible_analytics_domain": "docs.simpeg.xyz",
+            "plausible_analytics_url": "https://plausible.io/js/script.js",
+        },
+        "navbar_align": "left",  # make elements closer to logo on the left
     }
     html_logo = "images/simpeg-logo.png"
 
