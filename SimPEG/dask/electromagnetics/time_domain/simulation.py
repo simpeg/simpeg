@@ -32,7 +32,7 @@ def fields(self, m=None, return_Ainv=False):
     Ainv = {}
     ATinv = {}
 
-    for tInd, dt in tqdm(enumerate(self.time_steps)):
+    for tInd, dt in enumerate(self.time_steps):
         if dt not in Ainv:
             A = self.getAdiag(tInd)
             Ainv[dt] = self.solver(sp.csr_matrix(A), **self.solver_opts)
@@ -456,9 +456,9 @@ def compute_J(self, f=None, Ainv=None):
         self.survey.source_list, self.model.shape[0], self.max_chunk_size
     )
     tc = time()
-    print("Computing field derivatives")
+
     times_field_derivs, Jmatrix = compute_field_derivs(self, f, blocks, Jmatrix)
-    print(f"Done {time() -tc}")
+
     fields_array = delayed(f[:, ftype, :])
     ATinv_df_duT_v = {}
     for tInd, dt in tqdm(zip(reversed(range(self.nT)), reversed(self.time_steps))):
