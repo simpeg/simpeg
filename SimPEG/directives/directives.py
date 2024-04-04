@@ -348,10 +348,10 @@ class BaseBetaEstimator(InversionDirective):
     ----------
     beta0_ratio : float
         Desired ratio between data misfit and model objective function at initial beta iteration.
-    seed : int, numpy.random.Generator or None, optional
-        Random seed used for random sampling. It can either be an int or
-        a predefined Numpy random number generator (see
-        ``numpy.random.default_rng``).
+    seed : {None, int, array_like[ints], SeedSequence, BitGenerator, Generator}, optional
+        Random seed used for random sampling. It can either be an int,
+        a predefined Numpy random number generator, or any valid input to
+        ``numpy.random.default_rng``.
 
     """
 
@@ -423,10 +423,10 @@ class BetaEstimateMaxDerivative(BaseBetaEstimator):
     ----------
     beta0_ratio: float
         Desired ratio between data misfit and model objective function at initial beta iteration.
-    seed : int, numpy.random.Generator or None, optional
-        Random seed used for random sampling. It can either be an int or
-        a predefined Numpy random number generator (see
-        ``numpy.random.default_rng``).
+    seed : {None, int, array_like[ints], SeedSequence, BitGenerator, Generator}, optional
+        Random seed used for random sampling. It can either be an int,
+        a predefined Numpy random number generator, or any valid input to
+        ``numpy.random.default_rng``.
 
     Notes
     -----
@@ -497,10 +497,10 @@ class BetaEstimate_ByEig(BaseBetaEstimator):
         Desired ratio between data misfit and model objective function at initial beta iteration.
     n_pw_iter : int
         Number of power iterations used to estimate largest eigenvalues.
-    seed : int, numpy.random.Generator or None, optional
-        Random seed used for random sampling. It can either be an int or
-        a predefined Numpy random number generator (see
-        ``numpy.random.default_rng``).
+    seed : {None, int, array_like[ints], SeedSequence, BitGenerator, Generator}, optional
+        Random seed used for random sampling. It can either be an int,
+        a predefined Numpy random number generator, or any valid input to
+        ``numpy.random.default_rng``.
 
     Notes
     -----

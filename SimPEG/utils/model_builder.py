@@ -429,10 +429,10 @@ def create_random_model(
     ----------
     shape : int or tuple of int
         Shape of the model. Can define a vector of size (n_cells) or define the dimensions of a tensor
-    seed : int, numpy.random.Generator or None, optional
+    seed : {None, int, array_like[ints], SeedSequence, BitGenerator, Generator}, optional
         Random seed for random uniform model that is convolved with the kernel.
-        It can either be an int or a predefined Numpy random number generator
-        (see ``numpy.random.default_rng``).
+        It can either be an int, a predefined Numpy random number generator, or
+        any valid input to ``numpy.random.default_rng``.
     anisotropy : numpy.ndarray
         this is the (*3*, *n*) blurring kernel that is used.
     its : int
