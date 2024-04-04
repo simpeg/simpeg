@@ -256,8 +256,6 @@ def compute_field_derivs(simulation, fields, blocks, Jmatrix):
                 sens_name = simulation.sensitivity_path[:-5] + f"_{time_index % 2}.zarr"
                 array.to_zarr(Jmatrix, sens_name, compute=True, overwrite=True)
                 Jmatrix = array.from_zarr(sens_name)
-            else:
-                dask.compute(Jmatrix)
 
         df_duT.append(block_derivs)
 
