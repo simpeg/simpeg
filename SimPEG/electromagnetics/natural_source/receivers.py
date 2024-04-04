@@ -357,17 +357,24 @@ class PointMagnetotelluric(BaseRx):
             # Work backwards!
             gtop_v = v / bot
             gbot_v = -imp * v / bot
+            n_d = self.nD
 
             if mesh.dim == 3:
-                ghx_v = np.c_[hy[:, 1], -hy[:, 0]] * gbot_v[:, None]
-                ghy_v = np.c_[-hx[:, 1], hx[:, 0]] * gbot_v[:, None]
-                ge_v = np.c_[h[:, 1], -h[:, 0]] * gtop_v[:, None]
-                gh_v = np.c_[-e[:, 1], e[:, 0]] * gtop_v[:, None]
+                ghx_v = np.c_[hy[:, 1], -hy[:, 0]] * gbot_v[..., None]
+                ghy_v = np.c_[-hx[:, 1], hx[:, 0]] * gbot_v[..., None]
+                ge_v = np.c_[h[:, 1], -h[:, 0]] * gtop_v[..., None]
+                gh_v = np.c_[-e[:, 1], e[:, 0]] * gtop_v[..., None]
 
                 if self.orientation[1] == "x":
                     ghy_v += gh_v
                 else:
                     ghx_v -= gh_v
+
+                if v.ndim == 2:
+                    # collapse into a long list of n_d vectors
+                    ghx_v = ghx_v.reshape((n_d, -1))
+                    ghy_v = ghy_v.reshape((n_d, -1))
+                    ge_v = ge_v.reshape((n_d, -1))
 
                 gh_v = Phx.T @ ghx_v + Phy.T @ ghy_v
                 ge_v = Pe.T @ ge_v
@@ -666,8 +673,9 @@ class Point3DTipper(PointNaturalSource):
 
         if adjoint:
             # Work backwards!
-            gtop_v = (v / bot)[:, None]
-            gbot_v = (-tip * v / bot)[:, None]
+            gtop_v = (v / bot)[..., None]
+            gbot_v = (-tip * v / bot)[..., None]
+            n_d = self.nD
 
             ghx_v = np.c_[hy[:, 1], -hy[:, 0]] * gbot_v
             ghy_v = np.c_[-hx[:, 1], hx[:, 0]] * gbot_v
@@ -678,6 +686,12 @@ class Point3DTipper(PointNaturalSource):
                 ghy_v -= gh_v
             else:
                 ghx_v += gh_v
+
+            if v.ndim == 2:
+                # collapse into a long list of n_d vectors
+                ghx_v = ghx_v.reshape((n_d, -1))
+                ghy_v = ghy_v.reshape((n_d, -1))
+                ghz_v = ghz_v.reshape((n_d, -1))
 
             gh_v = Phx.T @ ghx_v + Phy.T @ ghy_v + Phz.T @ ghz_v
             return f._hDeriv(src, None, gh_v, adjoint=True)
