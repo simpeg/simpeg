@@ -190,6 +190,7 @@ class Fields:
         return self.simulation.survey
 
     def startup(self):
+        """Run startup to connect the simulation's discrete attributes."""
         pass
 
     @property

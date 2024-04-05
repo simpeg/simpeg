@@ -6,27 +6,43 @@ from ...utils import mkvc, sdiag, Zero
 
 
 class FieldsTDEM(TimeFields):
-    r"""
-    Fancy Field Storage for a TDEM simulation. Only one field type is stored for
-    each problem, the rest are computed. The fields obejct acts like an array
-    and is indexed by
+    r"""Base class for storing TDEM fields.
+
+    TDEM fields classes are used to store the discrete solution of the fields for a
+    corresponding TDEM simulation; see :py:class:`SimPEG.electromagnetics.time_domain.simulation.BaseTDEMSimulation`.
+    Only one field type (e.g. 'e', 'j', 'h', 'b') is stored, but certain field types
+    can be rapidly computed and returned on the fly. The field type that is stored and the
+    field types that can be returned depend on the formulation used by the associated simulation class.
+    Once a field object has been created, the individual fields can be accessed; see the example below.
+
+    Parameters
+    ----------
+    simulation : SimPEG.electromagnetics.time_domain.simulation.BaseTDEMSimulation
+        The TDEM simulation object associated with the fields.
+
+    Example
+    -------
+    We want to access the fields for a discrete solution with :math:`\mathbf{e}` discretized
+    to edges and :math:`\mathbf{b}` discretized to faces. To extract the fields for all sources
+    and all time steps:
 
     .. code-block:: python
 
-        f = problem.fields(m)
-        e = f[source_list,'e']
-        b = f[source_list,'b']
+        f = simulation.fields(m)
+        e = f[:, 'e', :]
+        b = f[:, 'b', :]
 
-    If accessing all sources for a given field, use the :code:`:`
+    The array ``e`` returned will have shape (`n_edges`, `n_sources`, `n_steps`).
+    And the array ``b`` returned will have shape (`n_faces`, `n_sources`, `n_steps`).
+    We can also extract the fields for
+    a subset of the source list used for the simulation and/or a subset of the time steps as follows:
 
     .. code-block:: python
 
-        f = problem.fields(m)
-        e = f[:,'e']
-        b = f[:,'b']
+        f = simulation.fields(m)
+        e = f[source_list, 'e', t_inds]
+        b = f[source_list, 'b', t_inds]
 
-    The array returned will be size (nE or nF, nSrcs :math:`\times`
-    nFrequencies)
     """
 
     def __init__(self, simulation):
@@ -87,8 +103,13 @@ class FieldsTDEM(TimeFields):
 
 
 class FieldsDerivativesEB(FieldsTDEM):
-    """
-    A fields object for satshing derivs in the EB formulation
+    r"""Field class for stashing derivatives for EB formulations.
+
+    Parameters
+    ----------
+    simulation : SimPEG.electromagnetics.time_domain.simulation.BaseTDEMSimulation
+        The TDEM simulation object associated with the fields.
+
     """
 
     def __init__(self, simulation):
@@ -104,8 +125,13 @@ class FieldsDerivativesEB(FieldsTDEM):
 
 
 class FieldsDerivativesHJ(FieldsTDEM):
-    """
-    A fields object for satshing derivs in the HJ formulation
+    r"""Field class for stashing derivatives for HJ formulations.
+
+    Parameters
+    ----------
+    simulation : SimPEG.electromagnetics.time_domain.simulation.BaseTDEMSimulation
+        The TDEM simulation object associated with the fields.
+
     """
 
     def __init__(self, simulation):
@@ -121,7 +147,46 @@ class FieldsDerivativesHJ(FieldsTDEM):
 
 
 class Fields3DMagneticFluxDensity(FieldsTDEM):
-    """Field Storage for a TDEM simulation."""
+    r"""Fields class for storing 3D total magnetic flux density solutions.
+
+    This class stores the total magnetic flux density solution computed using a
+    :py:class:`SimPEG.electromagnetics.time_domain.simulation.Simulation3DMagneticFluxDensity`
+    simulation object. This class can be used to extract the following quantities:
+
+    * 'b', 'h', 'dbdt' and 'dhdt' on mesh faces.
+    * 'e' and 'j' on mesh edges.
+
+    See the example below to learn how fields can be extracted from a
+    ``Fields3DMagneticFluxDensity`` object.
+
+    Parameters
+    ----------
+    simulation : SimPEG.electromagnetics.time_domain.simulation.Simulation3DMagneticFluxDensity
+        The TDEM simulation object associated with the fields.
+
+    Example
+    -------
+    The ``Fields3DMagneticFluxDensity`` object stores the total magnetic flux density solution
+    on mesh faces. To extract the discrete electric fields and magnetic flux
+    densities for all sources and time-steps:
+
+    .. code-block:: python
+
+        f = simulation.fields(m)
+        e = f[:, 'e', :]
+        b = f[:, 'b', :]
+
+    The array ``e`` returned will have shape (`n_edges`, `n_sources`, `n_steps`).
+    And the array ``b`` returned will have shape (`n_faces`, `n_sources`, `n_steps`).
+    We can also extract the fields for a subset of the sources and time-steps as follows:
+
+    .. code-block:: python
+
+        f = simulation.fields(m)
+        e = f[source_list, 'e', t_inds]
+        b = f[source_list, 'b', t_inds]
+
+    """
 
     def __init__(self, simulation):
         super().__init__(simulation=simulation)
@@ -136,6 +201,7 @@ class Fields3DMagneticFluxDensity(FieldsTDEM):
         }
 
     def startup(self):
+        # Docstring inherited from parent.
         self._times = self.simulation.times
         self._MeSigma = self.simulation.MeSigma
         self._MeSigmaI = self.simulation.MeSigmaI
@@ -280,7 +346,46 @@ class Fields3DMagneticFluxDensity(FieldsTDEM):
 
 
 class Fields3DElectricField(FieldsTDEM):
-    """Fancy Field Storage for a TDEM simulation."""
+    r"""Fields class for storing 3D total electric field solutions.
+
+    This class stores the total electric field solution computed using a
+    :py:class:`SimPEG.electromagnetics.time_domain.simulation.Simulation3DElectricField`
+    simulation object. This class can be used to extract the following quantities:
+
+    * 'e' and 'j' on mesh edges.
+    * 'b', 'dbdt' and 'dhdt' on mesh faces.
+
+    See the example below to learn how fields can be extracted from a
+    ``Fields3DElectricField`` object.
+
+    Parameters
+    ----------
+    simulation : SimPEG.electromagnetics.time_domain.simulation.Simulation3DElectricField
+        The TDEM simulation object associated with the fields.
+
+    Example
+    -------
+    The ``Fields3DElectricField`` object stores the total electric field solution
+    on mesh edges. To extract the discrete electric fields and db/dt
+    for all sources and time-steps:
+
+    .. code-block:: python
+
+        f = simulation.fields(m)
+        e = f[:, 'e', :]
+        dbdt = f[:, 'dbdt', :]
+
+    The array ``e`` returned will have shape (`n_edges`, `n_sources`, `n_steps`).
+    And the array ``dbdt`` returned will have shape (`n_faces`, `n_sources`, `n_steps`).
+    We can also extract the fields for a subset of the sources and time-steps as follows:
+
+    .. code-block:: python
+
+        f = simulation.fields(m)
+        e = f[source_list, 'e', t_inds]
+        dbdt = f[source_list, 'dbdt', t_inds]
+
+    """
 
     def __init__(self, simulation):
         super().__init__(simulation=simulation)
@@ -295,6 +400,7 @@ class Fields3DElectricField(FieldsTDEM):
         }
 
     def startup(self):
+        # Docstring inherited from parent.
         self._times = self.simulation.times
         self._MeSigma = self.simulation.MeSigma
         self._MeSigmaI = self.simulation.MeSigmaI
@@ -401,7 +507,47 @@ class Fields3DElectricField(FieldsTDEM):
 
 
 class Fields3DMagneticField(FieldsTDEM):
-    """Fancy Field Storage for a TDEM simulation."""
+    r"""Fields class for storing 3D total magnetic field solutions.
+
+    This class stores the total magnetic field solution computed using a
+    :py:class:`SimPEG.electromagnetics.time_domain.simulation.Simulation3DElectricField`
+    simulation object. This class can be used to extract the following quantities:
+
+    * 'h', 'b', 'dbdt' and 'dbdt' on mesh edges.
+    * 'j' and 'e' on mesh faces.
+    * 'charge' at cell centers.
+
+    See the example below to learn how fields can be extracted from a
+    ``Fields3DMagneticField`` object.
+
+    Parameters
+    ----------
+    simulation : SimPEG.electromagnetics.time_domain.simulation.Simulation3DMagneticField
+        The TDEM simulation object associated with the fields.
+
+    Example
+    -------
+    The ``Fields3DMagneticField`` object stores the total magnetic field solution
+    on mesh edges. To extract the discrete magnetic fields and current density
+    for all sources and time-steps:
+
+    .. code-block:: python
+
+        f = simulation.fields(m)
+        h = f[:, 'h', :]
+        j = f[:, 'j', :]
+
+    The array ``h`` returned will have shape (`n_edges`, `n_sources`, `n_steps`).
+    And the array ``j`` returned will have shape (`n_faces`, `n_sources`, `n_steps`).
+    We can also extract the fields for a subset of the sources and time-steps as follows:
+
+    .. code-block:: python
+
+        f = simulation.fields(m)
+        h = f[source_list, 'e', t_inds]
+        j = f[source_list, 'j', t_inds]
+
+    """
 
     def __init__(self, simulation):
         super().__init__(simulation=simulation)
@@ -417,6 +563,7 @@ class Fields3DMagneticField(FieldsTDEM):
         }
 
     def startup(self):
+        # Docstring inherited from parent.
         self._times = self.simulation.times
         self._edgeCurl = self.simulation.mesh.edge_curl
         self._MeMuI = self.simulation.MeMuI
@@ -570,7 +717,47 @@ class Fields3DMagneticField(FieldsTDEM):
 
 
 class Fields3DCurrentDensity(FieldsTDEM):
-    """Fancy Field Storage for a TDEM simulation."""
+    r"""Fields class for storing 3D current density solutions.
+
+    This class stores the total current density solution computed using a
+    :py:class:`SimPEG.electromagnetics.time_domain.simulation.Simulation3DCurrentDensity`
+    simulation object. This class can be used to extract the following quantities:
+
+    * 'j' and 'e' on mesh faces.
+    * 'dbdt' and 'dhdt' on mesh edges.
+    * 'charge' and 'charge_density' at cell centers.
+
+    See the example below to learn how fields can be extracted from a
+    ``Fields3DCurrentDensity`` object.
+
+    Parameters
+    ----------
+    simulation : SimPEG.electromagnetics.time_domain.simulation.Simulation3DCurrentDensity
+        The TDEM simulation object associated with the fields.
+
+    Example
+    -------
+    The ``Fields3DCurrentDensity`` object stores the total current density solution
+    on mesh faces. To extract the discrete current densities and magnetic fields
+    for all sources and time-steps:
+
+    .. code-block:: python
+
+        f = simulation.fields(m)
+        j = f[:, 'j', :]
+        h = f[:, 'h', :]
+
+    The array ``j`` returned will have shape (`n_faces`, `n_sources`, `n_steps`).
+    And the array ``h`` returned will have shape (`n_edges`, `n_sources`, `n_steps`).
+    We can also extract the fields for a subset of the sources and time-steps as follows:
+
+    .. code-block:: python
+
+        f = simulation.fields(m)
+        j = f[source_list, 'j', t_inds]
+        h = f[source_list, 'h', t_inds]
+
+    """
 
     def __init__(self, simulation):
         super().__init__(simulation=simulation)
@@ -585,6 +772,7 @@ class Fields3DCurrentDensity(FieldsTDEM):
         }
 
     def startup(self):
+        # Docstring inherited from parent.
         self._times = self.simulation.times
         self._edgeCurl = self.simulation.mesh.edge_curl
         self._MeMuI = self.simulation.MeMuI
