@@ -150,12 +150,14 @@ def dask_dpred(self, m=None, f=None, compute_J=False):
     mesh = delayed(self.mesh)
     time_mesh = delayed(self.time_mesh)
     all_receivers = []
-    for ind, src in enumerate(self.survey.source_list):
+    print("Prepping receivers")
+    for ind, src in tqdm(enumerate(self.survey.source_list)):
         for rx in src.receiver_list:
             all_receivers.append((src, ind, rx))
 
     receiver_blocks = np.array_split(all_receivers, cpu_count())
-    for block in receiver_blocks:
+    print("Creatint parallel blocks")
+    for block in tqdm(receiver_blocks):
         n_data = np.sum(rec.nD for _, _, rec in block)
         if n_data == 0:
             continue
