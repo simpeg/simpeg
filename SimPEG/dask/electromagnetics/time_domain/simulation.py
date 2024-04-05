@@ -3,6 +3,7 @@ import dask.array
 import os
 from ....electromagnetics.time_domain.simulation import BaseTDEMSimulation as Sim
 from ....utils import Zero
+from SimPEG.fields import TimeFields
 from multiprocessing import cpu_count
 import numpy as np
 import scipy.sparse as sp
@@ -21,6 +22,61 @@ Sim.getJtJdiag = dask_getJtJdiag
 Sim.Jvec = dask_Jvec
 Sim.Jtvec = dask_Jtvec
 Sim.clean_on_model_update = ["_Jmatrix", "_jtjdiag"]
+
+
+def _getField(self, name, ind, src_list):
+    srcInd, timeInd = ind
+
+    if name in self._fields:
+        out = self._fields[name][:, srcInd, timeInd]
+    else:
+        # Aliased fields
+        alias, loc, func = self.aliasFields[name]
+        if isinstance(func, str):
+            assert hasattr(self, func), (
+                "The alias field function is a string, but it does "
+                "not exist in the Fields class."
+            )
+            func = getattr(self, func)
+        pointerFields = self._fields[alias][:, srcInd, timeInd]
+        pointerShape = self._correctShape(alias, ind)
+        pointerFields = pointerFields.reshape(pointerShape, order="F")
+
+        # First try to return the function as three arguments (without timeInd)
+        if timeInd == slice(None, None, None):
+            try:
+                # assume it will take care of integrating over all times
+                return func(pointerFields, srcInd)
+            except TypeError:
+                pass
+
+        timeII = np.arange(self.simulation.nT + 1)[timeInd]
+        if not isinstance(src_list, list):
+            src_list = [src_list]
+
+        if timeII.size == 1:
+            pointerShapeDeflated = self._correctShape(alias, ind, deflate=True)
+            pointerFields = pointerFields.reshape(pointerShapeDeflated, order="F")
+            out = func(pointerFields, src_list, timeII)
+        else:  # loop over the time steps
+            nT = pointerShape[2]
+            out = list(range(nT))
+            for i, TIND_i in enumerate(timeII):  # Need to parallelize this
+                fieldI = pointerFields[:, :, i]
+                if fieldI.shape[0] == fieldI.size:
+                    fieldI = mkvc(fieldI, 2)
+                out[i] = func(fieldI, src_list, TIND_i)
+                if out[i].ndim == 1:
+                    out[i] = out[i][:, np.newaxis, np.newaxis]
+                elif out[i].ndim == 2:
+                    out[i] = out[i][:, :, np.newaxis]
+            out = np.concatenate(out, axis=2)
+
+    shape = self._correctShape(name, ind, deflate=True)
+    return out.reshape(shape, order="F")
+
+
+TimeFields._getField = _getField
 
 
 def fields(self, m=None, return_Ainv=False):
@@ -145,7 +201,9 @@ def dask_dpred(self, m=None, f=None, compute_J=False):
     rows = []
     tc = time()
     print("delaying fields array")
-    fields_array = f[:, self.survey.source_list[0].receiver_list[0].projField, :]
+    receiver_projection = self.survey.source_list[0].receiver_list[0].projField
+    fields_array = f[:, receiver_projection, :]
+
     print(f"Complet {time()-tc}")
 
     all_receivers = []
@@ -184,10 +242,9 @@ Sim.field_derivs = None
 
 @delayed
 def delayed_block_deriv(
-    time_index, chunks, field_type, source_list, mesh, time_mesh, fields, shape
+    time_index, chunks, field_len, source_list, mesh, time_mesh, fields, shape
 ):
     """Compute derivatives for sources and receivers in a block"""
-    field_len = len(fields[source_list[0], field_type, 0])
     df_duT = []
     j_update = []
 
@@ -215,17 +272,13 @@ def delayed_block_deriv(
     return df_duT, j_update
 
 
-def compute_field_derivs(simulation, fields, blocks, Jmatrix):
+def compute_field_derivs(simulation, fields, blocks, Jmatrix, fields_shape):
     """
     Compute the derivative of the fields
     """
-    df_duT = []
-
+    delayed_blocks = []
     for time_index in range(simulation.nT + 1):
-        block_derivs = []
-        block_updates = []
         delayed_chunks = []
-
         for chunks in blocks:
             if len(chunks) == 0:
                 continue
@@ -233,7 +286,7 @@ def compute_field_derivs(simulation, fields, blocks, Jmatrix):
             delayed_block = delayed_block_deriv(
                 time_index,
                 chunks,
-                simulation._fieldType + "Solution",
+                fields_shape[0],
                 simulation.survey.source_list,
                 simulation.mesh,
                 simulation.time_mesh,
@@ -242,23 +295,24 @@ def compute_field_derivs(simulation, fields, blocks, Jmatrix):
             )
             delayed_chunks.append(delayed_block)
 
-        with ProgressBar():
-            result = dask.compute(delayed_chunks)
+        delayed_blocks.append(delayed_chunks)
 
-        for chunk in result[0]:
-            block_derivs.append(chunk[0])
-            block_updates += chunk[1]
+    with ProgressBar():
+        result = dask.compute(delayed_blocks)[0]
 
-        j_updates = sp.vstack(block_updates)
+    df_duT = []
+    j_updates = 0.0
+    for time_block in result:
+        for chunk in time_block:
+            df_duT.append([chunk[0]])
+            j_updates += sp.vstack(chunk[1])
 
-        if len(j_updates.data) > 0:
-            Jmatrix += sp.vstack(j_updates)
-            if simulation.store_sensitivities == "disk":
-                sens_name = simulation.sensitivity_path[:-5] + f"_{time_index % 2}.zarr"
-                array.to_zarr(Jmatrix, sens_name, compute=True, overwrite=True)
-                Jmatrix = array.from_zarr(sens_name)
-
-        df_duT.append(block_derivs)
+    if len(j_updates.data) > 0:
+        Jmatrix += sp.vstack(j_updates)
+        if simulation.store_sensitivities == "disk":
+            sens_name = simulation.sensitivity_path[:-5] + f"_{time_index % 2}.zarr"
+            array.to_zarr(Jmatrix, sens_name, compute=True, overwrite=True)
+            Jmatrix = array.from_zarr(sens_name)
 
     return df_duT, Jmatrix
 
@@ -284,7 +338,7 @@ def update_deriv_blocks(address, indices, derivatives, solve, shape):
     if address not in derivatives:
         deriv_array = np.zeros(shape)
     else:
-        deriv_array = derivatives[address].compute()
+        deriv_array = derivatives[address]
 
     if address in indices:
         columns, local_ind = indices[address]
@@ -368,7 +422,7 @@ def get_field_deriv_block(
             len(arrays[0]),
         )
 
-        update_deriv_blocks(address, tInd, indices, ATinv_df_duT_v, solve, shape)
+        update_deriv_blocks(address, indices, ATinv_df_duT_v, solve, shape)
 
     # dask.compute(update_list)
 
@@ -460,13 +514,14 @@ def compute_J(self, f=None, Ainv=None):
     blocks = get_parallel_blocks(
         self.survey.source_list, self.model.shape[0], self.max_chunk_size
     )
+    fields_array = f[:, ftype, :]
     tc = time()
-
     print("COmputing field derivs")
-    times_field_derivs, Jmatrix = compute_field_derivs(self, f, blocks, Jmatrix)
+    times_field_derivs, Jmatrix = compute_field_derivs(
+        self, f, blocks, Jmatrix, fields_array.shape
+    )
     print("Field derivs: ", time() - tc)
 
-    fields_array = f[:, ftype, :]
     ATinv_df_duT_v = {}
     for tInd, dt in tqdm(zip(reversed(range(self.nT)), reversed(self.time_steps))):
         AdiagTinv = Ainv[dt]
