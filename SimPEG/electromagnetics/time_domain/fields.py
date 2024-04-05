@@ -18,7 +18,7 @@ class FieldsTDEM(TimeFields):
     Parameters
     ----------
     simulation : SimPEG.electromagnetics.time_domain.simulation.BaseTDEMSimulation
-        The TDEM simulation object associated with the fields.
+        The TDEM simulation object used to compute the discrete field solution.
 
     Example
     -------

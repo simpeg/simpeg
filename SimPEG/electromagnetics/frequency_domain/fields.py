@@ -18,7 +18,7 @@ class FieldsFDEM(Fields):
     Parameters
     ----------
     simulation : SimPEG.electromagnetics.frequency_domain.simulation.BaseFDEMSimulation
-        The FDEM simulation object associated with the fields.
+        The FDEM simulation object used to compute the discrete field solution.
 
     Example
     -------

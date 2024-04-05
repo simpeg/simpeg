@@ -20,13 +20,14 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
     r"""Base class for quasi-static TDEM simulation with finite volume.
 
     This class is used to define properties and methods necessary for solving
-    3D time-domain problems. In the quasi-static regime, we ignore electric
+    3D time-domain EM problems. In the quasi-static regime, we ignore electric
     displacement, and Maxwell's equations are expressed as:
 
     .. math::
         \begin{align}
         &\nabla \times \vec{e} + \frac{\partial \vec{b}}{\partial t} = -\frac{\partial \vec{s}_m}{\partial t} \\
         &\nabla \times \vec{h} - \vec{j} = \vec{s}_e
+        \end{align}
 
     where the constitutive relations between fields and fluxes are given by:
 
@@ -39,7 +40,7 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
     * :math:`\vec{s}_e` represents a current source term
 
     Child classes of ``BaseTDEMSimulation`` solve the above expression numerically
-    for various cases using mimetic finite volume and backward Euler time-stepping.
+    for various cases using mimetic finite volume and backward Euler time discretization.
 
     Parameters
     ----------
@@ -313,7 +314,7 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
         ----------
         m : (n_param,) numpy.ndarray
             The model parameters.
-        v : (n_param,) numpy.ndarray
+        v : (n_data,) numpy.ndarray
             The vector.
         f : SimPEG.electromagnetics.time_domain.fields.FieldsTDEM, optional
             Fields solved for all sources.
@@ -484,8 +485,12 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
         return s_m, s_e
 
     def getInitialFields(self):
-        """
-        Ask the sources for initial fields
+        """Return the discrete initial fields for all sources.
+
+        Returns
+        -------
+        (nE or nF, n_sources) numpy.ndarray
+            The initial fields for all sources.
         """
 
         Srcs = self.survey.source_list
@@ -506,6 +511,40 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
         return ifields
 
     def getInitialFieldsDeriv(self, src, v, adjoint=False, f=None):
+        r"""Derivatives of the initial fields with respect to the model for a given source.
+
+        For a given source object `src`, let :math:`\mathbf{u_0}` represent the initial
+        fields discretized to the mesh. Where :math:`\mathbf{m}` are the model parameters
+        and :math:`\mathbf{v}` is a vector, this method computes and returns:
+
+        .. math::
+            \dfrac{\partial \mathbf{u_0}}{\partial \mathbf{m}} \, \mathbf{v}
+
+        or the adjoint operation:
+
+        .. math::
+            \dfrac{\partial \mathbf{u_0}}{\partial \mathbf{m}}^T \, \mathbf{v}
+
+        Parameters
+        ----------
+        src : SimPEG.electromagnetics.time_domain.sources.BaseTDEMSrc
+            A TDEM source.
+        v : numpy.ndarray
+            A vector of appropriate dimension. When `adjoint` is ``False``, `v` is a
+            (n_param,) numpy.ndarray. When `adjoint` is ``True``, `v` is a (nE or nF,)
+            numpy.ndarray.
+        adjoint : bool
+            Whether to perform the adjoint operation.
+        f : SimPEG.electromagnetics.time_domain.fields.BaseTDEMFields, optional
+            The TDEM fields object.
+
+        Returns
+        -------
+        numpy.ndarray
+            Derivatives of the intial fields with respect to the model for a given source.
+            (nE or nF,) numpy.ndarray when `adjoint` is ``False``. (n_param,) numpy.ndarray
+            when `ajoint` is ``True``. 
+        """
         ifieldsDeriv = mkvc(
             getattr(src, "{}InitialDeriv".format(self._fieldType), None)(
                 self, v, adjoint, f
@@ -532,6 +571,7 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
     # initial condition
     @property
     def Adcinv(self):
+        """Inverse of the system matrix for the DC resistivity problem."""
         if not hasattr(self, "getAdc"):
             raise NotImplementedError(
                 "Support for galvanic sources has not been implemented for "
@@ -546,6 +586,13 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
 
     @property
     def clean_on_model_update(self):
+        """List of model-dependent attributes to clean upon model update.
+
+        Returns
+        -------
+        list of str
+            List of the model-dependent attributes to clean upon model update.
+        """
         items = super().clean_on_model_update
         return items + ["_Adcinv"]  #: clear DC matrix factors on any model updates
 
@@ -560,7 +607,19 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
 
 
 class Simulation3DMagneticFluxDensity(BaseTDEMSimulation):
-    r"""
+    r"""3D TDEM simulation the magnetic flux density.
+    
+    Parameters
+    ----------
+    mesh : discretize.base.BaseMesh
+        The mesh.
+    survey : SimPEG.electromagnetics.time_domain.survey.Survey
+        The time-domain EM survey.
+    dt_threshold : float
+        Threshold used when determining the unique time-step lengths.
+
+    Notes
+    -----
     Starting from the quasi-static E-B formulation of Maxwell's equations
     (semi-discretized)
 
@@ -625,18 +684,35 @@ class Simulation3DMagneticFluxDensity(BaseTDEMSimulation):
 
     _fieldType = "b"
     _formulation = "EB"
-    fieldsPair = Fields3DMagneticFluxDensity  #: A SimPEG.EM.TDEM.Fields3DMagneticFluxDensity object
+    fieldsPair = Fields3DMagneticFluxDensity
     Fields_Derivs = FieldsDerivativesEB
 
     def getAdiag(self, tInd):
-        r"""
-        System matrix at a given time index
+        r"""Diagonal system matrix for the given time index.
+
+        Where the step length for time step index *k* is :math:`\Delta t_k`,
+        this method returns:
 
         .. math::
-
-            (\mathbf{I} + \mathbf{dt} \mathbf{C} \mathbf{M_{\sigma}^e}^{-1}
+            (\mathbf{I} + \Delta\mathbf{t}_k \mathbf{C} \mathbf{M_{\sigma}^e}^{-1}
             \mathbf{C}^{\top} \mathbf{M_{\mu^{-1}}^f})
 
+        where
+
+        * :math:`\mathbf{I}` is the identity matrix
+        * :math:`\mathbf{C}` is the discrete curl operator
+        * :math:`\mathbf{M_{e \sigma}}` is the conductivity inner-product matrix on edges
+        * :math:`\mathbf{M_{f \mu^{-1}}}` is the inverse permeability inner-product matrix on faces
+
+        Parameters
+        ----------
+        tInd : int
+            The time step index; between [0, n_steps].
+
+        Returns
+        -------
+        (nF, nF) sp.sparse.csr_matrix
+            The diagonal system matrix.
         """
         assert tInd >= 0 and tInd < self.nT
 
@@ -785,10 +861,7 @@ class Simulation3DElectricField(BaseTDEMSimulation):
 
     # @profile
     def Jtvec(self, m, v, f=None):
-        """
-        Jvec computes the adjoint of the sensitivity times a vector
-        """
-
+        # Doctring inherited from parent class.
         if f is None:
             f = self.fields(m)
 

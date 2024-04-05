@@ -39,7 +39,8 @@ class Fields:
         from the E-field solution ('eSolution') by calling a method ('_b').
     dtype : dtype or dict of {str : dtype}, optional
         Set the Python data type for each numerical field solution that is stored in
-        the fields object. E.g. ``float``, ``complex``, {'eSolution': complex, 'bSolution': complex}.
+        the fields object. E.g. ``float``, ``complex``,
+        {'eSolution': ``complex``, 'bSolution': ``complex``}.
 
     Example
     -------
@@ -108,7 +109,7 @@ class Fields:
 
     @property
     def knownFields(self):
-        """The field solutions and where they are discretized.
+        """The field solutions and where they are discretized on the mesh.
 
         Dictionary defining the field solutions that are stored and where
         on the mesh they are discretized. The ``key`` defines the name
@@ -190,7 +191,7 @@ class Fields:
         return self.simulation.survey
 
     def startup(self):
-        """Run startup to connect the simulation's discrete attributes."""
+        """Run startup to connect the simulation's discrete attributes to the fields object."""
         pass
 
     @property
