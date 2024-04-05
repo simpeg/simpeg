@@ -512,7 +512,10 @@ def compute_J(self, f=None, Ainv=None):
             )
             Jmatrix = array.from_zarr(sens_name)
         else:
+            tc = time()
+            print("Adding to Jmatrix")
             Jmatrix += array.vstack(j_row_updates).compute()
+            print("Add time: ", time() - tc)
 
     for A in Ainv.values():
         A.clean()
