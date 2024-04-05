@@ -6,7 +6,7 @@ from .utils import mkvc, validate_type
 
 class Fields:
     r"""Base class for storing fields.
-    
+
     Fields classes are used to store the numerical solutions of the fields for a
     corresponding simulation; see :py:class:`SimPEG.simulation.BaseSimulation`.
     Only one field type (e.g. 'e', 'j', 'h', or 'b') is stored, but certain field types
@@ -58,10 +58,7 @@ class Fields:
     _knownFields = {}
     _aliasFields = {}
 
-    def __init__(
-        self, simulation, knownFields=None, aliasFields=None, dtype=None, **kwargs
-    ):
-        super().__init__(**kwargs)
+    def __init__(self, simulation, knownFields=None, aliasFields=None, dtype=None):
         self.simulation = simulation
 
         if knownFields is not None:

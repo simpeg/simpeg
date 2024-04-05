@@ -29,8 +29,9 @@ class FieldsTDEM(TimeFields):
     nFrequencies)
     """
 
-    knownFields = {}
-    dtype = float
+    def __init__(self, simulation):
+        dtype = float
+        super().__init__(simulation=simulation, dtype=dtype)
 
     def _GLoc(self, fieldType):
         """Grid location of the fieldType"""
@@ -90,14 +91,16 @@ class FieldsDerivativesEB(FieldsTDEM):
     A fields object for satshing derivs in the EB formulation
     """
 
-    knownFields = {
-        "bDeriv": "F",
-        "eDeriv": "E",
-        "hDeriv": "F",
-        "jDeriv": "E",
-        "dbdtDeriv": "F",
-        "dhdtDeriv": "F",
-    }
+    def __init__(self, simulation):
+        super().__init__(simulation=simulation)
+        self._knownFields = {
+            "bDeriv": "F",
+            "eDeriv": "E",
+            "hDeriv": "F",
+            "jDeriv": "E",
+            "dbdtDeriv": "F",
+            "dhdtDeriv": "F",
+        }
 
 
 class FieldsDerivativesHJ(FieldsTDEM):
@@ -105,28 +108,32 @@ class FieldsDerivativesHJ(FieldsTDEM):
     A fields object for satshing derivs in the HJ formulation
     """
 
-    knownFields = {
-        "bDeriv": "E",
-        "eDeriv": "F",
-        "hDeriv": "E",
-        "jDeriv": "F",
-        "dbdtDeriv": "E",
-        "dhdtDeriv": "E",
-    }
+    def __init__(self, simulation):
+        super().__init__(simulation=simulation)
+        self._knownFields = {
+            "bDeriv": "E",
+            "eDeriv": "F",
+            "hDeriv": "E",
+            "jDeriv": "F",
+            "dbdtDeriv": "E",
+            "dhdtDeriv": "E",
+        }
 
 
 class Fields3DMagneticFluxDensity(FieldsTDEM):
     """Field Storage for a TDEM simulation."""
 
-    knownFields = {"bSolution": "F"}
-    aliasFields = {
-        "b": ["bSolution", "F", "_b"],
-        "h": ["bSolution", "F", "_h"],
-        "e": ["bSolution", "E", "_e"],
-        "j": ["bSolution", "E", "_j"],
-        "dbdt": ["bSolution", "F", "_dbdt"],
-        "dhdt": ["bSolution", "F", "_dhdt"],
-    }
+    def __init__(self, simulation):
+        super().__init__(simulation=simulation)
+        self._knownFields = {"bSolution": "F"}
+        self._aliasFields = {
+            "b": ["bSolution", "F", "_b"],
+            "h": ["bSolution", "F", "_h"],
+            "e": ["bSolution", "E", "_e"],
+            "j": ["bSolution", "E", "_j"],
+            "dbdt": ["bSolution", "F", "_dbdt"],
+            "dhdt": ["bSolution", "F", "_dhdt"],
+        }
 
     def startup(self):
         self._times = self.simulation.times
@@ -275,15 +282,17 @@ class Fields3DMagneticFluxDensity(FieldsTDEM):
 class Fields3DElectricField(FieldsTDEM):
     """Fancy Field Storage for a TDEM simulation."""
 
-    knownFields = {"eSolution": "E"}
-    aliasFields = {
-        "e": ["eSolution", "E", "_e"],
-        "j": ["eSolution", "E", "_j"],
-        "b": ["eSolution", "F", "_b"],
-        # 'h': ['eSolution', 'F', '_h'],
-        "dbdt": ["eSolution", "F", "_dbdt"],
-        "dhdt": ["eSolution", "F", "_dhdt"],
-    }
+    def __init__(self, simulation):
+        super().__init__(simulation=simulation)
+        self._knownFields = {"eSolution": "E"}
+        self._aliasFields = {
+            "e": ["eSolution", "E", "_e"],
+            "j": ["eSolution", "E", "_j"],
+            "b": ["eSolution", "F", "_b"],
+            # 'h': ['eSolution', 'F', '_h'],
+            "dbdt": ["eSolution", "F", "_dbdt"],
+            "dhdt": ["eSolution", "F", "_dhdt"],
+        }
 
     def startup(self):
         self._times = self.simulation.times
@@ -394,16 +403,18 @@ class Fields3DElectricField(FieldsTDEM):
 class Fields3DMagneticField(FieldsTDEM):
     """Fancy Field Storage for a TDEM simulation."""
 
-    knownFields = {"hSolution": "E"}
-    aliasFields = {
-        "h": ["hSolution", "E", "_h"],
-        "b": ["hSolution", "E", "_b"],
-        "dhdt": ["hSolution", "E", "_dhdt"],
-        "dbdt": ["hSolution", "E", "_dbdt"],
-        "j": ["hSolution", "F", "_j"],
-        "e": ["hSolution", "F", "_e"],
-        "charge": ["hSolution", "CC", "_charge"],
-    }
+    def __init__(self, simulation):
+        super().__init__(simulation=simulation)
+        self._knownFields = {"hSolution": "E"}
+        self._aliasFields = {
+            "h": ["hSolution", "E", "_h"],
+            "b": ["hSolution", "E", "_b"],
+            "dhdt": ["hSolution", "E", "_dhdt"],
+            "dbdt": ["hSolution", "E", "_dbdt"],
+            "j": ["hSolution", "F", "_j"],
+            "e": ["hSolution", "F", "_e"],
+            "charge": ["hSolution", "CC", "_charge"],
+        }
 
     def startup(self):
         self._times = self.simulation.times
@@ -561,15 +572,17 @@ class Fields3DMagneticField(FieldsTDEM):
 class Fields3DCurrentDensity(FieldsTDEM):
     """Fancy Field Storage for a TDEM simulation."""
 
-    knownFields = {"jSolution": "F"}
-    aliasFields = {
-        "dhdt": ["jSolution", "E", "_dhdt"],
-        "dbdt": ["jSolution", "E", "_dbdt"],
-        "j": ["jSolution", "F", "_j"],
-        "e": ["jSolution", "F", "_e"],
-        "charge": ["jSolution", "CC", "_charge"],
-        "charge_density": ["jSolution", "CC", "_charge_density"],
-    }
+    def __init__(self, simulation):
+        super().__init__(simulation=simulation)
+        self._knownFields = {"jSolution": "F"}
+        self._aliasFields = {
+            "dhdt": ["jSolution", "E", "_dhdt"],
+            "dbdt": ["jSolution", "E", "_dbdt"],
+            "j": ["jSolution", "F", "_j"],
+            "e": ["jSolution", "F", "_e"],
+            "charge": ["jSolution", "CC", "_charge"],
+            "charge_density": ["jSolution", "CC", "_charge_density"],
+        }
 
     def startup(self):
         self._times = self.simulation.times

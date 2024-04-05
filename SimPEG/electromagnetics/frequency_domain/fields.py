@@ -7,7 +7,7 @@ from ..utils import omega
 
 class FieldsFDEM(Fields):
     r"""Base class for storing FDEM fields.
-    
+
     FDEM fields classes are used to store the discrete solution of the fields for a
     corresponding FDEM simulation; see :py:class:`SimPEG.electromagnetics.frequency_domain.simulation.BaseFDEMSimulation`.
     Only one field type (e.g. 'e', 'j', 'h', or 'b') is stored, but certain field types
@@ -43,8 +43,9 @@ class FieldsFDEM(Fields):
 
     """
 
-    knownFields = {}
-    _dtype = complex
+    def __init__(self, simulation):
+        dtype = complex
+        super().__init__(simulation=simulation, dtype=dtype)
 
     def _GLoc(self, fieldType):
         """Grid location of the fieldType"""
@@ -316,19 +317,21 @@ class Fields3DElectricField(FieldsFDEM):
     :param SimPEG.electromagnetics.frequency_domain.SurveyFDEM.Survey survey: survey
     """
 
-    knownFields = {"eSolution": "E"}
-    aliasFields = {
-        "e": ["eSolution", "E", "_e"],
-        "ePrimary": ["eSolution", "E", "_ePrimary"],
-        "eSecondary": ["eSolution", "E", "_eSecondary"],
-        "b": ["eSolution", "F", "_b"],
-        "bPrimary": ["eSolution", "F", "_bPrimary"],
-        "bSecondary": ["eSolution", "F", "_bSecondary"],
-        "j": ["eSolution", "E", "_j"],
-        "h": ["eSolution", "F", "_h"],
-        "charge": ["eSolution", "N", "_charge"],
-        "charge_density": ["eSolution", "CC", "_charge_density"],
-    }
+    def __init__(self, simulation):
+        super().__init__(simulation=simulation)
+        self._knownFields = {"eSolution": "E"}
+        self._aliasFields = {
+            "e": ["eSolution", "E", "_e"],
+            "ePrimary": ["eSolution", "E", "_ePrimary"],
+            "eSecondary": ["eSolution", "E", "_eSecondary"],
+            "b": ["eSolution", "F", "_b"],
+            "bPrimary": ["eSolution", "F", "_bPrimary"],
+            "bSecondary": ["eSolution", "F", "_bSecondary"],
+            "j": ["eSolution", "E", "_j"],
+            "h": ["eSolution", "F", "_h"],
+            "charge": ["eSolution", "N", "_charge"],
+            "charge_density": ["eSolution", "CC", "_charge_density"],
+        }
 
     def startup(self):
         self._edgeCurl = self.simulation.mesh.edge_curl
@@ -644,19 +647,21 @@ class Fields3DMagneticFluxDensity(FieldsFDEM):
     :param SimPEG.electromagnetics.frequency_domain.SurveyFDEM.Survey survey: survey
     """
 
-    knownFields = {"bSolution": "F"}
-    aliasFields = {
-        "b": ["bSolution", "F", "_b"],
-        "bPrimary": ["bSolution", "F", "_bPrimary"],
-        "bSecondary": ["bSolution", "F", "_bSecondary"],
-        "e": ["bSolution", "E", "_e"],
-        "ePrimary": ["bSolution", "E", "_ePrimary"],
-        "eSecondary": ["bSolution", "E", "_eSecondary"],
-        "j": ["bSolution", "E", "_j"],
-        "h": ["bSolution", "F", "_h"],
-        "charge": ["bSolution", "N", "_charge"],
-        "charge_density": ["bSolution", "CC", "_charge_density"],
-    }
+    def __init__(self, simulation):
+        super().__init__(simulation=simulation)
+        self._knownFields = {"bSolution": "F"}
+        self._aliasFields = {
+            "b": ["bSolution", "F", "_b"],
+            "bPrimary": ["bSolution", "F", "_bPrimary"],
+            "bSecondary": ["bSolution", "F", "_bSecondary"],
+            "e": ["bSolution", "E", "_e"],
+            "ePrimary": ["bSolution", "E", "_ePrimary"],
+            "eSecondary": ["bSolution", "E", "_eSecondary"],
+            "j": ["bSolution", "E", "_j"],
+            "h": ["bSolution", "F", "_h"],
+            "charge": ["bSolution", "N", "_charge"],
+            "charge_density": ["bSolution", "CC", "_charge_density"],
+        }
 
     def startup(self):
         self._edgeCurl = self.simulation.mesh.edge_curl
@@ -974,19 +979,21 @@ class Fields3DCurrentDensity(FieldsFDEM):
     :param SimPEG.electromagnetics.frequency_domain.SurveyFDEM.Survey survey: survey
     """
 
-    knownFields = {"jSolution": "F"}
-    aliasFields = {
-        "j": ["jSolution", "F", "_j"],
-        "jPrimary": ["jSolution", "F", "_jPrimary"],
-        "jSecondary": ["jSolution", "F", "_jSecondary"],
-        "h": ["jSolution", "E", "_h"],
-        "hPrimary": ["jSolution", "E", "_hPrimary"],
-        "hSecondary": ["jSolution", "E", "_hSecondary"],
-        "e": ["jSolution", "F", "_e"],
-        "b": ["jSolution", "E", "_b"],
-        "charge": ["bSolution", "CC", "_charge"],
-        "charge_density": ["bSolution", "CC", "_charge_density"],
-    }
+    def __init__(self, simulation):
+        super().__init__(simulation=simulation)
+        self._knownFields = {"jSolution": "F"}
+        self._aliasFields = {
+            "j": ["jSolution", "F", "_j"],
+            "jPrimary": ["jSolution", "F", "_jPrimary"],
+            "jSecondary": ["jSolution", "F", "_jSecondary"],
+            "h": ["jSolution", "E", "_h"],
+            "hPrimary": ["jSolution", "E", "_hPrimary"],
+            "hSecondary": ["jSolution", "E", "_hSecondary"],
+            "e": ["jSolution", "F", "_e"],
+            "b": ["jSolution", "E", "_b"],
+            "charge": ["bSolution", "CC", "_charge"],
+            "charge_density": ["bSolution", "CC", "_charge_density"],
+        }
 
     def startup(self):
         self._edgeCurl = self.simulation.mesh.edge_curl
@@ -1365,19 +1372,21 @@ class Fields3DMagneticField(FieldsFDEM):
     :param SimPEG.electromagnetics.frequency_domain.SurveyFDEM.Survey survey: survey
     """
 
-    knownFields = {"hSolution": "E"}
-    aliasFields = {
-        "h": ["hSolution", "E", "_h"],
-        "hPrimary": ["hSolution", "E", "_hPrimary"],
-        "hSecondary": ["hSolution", "E", "_hSecondary"],
-        "j": ["hSolution", "F", "_j"],
-        "jPrimary": ["hSolution", "F", "_jPrimary"],
-        "jSecondary": ["hSolution", "F", "_jSecondary"],
-        "e": ["hSolution", "CCV", "_e"],
-        "b": ["hSolution", "CCV", "_b"],
-        "charge": ["hSolution", "CC", "_charge"],
-        "charge_density": ["hSolution", "CC", "_charge_density"],
-    }
+    def __init__(self, simulation):
+        super().__init__(simulation=simulation)
+        self._knownFields = {"hSolution": "E"}
+        self._aliasFields = {
+            "h": ["hSolution", "E", "_h"],
+            "hPrimary": ["hSolution", "E", "_hPrimary"],
+            "hSecondary": ["hSolution", "E", "_hSecondary"],
+            "j": ["hSolution", "F", "_j"],
+            "jPrimary": ["hSolution", "F", "_jPrimary"],
+            "jSecondary": ["hSolution", "F", "_jSecondary"],
+            "e": ["hSolution", "CCV", "_e"],
+            "b": ["hSolution", "CCV", "_b"],
+            "charge": ["hSolution", "CC", "_charge"],
+            "charge_density": ["hSolution", "CC", "_charge_density"],
+        }
 
     def startup(self):
         self._edgeCurl = self.simulation.mesh.edge_curl
