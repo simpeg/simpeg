@@ -168,8 +168,7 @@ def dask_dpred(self, m=None, f=None, compute_J=False):
             )
         )
 
-    with ProgressBar():
-        data = array.hstack(rows).compute()
+    data = array.hstack(rows).compute()
 
     if compute_J and self._Jmatrix is None:
         Jmatrix = self.compute_J(f=f, Ainv=Ainv)
@@ -351,8 +350,12 @@ def get_field_deriv_block(
             )
         )
     if len(stacked_blocks) > 0:
-        blocks = array.hstack(stacked_blocks).compute()
+        with ProgressBar():
+            blocks = array.hstack(stacked_blocks).compute()
+
+        tc = time()
         solve = (AdiagTinv * blocks).reshape(blocks.shape)
+        print("Solve time: ", time() - tc)
     else:
         solve = None
 
@@ -466,6 +469,7 @@ def compute_J(self, f=None, Ainv=None):
         j_row_updates = []
         time_mask = data_times > simulation_times[tInd]
 
+        tc = time()
         for block, field_deriv in zip(blocks, times_field_derivs[tInd + 1]):
             ATinv_df_duT_v = get_field_deriv_block(
                 self, block, field_deriv, tInd, AdiagTinv, ATinv_df_duT_v, time_mask
@@ -492,6 +496,7 @@ def compute_J(self, f=None, Ainv=None):
                 )
             )
 
+        print("Prepping blocks: ", time() - tc)
         # Jmatrix = Jmatrix + array.vstack(j_row_updates)
         if self.store_sensitivities == "disk":
             sens_name = self.sensitivity_path[:-5] + f"_{tInd % 2}.zarr"
