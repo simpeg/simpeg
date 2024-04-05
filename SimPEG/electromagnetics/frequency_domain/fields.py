@@ -48,7 +48,18 @@ class FieldsFDEM(Fields):
         super().__init__(simulation=simulation, dtype=dtype)
 
     def _GLoc(self, fieldType):
-        """Grid location of the fieldType"""
+        """Retun grid locations of the fieldType.
+
+        Parameters
+        ----------
+        fieldType : str
+            The field type.
+
+        Returns
+        -------
+        str
+            The grid locations. One of {'CC', 'N', 'E', 'F'}.
+        """
         return self.aliasFields[fieldType][1]
 
     def _e(self, solution, source_list):
@@ -310,11 +321,46 @@ class FieldsFDEM(Fields):
 
 
 class Fields3DElectricField(FieldsFDEM):
-    """
-    Fields object for Simulation3DElectricField.
+    r"""Fields class for storing 3D total electric fields.
 
-    :param discretize.base.BaseMesh mesh: mesh
-    :param SimPEG.electromagnetics.frequency_domain.SurveyFDEM.Survey survey: survey
+    This class stores the total electric fields computed using the
+    :py:class:`SimPEG.electromagnetics.frequency_domain.simulation.Simulation3DElectricField`
+    simulation class. This class can be used to extract the following quantities:
+
+    * 'e', 'ePrimary', 'eSecondary' and 'j' on mesh edges.
+    * 'h', 'b', 'bPrimary' and 'bSecondary' on mesh faces.
+    * 'charge' on mesh nodes.
+    * 'charge_density' at cell centers.
+
+    See the example below to learn how fields can be extracted from a
+    ``Fields3DElectricField`` object.
+
+    Parameters
+    ----------
+    simulation : SimPEG.electromagnetics.frequency_domain.simulation.Simulation3DElectricField
+        The FDEM simulation object associated with the fields.
+
+    Example
+    -------
+    We want to access the fields for a discrete solution with :math:`\mathbf{e}` discretized
+    to edges and :math:`\mathbf{b}` discretized to faces. To extract the fields for all sources:
+
+    .. code-block:: python
+
+        f = simulation.fields(m)
+        e = f[:,'e']
+        b = f[:,'b']
+
+    The array ``e`` returned will have shape (`n_edges`, `n_sources`). And the array ``b``
+    returned will have shape (`n_faces`, `n_sources`). We can also extract the fields for
+    a subset of the source list used for the simulation as follows:
+
+    .. code-block:: python
+
+        f = simulation.fields(m)
+        e = f[source_list,'e']
+        b = f[source_list,'b']
+
     """
 
     def __init__(self, simulation):
