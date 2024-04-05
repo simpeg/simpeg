@@ -144,17 +144,10 @@ def dask_dpred(self, m=None, f=None, compute_J=False):
 
     rows = []
     tc = time()
-    print("delaying fields")
-    fields = delayed(f)
-    print(f"Complet {time()-tc}")
-    tc = time()
     print("delaying fields array")
-    fields_array = delayed(
-        f[:, self.survey.source_list[0].receiver_list[0].projField, :]
-    )
+    fields_array = f[:, self.survey.source_list[0].receiver_list[0].projField, :]
     print(f"Complet {time()-tc}")
-    mesh = delayed(self.mesh)
-    time_mesh = delayed(self.time_mesh)
+
     all_receivers = []
     print("Prepping receivers")
     for ind, src in tqdm(enumerate(self.survey.source_list)):
@@ -162,7 +155,7 @@ def dask_dpred(self, m=None, f=None, compute_J=False):
             all_receivers.append((src, ind, rx))
 
     receiver_blocks = np.array_split(all_receivers, cpu_count())
-    print("Creatint parallel blocks")
+    print("Creating parallel blocks")
     for block in tqdm(receiver_blocks):
         n_data = np.sum(rec.nD for _, _, rec in block)
         if n_data == 0:
@@ -170,7 +163,7 @@ def dask_dpred(self, m=None, f=None, compute_J=False):
 
         rows.append(
             array.from_delayed(
-                evaluate_receivers(block, mesh, time_mesh, fields, fields_array),
+                evaluate_receivers(block, self.mesh, self.time_mesh, f, fields_array),
                 dtype=np.float64,
                 shape=(n_data,),
             )
@@ -287,7 +280,7 @@ def deriv_block(
     return stacked_block
 
 
-def update_deriv_blocks(address, tInd, indices, derivatives, solve, shape):
+def update_deriv_blocks(address, indices, derivatives, solve, shape):
     if address not in derivatives:
         deriv_array = np.zeros(shape)
     else:
@@ -297,7 +290,7 @@ def update_deriv_blocks(address, tInd, indices, derivatives, solve, shape):
         columns, local_ind = indices[address]
         deriv_array[:, local_ind] = solve[:, columns]
 
-    derivatives[address] = delayed(deriv_array)
+    derivatives[address] = deriv_array
 
 
 def get_field_deriv_block(
@@ -374,10 +367,10 @@ def get_field_deriv_block(
             field_deriv.shape[0],
             len(arrays[0]),
         )
-        update_list.append(
-            update_deriv_blocks(address, tInd, indices, ATinv_df_duT_v, solve, shape)
-        )
-    dask.compute(update_list)
+
+        update_deriv_blocks(address, tInd, indices, ATinv_df_duT_v, solve, shape)
+
+    # dask.compute(update_list)
 
     return ATinv_df_duT_v
 
@@ -473,7 +466,7 @@ def compute_J(self, f=None, Ainv=None):
     times_field_derivs, Jmatrix = compute_field_derivs(self, f, blocks, Jmatrix)
     print("Field derivs: ", time() - tc)
 
-    fields_array = delayed(f[:, ftype, :])
+    fields_array = f[:, ftype, :]
     ATinv_df_duT_v = {}
     for tInd, dt in tqdm(zip(reversed(range(self.nT)), reversed(self.time_steps))):
         AdiagTinv = Ainv[dt]
