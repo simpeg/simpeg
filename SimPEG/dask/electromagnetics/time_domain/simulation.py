@@ -143,10 +143,16 @@ def dask_dpred(self, m=None, f=None, compute_J=False):
         f, Ainv = self.fields(m, return_Ainv=compute_J)
 
     rows = []
+    tc = time()
+    print("delaying fields")
     fields = delayed(f)
+    print(f"Complet {time()-tc}")
+    tc = time()
+    print("delaying fields array")
     fields_array = delayed(
         f[:, self.survey.source_list[0].receiver_list[0].projField, :]
     )
+    print(f"Complet {time()-tc}")
     mesh = delayed(self.mesh)
     time_mesh = delayed(self.time_mesh)
     all_receivers = []
@@ -243,7 +249,8 @@ def compute_field_derivs(simulation, fields, blocks, Jmatrix):
             )
             delayed_chunks.append(delayed_block)
 
-        result = dask.compute(delayed_chunks)
+        with ProgressBar():
+            result = dask.compute(delayed_chunks)
 
         for chunk in result[0]:
             block_derivs.append(chunk[0])
