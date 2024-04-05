@@ -167,8 +167,8 @@ def dask_dpred(self, m=None, f=None, compute_J=False):
                 shape=(n_data,),
             )
         )
-
-    data = array.hstack(rows).compute()
+    with ProgressBar():
+        data = array.hstack(rows).compute()
 
     if compute_J and self._Jmatrix is None:
         Jmatrix = self.compute_J(f=f, Ainv=Ainv)
@@ -431,7 +431,7 @@ def compute_J(self, f=None, Ainv=None):
     """
     Compute the rows for the sensitivity matrix.
     """
-
+    print("Computing fields")
     if f is None:
         f, Ainv = self.fields(self.model, return_Ainv=True)
 
@@ -460,7 +460,9 @@ def compute_J(self, f=None, Ainv=None):
     )
     tc = time()
 
+    print("COmputing field derivs")
     times_field_derivs, Jmatrix = compute_field_derivs(self, f, blocks, Jmatrix)
+    print("Field derivs: ", time() - tc)
 
     fields_array = delayed(f[:, ftype, :])
     ATinv_df_duT_v = {}
