@@ -1697,7 +1697,9 @@ class SelfConsistentEffectiveMedium(IdentityMap):
         if alpha < 1.0:  # oblate spheroid
             chi = np.sqrt((1.0 / alpha**2.0) - 1)
             return (
-                1.0 / 2.0 * (1 + 1.0 / (alpha**2.0 - 1) * (1.0 - np.arctan(chi) / chi))
+                1.0
+                / 2.0
+                * (1 + 1.0 / (alpha**2.0 - 1) * (1.0 - np.arctan(chi) / chi))
             )
         elif alpha > 1.0:  # prolate spheroid
             chi = np.sqrt(1 - (1.0 / alpha**2.0))
@@ -4888,16 +4890,19 @@ class ParametricLayer(BaseParametric):
 
         mDict = self.mDict(m)
         if v is not None:
-           return sp.csr_matrix(
-            np.vstack(
-                [
-                    self._deriv_val_background(mDict),
-                    self._deriv_val_layer(mDict),
-                    self._deriv_layer_center(mDict),
-                    self._deriv_layer_thickness(mDict),
-                ]
-            ).T
-           )*v
+            return (
+                sp.csr_matrix(
+                    np.vstack(
+                        [
+                            self._deriv_val_background(mDict),
+                            self._deriv_val_layer(mDict),
+                            self._deriv_layer_center(mDict),
+                            self._deriv_layer_thickness(mDict),
+                        ]
+                    ).T
+                )
+                * v
+            )
         return sp.csr_matrix(
             np.vstack(
                 [
@@ -5112,7 +5117,12 @@ class ParametricBlock(BaseParametric):
         return (val**2 + self.epsilon**2) ** (self.p / 2.0)
 
     def _ekblomDeriv(self, val):
-        return (self.p / 2) * (val**2 + self.epsilon**2) ** ((self.p / 2) - 1) * 2 * val
+        return (
+            (self.p / 2)
+            * (val**2 + self.epsilon**2) ** ((self.p / 2) - 1)
+            * 2
+            * val
+        )
 
     # def _rotation(self, mDict):
     #     if self.mesh.dim == 2:
@@ -5252,10 +5262,13 @@ class ParametricBlock(BaseParametric):
             the vector *v*.
         """
         if v is not None:
-            return sp.csr_matrix(
-            getattr(self, "_deriv{}D".format(self.mesh.dim))(self.mDict(m))
-        )*v
-            
+            return (
+                sp.csr_matrix(
+                    getattr(self, "_deriv{}D".format(self.mesh.dim))(self.mDict(m))
+                )
+                * v
+            )
+
         return sp.csr_matrix(
             getattr(self, "_deriv{}D".format(self.mesh.dim))(self.mDict(m))
         )
@@ -5651,22 +5664,25 @@ class ParametricCasingAndLayer(ParametricLayer):
     def deriv(self, m, v=None):
         mDict = self.mDict(m)
         if v is not None:
-            return sp.csr_matrix(
-            np.vstack(
-                [
-                    self._deriv_val_background(mDict),
-                    self._deriv_val_layer(mDict),
-                    self._deriv_val_casing(mDict),
-                    self._deriv_val_insideCasing(mDict),
-                    self._deriv_layer_center(mDict),
-                    self._deriv_layer_thickness(mDict),
-                    self._deriv_casing_radius(mDict),
-                    self._deriv_casing_thickness(mDict),
-                    self._deriv_casing_bottom(mDict),
-                    self._deriv_casing_top(mDict),
-                ]
-            ).T
-        )*v
+            return (
+                sp.csr_matrix(
+                    np.vstack(
+                        [
+                            self._deriv_val_background(mDict),
+                            self._deriv_val_layer(mDict),
+                            self._deriv_val_casing(mDict),
+                            self._deriv_val_insideCasing(mDict),
+                            self._deriv_layer_center(mDict),
+                            self._deriv_layer_thickness(mDict),
+                            self._deriv_casing_radius(mDict),
+                            self._deriv_casing_thickness(mDict),
+                            self._deriv_casing_bottom(mDict),
+                            self._deriv_casing_top(mDict),
+                        ]
+                    ).T
+                )
+                * v
+            )
         return sp.csr_matrix(
             np.vstack(
                 [
@@ -6123,11 +6139,11 @@ class ParametricBlockInLayer(ParametricLayer):
     def deriv(self, m, v=None):
         if self.mesh.dim == 2:
             if v is not None:
-                return sp.csr_matrix(self._deriv2d(m))*v
+                return sp.csr_matrix(self._deriv2d(m)) * v
             return sp.csr_matrix(self._deriv2d(m))
         elif self.mesh.dim == 3:
             if v is not None:
-                return sp.csr_matrix(self._deriv3d(m))*v
+                return sp.csr_matrix(self._deriv3d(m)) * v
             return sp.csr_matrix(self._deriv3d(m))
 
 
