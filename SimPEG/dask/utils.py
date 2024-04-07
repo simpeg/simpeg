@@ -83,12 +83,12 @@ def get_parallel_blocks(source_list: list, m_size: int, max_chunk_size: int) -> 
                 row_index += chunk_size
                 row_count += chunk_size
 
-    # # Re-split over cpu_count if too few blocks
-    # if len(blocks) < cpu_count():
-    #     flatten_blocks = []
-    #     for block in blocks:
-    #         flatten_blocks += block
-    #
-    #     chunks = np.array_split(np.arange(len(flatten_blocks)), cpu_count())
-    #     return [[flatten_blocks[i] for i in chunk] for chunk in chunks]
+    # Re-split over cpu_count if too few blocks
+    if len(blocks) < cpu_count():
+        flatten_blocks = []
+        for block in blocks:
+            flatten_blocks += block
+
+        chunks = np.array_split(np.arange(len(flatten_blocks)), cpu_count())
+        return [[flatten_blocks[i] for i in chunk] for chunk in chunks]
     return blocks

@@ -382,8 +382,8 @@ def get_field_deriv_block(
     if tInd < simulation.nT - 1:
         Asubdiag = simulation.getAsubdiag(tInd + 1)
 
-    for ((s_id, r_id, b_id), (rx_ind, j_ind, shape)), field_deriv in zip(
-        block, field_derivs
+    for ((s_id, r_id, b_id), (rx_ind, j_ind, shape)), field_deriv in tqdm(
+        zip(block, field_derivs)
     ):
         # Cut out early data
         time_check = np.kron(time_mask, np.ones(shape, dtype=bool))[rx_ind]
