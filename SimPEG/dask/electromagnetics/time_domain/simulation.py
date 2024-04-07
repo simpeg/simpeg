@@ -24,6 +24,20 @@ Sim.Jtvec = dask_Jtvec
 Sim.clean_on_model_update = ["_Jmatrix", "_jtjdiag"]
 
 
+@delayed
+def field_projection(field_array, src_list, array_ind, time_ind, func):
+    fieldI = field_array[:, :, array_ind]
+    if fieldI.shape[0] == fieldI.size:
+        fieldI = mkvc(fieldI, 2)
+    new_array = func(fieldI, src_list, time_ind)
+    if new_array.ndim == 1:
+        new_array = new_array[:, np.newaxis, np.newaxis]
+    elif new_array.ndim == 2:
+        new_array = new_array[:, :, np.newaxis]
+
+    return new_array
+
+
 def _getField(self, name, ind, src_list):
     srcInd, timeInd = ind
 
@@ -60,17 +74,18 @@ def _getField(self, name, ind, src_list):
             out = func(pointerFields, src_list, timeII)
         else:  # loop over the time steps
             nT = pointerShape[2]
-            out = list(range(nT))
+            arrays = []
+
             for i, TIND_i in enumerate(timeII):  # Need to parallelize this
-                fieldI = pointerFields[:, :, i]
-                if fieldI.shape[0] == fieldI.size:
-                    fieldI = mkvc(fieldI, 2)
-                out[i] = func(fieldI, src_list, TIND_i)
-                if out[i].ndim == 1:
-                    out[i] = out[i][:, np.newaxis, np.newaxis]
-                elif out[i].ndim == 2:
-                    out[i] = out[i][:, :, np.newaxis]
-            out = np.concatenate(out, axis=2)
+                arrays.append(
+                    array.from_delayed(
+                        field_projection(pointerFields, src_list, i, TIND_i, func),
+                        dtype=np.float32,
+                        shape=(pointerShape[0], pointerShape[1], 1),
+                    )
+                )
+
+            out = array.dstack(arrays).compute()
 
     shape = self._correctShape(name, ind, deflate=True)
     return out.reshape(shape, order="F")
