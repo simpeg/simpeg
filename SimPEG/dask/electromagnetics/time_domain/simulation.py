@@ -257,73 +257,82 @@ Sim.field_derivs = None
 
 @delayed
 def delayed_block_deriv(
-    time_index, chunks, field_len, source_list, mesh, time_mesh, fields, shape
+    n_times, chunks, field_len, source_list, mesh, time_mesh, fields, shape
 ):
     """Compute derivatives for sources and receivers in a block"""
     df_duT = []
-    j_update = []
+    j_updates = []
 
     for indices, arrays in chunks:
+        j_update = 0.0
         source = source_list[indices[0]]
         receiver = source.receiver_list[indices[1]]
         PTv = receiver.getP(mesh, time_mesh, fields).tocsr()
         derivative_fun = getattr(fields, "_{}Deriv".format(receiver.projField), None)
-        cur = derivative_fun(
-            time_index,
-            source,
-            None,
-            PTv[:, (time_index * field_len) : ((time_index + 1) * field_len)].T,
-            adjoint=True,
-        )
-        df_duT.append(cur[0])
-
-        if not isinstance(cur[1], Zero):
-            j_update.append(cur[1].T)
-        else:
-            j_update.append(
-                sp.csr_matrix((arrays[0].shape[0], shape), dtype=np.float32)
+        time_derivs = []
+        for time_index in range(n_times + 1):
+            cur = derivative_fun(
+                time_index,
+                source,
+                None,
+                PTv[:, (time_index * field_len) : ((time_index + 1) * field_len)].T,
+                adjoint=True,
             )
+            time_derivs.append(cur[0])
 
-    return df_duT, j_update
+            if not isinstance(cur[1], Zero):
+                j_update += cur[1].T
+            else:
+                j_update += sp.csr_matrix((arrays[0].shape[0], shape), dtype=np.float32)
+
+        j_updates.append(j_update)
+        df_duT.append(time_derivs)
+
+    return df_duT, j_updates
 
 
 def compute_field_derivs(simulation, fields, blocks, Jmatrix, fields_shape):
     """
     Compute the derivative of the fields
     """
-    delayed_blocks = []
-    for time_index in range(simulation.nT + 1):
-        delayed_chunks = []
-        for chunks in blocks:
-            if len(chunks) == 0:
-                continue
+    # delayed_blocks = []
+    # for time_index in range(simulation.nT + 1):
+    delayed_chunks = []
+    for chunks in blocks:
+        if len(chunks) == 0:
+            continue
 
-            delayed_block = delayed_block_deriv(
-                time_index,
-                chunks,
-                fields_shape[0],
-                simulation.survey.source_list,
-                simulation.mesh,
-                simulation.time_mesh,
-                fields,
-                simulation.model.size,
-            )
-            delayed_chunks.append(delayed_block)
+        delayed_block = delayed_block_deriv(
+            simulation.nT,
+            chunks,
+            fields_shape[0],
+            simulation.survey.source_list,
+            simulation.mesh,
+            simulation.time_mesh,
+            fields,
+            simulation.model.size,
+        )
+        delayed_chunks.append(delayed_block)
 
-        delayed_blocks.append(delayed_chunks)
+        # delayed_blocks.append(delayed_chunks)
 
     with ProgressBar():
-        result = dask.compute(delayed_blocks)[0]
+        result = dask.compute(delayed_chunks)[0]
 
-    df_duT = []
-    j_updates = 0.0
-    for time_block in result:
-        for chunk in time_block:
-            df_duT.append([chunk[0]])
-            j_updates += sp.vstack(chunk[1])
+    len_blocks = [[] * len(block) for block in blocks if len(block) > 0]
+    df_duT = [len_blocks.copy() for _ in range(simulation.nT + 1)]
+    j_updates = []
+
+    for block in result:
+        j_updates += block[1]
+        for bb, chunk in enumerate(block[0]):
+            for ind, time_block in enumerate(chunk):
+                df_duT[ind][bb] += time_block
+
+    j_updates = sp.vstack(j_updates)
 
     if len(j_updates.data) > 0:
-        Jmatrix += sp.vstack(j_updates)
+        Jmatrix += j_updates
         if simulation.store_sensitivities == "disk":
             sens_name = simulation.sensitivity_path[:-5] + f"_{time_index % 2}.zarr"
             array.to_zarr(Jmatrix, sens_name, compute=True, overwrite=True)
