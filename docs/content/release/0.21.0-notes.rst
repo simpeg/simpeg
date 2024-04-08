@@ -22,7 +22,7 @@ Now we can use a faster and more memory efficient implementation of the gravity
 simulation ``SimPEG.potential_fields.gravity.Simulation3DIntegral``, making use
 of Choclo and Numba.  To make use of this functionality you will need to
 `install ``choclo`` <https://www.fatiando.org/choclo/latest/install.html>`__ in
-addition to `SimPEG`.
+addition to ``SimPEG``.
 
 See https://github.com/simpeg/simpeg/pull/1285.
 
