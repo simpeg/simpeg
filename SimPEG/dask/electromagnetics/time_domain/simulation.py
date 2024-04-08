@@ -319,9 +319,9 @@ def compute_field_derivs(simulation, fields, blocks, Jmatrix, fields_shape):
     with ProgressBar():
         result = dask.compute(delayed_chunks)[0]
 
-    len_blocks = [[[] * len(block)] for block in blocks if len(block) > 0]
+    # len_blocks = [[[] for _ in block] for block in blocks if len(block) > 0]
     df_duT = [
-        [[[] * len(block)] for block in blocks if len(block) > 0]
+        [[[] for _ in block] for block in blocks if len(block) > 0]
         for _ in range(simulation.nT + 1)
     ]
     j_updates = []
