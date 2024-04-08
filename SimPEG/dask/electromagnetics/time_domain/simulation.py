@@ -263,15 +263,26 @@ def delayed_block_deriv(
         j_update = 0.0
         source = source_list[indices[0]]
         receiver = source.receiver_list[indices[1]]
-        PTv = receiver.getP(mesh, time_mesh, fields).tocsr()
+        # PTv = receiver.getP(mesh, time_mesh, fields).tocsr()
+        spatialP = receiver.getSpatialP(mesh, fields)
+        timeP = receiver.getTimeP(time_mesh, fields)
+
         derivative_fun = getattr(fields, "_{}Deriv".format(receiver.projField), None)
         time_derivs = []
         for time_index in range(n_times + 1):
+            if len(timeP[:, time_index].data) == 0:
+                time_derivs.append(
+                    sp.csr_matrix((field_len, len(arrays[0])), dtype=np.float32)
+                )
+                j_update += sp.csr_matrix((arrays[0].shape[0], shape), dtype=np.float32)
+                continue
+
+            projection = sp.kron(timeP[:, time_index], spatialP)
             cur = derivative_fun(
                 time_index,
                 source,
                 None,
-                PTv[:, (time_index * field_len) : ((time_index + 1) * field_len)].T,
+                projection.T,
                 adjoint=True,
             )
             time_derivs.append(cur[0])
@@ -312,8 +323,10 @@ def compute_field_derivs(simulation, fields, blocks, Jmatrix, fields_shape):
 
         # delayed_blocks.append(delayed_chunks)
 
+    tc = time()
+    print("Computing field derivatives")
     result = dask.compute(delayed_chunks)[0]
-
+    print(f"Field derivatives computed in {time() - tc:.2f}s")
     # len_blocks = [[[] for _ in block] for block in blocks if len(block) > 0]
     df_duT = [
         [[[] for _ in block] for block in blocks if len(block) > 0]
