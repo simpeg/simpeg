@@ -6,6 +6,9 @@ SimPEG 0.21.0 Release Notes
 
 April 8th, 2024
 
+.. contents:: Highlights
+    :depth: 3
+
 Updates
 =======
 
