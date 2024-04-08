@@ -323,10 +323,10 @@ def compute_field_derivs(simulation, fields, blocks, Jmatrix, fields_shape):
 
         # delayed_blocks.append(delayed_chunks)
 
-    tc = time()
-    print("Computing field derivatives")
+    # tc = time()
+    # print("Computing field derivatives")
     result = dask.compute(delayed_chunks)[0]
-    print(f"Field derivatives computed in {time() - tc:.2f}s")
+    # print(f"Field derivatives computed in {time() - tc:.2f}s")
     # len_blocks = [[[] for _ in block] for block in blocks if len(block) > 0]
     df_duT = [
         [[[] for _ in block] for block in blocks if len(block) > 0]
