@@ -17,7 +17,7 @@ Gravity simulation using Choclo
 
 Now we can use a faster and more memory efficient implementation of the gravity
 simulation ``SimPEG.potential_fields.gravity.Simulation3DIntegral``, making use
-of Choclo and Numba.
+of Choclo and Numba.  To make use of this functionality you will need to install `choclo` in addition to `simpeg`.
 
 See https://github.com/simpeg/simpeg/pull/1285.
 
@@ -34,7 +34,7 @@ Rotated Gradients
 
 Added a new ``SimPEG.regularization.SmoothnessFullGradient`` regularization
 class that allows to regularize first order smoothness along any arbitrary
-direction, enabling anisotropic weighting.
+direction, enabling anisotropic weighting. This regularization also works for a `SimplexMesh`.
 
 See https://github.com/simpeg/simpeg/pull/1167.
 
@@ -42,15 +42,14 @@ Logistic Sigmoid Map
 ~~~~~~~~~~~~~~~~~~~~
 
 New ``SimPEG.map.LogisticSigmoidMap`` mapping class that computes the logistic
-sigmoid of the model parameters.
+sigmoid of the model parameters. This is an alternative method to incorporate upper and lower bounds on model parameters.
 
 See https://github.com/simpeg/simpeg/pull/1352.
 
-Store sensitivity matrix in NSEM and FDEM simulations
+Create Jacobian matrix in NSEM and FDEM simulations
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Allow to store the sensitivity matrix in natural source and frequency domain
-EM simulations through the ``getJ`` method.
+The frequency domain electromagnetic simulations (including natural source) now support creating and storing the Jacobian matrix. You can access it by using the ``getJ`` method.
 
 See https://github.com/simpeg/simpeg/pull/1276.
 
