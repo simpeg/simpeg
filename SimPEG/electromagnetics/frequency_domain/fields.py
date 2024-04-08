@@ -334,6 +334,7 @@ class Fields3DElectricField(FieldsFDEM):
         self._MfMui = self.simulation.MfMui
         self._MfMuiDeriv = self.simulation.MfMuiDeriv
         # Not all meshes support MeI so don't always ask for it.
+        # Should be a better solution than this though...
         try:
             self._MeI = self.simulation.MeI
         except NotImplementedError:

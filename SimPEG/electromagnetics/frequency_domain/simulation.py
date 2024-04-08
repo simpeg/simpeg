@@ -1074,7 +1074,7 @@ class Simulation3DMagneticField(BaseFDEMSimulation):
 #                               Hierarchical                                  #
 ###############################################################################
 class Simulation3DHierarchicalElectricField(
-    BaseHierarchicalElectricalSimulation, Simulation3DMagneticFluxDensity
+    BaseHierarchicalElectricalSimulation, Simulation3DElectricField
 ):
     r"""
     We eliminate :math:`\mathbf{e}` using

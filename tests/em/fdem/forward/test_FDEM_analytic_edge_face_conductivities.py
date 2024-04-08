@@ -7,12 +7,7 @@ from SimPEG.electromagnetics import frequency_domain as fdem
 
 
 @pytest.mark.parametrize("orientation", ["x", "z"])
-@pytest.mark.parametrize(
-    "rx_type",
-    [
-        "MagneticFluxDensity",
-    ],
-)
+@pytest.mark.parametrize("rx_type", ["MagneticFluxDensity"])
 @pytest.mark.parametrize("formulation", ["MagneticFluxDensity", "ElectricField"])
 @pytest.mark.parametrize("mesh_type", ["CYL", "TREE"])
 def test_layer_conductance_to_analytic(mesh_type, formulation, rx_type, orientation):
