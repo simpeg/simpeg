@@ -8,7 +8,8 @@ from multiprocessing import cpu_count
 import numpy as np
 import scipy.sparse as sp
 from dask import array, delayed
-from dask.diagnostics import ProgressBar
+
+# from dask.diagnostics import ProgressBar
 from SimPEG.dask.simulation import dask_Jvec, dask_Jtvec, dask_getJtJdiag
 from SimPEG.dask.utils import get_parallel_blocks
 import zarr
@@ -214,22 +215,17 @@ def dask_dpred(self, m=None, f=None, compute_J=False):
         f, Ainv = self.fields(m, return_Ainv=compute_J)
 
     rows = []
-    tc = time()
-    print("delaying fields array")
     receiver_projection = self.survey.source_list[0].receiver_list[0].projField
     fields_array = f[:, receiver_projection, :]
-
-    print(f"Complet {time()-tc}")
-
     all_receivers = []
-    print("Prepping receivers")
-    for ind, src in tqdm(enumerate(self.survey.source_list)):
+
+    for ind, src in enumerate(self.survey.source_list):
         for rx in src.receiver_list:
             all_receivers.append((src, ind, rx))
 
     receiver_blocks = np.array_split(all_receivers, cpu_count())
-    print("Creating parallel blocks")
-    for block in tqdm(receiver_blocks):
+
+    for block in receiver_blocks:
         n_data = np.sum(rec.nD for _, _, rec in block)
         if n_data == 0:
             continue
@@ -241,8 +237,8 @@ def dask_dpred(self, m=None, f=None, compute_J=False):
                 shape=(n_data,),
             )
         )
-    with ProgressBar():
-        data = array.hstack(rows).compute()
+
+    data = array.hstack(rows).compute()
 
     if compute_J and self._Jmatrix is None:
         Jmatrix = self.compute_J(f=f, Ainv=Ainv)
@@ -316,8 +312,7 @@ def compute_field_derivs(simulation, fields, blocks, Jmatrix, fields_shape):
 
         # delayed_blocks.append(delayed_chunks)
 
-    with ProgressBar():
-        result = dask.compute(delayed_chunks)[0]
+    result = dask.compute(delayed_chunks)[0]
 
     # len_blocks = [[[] for _ in block] for block in blocks if len(block) > 0]
     df_duT = [
@@ -394,8 +389,8 @@ def get_field_deriv_block(
     if tInd < simulation.nT - 1:
         Asubdiag = simulation.getAsubdiag(tInd + 1)
 
-    for ((s_id, r_id, b_id), (rx_ind, j_ind, shape)), field_deriv in tqdm(
-        zip(block, field_derivs)
+    for ((s_id, r_id, b_id), (rx_ind, j_ind, shape)), field_deriv in zip(
+        block, field_derivs
     ):
         # Cut out early data
         time_check = np.kron(time_mask, np.ones(shape, dtype=bool))[rx_ind]
@@ -433,12 +428,8 @@ def get_field_deriv_block(
             )
         )
     if len(stacked_blocks) > 0:
-        with ProgressBar():
-            blocks = array.hstack(stacked_blocks).compute()
-
-        tc = time()
+        blocks = array.hstack(stacked_blocks).compute()
         solve = (AdiagTinv * blocks).reshape(blocks.shape)
-        print("Solve time: ", time() - tc)
     else:
         solve = None
 
@@ -514,7 +505,6 @@ def compute_J(self, f=None, Ainv=None):
     """
     Compute the rows for the sensitivity matrix.
     """
-    print("Computing fields")
     if f is None:
         f, Ainv = self.fields(self.model, return_Ainv=True)
 
@@ -542,12 +532,9 @@ def compute_J(self, f=None, Ainv=None):
         self.survey.source_list, self.model.shape[0], self.max_chunk_size
     )
     fields_array = f[:, ftype, :]
-    tc = time()
-    print("COmputing field derivs")
     times_field_derivs, Jmatrix = compute_field_derivs(
         self, f, blocks, Jmatrix, fields_array.shape
     )
-    print("Field derivs: ", time() - tc)
 
     ATinv_df_duT_v = {}
     for tInd, dt in tqdm(zip(reversed(range(self.nT)), reversed(self.time_steps))):
@@ -582,7 +569,6 @@ def compute_J(self, f=None, Ainv=None):
                 )
             )
 
-        print("Prepping blocks: ", time() - tc)
         # Jmatrix = Jmatrix + array.vstack(j_row_updates)
         if self.store_sensitivities == "disk":
             sens_name = self.sensitivity_path[:-5] + f"_{tInd % 2}.zarr"
@@ -594,10 +580,7 @@ def compute_J(self, f=None, Ainv=None):
             )
             Jmatrix = array.from_zarr(sens_name)
         else:
-            tc = time()
-            print("Adding to Jmatrix")
             Jmatrix += array.vstack(j_row_updates).compute()
-            print("Add time: ", time() - tc)
 
     for A in Ainv.values():
         A.clean()
