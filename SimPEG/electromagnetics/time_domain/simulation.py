@@ -25,8 +25,8 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
 
     .. math::
         \begin{align}
-        &\nabla \times \vec{e} + \frac{\partial \vec{b}}{\partial t} = -\frac{\partial \vec{s}_m}{\partial t} \\
-        &\nabla \times \vec{h} - \vec{j} = \vec{s}_e
+        \nabla \times \vec{e} + \frac{\partial \vec{b}}{\partial t} &= -\frac{\partial \vec{s}_m}{\partial t} \\
+        \nabla \times \vec{h} - \vec{j} &= \vec{s}_e
         \end{align}
 
     where the constitutive relations between fields and fluxes are given by:
@@ -115,7 +115,7 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
 
         Parameters
         ----------
-        m : None, (n_param,) numpy.ndarray
+        m : (n_param,) numpy.ndarray
             The model.
 
         Returns
@@ -448,10 +448,10 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
     def getSourceTerm(self, tInd):
         """Return the discrete source terms for the time index provided.
 
-        This method computes and returns a ``tuple`` containing the discrete magnetic
-        and electric source terms for the time index provided. The exact shape and
-        implementation of source terms when solving for the fields at each time-step
-        is formulation dependent.
+        This method computes and returns a ``tuple`` (s_m, s_e), containing the
+        discrete magnetic and electric source terms for the time index provided.
+        The exact shape and implementation of source terms when solving for the
+        fields at each time-step is formulation dependent.
 
         Parameters
         ----------
@@ -464,8 +464,8 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
             The source terms for the time index provided. The method returns
             a ``tuple`` (s_m, s_e), where:
 
-            * s_m is a (n_faces, n_sources) numpy.ndarray and s_e is a (n_edges, n_sources) numpy.ndarray when the formulation defines electric fields on edges and magnetic flux densities on faces.
-            * s_m is a (n_edges, n_sources) numpy.ndarray and s_e is a (n_faces, n_sources) numpy.ndarray when the formulation defines magnetic fields on edges and current densities on faces.
+            * s_m is a (nF, n_sources) numpy.ndarray and s_e is a (nE, n_sources) numpy.ndarray for EB-formulations.
+            * s_m is a (nE, n_sources) numpy.ndarray and s_e is a (nF, n_sources) numpy.ndarray for HJ-formulations.
         """
 
         Srcs = self.survey.source_list
@@ -485,7 +485,7 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
         return s_m, s_e
 
     def getInitialFields(self):
-        """Return the discrete initial fields for all sources.
+        """Return the initial fields for all sources.
 
         Returns
         -------
@@ -543,7 +543,7 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
         numpy.ndarray
             Derivatives of the intial fields with respect to the model for a given source.
             (nE or nF,) numpy.ndarray when `adjoint` is ``False``. (n_param,) numpy.ndarray
-            when `ajoint` is ``True``. 
+            when `ajoint` is ``True``.
         """
         ifieldsDeriv = mkvc(
             getattr(src, "{}InitialDeriv".format(self._fieldType), None)(
@@ -571,7 +571,34 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
     # initial condition
     @property
     def Adcinv(self):
-        """Inverse of the system matrix for the DC resistivity problem."""
+        r"""Inverse of the factored system matrix for the DC resistivity problem.
+
+        For galvanic sources that are on at the simulation's initial time,
+        the initial electric fields on the mesh are non-zero. For certain TDEM simulations,
+        we must compute the initial electric fields by solving the DC resistivity problem.
+        This property is used to compute and store the inverse of the factored linear system
+        matrix for the DC resistivity problem given by:
+
+        .. math::
+            \mathbf{A_{dc}} \, \boldsymbol{\phi_0} = \mathbf{q_{dc}}
+
+        where :math:`\mathbf{A_{dc}}` is the system matrix, :math:`\boldsymbol{\phi_0}` represents the
+        discrete solution for the electric potential and :math:`\mathbf{q_{dc}}` is the discrete
+        right-hand side. Electric fields are computed by applying a discrete gradient operator
+        to the discrete electric potential solution.
+
+        Returns
+        -------
+        pymatsolver.solvers.Base
+            Inver of the factored systems matrix for the DC resistivity problem.
+
+        Notes
+        -----
+        See the docstrings for :py:class:`SimPEG.electromagnetics.static.resistivity.simulation.BaseDCSimulation`,
+        :py:class:`SimPEG.electromagnetics.static.resistivity.simulation.Simulation3DCellCentered` and
+        :py:class:`SimPEG.electromagnetics.static.resistivity.simulation.Simulation3DNodal` to learn
+        more about how the DC resistivity problem is solved.
+        """
         if not hasattr(self, "getAdc"):
             raise NotImplementedError(
                 "Support for galvanic sources has not been implemented for "
@@ -587,6 +614,9 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
     @property
     def clean_on_model_update(self):
         """List of model-dependent attributes to clean upon model update.
+
+        Some of the TDEM simulation's attributes are model-dependent. This property specifies
+        the model-dependent attributes that much be cleared when the model is updated.
 
         Returns
         -------
@@ -607,8 +637,13 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
 
 
 class Simulation3DMagneticFluxDensity(BaseTDEMSimulation):
-    r"""3D TDEM simulation the magnetic flux density.
+    r"""3D TDEM simulation in terms of the magnetic flux density.
     
+    This simulation solves for the magnetic flux density at each time-step.
+    In this formulation, the electric fields are defined on mesh edges and the
+    magnetic flux density is defined on mesh faces; i.e. it is an EB formulation.
+    See the *Notes* section for a comprehensive description of the formulation.
+
     Parameters
     ----------
     mesh : discretize.base.BaseMesh
@@ -620,65 +655,104 @@ class Simulation3DMagneticFluxDensity(BaseTDEMSimulation):
 
     Notes
     -----
-    Starting from the quasi-static E-B formulation of Maxwell's equations
-    (semi-discretized)
+    Here, we start with the quasi-static approximation for Maxwell's equations by neglecting
+    electric displacement:
 
     .. math::
-
-        \mathbf{C} \mathbf{e} + \frac{\partial \mathbf{b}}{\partial t} =
-        \mathbf{s_m} \\
-        \mathbf{C}^{\top} \mathbf{M_{\mu^{-1}}^f} \mathbf{b} -
-        \mathbf{M_{\sigma}^e} \mathbf{e} = \mathbf{s_e}
-
-
-    where :math:`\mathbf{s_e}` is an integrated quantity, we eliminate
-    :math:`\mathbf{e}` using
+        &\nabla \times \vec{e} + \frac{\partial \vec{b}}{\partial t} = - \frac{\partial \vec{s}_m}{\partial t} \\
+        &\nabla \times \vec{h} - \vec{j} = \vec{s}_e
+    
+    where :math:`\vec{s}_e` is an electric source term that defines a source current density,
+    and :math:`\vec{s}_m` magnetic source term that defines a source magnetic flux density.
+    We define the constitutive relations for the electrical conductivity :math:`\sigma`
+    and magnetic permeability :math:`\mu` as:
 
     .. math::
+        \vec{j} &= \sigma \vec{e} \\
+        \vec{h} &= \mu^{-1} \vec{b}
 
-        \mathbf{e} = \mathbf{M_{\sigma}^e}^{-1} \mathbf{C}^{\top}
-        \mathbf{M_{\mu^{-1}}^f} \mathbf{b} -
-        \mathbf{M_{\sigma}^e}^{-1} \mathbf{s_e}
-
-
-    to obtain a second order semi-discretized system in :math:`\mathbf{b}`
+    We then take the inner products of all previous expressions with a vector test function :math:`\vec{u}`.
+    Through vector calculus identities and the divergence theorem, we obtain:
 
     .. math::
-
-        \mathbf{C} \mathbf{M_{\sigma}^e}^{-1} \mathbf{C}^{\top}
-        \mathbf{M_{\mu^{-1}}^f} \mathbf{b}  +
-        \frac{\partial \mathbf{b}}{\partial t} =
-        \mathbf{C} \mathbf{M_{\sigma}^e}^{-1} \mathbf{s_e} + \mathbf{s_m}
-
-
-    and moving everything except the time derivative to the rhs gives
-
-    .. math::
-        \frac{\partial \mathbf{b}}{\partial t} =
-        -\mathbf{C} \mathbf{M_{\sigma}^e}^{-1} \mathbf{C}^{\top}
-        \mathbf{M_{\mu^{-1}}^f} \mathbf{b} +
-        \mathbf{C} \mathbf{M_{\sigma}^e}^{-1} \mathbf{s_e} + \mathbf{s_m}
-
-    For the time discretization, we use backward euler. To solve for the
-    :math:`n+1` th time step, we have
+        & \int_\Omega \vec{u} \cdot (\nabla \times \vec{e}) \, dv
+        + \int_\Omega \vec{u} \cdot \frac{\partial \vec{b}}{\partial t} \, dv
+        = - \int_\Omega \vec{u} \cdot \frac{\partial \vec{s}_m}{\partial t} \, dv \\
+        & \int_\Omega (\nabla \times \vec{u}) \cdot \vec{h} \, dv
+        - \oint_{\partial \Omega} \vec{u} \cdot (\vec{h} \times \hat{n}) \, da
+        - \int_\Omega \vec{u} \cdot \vec{j} \, dv = \int_\Omega \vec{u} \cdot \vec{s}_e \, dv \\
+        & \int_\Omega \vec{u} \cdot \vec{j} \, dv = \int_\Omega \vec{u} \cdot \sigma \vec{e} \, dv \\
+        & \int_\Omega \vec{u} \cdot \vec{h} \, dv = \int_\Omega \vec{u} \cdot \mu^{-1} \vec{b} \, dv
+    
+    The above expressions are discretized in space according to the finite volume method.
+    The discrete electric fields :math:`\mathbf{e}` are defined on mesh edges,
+    and the discrete magnetic flux densities :math:`\mathbf{b}` are defined on mesh faces.
+    This implies :math:`\mathbf{j}` must be define on mesh edges and :math:`\mathbf{h}` must
+    be defined on mesh faces. Assuming natural boundary conditions, the surface integral is zero.
+    And after cancelling like-terms, we obtain the following set of discrete equations:
 
     .. math::
+        &\mathbf{M_f C e} + \mathbf{M_f} \, \frac{\partial \mathbf{b}}{\partial t}
+        = - \frac{\partial \mathbf{s_m}}{\partial t}  \; \;
+        \rightarrow \;\;\; \mathbf{C e} + \frac{\partial \mathbf{b}}{\partial t}
+        = - \mathbf{M_f^{-1}} \frac{\partial \mathbf{s_m}}{\partial t} \\
+        &\mathbf{C^T M_f h} - \mathbf{M_e j}
+        = \mathbf{s_e} \;\;\; \rightarrow \;\;\; \mathbf{C^T} \frac{\partial}{\partial t} (\mathbf{M_f h})
+        + \frac{\partial}{\partial t} (\mathbf{M_e j}) = \frac{\partial \mathbf{s_e}}{\partial t} \\
+        &\mathbf{M_e j} = \mathbf{M_{e\sigma} e} \\
+        &\mathbf{M_f h} = \mathbf{M_{f \frac{1}{\mu}} b}
 
-        \frac{\mathbf{b}^{n+1} - \mathbf{b}^{n}}{\mathbf{dt}} =
-        -\mathbf{C} \mathbf{M_{\sigma}^e}^{-1} \mathbf{C}^{\top}
-        \mathbf{M_{\mu^{-1}}^f} \mathbf{b}^{n+1} +
-        \mathbf{C} \mathbf{M_{\sigma}^e}^{-1} \mathbf{s_e}^{n+1} +
-        \mathbf{s_m}^{n+1}
+    where
 
-
-    re-arranging to put :math:`\mathbf{b}^{n+1}` on the left hand side gives
+    * :math:`\mathbf{C}` is the discrete curl operator 
+    * :math:`\mathbf{s_m}` and :math:`\mathbf{s_e}` are the integrated magnetic and electric source terms, respectively
+    * :math:`\mathbf{M_e}`, :math:`\mathbf{M_f}`, :math:`\mathbf{M_{e\sigma}}` and :math:`\mathbf{M_{f\frac{1}{\mu}}}` are inner-product matrices
+    
+    Combining the discrete expressions in terms of the magnetic flux density, we obtain:
 
     .. math::
+        \mathbf{C M_{e\sigma}^{-1} C^T M_{f\frac{1}{\mu}} b}
+        + \frac{\partial \mathbf{b}}{\partial t}
+        = \mathbf{C M_{e\sigma}^{-1}} \mathbf{s_e}
+        - \mathbf{M_f^{-1}} \frac{\partial \mathbf{s_m}}{\partial t}
 
-        (\mathbf{I} + \mathbf{dt} \mathbf{C} \mathbf{M_{\sigma}^e}^{-1}
-         \mathbf{C}^{\top} \mathbf{M_{\mu^{-1}}^f}) \mathbf{b}^{n+1} =
-         \mathbf{b}^{n} + \mathbf{dt}(\mathbf{C} \mathbf{M_{\sigma}^e}^{-1}
-         \mathbf{s_e}^{n+1} + \mathbf{s_m}^{n+1})
+    Finally, we discretize in time according to backward Euler. The discrete magnetic flux density
+    on mesh faces at time :math:`t_k > t_0` is obtained by solving the following at each time-step:
+
+    .. math::
+        \mathbf{A}_k \mathbf{b}_k = \mathbf{B}_k \mathbf{b}_{k-1} + \mathbf{q}_k
+    
+    where :math:`\Delta t_k = t_k - t_{k-1}` and
+
+    .. math::
+        &\mathbf{A}_k = \mathbf{C M_{e\sigma}^{-1} C^T M_{f\frac{1}{\mu}}} + \frac{1}{\Delta t_k} \mathbf{I} \\
+        &\mathbf{B}_k = \frac{1}{\Delta t_k} \mathbf{I}\\
+        &\mathbf{q}_k = \mathbf{C M_{e\sigma}^{-1}} \mathbf{s}_{\mathbf{e}, k} \;
+        + \; \frac{1}{\Delta t_k} \mathbf{M_f^{-1}} \big [ \mathbf{s}_{\mathbf{m}, k} - \mathbf{s}_{\mathbf{m}, k-1} \big ]
+
+    Although the following system is never explicitly formed, we can represent
+    the solution at all time-steps as:
+
+    .. math::
+        \begin{bmatrix}
+        \mathbf{A_1} & & & & \\
+        \mathbf{B_2} & \mathbf{A_2} & & & \\
+        & & \ddots & & \\
+        & & & \mathbf{B_n} & \mathbf{A_n}
+        \end{bmatrix}
+        \begin{bmatrix}
+        \mathbf{b_1} \\ \mathbf{b_2} \\ \vdots \\ \mathbf{b_n}
+        \end{bmatrix} =
+        \begin{bmatrix}
+        \mathbf{q_1} \\ \mathbf{q_2} \\ \vdots \\ \mathbf{q_n}
+        \end{bmatrix} -
+        \begin{bmatrix}
+        \mathbf{B_1 b_0} \\ \mathbf{0} \\ \vdots \\ \mathbf{0}
+        \end{bmatrix}
+
+    where the magnetic flux densities at the initial time :math:`\mathbf{b_0}`
+    are computed analytically or numerically depending on whether the source
+    carries non-zero current at the initial time.
 
     """
 
@@ -688,26 +762,28 @@ class Simulation3DMagneticFluxDensity(BaseTDEMSimulation):
     Fields_Derivs = FieldsDerivativesEB
 
     def getAdiag(self, tInd):
-        r"""Diagonal system matrix for the given time index.
+        r"""Diagonal system matrix for the given time-step index.
 
-        Where the step length for time step index *k* is :math:`\Delta t_k`,
-        this method returns:
+        This method returns the diagonal system matrix for the time-step index provided:
 
         .. math::
-            (\mathbf{I} + \Delta\mathbf{t}_k \mathbf{C} \mathbf{M_{\sigma}^e}^{-1}
-            \mathbf{C}^{\top} \mathbf{M_{\mu^{-1}}^f})
+            \mathbf{A}_k = \mathbf{C M_{e\sigma}^{-1} C^T M_{f\frac{1}{\mu}}} + \frac{1}{\Delta t_k} \mathbf{I}
 
         where
 
+        * :math:`\Delta t_k` is the step length
         * :math:`\mathbf{I}` is the identity matrix
         * :math:`\mathbf{C}` is the discrete curl operator
         * :math:`\mathbf{M_{e \sigma}}` is the conductivity inner-product matrix on edges
-        * :math:`\mathbf{M_{f \mu^{-1}}}` is the inverse permeability inner-product matrix on faces
+        * :math:`\mathbf{M_{f\frac{1}{\mu}}}` is the inverse permeability inner-product matrix on faces
+
+        See the *Notes* section of the doc strings for :py:class:`Simulation3DMagneticFluxDensity`
+        for a full description of the formulation.
 
         Parameters
         ----------
         tInd : int
-            The time step index; between [0, n_steps].
+            The time-step index; between [0, n_steps-1].
 
         Returns
         -------
@@ -729,8 +805,52 @@ class Simulation3DMagneticFluxDensity(BaseTDEMSimulation):
         return A
 
     def getAdiagDeriv(self, tInd, u, v, adjoint=False):
-        """
-        Derivative of ADiag
+        r"""Derivative operation for the diagonal system matrix times a vector.
+
+        The diagonal system matrix for time-step index *k* is given by:
+
+        .. math::
+            \mathbf{A}_k = \mathbf{C M_{e\sigma}^{-1} C^T M_{f\frac{1}{\mu}}} + \frac{1}{\Delta t_k} \mathbf{I}
+
+        where
+
+        * :math:`\Delta t_k` is the step length
+        * :math:`\mathbf{I}` is the identity matrix
+        * :math:`\mathbf{C}` is the discrete curl operator
+        * :math:`\mathbf{M_{e \sigma}}` is the conductivity inner-product matrix on edges
+        * :math:`\mathbf{M_{f\frac{1}{\mu}}}` is the inverse permeability inner-product matrix on faces
+
+        See the *Notes* section of the doc strings for :py:class:`Simulation3DMagneticFluxDensity`
+        for a full description of the formulation.
+
+        Where :math:`\mathbf{m}` are the set of model parameters, :math:`\mathbf{v}` is a vector
+        and :math:`\mathbf{b_k}` is the discrete solution for time-step *k*, this method assumes
+        the discrete solution is fixed and returns
+
+        .. math::
+            \frac{\partial (\mathbf{A_k \, b_k})}{\partial \mathbf{m}} \, \mathbf{v}
+
+        Or the adjoint operation
+
+        .. math::
+            \frac{\partial (\mathbf{A_k \, b_k})}{\partial \mathbf{m}}^T \, \mathbf{v}
+
+        Parameters
+        ----------
+        tInd : int
+            The time-step index; between [0, n_steps-1].
+        u : (nF,) numpy.ndarray
+            The solution for the fields for the current model; i.e. :math:`\mathbf{b_k}`.
+        v : numpy.ndarray
+            The vector. (n_param,) for the standard operation. (nF,) for the adjoint operation.
+        adjoint : bool
+            Whether to perform the adjoint operation.
+
+        Returns
+        -------
+        numpy.ndarray
+            Derivative of system matrix times a vector. (nF,) for the standard operation.
+            (n_param,) for the adjoint operation.
         """
         C = self.mesh.edge_curl
 
@@ -751,8 +871,27 @@ class Simulation3DMagneticFluxDensity(BaseTDEMSimulation):
         return ADeriv
 
     def getAsubdiag(self, tInd):
-        """
-        Matrix below the diagonal
+        r"""Sub-diagonal system matrix for the time-step index provided.
+
+        This method returns the sub-diagonal system matrix for the time-step index provided:
+
+        .. math::
+            \mathbf{B}_k = \frac{1}{\Delta t_k} \mathbf{I}
+
+        where :math:`\Delta t_k` is the step length and :math:`\mathbf{I}` is the identity matrix.
+
+        See the *Notes* section of the doc strings for :py:class:`Simulation3DMagneticFluxDensity`
+        for a full description of the formulation.
+
+        Parameters
+        ----------
+        tInd : int
+            The time index; between [0, n_steps-1].
+
+        Returns
+        -------
+        (nF, nF) sp.sparse.csr_matrix
+            The sub-diagonal system matrix.
         """
 
         dt = self.time_steps[tInd]
@@ -765,11 +904,82 @@ class Simulation3DMagneticFluxDensity(BaseTDEMSimulation):
         return Asubdiag
 
     def getAsubdiagDeriv(self, tInd, u, v, adjoint=False):
+        r"""Derivative operation for the sub-diagonal system matrix times a vector.
+
+        The sub-diagonal system matrix for time-step index *k* is given by:
+
+        .. math::
+            \mathbf{B}_k = \frac{1}{\Delta t_k} \mathbf{I}
+
+        where :math:`\Delta t_k` is the step length and :math:`\mathbf{I}` is the identity matrix.
+
+        See the *Notes* section of the doc strings for :py:class:`Simulation3DMagneticFluxDensity`
+        for a full description of the formulation.
+
+        Where :math:`\mathbf{m}` are the set of model parameters, :math:`\mathbf{v}` is a vector
+        and :math:`\mathbf{b_{k-1}}` is the discrete solution for the previous time-step,
+        this method assumes the discrete solution is fixed and returns
+
+        .. math::
+            \frac{\partial (\mathbf{B_k \, b_{k-1}})}{\partial \mathbf{m}} \, \mathbf{v} = \mathbf{0}
+
+        Or the adjoint operation
+
+        .. math::
+            \frac{\partial (\mathbf{B_k \, b_{k-1}})}{\partial \mathbf{m}}^T \, \mathbf{v} = \mathbf{0}
+
+        The derivative operation returns a vector of zeros because the sub-diagonal system matrix
+        does not depend on the model!!!
+
+        Parameters
+        ----------
+        tInd : int
+            The time index; between [0, n_steps-1].
+        u : (nF,) numpy.ndarray
+            The solution for the fields for the current model for the previous time-step;
+            i.e. :math:`\mathbf{b_{k-1}}`.
+        v : numpy.ndarray
+            The vector. (n_param,) for the standard operation. (nF,) for the adjoint operation.
+        adjoint : bool
+            Whether to perform the adjoint operation.
+
+        Returns
+        -------
+        numpy.ndarray
+            Derivative of system matrix times a vector. (nF,) for the standard operation.
+            (n_param,) for the adjoint operation.
+        """
         return Zero() * v
 
     def getRHS(self, tInd):
-        """
-        Assemble the RHS
+        r"""Right-hand sides for the given time index.
+
+        This method returns the right-hand sides for the time index provided.
+        The right-hand side for each source is constructed according to:
+
+        .. math::
+            \mathbf{q}_k = \mathbf{C M_{e\sigma}^{-1}} \mathbf{s}_{\mathbf{e}, k} \;
+            + \; \frac{1}{\Delta t_k} \mathbf{M_f^{-1}} \big [ \mathbf{s}_{\mathbf{m}, k} - \mathbf{s}_{\mathbf{m}, k-1} \big ]
+
+        where
+
+        * :math:`\Delta t_k` is the step length
+        * :math:`\mathbf{C}` is the discrete curl operator
+        * :math:`\mathbf{s_m}` and :math:`\mathbf{s_e}` are the integrated magnetic and electric source terms, respectively
+        * :math:`\mathbf{M_f}` and :math:`\mathbf{M_{e\sigma}}` are inner-product matrices
+
+        See the *Notes* section of the doc strings for :py:class:`Simulation3DMagneticFluxDensity`
+        for a full description of the formulation.
+
+        Parameters
+        ----------
+        tInd : int
+            The time index; between [0, n_steps].
+
+        Returns
+        -------
+        (nF, nSrc) numpy.ndarray
+            The right-hand sides.
         """
         C = self.mesh.edge_curl
         MeSigmaI = self.MeSigmaI
@@ -783,8 +993,51 @@ class Simulation3DMagneticFluxDensity(BaseTDEMSimulation):
         return rhs
 
     def getRHSDeriv(self, tInd, src, v, adjoint=False):
-        """
-        Derivative of the RHS
+        r"""Derivative of the right-hand side times a vector for a given source and time index.
+
+        The right-hand side for a given source at time index *k* is constructed according to:
+
+        .. math::
+            \mathbf{q}_k = \mathbf{C M_{e\sigma}^{-1}} \mathbf{s}_{\mathbf{e}, k} \;
+            + \; \frac{1}{\Delta t_k} \mathbf{M_f^{-1}} \big [ \mathbf{s}_{\mathbf{m}, k} - \mathbf{s}_{\mathbf{m}, k-1} \big ]
+
+        where
+
+        * :math:`\Delta t_k` is the step length
+        * :math:`\mathbf{C}` is the discrete curl operator
+        * :math:`\mathbf{s_m}` and :math:`\mathbf{s_e}` are the integrated magnetic and electric source terms, respectively
+        * :math:`\mathbf{M_f}` and :math:`\mathbf{M_{e\sigma}}` are inner-product matrices
+
+        See the *Notes* section of the doc strings for :py:class:`Simulation3DMagneticFluxDensity`
+        for a full description of the formulation.
+
+        Where :math:`\mathbf{m}` are the set of model parameters and :math:`\mathbf{v}` is a vector,
+        this method returns
+
+        .. math::
+            \frac{\partial \mathbf{q_k}}{\partial \mathbf{m}} \, \mathbf{v}
+
+        Or the adjoint operation
+
+        .. math::
+            \frac{\partial \mathbf{q_k}}{\partial \mathbf{m}}^T \, \mathbf{v}
+
+        Parameters
+        ----------
+        tInd : int
+            The time index; between [0, n_steps].
+        src : SimPEG.electromagnetics.time_domain.sources.BaseTDEMSrc
+            The TDEM source object.
+        v : numpy.ndarray
+            The vector. (n_param,) for the standard operation. (nF,) for the adjoint operation.
+        adjoint : bool
+            Whether to perform the adjoint operation.
+
+        Returns
+        -------
+        numpy.ndarray
+            Derivative of the right-hand sides times a vector. (nF,) for the standard operation.
+            (n_param,) for the adjoint operation.
         """
 
         C = self.mesh.edge_curl
@@ -819,38 +1072,122 @@ class Simulation3DMagneticFluxDensity(BaseTDEMSimulation):
 
 # ------------------------------- Simulation3DElectricField ------------------------------- #
 class Simulation3DElectricField(BaseTDEMSimulation):
-    r"""
-    Solve the EB-formulation of Maxwell's equations for the electric field, e.
+    r"""3D TDEM simulation in terms of the electric field.
+    
+    This simulation solves for the electric field at each time-step.
+    In this formulation, the electric fields are defined on mesh edges and the
+    magnetic flux density is defined on mesh faces; i.e. it is an EB formulation.
+    See the *Notes* section for a comprehensive description of the formulation.
 
-    Starting with
+    Parameters
+    ----------
+    mesh : discretize.base.BaseMesh
+        The mesh.
+    survey : SimPEG.electromagnetics.time_domain.survey.Survey
+        The time-domain EM survey.
+    dt_threshold : float
+        Threshold used when determining the unique time-step lengths.
 
-    .. math::
-
-        \nabla \times \mathbf{e} + \frac{\partial \mathbf{b}}{\partial t} = \mathbf{s_m} \
-        \nabla \times \mu^{-1} \mathbf{b} - \sigma \mathbf{e} = \mathbf{s_e}
-
-
-    we eliminate :math:`\frac{\partial b}{\partial t}` using
-
-    .. math::
-
-        \frac{\partial \mathbf{b}}{\partial t} = - \nabla \times \mathbf{e} + \mathbf{s_m}
-
-
-    taking the time-derivative of Ampere's law, we see
-
-    .. math::
-
-        \frac{\partial}{\partial t}\left( \nabla \times \mu^{-1} \mathbf{b} - \sigma \mathbf{e} \right) = \frac{\partial \mathbf{s_e}}{\partial t} \
-        \nabla \times \mu^{-1} \frac{\partial \mathbf{b}}{\partial t} - \sigma \frac{\partial\mathbf{e}}{\partial t} = \frac{\partial \mathbf{s_e}}{\partial t}
-
-
-    which gives us
+    Notes
+    -----
+    Here, we start with the quasi-static approximation for Maxwell's equations by neglecting
+    electric displacement:
 
     .. math::
+        &\nabla \times \vec{e} + \frac{\partial \vec{b}}{\partial t} = - \frac{\partial \vec{s}_m}{\partial t} \\
+        &\nabla \times \vec{h} - \vec{j} = \vec{s}_e
+    
+    where :math:`\vec{s}_e` is an electric source term that defines a source current density,
+    and :math:`\vec{s}_m` magnetic source term that defines a source magnetic flux density.
+    We define the constitutive relations for the electrical conductivity :math:`\sigma`
+    and magnetic permeability :math:`\mu` as:
 
-        \nabla \times \mu^{-1} \nabla \times \mathbf{e} + \sigma \frac{\partial\mathbf{e}}{\partial t} = \nabla \times \mu^{-1} \mathbf{s_m} + \frac{\partial \mathbf{s_e}}{\partial t}
+    .. math::
+        \vec{j} &= \sigma \vec{e} \\
+        \vec{h} &= \mu^{-1} \vec{b}
 
+    We then take the inner products of all previous expressions with a vector test function :math:`\vec{u}`.
+    Through vector calculus identities and the divergence theorem, we obtain:
+
+    .. math::
+        & \int_\Omega \vec{u} \cdot (\nabla \times \vec{e}) \, dv
+        + \int_\Omega \vec{u} \cdot \frac{\partial \vec{b}}{\partial t} \, dv
+        = - \int_\Omega \vec{u} \cdot \frac{\partial \vec{s}_m}{\partial t} \, dv \\
+        & \int_\Omega (\nabla \times \vec{u}) \cdot \vec{h} \, dv
+        - \oint_{\partial \Omega} \vec{u} \cdot (\vec{h} \times \hat{n}) \, da
+        - \int_\Omega \vec{u} \cdot \vec{j} \, dv = \int_\Omega \vec{u} \cdot \vec{s}_e \, dv \\
+        & \int_\Omega \vec{u} \cdot \vec{j} \, dv = \int_\Omega \vec{u} \cdot \sigma \vec{e} \, dv \\
+        & \int_\Omega \vec{u} \cdot \vec{h} \, dv = \int_\Omega \vec{u} \cdot \mu^{-1} \vec{b} \, dv
+    
+    The above expressions are discretized in space according to the finite volume method.
+    The discrete electric fields :math:`\mathbf{e}` are defined on mesh edges,
+    and the discrete magnetic flux densities :math:`\mathbf{b}` are defined on mesh faces.
+    This implies :math:`\mathbf{j}` must be define on mesh edges and :math:`\mathbf{h}` must
+    be defined on mesh faces. Assuming natural boundary conditions, the surface integral is zero.
+    And after cancelling like-terms, we obtain the following set of discrete equations:
+
+    .. math::
+        &\mathbf{M_f C e} + \mathbf{M_f} \, \frac{\partial \mathbf{b}}{\partial t}
+        = - \frac{\partial \mathbf{s_m}}{\partial t}  \; \;
+        \rightarrow \;\;\; \mathbf{C e} + \frac{\partial \mathbf{b}}{\partial t}
+        = - \mathbf{M_f^{-1}} \frac{\partial \mathbf{s_m}}{\partial t} \\
+        &\mathbf{C^T M_f h} - \mathbf{M_e j}
+        = \mathbf{s_e} \;\;\; \rightarrow \;\;\; \mathbf{C^T} \frac{\partial}{\partial t} (\mathbf{M_f h})
+        + \frac{\partial}{\partial t} (\mathbf{M_e j}) = \frac{\partial \mathbf{s_e}}{\partial t} \\
+        &\mathbf{M_e j} = \mathbf{M_{e\sigma} e} \\
+        &\mathbf{M_f h} = \mathbf{M_{f \frac{1}{\mu}} b}
+
+    where
+
+    * :math:`\mathbf{C}` is the discrete curl operator 
+    * :math:`\mathbf{s_m}` and :math:`\mathbf{s_e}` are the integrated magnetic and electric source terms, respectively
+    * :math:`\mathbf{M_e}`, :math:`\mathbf{M_f}`, :math:`\mathbf{M_{e\sigma}}` and :math:`\mathbf{M_{f\frac{1}{\mu}}}` are inner-product matrices
+    
+    Combining the discrete expressions in terms of the electric field, we obtain:
+
+    .. math::
+        \mathbf{C^T M_{f\frac{1}{\mu}} C e} + \mathbf{M_{e\sigma}}\frac{\partial \mathbf{e}}{\partial t}
+        = \mathbf{C^T M_{f\frac{1}{\mu}} M_f^{-1}} \frac{\partial \mathbf{s_m}}{\partial t}
+        - \frac{\partial \mathbf{s_e}}{\partial t}
+
+    Finally, we discretize in time according to backward Euler. The discrete electric fields
+    on mesh edges at time :math:`t_k > t_0` is obtained by solving the following at each time-step:
+
+    .. math::
+        \mathbf{A}_k \mathbf{b}_k = \mathbf{B}_k \mathbf{b}_{k-1} + \mathbf{q}_k
+    
+    where :math:`\Delta t_k = t_k - t_{k-1}` and
+
+    .. math::
+        &\mathbf{A}_k = \mathbf{C^T M_{f\frac{1}{\mu}} C} + \frac{1}{\Delta t_k} \mathbf{M_{e\sigma}} \\
+        &\mathbf{B}_k = \frac{1}{\Delta t_k} \mathbf{M_{e\sigma}} \\
+        &\mathbf{q}_k = \frac{1}{\Delta t_k} \mathbf{C^T M_{f\frac{1}{\mu}} M_f^{-1}}
+        \big [ \mathbf{s}_{\mathbf{m}, k} - \mathbf{s}_{\mathbf{m}, k-1} \big ]
+        -\frac{1}{\Delta t_i} \big [ \mathbf{s}_{\mathbf{e}, k} - \mathbf{s}_{\mathbf{e}, k-1} \big ]
+
+    Although the following system is never explicitly formed, we can represent
+    the solution at all time-steps as:
+
+    .. math::
+        \begin{bmatrix}
+        \mathbf{A_1} & & & & \\
+        \mathbf{B_2} & \mathbf{A_2} & & & \\
+        & & \ddots & & \\
+        & & & \mathbf{B_n} & \mathbf{A_n}
+        \end{bmatrix}
+        \begin{bmatrix}
+        \mathbf{e_1} \\ \mathbf{e_2} \\ \vdots \\ \mathbf{e_n}
+        \end{bmatrix} =
+        \begin{bmatrix}
+        \mathbf{q_1} \\ \mathbf{q_2} \\ \vdots \\ \mathbf{q_n}
+        \end{bmatrix} -
+        \begin{bmatrix}
+        \mathbf{B_1 e_0} \\ \mathbf{0} \\ \vdots \\ \mathbf{0}
+        \end{bmatrix}
+
+    where the electric fields at the initial time :math:`\mathbf{e_0}`
+    are computed analytically or numerically depending on whether the
+    source is galvanic and carries non-zero current at the initial time.
 
     """
 
@@ -1016,8 +1353,32 @@ class Simulation3DElectricField(BaseTDEMSimulation):
         return mkvc(JTv).astype(float)
 
     def getAdiag(self, tInd):
-        """
-        Diagonal of the system matrix at a given time index
+        r"""Diagonal system matrix for the time-step index provided.
+
+        This method returns the diagonal system matrix for the time-step index provided:
+
+        .. math::
+            \mathbf{A}_k = \mathbf{C^T M_{f\frac{1}{\mu}} C} + \frac{1}{\Delta t_k} \mathbf{M_{e\sigma}}
+
+        where
+
+        * :math:`\Delta t_k` is the step length
+        * :math:`\mathbf{C}` is the discrete curl operator
+        * :math:`\mathbf{M_{e \sigma}}` is the conductivity inner-product matrix on edges
+        * :math:`\mathbf{M_{f\frac{1}{\mu}}}` is the inverse permeability inner-product matrix on faces
+
+        See the *Notes* section of the doc strings for :py:class:`Simulation3DElectricField`
+        for a full description of the formulation.
+
+        Parameters
+        ----------
+        tInd : int
+            The time-step index; between [0, n_steps-1].
+
+        Returns
+        -------
+        (nE, nE) sp.sparse.csr_matrix
+            The diagonal system matrix.
         """
         assert tInd >= 0 and tInd < self.nT
 
@@ -1029,8 +1390,52 @@ class Simulation3DElectricField(BaseTDEMSimulation):
         return C.T.tocsr() * (MfMui * C) + 1.0 / dt * MeSigma
 
     def getAdiagDeriv(self, tInd, u, v, adjoint=False):
-        """
-        Deriv of ADiag with respect to electrical conductivity
+        r"""Derivative operation for the diagonal system matrix times a vector.
+
+        The diagonal system matrix for time-step index *k* is given by:
+
+        .. math::
+            \mathbf{A}_k = \mathbf{C^T M_{f\frac{1}{\mu}} C} + \frac{1}{\Delta t_k} \mathbf{M_{e\sigma}}
+
+        where
+
+        * :math:`\Delta t_k` is the step length
+        * :math:`\mathbf{C}` is the discrete curl operator
+        * :math:`\mathbf{M_{e \sigma}}` is the conductivity inner-product matrix on edges
+        * :math:`\mathbf{M_{f\frac{1}{\mu}}}` is the inverse permeability inner-product matrix on faces
+
+        See the *Notes* section of the doc strings for :py:class:`Simulation3DElectricField`
+        for a full description of the formulation.
+
+        Where :math:`\mathbf{m}` are the set of model parameters, :math:`\mathbf{v}` is a vector
+        and :math:`\mathbf{e_k}` is the discrete solution for time-step *k*, this method assumes
+        the discrete solution is fixed and returns
+
+        .. math::
+            \frac{\partial (\mathbf{A_k \, e_k})}{\partial \mathbf{m}} \, \mathbf{v}
+
+        Or the adjoint operation
+
+        .. math::
+            \frac{\partial (\mathbf{A_k \, e_k})}{\partial \mathbf{m}}^T \, \mathbf{v}
+
+        Parameters
+        ----------
+        tInd : int
+            The time-step index; between [0, n_steps-1].
+        u : (n_edgess,) numpy.ndarray
+            The solution for the fields for the current model for the specified time-step;
+            i.e. :math:`\mathbf{e_k}`.
+        v : numpy.ndarray
+            The vector. (n_param,) for the standard operation. (nE,) for the adjoint operation.
+        adjoint : bool
+            Whether to perform the adjoint operation.
+
+        Returns
+        -------
+        numpy.ndarray
+            Derivative of system matrix times a vector. (nE,) for the standard operation.
+            (n_param,) for the adjoint operation.
         """
         assert tInd >= 0 and tInd < self.nT
 
@@ -1043,8 +1448,28 @@ class Simulation3DElectricField(BaseTDEMSimulation):
         return 1.0 / dt * self.MeSigmaDeriv(u, v, adjoint)
 
     def getAsubdiag(self, tInd):
-        """
-        Matrix below the diagonal
+        r"""Sub-diagonal system matrix for the time-step index provided.
+
+        This method returns the sub-diagonal system matrix for the time-step index provided:
+
+        .. math::
+            \mathbf{B}_k = \frac{1}{\Delta t_k} \mathbf{M_{e\sigma}}
+
+        where :math:`\Delta t_k` is the step-length and :math:`\mathbf{M_{e \sigma}}` is the
+        conductivity inner-product matrix on edges.
+
+        See the *Notes* section of the doc strings for :py:class:`Simulation3DElectricField`
+        for a full description of the formulation.
+
+        Parameters
+        ----------
+        tInd : int
+            The time-step index; between [0, n_steps-1].
+
+        Returns
+        -------
+        (nE, nE) sp.sparse.csr_matrix
+            The sub-diagonal system matrix.
         """
         assert tInd >= 0 and tInd < self.nT
 
@@ -1053,9 +1478,48 @@ class Simulation3DElectricField(BaseTDEMSimulation):
         return -1.0 / dt * self.MeSigma
 
     def getAsubdiagDeriv(self, tInd, u, v, adjoint=False):
-        """
-        Derivative of the matrix below the diagonal with respect to electrical
-        conductivity
+        r"""Derivative operation for the sub-diagonal system matrix times a vector.
+
+        The sub-diagonal system matrix for time-step index *k* is given by:
+
+        .. math::
+            \mathbf{B}_k = \frac{1}{\Delta t_k} \mathbf{M_{e\sigma}}
+
+        where :math:`\Delta t_k` is the step-length and :math:`\mathbf{M_{e \sigma}}` is the
+        conductivity inner-product matrix on edges.
+
+        See the *Notes* section of the doc strings for :py:class:`Simulation3DElectricField`
+        for a full description of the formulation.
+
+        Where :math:`\mathbf{m}` are the set of model parameters, :math:`\mathbf{v}` is a vector
+        and :math:`\mathbf{e_{k-1}}` is the discrete solution for the previous time-step,
+        this method assumes the discrete solution is fixed and returns
+
+        .. math::
+            \frac{\partial (\mathbf{B_k \, e_{k-1}})}{\partial \mathbf{m}} \, \mathbf{v}
+
+        Or the adjoint operation
+
+        .. math::
+            \frac{\partial (\mathbf{B_k \, e_{k-1}})}{\partial \mathbf{m}}^T \, \mathbf{v}
+
+        Parameters
+        ----------
+        tInd : int
+            The time-step index; between [0, n_steps-1].
+        u : (nE,) numpy.ndarray
+            The solution for the fields for the current model for the previous time-step;
+            i.e. :math:`\mathbf{e_{k-1}}`.
+        v : numpy.ndarray
+            The vector. (n_param,) for the standard operation. (nE,) for the adjoint operation.
+        adjoint : bool
+            Whether to perform the adjoint operation.
+
+        Returns
+        -------
+        numpy.ndarray
+            Derivative of system matrix times a vector. (nE,) for the standard operation.
+            (n_param,) for the adjoint operation.
         """
         dt = self.time_steps[tInd]
 
@@ -1065,8 +1529,35 @@ class Simulation3DElectricField(BaseTDEMSimulation):
         return -1.0 / dt * self.MeSigmaDeriv(u, v, adjoint)
 
     def getRHS(self, tInd):
-        """
-        right hand side
+        r"""Right-hand sides for the given time index.
+
+        This method returns the right-hand sides for the time index provided.
+        The right-hand side for each source is constructed according to:
+
+        .. math::
+            \mathbf{q}_k = \frac{1}{\Delta t_k} \mathbf{C^T M_{f\frac{1}{\mu}} M_f^{-1}}
+            \big [ \mathbf{s}_{\mathbf{m}, k} - \mathbf{s}_{\mathbf{m}, k-1} \big ]
+            -\frac{1}{\Delta t_i} \big [ \mathbf{s}_{\mathbf{e}, k} - \mathbf{s}_{\mathbf{e}, k-1} \big ]
+
+        where
+
+        * :math:`\Delta t_k` is the step length
+        * :math:`\mathbf{C}` is the discrete curl operator
+        * :math:`\mathbf{s_m}` and :math:`\mathbf{s_e}` are the integrated magnetic and electric source terms, respectively
+        * :math:`\mathbf{M_f}` and :math:`\mathbf{M_{f\frac{1}{\mu}}}` are inner-product matrices
+
+        See the *Notes* section of the doc strings for :py:class:`Simulation3DElectricField`
+        for a full description of the formulation.
+
+        Parameters
+        ----------
+        tInd : int
+            The time index; between [0, n_steps].
+
+        Returns
+        -------
+        (nE, nSrc) numpy.ndarray
+            The right-hand sides.
         """
         # Omit this: Note input was tInd+1
         # if tInd == len(self.time_steps):
@@ -1079,6 +1570,53 @@ class Simulation3DElectricField(BaseTDEMSimulation):
         return -1.0 / dt * (s_e - s_en1) + self.mesh.edge_curl.T * self.MfMui * s_m
 
     def getRHSDeriv(self, tInd, src, v, adjoint=False):
+        r"""Derivative of the right-hand side times a vector for a given source and time index.
+
+        The right-hand side for a given source at time index *k* is constructed according to:
+
+        .. math::
+            \mathbf{q}_k = \frac{1}{\Delta t_k} \mathbf{C^T M_{f\frac{1}{\mu}} M_f^{-1}}
+            \big [ \mathbf{s}_{\mathbf{m}, k} - \mathbf{s}_{\mathbf{m}, k-1} \big ]
+            -\frac{1}{\Delta t_i} \big [ \mathbf{s}_{\mathbf{e}, k} - \mathbf{s}_{\mathbf{e}, k-1} \big ]
+
+        where
+
+        * :math:`\Delta t_k` is the step length
+        * :math:`\mathbf{C}` is the discrete curl operator
+        * :math:`\mathbf{s_m}` and :math:`\mathbf{s_e}` are the integrated magnetic and electric source terms, respectively
+        * :math:`\mathbf{M_f}` and :math:`\mathbf{M_{f\frac{1}{\mu}}}` are inner-product matrices
+
+        See the *Notes* section of the doc strings for :py:class:`Simulation3DElectricField`
+        for a full description of the formulation.
+
+        Where :math:`\mathbf{m}` are the set of model parameters and :math:`\mathbf{v}` is a vector,
+        this method returns
+
+        .. math::
+            \frac{\partial \mathbf{q_k}}{\partial \mathbf{m}} \, \mathbf{v}
+
+        Or the adjoint operation
+
+        .. math::
+            \frac{\partial \mathbf{q_k}}{\partial \mathbf{m}}^T \, \mathbf{v}
+
+        Parameters
+        ----------
+        tInd : int
+            The time index; between [0, n_steps].
+        src : SimPEG.electromagnetics.time_domain.sources.BaseTDEMSrc
+            The TDEM source object.
+        v : numpy.ndarray
+            The vector. (n_param,) for the standard operation. (nE,) for the adjoint operation.
+        adjoint : bool
+            Whether to perform the adjoint operation.
+
+        Returns
+        -------
+        numpy.ndarray
+            Derivative of the right-hand sides times a vector. (nE,) for the standard operation.
+            (n_param,) for the adjoint operation.
+        """
         # right now, we are assuming that s_e, s_m do not depend on the model.
         return Zero()
 
@@ -1115,33 +1653,21 @@ class Simulation3DElectricField(BaseTDEMSimulation):
 
 
 class Simulation3DMagneticField(BaseTDEMSimulation):
-    r"""
-    Solve the H-J formulation of Maxwell's equations for the magnetic field h.
+    r"""3D TDEM simulation in terms of the magnetic flux density.
 
-    We start with Maxwell's equations in terms of the magnetic field and
-    current density
+    This simulation solves for the magnetic flux density at each time-step.
+    In this formulation, the electric fields are defined on mesh edges and the
+    magnetic flux density is defined on mesh faces; i.e. it is an EB formulation.
+    See the *Notes* section for a comprehensive description of the formulation.
 
-    .. math::
-
-        \nabla \times \rho \mathbf{j} + \mu \frac{\partial h}{\partial t} = \mathbf{s_m} \
-        \nabla \times \mathbf{h} - \mathbf{j} = \mathbf{s_e}
-
-
-    and eliminate :math:`\mathbf{j}` using
-
-    .. math::
-
-        \mathbf{j} = \nabla \times \mathbf{h} - \mathbf{s_e}
-
-
-    giving
-
-    .. math::
-
-        \nabla \times \rho \nabla \times \mathbf{h} + \mu \frac{\partial h}{\partial t}
-            = \nabla \times \rho \mathbf{s_e} + \mathbf{s_m}
-
-
+    Parameters
+    ----------
+    mesh : discretize.base.BaseMesh
+        The mesh.
+    survey : SimPEG.electromagnetics.time_domain.survey.Survey
+        The time-domain EM survey.
+    dt_threshold : float
+        Threshold used when determining the unique time-step lengths.
     """
 
     _fieldType = "h"
@@ -1220,12 +1746,21 @@ class Simulation3DMagneticField(BaseTDEMSimulation):
 
 
 class Simulation3DCurrentDensity(BaseTDEMSimulation):
-    r"""
-    Solve the H-J formulation for current density
+    r"""3D TDEM simulation in terms of the magnetic flux density.
 
-    In this case, we eliminate :math:`\partial \mathbf{h} / \partial t` and
-    solve for :math:`\mathbf{j}`
+    This simulation solves for the magnetic flux density at each time-step.
+    In this formulation, the electric fields are defined on mesh edges and the
+    magnetic flux density is defined on mesh faces; i.e. it is an EB formulation.
+    See the *Notes* section for a comprehensive description of the formulation.
 
+    Parameters
+    ----------
+    mesh : discretize.base.BaseMesh
+        The mesh.
+    survey : SimPEG.electromagnetics.time_domain.survey.Survey
+        The time-domain EM survey.
+    dt_threshold : float
+        Threshold used when determining the unique time-step lengths.
     """
 
     _fieldType = "j"
