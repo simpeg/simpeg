@@ -22,21 +22,21 @@ assignees: ''
 
 - [ ] Convert the Markdown file to RST with: `pandoc notes.md -o notes.rst`.
 - [ ] Generate list of contributors from the release notes with:
-      ```
-      grep -Eo "@[[:alnum:]-]+" notes.rst | sort -u | sed -E 's/^/* /'
-      ```
-      Paste the list into the file under a new `Contributors` category.
+  ```bash
+  grep -Eo "@[[:alnum:]-]+" notes.rst | sort -u | sed -E 's/^/* /'
+  ```
+  Paste the list into the file under a new `Contributors` category.
 - [ ] Check if every contributor that participated in the release is in the list. Generate a list of authors and co-authors from the git log with (update the `last_release`):
-      ```
-      export last_release="v0.20.0"
-      git shortlog HEAD...$last_release -sne > contributors
-      git log HEAD...$last_release | grep "Co-authored-by" | sed 's/Co-authored-by://' | sed 's/^[[:space:]]*/ /' | sort | uniq -c | sort -nr | sed 's/^ //' >> contributors
-      sort -rn contributors
-      ```
+  ```bash
+  export last_release="v0.20.0"
+  git shortlog HEAD...$last_release -sne > contributors
+  git log HEAD...$last_release | grep "Co-authored-by" | sed 's/Co-authored-by://' | sed 's/^[[:space:]]*/ /' | sort | uniq -c | sort -nr | sed 's/^ //' >> contributors
+  sort -rn contributors
+  ```
 - [ ] Transform GitHub handles into links to their profiles:
-      ```
-      sed -Ei 's/@([[:alnum:]-]+)/`@\1 <https:\/\/github.com\/\1>`__/' notes.rst
-      ```
+  ```bash
+  sed -Ei 's/@([[:alnum:]-]+)/`@\1 <https:\/\/github.com\/\1>`__/' notes.rst
+  ```
 - [ ] Copy the content of `notes.rst` to a new file `docs/content/release/<version>-notes.rst`.
 - [ ] Add the new release notes to the list in `docs/content/release/index.rst`.
 - [ ] Open a PR with the new release notes.
