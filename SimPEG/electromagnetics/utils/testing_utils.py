@@ -138,7 +138,7 @@ def getFDEMProblem(fdemType, comp, SrcList, freq, useMu=False, verbose=False):
     return prb
 
 
-def getFDEMProblem_FaceEdgeConductivity(
+def get_FDEM_hierarchical_problem(
     fdemType, comp, SrcList, freq, useMu=False, verbose=False
 ):
     cs = 10.0
@@ -228,7 +228,7 @@ def getFDEMProblem_FaceEdgeConductivity(
 
     if fdemType == "e":
         survey = fdem.Survey(Src)
-        prb = fdem.Simulation3DElectricFieldFaceEdgeConductivity(
+        prb = fdem.Simulation3DHierarchicalElectricField(
             mesh,
             survey=survey,
             sigmaMap=sigma_map,
@@ -239,7 +239,7 @@ def getFDEMProblem_FaceEdgeConductivity(
 
     elif fdemType == "b":
         survey = fdem.Survey(Src)
-        prb = fdem.Simulation3DMagneticFluxDensityFaceEdgeConductivity(
+        prb = fdem.Simulation3DHierarchicalMagneticFluxDensity(
             mesh,
             survey=survey,
             sigmaMap=sigma_map,

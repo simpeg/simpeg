@@ -272,85 +272,6 @@ class Fields3DMagneticFluxDensity(FieldsTDEM):
         return self.simulation.MfI * (self._MfMui * self._dbdtDeriv_m(tInd, src, v))
 
 
-class Fields3DMagneticFluxDensityFaceEdgeConductivity(Fields3DMagneticFluxDensity):
-    """Field Storage for a TDEM simulation."""
-
-    def startup(self):
-        # Docstring inherited from parent class
-        self._times = self.simulation.times
-        self.__MeSigmaTauKappa = self.simulation._MeSigmaTauKappa
-        self.__MeSigmaTauKappaI = self.simulation._MeSigmaTauKappaI
-        self.__MeSigmaTauKappaDeriv = self.simulation._MeSigmaTauKappaDeriv
-        self.__MeSigmaTauKappaIDeriv = self.simulation._MeSigmaTauKappaIDeriv
-        self._edgeCurl = self.simulation.mesh.edge_curl
-        self._MfMui = self.simulation.MfMui
-        self._timeMesh = self.simulation.time_mesh
-
-    def _e(self, bSolution, source_list, tInd):
-        # Docstrings inherited from parent class.
-        e = self.__MeSigmaTauKappaI * (self._edgeCurl.T * (self._MfMui * bSolution))
-        for i, src in enumerate(source_list):
-            s_e = src.s_e(self.simulation, self._times[tInd])
-            e[:, i] = e[:, i] - self.__MeSigmaTauKappaI * s_e
-        return e
-
-    def _eDeriv_u(self, tInd, src, dun_dm_v, adjoint=False):
-        # Docstrings inherited from parent class.
-        if adjoint:
-            return self._MfMui.T * (
-                self._edgeCurl * (self.__MeSigmaTauKappaI.T * dun_dm_v)
-            )
-        return self.__MeSigmaTauKappaI * (self._edgeCurl.T * (self._MfMui * dun_dm_v))
-
-    def _eDeriv_m(self, tInd, src, v, adjoint=False):
-        # Docstrings inherited from parent class.
-        _, s_e = src.eval(self.simulation, self._times[tInd])
-        bSolution = self[[src], "bSolution", tInd].flatten()
-
-        _, s_eDeriv = src.evalDeriv(self._times[tInd], self, adjoint=adjoint)
-
-        if adjoint:
-            return self.__MeSigmaTauKappaIDeriv(
-                -s_e + self._edgeCurl.T * (self._MfMui * bSolution), v, adjoint
-            ) - s_eDeriv(self.__MeSigmaTauKappaI.T * v)
-
-        return self.__MeSigmaTauKappaIDeriv(
-            -s_e + self._edgeCurl.T * (self._MfMui * bSolution), v, adjoint
-        ) - self.__MeSigmaTauKappaI * s_eDeriv(v)
-
-    def _j(self, hSolution, source_list, tInd):
-        # Docstrings inherited from parent class.
-        return self.simulation.MeI * (
-            self.__MeSigmaTauKappa * self._e(hSolution, source_list, tInd)
-        )
-
-    def _jDeriv_u(self, tInd, src, dun_dm_v, adjoint=False):
-        # Docstrings inherited from parent class.
-        if adjoint:
-            return self._eDeriv_u(
-                tInd,
-                src,
-                self.__MeSigmaTauKappa.T * (self.simulation.MeI.T * dun_dm_v),
-                adjoint=True,
-            )
-        return self.simulation.MeI * (
-            self.__MeSigmaTauKappa * self._eDeriv_u(tInd, src, dun_dm_v)
-        )
-
-    def _jDeriv_m(self, tInd, src, v, adjoint=False):
-        # Docstrings inherited from parent class.
-        e = self[src, "e", tInd]
-        if adjoint:
-            w = self.simulation.MeI.T * v
-            return self.__MeSigmaTauKappaDeriv(e).T * w + self._eDeriv_m(
-                tInd, src, self.__MeSigmaTauKappa.T * w, adjoint=True
-            )
-        return self.simulation.MeI * (
-            self.__MeSigmaTauKappaDeriv(e) * v
-            + self.__MeSigmaTauKappa * self._eDeriv_m(tInd, src, v)
-        )
-
-
 class Fields3DElectricField(FieldsTDEM):
     """Fancy Field Storage for a TDEM simulation."""
 
@@ -468,49 +389,6 @@ class Fields3DElectricField(FieldsTDEM):
                 tInd, src, self._MfMui.T * (self.simulation.MfI.T * v)
             )
         return self.simulation.MfI * (self._MfMui * self._dbdtDeriv_m(tInd, src, v))
-
-
-class Fields3DElectricFieldFaceEdgeConductivity(Fields3DElectricField):
-    """Fancy Field Storage for a TDEM simulation."""
-
-    def startup(self):
-        self._times = self.simulation.times
-        self.__MeSigmaTauKappa = self.simulation._MeSigmaTauKappa
-        self.__MeSigmaTauKappaDeriv = self.simulation._MeSigmaTauKappaDeriv
-        self._edgeCurl = self.simulation.mesh.edge_curl
-        self._MfMui = self.simulation.MfMui
-
-    def _j(self, eSolution, source_list, tInd):
-        # Docstrings inherited from parent class.
-        return self.simulation.MeI * (
-            self.__MeSigmaTauKappa * self._e(eSolution, source_list, tInd)
-        )
-
-    def _jDeriv_u(self, tInd, src, dun_dm_v, adjoint=False):
-        # Docstrings inherited from parent class.
-        if adjoint:
-            return self._eDeriv_u(
-                tInd,
-                src,
-                (self.__MeSigmaTauKappa).T * (self.simulation.MeI.T * dun_dm_v),
-                adjoint=True,
-            )
-        return self.simulation.MeI * (
-            self.__MeSigmaTauKappa * self._eDeriv_u(tInd, src, dun_dm_v)
-        )
-
-    def _jDeriv_m(self, tInd, src, v, adjoint=False):
-        # Docstrings inherited from parent class.
-        e = self[src, "e", tInd]
-        if adjoint:
-            w = self.simulation.MeI.T * v
-            return self.__MeSigmaTauKappaDeriv(e).T * w + self._eDeriv_m(
-                tInd, src, self.__MeSigmaTauKappa.T * w, adjoint=True
-            )
-        return self.simulation.MeI * (
-            self.__MeSigmaTauKappaDeriv(e) * v
-            + self.__MeSigmaTauKappa * self._eDeriv_m(tInd, src, v)
-        )
 
 
 class Fields3DMagneticField(FieldsTDEM):

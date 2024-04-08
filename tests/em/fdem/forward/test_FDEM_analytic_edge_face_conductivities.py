@@ -1,17 +1,21 @@
-import unittest
 import discretize
 import numpy as np
+import pytest
 from scipy.constants import mu_0
 from SimPEG import maps
 from SimPEG.electromagnetics import frequency_domain as fdem
 
 
-def analytic_layer_small_loop_face_conductivity_comparison(
-    mesh_type="CYL",
-    formulation="ElectricField",
-    rx_type="MagneticFluxDensity",
-    orientation="Z",
-):
+@pytest.mark.parametrize("orientation", ["x", "z"])
+@pytest.mark.parametrize(
+    "rx_type",
+    [
+        "MagneticFluxDensity",
+    ],
+)
+@pytest.mark.parametrize("formulation", ["MagneticFluxDensity", "ElectricField"])
+@pytest.mark.parametrize("mesh_type", ["CYL", "TREE"])
+def test_layer_conductance_to_analytic(mesh_type, formulation, rx_type, orientation):
     # Some static parameters
     loop_radius = np.pi**-0.5
     receiver_location = np.c_[12.0, 0.0, 1.0]
@@ -125,11 +129,11 @@ def analytic_layer_small_loop_face_conductivity_comparison(
 
     # DEFINE THE SIMULATIONS
     if formulation == "MagneticFluxDensity":
-        sim_3d = fdem.simulation.Simulation3DMagneticFluxDensityFaceEdgeConductivity(
+        sim_3d = fdem.Simulation3DHierarchicalMagneticFluxDensity(
             mesh=mesh, survey=survey_3d, sigma=sigma_3d, tauMap=tau_map
         )
     else:
-        sim_3d = fdem.simulation.Simulation3DElectricFieldFaceEdgeConductivity(
+        sim_3d = fdem.Simulation3DHierarchicalElectricField(
             mesh=mesh, survey=survey_3d, sigma=sigma_3d, tauMap=tau_map
         )
 
@@ -137,91 +141,91 @@ def analytic_layer_small_loop_face_conductivity_comparison(
     analytic_solution = mu_0 * sim_1d.dpred(sigma_1d)  # ALWAYS RETURNS H-FIELD
     numeric_solution = sim_3d.dpred(tau_3d)
 
-    # print(analytic_solution)
-    # print(numeric_solution)
+    np.testing.assert_allclose(numeric_solution, analytic_solution)
+    #
+    # diff = np.linalg.norm(
+    #     np.abs(numeric_solution - analytic_solution)
+    # ) / np.linalg.norm(np.abs(analytic_solution))
+    #
+    # print(
+    #     " |bz_ana| = {ana} |bz_num| = {num} |bz_ana-bz_num| = {diff}".format(
+    #         ana=np.linalg.norm(analytic_solution),
+    #         num=np.linalg.norm(numeric_solution),
+    #         diff=np.linalg.norm(analytic_solution - numeric_solution),
+    #     )
+    # )
+    # print("Difference: {}".format(diff))
+    #
+    # return diff
 
-    diff = np.linalg.norm(
-        np.abs(numeric_solution - analytic_solution)
-    ) / np.linalg.norm(np.abs(analytic_solution))
 
-    print(
-        " |bz_ana| = {ana} |bz_num| = {num} |bz_ana-bz_num| = {diff}".format(
-            ana=np.linalg.norm(analytic_solution),
-            num=np.linalg.norm(numeric_solution),
-            diff=np.linalg.norm(analytic_solution - numeric_solution),
-        )
-    )
-    print("Difference: {}".format(diff))
-
-    return diff
-
-
-class LayerConductanceTests(unittest.TestCase):
-    # Compares analytic 1D layered Earth solution to a plate of equivalent
-    # conductance.
-
-    def test_tree_Bform_magdipole_b_x(self):
-        assert (
-            analytic_layer_small_loop_face_conductivity_comparison(
-                mesh_type="TREE",
-                formulation="MagneticFluxDensity",
-                rx_type="MagneticFluxDensity",
-                orientation="X",
-            )
-            < 0.04
-        )
-
-    def test_tree_Bform_magdipole_b_z(self):
-        assert (
-            analytic_layer_small_loop_face_conductivity_comparison(
-                mesh_type="TREE",
-                formulation="MagneticFluxDensity",
-                rx_type="MagneticFluxDensity",
-                orientation="Z",
-            )
-            < 0.04
-        )
-
-    def test_cyl_Bform_loop_b_z(self):
-        assert (
-            analytic_layer_small_loop_face_conductivity_comparison(
-                mesh_type="CYL",
-                formulation="MagneticFluxDensity",
-                rx_type="MagneticFluxDensity",
-                orientation="Z",
-            )
-            < 0.01
-        )
-
-    def test_tree_Eform_magdipole_b_x(self):
-        assert (
-            analytic_layer_small_loop_face_conductivity_comparison(
-                mesh_type="TREE",
-                formulation="ElectricField",
-                rx_type="MagneticFluxDensity",
-                orientation="X",
-            )
-            < 0.04
-        )
-
-    def test_tree_Eform_magdipole_b_z(self):
-        assert (
-            analytic_layer_small_loop_face_conductivity_comparison(
-                mesh_type="TREE",
-                formulation="ElectricField",
-                rx_type="MagneticFluxDensity",
-                orientation="Z",
-            )
-            < 0.04
-        )
-
-    def test_cyl_Eform_loop_b_z(self):
-        assert (
-            analytic_layer_small_loop_face_conductivity_comparison(
-                mesh_type="CYL",
-                formulation="ElectricField",
-                rx_type="MagneticFluxDensity",
-                orientation="Z",
-            )
-            < 0.01
-        )
+#
+# class LayerConductanceTests(unittest.TestCase):
+#     # Compares analytic 1D layered Earth solution to a plate of equivalent
+#     # conductance.
+#
+#     def test_tree_Bform_magdipole_b_x(self):
+#         assert (
+#             analytic_layer_small_loop_face_conductivity_comparison(
+#                 mesh_type="TREE",
+#                 formulation="MagneticFluxDensity",
+#                 rx_type="MagneticFluxDensity",
+#                 orientation="X",
+#             )
+#             < 0.04
+#         )
+#
+#     def test_tree_Bform_magdipole_b_z(self):
+#         assert (
+#             analytic_layer_small_loop_face_conductivity_comparison(
+#                 mesh_type="TREE",
+#                 formulation="MagneticFluxDensity",
+#                 rx_type="MagneticFluxDensity",
+#                 orientation="Z",
+#             )
+#             < 0.04
+#         )
+#
+#     def test_cyl_Bform_loop_b_z(self):
+#         assert (
+#             analytic_layer_small_loop_face_conductivity_comparison(
+#                 mesh_type="CYL",
+#                 formulation="MagneticFluxDensity",
+#                 rx_type="MagneticFluxDensity",
+#                 orientation="Z",
+#             )
+#             < 0.01
+#         )
+#
+#     def test_tree_Eform_magdipole_b_x(self):
+#         assert (
+#             analytic_layer_small_loop_face_conductivity_comparison(
+#                 mesh_type="TREE",
+#                 formulation="ElectricField",
+#                 rx_type="MagneticFluxDensity",
+#                 orientation="X",
+#             )
+#             < 0.04
+#         )
+#
+#     def test_tree_Eform_magdipole_b_z(self):
+#         assert (
+#             analytic_layer_small_loop_face_conductivity_comparison(
+#                 mesh_type="TREE",
+#                 formulation="ElectricField",
+#                 rx_type="MagneticFluxDensity",
+#                 orientation="Z",
+#             )
+#             < 0.04
+#         )
+#
+#     def test_cyl_Eform_loop_b_z(self):
+#         assert (
+#             analytic_layer_small_loop_face_conductivity_comparison(
+#                 mesh_type="CYL",
+#                 formulation="ElectricField",
+#                 rx_type="MagneticFluxDensity",
+#                 orientation="Z",
+#             )
+#             < 0.01
+#         )

@@ -4,17 +4,15 @@ from discretize.utils import Zero
 
 from ... import props
 from ...data import Data
-from ...utils import mkvc, validate_type, sdinv
-from ...base import BaseFaceEdgeElectricalPDESimulation
+from ...utils import validate_type
+from ...base import BaseHierarchicalElectricalSimulation
 from ..base import BaseEMSimulation
 from ..utils import omega
 from .survey import Survey
 from .fields import (
     FieldsFDEM,
     Fields3DElectricField,
-    Fields3DElectricFieldFaceEdgeConductivity,
     Fields3DMagneticFluxDensity,
-    Fields3DMagneticFluxDensityFaceEdgeConductivity,
     Fields3DMagneticField,
     Fields3DCurrentDensity,
 )
@@ -536,132 +534,6 @@ class Simulation3DElectricField(BaseFDEMSimulation):
         ) * s_eDeriv(v)
 
 
-class Simulation3DElectricFieldFaceEdgeConductivity(
-    Simulation3DElectricField, BaseFaceEdgeElectricalPDESimulation
-):
-    r"""
-    By eliminating the magnetic flux density using
-
-    .. math ::
-
-        \mathbf{b} = \frac{1}{i \omega}\left(-\mathbf{C} \mathbf{e} +
-        \mathbf{s_m}\right)
-
-
-    we can write Maxwell's equations as a second order system in
-    :math:`mathbf{e}` only:
-
-    .. math ::
-
-        \left(\mathbf{C}^{\top} \mathbf{M_{\mu^{-1}}^f} \mathbf{C} +
-        i \omega \left \mathbf{M^e_{\sigma} + M^e_\tau + M^e_\kappa} \right )
-        \right) \mathbf{e} = \mathbf{C}^{\top} \mathbf{M_{\mu^{-1}}^f}\mathbf{s_m}
-        - i\omega\mathbf{M^e}\mathbf{s_e}
-
-    which we solve for :math:`\mathbf{e}`.
-
-    Parameters
-    ----------
-    mesh : discretize.base.BaseMesh
-        The mesh.
-    """
-
-    _solutionType = "eSolution"
-    _formulation = "EB"
-    fieldsPair = Fields3DElectricFieldFaceEdgeConductivity
-
-    def getA(self, freq):
-        r"""
-        System matrix
-
-        .. math ::
-
-            \mathbf{A} = \mathbf{C}^{\top} \mathbf{M_{\mu^{-1}}^f} \mathbf{C}
-            + i \omega \left ( \mathbf{M^e_{\sigma}} + \mathbf{M^e_{\tau}}
-            + \mathbf{M^e_{\kappa}} \right)
-
-        Parameters
-        ----------
-        freq : float
-            Frequency in Hz.
-
-        Returns
-        -------
-        (nE, nE) scipy.sparse.csr_matrix
-            The system matrix.
-        """
-        MfMui = self.MfMui
-        C = self.mesh.edge_curl
-
-        if self.permittivity is None:
-            MeSigmaTauKappa = self._MeSigmaTauKappa
-            A = C.T.tocsr() * MfMui * C + 1j * omega(freq) * MeSigmaTauKappa
-        else:
-            Meyhat = (
-                self._get_edge_admittivity_property_matrix(freq)
-                + self._MeTau
-                + self._MeKappa
-            )
-            A = C.T.tocsr() * MfMui * C + 1j * omega(freq) * Meyhat
-
-        return A
-
-    def getADeriv_sigma(self, freq, u, v, adjoint=False):
-        r"""
-        Product of the derivative of our system matrix with respect to the
-        electrical properties within the model and a vector. This includes
-        derivatives for volume, face and/or edge conductivities depending on
-        whether ``sigmaMap``, ``tauMap`` and/or ``kappaMap`` are set.
-
-        Parameters
-        ----------
-        freq : float
-            Frequency in Hz.
-        u : (nE,) numpy.ndarray
-            Solution vector for the fields.
-        v : numpy.ndarray
-            A vector to take prodct with. Either (nP,) or (nD,) for the adjoint.
-        adjoint : bool
-            Whether to perform the adjoint operation.
-
-        Returns
-        -------
-        numpy.ndarray
-            Derivative of the system matrix times a vector. Either (nP,) or
-            for the adjoint (nD,).
-        """
-        dMe_dsigma_v = self._MeSigmaTauKappaDeriv(u, v, adjoint)
-        return 1j * omega(freq) * dMe_dsigma_v
-
-    def getADeriv(self, freq, u, v, adjoint=False):
-        r"""
-        Product of the derivative of our system matrix with respect to the
-        model and a vector.
-
-        Parameters
-        ----------
-        freq : float
-            Frequency in Hz.
-        u : (nE,) numpy.ndarray
-            Solution vector.
-        v : numpy.ndarray
-            A vector to take prodct with. Either (nP,) or (nD,) for the adjoint.
-        adjoint : bool
-            Whether to perform the adjoint operation.
-
-        Returns
-        -------
-        numpy.ndarray
-            Derivative of the system matrix times a vector. Either (nP,) or
-            for the adjoint (nD,).
-        """
-        return (
-            self.getADeriv_sigma(freq, u, v, adjoint)
-            + self.getADeriv_mui(freq, u, v, adjoint)
-            # + self.getADeriv_permittivity(freq, u, v, adjoint)
-        )
-
-
 class Simulation3DMagneticFluxDensity(BaseFDEMSimulation):
     r"""
     We eliminate :math:`\mathbf{e}` using
@@ -837,242 +709,6 @@ class Simulation3DMagneticFluxDensity(BaseFDEMSimulation):
             # RHSderiv = MeSigmaIDeriv.T * (C.T * v)
             RHSderiv = self.MeSigmaIDeriv(s_e, C.T * v, adjoint)
             SrcDeriv = s_mDeriv(v) + s_eDeriv(self.MeSigmaI.T * (C.T * v))
-
-        if self._makeASymmetric is True and not adjoint:
-            return MfMui.T * (SrcDeriv + RHSderiv)
-
-        return RHSderiv + SrcDeriv
-
-
-class Simulation3DMagneticFluxDensityFaceEdgeConductivity(
-    Simulation3DMagneticFluxDensity, BaseFaceEdgeElectricalPDESimulation
-):
-    r"""
-    We eliminate :math:`\mathbf{e}` using
-
-    .. math ::
-
-         \mathbf{e} = \left ( \mathbf{M^e_{\sigma}} + \mathbf{M^e_{\tau}} +
-         \mathbf{M^e_{\kappa}}\right )^{-1} \left(\mathbf{C}^{\top}
-         \mathbf{M_{\mu^{-1}}^f} \mathbf{b} - \mathbf{s_e}\right)
-
-    and solve for :math:`\mathbf{b}` using:
-
-    .. math ::
-
-        \left(\mathbf{C} \left ( \mathbf{M^e_{\sigma}} + \mathbf{M^e_{\tau}} +
-        \mathbf{M^e_{\kappa}}\right )^{-1} \mathbf{C}^{\top}
-        \mathbf{M_{\mu^{-1}}^f}  + i \omega \right)\mathbf{b} = \mathbf{s_m} +
-        \left ( \mathbf{M^e_{\sigma}} + \mathbf{M^e_{\tau}} +
-         \mathbf{M^e_{\kappa}}\right )^{-1} \mathbf{M^e}\mathbf{s_e}
-
-    .. note ::
-        The inverse problem will not work with full anisotropy
-
-    Parameters
-    ----------
-    mesh : discretize.base.BaseMesh mesh
-        The mesh.
-    """
-
-    fieldsPair = Fields3DMagneticFluxDensityFaceEdgeConductivity
-
-    def getA(self, freq):
-        r"""
-        System matrix
-
-        .. math ::
-
-            \mathbf{A} = \mathbf{C} \left ( \mathbf{M^e_{\sigma}} +
-            \mathbf{M^e_{\tau}} + \mathbf{M^e_{\kappa}}\right )^{-1}
-            \mathbf{C}^{\top} \mathbf{M_{\mu^{-1}}^f}  + i \omega
-
-        Parameters
-        ----------
-        freq : float
-            Frequency in Hz.
-
-        Returns
-        -------
-        (nF, nF) scipy.sparse.csr_matrix
-            The system matrix.
-        """
-
-        MfMui = self.MfMui
-        C = self.mesh.edge_curl
-        iomega = 1j * omega(freq) * sp.eye(self.mesh.nF)
-
-        if self.permittivity is None:
-            MeSigmaTauKappaI = self._MeSigmaTauKappaI
-            A = C * (MeSigmaTauKappaI * (C.T.tocsr() * MfMui)) + iomega
-        else:
-            MeyhatI = self._get_edge_admittivity_property_matrix(
-                freq, invert_matrix=True
-            )
-            A = C * (MeyhatI * (C.T.tocsr() * MfMui)) + iomega
-
-        if self._makeASymmetric:
-            return MfMui.T.tocsr() * A
-        return A
-
-    def getADeriv_sigma(self, freq, u, v, adjoint=False):
-        r"""
-        Product of the derivative of our system matrix with respect to the
-        model and a vector.
-
-        This includes derivatives for volume, face and/or edge conductivities
-        depending on whether ``sigmaMap``, ``tauMap`` and/or ``kappaMap`` are set.
-
-        Parameters
-        ----------
-        freq : float
-            Frequency in Hz.
-        u : (nF,) numpy.ndarray
-            Solution vector for the fields.
-        v : numpy.ndarray
-            A vector to take prodct with. Either (nP,) or (nD,) for the adjoint.
-        adjoint : bool
-            Whether to perform the adjoint operation.
-
-        Returns
-        -------
-        numpy.ndarray
-            Derivative of the system matrix times a vector. Either (nP,) or
-            for the adjoint (nD,).
-        """
-
-        MfMui = self.MfMui
-        C = self.mesh.edge_curl
-        MeSigmaTauKappaIDeriv = self._MeSigmaTauKappaIDeriv
-        vec = C.T * (MfMui * u)
-
-        if adjoint:
-            return MeSigmaTauKappaIDeriv(vec, C.T * v, adjoint)
-        return C * MeSigmaTauKappaIDeriv(vec, v, adjoint)
-
-    def getADeriv_mui(self, freq, u, v, adjoint=False):
-        # Docstring inherited from parent class.
-        MfMuiDeriv = self.MfMuiDeriv(u)
-        MeSigmaTauKappaI = self._MeSigmaTauKappaI
-        C = self.mesh.edge_curl
-
-        if adjoint:
-            return MfMuiDeriv.T * (C * (MeSigmaTauKappaI.T * (C.T * v)))
-        return C * (MeSigmaTauKappaI * (C.T * (MfMuiDeriv * v)))
-
-    def getADeriv(self, freq, u, v, adjoint=False):
-        r"""
-        Product of the derivative of our system matrix with respect to the
-        model and a vector.
-
-        Parameters
-        ----------
-        freq : float
-            Frequency in Hz.
-        u : (nF,) numpy.ndarray
-            Solution vector for the fields.
-        v : numpy.ndarray
-            A vector to take prodct with. Either (nP,) or (nD,) for the adjoint.
-        adjoint : bool
-            Whether to perform the adjoint operation.
-
-        Returns
-        -------
-        numpy.ndarray
-            Derivative of the system matrix times a vector. Either (nP,) or
-            for the adjoint (nD,).
-        """
-        if adjoint and self._makeASymmetric:
-            v = self.MfMui * v
-
-        ADeriv = self.getADeriv_sigma(freq, u, v, adjoint) + self.getADeriv_mui(
-            freq, u, v, adjoint
-        )
-
-        if adjoint is False and self._makeASymmetric:
-            return self.MfMui.T * ADeriv
-
-        return ADeriv
-
-    def getRHS(self, freq):
-        r"""
-        Right hand side for the system
-
-        .. math ::
-
-            \mathbf{RHS} = \mathbf{s_m} +
-            \mathbf{M^e_{\sigma} + M^e_{\tau} + M^e_{\kappa}}^{-1}\mathbf{s_e}
-
-        Parameters
-        ----------
-        freq : float
-            Frequency in Hz.
-
-        Returns
-        -------
-        (nE, nSrc) numpy.ndarray
-            Sources array.
-        """
-
-        s_m, s_e = self.getSourceTerm(freq)
-        C = self.mesh.edge_curl
-
-        if self.permittivity is None:
-            MeSigmaTauKappaI = self._MeSigmaTauKappaI
-            RHS = s_m + C * (MeSigmaTauKappaI * s_e)
-        else:
-            MeyhatI = sdinv(
-                self._get_edge_admittivity_property_matrix(freq, invert_matrix=False)
-                + self._MeTau
-                + self._MeKappa
-            )
-            RHS = s_m + C * (MeyhatI * s_e)
-
-        if self._makeASymmetric is True:
-            MfMui = self.MfMui
-            return MfMui.T * RHS
-
-        return RHS
-
-    def getRHSDeriv(self, freq, src, v, adjoint=False):
-        """
-        Derivative of the right hand side with respect to the model
-
-        Parameters
-        ----------
-        freq : float
-            Frequency in Hz.
-        src : SimPEG.electromagnetics.frequency_domain.sources.BaseFDEMSrc
-            FDEM source.
-        v : numpy.ndarray
-            vector to take product with
-        adjoint : bool
-            Whether to perform the adjoint operation.
-
-        Returns
-        -------
-        numpy.ndarray
-            Product of rhs deriv with a vector
-        """
-
-        C = self.mesh.edge_curl
-        s_m, s_e = src.eval(self)
-        MfMui = self.MfMui
-
-        if self._makeASymmetric and adjoint:
-            v = self.MfMui * v
-
-        # MeSigmaIDeriv = self.MeSigmaIDeriv(s_e)
-        s_mDeriv, s_eDeriv = src.evalDeriv(self, adjoint=adjoint)
-
-        if not adjoint:
-            # RHSderiv = C * (MeSigmaIDeriv * v)
-            RHSderiv = C * self._MeSigmaTauKappaIDeriv(s_e, v, adjoint)
-            SrcDeriv = s_mDeriv(v) + C * (self._MeSigmaTauKappaI * s_eDeriv(v))
-        elif adjoint:
-            # RHSderiv = MeSigmaIDeriv.T * (C.T * v)
-            RHSderiv = self._MeSigmaTauKappaIDeriv(s_e, C.T * v, adjoint)
-            SrcDeriv = s_mDeriv(v) + s_eDeriv(self._MeSigmaTauKappaI.T * (C.T * v))
 
         if self._makeASymmetric is True and not adjoint:
             return MfMui.T * (SrcDeriv + RHSderiv)
@@ -1432,3 +1068,74 @@ class Simulation3DMagneticField(BaseFDEMSimulation):
         s_mDeriv, s_eDeriv = src.evalDeriv(self, adjoint=adjoint)
 
         return RHSDeriv + s_mDeriv(v) + C.T * (MfRho * s_eDeriv(v))
+
+
+###############################################################################
+#                               Hierarchical                                  #
+###############################################################################
+class Simulation3DHierarchicalElectricField(
+    BaseHierarchicalElectricalSimulation, Simulation3DMagneticFluxDensity
+):
+    r"""
+    We eliminate :math:`\mathbf{e}` using
+
+    .. math ::
+
+         \mathbf{e} = \left ( \mathbf{M^e_{\sigma}} + \mathbf{M^e_{\tau}} +
+         \mathbf{M^e_{\kappa}}\right )^{-1} \left(\mathbf{C}^{\top}
+         \mathbf{M_{\mu^{-1}}^f} \mathbf{b} - \mathbf{s_e}\right)
+
+    and solve for :math:`\mathbf{b}` using:
+
+    .. math ::
+
+        \left(\mathbf{C} \left ( \mathbf{M^e_{\sigma}} + \mathbf{M^e_{\tau}} +
+        \mathbf{M^e_{\kappa}}\right )^{-1} \mathbf{C}^{\top}
+        \mathbf{M_{\mu^{-1}}^f}  + i \omega \right)\mathbf{b} = \mathbf{s_m} +
+        \left ( \mathbf{M^e_{\sigma}} + \mathbf{M^e_{\tau}} +
+         \mathbf{M^e_{\kappa}}\right )^{-1} \mathbf{M^e}\mathbf{s_e}
+
+    .. note ::
+        The inverse problem will not work with full anisotropy
+
+    Parameters
+    ----------
+    mesh : discretize.base.BaseMesh mesh
+        The mesh.
+    """
+
+    pass
+
+
+class Simulation3DHierarchicalMagneticFluxDensity(
+    BaseHierarchicalElectricalSimulation, Simulation3DMagneticFluxDensity
+):
+    r"""
+    We eliminate :math:`\mathbf{e}` using
+
+    .. math ::
+
+         \mathbf{e} = \left ( \mathbf{M^e_{\sigma}} + \mathbf{M^e_{\tau}} +
+         \mathbf{M^e_{\kappa}}\right )^{-1} \left(\mathbf{C}^{\top}
+         \mathbf{M_{\mu^{-1}}^f} \mathbf{b} - \mathbf{s_e}\right)
+
+    and solve for :math:`\mathbf{b}` using:
+
+    .. math ::
+
+        \left(\mathbf{C} \left ( \mathbf{M^e_{\sigma}} + \mathbf{M^e_{\tau}} +
+        \mathbf{M^e_{\kappa}}\right )^{-1} \mathbf{C}^{\top}
+        \mathbf{M_{\mu^{-1}}^f}  + i \omega \right)\mathbf{b} = \mathbf{s_m} +
+        \left ( \mathbf{M^e_{\sigma}} + \mathbf{M^e_{\tau}} +
+         \mathbf{M^e_{\kappa}}\right )^{-1} \mathbf{M^e}\mathbf{s_e}
+
+    .. note ::
+        The inverse problem will not work with full anisotropy
+
+    Parameters
+    ----------
+    mesh : discretize.base.BaseMesh mesh
+        The mesh.
+    """
+
+    pass
