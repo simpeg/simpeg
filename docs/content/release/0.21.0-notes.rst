@@ -48,7 +48,8 @@ Logistic Sigmoid Map
 ~~~~~~~~~~~~~~~~~~~~
 
 New ``SimPEG.map.LogisticSigmoidMap`` mapping class that computes the logistic
-sigmoid of the model parameters. This is an alternative method to incorporate upper and lower bounds on model parameters.
+sigmoid of the model parameters. This is an alternative method to incorporate
+upper and lower bounds on model parameters.
 
 See https://github.com/simpeg/simpeg/pull/1352.
 
