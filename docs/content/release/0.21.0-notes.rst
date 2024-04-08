@@ -117,7 +117,7 @@ This is a combination of contributors and reviewers who've made contributions
 towards this release (in no particular order).
 
 * `@ckohnke <https://github.com/ckohnke>`__
-* `@dcowan <https://github.com/dcowan>`__
+* `@dccowan <https://github.com/dccowan>`__
 * `@domfournier <https://github.com/domfournier>`__
 * `@ghwilliams <https://github.com/ghwilliams>`__
 * `@jcapriot <https://github.com/jcapriot>`__
