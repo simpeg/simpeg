@@ -99,14 +99,17 @@ class BaseRx(BaseTimeRx):
         scipy.sparse.csr_matrix
             P, the interpolation matrix
         """
-        P = Zero()
-        field = f._GLoc(self.projField)
-        for strength, comp in zip(self.orientation, ["x", "y", "z"]):
-            if strength != 0.0:
-                P = P + strength * mesh.get_interpolation_matrix(
-                    self.locations, field + comp
-                )
-        return P
+        if getattr(self, "spatialP", None) is None:
+            P = Zero()
+            field = f._GLoc(self.projField)
+            for strength, comp in zip(self.orientation, ["x", "y", "z"]):
+                if strength != 0.0:
+                    P = P + strength * mesh.get_interpolation_matrix(
+                        self.locations, field + comp
+                    )
+            self.spatialP = P
+
+        return self.spatialP
 
     def getTimeP(self, time_mesh, f):
         """Get time projection matrix from mesh to receivers.
@@ -124,8 +127,13 @@ class BaseRx(BaseTimeRx):
         scipy.sparse.csr_matrix
             P, the interpolation matrix
         """
-        projected_time_grid = f._TLoc(self.projField)
-        return time_mesh.get_interpolation_matrix(self.times, projected_time_grid)
+        if getattr(self, "timeP", None) is None:
+            projected_time_grid = f._TLoc(self.projField)
+            self.timeP = time_mesh.get_interpolation_matrix(
+                self.times, projected_time_grid
+            )
+
+        return self.timeP
 
     def getP(self, mesh, time_mesh, f):
         """Returns projection matrices as a list for all components collected by the receivers.
