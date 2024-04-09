@@ -9,7 +9,6 @@ import numpy as np
 import scipy.sparse as sp
 from dask import array, delayed
 
-# from dask.diagnostics import ProgressBar
 from SimPEG.dask.simulation import dask_Jvec, dask_Jtvec, dask_getJtJdiag
 from SimPEG.dask.utils import get_parallel_blocks
 import zarr
@@ -179,7 +178,6 @@ Sim.getSourceTerm = dask_getSourceTerm
 def evaluate_receivers(block, mesh, time_mesh, fields, fields_array):
     data = []
     for source, ind, receiver in block:
-        # proj = receiver.getP(mesh, time_mesh, fields)
         Ps = receiver.getSpatialP(mesh, fields)
         Pt = receiver.getTimeP(time_mesh, fields)
         vector = (Pt * (Ps * fields_array[:, ind, :]).T).flatten()
@@ -208,7 +206,7 @@ def dask_dpred(self, m=None, f=None, compute_J=False):
             "data. Please set the survey for the simulation: "
             "simulation.survey = survey"
         )
-    # ct = time()
+
     if f is None:
         if m is None:
             m = self.model
@@ -263,7 +261,7 @@ def delayed_block_deriv(
         j_update = 0.0
         source = source_list[indices[0]]
         receiver = source.receiver_list[indices[1]]
-        # PTv = receiver.getP(mesh, time_mesh, fields).tocsr()
+
         spatialP = receiver.getSpatialP(mesh, fields)
         timeP = receiver.getTimeP(time_mesh, fields)
 
@@ -302,8 +300,6 @@ def compute_field_derivs(simulation, fields, blocks, Jmatrix, fields_shape):
     """
     Compute the derivative of the fields
     """
-    # delayed_blocks = []
-    # for time_index in range(simulation.nT + 1):
     delayed_chunks = []
     for chunks in blocks:
         if len(chunks) == 0:
@@ -321,13 +317,7 @@ def compute_field_derivs(simulation, fields, blocks, Jmatrix, fields_shape):
         )
         delayed_chunks.append(delayed_block)
 
-        # delayed_blocks.append(delayed_chunks)
-
-    # tc = time()
-    # print("Computing field derivatives")
     result = dask.compute(delayed_chunks)[0]
-    # print(f"Field derivatives computed in {time() - tc:.2f}s")
-    # len_blocks = [[[] for _ in block] for block in blocks if len(block) > 0]
     df_duT = [
         [[[] for _ in block] for block in blocks if len(block) > 0]
         for _ in range(simulation.nT + 1)
@@ -455,8 +445,6 @@ def get_field_deriv_block(
 
         update_deriv_blocks(address, indices, ATinv_df_duT_v, solve, shape)
 
-    # dask.compute(update_list)
-
     return ATinv_df_duT_v
 
 
@@ -500,9 +488,6 @@ def compute_rows(
         dAT_dm_v = simulation.getAdiagDeriv(
             tInd, un_src, field_derivs[:, local_ind], adjoint=True
         )
-        # if isinstance(Jmatrix, zarr.core.Array):
-        #     Jmatrix.oindex[ind_array[1][time_check].tolist(), :] += (-dAT_dm_v - dAsubdiagT_dm_v + dRHST_dm_v).T.astype(np.float64)
-        # else:
         row_block = np.zeros(
             (len(ind_array[1]), simulation.model.size), dtype=np.float32
         )
@@ -582,7 +567,6 @@ def compute_J(self, f=None, Ainv=None):
                 )
             )
 
-        # Jmatrix = Jmatrix + array.vstack(j_row_updates)
         if self.store_sensitivities == "disk":
             sens_name = self.sensitivity_path[:-5] + f"_{tInd % 2}.zarr"
             array.to_zarr(
