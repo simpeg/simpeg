@@ -3162,6 +3162,7 @@ class VectorInversion(InversionDirective):
     def __init__(
         self, simulations: list, regularizations: ComboObjectiveFunction, **kwargs
     ):
+        self.reference_angle = False
         self.simulations = simulations
         self.regularizations = regularizations
 
@@ -3221,7 +3222,9 @@ class VectorInversion(InversionDirective):
                 reg_fun.reference_model[indices] = vec_ref
 
                 if ind > 0:
-                    reg_fun.alpha_s = 0
+                    if not self.reference_angle:
+                        reg_fun.alpha_s = 0
+
                     reg_fun.eps_q = np.pi
                     reg_fun.units = "radian"
                     angle_map.append(reg_fun.mapping)
