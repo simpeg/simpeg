@@ -1430,7 +1430,7 @@ class Simulation3DElectricField(BaseTDEMSimulation):
         ----------
         tInd : int
             The time-step index; between [0, n_steps-1].
-        u : (n_edgess,) numpy.ndarray
+        u : (nE,) numpy.ndarray
             The solution for the fields for the current model for the specified time-step;
             i.e. :math:`\mathbf{e_k}`.
         v : numpy.ndarray
