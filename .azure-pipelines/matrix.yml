@@ -55,7 +55,7 @@ jobs:
               targetPath: $(Build.SourcesDirectory)/docs/_build/html
               artifactName: html_docs
             displayName: 'Publish documentation artifact'
-            condition: eq(${{ test }}, 'tests/docs -s -v')
+            condition: eq('${{ test }}', 'tests/docs -s -v')
 
           - script: |
               curl -Os https://uploader.codecov.io/latest/linux/codecov
