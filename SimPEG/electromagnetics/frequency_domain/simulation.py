@@ -1,6 +1,6 @@
 import numpy as np
 import scipy.sparse as sp
-from discretize.utils import Zero
+from discretize.utils import Zero, mkvc
 
 from ... import props
 from ...data import Data
