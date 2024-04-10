@@ -637,7 +637,7 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
 
 class Simulation3DMagneticFluxDensity(BaseTDEMSimulation):
     r"""3D TDEM simulation in terms of the magnetic flux density.
-    
+
     This simulation solves for the magnetic flux density at each time-step.
     In this formulation, the electric fields are defined on mesh edges and the
     magnetic flux density is defined on mesh faces; i.e. it is an EB formulation.
@@ -660,7 +660,7 @@ class Simulation3DMagneticFluxDensity(BaseTDEMSimulation):
     .. math::
         &\nabla \times \vec{e} + \frac{\partial \vec{b}}{\partial t} = - \frac{\partial \vec{s}_m}{\partial t} \\
         &\nabla \times \vec{h} - \vec{j} = \vec{s}_e
-    
+
     where :math:`\vec{s}_e` is an electric source term that defines a source current density,
     and :math:`\vec{s}_m` magnetic source term that defines a source magnetic flux density.
     We define the constitutive relations for the electrical conductivity :math:`\sigma`
@@ -682,7 +682,7 @@ class Simulation3DMagneticFluxDensity(BaseTDEMSimulation):
         - \int_\Omega \vec{u} \cdot \vec{j} \, dv = \int_\Omega \vec{u} \cdot \vec{s}_e \, dv \\
         & \int_\Omega \vec{u} \cdot \vec{j} \, dv = \int_\Omega \vec{u} \cdot \sigma \vec{e} \, dv \\
         & \int_\Omega \vec{u} \cdot \vec{h} \, dv = \int_\Omega \vec{u} \cdot \mu^{-1} \vec{b} \, dv
-    
+
     The above expressions are discretized in space according to the finite volume method.
     The discrete electric fields :math:`\mathbf{e}` are defined on mesh edges,
     and the discrete magnetic flux densities :math:`\mathbf{b}` are defined on mesh faces.
@@ -699,13 +699,13 @@ class Simulation3DMagneticFluxDensity(BaseTDEMSimulation):
 
     where
 
-    * :math:`\mathbf{C}` is the discrete curl operator 
+    * :math:`\mathbf{C}` is the discrete curl operator
     * :math:`\mathbf{s_m}` and :math:`\mathbf{s_e}` are the integrated magnetic and electric source terms, respectively
     * :math:`\mathbf{M_e}` is the edge inner-product matrix
     * :math:`\mathbf{M_f}` is the face inner-product matrix
     * :math:`\mathbf{M_{e\sigma}}` is the inner-product matrix for conductivities projected to edges
     * :math:`\mathbf{M_{f\frac{1}{\mu}}}` is the inner-product matrix for inverse permeabilities projected to faces
-    
+
     Combining the discrete expressions in terms of the magnetic flux density, we obtain:
 
     .. math::
@@ -719,7 +719,7 @@ class Simulation3DMagneticFluxDensity(BaseTDEMSimulation):
 
     .. math::
         \mathbf{A}_k \mathbf{b}_k = \mathbf{q_k} - \mathbf{B}_k \mathbf{b}_{k-1}
-    
+
     where :math:`\Delta t_k = t_k - t_{k-1}` and
 
     .. math::
@@ -1071,7 +1071,7 @@ class Simulation3DMagneticFluxDensity(BaseTDEMSimulation):
 # ------------------------------- Simulation3DElectricField ------------------------------- #
 class Simulation3DElectricField(BaseTDEMSimulation):
     r"""3D TDEM simulation in terms of the electric field.
-    
+
     This simulation solves for the electric field at each time-step.
     In this formulation, the electric fields are defined on mesh edges and the
     magnetic flux density is defined on mesh faces; i.e. it is an EB formulation.
@@ -1094,7 +1094,7 @@ class Simulation3DElectricField(BaseTDEMSimulation):
     .. math::
         &\nabla \times \vec{e} + \frac{\partial \vec{b}}{\partial t} = - \frac{\partial \vec{s}_m}{\partial t} \\
         &\nabla \times \vec{h} - \vec{j} = \vec{s}_e
-    
+
     where :math:`\vec{s}_e` is an electric source term that defines a source current density,
     and :math:`\vec{s}_m` magnetic source term that defines a source magnetic flux density.
     We define the constitutive relations for the electrical conductivity :math:`\sigma`
@@ -1116,7 +1116,7 @@ class Simulation3DElectricField(BaseTDEMSimulation):
         - \int_\Omega \vec{u} \cdot \vec{j} \, dv = \int_\Omega \vec{u} \cdot \vec{s}_e \, dv \\
         & \int_\Omega \vec{u} \cdot \vec{j} \, dv = \int_\Omega \vec{u} \cdot \sigma \vec{e} \, dv \\
         & \int_\Omega \vec{u} \cdot \vec{h} \, dv = \int_\Omega \vec{u} \cdot \mu^{-1} \vec{b} \, dv
-    
+
     The above expressions are discretized in space according to the finite volume method.
     The discrete electric fields :math:`\mathbf{e}` are defined on mesh edges,
     and the discrete magnetic flux densities :math:`\mathbf{b}` are defined on mesh faces.
@@ -1135,13 +1135,13 @@ class Simulation3DElectricField(BaseTDEMSimulation):
 
     where
 
-    * :math:`\mathbf{C}` is the discrete curl operator 
+    * :math:`\mathbf{C}` is the discrete curl operator
     * :math:`\mathbf{s_m}` and :math:`\mathbf{s_e}` are the integrated magnetic and electric source terms, respectively
     * :math:`\mathbf{M_e}` is the edge inner-product matrix
     * :math:`\mathbf{M_f}` is the face inner-product matrix
     * :math:`\mathbf{M_{e\sigma}}` is the inner-product matrix for conductivities projected to edges
     * :math:`\mathbf{M_{f\frac{1}{\mu}}}` is the inner-product matrix for inverse permeabilities projected to faces
-    
+
     Combining the discrete expressions in terms of the electric field, we obtain:
 
     .. math::
@@ -1154,7 +1154,7 @@ class Simulation3DElectricField(BaseTDEMSimulation):
 
     .. math::
         \mathbf{A}_k \mathbf{b}_k = \mathbf{q}_k - \mathbf{B}_k \mathbf{b}_{k-1}
-    
+
     where :math:`\Delta t_k = t_k - t_{k-1}` and
 
     .. math::
@@ -1725,7 +1725,7 @@ class Simulation3DElectricField(BaseTDEMSimulation):
 
 class Simulation3DMagneticField(BaseTDEMSimulation):
     r"""3D TDEM simulation in terms of the magnetic field.
-    
+
     This simulation solves for the magnetic field at each time-step.
     In this formulation, the magnetic fields are defined on mesh edges and the
     current density is defined on mesh faces; i.e. it is an HJ formulation.
@@ -1748,7 +1748,7 @@ class Simulation3DMagneticField(BaseTDEMSimulation):
     .. math::
         &\nabla \times \vec{e} + \frac{\partial \vec{b}}{\partial t} = - \frac{\partial \vec{s}_m}{\partial t} \\
         &\nabla \times \vec{h} - \vec{j} = \vec{s}_e
-    
+
     where :math:`\vec{s}_e` is an electric source term that defines a source current density,
     and :math:`\vec{s}_m` magnetic source term that defines a source magnetic flux density.
     We define the constitutive relations for the electrical resistivity :math:`\rho`
@@ -1786,13 +1786,13 @@ class Simulation3DMagneticField(BaseTDEMSimulation):
 
     where
 
-    * :math:`\mathbf{C}` is the discrete curl operator 
+    * :math:`\mathbf{C}` is the discrete curl operator
     * :math:`\mathbf{s_m}` and :math:`\mathbf{s_e}` are the integrated magnetic and electric source terms, respectively
     * :math:`\mathbf{M_e}` is the edge inner-product matrix
     * :math:`\mathbf{M_f}` is the face inner-product matrix
     * :math:`\mathbf{M_{e\mu}}` is the inner-product matrix for permeabilities projected to edges
     * :math:`\mathbf{M_{f\rho}}` is the inner-product matrix for resistivities projected to faces
-    
+
     Combining the discrete expressions in terms of the magnetic field, we obtain:
 
     .. math::
@@ -1804,7 +1804,7 @@ class Simulation3DMagneticField(BaseTDEMSimulation):
 
     .. math::
         \mathbf{A}_k \mathbf{h}_k = \mathbf{q}_k - \mathbf{B}_k \mathbf{h}_{k-1}
-    
+
     where :math:`\Delta t_k = t_k - t_{k-1}` and
 
     .. math::
@@ -2192,7 +2192,7 @@ class Simulation3DMagneticField(BaseTDEMSimulation):
 
 class Simulation3DCurrentDensity(BaseTDEMSimulation):
     r"""3D TDEM simulation in terms of the current density.
-    
+
     This simulation solves for the current density at each time-step.
     In this formulation, the magnetic fields are defined on mesh edges and the
     current densities are defined on mesh faces; i.e. it is an HJ formulation.
@@ -2215,7 +2215,7 @@ class Simulation3DCurrentDensity(BaseTDEMSimulation):
     .. math::
         &\nabla \times \vec{e} + \frac{\partial \vec{b}}{\partial t} = - \frac{\partial \vec{s}_m}{\partial t} \\
         &\nabla \times \vec{h} - \vec{j} = \vec{s}_e
-    
+
     where :math:`\vec{s}_e` is an electric source term that defines a source current density,
     and :math:`\vec{s}_m` magnetic source term that defines a source magnetic flux density.
     We define the constitutive relations for the electrical resistivity :math:`\rho`
@@ -2256,13 +2256,13 @@ class Simulation3DCurrentDensity(BaseTDEMSimulation):
 
     where
 
-    * :math:`\mathbf{C}` is the discrete curl operator 
+    * :math:`\mathbf{C}` is the discrete curl operator
     * :math:`\mathbf{s_m}` and :math:`\mathbf{s_e}` are the integrated magnetic and electric source terms, respectively
     * :math:`\mathbf{M_e}` is the edge inner-product matrix
     * :math:`\mathbf{M_f}` is the face inner-product matrix
     * :math:`\mathbf{M_{e\mu}}` is the inner-product matrix for permeabilities projected to edges
     * :math:`\mathbf{M_{f\rho}}` is the inner-product matrix for resistivities projected to faces
-    
+
     Combining the discrete expressions in terms of the current density, we obtain:
 
     .. math::
@@ -2276,7 +2276,7 @@ class Simulation3DCurrentDensity(BaseTDEMSimulation):
 
     .. math::
         \mathbf{A}_k \mathbf{j}_k = \mathbf{q}_k - \mathbf{B}_k \mathbf{j}_{k-1}
-    
+
     where :math:`\Delta t_k = t_k - t_{k-1}` and
 
     .. math::

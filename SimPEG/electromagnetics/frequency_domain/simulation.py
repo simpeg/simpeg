@@ -502,7 +502,7 @@ class BaseFDEMSimulation(BaseEMSimulation):
 
 class Simulation3DElectricField(BaseFDEMSimulation):
     r"""3D FDEM simulation in terms of the electric field.
-    
+
     This simulation solves for the electric field at each frequency.
     In this formulation, the electric fields are defined on mesh edges and the
     magnetic flux density is defined on mesh faces; i.e. it is an EB formulation.
@@ -558,7 +558,7 @@ class Simulation3DElectricField(BaseFDEMSimulation):
         = \int_\Omega \vec{u} \cdot \vec{S}_j \, dv \\
         & \int_\Omega \vec{u} \cdot \vec{J} \, dv = \int_\Omega \vec{u} \cdot \sigma \vec{E} \, dv \\
         & \int_\Omega \vec{u} \cdot \vec{H} \, dv = \int_\Omega \vec{u} \cdot \mu^{-1} \vec{B} \, dv
-    
+
     The above expressions are discretized in space according to the finite volume method.
     The discrete electric fields :math:`\mathbf{E}` are defined on mesh edges,
     and the discrete magnetic flux densities :math:`\mathbf{B}` are defined on mesh faces.
@@ -574,14 +574,14 @@ class Simulation3DElectricField(BaseFDEMSimulation):
 
     where
 
-    * :math:`\mathbf{C}` is the discrete curl operator 
+    * :math:`\mathbf{C}` is the discrete curl operator
     * :math:`\mathbf{s_m}` and :math:`\mathbf{s_e}` are the integrated magnetic and electric source terms, respectively
     * :math:`\mathbf{M_e}` is the edge inner-product matrix
     * :math:`\mathbf{M_f}` is the face inner-product matrix
     * :math:`\mathbf{M_{e\sigma}}` is the inner-product matrix for conductivities projected to edges
     * :math:`\mathbf{M_{e\varepsilon}}` is the inner-product matrix for permittivities projected to edges
     * :math:`\mathbf{M_{f\frac{1}{\mu}}}` is the inner-product matrix for inverse permeabilities projected to faces
-    
+
     Combining the discrete expressions to solve for the electric field, we obtain:
 
     .. math::
@@ -907,7 +907,7 @@ class Simulation3DElectricField(BaseFDEMSimulation):
 
 class Simulation3DMagneticFluxDensity(BaseFDEMSimulation):
     r"""3D FDEM simulation in terms of the magnetic flux field.
-    
+
     This simulation solves for the magnetic flux density at each frequency.
     In this formulation, the electric fields are defined on mesh edges and the
     magnetic flux density is defined on mesh faces; i.e. it is an EB formulation.
@@ -963,7 +963,7 @@ class Simulation3DMagneticFluxDensity(BaseFDEMSimulation):
         = \int_\Omega \vec{u} \cdot \vec{S}_j \, dv \\
         & \int_\Omega \vec{u} \cdot \vec{J} \, dv = \int_\Omega \vec{u} \cdot \sigma \vec{E} \, dv \\
         & \int_\Omega \vec{u} \cdot \vec{H} \, dv = \int_\Omega \vec{u} \cdot \mu^{-1} \vec{B} \, dv
-    
+
     The above expressions are discretized in space according to the finite volume method.
     The discrete electric fields :math:`\mathbf{E}` are defined on mesh edges,
     and the discrete magnetic flux densities :math:`\mathbf{B}` are defined on mesh faces.
@@ -979,14 +979,14 @@ class Simulation3DMagneticFluxDensity(BaseFDEMSimulation):
 
     where
 
-    * :math:`\mathbf{C}` is the discrete curl operator 
+    * :math:`\mathbf{C}` is the discrete curl operator
     * :math:`\mathbf{s_m}` and :math:`\mathbf{s_e}` are the integrated magnetic and electric source terms, respectively
     * :math:`\mathbf{M_e}` is the edge inner-product matrix
     * :math:`\mathbf{M_f}` is the face inner-product matrix
     * :math:`\mathbf{M_{e\sigma}}` is the inner-product matrix for conductivities projected to edges
     * :math:`\mathbf{M_{e\varepsilon}}` is the inner-product matrix for permittivities projected to edges
     * :math:`\mathbf{M_{f\frac{1}{\mu}}}` is the inner-product matrix for inverse permeabilities projected to faces
-    
+
     Combining the discrete expressions to solve for the magnetic flux density, we obtain:
 
     .. math::
@@ -1357,7 +1357,7 @@ class Simulation3DMagneticFluxDensity(BaseFDEMSimulation):
 
 class Simulation3DCurrentDensity(BaseFDEMSimulation):
     r"""3D FDEM simulation in terms of the current density.
-    
+
     This simulation solves for the current density at each frequency.
     In this formulation, the magnetic fields are defined on mesh edges and the
     current densities are defined on mesh faces; i.e. it is an HJ formulation.
@@ -1429,13 +1429,13 @@ class Simulation3DCurrentDensity(BaseFDEMSimulation):
 
     where
 
-    * :math:`\mathbf{C}` is the discrete curl operator 
+    * :math:`\mathbf{C}` is the discrete curl operator
     * :math:`\mathbf{s_m}` and :math:`\mathbf{s_e}` are the integrated magnetic and electric source terms, respectively
     * :math:`\mathbf{M_e}` is the edge inner-product matrix
     * :math:`\mathbf{M_f}` is the face inner-product matrix
     * :math:`\mathbf{M_{f\rho}}` is the inner-product matrix for resistivities projected to faces
     * :math:`\mathbf{M_{e\mu}}` is the inner-product matrix for permeabilities projected to edges
-    
+
     Combining the discrete expressions to solve for the current density, we obtain:
 
     .. math::
@@ -1845,7 +1845,7 @@ class Simulation3DCurrentDensity(BaseFDEMSimulation):
 
 class Simulation3DMagneticField(BaseFDEMSimulation):
     r"""3D FDEM simulation in terms of the magnetic field.
-    
+
     This simulation solves for the magnetic field at each frequency.
     In this formulation, the magnetic fields are defined on mesh edges and the
     current densities are defined on mesh faces; i.e. it is an HJ formulation.
@@ -1917,13 +1917,13 @@ class Simulation3DMagneticField(BaseFDEMSimulation):
 
     where
 
-    * :math:`\mathbf{C}` is the discrete curl operator 
+    * :math:`\mathbf{C}` is the discrete curl operator
     * :math:`\mathbf{s_m}` and :math:`\mathbf{s_e}` are the integrated magnetic and electric source terms, respectively
     * :math:`\mathbf{M_e}` is the edge inner-product matrix
     * :math:`\mathbf{M_f}` is the face inner-product matrix
     * :math:`\mathbf{M_{f\rho}}` is the inner-product matrix for resistivities projected to faces
     * :math:`\mathbf{M_{e\mu}}` is the inner-product matrix for permeabilities projected to edges
-    
+
     Combining the discrete expressions to solve for the magnetic field, we obtain:
 
     .. math::
@@ -1951,7 +1951,7 @@ class Simulation3DMagneticField(BaseFDEMSimulation):
     the inverse of :math:`\hat{\sigma} = \sigma + i\omega\varepsilon` to faces.
 
     The system matrix and right-hand become:
-    
+
     * :math:`\mathbf{A} = \mathbf{C^T M_{f\frac{1}{\hat{\sigma}}} C} + i\omega \mathbf{M_{e\mu}}`
     * :math:`\mathbf{q} = \mathbf{C^T M_{f\frac{1}{\hat{\sigma}}} s_e} - i\omega \mathbf{s_m}`
     """
