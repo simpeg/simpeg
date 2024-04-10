@@ -272,3 +272,5 @@ Pull Requests
    https://github.com/simpeg/simpeg/pull/1406
 -  Bump Black version to 24.3.0 by `@santisoler <https://github.com/santisoler>`__ in
    https://github.com/simpeg/simpeg/pull/1403
+-  Publish documentation on azure `@jcapriot <https://github.com/jcapriot>`__ in
+   https://github.com/simpeg/simpeg/pull/1412
