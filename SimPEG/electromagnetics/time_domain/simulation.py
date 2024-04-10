@@ -691,13 +691,9 @@ class Simulation3DMagneticFluxDensity(BaseTDEMSimulation):
     And after cancelling like-terms, we obtain the following set of discrete equations:
 
     .. math::
-        &\mathbf{M_f C e} + \mathbf{M_f} \, \frac{\partial \mathbf{b}}{\partial t}
-        = - \frac{\partial \mathbf{s_m}}{\partial t}  \; \;
-        \rightarrow \;\;\; \mathbf{C e} + \frac{\partial \mathbf{b}}{\partial t}
-        = - \mathbf{M_f^{-1}} \frac{\partial \mathbf{s_m}}{\partial t} \\
-        &\mathbf{C^T M_f h} - \mathbf{M_e j}
-        = \mathbf{s_e} \;\;\; \rightarrow \;\;\; \mathbf{C^T} \frac{\partial}{\partial t} (\mathbf{M_f h})
-        + \frac{\partial}{\partial t} (\mathbf{M_e j}) = \frac{\partial \mathbf{s_e}}{\partial t} \\
+        &\mathbf{C e} + \frac{\partial \mathbf{b}}{\partial t}
+        = - \frac{\partial \mathbf{s_m}}{\partial t} \\
+        &\mathbf{C^T M_f h} - \mathbf{M_e j} = \mathbf{s_e} \\
         &\mathbf{M_e j} = \mathbf{M_{e\sigma} e} \\
         &\mathbf{M_f h} = \mathbf{M_{f \frac{1}{\mu}} b}
 
@@ -716,7 +712,7 @@ class Simulation3DMagneticFluxDensity(BaseTDEMSimulation):
         \mathbf{C M_{e\sigma}^{-1} C^T M_{f\frac{1}{\mu}} b}
         + \frac{\partial \mathbf{b}}{\partial t}
         = \mathbf{C M_{e\sigma}^{-1}} \mathbf{s_e}
-        - \mathbf{M_f^{-1}} \frac{\partial \mathbf{s_m}}{\partial t}
+        - \frac{\partial \mathbf{s_m}}{\partial t}
 
     Finally, we discretize in time according to backward Euler. The discrete magnetic flux density
     on mesh faces at time :math:`t_k > t_0` is obtained by solving the following at each time-step:
@@ -730,7 +726,7 @@ class Simulation3DMagneticFluxDensity(BaseTDEMSimulation):
         &\mathbf{A}_k = \mathbf{C M_{e\sigma}^{-1} C^T M_{f\frac{1}{\mu}}} + \frac{1}{\Delta t_k} \mathbf{I} \\
         &\mathbf{B}_k = -\frac{1}{\Delta t_k} \mathbf{I}\\
         &\mathbf{q}_k = \mathbf{C M_{e\sigma}^{-1}} \mathbf{s}_{\mathbf{e}, k} \;
-        - \; \frac{1}{\Delta t_k} \mathbf{M_f^{-1}} \big [ \mathbf{s}_{\mathbf{m}, k} - \mathbf{s}_{\mathbf{m}, k-1} \big ]
+        - \; \frac{1}{\Delta t_k} \big [ \mathbf{s}_{\mathbf{m}, k} - \mathbf{s}_{\mathbf{m}, k-1} \big ]
 
     Although the following system is never explicitly formed, we can represent
     the solution at all time-steps as:
@@ -961,14 +957,13 @@ class Simulation3DMagneticFluxDensity(BaseTDEMSimulation):
 
         .. math::
             \mathbf{q}_k = \mathbf{C M_{e\sigma}^{-1}} \mathbf{s}_{\mathbf{e}, k} \;
-            - \; \frac{1}{\Delta t_k} \mathbf{M_f^{-1}} \big [ \mathbf{s}_{\mathbf{m}, k} - \mathbf{s}_{\mathbf{m}, k-1} \big ]
+            - \; \frac{1}{\Delta t_k} \big [ \mathbf{s}_{\mathbf{m}, k} - \mathbf{s}_{\mathbf{m}, k-1} \big ]
 
         where
 
         * :math:`\Delta t_k` is the step length
         * :math:`\mathbf{C}` is the discrete curl operator
         * :math:`\mathbf{s_m}` and :math:`\mathbf{s_e}` are the integrated magnetic and electric source terms, respectively
-        * :math:`\mathbf{M_f}` is the face inner-product matrix
         * :math:`\mathbf{M_{e\sigma}}` is the inner-product matrix for conductivities projected to edges
 
         See the *Notes* section of the doc strings for :py:class:`Simulation3DMagneticFluxDensity`
@@ -1002,14 +997,13 @@ class Simulation3DMagneticFluxDensity(BaseTDEMSimulation):
 
         .. math::
             \mathbf{q}_k = \mathbf{C M_{e\sigma}^{-1}} \mathbf{s}_{\mathbf{e}, k} \;
-            - \; \frac{1}{\Delta t_k} \mathbf{M_f^{-1}} \big [ \mathbf{s}_{\mathbf{m}, k} - \mathbf{s}_{\mathbf{m}, k-1} \big ]
+            - \; \frac{1}{\Delta t_k} \big [ \mathbf{s}_{\mathbf{m}, k} - \mathbf{s}_{\mathbf{m}, k-1} \big ]
 
         where
 
         * :math:`\Delta t_k` is the step length
         * :math:`\mathbf{C}` is the discrete curl operator
         * :math:`\mathbf{s_m}` and :math:`\mathbf{s_e}` are the integrated magnetic and electric source terms, respectively
-        * :math:`\mathbf{M_f}` is the face inner-product matrix
         * :math:`\mathbf{M_{e\sigma}}` is the inner-product matrix for conductivities projected to edges
 
          See the *Notes* section of the doc strings for :py:class:`Simulation3DMagneticFluxDensity`
@@ -1131,10 +1125,8 @@ class Simulation3DElectricField(BaseTDEMSimulation):
     And after cancelling like-terms, we obtain the following set of discrete equations:
 
     .. math::
-        &\mathbf{M_f C e} + \mathbf{M_f} \, \frac{\partial \mathbf{b}}{\partial t}
-        = - \frac{\partial \mathbf{s_m}}{\partial t}  \; \;
-        \rightarrow \;\;\; \mathbf{C e} + \frac{\partial \mathbf{b}}{\partial t}
-        = - \mathbf{M_f^{-1}} \frac{\partial \mathbf{s_m}}{\partial t} \\
+        &\mathbf{C e} + \frac{\partial \mathbf{b}}{\partial t}
+        = - \frac{\partial \mathbf{s_m}}{\partial t} \\
         &\mathbf{C^T M_f h} - \mathbf{M_e j}
         = \mathbf{s_e} \;\;\; \rightarrow \;\;\; \mathbf{C^T} \frac{\partial}{\partial t} (\mathbf{M_f h})
         + \frac{\partial}{\partial t} (\mathbf{M_e j}) = \frac{\partial \mathbf{s_e}}{\partial t} \\
@@ -1154,7 +1146,7 @@ class Simulation3DElectricField(BaseTDEMSimulation):
 
     .. math::
         \mathbf{C^T M_{f\frac{1}{\mu}} C e} + \mathbf{M_{e\sigma}}\frac{\partial \mathbf{e}}{\partial t}
-        = \mathbf{C^T M_{f\frac{1}{\mu}} M_f^{-1}} \frac{\partial \mathbf{s_m}}{\partial t}
+        = \mathbf{C^T M_{f\frac{1}{\mu}}} \frac{\partial \mathbf{s_m}}{\partial t}
         - \frac{\partial \mathbf{s_e}}{\partial t}
 
     Finally, we discretize in time according to backward Euler. The discrete electric fields
@@ -1168,7 +1160,7 @@ class Simulation3DElectricField(BaseTDEMSimulation):
     .. math::
         &\mathbf{A}_k = \mathbf{C^T M_{f\frac{1}{\mu}} C} + \frac{1}{\Delta t_k} \mathbf{M_{e\sigma}} \\
         &\mathbf{B}_k = -\frac{1}{\Delta t_k} \mathbf{M_{e\sigma}} \\
-        &\mathbf{q}_k = \frac{1}{\Delta t_k} \mathbf{C^T M_{f\frac{1}{\mu}} M_f^{-1}}
+        &\mathbf{q}_k = \frac{1}{\Delta t_k} \mathbf{C^T M_{f\frac{1}{\mu}}}
         \big [ \mathbf{s}_{\mathbf{m}, k} - \mathbf{s}_{\mathbf{m}, k-1} \big ]
         -\frac{1}{\Delta t_k} \big [ \mathbf{s}_{\mathbf{e}, k} - \mathbf{s}_{\mathbf{e}, k-1} \big ]
 
@@ -1544,7 +1536,7 @@ class Simulation3DElectricField(BaseTDEMSimulation):
         .. math::
             \mathbf{q}_k =
             -\frac{1}{\Delta t_k} \big [ \mathbf{s}_{\mathbf{e}, k} - \mathbf{s}_{\mathbf{e}, k-1} \big ]
-            - \frac{1}{\Delta t_k} \mathbf{C^T M_{f\frac{1}{\mu}} M_f^{-1}}
+            - \frac{1}{\Delta t_k} \mathbf{C^T M_{f\frac{1}{\mu}}}
             \big [ \mathbf{s}_{\mathbf{m}, k} - \mathbf{s}_{\mathbf{m}, k-1} \big ]
 
         where
@@ -1552,7 +1544,6 @@ class Simulation3DElectricField(BaseTDEMSimulation):
         * :math:`\Delta t_k` is the step length
         * :math:`\mathbf{C}` is the discrete curl operator
         * :math:`\mathbf{s_m}` and :math:`\mathbf{s_e}` are the integrated magnetic and electric source terms, respectively
-        * :math:`\mathbf{M_f}` is the face inner-product matrix
         * :math:`\mathbf{M_{f\frac{1}{\mu}}}` is the inner-product matrices for inverse permeabilities projected to faces
 
         See the *Notes* section of the doc strings for :py:class:`Simulation3DElectricField`
@@ -1586,7 +1577,7 @@ class Simulation3DElectricField(BaseTDEMSimulation):
         .. math::
             \mathbf{q}_k =
             -\frac{1}{\Delta t_k} \big [ \mathbf{s}_{\mathbf{e}, k} - \mathbf{s}_{\mathbf{e}, k-1} \big ]
-            - \frac{1}{\Delta t_k} \mathbf{C^T M_{f\frac{1}{\mu}} M_f^{-1}}
+            - \frac{1}{\Delta t_k} \mathbf{C^T M_{f\frac{1}{\mu}} }
             \big [ \mathbf{s}_{\mathbf{m}, k} - \mathbf{s}_{\mathbf{m}, k-1} \big ]
 
         where
@@ -1594,7 +1585,6 @@ class Simulation3DElectricField(BaseTDEMSimulation):
         * :math:`\Delta t_k` is the step length
         * :math:`\mathbf{C}` is the discrete curl operator
         * :math:`\mathbf{s_m}` and :math:`\mathbf{s_e}` are the integrated magnetic and electric source terms, respectively
-        * :math:`\mathbf{M_f}` is the face inner-product matrix
         * :math:`\mathbf{M_{f\frac{1}{\mu}}}` is the inner-product matrices for inverse permeabilities projected to faces
 
         See the *Notes* section of the doc strings for :py:class:`Simulation3DElectricField`
@@ -1790,7 +1780,7 @@ class Simulation3DMagneticField(BaseTDEMSimulation):
 
     .. math::
         &\mathbf{C^T M_f \, e } + \mathbf{M_e} \frac{\partial \mathbf{b}}{\partial t} = - \frac{\partial \mathbf{s_m}}{\partial t} \\
-        &\mathbf{M_f C \, h} - \mathbf{M_f j} = \mathbf{s_e} \\
+        &\mathbf{C \, h} - \mathbf{j} = \mathbf{s_e} \\
         &\mathbf{M_f e} = \mathbf{M_{f\rho} \, j} \\
         &\mathbf{M_e b} = \mathbf{M_{e \mu} h}
 
@@ -1803,11 +1793,11 @@ class Simulation3DMagneticField(BaseTDEMSimulation):
     * :math:`\mathbf{M_{e\mu}}` is the inner-product matrix for permeabilities projected to edges
     * :math:`\mathbf{M_{f\rho}}` is the inner-product matrix for resistivities projected to faces
     
-    Combining the discrete expressions in terms of the magnetic flux density, we obtain:
+    Combining the discrete expressions in terms of the magnetic field, we obtain:
 
     .. math::
         \mathbf{C^T M_{f\rho} C \, h} + \mathbf{M_{e\mu}} \frac{\partial \mathbf{h}}{\partial t}
-        = \mathbf{C^T M_{f\rho} M_f^{-1} s_e} - \frac{\partial \mathbf{s_m}}{\partial t}
+        = \mathbf{C^T M_{f\rho} s_e} - \frac{\partial \mathbf{s_m}}{\partial t}
 
     Finally, we discretize in time according to backward Euler. The discrete magnetic field
     on mesh edges at time :math:`t_k > t_0` is obtained by solving the following at each time-step:
@@ -1820,7 +1810,7 @@ class Simulation3DMagneticField(BaseTDEMSimulation):
     .. math::
         &\mathbf{A}_k = \mathbf{C^T M_{f\rho} C} + \frac{1}{\Delta t_k} \mathbf{M_{e\mu}} \\
         &\mathbf{B}_k = -\frac{1}{\Delta t_k} \mathbf{M_{e\mu}}\\
-        &\mathbf{q}_k = \mathbf{C^T M_{f\rho} M_f^{-1} s}_{\mathbf{e},k} \;
+        &\mathbf{q}_k = \mathbf{C^T M_{f\rho} s}_{\mathbf{e},k} \;
         - \frac{1}{\Delta t_k} \big [ \mathbf{s}_{\mathbf{m},k} + \mathbf{s}_{\mathbf{m},k-1} \big ]
 
     Although the following system is never explicitly formed, we can represent
@@ -2030,7 +2020,7 @@ class Simulation3DMagneticField(BaseTDEMSimulation):
         The right-hand side for each source is constructed according to:
 
         .. math::
-            \mathbf{q}_k = \mathbf{C^T M_{f\rho} M_f^{-1} s}_{\mathbf{e},k} \;
+            \mathbf{q}_k = \mathbf{C^T M_{f\rho} s}_{\mathbf{e},k} \;
             - \frac{1}{\Delta t_k} \big [ \mathbf{s}_{\mathbf{m},k} + \mathbf{s}_{\mathbf{m},k-1} \big ]
 
         where
@@ -2038,7 +2028,6 @@ class Simulation3DMagneticField(BaseTDEMSimulation):
         * :math:`\Delta t_k` is the step length
         * :math:`\mathbf{C}` is the discrete curl operator
         * :math:`\mathbf{s_m}` and :math:`\mathbf{s_e}` are the integrated magnetic and electric source terms, respectively
-        * :math:`\mathbf{M_f}` is the face inner-product matrix
         * :math:`\mathbf{M_{f\rho}}` is the inner-product matrix for resisitivites projected to faces
 
         See the *Notes* section of the doc strings for :py:class:`Simulation3DMagneticField`
@@ -2066,7 +2055,7 @@ class Simulation3DMagneticField(BaseTDEMSimulation):
         The right-hand side for a given source at time index *k* is constructed according to:
 
         .. math::
-            \mathbf{q}_k = \mathbf{C^T M_{f\rho} M_f^{-1} s}_{\mathbf{e},k} \;
+            \mathbf{q}_k = \mathbf{C^T M_{f\rho} s}_{\mathbf{e},k} \;
             - \frac{1}{\Delta t_k} \big [ \mathbf{s}_{\mathbf{m},k} + \mathbf{s}_{\mathbf{m},k-1} \big ]
 
         where
@@ -2074,7 +2063,6 @@ class Simulation3DMagneticField(BaseTDEMSimulation):
         * :math:`\Delta t_k` is the step length
         * :math:`\mathbf{C}` is the discrete curl operator
         * :math:`\mathbf{s_m}` and :math:`\mathbf{s_e}` are the integrated magnetic and electric source terms, respectively
-        * :math:`\mathbf{M_f}` is the face inner-product matrix
         * :math:`\mathbf{M_{f\rho}}` is the inner-product matrix for resisitivites projected to faces
 
         See the *Notes* section of the doc strings for :py:class:`Simulation3DMagneticField`
@@ -2260,7 +2248,7 @@ class Simulation3DCurrentDensity(BaseTDEMSimulation):
     .. math::
         &\mathbf{C^T M_f \, e } + \mathbf{M_e} \frac{\partial \mathbf{b}}{\partial t}
         = - \frac{\partial \mathbf{s_m}}{\partial t} \\
-        &\mathbf{M_f C \, h} - \mathbf{M_f j} = \mathbf{s_e}
+        &\mathbf{C \, h} - \mathbf{j} = \mathbf{s_e}
         \;\;\; \rightarrow \;\;\; \mathbf{C} \frac{\partial \mathbf{h}}{\partial t}
         - \frac{\partial \mathbf{j}}{\partial t} = \mathbf{M_f^{-1}}\frac{\partial \mathbf{s_e}}{\partial t} \\
         &\mathbf{M_f e} = \mathbf{M_{f\rho} j} \\
@@ -2280,7 +2268,7 @@ class Simulation3DCurrentDensity(BaseTDEMSimulation):
     .. math::
         \mathbf{C M_{e\mu}^{-1} C^T M_{f\rho} \, j} +
         \frac{\partial \mathbf{j}}{\partial t} =
-        - \mathbf{M_f^{-1}} \frac{\partial \mathbf{s_e}}{\partial t}
+        - \frac{\partial \mathbf{s_e}}{\partial t}
         - \mathbf{C M_{e\mu}^{-1}} \frac{\partial \mathbf{s_m}}{\partial t}
 
     Finally, we discretize in time according to backward Euler. The discrete current density
@@ -2294,7 +2282,7 @@ class Simulation3DCurrentDensity(BaseTDEMSimulation):
     .. math::
         &\mathbf{A}_k = \mathbf{C M_{e\mu}^{-1} C^T M_{f\rho}} + \frac{1}{\Delta t_k} \mathbf{I} \\
         &\mathbf{B}_k = - \frac{1}{\Delta t_k} \mathbf{I}\\
-        &\mathbf{q}_k = - \frac{1}{\Delta t_k}  \mathbf{M_f^{-1}} \big [ \mathbf{s}_{\mathbf{e},k} + \mathbf{s}_{\mathbf{e},k-1} \big ] \;
+        &\mathbf{q}_k = - \frac{1}{\Delta t_k} \big [ \mathbf{s}_{\mathbf{e},k} + \mathbf{s}_{\mathbf{e},k-1} \big ] \;
         - \; \frac{1}{\Delta t_k} \mathbf{C M_{e\mu}^{-1}} \big [ \mathbf{s}_{\mathbf{m},k} + \mathbf{s}_{\mathbf{m},k-1} \big ]
 
     Although the following system is never explicitly formed, we can represent
@@ -2521,7 +2509,7 @@ class Simulation3DCurrentDensity(BaseTDEMSimulation):
         The right-hand side for each source is constructed according to:
 
         .. math::
-            \mathbf{q}_k = - \frac{1}{\Delta t_k}  \mathbf{M_f^{-1}} \big [ \mathbf{s}_{\mathbf{e},k} + \mathbf{s}_{\mathbf{e},k-1} \big ] \;
+            \mathbf{q}_k = - \frac{1}{\Delta t_k} \big [ \mathbf{s}_{\mathbf{e},k} + \mathbf{s}_{\mathbf{e},k-1} \big ] \;
             - \; \frac{1}{\Delta t_k} \mathbf{C M_{e\mu}^{-1}} \big [ \mathbf{s}_{\mathbf{m},k} + \mathbf{s}_{\mathbf{m},k-1} \big ]
 
         where
@@ -2529,7 +2517,6 @@ class Simulation3DCurrentDensity(BaseTDEMSimulation):
         * :math:`\Delta t_k` is the step length
         * :math:`\mathbf{C}` is the discrete curl operator
         * :math:`\mathbf{s_m}` and :math:`\mathbf{s_e}` are the integrated magnetic and electric source terms, respectively
-        * :math:`\mathbf{M_f}` is the face innter-product matrix
         * :math:`\mathbf{M_{e\mu}}` is the inner-product matrix for permeabilities projected to edges
 
         See the *Notes* section of the doc strings for :py:class:`Simulation3DCurrentDensity`
@@ -2565,7 +2552,7 @@ class Simulation3DCurrentDensity(BaseTDEMSimulation):
         The right-hand side for a given source at time index *k* is constructed according to:
 
         .. math::
-            \mathbf{q}_k = - \frac{1}{\Delta t_k}  \mathbf{M_f^{-1}} \big [ \mathbf{s}_{\mathbf{e},k} + \mathbf{s}_{\mathbf{e},k-1} \big ] \;
+            \mathbf{q}_k = - \frac{1}{\Delta t_k} \big [ \mathbf{s}_{\mathbf{e},k} + \mathbf{s}_{\mathbf{e},k-1} \big ] \;
             - \; \frac{1}{\Delta t_k} \mathbf{C M_{e\mu}^{-1}} \big [ \mathbf{s}_{\mathbf{m},k} + \mathbf{s}_{\mathbf{m},k-1} \big ]
 
         where
@@ -2573,7 +2560,6 @@ class Simulation3DCurrentDensity(BaseTDEMSimulation):
         * :math:`\Delta t_k` is the step length
         * :math:`\mathbf{C}` is the discrete curl operator
         * :math:`\mathbf{s_m}` and :math:`\mathbf{s_e}` are the integrated magnetic and electric source terms, respectively
-        * :math:`\mathbf{M_f}` is the face innter-product matrix
         * :math:`\mathbf{M_{e\mu}}` is the inner-product matrix for permeabilities projected to edges
 
         See the *Notes* section of the doc strings for :py:class:`Simulation3DCurrentDensity`

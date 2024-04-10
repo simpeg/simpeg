@@ -29,14 +29,13 @@ class BaseFDEMSimulation(BaseEMSimulation):
     .. math::
         \begin{align}
         \nabla \times \vec{E} + i\omega \vec{B} &= - i \omega \vec{S}_m \\
-        \nabla \times \vec{H} - \vec{J} - i\omega\vec{D} &= \vec{S}_e
+        \nabla \times \vec{H} - \vec{J} &= \vec{S}_e
         \end{align}
 
     where the constitutive relations between fields and fluxes are given by:
 
-    * :math:`\vec{J} = \sigma \vec{E}`
+    * :math:`\vec{J} = (\sigma + i \omega \varepsilon) \vec{E}`
     * :math:`\vec{B} = \mu \vec{H}`
-    * :math:`\vec{D} = \varepsilon :math:`\vec{E}`
 
     and magnetic and electric sources are defined as:
 
@@ -534,7 +533,7 @@ class Simulation3DElectricField(BaseFDEMSimulation):
     .. math::
         \begin{align}
         &\nabla \times \vec{E} + i\omega \vec{B} = - i \omega \vec{S}_m \\
-        &\nabla \times \vec{H} - \vec{J} - i\omega\vec{D} = \vec{S}_e
+        &\nabla \times \vec{H} - \vec{J} = \vec{S}_e
         \end{align}
 
     where :math:`\vec{S}_e` is an electric source term that defines a source current density,
@@ -543,8 +542,7 @@ class Simulation3DElectricField(BaseFDEMSimulation):
     dielectric permittivity :math:`\varepsilon` and magnetic permeability :math:`\mu` as:
 
     .. math::
-        \vec{J} &= \sigma \vec{E} \\
-        \vec{D} &= \varepsilon \vec{E} \\
+        \vec{J} &= (\sigma + i\omega \varepsilon ) \vec{E} \\
         \vec{H} &= \mu^{-1} \vec{B}
 
     We then take the inner products of all previous expressions with a vector test function :math:`\vec{u}`.
@@ -556,7 +554,7 @@ class Simulation3DElectricField(BaseFDEMSimulation):
         = - i \omega \int_\Omega \vec{u} \cdot \vec{S}_m \, dv \\
         & \int_\Omega (\nabla \times \vec{u}) \cdot \vec{H} \, dv
         - \oint_{\partial \Omega} \vec{u} \cdot (\vec{H} \times \hat{n}) \, da
-        - \int_\Omega \vec{u} \cdot \vec{J} \, dv - i \omega \int_\Omega \vec{u} \cdot \vec{D} \, dv
+        - \int_\Omega \vec{u} \cdot \vec{J} \, dv
         = \int_\Omega \vec{u} \cdot \vec{S}_j \, dv \\
         & \int_\Omega \vec{u} \cdot \vec{J} \, dv = \int_\Omega \vec{u} \cdot \sigma \vec{E} \, dv \\
         & \int_\Omega \vec{u} \cdot \vec{H} \, dv = \int_\Omega \vec{u} \cdot \mu^{-1} \vec{B} \, dv
@@ -569,10 +567,9 @@ class Simulation3DElectricField(BaseFDEMSimulation):
     And after cancelling like-terms, we obtain the following set of discrete equations:
 
     .. math::
-        &\mathbf{M_f C e} + i \omega \mathbf{M_f b} = - i \omega \mathbf{s_m} \\
-        &\mathbf{C^T M_f h} - \mathbf{M_e j} - i\omega \mathbf{M_e d} = \mathbf{s_e} \\
-        &\mathbf{M_e j} = \mathbf{M_{e\sigma} e} \\
-        &\mathbf{M_e d} = \mathbf{M_{e\varepsilon} e} \\
+        &\mathbf{C e} + i \omega \mathbf{b} = - i \omega \mathbf{s_m} \\
+        &\mathbf{C^T M_f h} - \mathbf{M_e j} = \mathbf{s_e} \\
+        &\mathbf{M_e j} = ( \mathbf{M_{e\sigma}} + i\omega \mathbf{M_{e\varepsilon}}) \mathbf{e} \\
         &\mathbf{M_f h} = \mathbf{M_{f \mu} b}
 
     where
@@ -592,11 +589,11 @@ class Simulation3DElectricField(BaseFDEMSimulation):
 
     where
 
-    * :math:`\mathbf{A} = \big [ \mathbf{C^T M_{f\frac{1}{\mu}} C} + i\omega \mathbf{M_{e\sigma}} - \omega^2 \mathbf{M_{e\varepsilon}} \big ]`
-    * :math:`\mathbf{q} = - i \omega \mathbf{s_e} - i \omega \mathbf{C^T M_{f\frac{1}{\mu}} M_f^{-1} s_m }`
+    * :math:`\mathbf{A} = \mathbf{C^T M_{f\frac{1}{\mu}} C} + i\omega \mathbf{M_{e\sigma}} - \omega^2 \mathbf{M_{e\varepsilon}}`
+    * :math:`\mathbf{q} = - i \omega \mathbf{s_e} - i \omega \mathbf{C^T M_{f\frac{1}{\mu}} s_m }`
 
     Note that if the `permittivity` property is ``None``, the problem is solved according to the quasi-static
-    approximation and :math:`\omega^2 \mathbf{M_{e\varepsilon}}` is remove from the expression.
+    approximation and :math:`\omega^2 \mathbf{M_{e\varepsilon}}` is removed from the expression.
     """
 
     _solutionType = "eSolution"
@@ -620,7 +617,7 @@ class Simulation3DElectricField(BaseFDEMSimulation):
         * :math:`\mathbf{M_{f\frac{1}{\mu}}}` is the inner-product matrix for inverse permeabilities projected to faces
 
         Note that if the `permittivity` property is ``None``, the problem is solved according to the quasi-static
-        approximation and :math:`\omega^2 \mathbf{M_{e\varepsilon}}` is remove from the expression.
+        approximation and :math:`\omega^2 \mathbf{M_{e\varepsilon}}` is removed from the expression.
 
         See the *Notes* section of the doc strings for :py:class:`Simulation3DElectricField`
         for a full description of the formulation.
@@ -654,9 +651,9 @@ class Simulation3DElectricField(BaseFDEMSimulation):
         The system matrix at each frequency is given by:
 
         .. math::
-            \mathbf{A} = \big [ \mathbf{C^T M_{f\frac{1}{\mu}} C}
+            \mathbf{A} = \mathbf{C^T M_{f\frac{1}{\mu}} C}
             + i\omega \mathbf{M_{e\sigma}}
-            - \omega^2 \mathbf{M_{e\varepsilon}} \big ]
+            - \omega^2 \mathbf{M_{e\varepsilon}}
 
         where
 
@@ -706,9 +703,9 @@ class Simulation3DElectricField(BaseFDEMSimulation):
         The system matrix at each frequency is given by:
 
         .. math::
-            \mathbf{A} = \big [ \mathbf{C^T M_{f\frac{1}{\mu}} C}
+            \mathbf{A} = \mathbf{C^T M_{f\frac{1}{\mu}} C}
             + i\omega \mathbf{M_{e\sigma}}
-            - \omega^2 \mathbf{M_{e\varepsilon}} \big ]
+            - \omega^2 \mathbf{M_{e\varepsilon}}
 
         where
 
@@ -762,9 +759,9 @@ class Simulation3DElectricField(BaseFDEMSimulation):
         The system matrix at each frequency is given by:
 
         .. math::
-            \mathbf{A} = \big [ \mathbf{C^T M_{f\frac{1}{\mu}} C}
+            \mathbf{A} = \mathbf{C^T M_{f\frac{1}{\mu}} C}
             + i\omega \mathbf{M_{e\sigma}}
-            - \omega^2 \mathbf{M_{e\varepsilon}} \big ]
+            - \omega^2 \mathbf{M_{e\varepsilon}}
 
         where
 
@@ -817,13 +814,12 @@ class Simulation3DElectricField(BaseFDEMSimulation):
         The right-hand side for each source is constructed according to:
 
         .. math::
-            \mathbf{q} = - i \omega \mathbf{s_e} - i \omega \mathbf{C^T M_{f\frac{1}{\mu}} M_f^{-1} s_m }
+            \mathbf{q} = - i \omega \mathbf{s_e} - i \omega \mathbf{C^T M_{f\frac{1}{\mu}} s_m }
 
         where
 
         * :math:`\mathbf{C}` is the discrete curl operator
         * :math:`\mathbf{s_m}` and :math:`\mathbf{s_e}` are the integrated magnetic and electric source terms, respectively
-        * :math:`\mathbf{M_f}` is the face inner-product matrix
         * :math:`\mathbf{M_{f\frac{1}{\mu}}}` is the inner-product matrices for inverse permeabilities projected to faces
 
         See the *Notes* section of the doc strings for :py:class:`Simulation3DElectricField`
@@ -852,13 +848,12 @@ class Simulation3DElectricField(BaseFDEMSimulation):
         The right-hand side for each source is constructed according to:
 
         .. math::
-            \mathbf{q} = -i \omega \mathbf{s_e} - i \omega \mathbf{C^T M_{f\frac{1}{\mu}} M_f^{-1} s_m }
+            \mathbf{q} = -i \omega \mathbf{s_e} - i \omega \mathbf{C^T M_{f\frac{1}{\mu}} s_m }
 
         where
 
         * :math:`\mathbf{C}` is the discrete curl operator
         * :math:`\mathbf{s_m}` and :math:`\mathbf{s_e}` are the integrated magnetic and electric source terms, respectively
-        * :math:`\mathbf{M_f}` is the face inner-product matrix
         * :math:`\mathbf{M_{f\frac{1}{\mu}}}` is the inner-product matrices for inverse permeabilities projected to faces
 
         See the *Notes* section of the doc strings for :py:class:`Simulation3DElectricField`
@@ -943,7 +938,7 @@ class Simulation3DMagneticFluxDensity(BaseFDEMSimulation):
     .. math::
         \begin{align}
         &\nabla \times \vec{E} + i\omega \vec{B} = - i \omega \vec{S}_m \\
-        &\nabla \times \vec{H} - \vec{J} - i\omega\vec{D} = \vec{S}_e
+        &\nabla \times \vec{H} - \vec{J} = \vec{S}_e
         \end{align}
 
     where :math:`\vec{S}_e` is an electric source term that defines a source current density,
@@ -952,8 +947,7 @@ class Simulation3DMagneticFluxDensity(BaseFDEMSimulation):
     dielectric permittivity :math:`\varepsilon` and magnetic permeability :math:`\mu` as:
 
     .. math::
-        \vec{J} &= \sigma \vec{E} \\
-        \vec{D} &= \varepsilon \vec{E} \\
+        \vec{J} &= (\sigma + i\omega \varepsilon ) \vec{E} \\
         \vec{H} &= \mu^{-1} \vec{B}
 
     We then take the inner products of all previous expressions with a vector test function :math:`\vec{u}`.
@@ -965,7 +959,7 @@ class Simulation3DMagneticFluxDensity(BaseFDEMSimulation):
         = - i \omega \int_\Omega \vec{u} \cdot \vec{S}_m \, dv \\
         & \int_\Omega (\nabla \times \vec{u}) \cdot \vec{H} \, dv
         - \oint_{\partial \Omega} \vec{u} \cdot (\vec{H} \times \hat{n}) \, da
-        - \int_\Omega \vec{u} \cdot \vec{J} \, dv - i \omega \int_\Omega \vec{u} \cdot \vec{D} \, dv
+        - \int_\Omega \vec{u} \cdot \vec{J} \, dv
         = \int_\Omega \vec{u} \cdot \vec{S}_j \, dv \\
         & \int_\Omega \vec{u} \cdot \vec{J} \, dv = \int_\Omega \vec{u} \cdot \sigma \vec{E} \, dv \\
         & \int_\Omega \vec{u} \cdot \vec{H} \, dv = \int_\Omega \vec{u} \cdot \mu^{-1} \vec{B} \, dv
@@ -978,10 +972,9 @@ class Simulation3DMagneticFluxDensity(BaseFDEMSimulation):
     And after cancelling like-terms, we obtain the following set of discrete equations:
 
     .. math::
-        &\mathbf{M_f C e} + i \omega \mathbf{M_f b} = - i \omega \mathbf{s_m} \\
-        &\mathbf{C^T M_f h} - \mathbf{M_e j} - i\omega \mathbf{M_e d} = \mathbf{s_e} \\
-        &\mathbf{M_e j} = \mathbf{M_{e\sigma} e} \\
-        &\mathbf{M_e d} = \mathbf{M_{e\varepsilon} e} \\
+        &\mathbf{C e} + i \omega \mathbf{b} = - i \omega \mathbf{s_m} \\
+        &\mathbf{C^T M_f h} - \mathbf{M_e j} = \mathbf{s_e} \\
+        &\mathbf{M_e j} = ( \mathbf{M_{e\sigma}} + i\omega \mathbf{M_{e\varepsilon}}) \mathbf{e} \\
         &\mathbf{M_f h} = \mathbf{M_{f \mu} b}
 
     where
@@ -1002,10 +995,10 @@ class Simulation3DMagneticFluxDensity(BaseFDEMSimulation):
     where
 
     * :math:`\mathbf{A} = \mathbf{C (M_{e\sigma} + i\omega M_{e\varepsilon} )^{-1} C^T M_{f\frac{1}{\mu}}} + i\omega \mathbf{I}`
-    * :math:`\mathbf{q} = \mathbf{C (M_{e\sigma} + i\omega M_{e\varepsilon})^{-1} s_e} - i \omega \mathbf{M_f^{-1} s_m }`
+    * :math:`\mathbf{q} = \mathbf{C (M_{e\sigma} + i\omega M_{e\varepsilon})^{-1} s_e} - i \omega \mathbf{s_m }`
 
     Note that if the `permittivity` property is ``None``, the problem is solved according to the quasi-static
-    approximation and :math:`i \omega \mathbf{M_{e\varepsilon}}` is remove from the expression.
+    approximation and :math:`i \omega \mathbf{M_{e\varepsilon}}` is removed from the expression.
     """
 
     _solutionType = "bSolution"
@@ -1244,16 +1237,15 @@ class Simulation3DMagneticFluxDensity(BaseFDEMSimulation):
         The right-hand side for each source is constructed according to:
 
         .. math::
-            \mathbf{q} = \mathbf{C (M_{e\sigma} + i\omega M_{e\varepsilon})^{-1} s_e} - i \omega \mathbf{M_f^{-1} s_m }
+            \mathbf{q} = \mathbf{C (M_{e\sigma} + i\omega M_{e\varepsilon})^{-1} s_e} - i \omega \mathbf{s_m }
 
         where
 
         * :math:`\mathbf{C}` is the discrete curl operator
         * :math:`\mathbf{s_m}` and :math:`\mathbf{s_e}` are the integrated magnetic and electric source terms, respectively
-        * :math:`\mathbf{M_f}` is the face inner-product matrix
         * :math:`\mathbf{M_{e\sigma}}` is the inner-product matrix for conductivities projected to edges
         * :math:`\mathbf{M_{e\varepsilon}}` is the inner-product matrix for permittivities projected to edges
-        
+
         See the *Notes* section of the doc strings for :py:class:`Simulation3DMagneticFluxDensity`
         for a full description of the formulation.
 
@@ -1292,16 +1284,15 @@ class Simulation3DMagneticFluxDensity(BaseFDEMSimulation):
         The right-hand side for each source is constructed according to:
 
         .. math::
-            \mathbf{q} = \mathbf{C (M_{e\sigma} + i\omega M_{e\varepsilon})^{-1} s_e} - i \omega \mathbf{M_f^{-1} s_m }
+            \mathbf{q} = \mathbf{C (M_{e\sigma} + i\omega M_{e\varepsilon})^{-1} s_e} - i \omega \mathbf{s_m }
 
         where
 
         * :math:`\mathbf{C}` is the discrete curl operator
         * :math:`\mathbf{s_m}` and :math:`\mathbf{s_e}` are the integrated magnetic and electric source terms, respectively
-        * :math:`\mathbf{M_f}` is the face inner-product matrix
         * :math:`\mathbf{M_{e\sigma}}` is the inner-product matrix for conductivities projected to edges
         * :math:`\mathbf{M_{e\varepsilon}}` is the inner-product matrix for permittivities projected to edges
-        
+
         See the *Notes* section of the doc strings for :py:class:`Simulation3DMagneticFluxDensity`
         for a full description of the formulation.
 
@@ -1397,27 +1388,30 @@ class Simulation3DCurrentDensity(BaseFDEMSimulation):
     .. math::
         \begin{align}
         &\nabla \times \vec{E} + i\omega \vec{B} = - i \omega \vec{S}_m \\
-        &\nabla \times \vec{H} - \vec{J} - i\omega\vec{D} = \vec{S}_e
+        &\nabla \times \vec{H} - \vec{J} = \vec{S}_e
         \end{align}
 
     where :math:`\vec{S}_e` is an electric source term that defines a source current density,
     and :math:`\vec{S}_m` magnetic source term that defines a source magnetic flux density.
-    We define the constitutive relations for the, electrical conductivity :math:`\sigma`
-    dielectric permittivity :math:`\varepsilon` and magnetic permeability :math:`\mu` as:
+    For now, we neglect displacement current (the `permittivity` attribute is ``None``).
+    We define the constitutive relations for the electrical resistivity :math:`\rho`
+    and magnetic permeability :math:`\mu` as:
 
     .. math::
         \vec{E} &= \rho \vec{J} \\
-        \vec{E} &= \varepsilon^{-1} \vec{D}\\
-        \vec{H} &= \mu^{-1} \vec{B}
+        \vec{B} &= \mu \vec{H}
 
     We then take the inner products of all previous expressions with a vector test function :math:`\vec{u}`.
     Through vector calculus identities and the divergence theorem, we obtain:
 
     .. math::
-        & \int_\Omega (\nabla \times \vec{u}) \cdot \vec{E} \; dv - \oint_{\partial \Omega} \vec{u} \cdot (\vec{E} \times \hat{n} ) \, da + i \omega \int_\Omega \vec{u} \cdot \vec{B} \, dv = - i \omega \int_\Omega \vec{u} \cdot \vec{S}_m dv \\
-        & \int_\Omega \vec{u} \cdot (\nabla \times \vec{H} ) \, dv - \int_\Omega \vec{u} \cdot \vec{J} \, dv = \int_\Omega \vec{u} \cdot \vec{S}_j \, dv\\
+        & \int_\Omega (\nabla \times \vec{u}) \cdot \vec{E} \; dv
+        - \oint_{\partial \Omega} \vec{u} \cdot (\vec{E} \times \hat{n} ) \, da
+        + i \omega \int_\Omega \vec{u} \cdot \vec{B} \, dv
+        = - i \omega \int_\Omega \vec{u} \cdot \vec{S}_m dv \\
+        & \int_\Omega \vec{u} \cdot (\nabla \times \vec{H} ) \, dv
+        - \int_\Omega \vec{u} \cdot \vec{J} \, dv = \int_\Omega \vec{u} \cdot \vec{S}_j \, dv\\
         & \int_\Omega \vec{u} \cdot \vec{E} \, dv = \int_\Omega \vec{u} \cdot \rho \vec{J} \, dv \\
-        & \int_\Omega \vec{u} \cdot \vec{E} \, dv = \int_\Omega \vec{u} \cdot \frac{1}{\varepsilon} \vec{D} \, dv \\
         & \int_\Omega \vec{u} \cdot \vec{B} \, dv = \int_\Omega \vec{u} \cdot \mu \vec{H} \, dv
 
     The above expressions are discretized in space according to the finite volume method.
@@ -1429,9 +1423,8 @@ class Simulation3DCurrentDensity(BaseFDEMSimulation):
 
     .. math::
         &\mathbf{C^T M_f \, e } + i \omega \mathbf{M_e b} = - i\omega \mathbf{s_m} \\
-        &\mathbf{M_f C \, h} - \mathbf{M_f j} - i\omega \mathbf{M_f d} = \mathbf{s_e} \\
+        &\mathbf{C \, h} - \mathbf{j} - i\omega \mathbf{d} = \mathbf{s_e} \\
         &\mathbf{M_f e} = \mathbf{M_{f\rho} j} \\
-        &\mathbf{M_f e} = \mathbf{M_{f\frac{1}{\varepsilon}} d} \\
         &\mathbf{M_e b} = \mathbf{M_{e \mu} h}
 
     where
@@ -1441,7 +1434,6 @@ class Simulation3DCurrentDensity(BaseFDEMSimulation):
     * :math:`\mathbf{M_e}` is the edge inner-product matrix
     * :math:`\mathbf{M_f}` is the face inner-product matrix
     * :math:`\mathbf{M_{f\rho}}` is the inner-product matrix for resistivities projected to faces
-    * :math:`\mathbf{M_{f\frac{1}{\varepsilon}}}` is the inner-product matrix for inverse permittivities projected to faces
     * :math:`\mathbf{M_{e\mu}}` is the inner-product matrix for permeabilities projected to edges
     
     Combining the discrete expressions to solve for the current density, we obtain:
@@ -1451,11 +1443,29 @@ class Simulation3DCurrentDensity(BaseFDEMSimulation):
 
     where
 
-    * :math:`\mathbf{A} = \mathbf{C M_{e\mu}^{-1} C^T (M_{f\rho} + i \omega M_{f\frac{1}{\varepsilon}} )} + i\omega \mathbf{I}`
-    * :math:`\mathbf{q} = - i \omega \mathbf{M_f^{-1} s_e} - i \omega \mathbf{C M_{e\mu}^{-1} s_m}`
+    * :math:`\mathbf{A} = \mathbf{C M_{e\mu}^{-1} C^T M_{f\rho} + i\omega \mathbf{I}`
+    * :math:`\mathbf{q} = - i \omega \mathbf{s_e} - i \omega \mathbf{C M_{e\mu}^{-1} s_m}`
 
-    Note that if the `permittivity` property is ``None``, the problem is solved according to the quasi-static
-    approximation and :math:`i \omega \mathbf{M_{f\frac{1}{\varepsilon}}}` is remove from the expression.
+    **Dielectric permititivity:**
+
+    If the `permittivity` property is not ``None``, the formulation takes into account electric displacement.
+    In this case, the contitutive relationship relating the current density and electric field is defined as:
+
+    .. math::
+        \vec{E} = \frac{1}{\sigma + i\omega \varepsilon} \vec{J} = \frac{1}{\hat{\sigma}} \vec{J}
+
+    Taking the inner-product with a test function :math:`\vec{u}` and cancelling the like-terms we obtain:
+
+    .. math::
+        \mathbf{M_f e} = \mathbf{M_{f\frac{1}{\hat{\sigma}}} j}
+
+    where :math:`\mathbf{M_{f\frac{1}{\hat{\sigma}}}}` is the inner-product matrix that projects
+    the inverse of :math:`\hat{\sigma} = \sigma + i\omega\varepsilon` to faces.
+
+    The system matrix is ultimately defined as:
+
+    .. math::
+        \mathbf{A} = \mathbf{C M_{e\mu}^{-1} C^T M_{f\frac{1}{\hat{\sigma}}}} + i\omega \mathbf{I}
     """
 
     _solutionType = "jSolution"
@@ -1473,16 +1483,22 @@ class Simulation3DCurrentDensity(BaseFDEMSimulation):
     def getA(self, freq):
         r"""System matrix for the frequency provided.
 
-        This method returns the system matrix for the frequency provided:
+        This method returns the system matrix for the frequency provided.
+        When displacement current is neglected (`permittivity` is ``None``),
+        the system matrix at each frequency is given by:
 
         .. math::
-            \mathbf{A} = \mathbf{C M_{e\mu}^{-1} C^T (M_{f\rho}
-            + i \omega M_{f\frac{1}{\varepsilon}} )} + i\omega \mathbf{I}
+            \mathbf{A} = \mathbf{C M_{e\mu}^{-1} C^T M_{f\rho}} + i\omega \mathbf{I}
+
+        When displacement current is included in the formulation:
+
+        .. math::
+            \mathbf{A} = \mathbf{C M_{e\mu}^{-1} C^T M_{f\frac{1}{\hat{\sigma}}}} + i\omega \mathbf{I}
 
         where
 
         * :math:`\mathbf{M_{f\rho}}` is the inner-product matrix for resistivities projected to faces
-        * :math:`\mathbf{M_{f\frac{1}{\varepsilon}}}` is the inner-product matrix for inverse permittivities projected to faces
+        * :math:`\mathbf{M_{f\frac{1}{\hat{\sigma}}}}` is the inner-product matrix for the inverse of :math:`\hat{\sigma} = \sigma + i\omega \varepsilon` projected to faces
         * :math:`\mathbf{M_{e\mu}}` is the inner-product matrix for permeabilities projected to edges
 
         See the *Notes* section of the doc strings for :py:class:`Simulation3DCurrentDensity`
@@ -1517,18 +1533,23 @@ class Simulation3DCurrentDensity(BaseFDEMSimulation):
         return A
 
     def getADeriv_rho(self, freq, u, v, adjoint=False):
-        r"""Conductivity derivative operation for the system matrix times a vector.
+        r"""Resistivity derivative operation for the system matrix times a vector.
 
-        The system matrix at each frequency is given by:
+        When displacement current is neglected (`permittivity` is ``None``),
+        the system matrix at each frequency is given by:
 
         .. math::
-            \mathbf{A} = \mathbf{C M_{e\mu}^{-1} C^T (M_{f\rho}
-            + i \omega M_{f\frac{1}{\varepsilon}} )} + i\omega \mathbf{I}
+            \mathbf{A} = \mathbf{C M_{e\mu}^{-1} C^T M_{f\rho}} + i\omega \mathbf{I}
+
+        When displacement current is included in the formulation:
+
+        .. math::
+            \mathbf{A} = \mathbf{C M_{e\mu}^{-1} C^T M_{f\frac{1}{\hat{\sigma}}}} + i\omega \mathbf{I}
 
         where
 
         * :math:`\mathbf{M_{f\rho}}` is the inner-product matrix for resistivities projected to faces
-        * :math:`\mathbf{M_{f\frac{1}{\varepsilon}}}` is the inner-product matrix for inverse permittivities projected to faces
+        * :math:`\mathbf{M_{f\frac{1}{\hat{\sigma}}}}` is the inner-product matrix for the inverse of :math:`\hat{\sigma} = \sigma + i\omega \varepsilon` projected to faces
         * :math:`\mathbf{M_{e\mu}}` is the inner-product matrix for permeabilities projected to edges
 
         See the *Notes* section of the doc strings for :py:class:`Simulation3DCurrentDensity`
@@ -1575,16 +1596,21 @@ class Simulation3DCurrentDensity(BaseFDEMSimulation):
     def getADeriv_mu(self, freq, u, v, adjoint=False):
         r"""Permeability derivative operation for the system matrix times a vector.
 
-        The system matrix at each frequency is given by:
+        When displacement current is neglected (`permittivity` is ``None``),
+        the system matrix at each frequency is given by:
 
         .. math::
-            \mathbf{A} = \mathbf{C M_{e\mu}^{-1} C^T (M_{f\rho}
-            + i \omega M_{f\frac{1}{\varepsilon}} )} + i\omega \mathbf{I}
+            \mathbf{A} = \mathbf{C M_{e\mu}^{-1} C^T M_{f\rho}} + i\omega \mathbf{I}
+
+        When displacement current is included in the formulation:
+
+        .. math::
+            \mathbf{A} = \mathbf{C M_{e\mu}^{-1} C^T M_{f\frac{1}{\hat{\sigma}}}} + i\omega \mathbf{I}
 
         where
 
         * :math:`\mathbf{M_{f\rho}}` is the inner-product matrix for resistivities projected to faces
-        * :math:`\mathbf{M_{f\frac{1}{\varepsilon}}}` is the inner-product matrix for inverse permittivities projected to faces
+        * :math:`\mathbf{M_{f\frac{1}{\hat{\sigma}}}}` is the inner-product matrix for the inverse of :math:`\hat{\sigma} = \sigma + i\omega \varepsilon` projected to faces
         * :math:`\mathbf{M_{e\mu}}` is the inner-product matrix for permeabilities projected to edges
 
         See the *Notes* section of the doc strings for :py:class:`Simulation3DCurrentDensity`
@@ -1637,16 +1663,21 @@ class Simulation3DCurrentDensity(BaseFDEMSimulation):
     def getADeriv(self, freq, u, v, adjoint=False):
         r"""Derivative operation for the system matrix times a vector.
 
-        The system matrix at each frequency is given by:
+        When displacement current is neglected (`permittivity` is ``None``),
+        the system matrix at each frequency is given by:
 
         .. math::
-            \mathbf{A} = \mathbf{C M_{e\mu}^{-1} C^T (M_{f\rho}
-            + i \omega M_{f\frac{1}{\varepsilon}} )} + i\omega \mathbf{I}
+            \mathbf{A} = \mathbf{C M_{e\mu}^{-1} C^T M_{f\rho}} + i\omega \mathbf{I}
+
+        When displacement current is included in the formulation:
+
+        .. math::
+            \mathbf{A} = \mathbf{C M_{e\mu}^{-1} C^T M_{f\frac{1}{\hat{\sigma}}}} + i\omega \mathbf{I}
 
         where
 
         * :math:`\mathbf{M_{f\rho}}` is the inner-product matrix for resistivities projected to faces
-        * :math:`\mathbf{M_{f\frac{1}{\varepsilon}}}` is the inner-product matrix for inverse permittivities projected to faces
+        * :math:`\mathbf{M_{f\frac{1}{\hat{\sigma}}}}` is the inner-product matrix for the inverse of :math:`\hat{\sigma} = \sigma + i\omega \varepsilon` projected to faces
         * :math:`\mathbf{M_{e\mu}}` is the inner-product matrix for permeabilities projected to edges
 
         See the *Notes* section of the doc strings for :py:class:`Simulation3DCurrentDensity`
@@ -1700,13 +1731,12 @@ class Simulation3DCurrentDensity(BaseFDEMSimulation):
         The right-hand side for each source is constructed according to:
 
         .. math::
-            \mathbf{q} = - i \omega \mathbf{M_f^{-1} s_e} - i \omega \mathbf{C M_{e\mu}^{-1} s_m}
+            \mathbf{q} = - i \omega \mathbf{s_e} - i \omega \mathbf{C M_{e\mu}^{-1} s_m}
 
         where
 
         * :math:`\mathbf{C}` is the discrete curl operator
         * :math:`\mathbf{s_m}` and :math:`\mathbf{s_e}` are the integrated magnetic and electric source terms, respectively
-        * :math:`\mathbf{M_f}` is the face inner-product matrix
         * :math:`\mathbf{M_{e\mu}}` is the inner-product matrices for permeabilities projected to edges
 
         See the *Notes* section of the doc strings for :py:class:`Simulation3DCurrentDensity`
@@ -1740,13 +1770,12 @@ class Simulation3DCurrentDensity(BaseFDEMSimulation):
         The right-hand side for each source is constructed according to:
 
         .. math::
-            \mathbf{q} = - i \omega \mathbf{M_f^{-1} s_e} - i \omega \mathbf{C M_{e\mu}^{-1} s_m}
+            \mathbf{q} = - i \omega \mathbf{s_e} - i \omega \mathbf{C M_{e\mu}^{-1} s_m}
 
         where
 
         * :math:`\mathbf{C}` is the discrete curl operator
         * :math:`\mathbf{s_m}` and :math:`\mathbf{s_e}` are the integrated magnetic and electric source terms, respectively
-        * :math:`\mathbf{M_f}` is the face inner-product matrix
         * :math:`\mathbf{M_{e\mu}}` is the inner-product matrices for permeabilities projected to edges
 
         See the *Notes* section of the doc strings for :py:class:`Simulation3DCurrentDensity`
@@ -1815,7 +1844,7 @@ class Simulation3DCurrentDensity(BaseFDEMSimulation):
 
 
 class Simulation3DMagneticField(BaseFDEMSimulation):
-    r"""3D FDEM simulation in terms of the current density.
+    r"""3D FDEM simulation in terms of the magnetic field.
     
     This simulation solves for the magnetic field at each frequency.
     In this formulation, the magnetic fields are defined on mesh edges and the
@@ -1847,27 +1876,30 @@ class Simulation3DMagneticField(BaseFDEMSimulation):
     .. math::
         \begin{align}
         &\nabla \times \vec{E} + i\omega \vec{B} = - i \omega \vec{S}_m \\
-        &\nabla \times \vec{H} - \vec{J} - i\omega\vec{D} = \vec{S}_e
+        &\nabla \times \vec{H} - \vec{J} = \vec{S}_e
         \end{align}
 
     where :math:`\vec{S}_e` is an electric source term that defines a source current density,
     and :math:`\vec{S}_m` magnetic source term that defines a source magnetic flux density.
-    We define the constitutive relations for the, electrical conductivity :math:`\sigma`
-    dielectric permittivity :math:`\varepsilon` and magnetic permeability :math:`\mu` as:
+    For now, we neglect displacement current (the `permittivity` attribute is ``None``).
+    We define the constitutive relations for the electrical resistivity :math:`\rho`
+    and magnetic permeability :math:`\mu` as:
 
     .. math::
         \vec{E} &= \rho \vec{J} \\
-        \vec{E} &= \varepsilon^{-1} \vec{D}\\
-        \vec{H} &= \mu^{-1} \vec{B}
+        \vec{B} &= \mu \vec{H}
 
     We then take the inner products of all previous expressions with a vector test function :math:`\vec{u}`.
     Through vector calculus identities and the divergence theorem, we obtain:
 
     .. math::
-        & \int_\Omega (\nabla \times \vec{u}) \cdot \vec{E} \; dv - \oint_{\partial \Omega} \vec{u} \cdot (\vec{E} \times \hat{n} ) \, da + i \omega \int_\Omega \vec{u} \cdot \vec{B} \, dv = - i \omega \int_\Omega \vec{u} \cdot \vec{S}_m dv \\
-        & \int_\Omega \vec{u} \cdot (\nabla \times \vec{H} ) \, dv - \int_\Omega \vec{u} \cdot \vec{J} \, dv = \int_\Omega \vec{u} \cdot \vec{S}_j \, dv\\
+        & \int_\Omega (\nabla \times \vec{u}) \cdot \vec{E} \; dv
+        - \oint_{\partial \Omega} \vec{u} \cdot (\vec{E} \times \hat{n} ) \, da
+        + i \omega \int_\Omega \vec{u} \cdot \vec{B} \, dv
+        = - i \omega \int_\Omega \vec{u} \cdot \vec{S}_m dv \\
+        & \int_\Omega \vec{u} \cdot (\nabla \times \vec{H} ) \, dv
+        - \int_\Omega \vec{u} \cdot \vec{J} \, dv = \int_\Omega \vec{u} \cdot \vec{S}_j \, dv\\
         & \int_\Omega \vec{u} \cdot \vec{E} \, dv = \int_\Omega \vec{u} \cdot \rho \vec{J} \, dv \\
-        & \int_\Omega \vec{u} \cdot \vec{E} \, dv = \int_\Omega \vec{u} \cdot \frac{1}{\varepsilon} \vec{D} \, dv \\
         & \int_\Omega \vec{u} \cdot \vec{B} \, dv = \int_\Omega \vec{u} \cdot \mu \vec{H} \, dv
 
     The above expressions are discretized in space according to the finite volume method.
@@ -1879,9 +1911,8 @@ class Simulation3DMagneticField(BaseFDEMSimulation):
 
     .. math::
         &\mathbf{C^T M_f \, e } + i \omega \mathbf{M_e b} = - i\omega \mathbf{s_m} \\
-        &\mathbf{M_f C \, h} - \mathbf{M_f j} - i\omega \mathbf{M_f d} = \mathbf{s_e} \\
+        &\mathbf{C \, h} - \mathbf{j} - i\omega \mathbf{d} = \mathbf{s_e} \\
         &\mathbf{M_f e} = \mathbf{M_{f\rho} j} \\
-        &\mathbf{M_f e} = \mathbf{M_{f\frac{1}{\varepsilon}} d} \\
         &\mathbf{M_e b} = \mathbf{M_{e \mu} h}
 
     where
@@ -1891,7 +1922,6 @@ class Simulation3DMagneticField(BaseFDEMSimulation):
     * :math:`\mathbf{M_e}` is the edge inner-product matrix
     * :math:`\mathbf{M_f}` is the face inner-product matrix
     * :math:`\mathbf{M_{f\rho}}` is the inner-product matrix for resistivities projected to faces
-    * :math:`\mathbf{M_{f\frac{1}{\varepsilon}}}` is the inner-product matrix for inverse permittivities projected to faces
     * :math:`\mathbf{M_{e\mu}}` is the inner-product matrix for permeabilities projected to edges
     
     Combining the discrete expressions to solve for the magnetic field, we obtain:
@@ -1901,11 +1931,29 @@ class Simulation3DMagneticField(BaseFDEMSimulation):
 
     where
 
-    * :math:`\mathbf{A} = \mathbf{C^T (M_{f\rho} + i\omega M_{f\frac{1}{\varepsilon}}) C} + i\omega \mathbf{M_{e\mu}}`
-    * :math:`\mathbf{q} = \mathbf{C^T M_{f\rho} M_f^{-1} s_e} - i\omega \mathbf{s_m}`
+    * :math:`\mathbf{A} = \mathbf{C^T M_{f\rho} C} + i\omega \mathbf{M_{e\mu}}`
+    * :math:`\mathbf{q} = \mathbf{C^T M_{f\rho} s_e} - i\omega \mathbf{s_m}`
 
-    Note that if the `permittivity` property is ``None``, the problem is solved according to the quasi-static
-    approximation and :math:`i \omega \mathbf{M_{f\frac{1}{\varepsilon}}}` is remove from the expression.
+    **Dielectric permititivity:**
+
+    If the `permittivity` property is not ``None``, the formulation takes into account electric displacement.
+    In this case, the contitutive relationship relating the current density and electric field is defined as:
+
+    .. math::
+        \vec{E} = \frac{1}{\sigma + i\omega \varepsilon} \vec{J} = \frac{1}{\hat{\sigma}} \vec{J}
+
+    Taking the inner-product with a test function :math:`\vec{u}` and cancelling the like-terms we obtain:
+
+    .. math::
+        \mathbf{M_f e} = \mathbf{M_{f\frac{1}{\hat{\sigma}}} j}
+
+    where :math:`\mathbf{M_{f\frac{1}{\hat{\sigma}}}}` is the inner-product matrix that projects
+    the inverse of :math:`\hat{\sigma} = \sigma + i\omega\varepsilon` to faces.
+
+    The system matrix and right-hand become:
+    
+    * :math:`\mathbf{A} = \mathbf{C^T M_{f\frac{1}{\hat{\sigma}}} C} + i\omega \mathbf{M_{e\mu}}`
+    * :math:`\mathbf{q} = \mathbf{C^T M_{f\frac{1}{\hat{\sigma}}} s_e} - i\omega \mathbf{s_m}`
     """
 
     _solutionType = "hSolution"
@@ -1916,14 +1964,21 @@ class Simulation3DMagneticField(BaseFDEMSimulation):
         r"""System matrix for the frequency provided.
 
         This method returns the system matrix for the frequency provided.
+        When displacement current is neglected (`permittivity` is ``None``),
+        the system matrix at each frequency is given by:
 
         .. math::
-            \mathbf{A} = \mathbf{C^T (M_{f\rho} + i\omega M_{f\frac{1}{\varepsilon}}) C} + i\omega \mathbf{M_{e\mu}}
+            \mathbf{A} = \mathbf{C^T M_{f\rho} C} + i\omega \mathbf{M_{e\mu}}
+
+        When displacement current is included in the formulation:
+
+        .. math::
+            \mathbf{A} = \mathbf{C^T M_{f\frac{1}{\hat{\sigma}}} C} + i\omega \mathbf{M_{e\mu}}
 
         where
 
         * :math:`\mathbf{M_{f\rho}}` is the inner-product matrix for resistivities projected to faces
-        * :math:`\mathbf{M_{f\frac{1}{\varepsilon}}}` is the inner-product matrix for inverse permittivities projected to faces
+        * :math:`\mathbf{M_{f\frac{1}{\hat{\sigma}}}}` is the inner-product matrix for the inverse of :math:`\hat{\sigma} = \sigma + i\omega \varepsilon` projected to faces
         * :math:`\mathbf{M_{e\mu}}` is the inner-product matrix for permeabilities projected to edges
 
         See the *Notes* section of the doc strings for :py:class:`Simulation3DMagneticField`
@@ -1953,35 +2008,39 @@ class Simulation3DMagneticField(BaseFDEMSimulation):
             return C.T.tocsr() * (Mfyhati * C) + 1j * omega(freq) * MeMu
 
     def getADeriv_rho(self, freq, u, v, adjoint=False):
-        r"""Conductivity derivative operation for the system matrix times a vector.
+        r"""Resistivity derivative operation for the system matrix times a vector.
 
-        The system matrix at each frequency is given by:
+        When displacement current is neglected (`permittivity` is ``None``),
+        the system matrix at each frequency is given by:
 
         .. math::
-            \mathbf{A} = \big [ \mathbf{C^T M_{f\frac{1}{\mu}} C}
-            + i\omega \mathbf{M_{e\sigma}}
-            - \omega^2 \mathbf{M_{e\varepsilon}} \big ]
+            \mathbf{A} = \mathbf{C^T M_{f\rho} C} + i\omega \mathbf{M_{e\mu}}
+
+        When displacement current is included in the formulation:
+
+        .. math::
+            \mathbf{A} = \mathbf{C^T M_{f\frac{1}{\hat{\sigma}}} C} + i\omega \mathbf{M_{e\mu}}
 
         where
 
-        * :math:`\mathbf{M_{e\sigma}}` is the inner-product matrix for conductivities projected to edges
-        * :math:`\mathbf{M_{e\varepsilon}}` is the inner-product matrix for permittivities projected to edges
-        * :math:`\mathbf{M_{f\frac{1}{\mu}}}` is the inner-product matrix for inverse permeabilities projected to faces
+        * :math:`\mathbf{M_{f\rho}}` is the inner-product matrix for resistivities projected to faces
+        * :math:`\mathbf{M_{f\frac{1}{\hat{\sigma}}}}` is the inner-product matrix for the inverse of :math:`\hat{\sigma} = \sigma + i\omega \varepsilon` projected to faces
+        * :math:`\mathbf{M_{e\mu}}` is the inner-product matrix for permeabilities projected to edges
 
-        See the *Notes* section of the doc strings for :py:class:`Simulation3DElectricField`
+        See the *Notes* section of the doc strings for :py:class:`Simulation3DMagneticField`
         for a full description of the formulation.
 
         Where :math:`\mathbf{m}_\boldsymbol{\sigma}` are the set of model parameters defining the conductivity,
-        :math:`\mathbf{v}` is a vector and :math:`\mathbf{e}` is the discrete electric field solution, this method assumes
+        :math:`\mathbf{v}` is a vector and :math:`\mathbf{h}` is the discrete magnetic field solution, this method assumes
         the discrete solution is fixed and returns
 
         .. math::
-            \frac{\partial (\mathbf{A \, e})}{\partial \mathbf{m}_\boldsymbol{\sigma}} \, \mathbf{v}
+            \frac{\partial (\mathbf{A \, h})}{\partial \mathbf{m}_\boldsymbol{\sigma}} \, \mathbf{v}
 
         Or the adjoint operation
 
         .. math::
-            \frac{\partial (\mathbf{A \, e})}{\partial \mathbf{m}_\boldsymbol{\sigma}}^T \, \mathbf{v}
+            \frac{\partial (\mathbf{A \, h})}{\partial \mathbf{m}_\boldsymbol{\sigma}}^T \, \mathbf{v}
 
         Parameters
         ----------
@@ -2008,33 +2067,37 @@ class Simulation3DMagneticField(BaseFDEMSimulation):
     def getADeriv_mu(self, freq, u, v, adjoint=False):
         r"""Permeability derivative operation for the system matrix times a vector.
 
-        The system matrix at each frequency is given by:
+        When displacement current is neglected (`permittivity` is ``None``),
+        the system matrix at each frequency is given by:
 
         .. math::
-            \mathbf{A} = \big [ \mathbf{C^T M_{f\frac{1}{\mu}} C}
-            + i\omega \mathbf{M_{e\sigma}}
-            - \omega^2 \mathbf{M_{e\varepsilon}} \big ]
+            \mathbf{A} = \mathbf{C^T M_{f\rho} C} + i\omega \mathbf{M_{e\mu}}
+
+        When displacement current is included in the formulation:
+
+        .. math::
+            \mathbf{A} = \mathbf{C^T M_{f\frac{1}{\hat{\sigma}}} C} + i\omega \mathbf{M_{e\mu}}
 
         where
 
-        * :math:`\mathbf{M_{e\sigma}}` is the inner-product matrix for conductivities projected to edges
-        * :math:`\mathbf{M_{e\varepsilon}}` is the inner-product matrix for permittivities projected to edges
-        * :math:`\mathbf{M_{f\frac{1}{\mu}}}` is the inner-product matrix for inverse permeabilities projected to faces
+        * :math:`\mathbf{M_{f\rho}}` is the inner-product matrix for resistivities projected to faces
+        * :math:`\mathbf{M_{f\frac{1}{\hat{\sigma}}}}` is the inner-product matrix for the inverse of :math:`\hat{\sigma} = \sigma + i\omega \varepsilon` projected to faces
+        * :math:`\mathbf{M_{e\mu}}` is the inner-product matrix for permeabilities projected to edges
 
-        See the *Notes* section of the doc strings for :py:class:`Simulation3DElectricField`
+        See the *Notes* section of the doc strings for :py:class:`Simulation3DMagneticField`
         for a full description of the formulation.
 
         Where :math:`\mathbf{m}_\boldsymbol{\mu}` are the set of model parameters defining the permeability,
-        :math:`\mathbf{v}` is a vector and :math:`\mathbf{e}` is the discrete electric field solution, this method assumes
+        :math:`\mathbf{v}` is a vector and :math:`\mathbf{h}` is the discrete magnetic field solution, this method assumes
         the discrete solution is fixed and returns
 
         .. math::
-            \frac{\partial (\mathbf{A \, e})}{\partial \mathbf{m}_\boldsymbol{\mu}} \, \mathbf{v}
+            \frac{\partial (\mathbf{A \, h})}{\partial \mathbf{m}_\boldsymbol{\mu}} \, \mathbf{v}
 
         Or the adjoint operation
 
         .. math::
-            \frac{\partial (\mathbf{A \, e})}{\partial \mathbf{m}_\boldsymbol{\mu}}^T \, \mathbf{v}
+            \frac{\partial (\mathbf{A \, h})}{\partial \mathbf{m}_\boldsymbol{\mu}}^T \, \mathbf{v}
 
         Parameters
         ----------
@@ -2063,33 +2126,37 @@ class Simulation3DMagneticField(BaseFDEMSimulation):
     def getADeriv(self, freq, u, v, adjoint=False):
         r"""Derivative operation for the system matrix times a vector.
 
-        The system matrix at each frequency is given by:
+        When displacement current is neglected (`permittivity` is ``None``),
+        the system matrix at each frequency is given by:
 
         .. math::
-            \mathbf{A} = \big [ \mathbf{C^T M_{f\frac{1}{\mu}} C}
-            + i\omega \mathbf{M_{e\sigma}}
-            - \omega^2 \mathbf{M_{e\varepsilon}} \big ]
+            \mathbf{A} = \mathbf{C^T M_{f\rho} C} + i\omega \mathbf{M_{e\mu}}
+
+        When displacement current is included in the formulation:
+
+        .. math::
+            \mathbf{A} = \mathbf{C^T M_{f\frac{1}{\hat{\sigma}}} C} + i\omega \mathbf{M_{e\mu}}
 
         where
 
-        * :math:`\mathbf{M_{e\sigma}}` is the inner-product matrix for conductivities projected to edges
-        * :math:`\mathbf{M_{e\varepsilon}}` is the inner-product matrix for permittivities projected to edges
-        * :math:`\mathbf{M_{f\frac{1}{\mu}}}` is the inner-product matrix for inverse permeabilities projected to faces
+        * :math:`\mathbf{M_{f\rho}}` is the inner-product matrix for resistivities projected to faces
+        * :math:`\mathbf{M_{f\frac{1}{\hat{\sigma}}}}` is the inner-product matrix for the inverse of :math:`\hat{\sigma} = \sigma + i\omega \varepsilon` projected to faces
+        * :math:`\mathbf{M_{e\mu}}` is the inner-product matrix for permeabilities projected to edges
 
-        See the *Notes* section of the doc strings for :py:class:`Simulation3DElectricField`
+        See the *Notes* section of the doc strings for :py:class:`Simulation3DMagneticField`
         for a full description of the formulation.
 
         Where :math:`\mathbf{m}` are the set of model parameters defining the electromagnetic properties,
-        :math:`\mathbf{v}` is a vector and :math:`\mathbf{e}` is the discrete electric field solution, this method assumes
+        :math:`\mathbf{v}` is a vector and :math:`\mathbf{h}` is the discrete electric field solution, this method assumes
         the discrete solution is fixed and returns
 
         .. math::
-            \frac{\partial (\mathbf{A \, e})}{\partial \mathbf{m}} \, \mathbf{v}
+            \frac{\partial (\mathbf{A \, h})}{\partial \mathbf{m}} \, \mathbf{v}
 
         Or the adjoint operation
 
         .. math::
-            \frac{\partial (\mathbf{A \, e})}{\partial \mathbf{m}}^T \, \mathbf{v}
+            \frac{\partial (\mathbf{A \, h})}{\partial \mathbf{m}}^T \, \mathbf{v}
 
         Parameters
         ----------
@@ -2116,19 +2183,27 @@ class Simulation3DMagneticField(BaseFDEMSimulation):
         r"""Right-hand sides for the given frequency.
 
         This method returns the right-hand sides for the frequency provided.
-        The right-hand side for each source is constructed according to:
+        When displacement current is neglected (`permittivity` is ``None``),
+        the right-hand side for each source is constructed according to:
 
         .. math::
-            \mathbf{q} = i \omega \mathbf{s_e} - i \omega \mathbf{C^T M_{f\frac{1}{\mu}} M_f^{-1} s_m }
+            \mathbf{q} = \mathbf{C^T M_{f\rho} s_e} - i\omega \mathbf{s_m}
+
+        And when electric displacement is included, the right-hand side for each
+        source is contructed according to:
+
+        .. math::
+            \mathbf{q} = \mathbf{C^T M_{f\frac{1}{\hat{\sigma}}} s_e} - i\omega \mathbf{s_m}
 
         where
 
         * :math:`\mathbf{C}` is the discrete curl operator
         * :math:`\mathbf{s_m}` and :math:`\mathbf{s_e}` are the integrated magnetic and electric source terms, respectively
-        * :math:`\mathbf{M_f}` is the face inner-product matrix
-        * :math:`\mathbf{M_{f\frac{1}{\mu}}}` is the inner-product matrices for inverse permeabilities projected to faces
+        * :math:`\mathbf{M_{e\mu}}` is the inner-product matrices for permeabilities projected to edges
+        * :math:`\mathbf{M_{f\rho}}` is the inner-product matrices for resistivities projected to faces
+        * :math:`\mathbf{M_{f\frac{1}{\hat{\sigma}}}}` is the inner-product matrix for the inverse of :math:`\hat{\sigma} = \sigma + i\omega \varepsilon` projected to faces
 
-        See the *Notes* section of the doc strings for :py:class:`Simulation3DElectricField`
+        See the *Notes* section of the doc strings for :py:class:`Simulation3DMagneticField`
         for a full description of the formulation.
 
         Parameters
@@ -2157,19 +2232,27 @@ class Simulation3DMagneticField(BaseFDEMSimulation):
     def getRHSDeriv(self, freq, src, v, adjoint=False):
         r"""Derivative of the right-hand side times a vector for a given source and frequency.
 
-        The right-hand side for each source is constructed according to:
+        When displacement current is neglected (`permittivity` is ``None``),
+        the right-hand side for each source is constructed according to:
 
         .. math::
-            \mathbf{q} = i \omega \mathbf{s_e} - i \omega \mathbf{C^T M_{f\frac{1}{\mu}} M_f^{-1} s_m }
+            \mathbf{q} = \mathbf{C^T M_{f\rho} s_e} - i\omega \mathbf{s_m}
+
+        And when electric displacement is included, the right-hand side for each
+        source is contructed according to:
+
+        .. math::
+            \mathbf{q} = \mathbf{C^T M_{f\frac{1}{\hat{\sigma}}} s_e} - i\omega \mathbf{s_m}
 
         where
 
         * :math:`\mathbf{C}` is the discrete curl operator
         * :math:`\mathbf{s_m}` and :math:`\mathbf{s_e}` are the integrated magnetic and electric source terms, respectively
-        * :math:`\mathbf{M_f}` is the face inner-product matrix
-        * :math:`\mathbf{M_{f\frac{1}{\mu}}}` is the inner-product matrices for inverse permeabilities projected to faces
+        * :math:`\mathbf{M_{e\mu}}` is the inner-product matrices for permeabilities projected to edges
+        * :math:`\mathbf{M_{f\rho}}` is the inner-product matrices for resistivities projected to faces
+        * :math:`\mathbf{M_{f\frac{1}{\hat{\sigma}}}}` is the inner-product matrix for the inverse of :math:`\hat{\sigma} = \sigma + i\omega \varepsilon` projected to faces
 
-        See the *Notes* section of the doc strings for :py:class:`Simulation3DElectricField`
+        See the *Notes* section of the doc strings for :py:class:`Simulation3DMagneticField`
         for a full description of the formulation.
 
         Where :math:`\mathbf{m}` are the set of model parameters and :math:`\mathbf{v}` is a vector,
