@@ -324,7 +324,7 @@ class Fields3DElectricField(FieldsFDEM):
     r"""Fields class for storing 3D total electric field solutions.
 
     This class stores the total electric field solution computed using a
-    :py:class:`.frequency_domain.Simulation3DElectricField`
+    :class:`.frequency_domain.Simulation3DElectricField`
     simulation object. This class can be used to extract the following quantities:
 
     * 'e', 'ePrimary', 'eSecondary' and 'j' on mesh edges.
@@ -1059,42 +1059,42 @@ class Fields3DMagneticFluxDensity(FieldsFDEM):
 class Fields3DCurrentDensity(FieldsFDEM):
     r"""Fields class for storing 3D current density solutions.
 
-    This class stores the total current density solution computed using a
-   :class:`.frequency_domain.Simulation3DCurrentDensity`
-    simulation object. This class can be used to extract the following quantities:
+     This class stores the total current density solution computed using a
+    :class:`.frequency_domain.Simulation3DCurrentDensity`
+     simulation object. This class can be used to extract the following quantities:
 
-    * 'j', 'jPrimary', 'jSecondary' and 'e' on mesh faces.
-    * 'h', 'hPrimary', 'hSecondary' and 'b' on mesh edges.
-    * 'charge' and 'charge_density' at cell centers.
+     * 'j', 'jPrimary', 'jSecondary' and 'e' on mesh faces.
+     * 'h', 'hPrimary', 'hSecondary' and 'b' on mesh edges.
+     * 'charge' and 'charge_density' at cell centers.
 
-    See the example below to learn how fields can be extracted from a
-    ``Fields3DCurrentDensity`` object.
+     See the example below to learn how fields can be extracted from a
+     ``Fields3DCurrentDensity`` object.
 
-    Parameters
-    ----------
-    simulation : .frequency_domain.Simulation3DCurrentDensity
-        The FDEM simulation object associated with the fields.
+     Parameters
+     ----------
+     simulation : .frequency_domain.Simulation3DCurrentDensity
+         The FDEM simulation object associated with the fields.
 
-    Example
-    -------
-    The ``Fields3DCurrentDensity`` object stores the total current density solution
-    on mesh faces. To extract the discrete current density and magnetic field:
+     Example
+     -------
+     The ``Fields3DCurrentDensity`` object stores the total current density solution
+     on mesh faces. To extract the discrete current density and magnetic field:
 
-    .. code-block:: python
+     .. code-block:: python
 
-        f = simulation.fields(m)
-        j = f[:, 'j']
-        h = f[:, 'h']
+         f = simulation.fields(m)
+         j = f[:, 'j']
+         h = f[:, 'h']
 
-    The array ``j`` returned will have shape (`n_faces`, `n_sources`). And the array ``h``
-    returned will have shape (`n_edges`, `n_sources`). We can also extract the fields for
-    a subset of the source list used for the simulation as follows:
+     The array ``j`` returned will have shape (`n_faces`, `n_sources`). And the array ``h``
+     returned will have shape (`n_edges`, `n_sources`). We can also extract the fields for
+     a subset of the source list used for the simulation as follows:
 
-    .. code-block:: python
+     .. code-block:: python
 
-        f = simulation.fields(m)
-        j = f[source_list, 'j']
-        h = f[source_list, 'h']
+         f = simulation.fields(m)
+         j = f[source_list, 'j']
+         h = f[source_list, 'h']
 
     """
 

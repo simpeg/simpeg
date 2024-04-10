@@ -49,17 +49,17 @@ class BaseFDEMSimulation(BaseEMSimulation):
     ----------
     mesh : discretize.base.BaseMesh
         The mesh.
-    survey : SimPEG.electromagnetics.frequency_domain.survey.Survey
+    survey : .frequency_domain.Survey
         The frequency-domain EM survey.
     forward_only : bool
         If ``True``, the factorization for the inverse of the system matrix at each
         frequency is discarded after the fields are computed at that frequency.
         If ``False``, the factorizations of the system matrices for all frequencies are stored.
-    permittivity : (nC,) numpy.ndarray, optional
+    permittivity : (n_cells,) numpy.ndarray, optional
         Dielectric permittivity defined on the entire mesh. Please note this is
         not and invertible property of the simulation. If ``None``, electric
         displacement is ignored and the problem is solved according to the quasi-static approximation.
-    storeJ : bool
+    storeJ : bool, optional
         Whether to compute and store the sensitivity matrix.
     """
 
@@ -92,7 +92,7 @@ class BaseFDEMSimulation(BaseEMSimulation):
 
         Returns
         -------
-        SimPEG.electromagnetics.frequency_domain.survey.Survey
+        .frequency_domain.Survey
             The FDEM survey object.
         """
         if self._survey is None:
@@ -179,7 +179,7 @@ class BaseFDEMSimulation(BaseEMSimulation):
 
         Returns
         -------
-        SimPEG.electromagnetics.frequency_domain.fields.FieldsFDEM
+        .frequency_domain.fields.FieldsFDEM
             The FDEM fields object.
         """
 
@@ -228,7 +228,7 @@ class BaseFDEMSimulation(BaseEMSimulation):
             The model parameters.
         v : (n_param,) numpy.ndarray
             The vector.
-        f : SimPEG.electromagnetics.frequency_domain.fields.FieldsFDEM, optional
+        f : .frequency_domain.fields.FieldsFDEM, optional
             Fields solved for all sources.
 
         Returns
@@ -277,7 +277,7 @@ class BaseFDEMSimulation(BaseEMSimulation):
             The model parameters.
         v : (n_data,) numpy.ndarray
             The vector.
-        f : SimPEG.electromagnetics.frequency_domain.fields.FieldsFDEM, optional
+        f : .frequency_domain.fields.FieldsFDEM, optional
             Fields solved for all sources.
 
         Returns
@@ -410,7 +410,7 @@ class BaseFDEMSimulation(BaseEMSimulation):
             The model parameters.
         W : (n_param, n_param) scipy.sparse.csr_matrix
             A diagonal weighting matrix.
-        f : SimPEG.electromagnetics.frequency_domain.fields.FieldsFDEM, optional
+        f : .frequency_domain.fields.FieldsFDEM, optional
             Fields solved for all sources.
 
         Returns
@@ -454,8 +454,8 @@ class BaseFDEMSimulation(BaseEMSimulation):
             The source terms for the frequency provided. The method returns
             a ``tuple`` (s_m, s_e), where:
 
-            * s_m is a (nF, n_sources) numpy.ndarray and s_e is a (nE, n_sources) numpy.ndarray for EB-formulations.
-            * s_m is a (nE, n_sources) numpy.ndarray and s_e is a (nF, n_sources) numpy.ndarray for HJ-formulations.
+            * s_m is a (n_faces, n_sources) numpy.ndarray and s_e is a (n_edges, n_sources) numpy.ndarray for EB-formulations.
+            * s_m is a (n_edges, n_sources) numpy.ndarray and s_e is a (n_faces, n_sources) numpy.ndarray for HJ-formulations.
         """
         Srcs = self.survey.get_sources_by_frequency(freq)
         n_fields = sum(src._fields_per_source for src in Srcs)
@@ -512,17 +512,17 @@ class Simulation3DElectricField(BaseFDEMSimulation):
     ----------
     mesh : discretize.base.BaseMesh
         The mesh.
-    survey : SimPEG.electromagnetics.frequency_domain.survey.Survey
+    survey : .frequency_domain.Survey
         The frequency-domain EM survey.
     forward_only : bool
         If ``True``, the factorization for the inverse of the system matrix at each
         frequency is discarded after the fields are computed at that frequency.
         If ``False``, the factorizations of the system matrices for all frequencies are stored.
-    permittivity : (nC,) numpy.ndarray, optional
+    permittivity : (n_cells,) numpy.ndarray, optional
         Dielectric permittivity defined on the entire mesh. Please note this is
         not and invertible property of the simulation. If ``None``, electric
         displacement is ignored and the problem is solved according to the quasi-static approximation.
-    storeJ : bool
+    storeJ : bool, optional
         Whether to compute and store the sensitivity matrix.
 
     Notes
@@ -619,7 +619,7 @@ class Simulation3DElectricField(BaseFDEMSimulation):
         Note that if the `permittivity` property is ``None``, the problem is solved according to the quasi-static
         approximation and :math:`\omega^2 \mathbf{M_{e\varepsilon}}` is removed from the expression.
 
-        See the *Notes* section of the doc strings for :py:class:`Simulation3DElectricField`
+        See the *Notes* section of the doc strings for :class:`Simulation3DElectricField`
         for a full description of the formulation.
 
         Parameters
@@ -629,7 +629,7 @@ class Simulation3DElectricField(BaseFDEMSimulation):
 
         Returns
         -------
-        (nE, nE) sp.sparse.csr_matrix
+        (n_edges, n_edges) sp.sparse.csr_matrix
             The system matrix.
         """
 
@@ -661,7 +661,7 @@ class Simulation3DElectricField(BaseFDEMSimulation):
         * :math:`\mathbf{M_{e\varepsilon}}` is the inner-product matrix for permittivities projected to edges
         * :math:`\mathbf{M_{f\frac{1}{\mu}}}` is the inner-product matrix for inverse permeabilities projected to faces
 
-        See the *Notes* section of the doc strings for :py:class:`Simulation3DElectricField`
+        See the *Notes* section of the doc strings for :class:`Simulation3DElectricField`
         for a full description of the formulation.
 
         Where :math:`\mathbf{m}_\boldsymbol{\sigma}` are the set of model parameters defining the conductivity,
@@ -680,17 +680,17 @@ class Simulation3DElectricField(BaseFDEMSimulation):
         ----------
         freq : float
             The frequency in Hz.
-        u : (nE,) numpy.ndarray
+        u : (n_edges,) numpy.ndarray
             The solution for the fields for the current model at the specified frequency.
         v : numpy.ndarray
-            The vector. (n_param,) for the standard operation. (nE,) for the adjoint operation.
+            The vector. (n_param,) for the standard operation. (n_edges,) for the adjoint operation.
         adjoint : bool
             Whether to perform the adjoint operation.
 
         Returns
         -------
         numpy.ndarray
-            Derivative of system matrix times a vector. (nE,) for the standard operation.
+            Derivative of system matrix times a vector. (n_edges,) for the standard operation.
             (n_param,) for the adjoint operation.
         """
 
@@ -713,7 +713,7 @@ class Simulation3DElectricField(BaseFDEMSimulation):
         * :math:`\mathbf{M_{e\varepsilon}}` is the inner-product matrix for permittivities projected to edges
         * :math:`\mathbf{M_{f\frac{1}{\mu}}}` is the inner-product matrix for inverse permeabilities projected to faces
 
-        See the *Notes* section of the doc strings for :py:class:`Simulation3DElectricField`
+        See the *Notes* section of the doc strings for :class:`Simulation3DElectricField`
         for a full description of the formulation.
 
         Where :math:`\mathbf{m}_\boldsymbol{\mu}` are the set of model parameters defining the permeability,
@@ -732,17 +732,17 @@ class Simulation3DElectricField(BaseFDEMSimulation):
         ----------
         freq : float
             The frequency in Hz.
-        u : (nE,) numpy.ndarray
+        u : (n_edges,) numpy.ndarray
             The solution for the fields for the current model at the specified frequency.
         v : numpy.ndarray
-            The vector. (n_param,) for the standard operation. (nE,) for the adjoint operation.
+            The vector. (n_param,) for the standard operation. (n_edges,) for the adjoint operation.
         adjoint : bool
             Whether to perform the adjoint operation.
 
         Returns
         -------
         numpy.ndarray
-            Derivative of system matrix times a vector. (nE,) for the standard operation.
+            Derivative of system matrix times a vector. (n_edges,) for the standard operation.
             (n_param,) for the adjoint operation.
         """
 
@@ -769,7 +769,7 @@ class Simulation3DElectricField(BaseFDEMSimulation):
         * :math:`\mathbf{M_{e\varepsilon}}` is the inner-product matrix for permittivities projected to edges
         * :math:`\mathbf{M_{f\frac{1}{\mu}}}` is the inner-product matrix for inverse permeabilities projected to faces
 
-        See the *Notes* section of the doc strings for :py:class:`Simulation3DElectricField`
+        See the *Notes* section of the doc strings for :class:`Simulation3DElectricField`
         for a full description of the formulation.
 
         Where :math:`\mathbf{m}` are the set of model parameters defining the electromagnetic properties
@@ -788,17 +788,17 @@ class Simulation3DElectricField(BaseFDEMSimulation):
         ----------
         freq : float
             The frequency in Hz.
-        u : (nE,) numpy.ndarray
+        u : (n_edges,) numpy.ndarray
             The solution for the fields for the current model at the specified frequency.
         v : numpy.ndarray
-            The vector. (n_param,) for the standard operation. (nE,) for the adjoint operation.
+            The vector. (n_param,) for the standard operation. (n_edges,) for the adjoint operation.
         adjoint : bool
             Whether to perform the adjoint operation.
 
         Returns
         -------
         numpy.ndarray
-            Derivative of system matrix times a vector. (nE,) for the standard operation.
+            Derivative of system matrix times a vector. (n_edges,) for the standard operation.
             (n_param,) for the adjoint operation.
         """
         return (
@@ -822,7 +822,7 @@ class Simulation3DElectricField(BaseFDEMSimulation):
         * :math:`\mathbf{s_m}` and :math:`\mathbf{s_e}` are the integrated magnetic and electric source terms, respectively
         * :math:`\mathbf{M_{f\frac{1}{\mu}}}` is the inner-product matrices for inverse permeabilities projected to faces
 
-        See the *Notes* section of the doc strings for :py:class:`Simulation3DElectricField`
+        See the *Notes* section of the doc strings for :class:`Simulation3DElectricField`
         for a full description of the formulation.
 
         Parameters
@@ -832,7 +832,7 @@ class Simulation3DElectricField(BaseFDEMSimulation):
 
         Returns
         -------
-        (nE, nSrc) numpy.ndarray
+        (n_edges, n_sources) numpy.ndarray
             The right-hand sides.
         """
 
@@ -856,7 +856,7 @@ class Simulation3DElectricField(BaseFDEMSimulation):
         * :math:`\mathbf{s_m}` and :math:`\mathbf{s_e}` are the integrated magnetic and electric source terms, respectively
         * :math:`\mathbf{M_{f\frac{1}{\mu}}}` is the inner-product matrices for inverse permeabilities projected to faces
 
-        See the *Notes* section of the doc strings for :py:class:`Simulation3DElectricField`
+        See the *Notes* section of the doc strings for :class:`Simulation3DElectricField`
         for a full description of the formulation.
 
         Where :math:`\mathbf{m}` are the set of model parameters and :math:`\mathbf{v}` is a vector,
@@ -877,14 +877,14 @@ class Simulation3DElectricField(BaseFDEMSimulation):
         src : SimPEG.electromagnetics.frequency_domain.sources.BaseFDEMSrc
             The FDEM source object.
         v : numpy.ndarray
-            The vector. (n_param,) for the standard operation. (nE,) for the adjoint operation.
+            The vector. (n_param,) for the standard operation. (n_edges,) for the adjoint operation.
         adjoint : bool
             Whether to perform the adjoint operation.
 
         Returns
         -------
         numpy.ndarray
-            Derivative of the right-hand sides times a vector. (nE,) for the standard operation.
+            Derivative of the right-hand sides times a vector. (n_edges,) for the standard operation.
             (n_param,) for the adjoint operation.
         """
 
@@ -917,17 +917,17 @@ class Simulation3DMagneticFluxDensity(BaseFDEMSimulation):
     ----------
     mesh : discretize.base.BaseMesh
         The mesh.
-    survey : SimPEG.electromagnetics.frequency_domain.survey.Survey
+    survey : .frequency_domain.Survey
         The frequency-domain EM survey.
     forward_only : bool
         If ``True``, the factorization for the inverse of the system matrix at each
         frequency is discarded after the fields are computed at that frequency.
         If ``False``, the factorizations of the system matrices for all frequencies are stored.
-    permittivity : (nC,) numpy.ndarray, optional
+    permittivity : (n_cells,) numpy.ndarray, optional
         Dielectric permittivity defined on the entire mesh. Please note this is
         not and invertible property of the simulation. If ``None``, electric
         displacement is ignored and the problem is solved according to the quasi-static approximation.
-    storeJ : bool
+    storeJ : bool, optional
         Whether to compute and store the sensitivity matrix.
 
     Notes
@@ -1021,7 +1021,7 @@ class Simulation3DMagneticFluxDensity(BaseFDEMSimulation):
         * :math:`\mathbf{M_{e\varepsilon}}` is the inner-product matrix for permittivities projected to edges
         * :math:`\mathbf{M_{f\frac{1}{\mu}}}` is the inner-product matrix for inverse permeabilities projected to faces
 
-        See the *Notes* section of the doc strings for :py:class:`Simulation3DMagneticFluxDensity`
+        See the *Notes* section of the doc strings for :class:`Simulation3DMagneticFluxDensity`
         for a full description of the formulation.
 
         Parameters
@@ -1031,7 +1031,7 @@ class Simulation3DMagneticFluxDensity(BaseFDEMSimulation):
 
         Returns
         -------
-        (nF, nF) sp.sparse.csr_matrix
+        (n_faces, n_faces) sp.sparse.csr_matrix
             The system matrix.
         """
 
@@ -1068,7 +1068,7 @@ class Simulation3DMagneticFluxDensity(BaseFDEMSimulation):
         * :math:`\mathbf{M_{e\varepsilon}}` is the inner-product matrix for permittivities projected to edges
         * :math:`\mathbf{M_{f\frac{1}{\mu}}}` is the inner-product matrix for inverse permeabilities projected to faces
 
-        See the *Notes* section of the doc strings for :py:class:`Simulation3DMagneticFluxDensity`
+        See the *Notes* section of the doc strings for :class:`Simulation3DMagneticFluxDensity`
         for a full description of the formulation.
 
         Where :math:`\mathbf{m}_\boldsymbol{\sigma}` are the set of model parameters defining the conductivity,
@@ -1087,17 +1087,17 @@ class Simulation3DMagneticFluxDensity(BaseFDEMSimulation):
         ----------
         freq : float
             The frequency in Hz.
-        u : (nF,) numpy.ndarray
+        u : (n_faces,) numpy.ndarray
             The solution for the fields for the current model at the specified frequency.
         v : numpy.ndarray
-            The vector. (n_param,) for the standard operation. (nF,) for the adjoint operation.
+            The vector. (n_param,) for the standard operation. (n_faces,) for the adjoint operation.
         adjoint : bool
             Whether to perform the adjoint operation.
 
         Returns
         -------
         numpy.ndarray
-            Derivative of system matrix times a vector. (nF,) for the standard operation.
+            Derivative of system matrix times a vector. (n_faces,) for the standard operation.
             (n_param,) for the adjoint operation.
         """
 
@@ -1130,7 +1130,7 @@ class Simulation3DMagneticFluxDensity(BaseFDEMSimulation):
         * :math:`\mathbf{M_{e\varepsilon}}` is the inner-product matrix for permittivities projected to edges
         * :math:`\mathbf{M_{f\frac{1}{\mu}}}` is the inner-product matrix for inverse permeabilities projected to faces
 
-        See the *Notes* section of the doc strings for :py:class:`Simulation3DMagneticFluxDensity`
+        See the *Notes* section of the doc strings for :class:`Simulation3DMagneticFluxDensity`
         for a full description of the formulation.
 
         Where :math:`\mathbf{m}_\boldsymbol{\mu}` are the set of model parameters defining the permeability,
@@ -1149,17 +1149,17 @@ class Simulation3DMagneticFluxDensity(BaseFDEMSimulation):
         ----------
         freq : float
             The frequency in Hz.
-        u : (nF,) numpy.ndarray
+        u : (n_faces,) numpy.ndarray
             The solution for the fields for the current model at the specified frequency.
         v : numpy.ndarray
-            The vector. (n_param,) for the standard operation. (nF,) for the adjoint operation.
+            The vector. (n_param,) for the standard operation. (n_faces,) for the adjoint operation.
         adjoint : bool
             Whether to perform the adjoint operation.
 
         Returns
         -------
         numpy.ndarray
-            Derivative of system matrix times a vector. (nF,) for the standard operation.
+            Derivative of system matrix times a vector. (n_faces,) for the standard operation.
             (n_param,) for the adjoint operation.
         """
         MfMuiDeriv = self.MfMuiDeriv(u)
@@ -1186,7 +1186,7 @@ class Simulation3DMagneticFluxDensity(BaseFDEMSimulation):
         * :math:`\mathbf{M_{e\varepsilon}}` is the inner-product matrix for permittivities projected to edges
         * :math:`\mathbf{M_{f\frac{1}{\mu}}}` is the inner-product matrix for inverse permeabilities projected to faces
 
-        See the *Notes* section of the doc strings for :py:class:`Simulation3DMagneticFluxDensity`
+        See the *Notes* section of the doc strings for :class:`Simulation3DMagneticFluxDensity`
         for a full description of the formulation.
 
         Where :math:`\mathbf{m}` are the set of model parameters defining the electromagnetic properties,
@@ -1205,17 +1205,17 @@ class Simulation3DMagneticFluxDensity(BaseFDEMSimulation):
         ----------
         freq : float
             The frequency in Hz.
-        u : (nF,) numpy.ndarray
+        u : (n_faces,) numpy.ndarray
             The solution for the fields for the current model at the specified frequency.
         v : numpy.ndarray
-            The vector. (n_param,) for the standard operation. (nF,) for the adjoint operation.
+            The vector. (n_param,) for the standard operation. (n_faces,) for the adjoint operation.
         adjoint : bool
             Whether to perform the adjoint operation.
 
         Returns
         -------
         numpy.ndarray
-            Derivative of system matrix times a vector. (nF,) for the standard operation.
+            Derivative of system matrix times a vector. (n_faces,) for the standard operation.
             (n_param,) for the adjoint operation.
         """
         if adjoint is True and self._makeASymmetric:
@@ -1246,7 +1246,7 @@ class Simulation3DMagneticFluxDensity(BaseFDEMSimulation):
         * :math:`\mathbf{M_{e\sigma}}` is the inner-product matrix for conductivities projected to edges
         * :math:`\mathbf{M_{e\varepsilon}}` is the inner-product matrix for permittivities projected to edges
 
-        See the *Notes* section of the doc strings for :py:class:`Simulation3DMagneticFluxDensity`
+        See the *Notes* section of the doc strings for :class:`Simulation3DMagneticFluxDensity`
         for a full description of the formulation.
 
         Parameters
@@ -1256,7 +1256,7 @@ class Simulation3DMagneticFluxDensity(BaseFDEMSimulation):
 
         Returns
         -------
-        (nF, nSrc) numpy.ndarray
+        (n_faces, n_sources) numpy.ndarray
             The right-hand sides.
         """
 
@@ -1293,7 +1293,7 @@ class Simulation3DMagneticFluxDensity(BaseFDEMSimulation):
         * :math:`\mathbf{M_{e\sigma}}` is the inner-product matrix for conductivities projected to edges
         * :math:`\mathbf{M_{e\varepsilon}}` is the inner-product matrix for permittivities projected to edges
 
-        See the *Notes* section of the doc strings for :py:class:`Simulation3DMagneticFluxDensity`
+        See the *Notes* section of the doc strings for :class:`Simulation3DMagneticFluxDensity`
         for a full description of the formulation.
 
         Where :math:`\mathbf{m}` are the set of model parameters and :math:`\mathbf{v}` is a vector,
@@ -1314,14 +1314,14 @@ class Simulation3DMagneticFluxDensity(BaseFDEMSimulation):
         src : SimPEG.electromagnetics.frequency_domain.sources.BaseFDEMSrc
             The FDEM source object.
         v : numpy.ndarray
-            The vector. (n_param,) for the standard operation. (nF,) for the adjoint operation.
+            The vector. (n_param,) for the standard operation. (n_faces,) for the adjoint operation.
         adjoint : bool
             Whether to perform the adjoint operation.
 
         Returns
         -------
         numpy.ndarray
-            Derivative of the right-hand sides times a vector. (nF,) for the standard operation.
+            Derivative of the right-hand sides times a vector. (n_faces,) for the standard operation.
             (n_param,) for the adjoint operation.
         """
 
@@ -1367,17 +1367,17 @@ class Simulation3DCurrentDensity(BaseFDEMSimulation):
     ----------
     mesh : discretize.base.BaseMesh
         The mesh.
-    survey : SimPEG.electromagnetics.frequency_domain.survey.Survey
+    survey : .frequency_domain.Survey
         The frequency-domain EM survey.
     forward_only : bool
         If ``True``, the factorization for the inverse of the system matrix at each
         frequency is discarded after the fields are computed at that frequency.
         If ``False``, the factorizations of the system matrices for all frequencies are stored.
-    permittivity : (nC,) numpy.ndarray, optional
+    permittivity : (n_cells,) numpy.ndarray, optional
         Dielectric permittivity defined on the entire mesh. Please note this is
         not and invertible property of the simulation. If ``None``, electric
         displacement is ignored and the problem is solved according to the quasi-static approximation.
-    storeJ : bool
+    storeJ : bool, optional
         Whether to compute and store the sensitivity matrix.
 
     Notes
@@ -1501,7 +1501,7 @@ class Simulation3DCurrentDensity(BaseFDEMSimulation):
         * :math:`\mathbf{M_{f\frac{1}{\hat{\sigma}}}}` is the inner-product matrix for the inverse of :math:`\hat{\sigma} = \sigma + i\omega \varepsilon` projected to faces
         * :math:`\mathbf{M_{e\mu}}` is the inner-product matrix for permeabilities projected to edges
 
-        See the *Notes* section of the doc strings for :py:class:`Simulation3DCurrentDensity`
+        See the *Notes* section of the doc strings for :class:`Simulation3DCurrentDensity`
         for a full description of the formulation.
 
         Parameters
@@ -1511,7 +1511,7 @@ class Simulation3DCurrentDensity(BaseFDEMSimulation):
 
         Returns
         -------
-        (nF, nF) sp.sparse.csr_matrix
+        (n_faces, n_faces) sp.sparse.csr_matrix
             The system matrix.
         """
 
@@ -1552,7 +1552,7 @@ class Simulation3DCurrentDensity(BaseFDEMSimulation):
         * :math:`\mathbf{M_{f\frac{1}{\hat{\sigma}}}}` is the inner-product matrix for the inverse of :math:`\hat{\sigma} = \sigma + i\omega \varepsilon` projected to faces
         * :math:`\mathbf{M_{e\mu}}` is the inner-product matrix for permeabilities projected to edges
 
-        See the *Notes* section of the doc strings for :py:class:`Simulation3DCurrentDensity`
+        See the *Notes* section of the doc strings for :class:`Simulation3DCurrentDensity`
         for a full description of the formulation.
 
         Where :math:`\mathbf{m}_\boldsymbol{\rho}` are the set of model parameters defining the resistivity,
@@ -1571,17 +1571,17 @@ class Simulation3DCurrentDensity(BaseFDEMSimulation):
         ----------
         freq : float
             The frequency in Hz.
-        u : (nF,) numpy.ndarray
+        u : (n_faces,) numpy.ndarray
             The solution for the fields for the current model at the specified frequency.
         v : numpy.ndarray
-            The vector. (n_param,) for the standard operation. (nF,) for the adjoint operation.
+            The vector. (n_param,) for the standard operation. (n_faces,) for the adjoint operation.
         adjoint : bool
             Whether to perform the adjoint operation.
 
         Returns
         -------
         numpy.ndarray
-            Derivative of system matrix times a vector. (nF,) for the standard operation.
+            Derivative of system matrix times a vector. (n_faces,) for the standard operation.
             (n_param,) for the adjoint operation.
         """
 
@@ -1613,7 +1613,7 @@ class Simulation3DCurrentDensity(BaseFDEMSimulation):
         * :math:`\mathbf{M_{f\frac{1}{\hat{\sigma}}}}` is the inner-product matrix for the inverse of :math:`\hat{\sigma} = \sigma + i\omega \varepsilon` projected to faces
         * :math:`\mathbf{M_{e\mu}}` is the inner-product matrix for permeabilities projected to edges
 
-        See the *Notes* section of the doc strings for :py:class:`Simulation3DCurrentDensity`
+        See the *Notes* section of the doc strings for :class:`Simulation3DCurrentDensity`
         for a full description of the formulation.
 
         Where :math:`\mathbf{m}_\boldsymbol{\mu}` are the set of model parameters defining the permeability,
@@ -1632,17 +1632,17 @@ class Simulation3DCurrentDensity(BaseFDEMSimulation):
         ----------
         freq : float
             The frequency in Hz.
-        u : (nF,) numpy.ndarray
+        u : (n_faces,) numpy.ndarray
             The solution for the fields for the current model at the specified frequency.
         v : numpy.ndarray
-            The vector. (n_param,) for the standard operation. (nF,) for the adjoint operation.
+            The vector. (n_param,) for the standard operation. (n_faces,) for the adjoint operation.
         adjoint : bool
             Whether to perform the adjoint operation.
 
         Returns
         -------
         numpy.ndarray
-            Derivative of system matrix times a vector. (nF,) for the standard operation.
+            Derivative of system matrix times a vector. (n_faces,) for the standard operation.
             (n_param,) for the adjoint operation.
         """
         C = self.mesh.edge_curl
@@ -1680,7 +1680,7 @@ class Simulation3DCurrentDensity(BaseFDEMSimulation):
         * :math:`\mathbf{M_{f\frac{1}{\hat{\sigma}}}}` is the inner-product matrix for the inverse of :math:`\hat{\sigma} = \sigma + i\omega \varepsilon` projected to faces
         * :math:`\mathbf{M_{e\mu}}` is the inner-product matrix for permeabilities projected to edges
 
-        See the *Notes* section of the doc strings for :py:class:`Simulation3DCurrentDensity`
+        See the *Notes* section of the doc strings for :class:`Simulation3DCurrentDensity`
         for a full description of the formulation.
 
         Where :math:`\mathbf{m}` are the set of model parameters defining the electromagnetic properties,
@@ -1699,17 +1699,17 @@ class Simulation3DCurrentDensity(BaseFDEMSimulation):
         ----------
         freq : float
             The frequency in Hz.
-        u : (nF,) numpy.ndarray
+        u : (n_faces,) numpy.ndarray
             The solution for the fields for the current model at the specified frequency.
         v : numpy.ndarray
-            The vector. (n_param,) for the standard operation. (nF,) for the adjoint operation.
+            The vector. (n_param,) for the standard operation. (n_faces,) for the adjoint operation.
         adjoint : bool
             Whether to perform the adjoint operation.
 
         Returns
         -------
         numpy.ndarray
-            Derivative of system matrix times a vector. (nF,) for the standard operation.
+            Derivative of system matrix times a vector. (n_faces,) for the standard operation.
             (n_param,) for the adjoint operation.
         """
         if adjoint and self._makeASymmetric:
@@ -1739,7 +1739,7 @@ class Simulation3DCurrentDensity(BaseFDEMSimulation):
         * :math:`\mathbf{s_m}` and :math:`\mathbf{s_e}` are the integrated magnetic and electric source terms, respectively
         * :math:`\mathbf{M_{e\mu}}` is the inner-product matrices for permeabilities projected to edges
 
-        See the *Notes* section of the doc strings for :py:class:`Simulation3DCurrentDensity`
+        See the *Notes* section of the doc strings for :class:`Simulation3DCurrentDensity`
         for a full description of the formulation.
 
         Parameters
@@ -1749,7 +1749,7 @@ class Simulation3DCurrentDensity(BaseFDEMSimulation):
 
         Returns
         -------
-        (nF, nSrc) numpy.ndarray
+        (n_faces, n_sources) numpy.ndarray
             The right-hand sides.
         """
 
@@ -1778,7 +1778,7 @@ class Simulation3DCurrentDensity(BaseFDEMSimulation):
         * :math:`\mathbf{s_m}` and :math:`\mathbf{s_e}` are the integrated magnetic and electric source terms, respectively
         * :math:`\mathbf{M_{e\mu}}` is the inner-product matrices for permeabilities projected to edges
 
-        See the *Notes* section of the doc strings for :py:class:`Simulation3DCurrentDensity`
+        See the *Notes* section of the doc strings for :class:`Simulation3DCurrentDensity`
         for a full description of the formulation.
 
         Where :math:`\mathbf{m}` are the set of model parameters and :math:`\mathbf{v}` is a vector,
@@ -1799,14 +1799,14 @@ class Simulation3DCurrentDensity(BaseFDEMSimulation):
         src : SimPEG.electromagnetics.frequency_domain.sources.BaseFDEMSrc
             The FDEM source object.
         v : numpy.ndarray
-            The vector. (n_param,) for the standard operation. (nF,) for the adjoint operation.
+            The vector. (n_param,) for the standard operation. (n_faces,) for the adjoint operation.
         adjoint : bool
             Whether to perform the adjoint operation.
 
         Returns
         -------
         numpy.ndarray
-            Derivative of the right-hand sides times a vector. (nF,) for the standard operation.
+            Derivative of the right-hand sides times a vector. (n_faces,) for the standard operation.
             (n_param,) for the adjoint operation.
         """
 
@@ -1855,17 +1855,17 @@ class Simulation3DMagneticField(BaseFDEMSimulation):
     ----------
     mesh : discretize.base.BaseMesh
         The mesh.
-    survey : SimPEG.electromagnetics.frequency_domain.survey.Survey
+    survey : .frequency_domain.Survey
         The frequency-domain EM survey.
     forward_only : bool
         If ``True``, the factorization for the inverse of the system matrix at each
         frequency is discarded after the fields are computed at that frequency.
         If ``False``, the factorizations of the system matrices for all frequencies are stored.
-    permittivity : (nC,) numpy.ndarray, optional
+    permittivity : (n_cells,) numpy.ndarray, optional
         Dielectric permittivity defined on the entire mesh. Please note this is
         not and invertible property of the simulation. If ``None``, electric
         displacement is ignored and the problem is solved according to the quasi-static approximation.
-    storeJ : bool
+    storeJ : bool, optional
         Whether to compute and store the sensitivity matrix.
 
     Notes
@@ -1981,7 +1981,7 @@ class Simulation3DMagneticField(BaseFDEMSimulation):
         * :math:`\mathbf{M_{f\frac{1}{\hat{\sigma}}}}` is the inner-product matrix for the inverse of :math:`\hat{\sigma} = \sigma + i\omega \varepsilon` projected to faces
         * :math:`\mathbf{M_{e\mu}}` is the inner-product matrix for permeabilities projected to edges
 
-        See the *Notes* section of the doc strings for :py:class:`Simulation3DMagneticField`
+        See the *Notes* section of the doc strings for :class:`Simulation3DMagneticField`
         for a full description of the formulation.
 
         Parameters
@@ -1991,7 +1991,7 @@ class Simulation3DMagneticField(BaseFDEMSimulation):
 
         Returns
         -------
-        (nE, nE) sp.sparse.csr_matrix
+        (n_edges, n_edges) sp.sparse.csr_matrix
             The system matrix.
         """
 
@@ -2027,7 +2027,7 @@ class Simulation3DMagneticField(BaseFDEMSimulation):
         * :math:`\mathbf{M_{f\frac{1}{\hat{\sigma}}}}` is the inner-product matrix for the inverse of :math:`\hat{\sigma} = \sigma + i\omega \varepsilon` projected to faces
         * :math:`\mathbf{M_{e\mu}}` is the inner-product matrix for permeabilities projected to edges
 
-        See the *Notes* section of the doc strings for :py:class:`Simulation3DMagneticField`
+        See the *Notes* section of the doc strings for :class:`Simulation3DMagneticField`
         for a full description of the formulation.
 
         Where :math:`\mathbf{m}_\boldsymbol{\sigma}` are the set of model parameters defining the conductivity,
@@ -2046,17 +2046,17 @@ class Simulation3DMagneticField(BaseFDEMSimulation):
         ----------
         freq : float
             The frequency in Hz.
-        u : (nE,) numpy.ndarray
+        u : (n_edges,) numpy.ndarray
             The solution for the fields for the current model at the specified frequency.
         v : numpy.ndarray
-            The vector. (n_param,) for the standard operation. (nE,) for the adjoint operation.
+            The vector. (n_param,) for the standard operation. (n_edges,) for the adjoint operation.
         adjoint : bool
             Whether to perform the adjoint operation.
 
         Returns
         -------
         numpy.ndarray
-            Derivative of system matrix times a vector. (nE,) for the standard operation.
+            Derivative of system matrix times a vector. (n_edges,) for the standard operation.
             (n_param,) for the adjoint operation.
         """
         C = self.mesh.edge_curl
@@ -2084,7 +2084,7 @@ class Simulation3DMagneticField(BaseFDEMSimulation):
         * :math:`\mathbf{M_{f\frac{1}{\hat{\sigma}}}}` is the inner-product matrix for the inverse of :math:`\hat{\sigma} = \sigma + i\omega \varepsilon` projected to faces
         * :math:`\mathbf{M_{e\mu}}` is the inner-product matrix for permeabilities projected to edges
 
-        See the *Notes* section of the doc strings for :py:class:`Simulation3DMagneticField`
+        See the *Notes* section of the doc strings for :class:`Simulation3DMagneticField`
         for a full description of the formulation.
 
         Where :math:`\mathbf{m}_\boldsymbol{\mu}` are the set of model parameters defining the permeability,
@@ -2103,17 +2103,17 @@ class Simulation3DMagneticField(BaseFDEMSimulation):
         ----------
         freq : float
             The frequency in Hz.
-        u : (nE,) numpy.ndarray
+        u : (n_edges,) numpy.ndarray
             The solution for the fields for the current model at the specified frequency.
         v : numpy.ndarray
-            The vector. (n_param,) for the standard operation. (nE,) for the adjoint operation.
+            The vector. (n_param,) for the standard operation. (n_edges,) for the adjoint operation.
         adjoint : bool
             Whether to perform the adjoint operation.
 
         Returns
         -------
         numpy.ndarray
-            Derivative of system matrix times a vector. (nE,) for the standard operation.
+            Derivative of system matrix times a vector. (n_edges,) for the standard operation.
             (n_param,) for the adjoint operation.
         """
         MeMuDeriv = self.MeMuDeriv(u)
@@ -2143,7 +2143,7 @@ class Simulation3DMagneticField(BaseFDEMSimulation):
         * :math:`\mathbf{M_{f\frac{1}{\hat{\sigma}}}}` is the inner-product matrix for the inverse of :math:`\hat{\sigma} = \sigma + i\omega \varepsilon` projected to faces
         * :math:`\mathbf{M_{e\mu}}` is the inner-product matrix for permeabilities projected to edges
 
-        See the *Notes* section of the doc strings for :py:class:`Simulation3DMagneticField`
+        See the *Notes* section of the doc strings for :class:`Simulation3DMagneticField`
         for a full description of the formulation.
 
         Where :math:`\mathbf{m}` are the set of model parameters defining the electromagnetic properties,
@@ -2162,17 +2162,17 @@ class Simulation3DMagneticField(BaseFDEMSimulation):
         ----------
         freq : float
             The frequency in Hz.
-        u : (nE,) numpy.ndarray
+        u : (n_edges,) numpy.ndarray
             The solution for the fields for the current model at the specified frequency.
         v : numpy.ndarray
-            The vector. (n_param,) for the standard operation. (nE,) for the adjoint operation.
+            The vector. (n_param,) for the standard operation. (n_edges,) for the adjoint operation.
         adjoint : bool
             Whether to perform the adjoint operation.
 
         Returns
         -------
         numpy.ndarray
-            Derivative of system matrix times a vector. (nE,) for the standard operation.
+            Derivative of system matrix times a vector. (n_edges,) for the standard operation.
             (n_param,) for the adjoint operation.
         """
         return self.getADeriv_rho(freq, u, v, adjoint) + self.getADeriv_mu(
@@ -2203,7 +2203,7 @@ class Simulation3DMagneticField(BaseFDEMSimulation):
         * :math:`\mathbf{M_{f\rho}}` is the inner-product matrices for resistivities projected to faces
         * :math:`\mathbf{M_{f\frac{1}{\hat{\sigma}}}}` is the inner-product matrix for the inverse of :math:`\hat{\sigma} = \sigma + i\omega \varepsilon` projected to faces
 
-        See the *Notes* section of the doc strings for :py:class:`Simulation3DMagneticField`
+        See the *Notes* section of the doc strings for :class:`Simulation3DMagneticField`
         for a full description of the formulation.
 
         Parameters
@@ -2213,7 +2213,7 @@ class Simulation3DMagneticField(BaseFDEMSimulation):
 
         Returns
         -------
-        (nE, nSrc) numpy.ndarray
+        (n_edges, n_sources) numpy.ndarray
             The right-hand sides.
         """
 
@@ -2252,7 +2252,7 @@ class Simulation3DMagneticField(BaseFDEMSimulation):
         * :math:`\mathbf{M_{f\rho}}` is the inner-product matrices for resistivities projected to faces
         * :math:`\mathbf{M_{f\frac{1}{\hat{\sigma}}}}` is the inner-product matrix for the inverse of :math:`\hat{\sigma} = \sigma + i\omega \varepsilon` projected to faces
 
-        See the *Notes* section of the doc strings for :py:class:`Simulation3DMagneticField`
+        See the *Notes* section of the doc strings for :class:`Simulation3DMagneticField`
         for a full description of the formulation.
 
         Where :math:`\mathbf{m}` are the set of model parameters and :math:`\mathbf{v}` is a vector,
@@ -2273,14 +2273,14 @@ class Simulation3DMagneticField(BaseFDEMSimulation):
         src : SimPEG.electromagnetics.frequency_domain.sources.BaseFDEMSrc
             The FDEM source object.
         v : numpy.ndarray
-            The vector. (n_param,) for the standard operation. (nE,) for the adjoint operation.
+            The vector. (n_param,) for the standard operation. (n_edges,) for the adjoint operation.
         adjoint : bool
             Whether to perform the adjoint operation.
 
         Returns
         -------
         numpy.ndarray
-            Derivative of the right-hand sides times a vector. (nE,) for the standard operation.
+            Derivative of the right-hand sides times a vector. (n_edges,) for the standard operation.
             (n_param,) for the adjoint operation.
         """
 

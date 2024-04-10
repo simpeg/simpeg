@@ -9,7 +9,7 @@ class FieldsTDEM(TimeFields):
     r"""Base class for storing TDEM fields.
 
     TDEM fields classes are used to store the discrete solution of the fields for a
-    corresponding TDEM simulation; see :py:class:`SimPEG.electromagnetics.time_domain.simulation.BaseTDEMSimulation`.
+    corresponding TDEM simulation; see :class:`.time_domain.BaseTDEMSimulation`.
     Only one field type (e.g. 'e', 'j', 'h', 'b') is stored, but certain field types
     can be rapidly computed and returned on the fly. The field type that is stored and the
     field types that can be returned depend on the formulation used by the associated simulation class.
@@ -17,7 +17,7 @@ class FieldsTDEM(TimeFields):
 
     Parameters
     ----------
-    simulation : SimPEG.electromagnetics.time_domain.simulation.BaseTDEMSimulation
+    simulation : .time_domain.BaseTDEMSimulation
         The TDEM simulation object used to compute the discrete field solution.
 
     Example
@@ -107,7 +107,7 @@ class FieldsDerivativesEB(FieldsTDEM):
 
     Parameters
     ----------
-    simulation : SimPEG.electromagnetics.time_domain.simulation.BaseTDEMSimulation
+    simulation : .time_domain.BaseTDEMSimulation
         The TDEM simulation object associated with the fields.
 
     """
@@ -129,7 +129,7 @@ class FieldsDerivativesHJ(FieldsTDEM):
 
     Parameters
     ----------
-    simulation : SimPEG.electromagnetics.time_domain.simulation.BaseTDEMSimulation
+    simulation : .time_domain.BaseTDEMSimulation
         The TDEM simulation object associated with the fields.
 
     """
@@ -150,7 +150,7 @@ class Fields3DMagneticFluxDensity(FieldsTDEM):
     r"""Fields class for storing 3D total magnetic flux density solutions.
 
     This class stores the total magnetic flux density solution computed using a
-    :py:class:`SimPEG.electromagnetics.time_domain.simulation.Simulation3DMagneticFluxDensity`
+    :class:`.time_domain.Simulation3DMagneticFluxDensity`
     simulation object. This class can be used to extract the following quantities:
 
     * 'b', 'h', 'dbdt' and 'dhdt' on mesh faces.
@@ -161,7 +161,7 @@ class Fields3DMagneticFluxDensity(FieldsTDEM):
 
     Parameters
     ----------
-    simulation : SimPEG.electromagnetics.time_domain.simulation.Simulation3DMagneticFluxDensity
+    simulation : .time_domain.Simulation3DMagneticFluxDensity
         The TDEM simulation object associated with the fields.
 
     Example
@@ -349,7 +349,7 @@ class Fields3DElectricField(FieldsTDEM):
     r"""Fields class for storing 3D total electric field solutions.
 
     This class stores the total electric field solution computed using a
-    :py:class:`SimPEG.electromagnetics.time_domain.simulation.Simulation3DElectricField`
+    :class:`.time_domain.Simulation3DElectricField`
     simulation object. This class can be used to extract the following quantities:
 
     * 'e' and 'j' on mesh edges.
@@ -360,7 +360,7 @@ class Fields3DElectricField(FieldsTDEM):
 
     Parameters
     ----------
-    simulation : SimPEG.electromagnetics.time_domain.simulation.Simulation3DElectricField
+    simulation : .time_domain.Simulation3DElectricField
         The TDEM simulation object associated with the fields.
 
     Example
@@ -510,7 +510,7 @@ class Fields3DMagneticField(FieldsTDEM):
     r"""Fields class for storing 3D total magnetic field solutions.
 
     This class stores the total magnetic field solution computed using a
-    :py:class:`SimPEG.electromagnetics.time_domain.simulation.Simulation3DElectricField`
+    :class:`.time_domain.Simulation3DElectricField`
     simulation object. This class can be used to extract the following quantities:
 
     * 'h', 'b', 'dbdt' and 'dbdt' on mesh edges.
@@ -522,7 +522,7 @@ class Fields3DMagneticField(FieldsTDEM):
 
     Parameters
     ----------
-    simulation : SimPEG.electromagnetics.time_domain.simulation.Simulation3DMagneticField
+    simulation : .time_domain.Simulation3DMagneticField
         The TDEM simulation object associated with the fields.
 
     Example
@@ -720,7 +720,7 @@ class Fields3DCurrentDensity(FieldsTDEM):
     r"""Fields class for storing 3D current density solutions.
 
     This class stores the total current density solution computed using a
-    :py:class:`SimPEG.electromagnetics.time_domain.simulation.Simulation3DCurrentDensity`
+    :class:`.time_domain.Simulation3DCurrentDensity`
     simulation object. This class can be used to extract the following quantities:
 
     * 'j' and 'e' on mesh faces.
@@ -732,7 +732,7 @@ class Fields3DCurrentDensity(FieldsTDEM):
 
     Parameters
     ----------
-    simulation : SimPEG.electromagnetics.time_domain.simulation.Simulation3DCurrentDensity
+    simulation : .time_domain.Simulation3DCurrentDensity
         The TDEM simulation object associated with the fields.
 
     Example

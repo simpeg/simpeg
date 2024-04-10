@@ -46,7 +46,7 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
     ----------
     mesh : discretize.base.BaseMesh
         The mesh.
-    survey : SimPEG.electromagnetics.time_domain.survey.Survey
+    survey : .time_domain.Survey
         The time-domain EM survey.
     dt_threshold : float
         Threshold used when determining the unique time-step lengths.
@@ -67,7 +67,7 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
 
         Returns
         -------
-        SimPEG.electromagnetics.time_domain.survey.Survey
+        .time_domain.Survey
             The TDEM survey object.
         """
         if self._survey is None:
@@ -120,7 +120,7 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
 
         Returns
         -------
-        SimPEG.electromagnetics.time_domain.fields.FieldsTDEM
+        .time_domain.fields.FieldsTDEM
             The TDEM fields object.
         """
 
@@ -198,7 +198,7 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
             The model parameters.
         v : (n_param,) numpy.ndarray
             The vector.
-        f : SimPEG.electromagnetics.time_domain.fields.FieldsTDEM, optional
+        f : .time_domain.fields.FieldsTDEM, optional
             Fields solved for all sources.
 
         Returns
@@ -215,7 +215,7 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
 
         # mat to store previous time-step's solution deriv times a vector for
         # each source
-        # size: nu x nSrc
+        # size: nu x n_sources
 
         # this is a bit silly
 
@@ -316,7 +316,7 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
             The model parameters.
         v : (n_data,) numpy.ndarray
             The vector.
-        f : SimPEG.electromagnetics.time_domain.fields.FieldsTDEM, optional
+        f : .time_domain.fields.FieldsTDEM, optional
             Fields solved for all sources.
 
         Returns
@@ -464,8 +464,8 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
             The source terms for the time index provided. The method returns
             a ``tuple`` (s_m, s_e), where:
 
-            * s_m is a (nF, n_sources) numpy.ndarray and s_e is a (nE, n_sources) numpy.ndarray for EB-formulations.
-            * s_m is a (nE, n_sources) numpy.ndarray and s_e is a (nF, n_sources) numpy.ndarray for HJ-formulations.
+            * s_m is a (n_faces, n_sources) numpy.ndarray and s_e is a (n_edges, n_sources) numpy.ndarray for EB-formulations.
+            * s_m is a (n_edges, n_sources) numpy.ndarray and s_e is a (n_faces, n_sources) numpy.ndarray for HJ-formulations.
         """
 
         Srcs = self.survey.source_list
@@ -489,7 +489,7 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
 
         Returns
         -------
-        (nE or nF, nSrc) numpy.ndarray
+        (n_edges or nF, n_sources) numpy.ndarray
             The fields for all sources at the initial time.
         """
 
@@ -531,7 +531,7 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
             A TDEM source.
         v : numpy.ndarray
             A vector of appropriate dimension. When `adjoint` is ``False``, `v` is a
-            (n_param,) numpy.ndarray. When `adjoint` is ``True``, `v` is a (nE or nF,)
+            (n_param,) numpy.ndarray. When `adjoint` is ``True``, `v` is a (n_edges or nF,)
             numpy.ndarray.
         adjoint : bool
             Whether to perform the adjoint operation.
@@ -542,7 +542,7 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
         -------
         numpy.ndarray
             Derivatives of the intial fields with respect to the model for a given source.
-            (nE or nF,) numpy.ndarray when `adjoint` is ``False``. (n_param,) numpy.ndarray
+            (n_edges or nF,) numpy.ndarray when `adjoint` is ``False``. (n_param,) numpy.ndarray
             when `ajoint` is ``True``.
         """
         ifieldsDeriv = mkvc(
@@ -593,9 +593,9 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
 
         Notes
         -----
-        See the docstrings for :py:class:`SimPEG.electromagnetics.static.resistivity.simulation.BaseDCSimulation`,
-        :py:class:`SimPEG.electromagnetics.static.resistivity.simulation.Simulation3DCellCentered` and
-        :py:class:`SimPEG.electromagnetics.static.resistivity.simulation.Simulation3DNodal` to learn
+        See the docstrings for :class:`.resistivity.BaseDCSimulation`,
+        :class:`.resistivity.Simulation3DCellCentered` and
+        :class:`.resistivity.Simulation3DNodal` to learn
         more about how the DC resistivity problem is solved.
         """
         if not hasattr(self, "getAdc"):
@@ -647,7 +647,7 @@ class Simulation3DMagneticFluxDensity(BaseTDEMSimulation):
     ----------
     mesh : discretize.base.BaseMesh
         The mesh.
-    survey : SimPEG.electromagnetics.time_domain.survey.Survey
+    survey : .time_domain.Survey
         The time-domain EM survey.
     dt_threshold : float
         Threshold used when determining the unique time-step lengths.
@@ -775,7 +775,7 @@ class Simulation3DMagneticFluxDensity(BaseTDEMSimulation):
         * :math:`\mathbf{M_{e \sigma}}` is the conductivity inner-product matrix on edges
         * :math:`\mathbf{M_{f\frac{1}{\mu}}}` is the inverse permeability inner-product matrix on faces
 
-        See the *Notes* section of the doc strings for :py:class:`Simulation3DMagneticFluxDensity`
+        See the *Notes* section of the doc strings for :class:`Simulation3DMagneticFluxDensity`
         for a full description of the formulation.
 
         Parameters
@@ -785,7 +785,7 @@ class Simulation3DMagneticFluxDensity(BaseTDEMSimulation):
 
         Returns
         -------
-        (nF, nF) sp.sparse.csr_matrix
+        (n_faces, n_faces) sp.sparse.csr_matrix
             The diagonal system matrix.
         """
         assert tInd >= 0 and tInd < self.nT
@@ -818,7 +818,7 @@ class Simulation3DMagneticFluxDensity(BaseTDEMSimulation):
         * :math:`\mathbf{M_{e \sigma}}` is the conductivity inner-product matrix on edges
         * :math:`\mathbf{M_{f\frac{1}{\mu}}}` is the inverse permeability inner-product matrix on faces
 
-        See the *Notes* section of the doc strings for :py:class:`Simulation3DMagneticFluxDensity`
+        See the *Notes* section of the doc strings for :class:`Simulation3DMagneticFluxDensity`
         for a full description of the formulation.
 
         Where :math:`\mathbf{m}` are the set of model parameters, :math:`\mathbf{v}` is a vector
@@ -837,17 +837,17 @@ class Simulation3DMagneticFluxDensity(BaseTDEMSimulation):
         ----------
         tInd : int
             The time-step index; between [0, n_steps-1].
-        u : (nF,) numpy.ndarray
+        u : (n_faces,) numpy.ndarray
             The solution for the fields for the current model; i.e. :math:`\mathbf{b_k}`.
         v : numpy.ndarray
-            The vector. (n_param,) for the standard operation. (nF,) for the adjoint operation.
+            The vector. (n_param,) for the standard operation. (n_faces,) for the adjoint operation.
         adjoint : bool
             Whether to perform the adjoint operation.
 
         Returns
         -------
         numpy.ndarray
-            Derivative of system matrix times a vector. (nF,) for the standard operation.
+            Derivative of system matrix times a vector. (n_faces,) for the standard operation.
             (n_param,) for the adjoint operation.
         """
         C = self.mesh.edge_curl
@@ -878,7 +878,7 @@ class Simulation3DMagneticFluxDensity(BaseTDEMSimulation):
 
         where :math:`\Delta t_k` is the step length and :math:`\mathbf{I}` is the identity matrix.
 
-        See the *Notes* section of the doc strings for :py:class:`Simulation3DMagneticFluxDensity`
+        See the *Notes* section of the doc strings for :class:`Simulation3DMagneticFluxDensity`
         for a full description of the formulation.
 
         Parameters
@@ -888,7 +888,7 @@ class Simulation3DMagneticFluxDensity(BaseTDEMSimulation):
 
         Returns
         -------
-        (nF, nF) sp.sparse.csr_matrix
+        (n_faces, n_faces) sp.sparse.csr_matrix
             The sub-diagonal system matrix.
         """
 
@@ -911,7 +911,7 @@ class Simulation3DMagneticFluxDensity(BaseTDEMSimulation):
 
         where :math:`\Delta t_k` is the step length and :math:`\mathbf{I}` is the identity matrix.
 
-        See the *Notes* section of the doc strings for :py:class:`Simulation3DMagneticFluxDensity`
+        See the *Notes* section of the doc strings for :class:`Simulation3DMagneticFluxDensity`
         for a full description of the formulation.
 
         Where :math:`\mathbf{m}` are the set of model parameters, :math:`\mathbf{v}` is a vector
@@ -933,18 +933,18 @@ class Simulation3DMagneticFluxDensity(BaseTDEMSimulation):
         ----------
         tInd : int
             The time index; between [0, n_steps-1].
-        u : (nF,) numpy.ndarray
+        u : (n_faces,) numpy.ndarray
             The solution for the fields for the current model for the previous time-step;
             i.e. :math:`\mathbf{b_{k-1}}`.
         v : numpy.ndarray
-            The vector. (n_param,) for the standard operation. (nF,) for the adjoint operation.
+            The vector. (n_param,) for the standard operation. (n_faces,) for the adjoint operation.
         adjoint : bool
             Whether to perform the adjoint operation.
 
         Returns
         -------
         numpy.ndarray
-            Derivative of system matrix times a vector. (nF,) for the standard operation.
+            Derivative of system matrix times a vector. (n_faces,) for the standard operation.
             (n_param,) for the adjoint operation.
         """
         return Zero() * v
@@ -966,7 +966,7 @@ class Simulation3DMagneticFluxDensity(BaseTDEMSimulation):
         * :math:`\mathbf{s_m}` and :math:`\mathbf{s_e}` are the integrated magnetic and electric source terms, respectively
         * :math:`\mathbf{M_{e\sigma}}` is the inner-product matrix for conductivities projected to edges
 
-        See the *Notes* section of the doc strings for :py:class:`Simulation3DMagneticFluxDensity`
+        See the *Notes* section of the doc strings for :class:`Simulation3DMagneticFluxDensity`
         for a full description of the formulation.
 
         Parameters
@@ -976,7 +976,7 @@ class Simulation3DMagneticFluxDensity(BaseTDEMSimulation):
 
         Returns
         -------
-        (nF, nSrc) numpy.ndarray
+        (n_faces, n_sources) numpy.ndarray
             The right-hand sides.
         """
         C = self.mesh.edge_curl
@@ -1006,7 +1006,7 @@ class Simulation3DMagneticFluxDensity(BaseTDEMSimulation):
         * :math:`\mathbf{s_m}` and :math:`\mathbf{s_e}` are the integrated magnetic and electric source terms, respectively
         * :math:`\mathbf{M_{e\sigma}}` is the inner-product matrix for conductivities projected to edges
 
-         See the *Notes* section of the doc strings for :py:class:`Simulation3DMagneticFluxDensity`
+         See the *Notes* section of the doc strings for :class:`Simulation3DMagneticFluxDensity`
         for a full description of the formulation.
 
         Where :math:`\mathbf{m}` are the set of model parameters and :math:`\mathbf{v}` is a vector,
@@ -1027,14 +1027,14 @@ class Simulation3DMagneticFluxDensity(BaseTDEMSimulation):
         src : SimPEG.electromagnetics.time_domain.sources.BaseTDEMSrc
             The TDEM source object.
         v : numpy.ndarray
-            The vector. (n_param,) for the standard operation. (nF,) for the adjoint operation.
+            The vector. (n_param,) for the standard operation. (n_faces,) for the adjoint operation.
         adjoint : bool
             Whether to perform the adjoint operation.
 
         Returns
         -------
         numpy.ndarray
-            Derivative of the right-hand sides times a vector. (nF,) for the standard operation.
+            Derivative of the right-hand sides times a vector. (n_faces,) for the standard operation.
             (n_param,) for the adjoint operation.
         """
 
@@ -1081,7 +1081,7 @@ class Simulation3DElectricField(BaseTDEMSimulation):
     ----------
     mesh : discretize.base.BaseMesh
         The mesh.
-    survey : SimPEG.electromagnetics.time_domain.survey.Survey
+    survey : .time_domain.Survey
         The time-domain EM survey.
     dt_threshold : float
         Threshold used when determining the unique time-step lengths.
@@ -1366,7 +1366,7 @@ class Simulation3DElectricField(BaseTDEMSimulation):
         * :math:`\mathbf{M_{e \sigma}}` is the conductivity inner-product matrix on edges
         * :math:`\mathbf{M_{f\frac{1}{\mu}}}` is the inverse permeability inner-product matrix on faces
 
-        See the *Notes* section of the doc strings for :py:class:`Simulation3DElectricField`
+        See the *Notes* section of the doc strings for :class:`Simulation3DElectricField`
         for a full description of the formulation.
 
         Parameters
@@ -1376,7 +1376,7 @@ class Simulation3DElectricField(BaseTDEMSimulation):
 
         Returns
         -------
-        (nE, nE) sp.sparse.csr_matrix
+        (n_edges, n_edges) sp.sparse.csr_matrix
             The diagonal system matrix.
         """
         assert tInd >= 0 and tInd < self.nT
@@ -1403,7 +1403,7 @@ class Simulation3DElectricField(BaseTDEMSimulation):
         * :math:`\mathbf{M_{e \sigma}}` is the conductivity inner-product matrix on edges
         * :math:`\mathbf{M_{f\frac{1}{\mu}}}` is the inverse permeability inner-product matrix on faces
 
-        See the *Notes* section of the doc strings for :py:class:`Simulation3DElectricField`
+        See the *Notes* section of the doc strings for :class:`Simulation3DElectricField`
         for a full description of the formulation.
 
         Where :math:`\mathbf{m}` are the set of model parameters, :math:`\mathbf{v}` is a vector
@@ -1422,18 +1422,18 @@ class Simulation3DElectricField(BaseTDEMSimulation):
         ----------
         tInd : int
             The time-step index; between [0, n_steps-1].
-        u : (nE,) numpy.ndarray
+        u : (n_edges,) numpy.ndarray
             The solution for the fields for the current model for the specified time-step;
             i.e. :math:`\mathbf{e_k}`.
         v : numpy.ndarray
-            The vector. (n_param,) for the standard operation. (nE,) for the adjoint operation.
+            The vector. (n_param,) for the standard operation. (n_edges,) for the adjoint operation.
         adjoint : bool
             Whether to perform the adjoint operation.
 
         Returns
         -------
         numpy.ndarray
-            Derivative of system matrix times a vector. (nE,) for the standard operation.
+            Derivative of system matrix times a vector. (n_edges,) for the standard operation.
             (n_param,) for the adjoint operation.
         """
         assert tInd >= 0 and tInd < self.nT
@@ -1457,7 +1457,7 @@ class Simulation3DElectricField(BaseTDEMSimulation):
         where :math:`\Delta t_k` is the step-length and :math:`\mathbf{M_{e \sigma}}` is the
         conductivity inner-product matrix on edges.
 
-        See the *Notes* section of the doc strings for :py:class:`Simulation3DElectricField`
+        See the *Notes* section of the doc strings for :class:`Simulation3DElectricField`
         for a full description of the formulation.
 
         Parameters
@@ -1467,7 +1467,7 @@ class Simulation3DElectricField(BaseTDEMSimulation):
 
         Returns
         -------
-        (nE, nE) sp.sparse.csr_matrix
+        (n_edges, n_edges) sp.sparse.csr_matrix
             The sub-diagonal system matrix.
         """
         assert tInd >= 0 and tInd < self.nT
@@ -1487,7 +1487,7 @@ class Simulation3DElectricField(BaseTDEMSimulation):
         where :math:`\Delta t_k` is the step-length and :math:`\mathbf{M_{e \sigma}}` is the
         conductivity inner-product matrix on edges.
 
-        See the *Notes* section of the doc strings for :py:class:`Simulation3DElectricField`
+        See the *Notes* section of the doc strings for :class:`Simulation3DElectricField`
         for a full description of the formulation.
 
         Where :math:`\mathbf{m}` are the set of model parameters, :math:`\mathbf{v}` is a vector
@@ -1506,18 +1506,18 @@ class Simulation3DElectricField(BaseTDEMSimulation):
         ----------
         tInd : int
             The time-step index; between [0, n_steps-1].
-        u : (nE,) numpy.ndarray
+        u : (n_edges,) numpy.ndarray
             The solution for the fields for the current model for the previous time-step;
             i.e. :math:`\mathbf{e_{k-1}}`.
         v : numpy.ndarray
-            The vector. (n_param,) for the standard operation. (nE,) for the adjoint operation.
+            The vector. (n_param,) for the standard operation. (n_edges,) for the adjoint operation.
         adjoint : bool
             Whether to perform the adjoint operation.
 
         Returns
         -------
         numpy.ndarray
-            Derivative of system matrix times a vector. (nE,) for the standard operation.
+            Derivative of system matrix times a vector. (n_edges,) for the standard operation.
             (n_param,) for the adjoint operation.
         """
         dt = self.time_steps[tInd]
@@ -1546,7 +1546,7 @@ class Simulation3DElectricField(BaseTDEMSimulation):
         * :math:`\mathbf{s_m}` and :math:`\mathbf{s_e}` are the integrated magnetic and electric source terms, respectively
         * :math:`\mathbf{M_{f\frac{1}{\mu}}}` is the inner-product matrices for inverse permeabilities projected to faces
 
-        See the *Notes* section of the doc strings for :py:class:`Simulation3DElectricField`
+        See the *Notes* section of the doc strings for :class:`Simulation3DElectricField`
         for a full description of the formulation.
 
         Parameters
@@ -1556,7 +1556,7 @@ class Simulation3DElectricField(BaseTDEMSimulation):
 
         Returns
         -------
-        (nE, nSrc) numpy.ndarray
+        (n_edges, n_sources) numpy.ndarray
             The right-hand sides.
         """
         # Omit this: Note input was tInd+1
@@ -1587,7 +1587,7 @@ class Simulation3DElectricField(BaseTDEMSimulation):
         * :math:`\mathbf{s_m}` and :math:`\mathbf{s_e}` are the integrated magnetic and electric source terms, respectively
         * :math:`\mathbf{M_{f\frac{1}{\mu}}}` is the inner-product matrices for inverse permeabilities projected to faces
 
-        See the *Notes* section of the doc strings for :py:class:`Simulation3DElectricField`
+        See the *Notes* section of the doc strings for :class:`Simulation3DElectricField`
         for a full description of the formulation.
 
         Where :math:`\mathbf{m}` are the set of model parameters and :math:`\mathbf{v}` is a vector,
@@ -1608,14 +1608,14 @@ class Simulation3DElectricField(BaseTDEMSimulation):
         src : SimPEG.electromagnetics.time_domain.sources.BaseTDEMSrc
             The TDEM source object.
         v : numpy.ndarray
-            The vector. (n_param,) for the standard operation. (nE,) for the adjoint operation.
+            The vector. (n_param,) for the standard operation. (n_edges,) for the adjoint operation.
         adjoint : bool
             Whether to perform the adjoint operation.
 
         Returns
         -------
         numpy.ndarray
-            Derivative of the right-hand sides times a vector. (nE,) for the standard operation.
+            Derivative of the right-hand sides times a vector. (n_edges,) for the standard operation.
             (n_param,) for the adjoint operation.
         """
         # right now, we are assuming that s_e, s_m do not depend on the model.
@@ -1648,13 +1648,12 @@ class Simulation3DElectricField(BaseTDEMSimulation):
         .. math::
             \mathbf{e_0} = \mathbf{G} \, \boldsymbol{\phi_0}
 
-        See the *Notes* section of the doc strings for
-        :py:class:`SimPEG.electromagnetics.static.resistivity.simulation.Simulation3DNodal`
+        See the *Notes* section of the doc strings for :class:`.resistivity.Simulation3DNodal`
         for a full description of the nodal DC resistivity formulation.
 
         Returns
         -------
-        (nN, nN) sp.sparse.csr_matrix
+        (n_nodes, n_nodes) sp.sparse.csr_matrix
             The system matrix for the DC resistivity problem.
         """
         MeSigma = self.MeSigma
@@ -1735,7 +1734,7 @@ class Simulation3DMagneticField(BaseTDEMSimulation):
     ----------
     mesh : discretize.base.BaseMesh
         The mesh.
-    survey : SimPEG.electromagnetics.time_domain.survey.Survey
+    survey : .time_domain.Survey
         The time-domain EM survey.
     dt_threshold : float
         Threshold used when determining the unique time-step lengths.
@@ -1859,7 +1858,7 @@ class Simulation3DMagneticField(BaseTDEMSimulation):
         * :math:`\mathbf{M_{f \rho}}` is the resistivity inner-product matrix on faces
         * :math:`\mathbf{M_{e\mu}}` is the permeability inner-product matrix on edges
 
-        See the *Notes* section of the doc strings for :py:class:`Simulation3DMagneticField`
+        See the *Notes* section of the doc strings for :class:`Simulation3DMagneticField`
         for a full description of the formulation.
 
         Parameters
@@ -1869,7 +1868,7 @@ class Simulation3DMagneticField(BaseTDEMSimulation):
 
         Returns
         -------
-        (nE, nE) sp.sparse.csr_matrix
+        (n_edges, n_edges) sp.sparse.csr_matrix
             The diagonal system matrix.
         """
         assert tInd >= 0 and tInd < self.nT
@@ -1896,7 +1895,7 @@ class Simulation3DMagneticField(BaseTDEMSimulation):
         * :math:`\mathbf{M_{f \rho}}` is the resistivity inner-product matrix on faces
         * :math:`\mathbf{M_{e\mu}}` is the permeability inner-product matrix on edges
 
-        See the *Notes* section of the doc strings for :py:class:`Simulation3DMagneticField`
+        See the *Notes* section of the doc strings for :class:`Simulation3DMagneticField`
         for a full description of the formulation.
 
         Where :math:`\mathbf{m}` are the set of model parameters, :math:`\mathbf{v}` is a vector
@@ -1915,17 +1914,17 @@ class Simulation3DMagneticField(BaseTDEMSimulation):
         ----------
         tInd : int
             The time-step index; between [0, n_steps-1].
-        u : (nE,) numpy.ndarray
+        u : (n_edges,) numpy.ndarray
             The solution for the fields for the current model; i.e. :math:`\mathbf{h_k}`.
         v : numpy.ndarray
-            The vector. (n_param,) for the standard operation. (nE,) for the adjoint operation.
+            The vector. (n_param,) for the standard operation. (n_edges,) for the adjoint operation.
         adjoint : bool
             Whether to perform the adjoint operation.
 
         Returns
         -------
         numpy.ndarray
-            Derivative of system matrix times a vector. (nE,) for the standard operation.
+            Derivative of system matrix times a vector. (n_edges,) for the standard operation.
             (n_param,) for the adjoint operation.
         """
         assert tInd >= 0 and tInd < self.nT
@@ -1948,7 +1947,7 @@ class Simulation3DMagneticField(BaseTDEMSimulation):
         where :math:`\Delta t_k` is the step-length and :math:`\mathbf{M_{e \mu}}` is the
         permeability inner-product matrix on edges.
 
-        See the *Notes* section of the doc strings for :py:class:`Simulation3DMagneticField`
+        See the *Notes* section of the doc strings for :class:`Simulation3DMagneticField`
         for a full description of the formulation.
 
         Parameters
@@ -1958,7 +1957,7 @@ class Simulation3DMagneticField(BaseTDEMSimulation):
 
         Returns
         -------
-        (nE, nE) sp.sparse.csr_matrix
+        (n_edges, n_edges) sp.sparse.csr_matrix
             The sub-diagonal system matrix.
         """
         assert tInd >= 0 and tInd < self.nT
@@ -1978,7 +1977,7 @@ class Simulation3DMagneticField(BaseTDEMSimulation):
         where :math:`\Delta t_k` is the step-length and :math:`\mathbf{M_{e \mu}}` is the
         permeability inner-product matrix on edges.
 
-        See the *Notes* section of the doc strings for :py:class:`Simulation3DMagneticField`
+        See the *Notes* section of the doc strings for :class:`Simulation3DMagneticField`
         for a full description of the formulation.
 
         Where :math:`\mathbf{m}` are the set of model parameters, :math:`\mathbf{v}` is a vector
@@ -1997,18 +1996,18 @@ class Simulation3DMagneticField(BaseTDEMSimulation):
         ----------
         tInd : int
             The time-step index; between [0, n_steps-1].
-        u : (nE,) numpy.ndarray
+        u : (n_edges,) numpy.ndarray
             The solution for the fields for the current model for the previous time-step;
             i.e. :math:`\mathbf{h_{k-1}}`.
         v : numpy.ndarray
-            The vector. (n_param,) for the standard operation. (nE,) for the adjoint operation.
+            The vector. (n_param,) for the standard operation. (n_edges,) for the adjoint operation.
         adjoint : bool
             Whether to perform the adjoint operation.
 
         Returns
         -------
         numpy.ndarray
-            Derivative of system matrix times a vector. (nE,) for the standard operation.
+            Derivative of system matrix times a vector. (n_edges,) for the standard operation.
             (n_param,) for the adjoint operation.
         """
         return Zero()
@@ -2030,7 +2029,7 @@ class Simulation3DMagneticField(BaseTDEMSimulation):
         * :math:`\mathbf{s_m}` and :math:`\mathbf{s_e}` are the integrated magnetic and electric source terms, respectively
         * :math:`\mathbf{M_{f\rho}}` is the inner-product matrix for resisitivites projected to faces
 
-        See the *Notes* section of the doc strings for :py:class:`Simulation3DMagneticField`
+        See the *Notes* section of the doc strings for :class:`Simulation3DMagneticField`
         for a full description of the formulation.
 
         Parameters
@@ -2040,7 +2039,7 @@ class Simulation3DMagneticField(BaseTDEMSimulation):
 
         Returns
         -------
-        (nE, nSrc) numpy.ndarray
+        (n_edges, n_sources) numpy.ndarray
             The right-hand sides.
         """
         C = self.mesh.edge_curl
@@ -2065,7 +2064,7 @@ class Simulation3DMagneticField(BaseTDEMSimulation):
         * :math:`\mathbf{s_m}` and :math:`\mathbf{s_e}` are the integrated magnetic and electric source terms, respectively
         * :math:`\mathbf{M_{f\rho}}` is the inner-product matrix for resisitivites projected to faces
 
-        See the *Notes* section of the doc strings for :py:class:`Simulation3DMagneticField`
+        See the *Notes* section of the doc strings for :class:`Simulation3DMagneticField`
         for a full description of the formulation.
 
         Where :math:`\mathbf{m}` are the set of model parameters and :math:`\mathbf{v}` is a vector,
@@ -2086,14 +2085,14 @@ class Simulation3DMagneticField(BaseTDEMSimulation):
         src : SimPEG.electromagnetics.time_domain.sources.BaseTDEMSrc
             The TDEM source object.
         v : numpy.ndarray
-            The vector. (n_param,) for the standard operation. (nE,) for the adjoint operation.
+            The vector. (n_param,) for the standard operation. (n_edges,) for the adjoint operation.
         adjoint : bool
             Whether to perform the adjoint operation.
 
         Returns
         -------
         numpy.ndarray
-            Derivative of the right-hand sides times a vector. (nE,) for the standard operation.
+            Derivative of the right-hand sides times a vector. (n_edges,) for the standard operation.
             (n_param,) for the adjoint operation.
         """
         C = self.mesh.edge_curl
@@ -2128,12 +2127,12 @@ class Simulation3DMagneticField(BaseTDEMSimulation):
         matrix for resistivities projected to faces.
 
         See the *Notes* section of the doc strings for
-        :py:class:`SimPEG.electromagnetics.static.resistivity.simulation.Simulation3DCellCentered`
+        :class:`.resistivity.Simulation3DCellCentered`
         for a full description of the cell centered DC resistivity formulation.
 
         Returns
         -------
-        (nC, nC) sp.sparse.csr_matrix
+        (n_cells, n_cells) sp.sparse.csr_matrix
             The system matrix for the DC resistivity problem.
         """
         D = sdiag(self.mesh.cell_volumes) * self.mesh.face_divergence
@@ -2164,17 +2163,17 @@ class Simulation3DMagneticField(BaseTDEMSimulation):
 
         Parameters
         ----------
-        u : (nC,) numpy.ndarray
+        u : (n_cells,) numpy.ndarray
             The solution for the fields for the current model; i.e. electric potentials at cell centers.
         v : numpy.ndarray
-            The vector. (n_param,) for the standard operation. (nC,) for the adjoint operation.
+            The vector. (n_param,) for the standard operation. (n_cells,) for the adjoint operation.
         adjoint : bool
             Whether to perform the adjoint operation.
 
         Returns
         -------
         numpy.ndarray
-            Derivative of the DC resistivity system matrix times a vector. (nC,) for the standard operation.
+            Derivative of the DC resistivity system matrix times a vector. (n_cells,) for the standard operation.
             (n_param,) for the adjoint operation.
         """
         D = sdiag(self.mesh.cell_volumes) * self.mesh.face_divergence
@@ -2202,7 +2201,7 @@ class Simulation3DCurrentDensity(BaseTDEMSimulation):
     ----------
     mesh : discretize.base.BaseMesh
         The mesh.
-    survey : SimPEG.electromagnetics.time_domain.survey.Survey
+    survey : .time_domain.Survey
         The time-domain EM survey.
     dt_threshold : float
         Threshold used when determining the unique time-step lengths.
@@ -2331,7 +2330,7 @@ class Simulation3DCurrentDensity(BaseTDEMSimulation):
         * :math:`\mathbf{M_{e \mu}}` is the permeability inner-product matrix on faces
         * :math:`\mathbf{M_{f \rho}}` is the permeability inner-product matrix on edges
 
-        See the *Notes* section of the doc strings for :py:class:`Simulation3DCurrentDensity`
+        See the *Notes* section of the doc strings for :class:`Simulation3DCurrentDensity`
         for a full description of the formulation.
 
         Parameters
@@ -2341,7 +2340,7 @@ class Simulation3DCurrentDensity(BaseTDEMSimulation):
 
         Returns
         -------
-        (nF, nF) sp.sparse.csr_matrix
+        (n_faces, n_faces) sp.sparse.csr_matrix
             The diagonal system matrix.
         """
         assert tInd >= 0 and tInd < self.nT
@@ -2375,7 +2374,7 @@ class Simulation3DCurrentDensity(BaseTDEMSimulation):
         * :math:`\mathbf{M_{e \mu}}` is the permeability inner-product matrix on faces
         * :math:`\mathbf{M_{f \rho}}` is the permeability inner-product matrix on edges
 
-        See the *Notes* section of the doc strings for :py:class:`Simulation3DCurrentDensity`
+        See the *Notes* section of the doc strings for :class:`Simulation3DCurrentDensity`
         for a full description of the formulation.
 
         Where :math:`\mathbf{m}` are the set of model parameters, :math:`\mathbf{v}` is a vector
@@ -2394,17 +2393,17 @@ class Simulation3DCurrentDensity(BaseTDEMSimulation):
         ----------
         tInd : int
             The time-step index; between [0, n_steps-1].
-        u : (nF,) numpy.ndarray
+        u : (n_faces,) numpy.ndarray
             The solution for the fields for the current model; i.e. :math:`\mathbf{j_k}`.
         v : numpy.ndarray
-            The vector. (n_param,) for the standard operation. (nF,) for the adjoint operation.
+            The vector. (n_param,) for the standard operation. (n_faces,) for the adjoint operation.
         adjoint : bool
             Whether to perform the adjoint operation.
 
         Returns
         -------
         numpy.ndarray
-            Derivative of system matrix times a vector. (nF,) for the standard operation.
+            Derivative of system matrix times a vector. (n_faces,) for the standard operation.
             (n_param,) for the adjoint operation.
         """
         assert tInd >= 0 and tInd < self.nT
@@ -2434,7 +2433,7 @@ class Simulation3DCurrentDensity(BaseTDEMSimulation):
         where :math:`\Delta t_k` is the step-length and :math:`\mathbf{I}` is the
         identity matrix.
 
-        See the *Notes* section of the doc strings for :py:class:`Simulation3DCurrentDensity`
+        See the *Notes* section of the doc strings for :class:`Simulation3DCurrentDensity`
         for a full description of the formulation.
 
         Parameters
@@ -2444,7 +2443,7 @@ class Simulation3DCurrentDensity(BaseTDEMSimulation):
 
         Returns
         -------
-        (nF, nF) sp.sparse.csr_matrix
+        (n_faces, n_faces) sp.sparse.csr_matrix
             The sub-diagonal system matrix.
         """
         assert tInd >= 0 and tInd < self.nT
@@ -2467,7 +2466,7 @@ class Simulation3DCurrentDensity(BaseTDEMSimulation):
         where :math:`\Delta t_k` is the step-length and :math:`\mathbf{I}` is the
         identity matrix.
 
-        See the *Notes* section of the doc strings for :py:class:`Simulation3DCurrentDensity`
+        See the *Notes* section of the doc strings for :class:`Simulation3DCurrentDensity`
         for a full description of the formulation.
 
         Where :math:`\mathbf{m}` are the set of model parameters, :math:`\mathbf{v}` is a vector
@@ -2486,18 +2485,18 @@ class Simulation3DCurrentDensity(BaseTDEMSimulation):
         ----------
         tInd : int
             The time-step index; between [0, n_steps-1].
-        u : (nF,) numpy.ndarray
+        u : (n_faces,) numpy.ndarray
             The solution for the fields for the current model for the previous time-step;
             i.e. :math:`\mathbf{j_{k-1}}`.
         v : numpy.ndarray
-            The vector. (n_param,) for the standard operation. (nF,) for the adjoint operation.
+            The vector. (n_param,) for the standard operation. (n_faces,) for the adjoint operation.
         adjoint : bool
             Whether to perform the adjoint operation.
 
         Returns
         -------
         numpy.ndarray
-            Derivative of system matrix times a vector. (nF,) for the standard operation.
+            Derivative of system matrix times a vector. (n_faces,) for the standard operation.
             (n_param,) for the adjoint operation.
         """
         return Zero()
@@ -2519,7 +2518,7 @@ class Simulation3DCurrentDensity(BaseTDEMSimulation):
         * :math:`\mathbf{s_m}` and :math:`\mathbf{s_e}` are the integrated magnetic and electric source terms, respectively
         * :math:`\mathbf{M_{e\mu}}` is the inner-product matrix for permeabilities projected to edges
 
-        See the *Notes* section of the doc strings for :py:class:`Simulation3DCurrentDensity`
+        See the *Notes* section of the doc strings for :class:`Simulation3DCurrentDensity`
         for a full description of the formulation.
 
         Parameters
@@ -2529,7 +2528,7 @@ class Simulation3DCurrentDensity(BaseTDEMSimulation):
 
         Returns
         -------
-        (nF, nSrc) numpy.ndarray
+        (n_faces, n_sources) numpy.ndarray
             The right-hand sides.
         """
         if tInd == len(self.time_steps):
@@ -2562,7 +2561,7 @@ class Simulation3DCurrentDensity(BaseTDEMSimulation):
         * :math:`\mathbf{s_m}` and :math:`\mathbf{s_e}` are the integrated magnetic and electric source terms, respectively
         * :math:`\mathbf{M_{e\mu}}` is the inner-product matrix for permeabilities projected to edges
 
-        See the *Notes* section of the doc strings for :py:class:`Simulation3DCurrentDensity`
+        See the *Notes* section of the doc strings for :class:`Simulation3DCurrentDensity`
         for a full description of the formulation.
 
         Where :math:`\mathbf{m}` are the set of model parameters and :math:`\mathbf{v}` is a vector,
@@ -2583,14 +2582,14 @@ class Simulation3DCurrentDensity(BaseTDEMSimulation):
         src : SimPEG.electromagnetics.time_domain.sources.BaseTDEMSrc
             The TDEM source object.
         v : numpy.ndarray
-            The vector. (n_param,) for the standard operation. (nF,) for the adjoint operation.
+            The vector. (n_param,) for the standard operation. (n_faces,) for the adjoint operation.
         adjoint : bool
             Whether to perform the adjoint operation.
 
         Returns
         -------
         numpy.ndarray
-            Derivative of the right-hand sides times a vector. (nF,) for the standard operation.
+            Derivative of the right-hand sides times a vector. (n_faces,) for the standard operation.
             (n_param,) for the adjoint operation.
         """
         return Zero()  # assumes no derivs on sources
@@ -2622,13 +2621,12 @@ class Simulation3DCurrentDensity(BaseTDEMSimulation):
         .. math::
             \mathbf{j_0} = \mathbf{M_{f\rho}^{-1} \, G} \, \boldsymbol{\phi_0}
 
-        See the *Notes* section of the doc strings for
-        :py:class:`SimPEG.electromagnetics.static.resistivity.simulation.Simulation3DCellCentered`
+        See the *Notes* section of the doc strings for :class:`.resistivity.Simulation3DCellCentered`
         for a full description of the cell centered DC resistivity formulation.
 
         Returns
         -------
-        (nC, nC) sp.sparse.csr_matrix
+        (n_cells, n_cells) sp.sparse.csr_matrix
             The system matrix for the DC resistivity problem.
         """
         D = sdiag(self.mesh.cell_volumes) * self.mesh.face_divergence
@@ -2659,17 +2657,17 @@ class Simulation3DCurrentDensity(BaseTDEMSimulation):
 
         Parameters
         ----------
-        u : (nC,) numpy.ndarray
+        u : (n_cells,) numpy.ndarray
             The solution for the fields for the current model; i.e. electric potentials at cell centers.
         v : numpy.ndarray
-            The vector. (n_param,) for the standard operation. (nC,) for the adjoint operation.
+            The vector. (n_param,) for the standard operation. (n_cells,) for the adjoint operation.
         adjoint : bool
             Whether to perform the adjoint operation.
 
         Returns
         -------
         numpy.ndarray
-            Derivative of the DC resistivity system matrix times a vector. (nC,) for the standard operation.
+            Derivative of the DC resistivity system matrix times a vector. (n_cells,) for the standard operation.
             (n_param,) for the adjoint operation.
         """
         D = sdiag(self.mesh.cell_volumes) * self.mesh.face_divergence
