@@ -46,7 +46,7 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
     ----------
     mesh : discretize.base.BaseMesh
         The mesh.
-    survey : .time_domain.Survey
+    survey : .time_domain.survey.Survey
         The time-domain EM survey.
     dt_threshold : float
         Threshold used when determining the unique time-step lengths.
@@ -67,7 +67,7 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
 
         Returns
         -------
-        .time_domain.Survey
+        .time_domain.survey.Survey
             The TDEM survey object.
         """
         if self._survey is None:
@@ -647,7 +647,7 @@ class Simulation3DMagneticFluxDensity(BaseTDEMSimulation):
     ----------
     mesh : discretize.base.BaseMesh
         The mesh.
-    survey : .time_domain.Survey
+    survey : .time_domain.survey.Survey
         The time-domain EM survey.
     dt_threshold : float
         Threshold used when determining the unique time-step lengths.
@@ -1081,7 +1081,7 @@ class Simulation3DElectricField(BaseTDEMSimulation):
     ----------
     mesh : discretize.base.BaseMesh
         The mesh.
-    survey : .time_domain.Survey
+    survey : .time_domain.survey.Survey
         The time-domain EM survey.
     dt_threshold : float
         Threshold used when determining the unique time-step lengths.
@@ -1734,7 +1734,7 @@ class Simulation3DMagneticField(BaseTDEMSimulation):
     ----------
     mesh : discretize.base.BaseMesh
         The mesh.
-    survey : .time_domain.Survey
+    survey : .time_domain.survey.Survey
         The time-domain EM survey.
     dt_threshold : float
         Threshold used when determining the unique time-step lengths.
@@ -2201,7 +2201,7 @@ class Simulation3DCurrentDensity(BaseTDEMSimulation):
     ----------
     mesh : discretize.base.BaseMesh
         The mesh.
-    survey : .time_domain.Survey
+    survey : .time_domain.survey.Survey
         The time-domain EM survey.
     dt_threshold : float
         Threshold used when determining the unique time-step lengths.

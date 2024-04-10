@@ -49,7 +49,7 @@ class BaseFDEMSimulation(BaseEMSimulation):
     ----------
     mesh : discretize.base.BaseMesh
         The mesh.
-    survey : .frequency_domain.Survey
+    survey : .frequency_domain.survey.Survey
         The frequency-domain EM survey.
     forward_only : bool
         If ``True``, the factorization for the inverse of the system matrix at each
@@ -92,7 +92,7 @@ class BaseFDEMSimulation(BaseEMSimulation):
 
         Returns
         -------
-        .frequency_domain.Survey
+        .frequency_domain.survey.Survey
             The FDEM survey object.
         """
         if self._survey is None:
@@ -512,7 +512,7 @@ class Simulation3DElectricField(BaseFDEMSimulation):
     ----------
     mesh : discretize.base.BaseMesh
         The mesh.
-    survey : .frequency_domain.Survey
+    survey : .frequency_domain.survey.Survey
         The frequency-domain EM survey.
     forward_only : bool
         If ``True``, the factorization for the inverse of the system matrix at each
@@ -917,7 +917,7 @@ class Simulation3DMagneticFluxDensity(BaseFDEMSimulation):
     ----------
     mesh : discretize.base.BaseMesh
         The mesh.
-    survey : .frequency_domain.Survey
+    survey : .frequency_domain.survey.Survey
         The frequency-domain EM survey.
     forward_only : bool
         If ``True``, the factorization for the inverse of the system matrix at each
@@ -1367,7 +1367,7 @@ class Simulation3DCurrentDensity(BaseFDEMSimulation):
     ----------
     mesh : discretize.base.BaseMesh
         The mesh.
-    survey : .frequency_domain.Survey
+    survey : .frequency_domain.survey.Survey
         The frequency-domain EM survey.
     forward_only : bool
         If ``True``, the factorization for the inverse of the system matrix at each
@@ -1855,7 +1855,7 @@ class Simulation3DMagneticField(BaseFDEMSimulation):
     ----------
     mesh : discretize.base.BaseMesh
         The mesh.
-    survey : .frequency_domain.Survey
+    survey : .frequency_domain.survey.Survey
         The frequency-domain EM survey.
     forward_only : bool
         If ``True``, the factorization for the inverse of the system matrix at each
