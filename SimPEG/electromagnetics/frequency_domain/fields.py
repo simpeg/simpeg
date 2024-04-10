@@ -9,7 +9,7 @@ class FieldsFDEM(Fields):
     r"""Base class for storing FDEM fields.
 
     FDEM fields classes are used to store the discrete solution of the fields for a
-    corresponding FDEM simulation; see :py:class:`SimPEG.electromagnetics.frequency_domain.simulation.BaseFDEMSimulation`.
+    corresponding FDEM simulation; see :class:`.BaseFDEMSimulation`.
     Only one field type (e.g. 'e', 'j', 'h', or 'b') is stored, but certain field types
     can be rapidly computed and returned on the fly. The field type that is stored and the
     field types that can be returned depend on the formulation used by the associated simulation class.
@@ -17,7 +17,7 @@ class FieldsFDEM(Fields):
 
     Parameters
     ----------
-    simulation : SimPEG.electromagnetics.frequency_domain.simulation.BaseFDEMSimulation
+    simulation : .BaseFDEMSimulation
         The FDEM simulation object used to compute the discrete field solution.
 
     Example
@@ -324,7 +324,7 @@ class Fields3DElectricField(FieldsFDEM):
     r"""Fields class for storing 3D total electric field solutions.
 
     This class stores the total electric field solution computed using a
-    :py:class:`SimPEG.electromagnetics.frequency_domain.simulation.Simulation3DElectricField`
+    :py:class:`.frequency_domain.Simulation3DElectricField`
     simulation object. This class can be used to extract the following quantities:
 
     * 'e', 'ePrimary', 'eSecondary' and 'j' on mesh edges.
@@ -337,7 +337,7 @@ class Fields3DElectricField(FieldsFDEM):
 
     Parameters
     ----------
-    simulation : SimPEG.electromagnetics.frequency_domain.simulation.Simulation3DElectricField
+    simulation : .frequency_domain.Simulation3DElectricField
         The FDEM simulation object associated with the fields.
 
     Example
@@ -691,7 +691,7 @@ class Fields3DMagneticFluxDensity(FieldsFDEM):
     r"""Fields class for storing 3D total magnetic flux density solutions.
 
     This class stores the total magnetic flux density solution computed using a
-    :py:class:`SimPEG.electromagnetics.frequency_domain.simulation.Simulation3DMagneticFluxDensity`
+    :class:`.frequency_domain.Simulation3DMagneticFluxDensity`
     simulation object. This class can be used to extract the following quantities:
 
     * 'b', 'bPrimary', 'bSecondary' and 'h' on mesh faces.
@@ -704,7 +704,7 @@ class Fields3DMagneticFluxDensity(FieldsFDEM):
 
     Parameters
     ----------
-    simulation : SimPEG.electromagnetics.frequency_domain.simulation.Simulation3DMagneticFluxDensity
+    simulation : .frequency_domain.Simulation3DMagneticFluxDensity
         The FDEM simulation object associated with the fields.
 
     Example
@@ -1060,7 +1060,7 @@ class Fields3DCurrentDensity(FieldsFDEM):
     r"""Fields class for storing 3D current density solutions.
 
     This class stores the total current density solution computed using a
-    :py:class:`SimPEG.electromagnetics.frequency_domain.simulation.Simulation3DCurrentDensity`
+   :class:`.frequency_domain.Simulation3DCurrentDensity`
     simulation object. This class can be used to extract the following quantities:
 
     * 'j', 'jPrimary', 'jSecondary' and 'e' on mesh faces.
@@ -1072,7 +1072,7 @@ class Fields3DCurrentDensity(FieldsFDEM):
 
     Parameters
     ----------
-    simulation : SimPEG.electromagnetics.frequency_domain.simulation.Simulation3DCurrentDensity
+    simulation : .frequency_domain.Simulation3DCurrentDensity
         The FDEM simulation object associated with the fields.
 
     Example
@@ -1488,7 +1488,7 @@ class Fields3DMagneticField(FieldsFDEM):
     r"""Fields class for storing 3D magnetic field solutions.
 
     This class stores the total magnetic field solution computed using a
-    :py:class:`SimPEG.electromagnetics.frequency_domain.simulation.Simulation3DMagneticField`
+    :class:`.frequency_domain.Simulation3DMagneticField`
     simulation object. This class can be used to extract the following quantities:
 
     * 'h', 'hPrimary', 'hSecondary' and 'b' on mesh edges.
@@ -1500,7 +1500,7 @@ class Fields3DMagneticField(FieldsFDEM):
 
     Parameters
     ----------
-    simulation : SimPEG.electromagnetics.frequency_domain.simulation.Simulation3DMagneticField
+    simulation : .frequency_domain.Simulation3DMagneticField
         The FDEM simulation object associated with the fields.
 
     Example
