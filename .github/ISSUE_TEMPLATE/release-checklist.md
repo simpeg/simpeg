@@ -40,6 +40,7 @@ assignees: ''
 - [ ] Copy the content of `notes.rst` to a new file `docs/content/release/<version>-notes.rst`.
 - [ ] Add the new release notes to the list in `docs/content/release/index.rst`.
 - [ ] Open a PR with the new release notes.
+- [ ] Manually view the built documentation by downloading the azure html_doc artifact and check for formatting and errors.
 - [ ] Merge that PR
 
 ## Make the new release
