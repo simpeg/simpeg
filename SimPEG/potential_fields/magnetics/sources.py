@@ -16,9 +16,10 @@ class UniformBackgroundField(BaseSrc):
     receiver_list : list of SimPEG.potential_fields.magnetics.Point or None
         Point magnetic receivers.
     amplitude : float
-        amplitude of the inducing backgound field, usually this is in units of nT.
+        Amplitude of the inducing background field, usually this is in
+        units of nT.
     inclination : float
-        Dip angle in degrees from the horizon, positive points into the earth.
+        Dip angle in degrees from the horizon, positive value into the earth.
     declination : float
         Azimuthal angle in degrees from north, positive clockwise.
     """
