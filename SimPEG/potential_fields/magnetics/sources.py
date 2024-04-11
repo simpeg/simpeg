@@ -1,3 +1,4 @@
+from __future__ import annotations
 from ...survey import BaseSrc
 from SimPEG.utils.mat_utils import dip_azimuth2cartesian
 from SimPEG.utils.code_utils import deprecate_class, validate_float
