@@ -237,6 +237,11 @@ external_links = [
     dict(name="Contact", url="https://mattermost.softwareunderground.org/simpeg"),
 ]
 
+# Define SimPEG version for the version switcher
+switcher_version = SimPEG.__version__
+if "dev" in switcher_version:
+    switcher_version = "dev"
+
 try:
     import pydata_sphinx_theme
 
@@ -276,6 +281,12 @@ try:
             "plausible_analytics_url": "https://plausible.io/js/script.js",
         },
         "navbar_align": "left",  # make elements closer to logo on the left
+        "navbar_end": ["theme-switcher", "version-switcher", "navbar-icon-links"],
+        # Configure version switcher
+        "switcher": {
+            "version_match": switcher_version,
+            "json_url": "/latest/_static/versions.json",
+        },
     }
     html_logo = "images/simpeg-logo.png"
 
