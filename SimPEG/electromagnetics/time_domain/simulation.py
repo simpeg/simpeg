@@ -683,19 +683,22 @@ class Simulation3DMagneticFluxDensity(BaseTDEMSimulation):
         & \int_\Omega \vec{u} \cdot \vec{j} \, dv = \int_\Omega \vec{u} \cdot \sigma \vec{e} \, dv \\
         & \int_\Omega \vec{u} \cdot \vec{h} \, dv = \int_\Omega \vec{u} \cdot \mu^{-1} \vec{b} \, dv
 
+    Assuming natural boundary conditions, the surface integral is zero.
+
     The above expressions are discretized in space according to the finite volume method.
     The discrete electric fields :math:`\mathbf{e}` are defined on mesh edges,
     and the discrete magnetic flux densities :math:`\mathbf{b}` are defined on mesh faces.
-    This implies :math:`\mathbf{j}` must be define on mesh edges and :math:`\mathbf{h}` must
-    be defined on mesh faces. Assuming natural boundary conditions, the surface integral is zero.
-    And after cancelling like-terms, we obtain the following set of discrete equations:
+    This implies :math:`\mathbf{j}` must be defined on mesh edges and :math:`\mathbf{h}` must
+    be defined on mesh faces. Where :math:`\mathbf{u_e}` and :math:`\mathbf{u_f}` represent
+    test functions discretized to edges and faces, respectively, we obtain the following
+    set of discrete inner-products:
 
     .. math::
-        &\mathbf{C e} + \frac{\partial \mathbf{b}}{\partial t}
-        = - \frac{\partial \mathbf{s_m}}{\partial t} \\
-        &\mathbf{C^T M_f h} - \mathbf{M_e j} = \mathbf{s_e} \\
-        &\mathbf{M_e j} = \mathbf{M_{e\sigma} e} \\
-        &\mathbf{M_f h} = \mathbf{M_{f \frac{1}{\mu}} b}
+        &\mathbf{u_f^T C e} + \mathbf{u_f^T } \, \frac{\partial \mathbf{b}}{\partial t}
+        = - \mathbf{u_f^T } \, \frac{\partial \mathbf{s_m}}{\partial t} \\
+        &\mathbf{u_e^T C^T M_f h} - \mathbf{u_e^T M_e j} = \mathbf{u_e^T s_e} \\
+        &\mathbf{u_e^T M_e j} = \mathbf{u_e^T M_{e\sigma} e} \\
+        &\mathbf{u_f^T M_f h} = \mathbf{u_f^T M_{f \frac{1}{\mu}} b}
 
     where
 
@@ -706,7 +709,7 @@ class Simulation3DMagneticFluxDensity(BaseTDEMSimulation):
     * :math:`\mathbf{M_{e\sigma}}` is the inner-product matrix for conductivities projected to edges
     * :math:`\mathbf{M_{f\frac{1}{\mu}}}` is the inner-product matrix for inverse permeabilities projected to faces
 
-    Combining the discrete expressions in terms of the magnetic flux density, we obtain:
+    By cancelling like-terms and combining the discrete expressions in terms of the magnetic flux density, we obtain:
 
     .. math::
         \mathbf{C M_{e\sigma}^{-1} C^T M_{f\frac{1}{\mu}} b}
@@ -1117,21 +1120,22 @@ class Simulation3DElectricField(BaseTDEMSimulation):
         & \int_\Omega \vec{u} \cdot \vec{j} \, dv = \int_\Omega \vec{u} \cdot \sigma \vec{e} \, dv \\
         & \int_\Omega \vec{u} \cdot \vec{h} \, dv = \int_\Omega \vec{u} \cdot \mu^{-1} \vec{b} \, dv
 
+    Assuming natural boundary conditions, the surface integral is zero.
+
     The above expressions are discretized in space according to the finite volume method.
     The discrete electric fields :math:`\mathbf{e}` are defined on mesh edges,
     and the discrete magnetic flux densities :math:`\mathbf{b}` are defined on mesh faces.
-    This implies :math:`\mathbf{j}` must be define on mesh edges and :math:`\mathbf{h}` must
-    be defined on mesh faces. Assuming natural boundary conditions, the surface integral is zero.
-    And after cancelling like-terms, we obtain the following set of discrete equations:
+    This implies :math:`\mathbf{j}` must be defined on mesh edges and :math:`\mathbf{h}` must
+    be defined on mesh faces. Where :math:`\mathbf{u_e}` and :math:`\mathbf{u_f}` represent
+    test functions discretized to edges and faces, respectively, we obtain the following
+    set of discrete inner-products:
 
     .. math::
-        &\mathbf{C e} + \frac{\partial \mathbf{b}}{\partial t}
-        = - \frac{\partial \mathbf{s_m}}{\partial t} \\
-        &\mathbf{C^T M_f h} - \mathbf{M_e j}
-        = \mathbf{s_e} \;\;\; \rightarrow \;\;\; \mathbf{C^T} \frac{\partial}{\partial t} (\mathbf{M_f h})
-        + \frac{\partial}{\partial t} (\mathbf{M_e j}) = \frac{\partial \mathbf{s_e}}{\partial t} \\
-        &\mathbf{M_e j} = \mathbf{M_{e\sigma} e} \\
-        &\mathbf{M_f h} = \mathbf{M_{f \frac{1}{\mu}} b}
+        &\mathbf{u_f^T C e} + \mathbf{u_f^T } \, \frac{\partial \mathbf{b}}{\partial t}
+        = - \mathbf{u_f^T } \, \frac{\partial \mathbf{s_m}}{\partial t} \\
+        &\mathbf{u_e^T C^T M_f h} - \mathbf{u_e^T M_e j} = \mathbf{u_e^T s_e} \\
+        &\mathbf{u_e^T M_e j} = \mathbf{u_e^T M_{e\sigma} e} \\
+        &\mathbf{u_f^T M_f h} = \mathbf{u_f^T M_{f \frac{1}{\mu}} b}
 
     where
 
@@ -1142,7 +1146,7 @@ class Simulation3DElectricField(BaseTDEMSimulation):
     * :math:`\mathbf{M_{e\sigma}}` is the inner-product matrix for conductivities projected to edges
     * :math:`\mathbf{M_{f\frac{1}{\mu}}}` is the inner-product matrix for inverse permeabilities projected to faces
 
-    Combining the discrete expressions in terms of the electric field, we obtain:
+    By cancelling like-terms and combining the discrete expressions in terms of the electric field, we obtain:
 
     .. math::
         \mathbf{C^T M_{f\frac{1}{\mu}} C e} + \mathbf{M_{e\sigma}}\frac{\partial \mathbf{e}}{\partial t}
@@ -1770,18 +1774,22 @@ class Simulation3DMagneticField(BaseTDEMSimulation):
         & \int_\Omega \vec{u} \cdot \vec{e} \, dv = \int_\Omega \vec{u} \cdot \rho \vec{j} \, dv \\
         & \int_\Omega \vec{u} \cdot \vec{b} \, dv = \int_\Omega \vec{u} \cdot \mu \vec{h} \, dv
 
+    Assuming natural boundary conditions, the surface integral is zero.
+
     The above expressions are discretized in space according to the finite volume method.
     The discrete magnetic fields :math:`\mathbf{h}` are defined on mesh edges,
     and the discrete current densities :math:`\mathbf{j}` are defined on mesh faces.
-    This implies :math:`\mathbf{b}` must be define on mesh edges and :math:`\mathbf{e}` must
-    be defined on mesh faces. Assuming natural boundary conditions, the surface integral is zero.
-    And after cancelling like-terms, we obtain the following set of discrete equations:
+    This implies :math:`\mathbf{b}` must be defined on mesh edges and :math:`\mathbf{e}` must
+    be defined on mesh faces. Where :math:`\mathbf{u_e}` and :math:`\mathbf{u_f}` represent
+    test functions discretized to edges and faces, respectively, we obtain the following
+    set of discrete inner-products:
 
     .. math::
-        &\mathbf{C^T M_f \, e } + \mathbf{M_e} \frac{\partial \mathbf{b}}{\partial t} = - \frac{\partial \mathbf{s_m}}{\partial t} \\
-        &\mathbf{C \, h} - \mathbf{j} = \mathbf{s_e} \\
-        &\mathbf{M_f e} = \mathbf{M_{f\rho} \, j} \\
-        &\mathbf{M_e b} = \mathbf{M_{e \mu} h}
+        &\mathbf{u_e^T C^T M_f \, e } + \mathbf{u_e^T M_e} \frac{\partial \mathbf{b}}{\partial t}
+        = - \mathbf{u_e^T} \, \frac{\partial \mathbf{s_m}}{\partial t} \\
+        &\mathbf{u_f^T C \, h} - \mathbf{u_f^T j} = \mathbf{u_f^T s_e} \\
+        &\mathbf{u_f^T M_f e} = \mathbf{u_f^T M_{f\rho} \, j} \\
+        &\mathbf{u_e^T M_e b} = \mathbf{u_e^T M_{e \mu} h}
 
     where
 
@@ -1792,7 +1800,7 @@ class Simulation3DMagneticField(BaseTDEMSimulation):
     * :math:`\mathbf{M_{e\mu}}` is the inner-product matrix for permeabilities projected to edges
     * :math:`\mathbf{M_{f\rho}}` is the inner-product matrix for resistivities projected to faces
 
-    Combining the discrete expressions in terms of the magnetic field, we obtain:
+    Cancelling like-terms and combining the discrete expressions in terms of the magnetic field, we obtain:
 
     .. math::
         \mathbf{C^T M_{f\rho} C \, h} + \mathbf{M_{e\mu}} \frac{\partial \mathbf{h}}{\partial t}
@@ -2237,21 +2245,22 @@ class Simulation3DCurrentDensity(BaseTDEMSimulation):
         & \int_\Omega \vec{u} \cdot \vec{e} \, dv = \int_\Omega \vec{u} \cdot \rho \vec{j} \, dv \\
         & \int_\Omega \vec{u} \cdot \vec{b} \, dv = \int_\Omega \vec{u} \cdot \mu \vec{h} \, dv
 
+    Assuming natural boundary conditions, the surface integral is zero.
+
     The above expressions are discretized in space according to the finite volume method.
     The discrete magnetic fields :math:`\mathbf{h}` are defined on mesh edges,
     and the discrete current densities :math:`\mathbf{j}` are defined on mesh faces.
-    This implies :math:`\mathbf{b}` must be define on mesh edges and :math:`\mathbf{e}` must
-    be defined on mesh faces. Assuming natural boundary conditions, the surface integral is zero.
-    And after cancelling like-terms, we obtain the following set of discrete equations:
+    This implies :math:`\mathbf{b}` must be defined on mesh edges and :math:`\mathbf{e}` must
+    be defined on mesh faces. Where :math:`\mathbf{u_e}` and :math:`\mathbf{u_f}` represent
+    test functions discretized to edges and faces, respectively, we obtain the following
+    set of discrete inner-products:
 
     .. math::
-        &\mathbf{C^T M_f \, e } + \mathbf{M_e} \frac{\partial \mathbf{b}}{\partial t}
-        = - \frac{\partial \mathbf{s_m}}{\partial t} \\
-        &\mathbf{C \, h} - \mathbf{j} = \mathbf{s_e}
-        \;\;\; \rightarrow \;\;\; \mathbf{C} \frac{\partial \mathbf{h}}{\partial t}
-        - \frac{\partial \mathbf{j}}{\partial t} = \mathbf{M_f^{-1}}\frac{\partial \mathbf{s_e}}{\partial t} \\
-        &\mathbf{M_f e} = \mathbf{M_{f\rho} j} \\
-        &\mathbf{M_e b} = \mathbf{M_{e \mu} h}
+        &\mathbf{u_e^T C^T M_f \, e } + \mathbf{u_e^T M_e} \frac{\partial \mathbf{b}}{\partial t}
+        = - \mathbf{u_e^T} \, \frac{\partial \mathbf{s_m}}{\partial t} \\
+        &\mathbf{u_f^T C \, h} - \mathbf{u_f^T j} = \mathbf{u_f^T s_e} \\
+        &\mathbf{u_f^T M_f e} = \mathbf{u_f^T M_{f\rho} \, j} \\
+        &\mathbf{u_e^T M_e b} = \mathbf{u_e^T M_{e \mu} h}
 
     where
 
@@ -2262,7 +2271,7 @@ class Simulation3DCurrentDensity(BaseTDEMSimulation):
     * :math:`\mathbf{M_{e\mu}}` is the inner-product matrix for permeabilities projected to edges
     * :math:`\mathbf{M_{f\rho}}` is the inner-product matrix for resistivities projected to faces
 
-    Combining the discrete expressions in terms of the current density, we obtain:
+    Cancelling like-terms and combining the discrete expressions in terms of the current density, we obtain:
 
     .. math::
         \mathbf{C M_{e\mu}^{-1} C^T M_{f\rho} \, j} +

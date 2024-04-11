@@ -559,18 +559,21 @@ class Simulation3DElectricField(BaseFDEMSimulation):
         & \int_\Omega \vec{u} \cdot \vec{J} \, dv = \int_\Omega \vec{u} \cdot \sigma \vec{E} \, dv \\
         & \int_\Omega \vec{u} \cdot \vec{H} \, dv = \int_\Omega \vec{u} \cdot \mu^{-1} \vec{B} \, dv
 
+    Assuming natural boundary conditions, the surface integral is zero.
+
     The above expressions are discretized in space according to the finite volume method.
-    The discrete electric fields :math:`\mathbf{E}` are defined on mesh edges,
-    and the discrete magnetic flux densities :math:`\mathbf{B}` are defined on mesh faces.
-    This implies :math:`\mathbf{J}` must be define on mesh edges and :math:`\mathbf{H}` must
-    be defined on mesh faces. Assuming natural boundary conditions, the surface integral is zero.
-    And after cancelling like-terms, we obtain the following set of discrete equations:
+    The discrete electric fields :math:`\mathbf{e}` are defined on mesh edges,
+    and the discrete magnetic flux densities :math:`\mathbf{b}` are defined on mesh faces.
+    This implies :math:`\mathbf{j}` must be defined on mesh edges and :math:`\mathbf{h}` must
+    be defined on mesh faces. Where :math:`\mathbf{u_e}` and :math:`\mathbf{u_f}` represent
+    test functions discretized to edges and faces, respectively, we obtain the following
+    set of discrete inner-products:
 
     .. math::
-        &\mathbf{C e} + i \omega \mathbf{b} = - i \omega \mathbf{s_m} \\
-        &\mathbf{C^T M_f h} - \mathbf{M_e j} = \mathbf{s_e} \\
-        &\mathbf{M_e j} = ( \mathbf{M_{e\sigma}} + i\omega \mathbf{M_{e\varepsilon}}) \mathbf{e} \\
-        &\mathbf{M_f h} = \mathbf{M_{f \mu} b}
+        &\mathbf{u_f^T M_f C e} + i \omega \mathbf{u_f^T M_f b} = - i \omega \mathbf{u_f^T M_f s_m} \\
+        &\mathbf{u_e^T C^T M_f h} - \mathbf{u_e^T M_e j} = \mathbf{u_e^T s_e} \\
+        &\mathbf{u_e^T M_e j} = \mathbf{u_e^T }( \mathbf{M_{e\sigma}} + i\omega \mathbf{M_{e\varepsilon}}) \mathbf{e} \\
+        &\mathbf{u_f^T M_f h} = \mathbf{u_f^T M_{f \mu} b}
 
     where
 
@@ -582,7 +585,7 @@ class Simulation3DElectricField(BaseFDEMSimulation):
     * :math:`\mathbf{M_{e\varepsilon}}` is the inner-product matrix for permittivities projected to edges
     * :math:`\mathbf{M_{f\frac{1}{\mu}}}` is the inner-product matrix for inverse permeabilities projected to faces
 
-    Combining the discrete expressions to solve for the electric field, we obtain:
+    By cancelling like-terms and combining the discrete expressions to solve for the electric field, we obtain:
 
     .. math::
         \mathbf{A \, e} = \mathbf{q}
@@ -964,18 +967,21 @@ class Simulation3DMagneticFluxDensity(BaseFDEMSimulation):
         & \int_\Omega \vec{u} \cdot \vec{J} \, dv = \int_\Omega \vec{u} \cdot \sigma \vec{E} \, dv \\
         & \int_\Omega \vec{u} \cdot \vec{H} \, dv = \int_\Omega \vec{u} \cdot \mu^{-1} \vec{B} \, dv
 
+    Assuming natural boundary conditions, the surface integral is zero.
+
     The above expressions are discretized in space according to the finite volume method.
-    The discrete electric fields :math:`\mathbf{E}` are defined on mesh edges,
-    and the discrete magnetic flux densities :math:`\mathbf{B}` are defined on mesh faces.
-    This implies :math:`\mathbf{J}` must be define on mesh edges and :math:`\mathbf{H}` must
-    be defined on mesh faces. Assuming natural boundary conditions, the surface integral is zero.
-    And after cancelling like-terms, we obtain the following set of discrete equations:
+    The discrete electric fields :math:`\mathbf{e}` are defined on mesh edges,
+    and the discrete magnetic flux densities :math:`\mathbf{b}` are defined on mesh faces.
+    This implies :math:`\mathbf{j}` must be defined on mesh edges and :math:`\mathbf{h}` must
+    be defined on mesh faces. Where :math:`\mathbf{u_e}` and :math:`\mathbf{u_f}` represent
+    test functions discretized to edges and faces, respectively, we obtain the following
+    set of discrete inner-products:
 
     .. math::
-        &\mathbf{C e} + i \omega \mathbf{b} = - i \omega \mathbf{s_m} \\
-        &\mathbf{C^T M_f h} - \mathbf{M_e j} = \mathbf{s_e} \\
-        &\mathbf{M_e j} = ( \mathbf{M_{e\sigma}} + i\omega \mathbf{M_{e\varepsilon}}) \mathbf{e} \\
-        &\mathbf{M_f h} = \mathbf{M_{f \mu} b}
+        &\mathbf{u_f^T M_f C e} + i \omega \mathbf{u_f^T M_f b} = - i \omega \mathbf{u_f^T M_f s_m} \\
+        &\mathbf{u_e^T C^T M_f h} - \mathbf{u_e^T M_e j} = \mathbf{u_e^T s_e} \\
+        &\mathbf{u_e^T M_e j} = \mathbf{u_e^T }( \mathbf{M_{e\sigma}} + i\omega \mathbf{M_{e\varepsilon}}) \mathbf{e} \\
+        &\mathbf{u_f^T M_f h} = \mathbf{u_f^T M_{f \mu} b}
 
     where
 
@@ -987,7 +993,7 @@ class Simulation3DMagneticFluxDensity(BaseFDEMSimulation):
     * :math:`\mathbf{M_{e\varepsilon}}` is the inner-product matrix for permittivities projected to edges
     * :math:`\mathbf{M_{f\frac{1}{\mu}}}` is the inner-product matrix for inverse permeabilities projected to faces
 
-    Combining the discrete expressions to solve for the magnetic flux density, we obtain:
+    By cancelling like-terms and combining the discrete expressions to solve for the magnetic flux density, we obtain:
 
     .. math::
         \mathbf{A \, b} = \mathbf{q}
@@ -1414,18 +1420,21 @@ class Simulation3DCurrentDensity(BaseFDEMSimulation):
         & \int_\Omega \vec{u} \cdot \vec{E} \, dv = \int_\Omega \vec{u} \cdot \rho \vec{J} \, dv \\
         & \int_\Omega \vec{u} \cdot \vec{B} \, dv = \int_\Omega \vec{u} \cdot \mu \vec{H} \, dv
 
+    Assuming natural boundary conditions, the surface integral is zero.
+
     The above expressions are discretized in space according to the finite volume method.
-    The discrete magnetic fields :math:`\mathbf{H}` are defined on mesh edges,
-    and the discrete current densities :math:`\mathbf{J}` are defined on mesh faces.
-    This implies :math:`\mathbf{B}` must be define on mesh edges and :math:`\mathbf{E}` must
-    be defined on mesh faces. Assuming natural boundary conditions, the surface integral is zero.
-    And after cancelling like-terms, we obtain the following set of discrete equations:
+    The discrete magnetic fields :math:`\mathbf{h}` are defined on mesh edges,
+    and the discrete current densities :math:`\mathbf{j}` are defined on mesh faces.
+    This implies :math:`\mathbf{b}` must be defined on mesh edges and :math:`\mathbf{e}` must
+    be defined on mesh faces. Where :math:`\mathbf{u_e}` and :math:`\mathbf{u_f}` represent
+    test functions discretized to edges and faces, respectively, we obtain the following
+    set of discrete inner-products:
 
     .. math::
-        &\mathbf{C^T M_f \, e } + i \omega \mathbf{M_e b} = - i\omega \mathbf{s_m} \\
-        &\mathbf{C \, h} - \mathbf{j} - i\omega \mathbf{d} = \mathbf{s_e} \\
-        &\mathbf{M_f e} = \mathbf{M_{f\rho} j} \\
-        &\mathbf{M_e b} = \mathbf{M_{e \mu} h}
+        &\mathbf{u_e^T C^T M_f \, e } + i \omega \mathbf{u_e^T M_e b} = - i\omega \mathbf{u_e^T s_m} \\
+        &\mathbf{u_f^T C \, h} - \mathbf{u_f^T j} = \mathbf{u_f^T s_e} \\
+        &\mathbf{u_f^T M_f e} = \mathbf{u_f^T M_{f\rho} j} \\
+        &\mathbf{u_e^T M_e b} = \mathbf{u_e^T M_{e \mu} h}
 
     where
 
@@ -1436,7 +1445,7 @@ class Simulation3DCurrentDensity(BaseFDEMSimulation):
     * :math:`\mathbf{M_{f\rho}}` is the inner-product matrix for resistivities projected to faces
     * :math:`\mathbf{M_{e\mu}}` is the inner-product matrix for permeabilities projected to edges
 
-    Combining the discrete expressions to solve for the current density, we obtain:
+    By cancelling like-terms and combining the discrete expressions to solve for the current density, we obtain:
 
     .. math::
         \mathbf{A \, j} = \mathbf{q}
@@ -1902,18 +1911,21 @@ class Simulation3DMagneticField(BaseFDEMSimulation):
         & \int_\Omega \vec{u} \cdot \vec{E} \, dv = \int_\Omega \vec{u} \cdot \rho \vec{J} \, dv \\
         & \int_\Omega \vec{u} \cdot \vec{B} \, dv = \int_\Omega \vec{u} \cdot \mu \vec{H} \, dv
 
+    Assuming natural boundary conditions, the surface integral is zero.
+
     The above expressions are discretized in space according to the finite volume method.
-    The discrete magnetic fields :math:`\mathbf{H}` are defined on mesh edges,
-    and the discrete current densities :math:`\mathbf{J}` are defined on mesh faces.
-    This implies :math:`\mathbf{B}` must be define on mesh edges and :math:`\mathbf{E}` must
-    be defined on mesh faces. Assuming natural boundary conditions, the surface integral is zero.
-    And after cancelling like-terms, we obtain the following set of discrete equations:
+    The discrete magnetic fields :math:`\mathbf{h}` are defined on mesh edges,
+    and the discrete current densities :math:`\mathbf{j}` are defined on mesh faces.
+    This implies :math:`\mathbf{b}` must be defined on mesh edges and :math:`\mathbf{e}` must
+    be defined on mesh faces. Where :math:`\mathbf{u_e}` and :math:`\mathbf{u_f}` represent
+    test functions discretized to edges and faces, respectively, we obtain the following
+    set of discrete inner-products:
 
     .. math::
-        &\mathbf{C^T M_f \, e } + i \omega \mathbf{M_e b} = - i\omega \mathbf{s_m} \\
-        &\mathbf{C \, h} - \mathbf{j} - i\omega \mathbf{d} = \mathbf{s_e} \\
-        &\mathbf{M_f e} = \mathbf{M_{f\rho} j} \\
-        &\mathbf{M_e b} = \mathbf{M_{e \mu} h}
+        &\mathbf{u_e^T C^T M_f \, e } + i \omega \mathbf{u_e^T M_e b} = - i\omega \mathbf{u_e^T s_m} \\
+        &\mathbf{u_f^T C \, h} - \mathbf{u_f^T j} = \mathbf{u_f^T s_e} \\
+        &\mathbf{u_f^T M_f e} = \mathbf{u_f^T M_{f\rho} j} \\
+        &\mathbf{u_e^T M_e b} = \mathbf{u_e^T M_{e \mu} h}
 
     where
 
@@ -1924,7 +1936,7 @@ class Simulation3DMagneticField(BaseFDEMSimulation):
     * :math:`\mathbf{M_{f\rho}}` is the inner-product matrix for resistivities projected to faces
     * :math:`\mathbf{M_{e\mu}}` is the inner-product matrix for permeabilities projected to edges
 
-    Combining the discrete expressions to solve for the magnetic field, we obtain:
+    By cancelling like-terms and combining the discrete expressions to solve for the magnetic field, we obtain:
 
     .. math::
         \mathbf{A \, h} = \mathbf{q}
