@@ -25,18 +25,22 @@ class PointMagnetotelluric(BaseRx):
     respectively. Note that in SimPEG, natural source EM data are defined according to
     standard xyz coordinates; i.e. (x,y,z) is (Easting, Northing, Z +ve up).
 
-    For any impedance element :math:`Z_{ij}`, the apparent resistivity is computed as:
+    In addition to measuring the real or imaginary component of an impedance tensor
+    element :math:`Z_{ij}`, the receiver object can be set to measure the 
+    the apparent resistivity:
 
     .. math::
         \rho_{ij} = \dfrac{| Z_{ij} \, |^2}{\mu_0 \omega}
 
-    where :math:`\mu_0` is the permeability of free-space and :math:`\omega` is the
-    angular frequency in rad/s. The phase angle is represented in degrees and
-    is computed by:
+    or the phase angle:
 
     .. math::
         \phi_{ij} = \frac{180}{\pi} \,
-        \tan^{-1} \Bigg ( \dfrac{Z_{ij}^\prime}{Z_{ij}^{\prime \prime}} \Bigg )
+        \tan^{-1} \Bigg ( \dfrac{Im[Z_{ij}]}{Re[Z_{ij}]} \Bigg )
+
+    where :math:`\mu_0` is the permeability of free-space and :math:`\omega` is the
+    angular frequency in rad/s. The phase angle is represented in degrees and
+    is computed by:
 
     Parameters
     ----------
@@ -443,13 +447,13 @@ class PointMagnetotelluric(BaseRx):
 
         Parameters
         ----------
-        src : SimPEG.electromagnetics.frequency_domain.sources.BaseFDEMSrc
+        src : .frequency_domain.sources.BaseFDEMSrc
             NSEM source.
-        mesh : discretize.TensorMesh mesh
+        mesh : discretize.TensorMesh
             Mesh on which the discretize solution is obtained.
-        f : SimPEG.electromagnetics.frequency_domain.fields.FieldsFDEM
+        f : .frequency_domain.fields.FieldsFDEM
             NSEM fields object of the source.
-        return_complex : bool (optional)
+        return_complex : bool, optional
             Flag for returning the complex evaluation.
 
         Returns
@@ -487,11 +491,11 @@ class PointMagnetotelluric(BaseRx):
 
         Parameters
         ----------
-        str : SimPEG.electromagnetics.frequency_domain.sources.BaseFDEMSrc
+        str : .frequency_domain.sources.BaseFDEMSrc
             The NSEM source.
         mesh : discretize.TensorMesh
             Mesh on which the discretize solution is obtained.
-        f : SimPEG.electromagnetics.frequency_domain.fields.FieldsFDEM
+        f : .frequency_domain.fields.FieldsFDEM
             NSEM fields object for the source.
         du_dm_v : None,
             Supply pre-computed derivative?
