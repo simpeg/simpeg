@@ -43,11 +43,73 @@ assignees: ""
   ```
 - [ ] Copy the content of `notes.rst` to a new file
   `docs/content/release/<version>-notes.rst`.
+- [ ] Edit the release notes file, following the template below and the
+  previous release notes.
 - [ ] Add the new release notes to the list in `docs/content/release/index.rst`.
 - [ ] Open a PR with the new release notes.
 - [ ] Manually view the built documentation by downloading the Azure `html_doc`
   artifact and check for formatting and errors.
 - [ ] Merge that PR
+
+
+<details>
+<summary>Template for release notes:</summary>
+
+```rst
+.. _<VERSION>_notes:
+
+===========================
+SimPEG <VERSION> Release Notes
+===========================
+
+MONTH DAYth, YEAR
+
+.. contents:: Highlights
+    :depth: 3
+
+Updates
+=======
+
+New features
+------------
+
+..
+    list new features under subheadings, include link to related PRs
+
+Documentation
+-------------
+
+..
+    list improvements to documentation
+
+Bugfixes
+--------
+
+..
+    list bugfixes, include link to related PRs
+
+Breaking changes
+----------------
+
+..
+    list breaking changes introduced in this new release, include link to
+    releated PRs
+
+Contributors
+============
+
+..
+    paste list of contributors that was generated in `notes.rst`
+
+Pull Requests
+=============
+
+..
+    paste list of PRs that were copied to `notes.rst`
+```
+
+</details>
+
 
 ## Make the new release
 
