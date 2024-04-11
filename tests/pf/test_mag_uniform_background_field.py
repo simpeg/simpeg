@@ -26,6 +26,23 @@ def test_deprecated_source_field():
         SourceField()
 
 
+def test_invalid_receiver_type():
+    """
+    Test if error is raised after passing invalid type of receivers
+    """
+    receiver_valid = Point(locations=np.array([[0.0, 0.0, 0.0]]), components="tmi")
+    receiver_invalid = np.array([[1.0, 1.0, 1.0]])
+    receiver_list = [receiver_valid, receiver_invalid]
+    msg = f"Invalid receiver of type '{type(receiver_invalid)}' found in receiver_list."
+    with pytest.raises(TypeError, match=msg):
+        UniformBackgroundField(
+            receiver_list=receiver_list,
+            amplitude=55_000,
+            inclination=45,
+            declination=30,
+        )
+
+
 @pytest.mark.parametrize(
     "receiver_list",
     (None, [Point(locations=np.array([[0.0, 0.0, 0.0]]), components="tmi")]),

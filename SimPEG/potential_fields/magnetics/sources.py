@@ -31,6 +31,16 @@ class UniformBackgroundField(BaseSrc):
         inclination: float,
         declination: float,
     ):
+        if receiver_list is not None:
+            for receiver in receiver_list:
+                if not isinstance(receiver, Point):
+                    msg = (
+                        f"Invalid receiver of type '{type(receiver)}' found in "
+                        "receiver_list. Receivers should be "
+                        "'SimPEG.potential_fields.magnetics.Point'."
+                    )
+                    raise TypeError(msg)
+
         self.amplitude = amplitude
         self.inclination = inclination
         self.declination = declination
