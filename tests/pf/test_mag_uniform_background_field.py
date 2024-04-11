@@ -11,11 +11,7 @@ def test_invalid_parameters_argument():
     Test if error is raised after passing 'parameters' as argument
     """
     parameters = (1, 35, 60)
-    msg = (
-        "'parameters' property has been removed."
-        "Please pass the amplitude, inclination and declination"
-        " through their own arguments."
-    )
+    msg = r"UniformBackgroundField.__init__\(\) got an unexpected keyword argument 'parameters'"
     with pytest.raises(TypeError, match=msg):
         UniformBackgroundField(parameters=parameters)
 
