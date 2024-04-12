@@ -181,8 +181,10 @@ class XYZSystem(object):
     "Noise as a factor of data"
     uncertainties__std_data_override = False
     "If set to true, use the std_data value instead of data std:s from stacking"
-    uncertainties__noise_level_1ms=3e-8
+    uncertainties__noise_level_1ms=3e-8 
+    "V/m^2"
     uncertainties__noise_exponent=-0.5
+    "t^uncertainties__noise_exponent"
     @property
     def uncert_array(self):
         n_sounding = len(self.xyz.flightlines)
