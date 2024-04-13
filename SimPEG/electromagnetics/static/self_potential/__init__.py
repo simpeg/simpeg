@@ -1,12 +1,8 @@
 """
 ============================================================================================
-Spontaneous Potential (:mod:`SimPEG.electromagnetics.static.spontaneous_potential`)
+Self Potential (:mod:`SimPEG.electromagnetics.static.self_potential`)
 ============================================================================================
-.. currentmodule:: SimPEG.electromagnetics.static.spontaneous_potential
-
-.. admonition:: important
-
-  This module will be depricated in favour of `SimPEG.electromagnetics.static.self_potential`
+.. currentmodule:: SimPEG.electromagnetics.static.self_potential
 
 
 Simulations
@@ -36,7 +32,7 @@ Surveys
 
 Maps
 ====
-The spontaneous potential simulation provides two specialized maps to extend to inversions
+The self potential simulation provides two specialized maps to extend to inversions
 with different types of model sources.
 
 .. autosummary::
@@ -47,18 +43,10 @@ with different types of model sources.
 
 """
 
-import warnings
-
-warnings.warn(
-    "The spontaneous_potential module has been renamed to self_potential. Please use the self_potential module instead. The spontaneous_potential module will be removed in SimPEG 0.23.",
-    stacklevel=2,
-)
-
-from ..self_potential.simulation import (
+from .simulation import (
     Simulation3DCellCentered,
     Survey,
     CurrentDensityMap,
     HydraulicHeadMap,
 )
-from ..self_potential import sources
-from ..self_potential import simulation
+from . import sources
