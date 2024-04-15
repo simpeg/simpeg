@@ -20,8 +20,6 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           fail_on_error: true
           reporter: github-pr-review
-        env: # Or as an environment variable
-          REVIEWDOG_TOKEN: ${{ secrets.REVIEWDOG_TOKEN }}
 
   black:
     name: Black check
@@ -40,8 +38,6 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           fail_on_error: true
           reporter: github-pr-review
-        env: # Or as an environment variable
-          REVIEWDOG_TOKEN: ${{ secrets.REVIEWDOG_TOKEN }}
 
   testing:
     name: Run Tests on Azure Pipelines.
