@@ -1,6 +1,5 @@
 import numpy as np
 import warnings
-import os  # Add a temporary flake8 error (unused import)
 
 from .survey import BaseSurvey
 from .utils import mkvc, validate_ndarray_with_shape, validate_float, validate_type
