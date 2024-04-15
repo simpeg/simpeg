@@ -1,0 +1,43 @@
+name : Pull Request Review and Test
+on: [pull_request]
+
+jobs:
+  flake8:
+    runs-on: ubuntu-latest
+    name: Flake8 check
+    steps:
+      - name: Checkout source repository
+        uses: actions/checkout@v4
+      - name: Setup Python env
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install dependencies to run the flake8 checks
+        run: pip install -r requirements_style.txt
+      - name: flake8 review
+        uses: reviewdog/action-flake8@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+  black:
+    name: Black check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source repository
+        uses: actions/checkout@v4
+      - name: Setup Python env
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install dependencies to run the black checks
+        run: pip install -r requirements_style.txt
+      - uses: reviewdog/action-black@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+  testing:
+    name: Run Tests on Azure Pipelines.
+    runs-on: ubuntu-latest
+    needs: [flake8, black]
+    steps:
+      - name: Trigger Azure pipeline
