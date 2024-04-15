@@ -1,0 +1,47 @@
+name : Pull Request Review and Test
+on: [pull_request]
+
+jobs:
+  flake8:
+    runs-on: ubuntu-latest
+    name: Flake8 check
+    steps:
+      - name: Checkout source repository
+        uses: actions/checkout@v4
+      - name: Setup Python env
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install dependencies to run the flake8 checks
+        run: pip install -r requirements_style.txt
+      - name: flake8 review
+        uses: reviewdog/action-flake8@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+  black:
+    runs-on: ubuntu-latest
+    name: Black check
+    steps:
+      - name: Checkout source repository
+        uses: actions/checkout@v4
+      - name: Setup Python env
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install dependencies to run the black checks
+        run: pip install -r requirements_style.txt
+      - uses: reviewdog/action-black@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+  testing:
+    name: Run Tests on Azure Pipelines.
+    steps:
+      - name: Trigger Azure pipeline
+        uses: Azure/pipelines@v1
+        with:
+          azure-devops-project-url: 'https://dev.azure.com/simpeg/simpeg'
+          azure-pipeline-name: 'simpeg.simpeg'
+          azure-devops-token: ${{ secrets.AZURE_DEVOPS_TOKEN }}
+
