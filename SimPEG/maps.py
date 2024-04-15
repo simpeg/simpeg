@@ -1697,9 +1697,7 @@ class SelfConsistentEffectiveMedium(IdentityMap):
         if alpha < 1.0:  # oblate spheroid
             chi = np.sqrt((1.0 / alpha**2.0) - 1)
             return (
-                1.0
-                / 2.0
-                * (1 + 1.0 / (alpha**2.0 - 1) * (1.0 - np.arctan(chi) / chi))
+                1.0 / 2.0 * (1 + 1.0 / (alpha**2.0 - 1) * (1.0 - np.arctan(chi) / chi))
             )
         elif alpha > 1.0:  # prolate spheroid
             chi = np.sqrt(1 - (1.0 / alpha**2.0))
@@ -5117,12 +5115,7 @@ class ParametricBlock(BaseParametric):
         return (val**2 + self.epsilon**2) ** (self.p / 2.0)
 
     def _ekblomDeriv(self, val):
-        return (
-            (self.p / 2)
-            * (val**2 + self.epsilon**2) ** ((self.p / 2) - 1)
-            * 2
-            * val
-        )
+        return (self.p / 2) * (val**2 + self.epsilon**2) ** ((self.p / 2) - 1) * 2 * val
 
     # def _rotation(self, mDict):
     #     if self.mesh.dim == 2:

@@ -30,9 +30,9 @@ def getEHfields(m1d, sigma, freq, zd, scaleUD=True, scaleValue=1):
 
     # Initiate the propagation matrix, in the order down up.
     UDp = np.zeros((2, m1d.nC + 1), dtype=complex)
-    UDp[
-        1, 0
-    ] = scaleValue  # Set the wave amplitude as 1 into the half-space at the bottom of the mesh
+    UDp[1, 0] = (
+        scaleValue  # Set the wave amplitude as 1 into the half-space at the bottom of the mesh
+    )
     # Loop over all the layers, starting at the bottom layer
     for lnr, h in enumerate(m1d.h[0]):  # lnr-number of layer, h-thickness of the layer
         # Calculate
