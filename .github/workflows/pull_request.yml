@@ -41,3 +41,9 @@ jobs:
     needs: [flake8, black]
     steps:
       - name: Trigger Azure pipeline
+        uses: Azure/pipelines@v1
+        with:
+          azure-devops-project-url: 'https://dev.azure.com/simpeg/simpeg'
+          azure-pipeline-name: 'simpeg.simpeg'
+          azure-devops-token: ${{ secrets.AZURE_DEVOPS_TOKEN }}
+

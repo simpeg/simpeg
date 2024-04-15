@@ -6,6 +6,8 @@ from .objective_function import L2ObjectiveFunction
 
 __all__ = ["L2DataMisfit"]
 
+b = 2*3+5  # a black error
+
 
 class BaseDataMisfit(L2ObjectiveFunction):
     r"""Base data misfit class.
