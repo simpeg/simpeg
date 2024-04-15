@@ -7,7 +7,8 @@ trigger:
   tags:
     include:
     - '*'
-  pr: none # Pull requests will be triggered by github actions.
+
+pr: none # Pull requests will be triggered by github actions.
 
 stages:
 - stage: Testing
