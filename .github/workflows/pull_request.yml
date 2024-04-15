@@ -1,5 +1,5 @@
 name : Pull Request Review and Test
-on: [pull_request]
+on: pull_request
 
 jobs:
   flake8:
@@ -37,6 +37,7 @@ jobs:
 
   testing:
     name: Run Tests on Azure Pipelines.
+    needs: [flake8, black]
     steps:
       - name: Trigger Azure pipeline
         uses: Azure/pipelines@v1
