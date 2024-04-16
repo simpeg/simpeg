@@ -23,7 +23,7 @@ stages:
 - stage: StyleChecks
   displayName: "Style Checks"
   variables:
-    ci_pull_request: $(System.PullRequest.PullRequestId)
+    ci_pull_request: $(System.PullRequest.PullRequestNumber)
     ci_repo_owner: 'simpeg'
     ci_repo_name: 'simpeg'
     ci_commit: $(System.PullRequest.SourceCommitId)
