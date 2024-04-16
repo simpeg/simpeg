@@ -13,7 +13,7 @@ reviewdog_exit_val="0"
 
 echo "Checking python code"
 
-black_check_output = "$(black --diff --quiet --check .)" || black_exit_val="$?"
+black_check_output="$(black --diff --quiet --check .)" || black_exit_val="$?"
 
 echo "${black_check_output}" | /tmp/reviewdog -f="diff" \
   -f.diff.strip=0 \
@@ -21,7 +21,7 @@ echo "${black_check_output}" | /tmp/reviewdog -f="diff" \
   -reporter="github-pr-review" \
   -filter-mode="diff_context" \
   -level="error"\
-  -fail_on_error="true" || reviewdog_exit_val="$?"
+  -fail-on-error="true" || reviewdog_exit_val="$?"
 
 # Throw error if an error occurred and fail_on_error is true.
 if [[ ("${black_exit_val}" -ne '0' || "${reviewdog_exit_val}" -eq "1") ]]; then
