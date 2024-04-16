@@ -16,7 +16,7 @@ echo "Checking python code"
 black_check_output="$(black --check . 2>&1)" ||
     black_exit_val="$?"
 
-echo "${black_check_output}" | /tmp/reviewdog
+echo "${black_check_output}" | /tmp/reviewdog -f="black"
   -name="black-format" \
   -reporter="github-pr-check" \
   -filter-mode="added" \
