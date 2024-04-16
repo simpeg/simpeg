@@ -285,7 +285,7 @@ try:
         # Configure version switcher
         "switcher": {
             "version_match": switcher_version,
-            "json_url": "https://www.santisoler.com/simpeg-docs/latest/_static/versions.json",
+            "json_url": "https://doctest.simpeg.xyz/latest/_static/versions.json",
         },
     }
     html_logo = "images/simpeg-logo.png"
