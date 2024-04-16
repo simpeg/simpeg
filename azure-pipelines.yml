@@ -44,7 +44,7 @@ stages:
         - script: make black
           condition: not(variables.is_pull_request)
           displayName: "Run black"
-        - script: .azure_pipelines/reviewdog_black.sh
+        - script: .azure-pipelines/reviewdog_black.sh
           condition: variables.is_pull_request
           displayName: "Run black for reviewdog"
 
