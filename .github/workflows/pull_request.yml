@@ -1,4 +1,4 @@
-name : Pull Request Review and Test
+name : Reviewdog PR Annotations
 on: [pull_request]
 
 jobs:

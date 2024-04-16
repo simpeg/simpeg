@@ -14,21 +14,10 @@ pr:
     - '*'
     exclude:
     - '*no-ci*'
-
-variables:
-  is_pull_request : ${{ eq(variables['Build.Reason'], 'PullRequest') }}
-
 stages:
 
 - stage: StyleChecks
   displayName: "Style Checks"
-  variables:
-    ci_pull_request: $(System.PullRequest.PullRequestNumber)
-    ci_repo_owner: 'simpeg'
-    ci_repo_name: 'simpeg'
-    ci_commit: $(System.PullRequest.SourceCommitId)
-    ci_branch: $(System.PullRequest.SourceBranch)
-    reviewdog_version: 'v0.17.3'
   jobs:
     - job:
       displayName: Run style checks with Black
@@ -41,13 +30,7 @@ stages:
             pip install -r requirements_style.txt
           displayName: "Install dependencies to run the checks"
         - script: make black
-          condition: not(variables.is_pull_request)
           displayName: "Run black"
-        - script: .azure-pipelines/reviewdog_black.sh
-          condition: variables.is_pull_request
-          displayName: "Run black for reviewdog"
-          env:
-            REVIEWDOG_TOKEN: $(reviewdog.token)
 
     - job:
       displayName: Run (permissive) style checks with flake8
