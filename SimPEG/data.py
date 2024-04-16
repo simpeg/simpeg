@@ -1,9 +1,6 @@
 import numpy as np
 import warnings
 
-import os  # flake8 error
-v = 2*4    # black reformat
-
 from .survey import BaseSurvey
 from .utils import mkvc, validate_ndarray_with_shape, validate_float, validate_type
 
