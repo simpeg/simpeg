@@ -38,16 +38,3 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           fail_on_error: true
           reporter: github-pr-review
-
-  testing:
-    name: Run Tests on Azure Pipelines.
-    runs-on: ubuntu-latest
-    needs: [flake8, black]
-    steps:
-      - name: Trigger Azure pipeline
-        uses: Azure/pipelines@v1
-        with:
-          azure-devops-project-url: 'https://dev.azure.com/simpeg/simpeg'
-          azure-pipeline-name: 'simpeg.simpeg'
-          azure-devops-token: ${{ secrets.AZURE_DEVOPS_TOKEN }}
-
