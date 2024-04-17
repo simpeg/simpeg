@@ -8,12 +8,22 @@ trigger:
     include:
     - '*'
 
+schedules:
+- cron: "0 8 * *" # trigger cron job every day at 08:00 AM GMT
+  displayName: "Scheduled nightly job"
+  branches:
+    include: [ "main" ]
+  always: false # don't run if no changes have been applied since last sucessful run
+  batch: false # dont' run if last pipeline is still in-progress
+
 pr:
   branches:
     include:
     - '*'
     exclude:
     - '*no-ci*'
+
+
 stages:
 
 - stage: StyleChecks
@@ -140,5 +150,91 @@ stages:
             git commit -am "Azure CI commit ref $(Build.SourceVersion)"
             git push
           displayName: Push documentation to simpeg-docs
+          env:
+            GH_TOKEN: $(gh.token)
+
+- stage: Deploy dev docs to simpeg-doctest (experimental)
+  dependsOn: Testing
+  condition: eq(variables['Build.Reason'], 'Schedule')  # run only scheduled triggers
+  jobs:
+    - job:
+      displayName: Deploy docs to simpeg-doctest (experimental)
+      pool:
+        vmImage: ubuntu-latest
+      variables:
+        python.version: '3.8'
+      timeoutInMinutes: 240
+      steps:
+        - script: |
+            git config --global user.name ${GH_NAME}
+            git config --global user.email ${GH_EMAIL}
+            git config --list | grep user.
+          displayName: 'Configure git'
+          env:
+            GH_NAME: $(gh.name)
+            GH_EMAIL: $(gh.email)
+
+        - script: |
+            wget -O Mambaforge.sh  "https://github.com/conda-forge/miniforge/releases/latest/download/Mambaforge-$(uname)-$(uname -m).sh"
+            bash Mambaforge.sh -b -p "${HOME}/conda"
+          displayName: Install mamba
+
+        - script: |
+            source "${HOME}/conda/etc/profile.d/conda.sh"
+            source "${HOME}/conda/etc/profile.d/mamba.sh"
+            cp environment_test.yml environment_test_with_pyversion.yml
+            echo "  - python="$(python.version) >> environment_test_with_pyversion.yml
+            mamba env create -f environment_test_with_pyversion.yml
+            rm environment_test_with_pyversion.yml
+            conda activate simpeg-test
+            pip install pytest-azurepipelines
+          displayName: Create Anaconda testing environment
+
+        - script: |
+            source "${HOME}/conda/etc/profile.d/conda.sh"
+            conda activate simpeg-test
+            pip install -e .
+          displayName: Build package
+
+        - script: |
+            source "${HOME}/conda/etc/profile.d/conda.sh"
+            conda activate simpeg-test
+            export KMP_WARNINGS=0
+            make -C docs html
+          displayName: Building documentation
+
+        # Upload dev build of the docs to gh-pages branch in simpeg/simpeg-docs
+        - script: |
+            # Capture hash of last commit in simpeg
+            commit=$(git rev-parse --short HEAD)
+            # Clone the repo where we store the documentation
+            git clone --depth 1 https://${GH_TOKEN}@github.com/simpeg/simpeg-doctest.git
+            cd simpeg-doctest
+            # Remove the dev folder
+            rm -rvf dev
+            # Move the built docs to a new dev folder
+            mv $BUILD_SOURCESDIRECTORY/docs/_build/html dev
+            cp $BUILD_SOURCESDIRECTORY/docs/README.md .
+            # Add .nojekyll if missing
+            touch .nojekyll
+            # Commit the new docs.
+            # If the last commit is also a dev build, then we'll reuse it,
+            # instead of creating a new one. We do this to avoid having a very
+            # large commit history in the docs repo.
+            git add dev README.md .nojekyll
+            message="Azure CI deploy dev from ${commit}"
+            if [[ `git log -1 --format='%s'` == *"dev"* ]]; then
+                echo -e "\nAmmending last commit:"
+                git commit --amend --reset-author -m "$message"
+            else
+                echo -e "\nMaking a new commit:"
+                git commit -m "$message"
+            fi
+            # Make the push quiet just in case there is anything that could
+            # leak sensitive information.
+            echo -e "\nPushing changes to gh-pages."
+            git push -fq origin gh-pages 2>&1 >/dev/null
+            echo -e "\nFinished uploading generated files."
+          displayName: Push documentation to simpeg-doctest
           env:
             GH_TOKEN: $(gh.token)
