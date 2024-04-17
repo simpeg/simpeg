@@ -42,7 +42,7 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Install dependencies to run the flake8 checks
+      - name: Install dependencies to run the black checks
         run: pip install -r requirements_style.txt
 
       - name: checkout pull request source
