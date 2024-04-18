@@ -153,12 +153,12 @@ stages:
           env:
             GH_TOKEN: $(gh.token)
 
-- stage: Deploy dev docs to simpeg-doctest (experimental)
+- stage: Deploy_dev_docs_experimental
   dependsOn: Testing
   condition: eq(variables['Build.Reason'], 'Schedule')  # run only scheduled triggers
   jobs:
     - job:
-      displayName: Deploy docs to simpeg-doctest (experimental)
+      displayName: Deploy dev docs to simpeg-doctest (experimental)
       pool:
         vmImage: ubuntu-latest
       variables:
@@ -239,12 +239,12 @@ stages:
           env:
             GH_TOKEN: $(gh.token)
 
-- stage: Deploy release docs to simpeg-doctest (experimental)
+- stage: Deploy_release_docs_experimental
   dependsOn: Testing
   condition: startsWith(variables['build.sourceBranch'], 'refs/tags/')
   jobs:
     - job:
-      displayName: Deploy docs to simpeg-doctest (experimental)
+      displayName: Deploy release docs to simpeg-doctest (experimental)
       pool:
         vmImage: ubuntu-latest
       variables:
