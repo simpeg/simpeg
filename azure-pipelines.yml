@@ -9,7 +9,7 @@ trigger:
     - '*'
 
 schedules:
-- cron: "0 8 * *" # trigger cron job every day at 08:00 AM GMT
+- cron: "0 8 * * *" # trigger cron job every day at 08:00 AM GMT
   displayName: "Scheduled nightly job"
   branches:
     include: [ "main" ]
