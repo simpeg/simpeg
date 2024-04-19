@@ -66,7 +66,9 @@ class Base_DerivAdjoint_Test(unittest.TestCase):
         mesh = get_mesh()
         mapping = get_mapping(mesh)
         self.survey = get_survey()
-        self.prob = get_prob(mesh, mapping, self.formulation, survey=self.survey)
+        self.prob = get_prob(
+            mesh, mapping, self.formulation, survey=self.survey, store_factors=True
+        )
         self.m = np.log(1e-1) * np.ones(self.prob.sigmaMap.nP) + 1e-3 * np.random.randn(
             self.prob.sigmaMap.nP
         )
@@ -80,7 +82,9 @@ class Base_DerivAdjoint_Test(unittest.TestCase):
         mesh = get_mesh()
         mapping = get_mapping(mesh)
         self.surveyfwd = get_survey()
-        self.probfwd = get_prob(mesh, mapping, self.formulation, survey=self.surveyfwd)
+        self.probfwd = get_prob(
+            mesh, mapping, self.formulation, survey=self.surveyfwd, store_factors=False
+        )
 
     def get_rx(self, rxcomp):
         rxOffset = 15.0
@@ -142,6 +146,7 @@ class TDEM_Fields_B_Pieces(Base_DerivAdjoint_Test):
 
     def test_eDeriv_m_adjoint(self):
         prb = self.prob
+        prb.store_factors = False
         f = self.fields
 
         print("\n Testing eDeriv_m Adjoint")
