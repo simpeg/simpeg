@@ -33,9 +33,9 @@ import tarfile
 
 from discretize import TensorMesh
 from discretize.utils import active_from_xyz
-from SimPEG.utils import plot2Ddata, model_builder
-from SimPEG.potential_fields import gravity
-from SimPEG import (
+from simpeg.utils import plot2Ddata, model_builder
+from simpeg.potential_fields import gravity
+from simpeg import (
     maps,
     data,
     data_misfit,
@@ -122,7 +122,7 @@ plt.show()
 # Assign Uncertainties
 # --------------------
 #
-# Inversion with SimPEG requires that we define standard deviation on our data.
+# Inversion with simpeg requires that we define standard deviation on our data.
 # This represents our estimate of the noise in our data. For gravity inversion,
 # a constant floor value is generally applied to all data. For this tutorial,
 # the standard deviation on each datum will be 1% of the maximum observed
@@ -210,7 +210,7 @@ starting_model = np.zeros(nC)
 #
 # .. tip::
 #
-#    Since SimPEG v0.21.0 we can use `Choclo
+#    Since simpeg v0.21.0 we can use `Choclo
 #    <https://www.fatiando.org/choclo>`_ as the engine for running the gravity
 #    simulations, which results in faster and more memory efficient runs. Just
 #    pass ``engine="choclo"`` when constructing the simulation.
@@ -321,7 +321,7 @@ background_density = 0.0
 block_density = -0.2
 sphere_density = 0.2
 
-# Define model. Models in SimPEG are vector arrays.
+# Define model. Models in simpeg are vector arrays.
 true_model = background_density * np.ones(nC)
 
 # You could find the indicies of specific cells within the model and change their
@@ -336,7 +336,7 @@ ind_block = (
 )
 true_model[ind_block] = block_density
 
-# You can also use SimPEG utilities to add structures to the model more concisely
+# You can also use simpeg utilities to add structures to the model more concisely
 ind_sphere = model_builder.get_indices_sphere(
     np.r_[35.0, 0.0, -40.0], 15.0, mesh.gridCC
 )
@@ -406,7 +406,7 @@ plt.show()
 #
 
 # Predicted data with final recovered model
-# SimPEG uses right handed coordinate where Z is positive upward.
+# simpeg uses right handed coordinate where Z is positive upward.
 # This causes gravity signals look "inconsistent" with density values in visualization.
 dpred = inv_prob.dpred
 

@@ -1,5 +1,5 @@
 name: Bug report
-description: Report a bug in SimPEG.
+description: Report a bug in simpeg.
 title: "BUG: <Please write a comprehensive title after the 'BUG: ' prefix>"
 labels: [Bug]
 

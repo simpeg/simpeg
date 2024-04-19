@@ -3,8 +3,8 @@
 2.5D Forward Simulation of a DCIP Line
 ======================================
 
-Here we use the module *SimPEG.electromagnetics.static.resistivity* to predict
-DC resistivity data and the module *SimPEG.electromagnetics.static.induced_polarization*
+Here we use the module *simpeg.electromagnetics.static.resistivity* to predict
+DC resistivity data and the module *simpeg.electromagnetics.static.induced_polarization*
 to predict IP data for a dipole-dipole survey. In this tutorial, we focus on
 the following:
 
@@ -32,12 +32,12 @@ pseudo-sections as apparent conductivities and apparent chargeabilities.
 from discretize import TreeMesh
 from discretize.utils import mkvc, refine_tree_xyz, active_from_xyz
 
-from SimPEG.utils import model_builder
-from SimPEG.utils.io_utils.io_utils_electromagnetics import write_dcip2d_ubc
-from SimPEG import maps, data
-from SimPEG.electromagnetics.static import resistivity as dc
-from SimPEG.electromagnetics.static import induced_polarization as ip
-from SimPEG.electromagnetics.static.utils.static_utils import (
+from simpeg.utils import model_builder
+from simpeg.utils.io_utils.io_utils_electromagnetics import write_dcip2d_ubc
+from simpeg import maps, data
+from simpeg.electromagnetics.static import resistivity as dc
+from simpeg.electromagnetics.static import induced_polarization as ip
+from simpeg.electromagnetics.static.utils.static_utils import (
     generate_dcip_sources_line,
     plot_pseudosection,
     apparent_resistivity_from_voltage,
@@ -52,7 +52,7 @@ from matplotlib.colors import LogNorm
 try:
     from pymatsolver import Pardiso as Solver
 except ImportError:
-    from SimPEG import SolverLU as Solver
+    from simpeg import SolverLU as Solver
 
 mpl.rcParams.update({"font.size": 16})
 write_output = False

@@ -2,7 +2,7 @@
 Linear Least-Squares Inversion
 ==============================
 
-Here we demonstrate the basics of inverting data with SimPEG by considering a
+Here we demonstrate the basics of inverting data with simpeg by considering a
 linear inverse problem. We formulate the inverse problem as a least-squares
 optimization problem. For this tutorial, we focus on the following:
 
@@ -25,7 +25,7 @@ import matplotlib.pyplot as plt
 
 from discretize import TensorMesh
 
-from SimPEG import (
+from simpeg import (
     simulation,
     maps,
     data_misfit,
@@ -127,7 +127,7 @@ sim = simulation.LinearSimulation(mesh, G=G, model_map=model_map)
 std = 0.01
 np.random.seed(1)
 
-# Create a SimPEG data object
+# Create a simpeg data object
 data_obj = sim.make_synthetic_data(true_model, relative_error=std, add_noise=True)
 
 #######################################################################

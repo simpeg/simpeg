@@ -16,7 +16,7 @@ This is published in
 The script and figures are also on figshare:
 https://doi.org/10.6084/m9.figshare.5107711
 
-This example was updated for SimPEG 0.14.0 on January 31st, 2020 by Joseph Capriotti
+This example was updated for simpeg 0.14.0 on January 31st, 2020 by Joseph Capriotti
 """
 
 import numpy as np
@@ -25,7 +25,7 @@ import h5py
 import tarfile
 import os
 import shutil
-from SimPEG import utils
+from simpeg import utils
 import discretize
 
 

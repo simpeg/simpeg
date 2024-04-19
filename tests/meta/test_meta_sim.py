@@ -1,12 +1,12 @@
 import numpy as np
-from SimPEG.potential_fields import gravity
-from SimPEG.electromagnetics.static import resistivity as dc
-from SimPEG import maps
+from simpeg.potential_fields import gravity
+from simpeg.electromagnetics.static import resistivity as dc
+from simpeg import maps
 from discretize import TensorMesh
 import scipy.sparse as sp
 import pytest
 
-from SimPEG.meta import MetaSimulation, SumMetaSimulation, RepeatedSimulation
+from simpeg.meta import MetaSimulation, SumMetaSimulation, RepeatedSimulation
 
 
 def test_multi_sim_correctness():

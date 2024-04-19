@@ -2,7 +2,7 @@
 3D Forward Simulation on a Tree Mesh
 ====================================
 
-Here we use the module *SimPEG.electromagnetics.frequency_domain* to simulate the
+Here we use the module *simpeg.electromagnetics.frequency_domain* to simulate the
 FDEM response for an airborne survey using an OcTree mesh and a
 conductivity/resistivity model.
 To limit computational demant, we simulate airborne data at a single frequency
@@ -31,9 +31,9 @@ sufficient accuracy.
 from discretize import TreeMesh
 from discretize.utils import mkvc, refine_tree_xyz, active_from_xyz
 
-from SimPEG.utils import plot2Ddata
-from SimPEG import maps
-import SimPEG.electromagnetics.frequency_domain as fdem
+from simpeg.utils import plot2Ddata
+from simpeg import maps
+import simpeg.electromagnetics.frequency_domain as fdem
 
 import os
 import numpy as np
@@ -43,7 +43,7 @@ import matplotlib.pyplot as plt
 try:
     from pymatsolver import Pardiso as Solver
 except ImportError:
-    from SimPEG import SolverLU as Solver
+    from simpeg import SolverLU as Solver
 
 save_file = False
 
@@ -172,7 +172,7 @@ ind_active = active_from_xyz(mesh, topo_xyz)
 # Define mapping from model to active cells
 model_map = maps.InjectActiveCells(mesh, ind_active, air_conductivity)
 
-# Define model. Models in SimPEG are vector arrays
+# Define model. Models in simpeg are vector arrays
 model = background_conductivity * np.ones(ind_active.sum())
 ind_block = (
     (mesh.gridCC[ind_active, 0] < 100.0)

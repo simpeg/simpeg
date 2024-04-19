@@ -1,6 +1,6 @@
 import unittest
 import numpy as np
-from SimPEG import survey, utils, data
+from simpeg import survey, utils, data
 
 np.random.seed(100)
 

@@ -36,9 +36,9 @@ import tarfile
 
 from discretize import TensorMesh
 from discretize.utils import active_from_xyz
-from SimPEG.utils import plot2Ddata
-from SimPEG.potential_fields import gravity, magnetics
-from SimPEG import (
+from simpeg.utils import plot2Ddata
+from simpeg.potential_fields import gravity, magnetics
+from simpeg import (
     maps,
     data,
     data_misfit,
@@ -150,7 +150,7 @@ plt.show()
 # Assign Uncertainties
 # --------------------
 #
-# Inversion with SimPEG requires that we define standard deviation on our data.
+# Inversion with simpeg requires that we define standard deviation on our data.
 # This represents our estimate of the noise in our data. For gravity inversion,
 # a constant floor value is generally applied to all data. For this tutorial,
 # the standard deviation on each datum will be 1% of the maximum observed
@@ -277,7 +277,7 @@ starting_model = np.r_[background_dens * np.ones(nC), background_susc * np.ones(
 #
 # .. tip::
 #
-#    Since SimPEG v0.21.0 we can use `Choclo
+#    Since simpeg v0.21.0 we can use `Choclo
 #    <https://www.fatiando.org/choclo>`_ as the engine for running the gravity
 #    simulations, which results in faster and more memory efficient runs. Just
 #    pass ``engine="choclo"`` when constructing the simulation.

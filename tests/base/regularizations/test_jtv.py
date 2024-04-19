@@ -4,7 +4,7 @@ import pytest
 import numpy as np
 
 from discretize import TensorMesh, TreeMesh
-from SimPEG import (
+from simpeg import (
     maps,
     regularization,
 )

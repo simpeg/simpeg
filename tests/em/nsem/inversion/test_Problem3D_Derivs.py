@@ -2,8 +2,8 @@
 import pytest
 import unittest
 import numpy as np
-from SimPEG import tests, mkvc
-from SimPEG.electromagnetics import natural_source as nsem
+from simpeg import tests, mkvc
+from simpeg.electromagnetics import natural_source as nsem
 from scipy.constants import mu_0
 
 TOLr = 5e-2

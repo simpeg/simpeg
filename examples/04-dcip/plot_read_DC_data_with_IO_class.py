@@ -13,9 +13,9 @@ import pandas as pd
 import shutil
 import os
 import matplotlib.pyplot as plt
-from SimPEG.electromagnetics.static import resistivity as DC
-from SimPEG import Report
-from SimPEG.utils.io_utils import download
+from simpeg.electromagnetics.static import resistivity as DC
+from simpeg import Report
+from simpeg.utils.io_utils import download
 
 ###############################################################################
 # Download an example DC data csv file
@@ -77,7 +77,7 @@ plt.show()
 shutil.rmtree(os.path.expanduser("./test_url"))
 
 ###############################################################################
-# Print the version of SimPEG and dependencies
+# Print the version of simpeg and dependencies
 # --------------------------------------------
 #
 
@@ -87,7 +87,7 @@ Report()
 # Moving Forward
 # --------------
 #
-# If you have suggestions for improving this example, please create a `pull request on the example in SimPEG <https://github.com/simpeg/simpeg/blob/main/examples/06-dc/read_plot_DC_data_with_IO_class.py>`_
+# If you have suggestions for improving this example, please create a `pull request on the example in simpeg <https://github.com/simpeg/simpeg/blob/main/examples/06-dc/read_plot_DC_data_with_IO_class.py>`_
 #
 # You might try:
 #    - changing the contour levels

@@ -3,8 +3,8 @@ import numpy as np
 import discretize
 from discretize.utils import active_from_xyz
 import dask
-import SimPEG.dask  # noqa: F401
-from SimPEG import (
+import simpeg.dask  # noqa: F401
+from simpeg import (
     utils,
     maps,
     regularization,
@@ -14,7 +14,7 @@ from SimPEG import (
     directives,
     inversion,
 )
-from SimPEG.potential_fields import gravity
+from simpeg.potential_fields import gravity
 
 import shutil
 

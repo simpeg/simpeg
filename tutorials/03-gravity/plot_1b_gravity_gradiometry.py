@@ -2,7 +2,7 @@
 Forward Simulation of Gradiometry Data on a Tree Mesh
 =====================================================
 
-Here we use the module *SimPEG.potential_fields.gravity* to predict gravity
+Here we use the module *simpeg.potential_fields.gravity* to predict gravity
 gradiometry data for a synthetic density contrast model. The simulation is
 carried out on a tree mesh. For this tutorial, we focus on the following:
 
@@ -26,9 +26,9 @@ import matplotlib.pyplot as plt
 
 from discretize import TreeMesh
 from discretize.utils import mkvc, refine_tree_xyz, active_from_xyz
-from SimPEG.utils import plot2Ddata, model_builder
-from SimPEG import maps
-from SimPEG.potential_fields import gravity
+from simpeg.utils import plot2Ddata, model_builder
+from simpeg import maps
+from simpeg.potential_fields import gravity
 
 # sphinx_gallery_thumbnail_number = 2
 
@@ -144,7 +144,7 @@ ind_active = active_from_xyz(mesh, xyz_topo)
 nC = int(ind_active.sum())
 model_map = maps.IdentityMap(nP=nC)  # model will be value of active cells
 
-# Define model. Models in SimPEG are vector arrays.
+# Define model. Models in simpeg are vector arrays.
 model = background_density * np.ones(nC)
 
 # You could find the indicies of specific cells within the model and change their
@@ -159,7 +159,7 @@ ind_block = (
 )
 model[ind_block] = block_density
 
-# You can also use SimPEG utilities to add structures to the model more concisely
+# You can also use simpeg utilities to add structures to the model more concisely
 ind_sphere = model_builder.get_indices_sphere(
     np.r_[35.0, 0.0, -40.0], 15.0, mesh.gridCC
 )
@@ -219,7 +219,7 @@ simulation = gravity.simulation.Simulation3DIntegral(
 ###############################################################################
 # .. tip::
 #
-#    Since SimPEG v0.21.0 we can use `Choclo
+#    Since simpeg v0.21.0 we can use `Choclo
 #    <https://www.fatiando.org/choclo>`_ as the engine for running the gravity
 #    simulations, which results in faster and more memory efficient runs. Just
 #    pass ``engine="choclo"`` when constructing the simulation.

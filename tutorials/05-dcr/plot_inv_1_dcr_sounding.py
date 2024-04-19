@@ -3,7 +3,7 @@
 Least-Squares 1D Inversion of Sounding Data
 ===========================================
 
-Here we use the module *SimPEG.electromangetics.static.resistivity* to invert
+Here we use the module *simpeg.electromangetics.static.resistivity* to invert
 DC resistivity sounding data and recover a 1D electrical resistivity model.
 In this tutorial, we focus on the following:
 
@@ -30,7 +30,7 @@ import tarfile
 
 from discretize import TensorMesh
 
-from SimPEG import (
+from simpeg import (
     maps,
     data,
     data_misfit,
@@ -41,8 +41,8 @@ from SimPEG import (
     directives,
     utils,
 )
-from SimPEG.electromagnetics.static import resistivity as dc
-from SimPEG.utils import plot_1d_layer_model
+from simpeg.electromagnetics.static import resistivity as dc
+from simpeg.utils import plot_1d_layer_model
 
 mpl.rcParams.update({"font.size": 16})
 
@@ -139,7 +139,7 @@ plt.show()
 # Assign Uncertainties
 # --------------------
 #
-# Inversion with SimPEG requires that we define standard deviation on our data.
+# Inversion with simpeg requires that we define standard deviation on our data.
 # This represents our estimate of the noise in our data. For DC sounding data,
 # a relative error is applied to each datum. For this tutorial, the relative
 # error on each datum will be 2%.

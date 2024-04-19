@@ -3,7 +3,7 @@
 DC Resistivity Forward Simulation in 2.5D
 =========================================
 
-Here we use the module *SimPEG.electromagnetics.static.resistivity* to predict
+Here we use the module *simpeg.electromagnetics.static.resistivity* to predict
 DC resistivity data and plot using a pseudosection. In this tutorial, we focus
 on the following:
 
@@ -24,11 +24,11 @@ on the following:
 from discretize import TreeMesh
 from discretize.utils import mkvc, refine_tree_xyz, active_from_xyz
 
-from SimPEG.utils import model_builder
-from SimPEG.utils.io_utils.io_utils_electromagnetics import write_dcip2d_ubc
-from SimPEG import maps, data
-from SimPEG.electromagnetics.static import resistivity as dc
-from SimPEG.electromagnetics.static.utils.static_utils import (
+from simpeg.utils import model_builder
+from simpeg.utils.io_utils.io_utils_electromagnetics import write_dcip2d_ubc
+from simpeg import maps, data
+from simpeg.electromagnetics.static import resistivity as dc
+from simpeg.electromagnetics.static.utils.static_utils import (
     generate_dcip_sources_line,
     apparent_resistivity_from_voltage,
     plot_pseudosection,
@@ -43,7 +43,7 @@ from matplotlib.colors import LogNorm
 try:
     from pymatsolver import Pardiso as Solver
 except ImportError:
-    from SimPEG import SolverLU as Solver
+    from simpeg import SolverLU as Solver
 
 write_output = False
 mpl.rcParams.update({"font.size": 16})

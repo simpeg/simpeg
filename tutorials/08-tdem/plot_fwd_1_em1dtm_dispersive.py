@@ -2,7 +2,7 @@
 1D Forward Simulation with Chargeable and/or Magnetic Viscosity
 ===============================================================
 
-Here we use the module *SimPEG.electromangetics.time_domain_1d* to compare
+Here we use the module *simpeg.electromangetics.time_domain_1d* to compare
 predicted time domain data for a single sounding when the Earth is
 purely conductive, chargeable and/or magnetically viscous.
 In this tutorial, we focus on:
@@ -26,9 +26,9 @@ of the loop and measures the vertical component of the response.
 import numpy as np
 from matplotlib import pyplot as plt
 
-from SimPEG import maps
-import SimPEG.electromagnetics.time_domain as tdem
-from SimPEG.electromagnetics.utils.em1d_utils import ColeCole, LogUniform
+from simpeg import maps
+import simpeg.electromagnetics.time_domain as tdem
+from simpeg.electromagnetics.utils.em1d_utils import ColeCole, LogUniform
 
 # sphinx_gallery_thumbnail_number = 3
 
@@ -102,14 +102,14 @@ survey = tdem.Survey(source_list)
 thicknesses = np.array([40.0, 40.0])
 n_layer = len(thicknesses) + 1
 
-# In SimPEG, the Cole-Cole model is used to define a frequency-dependent
+# In simpeg, the Cole-Cole model is used to define a frequency-dependent
 # electrical conductivity when the Earth is chargeable.
 sigma = 1e-1  # infinite conductivity in S/m
 eta = 0.5  # intrinsice chargeability [0, 1]
 tau = 0.01  # central time-relaxation constant in seconds
 c = 0.75  # phase constant [0, 1]
 
-# In SimPEG, the a log-uniform distribution of time-relaxation constants is used
+# In simpeg, the a log-uniform distribution of time-relaxation constants is used
 # to define a frequency-dependent susceptibility when the Earth exhibits
 # magnetic viscosity
 chi = 0.001  # infinite susceptibility in SI
@@ -186,7 +186,7 @@ ax.legend(
 # parameters used to define the physical properties are permanently set when
 # defining the simulation.
 #
-# When using the *SimPEG.electromagnetics.time_domain_1d* module, note that
+# When using the *simpeg.electromagnetics.time_domain_1d* module, note that
 # predicted data are organized by source, then by receiver, then by time channel.
 #
 #

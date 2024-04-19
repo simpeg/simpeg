@@ -1,5 +1,5 @@
 import numpy as np
-from SimPEG.electromagnetics.natural_source.utils.data_utils import rec_to_ndarr
+from simpeg.electromagnetics.natural_source.utils.data_utils import rec_to_ndarr
 
 
 def test_rec_to_ndarr():

@@ -2,7 +2,7 @@
 Response from a Homogeneous Layer for Different Waveforms
 =========================================================
 
-Here we use the module *SimPEG.electromagnetics.viscous_remanent_magnetization*
+Here we use the module *simpeg.electromagnetics.viscous_remanent_magnetization*
 to predict the characteristic VRM response over magnetically viscous layer.
 We consider a small-loop, ground-based survey which uses a coincident loop
 geometry. For this tutorial, we focus on the following:
@@ -25,7 +25,7 @@ tutorial have been developed for modeling both the inductive and VRM responses.
 # --------------
 #
 
-import SimPEG.electromagnetics.viscous_remanent_magnetization as vrm
+import simpeg.electromagnetics.viscous_remanent_magnetization as vrm
 
 from discretize import TensorMesh
 from discretize.utils import mkvc
@@ -40,7 +40,7 @@ import matplotlib as mpl
 # Define Waveforms
 # ----------------
 #
-# Under *SimPEG.electromagnetic.viscous_remanent_magnetization.waveform*
+# Under *simpeg.electromagnetic.viscous_remanent_magnetization.waveform*
 # there are a multitude of waveforms that can be defined (Step-off, square-pulse,
 # piecewise linear, ...). Here we define a specific waveform for each transmitter.
 # Each waveform is defined with a diferent set of parameters.

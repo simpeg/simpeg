@@ -32,9 +32,9 @@ import matplotlib.pyplot as plt
 from discretize import TreeMesh
 from discretize.utils import refine_tree_xyz, active_from_xyz
 
-from SimPEG.utils import plot2Ddata, mkvc
-from SimPEG.electromagnetics import frequency_domain as fdem
-from SimPEG import (
+from simpeg.utils import plot2Ddata, mkvc
+from simpeg.electromagnetics import frequency_domain as fdem
+from simpeg import (
     maps,
     data,
     data_misfit,
@@ -49,7 +49,7 @@ from SimPEG import (
 try:
     from pymatsolver import Pardiso as Solver
 except ImportError:
-    from SimPEG import SolverLU as Solver
+    from simpeg import SolverLU as Solver
 
 # sphinx_gallery_thumbnail_number = 3
 
@@ -150,7 +150,7 @@ plt.show()
 # Assign Uncertainties
 # --------------------
 #
-# Inversion with SimPEG requires that we define standard deviation on our data.
+# Inversion with simpeg requires that we define standard deviation on our data.
 # This represents our estimate of the noise in our data. For gravity inversion,
 # a constant floor value is generally applied to all data. For this tutorial,
 # the standard deviation on each datum will be 1% of the maximum observed

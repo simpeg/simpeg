@@ -2,7 +2,7 @@
 PF: Gravity: Laguna del Maule Bouguer Gravity
 =============================================
 
-This notebook illustrates the SimPEG code used to invert Bouguer
+This notebook illustrates the simpeg code used to invert Bouguer
 gravity data collected at Laguna del Maule volcanic field, Chile.
 Refer to Miller et al 2016 EPSL for full details.
 
@@ -15,8 +15,8 @@ Craig Miller
 import os
 import shutil
 import tarfile
-from SimPEG.potential_fields import gravity
-from SimPEG import (
+from simpeg.potential_fields import gravity
+from simpeg import (
     data_misfit,
     maps,
     regularization,
@@ -25,11 +25,11 @@ from SimPEG import (
     directives,
     inversion,
 )
-from SimPEG.utils import download, plot2Ddata
+from simpeg.utils import download, plot2Ddata
 
 import matplotlib.pyplot as plt
 import numpy as np
-from SimPEG.utils.drivers.gravity_driver import GravityDriver_Inv
+from simpeg.utils.drivers.gravity_driver import GravityDriver_Inv
 
 
 def run(plotIt=True, cleanAfterRun=True):
@@ -151,11 +151,11 @@ def run(plotIt=True, cleanAfterRun=True):
     if plotIt:
         # Plot observed data
         # The sign of the data is flipped here for the change of convention
-        # between Cartesian coordinate system (internal SimPEG format that
+        # between Cartesian coordinate system (internal simpeg format that
         # expects "positive up" gravity signal) and traditional gravity data
         # conventions (positive down). For example a traditional negative
         # gravity anomaly is described as "positive up" in Cartesian coordinates
-        # and hence the sign needs to be flipped for use in SimPEG.
+        # and hence the sign needs to be flipped for use in simpeg.
         plot2Ddata(rxLoc, -d)
 
         # %%

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
-"""SimPEG: Simulation and Parameter Estimation in Geophysics
+"""simpeg: Simulation and Parameter Estimation in Geophysics
 
-SimPEG is a python package for simulation and gradient based
+simpeg is a python package for simulation and gradient based
 parameter estimation in the context of geophysical applications.
 """
 
@@ -28,7 +28,7 @@ with open("README.rst") as f:
     LONG_DESCRIPTION = "".join(f.readlines())
 
 setup(
-    name="SimPEG",
+    name="simpeg",
     packages=find_packages(exclude=["tests*", "examples*", "tutorials*"]),
     python_requires=">=3.8",
     setup_requires=[
@@ -47,7 +47,7 @@ setup(
     ],
     author="Rowan Cockett",
     author_email="rowanc1@gmail.com",
-    description="SimPEG: Simulation and Parameter Estimation in Geophysics",
+    description="simpeg: Simulation and Parameter Estimation in Geophysics",
     long_description=LONG_DESCRIPTION,
     license="MIT",
     keywords="geophysics inverse problem",
@@ -57,6 +57,6 @@ setup(
     platforms=["Windows", "Linux", "Solaris", "Mac OS-X", "Unix"],
     use_2to3=False,
     use_scm_version={
-        "write_to": os.path.join("SimPEG", "version.py"),
+        "write_to": os.path.join("simpeg", "version.py"),
     },
 )

@@ -34,9 +34,9 @@ import tarfile
 
 from discretize import TensorMesh
 from discretize.utils import active_from_xyz
-from SimPEG.potential_fields import magnetics
-from SimPEG.utils import plot2Ddata, model_builder
-from SimPEG import (
+from simpeg.potential_fields import magnetics
+from simpeg.utils import plot2Ddata, model_builder
+from simpeg import (
     maps,
     data,
     inverse_problem,
@@ -125,7 +125,7 @@ plt.show()
 # Assign Uncertainty
 # ------------------
 #
-# Inversion with SimPEG requires that we define standard deviation on our data.
+# Inversion with simpeg requires that we define standard deviation on our data.
 # This represents our estimate of the noise in our data. For magnetic inversions,
 # a constant floor value is generall applied to all data. For this tutorial, the
 # standard deviation on each datum will be 2% of the maximum observed magnetics

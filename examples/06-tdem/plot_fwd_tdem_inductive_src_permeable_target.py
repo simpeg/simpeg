@@ -20,11 +20,11 @@ from scipy.constants import mu_0
 try:
     from pymatsolver import Pardiso as Solver
 except ImportError:
-    from SimPEG import SolverLU as Solver
+    from simpeg import SolverLU as Solver
 import time
 
-from SimPEG.electromagnetics import time_domain as TDEM
-from SimPEG import utils, maps, Report
+from simpeg.electromagnetics import time_domain as TDEM
+from simpeg import utils, maps, Report
 
 ###############################################################################
 # Model Parameters
@@ -293,7 +293,7 @@ for a, v in zip(ax, ["magnetostatic", "late_ontime", "diff"]):
 plt.tight_layout()
 
 ###############################################################################
-# Print the version of SimPEG and dependencies
+# Print the version of simpeg and dependencies
 # --------------------------------------------
 #
 plt.show()

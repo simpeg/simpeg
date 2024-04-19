@@ -6,9 +6,9 @@ import numpy as np
 from pymatsolver import SolverLU
 from scipy.stats import multivariate_normal
 
-from SimPEG import regularization
-from SimPEG.maps import Wires
-from SimPEG.utils import WeightedGaussianMixture, mkvc
+from simpeg import regularization
+from simpeg.maps import Wires
+from simpeg.utils import WeightedGaussianMixture, mkvc
 
 
 class TestPGI(unittest.TestCase):

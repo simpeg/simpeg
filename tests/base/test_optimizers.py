@@ -1,8 +1,8 @@
 import unittest
-from SimPEG.utils import sdiag
+from simpeg.utils import sdiag
 import numpy as np
 import scipy.sparse as sp
-from SimPEG import optimization
+from simpeg import optimization
 from discretize.tests import get_quadratic, rosenbrock
 
 TOL = 1e-2
