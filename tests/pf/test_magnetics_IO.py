@@ -18,7 +18,7 @@ class MagSensProblemTests(unittest.TestCase):
             "Gaussian.topo",
             "Mesh_10m.msh",
             "ModelStart.sus",
-            "simpeg_Mag_Input.inp",
+            "SimPEG_Mag_Input.inp",
         ]
 
         self.basePath = os.path.expanduser("~/Downloads/simpegtemp")
@@ -27,7 +27,7 @@ class MagSensProblemTests(unittest.TestCase):
         )
 
     def test_magnetics_inversion(self):
-        inp_file = os.path.sep.join([self.basePath, "simpeg_Mag_Input.inp"])
+        inp_file = os.path.sep.join([self.basePath, "SimPEG_Mag_Input.inp"])
 
         driver = MagneticsDriver_Inv(inp_file)
 
