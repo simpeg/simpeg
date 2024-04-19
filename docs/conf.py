@@ -281,7 +281,7 @@ try:
             "plausible_analytics_url": "https://plausible.io/js/script.js",
         },
         "navbar_align": "left",  # make elements closer to logo on the left
-        "navbar_end": ["theme-switcher", "version-switcher", "navbar-icon-links"],
+        "navbar_end": ["version-switcher", "theme-switcher", "navbar-icon-links"],
         # Configure version switcher
         "switcher": {
             "version_match": switcher_version,
