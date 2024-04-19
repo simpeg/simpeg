@@ -15,7 +15,7 @@ class Data:
 
     Parameters
     ----------
-    survey : SimPEG.survey.BaseSurvey
+    survey : simpeg.survey.BaseSurvey
         A simpeg survey object. For each geophysical method, the survey object defines
         the survey geometry; i.e. sources, receivers, data type.
     dobs : (n) numpy.ndarray
@@ -98,7 +98,7 @@ class Data:
 
         Returns
         -------
-        SimPEG.simulation.BaseSurvey
+        simpeg.simulation.BaseSurvey
         """
         return self._survey
 
@@ -370,7 +370,7 @@ class SyntheticData(Data):
 
     Parameters
     ----------
-    survey : SimPEG.survey.BaseSurvey
+    survey : simpeg.survey.BaseSurvey
         A simpeg survey object. For each geophysical method, the survey object defines
         the survey geometry; i.e. sources, receivers, data type.
     dobs : numpy.ndarray

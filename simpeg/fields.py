@@ -49,7 +49,7 @@ class Fields:
 
         Returns
         -------
-        SimPEG.simulation.BaseSimulation
+        simpeg.simulation.BaseSimulation
         """
         return self._simulation
 
@@ -287,7 +287,7 @@ class TimeFields(Fields):
 
         Returns
         -------
-        SimPEG.simulation.BaseTimeSimulation
+        simpeg.simulation.BaseTimeSimulation
         """
         return self._simulation
 

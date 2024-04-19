@@ -26,13 +26,13 @@ class BaseDataMisfit(L2ObjectiveFunction):
 
     Parameters
     ----------
-    data : SimPEG.data.Data
+    data : simpeg.data.Data
         A simpeg data object.
-    simulation : SimPEG.simulation.BaseSimulation
+    simulation : simpeg.simulation.BaseSimulation
         A simpeg simulation object.
     debug : bool
         Print debugging information.
-    counter : None or SimPEG.utils.Counter
+    counter : None or simpeg.utils.Counter
         Assign a simpeg ``Counter`` object to store iterations and run-times.
     """
 
@@ -48,7 +48,7 @@ class BaseDataMisfit(L2ObjectiveFunction):
 
         Returns
         -------
-        SimPEG.data.Data
+        simpeg.data.Data
             A simpeg data object.
         """
         return self._data

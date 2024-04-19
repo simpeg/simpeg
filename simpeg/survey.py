@@ -366,7 +366,7 @@ class BaseSrc:
 
         Parameters
         ----------
-        receivers : list of SimPEG.survey.BaseRx
+        receivers : list of simpeg.survey.BaseRx
             A subset list of receivers within the source's receivers list
 
         Returns

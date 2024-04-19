@@ -1,7 +1,7 @@
-Citing SimPEG
+Citing simpeg
 -------------
 
-There is a `paper about SimPEG <http://dx.doi.org/10.1016/j.cageo.2015.09.015>`_, if you use this code, please help our scientific visibility by citing our work!
+There is a `paper about simpeg <http://dx.doi.org/10.1016/j.cageo.2015.09.015>`_, if you use this code, please help our scientific visibility by citing our work!
 
 
     Cockett, R., Kang, S., Heagy, L. J., Pidlisecky, A., & Oldenburg, D. W. (2015). SimPEG: An open source framework for simulation and gradient based parameter estimation in geophysical applications. Computers & Geosciences.

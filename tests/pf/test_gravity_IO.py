@@ -16,7 +16,7 @@ class GravSensProblemTests(unittest.TestCase):
             "Gaussian.topo",
             "Mesh_10m.msh",
             "ModelStart.sus",
-            "SimPEG_Grav_Input.inp",
+            "simpeg_Grav_Input.inp",
         ]
 
         self.basePath = os.path.expanduser("~/Downloads/simpegtemp")
@@ -25,7 +25,7 @@ class GravSensProblemTests(unittest.TestCase):
         )
 
     def test_gravity_inversion(self):
-        inp_file = os.path.sep.join([self.basePath, "SimPEG_Grav_Input.inp"])
+        inp_file = os.path.sep.join([self.basePath, "simpeg_Grav_Input.inp"])
 
         driver = GravityDriver_Inv(inp_file)
 

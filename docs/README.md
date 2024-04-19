@@ -1,6 +1,6 @@
 # simpeg-docs
 
-A place where we automatically deploy the SimPEG documentation.
+A place where we automatically deploy the simpeg documentation.
 
 This repository is automatically edited by our army of robots on the
 Azure CI service. Changes to the documentation should not be made

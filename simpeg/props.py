@@ -38,7 +38,7 @@ class Mapping:
 
         Returns
         -------
-        SimPEG.maps.IdentityMap
+        simpeg.maps.IdentityMap
         """
 
         def fget(self):

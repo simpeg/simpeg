@@ -192,7 +192,7 @@ if link_github:
         except ValueError:
             return None
 
-        return f"https://github.com/simpeg/simpeg/blob/main/SimPEG/{fn}{linespec}"
+        return f"https://github.com/simpeg/simpeg/blob/main/simpeg/{fn}{linespec}"
 
 else:
     extensions.append("sphinx.ext.viewcode")
@@ -365,7 +365,7 @@ html_show_copyright = False
 # html_file_suffix = None
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = "SimPEGdoc"
+htmlhelp_basename = "simpegdoc"
 
 
 # -- Options for LaTeX output --------------------------------------------------

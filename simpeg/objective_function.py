@@ -42,7 +42,7 @@ class BaseObjectiveFunction(BaseSimPEG):
     has_fields : bool
         If ``True``, predicted fields for a simulation and a given model can be
         used to evaluate the objective function quickly.
-    counter : None or SimPEG.utils.Counter
+    counter : None or simpeg.utils.Counter
         Assign a simpeg ``Counter`` object to store iterations and run-times.
     debug : bool
         Print debugging information.
@@ -509,7 +509,7 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
 
         Parameters
         ----------
-        fun_class : list or SimPEG.objective_function.BaseObjectiveFunction
+        fun_class : list or simpeg.objective_function.BaseObjectiveFunction
             Objective function class or list of objective function classes to return.
 
         Returns

@@ -11,7 +11,7 @@ class UniformBackgroundField(BaseSrc):
 
     Parameters
     ----------
-    receiver_list : list of SimPEG.potential_fields.magnetics.Point
+    receiver_list : list of simpeg.potential_fields.magnetics.Point
     amplitude : float, optional
         amplitude of the inducing backgound field, usually this is in units of nT.
     inclination : float, optional

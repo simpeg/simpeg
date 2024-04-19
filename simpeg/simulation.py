@@ -68,7 +68,7 @@ class BaseSimulation(props.HasModel):
         about solvers and their parameters.
     sensitivity_path : str, optional
         Path to directory where sensitivity file is stored.
-    counter : None or SimPEG.utils.Counter
+    counter : None or simpeg.utils.Counter
         simpeg ``Counter`` object to store iterations and run-times.
     verbose : bool, optional
         Verbose progress printout.
@@ -128,7 +128,7 @@ class BaseSimulation(props.HasModel):
 
         Returns
         -------
-        SimPEG.survey.BaseSurvey
+        simpeg.survey.BaseSurvey
             The survey for the simulation.
         """
         return self._survey
@@ -250,7 +250,7 @@ class BaseSimulation(props.HasModel):
 
         Returns
         -------
-        SimPEG.fields.Fields
+        simpeg.fields.Fields
             Computed geophysical fields for the model provided.
 
         """

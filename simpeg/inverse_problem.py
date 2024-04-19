@@ -91,7 +91,7 @@ class BaseInvProblem:
 
         Returns
         -------
-        SimPEG.objective_function.ComboObjectiveFunction
+        simpeg.objective_function.ComboObjectiveFunction
         """
         return self._dmisfit
 
@@ -108,7 +108,7 @@ class BaseInvProblem:
 
         Returns
         -------
-        SimPEG.objective_function.ComboObjectiveFunction
+        simpeg.objective_function.ComboObjectiveFunction
         """
         return self._reg
 

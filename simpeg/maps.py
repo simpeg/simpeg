@@ -258,7 +258,7 @@ class IdentityMap:
         )
 
     def dot(self, map1):
-        r"""Multiply two mappings to create a :class:`SimPEG.maps.ComboMap`.
+        r"""Multiply two mappings to create a :class:`simpeg.maps.ComboMap`.
 
         Let :math:`\mathbf{f}_1` and :math:`\mathbf{f}_2` represent two mapping functions.
         Where :math:`\mathbf{m}` represents a set of input model parameters,

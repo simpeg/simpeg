@@ -535,7 +535,7 @@ class Simulation3DDifferential(BaseMagneticPDESimulation):
 
         Returns
         -------
-        SimPEG.potential_fields.magnetics.survey.Survey
+        simpeg.potential_fields.magnetics.survey.Survey
         """
         if self._survey is None:
             raise AttributeError("Simulation must have a survey")
