@@ -27,6 +27,8 @@ CLASSIFIERS = [
 with open("README.rst") as f:
     LONG_DESCRIPTION = "".join(f.readlines())
 
+print(find_packages(exclude=["tests*", "examples*", "tutorials*"]))
+
 setup(
     name="simpeg",
     packages=find_packages(exclude=["tests*", "examples*", "tutorials*"]),
