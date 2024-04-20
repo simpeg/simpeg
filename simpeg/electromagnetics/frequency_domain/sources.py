@@ -1355,7 +1355,7 @@ class LineCurrent(BaseFDEMSrc):
         Parameters
         ----------
         simulation : BaseFDEMSimulation
-            simpeg FDEM simulation
+            SimPEG FDEM simulation
 
         Returns
         -------
@@ -1370,7 +1370,7 @@ class LineCurrent(BaseFDEMSrc):
         Parameters
         ----------
         simulation : BaseFDEMSimulation
-            simpeg FDEM simulation
+            SimPEG FDEM simulation
 
         Returns
         -------
