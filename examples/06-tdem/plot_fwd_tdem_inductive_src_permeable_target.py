@@ -293,7 +293,7 @@ for a, v in zip(ax, ["magnetostatic", "late_ontime", "diff"]):
 plt.tight_layout()
 
 ###############################################################################
-# Print the version of simpeg and dependencies
+# Print the version of SimPEG and dependencies
 # --------------------------------------------
 #
 plt.show()

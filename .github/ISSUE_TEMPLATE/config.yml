@@ -1,7 +1,7 @@
 contact_links:
   - name: Question/Help/Support
     url: https://simpeg.discourse.group/
-    about: "If you have a question on how to use simpeg, please submit them to our discourse page."
+    about: "If you have a question on how to use SimPEG, please submit them to our discourse page."
   - name: Development-related matters
     url: https://mattermost.softwareunderground.org/simpeg
-    about: "If you would like to discuss simpeg, any geophysics related problems, or need help from the simpeg team, get in touch with us on Mattermost."
+    about: "If you would like to discuss SimPEG, any geophysics related problems, or need help from the simpeg team, get in touch with us on Mattermost."

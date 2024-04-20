@@ -27,13 +27,13 @@ class BaseDataMisfit(L2ObjectiveFunction):
     Parameters
     ----------
     data : simpeg.data.Data
-        A simpeg data object.
+        A SimPEG data object.
     simulation : simpeg.simulation.BaseSimulation
-        A simpeg simulation object.
+        A SimPEG simulation object.
     debug : bool
         Print debugging information.
     counter : None or simpeg.utils.Counter
-        Assign a simpeg ``Counter`` object to store iterations and run-times.
+        Assign a SimPEG ``Counter`` object to store iterations and run-times.
     """
 
     def __init__(self, data, simulation, debug=False, counter=None, **kwargs):
@@ -44,12 +44,12 @@ class BaseDataMisfit(L2ObjectiveFunction):
 
     @property
     def data(self):
-        """A simpeg data object.
+        """A SimPEG data object.
 
         Returns
         -------
         simpeg.data.Data
-            A simpeg data object.
+            A SimPEG data object.
         """
         return self._data
 
@@ -59,12 +59,12 @@ class BaseDataMisfit(L2ObjectiveFunction):
 
     @property
     def simulation(self):
-        """A simpeg simulation object.
+        """A SimPEG simulation object.
 
         Returns
         -------
-        SimPEG.simulation.BaseSimulation
-            A simpeg simulation object.
+        simpeg.simulation.BaseSimulation
+            A SimPEG simulation object.
         """
         return self._simulation
 
@@ -91,7 +91,7 @@ class BaseDataMisfit(L2ObjectiveFunction):
 
     @property
     def counter(self):
-        """simpeg ``Counter`` object to store iterations and run-times.
+        """SimPEG ``Counter`` object to store iterations and run-times.
 
         Returns
         -------
@@ -251,13 +251,13 @@ class L2DataMisfit(BaseDataMisfit):
 
     Parameters
     ----------
-    data : SimPEG.data.Data
+    data : simpeg.data.Data
         A simpeg data object that has observed data and uncertainties.
-    simulation : SimPEG.simulation.BaseSimulation
+    simulation : simpeg.simulation.BaseSimulation
         A simpeg simulation object.
     debug : bool
         Print debugging information.
-    counter : None or SimPEG.utils.Counter
+    counter : None or simpeg.utils.Counter
         Assign a simpeg ``Counter`` object to store iterations and run-times.
     """
 

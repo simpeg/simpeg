@@ -2221,7 +2221,7 @@ class BaseSimilarityMeasure(BaseRegularization):
 
     Parameters
     ----------
-    mesh : SimPEG.regularization.RegularizationMesh
+    mesh : simpeg.regularization.RegularizationMesh
         Mesh on which the regularization is discretized. This is not necessarily the same as
         the mesh on which the simulation is defined.
     wire_map : simpeg.maps.WireMap

@@ -144,7 +144,7 @@ ind_active = active_from_xyz(mesh, xyz_topo)
 nC = int(ind_active.sum())
 model_map = maps.IdentityMap(nP=nC)  # model will be value of active cells
 
-# Define model. Models in simpeg are vector arrays.
+# Define model. Models in SimPEG are vector arrays.
 model = background_density * np.ones(nC)
 
 # You could find the indicies of specific cells within the model and change their
@@ -159,7 +159,7 @@ ind_block = (
 )
 model[ind_block] = block_density
 
-# You can also use simpeg utilities to add structures to the model more concisely
+# You can also use SimPEG utilities to add structures to the model more concisely
 ind_sphere = model_builder.get_indices_sphere(
     np.r_[35.0, 0.0, -40.0], 15.0, mesh.gridCC
 )
@@ -219,7 +219,7 @@ simulation = gravity.simulation.Simulation3DIntegral(
 ###############################################################################
 # .. tip::
 #
-#    Since simpeg v0.21.0 we can use `Choclo
+#    Since SimPEG v0.21.0 we can use `Choclo
 #    <https://www.fatiando.org/choclo>`_ as the engine for running the gravity
 #    simulations, which results in faster and more memory efficient runs. Just
 #    pass ``engine="choclo"`` when constructing the simulation.

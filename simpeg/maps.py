@@ -35,7 +35,7 @@ from .utils import (
 
 
 class IdentityMap:
-    r"""Identity mapping and the base mapping class for all other simpeg mappings.
+    r"""Identity mapping and the base mapping class for all other SimPEG mappings.
 
     The ``IdentityMap`` class is used to define the mapping when
     the model parameters are the same as the parameters used in the forward
@@ -378,7 +378,7 @@ class ComboMap(IdentityMap):
 
     Parameters
     ----------
-    maps : list of SimPEG.maps.IdentityMap
+    maps : list of simpeg.maps.IdentityMap
         A ``list`` of SimPEG mapping objects. The ordering of the mapping
         objects in the ``list`` is from last applied to first applied!
 

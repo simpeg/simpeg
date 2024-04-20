@@ -14,7 +14,7 @@ from .utils.code_utils import (
 
 
 class BaseRx:
-    """Base simpeg receiver class.
+    """Base SimPEG receiver class.
 
     Parameters
     ----------
@@ -40,7 +40,7 @@ class BaseRx:
         if projGLoc is not None:
             warnings.warn(
                 "'projGLoc' is no longer of property of the receiver class. It is set automatically "
-                "based on the receiver and simulation class. Will be remove in simpeg 0.18.0",
+                "based on the receiver and simulation class. Will be remove in SimPEG 0.18.0",
                 stacklevel=2,
             )
         # ideally there shouldn't be any kwargs left to hit, but this will throw an
@@ -177,7 +177,7 @@ class BaseRx:
 
 
 class BaseTimeRx(BaseRx):
-    """Base simpeg receiver class for time-domain simulations
+    """Base SimPEG receiver class for time-domain simulations
 
     Parameters
     ----------
@@ -280,7 +280,7 @@ class BaseTimeRx(BaseRx):
 
 
 class BaseSrc:
-    """Base simpeg source class.
+    """Base SimPEG source class.
 
     Parameters
     ----------
@@ -414,14 +414,14 @@ class BaseSrc:
 # TODO: allow a reciever list to be provided and assume it is used for all
 # sources? (and store the projections)
 class BaseSurvey:
-    """Base simpeg survey class.
+    """Base SimPEG survey class.
 
     Parameters
     ----------
     source_list : list of simpeg.survey.BaseSrc objects
         Sets the sources (and their receivers)
-    counter : SimPEG.utils.Counter
-        A simpeg counter object
+    counter : simpeg.utils.Counter
+        A SimPEG counter object
     """
 
     def __init__(self, source_list, counter=None, **kwargs):
@@ -487,7 +487,7 @@ class BaseSurvey:
 
         Returns
         -------
-        SimPEG.utils.counter_utils.Counter
+        simpeg.utils.counter_utils.Counter
             A simpeg counter object
         """
         return self._counter

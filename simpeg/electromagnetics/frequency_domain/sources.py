@@ -26,7 +26,7 @@ class BaseFDEMSrc(BaseEMSrc):
 
     Parameters
     ----------
-    receiver_list : list of SimPEG.electromagnetics.frequency_domain.receivers.BaseRx
+    receiver_list : list of simpeg.electromagnetics.frequency_domain.receivers.BaseRx
         A list of FDEM receivers
     frequency : float
         Source frequency
@@ -209,7 +209,7 @@ class RawVec_e(BaseFDEMSrc):
 
     Parameters
     ----------
-    receiver_list : list of SimPEG.electromagnetics.frequency_domain.receivers.BaseRx
+    receiver_list : list of simpeg.electromagnetics.frequency_domain.receivers.BaseRx
         A list of FDEM receivers
     frequency : float
         Source frequency
@@ -247,7 +247,7 @@ class RawVec_m(BaseFDEMSrc):
 
     Parameters
     ----------
-    receiver_list : list of SimPEG.electromagnetics.frequency_domain.receivers.BaseRx
+    receiver_list : list of simpeg.electromagnetics.frequency_domain.receivers.BaseRx
         A list of FDEM receivers
     frequency : float
         Source frequency
@@ -284,7 +284,7 @@ class RawVec(RawVec_e, RawVec_m):
 
     Parameters
     ----------
-    receiver_list : list of SimPEG.electromagnetics.frequency_domain.receivers.BaseRx
+    receiver_list : list of simpeg.electromagnetics.frequency_domain.receivers.BaseRx
         A list of FDEM receivers
     frequency : float
         Source frequency
@@ -362,7 +362,7 @@ class MagDipole(BaseFDEMSrc):
 
     Parameters
     ----------
-    receiver_list : list of SimPEG.electromagnetics.frequency_domain.receivers.BaseRx
+    receiver_list : list of simpeg.electromagnetics.frequency_domain.receivers.BaseRx
         A list of FDEM receivers
     frequency : float
         Source frequency

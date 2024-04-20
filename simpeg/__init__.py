@@ -1,10 +1,10 @@
 """
 ========================================================
-Base simpeg Classes (:mod:`simpeg`)
+Base SimPEG Classes (:mod:`simpeg`)
 ========================================================
 .. currentmodule:: simpeg
 
-simpeg is built off of several base classes that define the
+SimPEG is built off of several base classes that define the
 general structure of simulations and inversion operations.
 
 Simulations
@@ -164,9 +164,9 @@ from .utils.solver_utils import (
     SolverBiCG,
 )
 
-__author__ = "simpeg Team"
+__author__ = "SimPEG Team"
 __license__ = "MIT"
-__copyright__ = "2013 - 2020, simpeg Team, https://simpeg.xyz"
+__copyright__ = "2013 - 2020, SimPEG Team, https://simpeg.xyz"
 
 
 # Version
@@ -177,7 +177,7 @@ try:
     from simpeg.version import version as __version__
 except ImportError:
     # If it was not installed, then we don't know the version. We could throw a
-    # warning here, but this case *should* be rare. simpeg should be
+    # warning here, but this case *should* be rare. SimPEG should be
     # installed properly!
     from datetime import datetime
 

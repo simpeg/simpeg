@@ -16,7 +16,7 @@ class BaseSrcVRM(BaseSrc):
 
     Parameters
     ----------
-    receiver_list : list of SimPEG.electromagnetics.viscous_remanent_magnetization.receivers.Point
+    receiver_list : list of simpeg.electromagnetics.viscous_remanent_magnetization.receivers.Point
         A list of VRM receivers
     location : (3) array_like
         Source location

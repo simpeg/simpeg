@@ -93,7 +93,7 @@ class BaseEMSrc(BaseSrc):
 
         Parameters
         ----------
-        simulation : SimPEG.electromagnetics.base.BaseEMSimulation
+        simulation : simpeg.electromagnetics.base.BaseEMSimulation
             An instance of an electromagnetic simulation
 
         Returns
@@ -111,7 +111,7 @@ class BaseEMSrc(BaseSrc):
 
         Parameters
         ----------
-        simulation : SimPEG.electromagnetics.base.BaseEMSimulation
+        simulation : simpeg.electromagnetics.base.BaseEMSimulation
             An instance of an electromagnetic simulation
         v : np.ndarray
             A vector

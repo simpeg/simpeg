@@ -125,7 +125,7 @@ class BaseInvProblem:
 
         Returns
         -------
-        SimPEG.optimization.Minimize
+        simpeg.optimization.Minimize
         """
         return self._opt
 

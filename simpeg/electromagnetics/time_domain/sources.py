@@ -954,7 +954,7 @@ class BaseTDEMSrc(BaseEMSrc):
 
     Parameters
     ----------
-    receiver_list : list of SimPEG.electromagnetics.frequency_domain.receivers.BaseRx
+    receiver_list : list of simpeg.electromagnetics.frequency_domain.receivers.BaseRx
         A list of FDEM receivers
     location : (dim) numpy.ndarray
         Source locations
@@ -1133,7 +1133,7 @@ class MagDipole(BaseTDEMSrc):
 
     Parameters
     ----------
-    receiver_list : list of SimPEG.electromagnetics.time_domain.receivers.BaseRx
+    receiver_list : list of simpeg.electromagnetics.time_domain.receivers.BaseRx
         A list of TDEM receivers
     location : (dim) numpy.ndarray, default = np.r_[0., 0., 0.]
         Source location.
@@ -1458,7 +1458,7 @@ class CircularLoop(MagDipole):
 
     Parameters
     ----------
-    receiver_list : list of SimPEG.electromagnetics.time_domain.receivers.BaseRx
+    receiver_list : list of simpeg.electromagnetics.time_domain.receivers.BaseRx
         A list of TDEM receivers
     location : (dim) np.ndarray, default = np.r_[0., 0., 0.]
         Source location.
@@ -1613,7 +1613,7 @@ class LineCurrent(BaseTDEMSrc):
 
     Parameters
     ----------
-    receiver_list : list of SimPEG.electromagnetics.time_domain.receivers.BaseRx
+    receiver_list : list of simpeg.electromagnetics.time_domain.receivers.BaseRx
         List of TDEM receivers
     location : (n, 3) numpy.ndarray
         Array defining the node locations for the wire path. For inductive sources,
@@ -1700,7 +1700,7 @@ class LineCurrent(BaseTDEMSrc):
 
         Parameters
         ----------
-        simulation : SimPEG.electromagnetics.time_domain.simulation.BaseTDEMSimulation
+        simulation : simpeg.electromagnetics.time_domain.simulation.BaseTDEMSimulation
             Base TDEM simulation
 
         Returns

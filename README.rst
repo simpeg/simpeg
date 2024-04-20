@@ -1,7 +1,7 @@
 .. image:: https://raw.github.com/simpeg/simpeg/main/docs/images/simpeg-logo.png
     :alt: simpeg Logo
 
-simpeg
+SimPEG
 ******
 
 .. image:: https://img.shields.io/pypi/v/simpeg.svg
@@ -46,7 +46,7 @@ The vision is to create a package for finite volume simulation with applications
 * supports 1D, 2D and 3D problems
 * designed for large-scale inversions
 
-You are welcome to join our forum and engage with people who use and develop simpeg at: https://simpeg.discourse.group/.
+You are welcome to join our forum and engage with people who use and develop SimPEG at: https://simpeg.discourse.group/.
 
 Weekly meetings are open to all. They are generally held on Wednesdays at 10:30am PDT. Please see the calendar (`GCAL <https://calendar.google.com/calendar/b/0?cid=ZHVhamYzMWlibThycWdkZXM5NTdoYXV2MnNAZ3JvdXAuY2FsZW5kYXIuZ29vZ2xlLmNvbQ>`_, `ICAL <https://calendar.google.com/calendar/ical/duajf31ibm8rqgdes957hauv2s%40group.calendar.google.com/public/basic.ics>`_) for information on the next meeting.
 
@@ -60,10 +60,10 @@ Overview Video
 Working towards all the Geophysics, but Backwards - SciPy 2016
 
 
-Citing simpeg
+Citing SimPEG
 =============
 
-There is a paper about simpeg!
+There is a paper about SimPEG!
 
 
     Cockett, R., Kang, S., Heagy, L. J., Pidlisecky, A., & Oldenburg, D. W. (2015). SimPEG: An open source framework for simulation and gradient based parameter estimation in geophysical applications. Computers & Geosciences.
@@ -83,7 +83,7 @@ There is a paper about simpeg!
 Electromagnetics
 ----------------
 
-If you are using the electromagnetics module of simpeg, please cite:
+If you are using the electromagnetics module of SimPEG, please cite:
 
     Lindsey J. Heagy, Rowan Cockett, Seogi Kang, Gudni K. Rosenkjaer, Douglas W. Oldenburg, A framework for simulation and inversion in electromagnetics, Computers & Geosciences, Volume 107, 2017, Pages 1-19, ISSN 0098-3004, http://dx.doi.org/10.1016/j.cageo.2017.06.018.
 
@@ -106,7 +106,7 @@ If you are using the electromagnetics module of simpeg, please cite:
 Questions
 =========
 
-If you have a question regarding a specific use of simpeg, the fastest way
+If you have a question regarding a specific use of SimPEG, the fastest way
 to get a response is by posting on our Discourse discussion forum:
 https://simpeg.discourse.group/. Alternatively, if you prefer real-time chat,
 you can join our Mattermost Team at
@@ -117,7 +117,7 @@ Please do not create an issue to ask a question.
 Meetings
 ========
 
-simpeg hosts weekly meetings for users to interact with each other,
+SimPEG hosts weekly meetings for users to interact with each other,
 for developers to discuss upcoming changes to the code base, and for
 discussing topics related to geophysics in general.
 Currently our meetings are held every Wednesday, alternating between
@@ -158,8 +158,8 @@ https://github.com/simpeg/simpeg/issues
 Contributing
 ============
 
-We always welcome contributions towards simpeg whether they are adding
+We always welcome contributions towards SimPEG whether they are adding
 new code, suggesting improvements to existing codes, identifying bugs,
-providing examples, or anything that will improve simpeg.
+providing examples, or anything that will improve SimPEG.
 Please checkout the `contributing guide <https://docs.simpeg.xyz/content/getting_started/contributing/index.html>`_
 for more information on how to contribute.

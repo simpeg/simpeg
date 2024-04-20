@@ -8,7 +8,7 @@ __all__ = ["Data", "SyntheticData"]
 
 
 class Data:
-    r"""Class for defining data in simpeg.
+    r"""Class for defining data in SimPEG.
 
     The ``Data`` class is used to create an object which connects the survey geometry,
     observed data and data uncertainties.
@@ -16,7 +16,7 @@ class Data:
     Parameters
     ----------
     survey : simpeg.survey.BaseSurvey
-        A simpeg survey object. For each geophysical method, the survey object defines
+        A SimPEG survey object. For each geophysical method, the survey object defines
         the survey geometry; i.e. sources, receivers, data type.
     dobs : (n) numpy.ndarray
         Observed data.
@@ -371,7 +371,7 @@ class SyntheticData(Data):
     Parameters
     ----------
     survey : simpeg.survey.BaseSurvey
-        A simpeg survey object. For each geophysical method, the survey object defines
+        A SimPEG survey object. For each geophysical method, the survey object defines
         the survey geometry; i.e. sources, receivers, data type.
     dobs : numpy.ndarray
         Observed data.

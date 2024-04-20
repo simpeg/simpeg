@@ -19,7 +19,7 @@ class Planewave(BaseFDEMSrc):
 
     Parameters
     ----------
-    receiver_list : list of SimPEG.electromagnetics.frequency_domain.receivers.BaseRx
+    receiver_list : list of simpeg.electromagnetics.frequency_domain.receivers.BaseRx
         A list of NSEM receivers
     frequency : float
         Source frequency
@@ -38,7 +38,7 @@ class PlanewaveXYPrimary(Planewave):
 
     Parameters
     ----------
-    receiver_list : list of SimPEG.electromagnetics.frequency_domain.receivers.BaseRx
+    receiver_list : list of simpeg.electromagnetics.frequency_domain.receivers.BaseRx
         A list of NSEM receivers
     frequency : float
         Source frequency
@@ -116,7 +116,7 @@ class PlanewaveXYPrimary(Planewave):
 
         Parameters
         ----------
-        simulation : SimPEG.electromagnetics.frequency_domain.simulation.BaseFDEMSimulation
+        simulation : simpeg.electromagnetics.frequency_domain.simulation.BaseFDEMSimulation
             A NSEM simulation
 
         Returns
@@ -138,7 +138,7 @@ class PlanewaveXYPrimary(Planewave):
 
         Parameters
         ----------
-        simulation : SimPEG.electromagnetics.frequency_domain.simulation.BaseFDEMSimulation
+        simulation : simpeg.electromagnetics.frequency_domain.simulation.BaseFDEMSimulation
             A NSEM simulation
 
         Returns
@@ -168,7 +168,7 @@ class PlanewaveXYPrimary(Planewave):
 
         Parameters
         ----------
-        simulation : SimPEG.electromagnetics.frequency_domain.simulation.BaseFDEMSimulation
+        simulation : simpeg.electromagnetics.frequency_domain.simulation.BaseFDEMSimulation
             A NSEM simulation
         v : numpy.ndarray
             A vector
@@ -188,7 +188,7 @@ class PlanewaveXYPrimary(Planewave):
 
         Parameters
         ----------
-        simulation : SimPEG.electromagnetics.frequency_domain.simulation.BaseFDEMSimulation
+        simulation : simpeg.electromagnetics.frequency_domain.simulation.BaseFDEMSimulation
             A NSEM simulation
         v : numpy.ndarray
             A vector

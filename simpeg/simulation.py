@@ -42,10 +42,10 @@ __all__ = ["LinearSimulation", "ExponentialSinusoidSimulation"]
 
 
 class BaseSimulation(props.HasModel):
-    r"""Base class for all geophysical forward simulations in simpeg.
+    r"""Base class for all geophysical forward simulations in SimPEG.
 
     The ``BaseSimulation`` class defines properties and methods inherited by
-    practical simulation classes in simpeg.
+    practical simulation classes in SimPEG.
 
     .. important::
         This class is not meant to be instantiated. You should inherit from it to
@@ -69,7 +69,7 @@ class BaseSimulation(props.HasModel):
     sensitivity_path : str, optional
         Path to directory where sensitivity file is stored.
     counter : None or simpeg.utils.Counter
-        simpeg ``Counter`` object to store iterations and run-times.
+        SimPEG ``Counter`` object to store iterations and run-times.
     verbose : bool, optional
         Verbose progress printout.
     """
@@ -141,12 +141,12 @@ class BaseSimulation(props.HasModel):
 
     @property
     def counter(self):
-        """simpeg ``Counter`` object to store iterations and run-times.
+        """SimPEG ``Counter`` object to store iterations and run-times.
 
         Returns
         -------
         None or simpeg.utils.Counter
-            simpeg ``Counter`` object to store iterations and run-times.
+            SimPEG ``Counter`` object to store iterations and run-times.
         """
         return self._counter
 
@@ -175,7 +175,7 @@ class BaseSimulation(props.HasModel):
     def solver(self):
         r"""Numerical solver used in the forward simulation.
 
-        Many forward simulations in simpeg require solutions to discrete linear
+        Many forward simulations in SimPEG require solutions to discrete linear
         systems of the form:
 
         .. math::
@@ -183,7 +183,7 @@ class BaseSimulation(props.HasModel):
 
         where :math:`\mathbf{A}` is an invertible matrix that depends on the
         model :math:`\mathbf{m}`. The numerical solver can be set using the
-        ``solver`` property. In simpeg, the
+        ``solver`` property. In SimPEG, the
         `pymatsolver <https://pymatsolver.readthedocs.io/en/latest/>`__ package
         is used to create solver objects. Parameters specific to each solver
         can be set manually using the ``solver_opts`` property.
@@ -495,8 +495,8 @@ class BaseSimulation(props.HasModel):
 
         Returns
         -------
-        SimPEG.data.SyntheticData
-            A simpeg synthetic data object, which organizes both clean and noisy data.
+        simpeg.data.SyntheticData
+            A SimPEG synthetic data object, which organizes both clean and noisy data.
         """
 
         std = kwargs.pop("std", None)

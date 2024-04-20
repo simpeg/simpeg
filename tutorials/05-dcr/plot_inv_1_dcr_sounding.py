@@ -139,7 +139,7 @@ plt.show()
 # Assign Uncertainties
 # --------------------
 #
-# Inversion with simpeg requires that we define standard deviation on our data.
+# Inversion with SimPEG requires that we define standard deviation on our data.
 # This represents our estimate of the noise in our data. For DC sounding data,
 # a relative error is applied to each datum. For this tutorial, the relative
 # error on each datum will be 2%.

@@ -381,11 +381,11 @@ class PointNaturalSource(BaseRx):
 
         Parameters
         ----------
-        src : SimPEG.electromagnetics.frequency_domain.sources.BaseFDEMSrc
+        src : simpeg.electromagnetics.frequency_domain.sources.BaseFDEMSrc
             NSEM source
         mesh : discretize.TensorMesh mesh
             Mesh on which the discretize solution is obtained
-        f : SimPEG.electromagnetics.frequency_domain.fields.FieldsFDEM
+        f : simpeg.electromagnetics.frequency_domain.fields.FieldsFDEM
             NSEM fields object of the source
         return_complex : bool (optional)
             Flag for return the complex evaluation
@@ -411,11 +411,11 @@ class PointNaturalSource(BaseRx):
 
         Parameters
         ----------
-        str : SimPEG.electromagnetics.frequency_domain.sources.BaseFDEMSrc
+        str : simpeg.electromagnetics.frequency_domain.sources.BaseFDEMSrc
             NSEM source
         mesh : discretize.TensorMesh
             Mesh on which the discretize solution is obtained
-        f : SimPEG.electromagnetics.frequency_domain.fields.FieldsFDEM
+        f : simpeg.electromagnetics.frequency_domain.fields.FieldsFDEM
             NSEM fields object of the source
         du_dm_v : None,
             Supply pre-computed derivative?

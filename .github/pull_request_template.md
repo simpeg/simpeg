@@ -1,6 +1,6 @@
 <!-- 
-Thanks for contributing a pull request to simpeg!
-Remember to use a personal fork of simpeg to propose changes.
+Thanks for contributing a pull request to SimPEG!
+Remember to use a personal fork of SimPEG to propose changes.
 
 Check out the stages of a pull request at
 https://docs.simpeg.xyz/content/getting_started/contributing/pull-requests.html

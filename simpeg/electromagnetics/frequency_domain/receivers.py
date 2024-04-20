@@ -172,7 +172,7 @@ class BaseRx(survey.BaseRx):
 
         Parameters
         ----------
-        src : SimPEG.electromagnetics.frequency_domain.sources.BaseFDEMSrc
+        src : simpeg.electromagnetics.frequency_domain.sources.BaseFDEMSrc
             A frequency-domain EM source
         mesh : discretize.base.BaseMesh
             The mesh on which the discrete set of equations is solved
@@ -196,7 +196,7 @@ class BaseRx(survey.BaseRx):
 
         Parameters
         ----------
-        src : SimPEG.electromagnetics.frequency_domain.sources.BaseFDEMSrc
+        src : simpeg.electromagnetics.frequency_domain.sources.BaseFDEMSrc
             A frequency-domain EM source
         mesh : discretize.base.BaseMesh
             The mesh on which the discrete set of equations is solved

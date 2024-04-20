@@ -16,7 +16,7 @@ def read_mag3d_ubc(obs_file):
 
     Returns
     -------
-    SimPEG.data.Data
+    simpeg.data.Data
         Instance of a simpeg data class. The `survey` attribute associated with
         the data object is an instance of :class`simpeg.potential_fields.magnetics.survey.Survey`.
     """
@@ -89,7 +89,7 @@ def write_mag3d_ubc(filename, data_object):
     ----------
     filename : str
         File path for the output file
-    data_object : SimPEG.data.Data
+    data_object : simpeg.data.Data
         An instance of simpeg data class. The `survey` attribute associate with the
         data object must be an instance of :class:`simpeg.potential_fields.magnetics.survey.Survey`
     """
@@ -136,7 +136,7 @@ def read_grav3d_ubc(obs_file):
 
     Returns
     -------
-    SimPEG.data.Data
+    simpeg.data.Data
         Instance of a simpeg data class. The `survey` attribute associated with
         the data object is an instance of :class`simpeg.potential_fields.gravity.survey.Survey`.
     """
@@ -201,7 +201,7 @@ def write_grav3d_ubc(filename, data_object):
     ----------
     filename : str
         File path for the output file
-    data_object : SimPEG.data.Data
+    data_object : simpeg.data.Data
         An instance of simpeg data class. The `survey` attribute associate with the
         data object must be an instance of :class:`simpeg.potential_fields.gravity.survey.Survey`
     """
@@ -244,7 +244,7 @@ def read_gg3d_ubc(obs_file):
 
     Returns
     -------
-    SimPEG.data.Data
+    simpeg.data.Data
         Instance of a simpeg data class. The `survey` attribute associated with
         the data object is an instance of :class`simpeg.potential_fields.gravity.survey.Survey`.
     """
@@ -328,7 +328,7 @@ def write_gg3d_ubc(filename, data_object):
     ----------
     filename : str
         File path for the output file
-    data_object : SimPEG.data.Data
+    data_object : simpeg.data.Data
         An instance of simpeg data class. The `survey` attribute associate with the
         data object must be an instance of :class:`simpeg.potential_fields.gravity.survey.Survey`
     """

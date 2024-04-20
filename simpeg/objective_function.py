@@ -19,7 +19,7 @@ class BaseObjectiveFunction(BaseSimPEG):
     """Base class for creating objective functions.
 
     The ``BaseObjectiveFunction`` class defines properties and methods inherited by
-    other classes in simpeg that represent objective functions; e.g. regularization, data misfit.
+    other classes in SimPEG that represent objective functions; e.g. regularization, data misfit.
     These include convenient methods for testing the order of convergence and ajoint operations.
 
     .. important::
@@ -27,7 +27,7 @@ class BaseObjectiveFunction(BaseSimPEG):
         create your own objective function class.
 
     .. important::
-        If building a regularization function within simpeg, please inherit
+        If building a regularization function within SimPEG, please inherit
         :py:class:`simpeg.regularization.BaseRegularization`, as this class
         has additional functionality related to regularization. And if building a data misfit
         function, please inherit :py:class:`simpeg.data_misfit.BaseDataMisfit`.
@@ -37,13 +37,13 @@ class BaseObjectiveFunction(BaseSimPEG):
     nP : int
         Number of model parameters.
     mapping : simpeg.mapping.BaseMap
-        A simpeg mapping object that maps from the model space to the
+        A SimPEG mapping object that maps from the model space to the
         quantity evaluated in the objective function.
     has_fields : bool
         If ``True``, predicted fields for a simulation and a given model can be
         used to evaluate the objective function quickly.
     counter : None or simpeg.utils.Counter
-        Assign a simpeg ``Counter`` object to store iterations and run-times.
+        Assign a SimPEG ``Counter`` object to store iterations and run-times.
     debug : bool
         Print debugging information.
     """
@@ -554,7 +554,7 @@ class L2ObjectiveFunction(BaseObjectiveFunction):
     has_fields : bool
         If ``True``, predicted fields for a simulation and a given model can be
         used to evaluate the objective function quickly.
-    counter : None or SimPEG.utils.Counter
+    counter : None or simpeg.utils.Counter
         Assign a simpeg ``Counter`` object to store iterations and run-times.
     debug : bool
         Print debugging information.

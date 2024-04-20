@@ -37,7 +37,7 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
         """The survey for the simulation
         Returns
         -------
-        SimPEG.electromagnetics.time_domain.survey.Survey
+        simpeg.electromagnetics.time_domain.survey.Survey
         """
         if self._survey is None:
             raise AttributeError("Simulation must have a survey set")
@@ -81,7 +81,7 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
         Solve the forward problem for the fields.
 
         :param numpy.ndarray m: inversion model (nP,)
-        :rtype: SimPEG.electromagnetics.time_domain.fields.FieldsTDEM
+        :rtype: simpeg.electromagnetics.time_domain.fields.FieldsTDEM
         :return f: fields object
         """
 

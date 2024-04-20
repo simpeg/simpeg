@@ -70,8 +70,8 @@ source_suffix = ".rst"
 master_doc = "index"
 
 # General information about the project.
-project = "simpeg"
-copyright = "2013 - 2023, simpeg Team, https://simpeg.xyz"
+project = "SimPEG"
+copyright = "2013 - 2023, SimPEG Team, https://simpeg.xyz"
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the

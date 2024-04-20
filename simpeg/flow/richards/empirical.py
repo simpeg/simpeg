@@ -34,7 +34,7 @@ class NonLinearModel(props.HasModel):
     """A non linear model that has dependence on the fields and a model"""
 
     counter = None  #: A simpeg.utils.Counter object
-    mesh = None  #: A simpeg Mesh
+    mesh = None  #: A discretize Mesh
 
     def __init__(self, mesh, **kwargs):
         self.mesh = mesh

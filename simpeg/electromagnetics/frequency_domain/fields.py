@@ -153,7 +153,7 @@ class FieldsFDEM(Fields):
         (:math:`d\mathbf{e}/d\mathbf{u}`, :math:`d\mathb{u}/d\mathbf{m}`)
         for the adjoint
 
-        :param SimPEG.electromagnetics.frequency_domain.Src.BaseFDEMSrc src: source
+        :param simpeg.electromagnetics.frequency_domain.Src.BaseFDEMSrc src: source
         :param numpy.ndarray du_dm_v: derivative of the solution vector with
             respect to the model times a vector (is None for adjoint)
         :param numpy.ndarray v: vector to take sensitivity product with
@@ -185,7 +185,7 @@ class FieldsFDEM(Fields):
         (:math:`d\mathbf{b}/d\mathbf{u}`, :math:`d\mathb{u}/d\mathbf{m}`) for
         the adjoint
 
-        :param SimPEG.electromagnetics.frequency_domain.Src.BaseFDEMSrc src: source
+        :param simpeg.electromagnetics.frequency_domain.Src.BaseFDEMSrc src: source
         :param numpy.ndarray du_dm_v: derivative of the solution vector with
             respect to the model times a vector (is None for adjoint)
         :param numpy.ndarray v: vector to take sensitivity product with
@@ -217,7 +217,7 @@ class FieldsFDEM(Fields):
         (:math:`d\mathbf{b}/d\mathbf{u}`, :math:`d\mathb{u}/d\mathbf{m}`) for
         the adjoint
 
-        :param SimPEG.electromagnetics.frequency_domain.sources.BaseFDEMSrc src: sorce
+        :param simpeg.electromagnetics.frequency_domain.sources.BaseFDEMSrc src: sorce
         :param numpy.ndarray du_dm_v: derivative of the solution vector with
             respect to the model times a vector (is None for adjoint)
         :param numpy.ndarray v: vector to take sensitivity product with
@@ -236,7 +236,7 @@ class FieldsFDEM(Fields):
         (:math:`d\mathbf{h}/d\mathbf{u}`, :math:`d\mathb{u}/d\mathbf{m}`)
         for the adjoint
 
-        :param SimPEG.electromagnetics.frequency_domain.Src.BaseFDEMSrc src: source
+        :param simpeg.electromagnetics.frequency_domain.Src.BaseFDEMSrc src: source
         :param numpy.ndarray du_dm_v: derivative of the solution vector with
             respect to the model times a vector (is None for adjoint)
         :param numpy.ndarray v: vector to take sensitivity product with
@@ -268,7 +268,7 @@ class FieldsFDEM(Fields):
         (:math:`d\mathbf{j}/d\mathbf{u}`, :math:`d\mathb{u}/d\mathbf{m}`) for
         the adjoint
 
-        :param SimPEG.electromagnetics.frequency_domain.Src.BaseFDEMSrc src: source
+        :param simpeg.electromagnetics.frequency_domain.Src.BaseFDEMSrc src: source
         :param numpy.ndarray du_dm_v: derivative of the solution vector with
             respect to the model times a vector (is None for adjoint)
         :param numpy.ndarray v: vector to take sensitivity product with

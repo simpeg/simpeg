@@ -1,5 +1,5 @@
 name: Bug report
-description: Report a bug in simpeg.
+description: Report a bug in SimPEG.
 title: "BUG: <Please write a comprehensive title after the 'BUG: ' prefix>"
 labels: [Bug]
 
@@ -44,8 +44,8 @@ body:
   attributes:
     label: "Runtime information:"
     description: >
-      Please include the output from `SimPEG.Report()` to describe your system for us.
-      Paste the output from `from SimPEG import Report; print(Report())` below.
+      Please include the output from `simpeg.Report()` to describe your system for us.
+      Paste the output from `from simpeg import Report; print(Report())` below.
   validations:
     required: true
 

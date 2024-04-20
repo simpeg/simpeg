@@ -85,7 +85,7 @@ class BaseRx(BaseTimeRx):
         ----------
         mesh : discretize.BaseMesh
             A discretize mesh
-        f : SimPEG.electromagnetics.time_domain.fields.FieldsTDEM
+        f : simpeg.electromagnetics.time_domain.fields.FieldsTDEM
 
         Returns
         -------
@@ -110,7 +110,7 @@ class BaseRx(BaseTimeRx):
         ----------
         time_mesh : discretize.TensorMesh
             A 1D ``TensorMesh`` defining the time discretization
-        f : SimPEG.electromagnetics.time_domain.fields.FieldsTDEM
+        f : simpeg.electromagnetics.time_domain.fields.FieldsTDEM
 
         Returns
         -------
@@ -129,7 +129,7 @@ class BaseRx(BaseTimeRx):
             A discretize mesh defining spatial discretization
         time_mesh : discretize.TensorMesh
             A 1D ``TensorMesh`` defining the time discretization
-        f : SimPEG.electromagnetics.time_domain.fields.FieldsTDEM
+        f : simpeg.electromagnetics.time_domain.fields.FieldsTDEM
 
         Returns
         -------
@@ -305,7 +305,7 @@ class PointMagneticFluxTimeDerivative(BaseRx):
         ----------
         time_mesh : discretize.TensorMesh
             A 1D ``TensorMesh`` defining the time discretization
-        f : SimPEG.electromagnetics.time_domain.fields.FieldsTDEM
+        f : simpeg.electromagnetics.time_domain.fields.FieldsTDEM
 
         Returns
         -------

@@ -43,7 +43,7 @@ class Survey(BaseSurvey):
 
         Parameters
         ----------
-        simulation : SimPEG.flow.richards.simulation.SimulationNDCellCentered
+        simulation : simpeg.flow.richards.simulation.SimulationNDCellCentered
             A Richards flow simulation class
         f : (n_times) list of numpy.ndarray
             Fields
@@ -68,7 +68,7 @@ class Survey(BaseSurvey):
 
         Parameters
         ----------
-        simulation : SimPEG.flow.richards.simulation.SimulationNDCellCentered
+        simulation : simpeg.flow.richards.simulation.SimulationNDCellCentered
             A Richards flow simulation class
         f : (n_times) list of numpy.ndarray
             Fields.

@@ -62,7 +62,7 @@ def read_dcip_xyz(
 
     Returns
     -------
-    SimPEG.data.Data
+    simpeg.data.Data
         DC or IP data. The survey attribute associated with the data object will be an
         instance of :class:`simpeg.electromagnetics.static.resistivity.survey.Survey`
         or :class:`simpeg.electromagnetics.static.induced_polarization.survey.Survey`

@@ -247,7 +247,7 @@ class Fields1DPrimarySecondary(FieldsFDEM):
         """
         Partial derivative of the total electric field with respect to the inversion model. Here, we assume that the primary does not depend on the model. Note that this also includes derivative contributions from the sources.
 
-        :param SimPEG.electromagnetics.frequency_domain.Src src: source
+        :param simpeg.electromagnetics.frequency_domain.Src src: source
         :param numpy.ndarray v: vector to take product with
         :param bool adjoint: adjoint?
         :rtype: simpeg.utils.Zero
@@ -285,7 +285,7 @@ class Fields1DPrimarySecondary(FieldsFDEM):
         """
         Derivative of the magnetic flux density with respect to the solution
 
-        :param SimPEG.electromagnetics.frequency_domain.Src src: source
+        :param simpeg.electromagnetics.frequency_domain.Src src: source
         :param numpy.ndarray du_dm_v: vector to take product with
         :param bool adjoint: adjoint?
         :rtype: numpy.ndarray
@@ -303,7 +303,7 @@ class Fields1DPrimarySecondary(FieldsFDEM):
         """
         Derivative of the magnetic flux density with respect to the inversion model.
 
-        :param SimPEG.electromagnetics.frequency_domain.Src src: source
+        :param simpeg.electromagnetics.frequency_domain.Src src: source
         :param numpy.ndarray v: vector to take product with
         :param bool adjoint: adjoint?
         :rtype: numpy.ndarray
