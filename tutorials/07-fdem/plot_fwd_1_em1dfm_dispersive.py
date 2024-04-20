@@ -103,7 +103,7 @@ survey = fdem.survey.Survey(source_list)
 thicknesses = np.array([20, 40])
 n_layer = len(thicknesses) + 1
 
-# In simpeg, the Cole-Cole model is used to define a frequency-dependent
+# In SimPEG, the Cole-Cole model is used to define a frequency-dependent
 # electrical conductivity when the Earth is chargeable.
 sigma = 1e-2  # infinite conductivity in S/m
 eta = 0.8  # intrinsice chargeability [0, 1]

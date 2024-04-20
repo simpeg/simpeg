@@ -567,7 +567,7 @@ class Smallness(BaseRegularization):
     where :math:`m(r)` is the model, :math:`m^{(ref)}(r)` is the reference model and :math:`w(r)`
     is a user-defined weighting function.
 
-    For implementation within simpeg, the regularization function and its variables
+    For implementation within SimPEG, the regularization function and its variables
     must be discretized onto a `mesh`. The discretized approximation for the regularization
     function (objective function) is expressed in linear form as:
 
@@ -776,7 +776,7 @@ class SmoothnessFirstOrder(BaseRegularization):
 
     where :math:`m(r)` is the model and :math:`w(r)` is a user-defined weighting function.
 
-    For implementation within simpeg, the regularization function and its variables
+    For implementation within SimPEG, the regularization function and its variables
     must be discretized onto a `mesh`. The discretized approximation for the regularization
     function (objective function) is expressed in linear form as:
 
@@ -1141,7 +1141,7 @@ class SmoothnessSecondOrder(SmoothnessFirstOrder):
 
     where :math:`m(r)` is the model and :math:`w(r)` is a user-defined weighting function.
 
-    For implementation within simpeg, the regularization function and its variables
+    For implementation within SimPEG, the regularization function and its variables
     must be discretized onto a `mesh`. The discretized approximation for the regularization
     function (objective function) is expressed in linear form as:
 
@@ -1424,7 +1424,7 @@ class WeightedLeastSquares(ComboObjectiveFunction):
     are multiplier constants which weight the respective contributions of the smallness and
     smoothness terms towards the regularization.
 
-    For implementation within simpeg, the regularization functions and their variables
+    For implementation within SimPEG, the regularization functions and their variables
     must be discretized onto a `mesh`. For a continuous variable :math:`x(r)` whose
     discrete representation on the mesh is given by :math:`\mathbf{x}`, we approximate
     as follows:

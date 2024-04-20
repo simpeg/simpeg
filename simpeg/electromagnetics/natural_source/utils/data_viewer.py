@@ -9,7 +9,7 @@ from .plot_utils import ApparentResPhsStationPlot, TipperAmplitudeStationPlot
 
 class NSEM_data_viewer:
     """
-    An interactive simpeg NSEM Data viewer.
+    An interactive SimPEG NSEM Data viewer.
 
     Generates a clickble location map of the data, plotting data curves
     in a separate window.

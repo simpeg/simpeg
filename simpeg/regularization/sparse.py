@@ -266,7 +266,7 @@ class SparseSmallness(BaseSparse, Smallness):
     where :math:`p` is small. If the same level of sparseness is being imposed everywhere,
     the exponent becomes a constant.
 
-    For implementation within simpeg, the regularization function and its variables
+    For implementation within SimPEG, the regularization function and its variables
     must be discretized onto a `mesh`. The discretized approximation for the regularization
     function (objective function) is expressed in linear form as:
 
@@ -473,7 +473,7 @@ class SparseSmoothness(BaseSparse, SmoothnessFirstOrder):
     where :math:`p(r)` is small. If the same level of sparseness is being imposed everywhere,
     the exponent becomes a constant.
 
-    For implementation within simpeg, the regularization function and its variables
+    For implementation within SimPEG, the regularization function and its variables
     must be discretized onto a `mesh`. The discrete approximation for the regularization
     function (objective function) is expressed in linear form as:
 
@@ -783,7 +783,7 @@ class Sparse(WeightedLeastSquares):
     impose sparse smoothness throughout the recovered model along the specified direction;
     where sharper boundaries are recovered in regions where these parameters are small.
 
-    For implementation within simpeg, regularization functions and their variables
+    For implementation within SimPEG, regularization functions and their variables
     must be discretized onto a `mesh`. For a regularization function whose kernel is given by
     :math:`f(r)`, we approximate as follows:
 

@@ -55,7 +55,7 @@ class JointTotalVariation(BaseSimilarityMeasure):
 
     where :math:`w(r)` is a user-defined weighting function.
 
-    For implementation within simpeg, the regularization function and its variables
+    For implementation within SimPEG, the regularization function and its variables
     must be discretized onto a `mesh`. The discretized approximation for the regularization
     function (objective function) is given by:
 

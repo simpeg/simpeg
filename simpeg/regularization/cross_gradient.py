@@ -64,7 +64,7 @@ class CrossGradient(BaseSimilarityMeasure):
         \big | \nabla m_1 \big |^2 \big | \nabla m_2 \big |^2
         - \big ( \nabla m_1 \, \cdot \, \nabla m_2 \, \big )^2 \Big ] \, dv
 
-    For implementation within simpeg, the regularization function and its variables
+    For implementation within SimPEG, the regularization function and its variables
     must be discretized onto a `mesh`. The discretized approximation for the regularization
     function (objective function) is given by:
 

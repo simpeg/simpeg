@@ -1,10 +1,10 @@
 """
 ========================================================
-Meta simpeg Classes (:mod:`simpeg.meta`)
+Meta SimPEG Classes (:mod:`simpeg.meta`)
 ========================================================
 .. currentmodule:: simpeg.meta
 
-simpeg's meta module defines tools for working with simulations representing
+SimPEG's meta module defines tools for working with simulations representing
 many smaller simulations working together to solve a geophysical problem.
 A meta simulation is a simulation of simulations!
 
@@ -35,7 +35,7 @@ Parallel Simulations
 
 There will be several version of meta simulations with different flavors
 of parallelism used. Other than the multiprocessing based implementation,
-they all will require extra packages beyond the standard simpeg
+they all will require extra packages beyond the standard SimPEG
 requirements.
 
 Multiprocessing

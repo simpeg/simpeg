@@ -9,7 +9,7 @@ Regularization (:mod:`simpeg.regularization`)
 inversion. Constraints may be straight forward, such as: requiring the recovered model be
 spatially smooth, or using a reference model to add a-priori information. Constraints may also
 be more sophisticated; e.g. cross-validation and petrophysically-guided regularization.
-In simpeg, constraints on the recovered model can be defined using a single ``Regularization``
+In SimPEG, constraints on the recovered model can be defined using a single ``Regularization``
 object, or defined as a weighted sum of ``Regularization`` objects.
 
 Basic Theory
@@ -59,7 +59,7 @@ y-directions can be expressed as:
     \bigg ( \frac{\partial m}{\partial y} \bigg )^2 \Bigg ] \, dv
 
 where :math:`w_s(r), w_x(r), w_y(r)` are user-defined weighting functions.
-For practical implementation within simpeg, the regularization function and all its dependent
+For practical implementation within SimPEG, the regularization function and all its dependent
 variables are discretized to a numerical grid (or mesh). The model is therefore defined as a
 discrete set of model parameters :math:`\mathbf{m}`.
 And the regularization is implemented using a weighted sum of objective functions:

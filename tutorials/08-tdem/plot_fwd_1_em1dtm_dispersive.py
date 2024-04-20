@@ -102,14 +102,14 @@ survey = tdem.Survey(source_list)
 thicknesses = np.array([40.0, 40.0])
 n_layer = len(thicknesses) + 1
 
-# In simpeg, the Cole-Cole model is used to define a frequency-dependent
+# In SimPEG, the Cole-Cole model is used to define a frequency-dependent
 # electrical conductivity when the Earth is chargeable.
 sigma = 1e-1  # infinite conductivity in S/m
 eta = 0.5  # intrinsice chargeability [0, 1]
 tau = 0.01  # central time-relaxation constant in seconds
 c = 0.75  # phase constant [0, 1]
 
-# In simpeg, the a log-uniform distribution of time-relaxation constants is used
+# In SimPEG, the a log-uniform distribution of time-relaxation constants is used
 # to define a frequency-dependent susceptibility when the Earth exhibits
 # magnetic viscosity
 chi = 0.001  # infinite susceptibility in SI
