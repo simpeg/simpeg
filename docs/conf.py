@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# simpeg documentation build configuration file, created by
+# SimPEG documentation build configuration file, created by
 # sphinx-quickstart on Fri Aug 30 18:42:44 2013.
 #
 # This file is execfile()d with the current directory set to its containing dir.
@@ -233,7 +233,7 @@ plot_rcparams = {
 # a list of builtin themes.
 external_links = [
     dict(name="User Tutorials", url="https://simpeg.xyz/user-tutorials"),
-    dict(name="simpeg", url="https://simpeg.xyz"),
+    dict(name="SimPEG", url="https://simpeg.xyz"),
     dict(name="Contact", url="https://mattermost.softwareunderground.org/simpeg"),
 ]
 
@@ -382,7 +382,7 @@ latex_elements = {
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title, author, documentclass [howto/manual]).
 latex_documents = [
-    ("index", "simpeg.tex", "simpeg Documentation", "simpeg Team", "manual"),
+    ("index", "simpeg.tex", "SimPEG Documentation", "SimPEG Team", "manual"),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of
@@ -410,7 +410,7 @@ latex_documents = [
 
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
-man_pages = [("index", "simpeg", "simpeg Documentation", ["simpeg Team"], 1)]
+man_pages = [("index", "SimPEG", "SimPEG Documentation", ["SimPEG Team"], 1)]
 
 # If true, show URL addresses after external links.
 # man_show_urls = False
@@ -435,10 +435,10 @@ numpydoc_xref_param_type = True
 texinfo_documents = [
     (
         "index",
-        "simpeg",
-        "simpeg Documentation",
-        "simpeg Team",
-        "simpeg",
+        "SimPEG",
+        "SimPEG Documentation",
+        "SimPEG Team",
+        "SimPEG",
         "Simulation and parameter estimation in geophyiscs.",
         "Miscellaneous",
     ),
