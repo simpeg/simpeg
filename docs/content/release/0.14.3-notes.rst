@@ -35,10 +35,10 @@ SimPEG's coordinate system convention. SimPEG uses a right handed coordinate sys
 with z being positive upwards, whereas in the UBC file, gravity was defined as positive
 downwards.
 
-The user provided mapping for ``SimPEG.simulation.LinearSimulation`` was not being
+The user provided mapping for ``simpeg.simulation.LinearSimulation`` was not being
 properly taken into account, and has now been fixed.
 
-We have re-anabled the mu inverse testing of ``SimPEG.electromagnetics.frequency_domain``
+We have re-anabled the mu inverse testing of ``simpeg.electromagnetics.frequency_domain``
 classes, ensuring those tests also pass.
 
 
