@@ -172,7 +172,7 @@ ind_active = active_from_xyz(mesh, topo_xyz)
 # Define mapping from model to active cells
 model_map = maps.InjectActiveCells(mesh, ind_active, air_conductivity)
 
-# Define model. Models in simpeg are vector arrays
+# Define model. Models in SimPEG are vector arrays
 model = background_conductivity * np.ones(ind_active.sum())
 ind_block = (
     (mesh.gridCC[ind_active, 0] < 100.0)

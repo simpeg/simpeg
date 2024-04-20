@@ -124,7 +124,7 @@ sim = simulation.LinearSimulation(mesh, G=G, model_map=model_map)
 std = 0.02
 np.random.seed(1)
 
-# Create a simpeg data object
+# Create a SimPEG data object
 data_obj = sim.make_synthetic_data(true_model, noise_floor=std, add_noise=True)
 
 #######################################################################

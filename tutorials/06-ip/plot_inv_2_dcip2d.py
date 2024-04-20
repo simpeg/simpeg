@@ -158,7 +158,7 @@ plt.show()
 # Assign Uncertainties
 # --------------------
 #
-# Inversion with simpeg requires that we define the uncertainties on our data.
+# Inversion with SimPEG requires that we define the uncertainties on our data.
 # This represents our estimate of the standard deviation of the
 # noise in our data. For DC data, the uncertainties are 5% of the absolute value.
 # For appanrent chargeability IP data, the uncertainties are 5e-3 V/V.

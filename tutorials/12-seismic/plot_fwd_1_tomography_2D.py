@@ -91,7 +91,7 @@ mesh = TensorMesh([hx, hy], "CC")
 background_velocity = 3000.0
 block_velocity = 1500.0
 
-# Define the model. Models in simpeg are vector arrays.
+# Define the model. Models in SimPEG are vector arrays.
 model = background_velocity * np.ones(mesh.nC)
 
 ind_block = model_builder.get_indices_block(np.r_[-50, 20], np.r_[50, -20], mesh.gridCC)

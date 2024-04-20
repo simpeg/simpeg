@@ -136,7 +136,7 @@ plt.show()
 # Assign Uncertainties
 # --------------------
 #
-# Inversion with simpeg requires that we define standard deviation on our data.
+# Inversion with SimPEG requires that we define standard deviation on our data.
 # This represents our estimate of the noise in our data. In this case, we
 # assign a 5 percent uncertainty to each datum.
 #

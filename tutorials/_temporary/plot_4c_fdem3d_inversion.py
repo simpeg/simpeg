@@ -150,7 +150,7 @@ plt.show()
 # Assign Uncertainties
 # --------------------
 #
-# Inversion with simpeg requires that we define standard deviation on our data.
+# Inversion with SimPEG requires that we define standard deviation on our data.
 # This represents our estimate of the noise in our data. For gravity inversion,
 # a constant floor value is generally applied to all data. For this tutorial,
 # the standard deviation on each datum will be 1% of the maximum observed
