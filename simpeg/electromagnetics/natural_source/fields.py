@@ -378,8 +378,8 @@ class Fields3DPrimarySecondary(Fields):
     """
     Fields storage for the 3D NSEM solution. Labels polarizations by px and py.
 
-        :param simpeg object mesh: The solution mesh
-        :param simpeg object survey: A survey object
+        :param SimPEG object mesh: The solution mesh
+        :param SimPEG object survey: A survey object
     """
 
     # Define the known the alias fields

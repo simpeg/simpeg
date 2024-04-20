@@ -959,7 +959,7 @@ class BaseTDEMSrc(BaseEMSrc):
     location : (dim) numpy.ndarray
         Source locations
     waveform : BaseWaveform, default=StepOffWaveform
-        A simpeg waveform object
+        A SimPEG waveform object
     source_type : {'inductive','galvanic'}
         Implement as an inductive or galvanic source
     """
@@ -989,7 +989,7 @@ class BaseTDEMSrc(BaseEMSrc):
         Returns
         -------
         BaseWaveform
-            A simpeg waveform
+            A SimPEG waveform
         """
         return self._waveform
 
@@ -1335,7 +1335,7 @@ class MagDipole(BaseTDEMSrc):
         Parameters
         ----------
         simulation : BaseTDEMSimulation
-            A simpeg TDEM simulation
+            A SimPEG TDEM simulation
 
         Returns
         -------
@@ -1366,7 +1366,7 @@ class MagDipole(BaseTDEMSrc):
         Parameters
         ----------
         simulation : BaseTDEMSimulation
-            A simpeg TDEM simulation
+            A SimPEG TDEM simulation
 
         Returns
         -------
@@ -1388,7 +1388,7 @@ class MagDipole(BaseTDEMSrc):
         Parameters
         ----------
         simulation : BaseTDEMSimulation
-            simpeg TDEM simulation
+            SimPEG TDEM simulation
         time : float
             Evaluation time
 
@@ -1407,7 +1407,7 @@ class MagDipole(BaseTDEMSrc):
         Parameters
         ----------
         simulation : BaseTDEMSimulation
-            simpeg TDEM simulation
+            SimPEG TDEM simulation
         time : float
             Evaluation time
 
@@ -1800,7 +1800,7 @@ class LineCurrent(BaseTDEMSrc):
         Parameters
         ----------
         simulation : BaseTDEMSimulation
-            A simpeg TDEM simulation
+            A SimPEG TDEM simulation
 
         Returns
         -------
@@ -1822,7 +1822,7 @@ class LineCurrent(BaseTDEMSrc):
         Parameters
         ----------
         simulation : BaseTDEMSimulation
-            A simpeg TDEM simulation
+            A SimPEG TDEM simulation
         v : np.ndarray
             A vector
         adjoint : bool
@@ -1853,7 +1853,7 @@ class LineCurrent(BaseTDEMSrc):
         Parameters
         ----------
         simulation : BaseTDEMSimulation
-            A simpeg TDEM simulation
+            A SimPEG TDEM simulation
 
         Returns
         -------
@@ -1879,7 +1879,7 @@ class LineCurrent(BaseTDEMSrc):
         Parameters
         ----------
         simulation : BaseTDEMSimulation
-            A simpeg TDEM simulation
+            A SimPEG TDEM simulation
         v : np.ndarray
             A vector
         adjoint : bool
@@ -1953,7 +1953,7 @@ class LineCurrent(BaseTDEMSrc):
         Parameters
         ----------
         simulation : BaseTDEMSimulation
-            A simpeg TDEM simulation
+            A SimPEG TDEM simulation
 
         Returns
         -------
@@ -1973,7 +1973,7 @@ class LineCurrent(BaseTDEMSrc):
         Parameters
         ----------
         simulation : BaseTDEMSimulation
-            A simpeg TDEM simulation
+            A SimPEG TDEM simulation
         v : numpy.ndarray
             A vector
         adjoint : bool
@@ -2000,7 +2000,7 @@ class LineCurrent(BaseTDEMSrc):
         Parameters
         ----------
         simulation : BaseTDEMSimulation
-            A simpeg TDEM simulation
+            A SimPEG TDEM simulation
 
         Returns
         -------
@@ -2022,7 +2022,7 @@ class LineCurrent(BaseTDEMSrc):
         Parameters
         ----------
         simulation : BaseTDEMSimulation
-            A simpeg tDEM simulation
+            A SimPEG tDEM simulation
         v : numpy.ndarray
             A vector
         adjoint : bool
@@ -2054,7 +2054,7 @@ class LineCurrent(BaseTDEMSrc):
         Parameters
         ----------
         simulation : BaseTDEMSimulation
-            simpeg TDEM simulation
+            SimPEG TDEM simulation
         time : float
             Time
 

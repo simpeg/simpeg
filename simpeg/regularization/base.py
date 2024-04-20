@@ -18,7 +18,7 @@ class BaseRegularization(BaseObjectiveFunction):
     """Base regularization class.
 
     The ``BaseRegularization`` class defines properties and methods inherited by
-    simpeg regularization classes, and is not directly used to construct inversions.
+    SimPEG regularization classes, and is not directly used to construct inversions.
 
     Parameters
     ----------

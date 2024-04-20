@@ -24,7 +24,7 @@ def read_dcip_xyz(
     """Read 2D or 3D DC/IP data from XYZ-formatted file.
 
     This function loads DC and/or IP data from XYZ-formatted data files into the
-    simpeg framework; i.e. each row defines the data for the unique electrode
+    SimPEG framework; i.e. each row defines the data for the unique electrode
     locations provided. This function is versatile enough to load 2D or 3D data.
     The data file may include elevations for the electrodes or be surface formatted.
     Columns containing data which are not defined as part of a
@@ -208,7 +208,7 @@ def read_dcip2d_ubc(file_name, data_type, format_type):
     Returns
     -------
     SimPEG.data.Data
-        A simpeg data object. The data from the input file is loaded and parsed into
+        A SimPEG data object. The data from the input file is loaded and parsed into
         three attributes of the data object:
 
         - `survey`: the survey geometry as defined by an instance of :class`simpeg.electromagnetics.static.resistivity.survey.Survey` or :class`simpeg.electromagnetics.static.induced_polarization.survey.Survey`
@@ -254,7 +254,7 @@ def read_dcip2d_ubc(file_name, data_type, format_type):
 
     obsfile = obsfile[start_index:]
 
-    # Since simpeg defines secondary potential from IP as voltage,
+    # Since SimPEG defines secondary potential from IP as voltage,
     # we must use this type when defining the receivers.
     if data_type == "secondary_potential":
         data_type = "volt"
@@ -436,7 +436,7 @@ def read_dcip3d_ubc(file_name, data_type):
     Returns
     -------
     SimPEG.data.Data
-        A simpeg data object. The data from the input file is loaded and parsed into
+        A SimPEG data object. The data from the input file is loaded and parsed into
         three attributes of the data object:
 
         - `survey`: the survey geometry as defined by an instance of :class`simpeg.electromagnetics.static.resitivity.survey.Survey` or :class`simpeg.electromagnetics.static.induced_polarization.survey.Survey`
@@ -476,7 +476,7 @@ def read_dcip3d_ubc(file_name, data_type):
     if obsfile[0][0:6] == "IPTYPE":
         obsfile = obsfile[1:]
 
-    # Since simpeg defines secondary potential from IP as voltage,
+    # Since SimPEG defines secondary potential from IP as voltage,
     # we must use this type when defining the receivers.
     if data_type == "secondary_potential":
         data_type = "volt"
@@ -596,7 +596,7 @@ def read_dcipoctree_ubc(file_name, data_type):
     Returns
     -------
     SimPEG.data.Data
-        A simpeg data object. The data from the input file is loaded and parsed into
+        A SimPEG data object. The data from the input file is loaded and parsed into
         three attributes of the data object:
 
         - `survey`: the survey geometry as defined by an instance of :class`simpeg.electromagnetics.static.resistivity.survey.Survey` or :class`simpeg.electromagnetics.static.induced_polarization.survey.Survey`
@@ -983,7 +983,7 @@ def write_dcip_xyz(
 ):
     """Write 2D or 3D DC/IP data to XYZ-formatted file.
 
-    This function writes DC and/or IP data from the simpeg framework to an XYZ-formatted
+    This function writes DC and/or IP data from the SimPEG framework to an XYZ-formatted
     data file; i.e. each row in the file defines the data for the unique electrode
     locations provided. This function is versatile enough to write 2D or 3D data.
     The data may include elevations for the electrodes or be surface formatted.

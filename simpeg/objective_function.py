@@ -533,7 +533,7 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
 class L2ObjectiveFunction(BaseObjectiveFunction):
     r"""Weighted least-squares objective function class.
 
-    Weighting least-squares objective functions in simpeg are defined as follows:
+    Weighting least-squares objective functions in SimPEG are defined as follows:
 
     .. math::
         \phi = \big \| \mathbf{W} f(\mathbf{m}) \big \|_2^2
@@ -546,7 +546,7 @@ class L2ObjectiveFunction(BaseObjectiveFunction):
     nP : int
         Number of model parameters.
     mapping : simpeg.mapping.BaseMap
-        A simpeg mapping object that maps from the model space to the
+        A SimPEG mapping object that maps from the model space to the
         quantity evaluated in the objective function.
     W : None or scipy.sparse.csr_matrix
         The weighting matrix applied in the objective function. By default, this
@@ -555,7 +555,7 @@ class L2ObjectiveFunction(BaseObjectiveFunction):
         If ``True``, predicted fields for a simulation and a given model can be
         used to evaluate the objective function quickly.
     counter : None or simpeg.utils.Counter
-        Assign a simpeg ``Counter`` object to store iterations and run-times.
+        Assign a SimPEG ``Counter`` object to store iterations and run-times.
     debug : bool
         Print debugging information.
     """

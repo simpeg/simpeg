@@ -65,7 +65,7 @@ class BaseFDEMSrc(BaseEMSrc):
         Parameters
         ----------
         simulation : BaseFDEMSimulation
-            A simpeg FDEM simulation
+            A SimPEG FDEM simulation
 
         Returns
         -------
@@ -82,7 +82,7 @@ class BaseFDEMSrc(BaseEMSrc):
         Parameters
         ----------
         simulation : BaseFDEMSimulation
-            A simpeg FDEM simulation
+            A SimPEG FDEM simulation
         v : numpy.ndarray
             A vector
         adjoint : bool
@@ -101,7 +101,7 @@ class BaseFDEMSrc(BaseEMSrc):
         Parameters
         ----------
         simulation : BaseFDEMSimulation
-            A simpeg FDEM simulation
+            A SimPEG FDEM simulation
 
         Returns
         -------
@@ -118,7 +118,7 @@ class BaseFDEMSrc(BaseEMSrc):
         Parameters
         ----------
         simulation : BaseFDEMSimulation
-            A simpeg FDEM simulation
+            A SimPEG FDEM simulation
         v : numpy.ndarray
             A vector
         adjoint : bool
@@ -137,7 +137,7 @@ class BaseFDEMSrc(BaseEMSrc):
         Parameters
         ----------
         simulation : BaseFDEMSimulation
-            A simpeg FDEM simulation
+            A SimPEG FDEM simulation
 
         Returns
         -------
@@ -154,7 +154,7 @@ class BaseFDEMSrc(BaseEMSrc):
         Parameters
         ----------
         simulation : BaseFDEMSimulation
-            A simpeg FDEM simulation
+            A SimPEG FDEM simulation
         v : numpy.ndarray
             A vector
         adjoint : bool
@@ -173,7 +173,7 @@ class BaseFDEMSrc(BaseEMSrc):
         Parameters
         ----------
         simulation : BaseFDEMSimulation
-            A simpeg FDEM simulation
+            A SimPEG FDEM simulation
 
         Returns
         -------
@@ -190,7 +190,7 @@ class BaseFDEMSrc(BaseEMSrc):
         Parameters
         ----------
         simulation : BaseFDEMSimulation
-            A simpeg FDEM simulation
+            A SimPEG FDEM simulation
         v : numpy.ndarray
             A vector
         adjoint : bool
@@ -230,7 +230,7 @@ class RawVec_e(BaseFDEMSrc):
         Parameters
         ----------
         simulation : BaseFDEMSimulation
-            simpeg FDEM simulation
+            SimPEG FDEM simulation
 
         Returns
         -------
@@ -267,7 +267,7 @@ class RawVec_m(BaseFDEMSrc):
         Parameters
         ----------
         simulation : BaseFDEMSimulation
-            simpeg FDEM simulation
+            SimPEG FDEM simulation
 
         Returns
         -------
@@ -484,7 +484,7 @@ class MagDipole(BaseFDEMSrc):
         Parameters
         ----------
         simulation : BaseFDEMSimulation
-            A simpeg FDEM simulation
+            A SimPEG FDEM simulation
 
         Returns
         -------
@@ -535,7 +535,7 @@ class MagDipole(BaseFDEMSrc):
         Parameters
         ----------
         simulation : BaseFDEMSimulation
-            A simpeg FDEM simulation
+            A SimPEG FDEM simulation
 
         Returns
         -------
@@ -564,7 +564,7 @@ class MagDipole(BaseFDEMSrc):
         Parameters
         ----------
         simulation : BaseFDEMSimulation
-            simpeg FDEM simulation
+            SimPEG FDEM simulation
 
         Returns
         -------
@@ -583,7 +583,7 @@ class MagDipole(BaseFDEMSrc):
         Parameters
         ----------
         simulation : BaseFDEMSimulation
-            simpeg FDEM simulation
+            SimPEG FDEM simulation
 
         Returns
         -------
@@ -1141,9 +1141,9 @@ class PrimSecMappedSigma(BaseFDEMSrc):
         Parameters
         ----------
         simulation : BaseFDEMSimulation
-            simpeg FDEM simulation
+            SimPEG FDEM simulation
         f : simpeg.electromagnetics.frequency_domain.field.FieldsFDEM
-            A simpeg FDEM fields object
+            A SimPEG FDEM fields object
 
         Returns
         -------

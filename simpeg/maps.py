@@ -47,7 +47,7 @@ class IdentityMap:
 
         \mathbf{u}(\mathbf{m}) = \mathbf{Im}
 
-    The ``IdentityMap`` also acts as the base class for all other simpeg mapping classes.
+    The ``IdentityMap`` also acts as the base class for all other SimPEG mapping classes.
 
     Using the *mesh* or *nP* input arguments, the dimensions of the corresponding
     mapping operator can be permanently set; i.e. (*mesh.nC*, *mesh.nC*) or (*nP*, *nP*).
@@ -454,7 +454,7 @@ class ComboMap(IdentityMap):
     def shape(self):
         r"""Dimensions of the mapping.
 
-        For a list of simpeg mappings [:math:`\mathbf{f}_n,...,\mathbf{f}_1`]
+        For a list of SimPEG mappings [:math:`\mathbf{f}_n,...,\mathbf{f}_1`]
         that have been joined to create a ``ComboMap``, this method returns
         the dimensions of the combination mapping. Recall that the ordering
         of the list of mappings is from last to first.
@@ -505,7 +505,7 @@ class ComboMap(IdentityMap):
         Notes
         -----
         Let :math:`\mathbf{m}` be a set of model parameters and let
-        [:math:`\mathbf{f}_n,...,\mathbf{f}_1`] be the list of simpeg mappings joined
+        [:math:`\mathbf{f}_n,...,\mathbf{f}_1`] be the list of SimPEG mappings joined
         to create a combination mapping. Recall that the list of mappings is ordered
         from last applied to first applied.
 
@@ -759,7 +759,7 @@ class SumMap(ComboMap):
     Parameters
     ----------
     maps : list
-        A list of simpeg mapping objects that are being summed.
+        A list of SimPEG mapping objects that are being summed.
         Each mapping object in the list must act on the same number
         of model parameters and must map to the same vector space!
     """
@@ -5688,7 +5688,7 @@ class ParametricBlockInLayer(ParametricLayer):
 
     **Required**
 
-    :param discretize.base.BaseMesh mesh: simpeg Mesh, 2D or 3D
+    :param discretize.base.BaseMesh mesh: SimPEG Mesh, 2D or 3D
 
     **Optional**
 

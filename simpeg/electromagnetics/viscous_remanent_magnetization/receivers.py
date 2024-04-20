@@ -33,7 +33,7 @@ class Point(BaseRx):
         if kwargs.pop("fieldType", None):
             raise AttributeError(
                 "'fieldType' is a deprecated property. Please use 'field_type' instead."
-                "'fieldType' be removed in simpeg 0.17.0."
+                "'fieldType' be removed in SimPEG 0.17.0."
             )
         if field_type is None:
             raise AttributeError(
@@ -182,13 +182,13 @@ class SquareLoop(Point):
         if "nTurns" in kwargs:
             raise AttributeError(
                 "'nTurns' is a deprecated property. Please use 'n_turns' instead."
-                "'nTurns' be removed in simpeg 0.17.0."
+                "'nTurns' be removed in SimPEG 0.17.0."
             )
 
         if "quadOrder" in kwargs:
             raise AttributeError(
                 "'quadOrder' is a deprecated property. Please use 'quadrature_order' instead."
-                "'quadOrder' be removed in simpeg 0.17.0."
+                "'quadOrder' be removed in SimPEG 0.17.0."
             )
 
         super(SquareLoop, self).__init__(

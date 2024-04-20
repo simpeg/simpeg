@@ -17,7 +17,7 @@ class SurveyVRM(BaseSurvey):
     Parameters
     ----------
     source_list : list of simpeg.electromagnetic.viscous_remanent_magnetization.sources.BaseSrcVRM
-        List of simpeg VRM sources
+        List of SimPEG VRM sources
     t_active : numpy.ndarray of bool
         Active time channels used in inversion
     """

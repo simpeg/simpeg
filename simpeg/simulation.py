@@ -532,7 +532,7 @@ class BaseTimeSimulation(BaseSimulation):
 
     The ``BaseTimeSimulation`` defines properties and methods that are required
     when the finite volume approach is used to solve time-dependent forward simulations.
-    Presently, simpeg discretizes in time using the backward Euler approach.
+    Presently, SimPEG discretizes in time using the backward Euler approach.
     And as such, the user must now define the step lengths for the forward simulation.
 
     Parameters

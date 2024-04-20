@@ -483,12 +483,12 @@ class BaseSurvey:
 
     @property
     def counter(self):
-        """A simpeg counter object for counting iterations and operations
+        """A SimPEG counter object for counting iterations and operations
 
         Returns
         -------
         simpeg.utils.counter_utils.Counter
-            A simpeg counter object
+            A SimPEG counter object
         """
         return self._counter
 
@@ -556,7 +556,7 @@ class BaseSurvey:
 
 
 class BaseTimeSurvey(BaseSurvey):
-    """Base simpeg survey class for time-dependent simulations."""
+    """Base SimPEG survey class for time-dependent simulations."""
 
     @property
     def unique_times(self):

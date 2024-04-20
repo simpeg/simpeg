@@ -17,7 +17,7 @@ def read_mag3d_ubc(obs_file):
     Returns
     -------
     simpeg.data.Data
-        Instance of a simpeg data class. The `survey` attribute associated with
+        Instance of a SimPEG data class. The `survey` attribute associated with
         the data object is an instance of :class`simpeg.potential_fields.magnetics.survey.Survey`.
     """
 
@@ -90,7 +90,7 @@ def write_mag3d_ubc(filename, data_object):
     filename : str
         File path for the output file
     data_object : simpeg.data.Data
-        An instance of simpeg data class. The `survey` attribute associate with the
+        An instance of SimPEG data class. The `survey` attribute associate with the
         data object must be an instance of :class:`simpeg.potential_fields.magnetics.survey.Survey`
     """
     survey = data_object.survey
@@ -137,7 +137,7 @@ def read_grav3d_ubc(obs_file):
     Returns
     -------
     simpeg.data.Data
-        Instance of a simpeg data class. The `survey` attribute associated with
+        Instance of a SimPEG data class. The `survey` attribute associated with
         the data object is an instance of :class`simpeg.potential_fields.gravity.survey.Survey`.
     """
 
@@ -176,7 +176,7 @@ def read_grav3d_ubc(obs_file):
     if np.all(wd == 0.0):
         wd = None
 
-    # UBC and simpeg used opposite sign convention for
+    # UBC and SimPEG used opposite sign convention for
     # gravity data so must multiply by -1.
     if np.all(d == 0.0):
         d = None
@@ -202,7 +202,7 @@ def write_grav3d_ubc(filename, data_object):
     filename : str
         File path for the output file
     data_object : simpeg.data.Data
-        An instance of simpeg data class. The `survey` attribute associate with the
+        An instance of SimPEG data class. The `survey` attribute associate with the
         data object must be an instance of :class:`simpeg.potential_fields.gravity.survey.Survey`
     """
     survey = data_object.survey
@@ -214,7 +214,7 @@ def write_grav3d_ubc(filename, data_object):
 
     data = src.receiver_list[0].locations
 
-    # UBC and simpeg use opposite sign for gravity data so
+    # UBC and SimPEG use opposite sign for gravity data so
     # data are multiplied by -1.
     if data_object.dobs is not None:
         data = np.c_[data, -data_object.dobs]
@@ -245,7 +245,7 @@ def read_gg3d_ubc(obs_file):
     Returns
     -------
     simpeg.data.Data
-        Instance of a simpeg data class. The `survey` attribute associated with
+        Instance of a SimPEG data class. The `survey` attribute associated with
         the data object is an instance of :class`simpeg.potential_fields.gravity.survey.Survey`.
     """
 
@@ -300,7 +300,7 @@ def read_gg3d_ubc(obs_file):
                 wd.append(temp[3 + n_comp :])
             ii += 1
 
-    # Turn into vector. For multiple components, simpeg orders by rows
+    # Turn into vector. For multiple components, SimPEG orders by rows
     if len(d) > 0:
         d = mkvc(np.stack(d).T)
     else:
@@ -329,7 +329,7 @@ def write_gg3d_ubc(filename, data_object):
     filename : str
         File path for the output file
     data_object : simpeg.data.Data
-        An instance of simpeg data class. The `survey` attribute associate with the
+        An instance of SimPEG data class. The `survey` attribute associate with the
         data object must be an instance of :class:`simpeg.potential_fields.gravity.survey.Survey`
     """
     survey = data_object.survey

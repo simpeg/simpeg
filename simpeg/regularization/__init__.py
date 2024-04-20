@@ -23,7 +23,7 @@ response. To accomplish this, regularization is used to ensure the solution to t
 problem is unique and is geologically plausible. The regularization applied to solve the inverse
 problem depends on user assumptions and a priori information.
 
-simpeg uses a deterministic inversion approach to recover an appropriate model.
+SimPEG uses a deterministic inversion approach to recover an appropriate model.
 The algorithm does this by finding the model (:math:`m`) which minimizes a global objective
 function (or penalty function) of the form:
 
@@ -44,7 +44,7 @@ functions comprising the model objective function. The trade-off parameter :math
 balances the relative contribution of the data misfit and regularization functions on the
 global objective function.
 
-Regularization classes within simpeg correspond to different regularization (objective)
+Regularization classes within SimPEG correspond to different regularization (objective)
 functions that can be used individually or combined to define the model objective function
 :math:`\phi_m (\mathbf{m})`. For example, a combination of regularization functions that ensures
 the values in the recovered model are not too large and are spatially smooth in the x and

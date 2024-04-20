@@ -110,7 +110,7 @@ PGI Utility Classes and Functions
 
 Code Utility Functions
 ======================
-Many of the functions here are used internally to simpeg and have minimal documentation.
+Many of the functions here are used internally to SimPEG and have minimal documentation.
 
 .. autosummary::
   :toctree: generated/

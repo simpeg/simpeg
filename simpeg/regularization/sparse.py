@@ -24,7 +24,7 @@ class BaseSparse(BaseRegularization):
     """Base class for sparse-norm regularization.
 
     The ``BaseSparse`` class defines properties and methods inherited by sparse-norm
-    regularization classes. Sparse-norm regularization in simpeg is implemented using
+    regularization classes. Sparse-norm regularization in SimPEG is implemented using
     an iteratively re-weighted least squares (IRLS) approach. The ``BaseSparse`` class
     however, is not directly used to define the regularization for the inverse problem.
 

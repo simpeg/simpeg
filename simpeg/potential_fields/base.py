@@ -78,12 +78,12 @@ class BasePFSimulation(LinearSimulation):
         # If deprecated property set with kwargs
         if "actInd" in kwargs:
             raise AttributeError(
-                "actInd was removed in simpeg 0.17.0, please use ind_active"
+                "actInd was removed in SimPEG 0.17.0, please use ind_active"
             )
 
         if "forwardOnly" in kwargs:
             raise AttributeError(
-                "forwardOnly was removed in simpeg 0.17.0, please set store_sensitivities='forward_only'"
+                "forwardOnly was removed in SimPEG 0.17.0, please set store_sensitivities='forward_only'"
             )
 
         self.store_sensitivities = store_sensitivities

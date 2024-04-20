@@ -50,7 +50,7 @@ def requires(var):
 
         .. note::
 
-            To use survey.{0!s}(), simpeg requires that a problem be bound to the survey.
+            To use survey.{0!s}(), SimPEG requires that a problem be bound to the survey.
             If a problem has not been bound, an Exception will be raised.
             To bind a problem to the Data object::
 
@@ -61,7 +61,7 @@ def requires(var):
             )
         else:
             extra = """
-                To use *{0!s}* method, simpeg requires that the {1!s} be specified.
+                To use *{0!s}* method, SimPEG requires that the {1!s} be specified.
             """.format(
                 f.__name__, var
             )
@@ -517,7 +517,7 @@ def deprecate_class(
     Parameters
     ----------
     removal_version : str
-        A string denoting the simpeg version in which the class will be removed
+        A string denoting the SimPEG version in which the class will be removed
     new_location : str
         Name for the class replacing the deprecated class
     future_warn : bool, default: ``False``
@@ -575,7 +575,7 @@ def deprecate_module(
     new_name : str
         New name for the module
     removal_version : str, optional
-        simpeg version in which the module will be removed from the code base
+        SimPEG version in which the module will be removed from the code base
     future_warn : bool, default: ``False``
         If ``True``, throw comprehensive warning the module will be deprecated
     error : bool, default: ``False``
@@ -612,7 +612,7 @@ def deprecate_property(
         New name for the property. If ``None``, the property name is take from the
         *prop* input argument.
     removal_version : str, optional
-        simpeg version in which the property will be removed from the code base
+        SimPEG version in which the property will be removed from the code base
     future_warn : bool, default: ``False``
         If ``True``, throw comprehensive warning the property will be deprecated
     error : bool, default: ``False``
@@ -673,7 +673,7 @@ def deprecate_method(
     old_name : str
         Original name for the now deprecated method
     removal_version : str, optional
-        simpeg version in which the method will be removed from the code base
+        SimPEG version in which the method will be removed from the code base
     future_warn : bool, default: ``False``
         If ``True``, throw comprehensive warning the method will be deprecated
     error : bool, default: ``False``
@@ -728,7 +728,7 @@ def deprecate_function(
     old_name : str
         Original name for the now deprecated function
     removal_version : str, optional
-        simpeg version in which the method will be removed from the code base
+        SimPEG version in which the method will be removed from the code base
     future_warn : bool, default: ``False``
         If ``True``, throw comprehensive warning the method will be deprecated
     error : bool, default: ``False``

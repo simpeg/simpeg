@@ -11,7 +11,7 @@ class Survey(BaseTimeSurvey):
     Parameters
     ----------
     source_list : list of simpeg.electromagnetic.static.spectral_induced_polarization.sources.BaseSrc
-        List of simpeg spectral IP sources
+        List of SimPEG spectral IP sources
     survey_geometry : {"surface", "borehole", "general"}
         Survey geometry.
     survey_type : {"dipole-dipole", "pole-dipole", "dipole-pole", "pole-pole"}

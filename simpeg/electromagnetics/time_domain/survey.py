@@ -14,7 +14,7 @@ class Survey(BaseSurvey):
     Parameters
     ----------
     source_list : list of simpeg.electromagnetic.time_domain.sources.BaseTDEMSrc
-        List of simpeg TDEM sources
+        List of SimPEG TDEM sources
     """
 
     def __init__(self, source_list, **kwargs):

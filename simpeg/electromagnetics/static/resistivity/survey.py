@@ -16,7 +16,7 @@ class Survey(BaseSurvey):
     Parameters
     ----------
     source_list : list of simpeg.electromagnetic.static.resistivity.sources.BaseSrc
-        List of simpeg DC/IP sources
+        List of SimPEG DC/IP sources
     survey_geometry : {"surface", "borehole", "general"}
         Survey geometry.
     survey_type : {"dipole-dipole", "pole-dipole", "dipole-pole", "pole-pole"}
