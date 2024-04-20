@@ -723,7 +723,7 @@ class LinearSimulation(BaseSimulation):
     ``(n_data, n_param)`` linear operator.
 
     The ``LinearSimulation`` class is generally used as a base class that is inherited by
-    other simulation classes within simpeg. However, it can be used directly as a
+    other simulation classes within SimPEG. However, it can be used directly as a
     simulation class if the :py:attr:`G` property is used to set the linear forward
     operator directly.
 

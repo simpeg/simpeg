@@ -25,7 +25,7 @@ from simpeg.maps import IdentityMap
 ###############################################################################
 # Disclaimer: the following classes built upon the GaussianMixture class      #
 # from Scikit-Learn. New functionalitie are added, as well as modifications to#
-# existing functions, to serve the purposes pursued within simpeg.            #
+# existing functions, to serve the purposes pursued within SimPEG.            #
 # This use is allowed by the Scikit-Learn licensing (BSD-3-Clause License)    #
 # and we are grateful for their contributions to the open-source community.   #                                                   #
 ###############################################################################
@@ -48,7 +48,7 @@ class WeightedGaussianMixture(GaussianMixture):
 
     Disclaimer: this class built upon the GaussianMixture class from Scikit-Learn.
     New functionalitie are added, as well as modifications to
-    existing functions, to serve the purposes pursued within simpeg.
+    existing functions, to serve the purposes pursued within SimPEG.
     This use is allowed by the Scikit-Learn licensing (BSD-3-Clause License)
     and we are grateful for their contributions to the open-source community.
 
@@ -796,7 +796,7 @@ class GaussianMixtureWithPrior(WeightedGaussianMixture):
 
     Disclaimer: this class built upon the GaussianMixture class from Scikit-Learn.
     New functionalitie are added, as well as modifications to
-    existing functions, to serve the purposes pursued within simpeg.
+    existing functions, to serve the purposes pursued within SimPEG.
     This use is allowed by the Scikit-Learn licensing (BSD-3-Clause License)
     and we are grateful for their contributions to the open-source community.
 
@@ -1195,7 +1195,7 @@ class GaussianMixtureWithNonlinearRelationships(WeightedGaussianMixture):
 
     Disclaimer: this class built upon the GaussianMixture class from Scikit-Learn.
     New functionalitie are added, as well as modifications to
-    existing functions, to serve the purposes pursued within simpeg.
+    existing functions, to serve the purposes pursued within SimPEG.
     This use is allowed by the Scikit-Learn licensing (BSD-3-Clause License)
     and we are grateful for their contributions to the open-source community.
 
@@ -1501,7 +1501,7 @@ class GaussianMixtureWithNonlinearRelationshipsWithPrior(GaussianMixtureWithPrio
 
     Disclaimer: this class built upon the GaussianMixture class from Scikit-Learn.
     New functionalitie are added, as well as modifications to
-    existing functions, to serve the purposes pursued within simpeg.
+    existing functions, to serve the purposes pursued within SimPEG.
     This use is allowed by the Scikit-Learn licensing (BSD-3-Clause License)
     and we are grateful for their contributions to the open-source community.
 

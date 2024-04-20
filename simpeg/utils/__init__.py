@@ -5,7 +5,7 @@ Utility Classes and Functions (:mod:`simpeg.utils`)
 .. currentmodule:: simpeg.utils
 
 The ``utils`` package contains utilities for helping with common operations involving
-simpeg.
+SimPEG.
 
 Many of the utilities are imported from `discretize.utils`. See that package's
 documentation for many details on items.
