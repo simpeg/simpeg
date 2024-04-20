@@ -41,7 +41,7 @@ from ..utils.code_utils import (
 class InversionDirective:
     """Base inversion directive class.
 
-    simpeg directives initialize and update parameters used by the inversion algorithm;
+    SimPEG directives initialize and update parameters used by the inversion algorithm;
     e.g. setting the initial beta or updating the regularization. ``InversionDirective``
     is a parent class responsible for connecting directives to the data misfit, regularization
     and optimization defining the inverse problem.
@@ -49,7 +49,7 @@ class InversionDirective:
     Parameters
     ----------
     inversion : simpeg.inversion.BaseInversion, None
-        An simpeg inversion object; i.e. an instance of :class:`simpeg.inversion.BaseInversion`.
+        An SimPEG inversion object; i.e. an instance of :class:`simpeg.inversion.BaseInversion`.
     dmisfit : simpeg.data_misfit.BaseDataMisfit, None
         A data data misfit; i.e. an instance of :class:`simpeg.data_misfit.BaseDataMisfit`.
     reg : simpeg.regularization.BaseRegularization, None
@@ -250,7 +250,7 @@ class InversionDirective:
 class DirectiveList(object):
     """Directives list
 
-    simpeg directives initialize and update parameters used by the inversion algorithm;
+    SimPEG directives initialize and update parameters used by the inversion algorithm;
     e.g. setting the initial beta or updating the regularization. ``DirectiveList`` stores
     the set of directives used in the inversion algorithm.
 

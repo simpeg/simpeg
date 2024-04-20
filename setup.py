@@ -1,7 +1,7 @@
 #!/usr/bin/env python
-"""simpeg: Simulation and Parameter Estimation in Geophysics
+"""SimPEG: Simulation and Parameter Estimation in Geophysics
 
-simpeg is a python package for simulation and gradient based
+SimPEG is a python package for simulation and gradient based
 parameter estimation in the context of geophysical applications.
 """
 
@@ -49,7 +49,7 @@ setup(
     ],
     author="Rowan Cockett",
     author_email="rowanc1@gmail.com",
-    description="simpeg: Simulation and Parameter Estimation in Geophysics",
+    description="SimPEG: Simulation and Parameter Estimation in Geophysics",
     long_description=LONG_DESCRIPTION,
     license="MIT",
     keywords="geophysics inverse problem",

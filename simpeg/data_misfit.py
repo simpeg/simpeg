@@ -96,7 +96,7 @@ class BaseDataMisfit(L2ObjectiveFunction):
         Returns
         -------
         None or simpeg.utils.Counter
-            simpeg ``Counter`` object to store iterations and run-times.
+            SimPEG ``Counter`` object to store iterations and run-times.
         """
         return self._counter
 
@@ -217,7 +217,7 @@ class BaseDataMisfit(L2ObjectiveFunction):
         m : (n_param, ) numpy.ndarray
             The model for which the function is evaluated.
         f : None or simpeg.fields.Fields, optional
-            A simpeg fields object. Used when the fields for the model *m* have
+            A SimPEG fields object. Used when the fields for the model *m* have
             already been computed.
 
         Returns
@@ -252,13 +252,13 @@ class L2DataMisfit(BaseDataMisfit):
     Parameters
     ----------
     data : simpeg.data.Data
-        A simpeg data object that has observed data and uncertainties.
+        A SimPEG data object that has observed data and uncertainties.
     simulation : simpeg.simulation.BaseSimulation
-        A simpeg simulation object.
+        A SimPEG simulation object.
     debug : bool
         Print debugging information.
     counter : None or simpeg.utils.Counter
-        Assign a simpeg ``Counter`` object to store iterations and run-times.
+        Assign a SimPEG ``Counter`` object to store iterations and run-times.
     """
 
     @timeIt
