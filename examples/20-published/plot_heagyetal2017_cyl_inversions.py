@@ -16,7 +16,7 @@ This example is used in the paper
 This example is on figshare:
 https://doi.org/10.6084/m9.figshare.5035175
 
-This example was updated for simpeg 0.14.0 on January 31st, 2020 by Joseph Capriotti
+This example was updated for SimPEG 0.14.0 on January 31st, 2020 by Joseph Capriotti
 """
 
 import discretize

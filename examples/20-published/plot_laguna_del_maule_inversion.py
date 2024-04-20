@@ -2,7 +2,7 @@
 PF: Gravity: Laguna del Maule Bouguer Gravity
 =============================================
 
-This notebook illustrates the simpeg code used to invert Bouguer
+This notebook illustrates the SimPEG code used to invert Bouguer
 gravity data collected at Laguna del Maule volcanic field, Chile.
 Refer to Miller et al 2016 EPSL for full details.
 
@@ -151,11 +151,11 @@ def run(plotIt=True, cleanAfterRun=True):
     if plotIt:
         # Plot observed data
         # The sign of the data is flipped here for the change of convention
-        # between Cartesian coordinate system (internal simpeg format that
+        # between Cartesian coordinate system (internal SimPEG format that
         # expects "positive up" gravity signal) and traditional gravity data
         # conventions (positive down). For example a traditional negative
         # gravity anomaly is described as "positive up" in Cartesian coordinates
-        # and hence the sign needs to be flipped for use in simpeg.
+        # and hence the sign needs to be flipped for use in SimPEG.
         plot2Ddata(rxLoc, -d)
 
         # %%
