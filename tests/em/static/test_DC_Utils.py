@@ -225,26 +225,35 @@ class DCUtilsTests_survey_from_ABMN(unittest.TestCase):
         survey_type = ["dipole-dipole", "pole-pole", "pole-dipole", "dipole-pole"]
         data_type = "volt"
         dimension_type = "3D"
-        end_locations = np.r_[-1000.0, 1000.0, 0.0, 0.0]
+        end_locations = [
+            np.r_[-1000.0, 1000.0, 0.0, 0.0],
+            np.r_[0.0, 0.0, -1000.0, 1000.0]
+        ]
         station_separation = 200.0
         num_rx_per_src = 5
 
         # The source lists for each line can be appended to create the source
         # list for the whole survey.
         source_list = []
-        for ii in range(0, len(survey_type)):
-            source_list += utils.generate_dcip_sources_line(
-                survey_type[ii],
-                data_type,
-                dimension_type,
-                end_locations,
-                0.0,
-                num_rx_per_src,
-                station_separation,
-            )
+        lineID = []
+        for i in range(len(end_locations)):
+            for ii in range(len(survey_type)):
+                source_list += utils.generate_dcip_sources_line(
+                    survey_type[ii],
+                    data_type,
+                    dimension_type,
+                    end_locations[i],
+                    0.0,
+                    num_rx_per_src,
+                    station_separation,
+                )
 
         # Define the survey
         self.survey = dc.survey.Survey(source_list)
+
+        lineID = np.ones(len(self.survey.locations_a))
+        lineID[int(len(self.survey.locations_a)/2):] = 2
+        self.lineID = lineID
 
     def test_generate_survey_from_abmn_locations(self):
         survey_new, sorting_index = utils.generate_survey_from_abmn_locations(
@@ -281,7 +290,7 @@ class DCUtilsTests_survey_from_ABMN(unittest.TestCase):
         is_rx = np.array(is_rx, dtype=float)
 
         _, idx = np.unique(
-            np.c_[self.survey.locations_a, self.survey.locations_b, is_rx],
+            np.c_[self.survey.locations_a, self.survey.locations_b, is_rx, self.lineID],
             axis=0,
             return_index=True,
         )
@@ -292,20 +301,23 @@ class DCUtilsTests_survey_from_ABMN(unittest.TestCase):
 
         src_locations_new = self.survey.source_locations
         has_nan = np.any(np.isnan(src_locations_new[1]), axis=1)
+        print(src_locations_new[1])
         src_locations_new[1][has_nan, :] = src_locations_new[0][has_nan, :]
         src_locations_new = np.hstack(src_locations_new)
 
+        print(len(src_locations), len(src_locations_new))
         passed = np.allclose(src_locations, src_locations_new)
         self.assertTrue(passed)
 
     def test_convert_to_2d(self):
-        # Only 1 line of 3D data along x direction starting from (-1000,0,0)
-        lineID = np.ones(self.survey.nD, dtype=int)
-        survey_2d, IND = utils.convert_survey_3d_to_2d_lines(
-            self.survey, lineID, data_type="volt", output_indexing=True
+        # 3D survey has two lines of data, one E-W and the other N-S.
+        survey_2d_list, IND = utils.convert_survey_3d_to_2d_lines(
+            self.survey, self.lineID, data_type="volt", output_indexing=True
         )
+
+        # First, check that coordinates remain the same even after the transformation for the first line
         IND = IND[0]
-        survey_2d = survey_2d[0]
+        survey_2d = survey_2d_list[0]
 
         ds = np.c_[-1000.0, 0.0, 0.0]
 
@@ -326,8 +338,13 @@ class DCUtilsTests_survey_from_ABMN(unittest.TestCase):
             survey_2d.locations_n,
         ]
 
+        # Coordinates should be roughly the same
         passed = np.allclose(loc3d[:, 0::2], loc2d)
         self.assertTrue(passed)
+
+        # Next, check that the first x-coordinate for electrode A is zero for both surveys
+        for i in range(0, len(survey_2d_list)):
+            self.assertEqual(survey_2d_list[i].locations_a[0,0], 0)
 
 
 if __name__ == "__main__":
