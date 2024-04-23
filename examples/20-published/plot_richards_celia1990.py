@@ -39,6 +39,7 @@ head-based formulation and the mixed-formulation.
 
 .. _Celia1990: http://www.webpages.uidaho.edu/ch/papers/Celia.pdf
 """
+
 import matplotlib.pyplot as plt
 import numpy as np
 

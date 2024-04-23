@@ -25,6 +25,7 @@ Rowan Cockett - 21/12/2016
 
 .. _Celia1990: http://www.webpages.uidaho.edu/ch/papers/Celia.pdf
 """
+
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np

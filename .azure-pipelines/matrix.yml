@@ -50,6 +50,13 @@ jobs:
               pytest ${{ test }} -v --cov-config=.coveragerc --cov=SimPEG --cov-report=xml --cov-report=html -W ignore::DeprecationWarning
             displayName: 'Testing ${{ test }}'
 
+          - task: PublishPipelineArtifact@1
+            inputs:
+              targetPath: $(Build.SourcesDirectory)/docs/_build/html
+              artifactName: html_docs
+            displayName: 'Publish documentation artifact'
+            condition: eq('${{ test }}', 'tests/docs -s -v')
+
           - script: |
               curl -Os https://uploader.codecov.io/latest/linux/codecov
               chmod +x codecov

@@ -6,6 +6,7 @@ Here we will create and run a TDEM 1D inversion,
 with VTEM waveform of which initial condition
 is zero, but have some on- and off-time.
 """
+
 import numpy as np
 import discretize
 from SimPEG import (

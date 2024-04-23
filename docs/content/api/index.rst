@@ -32,6 +32,13 @@ Regularizations
 
   SimPEG.regularization
 
+Directives
+----------
+.. toctree::
+  :maxdepth: 2
+
+  SimPEG.directives
+
 Utilities
 ---------
 

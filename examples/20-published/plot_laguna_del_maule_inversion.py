@@ -11,6 +11,7 @@ then applying an Lp norm to produce a compact model.
 
 Craig Miller
 """
+
 import os
 import shutil
 import tarfile
@@ -96,9 +97,9 @@ def run(plotIt=True, cleanAfterRun=True):
 
     # %% Create inversion objects
     reg = regularization.Sparse(
-        mesh, active_cells=active, mapping=staticCells, gradientType="total"
+        mesh, active_cells=active, mapping=staticCells, gradient_type="total"
     )
-    reg.mref = driver.mref[dynamic]
+    reg.reference_model = driver.mref[dynamic]
 
     reg.norms = [0.0, 1.0, 1.0, 1.0]
     # reg.norms = driver.lpnorms

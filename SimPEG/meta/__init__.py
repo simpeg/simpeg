@@ -50,7 +50,12 @@ Multiprocessing
 
 Dask
 ----
-Coming soon!
+.. autosummary::
+  :toctree: generated/
+
+  DaskMetaSimulation
+  DaskSumMetaSimulation
+  DaskRepeatedSimulation
 
 MPI
 ---
@@ -69,3 +74,21 @@ from .multiprocessing import (
     MultiprocessingSumMetaSimulation,
     MultiprocessingRepeatedSimulation,
 )
+
+try:
+    from .dask_sim import (
+        DaskMetaSimulation,
+        DaskSumMetaSimulation,
+        DaskRepeatedSimulation,
+    )
+except ImportError:
+
+    class DaskMetaSimulation(MetaSimulation):
+        def __init__(self, *args, **kwargs):
+            raise ImportError(
+                "This simulation requires dask.distributed. Please see installation "
+                "instructions at https://distributed.dask.org/"
+            )
+
+    DaskSumMetaSimulation = DaskMetaSimulation
+    DaskRepeatedMetaSimulation = DaskMetaSimulation

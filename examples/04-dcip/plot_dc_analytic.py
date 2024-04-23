@@ -5,6 +5,7 @@ DC Analytic Dipole
 Comparison of the analytic and numerical solution for a direct current
 resistivity dipole in 3D.
 """
+
 import discretize
 from SimPEG import utils
 import numpy as np

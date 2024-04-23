@@ -3,5 +3,5 @@ contact_links:
     url: https://simpeg.discourse.group/
     about: "If you have a question on how to use SimPEG, please submit them to our discourse page."
   - name: Development-related matters
-    url: http://slack.simpeg.xyz/
-    about: "If you would like to discuss SimPEG, any geophysics related problems, or need help from the SimPEG team, get in touch with us on slack."
+    url: https://mattermost.softwareunderground.org/simpeg
+    about: "If you would like to discuss SimPEG, any geophysics related problems, or need help from the SimPEG team, get in touch with us on Mattermost."

@@ -5,7 +5,6 @@ from SimPEG.electromagnetics import viscous_remanent_magnetization as vrm
 
 
 class VRM_fwd_tests(unittest.TestCase):
-
     """
     Computed vs analytic dipole field
     """
