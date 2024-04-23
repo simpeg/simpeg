@@ -400,7 +400,7 @@ class BaseBetaEstimator(InversionDirective):
     @seed.setter
     def seed(self, value):
         if value is not None:
-            value = validate_integer("seed", value, min_val=1)
+            value = validate_integer("seed", value, min_val=0)
         self._seed = value
 
     def validate(self, directive_list):
@@ -529,7 +529,9 @@ class BetaEstimate_ByEig(BaseBetaEstimator):
     """
 
     def __init__(self, beta0_ratio=1.0, n_pw_iter=4, seed=None, **kwargs):
-        super().__init__(beta0_ratio, seed, **kwargs)
+        super().__init__(
+            beta0_ratio=beta0_ratio, n_pw_iter=n_pw_iter, seed=seed, **kwargs
+        )
         self.n_pw_iter = n_pw_iter
 
     @property
