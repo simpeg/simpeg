@@ -252,7 +252,7 @@ class DCUtilsTests_survey_from_ABMN(unittest.TestCase):
         self.survey = dc.survey.Survey(source_list)
 
         lineID = np.ones(len(self.survey.locations_a))
-        lineID[int(len(self.survey.locations_a)/2):] = 2
+        lineID[int(len(self.survey.locations_a) / 2) :] = 2
         self.lineID = lineID
 
     def test_generate_survey_from_abmn_locations(self):
