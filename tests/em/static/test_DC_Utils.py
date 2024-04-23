@@ -342,7 +342,7 @@ class DCUtilsTests_survey_from_ABMN(unittest.TestCase):
         passed = np.allclose(loc3d[:, 0::2], loc2d)
         self.assertTrue(passed)
 
-        # Next, check that the first x-coordinate for electrode A is zero for both surveys
+        # Check that the first x-coordinate for electrode A is zero for both surveys
         for i in range(0, len(survey_2d_list)):
             self.assertEqual(survey_2d_list[i].locations_a[0, 0], 0)
 
