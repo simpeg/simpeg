@@ -344,7 +344,7 @@ class DCUtilsTests_survey_from_ABMN(unittest.TestCase):
 
         # Next, check that the first x-coordinate for electrode A is zero for both surveys
         for i in range(0, len(survey_2d_list)):
-            self.assertEqual(survey_2d_list[i].locations_a[0,0], 0)
+            self.assertEqual(survey_2d_list[i].locations_a[0, 0], 0)
 
 
 if __name__ == "__main__":
