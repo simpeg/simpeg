@@ -301,11 +301,9 @@ class DCUtilsTests_survey_from_ABMN(unittest.TestCase):
 
         src_locations_new = self.survey.source_locations
         has_nan = np.any(np.isnan(src_locations_new[1]), axis=1)
-        print(src_locations_new[1])
         src_locations_new[1][has_nan, :] = src_locations_new[0][has_nan, :]
         src_locations_new = np.hstack(src_locations_new)
 
-        print(len(src_locations), len(src_locations_new))
         passed = np.allclose(src_locations, src_locations_new)
         self.assertTrue(passed)
 
