@@ -227,7 +227,7 @@ class DCUtilsTests_survey_from_ABMN(unittest.TestCase):
         dimension_type = "3D"
         end_locations = [
             np.r_[-1000.0, 1000.0, 0.0, 0.0],
-            np.r_[0.0, 0.0, -1000.0, 1000.0]
+            np.r_[0.0, 0.0, -1000.0, 1000.0],
         ]
         station_separation = 200.0
         num_rx_per_src = 5
