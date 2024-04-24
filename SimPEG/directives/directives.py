@@ -396,8 +396,14 @@ class BaseBetaEstimator(InversionDirective):
 
     @seed.setter
     def seed(self, value):
-        if value is not None and not isinstance(value, np.random.Generator):
-            value = validate_integer("seed", value, min_val=1)
+        try:
+            np.random.default_rng(value)
+        except TypeError as err:
+            msg = (
+                "Unable to initialize the random number generator with "
+                f"a {type(value).__name__}"
+            )
+            raise TypeError(msg) from err
         self._seed = value
 
     def validate(self, directive_list):
@@ -709,8 +715,14 @@ class AlphasSmoothEstimate_ByEig(InversionDirective):
 
     @seed.setter
     def seed(self, value):
-        if value is not None and not isinstance(value, np.random.Generator):
-            value = validate_integer("seed", value, min_val=1)
+        try:
+            np.random.default_rng(value)
+        except TypeError as err:
+            msg = (
+                "Unable to initialize the random number generator with "
+                f"a {type(value).__name__}"
+            )
+            raise TypeError(msg) from err
         self._seed = value
 
     def initialize(self):
@@ -842,8 +854,14 @@ class ScalingMultipleDataMisfits_ByEig(InversionDirective):
 
     @seed.setter
     def seed(self, value):
-        if value is not None and not isinstance(value, np.random.Generator):
-            value = validate_integer("seed", value, min_val=1)
+        try:
+            np.random.default_rng(value)
+        except TypeError as err:
+            msg = (
+                "Unable to initialize the random number generator with "
+                f"a {type(value).__name__}"
+            )
+            raise TypeError(msg) from err
         self._seed = value
 
     def initialize(self):
