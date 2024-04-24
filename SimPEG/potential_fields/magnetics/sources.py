@@ -12,9 +12,6 @@ class UniformBackgroundField(BaseSrc):
     Parameters
     ----------
     receiver_list : list of SimPEG.potential_fields.magnetics.Point
-    parameters : tuple of (amplitude, inclutation, declination), optional
-        Deprecated input for the function, provided in this position for backwards
-        compatibility
     amplitude : float, optional
         amplitude of the inducing backgound field, usually this is in units of nT.
     inclination : float, optional
