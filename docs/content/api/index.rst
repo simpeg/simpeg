@@ -65,6 +65,6 @@ Typing
 PEP 484 type aliases used in ``simpeg``.
 
 .. toctree::
-  :maxdepth: 2
+  :maxdepth: 1
 
   SimPEG.typing
