@@ -138,6 +138,14 @@ open in that repository. So:
 - [ ] Follow the steps provided in the checklist in that PR and merge it.
 - [ ] Make sure the new version is available through conda-forge: https://anaconda.org/conda-forge/simpeg
 
+Lastly, we would need to update the SimPEG version used in
+[`simpeg/user-tutorials`](https://github.com/simpeg/user-tutorials) and rerun
+its notebooks:
+
+- [ ] Open issue in
+  [`simpeg/user-tutorials`](https://github.com/simpeg/user-tutorials) for
+  rerunning the notebooks using the new released version of SimPEG
+
 Finally:
 
 - [ ] Close this issue
