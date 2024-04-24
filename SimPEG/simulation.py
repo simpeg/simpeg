@@ -491,15 +491,10 @@ class BaseSimulation(props.HasModel):
             forward problem to obtain noiseless data.
         add_noise : bool
             Whether to add gaussian noise to the synthetic data or not.
-        random_seed : int, numpy.random.Generator or None, optional
-            Random seed to pass to ``numpy.random.default_rng``. It can either be
-            an int or a predefined Numpy random number generator (see
-            ``numpy.random.default_rng``).
         random_seed : {None, int, array_like[ints], SeedSequence, BitGenerator, Generator}, optional
-            Random seed to pass to ``numpy.random.default_rng``.
-            Random seed used for random sampling. It can either be an int,
-            a predefined Numpy random number generator, or any valid input to
-            ``numpy.random.default_rng``.
+            Random seed used for random sampling. It can either be an int or
+            a predefined Numpy random number generator (see
+            ``numpy.random.default_rng``).
 
         Returns
         -------
