@@ -1,10 +1,10 @@
 """
 =============================
-Typing (:mod:`simpeg.typing`)
+Typing (:mod:`SimPEG.typing`)
 =============================
 
 This module provides additional `PEP 484 <https://peps.python.org/pep-0484/>`_
-type aliases used in ``simpeg``'s codebase.
+type aliases used in ``SimPEG``'s codebase.
 
 API
 ---
@@ -44,7 +44,7 @@ except ImportError:
 RandomSeed.__doc__ = """
 A ``typing.Union`` for random seeds and Numpy's random number generators.
 
-These type of variables can be used throughout ``simpeg`` to control random
+These type of variables can be used throughout ``SimPEG`` to control random
 states of functions and classes. These variables can either be an integer that
 will be used as a ``seed`` to define a Numpy's ``np.random.Generator``, or
 a predefined random number generator.
