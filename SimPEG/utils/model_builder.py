@@ -6,6 +6,8 @@ from .mat_utils import mkvc
 from scipy.spatial import Delaunay
 from discretize.base import BaseMesh
 
+from ..typing import RandomSeed
+
 
 def add_block(cell_centers, model, p0, p1, prop_value):
     """Add a homogeneous block to an existing cell centered model
@@ -417,7 +419,7 @@ def create_layers_model(cell_centers, layer_tops, layer_values):
 
 def create_random_model(
     shape,
-    seed: int | np.random.Generator | None = 1000,
+    seed: RandomSeed | None = 1000,
     anisotropy=None,
     its=100,
     bounds=None,
@@ -429,7 +431,7 @@ def create_random_model(
     ----------
     shape : int or tuple of int
         Shape of the model. Can define a vector of size (n_cells) or define the dimensions of a tensor
-    seed : {None, int, array_like[ints], SeedSequence, BitGenerator, Generator}, optional
+    seed : {None, RandomSeed}, optional
         Random seed for random uniform model that is convolved with the kernel.
         It can either be an int, a predefined Numpy random number generator, or
         any valid input to ``numpy.random.default_rng``.

@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import warnings
 import os
 import scipy.sparse as sp
+from ..typing import RandomSeed
 from ..data_misfit import BaseDataMisfit
 from ..objective_function import ComboObjectiveFunction
 from ..maps import IdentityMap, Wires
@@ -348,7 +349,7 @@ class BaseBetaEstimator(InversionDirective):
     ----------
     beta0_ratio : float
         Desired ratio between data misfit and model objective function at initial beta iteration.
-    seed : {None, int, array_like[ints], SeedSequence, BitGenerator, Generator}, optional
+    seed : {None, RandomSeed}, optional
         Random seed used for random sampling. It can either be an int,
         a predefined Numpy random number generator, or any valid input to
         ``numpy.random.default_rng``.
@@ -359,7 +360,7 @@ class BaseBetaEstimator(InversionDirective):
         self,
         beta0_ratio=1.0,
         n_pw_iter=4,
-        seed: int | np.random.Generator | None = None,
+        seed: RandomSeed | None = None,
         method="power_iteration",
         **kwargs,
     ):
@@ -423,7 +424,7 @@ class BetaEstimateMaxDerivative(BaseBetaEstimator):
     ----------
     beta0_ratio: float
         Desired ratio between data misfit and model objective function at initial beta iteration.
-    seed : {None, int, array_like[ints], SeedSequence, BitGenerator, Generator}, optional
+    seed : {None, RandomSeed}, optional
         Random seed used for random sampling. It can either be an int,
         a predefined Numpy random number generator, or any valid input to
         ``numpy.random.default_rng``.
@@ -456,9 +457,7 @@ class BetaEstimateMaxDerivative(BaseBetaEstimator):
 
     """
 
-    def __init__(
-        self, beta0_ratio=1.0, seed: int | np.random.Generator | None = None, **kwargs
-    ):
+    def __init__(self, beta0_ratio=1.0, seed: RandomSeed | None = None, **kwargs):
         super().__init__(beta0_ratio, seed, **kwargs)
 
     def initialize(self):
@@ -497,7 +496,7 @@ class BetaEstimate_ByEig(BaseBetaEstimator):
         Desired ratio between data misfit and model objective function at initial beta iteration.
     n_pw_iter : int
         Number of power iterations used to estimate largest eigenvalues.
-    seed : {None, int, array_like[ints], SeedSequence, BitGenerator, Generator}, optional
+    seed : {None, RandomSeed}, optional
         Random seed used for random sampling. It can either be an int,
         a predefined Numpy random number generator, or any valid input to
         ``numpy.random.default_rng``.
@@ -533,7 +532,7 @@ class BetaEstimate_ByEig(BaseBetaEstimator):
         self,
         beta0_ratio=1.0,
         n_pw_iter=4,
-        seed: int | np.random.Generator | None = None,
+        seed: RandomSeed | None = None,
         **kwargs,
     ):
         super().__init__(beta0_ratio, seed, **kwargs)
@@ -660,7 +659,7 @@ class AlphasSmoothEstimate_ByEig(InversionDirective):
         self,
         alpha0_ratio=1.0,
         n_pw_iter=4,
-        seed: int | np.random.Generator | None = None,
+        seed: RandomSeed | None = None,
         **kwargs,
     ):
         super().__init__(**kwargs)
@@ -793,7 +792,7 @@ class ScalingMultipleDataMisfits_ByEig(InversionDirective):
         self,
         chi0_ratio=None,
         n_pw_iter=4,
-        seed: int | np.random.Generator | None = None,
+        seed: RandomSeed | None = None,
         **kwargs,
     ):
         super().__init__(**kwargs)

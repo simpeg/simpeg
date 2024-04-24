@@ -1,6 +1,7 @@
 from __future__ import annotations  # needed to use type operands in Python 3.8
 import numpy as np
 from .code_utils import deprecate_function
+from ..typing import RandomSeed
 from discretize.utils import (  # noqa: F401
     Zero,
     Identity,
@@ -134,7 +135,7 @@ def eigenvalue_by_power_iteration(
     model,
     n_pw_iter=4,
     fields_list=None,
-    seed: int | np.random.Generator | None = None,
+    seed: RandomSeed | None = None,
 ):
     r"""Estimate largest eigenvalue in absolute value using power iteration.
 
@@ -155,7 +156,7 @@ def eigenvalue_by_power_iteration(
         they will be evaluated within the function. If combo_objfct mixs data misfit and regularization
         terms, the list should contains SimPEG.fields for the data misfit terms and None for the
         regularization term.
-    seed : {None, int, array_like[ints], SeedSequence, BitGenerator, Generator}, optional
+    seed : {None, RandomSeed}, optional
         Random seed for the initial random guess of eigenvector. It can either
         be an int, a predefined Numpy random number generator, or any valid
         input to ``numpy.random.default_rng``.

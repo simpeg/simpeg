@@ -13,6 +13,7 @@ from discretize import TensorMesh
 from discretize.utils import unpack_widths, sdiag
 
 from . import props
+from .typing import RandomSeed
 from .data import SyntheticData, Data
 from .survey import BaseSurvey
 from .utils import (
@@ -466,7 +467,7 @@ class BaseSimulation(props.HasModel):
         noise_floor=0.0,
         f=None,
         add_noise=False,
-        random_seed: int | np.random.Generator | None = None,
+        random_seed: RandomSeed | None = None,
         **kwargs,
     ):
         r"""Make synthetic data for the model and Gaussian noise provided.
@@ -491,7 +492,7 @@ class BaseSimulation(props.HasModel):
             forward problem to obtain noiseless data.
         add_noise : bool
             Whether to add gaussian noise to the synthetic data or not.
-        random_seed : {None, int, array_like[ints], SeedSequence, BitGenerator, Generator}, optional
+        random_seed : {None, RandomSeed}, optional
             Random seed used for random sampling. It can either be an int or
             a predefined Numpy random number generator (see
             ``numpy.random.default_rng``).
