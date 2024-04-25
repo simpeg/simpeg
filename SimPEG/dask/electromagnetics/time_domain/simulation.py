@@ -280,7 +280,7 @@ def delayed_block_deriv(
                 j_update += sp.csr_matrix((arrays[0].shape[0], shape), dtype=np.float32)
                 continue
 
-            projection = sp.kron(timeP[:, time_index], spatialP)
+            projection = sp.kron(timeP[:, time_index], spatialP, format="csr")
             cur = derivative_fun(
                 time_index,
                 source,
@@ -288,10 +288,6 @@ def delayed_block_deriv(
                 projection.T,
                 adjoint=True,
             )
-
-            derivatives = cur[0]
-            if isinstance(derivatives, sp.coo_array):
-                derivatives = derivatives.tocsr()
 
             time_derivs.append(cur[0][:, arrays[0]])
 
