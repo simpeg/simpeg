@@ -358,8 +358,6 @@ def convert_survey_3d_to_2d_lines(
         Defines the corresponding line ID for each datum
     data_type : {'volt', 'apparent_resistivity', 'apparent_conductivity', 'apparent_chargeability'}
         Data type for the survey.
-        It can be one of: 'volt', 'apparent_resistivity',
-        'apparent_conductivity', and 'apparent_chargeability'.
     output_indexing : bool, default=``False``, optional
         If ``True`` output a list of indexing arrays that map from the original 3D
         data to each 2D survey line.
