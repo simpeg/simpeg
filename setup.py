@@ -30,6 +30,7 @@ with open("README.rst") as f:
 setup(
     name="simpeg",
     packages=find_packages(exclude=["tests*", "examples*", "tutorials*"]),
+    py_modules=["SimPEG"],
     python_requires=">=3.8",
     setup_requires=[
         "setuptools_scm",
