@@ -5,7 +5,7 @@ from scipy.constants import epsilon_0
 
 import geoana
 import discretize
-from SimPEG.electromagnetics import frequency_domain as fdem
+from simpeg.electromagnetics import frequency_domain as fdem
 from pymatsolver import Pardiso
 
 

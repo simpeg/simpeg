@@ -2,7 +2,7 @@
 Forward Simulation of Gravity Anomaly Data on a Tensor Mesh
 ===========================================================
 
-Here we use the module *SimPEG.potential_fields.gravity* to predict gravity
+Here we use the module *simpeg.potential_fields.gravity* to predict gravity
 anomaly data for a synthetic density contrast model. The simulation is
 carried out on a tensor mesh. For this tutorial, we focus on the following:
 
@@ -28,9 +28,9 @@ import os
 from discretize import TensorMesh
 from discretize.utils import mkvc, active_from_xyz
 
-from SimPEG.utils import plot2Ddata, model_builder
-from SimPEG import maps
-from SimPEG.potential_fields import gravity
+from simpeg.utils import plot2Ddata, model_builder
+from simpeg import maps
+from simpeg.potential_fields import gravity
 
 save_output = False
 

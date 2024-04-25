@@ -36,9 +36,9 @@ import tarfile
 
 from discretize import TensorMesh
 from discretize.utils import active_from_xyz
-from SimPEG.utils import plot2Ddata
-from SimPEG.potential_fields import gravity, magnetics
-from SimPEG import (
+from simpeg.utils import plot2Ddata
+from simpeg.potential_fields import gravity, magnetics
+from simpeg import (
     maps,
     data,
     data_misfit,

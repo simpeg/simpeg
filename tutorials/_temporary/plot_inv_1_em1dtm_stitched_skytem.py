@@ -20,8 +20,8 @@ from matplotlib import pyplot as plt
 from discretize import TensorMesh
 from pymatsolver import PardisoSolver
 
-from SimPEG.utils import mkvc
-from SimPEG import (
+from simpeg.utils import mkvc
+from simpeg import (
     maps,
     data,
     data_misfit,
@@ -33,12 +33,12 @@ from SimPEG import (
     utils,
 )
 
-import SimPEG.electromagnetics.time_domain_1d as em1d
-from SimPEG.electromagnetics.utils.em1d_utils import (
+import simpeg.electromagnetics.time_domain_1d as em1d
+from simpeg.electromagnetics.utils.em1d_utils import (
     get_2d_mesh,
     get_vertical_discretization_time,
 )
-from SimPEG.electromagnetics.time_domain_1d.known_waveforms import (
+from simpeg.electromagnetics.time_domain_1d.known_waveforms import (
     skytem_HM_2015,
     skytem_LM_2015,
 )
@@ -455,7 +455,7 @@ for mod in models_list:
     ax2 = fig.add_axes([0.85, 0.12, 0.05, 0.78])
     norm = mpl.colors.Normalize(
         vmin=np.log10(true_model.min()),
-        vmax=np.log10(true_model.max())
+        vmax=np.log10(true_model.max()),
         #        vmin=np.log10(0.1), vmax=np.log10(1)
     )
     cbar = mpl.colorbar.ColorbarBase(

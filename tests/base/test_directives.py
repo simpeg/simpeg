@@ -3,7 +3,7 @@ import pytest
 import numpy as np
 
 import discretize
-from SimPEG import (
+from simpeg import (
     maps,
     directives,
     regularization,
@@ -13,7 +13,7 @@ from SimPEG import (
     inverse_problem,
     simulation,
 )
-from SimPEG.potential_fields import magnetics as mag
+from simpeg.potential_fields import magnetics as mag
 import shutil
 
 

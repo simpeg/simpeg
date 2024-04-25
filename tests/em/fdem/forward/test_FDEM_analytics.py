@@ -5,9 +5,9 @@ import matplotlib.pylab as plt
 import numpy as np
 import scipy.sparse as sp
 from scipy.constants import mu_0
-from SimPEG import SolverLU, utils
-from SimPEG.electromagnetics import analytics
-from SimPEG.electromagnetics import frequency_domain as fdem
+from simpeg import SolverLU, utils
+from simpeg.electromagnetics import analytics
+from simpeg.electromagnetics import frequency_domain as fdem
 
 # import matplotlib
 # matplotlib.use('Agg')

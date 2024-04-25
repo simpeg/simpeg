@@ -5,7 +5,7 @@ import numpy as np
 import scipy.sparse as sp
 from discretize.tests import check_derivative
 from numpy.testing import assert_array_almost_equal
-from SimPEG.electromagnetics.time_domain.sources import (
+from simpeg.electromagnetics.time_domain.sources import (
     CircularLoop,
     ExponentialWaveform,
     HalfSineWaveform,

@@ -1,8 +1,8 @@
 import pytest
 import discretize
-import SimPEG
-from SimPEG import maps
-from SimPEG.potential_fields import gravity
+import simpeg
+from simpeg import maps
+from simpeg.potential_fields import gravity
 from geoana.gravity import Prism
 import numpy as np
 
@@ -404,8 +404,8 @@ class TestsGravitySimulation:
         """
         Check if error is raised when choclo is missing and chosen as engine.
         """
-        # Monkeypatch choclo in SimPEG.potential_fields.base
-        monkeypatch.setattr(SimPEG.potential_fields.gravity.simulation, "choclo", None)
+        # Monkeypatch choclo in simpeg.potential_fields.base
+        monkeypatch.setattr(simpeg.potential_fields.gravity.simulation, "choclo", None)
         # Check if error is raised
         msg = "The choclo package couldn't be found."
         with pytest.raises(ImportError, match=msg):

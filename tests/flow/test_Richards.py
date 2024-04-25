@@ -4,14 +4,14 @@ import numpy as np
 from discretize.tests import check_derivative
 import discretize
 
-from SimPEG import maps
-from SimPEG import utils
-from SimPEG.flow import richards
+from simpeg import maps
+from simpeg import utils
+from simpeg.flow import richards
 
 try:
     from pymatsolver import Pardiso as Solver
 except Exception:
-    from SimPEG import Solver
+    from simpeg import Solver
 
 
 TOL = 1e-8
