@@ -1,6 +1,6 @@
 from __future__ import annotations
 from ...survey import BaseSrc
-from SimPEG.utils.mat_utils import dip_azimuth2cartesian
+from ...utils.mat_utils import dip_azimuth2cartesian
 from ...utils.code_utils import deprecate_class, validate_float, validate_list_of_types
 
 from .receivers import Point
