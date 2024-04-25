@@ -236,13 +236,13 @@ class DCUtilsTests_survey_from_ABMN(unittest.TestCase):
         # list for the whole survey.
         source_list = []
         lineID = []
-        for i in range(len(end_locations)):
-            for ii in range(len(survey_type)):
+        for end_location in end_locations:
+            for survey_type_i in survey_type:
                 source_list += utils.generate_dcip_sources_line(
-                    survey_type[ii],
+                    survey_type_i,
                     data_type,
                     dimension_type,
-                    end_locations[i],
+                    end_location,
                     0.0,
                     num_rx_per_src,
                     station_separation,
