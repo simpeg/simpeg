@@ -68,7 +68,7 @@ def get_parallel_blocks(source_list: list, m_size: int, max_chunk_size: int) -> 
                 if (row_count + chunk_size) > (data_block_size * cpu_count()):
                     row_count = 0
                     block_count += 1
-                    blocks.append = []
+                    blocks.append([])
 
                 blocks[block_count].append(
                     (
