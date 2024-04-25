@@ -356,7 +356,7 @@ def convert_survey_3d_to_2d_lines(
         A DC (or IP) survey
     lineID : (n_data) numpy.ndarray
         Defines the corresponding line ID for each datum
-    data_type : str, optional
+    data_type : {'volt', 'apparent_resistivity', 'apparent_conductivity', 'apparent_chargeability'}
         Data type for the survey.
         It can be one of: 'volt', 'apparent_resistivity',
         'apparent_conductivity', and 'apparent_chargeability'.
