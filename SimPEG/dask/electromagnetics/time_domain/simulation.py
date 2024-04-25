@@ -288,6 +288,11 @@ def delayed_block_deriv(
                 projection.T,
                 adjoint=True,
             )
+
+            derivatives = cur[0]
+            if isinstance(derivatives, sp.coo_array):
+                derivatives = derivatives.tocsr()
+
             time_derivs.append(cur[0][:, arrays[0]])
 
             if not isinstance(cur[1], Zero):
