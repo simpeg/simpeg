@@ -2,7 +2,7 @@ from discretize.tests import assert_expected_order, check_derivative
 from discretize.utils import example_simplex_mesh
 import discretize
 import numpy as np
-from SimPEG.regularization import SmoothnessFullGradient
+from simpeg.regularization import SmoothnessFullGradient
 import pytest
 
 

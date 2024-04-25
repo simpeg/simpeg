@@ -20,7 +20,7 @@ This example was updated for SimPEG 0.14.0 on January 31st, 2020 by Joseph Capri
 """
 
 import discretize
-from SimPEG import (
+from simpeg import (
     maps,
     utils,
     data_misfit,
@@ -31,14 +31,14 @@ from SimPEG import (
     directives,
 )
 import numpy as np
-from SimPEG.electromagnetics import frequency_domain as FDEM, time_domain as TDEM, mu_0
+from simpeg.electromagnetics import frequency_domain as FDEM, time_domain as TDEM, mu_0
 import matplotlib.pyplot as plt
 import matplotlib
 
 try:
     from pymatsolver import Pardiso as Solver
 except ImportError:
-    from SimPEG import SolverLU as Solver
+    from simpeg import SolverLU as Solver
 
 
 def run(plotIt=True, saveFig=False):

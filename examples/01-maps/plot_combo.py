@@ -7,9 +7,9 @@ but we want to map this to a 2D discretization to do our forward
 modeling. We will also assume that we are working in log conductivity
 still, so after the transformation we map to conductivity space.
 To do this we will introduce the vertical 1D map
-(:class:`SimPEG.maps.SurjectVertical1D`), which does the first part of
+(:class:`simpeg.maps.SurjectVertical1D`), which does the first part of
 what we just described. The second part will be done by the
-:class:`SimPEG.maps.ExpMap` described above.
+:class:`simpeg.maps.ExpMap` described above.
 
 .. code-block:: python
     :linenos:
@@ -28,7 +28,7 @@ always run the test on the mapping that you create.
 """
 
 import discretize
-from SimPEG import maps
+from simpeg import maps
 import numpy as np
 import matplotlib.pyplot as plt
 

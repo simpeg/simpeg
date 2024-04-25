@@ -46,7 +46,7 @@ We have deprecated the `Tikhonov` and `Simple` regularizers as it was confusing 
 average user to choose one or the other. They were actually doing very much the same
 thing, unintentionally, just with slightly different ways of setting parameters for the
 weighting of the different regularization components. These have now been changed into
-a single ``SimPEG.regularization.WeightedLeastSquares`` class.
+a single ``simpeg.regularization.WeightedLeastSquares`` class.
 
 As a part of this, we have also overhauled the internal workings of regularizations to
 give a more intuitive user experience to setting different weights for the model

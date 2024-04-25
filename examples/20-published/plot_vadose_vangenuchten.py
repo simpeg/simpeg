@@ -14,7 +14,7 @@ soils, Van Genuchten, M Th, Leij, F J, Yates, S R
 import matplotlib.pyplot as plt
 
 import discretize
-from SimPEG.flow import richards
+from simpeg.flow import richards
 
 
 def run(plotIt=True):

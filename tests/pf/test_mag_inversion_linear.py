@@ -1,7 +1,7 @@
 import unittest
 import discretize
 from discretize.utils import active_from_xyz
-from SimPEG import (
+from simpeg import (
     utils,
     maps,
     regularization,
@@ -13,8 +13,8 @@ from SimPEG import (
 )
 import numpy as np
 
-# import SimPEG.PF as PF
-from SimPEG.potential_fields import magnetics as mag
+# import simpeg.PF as PF
+from simpeg.potential_fields import magnetics as mag
 import shutil
 
 

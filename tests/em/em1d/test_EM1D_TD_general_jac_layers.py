@@ -1,8 +1,8 @@
 import unittest
-from SimPEG import maps
+from simpeg import maps
 from discretize import tests
 import numpy as np
-import SimPEG.electromagnetics.time_domain as tdem
+import simpeg.electromagnetics.time_domain as tdem
 
 
 class EM1D_TD_general_Jac_layers_ProblemTests(unittest.TestCase):

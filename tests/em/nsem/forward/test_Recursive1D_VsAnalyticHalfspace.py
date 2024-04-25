@@ -1,6 +1,6 @@
 import unittest
-from SimPEG.electromagnetics import natural_source as nsem
-from SimPEG import maps
+from simpeg.electromagnetics import natural_source as nsem
+from simpeg import maps
 import numpy as np
 from scipy.constants import mu_0
 

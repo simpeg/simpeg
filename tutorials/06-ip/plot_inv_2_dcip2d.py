@@ -35,8 +35,8 @@ import tarfile
 from discretize import TreeMesh
 from discretize.utils import mkvc, active_from_xyz
 
-from SimPEG.utils import model_builder
-from SimPEG import (
+from simpeg.utils import model_builder
+from simpeg import (
     maps,
     data_misfit,
     regularization,
@@ -46,18 +46,18 @@ from SimPEG import (
     directives,
     utils,
 )
-from SimPEG.electromagnetics.static import resistivity as dc
-from SimPEG.electromagnetics.static import induced_polarization as ip
-from SimPEG.electromagnetics.static.utils.static_utils import (
+from simpeg.electromagnetics.static import resistivity as dc
+from simpeg.electromagnetics.static import induced_polarization as ip
+from simpeg.electromagnetics.static.utils.static_utils import (
     apparent_resistivity_from_voltage,
     plot_pseudosection,
 )
-from SimPEG.utils.io_utils.io_utils_electromagnetics import read_dcip2d_ubc
+from simpeg.utils.io_utils.io_utils_electromagnetics import read_dcip2d_ubc
 
 try:
     from pymatsolver import Pardiso as Solver
 except ImportError:
-    from SimPEG import SolverLU as Solver
+    from simpeg import SolverLU as Solver
 
 mpl.rcParams.update({"font.size": 16})
 # sphinx_gallery_thumbnail_number = 7

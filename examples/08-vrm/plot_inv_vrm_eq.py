@@ -16,10 +16,10 @@ the same as in the forward modeling example. To remove the VRM signal we:
 # --------------
 #
 
-from SimPEG.electromagnetics import viscous_remanent_magnetization as VRM
+from simpeg.electromagnetics import viscous_remanent_magnetization as VRM
 import numpy as np
 import discretize
-from SimPEG import (
+from simpeg import (
     utils,
     maps,
     data_misfit,

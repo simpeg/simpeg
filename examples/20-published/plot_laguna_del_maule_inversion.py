@@ -15,8 +15,8 @@ Craig Miller
 import os
 import shutil
 import tarfile
-from SimPEG.potential_fields import gravity
-from SimPEG import (
+from simpeg.potential_fields import gravity
+from simpeg import (
     data_misfit,
     maps,
     regularization,
@@ -25,11 +25,11 @@ from SimPEG import (
     directives,
     inversion,
 )
-from SimPEG.utils import download, plot2Ddata
+from simpeg.utils import download, plot2Ddata
 
 import matplotlib.pyplot as plt
 import numpy as np
-from SimPEG.utils.drivers.gravity_driver import GravityDriver_Inv
+from simpeg.utils.drivers.gravity_driver import GravityDriver_Inv
 
 
 def run(plotIt=True, cleanAfterRun=True):

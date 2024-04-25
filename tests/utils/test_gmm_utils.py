@@ -1,8 +1,8 @@
 import numpy as np
 import unittest
 import discretize
-from SimPEG.maps import Wires
-from SimPEG.utils import (
+from simpeg.maps import Wires
+from simpeg.utils import (
     mkvc,
     WeightedGaussianMixture,
     GaussianMixtureWithPrior,
