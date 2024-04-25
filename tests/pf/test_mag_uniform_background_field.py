@@ -37,7 +37,7 @@ def test_invalid_receiver_type(receiver_as_list):
         receiver_list = [receiver_valid, receiver_invalid]
     else:
         receiver_list = receiver_invalid
-    msg = f"Invalid receiver of type '{type(receiver_invalid)}' found in receiver_list."
+    msg = f"'receiver_list' must be a list of {Point}"
     with pytest.raises(TypeError, match=msg):
         UniformBackgroundField(
             receiver_list=receiver_list,

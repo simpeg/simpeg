@@ -1,8 +1,7 @@
 from __future__ import annotations
-from collections.abc import Iterable
 from ...survey import BaseSrc
 from SimPEG.utils.mat_utils import dip_azimuth2cartesian
-from SimPEG.utils.code_utils import deprecate_class, validate_float
+from ...utils.code_utils import deprecate_class, validate_float, validate_list_of_types
 
 from .receivers import Point
 
@@ -33,17 +32,28 @@ class UniformBackgroundField(BaseSrc):
         inclination: float,
         declination: float,
     ):
-        if receiver_list is not None:
-            if isinstance(receiver_list, Iterable):
-                for receiver in receiver_list:
-                    self._check_valid_receiver(receiver)
-            else:
-                self._check_valid_receiver(receiver_list)
-
         self.amplitude = amplitude
         self.inclination = inclination
         self.declination = declination
         super().__init__(receiver_list=receiver_list)
+
+    @property
+    def receiver_list(self):
+        """
+        List of receivers associated with the survey.
+
+        Returns
+        -------
+        list of SimPEG.potential_fields.magnetics.Point
+            List of magnetic receivers associated with the survey
+        """
+        return self._receiver_list
+
+    @receiver_list.setter
+    def receiver_list(self, value):
+        self._receiver_list = validate_list_of_types(
+            "receiver_list", value, Point, ensure_unique=True
+        )
 
     @property
     def amplitude(self):
@@ -98,23 +108,6 @@ class UniformBackgroundField(BaseSrc):
             self.amplitude
             * dip_azimuth2cartesian(self.inclination, self.declination).squeeze()
         )
-
-    def _check_valid_receiver(self, receiver):
-        """
-        Check if a given receiver is of a valid type
-
-        Raises
-        ------
-        TypeError:
-            If the receiver is not a `SimPEG.potential_fields.magnetics.Point`.
-        """
-        if not isinstance(receiver, Point):
-            msg = (
-                f"Invalid receiver of type '{type(receiver)}' found in "
-                "receiver_list. Receivers should be "
-                "'SimPEG.potential_fields.magnetics.Point'."
-            )
-            raise TypeError(msg)
 
 
 @deprecate_class(removal_version="0.19.0", error=True)
