@@ -1,4 +1,5 @@
 from __future__ import annotations
+from collections.abc import Iterable
 from ...survey import BaseSrc
 from SimPEG.utils.mat_utils import dip_azimuth2cartesian
 from SimPEG.utils.code_utils import deprecate_class, validate_float
@@ -14,7 +15,7 @@ class UniformBackgroundField(BaseSrc):
 
     Parameters
     ----------
-    receiver_list : list of SimPEG.potential_fields.magnetics.Point or None
+    receiver_list : SimPEG.potential_fields.magnetics.Point, list of SimPEG.potential_fields.magnetics.Point or None
         Point magnetic receivers.
     amplitude : float
         Amplitude of the inducing background field, usually this is in
@@ -27,20 +28,17 @@ class UniformBackgroundField(BaseSrc):
 
     def __init__(
         self,
-        receiver_list: list[Point] | None,
+        receiver_list: Point | list[Point] | None,
         amplitude: float,
         inclination: float,
         declination: float,
     ):
         if receiver_list is not None:
-            for receiver in receiver_list:
-                if not isinstance(receiver, Point):
-                    msg = (
-                        f"Invalid receiver of type '{type(receiver)}' found in "
-                        "receiver_list. Receivers should be "
-                        "'SimPEG.potential_fields.magnetics.Point'."
-                    )
-                    raise TypeError(msg)
+            if isinstance(receiver_list, Iterable):
+                for receiver in receiver_list:
+                    self._check_valid_receiver(receiver)
+            else:
+                self._check_valid_receiver(receiver_list)
 
         self.amplitude = amplitude
         self.inclination = inclination
@@ -100,6 +98,23 @@ class UniformBackgroundField(BaseSrc):
             self.amplitude
             * dip_azimuth2cartesian(self.inclination, self.declination).squeeze()
         )
+
+    def _check_valid_receiver(self, receiver):
+        """
+        Check if a given receiver is of a valid type
+
+        Raises
+        ------
+        TypeError:
+            If the receiver is not a `SimPEG.potential_fields.magnetics.Point`.
+        """
+        if not isinstance(receiver, Point):
+            msg = (
+                f"Invalid receiver of type '{type(receiver)}' found in "
+                "receiver_list. Receivers should be "
+                "'SimPEG.potential_fields.magnetics.Point'."
+            )
+            raise TypeError(msg)
 
 
 @deprecate_class(removal_version="0.19.0", error=True)
