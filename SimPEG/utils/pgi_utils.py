@@ -1560,7 +1560,7 @@ class GaussianMixtureWithNonlinearRelationshipsWithPrior(GaussianMixtureWithPrio
             warm_start=warm_start,
             weights_init=weights_init,
             update_covariances=update_covariances,
-            fixed_membership=fixed_membership
+            fixed_membership=fixed_membership,
             # **kwargs
         )
 

@@ -20,6 +20,7 @@ Receivers, Sources, and Surveys
 The ``induced_polarization`` module makes use of receivers, sources, and surveys
 defined in the ``SimPEG.electromagnetics.static.resistivity`` module.
 """
+
 from .simulation import (
     Simulation3DCellCentered,
     Simulation3DNodal,

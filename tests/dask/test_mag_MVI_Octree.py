@@ -118,16 +118,16 @@ class MVIProblemTest(unittest.TestCase):
         # Create three regularization for the different components
         # of magnetization
         reg_p = regularization.Sparse(mesh, active_cells=actv, mapping=wires.p)
-        reg_p.mref = np.zeros(3 * nC)
+        reg_p.reference_model = np.zeros(3 * nC)
 
         reg_s = regularization.Sparse(mesh, active_cells=actv, mapping=wires.s)
-        reg_s.mref = np.zeros(3 * nC)
+        reg_s.reference_model = np.zeros(3 * nC)
 
         reg_t = regularization.Sparse(mesh, active_cells=actv, mapping=wires.t)
-        reg_t.mref = np.zeros(3 * nC)
+        reg_t.reference_model = np.zeros(3 * nC)
 
         reg = reg_p + reg_s + reg_t
-        reg.mref = np.zeros(3 * nC)
+        reg.reference_model = np.zeros(3 * nC)
 
         # Data misfit function
         dmis = data_misfit.L2DataMisfit(simulation=sim, data=data)
@@ -173,7 +173,7 @@ class MVIProblemTest(unittest.TestCase):
         # Regularize the amplitude of the vectors
         reg_a = regularization.Sparse(mesh, active_cells=actv, mapping=wires.amp)
         reg_a.norms = [0.0, 0.0, 0.0, 0.0]  # Sparse on the model and its gradients
-        reg_a.mref = np.zeros(3 * nC)
+        reg_a.reference_model = np.zeros(3 * nC)
 
         # Regularize the vertical angle of the vectors
         reg_t = regularization.Sparse(mesh, active_cells=actv, mapping=wires.theta)
@@ -188,7 +188,7 @@ class MVIProblemTest(unittest.TestCase):
         reg_p.norms = [2.0, 0.0, 0.0, 0.0]  # Only norm on gradients used
 
         reg = reg_a + reg_t + reg_p
-        reg.mref = np.zeros(3 * nC)
+        reg.reference_model = np.zeros(3 * nC)
 
         Lbound = np.kron(np.asarray([0, -np.inf, -np.inf]), np.ones(nC))
         Ubound = np.kron(np.asarray([10, np.inf, np.inf]), np.ones(nC))

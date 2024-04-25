@@ -44,6 +44,7 @@ If you would use this example for a code comparison, or build upon it,
 a citation would be much appreciated!
 
 """
+
 import matplotlib.pylab as plt
 import numpy as np
 import discretize

@@ -16,7 +16,6 @@ least-squares approach. For this tutorial, we focus on the following:
 
 """
 
-
 import numpy as np
 import matplotlib.pyplot as plt
 

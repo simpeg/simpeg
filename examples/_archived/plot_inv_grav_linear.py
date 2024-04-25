@@ -6,6 +6,7 @@ Create a synthetic block model and invert
 with a compact norm
 
 """
+
 import numpy as np
 import matplotlib.pyplot as plt
 
