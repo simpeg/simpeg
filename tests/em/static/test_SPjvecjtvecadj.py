@@ -121,7 +121,7 @@ def test_clears():
 
 # test deprications
 def test_deprications():
-    with pytest.warns():
+    with pytest.warns(FutureWarning):
         import simpeg.electromagnetics.static.spontaneous_potential as sp2
     dirsp = [d for d in dir(sp) if not d.startswith("_")]
     assert np.all([d in dir(sp2) for d in dirsp])
