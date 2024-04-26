@@ -1,7 +1,7 @@
 import numpy as np
-from SimPEG.electromagnetics.static.resistivity import receivers
-from SimPEG import survey
-from SimPEG.utils import validate_list_of_types
+from simpeg.electromagnetics.static.resistivity import receivers
+from simpeg import survey
+from simpeg.utils import validate_list_of_types
 
 
 class StreamingCurrents(survey.BaseSrc):

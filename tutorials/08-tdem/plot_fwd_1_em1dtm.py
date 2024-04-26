@@ -2,7 +2,7 @@
 1D Forward Simulation for a Single Sounding
 ===========================================
 
-Here we use the module *SimPEG.electromangetics.time_domain_1d* to predict
+Here we use the module *simpeg.electromangetics.time_domain_1d* to predict
 the stepoff response for a single sounding over a 1D layered Earth.
 In this tutorial, we focus on the following:
 
@@ -26,9 +26,9 @@ import numpy as np
 import os
 from matplotlib import pyplot as plt
 
-from SimPEG import maps
-import SimPEG.electromagnetics.time_domain as tdem
-from SimPEG.utils import plot_1d_layer_model
+from simpeg import maps
+import simpeg.electromagnetics.time_domain as tdem
+from simpeg.utils import plot_1d_layer_model
 
 write_output = False
 plt.rcParams.update({"font.size": 16})
@@ -131,7 +131,7 @@ plt.gca().invert_yaxis()
 # The simulation requires the user define the survey, the layer thicknesses
 # and a mapping from the model to the conductivities of the layers.
 #
-# When using the *SimPEG.electromagnetics.time_domain_1d* module,
+# When using the *simpeg.electromagnetics.time_domain_1d* module,
 # predicted data are organized by source, then by receiver, then by time channel.
 #
 

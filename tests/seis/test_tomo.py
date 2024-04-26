@@ -2,8 +2,8 @@ import numpy as np
 import unittest
 
 import discretize
-from SimPEG.seismic import straight_ray_tomography as tomo
-from SimPEG import tests, maps, utils
+from simpeg.seismic import straight_ray_tomography as tomo
+from simpeg import tests, maps, utils
 
 TOL = 1e-5
 FLR = 1e-14

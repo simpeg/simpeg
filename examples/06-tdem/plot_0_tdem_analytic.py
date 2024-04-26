@@ -2,7 +2,7 @@
 Simulation with Analytic TDEM Solutions
 =======================================
 
-Here, the module *SimPEG.electromagnetics.analytics.TDEM* is used to simulate
+Here, the module *simpeg.electromagnetics.analytics.TDEM* is used to simulate
 transient electric and magnetic field for both electric and magnetic dipole
 sources in a wholespace.
 
@@ -15,8 +15,8 @@ sources in a wholespace.
 #
 
 import numpy as np
-from SimPEG import utils
-from SimPEG.electromagnetics.analytics.TDEM import (
+from simpeg import utils
+from simpeg.electromagnetics.analytics.TDEM import (
     TransientElectricDipoleWholeSpace,
     TransientMagneticDipoleWholeSpace,
 )

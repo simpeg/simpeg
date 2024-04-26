@@ -2,7 +2,7 @@
 3D Forward Simulation on a Cylindrical Mesh
 ===========================================
 
-Here we use the module *SimPEG.electromagnetics.frequency_domain* to simulate the
+Here we use the module *simpeg.electromagnetics.frequency_domain* to simulate the
 FDEM response for a borehole survey using a cylindrical mesh and radially symmetric
 conductivity model. For this tutorial, we focus on the following:
 
@@ -27,8 +27,8 @@ sufficient accuracy.
 from discretize import CylindricalMesh
 from discretize.utils import mkvc
 
-from SimPEG import maps
-import SimPEG.electromagnetics.frequency_domain as fdem
+from simpeg import maps
+import simpeg.electromagnetics.frequency_domain as fdem
 
 import numpy as np
 import matplotlib as mpl
@@ -37,7 +37,7 @@ import matplotlib.pyplot as plt
 try:
     from pymatsolver import Pardiso as Solver
 except ImportError:
-    from SimPEG import SolverLU as Solver
+    from simpeg import SolverLU as Solver
 
 write_file = False
 

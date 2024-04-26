@@ -1,10 +1,10 @@
 import pytest
 import numpy as np
-import SimPEG.electromagnetics.static.self_potential as sp
-import SimPEG.electromagnetics.static.resistivity as dc
+import simpeg.electromagnetics.static.spontaneous_potential as sp
+import simpeg.electromagnetics.static.resistivity as dc
 import discretize
-from SimPEG import utils
-from SimPEG import maps
+from simpeg import utils
+from simpeg import maps
 from discretize.tests import check_derivative, assert_isadjoint
 
 
@@ -122,6 +122,6 @@ def test_clears():
 # test deprications
 def test_deprications():
     with pytest.warns():
-        import SimPEG.electromagnetics.static.spontaneous_potential as sp2
+        import simpeg.electromagnetics.static.spontaneous_potential as sp2
     dirsp = [d for d in dir(sp) if not d.startswith("_")]
     assert np.all([d in dir(sp2) for d in dirsp])

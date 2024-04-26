@@ -1,5 +1,5 @@
 name: Post-install/importing issue
-description: Report an issue if you have trouble importing SimPEG after installation.
+description: Report an issue if you have trouble importing `simpeg` after installation.
 title: "<Please write a comprehensive title here>"
 labels: [Installation]
 

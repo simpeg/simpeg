@@ -12,7 +12,7 @@ properties are linked by polynomial relationships that change between rock units
 import discretize as Mesh
 import matplotlib.pyplot as plt
 import numpy as np
-from SimPEG import (
+from simpeg import (
     data_misfit,
     directives,
     inverse_problem,

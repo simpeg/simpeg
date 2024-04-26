@@ -9,7 +9,7 @@ is zero, but have some on- and off-time.
 
 import numpy as np
 import discretize
-from SimPEG import (
+from simpeg import (
     maps,
     data_misfit,
     regularization,
@@ -19,14 +19,14 @@ from SimPEG import (
     directives,
     utils,
 )
-from SimPEG.electromagnetics import time_domain as TDEM, utils as EMutils
+from simpeg.electromagnetics import time_domain as TDEM, utils as EMutils
 import matplotlib.pyplot as plt
 from scipy.interpolate import interp1d
 
 try:
     from pymatsolver import Pardiso as Solver
 except ImportError:
-    from SimPEG import SolverLU as Solver
+    from simpeg import SolverLU as Solver
 
 
 def run(plotIt=True):

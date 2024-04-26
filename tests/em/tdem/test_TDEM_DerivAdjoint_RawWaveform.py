@@ -2,9 +2,9 @@ import unittest
 import numpy as np
 import time
 import discretize
-from SimPEG import maps, tests
-from SimPEG.electromagnetics import time_domain as tdem
-from SimPEG.electromagnetics import utils
+from simpeg import maps, tests
+from simpeg.electromagnetics import time_domain as tdem
+from simpeg.electromagnetics import utils
 from scipy.interpolate import interp1d
 from pymatsolver import Pardiso as Solver
 import pytest

@@ -1,5 +1,5 @@
 import unittest
-from SimPEG.utils.solver_utils import Solver, SolverLU, SolverCG, SolverBiCG, SolverDiag
+from simpeg.utils.solver_utils import Solver, SolverLU, SolverCG, SolverBiCG, SolverDiag
 import scipy.sparse as sp
 import numpy as np
 

@@ -20,9 +20,9 @@ But if you want share edges of the model, you can try:
 
 """
 
-from SimPEG.electromagnetics.static import resistivity as DC
-from SimPEG.electromagnetics.static.utils import generate_dcip_survey, genTopography
-from SimPEG import (
+from simpeg.electromagnetics.static import resistivity as DC
+from simpeg.electromagnetics.static.utils import generate_dcip_survey, genTopography
+from simpeg import (
     maps,
     utils,
     data_misfit,
@@ -41,7 +41,7 @@ from pylab import hist
 try:
     from pymatsolver import Pardiso as Solver
 except ImportError:
-    from SimPEG import SolverLU as Solver
+    from simpeg import SolverLU as Solver
 
 
 def run(plotIt=True, survey_type="dipole-dipole", p=0.0, qx=2.0, qz=2.0):

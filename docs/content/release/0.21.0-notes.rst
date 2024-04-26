@@ -19,9 +19,9 @@ Gravity simulation using Choclo
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Now we can use a faster and more memory efficient implementation of the gravity
-simulation ``SimPEG.potential_fields.gravity.Simulation3DIntegral``, making use
+simulation ``simpeg.potential_fields.gravity.Simulation3DIntegral``, making use
 of Choclo and Numba.  To make use of this functionality you will need to
-`install ``choclo`` <https://www.fatiando.org/choclo/latest/install.html>`__ in
+`install Choclo <https://www.fatiando.org/choclo/latest/install.html>`__ in
 addition to ``SimPEG``.
 
 See https://github.com/simpeg/simpeg/pull/1285.
@@ -29,15 +29,15 @@ See https://github.com/simpeg/simpeg/pull/1285.
 Use Dask with MetaSimulation
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-A new ``SimPEG.meta.DaskMetaSimulation`` class has been added that allows to
-use Dask with ``SimPEG.meta.MetaSimulations``.
+A new ``simpeg.meta.DaskMetaSimulation`` class has been added that allows to
+use Dask with ``simpeg.meta.MetaSimulations``.
 
 See https://github.com/simpeg/simpeg/pull/1199.
 
 Rotated Gradients
 ~~~~~~~~~~~~~~~~~
 
-Added a new ``SimPEG.regularization.SmoothnessFullGradient`` regularization
+Added a new ``simpeg.regularization.SmoothnessFullGradient`` regularization
 class that allows to regularize first order smoothness along any arbitrary
 direction, enabling anisotropic weighting. This regularization also works for
 a ``SimplexMesh``.
@@ -47,7 +47,7 @@ See https://github.com/simpeg/simpeg/pull/1167.
 Logistic Sigmoid Map
 ~~~~~~~~~~~~~~~~~~~~
 
-New ``SimPEG.map.LogisticSigmoidMap`` mapping class that computes the logistic
+New ``simpeg.map.LogisticSigmoidMap`` mapping class that computes the logistic
 sigmoid of the model parameters. This is an alternative method to incorporate
 upper and lower bounds on model parameters.
 
