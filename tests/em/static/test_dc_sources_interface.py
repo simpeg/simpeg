@@ -1,9 +1,10 @@
 """
 Test interface for some DC sources.
 """
+
 import pytest
 import numpy as np
-from SimPEG.electromagnetics.static import resistivity as dc
+from simpeg.electromagnetics.static import resistivity as dc
 
 
 class TestDipoleLocations:
