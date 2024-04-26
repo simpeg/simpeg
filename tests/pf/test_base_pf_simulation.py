@@ -1,6 +1,7 @@
 """
 Test BasePFSimulation class
 """
+
 import pytest
 import numpy as np
 from discretize import CylindricalMesh, TensorMesh, TreeMesh
