@@ -3,8 +3,8 @@ import unittest
 from scipy.constants import mu_0
 from discretize.tests import check_derivative
 
-from SimPEG.electromagnetics import natural_source as nsem
-from SimPEG import maps
+from simpeg.electromagnetics import natural_source as nsem
+from simpeg import maps
 from discretize import TensorMesh, TreeMesh, CylindricalMesh
 from pymatsolver import Pardiso
 

@@ -35,9 +35,9 @@ import tarfile
 from discretize import TreeMesh
 from discretize.utils import refine_tree_xyz, active_from_xyz
 
-from SimPEG.utils import model_builder
-from SimPEG.utils.io_utils.io_utils_electromagnetics import read_dcip_xyz
-from SimPEG import (
+from simpeg.utils import model_builder
+from simpeg.utils.io_utils.io_utils_electromagnetics import read_dcip_xyz
+from simpeg import (
     maps,
     data_misfit,
     regularization,
@@ -47,16 +47,16 @@ from SimPEG import (
     directives,
     utils,
 )
-from SimPEG.electromagnetics.static import resistivity as dc
-from SimPEG.electromagnetics.static import induced_polarization as ip
-from SimPEG.electromagnetics.static.utils.static_utils import (
+from simpeg.electromagnetics.static import resistivity as dc
+from simpeg.electromagnetics.static import induced_polarization as ip
+from simpeg.electromagnetics.static.utils.static_utils import (
     apparent_resistivity_from_voltage,
 )
 
 # To plot DC/IP data in 3D, the user must have the plotly package
 try:
     import plotly
-    from SimPEG.electromagnetics.static.utils.static_utils import plot_3d_pseudosection
+    from simpeg.electromagnetics.static.utils.static_utils import plot_3d_pseudosection
 
     has_plotly = True
 except ImportError:
@@ -66,7 +66,7 @@ except ImportError:
 try:
     from pymatsolver import Pardiso as Solver
 except ImportError:
-    from SimPEG import SolverLU as Solver
+    from simpeg import SolverLU as Solver
 
 mpl.rcParams.update({"font.size": 16})
 

@@ -1,10 +1,10 @@
 import pytest
 import numpy as np
-import SimPEG.electromagnetics.static.spontaneous_potential as sp
-import SimPEG.electromagnetics.static.resistivity as dc
+import simpeg.electromagnetics.static.spontaneous_potential as sp
+import simpeg.electromagnetics.static.resistivity as dc
 import discretize
-from SimPEG import utils
-from SimPEG import maps
+from simpeg import utils
+from simpeg import maps
 from discretize.tests import check_derivative, assert_isadjoint
 
 

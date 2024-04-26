@@ -1,0 +1,58 @@
+name : Reviewdog PR Annotations
+on: [pull_request_target]
+
+jobs:
+  flake8:
+    runs-on: ubuntu-latest
+    name: Flake8 check
+    steps:
+      - name: Checkout target repository source
+        uses: actions/checkout@v4
+
+      - name: Setup Python env
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies to run the flake8 checks
+        run: pip install -r requirements_style.txt
+
+      - name: checkout pull request source
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          path: pr_source
+
+      - name: flake8 review
+        uses: reviewdog/action-flake8@v3
+        with:
+          workdir: pr_source
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          reporter: github-pr-review
+
+  black:
+    name: Black check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout target repository source
+        uses: actions/checkout@v4
+
+      - name: Setup Python env
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies to run the black checks
+        run: pip install -r requirements_style.txt
+
+      - name: checkout pull request source
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          path: 'pr_source'
+
+      - uses: reviewdog/action-black@v3
+        with:
+          workdir: 'pr_source'
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          reporter: github-pr-review

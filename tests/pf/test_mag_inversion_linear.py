@@ -1,7 +1,7 @@
 import unittest
 import discretize
 from discretize.utils import active_from_xyz
-from SimPEG import (
+from simpeg import (
     utils,
     maps,
     regularization,
@@ -13,8 +13,8 @@ from SimPEG import (
 )
 import numpy as np
 
-# import SimPEG.PF as PF
-from SimPEG.potential_fields import magnetics as mag
+# import simpeg.PF as PF
+from simpeg.potential_fields import magnetics as mag
 import shutil
 
 
@@ -103,7 +103,7 @@ class MagInvLinProblemTest(unittest.TestCase):
         # Create a regularization
         reg = regularization.Sparse(self.mesh, active_cells=actv, mapping=idenMap)
         reg.norms = [0, 0, 0, 0]
-        reg.gradientType = "components"
+        reg.gradient_type = "components"
 
         # Data misfit function
         dmis = data_misfit.L2DataMisfit(simulation=sim, data=data)

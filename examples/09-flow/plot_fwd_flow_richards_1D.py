@@ -38,13 +38,14 @@ Rowan Cockett - 21/12/2016
 
 .. _Celia1990: http://www.webpages.uidaho.edu/ch/papers/Celia.pdf
 """
+
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 
 import discretize
-from SimPEG import maps
-from SimPEG.flow import richards
+from simpeg import maps
+from simpeg.flow import richards
 
 
 def run(plotIt=True):

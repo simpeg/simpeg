@@ -1,8 +1,8 @@
 import pytest
 import discretize
-import SimPEG
-from SimPEG import maps
-from SimPEG.potential_fields import gravity
+import simpeg
+from simpeg import maps
+from simpeg.potential_fields import gravity
 from geoana.gravity import Prism
 import numpy as np
 
@@ -360,12 +360,53 @@ class TestsGravitySimulation:
                 engine="choclo",
             )
 
+    def test_sensitivities_on_disk(self, simple_mesh, receivers_locations, tmp_path):
+        """
+        Test if sensitivity matrix is correctly being stored in disk when asked
+        """
+        # Build survey
+        receivers = gravity.Point(receivers_locations, components="gz")
+        sources = gravity.SourceField([receivers])
+        survey = gravity.Survey(sources)
+        # Build simulation
+        sensitivities_path = tmp_path / "sensitivities"
+        simulation = gravity.Simulation3DIntegral(
+            mesh=simple_mesh,
+            survey=survey,
+            store_sensitivities="disk",
+            sensitivity_path=str(sensitivities_path),
+            engine="choclo",
+        )
+        simulation.G
+        # Check if sensitivity matrix was stored in disk and is a memmap
+        assert sensitivities_path.is_file()
+        assert type(simulation.G) is np.memmap
+
+    def test_sensitivities_on_ram(self, simple_mesh, receivers_locations, tmp_path):
+        """
+        Test if sensitivity matrix is correctly being allocated in memory when asked
+        """
+        # Build survey
+        receivers = gravity.Point(receivers_locations, components="gz")
+        sources = gravity.SourceField([receivers])
+        survey = gravity.Survey(sources)
+        # Build simulation
+        simulation = gravity.Simulation3DIntegral(
+            mesh=simple_mesh,
+            survey=survey,
+            store_sensitivities="ram",
+            engine="choclo",
+        )
+        simulation.G
+        # Check if sensitivity matrix is a Numpy array (stored in memory)
+        assert type(simulation.G) is np.ndarray
+
     def test_choclo_missing(self, simple_mesh, monkeypatch):
         """
         Check if error is raised when choclo is missing and chosen as engine.
         """
-        # Monkeypatch choclo in SimPEG.potential_fields.base
-        monkeypatch.setattr(SimPEG.potential_fields.base, "choclo", None)
+        # Monkeypatch choclo in simpeg.potential_fields.base
+        monkeypatch.setattr(simpeg.potential_fields.base, "choclo", None)
         # Check if error is raised
         msg = "The choclo package couldn't be found."
         with pytest.raises(ImportError, match=msg):
@@ -396,3 +437,34 @@ class TestConversionFactor:
         component = "invalid-component"
         with pytest.raises(ValueError, match=f"Invalid component '{component}'"):
             gravity.simulation._get_conversion_factor(component)
+
+
+class TestInvalidMeshChoclo:
+    @pytest.fixture(params=("tensormesh", "treemesh"))
+    def mesh(self, request):
+        """Sample 2D mesh."""
+        hx, hy = [(0.1, 8)], [(0.1, 8)]
+        h = (hx, hy)
+        if request.param == "tensormesh":
+            mesh = discretize.TensorMesh(h, "CC")
+        else:
+            mesh = discretize.TreeMesh(h, origin="CC")
+            mesh.finalize()
+        return mesh
+
+    def test_invalid_mesh_with_choclo(self, mesh):
+        """
+        Test if simulation raises error when passing an invalid mesh and using choclo
+        """
+        # Build survey
+        receivers_locations = np.array([[0, 0, 0]])
+        receivers = gravity.Point(receivers_locations)
+        sources = gravity.SourceField([receivers])
+        survey = gravity.Survey(sources)
+        # Check if error is raised
+        msg = (
+            "Invalid mesh with 2 dimensions. "
+            "Only 3D meshes are supported when using 'choclo' as engine."
+        )
+        with pytest.raises(ValueError, match=msg):
+            gravity.Simulation3DIntegral(mesh, survey, engine="choclo")

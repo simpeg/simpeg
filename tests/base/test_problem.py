@@ -1,6 +1,6 @@
 import unittest
 import discretize
-from SimPEG import simulation
+from simpeg import simulation
 import numpy as np
 
 

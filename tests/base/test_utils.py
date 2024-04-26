@@ -4,7 +4,7 @@ import numpy as np
 import scipy.sparse as sp
 import os
 import shutil
-from SimPEG.utils import (
+from simpeg.utils import (
     sdiag,
     sub2ind,
     ndgrid,

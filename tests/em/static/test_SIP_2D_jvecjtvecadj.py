@@ -1,7 +1,7 @@
 import unittest
 import discretize
 
-from SimPEG import (
+from simpeg import (
     utils,
     maps,
     data_misfit,
@@ -12,12 +12,12 @@ from SimPEG import (
     tests,
 )
 import numpy as np
-from SimPEG.electromagnetics import spectral_induced_polarization as sip
+from simpeg.electromagnetics import spectral_induced_polarization as sip
 
 try:
     from pymatsolver import Pardiso as Solver
 except ImportError:
-    from SimPEG import SolverLU as Solver
+    from simpeg import SolverLU as Solver
 
 np.random.seed(38)
 

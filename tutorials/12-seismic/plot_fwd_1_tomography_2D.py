@@ -2,7 +2,7 @@
 Forward Simulation for Straight Ray Tomography in 2D
 ====================================================
 
-Here we module *SimPEG.seismic.straight_ray_tomography* to predict arrival
+Here we module *simpeg.seismic.straight_ray_tomography* to predict arrival
 time data for a synthetic velocity/slowness model. In this tutorial, we focus on the following:
 
     - How to define the survey
@@ -24,9 +24,9 @@ import matplotlib.pyplot as plt
 
 from discretize import TensorMesh
 
-from SimPEG import maps
-from SimPEG.seismic import straight_ray_tomography as tomo
-from SimPEG.utils import model_builder
+from simpeg import maps
+from simpeg.seismic import straight_ray_tomography as tomo
+from simpeg.utils import model_builder
 
 save_file = False
 
