@@ -538,9 +538,9 @@ def deprecate_class(
         if error:
             message = f"{my_name} has been removed, please use {parent_name}."
         elif removal_version is not None:
-            message += f" It will be removed in version {removal_version} of SimPEG."
+            message += f" It will be removed in version {removal_version} of simpeg."
         else:
-            message += " It will be removed in a future version of SimPEG."
+            message += " It will be removed in a future version of simpeg."
 
         # stash the original initialization of the class
         cls._old__init__ = cls.__init__
@@ -587,7 +587,7 @@ def deprecate_module(
     elif removal_version is not None:
         message += f" It will be removed in version {removal_version} of SimPEG"
     else:
-        message += " It will be removed in a future version of SimPEG."
+        message += " It will be removed in a future version of simpeg."
     message += " Please update your code accordingly."
     if future_warn:
         warnings.warn(message, FutureWarning, stacklevel=2)
@@ -634,9 +634,9 @@ def deprecate_property(
     if error:
         message = f"{old_name} has been removed, please use {new_name}."
     elif removal_version is not None:
-        message += f" It will be removed in version {removal_version} of SimPEG."
+        message += f" It will be removed in version {removal_version} of simpeg."
     else:
-        message += " It will be removed in a future version of SimPEG."
+        message += " It will be removed in a future version of simpeg."
 
     def get_dep(self):
         if future_warn:
@@ -693,9 +693,9 @@ def deprecate_method(
     if error:
         message = f"{old_name} has been removed, please use {new_name}."
     elif removal_version is not None:
-        message += f" It will be removed in version {removal_version} of SimPEG."
+        message += f" It will be removed in version {removal_version} of simpeg."
     else:
-        message += " It will be removed in a future version of SimPEG."
+        message += " It will be removed in a future version of simpeg."
 
     def new_method(*args, **kwargs):
         if future_warn:
@@ -747,9 +747,9 @@ def deprecate_function(
     if error:
         message = f"{old_name} has been removed, please use {new_name}."
     elif removal_version is not None:
-        message += f" It will be removed in version {removal_version} of SimPEG."
+        message += f" It will be removed in version {removal_version} of simpeg."
     else:
-        message += " It will be removed in a future version of SimPEG."
+        message += " It will be removed in a future version of simpeg."
 
     def dep_function(*args, **kwargs):
         if future_warn:
