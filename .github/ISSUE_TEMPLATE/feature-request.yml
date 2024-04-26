@@ -6,10 +6,11 @@ body:
 - type: markdown
   attributes:
     value: >
-      If you'd like to request a new feature in SimPEG, or suggest changes in the
-      functionality of certain functions, we recommend getting in touch with the
-      developers on [slack](https://slack.simpeg.xyz), in addition to opening an
-      issue or pull request here.
+      If you'd like to request a new feature in SimPEG, or suggest changes in
+      the functionality of certain functions, we recommend getting in touch
+      with the developers on
+      [Mattermost](https://mattermost.softwareunderground.org/simpeg), in
+      addition to opening an Issue or Pull Request here.
       You can also check out our
       [Contributor Guide](https://docs.simpeg.xyz/content/getting_started/contributing/index.html)
       if you need more information.

@@ -11,8 +11,8 @@ First we invert the TMI for an equivalent source layer, from which we
 recover 3-component magnetic data. This data is then transformed to amplitude
 
 Secondly, we invert the non-linear inverse problem with
-:class:`SimPEG.directives.UpdateSensitivityWeights`. We also
-uses the :class:`SimPEG.regularization.Sparse` to apply sparsity
+:class:`simpeg.directives.UpdateSensitivityWeights`. We also
+uses the :class:`simpeg.regularization.Sparse` to apply sparsity
 assumption in order to improve the recovery of a compact prism.
 
 """
@@ -20,7 +20,7 @@ assumption in order to improve the recovery of a compact prism.
 import scipy as sp
 import numpy as np
 import matplotlib.pyplot as plt
-from SimPEG import (
+from simpeg import (
     data,
     data_misfit,
     directives,
@@ -31,9 +31,9 @@ from SimPEG import (
     regularization,
 )
 
-from SimPEG.potential_fields import magnetics
-from SimPEG import utils
-from SimPEG.utils import mkvc
+from simpeg.potential_fields import magnetics
+from simpeg import utils
+from simpeg.utils import mkvc
 from discretize.utils import mesh_builder_xyz, refine_tree_xyz, active_from_xyz
 
 # sphinx_gallery_thumbnail_number = 4
@@ -137,7 +137,7 @@ ind = utils.model_builder.get_indices_block(
 )[0]
 
 # Assign magnetization value, inducing field strength will
-# be applied in by the :class:`SimPEG.PF.Magnetics` problem
+# be applied in by the :class:`simpeg.PF.Magnetics` problem
 model = np.zeros(mesh.nC)
 model[ind] = chi_e
 
@@ -235,7 +235,7 @@ wr = wr / np.max(np.abs(wr))
 reg = regularization.Sparse(
     mesh, active_cells=surf, mapping=maps.IdentityMap(nP=nC), alpha_z=0
 )
-reg.mref = np.zeros(nC)
+reg.reference_model = np.zeros(nC)
 
 # Specify how the optimization will proceed, set susceptibility bounds to inf
 opt = optimization.ProjectedGNCG(
@@ -347,7 +347,7 @@ data_obj = data.Data(survey, dobs=bAmp, noise_floor=wd)
 # Create a sparse regularization
 reg = regularization.Sparse(mesh, active_cells=actv, mapping=idenMap)
 reg.norms = [1, 0, 0, 0]
-reg.mref = np.zeros(nC)
+reg.reference_model = np.zeros(nC)
 
 # Data misfit function
 dmis = data_misfit.L2DataMisfit(simulation=simulation, data=data_obj)

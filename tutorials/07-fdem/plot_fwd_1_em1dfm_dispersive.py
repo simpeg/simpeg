@@ -2,7 +2,7 @@
 1D Forward Simulation for a Susceptible and Chargeable Earth
 ============================================================
 
-Here we use the module *SimPEG.electromangetics.frequency_domain_1d* to compare
+Here we use the module *simpeg.electromangetics.frequency_domain_1d* to compare
 predicted frequency domain data for a single sounding when the Earth is
 purely conductive, conductive and magnetically susceptible, and when it is chargeable.
 In this tutorial, we focus on:
@@ -26,9 +26,9 @@ located 30 m above the Earth's surface. The receiver is offset
 import numpy as np
 from matplotlib import pyplot as plt
 
-from SimPEG import maps
-import SimPEG.electromagnetics.frequency_domain as fdem
-from SimPEG.electromagnetics.utils.em1d_utils import ColeCole
+from simpeg import maps
+import simpeg.electromagnetics.frequency_domain as fdem
+from simpeg.electromagnetics.utils.em1d_utils import ColeCole
 
 plt.rcParams.update({"font.size": 16})
 
@@ -161,7 +161,7 @@ plt.show()
 # parameters used to define the physical properties are permanently set when
 # defining the simulation.
 #
-# When using the *SimPEG.electromagnetics.frequency_domain_1d* module, note that
+# When using the *simpeg.electromagnetics.frequency_domain_1d* module, note that
 # predicted data are organized by source, then by receiver, then by frequency.
 #
 #

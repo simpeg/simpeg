@@ -5,9 +5,9 @@ import pytest
 
 import discretize
 
-from SimPEG import maps
-from SimPEG import utils
-from SimPEG import props
+from simpeg import maps
+from simpeg import utils
+from simpeg import props
 
 
 class SimpleExample(props.HasModel):

@@ -1,15 +1,15 @@
 import unittest
 import discretize
 
-from SimPEG import utils, maps
+from simpeg import utils, maps
 import numpy as np
-from SimPEG.electromagnetics import resistivity as dc
-from SimPEG.electromagnetics import induced_polarization as ip
+from simpeg.electromagnetics import resistivity as dc
+from simpeg.electromagnetics import induced_polarization as ip
 
 try:
     from pymatsolver import Pardiso as Solver
 except ImportError:
-    from SimPEG import SolverLU as Solver
+    from simpeg import SolverLU as Solver
 
 
 class IPProblemAnalyticTests(unittest.TestCase):

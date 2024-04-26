@@ -3,7 +3,7 @@ import pytest
 import numpy as np
 
 import discretize
-from SimPEG import (
+from simpeg import (
     maps,
     directives,
     regularization,
@@ -13,7 +13,7 @@ from SimPEG import (
     inverse_problem,
     simulation,
 )
-from SimPEG.potential_fields import magnetics as mag
+from simpeg.potential_fields import magnetics as mag
 import shutil
 
 
@@ -161,7 +161,11 @@ class ValidationInInversion(unittest.TestCase):
         test_directive.update()
 
         for reg_i in reg.objfcts:
-            self.assertTrue(np.all(np.isclose(test_weights, reg_i.cell_weights)))
+            # Get all weights in regularization
+            weights = [reg_i.get_weights(key) for key in reg_i.weights_keys]
+            # Compute the product of all weights
+            weights = np.prod(weights, axis=0)
+            self.assertTrue(np.all(np.isclose(test_weights, weights)))
             reg_i.remove_weights("sensitivity")
 
         # self.test_sensitivity_weighting_subroutine(test_weights, test_directive)
@@ -201,7 +205,11 @@ class ValidationInInversion(unittest.TestCase):
         test_directive.update()
 
         for reg_i in reg.objfcts:
-            self.assertTrue(np.all(np.isclose(test_weights, reg_i.cell_weights)))
+            # Get all weights in regularization
+            weights = [reg_i.get_weights(key) for key in reg_i.weights_keys]
+            # Compute the product of all weights
+            weights = np.prod(weights, axis=0)
+            self.assertTrue(np.all(np.isclose(test_weights, weights)))
             reg_i.remove_weights("sensitivity")
 
         # self.test_sensitivity_weighting_subroutine(test_weights, test_directive)
@@ -241,7 +249,11 @@ class ValidationInInversion(unittest.TestCase):
         test_directive.update()
 
         for reg_i in reg.objfcts:
-            self.assertTrue(np.all(np.isclose(test_weights, reg_i.cell_weights)))
+            # Get all weights in regularization
+            weights = [reg_i.get_weights(key) for key in reg_i.weights_keys]
+            # Compute the product of all weights
+            weights = np.prod(weights, axis=0)
+            self.assertTrue(np.all(np.isclose(test_weights, weights)))
             reg_i.remove_weights("sensitivity")
 
         # self.test_sensitivity_weighting_subroutine(test_weights, test_directive)

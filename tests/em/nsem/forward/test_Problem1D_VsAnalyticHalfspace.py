@@ -1,5 +1,5 @@
 import unittest
-from SimPEG.electromagnetics import natural_source as nsem
+from simpeg.electromagnetics import natural_source as nsem
 import numpy as np
 
 # Define the tolerances

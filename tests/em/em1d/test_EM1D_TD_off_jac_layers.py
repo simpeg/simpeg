@@ -1,7 +1,7 @@
 import unittest
-from SimPEG import maps
+from simpeg import maps
 from discretize import tests, TensorMesh
-import SimPEG.electromagnetics.time_domain as tdem
+import simpeg.electromagnetics.time_domain as tdem
 import numpy as np
 from scipy.constants import mu_0
 

@@ -16,10 +16,10 @@ parameters:
 User is promoted to try different initial values of the parameterized model.
 """
 
-from SimPEG.electromagnetics.static import resistivity as DC, utils as DCutils
+from simpeg.electromagnetics.static import resistivity as DC, utils as DCutils
 from discretize import TensorMesh
 from discretize.utils import active_from_xyz
-from SimPEG import (
+from simpeg import (
     maps,
     utils,
     data_misfit,
@@ -37,7 +37,7 @@ from pylab import hist
 try:
     from pymatsolver import PardisoSolver as Solver
 except ImportError:
-    from SimPEG import SolverLU as Solver
+    from simpeg import SolverLU as Solver
 
 
 def run(
