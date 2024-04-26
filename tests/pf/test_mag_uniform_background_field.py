@@ -4,7 +4,7 @@ Test the UniformBackgroundField class
 
 import pytest
 import numpy as np
-from SimPEG.potential_fields.magnetics import UniformBackgroundField, SourceField, Point
+from simpeg.potential_fields.magnetics import UniformBackgroundField, SourceField, Point
 
 
 def test_invalid_parameters_argument():

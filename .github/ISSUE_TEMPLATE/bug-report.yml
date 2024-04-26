@@ -25,7 +25,7 @@ body:
       bug or missing functionality. It should be able to be copy-pasted
       into a Python interpreter and run as-is.
     placeholder: |
-      import SimPEG
+      import simpeg
       << your code here >>
     render: python
   validations:
@@ -44,8 +44,8 @@ body:
   attributes:
     label: "Runtime information:"
     description: >
-      Please include the output from `SimPEG.Report()` to describe your system for us.
-      Paste the output from `from SimPEG import Report; print(Report())` below.
+      Please include the output from `simpeg.Report()` to describe your system for us.
+      Paste the output from `from simpeg import Report; print(Report())` below.
   validations:
     required: true
 

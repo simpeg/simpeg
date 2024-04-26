@@ -3,10 +3,10 @@
 import unittest
 import numpy as np
 
-from SimPEG.electromagnetics import resistivity as dc
-from SimPEG.electromagnetics.static import utils
-from SimPEG import data
-from SimPEG.utils.io_utils import io_utils_electromagnetics as io_utils
+from simpeg.electromagnetics import resistivity as dc
+from simpeg.electromagnetics.static import utils
+from simpeg import data
+from simpeg.utils.io_utils import io_utils_electromagnetics as io_utils
 import shutil
 import os
 

@@ -1,10 +1,10 @@
 import unittest
 import numpy as np
 
-from SimPEG.data import Data
-from SimPEG.potential_fields import gravity, magnetics
-from SimPEG.electromagnetics.static import resistivity as dc
-from SimPEG.utils.io_utils import (
+from simpeg.data import Data
+from simpeg.potential_fields import gravity, magnetics
+from simpeg.electromagnetics.static import resistivity as dc
+from simpeg.utils.io_utils import (
     write_grav3d_ubc,
     read_grav3d_ubc,
     write_gg3d_ubc,

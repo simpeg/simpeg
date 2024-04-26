@@ -2,16 +2,16 @@ import unittest
 import discretize
 import numpy as np
 
-from SimPEG import maps
-from SimPEG import data_misfit
-from SimPEG import regularization
-from SimPEG import optimization
-from SimPEG import inversion
-from SimPEG import inverse_problem
-from SimPEG import tests
+from simpeg import maps
+from simpeg import data_misfit
+from simpeg import regularization
+from simpeg import optimization
+from simpeg import inversion
+from simpeg import inverse_problem
+from simpeg import tests
 
-from SimPEG.electromagnetics import resistivity as dc
-from SimPEG.electromagnetics import induced_polarization as ip
+from simpeg.electromagnetics import resistivity as dc
+from simpeg.electromagnetics import induced_polarization as ip
 import shutil
 
 np.random.seed(30)

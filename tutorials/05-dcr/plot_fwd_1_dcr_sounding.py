@@ -3,7 +3,7 @@
 Simulate a 1D Sounding over a Layered Earth
 ===========================================
 
-Here we use the module *SimPEG.electromangetics.static.resistivity* to predict
+Here we use the module *simpeg.electromangetics.static.resistivity* to predict
 sounding data over a 1D layered Earth. In this tutorial, we focus on the following:
 
     - General definition of sources and receivers
@@ -28,9 +28,9 @@ import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 
-from SimPEG import maps
-from SimPEG.electromagnetics.static import resistivity as dc
-from SimPEG.utils import plot_1d_layer_model
+from simpeg import maps
+from simpeg.electromagnetics.static import resistivity as dc
+from simpeg.utils import plot_1d_layer_model
 
 mpl.rcParams.update({"font.size": 16})
 

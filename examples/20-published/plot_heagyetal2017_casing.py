@@ -32,9 +32,9 @@ This example was updated for SimPEG 0.14.0 on January 31st, 2020 by Joseph Capri
 """
 
 import discretize
-from SimPEG import utils, maps, tests
-from SimPEG.electromagnetics import frequency_domain as FDEM, mu_0
-from SimPEG.utils.io_utils import download
+from simpeg import utils, maps, tests
+from simpeg.electromagnetics import frequency_domain as FDEM, mu_0
+from simpeg.utils.io_utils import download
 
 # try:
 #     from pymatsolver import MumpsSolver as Solver
@@ -43,7 +43,7 @@ from SimPEG.utils.io_utils import download
 try:
     from pymatsolver import Pardiso as Solver
 except ImportError:
-    from SimPEG import SolverLU as Solver
+    from simpeg import SolverLU as Solver
 
 import numpy as np
 import scipy.sparse as sp

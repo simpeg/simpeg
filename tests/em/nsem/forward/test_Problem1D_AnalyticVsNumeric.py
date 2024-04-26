@@ -1,6 +1,6 @@
 import unittest
-from SimPEG import mkvc
-from SimPEG.electromagnetics import natural_source as nsem
+from simpeg import mkvc
+from simpeg.electromagnetics import natural_source as nsem
 import numpy as np
 
 # Define the tolerances

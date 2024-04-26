@@ -14,12 +14,12 @@ New Things
 ==========
 There is now a file reader for UBC formatted gravity gradient data files.
 
-The  class ``SimPEG.electromagnetics.frequency_domain.sources.LineCurrent`` now accepts
+The  class ``simpeg.electromagnetics.frequency_domain.sources.LineCurrent`` now accepts
 a keyword argument option ``current`` to set the strength of the ``LineCurrent``.
-This is similar behavoir to ```SimPEG.electromagnetics.frequency_domain.sources.CircularLoop``.
+This is similar behavoir to ```simpeg.electromagnetics.frequency_domain.sources.CircularLoop``.
 
 There are now a few more default options that are setting for the plotting routines
-in ``SimPEG.utils.plot_utils.plot2Ddata``. We also now specifically overriding these default
+in ``simpeg.utils.plot_utils.plot2Ddata``. We also now specifically overriding these default
 options for ``norm``, ``levels``, and ``zorder`` for the ``contourOpts`` dictionary
 input. There is also now a ``streamplotOpts`` dictionary input as well to handle
 keyword arguments to the stream plot.
@@ -35,10 +35,10 @@ SimPEG's coordinate system convention. SimPEG uses a right handed coordinate sys
 with z being positive upwards, whereas in the UBC file, gravity was defined as positive
 downwards.
 
-The user provided mapping for ``SimPEG.simulation.LinearSimulation`` was not being
+The user provided mapping for ``simpeg.simulation.LinearSimulation`` was not being
 properly taken into account, and has now been fixed.
 
-We have re-anabled the mu inverse testing of ``SimPEG.electromagnetics.frequency_domain``
+We have re-anabled the mu inverse testing of ``simpeg.electromagnetics.frequency_domain``
 classes, ensuring those tests also pass.
 
 

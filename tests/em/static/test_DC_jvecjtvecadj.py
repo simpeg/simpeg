@@ -1,7 +1,7 @@
 import unittest
 import numpy as np
 import discretize
-from SimPEG import (
+from simpeg import (
     maps,
     data_misfit,
     regularization,
@@ -11,8 +11,8 @@ from SimPEG import (
     tests,
     utils,
 )
-from SimPEG.utils import mkvc
-from SimPEG.electromagnetics import resistivity as dc
+from simpeg.utils import mkvc
+from simpeg.electromagnetics import resistivity as dc
 from pymatsolver import Pardiso
 import shutil
 

@@ -1,6 +1,6 @@
 import unittest
-import SimPEG.electromagnetics.frequency_domain as fdem
-from SimPEG import maps
+import simpeg.electromagnetics.frequency_domain as fdem
+from simpeg import maps
 import numpy as np
 from scipy.constants import mu_0
 from geoana.em.fdem import (

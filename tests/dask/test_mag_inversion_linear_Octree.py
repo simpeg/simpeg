@@ -1,6 +1,6 @@
 import unittest
-import SimPEG.dask  # noqa: F401
-from SimPEG import (
+import simpeg.dask  # noqa: F401
+from simpeg import (
     directives,
     maps,
     inverse_problem,
@@ -15,7 +15,7 @@ from discretize.utils import mesh_utils, active_from_xyz
 
 import shutil
 
-from SimPEG.potential_fields import magnetics as mag
+from simpeg.potential_fields import magnetics as mag
 import numpy as np
 
 
