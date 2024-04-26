@@ -1,10 +1,10 @@
 """
 =============================
-Typing (:mod:`SimPEG.typing`)
+Typing (:mod:`simpeg.typing`)
 =============================
 
 This module provides additional `PEP 484 <https://peps.python.org/pep-0484/>`_
-type aliases used in ``SimPEG``'s codebase.
+type aliases used in ``simpeg``'s codebase.
 
 API
 ---
