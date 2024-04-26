@@ -100,9 +100,8 @@ class Simulation3DIntegral(BasePFSimulation):
     sensitivity_path : str, optional
         Path to store the sensitivity matrix if ``store_sensitivities`` is set
         to ``"disk"``. Default to "./sensitivities".
-    engine : str, optional
-       Choose which engine should be used to run the forward model:
-       ``"geoana"`` or ``"choclo"``.
+    engine : {"geoana", "choclo"}, optional
+       Choose which engine should be used to run the forward model.
     numba_parallel : bool, optional
         If True, the simulation will run in parallel. If False, it will
         run in serial. If ``engine`` is not ``"choclo"`` this argument will be
