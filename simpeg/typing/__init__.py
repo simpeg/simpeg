@@ -53,7 +53,7 @@ Examples
 --------
 
 >>> import numpy as np
->>> from SimPEG.typing import RandomSeed
+>>> from simpeg.typing import RandomSeed
 >>>
 >>> def my_function(seed: RandomSeed = None):
 ...     rng = np.random.default_rng(seed=seed)
