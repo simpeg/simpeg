@@ -1,8 +1,8 @@
 import unittest
 import numpy as np
 import discretize
-import SimPEG.dask  # noqa: F401
-from SimPEG import (
+import simpeg.dask  # noqa: F401
+from simpeg import (
     maps,
     data_misfit,
     regularization,
@@ -11,8 +11,8 @@ from SimPEG import (
     inverse_problem,
     tests,
 )
-from SimPEG.utils import mkvc
-from SimPEG.electromagnetics import resistivity as dc
+from simpeg.utils import mkvc
+from simpeg.electromagnetics import resistivity as dc
 import shutil
 
 np.random.seed(40)

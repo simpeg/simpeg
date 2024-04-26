@@ -1,5 +1,5 @@
 import numpy as np
-from SimPEG import (
+from simpeg import (
     data,
     data_misfit,
     directives,
@@ -10,9 +10,9 @@ from SimPEG import (
     regularization,
 )
 
-from SimPEG.potential_fields import magnetics
-from SimPEG import utils
-from SimPEG.utils import mkvc
+from simpeg.potential_fields import magnetics
+from simpeg import utils
+from simpeg.utils import mkvc
 from discretize.utils import mesh_builder_xyz, refine_tree_xyz, active_from_xyz
 import unittest
 import shutil
@@ -85,7 +85,7 @@ class AmpProblemTest(unittest.TestCase):
         )[0]
 
         # Assign magnetization value, inducing field strength will
-        # be applied in by the :class:`SimPEG.PF.Magnetics` problem
+        # be applied in by the :class:`simpeg.PF.Magnetics` problem
         model = np.zeros(mesh.nC)
         model[ind] = chi_e
 
@@ -143,7 +143,7 @@ class AmpProblemTest(unittest.TestCase):
         reg = regularization.Sparse(
             mesh, active_cells=surf, mapping=maps.IdentityMap(nP=nC), alpha_z=0
         )
-        reg.mref = np.zeros(nC)
+        reg.reference_model = np.zeros(nC)
 
         # Specify how the optimization will proceed, set susceptibility bounds to inf
         opt = optimization.ProjectedGNCG(
@@ -236,7 +236,7 @@ class AmpProblemTest(unittest.TestCase):
         # Create a sparse regularization
         reg = regularization.Sparse(mesh, active_cells=actv, mapping=idenMap)
         reg.norms = [1, 0, 0, 0]
-        reg.mref = np.zeros(nC)
+        reg.reference_model = np.zeros(nC)
 
         # Data misfit function
         dmis = data_misfit.L2DataMisfit(simulation=simulation, data=data_obj)

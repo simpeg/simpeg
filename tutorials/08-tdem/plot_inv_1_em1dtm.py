@@ -2,7 +2,7 @@
 1D Inversion of Time-Domain Data for a Single Sounding
 ======================================================
 
-Here we use the module *SimPEG.electromangetics.time_domain_1d* to invert
+Here we use the module *simpeg.electromangetics.time_domain_1d* to invert
 time domain data and recover a 1D electrical conductivity model.
 In this tutorial, we focus on the following:
 
@@ -18,7 +18,6 @@ at the loop's centre.
 
 """
 
-
 #########################################################################
 # Import modules
 # --------------
@@ -31,10 +30,10 @@ import matplotlib.pyplot as plt
 
 from discretize import TensorMesh
 
-import SimPEG.electromagnetics.time_domain as tdem
+import simpeg.electromagnetics.time_domain as tdem
 
-from SimPEG.utils import mkvc, plot_1d_layer_model
-from SimPEG import (
+from simpeg.utils import mkvc, plot_1d_layer_model
+from simpeg import (
     maps,
     data,
     data_misfit,
@@ -227,7 +226,7 @@ reg_map = maps.IdentityMap(nP=mesh.nC)
 reg = regularization.Sparse(mesh, mapping=reg_map, alpha_s=0.01, alpha_x=1.0)
 
 # set reference model
-reg.mref = starting_model
+reg.reference_model = starting_model
 
 # Define sparse and blocky norms p, q
 reg.norms = [1, 0]

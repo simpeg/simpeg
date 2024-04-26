@@ -2,7 +2,7 @@ import unittest
 from scipy.constants import mu_0
 
 import numpy as np
-from SimPEG.electromagnetics import natural_source as nsem
+from simpeg.electromagnetics import natural_source as nsem
 
 
 np.random.seed(1100)

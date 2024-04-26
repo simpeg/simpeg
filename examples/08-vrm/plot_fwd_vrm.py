@@ -5,7 +5,7 @@ Predict Response from a Conductive and Magnetically Viscous Earth
 Here, we predict the vertical db/dt response over a conductive and
 magnetically viscous Earth for a small coincident loop system. Following
 the theory, the total response is approximately equal to the sum of the
-inductive and VRM responses modelled separately. The SimPEG.VRM module is
+inductive and VRM responses modelled separately. The simpeg.VRM module is
 used to model the VRM response while an analytic solution for a conductive
 half-space is used to model the inductive response.
 """
@@ -15,10 +15,10 @@ half-space is used to model the inductive response.
 # --------------
 #
 
-from SimPEG.electromagnetics import viscous_remanent_magnetization as VRM
+from simpeg.electromagnetics import viscous_remanent_magnetization as VRM
 import numpy as np
 import discretize
-from SimPEG import mkvc, maps
+from simpeg import mkvc, maps
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 

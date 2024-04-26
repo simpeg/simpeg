@@ -104,7 +104,7 @@ be able to download and run any of the :ref:`examples and tutorials <sphx_glr_co
 
 If not, you can reach out to other people developing and using SimPEG on the
 `google forum <https://groups.google.com/forum/#!forum/simpeg>`_ or on
-`slack <http://slack.simpeg.xyz>`_.
+`Mattermost <https://mattermost.softwareunderground.org/simpeg>`_.
 
 Useful Links
 ============

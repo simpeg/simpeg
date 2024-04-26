@@ -1,6 +1,6 @@
 import unittest
 import numpy as np
-from SimPEG import utils
+from simpeg import utils
 
 tol = 1e-15
 

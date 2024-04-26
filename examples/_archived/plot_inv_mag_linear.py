@@ -6,13 +6,14 @@ Create a synthetic block model and invert
 with a compact norm
 
 """
+
 import matplotlib.pyplot as plt
 import numpy as np
 from discretize import TensorMesh
 from discretize.utils import active_from_xyz
-from SimPEG.potential_fields import magnetics
-from SimPEG import utils
-from SimPEG import (
+from simpeg.potential_fields import magnetics
+from simpeg import utils
+from simpeg import (
     data,
     data_misfit,
     maps,

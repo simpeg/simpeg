@@ -4,9 +4,10 @@ EM: TDEM: 1D: Inversion
 
 Here we will create and run a TDEM 1D inversion.
 """
+
 import numpy as np
-from SimPEG.electromagnetics import time_domain
-from SimPEG import (
+from simpeg.electromagnetics import time_domain
+from simpeg import (
     optimization,
     discretize,
     maps,

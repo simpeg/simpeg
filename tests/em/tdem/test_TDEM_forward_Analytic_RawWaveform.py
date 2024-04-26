@@ -6,10 +6,10 @@ import numpy as np
 from pymatsolver import Pardiso as Solver
 from scipy.constants import mu_0
 from scipy.interpolate import interp1d
-from SimPEG import maps
-from SimPEG.electromagnetics import analytics
-from SimPEG.electromagnetics import time_domain as tdem
-from SimPEG.electromagnetics import utils
+from simpeg import maps
+from simpeg.electromagnetics import analytics
+from simpeg.electromagnetics import time_domain as tdem
+from simpeg.electromagnetics import utils
 
 
 def halfSpaceProblemAnaDiff(

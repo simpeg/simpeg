@@ -1,7 +1,7 @@
 import unittest
-from SimPEG import maps
+from simpeg import maps
 from discretize import tests, TensorMesh
-import SimPEG.electromagnetics.frequency_domain as fdem
+import simpeg.electromagnetics.frequency_domain as fdem
 import numpy as np
 from scipy.constants import mu_0
 

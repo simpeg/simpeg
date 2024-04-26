@@ -1,0 +1,30 @@
+.. _0.21.1_notes:
+
+===========================
+SimPEG 0.21.1 Release Notes
+===========================
+
+April 10th, 2024
+
+.. contents:: Highlights
+    :depth: 2
+
+Updates
+=======
+
+Minor fix when importing Dask in the ``meta`` module: Dask is an optional
+dependency.
+
+Contributors
+============
+
+This is a combination of contributors and reviewers who've made contributions
+towards this release (in no particular order).
+
+* `@jcapriot <https://github.com/jcapriot>`__
+
+Pull Requests
+=============
+
+* Fix hard dask dependency by `@jcapriot <https://github.com/jcapriot>`__ in
+  https://github.com/simpeg/simpeg/pull/1415

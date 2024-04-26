@@ -2,10 +2,10 @@ import unittest
 import numpy as np
 from scipy.sparse.linalg import eigsh
 from discretize import TensorMesh
-from SimPEG import simulation, data_misfit
-from SimPEG.maps import IdentityMap
-from SimPEG.regularization import WeightedLeastSquares
-from SimPEG.utils.mat_utils import eigenvalue_by_power_iteration
+from simpeg import simulation, data_misfit
+from simpeg.maps import IdentityMap
+from simpeg.regularization import WeightedLeastSquares
+from simpeg.utils.mat_utils import eigenvalue_by_power_iteration
 
 
 class TestEigenvalues(unittest.TestCase):
@@ -39,11 +39,11 @@ class TestEigenvalues(unittest.TestCase):
         true_model[mesh.cell_centers_x > 0.6] = 0
         self.true_model = true_model
 
-        # Create a SimPEG simulation
+        # Create a simpeg simulation
         model_map = IdentityMap(mesh)
         sim = simulation.LinearSimulation(mesh, G=G, model_map=model_map)
 
-        # Create a SimPEG data object
+        # Create a simpeg data object
         relative_error = 0.1
         noise_floor = 1e-4
         data_obj = sim.make_synthetic_data(

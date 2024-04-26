@@ -1,7 +1,7 @@
 import unittest
 import numpy as np
 
-from SimPEG.electromagnetics import viscous_remanent_magnetization as vrm
+from simpeg.electromagnetics import viscous_remanent_magnetization as vrm
 
 
 class VRM_waveform_tests(unittest.TestCase):

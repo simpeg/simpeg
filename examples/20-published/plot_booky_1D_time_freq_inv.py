@@ -7,7 +7,7 @@ the RESOLVE and SkyTEM data sets. The original data can be downloaded from:
 `https://storage.googleapis.com/simpeg/bookpurnong/bookpurnong.tar.gz <https://storage.googleapis.com/simpeg/bookpurnong/bookpurnong.tar.gz>`_
 
 The forward simulation is performed on the cylindrically symmetric mesh using
-:code:`SimPEG.electromagnetics.frequency_domain`, and :code:`SimPEG.electromagnetics.time_domain`
+:code:`simpeg.electromagnetics.frequency_domain`, and :code:`simpeg.electromagnetics.time_domain`
 
 The RESOLVE data are inverted first. This recovered model is then used as a
 reference model for the SkyTEM inversion
@@ -36,7 +36,7 @@ from scipy.constants import mu_0
 from pymatsolver import Pardiso as Solver
 
 import discretize
-from SimPEG import (
+from simpeg import (
     maps,
     utils,
     data_misfit,
@@ -47,7 +47,7 @@ from SimPEG import (
     directives,
     data,
 )
-from SimPEG.electromagnetics import frequency_domain as FDEM, time_domain as TDEM
+from simpeg.electromagnetics import frequency_domain as FDEM, time_domain as TDEM
 
 
 def download_and_unzip_data(
@@ -261,7 +261,7 @@ def run(plotIt=True, saveFig=False, cleanup=True):
     inv = inversion.BaseInversion(invProb, directiveList=[target])
     reg.alpha_s = 1e-3
     reg.alpha_x = 1.0
-    reg.mref = m0.copy()
+    reg.reference_model = m0.copy()
     opt.LSshorten = 0.5
     opt.remember("xc")
     # run the inversion
@@ -379,7 +379,7 @@ def run(plotIt=True, saveFig=False, cleanup=True):
     reg.alpha_x = 1.0
     opt.LSshorten = 0.5
     opt.remember("xc")
-    reg.mref = mopt_re  # Use RESOLVE model as a reference model
+    reg.reference_model = mopt_re  # Use RESOLVE model as a reference model
 
     # run the inversion
     mopt_sky = inv.run(m0)

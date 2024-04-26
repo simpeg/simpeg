@@ -3,10 +3,10 @@ import scipy.sparse as sp
 import pytest
 import unittest
 
-from SimPEG import utils, maps
-from SimPEG import objective_function
-from SimPEG.objective_function import _validate_multiplier
-from SimPEG.utils import Zero
+from simpeg import utils, maps
+from simpeg import objective_function
+from simpeg.objective_function import _validate_multiplier
+from simpeg.utils import Zero
 
 np.random.seed(130)
 

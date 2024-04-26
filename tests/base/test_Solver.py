@@ -1,8 +1,8 @@
 import unittest
 
-from SimPEG import Solver, SolverDiag, SolverCG, SolverLU
+from simpeg import Solver, SolverDiag, SolverCG, SolverLU
 from discretize import TensorMesh
-from SimPEG.utils import sdiag
+from simpeg.utils import sdiag
 import numpy as np
 
 TOLD = 1e-10

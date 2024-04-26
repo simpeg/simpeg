@@ -1,9 +1,9 @@
 import numpy as np
 import pytest
 
-from SimPEG.electromagnetics import frequency_domain as fdem
-from SimPEG.electromagnetics import time_domain as tdem
-from SimPEG.electromagnetics.utils.testing_utils import crossCheckTest
+from simpeg.electromagnetics import frequency_domain as fdem
+from simpeg.electromagnetics import time_domain as tdem
+from simpeg.electromagnetics.utils.testing_utils import crossCheckTest
 
 testEB = True
 testHJ = True
