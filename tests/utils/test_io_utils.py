@@ -257,7 +257,7 @@ class TestIO_MAG3D(unittest.TestCase):
 
         rx2 = magnetics.receivers.Point(xyz, components="tmi")
         src_bad = magnetics.sources.UniformBackgroundField(
-            receiver_list=[rx1, rx2], amplitude=50_000, inclination=90, declination=0
+            receiver_list=[rx, rx2], amplitude=50_000, inclination=90, declination=0
         )
         survey_bad = magnetics.survey.Survey(src_bad)
         self.survey_bad = survey_bad
