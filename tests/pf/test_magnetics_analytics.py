@@ -1,9 +1,9 @@
 import unittest
 
-# from SimPEG import Mesh, PF
+# from simpeg import Mesh, PF
 import discretize
-from SimPEG.potential_fields import magnetics as mag
-from SimPEG.utils.model_builder import get_indices_sphere
+from simpeg.potential_fields import magnetics as mag
+from simpeg.utils.model_builder import get_indices_sphere
 import numpy as np
 from scipy.constants import mu_0
 

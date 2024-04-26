@@ -3,9 +3,9 @@ import unittest
 import numpy as np
 import discretize
 
-from SimPEG import maps
-from SimPEG import simulation, survey
-from SimPEG import Data
+from simpeg import maps
+from simpeg import simulation, survey
+from simpeg import Data
 
 
 class DataTest(unittest.TestCase):

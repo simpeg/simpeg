@@ -7,15 +7,15 @@ resistivity dipole in 3D.
 """
 
 import discretize
-from SimPEG import utils
+from simpeg import utils
 import numpy as np
 import matplotlib.pyplot as plt
-from SimPEG.electromagnetics.static import resistivity as DC
+from simpeg.electromagnetics.static import resistivity as DC
 
 try:
     from pymatsolver import Pardiso as Solver
 except ImportError:
-    from SimPEG import SolverLU as Solver
+    from simpeg import SolverLU as Solver
 
 
 cs = 25.0

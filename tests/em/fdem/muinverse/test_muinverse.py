@@ -1,6 +1,6 @@
 import discretize
-from SimPEG import maps, utils, tests
-from SimPEG.electromagnetics import frequency_domain as fdem
+from simpeg import maps, utils, tests
+from simpeg.electromagnetics import frequency_domain as fdem
 import numpy as np
 
 import unittest

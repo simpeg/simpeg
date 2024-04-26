@@ -1,7 +1,7 @@
 import unittest
 
 import discretize
-from SimPEG import survey, simulation, utils, fields, data
+from simpeg import survey, simulation, utils, fields, data
 
 import numpy as np
 import sys

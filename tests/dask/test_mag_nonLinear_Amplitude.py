@@ -1,6 +1,6 @@
 import numpy as np
-import SimPEG.dask  # noqa: F401
-from SimPEG import (
+import simpeg.dask  # noqa: F401
+from simpeg import (
     data,
     data_misfit,
     directives,
@@ -11,9 +11,9 @@ from SimPEG import (
     regularization,
 )
 
-from SimPEG.potential_fields import magnetics
-from SimPEG import utils
-from SimPEG.utils import mkvc
+from simpeg.potential_fields import magnetics
+from simpeg import utils
+from simpeg.utils import mkvc
 from discretize.utils import mesh_builder_xyz, refine_tree_xyz, active_from_xyz
 import unittest
 import shutil
@@ -86,7 +86,7 @@ class AmpProblemTest(unittest.TestCase):
         )[0]
 
         # Assign magnetization value, inducing field strength will
-        # be applied in by the :class:`SimPEG.PF.Magnetics` problem
+        # be applied in by the :class:`simpeg.PF.Magnetics` problem
         model = np.zeros(mesh.nC)
         model[ind] = chi_e
 

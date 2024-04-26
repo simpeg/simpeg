@@ -5,7 +5,7 @@ import numpy as np
 from discretize import TensorMesh
 from discretize.utils import mesh_builder_xyz, mkvc, refine_tree_xyz
 
-from SimPEG import (
+from simpeg import (
     data_misfit,
     directives,
     inverse_problem,
@@ -15,7 +15,7 @@ from SimPEG import (
     regularization,
     utils,
 )
-from SimPEG.potential_fields import gravity, magnetics
+from simpeg.potential_fields import gravity, magnetics
 
 
 class QuadTreeLinProblemTest(unittest.TestCase):

@@ -3,16 +3,16 @@ import unittest
 
 import discretize
 
-from SimPEG import mkvc
+from simpeg import mkvc
 
-from SimPEG import data_misfit
-from SimPEG import optimization
-from SimPEG import regularization
-from SimPEG import inverse_problem
-from SimPEG import inversion
-from SimPEG.directives import BetaSchedule, TargetMisfit
+from simpeg import data_misfit
+from simpeg import optimization
+from simpeg import regularization
+from simpeg import inverse_problem
+from simpeg import inversion
+from simpeg.directives import BetaSchedule, TargetMisfit
 
-from SimPEG.electromagnetics import viscous_remanent_magnetization as vrm
+from simpeg.electromagnetics import viscous_remanent_magnetization as vrm
 
 
 class VRM_inversion_tests(unittest.TestCase):

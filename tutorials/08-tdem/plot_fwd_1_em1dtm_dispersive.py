@@ -2,7 +2,7 @@
 1D Forward Simulation with Chargeable and/or Magnetic Viscosity
 ===============================================================
 
-Here we use the module *SimPEG.electromangetics.time_domain_1d* to compare
+Here we use the module *simpeg.electromangetics.time_domain_1d* to compare
 predicted time domain data for a single sounding when the Earth is
 purely conductive, chargeable and/or magnetically viscous.
 In this tutorial, we focus on:
@@ -26,9 +26,9 @@ of the loop and measures the vertical component of the response.
 import numpy as np
 from matplotlib import pyplot as plt
 
-from SimPEG import maps
-import SimPEG.electromagnetics.time_domain as tdem
-from SimPEG.electromagnetics.utils.em1d_utils import ColeCole, LogUniform
+from simpeg import maps
+import simpeg.electromagnetics.time_domain as tdem
+from simpeg.electromagnetics.utils.em1d_utils import ColeCole, LogUniform
 
 # sphinx_gallery_thumbnail_number = 3
 
@@ -186,7 +186,7 @@ ax.legend(
 # parameters used to define the physical properties are permanently set when
 # defining the simulation.
 #
-# When using the *SimPEG.electromagnetics.time_domain_1d* module, note that
+# When using the *simpeg.electromagnetics.time_domain_1d* module, note that
 # predicted data are organized by source, then by receiver, then by time channel.
 #
 #

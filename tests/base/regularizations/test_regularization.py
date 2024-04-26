@@ -5,8 +5,8 @@ import pytest
 import inspect
 
 import discretize
-from SimPEG import maps, objective_function, regularization, utils
-from SimPEG.regularization import (
+from simpeg import maps, objective_function, regularization, utils
+from simpeg.regularization import (
     BaseRegularization,
     WeightedLeastSquares,
     Sparse,
@@ -15,7 +15,7 @@ from SimPEG.regularization import (
     SmoothnessFirstOrder,
     SmoothnessSecondOrder,
 )
-from SimPEG.objective_function import ComboObjectiveFunction
+from simpeg.objective_function import ComboObjectiveFunction
 
 
 TOL = 1e-7

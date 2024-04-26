@@ -1,5 +1,5 @@
 import unittest
-from SimPEG.electromagnetics.utils.testing_utils import crossCheckTest
+from simpeg.electromagnetics.utils.testing_utils import crossCheckTest
 
 testEB = True
 testHJ = True

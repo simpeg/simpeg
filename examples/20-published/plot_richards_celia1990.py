@@ -44,8 +44,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 import discretize
-from SimPEG import maps
-from SimPEG.flow import richards
+from simpeg import maps
+from simpeg.flow import richards
 
 
 def run(plotIt=True):
