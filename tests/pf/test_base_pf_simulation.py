@@ -6,10 +6,10 @@ import pytest
 import numpy as np
 from discretize import CylindricalMesh, TensorMesh, TreeMesh
 
-import SimPEG
-from SimPEG.potential_fields.base import BasePFSimulation
-from SimPEG.survey import BaseSurvey
-from SimPEG.potential_fields import gravity, magnetics
+import simpeg
+from simpeg.potential_fields.base import BasePFSimulation
+from simpeg.survey import BaseSurvey
+from simpeg.potential_fields import gravity, magnetics
 
 
 @pytest.fixture
@@ -79,7 +79,7 @@ class TestEngine:
         """
         Test error after choosing "choclo" as engine but not being installed
         """
-        monkeypatch.setattr(SimPEG.potential_fields.base, "choclo", None)
+        monkeypatch.setattr(simpeg.potential_fields.base, "choclo", None)
         engine = "choclo"
         msg = "The choclo package couldn't be found."
         with pytest.raises(ImportError, match=msg):
