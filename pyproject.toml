@@ -48,6 +48,7 @@ include = [
 discretize = ">=0.8.0"
 empymod = ">=2.0.0"
 geoh5py = {version = "*", allow-prereleases = true}
+#geoh5py = {url = "http://localhost:8888/geoh5py.tar.gz#sha256="}
 numpy = ">=1.20"
 pandas = "*"
 pymatsolver = ">=0.2"
