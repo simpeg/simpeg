@@ -92,7 +92,7 @@ easier to interface with external codes for inversion purposes, as all that is
 needed to be defined to use a ``Simulation`` for an ``InvProblem``, is
 ``sim.dpred``, ``sim.Jvec`` and ``sim.Jtvec``.
 
-Please see the documentation for the :class:`SimPEG.simulation.BaseSimulation` class
+Please see the documentation for the :class:`simpeg.simulation.BaseSimulation` class
 as well as the individual methods' ``Simulation``-s, for a detailed description of
 arguments, but largely it accepts the same arguments as the ``Problem`` class,
 but now also requires a ``Survey`` to be set.
@@ -105,9 +105,9 @@ data, we are concerned with the data. Thus we would like to enforce this importa
 by making data live in a dedicated ``Data`` class. This ``Data`` class can act like a smart
 dictionary to grab data associated with a specific source, receiver combination.
 More importantly, this ``Data`` class is where we store information related to observed
-data and its errors. This class started in the ``SimPEG.Survey`` module, but has
-now been moved into its own new module ``SimPEG.data``. See the documentation for
-the :class:`SimPEG.data.Data` for all of the details.
+data and its errors. This class started in the ``simpeg.Survey`` module, but has
+now been moved into its own new module ``simpeg.data``. See the documentation for
+the :class:`simpeg.data.Data` for all of the details.
 
 Previously,
 
@@ -179,7 +179,7 @@ the definition of the classic data misfit measure.
 The ``Simulation`` class handles the forward operation, :math:`\mathcal{F}`, and
 the ``Data`` class handles the noise, :math:`\textbf{W}_d=diag(\frac{1}{\sigma_i})`,
 and the observed data, :math:`\vec{d}_{obs}`. See the documentation for the
-:class:`SimPEG.data_misfit.L2DataMisfit` for all of the details.
+:class:`simpeg.data_misfit.L2DataMisfit` for all of the details.
 
 Previously,
 
@@ -210,18 +210,18 @@ This feature is experimental at the moment and can be toggled on like so,
 
 .. code-block:: python
 
-    import SimPEG.dask
+    import simpeg.dask
 
 which will then enable parallel operations for a few modules. It will specifically
 replace these functions with ``dask`` versions,
 
-* ``SimPEG.potential_fields.BasePFSimulation.linear_operator``
-* ``SimPEG.potential_fields.magnetics.Simulation3DIntegral.getJtJdiag``
-* ``SimPEG.potential_fields.gravity.Simulation3DIntegral.getJtJdiag``
-* ``SimPEG.electromagnetics.static.resistivity.simulation.BaseDCSimulation.getJ``
-* ``SimPEG.electromagnetics.static.resistivity.simulation.BaseDCSimulation.getJtJdiag``
-* ``SimPEG.electromagnetics.static.induced_polarization.simulation.BaseDCSimulation.getJ``
-* ``SimPEG.electromagnetics.static.induced_polarization.simulation.BaseDCSimulation.getJtJdiag``
+* ``simpeg.potential_fields.BasePFSimulation.linear_operator``
+* ``simpeg.potential_fields.magnetics.Simulation3DIntegral.getJtJdiag``
+* ``simpeg.potential_fields.gravity.Simulation3DIntegral.getJtJdiag``
+* ``simpeg.electromagnetics.static.resistivity.simulation.BaseDCSimulation.getJ``
+* ``simpeg.electromagnetics.static.resistivity.simulation.BaseDCSimulation.getJtJdiag``
+* ``simpeg.electromagnetics.static.induced_polarization.simulation.BaseDCSimulation.getJ``
+* ``simpeg.electromagnetics.static.induced_polarization.simulation.BaseDCSimulation.getJtJdiag``
 
 Changelog
 =========
@@ -317,19 +317,19 @@ moved around and been renamed. There are now two separate modules within ``poten
 ``gravity`` and ``magnetics``. All of the classes in ``PF.BaseGrav`` have been
 moved to ``potential_fields.gravity``, and the classes in ``PF.BaseMag`` have been
 moved to ``potential_fields.magnetics``. The ``Map``-s that were within them have
-been deprecated and can instead be found in ``SimPEG.maps``.
+been deprecated and can instead be found in ``simpeg.maps``.
 
 The option of a ``coordinate_system`` for the magnetics simulation is no longer
-valid and will throw an ``AttributeError``. Instead use the :class:`SimPEG.maps.SphericalSystem`.
+valid and will throw an ``AttributeError``. Instead use the :class:`simpeg.maps.SphericalSystem`.
 
 Improvements and Additions to ``resistivity``
 ---------------------------------------------
 
-We have made a few improvements to the ``SimPEG.electromagnetics.static.resistivity``
+We have made a few improvements to the ``simpeg.electromagnetics.static.resistivity``
 that were motivated by our work under the Geoscientists Without Borders project.
 
 One is that we now have a 1D layered Earth simulation class,
-:class:`SimPEG.electromagnetics.static.resistivity.simulation_1d.Simulation1DLayers`,
+:class:`simpeg.electromagnetics.static.resistivity.simulation_1d.Simulation1DLayers`,
 that can be used to invert resistivity sounding data for conductivity and/or
 thicknesses of a set number of layers.
 

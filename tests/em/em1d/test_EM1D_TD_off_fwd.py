@@ -1,7 +1,7 @@
 import unittest
 import numpy as np
-from SimPEG import maps
-import SimPEG.electromagnetics.time_domain as tdem
+from simpeg import maps
+import simpeg.electromagnetics.time_domain as tdem
 from scipy.constants import mu_0
 from geoana.em.tdem import (
     magnetic_flux_vertical_magnetic_dipole as b_dipole,

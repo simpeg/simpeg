@@ -2,7 +2,7 @@
 3D Forward Simulation with User-Defined Waveforms
 =================================================
 
-Here we use the module *SimPEG.electromagnetics.time_domain* to predict the
+Here we use the module *simpeg.electromagnetics.time_domain* to predict the
 TDEM response for a trapezoidal waveform. We consider an airborne survey
 which uses a horizontal coplanar geometry. For this tutorial, we focus
 on the following:
@@ -31,9 +31,9 @@ to simulate the fields at each time channel with sufficient accuracy.
 from discretize import TreeMesh
 from discretize.utils import mkvc, refine_tree_xyz, active_from_xyz
 
-from SimPEG.utils import plot2Ddata
-from SimPEG import maps
-import SimPEG.electromagnetics.time_domain as tdem
+from simpeg.utils import plot2Ddata
+from simpeg import maps
+import simpeg.electromagnetics.time_domain as tdem
 
 import numpy as np
 import matplotlib as mpl
@@ -43,7 +43,7 @@ import os
 try:
     from pymatsolver import Pardiso as Solver
 except ImportError:
-    from SimPEG import SolverLU as Solver
+    from simpeg import SolverLU as Solver
 
 save_file = False
 
@@ -68,7 +68,7 @@ topo_xyz = np.c_[mkvc(xx), mkvc(yy), mkvc(zz)]
 # Defining the Waveform
 # ---------------------
 #
-# Under *SimPEG.electromagnetic.time_domain.sources*
+# Under *simpeg.electromagnetic.time_domain.sources*
 # there are a multitude of waveforms that can be defined (VTEM, Ramp-off etc...).
 # Here, we consider a trapezoidal waveform, which consists of a
 # linear ramp-on followed by a linear ramp-off. For each waveform, it

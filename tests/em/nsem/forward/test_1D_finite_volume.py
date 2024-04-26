@@ -1,7 +1,7 @@
 import numpy as np
 from discretize import TensorMesh
-from SimPEG.electromagnetics import natural_source as nsem
-from SimPEG import maps
+from simpeg.electromagnetics import natural_source as nsem
+from simpeg import maps
 from pymatsolver import Pardiso
 import unittest
 

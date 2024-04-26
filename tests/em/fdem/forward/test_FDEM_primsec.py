@@ -2,8 +2,8 @@
 # matplotlib.use('Agg')
 
 import discretize
-from SimPEG import maps, tests, utils
-from SimPEG.electromagnetics import frequency_domain as fdem
+from simpeg import maps, tests, utils
+from simpeg.electromagnetics import frequency_domain as fdem
 
 from pymatsolver import Pardiso as Solver
 

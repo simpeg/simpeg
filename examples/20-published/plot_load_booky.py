@@ -25,7 +25,7 @@ import h5py
 import tarfile
 import os
 import shutil
-from SimPEG import utils
+from simpeg import utils
 import discretize
 
 

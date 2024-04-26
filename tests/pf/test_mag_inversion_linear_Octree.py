@@ -3,7 +3,7 @@ import unittest
 import numpy as np
 
 from discretize.utils import mesh_builder_xyz, refine_tree_xyz, active_from_xyz
-from SimPEG import (
+from simpeg import (
     directives,
     maps,
     inverse_problem,
@@ -13,7 +13,7 @@ from SimPEG import (
     utils,
     regularization,
 )
-from SimPEG.potential_fields import magnetics as mag
+from simpeg.potential_fields import magnetics as mag
 
 
 class MagInvLinProblemTest(unittest.TestCase):

@@ -4,17 +4,17 @@ import unittest
 import numpy as np
 import discretize
 
-from SimPEG.electromagnetics import resistivity as dc
-from SimPEG.electromagnetics.static import utils
-from SimPEG import maps, mkvc
-from SimPEG.utils import io_utils
+from simpeg.electromagnetics import resistivity as dc
+from simpeg.electromagnetics.static import utils
+from simpeg import maps, mkvc
+from simpeg.utils import io_utils
 import shutil
 import os
 
 try:
     from pymatsolver import Pardiso as Solver
 except ImportError:
-    from SimPEG import SolverLU as Solver
+    from simpeg import SolverLU as Solver
 
 
 class DCUtilsTests_halfspace(unittest.TestCase):

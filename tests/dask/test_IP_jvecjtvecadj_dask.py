@@ -6,8 +6,8 @@ import unittest
 import discretize as ds
 import numpy as np
 
-import SimPEG.dask  # noqa: F401
-from SimPEG import (
+import simpeg.dask  # noqa: F401
+from simpeg import (
     data_misfit,
     inverse_problem,
     inversion,
@@ -17,9 +17,9 @@ from SimPEG import (
     tests,
     utils,
 )
-from SimPEG.electromagnetics import induced_polarization as ip
-from SimPEG.electromagnetics import resistivity as dc
-from SimPEG.utils.io_utils.io_utils_electromagnetics import read_dcip2d_ubc
+from simpeg.electromagnetics import induced_polarization as ip
+from simpeg.electromagnetics import resistivity as dc
+from simpeg.utils.io_utils.io_utils_electromagnetics import read_dcip2d_ubc
 
 np.random.seed(30)
 

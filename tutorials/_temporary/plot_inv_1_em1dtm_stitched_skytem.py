@@ -20,8 +20,8 @@ from matplotlib import pyplot as plt
 from discretize import TensorMesh
 from pymatsolver import PardisoSolver
 
-from SimPEG.utils import mkvc
-from SimPEG import (
+from simpeg.utils import mkvc
+from simpeg import (
     maps,
     data,
     data_misfit,
@@ -33,12 +33,12 @@ from SimPEG import (
     utils,
 )
 
-import SimPEG.electromagnetics.time_domain_1d as em1d
-from SimPEG.electromagnetics.utils.em1d_utils import (
+import simpeg.electromagnetics.time_domain_1d as em1d
+from simpeg.electromagnetics.utils.em1d_utils import (
     get_2d_mesh,
     get_vertical_discretization_time,
 )
-from SimPEG.electromagnetics.time_domain_1d.known_waveforms import (
+from simpeg.electromagnetics.time_domain_1d.known_waveforms import (
     skytem_HM_2015,
     skytem_LM_2015,
 )

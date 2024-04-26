@@ -1,8 +1,8 @@
 import unittest
 import numpy as np
-from SimPEG import tests
+from simpeg import tests
 from scipy.constants import mu_0
-from SimPEG.electromagnetics.utils.testing_utils import getFDEMProblem
+from simpeg.electromagnetics.utils.testing_utils import getFDEMProblem
 
 testE = False
 testB = True
