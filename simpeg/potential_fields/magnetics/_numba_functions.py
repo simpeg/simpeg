@@ -15,6 +15,8 @@ except ImportError:
 else:
     from numba import jit, prange
 
+from .._numba_utils import kernels_in_nodes_to_cell
+
 
 def _sensitivity_mag(
     receivers,
@@ -117,9 +119,9 @@ def _sensitivity_mag(
         # Compute sensitivity matrix elements from the kernel values
         for k in range(n_cells):
             nodes_indices = cell_nodes[k, :]
-            ux = _kernels_in_nodes_to_cell(kx, nodes_indices)
-            uy = _kernels_in_nodes_to_cell(ky, nodes_indices)
-            uz = _kernels_in_nodes_to_cell(kz, nodes_indices)
+            ux = kernels_in_nodes_to_cell(kx, nodes_indices)
+            uy = kernels_in_nodes_to_cell(ky, nodes_indices)
+            uz = kernels_in_nodes_to_cell(kz, nodes_indices)
             if scalar_model:
                 sensitivity_matrix[i, k] = (
                     constant_factor
@@ -215,12 +217,12 @@ def _sensitivity_tmi(
         # Compute sensitivity matrix elements from the kernel values
         for k in range(n_cells):
             nodes_indices = cell_nodes[k, :]
-            uxx = _kernels_in_nodes_to_cell(kxx, nodes_indices)
-            uyy = _kernels_in_nodes_to_cell(kyy, nodes_indices)
-            uzz = _kernels_in_nodes_to_cell(kzz, nodes_indices)
-            uxy = _kernels_in_nodes_to_cell(kxy, nodes_indices)
-            uxz = _kernels_in_nodes_to_cell(kxz, nodes_indices)
-            uyz = _kernels_in_nodes_to_cell(kyz, nodes_indices)
+            uxx = kernels_in_nodes_to_cell(kxx, nodes_indices)
+            uyy = kernels_in_nodes_to_cell(kyy, nodes_indices)
+            uzz = kernels_in_nodes_to_cell(kzz, nodes_indices)
+            uxy = kernels_in_nodes_to_cell(kxy, nodes_indices)
+            uxz = kernels_in_nodes_to_cell(kxz, nodes_indices)
+            uyz = kernels_in_nodes_to_cell(kyz, nodes_indices)
             bx = uxx * fx + uxy * fy + uxz * fz
             by = uxy * fx + uyy * fy + uyz * fz
             bz = uxz * fx + uyz * fy + uzz * fz
@@ -376,9 +378,9 @@ def _forward_mag(
         # Compute sensitivity matrix elements from the kernel values
         for k in range(n_cells):
             nodes_indices = cell_nodes[k, :]
-            ux = _kernels_in_nodes_to_cell(kx, nodes_indices)
-            uy = _kernels_in_nodes_to_cell(ky, nodes_indices)
-            uz = _kernels_in_nodes_to_cell(kz, nodes_indices)
+            ux = kernels_in_nodes_to_cell(kx, nodes_indices)
+            uy = kernels_in_nodes_to_cell(ky, nodes_indices)
+            uz = kernels_in_nodes_to_cell(kz, nodes_indices)
             if scalar_model:
                 fields[i] += (
                     constant_factor
@@ -497,12 +499,12 @@ def _forward_tmi(
         # Compute sensitivity matrix elements from the kernel values
         for k in range(n_cells):
             nodes_indices = cell_nodes[k, :]
-            uxx = _kernels_in_nodes_to_cell(kxx, nodes_indices)
-            uyy = _kernels_in_nodes_to_cell(kyy, nodes_indices)
-            uzz = _kernels_in_nodes_to_cell(kzz, nodes_indices)
-            uxy = _kernels_in_nodes_to_cell(kxy, nodes_indices)
-            uxz = _kernels_in_nodes_to_cell(kxz, nodes_indices)
-            uyz = _kernels_in_nodes_to_cell(kyz, nodes_indices)
+            uxx = kernels_in_nodes_to_cell(kxx, nodes_indices)
+            uyy = kernels_in_nodes_to_cell(kyy, nodes_indices)
+            uzz = kernels_in_nodes_to_cell(kzz, nodes_indices)
+            uxy = kernels_in_nodes_to_cell(kxy, nodes_indices)
+            uxz = kernels_in_nodes_to_cell(kxz, nodes_indices)
+            uyz = kernels_in_nodes_to_cell(kyz, nodes_indices)
             bx = uxx * fx + uxy * fy + uxz * fz
             by = uxy * fx + uyy * fy + uyz * fz
             bz = uxz * fx + uyz * fy + uzz * fz
@@ -523,36 +525,6 @@ def _forward_tmi(
                         + bz * model[k + 2 * n_cells]
                     )
                 )
-
-
-@jit(nopython=True)
-def _kernels_in_nodes_to_cell(kernels, nodes_indices):
-    """
-    Evaluate integral on a given cell from evaluation of kernels on nodes
-
-    Parameters
-    ----------
-    kernels : (n_active_nodes,) array
-        Array with kernel values on each one of the nodes in the mesh.
-    nodes_indices : (8,) array of int
-        Indices of the nodes for the current cell in "F" order (x changes
-        faster than y, and y faster than z).
-
-    Returns
-    -------
-    float
-    """
-    result = (
-        -kernels[nodes_indices[0]]
-        + kernels[nodes_indices[1]]
-        + kernels[nodes_indices[2]]
-        - kernels[nodes_indices[3]]
-        + kernels[nodes_indices[4]]
-        - kernels[nodes_indices[5]]
-        - kernels[nodes_indices[6]]
-        + kernels[nodes_indices[7]]
-    )
-    return result
 
 
 _sensitivity_tmi_serial = jit(nopython=True, parallel=False)(_sensitivity_tmi)
