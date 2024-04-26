@@ -36,6 +36,14 @@ packages = [
 
 exclude = ["tests*", "examples*", "tutorials*"]
 
+include = [
+    "COPYING",
+    "COPYING.LESSER",
+    "LICENSE",
+    "README.rst",
+    "THIRD_PARTY_SOFTWARE.rst",
+]
+
 [tool.poetry.dependencies]
 discretize = ">=0.8.0"
 empymod = ">=2.0.0"
