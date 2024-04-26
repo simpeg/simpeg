@@ -276,3 +276,28 @@ class TestGetComponentsAndReceivers:
         components, receivers = components_and_receivers[0]
         assert components == ["tmi", "bx"]
         np.testing.assert_equal(receivers, receiver_locations)
+
+
+class TestInvalidMeshChoclo:
+    @pytest.fixture(params=("tensormesh", "treemesh"))
+    def mesh(self, request):
+        """Sample 2D mesh."""
+        hx, hy = [(0.1, 8)], [(0.1, 8)]
+        h = (hx, hy)
+        if request.param == "tensormesh":
+            mesh = TensorMesh(h, "CC")
+        else:
+            mesh = TreeMesh(h, origin="CC")
+            mesh.finalize()
+        return mesh
+
+    def test_invalid_mesh_with_choclo(self, mesh, mock_simulation_class):
+        """
+        Test if simulation raises error when passing an invalid mesh and using choclo
+        """
+        msg = (
+            "Invalid mesh with 2 dimensions. "
+            "Only 3D meshes are supported when using 'choclo' as engine."
+        )
+        with pytest.raises(ValueError, match=msg):
+            mock_simulation_class(mesh, engine="choclo")

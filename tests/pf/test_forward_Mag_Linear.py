@@ -690,3 +690,39 @@ def test_ana_mag_tmi_grad_forward():
         atol=1.0,
         rtol=1e-1,
     )
+
+
+class TestInvalidMeshChoclo:
+    @pytest.fixture(params=("tensormesh", "treemesh"))
+    def mesh(self, request):
+        """Sample 2D mesh."""
+        hx, hy = [(0.1, 8)], [(0.1, 8)]
+        h = (hx, hy)
+        if request.param == "tensormesh":
+            mesh = discretize.TensorMesh(h, "CC")
+        else:
+            mesh = discretize.TreeMesh(h, origin="CC")
+            mesh.finalize()
+        return mesh
+
+    def test_invalid_mesh_with_choclo(self, mesh):
+        """
+        Test if simulation raises error when passing an invalid mesh and using choclo
+        """
+        # Build survey
+        receivers_locations = np.array([[0, 0, 0]])
+        receivers = mag.Point(receivers_locations)
+        sources = mag.UniformBackgroundField(
+            receiver_list=[receivers],
+            amplitude=50_000,
+            inclination=45.0,
+            declination=12.0,
+        )
+        survey = mag.Survey(sources)
+        # Check if error is raised
+        msg = (
+            "Invalid mesh with 2 dimensions. "
+            "Only 3D meshes are supported when using 'choclo' as engine."
+        )
+        with pytest.raises(ValueError, match=msg):
+            mag.Simulation3DIntegral(mesh, survey, engine="choclo")

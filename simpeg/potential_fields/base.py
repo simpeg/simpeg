@@ -112,6 +112,9 @@ class BasePFSimulation(LinearSimulation):
         # Check sensitivity_path when engine is "choclo"
         self._check_engine_and_sensitivity_path()
 
+        # Check dimensions of the mesh when engine is "choclo"
+        self._check_engine_and_mesh_dimensions()
+
         # Find non-zero cells indices
         if ind_active is None:
             ind_active = np.ones(mesh.n_cells, dtype=bool)
@@ -337,6 +340,16 @@ class BasePFSimulation(LinearSimulation):
                 "a directory. "
                 "When using 'choclo' as the engine, 'senstivity_path' "
                 "should be the path to a new or existing file."
+            )
+
+    def _check_engine_and_mesh_dimensions(self):
+        """
+        Check dimensions of the mesh when using choclo as engine
+        """
+        if self.engine == "choclo" and self.mesh.dim != 3:
+            raise ValueError(
+                f"Invalid mesh with {self.mesh.dim} dimensions. "
+                "Only 3D meshes are supported when using 'choclo' as engine."
             )
 
     def _get_active_nodes(self):
