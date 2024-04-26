@@ -2,6 +2,7 @@
 Test interface for some DC sources.
 """
 
+
 import pytest
 import numpy as np
 from simpeg.electromagnetics.static import resistivity as dc
