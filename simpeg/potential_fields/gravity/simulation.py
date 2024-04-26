@@ -89,7 +89,7 @@ class Simulation3DIntegral(BasePFSimulation):
         Model mapping.
     sensitivity_dtype : numpy.dtype, optional
         Data type that will be used to build the sensitivity matrix.
-    store_sensitivities : str
+    store_sensitivities : {"ram", "disk", "forward_only"}
         Options for storing sensitivity matrix. There are 3 options
 
         - 'ram': sensitivities are stored in the computer's RAM
