@@ -60,7 +60,7 @@ dask = {version = "*", optional = true}
 fsspec = {version = ">=0.3.3", optional = true}
 zarr = {version = "*", optional = true}
 
-[tool.poetry.dev-dependencies]
+[tool.poetry.group.dev.dependencies]
 black = "*"
 jupyter = "*"
 memory_profiler = "*"
