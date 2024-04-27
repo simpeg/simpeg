@@ -68,18 +68,14 @@ matplotlib = { version = "*", optional = true }
 
 [tool.poetry.dev-dependencies]
 black = "*"
-empymod = "*"
 jupyter = "*"
 memory_profiler = "*"
-numpy = ">=1.7"
 pillow = "*"
 plotly = "*"
 pre-commit = "*"
 pylint = "*"
 pytest = "*"
 pytest-cov = "*"
-scikit-learn = ">=0.22"
-scipy = ">=1.0.0"
 scooby = "*"
 sphinx = "*"
 sphinx-gallery = ">=0.1.13"
