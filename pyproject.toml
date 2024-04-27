@@ -47,24 +47,18 @@ include = [
 [tool.poetry.dependencies]
 discretize = ">=0.8.0"
 empymod = ">=2.0.0"
+geoana = "*"
 geoh5py = {version = "*", allow-prereleases = true}
 #geoh5py = {url = "http://localhost:8888/geoh5py.tar.gz#sha256="}
+matplotlib = "*"
 numpy = ">=1.20"
 pandas = "*"
-pymatsolver = ">=0.2"
 scikit-learn = ">=1.2"
 scipy = ">=1.8.0"
 
 dask = {version = "*", optional = true}
 fsspec = {version = ">=0.3.3", optional = true}
 zarr = {version = "*", optional = true}
-
-# use "regular" in extras to get required geoana and matplotlib.
-# They are not actually optional, but they need to be excluded for building geoapps
-# due to matplotlib that resolves to a different package name through Conda and through pip.
-# geoapps takes care of placing explicitly geoana and matplotlib in its requirements.
-geoana = { version = "*", optional = true }
-matplotlib = { version = "*", optional = true }
 
 [tool.poetry.dev-dependencies]
 black = "*"
@@ -87,7 +81,6 @@ twine = "*"
 
 [tool.poetry.extras]
 dask = ["dask", "zarr", "fsspec"]
-regular = ["geoana", "matplotlib"]
 
 [tool.conda-lock]
 platforms = ['win-64', 'osx-64', 'linux-64']
