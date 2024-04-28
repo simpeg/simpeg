@@ -6,6 +6,7 @@ from multiprocessing import cpu_count
 from dask import array, compute, delayed
 from SimPEG.dask.simulation import dask_Jvec, dask_Jtvec, dask_getJtJdiag
 from SimPEG.dask.utils import get_parallel_blocks
+from SimPEG.electromagnetics.natural_source.sources import PlanewaveXYPrimary
 import zarr
 
 Sim.sensitivity_path = "./sensitivity/"
@@ -209,7 +210,11 @@ def parallel_block_compute(
     for address, dfdmT in zip(addresses, blocks_dfdmT):
         n_rows = len(address[1][0])
         src = self.survey.source_list[address[0][0]]
-        u_src = fields_array[:, address[0][0]]
+        if isinstance(src, PlanewaveXYPrimary):
+            u_src = fields_array
+        else:
+            u_src = fields_array[:, address[0][0]]
+
         block_delayed.append(
             array.from_delayed(
                 delayed(eval_block, pure=True)(
