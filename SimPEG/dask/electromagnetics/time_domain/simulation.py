@@ -534,9 +534,8 @@ def compute_J(self, f=None, Ainv=None):
 
     simulation_times = np.r_[0, np.cumsum(self.time_steps)] + self.t0
     data_times = self.survey.source_list[0].receiver_list[0].times
-    blocks = get_parallel_blocks(
-        self.survey.source_list, self.model.shape[0], self.max_chunk_size
-    )
+    compute_row_size = np.ceil(self.max_chunk_size / (self.model.shape[0] * 8.0 * 1e-6))
+    blocks = get_parallel_blocks(self.survey.source_list, compute_row_size)
     fields_array = f[:, ftype, :]
 
     if len(self.survey.source_list) == 1:

@@ -489,7 +489,11 @@ class Point3DTipper(PointNaturalSource):
 
     def _eval_tipper(self, src, mesh, f):
         # will grab both primary and secondary and sum them!
-        h = f[src, "h"]
+
+        if not isinstance(f, np.ndarray):
+            h = f[src, "h"]
+        else:
+            h = f
 
         hx = self.getP(mesh, "Fx", "h") @ h
         hy = self.getP(mesh, "Fy", "h") @ h
@@ -506,7 +510,11 @@ class Point3DTipper(PointNaturalSource):
 
     def _eval_tipper_deriv(self, src, mesh, f, du_dm_v=None, v=None, adjoint=False):
         # will grab both primary and secondary and sum them!
-        h = f[src, "h"]
+
+        if not isinstance(f, np.ndarray):
+            h = f[src, "h"]
+        else:
+            h = f
 
         Phx = self.getP(mesh, "Fx", "h")
         Phy = self.getP(mesh, "Fy", "h")
