@@ -653,7 +653,7 @@ class MagDipole_Bfield(MagDipole):
 
     Parameters
     ----------
-    receiver_list : list of SimPEG.electromagnetics.frequency_domain.receivers.BaseRx
+    receiver_list : list of simpeg.electromagnetics.frequency_domain.receivers.BaseRx
         A list of FDEM receivers
     frequency : float
         Source frequency
@@ -734,7 +734,7 @@ class CircularLoop(MagDipole):
 
     Parameters
     ----------
-    receiver_list : list of SimPEG.electromagnetics.frequency_domain.receivers.BaseRx
+    receiver_list : list of simpeg.electromagnetics.frequency_domain.receivers.BaseRx
         A list of FDEM receivers
     frequency : float
         Source frequency
@@ -1207,7 +1207,7 @@ class LineCurrent(BaseFDEMSrc):
 
     Parameters
     ----------
-    receiver_list : list of SimPEG.electromagnetics.frequency_domain.receivers.BaseRx
+    receiver_list : list of simpeg.electromagnetics.frequency_domain.receivers.BaseRx
         List of FDEM receivers
     frequency : float
         Source frequency
@@ -1295,7 +1295,7 @@ class LineCurrent(BaseFDEMSrc):
 
         Parameters
         ----------
-        simulation : SimPEG.electromagnetics.frequency_domain.simulation.BaseFDEMSimulation
+        simulation : simpeg.electromagnetics.frequency_domain.simulation.BaseFDEMSimulation
             Base FDEM simulation
 
         Returns
@@ -1314,7 +1314,7 @@ class LineCurrent(BaseFDEMSrc):
 
         Parameters
         ----------
-        simulation : SimPEG.electromagnetics.frequency_domain.simulation.BaseFDEMSimulation
+        simulation : simpeg.electromagnetics.frequency_domain.simulation.BaseFDEMSimulation
             Base FDEM simulation
 
         Returns
@@ -1333,7 +1333,7 @@ class LineCurrent(BaseFDEMSrc):
 
         Parameters
         ----------
-        simulation : SimPEG.electromagnetics.frequency_domain.simulation.BaseFDEMSimulation
+        simulation : simpeg.electromagnetics.frequency_domain.simulation.BaseFDEMSimulation
             Base FDEM simulation
 
         Returns

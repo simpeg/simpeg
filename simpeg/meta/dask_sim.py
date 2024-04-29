@@ -586,7 +586,7 @@ class DaskRepeatedSimulation(DaskMetaSimulation):
 
     Parameters
     ----------
-    simulation : SimPEG.simulation.BaseSimulation or dask.distributed.Future
+    simulation : simpeg.simulation.BaseSimulation or dask.distributed.Future
         The simulation to use repeatedly with different mappings.
     mappings : (n_sim) list of simpeg.maps.IdentityMap or list of dask.distributed.Future
         The list of different mappings to use (or futures that each return a mapping).

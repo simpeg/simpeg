@@ -79,7 +79,7 @@ class Simulation3DIntegral(BasePFSimulation):
     ----------
     mesh : discretize.TreeMesh or discretize.TensorMesh
         Mesh use to run the gravity simulation.
-    survey : SimPEG.potential_fields.gravity.Survey
+    survey : simpeg.potential_fields.gravity.Survey
         Gravity survey with information of the receivers.
     ind_active : (n_cells) numpy.ndarray, optional
         Array that indicates which cells in ``mesh`` are active cells.
