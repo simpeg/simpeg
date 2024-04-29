@@ -2,10 +2,10 @@ import numpy as np
 from scipy.constants import mu_0
 import unittest
 
-# SimPEG, discretize
+# simpeg, discretize
 import discretize
-from SimPEG.electromagnetics import time_domain as tdem
-from SimPEG import maps, tests
+from simpeg.electromagnetics import time_domain as tdem
+from simpeg import maps, tests
 from pymatsolver import Pardiso
 
 

@@ -1,7 +1,7 @@
 import unittest
 import numpy as np
 import discretize
-from SimPEG.electromagnetics import viscous_remanent_magnetization as vrm
+from simpeg.electromagnetics import viscous_remanent_magnetization as vrm
 
 
 class VRM_fwd_tests(unittest.TestCase):

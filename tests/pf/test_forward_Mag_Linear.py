@@ -6,8 +6,8 @@ import numpy as np
 from geoana.em.static import MagneticPrism
 from scipy.constants import mu_0
 
-from SimPEG import maps, utils
-from SimPEG.potential_fields import magnetics as mag
+from simpeg import maps, utils
+from simpeg.potential_fields import magnetics as mag
 
 
 def test_ana_mag_forward():

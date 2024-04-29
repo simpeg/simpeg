@@ -1,12 +1,12 @@
 import numpy as np
-from SimPEG.electromagnetics.utils import (
+from simpeg.electromagnetics.utils import (
     getStraightLineCurrentIntegral,
     segmented_line_current_source_term,
     line_through_faces,
 )
 import discretize
 import unittest
-from SimPEG.utils import download
+from simpeg.utils import download
 
 
 class LineCurrentTests(unittest.TestCase):

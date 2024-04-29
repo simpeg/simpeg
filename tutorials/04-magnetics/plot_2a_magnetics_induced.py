@@ -2,7 +2,7 @@
 Forward Simulation of Total Magnetic Intensity Data
 ===================================================
 
-Here we use the module *SimPEG.potential_fields.magnetics* to predict magnetic
+Here we use the module *simpeg.potential_fields.magnetics* to predict magnetic
 data for a magnetic susceptibility model. We simulate the data on a tensor mesh.
 For this tutorial, we focus on the following:
 
@@ -27,9 +27,9 @@ import os
 
 from discretize import TensorMesh
 from discretize.utils import mkvc, active_from_xyz
-from SimPEG.utils import plot2Ddata, model_builder
-from SimPEG import maps
-from SimPEG.potential_fields import magnetics
+from simpeg.utils import plot2Ddata, model_builder
+from simpeg import maps
+from simpeg.potential_fields import magnetics
 
 write_output = False
 

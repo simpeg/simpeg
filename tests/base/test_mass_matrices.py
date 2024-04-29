@@ -1,5 +1,5 @@
-from SimPEG.base import with_property_mass_matrices, BasePDESimulation
-from SimPEG import props, maps
+from simpeg.base import with_property_mass_matrices, BasePDESimulation
+from simpeg import props, maps
 import unittest
 import discretize
 import numpy as np

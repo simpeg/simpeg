@@ -5,12 +5,12 @@ Magnetic inversion on a TreeMesh
 In this example, we demonstrate the use of a Magnetic Vector Inverison
 on 3D TreeMesh for the inversion of magnetic data.
 
-The inverse problem uses the :class:'SimPEG.regularization.VectorAmplitude'
+The inverse problem uses the :class:'simpeg.regularization.VectorAmplitude'
 regularization borrowed from ...
 
 """
 
-from SimPEG import (
+from simpeg import (
     data,
     data_misfit,
     directives,
@@ -21,11 +21,11 @@ from SimPEG import (
     regularization,
 )
 
-from SimPEG import utils
-from SimPEG.utils import mkvc, sdiag
+from simpeg import utils
+from simpeg.utils import mkvc, sdiag
 
 from discretize.utils import mesh_builder_xyz, refine_tree_xyz, active_from_xyz
-from SimPEG.potential_fields import magnetics
+from simpeg.potential_fields import magnetics
 import numpy as np
 import matplotlib.pyplot as plt
 
