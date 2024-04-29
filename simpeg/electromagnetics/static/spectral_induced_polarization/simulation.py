@@ -64,7 +64,7 @@ class BaseSIPSimulation(BaseIPSimulation):
 
         Returns
         -------
-        SimPEG.electromagnetics.static.spectral_induced_polarization.survey.Survey
+        simpeg.electromagnetics.static.spectral_induced_polarization.survey.Survey
         """
         if self._survey is None:
             raise AttributeError("Simulation must have a survey")
