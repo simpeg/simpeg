@@ -207,8 +207,8 @@ def parallel_block_compute(
     count = 0
     rows = []
     block_delayed = []
-    for address, dfdmT in zip(addresses, blocks_dfdmT):
-        n_rows = len(address[1][0])
+    for address, dfdmT, dfduT in zip(addresses, blocks_dfdmT, blocks_dfduT):
+        n_cols = dfduT.shape[1]
         src = self.survey.source_list[address[0][0]]
         if isinstance(src, PlanewaveXYPrimary):
             u_src = fields_array
@@ -218,13 +218,13 @@ def parallel_block_compute(
         block_delayed.append(
             array.from_delayed(
                 delayed(eval_block, pure=True)(
-                    self, ATinvdf_duT[:, count : count + n_rows], dfdmT, u_src, src
+                    self, ATinvdf_duT[:, count : count + n_cols], dfdmT, u_src, src
                 ),
                 dtype=np.float32,
                 shape=(len(address[1][1]), m_size),
             )
         )
-        count += n_rows
+        count += n_cols
         rows.append(address[1][1])
 
     indices = np.hstack(rows)
