@@ -50,7 +50,7 @@ class Simulation3DIntegral(BasePFSimulation):
     ----------
     mesh : discretize.TreeMesh or discretize.TensorMesh
         Mesh use to run the magnetic simulation.
-    survey : SimPEG.potential_fields.magnetics.Survey
+    survey : simpeg.potential_fields.magnetics.Survey
         Magnetic survey with information of the receivers.
     ind_active : (n_cells) numpy.ndarray, optional
         Array that indicates which cells in ``mesh`` are active cells.
