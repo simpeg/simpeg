@@ -230,7 +230,7 @@ def parallel_block_compute(
         src = self.survey.source_list[address[0][0]]
         block_delayed.append(
             array.from_delayed(
-                delayed(eval_block, pure=True)(
+                eval_block(
                     self,
                     ATinvdf_duT,
                     np.arange(count, count + n_cols),
@@ -271,6 +271,7 @@ def receiver_derivs(source, receiver, mesh, fields, block):
     return dfduT, dfdmT
 
 
+@delayed
 def eval_block(
     simulation, Ainv_deriv_u, deriv_indices, deriv_m, fields, source, source_ind
 ):
