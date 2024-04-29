@@ -140,7 +140,7 @@ def compute_J(self, f=None, Ainv=None):
     else:
         Jmatrix = np.zeros((self.survey.nD, m_size), dtype=np.float32)
 
-    compute_row_size = np.ceil(self.max_chunk_size / (A_i.A.shape[0] * 16.0 * 1e-6))
+    compute_row_size = np.ceil(self.max_chunk_size / (A_i.A.shape[0] * 32.0 * 1e-6))
     blocks = get_parallel_blocks(self.survey.source_list, compute_row_size)
     count = 0
     fields_array = delayed(f[:, self._solutionType])
@@ -217,7 +217,7 @@ def parallel_block_compute(
     #     blocks_dfdmT.append(dfdmT)
 
     tc = time()
-    print(f"Compute block stack")
+    print(f"Compute block stack {len(blocks_receiver_derivs)}")
     block_stack = array.hstack(blocks_receiver_derivs).compute()
     print(f"Compute block stack time: {time() - tc}")
 
