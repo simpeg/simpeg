@@ -209,12 +209,12 @@ def parallel_block_compute(
 
     tc = time()
     print(f"Compute block stack")
-    block_stack = array.hstack(blocks_dfduT).compute()
+    block_stack = np.hstack(blocks_dfduT)
     print(f"Compute block stack time: {time() - tc}")
 
     tc = time()
     print(f"Compute direct solver")
-    ATinvdf_duT = (A_i * block_stack).reshape((fields_array.shape[0], -1))
+    ATinvdf_duT = (A_i * block_stack).reshape((A_i.A.shape[0], -1))
     print(f"Compute direct solver time: {time() - tc}")
     count = 0
     rows = []
@@ -224,15 +224,16 @@ def parallel_block_compute(
     for address, dfdmT, dfduT in zip(addresses, blocks_dfdmT, blocks_dfduT):
         n_cols = dfduT.shape[1]
         src = self.survey.source_list[address[0][0]]
-        if isinstance(src, PlanewaveXYPrimary):
-            u_src = fields_array
-        else:
-            u_src = fields_array[:, address[0][0]]
-
         block_delayed.append(
             array.from_delayed(
                 delayed(eval_block, pure=True)(
-                    self, ATinvdf_duT[:, count : count + n_cols], dfdmT, u_src, src
+                    self,
+                    ATinvdf_duT,
+                    np.arange(count, count + n_cols),
+                    dfdmT,
+                    fields_array,
+                    src,
+                    address[0][0],
                 ),
                 dtype=np.float32,
                 shape=(len(address[1][1]), m_size),
@@ -266,13 +267,22 @@ def receiver_derivs(source, receiver, mesh, fields, block):
     return dfduT, dfdmT
 
 
-def eval_block(simulation, Ainv_deriv_u, deriv_m, fields, source):
+def eval_block(
+    simulation, Ainv_deriv_u, deriv_indices, deriv_m, fields, source, source_ind
+):
     """
     Evaluate the sensitivities for the block or data and store to zarr
     """
-    dA_dmT = simulation.getADeriv(source.frequency, fields, Ainv_deriv_u, adjoint=True)
+    if isinstance(src, PlanewaveXYPrimary):
+        source_fields = fields
+    else:
+        source_fields = fields[:, source_ind]
+
+    dA_dmT = simulation.getADeriv(
+        source.frequency, source_fields, Ainv_deriv_u[:, deriv_indices], adjoint=True
+    )
     dRHS_dmT = simulation.getRHSDeriv(
-        source.frequency, source, Ainv_deriv_u, adjoint=True
+        source.frequency, source, Ainv_deriv_u[:, deriv_indices], adjoint=True
     )
     du_dmT = -dA_dmT
     if not isinstance(dRHS_dmT, Zero):
