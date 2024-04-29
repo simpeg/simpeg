@@ -8,6 +8,7 @@ from SimPEG.dask.simulation import dask_Jvec, dask_Jtvec, dask_getJtJdiag
 from SimPEG.dask.utils import get_parallel_blocks
 from SimPEG.electromagnetics.natural_source.sources import PlanewaveXYPrimary
 import zarr
+from time import time
 
 Sim.sensitivity_path = "./sensitivity/"
 Sim.gtgdiag = None
@@ -194,19 +195,29 @@ Sim.compute_J = compute_J
 def parallel_block_compute(
     self, Jmatrix, blocks_receiver_derivs, A_i, fields_array, addresses
 ):
+    print("In parallel block")
     m_size = self.model.size
+
+    tc = time()
+    print(f"Compute blocks_receiver_derivs")
     eval = compute(blocks_receiver_derivs)[0]
+    print(f"Compute blocks_receiver_derivs time: {time() - tc}")
     blocks_dfduT, blocks_dfdmT = [], []
     for dfduT, dfdmT in eval:
         blocks_dfduT.append(dfduT)
         blocks_dfdmT.append(dfdmT)
 
+    tc = time()
+    print(f"Compute direct solver")
     ATinvdf_duT = (A_i * array.hstack(blocks_dfduT).compute()).reshape(
         (fields_array.shape[0], -1)
     )
+    print(f"Compute direct solver time: {time() - tc}")
     count = 0
     rows = []
     block_delayed = []
+    tc = time()
+    print("Loop over addresses")
     for address, dfdmT, dfduT in zip(addresses, blocks_dfdmT, blocks_dfduT):
         n_cols = dfduT.shape[1]
         src = self.survey.source_list[address[0][0]]
@@ -227,6 +238,8 @@ def parallel_block_compute(
         count += n_cols
         rows.append(address[1][1])
 
+    print(f"Loop over addresses time: {time() - tc}")
+
     indices = np.hstack(rows)
 
     if self.store_sensitivities == "disk":
@@ -235,7 +248,10 @@ def parallel_block_compute(
             array.vstack(block_delayed).compute(),
         )
     else:
+        tc = time()
+        print("Compute Jmatrix")
         Jmatrix[indices, :] = array.vstack(block_delayed).compute()
+        print(f"Compute Jmatrix time: {time() - tc}")
 
     return Jmatrix
 
