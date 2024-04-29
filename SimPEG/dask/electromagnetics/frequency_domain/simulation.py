@@ -143,7 +143,7 @@ def compute_J(self, f=None, Ainv=None):
     compute_row_size = np.ceil(self.max_chunk_size / (A_i.A.shape[0] * 16.0 * 1e-6))
     blocks = get_parallel_blocks(self.survey.source_list, compute_row_size)
     count = 0
-    fields_array = f[:, self._solutionType]
+    fields_array = delayed(f[:, self._solutionType])
     addresses = []
     blocks_receiver_derivs = []
 
@@ -208,10 +208,13 @@ def parallel_block_compute(
         blocks_dfdmT.append(dfdmT)
 
     tc = time()
+    print(f"Compute block stack")
+    block_stack = array.hstack(blocks_dfduT).compute()
+    print(f"Compute block stack time: {time() - tc}")
+
+    tc = time()
     print(f"Compute direct solver")
-    ATinvdf_duT = (A_i * array.hstack(blocks_dfduT).compute()).reshape(
-        (fields_array.shape[0], -1)
-    )
+    ATinvdf_duT = (A_i * block_stack).reshape((fields_array.shape[0], -1))
     print(f"Compute direct solver time: {time() - tc}")
     count = 0
     rows = []
