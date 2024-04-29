@@ -260,8 +260,12 @@ def parallel_block_compute(
 
 @delayed
 def receiver_derivs(source, receiver, mesh, fields, block):
-    v = np.eye(receiver.nD, dtype=float)[:, block]
-    dfduT, dfdmT = receiver.evalDeriv(source, mesh, fields, v=v, adjoint=True)
+    if isinstance(source, PlanewaveXYPrimary):
+        v = np.eye(receiver.nD, dtype=float)
+    else:
+        v = sp.csr_matrix(np.ones(receiver.nD), dtype=float)
+
+    dfduT, dfdmT = receiver.evalDeriv(source, mesh, fields, v=v[:, block], adjoint=True)
 
     return dfduT.toarray(), dfdmT
 
