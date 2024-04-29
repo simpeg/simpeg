@@ -255,7 +255,14 @@ class FieldsFDEM(Fields):
             )
 
         if adjoint:
-            return (self._hDeriv_u(src, v, adjoint), Zero())
+            if (
+                isinstance(src.s_mDeriv(self.simulation, v, adjoint), Zero)
+                and isinstance(src.bPrimaryDeriv(self.simulation, v, adjoint), Zero)
+                and isinstance(self._MfMuiDeriv(v), Zero)
+            ):
+                return self._hDeriv_u(src, v, adjoint), Zero()
+
+            return (self._hDeriv_u(src, v, adjoint), self._hDeriv_m(src, v, adjoint))
         return np.array(
             self._hDeriv_u(src, du_dm_v, adjoint) + self._hDeriv_m(src, v, adjoint),
             dtype=complex,

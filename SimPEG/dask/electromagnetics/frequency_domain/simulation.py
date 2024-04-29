@@ -153,9 +153,20 @@ def compute_J(self, f=None, Ainv=None):
         for address in block:
             src = self.survey.source_list[address[0][0]]
             rx = src.receiver_list[address[0][1]]
+
+            if isinstance(src, PlanewaveXYPrimary):
+                shape = (A_i.A.shape[0], len(address[1][0]) * 2)
+            else:
+                shape = (A_i.A.shape[0], len(address[1][0]))
+
             blocks_receiver_derivs.append(
-                receiver_derivs(src, rx, self.mesh, f, address[1][0])
+                array.from_delayed(
+                    receiver_derivs(src, rx, self.mesh, f, address[1][0]),
+                    dtype=np.complex128,
+                    shape=shape,
+                )
             )
+
             count += len(address[1][0])
             addresses.append(address)
 
@@ -196,18 +207,18 @@ def parallel_block_compute(
     print("In parallel block")
     m_size = self.model.size
 
-    tc = time()
-    print(f"Compute blocks_receiver_derivs {len(blocks_receiver_derivs)}")
-    eval = compute(blocks_receiver_derivs)[0]
-    print(f"Compute blocks_receiver_derivs time: {time() - tc}")
-    blocks_dfduT, blocks_dfdmT = [], []
-    for dfduT, dfdmT in eval:
-        blocks_dfduT.append(dfduT)
-        blocks_dfdmT.append(dfdmT)
+    # tc = time()
+    # print(f"Compute blocks_receiver_derivs {len(blocks_receiver_derivs)}")
+    # eval = compute(blocks_receiver_derivs)[0]
+    # print(f"Compute blocks_receiver_derivs time: {time() - tc}")
+    # blocks_dfduT, blocks_dfdmT = [], []
+    # for dfduT, dfdmT in eval:
+    #     blocks_dfduT.append(dfduT)
+    #     blocks_dfdmT.append(dfdmT)
 
     tc = time()
     print(f"Compute block stack")
-    block_stack = np.hstack(blocks_dfduT)
+    block_stack = array.hstack(blocks_receiver_derivs).compute()
     print(f"Compute block stack time: {time() - tc}")
 
     tc = time()
@@ -219,7 +230,7 @@ def parallel_block_compute(
     block_delayed = []
     tc = time()
     print("Loop over addresses")
-    for address, dfdmT, dfduT in zip(addresses, blocks_dfdmT, blocks_dfduT):
+    for address, dfduT in zip(addresses, blocks_receiver_derivs):
         n_cols = dfduT.shape[1]
         src = self.survey.source_list[address[0][0]]
         block_delayed.append(
@@ -228,7 +239,7 @@ def parallel_block_compute(
                     self,
                     ATinvdf_duT,
                     np.arange(count, count + n_cols),
-                    dfdmT,
+                    Zero(),
                     fields_array,
                     src,
                     address[0][0],
@@ -265,9 +276,10 @@ def receiver_derivs(source, receiver, mesh, fields, block):
     else:
         v = sp.csr_matrix(np.ones(receiver.nD), dtype=float)
 
-    dfduT, dfdmT = receiver.evalDeriv(source, mesh, fields, v=v[:, block], adjoint=True)
+    # Assume the derivatives in terms of model are Zero (seems to always be case)
+    dfduT, _ = receiver.evalDeriv(source, mesh, fields, v=v[:, block], adjoint=True)
 
-    return dfduT.toarray(), dfdmT
+    return dfduT.toarray()
 
 
 @delayed
