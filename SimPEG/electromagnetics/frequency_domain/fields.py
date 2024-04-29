@@ -255,7 +255,7 @@ class FieldsFDEM(Fields):
             )
 
         if adjoint:
-            return (self._hDeriv_u(src, v, adjoint), self._hDeriv_m(src, v, adjoint))
+            return (self._hDeriv_u(src, v, adjoint), Zero())
         return np.array(
             self._hDeriv_u(src, du_dm_v, adjoint) + self._hDeriv_m(src, v, adjoint),
             dtype=complex,
