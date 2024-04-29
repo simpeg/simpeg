@@ -153,11 +153,9 @@ def compute_J(self, f=None, Ainv=None):
         for address in block:
             src = self.survey.source_list[address[0][0]]
             rx = src.receiver_list[address[0][1]]
-            # v = sp.diags(np.ones(rx.nD), dtype=float, format="csr")[:, address[1][0]]
-            v = np.eye(rx.nD, dtype=float)[:, address[1][0]]
-
-            blocks_receiver_derivs.append(receiver_derivs(src, rx, self.mesh, f, v))
-
+            blocks_receiver_derivs.append(
+                receiver_derivs(src, rx, self.mesh, f, address[1][0])
+            )
             count += len(address[1][0])
             addresses.append(address)
 
@@ -199,7 +197,7 @@ def parallel_block_compute(
     m_size = self.model.size
 
     tc = time()
-    print(f"Compute blocks_receiver_derivs")
+    print(f"Compute blocks_receiver_derivs {len(blocks_receiver_derivs)}")
     eval = compute(blocks_receiver_derivs)[0]
     print(f"Compute blocks_receiver_derivs time: {time() - tc}")
     blocks_dfduT, blocks_dfdmT = [], []
@@ -262,7 +260,8 @@ def parallel_block_compute(
 
 @delayed
 def receiver_derivs(source, receiver, mesh, fields, block):
-    dfduT, dfdmT = receiver.evalDeriv(source, mesh, fields, v=block, adjoint=True)
+    v = np.eye(receiver.nD, dtype=float)[:, block]
+    dfduT, dfdmT = receiver.evalDeriv(source, mesh, fields, v=v, adjoint=True)
 
     return dfduT, dfdmT
 
