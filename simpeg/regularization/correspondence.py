@@ -22,7 +22,7 @@ class LinearCorrespondence(BaseSimilarityMeasure):
     active_cells : None, (n_cells, ) numpy.ndarray of bool
         Boolean array defining the set of :py:class:`~.regularization.RegularizationMesh`
         cells that are active in the inversion. If ``None``, all cells are active.
-    wire_map : SimPEG.maps.Wires
+    wire_map : simpeg.maps.Wires
         Wire map connecting physical properties defined on active cells of the
         :class:`RegularizationMesh`` to the entire model.
     coefficients : None, (3) numpy.ndarray of float

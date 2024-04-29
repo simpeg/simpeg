@@ -109,14 +109,14 @@ def from_dc_to_sip_survey(survey_dc, times):
 
     Parameters
     ----------
-    dc_survey : SimPEG.electromagnetics.static.resistivity.survey.Survey
+    dc_survey : simpeg.electromagnetics.static.resistivity.survey.Survey
         DC survey object
     times : numpy.ndarray
         Time channels
 
     Returns
     -------
-    SimPEG.electromagnetics.static.spectral_induced_polarization.survey.Survey
+    simpeg.electromagnetics.static.spectral_induced_polarization.survey.Survey
         An SIP survey object
     """
     source_list = survey_dc.source_list

@@ -158,7 +158,7 @@ class BaseRx(BaseSimPEGRx):
 
         Parameters
         ----------
-        src : SimPEG.electromagnetics.static.resistivity.sources.BaseSrc
+        src : simpeg.electromagnetics.static.resistivity.sources.BaseSrc
             A DC/IP source
         mesh : discretize.base.BaseMesh
             The mesh on which the discrete set of equations is solved
@@ -198,7 +198,7 @@ class BaseRx(BaseSimPEGRx):
 
         Parameters
         ----------
-        src : SimPEG.electromagnetics.static.resistivity.sources.BaseSrc
+        src : simpeg.electromagnetics.static.resistivity.sources.BaseSrc
             A frequency-domain EM source
         mesh : discretize.base.BaseMesh
             The mesh on which the discrete set of equations is solved

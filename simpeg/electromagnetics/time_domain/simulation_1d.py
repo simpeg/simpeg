@@ -36,7 +36,7 @@ class Simulation1DLayered(BaseEM1DSimulation):
         """The survey for the simulation
         Returns
         -------
-        SimPEG.electromagnetics.time_domain.survey.Survey
+        simpeg.electromagnetics.time_domain.survey.Survey
         """
         if self._survey is None:
             raise AttributeError("Simulation must have a survey set")

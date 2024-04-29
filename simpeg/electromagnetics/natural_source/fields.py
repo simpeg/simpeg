@@ -325,7 +325,7 @@ class Fields1DPrimarySecondary(FieldsFDEM):
         """
         Derivative of the magnetic flux density with respect to the inversion model.
 
-        :param SimPEG.electromagnetics.frequency_domain.Src src: source
+        :param simpeg.electromagnetics.frequency_domain.Src src: source
         :param numpy.ndarray v: vector to take product with
         :param bool adjoint: adjoint?
         :rtype: numpy.ndarray
