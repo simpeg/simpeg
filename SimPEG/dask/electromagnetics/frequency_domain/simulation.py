@@ -214,12 +214,7 @@ def parallel_block_compute(
 
     tc = time()
     print(f"Compute direct solver")
-    ATinvdf_duT = A_i * block_stack
-
-    if ATinvdf_duT.ndim == 1:
-        ATinvdf_duT = ATinvdf_duT.reshape((A_i.A.shape[0], -1))
-
-    ATinvdf_duT = delayed(ATinvdf_duT)
+    ATinvdf_duT = delayed(A_i * block_stack)
     print(f"Compute direct solver time: {time() - tc}")
     count = 0
     rows = []
@@ -279,16 +274,21 @@ def eval_block(
     """
     Evaluate the sensitivities for the block or data and store to zarr
     """
-    if isinstance(src, PlanewaveXYPrimary):
+    if isinstance(source, PlanewaveXYPrimary):
         source_fields = fields
     else:
         source_fields = fields[:, source_ind]
 
+    if Ainv_deriv_u.ndim == 1:
+        deriv_columns = Ainv_deriv_u[:, np.newaxis]
+    else:
+        deriv_columns = Ainv_deriv_u[:, deriv_indices]
+
     dA_dmT = simulation.getADeriv(
-        source.frequency, source_fields, Ainv_deriv_u[:, deriv_indices], adjoint=True
+        source.frequency, source_fields, deriv_columns, adjoint=True
     )
     dRHS_dmT = simulation.getRHSDeriv(
-        source.frequency, source, Ainv_deriv_u[:, deriv_indices], adjoint=True
+        source.frequency, source, deriv_columns, adjoint=True
     )
     du_dmT = -dA_dmT
     if not isinstance(dRHS_dmT, Zero):
