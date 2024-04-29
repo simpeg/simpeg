@@ -2,7 +2,7 @@ from ...utils.code_utils import deprecate_class, validate_string
 
 import numpy as np
 from scipy.constants import mu_0
-
+import scipy.sparse as sp
 from ...survey import BaseRx
 
 
@@ -555,7 +555,11 @@ class Point3DTipper(PointNaturalSource):
             else:
                 ghx_v += gh_v
 
-            gh_v = Phx.T @ ghx_v + Phy.T @ ghy_v + Phz.T @ ghz_v
+            gh_v = (
+                Phx.T @ sp.csr_matrix(ghx_v)
+                + Phy.T @ sp.csr_matrix(ghy_v)
+                + Phz.T @ sp.csr_matrix(ghz_v)
+            )
             return f._hDeriv(src, None, gh_v, adjoint=True)
 
         dh_v = f._hDeriv(src, du_dm_v, v, adjoint=False)

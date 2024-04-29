@@ -263,7 +263,7 @@ def receiver_derivs(source, receiver, mesh, fields, block):
     v = np.eye(receiver.nD, dtype=float)[:, block]
     dfduT, dfdmT = receiver.evalDeriv(source, mesh, fields, v=v, adjoint=True)
 
-    return dfduT, dfdmT
+    return dfduT.toarray(), dfdmT
 
 
 @delayed
