@@ -219,6 +219,7 @@ def parallel_block_compute(
     if ATinvdf_duT.ndim == 1:
         ATinvdf_duT = ATinvdf_duT.reshape((A_i.A.shape[0], -1))
 
+    ATinvdf_duT = delayed(ATinvdf_duT)
     print(f"Compute direct solver time: {time() - tc}")
     count = 0
     rows = []
