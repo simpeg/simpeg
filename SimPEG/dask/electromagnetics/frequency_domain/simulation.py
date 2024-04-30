@@ -9,7 +9,6 @@ from SimPEG.dask.simulation import dask_Jvec, dask_Jtvec, dask_getJtJdiag
 from SimPEG.dask.utils import get_parallel_blocks
 from SimPEG.electromagnetics.natural_source.sources import PlanewaveXYPrimary
 import zarr
-from time import time
 from tqdm import tqdm
 
 Sim.sensitivity_path = "./sensitivity/"
@@ -53,19 +52,22 @@ def dask_getSourceTerm(self, freq):
     s_m, s_e = [], []
     for block in eval:
         if block[0]:
-            s_m.append(block[0])
-            s_e.append(block[1])
+            s_m += block[0]
+            s_e += block[1]
 
     if isinstance(s_m[0][0], Zero):
         s_m = Zero()
     else:
-        s_m = np.vstack(s_m).T
+        s_m = np.vstack(s_m)
+        if s_m.shape[0] < s_m.shape[1]:
+            s_m = s_m.T
 
     if isinstance(s_e[0][0], Zero):
         s_e = Zero()
     else:
-        s_e = np.vstack(s_e).T
-
+        s_e = np.vstack(s_e)
+        if s_e.shape[0] < s_e.shape[1]:
+            s_e = s_e.T
     return s_m, s_e
 
 
@@ -146,7 +148,6 @@ def fields(self, m=None, return_Ainv=False):
         self.model = m
 
     f = self.fieldsPair(self)
-    print("Computing fields")
     Ainv = {}
     for freq in self.survey.frequencies:
         A = self.getA(freq)
@@ -189,7 +190,7 @@ def compute_J(self, f=None, Ainv=None):
             self.sensitivity_path,
             mode="w",
             shape=(self.survey.nD, m_size),
-            chunks=(row_chunks, m_size),
+            chunks=(self.max_chunk_size, m_size),
         )
     else:
         Jmatrix = np.zeros((self.survey.nD, m_size), dtype=np.float32)
@@ -207,7 +208,6 @@ def compute_J(self, f=None, Ainv=None):
     blocks_receiver_derivs = []
 
     for block in blocks:
-        # print(f"Ncpu: {cpu_count()}. N data per chunk: {len(block[0][1][1])}")
         chunks = np.array_split(np.arange(len(block)), cpu_count())
         addresses_chunks = []
         block_derivs_chunks = []
@@ -242,10 +242,8 @@ def compute_J(self, f=None, Ainv=None):
         addresses.append(addresses_chunks)
         blocks_receiver_derivs.append(block_derivs_chunks)
 
-    tc = time()
-    print("Derivative blocks")
+    # Dask process for all derivatives
     blocks_receiver_derivs = compute(blocks_receiver_derivs)[0]
-    print(f"Derivative blocks time: {time() - tc}")
 
     for block_derivs_chunks, addresses_chunks in tqdm(
         zip(blocks_receiver_derivs, addresses), desc="Sensitivity rows"
@@ -259,7 +257,7 @@ def compute_J(self, f=None, Ainv=None):
 
     if self.store_sensitivities == "disk":
         del Jmatrix
-        return array.from_zarr(self.sensitivity_path + f"J.zarr")
+        return array.from_zarr(self.sensitivity_path)
     else:
         return Jmatrix
 
@@ -271,21 +269,12 @@ def parallel_block_compute(
     self, Jmatrix, blocks_receiver_derivs, A_i, fields_array, addresses
 ):
     m_size = self.model.size
-
-    tc = time()
-    print(f"Compute block stack {len(blocks_receiver_derivs)}")
     block_stack = sp.hstack(blocks_receiver_derivs).toarray()
-    print(f"Compute block stack time: {time() - tc}: shape{block_stack.shape}")
-
-    tc = time()
-    print(f"Compute direct solver")
     ATinvdf_duT = delayed(A_i * block_stack)
-    print(f"Compute direct solver time: {time() - tc}")
     count = 0
     rows = []
     block_delayed = []
-    tc = time()
-    print("Loop over addresses")
+
     for block_addresses, dfduT in zip(addresses, blocks_receiver_derivs):
         n_cols = dfduT.shape[1]
         n_rows = np.sum([address[1][2] for address in block_addresses])
@@ -308,20 +297,16 @@ def parallel_block_compute(
         count += n_cols
         rows += [address[1][1] for address in block_addresses]
 
-    print(f"Loop over addresses time: {time() - tc}")
-
     indices = np.hstack(rows)
 
     if self.store_sensitivities == "disk":
         Jmatrix.set_orthogonal_selection(
-            (np.r_[rows], slice(None)),
-            array.vstack(block_delayed).compute(),
+            (indices, slice(None)),
+            compute(array.vstack(block_delayed))[0],
         )
     else:
-        tc = time()
-        print("Compute Jmatrix")
+        # Dask process to compute row and store
         Jmatrix[indices, :] = compute(array.vstack(block_delayed))[0]
-        print(f"Compute Jmatrix time: {time() - tc}")
 
     return Jmatrix
 
