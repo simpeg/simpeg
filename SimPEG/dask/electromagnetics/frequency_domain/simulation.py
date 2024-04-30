@@ -150,7 +150,8 @@ def compute_J(self, f=None, Ainv=None):
     for block in blocks:
         addresses = []
         blocks_receiver_derivs = []
-        chunks = np.array_split(np.arange(len(block)), cpu_count())
+        print(f"Ncpu: {cpu_count()}")
+        chunks = np.array_split(np.arange(len(block)), int(cpu_count() / 2))
 
         for chunk in chunks:
             if len(chunk) == 0:
