@@ -230,7 +230,7 @@ stages:
             echo -e "\nPushing changes to simpeg/simpeg-doctest."
             git push -fq origin dev 2>&1 >/dev/null
             echo -e "\nFinished uploading generated files."
-            # Unset dotblog
+            # Unset dotglob
             shopt -u dotglob
             export GLOBIGNORE=""
           displayName: Push documentation to simpeg-doctest (dev branch)
@@ -344,7 +344,7 @@ stages:
             git push -fq origin gh-pages 2>&1 >/dev/null
             echo -e "\nFinished updating gh-pages branch."
 
-            # Unset dotblog
+            # Unset dotglob
             shopt -u dotglob
             export GLOBIGNORE=""
           displayName: Push documentation to simpeg-doctest
