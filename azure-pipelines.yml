@@ -230,6 +230,9 @@ stages:
             echo -e "\nPushing changes to simpeg/simpeg-doctest."
             git push -fq origin dev 2>&1 >/dev/null
             echo -e "\nFinished uploading generated files."
+            # Unset dotblog
+            shopt -u dotglob
+            export GLOBIGNORE=""
           displayName: Push documentation to simpeg-doctest (dev branch)
           env:
             GH_TOKEN: $(gh.token)
