@@ -40,7 +40,7 @@ def compute(self, job):
         return job.compute()
 
 
-def get_parallel_blocks(source_list: list, data_block_size) -> list:
+def get_parallel_blocks(source_list: list, data_block_size, optimize=True) -> list:
     """
     Get the blocks of sources and receivers to be computed in parallel.
 
@@ -83,7 +83,7 @@ def get_parallel_blocks(source_list: list, data_block_size) -> list:
                 row_count += chunk_size
 
     # Re-split over cpu_count if too few blocks
-    if len(blocks) < cpu_count():
+    if len(blocks) < cpu_count() and optimize:
         flatten_blocks = []
         for block in blocks:
             flatten_blocks += block

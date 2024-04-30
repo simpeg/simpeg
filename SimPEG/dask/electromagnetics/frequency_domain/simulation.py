@@ -141,52 +141,53 @@ def compute_J(self, f=None, Ainv=None):
         Jmatrix = np.zeros((self.survey.nD, m_size), dtype=np.float32)
 
     compute_row_size = np.ceil(self.max_chunk_size / (A_i.A.shape[0] * 32.0 * 1e-6))
-    blocks = get_parallel_blocks(self.survey.source_list, compute_row_size)
+    blocks = get_parallel_blocks(
+        self.survey.source_list, compute_row_size, optimize=False
+    )
     count = 0
     fields_array = delayed(f[:, self._solutionType])
-    addresses = []
-    blocks_receiver_derivs = []
 
     for block in blocks:
-        chunk_ind = [0]
+        addresses = []
+        blocks_receiver_derivs = []
+        chunks = np.array_split(block, np.floor(cpu_count() / 2))
 
-        for address in block:
-            src = self.survey.source_list[address[0][0]]
-            rx = src.receiver_list[address[0][1]]
+        for chunk in chunks:
+            if len(chunk) == 0:
+                continue
 
-            if isinstance(src, PlanewaveXYPrimary):
-                shape = (A_i.A.shape[0], len(address[1][0]) * 2)
-            else:
-                shape = (A_i.A.shape[0], len(address[1][0]))
+            n_fields = np.sum([len(block[1][0]) for block in chunk])
+
+            shape = [A_i.A.shape[0], n_fields]
+
+            if isinstance(self.survey.source_list[0], PlanewaveXYPrimary):
+                shape[1] *= 2
 
             blocks_receiver_derivs.append(
                 array.from_delayed(
-                    receiver_derivs(src, rx, self.mesh, f, address[1][0]),
+                    receiver_derivs(self.survey, self.mesh, f, chunk),
                     dtype=np.complex128,
                     shape=shape,
                 )
             )
+            addresses += chunk.tolist()
 
-            count += len(address[1][0])
-            addresses.append(address)
-
-            if count > compute_row_size * cpu_count():
-                Jmatrix = parallel_block_compute(
-                    self, Jmatrix, blocks_receiver_derivs, A_i, fields_array, addresses
-                )
-                addresses = []
-                blocks_receiver_derivs = []
-                count = 0
-
-    if blocks_receiver_derivs:
         Jmatrix = parallel_block_compute(
-            self,
-            Jmatrix,
-            blocks_receiver_derivs,
-            Ainv[src.frequency],
-            fields_array,
-            addresses,
+            self, Jmatrix, blocks_receiver_derivs, A_i, fields_array, addresses
         )
+    #     addresses = []
+    #     blocks_receiver_derivs = []
+    #     count = 0
+    #
+    # if blocks_receiver_derivs:
+    #     Jmatrix = parallel_block_compute(
+    #         self,
+    #         Jmatrix,
+    #         blocks_receiver_derivs,
+    #         Ainv[src.frequency],
+    #         fields_array,
+    #         addresses,
+    #     )
 
     for A in Ainv.values():
         A.clean()
@@ -270,16 +271,25 @@ def parallel_block_compute(
 
 
 @delayed
-def receiver_derivs(source, receiver, mesh, fields, block):
-    if isinstance(source, PlanewaveXYPrimary):
-        v = np.eye(receiver.nD, dtype=float)
-    else:
-        v = sp.csr_matrix(np.ones(receiver.nD), dtype=float)
+def receiver_derivs(survey, mesh, fields, blocks):
+    field_derivatives = []
+    for address in blocks:
+        source = survey.source_list[address[0][0]]
+        receiver = source.receiver_list[address[0][1]]
 
-    # Assume the derivatives in terms of model are Zero (seems to always be case)
-    dfduT, _ = receiver.evalDeriv(source, mesh, fields, v=v[:, block], adjoint=True)
+        if isinstance(source, PlanewaveXYPrimary):
+            v = np.eye(receiver.nD, dtype=float)
+        else:
+            v = sp.csr_matrix(np.ones(receiver.nD), dtype=float)
 
-    return dfduT.toarray()
+        # Assume the derivatives in terms of model are Zero (seems to always be case)
+        dfduT, _ = receiver.evalDeriv(
+            source, mesh, fields, v=v[:, address[1][0]], adjoint=True
+        )
+        field_derivatives.append(dfduT)
+
+    field_derivatives = sp.hstack(field_derivatives)
+    return field_derivatives.toarray()
 
 
 @delayed
