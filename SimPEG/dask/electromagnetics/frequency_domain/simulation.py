@@ -4,6 +4,7 @@ import numpy as np
 import scipy.sparse as sp
 from multiprocessing import cpu_count
 from dask import array, compute, delayed
+from dask.distributed import get_client
 from SimPEG.dask.simulation import dask_Jvec, dask_Jtvec, dask_getJtJdiag
 from SimPEG.dask.utils import get_parallel_blocks
 from SimPEG.electromagnetics.natural_source.sources import PlanewaveXYPrimary
@@ -119,6 +120,7 @@ Sim.fields = fields
 
 
 def compute_J(self, f=None, Ainv=None):
+    # client = get_client()
     if f is None:
         f, Ainv = self.fields(self.model, return_Ainv=True)
 
@@ -150,12 +152,14 @@ def compute_J(self, f=None, Ainv=None):
     fields = delayed(f)
     survey = delayed(self.survey)
     mesh = delayed(self.mesh)
+    addresses = []
+    blocks_receiver_derivs = []
 
-    for block in tqdm(blocks):
-        addresses = []
-        blocks_receiver_derivs = []
+    for block in blocks:
         print(f"Ncpu: {cpu_count()}. N data per chunk: {len(block[0][1][1])}")
-        chunks = np.array_split(np.arange(len(block)), int(cpu_count() / 2))
+        chunks = np.array_split(np.arange(len(block)), cpu_count())
+        addresses_chunks = []
+        block_derivs_chunks = []
 
         for chunk in chunks:
             if len(chunk) == 0:
@@ -170,7 +174,7 @@ def compute_J(self, f=None, Ainv=None):
             if isinstance(self.survey.source_list[0], PlanewaveXYPrimary):
                 shape[1] *= 2
 
-            blocks_receiver_derivs.append(
+            block_derivs_chunks.append(
                 array.from_delayed(
                     receiver_derivs(
                         survey,
@@ -182,10 +186,21 @@ def compute_J(self, f=None, Ainv=None):
                     shape=shape,
                 )
             )
-            addresses.append(block[chunk[0] : chunk[0] + len(chunk)])
+            addresses_chunks.append(block[chunk[0] : chunk[0] + len(chunk)])
 
+        addresses.append(addresses_chunks)
+        blocks_receiver_derivs.append(block_derivs_chunks)
+
+    tc = time()
+    print("Derivative blocks")
+    blocks_receiver_derivs = compute(blocks_receiver_derivs)[0]
+    print(f"Derivative blocks time: {time() - tc}")
+
+    for block_derivs_chunks, addresses_chunks in tqdm(
+        zip(blocks_receiver_derivs, addresses), desc="Sensitivity rows"
+    ):
         Jmatrix = parallel_block_compute(
-            self, Jmatrix, blocks_receiver_derivs, A_i, fields_array, addresses
+            self, Jmatrix, block_derivs_chunks, A_i, fields_array, addresses_chunks
         )
     #     addresses = []
     #     blocks_receiver_derivs = []
@@ -217,9 +232,8 @@ Sim.compute_J = compute_J
 def parallel_block_compute(
     self, Jmatrix, blocks_receiver_derivs, A_i, fields_array, addresses
 ):
-    print("In parallel block")
     m_size = self.model.size
-
+    # client = get_client()
     # tc = time()
     # print(f"Compute blocks_receiver_derivs {len(blocks_receiver_derivs)}")
     # eval = compute(blocks_receiver_derivs)[0]
@@ -231,7 +245,7 @@ def parallel_block_compute(
 
     tc = time()
     print(f"Compute block stack {len(blocks_receiver_derivs)}")
-    block_stack = array.hstack(blocks_receiver_derivs).compute()
+    block_stack = sp.hstack(blocks_receiver_derivs).toarray()
     print(f"Compute block stack time: {time() - tc}")
 
     tc = time()
@@ -277,7 +291,7 @@ def parallel_block_compute(
     else:
         tc = time()
         print("Compute Jmatrix")
-        Jmatrix[indices, :] = array.vstack(block_delayed).compute()
+        Jmatrix[indices, :] = compute(array.vstack(block_delayed))[0]
         print(f"Compute Jmatrix time: {time() - tc}")
 
     return Jmatrix
@@ -301,8 +315,8 @@ def receiver_derivs(survey, mesh, fields, blocks):
         )
         field_derivatives.append(dfduT)
 
-    field_derivatives = sp.hstack(field_derivatives)
-    return field_derivatives.toarray()
+    # field_derivatives = sp.hstack(field_derivatives)
+    return sp.hstack(field_derivatives)
 
 
 @delayed
