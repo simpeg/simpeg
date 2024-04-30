@@ -21,7 +21,7 @@ def rotate_data(NSEMdata, rot_angle):
     Function that rotates clockwise by rotation angle
         (- negative for a counter-clockwise rotation)
 
-    :param SimPEG.electromagnetics.natural_source.Data NSEMdata: NSEM data object to process
+    :param simpeg.electromagnetics.natural_source.Data NSEMdata: NSEM data object to process
     :param float rot_angle: Rotation angel in degrees, positive for clockwise rotation
     """
     recData = NSEMdata.toRecArray("Complex")
@@ -56,7 +56,7 @@ def extract_data_info(NSEMdata):
     Useful when assigning uncertainties to data based on frequencies and
     receiver types.
 
-    :param SimPEG.electromagnetics.natural_source.Data NSEMdata: NSEM data object to process
+    :param simpeg.electromagnetics.natural_source.Data NSEMdata: NSEM data object to process
 
     """
     dL, freqL, rxTL = [], [], []
@@ -78,7 +78,7 @@ def resample_data(NSEMdata, locs="All", freqs="All", rxs="All", verbose=False):
     (uses the numerator location as a reference). Also gives the option
     of selecting frequencies and receiver.
 
-    :param SimPEG.electromagnetics.natural_source.Data NSEMdata: NSEM data object to process
+    :param simpeg.electromagnetics.natural_source.Data NSEMdata: NSEM data object to process
 
     :param locs: receiver locations to use (default is 'All' locations)
     :type locs: numpy.ndarray, optional
@@ -217,7 +217,7 @@ def convert3Dto1Dobject(NSEMdata, rxType3D="yx"):
     Function that converts a 3D NSEMdata of a list of
     1D NSEMdata objects for running 1D inversions for.
 
-    :param SimPEG.electromagnetics.natural_source.Data NSEMdata: NSEM data object to process
+    :param simpeg.electromagnetics.natural_source.Data NSEMdata: NSEM data object to process
 
     :param rxType3D: component of the NSEMdata to use.
         Can be 'xy', 'yx' or 'det'
