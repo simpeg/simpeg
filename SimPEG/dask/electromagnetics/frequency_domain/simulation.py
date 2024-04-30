@@ -246,10 +246,11 @@ def compute_J(self, f=None, Ainv=None):
         addresses.append(addresses_chunks)
         blocks_receiver_derivs.append(block_derivs_chunks)
 
-    with Client(processes=False) as client:
-        with performance_report(filename="dask-report.html"):
-            # Dask process for all derivatives
-            blocks_receiver_derivs = compute(blocks_receiver_derivs)[0]
+    # with Client(processes=False) as client:
+    #     with performance_report(filename="dask-report.html"):
+
+    # Dask process for all derivatives
+    blocks_receiver_derivs = compute(blocks_receiver_derivs)[0]
 
     for block_derivs_chunks, addresses_chunks in tqdm(
         zip(blocks_receiver_derivs, addresses), desc="Sensitivity rows"
