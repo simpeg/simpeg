@@ -5,7 +5,7 @@
 
 [tool.poetry]
 name = "Mira-SimPEG"
-version = "0.19.0.dev8"
+version = "0.19.0.8a3"
 license = "MIT"
 description = "Mira Geoscience fork of SimPEG: Simulation and Parameter Estimation in Geophysics"
 
@@ -36,13 +36,23 @@ packages = [
 
 exclude = ["tests*", "examples*", "tutorials*"]
 
+include = [
+    "COPYING",
+    "COPYING.LESSER",
+    "LICENSE",
+    "README.rst",
+    "THIRD_PARTY_SOFTWARE.rst",
+]
+
 [tool.poetry.dependencies]
 discretize = ">=0.8.0"
 empymod = ">=2.0.0"
+geoana = "*"
 geoh5py = {version = "*", allow-prereleases = true}
+#geoh5py = {url = "http://localhost:8888/geoh5py.tar.gz#sha256="}
+matplotlib = "*"
 numpy = ">=1.20"
 pandas = "*"
-pymatsolver = ">=0.2"
 scikit-learn = ">=1.2"
 scipy = ">=1.8.0"
 
@@ -50,27 +60,16 @@ dask = {version = "*", optional = true}
 fsspec = {version = ">=0.3.3", optional = true}
 zarr = {version = "*", optional = true}
 
-# use "regular" in extras to get required geoana and matplotlib.
-# They are not actually optional, but they need to be excluded for building geoapps
-# due to matplotlib that resolves to a different package name through Conda and through pip.
-# geoapps takes care of placing explicitly geoana and matplotlib in its requirements.
-geoana = { version = "*", optional = true }
-matplotlib = { version = "*", optional = true }
-
-[tool.poetry.dev-dependencies]
+[tool.poetry.group.dev.dependencies]
 black = "*"
-empymod = "*"
 jupyter = "*"
 memory_profiler = "*"
-numpy = ">=1.7"
 pillow = "*"
 plotly = "*"
 pre-commit = "*"
 pylint = "*"
 pytest = "*"
 pytest-cov = "*"
-scikit-learn = ">=0.22"
-scipy = ">=1.0.0"
 scooby = "*"
 sphinx = "*"
 sphinx-gallery = ">=0.1.13"
@@ -82,7 +81,6 @@ twine = "*"
 
 [tool.poetry.extras]
 dask = ["dask", "zarr", "fsspec"]
-regular = ["geoana", "matplotlib"]
 
 [tool.conda-lock]
 platforms = ['win-64', 'osx-64', 'linux-64']
