@@ -1,6 +1,6 @@
 import pytest
 import numpy as np
-import simpeg.electromagnetics.static.spontaneous_potential as sp
+import simpeg.electromagnetics.static.self_potential as sp
 import simpeg.electromagnetics.static.resistivity as dc
 import discretize
 from simpeg import utils
