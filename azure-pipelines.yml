@@ -249,7 +249,7 @@ stages:
         python.version: '3.8'
       timeoutInMinutes: 240
       steps:
-        - script: |
+        - bash: |
             git config --global user.name ${GH_NAME}
             git config --global user.email ${GH_EMAIL}
             git config --list | grep user.
@@ -258,12 +258,12 @@ stages:
             GH_NAME: $(gh.name)
             GH_EMAIL: $(gh.email)
 
-        - script: |
+        - bash: |
             wget -O Mambaforge.sh  "https://github.com/conda-forge/miniforge/releases/latest/download/Mambaforge-$(uname)-$(uname -m).sh"
             bash Mambaforge.sh -b -p "${HOME}/conda"
           displayName: Install mamba
 
-        - script: |
+        - bash: |
             source "${HOME}/conda/etc/profile.d/conda.sh"
             source "${HOME}/conda/etc/profile.d/mamba.sh"
             cp environment_test.yml environment_test_with_pyversion.yml
@@ -274,13 +274,13 @@ stages:
             pip install pytest-azurepipelines
           displayName: Create Anaconda testing environment
 
-        - script: |
+        - bash: |
             source "${HOME}/conda/etc/profile.d/conda.sh"
             conda activate simpeg-test
             pip install -e .
           displayName: Build package
 
-        - script: |
+        - bash: |
             source "${HOME}/conda/etc/profile.d/conda.sh"
             conda activate simpeg-test
             export KMP_WARNINGS=0
@@ -288,7 +288,7 @@ stages:
           displayName: Building documentation
 
         # Upload dev build of the docs to gh-pages branch in simpeg/simpeg-doctest
-        - script: |
+        - bash: |
             # Capture version
             # TODO: we should be able to get the version from the
             # build.sourceBranch variable
@@ -302,24 +302,51 @@ stages:
             # Clone the repo where we store the documentation
             git clone --depth 1 https://${GH_TOKEN}@github.com/simpeg/simpeg-doctest.git
             cd simpeg-doctest
+
+            # Push built docs
+            # ---------------
+            echo -e "\nCommiting new docs."
+            # Create new orphan branch
+            git switch --orphan $version
             # Move the built docs to a new dev folder
-            mv $BUILD_SOURCESDIRECTORY/docs/_build/html "$version"
-            cp $BUILD_SOURCESDIRECTORY/docs/README.md .
-            # Add .nojekyll if missing
-            touch .nojekyll
-            # Update latest symlink
-            rm -f latest
-            ln -s "$version" latest
+            shopt -s dotglob  # configure bash to include dotfiles in * globs
+            mv $BUILD_SOURCESDIRECTORY/docs/_build/html/* -t .
             # Commit the new docs.
-            git add "$version" README.md .nojekyll latest
+            git add .
             message="Azure CI deploy ${version} from ${commit}"
             echo -e "\nMaking a new commit:"
             git commit -m "$message"
             # Make the push quiet just in case there is anything that could
             # leak sensitive information.
-            echo -e "\nPushing changes to simpeg/simpeg-doctest."
+            echo -e "\nPushing changes to simpeg/simpeg-doctest ($version branch)."
+            git push -fq origin $version 2>&1 >/dev/null
+            echo -e "\nFinished uploading generated doc files."
+
+            # Add new submodule in gh-pages
+            # -----------------------------
+            echo -e "\nAdd new submodule."
+            git switch gh-pages
+            # Clean the workspace in case of hanging untracked files
+            git clean -xdf .
+            # Add new submodule
+            git submodule add -b $version https://github.com/simpeg/simpeg-doctest $version
+            # Update latest symlink
+            rm -f latest
+            ln -s "$version" latest
+            # Commit changes
+            git add $version latest
+            message="Azure CI add submodule ${version} from ${commit}"
+            echo -e "\nMaking a new commit:"
+            git commit -m "$message"
+            # Make the push quiet just in case there is anything that could
+            # leak sensitive information.
+            echo -e "\nPushing changes to simpeg/simpeg-doctest (gh-pages branch)."
             git push -fq origin gh-pages 2>&1 >/dev/null
-            echo -e "\nFinished uploading generated files."
+            echo -e "\nFinished updating gh-pages branch."
+
+            # Unset dotblog
+            shopt -u dotglob
+            export GLOBIGNORE=""
           displayName: Push documentation to simpeg-doctest
           env:
             GH_TOKEN: $(gh.token)
