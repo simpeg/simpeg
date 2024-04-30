@@ -50,7 +50,11 @@ with different types of model sources.
 import warnings
 
 warnings.warn(
-    "The spontaneous_potential module has been renamed to self_potential. Please use the self_potential module instead. The spontaneous_potential module will be removed in simpeg 0.23.",
+    (
+        "The 'spontaneous_potential' module has been renamed to 'self_potential'. "
+        "Please use the 'self_potential' module instead. "
+        "The 'spontaneous_potential' module will be removed in SimPEG 0.23."
+    ),
     FutureWarning,
     stacklevel=2,
 )
