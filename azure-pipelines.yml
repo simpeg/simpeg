@@ -216,8 +216,8 @@ stages:
             shopt -s dotglob  # configure bash to include dotfiles in * globs
             export GLOBIGNORE=".git"  # ignore .git directory in glob
             git rm -rf * # remove all files
-            # Move the built docs to a new dev folder
-            mv $BUILD_SOURCESDIRECTORY/docs/_build/html/* -t .
+            # Copy the built docs to a new dev folder
+            cp -r $BUILD_SOURCESDIRECTORY/docs/_build/html/* -t .
             # Commit the new docs. Amend to avoid having a very large history.
             git add .
             message="Azure CI deploy dev from ${commit}"
@@ -326,7 +326,7 @@ stages:
             git switch --orphan $version
             # Move the built docs to a new dev folder
             shopt -s dotglob  # configure bash to include dotfiles in * globs
-            mv $BUILD_SOURCESDIRECTORY/docs/_build/html/* -t .
+            cp -r $BUILD_SOURCESDIRECTORY/docs/_build/html/* -t .
             # Commit the new docs.
             git add .
             message="Azure CI deploy ${version} from ${commit}"
