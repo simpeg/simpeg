@@ -319,8 +319,8 @@ stages:
             git clone --depth 1 https://${GH_TOKEN}@github.com/simpeg/simpeg-doctest.git
             cd simpeg-doctest
 
-            # Push built docs
-            # ---------------
+            # Push new docs
+            # -------------
             echo -e "\nCommiting new docs."
             # Create new orphan branch
             git switch --orphan $version
@@ -350,7 +350,7 @@ stages:
             rm -f latest
             ln -s "$version" latest
             # Commit changes
-            git add $version latest
+            git add $version latest .gitmodules
             message="Azure CI add submodule ${version} from ${commit}"
             echo -e "\nMaking a new commit:"
             git commit -m "$message"
@@ -358,7 +358,7 @@ stages:
             # leak sensitive information.
             echo -e "\nPushing changes to simpeg/simpeg-doctest (gh-pages branch)."
             git push -fq origin gh-pages 2>&1 >/dev/null
-            echo -e "\nFinished updating gh-pages branch."
+            echo -e "\nFinished adding submodule '$version' to gh-pages branch."
 
             # Unset dotglob
             shopt -u dotglob
