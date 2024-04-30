@@ -253,19 +253,6 @@ def compute_J(self, f=None, Ainv=None):
         Jmatrix = parallel_block_compute(
             self, Jmatrix, block_derivs_chunks, A_i, fields_array, addresses_chunks
         )
-    #     addresses = []
-    #     blocks_receiver_derivs = []
-    #     count = 0
-    #
-    # if blocks_receiver_derivs:
-    #     Jmatrix = parallel_block_compute(
-    #         self,
-    #         Jmatrix,
-    #         blocks_receiver_derivs,
-    #         Ainv[src.frequency],
-    #         fields_array,
-    #         addresses,
-    #     )
 
     for A in Ainv.values():
         A.clean()
@@ -284,20 +271,11 @@ def parallel_block_compute(
     self, Jmatrix, blocks_receiver_derivs, A_i, fields_array, addresses
 ):
     m_size = self.model.size
-    # client = get_client()
-    # tc = time()
-    # print(f"Compute blocks_receiver_derivs {len(blocks_receiver_derivs)}")
-    # eval = compute(blocks_receiver_derivs)[0]
-    # print(f"Compute blocks_receiver_derivs time: {time() - tc}")
-    # blocks_dfduT, blocks_dfdmT = [], []
-    # for dfduT, dfdmT in eval:
-    #     blocks_dfduT.append(dfduT)
-    #     blocks_dfdmT.append(dfdmT)
 
     tc = time()
     print(f"Compute block stack {len(blocks_receiver_derivs)}")
     block_stack = sp.hstack(blocks_receiver_derivs).toarray()
-    print(f"Compute block stack time: {time() - tc}")
+    print(f"Compute block stack time: {time() - tc}: shape{block_stack.shape}")
 
     tc = time()
     print(f"Compute direct solver")
