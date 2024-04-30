@@ -147,11 +147,14 @@ def compute_J(self, f=None, Ainv=None):
     )
     count = 0
     fields_array = delayed(f[:, self._solutionType])
+    fields = delayed(f)
+    survey = delayed(self.survey)
+    mesh = delayed(self.mesh)
 
     for block in tqdm(blocks):
         addresses = []
         blocks_receiver_derivs = []
-        print(f"Ncpu: {cpu_count()}. N data per chunk: {len(block[0][0][1])}")
+        print(f"Ncpu: {cpu_count()}. N data per chunk: {len(block[0][1][1])}")
         chunks = np.array_split(np.arange(len(block)), int(cpu_count() / 2))
 
         for chunk in chunks:
@@ -170,9 +173,9 @@ def compute_J(self, f=None, Ainv=None):
             blocks_receiver_derivs.append(
                 array.from_delayed(
                     receiver_derivs(
-                        self.survey,
-                        self.mesh,
-                        f,
+                        survey,
+                        mesh,
+                        fields,
                         block[chunk[0] : chunk[0] + len(chunk)],
                     ),
                     dtype=np.complex128,
