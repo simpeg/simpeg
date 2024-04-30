@@ -32,37 +32,41 @@ def source_evaluation(simulation, sources):
     return s_m, s_e
 
 
-def dask_getSourceTerm(self, freq):
+def dask_getSourceTerm(self, freq, source=None):
     """
     Assemble the source term. This ensures that the RHS is a vector / array
     of the correct size
     """
-    source_list = self.survey.get_sources_by_frequency(freq)
-    source_block = np.array_split(source_list, cpu_count())
+    if source is None:
+        source_list = self.survey.get_sources_by_frequency(freq)
+        source_block = np.array_split(source_list, cpu_count())
 
-    block_compute = []
-    for block in source_block:
-        if len(block) == 0:
-            continue
+        block_compute = []
+        for block in source_block:
+            if len(block) == 0:
+                continue
 
-        block_compute.append(source_evaluation(self, block))
+            block_compute.append(source_evaluation(self, block))
 
-    eval = compute(block_compute)[0]
+        eval = compute(block_compute)[0]
+        s_m, s_e = [], []
+        for block in eval:
+            if block[0]:
+                s_m += block[0]
+                s_e += block[1]
 
-    s_m, s_e = [], []
-    for block in eval:
-        if block[0]:
-            s_m += block[0]
-            s_e += block[1]
+    else:
+        sm, se = source.eval(self)
+        s_m, s_e = [sm], [se]
 
-    if isinstance(s_m[0][0], Zero):
+    if isinstance(s_m[0][0], Zero):  # Assume the rest is all Zero
         s_m = Zero()
     else:
         s_m = np.vstack(s_m)
         if s_m.shape[0] < s_m.shape[1]:
             s_m = s_m.T
 
-    if isinstance(s_e[0][0], Zero):
+    if isinstance(s_e[0][0], Zero):  # Assume the rest is all Zero
         s_e = Zero()
     else:
         s_e = np.vstack(s_e)

@@ -315,8 +315,8 @@ class PointNaturalSource(BaseRx):
                 else:
                     ghx_v -= gh_v
 
-                gh_v = Phx.T @ ghx_v + Phy.T @ ghy_v
-                ge_v = Pe.T @ ge_v
+                gh_v = Phx.T @ sp.csr_matrix(ghx_v) + Phy.T @ sp.csr_matrix(ghy_v)
+                ge_v = Pe.T @ sp.csr_matrix(ge_v)
             else:
                 if mesh.dim == 1 and self.orientation != f.field_directions:
                     gbot_v = -gbot_v
