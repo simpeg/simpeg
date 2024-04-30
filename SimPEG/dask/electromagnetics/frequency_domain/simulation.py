@@ -4,7 +4,7 @@ import numpy as np
 import scipy.sparse as sp
 from multiprocessing import cpu_count
 from dask import array, compute, delayed, config
-from dask.distributed import get_client, Client
+from dask.distributed import get_client, Client, performance_report
 from SimPEG.dask.simulation import dask_Jvec, dask_Jtvec, dask_getJtJdiag
 from SimPEG.dask.utils import get_parallel_blocks
 from SimPEG.electromagnetics.natural_source.sources import PlanewaveXYPrimary
@@ -246,8 +246,10 @@ def compute_J(self, f=None, Ainv=None):
         addresses.append(addresses_chunks)
         blocks_receiver_derivs.append(block_derivs_chunks)
 
-    # Dask process for all derivatives
-    blocks_receiver_derivs = compute(blocks_receiver_derivs)[0]
+    with Client(processes=False) as client:
+        with performance_report(filename="dask-report.html"):
+            # Dask process for all derivatives
+            blocks_receiver_derivs = compute(blocks_receiver_derivs)[0]
 
     for block_derivs_chunks, addresses_chunks in tqdm(
         zip(blocks_receiver_derivs, addresses), desc="Sensitivity rows"
