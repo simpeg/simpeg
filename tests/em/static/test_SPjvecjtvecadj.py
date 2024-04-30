@@ -129,6 +129,17 @@ def test_deprecations():
         "The 'spontaneous_potential' module will be removed in SimPEG 0.23."
     )
     with pytest.warns(FutureWarning, match=msg):
-        import simpeg.electromagnetics.static.spontaneous_potential as sp2
-    dirsp = [d for d in dir(sp) if not d.startswith("_")]
-    assert np.all([d in dir(sp2) for d in dirsp])
+        import simpeg.electromagnetics.static.spontaneous_potential  # noqa: F401
+
+
+def test_imported_objects_on_deprecated_module():
+    """
+    Test if the new `self_potential` module and the deprecated `spontaneous
+    potential` have the same members.
+    """
+    import simpeg.electromagnetics.static.spontaneous_potential as spontaneous
+
+    members_self = set([m for m in dir(sp) if not m.startswith("_")])
+    members_spontaneous = set([m for m in dir(spontaneous) if not m.startswith("_")])
+    difference = members_self - members_spontaneous
+    assert not difference
