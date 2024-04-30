@@ -150,13 +150,15 @@ def compute_J(self, f=None, Ainv=None):
     for block in blocks:
         addresses = []
         blocks_receiver_derivs = []
-        chunks = np.array_split(block, cpu_count())
+        chunks = np.array_split(np.arange(len(block)), cpu_count())
 
         for chunk in chunks:
             if len(chunk) == 0:
                 continue
 
-            n_fields = np.sum([len(block[1][0]) for block in chunk])
+            n_fields = np.sum(
+                [len(elem[1][0]) for elem in block[chunk[0] : chunk[0] + len(chunk)]]
+            )
 
             shape = [A_i.A.shape[0], n_fields]
 
@@ -165,12 +167,17 @@ def compute_J(self, f=None, Ainv=None):
 
             blocks_receiver_derivs.append(
                 array.from_delayed(
-                    receiver_derivs(self.survey, self.mesh, f, chunk),
+                    receiver_derivs(
+                        self.survey,
+                        self.mesh,
+                        f,
+                        block[chunk[0] : chunk[0] + len(chunk)],
+                    ),
                     dtype=np.complex128,
                     shape=shape,
                 )
             )
-            addresses.append(chunk.tolist())
+            addresses.append(block[chunk[0] : chunk[0] + len(chunk)])
 
         Jmatrix = parallel_block_compute(
             self, Jmatrix, blocks_receiver_derivs, A_i, fields_array, addresses
