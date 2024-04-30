@@ -213,7 +213,7 @@ stages:
             # Switch to the `dev` branch
             git switch dev
             # Clean the workspace in case of hanging untracked files
-            git clean -xdf .
+            git clean -xdff .
             # Remove all files
             shopt -s dotglob  # configure bash to include dotfiles in * globs
             export GLOBIGNORE=".git"  # ignore .git directory in glob
@@ -327,7 +327,7 @@ stages:
             echo -e "\nAdd new submodule."
             git switch gh-pages
             # Clean the workspace in case of hanging untracked files
-            git clean -xdf .
+            git clean -xdff .
             # Add new submodule
             git submodule add -b $version https://github.com/simpeg/simpeg-doctest $version
             # Update latest symlink
