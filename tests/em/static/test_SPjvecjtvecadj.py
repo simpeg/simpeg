@@ -119,9 +119,16 @@ def test_clears():
     assert sim.clean_on_model_update == []
 
 
-# test deprications
-def test_deprications():
-    with pytest.warns(FutureWarning):
+def test_deprecations():
+    """
+    Test warning after importing deprecated `spontaneous_potential` module
+    """
+    msg = (
+        "The spontaneous_potential module has been renamed to self_potential. "
+        "Please use the self_potential module instead. "
+        "The spontaneous_potential module will be removed in simpeg 0.23."
+    )
+    with pytest.warns(FutureWarning, match=msg):
         import simpeg.electromagnetics.static.spontaneous_potential as sp2
     dirsp = [d for d in dir(sp) if not d.startswith("_")]
     assert np.all([d in dir(sp2) for d in dirsp])
