@@ -9,6 +9,7 @@ from SimPEG.dask.utils import get_parallel_blocks
 from SimPEG.electromagnetics.natural_source.sources import PlanewaveXYPrimary
 import zarr
 from time import time
+from tqdm import tqdm
 
 Sim.sensitivity_path = "./sensitivity/"
 Sim.gtgdiag = None
@@ -147,10 +148,10 @@ def compute_J(self, f=None, Ainv=None):
     count = 0
     fields_array = delayed(f[:, self._solutionType])
 
-    for block in blocks:
+    for block in tqdm(blocks):
         addresses = []
         blocks_receiver_derivs = []
-        print(f"Ncpu: {cpu_count()}")
+        print(f"Ncpu: {cpu_count()}. N data per chunk: {len(block[0][0][1])}")
         chunks = np.array_split(np.arange(len(block)), int(cpu_count() / 2))
 
         for chunk in chunks:
