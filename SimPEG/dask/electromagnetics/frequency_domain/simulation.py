@@ -150,7 +150,7 @@ def compute_J(self, f=None, Ainv=None):
     for block in blocks:
         addresses = []
         blocks_receiver_derivs = []
-        chunks = np.array_split(block, np.floor(cpu_count() / 2))
+        chunks = np.array_split(block, cpu_count())
 
         for chunk in chunks:
             if len(chunk) == 0:
@@ -170,7 +170,7 @@ def compute_J(self, f=None, Ainv=None):
                     shape=shape,
                 )
             )
-            addresses += chunk.tolist()
+            addresses.append(chunk.tolist())
 
         Jmatrix = parallel_block_compute(
             self, Jmatrix, blocks_receiver_derivs, A_i, fields_array, addresses
@@ -231,9 +231,9 @@ def parallel_block_compute(
     block_delayed = []
     tc = time()
     print("Loop over addresses")
-    for address, dfduT in zip(addresses, blocks_receiver_derivs):
+    for block_addresses, dfduT in zip(addresses, blocks_receiver_derivs):
         n_cols = dfduT.shape[1]
-        src = self.survey.source_list[address[0][0]]
+        n_rows = np.sum([address[1][2] for address in block_addresses])
         block_delayed.append(
             array.from_delayed(
                 eval_block(
@@ -242,15 +242,16 @@ def parallel_block_compute(
                     np.arange(count, count + n_cols),
                     Zero(),
                     fields_array,
-                    src,
-                    address[0][0],
+                    block_addresses
+                    # src,
+                    # address[0][0],
                 ),
                 dtype=np.float32,
-                shape=(len(address[1][1]), m_size),
+                shape=(n_rows, m_size),
             )
         )
         count += n_cols
-        rows.append(address[1][1])
+        rows += [address[1][1] for address in block_addresses]
 
     print(f"Loop over addresses time: {time() - tc}")
 
@@ -293,32 +294,51 @@ def receiver_derivs(survey, mesh, fields, blocks):
 
 
 @delayed
-def eval_block(
-    simulation, Ainv_deriv_u, deriv_indices, deriv_m, fields, source, source_ind
-):
+def eval_block(simulation, Ainv_deriv_u, deriv_indices, deriv_m, fields, addresses):
     """
-    Evaluate the sensitivities for the block or data and store to zarr
+    Evaluate the sensitivities for the block or data
     """
-    if isinstance(source, PlanewaveXYPrimary):
-        source_fields = fields
-    else:
-        source_fields = fields[:, source_ind]
-
+    count = 0
+    rows = []
     if Ainv_deriv_u.ndim == 1:
         deriv_columns = Ainv_deriv_u[:, np.newaxis]
     else:
         deriv_columns = Ainv_deriv_u[:, deriv_indices]
 
-    dA_dmT = simulation.getADeriv(
-        source.frequency, source_fields, deriv_columns, adjoint=True
-    )
-    dRHS_dmT = simulation.getRHSDeriv(
-        source.frequency, source, deriv_columns, adjoint=True
-    )
-    du_dmT = -dA_dmT
-    if not isinstance(dRHS_dmT, Zero):
-        du_dmT += dRHS_dmT
-    if not isinstance(deriv_m, Zero):
-        du_dmT += deriv_m
+    for address in addresses:
+        n_receivers = address[1][2]
+        source = simulation.survey.source_list[address[0][0]]
 
-    return np.array(du_dmT, dtype=complex).reshape((du_dmT.shape[0], -1)).real.T
+        if isinstance(source, PlanewaveXYPrimary):
+            source_fields = fields
+            n_cols = 2
+        else:
+            source_fields = fields[:, address[0][0]]
+            n_cols = 1
+
+        n_cols *= n_receivers
+
+        dA_dmT = simulation.getADeriv(
+            source.frequency,
+            source_fields,
+            deriv_columns[:, count : count + n_cols],
+            adjoint=True,
+        )
+        dRHS_dmT = simulation.getRHSDeriv(
+            source.frequency,
+            source,
+            deriv_columns[:, count : count + n_cols],
+            adjoint=True,
+        )
+        du_dmT = -dA_dmT
+        if not isinstance(dRHS_dmT, Zero):
+            du_dmT += dRHS_dmT
+        if not isinstance(deriv_m, Zero):
+            du_dmT += deriv_m
+
+        rows.append(
+            np.array(du_dmT, dtype=complex).reshape((du_dmT.shape[0], -1)).real.T
+        )
+        count += n_cols
+
+    return np.vstack(rows)
