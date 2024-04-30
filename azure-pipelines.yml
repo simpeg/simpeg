@@ -165,7 +165,7 @@ stages:
         python.version: '3.8'
       timeoutInMinutes: 240
       steps:
-        - script: |
+        - bash: |
             git config --global user.name ${GH_NAME}
             git config --global user.email ${GH_EMAIL}
             git config --list | grep user.
@@ -174,12 +174,12 @@ stages:
             GH_NAME: $(gh.name)
             GH_EMAIL: $(gh.email)
 
-        - script: |
+        - bash: |
             wget -O Mambaforge.sh  "https://github.com/conda-forge/miniforge/releases/latest/download/Mambaforge-$(uname)-$(uname -m).sh"
             bash Mambaforge.sh -b -p "${HOME}/conda"
           displayName: Install mamba
 
-        - script: |
+        - bash: |
             source "${HOME}/conda/etc/profile.d/conda.sh"
             source "${HOME}/conda/etc/profile.d/mamba.sh"
             cp environment_test.yml environment_test_with_pyversion.yml
@@ -190,13 +190,13 @@ stages:
             pip install pytest-azurepipelines
           displayName: Create Anaconda testing environment
 
-        - script: |
+        - bash: |
             source "${HOME}/conda/etc/profile.d/conda.sh"
             conda activate simpeg-test
             pip install -e .
           displayName: Build package
 
-        - script: |
+        - bash: |
             source "${HOME}/conda/etc/profile.d/conda.sh"
             conda activate simpeg-test
             export KMP_WARNINGS=0
@@ -204,7 +204,7 @@ stages:
           displayName: Building documentation
 
         # Upload dev build of the docs to gh-pages branch in simpeg/simpeg-doctest
-        - script: |
+        - bash: |
             # Capture hash of last commit in simpeg
             commit=$(git rev-parse --short HEAD)
             # Clone the repo where we store the documentation
