@@ -3,8 +3,8 @@ from ....utils import Zero
 import numpy as np
 import scipy.sparse as sp
 from multiprocessing import cpu_count
-from dask import array, compute, delayed
-from dask.distributed import get_client
+from dask import array, compute, delayed, config
+from dask.distributed import get_client, Client
 from SimPEG.dask.simulation import dask_Jvec, dask_Jtvec, dask_getJtJdiag
 from SimPEG.dask.utils import get_parallel_blocks
 from SimPEG.electromagnetics.natural_source.sources import PlanewaveXYPrimary
@@ -64,6 +64,8 @@ def dask_dpred(self, m=None, f=None, compute_J=False):
 
     receiver_blocks = np.array_split(all_receivers, cpu_count())
     rows = []
+    fields_array = delayed(f[:, "h"])
+    mesh = delayed(self.mesh)
     for block in receiver_blocks:
         n_data = np.sum(rec.nD for _, _, rec in block)
         if n_data == 0:
@@ -71,13 +73,13 @@ def dask_dpred(self, m=None, f=None, compute_J=False):
 
         rows.append(
             array.from_delayed(
-                evaluate_receivers(block, self.mesh, f),
+                evaluate_receivers(block, mesh, fields_array),
                 dtype=np.float64,
                 shape=(n_data,),
             )
         )
 
-    data = array.hstack(rows).compute()
+    data = compute(array.hstack(rows))[0]
 
     if compute_J and self._Jmatrix is None:
         Jmatrix = self.compute_J(f=f, Ainv=Ainv)
@@ -156,7 +158,7 @@ def compute_J(self, f=None, Ainv=None):
     blocks_receiver_derivs = []
 
     for block in blocks:
-        print(f"Ncpu: {cpu_count()}. N data per chunk: {len(block[0][1][1])}")
+        # print(f"Ncpu: {cpu_count()}. N data per chunk: {len(block[0][1][1])}")
         chunks = np.array_split(np.arange(len(block)), cpu_count())
         addresses_chunks = []
         block_derivs_chunks = []
