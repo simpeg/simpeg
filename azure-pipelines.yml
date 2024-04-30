@@ -287,7 +287,7 @@ stages:
             make -C docs html
           displayName: Building documentation
 
-        # Upload dev build of the docs to gh-pages branch in simpeg/simpeg-doctest
+        # Upload release build of the docs to gh-pages branch in simpeg/simpeg-doctest
         - bash: |
             # Capture version
             # TODO: we should be able to get the version from the
