@@ -1,8 +1,8 @@
 """
 ============================================================================================
-Self Potential (:mod:`SimPEG.electromagnetics.static.self_potential`)
+Self Potential (:mod:`simpeg.electromagnetics.static.self_potential`)
 ============================================================================================
-.. currentmodule:: SimPEG.electromagnetics.static.self_potential
+.. currentmodule:: simpeg.electromagnetics.static.self_potential
 
 
 Simulations
@@ -14,7 +14,7 @@ Simulations
 
 Receivers
 =========
-This module makes use of the receivers in :mod:`SimPEG.electromagnetics.static.resistivity`
+This module makes use of the receivers in :mod:`simpeg.electromagnetics.static.resistivity`
 
 Sources
 =======

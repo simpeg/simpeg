@@ -6,7 +6,7 @@ Spontaneous Potential (:mod:`simpeg.electromagnetics.static.spontaneous_potentia
 
 .. admonition:: important
 
-  This module will be depricated in favour of `SimPEG.electromagnetics.static.self_potential`
+  This module will be depricated in favour of `simpeg.electromagnetics.static.self_potential`
 
 
 Simulations
