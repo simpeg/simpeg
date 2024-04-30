@@ -135,6 +135,17 @@ def fields(self, m=None, return_Ainv=False):
 Sim.fields = fields
 
 
+@delayed
+def source_evaluation(simulation, sources, time):
+    s_m, s_e = [], []
+    for source in sources:
+        sm, se = source.eval(simulation, time)
+        s_m.append(sm)
+        s_e.append(se)
+
+    return s_m, s_e
+
+
 def dask_getSourceTerm(self, tInd):
     """
     Assemble the source term. This ensures that the RHS is a vector / array
@@ -143,20 +154,9 @@ def dask_getSourceTerm(self, tInd):
     source_list = self.survey.source_list
     source_block = np.array_split(source_list, cpu_count())
 
-    def source_evaluation(simulation, sources, time):
-        s_m, s_e = [], []
-        for source in sources:
-            sm, se = source.eval(simulation, time)
-            s_m.append(sm)
-            s_e.append(se)
-
-        return s_m, s_e
-
     block_compute = []
     for block in source_block:
-        block_compute.append(
-            delayed(source_evaluation, pure=True)(self, block, self.times[tInd])
-        )
+        block_compute.append(source_evaluation(self, block, self.times[tInd]))
 
     eval = dask.compute(block_compute)[0]
 

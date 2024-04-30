@@ -23,6 +23,56 @@ Sim.clean_on_model_update = ["_Jmatrix", "_jtjdiag"]
 
 
 @delayed
+def source_evaluation(simulation, sources):
+    s_m, s_e = [], []
+    for source in sources:
+        sm, se = source.eval(simulation)
+        s_m.append(sm)
+        s_e.append(se)
+
+    return s_m, s_e
+
+
+def dask_getSourceTerm(self, freq):
+    """
+    Assemble the source term. This ensures that the RHS is a vector / array
+    of the correct size
+    """
+    source_list = self.survey.get_sources_by_frequency(freq)
+    source_block = np.array_split(source_list, cpu_count())
+
+    block_compute = []
+    for block in source_block:
+        if len(block) == 0:
+            continue
+
+        block_compute.append(source_evaluation(self, block))
+
+    eval = compute(block_compute)[0]
+
+    s_m, s_e = [], []
+    for block in eval:
+        if block[0]:
+            s_m.append(block[0])
+            s_e.append(block[1])
+
+    if isinstance(s_m[0][0], Zero):
+        s_m = Zero()
+    else:
+        s_m = np.vstack(s_m).T
+
+    if isinstance(s_e[0][0], Zero):
+        s_e = Zero()
+    else:
+        s_e = np.vstack(s_e).T
+
+    return s_m, s_e
+
+
+Sim.getSourceTerm = dask_getSourceTerm
+
+
+@delayed
 def evaluate_receivers(block, mesh, fields):
     data = []
     for source, ind, receiver in block:
@@ -64,7 +114,6 @@ def dask_dpred(self, m=None, f=None, compute_J=False):
 
     receiver_blocks = np.array_split(all_receivers, cpu_count())
     rows = []
-    fields_array = delayed(f[:, "h"])
     mesh = delayed(self.mesh)
     for block in receiver_blocks:
         n_data = np.sum(rec.nD for _, _, rec in block)
@@ -73,7 +122,7 @@ def dask_dpred(self, m=None, f=None, compute_J=False):
 
         rows.append(
             array.from_delayed(
-                evaluate_receivers(block, mesh, fields_array),
+                evaluate_receivers(block, mesh, f),
                 dtype=np.float64,
                 shape=(n_data,),
             )
@@ -97,7 +146,7 @@ def fields(self, m=None, return_Ainv=False):
         self.model = m
 
     f = self.fieldsPair(self)
-
+    print("Computing fields")
     Ainv = {}
     for freq in self.survey.frequencies:
         A = self.getA(freq)
