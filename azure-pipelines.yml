@@ -205,15 +205,13 @@ stages:
 
         # Upload dev build of the docs to gh-pages branch in simpeg/simpeg-doctest
         - bash: |
+            # Push new docs
+            # -------------
             # Capture hash of last commit in simpeg
             commit=$(git rev-parse --short HEAD)
-            # Clone the repo where we store the documentation
-            git clone --depth 1 https://${GH_TOKEN}@github.com/simpeg/simpeg-doctest.git
+            # Clone the repo where we store the documentation (dev branch)
+            git clone -b dev --depth 1 https://${GH_TOKEN}@github.com/simpeg/simpeg-doctest.git
             cd simpeg-doctest
-            # Switch to the `dev` branch
-            git switch dev
-            # Clean the workspace in case of hanging untracked files
-            git clean -xdff .
             # Remove all files
             shopt -s dotglob  # configure bash to include dotfiles in * globs
             export GLOBIGNORE=".git"  # ignore .git directory in glob
@@ -227,9 +225,27 @@ stages:
             git commit --amend --reset-author -m "$message"
             # Make the push quiet just in case there is anything that could
             # leak sensitive information.
-            echo -e "\nPushing changes to simpeg/simpeg-doctest."
+            echo -e "\nPushing changes to simpeg/simpeg-doctest (dev branch)."
             git push -fq origin dev 2>&1 >/dev/null
-            echo -e "\nFinished uploading generated files."
+            echo -e "\nFinished uploading doc files."
+
+            # Update submodule
+            # ----------------
+            # Switch to the gh-pages branch
+            git switch gh-pages
+            # Update the dev submodule
+            git submodule update --init --recursive --remote dev
+            # Commit changes
+            git add dev
+            message="Azure CI update dev submodule from ${commit}"
+            echo -e "\nMaking a new commit:"
+            git commit -m "$message"
+            # Make the push quiet just in case there is anything that could
+            # leak sensitive information.
+            echo -e "\nPushing changes to simpeg/simpeg-doctest (gh-pages branch)."
+            git push -fq origin gh-pages 2>&1 >/dev/null
+            echo -e "\nFinished updating submodule dev."
+
             # Unset dotglob
             shopt -u dotglob
             export GLOBIGNORE=""
