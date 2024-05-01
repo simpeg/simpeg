@@ -37,7 +37,7 @@ class BaseFDEMSimulation(BaseEMSimulation):
     * :math:`\vec{J} = (\sigma + i \omega \varepsilon) \vec{E}`
     * :math:`\vec{B} = \mu \vec{H}`
 
-    and magnetic and electric sources are defined as:
+    and:
 
     * :math:`\vec{S}_m` represents a magnetic source term
     * :math:`\vec{S}_e` represents a current source term

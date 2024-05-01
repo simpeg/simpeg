@@ -34,7 +34,7 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
     * :math:`\vec{j} = \sigma \vec{e}`
     * :math:`\vec{b} = \mu \vec{h}`
 
-    and magnetic and electric sources are defined as:
+    and:
 
     * :math:`\vec{s}_m` represents a magnetic source term
     * :math:`\vec{s}_e` represents a current source term
