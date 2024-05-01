@@ -228,7 +228,9 @@ def compute_J(self, f=None, Ainv=None):
     blocks_receiver_derivs = compute(blocks_receiver_derivs)[0]
 
     for block_derivs_chunks, addresses_chunks in tqdm(
-        zip(blocks_receiver_derivs, blocks), desc=f"Sensitivities at {list(Ainv)} Hz"
+        zip(blocks_receiver_derivs, blocks),
+        ncols=len(blocks_receiver_derivs),
+        desc=f"Sensitivities at {list(Ainv)[0]} Hz",
     ):
         Jmatrix = parallel_block_compute(
             self, Jmatrix, block_derivs_chunks, A_i, fields_array, addresses_chunks
