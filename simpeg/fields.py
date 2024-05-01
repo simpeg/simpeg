@@ -42,8 +42,8 @@ class Fields:
         the fields object. E.g. ``float``, ``complex``,
         {'eSolution': ``complex``, 'bSolution': ``complex``}.
 
-    Example
-    -------
+    Examples
+    --------
     We want to access the fields for a discrete solution with :math:`\mathbf{e}` discretized
     to edges and :math:`\mathbf{b}` discretized to faces. To extract the fields for all sources:
 
@@ -384,8 +384,8 @@ class TimeFields(Fields):
         Set the Python data type for each numerical field solution that is stored in
         the fields object. E.g. ``float``, ``complex``, {'eSolution': complex, 'bSolution': complex}.
 
-    Example
-    -------
+    Examples
+    --------
     We want to access the fields for a discrete solution with :math:`\mathbf{e}` discretized
     to edges and :math:`\mathbf{b}` discretized to faces. To extract the fields for all sources:
 
