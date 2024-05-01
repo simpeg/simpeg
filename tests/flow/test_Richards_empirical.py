@@ -5,8 +5,8 @@ import numpy as np
 import discretize
 from discretize.tests import check_derivative
 
-from SimPEG import maps
-from SimPEG.flow import richards
+from simpeg import maps
+from simpeg.flow import richards
 
 TOL = 1e-8
 

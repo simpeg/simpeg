@@ -13,14 +13,14 @@ New Things
 ==========
 
 @ikding was kind enough to add in more predefined EM waveforms: the
-``SimPEG.electromagnetics.time_domain.source.TriangularWaveform`` and
-``SimPEG.electromagnetics.time_domain.source.HalfSineWaveform``.
+``simpeg.electromagnetics.time_domain.source.TriangularWaveform`` and
+``simpeg.electromagnetics.time_domain.source.HalfSineWaveform``.
 
 
 Changes
 =======
 
-The defaults solvers located in ``SimPEG.utils.solver_utils`` will now accept arbitrary
+The defaults solvers located in ``simpeg.utils.solver_utils`` will now accept arbitrary
 unused kwargs when wrapping a solver. It will warn the user that a kwarg will be unused.
 This should allow us to set method specific solver options that wont break the
 default solvers when they are not used.
@@ -32,7 +32,7 @@ Bugs Squashed
 We unfortunately allowed a small bug in the ``drape_electrodes_to_topography`` function
 in the last release. This should now work properly for 3D ``discretize.TensorMesh`` again.
 
-There was also a syntax error in ``SimPEG.electromagnetics.frequency_domain.sources.RawVec_m``
+There was also a syntax error in ``simpeg.electromagnetics.frequency_domain.sources.RawVec_m``
 that was identified and fixed.
 
 There were also typos fixed, type checks were converted to ``isinstance`` checks instead,

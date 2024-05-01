@@ -1,15 +1,15 @@
 .. image:: https://raw.github.com/simpeg/simpeg/main/docs/images/simpeg-logo.png
-    :alt: SimPEG Logo
+    :alt: simpeg Logo
 
 SimPEG
 ******
 
-.. image:: https://img.shields.io/pypi/v/SimPEG.svg
-    :target: https://pypi.python.org/pypi/SimPEG
+.. image:: https://img.shields.io/pypi/v/simpeg.svg
+    :target: https://pypi.python.org/pypi/simpeg
     :alt: Latest PyPI version
 
-.. image:: https://img.shields.io/conda/v/conda-forge/SimPEG.svg
-    :target: https://anaconda.org/conda-forge/SimPEG
+.. image:: https://img.shields.io/conda/v/conda-forge/simpeg.svg
+    :target: https://anaconda.org/conda-forge/simpeg
     :alt: Latest conda-forge version
 
 .. image:: https://img.shields.io/github/license/simpeg/simpeg.svg

@@ -1,6 +1,6 @@
 import numpy as np
-from SimPEG.potential_fields import gravity as grav
-from SimPEG.potential_fields import magnetics as mag
+from simpeg.potential_fields import gravity as grav
+from simpeg.potential_fields import magnetics as mag
 
 
 def test_gravity_survey():

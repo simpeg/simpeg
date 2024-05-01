@@ -2,7 +2,7 @@
 Simulation with Analytic FDEM Solutions
 =======================================
 
-Here, the module *SimPEG.electromagnetics.analytics.FDEM* is used to simulate
+Here, the module *simpeg.electromagnetics.analytics.FDEM* is used to simulate
 harmonic electric and magnetic field for both electric and magnetic dipole
 sources in a wholespace.
 
@@ -15,8 +15,8 @@ sources in a wholespace.
 #
 
 import numpy as np
-from SimPEG import utils
-from SimPEG.electromagnetics.analytics.FDEM import (
+from simpeg import utils
+from simpeg.electromagnetics.analytics.FDEM import (
     ElectricDipoleWholeSpace,
     MagneticDipoleWholeSpace,
 )

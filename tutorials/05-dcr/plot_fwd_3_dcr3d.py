@@ -3,7 +3,7 @@
 DC Resistivity Forward Simulation in 3D
 =======================================
 
-Here we use the module *SimPEG.electromagnetics.static.resistivity* to predict
+Here we use the module *simpeg.electromagnetics.static.resistivity* to predict
 DC resistivity data on an OcTree mesh. In this tutorial, we focus on the following:
 
     - How to define the survey
@@ -35,11 +35,11 @@ import matplotlib.pyplot as plt
 from discretize import TreeMesh
 from discretize.utils import mkvc, refine_tree_xyz, active_from_xyz
 
-from SimPEG import maps, data
-from SimPEG.utils import model_builder
-from SimPEG.utils.io_utils.io_utils_electromagnetics import write_dcip_xyz
-from SimPEG.electromagnetics.static import resistivity as dc
-from SimPEG.electromagnetics.static.utils.static_utils import (
+from simpeg import maps, data
+from simpeg.utils import model_builder
+from simpeg.utils.io_utils.io_utils_electromagnetics import write_dcip_xyz
+from simpeg.electromagnetics.static import resistivity as dc
+from simpeg.electromagnetics.static.utils.static_utils import (
     generate_dcip_sources_line,
     apparent_resistivity_from_voltage,
 )
@@ -47,7 +47,7 @@ from SimPEG.electromagnetics.static.utils.static_utils import (
 # To plot DC data in 3D, the user must have the plotly package
 try:
     import plotly
-    from SimPEG.electromagnetics.static.utils.static_utils import plot_3d_pseudosection
+    from simpeg.electromagnetics.static.utils.static_utils import plot_3d_pseudosection
 
     has_plotly = True
 except ImportError:
@@ -57,7 +57,7 @@ except ImportError:
 try:
     from pymatsolver import Pardiso as Solver
 except ImportError:
-    from SimPEG import SolverLU as Solver
+    from simpeg import SolverLU as Solver
 
 mpl.rcParams.update({"font.size": 16})
 write_output = False

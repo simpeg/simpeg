@@ -6,7 +6,7 @@ This mapping allows you to go from one mesh to another.
 """
 
 import discretize
-from SimPEG import maps, utils
+from simpeg import maps, utils
 import matplotlib.pyplot as plt
 
 

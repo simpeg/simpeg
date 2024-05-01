@@ -1,4 +1,4 @@
-STYLE_CHECK_FILES = SimPEG examples tutorials tests
+STYLE_CHECK_FILES = simpeg examples tutorials tests
 
 .PHONY: help build coverage lint graphs tests docs check black flake
 
@@ -15,14 +15,14 @@ build:
 	python setup.py build_ext --inplace
 
 coverage:
-	nosetests --logging-level=INFO --with-coverage --cover-package=SimPEG --cover-html
+	nosetests --logging-level=INFO --with-coverage --cover-package=simpeg --cover-html
 	open cover/index.html
 
 lint:
-	pylint --output-format=html SimPEG > pylint.html
+	pylint --output-format=html simpeg> pylint.html
 
 graphs:
-	pyreverse -my -A -o pdf -p SimPEG SimPEG/**.py SimPEG/**/**.py
+	pyreverse -my -A -o pdf -p simpeg simpeg/**.py simpeg/**/**.py
 
 tests:
 	nosetests --logging-level=INFO
