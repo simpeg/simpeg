@@ -26,7 +26,7 @@ class PointMagnetotelluric(BaseRx):
     standard xyz coordinates; i.e. (x,y,z) is (Easting, Northing, Z +ve up).
 
     In addition to measuring the real or imaginary component of an impedance tensor
-    element :math:`Z_{ij}`, the receiver object can be set to measure the 
+    element :math:`Z_{ij}`, the receiver object can be set to measure the
     the apparent resistivity:
 
     .. math::
@@ -513,6 +513,7 @@ class PointMagnetotelluric(BaseRx):
             src, mesh, f, du_dm_v=du_dm_v, v=v, adjoint=adjoint
         )
 
+
 # Alias for preexisting name
 PointNaturalSource = PointMagnetotelluric
 
@@ -729,7 +730,6 @@ class Point3DTipper(PointNaturalSource):
         rx_eval_complex = self._eval_tipper(src, mesh, f)
         return getattr(rx_eval_complex, self.component)
 
-<<<<<<< HEAD:SimPEG/electromagnetics/natural_source/receivers.py
     def evalDeriv(self, src, mesh, f, du_dm_v=None, v=None, adjoint=False):
         # Docstring inherited from parent class (PointMagnetotelluric).
         if adjoint:
