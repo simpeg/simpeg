@@ -285,10 +285,15 @@ try:
         "css/custom.css",
     ]
 
+    # Define SimPEG version for generating links to sources in GitHub
+    github_version = SimPEG.__version__
+    if "dev" in github_version:
+        github_version = "main"
+
     html_context = {
         "github_user": "simpeg",
         "github_repo": "simpeg",
-        "github_version": "main",
+        "github_version": github_version,
         "doc_path": "docs",
     }
 except Exception:
