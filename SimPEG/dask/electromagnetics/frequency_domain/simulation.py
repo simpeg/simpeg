@@ -212,48 +212,23 @@ def compute_J(self, f=None, Ainv=None):
     blocks_receiver_derivs = []
 
     for block in blocks:
-        # chunks = np.array_split(np.arange(len(block)), cpu_count())
-        # addresses_chunks = []
-        # block_derivs_chunks = []
-
-        # for chunk in chunks:
-        #     if len(chunk) == 0:
-        #         continue
-        #
-        #     n_fields = np.sum(
-        #         [len(elem[1][0]) for elem in block[chunk[0] : chunk[0] + len(chunk)]]
-        #     )
-        #
-        #     shape = [A_i.A.shape[0], n_fields]
-        #
-        #     if isinstance(self.survey.source_list[0], PlanewaveXYPrimary):
-        #         shape[1] *= 2
-
         blocks_receiver_derivs.append(
-            # array.from_delayed(
             receiver_derivs(
                 survey,
                 mesh,
                 fields,
                 block,
             )
-            #     ),
-            #     dtype=np.complex128,
-            #     shape=shape,
-            # )
         )
-        # addresses_chunks.append(block[chunk[0] : chunk[0] + len(chunk)])
 
-        # addresses.append(addresses_chunks)
-        # blocks_receiver_derivs.append(block_derivs_chunks)
+    # with Client(processes=False) as client:
+    #     with performance_report(filename="dask-report.html"):
 
-    with Client(processes=False) as client:
-        with performance_report(filename="dask-report.html"):
-            # Dask process for all derivatives
-            blocks_receiver_derivs = compute(blocks_receiver_derivs)[0]
+    # Dask process for all derivatives
+    blocks_receiver_derivs = compute(blocks_receiver_derivs)[0]
 
     for block_derivs_chunks, addresses_chunks in tqdm(
-        zip(blocks_receiver_derivs, blocks), desc="Sensitivity rows"
+        zip(blocks_receiver_derivs, blocks), desc=f"Sensitivities at {list(Ainv)} Hz"
     ):
         Jmatrix = parallel_block_compute(
             self, Jmatrix, block_derivs_chunks, A_i, fields_array, addresses_chunks
@@ -293,9 +268,7 @@ def parallel_block_compute(
                     np.arange(count, count + n_cols),
                     Zero(),
                     fields_array,
-                    address
-                    # src,
-                    # address[0][0],
+                    address,
                 ),
                 dtype=np.float32,
                 shape=(n_rows, m_size),
@@ -336,7 +309,6 @@ def receiver_derivs(survey, mesh, fields, blocks):
         )
         field_derivatives.append(dfduT)
 
-    # field_derivatives = sp.hstack(field_derivatives)
     return field_derivatives
 
 
@@ -345,14 +317,11 @@ def eval_block(simulation, Ainv_deriv_u, deriv_indices, deriv_m, fields, address
     """
     Evaluate the sensitivities for the block or data
     """
-    # count = 0
-    # rows = []
     if Ainv_deriv_u.ndim == 1:
         deriv_columns = Ainv_deriv_u[:, np.newaxis]
     else:
         deriv_columns = Ainv_deriv_u[:, deriv_indices]
 
-    # for address in addresses:
     n_receivers = address[1][2]
     source = simulation.survey.source_list[address[0][0]]
 
@@ -382,10 +351,5 @@ def eval_block(simulation, Ainv_deriv_u, deriv_indices, deriv_m, fields, address
         du_dmT += dRHS_dmT
     if not isinstance(deriv_m, Zero):
         du_dmT += deriv_m
-
-    # rows.append(
-    #     np.array(du_dmT, dtype=complex).reshape((du_dmT.shape[0], -1)).real.T
-    # )
-    # count += n_cols
 
     return np.array(du_dmT, dtype=complex).reshape((du_dmT.shape[0], -1)).real.T
