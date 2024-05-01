@@ -289,6 +289,8 @@ try:
     github_version = SimPEG.__version__
     if "dev" in github_version:
         github_version = "main"
+    # hardcoded github_version to check if it works well. DON'T MERGE!
+    github_version = "v0.21.1"
 
     html_context = {
         "github_user": "simpeg",
