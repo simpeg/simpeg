@@ -212,48 +212,48 @@ def compute_J(self, f=None, Ainv=None):
     blocks_receiver_derivs = []
 
     for block in blocks:
-        chunks = np.array_split(np.arange(len(block)), cpu_count())
-        addresses_chunks = []
-        block_derivs_chunks = []
+        # chunks = np.array_split(np.arange(len(block)), cpu_count())
+        # addresses_chunks = []
+        # block_derivs_chunks = []
 
-        for chunk in chunks:
-            if len(chunk) == 0:
-                continue
+        # for chunk in chunks:
+        #     if len(chunk) == 0:
+        #         continue
+        #
+        #     n_fields = np.sum(
+        #         [len(elem[1][0]) for elem in block[chunk[0] : chunk[0] + len(chunk)]]
+        #     )
+        #
+        #     shape = [A_i.A.shape[0], n_fields]
+        #
+        #     if isinstance(self.survey.source_list[0], PlanewaveXYPrimary):
+        #         shape[1] *= 2
 
-            n_fields = np.sum(
-                [len(elem[1][0]) for elem in block[chunk[0] : chunk[0] + len(chunk)]]
+        blocks_receiver_derivs.append(
+            # array.from_delayed(
+            receiver_derivs(
+                survey,
+                mesh,
+                fields,
+                block,
             )
+            #     ),
+            #     dtype=np.complex128,
+            #     shape=shape,
+            # )
+        )
+        # addresses_chunks.append(block[chunk[0] : chunk[0] + len(chunk)])
 
-            shape = [A_i.A.shape[0], n_fields]
+        # addresses.append(addresses_chunks)
+        # blocks_receiver_derivs.append(block_derivs_chunks)
 
-            if isinstance(self.survey.source_list[0], PlanewaveXYPrimary):
-                shape[1] *= 2
-
-            block_derivs_chunks.append(
-                array.from_delayed(
-                    receiver_derivs(
-                        survey,
-                        mesh,
-                        fields,
-                        block[chunk[0] : chunk[0] + len(chunk)],
-                    ),
-                    dtype=np.complex128,
-                    shape=shape,
-                )
-            )
-            addresses_chunks.append(block[chunk[0] : chunk[0] + len(chunk)])
-
-        addresses.append(addresses_chunks)
-        blocks_receiver_derivs.append(block_derivs_chunks)
-
-    # with Client(processes=False) as client:
-    #     with performance_report(filename="dask-report.html"):
-
-    # Dask process for all derivatives
-    blocks_receiver_derivs = compute(blocks_receiver_derivs)[0]
+    with Client(processes=False) as client:
+        with performance_report(filename="dask-report.html"):
+            # Dask process for all derivatives
+            blocks_receiver_derivs = compute(blocks_receiver_derivs)[0]
 
     for block_derivs_chunks, addresses_chunks in tqdm(
-        zip(blocks_receiver_derivs, addresses), desc="Sensitivity rows"
+        zip(blocks_receiver_derivs, blocks), desc="Sensitivity rows"
     ):
         Jmatrix = parallel_block_compute(
             self, Jmatrix, block_derivs_chunks, A_i, fields_array, addresses_chunks
@@ -282,9 +282,9 @@ def parallel_block_compute(
     rows = []
     block_delayed = []
 
-    for block_addresses, dfduT in zip(addresses, blocks_receiver_derivs):
+    for address, dfduT in zip(addresses, blocks_receiver_derivs):
         n_cols = dfduT.shape[1]
-        n_rows = np.sum([address[1][2] for address in block_addresses])
+        n_rows = address[1][2]
         block_delayed.append(
             array.from_delayed(
                 eval_block(
@@ -293,7 +293,7 @@ def parallel_block_compute(
                     np.arange(count, count + n_cols),
                     Zero(),
                     fields_array,
-                    block_addresses
+                    address
                     # src,
                     # address[0][0],
                 ),
@@ -302,7 +302,7 @@ def parallel_block_compute(
             )
         )
         count += n_cols
-        rows += [address[1][1] for address in block_addresses]
+        rows += address[1][1].tolist()
 
     indices = np.hstack(rows)
 
@@ -337,55 +337,55 @@ def receiver_derivs(survey, mesh, fields, blocks):
         field_derivatives.append(dfduT)
 
     # field_derivatives = sp.hstack(field_derivatives)
-    return sp.hstack(field_derivatives)
+    return field_derivatives
 
 
 @delayed
-def eval_block(simulation, Ainv_deriv_u, deriv_indices, deriv_m, fields, addresses):
+def eval_block(simulation, Ainv_deriv_u, deriv_indices, deriv_m, fields, address):
     """
     Evaluate the sensitivities for the block or data
     """
-    count = 0
-    rows = []
+    # count = 0
+    # rows = []
     if Ainv_deriv_u.ndim == 1:
         deriv_columns = Ainv_deriv_u[:, np.newaxis]
     else:
         deriv_columns = Ainv_deriv_u[:, deriv_indices]
 
-    for address in addresses:
-        n_receivers = address[1][2]
-        source = simulation.survey.source_list[address[0][0]]
+    # for address in addresses:
+    n_receivers = address[1][2]
+    source = simulation.survey.source_list[address[0][0]]
 
-        if isinstance(source, PlanewaveXYPrimary):
-            source_fields = fields
-            n_cols = 2
-        else:
-            source_fields = fields[:, address[0][0]]
-            n_cols = 1
+    if isinstance(source, PlanewaveXYPrimary):
+        source_fields = fields
+        n_cols = 2
+    else:
+        source_fields = fields[:, address[0][0]]
+        n_cols = 1
 
-        n_cols *= n_receivers
+    n_cols *= n_receivers
 
-        dA_dmT = simulation.getADeriv(
-            source.frequency,
-            source_fields,
-            deriv_columns[:, count : count + n_cols],
-            adjoint=True,
-        )
-        dRHS_dmT = simulation.getRHSDeriv(
-            source.frequency,
-            source,
-            deriv_columns[:, count : count + n_cols],
-            adjoint=True,
-        )
-        du_dmT = -dA_dmT
-        if not isinstance(dRHS_dmT, Zero):
-            du_dmT += dRHS_dmT
-        if not isinstance(deriv_m, Zero):
-            du_dmT += deriv_m
+    dA_dmT = simulation.getADeriv(
+        source.frequency,
+        source_fields,
+        deriv_columns,
+        adjoint=True,
+    )
+    dRHS_dmT = simulation.getRHSDeriv(
+        source.frequency,
+        source,
+        deriv_columns,
+        adjoint=True,
+    )
+    du_dmT = -dA_dmT
+    if not isinstance(dRHS_dmT, Zero):
+        du_dmT += dRHS_dmT
+    if not isinstance(deriv_m, Zero):
+        du_dmT += deriv_m
 
-        rows.append(
-            np.array(du_dmT, dtype=complex).reshape((du_dmT.shape[0], -1)).real.T
-        )
-        count += n_cols
+    # rows.append(
+    #     np.array(du_dmT, dtype=complex).reshape((du_dmT.shape[0], -1)).real.T
+    # )
+    # count += n_cols
 
-    return np.vstack(rows)
+    return np.array(du_dmT, dtype=complex).reshape((du_dmT.shape[0], -1)).real.T
