@@ -176,7 +176,6 @@ Sim.fields = fields
 
 
 def compute_J(self, f=None, Ainv=None):
-    # client = get_client()
     if f is None:
         f, Ainv = self.fields(self.model, return_Ainv=True)
 
@@ -203,12 +202,10 @@ def compute_J(self, f=None, Ainv=None):
     blocks = get_parallel_blocks(
         self.survey.source_list, compute_row_size, optimize=False
     )
-    count = 0
     fields_array = delayed(f[:, self._solutionType])
     fields = delayed(f)
     survey = delayed(self.survey)
     mesh = delayed(self.mesh)
-    addresses = []
     blocks_receiver_derivs = []
 
     for block in blocks:
