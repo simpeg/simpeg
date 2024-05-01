@@ -1,8 +1,8 @@
 import unittest
-from SimPEG.utils import sdiag
+from simpeg.utils import sdiag
 import numpy as np
 import scipy.sparse as sp
-from SimPEG import optimization
+from simpeg import optimization
 from discretize.tests import get_quadratic, rosenbrock
 
 TOL = 1e-2
@@ -49,11 +49,11 @@ class TestOptimizers(unittest.TestCase):
         self.assertTrue(np.linalg.norm(xopt - x_true, 2) < TOL, True)
 
     def test_NewtonRoot(self):
-        fun = (
-            lambda x, return_g=True: np.sin(x)
-            if not return_g
-            else (np.sin(x), sdiag(np.cos(x)))
-        )
+        def fun(x, return_g=True):
+            if return_g:
+                return np.sin(x), sdiag(np.cos(x))
+            return np.sin(x)
+
         x = np.array([np.pi - 0.3, np.pi + 0.1, 0])
         xopt = optimization.NewtonRoot(comments=False).root(fun, x)
         x_true = np.array([np.pi, np.pi, 0])

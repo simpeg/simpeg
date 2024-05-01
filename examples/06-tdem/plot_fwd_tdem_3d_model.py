@@ -2,17 +2,18 @@
 Time-domain CSEM for a resistive cube in a deep marine setting
 ==============================================================
 """
+
 import empymod
 import discretize
 
 try:
     from pymatsolver import Pardiso as Solver
 except ImportError:
-    from SimPEG import SolverLU as Solver
+    from simpeg import SolverLU as Solver
 
 import numpy as np
-from SimPEG import maps
-from SimPEG.electromagnetics import time_domain as TDEM
+from simpeg import maps
+from simpeg.electromagnetics import time_domain as TDEM
 import matplotlib.pyplot as plt
 
 ###############################################################################
@@ -277,10 +278,10 @@ epm_bg = empymod.bipole(**inp)
 
 
 ###############################################################################
-# (E) `SimPEG`
+# (E) `simpeg`
 # ------------
 #
-# Set-up SimPEG-specific parameters.
+# Set-up simpeg-specific parameters.
 
 
 # Set up the receiver list
@@ -339,8 +340,8 @@ plt.title("Resistive cube in a deep marine setting")
 
 plt.plot(times, epm_bg * 1e9, ".4", lw=2, label="empymod")
 
-plt.plot(times, spg_bg * 1e9, "C0--", label="SimPEG Background")
-plt.plot(times, spg_tg * 1e9, "C1--", label="SimPEG Target")
+plt.plot(times, spg_bg * 1e9, "C0--", label="simpeg Background")
+plt.plot(times, spg_tg * 1e9, "C1--", label="simpeg Target")
 
 plt.ylabel("$E_x$ (nV/m)")
 plt.xscale("log")
@@ -359,4 +360,4 @@ plt.show()
 
 
 ###############################################################################
-# empymod.Report([SimPEG, discretize, pymatsolver])
+# empymod.Report([simpeg, discretize, pymatsolver])

@@ -16,13 +16,12 @@ least-squares approach. For this tutorial, we focus on the following:
 
 """
 
-
 import numpy as np
 import matplotlib.pyplot as plt
 
 from discretize import TensorMesh
 
-from SimPEG import (
+from simpeg import (
     simulation,
     maps,
     data_misfit,

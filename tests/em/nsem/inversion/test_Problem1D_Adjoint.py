@@ -2,8 +2,8 @@ import numpy as np
 import unittest
 from scipy.constants import mu_0
 
-from SimPEG.electromagnetics import natural_source as nsem
-from SimPEG import maps
+from simpeg.electromagnetics import natural_source as nsem
+from simpeg import maps
 
 
 TOL = 1e-4

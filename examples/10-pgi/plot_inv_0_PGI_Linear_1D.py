@@ -15,7 +15,7 @@ We explore it through the UBC linear example.
 import discretize as Mesh
 import matplotlib.pyplot as plt
 import numpy as np
-from SimPEG import (
+from simpeg import (
     data_misfit,
     directives,
     inverse_problem,
@@ -65,7 +65,7 @@ mtrue[mesh.cell_centers_x > 0.3] = 1.0
 mtrue[mesh.cell_centers_x > 0.45] = -0.5
 mtrue[mesh.cell_centers_x > 0.6] = 0
 
-# SimPEG problem and survey
+# simpeg problem and survey
 prob = simulation.LinearSimulation(mesh, G=G, model_map=maps.IdentityMap())
 std = 0.01
 survey = prob.make_synthetic_data(mtrue, relative_error=std, add_noise=True)

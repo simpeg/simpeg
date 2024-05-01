@@ -44,17 +44,18 @@ If you would use this example for a code comparison, or build upon it,
 a citation would be much appreciated!
 
 """
+
 import matplotlib.pylab as plt
 import numpy as np
 import discretize
-from SimPEG import maps, utils
-from SimPEG.electromagnetics import frequency_domain as FDEM
+from simpeg import maps, utils
+from simpeg.electromagnetics import frequency_domain as FDEM
 import time
 
 try:
     from pymatsolver import Pardiso as Solver
 except Exception:
-    from SimPEG import SolverLU as Solver
+    from simpeg import SolverLU as Solver
 
 
 def run(plotIt=True):

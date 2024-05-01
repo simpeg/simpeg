@@ -12,9 +12,10 @@ model.
 
 
 """
+
 from discretize import TensorMesh
 from discretize.utils import active_from_xyz
-from SimPEG import (
+from simpeg import (
     utils,
     maps,
     regularization,
@@ -24,7 +25,7 @@ from SimPEG import (
     directives,
     inversion,
 )
-from SimPEG.potential_fields import magnetics
+from simpeg.potential_fields import magnetics
 import numpy as np
 import matplotlib.pyplot as plt
 

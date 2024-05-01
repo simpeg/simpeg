@@ -1,7 +1,7 @@
 import unittest
-from SimPEG import maps
-import SimPEG.electromagnetics.time_domain as tdem
-from SimPEG.electromagnetics.utils import convolve_with_waveform
+from simpeg import maps
+import simpeg.electromagnetics.time_domain as tdem
+from simpeg.electromagnetics.utils import convolve_with_waveform
 from geoana.em.tdem import (
     vertical_magnetic_flux_horizontal_loop as b_loop,
     vertical_magnetic_flux_time_deriv_horizontal_loop as dbdt_loop,
