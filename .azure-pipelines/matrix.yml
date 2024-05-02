@@ -23,6 +23,14 @@ jobs:
             vmImage: ${{ os }}
           timeoutInMinutes: 120
           steps:
+
+          # Checkout simpeg repo, including tags.
+          # We need to sync tags in order to get the SimPEG version while
+          # building the docs.
+          - checkout: self
+            fetchTags: true
+            displayName: Checkout repository (including tags)
+
           - script: |
               wget -O Mambaforge.sh  "https://github.com/conda-forge/miniforge/releases/latest/download/Mambaforge-$(uname)-$(uname -m).sh"
               bash Mambaforge.sh -b -p "${HOME}/conda"
