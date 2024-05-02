@@ -33,8 +33,8 @@ def _partition_args(mesh, Hcond, Theta, hcond_args, theta_args, **kwargs):
 class NonLinearModel(props.HasModel):
     """A non linear model that has dependence on the fields and a model"""
 
-    counter = None  #: A SimPEG.utils.Counter object
-    mesh = None  #: A SimPEG Mesh
+    counter = None  #: A simpeg.utils.Counter object
+    mesh = None  #: A discretize Mesh
 
     def __init__(self, mesh, **kwargs):
         self.mesh = mesh
@@ -570,9 +570,7 @@ class Vangenuchten_k(BaseHydraulicConductivity):
         dKs_dm_p = P_p * self.KsDeriv
         dKs_dm_n = (
             P_n
-            * utils.sdiag(
-                theta_e**I * ((1.0 - (1.0 - theta_e ** (1.0 / m)) ** m) ** 2)
-            )
+            * utils.sdiag(theta_e**I * ((1.0 - (1.0 - theta_e ** (1.0 / m)) ** m) ** 2))
             * self.KsDeriv
         )
         return dKs_dm_p + dKs_dm_n

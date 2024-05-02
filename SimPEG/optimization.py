@@ -262,7 +262,7 @@ class Minimize(object):
     comment = (
         ""  #: Used by some functions to indicate what is going on in the algorithm
     )
-    counter = None  #: Set this to a SimPEG.utils.Counter() if you want to count things
+    counter = None  #: Set this to a simpeg.utils.Counter() if you want to count things
     parent = None  #: This is the parent of the optimization routine.
 
     print_type = None
@@ -945,7 +945,7 @@ class BFGS(Minimize, Remember):
         """
         Approximate Hessian used in preconditioning the problem.
 
-        Must be a SimPEG.Solver
+        Must be a simpeg.Solver
         """
         if getattr(self, "_bfgsH0", None) is None:
             print(
@@ -975,7 +975,7 @@ class BFGS(Minimize, Remember):
     def bfgsrec(self, k, n, nn, S, Y, d):
         """BFGS recursion"""
         if k < 0:
-            d = self.bfgsH0 * d  # Assume that bfgsH0 is a SimPEG.Solver
+            d = self.bfgsH0 * d  # Assume that bfgsH0 is a simpeg.Solver
         else:
             khat = 0 if nn == 0 else np.mod(n - nn + k, nn)
             gamma = np.vdot(S[:, khat], d) / np.vdot(Y[:, khat], S[:, khat])
@@ -1034,7 +1034,7 @@ class InexactGaussNewton(BFGS, Minimize, Remember):
     Use *nbfgs* to set the memory limitation of BFGS.
 
     To set the initial H0 to be used in BFGS, set *bfgsH0* to be a
-    SimPEG.Solver
+    simpeg.Solver
 
     """
 

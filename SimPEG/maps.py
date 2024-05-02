@@ -258,7 +258,7 @@ class IdentityMap:
         )
 
     def dot(self, map1):
-        r"""Multiply two mappings to create a :class:`SimPEG.maps.ComboMap`.
+        r"""Multiply two mappings to create a :class:`simpeg.maps.ComboMap`.
 
         Let :math:`\mathbf{f}_1` and :math:`\mathbf{f}_2` represent two mapping functions.
         Where :math:`\mathbf{m}` represents a set of input model parameters,
@@ -289,7 +289,7 @@ class IdentityMap:
         a vector space of length 5, then takes the natural exponent.
 
         >>> import numpy as np
-        >>> from SimPEG.maps import ExpMap, Projection
+        >>> from simpeg.maps import ExpMap, Projection
 
         >>> nP1 = 1
         >>> nP2 = 5
@@ -378,7 +378,7 @@ class ComboMap(IdentityMap):
 
     Parameters
     ----------
-    maps : list of SimPEG.maps.IdentityMap
+    maps : list of simpeg.maps.IdentityMap
         A ``list`` of SimPEG mapping objects. The ordering of the mapping
         objects in the ``list`` is from last applied to first applied!
 
@@ -388,7 +388,7 @@ class ComboMap(IdentityMap):
     a vector space of length 5, then takes the natural exponent.
 
     >>> import numpy as np
-    >>> from SimPEG.maps import ExpMap, Projection, ComboMap
+    >>> from simpeg.maps import ExpMap, Projection, ComboMap
 
     >>> nP1 = 1
     >>> nP2 = 5
@@ -655,7 +655,7 @@ class Projection(IdentityMap):
     Here we define a mapping that rearranges and projects 2 model
     parameters to a vector space spanning 4 parameters.
 
-    >>> from SimPEG.maps import Projection
+    >>> from simpeg.maps import Projection
     >>> import numpy as np
 
     >>> nP = 2
@@ -895,7 +895,7 @@ class SurjectUnits(IdentityMap):
     all cells whose centers are located at *x < 0* and the 2nd unit's value
     is assigned to all cells whose centers are located at *x > 0*.
 
-    >>> from SimPEG.maps import SurjectUnits
+    >>> from simpeg.maps import SurjectUnits
     >>> from discretize import TensorMesh
     >>> import numpy as np
 
@@ -1277,7 +1277,7 @@ class Wires(object):
     are two parameters types. Note that the number of parameters
     of each type does not need to be the same.
 
-    >>> from SimPEG.maps import Wires, ReciprocalMap
+    >>> from simpeg.maps import Wires, ReciprocalMap
     >>> import numpy as np
 
     >>> p1 = np.r_[4.5, 2.7, 6.9, 7.1, 1.2]
@@ -1697,9 +1697,7 @@ class SelfConsistentEffectiveMedium(IdentityMap):
         if alpha < 1.0:  # oblate spheroid
             chi = np.sqrt((1.0 / alpha**2.0) - 1)
             return (
-                1.0
-                / 2.0
-                * (1 + 1.0 / (alpha**2.0 - 1) * (1.0 - np.arctan(chi) / chi))
+                1.0 / 2.0 * (1 + 1.0 / (alpha**2.0 - 1) * (1.0 - np.arctan(chi) / chi))
             )
         elif alpha > 1.0:  # prolate spheroid
             chi = np.sqrt(1 - (1.0 / alpha**2.0))
@@ -2681,7 +2679,7 @@ class ComplexMap(IdentityMap):
     (4 real and 4 imaginary values). The output of the mapping
     is a complex array with 4 values.
 
-    >>> from SimPEG.maps import ComplexMap
+    >>> from simpeg.maps import ComplexMap
     >>> from discretize import TensorMesh
     >>> import numpy as np
 
@@ -2778,7 +2776,7 @@ class ComplexMap(IdentityMap):
         mesh comprised of 4 cells. We then demonstrate how the derivative of the
         mapping and its adjoint can be applied to a vector.
 
-        >>> from SimPEG.maps import ComplexMap
+        >>> from simpeg.maps import ComplexMap
         >>> from discretize import TensorMesh
         >>> import numpy as np
 
@@ -2931,8 +2929,8 @@ class SurjectVertical1D(IdentityMap):
     construct a mapping which projects the 1D model onto a 2D
     tensor mesh.
 
-    >>> from SimPEG.maps import SurjectVertical1D
-    >>> from SimPEG.utils import plot_1d_layer_model
+    >>> from simpeg.maps import SurjectVertical1D
+    >>> from simpeg.utils import plot_1d_layer_model
     >>> from discretize import TensorMesh
     >>> import numpy as np
     >>> import matplotlib as mpl
@@ -3063,7 +3061,7 @@ class Surject2Dto3D(IdentityMap):
     we project the model along the y-axis to obtain a 3D distribution
     for the physical property (i.e. a 3D tensor model).
 
-    >>> from SimPEG.maps import Surject2Dto3D
+    >>> from simpeg.maps import Surject2Dto3D
     >>> from discretize import TensorMesh
     >>> import numpy as np
     >>> import matplotlib as mpl
@@ -3273,9 +3271,11 @@ class Mesh2Mesh(IdentityMap):
     def P(self):
         if getattr(self, "_P", None) is None:
             self._P = self.mesh2.get_interpolation_matrix(
-                self.mesh.cell_centers[self.indActive, :]
-                if self.indActive is not None
-                else self.mesh.cell_centers,
+                (
+                    self.mesh.cell_centers[self.indActive, :]
+                    if self.indActive is not None
+                    else self.mesh.cell_centers
+                ),
                 "CC",
                 zeros_outside=True,
             )
@@ -3874,7 +3874,7 @@ class ParametricCircleMap(IdentityMap):
     Here we define the parameterized model for a circle in a wholespace. We then
     create and use a ``ParametricCircleMap`` to map the model to a 2D mesh.
 
-    >>> from SimPEG.maps import ParametricCircleMap
+    >>> from simpeg.maps import ParametricCircleMap
     >>> from discretize import TensorMesh
     >>> import numpy as np
     >>> import matplotlib.pyplot as plt
@@ -4152,7 +4152,7 @@ class ParametricPolyMap(IdentityMap):
     We then use an active cells mapping to map from the set of active cells to all
     cells in the 2D mesh.
 
-    >>> from SimPEG.maps import ParametricPolyMap, InjectActiveCells
+    >>> from simpeg.maps import ParametricPolyMap, InjectActiveCells
     >>> from discretize import TensorMesh
     >>> import numpy as np
     >>> import matplotlib.pyplot as plt
@@ -4510,7 +4510,7 @@ class ParametricSplineMap(IdentityMap):
     for the interface at the horizontal positions supplied when
     creating the mapping.
 
-    >>> from SimPEG.maps import ParametricSplineMap
+    >>> from simpeg.maps import ParametricSplineMap
     >>> from discretize import TensorMesh
     >>> import numpy as np
     >>> import matplotlib.pyplot as plt
@@ -4929,15 +4929,19 @@ class BaseParametric(IdentityMap):
         if getattr(self, "_x", None) is None:
             if self.mesh.dim == 1:
                 self._x = [
-                    self.mesh.cell_centers
-                    if self.indActive is None
-                    else self.mesh.cell_centers[self.indActive]
+                    (
+                        self.mesh.cell_centers
+                        if self.indActive is None
+                        else self.mesh.cell_centers[self.indActive]
+                    )
                 ][0]
             else:
                 self._x = [
-                    self.mesh.cell_centers[:, 0]
-                    if self.indActive is None
-                    else self.mesh.cell_centers[self.indActive, 0]
+                    (
+                        self.mesh.cell_centers[:, 0]
+                        if self.indActive is None
+                        else self.mesh.cell_centers[self.indActive, 0]
+                    )
                 ][0]
         return self._x
 
@@ -4953,9 +4957,11 @@ class BaseParametric(IdentityMap):
         if getattr(self, "_y", None) is None:
             if self.mesh.dim > 1:
                 self._y = [
-                    self.mesh.cell_centers[:, 1]
-                    if self.indActive is None
-                    else self.mesh.cell_centers[self.indActive, 1]
+                    (
+                        self.mesh.cell_centers[:, 1]
+                        if self.indActive is None
+                        else self.mesh.cell_centers[self.indActive, 1]
+                    )
                 ][0]
             else:
                 self._y = None
@@ -4973,9 +4979,11 @@ class BaseParametric(IdentityMap):
         if getattr(self, "_z", None) is None:
             if self.mesh.dim > 2:
                 self._z = [
-                    self.mesh.cell_centers[:, 2]
-                    if self.indActive is None
-                    else self.mesh.cell_centers[self.indActive, 2]
+                    (
+                        self.mesh.cell_centers[:, 2]
+                        if self.indActive is None
+                        else self.mesh.cell_centers[self.indActive, 2]
+                    )
                 ][0]
             else:
                 self._z = None
@@ -5045,7 +5053,7 @@ class ParametricLayer(BaseParametric):
     (i.e. below the surface), We then use an active cells mapping to map from
     the set of active cells to all cells in the mesh.
 
-    >>> from SimPEG.maps import ParametricLayer, InjectActiveCells
+    >>> from simpeg.maps import ParametricLayer, InjectActiveCells
     >>> from discretize import TensorMesh
     >>> import numpy as np
     >>> import matplotlib.pyplot as plt
@@ -5307,7 +5315,7 @@ class ParametricBlock(BaseParametric):
     set of active cells (i.e. below the surface), We then use an active
     cells mapping to map from the set of active cells to all cells in the mesh.
 
-    >>> from SimPEG.maps import ParametricBlock, InjectActiveCells
+    >>> from simpeg.maps import ParametricBlock, InjectActiveCells
     >>> from discretize import TensorMesh
     >>> import numpy as np
     >>> import matplotlib.pyplot as plt
@@ -5442,12 +5450,7 @@ class ParametricBlock(BaseParametric):
         return (val**2 + self.epsilon**2) ** (self.p / 2.0)
 
     def _ekblomDeriv(self, val):
-        return (
-            (self.p / 2)
-            * (val**2 + self.epsilon**2) ** ((self.p / 2) - 1)
-            * 2
-            * val
-        )
+        return (self.p / 2) * (val**2 + self.epsilon**2) ** ((self.p / 2) - 1) * 2 * val
 
     # def _rotation(self, mDict):
     #     if self.mesh.dim == 2:
@@ -5655,7 +5658,7 @@ class ParametricEllipsoid(ParametricBlock):
     set of active cells (i.e. below the surface), We then use an active
     cells mapping to map from the set of active cells to all cells in the mesh.
 
-    >>> from SimPEG.maps import ParametricEllipsoid, InjectActiveCells
+    >>> from simpeg.maps import ParametricEllipsoid, InjectActiveCells
     >>> from discretize import TensorMesh
     >>> import numpy as np
     >>> import matplotlib.pyplot as plt

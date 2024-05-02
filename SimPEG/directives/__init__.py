@@ -1,13 +1,13 @@
 """
 =============================================
-Directives (:mod:`SimPEG.directives`)
+Directives (:mod:`simpeg.directives`)
 =============================================
 
-.. currentmodule:: SimPEG.directives
+.. currentmodule:: simpeg.directives
 
 Directives are classes that allow us to control the inversion, perform tasks
 between iterations, save information about our inversion process and more.
-Directives are passed to the ``SimPEG.inversion.BaseInversion`` class through
+Directives are passed to the ``simpeg.inversion.BaseInversion`` class through
 the ``directiveList`` argument. The tasks specified through the directives are
 executed after each inversion iteration, following the same order as in which
 they are passed in the ``directiveList``.
@@ -87,7 +87,7 @@ Base directive classes
 The ``InversionDirective`` class defines the basic class for all directives.
 Inherit from this class when writing your own directive. The ``DirectiveList``
 is used under the hood to handle the execution of all directives passed to the
-``SimPEG.inversion.BaseInversion``.
+``simpeg.inversion.BaseInversion``.
 
 .. autosummary::
    :toctree: generated/
@@ -96,6 +96,7 @@ is used under the hood to handle the execution of all directives passed to the
    DirectiveList
 
 """
+
 from .directives import (
     InversionDirective,
     DirectiveList,

@@ -1,10 +1,10 @@
 import numpy as np
 
-from SimPEG.simulation import BaseSimulation
-from SimPEG.survey import BaseSurvey
-from SimPEG.maps import IdentityMap
-from SimPEG.utils import validate_list_of_types, validate_type
-from SimPEG.props import HasModel
+from simpeg.simulation import BaseSimulation
+from simpeg.survey import BaseSurvey
+from simpeg.maps import IdentityMap
+from simpeg.utils import validate_list_of_types, validate_type
+from simpeg.props import HasModel
 import itertools
 from dask.distributed import Client
 from dask.distributed import Future
@@ -139,10 +139,10 @@ class DaskMetaSimulation(MetaSimulation):
 
     Parameters
     ----------
-    simulations : (n_sim) list of SimPEG.simulation.BaseSimulation or list of dask.distributed.Future
+    simulations : (n_sim) list of simpeg.simulation.BaseSimulation or list of dask.distributed.Future
         The list of unique simulations (or futures that would return a simulation)
         that each handle a piece of the problem.
-    mappings : (n_sim) list of SimPEG.maps.IdentityMap or list of dask.distributed.Future
+    mappings : (n_sim) list of simpeg.maps.IdentityMap or list of dask.distributed.Future
         The map for every simulation (or futures that would return a map). Every
         map should accept the  same length model, and output a model appropriate
         for its paired simulation.
@@ -170,7 +170,7 @@ class DaskMetaSimulation(MetaSimulation):
 
         Returns
         -------
-        (n_sim) list of distributed.Future SimPEG.simulation.BaseSimulation
+        (n_sim) list of distributed.Future simpeg.simulation.BaseSimulation
         """
         return self._simulations
 
@@ -192,7 +192,7 @@ class DaskMetaSimulation(MetaSimulation):
 
         Returns
         -------
-        (n_sim) list of distributed.Future SimPEG.maps.IdentityMap
+        (n_sim) list of distributed.Future simpeg.maps.IdentityMap
         """
         return self._mappings
 
@@ -445,10 +445,10 @@ class DaskSumMetaSimulation(DaskMetaSimulation, SumMetaSimulation):
 
     Parameters
     ----------
-    simulations : (n_sim) list of SimPEG.simulation.BaseSimulation or list of dask.distributed.Future
+    simulations : (n_sim) list of simpeg.simulation.BaseSimulation or list of dask.distributed.Future
         The list of unique simulations that each handle a piece
         of the problem.
-    mappings : (n_sim) list of SimPEG.maps.IdentityMap or list of dask.distributed.Future        The map for every simulation. Every map should accept the
+    mappings : (n_sim) list of simpeg.maps.IdentityMap or list of dask.distributed.Future        The map for every simulation. Every map should accept the
         same length model, and output a model appropriate for its
         paired simulation.
     client : dask.distributed.Client, optional
@@ -586,9 +586,9 @@ class DaskRepeatedSimulation(DaskMetaSimulation):
 
     Parameters
     ----------
-    simulation : SimPEG.simulation.BaseSimulation or dask.distributed.Future
+    simulation : simpeg.simulation.BaseSimulation or dask.distributed.Future
         The simulation to use repeatedly with different mappings.
-    mappings : (n_sim) list of SimPEG.maps.IdentityMap or list of dask.distributed.Future
+    mappings : (n_sim) list of simpeg.maps.IdentityMap or list of dask.distributed.Future
         The list of different mappings to use (or futures that each return a mapping).
     client : dask.distributed.Client, optional
         The dask client to use for communication.
@@ -621,7 +621,7 @@ class DaskRepeatedSimulation(DaskMetaSimulation):
 
         Returns
         -------
-        distributed.Future of SimPEG.simulation.BaseSimulation
+        distributed.Future of simpeg.simulation.BaseSimulation
         """
         return self._simulation
 

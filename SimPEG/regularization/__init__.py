@@ -1,9 +1,9 @@
 r"""
 =============================================
-Regularization (:mod:`SimPEG.regularization`)
+Regularization (:mod:`simpeg.regularization`)
 =============================================
 
-.. currentmodule:: SimPEG.regularization
+.. currentmodule:: simpeg.regularization
 
 ``Regularization`` classes are used to impose constraints on models recovered through geophysical
 inversion. Constraints may be straight forward, such as: requiring the recovered model be
@@ -147,6 +147,7 @@ to constrain inversions.
   BaseAmplitude
 
 """
+
 from ..utils.code_utils import deprecate_class
 from .base import (
     BaseRegularization,

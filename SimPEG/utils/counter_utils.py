@@ -16,7 +16,7 @@ class Counter(object):
     decorators on class methods.
 
 
-    >>> from SimPEG.utils import Counter, count, timeIt
+    >>> from simpeg.utils import Counter, count, timeIt
 
     >>> class MyClass(object):
     ...     def __init__(self, url):

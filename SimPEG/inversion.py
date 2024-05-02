@@ -67,14 +67,14 @@ class BaseInversion(object):
     def debug(self, value):
         self._debug = validate_type("debug", value, bool)
 
-    #: Set this to a SimPEG.utils.Counter() if you want to count things
+    #: Set this to a simpeg.utils.Counter() if you want to count things
     @property
     def counter(self):
         """The counter.
 
         Returns
         -------
-        None or SimPEG.utils.Counter
+        None or simpeg.utils.Counter
         """
         return self._counter
 

@@ -144,11 +144,11 @@ class BaseRx(BaseTimeRx):
 
         Parameters
         ----------
-        src : SimPEG.electromagnetics.static.spectral_induced_polarization.sources.BaseRx
+        src : simpeg.electromagnetics.static.spectral_induced_polarization.sources.BaseRx
             A spectral IP receiver
         mesh : discretize.base.BaseMesh
             The mesh on which the discrete set of equations is solved
-        f : SimPEG.electromagnetic.static.spectral_induced_polarization.Fields
+        f : simpeg.electromagnetic.static.spectral_induced_polarization.Fields
             The solution for the fields defined on the mesh
 
         Returns
@@ -172,11 +172,11 @@ class BaseRx(BaseTimeRx):
 
         Parameters
         ----------
-        src : SimPEG.electromagnetics.static.spectral_induced_polarization.sources.BaseRx
+        src : simpeg.electromagnetics.static.spectral_induced_polarization.sources.BaseRx
             A spectral IP receiver
         mesh : discretize.base.BaseMesh
             The mesh on which the discrete set of equations is solved
-        f : SimPEG.electromagnetic.static.spectral_induced_polarization.Fields
+        f : simpeg.electromagnetic.static.spectral_induced_polarization.Fields
             The solution for the fields defined on the mesh
         v : numpy.ndarray
             A vector

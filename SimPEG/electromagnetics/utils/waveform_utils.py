@@ -83,7 +83,7 @@ def convolve_with_waveform(func, waveform, times, fargs=None, fkwargs=None):
     ----------
     func : callable
         function of `t` that should be convolved
-    waveform : SimPEG.electromagnetics.time_domain.waveforms.BaseWaveform
+    waveform : simpeg.electromagnetics.time_domain.waveforms.BaseWaveform
     times : array_like
     fargs : list, optional
         extra arguments given to `func`

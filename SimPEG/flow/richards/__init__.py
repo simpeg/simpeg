@@ -1,8 +1,8 @@
 """
 =======================================================================
-Richards Flow (:mod:`SimPEG.flow.richards`)
+Richards Flow (:mod:`simpeg.flow.richards`)
 =======================================================================
-.. currentmodule:: SimPEG.flow.richards
+.. currentmodule:: simpeg.flow.richards
 
 About ``Richards flow``
 
@@ -40,6 +40,7 @@ Empirical utilities
   empirical.VanGenuchtenParams
 
 """
+
 from . import empirical
 from .survey import Survey
 from .simulation import SimulationNDCellCentered

@@ -284,7 +284,7 @@ class BaseSrc:
 
     Parameters
     ----------
-    receiver_list : list of SimPEG.survey.BaseRx objects
+    receiver_list : list of simpeg.survey.BaseRx objects
         Sets the receivers associated with the source
     location : (n_dim) numpy.ndarray
         Location of the source
@@ -327,7 +327,7 @@ class BaseSrc:
 
         Returns
         -------
-        list of SimPEG.survey.BaseRx
+        list of simpeg.survey.BaseRx
             List of receivers associated with the source
         """
         return self._receiver_list
@@ -366,7 +366,7 @@ class BaseSrc:
 
         Parameters
         ----------
-        receivers : list of SimPEG.survey.BaseRx
+        receivers : list of simpeg.survey.BaseRx
             A subset list of receivers within the source's receivers list
 
         Returns
@@ -418,9 +418,9 @@ class BaseSurvey:
 
     Parameters
     ----------
-    source_list : list of SimPEG.survey.BaseSrc objects
+    source_list : list of simpeg.survey.BaseSrc objects
         Sets the sources (and their receivers)
-    counter : SimPEG.utils.Counter
+    counter : simpeg.utils.Counter
         A SimPEG counter object
     """
 
@@ -442,7 +442,7 @@ class BaseSurvey:
 
         Returns
         -------
-        list of SimPEG.survey.BaseSrc
+        list of simpeg.survey.BaseSrc
             List of sources associated with the survey
         """
         return self._source_list
@@ -487,7 +487,7 @@ class BaseSurvey:
 
         Returns
         -------
-        SimPEG.utils.counter_utils.Counter
+        simpeg.utils.counter_utils.Counter
             A SimPEG counter object
         """
         return self._counter

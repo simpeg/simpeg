@@ -28,7 +28,7 @@ class BaseDCSimulation2D(BaseElectricalPDESimulation):
     Base 2.5D DC problem
     """
 
-    fieldsPair = Fields2D  # SimPEG.EM.Static.Fields_2D
+    fieldsPair = Fields2D  # simpeg.EM.Static.Fields_2D
     fieldsPair_fwd = FieldsDC
     # there's actually nT+1 fields, so we don't need to store the last one
     _mini_survey = None
@@ -134,7 +134,7 @@ class BaseDCSimulation2D(BaseElectricalPDESimulation):
 
         Returns
         -------
-        SimPEG.electromagnetics.static.resistivity.survey.Survey
+        simpeg.electromagnetics.static.resistivity.survey.Survey
         """
         if self._survey is None:
             raise AttributeError("Simulation must have a survey")

@@ -6,13 +6,14 @@ Create a synthetic block model and invert
 with a compact norm
 
 """
+
 import numpy as np
 import matplotlib.pyplot as plt
 
 from discretize import TensorMesh
 from discretize.utils import active_from_xyz
-from SimPEG.potential_fields import gravity
-from SimPEG import (
+from simpeg.potential_fields import gravity
+from simpeg import (
     maps,
     data,
     data_misfit,
@@ -23,8 +24,8 @@ from SimPEG import (
     inversion,
 )
 
-from SimPEG import utils
-from SimPEG.utils import plot2Ddata
+from simpeg import utils
+from simpeg.utils import plot2Ddata
 
 
 def run(plotIt=True):

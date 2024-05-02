@@ -51,23 +51,23 @@ class PGIsmallness(Smallness):
 
     Parameters
     ----------
-    gmmref : SimPEG.utils.WeightedGaussianMixture
+    gmmref : simpeg.utils.WeightedGaussianMixture
         Reference Gaussian mixture model.
-    gmm : None, SimPEG.utils.WeightedGaussianMixture
+    gmm : None, simpeg.utils.WeightedGaussianMixture
         Set the Gaussian mixture model used to constrain the recovered physical property model.
         Can be left static throughout the inversion or updated using the
         :class:`.directives.PGI_UpdateParameters` directive. If ``None``, the
         :class:`.directives.PGI_UpdateParameters` directive must be used to ensure there
         is a Gaussian mixture model for the inversion.
-    wiresmap : None, SimPEG.maps.Wires
+    wiresmap : None, simpeg.maps.Wires
         Mapping from the model to the model parameters of each type.
         If ``None``, we assume only a single physical property type in the inversion.
-    maplist : None, list of SimPEG.maps
+    maplist : None, list of simpeg.maps
         Ordered list of mappings from model values to physical property values;
         one for each physical property. If ``None``, we assume a single physical property type
         in the regularization and an :class:`.maps.IdentityMap` from model values to physical
         property values.
-    mesh : SimPEG.regularization.RegularizationMesh, discretize.base.BaseMesh
+    mesh : simpeg.regularization.RegularizationMesh, discretize.base.BaseMesh
         Mesh on which the regularization is discretized. Implemented for
         ``tensor``, ``QuadTree`` or ``Octree`` meshes.
     approx_gradient : bool
@@ -267,7 +267,7 @@ class PGIsmallness(Smallness):
 
         Returns
         -------
-        SimPEG.utils.WeightedGaussianMixture
+        simpeg.utils.WeightedGaussianMixture
             Gaussian mixture model used to constrain the recovered physical property model.
         """
         if getattr(self, "_gmm", None) is None:
@@ -373,7 +373,7 @@ class PGIsmallness(Smallness):
 
         Returns
         -------
-        SimPEG.maps.Wires
+        simpeg.maps.Wires
             Mapping from the model to the model parameters of each type.
         """
         if getattr(self, "_wiresmap", None) is None:
@@ -398,7 +398,7 @@ class PGIsmallness(Smallness):
 
         Returns
         -------
-        list of SimPEG.maps
+        list of simpeg.maps
             Ordered list of mappings from model values to physical property values;
             one for each physical property.
         """
@@ -972,12 +972,12 @@ class PGI(ComboObjectiveFunction):
 
     Parameters
     ----------
-    mesh : SimPEG.regularization.RegularizationMesh, discretize.base.BaseMesh
+    mesh : simpeg.regularization.RegularizationMesh, discretize.base.BaseMesh
         Mesh on which the regularization is discretized. Implemented for
         `tensor`, `QuadTree` or `Octree` meshes.
-    gmmref : SimPEG.utils.WeightedGaussianMixture
+    gmmref : simpeg.utils.WeightedGaussianMixture
         Reference Gaussian mixture model.
-    gmm : None, SimPEG.utils.WeightedGaussianMixture
+    gmm : None, simpeg.utils.WeightedGaussianMixture
         Set the Gaussian mixture model used to constrain the recovered physical property model.
         Can be left static throughout the inversion or updated using the
         :class:`.directives.PGI_UpdateParameters` directive. If ``None``, the
@@ -993,10 +993,10 @@ class PGI(ComboObjectiveFunction):
         Scaling constants for the second order smoothness along x, y and z, respectively.
         If set to ``None``, the scaling constant is set automatically according to the
         length scales; see :class:`regularization.WeightedLeastSquares`.
-    wiresmap : None, SimPEG.maps.Wires
+    wiresmap : None, simpeg.maps.Wires
         Mapping from the model to the model parameters of each type.
         If ``None``, we assume only a single physical property type in the inversion.
-    maplist : None, list of SimPEG.maps
+    maplist : None, list of simpeg.maps
         Ordered list of mappings from model values to physical property values;
         one for each physical property. If ``None``, we assume a single physical property type
         in the regularization and an :class:`.maps.IdentityMap` from model values to physical
@@ -1236,7 +1236,7 @@ class PGI(ComboObjectiveFunction):
 
         Returns
         -------
-        None, SimPEG.utils.WeightedGaussianMixture
+        None, simpeg.utils.WeightedGaussianMixture
             Gaussian mixture model.
         """
         return self.objfcts[0].gmm
@@ -1301,7 +1301,7 @@ class PGI(ComboObjectiveFunction):
 
         Returns
         -------
-        SimPEG.maps.Wires
+        simpeg.maps.Wires
             Mapping from the model to the model parameters of each type.
         """
         if getattr(self, "_wiresmap", None) is None:
@@ -1314,7 +1314,7 @@ class PGI(ComboObjectiveFunction):
 
         Returns
         -------
-        list of SimPEG.maps
+        list of simpeg.maps
             Ordered list of mappings from model values to physical property values;
             one for each physical property.
         """

@@ -16,11 +16,11 @@ class BaseSrcVRM(BaseSrc):
 
     Parameters
     ----------
-    receiver_list : list of SimPEG.electromagnetics.viscous_remanent_magnetization.receivers.Point
+    receiver_list : list of simpeg.electromagnetics.viscous_remanent_magnetization.receivers.Point
         A list of VRM receivers
     location : (3) array_like
         Source location
-    waveform : SimPEG.electromagnetics.viscous_remanent_magnetization.waveforms.BaseVRMWaveform
+    waveform : simpeg.electromagnetics.viscous_remanent_magnetization.waveforms.BaseVRMWaveform
         A VRM waveform
     """
 
@@ -68,13 +68,13 @@ class MagDipole(BaseSrcVRM):
 
     Parameters
     ----------
-    receiver_list : list of SimPEG.electromagnetics.viscous_remanent_magnetization.receivers.Point
+    receiver_list : list of simpeg.electromagnetics.viscous_remanent_magnetization.receivers.Point
         VRM receivers
     location : (3) array_like
         source location
     moment : (3) array_like
         dipole moment (mx, my, mz)
-    waveform : SimPEG.electromagnetics.viscous_remanent_magnetization.waveforms.BaseVRMWaveform
+    waveform : simpeg.electromagnetics.viscous_remanent_magnetization.waveforms.BaseVRMWaveform
         VRM waveform
     """
 
@@ -138,15 +138,9 @@ class MagDipole(BaseSrcVRM):
             + m[2] * (xyz[:, 2] - r0[2])
         )
 
-        hx0 = (1 / (4 * np.pi)) * (
-            3 * (xyz[:, 0] - r0[0]) * mdotr / r**5 - m[0] / r**3
-        )
-        hy0 = (1 / (4 * np.pi)) * (
-            3 * (xyz[:, 1] - r0[1]) * mdotr / r**5 - m[1] / r**3
-        )
-        hz0 = (1 / (4 * np.pi)) * (
-            3 * (xyz[:, 2] - r0[2]) * mdotr / r**5 - m[2] / r**3
-        )
+        hx0 = (1 / (4 * np.pi)) * (3 * (xyz[:, 0] - r0[0]) * mdotr / r**5 - m[0] / r**3)
+        hy0 = (1 / (4 * np.pi)) * (3 * (xyz[:, 1] - r0[1]) * mdotr / r**5 - m[1] / r**3)
+        hz0 = (1 / (4 * np.pi)) * (3 * (xyz[:, 2] - r0[2]) * mdotr / r**5 - m[2] / r**3)
 
         return np.c_[hx0, hy0, hz0]
 
@@ -195,7 +189,7 @@ class CircLoop(BaseSrcVRM):
 
     Parameters
     ----------
-    receiver_list : list of SimPEG.electromagnetics.viscous_remanent_magnetization.receivers.Point
+    receiver_list : list of simpeg.electromagnetics.viscous_remanent_magnetization.receivers.Point
         VRM receivers
     location : (3) array_like
         source location
@@ -205,7 +199,7 @@ class CircLoop(BaseSrcVRM):
         Circular loop normal azimuth and declination
     Imax : float
         Maximum current amplitude
-    waveform : SimPEG.electromagnetics.viscous_remanent_magnetization.waveforms.BaseVRMWaveform
+    waveform : simpeg.electromagnetics.viscous_remanent_magnetization.waveforms.BaseVRMWaveform
         VRM waveform
     """
 
@@ -285,8 +279,7 @@ class CircLoop(BaseSrcVRM):
             (x1p / s)
             * (x3p * I / (2 * np.pi * s * np.sqrt(x3p**2 + (a + s) ** 2)))
             * (
-                ((a**2 + x3p**2 + s**2) / (x3p**2 + (s - a) ** 2))
-                * spec.ellipe(k)
+                ((a**2 + x3p**2 + s**2) / (x3p**2 + (s - a) ** 2)) * spec.ellipe(k)
                 - spec.ellipk(k)
             )
         )
@@ -294,8 +287,7 @@ class CircLoop(BaseSrcVRM):
             (x2p / s)
             * (x3p * I / (2 * np.pi * s * np.sqrt(x3p**2 + (a + s) ** 2)))
             * (
-                ((a**2 + x3p**2 + s**2) / (x3p**2 + (s - a) ** 2))
-                * spec.ellipe(k)
+                ((a**2 + x3p**2 + s**2) / (x3p**2 + (s - a) ** 2)) * spec.ellipe(k)
                 - spec.ellipk(k)
             )
         )
@@ -387,14 +379,14 @@ class LineCurrent(BaseSrcVRM):
 
     Parameters
     ----------
-    receiver_list : list of SimPEG.electromagnetics.time_domain.receivers.BaseRx
+    receiver_list : list of simpeg.electromagnetics.time_domain.receivers.BaseRx
         List of TDEM receivers
     location : (n, 3) numpy.ndarray
         Array defining the node locations for the wire path. For inductive sources,
         you must close the loop.
     Imax : float
         Maximum current amplitude
-    waveform : SimPEG.electromagnetics.viscous_remanent_magnetization.waveforms.BaseVRMWaveform
+    waveform : simpeg.electromagnetics.viscous_remanent_magnetization.waveforms.BaseVRMWaveform
         VRM waveform
     """
 

@@ -26,10 +26,10 @@ class MetaSimulation(BaseSimulation):
 
     Parameters
     ----------
-    simulations : (n_sim) list of SimPEG.simulation.BaseSimulation
+    simulations : (n_sim) list of simpeg.simulation.BaseSimulation
         The list of unique simulations that each handle a piece
         of the problem.
-    mappings : (n_sim) list of SimPEG.maps.IdentityMap
+    mappings : (n_sim) list of simpeg.maps.IdentityMap
         The map for every simulation. Every map should accept the
         same length model, and output a model appropriate for its
         paired simulation.
@@ -39,9 +39,9 @@ class MetaSimulation(BaseSimulation):
     Create a list of 1D simulations that perform a piece of a
     stitched problem.
 
-    >>> from SimPEG.simulation import ExponentialSinusoidSimulation
-    >>> from SimPEG import maps
-    >>> from SimPEG.meta import MetaSimulation
+    >>> from simpeg.simulation import ExponentialSinusoidSimulation
+    >>> from simpeg import maps
+    >>> from simpeg.meta import MetaSimulation
     >>> from discretize import TensorMesh
     >>> import matplotlib.pyplot as plt
 
@@ -113,7 +113,7 @@ class MetaSimulation(BaseSimulation):
 
         Returns
         -------
-        (n_sim) list of SimPEG.simulation.BaseSimulation
+        (n_sim) list of simpeg.simulation.BaseSimulation
         """
         return self._simulations
 
@@ -132,7 +132,7 @@ class MetaSimulation(BaseSimulation):
 
         Returns
         -------
-        (n_sim) list of SimPEG.maps.IdentityMap
+        (n_sim) list of simpeg.maps.IdentityMap
         """
         return self._mappings
 
@@ -340,8 +340,8 @@ class SumMetaSimulation(MetaSimulation):
 
     Parameters
     ----------
-    simulations : (n_sim) list of SimPEG.simulation.BaseSimulation
-    mappings : (n_sim) list of SimPEG.maps.IdentityMap
+    simulations : (n_sim) list of simpeg.simulation.BaseSimulation
+    mappings : (n_sim) list of simpeg.maps.IdentityMap
     """
 
     _repeat_sim = False
@@ -432,9 +432,9 @@ class RepeatedSimulation(MetaSimulation):
 
     Parameters
     ----------
-    simulation : SimPEG.simulation.BaseSimulation
+    simulation : simpeg.simulation.BaseSimulation
         The simulation to use repeatedly with different mappings.
-    mappings : (n_sim) list of SimPEG.maps.IdentityMap
+    mappings : (n_sim) list of simpeg.maps.IdentityMap
         The list of different mappings to use.
     """
 
@@ -467,7 +467,7 @@ class RepeatedSimulation(MetaSimulation):
 
         Returns
         -------
-        SimPEG.simulation.BaseSimulation
+        simpeg.simulation.BaseSimulation
         """
         return self._simulation
 

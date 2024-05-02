@@ -1,8 +1,8 @@
 import numpy as np
 import pytest
 
-from SimPEG.electromagnetics.static import resistivity as dc
-from SimPEG.electromagnetics.static import spectral_induced_polarization as sip
+from simpeg.electromagnetics.static import resistivity as dc
+from simpeg.electromagnetics.static import spectral_induced_polarization as sip
 
 
 def test_receiver_properties():

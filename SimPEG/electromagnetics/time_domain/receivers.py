@@ -85,7 +85,7 @@ class BaseRx(BaseTimeRx):
         ----------
         mesh : discretize.BaseMesh
             A discretize mesh
-        f : SimPEG.electromagnetics.time_domain.fields.FieldsTDEM
+        f : simpeg.electromagnetics.time_domain.fields.FieldsTDEM
 
         Returns
         -------
@@ -110,7 +110,7 @@ class BaseRx(BaseTimeRx):
         ----------
         time_mesh : discretize.TensorMesh
             A 1D ``TensorMesh`` defining the time discretization
-        f : SimPEG.electromagnetics.time_domain.fields.FieldsTDEM
+        f : simpeg.electromagnetics.time_domain.fields.FieldsTDEM
 
         Returns
         -------
@@ -129,7 +129,7 @@ class BaseRx(BaseTimeRx):
             A discretize mesh defining spatial discretization
         time_mesh : discretize.TensorMesh
             A 1D ``TensorMesh`` defining the time discretization
-        f : SimPEG.electromagnetics.time_domain.fields.FieldsTDEM
+        f : simpeg.electromagnetics.time_domain.fields.FieldsTDEM
 
         Returns
         -------
@@ -157,13 +157,13 @@ class BaseRx(BaseTimeRx):
 
         Parameters
         ----------
-        src : SimPEG.electromagnetics.frequency_domain.sources.BaseTDEMSrc
+        src : simpeg.electromagnetics.frequency_domain.sources.BaseTDEMSrc
             A time-domain EM source
         mesh : discretize.base.BaseMesh
             The mesh on which the discrete set of equations is solved
         time_mesh : discretize.TensorMesh
             A 1D ``TensorMesh`` defining the time discretization
-        f : SimPEG.electromagnetic.time_domain.fields.FieldsTDEM
+        f : simpeg.electromagnetic.time_domain.fields.FieldsTDEM
             The solution for the fields defined on the mesh
 
         Returns
@@ -180,13 +180,13 @@ class BaseRx(BaseTimeRx):
 
         Parameters
         ----------
-        src : SimPEG.electromagnetics.frequency_domain.sources.BaseTDEMSrc
+        src : simpeg.electromagnetics.frequency_domain.sources.BaseTDEMSrc
             A time-domain EM source
         mesh : discretize.base.BaseMesh
             The mesh on which the discrete set of equations is solved
         time_mesh : discretize.TensorMesh
             A 1D ``TensorMesh`` defining the time discretization
-        f : SimPEG.electromagnetic.time_domain.fields.FieldsTDEM
+        f : simpeg.electromagnetic.time_domain.fields.FieldsTDEM
             The solution for the fields defined on the mesh
         v : numpy.ndarray
             A vector
@@ -272,13 +272,13 @@ class PointMagneticFluxTimeDerivative(BaseRx):
 
         Parameters
         ----------
-        src : SimPEG.electromagnetics.frequency_domain.sources.BaseTDEMSrc
+        src : simpeg.electromagnetics.frequency_domain.sources.BaseTDEMSrc
             A time-domain EM source
         mesh : discretize.base.BaseMesh
             The mesh on which the discrete set of equations is solved
         time_mesh : discretize.TensorMesh
             A 1D ``TensorMesh`` defining the time discretization
-        f : SimPEG.electromagnetic.time_domain.fields.FieldsTDEM
+        f : simpeg.electromagnetic.time_domain.fields.FieldsTDEM
             The solution for the fields defined on the mesh
 
         Returns
@@ -305,7 +305,7 @@ class PointMagneticFluxTimeDerivative(BaseRx):
         ----------
         time_mesh : discretize.TensorMesh
             A 1D ``TensorMesh`` defining the time discretization
-        f : SimPEG.electromagnetics.time_domain.fields.FieldsTDEM
+        f : simpeg.electromagnetics.time_domain.fields.FieldsTDEM
 
         Returns
         -------

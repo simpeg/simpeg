@@ -1,7 +1,7 @@
 import numpy as np
 from scipy.constants import epsilon_0
 from scipy.constants import mu_0
-from SimPEG.electromagnetics.utils import k, omega
+from simpeg.electromagnetics.utils import k, omega
 
 __all__ = ["MT_LayeredEarth"]
 

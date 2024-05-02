@@ -28,7 +28,7 @@ def read_dcip_xyz(
     locations provided. This function is versatile enough to load 2D or 3D data.
     The data file may include elevations for the electrodes or be surface formatted.
     Columns containing data which are not defined as part of a
-    :class:`SimPEG.data.Data` object may be loaded and output to a dictionary.
+    :class:`simpeg.data.Data` object may be loaded and output to a dictionary.
 
     Parameters
     ----------
@@ -62,10 +62,10 @@ def read_dcip_xyz(
 
     Returns
     -------
-    SimPEG.data.Data
+    simpeg.data.Data
         DC or IP data. The survey attribute associated with the data object will be an
-        instance of :class:`SimPEG.electromagnetics.static.resistivity.survey.Survey`
-        or :class:`SimPEG.electromagnetics.static.induced_polarization.survey.Survey`
+        instance of :class:`simpeg.electromagnetics.static.resistivity.survey.Survey`
+        or :class:`simpeg.electromagnetics.static.induced_polarization.survey.Survey`
     dict
         If additional columns are loaded and output to a dictionary using the keyward argument
         `dict_headers`, the output of this function has the form `(out_data, out_dict)`.
@@ -207,11 +207,11 @@ def read_dcip2d_ubc(file_name, data_type, format_type):
 
     Returns
     -------
-    SimPEG.data.Data
+    simpeg.data.Data
         A SimPEG data object. The data from the input file is loaded and parsed into
         three attributes of the data object:
 
-        - `survey`: the survey geometry as defined by an instance of :class`SimPEG.electromagnetics.static.resistivity.survey.Survey` or :class`SimPEG.electromagnetics.static.induced_polarization.survey.Survey`
+        - `survey`: the survey geometry as defined by an instance of :class`simpeg.electromagnetics.static.resistivity.survey.Survey` or :class`simpeg.electromagnetics.static.induced_polarization.survey.Survey`
         - `dobs`: observed/predicted data if present in the data file
         - `standard_deviations`: uncertainties (if observed data file) or apparent resistivities (if predicted data file)
 
@@ -435,11 +435,11 @@ def read_dcip3d_ubc(file_name, data_type):
 
     Returns
     -------
-    SimPEG.data.Data
+    simpeg.data.Data
         A SimPEG data object. The data from the input file is loaded and parsed into
         three attributes of the data object:
 
-        - `survey`: the survey geometry as defined by an instance of :class`SimPEG.electromagnetics.static.resitivity.survey.Survey` or :class`SimPEG.electromagnetics.static.induced_polarization.survey.Survey`
+        - `survey`: the survey geometry as defined by an instance of :class`simpeg.electromagnetics.static.resitivity.survey.Survey` or :class`simpeg.electromagnetics.static.induced_polarization.survey.Survey`
         - `dobs`: observed/predicted data if present in the data file
         - `standard_deviations`: uncertainties (if observed data file) or apparent resistivities (if predicted data file)
 
@@ -595,11 +595,11 @@ def read_dcipoctree_ubc(file_name, data_type):
 
     Returns
     -------
-    SimPEG.data.Data
+    simpeg.data.Data
         A SimPEG data object. The data from the input file is loaded and parsed into
         three attributes of the data object:
 
-        - `survey`: the survey geometry as defined by an instance of :class`SimPEG.electromagnetics.static.resistivity.survey.Survey` or :class`SimPEG.electromagnetics.static.induced_polarization.survey.Survey`
+        - `survey`: the survey geometry as defined by an instance of :class`simpeg.electromagnetics.static.resistivity.survey.Survey` or :class`simpeg.electromagnetics.static.induced_polarization.survey.Survey`
         - `dobs`: observed/predicted data if present in the data file
         - `standard_deviations`: uncertainties (if observed data file) or apparent resistivities (if predicted data file)
 
@@ -627,9 +627,9 @@ def write_dcip2d_ubc(
     file_name : str
         file path for output file
     data_object :
-        SimPEG.data.Data object. The `survey` attribute of this data object must be
-        an instance of :class`SimPEG.electromagnetics.static.resistivity.survey.Survey` or
-        :class`SimPEG.electromagnetics.static.induced_polarization.survey.Survey`
+        simpeg.data.Data object. The `survey` attribute of this data object must be
+        an instance of :class`simpeg.electromagnetics.static.resistivity.survey.Survey` or
+        :class`simpeg.electromagnetics.static.induced_polarization.survey.Survey`
     data_type : {'volt', 'apparent_chargeability', 'secondary_potential'}
         The type of data.
     file_type : {'survey', 'dpred', 'dobs'}
@@ -803,9 +803,9 @@ def write_dcip3d_ubc(
     file_name : str
         file path for output file
     data_object :
-        SimPEG.data.Data object. The `survey` attribute of this data object must be
-        an instance of :class`SimPEG.electromagnetics.static.resistivity.survey.Survey` or
-        :class`SimPEG.electromagnetics.static.induced_polarization.survey.Survey`
+        simpeg.data.Data object. The `survey` attribute of this data object must be
+        an instance of :class`simpeg.electromagnetics.static.resistivity.survey.Survey` or
+        :class`simpeg.electromagnetics.static.induced_polarization.survey.Survey`
     data_type : {'volt', 'apparent_chargeability', 'secondary_potential'}
     file_type : {'survey', 'dpred', 'dobs'}
     format_type : {'general', 'surface'}
@@ -958,9 +958,9 @@ def write_dcipoctree_ubc(
     file_name : str
         file path for output file
     data_object :
-        SimPEG.data.Data object. The `survey` attribute of this data object must be
-        an instance of :class`SimPEG.electromagnetics.static.resistivity.survey.Survey` or
-        :class`SimPEG.electromagnetics.static.induced_polarization.survey.Survey`
+        simpeg.data.Data object. The `survey` attribute of this data object must be
+        an instance of :class`simpeg.electromagnetics.static.resistivity.survey.Survey` or
+        :class`simpeg.electromagnetics.static.induced_polarization.survey.Survey`
     data_type : {'volt', 'apparent_chargeability', 'secondary_potential'}
     file_type : {'survey', 'dpred', 'dobs'}
     format_type : {'general', 'surface'}
@@ -992,10 +992,10 @@ def write_dcip_xyz(
     ----------
     file_name : str
         Path to the file
-    data_object : SimPEG.data.Data
-        SimPEG.data.Data object. The `survey` attribute of this data object must be
-        an instance of :class`SimPEG.electromagnetics.static.resistivity.survey.Survey` or
-        :class`SimPEG.electromagnetics.static.induced_polarization.survey.Survey`
+    data_object : simpeg.data.Data
+        simpeg.data.Data object. The `survey` attribute of this data object must be
+        an instance of :class`simpeg.electromagnetics.static.resistivity.survey.Survey` or
+        :class`simpeg.electromagnetics.static.induced_polarization.survey.Survey`
     data_header: str
         Header for the data column; i.e. the header for the data defined in the `dobs`
         attibute of the data object. If ``None``, these data are not written to file

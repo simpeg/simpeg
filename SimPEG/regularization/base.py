@@ -8,7 +8,7 @@ from ..objective_function import BaseObjectiveFunction, ComboObjectiveFunction
 from .. import utils
 from .regularization_mesh import RegularizationMesh
 
-from SimPEG.utils.code_utils import deprecate_property, validate_ndarray_with_shape
+from simpeg.utils.code_utils import deprecate_property, validate_ndarray_with_shape
 
 if TYPE_CHECKING:
     from scipy.sparse import csr_matrix
@@ -22,15 +22,15 @@ class BaseRegularization(BaseObjectiveFunction):
 
     Parameters
     ----------
-    mesh : SimPEG.regularization.RegularizationMesh, discretize.base.BaseMesh
+    mesh : simpeg.regularization.RegularizationMesh, discretize.base.BaseMesh
         Mesh on which the regularization is discretized. This is not necessarily
         the same as the mesh on which the simulation is defined.
     active_cells : None, (n_cells, ) numpy.ndarray of bool
         Boolean array defining the set of :py:class:`~.regularization.RegularizationMesh`
         cells that are active in the inversion. If ``None``, all cells are active.
-    mapping : None, SimPEG.maps.BaseMap
+    mapping : None, simpeg.maps.BaseMap
         The mapping from the model parameters to the active cells in the inversion.
-        If ``None``, the mapping is set to :obj:`SimPEG.maps.IdentityMap`.
+        If ``None``, the mapping is set to :obj:`simpeg.maps.IdentityMap`.
     reference_model : None, (n_param, ) numpy.ndarray
         Reference model. If ``None``, the reference model in the inversion is set to
         the starting model.
@@ -161,7 +161,7 @@ class BaseRegularization(BaseObjectiveFunction):
 
         Returns
         -------
-        SimPEG.maps.BaseMap
+        simpeg.maps.BaseMap
             The mapping from the inversion model parameters to the quantity defined on the
             :py:class:`~.regularization.RegularizationMesh`.
         """
@@ -323,7 +323,7 @@ class BaseRegularization(BaseObjectiveFunction):
         Examples
         --------
         >>> import discretize
-        >>> from SimPEG.regularization import Smallness
+        >>> from simpeg.regularization import Smallness
         >>> mesh = discretize.TensorMesh([2, 3, 2])
         >>> reg = Smallness(mesh)
         >>> reg.set_weights(my_weight=np.ones(mesh.n_cells))
@@ -345,7 +345,7 @@ class BaseRegularization(BaseObjectiveFunction):
         Examples
         --------
         >>> import discretize
-        >>> from SimPEG.regularization import Smallness
+        >>> from simpeg.regularization import Smallness
         >>> mesh = discretize.TensorMesh([2, 3, 2])
         >>> reg = Smallness(mesh)
         >>> reg.set_weights(my_weight=np.ones(mesh.n_cells))
@@ -378,7 +378,7 @@ class BaseRegularization(BaseObjectiveFunction):
         Examples
         --------
         >>> import discretize
-        >>> from SimPEG.regularization import Smallness
+        >>> from simpeg.regularization import Smallness
         >>> mesh = discretize.TensorMesh([2, 3, 2])
         >>> reg = Smallness(mesh)
         >>> reg.set_weights(my_weight=np.ones(mesh.n_cells))
@@ -542,7 +542,7 @@ class Smallness(BaseRegularization):
     active_cells : None, (n_cells, ) numpy.ndarray of bool
         Boolean array defining the set of :py:class:`~.regularization.RegularizationMesh`
         cells that are active in the inversion. If ``None``, all cells are active.
-    mapping : None, SimPEG.maps.BaseMap
+    mapping : None, simpeg.maps.BaseMap
         The mapping from the model parameters to the active cells in the inversion.
         If ``None``, the mapping is the identity map.
     reference_model : None, (n_param, ) numpy.ndarray
@@ -745,7 +745,7 @@ class SmoothnessFirstOrder(BaseRegularization):
     active_cells : None, (n_cells, ) numpy.ndarray of bool
         Boolean array defining the set of :py:class:`~.regularization.RegularizationMesh`
         cells that are active in the inversion. If ``None``, all cells are active.
-    mapping : None, SimPEG.maps.BaseMap
+    mapping : None, simpeg.maps.BaseMap
         The mapping from the model parameters to the active cells in the inversion.
         If ``None``, the mapping is the identity map.
     reference_model : None, (n_param, ) numpy.ndarray
@@ -1113,7 +1113,7 @@ class SmoothnessSecondOrder(SmoothnessFirstOrder):
     active_cells : None, (n_cells, ) numpy.ndarray of bool
         Boolean array defining the set of :py:class:`~.regularization.RegularizationMesh`
         cells that are active in the inversion. If ``None``, all cells are active.
-    mapping : None, SimPEG.maps.BaseMap
+    mapping : None, simpeg.maps.BaseMap
         The mapping from the model parameters to the active cells in the inversion.
         If ``None``, the mapping is the identity map.
     reference_model : None, (n_param, ) numpy.ndarray
@@ -1369,13 +1369,13 @@ class WeightedLeastSquares(ComboObjectiveFunction):
 
     Parameters
     ----------
-    mesh : SimPEG.regularization.RegularizationMesh, discretize.base.BaseMesh
+    mesh : simpeg.regularization.RegularizationMesh, discretize.base.BaseMesh
         Mesh on which the regularization is discretized. This is not necessarily
         the same as the mesh on which the simulation is defined.
     active_cells : None, (n_cells, ) numpy.ndarray of bool
         Boolean array defining the set of :py:class:`~.regularization.RegularizationMesh`
         cells that are active in the inversion. If ``None``, all cells are active.
-    mapping : None, SimPEG.maps.BaseMap
+    mapping : None, simpeg.maps.BaseMap
         The mapping from the model parameters to the active cells in the inversion.
         If ``None``, the mapping is the identity map.
     reference_model : None, (n_param, ) numpy.ndarray
@@ -1676,7 +1676,7 @@ class WeightedLeastSquares(ComboObjectiveFunction):
         Examples
         --------
         >>> import discretize
-        >>> from SimPEG.regularization import WeightedLeastSquares
+        >>> from simpeg.regularization import WeightedLeastSquares
         >>> mesh = discretize.TensorMesh([2, 3, 2])
         >>> reg = WeightedLeastSquares(mesh)
         >>> reg.set_weights(my_weight=np.ones(mesh.n_cells))
@@ -1698,7 +1698,7 @@ class WeightedLeastSquares(ComboObjectiveFunction):
         Examples
         --------
         >>> import discretize
-        >>> from SimPEG.regularization import WeightedLeastSquares
+        >>> from simpeg.regularization import WeightedLeastSquares
         >>> mesh = discretize.TensorMesh([2, 3, 2])
         >>> reg = WeightedLeastSquares(mesh)
         >>> reg.set_weights(my_weight=np.ones(mesh.n_cells))
@@ -2185,9 +2185,9 @@ class WeightedLeastSquares(ComboObjectiveFunction):
 
         Returns
         -------
-        SimPEG.maps.BaseMap
+        simpeg.maps.BaseMap
             The mapping from the model parameters to the quantity defined on the
-            :py:class:`~SimPEG.regularization.RegularizationMesh`.
+            :py:class:`~simpeg.regularization.RegularizationMesh`.
         """
         return self._mapping
 
@@ -2221,10 +2221,10 @@ class BaseSimilarityMeasure(BaseRegularization):
 
     Parameters
     ----------
-    mesh : SimPEG.regularization.RegularizationMesh
+    mesh : simpeg.regularization.RegularizationMesh
         Mesh on which the regularization is discretized. This is not necessarily the same as
         the mesh on which the simulation is defined.
-    wire_map : SimPEG.maps.WireMap
+    wire_map : simpeg.maps.WireMap
         Wire map connecting physical properties defined on active cells of the
         :class:`RegularizationMesh` to the entire model.
     """
@@ -2239,7 +2239,7 @@ class BaseSimilarityMeasure(BaseRegularization):
 
         Returns
         -------
-        SimPEG.maps.WireMap
+        simpeg.maps.WireMap
             Mapping from model to physical properties defined on the regularization mesh.
         """
         return self._wire_map

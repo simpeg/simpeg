@@ -1,8 +1,8 @@
 """
 =======================================================================
-Gravity Simulation (:mod:`SimPEG.potential_fields.gravity`)
+Gravity Simulation (:mod:`simpeg.potential_fields.gravity`)
 =======================================================================
-.. currentmodule:: SimPEG.potential_fields.gravity
+.. currentmodule:: simpeg.potential_fields.gravity
 
 About ``gravity``
 
@@ -35,6 +35,7 @@ Analytic functions
   analytics.GravityGradientSphereFreeSpace
 
 """
+
 from . import survey
 from . import sources
 from . import receivers

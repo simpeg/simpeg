@@ -86,7 +86,7 @@ class BaseFDEMSimulation(BaseEMSimulation):
 
         Returns
         -------
-        SimPEG.electromagnetics.frequency_domain.survey.Survey
+        simpeg.electromagnetics.frequency_domain.survey.Survey
         """
         if self._survey is None:
             raise AttributeError("Simulation must have a survey set")
@@ -195,7 +195,7 @@ class BaseFDEMSimulation(BaseEMSimulation):
         :param numpy.ndarray m: inversion model (nP,)
         :param numpy.ndarray v: vector which we take sensitivity product with
             (nP,)
-        :param SimPEG.electromagnetics.frequency_domain.fields.FieldsFDEM u: fields object
+        :param simpeg.electromagnetics.frequency_domain.fields.FieldsFDEM u: fields object
         :rtype: numpy.ndarray
         :return: Jv (ndata,)
         """
@@ -224,7 +224,7 @@ class BaseFDEMSimulation(BaseEMSimulation):
 
         :param numpy.ndarray m: inversion model (nP,)
         :param numpy.ndarray v: vector which we take adjoint product with (nP,)
-        :param SimPEG.electromagnetics.frequency_domain.fields.FieldsFDEM u: fields object
+        :param simpeg.electromagnetics.frequency_domain.fields.FieldsFDEM u: fields object
         :rtype: numpy.ndarray
         :return: Jv (ndata,)
         """
@@ -270,7 +270,7 @@ class BaseFDEMSimulation(BaseEMSimulation):
         Method to form full J given a model m
 
         :param numpy.ndarray m: inversion model (nP,)
-        :param SimPEG.electromagnetics.frequency_domain.fields.FieldsFDEM u: fields object
+        :param simpeg.electromagnetics.frequency_domain.fields.FieldsFDEM u: fields object
         :rtype: numpy.ndarray
         :return: J (ndata, nP)
         """
@@ -325,7 +325,7 @@ class BaseFDEMSimulation(BaseEMSimulation):
 
         :param numpy.ndarray m: inversion model (nP,)
         :param numpy.ndarray W: vector of weights (ndata,)
-        :param SimPEG.electromagnetics.frequency_domain.fields.FieldsFDEM u: fields object
+        :param simpeg.electromagnetics.frequency_domain.fields.FieldsFDEM u: fields object
         :rtype: numpy.ndarray
         :return: JtJ (nP,)
         """
@@ -812,7 +812,7 @@ class Simulation3DMagneticFluxDensity(BaseFDEMSimulation):
         Derivative of the right hand side with respect to the model
 
         :param float freq: frequency
-        :param SimPEG.electromagnetics.frequency_domain.fields.FieldsFDEM src: FDEM source
+        :param simpeg.electromagnetics.frequency_domain.fields.FieldsFDEM src: FDEM source
         :param numpy.ndarray v: vector to take product with
         :param bool adjoint: adjoint?
         :rtype: numpy.ndarray
@@ -1247,7 +1247,7 @@ class Simulation3DCurrentDensity(BaseFDEMSimulation):
         Derivative of the right hand side with respect to the model
 
         :param float freq: frequency
-        :param SimPEG.electromagnetics.frequency_domain.fields.FieldsFDEM src: FDEM source
+        :param simpeg.electromagnetics.frequency_domain.fields.FieldsFDEM src: FDEM source
         :param numpy.ndarray v: vector to take product with
         :param bool adjoint: adjoint?
         :rtype: numpy.ndarray
@@ -1408,7 +1408,7 @@ class Simulation3DMagneticField(BaseFDEMSimulation):
         Derivative of the right hand side with respect to the model
 
         :param float freq: frequency
-        :param SimPEG.electromagnetics.frequency_domain.fields.FieldsFDEM src: FDEM source
+        :param simpeg.electromagnetics.frequency_domain.fields.FieldsFDEM src: FDEM source
         :param numpy.ndarray v: vector to take product with
         :param bool adjoint: adjoint?
         :rtype: numpy.ndarray

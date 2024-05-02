@@ -1,8 +1,8 @@
 """
 ==============================================================================
-Frequency-Domain EM (:mod:`SimPEG.electromagnetics.frequency_domain`)
+Frequency-Domain EM (:mod:`simpeg.electromagnetics.frequency_domain`)
 ==============================================================================
-.. currentmodule:: SimPEG.electromagnetics.frequency_domain
+.. currentmodule:: simpeg.electromagnetics.frequency_domain
 
 About ``frequency_domain``
 
@@ -77,6 +77,7 @@ Base Classes
   fields.FieldsFDEM
 
 """
+
 from .survey import Survey
 from . import sources
 from . import receivers

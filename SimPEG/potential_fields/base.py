@@ -5,7 +5,7 @@ import discretize
 import numpy as np
 from scipy.sparse import csr_matrix as csr
 
-from SimPEG.utils import mkvc
+from simpeg.utils import mkvc
 
 from ..simulation import LinearSimulation
 from ..utils import validate_active_indices, validate_integer, validate_string
@@ -57,7 +57,7 @@ class BasePFSimulation(LinearSimulation):
     Therefor you must protect the calls to this class by testing if you are in
     the main process with:
 
-    >>> from SimPEG.potential_fields import gravity
+    >>> from simpeg.potential_fields import gravity
     >>> if __name__ == '__main__':
     ...     # Do your processing here
     ...     sim = gravity.Simulation3DIntegral(n_processes=4, ...)

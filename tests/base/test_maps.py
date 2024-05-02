@@ -4,7 +4,7 @@ import discretize
 import pytest
 import scipy.sparse as sp
 
-from SimPEG import maps, models, utils
+from simpeg import maps, models, utils
 from discretize.utils import mesh_builder_xyz, refine_tree_xyz, active_from_xyz
 import inspect
 

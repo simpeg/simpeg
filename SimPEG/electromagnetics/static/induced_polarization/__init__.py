@@ -1,8 +1,8 @@
 """
 ============================================================================================
-Induced Polarization (:mod:`SimPEG.electromagnetics.static.induced_polarization`)
+Induced Polarization (:mod:`simpeg.electromagnetics.static.induced_polarization`)
 ============================================================================================
-.. currentmodule:: SimPEG.electromagnetics.static.induced_polarization
+.. currentmodule:: simpeg.electromagnetics.static.induced_polarization
 
 
 Simulations
@@ -18,8 +18,9 @@ Simulations
 Receivers, Sources, and Surveys
 ===============================
 The ``induced_polarization`` module makes use of receivers, sources, and surveys
-defined in the ``SimPEG.electromagnetics.static.resistivity`` module.
+defined in the ``simpeg.electromagnetics.static.resistivity`` module.
 """
+
 from .simulation import (
     Simulation3DCellCentered,
     Simulation3DNodal,

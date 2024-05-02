@@ -45,7 +45,7 @@ class Point(survey.BaseRx):
 
     See also
     --------
-    SimPEG.potential_fields.gravity.Simulation3DIntegral
+    simpeg.potential_fields.gravity.Simulation3DIntegral
     """
 
     def __init__(self, locations, components="gz", **kwargs):

@@ -1,8 +1,8 @@
 """
 ==================================================================================
-Straight Ray Tomography (:mod:`SimPEG.seismic.straight_ray_tomography`)
+Straight Ray Tomography (:mod:`simpeg.seismic.straight_ray_tomography`)
 ==================================================================================
-.. currentmodule:: SimPEG.seismic.straight_ray_tomography
+.. currentmodule:: simpeg.seismic.straight_ray_tomography
 
 About ``straight_ray_tomography``
 
@@ -24,6 +24,7 @@ Survey, Sources and Receivers
 
 
 """
+
 from .simulation import Simulation2DIntegral as Simulation
 from .survey import StraightRaySurvey as Survey
 from ...survey import BaseSrc as Src

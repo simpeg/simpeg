@@ -64,7 +64,7 @@ class CrossReferenceRegularization(Smallness, BaseVectorRegularization):
     active_cells : index_array, optional
         Boolean array or an array of active indices indicating the active cells of the
         inversion domain mesh.
-    mapping : SimPEG.maps.IdentityMap, optional
+    mapping : simpeg.maps.IdentityMap, optional
         An optional linear mapping that would go from the model space to the space where
         the cross-product is enforced.
     weights : dict of [str: array_like], optional
@@ -506,7 +506,7 @@ class AmplitudeSmallness(SparseSmallness, BaseAmplitude):
     active_cells : None, (n_cells, ) numpy.ndarray of bool
         Boolean array defining the set of :py:class:`~.regularization.RegularizationMesh`
         cells that are active in the inversion. If ``None``, all cells are active.
-    mapping : None, SimPEG.maps.BaseMap
+    mapping : None, simpeg.maps.BaseMap
         The mapping from the model parameters to the active cells in the inversion.
         If ``None``, the mapping is the identity map.
     reference_model : None, (n_param, ) numpy.ndarray
@@ -716,7 +716,7 @@ class AmplitudeSmoothnessFirstOrder(SparseSmoothness, BaseAmplitude):
     active_cells : None, (n_cells, ) numpy.ndarray of bool
         Boolean array defining the set of :py:class:`~.regularization.RegularizationMesh`
         cells that are active in the inversion. If ``None``, all cells are active.
-    mapping : None, SimPEG.maps.BaseMap
+    mapping : None, simpeg.maps.BaseMap
         The mapping from the model parameters to the active cells in the inversion.
         If ``None``, the mapping is the identity map.
     reference_model : None, (n_param, ) numpy.ndarray
@@ -1004,13 +1004,13 @@ class VectorAmplitude(Sparse):
 
     Parameters
     ----------
-    mesh : SimPEG.regularization.RegularizationMesh, discretize.base.BaseMesh
+    mesh : simpeg.regularization.RegularizationMesh, discretize.base.BaseMesh
         Mesh on which the regularization is discretized. This is not necessarily
         the same as the mesh on which the simulation is defined.
     active_cells : None, (n_cells, ) numpy.ndarray of bool
         Boolean array defining the set of :py:class:`~.regularization.RegularizationMesh`
         cells that are active in the inversion. If ``None``, all cells are active.
-    mapping : None, SimPEG.maps.BaseMap
+    mapping : None, simpeg.maps.BaseMap
         The mapping from the model parameters to the active cells in the inversion.
         If ``None``, the mapping is the identity map.
     reference_model : None, (n_param, ) numpy.ndarray

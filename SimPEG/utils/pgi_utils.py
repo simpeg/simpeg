@@ -19,7 +19,7 @@ from sklearn.mixture._gaussian_mixture import (
 )
 from sklearn.mixture._base import check_random_state, ConvergenceWarning
 import warnings
-from SimPEG.maps import IdentityMap
+from simpeg.maps import IdentityMap
 
 
 ###############################################################################
@@ -1560,7 +1560,7 @@ class GaussianMixtureWithNonlinearRelationshipsWithPrior(GaussianMixtureWithPrio
             warm_start=warm_start,
             weights_init=weights_init,
             update_covariances=update_covariances,
-            fixed_membership=fixed_membership
+            fixed_membership=fixed_membership,
             # **kwargs
         )
 

@@ -30,13 +30,13 @@ class BaseSparse(BaseRegularization):
 
     Parameters
     ----------
-    mesh : SimPEG.regularization.RegularizationMesh, discretize.base.BaseMesh
+    mesh : simpeg.regularization.RegularizationMesh, discretize.base.BaseMesh
         Mesh on which the regularization is discretized. This is not necessarily
         the same as the mesh on which the simulation is defined.
     active_cells : None, (n_cells, ) numpy.ndarray of bool
         Boolean array defining the set of :py:class:`~.regularization.RegularizationMesh`
         cells that are active in the inversion. If ``None``, all cells are active.
-    mapping : None, SimPEG.maps.BaseMap
+    mapping : None, simpeg.maps.BaseMap
         The mapping from the model parameters to the active cells in the inversion.
         If ``None``, the mapping is the identity map.
     reference_model : None, (n_param, ) numpy.ndarray
@@ -233,7 +233,7 @@ class SparseSmallness(BaseSparse, Smallness):
     active_cells : None, (n_cells, ) numpy.ndarray of bool
         Boolean array defining the set of :py:class:`~.regularization.RegularizationMesh`
         cells that are active in the inversion. If ``None``, all cells are active.
-    mapping : None, SimPEG.maps.BaseMap
+    mapping : None, simpeg.maps.BaseMap
         The mapping from the model parameters to the active cells in the inversion.
         If ``None``, the mapping is the identity map.
     reference_model : None, (n_param, ) numpy.ndarray
@@ -430,7 +430,7 @@ class SparseSmoothness(BaseSparse, SmoothnessFirstOrder):
     active_cells : None, (n_cells, ) numpy.ndarray of bool
         Boolean array defining the set of :py:class:`~.regularization.RegularizationMesh`
         cells that are active in the inversion. If ``None``, all cells are active.
-    mapping : None, SimPEG.maps.BaseMap
+    mapping : None, simpeg.maps.BaseMap
         The mapping from the model parameters to the active cells in the inversion.
         If ``None``, the mapping is the identity map.
     reference_model : None, (n_param, ) numpy.ndarray
@@ -717,13 +717,13 @@ class Sparse(WeightedLeastSquares):
 
     Parameters
     ----------
-    mesh : SimPEG.regularization.RegularizationMesh, discretize.base.BaseMesh
+    mesh : simpeg.regularization.RegularizationMesh, discretize.base.BaseMesh
         Mesh on which the regularization is discretized. This is not necessarily
         the same as the mesh on which the simulation is defined.
     active_cells : None, (n_cells, ) numpy.ndarray of bool
         Boolean array defining the set of :py:class:`~.regularization.RegularizationMesh`
         cells that are active in the inversion. If ``None``, all cells are active.
-    mapping : None, SimPEG.maps.BaseMap
+    mapping : None, simpeg.maps.BaseMap
         The mapping from the model parameters to the active cells in the inversion.
         If ``None``, the mapping is the identity map.
     reference_model : None, (n_param, ) numpy.ndarray

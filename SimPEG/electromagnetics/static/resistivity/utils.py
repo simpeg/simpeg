@@ -6,7 +6,7 @@ from . import sources
 from .survey import Survey
 
 # Import geometric_factor to make it available through
-# SimPEG.resistivity.utils.geometric_factor (to ensure backward compatibility)
+# simpeg.resistivity.utils.geometric_factor (to ensure backward compatibility)
 from ..utils import geometric_factor  # noqa: F401
 
 
@@ -27,7 +27,7 @@ def WennerSrcList(n_electrodes, a_spacing, in2D=False, plotIt=False):
 
     Returns
     -------
-    list of SimPEG.electromagnetics.static.resistivity.sources.Dipole
+    list of simpeg.electromagnetics.static.resistivity.sources.Dipole
         List of sources and their associate receivers for the Wenner survey
     """
 

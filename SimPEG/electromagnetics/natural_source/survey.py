@@ -20,7 +20,7 @@ class Data(BaseData, DataNSEMPlotMethods):
 
     Parameters
     ----------
-    survey : SimPEG.survey.Survey
+    survey : simpeg.survey.Survey
         Natural source EM survey
     dobs : numpy.ndarray
         Observed data
@@ -143,11 +143,11 @@ class Data(BaseData, DataNSEMPlotMethods):
         recArray : numpy.ndarray
             Record array with the data. Has to have ('freq','x','y','z') columns and some ('zxx','zxy','zyx','zyy','tzx','tzy')
         srcType : str, default: "primary"
-            The type of SimPEG.EM.NSEM.SrcNSEM to be used. Either "primary" or "total"
+            The type of simpeg.EM.NSEM.SrcNSEM to be used. Either "primary" or "total"
 
         Returns
         -------
-        SimPEG.electromagnetics.natural_source.sources.SrcNSEM
+        simpeg.electromagnetics.natural_source.sources.SrcNSEM
             Natural source
         """
         if srcType == "primary":
@@ -220,7 +220,7 @@ class Data(BaseData, DataNSEMPlotMethods):
 def _rec_to_ndarr(rec_arr, data_type=float):
     """
     Function to transform a numpy record array to a nd array.
-    dupe of SimPEG.electromagnetics.natural_source.utils.rec_to_ndarr to avoid circular import
+    dupe of simpeg.electromagnetics.natural_source.utils.rec_to_ndarr to avoid circular import
     """
     # fix for numpy >= 1.16.0
     # https://numpy.org/devdocs/release/1.16.0-notes.html#multi-field-views-return-a-view-instead-of-a-copy

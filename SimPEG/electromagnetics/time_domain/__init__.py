@@ -1,8 +1,8 @@
 """
 ==============================================================================
-Time-Domain EM (:mod:`SimPEG.electromagnetics.time_domain`)
+Time-Domain EM (:mod:`simpeg.electromagnetics.time_domain`)
 ==============================================================================
-.. currentmodule:: SimPEG.electromagnetics.time_domain
+.. currentmodule:: simpeg.electromagnetics.time_domain
 
 About ``time_domain``
 
@@ -93,6 +93,7 @@ Base Classes
   fields.FieldsDerivativesHJ
 
 """
+
 from .simulation import (
     Simulation3DMagneticFluxDensity,
     Simulation3DMagneticFluxDensityFaceEdgeConductivity,

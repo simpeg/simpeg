@@ -57,7 +57,7 @@ class BaseEMSrc(BaseSrc):
     ----------
     location : (n_dim) numpy.ndarray
         Location of the source
-    receiver_list : list of SimPEG.survey.BaseRx objects
+    receiver_list : list of simpeg.survey.BaseRx objects
         Sets the receivers associated with the source
     uid : uuid.UUID
         A universally unique identifier
@@ -93,7 +93,7 @@ class BaseEMSrc(BaseSrc):
 
         Parameters
         ----------
-        simulation : SimPEG.electromagnetics.base.BaseEMSimulation
+        simulation : simpeg.electromagnetics.base.BaseEMSimulation
             An instance of an electromagnetic simulation
 
         Returns
@@ -111,7 +111,7 @@ class BaseEMSrc(BaseSrc):
 
         Parameters
         ----------
-        simulation : SimPEG.electromagnetics.base.BaseEMSimulation
+        simulation : simpeg.electromagnetics.base.BaseEMSimulation
             An instance of an electromagnetic simulation
         v : np.ndarray
             A vector

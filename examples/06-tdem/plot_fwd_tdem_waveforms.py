@@ -8,8 +8,8 @@ to the `StepOffWaveform`
 
 import matplotlib.pyplot as plt
 import numpy as np
-from SimPEG.electromagnetics import time_domain as TDEM
-from SimPEG.utils import mkvc
+from simpeg.electromagnetics import time_domain as TDEM
+from simpeg.utils import mkvc
 
 nT = 1000
 max_t = 5e-3

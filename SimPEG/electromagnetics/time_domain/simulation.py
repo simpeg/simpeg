@@ -85,7 +85,7 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
     @property
     def dt_threshold(self):
         """Threshold used when determining the unique time-step lengths.
-        
+
         The number of linear systems that must be factored to solve the forward
         problem is equal to the number of unique time-step lengths. *dt_threshold*
         effectively sets the round-off error when determining the unique time-step
@@ -454,7 +454,7 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
         and electric source terms for the time index provided. The exact shape and
         implementation of source terms when solving for the fields at each time-step
         is formulation dependent.
-        
+
         Parameters
         ----------
         tInd : int
@@ -628,7 +628,7 @@ class Simulation3DMagneticFluxDensity(BaseTDEMSimulation):
 
     _fieldType = "b"
     _formulation = "EB"
-    fieldsPair = Fields3DMagneticFluxDensity  #: A SimPEG.EM.TDEM.Fields3DMagneticFluxDensity object
+    fieldsPair = Fields3DMagneticFluxDensity  #: A simpeg.EM.TDEM.Fields3DMagneticFluxDensity object
     Fields_Derivs = FieldsDerivativesEB
 
     def getAdiag(self, tInd):

@@ -1,8 +1,8 @@
 """
 ========================================================
-Utility Classes and Functions (:mod:`SimPEG.utils`)
+Utility Classes and Functions (:mod:`simpeg.utils`)
 ========================================================
-.. currentmodule:: SimPEG.utils
+.. currentmodule:: simpeg.utils
 
 The ``utils`` package contains utilities for helping with common operations involving
 SimPEG.
@@ -142,6 +142,7 @@ Many of the functions here are used internally to SimPEG and have minimal docume
   validate_active_indices
 
 """
+
 from discretize.utils.interpolation_utils import interpolation_matrix
 
 from .code_utils import (

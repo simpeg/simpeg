@@ -7,7 +7,7 @@ from ..utils import drapeTopotoLoc
 from . import receivers as Rx
 from . import sources as Src
 from ..utils import static_utils
-from SimPEG import data
+from simpeg import data
 
 
 class Survey(BaseSurvey):
@@ -15,7 +15,7 @@ class Survey(BaseSurvey):
 
     Parameters
     ----------
-    source_list : list of SimPEG.electromagnetic.static.resistivity.sources.BaseSrc
+    source_list : list of simpeg.electromagnetic.static.resistivity.sources.BaseSrc
         List of SimPEG DC/IP sources
     survey_geometry : {"surface", "borehole", "general"}
         Survey geometry.

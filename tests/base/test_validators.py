@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from SimPEG.utils import (
+from simpeg.utils import (
     validate_string,
     validate_integer,
     validate_float,

@@ -1,8 +1,8 @@
 """
 ===========================================================================================================
-Viscous Remanent Magnetization (:mod:`SimPEG.electromagnetics.viscous_remanent_magnetization`)
+Viscous Remanent Magnetization (:mod:`simpeg.electromagnetics.viscous_remanent_magnetization`)
 ===========================================================================================================
-.. currentmodule:: SimPEG.electromagnetics.viscous_remanent_magnetization
+.. currentmodule:: simpeg.electromagnetics.viscous_remanent_magnetization
 
 About ``viscous_remanent_magnetization``
 
@@ -66,6 +66,7 @@ Base Classes
   waveforms.BaseVRMWaveform
 
 """
+
 from . import receivers
 from . import sources
 from . import receivers as Rx

@@ -28,21 +28,21 @@ class BaseObjectiveFunction(BaseSimPEG):
 
     .. important::
         If building a regularization function within SimPEG, please inherit
-        :py:class:`SimPEG.regularization.BaseRegularization`, as this class
+        :py:class:`simpeg.regularization.BaseRegularization`, as this class
         has additional functionality related to regularization. And if building a data misfit
-        function, please inherit :py:class:`SimPEG.data_misfit.BaseDataMisfit`.
+        function, please inherit :py:class:`simpeg.data_misfit.BaseDataMisfit`.
 
     Parameters
     ----------
     nP : int
         Number of model parameters.
-    mapping : SimPEG.mapping.BaseMap
+    mapping : simpeg.mapping.BaseMap
         A SimPEG mapping object that maps from the model space to the
         quantity evaluated in the objective function.
     has_fields : bool
         If ``True``, predicted fields for a simulation and a given model can be
         used to evaluate the objective function quickly.
-    counter : None or SimPEG.utils.Counter
+    counter : None or simpeg.utils.Counter
         Assign a SimPEG ``Counter`` object to store iterations and run-times.
     debug : bool
         Print debugging information.
@@ -74,7 +74,7 @@ class BaseObjectiveFunction(BaseSimPEG):
         ----------
         x : (nP) numpy.ndarray
             A vector representing a set of model parameters.
-        f : SimPEG.fields.Fields, optional
+        f : simpeg.fields.Fields, optional
             Field object (if applicable).
 
         """
@@ -113,7 +113,7 @@ class BaseObjectiveFunction(BaseSimPEG):
 
         Returns
         -------
-        SimPEG.mapping.BaseMap
+        simpeg.mapping.BaseMap
             The mapping from the model to the quantity evaluated in the object function.
         """
         if self._mapping is None:
@@ -301,7 +301,7 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
 
     Parameters
     ----------
-    objfcts : None or list of SimPEG.objective_function.BaseObjectiveFunction, optional
+    objfcts : None or list of simpeg.objective_function.BaseObjectiveFunction, optional
         List containing the objective functions that will live inside the
         composite class. If ``None``, an empty list will be created.
     multipliers : None or list of int, optional
@@ -509,12 +509,12 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
 
         Parameters
         ----------
-        fun_class : list or SimPEG.objective_function.BaseObjectiveFunction
+        fun_class : list or simpeg.objective_function.BaseObjectiveFunction
             Objective function class or list of objective function classes to return.
 
         Returns
         -------
-        list of SimPEG.objective_function.BaseObjectiveFunction
+        list of simpeg.objective_function.BaseObjectiveFunction
             Objective functions of a given type(s).
         """
         target = []
@@ -545,7 +545,7 @@ class L2ObjectiveFunction(BaseObjectiveFunction):
     ----------
     nP : int
         Number of model parameters.
-    mapping : SimPEG.mapping.BaseMap
+    mapping : simpeg.mapping.BaseMap
         A SimPEG mapping object that maps from the model space to the
         quantity evaluated in the objective function.
     W : None or scipy.sparse.csr_matrix
@@ -554,7 +554,7 @@ class L2ObjectiveFunction(BaseObjectiveFunction):
     has_fields : bool
         If ``True``, predicted fields for a simulation and a given model can be
         used to evaluate the objective function quickly.
-    counter : None or SimPEG.utils.Counter
+    counter : None or simpeg.utils.Counter
         Assign a SimPEG ``Counter`` object to store iterations and run-times.
     debug : bool
         Print debugging information.

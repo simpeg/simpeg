@@ -17,10 +17,10 @@ the obtained resistivity model, sensitivity function is formed and used for
 subsequent IP inversion to recover a chargeability model.
 """
 
-from SimPEG.electromagnetics.static import resistivity as DC
-from SimPEG.electromagnetics.static import induced_polarization as IP
-from SimPEG.electromagnetics.static.utils import generate_dcip_survey, genTopography
-from SimPEG import maps, utils
+from simpeg.electromagnetics.static import resistivity as DC
+from simpeg.electromagnetics.static import induced_polarization as IP
+from simpeg.electromagnetics.static.utils import generate_dcip_survey, genTopography
+from simpeg import maps, utils
 from discretize.utils import active_from_xyz
 import matplotlib.pyplot as plt
 from matplotlib import colors
@@ -30,7 +30,7 @@ from pylab import hist
 try:
     from pymatsolver import Pardiso as Solver
 except ImportError:
-    from SimPEG import SolverLU as Solver
+    from simpeg import SolverLU as Solver
 
 
 def run(plotIt=True, survey_type="dipole-dipole"):

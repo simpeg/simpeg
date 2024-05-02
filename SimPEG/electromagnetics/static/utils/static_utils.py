@@ -75,7 +75,7 @@ def electrode_separations(survey_object, electrode_pair="all", **kwargs):
 
     Parameters
     ----------
-    survey_object : SimPEG.electromagnetics.static.survey.Survey
+    survey_object : simpeg.electromagnetics.static.survey.Survey
         A DC or IP survey object
     electrode_pair : {'all', 'AB', 'MN', 'AM', 'AN', 'BM', 'BN}
         Which electrode separation pairs to compute.
@@ -178,7 +178,7 @@ def pseudo_locations(survey, wenner_tolerance=0.1, **kwargs):
 
     Parameters
     ----------
-    survey : SimPEG.electromagnetics.static.resistivity.Survey
+    survey : simpeg.electromagnetics.static.resistivity.Survey
         A DC or IP survey
     wenner_tolerance : float, default=0.1
         If the center location for a source and receiver pair are within wenner_tolerance,
@@ -269,7 +269,7 @@ def geometric_factor(survey_object, space_type="half space", **kwargs):
 
     Parameters
     ----------
-    survey_object : SimPEG.electromagnetics.static.resistivity.Survey
+    survey_object : simpeg.electromagnetics.static.resistivity.Survey
         A DC (or IP) survey object
     space_type : {'half space', 'whole space'}
         Compute geometric factor for a halfspace or wholespace.
@@ -312,7 +312,7 @@ def apparent_resistivity_from_voltage(
 
     Parameters
     ----------
-    survey : SimPEG.electromagnetics.static.resistivity.Survey
+    survey : simpeg.electromagnetics.static.resistivity.Survey
         A DC survey
     volts : (nD) numpy.ndarray
         Normalized voltage measurements [V/A]
@@ -352,7 +352,7 @@ def convert_survey_3d_to_2d_lines(
 
     Parameters
     ----------
-    survey : SimPEG.electromagnetics.static.resistivity.Survey
+    survey : simpeg.electromagnetics.static.resistivity.Survey
         A DC (or IP) survey
     lineID : (n_data) numpy.ndarray
         Defines the corresponding line ID for each datum
@@ -364,7 +364,7 @@ def convert_survey_3d_to_2d_lines(
 
     Returns
     -------
-    survey_list : list of SimPEG.electromagnetics.static.resistivity.Survey
+    survey_list : list of simpeg.electromagnetics.static.resistivity.Survey
         A list of 2D survey objects
     out_indices_list : list of numpy.ndarray
         A list of indexing arrays that map from the original 3D data to each 2D
@@ -504,7 +504,7 @@ def plot_pseudosection(
 
     Parameters
     ----------
-    data : SimPEG.electromagnetics.static.survey.Survey or SimPEG.data.Data
+    data : simpeg.electromagnetics.static.survey.Survey or simpeg.data.Data
         A DC or IP survey object defining a 2D survey line, or a Data object containing
         that same type of survey object.
     dobs : numpy.ndarray (ndata,) or None
@@ -542,7 +542,7 @@ def plot_pseudosection(
         An axis object for the colorbar
     data_type : str, optional
         If dobs is ``None``, this will transform the data vector in the `survey` parameter
-        when it is a SimPEG.data.Data object from voltage to the requested `data_type`.
+        when it is a simpeg.data.Data object from voltage to the requested `data_type`.
         This occurs when `dobs` is `None`. You may also use "apparent_conductivity"
         or "apparent_resistivity" to define the data type.
     space_type : {'half space', "whole space"}
@@ -766,7 +766,7 @@ if has_plotly:
 
         Parameters
         ----------
-        survey : SimPEG.electromagnetics.static.survey.Survey
+        survey : simpeg.electromagnetics.static.survey.Survey
             A DC or IP survey object
         dvec : numpy.ndarray
             A data vector containing volts, integrated chargeabilities, apparent
@@ -962,7 +962,7 @@ def generate_survey_from_abmn_locations(
     output_sorting : bool
         This option is used if the ABMN locations are sorted during the creation of the survey
         and you would like to sort any data vectors associated with the electrode locations.
-        If False, the function will output a SimPEG.electromagnetic.static.survey.Survey object.
+        If False, the function will output a simpeg.electromagnetic.static.survey.Survey object.
         If True, the function will output a tuple containing the survey object and a numpy array
         (n,) that will sort the data vector to match the order of the electrodes in the survey.
 
@@ -970,7 +970,7 @@ def generate_survey_from_abmn_locations(
     Returns
     -------
     survey
-        A SimPEG.electromagnetic.static.survey.Survey object
+        A simpeg.electromagnetic.static.survey.Survey object
     sort_index
         A numpy array which defines any sorting that took place when creating the survey
 
@@ -1096,7 +1096,7 @@ def generate_dcip_survey(endl, survey_type, a, b, n, dim=3, **kwargs):
 
     Returns
     -------
-    SimPEG.electromagnetics.static.resistivity.Survey
+    simpeg.electromagnetics.static.resistivity.Survey
         A DC survey object
     """
 
@@ -1285,7 +1285,7 @@ def generate_dcip_sources_line(
 
     Returns
     -------
-    SimPEG.electromagnetics.static.resistivity.Survey
+    simpeg.electromagnetics.static.resistivity.Survey
         A DC survey object
     """
 
@@ -1761,7 +1761,7 @@ def gen_3d_survey_from_2d_lines(
 
     Returns
     -------
-    SimPEG.dc.SurveyDC.Survey
+    simpeg.dc.SurveyDC.Survey
         A 3D DC survey object
     """
     ylocs = np.arange(n_lines) * line_spacing + y0

@@ -1,6 +1,7 @@
 """
 Define simulation classes.
 """
+
 import os
 import inspect
 import numpy as np
@@ -54,7 +55,7 @@ class BaseSimulation(props.HasModel):
     ----------
     mesh : discretize.base.BaseMesh, optional
         Mesh on which the forward problem is discretized.
-    survey : SimPEG.survey.BaseSurvey, optional
+    survey : simpeg.survey.BaseSurvey, optional
         The survey for the simulation.
     solver : None or pymatsolver.base.Base, optional
         Numerical solver used to solve the forward problem. If ``None``,
@@ -67,7 +68,7 @@ class BaseSimulation(props.HasModel):
         about solvers and their parameters.
     sensitivity_path : str, optional
         Path to directory where sensitivity file is stored.
-    counter : None or SimPEG.utils.Counter
+    counter : None or simpeg.utils.Counter
         SimPEG ``Counter`` object to store iterations and run-times.
     verbose : bool, optional
         Verbose progress printout.
@@ -127,7 +128,7 @@ class BaseSimulation(props.HasModel):
 
         Returns
         -------
-        SimPEG.survey.BaseSurvey
+        simpeg.survey.BaseSurvey
             The survey for the simulation.
         """
         return self._survey
@@ -144,7 +145,7 @@ class BaseSimulation(props.HasModel):
 
         Returns
         -------
-        None or SimPEG.utils.Counter
+        None or simpeg.utils.Counter
             SimPEG ``Counter`` object to store iterations and run-times.
         """
         return self._counter
@@ -249,7 +250,7 @@ class BaseSimulation(props.HasModel):
 
         Returns
         -------
-        SimPEG.fields.Fields
+        simpeg.fields.Fields
             Computed geophysical fields for the model provided.
 
         """
@@ -262,7 +263,7 @@ class BaseSimulation(props.HasModel):
         ----------
         m : (n_param,) numpy.ndarray
             The model parameters.
-        f : SimPEG.fields.Fields, optional
+        f : simpeg.fields.Fields, optional
             If provided, will be used to compute the predicted data
             without recalculating the fields.
 
@@ -313,7 +314,7 @@ class BaseSimulation(props.HasModel):
             The model parameters.
         v : (n_param, ) numpy.ndarray
             Vector we are multiplying.
-        f : SimPEG.field.Fields, optional
+        f : simpeg.field.Fields, optional
             If provided, fields will not need to be recomputed for the
             current model to compute `Jvec`.
 
@@ -347,7 +348,7 @@ class BaseSimulation(props.HasModel):
             The model parameters.
         v : (n_data, ) numpy.ndarray
             Vector we are multiplying.
-        f : SimPEG.field.Fields, optional
+        f : simpeg.field.Fields, optional
             If provided, fields will not need to be recomputed for the
             current model to compute `Jtvec`.
 
@@ -382,7 +383,7 @@ class BaseSimulation(props.HasModel):
             The model parameters.
         v : (n_data, ) numpy.ndarray
             Vector we are multiplying.
-        f : SimPEG.field.Fields, optional
+        f : simpeg.field.Fields, optional
             If provided, fields will not need to be recomputed for the
             current model to compute `Jtvec`.
 
@@ -417,7 +418,7 @@ class BaseSimulation(props.HasModel):
             The model parameters.
         v : (n_data, ) numpy.ndarray
             Vector we are multiplying.
-        f : SimPEG.field.Fields, optional
+        f : simpeg.field.Fields, optional
             If provided, fields will not need to be recomputed for the
             current model to compute `Jtvec`.
 
@@ -446,7 +447,7 @@ class BaseSimulation(props.HasModel):
             The model parameters.
         dobs : (n_data, ) numpy.ndarray
             The observed data values.
-        f : SimPEG.fields.Fields, optional
+        f : simpeg.fields.Fields, optional
             If provided, fields will not need to be recomputed when solving the forward problem.
 
         Returns
@@ -469,7 +470,7 @@ class BaseSimulation(props.HasModel):
     ):
         r"""Make synthetic data for the model and Gaussian noise provided.
 
-        This method generates and returns a :py:class:`SimPEG.data.SyntheticData` object
+        This method generates and returns a :py:class:`simpeg.data.SyntheticData` object
         for the model and standard deviation of Gaussian noise provided.
 
         Parameters
@@ -484,7 +485,7 @@ class BaseSimulation(props.HasModel):
         noise_floor : float, numpy.ndarray
             Assign floor/absolute uncertainties to the data. For each datum, we assume
             standard deviation of Gaussian noise is equal to `noise_floor`.
-        f : SimPEG.fields.Fields, optional
+        f : simpeg.fields.Fields, optional
             If provided, fields will not need to be recomputed when solving the
             forward problem to obtain noiseless data.
         add_noise : bool
@@ -494,7 +495,7 @@ class BaseSimulation(props.HasModel):
 
         Returns
         -------
-        SimPEG.data.SyntheticData
+        simpeg.data.SyntheticData
             A SimPEG synthetic data object, which organizes both clean and noisy data.
         """
 
@@ -737,7 +738,7 @@ class LinearSimulation(BaseSimulation):
     mesh : discretize.BaseMesh, optional
         Mesh on which the forward problem is discretized. This is not necessarily
         the same as the mesh on which the simulation is defined.
-    model_map : SimPEG.maps.BaseMap
+    model_map : simpeg.maps.BaseMap
         Mapping from the model parameters to vector that the linear operator acts on.
     G : (n_data, n_param) numpy.ndarray or scipy.sparse.csr_matrx
         The linear operator. For a ``model_map`` that maps within the same vector space

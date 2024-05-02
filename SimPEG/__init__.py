@@ -1,8 +1,8 @@
 """
 ========================================================
-Base SimPEG Classes (:mod:`SimPEG`)
+Base SimPEG Classes (:mod:`simpeg`)
 ========================================================
-.. currentmodule:: SimPEG
+.. currentmodule:: simpeg
 
 SimPEG is built off of several base classes that define the
 general structure of simulations and inversion operations.
@@ -168,7 +168,7 @@ from .utils.solver_utils import (
 
 __author__ = "SimPEG Team"
 __license__ = "MIT"
-__copyright__ = "2013 - 2020, SimPEG Team, https://simpeg.xyz"
+__copyright__ = "2013 - 2024, SimPEG Team, https://simpeg.xyz"
 
 
 # Version
@@ -176,7 +176,7 @@ try:
     # - Released versions just tags:       0.8.0
     # - GitHub commits add .dev#+hash:     0.8.1.dev4+g2785721
     # - Uncommitted changes add timestamp: 0.8.1.dev4+g2785721.d20191022
-    from SimPEG.version import version as __version__
+    from simpeg.version import version as __version__
 except ImportError:
     # If it was not installed, then we don't know the version. We could throw a
     # warning here, but this case *should* be rare. SimPEG should be

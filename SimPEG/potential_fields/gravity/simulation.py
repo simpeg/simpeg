@@ -6,8 +6,8 @@ import scipy.constants as constants
 from geoana.kernels import prism_fz, prism_fzx, prism_fzy, prism_fzz
 from scipy.constants import G as NewtG
 
-from SimPEG import props
-from SimPEG.utils import mkvc, sdiag
+from simpeg import props
+from simpeg.utils import mkvc, sdiag
 
 from ...base import BasePDESimulation
 from ..base import BaseEquivalentSourceLayerSimulation, BasePFSimulation
@@ -81,7 +81,7 @@ class Simulation3DIntegral(BasePFSimulation):
     ----------
     mesh : discretize.TreeMesh or discretize.TensorMesh
         Mesh use to run the gravity simulation.
-    survey : SimPEG.potential_fields.gravity.Survey
+    survey : simpeg.potential_fields.gravity.Survey
         Gravity survey with information of the receivers.
     ind_active : (n_cells) numpy.ndarray, optional
         Array that indicates which cells in ``mesh`` are active cells.

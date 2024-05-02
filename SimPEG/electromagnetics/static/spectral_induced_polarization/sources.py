@@ -10,7 +10,7 @@ class BaseSrc(survey.BaseSrc):
 
     Parameters
     ----------
-    receiver_list : list of SimPEG.electromagnetics.static.resistivity.receivers.BaseRx
+    receiver_list : list of simpeg.electromagnetics.static.resistivity.receivers.BaseRx
         A list of DC/IP receivers
     location : (dim) numpy.ndarray
         Source location
@@ -30,7 +30,7 @@ class BaseSrc(survey.BaseSrc):
 
         Returns
         -------
-        list of SimPEG.electromagnetics.static.spectral_induced_polarization.receivers.BaseRx
+        list of simpeg.electromagnetics.static.spectral_induced_polarization.receivers.BaseRx
             List of receivers associated with the source
         """
         return self._receiver_list
@@ -95,7 +95,7 @@ class Dipole(BaseSrc):
 
     Parameters
     ----------
-    receiver_list : list of SimPEG.electromagnetics.static.spectral_induced_polarization.receivers.BaseRx
+    receiver_list : list of simpeg.electromagnetics.static.spectral_induced_polarization.receivers.BaseRx
         A list of spectral IP receivers
     location_a : (dim) numpy.ndarray
         A electrode location; remember to set 'location_b' keyword argument to define N electrode locations.
@@ -210,7 +210,7 @@ class Dipole(BaseSrc):
 
         Parameters
         ----------
-        sim : SimPEG.electromagnetics.static.spectral_induced_polarization.simulation.BaseDCSimulation
+        sim : simpeg.electromagnetics.static.spectral_induced_polarization.simulation.BaseDCSimulation
             A spectral IP simulation
 
         Returns
@@ -238,7 +238,7 @@ class Pole(BaseSrc):
 
     Parameters
     ----------
-    receiver_list : list of SimPEG.electromagnetics.static.spectral_induced_polarization.receivers.BaseRx
+    receiver_list : list of simpeg.electromagnetics.static.spectral_induced_polarization.receivers.BaseRx
         list of spectral IP receivers
     location : (dim) array_like
         Electrode location
@@ -254,7 +254,7 @@ class Pole(BaseSrc):
 
         Parameters
         ----------
-        sim : SimPEG.electromagnetics.static.resistivity.simulation.BaseDCSimulation
+        sim : simpeg.electromagnetics.static.resistivity.simulation.BaseDCSimulation
             A DC/IP simulation
 
         Returns

@@ -6,7 +6,7 @@ import warnings
 
 from discretize.utils import as_array_n_by_dim  # noqa: F401
 
-# scooby is a soft dependency for SimPEG
+# scooby is a soft dependency for simpeg
 try:
     from scooby import Report as ScoobyReport
 except ImportError:
@@ -14,7 +14,7 @@ except ImportError:
     class ScoobyReport:
         def __init__(self, additional, core, optional, ncol, text_width, sort):
             print(
-                "\n  *ERROR*: `SimPEG.Report` requires `scooby`."
+                "\n  *ERROR*: `simpeg.Report` requires `scooby`."
                 "\n           Install it via `pip install scooby` or"
                 "\n           `conda install -c conda-forge scooby`.\n"
             )
@@ -454,7 +454,7 @@ class Report(ScoobyReport):
 
     >>> import pytest
     >>> import dateutil
-    >>> from SimPEG import Report
+    >>> from simpeg import Report
     >>> Report()                            # Default values
     >>> Report(pytest)                      # Provide additional package
     >>> Report([pytest, dateutil], ncol=5)  # Define nr of columns
@@ -466,7 +466,7 @@ class Report(ScoobyReport):
 
         # Mandatory packages.
         core = [
-            "SimPEG",
+            "simpeg",
             "discretize",
             "pymatsolver",
             "numpy",

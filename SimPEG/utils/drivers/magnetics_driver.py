@@ -3,7 +3,7 @@ import os
 from discretize import TensorMesh
 from discretize.utils import active_from_xyz
 
-from SimPEG import utils
+from simpeg import utils
 
 import numpy as np
 
@@ -307,7 +307,7 @@ class MagneticsDriver_Inv(object):
             # Convert list to 2d array
             M = np.vstack(M)
 
-            # Cycle through three components and permute from UBC to SimPEG
+            # Cycle through three components and permute from UBC to simpeg
             for ii in range(3):
                 m = np.reshape(
                     M[:, ii],

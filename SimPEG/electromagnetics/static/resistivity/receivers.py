@@ -158,11 +158,11 @@ class BaseRx(BaseSimPEGRx):
 
         Parameters
         ----------
-        src : SimPEG.electromagnetics.static.resistivity.sources.BaseSrc
+        src : simpeg.electromagnetics.static.resistivity.sources.BaseSrc
             A DC/IP source
         mesh : discretize.base.BaseMesh
             The mesh on which the discrete set of equations is solved
-        f : SimPEG.electromagnetic.static.fields.FieldsDC
+        f : simpeg.electromagnetic.static.fields.FieldsDC
             The solution for the fields defined on the mesh
 
         Returns
@@ -198,11 +198,11 @@ class BaseRx(BaseSimPEGRx):
 
         Parameters
         ----------
-        src : SimPEG.electromagnetics.static.resistivity.sources.BaseSrc
+        src : simpeg.electromagnetics.static.resistivity.sources.BaseSrc
             A frequency-domain EM source
         mesh : discretize.base.BaseMesh
             The mesh on which the discrete set of equations is solved
-        f : SimPEG.electromagnetic.static.resistivity.fields.FieldsDC
+        f : simpeg.electromagnetic.static.resistivity.fields.FieldsDC
             The solution for the fields defined on the mesh
         du_dm_v : numpy.ndarray, default = ``None``
             The derivative of the fields on the mesh with respect to the model,

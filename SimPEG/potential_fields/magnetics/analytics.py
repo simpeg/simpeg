@@ -1,7 +1,7 @@
 from scipy.constants import mu_0
-from SimPEG import utils
+from simpeg import utils
 
-# from SimPEG import Mesh
+# from simpeg import Mesh
 import numpy as np
 
 

@@ -1,8 +1,8 @@
 """
 ====================================================================================================
-Static Utilities (:mod:`SimPEG.electromagnetics.utils`)
+Static Utilities (:mod:`simpeg.electromagnetics.utils`)
 ====================================================================================================
-.. currentmodule:: SimPEG.electromagnetics.static.utils
+.. currentmodule:: simpeg.electromagnetics.static.utils
 
 
 Electrode Utilities
@@ -46,6 +46,7 @@ Mesh Utilities
   closestPointsGrid
 
 """
+
 from .static_utils import (
     electrode_separations,
     pseudo_locations,

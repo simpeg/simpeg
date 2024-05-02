@@ -1,8 +1,8 @@
 """
 ========================================================
-Meta SimPEG Classes (:mod:`SimPEG.meta`)
+Meta SimPEG Classes (:mod:`simpeg.meta`)
 ========================================================
-.. currentmodule:: SimPEG.meta
+.. currentmodule:: simpeg.meta
 
 SimPEG's meta module defines tools for working with simulations representing
 many smaller simulations working together to solve a geophysical problem.
@@ -75,4 +75,20 @@ from .multiprocessing import (
     MultiprocessingRepeatedSimulation,
 )
 
-from .dask_sim import DaskMetaSimulation, DaskSumMetaSimulation, DaskRepeatedSimulation
+try:
+    from .dask_sim import (
+        DaskMetaSimulation,
+        DaskSumMetaSimulation,
+        DaskRepeatedSimulation,
+    )
+except ImportError:
+
+    class DaskMetaSimulation(MetaSimulation):
+        def __init__(self, *args, **kwargs):
+            raise ImportError(
+                "This simulation requires dask.distributed. Please see installation "
+                "instructions at https://distributed.dask.org/"
+            )
+
+    DaskSumMetaSimulation = DaskMetaSimulation
+    DaskRepeatedMetaSimulation = DaskMetaSimulation

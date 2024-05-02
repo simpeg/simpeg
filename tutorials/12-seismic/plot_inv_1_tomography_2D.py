@@ -29,7 +29,7 @@ import tarfile
 
 from discretize import TensorMesh
 
-from SimPEG import (
+from simpeg import (
     data,
     maps,
     regularization,
@@ -41,7 +41,7 @@ from SimPEG import (
     utils,
 )
 
-from SimPEG.seismic import straight_ray_tomography as tomo
+from simpeg.seismic import straight_ray_tomography as tomo
 
 # sphinx_gallery_thumbnail_number = 3
 

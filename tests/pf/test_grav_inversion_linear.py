@@ -3,7 +3,7 @@ import numpy as np
 
 import discretize
 from discretize.utils import active_from_xyz
-from SimPEG import (
+from simpeg import (
     utils,
     maps,
     regularization,
@@ -13,7 +13,7 @@ from SimPEG import (
     directives,
     inversion,
 )
-from SimPEG.potential_fields import gravity
+from simpeg.potential_fields import gravity
 
 
 @pytest.mark.parametrize("engine", ("geoana", "choclo"))

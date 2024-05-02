@@ -19,7 +19,7 @@ class Simulation3DCellCentered(dc.Simulation3DCellCentered):
     q : float, array_like, optional
         The charge density accumulation rate model (C/(s m^3)), also
         physically represents the volumetric current density (A/m^3).
-    qMap : SimPEG.maps.IdentityMap, optional
+    qMap : simpeg.maps.IdentityMap, optional
         The mapping used to go from the simulation model to `q`. Set this
         to invert for `q`.
     **kwargs

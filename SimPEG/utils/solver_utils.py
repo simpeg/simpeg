@@ -44,7 +44,7 @@ def SolverWrapD(fun, factorize=True, checkAccuracy=True, accuracyTol=1e-6, name=
     --------
     A solver that does not have a factorize method.
 
-    >>> from SimPEG.utils.solver_utils import SolverWrapD
+    >>> from simpeg.utils.solver_utils import SolverWrapD
     >>> import scipy.sparse as sp
     >>> SpSolver = SolverWrapD(sp.linalg.spsolve, factorize=False)
     >>> A = sp.diags([1, -1], [0, 1], shape=(10, 10))
@@ -170,7 +170,7 @@ def SolverWrapI(fun, checkAccuracy=True, accuracyTol=1e-5, name=None):
     --------
 
     >>> import scipy.sparse as sp
-    >>> from SimPEG.utils.solver_utils import SolverWrapI
+    >>> from simpeg.utils.solver_utils import SolverWrapI
 
     >>> SolverCG = SolverWrapI(sp.linalg.cg)
     >>> A = sp.diags([-1, 2, -1], [-1, 0, 1], shape=(10, 10))
@@ -278,7 +278,7 @@ class SolverDiag(object):
     Examples
     --------
     >>> import scipy.sparse as sp
-    >>> from SimPEG.utils.solver_utils import SolverDiag
+    >>> from simpeg.utils.solver_utils import SolverDiag
     >>> A = sp.diags(np.linspace(1, 2, 10))
     >>> b = np.arange(10)
     >>> Ainv = SolverDiag(A)

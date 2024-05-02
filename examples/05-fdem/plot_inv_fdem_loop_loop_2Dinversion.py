@@ -7,7 +7,7 @@ at 30kHz with 3 different coil separations [0.32m, 0.71m, 1.18m].
 We will use only Horizontal co-planar orientations (vertical magnetic dipole),
 and look at the real and imaginary parts of the secondary magnetic field.
 
-We use the :class:`SimPEG.maps.Surject2Dto3D` mapping to invert for a 2D model
+We use the :class:`simpeg.maps.Surject2Dto3D` mapping to invert for a 2D model
 and perform the forward modelling in 3D.
 
 """
@@ -19,10 +19,10 @@ import time
 try:
     from pymatsolver import Pardiso as Solver
 except ImportError:
-    from SimPEG import SolverLU as Solver
+    from simpeg import SolverLU as Solver
 
 import discretize
-from SimPEG import (
+from simpeg import (
     maps,
     optimization,
     data_misfit,
@@ -32,7 +32,7 @@ from SimPEG import (
     directives,
     Report,
 )
-from SimPEG.electromagnetics import frequency_domain as FDEM
+from simpeg.electromagnetics import frequency_domain as FDEM
 
 ###############################################################################
 # Setup
@@ -271,7 +271,7 @@ ax = plot_data(dclean)
 # --------------------
 #
 # We create the data misfit, simple regularization
-# (a least-squares-style regularization, :class:`SimPEG.regularization.LeastSquareRegularization`)
+# (a least-squares-style regularization, :class:`simpeg.regularization.LeastSquareRegularization`)
 # The smoothness and smallness contributions can be set by including
 # `alpha_s, alpha_x, alpha_y` as input arguments when the regularization is
 # created. The default reference model in the regularization is the starting
@@ -281,7 +281,7 @@ ax = plot_data(dclean)
 # We estimate the trade-off parameter, beta, between the data
 # misfit and regularization by the largest eigenvalue of the data misfit and
 # the regularization. Here, we use a fixed beta, but could alternatively
-# employ a beta-cooling schedule using :class:`SimPEG.directives.BetaSchedule`
+# employ a beta-cooling schedule using :class:`simpeg.directives.BetaSchedule`
 
 dmisfit = data_misfit.L2DataMisfit(simulation=prob, data=data)
 reg = regularization.WeightedLeastSquares(inversion_mesh)

@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from SimPEG.electromagnetics import time_domain as tdem
+from simpeg.electromagnetics import time_domain as tdem
 
 
 def test_removed_projcomp():

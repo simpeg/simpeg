@@ -1,9 +1,9 @@
 """
 ===================================================================
-Electromagnetics Utilities (:mod:`SimPEG.electromagnetics.utils`)
+Electromagnetics Utilities (:mod:`simpeg.electromagnetics.utils`)
 ===================================================================
 
-.. currentmodule:: SimPEG.electromagnetics.utils
+.. currentmodule:: simpeg.electromagnetics.utils
 
 
 Current Utilities
@@ -30,6 +30,7 @@ Waveform Utilities
   convolve_with_waveform
 
 """
+
 from .waveform_utils import (
     omega,
     k,

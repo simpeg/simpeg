@@ -1,7 +1,7 @@
 import numpy as np
 import scipy.sparse as sp
 
-from SimPEG.utils.code_utils import deprecate_property, validate_active_indices
+from simpeg.utils.code_utils import deprecate_property, validate_active_indices
 
 from .. import props, utils
 
@@ -590,4 +590,4 @@ class RegularizationMesh(props.BaseSimPEG):
 
 
 # Make it look like it's in the regularization module
-RegularizationMesh.__module__ = "SimPEG.regularization"
+RegularizationMesh.__module__ = "simpeg.regularization"

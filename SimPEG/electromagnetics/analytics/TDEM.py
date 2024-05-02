@@ -1,7 +1,7 @@
 import numpy as np
 from scipy.constants import mu_0, pi
 from scipy.special import erf
-from SimPEG import utils
+from simpeg import utils
 
 
 def hzAnalyticDipoleT(r, t, sigma):

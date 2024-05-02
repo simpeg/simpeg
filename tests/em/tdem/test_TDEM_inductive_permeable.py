@@ -7,8 +7,8 @@ from matplotlib.colors import LogNorm
 from scipy.constants import mu_0
 import time
 
-from SimPEG.electromagnetics import time_domain as tdem
-from SimPEG import utils, maps
+from simpeg.electromagnetics import time_domain as tdem
+from simpeg import utils, maps
 
 from pymatsolver import Pardiso
 

@@ -1,6 +1,6 @@
 from ...survey import BaseSrc
-from SimPEG.utils.mat_utils import dip_azimuth2cartesian
-from SimPEG.utils.code_utils import deprecate_class, validate_float
+from simpeg.utils.mat_utils import dip_azimuth2cartesian
+from simpeg.utils.code_utils import deprecate_class, validate_float
 
 
 class UniformBackgroundField(BaseSrc):
@@ -11,10 +11,7 @@ class UniformBackgroundField(BaseSrc):
 
     Parameters
     ----------
-    receiver_list : list of SimPEG.potential_fields.magnetics.Point
-    parameters : tuple of (amplitude, inclutation, declination), optional
-        Deprecated input for the function, provided in this position for backwards
-        compatibility
+    receiver_list : list of simpeg.potential_fields.magnetics.Point
     amplitude : float, optional
         amplitude of the inducing backgound field, usually this is in units of nT.
     inclination : float, optional
@@ -109,7 +106,7 @@ class SourceField(UniformBackgroundField):
 
     Parameters
     ----------
-    receivers_list : list of SimPEG.potential_fields.receivers.Point
+    receivers_list : list of simpeg.potential_fields.receivers.Point
         List of magnetics receivers
     parameters : (3) array_like of float
         Define the Earth's inducing field according to

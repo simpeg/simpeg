@@ -6,7 +6,7 @@ class SourceField(BaseSrc):
 
     Parameters
     ----------
-    receivers_list : list of SimPEG.potential_fields.receivers.Point
+    receivers_list : list of simpeg.potential_fields.receivers.Point
         List of magnetics receivers
     """
 

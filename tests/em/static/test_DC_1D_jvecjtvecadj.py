@@ -1,10 +1,10 @@
 from discretize.tests import check_derivative, assert_isadjoint
 import numpy as np
 import pytest
-from SimPEG import (
+from simpeg import (
     maps,
 )
-from SimPEG.electromagnetics import resistivity as dc
+from simpeg.electromagnetics import resistivity as dc
 
 TOL = 1e-5
 FLR = 1e-20  # "zero", so if residual below this --> pass regardless of order

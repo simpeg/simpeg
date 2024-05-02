@@ -2,7 +2,7 @@
 Forward Simulation of VRM Response on a Tree Mesh
 =================================================
 
-Here we use the module *SimPEG.electromagnetics.viscous_remanent_magnetization*
+Here we use the module *simpeg.electromagnetics.viscous_remanent_magnetization*
 to predict the characteristic VRM response over magnetically viscous top soil.
 We consider a small-loop, ground-based survey which uses a coincident loop
 geometry. For this tutorial, we focus on the following:
@@ -26,9 +26,9 @@ tutorial have been developed for modeling both the inductive and VRM responses.
 # --------------
 #
 
-from SimPEG.electromagnetics import viscous_remanent_magnetization as vrm
-from SimPEG.utils import plot2Ddata
-from SimPEG import maps
+from simpeg.electromagnetics import viscous_remanent_magnetization as vrm
+from simpeg.utils import plot2Ddata
+from simpeg import maps
 
 from discretize import TreeMesh
 from discretize.utils import mkvc, refine_tree_xyz, active_from_xyz

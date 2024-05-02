@@ -2,7 +2,7 @@ import numpy as np
 from geoana.em.fdem.base import skin_depth
 from geoana.em.tdem import diffusion_distance
 
-from SimPEG import utils
+from simpeg import utils
 
 
 def get_vertical_discretization(n_layer, minimum_dz, geomtric_factor):

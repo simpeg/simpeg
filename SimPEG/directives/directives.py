@@ -48,12 +48,12 @@ class InversionDirective:
 
     Parameters
     ----------
-    inversion : SimPEG.inversion.BaseInversion, None
-        An SimPEG inversion object; i.e. an instance of :class:`SimPEG.inversion.BaseInversion`.
-    dmisfit : SimPEG.data_misfit.BaseDataMisfit, None
-        A data data misfit; i.e. an instance of :class:`SimPEG.data_misfit.BaseDataMisfit`.
-    reg : SimPEG.regularization.BaseRegularization, None
-        The regularization, or model objective function; i.e. an instance of :class:`SimPEG.regularization.BaseRegularization`.
+    inversion : simpeg.inversion.BaseInversion, None
+        An SimPEG inversion object; i.e. an instance of :class:`simpeg.inversion.BaseInversion`.
+    dmisfit : simpeg.data_misfit.BaseDataMisfit, None
+        A data data misfit; i.e. an instance of :class:`simpeg.data_misfit.BaseDataMisfit`.
+    reg : simpeg.regularization.BaseRegularization, None
+        The regularization, or model objective function; i.e. an instance of :class:`simpeg.regularization.BaseRegularization`.
     verbose : bool
         Whether or not to print debugging information.
     """
@@ -97,7 +97,7 @@ class InversionDirective:
 
         Returns
         -------
-        SimPEG.inversion.BaseInversion
+        simpeg.inversion.BaseInversion
             The inversion associated with the directive.
         """
         if not hasattr(self, "_inversion"):
@@ -121,7 +121,7 @@ class InversionDirective:
 
         Returns
         -------
-        SimPEG.inverse_problem.BaseInvProblem
+        simpeg.inverse_problem.BaseInvProblem
             The inverse problem associated with the directive.
         """
         return self.inversion.invProb
@@ -132,7 +132,7 @@ class InversionDirective:
 
         Returns
         -------
-        SimPEG.optimization.Minimize
+        simpeg.optimization.Minimize
             Optimization algorithm associated with the directive.
         """
         return self.invProb.opt
@@ -143,7 +143,7 @@ class InversionDirective:
 
         Returns
         -------
-        SimPEG.regularization.BaseRegularization
+        simpeg.regularization.BaseRegularization
             The regularization associated with the directive.
         """
         if getattr(self, "_reg", None) is None:
@@ -167,7 +167,7 @@ class InversionDirective:
 
         Returns
         -------
-        SimPEG.data_misfit.BaseDataMisfit
+        simpeg.data_misfit.BaseDataMisfit
             The data misfit associated with the directive.
         """
         if getattr(self, "_dmisfit", None) is None:
@@ -195,7 +195,7 @@ class InversionDirective:
 
         Returns
         -------
-        list of SimPEG.survey.Survey
+        list of simpeg.survey.Survey
             Survey for all data misfits.
         """
         return [objfcts.simulation.survey for objfcts in self.dmisfit.objfcts]
@@ -210,7 +210,7 @@ class InversionDirective:
 
         Returns
         -------
-        list of SimPEG.simulation.BaseSimulation
+        list of simpeg.simulation.BaseSimulation
             Simulation for all data misfits.
         """
         return [objfcts.simulation for objfcts in self.dmisfit.objfcts]
@@ -236,7 +236,7 @@ class InversionDirective:
 
         Parameters
         ----------
-        directive_list : SimPEG.directives.DirectiveList
+        directive_list : simpeg.directives.DirectiveList
             List of directives used in the inversion.
 
         Returns
@@ -256,9 +256,9 @@ class DirectiveList(object):
 
     Parameters
     ----------
-    directives : list of SimPEG.directives.InversionDirective
+    directives : list of simpeg.directives.InversionDirective
         List of directives.
-    inversion : SimPEG.inversion.BaseInversion
+    inversion : simpeg.inversion.BaseInversion
         The inversion associated with the directives list.
     debug : bool
         Whether or not to print debugging information.
@@ -298,7 +298,7 @@ class DirectiveList(object):
 
         Returns
         -------
-        SimPEG.inversion.BaseInversion
+        simpeg.inversion.BaseInversion
             The inversion associated with the directives list.
         """
         return getattr(self, "_inversion", None)
@@ -412,7 +412,7 @@ class BetaEstimateMaxDerivative(BaseBetaEstimator):
     The initial trade-off parameter (beta) is estimated by scaling the ratio
     between the largest derivatives in the gradient of the data misfit and
     model objective function. The estimated trade-off parameter is used to
-    update the **beta** property in the associated :class:`SimPEG.inverse_problem.BaseInvProblem`
+    update the **beta** property in the associated :class:`simpeg.inverse_problem.BaseInvProblem`
     object prior to running the inversion. A separate directive is used for updating the
     trade-off parameter at successive beta iterations; see :class:`BetaSchedule`.
 
@@ -479,9 +479,9 @@ class BetaEstimate_ByEig(BaseBetaEstimator):
     The initial trade-off parameter (beta) is estimated by scaling the ratio
     between the largest eigenvalue in the second derivative of the data
     misfit and the model objective function. The largest eigenvalues are estimated
-    using the power iteration method; see :func:`SimPEG.utils.eigenvalue_by_power_iteration`.
+    using the power iteration method; see :func:`simpeg.utils.eigenvalue_by_power_iteration`.
     The estimated trade-off parameter is used to update the **beta** property in the
-    associated :class:`SimPEG.inverse_problem.BaseInvProblem` object prior to running the inversion.
+    associated :class:`simpeg.inverse_problem.BaseInvProblem` object prior to running the inversion.
     Note that a separate directive is used for updating the trade-off parameter at successive
     beta iterations; see :class:`BetaSchedule`.
 
@@ -517,7 +517,7 @@ class BetaEstimate_ByEig(BaseBetaEstimator):
     parameter 'n_pw_iter' sets the number of power iterations used in the estimate.
 
     For a description of the power iteration approach for estimating the larges eigenvalue,
-    see :func:`SimPEG.utils.eigenvalue_by_power_iteration`.
+    see :func:`simpeg.utils.eigenvalue_by_power_iteration`.
 
     """
 
@@ -568,7 +568,7 @@ class BetaEstimate_ByEig(BaseBetaEstimator):
 class BetaSchedule(InversionDirective):
     """Reduce trade-off parameter (beta) at successive iterations using a cooling schedule.
 
-    Updates the **beta** property in the associated :class:`SimPEG.inverse_problem.BaseInvProblem`
+    Updates the **beta** property in the associated :class:`simpeg.inverse_problem.BaseInvProblem`
     while the inversion is running.
     For linear least-squares problems, the optimization problem can be solved in a
     single step and the cooling rate can be set to *1*. For non-linear optimization
@@ -1614,7 +1614,7 @@ class SaveModelEveryIteration(SaveEveryIteration):
 
     def initialize(self):
         print(
-            "SimPEG.SaveModelEveryIteration will save your models as: "
+            "simpeg.SaveModelEveryIteration will save your models as: "
             "'{0!s}###-{1!s}.npy'".format(self.directory + os.path.sep, self.fileName)
         )
 
@@ -1652,7 +1652,7 @@ class SaveOutputEveryIteration(SaveEveryIteration):
     def initialize(self):
         if self.save_txt is True:
             print(
-                "SimPEG.SaveOutputEveryIteration will save your inversion "
+                "simpeg.SaveOutputEveryIteration will save your inversion "
                 "progress as: '###-{0!s}.txt'".format(self.fileName)
             )
             f = open(self.fileName + ".txt", "w")
@@ -1875,7 +1875,7 @@ class SaveOutputDictEveryIteration(SaveEveryIteration):
         self.outDict = {}
         if self.saveOnDisk:
             print(
-                "SimPEG.SaveOutputDictEveryIteration will save your inversion progress as dictionary: '###-{0!s}.npz'".format(
+                "simpeg.SaveOutputDictEveryIteration will save your inversion progress as dictionary: '###-{0!s}.npz'".format(
                     self.fileName
                 )
             )
@@ -2434,7 +2434,7 @@ class UpdateSensitivityWeights(InversionDirective):
     The underlying theory is provided below in the `Notes` section.
 
     This directive **requires** that the map for the regularization function is either
-    class:`SimPEG.maps.Wires` or class:`SimPEG.maps.Identity`. In other words, the
+    class:`simpeg.maps.Wires` or class:`simpeg.maps.Identity`. In other words, the
     sensitivity weighting cannot be applied for parametric inversion. In addition,
     the simulation(s) connected to the inverse problem **must** have a ``getJ`` or
     ``getJtJdiag`` method.

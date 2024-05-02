@@ -10,7 +10,7 @@ class Survey(BaseTimeSurvey):
 
     Parameters
     ----------
-    source_list : list of SimPEG.electromagnetic.static.spectral_induced_polarization.sources.BaseSrc
+    source_list : list of simpeg.electromagnetic.static.spectral_induced_polarization.sources.BaseSrc
         List of SimPEG spectral IP sources
     survey_geometry : {"surface", "borehole", "general"}
         Survey geometry.
@@ -109,14 +109,14 @@ def from_dc_to_sip_survey(survey_dc, times):
 
     Parameters
     ----------
-    dc_survey : SimPEG.electromagnetics.static.resistivity.survey.Survey
+    dc_survey : simpeg.electromagnetics.static.resistivity.survey.Survey
         DC survey object
     times : numpy.ndarray
         Time channels
 
     Returns
     -------
-    SimPEG.electromagnetics.static.spectral_induced_polarization.survey.Survey
+    simpeg.electromagnetics.static.spectral_induced_polarization.survey.Survey
         An SIP survey object
     """
     source_list = survey_dc.source_list

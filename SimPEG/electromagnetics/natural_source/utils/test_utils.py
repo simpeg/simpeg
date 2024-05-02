@@ -1,7 +1,7 @@
 import numpy as np
 
 import discretize
-from SimPEG import maps, mkvc, utils, Data
+from simpeg import maps, mkvc, utils, Data
 from ....utils import unpack_widths
 from ..receivers import (
     PointNaturalSource,

@@ -134,12 +134,12 @@ def eigenvalue_by_power_iteration(
     r"""Estimate largest eigenvalue in absolute value using power iteration.
 
     Uses the power iteration approach to estimate the largest eigenvalue in absolute
-    value for a single :class:`SimPEG.BaseObjectiveFunction` or a combination of
-    objective functions stored in a :class:`SimPEG.ComboObjectiveFunction`.
+    value for a single :class:`simpeg.BaseObjectiveFunction` or a combination of
+    objective functions stored in a :class:`simpeg.ComboObjectiveFunction`.
 
     Parameters
     ----------
-    combo_objfct : SimPEG.BaseObjectiveFunction
+    combo_objfct : simpeg.BaseObjectiveFunction
         Objective function or a combo objective function
     model : numpy.ndarray
         Current model
@@ -148,7 +148,7 @@ def eigenvalue_by_power_iteration(
     fields_list : list (optional)
         ``list`` of fields objects for each data misfit term in combo_objfct. If none given,
         they will be evaluated within the function. If combo_objfct mixs data misfit and regularization
-        terms, the list should contains SimPEG.fields for the data misfit terms and None for the
+        terms, the list should contains simpeg.fields for the data misfit terms and None for the
         regularization term.
     seed : int
         Random seed for the initial random guess of eigenvector.

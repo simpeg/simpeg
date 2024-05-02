@@ -1,8 +1,8 @@
 """
 ====================================================================================================
-Spectral Induced Polarization (:mod:`SimPEG.electromagnetics.static.induced_polarization`)
+Spectral Induced Polarization (:mod:`simpeg.electromagnetics.static.induced_polarization`)
 ====================================================================================================
-.. currentmodule:: SimPEG.electromagnetics.static.spectral_induced_polarization
+.. currentmodule:: simpeg.electromagnetics.static.spectral_induced_polarization
 
 
 Simulations
@@ -60,6 +60,7 @@ Base Classes
   simulation_2d.BaseSIPSimulation2D
 
 """
+
 from ....data import Data
 from .simulation import Simulation3DCellCentered, Simulation3DNodal
 from .simulation_2d import Simulation2DCellCentered, Simulation2DNodal

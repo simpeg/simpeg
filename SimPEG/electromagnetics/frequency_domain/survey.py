@@ -8,7 +8,7 @@ class Survey(BaseSurvey):
 
     Parameters
     ----------
-    source_list : list of SimPEG.electromagnetic.frequency_domain.sources.BaseFDEMSrc
+    source_list : list of simpeg.electromagnetic.frequency_domain.sources.BaseFDEMSrc
         List of SimPEG FDEM sources
     """
 

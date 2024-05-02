@@ -36,7 +36,7 @@ class Simulation1DLayered(BaseEM1DSimulation):
         """The survey for the simulation
         Returns
         -------
-        SimPEG.electromagnetics.time_domain.survey.Survey
+        simpeg.electromagnetics.time_domain.survey.Survey
         """
         if self._survey is None:
             raise AttributeError("Simulation must have a survey set")
@@ -153,9 +153,9 @@ class Simulation1DLayered(BaseEM1DSimulation):
                 def func(t, i):
                     out = np.zeros_like(t)
                     t = t.copy()
-                    t[
-                        (t > 0.0) & (t <= t_spline_points.min())
-                    ] = t_spline_points.min()  # constant at very low ts
+                    t[(t > 0.0) & (t <= t_spline_points.min())] = (
+                        t_spline_points.min()
+                    )  # constant at very low ts
                     out[t > 0.0] = splines[i](np.log(t[t > 0.0])) / t[t > 0.0]
                     return out
 

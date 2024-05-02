@@ -15,7 +15,7 @@ class Data:
 
     Parameters
     ----------
-    survey : SimPEG.survey.BaseSurvey
+    survey : simpeg.survey.BaseSurvey
         A SimPEG survey object. For each geophysical method, the survey object defines
         the survey geometry; i.e. sources, receivers, data type.
     dobs : (n) numpy.ndarray
@@ -98,7 +98,7 @@ class Data:
 
         Returns
         -------
-        SimPEG.simulation.BaseSurvey
+        simpeg.simulation.BaseSurvey
         """
         return self._survey
 
@@ -365,12 +365,12 @@ class Data:
 class SyntheticData(Data):
     r"""Synthetic data class.
 
-    The ``SyntheticData`` class is a :py:class:`SimPEG.data.Data` class that allows the
+    The ``SyntheticData`` class is a :py:class:`simpeg.data.Data` class that allows the
     user to keep track of both clean and noisy data.
 
     Parameters
     ----------
-    survey : SimPEG.survey.BaseSurvey
+    survey : simpeg.survey.BaseSurvey
         A SimPEG survey object. For each geophysical method, the survey object defines
         the survey geometry; i.e. sources, receivers, data type.
     dobs : numpy.ndarray

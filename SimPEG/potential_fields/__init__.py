@@ -1,8 +1,8 @@
 """
 =================================================================
-Base Classes and Functions (:mod:`SimPEG.potential_fields`)
+Base Classes and Functions (:mod:`simpeg.potential_fields`)
 =================================================================
-.. currentmodule:: SimPEG.potential_fields
+.. currentmodule:: simpeg.potential_fields
 
 About ``potential_fields``
 

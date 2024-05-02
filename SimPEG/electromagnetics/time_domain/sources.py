@@ -157,7 +157,7 @@ class StepOffWaveform(BaseWaveform):
 
     >>> import matplotlib.pyplot as plt
     >>> import numpy as np
-    >>> from SimPEG.electromagnetics import time_domain as tdem
+    >>> from simpeg.electromagnetics import time_domain as tdem
 
     >>> times = np.linspace(0, 1e-4, 1000)
     >>> waveform = tdem.sources.StepOffWaveform(off_time=1e-5)
@@ -190,7 +190,7 @@ class RampOffWaveform(BaseWaveform):
 
     >>> import matplotlib.pyplot as plt
     >>> import numpy as np
-    >>> from SimPEG.electromagnetics import time_domain as tdem
+    >>> from simpeg.electromagnetics import time_domain as tdem
 
     >>> times = np.linspace(0, 1e-4, 1000)
     >>> waveform = tdem.sources.RampOffWaveform(off_time=1e-5)
@@ -246,7 +246,7 @@ class RawWaveform(BaseWaveform):
 
     >>> import matplotlib.pyplot as plt
     >>> import numpy as np
-    >>> from SimPEG.electromagnetics import time_domain as tdem
+    >>> from simpeg.electromagnetics import time_domain as tdem
 
     >>> def my_waveform(t):
     >>>     period = 1e-2
@@ -309,7 +309,7 @@ class VTEMWaveform(BaseWaveform):
 
     >>> import matplotlib.pyplot as plt
     >>> import numpy as np
-    >>> from SimPEG.electromagnetics import time_domain as tdem
+    >>> from simpeg.electromagnetics import time_domain as tdem
 
     >>> times = np.linspace(0, 1e-2, 1000)
     >>> waveform = tdem.sources.VTEMWaveform()
@@ -413,7 +413,7 @@ class TrapezoidWaveform(BaseWaveform):
 
     >>> import matplotlib.pyplot as plt
     >>> import numpy as np
-    >>> from SimPEG.electromagnetics import time_domain as tdem
+    >>> from simpeg.electromagnetics import time_domain as tdem
 
     >>> times = np.linspace(0, 1e-2, 1000)
     >>> waveform = tdem.sources.TrapezoidWaveform(ramp_on=[0.0, 2e-3], ramp_off=[4e-3, 6e-3])
@@ -519,7 +519,7 @@ class TriangularWaveform(TrapezoidWaveform):
 
     >>> import matplotlib.pyplot as plt
     >>> import numpy as np
-    >>> from SimPEG.electromagnetics import time_domain as tdem
+    >>> from simpeg.electromagnetics import time_domain as tdem
 
     >>> times = np.linspace(0, 1e-2, 1000)
     >>> waveform = tdem.sources.TriangularWaveform(start_time=1E-3, off_time=6e-3, peak_time=3e-3)
@@ -589,7 +589,7 @@ class QuarterSineRampOnWaveform(TrapezoidWaveform):
 
     >>> import matplotlib.pyplot as plt
     >>> import numpy as np
-    >>> from SimPEG.electromagnetics import time_domain as tdem
+    >>> from simpeg.electromagnetics import time_domain as tdem
 
     >>> times = np.linspace(0, 1e-2, 1000)
     >>> waveform = tdem.sources.QuarterSineRampOnWaveform(ramp_on=(0, 2e-3), ramp_off=(3e-3, 3.5e-3))
@@ -828,7 +828,7 @@ class ExponentialWaveform(BaseWaveform):
 
     >>> import matplotlib.pyplot as plt
     >>> import numpy as np
-    >>> from SimPEG.electromagnetics import time_domain as tdem
+    >>> from simpeg.electromagnetics import time_domain as tdem
 
     >>> times = np.linspace(-1e-2, 1e-2, 1000)
     >>> waveform = tdem.sources.ExponentialWaveform()
@@ -955,7 +955,7 @@ class BaseTDEMSrc(BaseEMSrc):
 
     Parameters
     ----------
-    receiver_list : list of SimPEG.electromagnetics.frequency_domain.receivers.BaseRx
+    receiver_list : list of simpeg.electromagnetics.frequency_domain.receivers.BaseRx
         A list of FDEM receivers
     location : (dim) numpy.ndarray
         Source locations
@@ -1061,7 +1061,7 @@ class BaseTDEMSrc(BaseEMSrc):
 
         Parameters
         ----------
-        simulation : SimPEG.electromagnetics.base.BaseTDEMSimulation
+        simulation : simpeg.electromagnetics.base.BaseTDEMSimulation
             An instance of a time-domain electromagnetic simulation
         time : float
             The time at which you want to compute the source terms
@@ -1081,7 +1081,7 @@ class BaseTDEMSrc(BaseEMSrc):
 
         Parameters
         ----------
-        simulation : SimPEG.electromagnetics.base.BaseTDEMSimulation
+        simulation : simpeg.electromagnetics.base.BaseTDEMSimulation
             An instance of a time-domain electromagnetic simulation
         time :
             The time at which you want to compute the derivative
@@ -1134,7 +1134,7 @@ class MagDipole(BaseTDEMSrc):
 
     Parameters
     ----------
-    receiver_list : list of SimPEG.electromagnetics.time_domain.receivers.BaseRx
+    receiver_list : list of simpeg.electromagnetics.time_domain.receivers.BaseRx
         A list of TDEM receivers
     location : (dim) numpy.ndarray, default = np.r_[0., 0., 0.]
         Source location.
@@ -1473,7 +1473,7 @@ class CircularLoop(MagDipole):
 
     Parameters
     ----------
-    receiver_list : list of SimPEG.electromagnetics.time_domain.receivers.BaseRx
+    receiver_list : list of simpeg.electromagnetics.time_domain.receivers.BaseRx
         A list of TDEM receivers
     location : (dim) np.ndarray, default = np.r_[0., 0., 0.]
         Source location.
@@ -1628,7 +1628,7 @@ class LineCurrent(BaseTDEMSrc):
 
     Parameters
     ----------
-    receiver_list : list of SimPEG.electromagnetics.time_domain.receivers.BaseRx
+    receiver_list : list of simpeg.electromagnetics.time_domain.receivers.BaseRx
         List of TDEM receivers
     location : (n, 3) numpy.ndarray
         Array defining the node locations for the wire path. For inductive sources,
@@ -1715,7 +1715,7 @@ class LineCurrent(BaseTDEMSrc):
 
         Parameters
         ----------
-        simulation : SimPEG.electromagnetics.time_domain.simulation.BaseTDEMSimulation
+        simulation : simpeg.electromagnetics.time_domain.simulation.BaseTDEMSimulation
             Base TDEM simulation
 
         Returns
@@ -1734,7 +1734,7 @@ class LineCurrent(BaseTDEMSrc):
 
         Parameters
         ----------
-        simulation : SimPEG.electromagnetics.time_domain.simulation.BaseTDEMSimulation
+        simulation : simpeg.electromagnetics.time_domain.simulation.BaseTDEMSimulation
             Base TDEM simulation
 
         Returns
@@ -1753,7 +1753,7 @@ class LineCurrent(BaseTDEMSrc):
 
         Parameters
         ----------
-        simulation : SimPEG.electromagnetics.time_domain.simulation.BaseTDEMSimulation
+        simulation : simpeg.electromagnetics.time_domain.simulation.BaseTDEMSimulation
             Base TDEM simulation
 
         Returns
@@ -1777,7 +1777,7 @@ class LineCurrent(BaseTDEMSrc):
 
         Parameters
         ----------
-        simulation : SimPEG.electromagnetics.base.BaseEMSimulation
+        simulation : simpeg.electromagnetics.base.BaseEMSimulation
             An electromagnetic simulation
 
         Returns

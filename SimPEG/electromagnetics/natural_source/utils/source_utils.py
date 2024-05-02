@@ -80,7 +80,7 @@ def analytic1DModelSource(mesh, freq, sigma_1d):
     :return: eBG_bp, E fields for the background model at both polarizations with shape (mesh.nE, 2).
 
     """
-    from SimPEG.NSEM.Utils import getEHfields
+    from simpeg.NSEM.Utils import getEHfields
 
     # Get a 1d solution for a halfspace background
     if mesh.dim == 1:

@@ -23,7 +23,7 @@ class Pressure(BaseTimeRx):
         ----------
         U : (n_time) list of (n_cells) numpy.ndarray
             Fields computed on the mesh. This is unused for this receiver.
-        simulation : SimPEG.flow.richards.simulation.SimulationNDCellCentered
+        simulation : simpeg.flow.richards.simulation.SimulationNDCellCentered
             A Richards flor simulation
         du_dm_v : numpy.ndarray
             Derivative with respect to the model times a vector
@@ -65,7 +65,7 @@ class Saturation(BaseTimeRx):
         ----------
         U : (n_time) list of (n_cells) numpy.ndarray
             Fields computed on the mesh. This is unused for this receiver.
-        simulation : SimPEG.flow.richards.simulation.SimulationNDCellCentered
+        simulation : simpeg.flow.richards.simulation.SimulationNDCellCentered
             A Richards flor simulation
         du_dm_v : numpy.ndarray
             Derivative with respect to the model times a vector

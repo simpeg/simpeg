@@ -1,6 +1,6 @@
 from multiprocessing import Process, Queue, cpu_count
-from SimPEG.meta import MetaSimulation, SumMetaSimulation, RepeatedSimulation
-from SimPEG.props import HasModel
+from simpeg.meta import MetaSimulation, SumMetaSimulation, RepeatedSimulation
+from simpeg.props import HasModel
 import uuid
 import numpy as np
 
@@ -187,7 +187,7 @@ class MultiprocessingMetaSimulation(MetaSimulation):
     protecting your function calls by checking if you are in `__main__`
     with:
 
-    >>> from SimPEG.meta import MultiprocessingMetaSimulation
+    >>> from simpeg.meta import MultiprocessingMetaSimulation
     >>> if __name__ == '__main__':
     ...     # Do processing here
     ...     sim = MultiprocessingMetaSimulation(...)
@@ -201,10 +201,10 @@ class MultiprocessingMetaSimulation(MetaSimulation):
 
     Parameters
     ----------
-    simulations : (n_sim) list of SimPEG.simulation.BaseSimulation
+    simulations : (n_sim) list of simpeg.simulation.BaseSimulation
         The list of unique simulations that each handle a piece
         of the problem.
-    mappings : (n_sim) list of SimPEG.maps.IdentityMap
+    mappings : (n_sim) list of simpeg.maps.IdentityMap
         The map for every simulation. Every map should accept the
         same length model, and output a model appropriate for its
         paired simulation.
@@ -358,10 +358,10 @@ class MultiprocessingSumMetaSimulation(
 
     Parameters
     ----------
-    simulations : (n_sim) list of SimPEG.simulation.BaseSimulation
+    simulations : (n_sim) list of simpeg.simulation.BaseSimulation
         The list of unique simulations that each handle a piece
         of the problem.
-    mappings : (n_sim) list of SimPEG.maps.IdentityMap
+    mappings : (n_sim) list of simpeg.maps.IdentityMap
         The map for every simulation. Every map should accept the
         same length model, and output a model appropriate for its
         paired simulation.
@@ -435,9 +435,9 @@ class MultiprocessingRepeatedSimulation(
 
     Parameters
     ----------
-    simulation : SimPEG.simulation.BaseSimulation
+    simulation : simpeg.simulation.BaseSimulation
         The simulation to use repeatedly with different mappings.
-    mappings : (n_sim) list of SimPEG.maps.IdentityMap
+    mappings : (n_sim) list of simpeg.maps.IdentityMap
         The list of different mappings to use.
     n_processes : optional
         The number of processes to spawn internally. This will default

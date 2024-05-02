@@ -172,11 +172,11 @@ class BaseRx(survey.BaseRx):
 
         Parameters
         ----------
-        src : SimPEG.electromagnetics.frequency_domain.sources.BaseFDEMSrc
+        src : simpeg.electromagnetics.frequency_domain.sources.BaseFDEMSrc
             A frequency-domain EM source
         mesh : discretize.base.BaseMesh
             The mesh on which the discrete set of equations is solved
-        f : SimPEG.electromagnetic.frequency_domain.fields.FieldsFDEM
+        f : simpeg.electromagnetic.frequency_domain.fields.FieldsFDEM
             The solution for the fields defined on the mesh
 
         Returns
@@ -196,11 +196,11 @@ class BaseRx(survey.BaseRx):
 
         Parameters
         ----------
-        src : SimPEG.electromagnetics.frequency_domain.sources.BaseFDEMSrc
+        src : simpeg.electromagnetics.frequency_domain.sources.BaseFDEMSrc
             A frequency-domain EM source
         mesh : discretize.base.BaseMesh
             The mesh on which the discrete set of equations is solved
-        f : SimPEG.electromagnetic.frequency_domain.fields.FieldsFDEM
+        f : simpeg.electromagnetic.frequency_domain.fields.FieldsFDEM
             The solution for the fields defined on the mesh
         du_dm_v : numpy.ndarray
             The derivative of the fields on the mesh with respect to the model,

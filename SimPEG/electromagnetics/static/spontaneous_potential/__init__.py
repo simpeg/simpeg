@@ -1,8 +1,8 @@
 """
 ============================================================================================
-Spontaneous Potential (:mod:`SimPEG.electromagnetics.static.spontaneous_potential`)
+Spontaneous Potential (:mod:`simpeg.electromagnetics.static.spontaneous_potential`)
 ============================================================================================
-.. currentmodule:: SimPEG.electromagnetics.static.spontaneous_potential
+.. currentmodule:: simpeg.electromagnetics.static.spontaneous_potential
 
 
 Simulations
@@ -14,7 +14,7 @@ Simulations
 
 Receivers
 =========
-This module makes use of the receivers in :mod:`SimPEG.electromagnetics.static.resistivity`
+This module makes use of the receivers in :mod:`simpeg.electromagnetics.static.resistivity`
 
 Sources
 =======

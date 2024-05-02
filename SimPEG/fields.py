@@ -6,7 +6,7 @@ from .utils import mkvc, validate_type
 
 class Fields:
     r"""Base class for storing fields.
-    
+
     Fields objects store the discrete solution of the fields for forward simulations.
     Only one field type is stored, but other field types may be computed rapidly.
     The field type that is stored and the field types that can be rapidly computed depend
@@ -86,7 +86,7 @@ class Fields:
 
         Returns
         -------
-        SimPEG.simulation.BaseSimulation
+        simpeg.simulation.BaseSimulation
         """
         return self._simulation
 
@@ -324,7 +324,7 @@ class TimeFields(Fields):
 
         Returns
         -------
-        SimPEG.simulation.BaseTimeSimulation
+        simpeg.simulation.BaseTimeSimulation
         """
         return self._simulation
 

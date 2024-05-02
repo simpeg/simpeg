@@ -1,8 +1,8 @@
 """
 =========================================================================
-Magnetics Simulation (:mod:`SimPEG.potential_fields.magnetics`)
+Magnetics Simulation (:mod:`simpeg.potential_fields.magnetics`)
 =========================================================================
-.. currentmodule:: SimPEG.potential_fields.magnetics
+.. currentmodule:: simpeg.potential_fields.magnetics
 
 About ``magnetics``
 
@@ -35,6 +35,7 @@ Analytics
   analytics.MagSphereAnaFunA
   analytics.MagSphereFreeSpace
 """
+
 from . import survey
 from . import sources
 from . import receivers

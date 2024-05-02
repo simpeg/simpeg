@@ -3,7 +3,7 @@
 Parametric 1D Inversion of Sounding Data
 ========================================
 
-Here we use the module *SimPEG.electromangetics.static.resistivity* to invert
+Here we use the module *simpeg.electromangetics.static.resistivity* to invert
 DC resistivity sounding data and recover the resistivities and layer thicknesses
 for a 1D layered Earth. In this tutorial, we focus on the following:
 
@@ -31,7 +31,7 @@ import tarfile
 
 from discretize import TensorMesh
 
-from SimPEG import (
+from simpeg import (
     maps,
     data,
     data_misfit,
@@ -42,8 +42,8 @@ from SimPEG import (
     directives,
     utils,
 )
-from SimPEG.electromagnetics.static import resistivity as dc
-from SimPEG.utils import plot_1d_layer_model
+from simpeg.electromagnetics.static import resistivity as dc
+from simpeg.utils import plot_1d_layer_model
 
 mpl.rcParams.update({"font.size": 16})
 

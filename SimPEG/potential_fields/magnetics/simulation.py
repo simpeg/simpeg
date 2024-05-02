@@ -11,9 +11,9 @@ from geoana.kernels import (
 )
 from scipy.constants import mu_0
 
-from SimPEG import Solver, props, utils
-from SimPEG.utils import mat_utils, mkvc, sdiag
-from SimPEG.utils.code_utils import deprecate_property, validate_string, validate_type
+from simpeg import Solver, props, utils
+from simpeg.utils import mat_utils, mkvc, sdiag
+from simpeg.utils.code_utils import deprecate_property, validate_string, validate_type
 
 from ...base import BaseMagneticPDESimulation
 from ..base import BaseEquivalentSourceLayerSimulation, BasePFSimulation
@@ -535,7 +535,7 @@ class Simulation3DDifferential(BaseMagneticPDESimulation):
 
         Returns
         -------
-        SimPEG.potential_fields.magnetics.survey.Survey
+        simpeg.potential_fields.magnetics.survey.Survey
         """
         if self._survey is None:
             raise AttributeError("Simulation must have a survey")
@@ -996,7 +996,7 @@ def MagneticsDiffSecondaryInv(mesh, model, data, **kwargs):
     Inversion module for MagneticsDiffSecondary
 
     """
-    from SimPEG import (
+    from simpeg import (
         directives,
         inversion,
         objective_function,

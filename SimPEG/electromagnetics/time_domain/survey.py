@@ -13,7 +13,7 @@ class Survey(BaseSurvey):
 
     Parameters
     ----------
-    source_list : list of SimPEG.electromagnetic.time_domain.sources.BaseTDEMSrc
+    source_list : list of simpeg.electromagnetic.time_domain.sources.BaseTDEMSrc
         List of SimPEG TDEM sources
     """
 

@@ -35,7 +35,7 @@ class SmoothnessFullGradient(BaseRegularization):
     Construct of 2D measure with uniform smoothing in each direction.
 
     >>> from discretize import TensorMesh
-    >>> from SimPEG.regularization import SmoothnessFullGradient
+    >>> from simpeg.regularization import SmoothnessFullGradient
     >>> mesh = TensorMesh([32, 32])
     >>> reg = SmoothnessFullGradient(mesh)
 

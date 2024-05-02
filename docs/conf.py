@@ -15,7 +15,7 @@ import sys
 import os
 from sphinx_gallery.sorting import FileNameSortKey
 import glob
-import SimPEG
+import simpeg
 import plotly.io as pio
 from importlib.metadata import version
 
@@ -78,7 +78,7 @@ copyright = "2013 - 2023, SimPEG Team, https://simpeg.xyz"
 # built documents.
 #
 # The full version, including alpha/beta/rc tags.
-release = version("SimPEG")
+release = version("simpeg")
 # The short X.Y version.
 version = ".".join(release.split(".")[:2])
 
@@ -188,11 +188,11 @@ if link_github:
             linespec = ""
 
         try:
-            fn = relpath(fn, start=dirname(SimPEG.__file__))
+            fn = relpath(fn, start=dirname(simpeg.__file__))
         except ValueError:
             return None
 
-        return f"https://github.com/simpeg/simpeg/blob/main/SimPEG/{fn}{linespec}"
+        return f"https://github.com/simpeg/simpeg/blob/main/simpeg/{fn}{linespec}"
 
 else:
     extensions.append("sphinx.ext.viewcode")
@@ -267,11 +267,6 @@ try:
                 "name": "Youtube",
                 "url": "https://www.youtube.com/c/geoscixyz",
                 "icon": "fab fa-youtube",
-            },
-            {
-                "name": "Twitter",
-                "url": "https://twitter.com/simpegpy",
-                "icon": "fab fa-twitter",
             },
         ],
         "use_edit_page_button": False,
@@ -370,7 +365,7 @@ html_show_copyright = False
 # html_file_suffix = None
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = "SimPEGdoc"
+htmlhelp_basename = "simpegdoc"
 
 
 # -- Options for LaTeX output --------------------------------------------------
@@ -387,7 +382,7 @@ latex_elements = {
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title, author, documentclass [howto/manual]).
 latex_documents = [
-    ("index", "SimPEG.tex", "SimPEG Documentation", "SimPEG Team", "manual"),
+    ("index", "simpeg.tex", "SimPEG Documentation", "SimPEG Team", "manual"),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of
@@ -415,7 +410,7 @@ latex_documents = [
 
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
-man_pages = [("index", "simpeg", "SimPEG Documentation", ["SimPEG Team"], 1)]
+man_pages = [("index", "SimPEG", "SimPEG Documentation", ["SimPEG Team"], 1)]
 
 # If true, show URL addresses after external links.
 # man_show_urls = False
@@ -471,7 +466,7 @@ sphinx_gallery_conf = {
     "within_subsection_order": FileNameSortKey,
     "filename_pattern": "\.py",
     "backreferences_dir": "content/api/generated/backreferences",
-    "doc_module": "SimPEG",
+    "doc_module": "simpeg",
     "show_memory": True,
     "image_scrapers": image_scrapers,
 }

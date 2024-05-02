@@ -9,7 +9,7 @@ class Survey(BaseSurvey):
 
     Parameters
     ----------
-    source_field : SimPEG.potential_fields.magnetics.sources.UniformBackgroundField
+    source_field : simpeg.potential_fields.magnetics.sources.UniformBackgroundField
         A source object that defines the Earth's inducing field
     """
 
@@ -100,4 +100,4 @@ class Survey(BaseSurvey):
 
 
 # make this look like it lives in the below module
-Survey.__module__ = "SimPEG.potential_fields.magnetics"
+Survey.__module__ = "simpeg.potential_fields.magnetics"

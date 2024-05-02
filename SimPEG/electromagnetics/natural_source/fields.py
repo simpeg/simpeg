@@ -233,7 +233,7 @@ class Fields1DPrimarySecondary(FieldsFDEM):
         """
         Partial derivative of the total electric field with respect to the solution.
 
-        :param SimPEG.EM.NSEM.Src src: source
+        :param simpeg.EM.NSEM.Src src: source
         :param numpy.ndarray du_dm_v: vector to take product with
             Size (nE,) when adjoint=True, (nU,) when adjoint=False
         :param bool adjoint: adjoint?
@@ -247,10 +247,10 @@ class Fields1DPrimarySecondary(FieldsFDEM):
         """
         Partial derivative of the total electric field with respect to the inversion model. Here, we assume that the primary does not depend on the model. Note that this also includes derivative contributions from the sources.
 
-        :param SimPEG.electromagnetics.frequency_domain.Src src: source
+        :param simpeg.electromagnetics.frequency_domain.Src src: source
         :param numpy.ndarray v: vector to take product with
         :param bool adjoint: adjoint?
-        :rtype: SimPEG.utils.Zero
+        :rtype: simpeg.utils.Zero
         :return: product of the electric field derivative with respect to the inversion model with a vector
         """
 
@@ -285,7 +285,7 @@ class Fields1DPrimarySecondary(FieldsFDEM):
         """
         Derivative of the magnetic flux density with respect to the solution
 
-        :param SimPEG.electromagnetics.frequency_domain.Src src: source
+        :param simpeg.electromagnetics.frequency_domain.Src src: source
         :param numpy.ndarray du_dm_v: vector to take product with
         :param bool adjoint: adjoint?
         :rtype: numpy.ndarray
@@ -303,7 +303,7 @@ class Fields1DPrimarySecondary(FieldsFDEM):
         """
         Derivative of the magnetic flux density with respect to the inversion model.
 
-        :param SimPEG.electromagnetics.frequency_domain.Src src: source
+        :param simpeg.electromagnetics.frequency_domain.Src src: source
         :param numpy.ndarray v: vector to take product with
         :param bool adjoint: adjoint?
         :rtype: numpy.ndarray
@@ -325,7 +325,7 @@ class Fields1DPrimarySecondary(FieldsFDEM):
         """
         Derivative of the magnetic flux density with respect to the inversion model.
 
-        :param SimPEG.electromagnetics.frequency_domain.Src src: source
+        :param simpeg.electromagnetics.frequency_domain.Src src: source
         :param numpy.ndarray v: vector to take product with
         :param bool adjoint: adjoint?
         :rtype: numpy.ndarray
@@ -604,7 +604,7 @@ class Fields3DPrimarySecondary(Fields):
         """
         Derivative of e_px wrt u
 
-        :param SimPEG.NSEM.src src: The source of the problem
+        :param simpeg.NSEM.src src: The source of the problem
         :param numpy.ndarray du_dm_v: vector to take product with Size (nE,) when adjoint=True, (nU,) when adjoint=False
         :param bool adjoint: adjoint?
         :rtype: numpy.ndarray
@@ -621,7 +621,7 @@ class Fields3DPrimarySecondary(Fields):
         """
         Derivative of e_py wrt u
 
-        :param SimPEG.NSEM.src src: The source of the problem
+        :param simpeg.NSEM.src src: The source of the problem
         :param numpy.ndarray du_dm_v: vector to take product with Size (nE,) when adjoint=True, (nU,) when adjoint=False
         :param bool adjoint: adjoint?
         :rtype: numpy.ndarray
@@ -639,7 +639,7 @@ class Fields3DPrimarySecondary(Fields):
         """
         Derivative of e_px wrt m
 
-        :param SimPEG.NSEM.src src: The source of the problem
+        :param simpeg.NSEM.src src: The source of the problem
         :param numpy.ndarray v: vector to take product with Size (nE,) when adjoint=True, (nU,) when adjoint=False
         :param bool adjoint: adjoint?
         :rtype: numpy.ndarray
@@ -654,7 +654,7 @@ class Fields3DPrimarySecondary(Fields):
         """
         Derivative of e_py wrt m
 
-        :param SimPEG.NSEM.src src: The source of the problem
+        :param simpeg.NSEM.src src: The source of the problem
         :param numpy.ndarray v: vector to take product with Size (nE,) when adjoint=True, (nU,) when adjoint=False
         :param bool adjoint: adjoint?
         :rtype: numpy.ndarray
@@ -689,7 +689,7 @@ class Fields3DPrimarySecondary(Fields):
         """
         Derivative of b_px with wrt u
 
-        :param SimPEG.NSEM.src src: The source of the problem
+        :param simpeg.NSEM.src src: The source of the problem
         :param numpy.ndarray du_dm_v: vector to take product with. Size (nF,) when adjoint=True, (nU,) when adjoint=False
         :param bool adjoint: adjoint?
         :rtype: numpy.ndarray
@@ -706,7 +706,7 @@ class Fields3DPrimarySecondary(Fields):
     def _b_pyDeriv_u(self, src, du_dm_v, adjoint=False):
         """Derivative of b_py with wrt u
 
-        :param SimPEG.NSEM.src src: The source of the problem
+        :param simpeg.NSEM.src src: The source of the problem
         :param numpy.ndarray du_dm_v: vector to take product with. Size (nF,) when adjoint=True, (nU,) when adjoint=False
         :param bool adjoint: adjoint?
         :rtype: numpy.ndarray

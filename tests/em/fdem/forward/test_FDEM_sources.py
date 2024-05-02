@@ -6,8 +6,8 @@ import discretize
 import numpy as np
 from geoana.em.static import MagneticDipoleWholeSpace
 from scipy.constants import mu_0
-from SimPEG import maps, utils
-from SimPEG.electromagnetics import frequency_domain as fdem
+from simpeg import maps, utils
+from simpeg.electromagnetics import frequency_domain as fdem
 
 TOL = 0.5  # relative tolerance (to norm of soln)
 plotIt = False

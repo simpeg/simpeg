@@ -16,9 +16,9 @@ def read_mag3d_ubc(obs_file):
 
     Returns
     -------
-    SimPEG.data.Data
+    simpeg.data.Data
         Instance of a SimPEG data class. The `survey` attribute associated with
-        the data object is an instance of :class`SimPEG.potential_fields.magnetics.survey.Survey`.
+        the data object is an instance of :class`simpeg.potential_fields.magnetics.survey.Survey`.
     """
 
     # Prevent circular import
@@ -89,9 +89,9 @@ def write_mag3d_ubc(filename, data_object):
     ----------
     filename : str
         File path for the output file
-    data_object : SimPEG.data.Data
+    data_object : simpeg.data.Data
         An instance of SimPEG data class. The `survey` attribute associate with the
-        data object must be an instance of :class:`SimPEG.potential_fields.magnetics.survey.Survey`
+        data object must be an instance of :class:`simpeg.potential_fields.magnetics.survey.Survey`
     """
     survey = data_object.survey
 
@@ -136,9 +136,9 @@ def read_grav3d_ubc(obs_file):
 
     Returns
     -------
-    SimPEG.data.Data
+    simpeg.data.Data
         Instance of a SimPEG data class. The `survey` attribute associated with
-        the data object is an instance of :class`SimPEG.potential_fields.gravity.survey.Survey`.
+        the data object is an instance of :class`simpeg.potential_fields.gravity.survey.Survey`.
     """
 
     # Prevent circular import
@@ -201,9 +201,9 @@ def write_grav3d_ubc(filename, data_object):
     ----------
     filename : str
         File path for the output file
-    data_object : SimPEG.data.Data
+    data_object : simpeg.data.Data
         An instance of SimPEG data class. The `survey` attribute associate with the
-        data object must be an instance of :class:`SimPEG.potential_fields.gravity.survey.Survey`
+        data object must be an instance of :class:`simpeg.potential_fields.gravity.survey.Survey`
     """
     survey = data_object.survey
     src = survey.source_field
@@ -244,9 +244,9 @@ def read_gg3d_ubc(obs_file):
 
     Returns
     -------
-    SimPEG.data.Data
+    simpeg.data.Data
         Instance of a SimPEG data class. The `survey` attribute associated with
-        the data object is an instance of :class`SimPEG.potential_fields.gravity.survey.Survey`.
+        the data object is an instance of :class`simpeg.potential_fields.gravity.survey.Survey`.
     """
 
     # Prevent circular import
@@ -262,7 +262,7 @@ def read_gg3d_ubc(obs_file):
         n_comp = len(components)
         factor = np.zeros(n_comp)
 
-        # Convert component types from UBC to SimPEG
+        # Convert component types from UBC to simpeg
         ubc_types = ["xx", "xy", "xz", "yy", "yz", "zz", "uv"]
         simpeg_types = ["gyy", "gxy", "gyz", "gxx", "gxz", "gzz", "guv"]
         factor_list = [1.0, 1.0, -1.0, 1.0, -1.0, 1.0, 1.0]
@@ -328,14 +328,14 @@ def write_gg3d_ubc(filename, data_object):
     ----------
     filename : str
         File path for the output file
-    data_object : SimPEG.data.Data
+    data_object : simpeg.data.Data
         An instance of SimPEG data class. The `survey` attribute associate with the
-        data object must be an instance of :class:`SimPEG.potential_fields.gravity.survey.Survey`
+        data object must be an instance of :class:`simpeg.potential_fields.gravity.survey.Survey`
     """
     survey = data_object.survey
     src = survey.source_field
 
-    # Convert component types from UBC to SimPEG
+    # Convert component types from UBC to simpeg
     if len(src.receiver_list) > 1:
         raise NotImplementedError(
             "Writing of ubc format only supported for a single receiver."

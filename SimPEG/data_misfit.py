@@ -11,7 +11,7 @@ class BaseDataMisfit(L2ObjectiveFunction):
     r"""Base data misfit class.
 
     Inherit this class to build your own data misfit function. The ``BaseDataMisfit``
-    class inherits the :py:class:`SimPEG.objective_function.L2ObjectiveFunction`.
+    class inherits the :py:class:`simpeg.objective_function.L2ObjectiveFunction`.
     And as a result, it is limited to building data misfit functions of the form:
 
     .. important::
@@ -26,13 +26,13 @@ class BaseDataMisfit(L2ObjectiveFunction):
 
     Parameters
     ----------
-    data : SimPEG.data.Data
+    data : simpeg.data.Data
         A SimPEG data object.
-    simulation : SimPEG.simulation.BaseSimulation
+    simulation : simpeg.simulation.BaseSimulation
         A SimPEG simulation object.
     debug : bool
         Print debugging information.
-    counter : None or SimPEG.utils.Counter
+    counter : None or simpeg.utils.Counter
         Assign a SimPEG ``Counter`` object to store iterations and run-times.
     """
 
@@ -48,7 +48,7 @@ class BaseDataMisfit(L2ObjectiveFunction):
 
         Returns
         -------
-        SimPEG.data.Data
+        simpeg.data.Data
             A SimPEG data object.
         """
         return self._data
@@ -63,7 +63,7 @@ class BaseDataMisfit(L2ObjectiveFunction):
 
         Returns
         -------
-        SimPEG.simulation.BaseSimulation
+        simpeg.simulation.BaseSimulation
             A SimPEG simulation object.
         """
         return self._simulation
@@ -95,7 +95,7 @@ class BaseDataMisfit(L2ObjectiveFunction):
 
         Returns
         -------
-        None or SimPEG.utils.Counter
+        None or simpeg.utils.Counter
             SimPEG ``Counter`` object to store iterations and run-times.
         """
         return self._counter
@@ -216,7 +216,7 @@ class BaseDataMisfit(L2ObjectiveFunction):
         ----------
         m : (n_param, ) numpy.ndarray
             The model for which the function is evaluated.
-        f : None or SimPEG.fields.Fields, optional
+        f : None or simpeg.fields.Fields, optional
             A SimPEG fields object. Used when the fields for the model *m* have
             already been computed.
 
@@ -251,13 +251,13 @@ class L2DataMisfit(BaseDataMisfit):
 
     Parameters
     ----------
-    data : SimPEG.data.Data
+    data : simpeg.data.Data
         A SimPEG data object that has observed data and uncertainties.
-    simulation : SimPEG.simulation.BaseSimulation
+    simulation : simpeg.simulation.BaseSimulation
         A SimPEG simulation object.
     debug : bool
         Print debugging information.
-    counter : None or SimPEG.utils.Counter
+    counter : None or simpeg.utils.Counter
         Assign a SimPEG ``Counter`` object to store iterations and run-times.
     """
 

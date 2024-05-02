@@ -1,7 +1,7 @@
 import numpy as np
 
 from scipy.constants import mu_0, epsilon_0
-from SimPEG.electromagnetics.utils import k
+from simpeg.electromagnetics.utils import k
 
 
 def getKc(freq, sigma, a, b, mu=mu_0, eps=epsilon_0):

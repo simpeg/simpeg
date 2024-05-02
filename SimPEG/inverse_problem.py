@@ -71,11 +71,11 @@ class BaseInvProblem:
 
     @property
     def counter(self):
-        """Set this to a `SimPEG.utils.Counter` if you want to count things.
+        """Set this to a `simpeg.utils.Counter` if you want to count things.
 
         Returns
         -------
-        None or SimPEG.utils.Counter
+        None or simpeg.utils.Counter
         """
         return self._counter
 
@@ -91,7 +91,7 @@ class BaseInvProblem:
 
         Returns
         -------
-        SimPEG.objective_function.ComboObjectiveFunction
+        simpeg.objective_function.ComboObjectiveFunction
         """
         return self._dmisfit
 
@@ -108,7 +108,7 @@ class BaseInvProblem:
 
         Returns
         -------
-        SimPEG.objective_function.ComboObjectiveFunction
+        simpeg.objective_function.ComboObjectiveFunction
         """
         return self._reg
 
@@ -125,7 +125,7 @@ class BaseInvProblem:
 
         Returns
         -------
-        SimPEG.optimization.Minimize
+        simpeg.optimization.Minimize
         """
         return self._opt
 
@@ -180,7 +180,7 @@ class BaseInvProblem:
                 and getattr(fct, "reference_model", None) is None
             ):
                 print(
-                    "SimPEG.InvProblem will set Regularization.reference_model to m0."
+                    "simpeg.InvProblem will set Regularization.reference_model to m0."
                 )
                 fct.reference_model = m0
 
@@ -200,7 +200,7 @@ class BaseInvProblem:
                 solver_opts = objfct.simulation.solver_opts
                 print(
                     """
-                        SimPEG.InvProblem is setting bfgsH0 to the inverse of the eval2Deriv.
+                        simpeg.InvProblem is setting bfgsH0 to the inverse of the eval2Deriv.
                         ***Done using same Solver, and solver_opts as the {} problem***
                         """.format(
                         objfct.simulation.__class__.__name__
@@ -211,7 +211,7 @@ class BaseInvProblem:
         if set_default:
             print(
                 """
-                    SimPEG.InvProblem is setting bfgsH0 to the inverse of the eval2Deriv.
+                    simpeg.InvProblem is setting bfgsH0 to the inverse of the eval2Deriv.
                     ***Done using the default solver {} and no solver_opts.***
                     """.format(
                     DefaultSolver.__name__
