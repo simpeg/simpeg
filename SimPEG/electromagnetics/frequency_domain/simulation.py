@@ -200,7 +200,7 @@ class BaseFDEMSimulation(BaseEMSimulation):
         return mkvc(Jtv)
 
     # @profile
-    def getSourceTerm(self, freq):
+    def getSourceTerm(self, freq, source=None):
         """
         Evaluates the sources for a given frequency and puts them in matrix
         form
@@ -209,7 +209,11 @@ class BaseFDEMSimulation(BaseEMSimulation):
         :rtype: tuple
         :return: (s_m, s_e) (nE or nF, nSrc)
         """
-        Srcs = self.survey.get_sources_by_frequency(freq)
+        if source is not None:
+            Srcs = [source]
+        else:
+            Srcs = self.survey.get_sources_by_frequency(freq)
+
         n_fields = sum(src._fields_per_source for src in Srcs)
         if self._formulation == "EB":
             s_m = np.zeros((self.mesh.nF, n_fields), dtype=complex, order="F")
@@ -362,7 +366,7 @@ class Simulation3DElectricField(BaseFDEMSimulation):
 
         C = self.mesh.edge_curl
         MfMui = self.MfMui
-        s_m, s_e = self.getSourceTerm(freq)
+        s_m, s_e = self.getSourceTerm(freq, source=src)
         s_mDeriv, s_eDeriv = src.evalDeriv(self, adjoint=adjoint)
         MfMuiDeriv = self.MfMuiDeriv(s_m)
 
@@ -716,7 +720,7 @@ class Simulation3DCurrentDensity(BaseFDEMSimulation):
         MeMuI = self.MeMuI
         MeMuIDeriv = self.MeMuIDeriv
         s_mDeriv, s_eDeriv = src.evalDeriv(self, adjoint=adjoint)
-        s_m, _ = self.getSourceTerm(freq)
+        s_m, _ = self.getSourceTerm(freq, source=src)
 
         if adjoint:
             if self._makeASymmetric:

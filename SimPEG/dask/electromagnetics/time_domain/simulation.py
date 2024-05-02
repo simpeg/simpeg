@@ -135,6 +135,17 @@ def fields(self, m=None, return_Ainv=False):
 Sim.fields = fields
 
 
+@delayed
+def source_evaluation(simulation, sources, time):
+    s_m, s_e = [], []
+    for source in sources:
+        sm, se = source.eval(simulation, time)
+        s_m.append(sm)
+        s_e.append(se)
+
+    return s_m, s_e
+
+
 def dask_getSourceTerm(self, tInd):
     """
     Assemble the source term. This ensures that the RHS is a vector / array
@@ -143,20 +154,9 @@ def dask_getSourceTerm(self, tInd):
     source_list = self.survey.source_list
     source_block = np.array_split(source_list, cpu_count())
 
-    def source_evaluation(simulation, sources, time):
-        s_m, s_e = [], []
-        for source in sources:
-            sm, se = source.eval(simulation, time)
-            s_m.append(sm)
-            s_e.append(se)
-
-        return s_m, s_e
-
     block_compute = []
     for block in source_block:
-        block_compute.append(
-            delayed(source_evaluation, pure=True)(self, block, self.times[tInd])
-        )
+        block_compute.append(source_evaluation(self, block, self.times[tInd]))
 
     eval = dask.compute(block_compute)[0]
 
@@ -534,9 +534,8 @@ def compute_J(self, f=None, Ainv=None):
 
     simulation_times = np.r_[0, np.cumsum(self.time_steps)] + self.t0
     data_times = self.survey.source_list[0].receiver_list[0].times
-    blocks = get_parallel_blocks(
-        self.survey.source_list, self.model.shape[0], self.max_chunk_size
-    )
+    compute_row_size = np.ceil(self.max_chunk_size / (self.model.shape[0] * 8.0 * 1e-6))
+    blocks = get_parallel_blocks(self.survey.source_list, compute_row_size)
     fields_array = f[:, ftype, :]
 
     if len(self.survey.source_list) == 1:

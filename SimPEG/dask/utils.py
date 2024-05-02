@@ -40,7 +40,7 @@ def compute(self, job):
         return job.compute()
 
 
-def get_parallel_blocks(source_list: list, m_size: int, max_chunk_size: int) -> list:
+def get_parallel_blocks(source_list: list, data_block_size, optimize=True) -> list:
     """
     Get the blocks of sources and receivers to be computed in parallel.
 
@@ -48,7 +48,6 @@ def get_parallel_blocks(source_list: list, m_size: int, max_chunk_size: int) -> 
     (source, receiver, block index) and array of indices
     for the rows of the sensitivity matrix.
     """
-    data_block_size = np.ceil(max_chunk_size / (m_size * 8.0 * 1e-6))
     row_count = 0
     row_index = 0
     block_count = 0
@@ -84,7 +83,7 @@ def get_parallel_blocks(source_list: list, m_size: int, max_chunk_size: int) -> 
                 row_count += chunk_size
 
     # Re-split over cpu_count if too few blocks
-    if len(blocks) < cpu_count():
+    if len(blocks) < cpu_count() and optimize:
         flatten_blocks = []
         for block in blocks:
             flatten_blocks += block
