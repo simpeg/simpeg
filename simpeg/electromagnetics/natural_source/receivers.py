@@ -743,7 +743,7 @@ class Point3DTipper(PointNaturalSource):
         return getattr(imp_deriv, self.component)
 
 
-class Point3DAdmittance(PointNaturalSource):
+class Point3DAdmittance(PointMagnetotelluric):
     r"""Point receiver class for data types derived by the 3D admittance tensor.
 
     This class is used to simulate data types that can be derived from the admittance tensor:
@@ -804,17 +804,6 @@ class Point3DAdmittance(PointNaturalSource):
         Specifies the admittance tensor element :math:`Y_{ij}` corresponding to the data.
         The data type is specified by the `component` property.
 
-        Parameters
-        ----------
-        src : .frequency_domain.sources.BaseFDEMSrc
-            NSEM source
-        mesh : discretize.TensorMesh mesh
-            Mesh on which the discretize solution is obtained
-        f : simpeg.electromagnetics.frequency_domain.fields.FieldsFDEM
-            NSEM fields object of the source
-        return_complex : bool (optional)
-            Flag for return the complex evaluation
-
         Returns
         -------
         str
@@ -836,21 +825,6 @@ class Point3DAdmittance(PointNaturalSource):
         whether the data are:
         - 'real': Real component of the admittance (A/V)
         - 'imag': Imaginary component of the admittance (A/V)
-
-        Parameters
-        ----------
-        str : .frequency_domain.sources.BaseFDEMSrc
-            NSEM source
-        mesh : discretize.TensorMesh
-            Mesh on which the discretize solution is obtained
-        f : simpeg.electromagnetics.frequency_domain.fields.FieldsFDEM
-            NSEM fields object of the source
-        du_dm_v : None,
-            Supply pre-computed derivative?
-        v : numpy.ndarray
-            Vector of size
-        adjoint : bool, default = ``False``
-            If ``True``, compute the adjoint operation
 
         Returns
         -------
