@@ -32,6 +32,10 @@ jobs:
             displayName: Checkout repository (including tags)
 
           - script: |
+              git tag
+            displayName: List git tags
+
+          - script: |
               wget -O Mambaforge.sh  "https://github.com/conda-forge/miniforge/releases/latest/download/Mambaforge-$(uname)-$(uname -m).sh"
               bash Mambaforge.sh -b -p "${HOME}/conda"
             displayName: Install mamba
@@ -50,6 +54,12 @@ jobs:
               conda activate simpeg-test
               pip install -e .
             displayName: Build package
+
+          - script: |
+              source "${HOME}/conda/etc/profile.d/conda.sh"
+              conda activate simpeg-test
+              python -c "import simpeg; print(simpeg.__version__)"
+            displayName: Check SimPEG version
 
           - script: |
               source "${HOME}/conda/etc/profile.d/conda.sh"
