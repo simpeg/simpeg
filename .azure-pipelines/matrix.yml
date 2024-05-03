@@ -48,6 +48,8 @@ jobs:
               mamba env create -f environment_test.yml
               conda activate simpeg-test
               pip install pytest-azurepipelines
+              echo "\nList installed packages"
+              conda list
             displayName: Create Anaconda testing environment
 
           - script: |
