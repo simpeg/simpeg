@@ -16,6 +16,7 @@ import os
 from sphinx_gallery.sorting import FileNameSortKey
 import glob
 import simpeg
+from packaging.version import parse
 import plotly.io as pio
 from importlib.metadata import version
 
@@ -238,13 +239,12 @@ external_links = [
 ]
 
 # Define SimPEG version for the version switcher
-switcher_version = SimPEG.__version__
-if "dev" in switcher_version:
+simpeg_version = parse(simpeg.__version__)
+if simpeg_version.is_devrelease:
     switcher_version = "dev"
 else:
-    # add leading v to version number
-    if not switcher_version.startwith("v"):
-        switcher_version = "v" + switcher_version
+    switcher_version = f"v{simpeg_version.public}"
+
 
 try:
     import pydata_sphinx_theme
