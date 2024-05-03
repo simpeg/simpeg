@@ -200,9 +200,6 @@ if link_github:
 
         simpeg_version = parse(simpeg.__version__)
         tag = "main" if simpeg_version.is_devrelease else f"v{simpeg_version.public}"
-
-        # hardcoded tag to check if it works well. DON'T MERGE!
-        tag = "v0.21.1"
         return f"https://github.com/simpeg/simpeg/blob/{tag}/simpeg/{fn}{linespec}"
 
 else:
