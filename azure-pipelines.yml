@@ -80,6 +80,7 @@ stages:
         # We need to sync tags in order to get the SimPEG version while
         # building the docs.
         - checkout: self
+          fetchDepth: 100
           fetchTags: true
           displayName: Checkout repository (including tags)
 
