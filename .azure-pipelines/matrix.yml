@@ -33,10 +33,6 @@ jobs:
             displayName: Checkout repository (including tags)
 
           - script: |
-              git tag
-            displayName: List git tags
-
-          - script: |
               wget -O Mambaforge.sh  "https://github.com/conda-forge/miniforge/releases/latest/download/Mambaforge-$(uname)-$(uname -m).sh"
               bash Mambaforge.sh -b -p "${HOME}/conda"
             displayName: Install mamba
