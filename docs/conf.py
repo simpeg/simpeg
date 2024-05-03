@@ -285,8 +285,8 @@ try:
         "css/custom.css",
     ]
 
-    # Define SimPEG version for generating links to sources in GitHub
-    github_version = SimPEG.__version__
+    # Define simpeg version for generating links to sources in GitHub
+    github_version = simpeg.__version__
     if "dev" in github_version:
         github_version = "main"
     else:
