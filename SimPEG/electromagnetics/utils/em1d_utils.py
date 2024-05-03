@@ -13,6 +13,7 @@ from SimPEG.utils.code_utils import (
 from scipy.spatial import cKDTree as kdtree
 import scipy.sparse as sp
 from matplotlib.colors import LogNorm
+import warnings
 
 
 def set_mesh_1d(hz):
@@ -370,7 +371,7 @@ class Stitched1DModel:
         if getattr(self, "_xyz", None) is None:
             xyz = np.empty((self.n_layer, self.topography.shape[0], 3), order="F")
             for i_xy in range(self.topography.shape[0]):
-                z = -self.mesh_1d.vectorCCx + self.topography[i_xy, 2]
+                z = -self.mesh_1d.cell_centers_x + self.topography[i_xy, 2]
                 x = np.ones_like(z) * self.topography[i_xy, 0]
                 y = np.ones_like(z) * self.topography[i_xy, 1]
                 xyz[:, i_xy, :] = np.c_[x, y, z]
@@ -450,7 +451,7 @@ class Stitched1DModel:
         dx=20.0,
         invert_xaxis=False,
         alpha=0.7,
-        pcolorOpts={},
+        pcolorOpts=None,
     ):
         ind_line = self.line == self.unique_line[i_line]
         if physical_property is not None:
@@ -557,7 +558,7 @@ class Stitched1DModel:
         xmin, xmax = self.topography[:, 0].min(), self.topography[:, 0].max()
         ymin, ymax = self.topography[:, 1].min(), self.topography[:, 1].max()
         zmin, zmax = self.topography[:, 2].min(), self.topography[:, 2].max()
-        zmin -= self.mesh_1d.vectorNx.max()
+        zmin -= self.mesh_1d.nodes_x.max()
 
         lx = xmax - xmin
         ly = ymax - ymin
@@ -578,7 +579,8 @@ class Stitched1DModel:
 
         if nx * ny * nz > 1e6:
             warnings.warn(
-                ("Size of the mesh (%i) will greater than 1e6") % (nx * ny * nz)
+                "Size of the mesh (%i) will greater than 1e6" % (nx * ny * nz),
+                stacklevel=2,
             )
         hx = [(dx, npad_x, -1.2), (dx, nx), (dx, npad_x, -1.2)]
         hy = [(dy, npad_y, -1.2), (dy, ny), (dy, npad_y, -1.2)]
@@ -597,11 +599,11 @@ class Stitched1DModel:
 
     def get_interpolation_matrix(self, npts=20, epsilon=None):
         tree_2d = kdtree(self.topography[:, :2])
-        xy = utils.ndgrid(self.mesh_3d.vectorCCx, self.mesh_3d.vectorCCy)
+        xy = utils.ndgrid(self.mesh_3d.cell_centers_x, self.mesh_3d.cell_centers_y)
 
         distance, inds = tree_2d.query(xy, k=npts)
         if epsilon is None:
-            epsilon = np.min([self.mesh_3d.hx.min(), self.mesh_3d.hy.min()])
+            epsilon = np.min([self.mesh_3d.h[0].min(), self.mesh_3d.h[1].min()])
 
         w = 1.0 / (distance + epsilon) ** 2
         w = utils.sdiag(1.0 / np.sum(w, axis=1)) * (w)
@@ -616,23 +618,32 @@ class Stitched1DModel:
 
         z = self.P * self.topography[:, 2]
 
-        self._actinds = utils.surface2ind_topo(self.mesh_3d, np.c_[xy, z])
-
+        act_inds = utils.surface2ind_topo(self.mesh_3d, np.c_[xy, z])
+        self._actinds = np.zeros(self.mesh_3d.n_cells, dtype=bool)
+        self._actinds[act_inds] = True
         Z = np.empty(self.mesh_3d.vnC, dtype=float, order="F")
         Z = self.mesh_3d.gridCC[:, 2].reshape(
-            (self.mesh_3d.nCx * self.mesh_3d.nCy, self.mesh_3d.nCz), order="F"
+            (
+                self.mesh_3d.shape_cells[0] * self.mesh_3d.shape_cells[1],
+                self.mesh_3d.shape_cells[2],
+            ),
+            order="F",
         )
         ACTIND = self._actinds.reshape(
-            (self.mesh_3d.nCx * self.mesh_3d.nCy, self.mesh_3d.nCz), order="F"
+            (
+                self.mesh_3d.shape_cells[0] * self.mesh_3d.shape_cells[1],
+                self.mesh_3d.shape_cells[2],
+            ),
+            order="F",
         )
 
         self._Pz = []
 
         # This part can be cythonized or parallelized
-        for i_xy in range(self.mesh_3d.nCx * self.mesh_3d.nCy):
+        for i_xy in range(self.mesh_3d.shape_cells[0] * self.mesh_3d.shape_cells[1]):
             actind_temp = ACTIND[i_xy, :]
             z_temp = -(Z[i_xy, :] - z[i_xy])
-            self._Pz.append(mesh_1d.getInterpolationMat(z_temp[actind_temp]))
+            self._Pz.append(mesh_1d.get_interpolation_matrix(z_temp[actind_temp]))
 
     def interpolate_from_1d_to_3d(self, physical_property_1d):
         physical_property_2d = self.P * (
@@ -640,7 +651,10 @@ class Stitched1DModel:
         )
         physical_property_3d = (
             np.ones(
-                (self.mesh_3d.nCx * self.mesh_3d.nCy, self.mesh_3d.nCz),
+                (
+                    self.mesh_3d.shape_cells[0] * self.mesh_3d.shape_cells[1],
+                    self.mesh_3d.shape_cells[2],
+                ),
                 order="C",
                 dtype=float,
             )
@@ -648,10 +662,14 @@ class Stitched1DModel:
         )
 
         ACTIND = self._actinds.reshape(
-            (self.mesh_3d.nCx * self.mesh_3d.nCy, self.mesh_3d.nCz), order="F"
+            (
+                self.mesh_3d.shape_cells[0] * self.mesh_3d.shape_cells[1],
+                self.mesh_3d.shape_cells[2],
+            ),
+            order="F",
         )
 
-        for i_xy in range(self.mesh_3d.nCx * self.mesh_3d.nCy):
+        for i_xy in range(self.mesh_3d.shape_cells[0] * self.mesh_3d.shape_cells[1]):
             actind_temp = ACTIND[i_xy, :]
             physical_property_3d[i_xy, actind_temp] = (
                 self._Pz[i_xy] * physical_property_2d[i_xy, :]
