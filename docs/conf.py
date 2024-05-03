@@ -289,6 +289,10 @@ try:
     github_version = SimPEG.__version__
     if "dev" in github_version:
         github_version = "main"
+    else:
+        # Include a leading v in the version number
+        if github_version[0] != "v":
+            github_version = "v" + github_version
     # hardcoded github_version to check if it works well. DON'T MERGE!
     github_version = "v0.21.1"
 
