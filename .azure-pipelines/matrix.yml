@@ -44,8 +44,10 @@ jobs:
           - script: |
               source "${HOME}/conda/etc/profile.d/conda.sh"
               source "${HOME}/conda/etc/profile.d/mamba.sh"
-              echo "  - python="${{ py_vers }} >> environment_test.yml
-              mamba env create -f environment_test.yml
+              cp environment_test.yml environment_test_with_pyversion.yml
+              echo "  - python="$(python.version) >> environment_test_with_pyversion.yml
+              mamba env create -f environment_test_with_pyversion.yml
+              rm environment_test_with_pyversion.yml
               conda activate simpeg-test
               pip install pytest-azurepipelines
               echo "\nList installed packages"
