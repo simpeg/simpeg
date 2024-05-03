@@ -47,7 +47,6 @@ extensions = [
     "sphinx.ext.mathjax",
     "sphinx_gallery.gen_gallery",
     "sphinx.ext.todo",
-    "sphinx.ext.linkcode",
     "matplotlib.sphinxext.plot_directive",
 ]
 
@@ -135,17 +134,24 @@ pygments_style = "sphinx"
 # edit_on_github_branch = "main/docs"
 # check_meta = False
 
-# source code links
+
+# -----------------
+# Source code links
+# -----------------
+# Function inspired in matplotlib's configuration
+
 link_github = True
-# You can build old with link_github = False
 
 if link_github:
     import inspect
-    from os.path import relpath, dirname
+    from packaging.version import parse
 
     extensions.append("sphinx.ext.linkcode")
 
     def linkcode_resolve(domain, info):
+        """
+        Determine the URL corresponding to Python object
+        """
         if domain != "py":
             return None
 
@@ -160,43 +166,47 @@ if link_github:
         for part in fullname.split("."):
             try:
                 obj = getattr(obj, part)
-            except Exception:
+            except AttributeError:
                 return None
 
-        try:
-            unwrap = inspect.unwrap
-        except AttributeError:
-            pass
-        else:
-            obj = unwrap(obj)
-
+        if inspect.isfunction(obj):
+            obj = inspect.unwrap(obj)
         try:
             fn = inspect.getsourcefile(obj)
-        except Exception:
+        except TypeError:
             fn = None
+        if not fn or fn.endswith("__init__.py"):
+            try:
+                fn = inspect.getsourcefile(sys.modules[obj.__module__])
+            except (TypeError, AttributeError, KeyError):
+                fn = None
         if not fn:
             return None
 
         try:
             source, lineno = inspect.getsourcelines(obj)
-        except Exception:
+        except (OSError, TypeError):
             lineno = None
 
         if lineno:
-            linespec = "#L%d-L%d" % (lineno, lineno + len(source) - 1)
+            linespec = f"#L{lineno:d}-L{lineno + len(source) - 1:d}"
         else:
             linespec = ""
 
         try:
-            fn = relpath(fn, start=dirname(simpeg.__file__))
+            fn = os.path.relpath(fn, start=os.path.dirname(simpeg.__file__))
         except ValueError:
             return None
 
-        return f"https://github.com/simpeg/simpeg/blob/main/simpeg/{fn}{linespec}"
+        simpeg_version = parse(simpeg.__version__)
+        tag = "main" if simpeg_version.is_devrelease else f"v{simpeg_version.public}"
+
+        # hardcoded tag to check if it works well. DON'T MERGE!
+        tag = "v0.21.1"
+        return f"https://github.com/simpeg/simpeg/blob/{tag}/simpeg/{fn}{linespec}"
 
 else:
     extensions.append("sphinx.ext.viewcode")
-
 
 # Make numpydoc to generate plots for example sections
 numpydoc_use_plots = True
@@ -285,21 +295,10 @@ try:
         "css/custom.css",
     ]
 
-    # Define simpeg version for generating links to sources in GitHub
-    github_version = simpeg.__version__
-    if "dev" in github_version:
-        github_version = "main"
-    else:
-        # Include a leading v in the version number
-        if not github_version.startswith("v"):
-            github_version = "v" + github_version
-    # hardcoded github_version to check if it works well. DON'T MERGE!
-    github_version = "v0.21.1"
-
     html_context = {
         "github_user": "simpeg",
         "github_repo": "simpeg",
-        "github_version": github_version,
+        "github_version": "main",
         "doc_path": "docs",
     }
 except Exception:
