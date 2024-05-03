@@ -241,6 +241,10 @@ external_links = [
 switcher_version = SimPEG.__version__
 if "dev" in switcher_version:
     switcher_version = "dev"
+else:
+    # add leading v to version number
+    if not switcher_version.startwith("v"):
+        switcher_version = "v" + switcher_version
 
 try:
     import pydata_sphinx_theme
