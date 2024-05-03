@@ -239,7 +239,12 @@ external_links = [
 
 try:
     import pydata_sphinx_theme
+except ImportError:
+    pydata_sphinx_theme = None
 
+if pydata_sphinx_theme is None:
+    html_theme = "default"
+else:
     html_theme = "pydata_sphinx_theme"
 
     # If false, no module index is generated.
@@ -291,8 +296,6 @@ try:
         "github_version": "main",
         "doc_path": "docs",
     }
-except Exception:
-    html_theme = "default"
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
