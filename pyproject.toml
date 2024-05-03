@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=64", "setuptools_scm>=8", "wheel"]
+requires = ["setuptools>=64", "setuptools_scm>=8"]
 build-backend = "setuptools.build_meta"
 
 
@@ -86,21 +86,20 @@ tests = [
     "coverage",
 ]
 dev = [
-    "simpeg[all]",
-]
+    "simpeg[all,style,docs,tests]",
+] # the whole kit and caboodle
 
 [tool.setuptools]
 py-modules = ['SimPEG']
 
 [tool.setuptools.packages.find]
-include = ["simpeg*"]  # package names should match these glob patterns (["*"] by default)
+include = ["simpeg*"]
 
 [tool.setuptools_scm]
 version_file = "simpeg/version.py"
 
 [tool.coverage.run]
 branch = true
-plugins = ["Cython.Coverage"]
 source = ["simpeg", "tests", "examples", "tutorials"]
 
 [tool.coverage.report]
