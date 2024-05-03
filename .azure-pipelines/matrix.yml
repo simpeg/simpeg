@@ -46,8 +46,9 @@ jobs:
           - script: |
               source "${HOME}/conda/etc/profile.d/conda.sh"
               conda activate simpeg-test
-              export KMP_WARNINGS=0
-              pytest ${{ test }} -v --cov-config=.coveragerc --cov=simpeg --cov-report=xml --cov-report=html -W ignore::DeprecationWarning
+              coverage run -m pytest ${{ test }} -v - W ignore::DeprecationWarning
+              coverage xml
+              coverage html
             displayName: 'Testing ${{ test }}'
 
           - task: PublishPipelineArtifact@1
@@ -60,13 +61,5 @@ jobs:
           - script: |
               curl -Os https://uploader.codecov.io/latest/linux/codecov
               chmod +x codecov
-              ./codecov --sha $(system.pullRequest.sourceCommitId)
-            displayName: 'Upload PR coverage to codecov.io'
-            condition: and(eq(${{ py_vers }}, '3.8'), startsWith(variables['build.sourceBranch'], 'refs/pull/'))
-
-          - script: |
-              curl -Os https://uploader.codecov.io/latest/linux/codecov
-              chmod +x codecov
               ./codecov
             displayName: 'Upload coverage to codecov.io'
-            condition: and(eq(${{ py_vers }}, '3.8'), not(startsWith(variables['build.sourceBranch'], 'refs/pull/')))

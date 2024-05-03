@@ -28,7 +28,7 @@ dependencies:
   - sympy
   - wheel
   - pytest
-  - pytest-cov
+  - coverage
   - toolz
   - twine
   - memory_profiler
