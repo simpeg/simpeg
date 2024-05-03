@@ -25,10 +25,10 @@ jobs:
           steps:
 
           # Checkout simpeg repo, including tags.
-          # We need to sync tags in order to get the SimPEG version while
-          # building the docs.
+          # We need to sync tags and disable shallow depth in order to get the
+          # SimPEG version while building the docs.
           - checkout: self
-            fetchDepth: 100
+            fetchDepth: 0
             fetchTags: true
             displayName: Checkout repository (including tags)
 
