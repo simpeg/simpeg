@@ -1,0 +1,99 @@
+[build-system]
+requires = ["setuptools>=64", "setuptools_scm>=8", "wheel"]
+build-backend = "setuptools.build_meta"
+
+
+[project]
+name = 'simpeg'
+description = "SimPEG: Simulation and Parameter Estimation in Geophysics"
+readme = 'README.rst'
+requires-python = '>=3.8'
+authors = [
+  {name = 'SimPEG developers', email = 'rowanc1@gmail.com'},
+]
+keywords = [
+    'geophysics', 'inverse problem'
+]
+dependencies = [
+    "numpy>=1.20",
+    "scipy>=1.8",
+    "scikit-learn>=1.2",
+    "pymatsolver>=0.2",
+    "matplotlib",
+    "discretize>=0.10",
+    "geoana>=0.5.0",
+    "empymod>=2.0.0",
+    "pandas",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python",
+    "Topic :: Scientific/Engineering",
+    "Topic :: Scientific/Engineering :: Mathematics",
+    "Topic :: Scientific/Engineering :: Physics",
+    "Operating System :: Microsoft :: Windows",
+    "Operating System :: POSIX",
+    "Operating System :: Unix",
+    "Operating System :: MacOS",
+    "Natural Language :: English",
+]
+dynamic = ["version"]
+
+[project.license]
+file = 'LICENSE'
+
+[project.urls]
+Homepage = 'https://simpeg.xyz'
+Documentation = 'https://docs.simpeg.xyz'
+Repository = 'http://github.com/simpeg/simpeg.git'
+
+[project.optional-dependencies]
+dask = ["dask", "zarr", "fsspec>=0.3.3"]
+choclo = ["choclo"]
+reporting = ["scooby"]
+plotting = ["plotly"]
+all = [
+    "simpeg[dask,choclo,plotting,reporting]"
+] # all optional *runtime* dependenies (not related to development)
+style = [
+    "black==24.3.0",
+    "flake8==7.0.0",
+    "flake8-bugbear==23.12.2",
+    "flake8-builtins==2.2.0",
+    "flake8-mutable==1.2.0",
+    "flake8-rst-docstrings==0.3.0",
+    "flake8-docstrings==1.7.0",
+]
+docs = [
+    "sphinx",
+    "sphinx_rtd_theme",
+    "sphinx-gallery>=0.1.13",
+    "sphinx-toolbox",
+    "sphinxcontrib-apidoc",
+    "pydata-sphinx-theme",
+    "nbsphinx",
+    "numpydoc",
+    "pillow",
+    "sympy",
+    "memory_profiler",
+]
+tests = [
+    "simpeg[all,docs]",
+    "pytest",
+    "coverage",
+]
+dev = [
+    "simpeg[all]",
+]
+
+[tool.setuptools]
+py-modules = ['SimPEG']
+
+[tool.setuptools.packages.find]
+include = ["simpeg*"]  # package names should match these glob patterns (["*"] by default)
+
+[tool.setuptools_scm]
+version_file = "simpeg/version.py"
