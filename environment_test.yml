@@ -29,7 +29,6 @@ dependencies:
   - wheel
   - pytest
   - coverage
-  - toolz
   - twine
   - memory_profiler
   - plotly
