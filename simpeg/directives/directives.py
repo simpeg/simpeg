@@ -99,7 +99,7 @@ class InversionDirective:
 
         Returns
         -------
-        SimPEG.inversion.BaseInversion
+        simpeg.inversion.BaseInversion
             The inversion associated with the directive.
         """
         if not hasattr(self, "_inversion"):
@@ -123,7 +123,7 @@ class InversionDirective:
 
         Returns
         -------
-        SimPEG.inverse_problem.BaseInvProblem
+        simpeg.inverse_problem.BaseInvProblem
             The inverse problem associated with the directive.
         """
         return self.inversion.invProb
@@ -134,7 +134,7 @@ class InversionDirective:
 
         Returns
         -------
-        SimPEG.optimization.Minimize
+        simpeg.optimization.Minimize
             Optimization algorithm associated with the directive.
         """
         return self.invProb.opt
@@ -145,7 +145,7 @@ class InversionDirective:
 
         Returns
         -------
-        SimPEG.regularization.BaseRegularization
+        simpeg.regularization.BaseRegularization
             The regularization associated with the directive.
         """
         if getattr(self, "_reg", None) is None:
@@ -169,7 +169,7 @@ class InversionDirective:
 
         Returns
         -------
-        SimPEG.data_misfit.BaseDataMisfit
+        simpeg.data_misfit.BaseDataMisfit
             The data misfit associated with the directive.
         """
         if getattr(self, "_dmisfit", None) is None:
@@ -238,7 +238,7 @@ class InversionDirective:
 
         Parameters
         ----------
-        directive_list : SimPEG.directives.DirectiveList
+        directive_list : simpeg.directives.DirectiveList
             List of directives used in the inversion.
 
         Returns
@@ -258,9 +258,9 @@ class DirectiveList(object):
 
     Parameters
     ----------
-    directives : list of SimPEG.directives.InversionDirective
+    directives : list of simpeg.directives.InversionDirective
         List of directives.
-    inversion : SimPEG.inversion.BaseInversion
+    inversion : simpeg.inversion.BaseInversion
         The inversion associated with the directives list.
     debug : bool
         Whether or not to print debugging information.
@@ -300,7 +300,7 @@ class DirectiveList(object):
 
         Returns
         -------
-        SimPEG.inversion.BaseInversion
+        simpeg.inversion.BaseInversion
             The inversion associated with the directives list.
         """
         return getattr(self, "_inversion", None)

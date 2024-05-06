@@ -8,7 +8,7 @@ class Survey(BaseSurvey):
 
     Parameters
     ----------
-    source_field : SimPEG.potential_fields.gravity.sources.SourceField
+    source_field : simpeg.potential_fields.gravity.sources.SourceField
         A source object that defines receivers locations for gravity.
     """
 

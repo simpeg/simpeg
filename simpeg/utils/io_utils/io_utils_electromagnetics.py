@@ -207,7 +207,7 @@ def read_dcip2d_ubc(file_name, data_type, format_type):
 
     Returns
     -------
-    SimPEG.data.Data
+    simpeg.data.Data
         A SimPEG data object. The data from the input file is loaded and parsed into
         three attributes of the data object:
 
@@ -435,7 +435,7 @@ def read_dcip3d_ubc(file_name, data_type):
 
     Returns
     -------
-    SimPEG.data.Data
+    simpeg.data.Data
         A SimPEG data object. The data from the input file is loaded and parsed into
         three attributes of the data object:
 
@@ -595,7 +595,7 @@ def read_dcipoctree_ubc(file_name, data_type):
 
     Returns
     -------
-    SimPEG.data.Data
+    simpeg.data.Data
         A SimPEG data object. The data from the input file is loaded and parsed into
         three attributes of the data object:
 
@@ -992,7 +992,7 @@ def write_dcip_xyz(
     ----------
     file_name : str
         Path to the file
-    data_object : SimPEG.data.Data
+    data_object : simpeg.data.Data
         simpeg.data.Data object. The `survey` attribute of this data object must be
         an instance of :class`simpeg.electromagnetics.static.resistivity.survey.Survey` or
         :class`simpeg.electromagnetics.static.induced_polarization.survey.Survey`
