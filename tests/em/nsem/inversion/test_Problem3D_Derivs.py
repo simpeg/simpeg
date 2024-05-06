@@ -99,9 +99,9 @@ def DerivProjfieldsTest(inputSetup, comp="All", freq=False):
     # simulation.mapping = Maps.ExpMap(simulation.mesh)
     # Initate things for the derivs Test
     src = survey.source_list[0]
-    np.random.seed(1983)
-    u0x = np.random.randn(survey.mesh.nE) + np.random.randn(survey.mesh.nE) * 1j
-    u0y = np.random.randn(survey.mesh.nE) + np.random.randn(survey.mesh.nE) * 1j
+    rng = np.random.default_rng(seed=42)
+    u0x = rng.normal(size=survey.mesh.nE) + rng.normal(size=survey.mesh.nE) * 1j
+    u0y = rng.normal(size=survey.mesh.nE) + rng.normal(size=survey.mesh.nE) * 1j
     u0 = np.vstack((mkvc(u0x, 2), mkvc(u0y, 2)))
     f0 = simulation.fieldsPair(survey.mesh, survey)
     # u0 = np.hstack((mkvc(u0_px,2),mkvc(u0_py,2)))
@@ -117,6 +117,7 @@ def DerivProjfieldsTest(inputSetup, comp="All", freq=False):
             lambda t: rx.evalDeriv(src, survey.mesh, f0, mkvc(t, 2)),
         )
 
+    np.random.seed(1983)  # use seed for check_derivative
     return tests.check_derivative(fun, u0, num=3, plotIt=False, eps=FLR)
 
 

@@ -25,8 +25,9 @@ def check_deriv(sim, test_mod, **kwargs):
 
 
 def check_adjoint(sim, test_mod):
-    u = np.random.rand(len(test_mod))
-    v = np.random.rand(sim.survey.nD)
+    rng = np.random.default_rng(seed=42)
+    u = rng.uniform(size=len(test_mod))
+    v = rng.uniform(size=sim.survey.nD)
 
     f = sim.fields(test_mod)
     Ju = sim.Jvec(test_mod, u, f=f)
@@ -332,13 +333,15 @@ class Sim_2D(unittest.TestCase):
             nsem.simulation.Simulation2DMagneticField(
                 mesh_2d, survey=survey_yx, e_bc=100
             )
+
+        random_array = np.random.default_rng(seed=42).uniform(size=20)
         with self.assertRaises(TypeError):
             nsem.simulation.Simulation2DElectricField(
-                mesh_2d, survey=survey_xy, h_bc=np.random.rand(20)
+                mesh_2d, survey=survey_xy, h_bc=random_array
             )
         with self.assertRaises(TypeError):
             nsem.simulation.Simulation2DMagneticField(
-                mesh_2d, survey=survey_yx, e_bc=np.random.rand(20)
+                mesh_2d, survey=survey_yx, e_bc=random_array
             )
 
         # Check fixed boundary condition Key Error
@@ -353,8 +356,9 @@ class Sim_2D(unittest.TestCase):
 
         # Check fixed boundary condition length error
         bc = {}
+        rng = np.random.default_rng(seed=42)
         for freq in survey_xy.frequencies:
-            bc[freq] = np.random.rand(mesh_2d.boundary_edges.shape[0] + 3)
+            bc[freq] = rng.uniform(size=mesh_2d.boundary_edges.shape[0] + 3)
         with self.assertRaises(ValueError):
             nsem.simulation.Simulation2DElectricField(
                 mesh_2d, survey=survey_xy, h_bc=bc

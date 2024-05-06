@@ -233,8 +233,9 @@ class ComplexResistivityTest(unittest.TestCase):
         self.assertTrue(passed)
 
     def check_adjoint(self, sim):
-        w = np.random.rand(len(self.model))
-        v = np.random.rand(sim.survey.nD)
+        rng = np.random.default_rng(seed=42)
+        w = rng.uniform(size=len(self.model))
+        v = rng.uniform(size=sim.survey.nD)
         f = sim.fields(self.model)
 
         vJw = v.ravel().dot(sim.Jvec(self.model, w, f))
