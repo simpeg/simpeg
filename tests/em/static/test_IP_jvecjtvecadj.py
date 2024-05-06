@@ -14,8 +14,6 @@ from simpeg.electromagnetics import resistivity as dc
 from simpeg.electromagnetics import induced_polarization as ip
 import shutil
 
-np.random.seed(30)
-
 
 class IPProblemTestsCC(unittest.TestCase):
     def setUp(self):
@@ -72,8 +70,9 @@ class IPProblemTestsCC(unittest.TestCase):
     def test_adjoint(self):
         # Adjoint Test
         # u = np.random.rand(self.mesh.nC*self.survey.Survey.nSrc)
-        v = np.random.rand(self.mesh.nC)
-        w = np.random.rand(self.survey.nD)
+        rng = np.random.default_rng(seed=30)
+        v = rng.uniform(size=self.mesh.nC)
+        w = rng.uniform(size=self.survey.nD)
         wtJv = w.dot(self.p.Jvec(self.m0, v))
         vtJtw = v.dot(self.p.Jtvec(self.m0, w))
         passed = np.abs(wtJv - vtJtw) < 1e-10
@@ -141,8 +140,9 @@ class IPProblemTestsN(unittest.TestCase):
     def test_adjoint(self):
         # Adjoint Test
         # u = np.random.rand(self.mesh.nC*self.survey.Survey.nSrc)
-        v = np.random.rand(self.mesh.nC)
-        w = np.random.rand(self.survey.nD)
+        rng = np.random.default_rng(seed=30)
+        v = rng.uniform(size=self.mesh.nC)
+        w = rng.uniform(size=self.survey.nD)
         wtJv = w.dot(self.p.Jvec(self.m0, v))
         vtJtw = v.dot(self.p.Jtvec(self.m0, w))
         passed = np.abs(wtJv - vtJtw) < 1e-8
@@ -214,8 +214,9 @@ class IPProblemTestsCC_storeJ(unittest.TestCase):
     def test_adjoint(self):
         # Adjoint Test
         # u = np.random.rand(self.mesh.nC*self.survey.Survey.nSrc)
-        v = np.random.rand(self.mesh.nC)
-        w = np.random.rand(self.survey.nD)
+        rng = np.random.default_rng(seed=30)
+        v = rng.uniform(size=self.mesh.nC)
+        w = rng.uniform(size=self.survey.nD)
         wtJv = w.dot(self.p.Jvec(self.m0, v))
         vtJtw = v.dot(self.p.Jtvec(self.m0, w))
         passed = np.abs(wtJv - vtJtw) < 1e-10
@@ -294,8 +295,9 @@ class IPProblemTestsN_storeJ(unittest.TestCase):
     def test_adjoint(self):
         # Adjoint Test
         # u = np.random.rand(self.mesh.nC*self.survey.Survey.nSrc)
-        v = np.random.rand(self.mesh.nC)
-        w = np.random.rand(self.survey.nD)
+        rng = np.random.default_rng(seed=30)
+        v = rng.uniform(size=self.mesh.nC)
+        w = rng.uniform(size=self.survey.nD)
         wtJv = w.dot(self.p.Jvec(self.m0, v))
         vtJtw = v.dot(self.p.Jtvec(self.m0, w))
         passed = np.abs(wtJv - vtJtw) < 1e-8

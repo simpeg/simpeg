@@ -19,8 +19,6 @@ try:
 except ImportError:
     from simpeg import SolverLU as Solver
 
-np.random.seed(38)
-
 
 class SIPProblemTestsCC(unittest.TestCase):
     def setUp(self):
@@ -99,8 +97,9 @@ class SIPProblemTestsCC(unittest.TestCase):
     def test_adjoint(self):
         # Adjoint Test
         # u = np.random.rand(self.mesh.nC*self.survey.nSrc)
-        v = np.random.rand(self.mesh.nC * 2)
-        w = np.random.rand(self.survey.nD)
+        rng = np.random.default_rng(seed=38)
+        v = rng.uniform(size=self.mesh.nC * 2)
+        w = rng.uniform(size=self.survey.nD)
         wtJv = w.dot(self.p.Jvec(self.m0, v))
         vtJtw = v.dot(self.p.Jtvec(self.m0, w))
         passed = np.abs(wtJv - vtJtw) < 1e-10
@@ -190,8 +189,9 @@ class SIPProblemTestsN(unittest.TestCase):
 
     def test_adjoint(self):
         # Adjoint Test
-        v = np.random.rand(self.mesh.nC * 2)
-        w = np.random.rand(self.survey.nD)
+        rng = np.random.default_rng(seed=38)
+        v = rng.uniform(size=self.mesh.nC * 2)
+        w = rng.uniform(size=self.survey.nD)
         wtJv = w.dot(self.p.Jvec(self.m0, v))
         vtJtw = v.dot(self.p.Jtvec(self.m0, w))
         passed = np.abs(wtJv - vtJtw) < 1e-8
@@ -300,8 +300,9 @@ class SIPProblemTestsN_air(unittest.TestCase):
 
     def test_adjoint(self):
         # Adjoint Test
-        v = np.random.rand(self.reg.mapping.nP)
-        w = np.random.rand(self.survey.nD)
+        rng = np.random.default_rng(seed=38)
+        v = rng.uniform(size=self.reg.mapping.nP)
+        w = rng.uniform(size=self.survey.nD)
         wtJv = w.dot(self.p.Jvec(self.m0, v))
         vtJtw = v.dot(self.p.Jtvec(self.m0, w))
         passed = np.abs(wtJv - vtJtw) < 1e-8
