@@ -1719,7 +1719,7 @@ class LineCurrent(BaseTDEMSrc):
 
         Parameters
         ----------
-        simulation : SimPEG.electromagnetics.time_domain.simulation.BaseTDEMSimulation
+        simulation : simpeg.electromagnetics.time_domain.simulation.BaseTDEMSimulation
             Base TDEM simulation
 
         Returns
@@ -1738,7 +1738,7 @@ class LineCurrent(BaseTDEMSrc):
 
         Parameters
         ----------
-        simulation : SimPEG.electromagnetics.time_domain.simulation.BaseTDEMSimulation
+        simulation : simpeg.electromagnetics.time_domain.simulation.BaseTDEMSimulation
             Base TDEM simulation
 
         Returns
@@ -1762,7 +1762,7 @@ class LineCurrent(BaseTDEMSrc):
 
         Parameters
         ----------
-        simulation : SimPEG.electromagnetics.base.BaseEMSimulation
+        simulation : simpeg.electromagnetics.base.BaseEMSimulation
             An electromagnetic simulation
 
         Returns

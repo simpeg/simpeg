@@ -134,7 +134,7 @@ class BaseDCSimulation2D(BaseElectricalPDESimulation):
 
         Returns
         -------
-        SimPEG.electromagnetics.static.resistivity.survey.Survey
+        simpeg.electromagnetics.static.resistivity.survey.Survey
         """
         if self._survey is None:
             raise AttributeError("Simulation must have a survey")

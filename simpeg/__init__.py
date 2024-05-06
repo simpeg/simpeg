@@ -166,7 +166,7 @@ from .utils.solver_utils import (
 
 __author__ = "SimPEG Team"
 __license__ = "MIT"
-__copyright__ = "2013 - 2020, SimPEG Team, https://simpeg.xyz"
+__copyright__ = "2013 - 2024, SimPEG Team, https://simpeg.xyz"
 
 
 # Version
