@@ -16,8 +16,6 @@ TOL_FWD = 5e-1  # relative tolerance for prim-sec comparison
 TOL_JT = 1e-10
 FLR = 1e-20  # "zero", so if residual below this --> pass regardless of order
 
-np.random.seed(2016)
-
 # To test the primary secondary-source, we look at make sure doing primary
 # secondary for a simple model gives comprable results to just solving a 3D
 # problem
@@ -135,8 +133,9 @@ class PrimSecFDEMTest(object):
 
         m = model
         f = self.fields_primsec
-        v = np.random.rand(self.secondarySurvey.nD)
-        w = np.random.rand(self.secondarySimulation.sigmaMap.nP)
+        rng = np.random.default_rng(seed=2016)
+        v = rng.uniform(size=self.secondarySurvey.nD)
+        w = rng.uniform(size=self.secondarySimulation.sigmaMap.nP)
 
         vJw = v.dot(self.secondarySimulation.Jvec(m, w, f))
         wJtv = w.dot(self.secondarySimulation.Jtvec(m, v, f))
