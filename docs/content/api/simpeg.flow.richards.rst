@@ -1,1 +1,1 @@
-.. automodule:: SimPEG.flow.richards
+.. automodule:: simpeg.flow.richards

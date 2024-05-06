@@ -1,1 +1,1 @@
-.. automodule:: SimPEG.potential_fields.gravity
+.. automodule:: simpeg.potential_fields.gravity

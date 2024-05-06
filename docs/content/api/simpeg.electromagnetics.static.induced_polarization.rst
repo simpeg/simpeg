@@ -1,1 +1,1 @@
-.. automodule:: SimPEG.electromagnetics.static.induced_polarization
+.. automodule:: simpeg.electromagnetics.static.induced_polarization

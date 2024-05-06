@@ -1,1 +1,1 @@
-.. automodule:: SimPEG.seismic.straight_ray_tomography
+.. automodule:: simpeg.seismic.straight_ray_tomography

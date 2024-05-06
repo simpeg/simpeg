@@ -1,1 +1,1 @@
-.. automodule:: SimPEG.electromagnetics.frequency_domain
+.. automodule:: simpeg.electromagnetics.frequency_domain

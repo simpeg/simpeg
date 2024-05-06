@@ -1,1 +1,1 @@
-.. automodule:: SimPEG.utils
+.. automodule:: simpeg.utils

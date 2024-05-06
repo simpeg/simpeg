@@ -1,1 +1,1 @@
-.. automodule:: SimPEG.directives
+.. automodule:: simpeg.directives

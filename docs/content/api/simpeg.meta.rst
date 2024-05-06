@@ -1,1 +1,1 @@
-.. automodule:: SimPEG.meta
+.. automodule:: simpeg.meta

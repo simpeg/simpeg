@@ -1,1 +1,1 @@
-.. automodule:: SimPEG.electromagnetics.natural_source
+.. automodule:: simpeg.electromagnetics.natural_source

@@ -1,1 +1,1 @@
-.. automodule:: SimPEG.electromagnetics.static.resistivity
+.. automodule:: simpeg.electromagnetics.static.resistivity

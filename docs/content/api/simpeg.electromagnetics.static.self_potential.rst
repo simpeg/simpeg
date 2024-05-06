@@ -1,1 +1,1 @@
-.. automodule:: SimPEG.electromagnetics.static.self_potential
+.. automodule:: simpeg.electromagnetics.static.self_potential

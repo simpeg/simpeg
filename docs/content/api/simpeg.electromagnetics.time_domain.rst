@@ -1,1 +1,1 @@
-.. automodule:: SimPEG.electromagnetics.time_domain
+.. automodule:: simpeg.electromagnetics.time_domain

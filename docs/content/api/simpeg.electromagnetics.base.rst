@@ -1,1 +1,1 @@
-.. automodule:: SimPEG.electromagnetics
+.. automodule:: simpeg.electromagnetics

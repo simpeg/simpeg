@@ -1,1 +1,1 @@
-.. automodule:: SimPEG.potential_fields.magnetics
+.. automodule:: simpeg.potential_fields.magnetics

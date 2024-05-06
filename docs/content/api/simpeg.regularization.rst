@@ -1,1 +1,1 @@
-.. automodule:: SimPEG.regularization
+.. automodule:: simpeg.regularization

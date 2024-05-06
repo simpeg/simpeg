@@ -1,1 +1,1 @@
-.. automodule:: SimPEG.potential_fields
+.. automodule:: simpeg.potential_fields
