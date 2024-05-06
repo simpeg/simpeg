@@ -18,7 +18,7 @@ Geophysical Simulation Modules
 SimPEG Building Blocks
 ======================
 
-Base simpeg
+Base SimPEG
 -----------
 .. toctree::
   :maxdepth: 3
