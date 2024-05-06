@@ -1,7 +1,7 @@
 import unittest
 import numpy as np
 import discretize
-from SimPEG import (
+from simpeg import (
     maps,
     utils,
     data_misfit,
@@ -11,12 +11,12 @@ from SimPEG import (
     inversion,
     inverse_problem,
 )
-from SimPEG.electromagnetics import resistivity as dc
+from simpeg.electromagnetics import resistivity as dc
 
 try:
     from pymatsolver import Pardiso as Solver
 except ImportError:
-    from SimPEG import SolverLU as Solver
+    from simpeg import SolverLU as Solver
 
 
 class DCProblem_2DTests(unittest.TestCase):

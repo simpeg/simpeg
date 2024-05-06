@@ -24,9 +24,9 @@ and two North-South lines.
 #
 
 
-from SimPEG import utils
-from SimPEG.utils.io_utils.io_utils_electromagnetics import read_dcip_xyz
-from SimPEG.electromagnetics.static.utils.static_utils import (
+from simpeg import utils
+from simpeg.utils.io_utils.io_utils_electromagnetics import read_dcip_xyz
+from simpeg.electromagnetics.static.utils.static_utils import (
     apparent_resistivity_from_voltage,
     convert_survey_3d_to_2d_lines,
     plot_pseudosection,
@@ -42,7 +42,7 @@ mpl.rcParams.update({"font.size": 16})
 
 try:
     import plotly
-    from SimPEG.electromagnetics.static.utils.static_utils import plot_3d_pseudosection
+    from simpeg.electromagnetics.static.utils.static_utils import plot_3d_pseudosection
 
     has_plotly = True
 except ImportError:

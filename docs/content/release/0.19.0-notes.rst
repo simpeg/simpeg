@@ -31,7 +31,7 @@ sweet on the continuous integration service.
 
 ``MetaSimulation``
 ------------------
-`SimPEG` contains a new simulation class called ``SimPEG.meta.MetaSimulation``. This experimental
+`SimPEG` contains a new simulation class called ``simpeg.meta.MetaSimulation``. This experimental
 simulation essentially wraps together many simulations into a single simulation. Several common
 problems can fit into this simulation of simulations model, including tiled (domain decomposition)
 simulations, time-lapse simulations, or laterally constrained simulations. This approach also is
@@ -58,14 +58,14 @@ of a pull request that you should follow.
 Directive updates
 -----------------
 There are a few new options for determining an initial trade-off parameter for the
-regularization functions in inversions. You can now use ``SimPEG.directives.BetaEstimateMaxDerivative``
+regularization functions in inversions. You can now use ``simpeg.directives.BetaEstimateMaxDerivative``
 
-There are also a few more nobs to turn on ``SimPEG.directives.UpdateSensitivityWeights``,
+There are also a few more nobs to turn on ``simpeg.directives.UpdateSensitivityWeights``,
 controlling how the weights are thresholded and normalized.
 
 JointTotalVariation extension
 -----------------------------
-``SimPEG.regularization.JointTotalVariation`` now supports an arbitrary number of physical
+``simpeg.regularization.JointTotalVariation`` now supports an arbitrary number of physical
 properties models (instead of just two).
 
 Many bug fixes

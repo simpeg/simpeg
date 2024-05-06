@@ -34,9 +34,9 @@ import tarfile
 
 from discretize import TensorMesh
 from discretize.utils import active_from_xyz
-from SimPEG.potential_fields import magnetics
-from SimPEG.utils import plot2Ddata, model_builder
-from SimPEG import (
+from simpeg.potential_fields import magnetics
+from simpeg.utils import plot2Ddata, model_builder
+from simpeg import (
     maps,
     data,
     inverse_problem,
@@ -160,10 +160,12 @@ receiver_list = [receiver_list]
 inclination = 90
 declination = 0
 strength = 50000
-inducing_field = (strength, inclination, declination)
 
-source_field = magnetics.sources.SourceField(
-    receiver_list=receiver_list, parameters=inducing_field
+source_field = magnetics.sources.UniformBackgroundField(
+    receiver_list=receiver_list,
+    amplitude=strength,
+    inclination=inclination,
+    declination=declination,
 )
 
 # Define the survey
@@ -307,7 +309,7 @@ update_jacobi = directives.UpdatePreconditioner()
 target_misfit = directives.TargetMisfit(chifact=1)
 
 # Add sensitivity weights
-sensitivity_weights = directives.UpdateSensitivityWeights(everyIter=False)
+sensitivity_weights = directives.UpdateSensitivityWeights(every_iteration=False)
 
 # The directives are defined as a list.
 directives_list = [

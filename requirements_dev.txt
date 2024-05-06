@@ -19,7 +19,7 @@ jupyter
 toolz
 empymod>=2.0.0
 scooby
-black==23.12.1
+black==24.3.0
 pre-commit
 twine
 memory_profiler

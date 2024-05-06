@@ -21,8 +21,8 @@ defined and mapped to cylindrical meshes. Some things we consider are:
 #
 
 from discretize import CylindricalMesh
-from SimPEG.utils import mkvc
-from SimPEG import maps
+from simpeg.utils import mkvc
+from simpeg import maps
 import numpy as np
 import matplotlib.pyplot as plt
 

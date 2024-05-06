@@ -1,11 +1,11 @@
 import numpy as np
 import pytest
 
-from SimPEG import utils
-from SimPEG import objective_function
-from SimPEG.objective_function import BaseObjectiveFunction
-from SimPEG.objective_function import _validate_multiplier
-from SimPEG.utils import Zero
+from simpeg import utils
+from simpeg import objective_function
+from simpeg.objective_function import BaseObjectiveFunction
+from simpeg.objective_function import _validate_multiplier
+from simpeg.utils import Zero
 
 
 class MockObjectiveFunction(BaseObjectiveFunction):

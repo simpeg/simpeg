@@ -2,7 +2,7 @@
 1D Inversion of for a Single Sounding
 =====================================
 
-Here we use the module *SimPEG.electromangetics.frequency_domain_1d* to invert
+Here we use the module *simpeg.electromangetics.frequency_domain_1d* to invert
 frequency domain data and recover a 1D electrical conductivity model.
 In this tutorial, we focus on the following:
 
@@ -18,7 +18,6 @@ at a 10 m offset from the source in ppm.
 
 """
 
-
 #########################################################################
 # Import modules
 # --------------
@@ -31,9 +30,9 @@ import matplotlib.pyplot as plt
 
 from discretize import TensorMesh
 
-import SimPEG.electromagnetics.frequency_domain as fdem
-from SimPEG.utils import mkvc, plot_1d_layer_model
-from SimPEG import (
+import simpeg.electromagnetics.frequency_domain as fdem
+from simpeg.utils import mkvc, plot_1d_layer_model
+from simpeg import (
     maps,
     data,
     data_misfit,
@@ -238,7 +237,7 @@ reg_map = maps.IdentityMap(nP=mesh.nC)
 reg = regularization.Sparse(mesh, mapping=reg_map, alpha_s=0.025, alpha_x=1.0)
 
 # reference model
-reg.mref = starting_model
+reg.reference_model = starting_model
 
 # Define sparse and blocky norms p, q
 reg.norms = [0, 0]

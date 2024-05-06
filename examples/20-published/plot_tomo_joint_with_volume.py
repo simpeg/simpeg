@@ -22,9 +22,9 @@ import numpy as np
 import scipy.sparse as sp
 import matplotlib.pyplot as plt
 
-from SimPEG.seismic import straight_ray_tomography as tomo
+from simpeg.seismic import straight_ray_tomography as tomo
 import discretize
-from SimPEG import (
+from simpeg import (
     maps,
     utils,
     regularization,

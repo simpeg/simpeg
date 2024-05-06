@@ -33,7 +33,7 @@ Because of the improvement to the ``resitivity.Fields2D`` object, the previous
 Resistivity Dipole source and receiver
 --------------------------------------
 
-For the ``Dipole`` receiver in ``SimPEG.electromagnetics.static.resistivity.receivers``,
+For the ``Dipole`` receiver in ``simpeg.electromagnetics.static.resistivity.receivers``,
 the ``locationsM`` and ``locationsN`` parameters are deprecated. They are now called
 ``locations_m`` and ``locations_n``. There are now two ways to create a ``Dipole`` receiver:
 
@@ -47,7 +47,7 @@ or
 
   rx = resistivity.receivers.Dipole(locations=(locations_m, locations_n))
 
-Similarly, for the, ``Dipole`` source in ``SimPEG.electromagnetics.static.resistivity.sources``,
+Similarly, for the, ``Dipole`` source in ``simpeg.electromagnetics.static.resistivity.sources``,
 the ``locationA`` and ``locationB`` parameters are deprecated. They are now called
 ``location_a`` and ``location_b``. There are now also two ways to create a ``Dipole`` source:
 

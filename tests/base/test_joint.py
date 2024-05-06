@@ -3,7 +3,7 @@ import unittest
 import numpy as np
 
 import discretize
-from SimPEG import (
+from simpeg import (
     data_misfit,
     maps,
     utils,
@@ -13,7 +13,7 @@ from SimPEG import (
     directives,
     inversion,
 )
-from SimPEG.electromagnetics import resistivity as DC
+from simpeg.electromagnetics import resistivity as DC
 
 np.random.seed(82)
 

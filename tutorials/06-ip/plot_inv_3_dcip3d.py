@@ -35,9 +35,9 @@ import tarfile
 from discretize import TreeMesh
 from discretize.utils import refine_tree_xyz, active_from_xyz
 
-from SimPEG.utils import model_builder
-from SimPEG.utils.io_utils.io_utils_electromagnetics import read_dcip_xyz
-from SimPEG import (
+from simpeg.utils import model_builder
+from simpeg.utils.io_utils.io_utils_electromagnetics import read_dcip_xyz
+from simpeg import (
     maps,
     data_misfit,
     regularization,
@@ -47,16 +47,16 @@ from SimPEG import (
     directives,
     utils,
 )
-from SimPEG.electromagnetics.static import resistivity as dc
-from SimPEG.electromagnetics.static import induced_polarization as ip
-from SimPEG.electromagnetics.static.utils.static_utils import (
+from simpeg.electromagnetics.static import resistivity as dc
+from simpeg.electromagnetics.static import induced_polarization as ip
+from simpeg.electromagnetics.static.utils.static_utils import (
     apparent_resistivity_from_voltage,
 )
 
 # To plot DC/IP data in 3D, the user must have the plotly package
 try:
     import plotly
-    from SimPEG.electromagnetics.static.utils.static_utils import plot_3d_pseudosection
+    from simpeg.electromagnetics.static.utils.static_utils import plot_3d_pseudosection
 
     has_plotly = True
 except ImportError:
@@ -66,7 +66,7 @@ except ImportError:
 try:
     from pymatsolver import Pardiso as Solver
 except ImportError:
-    from SimPEG import SolverLU as Solver
+    from simpeg import SolverLU as Solver
 
 mpl.rcParams.update({"font.size": 16})
 
@@ -348,7 +348,7 @@ dc_data_misfit = data_misfit.L2DataMisfit(data=dc_data, simulation=dc_simulation
 # Define the regularization (model objective function)
 dc_regularization = regularization.WeightedLeastSquares(
     mesh,
-    indActive=ind_active,
+    active_cells=ind_active,
     reference_model=starting_conductivity_model,
 )
 
@@ -608,7 +608,7 @@ ip_data_misfit = data_misfit.L2DataMisfit(data=ip_data, simulation=ip_simulation
 # Define the regularization (model objective function)
 ip_regularization = regularization.WeightedLeastSquares(
     mesh,
-    indActive=ind_active,
+    active_cells=ind_active,
     mapping=maps.IdentityMap(nP=nC),
     alpha_s=0.01,
     alpha_x=1,
@@ -633,7 +633,7 @@ ip_inverse_problem = inverse_problem.BaseInvProblem(
 # Here we define the directives in the same manner as the DC inverse problem.
 #
 
-update_sensitivity_weighting = directives.UpdateSensitivityWeights(threshold=1e-3)
+update_sensitivity_weighting = directives.UpdateSensitivityWeights(threshold_value=1e-3)
 starting_beta = directives.BetaEstimate_ByEig(beta0_ratio=1e2)
 beta_schedule = directives.BetaSchedule(coolingFactor=2.5, coolingRate=1)
 save_iteration = directives.SaveOutputEveryIteration(save_txt=False)

@@ -3,8 +3,8 @@ import unittest
 import numpy as np
 import discretize
 
-from SimPEG import maps
-from SimPEG import data_misfit, simulation, survey
+from simpeg import maps
+from simpeg import data_misfit, simulation, survey
 
 np.random.seed(17)
 

@@ -5,7 +5,7 @@ import numpy as np
 from discretize import TensorMesh
 from discretize.utils import mesh_builder_xyz, mkvc, refine_tree_xyz
 
-from SimPEG import (
+from simpeg import (
     data_misfit,
     directives,
     inverse_problem,
@@ -15,7 +15,7 @@ from SimPEG import (
     regularization,
     utils,
 )
-from SimPEG.potential_fields import gravity, magnetics
+from simpeg.potential_fields import gravity, magnetics
 
 
 class QuadTreeLinProblemTest(unittest.TestCase):
@@ -104,9 +104,14 @@ class QuadTreeLinProblemTest(unittest.TestCase):
 
         def create_magnetics_sim_flat(self, block_value=1.0, noise_floor=0.01):
             # Create a magnetic survey
-            H0 = (50000.0, 90.0, 0.0)
+            h0_amplitude, h0_inclination, h0_declination = (50000.0, 90.0, 0.0)
             mag_rxLoc = magnetics.Point(data_xyz_flat)
-            mag_srcField = magnetics.SourceField([mag_rxLoc], parameters=H0)
+            mag_srcField = magnetics.UniformBackgroundField(
+                [mag_rxLoc],
+                amplitude=h0_amplitude,
+                inclination=h0_inclination,
+                declination=h0_declination,
+            )
             mag_survey = magnetics.Survey(mag_srcField)
 
             # Create the magnetics forward model operator
@@ -159,9 +164,14 @@ class QuadTreeLinProblemTest(unittest.TestCase):
 
         def create_magnetics_sim(self, block_value=1.0, noise_floor=0.01):
             # Create a magnetic survey
-            H0 = (50000.0, 90.0, 0.0)
+            h0_amplitude, h0_inclination, h0_declination = (50000.0, 90.0, 0.0)
             mag_rxLoc = magnetics.Point(data_xyz)
-            mag_srcField = magnetics.SourceField([mag_rxLoc], parameters=H0)
+            mag_srcField = magnetics.UniformBackgroundField(
+                [mag_rxLoc],
+                amplitude=h0_amplitude,
+                inclination=h0_inclination,
+                declination=h0_declination,
+            )
             mag_survey = magnetics.Survey(mag_srcField)
 
             # Create the magnetics forward model operator
@@ -215,9 +225,14 @@ class QuadTreeLinProblemTest(unittest.TestCase):
 
         def create_magnetics_sim_active(self, block_value=1.0, noise_floor=0.01):
             # Create a magnetic survey
-            H0 = (50000.0, 90.0, 0.0)
+            h0_amplitude, h0_inclination, h0_declination = (50000.0, 90.0, 0.0)
             mag_rxLoc = magnetics.Point(data_xyz)
-            mag_srcField = magnetics.SourceField([mag_rxLoc], parameters=H0)
+            mag_srcField = magnetics.UniformBackgroundField(
+                receiver_list=[mag_rxLoc],
+                amplitude=h0_amplitude,
+                inclination=h0_inclination,
+                declination=h0_declination,
+            )
             mag_survey = magnetics.Survey(mag_srcField)
 
             # Create the magnetics forward model operator
