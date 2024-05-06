@@ -4,7 +4,7 @@
 Getting Started
 ===============
 
-Here you'll find instructions on getting up and running with ``SimPEG``.
+Here you'll find instructions on getting up and running with SimPEG.
 
 .. toctree::
   :maxdepth: 2
