@@ -40,10 +40,9 @@ class CrossGradientTensor2D(unittest.TestCase):
         Test deriv and deriv2 matrix of cross-gradient with approx_hessian=True
 
         """
-        np.random.seed(10)
         cross_grad = self.cross_grad
         cross_grad.approx_hessian = True
-        self.assertTrue(cross_grad.test())
+        self.assertTrue(cross_grad.test(seed=10))
 
     def test_order_full_hessian(self):
         """
@@ -51,11 +50,10 @@ class CrossGradientTensor2D(unittest.TestCase):
         Test deriv and deriv2 matrix of cross-gradient with approx_hessian=True
 
         """
-        np.random.seed(10)
         cross_grad = self.cross_grad
         cross_grad.approx_hessian = False
-        self.assertTrue(cross_grad._test_deriv())
-        self.assertTrue(cross_grad._test_deriv2(expectedOrder=2))
+        self.assertTrue(cross_grad._test_deriv(seed=10))
+        self.assertTrue(cross_grad._test_deriv2(seed=10, expectedOrder=2))
 
     def test_deriv2_no_arg(self):
         np.random.seed(10)
@@ -135,10 +133,9 @@ class CrossGradientTensor3D(unittest.TestCase):
         Test deriv and deriv2 matrix of cross-gradient with approx_hessian=True
 
         """
-        np.random.seed(10)
         cross_grad = self.cross_grad
         cross_grad.approx_hessian = True
-        self.assertTrue(cross_grad.test())
+        self.assertTrue(cross_grad.test(seed=10))
 
     def test_order_full_hessian(self):
         """
@@ -146,11 +143,10 @@ class CrossGradientTensor3D(unittest.TestCase):
         Test deriv and deriv2 matrix of cross-gradient with approx_hessian=True
 
         """
-        np.random.seed(10)
         cross_grad = self.cross_grad
         cross_grad.approx_hessian = False
-        self.assertTrue(cross_grad._test_deriv())
-        self.assertTrue(cross_grad._test_deriv2(expectedOrder=2))
+        self.assertTrue(cross_grad._test_deriv(seed=10))
+        self.assertTrue(cross_grad._test_deriv2(seed=10, expectedOrder=2))
 
     def test_deriv2_no_arg(self):
         np.random.seed(10)
@@ -214,10 +210,9 @@ class CrossGradientTree2D(unittest.TestCase):
         Test deriv and deriv2 matrix of cross-gradient with approx_hessian=True
 
         """
-        np.random.seed(10)
         cross_grad = self.cross_grad
         cross_grad.approx_hessian = True
-        self.assertTrue(cross_grad.test())
+        self.assertTrue(cross_grad.test(seed=10))
 
     def test_order_full_hessian(self):
         """
@@ -225,11 +220,10 @@ class CrossGradientTree2D(unittest.TestCase):
         Test deriv and deriv2 matrix of cross-gradient with approx_hessian=True
 
         """
-        np.random.seed(10)
         cross_grad = self.cross_grad
         cross_grad.approx_hessian = False
-        self.assertTrue(cross_grad._test_deriv())
-        self.assertTrue(cross_grad._test_deriv2(expectedOrder=2))
+        self.assertTrue(cross_grad._test_deriv(seed=10))
+        self.assertTrue(cross_grad._test_deriv2(seed=10, expectedOrder=2))
 
     def test_deriv2_no_arg(self):
         np.random.seed(10)
@@ -282,10 +276,9 @@ class CrossGradientTree3D(unittest.TestCase):
         Test deriv and deriv2 matrix of cross-gradient with approx_hessian=True
 
         """
-        np.random.seed(10)
         cross_grad = self.cross_grad
         cross_grad.approx_hessian = True
-        self.assertTrue(cross_grad.test())
+        self.assertTrue(cross_grad.test(seed=10))
 
     def test_order_full_hessian(self):
         """
@@ -293,11 +286,10 @@ class CrossGradientTree3D(unittest.TestCase):
         Test deriv and deriv2 matrix of cross-gradient with approx_hessian=True
 
         """
-        np.random.seed(10)
         cross_grad = self.cross_grad
         cross_grad.approx_hessian = False
-        self.assertTrue(cross_grad._test_deriv())
-        self.assertTrue(cross_grad._test_deriv2(expectedOrder=2))
+        self.assertTrue(cross_grad._test_deriv(seed=10))
+        self.assertTrue(cross_grad._test_deriv2(seed=10, expectedOrder=2))
 
     def test_deriv2_no_arg(self):
         np.random.seed(10)
