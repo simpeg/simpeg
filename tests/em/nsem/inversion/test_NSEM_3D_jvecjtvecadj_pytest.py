@@ -1,23 +1,13 @@
 import pytest
 import numpy as np
 from discretize import TensorMesh
-from SimPEG import (
+from simpeg import (
     maps,
     data_misfit,
     tests,
 )
-from SimPEG.utils import mkvc
-from SimPEG.electromagnetics import natural_source as nsem
-from SimPEG.electromagnetics.natural_source.receivers import (
-    PointMagnetotelluric,
-    Point3DTipper,
-    Point3DAdmittance,
-)
-
-try:
-    from pymatsolver import Pardiso as Solver
-except ImportError:
-    from SimPEG import SolverLU as Solver
+from simpeg.utils import mkvc
+from simpeg.electromagnetics import natural_source as nsem
 
 REL_TOLERANCE = 5e-2
 ABS_TOLERANCE = 1e-4
@@ -84,11 +74,11 @@ def get_survey(survey_type, orientations, components, locations, frequencies):
         rx_list = []
 
         # MT data types (Zxx, Zxy, Zyx, Zyy)
-        if survey_type == "magnetotelluric":
+        if survey_type == "impedance":
             for orient in orientations:
                 rx_list.extend(
                     [
-                        nsem.receivers.PointMagnetotelluric(
+                        nsem.receivers.PointImpedance(
                             locations_e=locations,
                             locations_h=locations,
                             orientation=orient,
@@ -128,22 +118,33 @@ def get_survey(survey_type, orientations, components, locations, frequencies):
                     ]
                 )
 
+        # MobileMT is app_cond
+        elif survey_type == "mobilemt":
+            rx_list.extend(
+                [
+                    nsem.receivers.Point3DMobileMT(
+                        locations_e=locations, locations_h=locations
+                    )
+                ]
+            )
+
         source_list.append(nsem.sources.PlanewaveXYPrimary(rx_list, f))
 
     return nsem.survey.Survey(source_list)
 
 
 CASES_LIST = [
-    ("magnetotelluric", ["xy", "yx"], ["real", "imag"]),
-    ("magnetotelluric", ["xx", "yy"], ["real", "imag"]),
-    ("magnetotelluric", ["xy", "yx"], ["app_res"]),
-    ("magnetotelluric", ["xx", "yy"], ["app_res"]),
-    ("magnetotelluric", ["xy", "yx"], ["phase"]),
+    ("impedance", ["xy", "yx"], ["real", "imag"]),
+    ("impedance", ["xx", "yy"], ["real", "imag"]),
+    ("impedance", ["xy", "yx"], ["app_res"]),
+    ("impedance", ["xx", "yy"], ["app_res"]),
+    ("impedance", ["xy", "yx"], ["phase"]),
     ("tipper", ["zx", "zy"], ["real", "imag"]),
-    ("tipper", ["xx", "yx", "xy", "yy"], ["real", "imag"])
+    ("tipper", ["xx", "yx", "xy", "yy"], ["real", "imag"]),
     ("admittance", ["xy", "yx"], ["real", "imag"]),
     ("admittance", ["xx", "yy"], ["real", "imag"]),
     ("admittance", ["zx", "zy"], ["real", "imag"]),
+    ("mobilemt", None, None),
 ]
 
 

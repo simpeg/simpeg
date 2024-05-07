@@ -2,9 +2,9 @@ import pytest
 from scipy.constants import mu_0
 import numpy as np
 from discretize import TensorMesh
-from SimPEG.electromagnetics import natural_source as nsem
-from SimPEG.utils import model_builder, mkvc
-from SimPEG import maps
+from simpeg.electromagnetics import natural_source as nsem
+from simpeg.utils import model_builder, mkvc
+from simpeg import maps
 
 REL_TOLERANCE = 0.05
 ABS_TOLERANCE = 1e-13
@@ -67,10 +67,10 @@ def get_survey(locations, frequencies, survey_type, component):
 
     for f in frequencies:
         # MT data types (Zxx, Zxy, Zyx, Zyy)
-        if survey_type == "magnetotelluric":
+        if survey_type == "impedance":
             if component == "phase":
                 rx_list = [
-                    nsem.receivers.PointMagnetotelluric(
+                    nsem.receivers.PointImpedance(
                         locations_e=locations,
                         locations_h=locations,
                         orientation=ij,
@@ -80,7 +80,7 @@ def get_survey(locations, frequencies, survey_type, component):
                 ]  # off-diagonal only!!!
             else:
                 rx_list = [
-                    nsem.receivers.PointMagnetotelluric(
+                    nsem.receivers.PointImpedance(
                         locations_e=locations,
                         locations_h=locations,
                         orientation=ij,
@@ -113,6 +113,14 @@ def get_survey(locations, frequencies, survey_type, component):
                 for ij in ["xx", "yx", "zx", "xy", "yy", "zy"]
             ]
 
+        elif survey_type == "mobilemt":
+            rx_list = [
+                nsem.receivers.Point3DMobileMT(
+                    locations_e=locations,
+                    locations_h=locations,
+                )
+            ]
+
         source_list.append(nsem.sources.PlanewaveXYPrimary(rx_list, f))
 
     return nsem.survey.Survey(source_list)
@@ -120,7 +128,7 @@ def get_survey(locations, frequencies, survey_type, component):
 
 def get_analytic_halfspace_solution(sigma, f, survey_type, component):
     # MT data types (Zxx, Zxy, Zyx, Zyy)
-    if survey_type == "magnetotelluric":
+    if survey_type == "impedance":
         if component in ["real", "imag"]:
             ampl = np.sqrt(np.pi * f * mu_0 / sigma)
             return np.r_[0.0, -ampl, ampl, 0.0]
@@ -144,19 +152,24 @@ def get_analytic_halfspace_solution(sigma, f, survey_type, component):
         else:
             return np.r_[0.0, ampl, 0.0, -ampl, 0.0, 0.0]
 
+    # MobileMT data type (app_cond)
+    elif survey_type == "mobilemt":
+        return sigma
+
 
 # Validate impedances, tippers and admittances against analytic
 # solution for a halfspace.
 
 CASES_LIST_HALFSPACE = [
-    ("magnetotelluric", "real"),
-    ("magnetotelluric", "imag"),
-    ("magnetotelluric", "app_res"),
-    ("magnetotelluric", "phase"),
+    ("impedance", "real"),
+    ("impedance", "imag"),
+    ("impedance", "app_res"),
+    ("impedance", "phase"),
     ("tipper", "real"),
     ("tipper", "imag"),
     ("admittance", "real"),
     ("admittance", "imag"),
+    ("mobilemt", None),
 ]
 
 

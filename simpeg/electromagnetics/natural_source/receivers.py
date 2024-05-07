@@ -1,4 +1,8 @@
-from ...utils.code_utils import validate_string, validate_ndarray_with_shape
+from ...utils.code_utils import (
+    deprecate_class,
+    validate_string,
+    validate_ndarray_with_shape,
+)
 
 import numpy as np
 from scipy.constants import mu_0
@@ -10,8 +14,8 @@ def _alpha(src):
     return 1 / (2 * np.pi * mu_0 * src.frequency)
 
 
-class PointMagnetotelluric(BaseRx):
-    r"""Point receiver class for 1D, 2D and 3D magnetotelluric simulations.
+class PointImpedance(BaseRx):
+    r"""Point receiver class for 1D, 2D and 3D impedance data.
 
     This class is used to simulate data types that can be derived from the impedance tensor:
 
@@ -22,7 +26,11 @@ class PointMagnetotelluric(BaseRx):
 
     where superscripts :math:`(x)` and :math:`(y)` denote signals corresponding to
     incident planewaves whose electric fields are polarized along the x and y-directions
-    respectively. Note that in SimPEG, natural source EM data are defined according to
+    respectively. Electric and magnetic fields do not need to be simulated at the same
+    location, so this class can be used to simulate quasi-impedance data; i.e. where
+    the electric fields are measured at a base station.
+
+    Note that in ``simpeg``, natural source EM data are defined according to
     standard xyz coordinates; i.e. (x,y,z) is (Easting, Northing, Z +ve up).
 
     In addition to measuring the real or imaginary component of an impedance tensor
@@ -514,11 +522,7 @@ class PointMagnetotelluric(BaseRx):
         )
 
 
-# Alias for preexisting name
-PointNaturalSource = PointMagnetotelluric
-
-
-class Point3DTipper(PointNaturalSource):
+class Point3DTipper(PointImpedance):
     r"""Point receiver class for 3D tipper measurements.
 
     This class can be used to simulate AFMag tipper data, defined according to:
@@ -530,7 +534,7 @@ class Point3DTipper(PointNaturalSource):
 
     where superscripts :math:`(x)` and :math:`(y)` denote signals corresponding to
     incident planewaves whose electric fields are polarized along the x and y-directions
-    respectively. Note that in SimPEG, natural source EM data are defined according to
+    respectively. Note that in ``simpeg``, natural source EM data are defined according to
     standard xyz coordinates; i.e. (x,y,z) is (Easting, Northing, Z +ve up).
 
     The receiver class can also be used to simulate a diverse set of Tipper-like data types
@@ -726,12 +730,12 @@ class Point3DTipper(PointNaturalSource):
         return (bot * dtop_v - top * dbot_v) / (bot * bot)
 
     def eval(self, src, mesh, f, return_complex=False):  # noqa: A003
-        # Docstring inherited from parent class (PointMagnetotelluric).
+        # Docstring inherited from parent class (PointImpedance).
         rx_eval_complex = self._eval_tipper(src, mesh, f)
         return getattr(rx_eval_complex, self.component)
 
     def evalDeriv(self, src, mesh, f, du_dm_v=None, v=None, adjoint=False):
-        # Docstring inherited from parent class (PointMagnetotelluric).
+        # Docstring inherited from parent class (PointImpedance).
         if adjoint:
             if self.component == "imag":
                 v = -1j * v
@@ -743,7 +747,7 @@ class Point3DTipper(PointNaturalSource):
         return getattr(imp_deriv, self.component)
 
 
-class Point3DAdmittance(PointMagnetotelluric):
+class Point3DAdmittance(PointImpedance):
     r"""Point receiver class for data types derived by the 3D admittance tensor.
 
     This class is used to simulate data types that can be derived from the admittance tensor:
@@ -755,7 +759,7 @@ class Point3DAdmittance(PointMagnetotelluric):
 
     where superscripts :math:`(x)` and :math:`(y)` denote signals corresponding to
     incident planewaves whose electric fields are polarized along the x and y-directions
-    respectively. Note that in SimPEG, natural source EM data are defined according to
+    respectively. Note that in simpeg, natural source EM data are defined according to
     standard xyz coordinates; i.e. (x,y,z) is (Easting, Northing, Z +ve up).
 
     Parameters
@@ -945,7 +949,7 @@ class Point3DAdmittance(PointMagnetotelluric):
         return getattr(adm_deriv, self.component)
 
     def eval(self, src, mesh, f, return_complex=False):  # noqa: A003
-        # Docstring inherited from parent class (PointMagnetotelluric).
+        # Docstring inherited from parent class (PointImpedance).
         adm = self._eval_admittance(src, mesh, f)
         if return_complex:
             return adm
@@ -957,7 +961,224 @@ class Point3DAdmittance(PointMagnetotelluric):
             return getattr(adm, self.component)
 
     def evalDeriv(self, src, mesh, f, du_dm_v=None, v=None, adjoint=False):
-        # Docstring inherited from parent class (PointMagnetotelluric).
+        # Docstring inherited from parent class (PointImpedance).
         return self._eval_admittance_deriv(
             src, mesh, f, du_dm_v=du_dm_v, v=v, adjoint=adjoint
+        )
+
+
+class Point3DMobileMT(PointImpedance):
+    r"""Point receiver class for data types derived by the 3D MobileMT data.
+
+    This class is used to simulate the apparent conductivity data, in S/m, collected
+    by Expert Geophysics MobileMT systems:
+
+    .. math::
+        \sigma_{app} = \mu_0 \omega \dfrac{\big | \vec{H} \big |^2}{\big | \vec{E} \big |^2}
+
+    where :math:`\omega` is the angular frequency in rad/s,
+
+    .. math::
+        \big | \vec{H} \big | = \Big [ H_x^2 + H_y^2 + H_z^2 \Big ]^{1/2}
+
+    and
+
+    .. math::
+        \big | \vec{H} \big | = \Big [ H_x^2 + H_y^2 + H_z^2 \Big ]^{1/2}
+
+    Parameters
+    ----------
+    locations : (n_loc, n_dim) numpy.ndarray
+        Locations where the electric and magnetic fields are measured.
+        If electric and magnetic fields are measured in different locations, please
+        use `locations_e` and `locations_h` when instantiating.
+    locations_e : (n_loc, n_dim) numpy.ndarray
+        Locations where the horizontal electric fields are measured.
+        Must be same size as `locations_h`.
+    locations_h : (n_loc, n_dim) numpy.ndarray
+        Locations where the magnetic fields are measured.
+        Must be same size as `locations_e`.
+    """
+
+    def __init__(
+        self,
+        locations=None,
+        locations_e=None,
+        locations_h=None,
+    ):
+        super().__init__(
+            locations=locations,
+            locations_e=locations_e,
+            locations_h=locations_h,
+        )
+
+    def _eval_mobilemt(self, src, mesh, f):
+        if mesh.dim < 3:
+            raise NotImplementedError("MobileMT receiver not implemented for dim < 3.")
+
+        e = f[src, "e"]
+        h = f[src, "h"]
+
+        ex = np.sum(self.getP(mesh, "Ex", "e") @ e, axis=-1)
+        ey = np.sum(self.getP(mesh, "Ey", "e") @ e, axis=-1)
+
+        hx = np.sum(self.getP(mesh, "Fx", "h") @ h, axis=-1)
+        hy = np.sum(self.getP(mesh, "Fy", "h") @ h, axis=-1)
+        hz = np.sum(self.getP(mesh, "Fz", "h") @ h, axis=-1)
+
+        top = np.abs(hx) ** 2 + np.abs(hy) ** 2 + np.abs(hz) ** 2
+        bot = np.abs(ex) ** 2 + np.abs(ey) ** 2
+
+        return (2 * np.pi * src.frequency * mu_0) * top / bot
+
+    def _eval_mobilemt_deriv(self, src, mesh, f, du_dm_v=None, v=None, adjoint=False):
+        if mesh.dim < 3:
+            raise NotImplementedError(
+                "Admittance receiver not implemented for dim < 3."
+            )
+
+        # Compute admittances
+        e = f[src, "e"]
+        h = f[src, "h"]
+
+        Pex = self.getP(mesh, "Ex", "e")
+        Pey = self.getP(mesh, "Ey", "e")
+        Phx = self.getP(mesh, "Fx", "h")
+        Phy = self.getP(mesh, "Fy", "h")
+        Phz = self.getP(mesh, "Fz", "h")
+
+        ex = np.sum(Pex @ e, axis=-1)
+        ey = np.sum(Pey @ e, axis=-1)
+        hx = np.sum(Phx @ h, axis=-1)
+        hy = np.sum(Phy @ h, axis=-1)
+        hz = np.sum(Phz @ h, axis=-1)
+
+        fact = 2 * np.pi * src.frequency * mu_0
+        top = np.abs(hx) ** 2 + np.abs(hy) ** 2 + np.abs(hz) ** 2
+        bot = np.abs(ex) ** 2 + np.abs(ey) ** 2
+
+        # ADJOINT
+        if adjoint:
+
+            # J_T * v = d_top_T * a_v + d_bot_T * b
+            a_v = fact * v / bot  # term 1
+            b_v = -fact * top * v / bot**2  # term 2
+
+            hx *= a_v
+            hy *= a_v
+            hz *= a_v
+            ex *= b_v
+            ey *= b_v
+
+            e_v = 2 * (Pex.T @ ex + Pey.T @ ey).conjugate()
+            h_v = 2 * (Phx.T @ hx + Phy.T @ hy + Phz.T @ hz).conjugate()
+
+            fu_e_v, fm_e_v = f._eDeriv(src, None, e_v, adjoint=True)
+            fu_h_v, fm_h_v = f._hDeriv(src, None, h_v, adjoint=True)
+
+            return fu_e_v + fu_h_v, fm_e_v + fm_h_v
+
+        # JVEC
+        de_v = f._eDeriv(src, du_dm_v, v, adjoint=False)
+        dh_v = f._hDeriv(src, du_dm_v, v, adjoint=False)
+
+        dex_v = np.sum(Pex @ de_v, axis=-1)
+        dey_v = np.sum(Pey @ de_v, axis=-1)
+        dhx_v = np.sum(Phx @ dh_v, axis=-1)
+        dhy_v = np.sum(Phy @ dh_v, axis=-1)
+        dhz_v = np.sum(Phz @ dh_v, axis=-1)
+
+        # Imaginary components cancel and its 2x the real
+        dtop_v = (
+            2
+            * (
+                hx * dhx_v.conjugate() + hy * dhy_v.conjugate() + hz * dhz_v.conjugate()
+            ).real
+        )
+
+        dbot_v = 2 * (ex * dex_v.conjugate() + ey * dey_v.conjugate()).real
+
+        return fact * (bot * dtop_v - top * dbot_v) / (bot * bot)
+
+    def eval(self, src, mesh, f, return_complex=False):  # noqa: A003
+        """Compute receiver data from the discrete field solution.
+
+        Parameters
+        ----------
+        src : .frequency_domain.sources.BaseFDEMSrc
+            NSEM source.
+        mesh : discretize.TensorMesh
+            Mesh on which the discretize solution is obtained.
+        f : .frequency_domain.fields.FieldsFDEM
+            NSEM fields object of the source.
+
+        Returns
+        -------
+        numpy.ndarray
+            Evaluated data for the receiver.
+        """
+        return self._eval_mobilemt(src, mesh, f)
+
+    def evalDeriv(self, src, mesh, f, du_dm_v=None, v=None, adjoint=False):
+        r"""Derivative of data with respect to the fields.
+
+        Let :math:`\mathbf{d}` represent the data corresponding the receiver object.
+        And let :math:`\mathbf{u}` represent the discrete numerical solution of the
+        fields on the mesh. Where :math:`\mathbf{P}` is a projection function that
+        maps from the fields to the data, i.e.:
+
+        .. math::
+            \mathbf{d} = \mathbf{P}(\mathbf{u})
+
+        this method computes and returns the derivative:
+
+        .. math::
+            \dfrac{\partial \mathbf{d}}{\partial \mathbf{u}} =
+            \dfrac{\partial [ \mathbf{P} (\mathbf{u}) ]}{\partial \mathbf{u}}
+
+        Parameters
+        ----------
+        str : .frequency_domain.sources.BaseFDEMSrc
+            The NSEM source.
+        mesh : discretize.TensorMesh
+            Mesh on which the discretize solution is obtained.
+        f : .frequency_domain.fields.FieldsFDEM
+            NSEM fields object for the source.
+        du_dm_v : None,
+            Supply pre-computed derivative?
+        v : numpy.ndarray
+            Vector of size
+        adjoint : bool
+            Whether to compute the ajoint operation.
+
+        Returns
+        -------
+        numpy.ndarray
+            Calculated derivative (n_data,) if `adjoint` is ``False`` and (n_param, 2)
+            if `adjoint` is ``True`` for both polarizations.
+        """
+        return self._eval_mobilemt_deriv(
+            src, mesh, f, du_dm_v=du_dm_v, v=v, adjoint=adjoint
+        )
+
+
+@deprecate_class(removal_version="0.20.0", error=True)
+class PointNaturalSource(BaseRx):
+    """This class is deprecated and will be removed in simpeg v0.20.0.
+    Please use :class:`.PointImpedance`."""
+
+    def __init__(
+        self,
+        locations=None,
+        orientation="xy",
+        component="real",
+        locations_e=None,
+        locations_h=None,
+    ):
+        PointImpedance(
+            locations=locations,
+            orientation=orientation,
+            component=component,
+            locations_e=locations_e,
+            locations_h=locations_h,
         )

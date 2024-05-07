@@ -23,9 +23,11 @@ Receivers
 .. autosummary::
   :toctree: generated/
 
+  receivers.PointImpedance
   receivers.PointNaturalSource
   receivers.Point3DTipper
   receivers.Point3DAdmittance
+  receivers.Point3DMobileMT
 
 Sources
 =======
