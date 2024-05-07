@@ -446,12 +446,20 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
         return mkvc(JTv).astype(float)
 
     def getSourceTerm(self, tInd):
-        """Return the discrete source terms for the time index provided.
+        r"""Return the discrete source terms for the time index provided.
 
-        This method computes and returns a ``tuple`` (s_m, s_e), containing the
-        discrete magnetic and electric source terms for the time index provided.
-        The exact shape and implementation of source terms when solving for the
-        fields at each time-step is formulation dependent.
+        This method computes and returns the discrete magnetic and electric source terms for
+        all soundings at the time index provided. The exact shape and implementation of source
+        terms when solving for the fields at each time-step is formulation dependent.
+
+        For definitions of the discrete magnetic (:math:`\mathbf{s_m}`) and electric
+        (:math:`\mathbf{s_e}`) source terms for each simulation, see the *Notes* sections
+        of the docstrings for:
+
+        * :class:`.time_domain.Simulation3DElectricField`
+        * :class:`.time_domain.Simulation3DMagneticField`
+        * :class:`.time_domain.Simulation3DCurrentDensity`
+        * :class:`.time_domain.Simulation3DMagneticFluxDensity`
 
         Parameters
         ----------
@@ -460,12 +468,10 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
 
         Returns
         -------
-        tuple of numpy.ndarray
-            The source terms for the time index provided. The method returns
-            a ``tuple`` (s_m, s_e), where:
-
-            * s_m is a (n_faces, n_sources) numpy.ndarray and s_e is a (n_edges, n_sources) numpy.ndarray for EB-formulations.
-            * s_m is a (n_edges, n_sources) numpy.ndarray and s_e is a (n_faces, n_sources) numpy.ndarray for HJ-formulations.
+        s_m : numpy.ndarray
+            The magnetic sources terms. (n_faces, n_sources) for EB-formulations. (n_edges, n_sources) for HJ-formulations.
+        s_e : numpy.ndarray
+            The electric sources terms. (n_edges, n_sources) for EB-formulations. (n_faces, n_sources) for HJ-formulations.
         """
 
         Srcs = self.survey.source_list
@@ -489,7 +495,7 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
 
         Returns
         -------
-        (n_edges or nF, n_sources) numpy.ndarray
+        (n_edges or n_faces, n_sources) numpy.ndarray
             The fields for all sources at the initial time.
         """
 
@@ -531,7 +537,7 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
             A TDEM source.
         v : numpy.ndarray
             A vector of appropriate dimension. When `adjoint` is ``False``, `v` is a
-            (n_param,) numpy.ndarray. When `adjoint` is ``True``, `v` is a (n_edges or nF,)
+            (n_param,) numpy.ndarray. When `adjoint` is ``True``, `v` is a (n_edges or n_faces,)
             numpy.ndarray.
         adjoint : bool
             Whether to perform the adjoint operation.
@@ -542,7 +548,7 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
         -------
         numpy.ndarray
             Derivatives of the intial fields with respect to the model for a given source.
-            (n_edges or nF,) numpy.ndarray when `adjoint` is ``False``. (n_param,) numpy.ndarray
+            (n_edges or n_faces,) numpy.ndarray when `adjoint` is ``False``. (n_param,) numpy.ndarray
             when `ajoint` is ``True``.
         """
         ifieldsDeriv = mkvc(

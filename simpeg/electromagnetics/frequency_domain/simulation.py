@@ -51,7 +51,7 @@ class BaseFDEMSimulation(BaseEMSimulation):
         The mesh.
     survey : .frequency_domain.survey.Survey
         The frequency-domain EM survey.
-    forward_only : bool
+    forward_only : bool, optional
         If ``True``, the factorization for the inverse of the system matrix at each
         frequency is discarded after the fields are computed at that frequency.
         If ``False``, the factorizations of the system matrices for all frequencies are stored.
@@ -436,12 +436,21 @@ class BaseFDEMSimulation(BaseEMSimulation):
 
     # @profile
     def getSourceTerm(self, freq):
-        """Return the discrete source terms for the frequency provided.
+        r"""Returns the discrete source terms for the frequency provided.
 
-        This method computes and returns a ``tuple`` (s_m, s_e), containing the
-        discrete magnetic and electric source terms for the frequency provided.
-        The exact shape and implementation of source terms when solving for the
-        fields at each frequency is formulation dependent.
+        This method computes and returns the discrete magnetic and electric source
+        terms for all soundings at the frequency provided. The exact shape and
+        implementation of the source terms when solving for the fields at each frequency
+        is formulation dependent.
+
+        For definitions of the discrete magnetic (:math:`\mathbf{s_m}`) and electric
+        (:math:`\mathbf{s_e}`) source terms for each simulation, see the *Notes* sections
+        of the docstrings for:
+
+        * :class:`.frequency_domain.Simulation3DElectricField`
+        * :class:`.frequency_domain.Simulation3DMagneticField`
+        * :class:`.frequency_domain.Simulation3DCurrentDensity`
+        * :class:`.frequency_domain.Simulation3DMagneticFluxDensity`
 
         Parameters
         ----------
@@ -450,12 +459,10 @@ class BaseFDEMSimulation(BaseEMSimulation):
 
         Returns
         -------
-        tuple of numpy.ndarray
-            The source terms for the frequency provided. The method returns
-            a ``tuple`` (s_m, s_e), where:
-
-            * s_m is a (n_faces, n_sources) numpy.ndarray and s_e is a (n_edges, n_sources) numpy.ndarray for EB-formulations.
-            * s_m is a (n_edges, n_sources) numpy.ndarray and s_e is a (n_faces, n_sources) numpy.ndarray for HJ-formulations.
+        s_m : numpy.ndarray
+            The magnetic sources terms. (n_faces, n_sources) for EB-formulations. (n_edges, n_sources) for HJ-formulations.
+        s_e : numpy.ndarray
+            The electric sources terms. (n_edges, n_sources) for EB-formulations. (n_faces, n_sources) for HJ-formulations.
         """
         Srcs = self.survey.get_sources_by_frequency(freq)
         n_fields = sum(src._fields_per_source for src in Srcs)
@@ -514,7 +521,7 @@ class Simulation3DElectricField(BaseFDEMSimulation):
         The mesh.
     survey : .frequency_domain.survey.Survey
         The frequency-domain EM survey.
-    forward_only : bool
+    forward_only : bool, optional
         If ``True``, the factorization for the inverse of the system matrix at each
         frequency is discarded after the fields are computed at that frequency.
         If ``False``, the factorizations of the system matrices for all frequencies are stored.
@@ -922,7 +929,7 @@ class Simulation3DMagneticFluxDensity(BaseFDEMSimulation):
         The mesh.
     survey : .frequency_domain.survey.Survey
         The frequency-domain EM survey.
-    forward_only : bool
+    forward_only : bool, optional
         If ``True``, the factorization for the inverse of the system matrix at each
         frequency is discarded after the fields are computed at that frequency.
         If ``False``, the factorizations of the system matrices for all frequencies are stored.
@@ -1375,7 +1382,7 @@ class Simulation3DCurrentDensity(BaseFDEMSimulation):
         The mesh.
     survey : .frequency_domain.survey.Survey
         The frequency-domain EM survey.
-    forward_only : bool
+    forward_only : bool, optional
         If ``True``, the factorization for the inverse of the system matrix at each
         frequency is discarded after the fields are computed at that frequency.
         If ``False``, the factorizations of the system matrices for all frequencies are stored.
@@ -1866,7 +1873,7 @@ class Simulation3DMagneticField(BaseFDEMSimulation):
         The mesh.
     survey : .frequency_domain.survey.Survey
         The frequency-domain EM survey.
-    forward_only : bool
+    forward_only : bool, optional
         If ``True``, the factorization for the inverse of the system matrix at each
         frequency is discarded after the fields are computed at that frequency.
         If ``False``, the factorizations of the system matrices for all frequencies are stored.
