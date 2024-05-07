@@ -568,9 +568,9 @@ class Point3DTipper(PointImpedance):
     def __init__(
         self,
         locations,
-        locations_bs=None,
         orientation="zx",
         component="real",
+        locations_bs=None,
         locations_e=None,
         locations_h=None,
     ):
@@ -1162,8 +1162,8 @@ class Point3DMobileMT(PointImpedance):
         )
 
 
-@deprecate_class(removal_version="0.20.0", error=True)
-class PointNaturalSource(BaseRx):
+@deprecate_class(removal_version="0.20.0", error=False)
+class PointNaturalSource(PointImpedance):
     """This class is deprecated and will be removed in simpeg v0.20.0.
     Please use :class:`.PointImpedance`."""
 
@@ -1175,7 +1175,7 @@ class PointNaturalSource(BaseRx):
         locations_e=None,
         locations_h=None,
     ):
-        PointImpedance(
+        super().__init__(
             locations=locations,
             orientation=orientation,
             component=component,
