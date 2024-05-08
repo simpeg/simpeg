@@ -570,9 +570,7 @@ class Vangenuchten_k(BaseHydraulicConductivity):
         dKs_dm_p = P_p * self.KsDeriv
         dKs_dm_n = (
             P_n
-            * utils.sdiag(
-                theta_e**I * ((1.0 - (1.0 - theta_e ** (1.0 / m)) ** m) ** 2)
-            )
+            * utils.sdiag(theta_e**I * ((1.0 - (1.0 - theta_e ** (1.0 / m)) ** m) ** 2))
             * self.KsDeriv
         )
         return dKs_dm_p + dKs_dm_n

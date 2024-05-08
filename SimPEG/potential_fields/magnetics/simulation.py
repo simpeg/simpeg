@@ -164,7 +164,7 @@ class Simulation3DIntegral(BasePFSimulation):
         return self._G
 
     modelType = deprecate_property(
-        model_type, "modelType", "model_type", removal_version="0.18.0"
+        model_type, "modelType", "model_type", removal_version="0.18.0", error=True
     )
 
     @property

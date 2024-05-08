@@ -37,14 +37,14 @@ def run_inversion(
     regmap = maps.IdentityMap(nP=int(actind.sum()))
     # Related to inversion
     if use_sensitivity_weight:
-        reg = regularization.Sparse(mesh, indActive=actind, mapping=regmap)
+        reg = regularization.Sparse(mesh, active_cells=actind, mapping=regmap)
         reg.alpha_s = alpha_s
         reg.alpha_x = alpha_x
         reg.alpha_y = alpha_y
         reg.alpha_z = alpha_z
     else:
         reg = regularization.WeightedLeastSquares(
-            mesh, indActive=actind, mapping=regmap
+            mesh, active_cells=actind, mapping=regmap
         )
         reg.alpha_s = alpha_s
         reg.alpha_x = alpha_x

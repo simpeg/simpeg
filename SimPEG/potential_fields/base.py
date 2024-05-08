@@ -200,14 +200,6 @@ class BasePFSimulation(LinearSimulation):
         """
         return self._ind_active
 
-    @property
-    def actInd(self):
-        """'actInd' is deprecated. Use 'ind_active' instead."""
-        raise AttributeError(
-            "The 'actInd' property has been deprecated. "
-            "Please use 'ind_active'. This will be removed in version 0.17.0 of SimPEG.",
-        )
-
     def linear_operator(self):
         """Return linear operator.
 

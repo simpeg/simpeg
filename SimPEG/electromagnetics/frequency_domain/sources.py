@@ -658,7 +658,6 @@ class MagDipole(BaseFDEMSrc):
 
 
 class MagDipole_Bfield(MagDipole):
-
     """
     Point magnetic dipole source calculated with the analytic solution for the
     fields from a magnetic dipole. No discrete curl is taken, so the magnetic
@@ -785,11 +784,12 @@ class CircularLoop(MagDipole):
         **kwargs,
     ):
         kwargs.pop("moment", None)
-        N = kwargs.pop("N", None)
-        if N is not None:
-            self.N = N
-        else:
-            self.n_turns = n_turns
+
+        # Raise error on deprecated arguments
+        if (key := "N") in kwargs.keys():
+            raise TypeError(f"'{key}' property has been removed. Please use 'n_turns'.")
+        self.n_turns = n_turns
+
         super().__init__(
             receiver_list=receiver_list,
             frequency=frequency,
@@ -886,7 +886,9 @@ class CircularLoop(MagDipole):
             )
         return self.n_turns * self._loop.vector_potential(obsLoc, coordinates)
 
-    N = deprecate_property(n_turns, "N", "n_turns", removal_version="0.19.0")
+    N = deprecate_property(
+        n_turns, "N", "n_turns", removal_version="0.19.0", error=True
+    )
 
 
 class PrimSecSigma(BaseFDEMSrc):

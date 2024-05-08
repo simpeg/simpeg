@@ -11,8 +11,8 @@ from discretize.utils import (  # noqa: F401
 def surface2inds(vrtx, trgl, mesh, boundaries=True, internal=True):
     """Takes a triangulated surface and determine which mesh cells it intersects.
 
-    Paramters
-    ---------
+    Parameters
+    ----------
     vrtx : (n_nodes, 3) numpy.ndarray of float
         The location of the vertices of the triangles
     trgl : (n_triang, 3) numpy.ndarray of int
@@ -101,11 +101,11 @@ def surface2inds(vrtx, trgl, mesh, boundaries=True, internal=True):
 #             DEPRECATED FUNCTIONS
 ################################################
 meshTensor = deprecate_function(
-    unpack_widths, "meshTensor", removal_version="0.19.0", future_warn=True
+    unpack_widths, "meshTensor", removal_version="0.19.0", error=True
 )
 closestPoints = deprecate_function(
-    closest_points_index, "closestPoints", removal_version="0.19.0", future_warn=True
+    closest_points_index, "closestPoints", removal_version="0.19.0", error=True
 )
 ExtractCoreMesh = deprecate_function(
-    extract_core_mesh, "ExtractCoreMesh", removal_version="0.19.0", future_warn=True
+    extract_core_mesh, "ExtractCoreMesh", removal_version="0.19.0", error=True
 )

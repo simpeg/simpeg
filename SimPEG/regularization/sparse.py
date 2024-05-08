@@ -257,7 +257,7 @@ class SparseSmallness(BaseSparse, Smallness):
     We define the regularization function (objective function) for sparse smallness (compactness) as:
 
     .. math::
-        \phi (m) = \frac{1}{2} \int_\Omega \, w(r) \,
+        \phi (m) = \int_\Omega \, w(r) \,
         \Big | \, m(r) - m^{(ref)}(r) \, \Big |^{p(r)} \, dv
 
     where :math:`m(r)` is the model, :math:`m^{(ref)}(r)` is the reference model, :math:`w(r)`
@@ -271,7 +271,7 @@ class SparseSmallness(BaseSparse, Smallness):
     function (objective function) is expressed in linear form as:
 
     .. math::
-        \phi (\mathbf{m}) = \frac{1}{2} \sum_i
+        \phi (\mathbf{m}) = \sum_i
         \tilde{w}_i \, \Big | m_i - m_i^{(ref)} \Big |^{p_i}
 
     where :math:`m_i \in \mathbf{m}` are the discrete model parameters defined on the mesh.
@@ -286,8 +286,8 @@ class SparseSmallness(BaseSparse, Smallness):
 
     .. math::
         \phi \big (\mathbf{m}^{(k)} \big )
-        = \frac{1}{2} \sum_i \tilde{w}_i \, \Big | m_i^{(k)} - m_i^{(ref)} \Big |^{p_i}
-        \approx \frac{1}{2} \sum_i \tilde{w}_i \, r_i^{(k)} \Big | m_i^{(k)} - m_i^{(ref)} \Big |^2
+        = \sum_i \tilde{w}_i \, \Big | m_i^{(k)} - m_i^{(ref)} \Big |^{p_i}
+        \approx \sum_i \tilde{w}_i \, r_i^{(k)} \Big | m_i^{(k)} - m_i^{(ref)} \Big |^2
 
     where the IRLS weight :math:`r_i` for iteration :math:`k` is given by:
 
@@ -300,7 +300,7 @@ class SparseSmallness(BaseSparse, Smallness):
     function for IRLS iteration :math:`k` can be expressed as follows:
 
     .. math::
-        \phi \big ( \mathbf{m}^{(k)} \big ) \approx \frac{1}{2} \Big \| \,
+        \phi \big ( \mathbf{m}^{(k)} \big ) \approx \Big \| \,
         \mathbf{W}^{\! (k)} \big [ \mathbf{m}^{(k)} - \mathbf{m}^{(ref)} \big ] \Big \|^2
 
     where
@@ -464,7 +464,7 @@ class SparseSmoothness(BaseSparse, SmoothnessFirstOrder):
     along the x-direction as:
 
     .. math::
-        \phi (m) = \frac{1}{2} \int_\Omega \, w(r) \,
+        \phi (m) = \int_\Omega \, w(r) \,
         \Bigg | \, \frac{\partial m}{\partial x} \, \Bigg |^{p(r)} \, dv
 
     where :math:`m(r)` is the model, :math:`w(r)`
@@ -478,7 +478,7 @@ class SparseSmoothness(BaseSparse, SmoothnessFirstOrder):
     function (objective function) is expressed in linear form as:
 
     .. math::
-        \phi (\mathbf{m}) = \frac{1}{2} \sum_i
+        \phi (\mathbf{m}) = \sum_i
         \tilde{w}_i \, \Bigg | \, \frac{\partial m_i}{\partial x} \, \Bigg |^{p_i}
 
     where :math:`m_i \in \mathbf{m}` are the discrete model parameters defined on the mesh.
@@ -493,9 +493,9 @@ class SparseSmoothness(BaseSparse, SmoothnessFirstOrder):
 
     .. math::
         \phi \big (\mathbf{m}^{(k)} \big )
-        = \frac{1}{2} \sum_i
+        = \sum_i
         \tilde{w}_i \, \Bigg | \, \frac{\partial m_i^{(k)}}{\partial x} \Bigg |^{p_i}
-        \approx \frac{1}{2} \sum_i \tilde{w}_i \, r_i^{(k)}
+        \approx \sum_i \tilde{w}_i \, r_i^{(k)}
         \Bigg | \, \frac{\partial m_i^{(k)}}{\partial x} \Bigg |^2
 
     where the IRLS weight :math:`r_i` for iteration :math:`k` is given by:
@@ -509,7 +509,7 @@ class SparseSmoothness(BaseSparse, SmoothnessFirstOrder):
     function for IRLS iteration :math:`k` can be expressed as follows:
 
     .. math::
-        \phi \big ( \mathbf{m}^{(k)} \big ) \approx \frac{1}{2} \Big \| \,
+        \phi \big ( \mathbf{m}^{(k)} \big ) \approx \Big \| \,
         \mathbf{W}^{(k)} \, \mathbf{G_x} \, \mathbf{m}^{(k)} \Big \|^2
 
     where
@@ -528,7 +528,7 @@ class SparseSmoothness(BaseSparse, SmoothnessFirstOrder):
     In this case, the least-squares problem for IRLS iteration :math:`k` becomes:
 
     .. math::
-        \phi \big ( \mathbf{m}^{(k)} \big ) \approx \frac{1}{2} \Big \| \,
+        \phi \big ( \mathbf{m}^{(k)} \big ) \approx \Big \| \,
         \mathbf{W}^{(k)} \mathbf{G_x}
         \big [ \mathbf{m}^{(k)} - \mathbf{m}^{(ref)} \big ] \Big \|^2
 
@@ -577,10 +577,13 @@ class SparseSmoothness(BaseSparse, SmoothnessFirstOrder):
     """
 
     def __init__(self, mesh, orientation="x", gradient_type="total", **kwargs):
-        if "gradientType" in kwargs:
-            self.gradientType = kwargs.pop("gradientType")
-        else:
-            self.gradient_type = gradient_type
+        # Raise error if removed arguments were passed
+        if (key := "gradientType") in kwargs:
+            raise TypeError(
+                f"'{key}' argument has been removed. "
+                "Please use 'gradient_type' instead."
+            )
+        self.gradient_type = gradient_type
         super().__init__(mesh=mesh, orientation=orientation, **kwargs)
 
     def update_weights(self, m):
@@ -695,8 +698,7 @@ class SparseSmoothness(BaseSparse, SmoothnessFirstOrder):
         "gradientType",
         new_name="gradient_type",
         removal_version="0.19.0",
-        error=False,
-        future_warn=True,
+        error=True,
     )
 
 
@@ -765,9 +767,9 @@ class Sparse(WeightedLeastSquares):
     :math:`\phi_m (m)` of the form:
 
     .. math::
-        \phi_m (m) = \frac{\alpha_s}{2} \int_\Omega \, w(r)
+        \phi_m (m) = \alpha_s \int_\Omega \, w(r)
         \Big | \, m(r) - m^{(ref)}(r) \, \Big |^{p_s(r)} \, dv
-        + \sum_{j=x,y,z} \frac{\alpha_j}{2} \int_\Omega \, w(r)
+        + \sum_{j=x,y,z} \alpha_j \int_\Omega \, w(r)
         \Bigg | \, \frac{\partial m}{\partial \xi_j} \, \Bigg |^{p_j(r)} \, dv
 
     where :math:`m(r)` is the model, :math:`m^{(ref)}(r)` is the reference model, and :math:`w(r)`
@@ -819,9 +821,9 @@ class Sparse(WeightedLeastSquares):
     objective functions of the form:
 
     .. math::
-        \phi_m (\mathbf{m}) = \frac{\alpha_s}{2}
+        \phi_m (\mathbf{m}) = \alpha_s
         \Big \| \mathbf{W_s}^{\!\! (k)} \big [ \mathbf{m} - \mathbf{m}^{(ref)} \big ] \Big \|^2
-        + \sum_{j=x,y,z} \frac{\alpha_j}{2} \Big \| \mathbf{W_j}^{\! (k)} \mathbf{G_j \, m} \Big \|^2
+        + \sum_{j=x,y,z} \alpha_j \Big \| \mathbf{W_j}^{\! (k)} \mathbf{G_j \, m} \Big \|^2
 
     where
 
@@ -878,9 +880,9 @@ class Sparse(WeightedLeastSquares):
     the objective function becomes:
 
     .. math::
-        \phi_m (\mathbf{m}) = \frac{\alpha_s}{2}
+        \phi_m (\mathbf{m}) = \alpha_s
         \Big \| \mathbf{W_s}^{\! (k)} \big [ \mathbf{m} - \mathbf{m}^{(ref)} \big ] \Big \|^2
-        + \sum_{j=x,y,z} \frac{\alpha_j}{2} \Big \|
+        + \sum_{j=x,y,z} \alpha_j \Big \|
         \mathbf{W_j}^{\! (k)} \mathbf{G_j} \big [ \mathbf{m} - \mathbf{m}^{(ref)} \big ] \Big \|^2
 
     This functionality is used by setting the `reference_model_in_smooth` parameter
@@ -930,6 +932,14 @@ class Sparse(WeightedLeastSquares):
                 f"'regularization_mesh' must be of type {RegularizationMesh} or {BaseMesh}. "
                 f"Value of type {type(mesh)} provided."
             )
+
+        # Raise error if removed arguments were passed
+        if (key := "gradientType") in kwargs:
+            raise TypeError(
+                f"'{key}' argument has been removed. "
+                "Please use 'gradient_type' instead."
+            )
+
         self._regularization_mesh = mesh
         if active_cells is not None:
             self._regularization_mesh.active_cells = active_cells
@@ -950,7 +960,6 @@ class Sparse(WeightedLeastSquares):
                     SparseSmoothness(mesh=self.regularization_mesh, orientation="z")
                 )
 
-        gradientType = kwargs.pop("gradientType", None)
         super().__init__(
             self.regularization_mesh,
             objfcts=objfcts,
@@ -959,13 +968,7 @@ class Sparse(WeightedLeastSquares):
         if norms is None:
             norms = [1] * (mesh.dim + 1)
         self.norms = norms
-
-        if gradientType is not None:
-            # Trigger deprecation warning
-            self.gradientType = gradientType
-        else:
-            self.gradient_type = gradient_type
-
+        self.gradient_type = gradient_type
         self.irls_scaled = irls_scaled
         self.irls_threshold = irls_threshold
 
@@ -995,7 +998,7 @@ class Sparse(WeightedLeastSquares):
         self._gradient_type = value
 
     gradientType = utils.code_utils.deprecate_property(
-        gradient_type, "gradientType", "0.19.0", error=False, future_warn=True
+        gradient_type, "gradientType", "0.19.0", error=True
     )
 
     @property

@@ -5,6 +5,7 @@ Collection of utilities that are usefull for the NSEM problem
 NOTE: These utilities are not well test, use with care
 
 """
+
 from .solutions_1d import get1DEfields  # Add the names of the functions
 from .analytic_1d import getEHfields, getImpedance
 from .data_utils import (

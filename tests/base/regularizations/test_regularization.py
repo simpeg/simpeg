@@ -1,19 +1,22 @@
-import inspect
+import numpy as np
 import unittest
 
-import discretize
-import numpy as np
 import pytest
+import inspect
 
+import discretize
 from SimPEG import maps, objective_function, regularization, utils
-from SimPEG.objective_function import ComboObjectiveFunction
 from SimPEG.regularization import (
     BaseRegularization,
+    WeightedLeastSquares,
+    Sparse,
+    SparseSmoothness,
     Smallness,
     SmoothnessFirstOrder,
     SmoothnessSecondOrder,
-    WeightedLeastSquares,
 )
+from SimPEG.objective_function import ComboObjectiveFunction
+
 
 TOL = 1e-7
 testReg = True
@@ -36,8 +39,19 @@ IGNORE_ME = [
     "LinearCorrespondence",
     "JointTotalVariation",
     "BaseAmplitude",
+    "SmoothnessFullGradient",
     "VectorAmplitude",
     "CrossReferenceRegularization",
+    # Removed regularization classes that raise error on instantiation
+    "PGIwithNonlinearRelationshipsSmallness",
+    "PGIwithRelationships",
+    "Simple",
+    "SimpleSmall",
+    "SimpleSmoothDeriv",
+    "Small",
+    "SmoothDeriv",
+    "SmoothDeriv2",
+    "Tikhonov",
 ]
 
 
@@ -80,7 +94,7 @@ class RegularizationTests(unittest.TestCase):
                     else:
                         m = np.random.rand(mesh.nC)
                     mref = np.ones_like(m) * np.mean(m)
-                    reg.mref = mref
+                    reg.reference_model = mref
 
                     # test derivs
                     passed = reg.test(m, eps=TOL)
@@ -168,7 +182,7 @@ class RegularizationTests(unittest.TestCase):
             active_cells = mesh.gridCC[:, 2] < 0.6
             reg = getattr(regularization, regType)(mesh, active_cells=active_cells)
 
-            self.assertTrue(reg.nP == reg.regularization_mesh.nC)
+            self.assertTrue(reg.nP == reg.regularization_mesh.n_cells)
 
             [
                 self.assertTrue(np.all(fct.active_cells == active_cells))
@@ -288,7 +302,8 @@ class RegularizationTests(unittest.TestCase):
 
         wires = maps.Wires(("sigma", mesh.nC), ("mu", mesh.nC))
 
-        reg = regularization.Smallness(mesh, mapping=wires.sigma, weights=cell_weights)
+        reg = regularization.Smallness(mesh, mapping=wires.sigma)
+        reg.set_weights(cell_weights=cell_weights)
 
         objfct = objective_function.L2ObjectiveFunction(
             W=utils.sdiag(np.sqrt(cell_weights * mesh.cell_volumes)),
@@ -323,8 +338,7 @@ class RegularizationTests(unittest.TestCase):
         v = np.random.rand(mesh.nC)
 
         cell_weights = np.random.rand(mesh.nC)
-
-        reg = regularization.Sparse(mesh, weights=cell_weights)
+        reg = regularization.Sparse(mesh, weights={"cell_weights": cell_weights})
 
         np.testing.assert_equal(reg.norms, [1, 1, 1, 1])
 
@@ -385,14 +399,14 @@ class RegularizationTests(unittest.TestCase):
         ]
         [self.assertTrue(reg.mapping is fct.mapping) for fct in reg.objfcts]
 
-        D = reg.regularization_mesh.cellDiffx
+        D = reg.regularization_mesh.cell_gradient_x
         reg.regularization_mesh._cell_gradient_x = 4 * D
         v = np.random.rand(D.shape[1])
         [
             self.assertTrue(
                 np.all(
                     reg.regularization_mesh._cell_gradient_x * v
-                    == fct.regularization_mesh.cellDiffx * v
+                    == fct.regularization_mesh.cell_gradient_x * v
                 )
             )
             for fct in reg.objfcts
@@ -456,7 +470,7 @@ class RegularizationTests(unittest.TestCase):
         mapping = maps.ExpMap(mesh) * maps.SurjectVertical1D(mesh) * actMap
 
         regMesh = discretize.TensorMesh([mesh.h[2][mapping.maps[-1].indActive]])
-        reg = regularization.Simple(regMesh)
+        reg = regularization.WeightedLeastSquares(regMesh)
 
         self.assertTrue(reg._nC_residual == regMesh.nC)
         self.assertTrue(all([fct._nC_residual == regMesh.nC for fct in reg.objfcts]))
@@ -679,6 +693,12 @@ class TestParent:
         with pytest.raises(TypeError, match=msg):
             regularization.parent = invalid_parent
 
+    def test_default_parent(self, regularization):
+        """Test setting default parent class to a BaseRegularization."""
+        mesh = discretize.TensorMesh([3, 4, 5])
+        parent = WeightedLeastSquares(mesh, objfcts=[regularization])
+        assert regularization.parent is parent
+
 
 class TestWeightsKeys:
     """
@@ -704,14 +724,6 @@ class TestWeightsKeys:
         weights = dict(dummy_weight=np.ones(mesh.n_cells))
         reg = BaseRegularization(mesh, weights=weights)
         assert reg.weights_keys == ["dummy_weight"]
-
-    def test_user_defined_weights_as_array(self, mesh):
-        """
-        Test weights_keys after user defined weights as dictionary
-        """
-        weights = np.ones(mesh.n_cells)
-        reg = BaseRegularization(mesh, weights=weights)
-        assert reg.weights_keys == ["user_weights"]
 
     @pytest.mark.parametrize(
         "regularization_class", (Smallness, SmoothnessFirstOrder, SmoothnessSecondOrder)
@@ -741,13 +753,15 @@ class TestWeightsKeys:
             assert reg.weights_keys == ["dummy_weight", "other_weights", "volume"]
 
 
-class TestDeprecatedArguments:
+class TestRemovedObjects:
     """
-    Test errors after simultaneously passing new and deprecated arguments.
-
-    Within these arguments are:
+    Test if errors are raised after passing removed arguments or trying to
+    access removed properties.
 
     * ``indActive`` (replaced by ``active_cells``)
+    * ``gradientType`` (replaced by ``gradient_type``)
+    * ``mref`` (replaced by ``reference_model``)
+    * ``regmesh`` (replaced by ``regularization_mesh``)
     * ``cell_weights`` (replaced by ``weights``)
 
     """
@@ -769,21 +783,132 @@ class TestDeprecatedArguments:
     @pytest.mark.parametrize(
         "regularization_class", (BaseRegularization, WeightedLeastSquares)
     )
-    def test_active_cells(self, mesh, regularization_class):
-        """Test indActive and active_cells arguments."""
-        active_cells = np.ones(len(mesh), dtype=bool)
-        msg = "Cannot simultaneously pass 'active_cells' and 'indActive'."
-        with pytest.raises(ValueError, match=msg):
-            regularization_class(
-                mesh, active_cells=active_cells, indActive=active_cells
-            )
+    def test_mref_property(self, mesh, regularization_class):
+        """Test mref property."""
+        msg = "mref has been removed, please use reference_model."
+        reg = regularization_class(mesh)
+        with pytest.raises(NotImplementedError, match=msg):
+            reg.mref
 
-    def test_weights(self, mesh):
-        """Test cell_weights and weights."""
+    def test_regmesh_property(self, mesh):
+        """Test regmesh property."""
+        msg = "regmesh has been removed, please use regularization_mesh."
+        reg = BaseRegularization(mesh)
+        with pytest.raises(NotImplementedError, match=msg):
+            reg.regmesh
+
+    @pytest.mark.parametrize("regularization_class", (Sparse, SparseSmoothness))
+    def test_gradient_type(self, mesh, regularization_class):
+        """Test gradientType argument."""
+        msg = (
+            "'gradientType' argument has been removed. "
+            "Please use 'gradient_type' instead."
+        )
+        with pytest.raises(TypeError, match=msg):
+            regularization_class(mesh, gradientType="total")
+
+    @pytest.mark.parametrize(
+        "regularization_class",
+        (BaseRegularization, WeightedLeastSquares),
+    )
+    def test_ind_active(self, mesh, regularization_class):
+        """Test if error is raised when passing the indActive argument."""
+        active_cells = np.ones(len(mesh), dtype=bool)
+        msg = (
+            "'indActive' argument has been removed. "
+            "Please use 'active_cells' instead."
+        )
+        with pytest.raises(TypeError, match=msg):
+            regularization_class(mesh, indActive=active_cells)
+
+    @pytest.mark.parametrize(
+        "regularization_class",
+        (BaseRegularization, WeightedLeastSquares),
+    )
+    def test_ind_active_property(self, mesh, regularization_class):
+        """Test if error is raised when trying to access the indActive property."""
+        active_cells = np.ones(len(mesh), dtype=bool)
+        reg = regularization_class(mesh, active_cells=active_cells)
+        msg = "indActive has been removed, please use active_cells."
+        with pytest.raises(NotImplementedError, match=msg):
+            reg.indActive
+
+    @pytest.mark.parametrize(
+        "regularization_class",
+        (BaseRegularization, WeightedLeastSquares),
+    )
+    def test_cell_weights_argument(self, mesh, regularization_class):
+        """Test if error is raised when passing the cell_weights argument."""
         weights = np.ones(len(mesh))
-        msg = "Cannot simultaneously pass 'weights' and 'cell_weights'."
-        with pytest.raises(ValueError, match=msg):
-            BaseRegularization(mesh, weights=weights, cell_weights=weights)
+        msg = "'cell_weights' argument has been removed. Please use 'weights' instead."
+        with pytest.raises(TypeError, match=msg):
+            regularization_class(mesh, cell_weights=weights)
+
+    @pytest.mark.parametrize(
+        "regularization_class", (BaseRegularization, WeightedLeastSquares)
+    )
+    def test_cell_weights_property(self, mesh, regularization_class):
+        """Test if error is raised when trying to access the cell_weights property."""
+        weights = {"weights": np.ones(len(mesh))}
+        msg = (
+            "'cell_weights' has been removed. "
+            "Please access weights using the `set_weights`, `get_weights`, and "
+            "`remove_weights` methods."
+        )
+        reg = regularization_class(mesh, weights=weights)
+        with pytest.raises(AttributeError, match=msg):
+            reg.cell_weights
+
+    @pytest.mark.parametrize(
+        "regularization_class", (BaseRegularization, WeightedLeastSquares)
+    )
+    def test_cell_weights_setter(self, mesh, regularization_class):
+        """Test if error is raised when trying to set the cell_weights property."""
+        msg = (
+            "'cell_weights' has been removed. "
+            "Please access weights using the `set_weights`, `get_weights`, and "
+            "`remove_weights` methods."
+        )
+        reg = regularization_class(mesh)
+        with pytest.raises(AttributeError, match=msg):
+            reg.cell_weights = "dummy variable"
+
+
+class TestRemovedRegularizations:
+    """
+    Test if errors are raised after creating removed regularization classes.
+    """
+
+    @pytest.mark.parametrize(
+        "regularization_class",
+        (
+            regularization.PGIwithNonlinearRelationshipsSmallness,
+            regularization.PGIwithRelationships,
+            regularization.Simple,
+            regularization.SimpleSmall,
+            regularization.SimpleSmoothDeriv,
+            regularization.Small,
+            regularization.SmoothDeriv,
+            regularization.SmoothDeriv2,
+            regularization.Tikhonov,
+        ),
+    )
+    def test_removed_class(self, regularization_class):
+        class_name = regularization_class.__name__
+        msg = f"{class_name} has been removed, please use."
+        with pytest.raises(NotImplementedError, match=msg):
+            regularization_class()
+
+
+@pytest.mark.parametrize(
+    "regularization_class", (BaseRegularization, WeightedLeastSquares)
+)
+def test_invalid_weights_type(regularization_class):
+    """Test error after passing weights as invalid type."""
+    mesh = discretize.TensorMesh([[(2, 2)]])
+    msg = "Invalid 'weights' of type '<class 'numpy.ndarray'>'"
+    with pytest.raises(TypeError, match=msg):
+        regularization_class(mesh, weights=np.array([1.0]))
 
 
 if __name__ == "__main__":

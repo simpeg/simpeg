@@ -18,7 +18,6 @@ at a 10 m offset from the source in ppm.
 
 """
 
-
 #########################################################################
 # Import modules
 # --------------
@@ -238,7 +237,7 @@ reg_map = maps.IdentityMap(nP=mesh.nC)
 reg = regularization.Sparse(mesh, mapping=reg_map, alpha_s=0.025, alpha_x=1.0)
 
 # reference model
-reg.mref = starting_model
+reg.reference_model = starting_model
 
 # Define sparse and blocky norms p, q
 reg.norms = [0, 0]

@@ -12,9 +12,6 @@ class UniformBackgroundField(BaseSrc):
     Parameters
     ----------
     receiver_list : list of SimPEG.potential_fields.magnetics.Point
-    parameters : tuple of (amplitude, inclutation, declination), optional
-        Deprecated input for the function, provided in this position for backwards
-        compatibility
     amplitude : float, optional
         amplitude of the inducing backgound field, usually this is in units of nT.
     inclination : float, optional
@@ -26,11 +23,22 @@ class UniformBackgroundField(BaseSrc):
     def __init__(
         self,
         receiver_list=None,
-        amplitude=50000,
-        inclination=90,
-        declination=0,
-        **kwargs
+        amplitude=50000.0,
+        inclination=90.0,
+        declination=0.0,
+        **kwargs,
     ):
+        # Raise errors on 'parameters' argument
+        #   The parameters argument was supported in the deprecated SourceField
+        #   class. We would like to raise an error in case the user passes it
+        #   so the class doesn't behave differently than expected.
+        if (key := "parameters") in kwargs:
+            raise TypeError(
+                f"'{key}' property has been removed."
+                "Please pass the amplitude, inclination and declination"
+                " through their own arguments."
+            )
+
         self.amplitude = amplitude
         self.inclination = inclination
         self.declination = declination
@@ -39,7 +47,7 @@ class UniformBackgroundField(BaseSrc):
 
     @property
     def amplitude(self):
-        """Amplitude of the inducing backgound field.
+        """Amplitude of the inducing background field.
 
         Returns
         -------
@@ -92,7 +100,7 @@ class UniformBackgroundField(BaseSrc):
         )
 
 
-@deprecate_class(removal_version="0.19.0", future_warn=True)
+@deprecate_class(removal_version="0.19.0", error=True)
 class SourceField(UniformBackgroundField):
     """Source field for magnetics integral formulation
 

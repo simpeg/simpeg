@@ -8,6 +8,7 @@ from scipy.sparse.linalg import LinearOperator
 from scipy.interpolate import UnivariateSpline
 from scipy.constants import mu_0
 from scipy.sparse import csr_matrix as csr
+from scipy.special import expit, logit
 
 from discretize.tests import check_derivative
 from discretize import TensorMesh, CylindricalMesh
@@ -1696,9 +1697,7 @@ class SelfConsistentEffectiveMedium(IdentityMap):
         if alpha < 1.0:  # oblate spheroid
             chi = np.sqrt((1.0 / alpha**2.0) - 1)
             return (
-                1.0
-                / 2.0
-                * (1 + 1.0 / (alpha**2.0 - 1) * (1.0 - np.arctan(chi) / chi))
+                1.0 / 2.0 * (1 + 1.0 / (alpha**2.0 - 1) * (1.0 - np.arctan(chi) / chi))
             )
         elif alpha > 1.0:  # prolate spheroid
             chi = np.sqrt(1 - (1.0 / alpha**2.0))
@@ -2150,6 +2149,166 @@ class LogMap(IdentityMap):
             is the natural exponent.
         """
         return np.exp(mkvc(m))
+
+    @property
+    def is_linear(self):
+        return False
+
+
+class LogisticSigmoidMap(IdentityMap):
+    r"""Mapping that computes the logistic sigmoid of the model parameters.
+
+    Where :math:`\mathbf{m}` is a set of model parameters, ``LogisticSigmoidMap`` creates
+    a mapping :math:`\mathbf{u}(\mathbf{m})` that computes the logistic sigmoid
+    of every element in :math:`\mathbf{m}`; i.e.:
+
+    .. math::
+        \mathbf{u}(\mathbf{m}) = sigmoid(\mathbf{m}) = \frac{1}{1+\exp{-\mathbf{m}}}
+
+    ``LogisticSigmoidMap`` transforms values onto the interval (0,1), but can optionally
+    be scaled and shifted to the interval (a,b). This can be useful for inversion
+    of data that varies over a log scale and bounded on some interval:
+
+    .. math::
+        \mathbf{u}(\mathbf{m}) = a + (b - a) \cdot sigmoid(\mathbf{m})
+
+    Parameters
+    ----------
+    mesh : discretize.BaseMesh
+        The number of parameters accepted by the mapping is set to equal the number
+        of mesh cells.
+    nP : int
+        Set the number of parameters accepted by the mapping directly. Used if the
+        number of parameters is known. Used generally when the number of parameters
+        is not equal to the number of cells in a mesh.
+    lower_bound: float or (nP) numpy.ndarray
+        lower bound (a) for the transform. Default 0. Defined \in \mathbf{u} space.
+    upper_bound: float or (nP) numpy.ndarray
+        upper bound (b) for the transform. Default 1. Defined \in \mathbf{u} space.
+
+    """
+
+    def __init__(self, mesh=None, nP=None, lower_bound=0, upper_bound=1, **kwargs):
+        super().__init__(mesh=mesh, nP=nP, **kwargs)
+        lower_bound = np.atleast_1d(lower_bound)
+        upper_bound = np.atleast_1d(upper_bound)
+        if self.nP != "*":
+            # check if lower bound and upper bound broadcast to nP
+            try:
+                np.broadcast_shapes(lower_bound.shape, (self.nP,))
+            except ValueError as err:
+                raise ValueError(
+                    f"Lower bound does not broadcast to the number of parameters. "
+                    f"Lower bound shape is {lower_bound.shape} and tried against "
+                    f"{self.nP} parameters."
+                ) from err
+            try:
+                np.broadcast_shapes(upper_bound.shape, (self.nP,))
+            except ValueError as err:
+                raise ValueError(
+                    f"Upper bound does not broadcast to the number of parameters. "
+                    f"Upper bound shape is {upper_bound.shape} and tried against "
+                    f"{self.nP} parameters."
+                ) from err
+        # make sure lower and upper bound broadcast to each other...
+        try:
+            np.broadcast_shapes(lower_bound.shape, upper_bound.shape)
+        except ValueError as err:
+            raise ValueError(
+                f"Upper bound does not broadcast to the lower bound. "
+                f"Shapes {upper_bound.shape} and {lower_bound.shape} "
+                f"are incompatible with each other."
+            ) from err
+
+        if np.any(lower_bound >= upper_bound):
+            raise ValueError(
+                "A lower bound is greater than or equal to the upper bound."
+            )
+
+        self._lower_bound = lower_bound
+        self._upper_bound = upper_bound
+
+    @property
+    def lower_bound(self):
+        """The lower bound
+
+        Returns
+        -------
+        numpy.ndarray
+        """
+        return self._lower_bound
+
+    @property
+    def upper_bound(self):
+        """The upper bound
+
+        Returns
+        -------
+        numpy.ndarray
+        """
+        return self._upper_bound
+
+    def _transform(self, m):
+        return self.lower_bound + (self.upper_bound - self.lower_bound) * expit(mkvc(m))
+
+    def inverse(self, m):
+        r"""Apply the inverse of the mapping to an array.
+
+        For the logistic sigmoid mapping :math:`\mathbf{u}(\mathbf{m})`, the
+        inverse mapping on a variable :math:`\mathbf{x}` is performed by taking
+        the log-odds of elements, i.e.:
+
+        .. math::
+            \mathbf{m} = \mathbf{u}^{-1}(\mathbf{x}) = logit(\mathbf{x}) = \log \frac{\mathbf{x}}{1 - \mathbf{x}}
+
+        or scaled and translated to interval (a,b):
+        .. math::
+            \mathbf{m} = logit(\frac{(\mathbf{x} - a)}{b-a})
+
+        Parameters
+        ----------
+        m : numpy.ndarray
+            A set of input values
+
+        Returns
+        -------
+        numpy.ndarray
+            the inverse mapping to the elements in *m*; which in this case
+            is the log-odds function with scaled and shifted input.
+        """
+        return logit(
+            (mkvc(m) - self.lower_bound) / (self.upper_bound - self.lower_bound)
+        )
+
+    def deriv(self, m, v=None):
+        r"""Derivative of mapping with respect to the input parameters.
+
+        For a mapping :math:`\mathbf{u}(\mathbf{m})` the derivative of the mapping with
+        respect to the model is a diagonal matrix of the form:
+
+        .. math::
+            \frac{\partial \mathbf{u}}{\partial \mathbf{m}}
+            = \textrm{diag} \big ( (b-a)\cdot sigmoid(\mathbf{m})\cdot(1-sigmoid(\mathbf{m})) \big )
+
+        Parameters
+        ----------
+        m : (nP) numpy.ndarray
+            A vector representing a set of model parameters
+        v : (nP) numpy.ndarray
+            If not ``None``, the method returns the derivative times the vector *v*
+
+        Returns
+        -------
+        numpy.ndarray or scipy.sparse.csr_matrix
+            Derivative of the mapping with respect to the model parameters. If the
+            input argument *v* is not ``None``, the method returns the derivative times
+            the vector *v*.
+        """
+        sigmoid = expit(mkvc(m))
+        deriv = (self.upper_bound - self.lower_bound) * sigmoid * (1.0 - sigmoid)
+        if v is not None:
+            return deriv * v
+        return sdiag(deriv)
 
     @property
     def is_linear(self):
@@ -3112,9 +3271,11 @@ class Mesh2Mesh(IdentityMap):
     def P(self):
         if getattr(self, "_P", None) is None:
             self._P = self.mesh2.get_interpolation_matrix(
-                self.mesh.cell_centers[self.indActive, :]
-                if self.indActive is not None
-                else self.mesh.cell_centers,
+                (
+                    self.mesh.cell_centers[self.indActive, :]
+                    if self.indActive is not None
+                    else self.mesh.cell_centers
+                ),
                 "CC",
                 zeros_outside=True,
             )
@@ -4768,15 +4929,19 @@ class BaseParametric(IdentityMap):
         if getattr(self, "_x", None) is None:
             if self.mesh.dim == 1:
                 self._x = [
-                    self.mesh.cell_centers
-                    if self.indActive is None
-                    else self.mesh.cell_centers[self.indActive]
+                    (
+                        self.mesh.cell_centers
+                        if self.indActive is None
+                        else self.mesh.cell_centers[self.indActive]
+                    )
                 ][0]
             else:
                 self._x = [
-                    self.mesh.cell_centers[:, 0]
-                    if self.indActive is None
-                    else self.mesh.cell_centers[self.indActive, 0]
+                    (
+                        self.mesh.cell_centers[:, 0]
+                        if self.indActive is None
+                        else self.mesh.cell_centers[self.indActive, 0]
+                    )
                 ][0]
         return self._x
 
@@ -4792,9 +4957,11 @@ class BaseParametric(IdentityMap):
         if getattr(self, "_y", None) is None:
             if self.mesh.dim > 1:
                 self._y = [
-                    self.mesh.cell_centers[:, 1]
-                    if self.indActive is None
-                    else self.mesh.cell_centers[self.indActive, 1]
+                    (
+                        self.mesh.cell_centers[:, 1]
+                        if self.indActive is None
+                        else self.mesh.cell_centers[self.indActive, 1]
+                    )
                 ][0]
             else:
                 self._y = None
@@ -4812,9 +4979,11 @@ class BaseParametric(IdentityMap):
         if getattr(self, "_z", None) is None:
             if self.mesh.dim > 2:
                 self._z = [
-                    self.mesh.cell_centers[:, 2]
-                    if self.indActive is None
-                    else self.mesh.cell_centers[self.indActive, 2]
+                    (
+                        self.mesh.cell_centers[:, 2]
+                        if self.indActive is None
+                        else self.mesh.cell_centers[self.indActive, 2]
+                    )
                 ][0]
             else:
                 self._z = None
@@ -5281,12 +5450,7 @@ class ParametricBlock(BaseParametric):
         return (val**2 + self.epsilon**2) ** (self.p / 2.0)
 
     def _ekblomDeriv(self, val):
-        return (
-            (self.p / 2)
-            * (val**2 + self.epsilon**2) ** ((self.p / 2) - 1)
-            * 2
-            * val
-        )
+        return (self.p / 2) * (val**2 + self.epsilon**2) ** ((self.p / 2) - 1) * 2 * val
 
     # def _rotation(self, mDict):
     #     if self.mesh.dim == 2:

@@ -22,6 +22,7 @@ Volume 224, Issue 1, January 2021, Pages 40-68, DOI: `10.1093/gji/ggaa378
 <https://doi.org/10.1093/gji/ggaa378>`_.
 
 """
+
 #########################################################################
 # Import modules
 # --------------
@@ -233,6 +234,7 @@ simulation_grav = pf.gravity.simulation.Simulation3DIntegral(
     mesh=mesh,
     rhoMap=wires.den,
     ind_active=actv,
+    engine="choclo",
 )
 dmis_grav = data_misfit.L2DataMisfit(data=data_grav, simulation=simulation_grav)
 # Mag problem

@@ -1,9 +1,11 @@
+import pytest
 import unittest
 
 import discretize
 import numpy as np
 from pymatsolver import SolverLU
 from scipy.stats import multivariate_normal
+
 from SimPEG import regularization
 from SimPEG.maps import Wires
 from SimPEG.utils import WeightedGaussianMixture, mkvc
@@ -85,9 +87,7 @@ class TestPGI(unittest.TestCase):
         dm = self.model - mref
         score_approx0 = reg(self.model)
         score_approx1 = 0.5 * dm.dot(reg.deriv2(self.model, dm))
-        passed_score_approx = np.allclose(score_approx0, score_approx1)
-        self.assertTrue(passed_score_approx)
-
+        np.testing.assert_allclose(score_approx0, score_approx1)
         reg.objfcts[0].approx_eval = False
         score = reg(self.model) - reg(mref)
         passed_score = np.allclose(score_approx0, score, rtol=1e-4)
@@ -193,8 +193,7 @@ class TestPGI(unittest.TestCase):
         dm = self.model - mref
         score_approx0 = reg(self.model)
         score_approx1 = 0.5 * dm.dot(reg.deriv2(self.model, dm))
-        passed_score_approx = np.allclose(score_approx0, score_approx1)
-        self.assertTrue(passed_score_approx)
+        np.testing.assert_allclose(score_approx0, score_approx1)
         reg.objfcts[0].approx_eval = False
         score = reg(self.model) - reg(mref)
         passed_score = np.allclose(score_approx0, score, rtol=1e-4)
@@ -297,8 +296,7 @@ class TestPGI(unittest.TestCase):
         dm = self.model - mref
         score_approx0 = reg(self.model)
         score_approx1 = 0.5 * dm.dot(reg.deriv2(self.model, dm))
-        passed_score_approx = np.allclose(score_approx0, score_approx1)
-        self.assertTrue(passed_score_approx)
+        np.testing.assert_allclose(score_approx0, score_approx1)
         reg.objfcts[0].approx_eval = False
         score = reg(self.model) - reg(mref)
         passed_score = np.allclose(score_approx0, score, rtol=1e-4)
@@ -401,8 +399,7 @@ class TestPGI(unittest.TestCase):
         dm = self.model - mref
         score_approx0 = reg(self.model)
         score_approx1 = 0.5 * dm.dot(reg.deriv2(self.model, dm))
-        passed_score_approx = np.allclose(score_approx0, score_approx1)
-        self.assertTrue(passed_score_approx)
+        np.testing.assert_allclose(score_approx0, score_approx1)
         reg.objfcts[0].approx_eval = False
         score = reg(self.model) - reg(mref)
         passed_score = np.allclose(score_approx0, score, rtol=1e-4)
@@ -471,6 +468,20 @@ class TestPGI(unittest.TestCase):
             axspherical.set_title("PGI with W")
 
             plt.show()
+
+
+def test_removed_mref():
+    """Test if PGI raises error when accessing removed mref property."""
+    h = [[(2, 2)], [(2, 2)], [(2, 2)]]
+    mesh = discretize.TensorMesh(h)
+    n_components = 1
+    gmm = WeightedGaussianMixture(mesh=mesh, n_components=n_components)
+    samples = np.random.default_rng(seed=42).normal(size=(mesh.n_cells, 2))
+    gmm.fit(samples)
+    pgi = regularization.PGI(mesh=mesh, gmmref=gmm)
+    message = "mref has been removed, please use reference_model."
+    with pytest.raises(NotImplementedError, match=message):
+        pgi.mref
 
 
 if __name__ == "__main__":

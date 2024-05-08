@@ -1,9 +1,9 @@
 import numpy as np
 import scipy.sparse as sp
+
 from SimPEG.utils.code_utils import deprecate_property, validate_active_indices
 
-from .. import props
-from .. import utils
+from .. import props, utils
 
 ###############################################################################
 #                                                                             #
@@ -523,24 +523,21 @@ class RegularizationMesh(props.BaseSimPEG):
         "cellDiffx",
         "cell_gradient_x",
         "0.19.0",
-        error=False,
-        future_warn=True,
+        error=True,
     )
     cellDiffy = deprecate_property(
         cell_gradient_y,
         "cellDiffy",
         "cell_gradient_y",
         "0.19.0",
-        error=False,
-        future_warn=True,
+        error=True,
     )
     cellDiffz = deprecate_property(
         cell_gradient_z,
         "cellDiffz",
         "cell_gradient_z",
         "0.19.0",
-        error=False,
-        future_warn=True,
+        error=True,
     )
 
     @property
@@ -555,7 +552,7 @@ class RegularizationMesh(props.BaseSimPEG):
         if getattr(self, "_cell_distances_x", None) is None:
             self._cell_distances_x = self.cell_gradient_x.max(
                 axis=1
-            ).toarray().flatten() ** (-1.0)
+            ).toarray().ravel() ** (-1.0)
 
         return self._cell_distances_x
 
@@ -571,7 +568,7 @@ class RegularizationMesh(props.BaseSimPEG):
         if getattr(self, "_cell_distances_y", None) is None:
             self._cell_distances_y = self.cell_gradient_y.max(
                 axis=1
-            ).toarray().flatten() ** (-1.0)
+            ).toarray().ravel() ** (-1.0)
 
         return self._cell_distances_y
 
@@ -587,7 +584,7 @@ class RegularizationMesh(props.BaseSimPEG):
         if getattr(self, "_cell_distances_z", None) is None:
             self._cell_distances_z = self.cell_gradient_z.max(
                 axis=1
-            ).toarray().flatten() ** (-1.0)
+            ).toarray().ravel() ** (-1.0)
 
         return self._cell_distances_z
 

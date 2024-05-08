@@ -5,6 +5,7 @@ PF: Gravity: Tiled Inversion Linear
 Invert data in tiles.
 
 """
+
 import os
 import numpy as np
 import matplotlib.pyplot as plt
@@ -243,7 +244,7 @@ update_IRLS = directives.Update_IRLS(
 )
 saveDict = directives.SaveOutputEveryIteration(save_txt=False)
 update_Jacobi = directives.UpdatePreconditioner()
-sensitivity_weights = directives.UpdateSensitivityWeights(everyIter=False)
+sensitivity_weights = directives.UpdateSensitivityWeights(every_iteration=False)
 inv = inversion.BaseInversion(
     invProb,
     directiveList=[update_IRLS, sensitivity_weights, betaest, update_Jacobi, saveDict],

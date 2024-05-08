@@ -1,6 +1,7 @@
 """
-Define simulation classes
+Define simulation classes.
 """
+
 import os
 import inspect
 import numpy as np
@@ -8,7 +9,7 @@ import warnings
 
 from discretize.base import BaseMesh
 from discretize import TensorMesh
-from discretize.utils import unpack_widths
+from discretize.utils import unpack_widths, sdiag
 
 from . import props
 from .data import SyntheticData, Data
@@ -41,10 +42,39 @@ __all__ = ["LinearSimulation", "ExponentialSinusoidSimulation"]
 
 
 class BaseSimulation(props.HasModel):
+    r"""Base class for all geophysical forward simulations in SimPEG.
+
+    The ``BaseSimulation`` class defines properties and methods inherited by
+    practical simulation classes in SimPEG.
+
+    .. important::
+        This class is not meant to be instantiated. You should inherit from it to
+        create your own simulation class.
+
+    Parameters
+    ----------
+    mesh : discretize.base.BaseMesh, optional
+        Mesh on which the forward problem is discretized.
+    survey : SimPEG.survey.BaseSurvey, optional
+        The survey for the simulation.
+    solver : None or pymatsolver.base.Base, optional
+        Numerical solver used to solve the forward problem. If ``None``,
+        an appropriate solver specific to the simulation class is set by default.
+    solver_opts : dict, optional
+        Solver-specific parameters. If ``None``, default parameters are used for
+        the solver set by ``solver``. Otherwise, the ``dict`` must contain appropriate
+        pairs of keyword arguments and parameter values for the solver. Please visit
+        `pymatsolver <https://pymatsolver.readthedocs.io/en/latest/>`__ to learn more
+        about solvers and their parameters.
+    sensitivity_path : str, optional
+        Path to directory where sensitivity file is stored.
+    counter : None or SimPEG.utils.Counter
+        SimPEG ``Counter`` object to store iterations and run-times.
+    verbose : bool, optional
+        Verbose progress printout.
     """
-    BaseSimulation is the base class for all geophysical forward simulations in
-    SimPEG.
-    """
+
+    _REGISTRY = {}
 
     def __init__(
         self,
@@ -73,18 +103,16 @@ class BaseSimulation(props.HasModel):
 
         super().__init__(**kwargs)
 
-    ###########################################################################
-    # Properties
-
-    _REGISTRY = {}
-
     @property
     def mesh(self):
-        """Discretize mesh for the simulation
+        """Mesh for the simulation.
+
+        For more on meshes, visit :py:class:`discretize.base.BaseMesh`.
 
         Returns
         -------
         discretize.base.BaseMesh
+            Mesh on which the forward problem is discretized.
         """
         return self._mesh
 
@@ -101,6 +129,7 @@ class BaseSimulation(props.HasModel):
         Returns
         -------
         SimPEG.survey.BaseSurvey
+            The survey for the simulation.
         """
         return self._survey
 
@@ -112,11 +141,12 @@ class BaseSimulation(props.HasModel):
 
     @property
     def counter(self):
-        """The counter.
+        """SimPEG ``Counter`` object to store iterations and run-times.
 
         Returns
         -------
         None or SimPEG.utils.Counter
+            SimPEG ``Counter`` object to store iterations and run-times.
         """
         return self._counter
 
@@ -128,11 +158,12 @@ class BaseSimulation(props.HasModel):
 
     @property
     def sensitivity_path(self):
-        """Path to store the sensitivity.
+        """Path to directory where sensitivity file is stored.
 
         Returns
         -------
         str
+            Path to directory where sensitivity file is stored.
         """
         return self._sensitivity_path
 
@@ -142,13 +173,25 @@ class BaseSimulation(props.HasModel):
 
     @property
     def solver(self):
-        """Linear algebra solver (e.g. from pymatsolver).
+        r"""Numerical solver used in the forward simulation.
+
+        Many forward simulations in SimPEG require solutions to discrete linear
+        systems of the form:
+
+        .. math::
+            \mathbf{A}(\mathbf{m}) \, \mathbf{u} = \mathbf{q}
+
+        where :math:`\mathbf{A}` is an invertible matrix that depends on the
+        model :math:`\mathbf{m}`. The numerical solver can be set using the
+        ``solver`` property. In SimPEG, the
+        `pymatsolver <https://pymatsolver.readthedocs.io/en/latest/>`__ package
+        is used to create solver objects. Parameters specific to each solver
+        can be set manually using the ``solver_opts`` property.
 
         Returns
         -------
-        class
-            A solver class that, when instantiated allows a multiplication with the
-            returned object.
+        pymatsolver.base.Base
+            Numerical solver used to solve the forward problem.
         """
         return self._solver
 
@@ -163,12 +206,18 @@ class BaseSimulation(props.HasModel):
 
     @property
     def solver_opts(self):
-        """Options passed to the `solver` class on initialization.
+        """Solver-specific parameters.
+
+        The parameters specific to the solver set with the ``solver`` property are set
+        upon instantiation. The ``solver_opts`` property is used to set solver-specific properties.
+        This is done by providing a ``dict`` that contains appropriate pairs of keyword arguments
+        and parameter values. Please visit `pymatsolver <https://pymatsolver.readthedocs.io/en/latest/>`__
+        to learn more about solvers and their parameters.
 
         Returns
         -------
         dict
-            Passed as keyword arguments to the solver.
+            keyword arguments and parameters passed to the solver.
         """
         return self._solver_opts
 
@@ -178,11 +227,12 @@ class BaseSimulation(props.HasModel):
 
     @property
     def verbose(self):
-        """Verbosity flag.
+        """Verbose progress printout.
 
         Returns
         -------
         bool
+            Verbose progress printout status.
         """
         return self._verbose
 
@@ -190,31 +240,37 @@ class BaseSimulation(props.HasModel):
     def verbose(self, value):
         self._verbose = validate_type("verbose", value, bool)
 
-    ###########################################################################
-    # Methods
-
     def fields(self, m=None):
-        """
-        u = fields(m)
-        The field given the model.
-        :param numpy.ndarray m: model
-        :rtype: numpy.ndarray
-        :return: u, the fields
+        r"""Return the computed geophysical fields for the model provided.
+
+        Parameters
+        ----------
+        m : (n_param,) numpy.ndarray
+            The model parameters.
+
+        Returns
+        -------
+        SimPEG.fields.Fields
+            Computed geophysical fields for the model provided.
+
         """
         raise NotImplementedError("fields has not been implemented for this ")
 
     def dpred(self, m=None, f=None):
-        r"""
-        dpred(m, f=None)
-        Create the projected data from a model.
-        The fields, f, (if provided) will be used for the predicted data
-        instead of recalculating the fields (which may be expensive!).
+        r"""Predicted data for the model provided.
 
-        .. math::
+        Parameters
+        ----------
+        m : (n_param,) numpy.ndarray
+            The model parameters.
+        f : SimPEG.fields.Fields, optional
+            If provided, will be used to compute the predicted data
+            without recalculating the fields.
 
-            d_\text{pred} = P(f(m))
-
-        Where P is a projection of the fields onto the data space.
+        Returns
+        -------
+        (n_data, ) numpy.ndarray
+            The predicted data vector.
         """
         if self.survey is None:
             raise AttributeError(
@@ -237,51 +293,139 @@ class BaseSimulation(props.HasModel):
 
     @timeIt
     def Jvec(self, m, v, f=None):
-        """
-        Jv = Jvec(m, v, f=None)
-        Effect of J(m) on a vector v.
-        :param numpy.ndarray m: model
-        :param numpy.ndarray v: vector to multiply
-        :param Fields f: fields
-        :rtype: numpy.ndarray
-        :return: Jv
+        r"""Compute the Jacobian times a vector for the model provided.
+
+        The Jacobian defines the derivative of the predicted data vector with respect to the
+        model parameters. For a data vector :math:`\mathbf{d}` predicted for a set of model parameters
+        :math:`\mathbf{m}`, the Jacobian is an (n_data, n_param) matrix whose elements
+        are given by:
+
+        .. math::
+            J_{ij} = \frac{\partial d_i}{\partial m_j}
+
+        For a model `m` and vector `v`, the ``Jvec`` method computes the matrix-vector product
+
+        .. math::
+            \mathbf{u} = \mathbf{J \, v}
+
+        Parameters
+        ----------
+        m : (n_param, ) numpy.ndarray
+            The model parameters.
+        v : (n_param, ) numpy.ndarray
+            Vector we are multiplying.
+        f : SimPEG.field.Fields, optional
+            If provided, fields will not need to be recomputed for the
+            current model to compute `Jvec`.
+
+        Returns
+        -------
+        (n_data, ) numpy.ndarray
+            The Jacobian times a vector for the model and vector provided.
         """
         raise NotImplementedError("Jvec is not yet implemented.")
 
     @timeIt
     def Jtvec(self, m, v, f=None):
+        r"""Compute the Jacobian transpose times a vector for the model provided.
+
+        The Jacobian defines the derivative of the predicted data vector with respect to the
+        model parameters. For a data vector :math:`\mathbf{d}` predicted for a set of model parameters
+        :math:`\mathbf{m}`, the Jacobian is an ``(n_data, n_param)`` matrix whose elements
+        are given by:
+
+        .. math::
+            J_{ij} = \frac{\partial d_i}{\partial m_j}
+
+        For a model `m` and vector `v`, the ``Jtvec`` method computes the matrix-vector product with the adjoint-sensitivity
+
+        .. math::
+            \mathbf{u} = \mathbf{J^T \, v}
+
+        Parameters
+        ----------
+        m : (n_param, ) numpy.ndarray
+            The model parameters.
+        v : (n_data, ) numpy.ndarray
+            Vector we are multiplying.
+        f : SimPEG.field.Fields, optional
+            If provided, fields will not need to be recomputed for the
+            current model to compute `Jtvec`.
+
+        Returns
+        -------
+        (n_param, ) numpy.ndarray
+            The Jacobian transpose times a vector for the model and vector provided.
         """
-        Jtv = Jtvec(m, v, f=None)
-        Effect of transpose of J(m) on a vector v.
-        :param numpy.ndarray m: model
-        :param numpy.ndarray v: vector to multiply
-        :param Fields f: fields
-        :rtype: numpy.ndarray
-        :return: JTv
-        """
-        raise NotImplementedError("Jt is not yet implemented.")
+        raise NotImplementedError("Jtvec is not yet implemented.")
 
     @timeIt
     def Jvec_approx(self, m, v, f=None):
-        """Jvec_approx(m, v, f=None)
-        Approximate effect of J(m) on a vector v
-        :param numpy.ndarray m: model
-        :param numpy.ndarray v: vector to multiply
-        :param Fields f: fields
-        :rtype: numpy.ndarray
-        :return: approxJv
+        r"""Approximation of the Jacobian times a vector for the model provided.
+
+        The Jacobian defines the derivative of the predicted data vector with respect to the
+        model parameters. For a data vector :math:`\mathbf{d}` predicted for a set of model parameters
+        :math:`\mathbf{m}`, the Jacobian is an ``(n_data, n_param)`` matrix whose elements
+        are given by:
+
+        .. math::
+            J_{ij} = \frac{\partial d_i}{\partial m_j}
+
+        For a model `m` and vector `v`, the ``Jvec_approx`` method **approximates**
+        the matrix-vector product:
+
+        .. math::
+            \mathbf{u} = \mathbf{J \, v}
+
+        Parameters
+        ----------
+        m : (n_param, ) numpy.ndarray
+            The model parameters.
+        v : (n_data, ) numpy.ndarray
+            Vector we are multiplying.
+        f : SimPEG.field.Fields, optional
+            If provided, fields will not need to be recomputed for the
+            current model to compute `Jtvec`.
+
+        Returns
+        -------
+        (n_param, ) numpy.ndarray
+            Approximation of the Jacobian times a vector for the model provided.
         """
         return self.Jvec(m, v, f)
 
     @timeIt
     def Jtvec_approx(self, m, v, f=None):
-        """Jtvec_approx(m, v, f=None)
-        Approximate effect of transpose of J(m) on a vector v.
-        :param numpy.ndarray m: model
-        :param numpy.ndarray v: vector to multiply
-        :param Fields f: fields
-        :rtype: numpy.ndarray
-        :return: JTv
+        r"""Approximation of the Jacobian transpose times a vector for the model provided.
+
+        The Jacobian defines the derivative of the predicted data vector with respect to the
+        model parameters. For a data vector :math:`\mathbf{d}` predicted for a set of model parameters
+        :math:`\mathbf{m}`, the Jacobian is an ``(n_data, n_param)`` matrix whose elements
+        are given by:
+
+        .. math::
+            J_{ij} = \frac{\partial d_i}{\partial m_j}
+
+        For a model `m` and vector `v`, the ``Jtvec_approx`` method **approximates**
+        the matrix-vector product:
+
+        .. math::
+            \mathbf{u} = \mathbf{J^T \, v}
+
+        Parameters
+        ----------
+        m : (n_param, ) numpy.ndarray
+            The model parameters.
+        v : (n_data, ) numpy.ndarray
+            Vector we are multiplying.
+        f : SimPEG.field.Fields, optional
+            If provided, fields will not need to be recomputed for the
+            current model to compute `Jtvec`.
+
+        Returns
+        -------
+        (n_param, ) numpy.ndarray
+            Approximation of the Jacobian transpose times a vector for the model provided.
         """
         return self.Jtvec(m, v, f)
 
@@ -289,14 +433,27 @@ class BaseSimulation(props.HasModel):
     def residual(self, m, dobs, f=None):
         r"""The data residual.
 
+        This method computes and returns the data residual for the model provided.
+        Where :math:`\mathbf{d}_\text{obs}` are the observed data values, and :math:`\mathbf{d}_\text{pred}`
+        are the predicted data values for model parameters :math:`\mathbf{m}`, the data
+        residual is given by:
+
         .. math::
+            \mathbf{r}(\mathbf{m}) = \mathbf{d}_\text{pred} - \mathbf{d}_\text{obs}
 
-            \mu_\\text{data} = \mathbf{d}_\\text{pred} - \mathbf{d}_\\text{obs}
+        Parameters
+        ----------
+        m : (n_param, ) numpy.ndarray
+            The model parameters.
+        dobs : (n_data, ) numpy.ndarray
+            The observed data values.
+        f : SimPEG.fields.Fields, optional
+            If provided, fields will not need to be recomputed when solving the forward problem.
 
-        :param numpy.ndarray m: geophysical model
-        :param numpy.ndarray f: fields
-        :rtype: numpy.ndarray
-        :return: data residual
+        Returns
+        -------
+        (n_data, ) numpy.ndarray
+            The data residual.
 
         """
         return mkvc(self.dpred(m, f=f) - dobs)
@@ -311,27 +468,35 @@ class BaseSimulation(props.HasModel):
         random_seed=None,
         **kwargs,
     ):
-        """
-        Make synthetic data given a model, and a standard deviation.
+        r"""Make synthetic data for the model and Gaussian noise provided.
+
+        This method generates and returns a :py:class:`SimPEG.data.SyntheticData` object
+        for the model and standard deviation of Gaussian noise provided.
 
         Parameters
         ----------
-        m : array
-            Array containing with geophysical model.
-        relative_error : float
-            Standard deviation.
-        noise_floor : float
-            Noise floor.
-        f : array or None
-            Fields for the given model (if pre-calculated).
+        m : (n_param, ) numpy.ndarray
+            The model parameters.
+        relative_error : float, numpy.ndarray
+            Assign relative uncertainties to the data using relative error; sometimes
+            referred to as percent uncertainties. For each datum, we assume the
+            standard deviation of Gaussian noise is the relative error times the
+            absolute value of the datum; i.e. :math:`C_\text{err} \times |d|`.
+        noise_floor : float, numpy.ndarray
+            Assign floor/absolute uncertainties to the data. For each datum, we assume
+            standard deviation of Gaussian noise is equal to `noise_floor`.
+        f : SimPEG.fields.Fields, optional
+            If provided, fields will not need to be recomputed when solving the
+            forward problem to obtain noiseless data.
         add_noise : bool
             Whether to add gaussian noise to the synthetic data or not.
-        random_seed : int or None
-            Random seed to pass to `numpy.random.default_rng`.
+        random_seed : int, optional
+            Random seed to pass to :py:class:`numpy.random.default_rng`.
 
         Returns
         -------
-        SyntheticData
+        SimPEG.data.SyntheticData
+            A SimPEG synthetic data object, which organizes both clean and noisy data.
         """
 
         std = kwargs.pop("std", None)
@@ -363,30 +528,78 @@ class BaseSimulation(props.HasModel):
 
 
 class BaseTimeSimulation(BaseSimulation):
+    r"""Base class for time domain simulations.
+
+    The ``BaseTimeSimulation`` defines properties and methods that are required
+    when the finite volume approach is used to solve time-dependent forward simulations.
+    Presently, SimPEG discretizes in time using the backward Euler approach.
+    And as such, the user must now define the step lengths for the forward simulation.
+
+    Parameters
+    ----------
+    mesh : discretize.base.BaseMesh, optional
+        Mesh on which the forward problem is discretized. This is not necessarily
+        the same as the mesh on which the simulation is defined.
+    t0 : float, optional
+        Initial time, in seconds, for the time-dependent forward simulation.
+    time_steps : (n_steps, ) numpy.ndarray, optional
+        The time step lengths, in seconds, for the time domain simulation.
+        This property can be also be set using a compact form; see *Notes*.
+
+    Notes
+    -----
+    There are two ways in which the user can set the ``time_steps`` property
+    for the forward simulation. The most basic approach is to use a ``(n_steps, )``
+    :py:class:`numpy.ndarray` that explicitly defines the step lengths in order.
+    I.e.:
+
+    >>> sim.time_steps = np.r_[1e-6, 1e-6, 1e-6, 1e-5, 1e-5, 1e-4, 1e-4]
+
+    We can define also define the step lengths in compact for when the same
+    step length is reused multiple times in succession. In this case, the
+    ``time_steps`` property is set using a ``list`` of ``tuple``. Each
+    ``tuple`` contains the step length and number of times that step is repeated.
+    The time stepping defined above can be set equivalently with:
+
+    >>> sim.time_steps = [(1e-6, 3), (1e-5, 2), (1e-4, 2)]
+
+    When set, the :py:func:`discretize.utils.unpack_widths` utility is
+    used to convert the ``list`` of ``tuple`` to its (n_steps, ) :py:class:`numpy.ndarray`
+    representation.
     """
-    Base class for a time domain simulation
-    """
+
+    def __init__(self, mesh=None, t0=0.0, time_steps=None, **kwargs):
+        self.t0 = t0
+        self.time_steps = time_steps
+        super().__init__(mesh=mesh, **kwargs)
 
     @property
     def time_steps(self):
-        """The time steps for the time domain simulation.
+        """Time step lengths, in seconds, for the time domain simulation.
 
-        You can set as an array of dt's or as a list of tuples/floats.
-        If it is set as a list, tuples are unpacked with
-        `discretize.utils.unpack_widths``.
+        There are two ways in which the user can set the ``time_steps`` property
+        for the forward simulation. The most basic approach is to use a ``(n_steps, )``
+        :py:class:`numpy.ndarray` that explicitly defines the step lengths in order.
+        I.e.:
 
-        For example, the following setters are the same::
+        >>> sim.time_steps = np.r_[1e-6, 1e-6, 1e-6, 1e-5, 1e-5, 1e-4, 1e-4]
 
-        >>> sim.time_steps = [(1e-6, 3), 1e-5, (1e-4, 2)]
-        >>> sim.time_steps = np.r_[1e-6,1e-6,1e-6,1e-5,1e-4,1e-4]
+        We can define also define the step lengths in compact for when the same
+        step length is reused multiple times in succession. In this case, the
+        ``time_steps`` property is set using a ``list`` of ``tuple``. Each
+        ``tuple`` contains the step length and number of times that step is repeated.
+        The time stepping defined above can be set equivalently with:
+
+        >>> sim.time_steps = [(1e-6, 3), (1e-5, 2), (1e-4, 2)]
+
+        When set, the :py:func:`discretize.utils.unpack_widths` utility is
+        used to convert the ``list`` of ``tuple`` to its ``(n_steps, )`` :py:class:`numpy.ndarray`
+        representation.
 
         Returns
         -------
-        numpy.ndarray
-
-        See Also
-        --------
-        discretize.utils.unpack_widths
+        (n_steps, ) numpy.ndarray
+            The time step lengths for the time domain simulation.
         """
         return self._time_steps
 
@@ -401,11 +614,12 @@ class BaseTimeSimulation(BaseSimulation):
 
     @property
     def t0(self):
-        """Start time for the discretization.
+        """Initial time, in seconds, for the time-dependent forward simulation.
 
         Returns
         -------
         float
+            Initial time, in seconds, for the time-dependent forward simulation.
         """
         return self._t0
 
@@ -414,13 +628,21 @@ class BaseTimeSimulation(BaseSimulation):
         self._t0 = validate_float("t0", value)
         del self.time_mesh
 
-    def __init__(self, mesh=None, t0=0.0, time_steps=None, **kwargs):
-        self.t0 = t0
-        self.time_steps = time_steps
-        super().__init__(mesh=mesh, **kwargs)
-
     @property
     def time_mesh(self):
+        r"""Time mesh for easy interpolation to observation times.
+
+        The time mesh is constructed internally from the :py:attr:`t0` and
+        :py:attr:`time_steps` properties using the :py:class:`discretize.TensorMesh` class.
+        The ``time_mesh`` property allows for easy interpolation from fields computed at
+        discrete time-steps, to an arbitrary set of observation
+        times within the continuous interval (:math:`t_0 , t_\text{end}`).
+
+        Returns
+        -------
+        discretize.TensorMesh
+            The time mesh.
+        """
         if getattr(self, "_time_mesh", None) is None:
             self._time_mesh = TensorMesh(
                 [
@@ -437,26 +659,32 @@ class BaseTimeSimulation(BaseSimulation):
 
     @property
     def nT(self):
+        """Total number of time steps.
+
+        Returns
+        -------
+        int
+            Total number of time steps.
+        """
         return self.time_mesh.n_cells
 
     @property
     def times(self):
-        "Modeling times"
+        """Evaluation times.
+
+        Returns the discrete set of times at which the fields are computed for
+        the forward simulation.
+
+        Returns
+        -------
+        (nT, ) numpy.ndarray
+            The discrete set of times at which the fields are computed for
+            the forward simulation.
+        """
         return self.time_mesh.nodes_x
 
     def dpred(self, m=None, f=None):
-        r"""
-        dpred(m, f=None)
-        Create the projected data from a model.
-        The fields, f, (if provided) will be used for the predicted data
-        instead of recalculating the fields (which may be expensive!).
-
-        .. math::
-
-            d_\text{pred} = P(f(m))
-
-        Where P is a projection of the fields onto the data space.
-        """
+        # Docstring inherited from BaseSimulation.
         if self.survey is None:
             raise AttributeError(
                 "The survey has not yet been set and is required to compute "
@@ -482,16 +710,40 @@ class BaseTimeSimulation(BaseSimulation):
 
 
 class LinearSimulation(BaseSimulation):
-    """
-    Class for a linear simulation of the form
+    r"""Linear forward simulation class.
+
+    The ``LinearSimulation`` class is used to define forward simulations of the form:
 
     .. math::
+        \mathbf{d} = \mathbf{G \, f}(\mathbf{m})
 
-        d = Gm
+    where :math:`\mathbf{m}` are the model parameters, :math:`\mathbf{f}` is a
+    mapping operator (optional) from the model space to a user-defined parameter space,
+    :math:`\mathbf{d}` is the predicted data vector, and :math:`\mathbf{G}` is an
+    ``(n_data, n_param)`` linear operator.
 
-    where :math:`d` is a vector of the data, `G` is the simulation matrix and
-    :math:`m` is the model.
-    Inherit this class to build a linear simulation.
+    The ``LinearSimulation`` class is generally used as a base class that is inherited by
+    other simulation classes within SimPEG. However, it can be used directly as a
+    simulation class if the :py:attr:`G` property is used to set the linear forward
+    operator directly.
+
+    By default, we assume the mapping operator :math:`\mathbf{f}` is the identity map,
+    and that the forward simulation reduces to:
+
+    .. math::
+        \mathbf{d} = \mathbf{G \, m}
+
+    Parameters
+    ----------
+    mesh : discretize.BaseMesh, optional
+        Mesh on which the forward problem is discretized. This is not necessarily
+        the same as the mesh on which the simulation is defined.
+    model_map : SimPEG.maps.BaseMap
+        Mapping from the model parameters to vector that the linear operator acts on.
+    G : (n_data, n_param) numpy.ndarray or scipy.sparse.csr_matrx
+        The linear operator. For a ``model_map`` that maps within the same vector space
+        (e.g. the identity map), the dimension ``n_param`` equals the number of model parameters.
+        If not, the dimension ``n_param`` of the linear operator will depend on the mapping.
     """
 
     linear_model, model_map, model_deriv = props.Invertible(
@@ -516,6 +768,15 @@ class LinearSimulation(BaseSimulation):
 
     @property
     def G(self):
+        """The linear operator.
+
+        Returns
+        -------
+        (n_data, n_param) numpy.ndarray or scipy.sparse.csr_matrix
+            The linear operator. For a :py:attr:`model_map` that maps within the same vector space
+            (e.g. the identity map), the dimension ``n_param`` equals the number of model parameters.
+            If not, the dimension ``n_param`` of the linear operator will depend on the mapping.
+        """
         if getattr(self, "_G", None) is not None:
             return self._G
         else:
@@ -524,15 +785,17 @@ class LinearSimulation(BaseSimulation):
 
     @G.setter
     def G(self, G):
-        # Allows setting G in a LinearSimulation
+        # Allows setting G in a LinearSimulation.
         # TODO should be validated
         self._G = G
 
     def fields(self, m):
+        # Docstring inherited from BaseSimulation.
         self.model = m
         return self.G.dot(self.linear_model)
 
     def dpred(self, m=None, f=None):
+        # Docstring inherited from BaseSimulation
         if m is not None:
             self.model = m
         if f is not None:
@@ -540,37 +803,131 @@ class LinearSimulation(BaseSimulation):
         return self.fields(self.model)
 
     def getJ(self, m, f=None):
+        r"""Returns the full Jacobian.
+
+        The general definition of the linear forward simulation is:
+
+        .. math::
+            \mathbf{d} = \mathbf{G \, f}(\mathbf{m})
+
+        where :math:`\mathbf{f}` is a mapping operator (optional) from the model space
+        to a user-defined parameter space, and :math:`\mathbf{G}` is an (n_data, n_param)
+        linear operator. The ``getJ`` method forms and returns the full Jacobian:
+
+        .. math::
+            \mathbf{J}(\mathbf{m}) = \mathbf{G} \frac{\partial \mathbf{f}}{\partial \mathbf{m}}
+
+        for the model :math:`\mathbf{m}` provided. When :math:`\mathbf{f}` is the identity map
+        (default), the Jacobian is no longer model-dependent and reduces to:
+
+        .. math::
+            \mathbf{J} = \mathbf{G}
+
+        Parameters
+        ----------
+        m : numpy.ndarray
+            The model vector.
+        f : None
+            Precomputed fields are not used to speed up the computation of the
+            Jacobian for linear problems.
+
+        Returns
+        -------
+        J : (n_data, n_param) numpy.ndarray
+            :math:`J = G\frac{\partial f}{\partial\mathbf{m}}`.
+            Where :math:`f` is :attr:`model_map`.
+        """
         self.model = m
         # self.model_deriv is likely a sparse matrix
         # and G is possibly dense, thus we need to do..
         return (self.model_deriv.T.dot(self.G.T)).T
 
     def Jvec(self, m, v, f=None):
+        # Docstring inherited from BaseSimulation
         self.model = m
         return self.G.dot(self.model_deriv * v)
 
     def Jtvec(self, m, v, f=None):
+        # Docstring inherited from BaseSimulation
         self.model = m
         return self.model_deriv.T * self.G.T.dot(v)
 
 
 class ExponentialSinusoidSimulation(LinearSimulation):
-    r"""
+    r"""Simulation class for exponentially decaying sinusoidal kernel functions.
+
     This is the simulation class for the linear problem consisting of
-    exponentially decaying sinusoids. The rows of the G matrix are
+    exponentially decaying sinusoids. The entries of the linear operator
+    :math:`\mathbf{G}` are:
+
+    .. math::
+
+        G_{ik} = \int_\Omega e^{p \, j_i \, x_k} \cos(\pi \, q \, j_i \, x_k) \, dx
+
+    The model is defined on a 1D :py:class:`discretize.TensorMesh`, and :math:`x_k`
+    are the cell center locations. :math:`p \leq 0` defines the rate of exponential
+    decay of the kernel functions. :math:`q` defines the rate of oscillation of
+    the kernel functions. And :math:`j_i \in [j_0, ... , j_n]` controls the spread
+    of the kernel functions; the number of which is set using the ``n_kernels``
+    property.
+
+    .. tip::
+
+        For proper scaling, we advise defining the 1D tensor mesh to
+        discretize the interval [0, 1].
+
+    The kernel functions take the form:
 
     .. math::
 
         \int_x e^{p j_k x} \cos(\pi q j_k x) \quad, j_k \in [j_0, ..., j_n]
+
+    The model is defined at cell centers while the kernel functions are defined on nodes.
+    The trapezoid rule is used to evaluate the integral
+
+    .. math::
+
+        d_j = \int g_j(x) m(x) dx
+
+    to define our data.
+
+    Parameters
+    ----------
+    n_kernels : int
+        The number of kernel factors for the linear problem; i.e. the number of
+        :math:`j_i \in [j_0, ... , j_n]`. This sets the number of rows
+        in the linear forward operator.
+    p : float
+        Exponent specifying the decay (`p \leq 0`) or growth (`p \geq 0`) of the kernel. For decay, set :math:`p \leq 0`.
+    q : float
+        Rate of oscillation of the kernel.
+    j0 : float
+        Minimum value for the spread of the kernel factors.
+    jn : float
+        Maximum value for the spread of the kernel factors.
     """
+
+    def __init__(self, n_kernels=20, p=-0.25, q=0.25, j0=0.0, jn=60.0, **kwargs):
+        self.n_kernels = n_kernels
+        self.p = p
+        self.q = q
+        self.j0 = j0
+        self.jn = jn
+        super(ExponentialSinusoidSimulation, self).__init__(**kwargs)
 
     @property
     def n_kernels(self):
-        """The number of kernels for the linear problem
+        r"""The number of kernel factors for the linear problem.
+
+        Where :math:`j_0` represents the minimum value for the spread of
+        kernel factors and :math:`j_n` represents the maximum, ``n_kernels``
+        defines the number of kernel factors :math:`j_i \in [j_0, ... , j_n]`.
+        This ultimately sets the number of rows in the linear forward operator.
 
         Returns
         -------
         int
+            The number of kernel factors for the linear problem.
         """
         return self._n_kernels
 
@@ -585,6 +942,7 @@ class ExponentialSinusoidSimulation(LinearSimulation):
         Returns
         -------
         float
+            Rate of exponential decay of the kernel.
         """
         return self._p
 
@@ -594,11 +952,12 @@ class ExponentialSinusoidSimulation(LinearSimulation):
 
     @property
     def q(self):
-        """rate of oscillation of the kernel.
+        """Rate of oscillation of the kernel.
 
         Returns
         -------
         float
+            Rate of oscillation of the kernel.
         """
         return self._q
 
@@ -608,11 +967,12 @@ class ExponentialSinusoidSimulation(LinearSimulation):
 
     @property
     def j0(self):
-        """Maximum value for :math:`j_k = j_0`.
+        """Minimum value for the spread of the kernel factors.
 
         Returns
         -------
         float
+            Minimum value for the spread of the kernel factors.
         """
         return self._j0
 
@@ -622,11 +982,12 @@ class ExponentialSinusoidSimulation(LinearSimulation):
 
     @property
     def jn(self):
-        """Maximum value for :math:`j_k = j_n`.
+        """Maximum value for the spread of the kernel factors.
 
         Returns
         -------
         float
+            Maximum value for the spread of the kernel factors.
         """
         return self._jn
 
@@ -634,41 +995,55 @@ class ExponentialSinusoidSimulation(LinearSimulation):
     def jn(self, value):
         self._jn = validate_float("jn", value)
 
-    def __init__(self, n_kernels=20, p=-0.25, q=0.25, j0=0.0, jn=60.0, **kwargs):
-        self.n_kernels = n_kernels
-        self.p = p
-        self.q = q
-        self.j0 = j0
-        self.jn = jn
-        super(ExponentialSinusoidSimulation, self).__init__(**kwargs)
-
     @property
     def jk(self):
-        """
-        Parameters controlling the spread of kernel functions
+        """The set of kernel factors controlling the spread of the kernel functions.
+
+        Returns
+        -------
+        (n_kernels, ) numpy.ndarray
+            The set of kernel factors controlling the spread of the kernel functions.
         """
         if getattr(self, "_jk", None) is None:
             self._jk = np.linspace(self.j0, self.jn, self.n_kernels)
         return self._jk
 
     def g(self, k):
+        """Kernel functions evaluated for kernel factor :math:`j_k`.
+
+        This method computes the row of the linear forward operator for
+        the kernel functions for kernel factor :math:`j_k`, given :math:`k`
+
+        Parameters
+        ----------
+        k : int
+            Kernel functions for kernel factor *k*
+
+        Returns
+        -------
+        (n_param, ) numpy.ndarray
+            Kernel functions evaluated for kernel factor *k*.
         """
-        Kernel functions for the decaying oscillating exponential functions.
-        """
-        return np.exp(self.p * self.jk[k] * self.mesh.cell_centers_x) * np.cos(
-            np.pi * self.q * self.jk[k] * self.mesh.cell_centers_x
+        return np.exp(self.p * self.jk[k] * self.mesh.nodes_x) * np.cos(
+            np.pi * self.q * self.jk[k] * self.mesh.nodes_x
         )
 
     @property
     def G(self):
-        """
-        Matrix whose rows are the kernel functions
+        """The linear forward operator.
+
+        Returns
+        -------
+        (n_kernels, n_param) numpy.ndarray
+            The linear forward operator.
         """
         if getattr(self, "_G", None) is None:
-            G = np.empty((self.n_kernels, self.mesh.nC))
+            G_nodes = np.empty((self.mesh.n_nodes, self.n_kernels))
 
             for i in range(self.n_kernels):
-                G[i, :] = self.g(i) * self.mesh.h[0]
+                G_nodes[:, i] = self.g(i)
 
-            self._G = G
+            self._G = (self.mesh.average_node_to_cell @ G_nodes).T @ sdiag(
+                self.mesh.cell_volumes
+            )
         return self._G

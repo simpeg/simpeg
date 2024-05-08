@@ -55,9 +55,7 @@ extensions = [
 autosummary_generate = True
 
 numpydoc_attributes_as_param_list = False
-# This has to be set to false in order to make the doc build in a
-# reasonable amount of time.
-numpydoc_show_inherited_class_members = False
+numpydoc_show_inherited_class_members = True
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]
@@ -233,6 +231,12 @@ plot_rcparams = {
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
+external_links = [
+    dict(name="User Tutorials", url="https://simpeg.xyz/user-tutorials"),
+    dict(name="SimPEG", url="https://simpeg.xyz"),
+    dict(name="Contact", url="https://mattermost.softwareunderground.org/simpeg"),
+]
+
 try:
     import pydata_sphinx_theme
 
@@ -242,10 +246,7 @@ try:
     html_use_modindex = True
 
     html_theme_options = {
-        "external_links": [
-            {"name": "SimPEG", "url": "https://simpeg.xyz"},
-            {"name": "Contact", "url": "http://slack.simpeg.xyz"},
-        ],
+        "external_links": external_links,
         "icon_links": [
             {
                 "name": "GitHub",
@@ -253,9 +254,9 @@ try:
                 "icon": "fab fa-github",
             },
             {
-                "name": "Slack",
-                "url": "http://slack.simpeg.xyz/",
-                "icon": "fab fa-slack",
+                "name": "Mattermost",
+                "url": "https://mattermost.softwareunderground.org/simpeg",
+                "icon": "fas fa-comment",
             },
             {
                 "name": "Discourse",
@@ -267,13 +268,14 @@ try:
                 "url": "https://www.youtube.com/c/geoscixyz",
                 "icon": "fab fa-youtube",
             },
-            {
-                "name": "Twitter",
-                "url": "https://twitter.com/simpegpy",
-                "icon": "fab fa-twitter",
-            },
         ],
         "use_edit_page_button": False,
+        "collapse_navigation": True,
+        "analytics": {
+            "plausible_analytics_domain": "docs.simpeg.xyz",
+            "plausible_analytics_url": "https://plausible.io/js/script.js",
+        },
+        "navbar_align": "left",  # make elements closer to logo on the left
     }
     html_logo = "images/simpeg-logo.png"
 
@@ -421,6 +423,7 @@ intersphinx_mapping = {
     "matplotlib": ("https://matplotlib.org/stable/", None),
     "properties": ("https://propertiespy.readthedocs.io/en/latest/", None),
     "discretize": ("https://discretize.simpeg.xyz/en/main/", None),
+    "pymatsolver": ("https://pymatsolver.readthedocs.io/en/latest/", None),
 }
 numpydoc_xref_param_type = True
 

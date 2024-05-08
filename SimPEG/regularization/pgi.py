@@ -103,10 +103,10 @@ class PGIsmallness(Smallness):
     least-square:
 
     .. math::
-        \phi (\mathbf{m}) &= \frac{\alpha_{pgi}}{2}
+        \phi (\mathbf{m}) &= \alpha_\text{pgi}
         \big | \mathbf{W} ( \Theta , \mathbf{z}^\ast ) \, (\mathbf{m} - \mathbf{m_{ref}}(\Theta, \mathbf{z}^\ast ) \, \Big \|^2
-        &+ \sum_{j=x,y,z} \frac{\alpha_j}{2} \Big \| \mathbf{W_j G_j \, m} \, \Big \|^2 \\
-        &+ \sum_{j=x,y,z} \frac{\alpha_{jj}}{2} \Big \| \mathbf{W_{jj} L_j \, m} \, \Big \|^2
+        &+ \sum_{j=x,y,z} \alpha_j \Big \| \mathbf{W_j G_j \, m} \, \Big \|^2 \\
+        &+ \sum_{j=x,y,z} \alpha_{jj} \Big \| \mathbf{W_{jj} L_j \, m} \, \Big \|^2
         \;\;\;\;\;\;\;\; \big ( \textrm{optional} \big )
 
     where
@@ -497,7 +497,7 @@ class PGIsmallness(Smallness):
                     ]
                 ]
 
-            return 0.5 * mkvc(r0).dot(mkvc(r1))
+            return mkvc(r0).dot(mkvc(r1))
 
         else:
             modellist = self.wiresmap * m
@@ -506,7 +506,7 @@ class PGIsmallness(Smallness):
             if self.non_linear_relationships:
                 score = self.gmm.score_samples(model)
                 score_vec = mkvc(np.r_[[score for maps in self.wiresmap.maps]])
-                return -np.sum((W.T * W) * score_vec) / len(self.wiresmap.maps)
+                return -2 * np.sum((W.T * W) * score_vec) / len(self.wiresmap.maps)
 
             else:
                 if external_weights and getattr(self.W, "diagonal", None) is not None:
@@ -519,7 +519,7 @@ class PGIsmallness(Smallness):
                 score = self.gmm.score_samples_with_sensW(model, sensW)
                 # score_vec = mkvc(np.r_[[score for maps in self.wiresmap.maps]])
                 # return -np.sum((W.T * W) * score_vec) / len(self.wiresmap.maps)
-                return -np.sum(score)
+                return -2 * np.sum(score)
 
     @timeIt
     def deriv(self, m):
@@ -616,7 +616,7 @@ class PGIsmallness(Smallness):
                             ]
                         ]
                     )
-            return mkvc(mD.T * (self.W.T * r))
+            return 2 * mkvc(mD.T * (self.W.T * r))
 
         else:
             if self.non_linear_relationships:
@@ -726,7 +726,7 @@ class PGIsmallness(Smallness):
             logP = np.vstack([logP for maps in self.wiresmap.maps])
             numer = (W * np.exp(logP)).sum(axis=1)
             r = numer / (np.exp(score_vec))
-            return mkvc(mD.T * r)
+            return 2 * mkvc(mD.T * r)
 
     @timeIt
     def deriv2(self, m, v=None):
@@ -841,22 +841,12 @@ class PGIsmallness(Smallness):
                 mDv = self.wiresmap * (mD * v)
                 mDv = np.c_[mDv]
                 r0 = (self.W * (mkvc(mDv))).reshape(mDv.shape, order="F")
-                return mkvc(
-                    mD.T
-                    * (
-                        self.W
-                        * (
-                            mkvc(
-                                np.r_[
-                                    [
-                                        np.dot(self._r_second_deriv[i], r0[i])
-                                        for i in range(len(r0))
-                                    ]
-                                ]
-                            )
-                        )
-                    )
+                second_deriv_times_r0 = mkvc(
+                    np.r_[
+                        [np.dot(self._r_second_deriv[i], r0[i]) for i in range(len(r0))]
+                    ]
                 )
+                return 2 * mkvc(mD.T * (self.W * second_deriv_times_r0))
             else:
                 # Forming the Hessian by diagonal blocks
                 hlist = [
@@ -875,7 +865,7 @@ class PGIsmallness(Smallness):
 
                 Hr = Hr.dot(self.W)
 
-                return (mD.T * mD) * (self.W * (Hr))
+                return 2 * (mD.T * mD) * (self.W * (Hr))
 
         else:
             if self.non_linear_relationships:
@@ -953,7 +943,7 @@ class PGIsmallness(Smallness):
                 for j in range(len(self.wiresmap.maps)):
                     Hc = sp.hstack([Hc, sdiag(hlist[i][j])])
                 Hr = sp.vstack([Hr, Hc])
-            Hr = (mD.T * mD) * Hr
+            Hr = 2 * (mD.T * mD) * Hr
 
             if v is not None:
                 return Hr.dot(v)
@@ -1041,12 +1031,12 @@ class PGI(ComboObjectiveFunction):
     ``PGI`` is given by:
 
     .. math::
-        \phi (\mathbf{m}) &= \frac{\alpha_{pgi}}{2}
+        \phi (\mathbf{m}) &= \alpha_\text{pgi}
         \big [ \mathbf{m} - \mathbf{m_{ref}}(\Theta, \mathbf{z}^\ast ) \big ]^T
         \mathbf{W} ( \Theta , \mathbf{z}^\ast ) \,
         \big [ \mathbf{m} - \mathbf{m_{ref}}(\Theta, \mathbf{z}^\ast ) \big ] \\
-        &+ \sum_{j=x,y,z} \frac{\alpha_j}{2} \Big \| \mathbf{W_j G_j \, m} \, \Big \|^2 \\
-        &+ \sum_{j=x,y,z} \frac{\alpha_{jj}}{2} \Big \| \mathbf{W_{jj} L_j \, m} \, \Big \|^2
+        &+ \sum_{j=x,y,z} \alpha_j \Big \| \mathbf{W_j G_j \, m} \, \Big \|^2 \\
+        &+ \sum_{j=x,y,z} \alpha_{jj} \Big \| \mathbf{W_{jj} L_j \, m} \, \Big \|^2
         \;\;\;\;\;\;\;\; \big ( \textrm{optional} \big )
 
     where
@@ -1072,10 +1062,10 @@ class PGI(ComboObjectiveFunction):
     regularization function (objective function) can be expressed as:
 
     .. math::
-        \phi (\mathbf{m}) &= \frac{\alpha_{pgi}}{2} \Big \| \mathbf{W}_{\! 1/2}(\Theta, \mathbf{z}^\ast ) \,
+        \phi (\mathbf{m}) &= \alpha_\text{pgi} \Big \| \mathbf{W}_{\! 1/2}(\Theta, \mathbf{z}^\ast ) \,
         \big [ \mathbf{m} - \mathbf{m_{ref}}(\Theta, \mathbf{z}^\ast ) \big ] \, \Big \|^2 \\
-        &+ \sum_{j=x,y,z} \frac{\alpha_j}{2} \Big \| \mathbf{W_j G_j \, m} \, \Big \|^2 \\
-        &+ \sum_{j=x,y,z} \frac{\alpha_{jj}}{2} \Big \| \mathbf{W_{jj} L_j \, m} \, \Big \|^2
+        &+ \sum_{j=x,y,z} \alpha_j \Big \| \mathbf{W_j G_j \, m} \, \Big \|^2 \\
+        &+ \sum_{j=x,y,z} \alpha_{jj} \Big \| \mathbf{W_{jj} L_j \, m} \, \Big \|^2
         \;\;\;\;\;\;\;\; \big ( \textrm{optional} \big )
 
     When the ``approx_eval`` property is ``True``, you may also set the ``approx_gradient`` property
@@ -1194,6 +1184,7 @@ class PGI(ComboObjectiveFunction):
         for model_map, wire, weights in zip(
             self.maplist, self.wiresmap.maps, weights_list
         ):
+            weights_i = {"pgi-weights": weights} if weights is not None else None
             objfcts += [
                 WeightedLeastSquares(
                     alpha_s=0.0,
@@ -1205,7 +1196,7 @@ class PGI(ComboObjectiveFunction):
                     alpha_zz=alpha_zz,
                     mesh=self.regularization_mesh,
                     mapping=model_map * wire[1],
-                    weights=weights,
+                    weights=weights_i,
                     **kwargs,
                 )
             ]
@@ -1403,6 +1394,5 @@ class PGI(ComboObjectiveFunction):
         "mref",
         "reference_model",
         "0.19.0",
-        future_warn=True,
-        error=False,
+        error=True,
     )

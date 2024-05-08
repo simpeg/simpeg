@@ -150,7 +150,6 @@ def test_sum_sim_correctness():
     np.testing.assert_allclose(jvec_full, jvec_mult, rtol=1e-6)
 
     # test Jtvec
-    rng = np.random.default_rng(seed=0)
     v = rng.random(survey.nD)
     jtvec_full = full_sim.Jtvec(m_test, v, f=f_full)
     jtvec_mult = sum_sim.Jtvec(m_test, v, f=f_mult)
