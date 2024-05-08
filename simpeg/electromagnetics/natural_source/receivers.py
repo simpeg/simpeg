@@ -3,10 +3,9 @@ from ...utils.code_utils import (
     validate_string,
     validate_ndarray_with_shape,
 )
-
+import warnings
 import numpy as np
 from scipy.constants import mu_0
-
 from ...survey import BaseRx
 
 
@@ -14,7 +13,315 @@ def _alpha(src):
     return 1 / (2 * np.pi * mu_0 * src.frequency)
 
 
-class PointImpedance(BaseRx):
+# THIS SHOULD BE HIDDEN METHOD
+def _getP(rx, mesh, projected_grid, field="e", is_tipper_bs=False):
+    """Projection matrix from discrete field solution to measurement locations.
+
+    Note projection matrices are stored as a dictionary listed by meshes.
+
+    Parameters
+    ----------
+    rx : .natural_source.receivers.PointImpedance
+        a NSEM receiver
+    mesh : discretize.base.BaseMesh
+        The mesh on which the discrete set of equations is solved.
+    projected_grid : str
+        Define what part of the mesh (i.e. edges, faces, centers, nodes) to
+        project from. Must be one of::
+
+            'Ex', 'edges_x'           -> x-component of field defined on x edges
+            'Ey', 'edges_y'           -> y-component of field defined on y edges
+            'Ez', 'edges_z'           -> z-component of field defined on z edges
+            'Fx', 'faces_x'           -> x-component of field defined on x faces
+            'Fy', 'faces_y'           -> y-component of field defined on y faces
+            'Fz', 'faces_z'           -> z-component of field defined on z faces
+            'N', 'nodes'              -> scalar field defined on nodes
+            'CC', 'cell_centers'      -> scalar field defined on cell centers
+            'CCVx', 'cell_centers_x'  -> x-component of vector field defined on cell centers
+            'CCVy', 'cell_centers_y'  -> y-component of vector field defined on cell centers
+            'CCVz', 'cell_centers_z'  -> z-component of vector field defined on cell centers
+
+    field : {"e", "h"}
+        Whether to project electric or magnetic fields from the mesh.
+    is_tipper_bs : bool
+        Whether the projection is for a remote base station location where horizontal
+        magnetic fields are measured. Ensures stash names for projection matrices
+        aren't reused.
+    """
+    # Inherited method from BaseRx projecting to self.locations
+    if mesh.dim < 3:
+        return rx.getP(mesh, projected_grid)
+
+    if is_tipper_bs:
+        stash_name = projected_grid + "_bs"
+    else:
+        stash_name = projected_grid
+
+    if (mesh, stash_name) in rx._Ps:
+        return rx._Ps[(mesh, stash_name, field)]
+
+    if field == "e":
+        locs = rx.locations_e
+    elif field == "h":
+        if isinstance(rx, Point3DMobileMT):
+            locs = rx.locations_h
+        elif is_tipper_bs:
+            locs = rx.locations_bs
+        else:
+            locs = rx.locations
+    else:
+        raise ValueError("Field type {} unrecognized. Use 'e' or 'h'".format(field))
+
+    P = mesh.get_interpolation_matrix(locs, projected_grid)
+    if rx.storeProjections:
+        rx._Ps[(mesh, stash_name, field)] = P
+    return P
+
+
+class Point3DMobileMT(BaseRx):
+    r"""Point receiver class for data types derived by the 3D MobileMT data.
+
+    This class is used to simulate the apparent conductivity data, in S/m, collected
+    by Expert Geophysics MobileMT systems:
+
+    .. math::
+        \sigma_{app} = \mu_0 \omega \dfrac{\big | \vec{H} \big |^2}{\big | \vec{E} \big |^2}
+
+    where :math:`\omega` is the angular frequency in rad/s,
+
+    .. math::
+        \big | \vec{H} \big | = \Big [ H_x^2 + H_y^2 + H_z^2 \Big ]^{1/2}
+
+    and
+
+    .. math::
+        \big | \vec{H} \big | = \Big [ H_x^2 + H_y^2 + H_z^2 \Big ]^{1/2}
+
+    Parameters
+    ----------
+    locations : (n_loc, n_dim) numpy.ndarray
+        Locations where the electric and magnetic fields are measured.
+        If electric and magnetic fields are measured in different locations, please
+        use `locations_e` and `locations_h` when instantiating.
+    locations_e : (n_loc, n_dim) numpy.ndarray
+        Locations where the horizontal electric fields are measured.
+        Must be same size as `locations_h`.
+    locations_h : (n_loc, n_dim) numpy.ndarray
+        Locations where the magnetic fields are measured.
+        Must be same size as `locations_e`.
+    """
+
+    def __init__(
+        self,
+        locations=None,
+        locations_e=None,
+        locations_h=None,
+    ):
+        # check if locations_e or h have been provided
+        if (locations_e is not None) and (locations_h is not None):
+            # check that locations are same size
+            if locations_e.size == locations_h.size:
+                self._locations_e = locations_e
+                self._locations_h = locations_h
+            else:
+                raise Exception("location h needs to be same size as location e")
+
+            locations = np.hstack([locations_e, locations_h])
+        elif locations is not None:
+            # check shape of locations
+            if isinstance(locations, list):
+                if len(locations) == 2:
+                    self._locations_e = locations[0]
+                    self._locations_h = locations[1]
+                elif len(locations) == 1:
+                    self._locations_e = locations[0]
+                    self._locations_h = locations[0]
+                else:
+                    raise Exception("incorrect size of list, must be length of 1 or 2")
+                locations = locations[0]
+            elif isinstance(locations, np.ndarray):
+                self._locations_e = locations
+                self._locations_h = locations
+            else:
+                raise Exception("locations need to be either a list or numpy array")
+        else:
+            locations = np.array([[0.0]])
+
+        super().__init__(locations)
+
+    @property
+    def locations_e(self):
+        """Locations for the electric field measurements for each datum.
+
+        Returns
+        -------
+        (n_data, dim) numpy.ndarray
+            Location for the electric field measurements for each datum.
+        """
+        return self._locations_e
+
+    @property
+    def locations_h(self):
+        """Locations for the magnetic field measurements for each datum.
+
+        Returns
+        -------
+        (n_data, dim) numpy.ndarray
+            Location for the magnetic field measurements for each datum.
+        """
+        return self._locations_h
+
+    def _eval_mobilemt(self, src, mesh, f):
+        if mesh.dim < 3:
+            raise NotImplementedError("MobileMT receiver not implemented for dim < 3.")
+
+        e = f[src, "e"]
+        h = f[src, "h"]
+
+        ex = np.sum(_getP(self, mesh, "Ex", "e") @ e, axis=-1)
+        ey = np.sum(_getP(self, mesh, "Ey", "e") @ e, axis=-1)
+
+        hx = np.sum(_getP(self, mesh, "Fx", "h") @ h, axis=-1)
+        hy = np.sum(_getP(self, mesh, "Fy", "h") @ h, axis=-1)
+        hz = np.sum(_getP(self, mesh, "Fz", "h") @ h, axis=-1)
+
+        top = np.abs(hx) ** 2 + np.abs(hy) ** 2 + np.abs(hz) ** 2
+        bot = np.abs(ex) ** 2 + np.abs(ey) ** 2
+
+        return (2 * np.pi * src.frequency * mu_0) * top / bot
+
+    def _eval_mobilemt_deriv(self, src, mesh, f, du_dm_v=None, v=None, adjoint=False):
+        if mesh.dim < 3:
+            raise NotImplementedError(
+                "Admittance receiver not implemented for dim < 3."
+            )
+
+        # Compute admittances
+        e = f[src, "e"]
+        h = f[src, "h"]
+
+        Pex = _getP(self, mesh, "Ex", "e")
+        Pey = _getP(self, mesh, "Ey", "e")
+        Phx = _getP(self, mesh, "Fx", "h")
+        Phy = _getP(self, mesh, "Fy", "h")
+        Phz = _getP(self, mesh, "Fz", "h")
+
+        ex = np.sum(Pex @ e, axis=-1)
+        ey = np.sum(Pey @ e, axis=-1)
+        hx = np.sum(Phx @ h, axis=-1)
+        hy = np.sum(Phy @ h, axis=-1)
+        hz = np.sum(Phz @ h, axis=-1)
+
+        fact = 2 * np.pi * src.frequency * mu_0
+        top = np.abs(hx) ** 2 + np.abs(hy) ** 2 + np.abs(hz) ** 2
+        bot = np.abs(ex) ** 2 + np.abs(ey) ** 2
+
+        # ADJOINT
+        if adjoint:
+
+            # J_T * v = d_top_T * a_v + d_bot_T * b
+            a_v = fact * v / bot  # term 1
+            b_v = -fact * top * v / bot**2  # term 2
+
+            hx *= a_v
+            hy *= a_v
+            hz *= a_v
+            ex *= b_v
+            ey *= b_v
+
+            e_v = 2 * (Pex.T @ ex + Pey.T @ ey).conjugate()
+            h_v = 2 * (Phx.T @ hx + Phy.T @ hy + Phz.T @ hz).conjugate()
+
+            fu_e_v, fm_e_v = f._eDeriv(src, None, e_v, adjoint=True)
+            fu_h_v, fm_h_v = f._hDeriv(src, None, h_v, adjoint=True)
+
+            return fu_e_v + fu_h_v, fm_e_v + fm_h_v
+
+        # JVEC
+        de_v = f._eDeriv(src, du_dm_v, v, adjoint=False)
+        dh_v = f._hDeriv(src, du_dm_v, v, adjoint=False)
+
+        dex_v = np.sum(Pex @ de_v, axis=-1)
+        dey_v = np.sum(Pey @ de_v, axis=-1)
+        dhx_v = np.sum(Phx @ dh_v, axis=-1)
+        dhy_v = np.sum(Phy @ dh_v, axis=-1)
+        dhz_v = np.sum(Phz @ dh_v, axis=-1)
+
+        # Imaginary components cancel and its 2x the real
+        dtop_v = (
+            2
+            * (
+                hx * dhx_v.conjugate() + hy * dhy_v.conjugate() + hz * dhz_v.conjugate()
+            ).real
+        )
+
+        dbot_v = 2 * (ex * dex_v.conjugate() + ey * dey_v.conjugate()).real
+
+        return fact * (bot * dtop_v - top * dbot_v) / (bot * bot)
+
+    def eval(self, src, mesh, f, return_complex=False):  # noqa: A003
+        """Compute receiver data from the discrete field solution.
+
+        Parameters
+        ----------
+        src : .frequency_domain.sources.BaseFDEMSrc
+            NSEM source.
+        mesh : discretize.TensorMesh
+            Mesh on which the discretize solution is obtained.
+        f : .frequency_domain.fields.FieldsFDEM
+            NSEM fields object of the source.
+
+        Returns
+        -------
+        numpy.ndarray
+            Evaluated data for the receiver.
+        """
+        return self._eval_mobilemt(src, mesh, f)
+
+    def evalDeriv(self, src, mesh, f, du_dm_v=None, v=None, adjoint=False):
+        r"""Derivative of data with respect to the fields.
+
+        Let :math:`\mathbf{d}` represent the data corresponding the receiver object.
+        And let :math:`\mathbf{u}` represent the discrete numerical solution of the
+        fields on the mesh. Where :math:`\mathbf{P}` is a projection function that
+        maps from the fields to the data, i.e.:
+
+        .. math::
+            \mathbf{d} = \mathbf{P}(\mathbf{u})
+
+        this method computes and returns the derivative:
+
+        .. math::
+            \dfrac{\partial \mathbf{d}}{\partial \mathbf{u}} =
+            \dfrac{\partial [ \mathbf{P} (\mathbf{u}) ]}{\partial \mathbf{u}}
+
+        Parameters
+        ----------
+        str : .frequency_domain.sources.BaseFDEMSrc
+            The NSEM source.
+        mesh : discretize.TensorMesh
+            Mesh on which the discretize solution is obtained.
+        f : .frequency_domain.fields.FieldsFDEM
+            NSEM fields object for the source.
+        du_dm_v : None,
+            Supply pre-computed derivative?
+        v : numpy.ndarray
+            Vector of size
+        adjoint : bool
+            Whether to compute the ajoint operation.
+
+        Returns
+        -------
+        numpy.ndarray
+            Calculated derivative (n_data,) if `adjoint` is ``False`` and (n_param, 2)
+            if `adjoint` is ``True`` for both polarizations.
+        """
+        return self._eval_mobilemt_deriv(
+            src, mesh, f, du_dm_v=du_dm_v, v=v, adjoint=adjoint
+        )
+
+
+class PointImpedance(Point3DMobileMT):
     r"""Point receiver class for 1D, 2D and 3D impedance data.
 
     This class is used to simulate data types that can be derived from the impedance tensor:
@@ -85,37 +392,9 @@ class PointImpedance(BaseRx):
     ):
         self.orientation = orientation
         self.component = component
-
-        # check if locations_e or h have been provided
-        if (locations_e is not None) and (locations_h is not None):
-            # check that locations are same size
-            if locations_e.size == locations_h.size:
-                self._locations_e = locations_e
-                self._locations_h = locations_h
-            else:
-                raise Exception("location h needs to be same size as location e")
-
-            locations = np.hstack([locations_e, locations_h])
-        elif locations is not None:
-            # check shape of locations
-            if isinstance(locations, list):
-                if len(locations) == 2:
-                    self._locations_e = locations[0]
-                    self._locations_h = locations[1]
-                elif len(locations) == 1:
-                    self._locations_e = locations[0]
-                    self._locations_h = locations[0]
-                else:
-                    raise Exception("incorrect size of list, must be length of 1 or 2")
-                locations = locations[0]
-            elif isinstance(locations, np.ndarray):
-                self._locations_e = locations
-                self._locations_h = locations
-            else:
-                raise Exception("locations need to be either a list or numpy array")
-        else:
-            locations = np.array([[0.0]])
-        super().__init__(locations)
+        super().__init__(
+            locations=locations, locations_e=locations_e, locations_h=locations_h
+        )
 
     @property
     def component(self):
@@ -180,87 +459,6 @@ class PointImpedance(BaseRx):
             "orientation", var, string_list=("xx", "xy", "yx", "yy")
         )
 
-    @property
-    def locations_e(self):
-        """Locations for the electric field measurements for each datum.
-
-        Returns
-        -------
-        (n_data, dim) numpy.ndarray
-            Location for the electric field measurements for each datum.
-        """
-        return self._locations_e
-
-    @property
-    def locations_h(self):
-        """Locations for the magnetic field measurements for each datum.
-
-        Returns
-        -------
-        (n_data, dim) numpy.ndarray
-            Location for the magnetic field measurements for each datum.
-        """
-        return self._locations_h
-
-    # THIS SHOULD BE HIDDEN METHOD
-    def getP(self, mesh, projected_grid, field="e", is_tipper_bs=False):
-        """Projection matrix from discrete field solution to measurement locations.
-
-        Note projection matrices are stored as a dictionary listed by meshes.
-
-        Parameters
-        ----------
-        mesh : discretize.base.BaseMesh
-            The mesh on which the discrete set of equations is solved.
-        projected_grid : str
-            Define what part of the mesh (i.e. edges, faces, centers, nodes) to
-            project from. Must be one of::
-
-                'Ex', 'edges_x'           -> x-component of field defined on x edges
-                'Ey', 'edges_y'           -> y-component of field defined on y edges
-                'Ez', 'edges_z'           -> z-component of field defined on z edges
-                'Fx', 'faces_x'           -> x-component of field defined on x faces
-                'Fy', 'faces_y'           -> y-component of field defined on y faces
-                'Fz', 'faces_z'           -> z-component of field defined on z faces
-                'N', 'nodes'              -> scalar field defined on nodes
-                'CC', 'cell_centers'      -> scalar field defined on cell centers
-                'CCVx', 'cell_centers_x'  -> x-component of vector field defined on cell centers
-                'CCVy', 'cell_centers_y'  -> y-component of vector field defined on cell centers
-                'CCVz', 'cell_centers_z'  -> z-component of vector field defined on cell centers
-
-        field : {"e", "h"}
-            Whether to project electric or magnetic fields from the mesh.
-        is_tipper_bs : bool
-            Whether the projection is for a remote base station location where horizontal
-            magnetic fields are measured. Ensures stash names for projection matrices
-            aren't reused.
-        """
-        if mesh.dim < 3:
-            return super().getP(mesh, projected_grid)
-
-        if is_tipper_bs:
-            stash_name = projected_grid + "_bs"
-        else:
-            stash_name = projected_grid
-
-        if (mesh, stash_name) in self._Ps:
-            return self._Ps[(mesh, stash_name, field)]
-
-        if field == "e":
-            locs = self.locations_e
-        elif field == "h":
-            if is_tipper_bs:
-                locs = self.locations_bs
-            else:
-                locs = self.locations_h
-        else:
-            raise ValueError("Field type {} unrecognized. Use 'e' or 'h'".format(field))
-
-        P = mesh.get_interpolation_matrix(locs, projected_grid)
-        if self.storeProjections:
-            self._Ps[(mesh, stash_name, field)] = P
-        return P
-
     def _eval_impedance(self, src, mesh, f):
         if mesh.dim < 3 and self.orientation in ["xx", "yy"]:
             return 0.0
@@ -268,12 +466,12 @@ class PointImpedance(BaseRx):
         h = f[src, "h"]
         if mesh.dim == 3:
             if self.orientation[0] == "x":
-                e = self.getP(mesh, "Ex", "e") @ e
+                e = _getP(self, mesh, "Ex", "e") @ e
             else:
-                e = self.getP(mesh, "Ey", "e") @ e
+                e = _getP(self, mesh, "Ey", "e") @ e
 
-            hx = self.getP(mesh, "Fx", "h") @ h
-            hy = self.getP(mesh, "Fy", "h") @ h
+            hx = _getP(self, mesh, "Fx", "h") @ h
+            hy = _getP(self, mesh, "Fy", "h") @ h
             if self.orientation[1] == "x":
                 h = hy
             else:
@@ -285,15 +483,15 @@ class PointImpedance(BaseRx):
             if mesh.dim == 1:
                 e_loc = f.aliasFields["e"][1]
                 h_loc = f.aliasFields["h"][1]
-                PE = self.getP(mesh, e_loc)
-                PH = self.getP(mesh, h_loc)
+                PE = _getP(self, mesh, e_loc)
+                PH = _getP(self, mesh, h_loc)
             elif mesh.dim == 2:
                 if self.orientation == "xy":
-                    PE = self.getP(mesh, "Ex")
-                    PH = self.getP(mesh, "CC")
+                    PE = _getP(self, mesh, "Ex")
+                    PH = _getP(self, mesh, "CC")
                 elif self.orientation == "yx":
-                    PE = self.getP(mesh, "CC")
-                    PH = self.getP(mesh, "Ex")
+                    PE = _getP(self, mesh, "CC")
+                    PH = _getP(self, mesh, "Ex")
             top = PE @ e[:, 0]
             bot = PH @ h[:, 0]
 
@@ -313,14 +511,14 @@ class PointImpedance(BaseRx):
         h = f[src, "h"]
         if mesh.dim == 3:
             if self.orientation[0] == "x":
-                Pe = self.getP(mesh, "Ex", "e")
+                Pe = _getP(self, mesh, "Ex", "e")
                 e = Pe @ e
             else:
-                Pe = self.getP(mesh, "Ey", "e")
+                Pe = _getP(self, mesh, "Ey", "e")
                 e = Pe @ e
 
-            Phx = self.getP(mesh, "Fx", "h")
-            Phy = self.getP(mesh, "Fy", "h")
+            Phx = _getP(self, mesh, "Fx", "h")
+            Phy = _getP(self, mesh, "Fy", "h")
             hx = Phx @ h
             hy = Phy @ h
             if self.orientation[1] == "x":
@@ -335,15 +533,15 @@ class PointImpedance(BaseRx):
             if mesh.dim == 1:
                 e_loc = f.aliasFields["e"][1]
                 h_loc = f.aliasFields["h"][1]
-                PE = self.getP(mesh, e_loc)
-                PH = self.getP(mesh, h_loc)
+                PE = _getP(self, mesh, e_loc)
+                PH = _getP(self, mesh, h_loc)
             elif mesh.dim == 2:
                 if self.orientation == "xy":
-                    PE = self.getP(mesh, "Ex")
-                    PH = self.getP(mesh, "CC")
+                    PE = _getP(self, mesh, "Ex")
+                    PH = _getP(self, mesh, "CC")
                 elif self.orientation == "yx":
-                    PE = self.getP(mesh, "CC")
-                    PH = self.getP(mesh, "Ex")
+                    PE = _getP(self, mesh, "CC")
+                    PH = _getP(self, mesh, "Ex")
 
             top = PE @ e[:, 0]
             bot = PH @ h[:, 0]
@@ -522,231 +720,6 @@ class PointImpedance(BaseRx):
         )
 
 
-class Point3DTipper(PointImpedance):
-    r"""Point receiver class for 3D tipper measurements.
-
-    This class can be used to simulate AFMag tipper data, defined according to:
-
-    .. math::
-        \begin{bmatrix} T_{yy} & T_{zy} \end{bmatrix} =
-        \begin{bmatrix} H_x^{(x)} & H_y^{(x)} \\ H_x^{(y)} & H_y^{(y)} \end{bmatrix}^{-1} \,
-        \begin{bmatrix} H_z^{(x)} \\ H_z^{(y)} \end{bmatrix}
-
-    where superscripts :math:`(x)` and :math:`(y)` denote signals corresponding to
-    incident planewaves whose electric fields are polarized along the x and y-directions
-    respectively. Note that in ``simpeg``, natural source EM data are defined according to
-    standard xyz coordinates; i.e. (x,y,z) is (Easting, Northing, Z +ve up).
-
-    The receiver class can also be used to simulate a diverse set of Tipper-like data types
-    when horizontal magnetic fields are measured at a remote base station. These are defined
-    according to:
-
-    .. math::
-        \begin{bmatrix} T_{xx} & T_{yx} & T_{zx} \\ T_{xy} & T_{yy} & T_{zy} \end{bmatrix} =
-        \begin{bmatrix} H_x^{(x)} & H_y^{(x)} \\ H_x^{(y)} & H_y^{(y)} \end{bmatrix}_b^{-1} \,
-        \begin{bmatrix} H_x^{(x)} & H_y^{(x)} & H_z^{(x)} \\ H_x^{(y)} & H_y^{(y)} & H_z^{(y)} \end{bmatrix}_r
-
-    where subscript :math:`b` denotes the base station location and subscript
-    :math:`r` denotes the mobile receiver location.
-
-    Parameters
-    ----------
-    locations : (n_loc, n_dim) numpy.ndarray
-        Mobile receiver locations.
-    locations_bs: (n_loc, n_dim) numpy.ndarray, optional
-        Locations for remote horizontal magnetic field measurements (e.g. base station).
-        Must be same shape as `locations`.
-    orientation : {'xx', 'yx', 'zx', 'zy', 'yy', 'zy'}
-        Specifies the tipper element :math:`T_{ij}` corresponding to the data.
-    component : {'real', 'imag'}
-        Tipper data type. For the tipper element :math:`T_{ij}` specified by the `orientation`
-        input argument, the receiver can be set to compute the following:
-        - 'real': Real component of the tipper (unitless)
-        - 'imag': Imaginary component of the tipper (unitless)
-    """
-
-    def __init__(
-        self,
-        locations,
-        orientation="zx",
-        component="real",
-        locations_bs=None,
-        locations_e=None,
-        locations_h=None,
-    ):
-        super().__init__(
-            locations=locations,
-            orientation=orientation,
-            component=component,
-            locations_e=locations_e,
-            locations_h=locations_h,
-        )
-
-        if locations_bs is not None:
-            self.locations_bs = locations_bs
-
-    @property
-    def locations_e(self):
-        """Returns ``None`` as electric fields are not measured for Tipper-like data.
-
-        Returns
-        -------
-        None
-            Electric fields are not measured for Tipper-like data.
-        """
-        return None
-
-    @property
-    def locations_bs(self):
-        """Locations for remote horizontal magnetic field measurements.
-
-        Must be same shape as the `locations` property.
-
-        Returns
-        -------
-        (n_loc, n_dim) np.ndarray
-            Locations for remote horizontal magnetic field measurements.
-        """
-        return self._locations_bs
-
-    @locations_bs.setter
-    def locations_bs(self, locs):
-        self._locations_bs = validate_ndarray_with_shape(
-            "locations_bs", locs, shape=("*", "*"), dtype=float
-        )
-
-    @property
-    def orientation(self):
-        """Specifies the tipper element :math:`T_{ij}` corresponding to the data.
-
-        Returns
-        -------
-        str
-            Specifies the tipper element :math:`T_{ij}` corresponding to the data.
-            One of {'xx', 'yx', 'zx', 'zy', 'yy', 'zy'}.
-        """
-        return self._orientation
-
-    @orientation.setter
-    def orientation(self, var):
-        self._orientation = validate_string(
-            "orientation", var, string_list=("zx", "zy", "xx", "xy", "yx", "yy")
-        )
-
-    def _eval_tipper(self, src, mesh, f):
-        # will grab both primary and secondary and sum them!
-        h = f[src, "h"]
-
-        if self.locations_bs is not None:
-            is_tipper_bs = True
-        else:
-            is_tipper_bs = False
-
-        hx = self.getP(mesh, "Fx", "h", is_tipper_bs) @ h
-        hy = self.getP(mesh, "Fy", "h", is_tipper_bs) @ h
-        hz = self.getP(mesh, "F" + self.orientation[0], "h") @ h
-
-        if self.orientation[1] == "x":
-            h = -hy
-        else:
-            h = hx
-
-        top = h[:, 0] * hz[:, 1] - h[:, 1] * hz[:, 0]
-        bot = hx[:, 0] * hy[:, 1] - hx[:, 1] * hy[:, 0]
-        return top / bot
-
-    def _eval_tipper_deriv(self, src, mesh, f, du_dm_v=None, v=None, adjoint=False):
-        # will grab both primary and secondary and sum them!
-        h = f[src, "h"]
-
-        if self.locations_bs is not None:
-            is_tipper_bs = True
-        else:
-            is_tipper_bs = False
-
-        Phx = self.getP(mesh, "Fx", "h", is_tipper_bs)
-        Phy = self.getP(mesh, "Fy", "h", is_tipper_bs)
-        Phz = self.getP(mesh, "F" + self.orientation[0], "h")
-        hx = Phx @ h
-        hy = Phy @ h
-        hz = Phz @ h
-
-        if self.orientation[1] == "x":
-            h = -hy
-        else:
-            h = hx
-
-        top = h[:, 0] * hz[:, 1] - h[:, 1] * hz[:, 0]
-        bot = hx[:, 0] * hy[:, 1] - hx[:, 1] * hy[:, 0]
-        tip = top / bot
-
-        if adjoint:
-            # Work backwards!
-            gtop_v = (v / bot)[..., None]
-            gbot_v = (-tip * v / bot)[..., None]
-            n_d = self.nD
-
-            ghx_v = np.c_[hy[:, 1], -hy[:, 0]] * gbot_v
-            ghy_v = np.c_[-hx[:, 1], hx[:, 0]] * gbot_v
-            ghz_v = np.c_[-h[:, 1], h[:, 0]] * gtop_v
-            gh_v = np.c_[hz[:, 1], -hz[:, 0]] * gtop_v
-
-            if self.orientation[1] == "x":
-                ghy_v -= gh_v
-            else:
-                ghx_v += gh_v
-
-            if v.ndim == 2:
-                # collapse into a long list of n_d vectors
-                ghx_v = ghx_v.reshape((n_d, -1))
-                ghy_v = ghy_v.reshape((n_d, -1))
-                ghz_v = ghz_v.reshape((n_d, -1))
-
-            gh_v = Phx.T @ ghx_v + Phy.T @ ghy_v + Phz.T @ ghz_v
-            return f._hDeriv(src, None, gh_v, adjoint=True)
-
-        dh_v = f._hDeriv(src, du_dm_v, v, adjoint=False)
-        dhx_v = Phx @ dh_v
-        dhy_v = Phy @ dh_v
-        dhz_v = Phz @ dh_v
-        if self.orientation[1] == "x":
-            dh_v = -dhy_v
-        else:
-            dh_v = dhx_v
-
-        dtop_v = (
-            h[:, 0] * dhz_v[:, 1]
-            + dh_v[:, 0] * hz[:, 1]
-            - h[:, 1] * dhz_v[:, 0]
-            - dh_v[:, 1] * hz[:, 0]
-        )
-        dbot_v = (
-            hx[:, 0] * dhy_v[:, 1]
-            + dhx_v[:, 0] * hy[:, 1]
-            - hx[:, 1] * dhy_v[:, 0]
-            - dhx_v[:, 1] * hy[:, 0]
-        )
-
-        return (bot * dtop_v - top * dbot_v) / (bot * bot)
-
-    def eval(self, src, mesh, f, return_complex=False):  # noqa: A003
-        # Docstring inherited from parent class (PointImpedance).
-        rx_eval_complex = self._eval_tipper(src, mesh, f)
-        return getattr(rx_eval_complex, self.component)
-
-    def evalDeriv(self, src, mesh, f, du_dm_v=None, v=None, adjoint=False):
-        # Docstring inherited from parent class (PointImpedance).
-        if adjoint:
-            if self.component == "imag":
-                v = -1j * v
-        imp_deriv = self._eval_tipper_deriv(
-            src, mesh, f, du_dm_v=du_dm_v, v=v, adjoint=adjoint
-        )
-        if adjoint:
-            return imp_deriv
-        return getattr(imp_deriv, self.component)
-
-
 class Point3DAdmittance(PointImpedance):
     r"""Point receiver class for data types derived by the 3D admittance tensor.
 
@@ -845,8 +818,6 @@ class Point3DAdmittance(PointImpedance):
             [
                 ("real", "re", "in-phase", "in phase"),
                 ("imag", "imaginary", "im", "out-of-phase", "out of phase"),
-                # ("MobileMT", "mobilemt"),
-                # ("phase", "phi"),
             ],
         )
 
@@ -859,10 +830,10 @@ class Point3DAdmittance(PointImpedance):
         e = f[src, "e"]
         h = f[src, "h"]
 
-        ex = self.getP(mesh, "Ex", "e") @ e
-        ey = self.getP(mesh, "Ey", "e") @ e
+        ex = _getP(self, mesh, "Ex", "e") @ e
+        ey = _getP(self, mesh, "Ey", "e") @ e
 
-        h = self.getP(mesh, "F" + self.orientation[0], "h") @ h
+        h = _getP(self, mesh, "F" + self.orientation[0], "h") @ h
 
         if self.orientation[1] == "x":
             top = h[:, 0] * ey[:, 1] - h[:, 1] * ex[:, 1]
@@ -883,9 +854,9 @@ class Point3DAdmittance(PointImpedance):
         e = f[src, "e"]
         h = f[src, "h"]
 
-        Pex = self.getP(mesh, "Ex", "e")
-        Pey = self.getP(mesh, "Ey", "e")
-        Ph = self.getP(mesh, "F" + self.orientation[0], "h")
+        Pex = _getP(self, mesh, "Ex", "e")
+        Pey = _getP(self, mesh, "Ey", "e")
+        Ph = _getP(self, mesh, "F" + self.orientation[0], "h")
 
         ex = Pex @ e
         ey = Pey @ e
@@ -967,199 +938,256 @@ class Point3DAdmittance(PointImpedance):
         )
 
 
-class Point3DMobileMT(PointImpedance):
-    r"""Point receiver class for data types derived by the 3D MobileMT data.
+class Point3DTipper(BaseRx):
+    r"""Point receiver class for 3D tipper measurements.
 
-    This class is used to simulate the apparent conductivity data, in S/m, collected
-    by Expert Geophysics MobileMT systems:
-
-    .. math::
-        \sigma_{app} = \mu_0 \omega \dfrac{\big | \vec{H} \big |^2}{\big | \vec{E} \big |^2}
-
-    where :math:`\omega` is the angular frequency in rad/s,
+    This class can be used to simulate AFMag tipper data, defined according to:
 
     .. math::
-        \big | \vec{H} \big | = \Big [ H_x^2 + H_y^2 + H_z^2 \Big ]^{1/2}
+        \begin{bmatrix} T_{yy} & T_{zy} \end{bmatrix} =
+        \begin{bmatrix} H_x^{(x)} & H_y^{(x)} \\ H_x^{(y)} & H_y^{(y)} \end{bmatrix}^{-1} \,
+        \begin{bmatrix} H_z^{(x)} \\ H_z^{(y)} \end{bmatrix}
 
-    and
+    where superscripts :math:`(x)` and :math:`(y)` denote signals corresponding to
+    incident planewaves whose electric fields are polarized along the x and y-directions
+    respectively. Note that in ``simpeg``, natural source EM data are defined according to
+    standard xyz coordinates; i.e. (x,y,z) is (Easting, Northing, Z +ve up).
+
+    The receiver class can also be used to simulate a diverse set of Tipper-like data types
+    when horizontal magnetic fields are measured at a remote base station. These are defined
+    according to:
 
     .. math::
-        \big | \vec{H} \big | = \Big [ H_x^2 + H_y^2 + H_z^2 \Big ]^{1/2}
+        \begin{bmatrix} T_{xx} & T_{yx} & T_{zx} \\ T_{xy} & T_{yy} & T_{zy} \end{bmatrix} =
+        \begin{bmatrix} H_x^{(x)} & H_y^{(x)} \\ H_x^{(y)} & H_y^{(y)} \end{bmatrix}_b^{-1} \,
+        \begin{bmatrix} H_x^{(x)} & H_y^{(x)} & H_z^{(x)} \\ H_x^{(y)} & H_y^{(y)} & H_z^{(y)} \end{bmatrix}_r
+
+    where subscript :math:`b` denotes the base station location and subscript
+    :math:`r` denotes the mobile receiver location.
 
     Parameters
     ----------
     locations : (n_loc, n_dim) numpy.ndarray
-        Locations where the electric and magnetic fields are measured.
-        If electric and magnetic fields are measured in different locations, please
-        use `locations_e` and `locations_h` when instantiating.
-    locations_e : (n_loc, n_dim) numpy.ndarray
-        Locations where the horizontal electric fields are measured.
-        Must be same size as `locations_h`.
-    locations_h : (n_loc, n_dim) numpy.ndarray
-        Locations where the magnetic fields are measured.
-        Must be same size as `locations_e`.
+        Mobile receiver locations.
+    orientation : {'xx', 'yx', 'zx', 'zy', 'yy', 'zy'}
+        Specifies the tipper element :math:`T_{ij}` corresponding to the data.
+    component : {'real', 'imag'}
+        Tipper data type. For the tipper element :math:`T_{ij}` specified by the `orientation`
+        input argument, the receiver can be set to compute the following:
+        - 'real': Real component of the tipper (unitless)
+        - 'imag': Imaginary component of the tipper (unitless)
+    locations_bs : (n_loc, n_dim) numpy.ndarray, optional
+        Locations for remote horizontal magnetic field measurements (e.g. base station).
+        Must be same shape as `locations`.
+    locations_e : (n_loc, n_dim) numpy.ndarray, optional
+        Deprecated property. To be removed in simpeg 0.20.0.
+    locations_h : (n_loc, n_dim) numpy.ndarray, optional
+        Deprecated property. To be removed in simpeg 0.20.0.
     """
 
     def __init__(
         self,
-        locations=None,
+        locations,
+        orientation="zx",
+        component="real",
+        locations_bs=None,
         locations_e=None,
         locations_h=None,
     ):
-        super().__init__(
-            locations=locations,
-            locations_e=locations_e,
-            locations_h=locations_h,
-        )
 
-    def _eval_mobilemt(self, src, mesh, f):
-        if mesh.dim < 3:
-            raise NotImplementedError("MobileMT receiver not implemented for dim < 3.")
+        self.orientation = orientation
+        self.component = component
 
-        e = f[src, "e"]
-        h = f[src, "h"]
+        # check if locations and locations_bs have been provided
+        if locations_bs is not None:
+            # check that locations are same size
+            if locations_bs.size == locations.size:
+                self._locations_bs = locations_bs
+            else:
+                raise Exception("location_bs needs to be same size as locations")
 
-        ex = np.sum(self.getP(mesh, "Ex", "e") @ e, axis=-1)
-        ey = np.sum(self.getP(mesh, "Ey", "e") @ e, axis=-1)
+        else:
+            # check shape of locations
+            if isinstance(locations, list):
+                if len(locations) == 1:
+                    pass
+                elif len(locations) == 2:
+                    if locations[0].size != locations[1].size:
+                        raise Exception(
+                            "location_bs needs to be same size as locations"
+                        )
+                else:
+                    raise Exception("incorrect size of list, must be length of 1 or 2")
 
-        hx = np.sum(self.getP(mesh, "Fx", "h") @ h, axis=-1)
-        hy = np.sum(self.getP(mesh, "Fy", "h") @ h, axis=-1)
-        hz = np.sum(self.getP(mesh, "Fz", "h") @ h, axis=-1)
+                self._locations_bs = locations[0]
+                locations = locations[-1]
+            elif isinstance(locations, np.ndarray):
+                self._locations_bs = locations
+            else:
+                raise Exception("locations need to be either a list or numpy array")
 
-        top = np.abs(hx) ** 2 + np.abs(hy) ** 2 + np.abs(hz) ** 2
-        bot = np.abs(ex) ** 2 + np.abs(ey) ** 2
+        super().__init__(locations)
 
-        return (2 * np.pi * src.frequency * mu_0) * top / bot
-
-    def _eval_mobilemt_deriv(self, src, mesh, f, du_dm_v=None, v=None, adjoint=False):
-        if mesh.dim < 3:
-            raise NotImplementedError(
-                "Admittance receiver not implemented for dim < 3."
+        if (locations_e is not None) or (locations_h is not None):
+            warnings.warn(
+                (
+                    "'locations_e' and 'locations_h' are deprecated properties that are unused by the Point3DTipper class.",
+                    "Receiver locations are set using 'locations' (and 'locations_bs').",
+                    "These property will be removed in simpeg v.0.20.0.",
+                ),
+                DeprecationWarning,
+                stacklevel=2,
             )
 
-        # Compute admittances
-        e = f[src, "e"]
+    @property
+    def locations_bs(self):
+        """Locations for remote horizontal magnetic field measurements.
+
+        Must be same shape as the `locations` property.
+
+        Returns
+        -------
+        (n_loc, n_dim) np.ndarray
+            Locations for remote horizontal magnetic field measurements.
+        """
+        return self._locations_bs
+
+    @locations_bs.setter
+    def locations_bs(self, locs):
+        self._locations_bs = validate_ndarray_with_shape(
+            "locations_bs", locs, shape=("*", "*"), dtype=float
+        )
+
+    @property
+    def orientation(self):
+        """Specifies the tipper element :math:`T_{ij}` corresponding to the data.
+
+        Returns
+        -------
+        str
+            Specifies the tipper element :math:`T_{ij}` corresponding to the data.
+            One of {'xx', 'yx', 'zx', 'zy', 'yy', 'zy'}.
+        """
+        return self._orientation
+
+    @orientation.setter
+    def orientation(self, var):
+        self._orientation = validate_string(
+            "orientation", var, string_list=("zx", "zy", "xx", "xy", "yx", "yy")
+        )
+
+    def _eval_tipper(self, src, mesh, f):
+        # will grab both primary and secondary and sum them!
         h = f[src, "h"]
 
-        Pex = self.getP(mesh, "Ex", "e")
-        Pey = self.getP(mesh, "Ey", "e")
-        Phx = self.getP(mesh, "Fx", "h")
-        Phy = self.getP(mesh, "Fy", "h")
-        Phz = self.getP(mesh, "Fz", "h")
+        if self.locations_bs is not None:
+            is_tipper_bs = True
+        else:
+            is_tipper_bs = False
 
-        ex = np.sum(Pex @ e, axis=-1)
-        ey = np.sum(Pey @ e, axis=-1)
-        hx = np.sum(Phx @ h, axis=-1)
-        hy = np.sum(Phy @ h, axis=-1)
-        hz = np.sum(Phz @ h, axis=-1)
+        hx = _getP(self, mesh, "Fx", "h", is_tipper_bs) @ h
+        hy = _getP(self, mesh, "Fy", "h", is_tipper_bs) @ h
+        hz = _getP(self, mesh, "F" + self.orientation[0], "h") @ h
 
-        fact = 2 * np.pi * src.frequency * mu_0
-        top = np.abs(hx) ** 2 + np.abs(hy) ** 2 + np.abs(hz) ** 2
-        bot = np.abs(ex) ** 2 + np.abs(ey) ** 2
+        if self.orientation[1] == "x":
+            h = -hy
+        else:
+            h = hx
 
-        # ADJOINT
+        top = h[:, 0] * hz[:, 1] - h[:, 1] * hz[:, 0]
+        bot = hx[:, 0] * hy[:, 1] - hx[:, 1] * hy[:, 0]
+        return top / bot
+
+    def _eval_tipper_deriv(self, src, mesh, f, du_dm_v=None, v=None, adjoint=False):
+        # will grab both primary and secondary and sum them!
+        h = f[src, "h"]
+
+        if self.locations_bs is not None:
+            is_tipper_bs = True
+        else:
+            is_tipper_bs = False
+
+        Phx = _getP(self, mesh, "Fx", "h", is_tipper_bs)
+        Phy = _getP(self, mesh, "Fy", "h", is_tipper_bs)
+        Phz = _getP(self, mesh, "F" + self.orientation[0], "h")
+        hx = Phx @ h
+        hy = Phy @ h
+        hz = Phz @ h
+
+        if self.orientation[1] == "x":
+            h = -hy
+        else:
+            h = hx
+
+        top = h[:, 0] * hz[:, 1] - h[:, 1] * hz[:, 0]
+        bot = hx[:, 0] * hy[:, 1] - hx[:, 1] * hy[:, 0]
+        tip = top / bot
+
         if adjoint:
+            # Work backwards!
+            gtop_v = (v / bot)[..., None]
+            gbot_v = (-tip * v / bot)[..., None]
+            n_d = self.nD
 
-            # J_T * v = d_top_T * a_v + d_bot_T * b
-            a_v = fact * v / bot  # term 1
-            b_v = -fact * top * v / bot**2  # term 2
+            ghx_v = np.c_[hy[:, 1], -hy[:, 0]] * gbot_v
+            ghy_v = np.c_[-hx[:, 1], hx[:, 0]] * gbot_v
+            ghz_v = np.c_[-h[:, 1], h[:, 0]] * gtop_v
+            gh_v = np.c_[hz[:, 1], -hz[:, 0]] * gtop_v
 
-            hx *= a_v
-            hy *= a_v
-            hz *= a_v
-            ex *= b_v
-            ey *= b_v
+            if self.orientation[1] == "x":
+                ghy_v -= gh_v
+            else:
+                ghx_v += gh_v
 
-            e_v = 2 * (Pex.T @ ex + Pey.T @ ey).conjugate()
-            h_v = 2 * (Phx.T @ hx + Phy.T @ hy + Phz.T @ hz).conjugate()
+            if v.ndim == 2:
+                # collapse into a long list of n_d vectors
+                ghx_v = ghx_v.reshape((n_d, -1))
+                ghy_v = ghy_v.reshape((n_d, -1))
+                ghz_v = ghz_v.reshape((n_d, -1))
 
-            fu_e_v, fm_e_v = f._eDeriv(src, None, e_v, adjoint=True)
-            fu_h_v, fm_h_v = f._hDeriv(src, None, h_v, adjoint=True)
+            gh_v = Phx.T @ ghx_v + Phy.T @ ghy_v + Phz.T @ ghz_v
+            return f._hDeriv(src, None, gh_v, adjoint=True)
 
-            return fu_e_v + fu_h_v, fm_e_v + fm_h_v
-
-        # JVEC
-        de_v = f._eDeriv(src, du_dm_v, v, adjoint=False)
         dh_v = f._hDeriv(src, du_dm_v, v, adjoint=False)
+        dhx_v = Phx @ dh_v
+        dhy_v = Phy @ dh_v
+        dhz_v = Phz @ dh_v
+        if self.orientation[1] == "x":
+            dh_v = -dhy_v
+        else:
+            dh_v = dhx_v
 
-        dex_v = np.sum(Pex @ de_v, axis=-1)
-        dey_v = np.sum(Pey @ de_v, axis=-1)
-        dhx_v = np.sum(Phx @ dh_v, axis=-1)
-        dhy_v = np.sum(Phy @ dh_v, axis=-1)
-        dhz_v = np.sum(Phz @ dh_v, axis=-1)
-
-        # Imaginary components cancel and its 2x the real
         dtop_v = (
-            2
-            * (
-                hx * dhx_v.conjugate() + hy * dhy_v.conjugate() + hz * dhz_v.conjugate()
-            ).real
+            h[:, 0] * dhz_v[:, 1]
+            + dh_v[:, 0] * hz[:, 1]
+            - h[:, 1] * dhz_v[:, 0]
+            - dh_v[:, 1] * hz[:, 0]
+        )
+        dbot_v = (
+            hx[:, 0] * dhy_v[:, 1]
+            + dhx_v[:, 0] * hy[:, 1]
+            - hx[:, 1] * dhy_v[:, 0]
+            - dhx_v[:, 1] * hy[:, 0]
         )
 
-        dbot_v = 2 * (ex * dex_v.conjugate() + ey * dey_v.conjugate()).real
-
-        return fact * (bot * dtop_v - top * dbot_v) / (bot * bot)
+        return (bot * dtop_v - top * dbot_v) / (bot * bot)
 
     def eval(self, src, mesh, f, return_complex=False):  # noqa: A003
-        """Compute receiver data from the discrete field solution.
-
-        Parameters
-        ----------
-        src : .frequency_domain.sources.BaseFDEMSrc
-            NSEM source.
-        mesh : discretize.TensorMesh
-            Mesh on which the discretize solution is obtained.
-        f : .frequency_domain.fields.FieldsFDEM
-            NSEM fields object of the source.
-
-        Returns
-        -------
-        numpy.ndarray
-            Evaluated data for the receiver.
-        """
-        return self._eval_mobilemt(src, mesh, f)
+        # Docstring inherited from parent class (PointImpedance).
+        rx_eval_complex = self._eval_tipper(src, mesh, f)
+        return getattr(rx_eval_complex, self.component)
 
     def evalDeriv(self, src, mesh, f, du_dm_v=None, v=None, adjoint=False):
-        r"""Derivative of data with respect to the fields.
-
-        Let :math:`\mathbf{d}` represent the data corresponding the receiver object.
-        And let :math:`\mathbf{u}` represent the discrete numerical solution of the
-        fields on the mesh. Where :math:`\mathbf{P}` is a projection function that
-        maps from the fields to the data, i.e.:
-
-        .. math::
-            \mathbf{d} = \mathbf{P}(\mathbf{u})
-
-        this method computes and returns the derivative:
-
-        .. math::
-            \dfrac{\partial \mathbf{d}}{\partial \mathbf{u}} =
-            \dfrac{\partial [ \mathbf{P} (\mathbf{u}) ]}{\partial \mathbf{u}}
-
-        Parameters
-        ----------
-        str : .frequency_domain.sources.BaseFDEMSrc
-            The NSEM source.
-        mesh : discretize.TensorMesh
-            Mesh on which the discretize solution is obtained.
-        f : .frequency_domain.fields.FieldsFDEM
-            NSEM fields object for the source.
-        du_dm_v : None,
-            Supply pre-computed derivative?
-        v : numpy.ndarray
-            Vector of size
-        adjoint : bool
-            Whether to compute the ajoint operation.
-
-        Returns
-        -------
-        numpy.ndarray
-            Calculated derivative (n_data,) if `adjoint` is ``False`` and (n_param, 2)
-            if `adjoint` is ``True`` for both polarizations.
-        """
-        return self._eval_mobilemt_deriv(
+        # Docstring inherited from parent class (PointImpedance).
+        if adjoint:
+            if self.component == "imag":
+                v = -1j * v
+        imp_deriv = self._eval_tipper_deriv(
             src, mesh, f, du_dm_v=du_dm_v, v=v, adjoint=adjoint
         )
+        if adjoint:
+            return imp_deriv
+        return getattr(imp_deriv, self.component)
 
 
 @deprecate_class(removal_version="0.20.0", error=False)
