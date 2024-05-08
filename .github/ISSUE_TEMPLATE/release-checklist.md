@@ -116,7 +116,7 @@ Edit the `docs/_static/versions.json` file and:
 
 - [ ] Add an entry for the new version.
 - [ ] Move the line with `"name":` to the new entry (so the new version is set
-  as the stable one).
+  as the _latest_ one).
 - [ ] Update the version number in the `"name":` line.
 - [ ] Run `cat docs/_static/versions.json| python -m json.tool > /dev/null` to
   check if the syntax of the JSON file is correct. If no errors are prompted,
