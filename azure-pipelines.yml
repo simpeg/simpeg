@@ -318,51 +318,24 @@ stages:
             # Clone the repo where we store the documentation
             git clone --depth 1 https://${GH_TOKEN}@github.com/simpeg/simpeg-doctest.git
             cd simpeg-doctest
-
-            # Push new docs
-            # -------------
-            echo -e "\nCommiting new docs."
-            # Create new orphan branch
-            git switch --orphan $version
             # Move the built docs to a new dev folder
-            shopt -s dotglob  # configure bash to include dotfiles in * globs
-            cp -r $BUILD_SOURCESDIRECTORY/docs/_build/html/* -t .
+            cp -r $BUILD_SOURCESDIRECTORY/docs/_build/html "$version"
+            cp $BUILD_SOURCESDIRECTORY/docs/README.md .
+            # Add .nojekyll if missing
+            touch .nojekyll
+            # Update latest symlink
+            rm -f latest
+            ln -s "$version" latest
             # Commit the new docs.
-            git add .
+            git add "$version" README.md .nojekyll latest
             message="Azure CI deploy ${version} from ${commit}"
             echo -e "\nMaking a new commit:"
             git commit -m "$message"
             # Make the push quiet just in case there is anything that could
             # leak sensitive information.
-            echo -e "\nPushing changes to simpeg/simpeg-doctest ($version branch)."
-            git push -fq origin $version 2>&1 >/dev/null
-            echo -e "\nFinished uploading generated doc files."
-
-            # Add new submodule in gh-pages
-            # -----------------------------
-            echo -e "\nAdd new submodule."
-            git switch gh-pages
-            # Clean the workspace in case of hanging untracked files
-            git clean -xdff .
-            # Add new submodule
-            git submodule add -b $version https://github.com/simpeg/simpeg-doctest $version
-            # Update latest symlink
-            rm -f latest
-            ln -s "$version" latest
-            # Commit changes
-            git add $version latest .gitmodules
-            message="Azure CI add submodule ${version} from ${commit}"
-            echo -e "\nMaking a new commit:"
-            git commit -m "$message"
-            # Make the push quiet just in case there is anything that could
-            # leak sensitive information.
-            echo -e "\nPushing changes to simpeg/simpeg-doctest (gh-pages branch)."
+            echo -e "\nPushing changes to simpeg/simpeg-doctest."
             git push -fq origin gh-pages 2>&1 >/dev/null
-            echo -e "\nFinished adding submodule '$version' to gh-pages branch."
-
-            # Unset dotglob
-            shopt -u dotglob
-            export GLOBIGNORE=""
+            echo -e "\nFinished uploading generated files."
           displayName: Push documentation to simpeg-doctest
           env:
             GH_TOKEN: $(gh.token)
