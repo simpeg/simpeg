@@ -1,12 +1,8 @@
 """
 ============================================================================================
-Spontaneous Potential (:mod:`simpeg.electromagnetics.static.spontaneous_potential`)
+Self Potential (:mod:`simpeg.electromagnetics.static.self_potential`)
 ============================================================================================
-.. currentmodule:: simpeg.electromagnetics.static.spontaneous_potential
-
-.. admonition:: important
-
-  This module will be deprecated in favour of ``simpeg.electromagnetics.static.self_potential``
+.. currentmodule:: simpeg.electromagnetics.static.self_potential
 
 
 Simulations
@@ -47,23 +43,10 @@ with different types of model sources.
 
 """
 
-import warnings
-
-warnings.warn(
-    (
-        "The 'spontaneous_potential' module has been renamed to 'self_potential'. "
-        "Please use the 'self_potential' module instead. "
-        "The 'spontaneous_potential' module will be removed in SimPEG 0.23."
-    ),
-    FutureWarning,
-    stacklevel=2,
-)
-
-from ..self_potential.simulation import (
+from .simulation import (
     Simulation3DCellCentered,
     Survey,
     CurrentDensityMap,
     HydraulicHeadMap,
 )
-from ..self_potential import sources
-from ..self_potential import simulation
+from . import sources

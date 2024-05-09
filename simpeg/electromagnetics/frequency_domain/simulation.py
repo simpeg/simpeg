@@ -883,7 +883,7 @@ class Simulation3DCurrentDensity(BaseFDEMSimulation):
         Derivative of the right hand side with respect to the model
 
         :param float freq: frequency
-        :param SimPEG.electromagnetics.frequency_domain.fields.FieldsFDEM src: FDEM source
+        :param simpeg.electromagnetics.frequency_domain.fields.FieldsFDEM src: FDEM source
         :param numpy.ndarray v: vector to take product with
         :param bool adjoint: adjoint?
         :rtype: numpy.ndarray
@@ -1044,7 +1044,7 @@ class Simulation3DMagneticField(BaseFDEMSimulation):
         Derivative of the right hand side with respect to the model
 
         :param float freq: frequency
-        :param SimPEG.electromagnetics.frequency_domain.fields.FieldsFDEM src: FDEM source
+        :param simpeg.electromagnetics.frequency_domain.fields.FieldsFDEM src: FDEM source
         :param numpy.ndarray v: vector to take product with
         :param bool adjoint: adjoint?
         :rtype: numpy.ndarray

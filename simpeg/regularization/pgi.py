@@ -51,7 +51,7 @@ class PGIsmallness(Smallness):
 
     Parameters
     ----------
-    gmmref : SimPEG.utils.WeightedGaussianMixture
+    gmmref : simpeg.utils.WeightedGaussianMixture
         Reference Gaussian mixture model.
     gmm : None, simpeg.utils.WeightedGaussianMixture
         Set the Gaussian mixture model used to constrain the recovered physical property model.
@@ -267,7 +267,7 @@ class PGIsmallness(Smallness):
 
         Returns
         -------
-        SimPEG.utils.WeightedGaussianMixture
+        simpeg.utils.WeightedGaussianMixture
             Gaussian mixture model used to constrain the recovered physical property model.
         """
         if getattr(self, "_gmm", None) is None:
@@ -373,7 +373,7 @@ class PGIsmallness(Smallness):
 
         Returns
         -------
-        SimPEG.maps.Wires
+        simpeg.maps.Wires
             Mapping from the model to the model parameters of each type.
         """
         if getattr(self, "_wiresmap", None) is None:
@@ -975,7 +975,7 @@ class PGI(ComboObjectiveFunction):
     mesh : simpeg.regularization.RegularizationMesh, discretize.base.BaseMesh
         Mesh on which the regularization is discretized. Implemented for
         `tensor`, `QuadTree` or `Octree` meshes.
-    gmmref : SimPEG.utils.WeightedGaussianMixture
+    gmmref : simpeg.utils.WeightedGaussianMixture
         Reference Gaussian mixture model.
     gmm : None, simpeg.utils.WeightedGaussianMixture
         Set the Gaussian mixture model used to constrain the recovered physical property model.
@@ -1301,7 +1301,7 @@ class PGI(ComboObjectiveFunction):
 
         Returns
         -------
-        SimPEG.maps.Wires
+        simpeg.maps.Wires
             Mapping from the model to the model parameters of each type.
         """
         if getattr(self, "_wiresmap", None) is None:

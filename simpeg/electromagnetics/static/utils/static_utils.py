@@ -178,7 +178,7 @@ def pseudo_locations(survey, wenner_tolerance=0.1, **kwargs):
 
     Parameters
     ----------
-    survey : SimPEG.electromagnetics.static.resistivity.Survey
+    survey : simpeg.electromagnetics.static.resistivity.Survey
         A DC or IP survey
     wenner_tolerance : float, default=0.1
         If the center location for a source and receiver pair are within wenner_tolerance,
@@ -269,7 +269,7 @@ def geometric_factor(survey_object, space_type="half space", **kwargs):
 
     Parameters
     ----------
-    survey_object : SimPEG.electromagnetics.static.resistivity.Survey
+    survey_object : simpeg.electromagnetics.static.resistivity.Survey
         A DC (or IP) survey object
     space_type : {'half space', 'whole space'}
         Compute geometric factor for a halfspace or wholespace.
@@ -312,7 +312,7 @@ def apparent_resistivity_from_voltage(
 
     Parameters
     ----------
-    survey : SimPEG.electromagnetics.static.resistivity.Survey
+    survey : simpeg.electromagnetics.static.resistivity.Survey
         A DC survey
     volts : (nD) numpy.ndarray
         Normalized voltage measurements [V/A]
@@ -352,7 +352,7 @@ def convert_survey_3d_to_2d_lines(
 
     Parameters
     ----------
-    survey : SimPEG.electromagnetics.static.resistivity.Survey
+    survey : simpeg.electromagnetics.static.resistivity.Survey
         A DC (or IP) survey
     lineID : (n_data) numpy.ndarray
         Defines the corresponding line ID for each datum
@@ -364,7 +364,7 @@ def convert_survey_3d_to_2d_lines(
 
     Returns
     -------
-    survey_list : list of SimPEG.electromagnetics.static.resistivity.Survey
+    survey_list : list of simpeg.electromagnetics.static.resistivity.Survey
         A list of 2D survey objects
     out_indices_list : list of numpy.ndarray
         A list of indexing arrays that map from the original 3D data to each 2D
@@ -405,19 +405,19 @@ def convert_survey_3d_to_2d_lines(
         # Along line positions and elevation for electrodes on current line
         # in terms of position elevation
         a_locs_s = np.c_[
-            np.dot(ab_locs_all[lineID_index, 0:2] - r0[0], uvec),
+            np.dot(ab_locs_all[lineID_index, 0:2] - r0, uvec),
             ab_locs_all[lineID_index, 2],
         ]
         b_locs_s = np.c_[
-            np.dot(ab_locs_all[lineID_index, 3:5] - r0[0], uvec),
+            np.dot(ab_locs_all[lineID_index, 3:5] - r0, uvec),
             ab_locs_all[lineID_index, -1],
         ]
         m_locs_s = np.c_[
-            np.dot(mn_locs_all[lineID_index, 0:2] - r0[0], uvec),
+            np.dot(mn_locs_all[lineID_index, 0:2] - r0, uvec),
             mn_locs_all[lineID_index, 2],
         ]
         n_locs_s = np.c_[
-            np.dot(mn_locs_all[lineID_index, 3:5] - r0[0], uvec),
+            np.dot(mn_locs_all[lineID_index, 3:5] - r0, uvec),
             mn_locs_all[lineID_index, -1],
         ]
 
@@ -504,7 +504,7 @@ def plot_pseudosection(
 
     Parameters
     ----------
-    data : simpeg.electromagnetics.static.survey.Survey or SimPEG.data.Data
+    data : simpeg.electromagnetics.static.survey.Survey or simpeg.data.Data
         A DC or IP survey object defining a 2D survey line, or a Data object containing
         that same type of survey object.
     dobs : numpy.ndarray (ndata,) or None
@@ -1096,7 +1096,7 @@ def generate_dcip_survey(endl, survey_type, a, b, n, dim=3, **kwargs):
 
     Returns
     -------
-    SimPEG.electromagnetics.static.resistivity.Survey
+    simpeg.electromagnetics.static.resistivity.Survey
         A DC survey object
     """
 
@@ -1285,7 +1285,7 @@ def generate_dcip_sources_line(
 
     Returns
     -------
-    SimPEG.electromagnetics.static.resistivity.Survey
+    simpeg.electromagnetics.static.resistivity.Survey
         A DC survey object
     """
 
