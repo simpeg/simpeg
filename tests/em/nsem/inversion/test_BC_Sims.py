@@ -20,6 +20,7 @@ def check_deriv(sim, test_mod, **kwargs):
 
         return d, J_func
 
+    np.random.seed(1983)  # use seed for check_derivative
     passed = check_derivative(func, x0, plotIt=False, **kwargs)
     return passed
 

@@ -46,11 +46,11 @@ def DerivJvecTest_1D(halfspace_value, freq=False, expMap=True):
     )
 
     x0 = np.r_[sigma_model, layer_thicknesses]
-    np.random.seed(1983)  # set a random seed for check_derivative
 
     def fun(x):
         return simulation.dpred(x), lambda x: simulation.Jvec(x0, x)
 
+    np.random.seed(1983)  # use seed for check_derivative
     return tests.check_derivative(fun, x0, num=6, plotIt=False, eps=FLR)
 
 
@@ -69,12 +69,12 @@ def DerivJvecTest(halfspace_value, freq=False, expMap=True):
     )
 
     x0 = sigBG
-    np.random.seed(1983)  # set a random seed for check_derivative
     survey = simulation.survey
 
     def fun(x):
         return simulation.dpred(x), lambda x: simulation.Jvec(x0, x)
 
+    np.random.seed(1983)  # set a random seed for check_derivative
     return tests.check_derivative(fun, x0, num=4, plotIt=False, eps=FLR)
 
 
