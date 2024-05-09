@@ -73,6 +73,7 @@ def test_deriv(q_map):
 
     rng = np.random.default_rng(seed=42)
     m0 = rng.normal(size=q_map.shape[1])
+    np.random.seed(40)  # set a random seed for check_derivative
     check_derivative(func, m0, plotIt=False)
 
 

@@ -130,6 +130,7 @@ def test_derivative(deriv_type):
 
         return d, J
 
+    np.random.seed(40)  # set a random seed for check_derivative
     assert check_derivative(sim_1d_func, model, plotIt=False, num=4)
 
 
