@@ -3,16 +3,16 @@ import unittest
 
 import discretize
 
-from SimPEG import mkvc
+from simpeg import mkvc
 
-from SimPEG import data_misfit
-from SimPEG import optimization
-from SimPEG import regularization
-from SimPEG import inverse_problem
-from SimPEG import inversion
-from SimPEG.directives import BetaSchedule, TargetMisfit
+from simpeg import data_misfit
+from simpeg import optimization
+from simpeg import regularization
+from simpeg import inverse_problem
+from simpeg import inversion
+from simpeg.directives import BetaSchedule, TargetMisfit
 
-from SimPEG.electromagnetics import viscous_remanent_magnetization as vrm
+from simpeg.electromagnetics import viscous_remanent_magnetization as vrm
 
 
 class VRM_inversion_tests(unittest.TestCase):
@@ -63,13 +63,16 @@ class VRM_inversion_tests(unittest.TestCase):
 
         dmis = data_misfit.L2DataMisfit(data=dobs, simulation=Problem)
         W = (
-            mkvc(
-                (np.sum(np.array(Problem.A) ** 2, axis=0)) / meshObj.cell_volumes**2.0
-            )
+            mkvc((np.sum(np.array(Problem.A) ** 2, axis=0)) / meshObj.cell_volumes**2.0)
             ** 0.25
         )
         reg = regularization.WeightedLeastSquares(
-            meshObj, alpha_s=0.01, alpha_x=1.0, alpha_y=1.0, alpha_z=1.0, weights=W
+            meshObj,
+            alpha_s=0.01,
+            alpha_x=1.0,
+            alpha_y=1.0,
+            alpha_z=1.0,
+            weights={"weights": W},
         )
         opt = optimization.ProjectedGNCG(
             maxIter=20, lower=0.0, upper=1e-2, maxIterLS=20, tolCG=1e-4

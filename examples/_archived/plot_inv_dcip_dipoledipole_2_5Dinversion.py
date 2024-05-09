@@ -12,9 +12,9 @@ User is promoted to try different suvey_type such as 'pole-dipole',
 'dipole-pole', and 'pole-pole'.
 """
 
-from SimPEG.electromagnetics.static import resistivity as DC
-from SimPEG.electromagnetics.static.utils import generate_dcip_survey, genTopography
-from SimPEG import (
+from simpeg.electromagnetics.static import resistivity as DC
+from simpeg.electromagnetics.static.utils import generate_dcip_survey, genTopography
+from simpeg import (
     maps,
     utils,
     data_misfit,
@@ -33,7 +33,7 @@ from pylab import hist
 try:
     from pymatsolver import Pardiso as Solver
 except ImportError:
-    from SimPEG import SolverLU as Solver
+    from simpeg import SolverLU as Solver
 
 
 def run(plotIt=True, survey_type="dipole-dipole"):
@@ -146,7 +146,7 @@ def run(plotIt=True, survey_type="dipole-dipole"):
     regmap = maps.IdentityMap(nP=int(actind.sum()))
 
     # Related to inversion
-    reg = regularization.Sparse(mesh, indActive=actind, mapping=regmap)
+    reg = regularization.Sparse(mesh, active_cells=actind, mapping=regmap)
     opt = optimization.InexactGaussNewton(maxIter=15)
     invProb = inverse_problem.BaseInvProblem(dmisfit, reg, opt)
     beta = directives.BetaSchedule(coolingFactor=5, coolingRate=2)

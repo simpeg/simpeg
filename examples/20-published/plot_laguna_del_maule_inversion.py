@@ -11,11 +11,12 @@ then applying an Lp norm to produce a compact model.
 
 Craig Miller
 """
+
 import os
 import shutil
 import tarfile
-from SimPEG.potential_fields import gravity
-from SimPEG import (
+from simpeg.potential_fields import gravity
+from simpeg import (
     data_misfit,
     maps,
     regularization,
@@ -24,11 +25,11 @@ from SimPEG import (
     directives,
     inversion,
 )
-from SimPEG.utils import download, plot2Ddata
+from simpeg.utils import download, plot2Ddata
 
 import matplotlib.pyplot as plt
 import numpy as np
-from SimPEG.utils.drivers.gravity_driver import GravityDriver_Inv
+from simpeg.utils.drivers.gravity_driver import GravityDriver_Inv
 
 
 def run(plotIt=True, cleanAfterRun=True):
@@ -96,9 +97,9 @@ def run(plotIt=True, cleanAfterRun=True):
 
     # %% Create inversion objects
     reg = regularization.Sparse(
-        mesh, active_cells=active, mapping=staticCells, gradientType="total"
+        mesh, active_cells=active, mapping=staticCells, gradient_type="total"
     )
-    reg.mref = driver.mref[dynamic]
+    reg.reference_model = driver.mref[dynamic]
 
     reg.norms = [0.0, 1.0, 1.0, 1.0]
     # reg.norms = driver.lpnorms

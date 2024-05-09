@@ -3,8 +3,10 @@ import scipy.sparse as sp
 import pytest
 import unittest
 
-from SimPEG import utils, maps
-from SimPEG import objective_function
+from simpeg import utils, maps
+from simpeg import objective_function
+from simpeg.objective_function import _validate_multiplier
+from simpeg.utils import Zero
 
 np.random.seed(130)
 
@@ -276,13 +278,11 @@ class TestBaseObjFct(unittest.TestCase):
         r1 = phi1.W * m
         r2 = phi2.W * m
 
-        print(phi(m), 0.5 * np.inner(r, r))
+        print(phi(m), np.inner(r, r))
 
-        self.assertTrue(np.allclose(phi(m), 0.5 * np.inner(r, r)))
+        self.assertTrue(np.allclose(phi(m), np.inner(r, r)))
         self.assertTrue(
-            np.allclose(
-                phi(m), 0.5 * (alpha1 * np.inner(r1, r1) + alpha2 * np.inner(r2, r2))
-            )
+            np.allclose(phi(m), (alpha1 * np.inner(r1, r1) + alpha2 * np.inner(r2, r2)))
         )
 
     def test_ComboConstruction(self):
@@ -442,6 +442,41 @@ def test_invalid_objfcts_in_combo():
     msg = "Unrecognized objective function type Dummy in 'objfcts'."
     with pytest.raises(TypeError, match=msg):
         objective_function.ComboObjectiveFunction(objfcts=[phi, invalid_phi])
+
+
+class TestMultiplierValidation:
+    """
+    Test the _validate_multiplier private function.
+    """
+
+    @pytest.mark.parametrize(
+        "multiplier",
+        (
+            3.14,
+            1,
+            np.float64(-15.3),
+            np.float32(-10.2),
+            np.int64(10),
+            np.int32(33),
+            Zero(),
+        ),
+    )
+    def test_valid_multipliers(self, multiplier):
+        """
+        Test function against valid multipliers
+        """
+        _validate_multiplier(multiplier)
+
+    @pytest.mark.parametrize(
+        "multiplier",
+        (np.array([1, 3.14]), np.array(3), [1, 2, 3], "string", True, None),
+    )
+    def test_invalid_multipliers(self, multiplier):
+        """
+        Test function against invalid multipliers
+        """
+        with pytest.raises(TypeError, match="Invalid multiplier"):
+            _validate_multiplier(multiplier)
 
 
 if __name__ == "__main__":

@@ -32,9 +32,9 @@ import tarfile
 
 from discretize import TensorMesh
 from discretize.utils import active_from_xyz
-from SimPEG.utils import plot2Ddata, model_builder
-from SimPEG.potential_fields import gravity
-from SimPEG import (
+from simpeg.utils import plot2Ddata, model_builder
+from simpeg.potential_fields import gravity
+from simpeg import (
     maps,
     data,
     data_misfit,
@@ -206,9 +206,20 @@ starting_model = np.zeros(nC)
 # Here, we define the physics of the gravity problem by using the simulation
 # class.
 #
+# .. tip::
+#
+#    Since SimPEG v0.21.0 we can use `Choclo
+#    <https://www.fatiando.org/choclo>`_ as the engine for running the gravity
+#    simulations, which results in faster and more memory efficient runs. Just
+#    pass ``engine="choclo"`` when constructing the simulation.
+#
 
 simulation = gravity.simulation.Simulation3DIntegral(
-    survey=survey, mesh=mesh, rhoMap=model_map, ind_active=ind_active
+    survey=survey,
+    mesh=mesh,
+    rhoMap=model_map,
+    ind_active=ind_active,
+    engine="choclo",
 )
 
 
@@ -230,7 +241,9 @@ simulation = gravity.simulation.Simulation3DIntegral(
 dmis = data_misfit.L2DataMisfit(data=data_object, simulation=simulation)
 
 # Define the regularization (model objective function).
-reg = regularization.WeightedLeastSquares(mesh, indActive=ind_active, mapping=model_map)
+reg = regularization.WeightedLeastSquares(
+    mesh, active_cells=ind_active, mapping=model_map
+)
 
 # Define how the optimization problem is solved. Here we will use a projected
 # Gauss-Newton approach that employs the conjugate gradient solver.
@@ -268,7 +281,7 @@ update_jacobi = directives.UpdatePreconditioner()
 target_misfit = directives.TargetMisfit(chifact=1)
 
 # Add sensitivity weights
-sensitivity_weights = directives.UpdateSensitivityWeights(everyIter=False)
+sensitivity_weights = directives.UpdateSensitivityWeights(every_iteration=False)
 
 # The directives are defined as a list.
 directives_list = [

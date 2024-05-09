@@ -1,9 +1,10 @@
 import unittest
+import pytest
 import numpy as np
 import scipy.sparse as sp
 import os
 import shutil
-from SimPEG.utils import (
+from simpeg.utils import (
     sdiag,
     sub2ind,
     ndgrid,
@@ -16,12 +17,12 @@ from SimPEG.utils import (
     ind2sub,
     as_array_n_by_dim,
     TensorType,
-    diagEst,
+    estimate_diagonal,
     count,
     timeIt,
     Counter,
     download,
-    surface2ind_topo,
+    coterminal,
 )
 import discretize
 
@@ -274,38 +275,15 @@ class TestSequenceFunctions(unittest.TestCase):
         self.assertTrue(np.all(true == listArray))
         self.assertTrue(true.shape == listArray.shape)
 
-    def test_surface2ind_topo(self):
-        file_url = (
-            "https://storage.googleapis.com/simpeg/tests/utils/vancouver_topo.xyz"
-        )
-        file2load = download(file_url)
-        vancouver_topo = np.loadtxt(file2load)
-        mesh_topo = discretize.TensorMesh(
-            [[(500.0, 24)], [(500.0, 20)], [(10.0, 30)]], x0="CCC"
-        )
 
-        # To keep consistent with result from deprecated function
-        vancouver_topo[:, 2] = vancouver_topo[:, 2] + 1e-8
-
-        indtopoCC = surface2ind_topo(
-            mesh_topo, vancouver_topo, gridLoc="CC", method="nearest"
-        )
-        indtopoN = surface2ind_topo(
-            mesh_topo, vancouver_topo, gridLoc="N", method="nearest"
-        )
-
-        assert len(np.where(indtopoCC)[0]) == 8728
-        assert len(np.where(indtopoN)[0]) == 8211
-
-
-class TestDiagEst(unittest.TestCase):
+class TestEstimateDiagonal(unittest.TestCase):
     def setUp(self):
         self.n = 1000
         self.A = np.random.rand(self.n, self.n)
         self.Adiag = np.diagonal(self.A)
 
     def getTest(self, testType):
-        Adiagtest = diagEst(self.A, self.n, self.n, testType)
+        Adiagtest = estimate_diagonal(self.A, self.n, self.n, testType)
         r = np.abs(Adiagtest - self.Adiag)
         err = r.dot(r)
         return err
@@ -340,6 +318,36 @@ class TestDownload(unittest.TestCase):
         # clean up
         shutil.rmtree(os.path.expanduser("./test_urls"))
         shutil.rmtree(os.path.expanduser("./test_url"))
+
+
+class TestCoterminalAngle:
+    """
+    Tests for the coterminal function
+    """
+
+    @pytest.mark.parametrize(
+        "coterminal_angle",
+        (1 / 4 * np.pi, 3 / 4 * np.pi, -3 / 4 * np.pi, -1 / 4 * np.pi),
+        ids=("pi/4", "3/4 pi", "-3/4 pi", "-pi/4"),
+    )
+    def test_angles_in_quadrants(self, coterminal_angle):
+        """
+        Test coterminal for angles in each quadrant
+        """
+        angles = np.array([2 * n * np.pi + coterminal_angle for n in range(-3, 4)])
+        np.testing.assert_allclose(coterminal(angles), coterminal_angle)
+
+    @pytest.mark.parametrize(
+        "coterminal_angle",
+        (0, np.pi / 2, -np.pi, -np.pi / 2),
+        ids=("0", "pi/2", "-pi", "-pi/2"),
+    )
+    def test_right_angles(self, coterminal_angle):
+        """
+        Test coterminal for right angles
+        """
+        angles = np.array([2 * n * np.pi + coterminal_angle for n in range(-3, 4)])
+        np.testing.assert_allclose(coterminal(angles), coterminal_angle)
 
 
 if __name__ == "__main__":

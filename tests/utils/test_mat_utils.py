@@ -2,10 +2,10 @@ import unittest
 import numpy as np
 from scipy.sparse.linalg import eigsh
 from discretize import TensorMesh
-from SimPEG import simulation, data_misfit
-from SimPEG.maps import IdentityMap
-from SimPEG.regularization import WeightedLeastSquares
-from SimPEG.utils.mat_utils import eigenvalue_by_power_iteration
+from simpeg import simulation, data_misfit
+from simpeg.maps import IdentityMap
+from simpeg.regularization import WeightedLeastSquares
+from simpeg.utils.mat_utils import eigenvalue_by_power_iteration
 
 
 class TestEigenvalues(unittest.TestCase):
@@ -39,11 +39,11 @@ class TestEigenvalues(unittest.TestCase):
         true_model[mesh.cell_centers_x > 0.6] = 0
         self.true_model = true_model
 
-        # Create a SimPEG simulation
+        # Create a simpeg simulation
         model_map = IdentityMap(mesh)
         sim = simulation.LinearSimulation(mesh, G=G, model_map=model_map)
 
-        # Create a SimPEG data object
+        # Create a simpeg data object
         relative_error = 0.1
         noise_floor = 1e-4
         data_obj = sim.make_synthetic_data(
@@ -75,7 +75,7 @@ class TestEigenvalues(unittest.TestCase):
 
     def test_dm_eigenvalue_by_power_iteration(self):
         # Test for a single data misfit
-        dmis_matrix = self.G.T.dot((self.dmis.W**2).dot(self.G))
+        dmis_matrix = 2 * self.G.T.dot((self.dmis.W**2).dot(self.G))
         field = self.dmis.simulation.fields(self.true_model)
         max_eigenvalue_numpy, _ = eigsh(dmis_matrix, k=1)
         max_eigenvalue_directive = eigenvalue_by_power_iteration(
@@ -89,7 +89,7 @@ class TestEigenvalues(unittest.TestCase):
         WtW = 0.0
         for mult, dm in zip(self.dmiscombo.multipliers, self.dmiscombo.objfcts):
             WtW += mult * dm.W**2
-        dmiscombo_matrix = self.G.T.dot(WtW.dot(self.G))
+        dmiscombo_matrix = 2 * self.G.T.dot(WtW.dot(self.G))
         max_eigenvalue_numpy, _ = eigsh(dmiscombo_matrix, k=1)
         max_eigenvalue_directive = eigenvalue_by_power_iteration(
             self.dmiscombo, self.true_model, n_pw_iter=30
@@ -110,7 +110,7 @@ class TestEigenvalues(unittest.TestCase):
 
     def test_combo_eigenvalue_by_power_iteration(self):
         reg_maxtrix = self.reg.deriv2(self.true_model)
-        dmis_matrix = self.G.T.dot((self.dmis.W**2).dot(self.G))
+        dmis_matrix = 2 * self.G.T.dot((self.dmis.W**2).dot(self.G))
         combo_matrix = dmis_matrix + self.beta * reg_maxtrix
         max_eigenvalue_numpy, _ = eigsh(combo_matrix, k=1)
         max_eigenvalue_directive = eigenvalue_by_power_iteration(

@@ -2,8 +2,8 @@
 Forward Simulation Including Inductive Response
 ===============================================
 
-Here we use the modules *SimPEG.electromagnetics.viscous_remanent_magnetization*
-and *SimPEG.electromagnetics.time_domain* to simulation the transient response
+Here we use the modules *simpeg.electromagnetics.viscous_remanent_magnetization*
+and *simpeg.electromagnetics.time_domain* to simulation the transient response
 over a conductive and magnetically viscous Earth. We consider a small-loop,
 ground-based survey which uses a coincident loop geometry. Earth is comprised
 of a conductive pipe and resistive surface layer as well as a magnetically
@@ -28,9 +28,9 @@ separate simulations, then add them together to compute the total response.
 # --------------
 #
 
-import SimPEG.electromagnetics.viscous_remanent_magnetization as vrm
-import SimPEG.electromagnetics.time_domain as tdem
-from SimPEG import maps
+import simpeg.electromagnetics.viscous_remanent_magnetization as vrm
+import simpeg.electromagnetics.time_domain as tdem
+from simpeg import maps
 
 from discretize import TensorMesh, CylindricalMesh
 from discretize.utils import mkvc
@@ -42,7 +42,7 @@ import matplotlib as mpl
 try:
     from pymatsolver import Pardiso as Solver
 except ImportError:
-    from SimPEG import SolverLU as Solver
+    from simpeg import SolverLU as Solver
 
 # sphinx_gallery_thumbnail_number = 3
 

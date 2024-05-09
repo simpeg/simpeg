@@ -11,12 +11,12 @@ We invert the data twice, first for a smooth starting model using the
 Cartesian coordinate system, and second for a compact model using
 the Spherical formulation.
 
-The inverse problem uses the :class:'SimPEG.regularization.Sparse'
+The inverse problem uses the :class:'simpeg.regularization.Sparse'
 that
 
 """
 
-from SimPEG import (
+from simpeg import (
     data,
     data_misfit,
     directives,
@@ -27,11 +27,11 @@ from SimPEG import (
     regularization,
 )
 
-from SimPEG import utils
-from SimPEG.utils import mkvc
+from simpeg import utils
+from simpeg.utils import mkvc
 
 from discretize.utils import active_from_xyz, mesh_builder_xyz, refine_tree_xyz
-from SimPEG.potential_fields import magnetics
+from simpeg.potential_fields import magnetics
 import scipy as sp
 import numpy as np
 import matplotlib.pyplot as plt
@@ -51,7 +51,7 @@ import matplotlib.pyplot as plt
 #
 np.random.seed(1)
 # We will assume a vertical inducing field
-H0 = (50000.0, 90.0, 0.0)
+h0_amplitude, h0_inclination, h0_declination = (50000.0, 90.0, 0.0)
 
 # The magnetization is set along a different direction (induced + remanence)
 M = np.array([45.0, 90.0])
@@ -74,7 +74,12 @@ Z = A * np.exp(-0.5 * ((X / b) ** 2.0 + (Y / b) ** 2.0)) + 5
 # Create a MAGsurvey
 xyzLoc = np.c_[mkvc(X.T), mkvc(Y.T), mkvc(Z.T)]
 rxLoc = magnetics.receivers.Point(xyzLoc)
-srcField = magnetics.sources.SourceField(receiver_list=[rxLoc], parameters=H0)
+srcField = magnetics.sources.UniformBackgroundField(
+    receiver_list=[rxLoc],
+    amplitude=h0_amplitude,
+    inclination=h0_inclination,
+    declination=h0_declination,
+)
 survey = magnetics.survey.Survey(srcField)
 
 # Here how the topography looks with a quick interpolation, just a Gaussian...

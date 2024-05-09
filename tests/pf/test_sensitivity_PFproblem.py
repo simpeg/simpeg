@@ -6,9 +6,9 @@
 # import discretize
 # from pymatsolver import Pardiso
 # #import simpeg.PF as PF
-# from SimPEG import maps, utils
-# from SimPEG.potential_fields import magnetics as mag
-# from SimPEG.utils.model_builder import get_indices_sphere
+# from simpeg import maps, utils
+# from simpeg.potential_fields import magnetics as mag
+# from simpeg.utils.model_builder import get_indices_sphere
 # from scipy.constants import mu_0
 #
 #
@@ -41,7 +41,7 @@
 #
 #         components = ['bx', 'by', 'bz']
 #         receivers = mag.Point(rxLoc, components=components)
-#         srcField = mag.SourceField([receivers], parameters=H0)
+#         srcField = mag.UniformBackgroundField([receivers], parameters=H0)
 #
 #         self.survey = mag.Survey(srcField)
 #

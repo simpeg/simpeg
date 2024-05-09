@@ -1,8 +1,8 @@
-from unittest.mock import patch
 import pytest
 import discretize
-from SimPEG import maps
-from SimPEG.potential_fields import gravity
+import simpeg
+from simpeg import maps
+from simpeg.potential_fields import gravity
 from geoana.gravity import Prism
 import numpy as np
 
@@ -314,87 +314,38 @@ class TestsGravitySimulation:
             assert simulation.sensitivity_dtype is np.float32
 
     @pytest.mark.parametrize("invalid_dtype", (float, np.float16))
-    def test_invalid_sensitivity_dtype_assignment(
-        self, simple_mesh, receivers_locations, invalid_dtype
-    ):
+    def test_invalid_sensitivity_dtype_assignment(self, simple_mesh, invalid_dtype):
         """
         Test invalid sensitivity_dtype assignment
         """
-        # Create survey
-        receivers = gravity.Point(receivers_locations, components="gz")
-        sources = gravity.SourceField([receivers])
-        survey = gravity.Survey(sources)
-        # Create reduced identity map for Linear Problem
-        active_cells = np.ones(simple_mesh.n_cells, dtype=bool)
-        idenMap = maps.IdentityMap(nP=simple_mesh.n_cells)
-        # Create simulation
         simulation = gravity.Simulation3DIntegral(
             simple_mesh,
-            survey=survey,
-            rhoMap=idenMap,
-            ind_active=active_cells,
         )
         # Check if error is raised
         msg = "sensitivity_dtype must be either np.float32 or np.float64."
         with pytest.raises(TypeError, match=msg):
             simulation.sensitivity_dtype = invalid_dtype
 
-    def test_invalid_engine(self, simple_mesh, receivers_locations):
+    def test_invalid_engine(self, simple_mesh):
         """Test if error is raised after invalid engine."""
-        # Create survey
-        receivers = gravity.Point(receivers_locations, components="gz")
-        sources = gravity.SourceField([receivers])
-        survey = gravity.Survey(sources)
-        # Create reduced identity map for Linear Problem
-        active_cells = np.ones(simple_mesh.n_cells, dtype=bool)
-        idenMap = maps.IdentityMap(nP=simple_mesh.n_cells)
-        # Check if error is raised after an invalid engine is passed
         engine = "invalid engine"
         with pytest.raises(ValueError, match=f"Invalid engine '{engine}'"):
-            gravity.Simulation3DIntegral(
-                simple_mesh,
-                survey=survey,
-                rhoMap=idenMap,
-                ind_active=active_cells,
-                engine=engine,
-            )
+            gravity.Simulation3DIntegral(simple_mesh, engine=engine)
 
-    def test_choclo_and_n_proceesses(self, simple_mesh, receivers_locations):
+    def test_choclo_and_n_proceesses(self, simple_mesh):
         """Check if warning is raised after passing n_processes with choclo engine."""
-        # Create survey
-        receivers = gravity.Point(receivers_locations, components="gz")
-        sources = gravity.SourceField([receivers])
-        survey = gravity.Survey(sources)
-        # Create reduced identity map for Linear Problem
-        active_cells = np.ones(simple_mesh.n_cells, dtype=bool)
-        idenMap = maps.IdentityMap(nP=simple_mesh.n_cells)
-        # Check if warning is raised
         msg = "The 'n_processes' will be ignored when selecting 'choclo'"
         with pytest.warns(UserWarning, match=msg):
             simulation = gravity.Simulation3DIntegral(
-                simple_mesh,
-                survey=survey,
-                rhoMap=idenMap,
-                ind_active=active_cells,
-                engine="choclo",
-                n_processes=2,
+                simple_mesh, engine="choclo", n_processes=2
             )
         # Check if n_processes was overwritten and set to None
         assert simulation.n_processes is None
 
-    def test_choclo_and_sensitivity_path_as_dir(
-        self, simple_mesh, receivers_locations, tmp_path
-    ):
+    def test_choclo_and_sensitivity_path_as_dir(self, simple_mesh, tmp_path):
         """
         Check if error is raised when sensitivity_path is a dir with choclo engine.
         """
-        # Create survey
-        receivers = gravity.Point(receivers_locations, components="gz")
-        sources = gravity.SourceField([receivers])
-        survey = gravity.Survey(sources)
-        # Create reduced identity map for Linear Problem
-        active_cells = np.ones(simple_mesh.n_cells, dtype=bool)
-        idenMap = maps.IdentityMap(nP=simple_mesh.n_cells)
         # Create a sensitivity_path directory
         sensitivity_path = tmp_path / "sensitivity_dummy"
         sensitivity_path.mkdir()
@@ -403,36 +354,62 @@ class TestsGravitySimulation:
         with pytest.raises(ValueError, match=msg):
             gravity.Simulation3DIntegral(
                 simple_mesh,
-                survey=survey,
-                rhoMap=idenMap,
-                ind_active=active_cells,
                 store_sensitivities="disk",
                 sensitivity_path=str(sensitivity_path),
                 engine="choclo",
             )
 
-    @patch("SimPEG.potential_fields.gravity.simulation.choclo", None)
-    def test_choclo_missing(self, simple_mesh, receivers_locations):
+    def test_sensitivities_on_disk(self, simple_mesh, receivers_locations, tmp_path):
         """
-        Check if error is raised when choclo is missing and chosen as engine.
+        Test if sensitivity matrix is correctly being stored in disk when asked
         """
-        # Create survey
+        # Build survey
         receivers = gravity.Point(receivers_locations, components="gz")
         sources = gravity.SourceField([receivers])
         survey = gravity.Survey(sources)
-        # Create reduced identity map for Linear Problem
-        active_cells = np.ones(simple_mesh.n_cells, dtype=bool)
-        idenMap = maps.IdentityMap(nP=simple_mesh.n_cells)
+        # Build simulation
+        sensitivities_path = tmp_path / "sensitivities"
+        simulation = gravity.Simulation3DIntegral(
+            mesh=simple_mesh,
+            survey=survey,
+            store_sensitivities="disk",
+            sensitivity_path=str(sensitivities_path),
+            engine="choclo",
+        )
+        simulation.G
+        # Check if sensitivity matrix was stored in disk and is a memmap
+        assert sensitivities_path.is_file()
+        assert type(simulation.G) is np.memmap
+
+    def test_sensitivities_on_ram(self, simple_mesh, receivers_locations, tmp_path):
+        """
+        Test if sensitivity matrix is correctly being allocated in memory when asked
+        """
+        # Build survey
+        receivers = gravity.Point(receivers_locations, components="gz")
+        sources = gravity.SourceField([receivers])
+        survey = gravity.Survey(sources)
+        # Build simulation
+        simulation = gravity.Simulation3DIntegral(
+            mesh=simple_mesh,
+            survey=survey,
+            store_sensitivities="ram",
+            engine="choclo",
+        )
+        simulation.G
+        # Check if sensitivity matrix is a Numpy array (stored in memory)
+        assert type(simulation.G) is np.ndarray
+
+    def test_choclo_missing(self, simple_mesh, monkeypatch):
+        """
+        Check if error is raised when choclo is missing and chosen as engine.
+        """
+        # Monkeypatch choclo in simpeg.potential_fields.base
+        monkeypatch.setattr(simpeg.potential_fields.gravity.simulation, "choclo", None)
         # Check if error is raised
         msg = "The choclo package couldn't be found."
         with pytest.raises(ImportError, match=msg):
-            gravity.Simulation3DIntegral(
-                simple_mesh,
-                survey=survey,
-                rhoMap=idenMap,
-                ind_active=active_cells,
-                engine="choclo",
-            )
+            gravity.Simulation3DIntegral(simple_mesh, engine="choclo")
 
 
 class TestConversionFactor:
@@ -459,3 +436,34 @@ class TestConversionFactor:
         component = "invalid-component"
         with pytest.raises(ValueError, match=f"Invalid component '{component}'"):
             gravity.simulation._get_conversion_factor(component)
+
+
+class TestInvalidMeshChoclo:
+    @pytest.fixture(params=("tensormesh", "treemesh"))
+    def mesh(self, request):
+        """Sample 2D mesh."""
+        hx, hy = [(0.1, 8)], [(0.1, 8)]
+        h = (hx, hy)
+        if request.param == "tensormesh":
+            mesh = discretize.TensorMesh(h, "CC")
+        else:
+            mesh = discretize.TreeMesh(h, origin="CC")
+            mesh.finalize()
+        return mesh
+
+    def test_invalid_mesh_with_choclo(self, mesh):
+        """
+        Test if simulation raises error when passing an invalid mesh and using choclo
+        """
+        # Build survey
+        receivers_locations = np.array([[0, 0, 0]])
+        receivers = gravity.Point(receivers_locations)
+        sources = gravity.SourceField([receivers])
+        survey = gravity.Survey(sources)
+        # Check if error is raised
+        msg = (
+            "Invalid mesh with 2 dimensions. "
+            "Only 3D meshes are supported when using 'choclo' as engine."
+        )
+        with pytest.raises(ValueError, match=msg):
+            gravity.Simulation3DIntegral(mesh, survey, engine="choclo")

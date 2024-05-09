@@ -32,9 +32,9 @@ import matplotlib.pyplot as plt
 from discretize import TreeMesh
 from discretize.utils import refine_tree_xyz, active_from_xyz
 
-from SimPEG.utils import plot2Ddata, mkvc
-from SimPEG.electromagnetics import frequency_domain as fdem
-from SimPEG import (
+from simpeg.utils import plot2Ddata, mkvc
+from simpeg.electromagnetics import frequency_domain as fdem
+from simpeg import (
     maps,
     data,
     data_misfit,
@@ -49,7 +49,7 @@ from SimPEG import (
 try:
     from pymatsolver import Pardiso as Solver
 except ImportError:
-    from SimPEG import SolverLU as Solver
+    from simpeg import SolverLU as Solver
 
 # sphinx_gallery_thumbnail_number = 3
 
@@ -313,7 +313,7 @@ dmis.W = utils.sdiag(1 / uncertainties)
 # Define the regularization (model objective function)
 reg = regularization.WeightedLeastSquares(
     mesh,
-    indActive=ind_active,
+    active_cells=ind_active,
     reference_model=starting_model,
     alpha_s=1e-2,
     alpha_x=1,

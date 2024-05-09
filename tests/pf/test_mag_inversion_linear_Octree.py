@@ -3,7 +3,7 @@ import unittest
 import numpy as np
 
 from discretize.utils import mesh_builder_xyz, refine_tree_xyz, active_from_xyz
-from SimPEG import (
+from simpeg import (
     directives,
     maps,
     inverse_problem,
@@ -13,7 +13,7 @@ from SimPEG import (
     utils,
     regularization,
 )
-from SimPEG.potential_fields import magnetics as mag
+from simpeg.potential_fields import magnetics as mag
 
 
 class MagInvLinProblemTest(unittest.TestCase):
@@ -26,7 +26,7 @@ class MagInvLinProblemTest(unittest.TestCase):
         # From old convention, field orientation is given as an
         # azimuth from North (positive clockwise)
         # and dip from the horizontal (positive downward).
-        H0 = (50000.0, 90.0, 0.0)
+        h0_amplitude, h0_inclination, h0_declination = (50000.0, 90.0, 0.0)
 
         # Create a mesh
         h = [5, 5, 5]
@@ -55,7 +55,12 @@ class MagInvLinProblemTest(unittest.TestCase):
         # Create a MAGsurvey
         xyzLoc = np.c_[utils.mkvc(X.T), utils.mkvc(Y.T), utils.mkvc(Z.T)]
         rxLoc = mag.Point(xyzLoc)
-        srcField = mag.SourceField([rxLoc], parameters=H0)
+        srcField = mag.UniformBackgroundField(
+            receiver_list=[rxLoc],
+            amplitude=h0_amplitude,
+            inclination=h0_inclination,
+            declination=h0_declination,
+        )
         survey = mag.Survey(srcField)
 
         # self.mesh.finalize()
@@ -112,7 +117,7 @@ class MagInvLinProblemTest(unittest.TestCase):
         # Create a regularization
         reg = regularization.Sparse(self.mesh, active_cells=actv, mapping=idenMap)
         reg.norms = [0, 0, 0, 0]
-        reg.mref = np.zeros(nC)
+        reg.reference_model = np.zeros(nC)
 
         # Data misfit function
         dmis = data_misfit.L2DataMisfit(simulation=sim, data=data)

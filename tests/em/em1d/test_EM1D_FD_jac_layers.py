@@ -1,7 +1,7 @@
 import unittest
-from SimPEG import maps
+from simpeg import maps
 from discretize import tests, TensorMesh
-import SimPEG.electromagnetics.frequency_domain as fdem
+import simpeg.electromagnetics.frequency_domain as fdem
 import numpy as np
 from scipy.constants import mu_0
 
@@ -155,8 +155,10 @@ class EM1D_FD_Jacobian_Test_MagDipole(unittest.TestCase):
 
         def misfit(m, dobs):
             dpred = self.sim.dpred(m)
-            misfit = 0.5 * np.linalg.norm(dpred - dobs) ** 2
-            dmisfit = self.sim.Jtvec(m, dr)
+            misfit = np.linalg.norm(dpred - dobs) ** 2
+            dmisfit = 2.0 * self.sim.Jtvec(
+                m, dr
+            )  # derivative of ||dpred - dobs||^2 gives factor of 2
             return misfit, dmisfit
 
         def derChk(m):
@@ -314,8 +316,10 @@ class EM1D_FD_Jacobian_Test_CircularLoop(unittest.TestCase):
 
         def misfit(m, dobs):
             dpred = self.sim.dpred(m)
-            misfit = 0.5 * np.linalg.norm(dpred - dobs) ** 2
-            dmisfit = self.sim.Jtvec(m, dr)
+            misfit = np.linalg.norm(dpred - dobs) ** 2
+            dmisfit = 2 * self.sim.Jtvec(
+                m, dr
+            )  # derivative of ||dpred - dobs||^2 gives factor of 2
             return misfit, dmisfit
 
         def derChk(m):
@@ -450,8 +454,10 @@ class EM1D_FD_Jacobian_Test_LineCurrent(unittest.TestCase):
 
         def misfit(m, dobs):
             dpred = self.sim.dpred(m)
-            misfit = 0.5 * np.linalg.norm(dpred - dobs) ** 2
-            dmisfit = self.sim.Jtvec(m, dr)
+            misfit = np.linalg.norm(dpred - dobs) ** 2
+            dmisfit = 2 * self.sim.Jtvec(
+                m, dr
+            )  # derivative of ||dpred - dobs||^2 gives factor of 2
             return misfit, dmisfit
 
         def derChk(m):

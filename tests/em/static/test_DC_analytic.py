@@ -1,15 +1,15 @@
 import unittest
 import discretize
 
-from SimPEG import utils
+from simpeg import utils
 import numpy as np
-from SimPEG.electromagnetics import resistivity as dc
-from SimPEG.electromagnetics import analytics
+from simpeg.electromagnetics import resistivity as dc
+from simpeg.electromagnetics import analytics
 
 try:
     from pymatsolver import Pardiso as Solver
 except ImportError:
-    from SimPEG import SolverLU as Solver
+    from simpeg import SolverLU as Solver
 
 
 class DCProblemAnalyticTests(unittest.TestCase):

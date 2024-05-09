@@ -1,7 +1,7 @@
 import unittest
 import discretize
 
-from SimPEG import (
+from simpeg import (
     utils,
     maps,
     data_misfit,
@@ -12,12 +12,12 @@ from SimPEG import (
     tests,
 )
 import numpy as np
-from SimPEG.electromagnetics import spectral_induced_polarization as sip
+from simpeg.electromagnetics import spectral_induced_polarization as sip
 
 try:
     from pymatsolver import Pardiso as Solver
 except ImportError:
-    from SimPEG import SolverLU as Solver
+    from simpeg import SolverLU as Solver
 
 np.random.seed(38)
 
@@ -264,9 +264,15 @@ class SIPProblemTestsN_air(unittest.TestCase):
         dobs = problem.make_synthetic_data(mSynth, add_noise=True)
         # Now set up the problem to do some minimization
         dmis = data_misfit.L2DataMisfit(data=dobs, simulation=problem)
-        reg_eta = regularization.Simple(mesh, mapping=wires.eta, indActive=~airind)
-        reg_taui = regularization.Simple(mesh, mapping=wires.taui, indActive=~airind)
-        reg_c = regularization.Simple(mesh, mapping=wires.c, indActive=~airind)
+        reg_eta = regularization.WeightedLeastSquares(
+            mesh, mapping=wires.eta, active_cells=~airind
+        )
+        reg_taui = regularization.WeightedLeastSquares(
+            mesh, mapping=wires.taui, active_cells=~airind
+        )
+        reg_c = regularization.WeightedLeastSquares(
+            mesh, mapping=wires.c, active_cells=~airind
+        )
         reg = reg_eta + reg_taui + reg_c
         opt = optimization.InexactGaussNewton(
             maxIterLS=20, maxIter=10, tolF=1e-6, tolX=1e-6, tolG=1e-6, maxIterCG=6

@@ -1,10 +1,10 @@
 import pytest
 import numpy as np
-import SimPEG.electromagnetics.static.spontaneous_potential as sp
-import SimPEG.electromagnetics.static.resistivity as dc
+import simpeg.electromagnetics.static.self_potential as sp
+import simpeg.electromagnetics.static.resistivity as dc
 import discretize
-from SimPEG import utils
-from SimPEG import maps
+from simpeg import utils
+from simpeg import maps
 from discretize.tests import check_derivative, assert_isadjoint
 
 
@@ -117,3 +117,29 @@ def test_clears():
     sim.qMap = maps.ExpMap()
     assert sim.deleteTheseOnModelUpdate == ["_Jmatrix", "_gtgdiag"]
     assert sim.clean_on_model_update == []
+
+
+def test_deprecations():
+    """
+    Test warning after importing deprecated `spontaneous_potential` module
+    """
+    msg = (
+        "The 'spontaneous_potential' module has been renamed to 'self_potential'. "
+        "Please use the 'self_potential' module instead. "
+        "The 'spontaneous_potential' module will be removed in SimPEG 0.23."
+    )
+    with pytest.warns(FutureWarning, match=msg):
+        import simpeg.electromagnetics.static.spontaneous_potential  # noqa: F401
+
+
+def test_imported_objects_on_deprecated_module():
+    """
+    Test if the new `self_potential` module and the deprecated `spontaneous
+    potential` have the same members.
+    """
+    import simpeg.electromagnetics.static.spontaneous_potential as spontaneous
+
+    members_self = set([m for m in dir(sp) if not m.startswith("_")])
+    members_spontaneous = set([m for m in dir(spontaneous) if not m.startswith("_")])
+    difference = members_self - members_spontaneous
+    assert not difference
