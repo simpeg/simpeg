@@ -4,7 +4,6 @@ from typing import Literal, Optional
 import discretize
 import numpy as np
 import scipy.sparse as sp
-from discretize.utils import active_from_xyz
 from scipy.interpolate import griddata
 from scipy.spatial import cKDTree
 from scipy.spatial.distance import cdist
