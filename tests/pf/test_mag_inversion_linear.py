@@ -20,8 +20,6 @@ import shutil
 
 class MagInvLinProblemTest(unittest.TestCase):
     def setUp(self):
-        np.random.seed(0)
-
         # Define the inducing field parameter
         h0_amplitude, h0_inclination, h0_declination = (50000, 90, 0)
 
