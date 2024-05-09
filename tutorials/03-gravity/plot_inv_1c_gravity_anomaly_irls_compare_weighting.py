@@ -33,8 +33,17 @@ import numpy as np
 from discretize import TensorMesh
 from discretize.utils import active_from_xyz
 
-from simpeg import (data, data_misfit, directives, inverse_problem, inversion,
-                    maps, optimization, regularization, utils)
+from simpeg import (
+    data,
+    data_misfit,
+    directives,
+    inverse_problem,
+    inversion,
+    maps,
+    optimization,
+    regularization,
+    utils,
+)
 from simpeg.potential_fields import gravity
 from simpeg.utils import model_builder, plot2Ddata
 
