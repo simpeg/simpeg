@@ -126,6 +126,7 @@ class PrimSecFDEMTest(object):
                 lambda x: self.secondarySimulation.Jvec(x0, x, f=self.fields_primsec),
             ]
 
+        np.random.seed(1983)  # set a random seed for check_derivative
         return tests.check_derivative(fun, x0, num=2, plotIt=False)
 
     def AdjointTest(self):

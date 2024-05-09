@@ -65,15 +65,23 @@ def CasingMagDipole2Deriv_z_z(z):
 class Casing_DerivTest(unittest.TestCase):
     def test_derivs(self):
         rng = np.random.default_rng(seed=42)
+
+        np.random.seed(1983)  # set a random seed for check_derivative
         tests.check_derivative(
             CasingMagDipoleDeriv_r, np.ones(n) * 10 + rng.normal(size=n), plotIt=False
         )
+
+        np.random.seed(1983)  # set a random seed for check_derivative
         tests.check_derivative(CasingMagDipoleDeriv_z, rng.normal(size=n), plotIt=False)
+
+        np.random.seed(1983)  # set a random seed for check_derivative
         tests.check_derivative(
             CasingMagDipole2Deriv_z_r,
             np.ones(n) * 10 + rng.normal(size=n),
             plotIt=False,
         )
+
+        np.random.seed(1983)  # set a random seed for check_derivative
         tests.check_derivative(
             CasingMagDipole2Deriv_z_z, rng.normal(size=n), plotIt=False
         )
