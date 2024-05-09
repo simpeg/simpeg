@@ -10,7 +10,7 @@ Things about electromagnetics
   SimPEG.electromagnetics.static.induced_polarization
   SimPEG.electromagnetics.static.resistivity
   SimPEG.electromagnetics.static.spectral_induced_polarization
-  SimPEG.electromagnetics.static.spontaneous_potential
+  SimPEG.electromagnetics.static.self_potential
   SimPEG.electromagnetics.frequency_domain
   SimPEG.electromagnetics.natural_source
   SimPEG.electromagnetics.time_domain
