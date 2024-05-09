@@ -33,19 +33,10 @@ import numpy as np
 from discretize import TensorMesh
 from discretize.utils import active_from_xyz
 
-from SimPEG import (
-    data,
-    data_misfit,
-    directives,
-    inverse_problem,
-    inversion,
-    maps,
-    optimization,
-    regularization,
-    utils,
-)
-from SimPEG.potential_fields import gravity
-from SimPEG.utils import model_builder, plot2Ddata
+from simpeg import (data, data_misfit, directives, inverse_problem, inversion,
+                    maps, optimization, regularization, utils)
+from simpeg.potential_fields import gravity
+from simpeg.utils import model_builder, plot2Ddata
 
 # sphinx_gallery_thumbnail_number = 3
 
@@ -130,7 +121,7 @@ plt.show()
 # Assign Uncertainties
 # --------------------
 #
-# Inversion with SimPEG requires that we define the standard deviation of our data.
+# Inversion with simpeg requires that we define the standard deviation of our data.
 # This represents our estimate of the noise in our data. For a gravity inversion,
 # a constant floor value is generally applied to all data. For this tutorial,
 # the standard deviation on each datum will be 1% of the maximum observed
@@ -415,7 +406,7 @@ background_density = 0.0
 block_density = -0.2
 sphere_density = 0.2
 
-# Define model. Models in SimPEG are vector arrays.
+# Define model. Models in simpeg are vector arrays.
 true_model = background_density * np.ones(nC)
 
 # You could find the indicies of specific cells within the model and change their
@@ -430,7 +421,7 @@ ind_block = (
 )
 true_model[ind_block] = block_density
 
-# You can also use SimPEG utilities to add structures to the model more concisely
+# You can also use simpeg utilities to add structures to the model more concisely
 ind_sphere = model_builder.get_indices_sphere(
     np.r_[35.0, 0.0, -40.0], 15.0, mesh.gridCC
 )
