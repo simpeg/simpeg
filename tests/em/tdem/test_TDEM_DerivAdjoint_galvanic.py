@@ -77,6 +77,8 @@ class TDEM_DerivTests(unittest.TestCase):
                 return [prb.dpred(m), lambda mx: prb.Jvec(m, mx)]
 
             print("test_Jvec_{prbtype}_{rxcomp}".format(prbtype=prbtype, rxcomp=rxcomp))
+
+            np.random.seed(10)  # use seed for check_derivative
             tests.check_derivative(derChk, m, plotIt=False, num=2, eps=1e-20)
 
         def test_Jvec_e_dbzdt(self):

@@ -97,6 +97,7 @@ class TestGroundedSourceTDEM_j(unittest.TestCase):
         m0 = np.log(self.sigma) + rng.uniform(size=self.mesh.nC)
         self.prob.model = m0
 
+        np.random.seed(10)  # use seed for check_derivative
         return tests.check_derivative(
             deriv_fct, np.log(self.sigma), num=3, plotIt=False
         )
