@@ -201,10 +201,10 @@ class MultiprocessingMetaSimulation(MetaSimulation):
 
     Parameters
     ----------
-    simulations : (n_sim) list of SimPEG.simulation.BaseSimulation
+    simulations : (n_sim) list of simpeg.simulation.BaseSimulation
         The list of unique simulations that each handle a piece
         of the problem.
-    mappings : (n_sim) list of SimPEG.maps.IdentityMap
+    mappings : (n_sim) list of simpeg.maps.IdentityMap
         The map for every simulation. Every map should accept the
         same length model, and output a model appropriate for its
         paired simulation.
@@ -435,7 +435,7 @@ class MultiprocessingRepeatedSimulation(
 
     Parameters
     ----------
-    simulation : SimPEG.simulation.BaseSimulation
+    simulation : simpeg.simulation.BaseSimulation
         The simulation to use repeatedly with different mappings.
     mappings : (n_sim) list of simpeg.maps.IdentityMap
         The list of different mappings to use.

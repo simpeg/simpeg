@@ -8,7 +8,7 @@ class BaseSrc(survey.BaseSrc):
 
     Parameters
     ----------
-    receiver_list : list of SimPEG.electromagnetics.static.resistivity.receivers.BaseRx
+    receiver_list : list of simpeg.electromagnetics.static.resistivity.receivers.BaseRx
         A list of DC/IP receivers
     location : (n_source, dim) numpy.ndarray
         Source locations
@@ -66,7 +66,7 @@ class BaseSrc(survey.BaseSrc):
 
         Parameters
         ----------
-        sim : SimPEG.base.BaseElectricalPDESimulation
+        sim : simpeg.base.BaseElectricalPDESimulation
             The static electromagnetic simulation
 
         Returns
@@ -94,7 +94,7 @@ class BaseSrc(survey.BaseSrc):
 
         Parameters
         ----------
-        sim : SimPEG.base.BaseElectricalPDESimulation
+        sim : simpeg.base.BaseElectricalPDESimulation
             The static electromagnetic simulation
 
         Returns
@@ -137,7 +137,7 @@ class Dipole(BaseSrc):
 
     Parameters
     ----------
-    receiver_list : list of SimPEG.electromagnetics.static.resistivity.receivers.BaseRx
+    receiver_list : list of simpeg.electromagnetics.static.resistivity.receivers.BaseRx
         A list of DC/IP receivers
     location_a : (dim) numpy.array_like
         A electrode locations; remember to set 'location_b' keyword argument to
@@ -233,7 +233,7 @@ class Pole(BaseSrc):
 
     Parameters
     ----------
-    receiver_list : list of SimPEG.electromagnetics.static.resistivity.receivers.BaseRx
+    receiver_list : list of simpeg.electromagnetics.static.resistivity.receivers.BaseRx
         A list of DC/IP receivers
     location : (n_source, dim) numpy.ndarray
         Electrode locations
