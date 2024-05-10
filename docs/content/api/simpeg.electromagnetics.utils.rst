@@ -1,0 +1,1 @@
+.. automodule:: simpeg.electromagnetics.utils
