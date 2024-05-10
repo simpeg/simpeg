@@ -8,12 +8,12 @@ from .sources import StreamingCurrents
 
 
 class Simulation3DCellCentered(dc.Simulation3DCellCentered):
-    r"""A Spontaneous potential simulation.
+    r"""A self potential simulation.
 
     Parameters
     ----------
     mesh : discretize.base.BaseMesh
-    survey : spontaneous_potential.Survey
+    survey : simpeg.electromagnetics.static.self_potential.Survey
     sigma, rho : float or array_like
         The conductivity/resistivity model of the subsurface.
     q : float, array_like, optional
@@ -27,7 +27,7 @@ class Simulation3DCellCentered(dc.Simulation3DCellCentered):
 
     Notes
     -----
-    The charge density accumulation rate, :math:`q`, is related to the spontaneous
+    The charge density accumulation rate, :math:`q`, is related to the self
     electric potential, :math:`\phi`, with the same PDE, that relates current
     sources to potential in the resistivity case.
 

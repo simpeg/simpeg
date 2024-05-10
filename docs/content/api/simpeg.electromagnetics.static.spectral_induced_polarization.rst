@@ -1,0 +1,1 @@
+.. automodule:: simpeg.electromagnetics.static.spectral_induced_polarization
