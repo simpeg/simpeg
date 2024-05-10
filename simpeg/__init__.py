@@ -104,7 +104,6 @@ Objective Function Pieces
 
   objective_function.BaseObjectiveFunction
   objective_function.ComboObjectiveFunction
-  objective_function.L2ObjectiveFunction
   data_misfit.BaseDataMisfit
   data_misfit.L2DataMisfit
 
