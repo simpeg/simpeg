@@ -14,7 +14,7 @@ class NSEM_data_viewer:
     Generates a clickble location map of the data, plotting data curves
     in a separate window.
 
-    :param SimPEG.electromagnetics.natural_source.Data data: Data object, needs to have assigned
+    :param simpeg.electromagnetics.natural_source.Data data: Data object, needs to have assigned
         relative_error and noise_floor
 
     :param data_dict: A dictionary of other NSEM Data objects

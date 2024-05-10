@@ -5,12 +5,12 @@ Potential Fields
 .. toctree::
   :maxdepth: 2
 
-  SimPEG.potential_fields.gravity
-  SimPEG.potential_fields.magnetics
+  simpeg.potential_fields.gravity
+  simpeg.potential_fields.magnetics
 
 Base Potential Fields
 ---------------------
 .. toctree::
   :maxdepth: 2
 
-  SimPEG.potential_fields.base
+  simpeg.potential_fields.base

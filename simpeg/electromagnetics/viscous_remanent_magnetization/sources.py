@@ -20,7 +20,7 @@ class BaseSrcVRM(BaseSrc):
         A list of VRM receivers
     location : (3) array_like
         Source location
-    waveform : SimPEG.electromagnetics.viscous_remanent_magnetization.waveforms.BaseVRMWaveform
+    waveform : simpeg.electromagnetics.viscous_remanent_magnetization.waveforms.BaseVRMWaveform
         A VRM waveform
     """
 
@@ -68,13 +68,13 @@ class MagDipole(BaseSrcVRM):
 
     Parameters
     ----------
-    receiver_list : list of SimPEG.electromagnetics.viscous_remanent_magnetization.receivers.Point
+    receiver_list : list of simpeg.electromagnetics.viscous_remanent_magnetization.receivers.Point
         VRM receivers
     location : (3) array_like
         source location
     moment : (3) array_like
         dipole moment (mx, my, mz)
-    waveform : SimPEG.electromagnetics.viscous_remanent_magnetization.waveforms.BaseVRMWaveform
+    waveform : simpeg.electromagnetics.viscous_remanent_magnetization.waveforms.BaseVRMWaveform
         VRM waveform
     """
 
@@ -189,7 +189,7 @@ class CircLoop(BaseSrcVRM):
 
     Parameters
     ----------
-    receiver_list : list of SimPEG.electromagnetics.viscous_remanent_magnetization.receivers.Point
+    receiver_list : list of simpeg.electromagnetics.viscous_remanent_magnetization.receivers.Point
         VRM receivers
     location : (3) array_like
         source location
@@ -199,7 +199,7 @@ class CircLoop(BaseSrcVRM):
         Circular loop normal azimuth and declination
     Imax : float
         Maximum current amplitude
-    waveform : SimPEG.electromagnetics.viscous_remanent_magnetization.waveforms.BaseVRMWaveform
+    waveform : simpeg.electromagnetics.viscous_remanent_magnetization.waveforms.BaseVRMWaveform
         VRM waveform
     """
 
@@ -379,14 +379,14 @@ class LineCurrent(BaseSrcVRM):
 
     Parameters
     ----------
-    receiver_list : list of SimPEG.electromagnetics.time_domain.receivers.BaseRx
+    receiver_list : list of simpeg.electromagnetics.time_domain.receivers.BaseRx
         List of TDEM receivers
     location : (n, 3) numpy.ndarray
         Array defining the node locations for the wire path. For inductive sources,
         you must close the loop.
     Imax : float
         Maximum current amplitude
-    waveform : SimPEG.electromagnetics.viscous_remanent_magnetization.waveforms.BaseVRMWaveform
+    waveform : simpeg.electromagnetics.viscous_remanent_magnetization.waveforms.BaseVRMWaveform
         VRM waveform
     """
 
