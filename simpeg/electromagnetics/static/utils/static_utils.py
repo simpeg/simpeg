@@ -405,19 +405,19 @@ def convert_survey_3d_to_2d_lines(
         # Along line positions and elevation for electrodes on current line
         # in terms of position elevation
         a_locs_s = np.c_[
-            np.dot(ab_locs_all[lineID_index, 0:2] - r0[0], uvec),
+            np.dot(ab_locs_all[lineID_index, 0:2] - r0, uvec),
             ab_locs_all[lineID_index, 2],
         ]
         b_locs_s = np.c_[
-            np.dot(ab_locs_all[lineID_index, 3:5] - r0[0], uvec),
+            np.dot(ab_locs_all[lineID_index, 3:5] - r0, uvec),
             ab_locs_all[lineID_index, -1],
         ]
         m_locs_s = np.c_[
-            np.dot(mn_locs_all[lineID_index, 0:2] - r0[0], uvec),
+            np.dot(mn_locs_all[lineID_index, 0:2] - r0, uvec),
             mn_locs_all[lineID_index, 2],
         ]
         n_locs_s = np.c_[
-            np.dot(mn_locs_all[lineID_index, 3:5] - r0[0], uvec),
+            np.dot(mn_locs_all[lineID_index, 3:5] - r0, uvec),
             mn_locs_all[lineID_index, -1],
         ]
 
