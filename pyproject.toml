@@ -56,7 +56,8 @@ pandas = "*"
 scikit-learn = ">=1.2"
 scipy = ">=1.8.0"
 
-dask = {version = "*", optional = true}
+dask = {version = "*", extras = ["distributed"], optional = true}
+distributed = {version = "*", optional = true}
 fsspec = {version = ">=0.3.3", optional = true}
 zarr = {version = "*", optional = true}
 
@@ -80,7 +81,12 @@ toolz = "*"
 twine = "*"
 
 [tool.poetry.extras]
-dask = ["dask", "zarr", "fsspec"]
+dask = [
+    "dask",
+    "distributed",
+    "fsspec",
+    "zarr",
+]
 
 [tool.conda-lock]
 platforms = ['win-64', 'osx-64', 'linux-64']
