@@ -2780,10 +2780,10 @@ class UpdateSensitivityWeights(InversionDirective):
 
         # Add sensitivity weighting to all model objective functions
         for reg in self.reg.objfcts:
-            if not isinstance(reg, BaseSimilarityMeasure):
-                sub_regs = getattr(reg, "objfcts", [reg])
-                for sub_reg in sub_regs:
-                    sub_reg.set_weights(sensitivity=sub_reg.mapping * wr)
+            # if not isinstance(reg, BaseSimilarityMeasure):
+            sub_regs = getattr(reg, "objfcts", [reg])
+            for sub_reg in sub_regs:
+                sub_reg.set_weights(sensitivity=sub_reg.mapping * wr)
 
     def validate(self, directiveList):
         """Validate directive against directives list.

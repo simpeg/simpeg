@@ -30,11 +30,12 @@ class CrossGradient(BaseSimilarityMeasure):
         self._units = ["metric", "metric"]
         self.normalize = normalize
         regmesh = self.regularization_mesh
+        self.set_weights(volume=self.regularization_mesh.vol)
 
         if regmesh.mesh.dim not in (2, 3):
             raise ValueError("Cross-Gradient is only defined for 2D or 3D")
         self._G = regmesh.cell_gradient
-        self._Av = sp.diags(regmesh.vol) * regmesh.average_face_to_cell
+        self._Av = regmesh.average_face_to_cell
 
     @property
     def approx_hessian(self):
@@ -173,12 +174,15 @@ class CrossGradient(BaseSimilarityMeasure):
 
         """
         # m1, m2 = (wire * model for wire in self.wire_map)
+        W1 = self.W[0]
+        W2 = self.W[1]
         Av = self._Av
         G = self._G
         g_m1, g_m2 = self._model_gradients(model)
 
         return 0.5 * np.sum(
-            (Av @ g_m1**2) * (Av @ g_m2**2) - (Av @ (g_m1 * g_m2)) ** 2
+            (W1.T @ W1 @ Av @ g_m1**2) * (W2.T @ W2 @ Av @ g_m2**2)
+            - ((W1 @ Av @ g_m1) * (W2 @ Av @ g_m2)) ** 2
         )
 
     def deriv(self, model):
@@ -191,6 +195,8 @@ class CrossGradient(BaseSimilarityMeasure):
         :return: result: gradient of the cross-gradient with respect to model1, model2
 
         """
+        W1 = self.W[0]
+        W2 = self.W[1]
         Av = self._Av
         G = self._G
         g_m1, g_m2 = self._model_gradients(model)
@@ -198,10 +204,10 @@ class CrossGradient(BaseSimilarityMeasure):
         return (
             self.wire_map_deriv.T
             * np.r_[
-                (((Av @ g_m2**2) @ Av) * g_m1) @ G
-                - (((Av @ (g_m1 * g_m2)) @ Av) * g_m2) @ G,
-                (((Av @ g_m1**2) @ Av) * g_m2) @ G
-                - (((Av @ (g_m1 * g_m2)) @ Av) * g_m1) @ G,
+                (((W1 @ Av @ g_m2**2) @ W1 @ Av) * g_m1) @ G
+                - (((W1 @ Av @ (g_m1 * g_m2)) @ W1 @ Av) * g_m2) @ G,
+                (((W2 @ Av @ g_m1**2) @ W2 @ Av) * g_m2) @ G
+                - (((W2 @ Av @ (g_m1 * g_m2)) @ W2 @ Av) * g_m1) @ G,
             ]
         )
 
@@ -218,6 +224,8 @@ class CrossGradient(BaseSimilarityMeasure):
                 Hessian multiplied by vector if v is not No
 
         """
+        W1 = self.W[0]
+        W2 = self.W[1]
         Av = self._Av
         G = self._G
         g_m1, g_m2 = self._model_gradients(model)
@@ -226,8 +234,8 @@ class CrossGradient(BaseSimilarityMeasure):
             A = (
                 G.T
                 @ (
-                    sp.diags(Av.T @ (Av @ g_m2**2))
-                    - sp.diags(g_m2) @ Av.T @ Av @ sp.diags(g_m2)
+                    sp.diags(Av.T @ W1.T @ W1 @ (Av @ g_m2**2))
+                    - sp.diags(g_m2) @ Av.T @ W1.T @ W1 @ Av @ sp.diags(g_m2)
                 )
                 @ G
             )
@@ -235,8 +243,8 @@ class CrossGradient(BaseSimilarityMeasure):
             C = (
                 G.T
                 @ (
-                    sp.diags(Av.T @ (Av @ g_m1**2))
-                    - sp.diags(g_m1) @ Av.T @ Av @ sp.diags(g_m1)
+                    sp.diags(Av.T @ W2.T @ W2 @ (Av @ g_m1**2))
+                    - sp.diags(g_m1) @ Av.T @ W2.T @ W2 @ Av @ sp.diags(g_m1)
                 )
                 @ G
             )
@@ -248,9 +256,11 @@ class CrossGradient(BaseSimilarityMeasure):
                 B = (
                     G.T
                     @ (
-                        2 * sp.diags(g_m1) @ Av.T @ Av @ sp.diags(g_m2)
-                        - sp.diags(g_m2) @ Av.T @ Av @ sp.diags(g_m1)
-                        - sp.diags(Av.T @ Av @ (g_m1 * g_m2))
+                        2 * sp.diags(g_m1) @ Av.T @ W1.T @ W1 @ Av @ sp.diags(g_m2)
+                        - sp.diags(g_m2) @ Av.T @ W1.T @ W1 @ Av @ sp.diags(g_m1)
+                        - sp.diags(
+                            Av.T @ ((W2.T @ W2 @ Av @ g_m2) * ((W1.T @ W1 @ Av @ g_m1)))
+                        )
                     )
                     @ G
                 )
@@ -268,10 +278,12 @@ class CrossGradient(BaseSimilarityMeasure):
             Gv2 = G @ v2
 
             p1 = G.T @ (
-                (Av.T @ (Av @ g_m2**2)) * Gv1 - g_m2 * (Av.T @ (Av @ (g_m2 * Gv1)))
+                (Av.T @ W1.T @ W1 @ (Av @ g_m2**2)) * Gv1
+                - g_m2 * (Av.T @ W1.T @ W1 @ (Av @ (g_m2 * Gv1)))
             )
             p2 = G.T @ (
-                (Av.T @ (Av @ g_m1**2)) * Gv2 - g_m1 * (Av.T @ (Av @ (g_m1 * Gv2)))
+                (Av.T @ W2.T @ W2 @ (Av @ g_m1**2)) * Gv2
+                - g_m1 * (Av.T @ W2.T @ W2 @ (Av @ (g_m1 * Gv2)))
             )
 
             if not self.approx_hessian:
@@ -287,3 +299,46 @@ class CrossGradient(BaseSimilarityMeasure):
                     - (Av.T @ (Av @ (g_m2 * g_m1))) * Gv1
                 )
             return self.wire_map_deriv.T * np.r_[p1, p2]
+
+    def set_weights(self, **weights):
+        """Adds (or updates) the specified weights to the regularization
+
+        Parameters:
+        -----------
+        **kwargs : key, numpy.ndarray
+            Each keyword argument is added to the weights used by the regularization.
+            They can be accessed with their keyword argument.
+
+        Examples
+        --------
+        >>> import discretize
+        >>> from SimPEG.regularization import Smallness
+        >>> mesh = discretize.TensorMesh([2, 3, 2])
+        >>> reg = Smallness(mesh)
+        >>> reg.set_weights(my_weight=np.ones(mesh.n_cells))
+        >>> reg.get_weights('my_weight')
+        array([1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1.])
+        """
+        for key, values in weights.items():
+            # values = validate_ndarray_with_shape(
+            #     "weights", values, shape=self._weights_shapes, dtype=float
+            # )
+            if values.shape == self._weights_shapes:
+                values = np.r_[values, values]
+
+            self._weights[key] = values
+        self._W = None
+
+    @property
+    def W(self) -> tuple:
+        """
+        Weighting matrix
+        """
+        if getattr(self, "_W", None) is None:
+            weights = np.prod(list(self._weights.values()), axis=0)
+
+            self._W = (
+                sp.diags(weights[self.regularization_mesh.nC :]),
+                sp.diags(weights[: self.regularization_mesh.nC]),
+            )
+        return self._W
