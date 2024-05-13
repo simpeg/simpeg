@@ -35,7 +35,7 @@ class CrossGradient(BaseSimilarityMeasure):
         if regmesh.mesh.dim not in (2, 3):
             raise ValueError("Cross-Gradient is only defined for 2D or 3D")
         self._G = regmesh.cell_gradient
-        self._Av = regmesh.average_face_to_cell
+        self._Av = sp.diags(np.sqrt(regmesh.vol)) * regmesh.average_face_to_cell
         acf = [regmesh.aveCC2Fx, regmesh.aveCC2Fy]
         if regmesh.dim == 3:
             acf.append(regmesh.aveCC2Fz)
@@ -80,7 +80,7 @@ class CrossGradient(BaseSimilarityMeasure):
             else:
                 gradient = self._G @ model
 
-            gradients.append(weights @ gradient)
+            gradients.append(gradient)
 
         return gradients
 
