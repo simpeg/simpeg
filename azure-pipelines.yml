@@ -203,7 +203,8 @@ stages:
             make -C docs html
           displayName: Building documentation
 
-        # Upload dev build of the docs to gh-pages branch in simpeg/simpeg-doctest
+        # Upload dev build of the docs to a dev branch in simpeg/simpeg-doctest
+        # and update submodule in the gh-pages branch
         - bash: |
             # Push new docs
             # -------------
