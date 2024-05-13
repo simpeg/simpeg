@@ -77,7 +77,16 @@ class Survey(BaseTimeSurvey):
 
     @property
     def survey_type(self):
-        """Survey type; one of {"dipole-dipole", "pole-dipole", "dipole-pole", "pole-pole"}
+        """
+        ``survey_type`` has been removed.
+
+        Survey type; one of {"dipole-dipole", "pole-dipole", "dipole-pole", "pole-pole"}
+
+        .. important:
+
+            The `survey_type` property has been removed. Types of sources and
+            their corresponding receivers are obtained from their respective
+            classes, without the need to specify the survey type.
 
         Returns
         -------
