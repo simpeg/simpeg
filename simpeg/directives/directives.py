@@ -355,9 +355,7 @@ class BaseBetaEstimator(InversionDirective):
     def __init__(
         self,
         beta0_ratio=1.0,
-        n_pw_iter=4,
         seed=None,
-        method="power_iteration",
         **kwargs,
     ):
         super().__init__(**kwargs)
