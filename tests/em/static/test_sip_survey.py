@@ -12,7 +12,7 @@ class TestRemovedSourceType:
     Tests after removing the source_type argument and property.
     """
 
-    def test_warning_when_argument(self):
+    def test_warning_after_argument(self):
         """
         Test warning after passing source_type as argument to the constructor.
         """
