@@ -29,8 +29,10 @@ class CrossGradient(BaseSimilarityMeasure):
         self.approx_hessian = approx_hessian
         self._units = ["metric", "metric"]
         self.normalize = normalize
+
         regmesh = self.regularization_mesh
         self.set_weights(volume=self.regularization_mesh.vol)
+        self.scaling = np.ones(2 * regmesh.nC)
 
         if regmesh.mesh.dim not in (2, 3):
             raise ValueError("Cross-Gradient is only defined for 2D or 3D")
@@ -179,12 +181,13 @@ class CrossGradient(BaseSimilarityMeasure):
 
         """
         # m1, m2 = (wire * model for wire in self.wire_map)
+        sp.diags(self.scaling)
         Av = self._Av
         G = self._G
         g_m1, g_m2 = self._model_gradients(model)
 
         return 0.5 * np.sum(
-            (Av @ (g_m1) ** 2) * (Av @ (g_m2) ** 2) - ((Av @ g_m1) * (Av @ g_m2)) ** 2
+            np.sum((Av @ g_m1**2) * (Av @ g_m2**2) - (Av @ (g_m1 * g_m2)) ** 2)
         )
 
     def deriv(self, model):
@@ -201,98 +204,118 @@ class CrossGradient(BaseSimilarityMeasure):
         G = self._G
         g_m1, g_m2 = self._model_gradients(model)
 
-        return (
-            self.wire_map_deriv.T
-            * np.r_[
-                (((Av @ (g_m2) ** 2) @ Av) * g_m1) @ G
-                - (((Av @ ((g_m1) * (g_m2))) @ Av) * g_m2) @ G,
-                (((Av @ (g_m1) ** 2) @ Av) * g_m2) @ G
-                - (((Av @ (g_m1 * g_m2)) @ Av) * g_m1) @ G,
-            ]
-        )
+        deriv = np.r_[
+            (((Av @ g_m2**2) @ Av) * g_m1) @ G
+            - (((Av @ (g_m1 * g_m2)) @ Av) * g_m2) @ G,
+            (((Av @ g_m1**2) @ Av) * g_m2) @ G
+            - (((Av @ (g_m1 * g_m2)) @ Av) * g_m1) @ G,
+        ]
+        n_cells = self.regularization_mesh.nC
+        max_derivs = np.r_[
+            np.ones(n_cells) * np.abs(deriv[:n_cells]).max(),
+            np.ones(n_cells) * np.abs(deriv[n_cells:]).max(),
+        ]
+
+        if np.max(max_derivs) > 1e-12:
+            self.scaling = np.max(max_derivs) / max_derivs
+
+        return self.scaling * deriv
 
     def deriv2(self, model, v=None):
-        """
-        Computes the Hessian of the cross-gradient.
+        r"""Hessian of the regularization function evaluated for the model provided.
 
-        :param list of numpy.ndarray ind_models: [model1, model2, ...]
-        :param numpy.ndarray v: vector to be multiplied by Hessian
+        Where :math:`\phi (\mathbf{m})` is the discrete regularization function (objective function),
+        this method evalutate and returns the second derivative (Hessian) with respect to the model parameters:
+        For a model :math:`\mathbf{m}` consisting of two physical properties such that:
 
-        :rtype: scipy.sparse.csr_matrix if v is None
-                numpy.ndarray if v is not None
-        :return Hessian matrix if v is None
-                Hessian multiplied by vector if v is not No
+        .. math::
+            \mathbf{m} = \begin{bmatrix} \mathbf{m_1} \\ \mathbf{m_2} \end{bmatrix}
 
+        The Hessian has the form:
+
+        .. math::
+            \frac{\partial^2 \phi}{\partial \mathbf{m}^2} =
+            \begin{bmatrix}
+            \dfrac{\partial^2 \phi}{\partial \mathbf{m_1}^2} &
+            \dfrac{\partial^2 \phi}{\partial \mathbf{m_1} \partial \mathbf{m_2}} \\
+            \dfrac{\partial^2 \phi}{\partial \mathbf{m_2} \partial \mathbf{m_1}} &
+            \dfrac{\partial^2 \phi}{\partial \mathbf{m_2}^2}
+            \end{bmatrix}
+
+        When a vector :math:`(\mathbf{v})` is supplied, the method returns the Hessian
+        times the vector:
+
+        .. math::
+            \frac{\partial^2 \phi}{\partial \mathbf{m}^2} \, \mathbf{v}
+
+        Parameters
+        ----------
+        model : (n_param, ) numpy.ndarray
+            The model; a vector array containing all physical properties.
+        v : None, (n_param, ) numpy.ndarray (optional)
+            A numpy array to model the Hessian by.
+
+        Returns
+        -------
+        (n_param, n_param) scipy.sparse.csr_matrix | (n_param, ) numpy.ndarray
+            If the input argument *v* is ``None``, the Hessian
+            for the models provided is returned. If *v* is not ``None``,
+            the Hessian multiplied by the vector provided is returned.
         """
         Av = self._Av
         G = self._G
+
+        scaling = sp.diags(self.scaling)
+
         g_m1, g_m2 = self._model_gradients(model)
 
+        d11_mid = Av.T @ (Av @ g_m2**2)
+        d12_mid = -(Av.T @ (Av @ (g_m1 * g_m2)))
+        d22_mid = Av.T @ (Av @ g_m1**2)
+
         if v is None:
-            A = (
-                G.T
-                @ (
-                    sp.diags(Av.T @ (Av @ (g_m2) ** 2))
-                    - sp.diags(g_m2) @ Av.T @ Av @ sp.diags(g_m2)
-                )
-                @ G
-            )
-
-            C = (
-                G.T
-                @ (
-                    sp.diags(Av.T @ (Av @ (g_m1) ** 2))
-                    - sp.diags(g_m1) @ Av.T @ Av @ sp.diags(g_m1)
-                )
-                @ G
-            )
-
-            B = None
-            BT = None
+            D11_mid = sp.diags(d11_mid)
+            D12_mid = sp.diags(d12_mid)
+            D22_mid = sp.diags(d22_mid)
             if not self.approx_hessian:
-                # d_m1_d_m2
-                B = (
-                    G.T
-                    @ (
-                        2 * sp.diags(g_m1) @ Av.T @ Av @ sp.diags(g_m2)
-                        - sp.diags(g_m2) @ Av.T @ Av @ sp.diags(g_m1)
-                        - sp.diags(Av.T @ ((Av @ g_m2) * ((Av @ g_m1))))
-                    )
-                    @ G
+                D11_mid = D11_mid - sp.diags(g_m2) @ Av.T @ Av @ sp.diags(g_m2)
+                D12_mid = (
+                    D12_mid
+                    + 2 * sp.diags(g_m1) @ Av.T @ Av @ sp.diags(g_m2)
+                    - sp.diags(g_m2) @ Av.T @ Av @ sp.diags(g_m1)
                 )
-                BT = B.T
+                D22_mid = D22_mid - sp.diags(g_m1) @ Av.T @ Av @ sp.diags(g_m1)
+            D11 = G.T @ D11_mid @ G
+            D12 = G.T @ D12_mid @ G
+            D22 = G.T @ D22_mid @ G
 
             return (
                 self.wire_map_deriv.T
-                * sp.bmat([[A, B], [BT, C]], format="csr")
+                * scaling
+                @ sp.bmat([[D11, D12], [D12.T, D22]], format="csr")
                 * self.wire_map_deriv
-            )
+            )  # factor of 2 from derviative of | grad m1 x grad m2 | ^2
+
         else:
             v1, v2 = (wire * v for wire in self.wire_map)
 
             Gv1 = G @ v1
             Gv2 = G @ v2
-
-            p1 = G.T @ (
-                (Av.T @ (Av @ g_m2**2)) * Gv1 - g_m2 * (Av.T @ (Av @ (g_m2 * Gv1)))
-            )
-            p2 = G.T @ (
-                (Av.T @ (Av @ g_m1**2)) * Gv2 - g_m1 * (Av.T @ (Av @ (g_m1 * Gv2)))
-            )
-
+            p1 = G.T @ (d11_mid * Gv1 + d12_mid * Gv2)
+            p2 = G.T @ (d12_mid * Gv1 + d22_mid * Gv2)
             if not self.approx_hessian:
                 p1 += G.T @ (
-                    2 * g_m1 * (Av.T @ (Av @ (g_m2 * Gv2)))
-                    - g_m2 * (Av.T @ (Av @ (g_m1 * Gv2)))
-                    - (Av.T @ (Av @ (g_m1 * g_m2))) * Gv2
+                    -g_m2 * (Av.T @ (Av @ (g_m2 * Gv1)))  # d11*v1 full addition
+                    + 2 * g_m1 * (Av.T @ (Av @ (g_m2 * Gv2)))  # d12*v2 full addition
+                    - g_m2 * (Av.T @ (Av @ (g_m1 * Gv2)))  # d12*v2 continued
                 )
 
                 p2 += G.T @ (
-                    2 * g_m2 * (Av.T @ (Av @ (g_m1 * Gv1)))
-                    - g_m1 * (Av.T @ (Av @ (g_m2 * Gv1)))
-                    - (Av.T @ (Av @ (g_m2 * g_m1))) * Gv1
+                    -g_m1 * (Av.T @ (Av @ (g_m1 * Gv2)))  # d22*v2 full addition
+                    + 2 * g_m2 * (Av.T @ (Av @ (g_m1 * Gv1)))  # d12.T*v1 full addition
+                    - g_m1 * (Av.T @ (Av @ (g_m2 * Gv1)))  # d12.T*v1 fcontinued
                 )
-            return self.wire_map_deriv.T * np.r_[p1, p2]
+            return self.wire_map_deriv.T * scaling @ np.r_[p1, p2]
 
     def set_weights(self, **weights):
         """Adds (or updates) the specified weights to the regularization
