@@ -22,7 +22,7 @@ class TestRemovedSourceType:
         # Check if the object doesn't have a `_survey_type` attribute
         assert not hasattr(survey, "_survey_type")
 
-    def test_warnign_removed_property(self):
+    def test_warning_removed_property(self):
         """
         Test if warning is raised when accessing the survey_type property.
         """
