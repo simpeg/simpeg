@@ -29,19 +29,14 @@ class CrossGradient(BaseSimilarityMeasure):
         self.approx_hessian = approx_hessian
         self._units = ["metric", "metric"]
         self.normalize = normalize
-
         regmesh = self.regularization_mesh
-        self.set_weights(volume=self.regularization_mesh.vol)
+
         self.scaling = np.ones(2 * regmesh.nC)
 
         if regmesh.mesh.dim not in (2, 3):
             raise ValueError("Cross-Gradient is only defined for 2D or 3D")
         self._G = regmesh.cell_gradient
         self._Av = sp.diags(np.sqrt(regmesh.vol)) * regmesh.average_face_to_cell
-        acf = [regmesh.aveCC2Fx, regmesh.aveCC2Fy]
-        if regmesh.dim == 3:
-            acf.append(regmesh.aveCC2Fz)
-        self._average_cell_to_faces = sp.vstack(acf)
 
     @property
     def approx_hessian(self):
@@ -62,7 +57,7 @@ class CrossGradient(BaseSimilarityMeasure):
         """
         gradients = []
 
-        for unit, wire, weights in zip(self.units, self.wire_map, self.W):
+        for unit, wire in zip(self.units, self.wire_map):
             model = wire * models
             if unit == "radian":
                 gradient = []
@@ -316,47 +311,3 @@ class CrossGradient(BaseSimilarityMeasure):
                     - g_m1 * (Av.T @ (Av @ (g_m2 * Gv1)))  # d12.T*v1 fcontinued
                 )
             return self.wire_map_deriv.T * scaling @ np.r_[p1, p2]
-
-    def set_weights(self, **weights):
-        """Adds (or updates) the specified weights to the regularization
-
-        Parameters:
-        -----------
-        **kwargs : key, numpy.ndarray
-            Each keyword argument is added to the weights used by the regularization.
-            They can be accessed with their keyword argument.
-
-        Examples
-        --------
-        >>> import discretize
-        >>> from SimPEG.regularization import Smallness
-        >>> mesh = discretize.TensorMesh([2, 3, 2])
-        >>> reg = Smallness(mesh)
-        >>> reg.set_weights(my_weight=np.ones(mesh.n_cells))
-        >>> reg.get_weights('my_weight')
-        array([1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1.])
-        """
-        for key, values in weights.items():
-            if values.shape == self._weights_shapes:
-                values = np.r_[values, values]
-
-            self._weights[key] = values
-        self._W = None
-
-    @property
-    def W(self) -> tuple:
-        """
-        Weighting matrix
-        """
-        if getattr(self, "_W", None) is None:
-            weights = np.prod(list(self._weights.values()), axis=0)
-
-            self._W = (
-                sp.diags(
-                    self._average_cell_to_faces @ weights[self.regularization_mesh.nC :]
-                ),
-                sp.diags(
-                    self._average_cell_to_faces @ weights[: self.regularization_mesh.nC]
-                ),
-            )
-        return self._W
