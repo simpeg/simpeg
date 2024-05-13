@@ -400,7 +400,6 @@ class TestUpdateSensitivityNormalization:
 class TestBetaEstimatorArguments:
     """
     Test if arguments are assigned in beta estimator directives.
-    
     These tests catch the bug described and fixed in #1460.
     """
 
