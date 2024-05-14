@@ -201,11 +201,6 @@ class CrossGradient(BaseSimilarityMeasure):
             (((Av @ g_m1**2) @ Av) * g_m2) @ G
             - (((Av @ (g_m1 * g_m2)) @ Av) * g_m1) @ G,
         ]
-        n_cells = self.regularization_mesh.nC
-        max_derivs = np.r_[
-            np.ones(n_cells) * np.abs(deriv[:n_cells]).max(),
-            np.ones(n_cells) * np.abs(deriv[n_cells:]).max(),
-        ]
 
         return self.wire_map_deriv.T * deriv
 
