@@ -63,7 +63,9 @@ class VRM_inversion_tests(unittest.TestCase):
 
         dmis = data_misfit.L2DataMisfit(data=dobs, simulation=Problem)
         W = (
-            mkvc((np.sum(np.array(Problem.A) ** 2, axis=0)) / meshObj.cell_volumes**2.0)
+            mkvc(
+                (np.sum(np.array(Problem.A) ** 2, axis=0)) / meshObj.cell_volumes**2.0
+            )
             ** 0.25
         )
         reg = regularization.WeightedLeastSquares(
