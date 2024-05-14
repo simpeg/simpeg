@@ -128,7 +128,7 @@ class MobileMT(BaseRx):
                 self._locations_e = locations_e
                 self._locations_h = locations_h
             else:
-                raise Exception("location h needs to be same size as location e")
+                raise ValueError("location h needs to be same size as location e")
 
             locations = np.hstack([locations_e, locations_h])
         elif locations is not None:
@@ -141,13 +141,13 @@ class MobileMT(BaseRx):
                     self._locations_e = locations[0]
                     self._locations_h = locations[0]
                 else:
-                    raise Exception("incorrect size of list, must be length of 1 or 2")
+                    raise ValueError("incorrect size of list, must be length of 1 or 2")
                 locations = locations[0]
             elif isinstance(locations, np.ndarray):
                 self._locations_e = locations
                 self._locations_h = locations
             else:
-                raise Exception("locations need to be either a list or numpy array")
+                raise ValueError("locations need to be either a list or numpy array")
         else:
             locations = np.array([[0.0]])
 
@@ -1018,7 +1018,7 @@ class Tipper(BaseRx):
             if locations_bs.size == locations.size:
                 self._locations_bs = locations_bs
             else:
-                raise Exception("location_bs needs to be same size as locations")
+                raise ValueError("location_bs needs to be same size as locations")
 
         else:
             # check shape of locations
@@ -1027,11 +1027,11 @@ class Tipper(BaseRx):
                     pass
                 elif len(locations) == 2:
                     if locations[0].size != locations[1].size:
-                        raise Exception(
+                        raise ValueError(
                             "location_bs needs to be same size as locations"
                         )
                 else:
-                    raise Exception("incorrect size of list, must be length of 1 or 2")
+                    raise ValueError("incorrect size of list, must be length of 1 or 2")
 
                 self._locations_bs = locations[0]
                 locations = locations[-1]

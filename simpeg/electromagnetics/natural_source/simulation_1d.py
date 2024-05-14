@@ -5,6 +5,7 @@ from ...simulation import BaseSimulation
 from ... import props
 from ...utils import validate_type
 from ..frequency_domain.survey import Survey
+from .receivers import Impedance, PointNaturalSource
 
 
 class Simulation1DRecursive(BaseSimulation):
@@ -81,6 +82,22 @@ class Simulation1DRecursive(BaseSimulation):
     def survey(self, value):
         if value is not None:
             value = validate_type("survey", value, Survey, cast=False)
+            # Check for acceptable receiver types
+            is_valid = np.all(
+                [
+                    np.all(
+                        [
+                            type(rx_ii) in (Impedance, PointNaturalSource)
+                            for rx_ii in src_ii.receiver_list
+                        ]
+                    )
+                    for src_ii in survey.source_list
+                ]
+            )
+            if not is_valid:
+                raise TypeError(
+                    "1D recursive solution only implemented for 'Impedance' receivers."
+                )
         self._survey = value
 
     @property
