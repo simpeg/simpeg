@@ -145,10 +145,10 @@ class Dipole(BaseSrc):
     location_b : (dim) array_like
         B electrode locations; remember to set ``location_a`` keyword argument
         to define A electrode location.
-    location : tuple of array_like
-        A and B electrode locations. In this case, do not set the ``location_a``
-        and ``location_b`` keyword arguments. Provide a tuple of the form
-        ``(location_a, location_b)``.
+    location : tuple of array_like, optional
+        A and B electrode locations. If ``location_a`` and ``location_b`` are
+        provided, don't pass values to this argument. Otherwise, provide
+        a tuple of the form ``(location_a, location_b)``.
     current : float, optional
         Current amplitude in :math:`A` that goes through each electrode.
     """
