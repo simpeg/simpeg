@@ -121,11 +121,7 @@ def get_survey(survey_type, orientations, components, locations, frequencies):
         # MobileMT is app_cond
         elif survey_type == "mobilemt":
             rx_list.extend(
-                [
-                    nsem.receivers.MobileMT(
-                        locations_e=locations, locations_h=locations
-                    )
-                ]
+                [nsem.receivers.MobileMT(locations_e=locations, locations_h=locations)]
             )
 
         source_list.append(nsem.sources.PlanewaveXYPrimary(rx_list, f))
