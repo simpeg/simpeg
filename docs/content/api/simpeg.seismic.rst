@@ -1,10 +1,10 @@
 =========================
-Fluid Flow
+Seismic
 =========================
 
-Things about the fluid flow module
+Things about the Seismic module
 
 .. toctree::
   :maxdepth: 2
 
-  SimPEG.flow.richards
+  simpeg.seismic.straight_ray_tomography
