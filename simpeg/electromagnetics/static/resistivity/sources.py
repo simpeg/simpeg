@@ -144,8 +144,8 @@ class Dipole(BaseSrc):
         define N electrode locations.
     location_b : (dim) numpy.array_like
         B electrode locations; remember to set 'location_a' keyword argument to
-        define M electrode locations. location : list or tuple of length 2 of
-        numpy.array_like
+        define M electrode locations.
+    location : list or tuple of length 2 of numpy.array_like
         A and B electrode locations. In this case, do not set the 'location_a' and 'location_b'
         keyword arguments. And we supply a list or tuple of the form [location_a, location_b].
     current : float, optional
