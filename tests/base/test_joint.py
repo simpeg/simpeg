@@ -72,8 +72,8 @@ class DataMisfitTest(unittest.TestCase):
         self.dmiscombo = self.dmis0 + self.dmis1
 
     def test_multiDataMisfit(self):
-        self.dmis0.test(seed=42)
-        self.dmis1.test(seed=42)
+        self.dmis0.test(random_seed=42)
+        self.dmis1.test(random_seed=42)
         self.dmiscombo.test(x=self.model)
 
     def test_inv(self):

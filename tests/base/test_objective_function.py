@@ -57,7 +57,7 @@ class TestBaseObjFct(unittest.TestCase):
         objfct_c = objfct_a + objfct_b
 
         self.assertTrue(scalar * objfct_a(m) == objfct_b(m))
-        self.assertTrue(objfct_b.test(seed=42))
+        self.assertTrue(objfct_b.test(random_seed=42))
         self.assertTrue(objfct_c(m) == objfct_a(m) + objfct_b(m))
 
         self.assertTrue(len(objfct_c.objfcts) == 2)
@@ -126,7 +126,7 @@ class TestBaseObjFct(unittest.TestCase):
 
         self.assertTrue(len(phi.objfcts) == 3)
 
-        self.assertTrue(phi.test(seed=42))
+        self.assertTrue(phi.test(random_seed=42))
 
     def test_sum_fail(self):
         nP1 = 10
@@ -166,7 +166,7 @@ class TestBaseObjFct(unittest.TestCase):
             + utils.Zero() * objective_function.L2ObjectiveFunction()
         )
         self.assertTrue(len(phi.objfcts) == 1)
-        self.assertTrue(phi.test(seed=42))
+        self.assertTrue(phi.test(random_seed=42))
 
     def test_updateMultipliers(self):
         nP = 10
@@ -258,9 +258,9 @@ class TestBaseObjFct(unittest.TestCase):
         self.assertTrue(objfct3(m) == objfct1(m) + objfct2(m))
 
         seed = 42
-        objfct1.test(seed=seed)
-        objfct2.test(seed=seed)
-        objfct3.test(seed=seed)
+        objfct1.test(random_seed=seed)
+        objfct2.test(random_seed=seed)
+        objfct3.test(random_seed=seed)
 
     def test_ComboW(self):
         nP = 15

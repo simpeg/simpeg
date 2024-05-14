@@ -194,19 +194,19 @@ class BaseObjectiveFunction(BaseSimPEG):
             )
         )
 
-    def _test_deriv(self, x=None, num=4, plotIt=False, seed=None, **kwargs):
+    def _test_deriv(self, x=None, num=4, plotIt=False, random_seed=None, **kwargs):
         print("Testing {0!s} Deriv".format(self.__class__.__name__))
         if x is None:
-            rng = np.random.default_rng(seed=seed)
+            rng = np.random.default_rng(seed=random_seed)
             n_params = rng.integers(low=100, high=1_000) if self.nP == "*" else self.nP
             x = rng.standard_normal(size=n_params)
         return check_derivative(
             lambda m: [self(m), self.deriv(m)], x, num=num, plotIt=plotIt, **kwargs
         )
 
-    def _test_deriv2(self, x=None, num=4, plotIt=False, seed=None, **kwargs):
+    def _test_deriv2(self, x=None, num=4, plotIt=False, random_seed=None, **kwargs):
         print("Testing {0!s} Deriv2".format(self.__class__.__name__))
-        rng = np.random.default_rng(seed=seed)
+        rng = np.random.default_rng(seed=random_seed)
         if x is None:
             n_params = rng.integers(low=100, high=1_000) if self.nP == "*" else self.nP
             x = rng.standard_normal(size=n_params)
@@ -222,7 +222,7 @@ class BaseObjectiveFunction(BaseSimPEG):
             **kwargs,
         )
 
-    def test(self, x=None, num=4, seed=None, **kwargs):
+    def test(self, x=None, num=4, random_seed=None, **kwargs):
         """Run a convergence test on both the first and second derivatives.
 
         They should be second order!
@@ -233,7 +233,7 @@ class BaseObjectiveFunction(BaseSimPEG):
             The evaluation point for the Taylor expansion.
         num : int
             The number of iterations in the convergence test.
-        seed : {None, RandomSeed}, optional
+        random_seed : {None, RandomSeed}, optional
             Random seed used for generating a random array for ``x`` if it's
             None, and the ``v`` array for testing the second derivatives. It
             can either be an int, a predefined Numpy random number generator,
@@ -245,8 +245,10 @@ class BaseObjectiveFunction(BaseSimPEG):
             ``True`` if both tests pass. ``False`` if either test fails.
 
         """
-        deriv = self._test_deriv(x=x, num=num, seed=seed, **kwargs)
-        deriv2 = self._test_deriv2(x=x, num=num, plotIt=False, seed=seed, **kwargs)
+        deriv = self._test_deriv(x=x, num=num, random_seed=random_seed, **kwargs)
+        deriv2 = self._test_deriv2(
+            x=x, num=num, plotIt=False, random_seed=random_seed, **kwargs
+        )
         return deriv & deriv2
 
     __numpy_ufunc__ = True

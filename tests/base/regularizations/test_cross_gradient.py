@@ -42,7 +42,7 @@ class CrossGradientTensor2D(unittest.TestCase):
         """
         cross_grad = self.cross_grad
         cross_grad.approx_hessian = True
-        self.assertTrue(cross_grad.test(seed=10))
+        self.assertTrue(cross_grad.test(random_seed=10))
 
     def test_order_full_hessian(self):
         """
@@ -52,8 +52,8 @@ class CrossGradientTensor2D(unittest.TestCase):
         """
         cross_grad = self.cross_grad
         cross_grad.approx_hessian = False
-        self.assertTrue(cross_grad._test_deriv(seed=10))
-        self.assertTrue(cross_grad._test_deriv2(seed=10, expectedOrder=2))
+        self.assertTrue(cross_grad._test_deriv(random_seed=10))
+        self.assertTrue(cross_grad._test_deriv2(random_seed=10, expectedOrder=2))
 
     def test_deriv2_no_arg(self):
         np.random.seed(10)
@@ -135,7 +135,7 @@ class CrossGradientTensor3D(unittest.TestCase):
         """
         cross_grad = self.cross_grad
         cross_grad.approx_hessian = True
-        self.assertTrue(cross_grad.test(seed=10))
+        self.assertTrue(cross_grad.test(random_seed=10))
 
     def test_order_full_hessian(self):
         """
@@ -145,8 +145,8 @@ class CrossGradientTensor3D(unittest.TestCase):
         """
         cross_grad = self.cross_grad
         cross_grad.approx_hessian = False
-        self.assertTrue(cross_grad._test_deriv(seed=10))
-        self.assertTrue(cross_grad._test_deriv2(seed=10, expectedOrder=2))
+        self.assertTrue(cross_grad._test_deriv(random_seed=10))
+        self.assertTrue(cross_grad._test_deriv2(random_seed=10, expectedOrder=2))
 
     def test_deriv2_no_arg(self):
         np.random.seed(10)
@@ -212,7 +212,7 @@ class CrossGradientTree2D(unittest.TestCase):
         """
         cross_grad = self.cross_grad
         cross_grad.approx_hessian = True
-        self.assertTrue(cross_grad.test(seed=10))
+        self.assertTrue(cross_grad.test(random_seed=10))
 
     def test_order_full_hessian(self):
         """
@@ -222,8 +222,8 @@ class CrossGradientTree2D(unittest.TestCase):
         """
         cross_grad = self.cross_grad
         cross_grad.approx_hessian = False
-        self.assertTrue(cross_grad._test_deriv(seed=10))
-        self.assertTrue(cross_grad._test_deriv2(seed=10, expectedOrder=2))
+        self.assertTrue(cross_grad._test_deriv(random_seed=10))
+        self.assertTrue(cross_grad._test_deriv2(random_seed=10, expectedOrder=2))
 
     def test_deriv2_no_arg(self):
         np.random.seed(10)
@@ -278,7 +278,7 @@ class CrossGradientTree3D(unittest.TestCase):
         """
         cross_grad = self.cross_grad
         cross_grad.approx_hessian = True
-        self.assertTrue(cross_grad.test(seed=10))
+        self.assertTrue(cross_grad.test(random_seed=10))
 
     def test_order_full_hessian(self):
         """
@@ -288,8 +288,8 @@ class CrossGradientTree3D(unittest.TestCase):
         """
         cross_grad = self.cross_grad
         cross_grad.approx_hessian = False
-        self.assertTrue(cross_grad._test_deriv(seed=10))
-        self.assertTrue(cross_grad._test_deriv2(seed=10, expectedOrder=2))
+        self.assertTrue(cross_grad._test_deriv(random_seed=10))
+        self.assertTrue(cross_grad._test_deriv2(random_seed=10, expectedOrder=2))
 
     def test_deriv2_no_arg(self):
         np.random.seed(10)
