@@ -21,7 +21,7 @@ def _getP(rx, mesh, projected_grid, field="e", is_tipper_bs=False):
 
     Parameters
     ----------
-    rx : .natural_source.receivers.PointImpedance
+    rx : .natural_source.receivers.Impedance
         a NSEM receiver
     mesh : discretize.base.BaseMesh
         The mesh on which the discrete set of equations is solved.
@@ -63,7 +63,7 @@ def _getP(rx, mesh, projected_grid, field="e", is_tipper_bs=False):
     if field == "e":
         locs = rx.locations_e
     elif field == "h":
-        if isinstance(rx, Point3DMobileMT):
+        if isinstance(rx, MobileMT):
             locs = rx.locations_h
         elif is_tipper_bs:
             locs = rx.locations_bs
@@ -78,8 +78,8 @@ def _getP(rx, mesh, projected_grid, field="e", is_tipper_bs=False):
     return P
 
 
-class Point3DMobileMT(BaseRx):
-    r"""Point receiver class for data types derived by the 3D MobileMT data.
+class MobileMT(BaseRx):
+    r"""Receiver class for MobileMT data (3D problems only).
 
     This class is used to simulate the apparent conductivity data, in S/m, collected
     by Expert Geophysics MobileMT systems:
@@ -218,7 +218,6 @@ class Point3DMobileMT(BaseRx):
 
         # ADJOINT
         if adjoint:
-
             # J_T * v = d_top_T * a_v + d_bot_T * b
             a_v = fact * v / bot  # term 1
             b_v = -fact * top * v / bot**2  # term 2
@@ -321,8 +320,8 @@ class Point3DMobileMT(BaseRx):
         )
 
 
-class PointImpedance(Point3DMobileMT):
-    r"""Point receiver class for 1D, 2D and 3D impedance data.
+class Impedance(MobileMT):
+    r"""Receiver class for 1D, 2D and 3D impedance data.
 
     This class is used to simulate data types that can be derived from the impedance tensor:
 
@@ -720,8 +719,8 @@ class PointImpedance(Point3DMobileMT):
         )
 
 
-class Point3DAdmittance(PointImpedance):
-    r"""Point receiver class for data types derived by the 3D admittance tensor.
+class Admittance(Impedance):
+    r"""Receiver class for data types derived from the 3D admittance tensor.
 
     This class is used to simulate data types that can be derived from the admittance tensor:
 
@@ -920,7 +919,7 @@ class Point3DAdmittance(PointImpedance):
         return getattr(adm_deriv, self.component)
 
     def eval(self, src, mesh, f, return_complex=False):  # noqa: A003
-        # Docstring inherited from parent class (PointImpedance).
+        # Docstring inherited from parent class (Impedance).
         adm = self._eval_admittance(src, mesh, f)
         if return_complex:
             return adm
@@ -932,14 +931,14 @@ class Point3DAdmittance(PointImpedance):
             return getattr(adm, self.component)
 
     def evalDeriv(self, src, mesh, f, du_dm_v=None, v=None, adjoint=False):
-        # Docstring inherited from parent class (PointImpedance).
+        # Docstring inherited from parent class (Impedance).
         return self._eval_admittance_deriv(
             src, mesh, f, du_dm_v=du_dm_v, v=v, adjoint=adjoint
         )
 
 
-class Point3DTipper(BaseRx):
-    r"""Point receiver class for 3D tipper measurements.
+class Tipper(BaseRx):
+    r"""Receiver class for tipper data (3D problems only).
 
     This class can be used to simulate AFMag tipper data, defined according to:
 
@@ -994,7 +993,6 @@ class Point3DTipper(BaseRx):
         locations_e=None,
         locations_h=None,
     ):
-
         self.orientation = orientation
         self.component = component
 
@@ -1031,7 +1029,7 @@ class Point3DTipper(BaseRx):
         if (locations_e is not None) or (locations_h is not None):
             warnings.warn(
                 (
-                    "'locations_e' and 'locations_h' are deprecated properties that are unused by the Point3DTipper class.",
+                    "'locations_e' and 'locations_h' are deprecated properties that are unused by the Tipper class.",
                     "Receiver locations are set using 'locations' (and 'locations_bs').",
                     "These property will be removed in simpeg v.0.20.0.",
                 ),
@@ -1173,12 +1171,12 @@ class Point3DTipper(BaseRx):
         return (bot * dtop_v - top * dbot_v) / (bot * bot)
 
     def eval(self, src, mesh, f, return_complex=False):  # noqa: A003
-        # Docstring inherited from parent class (PointImpedance).
+        # Docstring inherited from parent class (Impedance).
         rx_eval_complex = self._eval_tipper(src, mesh, f)
         return getattr(rx_eval_complex, self.component)
 
     def evalDeriv(self, src, mesh, f, du_dm_v=None, v=None, adjoint=False):
-        # Docstring inherited from parent class (PointImpedance).
+        # Docstring inherited from parent class (Impedance).
         if adjoint:
             if self.component == "imag":
                 v = -1j * v
@@ -1191,9 +1189,9 @@ class Point3DTipper(BaseRx):
 
 
 @deprecate_class(removal_version="0.20.0", error=False)
-class PointNaturalSource(PointImpedance):
+class PointNaturalSource(Impedance):
     """This class is deprecated and will be removed in simpeg v0.20.0.
-    Please use :class:`.PointImpedance`."""
+    Please use :class:`.Impedance`."""
 
     def __init__(
         self,
@@ -1207,6 +1205,30 @@ class PointNaturalSource(PointImpedance):
             locations=locations,
             orientation=orientation,
             component=component,
+            locations_e=locations_e,
+            locations_h=locations_h,
+        )
+
+
+@deprecate_class(removal_version="0.20.0", error=False)
+class Point3DTipper(Impedance):
+    """This class is deprecated and will be removed in simpeg v0.20.0.
+    Please use :class:`.Tipper`."""
+
+    def __init__(
+        self,
+        locations,
+        orientation="zx",
+        component="real",
+        locations_bs=None,
+        locations_e=None,
+        locations_h=None,
+    ):
+        super().__init__(
+            locations=locations,
+            orientation=orientation,
+            component=component,
+            locations_bs=locations_bs,
             locations_e=locations_e,
             locations_h=locations_h,
         )

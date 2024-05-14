@@ -78,7 +78,7 @@ def get_survey(survey_type, orientations, components, locations, frequencies):
             for orient in orientations:
                 rx_list.extend(
                     [
-                        nsem.receivers.PointImpedance(
+                        nsem.receivers.Impedance(
                             locations_e=locations,
                             locations_h=locations,
                             orientation=orient,
@@ -93,7 +93,7 @@ def get_survey(survey_type, orientations, components, locations, frequencies):
             for orient in orientations:
                 rx_list.extend(
                     [
-                        nsem.receivers.Point3DTipper(
+                        nsem.receivers.Tipper(
                             locations=locations,
                             locations_bs=locations,
                             orientation=orient,
@@ -108,7 +108,7 @@ def get_survey(survey_type, orientations, components, locations, frequencies):
             for orient in orientations:
                 rx_list.extend(
                     [
-                        nsem.receivers.Point3DAdmittance(
+                        nsem.receivers.Admittance(
                             locations_e=locations,
                             locations_h=locations,
                             orientation=orient,
@@ -122,7 +122,7 @@ def get_survey(survey_type, orientations, components, locations, frequencies):
         elif survey_type == "mobilemt":
             rx_list.extend(
                 [
-                    nsem.receivers.Point3DMobileMT(
+                    nsem.receivers.MobileMT(
                         locations_e=locations, locations_h=locations
                     )
                 ]

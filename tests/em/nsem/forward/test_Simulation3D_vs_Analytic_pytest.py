@@ -70,7 +70,7 @@ def get_survey(locations, frequencies, survey_type, component):
         if survey_type == "impedance":
             if component == "phase":
                 rx_list = [
-                    nsem.receivers.PointImpedance(
+                    nsem.receivers.Impedance(
                         locations_e=locations,
                         locations_h=locations,
                         orientation=ij,
@@ -80,7 +80,7 @@ def get_survey(locations, frequencies, survey_type, component):
                 ]  # off-diagonal only!!!
             else:
                 rx_list = [
-                    nsem.receivers.PointImpedance(
+                    nsem.receivers.Impedance(
                         locations_e=locations,
                         locations_h=locations,
                         orientation=ij,
@@ -92,7 +92,7 @@ def get_survey(locations, frequencies, survey_type, component):
         # ZTEM data types (Txx, Tyx, Tzx, Txy, Tyy, Tzy)
         elif survey_type == "tipper":
             rx_list = [
-                nsem.receivers.Point3DTipper(
+                nsem.receivers.Tipper(
                     locations=locations,
                     locations_bs=locations,
                     orientation=ij,
@@ -104,7 +104,7 @@ def get_survey(locations, frequencies, survey_type, component):
         # Admittance data types (Yxx, Yyx, Yzx, Yxy, Yyy, Yzy)
         elif survey_type == "admittance":
             rx_list = [
-                nsem.receivers.Point3DAdmittance(
+                nsem.receivers.Admittance(
                     locations_e=locations,
                     locations_h=locations,
                     orientation=ij,
@@ -115,7 +115,7 @@ def get_survey(locations, frequencies, survey_type, component):
 
         elif survey_type == "mobilemt":
             rx_list = [
-                nsem.receivers.Point3DMobileMT(
+                nsem.receivers.MobileMT(
                     locations_e=locations,
                     locations_h=locations,
                 )
