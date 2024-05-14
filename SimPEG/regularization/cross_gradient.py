@@ -211,9 +211,6 @@ class CrossGradient(BaseSimilarityMeasure):
             np.ones(n_cells) * np.abs(deriv[n_cells:]).max(),
         ]
 
-        if np.max(max_derivs) > 1e-12:
-            self.scaling = np.max(max_derivs) / max_derivs
-
         return self.wire_map_deriv.T * (self.scaling * deriv)
 
     def deriv2(self, model, v=None):
