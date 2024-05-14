@@ -1239,7 +1239,6 @@ class Point3DTipper(Impedance):
         locations,
         orientation="zx",
         component="real",
-        locations_bs=None,
         locations_e=None,
         locations_h=None,
     ):
@@ -1247,7 +1246,7 @@ class Point3DTipper(Impedance):
             locations=locations,
             orientation=orientation,
             component=component,
-            locations_bs=locations_bs,
+            locations_bs=None,
             locations_e=locations_e,
             locations_h=locations_h,
         )
