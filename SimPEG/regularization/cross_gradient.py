@@ -54,17 +54,22 @@ class CrossGradient(BaseSimilarityMeasure):
         Compute gradient on faces
         """
         gradients = []
+
         for unit, wire in zip(self.units, self.wire_map):
             model = wire * models
             if unit == "radian":
                 gradient = []
                 components = "xyz" if self.regularization_mesh.dim == 3 else "xy"
                 for comp in components:
-                    distances = getattr(self.regularization_mesh, f"cell_distances_{comp}")
+                    distances = getattr(
+                        self.regularization_mesh, f"cell_distances_{comp}"
+                    )
                     cell_grad = getattr(
                         self.regularization_mesh, f"cell_gradient_{comp}"
                     )
-                    gradient.append(coterminal(cell_grad * model * distances) / distances)
+                    gradient.append(
+                        coterminal(cell_grad * model * distances) / distances
+                    )
 
                 gradient = np.hstack(gradient) / np.pi
             else:
@@ -134,7 +139,9 @@ class CrossGradient(BaseSimilarityMeasure):
             The norm of the cross gradient vector in each active cell.
         """
         # Compute the gradients and concatenate components.
-        grad_m1, grad_m2 = self._calculate_gradient(model, normalized=normalized, rtol=rtol)
+        grad_m1, grad_m2 = self._calculate_gradient(
+            model, normalized=normalized, rtol=rtol
+        )
 
         # for each model cell, compute the cross product of the gradient vectors.
         cross_prod = np.cross(grad_m1, grad_m2)
@@ -166,13 +173,12 @@ class CrossGradient(BaseSimilarityMeasure):
         (optional strategy, not used in this script)
 
         """
-        # m1, m2 = (wire * model for wire in self.wire_map)
         Av = self._Av
         G = self._G
         g_m1, g_m2 = self._model_gradients(model)
 
         return 0.5 * np.sum(
-            (Av @ g_m1**2) * (Av @ g_m2**2) - (Av @ (g_m1 * g_m2)) ** 2
+            np.sum((Av @ g_m1**2) * (Av @ g_m2**2) - (Av @ (g_m1 * g_m2)) ** 2)
         )
 
     def deriv(self, model):
@@ -189,88 +195,104 @@ class CrossGradient(BaseSimilarityMeasure):
         G = self._G
         g_m1, g_m2 = self._model_gradients(model)
 
-        return self.wire_map_deriv.T * np.r_[
+        deriv = np.r_[
             (((Av @ g_m2**2) @ Av) * g_m1) @ G
             - (((Av @ (g_m1 * g_m2)) @ Av) * g_m2) @ G,
             (((Av @ g_m1**2) @ Av) * g_m2) @ G
             - (((Av @ (g_m1 * g_m2)) @ Av) * g_m1) @ G,
         ]
 
+        return self.wire_map_deriv.T * deriv
+
     def deriv2(self, model, v=None):
-        """
-        Computes the Hessian of the cross-gradient.
+        r"""Hessian of the regularization function evaluated for the model provided.
 
-        :param list of numpy.ndarray ind_models: [model1, model2, ...]
-        :param numpy.ndarray v: vector to be multiplied by Hessian
+        Where :math:`\phi (\mathbf{m})` is the discrete regularization function (objective function),
+        this method evalutate and returns the second derivative (Hessian) with respect to the model parameters:
+        For a model :math:`\mathbf{m}` consisting of two physical properties such that:
 
-        :rtype: scipy.sparse.csr_matrix if v is None
-                numpy.ndarray if v is not None
-        :return Hessian matrix if v is None
-                Hessian multiplied by vector if v is not No
+        .. math::
+            \mathbf{m} = \begin{bmatrix} \mathbf{m_1} \\ \mathbf{m_2} \end{bmatrix}
 
+        The Hessian has the form:
+
+        .. math::
+            \frac{\partial^2 \phi}{\partial \mathbf{m}^2} =
+            \begin{bmatrix}
+            \dfrac{\partial^2 \phi}{\partial \mathbf{m_1}^2} &
+            \dfrac{\partial^2 \phi}{\partial \mathbf{m_1} \partial \mathbf{m_2}} \\
+            \dfrac{\partial^2 \phi}{\partial \mathbf{m_2} \partial \mathbf{m_1}} &
+            \dfrac{\partial^2 \phi}{\partial \mathbf{m_2}^2}
+            \end{bmatrix}
+
+        When a vector :math:`(\mathbf{v})` is supplied, the method returns the Hessian
+        times the vector:
+
+        .. math::
+            \frac{\partial^2 \phi}{\partial \mathbf{m}^2} \, \mathbf{v}
+
+        Parameters
+        ----------
+        model : (n_param, ) numpy.ndarray
+            The model; a vector array containing all physical properties.
+        v : None, (n_param, ) numpy.ndarray (optional)
+            A numpy array to model the Hessian by.
+
+        Returns
+        -------
+        (n_param, n_param) scipy.sparse.csr_matrix | (n_param, ) numpy.ndarray
+            If the input argument *v* is ``None``, the Hessian
+            for the models provided is returned. If *v* is not ``None``,
+            the Hessian multiplied by the vector provided is returned.
         """
         Av = self._Av
         G = self._G
+
         g_m1, g_m2 = self._model_gradients(model)
 
+        d11_mid = Av.T @ (Av @ g_m2**2)
+        d12_mid = -(Av.T @ (Av @ (g_m1 * g_m2)))
+        d22_mid = Av.T @ (Av @ g_m1**2)
+
         if v is None:
-            A = (
-                G.T
-                @ (
-                    sp.diags(Av.T @ (Av @ g_m2**2))
-                    - sp.diags(g_m2) @ Av.T @ Av @ sp.diags(g_m2)
-                )
-                @ G
-            )
-
-            C = (
-                G.T
-                @ (
-                    sp.diags(Av.T @ (Av @ g_m1**2))
-                    - sp.diags(g_m1) @ Av.T @ Av @ sp.diags(g_m1)
-                )
-                @ G
-            )
-
-            B = None
-            BT = None
+            D11_mid = sp.diags(d11_mid)
+            D12_mid = sp.diags(d12_mid)
+            D22_mid = sp.diags(d22_mid)
             if not self.approx_hessian:
-                # d_m1_d_m2
-                B = (
-                    G.T
-                    @ (
-                        2 * sp.diags(g_m1) @ Av.T @ Av @ sp.diags(g_m2)
-                        - sp.diags(g_m2) @ Av.T @ Av @ sp.diags(g_m1)
-                        - sp.diags(Av.T @ Av @ (g_m1 * g_m2))
-                    )
-                    @ G
+                D11_mid = D11_mid - sp.diags(g_m2) @ Av.T @ Av @ sp.diags(g_m2)
+                D12_mid = (
+                    D12_mid
+                    + 2 * sp.diags(g_m1) @ Av.T @ Av @ sp.diags(g_m2)
+                    - sp.diags(g_m2) @ Av.T @ Av @ sp.diags(g_m1)
                 )
-                BT = B.T
+                D22_mid = D22_mid - sp.diags(g_m1) @ Av.T @ Av @ sp.diags(g_m1)
+            D11 = G.T @ D11_mid @ G
+            D12 = G.T @ D12_mid @ G
+            D22 = G.T @ D22_mid @ G
 
-            return self.wire_map_deriv.T * sp.bmat([[A, B], [BT, C]], format="csr") * self.wire_map_deriv
+            return (
+                self.wire_map_deriv.T
+                @ sp.bmat([[D11, D12], [D12.T, D22]], format="csr")
+                * self.wire_map_deriv
+            )  # factor of 2 from derviative of | grad m1 x grad m2 | ^2
+
         else:
             v1, v2 = (wire * v for wire in self.wire_map)
 
             Gv1 = G @ v1
             Gv2 = G @ v2
-
-            p1 = G.T @ (
-                (Av.T @ (Av @ g_m2**2)) * Gv1 - g_m2 * (Av.T @ (Av @ (g_m2 * Gv1)))
-            )
-            p2 = G.T @ (
-                (Av.T @ (Av @ g_m1**2)) * Gv2 - g_m1 * (Av.T @ (Av @ (g_m1 * Gv2)))
-            )
-
+            p1 = G.T @ (d11_mid * Gv1 + d12_mid * Gv2)
+            p2 = G.T @ (d12_mid * Gv1 + d22_mid * Gv2)
             if not self.approx_hessian:
                 p1 += G.T @ (
-                    2 * g_m1 * (Av.T @ (Av @ (g_m2 * Gv2)))
-                    - g_m2 * (Av.T @ (Av @ (g_m1 * Gv2)))
-                    - (Av.T @ (Av @ (g_m1 * g_m2))) * Gv2
+                    -g_m2 * (Av.T @ (Av @ (g_m2 * Gv1)))  # d11*v1 full addition
+                    + 2 * g_m1 * (Av.T @ (Av @ (g_m2 * Gv2)))  # d12*v2 full addition
+                    - g_m2 * (Av.T @ (Av @ (g_m1 * Gv2)))  # d12*v2 continued
                 )
 
                 p2 += G.T @ (
-                    2 * g_m2 * (Av.T @ (Av @ (g_m1 * Gv1)))
-                    - g_m1 * (Av.T @ (Av @ (g_m2 * Gv1)))
-                    - (Av.T @ (Av @ (g_m2 * g_m1))) * Gv1
+                    -g_m1 * (Av.T @ (Av @ (g_m1 * Gv2)))  # d22*v2 full addition
+                    + 2 * g_m2 * (Av.T @ (Av @ (g_m1 * Gv1)))  # d12.T*v1 full addition
+                    - g_m1 * (Av.T @ (Av @ (g_m2 * Gv1)))  # d12.T*v1 fcontinued
                 )
             return self.wire_map_deriv.T * np.r_[p1, p2]
