@@ -31,8 +31,6 @@ class CrossGradient(BaseSimilarityMeasure):
         self.normalize = normalize
         regmesh = self.regularization_mesh
 
-        self.scaling = np.ones(2 * regmesh.nC)
-
         if regmesh.mesh.dim not in (2, 3):
             raise ValueError("Cross-Gradient is only defined for 2D or 3D")
         self._G = regmesh.cell_gradient
@@ -175,8 +173,6 @@ class CrossGradient(BaseSimilarityMeasure):
         (optional strategy, not used in this script)
 
         """
-        # m1, m2 = (wire * model for wire in self.wire_map)
-        sp.diags(self.scaling)
         Av = self._Av
         G = self._G
         g_m1, g_m2 = self._model_gradients(model)
@@ -211,7 +207,7 @@ class CrossGradient(BaseSimilarityMeasure):
             np.ones(n_cells) * np.abs(deriv[n_cells:]).max(),
         ]
 
-        return self.wire_map_deriv.T * (self.scaling * deriv)
+        return self.wire_map_deriv.T * deriv
 
     def deriv2(self, model, v=None):
         r"""Hessian of the regularization function evaluated for the model provided.
@@ -257,8 +253,6 @@ class CrossGradient(BaseSimilarityMeasure):
         Av = self._Av
         G = self._G
 
-        scaling = sp.diags(self.scaling)
-
         g_m1, g_m2 = self._model_gradients(model)
 
         d11_mid = Av.T @ (Av @ g_m2**2)
@@ -283,7 +277,6 @@ class CrossGradient(BaseSimilarityMeasure):
 
             return (
                 self.wire_map_deriv.T
-                * scaling
                 @ sp.bmat([[D11, D12], [D12.T, D22]], format="csr")
                 * self.wire_map_deriv
             )  # factor of 2 from derviative of | grad m1 x grad m2 | ^2
@@ -307,4 +300,4 @@ class CrossGradient(BaseSimilarityMeasure):
                     + 2 * g_m2 * (Av.T @ (Av @ (g_m1 * Gv1)))  # d12.T*v1 full addition
                     - g_m1 * (Av.T @ (Av @ (g_m2 * Gv1)))  # d12.T*v1 fcontinued
                 )
-            return self.wire_map_deriv.T * scaling @ np.r_[p1, p2]
+            return self.wire_map_deriv.T * np.r_[p1, p2]
