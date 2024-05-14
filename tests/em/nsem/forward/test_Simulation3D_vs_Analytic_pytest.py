@@ -196,8 +196,6 @@ def test_analytic_halfspace_solution(
     )
     analytic_solution = np.repeat(analytic_solution, n_locations)
 
-    # print(np.c_[numeric_solution, analytic_solution])
-
     # # Error
     err = np.abs(
         (numeric_solution - analytic_solution) / (analytic_solution + ABS_TOLERANCE)

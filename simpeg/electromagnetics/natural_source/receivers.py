@@ -47,8 +47,12 @@ def _getP(rx, mesh, projected_grid, field="e", is_tipper_bs=False):
         Whether the projection is for a remote base station location where horizontal
         magnetic fields are measured. Ensures stash names for projection matrices
         aren't reused.
+
+    Returns
+    -------
+    sp.sparse.csr_matrix
+        The projection matrix.
     """
-    # Inherited method from BaseRx projecting to self.locations
     if mesh.dim < 3:
         return rx.getP(mesh, projected_grid)
 
@@ -218,7 +222,7 @@ class MobileMT(BaseRx):
 
         # ADJOINT
         if adjoint:
-            # J_T * v = d_top_T * a_v + d_bot_T * b
+            # Compute: J_T * v = d_top_T * a_v + d_bot_T * b
             a_v = fact * v / bot  # term 1
             b_v = -fact * top * v / bot**2  # term 2
 
@@ -267,7 +271,7 @@ class MobileMT(BaseRx):
             NSEM source.
         mesh : discretize.TensorMesh
             Mesh on which the discretize solution is obtained.
-        f : .frequency_domain.fields.FieldsFDEM
+        f : simpeg.electromagnetics.frequency_domain.fields.FieldsFDEM
             NSEM fields object of the source.
 
         Returns
@@ -296,24 +300,24 @@ class MobileMT(BaseRx):
 
         Parameters
         ----------
-        str : .frequency_domain.sources.BaseFDEMSrc
+        src : .frequency_domain.sources.BaseFDEMSrc
             The NSEM source.
         mesh : discretize.TensorMesh
             Mesh on which the discretize solution is obtained.
-        f : .frequency_domain.fields.FieldsFDEM
+        f : simpeg.electromagnetics.frequency_domain.fields.FieldsFDEM
             NSEM fields object for the source.
         du_dm_v : None,
             Supply pre-computed derivative?
-        v : numpy.ndarray
+        v : numpy.ndarray, optional
             Vector of size
-        adjoint : bool
+        adjoint : bool, optional
             Whether to compute the ajoint operation.
 
         Returns
         -------
         numpy.ndarray
-            Calculated derivative (n_data,) if `adjoint` is ``False`` and (n_param, 2)
-            if `adjoint` is ``True`` for both polarizations.
+            Calculated derivative (n_data,) if `adjoint` is ``False``, and (n_param, 2) if `adjoint`
+            is ``True``, for both polarizations.
         """
         return self._eval_mobilemt_deriv(
             src, mesh, f, du_dm_v=du_dm_v, v=v, adjoint=adjoint
@@ -379,6 +383,9 @@ class Impedance(MobileMT):
     locations_h : (n_loc, n_dim) numpy.ndarray
         Locations where the horizontal magnetic fields are measured.
         Must be same size as `locations_e`.
+    return_complex : bool, optional
+        If ``True`` the complex impedance is evaluation, and the `component` input
+        argument is ignored. Do not use for inversion!
     """
 
     def __init__(
@@ -388,9 +395,11 @@ class Impedance(MobileMT):
         component="real",
         locations_e=None,
         locations_h=None,
+        return_complex=False,
     ):
         self.orientation = orientation
         self.component = component
+        self.return_complex = return_complex
         super().__init__(
             locations=locations, locations_e=locations_e, locations_h=locations_h
         )
@@ -656,7 +665,7 @@ class Impedance(MobileMT):
             NSEM source.
         mesh : discretize.TensorMesh
             Mesh on which the discretize solution is obtained.
-        f : .frequency_domain.fields.FieldsFDEM
+        f : simpeg.electromagnetics.frequency_domain.fields.FieldsFDEM
             NSEM fields object of the source.
         return_complex : bool, optional
             Flag for returning the complex evaluation.
@@ -700,19 +709,20 @@ class Impedance(MobileMT):
             The NSEM source.
         mesh : discretize.TensorMesh
             Mesh on which the discretize solution is obtained.
-        f : .frequency_domain.fields.FieldsFDEM
+        f : simpeg.electromagnetics.frequency_domain.fields.FieldsFDEM
             NSEM fields object for the source.
         du_dm_v : None,
             Supply pre-computed derivative?
-        v : numpy.ndarray
+        v : numpy.ndarray, optional
             Vector of size
-        adjoint : bool
+        adjoint : bool, optional
             Whether to compute the ajoint operation.
 
         Returns
         -------
         numpy.ndarray
-            Calculated derivative (nD,) (adjoint=False) and (nP,2) (adjoint=True) for both polarizations
+            Calculated derivative (n_data,) if `adjoint` is ``False``, and (n_param, 2) if `adjoint`
+            is ``True``, for both polarizations.
         """
         return self._eval_impedance_deriv(
             src, mesh, f, du_dm_v=du_dm_v, v=v, adjoint=adjoint
@@ -755,6 +765,9 @@ class Admittance(Impedance):
     locations_h : (n_loc, n_dim) numpy.ndarray
         Locations where the magnetic fields are measured.
         Must be same size as `locations_e`.
+    return_complex : bool, optional
+        If ``True`` the complex admittance is evaluation, and the `component` input
+        argument is ignored. Do not use for inversion!
     """
 
     def __init__(
@@ -764,6 +777,7 @@ class Admittance(Impedance):
         component="real",
         locations_e=None,
         locations_h=None,
+        return_complex=False,
     ):
         super().__init__(
             locations=locations,
@@ -771,6 +785,7 @@ class Admittance(Impedance):
             component=component,
             locations_e=locations_e,
             locations_h=locations_h,
+            return_complex=return_complex,
         )
 
     @property
@@ -923,10 +938,6 @@ class Admittance(Impedance):
         adm = self._eval_admittance(src, mesh, f)
         if return_complex:
             return adm
-        # elif self.component == "apparent_resistivity":
-        #     return _alpha(src) * (adm.real**2 + adm.imag**2)
-        # elif self.component == "phase":
-        #     return 180 / np.pi * (np.arctan2(adm.imag, adm.real))
         else:
             return getattr(adm, self.component)
 
@@ -979,9 +990,12 @@ class Tipper(BaseRx):
         Locations for remote horizontal magnetic field measurements (e.g. base station).
         Must be same shape as `locations`.
     locations_e : (n_loc, n_dim) numpy.ndarray, optional
-        Deprecated property. To be removed in simpeg 0.20.0.
+        Deprecated property. To be removed in simpeg 0.23.0.
     locations_h : (n_loc, n_dim) numpy.ndarray, optional
-        Deprecated property. To be removed in simpeg 0.20.0.
+        Deprecated property. To be removed in simpeg 0.23.0.
+    return_complex : bool, optional
+        If ``True`` the complex impedance is evaluation, and the `component` input
+        argument is ignored. Do not use for inversion!
     """
 
     def __init__(
@@ -992,9 +1006,11 @@ class Tipper(BaseRx):
         locations_bs=None,
         locations_e=None,
         locations_h=None,
+        return_complex=False,
     ):
         self.orientation = orientation
         self.component = component
+        self.return_complex = return_complex
 
         # check if locations and locations_bs have been provided
         if locations_bs is not None:
@@ -1022,7 +1038,7 @@ class Tipper(BaseRx):
             elif isinstance(locations, np.ndarray):
                 self._locations_bs = locations
             else:
-                raise Exception("locations need to be either a list or numpy array")
+                raise ValueError("locations need to be either a list or numpy array")
 
         super().__init__(locations)
 
@@ -1031,7 +1047,7 @@ class Tipper(BaseRx):
                 (
                     "'locations_e' and 'locations_h' are deprecated properties that are unused by the Tipper class.",
                     "Receiver locations are set using 'locations' (and 'locations_bs').",
-                    "These property will be removed in simpeg v.0.20.0.",
+                    "These property will be removed in simpeg v.0.23.0.",
                 ),
                 DeprecationWarning,
                 stacklevel=2,
@@ -1172,8 +1188,11 @@ class Tipper(BaseRx):
 
     def eval(self, src, mesh, f, return_complex=False):  # noqa: A003
         # Docstring inherited from parent class (Impedance).
-        rx_eval_complex = self._eval_tipper(src, mesh, f)
-        return getattr(rx_eval_complex, self.component)
+        tip = self._eval_tipper(src, mesh, f)
+        if return_complex:
+            return tip
+        else:
+            return getattr(tip, self.component)
 
     def evalDeriv(self, src, mesh, f, du_dm_v=None, v=None, adjoint=False):
         # Docstring inherited from parent class (Impedance).
@@ -1188,9 +1207,9 @@ class Tipper(BaseRx):
         return getattr(imp_deriv, self.component)
 
 
-@deprecate_class(removal_version="0.20.0", error=False)
+@deprecate_class(removal_version="0.23.0", error=False)
 class PointNaturalSource(Impedance):
-    """This class is deprecated and will be removed in simpeg v0.20.0.
+    """This class is deprecated and will be removed in simpeg v0.23.0.
     Please use :class:`.Impedance`."""
 
     def __init__(
@@ -1210,9 +1229,9 @@ class PointNaturalSource(Impedance):
         )
 
 
-@deprecate_class(removal_version="0.20.0", error=False)
+@deprecate_class(removal_version="0.23.0", error=False)
 class Point3DTipper(Impedance):
-    """This class is deprecated and will be removed in simpeg v0.20.0.
+    """This class is deprecated and will be removed in simpeg v0.23.0.
     Please use :class:`.Tipper`."""
 
     def __init__(
