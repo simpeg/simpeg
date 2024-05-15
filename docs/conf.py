@@ -244,62 +244,58 @@ external_links = [
     dict(name="Contact", url="https://mattermost.softwareunderground.org/simpeg"),
 ]
 
-try:
-    import pydata_sphinx_theme
+# Use Pydata Sphinx theme
+html_theme = "pydata_sphinx_theme"
 
-    html_theme = "pydata_sphinx_theme"
+# If false, no module index is generated.
+html_use_modindex = True
 
-    # If false, no module index is generated.
-    html_use_modindex = True
-
-    html_theme_options = {
-        "external_links": external_links,
-        "icon_links": [
-            {
-                "name": "GitHub",
-                "url": "https://github.com/simpeg/simpeg",
-                "icon": "fab fa-github",
-            },
-            {
-                "name": "Mattermost",
-                "url": "https://mattermost.softwareunderground.org/simpeg",
-                "icon": "fas fa-comment",
-            },
-            {
-                "name": "Discourse",
-                "url": "https://simpeg.discourse.group/",
-                "icon": "fab fa-discourse",
-            },
-            {
-                "name": "Youtube",
-                "url": "https://www.youtube.com/c/geoscixyz",
-                "icon": "fab fa-youtube",
-            },
-        ],
-        "use_edit_page_button": False,
-        "collapse_navigation": True,
-        "analytics": {
-            "plausible_analytics_domain": "docs.simpeg.xyz",
-            "plausible_analytics_url": "https://plausible.io/js/script.js",
+html_theme_options = {
+    "external_links": external_links,
+    "icon_links": [
+        {
+            "name": "GitHub",
+            "url": "https://github.com/simpeg/simpeg",
+            "icon": "fab fa-github",
         },
-        "navbar_align": "left",  # make elements closer to logo on the left
-    }
-    html_logo = "images/simpeg-logo.png"
+        {
+            "name": "Mattermost",
+            "url": "https://mattermost.softwareunderground.org/simpeg",
+            "icon": "fas fa-comment",
+        },
+        {
+            "name": "Discourse",
+            "url": "https://simpeg.discourse.group/",
+            "icon": "fab fa-discourse",
+        },
+        {
+            "name": "Youtube",
+            "url": "https://www.youtube.com/c/geoscixyz",
+            "icon": "fab fa-youtube",
+        },
+    ],
+    "use_edit_page_button": False,
+    "collapse_navigation": True,
+    "analytics": {
+        "plausible_analytics_domain": "docs.simpeg.xyz",
+        "plausible_analytics_url": "https://plausible.io/js/script.js",
+    },
+    "navbar_align": "left",  # make elements closer to logo on the left
+}
+html_logo = "images/simpeg-logo.png"
 
-    html_static_path = ["_static"]
+html_static_path = ["_static"]
 
-    html_css_files = [
-        "css/custom.css",
-    ]
+html_css_files = [
+    "css/custom.css",
+]
 
-    html_context = {
-        "github_user": "simpeg",
-        "github_repo": "simpeg",
-        "github_version": "main",
-        "doc_path": "docs",
-    }
-except Exception:
-    html_theme = "default"
+html_context = {
+    "github_user": "simpeg",
+    "github_repo": "simpeg",
+    "github_version": "main",
+    "doc_path": "docs",
+}
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
