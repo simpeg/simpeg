@@ -169,6 +169,12 @@ class _SimulationProcess(Process):
         self._check_closed()
         return self.result_queue.get()
 
+    def join(self, timeout=None):
+        self.task_queue.put(None)
+        self.result_queue.join(timeout=timeout)
+        self.task_queue.join(timeout=timeout)
+        super().join(timeout=timeout)
+
 
 class MultiprocessingMetaSimulation(MetaSimulation):
     """Multiprocessing version of simulation of simulations.
@@ -344,7 +350,6 @@ class MultiprocessingMetaSimulation(MetaSimulation):
     def join(self, timeout=None):
         for p in self._sim_processes:
             if p.is_alive():
-                p.task_queue.put(None)
                 p.join(timeout=timeout)
 
 
