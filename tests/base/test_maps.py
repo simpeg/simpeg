@@ -5,7 +5,7 @@ import pytest
 import scipy.sparse as sp
 
 from simpeg import maps, models, utils
-from discretize.utils import mesh_builder_xyz, refine_tree_xyz, active_from_xyz
+from discretize.utils import mesh_builder_xyz, active_from_xyz
 import inspect
 
 TOL = 1e-14
@@ -524,14 +524,11 @@ class MapTests(unittest.TestCase):
             local_mesh = mesh_builder_xyz(
                 rxLocs, h, padding_distance=padDist, mesh_type="tree"
             )
-            local_mesh = refine_tree_xyz(
-                local_mesh,
-                rxLocs[ii, :].reshape((1, -1)),
-                method="radial",
-                octree_levels=[1],
+            local_mesh.refine_points(
+                points=rxLocs[ii, :].reshape((1, -1)),
+                padding_cells_by_level=[1],
                 finalize=True,
             )
-
             local_meshes.append(local_mesh)
 
         mesh = mesh_builder_xyz(rxLocs, h, padding_distance=padDist, mesh_type="tree")

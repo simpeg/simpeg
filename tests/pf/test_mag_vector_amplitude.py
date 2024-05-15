@@ -11,7 +11,7 @@ from simpeg import (
 )
 
 
-from discretize.utils import mesh_builder_xyz, refine_tree_xyz, active_from_xyz
+from discretize.utils import mesh_builder_xyz, active_from_xyz
 import numpy as np
 from simpeg.potential_fields import magnetics as mag
 import shutil
@@ -61,9 +61,7 @@ class MVIProblemTest(unittest.TestCase):
         mesh = mesh_builder_xyz(
             xyzLoc, h, padding_distance=padDist, depth_core=100, mesh_type="tree"
         )
-        mesh = refine_tree_xyz(
-            mesh, topo, method="surface", octree_levels=[4, 4], finalize=True
-        )
+        mesh.refine_surface(topo, padding_cells_by_level=[4, 4], finalize=True)
         self.mesh = mesh
         # Define an active cells from topo
         actv = active_from_xyz(mesh, topo)

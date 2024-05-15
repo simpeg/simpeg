@@ -2,7 +2,7 @@ import shutil
 import unittest
 import numpy as np
 
-from discretize.utils import mesh_builder_xyz, refine_tree_xyz, active_from_xyz
+from discretize.utils import mesh_builder_xyz, active_from_xyz
 from simpeg import (
     directives,
     maps,
@@ -71,14 +71,7 @@ class MagInvLinProblemTest(unittest.TestCase):
             mesh_type="TREE",
         )
 
-        self.mesh = refine_tree_xyz(
-            self.mesh,
-            topo,
-            method="surface",
-            octree_levels=nCpad,
-            octree_levels_padding=nCpad,
-            finalize=True,
-        )
+        self.mesh.refine_surface(topo, padding_cells_by_level=nCpad, finalize=True)
 
         # Define an active cells from topo
         actv = active_from_xyz(self.mesh, topo)
