@@ -189,7 +189,7 @@ class IdentityMap:
             return sp.identity(self.nP)
         return Identity()
 
-    def test(self, m=None, num=4, **kwargs):
+    def test(self, m=None, num=4, random_seed=None, **kwargs):
         """Derivative test for the mapping.
 
         This test validates the mapping by performing a convergence test.
@@ -200,6 +200,10 @@ class IdentityMap:
             Starting vector of model parameters for the derivative test
         num : int
             Number of iterations for the derivative test
+        random_seed : {None, RandomSeed}, optional
+            Random seed used for generating a random array for ``m`` if it's
+            None. It can either be an int, a predefined Numpy random number
+            generator, or any valid input to ``numpy.random.default_rng``.
         kwargs: dict
             Keyword arguments and associated values in the dictionary must
             match those used in :meth:`discretize.tests.check_derivative`
@@ -211,7 +215,8 @@ class IdentityMap:
         """
         print("Testing {0!s}".format(str(self)))
         if m is None:
-            m = abs(np.random.rand(self.nP))
+            rng = np.random.default_rng(seed=random_seed)
+            m = rng.uniform(size=self.nP)
         if "plotIt" not in kwargs:
             kwargs["plotIt"] = False
 
