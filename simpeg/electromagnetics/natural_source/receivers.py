@@ -1230,7 +1230,7 @@ class PointNaturalSource(Impedance):
 
 
 @deprecate_class(removal_version="0.23.0", error=False)
-class Point3DTipper(Impedance):
+class Point3DTipper(Tipper):
     """This class is deprecated and will be removed in simpeg v0.23.0.
     Please use :class:`.Tipper`."""
 
@@ -1246,7 +1246,5 @@ class Point3DTipper(Impedance):
             locations=locations,
             orientation=orientation,
             component=component,
-            locations_bs=None,
-            locations_e=locations_e,
-            locations_h=locations_h,
+            locations_bs=None
         )
