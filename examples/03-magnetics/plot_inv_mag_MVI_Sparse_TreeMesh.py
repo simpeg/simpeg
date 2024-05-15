@@ -11,12 +11,12 @@ We invert the data twice, first for a smooth starting model using the
 Cartesian coordinate system, and second for a compact model using
 the Spherical formulation.
 
-The inverse problem uses the :class:'SimPEG.regularization.Sparse'
+The inverse problem uses the :class:'simpeg.regularization.Sparse'
 that
 
 """
 
-from SimPEG import (
+from simpeg import (
     data,
     data_misfit,
     directives,
@@ -27,11 +27,11 @@ from SimPEG import (
     regularization,
 )
 
-from SimPEG import utils
-from SimPEG.utils import mkvc
+from simpeg import utils
+from simpeg.utils import mkvc
 
 from discretize.utils import active_from_xyz, mesh_builder_xyz, refine_tree_xyz
-from SimPEG.potential_fields import magnetics
+from simpeg.potential_fields import magnetics
 import scipy as sp
 import numpy as np
 import matplotlib.pyplot as plt

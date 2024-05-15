@@ -1,12 +1,12 @@
 import numpy as np
-from SimPEG.potential_fields import gravity
-from SimPEG.electromagnetics.static import resistivity as dc
-from SimPEG import maps
+from simpeg.potential_fields import gravity
+from simpeg.electromagnetics.static import resistivity as dc
+from simpeg import maps
 from discretize import TensorMesh
 import scipy.sparse as sp
 import pytest
 
-from SimPEG.meta import MetaSimulation, SumMetaSimulation, RepeatedSimulation
+from simpeg.meta import MetaSimulation, SumMetaSimulation, RepeatedSimulation
 
 
 def test_multi_sim_correctness():
@@ -150,7 +150,6 @@ def test_sum_sim_correctness():
     np.testing.assert_allclose(jvec_full, jvec_mult, rtol=1e-6)
 
     # test Jtvec
-    rng = np.random.default_rng(seed=0)
     v = rng.random(survey.nD)
     jtvec_full = full_sim.Jtvec(m_test, v, f=f_full)
     jtvec_mult = sum_sim.Jtvec(m_test, v, f=f_mult)

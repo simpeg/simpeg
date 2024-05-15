@@ -1,6 +1,6 @@
 import scooby
 import unittest
-from SimPEG import Report
+from simpeg import Report
 
 
 class TestReport(unittest.TestCase):
@@ -10,7 +10,7 @@ class TestReport(unittest.TestCase):
         out1 = Report()
         out2 = scooby.Report(
             core=[
-                "SimPEG",
+                "simpeg",
                 "discretize",
                 "pymatsolver",
                 "numpy",

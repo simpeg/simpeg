@@ -1,8 +1,8 @@
 import numpy as np
 import pytest
 
-from SimPEG.electromagnetics import frequency_domain as fdem
-from SimPEG.electromagnetics import time_domain as tdem
+from simpeg.electromagnetics import frequency_domain as fdem
+from simpeg.electromagnetics import time_domain as tdem
 
 
 def test_removed_projcomp():

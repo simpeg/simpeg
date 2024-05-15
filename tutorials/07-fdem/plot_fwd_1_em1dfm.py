@@ -2,7 +2,7 @@
 1D Forward Simulation for a Single Sounding
 ===========================================
 
-Here we use the module *SimPEG.electromangetics.frequency_domain_1d* to predict
+Here we use the module *simpeg.electromangetics.frequency_domain_1d* to predict
 frequency domain data for a single sounding over a 1D layered Earth.
 In this tutorial, we focus on the following:
 
@@ -28,9 +28,9 @@ import os
 from matplotlib import pyplot as plt
 from discretize import TensorMesh
 
-from SimPEG import maps
-from SimPEG.electromagnetics import frequency_domain as fdem
-from SimPEG.utils import plot_1d_layer_model
+from simpeg import maps
+from simpeg.electromagnetics import frequency_domain as fdem
+from simpeg.utils import plot_1d_layer_model
 
 plt.rcParams.update({"font.size": 16})
 write_output = False
@@ -142,7 +142,7 @@ plt.gca().invert_yaxis()
 # The simulation requires the user define the survey, the layer thicknesses
 # and a mapping from the model to the conductivities of the layers.
 #
-# When using the *SimPEG.electromagnetics.frequency_domain_1d* module,
+# When using the *simpeg.electromagnetics.frequency_domain_1d* module,
 # predicted data are organized by source, then by receiver, then by frequency.
 #
 

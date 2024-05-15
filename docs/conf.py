@@ -15,7 +15,7 @@ import sys
 import os
 from sphinx_gallery.sorting import FileNameSortKey
 import glob
-import SimPEG
+import simpeg
 import plotly.io as pio
 from importlib.metadata import version
 
@@ -78,7 +78,7 @@ copyright = "2013 - 2023, SimPEG Team, https://simpeg.xyz"
 # built documents.
 #
 # The full version, including alpha/beta/rc tags.
-release = version("SimPEG")
+release = version("simpeg")
 # The short X.Y version.
 version = ".".join(release.split(".")[:2])
 
@@ -188,11 +188,11 @@ if link_github:
             linespec = ""
 
         try:
-            fn = relpath(fn, start=dirname(SimPEG.__file__))
+            fn = relpath(fn, start=dirname(simpeg.__file__))
         except ValueError:
             return None
 
-        return f"https://github.com/simpeg/simpeg/blob/main/SimPEG/{fn}{linespec}"
+        return f"https://github.com/simpeg/simpeg/blob/main/simpeg/{fn}{linespec}"
 
 else:
     extensions.append("sphinx.ext.viewcode")
@@ -231,65 +231,64 @@ plot_rcparams = {
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
-try:
-    import pydata_sphinx_theme
+external_links = [
+    dict(name="User Tutorials", url="https://simpeg.xyz/user-tutorials"),
+    dict(name="SimPEG", url="https://simpeg.xyz"),
+    dict(name="Contact", url="https://mattermost.softwareunderground.org/simpeg"),
+]
 
-    html_theme = "pydata_sphinx_theme"
+# Use Pydata Sphinx theme
+html_theme = "pydata_sphinx_theme"
 
-    # If false, no module index is generated.
-    html_use_modindex = True
+# If false, no module index is generated.
+html_use_modindex = True
 
-    html_theme_options = {
-        "external_links": [
-            {"name": "SimPEG", "url": "https://simpeg.xyz"},
-            {"name": "Contact", "url": "http://slack.simpeg.xyz"},
-        ],
-        "icon_links": [
-            {
-                "name": "GitHub",
-                "url": "https://github.com/simpeg/simpeg",
-                "icon": "fab fa-github",
-            },
-            {
-                "name": "Slack",
-                "url": "http://slack.simpeg.xyz/",
-                "icon": "fab fa-slack",
-            },
-            {
-                "name": "Discourse",
-                "url": "https://simpeg.discourse.group/",
-                "icon": "fab fa-discourse",
-            },
-            {
-                "name": "Youtube",
-                "url": "https://www.youtube.com/c/geoscixyz",
-                "icon": "fab fa-youtube",
-            },
-            {
-                "name": "Twitter",
-                "url": "https://twitter.com/simpegpy",
-                "icon": "fab fa-twitter",
-            },
-        ],
-        "use_edit_page_button": False,
-        "collapse_navigation": True,
-    }
-    html_logo = "images/simpeg-logo.png"
+html_theme_options = {
+    "external_links": external_links,
+    "icon_links": [
+        {
+            "name": "GitHub",
+            "url": "https://github.com/simpeg/simpeg",
+            "icon": "fab fa-github",
+        },
+        {
+            "name": "Mattermost",
+            "url": "https://mattermost.softwareunderground.org/simpeg",
+            "icon": "fas fa-comment",
+        },
+        {
+            "name": "Discourse",
+            "url": "https://simpeg.discourse.group/",
+            "icon": "fab fa-discourse",
+        },
+        {
+            "name": "Youtube",
+            "url": "https://www.youtube.com/c/geoscixyz",
+            "icon": "fab fa-youtube",
+        },
+    ],
+    "use_edit_page_button": False,
+    "collapse_navigation": True,
+    "analytics": {
+        "plausible_analytics_domain": "docs.simpeg.xyz",
+        "plausible_analytics_url": "https://plausible.io/js/script.js",
+    },
+    "navbar_align": "left",  # make elements closer to logo on the left
+}
+html_logo = "images/simpeg-logo.png"
 
-    html_static_path = ["_static"]
+html_static_path = ["_static"]
 
-    html_css_files = [
-        "css/custom.css",
-    ]
+html_css_files = [
+    "css/custom.css",
+]
 
-    html_context = {
-        "github_user": "simpeg",
-        "github_repo": "simpeg",
-        "github_version": "main",
-        "doc_path": "docs",
-    }
-except Exception:
-    html_theme = "default"
+html_context = {
+    "github_user": "simpeg",
+    "github_repo": "simpeg",
+    "github_version": "main",
+    "doc_path": "docs",
+}
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
@@ -362,7 +361,7 @@ html_show_copyright = False
 # html_file_suffix = None
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = "SimPEGdoc"
+htmlhelp_basename = "simpegdoc"
 
 
 # -- Options for LaTeX output --------------------------------------------------
@@ -379,7 +378,7 @@ latex_elements = {
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title, author, documentclass [howto/manual]).
 latex_documents = [
-    ("index", "SimPEG.tex", "SimPEG Documentation", "SimPEG Team", "manual"),
+    ("index", "simpeg.tex", "SimPEG Documentation", "SimPEG Team", "manual"),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of
@@ -407,7 +406,7 @@ latex_documents = [
 
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
-man_pages = [("index", "simpeg", "SimPEG Documentation", ["SimPEG Team"], 1)]
+man_pages = [("index", "SimPEG", "SimPEG Documentation", ["SimPEG Team"], 1)]
 
 # If true, show URL addresses after external links.
 # man_show_urls = False
@@ -420,6 +419,7 @@ intersphinx_mapping = {
     "matplotlib": ("https://matplotlib.org/stable/", None),
     "properties": ("https://propertiespy.readthedocs.io/en/latest/", None),
     "discretize": ("https://discretize.simpeg.xyz/en/main/", None),
+    "pymatsolver": ("https://pymatsolver.readthedocs.io/en/latest/", None),
 }
 numpydoc_xref_param_type = True
 
@@ -462,7 +462,7 @@ sphinx_gallery_conf = {
     "within_subsection_order": FileNameSortKey,
     "filename_pattern": "\.py",
     "backreferences_dir": "content/api/generated/backreferences",
-    "doc_module": "SimPEG",
+    "doc_module": "simpeg",
     "show_memory": True,
     "image_scrapers": image_scrapers,
 }

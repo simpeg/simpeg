@@ -1,8 +1,8 @@
 import unittest
 import numpy as np
 import discretize
-from SimPEG import maps, tests
-from SimPEG.electromagnetics import time_domain as tdem
+from simpeg import maps, tests
+from simpeg.electromagnetics import time_domain as tdem
 from pymatsolver import Pardiso as Solver
 
 plotIt = False

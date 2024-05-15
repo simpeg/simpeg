@@ -1,6 +1,6 @@
-from SimPEG.electromagnetics.static import resistivity as dc
-from SimPEG.electromagnetics.static.utils.static_utils import generate_dcip_sources_line
-from SimPEG import maps
+from simpeg.electromagnetics.static import resistivity as dc
+from simpeg.electromagnetics.static.utils.static_utils import generate_dcip_sources_line
+from simpeg import maps
 import numpy as np
 from pymatsolver import Pardiso
 import discretize
