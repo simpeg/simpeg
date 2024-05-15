@@ -100,16 +100,6 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
     def dt_threshold(self, value):
         self._dt_threshold = validate_float("dt_threshold", value, min_val=0.0)
 
-    # def fields_nostore(self, m):
-    #     """
-    #     Solve the forward problem without storing fields
-
-    #     :param numpy.ndarray m: inversion model (nP,)
-    #     :rtype: numpy.ndarray
-    #     :return numpy.ndarray: numpy.ndarray (nD,)
-
-    #     """
-
     def fields(self, m):
         """Compute and return the fields for the model provided.
 
@@ -533,7 +523,7 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
 
         Parameters
         ----------
-        src : SimPEG.electromagnetics.time_domain.sources.BaseTDEMSrc
+        src : .time_domain.sources.BaseTDEMSrc
             A TDEM source.
         v : numpy.ndarray
             A vector of appropriate dimension. When `adjoint` is ``False``, `v` is a
@@ -541,7 +531,7 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
             numpy.ndarray.
         adjoint : bool
             Whether to perform the adjoint operation.
-        f : SimPEG.electromagnetics.time_domain.fields.BaseTDEMFields, optional
+        f : .time_domain.fields.BaseTDEMFields, optional
             The TDEM fields object.
 
         Returns
@@ -1033,7 +1023,7 @@ class Simulation3DMagneticFluxDensity(BaseTDEMSimulation):
         ----------
         tInd : int
             The time index; between [0, n_steps].
-        src : SimPEG.electromagnetics.time_domain.sources.BaseTDEMSrc
+        src : .time_domain.sources.BaseTDEMSrc
             The TDEM source object.
         v : numpy.ndarray
             The vector. (n_param,) for the standard operation. (n_faces,) for the adjoint operation.
@@ -1615,7 +1605,7 @@ class Simulation3DElectricField(BaseTDEMSimulation):
         ----------
         tInd : int
             The time index; between [0, n_steps].
-        src : SimPEG.electromagnetics.time_domain.sources.BaseTDEMSrc
+        src : .time_domain.sources.BaseTDEMSrc
             The TDEM source object.
         v : numpy.ndarray
             The vector. (n_param,) for the standard operation. (n_edges,) for the adjoint operation.
@@ -2096,7 +2086,7 @@ class Simulation3DMagneticField(BaseTDEMSimulation):
         ----------
         tInd : int
             The time index; between [0, n_steps].
-        src : SimPEG.electromagnetics.time_domain.sources.BaseTDEMSrc
+        src : .time_domain.sources.BaseTDEMSrc
             The TDEM source object.
         v : numpy.ndarray
             The vector. (n_param,) for the standard operation. (n_edges,) for the adjoint operation.
@@ -2594,7 +2584,7 @@ class Simulation3DCurrentDensity(BaseTDEMSimulation):
         ----------
         tInd : int
             The time index; between [0, n_steps].
-        src : SimPEG.electromagnetics.time_domain.sources.BaseTDEMSrc
+        src : .time_domain.sources.BaseTDEMSrc
             The TDEM source object.
         v : numpy.ndarray
             The vector. (n_param,) for the standard operation. (n_faces,) for the adjoint operation.
