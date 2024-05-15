@@ -43,7 +43,7 @@ Conda Forge
 
 SimPEG is available through `conda-forge` and you can install is using the
 `conda package manager <https://conda.io/>`_ that comes with the Anaconda_
-or Miniconda_ distributions:
+or Miniforge_ distributions:
 
 .. code::
 
