@@ -1246,5 +1246,5 @@ class Point3DTipper(Tipper):
             locations=locations,
             orientation=orientation,
             component=component,
-            locations_bs=None
+            locations_bs=None,
         )
