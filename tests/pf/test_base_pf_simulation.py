@@ -226,7 +226,10 @@ class TestGetComponentsAndReceivers:
         )
         # Define the SourceField and the Survey
         source_field = magnetics.sources.UniformBackgroundField(
-            receiver_list=[receivers]
+            receiver_list=[receivers],
+            amplitude=55_000,
+            inclination=45.0,
+            decliantion=12.0,
         )
         return magnetics.Survey(source_field)
 
