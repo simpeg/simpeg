@@ -62,7 +62,7 @@ class MVIProblemTest(unittest.TestCase):
             xyzLoc, h, padding_distance=padDist, depth_core=100, mesh_type="tree"
         )
         mesh.refine_surface(
-            topo, method="surface", padding_cells_by_level=[4, 4], finalize=True
+            topo, padding_cells_by_level=[4, 4], finalize=True
         )
         self.mesh = mesh
         # Define an active cells from topo
