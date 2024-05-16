@@ -1,5 +1,6 @@
 # import matplotlib
 # matplotlib.use('Agg')
+import pytest
 import unittest
 import numpy as np
 import discretize
@@ -343,6 +344,71 @@ class DCUtilsTests_survey_from_ABMN(unittest.TestCase):
         # Check that the first x-coordinate for electrode A is zero for both surveys
         for survey in survey_2d_list:
             self.assertEqual(survey.locations_a[0, 0], 0)
+
+
+class TestConvertTo2DInvalidInputs:
+    """
+    Test convert_survey_3d_to_2d_lines after passing invalid inputs.
+    """
+
+    @pytest.fixture
+    def survey_3d(self):
+        """Sample 3D DC survey."""
+        receiver = dc.receivers.Dipole(
+            locations_m=np.array([[-100, 0, 0]]),
+            locations_n=np.array([[100, 0, 0]]),
+            data_type="volt",
+        )
+        source = dc.sources.Dipole(
+            receiver_list=[receiver],
+            location_a=np.array([-50, 0, 0]),
+            location_b=np.array([50, 0, 0]),
+        )
+        survey = dc.Survey(source_list=[source])
+        return survey
+
+    @pytest.fixture
+    def survey_2d(self):
+        """Sample 2D DC survey."""
+        receiver = dc.receivers.Dipole(
+            locations_m=np.array([[-100, 0]]),
+            locations_n=np.array([[100, 0]]),
+            data_type="volt",
+        )
+        source = dc.sources.Dipole(
+            receiver_list=[receiver],
+            location_a=np.array([-50, 0]),
+            location_b=np.array([50, 0]),
+        )
+        survey = dc.Survey(source_list=[source])
+        return survey
+
+    def test_invalid_survey(self, survey_2d):
+        """
+        Test if error is raised when passing an invalid survey (2D survey)
+        """
+        line_ids = np.ones(survey_2d.nD)
+        with pytest.raises(ValueError, match="Invalid 2D 'survey'"):
+            utils.convert_survey_3d_to_2d_lines(survey_2d, line_ids)
+
+    def test_invalid_line_ids_wrong_dims(self, survey_3d):
+        """
+        Test if error is raised after invalid line_ids with wrong dimensions.
+        """
+        line_ids = np.atleast_2d(np.ones(survey_3d.nD))
+        msg = "Invalid 'lineID' array with '2' dimensions. "
+        with pytest.raises(ValueError, match=msg):
+            utils.convert_survey_3d_to_2d_lines(survey_3d, line_ids)
+
+    def test_invalid_line_ids_wrong_size(self, survey_3d):
+        """
+        Test if error is raised after an invalid line_ids with wrong size.
+        """
+        size = survey_3d.nD - 1
+        line_ids = np.ones(size)
+        msg = f"Invalid 'lineID' array with '{size}' elements. "
+        with pytest.raises(ValueError, match=msg):
+            utils.convert_survey_3d_to_2d_lines(survey_3d, line_ids)
 
 
 if __name__ == "__main__":
