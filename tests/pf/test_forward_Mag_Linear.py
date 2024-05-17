@@ -1,4 +1,4 @@
-from typing import List, Tuple, Union
+from __future__ import annotations
 
 import discretize
 import numpy as np
@@ -41,9 +41,9 @@ def get_block_inds(grid: np.ndarray, block: np.ndarray) -> np.ndarray:
 
 def create_block_model(
     mesh: discretize.TensorMesh,
-    blocks: Tuple[np.ndarray, ...],
-    block_params: Union[Tuple[float, ...], Tuple[np.ndarray, ...]],
-) -> Tuple[np.ndarray, np.ndarray]:
+    blocks: tuple[np.ndarray, ...],
+    block_params: tuple[float, ...] | tuple[np.ndarray, ...],
+) -> tuple[np.ndarray, np.ndarray]:
     """
     Create a magnetic model from a sequence of blocks
 
@@ -81,9 +81,9 @@ def create_block_model(
 
 
 def create_mag_survey(
-    components: List[str],
+    components: list[str],
     receiver_locations: np.ndarray,
-    inducing_field_params: Tuple[float, float, float],
+    inducing_field_params: tuple[float, float, float],
 ) -> mag.Survey:
     """
     create a magnetic Survey
@@ -138,7 +138,7 @@ class TestsMagSimulation:
         return mesh
 
     @pytest.fixture
-    def two_blocks(self) -> Tuple[np.ndarray, np.ndarray]:
+    def two_blocks(self) -> tuple[np.ndarray, np.ndarray]:
         """
         The parameters defining two blocks
 
@@ -173,7 +173,7 @@ class TestsMagSimulation:
     @pytest.fixture
     def inducing_field(
         self,
-    ) -> Tuple[Tuple[float, float, float], Tuple[float, float, float]]:
+    ) -> tuple[tuple[float, float, float], tuple[float, float, float]]:
         """
         inducing field
 
@@ -181,7 +181,7 @@ class TestsMagSimulation:
 
         Returns
         -------
-        Tuple[Tuple[float, float, float], Tuple[float, float, float]]
+        tuple[tuple[float, float, float], tuple[float, float, float]]
             (amplitude, inclination, declination), (b_x, b_y, b_z)
         """
         h0_amplitude, h0_inclination, h0_declination = (50000.0, 60.0, 250.0)
