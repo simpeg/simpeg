@@ -146,3 +146,19 @@ you want to commit them nonetheless.
 .. _pre-commit: https://pre-commit.com/
 .. _Black: https://black.readthedocs.io
 .. _flake8: https://flake8.pycqa.org
+
+
+Update your environment
+-----------------------
+
+Every once in a while, the minimum versions of the packages in the
+``environment.yml`` file get updated. After this happens, it's better to update
+the ``simpeg-test`` environment we have created. This way we ensure that we are
+checking the style and testing our code using those updated versions.
+
+To update our environment we need to navigate to the directory where you
+:ref:`cloned SimPEG's repository <working-with-github>` and run:
+
+.. code::
+
+    conda env update -f environment_test.yml
