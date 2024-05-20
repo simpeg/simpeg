@@ -91,7 +91,7 @@ class Simulation1DRecursive(BaseSimulation):
                             for rx_ii in src_ii.receiver_list
                         ]
                     )
-                    for src_ii in self.survey.source_list
+                    for src_ii in value.source_list
                 ]
             )
             if not is_valid:
