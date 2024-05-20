@@ -164,6 +164,17 @@ class UpdateIRLS(InversionDirective):
     )
 
     @property
+    def iterStart(self) -> int:
+        """Iteration number when the IRLS process started."""
+
+        warnings.warn(
+            "The `iterStart` property is deprecated. Use `metrics.start_irls_iter` instead.",
+            stacklevel=2,
+        )
+
+        return self.metrics.start_irls_iter
+
+    @property
     def chifact_start(self) -> float:
         """Target chi factor to start the IRLS process."""
         return self._chifact_start
@@ -284,14 +295,6 @@ class UpdateIRLS(InversionDirective):
     @beta_search.setter
     def beta_search(self, value):
         self._beta_search = validate_type("beta_search", value, bool)
-
-    update_beta = deprecate_property(
-        beta_search,
-        "update_beta",
-        "UpdateIRLS.beta_search",
-        future_warn=True,
-        removal_version="0.22.0",
-    )
 
     def misfit_from_chi_factor(self, chi_factor: float) -> float:
         """
