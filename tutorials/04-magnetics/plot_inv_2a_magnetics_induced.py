@@ -298,9 +298,12 @@ save_iteration = directives.SaveOutputEveryIteration(save_txt=False)
 update_IRLS = directives.Update_IRLS(
     f_min_change=1e-4,
     max_irls_iterations=30,
-    coolEpsFact=1.5,
+    cooling_factor=1.5,
     misfit_tolerance=1e-2,
 )
+
+# Setting a beta cooling schedule
+beta_schedule = directives.BetaSchedule(coolingFactor=2, coolingRate=1)
 
 # Updating the preconditioner if it is model dependent.
 update_jacobi = directives.UpdatePreconditioner()
@@ -317,6 +320,7 @@ directives_list = [
     starting_beta,
     save_iteration,
     update_IRLS,
+    beta_schedule,
     update_jacobi,
 ]
 
