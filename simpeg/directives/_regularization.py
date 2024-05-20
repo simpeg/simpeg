@@ -247,6 +247,22 @@ class UpdateIRLS(InversionDirective):
         removal_version="0.22.0",
     )
 
+    coolEps_q = deprecate_property(
+        cooling_factor,
+        "coolEpsFact",
+        "UpdateIRLS.cooling_factor",
+        future_warn=True,
+        removal_version="0.22.0",
+    )
+
+    coolEps_p = deprecate_property(
+        cooling_factor,
+        "coolEpsFact",
+        "UpdateIRLS.cooling_factor",
+        future_warn=True,
+        removal_version="0.22.0",
+    )
+
     minGNiter = deprecate_property(
         beta_cooling_factor,
         "minGNiter",
