@@ -260,7 +260,9 @@ sensitivity_weights = directives.UpdateSensitivityWeights()
 # Here is where the norms are applied
 # Use a threshold parameter empirically based on the distribution of
 #  model parameters
-IRLS = directives.Update_IRLS(f_min_change=1e-3, max_irls_iterations=2, beta_tol=5e-1)
+IRLS = directives.Update_IRLS(
+    f_min_change=1e-3, max_irls_iterations=2, misfit_tolerance=5e-1
+)
 
 # Pre-conditioner
 update_Jacobi = directives.UpdatePreconditioner()
@@ -348,7 +350,7 @@ irls = directives.Update_IRLS(
     f_min_change=1e-4,
     max_irls_iterations=20,
     minGNiter=1,
-    beta_tol=0.5,
+    misfit_tolerance=0.5,
     coolingRate=1,
     sphericalDomain=True,
 )

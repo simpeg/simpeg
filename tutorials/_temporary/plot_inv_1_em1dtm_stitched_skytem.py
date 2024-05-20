@@ -308,7 +308,7 @@ inv_prob = inverse_problem.BaseInvProblem(dmis, reg, opt)
 # IRLS = directives.Update_IRLS(max_irls_iterations=40, minGNiter=1, f_min_change=1e-5, chifact_start=2)
 # IRLS = directives.Update_IRLS(
 #    max_irls_iterations=20, minGNiter=1, fix_Jmatrix=True, coolingRate=2,
-#    beta_tol=1e-2, f_min_change=1e-5,
+#    misfit_tolerance=1e-2, f_min_change=1e-5,
 #    chifact_start = 1.
 # )
 

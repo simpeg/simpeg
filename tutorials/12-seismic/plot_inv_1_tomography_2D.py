@@ -244,7 +244,7 @@ update_IRLS = directives.Update_IRLS(
     f_min_change=1e-4,
     max_irls_iterations=30,
     coolEpsFact=1.5,
-    beta_tol=1e-2,
+    misfit_tolerance=1e-2,
 )
 
 # Defining a starting value for the trade-off parameter (beta) between the data

@@ -127,7 +127,10 @@ def run(plotIt=True, cleanAfterRun=True):
     # Set the eps parameter parameter in Line 11 of the
     # input file based on the distribution of model (DEFAULT = 95th %ile)
     IRLS = directives.Update_IRLS(
-        f_min_change=1e-4, max_irls_iterations=40, coolEpsFact=1.5, beta_tol=5e-1
+        f_min_change=1e-4,
+        max_irls_iterations=40,
+        coolEpsFact=1.5,
+        misfit_tolerance=5e-1,
     )
 
     # Preconditioning refreshing for each IRLS iteration
