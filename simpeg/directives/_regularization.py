@@ -269,6 +269,14 @@ class UpdateIRLS(InversionDirective):
     def beta_search(self, value):
         self._beta_search = validate_type("beta_search", value, bool)
 
+    update_beta = deprecate_property(
+        beta_search,
+        "update_beta",
+        "UpdateIRLS.beta_search",
+        future_warn=True,
+        removal_version="0.22.0",
+    )
+
     def misfit_from_chi_factor(self, chi_factor: float) -> float:
         """
         Compute the target misfit from the chi factor.
