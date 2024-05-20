@@ -5,10 +5,10 @@ import warnings
 import numpy as np
 from dataclasses import dataclass
 from typing import Literal
-from SimPEG.directives import InversionDirective, UpdatePreconditioner, BetaSchedule
-from SimPEG.regularization import Sparse, BaseSparse, SmoothnessFirstOrder
-from SimPEG.utils import validate_integer, validate_float, validate_type
-from SimPEG.utils.code_utils import deprecate_property
+from simpeg.directives import InversionDirective, UpdatePreconditioner, BetaSchedule
+from simpeg.regularization import Sparse, BaseSparse, SmoothnessFirstOrder
+from simpeg.utils import validate_integer, validate_float, validate_type
+from simpeg.utils.code_utils import deprecate_property
 
 
 @dataclass
@@ -44,7 +44,7 @@ class UpdateIRLS(InversionDirective):
     misfit_tolerance: Tolerance for the target misfit.
     chifact_start: Starting chi factor for the IRLS iterations.
     chifact_target: Target chi factor for the IRLS iterations.
-    epsilon_cooling_factor: Factor to cool the IRLS threshold epsilon.
+    cooling_factor: Factor to cool the IRLS threshold epsilon.
     f_min_change: Minimum change in the regularization function to continue the IRLS iterations.
     max_irls_iterations: Maximum number of IRLS iterations.
     percentile: Percentile of the function values used to determine the initial IRLS threshold.
@@ -52,18 +52,25 @@ class UpdateIRLS(InversionDirective):
 
     def __init__(
         self,
+        beta_search: bool = False,
+        chifact_start: float = 1.0,
+        chifact_target: float = 1.0,
+        cooling_factor: float = 1.2,
+        f_min_change: float = 1e-2,
+        max_irls_iterations: int = 20,
+        misfit_tolerance: float = 1e-1,
+        percentile: int = 100,
         **kwargs,
     ):
-        self._beta_search: bool = False
-        self._misfit_tolerance: float = 1e-1
-        self._chifact_start: float = 1.0
-        self._chifact_target: float = 1.0
-        self._epsilon_cooling_factor: float = 1.2
-        self._f_min_change = 1e-2
-        self._max_irls_iterations: int = 20
-        self._percentile: float = 100
-
         self._metrics: IRLSMetrics | None = None
+        self.beta_search: bool = beta_search
+        self.chifact_start: float = chifact_start
+        self.chifact_target: float = chifact_target
+        self.cooling_factor: float = cooling_factor
+        self.f_min_change: float = f_min_change
+        self.max_irls_iterations: int = max_irls_iterations
+        self.misfit_tolerance: float = misfit_tolerance
+        self.percentile: int = percentile
 
         if "coolingFactor" in kwargs or "coolingRate" in kwargs:
             warnings.warn(
@@ -75,9 +82,9 @@ class UpdateIRLS(InversionDirective):
             kwargs["verbose"] = not kwargs.pop("silent", False)
 
         cooling_factor = kwargs.pop("coolingFactor", 2.0)
-        cooling_rate = kwargs.pop("coolingRate", 1)
+        beta_cooling_factor = kwargs.pop("coolingRate", 1)
         self._beta_schedule = BetaSchedule(
-            coolingFactor=cooling_factor, coolingRate=cooling_rate
+            coolingFactor=cooling_factor, coolingRate=beta_cooling_factor
         )
 
         if "silent" in kwargs:
@@ -95,6 +102,7 @@ class UpdateIRLS(InversionDirective):
 
     @property
     def metrics(self) -> IRLSMetrics:
+        """Various metrics used by the IRLS algorithm."""
         if self._metrics is None:
             self._metrics = IRLSMetrics(
                 input_norms=self.get_input_norms(),
@@ -179,7 +187,7 @@ class UpdateIRLS(InversionDirective):
 
     @property
     def cooling_factor(self) -> float:
-        """Beta is divided by this value every `cooling_rate` iterations."""
+        """Beta is divided by this value every `beta_cooling_factor` iterations."""
         return self.beta_schedule.coolingFactor
 
     coolingFactor = deprecate_property(
@@ -191,33 +199,33 @@ class UpdateIRLS(InversionDirective):
     )
 
     @property
-    def cooling_rate(self) -> int:
+    def beta_cooling_factor(self) -> int:
         """Cool after this number of iterations."""
         return self.beta_schedule.coolingRate
 
-    @cooling_rate.setter
-    def cooling_rate(self, value):
+    @beta_cooling_factor.setter
+    def beta_cooling_factor(self, value):
         self.beta_schedule.coolingRate = validate_integer(
-            "cooling_rate", value, min_val=1
+            "beta_cooling_factor", value, min_val=1
         )
 
     coolingRate = deprecate_property(
-        cooling_rate,
+        beta_cooling_factor,
         "coolingRate",
-        "BetaSchedule.cooling_rate",
+        "BetaSchedule.beta_cooling_factor",
         future_warn=True,
         removal_version="0.22.0",
     )
 
     @property
-    def epsilon_cooling_factor(self) -> float:
+    def cooling_factor(self) -> float:
         """IRLS threshold parameter (epsilon) is divided by this value every iteration."""
-        return self._epsilon_cooling_factor
+        return self._cooling_factor
 
-    @epsilon_cooling_factor.setter
-    def epsilon_cooling_factor(self, value):
-        self._epsilon_cooling_factor = validate_float(
-            "epsilon_cooling_factor", value, min_val=0.0, inclusive_min=False
+    @cooling_factor.setter
+    def cooling_factor(self, value):
+        self._cooling_factor = validate_float(
+            "cooling_factor", value, min_val=0.0, inclusive_min=False
         )
 
     @property
@@ -232,17 +240,17 @@ class UpdateIRLS(InversionDirective):
         )
 
     coolEpsFact = deprecate_property(
-        epsilon_cooling_factor,
+        cooling_factor,
         "coolEpsFact",
-        "UpdateIRLS.epsilon_cooling_factor",
+        "UpdateIRLS.cooling_factor",
         future_warn=True,
         removal_version="0.22.0",
     )
 
     minGNiter = deprecate_property(
-        cooling_rate,
+        beta_cooling_factor,
         "minGNiter",
-        "UpdateIRLS.cooling_rate",
+        "UpdateIRLS.beta_cooling_factor",
         future_warn=True,
         removal_version="0.22.0",
     )
@@ -329,7 +337,9 @@ class UpdateIRLS(InversionDirective):
                 return
 
         # Only update after GN iterations
-        if (self.opt.iter - self.metrics.start_irls_iter) % self.cooling_rate == 0:
+        if (
+            self.opt.iter - self.metrics.start_irls_iter
+        ) % self.beta_cooling_factor == 0:
             if self.stopping_criteria():
                 self.opt.stopNextIteration = True
                 return
@@ -343,9 +353,7 @@ class UpdateIRLS(InversionDirective):
 
                 for obj in reg.objfcts:
                     if isinstance(reg, (Sparse, BaseSparse)):
-                        obj.irls_threshold = (
-                            obj.irls_threshold / self.epsilon_cooling_factor
-                        )
+                        obj.irls_threshold = obj.irls_threshold / self.cooling_factor
 
             self.metrics.irls_iteration_count += 1
 
@@ -417,7 +425,6 @@ class UpdateIRLS(InversionDirective):
     def validate(self, directiveList=None):
         directive_list = directiveList.dList
         self_ind = directive_list.index(self)
-
         lin_precond_ind = [isinstance(d, UpdatePreconditioner) for d in directive_list]
 
         if any(lin_precond_ind):
@@ -433,7 +440,7 @@ class UpdateIRLS(InversionDirective):
                 stacklevel=2,
             )
 
-        beta_schedule = [isinstance(d, BetaSchedule) for d in directive_list]
+        beta_schedule = [d for d in directive_list if isinstance(d, BetaSchedule)]
 
         if not any(beta_schedule):
             warnings.warn(
