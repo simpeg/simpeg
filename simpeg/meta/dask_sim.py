@@ -418,7 +418,7 @@ class DaskMetaSimulation(MetaSimulation):
         if f is None:
             f = self.fields(m)
         client = self.client
-        v_future = client.scatter(v, broadcast=True)
+        v_future = client.scatter(v, broadcast=True, hash=False)
         j_vec = []
         for mapping, sim, worker, field in zip(
             self.mappings, self.simulations, self._workers, f
@@ -572,7 +572,7 @@ class DaskSumMetaSimulation(DaskMetaSimulation, SumMetaSimulation):
         if f is None:
             f = self.fields(m)
         client = self.client
-        v_future = client.scatter(v, broadcast=True)
+        v_future = client.scatter(v, broadcast=True, hash=False)
         j_vec = []
         for mapping, sim, worker, field in zip(
             self.mappings, self._simulations, self._workers, f
