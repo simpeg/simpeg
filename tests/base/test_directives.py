@@ -397,6 +397,38 @@ class TestUpdateSensitivityNormalization:
             d_temp.normalization_method = normalization_method
 
 
+class TestSeedProperty:
+    """
+    Test ``seed`` setter methods of directives.
+    """
+
+    directive_classes = (
+        directives.AlphasSmoothEstimate_ByEig,
+        directives.BetaEstimate_ByEig,
+        directives.BetaEstimateMaxDerivative,
+        directives.ScalingMultipleDataMisfits_ByEig,
+    )
+
+    @pytest.mark.parametrize("directive_class", directive_classes)
+    @pytest.mark.parametrize(
+        "seed",
+        (42, np.random.default_rng(seed=1), np.array([1, 2])),
+        ids=("int", "rng", "array"),
+    )
+    def test_valid_seed(self, directive_class, seed):
+        "Test if seed setter works as expected on valid seed arguments."
+        directive = directive_class(seed=seed)
+        assert directive.seed is seed
+
+    @pytest.mark.parametrize("directive_class", directive_classes)
+    @pytest.mark.parametrize("seed", (42.1, np.array([1.0, 2.0])))
+    def test_invalid_seed(self, directive_class, seed):
+        "Test if seed setter works as expected on valid seed arguments."
+        msg = "Unable to initialize the random number generator with "
+        with pytest.raises(TypeError, match=msg):
+            directive_class(seed=seed)
+
+
 class TestBetaEstimatorArguments:
     """
     Test if arguments are assigned in beta estimator directives.
