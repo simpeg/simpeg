@@ -10,7 +10,7 @@ Prerequisite: Installing Python
 ===============================
 
 SimPEG is written in Python_!
-We highly recommend installing it using Anaconda_ (or the alternative Mambaforge_).
+We highly recommend installing it using Anaconda_ (or the alternative Miniforge_).
 It installs `Python <https://www.python.org/>`_,
 `Jupyter <https://jupyter.org/>`_ and other core
 Python libraries for scientific computing.
@@ -30,7 +30,7 @@ recommend checking out `Software Carpentry <https://software-carpentry.org/>`_.
 
 .. _Python: https://www.python.org/
 .. _Anaconda: https://www.anaconda.com/products/individual
-.. _Mambaforge: https://www.anaconda.com/products/individual
+.. _Miniforge: https://github.com/conda-forge/miniforge
 
 
 .. _installing_simpeg:
@@ -42,21 +42,29 @@ Conda Forge
 -----------
 
 SimPEG is available through `conda-forge` and you can install is using the
-`conda package manager <https://conda.io/>`_ that comes with the Anaconda
-distribution:
+`conda package manager <https://conda.io/>`_ that comes with the Anaconda_
+or Miniforge_ distributions:
 
 .. code::
 
     conda install SimPEG --channel conda-forge
 
-Installing through `conda`/`mamba` is our recommended method of installation.
+Installing through `conda` is our recommended method of installation.
 
 .. note::
-    If you find yourself wanting a faster package manager than ``conda``
-    check out the ``mamba`` project at https://mamba.readthedocs.io/. It
-    usually is able to set up environments much quicker than ``conda`` and
-    can be used as a drop-in replacement (i.e. replace ``conda`` commands with
-    ``mamba``).
+
+    Since `version 23.10.0
+    <https://docs.conda.io/projects/conda/en/latest/release-notes.html#id33>`_,
+    ``conda`` makes use of the ``libmamba`` solver to resolve dependencies. It
+    makes creation of environments and installation of new packages much faster
+    than when using older versions of ``conda``.
+
+    Since this version, ``conda`` can achieve the same performance as
+    ``mamba``, so there's no need to install ``mamba`` if you have an updated
+    version of ``conda``.
+    If not, either `update conda
+    <https://docs.anaconda.com/free/anaconda/install/update-version/>`_, or
+    keep using ``mamba`` instead.
 
 PyPi
 ----

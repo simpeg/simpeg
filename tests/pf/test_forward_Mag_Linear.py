@@ -504,7 +504,9 @@ def test_removed_modeltype():
     mesh = discretize.TensorMesh(h)
     receiver_location = np.array([[0, 0, 100]])
     receiver = mag.Point(receiver_location, components="tmi")
-    background_field = mag.UniformBackgroundField(receiver_list=[receiver])
+    background_field = mag.UniformBackgroundField(
+        receiver_list=[receiver], amplitude=50_000, inclination=90, declination=0
+    )
     survey = mag.Survey(background_field)
     mapping = maps.IdentityMap(mesh, nP=mesh.n_cells)
     sim = mag.Simulation3DIntegral(mesh, survey=survey, chiMap=mapping)
