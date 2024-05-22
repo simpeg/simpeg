@@ -349,7 +349,7 @@ class BaseBetaEstimator(InversionDirective):
     ----------
     beta0_ratio : float
         Desired ratio between data misfit and model objective function at initial beta iteration.
-    seed : {None, RandomSeed}, optional
+    seed : None or :class:`~simpeg.typing.RandomSeed`, optional
         Random seed used for random sampling. It can either be an int,
         a predefined Numpy random number generator, or any valid input to
         ``numpy.random.default_rng``.
@@ -428,7 +428,7 @@ class BetaEstimateMaxDerivative(BaseBetaEstimator):
     ----------
     beta0_ratio: float
         Desired ratio between data misfit and model objective function at initial beta iteration.
-    seed : {None, RandomSeed}, optional
+    seed : None or :class:`~simpeg.typing.RandomSeed`, optional
         Random seed used for random sampling. It can either be an int,
         a predefined Numpy random number generator, or any valid input to
         ``numpy.random.default_rng``.
@@ -500,7 +500,7 @@ class BetaEstimate_ByEig(BaseBetaEstimator):
         Desired ratio between data misfit and model objective function at initial beta iteration.
     n_pw_iter : int
         Number of power iterations used to estimate largest eigenvalues.
-    seed : {None, RandomSeed}, optional
+    seed : None or :class:`~simpeg.typing.RandomSeed`, optional
         Random seed used for random sampling. It can either be an int,
         a predefined Numpy random number generator, or any valid input to
         ``numpy.random.default_rng``.

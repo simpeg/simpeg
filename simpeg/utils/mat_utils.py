@@ -156,7 +156,7 @@ def eigenvalue_by_power_iteration(
         they will be evaluated within the function. If combo_objfct mixs data misfit and regularization
         terms, the list should contains simpeg.fields for the data misfit terms and None for the
         regularization term.
-    seed : {None, RandomSeed}, optional
+    seed : None or :class:`~simpeg.typing.RandomSeed`, optional
         Random seed for the initial random guess of eigenvector. It can either
         be an int, a predefined Numpy random number generator, or any valid
         input to ``numpy.random.default_rng``.

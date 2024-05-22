@@ -492,7 +492,7 @@ class BaseSimulation(props.HasModel):
             forward problem to obtain noiseless data.
         add_noise : bool
             Whether to add gaussian noise to the synthetic data or not.
-        random_seed : {None, RandomSeed}, optional
+        random_seed : None or :class:`~simpeg.typing.RandomSeed`, optional
             Random seed used for random sampling. It can either be an int or
             a predefined Numpy random number generator (see
             ``numpy.random.default_rng``).

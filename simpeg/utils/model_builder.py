@@ -431,7 +431,7 @@ def create_random_model(
     ----------
     shape : int or tuple of int
         Shape of the model. Can define a vector of size (n_cells) or define the dimensions of a tensor
-    seed : {None, RandomSeed}, optional
+    seed : None or :class:`~simpeg.typing.RandomSeed`, optional
         Random seed for random uniform model that is convolved with the kernel.
         It can either be an int, a predefined Numpy random number generator, or
         any valid input to ``numpy.random.default_rng``.
