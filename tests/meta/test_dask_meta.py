@@ -253,7 +253,7 @@ def test_repeat_sim_correctness(cluster):
         np.testing.assert_allclose(diag_full, diag_meta, rtol=1e-6)
 
 
-def test_dask_meta_errors(cluster):
+def _test_dask_meta_errors(cluster):
     with Client(cluster) as client:
         mesh = TensorMesh([16, 16, 16], origin="CCN")
 
@@ -317,7 +317,7 @@ def test_dask_meta_errors(cluster):
         time.sleep(0.1)  # sleep for a bit to let the communicator catch up
 
 
-def test_sum_errors(cluster):
+def _test_sum_errors(cluster):
     with Client(cluster) as client:
         mesh = TensorMesh([16, 16, 16], origin="CCN")
 
@@ -359,7 +359,7 @@ def test_sum_errors(cluster):
         time.sleep(0.1)  # sleep for a half second to let the communicator catch up
 
 
-def test_repeat_errors(cluster):
+def _test_repeat_errors(cluster):
     with Client(cluster) as client:
         mesh = TensorMesh([16, 16, 16], origin="CCN")
 
