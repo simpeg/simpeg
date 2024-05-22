@@ -98,12 +98,12 @@ def _validate_type_or_future_of_type(
             property_name, objects, obj_type, ensure_unique=True
         )
         if workers is None:
-            objects = client.scatter(objects, hash=False)
+            objects = client.scatter(objects)
         else:
             # If workers are already set, move the object to the respective worker.
             tmp = []
             for obj, worker in zip(objects, workers):
-                future = client.scatter(obj, workers=worker, hash=False)
+                future = client.scatter(obj, workers=worker)
                 tmp.append(future)
             objects = tmp
     except TypeError:
@@ -705,7 +705,7 @@ class DaskRepeatedSimulation(DaskMetaSimulation):
         client = self.client
         if isinstance(value, BaseSimulation):
             # Scatter sim to every client
-            value = client.scatter(value, broadcast=True, hash=False)
+            value = client.scatter(value, broadcast=True)
         if not (
             isinstance(value, Future)
             and client.submit(
