@@ -483,6 +483,8 @@ sphinx_gallery_conf = {
 
 autodoc_member_order = "bysource"
 
+# Don't show type hints in signatures
+autodoc_typehints = "none"
 
 # def supress_nonlocal_image_warn():
 #     import sphinx.environment
