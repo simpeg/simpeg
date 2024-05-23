@@ -1,6 +1,6 @@
 parameters:
   os : ['ubuntu-latest']
-  py_vers: ['3.11']
+  py_vers: ['3.12']
   test: [#'tests/em',
          #'tests/base tests/flow tests/seis tests/utils tests/meta',
          'tests/meta',
