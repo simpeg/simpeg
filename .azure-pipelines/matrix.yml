@@ -1,9 +1,9 @@
 parameters:
   os : ['ubuntu-latest']
-  py_vers: ['3.12']
+  py_vers: ['3.9', '3.10', '3.11', '3.12']
   test: [#'tests/em',
          #'tests/base tests/flow tests/seis tests/utils tests/meta',
-         'tests/utils tests/meta',
+         'tests/seis tests/utils tests/meta',
          #'tests/docs -s -v',
          #'tests/examples/test_examples_1.py',
          #'tests/examples/test_examples_2.py',
