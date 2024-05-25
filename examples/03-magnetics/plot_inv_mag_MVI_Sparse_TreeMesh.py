@@ -349,11 +349,13 @@ invProb = inverse_problem.BaseInvProblem(dmis, reg, opt, beta=beta)
 irls = directives.Update_IRLS(
     f_min_change=1e-4,
     max_irls_iterations=20,
-    minGNiter=1,
     misfit_tolerance=0.5,
-    coolingRate=1,
     sphericalDomain=True,
 )
+
+# Setting a beta cooling schedule
+beta_schedule = directives.BetaSchedule(coolingFactor=2, coolingRate=1)
+
 
 # Special directive specific to the mag amplitude problem. The sensitivity
 # weights are updated between each iteration.
@@ -363,7 +365,13 @@ update_Jacobi = directives.UpdatePreconditioner()
 
 inv = inversion.BaseInversion(
     invProb,
-    directiveList=[spherical_projection, irls, sensitivity_weights, update_Jacobi],
+    directiveList=[
+        spherical_projection,
+        irls,
+        beta_schedule,
+        sensitivity_weights,
+        update_Jacobi,
+    ],
 )
 
 mrec_MVI_S = inv.run(m_start)
