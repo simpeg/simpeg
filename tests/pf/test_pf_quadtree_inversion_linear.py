@@ -294,7 +294,7 @@ class QuadTreeLinProblemTest(unittest.TestCase):
             IRLS = directives.Update_IRLS(
                 f_min_change=1e-3,
                 max_irls_iterations=30,
-                beta_tol=1e-1,
+                misfit_tolerance=1e-1,
                 beta_search=False,
             )
             sensitivity_weights = directives.UpdateSensitivityWeights()

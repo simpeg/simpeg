@@ -144,7 +144,7 @@ class MVIProblemTest(unittest.TestCase):
         # Use pick a treshold parameter empirically based on the distribution of
         #  model parameters
         IRLS = directives.Update_IRLS(
-            f_min_change=1e-3, max_irls_iterations=0, beta_tol=5e-1
+            f_min_change=1e-3, max_irls_iterations=0, misfit_tolerance=5e-1
         )
 
         # Pre-conditioner
@@ -207,12 +207,10 @@ class MVIProblemTest(unittest.TestCase):
         IRLS = directives.Update_IRLS(
             f_min_change=1e-4,
             max_irls_iterations=5,
-            minGNiter=1,
-            beta_tol=0.5,
-            coolingRate=1,
-            coolEps_q=True,
+            misfit_tolerance=0.5,
             sphericalDomain=True,
         )
+        beta_schedule = directives.BetaSchedule(coolingFactor=2, coolingRate=1)
 
         # Special directive specific to the mag amplitude problem. The sensitivity
         # weights are update between each iteration.
@@ -222,7 +220,13 @@ class MVIProblemTest(unittest.TestCase):
 
         self.inv = inversion.BaseInversion(
             invProb,
-            directiveList=[ProjSpherical, IRLS, sensitivity_weights, update_Jacobi],
+            directiveList=[
+                ProjSpherical,
+                IRLS,
+                beta_schedule,
+                sensitivity_weights,
+                update_Jacobi,
+            ],
         )
 
     def test_mag_inverse(self):

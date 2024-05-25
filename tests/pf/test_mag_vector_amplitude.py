@@ -136,7 +136,7 @@ class MVIProblemTest(unittest.TestCase):
         # Use pick a treshold parameter empirically based on the distribution of
         #  model parameters
         IRLS = directives.Update_IRLS(
-            f_min_change=1e-3, max_irls_iterations=10, beta_tol=5e-1
+            f_min_change=1e-3, max_irls_iterations=10, misfit_tolerance=5e-1
         )
 
         # Pre-conditioner

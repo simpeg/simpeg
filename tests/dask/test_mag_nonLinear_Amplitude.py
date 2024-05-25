@@ -168,12 +168,14 @@ class AmpProblemTest(unittest.TestCase):
         # Target misfit to stop the inversion,
         # try to fit as much as possible of the signal, we don't want to lose anything
         IRLS = directives.Update_IRLS(
-            f_min_change=1e-3, minGNiter=1, beta_tol=1e-1, max_irls_iterations=5
+            f_min_change=1e-3, misfit_tolerance=1e-1, max_irls_iterations=5
         )
+        beta_schedule = directives.BetaSchedule(coolingFactor=2, coolingRate=1)
+
         update_Jacobi = directives.UpdatePreconditioner()
         # Put all the parts together
         inv = inversion.BaseInversion(
-            invProb, directiveList=[betaest, IRLS, update_Jacobi]
+            invProb, directiveList=[betaest, IRLS, beta_schedule, update_Jacobi]
         )
 
         # Run the equivalent source inversion
@@ -256,10 +258,9 @@ class AmpProblemTest(unittest.TestCase):
         IRLS = directives.Update_IRLS(
             max_irls_iterations=5,
             f_min_change=1e-3,
-            minGNiter=1,
-            coolingRate=1,
             beta_search=False,
         )
+        beta_schedule = directives.BetaSchedule(coolingFactor=2, coolingRate=1)
 
         # Special directive specific to the mag amplitude problem. The sensitivity
         # weights are update between each iteration.
@@ -268,7 +269,14 @@ class AmpProblemTest(unittest.TestCase):
 
         # Put all together
         self.inv = inversion.BaseInversion(
-            invProb, directiveList=[update_SensWeight, betaest, IRLS, update_Jacobi]
+            invProb,
+            directiveList=[
+                update_SensWeight,
+                betaest,
+                IRLS,
+                beta_schedule,
+                update_Jacobi,
+            ],
         )
 
         self.mstart = mstart
