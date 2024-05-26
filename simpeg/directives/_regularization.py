@@ -96,6 +96,14 @@ class UpdateIRLS(InversionDirective):
             )
             kwargs["verbose"] = not kwargs.pop("silent")
 
+        if "sphericalDomain" in kwargs or "coolingRate" in kwargs:
+            warnings.warn(
+                "The `sphericalDomain` keyword argument will be deprecated in future releases. "
+                "Use `spherical_domain` instead.",
+                FutureWarning,
+                stacklevel=2,
+            )
+
         self._spherical_domain = kwargs.pop("sphericalDomain", False)
 
         super().__init__(**kwargs)
