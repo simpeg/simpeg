@@ -22,8 +22,10 @@ class directivesValidation(unittest.TestCase):
         betaest = directives.BetaEstimate_ByEig()
 
         IRLS = directives.Update_IRLS(f_min_change=1e-4, misfit_tolerance=1e-2)
+        beta_schedule = directives.BetaSchedule(coolingFactor=2, coolingRate=1)
+
         update_Jacobi = directives.UpdatePreconditioner()
-        dList = [betaest, IRLS, update_Jacobi]
+        dList = [betaest, IRLS, beta_schedule, update_Jacobi]
         directiveList = directives.DirectiveList(*dList)
 
         self.assertTrue(directiveList.validate())
