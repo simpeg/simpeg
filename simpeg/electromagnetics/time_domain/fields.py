@@ -10,7 +10,7 @@ class FieldsTDEM(TimeFields):
 
     TDEM fields classes are used to store the discrete solution of the fields for a
     corresponding TDEM simulation; see :class:`.time_domain.BaseTDEMSimulation`.
-    Only one field type (e.g. 'e', 'j', 'h', 'b') is stored, but certain field types
+    Only one field type (e.g. ``'e'``, ``'j'``, ``'h'``, ``'b'``) is stored, but certain field types
     can be rapidly computed and returned on the fly. The field type that is stored and the
     field types that can be returned depend on the formulation used by the associated simulation class.
     Once a field object has been created, the individual fields can be accessed; see the example below.
@@ -352,8 +352,8 @@ class Fields3DElectricField(FieldsTDEM):
     :class:`.time_domain.Simulation3DElectricField`
     simulation object. This class can be used to extract the following quantities:
 
-    * 'e' and 'j' on mesh edges.
-    * 'b', 'dbdt' and 'dhdt' on mesh faces.
+    * ``'e'`` and ``'j'`` on mesh edges.
+    * ``'b'``, ``'dbdt'`` and ``'dhdt'`` on mesh faces.
 
     See the example below to learn how fields can be extracted from a
     ``Fields3DElectricField`` object.
@@ -513,9 +513,9 @@ class Fields3DMagneticField(FieldsTDEM):
     :class:`.time_domain.Simulation3DElectricField`
     simulation object. This class can be used to extract the following quantities:
 
-    * 'h', 'b', 'dbdt' and 'dbdt' on mesh edges.
-    * 'j' and 'e' on mesh faces.
-    * 'charge' at cell centers.
+    * ``'h'``, ``'b'``, ``'dbdt'`` and ``'dbdt'`` on mesh edges.
+    * ``'j'`` and ``'e'`` on mesh faces.
+    * ``'charge'`` at cell centers.
 
     See the example below to learn how fields can be extracted from a
     ``Fields3DMagneticField`` object.
@@ -723,9 +723,9 @@ class Fields3DCurrentDensity(FieldsTDEM):
     :class:`.time_domain.Simulation3DCurrentDensity`
     simulation object. This class can be used to extract the following quantities:
 
-    * 'j' and 'e' on mesh faces.
-    * 'dbdt' and 'dhdt' on mesh edges.
-    * 'charge' and 'charge_density' at cell centers.
+    * ``'j'`` and ``'e'`` on mesh faces.
+    * ``'dbdt'`` and ``'dhdt'`` on mesh edges.
+    * ``'charge'`` and ``'charge_density'`` at cell centers.
 
     See the example below to learn how fields can be extracted from a
     ``Fields3DCurrentDensity`` object.
