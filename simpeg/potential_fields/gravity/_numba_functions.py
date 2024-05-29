@@ -32,7 +32,7 @@ def _forward_gravity(
 
     This function should be used with a `numba.jit` decorator, for example:
 
-    ..code::
+    .. code::
 
         from numba import jit
 
@@ -107,7 +107,7 @@ def _sensitivity_gravity(
 
     This function should be used with a `numba.jit` decorator, for example:
 
-    ..code::
+    .. code::
 
         from numba import jit
 

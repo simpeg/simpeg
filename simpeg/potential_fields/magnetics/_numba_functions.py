@@ -35,7 +35,7 @@ def _sensitivity_mag(
 
     This function should be used with a `numba.jit` decorator, for example:
 
-    ..code::
+    .. code::
 
         from numba import jit
 
@@ -154,7 +154,7 @@ def _sensitivity_tmi(
 
     This function should be used with a `numba.jit` decorator, for example:
 
-    ..code::
+    .. code::
 
         from numba import jit
 
@@ -264,7 +264,7 @@ def _forward_mag(
 
     This function should be used with a `numba.jit` decorator, for example:
 
-    ..code::
+    .. code::
 
         from numba import jit
 
@@ -415,7 +415,7 @@ def _forward_tmi(
 
     This function should be used with a `numba.jit` decorator, for example:
 
-    ..code::
+    .. code::
 
         from numba import jit
 

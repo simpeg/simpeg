@@ -244,7 +244,7 @@ class BasePFSimulation(LinearSimulation):
         If True, the simulation will run in parallel. If False, it will
         run in serial.
 
-        ..important::
+        .. important::
 
             If ``engine`` is not ``"choclo"`` this property will be ignored.
         """
