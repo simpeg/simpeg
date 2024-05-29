@@ -48,7 +48,7 @@ class FieldsFDEM(Fields):
         super().__init__(simulation=simulation, dtype=dtype)
 
     def _GLoc(self, fieldType):
-        """Retun grid locations of the fieldType.
+        """Return grid locations of the fieldType.
 
         Parameters
         ----------
