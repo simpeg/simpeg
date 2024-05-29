@@ -1062,9 +1062,9 @@ class Fields3DCurrentDensity(FieldsFDEM):
     :class:`.frequency_domain.Simulation3DCurrentDensity`
     simulation object. This class can be used to extract the following quantities:
 
-    * 'j', 'jPrimary', 'jSecondary' and 'e' on mesh faces.
-    * 'h', 'hPrimary', 'hSecondary' and 'b' on mesh edges.
-    * 'charge' and 'charge_density' at cell centers.
+    * ``'j'``, ``'jPrimary'``, ``'jSecondary'`` and ``'e'`` on mesh faces.
+    * ``'h'``, ``'hPrimary'``, ``'hSecondary'`` and ``'b'`` on mesh edges.
+    * ``'charge'`` and ``'charge_density'`` at cell centers.
 
     See the example below to learn how fields can be extracted from a
     ``Fields3DCurrentDensity`` object.
