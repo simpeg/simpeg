@@ -26,7 +26,12 @@ class SimpleFuture:
 
     def __del__(self):
         # Tell the child process that this object is no longer needed in its cache.
-        self.t_queue.put(("del_item", (self.item_id,)))
+        try:
+            self.t_queue.put(("del_item", (self.item_id,)))
+        except ValueError:
+            # if the queue was already closed it will throw a value error
+            # so catch it here gracefully and continue on.
+            pass
 
 
 class _SimulationProcess(Process):
@@ -169,6 +174,15 @@ class _SimulationProcess(Process):
         self._check_closed()
         return self.result_queue.get()
 
+    def join(self, timeout=None):
+        self._check_closed()
+        self.task_queue.put(None)
+        self.task_queue.close()
+        self.result_queue.close()
+        self.task_queue.join_thread()
+        self.result_queue.join_thread()
+        super().join(timeout=timeout)
+
 
 class MultiprocessingMetaSimulation(MetaSimulation):
     """Multiprocessing version of simulation of simulations.
@@ -193,11 +207,11 @@ class MultiprocessingMetaSimulation(MetaSimulation):
     ...     sim = MultiprocessingMetaSimulation(...)
     ...     sim.dpred(model)
 
-    You must also be sure to call sim.close() before discarding
+    You must also be sure to call `sim.join()` before discarding
     this worker to kill the subprocesses that are created, as you would with
-    any other multiprocessing queue.
+    any other multiprocessing process.
 
-    >>> sim.close()
+    >>> sim.join()
 
     Parameters
     ----------
@@ -344,7 +358,6 @@ class MultiprocessingMetaSimulation(MetaSimulation):
     def join(self, timeout=None):
         for p in self._sim_processes:
             if p.is_alive():
-                p.task_queue.put(None)
                 p.join(timeout=timeout)
 
 
