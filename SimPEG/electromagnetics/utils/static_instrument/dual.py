@@ -75,6 +75,11 @@ class DualMomentTEMXYZSystem(base.XYZSystem):
         return GexSystem   
     
     @property
+    def sounding_filter(self):
+        # Exclude soundings with no usable gates
+        return self._xyz.dbdt_inuse_ch1gt.values.sum(axis=1) + self._xyz.dbdt_inuse_ch2gt.sum(axis=1) > 0
+
+    @property
     def area(self):
         return self.gex.General['TxLoopArea']
     

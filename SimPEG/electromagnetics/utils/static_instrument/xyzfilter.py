@@ -20,10 +20,18 @@ class FilteredXYZ(libaarhusxyz.XYZ):
         self.xyz = xyz
         self.soundingfilter = soundingfilter
         self.layerfilter = layerfilter
-        
-        self.flightlines = self.flightlines.iloc[soundingfilter].reset_index(drop=True)
+
+        soundingfilter = self.get_soundingfilter()
+        if isinstance(soundingfilter, slice):
+            self.flightlines = self.flightlines.iloc[soundingfilter].reset_index(drop=True)
+        else:
+            self.flightlines = self.flightlines.loc[soundingfilter].reset_index(drop=True)
         for key in self.layer_data.keys():
-            self.layer_data[key] = self.layer_data[key].iloc[self.get_soundingfilter(), self.get_layerfilter(key)].reset_index(drop=True)
+            if isinstance(soundingfilter, slice):
+                soundings = self.layer_data[key].iloc[soundingfilter]
+            else:
+                soundings = self.layer_data[key].loc[soundingfilter]
+            self.layer_data[key] = soundings.iloc[:, self.get_layerfilter(key)].reset_index(drop=True)
             
         return self
             
