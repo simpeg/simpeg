@@ -1490,9 +1490,9 @@ class Fields3DMagneticField(FieldsFDEM):
     :class:`.frequency_domain.Simulation3DMagneticField`
     simulation object. This class can be used to extract the following quantities:
 
-    * 'h', 'hPrimary', 'hSecondary' and 'b' on mesh edges.
-    * 'j', 'jPrimary', 'jSecondary' and 'e' on mesh faces.
-    * 'charge' and 'charge_density' at cell centers.
+    * ``'h'``, ``'hPrimary'``, ``'hSecondary'`` and ``'b'`` on mesh edges.
+    * ``'j'``, ``'jPrimary'``, ``'jSecondary'`` and ``'e'`` on mesh faces.
+    * ``'charge'`` and ``'charge_density'`` at cell centers.
 
     See the example below to learn how fields can be extracted from a
     ``Fields3DMagneticField`` object.
