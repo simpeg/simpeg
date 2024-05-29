@@ -10,7 +10,7 @@ class FieldsFDEM(Fields):
 
     FDEM fields classes are used to store the discrete solution of the fields for a
     corresponding FDEM simulation; see :class:`.BaseFDEMSimulation`.
-    Only one field type (e.g. 'e', 'j', 'h', or 'b') is stored, but certain field types
+    Only one field type (e.g. ``'e'``, ``'j'``, ``'h'``, or ``'b'``) is stored, but certain field types
     can be rapidly computed and returned on the fly. The field type that is stored and the
     field types that can be returned depend on the formulation used by the associated simulation class.
     Once a field object has been created, the individual fields can be accessed; see the example below.
