@@ -30,7 +30,7 @@ def _sensitivity_mag(
     constant_factor,
     scalar_model,
 ):
-    """
+    r"""
     Fill the sensitivity matrix for single mag component
 
     This function should be used with a `numba.jit` decorator, for example:
@@ -71,6 +71,10 @@ def _sensitivity_mag(
 
     Notes
     -----
+
+    About the kernel functions
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^
+
     For computing the ``bx`` component of the magnetic field we need to use the
     following kernels:
 
@@ -93,6 +97,63 @@ def _sensitivity_mag(
 
         kernel_x=kernel_eu, kernel_y=kernel_nu, kernel_z=kernel_uu
 
+    About the model array
+    ^^^^^^^^^^^^^^^^^^^^^
+
+    The ``model`` must always be a 1d array:
+
+    * If ``scalar_model`` is ``True``, then ``model`` should be a 1d array with
+      the same number of elements as active cells in the mesh. It should store
+      the magnetic susceptibilities of each active cell in SI units.
+    * If ``scalar_model`` is ``False``, then ``model`` should be a 1d array
+      with a number of elements equal to three times the active cells in the
+      mesh. It should store the components of the magnetization vector of each
+      active cell in :math:`Am^{-1}`. The order in which the components should
+      be passed are:
+          * every _easting_ component of each active cell,
+          * then every _northing_ component of each active cell,
+          * and finally every _upward_ component of each active cell.
+
+    About the sensitivity matrix
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+    Each row of the sensitivity matrix corresponds to a single receiver
+    location.
+
+    If ``scalar_model`` is True, then each element of the row will
+    correspond to the partial derivative of the selected magnetic component
+    with respect to the susceptibility of each cell in the mesh.
+
+    If ``scalar_model`` is False, then each row can be split in three sections
+    containing:
+
+    * the partial derivatives of the selected magnetic component with respect
+      to the _x_ component of the effective susceptibility of each cell; then
+    * the partial derivatives of the selected magnetic component with respect
+      to the _y_ component of the effective susceptibility of each cell; and then
+    * the partial derivatives of the selected magnetic component with respect
+      to the _z_ component of the effective susceptibility of each cell.
+
+    So, if we call :math:`B_j` the magnetic field component on the receiver
+    :math:`j`, and :math:`\bar{\chi}^{(i)} = (\chi_x^{(i)}, \chi_y^{(i)},
+    \chi_z^{(i)})` the effective susceptibility of the active cell :math:`i`,
+    then each row of the sensitivity matrix will be:
+
+    .. math::
+
+        \left[
+            \frac{\partial B_j}{\partial \chi_x^{(1)}},
+            \dots,
+            \frac{\partial B_j}{\partial \chi_x^{(N)}},
+            \frac{\partial B_j}{\partial \chi_y^{(1)}},
+            \dots,
+            \frac{\partial B_j}{\partial \chi_y^{(N)}},
+            \frac{\partial B_j}{\partial \chi_z^{(1)}},
+            \dots,
+            \frac{\partial B_j}{\partial \chi_z^{(N)}}
+        \right]
+
+    where :math:`N` is the total number of active cells.
     """
     n_receivers = receivers.shape[0]
     n_nodes = nodes.shape[0]
@@ -149,7 +210,7 @@ def _sensitivity_tmi(
     constant_factor,
     scalar_model,
 ):
-    """
+    r"""
     Fill the sensitivity matrix for TMI
 
     This function should be used with a `numba.jit` decorator, for example:
@@ -187,6 +248,67 @@ def _sensitivity_tmi(
         (susceptibilities).
         If False, the sensitivity matrix is build to work with vector models
         (effective susceptibilities).
+
+    Notes
+    -----
+
+    About the model array
+    ^^^^^^^^^^^^^^^^^^^^^
+
+    The ``model`` must always be a 1d array:
+
+    * If ``scalar_model`` is ``True``, then ``model`` should be a 1d array with
+      the same number of elements as active cells in the mesh. It should store
+      the magnetic susceptibilities of each active cell in SI units.
+    * If ``scalar_model`` is ``False``, then ``model`` should be a 1d array
+      with a number of elements equal to three times the active cells in the
+      mesh. It should store the components of the magnetization vector of each
+      active cell in :math:`Am^{-1}`. The order in which the components should
+      be passed are:
+          * every _easting_ component of each active cell,
+          * then every _northing_ component of each active cell,
+          * and finally every _upward_ component of each active cell.
+
+    About the sensitivity matrix
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+    Each row of the sensitivity matrix corresponds to a single receiver
+    location.
+
+    If ``scalar_model`` is True, then each element of the row will
+    correspond to the partial derivative of the tmi
+    with respect to the susceptibility of each cell in the mesh.
+
+    If ``scalar_model`` is False, then each row can be split in three sections
+    containing:
+
+    * the partial derivatives of the tmi with respect
+      to the _x_ component of the effective susceptibility of each cell; then
+    * the partial derivatives of the tmi with respect
+      to the _y_ component of the effective susceptibility of each cell; and then
+    * the partial derivatives of the tmi with respect
+      to the _z_ component of the effective susceptibility of each cell.
+
+    So, if we call :math:`T_j` the tmi on the receiver
+    :math:`j`, and :math:`\bar{\chi}^{(i)} = (\chi_x^{(i)}, \chi_y^{(i)},
+    \chi_z^{(i)})` the effective susceptibility of the active cell :math:`i`,
+    then each row of the sensitivity matrix will be:
+
+    .. math::
+
+        \left[
+            \frac{\partial B_j}{\partial \chi_x^{(1)}},
+            \dots,
+            \frac{\partial B_j}{\partial \chi_x^{(N)}},
+            \frac{\partial B_j}{\partial \chi_y^{(1)}},
+            \dots,
+            \frac{\partial B_j}{\partial \chi_y^{(N)}},
+            \frac{\partial B_j}{\partial \chi_z^{(1)}},
+            \dots,
+            \frac{\partial B_j}{\partial \chi_z^{(N)}}
+        \right]
+
+    where :math:`N` is the total number of active cells.
     """
     n_receivers = receivers.shape[0]
     n_nodes = nodes.shape[0]
