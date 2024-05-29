@@ -454,7 +454,7 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
         Parameters
         ----------
         tInd : int
-            The time index. Value between [0, n_steps].
+            The time index. Value between ``[0, n_steps]``.
 
         Returns
         -------
@@ -780,7 +780,7 @@ class Simulation3DMagneticFluxDensity(BaseTDEMSimulation):
         Parameters
         ----------
         tInd : int
-            The time-step index; between [0, n_steps-1].
+            The time-step index; between ``[0, n_steps-1]``.
 
         Returns
         -------
@@ -835,7 +835,7 @@ class Simulation3DMagneticFluxDensity(BaseTDEMSimulation):
         Parameters
         ----------
         tInd : int
-            The time-step index; between [0, n_steps-1].
+            The time-step index; between ``[0, n_steps-1]``.
         u : (n_faces,) numpy.ndarray
             The solution for the fields for the current model; i.e. :math:`\mathbf{b_k}`.
         v : numpy.ndarray
@@ -883,7 +883,7 @@ class Simulation3DMagneticFluxDensity(BaseTDEMSimulation):
         Parameters
         ----------
         tInd : int
-            The time index; between [0, n_steps-1].
+            The time index; between ``[0, n_steps-1]``.
 
         Returns
         -------
@@ -931,7 +931,7 @@ class Simulation3DMagneticFluxDensity(BaseTDEMSimulation):
         Parameters
         ----------
         tInd : int
-            The time index; between [0, n_steps-1].
+            The time index; between ``[0, n_steps-1]``.
         u : (n_faces,) numpy.ndarray
             The solution for the fields for the current model for the previous time-step;
             i.e. :math:`\mathbf{b_{k-1}}`.
@@ -971,7 +971,7 @@ class Simulation3DMagneticFluxDensity(BaseTDEMSimulation):
         Parameters
         ----------
         tInd : int
-            The time index; between [0, n_steps].
+            The time index; between ``[0, n_steps]``.
 
         Returns
         -------
@@ -1022,7 +1022,7 @@ class Simulation3DMagneticFluxDensity(BaseTDEMSimulation):
         Parameters
         ----------
         tInd : int
-            The time index; between [0, n_steps].
+            The time index; between ``[0, n_steps]``.
         src : .time_domain.sources.BaseTDEMSrc
             The TDEM source object.
         v : numpy.ndarray
@@ -1372,7 +1372,7 @@ class Simulation3DElectricField(BaseTDEMSimulation):
         Parameters
         ----------
         tInd : int
-            The time-step index; between [0, n_steps-1].
+            The time-step index; between ``[0, n_steps-1]``.
 
         Returns
         -------
@@ -1421,7 +1421,7 @@ class Simulation3DElectricField(BaseTDEMSimulation):
         Parameters
         ----------
         tInd : int
-            The time-step index; between [0, n_steps-1].
+            The time-step index; between ``[0, n_steps-1]``.
         u : (n_edges,) numpy.ndarray
             The solution for the fields for the current model for the specified time-step;
             i.e. :math:`\mathbf{e_k}`.
@@ -1463,7 +1463,7 @@ class Simulation3DElectricField(BaseTDEMSimulation):
         Parameters
         ----------
         tInd : int
-            The time-step index; between [0, n_steps-1].
+            The time-step index; between ``[0, n_steps-1]``.
 
         Returns
         -------
@@ -1505,7 +1505,7 @@ class Simulation3DElectricField(BaseTDEMSimulation):
         Parameters
         ----------
         tInd : int
-            The time-step index; between [0, n_steps-1].
+            The time-step index; between ``[0, n_steps-1]``.
         u : (n_edges,) numpy.ndarray
             The solution for the fields for the current model for the previous time-step;
             i.e. :math:`\mathbf{e_{k-1}}`.
@@ -1552,7 +1552,7 @@ class Simulation3DElectricField(BaseTDEMSimulation):
         Parameters
         ----------
         tInd : int
-            The time index; between [0, n_steps].
+            The time index; between ``[0, n_steps]``.
 
         Returns
         -------
@@ -1604,7 +1604,7 @@ class Simulation3DElectricField(BaseTDEMSimulation):
         Parameters
         ----------
         tInd : int
-            The time index; between [0, n_steps].
+            The time index; between ``[0, n_steps]``.
         src : .time_domain.sources.BaseTDEMSrc
             The TDEM source object.
         v : numpy.ndarray
@@ -1868,7 +1868,7 @@ class Simulation3DMagneticField(BaseTDEMSimulation):
         Parameters
         ----------
         tInd : int
-            The time-step index; between [0, n_steps-1].
+            The time-step index; between ``[0, n_steps-1]``.
 
         Returns
         -------
@@ -1917,7 +1917,7 @@ class Simulation3DMagneticField(BaseTDEMSimulation):
         Parameters
         ----------
         tInd : int
-            The time-step index; between [0, n_steps-1].
+            The time-step index; between ``[0, n_steps-1]``.
         u : (n_edges,) numpy.ndarray
             The solution for the fields for the current model; i.e. :math:`\mathbf{h_k}`.
         v : numpy.ndarray
@@ -1957,7 +1957,7 @@ class Simulation3DMagneticField(BaseTDEMSimulation):
         Parameters
         ----------
         tInd : int
-            The time-step index; between [0, n_steps-1].
+            The time-step index; between ``[0, n_steps-1]``.
 
         Returns
         -------
@@ -1999,7 +1999,7 @@ class Simulation3DMagneticField(BaseTDEMSimulation):
         Parameters
         ----------
         tInd : int
-            The time-step index; between [0, n_steps-1].
+            The time-step index; between ``[0, n_steps-1]``.
         u : (n_edges,) numpy.ndarray
             The solution for the fields for the current model for the previous time-step;
             i.e. :math:`\mathbf{h_{k-1}}`.
@@ -2039,7 +2039,7 @@ class Simulation3DMagneticField(BaseTDEMSimulation):
         Parameters
         ----------
         tInd : int
-            The time index; between [0, n_steps].
+            The time index; between ``[0, n_steps]``.
 
         Returns
         -------
@@ -2085,7 +2085,7 @@ class Simulation3DMagneticField(BaseTDEMSimulation):
         Parameters
         ----------
         tInd : int
-            The time index; between [0, n_steps].
+            The time index; between ``[0, n_steps]``.
         src : .time_domain.sources.BaseTDEMSrc
             The TDEM source object.
         v : numpy.ndarray
@@ -2341,7 +2341,7 @@ class Simulation3DCurrentDensity(BaseTDEMSimulation):
         Parameters
         ----------
         tInd : int
-            The time-step index; between [0, n_steps-1].
+            The time-step index; between ``[0, n_steps-1]``.
 
         Returns
         -------
@@ -2397,7 +2397,7 @@ class Simulation3DCurrentDensity(BaseTDEMSimulation):
         Parameters
         ----------
         tInd : int
-            The time-step index; between [0, n_steps-1].
+            The time-step index; between ``[0, n_steps-1]``.
         u : (n_faces,) numpy.ndarray
             The solution for the fields for the current model; i.e. :math:`\mathbf{j_k}`.
         v : numpy.ndarray
@@ -2444,7 +2444,7 @@ class Simulation3DCurrentDensity(BaseTDEMSimulation):
         Parameters
         ----------
         tInd : int
-            The time-step index; between [0, n_steps-1].
+            The time-step index; between ``[0, n_steps-1]``.
 
         Returns
         -------
@@ -2489,7 +2489,7 @@ class Simulation3DCurrentDensity(BaseTDEMSimulation):
         Parameters
         ----------
         tInd : int
-            The time-step index; between [0, n_steps-1].
+            The time-step index; between ``[0, n_steps-1]``.
         u : (n_faces,) numpy.ndarray
             The solution for the fields for the current model for the previous time-step;
             i.e. :math:`\mathbf{j_{k-1}}`.
@@ -2529,7 +2529,7 @@ class Simulation3DCurrentDensity(BaseTDEMSimulation):
         Parameters
         ----------
         tInd : int
-            The time index; between [0, n_steps].
+            The time index; between ``[0, n_steps]``.
 
         Returns
         -------
@@ -2583,7 +2583,7 @@ class Simulation3DCurrentDensity(BaseTDEMSimulation):
         Parameters
         ----------
         tInd : int
-            The time index; between [0, n_steps].
+            The time index; between ``[0, n_steps]``.
         src : .time_domain.sources.BaseTDEMSrc
             The TDEM source object.
         v : numpy.ndarray
