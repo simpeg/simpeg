@@ -23,7 +23,7 @@ class Fields:
         Dictionary defining the field solutions that are stored and where
         on the mesh they are discretized. E.g. `{'eSolution': 'E', 'bSolution': 'F'}
         would store the `eSolution` on edges and `bSolution` on faces.
-        The ``str`` must be one of {'CC', 'N', 'E', 'F'}.
+        The ``str`` must be one of {``'CC'``, ``'N'``, ``'E'``, ``'F'``}.
     aliasFields : dict of {key: list}, optional
         Set aliases to extract different field types from the field solutions that are
         stored by the fields object. The ``key`` defines the name you would like to use
@@ -31,7 +31,7 @@ class Fields:
         contains:
 
         * the key for the known field solution that is used to compute the field type
-        * where the output field type lives {'CC', 'N', 'E', 'F'}
+        * where the output field type lives {``'CC'``, ``'N'``, ``'E'``, ``'F'``}
         * the name of the method used to compute the output field.
 
         E.g. {'b': ['eSolution', 'F', '_b']} is an alias that
@@ -115,7 +115,7 @@ class Fields:
         on the mesh they are discretized. The ``key`` defines the name
         of the field solution that is stored, and a ``str`` defines where
         on the mesh the stored field solution is discretized. The
-        ``str`` must be one of {'CC', 'N', 'E', 'F'}.
+        ``str`` must be one of {``'CC'``, ``'N'``, ``'E'``, ``'F'``}.
 
         E.g. `{'eSolution': 'E', 'bSolution': 'F'}
         would define the `eSolution` on edges and `bSolution` on faces.
@@ -138,7 +138,7 @@ class Fields:
         contains:
 
         * the key for the known field solution that is used to compute the field type
-        * where the output field type lives {'CC', 'N', 'E', 'F'}
+        * where the output field type lives {``'CC'``, ``'N'``, ``'E'``, ``'F'``}
         * the name of the method used to compute the output field.
 
         E.g. {'b': ['eSolution', 'F', '_b']} is an alias that
@@ -366,7 +366,7 @@ class TimeFields(Fields):
         Dictionary defining the field solutions that are stored and where
         on the mesh they are discretized. E.g. `{'eSolution': 'E', 'bSolution': 'F'}
         would store the `eSolution` on edges and `bSolution` on faces.
-        The ``str`` must be one of {'CC', 'N', 'E', 'F'}.
+        The ``str`` must be one of {``'CC'``, ``'N'``, ``'E'``, ``'F'``}.
     aliasFields : dict of {key: list}, optional
         Set aliases to extract different field types from the field solutions that are
         stored by the fields object. The ``key`` defines the name you would like to use
@@ -374,7 +374,7 @@ class TimeFields(Fields):
         contains:
 
         * the key for the known field solution that is used to compute the field type
-        * where the output field type lives {'CC', 'N', 'E', 'F'}
+        * where the output field type lives {``'CC'``, ``'N'``, ``'E'``, ``'F'``}
         * the name of the method used to compute the output field.
 
         E.g. {'b': ['eSolution', 'F', '_b']} is an alias that

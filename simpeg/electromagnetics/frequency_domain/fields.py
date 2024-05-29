@@ -58,7 +58,7 @@ class FieldsFDEM(Fields):
         Returns
         -------
         str
-            The grid locations. One of {'CC', 'N', 'E', 'F'}.
+            The grid locations. One of {``'CC'``, ``'N'``, ``'E'``, ``'F'``}.
         """
         return self.aliasFields[fieldType][1]
 
