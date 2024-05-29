@@ -153,8 +153,8 @@ class Fields3DMagneticFluxDensity(FieldsTDEM):
     :class:`.time_domain.Simulation3DMagneticFluxDensity`
     simulation object. This class can be used to extract the following quantities:
 
-    * 'b', 'h', 'dbdt' and 'dhdt' on mesh faces.
-    * 'e' and 'j' on mesh edges.
+    * ``'b'``, ``'h'``, ``'dbdt'`` and ``'dhdt'`` on mesh faces.
+    * ``'e'`` and ``'j'`` on mesh edges.
 
     See the example below to learn how fields can be extracted from a
     ``Fields3DMagneticFluxDensity`` object.
