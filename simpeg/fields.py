@@ -352,8 +352,8 @@ class TimeFields(Fields):
 
     ``TimeFields`` is a base class for storing discrete field solutions for simulations
     that use discrete time-stepping; see :py:class:`SimPEG.simulation.BaseTimeSimulation`.
-    Generally only one field solution (e.g. 'eSolution', 'phiSolution', 'bSolution') is stored.
-    However, it may be possible to extract multiple field types (e.g. 'e', 'b', 'j', 'h')
+    Generally only one field solution (e.g. ``'eSolution'``, ``'phiSolution'``, ``'bSolution'``) is stored.
+    However, it may be possible to extract multiple field types (e.g. ``'e'``, ``'b'``, ``'j'``, ``'h'``)
     on the fly from the fields object. The field solution that is stored and the
     field types that can be extracted depend on the formulation used by the associated simulation.
     See the example below to learn how fields are extracted from fields objects.
