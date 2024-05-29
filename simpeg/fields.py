@@ -9,8 +9,8 @@ class Fields:
 
     Fields classes are used to store the discrete field solution for a
     corresponding simulation object; see :py:class:`SimPEG.simulation.BaseSimulation`.
-    Generally only one field solution (e.g. 'eSolution', 'phiSolution', 'bSolution') is stored.
-    However, it may be possible to extract multiple field types (e.g. 'e', 'b', 'j', 'h')
+    Generally only one field solution (e.g. ``'eSolution'``, ``'phiSolution'``, ``'bSolution'``) is stored.
+    However, it may be possible to extract multiple field types (e.g. ``'e'``, ``'b'``, ``'j'``, ``'h'``)
     on the fly from the fields object. The field solution that is stored and the
     field types that can be extracted depend on the formulation used by the associated simulation.
     See the example below to learn how fields are extracted from fields objects.
@@ -21,7 +21,7 @@ class Fields:
         The simulation object used to compute the discrete field solution.
     knownFields : dict of {key: str}, optional
         Dictionary defining the field solutions that are stored and where
-        on the mesh they are discretized. E.g. `{'eSolution': 'E', 'bSolution': 'F'}
+        on the mesh they are discretized. E.g. ``{'eSolution': 'E', 'bSolution': 'F'}``
         would store the `eSolution` on edges and `bSolution` on faces.
         The ``str`` must be one of {``'CC'``, ``'N'``, ``'E'``, ``'F'``}.
     aliasFields : dict of {key: list}, optional
@@ -34,13 +34,13 @@ class Fields:
         * where the output field type lives {``'CC'``, ``'N'``, ``'E'``, ``'F'``}
         * the name of the method used to compute the output field.
 
-        E.g. {'b': ['eSolution', 'F', '_b']} is an alias that
-        would allow you to extract a field type ('b') that lives on mesh faces ('F')
-        from the E-field solution ('eSolution') by calling a method ('_b').
+        E.g. ``{'b': ['eSolution', 'F', '_b']}`` is an alias that
+        would allow you to extract a field type (``'b'``) that lives on mesh faces (``'F'``)
+        from the E-field solution (``'eSolution'``) by calling a method (``'_b'``).
     dtype : dtype or dict of {str : dtype}, optional
         Set the Python data type for each numerical field solution that is stored in
         the fields object. E.g. ``float``, ``complex``,
-        {'eSolution': ``complex``, 'bSolution': ``complex``}.
+        ``{'eSolution': complex, 'bSolution': complex}``.
 
     Examples
     --------
@@ -117,7 +117,7 @@ class Fields:
         on the mesh the stored field solution is discretized. The
         ``str`` must be one of {``'CC'``, ``'N'``, ``'E'``, ``'F'``}.
 
-        E.g. `{'eSolution': 'E', 'bSolution': 'F'}
+        E.g. ``{'eSolution': 'E', 'bSolution': 'F'}``
         would define the `eSolution` on edges and `bSolution` on faces.
 
         Returns
@@ -141,7 +141,7 @@ class Fields:
         * where the output field type lives {``'CC'``, ``'N'``, ``'E'``, ``'F'``}
         * the name of the method used to compute the output field.
 
-        E.g. {'b': ['eSolution', 'F', '_b']} is an alias that
+        E.g. ``{'b': ['eSolution', 'F', '_b']}`` is an alias that
         would allow you to extract a field type ('b') that lives on mesh faces ('F')
         from the E-field solution ('eSolution') by calling a method ('_b').
 
@@ -159,7 +159,7 @@ class Fields:
         """Python data type(s) used to store the fields.
 
         the Python data type for each numerical field solution that is stored in
-        the fields object. E.g. ``float``, ``complex``, {'eSolution': complex, 'bSolution': complex}.
+        the fields object. E.g. ``float``, ``complex``, ``{'eSolution': complex, 'bSolution': complex}``.
 
         Returns
         -------
@@ -364,7 +364,7 @@ class TimeFields(Fields):
         The simulation object used to compute the discrete field solution.
     knownFields : dict of {key: str}, optional
         Dictionary defining the field solutions that are stored and where
-        on the mesh they are discretized. E.g. `{'eSolution': 'E', 'bSolution': 'F'}
+        on the mesh they are discretized. E.g. ``{'eSolution': 'E', 'bSolution': 'F'}``
         would store the `eSolution` on edges and `bSolution` on faces.
         The ``str`` must be one of {``'CC'``, ``'N'``, ``'E'``, ``'F'``}.
     aliasFields : dict of {key: list}, optional
@@ -377,12 +377,12 @@ class TimeFields(Fields):
         * where the output field type lives {``'CC'``, ``'N'``, ``'E'``, ``'F'``}
         * the name of the method used to compute the output field.
 
-        E.g. {'b': ['eSolution', 'F', '_b']} is an alias that
+        E.g. ``{'b': ['eSolution', 'F', '_b']}`` is an alias that
         would allow you to extract a field type ('b') that lives on mesh faces ('F')
         from the E-field solution ('eSolution') by calling a method ('_b').
     dtype : dtype or dict of {str : dtype}, optional
         Set the Python data type for each numerical field solution that is stored in
-        the fields object. E.g. ``float``, ``complex``, {'eSolution': complex, 'bSolution': complex}.
+        the fields object. E.g. ``float``, ``complex``, ``{'eSolution': complex, 'bSolution': complex}``.
 
     Examples
     --------
