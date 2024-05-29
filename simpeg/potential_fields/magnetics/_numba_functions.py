@@ -297,15 +297,15 @@ def _sensitivity_tmi(
     .. math::
 
         \left[
-            \frac{\partial B_j}{\partial \chi_x^{(1)}},
+            \frac{\partial T_j}{\partial \chi_x^{(1)}},
             \dots,
-            \frac{\partial B_j}{\partial \chi_x^{(N)}},
-            \frac{\partial B_j}{\partial \chi_y^{(1)}},
+            \frac{\partial T_j}{\partial \chi_x^{(N)}},
+            \frac{\partial T_j}{\partial \chi_y^{(1)}},
             \dots,
-            \frac{\partial B_j}{\partial \chi_y^{(N)}},
-            \frac{\partial B_j}{\partial \chi_z^{(1)}},
+            \frac{\partial T_j}{\partial \chi_y^{(N)}},
+            \frac{\partial T_j}{\partial \chi_z^{(1)}},
             \dots,
-            \frac{\partial B_j}{\partial \chi_z^{(N)}}
+            \frac{\partial T_j}{\partial \chi_z^{(N)}}
         \right]
 
     where :math:`N` is the total number of active cells.
