@@ -327,10 +327,10 @@ class Fields3DElectricField(FieldsFDEM):
     :class:`.frequency_domain.Simulation3DElectricField`
     simulation object. This class can be used to extract the following quantities:
 
-    * 'e', 'ePrimary', 'eSecondary' and 'j' on mesh edges.
-    * 'h', 'b', 'bPrimary' and 'bSecondary' on mesh faces.
-    * 'charge' on mesh nodes.
-    * 'charge_density' at cell centers.
+    * ``'e'``, ``'ePrimary'``, ``'eSecondary'`` and ``'j'`` on mesh edges.
+    * ``'h'``, ``'b'``, ``'bPrimary'`` and ``'bSecondary'`` on mesh faces.
+    * ``'charge'`` on mesh nodes.
+    * ``'charge_density'`` at cell centers.
 
     See the example below to learn how fields can be extracted from a
     ``Fields3DElectricField`` object.
