@@ -693,10 +693,10 @@ class Fields3DMagneticFluxDensity(FieldsFDEM):
     :class:`.frequency_domain.Simulation3DMagneticFluxDensity`
     simulation object. This class can be used to extract the following quantities:
 
-    * 'b', 'bPrimary', 'bSecondary' and 'h' on mesh faces.
-    * 'e', 'ePrimary', 'eSecondary' and 'j' on mesh edges.
-    * 'charge' on mesh nodes.
-    * 'charge_density' at cell centers.
+    * ``'b'``, ``'bPrimary'``, ``'bSecondary'`` and ``'h'`` on mesh faces.
+    * ``'e'``, ``'ePrimary'``, ``'eSecondary'`` and ``'j'`` on mesh edges.
+    * ``'charge'`` on mesh nodes.
+    * ``'charge_density'`` at cell centers.
 
     See the example below to learn how fields can be extracted from a
     ``Fields3DMagneticFluxDensity`` object.
