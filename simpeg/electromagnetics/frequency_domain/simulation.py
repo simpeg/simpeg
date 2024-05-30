@@ -20,43 +20,51 @@ import warnings
 
 
 class BaseFDEMSimulation(BaseEMSimulation):
-    r"""
-    We start by looking at Maxwell's equations in the electric
-    field (:math:`\mathbf{e}`) and the magnetic flux
-    density (:math:`\mathbf{b}`)
+    r"""Base finite volume FDEM simulation class.
 
-    .. math ::
+    This class is used to define properties and methods necessary for solving
+    3D frequency-domain EM problems. For a :math:`+i\omega t` Fourier convention,
+    Maxwell's equations are expressed as:
 
-        \mathbf{C} \mathbf{e} + i \omega \mathbf{b} = \mathbf{s_m}
-        {\mathbf{C}^{\top} \mathbf{M_{\mu^{-1}}^f} \mathbf{b} -
-        \mathbf{M_{\sigma}^e} \mathbf{e} = \mathbf{s_e}}
+    .. math::
+        \begin{align}
+        \nabla \times \vec{E} + i\omega \vec{B} &= - i \omega \vec{S}_m \\
+        \nabla \times \vec{H} - \vec{J} &= \vec{S}_e
+        \end{align}
 
-    if using the E-B formulation (:code:`Simulation3DElectricField`
-    or :code:`Simulation3DMagneticFluxDensity`). Note that in this case,
-    :math:`\mathbf{s_e}` is an integrated quantity.
+    where the constitutive relations between fields and fluxes are given by:
 
-    If we write Maxwell's equations in terms of
-    :math:`\mathbf{h}` and current density :math:`\mathbf{j}`.
+    * :math:`\vec{J} = \sigma \vec{E}`
+    * :math:`\vec{B} = \mu \vec{H}`
 
-    .. math ::
+    and:
 
-        \mathbf{C}^{\top} \mathbf{M_{\rho}^f} \mathbf{j} +
-        i \omega \mathbf{M_{\mu}^e} \mathbf{h} = \mathbf{s_m}
-        \mathbf{C} \mathbf{h} - \mathbf{j} = \mathbf{s_e}
+    * :math:`\vec{S}_m` represents a magnetic source term
+    * :math:`\vec{S}_e` represents a current source term
 
-    if using the H-J formulation (:code:`Simulation3DCurrentDensity` or
-    :code:`Simulation3DMagneticField`). Note that here, :math:`\mathbf{s_m}` is an
-    integrated quantity.
+    Child classes of ``BaseFDEMSimulation`` solve the above expression numerically
+    for various cases using mimetic finite volume.
 
-    The problem performs the elimination so that we are solving the system
-    for :math:`mathbf{e}`, :math:`mathbf{b}`, :math:`mathbf{j}` or
-    :math:`mathbf{h}`.
-
+    Parameters
+    ----------
+    mesh : discretize.base.BaseMesh
+        The mesh.
+    survey : .frequency_domain.survey.Survey
+        The frequency-domain EM survey.
+    forward_only : bool, optional
+        If ``True``, the factorization for the inverse of the system matrix at each
+        frequency is discarded after the fields are computed at that frequency.
+        If ``False``, the factorizations of the system matrices for all frequencies are stored.
+    permittivity : (n_cells,) numpy.ndarray, optional
+        Dielectric permittivity (F/m) defined on the entire mesh. If ``None``, electric displacement
+        is ignored. Please note that `permittivity` is not an invertible property, and that future
+        development will result in the deprecation of this propery.
+    storeJ : bool, optional
+        Whether to compute and store the sensitivity matrix.
     """
 
     fieldsPair = FieldsFDEM
     permittivity = props.PhysicalProperty("Dielectric permittivity (F/m)")
-    # permittivity, permittivityMap, permittivityDeriv = props.Invertible("Dielectric permittivity (F/m)")
 
     def __init__(
         self,
@@ -79,11 +87,12 @@ class BaseFDEMSimulation(BaseEMSimulation):
 
     @property
     def survey(self):
-        """The simulations survey.
+        """The FDEM survey object.
 
         Returns
         -------
-        simpeg.electromagnetics.frequency_domain.survey.Survey
+        .frequency_domain.survey.Survey
+            The FDEM survey object.
         """
         if self._survey is None:
             raise AttributeError("Simulation must have a survey set")
@@ -98,11 +107,12 @@ class BaseFDEMSimulation(BaseEMSimulation):
 
     @property
     def storeJ(self):
-        """Whether to store the sensitivity matrix
+        """Whether to compute and store the sensitivity matrix.
 
         Returns
         -------
         bool
+            Whether to compute and store the sensitivity matrix.
         """
         return self._storeJ
 
@@ -112,11 +122,16 @@ class BaseFDEMSimulation(BaseEMSimulation):
 
     @property
     def forward_only(self):
-        """If True, A-inverse not stored at each frequency in forward simulation.
+        """Whether to store the factorizations of the inverses of the system matrices.
+
+        If ``True``, the factorization for the inverse of the system matrix at each
+        frequency is discarded after the fields are computed at that frequency.
+        If ``False``, the factorizations of the system matrices for all frequencies are stored.
 
         Returns
         -------
         bool
+            Whether to store the factorizations of the inverses of the system matrices.
         """
         return self._forward_only
 
@@ -154,12 +169,17 @@ class BaseFDEMSimulation(BaseEMSimulation):
 
     # @profile
     def fields(self, m=None):
-        """
-        Solve the forward problem for the fields.
+        """Compute and return the fields for the model provided.
 
-        :param numpy.ndarray m: inversion model (nP,)
-        :rtype: numpy.ndarray
-        :return f: forward solution
+        Parameters
+        ----------
+        m : (n_param,) numpy.ndarray
+            The model.
+
+        Returns
+        -------
+        .frequency_domain.fields.FieldsFDEM
+            The FDEM fields object.
         """
 
         if m is not None:
@@ -186,15 +206,34 @@ class BaseFDEMSimulation(BaseEMSimulation):
 
     # @profile
     def Jvec(self, m, v, f=None):
-        """
-        Sensitivity times a vector.
+        r"""Compute the sensitivity matrix times a vector.
 
-        :param numpy.ndarray m: inversion model (nP,)
-        :param numpy.ndarray v: vector which we take sensitivity product with
-            (nP,)
-        :param simpeg.electromagnetics.frequency_domain.fields.FieldsFDEM u: fields object
-        :rtype: numpy.ndarray
-        :return: Jv (ndata,)
+        Where :math:`\mathbf{d}` are the data, :math:`\mathbf{m}` are the model parameters,
+        and the sensitivity matrix is defined as:
+
+        .. math::
+            \mathbf{J} = \dfrac{\partial \mathbf{d}}{\partial \mathbf{m}}
+
+        this method computes and returns the matrix-vector product:
+
+        .. math::
+            \mathbf{J v}
+
+        for a given vector :math:`v`.
+
+        Parameters
+        ----------
+        m : (n_param,) numpy.ndarray
+            The model parameters.
+        v : (n_param,) numpy.ndarray
+            The vector.
+        f : .frequency_domain.fields.FieldsFDEM, optional
+            Fields solved for all sources.
+
+        Returns
+        -------
+        (n_data,) numpy.ndarray
+            The sensitivity matrix times a vector.
         """
 
         if f is None:
@@ -216,14 +255,34 @@ class BaseFDEMSimulation(BaseEMSimulation):
         return Jv.dobs
 
     def Jtvec(self, m, v, f=None):
-        """
-        Sensitivity transpose times a vector
+        r"""Compute the adjoint sensitivity matrix times a vector.
 
-        :param numpy.ndarray m: inversion model (nP,)
-        :param numpy.ndarray v: vector which we take adjoint product with (nP,)
-        :param simpeg.electromagnetics.frequency_domain.fields.FieldsFDEM u: fields object
-        :rtype: numpy.ndarray
-        :return: Jv (ndata,)
+        Where :math:`\mathbf{d}` are the data, :math:`\mathbf{m}` are the model parameters,
+        and the sensitivity matrix is defined as:
+
+        .. math::
+            \mathbf{J} = \dfrac{\partial \mathbf{d}}{\partial \mathbf{m}}
+
+        this method computes and returns the matrix-vector product:
+
+        .. math::
+            \mathbf{J^T v}
+
+        for a given vector :math:`v`.
+
+        Parameters
+        ----------
+        m : (n_param,) numpy.ndarray
+            The model parameters.
+        v : (n_data,) numpy.ndarray
+            The vector.
+        f : .frequency_domain.fields.FieldsFDEM, optional
+            Fields solved for all sources.
+
+        Returns
+        -------
+        (n_param,) numpy.ndarray
+            The adjoint sensitivity matrix times a vector.
         """
 
         if f is None:
@@ -263,13 +322,27 @@ class BaseFDEMSimulation(BaseEMSimulation):
         return mkvc(Jtv)
 
     def getJ(self, m, f=None):
-        """
-        Method to form full J given a model m
+        r"""Generate the full sensitivity matrix.
 
-        :param numpy.ndarray m: inversion model (nP,)
-        :param simpeg.electromagnetics.frequency_domain.fields.FieldsFDEM u: fields object
-        :rtype: numpy.ndarray
-        :return: J (ndata, nP)
+        This method generates and stores the full sensitivity matrix for the
+        model provided. I.e.:
+
+        .. math::
+            \mathbf{J} = \dfrac{\partial \mathbf{d}}{\partial \mathbf{m}}
+
+        where :math:`\mathbf{d}` are the data and :math:`\mathbf{m}` are the model parameters.
+
+        Parameters
+        ----------
+        m : (n_param,) numpy.ndarray
+            The model parameters.
+        f : .static.resistivity.fields.FieldsDC, optional
+            Fields solved for all sources.
+
+        Returns
+        -------
+        (n_data, n_param) numpy.ndarray
+            The full sensitivity matrix.
         """
         self.model = m
 
@@ -317,14 +390,32 @@ class BaseFDEMSimulation(BaseEMSimulation):
         return self._Jmatrix
 
     def getJtJdiag(self, m, W=None, f=None):
-        """
-        Return the diagonal of JtJ
+        r"""Return the diagonal of :math:`\mathbf{J^T J}`.
 
-        :param numpy.ndarray m: inversion model (nP,)
-        :param numpy.ndarray W: vector of weights (ndata,)
-        :param simpeg.electromagnetics.frequency_domain.fields.FieldsFDEM u: fields object
-        :rtype: numpy.ndarray
-        :return: JtJ (nP,)
+        Where :math:`\mathbf{d}` are the data and :math:`\mathbf{m}` are the model parameters,
+        the sensitivity matrix :math:`\mathbf{J}` is defined as:
+
+        .. math::
+            \mathbf{J} = \dfrac{\partial \mathbf{d}}{\partial \mathbf{m}}
+
+        This method returns the diagonals of :math:`\mathbf{J^T J}`. When the
+        *W* input argument is used to include a diagonal weighting matrix
+        :math:`\mathbf{W}`, this method returns the diagonal of
+        :math:`\mathbf{W^T J^T J W}`.
+
+        Parameters
+        ----------
+        m : (n_param,) numpy.ndarray
+            The model parameters.
+        W : (n_param, n_param) scipy.sparse.csr_matrix
+            A diagonal weighting matrix.
+        f : .frequency_domain.fields.FieldsFDEM, optional
+            Fields solved for all sources.
+
+        Returns
+        -------
+        (n_param,) numpy.ndarray
+            The diagonals.
         """
         self.model = m
 
@@ -344,13 +435,33 @@ class BaseFDEMSimulation(BaseEMSimulation):
 
     # @profile
     def getSourceTerm(self, freq):
-        """
-        Evaluates the sources for a given frequency and puts them in matrix
-        form
+        r"""Returns the discrete source terms for the frequency provided.
 
-        :param float freq: Frequency
-        :rtype: tuple
-        :return: (s_m, s_e) (nE or nF, nSrc)
+        This method computes and returns the discrete magnetic and electric source
+        terms for all soundings at the frequency provided. The exact shape and
+        implementation of the source terms when solving for the fields at each frequency
+        is formulation dependent.
+
+        For definitions of the discrete magnetic (:math:`\mathbf{s_m}`) and electric
+        (:math:`\mathbf{s_e}`) source terms for each simulation, see the *Notes* sections
+        of the docstrings for:
+
+        * :class:`.frequency_domain.Simulation3DElectricField`
+        * :class:`.frequency_domain.Simulation3DMagneticField`
+        * :class:`.frequency_domain.Simulation3DCurrentDensity`
+        * :class:`.frequency_domain.Simulation3DMagneticFluxDensity`
+
+        Parameters
+        ----------
+        freq : float
+            The frequency in Hz.
+
+        Returns
+        -------
+        s_m : numpy.ndarray
+            The magnetic sources terms. (n_faces, n_sources) for EB-formulations. (n_edges, n_sources) for HJ-formulations.
+        s_e : numpy.ndarray
+            The electric sources terms. (n_edges, n_sources) for EB-formulations. (n_faces, n_sources) for HJ-formulations.
         """
         Srcs = self.survey.get_sources_by_frequency(freq)
         n_fields = sum(src._fields_per_source for src in Srcs)
@@ -376,6 +487,16 @@ class BaseFDEMSimulation(BaseEMSimulation):
 
     @property
     def deleteTheseOnModelUpdate(self):
+        """List of model-dependent attributes to clean upon model update.
+
+        Some of the FDEM simulation's attributes are model-dependent. This property specifies
+        the model-dependent attributes that much be cleared when the model is updated.
+
+        Returns
+        -------
+        list of str
+            List of the model-dependent attributes to clean upon model update.
+        """
         toDelete = super().deleteTheseOnModelUpdate
         return toDelete + ["_Jmatrix", "_gtgdiag"]
 
@@ -386,28 +507,99 @@ class BaseFDEMSimulation(BaseEMSimulation):
 
 
 class Simulation3DElectricField(BaseFDEMSimulation):
-    r"""
-    By eliminating the magnetic flux density using
+    r"""3D FDEM simulation in terms of the electric field.
 
-    .. math ::
+    This simulation solves for the electric field at each frequency.
+    In this formulation, the electric fields are defined on mesh edges and the
+    magnetic flux density is defined on mesh faces; i.e. it is an EB formulation.
+    See the *Notes* section for a comprehensive description of the formulation.
 
-        \mathbf{b} = \frac{1}{i \omega}\left(-\mathbf{C} \mathbf{e} +
-        \mathbf{s_m}\right)
+    Parameters
+    ----------
+    mesh : discretize.base.BaseMesh
+        The mesh.
+    survey : .frequency_domain.survey.Survey
+        The frequency-domain EM survey.
+    forward_only : bool, optional
+        If ``True``, the factorization for the inverse of the system matrix at each
+        frequency is discarded after the fields are computed at that frequency.
+        If ``False``, the factorizations of the system matrices for all frequencies are stored.
+    permittivity : (n_cells,) numpy.ndarray, optional
+        Dielectric permittivity (F/m) defined on the entire mesh. If ``None``, electric displacement
+        is ignored. Please note that `permittivity` is not an invertible property, and that future
+        development will result in the deprecation of this propery.
+    storeJ : bool, optional
+        Whether to compute and store the sensitivity matrix.
 
+    Notes
+    -----
+    Here, we start with the Maxwell's equations in the frequency-domain where a
+    :math:`+i\omega t` Fourier convention is used:
 
-    we can write Maxwell's equations as a second order system in
-    :math:`mathbf{e}` only:
+    .. math::
+        \begin{align}
+        &\nabla \times \vec{E} + i\omega \vec{B} = - i \omega \vec{S}_m \\
+        &\nabla \times \vec{H} - \vec{J} = \vec{S}_e
+        \end{align}
 
-    .. math ::
+    where :math:`\vec{S}_e` is an electric source term that defines a source current density,
+    and :math:`\vec{S}_m` magnetic source term that defines a source magnetic flux density.
+    We define the constitutive relations for the electrical conductivity :math:`\sigma`
+    and magnetic permeability :math:`\mu` as:
 
-        \left(\mathbf{C}^{\top} \mathbf{M_{\mu^{-1}}^f} \mathbf{C} +
-        i \omega \mathbf{M^e_{\sigma}} \right)\mathbf{e} =
-        \mathbf{C}^{\top} \mathbf{M_{\mu^{-1}}^f}\mathbf{s_m}
-        - i\omega\mathbf{M^e}\mathbf{s_e}
+    .. math::
+        \vec{J} &= \sigma \vec{E} \\
+        \vec{H} &= \mu^{-1} \vec{B}
 
-    which we solve for :math:`\mathbf{e}`.
+    We then take the inner products of all previous expressions with a vector test function :math:`\vec{u}`.
+    Through vector calculus identities and the divergence theorem, we obtain:
 
-    :param discretize.base.BaseMesh mesh: mesh
+    .. math::
+        & \int_\Omega \vec{u} \cdot (\nabla \times \vec{E}) \, dv
+        + i \omega \int_\Omega \vec{u} \cdot \vec{B} \, dv
+        = - i \omega \int_\Omega \vec{u} \cdot \vec{S}_m \, dv \\
+        & \int_\Omega (\nabla \times \vec{u}) \cdot \vec{H} \, dv
+        - \oint_{\partial \Omega} \vec{u} \cdot (\vec{H} \times \hat{n}) \, da
+        - \int_\Omega \vec{u} \cdot \vec{J} \, dv
+        = \int_\Omega \vec{u} \cdot \vec{S}_j \, dv \\
+        & \int_\Omega \vec{u} \cdot \vec{J} \, dv = \int_\Omega \vec{u} \cdot \sigma \vec{E} \, dv \\
+        & \int_\Omega \vec{u} \cdot \vec{H} \, dv = \int_\Omega \vec{u} \cdot \mu^{-1} \vec{B} \, dv
+
+    Assuming natural boundary conditions, the surface integral is zero.
+
+    The above expressions are discretized in space according to the finite volume method.
+    The discrete electric fields :math:`\mathbf{e}` are defined on mesh edges,
+    and the discrete magnetic flux densities :math:`\mathbf{b}` are defined on mesh faces.
+    This implies :math:`\mathbf{j}` must be defined on mesh edges and :math:`\mathbf{h}` must
+    be defined on mesh faces. Where :math:`\mathbf{u_e}` and :math:`\mathbf{u_f}` represent
+    test functions discretized to edges and faces, respectively, we obtain the following
+    set of discrete inner-products:
+
+    .. math::
+        &\mathbf{u_f^T M_f C e} + i \omega \mathbf{u_f^T M_f b} = - i \omega \mathbf{u_f^T M_f s_m} \\
+        &\mathbf{u_e^T C^T M_f h} - \mathbf{u_e^T M_e j} = \mathbf{u_e^T s_e} \\
+        &\mathbf{u_e^T M_e j} = \mathbf{u_e^T M_{e \sigma} e} \\
+        &\mathbf{u_f^T M_f h} = \mathbf{u_f^T M_{f \mu} b}
+
+    where
+
+    * :math:`\mathbf{C}` is the discrete curl operator
+    * :math:`\mathbf{s_m}` and :math:`\mathbf{s_e}` are the integrated magnetic and electric source terms, respectively
+    * :math:`\mathbf{M_e}` is the edge inner-product matrix
+    * :math:`\mathbf{M_f}` is the face inner-product matrix
+    * :math:`\mathbf{M_{e\sigma}}` is the inner-product matrix for conductivities projected to edges
+    * :math:`\mathbf{M_{f\frac{1}{\mu}}}` is the inner-product matrix for inverse permeabilities projected to faces
+
+    By cancelling like-terms and combining the discrete expressions to solve for the electric field, we obtain:
+
+    .. math::
+        \mathbf{A \, e} = \mathbf{q}
+
+    where
+
+    * :math:`\mathbf{A} = \mathbf{C^T M_{f\frac{1}{\mu}} C} + i\omega \mathbf{M_{e\sigma}}`
+    * :math:`\mathbf{q} = - i \omega \mathbf{s_e} - i \omega \mathbf{C^T M_{f\frac{1}{\mu}} s_m }`
+
     """
 
     _solutionType = "eSolution"
@@ -415,17 +607,30 @@ class Simulation3DElectricField(BaseFDEMSimulation):
     fieldsPair = Fields3DElectricField
 
     def getA(self, freq):
-        r"""
-        System matrix
+        r"""System matrix for the frequency provided.
 
-        .. math ::
+        This method returns the system matrix for the frequency provided:
 
-            \mathbf{A} = \mathbf{C}^{\top} \mathbf{M_{\mu^{-1}}^f} \mathbf{C}
-            + i \omega \mathbf{M^e_{\sigma}}
+        .. math::
+            \mathbf{A} = \mathbf{C^T M_{f\frac{1}{\mu}} C} + i\omega \mathbf{M_{e\sigma}}
 
-        :param float freq: Frequency
-        :rtype: scipy.sparse.csr_matrix
-        :return: A
+        where
+
+        * :math:`\mathbf{M_{e\sigma}}` is the inner-product matrix for conductivities projected to edges
+        * :math:`\mathbf{M_{f\frac{1}{\mu}}}` is the inner-product matrix for inverse permeabilities projected to faces
+
+        See the *Notes* section of the doc strings for :class:`Simulation3DElectricField`
+        for a full description of the formulation.
+
+        Parameters
+        ----------
+        freq : float
+            The frequency in Hz.
+
+        Returns
+        -------
+        (n_edges, n_edges) sp.sparse.csr_matrix
+            The system matrix.
         """
 
         MfMui = self.MfMui
@@ -441,38 +646,98 @@ class Simulation3DElectricField(BaseFDEMSimulation):
         return A
 
     def getADeriv_sigma(self, freq, u, v, adjoint=False):
-        r"""
-        Product of the derivative of our system matrix with respect to the
-        conductivity model and a vector
+        r"""Conductivity derivative operation for the system matrix times a vector.
 
-        .. math ::
+        The system matrix at each frequency is given by:
 
-            \frac{\mathbf{A}(\mathbf{m}) \mathbf{v}}{d \mathbf{m}_{\sigma}} =
-            i \omega \frac{d \mathbf{M^e_{\sigma}}(\mathbf{u})\mathbf{v} }{d\mathbf{m}}
+        .. math::
+            \mathbf{A} = \mathbf{C^T M_{f\frac{1}{\mu}} C} + i\omega \mathbf{M_{e\sigma}}
 
-        :param float freq: frequency
-        :param numpy.ndarray u: solution vector (nE,)
-        :param numpy.ndarray v: vector to take prodct with (nP,) or (nD,) for
-            adjoint
-        :param bool adjoint: adjoint?
-        :rtype: numpy.ndarray
-        :return: derivative of the system matrix times a vector (nP,) or
-            adjoint (nD,)
+        where
+
+        * :math:`\mathbf{M_{e\sigma}}` is the inner-product matrix for conductivities projected to edges
+        * :math:`\mathbf{M_{f\frac{1}{\mu}}}` is the inner-product matrix for inverse permeabilities projected to faces
+
+        See the *Notes* section of the doc strings for :class:`Simulation3DElectricField`
+        for a full description of the formulation.
+
+        Where :math:`\mathbf{m}_\boldsymbol{\sigma}` are the set of model parameters defining the conductivity,
+        :math:`\mathbf{v}` is a vector and :math:`\mathbf{e}` is the discrete electric field solution, this method assumes
+        the discrete solution is fixed and returns
+
+        .. math::
+            \frac{\partial (\mathbf{A \, e})}{\partial \mathbf{m}_\boldsymbol{\sigma}} \, \mathbf{v}
+
+        Or the adjoint operation
+
+        .. math::
+            \frac{\partial (\mathbf{A \, e})}{\partial \mathbf{m}_\boldsymbol{\sigma}}^T \, \mathbf{v}
+
+        Parameters
+        ----------
+        freq : float
+            The frequency in Hz.
+        u : (n_edges,) numpy.ndarray
+            The solution for the fields for the current model at the specified frequency.
+        v : numpy.ndarray
+            The vector. (n_param,) for the standard operation. (n_edges,) for the adjoint operation.
+        adjoint : bool
+            Whether to perform the adjoint operation.
+
+        Returns
+        -------
+        numpy.ndarray
+            Derivative of system matrix times a vector. (n_edges,) for the standard operation.
+            (n_param,) for the adjoint operation.
         """
 
         dMe_dsig_v = self.MeSigmaDeriv(u, v, adjoint)
         return 1j * omega(freq) * dMe_dsig_v
 
     def getADeriv_mui(self, freq, u, v, adjoint=False):
-        r"""
-        Product of the derivative of the system matrix with respect to the
-        permeability model and a vector.
+        r"""Inverse permeability derivative operation for the system matrix times a vector.
 
-        .. math ::
+        The system matrix at each frequency is given by:
 
-            \frac{\mathbf{A}(\mathbf{m}) \mathbf{v}}{d \mathbf{m}_{\mu^{-1}} =
-            \mathbf{C}^{\top} \frac{d \mathbf{M^f_{\mu^{-1}}}\mathbf{v}}{d\mathbf{m}}
+        .. math::
+            \mathbf{A} = \mathbf{C^T M_{f\frac{1}{\mu}} C} + i\omega \mathbf{M_{e\sigma}}
 
+        where
+
+        * :math:`\mathbf{M_{e\sigma}}` is the inner-product matrix for conductivities projected to edges
+        * :math:`\mathbf{M_{f\frac{1}{\mu}}}` is the inner-product matrix for inverse permeabilities projected to faces
+
+        See the *Notes* section of the doc strings for :class:`Simulation3DElectricField`
+        for a full description of the formulation.
+
+        Where :math:`\mathbf{m}_\boldsymbol{\mu}` are the set of model parameters defining the permeability,
+        :math:`\mathbf{v}` is a vector and :math:`\mathbf{e}` is the discrete electric field solution, this method assumes
+        the discrete solution is fixed and returns
+
+        .. math::
+            \frac{\partial (\mathbf{A \, e})}{\partial \mathbf{m}_\boldsymbol{\mu}} \, \mathbf{v}
+
+        Or the adjoint operation
+
+        .. math::
+            \frac{\partial (\mathbf{A \, e})}{\partial \mathbf{m}_\boldsymbol{\mu}}^T \, \mathbf{v}
+
+        Parameters
+        ----------
+        freq : float
+            The frequency in Hz.
+        u : (n_edges,) numpy.ndarray
+            The solution for the fields for the current model at the specified frequency.
+        v : numpy.ndarray
+            The vector. (n_param,) for the standard operation. (n_edges,) for the adjoint operation.
+        adjoint : bool
+            Whether to perform the adjoint operation.
+
+        Returns
+        -------
+        numpy.ndarray
+            Derivative of system matrix times a vector. (n_edges,) for the standard operation.
+            (n_param,) for the adjoint operation.
         """
 
         C = self.mesh.edge_curl
@@ -483,6 +748,50 @@ class Simulation3DElectricField(BaseFDEMSimulation):
         return C.T * (self.MfMuiDeriv(C * u) * v)
 
     def getADeriv(self, freq, u, v, adjoint=False):
+        r"""Derivative operation for the system matrix times a vector.
+
+        The system matrix at each frequency is given by:
+
+        .. math::
+            \mathbf{A} = \mathbf{C^T M_{f\frac{1}{\mu}} C} + i\omega \mathbf{M_{e\sigma}}
+
+        where
+
+        * :math:`\mathbf{M_{e\sigma}}` is the inner-product matrix for conductivities projected to edges
+        * :math:`\mathbf{M_{f\frac{1}{\mu}}}` is the inner-product matrix for inverse permeabilities projected to faces
+
+        See the *Notes* section of the doc strings for :class:`Simulation3DElectricField`
+        for a full description of the formulation.
+
+        Where :math:`\mathbf{m}` are the set of model parameters defining the electromagnetic properties
+        :math:`\mathbf{v}` is a vector and :math:`\mathbf{e}` is the discrete electric field solution, this method assumes
+        the discrete solution is fixed and returns
+
+        .. math::
+            \frac{\partial (\mathbf{A \, e})}{\partial \mathbf{m}} \, \mathbf{v}
+
+        Or the adjoint operation
+
+        .. math::
+            \frac{\partial (\mathbf{A \, e})}{\partial \mathbf{m}}^T \, \mathbf{v}
+
+        Parameters
+        ----------
+        freq : float
+            The frequency in Hz.
+        u : (n_edges,) numpy.ndarray
+            The solution for the fields for the current model at the specified frequency.
+        v : numpy.ndarray
+            The vector. (n_param,) for the standard operation. (n_edges,) for the adjoint operation.
+        adjoint : bool
+            Whether to perform the adjoint operation.
+
+        Returns
+        -------
+        numpy.ndarray
+            Derivative of system matrix times a vector. (n_edges,) for the standard operation.
+            (n_param,) for the adjoint operation.
+        """
         return (
             self.getADeriv_sigma(freq, u, v, adjoint)
             + self.getADeriv_mui(freq, u, v, adjoint)
@@ -490,18 +799,32 @@ class Simulation3DElectricField(BaseFDEMSimulation):
         )
 
     def getRHS(self, freq):
-        r"""
-        Right hand side for the system
+        r"""Right-hand sides for the given frequency.
 
-        .. math ::
+        This method returns the right-hand sides for the frequency provided.
+        The right-hand side for each source is constructed according to:
 
-            \mathbf{RHS} = \mathbf{C}^{\top}
-            \mathbf{M_{\mu^{-1}}^f}\mathbf{s_m} -
-            i\omega\mathbf{M_e}\mathbf{s_e}
+        .. math::
+            \mathbf{q} = - i \omega \mathbf{s_e} - i \omega \mathbf{C^T M_{f\frac{1}{\mu}} s_m }
 
-        :param float freq: Frequency
-        :rtype: numpy.ndarray
-        :return: RHS (nE, nSrc)
+        where
+
+        * :math:`\mathbf{C}` is the discrete curl operator
+        * :math:`\mathbf{s_m}` and :math:`\mathbf{s_e}` are the integrated magnetic and electric source terms, respectively
+        * :math:`\mathbf{M_{f\frac{1}{\mu}}}` is the inner-product matrices for inverse permeabilities projected to faces
+
+        See the *Notes* section of the doc strings for :class:`Simulation3DElectricField`
+        for a full description of the formulation.
+
+        Parameters
+        ----------
+        freq : float
+            The frequency in Hz.
+
+        Returns
+        -------
+        (n_edges, n_sources) numpy.ndarray
+            The right-hand sides.
         """
 
         s_m, s_e = self.getSourceTerm(freq)
@@ -511,9 +834,49 @@ class Simulation3DElectricField(BaseFDEMSimulation):
         return C.T * (MfMui * s_m) - 1j * omega(freq) * s_e
 
     def getRHSDeriv(self, freq, src, v, adjoint=False):
-        """
-        Derivative of the Right-hand side with respect to the model. This
-        includes calls to derivatives in the sources
+        r"""Derivative of the right-hand side times a vector for a given source and frequency.
+
+        The right-hand side for each source is constructed according to:
+
+        .. math::
+            \mathbf{q} = -i \omega \mathbf{s_e} - i \omega \mathbf{C^T M_{f\frac{1}{\mu}} s_m }
+
+        where
+
+        * :math:`\mathbf{C}` is the discrete curl operator
+        * :math:`\mathbf{s_m}` and :math:`\mathbf{s_e}` are the integrated magnetic and electric source terms, respectively
+        * :math:`\mathbf{M_{f\frac{1}{\mu}}}` is the inner-product matrices for inverse permeabilities projected to faces
+
+        See the *Notes* section of the doc strings for :class:`Simulation3DElectricField`
+        for a full description of the formulation.
+
+        Where :math:`\mathbf{m}` are the set of model parameters and :math:`\mathbf{v}` is a vector,
+        this method returns
+
+        .. math::
+            \frac{\partial \mathbf{q_k}}{\partial \mathbf{m}} \, \mathbf{v}
+
+        Or the adjoint operation
+
+        .. math::
+            \frac{\partial \mathbf{q_k}}{\partial \mathbf{m}}^T \, \mathbf{v}
+
+        Parameters
+        ----------
+        freq : int
+            The frequency in Hz.
+        src : .frequency_domain.sources.BaseFDEMSrc
+            The FDEM source object.
+        v : numpy.ndarray
+            The vector. (n_param,) for the standard operation. (n_edges,) for the adjoint operation.
+        adjoint : bool
+            Whether to perform the adjoint operation.
+
+        Returns
+        -------
+        numpy.ndarray
+            Derivative of the right-hand sides times a vector. (n_edges,) for the standard operation.
+            (n_param,) for the adjoint operation.
         """
 
         C = self.mesh.edge_curl
@@ -534,26 +897,99 @@ class Simulation3DElectricField(BaseFDEMSimulation):
 
 
 class Simulation3DMagneticFluxDensity(BaseFDEMSimulation):
-    r"""
-    We eliminate :math:`\mathbf{e}` using
+    r"""3D FDEM simulation in terms of the magnetic flux field.
 
-    .. math ::
+    This simulation solves for the magnetic flux density at each frequency.
+    In this formulation, the electric fields are defined on mesh edges and the
+    magnetic flux density is defined on mesh faces; i.e. it is an EB formulation.
+    See the *Notes* section for a comprehensive description of the formulation.
 
-         \mathbf{e} = \mathbf{M^e_{\sigma}}^{-1} \left(\mathbf{C}^{\top}
-         \mathbf{M_{\mu^{-1}}^f} \mathbf{b} - \mathbf{s_e}\right)
+    Parameters
+    ----------
+    mesh : discretize.base.BaseMesh
+        The mesh.
+    survey : .frequency_domain.survey.Survey
+        The frequency-domain EM survey.
+    forward_only : bool, optional
+        If ``True``, the factorization for the inverse of the system matrix at each
+        frequency is discarded after the fields are computed at that frequency.
+        If ``False``, the factorizations of the system matrices for all frequencies are stored.
+    permittivity : (n_cells,) numpy.ndarray, optional
+        Dielectric permittivity (F/m) defined on the entire mesh. If ``None``, electric displacement
+        is ignored. Please note that `permittivity` is not an invertible property, and that future
+        development will result in the deprecation of this propery.
+    storeJ : bool, optional
+        Whether to compute and store the sensitivity matrix.
 
-    and solve for :math:`\mathbf{b}` using:
+    Notes
+    -----
+    Here, we start with the Maxwell's equations in the frequency-domain where a
+    :math:`+i\omega t` Fourier convention is used:
 
-    .. math ::
+    .. math::
+        \begin{align}
+        &\nabla \times \vec{E} + i\omega \vec{B} = - i \omega \vec{S}_m \\
+        &\nabla \times \vec{H} - \vec{J} = \vec{S}_e
+        \end{align}
 
-        \left(\mathbf{C} \mathbf{M^e_{\sigma}}^{-1} \mathbf{C}^{\top}
-        \mathbf{M_{\mu^{-1}}^f}  + i \omega \right)\mathbf{b} = \mathbf{s_m} +
-        \mathbf{M^e_{\sigma}}^{-1}\mathbf{M^e}\mathbf{s_e}
+    where :math:`\vec{S}_e` is an electric source term that defines a source current density,
+    and :math:`\vec{S}_m` magnetic source term that defines a source magnetic flux density.
+    We define the constitutive relations for the electrical conductivity :math:`\sigma`
+    and magnetic permeability :math:`\mu` as:
 
-    .. note ::
-        The inverse problem will not work with full anisotropy
+    .. math::
+        \vec{J} &= \sigma \vec{E} \\
+        \vec{H} &= \mu^{-1} \vec{B}
 
-    :param discretize.base.BaseMesh mesh: mesh
+    We then take the inner products of all previous expressions with a vector test function :math:`\vec{u}`.
+    Through vector calculus identities and the divergence theorem, we obtain:
+
+    .. math::
+        & \int_\Omega \vec{u} \cdot (\nabla \times \vec{E}) \, dv
+        + i \omega \int_\Omega \vec{u} \cdot \vec{B} \, dv
+        = - i \omega \int_\Omega \vec{u} \cdot \vec{S}_m \, dv \\
+        & \int_\Omega (\nabla \times \vec{u}) \cdot \vec{H} \, dv
+        - \oint_{\partial \Omega} \vec{u} \cdot (\vec{H} \times \hat{n}) \, da
+        - \int_\Omega \vec{u} \cdot \vec{J} \, dv
+        = \int_\Omega \vec{u} \cdot \vec{S}_j \, dv \\
+        & \int_\Omega \vec{u} \cdot \vec{J} \, dv = \int_\Omega \vec{u} \cdot \sigma \vec{E} \, dv \\
+        & \int_\Omega \vec{u} \cdot \vec{H} \, dv = \int_\Omega \vec{u} \cdot \mu^{-1} \vec{B} \, dv
+
+    Assuming natural boundary conditions, the surface integral is zero.
+
+    The above expressions are discretized in space according to the finite volume method.
+    The discrete electric fields :math:`\mathbf{e}` are defined on mesh edges,
+    and the discrete magnetic flux densities :math:`\mathbf{b}` are defined on mesh faces.
+    This implies :math:`\mathbf{j}` must be defined on mesh edges and :math:`\mathbf{h}` must
+    be defined on mesh faces. Where :math:`\mathbf{u_e}` and :math:`\mathbf{u_f}` represent
+    test functions discretized to edges and faces, respectively, we obtain the following
+    set of discrete inner-products:
+
+    .. math::
+        &\mathbf{u_f^T M_f C e} + i \omega \mathbf{u_f^T M_f b} = - i \omega \mathbf{u_f^T M_f s_m} \\
+        &\mathbf{u_e^T C^T M_f h} - \mathbf{u_e^T M_e j} = \mathbf{u_e^T s_e} \\
+        &\mathbf{u_e^T M_e j} = \mathbf{u_e^T M_{e\sigma} e} \\
+        &\mathbf{u_f^T M_f h} = \mathbf{u_f^T M_{f \mu} b}
+
+    where
+
+    * :math:`\mathbf{C}` is the discrete curl operator
+    * :math:`\mathbf{s_m}` and :math:`\mathbf{s_e}` are the integrated magnetic and electric source terms, respectively
+    * :math:`\mathbf{M_e}` is the edge inner-product matrix
+    * :math:`\mathbf{M_f}` is the face inner-product matrix
+    * :math:`\mathbf{M_{e\sigma}}` is the inner-product matrix for conductivities projected to edges
+    * :math:`\mathbf{M_{f\frac{1}{\mu}}}` is the inner-product matrix for inverse permeabilities projected to faces
+
+    By cancelling like-terms and combining the discrete expressions to solve for the magnetic flux density, we obtain:
+
+    .. math::
+        \mathbf{A \, b} = \mathbf{q}
+
+    where
+
+    * :math:`\mathbf{A} = \mathbf{C M_{e\sigma}^{-1} C^T M_{f\frac{1}{\mu}}} + i\omega \mathbf{I}`
+    * :math:`\mathbf{q} = \mathbf{C M_{e\sigma}^{-1} s_e} - i \omega \mathbf{s_m}`
+
     """
 
     _solutionType = "bSolution"
@@ -561,17 +997,32 @@ class Simulation3DMagneticFluxDensity(BaseFDEMSimulation):
     fieldsPair = Fields3DMagneticFluxDensity
 
     def getA(self, freq):
-        r"""
-        System matrix
+        r"""System matrix for the frequency provided.
 
-        .. math ::
+        This method returns the system matrix for the frequency provided:
 
-            \mathbf{A} = \mathbf{C} \mathbf{M^e_{\sigma}}^{-1}
-            \mathbf{C}^{\top} \mathbf{M_{\mu^{-1}}^f}  + i \omega
+        .. math::
+            \mathbf{A} = \mathbf{C M_{e\sigma}^{-1} C^T M_{f\frac{1}{\mu}}} + i\omega \mathbf{I}
 
-        :param float freq: Frequency
-        :rtype: scipy.sparse.csr_matrix
-        :return: A
+        where
+
+        * :math:`\mathbf{I}` is the identity matrix
+        * :math:`\mathbf{C}` is the curl operator
+        * :math:`\mathbf{M_{e\sigma}}` is the inner-product matrix for conductivities projected to edges
+        * :math:`\mathbf{M_{f\frac{1}{\mu}}}` is the inner-product matrix for inverse permeabilities projected to faces
+
+        See the *Notes* section of the doc strings for :class:`Simulation3DMagneticFluxDensity`
+        for a full description of the formulation.
+
+        Parameters
+        ----------
+        freq : float
+            The frequency in Hz.
+
+        Returns
+        -------
+        (n_faces, n_faces) sp.sparse.csr_matrix
+            The system matrix.
         """
 
         MfMui = self.MfMui
@@ -592,23 +1043,51 @@ class Simulation3DMagneticFluxDensity(BaseFDEMSimulation):
         return A
 
     def getADeriv_sigma(self, freq, u, v, adjoint=False):
-        r"""
-        Product of the derivative of our system matrix with respect to the
-        model and a vector
+        r"""Conductivity derivative operation for the system matrix times a vector.
 
-        .. math ::
+        The system matrix at each frequency is given by:
 
-            \frac{\mathbf{A}(\mathbf{m}) \mathbf{v}}{d \mathbf{m}} =
-            \mathbf{C} \frac{\mathbf{M^e_{\sigma}} \mathbf{v}}{d\mathbf{m}}
+        .. math::
+            \mathbf{A} = \mathbf{C M_{e\sigma}^{-1} C^T M_{f\frac{1}{\mu}}} + i\omega \mathbf{I}
 
-        :param float freq: frequency
-        :param numpy.ndarray u: solution vector (nF,)
-        :param numpy.ndarray v: vector to take prodct with (nP,) or (nD,) for
-            adjoint
-        :param bool adjoint: adjoint?
-        :rtype: numpy.ndarray
-        :return: derivative of the system matrix times a vector (nP,) or
-            adjoint (nD,)
+        where
+
+        * :math:`\mathbf{I}` is the identity matrix
+        * :math:`\mathbf{C}` is the curl operator
+        * :math:`\mathbf{M_{e\sigma}}` is the inner-product matrix for conductivities projected to edges
+        * :math:`\mathbf{M_{f\frac{1}{\mu}}}` is the inner-product matrix for inverse permeabilities projected to faces
+
+        See the *Notes* section of the doc strings for :class:`Simulation3DMagneticFluxDensity`
+        for a full description of the formulation.
+
+        Where :math:`\mathbf{m}_\boldsymbol{\sigma}` are the set of model parameters defining the conductivity,
+        :math:`\mathbf{v}` is a vector and :math:`\mathbf{b}` is the discrete magnetic flux density solution,
+        this method assumes the discrete solution is fixed and returns
+
+        .. math::
+            \frac{\partial (\mathbf{A \, b})}{\partial \mathbf{m}_\boldsymbol{\sigma}} \, \mathbf{v}
+
+        Or the adjoint operation
+
+        .. math::
+            \frac{\partial (\mathbf{A \, b})}{\partial \mathbf{m}_\boldsymbol{\sigma}}^T \, \mathbf{v}
+
+        Parameters
+        ----------
+        freq : float
+            The frequency in Hz.
+        u : (n_faces,) numpy.ndarray
+            The solution for the fields for the current model at the specified frequency.
+        v : numpy.ndarray
+            The vector. (n_param,) for the standard operation. (n_faces,) for the adjoint operation.
+        adjoint : bool
+            Whether to perform the adjoint operation.
+
+        Returns
+        -------
+        numpy.ndarray
+            Derivative of system matrix times a vector. (n_faces,) for the standard operation.
+            (n_param,) for the adjoint operation.
         """
 
         MfMui = self.MfMui
@@ -625,6 +1104,52 @@ class Simulation3DMagneticFluxDensity(BaseFDEMSimulation):
         # return C * (MeSigmaIDeriv * v)
 
     def getADeriv_mui(self, freq, u, v, adjoint=False):
+        r"""Inverse permeability derivative operation for the system matrix times a vector.
+
+        The system matrix at each frequency is given by:
+
+        .. math::
+            \mathbf{A} = \mathbf{C M_{e\sigma}^{-1} C^T M_{f\frac{1}{\mu}}} + i\omega \mathbf{I}
+
+        where
+
+        * :math:`\mathbf{I}` is the identity matrix
+        * :math:`\mathbf{C}` is the curl operator
+        * :math:`\mathbf{M_{e\sigma}}` is the inner-product matrix for conductivities projected to edges
+        * :math:`\mathbf{M_{f\frac{1}{\mu}}}` is the inner-product matrix for inverse permeabilities projected to faces
+
+        See the *Notes* section of the doc strings for :class:`Simulation3DMagneticFluxDensity`
+        for a full description of the formulation.
+
+        Where :math:`\mathbf{m}_\boldsymbol{\mu}` are the set of model parameters defining the permeability,
+        :math:`\mathbf{v}` is a vector and :math:`\mathbf{b}` is the discrete magnetic flux density solution,
+        this method assumes the discrete solution is fixed and returns
+
+        .. math::
+            \frac{\partial (\mathbf{A \, b})}{\partial \mathbf{m}_\boldsymbol{\mu}} \, \mathbf{v}
+
+        Or the adjoint operation
+
+        .. math::
+            \frac{\partial (\mathbf{A \, b})}{\partial \mathbf{m}_\boldsymbol{\mu}}^T \, \mathbf{v}
+
+        Parameters
+        ----------
+        freq : float
+            The frequency in Hz.
+        u : (n_faces,) numpy.ndarray
+            The solution for the fields for the current model at the specified frequency.
+        v : numpy.ndarray
+            The vector. (n_param,) for the standard operation. (n_faces,) for the adjoint operation.
+        adjoint : bool
+            Whether to perform the adjoint operation.
+
+        Returns
+        -------
+        numpy.ndarray
+            Derivative of system matrix times a vector. (n_faces,) for the standard operation.
+            (n_param,) for the adjoint operation.
+        """
         MfMuiDeriv = self.MfMuiDeriv(u)
         MeSigmaI = self.MeSigmaI
         C = self.mesh.edge_curl
@@ -634,6 +1159,52 @@ class Simulation3DMagneticFluxDensity(BaseFDEMSimulation):
         return C * (MeSigmaI * (C.T * (MfMuiDeriv * v)))
 
     def getADeriv(self, freq, u, v, adjoint=False):
+        r"""Derivative operation for the system matrix times a vector.
+
+        The system matrix at each frequency is given by:
+
+        .. math::
+            \mathbf{A} = \mathbf{C M_{e\sigma}^{-1} C^T M_{f\frac{1}{\mu}}} + i\omega \mathbf{I}
+
+        where
+
+        * :math:`\mathbf{I}` is the identity matrix
+        * :math:`\mathbf{C}` is the curl operator
+        * :math:`\mathbf{M_{e\sigma}}` is the inner-product matrix for conductivities projected to edges
+        * :math:`\mathbf{M_{f\frac{1}{\mu}}}` is the inner-product matrix for inverse permeabilities projected to faces
+
+        See the *Notes* section of the doc strings for :class:`Simulation3DMagneticFluxDensity`
+        for a full description of the formulation.
+
+        Where :math:`\mathbf{m}` are the set of model parameters defining the electromagnetic properties,
+        :math:`\mathbf{v}` is a vector and :math:`\mathbf{b}` is the discrete magnetic flux density solution,
+        this method assumes the discrete solution is fixed and returns
+
+        .. math::
+            \frac{\partial (\mathbf{A \, b})}{\partial \mathbf{m}} \, \mathbf{v}
+
+        Or the adjoint operation
+
+        .. math::
+            \frac{\partial (\mathbf{A \, b})}{\partial \mathbf{m}}^T \, \mathbf{v}
+
+        Parameters
+        ----------
+        freq : float
+            The frequency in Hz.
+        u : (n_faces,) numpy.ndarray
+            The solution for the fields for the current model at the specified frequency.
+        v : numpy.ndarray
+            The vector. (n_param,) for the standard operation. (n_faces,) for the adjoint operation.
+        adjoint : bool
+            Whether to perform the adjoint operation.
+
+        Returns
+        -------
+        numpy.ndarray
+            Derivative of system matrix times a vector. (n_faces,) for the standard operation.
+            (n_param,) for the adjoint operation.
+        """
         if adjoint is True and self._makeASymmetric:
             v = self.MfMui * v
 
@@ -647,17 +1218,32 @@ class Simulation3DMagneticFluxDensity(BaseFDEMSimulation):
         return ADeriv
 
     def getRHS(self, freq):
-        r"""
-        Right hand side for the system
+        r"""Right-hand sides for the given frequency.
 
-        .. math ::
+        This method returns the right-hand sides for the frequency provided.
+        The right-hand side for each source is constructed according to:
 
-            \mathbf{RHS} = \mathbf{s_m} +
-            \mathbf{M^e_{\sigma}}^{-1}\mathbf{s_e}
+        .. math::
+            \mathbf{q} = \mathbf{C M_{e\sigma}^{-1} s_e} - i \omega \mathbf{s_m }
 
-        :param float freq: Frequency
-        :rtype: numpy.ndarray
-        :return: RHS (nE, nSrc)
+        where
+
+        * :math:`\mathbf{C}` is the discrete curl operator
+        * :math:`\mathbf{s_m}` and :math:`\mathbf{s_e}` are the integrated magnetic and electric source terms, respectively
+        * :math:`\mathbf{M_{e\sigma}}` is the inner-product matrix for conductivities projected to edges
+
+        See the *Notes* section of the doc strings for :class:`Simulation3DMagneticFluxDensity`
+        for a full description of the formulation.
+
+        Parameters
+        ----------
+        freq : float
+            The frequency in Hz.
+
+        Returns
+        -------
+        (n_faces, n_sources) numpy.ndarray
+            The right-hand sides.
         """
 
         s_m, s_e = self.getSourceTerm(freq)
@@ -679,15 +1265,49 @@ class Simulation3DMagneticFluxDensity(BaseFDEMSimulation):
         return RHS
 
     def getRHSDeriv(self, freq, src, v, adjoint=False):
-        """
-        Derivative of the right hand side with respect to the model
+        r"""Derivative of the right-hand side times a vector for a given source and frequency.
 
-        :param float freq: frequency
-        :param simpeg.electromagnetics.frequency_domain.fields.FieldsFDEM src: FDEM source
-        :param numpy.ndarray v: vector to take product with
-        :param bool adjoint: adjoint?
-        :rtype: numpy.ndarray
-        :return: product of rhs deriv with a vector
+        The right-hand side for each source is constructed according to:
+
+        .. math::
+            \mathbf{q} = \mathbf{C M_{e\sigma}^{-1} s_e} - i \omega \mathbf{s_m }
+
+        where
+
+        * :math:`\mathbf{C}` is the discrete curl operator
+        * :math:`\mathbf{s_m}` and :math:`\mathbf{s_e}` are the integrated magnetic and electric source terms, respectively
+        * :math:`\mathbf{M_{e\sigma}}` is the inner-product matrix for conductivities projected to edges
+
+        See the *Notes* section of the doc strings for :class:`Simulation3DMagneticFluxDensity`
+        for a full description of the formulation.
+
+        Where :math:`\mathbf{m}` are the set of model parameters and :math:`\mathbf{v}` is a vector,
+        this method returns
+
+        .. math::
+            \frac{\partial \mathbf{q_k}}{\partial \mathbf{m}} \, \mathbf{v}
+
+        Or the adjoint operation
+
+        .. math::
+            \frac{\partial \mathbf{q_k}}{\partial \mathbf{m}}^T \, \mathbf{v}
+
+        Parameters
+        ----------
+        freq : int
+            The frequency in Hz.
+        src : .frequency_domain.sources.BaseFDEMSrc
+            The FDEM source object.
+        v : numpy.ndarray
+            The vector. (n_param,) for the standard operation. (n_faces,) for the adjoint operation.
+        adjoint : bool
+            Whether to perform the adjoint operation.
+
+        Returns
+        -------
+        numpy.ndarray
+            Derivative of the right-hand sides times a vector. (n_faces,) for the standard operation.
+            (n_param,) for the adjoint operation.
         """
 
         C = self.mesh.edge_curl
@@ -721,30 +1341,99 @@ class Simulation3DMagneticFluxDensity(BaseFDEMSimulation):
 
 
 class Simulation3DCurrentDensity(BaseFDEMSimulation):
-    r"""
-    We eliminate :math:`mathbf{h}` using
+    r"""3D FDEM simulation in terms of the current density.
 
-    .. math ::
+    This simulation solves for the current density at each frequency.
+    In this formulation, the magnetic fields are defined on mesh edges and the
+    current densities are defined on mesh faces; i.e. it is an HJ formulation.
+    See the *Notes* section for a comprehensive description of the formulation.
 
-        \mathbf{h} = \frac{1}{i \omega} \mathbf{M_{\mu}^e}^{-1}
-        \left(-\mathbf{C}^{\top} \mathbf{M_{\rho}^f} \mathbf{j} +
-        \mathbf{M^e} \mathbf{s_m} \right)
+    Parameters
+    ----------
+    mesh : discretize.base.BaseMesh
+        The mesh.
+    survey : .frequency_domain.survey.Survey
+        The frequency-domain EM survey.
+    forward_only : bool, optional
+        If ``True``, the factorization for the inverse of the system matrix at each
+        frequency is discarded after the fields are computed at that frequency.
+        If ``False``, the factorizations of the system matrices for all frequencies are stored.
+    permittivity : (n_cells,) numpy.ndarray, optional
+        Dielectric permittivity (F/m) defined on the entire mesh. If ``None``, electric displacement
+        is ignored. Please note that `permittivity` is not an invertible property, and that future
+        development will result in the deprecation of this propery.
+    storeJ : bool, optional
+        Whether to compute and store the sensitivity matrix.
 
+    Notes
+    -----
+    Here, we start with the Maxwell's equations in the frequency-domain where a
+    :math:`+i\omega t` Fourier convention is used:
 
-    and solve for :math:`mathbf{j}` using
+    .. math::
+        \begin{align}
+        &\nabla \times \vec{E} + i\omega \vec{B} = - i \omega \vec{S}_m \\
+        &\nabla \times \vec{H} - \vec{J} = \vec{S}_e
+        \end{align}
 
-    .. math ::
+    where :math:`\vec{S}_e` is an electric source term that defines a source current density,
+    and :math:`\vec{S}_m` magnetic source term that defines a source magnetic flux density.
+    For now, we neglect displacement current (the `permittivity` attribute is ``None``).
+    We define the constitutive relations for the electrical resistivity :math:`\rho`
+    and magnetic permeability :math:`\mu` as:
 
-        \left(\mathbf{C} \mathbf{M_{\mu}^e}^{-1} \mathbf{C}^{\top}
-        \mathbf{M_{\rho}^f} + i \omega\right)\mathbf{j} =
-        \mathbf{C} \mathbf{M_{\mu}^e}^{-1} \mathbf{M^e} \mathbf{s_m} -
-        i\omega\mathbf{s_e}
+    .. math::
+        \vec{E} &= \rho \vec{J} \\
+        \vec{B} &= \mu \vec{H}
 
-    .. note::
+    We then take the inner products of all previous expressions with a vector test function :math:`\vec{u}`.
+    Through vector calculus identities and the divergence theorem, we obtain:
 
-        This implementation does not yet work with full anisotropy!!
+    .. math::
+        & \int_\Omega (\nabla \times \vec{u}) \cdot \vec{E} \; dv
+        - \oint_{\partial \Omega} \vec{u} \cdot (\vec{E} \times \hat{n} ) \, da
+        + i \omega \int_\Omega \vec{u} \cdot \vec{B} \, dv
+        = - i \omega \int_\Omega \vec{u} \cdot \vec{S}_m dv \\
+        & \int_\Omega \vec{u} \cdot (\nabla \times \vec{H} ) \, dv
+        - \int_\Omega \vec{u} \cdot \vec{J} \, dv = \int_\Omega \vec{u} \cdot \vec{S}_j \, dv\\
+        & \int_\Omega \vec{u} \cdot \vec{E} \, dv = \int_\Omega \vec{u} \cdot \rho \vec{J} \, dv \\
+        & \int_\Omega \vec{u} \cdot \vec{B} \, dv = \int_\Omega \vec{u} \cdot \mu \vec{H} \, dv
 
-    :param discretize.base.BaseMesh mesh: mesh
+    Assuming natural boundary conditions, the surface integral is zero.
+
+    The above expressions are discretized in space according to the finite volume method.
+    The discrete magnetic fields :math:`\mathbf{h}` are defined on mesh edges,
+    and the discrete current densities :math:`\mathbf{j}` are defined on mesh faces.
+    This implies :math:`\mathbf{b}` must be defined on mesh edges and :math:`\mathbf{e}` must
+    be defined on mesh faces. Where :math:`\mathbf{u_e}` and :math:`\mathbf{u_f}` represent
+    test functions discretized to edges and faces, respectively, we obtain the following
+    set of discrete inner-products:
+
+    .. math::
+        &\mathbf{u_e^T C^T M_f \, e } + i \omega \mathbf{u_e^T M_e b} = - i\omega \mathbf{u_e^T s_m} \\
+        &\mathbf{u_f^T C \, h} - \mathbf{u_f^T j} = \mathbf{u_f^T s_e} \\
+        &\mathbf{u_f^T M_f e} = \mathbf{u_f^T M_{f\rho} j} \\
+        &\mathbf{u_e^T M_e b} = \mathbf{u_e^T M_{e \mu} h}
+
+    where
+
+    * :math:`\mathbf{C}` is the discrete curl operator
+    * :math:`\mathbf{s_m}` and :math:`\mathbf{s_e}` are the integrated magnetic and electric source terms, respectively
+    * :math:`\mathbf{M_e}` is the edge inner-product matrix
+    * :math:`\mathbf{M_f}` is the face inner-product matrix
+    * :math:`\mathbf{M_{f\rho}}` is the inner-product matrix for resistivities projected to faces
+    * :math:`\mathbf{M_{e\mu}}` is the inner-product matrix for permeabilities projected to edges
+
+    By cancelling like-terms and combining the discrete expressions to solve for the current density, we obtain:
+
+    .. math::
+        \mathbf{A \, j} = \mathbf{q}
+
+    where
+
+    * :math:`\mathbf{A} = \mathbf{C M_{e\mu}^{-1} C^T M_{f\rho} + i\omega \mathbf{I}`
+    * :math:`\mathbf{q} = - i \omega \mathbf{s_e} - i \omega \mathbf{C M_{e\mu}^{-1} s_m}`
+
     """
 
     _solutionType = "jSolution"
@@ -760,17 +1449,31 @@ class Simulation3DCurrentDensity(BaseFDEMSimulation):
         self.permittivity = permittivity
 
     def getA(self, freq):
-        r"""
-        System matrix
+        r"""System matrix for the frequency provided.
 
-        .. math ::
+        This method returns the system matrix for the frequency provided.
+        The system matrix at each frequency is given by:
 
-            \mathbf{A} = \mathbf{C}  \mathbf{M^e_{\mu^{-1}}}
-            \mathbf{C}^{\top} \mathbf{M^f_{\sigma^{-1}}}  + i\omega
+        .. math::
+            \mathbf{A} = \mathbf{C M_{e\mu}^{-1} C^T M_{f\rho}} + i\omega \mathbf{I}
 
-        :param float freq: Frequency
-        :rtype: scipy.sparse.csr_matrix
-        :return: A
+        where
+
+        * :math:`\mathbf{M_{f\rho}}` is the inner-product matrix for resistivities projected to faces
+        * :math:`\mathbf{M_{e\mu}}` is the inner-product matrix for permeabilities projected to edges
+
+        See the *Notes* section of the doc strings for :class:`Simulation3DCurrentDensity`
+        for a full description of the formulation.
+
+        Parameters
+        ----------
+        freq : float
+            The frequency in Hz.
+
+        Returns
+        -------
+        (n_faces, n_faces) sp.sparse.csr_matrix
+            The system matrix.
         """
 
         MeMuI = self.MeMuI
@@ -791,28 +1494,49 @@ class Simulation3DCurrentDensity(BaseFDEMSimulation):
         return A
 
     def getADeriv_rho(self, freq, u, v, adjoint=False):
-        r"""
-        Product of the derivative of our system matrix with respect to the
-        model and a vector
+        r"""Resistivity derivative operation for the system matrix times a vector.
 
-        In this case, we assume that electrical conductivity, :math:`\sigma`
-        is the physical property of interest (i.e. :math:`\sigma` =
-        model.transform). Then we want
+        The system matrix at each frequency is given by:
 
-        .. math ::
+        .. math::
+            \mathbf{A} = \mathbf{C M_{e\mu}^{-1} C^T M_{f\rho}} + i\omega \mathbf{I}
 
-            \frac{\mathbf{A(\sigma)} \mathbf{v}}{d \mathbf{m}} =
-            \mathbf{C} \mathbf{M^e_{mu^{-1}}} \mathbf{C^{\top}}
-            \frac{d \mathbf{M^f_{\sigma^{-1}}}\mathbf{v} }{d \mathbf{m}}
+        where
 
-        :param float freq: frequency
-        :param numpy.ndarray u: solution vector (nF,)
-        :param numpy.ndarray v: vector to take prodct with (nP,) or (nD,) for
-            adjoint
-        :param bool adjoint: adjoint?
-        :rtype: numpy.ndarray
-        :return: derivative of the system matrix times a vector (nP,) or
-            adjoint (nD,)
+        * :math:`\mathbf{M_{f\rho}}` is the inner-product matrix for resistivities projected to faces
+        * :math:`\mathbf{M_{e\mu}}` is the inner-product matrix for permeabilities projected to edges
+
+        See the *Notes* section of the doc strings for :class:`Simulation3DCurrentDensity`
+        for a full description of the formulation.
+
+        Where :math:`\mathbf{m}_\boldsymbol{\rho}` are the set of model parameters defining the resistivity,
+        :math:`\mathbf{v}` is a vector and :math:`\mathbf{j}` is the discrete current density solution, this method assumes
+        the discrete solution is fixed and returns
+
+        .. math::
+            \frac{\partial (\mathbf{A \, j})}{\partial \mathbf{m}_\boldsymbol{\sigma}} \, \mathbf{v}
+
+        Or the adjoint operation
+
+        .. math::
+            \frac{\partial (\mathbf{A \, j})}{\partial \mathbf{m}_\boldsymbol{\sigma}}^T \, \mathbf{v}
+
+        Parameters
+        ----------
+        freq : float
+            The frequency in Hz.
+        u : (n_faces,) numpy.ndarray
+            The solution for the fields for the current model at the specified frequency.
+        v : numpy.ndarray
+            The vector. (n_param,) for the standard operation. (n_faces,) for the adjoint operation.
+        adjoint : bool
+            Whether to perform the adjoint operation.
+
+        Returns
+        -------
+        numpy.ndarray
+            Derivative of system matrix times a vector. (n_faces,) for the standard operation.
+            (n_param,) for the adjoint operation.
         """
 
         MeMuI = self.MeMuI
@@ -824,6 +1548,50 @@ class Simulation3DCurrentDensity(BaseFDEMSimulation):
         return C * (MeMuI * (C.T * (self.MfRhoDeriv(u, v, adjoint))))
 
     def getADeriv_mu(self, freq, u, v, adjoint=False):
+        r"""Permeability derivative operation for the system matrix times a vector.
+
+        The system matrix at each frequency is given by:
+
+        .. math::
+            \mathbf{A} = \mathbf{C M_{e\mu}^{-1} C^T M_{f\rho}} + i\omega \mathbf{I}
+
+        where
+
+        * :math:`\mathbf{M_{f\rho}}` is the inner-product matrix for resistivities projected to faces
+        * :math:`\mathbf{M_{e\mu}}` is the inner-product matrix for permeabilities projected to edges
+
+        See the *Notes* section of the doc strings for :class:`Simulation3DCurrentDensity`
+        for a full description of the formulation.
+
+        Where :math:`\mathbf{m}_\boldsymbol{\mu}` are the set of model parameters defining the permeability,
+        :math:`\mathbf{v}` is a vector and :math:`\mathbf{j}` is the discrete current density solution, this method assumes
+        the discrete solution is fixed and returns
+
+        .. math::
+            \frac{\partial (\mathbf{A \, j})}{\partial \mathbf{m}_\boldsymbol{\mu}} \, \mathbf{v}
+
+        Or the adjoint operation
+
+        .. math::
+            \frac{\partial (\mathbf{A \, j})}{\partial \mathbf{m}_\boldsymbol{\mu}}^T \, \mathbf{v}
+
+        Parameters
+        ----------
+        freq : float
+            The frequency in Hz.
+        u : (n_faces,) numpy.ndarray
+            The solution for the fields for the current model at the specified frequency.
+        v : numpy.ndarray
+            The vector. (n_param,) for the standard operation. (n_faces,) for the adjoint operation.
+        adjoint : bool
+            Whether to perform the adjoint operation.
+
+        Returns
+        -------
+        numpy.ndarray
+            Derivative of system matrix times a vector. (n_faces,) for the standard operation.
+            (n_param,) for the adjoint operation.
+        """
         C = self.mesh.edge_curl
         MfRho = self.MfRho
 
@@ -840,6 +1608,50 @@ class Simulation3DCurrentDensity(BaseFDEMSimulation):
         return Aderiv
 
     def getADeriv(self, freq, u, v, adjoint=False):
+        r"""Derivative operation for the system matrix times a vector.
+
+        The system matrix at each frequency is given by:
+
+        .. math::
+            \mathbf{A} = \mathbf{C M_{e\mu}^{-1} C^T M_{f\rho}} + i\omega \mathbf{I}
+
+        where
+
+        * :math:`\mathbf{M_{f\rho}}` is the inner-product matrix for resistivities projected to faces
+        * :math:`\mathbf{M_{e\mu}}` is the inner-product matrix for permeabilities projected to edges
+
+        See the *Notes* section of the doc strings for :class:`Simulation3DCurrentDensity`
+        for a full description of the formulation.
+
+        Where :math:`\mathbf{m}` are the set of model parameters defining the electromagnetic properties,
+        :math:`\mathbf{v}` is a vector and :math:`\mathbf{j}` is the discrete current density solution, this method assumes
+        the discrete solution is fixed and returns
+
+        .. math::
+            \frac{\partial (\mathbf{A \, j})}{\partial \mathbf{m}} \, \mathbf{v}
+
+        Or the adjoint operation
+
+        .. math::
+            \frac{\partial (\mathbf{A \, j})}{\partial \mathbf{m}}^T \, \mathbf{v}
+
+        Parameters
+        ----------
+        freq : float
+            The frequency in Hz.
+        u : (n_faces,) numpy.ndarray
+            The solution for the fields for the current model at the specified frequency.
+        v : numpy.ndarray
+            The vector. (n_param,) for the standard operation. (n_faces,) for the adjoint operation.
+        adjoint : bool
+            Whether to perform the adjoint operation.
+
+        Returns
+        -------
+        numpy.ndarray
+            Derivative of system matrix times a vector. (n_faces,) for the standard operation.
+            (n_param,) for the adjoint operation.
+        """
         if adjoint and self._makeASymmetric:
             v = self.MfRho * v
 
@@ -853,17 +1665,32 @@ class Simulation3DCurrentDensity(BaseFDEMSimulation):
         return ADeriv
 
     def getRHS(self, freq):
-        r"""
-        Right hand side for the system
+        r"""Right-hand sides for the given frequency.
 
-        .. math ::
+        This method returns the right-hand sides for the frequency provided.
+        The right-hand side for each source is constructed according to:
 
-            \mathbf{RHS} = \mathbf{C} \mathbf{M_{\mu}^e}^{-1}\mathbf{s_m}
-            - i\omega \mathbf{s_e}
+        .. math::
+            \mathbf{q} = - i \omega \mathbf{s_e} - i \omega \mathbf{C M_{e\mu}^{-1} s_m}
 
-        :param float freq: Frequency
-        :rtype: numpy.ndarray
-        :return: RHS (nE, nSrc)
+        where
+
+        * :math:`\mathbf{C}` is the discrete curl operator
+        * :math:`\mathbf{s_m}` and :math:`\mathbf{s_e}` are the integrated magnetic and electric source terms, respectively
+        * :math:`\mathbf{M_{e\mu}}` is the inner-product matrices for permeabilities projected to edges
+
+        See the *Notes* section of the doc strings for :class:`Simulation3DCurrentDensity`
+        for a full description of the formulation.
+
+        Parameters
+        ----------
+        freq : float
+            The frequency in Hz.
+
+        Returns
+        -------
+        (n_faces, n_sources) numpy.ndarray
+            The right-hand sides.
         """
 
         s_m, s_e = self.getSourceTerm(freq)
@@ -878,15 +1705,49 @@ class Simulation3DCurrentDensity(BaseFDEMSimulation):
         return RHS
 
     def getRHSDeriv(self, freq, src, v, adjoint=False):
-        """
-        Derivative of the right hand side with respect to the model
+        r"""Derivative of the right-hand side times a vector for a given source and frequency.
 
-        :param float freq: frequency
-        :param simpeg.electromagnetics.frequency_domain.fields.FieldsFDEM src: FDEM source
-        :param numpy.ndarray v: vector to take product with
-        :param bool adjoint: adjoint?
-        :rtype: numpy.ndarray
-        :return: product of rhs deriv with a vector
+        The right-hand side for each source is constructed according to:
+
+        .. math::
+            \mathbf{q} = - i \omega \mathbf{s_e} - i \omega \mathbf{C M_{e\mu}^{-1} s_m}
+
+        where
+
+        * :math:`\mathbf{C}` is the discrete curl operator
+        * :math:`\mathbf{s_m}` and :math:`\mathbf{s_e}` are the integrated magnetic and electric source terms, respectively
+        * :math:`\mathbf{M_{e\mu}}` is the inner-product matrices for permeabilities projected to edges
+
+        See the *Notes* section of the doc strings for :class:`Simulation3DCurrentDensity`
+        for a full description of the formulation.
+
+        Where :math:`\mathbf{m}` are the set of model parameters and :math:`\mathbf{v}` is a vector,
+        this method returns
+
+        .. math::
+            \frac{\partial \mathbf{q_k}}{\partial \mathbf{m}} \, \mathbf{v}
+
+        Or the adjoint operation
+
+        .. math::
+            \frac{\partial \mathbf{q_k}}{\partial \mathbf{m}}^T \, \mathbf{v}
+
+        Parameters
+        ----------
+        freq : int
+            The frequency in Hz.
+        src : .frequency_domain.sources.BaseFDEMSrc
+            The FDEM source object.
+        v : numpy.ndarray
+            The vector. (n_param,) for the standard operation. (n_faces,) for the adjoint operation.
+        adjoint : bool
+            Whether to perform the adjoint operation.
+
+        Returns
+        -------
+        numpy.ndarray
+            Derivative of the right-hand sides times a vector. (n_faces,) for the standard operation.
+            (n_param,) for the adjoint operation.
         """
 
         # RHS = C * (MeMuI * s_m) - 1j * omega(freq) * s_e
@@ -923,22 +1784,99 @@ class Simulation3DCurrentDensity(BaseFDEMSimulation):
 
 
 class Simulation3DMagneticField(BaseFDEMSimulation):
-    r"""
-    We eliminate :math:`mathbf{j}` using
+    r"""3D FDEM simulation in terms of the magnetic field.
 
-    .. math ::
+    This simulation solves for the magnetic field at each frequency.
+    In this formulation, the magnetic fields are defined on mesh edges and the
+    current densities are defined on mesh faces; i.e. it is an HJ formulation.
+    See the *Notes* section for a comprehensive description of the formulation.
 
-        \mathbf{j} = \mathbf{C} \mathbf{h} - \mathbf{s_e}
+    Parameters
+    ----------
+    mesh : discretize.base.BaseMesh
+        The mesh.
+    survey : .frequency_domain.survey.Survey
+        The frequency-domain EM survey.
+    forward_only : bool, optional
+        If ``True``, the factorization for the inverse of the system matrix at each
+        frequency is discarded after the fields are computed at that frequency.
+        If ``False``, the factorizations of the system matrices for all frequencies are stored.
+    permittivity : (n_cells,) numpy.ndarray, optional
+        Dielectric permittivity (F/m) defined on the entire mesh. If ``None``, electric displacement
+        is ignored. Please note that `permittivity` is not an invertible property, and that future
+        development will result in the deprecation of this propery.
+    storeJ : bool, optional
+        Whether to compute and store the sensitivity matrix.
 
-    and solve for :math:`\mathbf{h}` using
+    Notes
+    -----
+    Here, we start with the Maxwell's equations in the frequency-domain where a
+    :math:`+i\omega t` Fourier convention is used:
 
-    .. math ::
+    .. math::
+        \begin{align}
+        &\nabla \times \vec{E} + i\omega \vec{B} = - i \omega \vec{S}_m \\
+        &\nabla \times \vec{H} - \vec{J} = \vec{S}_e
+        \end{align}
 
-        \left(\mathbf{C}^{\top} \mathbf{M_{\rho}^f} \mathbf{C} +
-        i \omega \mathbf{M_{\mu}^e}\right) \mathbf{h} = \mathbf{M^e}
-        \mathbf{s_m} + \mathbf{C}^{\top} \mathbf{M_{\rho}^f} \mathbf{s_e}
+    where :math:`\vec{S}_e` is an electric source term that defines a source current density,
+    and :math:`\vec{S}_m` magnetic source term that defines a source magnetic flux density.
+    For now, we neglect displacement current (the `permittivity` attribute is ``None``).
+    We define the constitutive relations for the electrical resistivity :math:`\rho`
+    and magnetic permeability :math:`\mu` as:
 
-    :param discretize.base.BaseMesh mesh: mesh
+    .. math::
+        \vec{E} &= \rho \vec{J} \\
+        \vec{B} &= \mu \vec{H}
+
+    We then take the inner products of all previous expressions with a vector test function :math:`\vec{u}`.
+    Through vector calculus identities and the divergence theorem, we obtain:
+
+    .. math::
+        & \int_\Omega (\nabla \times \vec{u}) \cdot \vec{E} \; dv
+        - \oint_{\partial \Omega} \vec{u} \cdot (\vec{E} \times \hat{n} ) \, da
+        + i \omega \int_\Omega \vec{u} \cdot \vec{B} \, dv
+        = - i \omega \int_\Omega \vec{u} \cdot \vec{S}_m dv \\
+        & \int_\Omega \vec{u} \cdot (\nabla \times \vec{H} ) \, dv
+        - \int_\Omega \vec{u} \cdot \vec{J} \, dv = \int_\Omega \vec{u} \cdot \vec{S}_j \, dv\\
+        & \int_\Omega \vec{u} \cdot \vec{E} \, dv = \int_\Omega \vec{u} \cdot \rho \vec{J} \, dv \\
+        & \int_\Omega \vec{u} \cdot \vec{B} \, dv = \int_\Omega \vec{u} \cdot \mu \vec{H} \, dv
+
+    Assuming natural boundary conditions, the surface integral is zero.
+
+    The above expressions are discretized in space according to the finite volume method.
+    The discrete magnetic fields :math:`\mathbf{h}` are defined on mesh edges,
+    and the discrete current densities :math:`\mathbf{j}` are defined on mesh faces.
+    This implies :math:`\mathbf{b}` must be defined on mesh edges and :math:`\mathbf{e}` must
+    be defined on mesh faces. Where :math:`\mathbf{u_e}` and :math:`\mathbf{u_f}` represent
+    test functions discretized to edges and faces, respectively, we obtain the following
+    set of discrete inner-products:
+
+    .. math::
+        &\mathbf{u_e^T C^T M_f \, e } + i \omega \mathbf{u_e^T M_e b} = - i\omega \mathbf{u_e^T s_m} \\
+        &\mathbf{u_f^T C \, h} - \mathbf{u_f^T j} = \mathbf{u_f^T s_e} \\
+        &\mathbf{u_f^T M_f e} = \mathbf{u_f^T M_{f\rho} j} \\
+        &\mathbf{u_e^T M_e b} = \mathbf{u_e^T M_{e \mu} h}
+
+    where
+
+    * :math:`\mathbf{C}` is the discrete curl operator
+    * :math:`\mathbf{s_m}` and :math:`\mathbf{s_e}` are the integrated magnetic and electric source terms, respectively
+    * :math:`\mathbf{M_e}` is the edge inner-product matrix
+    * :math:`\mathbf{M_f}` is the face inner-product matrix
+    * :math:`\mathbf{M_{f\rho}}` is the inner-product matrix for resistivities projected to faces
+    * :math:`\mathbf{M_{e\mu}}` is the inner-product matrix for permeabilities projected to edges
+
+    By cancelling like-terms and combining the discrete expressions to solve for the magnetic field, we obtain:
+
+    .. math::
+        \mathbf{A \, h} = \mathbf{q}
+
+    where
+
+    * :math:`\mathbf{A} = \mathbf{C^T M_{f\rho} C} + i\omega \mathbf{M_{e\mu}}`
+    * :math:`\mathbf{q} = \mathbf{C^T M_{f\rho} s_e} - i\omega \mathbf{s_m}`
+
     """
 
     _solutionType = "hSolution"
@@ -946,19 +1884,31 @@ class Simulation3DMagneticField(BaseFDEMSimulation):
     fieldsPair = Fields3DMagneticField
 
     def getA(self, freq):
-        r"""
-        System matrix
+        r"""System matrix for the frequency provided.
+
+        This method returns the system matrix for the frequency provided.
+        The system matrix at each frequency is given by:
 
         .. math::
+            \mathbf{A} = \mathbf{C^T M_{f\rho} C} + i\omega \mathbf{M_{e\mu}}
 
-            \mathbf{A} = \mathbf{C}^{\top} \mathbf{M_{\rho}^f} \mathbf{C} +
-            i \omega \mathbf{M_{\mu}^e}
+        where
 
+        * :math:`\mathbf{M_{f\rho}}` is the inner-product matrix for resistivities projected to faces
+        * :math:`\mathbf{M_{e\mu}}` is the inner-product matrix for permeabilities projected to edges
 
-        :param float freq: Frequency
-        :rtype: scipy.sparse.csr_matrix
-        :return: A
+        See the *Notes* section of the doc strings for :class:`Simulation3DMagneticField`
+        for a full description of the formulation.
 
+        Parameters
+        ----------
+        freq : float
+            The frequency in Hz.
+
+        Returns
+        -------
+        (n_edges, n_edges) sp.sparse.csr_matrix
+            The system matrix.
         """
 
         MeMu = self.MeMu
@@ -974,24 +1924,49 @@ class Simulation3DMagneticField(BaseFDEMSimulation):
             return C.T.tocsr() * (Mfyhati * C) + 1j * omega(freq) * MeMu
 
     def getADeriv_rho(self, freq, u, v, adjoint=False):
-        r"""
-        Product of the derivative of our system matrix with respect to the
-        model and a vector
+        r"""Resistivity derivative operation for the system matrix times a vector.
+
+        The system matrix at each frequency is given by:
 
         .. math::
+            \mathbf{A} = \mathbf{C^T M_{f\rho} C} + i\omega \mathbf{M_{e\mu}}
 
-            \frac{\mathbf{A}(\mathbf{m}) \mathbf{v}}{d \mathbf{m}} =
-            \mathbf{C}^{\top}\frac{d \mathbf{M^f_{\rho}}\mathbf{v}}
-            {d\mathbf{m}}
+        where
 
-        :param float freq: frequency
-        :param numpy.ndarray u: solution vector (nE,)
-        :param numpy.ndarray v: vector to take prodct with (nP,) or (nD,) for
-            adjoint
-        :param bool adjoint: adjoint?
-        :rtype: numpy.ndarray
-        :return: derivative of the system matrix times a vector (nP,) or
-            adjoint (nD,)
+        * :math:`\mathbf{M_{f\rho}}` is the inner-product matrix for resistivities projected to faces
+        * :math:`\mathbf{M_{e\mu}}` is the inner-product matrix for permeabilities projected to edges
+
+        See the *Notes* section of the doc strings for :class:`Simulation3DMagneticField`
+        for a full description of the formulation.
+
+        Where :math:`\mathbf{m}_\boldsymbol{\sigma}` are the set of model parameters defining the conductivity,
+        :math:`\mathbf{v}` is a vector and :math:`\mathbf{h}` is the discrete magnetic field solution, this method assumes
+        the discrete solution is fixed and returns
+
+        .. math::
+            \frac{\partial (\mathbf{A \, h})}{\partial \mathbf{m}_\boldsymbol{\sigma}} \, \mathbf{v}
+
+        Or the adjoint operation
+
+        .. math::
+            \frac{\partial (\mathbf{A \, h})}{\partial \mathbf{m}_\boldsymbol{\sigma}}^T \, \mathbf{v}
+
+        Parameters
+        ----------
+        freq : float
+            The frequency in Hz.
+        u : (n_edges,) numpy.ndarray
+            The solution for the fields for the current model at the specified frequency.
+        v : numpy.ndarray
+            The vector. (n_param,) for the standard operation. (n_edges,) for the adjoint operation.
+        adjoint : bool
+            Whether to perform the adjoint operation.
+
+        Returns
+        -------
+        numpy.ndarray
+            Derivative of system matrix times a vector. (n_edges,) for the standard operation.
+            (n_param,) for the adjoint operation.
         """
         C = self.mesh.edge_curl
         if adjoint:
@@ -999,6 +1974,50 @@ class Simulation3DMagneticField(BaseFDEMSimulation):
         return C.T * self.MfRhoDeriv(C * u, v, adjoint)
 
     def getADeriv_mu(self, freq, u, v, adjoint=False):
+        r"""Permeability derivative operation for the system matrix times a vector.
+
+        The system matrix at each frequency is given by:
+
+        .. math::
+            \mathbf{A} = \mathbf{C^T M_{f\rho} C} + i\omega \mathbf{M_{e\mu}}
+
+        where
+
+        * :math:`\mathbf{M_{f\rho}}` is the inner-product matrix for resistivities projected to faces
+        * :math:`\mathbf{M_{e\mu}}` is the inner-product matrix for permeabilities projected to edges
+
+        See the *Notes* section of the doc strings for :class:`Simulation3DMagneticField`
+        for a full description of the formulation.
+
+        Where :math:`\mathbf{m}_\boldsymbol{\mu}` are the set of model parameters defining the permeability,
+        :math:`\mathbf{v}` is a vector and :math:`\mathbf{h}` is the discrete magnetic field solution, this method assumes
+        the discrete solution is fixed and returns
+
+        .. math::
+            \frac{\partial (\mathbf{A \, h})}{\partial \mathbf{m}_\boldsymbol{\mu}} \, \mathbf{v}
+
+        Or the adjoint operation
+
+        .. math::
+            \frac{\partial (\mathbf{A \, h})}{\partial \mathbf{m}_\boldsymbol{\mu}}^T \, \mathbf{v}
+
+        Parameters
+        ----------
+        freq : float
+            The frequency in Hz.
+        u : (n_edges,) numpy.ndarray
+            The solution for the fields for the current model at the specified frequency.
+        v : numpy.ndarray
+            The vector. (n_param,) for the standard operation. (n_edges,) for the adjoint operation.
+        adjoint : bool
+            Whether to perform the adjoint operation.
+
+        Returns
+        -------
+        numpy.ndarray
+            Derivative of system matrix times a vector. (n_edges,) for the standard operation.
+            (n_param,) for the adjoint operation.
+        """
         MeMuDeriv = self.MeMuDeriv(u)
 
         if adjoint is True:
@@ -1007,23 +2026,82 @@ class Simulation3DMagneticField(BaseFDEMSimulation):
         return 1j * omega(freq) * (MeMuDeriv * v)
 
     def getADeriv(self, freq, u, v, adjoint=False):
+        r"""Derivative operation for the system matrix times a vector.
+
+        The system matrix at each frequency is given by:
+
+        .. math::
+            \mathbf{A} = \mathbf{C^T M_{f\rho} C} + i\omega \mathbf{M_{e\mu}}
+
+        where
+
+        * :math:`\mathbf{M_{f\rho}}` is the inner-product matrix for resistivities projected to faces
+        * :math:`\mathbf{M_{e\mu}}` is the inner-product matrix for permeabilities projected to edges
+
+        See the *Notes* section of the doc strings for :class:`Simulation3DMagneticField`
+        for a full description of the formulation.
+
+        Where :math:`\mathbf{m}` are the set of model parameters defining the electromagnetic properties,
+        :math:`\mathbf{v}` is a vector and :math:`\mathbf{h}` is the discrete electric field solution, this method assumes
+        the discrete solution is fixed and returns
+
+        .. math::
+            \frac{\partial (\mathbf{A \, h})}{\partial \mathbf{m}} \, \mathbf{v}
+
+        Or the adjoint operation
+
+        .. math::
+            \frac{\partial (\mathbf{A \, h})}{\partial \mathbf{m}}^T \, \mathbf{v}
+
+        Parameters
+        ----------
+        freq : float
+            The frequency in Hz.
+        u : (n_edges,) numpy.ndarray
+            The solution for the fields for the current model at the specified frequency.
+        v : numpy.ndarray
+            The vector. (n_param,) for the standard operation. (n_edges,) for the adjoint operation.
+        adjoint : bool
+            Whether to perform the adjoint operation.
+
+        Returns
+        -------
+        numpy.ndarray
+            Derivative of system matrix times a vector. (n_edges,) for the standard operation.
+            (n_param,) for the adjoint operation.
+        """
         return self.getADeriv_rho(freq, u, v, adjoint) + self.getADeriv_mu(
             freq, u, v, adjoint
         )
 
     def getRHS(self, freq):
-        r"""
-        Right hand side for the system
+        r"""Right-hand sides for the given frequency.
 
-        .. math ::
+        This method returns the right-hand sides for the frequency provided.
+        The right-hand side for each source is constructed according to:
 
-            \mathbf{RHS} = \mathbf{M^e} \mathbf{s_m} + \mathbf{C}^{\top}
-            \mathbf{M_{\rho}^f} \mathbf{s_e}
+        .. math::
+            \mathbf{q} = \mathbf{C^T M_{f\rho} s_e} - i\omega \mathbf{s_m}
 
-        :param float freq: Frequency
-        :rtype: numpy.ndarray
-        :return: RHS (nE, nSrc)
+        where
 
+        * :math:`\mathbf{C}` is the discrete curl operator
+        * :math:`\mathbf{s_m}` and :math:`\mathbf{s_e}` are the integrated magnetic and electric source terms, respectively
+        * :math:`\mathbf{M_{e\mu}}` is the inner-product matrices for permeabilities projected to edges
+        * :math:`\mathbf{M_{f\rho}}` is the inner-product matrices for resistivities projected to faces
+
+        See the *Notes* section of the doc strings for :class:`Simulation3DMagneticField`
+        for a full description of the formulation.
+
+        Parameters
+        ----------
+        freq : float
+            The frequency in Hz.
+
+        Returns
+        -------
+        (n_edges, n_sources) numpy.ndarray
+            The right-hand sides.
         """
 
         s_m, s_e = self.getSourceTerm(freq)
@@ -1039,15 +2117,50 @@ class Simulation3DMagneticField(BaseFDEMSimulation):
             return s_m + C.T * (Mfyhati * s_e)
 
     def getRHSDeriv(self, freq, src, v, adjoint=False):
-        """
-        Derivative of the right hand side with respect to the model
+        r"""Derivative of the right-hand side times a vector for a given source and frequency.
 
-        :param float freq: frequency
-        :param simpeg.electromagnetics.frequency_domain.fields.FieldsFDEM src: FDEM source
-        :param numpy.ndarray v: vector to take product with
-        :param bool adjoint: adjoint?
-        :rtype: numpy.ndarray
-        :return: product of rhs deriv with a vector
+        The right-hand side for each source is constructed according to:
+
+        .. math::
+            \mathbf{q} = \mathbf{C^T M_{f\rho} s_e} - i\omega \mathbf{s_m}
+
+        where
+
+        * :math:`\mathbf{C}` is the discrete curl operator
+        * :math:`\mathbf{s_m}` and :math:`\mathbf{s_e}` are the integrated magnetic and electric source terms, respectively
+        * :math:`\mathbf{M_{e\mu}}` is the inner-product matrices for permeabilities projected to edges
+        * :math:`\mathbf{M_{f\rho}}` is the inner-product matrices for resistivities projected to faces
+
+        See the *Notes* section of the doc strings for :class:`Simulation3DMagneticField`
+        for a full description of the formulation.
+
+        Where :math:`\mathbf{m}` are the set of model parameters and :math:`\mathbf{v}` is a vector,
+        this method returns
+
+        .. math::
+            \frac{\partial \mathbf{q_k}}{\partial \mathbf{m}} \, \mathbf{v}
+
+        Or the adjoint operation
+
+        .. math::
+            \frac{\partial \mathbf{q_k}}{\partial \mathbf{m}}^T \, \mathbf{v}
+
+        Parameters
+        ----------
+        freq : int
+            The frequency in Hz.
+        src : .frequency_domain.sources.BaseFDEMSrc
+            The FDEM source object.
+        v : numpy.ndarray
+            The vector. (n_param,) for the standard operation. (n_edges,) for the adjoint operation.
+        adjoint : bool
+            Whether to perform the adjoint operation.
+
+        Returns
+        -------
+        numpy.ndarray
+            Derivative of the right-hand sides times a vector. (n_edges,) for the standard operation.
+            (n_param,) for the adjoint operation.
         """
 
         _, s_e = src.eval(self)
