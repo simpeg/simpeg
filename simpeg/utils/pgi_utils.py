@@ -158,13 +158,13 @@ class WeightedGaussianMixture(GaussianMixture):
     def order_clusters_GM_weight(self, outputindex=False):
         """Order clusters by decreasing weights
 
-        PARAMETERS
+        Parameters
         ----------
         outputindex : bool, default: ``True``
             If ``True``, return the sorting index
 
-        RETURN
-        ------
+        Returns
+        -------
         np.ndarray
             Sorting index
         """
@@ -194,6 +194,7 @@ class WeightedGaussianMixture(GaussianMixture):
         """
         [modified from Scikit-Learn.mixture.gaussian_mixture]
         Check the user provided 'weights'.
+
         Parameters
         ----------
         weights : array-like, shape (n_components,) or (n_samples, n_components)
@@ -271,6 +272,7 @@ class WeightedGaussianMixture(GaussianMixture):
         """
         [modified from Scikit-Learn.mixture._base]
         Initialize the model parameters.
+
         Parameters
         ----------
         X : array-like, shape  (n_samples, n_features)
@@ -303,6 +305,7 @@ class WeightedGaussianMixture(GaussianMixture):
         """
         [modified from Scikit-Learn.mixture.gaussian_mixture]
         M step.
+
         Parameters
         ----------
         X : array-like, shape (n_samples, n_features)
@@ -327,6 +330,7 @@ class WeightedGaussianMixture(GaussianMixture):
         """
         [modified from Scikit-Learn.mixture.gaussian_mixture]
         Estimate the tied covariance matrix.
+
         Parameters
         ----------
         resp : array-like, shape (n_samples, n_components)
@@ -334,6 +338,7 @@ class WeightedGaussianMixture(GaussianMixture):
         nk : array-like, shape (n_components,)
         means : array-like, shape (n_components, n_features)
         reg_covar : float
+
         Returns
         -------
         covariance : array, shape (n_features, n_features)
@@ -350,6 +355,7 @@ class WeightedGaussianMixture(GaussianMixture):
         """
         [modified from Scikit-Learn.mixture.gaussian_mixture]
         Estimate the Gaussian distribution parameters.
+
         Parameters
         ----------
         X : array-like, shape (n_samples, n_features)
@@ -360,6 +366,7 @@ class WeightedGaussianMixture(GaussianMixture):
             The regularization added to the diagonal of the covariance matrices.
         covariance_type : {'full', 'tied', 'diag', 'spherical'}
             The type of precision matrices.
+
         Returns
         -------
         nk : array-like, shape (n_components,)
@@ -385,9 +392,11 @@ class WeightedGaussianMixture(GaussianMixture):
         """
         [modified from Scikit-Learn.mixture.gaussian_mixture]
         E step.
+
         Parameters
         ----------
         X : array-like, shape (n_samples, n_features)
+
         Returns
         -------
         log_prob_norm : float
@@ -426,6 +435,7 @@ class WeightedGaussianMixture(GaussianMixture):
         """
         [New function, modified from Scikit-Learn.mixture.gaussian_mixture._estimate_log_gaussian_prob]
         Estimate the log Gaussian probability with depth or sensitivity weighting.
+
         Parameters
         ----------
         X : array-like, shape (n_samples, n_features)
@@ -438,6 +448,7 @@ class WeightedGaussianMixture(GaussianMixture):
             'diag' : shape of (n_components, n_features)
             'spherical' : shape of (n_components,)
         covariance_type : {'full', 'tied', 'diag', 'spherical'}
+
         Returns
         -------
         log_prob : array, shape (n_samples, n_components)
@@ -484,9 +495,11 @@ class WeightedGaussianMixture(GaussianMixture):
         """
         [New function, modified from Scikit-Learn.mixture.gaussian_mixture._estimate_weighted_log_prob]
         Estimate the weighted log-probabilities, log P(X | Z) + log weights.
+
         Parameters
         ----------
         X : array-like, shape (n_samples, n_features)
+
         Returns
         -------
         weighted_log_prob : array, shape (n_samples, n_component)
@@ -1254,6 +1267,7 @@ class GaussianMixtureWithNonlinearRelationships(WeightedGaussianMixture):
         """
         [modified from Scikit-Learn.mixture.gaussian_mixture]
         Initialization of the Gaussian mixture parameters.
+
         Parameters
         ----------
         X : array-like, shape (n_samples, n_features)
@@ -1295,6 +1309,7 @@ class GaussianMixtureWithNonlinearRelationships(WeightedGaussianMixture):
         """
         [modified from Scikit-Learn.mixture.gaussian_mixture]
         Estimate the log Gaussian probability.
+
         Parameters
         ----------
         X : array-like, shape (n_samples, n_features)
@@ -1306,6 +1321,7 @@ class GaussianMixtureWithNonlinearRelationships(WeightedGaussianMixture):
             'diag' : shape of (n_components, n_features)
             'spherical' : shape of (n_components,)
         covariance_type : {'full', 'tied', 'diag', 'spherical'}
+
         Returns
         -------
         log_prob : array, shape (n_samples, n_components)
