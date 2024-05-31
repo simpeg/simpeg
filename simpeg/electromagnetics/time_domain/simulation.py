@@ -537,9 +537,10 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
         Returns
         -------
         numpy.ndarray
-            Derivatives of the intial fields with respect to the model for a given source.
-            (n_edges or n_faces,) numpy.ndarray when `adjoint` is ``False``. (n_param,) numpy.ndarray
-            when `ajoint` is ``True``.
+            Derivatives of the initial fields with respect to the model for
+            a given source.
+            (n_edges or n_faces,) numpy.ndarray when ``adjoint`` is ``False``.
+            (n_param,) numpy.ndarray when ``adjoint`` is ``True``.
         """
         ifieldsDeriv = mkvc(
             getattr(src, "{}InitialDeriv".format(self._fieldType), None)(
