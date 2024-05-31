@@ -236,17 +236,8 @@ simulation = magnetics.simulation.Simulation3DIntegral(
     ind_active=ind_active,
     model_type="vector",
     store_sensitivities="forward_only",
-    engine="choclo",
 )
 
-###############################################################################
-# .. tip::
-#
-#    Since SimPEG v0.22.0 we can use `Choclo
-#    <https://www.fatiando.org/choclo>`_ as the engine for running the magnetic
-#    simulations, which results in faster and more memory efficient runs. Just
-#    pass ``engine="choclo"`` when constructing the simulation.
-#
 
 ###############################################################################
 # Compute predicted data for some model
