@@ -1,9 +1,12 @@
+from __future__ import annotations  # needed to use type operands in Python 3.8
 import numpy as np
 import scipy.ndimage as ndi
 import scipy.sparse as sp
 from .mat_utils import mkvc
 from scipy.spatial import Delaunay
 from discretize.base import BaseMesh
+
+from ..typing import RandomSeed
 
 
 def add_block(cell_centers, model, p0, p1, prop_value):
@@ -414,15 +417,24 @@ def create_layers_model(cell_centers, layer_tops, layer_values):
     return model
 
 
-def create_random_model(shape, seed=1000, anisotropy=None, its=100, bounds=None):
-    """Create random model by convolving a kernel with a uniformly distributed random model.
+def create_random_model(
+    shape,
+    seed: RandomSeed | None = 1000,
+    anisotropy=None,
+    its=100,
+    bounds=None,
+):
+    """
+    Create random model by convolving a kernel with a uniformly distributed random model.
 
     Parameters
     ----------
     shape : int or tuple of int
         Shape of the model. Can define a vector of size (n_cells) or define the dimensions of a tensor
-    seed : int, optional
-        If not None, sets the seed for the random uniform model that is convolved with the kernel.
+    seed : None or :class:`~simpeg.typing.RandomSeed`, optional
+        Random seed for random uniform model that is convolved with the kernel.
+        It can either be an int, a predefined Numpy random number generator, or
+        any valid input to ``numpy.random.default_rng``.
     anisotropy : numpy.ndarray
         this is the (*3*, *n*) blurring kernel that is used.
     its : int
@@ -450,14 +462,11 @@ def create_random_model(shape, seed=1000, anisotropy=None, its=100, bounds=None)
     if bounds is None:
         bounds = [0, 1]
 
-    if seed is not None:
-        np.random.seed(seed)
-        print("Using a seed of: ", seed)
-
-    if isinstance(shape, (int, float)):
+    if isinstance(shape, int):
         shape = (shape,)  # make it a tuple for consistency
 
-    mr = np.random.rand(*shape)
+    rng = np.random.default_rng(seed=seed)
+    mr = rng.random(size=shape)
     if anisotropy is None:
         if len(shape) == 1:
             smth = np.array([1, 10.0, 1], dtype=float)
