@@ -16,6 +16,7 @@ import os
 from sphinx_gallery.sorting import FileNameSortKey
 import glob
 import simpeg
+from packaging.version import parse
 import plotly.io as pio
 from importlib.metadata import version
 
@@ -237,6 +238,13 @@ external_links = [
     dict(name="Contact", url="https://mattermost.softwareunderground.org/simpeg"),
 ]
 
+# Define SimPEG version for the version switcher
+simpeg_version = parse(simpeg.__version__)
+if simpeg_version.is_devrelease:
+    switcher_version = "dev"
+else:
+    switcher_version = f"v{simpeg_version.public}"
+
 # Use Pydata Sphinx theme
 html_theme = "pydata_sphinx_theme"
 
@@ -274,7 +282,14 @@ html_theme_options = {
         "plausible_analytics_url": "https://plausible.io/js/script.js",
     },
     "navbar_align": "left",  # make elements closer to logo on the left
+    "navbar_end": ["version-switcher", "theme-switcher", "navbar-icon-links"],
+    # Configure version switcher
+    "switcher": {
+        "version_match": switcher_version,
+        "json_url": "https://doctest.simpeg.xyz/latest/_static/versions.json",
+    },
 }
+
 html_logo = "images/simpeg-logo.png"
 
 html_static_path = ["_static"]
