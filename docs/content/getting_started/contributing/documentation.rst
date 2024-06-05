@@ -39,7 +39,7 @@ For example:
             Second order smoothness weights for the respective dimensions.
         length_scale_x, length_scale_y, length_scale_z : float, optional
             First order smoothness length scales for the respective dimensions.
-        mapping : SimPEG.maps.IdentityMap, optional
+        mapping : simpeg.maps.IdentityMap, optional
             A mapping to apply to the model before regularization.
         reference_model : array_like, optional
         reference_model_in_smooth : bool, optional
@@ -70,14 +70,14 @@ For example:
 Building the documentation
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-If you would like to see the documentation changes. 
+If you would like to see the documentation changes.
 In the repo's root directory, enter the following in your terminal.
 
 .. code::
 
     make all
 
-Serving the documentation locally 
+Serving the documentation locally
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Once the documentation is built. You can view it directly using the following command. This will automatically serve the docs and you can see them in your browser.
