@@ -222,7 +222,7 @@ stages:
             # Commit the new docs. Amend to avoid having a very large history.
             git add .
             message="Azure CI deploy dev from ${commit}"
-            echo -e "\nAmmending last commit:"
+            echo -e "\nAmending last commit:"
             git commit --amend --reset-author -m "$message"
             # Make the push quiet just in case there is anything that could
             # leak sensitive information.
