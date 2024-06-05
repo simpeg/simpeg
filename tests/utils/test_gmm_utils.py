@@ -338,7 +338,7 @@ class TestCustomPrintMethod:
 
     @pytest.mark.parametrize("gmm_class", (MockGMMLatest, MockGMMOlder))
     def test_custom_print_verbose_method(self, gmmref, gmm_class):
-        """Test against latest signature of the method: with two arguments."""
+        """Test custom method against older and latest signature of the upstream one."""
         gmm = gmm_class(gmmref=gmmref)
         # Run the custom private method: it should not raise any error
         gmm._custom_print_verbose_msg_init_end(3)
