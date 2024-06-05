@@ -1,3 +1,4 @@
+import pytest
 import numpy as np
 import unittest
 import discretize
@@ -275,6 +276,72 @@ class TestGMMs(unittest.TestCase):
         print(
             "GaussianMixtureWithPrior is semi-MAP-estimating correctly in 2D with 2 components."
         )
+
+
+class MockGMMLatest(GaussianMixtureWithPrior):
+    """
+    Mock of ``GaussianMixtureWithPrior`` with a ``_print_verbose_msg_init_end``
+    method with two positional arguments (scikit-learn==1.5.0).
+    """
+
+    def _print_verbose_msg_init_end(self, ll, init_has_converged):
+        """Override upstream method just for test purposes."""
+        return None
+
+
+class MockGMMOlder(GaussianMixtureWithPrior):
+    """
+    Mock of ``GaussianMixtureWithPrior`` with a ``_print_verbose_msg_init_end``
+    method with a single positional argument (scikit-learn<1.5.0).
+    """
+
+    def _print_verbose_msg_init_end(self, ll):
+        """Override upstream method just for test purposes."""
+        return None
+
+
+class TestCustomPrintMethod:
+    """
+    Test the ``GaussianMixtureWithPrior._print_verbose_msg_init_end`` method
+    with different signatures of the upstream ``_print_verbose_msg_init_end``
+    private method.
+    """
+
+    @pytest.fixture
+    def mesh(self):
+        """Sample mesh"""
+        mesh = discretize.TensorMesh([8, 7, 6])
+        return mesh
+
+    @pytest.fixture
+    def model(self, mesh):
+        """Sample model."""
+        model = np.ones(mesh.n_cells, dtype=np.float64)
+        return model
+
+    @pytest.fixture
+    def gmmref(self, mesh, model):
+        """Sample GMM"""
+        active_cells = np.ones(mesh.n_cells, dtype=bool)
+        gmmref = WeightedGaussianMixture(
+            mesh=mesh,
+            actv=active_cells,
+            n_components=1,
+            covariance_type="full",
+            max_iter=1000,
+            n_init=10,
+            tol=1e-8,
+            warm_start=True,
+        )
+        gmmref.fit(model.reshape(-1, 1))
+        return gmmref
+
+    @pytest.mark.parametrize("gmm_class", (MockGMMLatest, MockGMMOlder))
+    def test_custom_print_verbose_method(self, gmmref, gmm_class):
+        """Test against latest signature of the method: with two arguments."""
+        gmm = gmm_class(gmmref=gmmref)
+        # Run the custom private method: it should not raise any error
+        gmm._custom_print_verbose_msg_init_end(3)
 
 
 if __name__ == "__main__":
