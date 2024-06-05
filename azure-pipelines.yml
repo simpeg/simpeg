@@ -180,6 +180,15 @@ stages:
         python.version: '3.8'
       timeoutInMinutes: 240
       steps:
+
+        # Checkout simpeg repo, including tags.
+        # We need to sync tags and disable shallow depth in order to get the
+        # SimPEG version while building the docs.
+        - checkout: self
+          fetchDepth: 0
+          fetchTags: true
+          displayName: Checkout repository (including tags)
+
         - bash: |
             git config --global user.name ${GH_NAME}
             git config --global user.email ${GH_EMAIL}
@@ -210,6 +219,12 @@ stages:
             conda activate simpeg-test
             pip install -e .
           displayName: Build package
+
+        - script: |
+            source "${HOME}/conda/etc/profile.d/conda.sh"
+            conda activate simpeg-test
+            python -c "import simpeg; print(simpeg.__version__)"
+          displayName: Check SimPEG version
 
         - bash: |
             source "${HOME}/conda/etc/profile.d/conda.sh"
@@ -281,6 +296,15 @@ stages:
         python.version: '3.8'
       timeoutInMinutes: 240
       steps:
+
+        # Checkout simpeg repo, including tags.
+        # We need to sync tags and disable shallow depth in order to get the
+        # SimPEG version while building the docs.
+        - checkout: self
+          fetchDepth: 0
+          fetchTags: true
+          displayName: Checkout repository (including tags)
+
         - bash: |
             git config --global user.name ${GH_NAME}
             git config --global user.email ${GH_EMAIL}
@@ -311,6 +335,12 @@ stages:
             conda activate simpeg-test
             pip install -e .
           displayName: Build package
+
+        - script: |
+            source "${HOME}/conda/etc/profile.d/conda.sh"
+            conda activate simpeg-test
+            python -c "import simpeg; print(simpeg.__version__)"
+          displayName: Check SimPEG version
 
         - bash: |
             source "${HOME}/conda/etc/profile.d/conda.sh"
