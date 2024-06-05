@@ -128,6 +128,12 @@ stages:
         - script: |
             source "${HOME}/conda/etc/profile.d/conda.sh"
             conda activate simpeg-test
+            python -c "import simpeg; print(simpeg.__version__)"
+          displayName: Check SimPEG version
+
+        - script: |
+            source "${HOME}/conda/etc/profile.d/conda.sh"
+            conda activate simpeg-test
             python setup.py sdist
             twine upload --skip-existing dist/*
           displayName: Deploy source
