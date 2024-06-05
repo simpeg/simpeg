@@ -1,3 +1,4 @@
+import warnings
 import numpy as np
 import scipy.sparse as sp
 from geoana.kernels import (
@@ -20,11 +21,68 @@ from ..base import BaseEquivalentSourceLayerSimulation, BasePFSimulation
 from .analytics import CongruousMagBC
 from .survey import Survey
 
+from ._numba_functions import (
+    choclo,
+    _sensitivity_tmi_parallel,
+    _sensitivity_tmi_serial,
+    _sensitivity_mag_parallel,
+    _sensitivity_mag_serial,
+    _forward_tmi_parallel,
+    _forward_tmi_serial,
+    _forward_mag_parallel,
+    _forward_mag_serial,
+)
+
+if choclo is not None:
+    CHOCLO_SUPPORTED_COMPONENTS = {"tmi", "bx", "by", "bz"}
+    CHOCLO_KERNELS = {
+        "bx": (choclo.prism.kernel_ee, choclo.prism.kernel_en, choclo.prism.kernel_eu),
+        "by": (choclo.prism.kernel_en, choclo.prism.kernel_nn, choclo.prism.kernel_nu),
+        "bz": (choclo.prism.kernel_eu, choclo.prism.kernel_nu, choclo.prism.kernel_uu),
+    }
+
 
 class Simulation3DIntegral(BasePFSimulation):
     """
-    magnetic simulation in integral form.
+    Magnetic simulation in integral form.
 
+    Parameters
+    ----------
+    mesh : discretize.TreeMesh or discretize.TensorMesh
+        Mesh use to run the magnetic simulation.
+    survey : simpeg.potential_fields.magnetics.Survey
+        Magnetic survey with information of the receivers.
+    ind_active : (n_cells) numpy.ndarray, optional
+        Array that indicates which cells in ``mesh`` are active cells.
+    chi : numpy.ndarray, optional
+        Susceptibility array for the active cells in the mesh.
+    chiMap : Mapping, optional
+        Model mapping.
+    model_type : str, optional
+        Whether the model are susceptibilities of the cells (``"scalar"``),
+        or effective susceptibilities (``"vector"``).
+    is_amplitude_data : bool, optional
+        If True, the returned fields will be the amplitude of the magnetic
+        field. If False, the fields will be returned unmodified.
+    sensitivity_dtype : numpy.dtype, optional
+        Data type that will be used to build the sensitivity matrix.
+    store_sensitivities : {"ram", "disk", "forward_only"}
+        Options for storing sensitivity matrix. There are 3 options
+
+        - 'ram': sensitivities are stored in the computer's RAM
+        - 'disk': sensitivities are written to a directory
+        - 'forward_only': you intend only do perform a forward simulation and
+          sensitivities do not need to be stored
+
+    sensitivity_path : str, optional
+        Path to store the sensitivity matrix if ``store_sensitivities`` is set
+        to ``"disk"``. Default to "./sensitivities".
+    engine : {"geoana", "choclo"}, optional
+       Choose which engine should be used to run the forward model.
+    numba_parallel : bool, optional
+        If True, the simulation will run in parallel. If False, it will
+        run in serial. If ``engine`` is not ``"choclo"`` this argument will be
+        ignored.
     """
 
     chi, chiMap, chiDeriv = props.Invertible("Magnetic Susceptibility (SI)")
@@ -36,10 +94,12 @@ class Simulation3DIntegral(BasePFSimulation):
         chiMap=None,
         model_type="scalar",
         is_amplitude_data=False,
-        **kwargs
+        engine="geoana",
+        numba_parallel=True,
+        **kwargs,
     ):
         self.model_type = model_type
-        super().__init__(mesh, **kwargs)
+        super().__init__(mesh, engine=engine, numba_parallel=numba_parallel, **kwargs)
         self.chi = chi
         self.chiMap = chiMap
 
@@ -48,6 +108,28 @@ class Simulation3DIntegral(BasePFSimulation):
         self._gtg_diagonal = None
         self.is_amplitude_data = is_amplitude_data
         self.modelMap = self.chiMap
+
+        # Warn if n_processes has been passed
+        if self.engine == "choclo" and "n_processes" in kwargs:
+            warnings.warn(
+                "The 'n_processes' will be ignored when selecting 'choclo' as the "
+                "engine in the magnetic simulation.",
+                UserWarning,
+                stacklevel=1,
+            )
+            self.n_processes = None
+
+        if self.engine == "choclo":
+            if self.numba_parallel:
+                self._sensitivity_tmi = _sensitivity_tmi_parallel
+                self._sensitivity_mag = _sensitivity_mag_parallel
+                self._forward_tmi = _forward_tmi_parallel
+                self._forward_mag = _forward_mag_parallel
+            else:
+                self._sensitivity_tmi = _sensitivity_tmi_serial
+                self._sensitivity_mag = _sensitivity_mag_serial
+                self._forward_tmi = _forward_tmi_serial
+                self._forward_mag = _forward_mag_serial
 
     @property
     def model_type(self):
@@ -103,7 +185,10 @@ class Simulation3DIntegral(BasePFSimulation):
         self.model = model
         # model = self.chiMap * model
         if self.store_sensitivities == "forward_only":
-            fields = mkvc(self.linear_operator())
+            if self.engine == "choclo":
+                fields = self._forward(self.chi)
+            else:
+                fields = mkvc(self.linear_operator())
         else:
             fields = np.asarray(
                 self.G @ self.chi.astype(self.sensitivity_dtype, copy=False)
@@ -117,7 +202,10 @@ class Simulation3DIntegral(BasePFSimulation):
     @property
     def G(self):
         if getattr(self, "_G", None) is None:
-            self._G = self.linear_operator()
+            if self.engine == "choclo":
+                self._G = self._sensitivity_matrix()
+            else:
+                self._G = self.linear_operator()
 
         return self._G
 
@@ -493,6 +581,151 @@ class Simulation3DIntegral(BasePFSimulation):
         if self.is_amplitude_data:
             deletes = deletes + ["_gtg_diagonal", "_ampDeriv"]
         return deletes
+
+    def _forward(self, model):
+        """
+        Forward model the fields of active cells in the mesh on receivers.
+
+        Parameters
+        ----------
+        model : (n_active_cells) or (3 * n_active_cells) array
+            Array containing the susceptibilities (scalar) or effective
+            susceptibilities (vector) of the active cells in the mesh, in SI
+            units.
+            Susceptibilities are expected if ``model_type`` is ``"scalar"``,
+            and the array should have ``n_active_cells`` elements.
+            Effective susceptibilities are expected if ``model_type`` is
+            ``"vector"``, and the array should have ``3 * n_active_cells``
+            elements.
+
+        Returns
+        -------
+        (nD, ) array
+            Always return a ``np.float64`` array.
+        """
+        # Gather active nodes and the indices of the nodes for each active cell
+        active_nodes, active_cell_nodes = self._get_active_nodes()
+        # Get regional field
+        regional_field = self.survey.source_field.b0
+        # Allocate fields array
+        fields = np.zeros(self.survey.nD, dtype=self.sensitivity_dtype)
+        # Define the constant factor
+        constant_factor = 1 / 4 / np.pi
+        # Start computing the fields
+        index_offset = 0
+        scalar_model = self.model_type == "scalar"
+        for components, receivers in self._get_components_and_receivers():
+            if not CHOCLO_SUPPORTED_COMPONENTS.issuperset(components):
+                raise NotImplementedError(
+                    f"Other components besides {CHOCLO_SUPPORTED_COMPONENTS} "
+                    "aren't implemented yet."
+                )
+            n_components = len(components)
+            n_rows = n_components * receivers.shape[0]
+            for i, component in enumerate(components):
+                vector_slice = slice(
+                    index_offset + i, index_offset + n_rows, n_components
+                )
+                if component == "tmi":
+                    self._forward_tmi(
+                        receivers,
+                        active_nodes,
+                        model,
+                        fields[vector_slice],
+                        active_cell_nodes,
+                        regional_field,
+                        constant_factor,
+                        scalar_model,
+                    )
+                else:
+                    kernel_x, kernel_y, kernel_z = CHOCLO_KERNELS[component]
+                    self._forward_mag(
+                        receivers,
+                        active_nodes,
+                        model,
+                        fields[vector_slice],
+                        active_cell_nodes,
+                        regional_field,
+                        kernel_x,
+                        kernel_y,
+                        kernel_z,
+                        constant_factor,
+                        scalar_model,
+                    )
+            index_offset += n_rows
+        return fields
+
+    def _sensitivity_matrix(self):
+        """
+        Compute the sensitivity matrix G
+
+        Returns
+        -------
+        (nD, n_active_cells) array
+        """
+        # Gather active nodes and the indices of the nodes for each active cell
+        active_nodes, active_cell_nodes = self._get_active_nodes()
+        # Get regional field
+        regional_field = self.survey.source_field.b0
+        # Allocate sensitivity matrix
+        if self.model_type == "scalar":
+            n_columns = self.nC
+        else:
+            n_columns = 3 * self.nC
+        shape = (self.survey.nD, n_columns)
+        if self.store_sensitivities == "disk":
+            sensitivity_matrix = np.memmap(
+                self.sensitivity_path,
+                shape=shape,
+                dtype=self.sensitivity_dtype,
+                order="C",  # it's more efficient to write in row major
+                mode="w+",
+            )
+        else:
+            sensitivity_matrix = np.empty(shape, dtype=self.sensitivity_dtype)
+        # Define the constant factor
+        constant_factor = 1 / 4 / np.pi
+        # Start filling the sensitivity matrix
+        index_offset = 0
+        scalar_model = self.model_type == "scalar"
+        for components, receivers in self._get_components_and_receivers():
+            if not CHOCLO_SUPPORTED_COMPONENTS.issuperset(components):
+                raise NotImplementedError(
+                    f"Other components besides {CHOCLO_SUPPORTED_COMPONENTS} "
+                    "aren't implemented yet."
+                )
+            n_components = len(components)
+            n_rows = n_components * receivers.shape[0]
+            for i, component in enumerate(components):
+                matrix_slice = slice(
+                    index_offset + i, index_offset + n_rows, n_components
+                )
+                if component == "tmi":
+                    self._sensitivity_tmi(
+                        receivers,
+                        active_nodes,
+                        sensitivity_matrix[matrix_slice, :],
+                        active_cell_nodes,
+                        regional_field,
+                        constant_factor,
+                        scalar_model,
+                    )
+                else:
+                    kernel_x, kernel_y, kernel_z = CHOCLO_KERNELS[component]
+                    self._sensitivity_mag(
+                        receivers,
+                        active_nodes,
+                        sensitivity_matrix[matrix_slice, :],
+                        active_cell_nodes,
+                        regional_field,
+                        kernel_x,
+                        kernel_y,
+                        kernel_z,
+                        constant_factor,
+                        scalar_model,
+                    )
+            index_offset += n_rows
+        return sensitivity_matrix
 
 
 class SimulationEquivalentSourceLayer(
