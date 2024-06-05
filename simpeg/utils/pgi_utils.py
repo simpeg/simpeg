@@ -1170,16 +1170,7 @@ class GaussianMixtureWithPrior(WeightedGaussianMixture):
                     self.converged_ = True
                     break
 
-            # Use try-except to maintain support for older (scikit-learn<1.5.0)
-            # versions of this private method
-            try:
-                self._print_verbose_msg_init_end(lower_bound, init_has_converged=True)
-            except TypeError as exception:
-                # In scikit-learn<1.5.0, the method has a single argument
-                match = "got an unexpected keyword argument 'init_has_converged'"
-                if match not in str(exception):
-                    raise
-                self._print_verbose_msg_init_end(lower_bound)
+            self._custom_print_verbose_msg_init_end(lower_bound)
 
             if lower_bound > max_lower_bound or max_lower_bound == -np.inf:
                 max_lower_bound = lower_bound
@@ -1201,6 +1192,22 @@ class GaussianMixtureWithPrior(WeightedGaussianMixture):
         self.lower_bound_ = max_lower_bound
 
         return self
+
+    def _custom_print_verbose_msg_init_end(self, ll):
+        """
+        Wrapper for the upstream _print_verbose_msg_init_end
+
+        This method was created to provide support of older versions
+        (scikit-learn<1.5.0) of this private method.
+        """
+        try:
+            self._print_verbose_msg_init_end(ll, init_has_converged=True)
+        except TypeError as exception:
+            # In scikit-learn<1.5.0, the method has a single argument
+            match = "got an unexpected keyword argument 'init_has_converged'"
+            if match not in str(exception):
+                raise
+            self._print_verbose_msg_init_end(ll)
 
 
 class GaussianMixtureWithNonlinearRelationships(WeightedGaussianMixture):
