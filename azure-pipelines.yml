@@ -55,7 +55,7 @@ stages:
             ls -l
             echo "Check gh-pages branch"
             echo "---------------------"
-            git fetch --depth 1 origin gh-pages
+            git fetch --depth 1 origin gh-pages:gh-pages
             git switch gh-pages
             git status
             ls -l
