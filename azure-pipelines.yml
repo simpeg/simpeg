@@ -297,6 +297,9 @@ stages:
 
             # Update submodule
             # ----------------
+            # Need to fetch the gh-pages branch first (because we clone with
+            # shallow depth)
+            git fetch --depth 1 origin gh-pages:gh-pages
             # Switch to the gh-pages branch
             git switch gh-pages
             # Update the dev submodule
