@@ -120,7 +120,7 @@ class _SimulationProcess(Process):
         self._check_closed()
         self.task_queue.put(("set_sim", (sim,)))
         key = self.result_queue.get()
-        future = SimpleFuture(key, self.task_queue, self.result_queue)
+        future = SimpleFuture(key, self)
         self._my_sim = future
         return future
 
@@ -134,7 +134,7 @@ class _SimulationProcess(Process):
         sim = self._my_sim
         self.task_queue.put((1, (sim.item_id,)))
         key = self.result_queue.get()
-        future = SimpleFuture(key, self.task_queue, self.result_queue)
+        future = SimpleFuture(key, self)
         return future
 
     def start_dpred(self, f_future):
