@@ -117,6 +117,8 @@ stages:
             rm environment_test_with_pyversion.yml
             conda activate simpeg-test
             pip install pytest-azurepipelines
+            echo "\nList installed packages"
+            conda list
           displayName: Create Anaconda testing environment
 
         - script: |
@@ -212,6 +214,8 @@ stages:
             rm environment_test_with_pyversion.yml
             conda activate simpeg-test
             pip install pytest-azurepipelines
+            echo "\nList installed packages"
+            conda list
           displayName: Create Anaconda testing environment
 
         - bash: |
@@ -331,6 +335,8 @@ stages:
             rm environment_test_with_pyversion.yml
             conda activate simpeg-test
             pip install pytest-azurepipelines
+            echo "\nList installed packages"
+            conda list
           displayName: Create Anaconda testing environment
 
         - bash: |
