@@ -46,10 +46,9 @@ assignees: ""
 - [ ] Edit the release notes file, following the template below and the
   previous release notes.
 - [ ] Add the new release notes to the list in `docs/content/release/index.rst`.
-- [ ] Open a PR with the new release notes.
+- [ ] **Open a PR** with the new release notes.
 - [ ] Manually view the built documentation by downloading the Azure `html_doc`
   artifact and check for formatting and errors.
-- [ ] Merge that PR
 
 
 <details>
@@ -110,6 +109,24 @@ Pull Requests
 
 </details>
 
+
+### Add new version to version switcher
+
+Edit the `docs/_static/versions.json` file and:
+
+- [ ] Add an entry for the new version.
+- [ ] Move the line with `"name":` to the new entry (so the new version is set
+  as the _latest_ one).
+- [ ] Update the version number in the `"name":` line.
+- [ ] Run `cat docs/_static/versions.json | python -m json.tool > /dev/null` to
+  check if the syntax of the JSON file is correct. If no errors are prompted,
+  then your file is OK.
+- [ ] Double-check the changes.
+- [ ] Commit the changes to the same branch.
+
+### Merge the PR
+
+- [ ] **Merge that PR.**
 
 ## Make the new release
 
