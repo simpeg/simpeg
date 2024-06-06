@@ -233,7 +233,7 @@ class BaseObjectiveFunction(BaseSimPEG):
             The evaluation point for the Taylor expansion.
         num : int
             The number of iterations in the convergence test.
-        random_seed : {None, RandomSeed}, optional
+        random_seed : RandomSeed or None, optional
             Random seed used for generating a random array for ``x`` if it's
             None, and the ``v`` array for testing the second derivatives. It
             can either be an int, a predefined Numpy random number generator,
