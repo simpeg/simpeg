@@ -1,37 +1,35 @@
 from ._base import (
-    IdentityMap,
     ComboMap,
+    IdentityMap,
     LinearMap,
     Projection,
-    SumMap,
-    SphericalSystem,
-    Wires,
     SelfConsistentEffectiveMedium,
+    SphericalSystem,
+    SumMap,
+    Wires,
 )
-
-from ._surjection import SurjectFull, SurjectVertical1D, Surject2Dto3D, SurjectUnits
-
 from ._clustering import PolynomialPetroClusterMap
+from ._injection import Mesh2Mesh, InjectActiveCells
+from ._mesh_agnostic import (
+    ChiMap,
+    ComplexMap,
+    ExpMap,
+    LogisticSigmoidMap,
+    LogMap,
+    MuRelative,
+    ReciprocalMap,
+    Weighting,
+)
 from ._parametric import (
+    BaseParametric,
+    ParametricBlock,
+    ParametricBlockInLayer,
+    ParametricCasingAndLayer,
     ParametricCircleMap,
+    ParametricEllipsoid,
+    ParametricLayer,
     ParametricPolyMap,
     ParametricSplineMap,
-    BaseParametric,
-    ParametricLayer,
-    ParametricBlock,
-    ParametricEllipsoid,
-    ParametricCasingAndLayer,
-    ParametricBlockInLayer,
     TileMap,
 )
-from ._mesh_agnostic import (
-    ExpMap,
-    ReciprocalMap,
-    LogMap,
-    LogisticSigmoidMap,
-    ChiMap,
-    MuRelative,
-    Weighting,
-    ComplexMap,
-)
-from ._injection import Mesh2Mesh, InjectActiveCells
+from ._surjection import Surject2Dto3D, SurjectFull, SurjectUnits, SurjectVertical1D
