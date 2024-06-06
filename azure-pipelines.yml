@@ -241,7 +241,7 @@ stages:
             # Capture hash of last commit in simpeg
             commit=$(git rev-parse --short HEAD)
             # Clone the repo where we store the documentation (dev branch)
-            git clone -b dev --depth 1 https://${GH_TOKEN}@github.com/simpeg/simpeg-doctest.git
+            git clone -q --branch dev --depth 1 https://${GH_TOKEN}@github.com/simpeg/simpeg-doctest.git
             cd simpeg-doctest
             # Remove all files
             shopt -s dotglob  # configure bash to include dotfiles in * globs
@@ -365,7 +365,7 @@ stages:
             # Capture hash of last commit in simpeg
             commit=$(git rev-parse --short HEAD)
             # Clone the repo where we store the documentation
-            git clone --depth 1 https://${GH_TOKEN}@github.com/simpeg/simpeg-doctest.git
+            git clone -q --branch gh-pages --depth 1 https://${GH_TOKEN}@github.com/simpeg/simpeg-doctest.git
             cd simpeg-doctest
             # Move the built docs to a new dev folder
             cp -r $BUILD_SOURCESDIRECTORY/docs/_build/html "$version"
