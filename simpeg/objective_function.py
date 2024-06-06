@@ -9,6 +9,7 @@ from discretize.tests import check_derivative
 from .maps import IdentityMap
 from .props import BaseSimPEG
 from .utils import timeIt, Zero, Identity
+from .typing import RandomSeed
 
 __all__ = ["BaseObjectiveFunction", "ComboObjectiveFunction", "L2ObjectiveFunction"]
 
@@ -194,7 +195,14 @@ class BaseObjectiveFunction(BaseSimPEG):
             )
         )
 
-    def _test_deriv(self, x=None, num=4, plotIt=False, random_seed=None, **kwargs):
+    def _test_deriv(
+        self,
+        x=None,
+        num=4,
+        plotIt=False,
+        random_seed: RandomSeed | None = None,
+        **kwargs,
+    ):
         print("Testing {0!s} Deriv".format(self.__class__.__name__))
         if x is None:
             rng = np.random.default_rng(seed=random_seed)
@@ -204,7 +212,14 @@ class BaseObjectiveFunction(BaseSimPEG):
             lambda m: [self(m), self.deriv(m)], x, num=num, plotIt=plotIt, **kwargs
         )
 
-    def _test_deriv2(self, x=None, num=4, plotIt=False, random_seed=None, **kwargs):
+    def _test_deriv2(
+        self,
+        x=None,
+        num=4,
+        plotIt=False,
+        random_seed: RandomSeed | None = None,
+        **kwargs,
+    ):
         print("Testing {0!s} Deriv2".format(self.__class__.__name__))
         rng = np.random.default_rng(seed=random_seed)
         if x is None:
@@ -222,7 +237,7 @@ class BaseObjectiveFunction(BaseSimPEG):
             **kwargs,
         )
 
-    def test(self, x=None, num=4, random_seed=None, **kwargs):
+    def test(self, x=None, num=4, random_seed: RandomSeed | None = None, **kwargs):
         """Run a convergence test on both the first and second derivatives.
 
         They should be second order!
