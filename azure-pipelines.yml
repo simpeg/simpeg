@@ -26,41 +26,6 @@ pr:
 
 stages:
 
-- stage: Experiment
-  displayName: "Experiment with the repo"
-  jobs:
-    - job:
-      displayName: Experiment with repo
-      pool:
-        vmImage: ubuntu-latest
-      timeoutInMinutes: 240
-      steps:
-
-        # Checkout simpeg repo, including tags.
-        # We need to sync tags and disable shallow depth in order to get the
-        # SimPEG version while building the docs.
-        - checkout: self
-          fetchDepth: 0
-          fetchTags: true
-          displayName: Checkout repository (including tags)
-
-        - script: |
-            pwd
-            git clone -b dev --depth 1 https://${GH_TOKEN}@github.com/simpeg/simpeg-doctest.git
-            cd simpeg-doctest
-            pwd
-            echo "Check dev branch"
-            echo "----------------"
-            git status
-            ls -l
-            echo "Check gh-pages branch"
-            echo "---------------------"
-            git fetch --depth 1 origin gh-pages:gh-pages
-            git switch gh-pages
-            git status
-            ls -l
-          displayName: Clone simpeg-doctest repo
-
 - stage: StyleChecks
   displayName: "Style Checks"
   jobs:
