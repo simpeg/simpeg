@@ -41,7 +41,7 @@ jobs:
               source "${HOME}/conda/etc/profile.d/conda.sh"
               source "${HOME}/conda/etc/profile.d/mamba.sh"
               cp environment_test.yml environment_test_with_pyversion.yml
-              echo "  - python="$(python.version) >> environment_test_with_pyversion.yml
+              echo "  - python="{{ py_vers }} >> environment_test_with_pyversion.yml
               mamba env create -f environment_test_with_pyversion.yml
               rm environment_test_with_pyversion.yml
               conda activate simpeg-test
