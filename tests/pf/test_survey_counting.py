@@ -27,7 +27,9 @@ def test_magnetics_survey():
 
     rx1 = mag.Point(rx_locs, components=rx_components)
     rx2 = mag.Point(rx_locs, components="tmi")
-    src = mag.UniformBackgroundField([rx1, rx2])
+    src = mag.UniformBackgroundField(
+        receiver_list=[rx1, rx2], amplitude=50_000, inclination=90, declination=0
+    )
     survey = mag.Survey(src)
 
     assert rx1.nD == 60
