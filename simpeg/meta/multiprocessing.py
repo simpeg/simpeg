@@ -174,11 +174,11 @@ class _SimulationProcess(Process):
         with self._lock:
             self._check_closed()
             self.task_queue.put(None)
-            super().join(timeout=timeout)
             self.task_queue.close()
             self.result_queue.close()
             self.task_queue.join_thread()
             self.result_queue.join_thread()
+            super().join(timeout=timeout)
 
 
 class MultiprocessingMetaSimulation(MetaSimulation):
