@@ -225,8 +225,10 @@ cbar.set_label(
 # in the case of remanent magnetization.
 #
 
+###############################################################################
 # Define the forward simulation. By setting the 'store_sensitivities' keyword
 # argument to "forward_only", we simulate the data without storing the sensitivities
+
 simulation = magnetics.simulation.Simulation3DIntegral(
     survey=survey,
     mesh=mesh,
@@ -236,7 +238,10 @@ simulation = magnetics.simulation.Simulation3DIntegral(
     store_sensitivities="forward_only",
 )
 
+
+###############################################################################
 # Compute predicted data for some model
+
 dpred = simulation.dpred(model)
 n_data = len(dpred)
 

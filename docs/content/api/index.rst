@@ -57,3 +57,14 @@ Classes for encapsulating many simulations.
   :maxdepth: 2
 
   simpeg.meta
+
+
+Typing
+------
+
+PEP 484 type aliases used in ``simpeg``.
+
+.. toctree::
+  :maxdepth: 1
+
+  simpeg.typing

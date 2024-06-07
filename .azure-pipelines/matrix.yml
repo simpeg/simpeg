@@ -24,6 +24,15 @@ jobs:
             vmImage: ${{ os }}
           timeoutInMinutes: 120
           steps:
+
+          # Checkout simpeg repo, including tags.
+          # We need to sync tags and disable shallow depth in order to get the
+          # SimPEG version while building the docs.
+          - checkout: self
+            fetchDepth: 0
+            fetchTags: true
+            displayName: Checkout repository (including tags)
+
           - script: |
               wget -O Mambaforge.sh  "https://github.com/conda-forge/miniforge/releases/latest/download/Mambaforge-$(uname)-$(uname -m).sh"
               bash Mambaforge.sh -b -p "${HOME}/conda"
@@ -33,7 +42,7 @@ jobs:
               source "${HOME}/conda/etc/profile.d/conda.sh"
               source "${HOME}/conda/etc/profile.d/mamba.sh"
               cp environment_test.yml environment_test_with_pyversion.yml
-              echo "  - python=${{ py_vers }}" >> environment_test_with_pyversion.yml
+              echo "  - python="${{ py_vers }} >> environment_test_with_pyversion.yml
               mamba env create -f environment_test_with_pyversion.yml
               rm environment_test_with_pyversion.yml
               conda activate simpeg-test
@@ -47,6 +56,12 @@ jobs:
               conda activate simpeg-test
               pip install -e .
             displayName: Build package
+
+          - script: |
+              source "${HOME}/conda/etc/profile.d/conda.sh"
+              conda activate simpeg-test
+              python -c "import simpeg; print(simpeg.__version__)"
+            displayName: Check SimPEG version
 
           - script: |
               source "${HOME}/conda/etc/profile.d/conda.sh"
