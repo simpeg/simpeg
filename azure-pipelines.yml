@@ -42,7 +42,7 @@ stages:
 - stage: Testing
   dependsOn: StyleChecks
   jobs:
-    - template: ./.azure-pipelines/matrix.yml
+    - template: ./.azure-pipelines/test.yml
 
 - template: .azure-pipelines/docs.yml
 # - template: .azure-pipelines/pypi.yml
