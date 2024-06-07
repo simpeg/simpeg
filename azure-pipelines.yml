@@ -245,7 +245,7 @@ stages:
             # Capture hash of last commit in simpeg
             commit=$(git rev-parse --short HEAD)
             # Clone the repo where we store the documentation (dev branch)
-            git clone -b dev --depth 1 https://${GH_TOKEN}@github.com/simpeg/simpeg-doctest.git
+            git clone -q --branch dev --depth 1 https://${GH_TOKEN}@github.com/simpeg/simpeg-doctest.git
             cd simpeg-doctest
             # Remove all files
             shopt -s dotglob  # configure bash to include dotfiles in * globs
@@ -266,6 +266,9 @@ stages:
 
             # Update submodule
             # ----------------
+            # Need to fetch the gh-pages branch first (because we clone with
+            # shallow depth)
+            git fetch --depth 1 origin gh-pages:gh-pages
             # Switch to the gh-pages branch
             git switch gh-pages
             # Update the dev submodule
@@ -278,7 +281,7 @@ stages:
             # Make the push quiet just in case there is anything that could
             # leak sensitive information.
             echo -e "\nPushing changes to simpeg/simpeg-doctest (gh-pages branch)."
-            git push -fq origin gh-pages 2>&1 >/dev/null
+            git push -q origin gh-pages 2>&1 >/dev/null
             echo -e "\nFinished updating submodule dev."
 
             # Unset dotglob
@@ -368,7 +371,7 @@ stages:
             # Capture hash of last commit in simpeg
             commit=$(git rev-parse --short HEAD)
             # Clone the repo where we store the documentation
-            git clone --depth 1 https://${GH_TOKEN}@github.com/simpeg/simpeg-doctest.git
+            git clone -q --branch gh-pages --depth 1 https://${GH_TOKEN}@github.com/simpeg/simpeg-doctest.git
             cd simpeg-doctest
             # Move the built docs to a new dev folder
             cp -r $BUILD_SOURCESDIRECTORY/docs/_build/html "$version"
