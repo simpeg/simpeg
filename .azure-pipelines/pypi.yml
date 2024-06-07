@@ -1,0 +1,14 @@
+stages:
+  - stage: PyPI
+    dependsOn:
+      - StyleChecks
+      - Testing
+  jobs:
+    - job: TestPyPI
+      steps:
+        - script: |
+            echo "Running TestPyPI"
+          displayName: "Running TestPyPI"
+
+    - job: PyPI
+      condition: startsWith(variables['build.sourceBranch'], 'refs/tags/')

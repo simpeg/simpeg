@@ -45,4 +45,5 @@ stages:
     - template: ./.azure-pipelines/test.yml
 
 - template: .azure-pipelines/docs.yml
-# - template: .azure-pipelines/pypi.yml
+
+- template: .azure-pipelines/pypi.yml
