@@ -41,9 +41,9 @@ jobs:
           - task: Cache@2
             displayName: conda PKG_DIRS cache
             inputs:
-              key: 'conda | ${{ os }} | ${{ py_vers }}'
+              key: 'conda | "${{ os }}" | "${{ py_vers }}"'
               restoreKeys: |
-                conda | ${{ os }} | ${{ py_vers }}
+                conda | "${{ os }}" | "${{ py_vers }}"
               path: $(CONDA)/pkgs
               cacheHitVar: CACHE_RESTORED
 
