@@ -83,7 +83,7 @@ docs = [
 tests = [
     "simpeg[all,docs]",
     "pytest",
-    "coverage",
+    "pytest-cov",
 ]
 dev = [
     "simpeg[all,style,docs,tests]",
