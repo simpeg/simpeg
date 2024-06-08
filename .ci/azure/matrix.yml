@@ -38,6 +38,10 @@ jobs:
           - bash: echo "##vso[task.prependpath]$CONDA/bin"
             displayName: Add conda to PATH
 
+          - bash: |
+              sudo chown -R $(whoami):$(id -ng) $(CONDA)/pkgs
+            displayName: Fix conda cache directory permissions
+
           - task: Cache@2
             displayName: conda PKG_DIRS cache
             inputs:
