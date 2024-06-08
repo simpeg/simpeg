@@ -9,6 +9,8 @@ then
   conda update --yes -n base conda
 fi
 
+conda info
+
 cp .ci/environment_test.yml environment_test_with_pyversion.yml
 echo "  - python="$PYTHON_VERSION >> environment_test_with_pyversion.yml
 
