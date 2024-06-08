@@ -9,13 +9,21 @@ stages:
       - job: TestPyPI
         # condition: startsWith(variables['build.sourceBranch'], 'refs/heads/main')
         steps:
+
+          # Checkout simpeg repo, including tags.
+          # Sync tags and disable shallow depth to get the SimPEG version.
+          - checkout: self
+            fetchDepth: 0
+            fetchTags: true
+            displayName: "Checkout repository (including tags)"
+
           - task: UsePythonVersion@0
             inputs:
               versionSpec: '3.8'
             displayName: "Setup Python 3.8"
 
           - script: |
-              pip install setuptools_scm wheel twine
+              pip install setuptools setuptools_scm wheel twine
             displayName: "Install build dependencies"
 
           - script: |
