@@ -37,7 +37,7 @@ stages:
         python.version: '3.8'
       steps:
         - script: |
-            pip install -r requirements_style.txt
+            pip install -r .ci/requirements_style.txt
           displayName: "Install dependencies to run the checks"
         - script: make black
           displayName: "Run black"
@@ -50,7 +50,7 @@ stages:
         python.version: '3.8'
       steps:
         - script: |
-            pip install -r requirements_style.txt
+            pip install -r .ci/requirements_style.txt
           displayName: "Install dependencies to run the checks"
         - script: make flake
           displayName: "Run flake8"
@@ -63,7 +63,7 @@ stages:
         python.version: '3.8'
       steps:
         - script: |
-            pip install -r requirements_style.txt
+            pip install -r .ci/requirements_style.txt
           displayName: "Install dependencies to run the checks"
         - script: FLAKE8_OPTS="--exit-zero" make flake-all
           displayName: "Run flake8"
@@ -276,7 +276,6 @@ stages:
           displayName: Setup SimPEG environment
 
         - bash: |
-            source "${HOME}/conda/etc/profile.d/conda.sh"
             conda activate simpeg-test
             export KMP_WARNINGS=0
             make -C docs html

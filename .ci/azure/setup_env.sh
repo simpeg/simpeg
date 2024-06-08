@@ -4,7 +4,7 @@ set -x #echo on
 # TF_BUILD is set to True on azure pipelines.
 if $TF_BUILD
 then
-  conda update -n base conda
+  conda update --yes -n base conda
 fi
 
 cp .ci/environment_test.yml environment_test_with_pyversion.yml
