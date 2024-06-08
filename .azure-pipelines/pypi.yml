@@ -30,6 +30,13 @@ stages:
               python setup.py sdist
             displayName: "Create source distribution for simpeg"
 
+          - script: |
+              twine upload --repository testpypi dist/*
+            displayName: "Upload to Test PyPI"
+            env:
+              TWINE_USERNAME: $(twine.username)
+              TWINE_PASSWORD: $(twine.password)
+
       # Push to PyPI (only after release)
       - job: PyPI
         condition: startsWith(variables['build.sourceBranch'], 'refs/tags/')
