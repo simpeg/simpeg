@@ -8,13 +8,13 @@ Install Python
 
 First you will need to install Python. You can find instructions in
 :ref:`installing_python`. We highly encourage to install Anaconda_ or
-Mambaforge_.
+Miniforge_.
 
 Create environment
 ------------------
 
 To get started developing SimPEG we recommend setting up an environment using
-the ``conda`` (or ``mamba``) package manager that mimics the testing
+the ``conda`` package manager that mimics the testing
 environment used for continuous integration testing. Most of the packages that
 we use are available through the ``conda-forge`` project. This will ensure you
 have all of the necessary packages to both develop SimPEG and run tests
@@ -30,11 +30,19 @@ repository <working-with-github>` and run:
 
 .. note::
 
-    If you find yourself wanting a faster package manager than ``conda``
-    check out the ``mamba`` project at https://mamba.readthedocs.io/. It
-    usually is able to set up environments much quicker than ``conda`` and
-    can be used as a drop-in replacement (i.e. replace ``conda`` commands with
-    ``mamba``).
+    Since `version 23.10.0
+    <https://docs.conda.io/projects/conda/en/latest/release-notes.html#id33>`_,
+    ``conda`` makes use of the ``libmamba`` solver to resolve dependencies. It
+    makes creation of environments and installation of new packages much faster
+    than when using older versions of ``conda``.
+
+    Since this version, ``conda`` can achieve the same performance as
+    ``mamba``, so there's no need to install ``mamba`` if you have an updated
+    version of ``conda``.
+    If not, either `update conda
+    <https://docs.anaconda.com/free/anaconda/install/update-version/>`_, or
+    keep using ``mamba`` instead.
+
 
 Once the environment is successfully created, you can *activate* it with
 
@@ -72,7 +80,7 @@ This practice also allows you to uninstall SimPEG if so desired:
     a way to install SimPEG for developers.
 
 .. _Anaconda: https://www.anaconda.com/products/individual
-.. _Mambaforge: https://www.anaconda.com/products/individual
+.. _Miniforge: https://github.com/conda-forge/miniforge
 
 Check your installation
 -----------------------
@@ -138,3 +146,19 @@ you want to commit them nonetheless.
 .. _pre-commit: https://pre-commit.com/
 .. _Black: https://black.readthedocs.io
 .. _flake8: https://flake8.pycqa.org
+
+
+Update your environment
+-----------------------
+
+Every once in a while, the minimum versions of the packages in the
+``environment.yml`` file get updated. After this happens, it's better to update
+the ``simpeg-test`` environment we have created. This way we ensure that we are
+checking the style and testing our code using those updated versions.
+
+To update our environment we need to navigate to the directory where you
+:ref:`cloned SimPEG's repository <working-with-github>` and run:
+
+.. code::
+
+    conda env update -f environment_test.yml
