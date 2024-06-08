@@ -38,19 +38,6 @@ jobs:
           - bash: echo "##vso[task.prependpath]$CONDA/bin"
             displayName: Add conda to PATH
 
-          - bash: |
-              sudo chown -R $(whoami):$(id -ng) $(CONDA)/pkgs
-            displayName: Fix conda cache directory permissions
-
-          - task: Cache@2
-            displayName: conda PKG_DIRS cache
-            inputs:
-              key: 'conda | "${{ os }}" | "${{ py_vers }}"'
-              restoreKeys: |
-                conda | "${{ os }}" | "${{ py_vers }}"
-              path: $(CONDA)/pkgs
-              cacheHitVar: CACHE_RESTORED
-
           - bash: .ci/azure/setup_env.sh
             displayName: Setup SimPEG environment
 
