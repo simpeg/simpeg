@@ -2,7 +2,7 @@
 set -x #echo on
 
 # TF_BUILD is set to True on azure pipelines.
-is_azure=${TF_BUILD:-false}
+is_azure=$(${TF_BUILD:-false} | tr '[:upper:]' '[:lower:]')
 
 if ${is_azure}
 then
@@ -15,10 +15,13 @@ echo "  - python="$PYTHON_VERSION >> environment_test_with_pyversion.yml
 conda env create --file environment_test_with_pyversion.yml
 rm environment_test_with_pyversion.yml
 
-source activate simpeg-test
+
 if ${is_azure}
 then
+  source activate simpeg-test
   pip install pytest-azurepipelines
+else
+  conda activate simpeg-test
 fi
 
 pip install --no-deps -e .

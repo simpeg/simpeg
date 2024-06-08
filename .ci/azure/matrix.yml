@@ -41,7 +41,7 @@ jobs:
           - bash: .ci/azure/setup_env.sh
             displayName: Setup SimPEG environment
 
-          - bash: .ci/azure/run_tests.sh
+          - bash: .ci/azure/run_tests_with_coverage.sh
             displayName: 'Testing ${{ test }}'
 
           - task: PublishPipelineArtifact@1
