@@ -73,7 +73,7 @@ class BaseFDEMSimulation(BaseEMSimulation):
         forward_only=False,
         permittivity=None,
         storeJ=False,
-        **kwargs
+        **kwargs,
     ):
         super().__init__(mesh=mesh, survey=survey, **kwargs)
         self.forward_only = forward_only
