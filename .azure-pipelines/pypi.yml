@@ -7,7 +7,7 @@ stages:
 
       # Push to TestPyPI (only after push to main)
       - job: TestPyPI
-        # condition: startsWith(variables['build.sourceBranch'], 'refs/heads/main')
+        condition: startsWith(variables['build.sourceBranch'], 'refs/heads/main')
         steps:
 
           # Checkout simpeg repo, including tags.
