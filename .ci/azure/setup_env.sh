@@ -13,7 +13,7 @@ echo "  - python="$PYTHON_VERSION >> environment_test_with_pyversion.yml
 conda env create --force --file environment_test_with_pyversion.yml
 rm environment_test_with_pyversion.yml
 
-conda activate simpeg-test
+source activate simpeg-test
 if $TF_BUILD
 then
   pip install pytest-azurepipelines
