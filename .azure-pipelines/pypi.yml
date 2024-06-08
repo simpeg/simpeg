@@ -4,11 +4,24 @@ stages:
       - StyleChecks
       - Testing
     jobs:
-      - job: TestPyPI
-        steps:
-          - script: |
-              echo "Running TestPyPI"
-            displayName: "Running TestPyPI"
 
+      # Push to TestPyPI (only after push to main)
+      - job: TestPyPI
+        # condition: startsWith(variables['build.sourceBranch'], 'refs/heads/main')
+        steps:
+          - task: UsePythonVersion@0
+            inputs:
+              versionSpec: '3.8'
+            displayName: "Setup Python 3.8"
+
+          - script: |
+              pip install setuptools_scm wheel twine
+            displayName: "Install build dependencies"
+
+          - script: |
+              python setup.py sdist
+            displayName: "Create source distribution for simpeg"
+
+      # Push to PyPI (only after release)
       - job: PyPI
         condition: startsWith(variables['build.sourceBranch'], 'refs/tags/')
