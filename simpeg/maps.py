@@ -9,6 +9,7 @@ from scipy.interpolate import UnivariateSpline
 from scipy.constants import mu_0
 from scipy.sparse import csr_matrix as csr
 from scipy.special import expit, logit
+import uuid
 
 from discretize.tests import check_derivative
 from discretize import TensorMesh, CylindricalMesh
@@ -80,6 +81,8 @@ class IdentityMap:
                 ) from err
         self.mesh = mesh
         self._nP = nP
+
+        self._uuid = uuid.uuid4()
 
         super().__init__(**kwargs)
 

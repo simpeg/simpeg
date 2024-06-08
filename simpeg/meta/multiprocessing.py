@@ -1,3 +1,4 @@
+import threading
 from multiprocessing import Process, Queue, cpu_count
 from simpeg.meta import MetaSimulation, SumMetaSimulation, RepeatedSimulation
 from simpeg.props import HasModel
@@ -8,10 +9,9 @@ import numpy as np
 class SimpleFuture:
     """Represents an object stored on a seperate simulation process."""
 
-    def __init__(self, item_id, t_queue, r_queue):
+    def __init__(self, item_id, sim_process):
         self.item_id = item_id
-        self.t_queue = t_queue
-        self.r_queue = r_queue
+        self.sim_process = sim_process
 
     # This doesn't quite work well yet,
     # Due to the fact that some fields objects from the PDE
@@ -25,13 +25,8 @@ class SimpleFuture:
     #     return item
 
     def __del__(self):
-        # Tell the child process that this object is no longer needed in its cache.
-        try:
-            self.t_queue.put(("del_item", (self.item_id,)))
-        except ValueError:
-            # if the queue was already closed it will throw a value error
-            # so catch it here gracefully and continue on.
-            pass
+        if self.sim_process.is_alive():
+            self.sim_process.task_queue.put(("dec_ref", (self.item_id,)))
 
 
 class _SimulationProcess(Process):
@@ -47,6 +42,7 @@ class _SimulationProcess(Process):
         super().__init__()
         self.task_queue = Queue()
         self.result_queue = Queue()
+        self._lock = threading.RLock()
 
     def run(self):
         # everything here is local to the process
@@ -124,7 +120,7 @@ class _SimulationProcess(Process):
         self._check_closed()
         self.task_queue.put(("set_sim", (sim,)))
         key = self.result_queue.get()
-        future = SimpleFuture(key, self.task_queue, self.result_queue)
+        future = SimpleFuture(key, self)
         self._my_sim = future
         return future
 
@@ -138,7 +134,7 @@ class _SimulationProcess(Process):
         sim = self._my_sim
         self.task_queue.put((1, (sim.item_id,)))
         key = self.result_queue.get()
-        future = SimpleFuture(key, self.task_queue, self.result_queue)
+        future = SimpleFuture(key, self)
         return future
 
     def start_dpred(self, f_future):
@@ -175,13 +171,14 @@ class _SimulationProcess(Process):
         return self.result_queue.get()
 
     def join(self, timeout=None):
-        self._check_closed()
-        self.task_queue.put(None)
-        self.task_queue.close()
-        self.result_queue.close()
-        self.task_queue.join_thread()
-        self.result_queue.join_thread()
-        super().join(timeout=timeout)
+        with self._lock:
+            self._check_closed()
+            self.task_queue.put(None)
+            self.task_queue.close()
+            self.result_queue.close()
+            self.task_queue.join_thread()
+            self.result_queue.join_thread()
+            super().join(timeout=timeout)
 
 
 class MultiprocessingMetaSimulation(MetaSimulation):
