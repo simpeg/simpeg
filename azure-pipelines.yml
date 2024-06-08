@@ -65,8 +65,10 @@ stages:
         - script: |
             pip install -r .ci/requirements_style.txt
           displayName: "Install dependencies to run the checks"
-        - script: FLAKE8_OPTS="--exit-zero" make flake-all
+        - script: make flake-all
           displayName: "Run flake8"
+          env:
+            FLAKE8_OPTS: "--exit-zero"
 
 - stage: Testing
   dependsOn: StyleChecks
