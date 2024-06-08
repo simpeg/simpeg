@@ -22,6 +22,9 @@ jobs:
           pool:
             vmImage: ${{ os }}
           timeoutInMinutes: 120
+          variables:
+            python.version: ${{ py_vers }}
+            test.target: ${{ test }}
           steps:
 
           # Checkout simpeg repo, including tags.
@@ -32,42 +35,13 @@ jobs:
             fetchTags: true
             displayName: Checkout repository (including tags)
 
-          - script: |
-              wget -O Mambaforge.sh  "https://github.com/conda-forge/miniforge/releases/latest/download/Mambaforge-$(uname)-$(uname -m).sh"
-              bash Mambaforge.sh -b -p "${HOME}/conda"
-            displayName: Install mamba
+          - bash: echo "##vso[task.prependpath]$CONDA/bin"
+            displayName: Add conda to PATH
 
-          - script: |
-              source "${HOME}/conda/etc/profile.d/conda.sh"
-              source "${HOME}/conda/etc/profile.d/mamba.sh"
-              cp environment_test.yml environment_test_with_pyversion.yml
-              echo "  - python="${{ py_vers }} >> environment_test_with_pyversion.yml
-              mamba env create -f environment_test_with_pyversion.yml
-              rm environment_test_with_pyversion.yml
-              conda activate simpeg-test
-              pip install pytest-azurepipelines
-              echo "\nList installed packages"
-              conda list
-            displayName: Create Anaconda testing environment
+          - bash: .ci/azure/setup_env.sh
+            displayName: Setup SimPEG environment
 
-          - script: |
-              source "${HOME}/conda/etc/profile.d/conda.sh"
-              conda activate simpeg-test
-              pip install -e .
-            displayName: Build package
-
-          - script: |
-              source "${HOME}/conda/etc/profile.d/conda.sh"
-              conda activate simpeg-test
-              python -c "import simpeg; print(simpeg.__version__)"
-            displayName: Check SimPEG version
-
-          - script: |
-              source "${HOME}/conda/etc/profile.d/conda.sh"
-              conda activate simpeg-test
-              coverage run -m pytest ${{ test }} -v - W ignore::DeprecationWarning
-              coverage xml
-              coverage html
+          - bash: .ci/azure/run_tests.sh
             displayName: 'Testing ${{ test }}'
 
           - task: PublishPipelineArtifact@1
