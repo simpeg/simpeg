@@ -106,7 +106,7 @@ class ComplicatedInversion(props.HasModel):
         AMap=None,
         gamma=4.74,
         gammaMap=None,
-        **kwargs
+        **kwargs,
     ):
         super().__init__(**kwargs)
         self.Ks = Ks
