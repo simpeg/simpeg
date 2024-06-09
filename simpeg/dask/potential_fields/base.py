@@ -43,7 +43,7 @@ Sim.residual = dask_residual
 
 
 def dask_linear_operator(self):
-    forward_only = self.store_sensitivities is None
+    forward_only = self.store_sensitivities == "forward_only"
     row = delayed(self.evaluate_integral, pure=True)
     n_cells = self.nC
     if getattr(self, "model_type", None) == "vector":
@@ -112,3 +112,8 @@ def dask_linear_operator(self):
 
 
 Sim.linear_operator = dask_linear_operator
+
+def compute_J(self):
+    return self.getJ(self.model)
+
+Sim.compute_J = compute_J
