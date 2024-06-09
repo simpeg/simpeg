@@ -1,5 +1,5 @@
 import numpy as np
-from .utils import Counter, sdiag, timeIt, Identity, validate_type
+from .utils import Counter, mkvc, sdiag, timeIt, Identity, validate_type
 from .data import Data
 from .simulation import BaseSimulation
 from .objective_function import L2ObjectiveFunction
