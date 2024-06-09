@@ -36,11 +36,24 @@ class BaseDataMisfit(L2ObjectiveFunction):
         Assign a SimPEG ``Counter`` object to store iterations and run-times.
     """
 
-    def __init__(self, data, simulation, debug=False, counter=None, **kwargs):
+    def __init__(self, data, simulation, model_map=None, debug=False, counter=None, **kwargs):
         super().__init__(has_fields=True, debug=debug, counter=counter, **kwargs)
 
         self.data = data
         self.simulation = simulation
+
+        self.model_map = model_map
+
+    @property
+    def model_map(self):
+        return getattr(self, "_model_map", None)
+
+    @model_map.setter
+    def model_map(self, value):
+        if value is None:
+            value = Identity()
+        self._model_map = value
+        self._has_fields = True
 
     @property
     def data(self):

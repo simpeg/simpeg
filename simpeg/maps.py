@@ -6147,7 +6147,7 @@ class TileMap(IdentityMap):
         self._components = validate_integer("components", components, min_val=1)
         self.enforce_active = enforce_active
         # trigger creation of P
-        self._projection = None
+        _ = self.projection
 
     @property
     def global_mesh(self):
