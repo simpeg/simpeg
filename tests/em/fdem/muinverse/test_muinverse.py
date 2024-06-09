@@ -1,6 +1,6 @@
 import discretize
-from SimPEG import maps, utils, tests
-from SimPEG.electromagnetics import frequency_domain as fdem
+from simpeg import maps, utils, tests
+from simpeg.electromagnetics import frequency_domain as fdem
 import numpy as np
 
 import unittest
@@ -18,8 +18,9 @@ def setupMeshModel():
     hz = [(cs, npad, -1.3), (cs, nc), (cs, npad, 1.3)]
 
     mesh = discretize.CylindricalMesh([hx, 1.0, hz], "0CC")
-    muMod = 1 + MuMax * np.random.randn(mesh.nC)
-    sigmaMod = np.random.randn(mesh.nC)
+    rng = np.random.default_rng(seed=2016)
+    muMod = 1 + MuMax * rng.normal(size=mesh.nC)
+    sigmaMod = rng.normal(size=mesh.nC)
 
     return mesh, muMod, sigmaMod
 
@@ -149,7 +150,8 @@ class MuTests(unittest.TestCase):
         MfMuiIDeriv_zero = self.simulation.MfMuiIDeriv(utils.Zero())
         MeMuDeriv_zero = self.simulation.MeMuDeriv(utils.Zero())
 
-        m1 = np.random.rand(self.mesh.nC)
+        rng = np.random.default_rng(seed=2016)
+        m1 = rng.uniform(size=self.mesh.nC)
         self.simulation.model = m1
 
         self.assertTrue(getattr(self, "_MeMu", None) is None)
@@ -168,7 +170,6 @@ class MuTests(unittest.TestCase):
         self.setUpProb(prbtype, sigmaInInversion, invertMui)
         print("Testing Jvec {}".format(prbtype))
 
-        np.random.seed(3321)
         mod = self.m0
 
         def fun(x):
@@ -177,9 +178,11 @@ class MuTests(unittest.TestCase):
                 lambda x: self.simulation.Jvec(mod, x),
             )
 
-        dx = np.random.rand(*mod.shape) * (mod.max() - mod.min()) * 0.01
+        rng = np.random.default_rng(seed=3321)
+        dx = rng.uniform(size=mod.shape) * (mod.max() - mod.min()) * 0.01
 
-        return tests.check_derivative(fun, mod, dx=dx, num=3, plotIt=False)
+        np.random.seed(1983)  # set a random seed for check_derivative
+        return tests.check_derivative(fun, mod, dx=dx, num=4, plotIt=False)
 
     def JtvecTest(
         self, prbtype="ElectricField", sigmaInInversion=False, invertMui=False
@@ -187,9 +190,9 @@ class MuTests(unittest.TestCase):
         self.setUpProb(prbtype, sigmaInInversion, invertMui)
         print("Testing Jvec {}".format(prbtype))
 
-        np.random.seed(31345)
-        u = np.random.rand(self.simulation.muMap.nP)
-        v = np.random.rand(self.survey.nD)
+        rng = np.random.default_rng(seed=3321)
+        u = rng.uniform(size=self.simulation.muMap.nP)
+        v = rng.uniform(size=self.survey.nD)
 
         self.simulation.model = self.m0
 

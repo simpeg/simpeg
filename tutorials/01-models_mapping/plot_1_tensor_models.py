@@ -20,8 +20,8 @@ tensor meshes. Some things we consider are:
 
 from discretize import TensorMesh
 from discretize.utils import active_from_xyz
-from SimPEG.utils import mkvc, model_builder
-from SimPEG import maps
+from simpeg.utils import mkvc, model_builder
+from simpeg import maps
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -210,7 +210,9 @@ model_map = maps.InjectActiveCells(mesh, ind_active, air_value)
 model = background_value * np.ones(ind_active.sum())
 
 # Add a sphere
-ind_sphere = model_builder.getIndicesSphere(np.r_[-25.0, 0.0, -15.0], 20.0, mesh.gridCC)
+ind_sphere = model_builder.get_indices_sphere(
+    np.r_[-25.0, 0.0, -15.0], 20.0, mesh.gridCC
+)
 ind_sphere = ind_sphere[ind_active]  # So it's same size and order as model
 model[ind_sphere] = sphere_value
 
@@ -313,7 +315,9 @@ N = int(ind_active.sum())
 model = np.kron(np.ones((N, 1)), np.c_[background_sigma, background_myu])
 
 # Add a conductive and permeable sphere
-ind_sphere = model_builder.getIndicesSphere(np.r_[-25.0, 0.0, -15.0], 20.0, mesh.gridCC)
+ind_sphere = model_builder.get_indices_sphere(
+    np.r_[-25.0, 0.0, -15.0], 20.0, mesh.gridCC
+)
 ind_sphere = ind_sphere[ind_active]  # So same size and order as model
 model[ind_sphere, :] = np.c_[sphere_sigma, sphere_mu]
 

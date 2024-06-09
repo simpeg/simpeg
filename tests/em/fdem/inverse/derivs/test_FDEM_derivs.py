@@ -1,8 +1,8 @@
 import unittest
 import numpy as np
-from SimPEG import tests
+from simpeg import tests
 from scipy.constants import mu_0
-from SimPEG.electromagnetics.utils.testing_utils import getFDEMProblem
+from simpeg.electromagnetics.utils.testing_utils import getFDEMProblem
 
 testE = False
 testB = True
@@ -29,19 +29,18 @@ SrcType = [
 
 def derivTest(fdemType, comp, src):
     prb = getFDEMProblem(fdemType, comp, SrcType, freq)
-    # prb.solverOpts = dict(check_accuracy=True)
 
     print(f"{fdemType} formulation {src} - {comp}")
     x0 = np.log(np.ones(prb.sigmaMap.nP) * CONDUCTIVITY)
-    # mu = np.log(np.ones(prb.mesh.nC)*MU)
 
     if addrandoms is True:
-        x0 = x0 + np.random.randn(prb.sigmaMap.nP) * np.log(CONDUCTIVITY) * 1e-1
-        # mu = mu + np.random.randn(prb.sigmaMap.nP)*MU*1e-1
+        rng = np.random.default_rng(seed=42)
+        x0 = x0 + rng.normal(size=prb.sigmaMap.nP) * np.log(CONDUCTIVITY) * 1e-1
 
     def fun(x):
         return prb.dpred(x), lambda x: prb.Jvec(x0, x)
 
+    np.random.seed(1983)  # set a random seed for check_derivative
     return tests.check_derivative(fun, x0, num=2, plotIt=False, eps=FLR)
 
 

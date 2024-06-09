@@ -5,7 +5,7 @@ import numpy as np
 from discretize import TensorMesh
 from discretize.utils import mesh_builder_xyz, mkvc, refine_tree_xyz
 
-from SimPEG import (
+from simpeg import (
     data_misfit,
     directives,
     inverse_problem,
@@ -15,9 +15,7 @@ from SimPEG import (
     regularization,
     utils,
 )
-from SimPEG.potential_fields import gravity, magnetics
-
-np.random.seed(44)
+from simpeg.potential_fields import gravity, magnetics
 
 
 class QuadTreeLinProblemTest(unittest.TestCase):
@@ -101,13 +99,19 @@ class QuadTreeLinProblemTest(unittest.TestCase):
                 relative_error=0.0,
                 noise_floor=noise_floor,
                 add_noise=True,
+                random_seed=44,
             )
 
         def create_magnetics_sim_flat(self, block_value=1.0, noise_floor=0.01):
             # Create a magnetic survey
-            H0 = (50000.0, 90.0, 0.0)
+            h0_amplitude, h0_inclination, h0_declination = (50000.0, 90.0, 0.0)
             mag_rxLoc = magnetics.Point(data_xyz_flat)
-            mag_srcField = magnetics.SourceField([mag_rxLoc], parameters=H0)
+            mag_srcField = magnetics.UniformBackgroundField(
+                [mag_rxLoc],
+                amplitude=h0_amplitude,
+                inclination=h0_inclination,
+                declination=h0_declination,
+            )
             mag_survey = magnetics.Survey(mag_srcField)
 
             # Create the magnetics forward model operator
@@ -128,6 +132,7 @@ class QuadTreeLinProblemTest(unittest.TestCase):
                 relative_error=0.0,
                 noise_floor=noise_floor,
                 add_noise=True,
+                random_seed=44,
             )
 
         def create_gravity_sim(self, block_value=1.0, noise_floor=0.01):
@@ -154,13 +159,19 @@ class QuadTreeLinProblemTest(unittest.TestCase):
                 relative_error=0.0,
                 noise_floor=noise_floor,
                 add_noise=True,
+                random_seed=1,
             )
 
         def create_magnetics_sim(self, block_value=1.0, noise_floor=0.01):
             # Create a magnetic survey
-            H0 = (50000.0, 90.0, 0.0)
+            h0_amplitude, h0_inclination, h0_declination = (50000.0, 90.0, 0.0)
             mag_rxLoc = magnetics.Point(data_xyz)
-            mag_srcField = magnetics.SourceField([mag_rxLoc], parameters=H0)
+            mag_srcField = magnetics.UniformBackgroundField(
+                [mag_rxLoc],
+                amplitude=h0_amplitude,
+                inclination=h0_inclination,
+                declination=h0_declination,
+            )
             mag_survey = magnetics.Survey(mag_srcField)
 
             # Create the magnetics forward model operator
@@ -181,6 +192,7 @@ class QuadTreeLinProblemTest(unittest.TestCase):
                 relative_error=0.0,
                 noise_floor=noise_floor,
                 add_noise=True,
+                random_seed=1,
             )
 
         def create_gravity_sim_active(self, block_value=1.0, noise_floor=0.01):
@@ -188,9 +200,6 @@ class QuadTreeLinProblemTest(unittest.TestCase):
             grav_rxLoc = gravity.Point(data_xyz)
             grav_srcField = gravity.SourceField([grav_rxLoc])
             grav_survey = gravity.Survey(grav_srcField)
-
-            # Set only non-zero cells as active
-            self.active_cells = ~(self.model == 0.0)
 
             # Create the gravity forward model operator
             self.grav_sim_active = gravity.SimulationEquivalentSourceLayer(
@@ -211,13 +220,19 @@ class QuadTreeLinProblemTest(unittest.TestCase):
                 relative_error=0.0,
                 noise_floor=noise_floor,
                 add_noise=True,
+                random_seed=1,
             )
 
         def create_magnetics_sim_active(self, block_value=1.0, noise_floor=0.01):
             # Create a magnetic survey
-            H0 = (50000.0, 90.0, 0.0)
+            h0_amplitude, h0_inclination, h0_declination = (50000.0, 90.0, 0.0)
             mag_rxLoc = magnetics.Point(data_xyz)
-            mag_srcField = magnetics.SourceField([mag_rxLoc], parameters=H0)
+            mag_srcField = magnetics.UniformBackgroundField(
+                receiver_list=[mag_rxLoc],
+                amplitude=h0_amplitude,
+                inclination=h0_inclination,
+                declination=h0_declination,
+            )
             mag_survey = magnetics.Survey(mag_srcField)
 
             # Create the magnetics forward model operator
@@ -239,6 +254,7 @@ class QuadTreeLinProblemTest(unittest.TestCase):
                 relative_error=0.0,
                 noise_floor=noise_floor,
                 add_noise=True,
+                random_seed=1,
             )
 
         def create_inversion(self, sim, data, beta=1e3, all_active=True):
@@ -268,7 +284,7 @@ class QuadTreeLinProblemTest(unittest.TestCase):
                 lower=-1.0,
                 upper=1.0,
                 maxIterLS=5,
-                maxIterCG=10,
+                maxIterCG=20,
                 tolCG=1e-4,
             )
 
@@ -315,7 +331,7 @@ class QuadTreeLinProblemTest(unittest.TestCase):
 
         # Create a density model and generate data,
         # with a block in a half space
-        self.model = utils.model_builder.addBlock(
+        self.model = utils.model_builder.add_block(
             self.mesh.cell_centers,
             np.zeros(self.mesh.nC),
             np.r_[-20, -20],
@@ -323,9 +339,17 @@ class QuadTreeLinProblemTest(unittest.TestCase):
             1.0,
         )
 
+        self.active_cells = utils.model_builder.add_block(
+            self.mesh.cell_centers,
+            np.zeros(self.mesh.nC, dtype=bool),
+            np.r_[-40, -40],
+            np.r_[40, 40],
+            True,
+        )
+
         # Set only non-zero cells as active. Some tests use all cells
         # (by not using `self.active_cells`), and others use the active cells
-        self.active_cells = ~(self.model == 0.0)
+        # self.active_cells = ~(self.model == 0.0)
 
         # Create reduced identity maps. Two versions: for the all-active
         # and the active-subset models
@@ -440,8 +464,6 @@ class QuadTreeLinProblemTest(unittest.TestCase):
         print("Z_TOP OR Z_BOTTOM LENGTH MATCHING NACTIVE-CELLS ERROR TEST PASSED.")
 
     def test_quadtree_grav_inverse(self):
-        np.random.seed(44)
-
         # Run the inversion from a zero starting model
         mrec = self.grav_inv.run(np.zeros(self.mesh.nC))
 
@@ -456,12 +478,10 @@ class QuadTreeLinProblemTest(unittest.TestCase):
         self.assertAlmostEqual(model_residual, 0.1, delta=0.1)
 
         # Check data converged to less than 10% of target misfit
-        data_misfit = 2.0 * self.grav_inv.invProb.dmisfit(self.grav_model)
+        data_misfit = self.grav_inv.invProb.dmisfit(self.grav_model)
         self.assertLess(data_misfit, dpred.shape[0] * 1.15)
 
     def test_quadtree_mag_inverse(self):
-        np.random.seed(44)
-
         # Run the inversion from a zero starting model
         mrec = self.mag_inv.run(np.zeros(self.mesh.nC))
 
@@ -476,12 +496,10 @@ class QuadTreeLinProblemTest(unittest.TestCase):
         self.assertAlmostEqual(model_residual, 0.01, delta=0.05)
 
         # Check data converged to less than 10% of target misfit
-        data_misfit = 2.0 * self.mag_inv.invProb.dmisfit(self.mag_model)
+        data_misfit = self.mag_inv.invProb.dmisfit(self.mag_model)
         self.assertLess(data_misfit, dpred.shape[0] * 1.1)
 
     def test_quadtree_grav_inverse_activecells(self):
-        np.random.seed(44)
-
         # Run the inversion from a zero starting model
         mrec = self.grav_inv_active.run(np.zeros(int(self.active_cells.sum())))
 
@@ -495,19 +513,26 @@ class QuadTreeLinProblemTest(unittest.TestCase):
         # Wide difference in results run locally (0.04) versus the pipeline
         # (0.21), so seems to need unusually large tolerance.
         print("MODEL RESIDUAL: {}".format(model_residual))
-        self.assertAlmostEqual(model_residual, 0.14, delta=0.1)
+        self.assertAlmostEqual(model_residual, 0.1, delta=0.1)
 
         # Check data converged to less than 10% of target misfit
-        data_misfit = 2.0 * self.grav_inv_active.invProb.dmisfit(
+        data_misfit = self.grav_inv_active.invProb.dmisfit(
             self.grav_model[self.active_cells]
         )
         self.assertLess(data_misfit, dpred.shape[0] * 1.1)
 
     def test_quadtree_mag_inverse_activecells(self):
-        np.random.seed(44)
-
         # Run the inversion from a zero starting model
         mrec = self.mag_inv_active.run(np.zeros(int(self.active_cells.sum())))
+
+        # import matplotlib.pyplot as plt
+        #
+        # fig = plt.figure()
+        # ax = plt.subplot()
+        # m_out = np.zeros(self.mesh.nC) * np.nan
+        # m_out[self.active_cells] = mrec
+        # self.mesh.plot_image(m_out, ax=ax)
+        # fig.savefig("mrec.png")
 
         # Compute predicted data
         dpred = self.mag_sim_active.dpred(self.mag_model[self.active_cells])
@@ -517,10 +542,10 @@ class QuadTreeLinProblemTest(unittest.TestCase):
             mrec - self.mag_model[self.active_cells]
         ) / np.linalg.norm(self.mag_model[self.active_cells])
         print("MODEL RESIDUAL: {}".format(model_residual))
-        self.assertAlmostEqual(model_residual, 0.11, delta=0.05)
+        self.assertAlmostEqual(model_residual, 0.01, delta=0.05)
 
         # Check data converged to less than 10% of target misfit
-        data_misfit = 2.0 * self.mag_inv_active.invProb.dmisfit(
+        data_misfit = self.mag_inv_active.invProb.dmisfit(
             self.mag_model[self.active_cells]
         )
         self.assertLess(data_misfit, dpred.shape[0] * 1.1)

@@ -1,22 +1,16 @@
 import numpy as np
 import pytest
 
-from SimPEG.electromagnetics import frequency_domain as fdem
-from SimPEG.electromagnetics import time_domain as tdem
+from simpeg.electromagnetics import frequency_domain as fdem
+from simpeg.electromagnetics import time_domain as tdem
 
 
-def test_receiver_properties_validation():
+def test_removed_projcomp():
+    """Test if passing the removed `projComp` argument raises an error."""
     xyz = np.c_[0.0, 0.0, 0.0]
-    projComp = "Fx"
-    rx = fdem.receivers.BaseRx(xyz, projComp=projComp)
-
-    assert rx.projComp == projComp
-
-    with pytest.raises(ValueError):
-        fdem.receivers.BaseRx(xyz, component="potato")
-
-    with pytest.raises(TypeError):
-        fdem.receivers.BaseRx(xyz, component=2.0)
+    msg = "'projComp' property has been removed."
+    with pytest.raises(TypeError, match=msg):
+        fdem.receivers.BaseRx(xyz, projComp="foo")
 
 
 def test_source_properties_validation():
@@ -50,12 +44,13 @@ def test_source_properties_validation():
     # LineCurrent
     with pytest.raises(TypeError):
         fdem.sources.LineCurrent([], frequency, location=["a", "b", "c"])
+    rng = np.random.default_rng(seed=42)
+    random_locations = rng.normal(size=(5, 3, 2))
     with pytest.raises(ValueError):
-        fdem.sources.LineCurrent([], frequency, location=np.random.rand(5, 3, 2))
+        fdem.sources.LineCurrent([], frequency, location=random_locations)
+    random_locations = rng.normal(size=(5, 3))
     with pytest.raises(ValueError):
-        fdem.sources.LineCurrent(
-            [], frequency, location=np.random.rand(5, 3), current=0.0
-        )
+        fdem.sources.LineCurrent([], frequency, location=random_locations, current=0.0)
 
 
 def test_bad_source_type():

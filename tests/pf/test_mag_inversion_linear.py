@@ -1,7 +1,7 @@
 import unittest
 import discretize
 from discretize.utils import active_from_xyz
-from SimPEG import (
+from simpeg import (
     utils,
     maps,
     regularization,
@@ -13,17 +13,15 @@ from SimPEG import (
 )
 import numpy as np
 
-# import SimPEG.PF as PF
-from SimPEG.potential_fields import magnetics as mag
+# import simpeg.PF as PF
+from simpeg.potential_fields import magnetics as mag
 import shutil
 
 
 class MagInvLinProblemTest(unittest.TestCase):
     def setUp(self):
-        np.random.seed(0)
-
         # Define the inducing field parameter
-        H0 = (50000, 90, 0)
+        h0_amplitude, h0_inclination, h0_declination = (50000, 90, 0)
 
         # Create a mesh
         dx = 5.0
@@ -59,7 +57,12 @@ class MagInvLinProblemTest(unittest.TestCase):
         # Create a MAGsurvey
         rxLoc = np.c_[utils.mkvc(X.T), utils.mkvc(Y.T), utils.mkvc(Z.T)]
         rxLoc = mag.Point(rxLoc)
-        srcField = mag.SourceField([rxLoc], parameters=H0)
+        srcField = mag.UniformBackgroundField(
+            receiver_list=[rxLoc],
+            amplitude=h0_amplitude,
+            inclination=h0_inclination,
+            declination=h0_declination,
+        )
         survey = mag.Survey(srcField)
 
         # We can now create a susceptibility model and generate data
@@ -88,13 +91,17 @@ class MagInvLinProblemTest(unittest.TestCase):
 
         # Compute linear forward operator and compute some data
         data = sim.make_synthetic_data(
-            self.model, relative_error=0.0, noise_floor=1.0, add_noise=True
+            self.model,
+            relative_error=0.0,
+            noise_floor=1.0,
+            add_noise=True,
+            random_seed=2,
         )
 
         # Create a regularization
-        reg = regularization.Sparse(self.mesh, indActive=actv, mapping=idenMap)
+        reg = regularization.Sparse(self.mesh, active_cells=actv, mapping=idenMap)
         reg.norms = [0, 0, 0, 0]
-        reg.gradientType = "components"
+        reg.gradient_type = "components"
 
         # Data misfit function
         dmis = data_misfit.L2DataMisfit(simulation=sim, data=data)
@@ -110,7 +117,7 @@ class MagInvLinProblemTest(unittest.TestCase):
         # Here is where the norms are applied
         IRLS = directives.Update_IRLS(f_min_change=1e-4, minGNiter=1)
         update_Jacobi = directives.UpdatePreconditioner()
-        sensitivity_weights = directives.UpdateSensitivityWeights(everyIter=False)
+        sensitivity_weights = directives.UpdateSensitivityWeights(every_iteration=False)
         self.inv = inversion.BaseInversion(
             invProb, directiveList=[IRLS, sensitivity_weights, betaest, update_Jacobi]
         )

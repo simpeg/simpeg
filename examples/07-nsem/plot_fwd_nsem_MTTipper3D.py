@@ -4,20 +4,20 @@ MT: 3D: Forward
 
 Forward model 3D MT data.
 
-Test script to use SimPEG.NSEM platform to forward model
+Test script to use simpeg.NSEM platform to forward model
 impedance and tipper synthetic data.
 """
 
 import discretize
-from SimPEG.electromagnetics import natural_source as NSEM
-from SimPEG import utils
+from simpeg.electromagnetics import natural_source as NSEM
+from simpeg import utils
 import numpy as np
 import matplotlib.pyplot as plt
 
 try:
     from pymatsolver import Pardiso as Solver
 except ImportError:
-    from SimPEG import Solver
+    from simpeg import Solver
 
 
 def run(plotIt=True):
@@ -40,7 +40,7 @@ def run(plotIt=True):
     )
     # Setup the model
     conds = [1, 1e-2]
-    sig = utils.model_builder.defineBlock(
+    sig = utils.model_builder.create_block_in_wholespace(
         M.gridCC, [-100, -100, -350], [100, 100, -150], conds
     )
     sig[M.gridCC[:, 2] > 0] = 1e-8

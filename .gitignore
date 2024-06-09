@@ -17,6 +17,7 @@ develop-eggs
 .installed.cfg
 lib
 lib64
+.idea
 __pycache__
 
 # Installer logs
@@ -48,13 +49,16 @@ docs/content/api/generated/*
 docs/content/examples/*
 docs/content/tutorials/*
 docs/modules/*
+docs/sg_execution_times.rst
 .vscode/*
 
 # paths to where data are downloaded
+examples/04-dcip/test_url/*
 examples/20-published/bookpurnong_inversion/*
 examples/20-published/._bookpurnong_inversion
 examples/20-published/*.tar.gz
 examples/20-published/*.png
+examples/20-published/Chile_GRAV_4_Miller/*
 tutorials/03-gravity/gravity/*
 tutorials/03-gravity/outputs/*
 tutorials/04-magnetics/magnetics/*
@@ -88,3 +92,6 @@ tutorials/13-joint_inversion/cross_gradient_data/*
 *.npy
 *.mod
 *.tar.gz
+
+# setuptools_scm
+simpeg/version.py

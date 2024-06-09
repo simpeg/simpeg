@@ -13,7 +13,7 @@ Highlights
 ==========
 * PGI formulation by @thast
 * Refactoring of ``static_utils.py``
-* :func:`SimPEG.electromagnetics.frequency_domain.sources.LineCurrent` source
+* :func:`simpeg.electromagnetics.frequency_domain.sources.LineCurrent` source
 * Updates for DC Boundary Conditions
 * Bug fixes!
 
@@ -44,7 +44,7 @@ Boundary Conditions
 ===================
 With the most recent ``0.7.0`` version of ``discretize``, we have updated the DC boundary
 conditions to flexibly support more mesh types. As part of this, we have also changed
-the default boundary condition for the simulations in ``SimPEG.electromagnetics.static.resistivity``
+the default boundary condition for the simulations in ``simpeg.electromagnetics.static.resistivity``
 to be the ``Robin`` type condition (equivalent to the ``Mixed`` option previously).
 This enables both Pole-Pole solutions for the nodal formulation (something that was not
 possible previously). We also caught a error in the 2D DC resistivity simulations'
@@ -52,7 +52,7 @@ previous ``Mixed`` boundary condition option that caused incorrect results.
 
 Static Utils
 ============
-The ``static_utils`` module within ``SimPEG.electromagnetics.static.resistivity`` has
+The ``static_utils`` module within ``simpeg.electromagnetics.static.resistivity`` has
 been given a pass through with many internal changes to make it more flexible in its
 handling of dc resitivity surveys. Wenner-type arrays should be better supported by
 the psuedosection plotting utility. It now also includes a 3D psuedosection plotting

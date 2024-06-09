@@ -36,9 +36,9 @@ import tarfile
 
 from discretize import TensorMesh
 from discretize.utils import active_from_xyz
-from SimPEG.utils import plot2Ddata
-from SimPEG.potential_fields import gravity, magnetics
-from SimPEG import (
+from simpeg.utils import plot2Ddata
+from simpeg.potential_fields import gravity, magnetics
+from simpeg import (
     maps,
     data,
     data_misfit,
@@ -196,11 +196,13 @@ receiver_mag = magnetics.receivers.Point(receiver_locations, components=componen
 inclination = 90
 declination = 0
 strength = 50000
-inducing_field = (strength, inclination, declination)
 
 # Define the source field and survey for gravity data
-source_field_mag = magnetics.sources.SourceField(
-    receiver_list=[receiver_mag], parameters=inducing_field
+source_field_mag = magnetics.sources.UniformBackgroundField(
+    receiver_list=[receiver_mag],
+    amplitude=strength,
+    inclination=inclination,
+    declination=declination,
 )
 survey_mag = magnetics.survey.Survey(source_field_mag)
 
@@ -273,9 +275,21 @@ starting_model = np.r_[background_dens * np.ones(nC), background_susc * np.ones(
 # Here, we define the physics of the gravity and magnetic problems by using the simulation
 # class.
 #
+# .. tip::
+#
+#    Since SimPEG v0.21.0 we can use `Choclo
+#    <https://www.fatiando.org/choclo>`_ as the engine for running the gravity
+#    simulations, which results in faster and more memory efficient runs. Just
+#    pass ``engine="choclo"`` when constructing the simulation.
+#
+
 
 simulation_grav = gravity.simulation.Simulation3DIntegral(
-    survey=survey_grav, mesh=mesh, rhoMap=wires.density, ind_active=ind_active
+    survey=survey_grav,
+    mesh=mesh,
+    rhoMap=wires.density,
+    ind_active=ind_active,
+    engine="choclo",
 )
 
 simulation_mag = magnetics.simulation.Simulation3DIntegral(
@@ -308,15 +322,15 @@ dmis_mag = data_misfit.L2DataMisfit(data=data_object_mag, simulation=simulation_
 
 # Define the regularization (model objective function).
 reg_grav = regularization.WeightedLeastSquares(
-    mesh, indActive=ind_active, mapping=wires.density
+    mesh, active_cells=ind_active, mapping=wires.density
 )
 reg_mag = regularization.WeightedLeastSquares(
-    mesh, indActive=ind_active, mapping=wires.susceptibility
+    mesh, active_cells=ind_active, mapping=wires.susceptibility
 )
 
 # Define the coupling term to connect two different physical property models
 lamda = 2e12  # weight for coupling term
-cross_grad = regularization.CrossGradient(mesh, wires, indActive=ind_active)
+cross_grad = regularization.CrossGradient(mesh, wires, active_cells=ind_active)
 
 # combo
 dmis = dmis_grav + dmis_mag
@@ -363,7 +377,7 @@ joint_inv_dir = directives.SimilarityMeasureInversionDirective()
 
 stopping = directives.MovingAndMultiTargetStopping(tol=1e-6)
 
-sensitivity_weights = directives.UpdateSensitivityWeights(everyIter=False)
+sensitivity_weights = directives.UpdateSensitivityWeights(every_iteration=False)
 
 # Updating the preconditionner if it is model dependent.
 update_jacobi = directives.UpdatePreconditioner()

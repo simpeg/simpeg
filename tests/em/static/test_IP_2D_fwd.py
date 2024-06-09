@@ -1,15 +1,15 @@
 import unittest
 import discretize
 
-from SimPEG import utils, maps
+from simpeg import utils, maps
 import numpy as np
-from SimPEG.electromagnetics import resistivity as dc
-from SimPEG.electromagnetics import induced_polarization as ip
+from simpeg.electromagnetics import resistivity as dc
+from simpeg.electromagnetics import induced_polarization as ip
 
 try:
     from pymatsolver import Pardiso as Solver
 except ImportError:
-    from SimPEG import SolverLU as Solver
+    from simpeg import SolverLU as Solver
 
 
 class IPProblemAnalyticTests(unittest.TestCase):
@@ -39,7 +39,7 @@ class IPProblemAnalyticTests(unittest.TestCase):
         surveyDC = dc.Survey([src0, src1])
 
         sigmaInf = np.ones(mesh.nC) * 1.0
-        blkind = utils.model_builder.getIndicesSphere(np.r_[0, -150], 40, mesh.gridCC)
+        blkind = utils.model_builder.get_indices_sphere(np.r_[0, -150], 40, mesh.gridCC)
 
         eta = np.zeros(mesh.nC)
         eta[blkind] = 0.1
@@ -148,7 +148,7 @@ class ApparentChargeability2DTest(unittest.TestCase):
         survey_ip = ip.Survey([src0_ip, src1_ip])
 
         sigmaInf = np.ones(mesh.nC) * 1.0
-        blkind = utils.model_builder.getIndicesSphere(np.r_[0, -150], 40, mesh.gridCC)
+        blkind = utils.model_builder.get_indices_sphere(np.r_[0, -150], 40, mesh.gridCC)
 
         eta = np.zeros(mesh.nC)
         eta[blkind] = 0.05

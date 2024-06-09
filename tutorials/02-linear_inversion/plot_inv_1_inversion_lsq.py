@@ -25,7 +25,7 @@ import matplotlib.pyplot as plt
 
 from discretize import TensorMesh
 
-from SimPEG import (
+from simpeg import (
     simulation,
     maps,
     data_misfit,

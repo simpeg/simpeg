@@ -33,9 +33,9 @@ import tarfile
 
 from discretize import TensorMesh
 from discretize.utils import active_from_xyz
-from SimPEG.utils import plot2Ddata, model_builder
-from SimPEG.potential_fields import gravity
-from SimPEG import (
+from simpeg.utils import plot2Ddata, model_builder
+from simpeg.potential_fields import gravity
+from simpeg import (
     maps,
     data,
     data_misfit,
@@ -208,9 +208,20 @@ starting_model = np.zeros(nC)
 # Here, we define the physics of the gravity problem by using the simulation
 # class.
 #
+# .. tip::
+#
+#    Since SimPEG v0.21.0 we can use `Choclo
+#    <https://www.fatiando.org/choclo>`_ as the engine for running the gravity
+#    simulations, which results in faster and more memory efficient runs. Just
+#    pass ``engine="choclo"`` when constructing the simulation.
+#
 
 simulation = gravity.simulation.Simulation3DIntegral(
-    survey=survey, mesh=mesh, rhoMap=model_map, ind_active=ind_active
+    survey=survey,
+    mesh=mesh,
+    rhoMap=model_map,
+    ind_active=ind_active,
+    engine="choclo",
 )
 
 
@@ -267,10 +278,6 @@ update_IRLS = directives.Update_IRLS(
     beta_tol=1e-2,
 )
 
-# Defining the fractional decrease in beta and the number of Gauss-Newton solves
-# for each beta value.
-beta_schedule = directives.BetaSchedule(coolingFactor=5, coolingRate=1)
-
 # Options for outputting recovered models and predicted data for each beta.
 save_iteration = directives.SaveOutputEveryIteration(save_txt=False)
 
@@ -278,14 +285,13 @@ save_iteration = directives.SaveOutputEveryIteration(save_txt=False)
 update_jacobi = directives.UpdatePreconditioner()
 
 # Add sensitivity weights
-sensitivity_weights = directives.UpdateSensitivityWeights(everyIter=False)
+sensitivity_weights = directives.UpdateSensitivityWeights(every_iteration=False)
 
 # The directives are defined as a list.
 directives_list = [
     update_IRLS,
     sensitivity_weights,
     starting_beta,
-    beta_schedule,
     save_iteration,
     update_jacobi,
 ]
@@ -331,7 +337,9 @@ ind_block = (
 true_model[ind_block] = block_density
 
 # You can also use SimPEG utilities to add structures to the model more concisely
-ind_sphere = model_builder.getIndicesSphere(np.r_[35.0, 0.0, -40.0], 15.0, mesh.gridCC)
+ind_sphere = model_builder.get_indices_sphere(
+    np.r_[35.0, 0.0, -40.0], 15.0, mesh.gridCC
+)
 ind_sphere = ind_sphere[ind_active]
 true_model[ind_sphere] = sphere_density
 

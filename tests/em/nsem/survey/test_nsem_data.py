@@ -1,5 +1,5 @@
 import numpy as np
-from SimPEG.electromagnetics.natural_source.survey import Data
+from simpeg.electromagnetics.natural_source.survey import Data
 
 
 class TestNSEMData:

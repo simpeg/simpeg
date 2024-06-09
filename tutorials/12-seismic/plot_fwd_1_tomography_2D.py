@@ -2,7 +2,7 @@
 Forward Simulation for Straight Ray Tomography in 2D
 ====================================================
 
-Here we module *SimPEG.seismic.straight_ray_tomography* to predict arrival
+Here we module *simpeg.seismic.straight_ray_tomography* to predict arrival
 time data for a synthetic velocity/slowness model. In this tutorial, we focus on the following:
 
     - How to define the survey
@@ -24,9 +24,9 @@ import matplotlib.pyplot as plt
 
 from discretize import TensorMesh
 
-from SimPEG import maps
-from SimPEG.seismic import straight_ray_tomography as tomo
-from SimPEG.utils import model_builder
+from simpeg import maps
+from simpeg.seismic import straight_ray_tomography as tomo
+from simpeg.utils import model_builder
 
 save_file = False
 
@@ -94,7 +94,7 @@ block_velocity = 1500.0
 # Define the model. Models in SimPEG are vector arrays.
 model = background_velocity * np.ones(mesh.nC)
 
-ind_block = model_builder.getIndicesBlock(np.r_[-50, 20], np.r_[50, -20], mesh.gridCC)
+ind_block = model_builder.get_indices_block(np.r_[-50, 20], np.r_[50, -20], mesh.gridCC)
 model[ind_block] = block_velocity
 
 # Define a mapping from the model (velocity) to the slowness. If your model
@@ -170,7 +170,7 @@ if save_file:
     dir_path.extend(["tutorials", "seismic", "assets"])
     dir_path = os.path.sep.join(dir_path) + os.path.sep
 
-    noise = 0.05 * dpred * np.random.rand(len(dpred))
+    noise = 0.05 * dpred * np.random.randn(len(dpred))
 
     data_array = np.c_[
         np.kron(x, np.ones(n_receiver)),

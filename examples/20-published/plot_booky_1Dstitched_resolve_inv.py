@@ -7,7 +7,7 @@ data. The original data can be downloaded from:
 `https://storage.googleapis.com/simpeg/bookpurnong/bookpurnong.tar.gz <https://storage.googleapis.com/simpeg/bookpurnong/bookpurnong.tar.gz>`_
 
 The forward simulation is performed on the cylindrically symmetric mesh using
-:code:`SimPEG.electromagnetics.frequency_domain`.
+:code:`simpeg.electromagnetics.frequency_domain`.
 
     Lindsey J. Heagy, Rowan Cockett, Seogi Kang, Gudni K. Rosenkjaer, Douglas
     W. Oldenburg, A framework for simulation and inversion in electromagnetics,
@@ -32,7 +32,7 @@ from scipy.constants import mu_0
 from scipy.spatial import cKDTree
 
 import discretize
-from SimPEG import (
+from simpeg import (
     maps,
     utils,
     data_misfit,
@@ -43,7 +43,7 @@ from SimPEG import (
     directives,
     data,
 )
-from SimPEG.electromagnetics import frequency_domain as FDEM
+from simpeg.electromagnetics import frequency_domain as FDEM
 
 
 def download_and_unzip_data(
@@ -127,7 +127,7 @@ def resolve_1Dinversions(
     # regularization
     regMesh = discretize.TensorMesh([mesh.h[2][mapping.maps[-1].indActive]])
     reg = regularization.WeightedLeastSquares(regMesh)
-    reg.mref = mref
+    reg.reference_model = mref
 
     # optimization
     opt = optimization.InexactGaussNewton(maxIter=10)

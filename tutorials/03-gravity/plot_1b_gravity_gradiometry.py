@@ -2,7 +2,7 @@
 Forward Simulation of Gradiometry Data on a Tree Mesh
 =====================================================
 
-Here we use the module *SimPEG.potential_fields.gravity* to predict gravity
+Here we use the module *simpeg.potential_fields.gravity* to predict gravity
 gradiometry data for a synthetic density contrast model. The simulation is
 carried out on a tree mesh. For this tutorial, we focus on the following:
 
@@ -26,9 +26,9 @@ import matplotlib.pyplot as plt
 
 from discretize import TreeMesh
 from discretize.utils import mkvc, refine_tree_xyz, active_from_xyz
-from SimPEG.utils import plot2Ddata, model_builder
-from SimPEG import maps
-from SimPEG.potential_fields import gravity
+from simpeg.utils import plot2Ddata, model_builder
+from simpeg import maps
+from simpeg.potential_fields import gravity
 
 # sphinx_gallery_thumbnail_number = 2
 
@@ -160,7 +160,9 @@ ind_block = (
 model[ind_block] = block_density
 
 # You can also use SimPEG utilities to add structures to the model more concisely
-ind_sphere = model_builder.getIndicesSphere(np.r_[35.0, 0.0, -40.0], 15.0, mesh.gridCC)
+ind_sphere = model_builder.get_indices_sphere(
+    np.r_[35.0, 0.0, -40.0], 15.0, mesh.gridCC
+)
 ind_sphere = ind_sphere[ind_active]
 model[ind_sphere] = sphere_density
 
@@ -199,17 +201,33 @@ plt.show()
 # formulation.
 #
 
-# Define the forward simulation. By setting the 'store_sensitivities' keyword
-# argument to "forward_only", we simulate the data without storing the sensitivities
+###############################################################################
+# Define the forward simulation. By setting the ``store_sensitivities`` keyword
+# argument to ``"forward_only"``, we simulate the data without storing the
+# sensitivities
+#
+
 simulation = gravity.simulation.Simulation3DIntegral(
     survey=survey,
     mesh=mesh,
     rhoMap=model_map,
     ind_active=ind_active,
     store_sensitivities="forward_only",
+    engine="choclo",
 )
 
+###############################################################################
+# .. tip::
+#
+#    Since SimPEG v0.21.0 we can use `Choclo
+#    <https://www.fatiando.org/choclo>`_ as the engine for running the gravity
+#    simulations, which results in faster and more memory efficient runs. Just
+#    pass ``engine="choclo"`` when constructing the simulation.
+#
+
+###############################################################################
 # Compute predicted data for some model
+
 dpred = simulation.dpred(model)
 n_data = len(dpred)
 
@@ -265,6 +283,6 @@ norm = mpl.colors.Normalize(vmin=-v_max, vmax=v_max)
 cbar = mpl.colorbar.ColorbarBase(
     ax4, norm=norm, orientation="vertical", cmap=mpl.cm.bwr
 )
-cbar.set_label("$mgal/m$", rotation=270, labelpad=15, size=12)
+cbar.set_label("Eotvos", rotation=270, labelpad=15, size=12)
 
 plt.show()

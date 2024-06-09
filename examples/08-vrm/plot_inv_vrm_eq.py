@@ -16,10 +16,10 @@ the same as in the forward modeling example. To remove the VRM signal we:
 # --------------
 #
 
-from SimPEG.electromagnetics import viscous_remanent_magnetization as VRM
+from simpeg.electromagnetics import viscous_remanent_magnetization as VRM
 import numpy as np
 import discretize
-from SimPEG import (
+from simpeg import (
     utils,
     maps,
     data_misfit,
@@ -196,7 +196,10 @@ w = utils.mkvc((np.sum(np.array(problem_inv.A) ** 2, axis=0))) ** 0.5
 w = w / np.max(w)
 w = w
 
-reg = regularization.Smallness(mesh=mesh, indActive=actCells, cell_weights=w)
+reg = regularization.Smallness(
+    mesh=mesh, active_cells=actCells, weights={"cell_weights": w}
+)
+
 opt = optimization.ProjectedGNCG(
     maxIter=20, lower=0.0, upper=1e-2, maxIterLS=20, tolCG=1e-4
 )

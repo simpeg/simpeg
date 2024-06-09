@@ -1,9 +1,9 @@
 import unittest
 
-# from SimPEG import Mesh, PF
+# from simpeg import Mesh, PF
 import discretize
-from SimPEG.potential_fields import magnetics as mag
-from SimPEG.utils.model_builder import getIndicesSphere
+from simpeg.potential_fields import magnetics as mag
+from simpeg.utils.model_builder import get_indices_sphere
 import numpy as np
 from scipy.constants import mu_0
 
@@ -21,7 +21,7 @@ class TestBoundaryConditionAnalytics(unittest.TestCase):
         chibkg = 0.0
         chiblk = 0.01
         chi = np.ones(M3.nC) * chibkg
-        sph_ind = getIndicesSphere([0, 0, 0], 100, M3.gridCC)
+        sph_ind = get_indices_sphere([0, 0, 0], 100, M3.gridCC)
         chi[sph_ind] = chiblk
         Bbc, const = mag.analytics.CongruousMagBC(M3, np.array([1.0, 0.0, 0.0]), chi)
 

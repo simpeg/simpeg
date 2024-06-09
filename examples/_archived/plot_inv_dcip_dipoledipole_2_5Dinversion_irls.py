@@ -20,9 +20,9 @@ But if you want share edges of the model, you can try:
 
 """
 
-from SimPEG.electromagnetics.static import resistivity as DC
-from SimPEG.electromagnetics.static.utils import generate_dcip_survey, genTopography
-from SimPEG import (
+from simpeg.electromagnetics.static import resistivity as DC
+from simpeg.electromagnetics.static.utils import generate_dcip_survey, genTopography
+from simpeg import (
     maps,
     utils,
     data_misfit,
@@ -41,7 +41,7 @@ from pylab import hist
 try:
     from pymatsolver import Pardiso as Solver
 except ImportError:
-    from SimPEG import SolverLU as Solver
+    from simpeg import SolverLU as Solver
 
 
 def run(plotIt=True, survey_type="dipole-dipole", p=0.0, qx=2.0, qz=2.0):
@@ -74,10 +74,10 @@ def run(plotIt=True, survey_type="dipole-dipole", p=0.0, qx=2.0, qz=2.0):
     survey.drape_electrodes_on_topography(mesh, actind, option="top")
 
     # Build a conductivity model
-    blk_inds_c = utils.model_builder.getIndicesSphere(
+    blk_inds_c = utils.model_builder.get_indices_sphere(
         np.r_[60.0, -25.0], 12.5, mesh.gridCC
     )
-    blk_inds_r = utils.model_builder.getIndicesSphere(
+    blk_inds_r = utils.model_builder.get_indices_sphere(
         np.r_[140.0, -25.0], 12.5, mesh.gridCC
     )
     sigma = np.ones(mesh.nC) * 1.0 / 100.0
@@ -155,9 +155,8 @@ def run(plotIt=True, survey_type="dipole-dipole", p=0.0, qx=2.0, qz=2.0):
 
     # Related to inversion
     reg = regularization.Sparse(
-        mesh, indActive=actind, mapping=regmap, gradientType="components"
+        mesh, active_cells=actind, mapping=regmap, gradient_type="components"
     )
-    #     gradientType = 'components'
     reg.norms = [p, qx, qz, 0.0]
     IRLS = directives.Update_IRLS(
         max_irls_iterations=20, minGNiter=1, beta_search=False, fix_Jmatrix=True

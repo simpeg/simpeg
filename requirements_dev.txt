@@ -24,3 +24,4 @@ pre-commit
 twine
 memory_profiler
 plotly
+setuptools_scm
