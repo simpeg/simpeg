@@ -15,39 +15,39 @@ jobs:
           fetchTags: true
           displayName: Checkout repository (including tags)
 
-        - script: |
-            wget -O Mambaforge.sh  "https://github.com/conda-forge/miniforge/releases/latest/download/Mambaforge-$(uname)-$(uname -m).sh"
-            bash Mambaforge.sh -b -p "${HOME}/conda"
-          displayName: Install mamba
+        # - script: |
+        #     wget -O Mambaforge.sh  "https://github.com/conda-forge/miniforge/releases/latest/download/Mambaforge-$(uname)-$(uname -m).sh"
+        #     bash Mambaforge.sh -b -p "${HOME}/conda"
+        #   displayName: Install mamba
+        #
+        # - script: |
+        #     source "${HOME}/conda/etc/profile.d/conda.sh"
+        #     source "${HOME}/conda/etc/profile.d/mamba.sh"
+        #     cp environment_test.yml environment_test_with_pyversion.yml
+        #     echo "  - python="$(python.version) >> environment_test_with_pyversion.yml
+        #     mamba env create -f environment_test_with_pyversion.yml
+        #     rm environment_test_with_pyversion.yml
+        #     conda activate simpeg-test
+        #     pip install pytest-azurepipelines
+        #     echo "\nList installed packages"
+        #     conda list
+        #   displayName: Create Anaconda testing environment
+        #
+        # - script: |
+        #     source "${HOME}/conda/etc/profile.d/conda.sh"
+        #     conda activate simpeg-test
+        #     pip install -e .
+        #   displayName: Build package
+        #
+        # - script: |
+        #     source "${HOME}/conda/etc/profile.d/conda.sh"
+        #     conda activate simpeg-test
+        #     python -c "import simpeg; print(simpeg.__version__)"
+        #   displayName: Check SimPEG version
 
         - script: |
             source "${HOME}/conda/etc/profile.d/conda.sh"
-            source "${HOME}/conda/etc/profile.d/mamba.sh"
-            cp environment_test.yml environment_test_with_pyversion.yml
-            echo "  - python="$(python.version) >> environment_test_with_pyversion.yml
-            mamba env create -f environment_test_with_pyversion.yml
-            rm environment_test_with_pyversion.yml
-            conda activate simpeg-test
-            pip install pytest-azurepipelines
-            echo "\nList installed packages"
-            conda list
-          displayName: Create Anaconda testing environment
-
-        - script: |
-            source "${HOME}/conda/etc/profile.d/conda.sh"
-            conda activate simpeg-test
-            pip install -e .
-          displayName: Build package
-
-        - script: |
-            source "${HOME}/conda/etc/profile.d/conda.sh"
-            conda activate simpeg-test
-            python -c "import simpeg; print(simpeg.__version__)"
-          displayName: Check SimPEG version
-
-        - script: |
-            source "${HOME}/conda/etc/profile.d/conda.sh"
-            conda activate simpeg-test
+            # conda activate simpeg-test
             # KMP_WARNINGS=0 make -C docs html
             mkdir -p docs/_build/html
             echo "hello world" docs/_build/html/index.html
@@ -88,5 +88,6 @@ jobs:
           displayName: 'Download docs artifact'
 
         - bash: |
-            ls -l
-            ls -l html
+            ls -la
+            ls -la docs
+            ls -la docs/_build
