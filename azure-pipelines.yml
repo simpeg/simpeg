@@ -28,8 +28,6 @@ stages:
 
 - stage: StyleChecks
   displayName: "Style Checks"
-  variables:
-    python.version: '3.11'
   jobs:
     - job:
       displayName: Run style checks with Black
@@ -38,7 +36,7 @@ stages:
       steps:
         - task: UsePythonVersion@0
           inputs:
-            versionSpec: ${{ python.version }}
+            versionSpec: "3.11"
         - bash: .ci/install_style.sh
           displayName: "Install dependencies to run the checks"
         - script: make black
@@ -51,7 +49,7 @@ stages:
       steps:
         - task: UsePythonVersion@0
           inputs:
-            versionSpec: ${{ python.version }}
+            versionSpec: "3.11"
         - bash: .ci/install_style.sh
           displayName: "Install dependencies to run the checks"
         - script: make flake
@@ -64,7 +62,7 @@ stages:
       steps:
         - task: UsePythonVersion@0
           inputs:
-            versionSpec: ${{ python.version }}
+            versionSpec: "3.11"
         - bash: .ci/install_style.sh
           displayName: "Install dependencies to run the checks"
         - script: make flake-all
