@@ -3,18 +3,18 @@ jobs:
     steps:
       # Set variable for future use
       - bash: |
-          pythonVersion=$(python --version)
-          echo "##vso[task.setvariable variable=myOutputVar;isoutput=true]$pythonVersion"
+          git_version=$(git --version)
+          echo "##vso[task.setvariable variable=git_version;isoutput=true]$git_version"
         name: pythonVersion
 
   - job: Second
     dependsOn: First
     variables:
-      pythonVersion: $[ dependencies.First.outputs['passOutput.myOutputVar'] ]
+      git_version: $[ dependencies.First.outputs['passOutput.git_version'] ]
       docsRepo: github.com/simpeg/simpeg-doctest.git
     steps:
       - bash: |
-          echo "Python version: $pythonVersion"
+          echo "Git version: $git_version"
 
       - bash: |
-          git clone -q --branch gh-pages --depth 1 https://${GH_TOKEN}@$(docs_repo)
+          git clone -q --branch gh-pages --depth 1 https://${GH_TOKEN}@$(docsRepo)
