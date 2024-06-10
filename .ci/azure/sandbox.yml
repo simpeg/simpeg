@@ -6,11 +6,12 @@ jobs:
           git_version=$(git --version)
           echo "$git_version"
           echo "##vso[task.setvariable variable=git_version;isoutput=true]$git_version"
+        name: git_version
 
   - job: Second
     dependsOn: First
     variables:
-      git_version: $[ dependencies.First.outputs['passOutput.git_version'] ]
+      git_version: $[ dependencies.First.outputs['git_version.git_version'] ]
       docsRepo: github.com/simpeg/simpeg-doctest.git
     steps:
       - bash: |
