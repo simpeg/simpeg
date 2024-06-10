@@ -1,6 +1,7 @@
 from __future__ import annotations  # needed to use type operands in Python 3.8
 
 from pathlib import Path
+from datetime import datetime
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -50,7 +51,8 @@ from ..utils.code_utils import (
 
 from geoh5py.workspace import Workspace
 from geoh5py.objects import ObjectBase
-from datetime import datetime
+from geoh5py.ui_json.utils import fetch_active_workspace
+
 
 
 class InversionDirective:
@@ -3029,10 +3031,49 @@ class SaveIterationsGeoH5(InversionDirective):
 
         return self.reshape(np.hstack(dpred))
 
-    def save_components(self, iteration: int, values: list[np.ndarray] = None):
+    def apply_transformations(self, prop: np.ndarray) -> np.ndarray:
         """
-        Sort, transform and store data per components and channels.
+        Re-order the values and apply transformations.
         """
+        prop = prop.flatten()
+        for fun in self.transforms:
+            if isinstance(fun, (IdentityMap, np.ndarray, float)):
+                prop = fun * prop
+            else:
+                prop = fun(prop)
+
+        if prop.ndim == 2:
+            prop = prop.T.flatten()
+
+        prop = prop.reshape((len(self.channels), len(self.components), -1))
+
+        return prop
+
+    def get_names(
+        self, component: str, channel: str, iteration: int
+    ) -> tuple[str, str]:
+        """
+        Format the data and property_group name.
+        """
+        base_name = f"Iteration_{iteration}"
+        if len(component) > 0:
+            base_name += f"_{component}"
+
+        channel_name = base_name
+        if channel:
+            channel_name += f"_{channel}"
+
+        if self.label is not None:
+            channel_name += f"_{self.label}"
+            base_name += f"_{self.label}"
+
+        return channel_name, base_name
+
+    def get_values(self, values: list[np.ndarray] | None):
+        """
+        Get values for the inversion depending on the output type.
+        """
+        prop = self.invProb.model
         if values is not None:
             prop = self.stack_channels(values)
         elif self.attribute_type == "predicted":
@@ -3047,28 +3088,27 @@ class SaveIterationsGeoH5(InversionDirective):
             prop = self.stack_channels(dpred)
         elif self.attribute_type == "sensitivities":
             for directive in self.inversion.directiveList.dList:
-                if isinstance(directive, UpdateSensitivityWeights):
+                if isinstance(directive, directives.UpdateSensitivityWeights):
                     prop = self.reshape(np.sum(directive.JtJdiag, axis=0) ** 0.5)
-        else:
-            prop = self.invProb.model
+
+        return prop
+
+    def save_components(  # flake8: noqa
+        self, iteration: int, values: list[np.ndarray] = None
+    ):
+        """
+        Sort, transform and store data per components and channels.
+        """
+        prop = self.get_values(values)
 
         # Apply transformations
-        prop = prop.flatten()
-        for fun in self.transforms:
-            if isinstance(fun, (IdentityMap, np.ndarray, float)):
-                prop = fun * prop
-            else:
-                prop = fun(prop)
+        prop = self.apply_transformations(prop)
 
-        if prop.ndim == 2:
-            prop = prop.T.flatten()
-
-        prop = prop.reshape((len(self.channels), len(self.components), -1))
-
-        with Workspace(self._h5_file) as w_s:
+        # Save results
+        with fetch_active_workspace(self._geoh5, mode="r+") as w_s:
             h5_object = w_s.get_entity(self.h5_object)[0]
             for cc, component in enumerate(self.components):
-                if component not in self.data_type.keys():
+                if component not in self.data_type:
                     self.data_type[component] = {}
 
                 for ii, channel in enumerate(self.channels):
@@ -3077,17 +3117,9 @@ class SaveIterationsGeoH5(InversionDirective):
                     if self.sorting is not None:
                         values = values[self.sorting]
 
-                    base_name = f"Iteration_{iteration}"
-                    if len(component) > 0:
-                        base_name += f"_{component}"
-
-                    channel_name = base_name
-                    if channel:
-                        channel_name += f"_{channel}"
-
-                    if self.label is not None:
-                        channel_name += f"_{self.label}"
-                        base_name += f"_{self.label}"
+                    channel_name, base_name = self.get_names(
+                        component, channel, iteration
+                    )
 
                     data = h5_object.add_data(
                         {
@@ -3116,14 +3148,14 @@ class SaveIterationsGeoH5(InversionDirective):
         """
         Write update to file.
         """
-        dirpath = Path(self._h5_file).parent
+        dirpath = Path(self._geoh5.h5file).parent
         filepath = dirpath / "SimPEG.out"
 
         if iteration == 0:
-            with open(filepath, "w") as f:
+            with open(filepath, "w", encoding="utf-8") as f:
                 f.write("iteration beta phi_d phi_m time\n")
 
-        with open(filepath, "a") as f:
+        with open(filepath, "a", encoding="utf-8") as f:
             date_time = datetime.now().strftime("%b-%d-%Y:%H:%M:%S")
             f.write(
                 f"{iteration} {self.invProb.beta:.3e} {self.invProb.phi_d:.3e} "
@@ -3134,9 +3166,9 @@ class SaveIterationsGeoH5(InversionDirective):
         """
         Save iteration metrics to comments.
         """
-        dirpath = Path(self._h5_file).parent
+        dirpath = Path(self._geoh5.h5file).parent
 
-        with Workspace(self._h5_file) as w_s:
+        with fetch_active_workspace(self._geoh5, mode="r+") as w_s:
             h5_object = w_s.get_entity(self.h5_object)[0]
 
             for file in ["SimPEG.out", "SimPEG.log"]:
@@ -3227,7 +3259,7 @@ class SaveIterationsGeoH5(InversionDirective):
             )
 
         self._h5_object = entity.uid
-        self._h5_file = entity.workspace.h5file
+        self._geoh5 = entity.workspace
 
         if getattr(entity, "n_cells", None) is not None:
             self.association = "CELL"
@@ -3246,6 +3278,7 @@ class SaveIterationsGeoH5(InversionDirective):
             )
 
         self._association = value.upper()
+
 
 
 class VectorInversion(InversionDirective):
