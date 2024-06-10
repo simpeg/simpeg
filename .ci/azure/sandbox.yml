@@ -3,8 +3,8 @@ jobs:
     steps:
       # Set variable for future use
       - bash: |
-        python_version=$(python --version)
-        echo "##vso[task.setvariable variable=python_version;isoutput=true]Python version"
+          python_version=$(python --version)
+          echo "##vso[task.setvariable variable=python_version;isoutput=true]Python version"
         name: python_version
 
   - job: Second
