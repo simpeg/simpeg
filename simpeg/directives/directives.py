@@ -496,6 +496,74 @@ class BetaEstimateMaxDerivative(BaseBetaEstimator):
         self.invProb.beta = self.beta0
 
 
+class BetaEstimateDerivative(BaseBetaEstimator):
+    r"""Estimate initial trade-off parameter (beta) using largest derivatives.
+
+    The initial trade-off parameter (beta) is estimated by scaling the ratio
+    between the largest derivatives in the gradient of the data misfit and
+    model objective function. The estimated trade-off parameter is used to
+    update the **beta** property in the associated :class:`simpeg.inverse_problem.BaseInvProblem`
+    object prior to running the inversion. A separate directive is used for updating the
+    trade-off parameter at successive beta iterations; see :class:`BetaSchedule`.
+
+    Parameters
+    ----------
+    beta0_ratio: float
+        Desired ratio between data misfit and model objective function at initial beta iteration.
+    seed : None or :class:`~simpeg.typing.RandomSeed`, optional
+        Random seed used for random sampling. It can either be an int,
+        a predefined Numpy random number generator, or any valid input to
+        ``numpy.random.default_rng``.
+
+    Notes
+    -----
+    Let :math:`\phi_d` represent the data misfit, :math:`\phi_m` represent the model
+    objective function and :math:`\mathbf{m_0}` represent the starting model. The first
+    model update is obtained by minimizing the a global objective function of the form:
+
+    .. math::
+        \phi (\mathbf{m_0}) = \phi_d (\mathbf{m_0}) + \beta_0 \phi_m (\mathbf{m_0})
+
+    where :math:`\beta_0` represents the initial trade-off parameter (beta).
+
+    We define :math:`\gamma` as the desired ratio between the data misfit and model objective
+    functions at the initial beta iteration (defined by the 'beta0_ratio' input argument).
+    Here, the initial trade-off parameter is computed according to:
+
+    .. math::
+        \beta_0 = \gamma \frac{| \nabla_m \phi_d (\mathbf{m_0}) |_{max}}{| \nabla_m \phi_m (\mathbf{m_0 + \delta m}) |_{max}}
+
+    where
+
+    .. math::
+        \delta \mathbf{m} = \frac{m_{max}}{\mu_{max}} \boldsymbol{\mu}
+
+    and :math:`\boldsymbol{\mu}` is a set of independent samples from the
+    continuous uniform distribution between 0 and 1.
+
+    """
+
+    def __init__(self, beta0_ratio=1.0, seed: RandomSeed | None = None, **kwargs):
+        super().__init__(beta0_ratio=beta0_ratio, seed=seed, **kwargs)
+
+    def initialize(self):
+        rng = np.random.default_rng(seed=self.seed)
+
+        if self.verbose:
+            print("Calculating the beta0 parameter.")
+
+        m = self.invProb.model
+
+        x0 = rng.random(size=m.shape)
+        phi_d_deriv = self.dmisfit.deriv2(m, x0)
+        t = np.dot(x0, phi_d_deriv)
+        reg = self.reg.deriv2(m, v=x0)
+        b = np.dot(x0, reg)
+        self.ratio = np.asarray(t / b)
+        self.beta0 = self.beta0_ratio * self.ratio
+        self.invProb.beta = self.beta0
+
+
 class BetaEstimate_ByEig(BaseBetaEstimator):
     r"""Estimate initial trade-off parameter (beta) by power iteration.
 
