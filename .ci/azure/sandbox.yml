@@ -10,8 +10,8 @@ jobs:
   - job: Second
     dependsOn: First
     variables:
-      - pythonVersion: $[ dependencies.First.outputs['passOutput.myOutputVar'] ]
-      - docsRepo: github.com/simpeg/simpeg-doctest.git
+      pythonVersion: $[ dependencies.First.outputs['passOutput.myOutputVar'] ]
+      docsRepo: github.com/simpeg/simpeg-doctest.git
     steps:
       - bash: |
           echo "Python version: $pythonVersion"
