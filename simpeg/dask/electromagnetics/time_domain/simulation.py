@@ -17,8 +17,6 @@ from time import time
 from tqdm import tqdm
 
 Sim.sensitivity_path = "./sensitivity/"
-Sim.store_sensitivities = "ram"
-
 Sim.getJtJdiag = dask_getJtJdiag
 Sim.Jvec = dask_Jvec
 Sim.Jtvec = dask_Jtvec

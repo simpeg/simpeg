@@ -530,6 +530,30 @@ class BaseSimulation(props.HasModel):
             noise_floor=noise_floor,
         )
 
+    @property
+    def store_sensitivities(self):
+        """Options for storing sensitivities.
+
+        There are 3 options:
+
+        - 'ram': sensitivity matrix stored in RAM
+        - 'disk': sensitivities written and stored to disk
+        - 'forward_only': sensitivities are not store (only use for forward simulation)
+
+        Returns
+        -------
+        {'disk', 'ram', 'forward_only'}
+            A string defining the model type for the simulation.
+        """
+        if self._store_sensitivities is None:
+            self._store_sensitivities = "ram"
+        return self._store_sensitivities
+
+    @store_sensitivities.setter
+    def store_sensitivities(self, value):
+        self._store_sensitivities = validate_string(
+            "store_sensitivities", value, ["disk", "ram", "forward_only"]
+        )
 
 class BaseTimeSimulation(BaseSimulation):
     r"""Base class for time domain simulations.

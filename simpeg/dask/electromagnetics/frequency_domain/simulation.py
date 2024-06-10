@@ -14,7 +14,6 @@ from tqdm import tqdm
 
 Sim.sensitivity_path = "./sensitivity/"
 Sim.gtgdiag = None
-Sim.store_sensitivities = True
 
 Sim.getJtJdiag = dask_getJtJdiag
 Sim.Jvec = dask_Jvec
