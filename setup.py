@@ -59,5 +59,6 @@ setup(
     use_2to3=False,
     use_scm_version={
         "write_to": os.path.join("simpeg", "version.py"),
+        "local_scheme": "node-and-date",
     },
 )

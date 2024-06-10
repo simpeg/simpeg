@@ -19,6 +19,12 @@ jobs:
           pip install setuptools setuptools_scm wheel twine
         displayName: "Install build dependencies"
 
+      - bash: |
+          # Change setuptools-scm local_scheme to "no-local-version" so the
+          # local part of the version isn't included, making the version string
+          # compatible with Test PyPI.
+          sed --in-place 's/node-and-date/no-local-version/g' setup.py
+
       - script: |
           python setup.py sdist
         displayName: "Create source distribution for simpeg"
