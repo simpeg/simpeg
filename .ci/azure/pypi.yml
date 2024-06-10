@@ -39,3 +39,30 @@ jobs:
   # Push to PyPI (only after release)
   - job: PyPI
     condition: startsWith(variables['build.sourceBranch'], 'refs/tags/')
+    steps:
+      # Checkout simpeg repo, including tags.
+      # Sync tags and disable shallow depth to get the SimPEG version.
+      - checkout: self
+        fetchDepth: 0
+        fetchTags: true
+        displayName: "Checkout repository (including tags)"
+
+      - task: UsePythonVersion@0
+        inputs:
+          versionSpec: "3.9"
+        displayName: "Setup Python 3.9"
+
+      - script: |
+          pip install setuptools setuptools_scm wheel twine
+        displayName: "Install build dependencies"
+
+      - script: |
+          python setup.py sdist
+        displayName: "Create source distribution for simpeg"
+
+      - script: |
+          twine upload --skip-existing dist/*
+        displayName: "Upload to PyPI"
+        env:
+          TWINE_USERNAME: $(twine.username)
+          TWINE_PASSWORD: $(twine.password)
