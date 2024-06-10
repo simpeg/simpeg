@@ -46,4 +46,9 @@ stages:
 
 - template: .ci/azure/docs.yml
 
-- template: .ci/azure/pypi.yml
+- stage: PyPI
+  dependsOn:
+    - StyleChecks
+    - Testing
+  jobs:
+    - template: .ci/azure/pypi.yml

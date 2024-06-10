@@ -1,42 +1,35 @@
-stages:
-  - stage: PyPI
-    dependsOn:
-      - StyleChecks
-      - Testing
-    jobs:
+jobs:
+  # Push to TestPyPI (only after push to main)
+  - job: TestPyPI
+    condition: startsWith(variables['build.sourceBranch'], 'refs/heads/main')
+    steps:
+      # Checkout simpeg repo, including tags.
+      # Sync tags and disable shallow depth to get the SimPEG version.
+      - checkout: self
+        fetchDepth: 0
+        fetchTags: true
+        displayName: "Checkout repository (including tags)"
 
-      # Push to TestPyPI (only after push to main)
-      - job: TestPyPI
-        condition: startsWith(variables['build.sourceBranch'], 'refs/heads/main')
-        steps:
+      - task: UsePythonVersion@0
+        inputs:
+          versionSpec: "3.9"
+        displayName: "Setup Python 3.9"
 
-          # Checkout simpeg repo, including tags.
-          # Sync tags and disable shallow depth to get the SimPEG version.
-          - checkout: self
-            fetchDepth: 0
-            fetchTags: true
-            displayName: "Checkout repository (including tags)"
+      - script: |
+          pip install setuptools setuptools_scm wheel twine
+        displayName: "Install build dependencies"
 
-          - task: UsePythonVersion@0
-            inputs:
-              versionSpec: '3.9'
-            displayName: "Setup Python 3.9"
+      - script: |
+          python setup.py sdist
+        displayName: "Create source distribution for simpeg"
 
-          - script: |
-              pip install setuptools setuptools_scm wheel twine
-            displayName: "Install build dependencies"
+      - script: |
+          twine upload --repository testpypi dist/*
+        displayName: "Upload to Test PyPI"
+        env:
+          TWINE_USERNAME: $(twine.username)
+          TWINE_PASSWORD: $(twine.password)
 
-          - script: |
-              python setup.py sdist
-            displayName: "Create source distribution for simpeg"
-
-          - script: |
-              twine upload --repository testpypi dist/*
-            displayName: "Upload to Test PyPI"
-            env:
-              TWINE_USERNAME: $(twine.username)
-              TWINE_PASSWORD: $(twine.password)
-
-      # Push to PyPI (only after release)
-      - job: PyPI
-        condition: startsWith(variables['build.sourceBranch'], 'refs/tags/')
+  # Push to PyPI (only after release)
+  - job: PyPI
+    condition: startsWith(variables['build.sourceBranch'], 'refs/tags/')
