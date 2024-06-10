@@ -14,7 +14,9 @@ jobs:
       docsRepo: github.com/simpeg/simpeg-doctest.git
     steps:
       - bash: |
+          git_version=$(git_version)
           echo "Git version: $(git_version)"
+          echo "Git version: $git_version"
 
       - bash: |
           git clone -q --branch gh-pages --depth 1 https://${GH_TOKEN}@$(docsRepo)
