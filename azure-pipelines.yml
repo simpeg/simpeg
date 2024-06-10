@@ -37,13 +37,13 @@ stages:
 - stage: StyleChecks
   displayName: "Style Checks"
   jobs:
-    - template: .azure-pipelines/style.yml
+    - template: .ci/azure/style.yml
 
 - stage: Testing
   dependsOn: StyleChecks
   jobs:
-    - template: ./.azure-pipelines/test.yml
+    - template: .ci/azure/test.yml
 
-- template: .azure-pipelines/docs.yml
+- template: .ci/azure/docs.yml
 
-- template: .azure-pipelines/pypi.yml
+- template: .ci/azure/pypi.yml
