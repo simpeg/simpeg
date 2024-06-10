@@ -100,6 +100,7 @@ is used under the hood to handle the execution of all directives passed to the
 from .directives import (
     InversionDirective,
     DirectiveList,
+    BetaEstimateDerivative,
     BetaEstimateMaxDerivative,
     BetaEstimate_ByEig,
     BetaSchedule,
