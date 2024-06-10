@@ -28,13 +28,13 @@ stages:
 
 - stage: StyleChecks
   displayName: "Style Checks"
-  variables:
-    python.version: '3.11'
   jobs:
     - job:
       displayName: Run style checks with Black
       pool:
         vmImage: ubuntu-latest
+      variables:
+        python.version: '3.11'
       steps:
         - task: UsePythonVersion@0
           inputs:
@@ -48,6 +48,8 @@ stages:
       displayName: Run (permissive) style checks with flake8
       pool:
         vmImage: ubuntu-latest
+      variables:
+        python.version: '3.11'
       steps:
         - task: UsePythonVersion@0
           inputs:
@@ -61,6 +63,8 @@ stages:
       displayName: Run style checks with flake8 (allowed to fail)
       pool:
         vmImage: ubuntu-latest
+      variables:
+        python.version: '3.11'
       steps:
         - task: UsePythonVersion@0
           inputs:
