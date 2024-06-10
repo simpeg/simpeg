@@ -1,322 +1,88 @@
-stages:
-  - stage: Deploy
-    dependsOn: Testing
-    condition: startsWith(variables['build.sourceBranch'], 'refs/tags/')
-    jobs:
-      - job:
-        displayName: Deploy Docs and source
-        pool:
-          vmImage: ubuntu-latest
-        variables:
-          python.version: '3.8'
-        timeoutInMinutes: 240
-        steps:
+jobs:
+  - job: BuildDocs
+    pool:
+      vmImage: ubuntu-latest
+    variables:
+      python.version: '3.8'
+    timeoutInMinutes: 240
+    steps:
+        # Checkout simpeg repo, including tags.
+        # Disable shallow depth to get the SimPEG version.
+        - checkout: self
+          fetchDepth: 0
+          fetchTags: true
+          displayName: Checkout repository (including tags)
 
-          # Checkout simpeg repo, including tags.
-          # We need to sync tags and disable shallow depth in order to get the
-          # SimPEG version while building the docs.
-          - checkout: self
-            fetchDepth: 0
-            fetchTags: true
-            displayName: Checkout repository (including tags)
+        - script: |
+            wget -O Mambaforge.sh  "https://github.com/conda-forge/miniforge/releases/latest/download/Mambaforge-$(uname)-$(uname -m).sh"
+            bash Mambaforge.sh -b -p "${HOME}/conda"
+          displayName: Install mamba
 
-          - script: |
-              git config --global user.name ${GH_NAME}
-              git config --global user.email ${GH_EMAIL}
-              git config --list | grep user.
-            displayName: 'Configure git'
-            env:
-              GH_NAME: $(gh.name)
-              GH_EMAIL: $(gh.email)
+        - script: |
+            source "${HOME}/conda/etc/profile.d/conda.sh"
+            source "${HOME}/conda/etc/profile.d/mamba.sh"
+            cp environment_test.yml environment_test_with_pyversion.yml
+            echo "  - python="$(python.version) >> environment_test_with_pyversion.yml
+            mamba env create -f environment_test_with_pyversion.yml
+            rm environment_test_with_pyversion.yml
+            conda activate simpeg-test
+            pip install pytest-azurepipelines
+            echo "\nList installed packages"
+            conda list
+          displayName: Create Anaconda testing environment
 
-          - script: |
-              wget -O Mambaforge.sh  "https://github.com/conda-forge/miniforge/releases/latest/download/Mambaforge-$(uname)-$(uname -m).sh"
-              bash Mambaforge.sh -b -p "${HOME}/conda"
-            displayName: Install mamba
+        - script: |
+            source "${HOME}/conda/etc/profile.d/conda.sh"
+            conda activate simpeg-test
+            pip install -e .
+          displayName: Build package
 
-          - script: |
-              source "${HOME}/conda/etc/profile.d/conda.sh"
-              source "${HOME}/conda/etc/profile.d/mamba.sh"
-              cp environment_test.yml environment_test_with_pyversion.yml
-              echo "  - python="$(python.version) >> environment_test_with_pyversion.yml
-              mamba env create -f environment_test_with_pyversion.yml
-              rm environment_test_with_pyversion.yml
-              conda activate simpeg-test
-              pip install pytest-azurepipelines
-              echo "\nList installed packages"
-              conda list
-            displayName: Create Anaconda testing environment
+        - script: |
+            source "${HOME}/conda/etc/profile.d/conda.sh"
+            conda activate simpeg-test
+            python -c "import simpeg; print(simpeg.__version__)"
+          displayName: Check SimPEG version
 
-          - script: |
-              source "${HOME}/conda/etc/profile.d/conda.sh"
-              conda activate simpeg-test
-              pip install -e .
-            displayName: Build package
+        - script: |
+            source "${HOME}/conda/etc/profile.d/conda.sh"
+            conda activate simpeg-test
+            KMP_WARNINGS=0 make -C docs html
+          displayName: Building documentation
 
-          - script: |
-              source "${HOME}/conda/etc/profile.d/conda.sh"
-              conda activate simpeg-test
-              python -c "import simpeg; print(simpeg.__version__)"
-            displayName: Check SimPEG version
+        - task: PublishPipelineArtifact@1
+          inputs:
+            targetPath: $(Build.SourcesDirectory)/docs/_build/html
+            artifactName: built-docs
+          displayName: 'Upload docs as artifact'
 
-          - script: |
-              source "${HOME}/conda/etc/profile.d/conda.sh"
-              conda activate simpeg-test
-              python setup.py sdist
-              twine upload --skip-existing dist/*
-            displayName: Deploy source
-            env:
-              TWINE_USERNAME: $(twine.username)
-              TWINE_PASSWORD: $(twine.password)
+  - job: DeployRelease
+    depensOn: BuildDocs
+    # condition: startsWith(variables['build.sourceBranch'], 'refs/tags/')
+    pool:
+      vmImage: ubuntu-latest
+    timeoutInMinutes: 240
+    steps:
+        # Checkout simpeg repo, including tags.
+        # Disable shallow depth to get the SimPEG version.
+        - checkout: self
+          fetchDepth: 0
+          fetchTags: true
+          displayName: Checkout repository (including tags)
 
-          - script: |
-              source "${HOME}/conda/etc/profile.d/conda.sh"
-              conda activate simpeg-test
-              export KMP_WARNINGS=0
-              cd docs
-              make html
-              cd ..
-            displayName: Building documentation
+        - bash: |
+            git config --global user.name ${GH_NAME}
+            git config --global user.email ${GH_EMAIL}
+            git config --list | grep user.
+          displayName: 'Configure git'
+          env:
+            GH_NAME: $(gh.name)
+            GH_EMAIL: $(gh.email)
 
-          # upload documentation to simpeg-docs gh-pages on tags
-          - script: |
-              git clone --depth 1 https://${GH_TOKEN}@github.com/simpeg/simpeg-docs.git
-              cd simpeg-docs
-              git gc --prune=now
-              git remote prune origin
-              rm -rf *
-              cp -r $BUILD_SOURCESDIRECTORY/docs/_build/html/* .
-              cp $BUILD_SOURCESDIRECTORY/docs/README.md .
-              touch .nojekyll
-              echo "docs.simpeg.xyz" >> CNAME
-              git add .
-              git commit -am "Azure CI commit ref $(Build.SourceVersion)"
-              git push
-            displayName: Push documentation to simpeg-docs
-            env:
-              GH_TOKEN: $(gh.token)
+        - task: DownloadPipelineArtifact@2
+          inputs:
+            artifact: built-docs
+          displayName: 'Download docs artifact'
 
-  - stage: Deploy_dev_docs_experimental
-    dependsOn: Testing
-    condition: eq(variables['Build.Reason'], 'Schedule')  # run only scheduled triggers
-    jobs:
-      - job:
-        displayName: Deploy dev docs to simpeg-doctest (experimental)
-        pool:
-          vmImage: ubuntu-latest
-        variables:
-          python.version: '3.8'
-        timeoutInMinutes: 240
-        steps:
-
-          # Checkout simpeg repo, including tags.
-          # We need to sync tags and disable shallow depth in order to get the
-          # SimPEG version while building the docs.
-          - checkout: self
-            fetchDepth: 0
-            fetchTags: true
-            displayName: Checkout repository (including tags)
-
-          - bash: |
-              git config --global user.name ${GH_NAME}
-              git config --global user.email ${GH_EMAIL}
-              git config --list | grep user.
-            displayName: 'Configure git'
-            env:
-              GH_NAME: $(gh.name)
-              GH_EMAIL: $(gh.email)
-
-          - bash: |
-              wget -O Mambaforge.sh  "https://github.com/conda-forge/miniforge/releases/latest/download/Mambaforge-$(uname)-$(uname -m).sh"
-              bash Mambaforge.sh -b -p "${HOME}/conda"
-            displayName: Install mamba
-
-          - bash: |
-              source "${HOME}/conda/etc/profile.d/conda.sh"
-              source "${HOME}/conda/etc/profile.d/mamba.sh"
-              cp environment_test.yml environment_test_with_pyversion.yml
-              echo "  - python="$(python.version) >> environment_test_with_pyversion.yml
-              mamba env create -f environment_test_with_pyversion.yml
-              rm environment_test_with_pyversion.yml
-              conda activate simpeg-test
-              pip install pytest-azurepipelines
-              echo "\nList installed packages"
-              conda list
-            displayName: Create Anaconda testing environment
-
-          - bash: |
-              source "${HOME}/conda/etc/profile.d/conda.sh"
-              conda activate simpeg-test
-              pip install -e .
-            displayName: Build package
-
-          - script: |
-              source "${HOME}/conda/etc/profile.d/conda.sh"
-              conda activate simpeg-test
-              python -c "import simpeg; print(simpeg.__version__)"
-            displayName: Check SimPEG version
-
-          - bash: |
-              source "${HOME}/conda/etc/profile.d/conda.sh"
-              conda activate simpeg-test
-              export KMP_WARNINGS=0
-              make -C docs html
-            displayName: Building documentation
-
-          # Upload dev build of the docs to a dev branch in simpeg/simpeg-doctest
-          # and update submodule in the gh-pages branch
-          - bash: |
-              # Push new docs
-              # -------------
-              # Capture hash of last commit in simpeg
-              commit=$(git rev-parse --short HEAD)
-              # Clone the repo where we store the documentation (dev branch)
-              git clone -q --branch dev --depth 1 https://${GH_TOKEN}@github.com/simpeg/simpeg-doctest.git
-              cd simpeg-doctest
-              # Remove all files
-              shopt -s dotglob  # configure bash to include dotfiles in * globs
-              export GLOBIGNORE=".git"  # ignore .git directory in glob
-              git rm -rf * # remove all files
-              # Copy the built docs to the root of the repo
-              cp -r $BUILD_SOURCESDIRECTORY/docs/_build/html/* -t .
-              # Commit the new docs. Amend to avoid having a very large history.
-              git add .
-              message="Azure CI deploy dev from ${commit}"
-              echo -e "\nAmending last commit:"
-              git commit --amend --reset-author -m "$message"
-              # Make the push quiet just in case there is anything that could
-              # leak sensitive information.
-              echo -e "\nPushing changes to simpeg/simpeg-doctest (dev branch)."
-              git push -fq origin dev 2>&1 >/dev/null
-              echo -e "\nFinished uploading doc files."
-
-              # Update submodule
-              # ----------------
-              # Need to fetch the gh-pages branch first (because we clone with
-              # shallow depth)
-              git fetch --depth 1 origin gh-pages:gh-pages
-              # Switch to the gh-pages branch
-              git switch gh-pages
-              # Update the dev submodule
-              git submodule update --init --recursive --remote dev
-              # Commit changes
-              git add dev
-              message="Azure CI update dev submodule from ${commit}"
-              echo -e "\nMaking a new commit:"
-              git commit -m "$message"
-              # Make the push quiet just in case there is anything that could
-              # leak sensitive information.
-              echo -e "\nPushing changes to simpeg/simpeg-doctest (gh-pages branch)."
-              git push -q origin gh-pages 2>&1 >/dev/null
-              echo -e "\nFinished updating submodule dev."
-
-              # Unset dotglob
-              shopt -u dotglob
-              export GLOBIGNORE=""
-            displayName: Push documentation to simpeg-doctest (dev branch)
-            env:
-              GH_TOKEN: $(gh.token)
-
-  - stage: Deploy_release_docs_experimental
-    dependsOn: Testing
-    condition: startsWith(variables['build.sourceBranch'], 'refs/tags/')
-    jobs:
-      - job:
-        displayName: Deploy release docs to simpeg-doctest (experimental)
-        pool:
-          vmImage: ubuntu-latest
-        variables:
-          python.version: '3.8'
-        timeoutInMinutes: 240
-        steps:
-
-          # Checkout simpeg repo, including tags.
-          # We need to sync tags and disable shallow depth in order to get the
-          # SimPEG version while building the docs.
-          - checkout: self
-            fetchDepth: 0
-            fetchTags: true
-            displayName: Checkout repository (including tags)
-
-          - bash: |
-              git config --global user.name ${GH_NAME}
-              git config --global user.email ${GH_EMAIL}
-              git config --list | grep user.
-            displayName: 'Configure git'
-            env:
-              GH_NAME: $(gh.name)
-              GH_EMAIL: $(gh.email)
-
-          - bash: |
-              wget -O Mambaforge.sh  "https://github.com/conda-forge/miniforge/releases/latest/download/Mambaforge-$(uname)-$(uname -m).sh"
-              bash Mambaforge.sh -b -p "${HOME}/conda"
-            displayName: Install mamba
-
-          - bash: |
-              source "${HOME}/conda/etc/profile.d/conda.sh"
-              source "${HOME}/conda/etc/profile.d/mamba.sh"
-              cp environment_test.yml environment_test_with_pyversion.yml
-              echo "  - python="$(python.version) >> environment_test_with_pyversion.yml
-              mamba env create -f environment_test_with_pyversion.yml
-              rm environment_test_with_pyversion.yml
-              conda activate simpeg-test
-              pip install pytest-azurepipelines
-              echo "\nList installed packages"
-              conda list
-            displayName: Create Anaconda testing environment
-
-          - bash: |
-              source "${HOME}/conda/etc/profile.d/conda.sh"
-              conda activate simpeg-test
-              pip install -e .
-            displayName: Build package
-
-          - script: |
-              source "${HOME}/conda/etc/profile.d/conda.sh"
-              conda activate simpeg-test
-              python -c "import simpeg; print(simpeg.__version__)"
-            displayName: Check SimPEG version
-
-          - bash: |
-              source "${HOME}/conda/etc/profile.d/conda.sh"
-              conda activate simpeg-test
-              export KMP_WARNINGS=0
-              make -C docs html
-            displayName: Building documentation
-
-          # Upload release build of the docs to gh-pages branch in simpeg/simpeg-doctest
-          - bash: |
-              # Capture version
-              # TODO: we should be able to get the version from the
-              # build.sourceBranch variable
-              version=$(git tag --points-at HEAD)
-              if [ -n "$version" ]; then
-                echo "Version could not be obtained from tag. Exiting."
-                exit 1
-              fi
-              # Capture hash of last commit in simpeg
-              commit=$(git rev-parse --short HEAD)
-              # Clone the repo where we store the documentation
-              git clone -q --branch gh-pages --depth 1 https://${GH_TOKEN}@github.com/simpeg/simpeg-doctest.git
-              cd simpeg-doctest
-              # Move the built docs to a new dev folder
-              cp -r $BUILD_SOURCESDIRECTORY/docs/_build/html "$version"
-              cp $BUILD_SOURCESDIRECTORY/docs/README.md .
-              # Add .nojekyll if missing
-              touch .nojekyll
-              # Update latest symlink
-              rm -f latest
-              ln -s "$version" latest
-              # Commit the new docs.
-              git add "$version" README.md .nojekyll latest
-              message="Azure CI deploy ${version} from ${commit}"
-              echo -e "\nMaking a new commit:"
-              git commit -m "$message"
-              # Make the push quiet just in case there is anything that could
-              # leak sensitive information.
-              echo -e "\nPushing changes to simpeg/simpeg-doctest."
-              git push -fq origin gh-pages 2>&1 >/dev/null
-              echo -e "\nFinished uploading generated files."
-            displayName: Push documentation to simpeg-doctest
-            env:
-              GH_TOKEN: $(gh.token)
+        - bash: |
+            ls -l
+            ls -l html
