@@ -82,12 +82,18 @@ jobs:
             GH_NAME: $(gh.name)
             GH_EMAIL: $(gh.email)
 
+        - bash: |
+            mkdir -p docs/_build/html
+          displayName: 'Create directory for built docs'
+
         - task: DownloadPipelineArtifact@2
           inputs:
             artifact: built-docs
+            targetPath: docs/_build/html
           displayName: 'Download docs artifact'
 
         - bash: |
             ls -la
             ls -la docs
             ls -la docs/_build
+            ls -la docs/_build/html
