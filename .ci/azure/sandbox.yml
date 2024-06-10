@@ -21,9 +21,9 @@ jobs:
       - checkout: none
 
       - bash: |
-          git_version=$(git_version)
+          git_version="$(git_version)"
           echo "Git version: $(git_version)"
-          echo "Git version: ${git_version}"
+          echo "Git version: $git_version"
 
       - bash: |
           echo "Repo: $(docsRepo)"
