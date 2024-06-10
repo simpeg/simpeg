@@ -21,7 +21,7 @@ There are two ways you can clone a repository:
 
 1. From a terminal (checkout: https://docs.github.com/en/get-started/quickstart/set-up-git for an tutorial) ::
 
-       git clone https://github.com/YOUR-USERNAME/SimPEG
+       git clone https://github.com/YOUR-USERNAME/simpeg
 
 2. Using a desktop client such as SourceTree_ or GitKraken_.
 

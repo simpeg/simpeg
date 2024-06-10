@@ -18,8 +18,6 @@ from simpeg.potential_fields import magnetics as mag
 
 class MagInvLinProblemTest(unittest.TestCase):
     def setUp(self):
-        np.random.seed(0)
-
         # First we need to define the direction of the inducing field
         # As a simple case, we pick a vertical inducing field of magnitude
         # 50,000nT.
@@ -111,7 +109,11 @@ class MagInvLinProblemTest(unittest.TestCase):
         )
         self.sim = sim
         data = sim.make_synthetic_data(
-            self.model, relative_error=0.0, noise_floor=1.0, add_noise=True
+            self.model,
+            relative_error=0.0,
+            noise_floor=1.0,
+            add_noise=True,
+            random_seed=0,
         )
 
         # Create a regularization
