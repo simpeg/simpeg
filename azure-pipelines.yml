@@ -34,10 +34,9 @@ stages:
       pool:
         vmImage: ubuntu-latest
       variables:
-        python.version: '3.8'
+        python.version: '3.11'
       steps:
-        - script: |
-            pip install -r .ci/requirements_style.txt
+        - bash: .ci/install_style.sh
           displayName: "Install dependencies to run the checks"
         - script: make black
           displayName: "Run black"
@@ -47,10 +46,9 @@ stages:
       pool:
         vmImage: ubuntu-latest
       variables:
-        python.version: '3.8'
+        python.version: '3.11'
       steps:
-        - script: |
-            pip install -r .ci/requirements_style.txt
+        - bash: .ci/install_style.sh
           displayName: "Install dependencies to run the checks"
         - script: make flake
           displayName: "Run flake8"
@@ -60,10 +58,9 @@ stages:
       pool:
         vmImage: ubuntu-latest
       variables:
-        python.version: '3.8'
+        python.version: '3.11'
       steps:
-        - script: |
-            pip install -r .ci/requirements_style.txt
+        - bash: .ci/install_style.sh
           displayName: "Install dependencies to run the checks"
         - script: make flake-all
           displayName: "Run flake8"
