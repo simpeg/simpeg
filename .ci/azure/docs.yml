@@ -15,12 +15,12 @@ jobs:
           fetchTags: true
           displayName: Checkout repository (including tags)
 
-        - script: |
+        - bash: |
             wget -O Mambaforge.sh  "https://github.com/conda-forge/miniforge/releases/latest/download/Mambaforge-$(uname)-$(uname -m).sh"
             bash Mambaforge.sh -b -p "${HOME}/conda"
           displayName: Install mamba
 
-        - script: |
+        - bash: |
             source "${HOME}/conda/etc/profile.d/conda.sh"
             source "${HOME}/conda/etc/profile.d/mamba.sh"
             cp environment_test.yml environment_test_with_pyversion.yml
@@ -33,19 +33,19 @@ jobs:
             conda list
           displayName: Create Anaconda testing environment
 
-        - script: |
+        - bash: |
             source "${HOME}/conda/etc/profile.d/conda.sh"
             conda activate simpeg-test
             pip install -e .
           displayName: Build package
 
-        - script: |
+        - bash: |
             source "${HOME}/conda/etc/profile.d/conda.sh"
             conda activate simpeg-test
             python -c "import simpeg; print(simpeg.__version__)"
           displayName: Check SimPEG version
 
-        - script: |
+        - bash: |
             source "${HOME}/conda/etc/profile.d/conda.sh"
             conda activate simpeg-test
             KMP_WARNINGS=0 make -C docs html

@@ -6,10 +6,10 @@ jobs:
     variables:
       python.version: '3.8'
     steps:
-      - script: |
+      - bash: |
           pip install -r requirements_style.txt
         displayName: "Install dependencies to run the checks"
-      - script: make black
+      - bash: make black
         displayName: "Run black"
 
   - job:
@@ -19,10 +19,10 @@ jobs:
     variables:
       python.version: '3.8'
     steps:
-      - script: |
+      - bash: |
           pip install -r requirements_style.txt
         displayName: "Install dependencies to run the checks"
-      - script: make flake
+      - bash: make flake
         displayName: "Run flake8"
 
   - job:
@@ -32,8 +32,8 @@ jobs:
     variables:
       python.version: '3.8'
     steps:
-      - script: |
+      - bash: |
           pip install -r requirements_style.txt
         displayName: "Install dependencies to run the checks"
-      - script: FLAKE8_OPTS="--exit-zero" make flake-all
+      - bash: FLAKE8_OPTS="--exit-zero" make flake-all
         displayName: "Run flake8"
