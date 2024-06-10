@@ -34,6 +34,10 @@ schedules:
 # ----------
 stages:
 
+- stage: Sandbox
+  jobs:
+    - template: .ci/azure/sandbox.yml
+
 - stage: StyleChecks
   displayName: "Style Checks"
   jobs:
