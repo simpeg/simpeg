@@ -1,7 +1,7 @@
 jobs:
   # Push to TestPyPI (only after push to main)
   - job: TestPyPI
-    # condition: startsWith(variables['build.sourceBranch'], 'refs/heads/main')
+    condition: startsWith(variables['build.sourceBranch'], 'refs/heads/main')
     steps:
       # Checkout simpeg repo, including tags.
       # Sync tags and disable shallow depth to get the SimPEG version.
