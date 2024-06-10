@@ -2,6 +2,8 @@ jobs:
   # Push to TestPyPI (only after push to main)
   - job: TestPyPI
     condition: startsWith(variables['build.sourceBranch'], 'refs/heads/main')
+    pool:
+      vmImage: ubuntu-latest
     steps:
       # Checkout simpeg repo, including tags.
       # Sync tags and disable shallow depth to get the SimPEG version.
@@ -39,6 +41,8 @@ jobs:
   # Push to PyPI (only after release)
   - job: PyPI
     condition: startsWith(variables['build.sourceBranch'], 'refs/tags/')
+    pool:
+      vmImage: ubuntu-latest
     steps:
       # Checkout simpeg repo, including tags.
       # Sync tags and disable shallow depth to get the SimPEG version.
