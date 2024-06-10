@@ -1,6 +1,9 @@
 jobs:
   - job: First
     steps:
+      # Don't checkut simpeg repo
+      - checkout: none
+
       # Set variable for future use
       - bash: |
           git_version=$(git --version)
@@ -14,11 +17,13 @@ jobs:
       git_version: $[ dependencies.First.outputs['git_version.git_version'] ]
       docsRepo: github.com/simpeg/simpeg-doctest.git
     steps:
+      # Don't checkut simpeg repo
+      - checkout: none
+
       - bash: |
           git_version=$(git_version)
           echo "Git version: $(git_version)"
-          echo "Git version: $git_version"
+          echo "Git version: ${git_version}"
 
       - bash: |
-          git clone -q --branch gh-pages --depth 1 https://${GH_TOKEN}@$(docsRepo)
-          ls -l
+          echo "Repo: $(docsRepo)"
