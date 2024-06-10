@@ -117,6 +117,7 @@ from .directives import (
     ScalingMultipleDataMisfits_ByEig,
     JointScalingSchedule,
     UpdateSensitivityWeights,
+    VectorInversion,
     ProjectSphericalBounds,
 )
 

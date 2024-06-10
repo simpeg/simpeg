@@ -561,7 +561,7 @@ class Simulation3DIntegral(BasePFSimulation):
                     + cell_eval_z * M[:, 2]
                 )
 
-            if self.store_sensitivities is None:
+            if self.store_sensitivities == "forward_only":
                 rows[component] = cell_vals @ self.chi
             else:
                 rows[component] = cell_vals
