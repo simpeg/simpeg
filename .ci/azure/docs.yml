@@ -1,5 +1,7 @@
 jobs:
+  # Build docs only on scheduled jobs or on a relase
   - job: BuildDocs
+    # condition: or(eq(variables['Build.Reason'], 'Schedule'), startsWith(variables['build.sourceBranch'], 'refs/tags/'))
     pool:
       vmImage: ubuntu-latest
     variables:
