@@ -33,7 +33,7 @@ jobs:
           twine upload --repository testpypi dist/*
         displayName: "Upload to Test PyPI"
         env:
-          TWINE_USERNAME: $(test.twine.username)
+          TWINE_USERNAME: $(twine.username)
           TWINE_PASSWORD: $(test.twine.password)
 
   # Push to PyPI (only after release)
