@@ -15,7 +15,7 @@ jobs:
           versionSpec: "3.9"
         displayName: "Setup Python 3.9"
 
-      - script: |
+      - bash: |
           pip install setuptools setuptools_scm wheel twine
         displayName: "Install build dependencies"
 
@@ -25,11 +25,11 @@ jobs:
           # compatible with Test PyPI.
           sed --in-place 's/node-and-date/no-local-version/g' setup.py
 
-      - script: |
+      - bash: |
           python setup.py sdist
         displayName: "Create source distribution for simpeg"
 
-      - script: |
+      - bash: |
           twine upload --repository testpypi dist/*
         displayName: "Upload to Test PyPI"
         env:
@@ -52,15 +52,15 @@ jobs:
           versionSpec: "3.9"
         displayName: "Setup Python 3.9"
 
-      - script: |
+      - bash: |
           pip install setuptools setuptools_scm wheel twine
         displayName: "Install build dependencies"
 
-      - script: |
+      - bash: |
           python setup.py sdist
         displayName: "Create source distribution for simpeg"
 
-      - script: |
+      - bash: |
           twine upload --skip-existing dist/*
         displayName: "Upload to PyPI"
         env:
