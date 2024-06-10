@@ -4,8 +4,8 @@ jobs:
       # Set variable for future use
       - bash: |
           git_version=$(git --version)
+          echo "$git_version"
           echo "##vso[task.setvariable variable=git_version;isoutput=true]$git_version"
-        name: pythonVersion
 
   - job: Second
     dependsOn: First
@@ -18,3 +18,4 @@ jobs:
 
       - bash: |
           git clone -q --branch gh-pages --depth 1 https://${GH_TOKEN}@$(docsRepo)
+          ls -l
