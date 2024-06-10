@@ -4,13 +4,13 @@ jobs:
       # Set variable for future use
       - bash: |
           pythonVersion=$(python --version)
-          echo "##vso[task.setvariable variable=pythonVersion;isoutput=true]Python version"
+          echo "##vso[task.setvariable variable=myOutputVar;isoutput=true]$pythonVersion"
         name: pythonVersion
 
   - job: Second
     dependsOn: First
     variables:
-      - pythonVersion: $[ dependencies.First.outputs['passOutput.pythonVersion'] ]
+      - pythonVersion: $[ dependencies.First.outputs['passOutput.myOutputVar'] ]
       - docsRepo: github.com/simpeg/simpeg-doctest.git
     steps:
       - bash: |
