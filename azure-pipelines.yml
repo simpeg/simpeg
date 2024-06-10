@@ -38,7 +38,7 @@ stages:
       steps:
         - task: UsePythonVersion@0
           inputs:
-            versionSpec: ${{ variables.python.version }}
+            versionSpec: ${{ python.version }}
         - bash: .ci/install_style.sh
           displayName: "Install dependencies to run the checks"
         - script: make black
@@ -51,7 +51,7 @@ stages:
       steps:
         - task: UsePythonVersion@0
           inputs:
-            versionSpec: ${{ variables.python.version }}
+            versionSpec: ${{ python.version }}
         - bash: .ci/install_style.sh
           displayName: "Install dependencies to run the checks"
         - script: make flake
@@ -64,7 +64,7 @@ stages:
       steps:
         - task: UsePythonVersion@0
           inputs:
-            versionSpec: ${{ variables.python.version }}
+            versionSpec: ${{ python.version }}
         - bash: .ci/install_style.sh
           displayName: "Install dependencies to run the checks"
         - script: make flake-all
