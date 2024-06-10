@@ -56,7 +56,7 @@ jobs:
           displayName: 'Upload docs as artifact'
 
   - job: DeployRelease
-    depensOn: BuildDocs
+    dependsOn: BuildDocs
     # condition: startsWith(variables['build.sourceBranch'], 'refs/tags/')
     pool:
       vmImage: ubuntu-latest
