@@ -28,17 +28,17 @@ stages:
 
 - stage: StyleChecks
   displayName: "Style Checks"
+  variables:
+    python.version: '3.11'
   jobs:
     - job:
       displayName: Run style checks with Black
       pool:
         vmImage: ubuntu-latest
-      variables:
-        python.version: '3.11'
       steps:
         - task: UsePythonVersion@0
           inputs:
-            versionSpec: ${{ python.version }}
+            versionSpec: ${{ variables.python.version }}
         - bash: .ci/install_style.sh
           displayName: "Install dependencies to run the checks"
         - script: make black
@@ -48,12 +48,10 @@ stages:
       displayName: Run (permissive) style checks with flake8
       pool:
         vmImage: ubuntu-latest
-      variables:
-        python.version: '3.11'
       steps:
         - task: UsePythonVersion@0
           inputs:
-            versionSpec: ${{ python.version }}
+            versionSpec: ${{ variables.python.version }}
         - bash: .ci/install_style.sh
           displayName: "Install dependencies to run the checks"
         - script: make flake
@@ -63,12 +61,10 @@ stages:
       displayName: Run style checks with flake8 (allowed to fail)
       pool:
         vmImage: ubuntu-latest
-      variables:
-        python.version: '3.11'
       steps:
         - task: UsePythonVersion@0
           inputs:
-            versionSpec: ${{ python.version }}
+            versionSpec: ${{ variables.python.version }}
         - bash: .ci/install_style.sh
           displayName: "Install dependencies to run the checks"
         - script: make flake-all
