@@ -2,7 +2,7 @@ import numpy as np
 import scipy.sparse as sp
 
 from .base import BaseSimilarityMeasure
-from ..utils import validate_type
+from ..utils import validate_type, coterminal
 
 
 ###############################################################################

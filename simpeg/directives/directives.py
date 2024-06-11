@@ -3282,7 +3282,7 @@ class SaveIterationsGeoH5(InversionDirective):
 
 class VectorInversion(InversionDirective):
     """
-    Control a vector inversion from Cartesian to spherical coordinates
+    Control a vector inversion from Cartesian to spherical coordinates.
     """
 
     chifact_target = 1.0
@@ -3369,7 +3369,7 @@ class VectorInversion(InversionDirective):
                 else:
                     reg_fun.units = "amplitude"
 
-            # Turn of cross-gradient on angles
+            # Change units of cross-gradient on angles
             multipliers = []
             for mult, reg in self.reg:
                 if isinstance(reg, CrossGradient):
@@ -3377,9 +3377,11 @@ class VectorInversion(InversionDirective):
                     for _, wire in reg.wire_map.maps:
                         if wire in angle_map:
                             units.append("radian")
+                            mult = 0  # TODO Make this optional
                         else:
                             units.append("metric")
 
+                    reg.units = units
 
                 multipliers.append(mult)
 
