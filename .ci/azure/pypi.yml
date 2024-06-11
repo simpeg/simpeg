@@ -5,7 +5,7 @@ jobs:
     pool:
       vmImage: ubuntu-latest
     steps:
-      # Checkout simpeg repo, including tags.
+      # Checkout simpeg repo.
       # Sync tags and disable shallow depth to get the SimPEG version.
       - checkout: self
         fetchDepth: 0
@@ -44,7 +44,7 @@ jobs:
     pool:
       vmImage: ubuntu-latest
     steps:
-      # Checkout simpeg repo, including tags.
+      # Checkout simpeg repo.
       # Sync tags and disable shallow depth to get the SimPEG version.
       - checkout: self
         fetchDepth: 0

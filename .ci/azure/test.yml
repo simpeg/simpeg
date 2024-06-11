@@ -27,9 +27,8 @@ jobs:
           timeoutInMinutes: 120
           steps:
 
-          # Checkout simpeg repo, including tags.
-          # We need to sync tags and disable shallow depth in order to get the
-          # SimPEG version while building the docs.
+          # Checkout simpeg repo.
+          # Sync tags and disable shallow depth to get the SimPEG version.
           - checkout: self
             fetchDepth: 0
             fetchTags: true

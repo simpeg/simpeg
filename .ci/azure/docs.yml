@@ -8,8 +8,8 @@ jobs:
       python.version: '3.8'
     timeoutInMinutes: 240
     steps:
-        # Checkout simpeg repo, including tags.
-        # Disable shallow depth to get the SimPEG version.
+        # Checkout simpeg repo.
+        # Sync tags and disable shallow depth to get the SimPEG version.
         - checkout: self
           fetchDepth: 0
           fetchTags: true
@@ -64,8 +64,8 @@ jobs:
       vmImage: ubuntu-latest
     timeoutInMinutes: 240
     steps:
-        # Checkout simpeg repo, including tags.
-        # Disable shallow depth to get the SimPEG version.
+        # Checkout simpeg repo.
+        # Sync tags and disable shallow depth to get the SimPEG version.
         - checkout: self
           fetchDepth: 0
           fetchTags: true
@@ -134,8 +134,8 @@ jobs:
       vmImage: ubuntu-latest
     timeoutInMinutes: 240
     steps:
-        # Checkout simpeg repo, including tags.
-        # Disable shallow depth to get the SimPEG version.
+        # Checkout simpeg repo.
+        # Sync tags and disable shallow depth to get the SimPEG version.
         - checkout: self
           fetchDepth: 0
           fetchTags: true
