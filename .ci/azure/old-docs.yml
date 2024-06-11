@@ -1,6 +1,6 @@
 jobs:
   - job:
-    displayName: Deploy Docs and source
+    displayName: Deploy Docs
     pool:
       vmImage: ubuntu-latest
     variables:
@@ -53,17 +53,6 @@ jobs:
           conda activate simpeg-test
           python -c "import simpeg; print(simpeg.__version__)"
         displayName: Check SimPEG version
-
-      # DON'T PUSH TO PYPI HERE (we have another stage for that)
-      # - script: |
-      #     source "${HOME}/conda/etc/profile.d/conda.sh"
-      #     conda activate simpeg-test
-      #     python setup.py sdist
-      #     twine upload --skip-existing dist/*
-      #   displayName: Deploy source
-      #   env:
-      #     TWINE_USERNAME: $(twine.username)
-      #     TWINE_PASSWORD: $(twine.password)
 
       - script: |
           source "${HOME}/conda/etc/profile.d/conda.sh"
