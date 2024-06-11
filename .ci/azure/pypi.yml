@@ -1,6 +1,3 @@
-variables:
-  python_version: "3.9"
-
 jobs:
   - job: Build
     pool:
@@ -15,7 +12,7 @@ jobs:
 
       - task: UsePythonVersion@0
         inputs:
-          versionSpec: $(python_version)
+          versionSpec: "3.9"
         displayName: "Setup Python"
 
       - bash: |
@@ -60,7 +57,7 @@ jobs:
 
       - task: UsePythonVersion@0
         inputs:
-          versionSpec: $(python_version)
+          versionSpec: "3.9"
         displayName: "Setup Python"
 
       - bash: |
