@@ -53,7 +53,7 @@ jobs:
         inputs:
           artifact: pypi-dist
           targetPath: dist
-        displayName: 'Download docs artifact'
+        displayName: 'Download dist artifact'
 
       - task: UsePythonVersion@0
         inputs:
