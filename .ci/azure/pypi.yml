@@ -2,7 +2,6 @@ variables:
   python_version: "3.9"
 
 jobs:
-  # Push to PyPI or TestPyPI
   - job: Build
     pool:
       vmImage: ubuntu-latest
