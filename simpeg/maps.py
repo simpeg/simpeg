@@ -1317,23 +1317,30 @@ class Wires(object):
                 and isinstance(arg[0], str)
                 and
                 # TODO: this should be extended to a slice.
-                isinstance(arg[1], (int, np.integer))
+                isinstance(arg[1], (int, np.integer, Projection))
             ), (
-                "Each wire needs to be a tuple: (name, length). "
+                "Each wire needs to be a tuple: (name, length) or (name, Projection). "
                 "You provided: {}".format(arg)
             )
 
-        self._nP = int(np.sum([w[1] for w in args]))
         start = 0
         maps = []
         for arg in args:
-            wire = Projection(self.nP, slice(start, start + arg[1]))
+
+            if isinstance(arg[1], (int, np.integer)):
+                wire = Projection(self.nP, slice(start, start + arg[1]))
+                start += arg[1]
+            else:
+                wire = arg[1]
+
             setattr(self, arg[0], wire)
             maps += [(arg[0], wire)]
-            start += arg[1]
-        self.maps = maps
 
-        self._tuple = namedtuple("Model", [w[0] for w in args])
+
+        self.maps = maps
+        self._nP = maps[0][1].nP
+        self._tuple = namedtuple("Model", [name for name, _ in args])
+        self._projection = sp.vstack([wire.P for _, wire in self.maps])
 
     def __mul__(self, val):
         assert isinstance(val, np.ndarray)
@@ -1352,6 +1359,22 @@ class Wires(object):
             Number of parameters that the mapping acts on.
         """
         return self._nP
+
+    def deriv(self, m):
+        """
+        Derivative of the mapping with respect to the input parameters
+
+        Parameters
+        ----------
+        m : (n_param, ) numpy.ndarray
+            The model for which the gradient is evaluated.
+
+        Returns
+        -------
+        (n_param, ) numpy.ndarray
+            The Gradient of the mapping function evaluated for the model provided.
+        """
+        return self._projection
 
 
 class SelfConsistentEffectiveMedium(IdentityMap):

@@ -49,7 +49,6 @@ from ..utils.code_utils import (
     validate_ndarray_with_shape,
 )
 
-from geoh5py.workspace import Workspace
 from geoh5py.objects import ObjectBase
 from geoh5py.ui_json.utils import fetch_active_workspace
 
@@ -3312,7 +3311,7 @@ class VectorInversion(InversionDirective):
             for survey in self.survey:
                 nD += survey.nD
 
-            self._target = nD * 0.5 * self.chifact_target
+            self._target = nD * self.chifact_target
 
         return self._target
 
@@ -3374,9 +3373,13 @@ class VectorInversion(InversionDirective):
             multipliers = []
             for mult, reg in self.reg:
                 if isinstance(reg, CrossGradient):
-                    for wire in reg.wire_map:
+                    units = []
+                    for _, wire in reg.wire_map.maps:
                         if wire in angle_map:
-                            mult = 0
+                            units.append("radian")
+                        else:
+                            units.append("metric")
+
 
                 multipliers.append(mult)
 

@@ -130,8 +130,9 @@ class CrossGradient(BaseSimilarityMeasure):
 
     """
 
-    def __init__(self, mesh, wire_map, approx_hessian=True, **kwargs):
-        super().__init__(mesh, wire_map=wire_map, **kwargs)
+    def __init__(self, mesh, wire_map, approx_hessian=True, units=["metric", "metric"], **kwargs):
+
+        super().__init__(mesh, wire_map=wire_map, units=units, **kwargs)
         self.approx_hessian = approx_hessian
 
         regmesh = self.regularization_mesh
@@ -227,6 +228,36 @@ class CrossGradient(BaseSimilarityMeasure):
 
         return cross_prod
 
+    def _model_gradients(self, models):
+        """
+        Compute gradient on faces
+        """
+        gradients = []
+
+        for unit, (name, wire) in zip(self.units, self.wire_map.maps):
+            model = wire * models
+            if unit == "radian":
+                gradient = []
+                components = "xyz" if self.regularization_mesh.dim == 3 else "xy"
+                for comp in components:
+                    distances = getattr(
+                        self.regularization_mesh, f"cell_distances_{comp}"
+                    )
+                    cell_grad = getattr(
+                        self.regularization_mesh, f"cell_gradient_{comp}"
+                    )
+                    gradient.append(
+                        coterminal(cell_grad * model * distances) / distances
+                    )
+
+                gradient = np.hstack(gradient) / np.pi
+            else:
+                gradient = self._G @ model
+
+            gradients.append(gradient)
+
+        return gradients
+
     def __call__(self, model):
         """Evaluate the cross-gradient regularization function for the model provided.
 
@@ -244,11 +275,10 @@ class CrossGradient(BaseSimilarityMeasure):
             The regularization function evaluated for the model provided.
         """
 
-        m1, m2 = self.wire_map * model
         Av = self._Av
-        G = self._G
-        g_m1 = G @ m1
-        g_m2 = G @ m2
+
+        g_m1, g_m2 = self._model_gradients(model)
+
         return np.sum((Av @ g_m1**2) * (Av @ g_m2**2) - (Av @ (g_m1 * g_m2)) ** 2)
 
     def deriv(self, model):
@@ -279,14 +309,11 @@ class CrossGradient(BaseSimilarityMeasure):
         (n_param, ) numpy.ndarray
             Gradient of the regularization function evaluated for the model provided.
         """
-        m1, m2 = self.wire_map * model
-
         Av = self._Av
         G = self._G
-        g_m1 = G @ m1
-        g_m2 = G @ m2
+        g_m1, g_m2 = self._model_gradients(model)
 
-        return (
+        return self.wire_map.deriv(model).T * (
             2
             * np.r_[
                 (((Av @ g_m2**2) @ Av) * g_m1) @ G
@@ -337,13 +364,10 @@ class CrossGradient(BaseSimilarityMeasure):
             for the models provided is returned. If *v* is not ``None``,
             the Hessian multiplied by the vector provided is returned.
         """
-        m1, m2 = self.wire_map * model
-
         Av = self._Av
         G = self._G
 
-        g_m1 = G @ m1
-        g_m2 = G @ m2
+        g_m1, g_m2 = self._model_gradients(model)
 
         d11_mid = Av.T @ (Av @ g_m2**2)
         d12_mid = -(Av.T @ (Av @ (g_m1 * g_m2)))
@@ -365,9 +389,9 @@ class CrossGradient(BaseSimilarityMeasure):
             D12 = G.T @ D12_mid @ G
             D22 = G.T @ D22_mid @ G
 
-            return 2 * sp.bmat(
+            return 2 * self.wire_map.deriv(model).T * sp.bmat(
                 [[D11, D12], [D12.T, D22]], format="csr"
-            )  # factor of 2 from derviative of | grad m1 x grad m2 | ^2
+            ) * self.wire_map.deriv(model) # factor of 2 from derviative of | grad m1 x grad m2 | ^2
 
         else:
             v1, v2 = self.wire_map * v
@@ -389,5 +413,27 @@ class CrossGradient(BaseSimilarityMeasure):
                     - g_m1 * (Av.T @ (Av @ (g_m2 * Gv1)))  # d12.T*v1 fcontinued
                 )
             return (
-                2 * np.r_[p1, p2]
+                2 * self.wire_map.deriv(model).T * np.r_[p1, p2]
             )  # factor of 2 from derviative of | grad m1 x grad m2 | ^2
+
+    @property
+    def units(self) -> list[str] | None:
+        """Units for the model parameters.
+
+        Some regularization classes behave differently depending on the units; e.g. 'radian'.
+
+        Returns
+        -------
+        str
+            Units for the model parameters.
+        """
+        return self._units
+
+    @units.setter
+    def units(self, units: list[str] | None):
+        if units is not None and not isinstance(units, list) and not all(isinstance(u, str) for u in units):
+            raise TypeError(
+                f"'units' must be None or a list of str. "
+                f"Value of type {type(units)} provided."
+            )
+        self._units = units

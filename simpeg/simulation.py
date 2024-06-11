@@ -89,6 +89,7 @@ class BaseSimulation(props.HasModel):
         verbose=False,
         **kwargs,
     ):
+        self._store_sensitivities: str | None = None
         self.mesh = mesh
         self.survey = survey
         if solver is None:
