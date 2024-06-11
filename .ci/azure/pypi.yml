@@ -47,7 +47,7 @@ jobs:
 
   - job: Deploy
     dependsOn: Build
-    # condition: or(startsWith(variables['build.sourceBranch'], 'refs/tags/'), startsWith(variables['build.sourceBranch'], 'refs/heads/main'))
+    condition: or(startsWith(variables['build.sourceBranch'], 'refs/tags/'), startsWith(variables['build.sourceBranch'], 'refs/heads/main'))
     pool:
       vmImage: ubuntu-latest
     steps:
@@ -70,22 +70,18 @@ jobs:
 
       # Push to TestPyPI (only on push to main)
       - bash: |
-          # twine upload --repository testpypi dist/*
-          echo "twine upload --repository testpypi dist/*"
+          twine upload --repository testpypi dist/*
         displayName: "Upload to TestPyPI"
-        # condition: startsWith(variables['build.sourceBranch'], 'refs/heads/main')
-        condition: true
+        condition: startsWith(variables['build.sourceBranch'], 'refs/heads/main')
         env:
           TWINE_USERNAME: $(twine.username)
           TWINE_PASSWORD: $(test.twine.password)
 
       # Push to PyPI (only on release)
       - bash: |
-          # twine upload --skip-existing dist/*
-          echo "twine upload --skip-existing dist/*"
+          twine upload --skip-existing dist/*
         displayName: "Upload to PyPI"
-        # condition: startsWith(variables['build.sourceBranch'], 'refs/tags/')
-        condition: true
+        condition: startsWith(variables['build.sourceBranch'], 'refs/tags/')
         env:
           TWINE_USERNAME: $(twine.username)
           TWINE_PASSWORD: $(twine.password)
