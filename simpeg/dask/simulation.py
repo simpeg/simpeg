@@ -218,7 +218,7 @@ def dask_dpred(self, m=None, f=None, compute_J=False):
     if f is None:
         if m is None:
             m = self.model
-        f, Ainv = self.fields(m, return_Ainv=compute_J)
+        f = self.fields(m, return_Ainv=compute_J)
 
     def evaluate_receiver(source, receiver, mesh, fields):
         return receiver.eval(source, mesh, fields).flatten()
@@ -238,7 +238,7 @@ def dask_dpred(self, m=None, f=None, compute_J=False):
     data = array.hstack(rows).compute()
 
     if compute_J and self._Jmatrix is None:
-        Jmatrix = self.compute_J(f=f, Ainv=Ainv)
+        Jmatrix = self.compute_J(f=f)
         return data, Jmatrix
 
     return data

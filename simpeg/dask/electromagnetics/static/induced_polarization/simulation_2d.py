@@ -31,15 +31,14 @@ def dask_fields(self, m=None, return_Ainv=False):
     f = self.fieldsPair(self)
     f._quad_weights = self._quad_weights
 
-    Ainv_out = {}
+    Ainv = {}
     for iky, ky in enumerate(kys):
         A = self.getA(ky)
-        Ainv = self.solver(A, **self.solver_opts)
-        Ainv_out[iky] = self.solver(sp.csr_matrix(A.T), **self.solver_opts)
-        RHS = self.getRHS(ky)
-        f[:, self._solutionType, iky] = Ainv * RHS
+        Ainv[iky] = self.solver(A, **self.solver_opts)
 
-        Ainv.clean()
+        RHS = self.getRHS(ky)
+        f[:, self._solutionType, iky] = Ainv[iky] * RHS
+
 
     if self._scale is None:
         scale = Data(self.survey, np.ones(self.survey.nD))
@@ -55,9 +54,9 @@ def dask_fields(self, m=None, return_Ainv=False):
         self._scale = scale.dobs
 
     if return_Ainv:
-        return f, Ainv_out
-    else:
-        return f, None
+        self.Ainv = Ainv
+
+    return f
 
 
 Sim.fields = dask_fields

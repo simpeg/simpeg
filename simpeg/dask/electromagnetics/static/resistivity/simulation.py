@@ -30,21 +30,19 @@ def dask_fields(self, m=None, return_Ainv=False):
     f = self.fieldsPair(self)
     f[:, self._solutionType] = Ainv * RHS
 
-    Ainv.clean()
-
     if return_Ainv:
-        return f, self.solver(sp.csr_matrix(A.T), **self.solver_opts)
-    else:
-        return f, None
+        self.Ainv = Ainv
+
+    return f
 
 
 Sim.fields = dask_fields
 
 
-def compute_J(self, f=None, Ainv=None):
+def compute_J(self, f=None):
 
     if f is None:
-        f, Ainv = self.fields(self.model, return_Ainv=True)
+        f = self.fields(self.model, return_Ainv=True)
 
     m_size = self.model.size
     row_chunks = int(
@@ -86,7 +84,7 @@ def compute_J(self, f=None, Ainv=None):
                 df_duT, df_dmT = df_duTFun(
                     source, None, PTv[:, start:end], adjoint=True
                 )
-                ATinvdf_duT = Ainv * df_duT
+                ATinvdf_duT = self.Ainv * df_duT
                 dA_dmT = self.getADeriv(u_source, ATinvdf_duT, adjoint=True)
                 dRHS_dmT = self.getRHSDeriv(source, ATinvdf_duT, adjoint=True)
                 du_dmT = -dA_dmT
@@ -130,7 +128,7 @@ def compute_J(self, f=None, Ainv=None):
         else:
             Jmatrix[count : self.survey.nD, :] = blocks.astype(np.float32)
 
-    Ainv.clean()
+    self.Ainv.clean()
 
     if self.store_sensitivities == "disk":
         del Jmatrix

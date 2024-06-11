@@ -27,31 +27,29 @@ def dask_fields(self, m=None, return_Ainv=False):
     f = self.fieldsPair(self)
     f._quad_weights = self._quad_weights
 
-    Ainv_out = {}
+    Ainv = {}
     for iky, ky in enumerate(kys):
         A = self.getA(ky)
-        Ainv = self.solver(A, **self.solver_opts)
-        Ainv_out[iky] = self.solver(sp.csr_matrix(A.T), **self.solver_opts)
-        RHS = self.getRHS(ky)
-        f[:, self._solutionType, iky] = Ainv * RHS
+        Ainv[iky] = self.solver(A, **self.solver_opts)
 
-        Ainv.clean()
+        RHS = self.getRHS(ky)
+        f[:, self._solutionType, iky] = Ainv[iky] * RHS
 
     if return_Ainv:
-        return f, Ainv_out
-    else:
-        return f, None
+        self.Ainv = Ainv
+
+    return f
 
 
 Sim.fields = dask_fields
 
 
-def compute_J(self, f=None, Ainv=None):
+def compute_J(self, f=None):
     kys = self._quad_points
     weights = self._quad_weights
 
     if f is None:
-        f, Ainv = self.fields(self.model, return_Ainv=True)
+        f = self.fields(self.model, return_Ainv=True)
 
     m_size = self.model.size
     row_chunks = int(
@@ -99,7 +97,7 @@ def compute_J(self, f=None, Ainv=None):
 
                     u_ky = f[:, self._solutionType, iky]
                     u_source = u_ky[:, i_src]
-                    ATinvdf_duT = Ainv[iky] * PTv[:, start:end]
+                    ATinvdf_duT = self.Ainv[iky] * PTv[:, start:end]
                     dA_dmT = self.getADeriv(ky, u_source, ATinvdf_duT, adjoint=True)
                     du_dmT = -weights[iky] * dA_dmT
                     block += du_dmT.T.reshape((-1, m_size))
@@ -135,7 +133,7 @@ def compute_J(self, f=None, Ainv=None):
             Jmatrix[count : self.survey.nD, :] = blocks.astype(np.float32)
 
     for iky, _ in enumerate(kys):
-        Ainv[iky].clean()
+        self.Ainv[iky].clean()
 
     if self.store_sensitivities == "disk":
         del Jmatrix
@@ -176,7 +174,7 @@ def dask_dpred(self, m=None, f=None, compute_J=False):
     if f is None:
         if m is None:
             m = self.model
-        f, Ainv = self.fields(m, return_Ainv=compute_J)
+        f = self.fields(m, return_Ainv=compute_J)
 
     temp = np.empty(survey.nD)
     count = 0
@@ -187,7 +185,7 @@ def dask_dpred(self, m=None, f=None, compute_J=False):
             count += len(d)
 
     if compute_J:
-        Jmatrix = self.compute_J(f=f, Ainv=Ainv)
+        Jmatrix = self.compute_J(f=f)
         return self._mini_survey_data(temp), Jmatrix
 
     return self._mini_survey_data(temp)

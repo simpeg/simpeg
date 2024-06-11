@@ -34,7 +34,6 @@ def dask_fields(self, m=None, return_Ainv=False):
     f = self.fieldsPair(self)
     f[:, self._solutionType] = Ainv * RHS
 
-    Ainv.clean()
 
     if self._scale is None:
         scale = Data(self.survey, np.ones(self.survey.nD))
@@ -49,9 +48,9 @@ def dask_fields(self, m=None, return_Ainv=False):
         self._scale = scale.dobs
 
     if return_Ainv:
-        return f, self.solver(sp.csr_matrix(A.T), **self.solver_opts)
-    else:
-        return f, None
+        self.Ainv = Ainv
+
+    return f
 
 
 Sim.fields = dask_fields
@@ -79,8 +78,8 @@ def dask_dpred(self, m=None, f=None, compute_J=False):
     if self._Jmatrix is None or self._scale is None:
         if m is None:
             m = self.model
-        f, Ainv = self.fields(m, return_Ainv=True)
-        self._Jmatrix = self.compute_J(f=f, Ainv=Ainv)
+        f = self.fields(m, return_Ainv=True)
+        self._Jmatrix = self.compute_J(f=f)
 
     data = self.Jvec(m, m)
 
@@ -98,7 +97,7 @@ def dask_getJtJdiag(self, m, W=None):
     Return the diagonal of JtJ
     """
     self.model = m
-    if self._jtjdiag is None:
+    if getattr(self, "_jtjdiag", None) is None:
         if isinstance(self.Jmatrix, Future):
             self.Jmatrix  # Wait to finish
 

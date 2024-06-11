@@ -110,7 +110,7 @@ def dask_dpred(self, m=None, f=None, compute_J=False):
     if f is None:
         if m is None:
             m = self.model
-        f, Ainv = self.fields(m, return_Ainv=compute_J)
+        f = self.fields(m, return_Ainv=compute_J)
 
     all_receivers = []
 
@@ -137,7 +137,7 @@ def dask_dpred(self, m=None, f=None, compute_J=False):
     data = compute(array.hstack(rows))[0]
 
     if compute_J and self._Jmatrix is None:
-        Jmatrix = self.compute_J(f=f, Ainv=Ainv)
+        Jmatrix = self.compute_J(f=f)
         return data, Jmatrix
 
     return data
@@ -167,25 +167,25 @@ def fields(self, m=None, return_Ainv=False):
             Ainv_solve.clean()
 
     if return_Ainv:
-        return f, Ainv
-    else:
-        return f, None
+        self.Ainv = Ainv
+
+    return f
 
 
 Sim.fields = fields
 
 
-def compute_J(self, f=None, Ainv=None):
+def compute_J(self, f=None):
     if f is None:
-        f, Ainv = self.fields(self.model, return_Ainv=True)
+        f = self.fields(self.model, return_Ainv=True)
 
-    if len(Ainv) > 1:
+    if len(self.Ainv) > 1:
         raise NotImplementedError(
             "Current implementation of parallelization assumes a single frequency per simulation. "
             "Consider creating one misfit per frequency."
         )
 
-    A_i = list(Ainv.values())[0]
+    A_i = list(self.Ainv.values())[0]
     m_size = self.model.size
 
     if self.store_sensitivities == "disk":
@@ -227,13 +227,13 @@ def compute_J(self, f=None, Ainv=None):
     for block_derivs_chunks, addresses_chunks in tqdm(
         zip(blocks_receiver_derivs, blocks),
         ncols=len(blocks_receiver_derivs),
-        desc=f"Sensitivities at {list(Ainv)[0]} Hz",
+        desc=f"Sensitivities at {list(self.Ainv)[0]} Hz",
     ):
         Jmatrix = parallel_block_compute(
             self, Jmatrix, block_derivs_chunks, A_i, fields_array, addresses_chunks
         )
 
-    for A in Ainv.values():
+    for A in self.Ainv.values():
         A.clean()
 
     if self.store_sensitivities == "disk":

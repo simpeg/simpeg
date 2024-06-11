@@ -99,14 +99,11 @@ def fields(self, m=None, return_Ainv=False):
     f = self.fieldsPair(self)
     f[:, self._fieldType + "Solution", 0] = self.getInitialFields()
     Ainv = {}
-    ATinv = {}
 
     for tInd, dt in enumerate(self.time_steps):
         if dt not in Ainv:
             A = self.getAdiag(tInd)
             Ainv[dt] = self.solver(sp.csr_matrix(A), **self.solver_opts)
-            if return_Ainv:
-                ATinv[dt] = self.solver(sp.csr_matrix(A.T), **self.solver_opts)
 
         Asubdiag = self.getAsubdiag(tInd)
         rhs = -Asubdiag * f[:, (self._fieldType + "Solution"), tInd]
@@ -120,13 +117,11 @@ def fields(self, m=None, return_Ainv=False):
         sol = Ainv[dt] * rhs
         f[:, self._fieldType + "Solution", tInd + 1] = sol
 
-    for A in Ainv.values():
-        A.clean()
 
     if return_Ainv:
-        return f, ATinv
-    else:
-        return f, None
+        self.Ainv = Ainv
+
+    return f
 
 
 Sim.fields = fields
@@ -208,7 +203,7 @@ def dask_dpred(self, m=None, f=None, compute_J=False):
     if f is None:
         if m is None:
             m = self.model
-        f, Ainv = self.fields(m, return_Ainv=compute_J)
+        f = self.fields(m, return_Ainv=compute_J)
 
     rows = []
     receiver_projection = self.survey.source_list[0].receiver_list[0].projField
@@ -241,7 +236,7 @@ def dask_dpred(self, m=None, f=None, compute_J=False):
     data = array.hstack(rows).compute()
 
     if compute_J and self._Jmatrix is None:
-        Jmatrix = self.compute_J(f=f, Ainv=Ainv)
+        Jmatrix = self.compute_J(f=f)
         return data, Jmatrix
 
     return data
@@ -502,12 +497,12 @@ def compute_rows(
     return np.vstack(rows)
 
 
-def compute_J(self, f=None, Ainv=None):
+def compute_J(self, f=None):
     """
     Compute the rows for the sensitivity matrix.
     """
     if f is None:
-        f, Ainv = self.fields(self.model, return_Ainv=True)
+        f = self.fields(self.model, return_Ainv=True)
 
     ftype = self._fieldType + "Solution"
     sens_name = self.sensitivity_path[:-5]
@@ -542,7 +537,7 @@ def compute_J(self, f=None, Ainv=None):
 
     ATinv_df_duT_v = {}
     for tInd, dt in tqdm(zip(reversed(range(self.nT)), reversed(self.time_steps))):
-        AdiagTinv = Ainv[dt]
+        AdiagTinv = self.Ainv[dt]
         j_row_updates = []
         time_mask = data_times > simulation_times[tInd]
 
@@ -587,7 +582,7 @@ def compute_J(self, f=None, Ainv=None):
         else:
             Jmatrix += array.vstack(j_row_updates).compute()
 
-    for A in Ainv.values():
+    for A in self.Ainv.values():
         A.clean()
 
     if self.store_sensitivities == "ram":
