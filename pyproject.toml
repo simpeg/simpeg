@@ -31,7 +31,7 @@ classifiers = [
 ]
 
 packages = [
-    { include = "SimPEG" },
+    { include = "simpeg" },
 ]
 
 exclude = ["tests*", "examples*", "tutorials*"]
