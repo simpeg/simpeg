@@ -30,11 +30,12 @@ dependencies:
   - pytest
   - pytest-cov
   - coverage
-  - twine
   - memory_profiler
   - plotly
   - pyvista
-  - pip
   - python-kaleido
+  - pip
+  - twine
+  - build
   # Optional dependencies
   - choclo

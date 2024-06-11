@@ -113,7 +113,7 @@ stages:
 
         - script: |
             source activate simpeg-test
-            python setup.py sdist
+            python -m build --no-isolation --skip-dependency-check --sdist .
             twine upload --skip-existing dist/*
           displayName: Deploy source
           env:
