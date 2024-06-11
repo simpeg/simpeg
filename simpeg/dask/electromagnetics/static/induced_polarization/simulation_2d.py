@@ -1,5 +1,3 @@
-import scipy.sparse as sp
-
 from .....electromagnetics.static.induced_polarization.simulation import (
     Simulation2DNodal as Sim,
 )
@@ -38,7 +36,6 @@ def dask_fields(self, m=None, return_Ainv=False):
 
         RHS = self.getRHS(ky)
         f[:, self._solutionType, iky] = Ainv[iky] * RHS
-
 
     if self._scale is None:
         scale = Data(self.survey, np.ones(self.survey.nD))

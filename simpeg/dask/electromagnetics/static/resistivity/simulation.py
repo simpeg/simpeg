@@ -3,7 +3,6 @@ from .....electromagnetics.static.resistivity.simulation import BaseDCSimulation
 from .....utils import Zero
 import dask.array as da
 import numpy as np
-import scipy.sparse as sp
 import zarr
 
 import numcodecs

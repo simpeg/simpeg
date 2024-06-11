@@ -1336,7 +1336,6 @@ class Wires(object):
             setattr(self, arg[0], wire)
             maps += [(arg[0], wire)]
 
-
         self.maps = maps
         self._nP = maps[0][1].nP
         self._tuple = namedtuple("Model", [name for name, _ in args])

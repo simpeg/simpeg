@@ -36,7 +36,9 @@ class BaseDataMisfit(L2ObjectiveFunction):
         Assign a SimPEG ``Counter`` object to store iterations and run-times.
     """
 
-    def __init__(self, data, simulation, model_map=None, debug=False, counter=None, **kwargs):
+    def __init__(
+        self, data, simulation, model_map=None, debug=False, counter=None, **kwargs
+    ):
         super().__init__(has_fields=True, debug=debug, counter=counter, **kwargs)
 
         self.data = data
@@ -353,8 +355,8 @@ class L2DataMisfit(BaseDataMisfit):
         """
         if getattr(self.simulation, "getJtJdiag", None) is None:
             raise AttributeError(
-                    "Simulation does not have a getJtJdiag attribute."
-                    + "Cannot form the sensitivity explicitly"
+                "Simulation does not have a getJtJdiag attribute."
+                + "Cannot form the sensitivity explicitly"
             )
 
         mapping_deriv = self.model_map.deriv(m)
@@ -365,6 +367,8 @@ class L2DataMisfit(BaseDataMisfit):
         jtjdiag = self.simulation.getJtJdiag(m, W=self.W)
 
         if self.model_map is not None:
-            jtjdiag = mkvc((sdiag(np.sqrt(jtjdiag)) @ mapping_deriv).power(2).sum(axis=0))
+            jtjdiag = mkvc(
+                (sdiag(np.sqrt(jtjdiag)) @ mapping_deriv).power(2).sum(axis=0)
+            )
 
         return jtjdiag

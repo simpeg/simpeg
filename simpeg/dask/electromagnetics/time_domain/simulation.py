@@ -117,7 +117,6 @@ def fields(self, m=None, return_Ainv=False):
         sol = Ainv[dt] * rhs
         f[:, self._fieldType + "Solution", tInd + 1] = sol
 
-
     if return_Ainv:
         self.Ainv = Ainv
 

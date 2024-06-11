@@ -1,5 +1,3 @@
-import scipy.sparse as sp
-
 from .....electromagnetics.static.resistivity.simulation_2d import (
     BaseDCSimulation2D as Sim,
 )

@@ -556,6 +556,7 @@ class BaseSimulation(props.HasModel):
             "store_sensitivities", value, ["disk", "ram", "forward_only"]
         )
 
+
 class BaseTimeSimulation(BaseSimulation):
     r"""Base class for time domain simulations.
 

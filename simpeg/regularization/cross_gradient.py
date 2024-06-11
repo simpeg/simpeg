@@ -130,7 +130,9 @@ class CrossGradient(BaseSimilarityMeasure):
 
     """
 
-    def __init__(self, mesh, wire_map, approx_hessian=True, units=["metric", "metric"], **kwargs):
+    def __init__(
+        self, mesh, wire_map, approx_hessian=True, units=["metric", "metric"], **kwargs
+    ):
 
         super().__init__(mesh, wire_map=wire_map, units=units, **kwargs)
         self.approx_hessian = approx_hessian
@@ -389,9 +391,12 @@ class CrossGradient(BaseSimilarityMeasure):
             D12 = G.T @ D12_mid @ G
             D22 = G.T @ D22_mid @ G
 
-            return 2 * self.wire_map.deriv(model).T * sp.bmat(
-                [[D11, D12], [D12.T, D22]], format="csr"
-            ) * self.wire_map.deriv(model) # factor of 2 from derviative of | grad m1 x grad m2 | ^2
+            return (
+                2
+                * self.wire_map.deriv(model).T
+                * sp.bmat([[D11, D12], [D12.T, D22]], format="csr")
+                * self.wire_map.deriv(model)
+            )  # factor of 2 from derviative of | grad m1 x grad m2 | ^2
 
         else:
             v1, v2 = self.wire_map * v
@@ -431,7 +436,11 @@ class CrossGradient(BaseSimilarityMeasure):
 
     @units.setter
     def units(self, units: list[str] | None):
-        if units is not None and not isinstance(units, list) and not all(isinstance(u, str) for u in units):
+        if (
+            units is not None
+            and not isinstance(units, list)
+            and not all(isinstance(u, str) for u in units)
+        ):
             raise TypeError(
                 f"'units' must be None or a list of str. "
                 f"Value of type {type(units)} provided."

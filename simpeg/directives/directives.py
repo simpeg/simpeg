@@ -53,7 +53,6 @@ from geoh5py.objects import ObjectBase
 from geoh5py.ui_json.utils import fetch_active_workspace
 
 
-
 class InversionDirective:
     """Base inversion directive class.
 
@@ -3277,7 +3276,6 @@ class SaveIterationsGeoH5(InversionDirective):
             )
 
         self._association = value.upper()
-
 
 
 class VectorInversion(InversionDirective):
