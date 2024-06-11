@@ -29,6 +29,7 @@ jobs:
           # compatible with Test PyPI. Only do this when building for TestPyPI.
           sed --in-place 's/node-and-date/no-local-version/g' setup.py
         condition: startsWith(variables['build.sourceBranch'], 'refs/heads/main')
+        displayName: "Configure local_scheme (only for TestPyPI)"
 
       - bash: |
           python setup.py sdist
