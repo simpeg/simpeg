@@ -229,14 +229,26 @@ starting_model = background_susceptibility * np.ones(nC)
 # class.
 #
 
+###############################################################################
 # Define the problem. Define the cells below topography and the mapping
+
 simulation = magnetics.simulation.Simulation3DIntegral(
     survey=survey,
     mesh=mesh,
     model_type="scalar",
     chiMap=model_map,
     ind_active=active_cells,
+    engine="choclo",
 )
+
+###############################################################################
+# .. tip::
+#
+#    Since SimPEG v0.22.0 we can use `Choclo
+#    <https://www.fatiando.org/choclo>`_ as the engine for running the magnetic
+#    simulations, which results in faster and more memory efficient runs. Just
+#    pass ``engine="choclo"`` when constructing the simulation.
+#
 
 
 #######################################################################
