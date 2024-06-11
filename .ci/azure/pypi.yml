@@ -46,7 +46,7 @@ jobs:
 
   - job: Deploy
     dependsOn: Build
-    condition: or(startsWith(variables['build.sourceBranch'], 'refs/tags/'), startsWith(variables['build.sourceBranch'], 'refs/heads/main'))
+    condition: or(startsWith(variables['build.sourceBranch'], 'refs/tags/'), eq(variables['build.sourceBranch'], 'refs/heads/main'))
     pool:
       vmImage: ubuntu-latest
     steps:
@@ -71,7 +71,7 @@ jobs:
       - bash: |
           twine upload --repository testpypi dist/*
         displayName: "Upload to TestPyPI"
-        condition: startsWith(variables['build.sourceBranch'], 'refs/heads/main')
+        condition: eq(variables['build.sourceBranch'], 'refs/heads/main')
         env:
           TWINE_USERNAME: $(twine.username)
           TWINE_PASSWORD: $(test.twine.password)
