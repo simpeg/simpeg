@@ -1,3 +1,6 @@
+variables:
+  python_version: "3.9"
+
 jobs:
   # Push to PyPI or TestPyPI
   - job: Build
@@ -13,8 +16,8 @@ jobs:
 
       - task: UsePythonVersion@0
         inputs:
-          versionSpec: "3.9"
-        displayName: "Setup Python 3.9"
+          versionSpec: $(python_version)
+        displayName: "Setup Python"
 
       - bash: |
           pip install setuptools>=61 setuptools_scm wheel twine
@@ -57,8 +60,8 @@ jobs:
 
       - task: UsePythonVersion@0
         inputs:
-          versionSpec: "3.9"
-        displayName: "Setup Python 3.9"
+          versionSpec: $(python_version)
+        displayName: "Setup Python"
 
       - bash: |
           pip install twine
