@@ -217,7 +217,13 @@ fig = plt.figure(figsize=(7, 5))
 v_max = np.max(np.abs(dpred))
 
 ax1 = fig.add_axes([0.1, 0.1, 0.75, 0.85])
-plot2Ddata(receiver_list[0].locations, dpred, clim=(-v_max, v_max), ax=ax1, contourOpts={"cmap": "bwr"})
+plot2Ddata(
+    receiver_list[0].locations, 
+    dpred, 
+    clim=(-v_max, v_max), 
+    ax=ax1, 
+    contourOpts={"cmap": "bwr"}
+)
 ax1.set_title("Gravity Anomaly (Z-component)")
 ax1.set_xlabel("x (m)")
 ax1.set_ylabel("y (m)")
