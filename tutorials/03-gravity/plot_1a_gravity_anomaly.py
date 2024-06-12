@@ -214,14 +214,16 @@ dpred = simulation.dpred(model)
 # Plot
 fig = plt.figure(figsize=(7, 5))
 
+v_max = np.max(np.abs(dpred))
+
 ax1 = fig.add_axes([0.1, 0.1, 0.75, 0.85])
-plot2Ddata(receiver_list[0].locations, dpred, ax=ax1, contourOpts={"cmap": "bwr"})
+plot2Ddata(receiver_list[0].locations, dpred, clim=(-v_max,v_max), ax=ax1, contourOpts={"cmap": "bwr"})
 ax1.set_title("Gravity Anomaly (Z-component)")
 ax1.set_xlabel("x (m)")
 ax1.set_ylabel("y (m)")
 
 ax2 = fig.add_axes([0.82, 0.1, 0.03, 0.85])
-norm = mpl.colors.Normalize(vmin=-np.max(np.abs(dpred)), vmax=np.max(np.abs(dpred)))
+norm = mpl.colors.Normalize(vmin=-v_max, vmax=v_max)
 cbar = mpl.colorbar.ColorbarBase(
     ax2, norm=norm, orientation="vertical", cmap=mpl.cm.bwr, format="%.1e"
 )
