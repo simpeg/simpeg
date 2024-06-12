@@ -786,13 +786,13 @@ class Simulation3DFictitiousSource(Simulation3DElectricField):
         """
         return self._sigma_background
 
-    @sigmaPrimary.setter
+    @sigma_background.setter
     def sigma_background(self, val):
         
-        if ~isinstance(val, np.ndarray):
+        if not isinstance(val, np.ndarray):
             raise TypeError("'sigma_background' must be a (n_cells_z,) or (n_cells,) numpy.ndarray.")
         
-        if len(val) == len(self.mesh.h[2]) | len(val) == mesh.n_cells:
+        if (len(val) == len(self.mesh.h[2])) | (len(val) == self.mesh.n_cells):
             self._sigma_background = val
 
         else:

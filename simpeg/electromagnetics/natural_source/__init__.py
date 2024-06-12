@@ -38,7 +38,7 @@ Sources
 
   sources.Planewave
   sources.PlanewaveXYPrimary
-  sources.FictitiousSource
+  sources.FictitiousSource3D
 
 Data
 ====
