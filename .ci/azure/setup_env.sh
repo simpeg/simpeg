@@ -1,5 +1,5 @@
 #!/bin/bash
-set -x #echo on
+set -ex #echo on and exit if any line fails
 
 # TF_BUILD is set to True on azure pipelines.
 is_azure=$(${TF_BUILD:-false} | tr '[:upper:]' '[:lower:]')

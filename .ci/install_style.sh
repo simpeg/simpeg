@@ -1,5 +1,5 @@
 #!/bin/bash
-set -x #echo on
+set -ex #echo on and exit if any line fails
 
 # get directory of this script
 script_dir=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
