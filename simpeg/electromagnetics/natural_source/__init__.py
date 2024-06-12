@@ -17,6 +17,7 @@ Simulations
   Simulation2DElectricField
   Simulation2DMagneticField
   Simulation3DPrimarySecondary
+  Simulation3DFictitiousSource
 
 Receivers
 =========
@@ -37,6 +38,7 @@ Sources
 
   sources.Planewave
   sources.PlanewaveXYPrimary
+  sources.FictitiousSource
 
 Data
 ====

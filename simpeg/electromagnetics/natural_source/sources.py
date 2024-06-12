@@ -215,3 +215,85 @@ class PlanewaveXYPrimary(Planewave):
 
     S_e = s_e
     S_eDeriv = s_eDeriv
+
+
+class FictitiousSource(BaseFDEMSrc)
+
+    _fields_per_source = 2
+
+    def __init__(self, receiver_list, frequency):
+
+        self.sigma1d = None
+        self._sigma_primary = sigma_primary
+        super(PlanewaveXYPrimary, self).__init__(receiver_list, frequency)
+
+    def s_e(self, simulation):
+        """Electric source term
+
+        Parameters
+        ----------
+        simulation : simpeg.electromagnetics.frequency_domain.simulation.BaseFDEMSimulation
+            A NSEM simulation
+
+        Returns
+        -------
+        numpy.ndarray
+            Electric source term on mesh.
+        """
+        
+        # Model-independent. Return if already computed.
+        if getattr(self, '_s_e', None) is not None:
+            return getattr(self, '_s_e')
+
+        # Fictitious source from 1D 
+        if len(simulation.sigma_background) == len(simulation.mesh.h[2]):
+
+            # Generate 1D mesh and conductivity on extended 1D mesh
+            hz = simulation.mesh.h[2]
+            sigma_1d = simulation.background_conductivity
+
+            n_pad = 200  # arbitrary number of padding cells added
+            hz = np.r_[hz[0]*np.ones(n_pad), hz, hz[-1]*np.ones(n_pad)]
+            sigma_1d = np.r_[sigma_1d[0]*np.ones(n_pad), sigma_1d, sigma_1d[-1]*np.ones(n_pad)]
+
+            mesh_1d = discretize.TensorMesh([hz], origin=simulation.mesh.origin[2]-hz[0]*n_pad)
+
+            # Solve the 1D problem for electric fields on nodes
+            G = mesh_1d.nodal_gradient
+            MeMui = mesh_1d.get_edge_inner_product(model=mu_0, invert_model=True)
+            MfSigma = mesh_1d.get_face_inner_product(model=sigma_1d)
+
+            A = G.T.tocsr() @ MeMui @ G + 1j * omega(self.frequency) * MfSigma
+
+            RHS = 1j * omega(self.frequency) * mesh_1d.boundary_node_vector_integral * [0 + 0j, 1 + 0j]
+
+            Ainv = simulation.solver(A, **simulation.solver_opts)
+            u_1d = Ainv * RHS
+
+            # Project to X and Y edges
+            fields_x = mesh_1d.get_interpolation_matrix(mesh.edges_x[:, 2], location_type="nodes") @ u_1d
+            fields_y = mesh_1d.get_interpolation_matrix(mesh.edges_y[:, 2], location_type="nodes") @ u_1d
+
+            fields_x = np.r_[fields_x, np.zeros(mesh.n_edges_y + mesh.n_edges_z)]
+            fields_y = np.r_[np.zeros(mesh.n_edges_x), fields_y, np.zeros(mesh.n_edges_z)]
+
+            # Generate fictitious sources
+            sigma_3d = mesh_1d.get_interpolation_matrix(mesh.cell_centers[:, 2], location_type="cell_centers") @ sigma_1d
+
+            C = simulation.mesh.edge_curl
+            MfMui = simulation.mesh.get_face_inner_product(model=mu_0, invert_model=True)
+            MeSigma = simulation.mesh.get_edge_inner_product(model=sigma_3d)
+            
+            A = C.T.tocsr() * MfMui * C + 1j * omega(self.frequency) * MeSigma
+
+            s_e = 1j * omega(self.frequency) * (A @ np.c_[fields_x, fields_y])
+
+        # Fictitious source from 3D
+        else:
+            raise NotImplementedError("Fictitious source not implemented for 3D background model.")
+
+        # Set and return fictitious sources
+        setattr(self, '_s_e', s_e)
+        return getattr(self, '_s_e')
+
+

@@ -754,3 +754,46 @@ class Simulation3DPrimarySecondary(Simulation3DElectricField):
     def sigmaPrimary(self, val):
         # Note: TODO add logic for val, make sure it is the correct size.
         self._sigmaPrimary = val
+
+
+class Simulation3DFictitiousSource(Simulation3DElectricField):
+    r"""
+
+    Parameters
+    ----------
+    mesh : discretize.TensorMesh
+        A 3D mesh.
+    survey : ./natural_source.survey.Survey
+        The natural source EM survey.
+    sigma_background : (n_cells_z,) numpy.ndarray, (n_cells,) numpy.ndarray
+        The background conductivity used to generate the fictitious source.
+
+        * ``(n_cells_z,) numpy.ndarray``: use the base mesh discretization along the z-axis to define a 1D layered Earth conductivity. Fictitious source computed from 1D numeric solution.
+        * ``(n_cells,)``: define backgound condutivities on the 3D mesh. Fictitious source computed from 3D model.
+    """
+
+    def __init__(self, mesh, survey=None, sigma_background=None, **kwargs):
+        super().__init__(mesh=mesh, survey=survey, **kwargs)
+        self.sigma_background = sigma_background
+
+    # fieldsPair = Fields3DPrimarySecondary
+
+    @property
+    def sigma_background(self):
+        """
+        A background model, use for the calculation of the primary fields.
+
+        """
+        return self._sigma_background
+
+    @sigmaPrimary.setter
+    def sigma_background(self, val):
+        
+        if ~isinstance(val, np.ndarray):
+            raise TypeError("'sigma_background' must be a (n_cells_z,) or (n_cells,) numpy.ndarray.")
+        
+        if len(val) == len(self.mesh.h[2]) | len(val) == mesh.n_cells:
+            self._sigma_background = val
+
+        else:
+            raise ValueError("'sigma_background' must be a (n_cells_z,) or (n_cells,) numpy.ndarray.")
