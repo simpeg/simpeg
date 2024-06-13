@@ -3,7 +3,6 @@ from ._base import (
     IdentityMap,
     LinearMap,
     Projection,
-    SelfConsistentEffectiveMedium,
     SphericalSystem,
     SumMap,
     Wires,
@@ -18,6 +17,7 @@ from ._mesh_agnostic import (
     LogMap,
     MuRelative,
     ReciprocalMap,
+    SelfConsistentEffectiveMedium,
     Weighting,
 )
 from ._parametric import (
