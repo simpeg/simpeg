@@ -12,7 +12,7 @@ from discretize.utils import mkvc, sdiag, rotation_matrix_from_normals
 
 from ._base import IdentityMap
 
-from ..utils import validate_integer, validate_direction, validate_float
+from ..utils import validate_integer, validate_direction, validate_float, validate_type
 
 
 class ExpMap(IdentityMap):

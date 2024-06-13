@@ -10,13 +10,16 @@ import numpy as np
 import scipy.sparse as sp
 from scipy.sparse import csr_matrix as csr
 from discretize.tests import check_derivative
-from discretize.utils import Zero, Identity, mkvc, speye
+from discretize.utils import Zero, Identity, mkvc, speye, sdiag
 
 from ..utils import (
     mat_utils,
     validate_type,
     validate_ndarray_with_shape,
     validate_list_of_types,
+    validate_active_indices,
+    validate_integer,
+    validate_float,
 )
 from ..typing import RandomSeed
 
