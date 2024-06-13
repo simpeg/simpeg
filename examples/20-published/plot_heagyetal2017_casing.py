@@ -935,8 +935,8 @@ class PrimSecCasingExample(object):
                 from matplotlib.colors import LogNorm
 
                 f = ax.contourf(
-                    rx_x,
-                    rx_y,
+                    self.rx_x,
+                    self.rx_y,
                     np.absolute(Jv),
                     num,
                     cmap=plt.get_cmap("viridis"),

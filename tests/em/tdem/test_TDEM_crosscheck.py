@@ -5,6 +5,7 @@ from simpeg import maps
 from simpeg.electromagnetics import time_domain as tdem
 from simpeg.electromagnetics import utils
 import numpy as np
+from scipy.interpolate import interp1d
 
 from pymatsolver import Pardiso as Solver
 
