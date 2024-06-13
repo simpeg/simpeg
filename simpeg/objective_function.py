@@ -9,6 +9,7 @@ from discretize.tests import check_derivative
 from .maps import IdentityMap
 from .props import BaseSimPEG
 from .utils import timeIt, Zero, Identity
+from .typing import RandomSeed
 
 __all__ = ["BaseObjectiveFunction", "ComboObjectiveFunction", "L2ObjectiveFunction"]
 
@@ -194,27 +195,38 @@ class BaseObjectiveFunction(BaseSimPEG):
             )
         )
 
-    def _test_deriv(self, x=None, num=4, plotIt=False, **kwargs):
+    def _test_deriv(
+        self,
+        x=None,
+        num=4,
+        plotIt=False,
+        random_seed: RandomSeed | None = None,
+        **kwargs,
+    ):
         print("Testing {0!s} Deriv".format(self.__class__.__name__))
         if x is None:
-            if self.nP == "*":
-                x = np.random.randn(np.random.randint(1e2, high=1e3))
-            else:
-                x = np.random.randn(self.nP)
-
+            rng = np.random.default_rng(seed=random_seed)
+            n_params = rng.integers(low=100, high=1_000) if self.nP == "*" else self.nP
+            x = rng.standard_normal(size=n_params)
         return check_derivative(
             lambda m: [self(m), self.deriv(m)], x, num=num, plotIt=plotIt, **kwargs
         )
 
-    def _test_deriv2(self, x=None, num=4, plotIt=False, **kwargs):
+    def _test_deriv2(
+        self,
+        x=None,
+        num=4,
+        plotIt=False,
+        random_seed: RandomSeed | None = None,
+        **kwargs,
+    ):
         print("Testing {0!s} Deriv2".format(self.__class__.__name__))
+        rng = np.random.default_rng(seed=random_seed)
         if x is None:
-            if self.nP == "*":
-                x = np.random.randn(np.random.randint(1e2, high=1e3))
-            else:
-                x = np.random.randn(self.nP)
+            n_params = rng.integers(low=100, high=1_000) if self.nP == "*" else self.nP
+            x = rng.standard_normal(size=n_params)
 
-        v = x + 0.1 * np.random.rand(len(x))
+        v = x + 0.1 * rng.uniform(size=len(x))
         expectedOrder = kwargs.pop("expectedOrder", 1)
         return check_derivative(
             lambda m: [self.deriv(m).dot(v), self.deriv2(m, v=v)],
@@ -225,7 +237,7 @@ class BaseObjectiveFunction(BaseSimPEG):
             **kwargs,
         )
 
-    def test(self, x=None, num=4, **kwargs):
+    def test(self, x=None, num=4, random_seed: RandomSeed | None = None, **kwargs):
         """Run a convergence test on both the first and second derivatives.
 
         They should be second order!
@@ -236,6 +248,11 @@ class BaseObjectiveFunction(BaseSimPEG):
             The evaluation point for the Taylor expansion.
         num : int
             The number of iterations in the convergence test.
+        random_seed : :class:`~simpeg.typing.RandomSeed` or None, optional
+            Random seed used for generating a random array for ``x`` if it's
+            None, and the ``v`` array for testing the second derivatives. It
+            can either be an int, a predefined Numpy random number generator,
+            or any valid input to ``numpy.random.default_rng``.
 
         Returns
         -------
@@ -243,8 +260,10 @@ class BaseObjectiveFunction(BaseSimPEG):
             ``True`` if both tests pass. ``False`` if either test fails.
 
         """
-        deriv = self._test_deriv(x=x, num=num, **kwargs)
-        deriv2 = self._test_deriv2(x=x, num=num, plotIt=False, **kwargs)
+        deriv = self._test_deriv(x=x, num=num, random_seed=random_seed, **kwargs)
+        deriv2 = self._test_deriv2(
+            x=x, num=num, plotIt=False, random_seed=random_seed, **kwargs
+        )
         return deriv & deriv2
 
     __numpy_ufunc__ = True
