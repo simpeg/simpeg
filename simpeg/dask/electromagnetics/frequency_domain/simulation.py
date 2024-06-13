@@ -118,11 +118,11 @@ def dask_dpred(self, m=None, f=None, compute_J=False):
         for rx in src.receiver_list:
             all_receivers.append((src, ind, rx))
 
-    receiver_blocks = np.array_split(all_receivers, cpu_count())
+    receiver_blocks = np.array_split(np.asarray(all_receivers), cpu_count())
     rows = []
     mesh = delayed(self.mesh)
     for block in receiver_blocks:
-        n_data = np.sum(rec.nD for _, _, rec in block)
+        n_data = np.sum([rec.nD for _, _, rec in block])
         if n_data == 0:
             continue
 

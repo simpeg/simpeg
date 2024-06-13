@@ -220,7 +220,7 @@ def dask_dpred(self, m=None, f=None, compute_J=False):
     receiver_blocks = np.array_split(all_receivers, cpu_count())
 
     for block in receiver_blocks:
-        n_data = np.sum(rec.nD for _, _, rec in block)
+        n_data = np.sum([rec.nD for _, _, rec in block])
         if n_data == 0:
             continue
 
@@ -563,7 +563,7 @@ def compute_J(self, f=None):
                     ),
                     dtype=np.float32,
                     shape=(
-                        np.sum(len(chunk[1][0]) for chunk in block),
+                        np.sum([len(chunk[1][0]) for chunk in block]),
                         self.model.size,
                     ),
                 )
