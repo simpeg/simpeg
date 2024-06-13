@@ -10,10 +10,7 @@ import numpy as np
 import scipy.sparse as sp
 from scipy.sparse import csr_matrix as csr
 from discretize.tests import check_derivative
-from discretize.utils import (
-    Zero,
-    Identity,
-)
+from discretize.utils import Zero, Identity, mkvc, speye
 
 from ..utils import (
     mat_utils,
@@ -1174,3 +1171,169 @@ class Wires(object):
             Number of parameters that the mapping acts on.
         """
         return self._nP
+
+
+class TileMap(IdentityMap):
+    """
+    Mapping for tiled inversion.
+
+    Uses volume averaging to map a model defined on a global mesh to the
+    local mesh. Everycell in the local mesh must also be in the global mesh.
+    """
+
+    def __init__(
+        self,
+        global_mesh,
+        global_active,
+        local_mesh,
+        tol=1e-8,
+        components=1,
+        **kwargs,
+    ):
+        """
+        Parameters
+        ----------
+        global_mesh : discretize.TreeMesh
+            Global TreeMesh defining the entire domain.
+        global_active : numpy.ndarray of bool or int
+            Defines the active cells in the global mesh.
+        local_mesh : discretize.TreeMesh
+            Local TreeMesh for the simulation.
+        tol : float, optional
+            Tolerance to avoid zero division
+        components : int, optional
+            Number of components in the model. E.g. a vector model in 3D would have 3
+            components.
+        """
+        super().__init__(mesh=None, **kwargs)
+        self._global_mesh = validate_type(
+            "global_mesh", global_mesh, discretize.TreeMesh, cast=False
+        )
+        self._local_mesh = validate_type(
+            "local_mesh", local_mesh, discretize.TreeMesh, cast=False
+        )
+
+        self._global_active = validate_active_indices(
+            "global_active", global_active, self.global_mesh.n_cells
+        )
+
+        self._tol = validate_float("tol", tol, min_val=0.0, inclusive_min=False)
+        self._components = validate_integer("components", components, min_val=1)
+
+        # trigger creation of P
+        self.P
+
+    @property
+    def global_mesh(self):
+        """Global TreeMesh defining the entire domain.
+
+        Returns
+        -------
+        discretize.TreeMesh
+        """
+        return self._global_mesh
+
+    @property
+    def local_mesh(self):
+        """Local TreeMesh defining the local domain.
+
+        Returns
+        -------
+        discretize.TreeMesh
+        """
+        return self._local_mesh
+
+    @property
+    def global_active(self):
+        """Defines the active cells in the global mesh.
+
+        Returns
+        -------
+        (global_mesh.n_cells) numpy.ndarray of bool
+        """
+        return self._global_active
+
+    @property
+    def local_active(self):
+        """
+        This is the local_active of the global_active used in the global problem.
+
+        Returns
+        -------
+        (local_mesh.n_cells) numpy.ndarray of bool
+        """
+        return self._local_active
+
+    @property
+    def tol(self):
+        """Tolerance to avoid zero division.
+
+        Returns
+        -------
+        float
+        """
+        return self._tol
+
+    @property
+    def components(self):
+        """Number of components in the model.
+
+        Returns
+        -------
+        int
+        """
+        return self._components
+
+    @property
+    def P(self):
+        """
+        Set the projection matrix with partial volumes
+        """
+        if getattr(self, "_P", None) is None:
+            in_local = self.local_mesh._get_containing_cell_indexes(
+                self.global_mesh.cell_centers
+            )
+
+            P = (
+                sp.csr_matrix(
+                    (
+                        self.global_mesh.cell_volumes,
+                        (in_local, np.arange(self.global_mesh.nC)),
+                    ),
+                    shape=(self.local_mesh.nC, self.global_mesh.nC),
+                )
+                * speye(self.global_mesh.nC)[:, self.global_active]
+            )
+
+            self._local_active = mkvc(np.sum(P, axis=1) > 0)
+
+            P = P[self.local_active, :]
+
+            self._P = sp.block_diag(
+                [
+                    sdiag(1.0 / self.local_mesh.cell_volumes[self.local_active]) * P
+                    for ii in range(self.components)
+                ]
+            )
+
+        return self._P
+
+    def _transform(self, m):
+        return self.P * m
+
+    @property
+    def shape(self):
+        """
+        Shape of the matrix operation (number of indices x nP)
+        """
+        return self.P.shape
+
+    def deriv(self, m, v=None):
+        """
+        :param numpy.ndarray m: model
+        :rtype: scipy.sparse.csr_matrix
+        :return: derivative of transformed model
+        """
+        if v is not None:
+            return self.P * v
+        return self.P

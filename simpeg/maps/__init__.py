@@ -5,6 +5,7 @@ from ._base import (
     Projection,
     SphericalSystem,
     SumMap,
+    TileMap,
     Wires,
 )
 from ._clustering import PolynomialPetroClusterMap
@@ -30,6 +31,5 @@ from ._parametric import (
     ParametricLayer,
     ParametricPolyMap,
     ParametricSplineMap,
-    TileMap,
 )
 from ._surjection import Surject2Dto3D, SurjectFull, SurjectUnits, SurjectVertical1D
