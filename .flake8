@@ -84,8 +84,6 @@ ignore =
     D419,
     # module level import not at top of file
     E402,
-    # undefined name %r
-    F821,
     # Block quote ends without a blank line; unexpected unindent.
     RST201,
     # Definition list ends without a blank line; unexpected unindent.
