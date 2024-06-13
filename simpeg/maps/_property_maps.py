@@ -1,5 +1,5 @@
 """
-Mesh independent map classes.
+Maps that transform physical properties from one space to another.
 """
 
 import warnings
