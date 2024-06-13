@@ -1,8 +1,8 @@
-from ...utils.code_utils import validate_string
+from ...utils.code_utils import deprecate_class, validate_string
 
 import numpy as np
 from scipy.constants import mu_0
-from scipy.sparse import csr_matrix
+import scipy.sparse as sp
 from ...survey import BaseRx
 
 
@@ -293,10 +293,8 @@ class PointNaturalSource(BaseRx):
                 v = -1j * v
 
             # Work backwards!
-
-            gtop_v = v / bot
-            gbot_v = -imp * v / bot
-            n_d = self.nD
+            gtop_v = np.c_[v] / bot[:, None]
+            gbot_v = -imp[:, None] * np.c_[v] / bot[:, None]
 
             if mesh.dim == 3:
                 ghx_v = np.einsum(
@@ -317,15 +315,8 @@ class PointNaturalSource(BaseRx):
                 else:
                     ghx_v -= gh_v
 
-                if v.ndim == 2:
-                    # collapse into a long list of n_d vectors
-                    ghx_v = csr_matrix(ghx_v.reshape((n_d, -1)))
-                    ghy_v = csr_matrix(ghy_v.reshape((n_d, -1)))
-                    ge_v = csr_matrix(ge_v.reshape((n_d, -1)))
-
-                gh_v = Phx.T @ ghx_v + Phy.T @ ghy_v
-                ge_v = Pe.T @ ge_v
-
+                gh_v = Phx.T @ sp.csr_matrix(ghx_v) + Phy.T @ sp.csr_matrix(ghy_v)
+                ge_v = Pe.T @ sp.csr_matrix(ge_v)
             else:
                 if mesh.dim == 1 and self.orientation != f.field_directions:
                     gbot_v = -gbot_v
@@ -565,9 +556,9 @@ class Point3DTipper(PointNaturalSource):
                 ghx_v += gh_v
 
             gh_v = (
-                Phx.T @ csr_matrix(ghx_v)
-                + Phy.T @ csr_matrix(ghy_v)
-                + Phz.T @ csr_matrix(ghz_v)
+                Phx.T @ sp.csr_matrix(ghx_v)
+                + Phy.T @ sp.csr_matrix(ghy_v)
+                + Phz.T @ sp.csr_matrix(ghz_v)
             )
             return f._hDeriv(src, None, gh_v, adjoint=True)
 
@@ -653,3 +644,23 @@ class Point3DTipper(PointNaturalSource):
         if adjoint:
             return imp_deriv
         return getattr(imp_deriv, self.component)
+
+
+############
+# Deprecated
+############
+
+
+@deprecate_class(removal_version="0.19.0", error=True)
+class Point_impedance1D(PointNaturalSource):
+    pass
+
+
+@deprecate_class(removal_version="0.19.0", error=True)
+class Point_impedance3D(PointNaturalSource):
+    pass
+
+
+@deprecate_class(removal_version="0.19.0", error=True)
+class Point_tipper3D(Point3DTipper):
+    pass
