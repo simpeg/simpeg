@@ -881,7 +881,7 @@ class Simulation3DElectricField(BaseFDEMSimulation):
 
         C = self.mesh.edge_curl
         MfMui = self.MfMui
-        s_m, s_e = self.getSourceTerm(freq)
+        s_m, s_e = self.getSourceTerm(freq, source=src)
         s_mDeriv, s_eDeriv = src.evalDeriv(self, adjoint=adjoint)
         MfMuiDeriv = self.MfMuiDeriv(s_m)
 
