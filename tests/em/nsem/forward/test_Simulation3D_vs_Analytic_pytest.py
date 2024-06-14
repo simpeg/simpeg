@@ -113,9 +113,9 @@ def get_survey(locations, frequencies, survey_type, component):
                 for ij in ["xx", "yx", "zx", "xy", "yy", "zy"]
             ]
 
-        elif survey_type == "mobilemt":
+        elif survey_type == "apparent_conductivity":
             rx_list = [
-                nsem.receivers.MobileMT(
+                nsem.receivers.ApparentConductivity(
                     locations_e=locations,
                     locations_h=locations,
                 )
@@ -153,7 +153,7 @@ def get_analytic_halfspace_solution(sigma, f, survey_type, component):
             return np.r_[0.0, ampl, 0.0, -ampl, 0.0, 0.0]
 
     # MobileMT data type (app_cond)
-    elif survey_type == "mobilemt":
+    elif survey_type == "apparent_conductivity":
         return sigma
 
 
@@ -169,7 +169,7 @@ CASES_LIST_HALFSPACE = [
     ("tipper", "imag"),
     ("admittance", "real"),
     ("admittance", "imag"),
-    ("mobilemt", None),
+    ("apparent_conductivity", None),
 ]
 
 

@@ -119,9 +119,9 @@ def get_survey(survey_type, orientations, components, locations, frequencies):
                 )
 
         # MobileMT is app_cond
-        elif survey_type == "mobilemt":
+        elif survey_type == "apparent_conductivity":
             rx_list.extend(
-                [nsem.receivers.MobileMT(locations_e=locations, locations_h=locations)]
+                [nsem.receivers.ApparentConductivity(locations_e=locations, locations_h=locations)]
             )
 
         source_list.append(nsem.sources.PlanewaveXYPrimary(rx_list, f))
@@ -140,7 +140,7 @@ CASES_LIST = [
     ("admittance", ["xy", "yx"], ["real", "imag"]),
     ("admittance", ["xx", "yy"], ["real", "imag"]),
     ("admittance", ["zx", "zy"], ["real", "imag"]),
-    ("mobilemt", None, None),
+    ("apparent_conductivity", None, None),
 ]
 
 
