@@ -121,7 +121,11 @@ def get_survey(survey_type, orientations, components, locations, frequencies):
         # MobileMT is app_cond
         elif survey_type == "apparent_conductivity":
             rx_list.extend(
-                [nsem.receivers.ApparentConductivity(locations_e=locations, locations_h=locations)]
+                [
+                    nsem.receivers.ApparentConductivity(
+                        locations_e=locations, locations_h=locations
+                    )
+                ]
             )
 
         source_list.append(nsem.sources.PlanewaveXYPrimary(rx_list, f))
