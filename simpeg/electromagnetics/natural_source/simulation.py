@@ -757,7 +757,13 @@ class Simulation3DPrimarySecondary(Simulation3DElectricField):
 
 
 class Simulation3DFictitiousSource(Simulation3DElectricField):
-    r"""
+    r"""3D NDEM simulation which uses fictitious sources to impose boudary conditions.
+
+    This simulation solves for the natural source electric fields at each frequency
+    using the method of fictitious sources. In this formulation, the electric fields
+    are defined on mesh edges and the magnetic flux density is defined on mesh faces;
+    i.e. it is an EB formulation. See the *Notes* section for a comprehensive description
+    of the formulation.
 
     Parameters
     ----------
@@ -765,35 +771,123 @@ class Simulation3DFictitiousSource(Simulation3DElectricField):
         A 3D mesh.
     survey : ./natural_source.survey.Survey
         The natural source EM survey.
-    sigma_background : (n_cells_z,) numpy.ndarray, (n_cells,) numpy.ndarray
-        The background conductivity used to generate the fictitious source.
+    sigma_background : numpy.ndarray
+        The background conductivity in S/m used to generate the fictitious source
+        for each incident planewave polarization. The fictitious sources are generated
+        one of two ways, depending on the size of the ``numpy.ndarray``:
 
-        * ``(n_cells_z,) numpy.ndarray``: use the base mesh discretization along the z-axis to define a 1D layered Earth conductivity. Fictitious source computed from 1D numeric solution.
-        * ``(n_cells,)``: define backgound condutivities on the 3D mesh. Fictitious source computed from 3D model.
+        * ``(n_cells_z,)``: `sigma_background` is a 1D layered Earth conductivity
+        defined on the base mesh discretization along the z-axis. Fictitious sources are computed
+        from a 1D numeric solution that is projected onto the 3D mesh. Ideal in the absence of
+        surface topography.
+        * ``(n_cells,)``: `sigma_background` is a 3D backgound condutivity model defined on the 3D mesh.
+        Fictitious sources are computed by solving a reduced 3D problem. Necessary when there is topography.
+
+    Notes
+    -----
+    Here, we start with the Maxwell's equations in the frequency-domain where a
+    :math:`+i\omega t` Fourier convention is used. For NSEM problems, the electromagnetic
+    source is outside the domain. As such, we have:
+
+    .. math::
+        \begin{align}
+        &\nabla \times \vec{E} + i\omega \vec{B} = 0 \\
+        &\nabla \times \vec{H} - \vec{J} = 0
+        \end{align}
+
+    We define the constitutive relations for the electrical conductivity :math:`\sigma`
+    and magnetic permeability :math:`\mu` as:
+
+    .. math::
+        \vec{J} &= \sigma \vec{E} \\
+        \vec{H} &= \mu^{-1} \vec{B}
+
+    We then take the inner products of all previous expressions with a vector test function :math:`\vec{u}`.
+    Through vector calculus identities and the divergence theorem, we obtain:
+
+    .. math::
+        & \int_\Omega \vec{u} \cdot (\nabla \times \vec{E}) \, dv =
+        - i \omega \int_\Omega \vec{u} \cdot \vec{B} \, dv \\
+        & \int_\Omega (\nabla \times \vec{u}) \cdot \vec{H} \, dv
+        - \int_\Omega \vec{u} \cdot \vec{J} \, dv
+        = \oint_{\partial \Omega} \vec{u} \cdot (\vec{H} \times \hat{n}) \, da \\
+        & \int_\Omega \vec{u} \cdot \vec{J} \, dv = \int_\Omega \vec{u} \cdot \sigma \vec{E} \, dv \\
+        & \int_\Omega \vec{u} \cdot \vec{H} \, dv = \int_\Omega \vec{u} \cdot \mu^{-1} \vec{B} \, dv
+
+    The above expressions are discretized in space according to the finite volume method.
+    The discrete electric fields :math:`\mathbf{e}` are defined on mesh edges,
+    and the discrete magnetic flux densities :math:`\mathbf{b}` are defined on mesh faces.
+    This implies :math:`\mathbf{j}` must be defined on mesh edges and :math:`\mathbf{h}` must
+    be defined on mesh faces. Where :math:`\mathbf{u_e}` and :math:`\mathbf{u_f}` represent
+    test functions discretized to edges and faces, respectively, we obtain the following
+    set of discrete inner-products:
+
+    .. math::
+        &\mathbf{u_f^T M_f C e} = -i \omega \mathbf{u_f^T M_f b} \\
+        &\mathbf{u_e^T C^T M_f h} - \mathbf{u_e^T M_e j} = \mathbf{u_e^T s_e} \\
+        &\mathbf{u_e^T M_e j} = \mathbf{u_e^T M_{e \sigma} e} \\
+        &\mathbf{u_f^T M_f h} = \mathbf{u_f^T M_{f \mu} b}
+
+    where
+
+    * :math:`\mathbf{C}` is the discrete curl operator
+    * :math:`\mathbf{M_e}` is the edge inner-product matrix
+    * :math:`\mathbf{M_f}` is the face inner-product matrix
+    * :math:`\mathbf{M_{e\sigma}}` is the inner-product matrix for conductivities projected to edges
+    * :math:`\mathbf{M_{f\frac{1}{\mu}}}` is the inner-product matrix for inverse permeabilities projected to faces
+    * :math:`\mathbf{s_e}` implements the boundary conditions corresponding to the surface integral as a fictitious source that lives on mesh edges.
+    See :class:`.natural_source.sources.FictitiousSource3D` to see how the fictitious source is constructed.
+
+    By cancelling like-terms and combining the discrete expressions to solve for the electric field, we obtain:
+
+    .. math::
+        \mathbf{A \, e} = i \omega \mathbf{s_e}
+
+    where the system matrix is given by:
+
+    .. math::
+        \mathbf{A} = \mathbf{C^T M_{f\frac{1}{\mu}} C} + i\omega \mathbf{M_{e\sigma}}
+
     """
 
     def __init__(self, mesh, survey=None, sigma_background=None, **kwargs):
         super().__init__(mesh=mesh, survey=survey, **kwargs)
         self.sigma_background = sigma_background
 
-    # fieldsPair = Fields3DPrimarySecondary
-
     @property
     def sigma_background(self):
-        """
-        A background model, use for the calculation of the primary fields.
+        """Background conductivity.
 
+        The background conductivity, in S/m, used to generate the fictitious source
+        for each incident planewave polarization. The fictitious sources are generated
+        one of two ways, depending on the size of the ``numpy.ndarray``:
+
+        * ``(n_cells_z,)``: `sigma_background` is a 1D layered Earth conductivity
+        defined on the base mesh discretization along the z-axis. Fictitious sources are computed
+        from a 1D numeric solution that is projected onto the 3D mesh. Ideal in the absence of
+        surface topography.
+        * ``(n_cells,)``: `sigma_background` is a 3D backgound condutivity model defined on the 3D mesh.
+        Fictitious sources are computed by solving a reduced 3D problem. Necessary when there is topography.
+
+        Returns
+        -------
+        numpy.ndarray
+            The background conductivity.
         """
         return self._sigma_background
 
     @sigma_background.setter
     def sigma_background(self, val):
-        
+
         if not isinstance(val, np.ndarray):
-            raise TypeError("'sigma_background' must be a (n_cells_z,) or (n_cells,) numpy.ndarray.")
-        
+            raise TypeError(
+                "'sigma_background' must be a (n_cells_z,) or (n_cells,) numpy.ndarray."
+            )
+
         if (len(val) == len(self.mesh.h[2])) | (len(val) == self.mesh.n_cells):
             self._sigma_background = val
 
         else:
-            raise ValueError("'sigma_background' must be a (n_cells_z,) or (n_cells,) numpy.ndarray.")
+            raise ValueError(
+                "'sigma_background' must be a (n_cells_z,) or (n_cells,) numpy.ndarray."
+            )

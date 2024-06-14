@@ -221,24 +221,10 @@ class PlanewaveXYPrimary(Planewave):
 class FictitiousSource3D(BaseFDEMSrc):
     r"""Fictitious source class for 3D natural source EM simulations.
 
-    This class applies boundary conditions for the natural source EM problem by using the method of
-    fictitious source to generate a right-hand side. The ``FictitiousSource3D`` class is used in
-    conjunction with the ``Simulation3DFictitiousSource`` simulation class.
-    
-    For a background conductivity distribution :math:`\sigma_0`, let :math:`\mathbf{u_0}` represent the
-    known solution of the fields discretized to the mesh. Where :math:`\mathbf{A}(\sigma_0)` is the
-    system matrix constructed from the background conductivity, the fictitious source :math:`\mathbf{s_e}`
-    is obtained by computing:
-
-    .. math::
-        \mathbf{s_e} = \frac{1}{i \omega} \mathbf{A}(\sigma_0) \, \mathbf{u_0}
-
-    where :math:`\omega` is the angular frequency. Once the source term is obtained, the unknown fields
-    :math:`\mathbf{u}` for a conductivity distribution :math:`\sigma` can be computed by solving the
-    system:
-
-    .. math::
-        mathbf{A}(\sigma) \, \mathbf{u} = i \omega \mathbf{s_e}
+    This class uses the method of fictitious sources to implement the boundary conditions
+    required to compute the NSEM fields. The ``FictitiousSource3D`` class is used in
+    conjunction with the :class:`.natural_source.Simulation3DFictitiousSource` simulation class.
+    See the *Notes* section for a discription of how fictitious sources are generated.
 
     Parameters
     ----------
@@ -249,8 +235,62 @@ class FictitiousSource3D(BaseFDEMSrc):
 
     Notes
     -----
+    Let :math:`\vec{u}_0` represent the known field solution corresponding to a background conductivity
+    distribution :math:`\sigma_0`. Where :math:`\mathbf{u_0}` is the known solution discretized to a
+    3D mesh and :math:`\mathbf{A}(\sigma_0)` is the system matrix constructed from the background conductivity,
+    the fictitious source :math:`\mathbf{s_e}` is obtained by computing:
 
-    Describe method.
+    .. math::
+        \mathbf{s_e} = \frac{1}{i \omega} \mathbf{A}(\sigma_0) \, \mathbf{u_0}
+
+    where :math:`\omega` is the angular frequency. Once the source term is obtained, the unknown discrete
+    field solution :math:`\mathbf{u}` for a conductivity distribution :math:`\sigma` can be computed by
+    solving:
+
+    .. math::
+        mathbf{A}(\sigma) \, \mathbf{u} = i \omega \mathbf{s_e}
+
+    For NSEM simulations, we must obtain a fictitious source for each incident planewave polarization.
+    Depending on the background conductivity provided, the discrete background field solution
+    :math:`\mathbf{u_0}` is obtained one of two ways.
+
+    **1D Method:**
+
+    In the absence of surface topography, the background conductivity :math:`\sigma_0` is defined within
+    the :class:`.natural_source.Simulation3DFictitiousSource` as a 1D layered Earth. The 1D finite volume
+    NSEM problem is solved for the background conductivity to obtain a 1D field solution :math:`\mathbf{u_{1D}}`.
+    The solution uses a :math:`\mathbf{u_{1D}}=1` boundary condition on the top and :math:`\mathbf{u_{1d}}=0`
+    boundary condition at the bottom.
+
+    The known 3D field solution :math:`\mathbf{u_0}` for an incident planewave polarized along the x-direction
+    is obtained by projecting the 1D solution :math:`\mathbf{u_{1D}}` to all x-edges on the 3D mesh; fields
+    on y and z-edges are zero. Similar for the known 3D field solution for an incident planewave polarized
+    along the y-direction.
+
+    **3D Method:**
+
+    This approach is encouraged when surface topography is significant. Here, the background conductivity
+    :math:`\sigma_0` is defined on the 3D mesh for the :class:`.natural_source.Simulation3DFictitiousSource`
+    simulation.
+
+    We consider the solution for an incident planewave polarized along the x-direction.
+    Let :math:`i` define the indeces of all of the edges NOT on the x or z-boundaries of the 3D mesh;
+    i.e. internal edges. And let :math:`j` define the indeces of the x-edges on the top boundary of the 3D mesh.
+    From the system matrix for the background conductivity :math:`\mathbf{A}(\sigma_0)`,
+    we solve a reduced system:
+
+    .. math::
+        \mathbf{A_{i,i} \, u_i} = \mathbf{A_{i, j} v}
+
+    where :math:`\mathbf{v}` is a vector of 1s. Once the reduced system is solved, the background
+    solution :math:`\mathbf{u_0}` is constructed such that:
+
+    .. math::
+        \mathbf{u_0} = \begin{cases}
+        u_i \; on \; i \; edges \\
+        u_j \; on \; j \; edges \\
+        0 \; otherwise
+        \end{cases}
 
     """
 
@@ -269,11 +309,11 @@ class FictitiousSource3D(BaseFDEMSrc):
         numpy.ndarray
             Electric source term on mesh.
         """
-        
-        if getattr(self, '_s_e', None) is not None:
-            return getattr(self, '_s_e')
 
-        # Fictitious source from 1D 
+        if getattr(self, "_s_e", None) is not None:
+            return getattr(self, "_s_e")
+
+        # Fictitious source from 1D
         if len(simulation.sigma_background) == len(simulation.mesh.h[2]):
 
             # Generate 1D mesh and conductivity on extended 1D mesh
@@ -282,10 +322,14 @@ class FictitiousSource3D(BaseFDEMSrc):
             sigma_1d = simulation.sigma_background
 
             n_pad = 200  # arbitrary num of padding cells added
-            hz = np.r_[hz[0]*np.ones(n_pad), hz, hz[-1]*np.ones(n_pad)]
-            sigma_1d = np.r_[sigma_1d[0]*np.ones(n_pad), sigma_1d, sigma_1d[-1]*np.ones(n_pad)]
+            hz = np.r_[hz[0] * np.ones(n_pad), hz, hz[-1] * np.ones(n_pad)]
+            sigma_1d = np.r_[
+                sigma_1d[0] * np.ones(n_pad), sigma_1d, sigma_1d[-1] * np.ones(n_pad)
+            ]
 
-            mesh_1d = discretize.TensorMesh([hz], origin=[mesh_3d.origin[2]-hz[0]*n_pad])
+            mesh_1d = discretize.TensorMesh(
+                [hz], origin=[mesh_3d.origin[2] - hz[0] * n_pad]
+            )
 
             # Solve the 1D problem for electric fields on nodes
             G = mesh_1d.nodal_gradient
@@ -294,75 +338,99 @@ class FictitiousSource3D(BaseFDEMSrc):
 
             A = G.T.tocsr() @ MeMui @ G + 1j * omega(self.frequency) * MfSigma
 
-            RHS = 1j * omega(self.frequency) * mesh_1d.boundary_node_vector_integral * [0 + 0j, 1 + 0j]
+            RHS = (
+                1j
+                * omega(self.frequency)
+                * mesh_1d.boundary_node_vector_integral
+                * [0 + 0j, 1 + 0j]
+            )
 
             Ainv = simulation.solver(A, **simulation.solver_opts)
             u_1d = Ainv * RHS
 
             # Project to X and Y edges
-            fields_x = mesh_1d.get_interpolation_matrix(mesh_3d.edges_x[:, 2], location_type="nodes") @ u_1d
-            fields_y = mesh_1d.get_interpolation_matrix(mesh_3d.edges_y[:, 2], location_type="nodes") @ u_1d
+            fields_x = (
+                mesh_1d.get_interpolation_matrix(
+                    mesh_3d.edges_x[:, 2], location_type="nodes"
+                )
+                @ u_1d
+            )
+            fields_y = (
+                mesh_1d.get_interpolation_matrix(
+                    mesh_3d.edges_y[:, 2], location_type="nodes"
+                )
+                @ u_1d
+            )
 
             fields_x = np.r_[fields_x, np.zeros(mesh_3d.n_edges_y + mesh_3d.n_edges_z)]
-            fields_y = np.r_[np.zeros(mesh_3d.n_edges_x), fields_y, np.zeros(mesh_3d.n_edges_z)]
+            fields_y = np.r_[
+                np.zeros(mesh_3d.n_edges_x), fields_y, np.zeros(mesh_3d.n_edges_z)
+            ]
 
             # Generate fictitious sources
-            sigma_3d = mesh_1d.get_interpolation_matrix(mesh_3d.cell_centers[:, 2], location_type="cell_centers") @ sigma_1d
+            sigma_3d = (
+                mesh_1d.get_interpolation_matrix(
+                    mesh_3d.cell_centers[:, 2], location_type="cell_centers"
+                )
+                @ sigma_1d
+            )
 
             C = mesh_3d.edge_curl
             MfMui = mesh_3d.get_face_inner_product(model=mu_0, invert_model=True)
             MeSigma = mesh_3d.get_edge_inner_product(model=sigma_3d)
-            
+
             A = C.T.tocsr() * MfMui * C + 1j * omega(self.frequency) * MeSigma
 
             s_e = 1j * omega(self.frequency) * (A @ np.c_[fields_x, fields_y])
 
         else:
-            
+
             mesh_3d = simulation.mesh
-            
+
             # UTILITY FCNS IN DISCRETIZE COULD BE ADDED TO MAKE THIS CLEANER.
             # Indices of all boundary edges, top boundary x-edges and top boundary y-edges.
             ind_all = (
-                (mesh_3d.edges[:, 0] == min(mesh_3d.faces_x[:, 0])) |
-                (mesh_3d.edges[:, 0] == max(mesh_3d.faces_x[:, 0])) |
-                (mesh_3d.edges[:, 1] == min(mesh_3d.faces_y[:, 1])) |
-                (mesh_3d.edges[:, 1] == max(mesh_3d.faces_y[:, 1])) |
-                (mesh_3d.edges[:, 2] == min(mesh_3d.faces_z[:, 2])) |
-                (mesh_3d.edges[:, 2] == max(mesh_3d.faces_z[:, 2]))
+                (mesh_3d.edges[:, 0] == min(mesh_3d.faces_x[:, 0]))
+                | (mesh_3d.edges[:, 0] == max(mesh_3d.faces_x[:, 0]))
+                | (mesh_3d.edges[:, 1] == min(mesh_3d.faces_y[:, 1]))
+                | (mesh_3d.edges[:, 1] == max(mesh_3d.faces_y[:, 1]))
+                | (mesh_3d.edges[:, 2] == min(mesh_3d.faces_z[:, 2]))
+                | (mesh_3d.edges[:, 2] == max(mesh_3d.faces_z[:, 2]))
             )
-            
-            ind_top_x = (mesh_3d.edges[:, 2] == max(mesh_3d.faces_z[:, 2])) & (mesh_3d.edge_tangents[:, 0] == 1.)
-            ind_top_y = (mesh_3d.edges[:, 2] == max(mesh_3d.faces_z[:, 2])) & (mesh_3d.edge_tangents[:, 1] == 1.)
-            
+
+            ind_top_x = (mesh_3d.edges[:, 2] == max(mesh_3d.faces_z[:, 2])) & (
+                mesh_3d.edge_tangents[:, 0] == 1.0
+            )
+            ind_top_y = (mesh_3d.edges[:, 2] == max(mesh_3d.faces_z[:, 2])) & (
+                mesh_3d.edge_tangents[:, 1] == 1.0
+            )
+
             # Construct operator
             C = mesh_3d.edge_curl
             MfMui = mesh_3d.get_face_inner_product(model=mu_0, invert_model=True)
             MeSigma = mesh_3d.get_edge_inner_product(model=simulation.sigma_background)
             A = C.T.tocsr() * MfMui * C + 1j * omega(self.frequency) * MeSigma
-            
+
             # ELIMINATING ROWS AND COLUMNS LIKE THIS IS NOT EFFICIENT.
             # Construct and solve system for x and y-polarization
             Ainterior = A.copy()[~ind_all, :]  # eliminate boundary edge rows
             bx = (Ainterior.copy()[:, ind_top_x]) @ -np.ones(np.sum(ind_top_x))
             by = (Ainterior.copy()[:, ind_top_y]) @ -np.ones(np.sum(ind_top_y))
             Ainterior = Ainterior[:, ~ind_all]
-            
+
             Ainv = simulation.solver(Ainterior, **simulation.solver_opts)
             u_interior = Ainv * np.c_[bx, by]
-            
+
             # Compute fictitious source
             u_full = np.ones((mesh_3d.n_edges, 2), dtype=complex)
             u_full[~ind_all, :] = u_interior
-            u_full[ind_top_x, 0] = 1. + 0.j
-            u_full[ind_top_y, 1] = 1. + 0.j
-            
+            u_full[ind_top_x, 0] = 1.0 + 0.0j
+            u_full[ind_top_y, 1] = 1.0 + 0.0j
+
             s_e = 1j * omega(self.frequency) * (A @ u_full)
-            
-            print('3D FICTITIOUS SOURCES COMPUTED')
+
+            print("3D FICTITIOUS SOURCES COMPUTED")
 
         # Set and return fictitious sources
-        setattr(self, '_s_e', s_e)
-        return getattr(self, '_s_e')
-
-
+        setattr(self, "_s_e", s_e)
+        return getattr(self, "_s_e")

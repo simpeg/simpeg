@@ -176,7 +176,9 @@ class ApparentConductivity(BaseRx):
 
     def _eval_apparent_conductivity(self, src, mesh, f):
         if mesh.dim < 3:
-            raise NotImplementedError("ApparentConductivity receiver not implemented for dim < 3.")
+            raise NotImplementedError(
+                "ApparentConductivity receiver not implemented for dim < 3."
+            )
 
         e = f[src, "e"]
         h = f[src, "h"]
@@ -193,7 +195,9 @@ class ApparentConductivity(BaseRx):
 
         return (2 * np.pi * src.frequency * mu_0) * top / bot
 
-    def _eval_apparent_conductivity_deriv(self, src, mesh, f, du_dm_v=None, v=None, adjoint=False):
+    def _eval_apparent_conductivity_deriv(
+        self, src, mesh, f, du_dm_v=None, v=None, adjoint=False
+    ):
         if mesh.dim < 3:
             raise NotImplementedError(
                 "Admittance receiver not implemented for dim < 3."
