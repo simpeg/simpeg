@@ -25,7 +25,7 @@ Receivers
 
   receivers.Impedance
   receivers.Admittance
-  receivers.MobileMT
+  receivers.ApparentConductivity
   receivers.Tipper
   receivers.PointNaturalSource
   receivers.Point3DTipper

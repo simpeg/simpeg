@@ -67,7 +67,7 @@ def _getP(rx, mesh, projected_grid, field="e", is_tipper_bs=False):
     if field == "e":
         locs = rx.locations_e
     elif field == "h":
-        if isinstance(rx, MobileMT):
+        if isinstance(rx, ApparentConductivity):
             locs = rx.locations_h
         elif is_tipper_bs:
             locs = rx.locations_bs
@@ -82,11 +82,10 @@ def _getP(rx, mesh, projected_grid, field="e", is_tipper_bs=False):
     return P
 
 
-class MobileMT(BaseRx):
-    r"""Receiver class for MobileMT data (3D problems only).
+class ApparentConductivity(BaseRx):
+    r"""Receiver class for simulating apparent conductivity data (3D problems only).
 
-    This class is used to simulate the apparent conductivity data, in S/m, collected
-    by Expert Geophysics MobileMT systems:
+    This class is used to simulate apparent conductivity data, in S/m, as defined by:
 
     .. math::
         \sigma_{app} = \mu_0 \omega \dfrac{\big | \vec{H} \big |^2}{\big | \vec{E} \big |^2}
@@ -175,9 +174,9 @@ class MobileMT(BaseRx):
         """
         return self._locations_h
 
-    def _eval_mobilemt(self, src, mesh, f):
+    def _eval_apparent_conductivity(self, src, mesh, f):
         if mesh.dim < 3:
-            raise NotImplementedError("MobileMT receiver not implemented for dim < 3.")
+            raise NotImplementedError("ApparentConductivity receiver not implemented for dim < 3.")
 
         e = f[src, "e"]
         h = f[src, "h"]
@@ -194,7 +193,7 @@ class MobileMT(BaseRx):
 
         return (2 * np.pi * src.frequency * mu_0) * top / bot
 
-    def _eval_mobilemt_deriv(self, src, mesh, f, du_dm_v=None, v=None, adjoint=False):
+    def _eval_apparent_conductivity_deriv(self, src, mesh, f, du_dm_v=None, v=None, adjoint=False):
         if mesh.dim < 3:
             raise NotImplementedError(
                 "Admittance receiver not implemented for dim < 3."
@@ -279,7 +278,7 @@ class MobileMT(BaseRx):
         numpy.ndarray
             Evaluated data for the receiver.
         """
-        return self._eval_mobilemt(src, mesh, f)
+        return self._eval_apparent_conductivity(src, mesh, f)
 
     def evalDeriv(self, src, mesh, f, du_dm_v=None, v=None, adjoint=False):
         r"""Derivative of data with respect to the fields.
@@ -319,12 +318,12 @@ class MobileMT(BaseRx):
             Calculated derivative (n_data,) if `adjoint` is ``False``, and (n_param, 2) if `adjoint`
             is ``True``, for both polarizations.
         """
-        return self._eval_mobilemt_deriv(
+        return self._eval_apparent_conductivity_deriv(
             src, mesh, f, du_dm_v=du_dm_v, v=v, adjoint=adjoint
         )
 
 
-class Impedance(MobileMT):
+class Impedance(ApparentConductivity):
     r"""Receiver class for 1D, 2D and 3D impedance data.
 
     This class is used to simulate data types that can be derived from the impedance tensor:
