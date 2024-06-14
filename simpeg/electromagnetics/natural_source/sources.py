@@ -256,10 +256,6 @@ class FictitiousSource3D(BaseFDEMSrc):
 
     _fields_per_source = 2
 
-    # def __init__(self, receiver_list, frequency):
-
-    #     super(PlanewaveXYPrimary, self).__init__(receiver_list, frequency)
-
     def s_e(self, simulation):
         """Electric source term
 
