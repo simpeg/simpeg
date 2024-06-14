@@ -8,75 +8,42 @@ from scipy.constants import mu_0
 
 def __inner_mat_mul_op(M, u, v=None, adjoint=False):
     u = np.squeeze(u)
-
-    if sp.issparse(M):
-        if v is not None:
-            if v.ndim > 1:
-                v = np.squeeze(v)
-            if u.ndim > 1:
+    if v is not None:
+        if u.ndim > 1:
+            if u.shape[1] > 1 and not isinstance(
+                u, (sp.csr_matrix, sp.csc_matrix, sp.coo_matrix)
+            ):
                 # u has multiple fields
                 if v.ndim == 1:
-                    v = v[:, None]
-                if adjoint and v.shape[1] != u.shape[1] and v.shape[1] > 1:
-                    # make sure v is a good shape
-                    v = v.reshape(u.shape[0], -1, u.shape[1])
+                    v = sp.diags(v)
             else:
-                if v.ndim > 1:
-                    u = u[:, None]
-            if v.ndim > 2:
-                u = u[:, None, :]
-            if adjoint:
-                if u.ndim > 1 and u.shape[-1] > 1:
-                    return M.T * (u * v).sum(axis=-1)
-                return M.T * (u * v)
-            if u.ndim > 1 and u.shape[1] > 1:
-                return np.squeeze(u[:, None, :] * (M * v)[:, :, None])
-            return u * (M * v)
-
-        else:
-            if u.ndim > 1:
-                UM = sp.vstack([sp.diags(u[:, i]) @ M for i in range(u.shape[1])])
-            else:
-                U = sp.diags(u, format="csr")
-                UM = U @ M
-            if adjoint:
-                return UM.T
-            return UM
-    elif isinstance(M, tuple):
-        # assume it was a tuple of M_func, prop_deriv
-        M_deriv_func, prop_deriv = M
-        if u.ndim > 1:
-            Mu = [M_deriv_func(u[:, i]) for i in range(u.shape[1])]
-            if v is None:
-                Mu = sp.vstack([M @ prop_deriv for M in Mu])
-                if adjoint:
-                    return Mu.T
-                return Mu
-            elif v.ndim > 1:
-                v = np.squeeze(v)
-            if adjoint:
-                return sum(
-                    [prop_deriv.T @ (Mu[i].T @ v[..., i]) for i in range(u.shape[1])]
-                )
-            pv = prop_deriv @ v
-            return np.stack([M @ pv for M in Mu], axis=-1)
-        else:
-            Mu = M_deriv_func(u)
-            if v is None:
-                Mu = Mu @ prop_deriv
-                if adjoint:
-                    return Mu.T
-                return Mu
-            elif v.ndim > 1:
-                v = np.squeeze(v)
-            if adjoint:
-                return prop_deriv.T @ (Mu.T @ v)
-            return Mu @ (prop_deriv @ v)
+                u = u[:, 0]
+        if u.ndim == 1:
+            if v.ndim > 1:
+                if v.shape[1] == 1:
+                    v = v[:, 0]
+                else:
+                    u = sp.diags(u)
+        if v.ndim > 2:
+            u = u[:, :, None]
+        if adjoint:
+            if u.ndim > 1 and u.shape[1] > 1 and not isinstance(u, sp.dia_matrix):
+                return M.T * (
+                    u[:, None, :] * v.reshape((u.shape[0], -1, u.shape[1]))
+                ).sum(axis=2)
+            return M.T * (u * v)
+        if u.ndim > 1 and u.shape[1] > 1:
+            return np.squeeze(u[:, None, :] * (M * v)[:, :, None])
+        return u * (M * v)
     else:
-        raise TypeError(
-            "The stashed property derivative is an unexpected type. Expected either a `tuple` or a "
-            f"sparse matrix. Received a {type(M)}."
-        )
+        if u.ndim > 1:
+            UM = sp.vstack([sp.diags(u[:, i]) @ M for i in range(u.shape[1])])
+        else:
+            U = sp.diags(u, format="csr")
+            UM = U @ M
+        if adjoint:
+            return UM.T
+        return UM
 
 
 def with_property_mass_matrices(property_name):
