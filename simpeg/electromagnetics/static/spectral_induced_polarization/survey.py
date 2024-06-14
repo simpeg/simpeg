@@ -28,7 +28,7 @@ class Survey(BaseTimeSurvey):
                 "receivers are obtained from their respective classes, without "
                 "the need to specify the survey type.",
                 FutureWarning,
-                stacklevel=0,
+                stacklevel=1,
             )
             kwargs.pop(key)
         if source_list is None:
@@ -98,7 +98,7 @@ class Survey(BaseTimeSurvey):
             "Types of sources and their corresponding receivers are obtained from "
             "their respective classes, without the need to specify the survey type.",
             FutureWarning,
-            stacklevel=0,
+            stacklevel=1,
         )
 
     @survey_type.setter
@@ -108,7 +108,7 @@ class Survey(BaseTimeSurvey):
             "Types of sources and their corresponding receivers are obtained from "
             "their respective classes, without the need to specify the survey type.",
             FutureWarning,
-            stacklevel=0,
+            stacklevel=1,
         )
 
     @property
