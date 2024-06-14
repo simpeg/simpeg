@@ -22,9 +22,9 @@ import numpy as np
 import scipy.sparse as sp
 import matplotlib.pyplot as plt
 
-from SimPEG.seismic import straight_ray_tomography as tomo
+from simpeg.seismic import straight_ray_tomography as tomo
 import discretize
-from SimPEG import (
+from simpeg import (
     maps,
     utils,
     regularization,
@@ -42,7 +42,7 @@ class Volume(objective_function.BaseObjectiveFunction):
 
     .. math::
 
-        \phi_v = \frac{1}{2}|| \int_V m dV - \text{knownVolume} ||^2
+        \phi_v = || \int_V m dV - \text{knownVolume} ||^2
     """
 
     def __init__(self, mesh, knownVolume=0.0, **kwargs):
@@ -60,25 +60,27 @@ class Volume(objective_function.BaseObjectiveFunction):
         self._knownVolume = utils.validate_float("knownVolume", value, min_val=0.0)
 
     def __call__(self, m):
-        return 0.5 * (self.estVol(m) - self.knownVolume) ** 2
+        return (self.estVol(m) - self.knownVolume) ** 2
 
     def estVol(self, m):
         return np.inner(self.mesh.cell_volumes, m)
 
     def deriv(self, m):
         # return (self.mesh.cell_volumes * np.inner(self.mesh.cell_volumes, m))
-        return self.mesh.cell_volumes * (
-            self.knownVolume - np.inner(self.mesh.cell_volumes, m)
-        )
+        return (
+            2
+            * self.mesh.cell_volumes
+            * (self.knownVolume - np.inner(self.mesh.cell_volumes, m))
+        )  # factor of 2 from deriv of ||estVol - knownVol||^2
 
     def deriv2(self, m, v=None):
         if v is not None:
-            return utils.mkvc(
+            return 2 * utils.mkvc(
                 self.mesh.cell_volumes * np.inner(self.mesh.cell_volumes, v)
             )
         else:
             # TODO: this is inefficent. It is a fully dense matrix
-            return sp.csc_matrix(
+            return 2 * sp.csc_matrix(
                 np.outer(self.mesh.cell_volumes, self.mesh.cell_volumes)
             )
 
@@ -101,7 +103,7 @@ def run(plotIt=True):
     # phi model
     phi0 = 0
     phi1 = 0.65
-    phitrue = utils.model_builder.defineBlock(
+    phitrue = utils.model_builder.create_block_in_wholespace(
         M.gridCC, [0.4, 0.6], [0.6, 0.4], [phi1, phi0]
     )
 

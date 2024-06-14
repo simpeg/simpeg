@@ -1,7 +1,7 @@
 import unittest
 import numpy as np
 import discretize
-from SimPEG import (
+from simpeg import (
     maps,
     utils,
     data_misfit,
@@ -11,14 +11,12 @@ from SimPEG import (
     inversion,
     inverse_problem,
 )
-from SimPEG.electromagnetics import resistivity as dc
+from simpeg.electromagnetics import resistivity as dc
 
 try:
     from pymatsolver import Pardiso as Solver
 except ImportError:
-    from SimPEG import SolverLU as Solver
-
-np.random.seed(41)
+    from simpeg import SolverLU as Solver
 
 
 class DCProblem_2DTests(unittest.TestCase):
@@ -85,9 +83,9 @@ class DCProblem_2DTests(unittest.TestCase):
 
     def test_adjoint(self):
         # Adjoint Test
-        # u = np.random.rand(self.mesh.nC * self.survey.nSrc)
-        v = np.random.rand(self.mesh.nC)
-        w = np.random.rand(self.data.nD)
+        rng = np.random.default_rng(seed=41)
+        v = rng.random(self.mesh.nC)
+        w = rng.random(self.data.nD)
         wtJv = w.dot(self.p.Jvec(self.m0, v))
         vtJtw = v.dot(self.p.Jtvec(self.m0, w))
         passed = np.abs(wtJv - vtJtw) < self.adjoint_tol

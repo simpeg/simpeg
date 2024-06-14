@@ -1,10 +1,10 @@
 import unittest
 
-# import SimPEG.dask as simpeg
-from SimPEG import maps, tests
+# import simpeg.dask as simpeg
+from simpeg import maps, tests
 import discretize
 from discretize.utils import mkvc
-from SimPEG.electromagnetics import natural_source as ns
+from simpeg.electromagnetics import natural_source as ns
 import numpy as np
 from pymatsolver import Pardiso as Solver
 from discretize.utils import volume_average
@@ -261,7 +261,7 @@ class ComplexResistivityTest(unittest.TestCase):
         self.check_adjoint(sim3)
         self.check_deriv(sim4)
         self.check_adjoint(sim4)
-        print(f"... done")
+        print("... done")
 
     def test_apparent_resistivity_xx(self):
         self.check_deriv_adjoint("apparent_resistivity", "xx")

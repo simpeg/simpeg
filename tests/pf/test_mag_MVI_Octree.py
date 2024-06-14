@@ -1,5 +1,5 @@
 import unittest
-from SimPEG import (
+from simpeg import (
     directives,
     maps,
     inverse_problem,
@@ -13,14 +13,13 @@ from SimPEG import (
 
 from discretize.utils import mesh_builder_xyz, refine_tree_xyz, active_from_xyz
 import numpy as np
-from SimPEG.potential_fields import magnetics as mag
+from simpeg.potential_fields import magnetics as mag
 import shutil
 
 
 class MVIProblemTest(unittest.TestCase):
     def setUp(self):
-        np.random.seed(0)
-        H0 = (50000.0, 90.0, 0.0)
+        h0_amplitude, h0_inclination, h0_declination = (50000.0, 90.0, 0.0)
 
         # The magnetization is set along a different
         # direction (induced + remanence)
@@ -46,7 +45,12 @@ class MVIProblemTest(unittest.TestCase):
         # Create a MAGsurvey
         xyzLoc = np.c_[utils.mkvc(X.T), utils.mkvc(Y.T), utils.mkvc(Z.T)]
         rxLoc = mag.Point(xyzLoc)
-        srcField = mag.SourceField([rxLoc], parameters=H0)
+        srcField = mag.UniformBackgroundField(
+            receiver_list=[rxLoc],
+            amplitude=h0_amplitude,
+            inclination=h0_inclination,
+            declination=h0_declination,
+        )
         survey = mag.Survey(srcField)
 
         # Create a mesh
@@ -70,7 +74,7 @@ class MVIProblemTest(unittest.TestCase):
         M_xyz = utils.mat_utils.dip_azimuth2cartesian(M[0], M[1])
 
         # Get the indicies of the magnetized block
-        ind = utils.model_builder.getIndicesBlock(
+        ind = utils.model_builder.get_indices_block(
             np.r_[-20, -20, -10],
             np.r_[20, 20, 25],
             mesh.gridCC,
@@ -101,7 +105,11 @@ class MVIProblemTest(unittest.TestCase):
 
         # Compute some data and add some random noise
         data = sim.make_synthetic_data(
-            utils.mkvc(self.model), relative_error=0.0, noise_floor=5.0, add_noise=True
+            utils.mkvc(self.model),
+            relative_error=0.0,
+            noise_floor=5.0,
+            add_noise=True,
+            random_seed=0,
         )
 
         # This Mapping connects the regularizations for the three-component
@@ -144,7 +152,7 @@ class MVIProblemTest(unittest.TestCase):
 
         # Pre-conditioner
         update_Jacobi = directives.UpdatePreconditioner()
-        sensitivity_weights = directives.UpdateSensitivityWeights(everyIter=False)
+        sensitivity_weights = directives.UpdateSensitivityWeights(every_iteration=False)
         inv = inversion.BaseInversion(
             invProb, directiveList=[sensitivity_weights, IRLS, update_Jacobi, betaest]
         )

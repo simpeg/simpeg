@@ -6,13 +6,14 @@ Create a synthetic block model and invert
 with a compact norm
 
 """
+
 import matplotlib.pyplot as plt
 import numpy as np
 from discretize import TensorMesh
 from discretize.utils import active_from_xyz
-from SimPEG.potential_fields import magnetics
-from SimPEG import utils
-from SimPEG import (
+from simpeg.potential_fields import magnetics
+from simpeg import utils
+from simpeg import (
     data,
     data_misfit,
     maps,
@@ -26,7 +27,7 @@ from SimPEG import (
 
 def run(plotIt=True):
     # Define the inducing field parameter
-    H0 = (50000, 90, 0)
+    h0_amplitude, h0_inclination, h0_declination = (50000, 90, 0)
 
     # Create a mesh
     dx = 5.0
@@ -64,7 +65,12 @@ def run(plotIt=True):
     # Create a MAGsurvey
     rxLoc = np.c_[utils.mkvc(X.T), utils.mkvc(Y.T), utils.mkvc(Z.T)]
     rxLoc = magnetics.receivers.Point(rxLoc, components=["tmi"])
-    srcField = magnetics.sources.SourceField(receiver_list=[rxLoc], parameters=H0)
+    srcField = magnetics.sources.UniformBackgroundField(
+        receiver_list=[rxLoc],
+        amplitude=h0_amplitude,
+        inclination=h0_inclination,
+        declination=h0_declination,
+    )
     survey = magnetics.survey.Survey(srcField)
 
     # We can now create a susceptibility model and generate data
@@ -99,7 +105,7 @@ def run(plotIt=True):
     data_object = data.Data(survey, dobs=synthetic_data, noise_floor=wd)
 
     # Create a regularization
-    reg = regularization.Sparse(mesh, indActive=actv, mapping=idenMap)
+    reg = regularization.Sparse(mesh, active_cells=actv, mapping=idenMap)
     reg.mref = np.zeros(nC)
     reg.norms = [0, 0, 0, 0]
     # reg.eps_p, reg.eps_q = 1e-0, 1e-0
@@ -126,7 +132,7 @@ def run(plotIt=True):
     saveDict = directives.SaveOutputEveryIteration(save_txt=False)
     update_Jacobi = directives.UpdatePreconditioner()
     # Add sensitivity weights
-    sensitivity_weights = directives.UpdateSensitivityWeights(everyIter=False)
+    sensitivity_weights = directives.UpdateSensitivityWeights(every_iteration=False)
 
     inv = inversion.BaseInversion(
         invProb,

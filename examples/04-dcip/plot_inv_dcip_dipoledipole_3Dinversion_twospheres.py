@@ -17,7 +17,7 @@ Following example will show you how user can implement a 3D DC inversion.
 """
 
 import discretize
-from SimPEG import (
+from simpeg import (
     maps,
     utils,
     data_misfit,
@@ -27,14 +27,14 @@ from SimPEG import (
     directives,
     inversion,
 )
-from SimPEG.electromagnetics.static import resistivity as DC, utils as DCutils
+from simpeg.electromagnetics.static import resistivity as DC, utils as DCutils
 import numpy as np
 import matplotlib.pyplot as plt
 
 try:
     from pymatsolver import Pardiso as Solver
 except ImportError:
-    from SimPEG import SolverLU as Solver
+    from simpeg import SolverLU as Solver
 
 np.random.seed(12345)
 

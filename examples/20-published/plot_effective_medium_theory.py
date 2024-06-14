@@ -5,7 +5,7 @@ Effective Medium Theory Mapping
 This example uses Self Consistent Effective Medium Theory to estimate the
 electrical conductivity of a mixture of two phases of materials. Given
 the electrical conductivity of each of the phases (:math:`\sigma_0`,
-:math:`\sigma_1`), the :class:`SimPEG.maps.SelfConsistentEffectiveMedium`
+:math:`\sigma_1`), the :class:`simpeg.maps.SelfConsistentEffectiveMedium`
 map takes the concentration of phase-1 (:math:`\phi_1`) and maps this to an
 electrical conductivity.
 
@@ -20,7 +20,7 @@ subsurface injections.* University of British Columbia
 
 import numpy as np
 import matplotlib.pyplot as plt
-from SimPEG import maps
+from simpeg import maps
 from matplotlib import rcParams
 
 rcParams["font.size"] = 12

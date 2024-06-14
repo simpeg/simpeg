@@ -2,8 +2,8 @@ import shutil
 import unittest
 import numpy as np
 
-from discretize.utils import meshutils, active_from_xyz
-from SimPEG import (
+from discretize.utils import mesh_builder_xyz, refine_tree_xyz, active_from_xyz
+from simpeg import (
     directives,
     maps,
     inverse_problem,
@@ -13,20 +13,18 @@ from SimPEG import (
     utils,
     regularization,
 )
-from SimPEG.potential_fields import magnetics as mag
+from simpeg.potential_fields import magnetics as mag
 
 
 class MagInvLinProblemTest(unittest.TestCase):
     def setUp(self):
-        np.random.seed(0)
-
         # First we need to define the direction of the inducing field
         # As a simple case, we pick a vertical inducing field of magnitude
         # 50,000nT.
         # From old convention, field orientation is given as an
         # azimuth from North (positive clockwise)
         # and dip from the horizontal (positive downward).
-        H0 = (50000.0, 90.0, 0.0)
+        h0_amplitude, h0_inclination, h0_declination = (50000.0, 90.0, 0.0)
 
         # Create a mesh
         h = [5, 5, 5]
@@ -55,18 +53,23 @@ class MagInvLinProblemTest(unittest.TestCase):
         # Create a MAGsurvey
         xyzLoc = np.c_[utils.mkvc(X.T), utils.mkvc(Y.T), utils.mkvc(Z.T)]
         rxLoc = mag.Point(xyzLoc)
-        srcField = mag.SourceField([rxLoc], parameters=H0)
+        srcField = mag.UniformBackgroundField(
+            receiver_list=[rxLoc],
+            amplitude=h0_amplitude,
+            inclination=h0_inclination,
+            declination=h0_declination,
+        )
         survey = mag.Survey(srcField)
 
         # self.mesh.finalize()
-        self.mesh = meshutils.mesh_builder_xyz(
+        self.mesh = mesh_builder_xyz(
             xyzLoc,
             h,
             padding_distance=padDist,
             mesh_type="TREE",
         )
 
-        self.mesh = meshutils.refine_tree_xyz(
+        self.mesh = refine_tree_xyz(
             self.mesh,
             topo,
             method="surface",
@@ -81,7 +84,7 @@ class MagInvLinProblemTest(unittest.TestCase):
 
         # We can now create a susceptibility model and generate data
         # Lets start with a simple block in half-space
-        self.model = utils.model_builder.addBlock(
+        self.model = utils.model_builder.add_block(
             self.mesh.gridCC,
             np.zeros(self.mesh.nC),
             np.r_[-20, -20, -15],
@@ -106,13 +109,17 @@ class MagInvLinProblemTest(unittest.TestCase):
         )
         self.sim = sim
         data = sim.make_synthetic_data(
-            self.model, relative_error=0.0, noise_floor=1.0, add_noise=True
+            self.model,
+            relative_error=0.0,
+            noise_floor=1.0,
+            add_noise=True,
+            random_seed=0,
         )
 
         # Create a regularization
         reg = regularization.Sparse(self.mesh, active_cells=actv, mapping=idenMap)
         reg.norms = [0, 0, 0, 0]
-        reg.mref = np.zeros(nC)
+        reg.reference_model = np.zeros(nC)
 
         # Data misfit function
         dmis = data_misfit.L2DataMisfit(simulation=sim, data=data)

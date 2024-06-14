@@ -17,10 +17,10 @@ the obtained resistivity model, sensitivity function is formed and used for
 subsequent IP inversion to recover a chargeability model.
 """
 
-from SimPEG.electromagnetics.static import resistivity as DC
-from SimPEG.electromagnetics.static import induced_polarization as IP
-from SimPEG.electromagnetics.static.utils import generate_dcip_survey, genTopography
-from SimPEG import maps, utils
+from simpeg.electromagnetics.static import resistivity as DC
+from simpeg.electromagnetics.static import induced_polarization as IP
+from simpeg.electromagnetics.static.utils import generate_dcip_survey, genTopography
+from simpeg import maps, utils
 from discretize.utils import active_from_xyz
 import matplotlib.pyplot as plt
 from matplotlib import colors
@@ -30,7 +30,7 @@ from pylab import hist
 try:
     from pymatsolver import Pardiso as Solver
 except ImportError:
-    from SimPEG import SolverLU as Solver
+    from simpeg import SolverLU as Solver
 
 
 def run(plotIt=True, survey_type="dipole-dipole"):
@@ -64,13 +64,13 @@ def run(plotIt=True, survey_type="dipole-dipole"):
     survey_dc.drape_electrodes_on_topography(mesh, actind, option="top")
 
     # Build conductivity and chargeability model
-    blk_inds_c = utils.model_builder.getIndicesSphere(
+    blk_inds_c = utils.model_builder.get_indices_sphere(
         np.r_[60.0, -25.0], 12.5, mesh.gridCC
     )
-    blk_inds_r = utils.model_builder.getIndicesSphere(
+    blk_inds_r = utils.model_builder.get_indices_sphere(
         np.r_[140.0, -25.0], 12.5, mesh.gridCC
     )
-    blk_inds_charg = utils.model_builder.getIndicesSphere(
+    blk_inds_charg = utils.model_builder.get_indices_sphere(
         np.r_[100.0, -25], 12.5, mesh.gridCC
     )
     sigma = np.ones(mesh.nC) * 1.0 / 100.0

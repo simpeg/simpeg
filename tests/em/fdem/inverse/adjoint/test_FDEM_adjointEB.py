@@ -1,7 +1,7 @@
 import unittest
 import numpy as np
 from scipy.constants import mu_0
-from SimPEG.electromagnetics.utils.testing_utils import getFDEMProblem
+from simpeg.electromagnetics.utils.testing_utils import getFDEMProblem
 
 testE = True
 testB = True
@@ -26,17 +26,18 @@ def adjointTest(fdemType, comp):
     m = np.log(np.ones(prb.sigmaMap.nP) * CONDUCTIVITY)
     mu = np.ones(prb.mesh.nC) * MU
 
+    rng = np.random.default_rng(seed=42)
     if addrandoms is True:
-        m = m + np.random.randn(prb.sigmaMap.nP) * np.log(CONDUCTIVITY) * 1e-1
-        mu = mu + np.random.randn(prb.mesh.nC) * MU * 1e-1
+        m = m + rng.normal(size=prb.sigmaMap.nP) * np.log(CONDUCTIVITY) * 1e-1
+        mu = mu + rng.normal(size=prb.mesh.nC) * MU * 1e-1
 
     survey = prb.survey
     # prb.PropMap.PropModel.mu = mu
     # prb.PropMap.PropModel.mui = 1./mu
     u = prb.fields(m)
 
-    v = np.random.rand(survey.nD)
-    w = np.random.rand(prb.mesh.nC)
+    v = rng.uniform(size=survey.nD)
+    w = rng.uniform(size=prb.mesh.nC)
 
     vJw = v.dot(prb.Jvec(m, w, u))
     wJtv = w.dot(prb.Jtvec(m, v, u))

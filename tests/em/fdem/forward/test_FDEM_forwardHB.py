@@ -1,5 +1,5 @@
 import unittest
-from SimPEG.electromagnetics.utils.testing_utils import crossCheckTest
+from simpeg.electromagnetics.utils.testing_utils import crossCheckTest
 
 testEB = True
 testHJ = True
@@ -306,7 +306,7 @@ class FDEM_CrossCheck(unittest.TestCase):
 
     if testBH:
 
-        def test_BH_CrossCheck_jxr(self):
+        def test_BH_CrossCheck_jxr(self):  # noqa F811
             self.assertTrue(
                 crossCheckTest(
                     SrcList,
@@ -318,7 +318,7 @@ class FDEM_CrossCheck(unittest.TestCase):
                 )
             )
 
-        def test_BH_CrossCheck_jyr(self):
+        def test_BH_CrossCheck_jyr(self):  # noqa F811
             self.assertTrue(
                 crossCheckTest(
                     SrcList,
@@ -330,7 +330,7 @@ class FDEM_CrossCheck(unittest.TestCase):
                 )
             )
 
-        def test_BH_CrossCheck_jzr(self):
+        def test_BH_CrossCheck_jzr(self):  # noqa F811
             self.assertTrue(
                 crossCheckTest(
                     SrcList,
@@ -342,7 +342,7 @@ class FDEM_CrossCheck(unittest.TestCase):
                 )
             )
 
-        def test_BH_CrossCheck_jxi(self):
+        def test_BH_CrossCheck_jxi(self):  # noqa F811
             self.assertTrue(
                 crossCheckTest(
                     SrcList,
@@ -354,7 +354,7 @@ class FDEM_CrossCheck(unittest.TestCase):
                 )
             )
 
-        def test_BH_CrossCheck_jyi(self):
+        def test_BH_CrossCheck_jyi(self):  # noqa F811
             self.assertTrue(
                 crossCheckTest(
                     SrcList,
@@ -366,7 +366,7 @@ class FDEM_CrossCheck(unittest.TestCase):
                 )
             )
 
-        def test_BH_CrossCheck_jzi(self):
+        def test_BH_CrossCheck_jzi(self):  # noqa F811
             self.assertTrue(
                 crossCheckTest(
                     SrcList,
@@ -378,7 +378,7 @@ class FDEM_CrossCheck(unittest.TestCase):
                 )
             )
 
-        def test_BH_CrossCheck_exr(self):
+        def test_BH_CrossCheck_exr(self):  # noqa F811
             self.assertTrue(
                 crossCheckTest(
                     SrcList,
@@ -390,7 +390,7 @@ class FDEM_CrossCheck(unittest.TestCase):
                 )
             )
 
-        def test_BH_CrossCheck_eyr(self):
+        def test_BH_CrossCheck_eyr(self):  # noqa F811
             self.assertTrue(
                 crossCheckTest(
                     SrcList,
@@ -402,7 +402,7 @@ class FDEM_CrossCheck(unittest.TestCase):
                 )
             )
 
-        def test_BH_CrossCheck_ezr(self):
+        def test_BH_CrossCheck_ezr(self):  # noqa F811
             self.assertTrue(
                 crossCheckTest(
                     SrcList,
@@ -414,7 +414,7 @@ class FDEM_CrossCheck(unittest.TestCase):
                 )
             )
 
-        def test_BH_CrossCheck_exi(self):
+        def test_BH_CrossCheck_exi(self):  # noqa F811
             self.assertTrue(
                 crossCheckTest(
                     SrcList,
@@ -426,7 +426,7 @@ class FDEM_CrossCheck(unittest.TestCase):
                 )
             )
 
-        def test_BH_CrossCheck_eyi(self):
+        def test_BH_CrossCheck_eyi(self):  # noqa F811
             self.assertTrue(
                 crossCheckTest(
                     SrcList,
@@ -438,7 +438,7 @@ class FDEM_CrossCheck(unittest.TestCase):
                 )
             )
 
-        def test_BH_CrossCheck_ezi(self):
+        def test_BH_CrossCheck_ezi(self):  # noqa F811
             self.assertTrue(
                 crossCheckTest(
                     SrcList,
@@ -450,7 +450,7 @@ class FDEM_CrossCheck(unittest.TestCase):
                 )
             )
 
-        def test_BH_CrossCheck_bxr(self):
+        def test_BH_CrossCheck_bxr(self):  # noqa F811
             self.assertTrue(
                 crossCheckTest(
                     SrcList,
@@ -462,7 +462,7 @@ class FDEM_CrossCheck(unittest.TestCase):
                 )
             )
 
-        def test_BH_CrossCheck_byr(self):
+        def test_BH_CrossCheck_byr(self):  # noqa F811
             self.assertTrue(
                 crossCheckTest(
                     SrcList,
@@ -474,7 +474,7 @@ class FDEM_CrossCheck(unittest.TestCase):
                 )
             )
 
-        def test_BH_CrossCheck_bzr(self):
+        def test_BH_CrossCheck_bzr(self):  # noqa F811
             self.assertTrue(
                 crossCheckTest(
                     SrcList,
@@ -486,7 +486,7 @@ class FDEM_CrossCheck(unittest.TestCase):
                 )
             )
 
-        def test_BH_CrossCheck_bxi(self):
+        def test_BH_CrossCheck_bxi(self):  # noqa F811
             self.assertTrue(
                 crossCheckTest(
                     SrcList,
@@ -498,7 +498,7 @@ class FDEM_CrossCheck(unittest.TestCase):
                 )
             )
 
-        def test_BH_CrossCheck_byi(self):
+        def test_BH_CrossCheck_byi(self):  # noqa F811
             self.assertTrue(
                 crossCheckTest(
                     SrcList,
@@ -510,7 +510,7 @@ class FDEM_CrossCheck(unittest.TestCase):
                 )
             )
 
-        def test_BH_CrossCheck_bzi(self):
+        def test_BH_CrossCheck_bzi(self):  # noqa F811
             self.assertTrue(
                 crossCheckTest(
                     SrcList,
@@ -522,7 +522,7 @@ class FDEM_CrossCheck(unittest.TestCase):
                 )
             )
 
-        def test_BH_CrossCheck_hxr(self):
+        def test_BH_CrossCheck_hxr(self):  # noqa F811
             self.assertTrue(
                 crossCheckTest(
                     SrcList,
@@ -534,7 +534,7 @@ class FDEM_CrossCheck(unittest.TestCase):
                 )
             )
 
-        def test_BH_CrossCheck_hyr(self):
+        def test_BH_CrossCheck_hyr(self):  # noqa F811
             self.assertTrue(
                 crossCheckTest(
                     SrcList,
@@ -546,7 +546,7 @@ class FDEM_CrossCheck(unittest.TestCase):
                 )
             )
 
-        def test_BH_CrossCheck_hzr(self):
+        def test_BH_CrossCheck_hzr(self):  # noqa F811
             self.assertTrue(
                 crossCheckTest(
                     SrcList,
@@ -558,7 +558,7 @@ class FDEM_CrossCheck(unittest.TestCase):
                 )
             )
 
-        def test_BH_CrossCheck_hxi(self):
+        def test_BH_CrossCheck_hxi(self):  # noqa F811
             self.assertTrue(
                 crossCheckTest(
                     SrcList,
@@ -570,7 +570,7 @@ class FDEM_CrossCheck(unittest.TestCase):
                 )
             )
 
-        def test_BH_CrossCheck_hyi(self):
+        def test_BH_CrossCheck_hyi(self):  # noqa F811
             self.assertTrue(
                 crossCheckTest(
                     SrcList,
@@ -582,7 +582,7 @@ class FDEM_CrossCheck(unittest.TestCase):
                 )
             )
 
-        def test_BH_CrossCheck_hzi(self):
+        def test_BH_CrossCheck_hzi(self):  # noqa F811
             self.assertTrue(
                 crossCheckTest(
                     SrcList,

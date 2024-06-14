@@ -6,9 +6,9 @@
 # import discretize
 # from pymatsolver import Pardiso
 # #import simpeg.PF as PF
-# from SimPEG import maps, utils
-# from SimPEG.potential_fields import magnetics as mag
-# from SimPEG.utils.model_builder import getIndicesSphere
+# from simpeg import maps, utils
+# from simpeg.potential_fields import magnetics as mag
+# from simpeg.utils.model_builder import get_indices_sphere
 # from scipy.constants import mu_0
 #
 #
@@ -30,7 +30,7 @@
 #         H0 = (Btot, Inc, Dec)
 #
 #         b0 = mag.analytics.IDTtoxyz(-Inc, Dec, Btot)
-#         sph_ind = getIndicesSphere([0., 0., 0.], 100, M.gridCC)
+#         sph_ind = get_indices_sphere([0., 0., 0.], 100, M.gridCC)
 #         chi[sph_ind] = chiblk
 #
 #         xr = np.linspace(-300, 300, 41)
@@ -41,7 +41,7 @@
 #
 #         components = ['bx', 'by', 'bz']
 #         receivers = mag.Point(rxLoc, components=components)
-#         srcField = mag.SourceField([receivers], parameters=H0)
+#         srcField = mag.UniformBackgroundField([receivers], parameters=H0)
 #
 #         self.survey = mag.Survey(srcField)
 #

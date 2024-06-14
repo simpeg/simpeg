@@ -30,10 +30,11 @@ https://doi.org/10.6084/m9.figshare.5036123
 
 This example was updated for SimPEG 0.14.0 on January 31st, 2020 by Joseph Capriotti
 """
+
 import discretize
-from SimPEG import utils, maps, tests
-from SimPEG.electromagnetics import frequency_domain as FDEM, mu_0
-from SimPEG.utils.io_utils import download
+from simpeg import utils, maps, tests
+from simpeg.electromagnetics import frequency_domain as FDEM, mu_0
+from simpeg.utils.io_utils import download
 
 # try:
 #     from pymatsolver import MumpsSolver as Solver
@@ -42,7 +43,7 @@ from SimPEG.utils.io_utils import download
 try:
     from pymatsolver import Pardiso as Solver
 except ImportError:
-    from SimPEG import SolverLU as Solver
+    from simpeg import SolverLU as Solver
 
 import numpy as np
 import scipy.sparse as sp
@@ -184,7 +185,7 @@ class PrimSecCasingExample(object):
 
             # cell size, number of core cells, number of padding cells in the
             # x-direction
-            ncz = np.int(np.ceil(np.diff(self.casing_z)[0] / csz)) + 10
+            ncz = int(np.ceil(np.diff(self.casing_z)[0] / csz)) + 10
             npadzu, npadzd = 43, 43
 
             # vector of cell widths in the z-direction
@@ -265,8 +266,8 @@ class PrimSecCasingExample(object):
                 expMapPrimary
                 * injActMapPrimary  # log(sigma) --> sigma
                 * paramMapPrimary  # log(sigma) below surface --> include air
-                * injectCasingParams  # parametric --> casing + layered earth
-                *  # parametric layered earth --> parametric
+                * injectCasingParams  # parametric --> casing + layered earth  # parametric layered earth --> parametric
+                *
                 # layered earth + casing
                 self.projectionMapPrimary  # grab relevant parameters from full
                 # model (eg. ignore block)
@@ -618,7 +619,7 @@ class PrimSecCasingExample(object):
         fields = sec_problem.fields(m)
         dpred = sec_problem.dpred(m, f=fields)
         t1 = time.time()
-        print(" ...done.   secondary time "), t1 - t0
+        print(f" ...done.   secondary time {t1 - t0}")
 
         return fields, dpred
 

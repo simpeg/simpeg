@@ -7,7 +7,7 @@ body:
 - type: markdown
   attributes:
     value: >
-      Thanks for your use of SimPEG and for taking the time to report a bug! Please
+      Thanks for using SimPEG and taking the time to report a bug! Please
       first double check that there is not already a bug report on this issue by
       searching through the existing bugs.
 
@@ -19,13 +19,13 @@ body:
 
 - type: textarea
   attributes:
-    label: "Reproducable code example:"
+    label: "Reproducible code example:"
     description: >
       Please submit a small, but complete, code sample that reproduces the
       bug or missing functionality. It should be able to be copy-pasted
-      into a Python interpreter and ran as-is.
+      into a Python interpreter and run as-is.
     placeholder: |
-      import SimPEG
+      import simpeg
       << your code here >>
     render: python
   validations:
@@ -44,8 +44,8 @@ body:
   attributes:
     label: "Runtime information:"
     description: >
-      Please include the output from `SimPEG.Report()` to describe your system for us.
-      Paste the output from `from SimPEG import Report; print(Report())` below.
+      Please include the output from `simpeg.Report()` to describe your system for us.
+      Paste the output from `from simpeg import Report; print(Report())` below.
   validations:
     required: true
 

@@ -3,9 +3,9 @@
 DC/IP Forward Simulation in 3D
 ==============================
 
-Here we use the module *SimPEG.electromagnetics.static.resistivity* to predict
+Here we use the module *simpeg.electromagnetics.static.resistivity* to predict
 DC resistivity data on an OcTree mesh. Then we use the module
-*SimPEG.electromagnetics.static.induced_polarization* to predict IP data.
+*simpeg.electromagnetics.static.induced_polarization* to predict IP data.
 In this tutorial, we focus on the following:
 
     - How to define the survey
@@ -37,12 +37,12 @@ import matplotlib.pyplot as plt
 from discretize import TreeMesh
 from discretize.utils import mkvc, refine_tree_xyz, active_from_xyz
 
-from SimPEG import maps, data
-from SimPEG.utils import model_builder
-from SimPEG.utils.io_utils.io_utils_electromagnetics import write_dcip_xyz
-from SimPEG.electromagnetics.static import resistivity as dc
-from SimPEG.electromagnetics.static import induced_polarization as ip
-from SimPEG.electromagnetics.static.utils.static_utils import (
+from simpeg import maps, data
+from simpeg.utils import model_builder
+from simpeg.utils.io_utils.io_utils_electromagnetics import write_dcip_xyz
+from simpeg.electromagnetics.static import resistivity as dc
+from simpeg.electromagnetics.static import induced_polarization as ip
+from simpeg.electromagnetics.static.utils.static_utils import (
     generate_dcip_sources_line,
     apparent_resistivity_from_voltage,
 )
@@ -50,7 +50,7 @@ from SimPEG.electromagnetics.static.utils.static_utils import (
 # To plot DC/IP data in 3D, the user must have the plotly package
 try:
     import plotly
-    from SimPEG.electromagnetics.static.utils.static_utils import plot_3d_pseudosection
+    from simpeg.electromagnetics.static.utils.static_utils import plot_3d_pseudosection
 
     has_plotly = True
 except ImportError:
@@ -60,7 +60,7 @@ except ImportError:
 try:
     from pymatsolver import Pardiso as Solver
 except ImportError:
-    from SimPEG import SolverLU as Solver
+    from simpeg import SolverLU as Solver
 
 mpl.rcParams.update({"font.size": 16})
 write_output = False
@@ -196,12 +196,12 @@ conductivity_map = maps.InjectActiveCells(mesh, ind_active, air_value)
 # Define model
 conductivity_model = background_value * np.ones(nC)
 
-ind_conductor = model_builder.getIndicesSphere(
+ind_conductor = model_builder.get_indices_sphere(
     np.r_[-350.0, 0.0, -300.0], 160.0, mesh.cell_centers[ind_active, :]
 )
 conductivity_model[ind_conductor] = conductor_value
 
-ind_resistor = model_builder.getIndicesSphere(
+ind_resistor = model_builder.get_indices_sphere(
     np.r_[350.0, 0.0, -300.0], 160.0, mesh.cell_centers[ind_active, :]
 )
 conductivity_model[ind_resistor] = resistor_value
@@ -388,7 +388,7 @@ chargeability_map = maps.InjectActiveCells(mesh, ind_active, air_value)
 # Define model
 chargeability_model = background_value * np.ones(nC)
 
-ind_chargeable = model_builder.getIndicesSphere(
+ind_chargeable = model_builder.get_indices_sphere(
     np.r_[-350.0, 0.0, -300.0], 160.0, mesh.cell_centers[ind_active, :]
 )
 
@@ -505,7 +505,7 @@ if write_output:
     # Add 10% Gaussian noise to each datum
     np.random.seed(433)
     std = 0.1 * np.abs(dpred_dc)
-    noise = std * np.random.rand(len(dpred_dc))
+    noise = std * np.random.randn(len(dpred_dc))
     dobs = dpred_dc + noise
 
     # Create dictionary that stores line IDs
@@ -543,7 +543,7 @@ if write_output:
     # Add Gaussian noise with a standard deviation of 5e-3 V/V
     np.random.seed(444)
     std = 5e-3 * np.ones_like(dpred_ip)
-    noise = std * np.random.rand(len(dpred_ip))
+    noise = std * np.random.randn(len(dpred_ip))
     dobs = dpred_ip + noise
 
     # Create a survey with the original electrode locations

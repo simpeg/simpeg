@@ -2,7 +2,7 @@
 Forward Simulation of Total Magnetic Intensity Data
 ===================================================
 
-Here we use the module *SimPEG.potential_fields.magnetics* to predict magnetic
+Here we use the module *simpeg.potential_fields.magnetics* to predict magnetic
 data for a magnetic susceptibility model. We simulate the data on a tensor mesh.
 For this tutorial, we focus on the following:
 
@@ -27,9 +27,9 @@ import os
 
 from discretize import TensorMesh
 from discretize.utils import mkvc, active_from_xyz
-from SimPEG.utils import plot2Ddata, model_builder
-from SimPEG import maps
-from SimPEG.potential_fields import magnetics
+from simpeg.utils import plot2Ddata, model_builder
+from simpeg import maps
+from simpeg.potential_fields import magnetics
 
 write_output = False
 
@@ -82,10 +82,12 @@ receiver_list = [receiver_list]
 inclination = 90
 declination = 0
 strength = 50000
-inducing_field = (strength, inclination, declination)
 
-source_field = magnetics.sources.SourceField(
-    receiver_list=receiver_list, parameters=inducing_field
+source_field = magnetics.sources.UniformBackgroundField(
+    receiver_list=receiver_list,
+    amplitude=strength,
+    inclination=inclination,
+    declination=declination,
 )
 
 # Define the survey
@@ -128,7 +130,7 @@ model_map = maps.IdentityMap(nP=nC)  # model is a vlue for each active cell
 
 # Define model. Models in SimPEG are vector arrays
 model = background_susceptibility * np.ones(ind_active.sum())
-ind_sphere = model_builder.getIndicesSphere(
+ind_sphere = model_builder.get_indices_sphere(
     np.r_[0.0, 0.0, -45.0], 15.0, mesh.cell_centers
 )
 ind_sphere = ind_sphere[ind_active]
@@ -167,8 +169,10 @@ plt.show()
 # susceptibility model using the integral formulation.
 #
 
+###############################################################################
 # Define the forward simulation. By setting the 'store_sensitivities' keyword
 # argument to "forward_only", we simulate the data without storing the sensitivities
+
 simulation = magnetics.simulation.Simulation3DIntegral(
     survey=survey,
     mesh=mesh,
@@ -176,9 +180,21 @@ simulation = magnetics.simulation.Simulation3DIntegral(
     chiMap=model_map,
     ind_active=ind_active,
     store_sensitivities="forward_only",
+    engine="choclo",
 )
 
+###############################################################################
+# .. tip::
+#
+#    Since SimPEG v0.22.0 we can use `Choclo
+#    <https://www.fatiando.org/choclo>`_ as the engine for running the magnetic
+#    simulations, which results in faster and more memory efficient runs. Just
+#    pass ``engine="choclo"`` when constructing the simulation.
+#
+
+###############################################################################
 # Compute predicted data for a susceptibility model
+
 dpred = simulation.dpred(model)
 
 # Plot
@@ -228,6 +244,6 @@ if write_output:
 
     np.random.seed(211)
     maximum_anomaly = np.max(np.abs(dpred))
-    noise = 0.02 * maximum_anomaly * np.random.rand(len(dpred))
+    noise = 0.02 * maximum_anomaly * np.random.randn(len(dpred))
     fname = dir_path + "magnetics_data.obs"
     np.savetxt(fname, np.c_[receiver_locations, dpred + noise], fmt="%.4e")

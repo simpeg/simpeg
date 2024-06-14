@@ -6,8 +6,8 @@ import discretize
 import numpy as np
 from geoana.em.static import MagneticDipoleWholeSpace
 from scipy.constants import mu_0
-from SimPEG import maps, utils
-from SimPEG.electromagnetics import frequency_domain as fdem
+from simpeg import maps, utils
+from simpeg.electromagnetics import frequency_domain as fdem
 
 TOL = 0.5  # relative tolerance (to norm of soln)
 plotIt = False
@@ -233,26 +233,6 @@ class TestSimpleSourcePropertiesTensor(unittest.TestCase):
             orientation="Z",
             mu=mu_0,
         )
-        assert self.bPrimaryTest(src, "h")
-
-    def test_MagDipole_bPrimaryMu50_h(self):
-        src = fdem.sources.MagDipole(
-            [],
-            frequency=self.frequency,
-            location=self.location,
-            orientation="Z",
-            mu=50.0 * mu_0,
-        )
-        assert self.bPrimaryTest(src, "h")
-
-    def test_MagDipole_bPrimaryMu0_h(self):
-        src = fdem.sources.MagDipole(
-            [],
-            frequency=self.frequency,
-            location=self.location,
-            orientation="Z",
-            mu=mu_0,
-        )
         assert self.bPrimaryTest(src, "j")
 
     def test_MagDipole_bPrimaryMu50_h(self):
@@ -306,26 +286,6 @@ class TestSimpleSourcePropertiesTensor(unittest.TestCase):
             mu=50.0 * mu_0,
         )
         assert self.bPrimaryTest(src, "b")
-
-    def test_MagDipole_Bfield_bPrimaryMu0_h(self):
-        src = fdem.sources.MagDipole_Bfield(
-            [],
-            frequency=self.frequency,
-            location=self.location,
-            orientation="Z",
-            mu=mu_0,
-        )
-        assert self.bPrimaryTest(src, "h")
-
-    def test_MagDipole_Bfield_bPrimaryMu50_h(self):
-        src = fdem.sources.MagDipole_Bfield(
-            [],
-            frequency=self.frequency,
-            location=self.location,
-            orientation="Z",
-            mu=50.0 * mu_0,
-        )
-        assert self.bPrimaryTest(src, "h")
 
     def test_MagDipole_Bfield_bPrimaryMu0_h(self):
         src = fdem.sources.MagDipole_Bfield(
@@ -402,7 +362,7 @@ class TestSimpleSourcePropertiesTensor(unittest.TestCase):
             orientation="Z",
             mu=mu_0,
         )
-        assert self.bPrimaryTest(src, "h")
+        assert self.bPrimaryTest(src, "j")
 
     def test_CircularLoop_bPrimaryMu50_h(self):
         src = fdem.sources.CircularLoop(
@@ -413,46 +373,25 @@ class TestSimpleSourcePropertiesTensor(unittest.TestCase):
             orientation="Z",
             mu=50.0 * mu_0,
         )
-        assert self.bPrimaryTest(src, "h")
+        assert self.bPrimaryTest(src, "j")
 
-    def test_CircularLoop_bPrimaryMu0_h(self):
-        src = fdem.sources.CircularLoop(
+
+def test_removal_circular_loop_n():
+    """
+    Test if passing the N argument to CircularLoop raises an error
+    """
+    msg = "'N' property has been removed. Please use 'n_turns'."
+    with pytest.raises(TypeError, match=msg):
+        fdem.sources.CircularLoop(
             [],
-            frequency=self.frequency,
+            frequency=1e-3,
             radius=np.sqrt(1 / np.pi),
-            location=self.location,
+            location=[0, 0, 0],
             orientation="Z",
             mu=mu_0,
+            current=0.5,
+            N=2,
         )
-        assert self.bPrimaryTest(src, "j")
-
-    def test_CircularLoop_bPrimaryMu50_h(self):
-        src = fdem.sources.CircularLoop(
-            [],
-            frequency=self.frequency,
-            radius=np.sqrt(1 / np.pi),
-            location=self.location,
-            orientation="Z",
-            mu=50.0 * mu_0,
-        )
-        assert self.bPrimaryTest(src, "j")
-
-
-def test_CircularLoop_test_N_assign():
-    """
-    Test depreciation of the N argument (now n_turns)
-    """
-    src = fdem.sources.CircularLoop(
-        [],
-        frequency=1e-3,
-        radius=np.sqrt(1 / np.pi),
-        location=[0, 0, 0],
-        orientation="Z",
-        mu=mu_0,
-        current=0.5,
-        N=2,
-    )
-    assert src.n_turns == 2
 
 
 def test_line_current_failures():

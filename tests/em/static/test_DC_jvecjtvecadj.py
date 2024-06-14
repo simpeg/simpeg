@@ -1,7 +1,7 @@
 import unittest
 import numpy as np
 import discretize
-from SimPEG import (
+from simpeg import (
     maps,
     data_misfit,
     regularization,
@@ -11,8 +11,8 @@ from SimPEG import (
     tests,
     utils,
 )
-from SimPEG.utils import mkvc
-from SimPEG.electromagnetics import resistivity as dc
+from simpeg.utils import mkvc
+from simpeg.electromagnetics import resistivity as dc
 from pymatsolver import Pardiso
 import shutil
 
@@ -155,9 +155,8 @@ class DCProblemTestsCC_fields(unittest.TestCase):
         wJtv = w.dot(self.prob.Jtvec(m, v, u))
         tol = np.max([TOL * (10 ** int(np.log10(np.abs(vJw)))), FLR])
         print(
-            "vJw: {:1.2e}, wJTv: {:1.2e}, tol: {:1.0e}, passed: {}\n".format(
-                vJw, wJtv, vJw - wJtv, tol, np.abs(vJw - wJtv) < tol
-            )
+            f"vJw: {vJw:1.2e}, wJTv: {wJtv:1.2e}, tol: {tol:1.0e}, "
+            f"passed: {np.abs(vJw - wJtv) < tol}\n"
         )
         return np.abs(vJw - wJtv) < tol
 

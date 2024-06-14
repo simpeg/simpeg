@@ -3,7 +3,7 @@ import unittest
 import numpy as np
 
 import discretize
-from SimPEG import (
+from simpeg import (
     data_misfit,
     maps,
     utils,
@@ -13,7 +13,7 @@ from SimPEG import (
     directives,
     inversion,
 )
-from SimPEG.electromagnetics import resistivity as DC
+from simpeg.electromagnetics import resistivity as DC
 
 np.random.seed(82)
 
@@ -72,8 +72,8 @@ class DataMisfitTest(unittest.TestCase):
         self.dmiscombo = self.dmis0 + self.dmis1
 
     def test_multiDataMisfit(self):
-        self.dmis0.test()
-        self.dmis1.test()
+        self.dmis0.test(random_seed=42)
+        self.dmis1.test(random_seed=42)
         self.dmiscombo.test(x=self.model)
 
     def test_inv(self):

@@ -3,8 +3,8 @@ import unittest
 from scipy.constants import mu_0
 from discretize.tests import check_derivative
 
-from SimPEG.electromagnetics import natural_source as nsem
-from SimPEG import maps
+from simpeg.electromagnetics import natural_source as nsem
+from simpeg import maps
 from discretize import TensorMesh, TreeMesh, CylindricalMesh
 from pymatsolver import Pardiso
 
@@ -163,7 +163,7 @@ def create_simulation_2d(sim_type, deriv_type, mesh_type, fixed_boundary=False):
             right = np.where(b_e[:, 0] == mesh.nodes_x[-1])
             h_bc = {}
             for src in survey_1d.source_list:
-                h_bc_freq = np.zeros(mesh.boundary_edges.shape[0], dtype=np.complex)
+                h_bc_freq = np.zeros(mesh.boundary_edges.shape[0], dtype=complex)
                 h_bc_freq[top] = 1.0
                 h_bc_freq[right] = f_right[src, "h"][:, 0]
                 h_bc_freq[left] = f_left[src, "h"][:, 0]
@@ -214,7 +214,7 @@ def create_simulation_2d(sim_type, deriv_type, mesh_type, fixed_boundary=False):
             right = np.where(b_e[:, 0] == mesh.nodes_x[-1])
             e_bc = {}
             for src in survey_1d.source_list:
-                e_bc_freq = np.zeros(mesh.boundary_edges.shape[0], dtype=np.complex)
+                e_bc_freq = np.zeros(mesh.boundary_edges.shape[0], dtype=complex)
                 e_bc_freq[top] = 1.0
                 e_bc_freq[right] = f_right[src, "e"][:, 0]
                 e_bc_freq[left] = f_left[src, "e"][:, 0]
