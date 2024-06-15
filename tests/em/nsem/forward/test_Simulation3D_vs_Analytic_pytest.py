@@ -6,8 +6,11 @@ from simpeg.electromagnetics import natural_source as nsem
 from simpeg.utils import model_builder, mkvc
 from simpeg import maps
 
-REL_TOLERANCE = 0.05
-ABS_TOLERANCE = 1e-13
+REL_TOLERANCE_TEST_1 = 0.05
+ABS_TOLERANCE_TEST_1 = 1e-13
+
+REL_TOLERANCE_TEST_2 = 0.05
+ABS_TOLERANCE_TEST_2 = 1e-13
 
 
 @pytest.fixture
@@ -15,9 +18,9 @@ def mesh():
     # Mesh for testing
     return TensorMesh(
         [
-            [(200, 6, -1.5), (200.0, 4), (200, 6, 1.5)],
-            [(200, 6, -1.5), (200.0, 4), (200, 6, 1.5)],
-            [(200, 8, -1.5), (200.0, 8), (200, 8, 1.5)],
+            [(250, 8, -1.5), (250.0, 8), (250, 8, 1.5)],
+            [(250, 8, -1.5), (250.0, 8), (250, 8, 1.5)],
+            [(250, 8, -1.5), (250.0, 8), (250, 8, 1.5)],
         ],
         "CCC",
     )
@@ -30,18 +33,30 @@ def mapping(mesh):
 
 def get_model(mesh, model_type):
     # Model used for testing
-    model = 1e-8 * np.ones(mesh.nC)
-    model[mesh.cell_centers[:, 2] < 0.0] = 1e-2
 
-    if model_type == "layer":
+    if model_type == "halfspace":
+        model = 1e-8 * np.ones(mesh.nC)
+        model[mesh.cell_centers[:, 2] < 0.0] = 1e-2
+
+    elif model_type == "layer":
+        model = 1e-8 * np.ones(mesh.nC)
+        model[mesh.cell_centers[:, 2] < 0.0] = 1e-2
         model[mesh.cell_centers[:, 2] < -3000.0] = 1e-1
+
     elif model_type == "block":
-        ind_block = model_builder.get_block_indices(
+        model = 1e-8 * np.ones(mesh.nC)
+        model[mesh.cell_centers[:, 2] < 0.0] = 1e-2
+
+        ind_block = model_builder.get_indices_block(
+            np.array([-500, -500, -1000]),
+            np.array([500, 500, -500]),
             mesh.cell_centers,
-            np.array([-1000, -1000, -1500]),
-            np.array([1000, 1000, -1000]),
         )
         model[ind_block] = 1e-1
+
+    elif model_type == "1d":
+        model = 1e-8 * np.ones(len(mesh.h[2]))
+        model[mesh.cell_centers_z < 0.0] = 1e-2
 
     return model
 
@@ -50,7 +65,7 @@ def get_model(mesh, model_type):
 def locations():
     # Receiver locations
     elevation = 0.0
-    rx_x, rx_y = np.meshgrid(np.arange(-350, 350, 200), np.arange(-350, 350, 200))
+    rx_x, rx_y = np.meshgrid(np.arange(-300, 301, 200), np.arange(-300, 301, 200))
     return np.hstack(
         (mkvc(rx_x, 2), mkvc(rx_y, 2), elevation + np.zeros((np.prod(rx_x.shape), 1)))
     )
@@ -59,10 +74,10 @@ def locations():
 @pytest.fixture
 def frequencies():
     # Frequencies being evaluated
-    return [1e-1, 2e-1]
+    return [1e-1, 5e-1]
 
 
-def get_survey(locations, frequencies, survey_type, component):
+def get_survey(source_type, locations, frequencies, survey_type, component):
     source_list = []
 
     for f in frequencies:
@@ -121,7 +136,10 @@ def get_survey(locations, frequencies, survey_type, component):
                 )
             ]
 
-        source_list.append(nsem.sources.PlanewaveXYPrimary(rx_list, f))
+        if source_type == "primary_secondary":
+            source_list.append(nsem.sources.PlanewaveXYPrimary(rx_list, f))
+        else:
+            source_list.append(nsem.sources.FictitiousSource3D(rx_list, f))
 
     return nsem.survey.Survey(source_list)
 
@@ -178,7 +196,9 @@ def test_analytic_halfspace_solution(
     survey_type, component, frequencies, locations, mesh, mapping
 ):
     # Numerical solution
-    survey = get_survey(locations, frequencies, survey_type, component)
+    survey = get_survey(
+        "primary_secondary", locations, frequencies, survey_type, component
+    )
     model_hs = get_model(mesh, "halfspace")  # 1e-2 halfspace
     sim = nsem.simulation.Simulation3DPrimarySecondary(
         mesh, survey=survey, sigmaPrimary=model_hs, sigmaMap=mapping
@@ -198,7 +218,58 @@ def test_analytic_halfspace_solution(
 
     # # Error
     err = np.abs(
-        (numeric_solution - analytic_solution) / (analytic_solution + ABS_TOLERANCE)
+        (numeric_solution - analytic_solution)
+        / (analytic_solution + ABS_TOLERANCE_TEST_1)
     )
 
-    assert np.all(err < REL_TOLERANCE)
+    assert np.all(err < REL_TOLERANCE_TEST_1)
+
+
+CASES_LIST_CROSSCHECK = [
+    ("impedance", "real"),
+    ("impedance", "imag"),
+    ("tipper", "real"),
+    ("tipper", "imag"),
+]
+
+
+@pytest.mark.parametrize("survey_type, component", CASES_LIST_CROSSCHECK)
+def test_simulation_3d_crosscheck(
+    survey_type, component, frequencies, locations, mesh, mapping
+):
+    # Numerical solution
+    survey_ps = get_survey(
+        "primary_secondary", locations, frequencies, survey_type, component
+    )
+    survey_1d = get_survey(
+        "fictitious_source", locations, frequencies, survey_type, component
+    )
+    # survey_3d = get_survey(
+    #     "fictitious_source", locations, frequencies, survey_type, component
+    # )
+
+    model_block = get_model(mesh, "block")
+    model_hs = get_model(mesh, "halfspace")
+    model_1d = get_model(mesh, "1d")
+
+    sim_ps = nsem.simulation.Simulation3DPrimarySecondary(
+        mesh, survey=survey_ps, sigmaPrimary=model_hs, sigmaMap=mapping
+    )
+    sim_1d = nsem.simulation.Simulation3DFictitiousSource(
+        mesh, survey=survey_1d, sigma_background=model_1d, sigmaMap=mapping
+    )
+    # sim_3d = nsem.simulation.Simulation3DFictitiousSource(
+    #     mesh, survey=survey_3d, sigma_background=model_hs, sigmaMap=mapping
+    # )
+
+    dpred_ps = sim_ps.dpred(model_block)
+    dpred_1d = sim_1d.dpred(model_block)
+    # dpred_3d = sim_3d.dpred(model_block)
+
+    # print(np.c_[dpred_ps, dpred_1d, dpred_3d])
+
+    # Error
+    err = np.abs((dpred_ps - dpred_1d) / (dpred_1d + ABS_TOLERANCE_TEST_2))
+    print(err)
+
+    assert np.all(err < REL_TOLERANCE_TEST_2)
