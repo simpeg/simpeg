@@ -1,4 +1,4 @@
-name: simpeg-test
+name: simpeg-dev
 channels:
   - conda-forge
 dependencies:
