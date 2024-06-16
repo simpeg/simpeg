@@ -127,6 +127,10 @@ exclude_also = [
 [tool.coverage.html]
 directory = "coverage_html_report"
 
+[tool.black]
+required-version = '24.3.0'
+target-version = ['py38', 'py39', 'py310', 'py311']
+
 [tool.flake8]
 extend-ignore = [
     # Default ignores by flake (added here for when ignore gets overwritten)
