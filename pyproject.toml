@@ -57,7 +57,7 @@ reporting = ["scooby"]
 plotting = ["plotly"]
 all = [
     "simpeg[dask,choclo,plotting,reporting]"
-] # all optional *runtime* dependenies (not related to development)
+] # all optional *runtime* dependencies (not related to development)
 style = [
     "black==24.3.0",
     "flake8==7.0.0",
@@ -78,6 +78,7 @@ docs = [
     "pillow",
     "sympy",
     "memory_profiler",
+    "python-kaleido",
 ]
 tests = [
     "simpeg[all,docs]",

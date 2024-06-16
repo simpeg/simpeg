@@ -23,7 +23,7 @@ dependencies:
   - scooby
   - plotly
 
-# documention building
+# documentation building
   - sphinx
   - sphinx-gallery>=0.1.13
   - sphinxcontrib-apidoc
@@ -41,7 +41,7 @@ dependencies:
 
 # Testing environment doesn't need style checkers
 
-# PyPI uploaders
+# PyPI uploading
   - wheel
   - twine
   - build
