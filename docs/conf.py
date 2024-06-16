@@ -467,12 +467,6 @@ tut_gallery_dirs = ["content/tutorials/" + os.path.basename(f) for f in tutorial
 
 # Scaping images to generate on website
 from plotly.io._sg_scraper import plotly_sg_scraper
-import pyvista
-
-# Make sure off screen is set to true when building locally
-pyvista.OFF_SCREEN = True
-# necessary when building the sphinx gallery
-pyvista.BUILDING_GALLERY = True
 
 image_scrapers = ("matplotlib", plotly_sg_scraper, pyvista.Scraper())
 

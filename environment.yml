@@ -2,6 +2,7 @@ name: simpeg-test
 channels:
   - conda-forge
 dependencies:
+# dependencies
   - numpy>=1.20
   - scipy>=1.8
   - scikit-learn>=1.2
@@ -13,7 +14,8 @@ dependencies:
   - pandas
 
 # Solver
-  - pydiso
+# uncomment the next line if you are on an intel platform
+#  - pydiso # if on intel pc
 
 # optional dependencies
   - dask
@@ -39,9 +41,13 @@ dependencies:
   - pytest
   - pytest-cov
 
-# Testing environment doesn't need style checkers
-
-# PyPI uploaders
-  - wheel
-  - twine
-  - build
+# style checking
+  - pre-commit
+  - black==24.3.0
+  - flake8==7.0.0
+  - flake8-pyproject==1.2.3
+  - flake8-bugbear==23.12.2
+  - flake8-builtins==2.2.0
+  - flake8-mutable==1.2.0
+  - flake8-rst-docstrings==0.3.0
+  - flake8-docstrings==1.7.0
