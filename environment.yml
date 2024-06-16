@@ -13,7 +13,7 @@ dependencies:
   - empymod>=2.0.0
   - pandas
 
-# Solver
+# solver
 # uncomment the next line if you are on an intel platform
 #  - pydiso # if on intel pc
 
@@ -36,6 +36,7 @@ dependencies:
   - sympy
   - memory_profiler
   - python-kaleido
+  - h5py
 
 # testing
   - pytest
@@ -51,3 +52,7 @@ dependencies:
   - flake8-mutable==1.2.0
   - flake8-rst-docstrings==0.3.0
   - flake8-docstrings==1.7.0
+
+# recommended
+  - jupyter-lab
+  - pyvista

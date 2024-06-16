@@ -34,6 +34,7 @@ dependencies:
   - sympy
   - memory_profiler
   - python-kaleido
+  - h5py
 
 # testing
   - pytest
