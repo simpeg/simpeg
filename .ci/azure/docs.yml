@@ -15,40 +15,15 @@ jobs:
           fetchTags: true
           displayName: Checkout repository (including tags)
 
-        - bash: |
-            wget -O Mambaforge.sh  "https://github.com/conda-forge/miniforge/releases/latest/download/Mambaforge-$(uname)-$(uname -m).sh"
-            bash Mambaforge.sh -b -p "${HOME}/conda"
-          displayName: Install mamba
+        - bash: echo "##vso[task.prependpath]$CONDA/bin"
+          displayName: Add conda to PATH
+
+        - bash: .ci/azure/setup_env.sh
+          displayName: Setup SimPEG environment
 
         - bash: |
-            source "${HOME}/conda/etc/profile.d/conda.sh"
-            source "${HOME}/conda/etc/profile.d/mamba.sh"
-            cp environment_test.yml environment_test_with_pyversion.yml
-            echo "  - python="$(python.version) >> environment_test_with_pyversion.yml
-            mamba env create -f environment_test_with_pyversion.yml
-            rm environment_test_with_pyversion.yml
-            conda activate simpeg-test
-            pip install pytest-azurepipelines
-            echo "\nList installed packages"
-            conda list
-          displayName: Create Anaconda testing environment
-
-        - bash: |
-            source "${HOME}/conda/etc/profile.d/conda.sh"
-            conda activate simpeg-test
-            pip install -e .
-          displayName: Build package
-
-        - bash: |
-            source "${HOME}/conda/etc/profile.d/conda.sh"
-            conda activate simpeg-test
-            python -c "import simpeg; print(simpeg.__version__)"
-          displayName: Check SimPEG version
-
-        - bash: |
-            source "${HOME}/conda/etc/profile.d/conda.sh"
-            conda activate simpeg-test
-            KMP_WARNINGS=0 make -C docs html
+            source activate simpeg-test
+            make -C docs html
           displayName: Building documentation
 
         - task: PublishPipelineArtifact@1
