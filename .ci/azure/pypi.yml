@@ -23,12 +23,12 @@ jobs:
           # Change setuptools-scm local_scheme to "no-local-version" so the
           # local part of the version isn't included, making the version string
           # compatible with Test PyPI. Only do this when building for TestPyPI.
-          sed --in-place 's/node-and-date/no-local-version/g' setup.py
+          sed --in-place 's/node-and-date/no-local-version/g' pyproject.toml
         condition: not(startsWith(variables['build.sourceBranch'], 'refs/tags/'))
         displayName: "Configure local_scheme (except on release)"
 
       - bash: |
-          python setup.py sdist
+          python -m build --no-isolation --skip-dependency-check --sdist .
         displayName: "Create source distribution for simpeg"
 
       - bash: |
