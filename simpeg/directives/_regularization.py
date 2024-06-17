@@ -392,6 +392,13 @@ class UpdateIRLS(InversionDirective):
             "Remove the redundant `BetaSchedule` from your list of directives.",
         )
 
+        spherical_scale = [isinstance(d, SphericalDomain) for d in directive_list]
+        if any(spherical_scale):
+            assert spherical_scale.index(True) < self_ind, (
+                "The directive 'SphericalDomain' must be before UpdateIRLS "
+                "in the directiveList"
+            )
+
         return True
 
     def stopping_criteria(self):
