@@ -87,9 +87,9 @@ def test_forward_accuracy(data_type, rx_type, tx_type):
 @pytest.mark.parametrize("deriv_type", ("sigma", "h", "both"))
 def test_derivative(deriv_type):
     n_layer = 4
-    np.random.seed(40)
-    log_cond = np.random.rand(n_layer)
-    log_thick = np.random.rand(n_layer - 1)
+    rng = np.random.default_rng(seed=40)
+    log_cond = rng.uniform(size=n_layer)
+    log_thick = rng.uniform(size=n_layer - 1)
 
     if deriv_type != "h":
         sigma_map = maps.ExpMap()
@@ -130,15 +130,16 @@ def test_derivative(deriv_type):
 
         return d, J
 
+    np.random.seed(40)  # set a random seed for check_derivative
     assert check_derivative(sim_1d_func, model, plotIt=False, num=4)
 
 
 @pytest.mark.parametrize("deriv_type", ("sigma", "h", "both"))
 def test_adjoint(deriv_type):
     n_layer = 4
-    np.random.seed(40)
-    log_cond = np.random.rand(n_layer)
-    log_thick = np.random.rand(n_layer - 1)
+    rng = np.random.default_rng(seed=40)
+    log_cond = rng.uniform(size=n_layer)
+    log_thick = rng.uniform(size=n_layer - 1)
 
     if deriv_type != "h":
         sigma_map = maps.ExpMap()
@@ -219,9 +220,9 @@ def test_errors():
 
 def test_functionality():
     n_layer = 4
-    np.random.seed(40)
-    log_cond = np.random.rand(n_layer)
-    thick = np.random.rand(n_layer - 1)
+    rng = np.random.default_rng(seed=40)
+    log_cond = rng.uniform(size=n_layer)
+    thick = rng.uniform(size=n_layer - 1)
 
     sigma_map = maps.ExpMap()
     model = log_cond
