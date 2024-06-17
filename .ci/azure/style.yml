@@ -1,40 +1,41 @@
-- job:
-  displayName: Run style checks with Black
-  pool:
-    vmImage: ubuntu-latest
-  steps:
-    - task: UsePythonVersion@0
-      inputs:
-        versionSpec: "3.11"
-    - bash: .ci/install_style.sh
-      displayName: "Install dependencies to run the checks"
-    - script: make black
-      displayName: "Run black"
+jobs:
+  - job:
+    displayName: Run style checks with Black
+    pool:
+      vmImage: ubuntu-latest
+    steps:
+      - task: UsePythonVersion@0
+        inputs:
+          versionSpec: "3.11"
+      - bash: .ci/install_style.sh
+        displayName: "Install dependencies to run the checks"
+      - script: make black
+        displayName: "Run black"
 
-- job:
-  displayName: Run (permissive) style checks with flake8
-  pool:
-    vmImage: ubuntu-latest
-  steps:
-    - task: UsePythonVersion@0
-      inputs:
-        versionSpec: "3.11"
-    - bash: .ci/install_style.sh
-      displayName: "Install dependencies to run the checks"
-    - script: make flake
-      displayName: "Run flake8"
+  - job:
+    displayName: Run (permissive) style checks with flake8
+    pool:
+      vmImage: ubuntu-latest
+    steps:
+      - task: UsePythonVersion@0
+        inputs:
+          versionSpec: "3.11"
+      - bash: .ci/install_style.sh
+        displayName: "Install dependencies to run the checks"
+      - script: make flake
+        displayName: "Run flake8"
 
-- job:
-  displayName: Run style checks with flake8 (allowed to fail)
-  pool:
-    vmImage: ubuntu-latest
-  steps:
-    - task: UsePythonVersion@0
-      inputs:
-        versionSpec: "3.11"
-    - bash: .ci/install_style.sh
-      displayName: "Install dependencies to run the checks"
-    - script: make flake-all
-      displayName: "Run flake8"
-      env:
-        FLAKE8_OPTS: "--exit-zero"
+  - job:
+    displayName: Run style checks with flake8 (allowed to fail)
+    pool:
+      vmImage: ubuntu-latest
+    steps:
+      - task: UsePythonVersion@0
+        inputs:
+          versionSpec: "3.11"
+      - bash: .ci/install_style.sh
+        displayName: "Install dependencies to run the checks"
+      - script: make flake-all
+        displayName: "Run flake8"
+        env:
+          FLAKE8_OPTS: "--exit-zero"
