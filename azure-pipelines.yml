@@ -34,10 +34,6 @@ schedules:
 # ----------
 stages:
 
-- stage: PyPI
-  jobs:
-    - template: .ci/azure/pypi.yml
-
 - stage: StyleChecks
   displayName: "Style Checks"
   jobs:
@@ -66,9 +62,9 @@ stages:
   jobs:
     - template: .ci/azure/docs.yml
 
-# - stage: PyPI
-#   dependsOn:
-#     - StyleChecks
-#     - Testing
-#   jobs:
-#     - template: .ci/azure/pypi.yml
+- stage: PyPI
+  dependsOn:
+    - StyleChecks
+    - Testing
+  jobs:
+    - template: .ci/azure/pypi.yml
