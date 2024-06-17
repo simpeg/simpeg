@@ -1,8 +1,7 @@
 parameters:
   os : ['ubuntu-latest']
   py_vers: ['3.8']
-  test: [
-         'tests/em',
+  test: ['tests/em',
          'tests/base tests/flow tests/seis tests/utils tests/meta',
          'tests/docs -s -v',
          'tests/examples/test_examples_1.py',
@@ -23,50 +22,26 @@ jobs:
           pool:
             vmImage: ${{ os }}
           timeoutInMinutes: 120
+          variables:
+            python.version: ${{ py_vers }}
+            test.target: ${{ test }}
           steps:
 
-          # Checkout simpeg repo.
-          # Sync tags and disable shallow depth to get the SimPEG version.
+          # Checkout simpeg repo, including tags.
+          # We need to sync tags and disable shallow depth in order to get the
+          # SimPEG version while building the docs.
           - checkout: self
             fetchDepth: 0
             fetchTags: true
             displayName: Checkout repository (including tags)
 
-          - script: |
-              wget -O Mambaforge.sh  "https://github.com/conda-forge/miniforge/releases/latest/download/Mambaforge-$(uname)-$(uname -m).sh"
-              bash Mambaforge.sh -b -p "${HOME}/conda"
-            displayName: Install mamba
+          - bash: echo "##vso[task.prependpath]$CONDA/bin"
+            displayName: Add conda to PATH
 
-          - script: |
-              source "${HOME}/conda/etc/profile.d/conda.sh"
-              source "${HOME}/conda/etc/profile.d/mamba.sh"
-              cp environment_test.yml environment_test_with_pyversion.yml
-              echo "  - python="${{ py_vers }} >> environment_test_with_pyversion.yml
-              mamba env create -f environment_test_with_pyversion.yml
-              rm environment_test_with_pyversion.yml
-              conda activate simpeg-test
-              pip install pytest-azurepipelines
-              echo "\nList installed packages"
-              conda list
-            displayName: Create Anaconda testing environment
+          - bash: .ci/azure/setup_env.sh
+            displayName: Setup SimPEG environment
 
-          - script: |
-              source "${HOME}/conda/etc/profile.d/conda.sh"
-              conda activate simpeg-test
-              pip install -e .
-            displayName: Build package
-
-          - script: |
-              source "${HOME}/conda/etc/profile.d/conda.sh"
-              conda activate simpeg-test
-              python -c "import simpeg; print(simpeg.__version__)"
-            displayName: Check SimPEG version
-
-          - script: |
-              source "${HOME}/conda/etc/profile.d/conda.sh"
-              conda activate simpeg-test
-              export KMP_WARNINGS=0
-              pytest ${{ test }} -v --cov-config=.coveragerc --cov=simpeg --cov-report=xml --cov-report=html -W ignore::DeprecationWarning
+          - bash: .ci/azure/run_tests_with_coverage.sh
             displayName: 'Testing ${{ test }}'
 
           - task: PublishPipelineArtifact@1
@@ -79,13 +54,5 @@ jobs:
           - script: |
               curl -Os https://uploader.codecov.io/latest/linux/codecov
               chmod +x codecov
-              ./codecov --sha $(system.pullRequest.sourceCommitId)
-            displayName: 'Upload PR coverage to codecov.io'
-            condition: and(eq(${{ py_vers }}, '3.8'), startsWith(variables['build.sourceBranch'], 'refs/pull/'))
-
-          - script: |
-              curl -Os https://uploader.codecov.io/latest/linux/codecov
-              chmod +x codecov
               ./codecov
             displayName: 'Upload coverage to codecov.io'
-            condition: and(eq(${{ py_vers }}, '3.8'), not(startsWith(variables['build.sourceBranch'], 'refs/pull/')))

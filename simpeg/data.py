@@ -58,7 +58,7 @@ class Data:
         relative_error=None,
         noise_floor=None,
         standard_deviation=None,
-        **kwargs
+        **kwargs,
     ):
         super().__init__(**kwargs)
         self.survey = survey

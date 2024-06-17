@@ -1,22 +1,32 @@
-name: simpeg-test
+name: simpeg-dev
 channels:
   - conda-forge
 dependencies:
+# dependencies
+  - python=3.11
   - numpy>=1.20
   - scipy>=1.8
   - scikit-learn>=1.2
-  - pymatsolver>=0.2
-  - matplotlib
+  - pymatsolver-base>=0.2
+  - matplotlib-base
   - discretize>=0.10
   - geoana>=0.5.0
   - empymod>=2.0.0
-  - setuptools_scm
   - pandas
+
+# solver
+# uncomment the next line if you are on an intel platform
+#  - pydiso # if on intel pc
+
+# optional dependencies
   - dask
   - zarr
-  - fsspec
-  - jupyter
-  - h5py
+  - fsspec>=0.3.3
+  - choclo
+  - scooby
+  - plotly
+
+# documentation building
   - sphinx
   - sphinx-gallery>=0.1.13
   - sphinxcontrib-apidoc
@@ -24,26 +34,26 @@ dependencies:
   - nbsphinx
   - numpydoc
   - pillow
-  - pylint
   - sympy
-  - wheel
+  - memory_profiler
+  - python-kaleido
+  - h5py
+
+# testing
   - pytest
   - pytest-cov
-  - toolz
-  - twine
-  - memory_profiler
-  - plotly
-  - pyvista
-  - pip
-  - python-kaleido
-  # Optional dependencies
-  - choclo
-  # Linters and code style
+
+# style checking
   - pre-commit
   - black==24.3.0
   - flake8==7.0.0
+  - flake8-pyproject==1.2.3
   - flake8-bugbear==23.12.2
   - flake8-builtins==2.2.0
   - flake8-mutable==1.2.0
   - flake8-rst-docstrings==0.3.0
   - flake8-docstrings==1.7.0
+
+# recommended
+  - jupyter
+  - pyvista

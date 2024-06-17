@@ -64,7 +64,7 @@ class Simulation3DCellCentered(dc.Simulation3DCellCentered):
             rho=rho,
             sigmaMap=None,
             rhoMap=None,
-            **kwargs
+            **kwargs,
         )
         self.q = q
         self.qMap = qMap
@@ -166,7 +166,7 @@ class Survey(dc.Survey):
 
     Parameters
     ----------
-    source_list : list of sources.StreamingCurrents
+    source_list : list of .sources.StreamingCurrents
     """
 
     @property
@@ -175,7 +175,7 @@ class Survey(dc.Survey):
 
         Returns
         -------
-        list of sources.StreamingCurrents
+        list of .sources.StreamingCurrents
         """
         return self._source_list
 
