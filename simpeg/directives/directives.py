@@ -2530,8 +2530,7 @@ class UpdateSensitivityWeights(InversionDirective):
     The dynamic range of RMS sensitivities can span many orders of magnitude. When computing sensitivity
     weights, thresholding is generally applied to set a minimum value.
 
-    Thresholding
-    ^^^^^^^^^^^^
+    **Thresholding:**
 
     If **global** thresholding is applied, we add a constant :math:`\tau` to the RMS sensitivities:
 
