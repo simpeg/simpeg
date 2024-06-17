@@ -26,7 +26,7 @@ class Survey(BaseTimeSurvey):
         source_list=None,
         survey_geometry="surface",
         survey_type="dipole-dipole",
-        **kwargs
+        **kwargs,
     ):
         if source_list is None:
             raise AttributeError("Survey cannot be instantiated without sources")
