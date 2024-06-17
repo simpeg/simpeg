@@ -16,7 +16,7 @@ jobs:
         displayName: "Setup Python"
 
       - bash: |
-          pip install setuptools>=64 setuptools_scm>=8 wheel twine build
+          pip install build twine
         displayName: "Install build dependencies"
 
       - bash: |
@@ -28,7 +28,7 @@ jobs:
         displayName: "Configure local_scheme (except on release)"
 
       - bash: |
-          python -m build --no-isolation --skip-dependency-check --sdist .
+          python -m build --skip-dependency-check --sdist .
         displayName: "Create source distribution for simpeg"
 
       - bash: |
