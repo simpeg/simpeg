@@ -71,7 +71,7 @@ class InversionDirective:
             raise TypeError(f"'{key}' property has been removed. Please use 'verbose'.")
         self.inversion = inversion
         self.dmisfit = dmisfit
-        self.reg: ComboObjectiveFunction | None = reg
+        self.reg = reg
         self.verbose = verbose
         set_kwargs(self, **kwargs)
 
