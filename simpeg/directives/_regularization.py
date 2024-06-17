@@ -299,6 +299,8 @@ class UpdateIRLS(InversionDirective):
 
             self.invProb.phi_m_last = self.reg(self.invProb.model)
 
+        self.beta_schedule.endIter()
+
     def start_irls(self):
         if self.verbose:
             print(
