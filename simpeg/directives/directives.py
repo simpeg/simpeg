@@ -1965,7 +1965,7 @@ class SaveOutputDictEveryIteration(SaveEveryIteration):
         self.outDict[self.opt.iter] = iterDict
 
 
-@deprecate_class(removal_version="0.22.0", error=False)
+@deprecate_class(removal_version="0.23.0", error=False)
 class Update_IRLS(InversionDirective):
     f_old = 0
     f_min_change = 1e-2
