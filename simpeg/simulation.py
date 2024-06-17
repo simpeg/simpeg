@@ -2,6 +2,7 @@
 Define simulation classes.
 """
 
+from __future__ import annotations  # needed to use type operands in Python 3.8
 import os
 import inspect
 import numpy as np
@@ -12,6 +13,7 @@ from discretize import TensorMesh
 from discretize.utils import unpack_widths, sdiag
 
 from . import props
+from .typing import RandomSeed
 from .data import SyntheticData, Data
 from .survey import BaseSurvey
 from .utils import (
@@ -465,7 +467,7 @@ class BaseSimulation(props.HasModel):
         noise_floor=0.0,
         f=None,
         add_noise=False,
-        random_seed=None,
+        random_seed: RandomSeed | None = None,
         **kwargs,
     ):
         r"""Make synthetic data for the model and Gaussian noise provided.
@@ -490,8 +492,10 @@ class BaseSimulation(props.HasModel):
             forward problem to obtain noiseless data.
         add_noise : bool
             Whether to add gaussian noise to the synthetic data or not.
-        random_seed : int, optional
-            Random seed to pass to :py:class:`numpy.random.default_rng`.
+        random_seed : None or :class:`~simpeg.typing.RandomSeed`, optional
+            Random seed used for random sampling. It can either be an int or
+            a predefined Numpy random number generator (see
+            ``numpy.random.default_rng``).
 
         Returns
         -------
@@ -511,8 +515,8 @@ class BaseSimulation(props.HasModel):
         dclean = self.dpred(m, f=f)
 
         if add_noise is True:
-            std = np.sqrt((relative_error * np.abs(dclean)) ** 2 + noise_floor**2)
             random_num_generator = np.random.default_rng(seed=random_seed)
+            std = np.sqrt((relative_error * np.abs(dclean)) ** 2 + noise_floor**2)
             noise = random_num_generator.normal(loc=0, scale=std, size=dclean.shape)
             dobs = dclean + noise
         else:

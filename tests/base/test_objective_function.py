@@ -35,7 +35,7 @@ class Error_if_Hit_ObjFct(objective_function.BaseObjectiveFunction):
 class TestBaseObjFct(unittest.TestCase):
     def test_derivs(self):
         objfct = objective_function.L2ObjectiveFunction()
-        self.assertTrue(objfct.test(eps=1e-9))
+        self.assertTrue(objfct.test(eps=1e-9, random_seed=42))
 
     def test_deriv2(self):
         nP = 100
@@ -57,7 +57,7 @@ class TestBaseObjFct(unittest.TestCase):
         objfct_c = objfct_a + objfct_b
 
         self.assertTrue(scalar * objfct_a(m) == objfct_b(m))
-        self.assertTrue(objfct_b.test())
+        self.assertTrue(objfct_b.test(random_seed=42))
         self.assertTrue(objfct_c(m) == objfct_a(m) + objfct_b(m))
 
         self.assertTrue(len(objfct_c.objfcts) == 2)
@@ -70,7 +70,7 @@ class TestBaseObjFct(unittest.TestCase):
         objfct = objective_function.L2ObjectiveFunction(
             W=sp.eye(nP)
         ) + scalar * objective_function.L2ObjectiveFunction(W=sp.eye(nP))
-        self.assertTrue(objfct.test(eps=1e-9))
+        self.assertTrue(objfct.test(eps=1e-9, random_seed=42))
 
         self.assertTrue(np.all(objfct.multipliers == np.r_[1.0, scalar]))
 
@@ -84,7 +84,7 @@ class TestBaseObjFct(unittest.TestCase):
             + alpha1 * objective_function.L2ObjectiveFunction()
         )
         phi2 = objective_function.L2ObjectiveFunction() + alpha2 * phi1
-        self.assertTrue(phi2.test(eps=EPS))
+        self.assertTrue(phi2.test(eps=EPS, random_seed=42))
 
         self.assertTrue(len(phi1.multipliers) == 2)
         self.assertTrue(len(phi2.multipliers) == 2)
@@ -126,7 +126,7 @@ class TestBaseObjFct(unittest.TestCase):
 
         self.assertTrue(len(phi.objfcts) == 3)
 
-        self.assertTrue(phi.test())
+        self.assertTrue(phi.test(random_seed=42))
 
     def test_sum_fail(self):
         nP1 = 10
@@ -166,7 +166,7 @@ class TestBaseObjFct(unittest.TestCase):
             + utils.Zero() * objective_function.L2ObjectiveFunction()
         )
         self.assertTrue(len(phi.objfcts) == 1)
-        self.assertTrue(phi.test())
+        self.assertTrue(phi.test(random_seed=42))
 
     def test_updateMultipliers(self):
         nP = 10
@@ -257,9 +257,10 @@ class TestBaseObjFct(unittest.TestCase):
 
         self.assertTrue(objfct3(m) == objfct1(m) + objfct2(m))
 
-        objfct1.test()
-        objfct2.test()
-        objfct3.test()
+        seed = 42
+        objfct1.test(random_seed=seed)
+        objfct2.test(random_seed=seed)
+        objfct3.test(random_seed=seed)
 
     def test_ComboW(self):
         nP = 15
