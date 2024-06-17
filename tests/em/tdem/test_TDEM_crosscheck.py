@@ -16,7 +16,6 @@ def setUp_TDEM(
     prbtype="MagneticFluxDensity", rxcomp="bz", waveform="stepoff", src_type=None
 ):
     # set a seed so that the same conductivity model is used for all runs
-    np.random.seed(25)
     cs = 10.0
     ncx = 4
     ncy = 4
@@ -76,7 +75,10 @@ def setUp_TDEM(
     )
     prb.solver = Solver
 
-    m = np.log(1e-1) * np.ones(prb.sigmaMap.nP) + 1e-2 * np.random.rand(prb.sigmaMap.nP)
+    rng = np.random.default_rng(seed=42)
+    m = np.log(1e-1) * np.ones(prb.sigmaMap.nP) + 1e-2 * rng.uniform(
+        size=prb.sigmaMap.nP
+    )
 
     return prb, m, mesh
 

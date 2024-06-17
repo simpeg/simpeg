@@ -311,7 +311,7 @@ class BaseRegularization(BaseObjectiveFunction):
         """Cell weights for a given key.
 
         Parameters
-        ------------
+        ----------
         key: str
             Name of the weights requested.
 
