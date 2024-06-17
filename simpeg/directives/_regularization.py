@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from typing import Literal
 from .directives import InversionDirective, UpdatePreconditioner, BetaSchedule
 from simpeg.regularization import Sparse, BaseSparse, SmoothnessFirstOrder
-from simpeg.utils import validate_integer, validate_float, validate_type
+from simpeg.utils import validate_integer, validate_float
 from simpeg.utils.code_utils import deprecate_property
 
 
@@ -60,7 +60,7 @@ class UpdateIRLS(InversionDirective):
 
     def __init__(
         self,
-        beta_search: bool = False,
+        beta_schedule: BetaSchedule | None = None,
         chifact_start: float = 1.0,
         chifact_target: float = 1.0,
         cooling_factor: float = 1.2,
@@ -71,7 +71,7 @@ class UpdateIRLS(InversionDirective):
         **kwargs,
     ):
         self._metrics: IRLSMetrics | None = None
-        self.beta_search: bool = beta_search
+        self.beta_schedule: BetaSchedule = beta_schedule
         self.chifact_start: float = chifact_start
         self.chifact_target: float = chifact_target
         self.cooling_factor: float = cooling_factor
@@ -79,21 +79,6 @@ class UpdateIRLS(InversionDirective):
         self.max_irls_iterations: int = max_irls_iterations
         self.misfit_tolerance: float = misfit_tolerance
         self.percentile: int = percentile
-
-        if "coolingFactor" in kwargs or "coolingRate" in kwargs:
-            warnings.warn(
-                "The `coolingFactor` and `coolingRate` keywords arguments will be deprecated in future releases. "
-                "A 'BetaSchedule' directive will be added to your inversion.",
-                FutureWarning,
-                stacklevel=2,
-            )
-            kwargs["verbose"] = not kwargs.pop("silent", False)
-
-        cooling_factor = kwargs.pop("coolingFactor", 2.0)
-        beta_cooling_factor = kwargs.pop("coolingRate", 1)
-        self._beta_schedule = BetaSchedule(
-            coolingFactor=cooling_factor, coolingRate=beta_cooling_factor
-        )
 
         if "silent" in kwargs:
             warnings.warn(
@@ -103,16 +88,6 @@ class UpdateIRLS(InversionDirective):
                 stacklevel=2,
             )
             kwargs["verbose"] = not kwargs.pop("silent")
-
-        if "sphericalDomain" in kwargs or "coolingRate" in kwargs:
-            warnings.warn(
-                "The `sphericalDomain` keyword argument will be deprecated in future releases. "
-                "Use `spherical_domain` instead.",
-                FutureWarning,
-                stacklevel=2,
-            )
-
-        self._spherical_domain = kwargs.pop("sphericalDomain", False)
 
         super().__init__(**kwargs)
 
@@ -214,38 +189,6 @@ class UpdateIRLS(InversionDirective):
 
     @property
     def cooling_factor(self) -> float:
-        """Beta is divided by this value every `beta_cooling_factor` iterations."""
-        return self.beta_schedule.coolingFactor
-
-    coolingFactor = deprecate_property(
-        cooling_factor,
-        "coolingFactor",
-        "BetaSchedule.cooling_factor",
-        future_warn=True,
-        removal_version="0.22.0",
-    )
-
-    @property
-    def beta_cooling_factor(self) -> int:
-        """Cool after this number of iterations."""
-        return self.beta_schedule.coolingRate
-
-    @beta_cooling_factor.setter
-    def beta_cooling_factor(self, value):
-        self.beta_schedule.coolingRate = validate_integer(
-            "beta_cooling_factor", value, min_val=1
-        )
-
-    coolingRate = deprecate_property(
-        beta_cooling_factor,
-        "coolingRate",
-        "BetaSchedule.beta_cooling_factor",
-        future_warn=True,
-        removal_version="0.22.0",
-    )
-
-    @property
-    def cooling_factor(self) -> float:
         """IRLS threshold parameter (epsilon) is divided by this value every iteration."""
         return self._cooling_factor
 
@@ -265,52 +208,6 @@ class UpdateIRLS(InversionDirective):
         self._f_min_change = validate_float(
             "f_min_change", value, min_val=0, inclusive_min=False
         )
-
-    coolEpsFact = deprecate_property(
-        cooling_factor,
-        "coolEpsFact",
-        "UpdateIRLS.cooling_factor",
-        future_warn=True,
-        removal_version="0.22.0",
-    )
-
-    coolEps_q = deprecate_property(
-        cooling_factor,
-        "coolEpsFact",
-        "UpdateIRLS.cooling_factor",
-        future_warn=True,
-        removal_version="0.22.0",
-    )
-
-    coolEps_p = deprecate_property(
-        cooling_factor,
-        "coolEpsFact",
-        "UpdateIRLS.cooling_factor",
-        future_warn=True,
-        removal_version="0.22.0",
-    )
-
-    minGNiter = deprecate_property(
-        beta_cooling_factor,
-        "minGNiter",
-        "UpdateIRLS.beta_cooling_factor",
-        future_warn=True,
-        removal_version="0.22.0",
-    )
-
-    @property
-    def beta_search(self):
-        """Whether to do a beta search.
-
-        Returns
-        -------
-        bool
-        """
-        return self._beta_search
-
-    @beta_search.setter
-    def beta_search(self, value):
-        self._beta_search = validate_type("beta_search", value, bool)
 
     def misfit_from_chi_factor(self, chi_factor: float) -> float:
         """
@@ -371,18 +268,10 @@ class UpdateIRLS(InversionDirective):
 
             self.beta_schedule.coolingFactor = ratio
 
-            if self.beta_search:
-                print("Beta search step")
-                # Re-use previous model and continue with new beta
-                self.invProb.model = self.reg.objfcts[0].model
-                self.opt.xc = self.reg.objfcts[0].model
-                self.opt.iter -= 1
-                return
-
         # Only update after GN iterations
         if (
             self.opt.iter - self.metrics.start_irls_iter
-        ) % self.beta_cooling_factor == 0:
+        ) % self.beta_schedule.coolingRate == 0:
             if self.stopping_criteria():
                 self.opt.stopNextIteration = True
                 return
@@ -465,6 +354,19 @@ class UpdateIRLS(InversionDirective):
         """
         return self._beta_schedule
 
+    @beta_schedule.setter
+    def beta_schedule(self, directive):
+        """
+        The beta schedule used by the directive.
+        """
+        if directive is None:
+            directive = BetaSchedule(coolingFactor=2.0, coolingRate=1)
+
+        if not isinstance(directive, BetaSchedule):
+            raise TypeError("The beta schedule must be an instance of `BetaSchedule`.")
+
+        self._beta_schedule = directive
+
     def validate(self, directiveList=None):
         directive_list = directiveList.dList
         self_ind = directive_list.index(self)
@@ -485,25 +387,10 @@ class UpdateIRLS(InversionDirective):
 
         beta_schedule = [d for d in directive_list if isinstance(d, BetaSchedule)]
 
-        if not any(beta_schedule):
-            warnings.warn(
-                "Handling of the beta scheduling by the `Update_IRLS` directive will be deprecated "
-                "in future releases. "
-                "A `BetaSchedule` will be added to your directives list, please consider adding it yourself.",
-                stacklevel=2,
-            )
-            directiveList.dList = directiveList.dList + [self.beta_schedule]
-        else:
-            self._beta_schedule = beta_schedule[0]
-
-        if self._spherical_domain:
-            warnings.warn(
-                "The scaling of spherical parameters by the `Update_IRLS` directive will be deprecated "
-                "in future releases. "
-                "A `SphericalDomain` will be added to your directives list, please consider adding it yourself.",
-                stacklevel=2,
-            )
-            directiveList.dList = [SphericalDomain()] + directiveList.dList
+        assert len(beta_schedule) == 0, (
+            "Beta scheduling is handled by the `UpdateIRLS` directive."
+            "Remove the redundant `BetaSchedule` from your list of directives.",
+        )
 
         return True
 
