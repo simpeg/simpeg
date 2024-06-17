@@ -16,7 +16,7 @@ jobs:
         displayName: "Setup Python"
 
       - bash: |
-          pip install setuptools>=61 setuptools_scm wheel twine
+          pip install setuptools>=64 setuptools_scm>=8 wheel twine build
         displayName: "Install build dependencies"
 
       - bash: |
