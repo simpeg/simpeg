@@ -387,49 +387,68 @@ class FictitiousSource3D(BaseFDEMSrc):
 
             mesh_3d = simulation.mesh
 
-            # UTILITY FCNS IN DISCRETIZE COULD BE ADDED TO MAKE THIS CLEANER.
-            # Indices of all boundary edges, top boundary x-edges and top boundary y-edges.
-            ind_all = (
-                (mesh_3d.edges[:, 0] == min(mesh_3d.faces_x[:, 0]))
-                | (mesh_3d.edges[:, 0] == max(mesh_3d.faces_x[:, 0]))
-                | (mesh_3d.edges[:, 1] == min(mesh_3d.faces_y[:, 1]))
-                | (mesh_3d.edges[:, 1] == max(mesh_3d.faces_y[:, 1]))
-                | (mesh_3d.edges[:, 2] == min(mesh_3d.faces_z[:, 2]))
-                | (mesh_3d.edges[:, 2] == max(mesh_3d.faces_z[:, 2]))
-            )
-
-            ind_top_x = (mesh_3d.edges[:, 2] == max(mesh_3d.faces_z[:, 2])) & (
-                mesh_3d.edge_tangents[:, 0] == 1.0
-            )
-            ind_top_y = (mesh_3d.edges[:, 2] == max(mesh_3d.faces_z[:, 2])) & (
-                mesh_3d.edge_tangents[:, 1] == 1.0
-            )
-
             # Construct operator
             C = mesh_3d.edge_curl
             MfMui = mesh_3d.get_face_inner_product(model=mu_0, invert_model=True)
             MeSigma = mesh_3d.get_edge_inner_product(model=simulation.sigma_background)
             A = C.T.tocsr() * MfMui * C + 1j * omega(self.frequency) * MeSigma
 
-            # ELIMINATING ROWS AND COLUMNS LIKE THIS IS NOT EFFICIENT.
-            # Construct and solve system for x and y-polarization
-            Ainterior = A.copy()[~ind_all, :]  # eliminate boundary edge rows
-            bx = (Ainterior.copy()[:, ind_top_x]) @ -np.ones(np.sum(ind_top_x))
-            by = (Ainterior.copy()[:, ind_top_y]) @ -np.ones(np.sum(ind_top_y))
-            Ainterior = Ainterior[:, ~ind_all]
+            # x-polarization
+            ind_exterior = (
+                (mesh_3d.edges[:, 0] == min(mesh_3d.faces_x[:, 0]))
+                | (mesh_3d.edges[:, 0] == max(mesh_3d.faces_x[:, 0]))
+                | (mesh_3d.edges[:, 2] == min(mesh_3d.faces_z[:, 2]))
+                | (mesh_3d.edges[:, 2] == max(mesh_3d.faces_z[:, 2]))
+            )
 
-            Ainv = simulation.solver(Ainterior, **simulation.solver_opts)
-            u_interior = Ainv * np.c_[bx, by]
+            ind_top = (mesh_3d.edges[:, 2] == max(mesh_3d.faces_z[:, 2])) & (
+                mesh_3d.edge_tangents[:, 0] == 1.0
+            )
 
-            # Compute fictitious source
-            u_full = np.ones((mesh_3d.n_edges, 2), dtype=complex)
-            u_full[~ind_all, :] = u_interior
-            u_full[ind_top_x, 0] = 1.0 + 0.0j
-            u_full[ind_top_y, 1] = 1.0 + 0.0j
+            A_interior = A.copy()[~ind_exterior, :]  # eliminate boundary edge rows
+            b = (A_interior.copy()[:, ind_top]) @ np.ones(np.sum(ind_top))
+            A_interior = A_interior[:, ~ind_exterior]
 
-            s_e = 1j * omega(self.frequency) * (A @ u_full)
+            A_inv = simulation.solver(A_interior, **simulation.solver_opts)
+            u_interior = A_inv * -b
+            A_inv.clean()
 
-            print("3D FICTITIOUS SOURCES COMPUTED")
+            u_x = np.zeros(mesh_3d.n_edges, dtype=complex)
+            u_x[~ind_exterior] = u_interior
+            u_x[ind_top] = 1.0 + 0.0j
+
+            # y-polarization
+            ind_exterior = (
+                (mesh_3d.edges[:, 1] == min(mesh_3d.faces_y[:, 1]))
+                | (mesh_3d.edges[:, 1] == max(mesh_3d.faces_y[:, 1]))
+                | (mesh_3d.edges[:, 2] == min(mesh_3d.faces_z[:, 2]))
+                | (mesh_3d.edges[:, 2] == max(mesh_3d.faces_z[:, 2]))
+            )
+
+            ind_top = (mesh_3d.edges[:, 2] == max(mesh_3d.faces_z[:, 2])) & (
+                mesh_3d.edge_tangents[:, 1] == 1.0
+            )
+
+            A_interior = A.copy()[~ind_exterior, :]  # eliminate boundary edge rows
+            b = (A_interior.copy()[:, ind_top]) @ np.ones(np.sum(ind_top))
+            A_interior = A_interior[:, ~ind_exterior]
+
+            A_inv = simulation.solver(A_interior, **simulation.solver_opts)
+            u_interior = A_inv * -b
+            A_inv.clean()
+
+            u_y = np.zeros(mesh_3d.n_edges, dtype=complex)
+            u_y[~ind_exterior] = u_interior
+            u_y[ind_top] = 1.0 + 0.0j
+
+            # Get fictitious sources
+            s_e = (A @ np.c_[u_x, u_y]) / (1j * omega(self.frequency))
+
+            print(
+                "3D FICTITIOUS SOURCES COMPUTED FOR FREQUENCY {} Hz".format(
+                    self.frequency
+                )
+            )
 
         # Set and return fictitious sources
         setattr(self, "_s_e", s_e)

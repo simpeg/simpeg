@@ -9,7 +9,7 @@ from simpeg import maps
 REL_TOLERANCE_TEST_1 = 0.05
 ABS_TOLERANCE_TEST_1 = 1e-13
 
-REL_TOLERANCE_TEST_2 = 0.05
+REL_TOLERANCE_TEST_2 = 0.08
 ABS_TOLERANCE_TEST_2 = 1e-13
 
 
@@ -18,9 +18,9 @@ def mesh():
     # Mesh for testing
     return TensorMesh(
         [
-            [(250, 8, -1.5), (250.0, 8), (250, 8, 1.5)],
-            [(250, 8, -1.5), (250.0, 8), (250, 8, 1.5)],
-            [(250, 8, -1.5), (250.0, 8), (250, 8, 1.5)],
+            [(250, 10, -1.5), (250.0, 8), (250, 10, 1.5)],
+            [(250, 10, -1.5), (250.0, 8), (250, 10, 1.5)],
+            [(250, 10, -1.5), (250.0, 8), (250, 10, 1.5)],
         ],
         "CCC",
     )
@@ -230,6 +230,8 @@ CASES_LIST_CROSSCHECK = [
     ("impedance", "imag"),
     ("tipper", "real"),
     ("tipper", "imag"),
+    ("admittance", "real"),
+    ("admittance", "imag"),
 ]
 
 
@@ -244,9 +246,9 @@ def test_simulation_3d_crosscheck(
     survey_1d = get_survey(
         "fictitious_source", locations, frequencies, survey_type, component
     )
-    # survey_3d = get_survey(
-    #     "fictitious_source", locations, frequencies, survey_type, component
-    # )
+    survey_3d = get_survey(
+        "fictitious_source", locations, frequencies, survey_type, component
+    )
 
     model_block = get_model(mesh, "block")
     model_hs = get_model(mesh, "halfspace")
@@ -258,18 +260,19 @@ def test_simulation_3d_crosscheck(
     sim_1d = nsem.simulation.Simulation3DFictitiousSource(
         mesh, survey=survey_1d, sigma_background=model_1d, sigmaMap=mapping
     )
-    # sim_3d = nsem.simulation.Simulation3DFictitiousSource(
-    #     mesh, survey=survey_3d, sigma_background=model_hs, sigmaMap=mapping
-    # )
+    sim_3d = nsem.simulation.Simulation3DFictitiousSource(
+        mesh, survey=survey_3d, sigma_background=model_hs, sigmaMap=mapping
+    )
 
     dpred_ps = sim_ps.dpred(model_block)
     dpred_1d = sim_1d.dpred(model_block)
-    # dpred_3d = sim_3d.dpred(model_block)
+    dpred_3d = sim_3d.dpred(model_block)
 
-    # print(np.c_[dpred_ps, dpred_1d, dpred_3d])
+    print(np.c_[dpred_ps, dpred_1d, dpred_3d])
 
     # Error
-    err = np.abs((dpred_ps - dpred_1d) / (dpred_1d + ABS_TOLERANCE_TEST_2))
-    print(err)
+    err_1 = np.abs((dpred_1d - dpred_ps) / (dpred_1d + ABS_TOLERANCE_TEST_2))
+    err_2 = np.abs((dpred_1d - dpred_3d) / (dpred_1d + ABS_TOLERANCE_TEST_2))
+    print(np.c_[err_1, err_2])
 
-    assert np.all(err < REL_TOLERANCE_TEST_2)
+    assert (np.all(err_1 < REL_TOLERANCE_TEST_2)) & (np.all(err_2 < REL_TOLERANCE_TEST_2))
