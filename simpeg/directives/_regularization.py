@@ -40,14 +40,22 @@ class UpdateIRLS(InversionDirective):
     Parameters
     ----------
 
-    beta_search: Proceed with a beta search step if the target misfit is outside the tolerance.
-    misfit_tolerance: Tolerance for the target misfit.
-    chifact_start: Starting chi factor for the IRLS iterations.
-    chifact_target: Target chi factor for the IRLS iterations.
-    cooling_factor: Factor to cool the IRLS threshold epsilon.
-    f_min_change: Minimum change in the regularization function to continue the IRLS iterations.
-    max_irls_iterations: Maximum number of IRLS iterations.
-    percentile: Percentile of the function values used to determine the initial IRLS threshold.
+    beta_search: bool
+        Proceed with a beta search step if the target misfit is outside the tolerance.
+    misfit_tolerance: float
+        Tolerance for the target misfit.
+    chifact_start: float
+        Starting chi factor for the IRLS iterations.
+    chifact_target: float
+        Target chi factor for the IRLS iterations.
+    cooling_factor: float
+        Factor to cool the IRLS threshold epsilon.
+    f_min_change: float
+        Minimum change in the regularization function to continue the IRLS iterations.
+    max_irls_iterations: int
+        Maximum number of IRLS iterations.
+    percentile: float
+        Percentile of the function values used to determine the initial IRLS threshold.
     """
 
     def __init__(
