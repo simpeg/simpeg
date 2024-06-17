@@ -5,7 +5,7 @@ import warnings
 import numpy as np
 from dataclasses import dataclass
 from typing import Literal
-from simpeg.directives import InversionDirective, UpdatePreconditioner, BetaSchedule
+from .directives import InversionDirective, UpdatePreconditioner, BetaSchedule
 from simpeg.regularization import Sparse, BaseSparse, SmoothnessFirstOrder
 from simpeg.utils import validate_integer, validate_float, validate_type
 from simpeg.utils.code_utils import deprecate_property
