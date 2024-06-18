@@ -7,7 +7,7 @@ import os
 import scipy.sparse as sp
 from ..typing import RandomSeed
 from ..data_misfit import BaseDataMisfit
-from ..objective_function import ComboObjectiveFunction
+from ..objective_function import BaseObjectiveFunction, ComboObjectiveFunction
 from ..maps import IdentityMap, Wires
 from ..regularization import (
     WeightedLeastSquares,
