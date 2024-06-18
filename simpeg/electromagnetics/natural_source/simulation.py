@@ -891,3 +891,34 @@ class Simulation3DFictitiousSource(Simulation3DElectricField):
             raise ValueError(
                 "'sigma_background' must be a (n_cells_z,) or (n_cells,) numpy.ndarray."
             )
+
+    def getRHS(self, freq):
+        r"""Right-hand sides for the given frequency.
+
+        This method returns the right-hand sides for the frequency provided.
+        The right-hand side for each source is constructed according to:
+
+        .. math::
+            \mathbf{q} = i \omega \mathbf{s_e}
+
+        where :math:`\mathbf{s_e}` is a fictitious source.
+
+        See the *Notes* section of the doc strings for :class:`Simulation3DFictitiousSource`
+        for a full description of the formulation. And see the doc strings for
+        :class:`.natural_source.FictitiousSource3D` for a description of how fictitious
+        sources are generated.
+
+        Parameters
+        ----------
+        freq : float
+            The frequency in Hz.
+
+        Returns
+        -------
+        (n_edges, 2) numpy.ndarray
+            The right-hand sides, one for each planewave polarization.
+        """
+
+        _, s_e = self.getSourceTerm(freq)
+
+        return 1j * omega(freq) * s_e

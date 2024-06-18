@@ -381,7 +381,7 @@ class FictitiousSource3D(BaseFDEMSrc):
 
             A = C.T.tocsr() * MfMui * C + 1j * omega(self.frequency) * MeSigma
 
-            s_e = 1j * omega(self.frequency) * (A @ np.c_[fields_x, fields_y])
+            s_e = (A @ np.c_[fields_x, fields_y]) / (1j * omega(self.frequency))
 
         else:
 
