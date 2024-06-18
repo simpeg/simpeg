@@ -39,7 +39,6 @@ class UpdateIRLS(InversionDirective):
 
     Parameters
     ----------
-
     beta_search: bool
         Proceed with a beta search step if the target misfit is outside the tolerance.
     misfit_tolerance: float
