@@ -271,7 +271,7 @@ save_iteration = directives.SaveOutputEveryIteration(save_txt=False)
 
 # Directive for the IRLS
 update_IRLS = directives.Update_IRLS(
-    max_irls_iterations=30, minGNiter=1, coolEpsFact=1.5
+    max_irls_iterations=30, minGNiter=1, coolEpsFact=1.5, update_beta=True
 )
 
 # Updating the preconditionner if it is model dependent.
