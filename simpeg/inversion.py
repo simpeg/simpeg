@@ -15,7 +15,7 @@ class BaseInversion(object):
         counter=None,
         debug=False,
         name="BaseInversion",
-        **kwargs
+        **kwargs,
     ):
         if directiveList is None:
             directiveList = []
