@@ -326,14 +326,11 @@ update_Jacobi = directives.UpdatePreconditioner()
 save_iteration = directives.SaveOutputEveryIteration(save_txt=False)
 
 
-update_IRLS = directives.Update_IRLS(
+update_IRLS = directives.UpdateIRLS(
     max_irls_iterations=20,
-    fix_Jmatrix=True,
     f_min_change=1e-3,
 )
 
-# Setting a beta cooling schedule
-beta_schedule = directives.BetaSchedule(coolingFactor=2, coolingRate=1)
 
 # Updating the preconditionner if it is model dependent.
 update_jacobi = directives.UpdatePreconditioner()
@@ -349,7 +346,6 @@ target = directives.TargetMisfit()
 # The directives are defined as a list.
 directives_list = [
     starting_beta,
-    beta_schedule,
     save_iteration,
     update_IRLS,
     beta_schedule,

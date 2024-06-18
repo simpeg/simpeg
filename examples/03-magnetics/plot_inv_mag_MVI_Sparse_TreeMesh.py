@@ -351,7 +351,7 @@ irls = directives.UpdateIRLS(
     max_irls_iterations=20,
     misfit_tolerance=0.5,
 )
-
+scale_spherical = directives.SphericalDomain()
 # Special directive specific to the mag amplitude problem. The sensitivity
 # weights are updated between each iteration.
 spherical_projection = directives.ProjectSphericalBounds()
@@ -361,6 +361,7 @@ update_Jacobi = directives.UpdatePreconditioner()
 inv = inversion.BaseInversion(
     invProb,
     directiveList=[
+        scale_spherical,
         spherical_projection,
         irls,
         sensitivity_weights,

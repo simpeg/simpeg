@@ -126,10 +126,10 @@ def run(plotIt=True, cleanAfterRun=True):
     # IRLS sets up the Lp inversion problem
     # Set the eps parameter parameter in Line 11 of the
     # input file based on the distribution of model (DEFAULT = 95th %ile)
-    IRLS = directives.Update_IRLS(
+    IRLS = directives.UpdateIRLS(
         f_min_change=1e-4,
         max_irls_iterations=40,
-        coolEpsFact=1.5,
+        irls_cooling_factor=1.5,
         misfit_tolerance=5e-1,
     )
 

@@ -307,7 +307,7 @@ save_iteration = directives.SaveOutputEveryIteration(save_txt=False)
 
 # Defines the directives for the IRLS regularization. This includes setting
 # the cooling schedule for the trade-off parameter.
-update_IRLS = directives.Update_IRLS(
+update_IRLS = directives.UpdateIRLS(
     f_min_change=1e-4,
     max_irls_iterations=30,
     cooling_factor=1.5,

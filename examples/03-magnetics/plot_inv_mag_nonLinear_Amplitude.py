@@ -253,7 +253,7 @@ betaest = directives.BetaEstimate_ByEig(beta0_ratio=2)
 
 # Target misfit to stop the inversion,
 # try to fit as much as possible of the signal, we don't want to lose anything
-IRLS = directives.Update_IRLS(
+IRLS = directives.UpdateIRLS(
     f_min_change=1e-3, misfit_tolerance=1e-1, max_irls_iterations=5
 )
 
@@ -369,14 +369,7 @@ invProb = inverse_problem.BaseInvProblem(dmis, reg, opt)
 betaest = directives.BetaEstimate_ByEig(beta0_ratio=1)
 
 # Specify the sparse norms
-IRLS = directives.Update_IRLS(
-    max_irls_iterations=10,
-    f_min_change=1e-3,
-    coolingRate=1,
-)
-
-# Setting a beta cooling schedule
-beta_schedule = directives.BetaSchedule(coolingFactor=2, coolingRate=1)
+IRLS = directives.UpdateIRLS(max_irls_iterations=10, f_min_change=1e-3)
 
 # Special directive specific to the mag amplitude problem. The sensitivity
 # weights are updated between each iteration.
@@ -386,7 +379,7 @@ update_Jacobi = directives.UpdatePreconditioner()
 # Put all together
 inv = inversion.BaseInversion(
     invProb,
-    directiveList=[update_SensWeight, betaest, IRLS, beta_schedule, update_Jacobi],
+    directiveList=[update_SensWeight, betaest, IRLS, update_Jacobi],
 )
 
 # Invert

@@ -255,10 +255,7 @@ inv_prob = inverse_problem.BaseInvProblem(dmis, reg, opt)
 update_sensitivity_weights = directives.UpdateSensitivityWeights()
 
 # Reach target misfit for L2 solution, then use IRLS until model stops changing.
-IRLS = directives.Update_IRLS(max_irls_iterations=40, minGNiter=1, f_min_change=1e-5)
-
-# Setting a beta cooling schedule
-beta_schedule = directives.BetaSchedule(coolingFactor=2, coolingRate=1)
+IRLS = directives.UpdateIRLS(max_irls_iterations=40, minGNiter=1, f_min_change=1e-5)
 
 # Defining a starting value for the trade-off parameter (beta) between the data
 # misfit and the regularization.
@@ -275,7 +272,6 @@ directives_list = [
     update_sensitivity_weights,
     IRLS,
     starting_beta,
-    beta_schedule,
     update_Jacobi,
     save_iteration,
 ]

@@ -240,15 +240,12 @@ inv_prob = inverse_problem.BaseInvProblem(dmis, reg, opt)
 #
 
 # Reach target misfit for L2 solution, then use IRLS until model stops changing.
-update_IRLS = directives.Update_IRLS(
+update_IRLS = directives.UpdateIRLS(
     f_min_change=1e-4,
     max_irls_iterations=30,
-    cooling_factor=1.5,
+    irls_cooling_factor=1.5,
     misfit_tolerance=1e-2,
 )
-
-# Setting a beta cooling schedule
-beta_schedule = directives.BetaSchedule(coolingFactor=2, coolingRate=1)
 
 # Defining a starting value for the trade-off parameter (beta) between the data
 # misfit and the regularization.
@@ -258,7 +255,7 @@ starting_beta = directives.BetaEstimate_ByEig(beta0_ratio=2e0)
 saveDict = directives.SaveOutputEveryIteration(save_txt=False)
 
 # Define the directives as a list
-directives_list = [starting_beta, update_IRLS, beta_schedule, saveDict]
+directives_list = [starting_beta, update_IRLS, saveDict]
 
 
 #####################################################################

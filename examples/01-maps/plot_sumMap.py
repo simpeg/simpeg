@@ -175,15 +175,10 @@ def run(plotIt=True):
     # Here is where the norms are applied
     # Use pick a threshold parameter empirically based on the distribution of
     #  model parameters
-    IRLS = directives.Update_IRLS(f_min_change=1e-3)
-
-    # Setting a beta cooling schedule
-    beta_schedule = directives.BetaSchedule(coolingFactor=2, coolingRate=1)
+    IRLS = directives.UpdateIRLS(f_min_change=1e-3)
 
     update_Jacobi = directives.UpdatePreconditioner()
-    inv = inversion.BaseInversion(
-        invProb, directiveList=[IRLS, betaest, beta_schedule, update_Jacobi]
-    )
+    inv = inversion.BaseInversion(invProb, directiveList=[IRLS, betaest, update_Jacobi])
 
     # Run the inversion
     m0 = np.ones(sumMap.shape[1]) * 1e-4  # Starting model

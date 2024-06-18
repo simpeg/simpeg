@@ -125,7 +125,7 @@ from .pgi_directives import (
     PGI_AddMrefInSmooth,
 )
 
-from ._regularization import UpdateIRLS
+from ._regularization import SphericalDomain, UpdateIRLS
 
 from .sim_directives import (
     SimilarityMeasureInversionDirective,

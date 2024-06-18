@@ -183,7 +183,9 @@ betaest = directives.BetaEstimate_ByEig(beta0_ratio=1e1)
 sensitivity_weights = directives.UpdateSensitivityWeights()
 
 # Here is where the norms are applied
-IRLS = directives.Update_IRLS(f_min_change=1e-3, max_irls_iterations=10, beta_tol=5e-1)
+IRLS = directives.UpdateIRLS(
+    f_min_change=1e-3, max_irls_iterations=10, misfit_tolerance=5e-1
+)
 
 # Pre-conditioner
 update_Jacobi = directives.UpdatePreconditioner()

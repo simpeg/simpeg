@@ -236,10 +236,10 @@ betaest = directives.BetaEstimate_ByEig(beta0_ratio=1e-1)
 # Here is where the norms are applied
 # Use a threshold parameter empirically based on the distribution of
 # model parameters
-update_IRLS = directives.Update_IRLS(
+update_IRLS = directives.UpdateIRLS(
     f_min_change=1e-4,
     max_irls_iterations=0,
-    coolEpsFact=1.5,
+    irls_cooling_factor=1.5,
     misfit_tolerance=1e-2,
 )
 saveDict = directives.SaveOutputEveryIteration(save_txt=False)

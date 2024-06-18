@@ -136,7 +136,7 @@ class MagInvLinProblemTest(unittest.TestCase):
         )
 
         invProb = inverse_problem.BaseInvProblem(dmis, reg, opt, beta=1e6)
-        IRLS = directives.Update_IRLS()
+        IRLS = directives.UpdateIRLS()
         update_Jacobi = directives.UpdatePreconditioner()
         sensitivity_weights = directives.UpdateSensitivityWeights()
         self.inv = inversion.BaseInversion(
