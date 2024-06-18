@@ -255,7 +255,7 @@ def plot2Ddata(
             Y,
             hillshade(DATA, shade_azimuth, shade_angle_altitude),
             shade_ncontour,
-            **shadeOpts
+            **shadeOpts,
         )
 
     if dataloc:
@@ -279,7 +279,7 @@ def plot_1d_layer_model(
     plot_elevation=False,
     show_layers=False,
     vlim=None,
-    **kwargs
+    **kwargs,
 ):
     """
     Plot the vertical profile for a 1D layered Earth model.

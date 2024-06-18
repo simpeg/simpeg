@@ -55,7 +55,7 @@ class Simulation1DRecursive(BaseSimulation):
         thicknesses=None,
         thicknessesMap=None,
         fix_Jmatrix=False,
-        **kwargs
+        **kwargs,
     ):
         super().__init__(mesh=None, survey=survey, **kwargs)
         self.fix_Jmatrix = fix_Jmatrix
