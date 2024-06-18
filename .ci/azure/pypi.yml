@@ -28,7 +28,7 @@ jobs:
         displayName: "Configure local_scheme (except on release)"
 
       - bash: |
-          python -m build --skip-dependency-check --sdist .
+          python -m build --sdist .
         displayName: "Create source distribution for simpeg"
 
       - bash: |
