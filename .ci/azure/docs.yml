@@ -21,10 +21,19 @@ jobs:
       - bash: .ci/azure/setup_env.sh
         displayName: Setup SimPEG environment
 
+      # Build docs for deployment (release and nightly build)
       - bash: |
           source activate simpeg-test
           make -C docs html
-        displayName: Building documentation
+        condition: or(eq(variables['Build.Reason'], 'Schedule'), startsWith(variables['build.sourceBranch'], 'refs/tags/'))
+        displayName: "Build documentation"
+
+      # Build docs and check links (noplot)
+      - bash: |
+          source activate simpeg-test
+          make -C docs html-noplot linkcheck-noplot
+        condition: not(or(eq(variables['Build.Reason'], 'Schedule'), startsWith(variables['build.sourceBranch'], 'refs/tags/')))
+        displayName: "Build documentation (linkcheck and noplot)"
 
       - task: PublishPipelineArtifact@1
         inputs:
