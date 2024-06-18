@@ -97,8 +97,6 @@ is used under the hood to handle the execution of all directives passed to the
 
 """
 
-from ..utils.code_utils import deprecate_class
-
 from .directives import (
     InversionDirective,
     DirectiveList,
@@ -117,6 +115,7 @@ from .directives import (
     ScalingMultipleDataMisfits_ByEig,
     JointScalingSchedule,
     UpdateSensitivityWeights,
+    Update_IRLS,
     ProjectSphericalBounds,
 )
 
@@ -127,14 +126,6 @@ from .pgi_directives import (
 )
 
 from ._regularization import UpdateIRLS
-
-
-@deprecate_class(removal_version="0.22.0", error=False)
-class Update_IRLS(UpdateIRLS):
-    """Deprecated class, replaced by Smallness."""
-
-    pass
-
 
 from .sim_directives import (
     SimilarityMeasureInversionDirective,

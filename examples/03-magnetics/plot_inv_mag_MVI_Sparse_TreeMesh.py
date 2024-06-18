@@ -260,7 +260,7 @@ sensitivity_weights = directives.UpdateSensitivityWeights()
 # Here is where the norms are applied
 # Use a threshold parameter empirically based on the distribution of
 #  model parameters
-IRLS = directives.Update_IRLS(
+IRLS = directives.UpdateIRLS(
     f_min_change=1e-3, max_irls_iterations=2, misfit_tolerance=5e-1
 )
 
@@ -346,16 +346,11 @@ opt.approxHinv = None
 invProb = inverse_problem.BaseInvProblem(dmis, reg, opt, beta=beta)
 
 # Here is where the norms are applied
-irls = directives.Update_IRLS(
+irls = directives.UpdateIRLS(
     f_min_change=1e-4,
     max_irls_iterations=20,
     misfit_tolerance=0.5,
-    sphericalDomain=True,
 )
-
-# Setting a beta cooling schedule
-beta_schedule = directives.BetaSchedule(coolingFactor=2, coolingRate=1)
-
 
 # Special directive specific to the mag amplitude problem. The sensitivity
 # weights are updated between each iteration.
@@ -368,7 +363,6 @@ inv = inversion.BaseInversion(
     directiveList=[
         spherical_projection,
         irls,
-        beta_schedule,
         sensitivity_weights,
         update_Jacobi,
     ],

@@ -232,8 +232,9 @@ class TestInductiveSourcesPermeability(unittest.TestCase):
         assert all(passed)
 
         prob.sigma = 1e-4 * np.ones(mesh.nC)
-        v = utils.mkvc(np.random.rand(mesh.nE))
-        w = utils.mkvc(np.random.rand(mesh.nF))
+        rng = np.random.default_rng(seed=42)
+        v = utils.mkvc(rng.uniform(size=mesh.nE))
+        w = utils.mkvc(rng.uniform(size=mesh.nF))
         assert np.all(
             mesh.get_edge_inner_product(1e-4 * np.ones(mesh.nC)) * v == prob.MeSigma * v
         )
@@ -256,8 +257,9 @@ class TestInductiveSourcesPermeability(unittest.TestCase):
         )
 
         prob.rho = 1.0 / 1e-3 * np.ones(mesh.nC)
-        v = utils.mkvc(np.random.rand(mesh.nE))
-        w = utils.mkvc(np.random.rand(mesh.nF))
+        rng = np.random.default_rng(seed=42)
+        v = utils.mkvc(rng.uniform(size=mesh.nE))
+        w = utils.mkvc(rng.uniform(size=mesh.nF))
 
         np.testing.assert_allclose(
             mesh.get_edge_inner_product(1e-3 * np.ones(mesh.nC)) * v, prob.MeSigma * v

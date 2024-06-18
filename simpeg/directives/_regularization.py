@@ -4,11 +4,10 @@ import warnings
 
 import numpy as np
 from dataclasses import dataclass
-from typing import Literal
-from simpeg.directives import InversionDirective, UpdatePreconditioner, BetaSchedule
+
+from .directives import InversionDirective, UpdatePreconditioner, BetaSchedule
 from simpeg.regularization import Sparse, BaseSparse, SmoothnessFirstOrder
-from simpeg.utils import validate_integer, validate_float, validate_type
-from simpeg.utils.code_utils import deprecate_property
+from simpeg.utils import validate_integer, validate_float
 
 
 @dataclass
@@ -23,108 +22,74 @@ class IRLSMetrics:
     irls_iteration_count: Number of IRLS iterations.
     start_irls_iter: Iteration number when the IRLS process started.
     f_old: Previous value of the regularization function.
-    mode: Mode of the IRLS algorithm, 1 for l2-norm and 2 for lp-norm iterations.
     """
 
-    input_norms: list[float]
-    irls_iteration_count = 0
-    start_irls_iter = 0
+    input_norms: list[float] = (2.0, 2.0, 2.0, 2.0)
+    irls_iteration_count: int = 0
+    start_irls_iter: int | None = None
     f_old: float = 0.0
-    mode: Literal[1, 2] = 1
 
 
-class UpdateIRLS(InversionDirective):
+class UpdateIRLS(BetaSchedule):
     """
     Directive to control the IRLS iterations for regularization.Sparse.
 
     Parameters
     ----------
-
-    beta_search: Proceed with a beta search step if the target misfit is outside the tolerance.
-    misfit_tolerance: Tolerance for the target misfit.
-    chifact_start: Starting chi factor for the IRLS iterations.
-    chifact_target: Target chi factor for the IRLS iterations.
-    cooling_factor: Factor to cool the IRLS threshold epsilon.
-    f_min_change: Minimum change in the regularization function to continue the IRLS iterations.
-    max_irls_iterations: Maximum number of IRLS iterations.
-    percentile: Percentile of the function values used to determine the initial IRLS threshold.
+    chifact_start: float
+        Starting chi factor for the IRLS iterations.
+    chifact_target: float
+        Target chi factor for the IRLS iterations.
+    irls_cooling_factor: float
+        Factor to cool the IRLS threshold epsilon.
+    f_min_change: float
+        Minimum change in the regularization function to continue the IRLS iterations.
+    max_irls_iterations: int
+        Maximum number of IRLS iterations.
+    misfit_tolerance: float
+        Tolerance for the target misfit.
+    percentile: int
+        Percentile of the function values used to determine the initial IRLS threshold.
+    verbose: bool
+        Print information to the screen.
     """
 
     def __init__(
         self,
-        beta_search: bool = False,
+        coolingRate: int = 1,
+        coolingFactor: float = 2.0,
         chifact_start: float = 1.0,
         chifact_target: float = 1.0,
-        cooling_factor: float = 1.2,
+        irls_cooling_factor: float = 1.2,
         f_min_change: float = 1e-2,
         max_irls_iterations: int = 20,
         misfit_tolerance: float = 1e-1,
         percentile: int = 100,
+        verbose: bool = True,
         **kwargs,
     ):
         self._metrics: IRLSMetrics | None = None
-        self.beta_search: bool = beta_search
         self.chifact_start: float = chifact_start
         self.chifact_target: float = chifact_target
-        self.cooling_factor: float = cooling_factor
+        self.irls_cooling_factor: float = irls_cooling_factor
         self.f_min_change: float = f_min_change
         self.max_irls_iterations: int = max_irls_iterations
         self.misfit_tolerance: float = misfit_tolerance
         self.percentile: int = percentile
 
-        if "coolingFactor" in kwargs or "coolingRate" in kwargs:
-            warnings.warn(
-                "The `coolingFactor` and `coolingRate` keywords arguments will be deprecated in future releases. "
-                "A 'BetaSchedule' directive will be added to your inversion.",
-                FutureWarning,
-                stacklevel=2,
-            )
-            kwargs["verbose"] = not kwargs.pop("silent", False)
-
-        cooling_factor = kwargs.pop("coolingFactor", 2.0)
-        beta_cooling_factor = kwargs.pop("coolingRate", 1)
-        self._beta_schedule = BetaSchedule(
-            coolingFactor=cooling_factor, coolingRate=beta_cooling_factor
+        super().__init__(
+            coolingFactor=coolingFactor,
+            coolingRate=coolingRate,
+            verbose=verbose,
+            **kwargs,
         )
-
-        if "silent" in kwargs:
-            warnings.warn(
-                "The `silent` keyword argument is deprecated. "
-                "Use `verbose` instead.",
-                FutureWarning,
-                stacklevel=2,
-            )
-            kwargs["verbose"] = not kwargs.pop("silent")
-
-        if "sphericalDomain" in kwargs or "coolingRate" in kwargs:
-            warnings.warn(
-                "The `sphericalDomain` keyword argument will be deprecated in future releases. "
-                "Use `spherical_domain` instead.",
-                FutureWarning,
-                stacklevel=2,
-            )
-
-        self._spherical_domain = kwargs.pop("sphericalDomain", False)
-
-        super().__init__(**kwargs)
 
     @property
     def metrics(self) -> IRLSMetrics:
         """Various metrics used by the IRLS algorithm."""
         if self._metrics is None:
-            self._metrics = IRLSMetrics(
-                input_norms=self.get_input_norms(),
-            )
+            self._metrics = IRLSMetrics()
         return self._metrics
-
-    def get_input_norms(self) -> list[float]:
-        input_norms = []
-        for reg in self.reg.objfcts:
-            if not isinstance(reg, Sparse):
-                continue
-            input_norms += [reg.norms]
-
-        return input_norms
 
     @property
     def max_irls_iterations(self) -> int:
@@ -146,14 +111,6 @@ class UpdateIRLS(InversionDirective):
     def misfit_tolerance(self, value):
         self._misfit_tolerance = validate_integer("misfit_tolerance", value, min_val=0)
 
-    beta_tol = deprecate_property(
-        misfit_tolerance,
-        "beta_tol",
-        "UpdateIRLS.misfit_tolerance",
-        future_warn=True,
-        removal_version="0.22.0",
-    )
-
     @property
     def percentile(self) -> float:
         """Tolerance on deviation from the target chi factor, as a fractional percent."""
@@ -162,25 +119,6 @@ class UpdateIRLS(InversionDirective):
     @percentile.setter
     def percentile(self, value):
         self._percentile = validate_integer("percentile", value, min_val=0, max_val=100)
-
-    prctile = deprecate_property(
-        percentile,
-        "prctile",
-        "UpdateIRLS.percentile",
-        future_warn=True,
-        removal_version="0.22.0",
-    )
-
-    @property
-    def iterStart(self) -> int:
-        """Iteration number when the IRLS process started."""
-
-        warnings.warn(
-            "The `iterStart` property is deprecated. Use `metrics.start_irls_iter` instead.",
-            stacklevel=2,
-        )
-
-        return self.metrics.start_irls_iter
 
     @property
     def chifact_start(self) -> float:
@@ -205,46 +143,14 @@ class UpdateIRLS(InversionDirective):
         )
 
     @property
-    def cooling_factor(self) -> float:
-        """Beta is divided by this value every `beta_cooling_factor` iterations."""
-        return self.beta_schedule.coolingFactor
-
-    coolingFactor = deprecate_property(
-        cooling_factor,
-        "coolingFactor",
-        "BetaSchedule.cooling_factor",
-        future_warn=True,
-        removal_version="0.22.0",
-    )
-
-    @property
-    def beta_cooling_factor(self) -> int:
-        """Cool after this number of iterations."""
-        return self.beta_schedule.coolingRate
-
-    @beta_cooling_factor.setter
-    def beta_cooling_factor(self, value):
-        self.beta_schedule.coolingRate = validate_integer(
-            "beta_cooling_factor", value, min_val=1
-        )
-
-    coolingRate = deprecate_property(
-        beta_cooling_factor,
-        "coolingRate",
-        "BetaSchedule.beta_cooling_factor",
-        future_warn=True,
-        removal_version="0.22.0",
-    )
-
-    @property
-    def cooling_factor(self) -> float:
+    def irls_cooling_factor(self) -> float:
         """IRLS threshold parameter (epsilon) is divided by this value every iteration."""
-        return self._cooling_factor
+        return self._irls_cooling_factor
 
-    @cooling_factor.setter
-    def cooling_factor(self, value):
-        self._cooling_factor = validate_float(
-            "cooling_factor", value, min_val=0.0, inclusive_min=False
+    @irls_cooling_factor.setter
+    def irls_cooling_factor(self, value):
+        self._irls_cooling_factor = validate_float(
+            "irls_cooling_factor", value, min_val=0.0, inclusive_min=False
         )
 
     @property
@@ -257,52 +163,6 @@ class UpdateIRLS(InversionDirective):
         self._f_min_change = validate_float(
             "f_min_change", value, min_val=0, inclusive_min=False
         )
-
-    coolEpsFact = deprecate_property(
-        cooling_factor,
-        "coolEpsFact",
-        "UpdateIRLS.cooling_factor",
-        future_warn=True,
-        removal_version="0.22.0",
-    )
-
-    coolEps_q = deprecate_property(
-        cooling_factor,
-        "coolEpsFact",
-        "UpdateIRLS.cooling_factor",
-        future_warn=True,
-        removal_version="0.22.0",
-    )
-
-    coolEps_p = deprecate_property(
-        cooling_factor,
-        "coolEpsFact",
-        "UpdateIRLS.cooling_factor",
-        future_warn=True,
-        removal_version="0.22.0",
-    )
-
-    minGNiter = deprecate_property(
-        beta_cooling_factor,
-        "minGNiter",
-        "UpdateIRLS.beta_cooling_factor",
-        future_warn=True,
-        removal_version="0.22.0",
-    )
-
-    @property
-    def beta_search(self):
-        """Whether to do a beta search.
-
-        Returns
-        -------
-        bool
-        """
-        return self._beta_search
-
-    @beta_search.setter
-    def beta_search(self, value):
-        self._beta_search = validate_type("beta_search", value, bool)
 
     def misfit_from_chi_factor(self, chi_factor: float) -> float:
         """
@@ -323,28 +183,10 @@ class UpdateIRLS(InversionDirective):
 
         return value
 
-    def initialize(self):
+    def adjust_cooling_schedule(self):
         """
-        Initialize the IRLS iterations with l2-norm regularization (mode:1).
+        Adjust the cooling schedule based on the misfit.
         """
-        if self.metrics.mode == 1:
-            for reg in self.reg.objfcts:
-                if not isinstance(reg, Sparse):
-                    continue
-                reg.norms = [2.0 for _ in reg.objfcts]
-
-    def endIter(self):
-        """
-        Check on progress of the inversion and start/update the IRLS process.
-        """
-        # After reaching target misfit with l2-norm, switch to IRLS (mode:2)
-        if self.metrics.mode == 1:
-            if self.invProb.phi_d < self.misfit_from_chi_factor(self.chifact_start):
-                self.start_irls()
-            else:
-                return
-
-        # Check if misfit is within the tolerance, otherwise scale beta
         if (
             np.abs(
                 1.0
@@ -361,20 +203,44 @@ class UpdateIRLS(InversionDirective):
             else:
                 ratio = np.mean([0.75, ratio])
 
-            self.beta_schedule.coolingFactor = ratio
+            self.coolingFactor = ratio
 
-            if self.beta_search:
-                print("Beta search step")
-                # Re-use previous model and continue with new beta
-                self.invProb.model = self.reg.objfcts[0].model
-                self.opt.xc = self.reg.objfcts[0].model
-                self.opt.iter -= 1
-                return
+    def initialize(self):
+        """
+        Initialize the IRLS iterations with l2-norm regularization (mode:1).
+        """
+
+        input_norms = []
+        for reg in self.reg.objfcts:
+            if not isinstance(reg, Sparse):
+                continue
+
+            input_norms += [reg.norms]
+            reg.norms = [2.0 for _ in reg.objfcts]
+
+        self._metrics = IRLSMetrics(
+            input_norms=input_norms,
+        )
+
+    def endIter(self):
+        """
+        Check on progress of the inversion and start/update the IRLS process.
+        """
+        # After reaching target misfit with l2-norm, switch to IRLS (mode:2)
+        if (
+            self.metrics.start_irls_iter is None
+            and self.invProb.phi_d < self.misfit_from_chi_factor(self.chifact_start)
+        ):
+            self.start_irls()
+
+        # Check if misfit is within the tolerance, otherwise scale beta
+        self.adjust_cooling_schedule()
 
         # Only update after GN iterations
         if (
-            self.opt.iter - self.metrics.start_irls_iter
-        ) % self.beta_cooling_factor == 0:
+            self.metrics.start_irls_iter is not None
+            and (self.opt.iter - self.metrics.start_irls_iter) % self.coolingRate == 0
+        ):
             if self.stopping_criteria():
                 self.opt.stopNextIteration = True
                 return
@@ -388,7 +254,9 @@ class UpdateIRLS(InversionDirective):
 
                 for obj in reg.objfcts:
                     if isinstance(reg, (Sparse, BaseSparse)):
-                        obj.irls_threshold = obj.irls_threshold / self.cooling_factor
+                        obj.irls_threshold = (
+                            obj.irls_threshold / self.irls_cooling_factor
+                        )
 
             self.metrics.irls_iteration_count += 1
 
@@ -402,14 +270,16 @@ class UpdateIRLS(InversionDirective):
 
             self.invProb.phi_m_last = self.reg(self.invProb.model)
 
+        # Repeat beta cooling schedule mechanism
+        if self.opt.iter > 0 and self.opt.iter % self.coolingRate == 0:
+            self.invProb.beta /= self.coolingFactor
+
     def start_irls(self):
         if self.verbose:
             print(
                 "Reached starting chifact with l2-norm regularization:"
                 + " Start IRLS steps..."
             )
-
-        self.metrics.mode = 2
 
         if getattr(self.opt, "iter", None) is None:
             self.metrics.start_irls_iter = 0
@@ -420,7 +290,7 @@ class UpdateIRLS(InversionDirective):
 
         # Either use the supplied irls_threshold, or fix base on distribution of
         # model values
-        for reg in self.reg.objfcts:
+        for reg, norms in zip(self.reg.objfcts, self.metrics.input_norms):
             if not isinstance(reg, Sparse):
                 continue
 
@@ -434,28 +304,13 @@ class UpdateIRLS(InversionDirective):
 
                 obj.irls_threshold = threshold
 
-        # Re-assign the norms supplied by user l2 -> lp
-        for reg, norms in zip(self.reg.objfcts, self.metrics.input_norms):
-            if not isinstance(reg, Sparse):
-                continue
             reg.norms = norms
 
-        # Save l2-model
-        self.invProb.l2model = self.invProb.model.copy()
-
-        # Print to screen
-        for reg in self.reg.objfcts:
-            if not isinstance(reg, Sparse):
-                continue
             if self.verbose:
                 print("irls_threshold " + str(reg.objfcts[0].irls_threshold))
 
-    @property
-    def beta_schedule(self) -> BetaSchedule:
-        """
-        The beta schedule used by the directive.
-        """
-        return self._beta_schedule
+        # Save l2-model
+        self.invProb.l2model = self.invProb.model.copy()
 
     def validate(self, directiveList=None):
         directive_list = directiveList.dList
@@ -475,27 +330,21 @@ class UpdateIRLS(InversionDirective):
                 stacklevel=2,
             )
 
-        beta_schedule = [d for d in directive_list if isinstance(d, BetaSchedule)]
+        beta_schedule = [
+            d for d in directive_list if isinstance(d, BetaSchedule) and d != self
+        ]
 
-        if not any(beta_schedule):
-            warnings.warn(
-                "Handling of the beta scheduling by the `Update_IRLS` directive will be deprecated "
-                "in future releases. "
-                "A `BetaSchedule` will be added to your directives list, please consider adding it yourself.",
-                stacklevel=2,
-            )
-            directiveList.dList = directiveList.dList + [self.beta_schedule]
-        else:
-            self._beta_schedule = beta_schedule[0]
+        assert len(beta_schedule) == 0, (
+            "Beta scheduling is handled by the `UpdateIRLS` directive."
+            "Remove the redundant `BetaSchedule` from your list of directives.",
+        )
 
-        if self._spherical_domain:
-            warnings.warn(
-                "The scaling of spherical parameters by the `Update_IRLS` directive will be deprecated "
-                "in future releases. "
-                "A `SphericalDomain` will be added to your directives list, please consider adding it yourself.",
-                stacklevel=2,
+        spherical_scale = [isinstance(d, SphericalDomain) for d in directive_list]
+        if any(spherical_scale):
+            assert spherical_scale.index(True) < self_ind, (
+                "The directive 'SphericalDomain' must be before UpdateIRLS "
+                "in the directiveList"
             )
-            directiveList.dList = [SphericalDomain()] + directiveList.dList
 
         return True
 
@@ -509,7 +358,7 @@ class UpdateIRLS(InversionDirective):
                 reg.model = self.invProb.model
                 phim_new += reg(reg.model)
 
-        # Check for maximum number of IRLS cycles1
+        # Check for maximum number of IRLS cycles
         if self.metrics.irls_iteration_count == self.max_irls_iterations:
             if self.verbose:
                 print(

@@ -278,9 +278,6 @@ update_IRLS = directives.UpdateIRLS(
     misfit_tolerance=1e-2,
 )
 
-# Setting a beta cooling schedule
-beta_schedule = directives.BetaSchedule(coolingFactor=2, coolingRate=1)
-
 # Options for outputting recovered models and predicted data for each beta.
 save_iteration = directives.SaveOutputEveryIteration(save_txt=False)
 
@@ -293,7 +290,6 @@ sensitivity_weights = directives.UpdateSensitivityWeights(every_iteration=False)
 # The directives are defined as a list.
 directives_list = [
     update_IRLS,
-    beta_schedule,
     sensitivity_weights,
     starting_beta,
     save_iteration,

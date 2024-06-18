@@ -265,6 +265,48 @@ class ValidationInInversion(unittest.TestCase):
 
         print("SENSITIVITY WEIGHTING BY AMPLIUTDE AND MAX ALUE TEST PASSED")
 
+    def test_irls_directive(self):
+        input_norms = [0.0, 1.0, 1.0, 1.0]
+        reg = regularization.Sparse(self.mesh)
+        reg.norms = input_norms
+
+        invProb = inverse_problem.BaseInvProblem(self.dmis, reg, self.opt)
+
+        beta_schedule = directives.BetaSchedule(coolingFactor=3)
+
+        # Here is where the norms are applied
+        irls_directive = directives.UpdateIRLS(
+            coolingFactor=3,
+            chifact_start=100.0,
+            chifact_target=1.0,
+            cooling_factor=1.2,
+            f_min_change=1e-2,
+            max_irls_iterations=20,
+            misfit_tolerance=1e-1,
+            percentile=100,
+            verbose=True,
+        )
+
+        assert irls_directive.coolingFactor == 3
+
+        with self.assertRaises(AssertionError):
+            inversion.BaseInversion(
+                invProb, directiveList=[beta_schedule, irls_directive]
+            )
+        invProb.phi_d = 1.0
+        self.opt.iter = 3
+        invProb.model = np.random.randn(reg.regularization_mesh.nC)
+        inv = inversion.BaseInversion(invProb, directiveList=[irls_directive])
+
+        irls_directive.initialize()
+        assert irls_directive.metrics.input_norms == [input_norms]
+        assert reg.norms == [2.0, 2.0, 2.0, 2.0]
+
+        irls_directive.inversion = inv
+        irls_directive.endIter()
+
+        assert irls_directive.metrics.start_irls_iter == self.opt.iter
+
     def tearDown(self):
         # Clean up the working directory
         try:

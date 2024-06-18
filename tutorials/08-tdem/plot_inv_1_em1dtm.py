@@ -250,7 +250,7 @@ inv_prob = inverse_problem.BaseInvProblem(dmis, reg, opt)
 
 # Defining a starting value for the trade-off parameter (beta) between the data
 # misfit and the regularization.
-starting_beta = directives.BetaEstimate_ByEig(beta0_ratio=1e1)
+starting_beta = directives.BetaEstimate_ByEig(beta0_ratio=1e2)
 
 # Update the preconditionner
 update_Jacobi = directives.UpdatePreconditioner()
@@ -259,10 +259,7 @@ update_Jacobi = directives.UpdatePreconditioner()
 save_iteration = directives.SaveOutputEveryIteration(save_txt=False)
 
 # Directives for the IRLS
-update_IRLS = directives.Update_IRLS(max_irls_iterations=30, cooling_factor=1.5)
-
-# Setting a beta cooling schedule
-beta_schedule = directives.BetaSchedule(coolingFactor=2, coolingRate=1)
+update_IRLS = directives.UpdateIRLS(max_irls_iterations=30, irls_cooling_factor=1.5)
 
 # Updating the preconditionner if it is model dependent.
 update_jacobi = directives.UpdatePreconditioner()
@@ -276,7 +273,6 @@ directives_list = [
     starting_beta,
     save_iteration,
     update_IRLS,
-    beta_schedule,
     update_jacobi,
 ]
 
