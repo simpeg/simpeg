@@ -274,7 +274,7 @@ class ValidationInInversion(unittest.TestCase):
             coolingFactor=3,
             chifact_start=100.0,
             chifact_target=1.0,
-            cooling_factor=1.2,
+            irls_cooling_factor=1.2,
             f_min_change=1e-2,
             max_irls_iterations=20,
             misfit_tolerance=1e-1,

@@ -274,7 +274,7 @@ starting_beta = directives.BetaEstimate_ByEig(beta0_ratio=1e0)
 update_IRLS = directives.UpdateIRLS(
     f_min_change=1e-4,
     max_irls_iterations=30,
-    cooling_factor=1.5,
+    irls_cooling_factor=1.5,
     misfit_tolerance=1e-2,
 )
 # Options for outputting recovered models and predicted data for each beta.
